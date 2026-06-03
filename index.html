@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Chess Trainer</title>
+  <meta name="description" content="Learn openings, solve puzzles, review your games move-by-move, and play vs the computer." />
+  <meta name="theme-color" content="#0e1626" />
+
+  <!-- PWA / installable -->
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon-192.png" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Chess Trainer" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <style>
+    /* Lock the page itself: no whole-screen scroll, no rubber-band bounce. */
+    html, body {
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #0e1626;
+    }
+    body {
+      position: fixed; inset: 0;
+      -webkit-text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    /* The app scrolls inside here if its content ever overflows — the page never does. */
+    #root {
+      height: 100%;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #boot {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: #8fc4ec; background: #0e1626;
+      font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      letter-spacing: .5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"><div id="boot">Loading Chess Trainer…</div></div>
+  <noscript>This app needs JavaScript enabled.</noscript>
+
+  <script src="./app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js').catch(function () {});
+      });
+    }
+  </script>
+</body>
+</html>
