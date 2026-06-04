@@ -45,6 +45,48 @@
       letter-spacing: .5px;
     }
   </style>
+
+  <!-- Cloud bridge: defined before app.js so the app can always call it. -->
+  <script>
+    window.CTCloud = {
+      ready:false, user:null, _cbs:[],
+      onAuth:function(cb){ this._cbs.push(cb); if(this.ready){ try{cb(this.user);}catch(e){} } },
+      _emit:function(u){ this.user=u; this.ready=true; this._cbs.forEach(function(cb){ try{cb(u);}catch(e){} }); },
+      signIn:function(){ return this._signIn ? this._signIn() : Promise.reject(new Error('cloud-not-ready')); },
+      signOut:function(){ return this._signOut ? this._signOut() : Promise.resolve(); },
+      load:function(){ return this._load ? this._load() : Promise.resolve(null); },
+      save:function(d){ return this._save ? this._save(d) : Promise.resolve(); }
+    };
+  </script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    const cfg = {
+      apiKey:"AIzaSyA_Z2O3L7I1QAHZmTdCwpUUpIG2z5Ck_QM",
+      authDomain:"chess-trainer-d3664.firebaseapp.com",
+      projectId:"chess-trainer-d3664",
+      storageBucket:"chess-trainer-d3664.firebasestorage.app",
+      messagingSenderId:"981387559895",
+      appId:"1:981387559895:web:dcfed8c769b5cd5a984192",
+      measurementId:"G-5R3HLNCTBQ"
+    };
+    const C = window.CTCloud;
+    try {
+      const app = initializeApp(cfg);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const provider = new GoogleAuthProvider();
+      C._signIn  = function(){ return signInWithPopup(auth, provider); };
+      C._signOut = function(){ return signOut(auth); };
+      C._load    = async function(){ const u=auth.currentUser; if(!u) return null; const snap=await getDoc(doc(db,'users',u.uid)); return snap.exists()?snap.data():null; };
+      C._save    = async function(d){ const u=auth.currentUser; if(!u) return; await setDoc(doc(db,'users',u.uid), Object.assign({}, d, {updatedAt:Date.now()}), {merge:true}); };
+      onAuthStateChanged(auth, function(u){ C._emit(u ? {uid:u.uid, name:u.displayName, email:u.email, photo:u.photoURL} : null); });
+    } catch(e) {
+      console.error('Firebase init failed', e);
+      C._emit(null);
+    }
+  </script>
 </head>
 <body>
   <div id="root"><div id="boot">Loading Chess Trainer…</div></div>
