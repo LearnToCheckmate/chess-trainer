@@ -55,13 +55,19 @@
       signIn:function(){ return this._signIn ? this._signIn() : Promise.reject(new Error('cloud-not-ready')); },
       signOut:function(){ return this._signOut ? this._signOut() : Promise.resolve(); },
       load:function(){ return this._load ? this._load() : Promise.resolve(null); },
-      save:function(d){ return this._save ? this._save(d) : Promise.resolve(); }
+      save:function(d){ return this._save ? this._save(d) : Promise.resolve(); },
+      gameCreate:function(c){ return this._gameCreate ? this._gameCreate(c) : Promise.reject(new Error('cloud-not-ready')); },
+      gameJoin:function(c){ return this._gameJoin ? this._gameJoin(c) : Promise.reject(new Error('cloud-not-ready')); },
+      gameWatch:function(id,cb){ return this._gameWatch ? this._gameWatch(id,cb) : function(){}; },
+      gamePush:function(id,d){ return this._gamePush ? this._gamePush(id,d) : Promise.resolve(); },
+      gameChat:function(id,m){ return this._gameChat ? this._gameChat(id,m) : Promise.resolve(); },
+      gameLeave:function(){ return this._gameLeave ? this._gameLeave() : undefined; }
     };
   </script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     const cfg = {
       apiKey:"AIzaSyA_Z2O3L7I1QAHZmTdCwpUUpIG2z5Ck_QM",
       authDomain:"chess-trainer-d3664.firebaseapp.com",
@@ -81,6 +87,24 @@
       C._signOut = function(){ return signOut(auth); };
       C._load    = async function(){ const u=auth.currentUser; if(!u) return null; const snap=await getDoc(doc(db,'users',u.uid)); return snap.exists()?snap.data():null; };
       C._save    = async function(d){ const u=auth.currentUser; if(!u) return; await setDoc(doc(db,'users',u.uid), Object.assign({}, d, {updatedAt:Date.now()}), {merge:true}); };
+      let _gu=null;
+      C._gameCreate = async function(color){ const u=auth.currentUser; if(!u) throw new Error('signin');
+        const code=Math.random().toString(36).slice(2,7).toUpperCase();
+        const me={uid:u.uid,name:u.displayName||'Player',photo:u.photoURL||''};
+        const data={code:code,status:'waiting',moves:[],result:null,chat:[],createdAt:Date.now(),updatedAt:Date.now()};
+        data[color==='b'?'b':'w']=me;
+        await setDoc(doc(db,'games',code), data); return {id:code,code:code}; };
+      C._gameJoin = async function(code){ const u=auth.currentUser; if(!u) throw new Error('signin');
+        code=String(code||'').trim().toUpperCase(); const ref=doc(db,'games',code); const snap=await getDoc(ref);
+        if(!snap.exists()) throw new Error('notfound'); const g=snap.data();
+        const me={uid:u.uid,name:u.displayName||'Player',photo:u.photoURL||''};
+        if(g.w&&g.w.uid===u.uid) return {id:code,color:'w'}; if(g.b&&g.b.uid===u.uid) return {id:code,color:'b'};
+        const free=g.w?(g.b?null:'b'):'w'; if(!free) throw new Error('full');
+        const upd={status:'active',updatedAt:Date.now()}; upd[free]=me; await updateDoc(ref,upd); return {id:code,color:free}; };
+      C._gameWatch = function(id,cb){ if(_gu)_gu(); _gu=onSnapshot(doc(db,'games',id), function(s){ cb(s.exists()?s.data():null); }, function(){ cb(null); }); return _gu; };
+      C._gamePush  = function(id,d){ return updateDoc(doc(db,'games',id), Object.assign({}, d, {updatedAt:Date.now()})); };
+      C._gameChat  = function(id,m){ return updateDoc(doc(db,'games',id), {chat:arrayUnion(m)}); };
+      C._gameLeave = function(){ if(_gu){ _gu(); _gu=null; } };
       onAuthStateChanged(auth, function(u){ C._emit(u ? {uid:u.uid, name:u.displayName, email:u.email, photo:u.photoURL} : null); });
     } catch(e) {
       console.error('Firebase init failed', e);
