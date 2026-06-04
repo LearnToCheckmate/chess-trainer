@@ -98,7 +98,7 @@
         code=String(code||'').trim().toUpperCase(); const ref=doc(db,'games',code); const snap=await getDoc(ref);
         if(!snap.exists()) throw new Error('notfound'); const g=snap.data();
         const me={uid:u.uid,name:u.displayName||'Player',photo:u.photoURL||''};
-        if(g.w&&g.w.uid===u.uid) return {id:code,color:'w'}; if(g.b&&g.b.uid===u.uid) return {id:code,color:'b'};
+        if(g.status==='active'){ if(g.w&&g.w.uid===u.uid) return {id:code,color:'w'}; if(g.b&&g.b.uid===u.uid) return {id:code,color:'b'}; }
         const free=g.w?(g.b?null:'b'):'w'; if(!free) throw new Error('full');
         const upd={status:'active',updatedAt:Date.now()}; upd[free]=me; await updateDoc(ref,upd); return {id:code,color:free}; };
       C._gameWatch = function(id,cb){ if(_gu)_gu(); _gu=onSnapshot(doc(db,'games',id), function(s){ cb(s.exists()?s.data():null); }, function(){ cb(null); }); return _gu; };
