@@ -61,7 +61,8 @@
       gameWatch:function(id,cb){ return this._gameWatch ? this._gameWatch(id,cb) : function(){}; },
       gamePush:function(id,d){ return this._gamePush ? this._gamePush(id,d) : Promise.resolve(); },
       gameChat:function(id,m){ return this._gameChat ? this._gameChat(id,m) : Promise.resolve(); },
-      gameLeave:function(){ return this._gameLeave ? this._gameLeave() : undefined; }
+      gameLeave:function(){ return this._gameLeave ? this._gameLeave() : undefined; },
+      gameList:function(){ return this._gameList ? this._gameList() : Promise.resolve([]); }
     };
   </script>
   <script type="module">
@@ -100,19 +101,29 @@
       C._load    = async function(){ const u=auth.currentUser; if(!u) return null; const snap=await getDoc(doc(db,'users',u.uid)); return snap.exists()?snap.data():null; };
       C._save    = async function(d){ const u=auth.currentUser; if(!u) return; await setDoc(doc(db,'users',u.uid), Object.assign({}, d, {updatedAt:Date.now()}), {merge:true}); };
       let _gu=null;
-      C._gameCreate = async function(color){ const u=auth.currentUser; if(!u) throw new Error('signin');
+      C._gameCreate = async function(color, tc){ const u=auth.currentUser; if(!u) throw new Error('signin');
         const code=Math.random().toString(36).slice(2,7).toUpperCase();
         const me={uid:u.uid,name:u.displayName||'Player',photo:u.photoURL||''};
-        const data={code:code,status:'waiting',moves:[],result:null,chat:[],createdAt:Date.now(),updatedAt:Date.now()};
+        const now=Date.now();
+        const data={code:code,status:'waiting',moves:[],result:null,chat:[],tc:tc||null,createdAt:now,updatedAt:now,moveAt:now};
         data[color==='b'?'b':'w']=me;
-        await setDoc(doc(db,'games',code), data); return {id:code,code:code}; };
+        await setDoc(doc(db,'games',code), data);
+        try{ await setDoc(doc(db,'users',u.uid), {games:arrayUnion(code), updatedAt:now}, {merge:true}); }catch(e){}
+        return {id:code,code:code}; };
       C._gameJoin = async function(code){ const u=auth.currentUser; if(!u) throw new Error('signin');
         code=String(code||'').trim().toUpperCase(); const ref=doc(db,'games',code); const snap=await getDoc(ref);
         if(!snap.exists()) throw new Error('notfound'); const g=snap.data();
         const me={uid:u.uid,name:u.displayName||'Player',photo:u.photoURL||''};
-        if(g.status==='active'){ if(g.w&&g.w.uid===u.uid) return {id:code,color:'w'}; if(g.b&&g.b.uid===u.uid) return {id:code,color:'b'}; }
+        const remember=async function(){ try{ await setDoc(doc(db,'users',u.uid), {games:arrayUnion(code), updatedAt:Date.now()}, {merge:true}); }catch(e){} };
+        if(g.w&&g.w.uid===u.uid){ await remember(); return {id:code,color:'w'}; }
+        if(g.b&&g.b.uid===u.uid){ await remember(); return {id:code,color:'b'}; }
         const free=g.w?(g.b?null:'b'):'w'; if(!free) throw new Error('full');
-        const upd={status:'active',updatedAt:Date.now()}; upd[free]=me; await updateDoc(ref,upd); return {id:code,color:free}; };
+        const upd={status:'active',updatedAt:Date.now()}; upd[free]=me; await updateDoc(ref,upd);
+        await remember(); return {id:code,color:free}; };
+      C._gameList = async function(){ const u=auth.currentUser; if(!u) return [];
+        let codes=[]; try{ const snap=await getDoc(doc(db,'users',u.uid)); const d=snap.exists()?snap.data():null; codes=(d&&Array.isArray(d.games))?d.games.slice(-40):[]; }catch(e){ return []; }
+        const out=[]; for(let i=0;i<codes.length;i++){ try{ const s=await getDoc(doc(db,'games',codes[i])); if(s.exists()){ const g=s.data(); g.id=codes[i]; out.push(g); } }catch(e){} }
+        out.sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); }); return out; };
       C._gameWatch = function(id,cb){ if(_gu)_gu(); _gu=onSnapshot(doc(db,'games',id), function(s){ cb(s.exists()?s.data():null); }, function(){ cb(null); }); return _gu; };
       C._gamePush  = function(id,d){ return updateDoc(doc(db,'games',id), Object.assign({}, d, {updatedAt:Date.now()})); };
       C._gameChat  = function(id,m){ return updateDoc(doc(db,'games',id), {chat:arrayUnion(m)}); };
