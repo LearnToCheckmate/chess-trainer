@@ -109,7 +109,7 @@
         const code=Math.random().toString(36).slice(2,7).toUpperCase();
         const me={uid:u.uid,name:u.displayName||'Player',photo:u.photoURL||''};
         const now=Date.now();
-        const data={code:code,status:'waiting',moves:[],result:null,chat:[],tc:tc||null,createdAt:now,updatedAt:now,moveAt:now};
+        const _live = tc && tc.kind!=='corr' && tc.init; const data={code:code,status:'waiting',moves:[],result:null,chat:[],tc:tc||null,clk:_live?{w:tc.init*1000,b:tc.init*1000}:null,createdAt:now,updatedAt:now,moveAt:now};
         data[color==='b'?'b':'w']=me;
         await setDoc(doc(db,'games',code), data);
         try{ await setDoc(doc(db,'users',u.uid), {games:arrayUnion(code), updatedAt:now}, {merge:true}); }catch(e){}
