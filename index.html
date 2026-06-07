@@ -62,13 +62,17 @@
       gamePush:function(id,d){ return this._gamePush ? this._gamePush(id,d) : Promise.resolve(); },
       gameChat:function(id,m){ return this._gameChat ? this._gameChat(id,m) : Promise.resolve(); },
       gameLeave:function(){ return this._gameLeave ? this._gameLeave() : undefined; },
-      gameList:function(){ return this._gameList ? this._gameList() : Promise.resolve([]); }
+      gameList:function(){ return this._gameList ? this._gameList() : Promise.resolve([]); },
+      proWatch:function(cb){ return this._proWatch ? this._proWatch(cb) : (typeof cb==='function' && cb(false), function(){}); },
+      proCheckout:function(p){ return this._proCheckout ? this._proCheckout(p) : Promise.reject(new Error('cloud-not-ready')); },
+      proPortal:function(){ return this._proPortal ? this._proPortal() : Promise.reject(new Error('cloud-not-ready')); }
     };
   </script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, arrayUnion, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
     const cfg = {
       apiKey:"AIzaSyA_Z2O3L7I1QAHZmTdCwpUUpIG2z5Ck_QM",
       authDomain:"chess-trainer-d3664.firebaseapp.com",
@@ -128,6 +132,42 @@
       C._gamePush  = function(id,d){ return updateDoc(doc(db,'games',id), Object.assign({}, d, {updatedAt:Date.now()})); };
       C._gameChat  = function(id,m){ return updateDoc(doc(db,'games',id), {chat:arrayUnion(m)}); };
       C._gameLeave = function(){ if(_gu){ _gu(); _gu=null; } };
+      // ---- Stripe Pro (firestore-stripe-payments extension, default instance "firestore-stripe-payments", region us-central1) ----
+      let _psub=null;
+      C._proWatch = function(cb){
+        const u=auth.currentUser; if(!u){ if(typeof cb==='function') cb(false); return function(){}; }
+        if(_psub){ try{_psub();}catch(e){} _psub=null; }
+        _psub=onSnapshot(collection(db,'customers',u.uid,'subscriptions'), function(snap){
+          let active=false; snap.forEach(function(d){ const s=d.data()||{}; if(s.status==='active'||s.status==='trialing') active=true; });
+          if(typeof cb==='function') cb(active);
+        }, function(){ if(typeof cb==='function') cb(false); });
+        return _psub;
+      };
+      C._proCheckout = async function(priceId){
+        const u=auth.currentUser; if(!u) throw new Error('signin');
+        const ref=await addDoc(collection(db,'customers',u.uid,'checkout_sessions'), {
+          price: priceId, mode:'subscription',
+          success_url: window.location.href, cancel_url: window.location.href,
+          allow_promotion_codes:true
+        });
+        return new Promise(function(resolve,reject){
+          let done=false;
+          const unsub=onSnapshot(ref, function(snap){
+            const d=snap.data()||{};
+            if(d.error){ done=true; try{unsub();}catch(e){} reject(new Error(d.error.message||'checkout-failed')); }
+            else if(d.url){ done=true; try{unsub();}catch(e){} resolve(); window.location.assign(d.url); }
+          }, function(e){ done=true; reject(e); });
+          setTimeout(function(){ if(!done){ try{unsub();}catch(e){} reject(new Error('timeout')); } }, 25000);
+        });
+      };
+      C._proPortal = async function(){
+        const u=auth.currentUser; if(!u) throw new Error('signin');
+        const fns=getFunctions(app);
+        const createPortal=httpsCallable(fns,'ext-firestore-stripe-payments-createPortalLink');
+        const res=await createPortal({ returnUrl: window.location.href });
+        const url=res && res.data && res.data.url;
+        if(url) window.location.assign(url); else throw new Error('no-portal-url');
+      };
       onAuthStateChanged(auth, function(u){ C._emit(u ? {uid:u.uid, name:u.displayName, email:u.email, photo:u.photoURL} : null); });
     } catch(e) {
       console.error('Firebase init failed', e);
