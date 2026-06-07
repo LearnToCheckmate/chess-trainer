@@ -63,6 +63,8 @@
       gameChat:function(id,m){ return this._gameChat ? this._gameChat(id,m) : Promise.resolve(); },
       gameLeave:function(){ return this._gameLeave ? this._gameLeave() : undefined; },
       gameList:function(){ return this._gameList ? this._gameList() : Promise.resolve([]); },
+      mmFind:function(tc,cb){ return this._mmFind ? this._mmFind(tc,cb) : Promise.reject(new Error('cloud-not-ready')); },
+      mmCancel:function(){ return this._mmCancel ? this._mmCancel() : undefined; },
       proWatch:function(cb){ return this._proWatch ? this._proWatch(cb) : (typeof cb==='function' && cb(false), function(){}); },
       proCheckout:function(p){ return this._proCheckout ? this._proCheckout(p) : Promise.reject(new Error('cloud-not-ready')); },
       proPortal:function(){ return this._proPortal ? this._proPortal() : Promise.reject(new Error('cloud-not-ready')); }
@@ -71,7 +73,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, arrayUnion, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, arrayUnion, collection, addDoc, getDocs, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
     const cfg = {
       apiKey:"AIzaSyA_Z2O3L7I1QAHZmTdCwpUUpIG2z5Ck_QM",
@@ -131,6 +133,40 @@
       C._gameWatch = function(id,cb){ if(_gu)_gu(); _gu=onSnapshot(doc(db,'games',id), function(s){ cb(s.exists()?s.data():null); }, function(){ cb(null); }); return _gu; };
       C._gamePush  = function(id,d){ return updateDoc(doc(db,'games',id), Object.assign({}, d, {updatedAt:Date.now()})); };
       C._gameChat  = function(id,m){ return updateDoc(doc(db,'games',id), {chat:arrayUnion(m)}); };
+      // ---- Quick match (matchmaking queue in collection "mm") ----
+      let _mmu=null;
+      function _sameTc(a,b){ const k=function(t){ return t?(t.kind==='corr'?('corr'+t.days):(t.label||'live')):'none'; }; return k(a)===k(b); }
+      async function _newPairedGame(meU, otherU, tc){
+        const code=Math.random().toString(36).slice(2,7).toUpperCase(); const now=Date.now();
+        const iAmWhite=Math.random()<0.5; const w=iAmWhite?meU:otherU; const b=iAmWhite?otherU:meU;
+        const live=tc&&tc.kind!=='corr'&&tc.init;
+        const data={code:code,status:'active',moves:[],result:null,chat:[],tc:tc||null,clk:live?{w:tc.init*1000,b:tc.init*1000}:null,createdAt:now,updatedAt:now,moveAt:now,w:w,b:b};
+        await setDoc(doc(db,'games',code), data);
+        try{ await setDoc(doc(db,'users',meU.uid), {games:arrayUnion(code), updatedAt:now}, {merge:true}); }catch(e){}
+        return {code:code, color:iAmWhite?'w':'b'};
+      }
+      C._mmCancel = function(){ const u=auth.currentUser; if(_mmu){ try{_mmu();}catch(e){} _mmu=null; } if(u){ deleteDoc(doc(db,'mm',u.uid)).catch(function(){}); } };
+      C._mmFind = async function(tc, cb){
+        const u=auth.currentUser; if(!u) throw new Error('signin');
+        const me={uid:u.uid,name:u.displayName||'Player',photo:u.photoURL||''};
+        let snap; try{ snap=await getDocs(collection(db,'mm')); }catch(e){ throw new Error('mm-read'); }
+        let cand=null; snap.forEach(function(d){ const e=d.data()||{}; if(!cand && e.uid && e.uid!==u.uid && e.status==='waiting' && _sameTc(e.tc, tc||null)) cand=e; });
+        if(cand){
+          const g=await _newPairedGame(me, {uid:cand.uid,name:cand.name||'Player',photo:cand.photo||''}, tc||null);
+          let claimed=false;
+          try{ await runTransaction(db, async function(tx){ const ref=doc(db,'mm',cand.uid); const cur=await tx.get(ref); if(!cur.exists()||(cur.data()||{}).status!=='waiting') throw new Error('taken'); tx.update(ref,{status:'matched',gameId:g.code,matchedAt:Date.now()}); }); claimed=true; }catch(e){ claimed=false; }
+          if(claimed){ try{ await deleteDoc(doc(db,'mm',u.uid)); }catch(e){} if(typeof cb==='function') cb({id:g.code,color:g.color}); return {id:g.code,color:g.color}; }
+          try{ await deleteDoc(doc(db,'games',g.code)); }catch(e){}
+        }
+        await setDoc(doc(db,'mm',u.uid), {uid:u.uid,name:me.name,photo:me.photo,tc:tc||null,status:'waiting',t:Date.now()});
+        if(_mmu){ try{_mmu();}catch(e){} _mmu=null; }
+        _mmu=onSnapshot(doc(db,'mm',u.uid), function(s){ const e=s.exists()?s.data():null;
+          if(e&&e.status==='matched'&&e.gameId){ const gid=e.gameId; if(_mmu){ try{_mmu();}catch(e2){} _mmu=null; } deleteDoc(doc(db,'mm',u.uid)).catch(function(){});
+            getDoc(doc(db,'games',gid)).then(function(gs){ const gd=gs.exists()?gs.data():null; let color='b'; if(gd){ if(gd.w&&gd.w.uid===u.uid)color='w'; else if(gd.b&&gd.b.uid===u.uid)color='b'; } try{ setDoc(doc(db,'users',u.uid), {games:arrayUnion(gid), updatedAt:Date.now()}, {merge:true}); }catch(e3){} if(typeof cb==='function') cb({id:gid,color:color}); }).catch(function(){ if(typeof cb==='function') cb({id:gid,color:'b'}); });
+          }
+        }, function(){});
+        return {waiting:true};
+      };
       C._gameLeave = function(){ if(_gu){ _gu(); _gu=null; } };
       // ---- Stripe Pro (firestore-stripe-payments extension, default instance "firestore-stripe-payments", region us-central1) ----
       let _psub=null;
