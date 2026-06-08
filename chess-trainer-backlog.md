@@ -551,3 +551,18 @@ STRIPE: marked DONE — Kunal finished the extension install + webhook + rules i
 - 15 main lessons now have an in-app video. Skipped Nimzo-Indian and King's Gambit this round (no single clearly-reputable channel surfaced; revisit later).
 - Reconciled working copy from repo at start of turn (disk-revert guard). Source re-backed up to repo (b053fa70). [#128]
 - NEXT video candidates: Nimzo-Indian, King's Gambit, Catalan, Grunfeld, Petrov, Alekhine, plus popular gambits (Stafford, Smith-Morra, Danish, Evans, Budapest).
+
+## Build #129 — Play nearby [2026-06-08]
+- Built solo (Kunal away). New "Play nearby" tile on the New Game screen (3rd in the friends/tourney row; also fixed the stale SOON badge wrongly showing on Friends).
+- Opt-in screen: "Find players near me" (geolocation, rounded to 1 decimal ~11km cell, stored as geo:lat,lng) OR a ZIP/postcode fallback (stored as zip:xxxx). Only a coarse area is shared, never exact coords. Lists other opted-in players in the same cell (live via onSnapshot, client-filtered to last 14 days, excludes self) with Challenge; a Stop button opts out (deletes your doc).
+- Challenge = create an online invite (onlineCreate('w')) + tell user to send the code (same as Friends v1; notified/direct nearby invites = later).
+- Firestore: collection 'nearby', doc id = uid, {uid,name,geo,at}. Query where('geo','==',cell) (single-field, no composite index). Host CTCloud: nearbyJoin/nearbyLeave/nearbyList (#129).
+- NEEDS KUNAL: publish the 'nearby' rule (below) + test on two accounts. Untestable in sandbox.
+- Disk-revert guard: reconciled from repo at start; source re-backed up (4a4695e7). [#129]
+
+### Firestore rule for Play nearby (merge with existing rules):
+match /nearby/{uid} {
+  allow read: if request.auth != null;
+  allow create, update: if request.auth != null && request.auth.uid == uid && request.resource.data.uid == uid;
+  allow delete: if request.auth != null && request.auth.uid == uid;
+}
