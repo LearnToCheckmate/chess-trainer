@@ -3,7 +3,7 @@
 # After each build run: edit TASKS/GROUPS, set STAMP, run:  python3 gen_tracker.py
 import json, datetime
 
-STAMP = "Updated through build #127 - 2026-06-08"
+STAMP = "Updated through build #128 - 2026-06-08"
 
 GROUPS = [
     {"key": "online", "nm": "Online & multiplayer", "color": "#7bd1ff", "isNew": True},
@@ -61,7 +61,7 @@ TASKS = [
     # Discover
     {"g": "disc", "id": "dc-add",        "s": "done", "b": "#120", "t": "Added 12 curated openings", "n": "Done (#120): you had no list, so I curated 12 missing ones (engine-verified): French Tarrasch, Queen\u2019s Indian, Bogo-Indian, Colle, Stonewall, Torre, Benoni, Tarrasch Defense, Sicilian Alapin, Closed Sicilian, Ponziani, Center Game. (Najdorf, Ruy main, Caro Classical, French Classical were already the main lines.)"},
     {"g": "disc", "id": "dc-gambitsbtn", "s": "done", "b": "#115", "t": "Gambits lesson buttons higher / more compact", "n": "Moved the move-stepper (Play, step, replay) to a compact row just above the board so it is always visible without scrolling; the old below-board copy is gone."},
-    {"g": "disc", "id": "dc-vid",        "s": "part", "you": True, "t": "In-lesson video (embedded) + links", "n": "Embedded player built; auto-filling curated picks (#126): 8 top lessons \u2014 Italian, Ruy Lopez, Sicilian, French, Caro-Kann, Queen\u2019s Gambit, London, King\u2019s Indian \u2014 now have a Remote Chess Academy video that plays in-app. Best-guess IDs; swap any you dislike. More lessons later."},
+    {"g": "disc", "id": "dc-vid",        "s": "part", "you": True, "t": "In-lesson video (embedded) + links", "n": "Embedded player built; 15 main lessons now have a curated Remote Chess Academy video that plays in-app (batches #126 + #128): Italian, Ruy Lopez, Sicilian, French, Caro-Kann, Queen\u2019s Gambit, London, King\u2019s Indian, Scotch (Game + Gambit), Vienna, English, Scandinavian, Pirc, Dutch. Best-guess IDs; swap any you dislike. More lessons can be added later."},
     {"g": "disc", "id": "dc-ipad",       "s": "done", "b": "#123", "t": "iPad landscape Home \u2014 bigger tiles", "n": "Reverted Option C (#123): back to the prior layout you preferred (Colors/Style chips on their own row below the coach), and made the four tiles and their text much bigger in landscape to fill the empty space. Reload the iPad tab (it was stuck on #104). Tell me if you want them bigger still."},
     {"g": "disc", "id": "dc-done",       "s": "done", "t": "Discover core: openings, gambits, endgames, notation, feedback widget"},
 
