@@ -73,7 +73,8 @@
       friendsWatch:function(cb){ return this._friendsWatch ? this._friendsWatch(cb) : ((typeof cb==='function')&&cb({incoming:[],friends:[]}), function(){}); },
       friendAccept:function(r){ return this._friendAccept ? this._friendAccept(r) : Promise.reject(new Error('cloud-not-ready')); },
       friendDecline:function(id){ return this._friendDecline ? this._friendDecline(id) : Promise.reject(new Error('cloud-not-ready')); },
-      friendRemove:function(id){ return this._friendRemove ? this._friendRemove(id) : Promise.reject(new Error('cloud-not-ready')); }
+      friendRemove:function(id){ return this._friendRemove ? this._friendRemove(id) : Promise.reject(new Error('cloud-not-ready')); },
+      scanBoard:function(img){ return this._scanBoard ? this._scanBoard(img) : Promise.reject(new Error('cloud-not-ready')); }
     };
   </script>
   <script type="module">
@@ -240,6 +241,8 @@
       };
       C._friendDecline=async function(reqId){ const u=auth.currentUser; if(!u) throw new Error('signin'); await deleteDoc(doc(db,'friendReqs',reqId)); };
       C._friendRemove=async function(fid){ const u=auth.currentUser; if(!u) throw new Error('signin'); await deleteDoc(doc(db,'friends',fid)); };
+      // ---- Photo to board (calls a deployed Cloud Function 'scanBoard' that returns a FEN) ----
+      C._scanBoard=async function(imgB64){ const fns=getFunctions(app); const call=httpsCallable(fns,'scanBoard'); const r=await call({ image:imgB64 }); return (r&&r.data)||null; };
       onAuthStateChanged(auth, function(u){ C._emit(u ? {uid:u.uid, name:u.displayName, email:u.email, photo:u.photoURL} : null); });
     } catch(e) {
       console.error('Firebase init failed', e);
