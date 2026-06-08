@@ -545,3 +545,9 @@ STRIPE: marked DONE — Kunal finished the extension install + webhook + rules i
 - Cloud Function provided to Kunal (scanBoard.cloud-function.js): v2 onCall, calls Claude vision (claude-sonnet-4-6) -> FEN, uses ANTHROPIC_API_KEY secret. NEEDS KUNAL: firebase init functions (if needed), paste code, set secret, deploy --only functions:scanBoard. Region us-central1.
 - INCIDENT + RECOVERY: the sandbox filesystem reverted between turns. chess.jsx on disk had lost Friends (#125) and the 8 videos (#126), keeping only this turn's scan edits; an interim deploy (#125-stamped b7d7a2a9) was a regression. Re-applied Friends + Videos from the in-context edit scripts, rebuilt chess.jsx (friendsOpen=1, videos=10, scan=1, 4110 lines), and redeployed a correct #127 (c0c669d7). Verified live bundle has Friends + videos + scan + stamp.
 - PROTECTION: chess.jsx source is now pushed to the repo (cf13e329) as a durable backup. If the disk reverts again, fetch the true source from raw.githubusercontent.com/.../main/chess.jsx before editing.
+
+## Build #128 — In-lesson video auto-fill, batch 2 [2026-06-08]
+- Added 7 more curated Remote Chess Academy videos (correct author; best-guess IDs, swap if needed): Scotch Game _r4QNfOzPik, Scotch Gambit QEYybZ8FYGE, Vienna Game x7NhxHm5qoI, English Opening eM6d2etuzZU, Scandinavian sKoBj-kL0hg, Pirc nBYZ_H6u_9c, Dutch m4TpwMWIoyw. [#128]
+- 15 main lessons now have an in-app video. Skipped Nimzo-Indian and King's Gambit this round (no single clearly-reputable channel surfaced; revisit later).
+- Reconciled working copy from repo at start of turn (disk-revert guard). Source re-backed up to repo (b053fa70). [#128]
+- NEXT video candidates: Nimzo-Indian, King's Gambit, Catalan, Grunfeld, Petrov, Alekhine, plus popular gambits (Stafford, Smith-Morra, Danish, Evans, Budapest).
