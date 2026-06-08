@@ -89,6 +89,8 @@
       const app = initializeApp(cfg);
       const auth = getAuth(app);
       const db = getFirestore(app);
+      // Pre-warm the Firestore connection on load so the first real read/write (often the first online move) is not slow.
+      try{ getDoc(doc(db,'_warm','ping')).catch(function(){}); }catch(e){}
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
