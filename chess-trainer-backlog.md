@@ -566,3 +566,9 @@ match /nearby/{uid} {
   allow create, update: if request.auth != null && request.auth.uid == uid && request.resource.data.uid == uid;
   allow delete: if request.auth != null && request.auth.uid == uid;
 }
+
+## Build #130 — In-lesson video auto-fill, batch 3 (gambits + more) [2026-06-08]
+- Added 7 more curated videos (swap IDs if needed): Evans ykjowp6waXA (RCA), Smith-Morra VEZ0H-g6U-8 (RCA), Danish WBAxtec_clo (Andras Toth), Budapest vSnN50aP3p4 (RCA), Stafford nH_fiqlLp2U (Eric Rosen, the popularizer), Catalan QYZu2HBP0PE (RCA), Grunfeld QdUKFEH58GE (RCA). [#130]
+- 22 lessons now have an in-app video (24 video fields incl the 2 original).
+- Still no video on: Nimzo-Indian, King's Gambit, Petrov, Alekhine, and many smaller lines/traps; add later if wanted.
+- Disk-revert guard: reconciled from repo at start; source re-backed up (b6cbd9aa). [#130]
