@@ -3,7 +3,7 @@
 # After each build run: edit TASKS/GROUPS, set STAMP, run:  python3 gen_tracker.py
 import json, datetime
 
-STAMP = "Updated through build #128 - 2026-06-08"
+STAMP = "Updated through build #129 - 2026-06-08"
 
 GROUPS = [
     {"key": "online", "nm": "Online & multiplayer", "color": "#7bd1ff", "isNew": True},
@@ -85,7 +85,7 @@ TASKS = [
     {"g": "infra", "id": "in-palm",  "s": "open", "t": "Palm / bottom-edge touch rejection", "n": "Tune on device."},
 
     # Community / Social
-    {"g": "comm", "id": "cm-near", "s": "open", "you": True, "t": "Play your neighbours (location / ZIP)", "n": "Privacy & legal; a product call."},
+    {"g": "comm", "id": "cm-near", "s": "done", "b": "#129", "you": True, "t": "Play nearby (approx location / ZIP)", "n": "Built (#129): a Play-nearby tile on the New Game screen opens an opt-in screen. You choose to be visible; only a coarse area is shared (GPS rounded to ~11km, or your ZIP), never exact coordinates. It lists other opted-in players in your area with a Challenge button, and a Stop button to opt out. NEEDS YOU: publish the nearby Firestore rule (provided), then test on two accounts. Untestable in my sandbox (no location, no other users). Direct nearby invites + distance are a later pass."},
     {"g": "comm", "id": "cm-soc",  "s": "open", "you": True, "t": "Social / dating angle", "n": "Safety, consent, moderation; pick a direction."},
 
     # Polish
