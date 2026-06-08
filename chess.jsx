@@ -1779,6 +1779,12 @@ export default function App(){
   const [friendsData,setFriendsData]=useState({incoming:[],friends:[]});
   const [friendIdInput,setFriendIdInput]=useState('');
   const [friendMsg,setFriendMsg]=useState('');
+  const [nearbyOpen,setNearbyOpen]=useState(false);
+  const [nearbyData,setNearbyData]=useState([]);
+  const [nearbyGeo,setNearbyGeo]=useState(null);
+  const [nearbyMsg,setNearbyMsg]=useState('');
+  const [nearbyBusy,setNearbyBusy]=useState(false);
+  const [nearbyZip,setNearbyZip]=useState('');
   const [fbOpen,setFbOpen]=useState(false); const [fbText,setFbText]=useState(''); const [fbSent,setFbSent]=useState(false);
   const [learnPlans,setLearnPlans]=useState('');
   const [learnIdea,setLearnIdea]=useState('');
@@ -1983,6 +1989,7 @@ export default function App(){
   useEffect(()=>{try{localStorage.setItem('ct_pro',testPro?'1':'0');}catch{}},[testPro]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!C.proWatch||!cloudUser){setSubPro(false);return;}let unsub=null;try{unsub=C.proWatch(a=>setSubPro(!!a));}catch(e){setSubPro(false);}return()=>{try{unsub&&unsub();}catch(e){}};},[cloudUser]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!C.friendsWatch||!cloudUser){setFriendsData({incoming:[],friends:[]});return;}let unsub=null;try{unsub=C.friendsWatch(d=>setFriendsData(d||{incoming:[],friends:[]}));}catch(e){}return()=>{try{unsub&&unsub();}catch(e){}};},[cloudUser]);
+  useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!C.nearbyList||!cloudUser||!nearbyGeo){return;}let unsub=null;try{unsub=C.nearbyList(nearbyGeo,list=>{const me=cloudUser&&cloudUser.uid;const cutoff=Date.now()-14*24*3600*1000;setNearbyData((list||[]).filter(x=>x&&x.uid!==me&&(!x.at||x.at>cutoff)));});}catch(e){}return()=>{try{unsub&&unsub();}catch(e){}};},[cloudUser,nearbyGeo]);
   useEffect(()=>{try{localStorage.setItem('ct_ccuser',chessUser);}catch{}},[chessUser]);
   useEffect(()=>{try{localStorage.setItem('ct_liuser',lichessUser);}catch{}},[lichessUser]);
   useEffect(()=>{syncRef.current={theme,elo:cpuElo,skin};},[theme,cpuElo,skin]);
@@ -2541,6 +2548,39 @@ export default function App(){
     img.onerror=()=>{ try{URL.revokeObjectURL(url);}catch(_){} setScanBusy(false); setScanMsg('Could not open that image.'); };
     img.src=url;
   };
+  const nearbyJoin=()=>{
+    if(!cloudUser){ setUpgradeMsg('Sign in to play nearby players.'); setAcctOpen(true); return; }
+    if(typeof navigator==='undefined'||!navigator.geolocation){ setNearbyMsg('Location is not available here. Enter your ZIP or postcode below instead.'); return; }
+    setNearbyBusy(true); setNearbyMsg('Finding players near you…');
+    navigator.geolocation.getCurrentPosition(async(pos)=>{
+      try{
+        const lat=Math.round(pos.coords.latitude*10)/10, lng=Math.round(pos.coords.longitude*10)/10;
+        const cell='geo:'+lat+','+lng;
+        await window.CTCloud.nearbyJoin(cell,(cloudUser&&cloudUser.name)||'Player');
+        setNearbyGeo(cell); setNearbyBusy(false); setNearbyMsg('');
+      }catch(e){ setNearbyBusy(false); setNearbyMsg('Could not turn on nearby right now. Please try again.'); }
+    },()=>{ setNearbyBusy(false); setNearbyMsg('Location was blocked. You can enter your ZIP or postcode below instead.'); },{enableHighAccuracy:false,timeout:10000,maximumAge:300000});
+  };
+  const nearbyJoinZip=async()=>{
+    const z=nearbyZip.trim();
+    if(!cloudUser){ setUpgradeMsg('Sign in to play nearby players.'); setAcctOpen(true); return; }
+    if(!z){ setNearbyMsg('Enter your ZIP or postcode first.'); return; }
+    setNearbyBusy(true); setNearbyMsg('Turning on nearby…');
+    try{
+      const cell='zip:'+z.toLowerCase().replace(/\s+/g,'');
+      await window.CTCloud.nearbyJoin(cell,(cloudUser&&cloudUser.name)||'Player');
+      setNearbyGeo(cell); setNearbyBusy(false); setNearbyMsg('');
+    }catch(e){ setNearbyBusy(false); setNearbyMsg('Could not turn on nearby right now. Please try again.'); }
+  };
+  const nearbyLeave=async()=>{
+    try{ await window.CTCloud.nearbyLeave(); }catch(e){}
+    setNearbyGeo(null); setNearbyData([]); setNearbyMsg('You are no longer visible to nearby players.');
+  };
+  const nearbyChallenge=(p)=>{
+    setNearbyOpen(false); setHomeScreen(false); setMode('play'); setOpponent('online'); setOnlineGame(null); setMyColor(null); setOnlineErr(''); setPlaySetup(false);
+    setOnlineInfo('Game created. Send '+((p&&p.name)||'them')+' your invite code to start.');
+    setTimeout(function(){ try{ onlineCreate('w'); }catch(e){} },0);
+  };
   const onlineCreate=async(color)=>{const C=window.CTCloud;
     if(!cloudUser||!C){setOnlineErr('Sign in first — open ☰ menu → Account.');return;}
     setOnlineErr('');setOnlineInfo('Creating game…');
@@ -2820,6 +2860,43 @@ export default function App(){
           </div>
         </div>);})()}
 
+      {nearbyOpen&&(
+        <div style={{position:'fixed',inset:0,zIndex:540,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`max(24px,env(safe-area-inset-top,0px)) 18px max(20px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+          <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <button onClick={()=>setNearbyOpen(false)} style={{minWidth:36,height:32,borderRadius:9,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:14,padding:'0 11px'}}>‹ Back</button>
+              <div style={{fontFamily:headFont,fontSize:'clamp(18px,4.4vw,24px)',fontWeight:800,color:'#fff'}}>📍 Play nearby</div>
+            </div>
+            {nearbyMsg&&<div style={{fontSize:'clamp(11px,2.5vw,13px)',color:'var(--ac2)',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:10,padding:'9px 12px'}}>{nearbyMsg}</div>}
+            {!nearbyGeo?(<>
+              <div style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:14,padding:'14px 13px',lineHeight:1.5,fontSize:'clamp(11px,2.5vw,13px)',color:'rgba(255,255,255,.8)'}}>Find other players in your area and challenge them. You choose to be visible, and only an approximate area is shared (never your exact location). You can turn this off any time.</div>
+              <button onClick={nearbyJoin} disabled={nearbyBusy} style={{width:'100%',padding:'14px',borderRadius:13,border:'none',background:'var(--ac)',color:'#15210a',fontWeight:800,fontSize:'clamp(13px,3vw,16px)',cursor:nearbyBusy?'default':'pointer',opacity:nearbyBusy?.6:1}}>{nearbyBusy?'Finding players…':'📍 Find players near me'}</button>
+              <div style={{display:'flex',alignItems:'center',gap:8,color:'rgba(255,255,255,.4)',fontSize:'clamp(9px,2vw,11px)'}}><div style={{flex:1,height:1,background:'rgba(255,255,255,.12)'}}/>or use your ZIP or postcode<div style={{flex:1,height:1,background:'rgba(255,255,255,.12)'}}/></div>
+              <div style={{display:'flex',gap:8}}>
+                <input value={nearbyZip} onChange={e=>setNearbyZip(e.target.value)} placeholder="ZIP or postcode" style={{flex:1,minWidth:0,padding:'10px 11px',borderRadius:9,background:'rgba(0,0,0,.25)',border:'1px solid rgba(255,255,255,.16)',color:'#fff',fontSize:'clamp(11px,2.4vw,13px)'}}/>
+                <button onClick={nearbyJoinZip} disabled={nearbyBusy} style={{flexShrink:0,padding:'10px 14px',borderRadius:9,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontWeight:800,fontSize:'clamp(11px,2.4vw,13px)',cursor:'pointer'}}>Use</button>
+              </div>
+            </>):(<>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,background:'rgba(16,185,129,.12)',border:'1px solid rgba(16,185,129,.3)',borderRadius:12,padding:'10px 12px'}}>
+                <span style={{fontSize:'clamp(10px,2.3vw,12px)',color:'#6ee7b7',fontWeight:700}}>You are visible to nearby players</span>
+                <button onClick={nearbyLeave} style={{flexShrink:0,padding:'6px 11px',borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.75)',fontWeight:700,fontSize:'clamp(9px,2vw,11px)',cursor:'pointer'}}>Stop</button>
+              </div>
+              <div>
+                <div style={{fontSize:'clamp(10px,2.2vw,12px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:.6,textTransform:'uppercase',marginBottom:8}}>Players near you</div>
+                {(!nearbyData||nearbyData.length===0)?(<div style={{fontSize:'clamp(11px,2.5vw,13px)',color:'rgba(255,255,255,.45)',lineHeight:1.5,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)',borderRadius:12,padding:'14px'}}>No one else is here yet. Check back later, or tell a friend in your area to turn on Play nearby too.</div>):(
+                  <div style={{display:'flex',flexDirection:'column',gap:9}}>
+                    {nearbyData.map(p=>(<div key={p.uid} style={{display:'flex',alignItems:'center',gap:10,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:12,padding:'10px 12px'}}>
+                      <span style={{flexShrink:0,width:34,height:34,borderRadius:'50%',background:'linear-gradient(150deg,#10b981,#047857)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,color:'#fff',fontSize:15}}>{(p.name||'?').slice(0,1).toUpperCase()}</span>
+                      <span style={{flex:1,minWidth:0,fontSize:'clamp(12px,2.7vw,14px)',fontWeight:700,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{p.name||'Player'}</span>
+                      <button onClick={()=>nearbyChallenge(p)} style={{flexShrink:0,padding:'7px 13px',borderRadius:9,background:'var(--ac)',border:'none',color:'#15210a',fontWeight:800,fontSize:'clamp(10px,2.2vw,12px)',cursor:'pointer'}}>Challenge</button>
+                    </div>))}
+                  </div>
+                )}
+              </div>
+              <div style={{fontSize:'clamp(8.5px,2vw,10.5px)',color:'rgba(255,255,255,.4)',lineHeight:1.4}}>Challenging creates an online game and gives you an invite code to send. Direct nearby invites are coming next.</div>
+            </>)}
+          </div>
+        </div>)}
       {friendsOpen&&(()=>{const myId=(window.CTCloud&&window.CTCloud.friendId&&window.CTCloud.friendId())||(cloudUser&&cloudUser.uid)||'';return(
         <div style={{position:'fixed',inset:0,zIndex:540,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`max(24px,env(safe-area-inset-top,0px)) 18px max(20px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
           <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
@@ -2918,10 +2995,10 @@ export default function App(){
                   <span style={{fontSize:'clamp(10px,2.4vw,12px)',fontWeight:700}}>{o.t}</span>
                 </button>);})}
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:8}}>
-              {[{k:'friends',ic:'👥',t:'Play with friends',tint:['#0ea5e9','#0369a1']},{k:'tourney',ic:'🏆',t:'Tournaments',tint:['#eab308','#a16207']}].map(o=>(
-                <button key={o.k} onClick={()=>{ setSoonMsg(''); if(o.k!=='friends'){ setSoonMsg('Tournaments are coming soon.'); return; } if(!cloudUser){ setUpgradeMsg('Sign in to use friends.'); setAcctOpen(true); } else { setFriendMsg(''); setFriendsOpen(true); } }} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,padding:'14px 6px',borderRadius:14,cursor:'pointer',background:'rgba(255,255,255,.05)',border:'1.5px solid rgba(255,255,255,.14)',color:'rgba(255,255,255,.62)',position:'relative'}}>
-                  <span style={{position:'absolute',top:6,right:8,fontSize:'clamp(7.5px,1.8vw,9px)',fontWeight:800,letterSpacing:.5,color:'#1a1407',background:'var(--ac)',borderRadius:6,padding:'1px 6px'}}>SOON</span>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginTop:8}}>
+              {[{k:'friends',ic:'👥',t:'Friends',tint:['#0ea5e9','#0369a1']},{k:'nearby',ic:'📍',t:'Play nearby',tint:['#10b981','#047857']},{k:'tourney',ic:'🏆',t:'Tournaments',tint:['#eab308','#a16207'],soon:true}].map(o=>(
+                <button key={o.k} onClick={()=>{ setSoonMsg(''); if(o.k==='tourney'){ setSoonMsg('Tournaments are coming soon.'); return; } if(!cloudUser){ setUpgradeMsg(o.k==='nearby'?'Sign in to play nearby players.':'Sign in to use friends.'); setAcctOpen(true); return; } if(o.k==='friends'){ setFriendMsg(''); setFriendsOpen(true); } else { setNearbyMsg(''); setNearbyOpen(true); } }} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,padding:'14px 6px',borderRadius:14,cursor:'pointer',background:'rgba(255,255,255,.05)',border:'1.5px solid rgba(255,255,255,.14)',color:'rgba(255,255,255,.62)',position:'relative'}}>
+                  {o.soon&&<span style={{position:'absolute',top:6,right:8,fontSize:'clamp(7.5px,1.8vw,9px)',fontWeight:800,letterSpacing:.5,color:'#1a1407',background:'var(--ac)',borderRadius:6,padding:'1px 6px'}}>SOON</span>}
                   <span style={{width:46,height:46,borderRadius:13,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,background:`linear-gradient(150deg,${o.tint[0]},${o.tint[1]})`,border:SK.trim?`1.5px solid ${SK.trim}`:'none',boxShadow:`0 3px 0 rgba(0,0,0,.22),0 6px 12px ${o.tint[1]}55,inset 0 1px 0 rgba(255,255,255,.4),inset 0 -3px 6px rgba(0,0,0,.22)`,opacity:.92}}>{o.ic}</span>
                   <span style={{fontSize:'clamp(10px,2.4vw,12px)',fontWeight:700}}>{o.t}</span>
                 </button>))}
