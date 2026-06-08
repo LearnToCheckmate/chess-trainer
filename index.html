@@ -67,13 +67,19 @@
       mmCancel:function(){ return this._mmCancel ? this._mmCancel() : undefined; },
       proWatch:function(cb){ return this._proWatch ? this._proWatch(cb) : (typeof cb==='function' && cb(false), function(){}); },
       proCheckout:function(p){ return this._proCheckout ? this._proCheckout(p) : Promise.reject(new Error('cloud-not-ready')); },
-      proPortal:function(){ return this._proPortal ? this._proPortal() : Promise.reject(new Error('cloud-not-ready')); }
+      proPortal:function(){ return this._proPortal ? this._proPortal() : Promise.reject(new Error('cloud-not-ready')); },
+      friendId:function(){ return this._friendId ? this._friendId() : null; },
+      friendRequest:function(t,n){ return this._friendRequest ? this._friendRequest(t,n) : Promise.reject(new Error('cloud-not-ready')); },
+      friendsWatch:function(cb){ return this._friendsWatch ? this._friendsWatch(cb) : ((typeof cb==='function')&&cb({incoming:[],friends:[]}), function(){}); },
+      friendAccept:function(r){ return this._friendAccept ? this._friendAccept(r) : Promise.reject(new Error('cloud-not-ready')); },
+      friendDecline:function(id){ return this._friendDecline ? this._friendDecline(id) : Promise.reject(new Error('cloud-not-ready')); },
+      friendRemove:function(id){ return this._friendRemove ? this._friendRemove(id) : Promise.reject(new Error('cloud-not-ready')); }
     };
   </script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, arrayUnion, collection, addDoc, getDocs, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, arrayUnion, collection, addDoc, getDocs, deleteDoc, runTransaction, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
     const cfg = {
       apiKey:"AIzaSyA_Z2O3L7I1QAHZmTdCwpUUpIG2z5Ck_QM",
@@ -206,6 +212,34 @@
         const url=res && res.data && res.data.url;
         if(url) window.location.assign(url); else throw new Error('no-portal-url');
       };
+      // ---- Friends (mutual request + accept; add by user ID) ----
+      let _frU=null,_frF=null;
+      C._friendId=function(){ const u=auth.currentUser; return u?u.uid:null; };
+      C._friendRequest=async function(toUid,toName){
+        const u=auth.currentUser; if(!u) throw new Error('signin');
+        toUid=(toUid||'').trim(); if(!toUid) throw new Error('empty'); if(toUid===u.uid) throw new Error('self');
+        const ex=await getDocs(query(collection(db,'friendReqs'),where('from','==',u.uid)));
+        let dup=false; ex.forEach(function(d){ const x=d.data()||{}; if(x.to===toUid&&x.status==='pending') dup=true; }); if(dup) throw new Error('pending');
+        const fr=await getDocs(query(collection(db,'friends'),where('users','array-contains',u.uid)));
+        let already=false; fr.forEach(function(d){ const x=d.data()||{}; if((x.users||[]).indexOf(toUid)>=0) already=true; }); if(already) throw new Error('already');
+        await addDoc(collection(db,'friendReqs'),{ from:u.uid, fromName:(u.displayName||'Player'), to:toUid, status:'pending', at:Date.now() });
+      };
+      C._friendsWatch=function(cb){
+        const u=auth.currentUser; if(!u){ if(typeof cb==='function') cb({incoming:[],friends:[]}); return function(){}; }
+        let inc=[],fri=[]; const emit=function(){ if(typeof cb==='function') cb({incoming:inc.slice(),friends:fri.slice()}); };
+        if(_frU){try{_frU();}catch(e){}} if(_frF){try{_frF();}catch(e){}}
+        _frU=onSnapshot(query(collection(db,'friendReqs'),where('to','==',u.uid)),function(sn){ inc=[]; sn.forEach(function(d){ const x=d.data()||{}; if(x.status==='pending') inc.push({id:d.id,from:x.from,fromName:x.fromName||'Player',at:x.at||0}); }); emit(); },function(){});
+        _frF=onSnapshot(query(collection(db,'friends'),where('users','array-contains',u.uid)),function(sn){ fri=[]; sn.forEach(function(d){ const x=d.data()||{}; const o=(x.users||[]).filter(function(z){return z!==u.uid;})[0]; fri.push({id:d.id,uid:o,name:(x.names&&x.names[o])||'Friend',at:x.at||0}); }); emit(); },function(){});
+        return function(){ if(_frU){try{_frU();}catch(e){}_frU=null;} if(_frF){try{_frF();}catch(e){}_frF=null;} };
+      };
+      C._friendAccept=async function(req){
+        const u=auth.currentUser; if(!u) throw new Error('signin'); if(!req||!req.from) throw new Error('bad');
+        const names={}; names[req.from]=req.fromName||'Player'; names[u.uid]=(u.displayName||'Player');
+        await addDoc(collection(db,'friends'),{ users:[req.from,u.uid], names:names, at:Date.now() });
+        if(req.id){ try{ await deleteDoc(doc(db,'friendReqs',req.id)); }catch(e){} }
+      };
+      C._friendDecline=async function(reqId){ const u=auth.currentUser; if(!u) throw new Error('signin'); await deleteDoc(doc(db,'friendReqs',reqId)); };
+      C._friendRemove=async function(fid){ const u=auth.currentUser; if(!u) throw new Error('signin'); await deleteDoc(doc(db,'friends',fid)); };
       onAuthStateChanged(auth, function(u){ C._emit(u ? {uid:u.uid, name:u.displayName, email:u.email, photo:u.photoURL} : null); });
     } catch(e) {
       console.error('Firebase init failed', e);
