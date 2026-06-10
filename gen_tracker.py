@@ -3,7 +3,7 @@
 # After each build run: edit TASKS/GROUPS, set STAMP, run:  python3 gen_tracker.py
 import json, datetime
 
-STAMP = "Updated through build #130 - 2026-06-08"
+STAMP = "Updated through build #131 - 2026-06-09"
 
 GROUPS = [
     {"key": "online", "nm": "Online & multiplayer", "color": "#7bd1ff", "isNew": True},
@@ -30,8 +30,8 @@ TASKS = [
     {"g": "online", "id": "on-endscreen","s": "done", "t": "Board-level end screen for draw / resign", "n": "Already implemented: centered result overlay (Draw agreed / You won / You lost) with rematch. Re-test on #111."},
     {"g": "online", "id": "on-rematch",  "s": "done", "t": "Rematch as an offer / accept / decline flow", "n": "Already implemented: offer -> opponent accepts or declines, with notices. Re-test on #111."},
     {"g": "online", "id": "on-invite",   "s": "done", "b": "#112", "t": "Online play by invite code + live clock", "n": "Invite play works; a synced minute-clock now counts down for both players and flags on time (#112). Re-test on two devices."},
-    {"g": "online", "id": "on-friends",  "s": "done", "b": "#125", "you": True, "t": "Friends: add by ID, mutual accept, list, challenge", "n": "Built (#125): the Play-with-friends tile opens a Friends screen \u2014 your shareable ID with Copy, add a friend by ID, accept/decline requests, a friends list with Challenge and Remove, plus an \u201cAdd as friend\u201d button on a past online opponent. NEEDS YOU: publish the friendReqs + friends Firestore rules (provided), then test on two devices."},
-    {"g": "online", "id": "on-tourney",  "s": "open", "you": True, "t": "Tournaments (round-robin, knockout, Swiss)", "n": "You want all three. Multi-build feature; building after matchmaking. Need: a time control per tournament, and whether it is among friends by code or open to anyone."},
+    {"g": "online", "id": "on-friends",  "s": "done", "b": "#125", "you": True, "t": "Friends: add by ID, mutual accept, list, challenge", "n": "Built (#125): the Play-with-friends tile opens a Friends screen \u2014 your shareable ID with Copy, add a friend by ID, accept/decline requests, a friends list with Challenge and Remove, plus an \u201cAdd as friend\u201d button on a past online opponent. NEEDS YOU: publish the friendReqs + friends Firestore rules (provided), then test on two devices."}, {"g": "online", "id": "on-premove", "s": "done", "b": "#131", "you": True, "t": "PreMove: queue a move on the opponent's turn", "n": "Built (#131): while you wait, tap or drag a move; the squares tint orange. It plays the instant your turn arrives if legal, otherwise it silently clears. Tap anywhere to cancel; promotions auto-queen. Works online and vs the bots. NEEDS YOU: feel-test it in a fast online game."},
+    {"g": "online", "id": "on-tourney",  "s": "open", "you": True, "t": "Tournaments (round-robin, knockout, Swiss)", "n": "Decided: all three formats, open to anyone, scheduled start, Claude picks the clock. Stage 1 (create, lobby, detail, countdown) is the next build; stage 2 is the pairing engine and wants two-device testing."},
     {"g": "online", "id": "on-match",    "s": "done", "b": "#113", "you": True, "t": "Online matchmaking: quick match", "n": "Built (#113): a Quick match button pairs you with anyone else searching at the same time control. NEEDS YOU: publish the mm Firestore rule, then test on two devices."},
     {"g": "online", "id": "on-corr",     "s": "done", "you": True, "t": "Daily / correspondence (multi-day) games", "n": "Confirmed built: when you pick Online, the setup shows a \u201cTime per move\u201d picker (No limit / 1 / 3 / 7 days), and create-game carries it. Two-device test still needed."},
 

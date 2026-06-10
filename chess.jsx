@@ -1282,7 +1282,7 @@ const SKINS=[
 ];
 const CLASSIC_IDX=Math.max(0,SKINS.findIndex(s=>s.key==='classic'));
 const LIGHT_SQ=THEMES[0].light, DARK_SQ=THEMES[0].dark;
-const HL_SEL='rgba(255,255,0,.5)', HL_LAST='rgba(255,255,0,.35)', HL_CHK='rgba(220,50,47,.7)';
+const HL_SEL='rgba(255,255,0,.5)', HL_LAST='rgba(255,255,0,.35)', HL_CHK='rgba(220,50,47,.7)', HL_PRE='rgba(255,112,82,.55)';
 const HL_HINT='rgba(255,200,30,.75)', HL_BEST='rgba(110,214,110,.5)';
 const DOT_L='rgba(0,0,0,.18)', DOT_D='rgba(0,0,0,.22)', CAP_C='rgba(0,0,0,.18)';
 const UNI={w:{k:'♔',q:'♕',r:'♖',b:'♗',n:'♘',p:'♙'},b:{k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'}};
@@ -1877,6 +1877,8 @@ export default function App(){
   const opponentRef=useRef(opponent); opponentRef.current=opponent;
   const onlineGameRef=useRef(onlineGame); onlineGameRef.current=onlineGame;
   const myColorRef=useRef(myColor); myColorRef.current=myColor;
+  const [preMv,setPreMv]=useState(null);            // armed premove {fr,fc,tr,tc} while waiting on the opponent
+  const preMvRef=useRef(null); preMvRef.current=preMv;
   const showHintRef=useRef(showHint); showHintRef.current=showHint;
   const openIdxRef=useRef(openIdx); openIdxRef.current=openIdx;
   const openStepRef=useRef(openStep); openStepRef.current=openStep;
@@ -1964,7 +1966,7 @@ export default function App(){
     return()=>{window.removeEventListener('touchmove',block,{passive:false});document.removeEventListener('touchmove',block,{passive:false});};
   },[]);
 
-  const fullReset=(g=initGame())=>{setGame(g);setLastMv(null);setPlayHist([]);setPlayHintMv(null);setPlayEnd(null);playEndRef.current=null;eloDoneRef.current=false;setEloMsg('');const tc=timeCtrlRef.current;const live=!!tc&&tc.kind!=='corr';setClock({w:live?tc.init*1000:0,b:live?tc.init*1000:0,run:false});UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
+  const fullReset=(g=initGame())=>{setGame(g);setLastMv(null);setPlayHist([]);setPlayHintMv(null);setPlayEnd(null);playEndRef.current=null;setPreMv(null);eloDoneRef.current=false;setEloMsg('');const tc=timeCtrlRef.current;const live=!!tc&&tc.kind!=='corr';setClock({w:live?tc.init*1000:0,b:live?tc.init*1000:0,run:false});UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
 
   useEffect(()=>{timeCtrlRef.current=timeCtrl;},[timeCtrl]);
   useEffect(()=>{pvIdxRef.current=pvIdx;},[pvIdx]);
@@ -2077,6 +2079,10 @@ export default function App(){
       if(playEndRef.current){setThinking(false);return;}
       if(mv){setPlayHist(h=>[...h,game]);setGame(g=>makeMove(g,mv));setLastMv(mv);const tc=timeCtrlRef.current;if(tc)setClock(c=>({...c,run:true,[mover]:c[mover]+tc.inc*1000}));}
       setThinking(false);
+      if(mv&&preMvRef.current){const ng=makeMove(game,mv);const pm=preMvRef.current;const st2=getStatus(ng);
+        if(st2==='checkmate'||st2==='stalemate'||playEndRef.current){setPreMv(null);}
+        else if(ng.turn===pColor){setPreMv(null);const pmv=getLegal(ng).find(x=>x.fr===pm.fr&&x.fc===pm.fc&&x.tr===pm.tr&&x.tc===pm.tc&&(!x.promo||x.promo==='q'));if(pmv)setTimeout(()=>{doMove(ng,pmv);},40);}
+      }
     };
     if(sfRef.current&&sfReadyRef.current&&cpuElo>=1320){
       // Strong, accurately-calibrated play: use Stockfish's own Elo limiter (its UCI_Elo floor is ~1320).
@@ -2155,6 +2161,15 @@ export default function App(){
     for(const san of moves){const mv=findMoveBySAN(g,san);if(!mv)break;last=mv;g=makeMove(g,mv);}
     setGame(g);setLastMv(last);
     UI.current={sel:null,tgts:[],drag:null,dragging:false};
+    const pm=preMvRef.current;
+    if(pm){
+      if(onlineGame.result||onlineGame.status!=='active'){setPreMv(null);}
+      else if(myColor&&g.turn===myColor){
+        setPreMv(null);
+        const pmv=getLegal(g).find(x=>x.fr===pm.fr&&x.fc===pm.fc&&x.tr===pm.tr&&x.tc===pm.tc&&(!x.promo||x.promo==='q'));
+        if(pmv)setTimeout(()=>{doMove(g,pmv);},40);
+      }
+    }
   },[opponent,myColor,(onlineGame&&onlineGame.moves)?onlineGame.moves.length:0,onlineGame&&onlineGame.status,onlineGame&&onlineGame.result]);
   useEffect(()=>{if(opponent==='online'&&myColor)setFlip(myColor==='b');},[opponent,myColor,onlineGame&&onlineGame.status]);
 
@@ -2499,7 +2514,7 @@ export default function App(){
     const arr=playHist.slice();let g=arr.pop();
     if(opponent==='computer'){while(g&&g.turn!==pColor&&arr.length){g=arr.pop();}}
     if(!g)return;
-    setGame(g);setLastMv(null);setPlayHintMv(null);setPlayHist(arr);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
+    setGame(g);setLastMv(null);setPlayHintMv(null);setPlayHist(arr);setPreMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
   };
   const requestHint=()=>{
     if(mode!=='play')return;
@@ -2511,7 +2526,7 @@ export default function App(){
     if(mode!=='play'||playEnd)return;
     const st=getStatus(game);if(st==='checkmate'||st==='stalemate')return;
     const loser=opponent==='computer'?pColor:game.turn;
-    setThinking(false);setPlayEnd({reason:'resign',winner:opp(loser)});setClock(c=>({...c,run:false}));
+    setThinking(false);setPreMv(null);setPlayEnd({reason:'resign',winner:opp(loser)});setClock(c=>({...c,run:false}));
   };
 
   // ─── Online multiplayer handlers ───
@@ -2640,11 +2655,19 @@ export default function App(){
     return true;
   };
 
+  const canPreMoveNow=()=>{
+    if(modeRef.current!=='play')return null;
+    const g=gameRef.current;const st=getStatus(g);
+    if(st==='checkmate'||st==='stalemate')return null;
+    if(opponentRef.current==='online'){const og=onlineGameRef.current;if(og&&og.status==='active'&&!og.result&&myColorRef.current&&myColorRef.current!==g.turn)return myColorRef.current;return null;}
+    if(opponentRef.current==='computer'){if(!playEndRef.current&&g.turn!==pColor)return pColor;return null;}
+    return null;
+  };
   const getSquare=(cx,cy)=>{const rect=boardRef.current?.getBoundingClientRect();if(!rect)return null;const x=cx-rect.left,y=cy-rect.top;const dC=Math.floor(x/SQ),dR=Math.floor(y/SQ);if(dR<0||dR>=8||dC<0||dC>=8)return null;const f=flipRef.current;return[f?7-dR:dR,f?7-dC:dC];};
   const canMoveNow=humanCanMove();
-  const onPtrDown=(e)=>{if(modeRef.current==='play'&&pvIdxRef.current!=null){setPvIdx(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}if(!humanCanMove()){if(modeRef.current==='play'&&opponentRef.current==='online'){const og=onlineGameRef.current;if(og&&!og.result&&og.status==='active'&&myColorRef.current!==gameRef.current.turn){const onm=(myColorRef.current==='w'?(og.b&&og.b.name):(og.w&&og.w.name))||'your opponent';setOnlineInfo("It's "+onm+"'s move — hang tight.");repaint();}}return;}e.preventDefault();const sq=getSquare(e.clientX,e.clientY);if(!sq)return;const[r,c]=sq;const g=gameRef.current;const ui=UI.current;if(ui.sel){if(commitOrPromote(g,ui.tgts,r,c))return;}const piece=g.board[r][c];if(piece&&piece.c===g.turn){if(ui.sel?.[0]===r&&ui.sel?.[1]===c)UI.current={sel:null,tgts:[],drag:null,dragging:false};else{const moves=getMovesFrom(g,r,c);UI.current={sel:[r,c],tgts:moves,drag:{from:[r,c],piece,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY},dragging:false};}}else UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
+  const onPtrDown=(e)=>{if(modeRef.current==='play'&&pvIdxRef.current!=null){setPvIdx(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}if(!humanCanMove()){const pmc=canPreMoveNow();if(pmc){e.preventDefault();const sq=getSquare(e.clientX,e.clientY);const g=gameRef.current;const ui=UI.current;if(preMvRef.current)setPreMv(null);if(sq){const[r,c]=sq;const piece=g.board[r][c];if(piece&&piece.c===pmc){if(ui.sel&&ui.sel[0]===r&&ui.sel[1]===c)UI.current={sel:null,tgts:[],drag:null,dragging:false};else UI.current={sel:[r,c],tgts:[],drag:{from:[r,c],piece,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY},dragging:false};}else if(ui.sel){const[fr,fc]=ui.sel;const p2=g.board[fr][fc];if(p2&&p2.c===pmc)setPreMv({fr,fc,tr:r,tc:c});UI.current={sel:null,tgts:[],drag:null,dragging:false};}else UI.current={sel:null,tgts:[],drag:null,dragging:false};}repaint();return;}return;}e.preventDefault();const sq=getSquare(e.clientX,e.clientY);if(!sq)return;const[r,c]=sq;const g=gameRef.current;const ui=UI.current;if(ui.sel){if(commitOrPromote(g,ui.tgts,r,c))return;}const piece=g.board[r][c];if(piece&&piece.c===g.turn){if(ui.sel?.[0]===r&&ui.sel?.[1]===c)UI.current={sel:null,tgts:[],drag:null,dragging:false};else{const moves=getMovesFrom(g,r,c);UI.current={sel:[r,c],tgts:moves,drag:{from:[r,c],piece,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY},dragging:false};}}else UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
   const onPtrMove=(e)=>{const ui=UI.current;if(!ui.drag)return;e.preventDefault();const dx=e.clientX-ui.drag.sx,dy=e.clientY-ui.drag.sy;const dragging=ui.dragging||(dx*dx+dy*dy>30);UI.current={...ui,drag:{...ui.drag,x:e.clientX,y:e.clientY},dragging};repaint();};
-  const onPtrUp=(e)=>{try{e.currentTarget.releasePointerCapture(e.pointerId);}catch(_){}const ui=UI.current;if(!ui.drag)return;e.preventDefault();if(ui.dragging){const sq=getSquare(e.clientX,e.clientY);if(sq){const[r,c]=sq;if(commitOrPromote(gameRef.current,ui.tgts,r,c))return;}}UI.current={...ui,drag:null,dragging:false};repaint();};
+  const onPtrUp=(e)=>{try{e.currentTarget.releasePointerCapture(e.pointerId);}catch(_){}const ui=UI.current;if(!ui.drag)return;e.preventDefault();if(ui.dragging){const sq=getSquare(e.clientX,e.clientY);if(sq){const[r,c]=sq;if(commitOrPromote(gameRef.current,ui.tgts,r,c))return;const pmc=canPreMoveNow();const g=gameRef.current;const fp=g.board[ui.drag.from[0]][ui.drag.from[1]];if(pmc&&fp&&fp.c===pmc&&!(ui.drag.from[0]===r&&ui.drag.from[1]===c)){setPreMv({fr:ui.drag.from[0],fc:ui.drag.from[1],tr:r,tc:c});UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}}}UI.current={...ui,drag:null,dragging:false};repaint();};
   const onPtrCancel=(e)=>{try{e.currentTarget.releasePointerCapture(e.pointerId);}catch(_){}const ui=UI.current;if(ui.drag||ui.dragging){UI.current={...ui,drag:null,dragging:false};repaint();}};
 
   const hintMove=useMemo(()=>{if(mode==='play')return playHintMv;if(mode==='puzzle'){if(!puzReveal||puzSolved)return null;const p=curPuz;if(!p||puzStep>=p.sol.length)return null;return findMoveBySAN(game,p.sol[puzStep]);}if(mode!=='learn'||learnPhase!=='practice'||openIdx===null||(!showHint&&!revealHint))return null;const op=LIB[openIdx];if(openStep>=learnLine.length||game.turn!==op.side)return null;return findMoveBySAN(game,learnLine[openStep]);},[mode,learnPhase,openIdx,openStep,game,showHint,revealHint,learnLine,puzReveal,puzSolved,curPuz,puzStep,playHintMv]);
@@ -4127,8 +4150,10 @@ export default function App(){
               const isChk=chkSq===sq;const isHint=hintMove&&((hintMove.fr===ar&&hintMove.fc===ac)||(hintMove.tr===ar&&hintMove.tc===ac));
               const isBest=reviewBest&&((reviewBest.fr===ar&&reviewBest.fc===ac)||(reviewBest.tr===ar&&reviewBest.tc===ac));
               const isDragSrc=drag&&drag.from[0]===ar&&drag.from[1]===ac&&dragging;
+              const isPre=mode==='play'&&preMv&&((preMv.fr===ar&&preMv.fc===ac)||(preMv.tr===ar&&preMv.tc===ac));
               return(<div key={sq} style={{width:SQ,height:SQ,background:isLight?TH.light:TH.dark,position:'relative',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',boxShadow:boardDepth?'inset 0 0 0 0.5px rgba(0,0,0,.13), inset 0 2px 3px rgba(255,255,255,.13), inset 0 -3px 6px rgba(0,0,0,.2)':'none',touchAction:'none'}}>
                 {(isSel||isLast)&&<div style={{position:'absolute',inset:0,background:isSel?HL_SEL:HL_LAST,pointerEvents:'none',zIndex:1}}/>}
+                {isPre&&<div style={{position:'absolute',inset:0,background:HL_PRE,pointerEvents:'none',zIndex:1}}/>}
                 {isHint&&<div style={{position:'absolute',inset:0,background:HL_HINT,pointerEvents:'none',zIndex:1}}/>}
                 {isBest&&<div style={{position:'absolute',inset:0,background:HL_BEST,pointerEvents:'none',zIndex:1}}/>}
                 {isChk&&<div style={{position:'absolute',inset:0,background:status==='checkmate'?'radial-gradient(circle,rgba(229,57,53,.92),rgba(120,10,10,.82))':HL_CHK,boxShadow:status==='checkmate'?'inset 0 0 0 3px #ff5252':'none',pointerEvents:'none',zIndex:1}}/>}

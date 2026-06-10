@@ -572,3 +572,8 @@ match /nearby/{uid} {
 - 22 lessons now have an in-app video (24 video fields incl the 2 original).
 - Still no video on: Nimzo-Indian, King's Gambit, Petrov, Alekhine, and many smaller lines/traps; add later if wanted.
 - Disk-revert guard: reconciled from repo at start; source re-backed up (b6cbd9aa). [#130]
+
+## Build #131 — PreMove + account reinstated (2026-06-09)
+- GitHub reinstated LearnToCheckmate after the appeal; source restored from the repo at #130 and verified. [#131]
+- PreMove (Chess.com style): while the opponent is on move, tap or drag a move to arm it; from/to squares tint orange (HL_PRE); it executes the moment your turn arrives if legal, else clears silently. Tap anywhere to cancel; re-tap a piece to re-aim; promotions auto-queen. Works in online games and vs the computer; cleared on resign, takeback, new game, and game end. [#131]
+- New deploy style per the appeal promise: ONE commit per build (app.js + source backups together via the Git Data API), and a much gentler overall cadence. [#131]
