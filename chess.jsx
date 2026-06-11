@@ -1765,6 +1765,7 @@ export default function App(){
   const [learnProg,setLearnProg]=useState(()=>{try{return JSON.parse(localStorage.getItem('ct_learnprog')||'{}')||{};}catch(e){return {};}});
   const learnProgRef=useRef(learnProg); learnProgRef.current=learnProg;
   const learnRepRef=useRef({hints:false,miss:false});
+  const learnKeyRef=useRef('');
   const [coachTargets,setCoachTargets]=useState(()=>{try{const a=JSON.parse(localStorage.getItem('ct_coachtargets')||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}});
   const coachTargetsRef=useRef(coachTargets); coachTargetsRef.current=coachTargets;
   const hintLockRef=useRef((()=>{try{return JSON.parse(localStorage.getItem('ct_hintlock')||'{}')||{};}catch(e){return {};}})());
@@ -2239,6 +2240,9 @@ export default function App(){
   };
   const startPractice=(line,label)=>{
     learnRepRef.current={hints:!!showHintRef.current,miss:false};
+    {const _op0=LIB[openIdxRef.current];let _k=_op0?_op0.name:(label||'');
+     if(_op0&&Array.isArray(line)){const lj=line.join('|');if(_op0.line&&_op0.line.join('|')===lj)_k=_op0.name;else{const _vv=(_op0.vars||[]).find(v=>v.line&&v.line.join('|')===lj);if(_vv)_k=_op0.name+'§'+_vv.name;}}
+     learnKeyRef.current=_k;}
     setLearnPhase('practice');setDemoPlaying(false);setLearnLine(line);setLearnLabel(label);setOpenMsg('');setInfoOpen(false);
     const op=LIB[openIdxRef.current];let g=op&&op.fen?fromFEN(op.fen):initGame();
     if(op&&!op.fen&&op.side==='b'){const mv=findMoveBySAN(g,line[0]);if(mv){g=makeMove(g,mv);setLastMv(mv);setOpenStep(1);}else setOpenStep(0);}
@@ -2457,10 +2461,15 @@ export default function App(){
   };
   const pzBreakStreak=()=>{if(pzStreakRef.current>0){setPzStreak(0);PZSTORE.set(PZKEY,JSON.stringify({solved:pzSolvedRef.current,streak:0,best:pzBestRef.current,xp:pzXPRef.current,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current}));}};
   const LEARN_GOAL=10;
+  const linesOf=(op)=>{const a=[{key:op.name,name:'Main line'}];(op.vars||[]).forEach(v=>a.push({key:op.name+'§'+v.name,name:v.name}));return a;};
+  const lineDays=(k)=>{const c=learnProgRef.current[k];return (c&&Array.isArray(c.days))?c.days:[];};
+  const lessonStats=(op)=>{const ls=linesOf(op);const u=new Set();let lr=0;ls.forEach(l=>{const d=lineDays(l.key);if(d.length>=1)lr++;d.forEach(x=>u.add(x));});return {lines:ls.length,linesLearned:lr,unionDays:u.size,coverage:lr>=ls.length,mastered:(u.size>=LEARN_GOAL&&lr>=ls.length)};};
   const finishRep=()=>{
     const op=LIB[openIdxRef.current]; if(!op)return '';
     const rep=learnRepRef.current||{}; learnRepRef.current={hints:false,miss:false};
-    const cur=learnProgRef.current[op.name]||{};
+    const key=learnKeyRef.current||op.name;
+    const st0=lessonStats(op);
+    const cur=learnProgRef.current[key]||{};
     const days=Array.isArray(cur.days)?cur.days.slice():[];
     if(rep.hints)return days.length?'':' Hints were on, so this run does not count. Switch hints off and run it flawlessly.';
     if(rep.miss)return days.length?' A wrong try slipped in, so no day banked. Flawless runs only.':' A wrong try slipped in. Learned needs one flawless run: no hints, no wrong tries. You are close.';
@@ -2471,10 +2480,14 @@ export default function App(){
     const first=days.length===0;
     if(days.indexOf(today)>=0)return ' Flawless again. Today is already banked, tomorrow counts next.';
     days.push(today);
-    setLearnProg(p=>({...p,[op.name]:{learned:true,days}}));
-    if(days.length>=LEARN_GOAL)return wasM?' Still mastered. \ud83c\udfc5':' \ud83c\udfc5 MASTERED \u00b7 10 flawless days. Seriously impressive.';
+    setLearnProg(p=>({...p,[key]:{learned:true,days}}));
+    const stN=lessonStats(op);
+    const tail=(stN.lines>1)?(' Lines learned: '+stN.linesLearned+'/'+stN.lines+'.'):'';
+    if(stN.mastered)return st0.mastered?' Still mastered. \ud83c\udfc5':' \ud83c\udfc5 MASTERED \u00b7 '+LEARN_GOAL+' flawless days across the whole lesson. Seriously impressive.';
+    if(stN.coverage&&!st0.coverage&&stN.lines>1)return ' Flawless \u00b7 that was the last line: whole lesson Learned \u2713. '+stN.unionDays+' of '+LEARN_GOAL+' days toward Mastered.';
+    if(first&&stN.lines>1)return ' Flawless \u00b7 this line is Learned \u2713.'+tail+' '+stN.unionDays+' of '+LEARN_GOAL+' days toward Mastered.';
     if(first)return ' Flawless \u00b7 Learned \u2713 and day 1 of '+LEARN_GOAL+' toward Mastered.';
-    return ' Flawless \u00b7 day '+days.length+' of '+LEARN_GOAL+' toward Mastered.';
+    return ' Flawless \u00b7 day '+stN.unionDays+' of '+LEARN_GOAL+' toward Mastered.'+tail;
   };
   const doMove=(g,mv)=>{
     if(modeRef.current==='puzzle'){
@@ -2778,7 +2791,10 @@ export default function App(){
     if(dTd<DAILY_GOAL)return{tip:"You're "+dTd+" of "+DAILY_GOAL+" on today's puzzle goal. A few more?",goLabel:'Solve puzzles',go:()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}};
     const tips=[["Explore a new opening over in Discover.",'Discover',()=>{setCoachOpen(false);setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup(null);}],["Review your latest game and hunt the turning point.",'Review',()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');}],["Daily goal done, nice. Try the next puzzle tier.",'Solve puzzles',()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}]];const pk=tips[new Date().getDate()%tips.length];return{tip:pk[0],goLabel:pk[1],go:pk[2]};
   };
-  const coachRun=(idx)=>{const op=LIB[idx];if(!op)return;setCoachOpen(false);setHomeScreen(false);selectOpening(idx);setShowHint(false);setRevealHint(false);showHintRef.current=false;startPractice(op.line,op.name);};
+  const coachRun=(idx)=>{const op=LIB[idx];if(!op)return;setCoachOpen(false);setHomeScreen(false);selectOpening(idx);
+    let line=op.line,label=op.name;
+    if(lineDays(op.name).length>=1){const v=(op.vars||[]).find(vv=>lineDays(op.name+'§'+vv.name).length<1);if(v){pickVariation(v);line=v.line;label=op.name+' → '+v.name;}}
+    setShowHint(false);setRevealHint(false);showHintRef.current=false;startPractice(line,label);};
   const coachPlan=()=>{
     const goPz=()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');};
     const goRev=()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');};
@@ -2897,7 +2913,7 @@ export default function App(){
         if(lastLesson!=null&&LIB[lastLesson])rows.push({ic:'↩',lab:'Continue where you left off',sub:LIB[lastLesson].name,tint:['#f0a24e','#b4631f'],on:()=>{setCoachOpen(false);setHomeScreen(false);selectOpening(lastLesson);}});
         if(_coachRec)rows.push({ic:'🦉',lab:"Coach's pick",sub:'Try '+_coachRec.name,tint:['#7bbf5a','#4a7a33'],on:()=>{setCoachOpen(false);setHomeScreen(false);selectOpening(_coachRec.idx);}});
         rows.push({ic:'🔤',lab:'Read chess notation',sub:'Squares, pieces & move symbols',tint:['#0ea5e9','#0369a1'],on:()=>{setCoachOpen(false);setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup('notation');}});
-        return(<div style={{position:'fixed',inset:0,zIndex:540,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`max(24px,env(safe-area-inset-top,0px)) 18px max(20px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+        return(<div style={{position:'fixed',inset:0,zIndex:540,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`max(56px,calc(env(safe-area-inset-top,0px) + 12px)) 18px max(20px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
           <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               <button onClick={()=>setCoachOpen(false)} style={{minWidth:36,height:32,borderRadius:9,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:14,padding:'0 11px'}}>‹ Home</button>
@@ -2920,19 +2936,21 @@ export default function App(){
               {(()=>{
                 const SLATE=5;
                 const elig=LIB.map((o,i)=>({o,i})).filter(x=>{const gp=groupOf(x.o.cat);return gp==='openings'||gp==='gambits';});
-                const dN=nm=>((learnProg[nm]||{}).days||[]).length;
+                const dN=nm=>{const _o=LIB.find(o=>o.name===nm);return _o?lessonStats(_o).unionDays:(((learnProg[nm]||{}).days||[]).length);};
+                const covOf=nm=>{const _o=LIB.find(o=>o.name===nm);return _o?lessonStats(_o).coverage:false;};
+                const lnOf=nm=>{const _o=LIB.find(o=>o.name===nm);return _o?lessonStats(_o):{lines:1,linesLearned:0,unionDays:0,coverage:false,mastered:false};};
                 const _today=dstr(new Date());
                 const tIdx=coachTargets.map(n=>LIB.findIndex(o=>o.name===n)).filter(i=>i>=0);
-                const learnedInSlate=tIdx.filter(i=>dN(LIB[i].name)>=1).length;
+                const learnedInSlate=tIdx.filter(i=>covOf(LIB[i].name)).length;
                 const slateFull=tIdx.length>=SLATE;
                 const tierReady=slateFull&&learnedInSlate>=SLATE;
                 const refillIn=Math.max(1,Math.ceil((432000000-(Date.now()-(coachTier.swapAt||0)))/86400000));
-                const learnedTot=elig.filter(x=>dN(x.o.name)>=1).length, mastTot=elig.filter(x=>dN(x.o.name)>=LEARN_GOAL).length, bankedToday=tIdx.filter(i=>((learnProg[LIB[i].name]||{}).days||[]).indexOf(_today)>=0).length;
+                const learnedTot=elig.filter(x=>covOf(x.o.name)).length, mastTot=elig.filter(x=>lnOf(x.o.name).mastered).length, bankedToday=tIdx.filter(i=>linesOf(LIB[i]).some(l=>lineDays(l.key).indexOf(_today)>=0)).length;
                 const chip=(on,lab,fn)=>(<button key={lab} onClick={fn} style={{padding:'7px 11px',borderRadius:18,border:on?'1.5px solid var(--ac)':'1px solid rgba(255,255,255,.2)',background:on?'rgba(var(--acr),.22)':'rgba(255,255,255,.05)',color:on?'var(--ac2)':'rgba(255,255,255,.75)',fontWeight:800,fontSize:'clamp(9.5px,2.1vw,11px)',cursor:'pointer'}}>{lab}</button>);
                 const f0=x=>{const f=x.o.line&&x.o.line[0];return f==='e4'?'e4':f==='d4'?'d4':'other';};
                 const styleOf=x=>groupOf(x.o.cat)==='gambits'?payoffOf(x.o):'solid';
                 const match=(x,keep)=>((!keep.side)||coachPick.side==='any'||x.o.side===coachPick.side)&&((!keep.kind)||coachPick.kind==='any'||groupOf(x.o.cat)===coachPick.kind)&&((!keep.fm)||coachPick.fm==='any'||f0(x)===coachPick.fm)&&((!keep.style)||coachPick.style==='any'||styleOf(x)===coachPick.style||(coachPick.style==='solid'&&styleOf(x)==='edge'));
-                const addable=x=>dN(x.o.name)===0&&coachTargets.indexOf(x.o.name)<0;
+                const addable=x=>!covOf(x.o.name)&&coachTargets.indexOf(x.o.name)<0;
                 const addToSlate=nm=>{setCoachTargets(t=>(t.length>=SLATE||t.indexOf(nm)>=0)?t:[...t,nm]);};
                 const swapOut=nm=>{if((coachTier.swapsLeft||0)<=0)return;setCoachTargets(t=>t.filter(x=>x!==nm));setCoachTier(t=>({...t,swapsLeft:t.swapsLeft-1}));};
                 const startNextTier=()=>{setCoachTier(t=>({cleared:(t.cleared||0)+1,swapsLeft:2,swapAt:Date.now()}));setCoachTargets([]);setCoachChooserOpen(false);};
@@ -2963,10 +2981,10 @@ export default function App(){
                   <div style={{fontSize:'clamp(10px,2.3vw,12px)',color:'rgba(255,255,255,.7)',margin:'4px 0 9px'}}>All {SLATE} learned. They stay on your report card; keep banking days toward ★ Mastered any time.</div>
                   <button onClick={startNextTier} style={{padding:'10px 16px',borderRadius:10,border:'none',background:'#f0c24d',color:'#2a2010',fontWeight:800,fontSize:'clamp(11px,2.6vw,13px)',cursor:'pointer'}}>Start Tier {(coachTier.cleared||0)+2} · pick {SLATE} new</button>
                 </div>}
-                {tIdx.length>0&&<div style={{display:'flex',flexDirection:'column',gap:7,marginBottom:10}}>{tIdx.map(i=>{const op=LIB[i];const lp=learnProg[op.name]||{};const days=(lp.days||[]);const n=days.length;const m=n>=LEARN_GOAL;const done=days.indexOf(_today)>=0;const learned=n>=1;return(
+                {tIdx.length>0&&<div style={{display:'flex',flexDirection:'column',gap:7,marginBottom:10}}>{tIdx.map(i=>{const op=LIB[i];const _ls=lnOf(op.name);const n=_ls.unionDays;const m=_ls.mastered;const learned=_ls.coverage;const done=linesOf(op).some(l=>lineDays(l.key).indexOf(_today)>=0);return(
                   <div key={i} style={{display:'flex',alignItems:'center',gap:9,background:'rgba(0,0,0,.18)',border:'1px solid '+(learned?'rgba(108,199,138,.35)':'rgba(255,255,255,.1)'),borderRadius:10,padding:'8px 10px'}}>
                     <span style={{flexShrink:0,fontSize:15,width:20,textAlign:'center'}}>{m?'⭐':done?'✅':learned?'✓':'▫️'}</span>
-                    <span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(8.5px,1.9vw,10px)',color:m?'#f0c24d':learned?'#6cc78a':'rgba(255,255,255,.5)'}}>{m?'Mastered':learned?('Learned · '+n+'/'+LEARN_GOAL+(done?' · banked today':'')):'Not learned yet'}</span></span>
+                    <span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(8.5px,1.9vw,10px)',color:m?'#f0c24d':learned?'#6cc78a':'rgba(255,255,255,.5)'}}>{m?'Mastered':learned?('Learned · '+n+'/'+LEARN_GOAL+(done?' · banked today':'')):(_ls.lines>1?(_ls.linesLearned+'/'+_ls.lines+' lines learned'+(done?' · banked today':'')):'Not learned yet')}</span></span>
                     {!m&&!done&&<button onClick={()=>coachRun(i)} style={{flexShrink:0,padding:'6px 12px',borderRadius:9,background:'var(--ac)',border:'none',color:'#1a1a1a',fontWeight:800,fontSize:'clamp(10px,2.2vw,11.5px)',cursor:'pointer'}}>▶ Run</button>}
                     {!learned&&<button onClick={()=>swapOut(op.name)} disabled={(coachTier.swapsLeft||0)<=0} title={(coachTier.swapsLeft||0)>0?'Swap this out (uses 1 swap)':('No swaps left · refills in about '+refillIn+(refillIn===1?' day':' days'))} style={{flexShrink:0,width:26,height:26,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:(coachTier.swapsLeft||0)>0?'rgba(255,255,255,.6)':'rgba(255,255,255,.22)',cursor:(coachTier.swapsLeft||0)>0?'pointer':'default',fontSize:12,lineHeight:1,padding:0}}>⇄</button>}
                   </div>);})}</div>}
@@ -2987,7 +3005,7 @@ export default function App(){
                 {!slateFull&&tIdx.length>0&&!coachChooserOpen&&<button onClick={()=>setCoachChooserOpen(true)} style={{background:'transparent',border:'none',color:'var(--ac2)',cursor:'pointer',fontSize:'clamp(9.5px,2.1vw,11px)',fontWeight:800,padding:'2px 0 8px',textDecoration:'underline',textUnderlineOffset:3}}>✨ Suggest lessons for my empty slots</button>}
                 <button onClick={()=>setCoachBrowseOpen(v=>!v)} style={{width:'100%',textAlign:'left',background:'rgba(0,0,0,.16)',border:'1px solid rgba(255,255,255,.12)',borderRadius:10,padding:'9px 11px',color:'rgba(255,255,255,.75)',fontWeight:800,fontSize:'clamp(10px,2.3vw,12px)',cursor:'pointer'}}>{coachBrowseOpen?'▾':'▸'} Browse all openings & gambits ({elig.length}) · tap one to fill a slot</button>
                 {coachBrowseOpen&&<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(96px,1fr))',gap:6,marginTop:8}}>
-                  {elig.map(({o,i})=>{const n=dN(o.name);const m=n>=LEARN_GOAL;const sel=coachTargets.indexOf(o.name)>=0;const can=addable({o,i})&&!slateFull;return(
+                  {elig.map(({o,i})=>{const n=dN(o.name);const m=lnOf(o.name).mastered;const sel=coachTargets.indexOf(o.name)>=0;const can=addable({o,i})&&!slateFull;return(
                     <button key={i} onClick={()=>{if(can)addToSlate(o.name);}} style={{position:'relative',minHeight:48,padding:'6px 7px 14px',borderRadius:9,border:'1px solid '+(sel?'var(--ac)':(m?'#f0c24d':n>0?'rgba(16,185,129,.55)':'rgba(236,90,90,.4)')),background:m?'linear-gradient(150deg,#caa24c,#8a6a26)':n>0?('rgba(16,185,129,'+(0.16+0.06*Math.min(9,n)).toFixed(2)+')'):'rgba(236,90,90,.13)',color:'#fff',cursor:can?'pointer':'default',opacity:(can||sel||n>0)?1:.55,textAlign:'left',boxShadow:sel?'0 0 0 1.5px var(--ac)':'none'}}>
                       <span style={{fontSize:'clamp(8.5px,1.9vw,10px)',fontWeight:800,lineHeight:1.25,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{o.name}</span>
                       <span style={{position:'absolute',right:4,bottom:3,fontSize:'clamp(7.5px,1.7vw,9px)',fontWeight:800,color:m?'#ffe9a8':n>0?'#a7f3d0':'rgba(255,255,255,.55)'}}>{m?'★':n+'/'+LEARN_GOAL}</span>
@@ -3427,8 +3445,8 @@ export default function App(){
       </div>)}
       {mode==='learn'&&openIdx!==null&&(<div style={{textAlign:'center',marginBottom:8,maxWidth:boardPx+44,width:'94vw'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>
-          <div style={{fontSize:'clamp(14px,3.5vw,19px)',fontWeight:800,color:'var(--ac2)',letterSpacing:.3}}>{learnLabel||LIB[openIdx].name}{(()=>{const lp=learnProg[LIB[openIdx].name];if(!lp)return null;const m=(lp.days||[]).length>=LEARN_GOAL;if(m)return <span style={{marginLeft:8,fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,color:'#f0c24d',background:'rgba(240,180,41,.14)',border:'1px solid rgba(240,180,41,.45)',borderRadius:20,padding:'2px 9px',verticalAlign:'middle'}}>★ Mastered</span>;if((lp.days||[]).length>=1)return <span style={{marginLeft:8,fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,color:'#6cc78a',background:'rgba(108,199,138,.12)',border:'1px solid rgba(108,199,138,.4)',borderRadius:20,padding:'2px 9px',verticalAlign:'middle'}}>✓ {(lp.days||[]).length}/{LEARN_GOAL}</span>;return null;})()}</div>
-          {(()=>{const _nm=LIB[openIdx].name;const lp=learnProg[_nm]||{};const n=(lp.days||[]).length;const m=n>=LEARN_GOAL;return(<div style={{display:'flex',alignItems:'center',gap:4,marginTop:4}}>{Array.from({length:LEARN_GOAL}).map((_,i)=>(<span key={i} style={{width:9,height:9,borderRadius:'50%',background:i<n?(m?'#f0c24d':'#6cc78a'):'rgba(255,255,255,.10)',border:'1px solid '+(i<n?(m?'#f0c24d':'#6cc78a'):'rgba(255,255,255,.28)')}}/>))}<span style={{marginLeft:6,fontSize:'clamp(9px,2.1vw,11px)',fontWeight:800,color:m?'#f0c24d':(n>0?'#6cc78a':'rgba(255,255,255,.55)')}}>{m?'Mastered':(n+' of '+LEARN_GOAL+' flawless days')}</span></div>);})()}
+          <div style={{fontSize:'clamp(14px,3.5vw,19px)',fontWeight:800,color:'var(--ac2)',letterSpacing:.3}}>{learnLabel||LIB[openIdx].name}{(()=>{const _cs=lessonStats(LIB[openIdx]);if(_cs.linesLearned===0)return null;const m=_cs.mastered;if(m)return <span style={{marginLeft:8,fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,color:'#f0c24d',background:'rgba(240,180,41,.14)',border:'1px solid rgba(240,180,41,.45)',borderRadius:20,padding:'2px 9px',verticalAlign:'middle'}}>★ Mastered</span>;if(_cs.coverage)return <span style={{marginLeft:8,fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,color:'#6cc78a',background:'rgba(108,199,138,.12)',border:'1px solid rgba(108,199,138,.4)',borderRadius:20,padding:'2px 9px',verticalAlign:'middle'}}>✓ {_cs.unionDays}/{LEARN_GOAL}</span>;return null;})()}</div>
+          {(()=>{const _st=lessonStats(LIB[openIdx]);const n=_st.unionDays;const m=_st.mastered;return(<div style={{display:'flex',alignItems:'center',gap:4,marginTop:4}}>{Array.from({length:LEARN_GOAL}).map((_,i)=>(<span key={i} style={{width:9,height:9,borderRadius:'50%',background:i<n?(m?'#f0c24d':'#6cc78a'):'rgba(255,255,255,.10)',border:'1px solid '+(i<n?(m?'#f0c24d':'#6cc78a'):'rgba(255,255,255,.28)')}}/>))}<span style={{marginLeft:6,fontSize:'clamp(9px,2.1vw,11px)',fontWeight:800,color:m?'#f0c24d':(n>0?'#6cc78a':'rgba(255,255,255,.55)')}}>{m?'Mastered':(n+' of '+LEARN_GOAL+' flawless days'+(_st.lines>1?(' · '+_st.linesLearned+'/'+_st.lines+' lines'):''))}</span></div>);})()}
           <button onClick={()=>setInfoOpen(o=>!o)} title={infoOpen?'Hide notes for a bigger board':'Show the notes'} style={{flexShrink:0,minWidth:26,height:24,borderRadius:6,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.7)',fontSize:11,fontWeight:700,cursor:'pointer',lineHeight:1,padding:'0 6px'}}>{infoOpen?'▾':'▸ notes'}</button>
         </div>
         {infoOpen?(<>
@@ -4034,7 +4052,7 @@ export default function App(){
           const dueIdx=trainable.filter(i=>{const m=trainMastery[LIB[i].name];return m&&m.learned&&Date.now()>(m.due||0);});
           const repNames=['Italian Game','London System','Caro-Kann Defense',"King's Indian Defense"];
           const repIdx=repNames.map(n=>LIB.findIndex(o=>o.name===n)).filter(i=>i>=0);
-          const statusOf=(i)=>{const lp=learnProg[LIB[i].name];if(lp&&(lp.days||[]).length>=LEARN_GOAL)return {t:'\u2605 Mastered',c:'#f0c24d'};if(lp&&(lp.days||[]).length>=1)return {t:'Learned \u2713 \u00b7 '+((lp.days||[]).length)+'/'+LEARN_GOAL+' days to master',c:'#6cc78a'};const m=trainMastery[LIB[i].name];if(!m||!m.learned)return {t:'Not started',c:'rgba(255,255,255,.55)'};if(Date.now()>(m.due||0))return {t:'Review due',c:'#e0a83a'};return {t:'Learned ✓',c:'#46b96a'};};
+          const statusOf=(i)=>{const _st=lessonStats(LIB[i]);if(_st.mastered)return {t:'\u2605 Mastered',c:'#f0c24d'};if(_st.coverage)return {t:'Learned \u2713 \u00b7 '+_st.unionDays+'/'+LEARN_GOAL+' days to master',c:'#6cc78a'};if(_st.linesLearned>0)return {t:'In progress \u00b7 '+_st.linesLearned+'/'+_st.lines+' lines learned',c:'#9fd0ff'};const m=trainMastery[LIB[i].name];if(!m||!m.learned)return {t:'Not started',c:'rgba(255,255,255,.55)'};if(Date.now()>(m.due||0))return {t:'Review due',c:'#e0a83a'};return {t:'Learned ✓',c:'#46b96a'};};
           const row=(i)=>{const op=LIB[i];const st=statusOf(i);return(<button key={i} onClick={()=>selectOpening(i)} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'11px 12px',borderRadius:11,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:SHADOW_BTN,fontFamily:'"Segoe UI",system-ui,sans-serif'}}><span style={{flexShrink:0,width:34,height:34,borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',background:op.side==='w'?'linear-gradient(145deg,#f4f6fb,#cfd6e2)':'linear-gradient(145deg,#3a4150,#1c2029)',border:'1px solid rgba(255,255,255,.18)',fontSize:18,color:op.side==='w'?'#1a1d24':'#fff'}}>{op.side==='w'?'♔':'♚'}</span><span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(11.5px,2.7vw,14px)',fontWeight:700}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(8.5px,2vw,10.5px)',color:st.c,fontWeight:700}}>{st.t}</span></span><span style={{flexShrink:0,fontSize:18,color:'var(--ac2)',opacity:.6}}>›</span></button>);};
           const sec=(t)=>(<div style={{fontSize:'clamp(9.5px,2.2vw,11.5px)',fontWeight:800,letterSpacing:.4,color:'var(--ac2)',textTransform:'uppercase',margin:'14px 3px 7px'}}>{t}</div>);
           const fmK=op=>{const f=op.line&&op.line[0];return f==='e4'?'e4':f==='d4'?'d4':'other';};
@@ -4143,7 +4161,7 @@ export default function App(){
                 <div style={{display:'flex',flexDirection:'column',gap:6}}>
                   {LIB[openIdx].vars.map((v,vi)=>{const active=learnLabel.endsWith(v.name);return(
                     <button key={vi} onClick={()=>pickVariation(v)} style={{textAlign:'left',padding:'8px 10px',borderRadius:7,background:active?'rgba(var(--acr),.2)':'rgba(255,255,255,.06)',border:active?'1px solid rgba(var(--acr),.55)':'1px solid rgba(255,255,255,.14)',color:'#fff',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-                      <div style={{fontSize:'clamp(10px,2.4vw,13px)',fontWeight:700,color:'var(--ac2)'}}>{v.name} {active?'• now showing':'→'}</div>
+                      <div style={{fontSize:'clamp(10px,2.4vw,13px)',fontWeight:700,color:'var(--ac2)'}}>{lineDays(LIB[openIdx].name+'§'+v.name).length>=1?'✓ ':''}{v.name} {active?'• now showing':'→'}</div>
                       <div style={{fontSize:'clamp(8px,2vw,10px)',color:'rgba(255,255,255,.55)',marginTop:1,lineHeight:1.35}}>{v.idea}</div>
                     </button>);})}
                 </div>
@@ -4173,7 +4191,7 @@ export default function App(){
                 <div style={{display:'flex',flexDirection:'column',gap:6}}>
                   {LIB[openIdx].vars.map((v,vi)=>{const active=learnLabel.endsWith(v.name);return(
                     <button key={vi} onClick={()=>pickVariation(v)} style={{textAlign:'left',padding:'8px 10px',borderRadius:7,background:active?'rgba(var(--acr),.2)':'rgba(255,255,255,.06)',border:active?'1px solid rgba(var(--acr),.55)':'1px solid rgba(255,255,255,.14)',color:'#fff',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-                      <div style={{fontSize:'clamp(10px,2.4vw,13px)',fontWeight:700,color:'var(--ac2)'}}>{v.name} {active?'• now showing':'→'}</div>
+                      <div style={{fontSize:'clamp(10px,2.4vw,13px)',fontWeight:700,color:'var(--ac2)'}}>{lineDays(LIB[openIdx].name+'§'+v.name).length>=1?'✓ ':''}{v.name} {active?'• now showing':'→'}</div>
                       <div style={{fontSize:'clamp(8px,2vw,10px)',color:'rgba(255,255,255,.55)',marginTop:1,lineHeight:1.35}}>{v.idea}</div>
                     </button>);})}
                 </div>

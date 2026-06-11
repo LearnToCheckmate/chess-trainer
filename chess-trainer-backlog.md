@@ -638,3 +638,12 @@ match /nearby/{uid} {
 
 ## Questions for Kunal — addition (2026-06-11)
 8. Learning path: keep flawless-day banking available in free Discover practice (status quo: free badges, Pro planning), or make banking Coach-only (Pro-only learning)? Affects the no-pre-learned-in-slate rule: Coach-only would make it moot.
+
+## Decisions recorded (2026-06-11, batches 1-2)
+- Learning path: free Discover + Coach both bank (status quo). Cooldown stays global. Tier rules confirmed (slate 5 / learn all 5 / 2 swaps, 5-day refill). Skins stay Pro. Social: nearby + friends is enough for now; profiles/discovery to be explained and revisited.
+
+## Build #141 — Variations are separate lines + Coach safe-area (2026-06-11)
+- Per Kunal: each variation now banks its own flawless days under a per-line key (base§variation). A lesson is Learned only when EVERY line is learned, so the clear reward comes at the end of the whole thing; Mastered = 10 distinct days across all lines + full coverage. [#141]
+- Readers updated: lesson status (new "In progress · x/y lines learned"), title chip, 10-dot counter (union days + lines note), Discover rows, slate rows/tiles/credits, banked-today, addable rule (fully-learned lessons stay un-addable; partially-learned can be added). [#141]
+- Coach ▶ Run targets the first unlearned line automatically (main first, then variations in order); variation picker shows ✓ on learned lines. Existing progress migrates as main-line days. [#141]
+- Coach overlay no longer slides under the iPhone status bar (top padding now max(56px, safe-area + 12px)); spotted in Kunal's screenshot. [#141]
