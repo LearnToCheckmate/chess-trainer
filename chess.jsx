@@ -1769,7 +1769,8 @@ export default function App(){
   const coachTargetsRef=useRef(coachTargets); coachTargetsRef.current=coachTargets;
   const hintLockRef=useRef((()=>{try{return JSON.parse(localStorage.getItem('ct_hintlock')||'{}')||{};}catch(e){return {};}})());
   const [coachPlanOpen,setCoachPlanOpen]=useState(false);
-  const [coachPick,setCoachPick]=useState({side:'any',fm:'any',style:'any'});
+  const [coachPick,setCoachPick]=useState({side:'any',fm:'any',style:'any',kind:'any'});
+  const [coachChooserOpen,setCoachChooserOpen]=useState(false);
   const hintPrefsRef=useRef(null);
   const [learnPhase,setLearnPhase]=useState('demo');
   const [trainTap,setTrainTap]=useState(()=>{try{return localStorage.getItem('ct_traintap')!=='0';}catch{return true;}});
@@ -2927,7 +2928,10 @@ export default function App(){
                 const chip=(on,lab,fn)=>(<button key={lab} onClick={fn} style={{padding:'7px 11px',borderRadius:18,border:on?'1.5px solid var(--ac)':'1px solid rgba(255,255,255,.2)',background:on?'rgba(var(--acr),.22)':'rgba(255,255,255,.05)',color:on?'var(--ac2)':'rgba(255,255,255,.75)',fontWeight:800,fontSize:'clamp(9.5px,2.1vw,11px)',cursor:'pointer'}}>{lab}</button>);
                 const f0=x=>{const f=x.o.line&&x.o.line[0];return f==='e4'?'e4':f==='d4'?'d4':'other';};
                 const styleOf=x=>groupOf(x.o.cat)==='gambits'?payoffOf(x.o):'solid';
-                const suggest=()=>{const cand=allUnl.filter(x=>(coachPick.side==='any'||x.o.side===coachPick.side)&&(coachPick.fm==='any'||f0(x)===coachPick.fm)&&(coachPick.style==='any'||styleOf(x)===coachPick.style||(coachPick.style==='solid'&&styleOf(x)==='edge')));const pool=(cand.length?cand:allUnl).slice().sort((p,q)=>dN(p.o.name)-dN(q.o.name));setCoachTargets(pool.slice(0,3).map(x=>x.o.name));};
+                const match=(x,keep)=>((!keep.side)||coachPick.side==='any'||x.o.side===coachPick.side)&&((!keep.kind)||coachPick.kind==='any'||groupOf(x.o.cat)===coachPick.kind)&&((!keep.fm)||coachPick.fm==='any'||f0(x)===coachPick.fm)&&((!keep.style)||coachPick.style==='any'||styleOf(x)===coachPick.style||(coachPick.style==='solid'&&styleOf(x)==='edge'));
+                const suggest=()=>{const tries=[{side:1,kind:1,fm:1,style:1},{side:1,kind:1,fm:1},{side:1,kind:1,style:1},{side:1,kind:1},{side:1},{}];const seen=new Set();const picks=[];
+                  for(const k of tries){const lvl=allUnl.filter(y=>match(y,k)).slice().sort((p,q)=>dN(p.o.name)-dN(q.o.name));for(const x of lvl){if(!seen.has(x.o.name)){seen.add(x.o.name);picks.push(x.o.name);if(picks.length>=3)break;}}if(picks.length>=3)break;}
+                  setCoachTargets(picks);setCoachChooserOpen(false);};
                 return(<>
                 <button onClick={()=>setCoachPlanOpen(v=>!v)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'12px 13px',background:'transparent',border:'none',color:'#fff',cursor:'pointer',textAlign:'left'}}>
                   <span style={{flexShrink:0,fontSize:20,lineHeight:1}}>📋</span>
@@ -2945,16 +2949,20 @@ export default function App(){
                     <span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(8.5px,1.9vw,10px)',color:m?'#f0c24d':done?'#6cc78a':'rgba(255,255,255,.5)'}}>{m?'Mastered':done?('Banked today · '+n+'/'+LEARN_GOAL):(n+'/'+LEARN_GOAL+' days')}</span></span>
                     {!m&&!done&&<button onClick={()=>coachRun(i)} style={{flexShrink:0,padding:'6px 12px',borderRadius:9,background:'var(--ac)',border:'none',color:'#1a1a1a',fontWeight:800,fontSize:'clamp(10px,2.2vw,11.5px)',cursor:'pointer'}}>▶ Run</button>}
                     <button onClick={()=>setCoachTargets(t=>t.filter(x=>x!==op.name))} style={{flexShrink:0,width:26,height:26,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.6)',cursor:'pointer',fontSize:12,lineHeight:1,padding:0}}>✕</button>
-                  </div>);})}</div>}
-                {tIdx.length===0&&<div style={{background:'rgba(var(--acr),.10)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'10px 11px',marginBottom:11}}>
-                  <div style={{fontSize:'clamp(10.5px,2.4vw,12.5px)',fontWeight:800,color:'var(--ac2)',marginBottom:8}}>Let's pick your first targets. Quick questions:</div>
-                  <div style={{fontSize:'clamp(9px,2vw,10.5px)',color:'rgba(255,255,255,.55)',fontWeight:700,margin:'2px 0 5px'}}>I want to play as</div>
+                  </div>);})}
+                  {!coachChooserOpen&&<button onClick={()=>setCoachChooserOpen(true)} style={{alignSelf:'flex-start',background:'transparent',border:'none',color:'var(--ac2)',cursor:'pointer',fontSize:'clamp(9.5px,2.1vw,11px)',fontWeight:800,padding:'2px 0',textDecoration:'underline',textUnderlineOffset:3}}>↻ Re-pick my targets (answers the questions again and replaces these)</button>}
+                </div>}
+                {(tIdx.length===0||coachChooserOpen)&&<div style={{background:'rgba(var(--acr),.10)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'10px 11px',marginBottom:11}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}><span style={{flex:1,fontSize:'clamp(10.5px,2.4vw,12.5px)',fontWeight:800,color:'var(--ac2)'}}>Let's pick your targets. Quick questions:</span>{tIdx.length>0&&<button onClick={()=>setCoachChooserOpen(false)} style={{flexShrink:0,width:24,height:24,borderRadius:7,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.6)',cursor:'pointer',fontSize:11,lineHeight:1,padding:0}}>✕</button>}</div>
+                  <div style={{fontSize:'clamp(9px,2vw,10.5px)',color:'rgba(255,255,255,.55)',fontWeight:700,margin:'2px 0 5px'}}>I want to learn</div>
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{chip(coachPick.kind==='gambits','🗡 Gambits',()=>setCoachPick(p=>({...p,kind:'gambits'})))}{chip(coachPick.kind==='openings','📖 Openings',()=>setCoachPick(p=>({...p,kind:'openings'})))}{chip(coachPick.kind==='any','Both',()=>setCoachPick(p=>({...p,kind:'any'})))}</div>
+                  <div style={{fontSize:'clamp(9px,2vw,10.5px)',color:'rgba(255,255,255,.55)',fontWeight:700,margin:'8px 0 5px'}}>I want to play as</div>
                   <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{chip(coachPick.side==='w','♔ White',()=>setCoachPick(p=>({...p,side:'w'})))}{chip(coachPick.side==='b','♚ Black',()=>setCoachPick(p=>({...p,side:'b'})))}{chip(coachPick.side==='any','Either',()=>setCoachPick(p=>({...p,side:'any'})))}</div>
                   <div style={{fontSize:'clamp(9px,2vw,10.5px)',color:'rgba(255,255,255,.55)',fontWeight:700,margin:'8px 0 5px'}}>Against</div>
                   <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{chip(coachPick.fm==='e4','1.e4 games',()=>setCoachPick(p=>({...p,fm:'e4'})))}{chip(coachPick.fm==='d4','1.d4 games',()=>setCoachPick(p=>({...p,fm:'d4'})))}{chip(coachPick.fm==='any','Either',()=>setCoachPick(p=>({...p,fm:'any'})))}</div>
                   <div style={{fontSize:'clamp(9px,2vw,10.5px)',color:'rgba(255,255,255,.55)',fontWeight:700,margin:'8px 0 5px'}}>I like lines that</div>
                   <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{chip(coachPick.style==='mate','♚ End in mate traps',()=>setCoachPick(p=>({...p,style:'mate'})))}{chip(coachPick.style==='win','♛ Win material',()=>setCoachPick(p=>({...p,style:'win'})))}{chip(coachPick.style==='solid','↗ Build a solid game',()=>setCoachPick(p=>({...p,style:'solid'})))}{chip(coachPick.style==='any','Surprise me',()=>setCoachPick(p=>({...p,style:'any'})))}</div>
-                  <button onClick={suggest} style={{marginTop:10,width:'100%',padding:'11px',borderRadius:10,border:'none',background:'var(--ac)',color:'#1a1a1a',fontWeight:800,fontSize:'clamp(11px,2.6vw,13px)',cursor:'pointer'}}>✨ Suggest my 3 starters</button>
+                  <button onClick={suggest} style={{marginTop:10,width:'100%',padding:'11px',borderRadius:10,border:'none',background:'var(--ac)',color:'#1a1a1a',fontWeight:800,fontSize:'clamp(11px,2.6vw,13px)',cursor:'pointer'}}>✨ Suggest my 3 targets</button>
                 </div>}
                 {tiers.slice(0,unlocked).map((tier,ti)=>(<div key={ti} style={{marginTop:ti?10:0}}>
                   <div style={{fontSize:'clamp(8.5px,1.9vw,10px)',color:'rgba(255,255,255,.45)',fontWeight:800,letterSpacing:.4,textTransform:'uppercase',margin:'2px 0 6px'}}>Tier {ti+1} · tap to target · learned {learnedIn(tier)}/{tier.length}</div>

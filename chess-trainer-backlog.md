@@ -619,3 +619,8 @@ match /nearby/{uid} {
 - Plan card starts collapsed: one-line report card (targets · banked today · learned · mastered), coach line invites first-timers; tap to expand. [#137]
 - Catalog tiered in 10s: curated friendly Tier 1 (Italian, London, Caro-Kann, KID, Evans, Smith-Morra, Stafford, Englund, Scholar's Mate, Danish); learning 5 unlocks the next tier; locked tiers show as a single 🔒 row, no wall of red. [#137]
 - Zero-target chooser: side, vs 1.e4/1.d4, payoff style (mate traps / win material / solid), then Suggest my 3 starters using existing payoff metadata; untouched lessons preferred. [#137]
+
+## Build #138 — Chooser fix + gambit/opening question + re-pick (2026-06-10)
+- Bug (Kunal repro): picking Black could yield all-White suggestions because an empty strict match silently fell back to the whole tier. Suggestions now relax constraints progressively (style, then 1.e4/1.d4, then kind) but NEVER abandon the side pick. [#138]
+- New first question: I want to learn 🗡 Gambits / 📖 Openings / Both. [#138]
+- "↻ Re-pick my targets" link under the targets list reopens the questions (with a ✕ to cancel) and replaces targets on Suggest. [#138]
