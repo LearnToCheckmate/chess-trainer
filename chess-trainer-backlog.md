@@ -604,3 +604,4 @@ match /nearby/{uid} {
 ## Build #136 — Live-game move review + Play button grid (2026-06-10)
 - Online games now feed playHist from the synced move list, so the existing ⏮ ‹ › ⏭ move viewer works during live online games: view-only, snaps to LIVE on any new move, tap the board to return. Premove tint hidden while reviewing; takeback hard-blocked online. [#136]
 - Play bottom controls rebuilt as a 3+2 grid (Takeback/Hint/Resign, New Game/Flip): uniform 44px height, one font size, no flex-wrap drift. Screenshot wanted. [#136]
+- Note: commits 97b45002 stamped #136 prematurely and carried a truncated chess.jsx + broken 194KB app.js (encode failure mid-write, masked by a piped compile check). This commit restores the source and ships the real #136. Compile checks now use unpiped exit codes and writes encode before touching disk.
