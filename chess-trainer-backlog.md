@@ -587,3 +587,7 @@ match /nearby/{uid} {
 ## Build #133 — Flawless everywhere for Learned (2026-06-10)
 - Kunal's call after playing a gambit lesson: ✗ bounces leak the answer by elimination, so Learned now also requires a flawless run (no hints, no wrong tries). Learned = first banked day; Mastered = 10 banked days, gaps fine. [#133]
 - Learned is now derived from banked days everywhere (status rows, title chip, list badges, cloud merge), which auto-corrects any lenient Learned flag stored under the #132 rule. [#133]
+
+## Build #134 — Mastery counter + tap-move buttons count as hints (2026-06-10)
+- 10-dot flawless-day counter under the lesson title in Discover, filling green then gold at Mastered, with an "n of 10 flawless days" label. [#134]
+- The Tap-moves panel (pick the book move from 4 buttons) is a 1-in-4 multiple choice, i.e. a hint: it now only renders when hints are ON. Turning Tap moves on with hints off flips hints on too, so reps stay honestly classified. [#134]

@@ -3328,6 +3328,7 @@ export default function App(){
       {mode==='learn'&&openIdx!==null&&(<div style={{textAlign:'center',marginBottom:8,maxWidth:boardPx+44,width:'94vw'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>
           <div style={{fontSize:'clamp(14px,3.5vw,19px)',fontWeight:800,color:'var(--ac2)',letterSpacing:.3}}>{learnLabel||LIB[openIdx].name}{(()=>{const lp=learnProg[LIB[openIdx].name];if(!lp)return null;const m=(lp.days||[]).length>=LEARN_GOAL;if(m)return <span style={{marginLeft:8,fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,color:'#f0c24d',background:'rgba(240,180,41,.14)',border:'1px solid rgba(240,180,41,.45)',borderRadius:20,padding:'2px 9px',verticalAlign:'middle'}}>★ Mastered</span>;if((lp.days||[]).length>=1)return <span style={{marginLeft:8,fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,color:'#6cc78a',background:'rgba(108,199,138,.12)',border:'1px solid rgba(108,199,138,.4)',borderRadius:20,padding:'2px 9px',verticalAlign:'middle'}}>✓ {(lp.days||[]).length}/{LEARN_GOAL}</span>;return null;})()}</div>
+          {(()=>{const _nm=LIB[openIdx].name;const lp=learnProg[_nm]||{};const n=(lp.days||[]).length;const m=n>=LEARN_GOAL;return(<div style={{display:'flex',alignItems:'center',gap:4,marginTop:4}}>{Array.from({length:LEARN_GOAL}).map((_,i)=>(<span key={i} style={{width:9,height:9,borderRadius:'50%',background:i<n?(m?'#f0c24d':'#6cc78a'):'rgba(255,255,255,.10)',border:'1px solid '+(i<n?(m?'#f0c24d':'#6cc78a'):'rgba(255,255,255,.28)')}}/>))}<span style={{marginLeft:6,fontSize:'clamp(9px,2.1vw,11px)',fontWeight:800,color:m?'#f0c24d':(n>0?'#6cc78a':'rgba(255,255,255,.55)')}}>{m?'Mastered':(n+' of '+LEARN_GOAL+' flawless days')}</span></div>);})()}
           <button onClick={()=>setInfoOpen(o=>!o)} title={infoOpen?'Hide notes for a bigger board':'Show the notes'} style={{flexShrink:0,minWidth:26,height:24,borderRadius:6,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.7)',fontSize:11,fontWeight:700,cursor:'pointer',lineHeight:1,padding:'0 6px'}}>{infoOpen?'▾':'▸ notes'}</button>
         </div>
         {infoOpen?(<>
@@ -4051,7 +4052,7 @@ export default function App(){
           </>)}
           {learnPhase==='practice'&&(<>
             {(()=>{const op=LIB[openIdx];const line=learnLine;const step=openStep;
-              if(!op||!trainTap||step>=line.length||boardGame.turn!==op.side)return null;
+              if(!op||!trainTap||!showHint||step>=line.length||boardGame.turn!==op.side)return null;
               const correct=cleanSAN(line[step]);const seen=new Set();const uniq=[];
               for(const mv of getLegal(boardGame)){const s=cleanSAN(toSAN(boardGame,mv,applyMove(boardGame.board,mv)));if(!seen.has(s)){seen.add(s);uniq.push({s,mv});}}
               const correctItem=uniq.find(u=>u.s===correct)||{s:correct,mv:findMoveBySAN(boardGame,line[step])};
@@ -4089,7 +4090,7 @@ export default function App(){
               </div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
                 <button onClick={()=>{const nv=!showHint;setShowHint(nv);setHintFor(LIB[openIdx]?.name,nv);if(nv)setRevealHint(false);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)',showHint?'var(--ac2)':'rgba(255,255,255,.6)'),fontSize:'clamp(11px,2.5vw,13px)'}}>{showHint?'💡 Hints: on':'💡 Hints: off'}</button>
-                <button onClick={()=>setTrainTap(t=>!t)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)',trainTap?'var(--ac2)':'rgba(255,255,255,.6)'),fontSize:'clamp(11px,2.5vw,13px)'}}>{trainTap?'🔤 Tap moves':'✋ Drag piece'}</button>
+                <button onClick={()=>{const nv=!trainTap;if(nv&&!showHint){setShowHint(true);setHintFor(LIB[openIdx]?.name,true);}setTrainTap(nv);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)',trainTap?'var(--ac2)':'rgba(255,255,255,.6)'),fontSize:'clamp(11px,2.5vw,13px)'}}>{trainTap?'🔤 Tap moves':'✋ Drag piece'}</button>
               </div>
               <button onClick={()=>{const pos=fromFEN(toFEN(boardGame));setMode('play');setOpponent('computer');setPColor(LIB[openIdx].side);setOpenIdx(null);timeCtrlRef.current=null;setTimeCtrl(null);setPlaySetup(false);fullReset(pos);setMenuOpen(false);}} style={{...btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)'),width:'100%'}}>▶ Play vs Computer</button>
             </div>
