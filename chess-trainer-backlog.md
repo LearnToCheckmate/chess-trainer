@@ -605,3 +605,17 @@ match /nearby/{uid} {
 - Online games now feed playHist from the synced move list, so the existing ⏮ ‹ › ⏭ move viewer works during live online games: view-only, snaps to LIVE on any new move, tap the board to return. Premove tint hidden while reviewing; takeback hard-blocked online. [#136]
 - Play bottom controls rebuilt as a 3+2 grid (Takeback/Hint/Resign, New Game/Flip): uniform 44px height, one font size, no flex-wrap drift. Screenshot wanted. [#136]
 - Note: commits 97b45002 stamped #136 prematurely and carried a truncated chess.jsx + broken 194KB app.js (encode failure mid-write, masked by a piped compile check). This commit restores the source and ships the real #136. Compile checks now use unpiped exit codes and writes encode before touching disk.
+
+## Questions for Kunal (parked 2026-06-10, answer anytime)
+1. Hint cooldown (10 min): keep global, or Coach-only?
+2. Screenshot of the new Play button grid (#136) for fine-tuning.
+3. Board scale: still want the bigger Chess.com-style board? Screenshot to start.
+4. Skins: free Playful + Medieval, or keep Pro?
+5. Social scope: Play-nearby enough, or profiles/discovery later?
+6. Confirm gamification judgment calls: variations count toward base lesson; off-book early mates do not count.
+7. (new, #137) Tier unlock rule is learn 5 of 10 to open the next tier. Feel right?
+
+## Build #137 — Mastery plan v2: collapsed report card, tiers, starter chooser (2026-06-10)
+- Plan card starts collapsed: one-line report card (targets · banked today · learned · mastered), coach line invites first-timers; tap to expand. [#137]
+- Catalog tiered in 10s: curated friendly Tier 1 (Italian, London, Caro-Kann, KID, Evans, Smith-Morra, Stafford, Englund, Scholar's Mate, Danish); learning 5 unlocks the next tier; locked tiers show as a single 🔒 row, no wall of red. [#137]
+- Zero-target chooser: side, vs 1.e4/1.d4, payoff style (mate traps / win material / solid), then Suggest my 3 starters using existing payoff metadata; untouched lessons preferred. [#137]
