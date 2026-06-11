@@ -583,3 +583,7 @@ match /nearby/{uid} {
 - Badges: lesson lists show "★ Mastered" gold or "Learned ✓ · n/10 days to master"; lesson title gets a chip; completion message reports what banked. Train's spaced-repetition labels unchanged underneath. [#132]
 - Persistence: ct_learnprog locally + merged into the account cloud save (days union across devices). Variations count toward the base lesson; off-book early checkmates do not count. [#132]
 - Stage 2 queued: Coach mastery plan (Pro) — daily prompts + pick-your-targets. Mid-turn disk revert shipped a stale tracker in 4b987800; fixed in the follow-up commit.
+
+## Build #133 — Flawless everywhere for Learned (2026-06-10)
+- Kunal's call after playing a gambit lesson: ✗ bounces leak the answer by elimination, so Learned now also requires a flawless run (no hints, no wrong tries). Learned = first banked day; Mastered = 10 banked days, gaps fine. [#133]
+- Learned is now derived from banked days everywhere (status rows, title chip, list badges, cloud merge), which auto-corrects any lenient Learned flag stored under the #132 rule. [#133]
