@@ -597,3 +597,6 @@ match /nearby/{uid} {
 - Targets list shows a daily state per lesson (▫️ pending, ✅ banked today, ⭐ mastered) with a Run button that launches the lesson directly into practice with hints OFF (coached rep). Multiple targets in parallel, each banks its own day. [#135]
 - Honesty cooldown (global, flagged for veto): any hint exposure during practice locks that lesson's banking for 10 minutes; a flawless run during the lock explains when it can count again. Stored in ct_hintlock. [#135]
 - Targets sync to the account (ct_coachtargets + cloud save/load adopt). [#135]
+
+## Sweep 2026-06-10 (post-#135)
+- Feedback + manual-tasks chats unchanged since 2026-06-08; one missed item folded in as Open: back/forward move review during live games (on-nav).
