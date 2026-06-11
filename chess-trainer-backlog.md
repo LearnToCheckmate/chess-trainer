@@ -654,3 +654,6 @@ match /nearby/{uid} {
 ## Build #142 — Bigger board (2026-06-11)
 - Portrait phones: side reserve cut 8px to 4px (board now runs flush edge to edge); eval bar slimmed 20+4 to 14+4 so vs-computer/review boards gain ~16px; companion panels (controls, cards, move list) widened from 94vw to 98vw to stay aligned with the wider board. [#142]
 - Learn-mode portrait height cap raised 56% to 60% of screen height and hard cap 760 to 820 (mainly benefits iPad portrait); landscape board +12px taller. Play height reserve trimmed 282 to 262. [#142]
+
+## Build #143 — Single hints button (2026-06-11)
+- Practice row: removed the one-shot 💡 Hint (reveal) button; the single 💡 Hints: on/off toggle remains. Reveal state machinery kept internally; honesty cooldown unchanged. [#143]

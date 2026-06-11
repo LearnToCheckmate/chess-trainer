@@ -4203,7 +4203,6 @@ export default function App(){
                 <button onClick={()=>startPractice(learnLine,learnLabel)} style={btn('#4a6741','none','#fff')}>↻ Try again</button>
               </div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
-                <button onClick={()=>{if(!showHint)setRevealHint(true);}} disabled={showHint} title={showHint?'Hints are already showing':'Reveal one hint'} style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.32)','var(--ac2)'),opacity:showHint?.4:1,cursor:showHint?'default':'pointer'}}>💡 Hint</button>
                 <button onClick={()=>setFlip(f=>!f)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⟳ Flip</button>
               </div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
