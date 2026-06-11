@@ -3,7 +3,7 @@
 # After each build run: edit TASKS/GROUPS, set STAMP, run:  python3 gen_tracker.py
 import json, datetime
 
-STAMP = "Updated through build #124 - 2026-06-08"
+STAMP = "Updated through build #132 - 2026-06-10"
 
 GROUPS = [
     {"key": "online", "nm": "Online & multiplayer", "color": "#7bd1ff", "isNew": True},
@@ -30,8 +30,8 @@ TASKS = [
     {"g": "online", "id": "on-endscreen","s": "done", "t": "Board-level end screen for draw / resign", "n": "Already implemented: centered result overlay (Draw agreed / You won / You lost) with rematch. Re-test on #111."},
     {"g": "online", "id": "on-rematch",  "s": "done", "t": "Rematch as an offer / accept / decline flow", "n": "Already implemented: offer -> opponent accepts or declines, with notices. Re-test on #111."},
     {"g": "online", "id": "on-invite",   "s": "done", "b": "#112", "t": "Online play by invite code + live clock", "n": "Invite play works; a synced minute-clock now counts down for both players and flags on time (#112). Re-test on two devices."},
-    {"g": "online", "id": "on-friends",  "s": "open", "you": True, "t": "Friends: a saved friends list (add & challenge)", "n": "Tile is in as SOON."},
-    {"g": "online", "id": "on-tourney",  "s": "open", "you": True, "t": "Tournaments (round-robin, knockout, Swiss)", "n": "You want all three. Multi-build feature; building after matchmaking. Need: a time control per tournament, and whether it is among friends by code or open to anyone."},
+    {"g": "online", "id": "on-friends",  "s": "done", "b": "#125", "you": True, "t": "Friends: add by ID, mutual accept, list, challenge", "n": "Built (#125): the Play-with-friends tile opens a Friends screen \u2014 your shareable ID with Copy, add a friend by ID, accept/decline requests, a friends list with Challenge and Remove, plus an \u201cAdd as friend\u201d button on a past online opponent. NEEDS YOU: publish the friendReqs + friends Firestore rules (provided), then test on two devices."}, {"g": "online", "id": "on-premove", "s": "done", "b": "#131", "you": True, "t": "PreMove: queue a move on the opponent's turn", "n": "Built (#131): while you wait, tap or drag a move; the squares tint orange. It plays the instant your turn arrives if legal, otherwise it silently clears. Tap anywhere to cancel; promotions auto-queen. Works online and vs the bots. NEEDS YOU: feel-test it in a fast online game."}, {"g": "discover", "id": "dc-gamify", "s": "done", "b": "#132", "you": True, "t": "Gamified lessons: Learned and Mastered", "n": "Built (#132): finish a practice line with hints OFF to earn Learned (retries fine). A flawless no-hint, no-wrong-try run banks a Mastered day; 10 days (gaps fine) earns \u2605 Mastered. Badges in the Discover lists and on the lesson page, progress synced to your account. Variations count toward their base lesson; off-book early mates do not count. NEEDS YOU: run one lesson with hints off and confirm the day banks."}, {"g": "discover", "id": "dc-coachplan", "s": "open", "t": "Coach mastery plan (Pro)", "n": "Stage 2: the Coach prompts daily reps and lets you pick target openings to master. Free badges stay free; this planning layer is the Pro piece."},
+    {"g": "online", "id": "on-tourney",  "s": "open", "you": True, "t": "Tournaments (round-robin, knockout, Swiss)", "n": "Decided: all three formats, open to anyone, scheduled start, Claude picks the clock. Stage 1 (create, lobby, detail, countdown) is the next build; stage 2 is the pairing engine and wants two-device testing."},
     {"g": "online", "id": "on-match",    "s": "done", "b": "#113", "you": True, "t": "Online matchmaking: quick match", "n": "Built (#113): a Quick match button pairs you with anyone else searching at the same time control. NEEDS YOU: publish the mm Firestore rule, then test on two devices."},
     {"g": "online", "id": "on-corr",     "s": "done", "you": True, "t": "Daily / correspondence (multi-day) games", "n": "Confirmed built: when you pick Online, the setup shows a \u201cTime per move\u201d picker (No limit / 1 / 3 / 7 days), and create-game carries it. Two-device test still needed."},
 
@@ -61,7 +61,7 @@ TASKS = [
     # Discover
     {"g": "disc", "id": "dc-add",        "s": "done", "b": "#120", "t": "Added 12 curated openings", "n": "Done (#120): you had no list, so I curated 12 missing ones (engine-verified): French Tarrasch, Queen\u2019s Indian, Bogo-Indian, Colle, Stonewall, Torre, Benoni, Tarrasch Defense, Sicilian Alapin, Closed Sicilian, Ponziani, Center Game. (Najdorf, Ruy main, Caro Classical, French Classical were already the main lines.)"},
     {"g": "disc", "id": "dc-gambitsbtn", "s": "done", "b": "#115", "t": "Gambits lesson buttons higher / more compact", "n": "Moved the move-stepper (Play, step, replay) to a compact row just above the board so it is always visible without scrolling; the old below-board copy is gone."},
-    {"g": "disc", "id": "dc-vid",        "s": "part", "you": True, "t": "In-lesson video (embedded) + links", "n": "Built: every lesson has a Watch-in-app button (embedded player) plus YouTube + coach link-outs. The per-lesson curated video list is still sparse \u2014 deciding how to populate it."},
+    {"g": "disc", "id": "dc-vid",        "s": "part", "you": True, "t": "In-lesson video (embedded) + links", "n": "Embedded player built; 22 lessons now have a curated in-app video (batches #126/#128/#130): the main openings plus popular gambits (Evans, Smith-Morra, Danish, Stafford, Budapest) and Scotch, Vienna, English, Scandinavian, Pirc, Dutch, Catalan, Grunfeld. Mostly Remote Chess Academy, plus Eric Rosen (Stafford) and Andras Toth (Danish). Best-guess IDs; swap any you dislike."},
     {"g": "disc", "id": "dc-ipad",       "s": "done", "b": "#123", "t": "iPad landscape Home \u2014 bigger tiles", "n": "Reverted Option C (#123): back to the prior layout you preferred (Colors/Style chips on their own row below the coach), and made the four tiles and their text much bigger in landscape to fill the empty space. Reload the iPad tab (it was stuck on #104). Tell me if you want them bigger still."},
     {"g": "disc", "id": "dc-done",       "s": "done", "t": "Discover core: openings, gambits, endgames, notation, feedback widget"},
 
@@ -81,11 +81,11 @@ TASKS = [
     {"g": "infra", "id": "in-prewarm", "s": "done", "b": "#119", "t": "Pre-warm Firestore to kill the first-move lag", "n": "Done (#119): the app now opens the Firestore connection on load with a throwaway read, so the first cloud action / online move should no longer pause 5-10s. Verify on device."},
     {"g": "infra", "id": "in-dom",   "s": "open", "you": True, "t": "Register a domain", "n": "gambitcoach.com (available, ~$10) or blunderly.com."},
     {"g": "infra", "id": "in-cap",   "s": "open", "you": True, "t": "Native app wrapper (Capacitor)", "n": "iOS needs a Mac + Apple dev account. Also fixes the installed-app sign-in loop."},
-    {"g": "infra", "id": "in-photo", "s": "open", "you": True, "t": "Photo-to-board (snap a real board \u2192 analyze)", "n": "Firebase function + vision; enable it."},
+    {"g": "infra", "id": "in-photo", "s": "part", "you": True, "t": "Photo-to-board (snap a real board \u2192 play/analyze)", "n": "App side built (#127): New Game screen \u201cScan a board from a photo\u201d \u2014 downsizes the photo, returns a FEN, opens it as \u201cPlay this position.\u201d NEEDS YOU: deploy one Cloud Function (scanBoard) + set your Anthropic API key secret. Full function file + steps provided."},
     {"g": "infra", "id": "in-palm",  "s": "open", "t": "Palm / bottom-edge touch rejection", "n": "Tune on device."},
 
     # Community / Social
-    {"g": "comm", "id": "cm-near", "s": "open", "you": True, "t": "Play your neighbours (location / ZIP)", "n": "Privacy & legal; a product call."},
+    {"g": "comm", "id": "cm-near", "s": "done", "b": "#129", "you": True, "t": "Play nearby (approx location / ZIP)", "n": "Built (#129): a Play-nearby tile on the New Game screen opens an opt-in screen. You choose to be visible; only a coarse area is shared (GPS rounded to ~11km, or your ZIP), never exact coordinates. It lists other opted-in players in your area with a Challenge button, and a Stop button to opt out. NEEDS YOU: publish the nearby Firestore rule (provided), then test on two accounts. Untestable in my sandbox (no location, no other users). Direct nearby invites + distance are a later pass."},
     {"g": "comm", "id": "cm-soc",  "s": "open", "you": True, "t": "Social / dating angle", "n": "Safety, consent, moderation; pick a direction."},
 
     # Polish
