@@ -1762,6 +1762,9 @@ export default function App(){
   const [openMsg,setOpenMsg]=useState('');
   const [showHint,setShowHint]=useState(true);
   const [revealHint,setRevealHint]=useState(false);
+  const [learnProg,setLearnProg]=useState(()=>{try{return JSON.parse(localStorage.getItem('ct_learnprog')||'{}')||{};}catch(e){return {};}});
+  const learnProgRef=useRef(learnProg); learnProgRef.current=learnProg;
+  const learnRepRef=useRef({hints:false,miss:false});
   const hintPrefsRef=useRef(null);
   const [learnPhase,setLearnPhase]=useState('demo');
   const [trainTap,setTrainTap]=useState(()=>{try{return localStorage.getItem('ct_traintap')!=='0';}catch{return true;}});
@@ -1980,6 +1983,8 @@ export default function App(){
   useEffect(()=>{try{localStorage.setItem('ct_coachstyle',coachStyle);}catch{}},[coachStyle]);
   useEffect(()=>{try{localStorage.setItem('ct_traintap',trainTap?'1':'0');}catch{}},[trainTap]);
   useEffect(()=>{try{localStorage.setItem('ct_train',JSON.stringify(trainMastery));}catch{}},[trainMastery]);
+  useEffect(()=>{try{localStorage.setItem('ct_learnprog',JSON.stringify(learnProg));}catch{}},[learnProg]);
+  useEffect(()=>{if(mode==='learn'&&learnPhase==='practice'&&(showHint||revealHint))learnRepRef.current.hints=true;},[mode,learnPhase,showHint,revealHint]);
   useEffect(()=>{
     if(mode==='learn'&&learnPhase==='practice'&&openIdx!=null&&learnLine.length>0){
       if(openStep<learnLine.length){trainArmed.current=true;}
@@ -2008,6 +2013,7 @@ export default function App(){
           if(typeof data.theme==='number'&&data.theme>=0&&data.theme<THEMES.length)setTheme(data.theme);if(typeof data.skin==='number'&&data.skin>=0&&data.skin<SKINS.length)setSkin(data.skin);
           if(typeof data.elo==='number')setCpuElo(Math.max(ELO_MIN,Math.min(ELO_MAX,data.elo)));
           if(data.hintprefs&&typeof data.hintprefs==='object'){hintPrefsRef.current={...data.hintprefs};try{localStorage.setItem('ct_hintprefs',JSON.stringify(hintPrefsRef.current));}catch{}}
+          if(data.learnprog&&typeof data.learnprog==='object'){const lp=data.learnprog;setLearnProg(loc=>{const out={...loc};for(const k in lp){const a=out[k]||{},b=lp[k]||{};const days=[...new Set([...(a.days||[]),...(b.days||[])])].sort();out[k]={learned:!!(a.learned||b.learned),days};}return out;});}
           if(data.pz&&typeof data.pz==='object'){const cp=data.pz;
             if(cp.solved&&typeof cp.solved==='object')setPzSolvedMap(m=>({...m,...cp.solved}));
             if(cp.onlineIds&&typeof cp.onlineIds==='object')setPzOSolvedIds(m=>({...m,...cp.onlineIds}));
@@ -2016,7 +2022,7 @@ export default function App(){
             if(typeof cp.online==='number')setPzOSolved(o=>Math.max(o,cp.online));
           }
         }else{
-          C.save({theme:syncRef.current.theme,skin:syncRef.current.skin,elo:syncRef.current.elo,hintprefs:readHintPrefs(),pz:{solved:pzSolvedRef.current,streak:pzStreakRef.current,best:pzBestRef.current,xp:pzXPRef.current,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current}});
+          C.save({theme:syncRef.current.theme,skin:syncRef.current.skin,elo:syncRef.current.elo,hintprefs:readHintPrefs(),pz:{solved:pzSolvedRef.current,streak:pzStreakRef.current,best:pzBestRef.current,xp:pzXPRef.current,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current},learnprog:learnProgRef.current});
         }
       }catch(e){}
     });
@@ -2035,6 +2041,7 @@ export default function App(){
     let t2=null; if(C&&C.user){t2=setTimeout(()=>{try{C.save({pz:o});}catch(e){}},1000);}
     return ()=>{clearTimeout(t1);if(t2)clearTimeout(t2);};
   },[pzSolvedMap,pzStreak,pzBest,pzXP,pzOSolved,pzOSolvedIds,cloudUser]);
+  useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!cloudUser)return;const t=setTimeout(()=>{try{C.save({learnprog:learnProgRef.current});}catch(e){}},900);return ()=>clearTimeout(t);},[learnProg,cloudUser]);
   const cloudSignIn=()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C)return;setCloudErr('');C.signIn().catch(e=>{const code=e&&e.code;setCloudErr(code==='auth/unauthorized-domain'?'This site isn’t authorized in Firebase yet — add the domain in Auth settings.':(code==='auth/popup-blocked'?'Popup blocked — allow popups and retry.':'Sign-in failed, please retry.'));});};
   const cloudSignOut=()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(C)C.signOut();setCloudUser(null);};
   useEffect(()=>{
@@ -2216,6 +2223,7 @@ export default function App(){
     UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
   };
   const startPractice=(line,label)=>{
+    learnRepRef.current={hints:!!showHintRef.current,miss:false};
     setLearnPhase('practice');setDemoPlaying(false);setLearnLine(line);setLearnLabel(label);setOpenMsg('');setInfoOpen(false);
     const op=LIB[openIdxRef.current];let g=op&&op.fen?fromFEN(op.fen):initGame();
     if(op&&!op.fen&&op.side==='b'){const mv=findMoveBySAN(g,line[0]);if(mv){g=makeMove(g,mv);setLastMv(mv);setOpenStep(1);}else setOpenStep(0);}
@@ -2433,6 +2441,24 @@ export default function App(){
     return rankAfter>rankBefore?PZ_TIERS[rankAfter-1]:null;
   };
   const pzBreakStreak=()=>{if(pzStreakRef.current>0){setPzStreak(0);PZSTORE.set(PZKEY,JSON.stringify({solved:pzSolvedRef.current,streak:0,best:pzBestRef.current,xp:pzXPRef.current,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current}));}};
+  const LEARN_GOAL=10;
+  const finishRep=()=>{
+    const op=LIB[openIdxRef.current]; if(!op)return '';
+    const rep=learnRepRef.current||{}; learnRepRef.current={hints:false,miss:false};
+    if(rep.hints){const had=learnProgRef.current[op.name];return (had&&had.learned)?'':' Hints were on, so this run does not count toward Learned. Switch hints off and run it once more.';}
+    const today=dstr(new Date());
+    const cur=learnProgRef.current[op.name]||{};
+    const days=Array.isArray(cur.days)?cur.days.slice():[];
+    const wasM=days.length>=LEARN_GOAL;
+    const gotLearnedNow=!cur.learned;
+    let banked=false;
+    if(!rep.miss&&days.indexOf(today)<0){days.push(today);banked=true;}
+    setLearnProg(p=>({...p,[op.name]:{learned:true,days}}));
+    if(days.length>=LEARN_GOAL)return wasM?' Still mastered. \ud83c\udfc5':' \ud83c\udfc5 MASTERED \u00b7 10 clean days. Seriously impressive.';
+    if(banked)return ' Clean run \u00b7 day '+days.length+' of '+LEARN_GOAL+' toward Mastered.'+(gotLearnedNow?' Learned \u2713':'');
+    if(rep.miss)return gotLearnedNow?' Learned \u2713 (retries are fine for that). A Mastered day needs a run with no wrong tries.':' A wrong try slipped in, so no Mastered day banked. One clean run does it.';
+    return ' Clean run \u00b7 today is already banked, tomorrow counts next.';
+  };
   const doMove=(g,mv)=>{
     if(modeRef.current==='puzzle'){
       if(puzSolvedRef.current){UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}
@@ -2464,10 +2490,10 @@ export default function App(){
         setGame(ng);setLastMv(mv);setRevealHint(false);UI.current={sel:null,tgts:[],drag:null,dragging:false};
         if(isMate&&!matches){setOpenStep(line.length);setOpenMsg('🎉 '+played+' is checkmate — that works too! Any legal mate ends the game.');repaint();return;}
         let s=step+1;setOpenMsg('✓ '+played+' — correct!');
-        if(s<line.length){setTimeout(()=>{const omv=findMoveBySAN(ng,line[s]);if(omv){setGame(g2=>makeMove(g2,omv));setLastMv(omv);setOpenStep(s+1);if(s+1>=line.length)setOpenMsg('🎉 Complete! That\'s the '+learnLabel+'.');}},420);setOpenStep(s);}
-        else{setOpenStep(s);setOpenMsg('🎉 Complete! That\'s the '+learnLabel+'.');}
+        if(s<line.length){setTimeout(()=>{const omv=findMoveBySAN(ng,line[s]);if(omv){setGame(g2=>makeMove(g2,omv));setLastMv(omv);setOpenStep(s+1);if(s+1>=line.length)setOpenMsg('🎉 Complete! That\'s the '+learnLabel+'.'+finishRep());}},420);setOpenStep(s);}
+        else{setOpenStep(s);setOpenMsg('🎉 Complete! That\'s the '+learnLabel+'.'+finishRep());}
         repaint();
-      }else{setOpenMsg(showHintRef.current?('✗ Not the book move — it goes '+line[step]+' here. Try again.'):('✗ '+played+" isn't the line — try again. (Tap 💡 Hint to see it.)"));UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
+      }else{learnRepRef.current.miss=true;setOpenMsg(showHintRef.current?('✗ Not the book move — it goes '+line[step]+' here. Try again.'):('✗ '+played+" isn't the line — try again. (Tap 💡 Hint to see it.)"));UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
       return;
     }
     if(modeRef.current==='play'&&opponentRef.current==='online'){
@@ -3301,7 +3327,7 @@ export default function App(){
       </div>)}
       {mode==='learn'&&openIdx!==null&&(<div style={{textAlign:'center',marginBottom:8,maxWidth:boardPx+44,width:'94vw'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>
-          <div style={{fontSize:'clamp(14px,3.5vw,19px)',fontWeight:800,color:'var(--ac2)',letterSpacing:.3}}>{learnLabel||LIB[openIdx].name}</div>
+          <div style={{fontSize:'clamp(14px,3.5vw,19px)',fontWeight:800,color:'var(--ac2)',letterSpacing:.3}}>{learnLabel||LIB[openIdx].name}{(()=>{const lp=learnProg[LIB[openIdx].name];if(!lp)return null;const m=(lp.days||[]).length>=LEARN_GOAL;if(m)return <span style={{marginLeft:8,fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,color:'#f0c24d',background:'rgba(240,180,41,.14)',border:'1px solid rgba(240,180,41,.45)',borderRadius:20,padding:'2px 9px',verticalAlign:'middle'}}>★ Mastered</span>;if(lp.learned)return <span style={{marginLeft:8,fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,color:'#6cc78a',background:'rgba(108,199,138,.12)',border:'1px solid rgba(108,199,138,.4)',borderRadius:20,padding:'2px 9px',verticalAlign:'middle'}}>✓ {(lp.days||[]).length}/{LEARN_GOAL}</span>;return null;})()}</div>
           <button onClick={()=>setInfoOpen(o=>!o)} title={infoOpen?'Hide notes for a bigger board':'Show the notes'} style={{flexShrink:0,minWidth:26,height:24,borderRadius:6,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.7)',fontSize:11,fontWeight:700,cursor:'pointer',lineHeight:1,padding:'0 6px'}}>{infoOpen?'▾':'▸ notes'}</button>
         </div>
         {infoOpen?(<>
@@ -3907,7 +3933,7 @@ export default function App(){
           const dueIdx=trainable.filter(i=>{const m=trainMastery[LIB[i].name];return m&&m.learned&&Date.now()>(m.due||0);});
           const repNames=['Italian Game','London System','Caro-Kann Defense',"King's Indian Defense"];
           const repIdx=repNames.map(n=>LIB.findIndex(o=>o.name===n)).filter(i=>i>=0);
-          const statusOf=(i)=>{const m=trainMastery[LIB[i].name];if(!m||!m.learned)return {t:'Not started',c:'rgba(255,255,255,.55)'};if(Date.now()>(m.due||0))return {t:'Review due',c:'#e0a83a'};return {t:'Learned ✓',c:'#46b96a'};};
+          const statusOf=(i)=>{const lp=learnProg[LIB[i].name];if(lp&&(lp.days||[]).length>=LEARN_GOAL)return {t:'\u2605 Mastered',c:'#f0c24d'};if(lp&&lp.learned)return {t:'Learned \u2713 \u00b7 '+((lp.days||[]).length)+'/'+LEARN_GOAL+' days to master',c:'#6cc78a'};const m=trainMastery[LIB[i].name];if(!m||!m.learned)return {t:'Not started',c:'rgba(255,255,255,.55)'};if(Date.now()>(m.due||0))return {t:'Review due',c:'#e0a83a'};return {t:'Learned ✓',c:'#46b96a'};};
           const row=(i)=>{const op=LIB[i];const st=statusOf(i);return(<button key={i} onClick={()=>selectOpening(i)} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'11px 12px',borderRadius:11,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:SHADOW_BTN,fontFamily:'"Segoe UI",system-ui,sans-serif'}}><span style={{flexShrink:0,width:34,height:34,borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',background:op.side==='w'?'linear-gradient(145deg,#f4f6fb,#cfd6e2)':'linear-gradient(145deg,#3a4150,#1c2029)',border:'1px solid rgba(255,255,255,.18)',fontSize:18,color:op.side==='w'?'#1a1d24':'#fff'}}>{op.side==='w'?'♔':'♚'}</span><span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(11.5px,2.7vw,14px)',fontWeight:700}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(8.5px,2vw,10.5px)',color:st.c,fontWeight:700}}>{st.t}</span></span><span style={{flexShrink:0,fontSize:18,color:'var(--ac2)',opacity:.6}}>›</span></button>);};
           const sec=(t)=>(<div style={{fontSize:'clamp(9.5px,2.2vw,11.5px)',fontWeight:800,letterSpacing:.4,color:'var(--ac2)',textTransform:'uppercase',margin:'14px 3px 7px'}}>{t}</div>);
           const fmK=op=>{const f=op.line&&op.line[0];return f==='e4'?'e4':f==='d4'?'d4':'other';};
@@ -3993,7 +4019,7 @@ export default function App(){
                           {trainMastery[op.name]&&trainMastery[op.name].learned&&<span title={Date.now()>(trainMastery[op.name].due||0)?'Review due':'Learned'} style={{position:'absolute',bottom:-3,right:-3,width:15,height:15,borderRadius:'50%',background:Date.now()>(trainMastery[op.name].due||0)?'#e0a83a':'#46b96a',border:'1.5px solid #14171e',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:'#fff',fontWeight:900,lineHeight:1}}>✓</span>}
                         </span>
                         <span style={{flex:1,minWidth:0}}>
-                          <span style={{display:'block',fontSize:'clamp(11.5px,2.7vw,14px)',fontWeight:700}}>{op.name}</span>
+                          <span style={{display:'block',fontSize:'clamp(11.5px,2.7vw,14px)',fontWeight:700}}>{op.name}{(()=>{const lp=learnProg[op.name];if(!lp)return null;const m=(lp.days||[]).length>=LEARN_GOAL;return <span style={{marginLeft:6,fontSize:'clamp(8.5px,2vw,10px)',fontWeight:800,color:m?'#f0c24d':'#6cc78a'}}>{m?'\u2605':'\u2713 '+(lp.days||[]).length+'/'+LEARN_GOAL}</span>;})()}</span>
                           <span style={{display:'block',fontSize:'clamp(8.5px,2vw,10.5px)',color:'rgba(255,255,255,.5)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{op.idea}</span>
                         </span>
                         {groupOf(op.cat)==='gambits'&&(()=>{const m={mate:['#f1a8a0','rgba(236,90,90,.16)','rgba(236,90,90,.5)','♚ Checkmate'],win:['#f0c24d','rgba(240,180,41,.16)','rgba(240,180,41,.5)','♛ Wins queen'],edge:['#a8c4ff','rgba(110,168,254,.14)','rgba(110,168,254,.4)','↗ Better game']}[payoffOf(op)];return(<span style={{flexShrink:0,fontSize:'clamp(8px,1.85vw,9.5px)',fontWeight:800,color:m[0],background:m[1],border:'1px solid '+m[2],borderRadius:20,padding:'3px 8px',lineHeight:1.15,textAlign:'center',maxWidth:84}}>{m[3]}</span>);})()}

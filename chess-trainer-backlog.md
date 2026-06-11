@@ -539,41 +539,8 @@ STRIPE: marked DONE — Kunal finished the extension install + webhook + rules i
 - Likely only failure point: Firestore rules for customers/products. If checkout errors on permissions, publish the standard firestore-stripe-payments rules (merged with existing users/games/mm rules).
 - OPEN question still: free the Playful/Medieval skins, or keep Pro? (currently Pro)
 
-## Build #127 — Photo-to-board (app side) + recovery from a disk revert [2026-06-08]
-- Photo-to-board app side built: New Game screen "Scan a board from a photo" button. Flow: file/camera picker -> canvas downsize to 1024px JPEG -> window.CTCloud.scanBoard(base64) -> validate FEN (both kings, 8 ranks) -> setSetupFromFEN + open "Play this position". Friendly errors when the function is not deployed or the read fails. [#127]
-- Host page (committed 1cc612ce): added CTCloud.scanBoard stub + impl (httpsCallable getFunctions(app)'scanBoard'). [#127]
-- Cloud Function provided to Kunal (scanBoard.cloud-function.js): v2 onCall, calls Claude vision (claude-sonnet-4-6) -> FEN, uses ANTHROPIC_API_KEY secret. NEEDS KUNAL: firebase init functions (if needed), paste code, set secret, deploy --only functions:scanBoard. Region us-central1.
-- INCIDENT + RECOVERY: the sandbox filesystem reverted between turns. chess.jsx on disk had lost Friends (#125) and the 8 videos (#126), keeping only this turn's scan edits; an interim deploy (#125-stamped b7d7a2a9) was a regression. Re-applied Friends + Videos from the in-context edit scripts, rebuilt chess.jsx (friendsOpen=1, videos=10, scan=1, 4110 lines), and redeployed a correct #127 (c0c669d7). Verified live bundle has Friends + videos + scan + stamp.
-- PROTECTION: chess.jsx source is now pushed to the repo (cf13e329) as a durable backup. If the disk reverts again, fetch the true source from raw.githubusercontent.com/.../main/chess.jsx before editing.
-
-## Build #128 — In-lesson video auto-fill, batch 2 [2026-06-08]
-- Added 7 more curated Remote Chess Academy videos (correct author; best-guess IDs, swap if needed): Scotch Game _r4QNfOzPik, Scotch Gambit QEYybZ8FYGE, Vienna Game x7NhxHm5qoI, English Opening eM6d2etuzZU, Scandinavian sKoBj-kL0hg, Pirc nBYZ_H6u_9c, Dutch m4TpwMWIoyw. [#128]
-- 15 main lessons now have an in-app video. Skipped Nimzo-Indian and King's Gambit this round (no single clearly-reputable channel surfaced; revisit later).
-- Reconciled working copy from repo at start of turn (disk-revert guard). Source re-backed up to repo (b053fa70). [#128]
-- NEXT video candidates: Nimzo-Indian, King's Gambit, Catalan, Grunfeld, Petrov, Alekhine, plus popular gambits (Stafford, Smith-Morra, Danish, Evans, Budapest).
-
-## Build #129 — Play nearby [2026-06-08]
-- Built solo (Kunal away). New "Play nearby" tile on the New Game screen (3rd in the friends/tourney row; also fixed the stale SOON badge wrongly showing on Friends).
-- Opt-in screen: "Find players near me" (geolocation, rounded to 1 decimal ~11km cell, stored as geo:lat,lng) OR a ZIP/postcode fallback (stored as zip:xxxx). Only a coarse area is shared, never exact coords. Lists other opted-in players in the same cell (live via onSnapshot, client-filtered to last 14 days, excludes self) with Challenge; a Stop button opts out (deletes your doc).
-- Challenge = create an online invite (onlineCreate('w')) + tell user to send the code (same as Friends v1; notified/direct nearby invites = later).
-- Firestore: collection 'nearby', doc id = uid, {uid,name,geo,at}. Query where('geo','==',cell) (single-field, no composite index). Host CTCloud: nearbyJoin/nearbyLeave/nearbyList (#129).
-- NEEDS KUNAL: publish the 'nearby' rule (below) + test on two accounts. Untestable in sandbox.
-- Disk-revert guard: reconciled from repo at start; source re-backed up (4a4695e7). [#129]
-
-### Firestore rule for Play nearby (merge with existing rules):
-match /nearby/{uid} {
-  allow read: if request.auth != null;
-  allow create, update: if request.auth != null && request.auth.uid == uid && request.resource.data.uid == uid;
-  allow delete: if request.auth != null && request.auth.uid == uid;
-}
-
-## Build #130 — In-lesson video auto-fill, batch 3 (gambits + more) [2026-06-08]
-- Added 7 more curated videos (swap IDs if needed): Evans ykjowp6waXA (RCA), Smith-Morra VEZ0H-g6U-8 (RCA), Danish WBAxtec_clo (Andras Toth), Budapest vSnN50aP3p4 (RCA), Stafford nH_fiqlLp2U (Eric Rosen, the popularizer), Catalan QYZu2HBP0PE (RCA), Grunfeld QdUKFEH58GE (RCA). [#130]
-- 22 lessons now have an in-app video (24 video fields incl the 2 original).
-- Still no video on: Nimzo-Indian, King's Gambit, Petrov, Alekhine, and many smaller lines/traps; add later if wanted.
-- Disk-revert guard: reconciled from repo at start; source re-backed up (b6cbd9aa). [#130]
-
-## Build #131 — PreMove + account reinstated (2026-06-09)
-- GitHub reinstated LearnToCheckmate after the appeal; source restored from the repo at #130 and verified. [#131]
-- PreMove (Chess.com style): while the opponent is on move, tap or drag a move to arm it; from/to squares tint orange (HL_PRE); it executes the moment your turn arrives if legal, else clears silently. Tap anywhere to cancel; re-tap a piece to re-aim; promotions auto-queen. Works in online games and vs the computer; cleared on resign, takeback, new game, and game end. [#131]
-- New deploy style per the appeal promise: ONE commit per build (app.js + source backups together via the Git Data API), and a much gentler overall cadence. [#131]
+## Build #132 — Discover gamification: Learned + Mastered (2026-06-10)
+- Rep tracking in lesson practice: hints-off completion = Learned (retries allowed); flawless run (no hints, no wrong tries) banks a Mastered day, max one per local day; 10 days, gaps fine = Mastered. [#132]
+- Badges: lesson lists show "★ Mastered" gold or "Learned ✓ · n/10 days to master"; lesson title gets a chip; completion message reports what banked. Train's spaced-repetition labels unchanged underneath. [#132]
+- Persistence: ct_learnprog locally + merged into the account cloud save (days union across devices). Variations count toward the base lesson; off-book early checkmates do not count. [#132]
+- Stage 2 queued: Coach mastery plan (Pro) — daily prompts + pick-your-targets.
