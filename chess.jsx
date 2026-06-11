@@ -1771,6 +1771,9 @@ export default function App(){
   const [coachPlanOpen,setCoachPlanOpen]=useState(false);
   const [coachPick,setCoachPick]=useState({side:'any',fm:'any',style:'any',kind:'any'});
   const [coachChooserOpen,setCoachChooserOpen]=useState(false);
+  const [coachBrowseOpen,setCoachBrowseOpen]=useState(false);
+  const [coachTier,setCoachTier]=useState(()=>{try{const t=JSON.parse(localStorage.getItem('ct_coachtier')||'null');if(t&&typeof t.cleared==='number'&&typeof t.swapsLeft==='number')return t;}catch(e){}return {cleared:0,swapsLeft:2};});
+  const coachTierRef=useRef(coachTier); coachTierRef.current=coachTier;
   const hintPrefsRef=useRef(null);
   const [learnPhase,setLearnPhase]=useState('demo');
   const [trainTap,setTrainTap]=useState(()=>{try{return localStorage.getItem('ct_traintap')!=='0';}catch{return true;}});
@@ -1991,6 +1994,7 @@ export default function App(){
   useEffect(()=>{try{localStorage.setItem('ct_train',JSON.stringify(trainMastery));}catch{}},[trainMastery]);
   useEffect(()=>{try{localStorage.setItem('ct_learnprog',JSON.stringify(learnProg));}catch{}},[learnProg]);
   useEffect(()=>{try{localStorage.setItem('ct_coachtargets',JSON.stringify(coachTargets));}catch{}},[coachTargets]);
+  useEffect(()=>{try{localStorage.setItem('ct_coachtier',JSON.stringify(coachTier));}catch{}},[coachTier]);
   useEffect(()=>{if(mode==='learn'&&learnPhase==='practice'&&(showHint||revealHint)){learnRepRef.current.hints=true;const _op=LIB[openIdxRef.current];const nm=_op&&_op.name;if(nm){hintLockRef.current={...hintLockRef.current,[nm]:Date.now()+600000};try{localStorage.setItem('ct_hintlock',JSON.stringify(hintLockRef.current));}catch(e){}}}},[mode,learnPhase,showHint,revealHint]);
   useEffect(()=>{
     if(mode==='learn'&&learnPhase==='practice'&&openIdx!=null&&learnLine.length>0){
@@ -2022,6 +2026,7 @@ export default function App(){
           if(data.hintprefs&&typeof data.hintprefs==='object'){hintPrefsRef.current={...data.hintprefs};try{localStorage.setItem('ct_hintprefs',JSON.stringify(hintPrefsRef.current));}catch{}}
           if(data.learnprog&&typeof data.learnprog==='object'){const lp=data.learnprog;setLearnProg(loc=>{const out={...loc};for(const k in lp){const a=out[k]||{},b=lp[k]||{};const days=[...new Set([...(a.days||[]),...(b.days||[])])].sort();out[k]={learned:days.length>=1,days};}return out;});}
           if(Array.isArray(data.coachtargets)&&data.coachtargets.length&&!(coachTargetsRef.current||[]).length)setCoachTargets(data.coachtargets.filter(x=>typeof x==='string'));
+          if(data.coachtier&&typeof data.coachtier.cleared==='number'&&data.coachtier.cleared>(coachTierRef.current.cleared||0))setCoachTier({cleared:data.coachtier.cleared,swapsLeft:(typeof data.coachtier.swapsLeft==='number'?data.coachtier.swapsLeft:2)});
           if(data.pz&&typeof data.pz==='object'){const cp=data.pz;
             if(cp.solved&&typeof cp.solved==='object')setPzSolvedMap(m=>({...m,...cp.solved}));
             if(cp.onlineIds&&typeof cp.onlineIds==='object')setPzOSolvedIds(m=>({...m,...cp.onlineIds}));
@@ -2030,7 +2035,7 @@ export default function App(){
             if(typeof cp.online==='number')setPzOSolved(o=>Math.max(o,cp.online));
           }
         }else{
-          C.save({theme:syncRef.current.theme,skin:syncRef.current.skin,elo:syncRef.current.elo,hintprefs:readHintPrefs(),pz:{solved:pzSolvedRef.current,streak:pzStreakRef.current,best:pzBestRef.current,xp:pzXPRef.current,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current},learnprog:learnProgRef.current,coachtargets:coachTargetsRef.current});
+          C.save({theme:syncRef.current.theme,skin:syncRef.current.skin,elo:syncRef.current.elo,hintprefs:readHintPrefs(),pz:{solved:pzSolvedRef.current,streak:pzStreakRef.current,best:pzBestRef.current,xp:pzXPRef.current,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current},learnprog:learnProgRef.current,coachtargets:coachTargetsRef.current,coachtier:coachTierRef.current});
         }
       }catch(e){}
     });
@@ -2050,7 +2055,7 @@ export default function App(){
     return ()=>{clearTimeout(t1);if(t2)clearTimeout(t2);};
   },[pzSolvedMap,pzStreak,pzBest,pzXP,pzOSolved,pzOSolvedIds,cloudUser]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!cloudUser)return;const t=setTimeout(()=>{try{C.save({learnprog:learnProgRef.current});}catch(e){}},900);return ()=>clearTimeout(t);},[learnProg,cloudUser]);
-  useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!cloudUser)return;const t=setTimeout(()=>{try{C.save({coachtargets:coachTargetsRef.current});}catch(e){}},900);return ()=>clearTimeout(t);},[coachTargets,cloudUser]);
+  useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!cloudUser)return;const t=setTimeout(()=>{try{C.save({coachtargets:coachTargetsRef.current,coachtier:coachTierRef.current});}catch(e){}},900);return ()=>clearTimeout(t);},[coachTargets,coachTier,cloudUser]);
   const cloudSignIn=()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C)return;setCloudErr('');C.signIn().catch(e=>{const code=e&&e.code;setCloudErr(code==='auth/unauthorized-domain'?'This site isn’t authorized in Firebase yet — add the domain in Auth settings.':(code==='auth/popup-blocked'?'Popup blocked — allow popups and retry.':'Sign-in failed, please retry.'));});};
   const cloudSignOut=()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(C)C.signOut();setCloudUser(null);};
   useEffect(()=>{
@@ -2912,48 +2917,53 @@ export default function App(){
             </div>
             <div style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:14,boxShadow:SHADOW_BOX,overflow:'hidden'}}>
               {(()=>{
+                const SLATE=5;
                 const elig=LIB.map((o,i)=>({o,i})).filter(x=>{const gp=groupOf(x.o.cat);return gp==='openings'||gp==='gambits';});
-                const T1=["Italian Game","London System","Caro-Kann Defense","King's Indian Defense","Evans Gambit","Smith-Morra Gambit","Stafford Gambit: Mating Trap","Englund Gambit: Rosen Trap","Scholar's Mate","Danish Gambit"];
-                const t1=T1.map(n=>elig.find(x=>x.o.name===n)).filter(Boolean);
-                const rest=elig.filter(x=>T1.indexOf(x.o.name)<0);
-                const tiers=[t1];for(let k=0;k<rest.length;k+=10)tiers.push(rest.slice(k,k+10));
                 const dN=nm=>((learnProg[nm]||{}).days||[]).length;
-                const learnedIn=t=>t.filter(x=>dN(x.o.name)>=1).length;
-                const NEED=5;
-                let unlocked=1;while(unlocked<tiers.length&&learnedIn(tiers[unlocked-1])>=NEED)unlocked++;
-                const allUnl=tiers.slice(0,unlocked).reduce((acc,t)=>acc.concat(t),[]);
                 const _today=dstr(new Date());
                 const tIdx=coachTargets.map(n=>LIB.findIndex(o=>o.name===n)).filter(i=>i>=0);
+                const learnedInSlate=tIdx.filter(i=>dN(LIB[i].name)>=1).length;
+                const slateFull=tIdx.length>=SLATE;
+                const tierReady=slateFull&&learnedInSlate>=SLATE;
                 const learnedTot=elig.filter(x=>dN(x.o.name)>=1).length, mastTot=elig.filter(x=>dN(x.o.name)>=LEARN_GOAL).length, bankedToday=tIdx.filter(i=>((learnProg[LIB[i].name]||{}).days||[]).indexOf(_today)>=0).length;
                 const chip=(on,lab,fn)=>(<button key={lab} onClick={fn} style={{padding:'7px 11px',borderRadius:18,border:on?'1.5px solid var(--ac)':'1px solid rgba(255,255,255,.2)',background:on?'rgba(var(--acr),.22)':'rgba(255,255,255,.05)',color:on?'var(--ac2)':'rgba(255,255,255,.75)',fontWeight:800,fontSize:'clamp(9.5px,2.1vw,11px)',cursor:'pointer'}}>{lab}</button>);
                 const f0=x=>{const f=x.o.line&&x.o.line[0];return f==='e4'?'e4':f==='d4'?'d4':'other';};
                 const styleOf=x=>groupOf(x.o.cat)==='gambits'?payoffOf(x.o):'solid';
                 const match=(x,keep)=>((!keep.side)||coachPick.side==='any'||x.o.side===coachPick.side)&&((!keep.kind)||coachPick.kind==='any'||groupOf(x.o.cat)===coachPick.kind)&&((!keep.fm)||coachPick.fm==='any'||f0(x)===coachPick.fm)&&((!keep.style)||coachPick.style==='any'||styleOf(x)===coachPick.style||(coachPick.style==='solid'&&styleOf(x)==='edge'));
-                const suggest=()=>{const tries=[{side:1,kind:1,fm:1,style:1},{side:1,kind:1,fm:1},{side:1,kind:1,style:1},{side:1,kind:1},{side:1},{}];const seen=new Set();const picks=[];
-                  for(const k of tries){const lvl=allUnl.filter(y=>match(y,k)).slice().sort((p,q)=>dN(p.o.name)-dN(q.o.name));for(const x of lvl){if(!seen.has(x.o.name)){seen.add(x.o.name);picks.push(x.o.name);if(picks.length>=3)break;}}if(picks.length>=3)break;}
-                  setCoachTargets(picks);setCoachChooserOpen(false);};
+                const addable=x=>dN(x.o.name)===0&&coachTargets.indexOf(x.o.name)<0;
+                const addToSlate=nm=>{setCoachTargets(t=>(t.length>=SLATE||t.indexOf(nm)>=0)?t:[...t,nm]);};
+                const swapOut=nm=>{if((coachTier.swapsLeft||0)<=0)return;setCoachTargets(t=>t.filter(x=>x!==nm));setCoachTier(t=>({...t,swapsLeft:t.swapsLeft-1}));};
+                const startNextTier=()=>{setCoachTier(t=>({cleared:(t.cleared||0)+1,swapsLeft:2}));setCoachTargets([]);setCoachChooserOpen(false);};
+                const suggest=()=>{const need=SLATE-tIdx.length;if(need<=0){setCoachChooserOpen(false);return;}
+                  const tries=[{side:1,kind:1,fm:1,style:1},{side:1,kind:1,fm:1},{side:1,kind:1,style:1},{side:1,kind:1},{side:1},{}];const seen=new Set(coachTargets);const picks=[];
+                  for(const k of tries){const lvl=elig.filter(y=>addable(y)&&match(y,k));for(const x of lvl){if(!seen.has(x.o.name)){seen.add(x.o.name);picks.push(x.o.name);if(picks.length>=need)break;}}if(picks.length>=need)break;}
+                  setCoachTargets(t=>[...t,...picks].slice(0,SLATE));setCoachChooserOpen(false);};
                 return(<>
                 <button onClick={()=>setCoachPlanOpen(v=>!v)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'12px 13px',background:'transparent',border:'none',color:'#fff',cursor:'pointer',textAlign:'left'}}>
                   <span style={{flexShrink:0,fontSize:20,lineHeight:1}}>📋</span>
                   <span style={{flex:1,minWidth:0}}>
-                    <span style={{display:'block',fontSize:'clamp(12px,2.8vw,14px)',fontWeight:800,color:'var(--ac2)',letterSpacing:.4,textTransform:'uppercase'}}>Mastery plan</span>
-                    <span style={{display:'block',fontSize:'clamp(9.5px,2.1vw,11px)',color:'rgba(255,255,255,.55)',marginTop:1}}>{tIdx.length===0?'Your report card. Open it and I will help you pick your first targets.':(tIdx.length+' target'+(tIdx.length>1?'s':'')+' · '+bankedToday+' banked today · '+learnedTot+' learned · '+mastTot+' mastered')}</span>
+                    <span style={{display:'block',fontSize:'clamp(12px,2.8vw,14px)',fontWeight:800,color:'var(--ac2)',letterSpacing:.4,textTransform:'uppercase'}}>Mastery plan · Tier {(coachTier.cleared||0)+1}</span>
+                    <span style={{display:'block',fontSize:'clamp(9.5px,2.1vw,11px)',color:'rgba(255,255,255,.55)',marginTop:1}}>{tIdx.length===0?'Your report card. Open it and pick the '+SLATE+' lessons YOU want to learn.':(learnedInSlate+'/'+SLATE+' learned this tier · '+bankedToday+' banked today · '+mastTot+' mastered overall')}</span>
                   </span>
                   <span style={{flexShrink:0,fontSize:17,color:'var(--ac2)',transform:coachPlanOpen?'rotate(90deg)':'none',transition:'transform .15s'}}>›</span>
                 </button>
                 {coachPlanOpen&&<div style={{padding:'0 13px 13px'}}>
-                <div style={{fontSize:'clamp(8.5px,1.9vw,10px)',color:'rgba(255,255,255,.45)',marginBottom:9}}>Flawless reps only · each target banks one day per day · learn {NEED} in a tier to unlock the next</div>
-                {tIdx.length>0&&<div style={{display:'flex',flexDirection:'column',gap:7,marginBottom:10}}>{tIdx.map(i=>{const op=LIB[i];const lp=learnProg[op.name]||{};const days=(lp.days||[]);const n=days.length;const m=n>=LEARN_GOAL;const done=days.indexOf(_today)>=0;return(
-                  <div key={i} style={{display:'flex',alignItems:'center',gap:9,background:'rgba(0,0,0,.18)',border:'1px solid rgba(255,255,255,.1)',borderRadius:10,padding:'8px 10px'}}>
-                    <span style={{flexShrink:0,fontSize:15,width:20,textAlign:'center'}}>{m?'⭐':done?'✅':'▫️'}</span>
-                    <span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(8.5px,1.9vw,10px)',color:m?'#f0c24d':done?'#6cc78a':'rgba(255,255,255,.5)'}}>{m?'Mastered':done?('Banked today · '+n+'/'+LEARN_GOAL):(n+'/'+LEARN_GOAL+' days')}</span></span>
-                    {!m&&!done&&<button onClick={()=>coachRun(i)} style={{flexShrink:0,padding:'6px 12px',borderRadius:9,background:'var(--ac)',border:'none',color:'#1a1a1a',fontWeight:800,fontSize:'clamp(10px,2.2vw,11.5px)',cursor:'pointer'}}>▶ Run</button>}
-                    <button onClick={()=>setCoachTargets(t=>t.filter(x=>x!==op.name))} style={{flexShrink:0,width:26,height:26,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.6)',cursor:'pointer',fontSize:12,lineHeight:1,padding:0}}>✕</button>
-                  </div>);})}
-                  {!coachChooserOpen&&<button onClick={()=>setCoachChooserOpen(true)} style={{alignSelf:'flex-start',background:'transparent',border:'none',color:'var(--ac2)',cursor:'pointer',fontSize:'clamp(9.5px,2.1vw,11px)',fontWeight:800,padding:'2px 0',textDecoration:'underline',textUnderlineOffset:3}}>↻ Re-pick my targets (answers the questions again and replaces these)</button>}
+                <div style={{fontSize:'clamp(8.5px,1.9vw,10px)',color:'rgba(255,255,255,.45)',marginBottom:9}}>Pick any {SLATE} lessons you actually want · learn all {SLATE} (one flawless run each) to clear the tier · {coachTier.swapsLeft||0} swap{(coachTier.swapsLeft||0)===1?'':'s'} left this tier</div>
+                {tierReady&&<div style={{background:'linear-gradient(135deg,rgba(240,180,41,.2),rgba(240,180,41,.06))',border:'1px solid rgba(240,180,41,.5)',borderRadius:11,padding:'12px',marginBottom:11,textAlign:'center'}}>
+                  <div style={{fontSize:'clamp(13px,3vw,16px)',fontWeight:800,color:'#f0c24d'}}>🎉 Tier {(coachTier.cleared||0)+1} cleared!</div>
+                  <div style={{fontSize:'clamp(10px,2.3vw,12px)',color:'rgba(255,255,255,.7)',margin:'4px 0 9px'}}>All {SLATE} learned. They stay on your report card; keep banking days toward ★ Mastered any time.</div>
+                  <button onClick={startNextTier} style={{padding:'10px 16px',borderRadius:10,border:'none',background:'#f0c24d',color:'#2a2010',fontWeight:800,fontSize:'clamp(11px,2.6vw,13px)',cursor:'pointer'}}>Start Tier {(coachTier.cleared||0)+2} · pick {SLATE} new</button>
                 </div>}
-                {(tIdx.length===0||coachChooserOpen)&&<div style={{background:'rgba(var(--acr),.10)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'10px 11px',marginBottom:11}}>
-                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}><span style={{flex:1,fontSize:'clamp(10.5px,2.4vw,12.5px)',fontWeight:800,color:'var(--ac2)'}}>Let's pick your targets. Quick questions:</span>{tIdx.length>0&&<button onClick={()=>setCoachChooserOpen(false)} style={{flexShrink:0,width:24,height:24,borderRadius:7,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.6)',cursor:'pointer',fontSize:11,lineHeight:1,padding:0}}>✕</button>}</div>
+                {tIdx.length>0&&<div style={{display:'flex',flexDirection:'column',gap:7,marginBottom:10}}>{tIdx.map(i=>{const op=LIB[i];const lp=learnProg[op.name]||{};const days=(lp.days||[]);const n=days.length;const m=n>=LEARN_GOAL;const done=days.indexOf(_today)>=0;const learned=n>=1;return(
+                  <div key={i} style={{display:'flex',alignItems:'center',gap:9,background:'rgba(0,0,0,.18)',border:'1px solid '+(learned?'rgba(108,199,138,.35)':'rgba(255,255,255,.1)'),borderRadius:10,padding:'8px 10px'}}>
+                    <span style={{flexShrink:0,fontSize:15,width:20,textAlign:'center'}}>{m?'⭐':done?'✅':learned?'✓':'▫️'}</span>
+                    <span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(8.5px,1.9vw,10px)',color:m?'#f0c24d':learned?'#6cc78a':'rgba(255,255,255,.5)'}}>{m?'Mastered':learned?('Learned · '+n+'/'+LEARN_GOAL+(done?' · banked today':'')):'Not learned yet'}</span></span>
+                    {!m&&!done&&<button onClick={()=>coachRun(i)} style={{flexShrink:0,padding:'6px 12px',borderRadius:9,background:'var(--ac)',border:'none',color:'#1a1a1a',fontWeight:800,fontSize:'clamp(10px,2.2vw,11.5px)',cursor:'pointer'}}>▶ Run</button>}
+                    {!learned&&<button onClick={()=>swapOut(op.name)} disabled={(coachTier.swapsLeft||0)<=0} title={(coachTier.swapsLeft||0)>0?'Swap this out (uses 1 swap)':'No swaps left this tier'} style={{flexShrink:0,width:26,height:26,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:(coachTier.swapsLeft||0)>0?'rgba(255,255,255,.6)':'rgba(255,255,255,.22)',cursor:(coachTier.swapsLeft||0)>0?'pointer':'default',fontSize:12,lineHeight:1,padding:0}}>⇄</button>}
+                  </div>);})}</div>}
+                {!slateFull&&Array.from({length:SLATE-tIdx.length}).map((_,k)=>(<div key={'e'+k} style={{display:'flex',alignItems:'center',gap:9,border:'1px dashed rgba(255,255,255,.22)',borderRadius:10,padding:'9px 10px',marginBottom:7,color:'rgba(255,255,255,.4)',fontSize:'clamp(10px,2.3vw,12px)'}}><span style={{fontSize:14}}>＋</span>Empty slot · answer the questions or browse below</div>))}
+                {!slateFull&&(tIdx.length===0||coachChooserOpen)&&<div style={{background:'rgba(var(--acr),.10)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'10px 11px',margin:'4px 0 11px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}><span style={{flex:1,fontSize:'clamp(10.5px,2.4vw,12.5px)',fontWeight:800,color:'var(--ac2)'}}>Quick questions, then I suggest lessons for your empty slots:</span>{tIdx.length>0&&<button onClick={()=>setCoachChooserOpen(false)} style={{flexShrink:0,width:24,height:24,borderRadius:7,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.6)',cursor:'pointer',fontSize:11,lineHeight:1,padding:0}}>✕</button>}</div>
                   <div style={{fontSize:'clamp(9px,2vw,10.5px)',color:'rgba(255,255,255,.55)',fontWeight:700,margin:'2px 0 5px'}}>I want to learn</div>
                   <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{chip(coachPick.kind==='gambits','🗡 Gambits',()=>setCoachPick(p=>({...p,kind:'gambits'})))}{chip(coachPick.kind==='openings','📖 Openings',()=>setCoachPick(p=>({...p,kind:'openings'})))}{chip(coachPick.kind==='any','Both',()=>setCoachPick(p=>({...p,kind:'any'})))}</div>
                   <div style={{fontSize:'clamp(9px,2vw,10.5px)',color:'rgba(255,255,255,.55)',fontWeight:700,margin:'8px 0 5px'}}>I want to play as</div>
@@ -2962,19 +2972,18 @@ export default function App(){
                   <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{chip(coachPick.fm==='e4','1.e4 games',()=>setCoachPick(p=>({...p,fm:'e4'})))}{chip(coachPick.fm==='d4','1.d4 games',()=>setCoachPick(p=>({...p,fm:'d4'})))}{chip(coachPick.fm==='any','Either',()=>setCoachPick(p=>({...p,fm:'any'})))}</div>
                   <div style={{fontSize:'clamp(9px,2vw,10.5px)',color:'rgba(255,255,255,.55)',fontWeight:700,margin:'8px 0 5px'}}>I like lines that</div>
                   <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{chip(coachPick.style==='mate','♚ End in mate traps',()=>setCoachPick(p=>({...p,style:'mate'})))}{chip(coachPick.style==='win','♛ Win material',()=>setCoachPick(p=>({...p,style:'win'})))}{chip(coachPick.style==='solid','↗ Build a solid game',()=>setCoachPick(p=>({...p,style:'solid'})))}{chip(coachPick.style==='any','Surprise me',()=>setCoachPick(p=>({...p,style:'any'})))}</div>
-                  <button onClick={suggest} style={{marginTop:10,width:'100%',padding:'11px',borderRadius:10,border:'none',background:'var(--ac)',color:'#1a1a1a',fontWeight:800,fontSize:'clamp(11px,2.6vw,13px)',cursor:'pointer'}}>✨ Suggest my 3 targets</button>
+                  <button onClick={suggest} style={{marginTop:10,width:'100%',padding:'11px',borderRadius:10,border:'none',background:'var(--ac)',color:'#1a1a1a',fontWeight:800,fontSize:'clamp(11px,2.6vw,13px)',cursor:'pointer'}}>✨ Fill my empty slots ({SLATE-tIdx.length})</button>
                 </div>}
-                {tiers.slice(0,unlocked).map((tier,ti)=>(<div key={ti} style={{marginTop:ti?10:0}}>
-                  <div style={{fontSize:'clamp(8.5px,1.9vw,10px)',color:'rgba(255,255,255,.45)',fontWeight:800,letterSpacing:.4,textTransform:'uppercase',margin:'2px 0 6px'}}>Tier {ti+1} · tap to target · learned {learnedIn(tier)}/{tier.length}</div>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(96px,1fr))',gap:6}}>
-                    {tier.map(({o,i})=><button key={i} onClick={()=>setCoachTargets(t=>t.indexOf(o.name)>=0?t.filter(x=>x!==o.name):[...t,o.name])} style={{position:'relative',minHeight:48,padding:'6px 7px 14px',borderRadius:9,border:'1px solid '+((coachTargets.indexOf(o.name)>=0)?'var(--ac)':(dN(o.name)>=LEARN_GOAL?'#f0c24d':dN(o.name)>0?'rgba(16,185,129,.55)':'rgba(236,90,90,.4)')),background:dN(o.name)>=LEARN_GOAL?'linear-gradient(150deg,#caa24c,#8a6a26)':dN(o.name)>0?('rgba(16,185,129,'+(0.16+0.06*Math.min(9,dN(o.name))).toFixed(2)+')'):'rgba(236,90,90,.13)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:(coachTargets.indexOf(o.name)>=0)?'0 0 0 1.5px var(--ac)':'none'}}>
+                {!slateFull&&tIdx.length>0&&!coachChooserOpen&&<button onClick={()=>setCoachChooserOpen(true)} style={{background:'transparent',border:'none',color:'var(--ac2)',cursor:'pointer',fontSize:'clamp(9.5px,2.1vw,11px)',fontWeight:800,padding:'2px 0 8px',textDecoration:'underline',textUnderlineOffset:3}}>✨ Suggest lessons for my empty slots</button>}
+                <button onClick={()=>setCoachBrowseOpen(v=>!v)} style={{width:'100%',textAlign:'left',background:'rgba(0,0,0,.16)',border:'1px solid rgba(255,255,255,.12)',borderRadius:10,padding:'9px 11px',color:'rgba(255,255,255,.75)',fontWeight:800,fontSize:'clamp(10px,2.3vw,12px)',cursor:'pointer'}}>{coachBrowseOpen?'▾':'▸'} Browse all openings & gambits ({elig.length}) · tap one to fill a slot</button>
+                {coachBrowseOpen&&<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(96px,1fr))',gap:6,marginTop:8}}>
+                  {elig.map(({o,i})=>{const n=dN(o.name);const m=n>=LEARN_GOAL;const sel=coachTargets.indexOf(o.name)>=0;const can=addable({o,i})&&!slateFull;return(
+                    <button key={i} onClick={()=>{if(can)addToSlate(o.name);}} style={{position:'relative',minHeight:48,padding:'6px 7px 14px',borderRadius:9,border:'1px solid '+(sel?'var(--ac)':(m?'#f0c24d':n>0?'rgba(16,185,129,.55)':'rgba(236,90,90,.4)')),background:m?'linear-gradient(150deg,#caa24c,#8a6a26)':n>0?('rgba(16,185,129,'+(0.16+0.06*Math.min(9,n)).toFixed(2)+')'):'rgba(236,90,90,.13)',color:'#fff',cursor:can?'pointer':'default',opacity:(can||sel||n>0)?1:.55,textAlign:'left',boxShadow:sel?'0 0 0 1.5px var(--ac)':'none'}}>
                       <span style={{fontSize:'clamp(8.5px,1.9vw,10px)',fontWeight:800,lineHeight:1.25,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{o.name}</span>
-                      <span style={{position:'absolute',right:4,bottom:3,fontSize:'clamp(7.5px,1.7vw,9px)',fontWeight:800,color:dN(o.name)>=LEARN_GOAL?'#ffe9a8':dN(o.name)>0?'#a7f3d0':'rgba(255,255,255,.55)'}}>{dN(o.name)>=LEARN_GOAL?'★':dN(o.name)+'/'+LEARN_GOAL}</span>
-                      {(coachTargets.indexOf(o.name)>=0)&&<span style={{position:'absolute',left:4,bottom:3,fontSize:9,color:'var(--ac2)',fontWeight:800}}>✓ target</span>}
-                    </button>)}
-                  </div>
-                </div>))}
-                {unlocked<tiers.length&&(<div style={{marginTop:10,display:'flex',alignItems:'center',gap:9,background:'rgba(0,0,0,.18)',border:'1px dashed rgba(255,255,255,.22)',borderRadius:10,padding:'10px 12px'}}><span style={{fontSize:16,lineHeight:1}}>🔒</span><span style={{flex:1,fontSize:'clamp(10px,2.3vw,12px)',color:'rgba(255,255,255,.6)',lineHeight:1.4}}>Tier {unlocked+1} unlocks when {NEED} lessons in Tier {unlocked} are learned ({learnedIn(tiers[unlocked-1])}/{NEED} so far) · {tiers.length-unlocked} tier{(tiers.length-unlocked)>1?'s':''} waiting beyond</span></div>)}
+                      <span style={{position:'absolute',right:4,bottom:3,fontSize:'clamp(7.5px,1.7vw,9px)',fontWeight:800,color:m?'#ffe9a8':n>0?'#a7f3d0':'rgba(255,255,255,.55)'}}>{m?'★':n+'/'+LEARN_GOAL}</span>
+                      {sel&&<span style={{position:'absolute',left:4,bottom:3,fontSize:9,color:'var(--ac2)',fontWeight:800}}>✓ in slate</span>}
+                    </button>);})}
+                </div>}
                 </div>}
                 </>);
               })()}

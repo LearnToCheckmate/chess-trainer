@@ -624,3 +624,9 @@ match /nearby/{uid} {
 - Bug (Kunal repro): picking Black could yield all-White suggestions because an empty strict match silently fell back to the whole tier. Suggestions now relax constraints progressively (style, then 1.e4/1.d4, then kind) but NEVER abandon the side pick. [#138]
 - New first question: I want to learn 🗡 Gambits / 📖 Openings / Both. [#138]
 - "↻ Re-pick my targets" link under the targets list reopens the questions (with a ✕ to cancel) and replaces targets on Suggest. [#138]
+
+## Build #139 — Mastery plan v3: your own slate, swaps, tier clearing (2026-06-10)
+- Tiers redefined per Kunal: a tier is YOUR slate of 5 lessons chosen freely from the whole catalog. Learn all 5 (one flawless run each) to clear the tier; a 🎉 banner offers Start Tier n+1 (pick 5 new; learned lessons stay on the report card and keep accruing mastery days). [#139]
+- 2 swaps per tier (⇄ on unlearned slate members; learned members lock in). Already-learned lessons cannot be added to a slate, preventing free clears. [#139]
+- Chooser now fills EMPTY SLOTS (side pick still never abandoned); full catalog heatmap moved behind a Browse toggle; empty slots render as dashed ＋ rows. Tier number + swaps in the header line. [#139]
+- Judgment calls flagged: slate size 5, clear = learn all 5, exactly 2 swaps per tier.
