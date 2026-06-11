@@ -600,3 +600,7 @@ match /nearby/{uid} {
 
 ## Sweep 2026-06-10 (post-#135)
 - Feedback + manual-tasks chats unchanged since 2026-06-08; one missed item folded in as Open: back/forward move review during live games (on-nav).
+
+## Build #136 — Live-game move review + Play button grid (2026-06-10)
+- Online games now feed playHist from the synced move list, so the existing ⏮ ‹ › ⏭ move viewer works during live online games: view-only, snaps to LIVE on any new move, tap the board to return. Premove tint hidden while reviewing; takeback hard-blocked online. [#136]
+- Play bottom controls rebuilt as a 3+2 grid (Takeback/Hint/Resign, New Game/Flip): uniform 44px height, one font size, no flex-wrap drift. Screenshot wanted. [#136]
