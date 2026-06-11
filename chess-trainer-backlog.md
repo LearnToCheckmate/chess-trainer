@@ -630,3 +630,11 @@ match /nearby/{uid} {
 - 2 swaps per tier (⇄ on unlearned slate members; learned members lock in). Already-learned lessons cannot be added to a slate, preventing free clears. [#139]
 - Chooser now fills EMPTY SLOTS (side pick still never abandoned); full catalog heatmap moved behind a Browse toggle; empty slots render as dashed ＋ rows. Tier number + swaps in the header line. [#139]
 - Judgment calls flagged: slate size 5, clear = learn all 5, exactly 2 swaps per tier.
+
+## Build #140 — Swap refill + you-pick-for-me (2026-06-11)
+- Swaps now refill to 2 every 5 days (epoch-anchored, checked when Coach opens; disabled ⇄ shows days until refill). New tiers still start with 2. Nobody can be stuck more than ~5 days. [#140]
+- 🎲 "No preference · you pick for me" in the chooser fills empty slots with a balanced curated mix (alternating gambits/openings, famous-first), zero questions. [#140]
+- Answered in chat: already-learned lessons stay un-addable to slates because the FREE Discover practice also banks days (that is how out-of-tier lessons get learned); without the rule, five free Discover learns = an instant Pro tier clear.
+
+## Questions for Kunal — addition (2026-06-11)
+8. Learning path: keep flawless-day banking available in free Discover practice (status quo: free badges, Pro planning), or make banking Coach-only (Pro-only learning)? Affects the no-pre-learned-in-slate rule: Coach-only would make it moot.
