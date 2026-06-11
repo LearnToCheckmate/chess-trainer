@@ -647,3 +647,10 @@ match /nearby/{uid} {
 - Readers updated: lesson status (new "In progress · x/y lines learned"), title chip, 10-dot counter (union days + lines note), Discover rows, slate rows/tiles/credits, banked-today, addable rule (fully-learned lessons stay un-addable; partially-learned can be added). [#141]
 - Coach ▶ Run targets the first unlearned line automatically (main first, then variations in order); variation picker shows ✓ on learned lines. Existing progress migrates as main-line days. [#141]
 - Coach overlay no longer slides under the iPhone status bar (top padding now max(56px, safe-area + 12px)); spotted in Kunal's screenshot. [#141]
+
+## Decision recorded (2026-06-11, batch 3)
+- Board scale: make it bigger. All 8 parked questions now answered.
+
+## Build #142 — Bigger board (2026-06-11)
+- Portrait phones: side reserve cut 8px to 4px (board now runs flush edge to edge); eval bar slimmed 20+4 to 14+4 so vs-computer/review boards gain ~16px; companion panels (controls, cards, move list) widened from 94vw to 98vw to stay aligned with the wider board. [#142]
+- Learn-mode portrait height cap raised 56% to 60% of screen height and hard cap 760 to 820 (mainly benefits iPad portrait); landscape board +12px taller. Play height reserve trimmed 282 to 262. [#142]

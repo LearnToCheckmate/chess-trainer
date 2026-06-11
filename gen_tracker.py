@@ -3,7 +3,7 @@
 # After each build run: edit TASKS/GROUPS, set STAMP, run:  python3 gen_tracker.py
 import json, datetime
 
-STAMP = "Updated through build #141 - 2026-06-11"
+STAMP = "Updated through build #142 - 2026-06-11"
 
 GROUPS = [
     {"key": "online", "nm": "Online & multiplayer", "color": "#7bd1ff", "isNew": True},
@@ -51,7 +51,7 @@ TASKS = [
 
     # Play
     {"g": "play", "id": "pl-feel",   "s": "open", "you": True, "t": "Engine strength feel-test", "n": "Play a few games per level and tell me what feels off."},
-    {"g": "play", "id": "pl-board",  "s": "open", "you": True, "t": "Bigger Play board (match Chess.com scale)", "n": "Partly addressed (#121): turning the eval bar off widens the board. Matching Chess.com's exact scale and pushing buttons below the fold still need a screenshot from you to tune."},
+    {"g": "play", "id": "pl-board",  "s": "done", "b": "#142", "you": True, "you": True, "t": "Bigger Play board (match Chess.com scale)", "n": "Built (#142): the board now claims every pixel the phone has. Side margins cut to ~zero (board runs flush, Chess.com style), the eval bar slimmed 24px to 18px so vs-computer and review boards grow ~16px, companion panels widened to match, and learn-mode + iPad caps raised (portrait learn cap 56% to 60% of height, hard cap 760 to 820, landscape +12px). NEEDS YOU: screenshot of Play so we can judge the new size together."},
     {"g": "play", "id": "pl-evalbar","s": "done", "b": "#121", "t": "Option to hide the eval bar", "n": "Done (#121): \u201cEvaluation bar\u201d ON/OFF toggle added in the \u2630 menu; OFF hides the bar and widens the board."},
     {"g": "play", "id": "pl-btnalign","s": "done", "b": "#136", "you": True, "t": "Tidy bottom button sizing + font alignment (Play)", "n": "Built (#136): the five Play buttons are a balanced 3+2 grid (Takeback, Hint, Resign; New Game, Flip) with equal 44px heights and one font size, no wrap drift. NEEDS YOU: a screenshot so we can fine-tune."},
     {"g": "play", "id": "pl-bots2",  "s": "done", "b": "#116/#118", "you": True, "t": "Stronger bots + personalities (Astrid, Viktor)", "n": "Stronger (#116): Astrid 1900, Viktor 2350, ceiling 2400, longer think time. Personalities (#118): among Stockfish moves within 25cp of its own pick, Astrid leans aggressive and Viktor leans solid, so strength is unchanged. Play each a few games and tell me if the styles come through."},

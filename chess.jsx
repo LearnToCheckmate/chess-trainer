@@ -1955,7 +1955,7 @@ export default function App(){
 
   const RAIL=Math.max(190,Math.min(320,Math.round(vp.w*0.255)));   // comfortable side-rail width, scales with screen
   const wide=vp.w>vp.h&&(vp.w-RAIL-48)>=360;                       // one sidebar + board; board fills the rest
-  const SQ=useMemo(()=>{if(wide){const availH=vp.h-36;const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20;const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,bp/8);}const reserved=8+((inReview||(mode==='play'&&opponent==='computer'))?24:0);const widthCap=vw-reserved;const wh=vp.h;const heightCap=mode==='play'?(wh-282):(wh*0.56-16);const hardCap=mode==='play'?900:760;const bp=Math.floor(Math.min(widthCap,heightCap,hardCap)/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent]);
+  const SQ=useMemo(()=>{if(wide){const availH=vp.h-24;const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20;const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,bp/8);}const reserved=4+((inReview||(mode==='play'&&opponent==='computer'))?18:0);const widthCap=vw-reserved;const wh=vp.h;const heightCap=mode==='play'?(wh-262):(wh*0.60-16);const hardCap=mode==='play'?900:820;const bp=Math.floor(Math.min(widthCap,heightCap,hardCap)/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent]);
   const boardPx=SQ*8;
   const sideW=wide?Math.max(200,Math.min(vp.w-boardPx-20,520)):RAIL;
   // outerRowStyle / sideColStyle are defined after showBoard (they need railed = wide && showBoard)
@@ -3443,7 +3443,7 @@ export default function App(){
       {mode==='play'&&opponent==='computer'&&eloMsg&&(isOver||playEnd)&&(<div style={{textAlign:'center',marginBottom:8}}>
         <span style={{fontSize:'clamp(9px,2.1vw,11.5px)',fontWeight:700,color:'var(--ac2)',background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'3px 11px'}}>{eloMsg}</span>
       </div>)}
-      {mode==='learn'&&openIdx!==null&&(<div style={{textAlign:'center',marginBottom:8,maxWidth:boardPx+44,width:'94vw'}}>
+      {mode==='learn'&&openIdx!==null&&(<div style={{textAlign:'center',marginBottom:8,maxWidth:boardPx+44,width:'98vw'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>
           <div style={{fontSize:'clamp(14px,3.5vw,19px)',fontWeight:800,color:'var(--ac2)',letterSpacing:.3}}>{learnLabel||LIB[openIdx].name}{(()=>{const _cs=lessonStats(LIB[openIdx]);if(_cs.linesLearned===0)return null;const m=_cs.mastered;if(m)return <span style={{marginLeft:8,fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,color:'#f0c24d',background:'rgba(240,180,41,.14)',border:'1px solid rgba(240,180,41,.45)',borderRadius:20,padding:'2px 9px',verticalAlign:'middle'}}>★ Mastered</span>;if(_cs.coverage)return <span style={{marginLeft:8,fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,color:'#6cc78a',background:'rgba(108,199,138,.12)',border:'1px solid rgba(108,199,138,.4)',borderRadius:20,padding:'2px 9px',verticalAlign:'middle'}}>✓ {_cs.unionDays}/{LEARN_GOAL}</span>;return null;})()}</div>
           {(()=>{const _st=lessonStats(LIB[openIdx]);const n=_st.unionDays;const m=_st.mastered;return(<div style={{display:'flex',alignItems:'center',gap:4,marginTop:4}}>{Array.from({length:LEARN_GOAL}).map((_,i)=>(<span key={i} style={{width:9,height:9,borderRadius:'50%',background:i<n?(m?'#f0c24d':'#6cc78a'):'rgba(255,255,255,.10)',border:'1px solid '+(i<n?(m?'#f0c24d':'#6cc78a'):'rgba(255,255,255,.28)')}}/>))}<span style={{marginLeft:6,fontSize:'clamp(9px,2.1vw,11px)',fontWeight:800,color:m?'#f0c24d':(n>0?'#6cc78a':'rgba(255,255,255,.55)')}}>{m?'Mastered':(n+' of '+LEARN_GOAL+' flawless days'+(_st.lines>1?(' · '+_st.linesLearned+'/'+_st.lines+' lines'):''))}</span></div>);})()}
@@ -3519,7 +3519,7 @@ export default function App(){
             <div style={{textAlign:'center',fontSize:'clamp(10px,2.2vw,11.5px)',color:'rgba(255,255,255,.4)',lineHeight:1.5}}>Accuracy and rating are rough estimates from average centipawn loss, not official ratings.</div>
           </div>
         </div>);})()}
-      {inReview&&(<div style={{width:boardPx,maxWidth:'94vw',marginBottom:6}}>
+      {inReview&&(<div style={{width:boardPx,maxWidth:'98vw',marginBottom:6}}>
         <button onClick={()=>setReviewView('summary')} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'7px 13px',borderRadius:10,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.4)',color:'var(--ac2)',cursor:'pointer',fontSize:'clamp(12px,2.7vw,14px)',fontWeight:700,boxShadow:SHADOW_BTN}}>‹ Summary</button>
         <div style={{textAlign:'center',marginTop:7,fontSize:'clamp(11px,2.6vw,14px)',fontWeight:600,color:'rgba(255,255,255,.85)'}}>
           {review.headers.White||'White'} <span style={{color:'rgba(255,255,255,.4)'}}>vs</span> {review.headers.Black||'Black'}
@@ -3529,7 +3529,7 @@ export default function App(){
 
       {/* ── Analyze: import panel (no review yet) ── */}
       {mode==='analyze'&&!inReview&&!analyzing&&(
-        <div style={{width:boardPx+22,maxWidth:'94vw',display:'flex',flexDirection:'column',gap:10,marginTop:6}}>
+        <div style={{width:boardPx+22,maxWidth:'98vw',display:'flex',flexDirection:'column',gap:10,marginTop:6}}>
           {lastReview&&!review&&(<button onClick={()=>{setReview(lastReview);setReviewView('summary');}} style={{alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:7,padding:'8px 13px',borderRadius:10,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.4)',color:'var(--ac2)',cursor:'pointer',fontSize:'clamp(14px,3.2vw,16px)',fontWeight:700,boxShadow:SHADOW_BTN}}>‹ Back to your analysis</button>)}
           <div style={{textAlign:'center'}}>
             <div style={{fontSize:'clamp(14px,3.4vw,18px)',color:'#fff',fontWeight:800}}>Review any game, from anywhere</div>
@@ -3609,7 +3609,7 @@ export default function App(){
 
       {/* ── Analyze: analyzing progress ── */}
       {mode==='analyze'&&analyzing&&(
-        <div style={{width:boardPx,maxWidth:'94vw',marginTop:40,display:'flex',flexDirection:'column',alignItems:'center',gap:14}}>
+        <div style={{width:boardPx,maxWidth:'98vw',marginTop:40,display:'flex',flexDirection:'column',alignItems:'center',gap:14}}>
           <div style={{fontSize:'clamp(13px,3vw,16px)',color:'var(--ac)',fontWeight:600}}>Analyzing your game…</div>
           <div style={{width:'100%',height:10,background:'rgba(0,0,0,.3)',borderRadius:5,overflow:'hidden'}}>
             <div style={{width:`${Math.round(progress*100)}%`,height:'100%',background:'var(--ac)',transition:'width .2s'}}/>
@@ -3622,7 +3622,7 @@ export default function App(){
         const _controls=(<>
       {/* ── Review controls ── */}
       {inReview&&(
-        <div style={{width:boardPx,maxWidth:'94vw',marginTop:9,display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
+        <div style={{width:boardPx,maxWidth:'98vw',marginTop:9,display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
           {/* move annotation */}
           <div style={{minHeight:34,width:'100%',display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
             {curAnno?(<>
@@ -3664,7 +3664,7 @@ export default function App(){
       )}
 
       {/* ── Play controls ── */}
-      {mode==='play'&&opponent!=='online'&&(<div style={{marginTop:10,display:'flex',flexDirection:'column',alignItems:'center',gap:8,width:boardPx,maxWidth:'94vw'}}>
+      {mode==='play'&&opponent!=='online'&&(<div style={{marginTop:10,display:'flex',flexDirection:'column',alignItems:'center',gap:8,width:boardPx,maxWidth:'98vw'}}>
         {opponent==='computer'?(<div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,flexWrap:'wrap'}}>
           {selBot&&botById(selBot)?(<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:'clamp(8.5px,1.95vw,11px)',color:'rgba(255,255,255,.72)',fontWeight:700}}><BotFace id={selBot} size={20}/>{botById(selBot).name}</span>):(<span style={{fontSize:'clamp(8px,1.85vw,10.5px)',color:'rgba(255,255,255,.45)'}}>🤖 vs Computer</span>)}
           <div style={{display:'flex',alignItems:'center',gap:5,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 5px'}}>
@@ -3686,7 +3686,7 @@ export default function App(){
       {/* ── Online multiplayer panel ── */}
       {mode==='play'&&opponent==='online'&&(()=>{
         const og=onlineGame;
-        const card={width:boardPx,maxWidth:'94vw',marginTop:10,background:'rgba(110,168,254,.08)',border:'1px solid rgba(110,168,254,.28)',borderRadius:14,padding:'14px 15px',display:'flex',flexDirection:'column',gap:10,alignItems:'stretch'};
+        const card={width:boardPx,maxWidth:'98vw',marginTop:10,background:'rgba(110,168,254,.08)',border:'1px solid rgba(110,168,254,.28)',borderRadius:14,padding:'14px 15px',display:'flex',flexDirection:'column',gap:10,alignItems:'stretch'};
         const lbl={fontSize:'clamp(10px,2.3vw,12.5px)',color:'rgba(255,255,255,.55)',fontWeight:700,letterSpacing:.5,textTransform:'uppercase'};
         if(!cloudUser)return(<div style={card}>
           <div style={{fontSize:'clamp(13px,3.2vw,16px)',fontWeight:800,color:'#fff'}}>🌐 Play a friend online</div>
@@ -3838,7 +3838,7 @@ export default function App(){
         </div>);
       })()}
       {mode==='puzzle'&&pzView==='roadmap'&&(()=>{const rank=pzRank(pzSolvedMap);const active=Math.min(rank,PZ_TIERS.length-1);const total=pzTotalSolved(pzSolvedMap);const at=PZ_TIERS[active];const inActive=pzSolvedInTier(pzSolvedMap,active);const allDone=rank>=PZ_TIERS.length;const dTd=(daily&&daily.date===dstr(new Date()))?(daily.count||0):0;return(
-      <div style={{marginTop:6,width:boardPx,maxWidth:'94vw',display:'flex',flexDirection:'column',gap:10}}>
+      <div style={{marginTop:6,width:boardPx,maxWidth:'98vw',display:'flex',flexDirection:'column',gap:10}}>
         <div style={{width:'100%',background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:14,padding:'14px 16px'}}>
           <div style={{display:'flex',alignItems:'center',gap:12}}>
             <div style={{fontSize:34,lineHeight:1}}>{allDone?'🏆':at.icon}</div>
@@ -3881,7 +3881,7 @@ export default function App(){
 
       {/* ── Puzzle: BROWSE / solving view ── */}
       {mode==='puzzle'&&pzView==='browse'&&(()=>{const p=curPuz||PZ[puzIdx];return(
-      <div style={{order:1,marginTop:11,width:boardPx,maxWidth:'94vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>
+      <div style={{order:1,marginTop:11,width:boardPx,maxWidth:'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>
         <div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <button onClick={()=>setPzView('roadmap')} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>‹ Roadmap</button>
           <span style={{fontSize:'clamp(8.5px,1.9vw,10.5px)',color:'rgba(255,255,255,.5)',fontWeight:600}}>{pzTrainTier!=null?(PZ_TIERS[pzTrainTier].icon+' '+PZ_TIERS[pzTrainTier].name):'Free play'} · ✓ {pzTotalSolved(pzSolvedMap)}</span>
@@ -3900,7 +3900,7 @@ export default function App(){
         <div style={{width:'100%',minHeight:60}}>{puzMsg&&(<div key={puzMsg} style={{width:'100%',fontSize:'clamp(12.5px,3vw,15px)',fontWeight:700,color:puzSolved?'#aef0bd':(puzMsg[0]==='✗'?'#ffb3a8':'#cfe0ff'),lineHeight:1.5,background:puzSolved?'rgba(123,216,143,.16)':(puzMsg[0]==='✗'?'rgba(236,154,144,.16)':'rgba(110,168,254,.14)'),border:'1px solid '+(puzSolved?'rgba(123,216,143,.45)':(puzMsg[0]==='✗'?'rgba(236,154,144,.45)':'rgba(110,168,254,.4)')),borderLeft:'4px solid '+(puzSolved?'#7bd88f':(puzMsg[0]==='✗'?'#ec9a90':'#6ea8fe')),borderRadius:10,padding:'12px 13px',animation:'pzflash .3s ease-out'}}>{puzMsg}</div>)}</div>
       </div>);})()}
       {mode==='puzzle'&&pzView==='browse'&&(()=>{const p=curPuz||PZ[puzIdx];return(
-      <div style={{order:3,marginTop:9,width:boardPx,maxWidth:'94vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>
+      <div style={{order:3,marginTop:9,width:boardPx,maxWidth:'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>
         {!puzSolved&&(<div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
           <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>💡 Hint</button>
           <button onClick={()=>{setPuzReveal(true);setPuzMsg('👁 Play '+p.sol[puzStep]+' — the squares are highlighted on the board.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
@@ -3914,7 +3914,7 @@ export default function App(){
 
       {/* ── Puzzle: ONLINE (Lichess) view ── */}
       {mode==='puzzle'&&pzView==='online'&&(()=>{const p=(curPuz&&curPuz.ext)?curPuz:null;const bw=Math.min(boardPx,440);return(
-      <div style={{order:1,marginTop:p?11:6,width:bw,maxWidth:'94vw',display:'flex',flexDirection:'column',alignItems:'stretch',gap:9}}>
+      <div style={{order:1,marginTop:p?11:6,width:bw,maxWidth:'98vw',display:'flex',flexDirection:'column',alignItems:'stretch',gap:9}}>
         <div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <button onClick={()=>setPzView('roadmap')} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>‹ Roadmap</button>
           <span style={{fontSize:'clamp(8.5px,1.9vw,10.5px)',color:'rgba(255,255,255,.5)',fontWeight:600}}>🌐 Lichess · ✓ {pzOSolved} solved</span>
@@ -3954,7 +3954,7 @@ export default function App(){
         </>)}
       </div>);})()}
       {mode==='puzzle'&&pzView==='online'&&(()=>{const p=(curPuz&&curPuz.ext)?curPuz:null;const bw=Math.min(boardPx,440);return(p&&(
-      <div style={{order:3,marginTop:9,width:bw,maxWidth:'94vw',display:'flex',flexDirection:'column',alignItems:'stretch',gap:9}}>
+      <div style={{order:3,marginTop:9,width:bw,maxWidth:'98vw',display:'flex',flexDirection:'column',alignItems:'stretch',gap:9}}>
         {!puzSolved&&(<div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
           <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>💡 Hint</button>
           <button onClick={()=>{setPuzReveal(true);setPuzMsg('👁 Play '+p.sol[puzStep]+' — the squares are highlighted on the board.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
@@ -3992,7 +3992,7 @@ export default function App(){
       </div>);})()}
 
       {/* ── Learn controls ── */}
-      {mode==='learn'&&(<div style={{marginTop:11,width:boardPx,maxWidth:'94vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>
+      {mode==='learn'&&(<div style={{marginTop:11,width:boardPx,maxWidth:'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>
         {openIdx!==null?(
           (()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';const idxs=LIB.map((o,i)=>groupOf(o.cat)===grp?i:-1).filter(i=>i>=0);const pos=idxs.indexOf(openIdx);const hasPrev=pos>0,hasNext=pos<idxs.length-1;
             const nav=(on)=>({...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),opacity:on?1:.35,cursor:on?'pointer':'default'});
@@ -4220,7 +4220,7 @@ export default function App(){
       </div>)}
 
       {/* Move history (play/learn) */}
-      {!inReview&&!pzLow&&boardGame.history.length>0&&!(mode==='learn'&&openIdx===null)&&(<div style={{marginTop:10,width:boardPx,maxWidth:'94vw'}}>
+      {!inReview&&!pzLow&&boardGame.history.length>0&&!(mode==='learn'&&openIdx===null)&&(<div style={{marginTop:10,width:boardPx,maxWidth:'98vw'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:4}}>
           <span style={{fontSize:'clamp(8px,1.8vw,10px)',color:'rgba(255,255,255,.4)',letterSpacing:1.5,fontFamily:'monospace'}}>MOVES</span>
           <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}>
@@ -4245,7 +4245,7 @@ export default function App(){
       </div>)}
 
       {/* Move list (review, clickable + colored) — single horizontal strip */}
-      {inReview&&(<div data-mstrip="1" className="scroll" style={{marginTop:10,width:boardPx,maxWidth:'94vw',overflowX:'auto',overflowY:'hidden',whiteSpace:'nowrap',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:9,padding:'9px 11px',position:'relative',WebkitOverflowScrolling:'touch'}}>
+      {inReview&&(<div data-mstrip="1" className="scroll" style={{marginTop:10,width:boardPx,maxWidth:'98vw',overflowX:'auto',overflowY:'hidden',whiteSpace:'nowrap',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:9,padding:'9px 11px',position:'relative',WebkitOverflowScrolling:'touch'}}>
         <div style={{display:'inline-flex',alignItems:'center',fontSize:'clamp(12px,2.7vw,15px)',fontFamily:'monospace'}}>
           {review.plies.map((p,i)=>{const a=review.analysis[i];const isCur=ply===i+1;const bad=a.cls.label==='Mistake'||a.cls.label==='Blunder'||a.cls.label==='Inaccuracy';return(<span key={i} style={{display:'inline-flex',alignItems:'center'}}>{i%2===0&&<span style={{color:'rgba(255,255,255,.35)',margin:'0 3px 0 7px'}}>{Math.floor(i/2)+1}.</span>}<span ref={isCur?(el=>{if(!el)return;const c=el.closest('[data-mstrip]');if(c){const t=el.offsetLeft-(c.clientWidth-el.offsetWidth)/2;c.scrollTo({left:Math.max(0,t),behavior:'smooth'});}}):undefined} onClick={()=>setPly(i+1)} style={{cursor:'pointer',color:bad?a.cls.c:(i%2===0?'#e0e0e0':'var(--ac2)'),padding:'3px 6px',borderRadius:5,background:isCur?'rgba(255,216,77,.28)':'transparent',fontWeight:isCur?'bold':'normal'}}>{p.san}{bad?a.cls.i:''}</span></span>);})}
         </div>
@@ -4282,7 +4282,7 @@ export default function App(){
       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',order:wide?0:(pzLow?2:0),marginTop:pzLow&&!wide?10:0}}>
         {_showBars&&pBar(topColor,true)}
         <div style={{display:'flex',alignItems:'flex-start'}}>
-          {(inReview||(mode==='play'&&opponent==='computer'))&&!hideEval&&(<div style={{width:20,height:boardPx,background:'#3a3a3a',borderRadius:3,overflow:'hidden',position:'relative',flexShrink:0,marginRight:4}}>
+          {(inReview||(mode==='play'&&opponent==='computer'))&&!hideEval&&(<div style={{width:14,height:boardPx,background:'#3a3a3a',borderRadius:3,overflow:'hidden',position:'relative',flexShrink:0,marginRight:4}}>
             <div style={{position:'absolute',[flip?'top':'bottom']:0,width:'100%',height:`${Math.max(2,Math.min(98,50+Math.max(-10,Math.min(10,evalNow))*5))}%`,background:'#eee',transition:'height .35s'}}/>
             <div style={{position:'absolute',top:3,left:'50%',transform:'translateX(-50%)',padding:'1px 3px',borderRadius:3,background:'rgba(18,18,22,.82)',fontSize:'clamp(7px,1.55vw,9px)',fontWeight:800,fontFamily:'monospace',color:'#fff',letterSpacing:'-.4px',whiteSpace:'nowrap',lineHeight:1.2}}>{evalTxt}</div>
           </div>)}
