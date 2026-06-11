@@ -1765,6 +1765,9 @@ export default function App(){
   const [learnProg,setLearnProg]=useState(()=>{try{return JSON.parse(localStorage.getItem('ct_learnprog')||'{}')||{};}catch(e){return {};}});
   const learnProgRef=useRef(learnProg); learnProgRef.current=learnProg;
   const learnRepRef=useRef({hints:false,miss:false});
+  const [coachTargets,setCoachTargets]=useState(()=>{try{const a=JSON.parse(localStorage.getItem('ct_coachtargets')||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}});
+  const coachTargetsRef=useRef(coachTargets); coachTargetsRef.current=coachTargets;
+  const hintLockRef=useRef((()=>{try{return JSON.parse(localStorage.getItem('ct_hintlock')||'{}')||{};}catch(e){return {};}})());
   const hintPrefsRef=useRef(null);
   const [learnPhase,setLearnPhase]=useState('demo');
   const [trainTap,setTrainTap]=useState(()=>{try{return localStorage.getItem('ct_traintap')!=='0';}catch{return true;}});
@@ -1984,7 +1987,8 @@ export default function App(){
   useEffect(()=>{try{localStorage.setItem('ct_traintap',trainTap?'1':'0');}catch{}},[trainTap]);
   useEffect(()=>{try{localStorage.setItem('ct_train',JSON.stringify(trainMastery));}catch{}},[trainMastery]);
   useEffect(()=>{try{localStorage.setItem('ct_learnprog',JSON.stringify(learnProg));}catch{}},[learnProg]);
-  useEffect(()=>{if(mode==='learn'&&learnPhase==='practice'&&(showHint||revealHint))learnRepRef.current.hints=true;},[mode,learnPhase,showHint,revealHint]);
+  useEffect(()=>{try{localStorage.setItem('ct_coachtargets',JSON.stringify(coachTargets));}catch{}},[coachTargets]);
+  useEffect(()=>{if(mode==='learn'&&learnPhase==='practice'&&(showHint||revealHint)){learnRepRef.current.hints=true;const _op=LIB[openIdxRef.current];const nm=_op&&_op.name;if(nm){hintLockRef.current={...hintLockRef.current,[nm]:Date.now()+600000};try{localStorage.setItem('ct_hintlock',JSON.stringify(hintLockRef.current));}catch(e){}}}},[mode,learnPhase,showHint,revealHint]);
   useEffect(()=>{
     if(mode==='learn'&&learnPhase==='practice'&&openIdx!=null&&learnLine.length>0){
       if(openStep<learnLine.length){trainArmed.current=true;}
@@ -2014,6 +2018,7 @@ export default function App(){
           if(typeof data.elo==='number')setCpuElo(Math.max(ELO_MIN,Math.min(ELO_MAX,data.elo)));
           if(data.hintprefs&&typeof data.hintprefs==='object'){hintPrefsRef.current={...data.hintprefs};try{localStorage.setItem('ct_hintprefs',JSON.stringify(hintPrefsRef.current));}catch{}}
           if(data.learnprog&&typeof data.learnprog==='object'){const lp=data.learnprog;setLearnProg(loc=>{const out={...loc};for(const k in lp){const a=out[k]||{},b=lp[k]||{};const days=[...new Set([...(a.days||[]),...(b.days||[])])].sort();out[k]={learned:days.length>=1,days};}return out;});}
+          if(Array.isArray(data.coachtargets)&&data.coachtargets.length&&!(coachTargetsRef.current||[]).length)setCoachTargets(data.coachtargets.filter(x=>typeof x==='string'));
           if(data.pz&&typeof data.pz==='object'){const cp=data.pz;
             if(cp.solved&&typeof cp.solved==='object')setPzSolvedMap(m=>({...m,...cp.solved}));
             if(cp.onlineIds&&typeof cp.onlineIds==='object')setPzOSolvedIds(m=>({...m,...cp.onlineIds}));
@@ -2022,7 +2027,7 @@ export default function App(){
             if(typeof cp.online==='number')setPzOSolved(o=>Math.max(o,cp.online));
           }
         }else{
-          C.save({theme:syncRef.current.theme,skin:syncRef.current.skin,elo:syncRef.current.elo,hintprefs:readHintPrefs(),pz:{solved:pzSolvedRef.current,streak:pzStreakRef.current,best:pzBestRef.current,xp:pzXPRef.current,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current},learnprog:learnProgRef.current});
+          C.save({theme:syncRef.current.theme,skin:syncRef.current.skin,elo:syncRef.current.elo,hintprefs:readHintPrefs(),pz:{solved:pzSolvedRef.current,streak:pzStreakRef.current,best:pzBestRef.current,xp:pzXPRef.current,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current},learnprog:learnProgRef.current,coachtargets:coachTargetsRef.current});
         }
       }catch(e){}
     });
@@ -2042,6 +2047,7 @@ export default function App(){
     return ()=>{clearTimeout(t1);if(t2)clearTimeout(t2);};
   },[pzSolvedMap,pzStreak,pzBest,pzXP,pzOSolved,pzOSolvedIds,cloudUser]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!cloudUser)return;const t=setTimeout(()=>{try{C.save({learnprog:learnProgRef.current});}catch(e){}},900);return ()=>clearTimeout(t);},[learnProg,cloudUser]);
+  useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!cloudUser)return;const t=setTimeout(()=>{try{C.save({coachtargets:coachTargetsRef.current});}catch(e){}},900);return ()=>clearTimeout(t);},[coachTargets,cloudUser]);
   const cloudSignIn=()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C)return;setCloudErr('');C.signIn().catch(e=>{const code=e&&e.code;setCloudErr(code==='auth/unauthorized-domain'?'This site isn’t authorized in Firebase yet — add the domain in Auth settings.':(code==='auth/popup-blocked'?'Popup blocked — allow popups and retry.':'Sign-in failed, please retry.'));});};
   const cloudSignOut=()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(C)C.signOut();setCloudUser(null);};
   useEffect(()=>{
@@ -2449,6 +2455,8 @@ export default function App(){
     const days=Array.isArray(cur.days)?cur.days.slice():[];
     if(rep.hints)return days.length?'':' Hints were on, so this run does not count. Switch hints off and run it flawlessly.';
     if(rep.miss)return days.length?' A wrong try slipped in, so no day banked. Flawless runs only.':' A wrong try slipped in. Learned needs one flawless run: no hints, no wrong tries. You are close.';
+    const lockedUntil=(hintLockRef.current&&hintLockRef.current[op.name])||0;
+    if(Date.now()<lockedUntil){const mins=Math.max(1,Math.ceil((lockedUntil-Date.now())/60000));return ' Flawless, but hints were on for this lesson in the last 10 minutes. It can bank a day again in about '+mins+' min.';}
     const today=dstr(new Date());
     const wasM=days.length>=LEARN_GOAL;
     const first=days.length===0;
@@ -2761,6 +2769,7 @@ export default function App(){
     if(dTd<DAILY_GOAL)return{tip:"You're "+dTd+" of "+DAILY_GOAL+" on today's puzzle goal. A few more?",goLabel:'Solve puzzles',go:()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}};
     const tips=[["Explore a new opening over in Discover.",'Discover',()=>{setCoachOpen(false);setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup(null);}],["Review your latest game and hunt the turning point.",'Review',()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');}],["Daily goal done, nice. Try the next puzzle tier.",'Solve puzzles',()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}]];const pk=tips[new Date().getDate()%tips.length];return{tip:pk[0],goLabel:pk[1],go:pk[2]};
   };
+  const coachRun=(idx)=>{const op=LIB[idx];if(!op)return;setCoachOpen(false);setHomeScreen(false);selectOpening(idx);setShowHint(false);setRevealHint(false);showHintRef.current=false;startPractice(op.line,op.name);};
   const coachPlan=()=>{
     const goPz=()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');};
     const goRev=()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');};
@@ -2897,6 +2906,29 @@ export default function App(){
                   <button onClick={p.go} style={{flexShrink:0,padding:'6px 12px',borderRadius:9,background:'var(--ac)',border:'none',color:'#1a1a1a',fontWeight:800,fontSize:'clamp(10.5px,2.3vw,12px)',cursor:'pointer',boxShadow:'0 2px 0 rgba(0,0,0,.25)'}}>{p.goLabel}</button>
                 </div>))}
               </div>
+            </div>
+            <div style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:14,padding:'12px 13px',boxShadow:SHADOW_BOX}}>
+              <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:9,flexWrap:'wrap'}}><span style={{fontSize:'clamp(10px,2.2vw,12px)',color:'var(--ac2)',fontWeight:800,letterSpacing:.5,textTransform:'uppercase'}}>Mastery plan</span><span style={{fontSize:'clamp(8.5px,1.9vw,10px)',color:'rgba(255,255,255,.45)'}}>flawless reps only · each target banks one day per day</span></div>
+              {(()=>{const tIdx=coachTargets.map(n=>LIB.findIndex(o=>o.name===n)).filter(i=>i>=0);const _today=dstr(new Date());
+                return(<>
+                {tIdx.length===0&&<div style={{fontSize:'clamp(10.5px,2.4vw,12.5px)',color:'rgba(255,255,255,.55)',lineHeight:1.45,marginBottom:9}}>Tap openings below to pick your targets. Several at once is smart: each banks its own day, so three targets can mean three checkmarks a day.</div>}
+                {tIdx.length>0&&<div style={{display:'flex',flexDirection:'column',gap:7,marginBottom:10}}>{tIdx.map(i=>{const op=LIB[i];const lp=learnProg[op.name]||{};const days=(lp.days||[]);const n=days.length;const m=n>=LEARN_GOAL;const done=days.indexOf(_today)>=0;return(
+                  <div key={i} style={{display:'flex',alignItems:'center',gap:9,background:'rgba(0,0,0,.18)',border:'1px solid rgba(255,255,255,.1)',borderRadius:10,padding:'8px 10px'}}>
+                    <span style={{flexShrink:0,fontSize:15,width:20,textAlign:'center'}}>{m?'⭐':done?'✅':'▫️'}</span>
+                    <span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(8.5px,1.9vw,10px)',color:m?'#f0c24d':done?'#6cc78a':'rgba(255,255,255,.5)'}}>{m?'Mastered':done?('Banked today · '+n+'/'+LEARN_GOAL):(n+'/'+LEARN_GOAL+' days')}</span></span>
+                    {!m&&!done&&<button onClick={()=>coachRun(i)} style={{flexShrink:0,padding:'6px 12px',borderRadius:9,background:'var(--ac)',border:'none',color:'#1a1a1a',fontWeight:800,fontSize:'clamp(10px,2.2vw,11.5px)',cursor:'pointer'}}>▶ Run</button>}
+                    <button onClick={()=>setCoachTargets(t=>t.filter(x=>x!==op.name))} style={{flexShrink:0,width:26,height:26,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.6)',cursor:'pointer',fontSize:12,lineHeight:1,padding:0}}>✕</button>
+                  </div>);})}</div>}
+                <div style={{fontSize:'clamp(8.5px,1.9vw,10px)',color:'rgba(255,255,255,.45)',fontWeight:700,letterSpacing:.4,textTransform:'uppercase',margin:'2px 0 6px'}}>All openings & gambits · tap to target</div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(96px,1fr))',gap:6}}>
+                  {LIB.map((o,i)=>({o,i})).filter(x=>{const gp=groupOf(x.o.cat);return gp==='openings'||gp==='gambits';}).map(({o,i})=>{const lp=learnProg[o.name]||{};const n=(lp.days||[]).length;const m=n>=LEARN_GOAL;const sel=coachTargets.indexOf(o.name)>=0;const bg=m?'linear-gradient(150deg,#caa24c,#8a6a26)':n>0?('rgba(16,185,129,'+(0.16+0.06*Math.min(9,n)).toFixed(2)+')'):'rgba(236,90,90,.13)';const bd=m?'#f0c24d':n>0?'rgba(16,185,129,.55)':'rgba(236,90,90,.4)';return(
+                    <button key={i} onClick={()=>setCoachTargets(t=>t.indexOf(o.name)>=0?t.filter(x=>x!==o.name):[...t,o.name])} style={{position:'relative',minHeight:48,padding:'6px 7px 14px',borderRadius:9,border:'1px solid '+(sel?'var(--ac)':bd),background:bg,color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:sel?'0 0 0 1.5px var(--ac)':'none'}}>
+                      <span style={{fontSize:'clamp(8.5px,1.9vw,10px)',fontWeight:800,lineHeight:1.25,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{o.name}</span>
+                      <span style={{position:'absolute',right:4,bottom:3,fontSize:'clamp(7.5px,1.7vw,9px)',fontWeight:800,color:m?'#ffe9a8':n>0?'#a7f3d0':'rgba(255,255,255,.55)'}}>{m?'★':n+'/'+LEARN_GOAL}</span>
+                      {sel&&<span style={{position:'absolute',left:4,bottom:3,fontSize:9,color:'var(--ac2)',fontWeight:800}}>✓ target</span>}
+                    </button>);})}
+                </div>
+                </>);})()}
             </div>
             <div style={{fontSize:'clamp(10px,2.2vw,12px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:.6,textTransform:'uppercase'}}>Learn & practice</div>
             <div style={{display:'flex',flexDirection:'column',gap:9}}>

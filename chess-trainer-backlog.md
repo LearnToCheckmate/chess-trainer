@@ -591,3 +591,9 @@ match /nearby/{uid} {
 ## Build #134 — Mastery counter + tap-move buttons count as hints (2026-06-10)
 - 10-dot flawless-day counter under the lesson title in Discover, filling green then gold at Mastered, with an "n of 10 flawless days" label. [#134]
 - The Tap-moves panel (pick the book move from 4 buttons) is a 1-in-4 multiple choice, i.e. a hint: it now only renders when hints are ON. Turning Tap moves on with hints off flips hints on too, so reps stay honestly classified. [#134]
+
+## Build #135 — Coach mastery plan, Pro (2026-06-10)
+- Mastery plan card in the Coach screen (Pro-gated by the existing Coach gate): pick targets by tapping tiles in a stock-screener heatmap of all openings + gambits (red untouched, green scales with banked days, gold = mastered, n/10 on every tile). [#135]
+- Targets list shows a daily state per lesson (▫️ pending, ✅ banked today, ⭐ mastered) with a Run button that launches the lesson directly into practice with hints OFF (coached rep). Multiple targets in parallel, each banks its own day. [#135]
+- Honesty cooldown (global, flagged for veto): any hint exposure during practice locks that lesson's banking for 10 minutes; a flawless run during the lock explains when it can count again. Stored in ct_hintlock. [#135]
+- Targets sync to the account (ct_coachtargets + cloud save/load adopt). [#135]
