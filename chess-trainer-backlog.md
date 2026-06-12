@@ -662,3 +662,11 @@ match /nearby/{uid} {
 - Palm rejection (judgment, flagged): board ignores touch presses starting within 10px of the screen's left/right edges. Tune or gate if edge files feel hard to grab on the flush board. [#144]
 - Online panel: Claim-win button normalized to the uniform 48px/full-width metrics; remaining panel movement is row-count with state. [#144]
 - Sweep note: feedback chat updated 2026-06-12 ~07:14 EDT but newest items are not text-searchable from the build chat (likely screenshots); Kunal to paste items here or give a keyword. Sign-in failure from 06-11 still awaiting surface + error details (Safari vs installed app).
+
+## Roadmap additions from the 2026-06-12 product review (all five approved by Kunal, sequenced after Tournaments)
+1. rv-gaps: post-game one-tap Review handoff + repertoire-gap detection (match imported games' openings to the lesson library; "faced Caro-Kann 6x, lost 4, learn it" with taps to lesson and slate).
+2. pl-sound: sounds + haptics (move/capture/check via WebAudio, settings toggle).
+3. hm-today: ONE Today card merging daily plan + next slate rep, topped with a daily streak.
+4. in-sw: service worker (offline shell, instant loads, iOS Web Push readiness, auto cache busting via app.js?v=BUILD).
+5. dc-coachvoice: coach voice lines from real data + shareable weekly recap card (Pro).
+Queue order: Tournaments stage 1 → stage 2 → items 1-5 above.
