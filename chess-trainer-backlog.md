@@ -674,3 +674,7 @@ Queue order: Tournaments stage 1 → stage 2 → items 1-5 above.
 ## Program approved 2026-06-12 (Kunal: "A,B,C,D,E then all of section 8, then anything forgotten")
 Build queue, flagged for veto since it moves Tournaments: Phase A (tokens+buttons) → B (celebrations) → C (Play re-chrome) → D (lesson action bar) → E (puzzles art) → eight deep reviews as deliverables → Tournaments stage 1 → stage 2 → the five 2026-06-12 roadmap items (rv-gaps, pl-sound, hm-today, in-sw, dc-coachvoice).
 Forgotten-item adds: fd-legal (privacy/terms/account deletion, needed before Stripe live), fd-errlog (remote error logging to Firestore, ends blind debugging). Design specimens live in chess-design-review.html.
+
+## Build #145 — Phase A slice 1 (2026-06-12)
+- btn() factory upgraded to the system: minHeight 38→44, fontSize clamp(10,2.1vw,12.5)→clamp(12,2.7vw,14). Every standard button app-wide inherits the new size and type step in one edit. Radius 12 and the 3D shadow were already in place. [#145]
+- Remaining Phase A: token palette injection at the theme root, radius/gray outlier normalization, button ordering law per screen. Continue next run.
