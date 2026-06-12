@@ -3,7 +3,7 @@
 # After each build run: edit TASKS/GROUPS, set STAMP, run:  python3 gen_tracker.py
 import json, datetime
 
-STAMP = "Updated through build #143 - 2026-06-11"
+STAMP = "Updated through build #144 - 2026-06-12"
 
 GROUPS = [
     {"key": "online", "nm": "Online & multiplayer", "color": "#7bd1ff", "isNew": True},
@@ -25,7 +25,7 @@ GROUPS = [
 TASKS = [
     # Online & multiplayer
     {"g": "online", "id": "on-decline",  "s": "done", "b": "#111", "t": "Show a \u201cDraw declined\u201d message", "n": "Now shows in the side panel and as a board toast to the offerer. Re-test on #111."},
-    {"g": "online", "id": "on-btnsize",  "s": "part", "t": "Stop action buttons resizing / shifting the panel", "n": "The control area already has a fixed minimum height. Tell me (screenshot) if it still shifts and I will lock it fully."},
+    {"g": "online", "id": "on-btnsize",  "s": "part", "t": "Stop action buttons resizing / shifting the panel", "n": "The control area already has a fixed minimum height. Tell me (screenshot) if it still shifts and I will lock it fully. #144: Claim-win button now matches the panel metrics (full width, 48px, fixed font). Remaining movement is row-count changing with state, which is structural; flag if it still bothers."},
     {"g": "online", "id": "on-prompt",   "s": "done", "t": "Incoming draw prompt at the top as a board overlay", "n": "Already implemented (built after build 81). Re-test on #111."},
     {"g": "online", "id": "on-endscreen","s": "done", "t": "Board-level end screen for draw / resign", "n": "Already implemented: centered result overlay (Draw agreed / You won / You lost) with rematch. Re-test on #111."},
     {"g": "online", "id": "on-rematch",  "s": "done", "t": "Rematch as an offer / accept / decline flow", "n": "Already implemented: offer -> opponent accepts or declines, with notices. Re-test on #111."},
@@ -82,7 +82,7 @@ TASKS = [
     {"g": "infra", "id": "in-dom",   "s": "open", "you": True, "t": "Register a domain", "n": "gambitcoach.com (available, ~$10) or blunderly.com."},
     {"g": "infra", "id": "in-cap",   "s": "open", "you": True, "t": "Native app wrapper (Capacitor)", "n": "iOS needs a Mac + Apple dev account. Also fixes the installed-app sign-in loop."},
     {"g": "infra", "id": "in-photo", "s": "part", "you": True, "t": "Photo-to-board (snap a real board \u2192 play/analyze)", "n": "App side built (#127): New Game screen \u201cScan a board from a photo\u201d \u2014 downsizes the photo, returns a FEN, opens it as \u201cPlay this position.\u201d NEEDS YOU: deploy one Cloud Function (scanBoard) + set your Anthropic API key secret. Full function file + steps provided."},
-    {"g": "infra", "id": "in-palm",  "s": "open", "t": "Palm / bottom-edge touch rejection", "n": "Tune on device."},
+    {"g": "infra", "id": "in-palm",  "s": "done", "b": "#144", "you": True, "t": "Palm / bottom-edge touch rejection", "n": "Built (#144), judgment flagged: touch presses starting within 10px of the left/right screen edge are ignored on the board (classic palm zone). With the flush #142 board the outer files lose a 10px sliver on their outer half; if edge pieces feel hard to grab, say so and I will tune or gate it. NEEDS YOU: rest your palm on the edge mid-game and try grabbing a-file and h-file pieces."},
 
     # Community / Social
     {"g": "comm", "id": "cm-near", "s": "done", "b": "#129", "you": True, "t": "Play nearby (approx location / ZIP)", "n": "Built (#129): a Play-nearby tile on the New Game screen opens an opt-in screen. You choose to be visible; only a coarse area is shared (GPS rounded to ~11km, or your ZIP), never exact coordinates. It lists other opted-in players in your area with a Challenge button, and a Stop button to opt out. NEEDS YOU: publish the nearby Firestore rule (provided), then test on two accounts. Untestable in my sandbox (no location, no other users). Direct nearby invites + distance are a later pass."},

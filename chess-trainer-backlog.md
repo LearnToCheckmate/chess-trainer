@@ -657,3 +657,8 @@ match /nearby/{uid} {
 
 ## Build #143 — Single hints button (2026-06-11)
 - Practice row: removed the one-shot 💡 Hint (reveal) button; the single 💡 Hints: on/off toggle remains. Reveal state machinery kept internally; honesty cooldown unchanged. [#143]
+
+## Build #144 — Palm rejection + online button metrics (2026-06-12)
+- Palm rejection (judgment, flagged): board ignores touch presses starting within 10px of the screen's left/right edges. Tune or gate if edge files feel hard to grab on the flush board. [#144]
+- Online panel: Claim-win button normalized to the uniform 48px/full-width metrics; remaining panel movement is row-count with state. [#144]
+- Sweep note: feedback chat updated 2026-06-12 ~07:14 EDT but newest items are not text-searchable from the build chat (likely screenshots); Kunal to paste items here or give a keyword. Sign-in failure from 06-11 still awaiting surface + error details (Safari vs installed app).
