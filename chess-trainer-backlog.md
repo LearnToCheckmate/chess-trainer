@@ -670,3 +670,7 @@ match /nearby/{uid} {
 4. in-sw: service worker (offline shell, instant loads, iOS Web Push readiness, auto cache busting via app.js?v=BUILD).
 5. dc-coachvoice: coach voice lines from real data + shareable weekly recap card (Pro).
 Queue order: Tournaments stage 1 → stage 2 → items 1-5 above.
+
+## Program approved 2026-06-12 (Kunal: "A,B,C,D,E then all of section 8, then anything forgotten")
+Build queue, flagged for veto since it moves Tournaments: Phase A (tokens+buttons) → B (celebrations) → C (Play re-chrome) → D (lesson action bar) → E (puzzles art) → eight deep reviews as deliverables → Tournaments stage 1 → stage 2 → the five 2026-06-12 roadmap items (rv-gaps, pl-sound, hm-today, in-sw, dc-coachvoice).
+Forgotten-item adds: fd-legal (privacy/terms/account deletion, needed before Stripe live), fd-errlog (remote error logging to Firestore, ends blind debugging). Design specimens live in chess-design-review.html.
