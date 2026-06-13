@@ -818,3 +818,8 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 
 ## Review 3 of 8 — First-session funnel (2026-06-12)
 - Delivered chess-firstsession-review.html. Core finding: strong reward system + polished home, but NO guided first run; newcomer is dropped at a four-way tile fork and must self-find the magic 3-5 taps deep. Five ranked recommendations, top three: (1) one-tap "Start here" first-run path to a guaranteed-success lesson ending in the LEARNED overlay before any choice; (2) make the coach hook a welcome not a "0/5 puzzle quota" on day 1; (3) show the LEARNED->MASTERED ladder up front. Also: defer sign-in until after first win. New build candidates: first-run-path, coach-hook-day1, reward-teaser.
+
+## Review 4 of 8 — Content QA (the chess itself) (2026-06-12)
+- Delivered chess-content-qa-review.html. Method: extracted all 130 lesson lines and replayed each through python-chess 1.11.2 from its own starting position (FEN for endgames/mates, standard start for openings). RESULT: 130/130 lines fully legal; 1,357 half-moves validated; 16/16 "#"-annotated lines are genuine checkmate; 2/2 "+"-annotated lines are genuine check. The lesson chess is clean — no illegal moves, no impossible pieces, no mislabeled mates.
+- Note: an earlier pass falsely flagged 4 lines due to a FEN-pairing bug in the CHECKING SCRIPT (crossed object boundaries), not the app; all resolved once scoped per-object. Recorded so the clean result is trusted.
+- Out of scope (future human pass): whether each line is the best theoretical continuation, and editorial quality of the prose.
