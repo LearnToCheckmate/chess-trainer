@@ -730,11 +730,9 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - All four injected animation blocks (celebration banner, overlays, both toasts) wrapped in prefers-reduced-motion no-preference guards; with reduced motion on, elements render static. Pre-existing piece animations remain for a later pass. [#153]
 - Small icon squares grown to real hit sizes: 26px → 32px (slate ⇄/✕) and 24px → 30px (chooser ✕). Remaining a11y queue: focus-visible ring, faint-text rule. [#153]
 
-## Build #154 — Phase C complete (2026-06-12)
-- Queue correction: player bars were ALREADY BUILT in the prior session (pBar: avatar, name, captured pieces with material lead, ticking clock, online + computer + pass-and-play). The stale queue entry is closed.
-- Polish shipped: the active player's whole bar now reads active (accent tint + accent border), bar radius 9 → 12, clock pill 8 → 10. Dead Clk component (zero call sites, superseded by pBar) deleted. [#154]
-- Phase C is COMPLETE: icon strip #149, message toasts #151, player bars #154. Next: Phase D (lesson action bar + variation chips).
-
-## Build #155 — Phase D slice 1: variation chips (2026-06-12)
-- Both variation pickers (demo end + practice) converted from stacked full-width buttons to horizontal chip scrollers: compact pills, active chip accent-ringed, learned check retained, and the active line's idea shown once beneath the row. Reclaims vertical space for the board. [#155]
-- Phase D remaining: consolidate the practice action rows (Watch again / Try again / Flip / Hints / Guide taps) into one coherent bar.
+## Build #154 — Phase C complete: bars hug the board + a11y batch (2026-06-12)
+- Player bars now hug the board: zero-gap attachment (3px seam for the board frame), squared inner corners with system-12 outer corners, slimmer padding, denser background. Phase C is done. [#154]
+- Global keyboard focus ring (:focus-visible, accent outline) via index.html stylesheet; mouse clicks stay outline-free. a11y-focus closed. [#154]
+- Faint-text tier lifted: all 22 rgba(.45) text colors raised to .58 for WCAG body-size contrast; decorative .45 strokes/insets untouched. a11y-faint closed. [#154]
+- Radius sweep finished: 39 remaining borderRadius:9 controls normalized to system 12 (judgment: radius-11 rows left, visually identical to 12). Gray pass found no off-token text grays. [#154]
+- Shared keyframes (ctGlow, ctDraw, ctFall, ctPop) staged in index.html behind the reduced-motion guard for Phases D/E.

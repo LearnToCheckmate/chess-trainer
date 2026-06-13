@@ -1531,9 +1531,9 @@ function NotationTrainer({light,dark}){
       <div style={{background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:12,padding:'12px 13px'}}>
         <div style={{fontSize:'clamp(12px,2.7vw,14px)',fontWeight:800,color:'#fff',marginBottom:9,textAlign:'center'}}>What does <span style={{color:'var(--ac2)',fontFamily:'monospace'}}>{mq.m}</span> mean?</div>
         <div style={{display:'flex',flexDirection:'column',gap:7}}>
-          {mopts.map((o,i)=>{const picked=mPick===o;const right=o===mq.a;const show=mPick!=null;return(<button key={i} onClick={()=>{if(mPick==null)setMPick(o);}} style={{textAlign:'left',padding:'9px 12px',borderRadius:9,background:show&&right?'rgba(82,183,136,.22)':show&&picked&&!right?'rgba(224,90,82,.2)':'rgba(255,255,255,.06)',border:show&&right?'1px solid #52b788':show&&picked?'1px solid #e05a52':'1px solid rgba(255,255,255,.16)',color:'#fff',fontSize:'clamp(11px,2.5vw,13.5px)',cursor:mPick==null?'pointer':'default'}}>{o}{show&&right?'  ✓':''}</button>);})}
+          {mopts.map((o,i)=>{const picked=mPick===o;const right=o===mq.a;const show=mPick!=null;return(<button key={i} onClick={()=>{if(mPick==null)setMPick(o);}} style={{textAlign:'left',padding:'9px 12px',borderRadius:12,background:show&&right?'rgba(82,183,136,.22)':show&&picked&&!right?'rgba(224,90,82,.2)':'rgba(255,255,255,.06)',border:show&&right?'1px solid #52b788':show&&picked?'1px solid #e05a52':'1px solid rgba(255,255,255,.16)',color:'#fff',fontSize:'clamp(11px,2.5vw,13.5px)',cursor:mPick==null?'pointer':'default'}}>{o}{show&&right?'  ✓':''}</button>);})}
         </div>
-        {mPick!=null&&(<button onClick={()=>{setMPick(null);setMi(i=>i+1);}} style={{marginTop:10,width:'100%',padding:'10px',borderRadius:9,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:'clamp(12px,2.7vw,14px)',cursor:'pointer'}}>Next →</button>)}
+        {mPick!=null&&(<button onClick={()=>{setMPick(null);setMi(i=>i+1);}} style={{marginTop:10,width:'100%',padding:'10px',borderRadius:12,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:'clamp(12px,2.7vw,14px)',cursor:'pointer'}}>Next →</button>)}
       </div>
     </div>)}
   </div>);
@@ -2782,7 +2782,7 @@ export default function App(){
   const sideColStyle=railed?{display:'flex',flexDirection:'column',alignItems:'stretch',justifyContent:'flex-start',gap:8,width:sideW,height:boardPx,paddingTop:42,overflowY:'auto',overflowX:'hidden'}:{display:'contents'};
   const learnPlansBox=(mode==='learn'&&openIdx!==null&&learnPlans)?(<div style={{width:'100%',background:'linear-gradient(150deg,rgba(var(--acr),.18),rgba(var(--acr),.06))',border:'1px solid rgba(var(--acr),.42)',borderRadius:12,padding:'11px 13px',boxShadow:SHADOW_BOX}}>
 <div style={{fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,color:'var(--ac2)',marginBottom:4}}>🎯 What we're trying to do</div><div style={{fontSize:'clamp(11px,2.5vw,13.5px)',color:'rgba(255,255,255,.9)',lineHeight:1.55}}>{learnPlans}</div></div>):null;
-  const learnVideoBox=(mode==='learn'&&openIdx!==null)?(<div style={{width:'100%',background:'linear-gradient(150deg,rgba(255,255,255,.08),rgba(255,255,255,.03))',border:'1px solid rgba(255,255,255,.16)',borderRadius:12,padding:'11px 13px',boxShadow:SHADOW_BOX}}><div style={{fontSize:'clamp(10px,2.4vw,12.5px)',fontWeight:700,color:'#e0b34d'}}>📺 Watch it explained</div>{learnVideo&&(<><div style={{fontSize:'clamp(9px,2.1vw,11.5px)',color:'rgba(255,255,255,.7)',margin:'2px 0 8px',lineHeight:1.45}}>{learnVideo.title} · {learnVideo.author} ({learnVideo.length})</div><div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}><button onClick={()=>setShowVideo(s=>!s)} style={btn('var(--ac)','none','#fff')}>{showVideo?'Hide player':'▶ Watch in app'}</button><a href={`https://youtu.be/${learnVideo.id}`} target="_blank" rel="noopener noreferrer" style={{fontSize:'clamp(9px,2.1vw,11.5px)',color:'var(--ac2)',textDecoration:'underline'}}>open on YouTube ↗</a></div>{showVideo&&(<div style={{marginTop:8,position:'relative',width:'100%',paddingTop:'56.25%',borderRadius:8,overflow:'hidden',background:'#000'}}><iframe src={`https://www.youtube.com/embed/${learnVideo.id}`} title={learnVideo.title} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:0}} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/></div>)}{showVideo&&<div style={{fontSize:'clamp(8px,2vw,10.5px)',color:'rgba(255,255,255,.45)',marginTop:5,lineHeight:1.4}}>If the player stays blank in this preview, tap “open on YouTube” — the embedded player works once the app is deployed to a real site.</div>}</>)}<div style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.6)',margin:`${learnVideo?9:4}px 0 6px`,lineHeight:1.4}}>{learnVideo?'More on this opening from top coaches:':'Find this opening explained by top coaches:'}</div><div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{['Remote Chess Academy','GothamChess','Chess Vibes'].map(ch=>(<a key={ch} href={`https://www.youtube.com/results?search_query=${encodeURIComponent(LIB[openIdx].name+' '+ch)}`} target="_blank" rel="noopener noreferrer" style={{padding:'5px 10px',borderRadius:7,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.32)',color:'var(--ac2)',fontSize:'clamp(9px,2vw,11px)',fontWeight:600,textDecoration:'none',whiteSpace:'nowrap'}}>▶ {ch}</a>))}</div></div>):null;
+  const learnVideoBox=(mode==='learn'&&openIdx!==null)?(<div style={{width:'100%',background:'linear-gradient(150deg,rgba(255,255,255,.08),rgba(255,255,255,.03))',border:'1px solid rgba(255,255,255,.16)',borderRadius:12,padding:'11px 13px',boxShadow:SHADOW_BOX}}><div style={{fontSize:'clamp(10px,2.4vw,12.5px)',fontWeight:700,color:'#e0b34d'}}>📺 Watch it explained</div>{learnVideo&&(<><div style={{fontSize:'clamp(9px,2.1vw,11.5px)',color:'rgba(255,255,255,.7)',margin:'2px 0 8px',lineHeight:1.45}}>{learnVideo.title} · {learnVideo.author} ({learnVideo.length})</div><div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}><button onClick={()=>setShowVideo(s=>!s)} style={btn('var(--ac)','none','#fff')}>{showVideo?'Hide player':'▶ Watch in app'}</button><a href={`https://youtu.be/${learnVideo.id}`} target="_blank" rel="noopener noreferrer" style={{fontSize:'clamp(9px,2.1vw,11.5px)',color:'var(--ac2)',textDecoration:'underline'}}>open on YouTube ↗</a></div>{showVideo&&(<div style={{marginTop:8,position:'relative',width:'100%',paddingTop:'56.25%',borderRadius:8,overflow:'hidden',background:'#000'}}><iframe src={`https://www.youtube.com/embed/${learnVideo.id}`} title={learnVideo.title} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:0}} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/></div>)}{showVideo&&<div style={{fontSize:'clamp(8px,2vw,10.5px)',color:'rgba(255,255,255,.58)',marginTop:5,lineHeight:1.4}}>If the player stays blank in this preview, tap “open on YouTube” — the embedded player works once the app is deployed to a real site.</div>}</>)}<div style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.6)',margin:`${learnVideo?9:4}px 0 6px`,lineHeight:1.4}}>{learnVideo?'More on this opening from top coaches:':'Find this opening explained by top coaches:'}</div><div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{['Remote Chess Academy','GothamChess','Chess Vibes'].map(ch=>(<a key={ch} href={`https://www.youtube.com/results?search_query=${encodeURIComponent(LIB[openIdx].name+' '+ch)}`} target="_blank" rel="noopener noreferrer" style={{padding:'5px 10px',borderRadius:7,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.32)',color:'var(--ac2)',fontSize:'clamp(9px,2vw,11px)',fontWeight:600,textDecoration:'none',whiteSpace:'nowrap'}}>▶ {ch}</a>))}</div></div>):null;
   const pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online');  // board sits below the goal/message text
   useEffect(()=>{try{localStorage.setItem('ct_feedback',JSON.stringify(fbMap));}catch{}},[fbMap]);
   const sendLessonFb=(name,v)=>setFbMap(m=>({...m,[name]:v}));
@@ -2836,7 +2836,7 @@ export default function App(){
     const openings=Object.values(byOpening).map(o=>({name:o.name,games:o.games,score:(o.win+0.5*o.draw)/o.games})).sort((a,b)=>b.games-a.games);
     return {byBucket,openings,n};
   },[ccGames]);
-  const learnFeedbackBox=_lessonNm?(<div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'center',gap:10,padding:'8px 12px',borderRadius:11,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)'}}>{fbMap[_lessonNm]?(<span style={{fontSize:'clamp(10px,2.3vw,12px)',color:'var(--ac2)',fontWeight:700}}>🙏 Thanks for the feedback!</span>):(<><span style={{fontSize:'clamp(10px,2.3vw,12px)',color:'rgba(255,255,255,.62)'}}>Was this lesson helpful?</span><button onClick={()=>sendLessonFb(_lessonNm,'up')} title="Helpful" style={{fontSize:18,lineHeight:1,padding:'4px 9px',borderRadius:9,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',cursor:'pointer'}}>👍</button><button onClick={()=>sendLessonFb(_lessonNm,'down')} title="Not helpful" style={{fontSize:18,lineHeight:1,padding:'4px 9px',borderRadius:9,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',cursor:'pointer'}}>👎</button></>)}</div>):null;
+  const learnFeedbackBox=_lessonNm?(<div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'center',gap:10,padding:'8px 12px',borderRadius:11,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)'}}>{fbMap[_lessonNm]?(<span style={{fontSize:'clamp(10px,2.3vw,12px)',color:'var(--ac2)',fontWeight:700}}>🙏 Thanks for the feedback!</span>):(<><span style={{fontSize:'clamp(10px,2.3vw,12px)',color:'rgba(255,255,255,.62)'}}>Was this lesson helpful?</span><button onClick={()=>sendLessonFb(_lessonNm,'up')} title="Helpful" style={{fontSize:18,lineHeight:1,padding:'4px 9px',borderRadius:12,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',cursor:'pointer'}}>👍</button><button onClick={()=>sendLessonFb(_lessonNm,'down')} title="Not helpful" style={{fontSize:18,lineHeight:1,padding:'4px 9px',borderRadius:12,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',cursor:'pointer'}}>👎</button></>)}</div>):null;
   // Enter the solving board for a given puzzle index, optionally tagged to a roadmap tier
   const pzEnterBrowse=(idx,tier)=>{setPzTrainTier(tier);loadPuzzle(idx);setPzView('browse');};
   // ── Lichess online puzzles ──
@@ -2931,7 +2931,7 @@ export default function App(){
         return(<div style={{position:'fixed',inset:0,zIndex:540,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`max(56px,calc(env(safe-area-inset-top,0px) + 12px)) 18px max(20px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
           <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <button onClick={()=>setCoachOpen(false)} style={{minWidth:36,height:32,borderRadius:9,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:14,padding:'0 11px'}}>‹ Home</button>
+              <button onClick={()=>setCoachOpen(false)} style={{minWidth:36,height:32,borderRadius:12,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:14,padding:'0 11px'}}>‹ Home</button>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:13}}>
               <Coach size={58} accent="var(--ac)" style={coachStyle}/>
@@ -2943,7 +2943,7 @@ export default function App(){
                 {plan.map((p,pi)=>(<div key={pi} style={{display:'flex',alignItems:'center',gap:10}}>
                   <span style={{flexShrink:0,fontSize:17,lineHeight:1,width:22,textAlign:'center'}}>{p.ic}</span>
                   <span style={{flex:1,minWidth:0,fontSize:'clamp(11.5px,2.6vw,13.5px)',color:'rgba(255,255,255,.9)',lineHeight:1.4}}>{p.text}</span>
-                  <button onClick={p.go} style={{flexShrink:0,padding:'6px 12px',borderRadius:9,background:'var(--ac)',border:'none',color:'#1a1a1a',fontWeight:800,fontSize:'clamp(10.5px,2.3vw,12px)',cursor:'pointer',boxShadow:'0 2px 0 rgba(0,0,0,.25)'}}>{p.goLabel}</button>
+                  <button onClick={p.go} style={{flexShrink:0,padding:'6px 12px',borderRadius:12,background:'var(--ac)',border:'none',color:'#1a1a1a',fontWeight:800,fontSize:'clamp(10.5px,2.3vw,12px)',cursor:'pointer',boxShadow:'0 2px 0 rgba(0,0,0,.25)'}}>{p.goLabel}</button>
                 </div>))}
               </div>
             </div>
@@ -2990,7 +2990,7 @@ export default function App(){
                   <span style={{flexShrink:0,fontSize:17,color:'var(--ac2)',transform:coachPlanOpen?'rotate(90deg)':'none',transition:'transform .15s'}}>›</span>
                 </button>
                 {coachPlanOpen&&<div style={{padding:'0 13px 13px'}}>
-                <div style={{fontSize:'clamp(8.5px,1.9vw,10px)',color:'rgba(255,255,255,.45)',marginBottom:9}}>Pick any {SLATE} lessons you actually want · learn all {SLATE} (one flawless run each) to clear the tier · {coachTier.swapsLeft||0} swap{(coachTier.swapsLeft||0)===1?'':'s'} left (refill to 2 every 5 days)</div>
+                <div style={{fontSize:'clamp(8.5px,1.9vw,10px)',color:'rgba(255,255,255,.58)',marginBottom:9}}>Pick any {SLATE} lessons you actually want · learn all {SLATE} (one flawless run each) to clear the tier · {coachTier.swapsLeft||0} swap{(coachTier.swapsLeft||0)===1?'':'s'} left (refill to 2 every 5 days)</div>
                 {tierReady&&<div style={{background:'linear-gradient(135deg,rgba(240,180,41,.2),rgba(240,180,41,.06))',border:'1px solid rgba(240,180,41,.5)',borderRadius:11,padding:'12px',marginBottom:11,textAlign:'center'}}>
                   <div style={{fontSize:'clamp(13px,3vw,16px)',fontWeight:800,color:'#f0c24d'}}>🎉 Tier {(coachTier.cleared||0)+1} cleared!</div>
                   <div style={{fontSize:'clamp(10px,2.3vw,12px)',color:'rgba(255,255,255,.7)',margin:'4px 0 9px'}}>All {SLATE} learned. They stay on your report card; keep banking days toward ★ Mastered any time.</div>
@@ -3000,7 +3000,7 @@ export default function App(){
                   <div key={i} style={{display:'flex',alignItems:'center',gap:9,background:'rgba(0,0,0,.18)',border:'1px solid '+(learned?'rgba(108,199,138,.35)':'rgba(255,255,255,.1)'),borderRadius:10,padding:'8px 10px'}}>
                     <span style={{flexShrink:0,fontSize:15,width:20,textAlign:'center'}}>{m?'⭐':done?'✅':learned?'✓':'▫️'}</span>
                     <span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(8.5px,1.9vw,10px)',color:m?'#f0c24d':learned?'#6cc78a':'rgba(255,255,255,.5)'}}>{m?'Mastered':learned?('Learned · '+n+'/'+LEARN_GOAL+(done?' · banked today':'')):(_ls.lines>1?(_ls.linesLearned+'/'+_ls.lines+' lines learned'+(done?' · banked today':'')):'Not learned yet')}</span></span>
-                    {!m&&!done&&<button onClick={()=>coachRun(i)} style={{flexShrink:0,padding:'6px 12px',borderRadius:9,background:'var(--ac)',border:'none',color:'#1a1a1a',fontWeight:800,fontSize:'clamp(10px,2.2vw,11.5px)',cursor:'pointer'}}>▶ Run</button>}
+                    {!m&&!done&&<button onClick={()=>coachRun(i)} style={{flexShrink:0,padding:'6px 12px',borderRadius:12,background:'var(--ac)',border:'none',color:'#1a1a1a',fontWeight:800,fontSize:'clamp(10px,2.2vw,11.5px)',cursor:'pointer'}}>▶ Run</button>}
                     {!learned&&<button onClick={()=>swapOut(op.name)} disabled={(coachTier.swapsLeft||0)<=0} title={(coachTier.swapsLeft||0)>0?'Swap this out (uses 1 swap)':('No swaps left · refills in about '+refillIn+(refillIn===1?' day':' days'))} style={{flexShrink:0,width:32,height:32,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:(coachTier.swapsLeft||0)>0?'rgba(255,255,255,.6)':'rgba(255,255,255,.22)',cursor:(coachTier.swapsLeft||0)>0?'pointer':'default',fontSize:12,lineHeight:1,padding:0}}>⇄</button>}
                   </div>);})}</div>}
                 {!slateFull&&Array.from({length:SLATE-tIdx.length}).map((_,k)=>(<div key={'e'+k} style={{display:'flex',alignItems:'center',gap:9,border:'1px dashed rgba(255,255,255,.22)',borderRadius:10,padding:'9px 10px',marginBottom:7,color:'rgba(255,255,255,.4)',fontSize:'clamp(10px,2.3vw,12px)'}}><span style={{fontSize:14}}>＋</span>Empty slot · answer the questions or browse below</div>))}
@@ -3021,7 +3021,7 @@ export default function App(){
                 <button onClick={()=>setCoachBrowseOpen(v=>!v)} style={{width:'100%',textAlign:'left',background:'rgba(0,0,0,.16)',border:'1px solid rgba(255,255,255,.12)',borderRadius:10,padding:'9px 11px',color:'rgba(255,255,255,.75)',fontWeight:800,fontSize:'clamp(10px,2.3vw,12px)',cursor:'pointer'}}>{coachBrowseOpen?'▾':'▸'} Browse all openings & gambits ({elig.length}) · tap one to fill a slot</button>
                 {coachBrowseOpen&&<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(96px,1fr))',gap:6,marginTop:8}}>
                   {elig.map(({o,i})=>{const n=dN(o.name);const m=lnOf(o.name).mastered;const sel=coachTargets.indexOf(o.name)>=0;const can=addable({o,i})&&!slateFull;return(
-                    <button key={i} onClick={()=>{if(can)addToSlate(o.name);}} style={{position:'relative',minHeight:48,padding:'6px 7px 14px',borderRadius:9,border:'1px solid '+(sel?'var(--ac)':(m?'#f0c24d':n>0?'rgba(16,185,129,.55)':'rgba(236,90,90,.4)')),background:m?'linear-gradient(150deg,#caa24c,#8a6a26)':n>0?('rgba(16,185,129,'+(0.16+0.06*Math.min(9,n)).toFixed(2)+')'):'rgba(236,90,90,.13)',color:'#fff',cursor:can?'pointer':'default',opacity:(can||sel||n>0)?1:.55,textAlign:'left',boxShadow:sel?'0 0 0 1.5px var(--ac)':'none'}}>
+                    <button key={i} onClick={()=>{if(can)addToSlate(o.name);}} style={{position:'relative',minHeight:48,padding:'6px 7px 14px',borderRadius:12,border:'1px solid '+(sel?'var(--ac)':(m?'#f0c24d':n>0?'rgba(16,185,129,.55)':'rgba(236,90,90,.4)')),background:m?'linear-gradient(150deg,#caa24c,#8a6a26)':n>0?('rgba(16,185,129,'+(0.16+0.06*Math.min(9,n)).toFixed(2)+')'):'rgba(236,90,90,.13)',color:'#fff',cursor:can?'pointer':'default',opacity:(can||sel||n>0)?1:.55,textAlign:'left',boxShadow:sel?'0 0 0 1.5px var(--ac)':'none'}}>
                       <span style={{fontSize:'clamp(8.5px,1.9vw,10px)',fontWeight:800,lineHeight:1.25,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{o.name}</span>
                       <span style={{position:'absolute',right:4,bottom:3,fontSize:'clamp(7.5px,1.7vw,9px)',fontWeight:800,color:m?'#ffe9a8':n>0?'#a7f3d0':'rgba(255,255,255,.55)'}}>{m?'★':n+'/'+LEARN_GOAL}</span>
                       {sel&&<span style={{position:'absolute',left:4,bottom:3,fontSize:9,color:'var(--ac2)',fontWeight:800}}>✓ in slate</span>}
@@ -3046,7 +3046,7 @@ export default function App(){
         <div style={{position:'fixed',inset:0,zIndex:540,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`max(24px,env(safe-area-inset-top,0px)) 18px max(20px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
           <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <button onClick={()=>setNearbyOpen(false)} style={{minWidth:36,height:32,borderRadius:9,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:14,padding:'0 11px'}}>‹ Back</button>
+              <button onClick={()=>setNearbyOpen(false)} style={{minWidth:36,height:32,borderRadius:12,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:14,padding:'0 11px'}}>‹ Back</button>
               <div style={{fontFamily:headFont,fontSize:'clamp(18px,4.4vw,24px)',fontWeight:800,color:'#fff'}}>📍 Play nearby</div>
             </div>
             {nearbyMsg&&<div style={{fontSize:'clamp(11px,2.5vw,13px)',color:'var(--ac2)',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:10,padding:'9px 12px'}}>{nearbyMsg}</div>}
@@ -3055,8 +3055,8 @@ export default function App(){
               <button onClick={nearbyJoin} disabled={nearbyBusy} style={{width:'100%',padding:'14px',borderRadius:13,border:'none',background:'var(--ac)',color:'#15210a',fontWeight:800,fontSize:'clamp(13px,3vw,16px)',cursor:nearbyBusy?'default':'pointer',opacity:nearbyBusy?.6:1}}>{nearbyBusy?'Finding players…':'📍 Find players near me'}</button>
               <div style={{display:'flex',alignItems:'center',gap:8,color:'rgba(255,255,255,.4)',fontSize:'clamp(9px,2vw,11px)'}}><div style={{flex:1,height:1,background:'rgba(255,255,255,.12)'}}/>or use your ZIP or postcode<div style={{flex:1,height:1,background:'rgba(255,255,255,.12)'}}/></div>
               <div style={{display:'flex',gap:8}}>
-                <input value={nearbyZip} onChange={e=>setNearbyZip(e.target.value)} placeholder="ZIP or postcode" style={{flex:1,minWidth:0,padding:'10px 11px',borderRadius:9,background:'rgba(0,0,0,.25)',border:'1px solid rgba(255,255,255,.16)',color:'#fff',fontSize:'clamp(11px,2.4vw,13px)'}}/>
-                <button onClick={nearbyJoinZip} disabled={nearbyBusy} style={{flexShrink:0,padding:'10px 14px',borderRadius:9,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontWeight:800,fontSize:'clamp(11px,2.4vw,13px)',cursor:'pointer'}}>Use</button>
+                <input value={nearbyZip} onChange={e=>setNearbyZip(e.target.value)} placeholder="ZIP or postcode" style={{flex:1,minWidth:0,padding:'10px 11px',borderRadius:12,background:'rgba(0,0,0,.25)',border:'1px solid rgba(255,255,255,.16)',color:'#fff',fontSize:'clamp(11px,2.4vw,13px)'}}/>
+                <button onClick={nearbyJoinZip} disabled={nearbyBusy} style={{flexShrink:0,padding:'10px 14px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontWeight:800,fontSize:'clamp(11px,2.4vw,13px)',cursor:'pointer'}}>Use</button>
               </div>
             </>):(<>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,background:'rgba(16,185,129,.12)',border:'1px solid rgba(16,185,129,.3)',borderRadius:12,padding:'10px 12px'}}>
@@ -3065,12 +3065,12 @@ export default function App(){
               </div>
               <div>
                 <div style={{fontSize:'clamp(10px,2.2vw,12px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:.6,textTransform:'uppercase',marginBottom:8}}>Players near you</div>
-                {(!nearbyData||nearbyData.length===0)?(<div style={{fontSize:'clamp(11px,2.5vw,13px)',color:'rgba(255,255,255,.45)',lineHeight:1.5,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)',borderRadius:12,padding:'14px'}}>No one else is here yet. Check back later, or tell a friend in your area to turn on Play nearby too.</div>):(
+                {(!nearbyData||nearbyData.length===0)?(<div style={{fontSize:'clamp(11px,2.5vw,13px)',color:'rgba(255,255,255,.58)',lineHeight:1.5,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)',borderRadius:12,padding:'14px'}}>No one else is here yet. Check back later, or tell a friend in your area to turn on Play nearby too.</div>):(
                   <div style={{display:'flex',flexDirection:'column',gap:9}}>
                     {nearbyData.map(p=>(<div key={p.uid} style={{display:'flex',alignItems:'center',gap:10,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:12,padding:'10px 12px'}}>
                       <span style={{flexShrink:0,width:34,height:34,borderRadius:'50%',background:'linear-gradient(150deg,#10b981,#047857)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,color:'#fff',fontSize:15}}>{(p.name||'?').slice(0,1).toUpperCase()}</span>
                       <span style={{flex:1,minWidth:0,fontSize:'clamp(12px,2.7vw,14px)',fontWeight:700,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{p.name||'Player'}</span>
-                      <button onClick={()=>nearbyChallenge(p)} style={{flexShrink:0,padding:'7px 13px',borderRadius:9,background:'var(--ac)',border:'none',color:'#15210a',fontWeight:800,fontSize:'clamp(10px,2.2vw,12px)',cursor:'pointer'}}>Challenge</button>
+                      <button onClick={()=>nearbyChallenge(p)} style={{flexShrink:0,padding:'7px 13px',borderRadius:12,background:'var(--ac)',border:'none',color:'#15210a',fontWeight:800,fontSize:'clamp(10px,2.2vw,12px)',cursor:'pointer'}}>Challenge</button>
                     </div>))}
                   </div>
                 )}
@@ -3083,7 +3083,7 @@ export default function App(){
         <div style={{position:'fixed',inset:0,zIndex:540,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`max(24px,env(safe-area-inset-top,0px)) 18px max(20px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
           <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <button onClick={()=>setFriendsOpen(false)} style={{minWidth:36,height:32,borderRadius:9,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:14,padding:'0 11px'}}>‹ Back</button>
+              <button onClick={()=>setFriendsOpen(false)} style={{minWidth:36,height:32,borderRadius:12,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:14,padding:'0 11px'}}>‹ Back</button>
               <div style={{fontFamily:headFont,fontSize:'clamp(18px,4.4vw,24px)',fontWeight:800,color:'#fff'}}>👥 Friends</div>
             </div>
             {friendMsg&&<div style={{fontSize:'clamp(11px,2.5vw,13px)',color:'var(--ac2)',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:10,padding:'9px 12px'}}>{friendMsg}</div>}
@@ -3091,15 +3091,15 @@ export default function App(){
               <div style={{fontSize:'clamp(9px,2vw,11px)',color:'var(--ac2)',fontWeight:800,letterSpacing:.5,textTransform:'uppercase',marginBottom:6}}>Your ID</div>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
                 <div style={{flex:1,minWidth:0,fontFamily:'ui-monospace,Menlo,Consolas,monospace',fontSize:'clamp(10px,2.2vw,12px)',color:'rgba(255,255,255,.85)',wordBreak:'break-all',background:'rgba(0,0,0,.25)',borderRadius:8,padding:'8px 10px'}}>{myId}</div>
-                <button onClick={()=>{try{navigator.clipboard.writeText(myId);setFriendMsg("Your ID is copied. Send it to a friend so they can add you.");}catch(e){setFriendMsg("Select and copy your ID above.");}}} style={{flexShrink:0,padding:'9px 12px',borderRadius:9,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:'clamp(10px,2.2vw,12px)',cursor:'pointer'}}>Copy</button>
+                <button onClick={()=>{try{navigator.clipboard.writeText(myId);setFriendMsg("Your ID is copied. Send it to a friend so they can add you.");}catch(e){setFriendMsg("Select and copy your ID above.");}}} style={{flexShrink:0,padding:'9px 12px',borderRadius:12,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:'clamp(10px,2.2vw,12px)',cursor:'pointer'}}>Copy</button>
               </div>
               <div style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.5)',marginTop:6,lineHeight:1.4}}>Share this so a friend can add you. You both have to accept.</div>
             </div>
             <div style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:14,padding:'12px 13px'}}>
               <div style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.6)',fontWeight:700,letterSpacing:.5,textTransform:'uppercase',marginBottom:7}}>Add a friend by ID</div>
               <div style={{display:'flex',gap:8}}>
-                <input value={friendIdInput} onChange={e=>setFriendIdInput(e.target.value)} placeholder="Paste their ID" style={{flex:1,minWidth:0,padding:'10px 11px',borderRadius:9,background:'rgba(0,0,0,.25)',border:'1px solid rgba(255,255,255,.16)',color:'#fff',fontSize:'clamp(11px,2.4vw,13px)',fontFamily:'ui-monospace,Menlo,Consolas,monospace'}}/>
-                <button onClick={async()=>{const id=friendIdInput.trim();if(!id){setFriendMsg("Paste a friend ID first.");return;}setFriendMsg("Sending request...");try{await window.CTCloud.friendRequest(id);setFriendIdInput('');setFriendMsg("Request sent. They need to accept it.");}catch(e){const m=e&&e.message;setFriendMsg(m==='self'?"That is your own ID.":m==='pending'?"You already have a pending request to them.":m==='already'?"You are already friends.":m==='signin'?"Sign in first.":"Could not send the request. Check the ID and your connection.");}}} style={{flexShrink:0,padding:'10px 14px',borderRadius:9,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:'clamp(11px,2.4vw,13px)',cursor:'pointer'}}>Add</button>
+                <input value={friendIdInput} onChange={e=>setFriendIdInput(e.target.value)} placeholder="Paste their ID" style={{flex:1,minWidth:0,padding:'10px 11px',borderRadius:12,background:'rgba(0,0,0,.25)',border:'1px solid rgba(255,255,255,.16)',color:'#fff',fontSize:'clamp(11px,2.4vw,13px)',fontFamily:'ui-monospace,Menlo,Consolas,monospace'}}/>
+                <button onClick={async()=>{const id=friendIdInput.trim();if(!id){setFriendMsg("Paste a friend ID first.");return;}setFriendMsg("Sending request...");try{await window.CTCloud.friendRequest(id);setFriendIdInput('');setFriendMsg("Request sent. They need to accept it.");}catch(e){const m=e&&e.message;setFriendMsg(m==='self'?"That is your own ID.":m==='pending'?"You already have a pending request to them.":m==='already'?"You are already friends.":m==='signin'?"Sign in first.":"Could not send the request. Check the ID and your connection.");}}} style={{flexShrink:0,padding:'10px 14px',borderRadius:12,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:'clamp(11px,2.4vw,13px)',cursor:'pointer'}}>Add</button>
               </div>
             </div>
             {friendsData.incoming&&friendsData.incoming.length>0&&(<div>
@@ -3107,20 +3107,20 @@ export default function App(){
               <div style={{display:'flex',flexDirection:'column',gap:9}}>
                 {friendsData.incoming.map(r=>(<div key={r.id} style={{display:'flex',alignItems:'center',gap:10,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:12,padding:'10px 12px'}}>
                   <span style={{flex:1,minWidth:0,fontSize:'clamp(12px,2.7vw,14px)',fontWeight:700,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{r.fromName}</span>
-                  <button onClick={async()=>{setFriendMsg('');try{await window.CTCloud.friendAccept(r);setFriendMsg(r.fromName+" is now your friend.");}catch(e){setFriendMsg("Could not accept right now.");}}} style={{flexShrink:0,padding:'7px 13px',borderRadius:9,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:'clamp(10px,2.2vw,12px)',cursor:'pointer'}}>Accept</button>
-                  <button onClick={async()=>{try{await window.CTCloud.friendDecline(r.id);}catch(e){}}} style={{flexShrink:0,padding:'7px 11px',borderRadius:9,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.7)',fontWeight:700,fontSize:'clamp(10px,2.2vw,12px)',cursor:'pointer'}}>Decline</button>
+                  <button onClick={async()=>{setFriendMsg('');try{await window.CTCloud.friendAccept(r);setFriendMsg(r.fromName+" is now your friend.");}catch(e){setFriendMsg("Could not accept right now.");}}} style={{flexShrink:0,padding:'7px 13px',borderRadius:12,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:'clamp(10px,2.2vw,12px)',cursor:'pointer'}}>Accept</button>
+                  <button onClick={async()=>{try{await window.CTCloud.friendDecline(r.id);}catch(e){}}} style={{flexShrink:0,padding:'7px 11px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.7)',fontWeight:700,fontSize:'clamp(10px,2.2vw,12px)',cursor:'pointer'}}>Decline</button>
                 </div>))}
               </div>
             </div>)}
             <div>
               <div style={{fontSize:'clamp(10px,2.2vw,12px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:.6,textTransform:'uppercase',marginBottom:8}}>Your friends</div>
-              {(!friendsData.friends||friendsData.friends.length===0)?(<div style={{fontSize:'clamp(11px,2.5vw,13px)',color:'rgba(255,255,255,.45)',lineHeight:1.5,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)',borderRadius:12,padding:'14px'}}>No friends yet. Share your ID, or paste a friend ID above to send a request.</div>):(
+              {(!friendsData.friends||friendsData.friends.length===0)?(<div style={{fontSize:'clamp(11px,2.5vw,13px)',color:'rgba(255,255,255,.58)',lineHeight:1.5,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)',borderRadius:12,padding:'14px'}}>No friends yet. Share your ID, or paste a friend ID above to send a request.</div>):(
                 <div style={{display:'flex',flexDirection:'column',gap:9}}>
                   {friendsData.friends.map(f=>(<div key={f.id} style={{display:'flex',alignItems:'center',gap:10,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:12,padding:'10px 12px'}}>
                     <span style={{flexShrink:0,width:34,height:34,borderRadius:'50%',background:'linear-gradient(150deg,#0ea5e9,#0369a1)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,color:'#fff',fontSize:15}}>{(f.name||'?').slice(0,1).toUpperCase()}</span>
                     <span style={{flex:1,minWidth:0,fontSize:'clamp(12px,2.7vw,14px)',fontWeight:700,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{f.name}</span>
-                    <button onClick={()=>{setFriendsOpen(false);setHomeScreen(false);setMode('play');setOpponent('online');setOnlineGame(null);setMyColor(null);setOnlineErr('');setPlaySetup(false);setOnlineInfo("Game created. Send "+f.name+" your invite code to start.");setTimeout(function(){try{onlineCreate('w');}catch(e){}},0);}} style={{flexShrink:0,padding:'7px 13px',borderRadius:9,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:'clamp(10px,2.2vw,12px)',cursor:'pointer'}}>Challenge</button>
-                    <button onClick={async()=>{try{await window.CTCloud.friendRemove(f.id);setFriendMsg(f.name+" removed.");}catch(e){}}} style={{flexShrink:0,width:30,height:30,borderRadius:9,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.6)',fontWeight:700,fontSize:14,cursor:'pointer'}}>✕</button>
+                    <button onClick={()=>{setFriendsOpen(false);setHomeScreen(false);setMode('play');setOpponent('online');setOnlineGame(null);setMyColor(null);setOnlineErr('');setPlaySetup(false);setOnlineInfo("Game created. Send "+f.name+" your invite code to start.");setTimeout(function(){try{onlineCreate('w');}catch(e){}},0);}} style={{flexShrink:0,padding:'7px 13px',borderRadius:12,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:'clamp(10px,2.2vw,12px)',cursor:'pointer'}}>Challenge</button>
+                    <button onClick={async()=>{try{await window.CTCloud.friendRemove(f.id);setFriendMsg(f.name+" removed.");}catch(e){}}} style={{flexShrink:0,width:30,height:30,borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.6)',fontWeight:700,fontSize:14,cursor:'pointer'}}>✕</button>
                   </div>))}
                 </div>
               )}
@@ -3131,7 +3131,7 @@ export default function App(){
         <div style={{position:'fixed',inset:0,zIndex:545,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`max(24px,env(safe-area-inset-top,0px)) 18px max(20px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
           <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <button onClick={()=>setAchvOpen(false)} style={{minWidth:36,height:32,borderRadius:9,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:14,padding:'0 11px'}}>‹ Back</button>
+              <button onClick={()=>setAchvOpen(false)} style={{minWidth:36,height:32,borderRadius:12,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:14,padding:'0 11px'}}>‹ Back</button>
             </div>
             <div><div style={{fontFamily:headFont,fontSize:'clamp(20px,5vw,26px)',fontWeight:800,color:'#fff',letterSpacing:.3}}>🏅 Achievements</div><div style={{fontSize:'clamp(11px,2.5vw,13px)',color:'rgba(255,255,255,.6)',marginTop:2}}>{earned.size} of {ACHV.length} unlocked</div></div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
@@ -3156,7 +3156,7 @@ export default function App(){
       {mode==='play'&&playSetup&&!homeScreen&&(<div style={{position:'fixed',inset:0,zIndex:520,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`max(20px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
         <div className="scroll" style={{width:'100%',maxWidth:420,display:'flex',flexDirection:'column',gap:16}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-            <button onClick={()=>{setPlaySetup(false);setHomeScreen(true);}} style={{minWidth:36,height:32,borderRadius:9,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:15,padding:'0 11px'}}>‹ Home</button>
+            <button onClick={()=>{setPlaySetup(false);setHomeScreen(true);}} style={{minWidth:36,height:32,borderRadius:12,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:15,padding:'0 11px'}}>‹ Home</button>
             <div style={{fontFamily:"var(--head)",fontSize:'clamp(18px,5vw,24px)',color:'var(--ac)',letterSpacing:1}}>New Game</div>
             <div style={{minWidth:36}}/>
           </div>
@@ -3227,7 +3227,7 @@ export default function App(){
               <span style={pill(!timeCtrl)} onClick={()=>{timeCtrlRef.current=null;setTimeCtrl(null);}}>No limit</span>
               {CORR_CONTROLS.map(c=>{const o={label:c.label,kind:'corr',days:c.days};const on=!!timeCtrl&&timeCtrl.kind==='corr'&&timeCtrl.days===c.days;return(<span key={c.label} style={pill(on)} onClick={()=>{timeCtrlRef.current=o;setTimeCtrl(o);}}>{c.label}</span>);})}
             </div>
-            <div style={{fontSize:'clamp(8px,1.8vw,10px)',color:'rgba(255,255,255,.45)',marginTop:6,lineHeight:1.5}}>Multi-day game: you and your friend each have this long to reply to every move. Play whenever you like — the game waits for you and shows up under “Your games” when you sign in on any device.</div>
+            <div style={{fontSize:'clamp(8px,1.8vw,10px)',color:'rgba(255,255,255,.58)',marginTop:6,lineHeight:1.5}}>Multi-day game: you and your friend each have this long to reply to every move. Play whenever you like — the game waits for you and shows up under “Your games” when you sign in on any device.</div>
             <div style={{marginTop:9,padding:'12px 14px',borderRadius:12,background:'rgba(110,168,254,.1)',border:'1px solid rgba(110,168,254,.3)',fontSize:'clamp(10.5px,2.4vw,12.5px)',color:'#cfe0ff',lineHeight:1.5}}>You'll create a game or join a friend's code on the next screen. Sign in with Google is required. <span style={{color:'rgba(255,255,255,.5)'}}>(Live ticking clocks for online are still coming; the day limits above work now.)</span></div>
           </div>)}
 
@@ -3263,7 +3263,7 @@ export default function App(){
             <div style={{padding:'2px 2px 14px'}}>
               <div style={{fontSize:'clamp(12px,2.7vw,14px)',color:'rgba(255,255,255,.8)',lineHeight:1.5,marginBottom:12}}>Sign in to sync your progress, Elo, themes and lessons across devices, and to unlock Pro.</div>
               <button onClick={cloudSignIn} disabled={!cloudAvail} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:9,width:'100%',padding:'12px 14px',borderRadius:12,background:cloudAvail?'#fff':'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:cloudAvail?'#222':'rgba(255,255,255,.4)',cursor:cloudAvail?'pointer':'default',fontWeight:700,fontSize:'clamp(12px,2.9vw,14px)'}}><span style={{fontWeight:800,color:cloudAvail?'#4285F4':'inherit'}}>G</span>{cloudAvail?'Sign in with Google':'Sign-in unavailable here'}</button>
-              {(cloudErr||!cloudAvail)&&<div style={{fontSize:'clamp(9px,2vw,11px)',color:cloudErr?'#ec9a90':'rgba(255,255,255,.45)',marginTop:6,lineHeight:1.4}}>{cloudErr||'Open the published app to sign in.'}</div>}
+              {(cloudErr||!cloudAvail)&&<div style={{fontSize:'clamp(9px,2vw,11px)',color:cloudErr?'#ec9a90':'rgba(255,255,255,.58)',marginTop:6,lineHeight:1.4}}>{cloudErr||'Open the published app to sign in.'}</div>}
             </div>
           )}
           <div style={{borderRadius:14,padding:'14px 14px 15px',background:'linear-gradient(150deg,rgba(201,162,76,.16),rgba(201,162,76,.05))',border:'1px solid rgba(201,162,76,.4)',boxShadow:SHADOW_BOX}}>
@@ -3331,13 +3331,13 @@ export default function App(){
             <span style={{fontFamily:"var(--head)",fontSize:'clamp(15px,3.6vw,18px)',color:'var(--ac)',letterSpacing:1}}>Menu</span>
             <button onClick={()=>setMenuOpen(false)} style={{width:30,height:30,borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:15,lineHeight:1}}>✕</button>
           </div>
-          <div style={{fontSize:'clamp(8.5px,1.9vw,10.5px)',color:'rgba(255,255,255,.45)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'4px 2px 7px'}}>Account</div>
+          <div style={{fontSize:'clamp(8.5px,1.9vw,10.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'4px 2px 7px'}}>Account</div>
           {cloudUser?(
             <div style={{display:'flex',alignItems:'center',gap:9,padding:'9px 11px',borderRadius:11,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)'}}>
               {cloudUser.photo?<img src={cloudUser.photo} alt="" referrerPolicy="no-referrer" style={{width:32,height:32,borderRadius:'50%',flexShrink:0}}/>:<span style={{fontSize:22,flexShrink:0}}>👤</span>}
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontWeight:700,fontSize:'clamp(11px,2.6vw,13px)',color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cloudUser.name||'Signed in'}</div>
-                <div style={{fontSize:'clamp(8px,1.9vw,10px)',color:'rgba(255,255,255,.45)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cloudUser.email} · ☁ synced</div>
+                <div style={{fontSize:'clamp(8px,1.9vw,10px)',color:'rgba(255,255,255,.58)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cloudUser.email} · ☁ synced</div>
               </div>
               <button onClick={cloudSignOut} style={{flexShrink:0,padding:'6px 11px',borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:'clamp(10px,2.3vw,12px)',fontWeight:600}}>Sign out</button>
             </div>
@@ -3345,13 +3345,13 @@ export default function App(){
             <button onClick={cloudSignIn} disabled={!cloudAvail} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:9,width:'100%',padding:'11px 13px',borderRadius:11,background:cloudAvail?'#fff':'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:cloudAvail?'#222':'rgba(255,255,255,.4)',cursor:cloudAvail?'pointer':'default',fontWeight:700,fontSize:'clamp(12px,2.8vw,14px)'}}><span style={{fontWeight:800,color:cloudAvail?'#4285F4':'inherit'}}>G</span>{cloudAvail?'Sign in with Google':'Sign-in unavailable here'}</button>
             <div style={{fontSize:'clamp(8px,1.85vw,10px)',color:cloudErr?'#ec9a90':'rgba(255,255,255,.42)',marginTop:5,lineHeight:1.4}}>{cloudErr||(cloudAvail?'Sync your Elo, theme & lesson settings across all your devices.':'Open the published app to sign in and sync across devices.')}</div>
           </>)}
-          <div style={{fontSize:'clamp(8.5px,1.9vw,10.5px)',color:'rgba(255,255,255,.45)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'16px 2px 7px'}}>Go to</div>
+          <div style={{fontSize:'clamp(8.5px,1.9vw,10.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'16px 2px 7px'}}>Go to</div>
           <div style={{display:'flex',flexDirection:'column',gap:6}}>
             {[{k:'learn',ic:'🔭',label:'Discover',on:()=>{setMode('learn');setOpenIdx(null);setOpenMsg('');setLearnPhase('demo');setLearnLine([]);setLearnLabel('');setDemoPly(0);setDemoPlaying(false);setLearnNotes([]);setLearnPlans('');setLearnIdea('');setLearnArrows(null);setLearnVideo(null);setLearnFEN(null);setShowVideo(false);setInfoOpen(true);setLearnCat(null);setLearnGroup(null);fullReset();}},{k:'puzzle',ic:'🧩',label:'Puzzles',on:()=>{setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},{k:'analyze',ic:'🔍',label:'Review',on:()=>{setMode('analyze');}},{k:'play',ic:'♚',label:'Play',on:()=>{setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}}].map(t=>{const on=mode===t.k;return(
               <button key={t.k} onClick={()=>{t.on();setMenuOpen(false);}} style={{display:'flex',alignItems:'center',gap:9,width:'100%',padding:'11px 13px',borderRadius:11,background:on?'rgba(var(--acr),.2)':'rgba(255,255,255,.05)',border:on?'1.5px solid var(--ac)':'1px solid rgba(255,255,255,.12)',color:on?'var(--ac2)':'#fff',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontWeight:700,fontSize:'clamp(12px,2.8vw,14px)',textAlign:'left'}}><span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:'1.5em',fontSize:t.big?'1.9em':'1.1em',lineHeight:1,flexShrink:0}}>{t.ic}</span><span>{t.label}</span>{on&&<span style={{marginLeft:'auto',fontSize:'.78em',color:'var(--ac2)'}}>● now</span>}</button>);})}
           </div>
           {mode==='play'&&(<>
-            <div style={{fontSize:'clamp(8.5px,1.9vw,10.5px)',color:'rgba(255,255,255,.45)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'16px 2px 8px'}}>Game setup</div>
+            <div style={{fontSize:'clamp(8.5px,1.9vw,10.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'16px 2px 8px'}}>Game setup</div>
             <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'center',marginBottom:8}}>
               <span style={pill(opponent==='human')} onClick={()=>{setOpponent('human');fullReset();}}>👤 vs Human</span>
               <span style={pill(opponent==='computer')} onClick={()=>{setOpponent('computer');fullReset();}}>🤖 vs Computer</span>
@@ -3381,11 +3381,11 @@ export default function App(){
                 <div style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.7)',fontWeight:700}}>Strength ≈ {cpuElo} Elo</div>
                 <input type="range" min={ELO_MIN} max={ELO_MAX} step={25} value={cpuElo} onChange={e=>setCpuElo(+e.target.value)} style={{width:'100%',accentColor:TH.accent,cursor:'pointer'}}/>
                 <div style={{width:'100%',display:'flex',justifyContent:'space-between',fontSize:8,color:'rgba(255,255,255,.4)',letterSpacing:.3}}><span>Beginner</span><span>Club</span><span>Strong</span></div>
-                <div style={{fontSize:'clamp(8px,1.85vw,10px)',color:'rgba(255,255,255,.45)',fontStyle:'italic'}}>Auto-adjusts ±50 Elo after each game</div>
+                <div style={{fontSize:'clamp(8px,1.85vw,10px)',color:'rgba(255,255,255,.58)',fontStyle:'italic'}}>Auto-adjusts ±50 Elo after each game</div>
               </div>
             </>)}
           </>)}
-          <div style={{fontSize:'clamp(8.5px,1.9vw,10.5px)',color:'rgba(255,255,255,.45)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'16px 2px 8px'}}>Appearance</div>
+          <div style={{fontSize:'clamp(8.5px,1.9vw,10.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'16px 2px 8px'}}>Appearance</div>
           <div style={{marginBottom:10}}>
             <div style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.6)',fontWeight:700,marginBottom:7}}>Board colors · <span style={{color:'var(--ac2)'}}>{TH.name}</span></div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:6}}>
@@ -3393,12 +3393,12 @@ export default function App(){
             </div>
           </div>
           <div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
-            <div style={{width:'100%',textAlign:'center',fontSize:'clamp(8px,1.8vw,10px)',color:'rgba(255,255,255,.45)',letterSpacing:1.5,marginBottom:2}}>SKIN</div>
+            <div style={{width:'100%',textAlign:'center',fontSize:'clamp(8px,1.8vw,10px)',color:'rgba(255,255,255,.58)',letterSpacing:1.5,marginBottom:2}}>SKIN</div>
             {SKINS.map((s,i)=>{
               const p=THEMES[s.pal]||THEMES[2];const lock=s.pro&&!isPro;
               return(
               <button key={s.key} onClick={()=>{if(lock){setUpgradeMsg('');setAcctOpen(true);}else setSkin(i);}} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'9px 11px',borderRadius:12,background:skin===i?'rgba(var(--acr),.16)':'rgba(255,255,255,.04)',border:skin===i?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.12)',cursor:'pointer',textAlign:'left',opacity:lock?.85:1}}>
-                <span style={{flexShrink:0,width:40,height:40,borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',gap:3,fontSize:17,background:'rgba(255,255,255,.07)',boxShadow:'0 1px 6px rgba(0,0,0,.35)',border:s.trim?`1.5px solid ${s.trim}`:'1px solid rgba(255,255,255,.12)'}}>{s.icons.learn}{s.icons.play}</span>
+                <span style={{flexShrink:0,width:40,height:40,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',gap:3,fontSize:17,background:'rgba(255,255,255,.07)',boxShadow:'0 1px 6px rgba(0,0,0,.35)',border:s.trim?`1.5px solid ${s.trim}`:'1px solid rgba(255,255,255,.12)'}}>{s.icons.learn}{s.icons.play}</span>
                 <span style={{flex:1,minWidth:0}}>
                   <span style={{display:'block',fontSize:'clamp(12px,2.8vw,14px)',fontWeight:800,color:'#fff'}}>{s.name}</span>
                   <span style={{display:'block',fontSize:'clamp(9px,2.1vw,11px)',color:'rgba(255,255,255,.55)'}}>{s.blurb}</span>
@@ -3408,11 +3408,11 @@ export default function App(){
               </button>);
             })}
             <div style={{width:'100%',height:1,background:'rgba(255,255,255,.08)',margin:'4px 0 2px'}}/>
-            <button onClick={()=>setBoardDepth(d=>!d)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:9,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer'}}>
+            <button onClick={()=>setBoardDepth(d=>!d)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer'}}>
               <span style={{fontSize:'clamp(10px,2.2vw,12px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Cell depth &amp; texture</span>
               <span style={{fontSize:'clamp(9px,2vw,11px)',fontWeight:800,color:boardDepth?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:boardDepth?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:`1px solid ${boardDepth?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'}`}}>{boardDepth?'ON':'OFF'}</span>
             </button>
-            <button onClick={()=>setHideEval(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:9,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
+            <button onClick={()=>setHideEval(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
               <span style={{fontSize:'clamp(10px,2.2vw,12px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Evaluation bar</span>
               <span style={{fontSize:'clamp(9px,2vw,11px)',fontWeight:800,color:!hideEval?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:!hideEval?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:`1px solid ${!hideEval?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'}`}}>{!hideEval?'ON':'OFF'}</span>
             </button>
@@ -3450,7 +3450,7 @@ export default function App(){
         </div>);})()}
       {false&&mode==='play'&&opponent!=='online'&&timeCtrl&&timeCtrl.kind!=='corr'&&(<div style={{display:'flex',gap:8,justifyContent:'center',marginBottom:8}}>
         {['w','b'].map(side=>{const active=!isOver&&!playEnd&&clock.run&&game.turn===side;const low=clock[side]<=20000;const mine=opponent==='computer'&&side===pColor;return(
-          <div key={side} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 12px',borderRadius:9,background:active?'rgba(var(--acr),.22)':'rgba(255,255,255,.05)',border:active?'1.5px solid var(--ac)':'1px solid rgba(255,255,255,.12)',minWidth:78,justifyContent:'center'}}>
+          <div key={side} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 12px',borderRadius:12,background:active?'rgba(var(--acr),.22)':'rgba(255,255,255,.05)',border:active?'1.5px solid var(--ac)':'1px solid rgba(255,255,255,.12)',minWidth:78,justifyContent:'center'}}>
             <span style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.6)',fontWeight:700}}>{side==='w'?'♔':'♚'}{mine?' You':''}</span>
             <span style={{fontFamily:'monospace',fontSize:'clamp(13px,3.4vw,17px)',fontWeight:800,letterSpacing:.5,color:clock[side]<=0?'#ec9a90':(low?'#f0b429':'#fff')}}>{fmtClock(clock[side])}</span>
           </div>);})}
@@ -3501,12 +3501,12 @@ export default function App(){
               <div style={{fontFamily:headFont,fontSize:'clamp(22px,6vw,30px)',fontWeight:800,color:'#fff',letterSpacing:.5}}>Game Review</div>
               <div style={{marginTop:4,fontSize:'clamp(12px,2.9vw,14px)',color:'rgba(255,255,255,.7)',fontWeight:600}}>{review.headers.White||'White'} vs {review.headers.Black||'Black'}{review.headers.Result?(' · '+review.headers.Result):''}</div>
             </div>
-            {review.openingName&&(<div style={{textAlign:'center',fontSize:'clamp(12px,2.8vw,14px)',color:'rgba(255,255,255,.8)'}}>📖 <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b> <span style={{color:'rgba(255,255,255,.45)'}}>({review.openingName.eco})</span></div>)}
+            {review.openingName&&(<div style={{textAlign:'center',fontSize:'clamp(12px,2.8vw,14px)',color:'rgba(255,255,255,.8)'}}>📖 <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b> <span style={{color:'rgba(255,255,255,.58)'}}>({review.openingName.eco})</span></div>)}
             {(()=>{const W=S.w,B=S.b,uc=S.userColor;const colHead=(sk,sl,d)=>{const me=uc===sk;return(<div style={{flex:1,minWidth:0,textAlign:'center',padding:'6px 2px',borderRadius:12,background:me?'rgba(var(--acr),.14)':'transparent',border:me?'1px solid var(--ac)':'1px solid transparent'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,marginBottom:5}}><Piece t="k" color={sk} sz={20}/><span style={{fontSize:'clamp(13px,3.2vw,15px)',fontWeight:800,color:'#fff'}}>{sl}</span>{me&&<span style={{fontSize:8.5,fontWeight:800,color:'var(--ac2)',background:'rgba(var(--acr),.2)',borderRadius:6,padding:'1px 5px'}}>YOU</span>}</div>
                 <div style={{fontSize:'clamp(27px,8vw,38px)',fontWeight:900,color:'#fff',lineHeight:1}}>{d.accuracy}<span style={{fontSize:'.45em',fontWeight:700,color:'rgba(255,255,255,.55)'}}>%</span></div>
                 <div style={{fontSize:'clamp(9px,2.1vw,11px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:.5,textTransform:'uppercase',marginTop:1}}>Accuracy</div>
-                <div style={{marginTop:5,display:'flex',alignItems:'baseline',justifyContent:'center',gap:4}}><span style={{fontSize:'clamp(15px,4vw,19px)',color:'var(--ac2)',fontWeight:900,lineHeight:1}}>≈{d.rating}</span><span style={{fontSize:'clamp(9px,2vw,10.5px)',color:'rgba(255,255,255,.45)',fontWeight:700,letterSpacing:.3,textTransform:'uppercase'}}>est</span></div>
+                <div style={{marginTop:5,display:'flex',alignItems:'baseline',justifyContent:'center',gap:4}}><span style={{fontSize:'clamp(15px,4vw,19px)',color:'var(--ac2)',fontWeight:900,lineHeight:1}}>≈{d.rating}</span><span style={{fontSize:'clamp(9px,2vw,10.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:.3,textTransform:'uppercase'}}>est</span></div>
               </div>);};return(
             <div style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.16)',borderRadius:16,padding:'14px 14px',boxShadow:SHADOW_BOX}}>
               <div style={{display:'flex',alignItems:'stretch',gap:8}}>{colHead('w','White',W)}<div style={{width:1,background:'rgba(255,255,255,.14)'}}/>{colHead('b','Black',B)}</div>
@@ -3659,7 +3659,7 @@ export default function App(){
           </div>
           {/* eval graph */}
           <EvalGraph analysis={review.analysis} plies={review.plies} ply={ply} onJump={(p)=>setPly(Math.max(0,Math.min(review.plies.length,p)))} width={wide?Math.max(160,sideW-12):boardPx} height={wide?96:78}/>
-          {review.openingName&&(<div style={{width:'100%',textAlign:'center',fontSize:'clamp(10px,2.3vw,12.5px)',color:'rgba(255,255,255,.8)'}}>📖 Opening: <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b> <span style={{color:'rgba(255,255,255,.45)'}}>({review.openingName.eco})</span></div>)}
+          {review.openingName&&(<div style={{width:'100%',textAlign:'center',fontSize:'clamp(10px,2.3vw,12.5px)',color:'rgba(255,255,255,.8)'}}>📖 Opening: <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b> <span style={{color:'rgba(255,255,255,.58)'}}>({review.openingName.eco})</span></div>)}
           {/* summary + actions */}
           <div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
             {review.counts.Brilliant>0&&<button onClick={()=>jumpToIssue('Brilliant')} title="Jump to next brilliant move" style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(12px,3vw,15px)',fontWeight:800,color:'#22d3ee',background:'#22d3ee1f',border:'1px solid #22d3ee66',borderRadius:20,padding:'5px 12px',cursor:'pointer',boxShadow:'0 2px 0 rgba(0,0,0,.25),0 4px 9px rgba(0,0,0,.22)'}}><b style={{fontSize:'clamp(16px,4vw,20px)'}}>{review.counts.Brilliant}</b> brilliant{review.counts.Brilliant>1?' moves':' move'} !! <span style={{opacity:.75,fontSize:'.9em'}}>›</span></button>}
@@ -3681,13 +3681,13 @@ export default function App(){
       {/* ── Play controls ── */}
       {mode==='play'&&opponent!=='online'&&(<div style={{marginTop:10,display:'flex',flexDirection:'column',alignItems:'center',gap:8,width:boardPx,maxWidth:'98vw'}}>
         {opponent==='computer'?(<div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,flexWrap:'wrap'}}>
-          {selBot&&botById(selBot)?(<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:'clamp(8.5px,1.95vw,11px)',color:'rgba(255,255,255,.72)',fontWeight:700}}><BotFace id={selBot} size={20}/>{botById(selBot).name}</span>):(<span style={{fontSize:'clamp(8px,1.85vw,10.5px)',color:'rgba(255,255,255,.45)'}}>🤖 vs Computer</span>)}
+          {selBot&&botById(selBot)?(<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:'clamp(8.5px,1.95vw,11px)',color:'rgba(255,255,255,.72)',fontWeight:700}}><BotFace id={selBot} size={20}/>{botById(selBot).name}</span>):(<span style={{fontSize:'clamp(8px,1.85vw,10.5px)',color:'rgba(255,255,255,.58)'}}>🤖 vs Computer</span>)}
           <div style={{display:'flex',alignItems:'center',gap:5,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 5px'}}>
             <button onClick={()=>setCpuElo(e=>Math.max(ELO_MIN,e-100))} title="Weaker" style={{width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.12)',color:'#fff',fontSize:16,fontWeight:700,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>−</button>
             <span style={{fontSize:'clamp(9px,2vw,11px)',fontWeight:700,color:'var(--ac2)',minWidth:58,textAlign:'center'}}>≈{cpuElo} Elo</span>
             <button onClick={()=>setCpuElo(e=>Math.min(ELO_MAX,e+100))} title="Stronger" style={{width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.12)',color:'#fff',fontSize:16,fontWeight:700,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
           </div>
-        </div>):(<div style={{fontSize:'clamp(8px,1.85vw,10.5px)',color:'rgba(255,255,255,.45)'}}>{`👤 vs Human${timeCtrl?(' · '+timeCtrl.label):' · no clock'}`}</div>)}
+        </div>):(<div style={{fontSize:'clamp(8px,1.85vw,10.5px)',color:'rgba(255,255,255,.58)'}}>{`👤 vs Human${timeCtrl?(' · '+timeCtrl.label):' · no clock'}`}</div>)}
         {opponent==='computer'&&(<input type="range" min={ELO_MIN} max={ELO_MAX} step={25} value={cpuElo} onChange={e=>setCpuElo(+e.target.value)} title="Fine-tune strength" style={{width:'100%',maxWidth:320,accentColor:TH.accent,cursor:'pointer',margin:'0 0 2px'}}/>)}
         <div style={{display:'flex',gap:8,alignItems:'center',width:'100%'}}>
           <button onClick={takeback} disabled={playHist.length===0} title='Takeback' style={{width:46,height:46,flexShrink:0,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:19,padding:0,background:'rgba(255,255,255,.05)',border:'1.5px solid rgba(255,255,255,.18)',color:'#fff',opacity:playHist.length===0?.35:1,cursor:playHist.length===0?'default':'pointer'}}>↶</button>
@@ -3730,14 +3730,14 @@ export default function App(){
           </div>
           <div style={lbl}>or join with a code</div>
           <div style={{display:'flex',gap:8}}>
-            <input value={onlineCodeInput} onChange={e=>setOnlineCodeInput(e.target.value.toUpperCase())} onKeyDown={e=>{if(e.key==='Enter')onlineJoin();}} placeholder="CODE" maxLength={6} style={{flex:1,minWidth:0,background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.18)',borderRadius:9,padding:'10px 12px',color:'#fff',fontSize:'clamp(13px,3vw,15px)',letterSpacing:3,textAlign:'center',fontWeight:800}}/>
+            <input value={onlineCodeInput} onChange={e=>setOnlineCodeInput(e.target.value.toUpperCase())} onKeyDown={e=>{if(e.key==='Enter')onlineJoin();}} placeholder="CODE" maxLength={6} style={{flex:1,minWidth:0,background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.18)',borderRadius:12,padding:'10px 12px',color:'#fff',fontSize:'clamp(13px,3vw,15px)',letterSpacing:3,textAlign:'center',fontWeight:800}}/>
             <button onClick={()=>onlineJoin()} style={{...btn('rgba(110,168,254,.9)','none','#0c1a33'),fontWeight:800}}>Join</button>
           </div>
           {onlineInfo&&<div style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'linear-gradient(135deg,rgba(110,168,254,.96),rgba(74,120,220,.96))',color:'#0d1626',borderRadius:14,padding:'10px 16px',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,boxShadow:'0 8px 24px rgba(0,0,0,.5)',maxWidth:'92vw',textAlign:'center',animation:'ctDrop .4s cubic-bezier(.2,1.4,.4,1)'}}>{onlineInfo}<style>{'@media (prefers-reduced-motion: no-preference){@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}}'}</style></div>}
           {onlineErr&&<div style={{fontSize:'clamp(10px,2.2vw,12px)',color:'#f5a3a3'}}>{onlineErr}</div>}
           {(myGamesLoading||(myGames&&myGames.length>0))&&(<div style={{marginTop:4}}>
             <div style={{...lbl,marginBottom:6}}>Your games</div>
-            {myGamesLoading&&!myGames&&<div style={{fontSize:'clamp(9.5px,2.1vw,11.5px)',color:'rgba(255,255,255,.45)'}}>Loading…</div>}
+            {myGamesLoading&&!myGames&&<div style={{fontSize:'clamp(9.5px,2.1vw,11.5px)',color:'rgba(255,255,255,.58)'}}>Loading…</div>}
             <div style={{display:'flex',flexDirection:'column',gap:6}}>
               {(myGames||[]).slice(0,8).map(g=>{
                 const myC=(g.w&&g.w.uid===cloudUser.uid)?'w':'b';
@@ -3762,7 +3762,7 @@ export default function App(){
                 </button>);
               })}
             </div>
-            <button onClick={refreshMyGames} style={{marginTop:7,alignSelf:'flex-start',padding:'5px 11px',borderRadius:9,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.7)',cursor:'pointer',fontSize:'clamp(9px,2vw,11px)',fontWeight:700}}>↻ Refresh</button>
+            <button onClick={refreshMyGames} style={{marginTop:7,alignSelf:'flex-start',padding:'5px 11px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.7)',cursor:'pointer',fontSize:'clamp(9px,2vw,11px)',fontWeight:700}}>↻ Refresh</button>
           </div>)}
         </div>);
         const oppData=myColor==='w'?og.b:og.w;
@@ -3783,7 +3783,7 @@ export default function App(){
             </div>
             <button onClick={onlineLeave} style={{...btn('rgba(236,154,144,.14)','1px solid rgba(236,154,144,.4)','#ec9a90'),width:'100%'}}>Cancel</button>
             </div>
-            <div style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.45)',textAlign:'center',lineHeight:1.5}}>Your friend taps 🌐 Online → types this code → Join. You’re playing {myColor==='w'?'White':'Black'}.</div>
+            <div style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.58)',textAlign:'center',lineHeight:1.5}}>Your friend taps 🌐 Online → types this code → Join. You’re playing {myColor==='w'?'White':'Black'}.</div>
             {onlineInfo&&<div style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'linear-gradient(135deg,rgba(110,168,254,.96),rgba(74,120,220,.96))',color:'#0d1626',borderRadius:14,padding:'10px 16px',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,boxShadow:'0 8px 24px rgba(0,0,0,.5)',maxWidth:'92vw',textAlign:'center',animation:'ctDrop .4s cubic-bezier(.2,1.4,.4,1)'}}>{onlineInfo}<style>{'@media (prefers-reduced-motion: no-preference){@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}}'}</style></div>}
           </>):(<>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
@@ -3803,14 +3803,14 @@ export default function App(){
                   <span style={{fontSize:'clamp(10px,2.4vw,12.5px)',fontWeight:800,color:expired?'#ec9a90':(myMove?'#86d99a':'rgba(255,255,255,.7)')}}>{expired?(myMove?'You are out of time':'Opponent out of time'):(fmtLeft(left)+(myMove?' left for you':' left for '+oppName))}</span>
                 </div>
                 {expired&&!myMove&&<button onClick={onlineClaimTime} style={{...btn('rgba(236,154,144,.2)','1px solid rgba(236,154,144,.5)','#ec9a90'),fontWeight:800}}>Claim win (opponent ran out of time)</button>}
-                {!myMove&&!expired&&<div style={{fontSize:'clamp(8.5px,1.9vw,10.5px)',color:'rgba(255,255,255,.45)',lineHeight:1.5}}>It's {oppName}'s move. You can close the app — your move is saved and the game will be waiting under “Your games”.</div>}
+                {!myMove&&!expired&&<div style={{fontSize:'clamp(8.5px,1.9vw,10.5px)',color:'rgba(255,255,255,.58)',lineHeight:1.5}}>It's {oppName}'s move. You can close the app — your move is saved and the game will be waiting under “Your games”.</div>}
               </div>);
             })()}
             {og.tc&&og.tc.kind!=='corr'&&og.tc.init&&og.clk&&!og.result&&og.status==='active'&&(()=>{
               const oc=myColor==='w'?'b':'w';const base=liveNow-(og.moveAt||liveNow);
               const remOf=(side)=>Math.max(0,(og.clk[side]||0)-(side===game.turn?base:0));
               const myRem=remOf(myColor),opRem=remOf(oc);const opFlag=opRem<=0&&game.turn===oc;const myFlag=myRem<=0&&game.turn===myColor;
-              
+              const Clk=(label,ms,active)=>(<div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',padding:'8px 6px',borderRadius:11,background:active?'rgba(110,168,254,.16)':'rgba(0,0,0,.22)',border:'1px solid '+(active?'rgba(110,168,254,.45)':'rgba(255,255,255,.1)')}}><span style={{fontSize:'clamp(8.5px,1.9vw,10.5px)',color:'rgba(255,255,255,.6)',fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'}}>{label}</span><span style={{fontFamily:'monospace',fontSize:'clamp(17px,4.6vw,23px)',fontWeight:800,color:ms<=10000?'#ec9a90':(active?'#86d99a':'#fff')}}>{clockFmt(ms)}</span></div>);
               return(<div style={{display:'flex',flexDirection:'column',gap:8}}>{opFlag&&<button onClick={onlineClaimFlag} style={{...btn('rgba(134,217,154,.2)','1px solid rgba(134,217,154,.5)','#86d99a'),width:'100%',minHeight:48,fontSize:'clamp(12.5px,3vw,15px)',fontWeight:800}}>Claim win ({oppName} flagged)</button>}{myFlag&&<div style={{textAlign:'center',fontSize:'clamp(10px,2.3vw,12px)',color:'#ec9a90',fontWeight:700}}>Your flag fell. Waiting for {oppName} to claim.</div>}</div>);
             })()}
             {(()=>{const drawBy=og.drawBy||null;const iOffered=drawBy&&drawBy===myColor;const oppOffered=drawBy&&drawBy!==myColor;
@@ -3847,7 +3847,7 @@ export default function App(){
               {chat.length===0?<div style={{fontSize:'clamp(10.5px,2.4vw,12.5px)',color:'rgba(255,255,255,.4)'}}>Say hello 👋</div>:chat.slice(-40).map((m,i)=>(<div key={i} style={{fontSize:'clamp(11.5px,2.6vw,13.5px)',lineHeight:1.45}}><span style={{fontWeight:800,color:m.uid===cloudUser.uid?'var(--ac2)':'#86d99a'}}>{m.uid===cloudUser.uid?'You':(m.name||'Them')}: </span><span style={{color:'rgba(255,255,255,.85)'}}>{m.text}</span></div>))}
             </div>
             <div style={{display:'flex',gap:8}}>
-              <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')onlineSendChat();}} placeholder="Message…" maxLength={240} style={{flex:1,minWidth:0,background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.18)',borderRadius:9,padding:'9px 11px',color:'#fff',fontSize:'clamp(11px,2.5vw,13px)'}}/>
+              <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')onlineSendChat();}} placeholder="Message…" maxLength={240} style={{flex:1,minWidth:0,background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.18)',borderRadius:12,padding:'9px 11px',color:'#fff',fontSize:'clamp(11px,2.5vw,13px)'}}/>
               <button onClick={onlineSendChat} style={{...btn('rgba(110,168,254,.9)','none','#0c1a33'),fontWeight:800}}>Send</button>
             </div>
           </>)}
@@ -3862,7 +3862,7 @@ export default function App(){
               <div style={{fontSize:'clamp(13px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>{allDone?'Journey complete!':at.name}</div>
               <div style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.6)',fontWeight:600}}>Rank {Math.min(rank,PZ_TIERS.length)} / {PZ_TIERS.length} · {total} solved · ⭐ {pzXP} XP</div>
             </div>
-            <div style={{textAlign:'right'}}><div style={{fontSize:'clamp(13px,3vw,16px)',fontWeight:800,color:'var(--ac2)'}}>🔥 {pzStreak}</div><div style={{fontSize:'clamp(8px,1.7vw,9.5px)',color:'rgba(255,255,255,.45)'}}>best {pzBest}</div></div>
+            <div style={{textAlign:'right'}}><div style={{fontSize:'clamp(13px,3vw,16px)',fontWeight:800,color:'var(--ac2)'}}>🔥 {pzStreak}</div><div style={{fontSize:'clamp(8px,1.7vw,9.5px)',color:'rgba(255,255,255,.58)'}}>best {pzBest}</div></div>
           </div>
           {!allDone&&(<div style={{marginTop:10}}>
             <div style={{display:'flex',justifyContent:'space-between',fontSize:'clamp(8.5px,1.8vw,10px)',color:'rgba(255,255,255,.55)',marginBottom:3}}><span>Progress in {at.name}</span><span>{inActive} / {at.need}</span></div>
@@ -3883,11 +3883,11 @@ export default function App(){
         <button onClick={()=>{setPzOErr('');setPzOInfo('');setPzView('online');if(!pzPack&&!(curPuz&&curPuz.ext))loadDaily();}} style={{...btn('rgba(110,168,254,.13)','1px solid rgba(110,168,254,.4)','#cfe0ff'),width:'100%'}}>🌐 Online puzzles (Lichess) — {pzOSolved} solved</button>
         {!pzUnlock?(
           <div style={{display:'flex',gap:8,alignItems:'center',marginTop:2}}>
-            <input value={pzPin} onChange={e=>setPzPin(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')pzTryPin();}} placeholder="🔑 Unlock code" inputMode="numeric" style={{flex:1,minWidth:0,background:'rgba(255,255,255,.06)',border:'1px solid '+(pzPinErr?'rgba(245,120,120,.6)':'rgba(255,255,255,.15)'),borderRadius:9,padding:'9px 11px',color:'#fff',fontSize:'clamp(11px,2.5vw,13px)',outline:'none'}}/>
+            <input value={pzPin} onChange={e=>setPzPin(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')pzTryPin();}} placeholder="🔑 Unlock code" inputMode="numeric" style={{flex:1,minWidth:0,background:'rgba(255,255,255,.06)',border:'1px solid '+(pzPinErr?'rgba(245,120,120,.6)':'rgba(255,255,255,.15)'),borderRadius:12,padding:'9px 11px',color:'#fff',fontSize:'clamp(11px,2.5vw,13px)',outline:'none'}}/>
             <button onClick={pzTryPin} style={{...btn('rgba(255,255,255,.1)','1px solid rgba(255,255,255,.22)','#fff'),flexShrink:0,padding:'9px 15px'}}>Unlock</button>
           </div>
         ):(
-          <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:'space-between',marginTop:2,background:'rgba(134,217,154,.1)',border:'1px solid rgba(134,217,154,.32)',borderRadius:9,padding:'9px 12px'}}>
+          <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:'space-between',marginTop:2,background:'rgba(134,217,154,.1)',border:'1px solid rgba(134,217,154,.32)',borderRadius:12,padding:'9px 12px'}}>
             <span style={{fontSize:'clamp(10px,2.3vw,12px)',color:'#a7e8b5',fontWeight:700}}>🔓 All levels unlocked — tap any tier to train</span>
             <button onClick={pzRelock} style={{background:'none',border:'none',color:'rgba(255,255,255,.55)',fontSize:'clamp(9px,2vw,11px)',cursor:'pointer',textDecoration:'underline',padding:0,flexShrink:0}}>Lock</button>
           </div>
@@ -3955,7 +3955,7 @@ export default function App(){
             <button key={v} onClick={()=>{pzDiffRef.current=v;setPzDiff(v);showPackIdx(pzPack,pzPackIdx);}} style={{flex:1,fontSize:'clamp(8.5px,1.9vw,10.5px)',fontWeight:700,padding:'6px 3px',borderRadius:8,cursor:'pointer',border:'1px solid '+(pzDiff===v?'rgba(110,168,254,.5)':'rgba(255,255,255,.14)'),background:pzDiff===v?'rgba(110,168,254,.22)':'rgba(255,255,255,.05)',color:pzDiff===v?'#cfe0ff':'rgba(255,255,255,.7)'}}>{lbl}</button>
           ))}
         </div>)}
-        {pzOErr&&(<div style={{width:'100%',fontSize:'clamp(9.5px,2.1vw,11.5px)',fontWeight:600,color:'#ec9a90',lineHeight:1.5,background:'rgba(236,154,144,.08)',border:'1px solid rgba(236,154,144,.25)',borderRadius:9,padding:'9px 11px'}}>{pzOErr}</div>)}
+        {pzOErr&&(<div style={{width:'100%',fontSize:'clamp(9.5px,2.1vw,11.5px)',fontWeight:600,color:'#ec9a90',lineHeight:1.5,background:'rgba(236,154,144,.08)',border:'1px solid rgba(236,154,144,.25)',borderRadius:12,padding:'9px 11px'}}>{pzOErr}</div>)}
         {!pzOErr&&pzOInfo&&p&&(<div style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.55)',fontWeight:600,textAlign:'center'}}>{pzOInfo}</div>)}
         {p&&(<>
           <div style={{width:'100%',background:puzSolved?'rgba(123,216,143,.12)':'rgba(110,168,254,.1)',border:`1px solid ${puzSolved?'rgba(123,216,143,.4)':'rgba(110,168,254,.3)'}`,borderRadius:12,padding:'12px 14px'}}>
@@ -4053,12 +4053,12 @@ export default function App(){
           </div>
         ):learnGroup==='notation'?(
           <div style={{width:'100%'}}>
-            <button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:9,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(10px,2.3vw,12.5px)',fontWeight:600,marginBottom:12}}>‹ Back</button>
+            <button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(10px,2.3vw,12.5px)',fontWeight:600,marginBottom:12}}>‹ Back</button>
             <NotationTrainer light={TH.light} dark={TH.dark}/>
           </div>
         ):learnGroup==='tactics'?(
           <div style={{width:'100%'}}>
-            <button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:9,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(10px,2.3vw,12.5px)',fontWeight:600,marginBottom:12}}>‹ Back</button>
+            <button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(10px,2.3vw,12.5px)',fontWeight:600,marginBottom:12}}>‹ Back</button>
             <TacticsTrainer light={TH.light} dark={TH.dark}/>
           </div>
         ):learnGroup==='train'?((()=>{
@@ -4069,7 +4069,7 @@ export default function App(){
           const repNames=['Italian Game','London System','Caro-Kann Defense',"King's Indian Defense"];
           const repIdx=repNames.map(n=>LIB.findIndex(o=>o.name===n)).filter(i=>i>=0);
           const statusOf=(i)=>{const _st=lessonStats(LIB[i]);if(_st.mastered)return {t:'\u2605 Mastered',c:'#f0c24d'};if(_st.coverage)return {t:'Learned \u2713 \u00b7 '+_st.unionDays+'/'+LEARN_GOAL+' days to master',c:'#6cc78a'};if(_st.linesLearned>0)return {t:'In progress \u00b7 '+_st.linesLearned+'/'+_st.lines+' lines learned',c:'#9fd0ff'};const m=trainMastery[LIB[i].name];if(!m||!m.learned)return {t:'Not started',c:'rgba(255,255,255,.55)'};if(Date.now()>(m.due||0))return {t:'Review due',c:'#e0a83a'};return {t:'Learned ✓',c:'#46b96a'};};
-          const row=(i)=>{const op=LIB[i];const st=statusOf(i);return(<button key={i} onClick={()=>selectOpening(i)} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'11px 12px',borderRadius:11,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:SHADOW_BTN,fontFamily:'"Segoe UI",system-ui,sans-serif'}}><span style={{flexShrink:0,width:34,height:34,borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',background:op.side==='w'?'linear-gradient(145deg,#f4f6fb,#cfd6e2)':'linear-gradient(145deg,#3a4150,#1c2029)',border:'1px solid rgba(255,255,255,.18)',fontSize:18,color:op.side==='w'?'#1a1d24':'#fff'}}>{op.side==='w'?'♔':'♚'}</span><span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(11.5px,2.7vw,14px)',fontWeight:700}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(8.5px,2vw,10.5px)',color:st.c,fontWeight:700}}>{st.t}</span></span><span style={{flexShrink:0,fontSize:18,color:'var(--ac2)',opacity:.6}}>›</span></button>);};
+          const row=(i)=>{const op=LIB[i];const st=statusOf(i);return(<button key={i} onClick={()=>selectOpening(i)} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'11px 12px',borderRadius:11,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:SHADOW_BTN,fontFamily:'"Segoe UI",system-ui,sans-serif'}}><span style={{flexShrink:0,width:34,height:34,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',background:op.side==='w'?'linear-gradient(145deg,#f4f6fb,#cfd6e2)':'linear-gradient(145deg,#3a4150,#1c2029)',border:'1px solid rgba(255,255,255,.18)',fontSize:18,color:op.side==='w'?'#1a1d24':'#fff'}}>{op.side==='w'?'♔':'♚'}</span><span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(11.5px,2.7vw,14px)',fontWeight:700}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(8.5px,2vw,10.5px)',color:st.c,fontWeight:700}}>{st.t}</span></span><span style={{flexShrink:0,fontSize:18,color:'var(--ac2)',opacity:.6}}>›</span></button>);};
           const sec=(t)=>(<div style={{fontSize:'clamp(9.5px,2.2vw,11.5px)',fontWeight:800,letterSpacing:.4,color:'var(--ac2)',textTransform:'uppercase',margin:'14px 3px 7px'}}>{t}</div>);
           const fmK=op=>{const f=op.line&&op.line[0];return f==='e4'?'e4':f==='d4'?'d4':'other';};
           const buckets=[{lab:'White · 1.e4',side:'w',fk:'e4'},{lab:'White · 1.d4',side:'w',fk:'d4'},{lab:'White · other',side:'w',fk:'other'},{lab:'Black · vs 1.e4',side:'b',fk:'e4'},{lab:'Black · vs 1.d4',side:'b',fk:'d4'},{lab:'Black · other',side:'b',fk:'other'}].map(b=>{const idxs=LIB.map((o,i)=>i).filter(i=>groupOf(LIB[i].cat)==='openings'&&LIB[i].side===b.side&&fmK(LIB[i])===b.fk);const learned=idxs.filter(i=>{const m=trainMastery[LIB[i].name];return m&&m.learned;}).length;return {...b,idxs,learned,total:idxs.length};}).filter(b=>b.total>0);
@@ -4084,7 +4084,7 @@ export default function App(){
           const playedOpenings=ros?ros.openings:[];
           return(<div style={{width:'100%'}}>
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:13}}>
-              <button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:9,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(10px,2.3vw,12.5px)',fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>‹ Back</button>
+              <button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(10px,2.3vw,12.5px)',fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>‹ Back</button>
               <span style={{fontSize:'clamp(21px,5vw,27px)',lineHeight:1,flexShrink:0}}>🎯</span><span style={{fontSize:'clamp(18px,4.4vw,23px)',fontWeight:800,color:'#fff',letterSpacing:.2,fontFamily:"var(--head)"}}>Train</span>
               <span style={{marginLeft:'auto',fontSize:'clamp(10px,2.4vw,12.5px)',fontWeight:800,color:'var(--ac2)',background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'3px 11px',flexShrink:0}}>{learnedCount}/{total}</span>
             </div>
@@ -4114,7 +4114,7 @@ export default function App(){
         })()):(
           <div style={{width:'100%'}}>
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:13}}>
-              <button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:9,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(10px,2.3vw,12.5px)',fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>‹ Back</button>
+              <button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(10px,2.3vw,12.5px)',fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>‹ Back</button>
               {(()=>{const g={openings:{t:'Openings',ic:'🚀'},gambits:{t:'Gambits & Traps',ic:'⚔️'},endgames:{t:'Endgames',ic:'👑'}}[learnGroup];const gn=LIB.filter(o=>groupOf(o.cat)===learnGroup).length;return(<><span style={{fontSize:'clamp(21px,5vw,27px)',lineHeight:1,flexShrink:0}}>{g.ic}</span><span style={{fontSize:'clamp(18px,4.4vw,23px)',fontWeight:800,color:'#fff',letterSpacing:.2,fontFamily:"var(--head)"}}>{g.t}</span><span style={{marginLeft:'auto',fontSize:'clamp(10px,2.4vw,12.5px)',fontWeight:800,color:'var(--ac2)',background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'3px 11px',flexShrink:0}}>{gn}</span></>);})()}
             </div>
             {(()=>{
@@ -4150,7 +4150,7 @@ export default function App(){
                     {sub.idxs.map(i=>{const op=LIB[i];return(
                       <button key={i} onClick={()=>selectOpening(i)} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'11px 12px',borderRadius:11,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",textAlign:'left',boxShadow:SHADOW_BTN}}>
                         <span style={{position:'relative',flexShrink:0}}>
-                          <span style={{display:'flex',width:34,height:34,borderRadius:9,alignItems:'center',justifyContent:'center',background:op.side==='w'?'linear-gradient(145deg,#f4f6fb,#cfd6e2)':'linear-gradient(145deg,#3a4150,#1c2029)',border:'1px solid rgba(255,255,255,.18)',fontSize:18,lineHeight:1,color:op.side==='w'?'#1a1d24':'#fff'}}>{op.side==='w'?'♔':'♚'}</span>
+                          <span style={{display:'flex',width:34,height:34,borderRadius:12,alignItems:'center',justifyContent:'center',background:op.side==='w'?'linear-gradient(145deg,#f4f6fb,#cfd6e2)':'linear-gradient(145deg,#3a4150,#1c2029)',border:'1px solid rgba(255,255,255,.18)',fontSize:18,lineHeight:1,color:op.side==='w'?'#1a1d24':'#fff'}}>{op.side==='w'?'♔':'♚'}</span>
                           {trainMastery[op.name]&&trainMastery[op.name].learned&&<span title={Date.now()>(trainMastery[op.name].due||0)?'Review due':'Learned'} style={{position:'absolute',bottom:-3,right:-3,width:15,height:15,borderRadius:'50%',background:Date.now()>(trainMastery[op.name].due||0)?'#e0a83a':'#46b96a',border:'1.5px solid #14171e',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:'#fff',fontWeight:900,lineHeight:1}}>✓</span>}
                         </span>
                         <span style={{flex:1,minWidth:0}}>
@@ -4174,13 +4174,13 @@ export default function App(){
             {demoPly>=learnLine.length&&LIB[openIdx].vars&&(
               <div style={{width:'100%',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:10,padding:'9px 11px'}}>
                 <div style={{fontSize:'clamp(10px,2.3vw,12px)',color:'var(--ac2)',fontWeight:700,marginBottom:6,textAlign:'center'}}>{learnLabel.includes(' → ')?"♟ See another of White's replies:":"♟ How does White reply? Tap a line to watch it through"}</div>
-                <div style={{display:'flex',gap:7,overflowX:'auto',WebkitOverflowScrolling:'touch',paddingBottom:3}}>
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
                   {LIB[openIdx].vars.map((v,vi)=>{const active=learnLabel.endsWith(v.name);return(
-                    <button key={vi} onClick={()=>pickVariation(v)} style={{flexShrink:0,whiteSpace:'nowrap',textAlign:'center',padding:'8px 13px',borderRadius:18,background:active?'rgba(var(--acr),.22)':'rgba(255,255,255,.06)',border:active?'1px solid var(--ac)':'1px solid rgba(255,255,255,.15)',cursor:'pointer'}}>
-                      <div style={{fontSize:'clamp(10.5px,2.5vw,12.5px)',fontWeight:800,color:active?'var(--ac2)':'rgba(255,255,255,.85)'}}>{lineDays(LIB[openIdx].name+'§'+v.name).length>=1?'✓ ':''}{v.name}</div>
+                    <button key={vi} onClick={()=>pickVariation(v)} style={{textAlign:'left',padding:'8px 10px',borderRadius:7,background:active?'rgba(var(--acr),.2)':'rgba(255,255,255,.06)',border:active?'1px solid rgba(var(--acr),.55)':'1px solid rgba(255,255,255,.14)',color:'#fff',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+                      <div style={{fontSize:'clamp(10px,2.4vw,13px)',fontWeight:700,color:'var(--ac2)'}}>{lineDays(LIB[openIdx].name+'§'+v.name).length>=1?'✓ ':''}{v.name} {active?'• now showing':'→'}</div>
+                      <div style={{fontSize:'clamp(8px,2vw,10px)',color:'rgba(255,255,255,.55)',marginTop:1,lineHeight:1.35}}>{v.idea}</div>
                     </button>);})}
                 </div>
-                {(()=>{const av=LIB[openIdx].vars.find(v=>learnLabel.endsWith(v.name));return av?<div style={{fontSize:'clamp(9px,2.1vw,11px)',color:'rgba(255,255,255,.6)',marginTop:6,lineHeight:1.4,textAlign:'center'}}>{av.idea}</div>:null;})()}
               </div>
             )}
           </>)}
@@ -4204,13 +4204,13 @@ export default function App(){
             {openStep>=learnLine.length&&LIB[openIdx].vars&&(
               <div style={{width:'100%',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:10,padding:'9px 11px'}}>
                 <div style={{fontSize:'clamp(10px,2.3vw,12px)',color:'var(--ac2)',fontWeight:700,marginBottom:6,textAlign:'center'}}>{learnLabel.includes(' → ')?"♟ See another of White's replies:":"♟ How does White reply? Tap a line to watch it through"}</div>
-                <div style={{display:'flex',gap:7,overflowX:'auto',WebkitOverflowScrolling:'touch',paddingBottom:3}}>
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
                   {LIB[openIdx].vars.map((v,vi)=>{const active=learnLabel.endsWith(v.name);return(
-                    <button key={vi} onClick={()=>pickVariation(v)} style={{flexShrink:0,whiteSpace:'nowrap',textAlign:'center',padding:'8px 13px',borderRadius:18,background:active?'rgba(var(--acr),.22)':'rgba(255,255,255,.06)',border:active?'1px solid var(--ac)':'1px solid rgba(255,255,255,.15)',cursor:'pointer'}}>
-                      <div style={{fontSize:'clamp(10.5px,2.5vw,12.5px)',fontWeight:800,color:active?'var(--ac2)':'rgba(255,255,255,.85)'}}>{lineDays(LIB[openIdx].name+'§'+v.name).length>=1?'✓ ':''}{v.name}</div>
+                    <button key={vi} onClick={()=>pickVariation(v)} style={{textAlign:'left',padding:'8px 10px',borderRadius:7,background:active?'rgba(var(--acr),.2)':'rgba(255,255,255,.06)',border:active?'1px solid rgba(var(--acr),.55)':'1px solid rgba(255,255,255,.14)',color:'#fff',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+                      <div style={{fontSize:'clamp(10px,2.4vw,13px)',fontWeight:700,color:'var(--ac2)'}}>{lineDays(LIB[openIdx].name+'§'+v.name).length>=1?'✓ ':''}{v.name} {active?'• now showing':'→'}</div>
+                      <div style={{fontSize:'clamp(8px,2vw,10px)',color:'rgba(255,255,255,.55)',marginTop:1,lineHeight:1.35}}>{v.idea}</div>
                     </button>);})}
                 </div>
-                {(()=>{const av=LIB[openIdx].vars.find(v=>learnLabel.endsWith(v.name));return av?<div style={{fontSize:'clamp(9px,2.1vw,11px)',color:'rgba(255,255,255,.6)',marginTop:6,lineHeight:1.4,textAlign:'center'}}>{av.idea}</div>:null;})()}
               </div>
             )}
             <div style={{alignSelf:'stretch',display:'flex',flexDirection:'column',gap:6}}>
@@ -4260,7 +4260,7 @@ export default function App(){
       </div>)}
 
       {/* Move list (review, clickable + colored) — single horizontal strip */}
-      {inReview&&(<div data-mstrip="1" className="scroll" style={{marginTop:10,width:boardPx,maxWidth:'98vw',overflowX:'auto',overflowY:'hidden',whiteSpace:'nowrap',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:9,padding:'9px 11px',position:'relative',WebkitOverflowScrolling:'touch'}}>
+      {inReview&&(<div data-mstrip="1" className="scroll" style={{marginTop:10,width:boardPx,maxWidth:'98vw',overflowX:'auto',overflowY:'hidden',whiteSpace:'nowrap',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:12,padding:'9px 11px',position:'relative',WebkitOverflowScrolling:'touch'}}>
         <div style={{display:'inline-flex',alignItems:'center',fontSize:'clamp(12px,2.7vw,15px)',fontFamily:'monospace'}}>
           {review.plies.map((p,i)=>{const a=review.analysis[i];const isCur=ply===i+1;const bad=a.cls.label==='Mistake'||a.cls.label==='Blunder'||a.cls.label==='Inaccuracy';return(<span key={i} style={{display:'inline-flex',alignItems:'center'}}>{i%2===0&&<span style={{color:'rgba(255,255,255,.35)',margin:'0 3px 0 7px'}}>{Math.floor(i/2)+1}.</span>}<span ref={isCur?(el=>{if(!el)return;const c=el.closest('[data-mstrip]');if(c){const t=el.offsetLeft-(c.clientWidth-el.offsetWidth)/2;c.scrollTo({left:Math.max(0,t),behavior:'smooth'});}}):undefined} onClick={()=>setPly(i+1)} style={{cursor:'pointer',color:bad?a.cls.c:(i%2===0?'#e0e0e0':'var(--ac2)'),padding:'3px 6px',borderRadius:5,background:isCur?'rgba(255,216,77,.28)':'transparent',fontWeight:isCur?'bold':'normal'}}>{p.san}{bad?a.cls.i:''}</span></span>);})}
         </div>
@@ -4282,13 +4282,13 @@ export default function App(){
           let clk=null, ticking=false;
           if(_isOnlineG&&_og.tc&&_og.tc.kind!=='corr'&&_og.tc.init&&_og.clk){ const base=liveNow-(_og.moveAt||liveNow); const rem=Math.max(0,(_og.clk[col]||0)-(col===game.turn?base:0)); clk=clockFmt(rem); ticking=(col===game.turn)&&_og.status==='active'&&!_og.result; }
           else if(!_isOnlineG&&timeCtrl&&timeCtrl.kind!=='corr'&&clock){ clk=clockFmt(clock[col]); ticking=(col===game.turn)&&!(isOver||playEnd); }
-          return(<div style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'6px 9px',background:ticking?'rgba(var(--acr),.10)':'rgba(0,0,0,.3)',border:'1px solid '+(ticking?'rgba(var(--acr),.45)':'rgba(255,255,255,.07)'),borderRadius:12,boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:5}}>
+          return(<div style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'4px 9px',background:'rgba(0,0,0,.34)',borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:3}}>
             {av}
             <div style={{minWidth:0,flex:1}}>
               <div style={{fontSize:'clamp(12px,3vw,15px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1.15}}>{name}</div>
               <div style={{display:'flex',alignItems:'center',minHeight:15,flexWrap:'wrap'}}>{taken.map((t,i)=>(<span key={i} style={{marginRight:-4,opacity:.92}}><Piece t={t} color={enemy} sz={15} useFallback={fallback} onFail={()=>setFallback(true)}/></span>))}{lead>0&&<span style={{fontSize:'clamp(9px,2vw,11px)',fontWeight:800,color:'rgba(255,255,255,.65)',marginLeft:6}}>+{lead}</span>}</div>
             </div>
-            {clk!=null&&<div style={{fontFamily:'monospace',fontSize:'clamp(15px,4.2vw,21px)',fontWeight:800,padding:'4px 11px',borderRadius:10,flexShrink:0,background:ticking?'rgba(134,217,154,.18)':'rgba(255,255,255,.06)',border:'1px solid '+(ticking?'rgba(134,217,154,.5)':'rgba(255,255,255,.12)'),color:clk==='0:00'?'#ec9a90':(ticking?'#86d99a':'#fff')}}>{clk}</div>}
+            {clk!=null&&<div style={{fontFamily:'monospace',fontSize:'clamp(15px,4.2vw,21px)',fontWeight:800,padding:'4px 11px',borderRadius:8,flexShrink:0,background:ticking?'rgba(134,217,154,.18)':'rgba(255,255,255,.06)',border:'1px solid '+(ticking?'rgba(134,217,154,.5)':'rgba(255,255,255,.12)'),color:clk==='0:00'?'#ec9a90':(ticking?'#86d99a':'#fff')}}>{clk}</div>}
           </div>);
         };
         const _showBars=mode==='play'&&!(opponent==='online'&&!_og);
