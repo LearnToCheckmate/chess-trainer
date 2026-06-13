@@ -739,3 +739,6 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 
 ## Build #156 — Phase D slice 2: practice rows consolidated (2026-06-12)
 - The practice screen's half-empty Flip row merged with the toggles: Flip, Hints, and Guide taps now share one 3-column utility row under [Watch again | Try again]. Two rows instead of three. [#156]
+
+## Build #157 — a11y fix 3: focus ring (2026-06-12)
+- Global focus-visible ring (accent, 2px, offset) for buttons, links, and inputs, injected at the app root. Touch users never see it; keyboard users on iPad finally can navigate visibly. Remaining from the a11y review: the faint-text rule. [#157]
