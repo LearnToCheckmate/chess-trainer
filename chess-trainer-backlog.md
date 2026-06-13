@@ -776,12 +776,8 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - Gallery now has 11 scenarios in priority order for top-down recording: (1) Puzzles map [Phase E target], (2) Coach mastery plan, (3) Lesson variation chips at the picker, (4) Play mid-game (loaded FEN: bars + captured pieces + halo), (5) Checkmate end screen (loaded mate FEN), (6) Review, (7) Home, (8) MASTERED, (9) LEARNED, (10) banked banner, (11) online toast. [#162]
 - New helpers: _lesson, _picker (selectOpening then fast-forward demoPly to show variation chips), _play (fullReset(fromFEN()) to load a real position). Items 1-7 are the unseen screens I most need before the next builds; 8-11 verify the blind-built overlays.
 
-## Build #163 — Preview clapper gated to Home (2026-06-12)
-- From Kunal's lesson screenshots: the preview-gallery launcher was overlapping the board (sitting on a3) during lessons and play. Gated the launcher button to the home screen only (homeScreen===true); previews are launched from Home anyway. [#163]
-- CONFIRMED working from screenshots: banked-day banner, LEARNED overlay, MASTERED overlay (all render correctly and look right), lesson demo hierarchy, black-piece halo legible. No action needed on those.
-- STILL NEEDED from gallery: item 1 Puzzles map (Phase E target) and item 2 Coach mastery plan (Pro centerpiece) — not yet captured.
-- Minor noted: Home coach card text truncates as "...puzzle goal...." (ellipsis looks broken); queue a coach-tip length fix. _picker gallery item showed the demo auto-playing rather than landing on the variation picker; revisit the fast-forward.
-
-## Build #164 — Home coach card text fix (2026-06-12)
-- The home "Your coach" hook card forced the tip onto one line, chopping sentences into a broken-looking "...puzzle goal....". Now wraps to two lines (line-clamp 2), so the full short tip shows. [#164]
-- Gallery item 3 relabeled to set the right expectation (demo plays, variation chips appear when it finishes). [#164]
+## Build #162 — Fix: online-toast preview scenario was a no-op on Home (2026-06-12)
+- Reported by Kunal (build chat, 2026-06-12): in the #161 Preview gallery, MASTERED / LEARNED / "Day 3 banked" / open-Evans-lesson all recorded fine, but tapping "🔔 Online toast" did nothing.
+- Root cause: the onlineInfo toast JSX was mounted only inside the Online screen (two copies, join view + invite view). The gallery closes and leaves you on Home, where nothing is mounted to show it.
+- Fix [#162]: removed the two screen-local copies and render the toast once at the app root (position:fixed, gated on onlineInfo), so it shows on any screen and still works in real online play. Source chess.jsx + app.js both pushed.
+- NEEDS YOU: fully close and reopen to load #162, open the Preview gallery, tap "🔔 Online toast" and record it.
