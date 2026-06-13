@@ -678,3 +678,7 @@ Forgotten-item adds: fd-legal (privacy/terms/account deletion, needed before Str
 ## Build #145 — Phase A slice 1 (2026-06-12)
 - btn() factory upgraded to the system: minHeight 38→44, fontSize clamp(10,2.1vw,12.5)→clamp(12,2.7vw,14). Every standard button app-wide inherits the new size and type step in one edit. Radius 12 and the 3D shadow were already in place. [#145]
 - Remaining Phase A: token palette injection at the theme root, radius/gray outlier normalization, button ordering law per screen. Continue next run.
+
+## Build #146 — Phase A slice 2 (2026-06-12)
+- Semantic tokens injected at the theme root: --ok, --gold, --warn, --bad, --r. Phases B-E build on these. [#146]
+- Ordering law applied: both rematch prompts now read Decline left, Accept right. Remaining Phase A: gray/radius outliers, draw + practice surface ordering. [#146]
