@@ -805,3 +805,8 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - The lobby "Tournaments" button (SOON badge removed) now opens a real Tournaments overlay (sign-in gated). Three views: live list (subscribed to the cloud), Create form (name + format + datetime-local start), and Detail (players list + Join). [#169]
 - Formats with auto-clocks: Round robin 5+3, Knockout 10+5, Swiss 5+0. Create writes to the 'tournaments' collection; the list updates live across devices; Join uses arrayUnion. Friendly error if the Firestore rule is not yet published. [#169]
 - Stage 2 (next): pairing engines per format + live results/standings once a tournament starts. Needs the /tournaments Firestore rule live to test end-to-end (two accounts).
+
+## Build #170 — Tournaments Stage 2a: pairing engine (2026-06-12)
+- Pairing algorithms ported and unit-verified in sandbox: round-robin (circle method, every pair once, n-1 rounds), knockout (seeded bracket, byes to top seeds), Swiss round-1 (split-half). [#170]
+- Host-only "Start tournament now" button (needs >=2 players) sets status=live and stores the generated schedule. Detail view renders the schedule/bracket with player names ("A vs B", byes labelled). [#170]
+- Stage 2b (next): wire each pairing to a real online game and report results back; Stage 2c: live standings + advancing rounds (knockout next round, Swiss re-pair by score). Needs the /tournaments Firestore rule + two accounts to test end-to-end.
