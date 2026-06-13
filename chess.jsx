@@ -2875,24 +2875,14 @@ export default function App(){
       {!preview&&<button onClick={()=>setPreview(true)} title="Preview gallery (dev)" style={{position:'fixed',left:'calc(env(safe-area-inset-left,0px) + 8px)',bottom:'calc(env(safe-area-inset-bottom,0px) + 8px)',zIndex:9997,width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>🎬</button>}
       {preview&&(()=>{const _ev=LIB.findIndex(o=>o.name&&o.name.indexOf('Evans')>=0);
         const _lesson=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);};
-        const _picker=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);setTimeout(()=>{setDemoPly((LIB[j].line||[]).length);setDemoPlaying(false);},80);};
+        const _picker=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);setDemoPlaying(false);setTimeout(()=>{setDemoPlaying(false);setDemoPly((LIB[j].line||[]).length);},200);};
         const _play=(fen,col)=>{setHomeScreen(false);setOpenIdx(null);setOpponent('computer');setPColor(col);setTimeCtrl(null);timeCtrlRef.current=null;setPlaySetup(false);setMode('play');fullReset(fromFEN(fen));};
         const SC=[
-          {l:'1 🧩 Puzzles map',n:'the puzzle roadmap (Phase E redesign target)',r:()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},
-          {l:'2 🧠 Coach / mastery plan',n:'the Pro coaching slate',r:()=>setCoachOpen(true)},
-          {l:'3 ♞ Lesson variation chips',n:'Evans, jumped to the variation picker',r:()=>_picker(_ev)},
-          {l:'4 ♟️ Play mid-game',n:'a loaded position: bars, captured pieces, halo',r:()=>_play('r3k2r/pp3ppp/8/8/8/8/PP3PPP/R3K2R w KQkq - 0 1','w')},
-          {l:'5 ♚ Checkmate end screen',n:'a finished game: end modal',r:()=>_play('r1bqk2r/pppp1Qpp/2n2n2/2b1p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4','b')},
-          {l:'6 🔍 Review screen',n:'game import / eval graph entry',r:()=>{setHomeScreen(false);setMode('analyze');}},
-          {l:'7 🏠 Home screen',n:'the main menu',r:()=>setHomeScreen(true)},
-          {l:'8 🏅 MASTERED celebration',n:'full overlay, confetti',r:()=>setCelebrate({kind:'mastered',title:'Evans Gambit',sub:'10 flawless days · every line learned'})},
-          {l:'9 ✓ LEARNED celebration',n:'full overlay',r:()=>setCelebrate({kind:'learned',title:'Evans Gambit',sub:'Day 1 of 10 to Mastered'})},
-          {l:'10 ✅ Banked-day banner',n:'top drop banner',r:()=>setCelebrate({kind:'bank',title:'Day 3 banked · flawless',sub:'Evans Gambit · 7 to Mastered'})},
-          {l:'11 🔔 Online toast',n:'top blue toast',r:()=>setOnlineInfo('Friend request sent to Kunal2023')},
+          {l:'♞ Lesson variation chips',n:'Evans, jumped to the chip scroller',r:()=>_picker(_ev)},
         ];
         return(<div style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(8,10,16,.94)',display:'flex',flexDirection:'column',padding:'calc(env(safe-area-inset-top,0px) + 16px) 16px 16px'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}><div style={{fontSize:16,fontWeight:800,color:'#fff'}}>Preview gallery</div><button onClick={()=>setPreview(false)} style={{width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.06)',color:'#fff',fontSize:16,cursor:'pointer'}}>✕</button></div>
-          <div style={{fontSize:12,color:'rgba(255,255,255,.55)',marginBottom:14,lineHeight:1.4}}>Tap one to jump to that screen, then screen-record or screenshot it for me. This list is our recording backlog and grows as I need things.</div>
+          <div style={{fontSize:12,color:'rgba(255,255,255,.55)',marginBottom:14,lineHeight:1.4}}>Tap one to jump to that screen, then screen-record or screenshot it for me. This list holds only what I still need. As I confirm screens I remove them, so you never re-shoot the same thing. It grows as I need things.</div>
           <div style={{display:'flex',flexDirection:'column',gap:8,overflowY:'auto'}}>{SC.map((x,i)=>(<button key={i} onClick={()=>{setPreview(false);x.r();}} style={{textAlign:'left',padding:'13px 15px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',cursor:'pointer'}}><div style={{fontSize:14,fontWeight:700,color:'#fff'}}>{x.l}</div><div style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:2}}>{x.n}</div></button>))}</div>
         </div>);})()}
       {celebrate&&(celebrate.kind==='bank'

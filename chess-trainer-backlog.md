@@ -781,3 +781,9 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - Root cause: the onlineInfo toast JSX was mounted only inside the Online screen (two copies, join view + invite view). The gallery closes and leaves you on Home, where nothing is mounted to show it.
 - Fix [#162]: removed the two screen-local copies and render the toast once at the app root (position:fixed, gated on onlineInfo), so it shows on any screen and still works in real online play. Source chess.jsx + app.js both pushed.
 - NEEDS YOU: fully close and reopen to load #162, open the Preview gallery, tap "🔔 Online toast" and record it.
+
+## Build #165 — Gallery pruned to what I still need (2026-06-12)
+- Per Kunal: once a screen is confirmed, remove it from the gallery so he never re-shoots. Pruned 11 items to 1: only "Lesson variation chips" remains (the one recent UI not yet visually confirmed). Picker jump made more robust. [#165]
+- CONFIRMED from this batch (look right, removed): Puzzles roadmap, Coach mastery plan, Checkmate end modal, Review, Play mid-game (bars + halo), Home, MASTERED, LEARNED, banked banner.
+- BIG FINDING: the Puzzles roadmap ALREADY has the Phase E art (gradient nodes, glowing rings, dotted path, tier icons, progress). Phase E needs no rebuild; design overhaul A-E effectively complete.
+- Minor observations for later: captured-piece minis in player bars are small on the dark bar; checkmate screen shows both a top "Checkmate - White wins" strip and the center "Checkmate! You lose" modal (redundant); eval pill showed "-M0" at mate (cosmetic).
