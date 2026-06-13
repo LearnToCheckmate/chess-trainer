@@ -734,3 +734,7 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - Queue correction: player bars were ALREADY BUILT in the prior session (pBar: avatar, name, captured pieces with material lead, ticking clock, online + computer + pass-and-play). The stale queue entry is closed.
 - Polish shipped: the active player's whole bar now reads active (accent tint + accent border), bar radius 9 → 12, clock pill 8 → 10. Dead Clk component (zero call sites, superseded by pBar) deleted. [#154]
 - Phase C is COMPLETE: icon strip #149, message toasts #151, player bars #154. Next: Phase D (lesson action bar + variation chips).
+
+## Build #155 — Phase D slice 1: variation chips (2026-06-12)
+- Both variation pickers (demo end + practice) converted from stacked full-width buttons to horizontal chip scrollers: compact pills, active chip accent-ringed, learned check retained, and the active line's idea shown once beneath the row. Reclaims vertical space for the board. [#155]
+- Phase D remaining: consolidate the practice action rows (Watch again / Try again / Flip / Hints / Guide taps) into one coherent bar.

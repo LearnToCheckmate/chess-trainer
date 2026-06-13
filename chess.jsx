@@ -4174,13 +4174,13 @@ export default function App(){
             {demoPly>=learnLine.length&&LIB[openIdx].vars&&(
               <div style={{width:'100%',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:10,padding:'9px 11px'}}>
                 <div style={{fontSize:'clamp(10px,2.3vw,12px)',color:'var(--ac2)',fontWeight:700,marginBottom:6,textAlign:'center'}}>{learnLabel.includes(' → ')?"♟ See another of White's replies:":"♟ How does White reply? Tap a line to watch it through"}</div>
-                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                <div style={{display:'flex',gap:7,overflowX:'auto',WebkitOverflowScrolling:'touch',paddingBottom:3}}>
                   {LIB[openIdx].vars.map((v,vi)=>{const active=learnLabel.endsWith(v.name);return(
-                    <button key={vi} onClick={()=>pickVariation(v)} style={{textAlign:'left',padding:'8px 10px',borderRadius:7,background:active?'rgba(var(--acr),.2)':'rgba(255,255,255,.06)',border:active?'1px solid rgba(var(--acr),.55)':'1px solid rgba(255,255,255,.14)',color:'#fff',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-                      <div style={{fontSize:'clamp(10px,2.4vw,13px)',fontWeight:700,color:'var(--ac2)'}}>{lineDays(LIB[openIdx].name+'§'+v.name).length>=1?'✓ ':''}{v.name} {active?'• now showing':'→'}</div>
-                      <div style={{fontSize:'clamp(8px,2vw,10px)',color:'rgba(255,255,255,.55)',marginTop:1,lineHeight:1.35}}>{v.idea}</div>
+                    <button key={vi} onClick={()=>pickVariation(v)} style={{flexShrink:0,whiteSpace:'nowrap',textAlign:'center',padding:'8px 13px',borderRadius:18,background:active?'rgba(var(--acr),.22)':'rgba(255,255,255,.06)',border:active?'1px solid var(--ac)':'1px solid rgba(255,255,255,.15)',cursor:'pointer'}}>
+                      <div style={{fontSize:'clamp(10.5px,2.5vw,12.5px)',fontWeight:800,color:active?'var(--ac2)':'rgba(255,255,255,.85)'}}>{lineDays(LIB[openIdx].name+'§'+v.name).length>=1?'✓ ':''}{v.name}</div>
                     </button>);})}
                 </div>
+                {(()=>{const av=LIB[openIdx].vars.find(v=>learnLabel.endsWith(v.name));return av?<div style={{fontSize:'clamp(9px,2.1vw,11px)',color:'rgba(255,255,255,.6)',marginTop:6,lineHeight:1.4,textAlign:'center'}}>{av.idea}</div>:null;})()}
               </div>
             )}
           </>)}
@@ -4204,13 +4204,13 @@ export default function App(){
             {openStep>=learnLine.length&&LIB[openIdx].vars&&(
               <div style={{width:'100%',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:10,padding:'9px 11px'}}>
                 <div style={{fontSize:'clamp(10px,2.3vw,12px)',color:'var(--ac2)',fontWeight:700,marginBottom:6,textAlign:'center'}}>{learnLabel.includes(' → ')?"♟ See another of White's replies:":"♟ How does White reply? Tap a line to watch it through"}</div>
-                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                <div style={{display:'flex',gap:7,overflowX:'auto',WebkitOverflowScrolling:'touch',paddingBottom:3}}>
                   {LIB[openIdx].vars.map((v,vi)=>{const active=learnLabel.endsWith(v.name);return(
-                    <button key={vi} onClick={()=>pickVariation(v)} style={{textAlign:'left',padding:'8px 10px',borderRadius:7,background:active?'rgba(var(--acr),.2)':'rgba(255,255,255,.06)',border:active?'1px solid rgba(var(--acr),.55)':'1px solid rgba(255,255,255,.14)',color:'#fff',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-                      <div style={{fontSize:'clamp(10px,2.4vw,13px)',fontWeight:700,color:'var(--ac2)'}}>{lineDays(LIB[openIdx].name+'§'+v.name).length>=1?'✓ ':''}{v.name} {active?'• now showing':'→'}</div>
-                      <div style={{fontSize:'clamp(8px,2vw,10px)',color:'rgba(255,255,255,.55)',marginTop:1,lineHeight:1.35}}>{v.idea}</div>
+                    <button key={vi} onClick={()=>pickVariation(v)} style={{flexShrink:0,whiteSpace:'nowrap',textAlign:'center',padding:'8px 13px',borderRadius:18,background:active?'rgba(var(--acr),.22)':'rgba(255,255,255,.06)',border:active?'1px solid var(--ac)':'1px solid rgba(255,255,255,.15)',cursor:'pointer'}}>
+                      <div style={{fontSize:'clamp(10.5px,2.5vw,12.5px)',fontWeight:800,color:active?'var(--ac2)':'rgba(255,255,255,.85)'}}>{lineDays(LIB[openIdx].name+'§'+v.name).length>=1?'✓ ':''}{v.name}</div>
                     </button>);})}
                 </div>
+                {(()=>{const av=LIB[openIdx].vars.find(v=>learnLabel.endsWith(v.name));return av?<div style={{fontSize:'clamp(9px,2.1vw,11px)',color:'rgba(255,255,255,.6)',marginTop:6,lineHeight:1.4,textAlign:'center'}}>{av.idea}</div>:null;})()}
               </div>
             )}
             <div style={{alignSelf:'stretch',display:'flex',flexDirection:'column',gap:6}}>
