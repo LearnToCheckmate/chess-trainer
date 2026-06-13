@@ -3568,6 +3568,7 @@ export default function App(){
             </div>
           </div>
           <button onClick={()=>{setFbText('');setFbSent(false);setFbOpen(true);setMenuOpen(false);}} style={{display:'flex',alignItems:'center',gap:9,width:'100%',padding:'10px 12px',borderRadius:11,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',color:'rgba(255,255,255,.85)',fontWeight:600,fontSize:'clamp(11px,2.5vw,13px)',marginTop:10}}>💬 Send feedback</button>
+          <div style={{display:'flex',flexWrap:'wrap',gap:'6px 14px',justifyContent:'center',marginTop:12}}>{[['Privacy','./privacy.html'],['Terms','./terms.html'],['Refunds','./refund.html'],['Delete account','./delete-account.html']].map(([lab,href])=>(<a key={href} href={href} target="_blank" rel="noopener noreferrer" style={{fontSize:'clamp(10px,2.2vw,11.5px)',color:'rgba(255,255,255,.52)',textDecoration:'none'}}>{lab}</a>))}</div>
           {BUILD_INFO&&<div style={{textAlign:'center',fontSize:10,color:'rgba(255,255,255,.32)',letterSpacing:.5,fontFamily:'ui-monospace,Menlo,Consolas,monospace',marginTop:14}}>Build {BUILD_INFO}</div>}
         </div>
       </div>)}

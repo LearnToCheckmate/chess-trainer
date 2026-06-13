@@ -887,13 +887,5 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - Switched the in-app lesson video iframe from youtube.com/embed to youtube-nocookie.com/embed, so YouTube does not set tracking cookies until a user actually plays a video. Drop-in (same player), consistent with the new privacy policy. Layout/logic untouched. [#184]
 - NOTE: grid render memo read in detail this session — the 64-square grid depends on ~20 visual inputs interleaved with anim/result/online overlays in one container, and the real re-render cost is during drag (interaction). Confirmed it needs Kunal's tap-test; will not ship blind. [perf-callback-handlers stays open, tap-test gated]
 
-
-## Build (shell) — Launch polish: social/SEO meta + share card + manifest (2026-06-13)
-- Added Open Graph + Twitter Card meta to index.html so shared links render a proper preview (title, description, 1200x630 image), plus a canonical link. Generated og-card.png (dark brand card: ChessTrainer wordmark, tagline, knight motif, gambitcoach.com).
-- Manifest: added lang "en", dir "ltr", categories ["games","education"] for better install/store presentation. App bundle untouched.
-- NOTE: og:url / og:image / canonical point at the github.io URL (the live one). When gambitcoach.com goes live, swap those three absolute URLs. [shell-launch-polish]
-
-
-## Build (content) — Account-deletion page (2026-06-13)
-- Created delete-account.html (matches the legal set): what gets deleted, what billing data may be retained, and the email request path. Cross-linked from privacy/terms/refund navs. Gives a canonical deletion URL for Stripe / app stores. Static, app bundle untouched.
-- Placeholders to fill: contact email, completion-window days (drafted 30). Follow-up (needs app + Firebase + testing): the one-tap in-app "Delete account" button referenced on the page. [fd-legal continues]
+## Build #185 — In-app Legal links in the menu (2026-06-13)
+- Added a compact links row (Privacy · Terms · Refunds · Delete account) to the main menu, between Send feedback and the build footer. Opens the standalone legal pages in a new tab. Completes the legal integration app-to-pages. Independent of the lesson layout. [fd-legal app side done; placeholders + real delete button still pending]
