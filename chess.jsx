@@ -1770,6 +1770,7 @@ export default function App(){
   const learnKeyRef=useRef('');
   const [celebrate,setCelebrate]=useState(null);
   const [preview,setPreview]=useState(false);
+  const [recCap,setRecCap]=useState(null);
   const [tourOpen,setTourOpen]=useState(false);
   const [tours,setTours]=useState([]);
   const [tourView,setTourView]=useState('list');
@@ -2944,6 +2945,7 @@ export default function App(){
           </div>
         </div>);})()}
       {onlineInfo&&<div style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'linear-gradient(135deg,rgba(110,168,254,.96),rgba(74,120,220,.96))',color:'#0d1626',borderRadius:14,padding:'10px 16px',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,boxShadow:'0 8px 24px rgba(0,0,0,.5)',maxWidth:'92vw',textAlign:'center',animation:'ctDrop .4s cubic-bezier(.2,1.4,.4,1)'}}>{onlineInfo}<style>{'@media (prefers-reduced-motion: no-preference){@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}}'}</style></div>}
+      {recCap&&(<div style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 8px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'rgba(10,12,18,.92)',border:'1px solid rgba(110,168,254,.55)',borderRadius:12,padding:'8px 14px',color:'#cfe0ff',fontSize:13,fontWeight:800,boxShadow:'0 6px 20px rgba(0,0,0,.5)',pointerEvents:'none',whiteSpace:'nowrap',maxWidth:'92vw',overflow:'hidden',textOverflow:'ellipsis'}}>🎬 {recCap.i>0?recCap.i+'/'+recCap.n+' · ':''}{recCap.l}</div>)}
       {!preview&&<button onClick={()=>setPreview(true)} title="Preview gallery (dev)" style={{position:'fixed',left:'calc(env(safe-area-inset-left,0px) + 8px)',bottom:'calc(env(safe-area-inset-bottom,0px) + 8px)',zIndex:9997,width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>🎬</button>}
       {preview&&(()=>{const _ev=LIB.findIndex(o=>o.name&&o.name.indexOf('Evans')>=0);
         const _lesson=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);};
@@ -2968,13 +2970,22 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
-          {l:'Lesson layout (#174): demo phase', n:'Portrait please. The board should sit LOW with the title, notes and move text flowing from the top.', r:()=>_lesson(_it)},
-          {l:'Lesson layout (#174): practice phase', n:'Portrait. Board low; the Your-move picker and action row sit under it. This is the one-button-row question.', r:()=>{setHomeScreen(false);setMode('learn');selectOpening(_it);setTimeout(()=>startPractice(LIB[_it].line,LIB[_it].name),220);}},
-          {l:'#175 memo: self-playing game', n:'Just tap and record. The pieces move on their own through a short game that ends in checkmate. Confirm they animate smoothly, the captured piece shows in the bar, and the end screen appears.', r:_autogame},
+          {l:'Lesson layout (#174): demo phase', n:'Portrait please. The board should sit LOW with the title, notes and move text flowing from the top.', r:()=>_lesson(_it),h:8000},
+          {l:'Lesson layout (#174): practice phase', n:'Portrait. Board low; the Your-move picker and action row sit under it. This is the one-button-row question.', r:()=>{setHomeScreen(false);setMode('learn');selectOpening(_it);setTimeout(()=>startPractice(LIB[_it].line,LIB[_it].name),220);},h:5500},
+          {l:'#175 memo: self-playing game', n:'Just tap and record. The pieces move on their own through a short game that ends in checkmate. Confirm they animate smoothly, the captured piece shows in the bar, and the end screen appears.', r:_autogame,h:11000},
         ];
+        const _runAll=()=>{
+          setPreview(false);const N=SC.length;let i=0;
+          const go=()=>{
+            if(i>=N){setRecCap({i:N,n:N,l:'All done. You can stop recording.'});setTimeout(()=>{setRecCap(null);setPreview(true);},4500);return;}
+            const sc=SC[i];setRecCap({i:i+1,n:N,l:sc.l});sc.r();const hold=sc.h||5000;i++;setTimeout(go,hold);
+          };
+          setRecCap({i:0,n:N,l:'Starting…'});setTimeout(go,1300);
+        };
         return(<div style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(8,10,16,.94)',display:'flex',flexDirection:'column',padding:'calc(env(safe-area-inset-top,0px) + 16px) 16px 16px'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}><div style={{fontSize:16,fontWeight:800,color:'#fff'}}>Preview gallery</div><button onClick={()=>setPreview(false)} style={{width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.06)',color:'#fff',fontSize:16,cursor:'pointer'}}>✕</button></div>
-          <div style={{fontSize:12,color:'rgba(255,255,255,.55)',marginBottom:14,lineHeight:1.4}}>Tap one to jump to that screen, then screen-record or screenshot it for me. This list holds only what I still need. As I confirm screens I remove them, so you never re-shoot the same thing. It grows as I need things.</div>
+          <div style={{fontSize:12,color:'rgba(255,255,255,.55)',marginBottom:14,lineHeight:1.4}}>Tap one to jump to that screen, then screen-record or screenshot it for me. This list holds only what I still need. As I confirm screens I remove them, so you never re-shoot the same thing. It grows as I need things. Or hit Record all up top to run every one back to back in a single recording.</div>
+          {SC.length>1&&<button onClick={_runAll} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,width:'100%',padding:'13px 15px',borderRadius:12,marginBottom:10,background:'linear-gradient(135deg,#6ea8fe,#3b76e8)',border:'none',color:'#0a1020',fontSize:14,fontWeight:800,cursor:'pointer'}}>▶ Record all {SC.length} in one go</button>}
           <div style={{display:'flex',flexDirection:'column',gap:8,overflowY:'auto'}}>{SC.map((x,i)=>(<button key={i} onClick={()=>{setPreview(false);x.r();}} style={{textAlign:'left',padding:'13px 15px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',cursor:'pointer'}}><div style={{fontSize:14,fontWeight:700,color:'#fff'}}>{x.l}</div><div style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:2}}>{x.n}</div></button>))}{SC.length===0&&<div style={{padding:'18px 4px',color:'rgba(255,255,255,.5)',fontSize:13,lineHeight:1.5}}>Nothing needed right now. I will add screens here whenever I need a fresh recording, and remove them once you send them.</div>}</div>
         </div>);})()}
       {celebrate&&(celebrate.kind==='bank'
