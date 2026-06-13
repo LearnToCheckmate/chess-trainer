@@ -879,3 +879,6 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 
 ## Build #182 — Lesson practice: lift video box above board too (finish one-row) (2026-06-13)
 - Completes #181: in practice phase the "Watch it explained" video box now sits above the board alongside the All-openings bar and the plans box, leaving ONLY the action row beneath the board. Board is width-limited (a square well short of the viewport height) so there is ample room; the flex spacer drops the board low. Demo phase untouched (video stays below there). [#182]
+
+## Build #183 — Surface live build number in recordings (2026-06-13)
+- The Play-all caption banner now leads with the live build number (e.g. "🎬 #183 · 2/3 · ..."), and the Preview gallery header shows it too. Every screen recording now self-labels which build it captured, so we never again chase a stale frame from before Pages finished publishing. Board/lesson untouched. [#183]
