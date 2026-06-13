@@ -1290,7 +1290,7 @@ const UNI={w:{k:'♔',q:'♕',r:'♖',b:'♗',n:'♘',p:'♙'},b:{k:'♚',q:'♛
 function Piece({t,color,sz,ghost,useFallback,onFail}){
   const style={width:sz,height:sz,display:'block',opacity:ghost?0.3:1,pointerEvents:'none',flexShrink:0};
   if(useFallback)return(<div style={{...style,display:'flex',alignItems:'center',justifyContent:'center',fontSize:sz*0.72,lineHeight:1,color:color==='w'?'#fff':'#1a1a1a',textShadow:color==='w'?'0 0 2px #000,1px 1px 0 #444,-1px -1px 0 #444':'0 0 2px rgba(255,255,255,.6)'}}>{UNI[color][t]}</div>);
-  return <img src={PIECE_IMG[color+t]} width={sz} height={sz} style={{...style,filter:'var(--pcfilter)'}} onError={onFail} draggable={false} alt=""/>;
+  return <img src={PIECE_IMG[color+t]} width={sz} height={sz} style={{...style,filter:color==='b'?'var(--pcfilter) drop-shadow(0 0 1px rgba(255,255,255,.55)) drop-shadow(0 0 1.5px rgba(255,255,255,.28))':'var(--pcfilter)'}} onError={onFail} draggable={false} alt=""/>;
 }
 function Tab({label,active,onClick}){
   return <button onClick={onClick} style={{flex:1,padding:'8px 4px',border:'none',cursor:'pointer',background:active?'var(--ac)':'transparent',color:active?'#fff':'rgba(255,255,255,.55)',fontSize:'clamp(10px,2.4vw,13px)',fontWeight:active?700:500,borderRadius:6,transition:'all .15s',letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>{label}</button>;
@@ -3689,7 +3689,7 @@ export default function App(){
             <button onClick={()=>setCpuElo(e=>Math.min(ELO_MAX,e+100))} title="Stronger" style={{width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.12)',color:'#fff',fontSize:16,fontWeight:700,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
           </div>
         </div>):(<div style={{fontSize:'clamp(8px,1.85vw,10.5px)',color:'rgba(255,255,255,.58)'}}>{`👤 vs Human${timeCtrl?(' · '+timeCtrl.label):' · no clock'}`}</div>)}
-        {opponent==='computer'&&(<input type="range" min={ELO_MIN} max={ELO_MAX} step={25} value={cpuElo} onChange={e=>setCpuElo(+e.target.value)} title="Fine-tune strength" style={{width:'100%',maxWidth:320,accentColor:TH.accent,cursor:'pointer',margin:'0 0 2px'}}/>)}
+        {opponent==='computer'&&!(playHist.length>0&&!isOver&&!playEnd)&&(<input type="range" min={ELO_MIN} max={ELO_MAX} step={25} value={cpuElo} onChange={e=>setCpuElo(+e.target.value)} title="Fine-tune strength" style={{width:'100%',maxWidth:320,accentColor:TH.accent,cursor:'pointer',margin:'0 0 2px'}}/>)}
         <div style={{display:'flex',gap:8,alignItems:'center',width:'100%'}}>
           <button onClick={takeback} disabled={playHist.length===0} title='Takeback' style={{width:46,height:46,flexShrink:0,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:19,padding:0,background:'rgba(255,255,255,.05)',border:'1.5px solid rgba(255,255,255,.18)',color:'#fff',opacity:playHist.length===0?.35:1,cursor:playHist.length===0?'default':'pointer'}}>↶</button>
           <button onClick={requestHint} title='Hint' style={{width:46,height:46,flexShrink:0,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:19,padding:0,background:'rgba(255,255,255,.05)',border:'1.5px solid rgba(255,255,255,.18)',cursor:'pointer',borderColor:'rgba(var(--acr),.4)',color:'var(--ac2)'}}>💡</button>
@@ -4269,7 +4269,7 @@ export default function App(){
       </div>)}
 
         </>);
-        const evalW=((inReview||(mode==='play'&&opponent==='computer'))&&!hideEval)?24:0;
+        const evalW=0;const _evalOn=((inReview||(mode==='play'&&opponent==='computer'))&&!hideEval);
         const _og=onlineGame; const _cap=capturedList(game.board); const _md=materialDiff(game.board);
         const bottomColor=flip?'b':'w'; const topColor=flip?'w':'b';
         const _isOnlineG=opponent==='online'&&!!_og;
@@ -4284,7 +4284,7 @@ export default function App(){
           let clk=null, ticking=false;
           if(_isOnlineG&&_og.tc&&_og.tc.kind!=='corr'&&_og.tc.init&&_og.clk){ const base=liveNow-(_og.moveAt||liveNow); const rem=Math.max(0,(_og.clk[col]||0)-(col===game.turn?base:0)); clk=clockFmt(rem); ticking=(col===game.turn)&&_og.status==='active'&&!_og.result; }
           else if(!_isOnlineG&&timeCtrl&&timeCtrl.kind!=='corr'&&clock){ clk=clockFmt(clock[col]); ticking=(col===game.turn)&&!(isOver||playEnd); }
-          return(<div style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'4px 9px',background:'rgba(0,0,0,.34)',borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:3}}>
+          return(<div style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'4px 9px',background:'rgba(0,0,0,.34)',borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:3}}>{isTop&&_evalOn&&<span style={{fontFamily:'monospace',fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.14)',color:'#fff'}}>{evalTxt}</span>}
             {av}
             <div style={{minWidth:0,flex:1}}>
               <div style={{fontSize:'clamp(12px,3vw,15px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1.15}}>{name}</div>
@@ -4299,10 +4299,6 @@ export default function App(){
       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',order:wide?0:(pzLow?2:0),marginTop:pzLow&&!wide?10:0}}>
         {_showBars&&pBar(topColor,true)}
         <div style={{display:'flex',alignItems:'flex-start'}}>
-          {(inReview||(mode==='play'&&opponent==='computer'))&&!hideEval&&(<div style={{width:14,height:boardPx,background:'#3a3a3a',borderRadius:3,overflow:'hidden',position:'relative',flexShrink:0,marginRight:4}}>
-            <div style={{position:'absolute',[flip?'top':'bottom']:0,width:'100%',height:`${Math.max(2,Math.min(98,50+Math.max(-10,Math.min(10,evalNow))*5))}%`,background:'#eee',transition:'height .35s'}}/>
-            <div style={{position:'absolute',top:3,left:'50%',transform:'translateX(-50%)',padding:'1px 3px',borderRadius:3,background:'rgba(18,18,22,.82)',fontSize:'clamp(7px,1.55vw,9px)',fontWeight:800,fontFamily:'monospace',color:'#fff',letterSpacing:'-.4px',whiteSpace:'nowrap',lineHeight:1.2}}>{evalTxt}</div>
-          </div>)}
           <div ref={boardRef} onPointerDown={onPtrDown} onPointerMove={onPtrMove} onPointerUp={onPtrUp} onPointerCancel={onPtrCancel}
             style={{display:'grid',gridTemplateColumns:`repeat(8,${SQ}px)`,gridTemplateRows:`repeat(8,${SQ}px)`,width:boardPx,height:boardPx,borderRadius:3,overflow:'hidden',boxShadow:'0 0 0 3px #4a6741, 0 12px 50px rgba(0,0,0,.7)',cursor:dragging?'grabbing':'default',touchAction:'none',position:'relative'}}>
             {dBoard.map((row,rI)=>row.map((piece,cI)=>{
