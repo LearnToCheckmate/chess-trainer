@@ -722,3 +722,6 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 
 ## Build #152 — Phase A: tab buttons normalized (2026-06-12)
 - BOTH tabBtn factories: radius 9 → system 12, padding bumped toward the 44px target. Last verbatim-known radius outliers closed. [#152]
+
+## Review 2 of 8 — Accessibility (2026-06-12)
+- Delivered chess-accessibility-review.html: WCAG contrast math on the real token pairs (faint .45-alpha text passes only as large type), tap-target census (26px icon squares need expanded hit areas), and the two genuine gaps: zero prefers-reduced-motion handling despite the new animations, and no keyboard focus styling. Fix items queued: a11y-motion (respect reduced motion), a11y-focus (focus-visible ring), a11y-hit (expand small icon hit areas), a11y-faint (lift .45 text tier).
