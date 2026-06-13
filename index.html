@@ -81,7 +81,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
       scanBoard:function(img){ return this._scanBoard ? this._scanBoard(img) : Promise.reject(new Error('cloud-not-ready')); },
       nearbyJoin:function(geo,name){ return this._nearbyJoin ? this._nearbyJoin(geo,name) : Promise.reject(new Error('cloud-not-ready')); },
       nearbyLeave:function(){ return this._nearbyLeave ? this._nearbyLeave() : Promise.resolve(); },
-      nearbyList:function(geo,cb){ return this._nearbyList ? this._nearbyList(geo,cb) : function(){}; }
+      nearbyList:function(geo,cb){ return this._nearbyList ? this._nearbyList(geo,cb) : function(){}; },
+      tourCreate:function(d){ return this._tourCreate ? this._tourCreate(d) : Promise.reject(new Error('cloud-not-ready')); },
+      tourList:function(cb){ return this._tourList ? this._tourList(cb) : function(){}; },
+      tourWatch:function(id,cb){ return this._tourWatch ? this._tourWatch(id,cb) : function(){}; },
+      tourJoin:function(id,p){ return this._tourJoin ? this._tourJoin(id,p) : Promise.reject(new Error('cloud-not-ready')); },
+      tourUpdate:function(id,patch){ return this._tourUpdate ? this._tourUpdate(id,patch) : Promise.resolve(); }
     };
   </script>
   <script type="module">
@@ -149,6 +154,14 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
       C._gameWatch = function(id,cb){ if(_gu)_gu(); _gu=onSnapshot(doc(db,'games',id), function(s){ cb(s.exists()?s.data():null); }, function(){ cb(null); }); return _gu; };
       C._gamePush  = function(id,d){ return updateDoc(doc(db,'games',id), Object.assign({}, d, {updatedAt:Date.now()})); };
       C._gameChat  = function(id,m){ return updateDoc(doc(db,'games',id), {chat:arrayUnion(m)}); };
+      // ---- Tournaments (collection "tournaments") ----
+      C._tourCreate = async function(d){ const u=auth.currentUser; if(!u) throw new Error('signin');
+        const now=Date.now(); const data=Object.assign({}, d, {host:u.uid, createdAt:now, updatedAt:now, status:(d&&d.status)||'upcoming'});
+        const ref=await addDoc(collection(db,'tournaments'), data); return ref.id; };
+      C._tourList = function(cb){ if(C._tu){try{C._tu();}catch(e){}} C._tu=onSnapshot(collection(db,'tournaments'), function(s){ const arr=[]; s.forEach(function(d){ const v=d.data(); v.id=d.id; arr.push(v); }); arr.sort(function(a,b){ return (a.startAt||0)-(b.startAt||0); }); cb(arr); }, function(){ cb([]); }); return C._tu; };
+      C._tourWatch = function(id,cb){ return onSnapshot(doc(db,'tournaments',id), function(s){ if(!s.exists()){ cb(null); return; } var v=s.data(); v.id=id; cb(v); }, function(){ cb(null); }); };
+      C._tourJoin = function(id,p){ return updateDoc(doc(db,'tournaments',id), {players:arrayUnion(p), updatedAt:Date.now()}); };
+      C._tourUpdate = function(id,patch){ return updateDoc(doc(db,'tournaments',id), Object.assign({}, patch, {updatedAt:Date.now()})); };
       // ---- Quick match (matchmaking queue in collection "mm") ----
       let _mmu=null;
       function _sameTc(a,b){ const k=function(t){ return t?(t.kind==='corr'?('corr'+t.days):(t.label||'live')):'none'; }; return k(a)===k(b); }

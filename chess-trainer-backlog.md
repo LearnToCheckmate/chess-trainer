@@ -796,3 +796,7 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 ## Build #167 — Gallery cleared + Pro card contradiction fixed (2026-06-12)
 - Preview gallery emptied (chips render below the larger board, off the visible area; the build is confirmed-compiling so trusting it). Placeholder shown; I will repopulate as needed. [#167]
 - PAYWALL FIX [JUDGMENT, flagged for veto]: the account Pro card advertised "Unlimited tactical puzzles" and "Unlimited deep engine analysis" as Pro perks, but code shows isPro only gates the Coach section + Pro board themes, and the home tiles correctly show Puzzles and Review as FREE. Corrected the card to: "Your Coach and full mastery plan", "Every board theme, including Medieval", "Priority access to new features". If Kunal wants to actually gate puzzles/analysis behind Pro (monetization is adjustable), that is a separate gating change + revert of this copy. [#167]
+
+## Build #168 — Tournaments Stage 1a: host cloud methods (2026-06-12)
+- Added CTCloud tournament methods to the host (index.html): tourCreate, tourList (live snapshot of the 'tournaments' collection, sorted by start time), tourWatch, tourJoin (arrayUnion players), tourUpdate. Additive and inert until the front-end calls them; no behavior change yet. [#168]
+- Depends on the Firestore rule for /tournaments (Kunal's one manual step). Next: Stage 1b, the Tournaments screen (list + create + join overlay) in chess.jsx.
