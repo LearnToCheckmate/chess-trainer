@@ -729,3 +729,8 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 ## Build #153 — Accessibility fixes 1+2 (2026-06-12)
 - All four injected animation blocks (celebration banner, overlays, both toasts) wrapped in prefers-reduced-motion no-preference guards; with reduced motion on, elements render static. Pre-existing piece animations remain for a later pass. [#153]
 - Small icon squares grown to real hit sizes: 26px → 32px (slate ⇄/✕) and 24px → 30px (chooser ✕). Remaining a11y queue: focus-visible ring, faint-text rule. [#153]
+
+## Build #154 — Phase C complete (2026-06-12)
+- Queue correction: player bars were ALREADY BUILT in the prior session (pBar: avatar, name, captured pieces with material lead, ticking clock, online + computer + pass-and-play). The stale queue entry is closed.
+- Polish shipped: the active player's whole bar now reads active (accent tint + accent border), bar radius 9 → 12, clock pill 8 → 10. Dead Clk component (zero call sites, superseded by pBar) deleted. [#154]
+- Phase C is COMPLETE: icon strip #149, message toasts #151, player bars #154. Next: Phase D (lesson action bar + variation chips).

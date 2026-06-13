@@ -3810,7 +3810,7 @@ export default function App(){
               const oc=myColor==='w'?'b':'w';const base=liveNow-(og.moveAt||liveNow);
               const remOf=(side)=>Math.max(0,(og.clk[side]||0)-(side===game.turn?base:0));
               const myRem=remOf(myColor),opRem=remOf(oc);const opFlag=opRem<=0&&game.turn===oc;const myFlag=myRem<=0&&game.turn===myColor;
-              const Clk=(label,ms,active)=>(<div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',padding:'8px 6px',borderRadius:11,background:active?'rgba(110,168,254,.16)':'rgba(0,0,0,.22)',border:'1px solid '+(active?'rgba(110,168,254,.45)':'rgba(255,255,255,.1)')}}><span style={{fontSize:'clamp(8.5px,1.9vw,10.5px)',color:'rgba(255,255,255,.6)',fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'}}>{label}</span><span style={{fontFamily:'monospace',fontSize:'clamp(17px,4.6vw,23px)',fontWeight:800,color:ms<=10000?'#ec9a90':(active?'#86d99a':'#fff')}}>{clockFmt(ms)}</span></div>);
+              
               return(<div style={{display:'flex',flexDirection:'column',gap:8}}>{opFlag&&<button onClick={onlineClaimFlag} style={{...btn('rgba(134,217,154,.2)','1px solid rgba(134,217,154,.5)','#86d99a'),width:'100%',minHeight:48,fontSize:'clamp(12.5px,3vw,15px)',fontWeight:800}}>Claim win ({oppName} flagged)</button>}{myFlag&&<div style={{textAlign:'center',fontSize:'clamp(10px,2.3vw,12px)',color:'#ec9a90',fontWeight:700}}>Your flag fell. Waiting for {oppName} to claim.</div>}</div>);
             })()}
             {(()=>{const drawBy=og.drawBy||null;const iOffered=drawBy&&drawBy===myColor;const oppOffered=drawBy&&drawBy!==myColor;
@@ -4282,13 +4282,13 @@ export default function App(){
           let clk=null, ticking=false;
           if(_isOnlineG&&_og.tc&&_og.tc.kind!=='corr'&&_og.tc.init&&_og.clk){ const base=liveNow-(_og.moveAt||liveNow); const rem=Math.max(0,(_og.clk[col]||0)-(col===game.turn?base:0)); clk=clockFmt(rem); ticking=(col===game.turn)&&_og.status==='active'&&!_og.result; }
           else if(!_isOnlineG&&timeCtrl&&timeCtrl.kind!=='corr'&&clock){ clk=clockFmt(clock[col]); ticking=(col===game.turn)&&!(isOver||playEnd); }
-          return(<div style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',background:'rgba(0,0,0,.3)',borderRadius:9,boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:5}}>
+          return(<div style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'6px 9px',background:ticking?'rgba(var(--acr),.10)':'rgba(0,0,0,.3)',border:'1px solid '+(ticking?'rgba(var(--acr),.45)':'rgba(255,255,255,.07)'),borderRadius:12,boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:5}}>
             {av}
             <div style={{minWidth:0,flex:1}}>
               <div style={{fontSize:'clamp(12px,3vw,15px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1.15}}>{name}</div>
               <div style={{display:'flex',alignItems:'center',minHeight:15,flexWrap:'wrap'}}>{taken.map((t,i)=>(<span key={i} style={{marginRight:-4,opacity:.92}}><Piece t={t} color={enemy} sz={15} useFallback={fallback} onFail={()=>setFallback(true)}/></span>))}{lead>0&&<span style={{fontSize:'clamp(9px,2vw,11px)',fontWeight:800,color:'rgba(255,255,255,.65)',marginLeft:6}}>+{lead}</span>}</div>
             </div>
-            {clk!=null&&<div style={{fontFamily:'monospace',fontSize:'clamp(15px,4.2vw,21px)',fontWeight:800,padding:'4px 11px',borderRadius:8,flexShrink:0,background:ticking?'rgba(134,217,154,.18)':'rgba(255,255,255,.06)',border:'1px solid '+(ticking?'rgba(134,217,154,.5)':'rgba(255,255,255,.12)'),color:clk==='0:00'?'#ec9a90':(ticking?'#86d99a':'#fff')}}>{clk}</div>}
+            {clk!=null&&<div style={{fontFamily:'monospace',fontSize:'clamp(15px,4.2vw,21px)',fontWeight:800,padding:'4px 11px',borderRadius:10,flexShrink:0,background:ticking?'rgba(134,217,154,.18)':'rgba(255,255,255,.06)',border:'1px solid '+(ticking?'rgba(134,217,154,.5)':'rgba(255,255,255,.12)'),color:clk==='0:00'?'#ec9a90':(ticking?'#86d99a':'#fff')}}>{clk}</div>}
           </div>);
         };
         const _showBars=mode==='play'&&!(opponent==='online'&&!_og);
