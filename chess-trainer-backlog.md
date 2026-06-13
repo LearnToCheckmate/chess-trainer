@@ -839,3 +839,7 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 
 ## Build #172 — First-run "Start here" path (2026-06-12, from Review 3)
 - Brand-new users (no puzzle XP, no learned openings) now see a prominent accent "New here? Start here -> Learn your first opening" banner above the four home tiles; tapping it drops straight into the first trainable opening lesson. Disappears once any progress exists. Addresses Review 3's #1 funnel gap (guaranteed first win before any choice). [#172]
+
+## Build #173 — Bigger lesson board (2026-06-12, layout vision step 1)
+- The lesson/discover board was capped at 60% of viewport height (play mode gets wh-262, far more). With #171 having cleared the chrome below the board, raised the lesson cap to 66% so the board renders noticeably larger. Safe single-value change; revertable; can push further after Kunal verifies. [#173]
+- STILL QUEUED for a fresh chat (confirmed substantial after inspection this session): full "anchor board to bottom, content flows from top, one button row at bottom" reorder (the board is a SHARED render with mode chrome across ~700 lines — a real restructure); and board memoization (React.memo/useCallback carry silent stale-render risk in the 188-state component and need on-device verification). Build candidates: perf-memo-board, perf-callback-handlers, lesson-board-bottom-anchor.

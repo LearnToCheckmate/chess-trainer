@@ -1971,7 +1971,7 @@ export default function App(){
 
   const RAIL=Math.max(190,Math.min(320,Math.round(vp.w*0.255)));   // comfortable side-rail width, scales with screen
   const wide=vp.w>vp.h&&(vp.w-RAIL-48)>=360;                       // one sidebar + board; board fills the rest
-  const SQ=useMemo(()=>{if(wide){const availH=vp.h-24;const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20;const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,bp/8);}const reserved=4+((inReview||(mode==='play'&&opponent==='computer'))?0:0);const widthCap=vw-reserved;const wh=vp.h;const heightCap=mode==='play'?(wh-262):(wh*0.60-16);const hardCap=mode==='play'?900:820;const bp=Math.floor(Math.min(widthCap,heightCap,hardCap)/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent]);
+  const SQ=useMemo(()=>{if(wide){const availH=vp.h-24;const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20;const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,bp/8);}const reserved=4+((inReview||(mode==='play'&&opponent==='computer'))?0:0);const widthCap=vw-reserved;const wh=vp.h;const heightCap=mode==='play'?(wh-262):(wh*0.66-16);const hardCap=mode==='play'?900:820;const bp=Math.floor(Math.min(widthCap,heightCap,hardCap)/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent]);
   const boardPx=SQ*8;
   const sideW=wide?Math.max(200,Math.min(vp.w-boardPx-20,520)):RAIL;
   // outerRowStyle / sideColStyle are defined after showBoard (they need railed = wide && showBoard)
