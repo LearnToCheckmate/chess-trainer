@@ -698,7 +698,8 @@ Kunal can pre-authorize runs by pasting lines starting with the exact token BUIL
 ### BUILDGO ledger
 - "BUILDGO 10" · build chat · 2026-06-12 ~21:05 EDT · value 10 · remaining 9 · burned: #151
 - "BUILDGO 10" (second paste) · build chat · 2026-06-12 ~21:08 EDT · value 10 · remaining 10 · burned: none yet
-TOTAL REMAINING: 19
+- "BUILDGO 1000" · build chat · 2026-06-12 ~21:10 EDT · value 1000 · standing authorization, countdown kept for the table · remaining 999 · burned: microcopy review
+TOTAL REMAINING: 1018 (19 prior + 999)
 (none yet)
 
 ## Run-table convention (Kunal, 2026-06-12)
@@ -716,3 +717,7 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 
 ## Build #151 — Phase C slice 2: message toasts (2026-06-12)
 - onlineInfo now renders as a floating top toast (blue gradient, drop animation, auto-dismiss 4.5s) at both its surfaces instead of inline text. Burned 1 BUILDGO unit (oldest tank). [#151]
+
+
+## Review 1 of 8 — Microcopy (2026-06-12)
+- Delivered chess-microcopy-review.html: every user-facing string extracted and scored; counts for over-long strings, exclamation budget, lowercase starts, ellipsis inconsistency; term-consistency table; six standing copy rules adopted. Burned 1 unit from the 1000 tank.
