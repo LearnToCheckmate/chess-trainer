@@ -700,3 +700,9 @@ Kunal can pre-authorize runs by pasting lines starting with the exact token BUIL
 
 ## Run-table convention (Kunal, 2026-06-12)
 Every reply that completes one or more runs ends with a table: Fuel (BUILDGO counter value paid, or "msg" when fueled directly by a Kunal message) | Run/build | Started (EDT) | Ended (EDT) | Duration. Times from the sandbox clock and commit timestamps. Sweep 2026-06-12: no BUILDGO lines found anywhere; ledger remains empty.
+
+## Build #149 — Phase C slice 1: the icon strip (2026-06-12)
+- Play bottom controls converted from the 3+2 text grid to the design-doc icon strip: ↶ 💡 ⟳ ⚐ as 46px icon squares (resign in danger tint, disabled states kept) + spacer + one primary New game button. [#149]
+
+### BUILDGO ledger
+- "Buildgo" · build chat · 2026-06-12 ≈21:00 EDT · value 1 · remaining 0 (burned on #149)
