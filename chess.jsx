@@ -2987,9 +2987,7 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
-          {l:'Lesson layout (#174): demo phase', n:'Portrait please. The board should sit LOW with the title, notes and move text flowing from the top.', r:()=>_lesson(_it),h:8000},
-          {l:'Lesson layout (#174): practice phase', n:'Portrait. Board low; the Your-move picker and action row sit under it. This is the one-button-row question.', r:()=>{setHomeScreen(false);setMode('learn');selectOpening(_it);setTimeout(()=>startPractice(LIB[_it].line,LIB[_it].name),220);},h:5500},
-          {l:'#175 memo: self-playing game', n:'Just tap and record. The pieces move on their own through a short game that ends in checkmate. Confirm they animate smoothly, the captured piece shows in the bar, and the end screen appears.', r:_autogame,h:11000},
+          {l:'Lesson layout (#182): practice phase', n:'Portrait. The board should sit LOW. Above it: the All-openings bar, the plans box (What we are trying to do), and the video box. Below it: only the action row (flip, hint, input, Try again, more). The banner should read #186 or higher.', r:()=>{setHomeScreen(false);setMode('learn');selectOpening(_it);setTimeout(()=>startPractice(LIB[_it].line,LIB[_it].name),220);},h:6000},
         ];
         const _runAll=()=>{
           setPreview(false);const N=SC.length;let i=0;

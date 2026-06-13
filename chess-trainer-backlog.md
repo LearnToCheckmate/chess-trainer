@@ -889,3 +889,6 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 
 ## Build #185 — In-app Legal links in the menu (2026-06-13)
 - Added a compact links row (Privacy · Terms · Refunds · Delete account) to the main menu, between Send feedback and the build footer. Opens the standalone legal pages in a new tab. Completes the legal integration app-to-pages. Independent of the lesson layout. [fd-legal app side done; placeholders + real delete button still pending]
+
+## Build #186 — Prune Preview gallery to outstanding only (2026-06-13)
+- Kunal flagged three stale items in the gallery. The gallery does NOT auto-clear; pruning is a manual SC edit + deploy. Removed the two confirmed scenarios (lesson demo phase, #175 self-play memo — both verified clean from the 06-13 13:54 clip) and kept only the practice-phase item, relabeled #182 with the new expected layout (All-openings + plans + video ABOVE the board, single action row below; banner should read #186+). Gallery now shows ONE item. [process: prune gallery as part of each verification going forward]
