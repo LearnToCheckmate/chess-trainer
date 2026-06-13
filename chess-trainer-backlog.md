@@ -781,3 +781,7 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - CONFIRMED working from screenshots: banked-day banner, LEARNED overlay, MASTERED overlay (all render correctly and look right), lesson demo hierarchy, black-piece halo legible. No action needed on those.
 - STILL NEEDED from gallery: item 1 Puzzles map (Phase E target) and item 2 Coach mastery plan (Pro centerpiece) — not yet captured.
 - Minor noted: Home coach card text truncates as "...puzzle goal...." (ellipsis looks broken); queue a coach-tip length fix. _picker gallery item showed the demo auto-playing rather than landing on the variation picker; revisit the fast-forward.
+
+## Build #164 — Home coach card text fix (2026-06-12)
+- The home "Your coach" hook card forced the tip onto one line, chopping sentences into a broken-looking "...puzzle goal....". Now wraps to two lines (line-clamp 2), so the full short tip shows. [#164]
+- Gallery item 3 relabeled to set the right expectation (demo plays, variation chips appear when it finishes). [#164]

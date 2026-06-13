@@ -2879,7 +2879,7 @@ export default function App(){
         const SC=[
           {l:'1 🧩 Puzzles map',n:'the puzzle roadmap (Phase E redesign target)',r:()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},
           {l:'2 🧠 Coach / mastery plan',n:'the Pro coaching slate',r:()=>setCoachOpen(true)},
-          {l:'3 ♞ Lesson variation chips',n:'Evans, jumped to the variation picker',r:()=>_picker(_ev)},
+          {l:'3 ♞ Lesson variation chips',n:'Evans demo plays, chips appear when it ends',r:()=>_picker(_ev)},
           {l:'4 ♟️ Play mid-game',n:'a loaded position: bars, captured pieces, halo',r:()=>_play('r3k2r/pp3ppp/8/8/8/8/PP3PPP/R3K2R w KQkq - 0 1','w')},
           {l:'5 ♚ Checkmate end screen',n:'a finished game: end modal',r:()=>_play('r1bqk2r/pppp1Qpp/2n2n2/2b1p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4','b')},
           {l:'6 🔍 Review screen',n:'game import / eval graph entry',r:()=>{setHomeScreen(false);setMode('analyze');}},
@@ -2935,7 +2935,7 @@ export default function App(){
               <Coach size={46} accent="var(--ac)" style={coachStyle}/>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:'clamp(9px,2.1vw,11px)',color:'var(--ac2)',fontWeight:800,letterSpacing:.5,textTransform:'uppercase'}}>Your coach</div>
-                <div style={{fontSize:'clamp(11.5px,2.6vw,13.5px)',color:'rgba(255,255,255,.9)',fontWeight:600,lineHeight:1.35,marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cn.tip}</div>
+                <div style={{fontSize:'clamp(11.5px,2.6vw,13.5px)',color:'rgba(255,255,255,.9)',fontWeight:600,lineHeight:1.35,marginTop:1,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{cn.tip}</div>
               </div>
               {isPro?<span style={{flexShrink:0,fontSize:22,color:'var(--ac2)',opacity:.7}}>›</span>:<span style={{flexShrink:0,fontSize:'clamp(9px,2vw,11px)',fontWeight:800,color:'#2a2010',background:'#f0d48a',borderRadius:8,padding:'3px 8px',boxShadow:'0 2px 5px rgba(0,0,0,.35)'}}>PRO 🔒</span>}
             </div>);})()}
