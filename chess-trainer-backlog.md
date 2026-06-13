@@ -725,3 +725,7 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 
 ## Review 2 of 8 — Accessibility (2026-06-12)
 - Delivered chess-accessibility-review.html: WCAG contrast math on the real token pairs (faint .45-alpha text passes only as large type), tap-target census (26px icon squares need expanded hit areas), and the two genuine gaps: zero prefers-reduced-motion handling despite the new animations, and no keyboard focus styling. Fix items queued: a11y-motion (respect reduced motion), a11y-focus (focus-visible ring), a11y-hit (expand small icon hit areas), a11y-faint (lift .45 text tier).
+
+## Build #153 — Accessibility fixes 1+2 (2026-06-12)
+- All four injected animation blocks (celebration banner, overlays, both toasts) wrapped in prefers-reduced-motion no-preference guards; with reduced motion on, elements render static. Pre-existing piece animations remain for a later pass. [#153]
+- Small icon squares grown to real hit sizes: 26px → 32px (slate ⇄/✕) and 24px → 30px (chooser ✕). Remaining a11y queue: focus-visible ring, faint-text rule. [#153]
