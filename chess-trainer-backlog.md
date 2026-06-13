@@ -896,3 +896,6 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 ## Build #187 — A11y/security micro-pass (2026-06-13)
 - Audited the whole app: all external links already block tabnabbing, and only ONE icon-only button lacked an accessible name. Added aria-label "Dismiss" to the online-notice ✕, and made the Lichess link rel explicitly noopener noreferrer. App is otherwise clean on these fronts. [a11y/security audit: done, app mature]
 - Honest state note: safe blind-shippable queue is now exhausted. Remaining real progress needs Kunal: layout-verify recording, legal placeholder values, his openings list, board-memo tap-test, or live two-account testing.
+
+## Build #188 — Share button (growth) (2026-06-13)
+- Added "📣 Share Chess Trainer" to the menu (above Send feedback). Uses the native share sheet (navigator.share) on mobile, falls back to copy-link + a toast on desktop. Pairs with the og-card so a shared link renders the brand preview. Additive, no logic touched. [growth]
