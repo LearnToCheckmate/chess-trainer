@@ -737,8 +737,7 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - Radius sweep finished: 39 remaining borderRadius:9 controls normalized to system 12 (judgment: radius-11 rows left, visually identical to 12). Gray pass found no off-token text grays. [#154]
 - Shared keyframes (ctGlow, ctDraw, ctFall, ctPop) staged in index.html behind the reduced-motion guard for Phases D/E.
 
-## Build #156 — Phase D slice 2: practice rows consolidated (2026-06-12)
-- The practice screen's half-empty Flip row merged with the toggles: Flip, Hints, and Guide taps now share one 3-column utility row under [Watch again | Try again]. Two rows instead of three. [#156]
-
-## Build #157 — a11y fix 3: focus ring (2026-06-12)
-- Global focus-visible ring (accent, 2px, offset) for buttons, links, and inputs, injected at the app root. Touch users never see it; keyboard users on iPad finally can navigate visibly. Remaining from the a11y review: the faint-text rule. [#157]
+## Build #155 — Phase D: lesson action bar (2026-06-12)
+- Demo transport rebuilt to the design-doc bar: step-back, one primary Play/Pause (flex), step-forward, and a ghost restart that replays from move one. Judgment flagged: the jump-to-start and jump-to-end buttons were dropped (ghost restart covers the first, repeated step-forward the second); veto restores them. [#155]
+- Practice controls rebuilt: pinned progress dots (one per move in the line, filling as you go), a 46px icon strip (flip, hints, input mode, all with active tinting) around one primary Try again, and a new bottom sheet behind the three-dot button holding Watch the demo again and Play this position vs Computer. [#155]
+- Variation pickers (demo and practice) converted from vertical button lists to horizontal chip scrollers with check states on learned lines and the active line's idea shown as one caption beneath. Picker containers normalized to radius 12. [#155]

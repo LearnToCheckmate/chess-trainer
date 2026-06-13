@@ -1780,6 +1780,7 @@ export default function App(){
   const coachTierRef=useRef(coachTier); coachTierRef.current=coachTier;
   const hintPrefsRef=useRef(null);
   const [learnPhase,setLearnPhase]=useState('demo');
+  const [learnSheet,setLearnSheet]=useState(false);
   const [trainTap,setTrainTap]=useState(()=>{try{return localStorage.getItem('ct_traintap')!=='0';}catch{return true;}});
   const [trainMastery,setTrainMastery]=useState(()=>{try{return JSON.parse(localStorage.getItem('ct_train')||'{}');}catch{return {};}});
   const [learnLine,setLearnLine]=useState([]);
@@ -2867,7 +2868,7 @@ export default function App(){
     return null;})();
 
   return(
-    <div ref={rootRef} style={{'--ac':TH.accent,'--ac2':TH.accent2,'--acr':TH.rgb,'--ok':'#3ecf7a','--gold':'#f0c24d','--warn':'#e0a83a','--bad':'#e85d4a','--r':'12px','--head':headFont,'--pcfilter':SK.pcf||'none',minHeight:'100dvh',width:'100%',maxWidth:'100vw',overflowX:'hidden',background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:railed?'center':'flex-start',paddingTop:wide?'calc(env(safe-area-inset-top,0px) + 6px)':'calc(env(safe-area-inset-top,0px) + 8px)',paddingLeft:'calc(env(safe-area-inset-left,0px) + 3px)',paddingRight:'calc(env(safe-area-inset-right,0px) + 3px)',paddingBottom:wide?6:8,fontFamily:"'Segoe UI',system-ui,sans-serif",userSelect:'none',WebkitUserSelect:'none',color:'#fff',transition:'background .3s'}}><style>{'button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--ac2);outline-offset:2px;border-radius:4px}'}</style>
+    <div ref={rootRef} style={{'--ac':TH.accent,'--ac2':TH.accent2,'--acr':TH.rgb,'--ok':'#3ecf7a','--gold':'#f0c24d','--warn':'#e0a83a','--bad':'#e85d4a','--r':'12px','--head':headFont,'--pcfilter':SK.pcf||'none',minHeight:'100dvh',width:'100%',maxWidth:'100vw',overflowX:'hidden',background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:railed?'center':'flex-start',paddingTop:wide?'calc(env(safe-area-inset-top,0px) + 6px)':'calc(env(safe-area-inset-top,0px) + 8px)',paddingLeft:'calc(env(safe-area-inset-left,0px) + 3px)',paddingRight:'calc(env(safe-area-inset-right,0px) + 3px)',paddingBottom:wide?6:8,fontFamily:"'Segoe UI',system-ui,sans-serif",userSelect:'none',WebkitUserSelect:'none',color:'#fff',transition:'background .3s'}}>
       {celebrate&&(celebrate.kind==='bank'
         ?<div onClick={()=>setCelebrate(null)} style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:'50%',transform:'translateX(-50%)',zIndex:9999,display:'flex',alignItems:'center',gap:10,background:'linear-gradient(135deg,rgba(62,207,122,.96),rgba(40,160,90,.96))',borderRadius:14,padding:'11px 16px',boxShadow:'0 8px 24px rgba(0,0,0,.5)',color:'#06180c',maxWidth:'92vw',animation:'ctDrop .5s cubic-bezier(.2,1.4,.4,1)'}}><span style={{fontSize:20,lineHeight:1}}>✅</span><span style={{minWidth:0}}><b style={{display:'block',fontSize:14,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{celebrate.title}</b><span style={{fontSize:11.5,opacity:.85}}>{celebrate.sub}</span></span><style>{'@media (prefers-reduced-motion: no-preference){@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}@keyframes ctStamp{0%{transform:scale(2.6);opacity:0}70%{transform:scale(.94)}100%{transform:scale(1);opacity:1}}@keyframes ctFall{to{transform:translateY(70vh) rotate(540deg);opacity:0}}}'}</style></div>
         :<div onClick={()=>setCelebrate(null)} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(8,10,16,.78)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
@@ -3483,12 +3484,11 @@ export default function App(){
               : <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{openMsg||`Your move (${LIB[openIdx].side==='w'?'White':'Black'})`}</span>}
           </div>
         )}
-        {learnPhase==='demo'&&(<div style={{margin:'9px auto 0',maxWidth:340,display:'grid',gridTemplateColumns:'0.8fr 0.8fr 1.9fr 0.8fr 0.8fr',gap:5}}>
-          <button onClick={()=>{setDemoPlaying(false);setDemoPly(0);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),padding:'8px 2px',fontSize:'clamp(13px,2.8vw,16px)'}}>⏮</button>
-          <button onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.max(0,p-1));}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),padding:'8px 2px',fontSize:'clamp(13px,2.8vw,16px)'}}>‹</button>
-          <button onClick={()=>{if(demoPly>=learnLine.length){setDemoPly(0);setDemoPlaying(true);}else setDemoPlaying(p=>!p);}} style={{...btn('var(--ac)','none','#fff'),padding:'8px 6px',fontWeight:800}}>{demoPlaying?'⏸ Pause':(demoPly>=learnLine.length?'↻ Replay':'▶ Play')}</button>
-          <button onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.min(learnLine.length,p+1));}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),padding:'8px 2px',fontSize:'clamp(13px,2.8vw,16px)'}}>›</button>
-          <button onClick={()=>{setDemoPlaying(false);setDemoPly(learnLine.length);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),padding:'8px 2px',fontSize:'clamp(13px,2.8vw,16px)'}}>⏭</button>
+        {learnPhase==='demo'&&(<div style={{margin:'9px auto 0',maxWidth:340,display:'flex',gap:6,alignItems:'stretch'}}>
+          <button onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.max(0,p-1));}} aria-label="Step back" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(14px,3vw,17px)'}}>‹</button>
+          <button onClick={()=>{if(demoPly>=learnLine.length){setDemoPly(0);setDemoPlaying(true);}else setDemoPlaying(p=>!p);}} style={{...btn('var(--ac)','none','#fff'),flex:1,padding:'8px 6px',fontWeight:800}}>{demoPlaying?'⏸ Pause':(demoPly>=learnLine.length?'↻ Replay':'▶ Play')}</button>
+          <button onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.min(learnLine.length,p+1));}} aria-label="Step forward" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(14px,3vw,17px)'}}>›</button>
+          <button onClick={()=>{setDemoPly(0);setDemoPlaying(true);}} aria-label="Replay from start" style={{...btn('transparent','1px solid rgba(255,255,255,.28)','rgba(255,255,255,.85)'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(13px,2.8vw,16px)'}}>↻</button>
         </div>)}
       </div>)}
       {railed&&learnPlansBox}
@@ -4172,15 +4172,13 @@ export default function App(){
               <button onClick={()=>setFlip(f=>!f)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⟳ Flip</button>
             </div>
             {demoPly>=learnLine.length&&LIB[openIdx].vars&&(
-              <div style={{width:'100%',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:10,padding:'9px 11px'}}>
+              <div style={{width:'100%',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:12,padding:'9px 11px'}}>
                 <div style={{fontSize:'clamp(10px,2.3vw,12px)',color:'var(--ac2)',fontWeight:700,marginBottom:6,textAlign:'center'}}>{learnLabel.includes(' → ')?"♟ See another of White's replies:":"♟ How does White reply? Tap a line to watch it through"}</div>
-                <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                  {LIB[openIdx].vars.map((v,vi)=>{const active=learnLabel.endsWith(v.name);return(
-                    <button key={vi} onClick={()=>pickVariation(v)} style={{textAlign:'left',padding:'8px 10px',borderRadius:7,background:active?'rgba(var(--acr),.2)':'rgba(255,255,255,.06)',border:active?'1px solid rgba(var(--acr),.55)':'1px solid rgba(255,255,255,.14)',color:'#fff',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-                      <div style={{fontSize:'clamp(10px,2.4vw,13px)',fontWeight:700,color:'var(--ac2)'}}>{lineDays(LIB[openIdx].name+'§'+v.name).length>=1?'✓ ':''}{v.name} {active?'• now showing':'→'}</div>
-                      <div style={{fontSize:'clamp(8px,2vw,10px)',color:'rgba(255,255,255,.55)',marginTop:1,lineHeight:1.35}}>{v.idea}</div>
-                    </button>);})}
+                <div style={{display:'flex',gap:7,overflowX:'auto',WebkitOverflowScrolling:'touch',padding:'2px 1px 6px'}}>
+                  {LIB[openIdx].vars.map((v,vi)=>{const active=learnLabel.endsWith(v.name);const got=lineDays(LIB[openIdx].name+'§'+v.name).length>=1;return(
+                    <button key={vi} onClick={()=>pickVariation(v)} style={{flexShrink:0,padding:'8px 13px',borderRadius:18,whiteSpace:'nowrap',border:active?'1.5px solid var(--ac)':'1px solid rgba(255,255,255,.22)',background:active?'rgba(var(--acr),.22)':'rgba(255,255,255,.06)',color:active?'var(--ac2)':'#fff',fontWeight:800,fontSize:'clamp(10.5px,2.4vw,12.5px)',cursor:'pointer'}}>{got?'✓ ':''}{v.name}</button>);})}
                 </div>
+                {(()=>{const _av=LIB[openIdx].vars.find(v=>learnLabel.endsWith(v.name));return _av&&_av.idea?(<div style={{fontSize:'clamp(8.5px,2vw,10.5px)',color:'rgba(255,255,255,.58)',lineHeight:1.4,marginTop:2}}>{_av.idea}</div>):null;})()}
               </div>
             )}
           </>)}
@@ -4202,28 +4200,32 @@ export default function App(){
               </div>);
             })()}
             {openStep>=learnLine.length&&LIB[openIdx].vars&&(
-              <div style={{width:'100%',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:10,padding:'9px 11px'}}>
+              <div style={{width:'100%',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:12,padding:'9px 11px'}}>
                 <div style={{fontSize:'clamp(10px,2.3vw,12px)',color:'var(--ac2)',fontWeight:700,marginBottom:6,textAlign:'center'}}>{learnLabel.includes(' → ')?"♟ See another of White's replies:":"♟ How does White reply? Tap a line to watch it through"}</div>
-                <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                  {LIB[openIdx].vars.map((v,vi)=>{const active=learnLabel.endsWith(v.name);return(
-                    <button key={vi} onClick={()=>pickVariation(v)} style={{textAlign:'left',padding:'8px 10px',borderRadius:7,background:active?'rgba(var(--acr),.2)':'rgba(255,255,255,.06)',border:active?'1px solid rgba(var(--acr),.55)':'1px solid rgba(255,255,255,.14)',color:'#fff',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-                      <div style={{fontSize:'clamp(10px,2.4vw,13px)',fontWeight:700,color:'var(--ac2)'}}>{lineDays(LIB[openIdx].name+'§'+v.name).length>=1?'✓ ':''}{v.name} {active?'• now showing':'→'}</div>
-                      <div style={{fontSize:'clamp(8px,2vw,10px)',color:'rgba(255,255,255,.55)',marginTop:1,lineHeight:1.35}}>{v.idea}</div>
-                    </button>);})}
+                <div style={{display:'flex',gap:7,overflowX:'auto',WebkitOverflowScrolling:'touch',padding:'2px 1px 6px'}}>
+                  {LIB[openIdx].vars.map((v,vi)=>{const active=learnLabel.endsWith(v.name);const got=lineDays(LIB[openIdx].name+'§'+v.name).length>=1;return(
+                    <button key={vi} onClick={()=>pickVariation(v)} style={{flexShrink:0,padding:'8px 13px',borderRadius:18,whiteSpace:'nowrap',border:active?'1.5px solid var(--ac)':'1px solid rgba(255,255,255,.22)',background:active?'rgba(var(--acr),.22)':'rgba(255,255,255,.06)',color:active?'var(--ac2)':'#fff',fontWeight:800,fontSize:'clamp(10.5px,2.4vw,12.5px)',cursor:'pointer'}}>{got?'✓ ':''}{v.name}</button>);})}
                 </div>
+                {(()=>{const _av=LIB[openIdx].vars.find(v=>learnLabel.endsWith(v.name));return _av&&_av.idea?(<div style={{fontSize:'clamp(8.5px,2vw,10.5px)',color:'rgba(255,255,255,.58)',lineHeight:1.4,marginTop:2}}>{_av.idea}</div>):null;})()}
               </div>
             )}
-            <div style={{alignSelf:'stretch',display:'flex',flexDirection:'column',gap:6}}>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
-                <button onClick={()=>{setLearnPhase('demo');setDemoPly(0);setDemoPlaying(true);setOpenMsg('');setFlip(LIB[openIdx].side==='b');setGame(LIB[openIdx].fen?fromFEN(LIB[openIdx].fen):initGame());setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>▶ Watch again</button>
-                <button onClick={()=>startPractice(learnLine,learnLabel)} style={btn('#4a6741','none','#fff')}>↻ Try again</button>
+            <div style={{alignSelf:'stretch',display:'flex',flexDirection:'column',gap:8}}>
+              <div style={{display:'flex',gap:4,justifyContent:'center',flexWrap:'wrap',padding:'1px 0'}}>{learnLine.map((_,i)=>(<span key={i} style={{width:7,height:7,borderRadius:'50%',background:i<openStep?'var(--ac)':'rgba(255,255,255,.18)',boxShadow:i<openStep?'0 0 5px rgba(var(--acr),.55)':'none',transition:'background .25s'}}/>))}</div>
+              <div style={{display:'flex',gap:6,alignItems:'stretch'}}>
+                <button onClick={()=>setFlip(f=>!f)} aria-label="Flip board" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.4vw,19px)'}}>⟳</button>
+                <button onClick={()=>{const nv=!showHint;setShowHint(nv);setHintFor(LIB[openIdx]?.name,nv);if(nv)setRevealHint(false);}} aria-label="Hints" style={{...btn(showHint?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',showHint?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',showHint?'var(--ac2)':'rgba(255,255,255,.6)'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.4vw,19px)'}}>💡</button>
+                <button onClick={()=>{const nv=!trainTap;if(nv&&!showHint){setShowHint(true);setHintFor(LIB[openIdx]?.name,true);}setTrainTap(nv);}} aria-label="Input mode" style={{...btn(trainTap?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',trainTap?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',trainTap?'var(--ac2)':'rgba(255,255,255,.6)'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.4vw,19px)'}}>{trainTap?'🔤':'✋'}</button>
+                <button onClick={()=>startPractice(learnLine,learnLabel)} style={{...btn('#4a6741','none','#fff'),flex:1,fontWeight:800}}>↻ Try again</button>
+                <button onClick={()=>setLearnSheet(true)} aria-label="More actions" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.4vw,19px)'}}>⋯</button>
               </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6}}>
-                <button onClick={()=>setFlip(f=>!f)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⟳ Flip</button>
-                <button onClick={()=>{const nv=!showHint;setShowHint(nv);setHintFor(LIB[openIdx]?.name,nv);if(nv)setRevealHint(false);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)',showHint?'var(--ac2)':'rgba(255,255,255,.6)'),fontSize:'clamp(11px,2.5vw,13px)'}}>{showHint?'💡 Hints: on':'💡 Hints: off'}</button>
-                <button onClick={()=>{const nv=!trainTap;if(nv&&!showHint){setShowHint(true);setHintFor(LIB[openIdx]?.name,true);}setTrainTap(nv);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)',trainTap?'var(--ac2)':'rgba(255,255,255,.6)'),fontSize:'clamp(11px,2.5vw,13px)'}}>{trainTap?'🔤 Tap moves':'✋ Drag piece'}</button>
-              </div>
-              <button onClick={()=>{const pos=fromFEN(toFEN(boardGame));setMode('play');setOpponent('computer');setPColor(LIB[openIdx].side);setOpenIdx(null);timeCtrlRef.current=null;setTimeCtrl(null);setPlaySetup(false);fullReset(pos);setMenuOpen(false);}} style={{...btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)'),width:'100%'}}>▶ Play vs Computer</button>
+              {learnSheet&&(<div onClick={()=>setLearnSheet(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:9000,display:'flex',alignItems:'flex-end'}}>
+                <div onClick={e=>e.stopPropagation()} style={{width:'100%',background:'#1c2027',borderRadius:'16px 16px 0 0',padding:'13px 14px calc(env(safe-area-inset-bottom,0px) + 14px)',display:'flex',flexDirection:'column',gap:8,boxShadow:'0 -8px 30px rgba(0,0,0,.5)'}}>
+                  <div style={{width:38,height:4,borderRadius:2,background:'rgba(255,255,255,.25)',margin:'0 auto 4px'}}/>
+                  <button onClick={()=>{setLearnSheet(false);setLearnPhase('demo');setDemoPly(0);setDemoPlaying(true);setOpenMsg('');setFlip(LIB[openIdx].side==='b');setGame(LIB[openIdx].fen?fromFEN(LIB[openIdx].fen):initGame());setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%'}}>▶ Watch the demo again</button>
+                  <button onClick={()=>{setLearnSheet(false);const pos=fromFEN(toFEN(boardGame));setMode('play');setOpponent('computer');setPColor(LIB[openIdx].side);setOpenIdx(null);timeCtrlRef.current=null;setTimeCtrl(null);setPlaySetup(false);fullReset(pos);setMenuOpen(false);}} style={{...btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)'),width:'100%'}}>▶ Play this position vs Computer</button>
+                  <button onClick={()=>setLearnSheet(false)} style={{...btn('transparent','1px solid rgba(255,255,255,.22)','rgba(255,255,255,.7)'),width:'100%'}}>Close</button>
+                </div>
+              </div>)}
             </div>
           </>)}
           {!railed&&learnFeedbackBox}
