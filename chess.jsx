@@ -1768,6 +1768,7 @@ export default function App(){
   const learnKeyRef=useRef('');
   const [celebrate,setCelebrate]=useState(null);
   useEffect(()=>{if(celebrate&&celebrate.kind==='bank'){const t=setTimeout(()=>setCelebrate(null),2800);return ()=>clearTimeout(t);}},[celebrate]);
+  useEffect(()=>{if(onlineInfo){const t=setTimeout(()=>setOnlineInfo(''),4500);return ()=>clearTimeout(t);}},[onlineInfo]);
   const [coachTargets,setCoachTargets]=useState(()=>{try{const a=JSON.parse(localStorage.getItem('ct_coachtargets')||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}});
   const coachTargetsRef=useRef(coachTargets); coachTargetsRef.current=coachTargets;
   const hintLockRef=useRef((()=>{try{return JSON.parse(localStorage.getItem('ct_hintlock')||'{}')||{};}catch(e){return {};}})());
@@ -3732,7 +3733,7 @@ export default function App(){
             <input value={onlineCodeInput} onChange={e=>setOnlineCodeInput(e.target.value.toUpperCase())} onKeyDown={e=>{if(e.key==='Enter')onlineJoin();}} placeholder="CODE" maxLength={6} style={{flex:1,minWidth:0,background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.18)',borderRadius:9,padding:'10px 12px',color:'#fff',fontSize:'clamp(13px,3vw,15px)',letterSpacing:3,textAlign:'center',fontWeight:800}}/>
             <button onClick={()=>onlineJoin()} style={{...btn('rgba(110,168,254,.9)','none','#0c1a33'),fontWeight:800}}>Join</button>
           </div>
-          {onlineInfo&&<div style={{fontSize:'clamp(10px,2.2vw,12px)',color:'var(--ac2)'}}>{onlineInfo}</div>}
+          {onlineInfo&&<div style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'linear-gradient(135deg,rgba(110,168,254,.96),rgba(74,120,220,.96))',color:'#0d1626',borderRadius:14,padding:'10px 16px',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,boxShadow:'0 8px 24px rgba(0,0,0,.5)',maxWidth:'92vw',textAlign:'center',animation:'ctDrop .4s cubic-bezier(.2,1.4,.4,1)'}}>{onlineInfo}<style>{'@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}'}</style></div>}
           {onlineErr&&<div style={{fontSize:'clamp(10px,2.2vw,12px)',color:'#f5a3a3'}}>{onlineErr}</div>}
           {(myGamesLoading||(myGames&&myGames.length>0))&&(<div style={{marginTop:4}}>
             <div style={{...lbl,marginBottom:6}}>Your games</div>
@@ -3783,7 +3784,7 @@ export default function App(){
             <button onClick={onlineLeave} style={{...btn('rgba(236,154,144,.14)','1px solid rgba(236,154,144,.4)','#ec9a90'),width:'100%'}}>Cancel</button>
             </div>
             <div style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.45)',textAlign:'center',lineHeight:1.5}}>Your friend taps 🌐 Online → types this code → Join. You’re playing {myColor==='w'?'White':'Black'}.</div>
-            {onlineInfo&&<div style={{fontSize:'clamp(10px,2.2vw,12px)',color:'var(--ac2)',textAlign:'center'}}>{onlineInfo}</div>}
+            {onlineInfo&&<div style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'linear-gradient(135deg,rgba(110,168,254,.96),rgba(74,120,220,.96))',color:'#0d1626',borderRadius:14,padding:'10px 16px',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,boxShadow:'0 8px 24px rgba(0,0,0,.5)',maxWidth:'92vw',textAlign:'center',animation:'ctDrop .4s cubic-bezier(.2,1.4,.4,1)'}}>{onlineInfo}<style>{'@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}'}</style></div>}
           </>):(<>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
               <div style={{minWidth:0}}>

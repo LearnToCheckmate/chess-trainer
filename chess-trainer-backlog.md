@@ -696,7 +696,9 @@ Forgotten-item adds: fd-legal (privacy/terms/account deletion, needed before Str
 Kunal can pre-authorize runs by pasting lines starting with the exact token BUILDGO (optionally followed by instructions) into the feedback chat or ahead of time in the build chat. The build chat must: (1) at the START of every session and (2) AFTER every completed run, conversation_search for "BUILDGO", dedupe against ones already consumed (track consumed ones in this backlog with timestamps), and execute any new ones within the same session before ending the reply. Hard stops only at the session memory edge or a true blocker. Caveats acknowledged: cross-chat search indexing can lag; each new session still requires one message from Kunal in the build chat. COUNTER UPGRADE (Kunal, 2026-06-12): a line "BUILDGO N" is a fuel tank paying for N runs. On first discovery, ledger it below (text, source chat, found-at timestamp, initial N, remaining). Every completed run decrements the ledger and logs the build number it paid for; blocked runs do not decrement. DEDUPE LAW: a ledgered line NEVER refills the tank no matter how many future sweeps find it; only a genuinely new BUILDGO line (different text or clearly later paste) adds fuel, and new fuel stacks onto the remaining total. Plain "BUILDGO" = value 1. The ledger persists across sessions via this file: a new session reads remaining fuel at start and continues burning it. One Kunal message per session is still required to start the session.
 
 ### BUILDGO ledger
-- "BUILDGO 10" · build chat · 2026-06-12 ~21:05 EDT · value 10 · remaining 10 · burned: none yet (ledgered at session memory edge; burn starts next session on Phase C remainder, then D, E, reviews)
+- "BUILDGO 10" · build chat · 2026-06-12 ~21:05 EDT · value 10 · remaining 9 · burned: #151
+- "BUILDGO 10" (second paste) · build chat · 2026-06-12 ~21:08 EDT · value 10 · remaining 10 · burned: none yet
+TOTAL REMAINING: 19
 (none yet)
 
 ## Run-table convention (Kunal, 2026-06-12)
@@ -710,3 +712,7 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 
 ## Build #150 — Housekeeping (2026-06-12)
 - Icon strip duplicate style keys removed; compile is warning-free. Housekeeping: no BUILDGO fuel burned. Sweep at session start: no BUILDGO tank found yet (paste lag possible); ledger empty.
+
+
+## Build #151 — Phase C slice 2: message toasts (2026-06-12)
+- onlineInfo now renders as a floating top toast (blue gradient, drop animation, auto-dismiss 4.5s) at both its surfaces instead of inline text. Burned 1 BUILDGO unit (oldest tank). [#151]
