@@ -2476,7 +2476,7 @@ export default function App(){
     const st0=lessonStats(op);
     const cur=learnProgRef.current[key]||{};
     const days=Array.isArray(cur.days)?cur.days.slice():[];
-    if(rep.hints)return days.length?'':' Hints were on, so this run does not count. Switch hints off and run it flawlessly.';
+    if(rep.hints)return days.length?'':' Nice run with hints on. Hints-off runs are the ones that bank days.';
     if(rep.miss)return days.length?' A wrong try slipped in, so no day banked. Flawless runs only.':' A wrong try slipped in. Learned needs one flawless run: no hints, no wrong tries. You are close.';
     const lockedUntil=(hintLockRef.current&&hintLockRef.current[op.name])||0;
     if(Date.now()<lockedUntil){const mins=Math.max(1,Math.ceil((lockedUntil-Date.now())/60000));return ' Flawless, but hints were on for this lesson in the last 10 minutes. It can bank a day again in about '+mins+' min.';}
@@ -4014,13 +4014,11 @@ export default function App(){
         {openIdx!==null?(
           (()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';const idxs=LIB.map((o,i)=>groupOf(o.cat)===grp?i:-1).filter(i=>i>=0);const pos=idxs.indexOf(openIdx);const hasPrev=pos>0,hasNext=pos<idxs.length-1;
             const nav=(on)=>({...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),opacity:on?1:.35,cursor:on?'pointer':'default'});
-            return(<div style={{alignSelf:'stretch',display:'flex',flexDirection:'column',gap:6}}>
-              <button onClick={()=>setOpenIdx(null)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','rgba(255,255,255,.85)'),width:'100%'}}>‹ All {noun}</button>
-              <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:6}}>
-                <button disabled={!hasPrev} onClick={()=>hasPrev&&selectOpening(idxs[pos-1])} style={nav(hasPrev)}>‹ Prev</button>
-                <span style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.5)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'monospace',padding:'0 8px',whiteSpace:'nowrap'}}>{pos+1} / {idxs.length}</span>
-                <button disabled={!hasNext} onClick={()=>hasNext&&selectOpening(idxs[pos+1])} style={nav(hasNext)}>Next ›</button>
-              </div>
+            return(<div style={{alignSelf:'stretch',display:'flex',gap:6}}>
+              <button onClick={()=>setOpenIdx(null)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','rgba(255,255,255,.85)'),flex:1.3,fontSize:'clamp(10.5px,2.4vw,12.5px)'}}>‹ All {noun}</button>
+              <button disabled={!hasPrev} onClick={()=>hasPrev&&selectOpening(idxs[pos-1])} style={{...nav(hasPrev),width:46,flexShrink:0,padding:0}}>‹</button>
+              <span style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.5)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'monospace',padding:'0 6px',whiteSpace:'nowrap'}}>{pos+1}/{idxs.length}</span>
+              <button disabled={!hasNext} onClick={()=>hasNext&&selectOpening(idxs[pos+1])} style={{...nav(hasNext),width:46,flexShrink:0,padding:0}}>›</button>
             </div>);})()
         ):learnGroup===null?(
           <div style={{width:'100%'}}>
@@ -4212,7 +4210,7 @@ export default function App(){
               </div>
             )}
             <div style={{alignSelf:'stretch',display:'flex',flexDirection:'column',gap:8}}>
-              <div style={{display:'flex',gap:4,justifyContent:'center',flexWrap:'wrap',padding:'1px 0'}}>{learnLine.map((_,i)=>(<span key={i} style={{width:7,height:7,borderRadius:'50%',background:i<openStep?'var(--ac)':'rgba(255,255,255,.18)',boxShadow:i<openStep?'0 0 5px rgba(var(--acr),.55)':'none',transition:'background .25s'}}/>))}</div>
+              <div style={{height:4,borderRadius:2,background:'rgba(255,255,255,.12)',overflow:'hidden'}}><div style={{height:'100%',width:(learnLine.length?Math.round(100*Math.min(openStep,learnLine.length)/learnLine.length):0)+'%',background:'var(--ac)',borderRadius:2,transition:'width .25s'}}/></div>
               <div style={{display:'flex',gap:6,alignItems:'stretch'}}>
                 <button onClick={()=>setFlip(f=>!f)} aria-label="Flip board" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.4vw,19px)'}}>⟳</button>
                 <button onClick={()=>{const nv=!showHint;setShowHint(nv);setHintFor(LIB[openIdx]?.name,nv);if(nv)setRevealHint(false);}} aria-label="Hints" style={{...btn(showHint?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',showHint?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',showHint?'var(--ac2)':'rgba(255,255,255,.6)'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.4vw,19px)'}}>💡</button>

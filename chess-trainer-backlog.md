@@ -761,3 +761,8 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 ## Build #159 — Play screenshot fixes, round 2 (2026-06-12)
 - Board width: the 18px eval reserve in the SQ formula is gone (eval is a bar pill now), so the board grows ~18px wider in computer games on portrait phones. [#159]
 - The Elo stepper pill now hides during active play alongside the slider; the top player bar already names the bot. Both return before move 1 and after the game. [#159]
+
+## Build #160 — Lesson screenshot fixes (2026-06-12)
+- Lesson browser compacted: the full-width All button + Prev/counter/Next grid (two rows) is now one slim row: All {noun} + arrow squares + n/m counter. [#160]
+- The 17-dot per-move strip is now a quiet 4px progress bar that fills through the line. [#160]
+- Hints-on completion copy rewritten: "Nice run with hints on. Hints-off runs are the ones that bank days." replaces the 🎉-then-doesn't-count mixed signal. [#160]
