@@ -4151,7 +4151,7 @@ export default function App(){
         {openIdx!==null?(
           (()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';const idxs=LIB.map((o,i)=>groupOf(o.cat)===grp?i:-1).filter(i=>i>=0);const pos=idxs.indexOf(openIdx);const hasPrev=pos>0,hasNext=pos<idxs.length-1;
             const nav=(on)=>({...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),opacity:on?1:.35,cursor:on?'pointer':'default'});
-            return(<button onClick={()=>setOpenIdx(null)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','rgba(255,255,255,.85)'),alignSelf:'stretch',width:'100%',fontSize:'clamp(11px,2.5vw,13px)'}}>‹ All {noun}</button>);})()
+            return learnPhase==='practice'?null:(<button onClick={()=>setOpenIdx(null)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','rgba(255,255,255,.85)'),alignSelf:'stretch',width:'100%',fontSize:'clamp(11px,2.5vw,13px)'}}>‹ All {noun}</button>);})()
         ):learnGroup===null?(
           <div style={{width:'100%'}}>
             <div style={{textAlign:'center',marginBottom:16}}>
@@ -4361,7 +4361,7 @@ export default function App(){
             </div>
           </>)}
           {null}
-          {!railed&&learnPlansBox}
+          {!railed&&learnPhase!=='practice'&&learnPlansBox}
           {!railed&&learnVideoBox}
         </>)}
       </div>)}
@@ -4493,6 +4493,7 @@ export default function App(){
         ) : (mode==='learn'&&openIdx!==null) ? (
           <div style={{flex:1,alignSelf:'stretch',width:'100%',minHeight:0,display:'flex',flexDirection:'column',alignItems:'center'}}>
             {_blurbs}
+            {learnPhase==='practice'&&(<div style={{width:boardPx,maxWidth:'98vw',display:'flex',flexDirection:'column',gap:9,marginTop:6}}>{(()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';return(<button onClick={()=>setOpenIdx(null)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','rgba(255,255,255,.85)'),width:'100%',fontSize:'clamp(11px,2.5vw,13px)'}}>‹ All {noun}</button>);})()}{learnPlansBox}</div>)}
             <div style={{flex:1,minHeight:10}}/>
             {_board}
             {_controls}
