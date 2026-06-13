@@ -3576,7 +3576,7 @@ export default function App(){
         </div>)}
       </div>)}
       {railed&&learnPlansBox}
-      {railed&&learnFeedbackBox}
+      {null}
       {railed&&learnVideoBox}
       {inReview&&reviewView==='summary'&&review.summary&&(()=>{const S=review.summary;const CATS=[['Brilliant','#22d3ee'],['Great','#7bd3c0'],['Best','#7bd88f'],['Good','#9ccb8f'],['Book','#9aa6b2'],['Inaccuracy','#f0cf5e'],['Miss','#f08a5d'],['Mistake','#f0a24e'],['Blunder','#ec5c4e']];const sides=[['w','White'],['b','Black']];return(
         <div style={{position:'fixed',inset:0,zIndex:500,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`max(24px,env(safe-area-inset-top,0px)) 18px max(20px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
@@ -4097,12 +4097,7 @@ export default function App(){
         {openIdx!==null?(
           (()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';const idxs=LIB.map((o,i)=>groupOf(o.cat)===grp?i:-1).filter(i=>i>=0);const pos=idxs.indexOf(openIdx);const hasPrev=pos>0,hasNext=pos<idxs.length-1;
             const nav=(on)=>({...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),opacity:on?1:.35,cursor:on?'pointer':'default'});
-            return(<div style={{alignSelf:'stretch',display:'flex',gap:6}}>
-              <button onClick={()=>setOpenIdx(null)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','rgba(255,255,255,.85)'),flex:1.3,fontSize:'clamp(10.5px,2.4vw,12.5px)'}}>‹ All {noun}</button>
-              <button disabled={!hasPrev} onClick={()=>hasPrev&&selectOpening(idxs[pos-1])} style={{...nav(hasPrev),width:46,flexShrink:0,padding:0}}>‹</button>
-              <span style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.5)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'monospace',padding:'0 6px',whiteSpace:'nowrap'}}>{pos+1}/{idxs.length}</span>
-              <button disabled={!hasNext} onClick={()=>hasNext&&selectOpening(idxs[pos+1])} style={{...nav(hasNext),width:46,flexShrink:0,padding:0}}>›</button>
-            </div>);})()
+            return(<button onClick={()=>setOpenIdx(null)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','rgba(255,255,255,.85)'),alignSelf:'stretch',width:'100%',fontSize:'clamp(11px,2.5vw,13px)'}}>‹ All {noun}</button>);})()
         ):learnGroup===null?(
           <div style={{width:'100%'}}>
             <div style={{textAlign:'center',marginBottom:16}}>
@@ -4311,7 +4306,7 @@ export default function App(){
               </div>)}
             </div>
           </>)}
-          {!railed&&learnFeedbackBox}
+          {null}
           {!railed&&learnPlansBox}
           {!railed&&learnVideoBox}
         </>)}

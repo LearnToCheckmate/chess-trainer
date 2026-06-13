@@ -810,3 +810,8 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - Pairing algorithms ported and unit-verified in sandbox: round-robin (circle method, every pair once, n-1 rounds), knockout (seeded bracket, byes to top seeds), Swiss round-1 (split-half). [#170]
 - Host-only "Start tournament now" button (needs >=2 players) sets status=live and stores the generated schedule. Detail view renders the schedule/bracket with player names ("A vs B", byes labelled). [#170]
 - Stage 2b (next): wire each pairing to a real online game and report results back; Stage 2c: live standings + advancing rounds (knockout next round, Swiss re-pair by score). Needs the /tournaments Firestore rule + two accounts to test end-to-end.
+
+## Build #171 — Lesson screen declutter (2026-06-12, from screenshot)
+- Removed the "Was this lesson helpful?" thumbs row from the lesson flow (Kunal: shouldn't be on screen during a lesson). The vote helper remains defined; can relocate to the notes panel later if wanted. [#171]
+- Collapsed the gambit nav row (All / prev / counter / next, four elements) into a single full-width "‹ All {noun}" button. Prev/next between gambits removed per Kunal's request (recoverable; lives on the all-gambits list). [#171]
+- Net effect: less below the board, so the board renders larger. JUDGMENT/flagged: full "anchor board to bottom, content flows from top" layout-ordering change deferred as a bigger item; decluttering delivers most of the benefit.
