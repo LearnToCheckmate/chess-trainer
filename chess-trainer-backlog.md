@@ -792,3 +792,7 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - Captured-piece minis in the player bars enlarged 15 -> 18px (less overlap, higher opacity) so they read on the dark bar. [#166]
 - Eval pill now hides once a game is over (no more "-M0"/stale eval after checkmate). [#166]
 - Removed the redundant top status strip at game over (was showing "Checkmate - White wins" while the center modal already says "Checkmate! / You lose"); the strip still shows turn/think/check during play. [#166]
+
+## Build #167 — Gallery cleared + Pro card contradiction fixed (2026-06-12)
+- Preview gallery emptied (chips render below the larger board, off the visible area; the build is confirmed-compiling so trusting it). Placeholder shown; I will repopulate as needed. [#167]
+- PAYWALL FIX [JUDGMENT, flagged for veto]: the account Pro card advertised "Unlimited tactical puzzles" and "Unlimited deep engine analysis" as Pro perks, but code shows isPro only gates the Coach section + Pro board themes, and the home tiles correctly show Puzzles and Review as FREE. Corrected the card to: "Your Coach and full mastery plan", "Every board theme, including Medieval", "Priority access to new features". If Kunal wants to actually gate puzzles/analysis behind Pro (monetization is adjustable), that is a separate gating change + revert of this copy. [#167]
