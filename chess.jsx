@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, memo, useCallback } from "react";
 
 // Build stamp — __BUILD__ is replaced at deploy time (esbuild --define); falls back to 'dev build' in the artifact preview.
 const BUILD_INFO = (typeof __BUILD__ !== "undefined") ? __BUILD__ : null;
@@ -1225,7 +1225,7 @@ function arrowEls(x1,y1,x2,y2,color,SQ,key){
     <polygon points={`${tipx},${tipy} ${bx+px*headW/2},${by+py*headW/2} ${bx-px*headW/2},${by-py*headW/2}`} fill={color} opacity="0.88"/>
   </g>);
 }
-function Arrows({arrows,SQ,flip,boardPx}){
+function _Arrows({arrows,SQ,flip,boardPx}){
   if(!arrows||!arrows.length)return null;
   return(<svg width={boardPx} height={boardPx} style={{position:'absolute',top:0,left:0,pointerEvents:'none',zIndex:4}}>
     {arrows.map((a,i)=>{const[fr,fc]=a.from,[tr,tc]=a.to;const Rf=flip?7-fr:fr,Cf=flip?7-fc:fc,Rt=flip?7-tr:tr,Ct=flip?7-tc:tc;return arrowEls((Cf+0.5)*SQ,(Rf+0.5)*SQ,(Ct+0.5)*SQ,(Rt+0.5)*SQ,a.color||'var(--ac)',SQ,i);})}
@@ -1287,7 +1287,7 @@ const HL_HINT='rgba(255,200,30,.75)', HL_BEST='rgba(110,214,110,.5)';
 const DOT_L='rgba(0,0,0,.18)', DOT_D='rgba(0,0,0,.22)', CAP_C='rgba(0,0,0,.18)';
 const UNI={w:{k:'♔',q:'♕',r:'♖',b:'♗',n:'♘',p:'♙'},b:{k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'}};
 
-function Piece({t,color,sz,ghost,useFallback,onFail}){
+function _Piece({t,color,sz,ghost,useFallback,onFail}){
   const style={width:sz,height:sz,display:'block',opacity:ghost?0.3:1,pointerEvents:'none',flexShrink:0};
   if(useFallback)return(<div style={{...style,display:'flex',alignItems:'center',justifyContent:'center',fontSize:sz*0.72,lineHeight:1,color:color==='w'?'#fff':'#1a1a1a',textShadow:color==='w'?'0 0 2px #000,1px 1px 0 #444,-1px -1px 0 #444':'0 0 2px rgba(255,255,255,.6)'}}>{UNI[color][t]}</div>);
   return <img src={PIECE_IMG[color+t]} width={sz} height={sz} style={{...style,filter:color==='b'?'var(--pcfilter) drop-shadow(0 0 1px rgba(255,255,255,.55)) drop-shadow(0 0 1.5px rgba(255,255,255,.28))':'var(--pcfilter)'}} onError={onFail} draggable={false} alt=""/>;
@@ -1320,7 +1320,7 @@ function EvalGraph({analysis,plies,ply,onJump,width,height}){
 }
 // Premium 3D ivory/gold pawn used in the wordmarks. idp makes the gradient ids unique per instance.
 // Unified line-icon set (monochrome, inherits the accent colour) so icons match every skin instead of clashing as full-colour emoji.
-function AppIcon({name,size=24,color='currentColor',sw=2,style}){
+function _AppIcon({name,size=24,color='currentColor',sw=2,style}){
   const P={
     learn:<><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>,
     puzzle:<path d="M9 3a2 2 0 0 1 4 0c0 .6-.2 1-.5 1.4H15a1 1 0 0 1 1 1v2.1c.4-.3.8-.5 1.4-.5a2 2 0 0 1 0 4c-.6 0-1-.2-1.4-.5V17a1 1 0 0 1-1 1h-2.6c.3-.4.5-.8.5-1.4a2 2 0 0 0-4 0c0 .6.2 1 .5 1.4H6a1 1 0 0 1-1-1v-2.6c-.4.3-.8.5-1.4.5a2 2 0 0 1 0-4c.6 0 1 .2 1.4.5V5.4A1 1 0 0 1 6 4.4h2.5C8.2 4 8 3.6 8 3"/>,
@@ -1332,7 +1332,7 @@ function AppIcon({name,size=24,color='currentColor',sw=2,style}){
   };
   return(<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={style}>{P[name]||null}</svg>);
 }
-function Coach({size=46,accent='var(--ac)',style='comb'}){
+function _Coach({size=46,accent='var(--ac)',style='comb'}){
   const hair=style==='side'?(<path d="M16 25 C15 12 24 8 33 8 C43 8 49 12 48 26 C46 19 41 17 36 17 C38 14 34.5 13 32.5 14.5 C30 12.5 26 13 25 16.5 C22 16 18 19 16 25 Z" fill="#6b4a30"/>)
    :style==='recede'?(<path d="M18 25 C18 13 24 10 32 10 C40 10 46 13 46 25 C45 20 40 18.5 36 18.5 C36 15 33 14 32 15 C31 14 28 15 28 18.5 C24 18.5 19 20 18 25 Z" fill="#5f4128"/>)
    :style==='bald'?(<><path d="M16.5 30 C15.5 21 16.5 16 20 14 C20.5 20 19.5 26 19.5 30 Z" fill="#6b4a30"/><path d="M47.5 30 C48.5 21 47.5 16 44 14 C43.5 20 44.5 26 44.5 30 Z" fill="#6b4a30"/><path d="M19 16 C23 13 41 13 45 16 C40 14.5 24 14.5 19 16 Z" fill="#6b4a30"/></>)
@@ -1359,7 +1359,7 @@ const BOTS=[
 ];
 const botById=(id)=>BOTS.find(b=>b.id===id)||null;
 const botForElo=(e)=>BOTS.find(b=>b.elo===e)||null;
-function BotFace({id,size=46,style}){
+function _BotFace({id,size=46,style}){
   const b=botById(id); if(!b)return null; const ac=b.accent;
   const st={flexShrink:0,filter:'drop-shadow(0 2px 4px rgba(0,0,0,.4))',...(style||{})};
   const shirt=<path d="M10 64 Q10 49 25 45 L39 45 Q54 49 54 64 Z" fill={ac}/>;
@@ -1670,6 +1670,7 @@ const ACHV=[
   {id:'br1',ic:'💎',name:'Brilliant!',desc:'Play a brilliant move in a reviewed game',test:s=>s.bril>=1},
 ];
 
+const Arrows=memo(_Arrows),Piece=memo(_Piece),AppIcon=memo(_AppIcon),Coach=memo(_Coach),BotFace=memo(_BotFace);
 export default function App(){
   const [mode,setMode]=useState('learn');
   const [infoOpen,setInfoOpen]=useState(true);
@@ -1699,6 +1700,7 @@ export default function App(){
   const [flip,setFlip]=useState(false);
   const [lastMv,setLastMv]=useState(null);
   const [fallback,setFallback]=useState(false);
+  const onPieceFail=useCallback(()=>setFallback(true),[]);
 
   // Play
   const [opponent,setOpponent]=useState('computer');
@@ -4365,7 +4367,7 @@ export default function App(){
             {av}
             <div style={{minWidth:0,flex:1}}>
               <div style={{fontSize:'clamp(12px,3vw,15px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1.15}}>{name}</div>
-              <div style={{display:'flex',alignItems:'center',minHeight:18,flexWrap:'wrap'}}>{taken.map((t,i)=>(<span key={i} style={{marginRight:-3,opacity:.95}}><Piece t={t} color={enemy} sz={18} useFallback={fallback} onFail={()=>setFallback(true)}/></span>))}{lead>0&&<span style={{fontSize:'clamp(9px,2vw,11px)',fontWeight:800,color:'rgba(255,255,255,.65)',marginLeft:6}}>+{lead}</span>}</div>
+              <div style={{display:'flex',alignItems:'center',minHeight:18,flexWrap:'wrap'}}>{taken.map((t,i)=>(<span key={i} style={{marginRight:-3,opacity:.95}}><Piece t={t} color={enemy} sz={18} useFallback={fallback} onFail={onPieceFail}/></span>))}{lead>0&&<span style={{fontSize:'clamp(9px,2vw,11px)',fontWeight:800,color:'rgba(255,255,255,.65)',marginLeft:6}}>+{lead}</span>}</div>
             </div>
             {clk!=null&&<div style={{fontFamily:'monospace',fontSize:'clamp(15px,4.2vw,21px)',fontWeight:800,padding:'4px 11px',borderRadius:8,flexShrink:0,background:ticking?'rgba(134,217,154,.18)':'rgba(255,255,255,.06)',border:'1px solid '+(ticking?'rgba(134,217,154,.5)':'rgba(255,255,255,.12)'),color:clk==='0:00'?'#ec9a90':(ticking?'#86d99a':'#fff')}}>{clk}</div>}
           </div>);
@@ -4394,13 +4396,13 @@ export default function App(){
                 {isChk&&<div style={{position:'absolute',inset:0,background:status==='checkmate'?'radial-gradient(circle,rgba(229,57,53,.92),rgba(120,10,10,.82))':HL_CHK,boxShadow:status==='checkmate'?'inset 0 0 0 3px #ff5252':'none',pointerEvents:'none',zIndex:1}}/>}
                 {tgt&&!piece&&<div style={{position:'absolute',width:SQ*.33,height:SQ*.33,borderRadius:'50%',background:isLight?DOT_L:DOT_D,zIndex:2,pointerEvents:'none'}}/>}
                 {tgt&&piece&&<div style={{position:'absolute',inset:0,border:`${SQ*.1}px solid ${CAP_C}`,borderRadius:'50%',zIndex:2,pointerEvents:'none'}}/>}
-                {piece&&!(anim&&anim.to[0]===ar&&anim.to[1]===ac)&&<div style={{position:'relative',zIndex:3}}><Piece t={piece.t} color={piece.c} sz={SQ} ghost={isDragSrc} useFallback={fallback} onFail={()=>setFallback(true)}/></div>}
+                {piece&&!(anim&&anim.to[0]===ar&&anim.to[1]===ac)&&<div style={{position:'relative',zIndex:3}}><Piece t={piece.t} color={piece.c} sz={SQ} ghost={isDragSrc} useFallback={fallback} onFail={onPieceFail}/></div>}
                 {cI===0&&<span style={{position:'absolute',top:1,left:2,fontSize:lab,fontWeight:700,color:cc(isLight),zIndex:2,pointerEvents:'none',lineHeight:1}}>{rankLabels[rI]}</span>}
                 {rI===7&&<span style={{position:'absolute',bottom:1,right:3,fontSize:lab,fontWeight:700,color:cc(isLight),zIndex:2,pointerEvents:'none',lineHeight:1}}>{fileLabels[cI]}</span>}
               </div>);
             }))}
             <Arrows arrows={boardArrows} SQ={SQ} flip={flip} boardPx={boardPx}/>
-            {anim&&anim.piece&&(()=>{const sCol=flip?7-anim.from[1]:anim.from[1],sRow=flip?7-anim.from[0]:anim.from[0],dCol=flip?7-anim.to[1]:anim.to[1],dRow=flip?7-anim.to[0]:anim.to[0];const x=(animTo?dCol:sCol)*SQ,y=(animTo?dRow:sRow)*SQ;return(<div style={{position:'absolute',top:0,left:0,width:SQ,height:SQ,transform:`translate(${x}px,${y}px)`,transition:animTo?'transform .42s ease-in-out':'none',zIndex:5,pointerEvents:'none'}}><Piece t={anim.piece.t} color={anim.piece.c} sz={SQ} useFallback={fallback} onFail={()=>setFallback(true)}/></div>);})()}
+            {anim&&anim.piece&&(()=>{const sCol=flip?7-anim.from[1]:anim.from[1],sRow=flip?7-anim.from[0]:anim.from[0],dCol=flip?7-anim.to[1]:anim.to[1],dRow=flip?7-anim.to[0]:anim.to[0];const x=(animTo?dCol:sCol)*SQ,y=(animTo?dRow:sRow)*SQ;return(<div style={{position:'absolute',top:0,left:0,width:SQ,height:SQ,transform:`translate(${x}px,${y}px)`,transition:animTo?'transform .42s ease-in-out':'none',zIndex:5,pointerEvents:'none'}}><Piece t={anim.piece.t} color={anim.piece.c} sz={SQ} useFallback={fallback} onFail={onPieceFail}/></div>);})()}
             {opponent!=='online'&&gameResult&&(()=>{const ww=_winSide==='w',bw=_winSide==='b';const bg=ww?'linear-gradient(160deg,#ffffff,#dde2e9)':bw?'linear-gradient(160deg,#1b1f2a,#0a0c12)':'rgba(10,12,18,.9)';const bd=ww?'#c6ccd6':bw?'#ffd84d':'rgba(255,255,255,.55)';const hc=ww?'#161922':'#fff';const sc=ww?'#3a4150':bw?'#ffd84d':'rgba(255,255,255,.85)';return(<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none',zIndex:8}}><div style={{background:bg,border:'2px solid '+bd,borderRadius:16,padding:'12px 20px',textAlign:'center',boxShadow:'0 12px 48px rgba(0,0,0,.7)',maxWidth:'86%'}}><div style={{fontSize:'clamp(20px,5.2vw,40px)',fontWeight:800,color:hc,letterSpacing:.5,lineHeight:1.05}}>{gameResult.head}</div><div style={{fontSize:'clamp(11px,2.8vw,18px)',fontWeight:800,color:sc,marginTop:4}}>{gameResult.sub}</div></div></div>);})()}
             {opponent==='online'&&onlineGame&&(()=>{const og=onlineGame;const mn=(og.notice&&og.notice.for===myColor)?og.notice:null;const incDraw=(og.drawBy&&og.drawBy!==myColor&&!og.result);if(!mn||og.result||incDraw)return null;return(<div style={{position:'absolute',top:0,left:0,right:0,display:'flex',justifyContent:'center',padding:8,zIndex:10,pointerEvents:'auto'}}><div onClick={onlineDismissNotice} style={{background:'rgba(236,154,144,.96)',borderRadius:11,padding:'9px 14px',boxShadow:'0 8px 24px rgba(0,0,0,.5)',fontSize:'clamp(12px,2.8vw,14.5px)',fontWeight:800,color:'#2a1410',cursor:'pointer'}}>{mn.msg}　✕</div></div>);})()}
             {opponent==='online'&&onlineGame&&(()=>{const og=onlineGame;const dB=og.drawBy||null;const rB=og.rematchBy||null;
@@ -4447,7 +4449,7 @@ export default function App(){
         ) : (<>{_blurbs}{_board}{_controls}</>);
       })()}
 
-      {drag&&dragging&&(<div style={{position:'fixed',left:drag.x-SQ*.55,top:drag.y-SQ*.55,width:SQ*1.1,height:SQ*1.1,pointerEvents:'none',zIndex:9999,filter:'drop-shadow(0 8px 16px rgba(0,0,0,.6))',transform:'scale(1.12)'}}><Piece t={drag.piece.t} color={drag.piece.c} sz={SQ*1.1} useFallback={fallback} onFail={()=>setFallback(true)}/></div>)}
+      {drag&&dragging&&(<div style={{position:'fixed',left:drag.x-SQ*.55,top:drag.y-SQ*.55,width:SQ*1.1,height:SQ*1.1,pointerEvents:'none',zIndex:9999,filter:'drop-shadow(0 8px 16px rgba(0,0,0,.6))',transform:'scale(1.12)'}}><Piece t={drag.piece.t} color={drag.piece.c} sz={SQ*1.1} useFallback={fallback} onFail={onPieceFail}/></div>)}
     </div>
   );
 }
