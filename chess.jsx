@@ -3975,7 +3975,7 @@ export default function App(){
                 </div>);
               }
               return(<div style={{minHeight:104,display:'flex',flexDirection:'column',justifyContent:'center',gap:8}}>
-                {myNotice&&<div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(236,154,144,.16)',border:'1px solid rgba(236,154,144,.45)',borderRadius:11,padding:'9px 12px'}}><span style={{flex:1,fontSize:'clamp(11.5px,2.6vw,13.5px)',color:'#f0b8a8',fontWeight:800}}>{myNotice.msg}</span><button onClick={onlineDismissNotice} style={{background:'none',border:'none',color:'rgba(255,255,255,.6)',cursor:'pointer',fontSize:16,lineHeight:1,padding:2}}>✕</button></div>}
+                {myNotice&&<div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(236,154,144,.16)',border:'1px solid rgba(236,154,144,.45)',borderRadius:11,padding:'9px 12px'}}><span style={{flex:1,fontSize:'clamp(11.5px,2.6vw,13.5px)',color:'#f0b8a8',fontWeight:800}}>{myNotice.msg}</span><button onClick={onlineDismissNotice} aria-label="Dismiss" style={{background:'none',border:'none',color:'rgba(255,255,255,.6)',cursor:'pointer',fontSize:16,lineHeight:1,padding:2}}>✕</button></div>}
                 {body}
               </div>);
             })()}
@@ -4115,7 +4115,7 @@ export default function App(){
           <button onClick={()=>loadExternal(curPuz)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>↺ Reset</button>
         </div>)}
         <div style={{display:'flex',gap:7,width:'100%',alignItems:'center'}}>
-          {mistakeMode?(<button onClick={exitMistakes} style={navBtn(false)}>‹ Review</button>):(p.url&&(<a href={p.url} target="_blank" rel="noreferrer" style={{...navBtn(false),textDecoration:'none'}}>↗ Lichess</a>))}
+          {mistakeMode?(<button onClick={exitMistakes} style={navBtn(false)}>‹ Review</button>):(p.url&&(<a href={p.url} target="_blank" rel="noopener noreferrer" style={{...navBtn(false),textDecoration:'none'}}>↗ Lichess</a>))}
           <button onClick={nextOnline} style={navBtn(puzSolved)}>{mistakeMode?'Next ›':(pzPack?'Next ›':'New daily ›')}</button>
         </div>
       </div>));})()}
