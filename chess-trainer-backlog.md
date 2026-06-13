@@ -892,3 +892,8 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - Added Open Graph + Twitter Card meta to index.html so shared links render a proper preview (title, description, 1200x630 image), plus a canonical link. Generated og-card.png (dark brand card: ChessTrainer wordmark, tagline, knight motif, gambitcoach.com).
 - Manifest: added lang "en", dir "ltr", categories ["games","education"] for better install/store presentation. App bundle untouched.
 - NOTE: og:url / og:image / canonical point at the github.io URL (the live one). When gambitcoach.com goes live, swap those three absolute URLs. [shell-launch-polish]
+
+
+## Build (content) — Account-deletion page (2026-06-13)
+- Created delete-account.html (matches the legal set): what gets deleted, what billing data may be retained, and the email request path. Cross-linked from privacy/terms/refund navs. Gives a canonical deletion URL for Stripe / app stores. Static, app bundle untouched.
+- Placeholders to fill: contact email, completion-window days (drafted 30). Follow-up (needs app + Firebase + testing): the one-tap in-app "Delete account" button referenced on the page. [fd-legal continues]
