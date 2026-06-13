@@ -787,3 +787,8 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - CONFIRMED from this batch (look right, removed): Puzzles roadmap, Coach mastery plan, Checkmate end modal, Review, Play mid-game (bars + halo), Home, MASTERED, LEARNED, banked banner.
 - BIG FINDING: the Puzzles roadmap ALREADY has the Phase E art (gradient nodes, glowing rings, dotted path, tier icons, progress). Phase E needs no rebuild; design overhaul A-E effectively complete.
 - Minor observations for later: captured-piece minis in player bars are small on the dark bar; checkmate screen shows both a top "Checkmate - White wins" strip and the center "Checkmate! You lose" modal (redundant); eval pill showed "-M0" at mate (cosmetic).
+
+## Build #166 — Player-bar + game-over polish (2026-06-12, from screenshots)
+- Captured-piece minis in the player bars enlarged 15 -> 18px (less overlap, higher opacity) so they read on the dark bar. [#166]
+- Eval pill now hides once a game is over (no more "-M0"/stale eval after checkmate). [#166]
+- Removed the redundant top status strip at game over (was showing "Checkmate - White wins" while the center modal already says "Checkmate! / You lose"); the strip still shows turn/think/check during play. [#166]

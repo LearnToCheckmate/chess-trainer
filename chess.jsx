@@ -3454,7 +3454,7 @@ export default function App(){
       {(()=>{
         const _blurbs=(<>
       {/* Context bars */}
-      {mode==='play'&&(<div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7,minHeight:18}}>
+      {mode==='play'&&!(isOver||playEnd)&&(<div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7,minHeight:18}}>
         <div style={{width:9,height:9,borderRadius:'50%',background:game.turn==='w'?'#fff':'rgba(255,255,255,.2)',boxShadow:game.turn==='w'?'0 0 7px #fff':'none',border:'1.5px solid rgba(255,255,255,.4)'}}/>
         <span style={{fontSize:'clamp(9px,2.2vw,12px)',color:status==='check'||status==='checkmate'?'#ff6b6b':(isOver||playEnd)?'var(--ac)':'rgba(255,255,255,.8)',fontWeight:500}}>{thinking&&!playEnd?'Computer thinking…':((isOver||playEnd||status==='check')?turnTxt:'')}</span>
         <div style={{width:9,height:9,borderRadius:'50%',background:game.turn==='b'?'#333':'rgba(255,255,255,.1)',boxShadow:game.turn==='b'?'0 0 7px rgba(0,0,0,.8)':'none',border:'1.5px solid rgba(255,255,255,.25)'}}/>
@@ -4297,11 +4297,11 @@ export default function App(){
           let clk=null, ticking=false;
           if(_isOnlineG&&_og.tc&&_og.tc.kind!=='corr'&&_og.tc.init&&_og.clk){ const base=liveNow-(_og.moveAt||liveNow); const rem=Math.max(0,(_og.clk[col]||0)-(col===game.turn?base:0)); clk=clockFmt(rem); ticking=(col===game.turn)&&_og.status==='active'&&!_og.result; }
           else if(!_isOnlineG&&timeCtrl&&timeCtrl.kind!=='corr'&&clock){ clk=clockFmt(clock[col]); ticking=(col===game.turn)&&!(isOver||playEnd); }
-          return(<div style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'4px 9px',background:'rgba(0,0,0,.34)',borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:3}}>{isTop&&_evalOn&&<span style={{fontFamily:'monospace',fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.14)',color:'#fff'}}>{evalTxt}</span>}
+          return(<div style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'4px 9px',background:'rgba(0,0,0,.34)',borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:3}}>{isTop&&_evalOn&&!isOver&&!playEnd&&<span style={{fontFamily:'monospace',fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.14)',color:'#fff'}}>{evalTxt}</span>}
             {av}
             <div style={{minWidth:0,flex:1}}>
               <div style={{fontSize:'clamp(12px,3vw,15px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1.15}}>{name}</div>
-              <div style={{display:'flex',alignItems:'center',minHeight:15,flexWrap:'wrap'}}>{taken.map((t,i)=>(<span key={i} style={{marginRight:-4,opacity:.92}}><Piece t={t} color={enemy} sz={15} useFallback={fallback} onFail={()=>setFallback(true)}/></span>))}{lead>0&&<span style={{fontSize:'clamp(9px,2vw,11px)',fontWeight:800,color:'rgba(255,255,255,.65)',marginLeft:6}}>+{lead}</span>}</div>
+              <div style={{display:'flex',alignItems:'center',minHeight:18,flexWrap:'wrap'}}>{taken.map((t,i)=>(<span key={i} style={{marginRight:-3,opacity:.95}}><Piece t={t} color={enemy} sz={18} useFallback={fallback} onFail={()=>setFallback(true)}/></span>))}{lead>0&&<span style={{fontSize:'clamp(9px,2vw,11px)',fontWeight:800,color:'rgba(255,255,255,.65)',marginLeft:6}}>+{lead}</span>}</div>
             </div>
             {clk!=null&&<div style={{fontFamily:'monospace',fontSize:'clamp(15px,4.2vw,21px)',fontWeight:800,padding:'4px 11px',borderRadius:8,flexShrink:0,background:ticking?'rgba(134,217,154,.18)':'rgba(255,255,255,.06)',border:'1px solid '+(ticking?'rgba(134,217,154,.5)':'rgba(255,255,255,.12)'),color:clk==='0:00'?'#ec9a90':(ticking?'#86d99a':'#fff')}}>{clk}</div>}
           </div>);
