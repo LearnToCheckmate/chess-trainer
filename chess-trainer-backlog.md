@@ -682,3 +682,8 @@ Forgotten-item adds: fd-legal (privacy/terms/account deletion, needed before Str
 ## Build #146 — Phase A slice 2 (2026-06-12)
 - Semantic tokens injected at the theme root: --ok, --gold, --warn, --bad, --r. Phases B-E build on these. [#146]
 - Ordering law applied: both rematch prompts now read Decline left, Accept right. Remaining Phase A: gray/radius outliers, draw + practice surface ordering. [#146]
+
+## Build #147 — Phase B: celebration layer (2026-06-12)
+- Banked-day banner: slides from the top on any banked flawless run (and learned-a-line), auto-dismisses in 2.8s, tap to dismiss. [#147]
+- LEARNED overlay (first day on a single-line lesson, or last line of a multi-line lesson) and MASTERED overlay (stamp animation, falling confetti, gold radial, Keep going button). Wired into finishRep's exact success points; painted with the #146 tokens. [#147]
+- Remaining Phase B: sound pairing (pl-sound) and a share card on MASTERED.
