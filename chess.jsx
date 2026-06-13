@@ -2871,7 +2871,8 @@ export default function App(){
 
   return(
     <div ref={rootRef} style={{'--ac':TH.accent,'--ac2':TH.accent2,'--acr':TH.rgb,'--ok':'#3ecf7a','--gold':'#f0c24d','--warn':'#e0a83a','--bad':'#e85d4a','--r':'12px','--head':headFont,'--pcfilter':SK.pcf||'none',minHeight:'100dvh',width:'100%',maxWidth:'100vw',overflowX:'hidden',background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:railed?'center':'flex-start',paddingTop:wide?'calc(env(safe-area-inset-top,0px) + 6px)':'calc(env(safe-area-inset-top,0px) + 8px)',paddingLeft:'calc(env(safe-area-inset-left,0px) + 3px)',paddingRight:'calc(env(safe-area-inset-right,0px) + 3px)',paddingBottom:wide?6:8,fontFamily:"'Segoe UI',system-ui,sans-serif",userSelect:'none',WebkitUserSelect:'none',color:'#fff',transition:'background .3s'}}>
-      {!preview&&homeScreen&&<button onClick={()=>setPreview(true)} title="Preview gallery (dev)" style={{position:'fixed',left:'calc(env(safe-area-inset-left,0px) + 8px)',bottom:'calc(env(safe-area-inset-bottom,0px) + 8px)',zIndex:9997,width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>🎬</button>}
+      {onlineInfo&&<div style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'linear-gradient(135deg,rgba(110,168,254,.96),rgba(74,120,220,.96))',color:'#0d1626',borderRadius:14,padding:'10px 16px',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,boxShadow:'0 8px 24px rgba(0,0,0,.5)',maxWidth:'92vw',textAlign:'center',animation:'ctDrop .4s cubic-bezier(.2,1.4,.4,1)'}}>{onlineInfo}<style>{'@media (prefers-reduced-motion: no-preference){@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}}'}</style></div>}
+      {!preview&&<button onClick={()=>setPreview(true)} title="Preview gallery (dev)" style={{position:'fixed',left:'calc(env(safe-area-inset-left,0px) + 8px)',bottom:'calc(env(safe-area-inset-bottom,0px) + 8px)',zIndex:9997,width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>🎬</button>}
       {preview&&(()=>{const _ev=LIB.findIndex(o=>o.name&&o.name.indexOf('Evans')>=0);
         const _lesson=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);};
         const _picker=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);setTimeout(()=>{setDemoPly((LIB[j].line||[]).length);setDemoPlaying(false);},80);};
@@ -2879,7 +2880,7 @@ export default function App(){
         const SC=[
           {l:'1 🧩 Puzzles map',n:'the puzzle roadmap (Phase E redesign target)',r:()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},
           {l:'2 🧠 Coach / mastery plan',n:'the Pro coaching slate',r:()=>setCoachOpen(true)},
-          {l:'3 ♞ Lesson variation chips',n:'Evans demo plays, chips appear when it ends',r:()=>_picker(_ev)},
+          {l:'3 ♞ Lesson variation chips',n:'Evans, jumped to the variation picker',r:()=>_picker(_ev)},
           {l:'4 ♟️ Play mid-game',n:'a loaded position: bars, captured pieces, halo',r:()=>_play('r3k2r/pp3ppp/8/8/8/8/PP3PPP/R3K2R w KQkq - 0 1','w')},
           {l:'5 ♚ Checkmate end screen',n:'a finished game: end modal',r:()=>_play('r1bqk2r/pppp1Qpp/2n2n2/2b1p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4','b')},
           {l:'6 🔍 Review screen',n:'game import / eval graph entry',r:()=>{setHomeScreen(false);setMode('analyze');}},
@@ -2935,7 +2936,7 @@ export default function App(){
               <Coach size={46} accent="var(--ac)" style={coachStyle}/>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:'clamp(9px,2.1vw,11px)',color:'var(--ac2)',fontWeight:800,letterSpacing:.5,textTransform:'uppercase'}}>Your coach</div>
-                <div style={{fontSize:'clamp(11.5px,2.6vw,13.5px)',color:'rgba(255,255,255,.9)',fontWeight:600,lineHeight:1.35,marginTop:1,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{cn.tip}</div>
+                <div style={{fontSize:'clamp(11.5px,2.6vw,13.5px)',color:'rgba(255,255,255,.9)',fontWeight:600,lineHeight:1.35,marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cn.tip}</div>
               </div>
               {isPro?<span style={{flexShrink:0,fontSize:22,color:'var(--ac2)',opacity:.7}}>›</span>:<span style={{flexShrink:0,fontSize:'clamp(9px,2vw,11px)',fontWeight:800,color:'#2a2010',background:'#f0d48a',borderRadius:8,padding:'3px 8px',boxShadow:'0 2px 5px rgba(0,0,0,.35)'}}>PRO 🔒</span>}
             </div>);})()}
@@ -3758,7 +3759,7 @@ export default function App(){
             <input value={onlineCodeInput} onChange={e=>setOnlineCodeInput(e.target.value.toUpperCase())} onKeyDown={e=>{if(e.key==='Enter')onlineJoin();}} placeholder="CODE" maxLength={6} style={{flex:1,minWidth:0,background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.18)',borderRadius:12,padding:'10px 12px',color:'#fff',fontSize:'clamp(13px,3vw,15px)',letterSpacing:3,textAlign:'center',fontWeight:800}}/>
             <button onClick={()=>onlineJoin()} style={{...btn('rgba(110,168,254,.9)','none','#0c1a33'),fontWeight:800}}>Join</button>
           </div>
-          {onlineInfo&&<div style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'linear-gradient(135deg,rgba(110,168,254,.96),rgba(74,120,220,.96))',color:'#0d1626',borderRadius:14,padding:'10px 16px',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,boxShadow:'0 8px 24px rgba(0,0,0,.5)',maxWidth:'92vw',textAlign:'center',animation:'ctDrop .4s cubic-bezier(.2,1.4,.4,1)'}}>{onlineInfo}<style>{'@media (prefers-reduced-motion: no-preference){@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}}'}</style></div>}
+          
           {onlineErr&&<div style={{fontSize:'clamp(10px,2.2vw,12px)',color:'#f5a3a3'}}>{onlineErr}</div>}
           {(myGamesLoading||(myGames&&myGames.length>0))&&(<div style={{marginTop:4}}>
             <div style={{...lbl,marginBottom:6}}>Your games</div>
@@ -3809,7 +3810,7 @@ export default function App(){
             <button onClick={onlineLeave} style={{...btn('rgba(236,154,144,.14)','1px solid rgba(236,154,144,.4)','#ec9a90'),width:'100%'}}>Cancel</button>
             </div>
             <div style={{fontSize:'clamp(9px,2vw,11px)',color:'rgba(255,255,255,.58)',textAlign:'center',lineHeight:1.5}}>Your friend taps 🌐 Online → types this code → Join. You’re playing {myColor==='w'?'White':'Black'}.</div>
-            {onlineInfo&&<div style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'linear-gradient(135deg,rgba(110,168,254,.96),rgba(74,120,220,.96))',color:'#0d1626',borderRadius:14,padding:'10px 16px',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,boxShadow:'0 8px 24px rgba(0,0,0,.5)',maxWidth:'92vw',textAlign:'center',animation:'ctDrop .4s cubic-bezier(.2,1.4,.4,1)'}}>{onlineInfo}<style>{'@media (prefers-reduced-motion: no-preference){@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}}'}</style></div>}
+            
           </>):(<>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
               <div style={{minWidth:0}}>
