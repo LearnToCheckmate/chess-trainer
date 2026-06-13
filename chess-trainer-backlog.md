@@ -883,8 +883,6 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 ## Build #183 — Surface live build number in recordings (2026-06-13)
 - The Play-all caption banner now leads with the live build number (e.g. "🎬 #183 · 2/3 · ..."), and the Preview gallery header shows it too. Every screen recording now self-labels which build it captured, so we never again chase a stale frame from before Pages finished publishing. Board/lesson untouched. [#183]
 
-
-## Build (content) — Legal pages drafted: privacy / terms / refund (2026-06-13)
-- Created standalone privacy.html, terms.html, refund.html at the repo root (theme-matched, mobile-friendly, cross-linked). These are the URLs Stripe needs before going live (and useful for any app store later). App bundle untouched, so no risk to the unverified lesson-layout stack.
-- Drafts for Kunal to review: each has highlighted [placeholders] he must fill (contact email, operator name, governing-law jurisdiction, children's age threshold, refund window). Plain-language starting point, not legal advice; recommend a quick professional review before relying on them.
-- Pending follow-up (needs app bundle change, do after layout verified): add a "Legal" links row in the app menu pointing to ./privacy.html, ./terms.html, ./refund.html. [fd-legal]
+## Build #184 — Privacy: YouTube embeds use youtube-nocookie (2026-06-13)
+- Switched the in-app lesson video iframe from youtube.com/embed to youtube-nocookie.com/embed, so YouTube does not set tracking cookies until a user actually plays a video. Drop-in (same player), consistent with the new privacy policy. Layout/logic untouched. [#184]
+- NOTE: grid render memo read in detail this session — the 64-square grid depends on ~20 visual inputs interleaved with anim/result/online overlays in one container, and the real re-render cost is during drag (interaction). Confirmed it needs Kunal's tap-test; will not ship blind. [perf-callback-handlers stays open, tap-test gated]
