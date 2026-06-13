@@ -886,3 +886,9 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 ## Build #184 — Privacy: YouTube embeds use youtube-nocookie (2026-06-13)
 - Switched the in-app lesson video iframe from youtube.com/embed to youtube-nocookie.com/embed, so YouTube does not set tracking cookies until a user actually plays a video. Drop-in (same player), consistent with the new privacy policy. Layout/logic untouched. [#184]
 - NOTE: grid render memo read in detail this session — the 64-square grid depends on ~20 visual inputs interleaved with anim/result/online overlays in one container, and the real re-render cost is during drag (interaction). Confirmed it needs Kunal's tap-test; will not ship blind. [perf-callback-handlers stays open, tap-test gated]
+
+
+## Build (shell) — Launch polish: social/SEO meta + share card + manifest (2026-06-13)
+- Added Open Graph + Twitter Card meta to index.html so shared links render a proper preview (title, description, 1200x630 image), plus a canonical link. Generated og-card.png (dark brand card: ChessTrainer wordmark, tagline, knight motif, gambitcoach.com).
+- Manifest: added lang "en", dir "ltr", categories ["games","education"] for better install/store presentation. App bundle untouched.
+- NOTE: og:url / og:image / canonical point at the github.io URL (the live one). When gambitcoach.com goes live, swap those three absolute URLs. [shell-launch-polish]
