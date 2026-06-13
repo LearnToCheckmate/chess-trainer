@@ -2949,11 +2949,28 @@ export default function App(){
         const _lesson=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);};
         const _picker=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);setDemoPlaying(false);setTimeout(()=>{setDemoPlaying(false);setDemoPly((LIB[j].line||[]).length);},200);};
         const _play=(fen,col)=>{setHomeScreen(false);setOpenIdx(null);setOpponent('computer');setPColor(col);setTimeCtrl(null);timeCtrlRef.current=null;setPlaySetup(false);setMode('play');fullReset(fromFEN(fen));};
+        const _autogame=()=>{
+          setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setMode('play');setOpponent('demo');setPColor('w');setTimeCtrl(null);timeCtrlRef.current=null;setFlip(false);
+          fullReset(initGame());
+          const SCRIPT=['e4','e5','Bc4','Nc6','Qh5','Nf6','Qxf7'];
+          let g=initGame(),i=0;
+          const stepFn=()=>{
+            if(i>=SCRIPT.length)return;
+            const mv=findMoveBySAN(g,SCRIPT[i]);if(!mv)return;
+            const ng=makeMove(g,mv);const pc=ng.board[mv.tr][mv.tc];
+            setGame(ng);setLastMv(mv);
+            setAnim({piece:pc,from:[mv.fr,mv.fc],to:[mv.tr,mv.tc]});setAnimTo(false);
+            requestAnimationFrame(()=>requestAnimationFrame(()=>setAnimTo(true)));
+            setTimeout(()=>setAnim(null),520);
+            g=ng;i++;setTimeout(stepFn,1150);
+          };
+          setTimeout(stepFn,750);
+        };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
           {l:'Lesson layout (#174): demo phase', n:'Portrait please. The board should sit LOW with the title, notes and move text flowing from the top.', r:()=>_lesson(_it)},
           {l:'Lesson layout (#174): practice phase', n:'Portrait. Board low; the Your-move picker and action row sit under it. This is the one-button-row question.', r:()=>{setHomeScreen(false);setMode('learn');selectOpening(_it);setTimeout(()=>startPractice(LIB[_it].line,LIB[_it].name),220);}},
-          {l:'#175 memo: quick game', n:'Drag and tap a few pieces; confirm they still move and animate (pure-component memo regression check).', r:()=>_play('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','w')},
+          {l:'#175 memo: self-playing game', n:'Just tap and record. The pieces move on their own through a short game that ends in checkmate. Confirm they animate smoothly, the captured piece shows in the bar, and the end screen appears.', r:_autogame},
         ];
         return(<div style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(8,10,16,.94)',display:'flex',flexDirection:'column',padding:'calc(env(safe-area-inset-top,0px) + 16px) 16px 16px'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}><div style={{fontSize:16,fontWeight:800,color:'#fff'}}>Preview gallery</div><button onClick={()=>setPreview(false)} style={{width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.06)',color:'#fff',fontSize:16,cursor:'pointer'}}>✕</button></div>
