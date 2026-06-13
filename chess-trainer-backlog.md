@@ -697,3 +697,6 @@ Kunal can pre-authorize runs by pasting lines starting with the exact token BUIL
 
 ### BUILDGO ledger
 (none yet)
+
+## Run-table convention (Kunal, 2026-06-12)
+Every reply that completes one or more runs ends with a table: Fuel (BUILDGO counter value paid, or "msg" when fueled directly by a Kunal message) | Run/build | Started (EDT) | Ended (EDT) | Duration. Times from the sandbox clock and commit timestamps. Sweep 2026-06-12: no BUILDGO lines found anywhere; ledger remains empty.
