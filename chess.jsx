@@ -2872,13 +2872,22 @@ export default function App(){
   return(
     <div ref={rootRef} style={{'--ac':TH.accent,'--ac2':TH.accent2,'--acr':TH.rgb,'--ok':'#3ecf7a','--gold':'#f0c24d','--warn':'#e0a83a','--bad':'#e85d4a','--r':'12px','--head':headFont,'--pcfilter':SK.pcf||'none',minHeight:'100dvh',width:'100%',maxWidth:'100vw',overflowX:'hidden',background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:railed?'center':'flex-start',paddingTop:wide?'calc(env(safe-area-inset-top,0px) + 6px)':'calc(env(safe-area-inset-top,0px) + 8px)',paddingLeft:'calc(env(safe-area-inset-left,0px) + 3px)',paddingRight:'calc(env(safe-area-inset-right,0px) + 3px)',paddingBottom:wide?6:8,fontFamily:"'Segoe UI',system-ui,sans-serif",userSelect:'none',WebkitUserSelect:'none',color:'#fff',transition:'background .3s'}}>
       {!preview&&<button onClick={()=>setPreview(true)} title="Preview gallery (dev)" style={{position:'fixed',left:'calc(env(safe-area-inset-left,0px) + 8px)',bottom:'calc(env(safe-area-inset-bottom,0px) + 8px)',zIndex:9997,width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>🎬</button>}
-      {preview&&(()=>{const _ev=LIB.findIndex(o=>o.name&&o.name.indexOf('Evans')>=0);const _open=(i)=>{setPreview(false);setHomeScreen(false);setMode('learn');selectOpening(i>=0?i:0);};
+      {preview&&(()=>{const _ev=LIB.findIndex(o=>o.name&&o.name.indexOf('Evans')>=0);
+        const _lesson=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);};
+        const _picker=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);setTimeout(()=>{setDemoPly((LIB[j].line||[]).length);setDemoPlaying(false);},80);};
+        const _play=(fen,col)=>{setHomeScreen(false);setOpenIdx(null);setOpponent('computer');setPColor(col);setTimeCtrl(null);timeCtrlRef.current=null;setPlaySetup(false);setMode('play');fullReset(fromFEN(fen));};
         const SC=[
-          {l:'🏅 MASTERED celebration',n:'full overlay, confetti',r:()=>setCelebrate({kind:'mastered',title:'Evans Gambit',sub:'10 flawless days · every line learned'})},
-          {l:'✓ LEARNED celebration',n:'full overlay',r:()=>setCelebrate({kind:'learned',title:'Evans Gambit',sub:'Day 1 of 10 to Mastered'})},
-          {l:'✅ Banked-day banner',n:'top drop banner',r:()=>setCelebrate({kind:'bank',title:'Day 3 banked · flawless',sub:'Evans Gambit · 7 to Mastered'})},
-          {l:'🔔 Online toast',n:'top blue toast',r:()=>setOnlineInfo('Friend request sent to Kunal2023')},
-          {l:'♞ Open a lesson (Evans)',n:'demo, tap through to variations',r:()=>_open(_ev)},
+          {l:'1 🧩 Puzzles map',n:'the puzzle roadmap (Phase E redesign target)',r:()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},
+          {l:'2 🧠 Coach / mastery plan',n:'the Pro coaching slate',r:()=>setCoachOpen(true)},
+          {l:'3 ♞ Lesson variation chips',n:'Evans, jumped to the variation picker',r:()=>_picker(_ev)},
+          {l:'4 ♟️ Play mid-game',n:'a loaded position: bars, captured pieces, halo',r:()=>_play('r3k2r/pp3ppp/8/8/8/8/PP3PPP/R3K2R w KQkq - 0 1','w')},
+          {l:'5 ♚ Checkmate end screen',n:'a finished game: end modal',r:()=>_play('r1bqk2r/pppp1Qpp/2n2n2/2b1p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4','b')},
+          {l:'6 🔍 Review screen',n:'game import / eval graph entry',r:()=>{setHomeScreen(false);setMode('analyze');}},
+          {l:'7 🏠 Home screen',n:'the main menu',r:()=>setHomeScreen(true)},
+          {l:'8 🏅 MASTERED celebration',n:'full overlay, confetti',r:()=>setCelebrate({kind:'mastered',title:'Evans Gambit',sub:'10 flawless days · every line learned'})},
+          {l:'9 ✓ LEARNED celebration',n:'full overlay',r:()=>setCelebrate({kind:'learned',title:'Evans Gambit',sub:'Day 1 of 10 to Mastered'})},
+          {l:'10 ✅ Banked-day banner',n:'top drop banner',r:()=>setCelebrate({kind:'bank',title:'Day 3 banked · flawless',sub:'Evans Gambit · 7 to Mastered'})},
+          {l:'11 🔔 Online toast',n:'top blue toast',r:()=>setOnlineInfo('Friend request sent to Kunal2023')},
         ];
         return(<div style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(8,10,16,.94)',display:'flex',flexDirection:'column',padding:'calc(env(safe-area-inset-top,0px) + 16px) 16px 16px'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}><div style={{fontSize:16,fontWeight:800,color:'#fff'}}>Preview gallery</div><button onClick={()=>setPreview(false)} style={{width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.06)',color:'#fff',fontSize:16,cursor:'pointer'}}>✕</button></div>

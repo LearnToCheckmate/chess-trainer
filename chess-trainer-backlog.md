@@ -771,3 +771,7 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - A discreet film-clapper button (fixed bottom-left) opens a "Preview gallery": canned app states that jump straight to that screen so Kunal can record/screenshot without playing through. v1: MASTERED / LEARNED / banked-day celebrations, online toast, open Evans lesson. [#161]
 - Data-driven SC array = the recording backlog; each future build appends states I need eyes on. Addable: checkmate end modal, online clocks, puzzle solved, lesson phases.
 - When the app nears real users, hide the gallery behind a build flag. [tracked]
+
+## Build #162 — Preview gallery populated, prioritized (2026-06-12)
+- Gallery now has 11 scenarios in priority order for top-down recording: (1) Puzzles map [Phase E target], (2) Coach mastery plan, (3) Lesson variation chips at the picker, (4) Play mid-game (loaded FEN: bars + captured pieces + halo), (5) Checkmate end screen (loaded mate FEN), (6) Review, (7) Home, (8) MASTERED, (9) LEARNED, (10) banked banner, (11) online toast. [#162]
+- New helpers: _lesson, _picker (selectOpening then fast-forward demoPly to show variation chips), _play (fullReset(fromFEN()) to load a real position). Items 1-7 are the unseen screens I most need before the next builds; 8-11 verify the blind-built overlays.
