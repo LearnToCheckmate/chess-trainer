@@ -766,3 +766,8 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - Lesson browser compacted: the full-width All button + Prev/counter/Next grid (two rows) is now one slim row: All {noun} + arrow squares + n/m counter. [#160]
 - The 17-dot per-move strip is now a quiet 4px progress bar that fills through the line. [#160]
 - Hints-on completion copy rewritten: "Nice run with hints on. Hints-off runs are the ones that bank days." replaces the 🎉-then-doesn't-count mixed signal. [#160]
+
+## Build #161 — Preview gallery, a capture tool (Kunal idea, 2026-06-12)
+- A discreet film-clapper button (fixed bottom-left) opens a "Preview gallery": canned app states that jump straight to that screen so Kunal can record/screenshot without playing through. v1: MASTERED / LEARNED / banked-day celebrations, online toast, open Evans lesson. [#161]
+- Data-driven SC array = the recording backlog; each future build appends states I need eyes on. Addable: checkmate end modal, online clocks, puzzle solved, lesson phases.
+- When the app nears real users, hide the gallery behind a build flag. [tracked]

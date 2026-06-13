@@ -1767,6 +1767,7 @@ export default function App(){
   const learnRepRef=useRef({hints:false,miss:false});
   const learnKeyRef=useRef('');
   const [celebrate,setCelebrate]=useState(null);
+  const [preview,setPreview]=useState(false);
   useEffect(()=>{if(celebrate&&celebrate.kind==='bank'){const t=setTimeout(()=>setCelebrate(null),2800);return ()=>clearTimeout(t);}},[celebrate]);
   useEffect(()=>{if(onlineInfo){const t=setTimeout(()=>setOnlineInfo(''),4500);return ()=>clearTimeout(t);}},[onlineInfo]);
   const [coachTargets,setCoachTargets]=useState(()=>{try{const a=JSON.parse(localStorage.getItem('ct_coachtargets')||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}});
@@ -2870,6 +2871,20 @@ export default function App(){
 
   return(
     <div ref={rootRef} style={{'--ac':TH.accent,'--ac2':TH.accent2,'--acr':TH.rgb,'--ok':'#3ecf7a','--gold':'#f0c24d','--warn':'#e0a83a','--bad':'#e85d4a','--r':'12px','--head':headFont,'--pcfilter':SK.pcf||'none',minHeight:'100dvh',width:'100%',maxWidth:'100vw',overflowX:'hidden',background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:railed?'center':'flex-start',paddingTop:wide?'calc(env(safe-area-inset-top,0px) + 6px)':'calc(env(safe-area-inset-top,0px) + 8px)',paddingLeft:'calc(env(safe-area-inset-left,0px) + 3px)',paddingRight:'calc(env(safe-area-inset-right,0px) + 3px)',paddingBottom:wide?6:8,fontFamily:"'Segoe UI',system-ui,sans-serif",userSelect:'none',WebkitUserSelect:'none',color:'#fff',transition:'background .3s'}}>
+      {!preview&&<button onClick={()=>setPreview(true)} title="Preview gallery (dev)" style={{position:'fixed',left:'calc(env(safe-area-inset-left,0px) + 8px)',bottom:'calc(env(safe-area-inset-bottom,0px) + 8px)',zIndex:9997,width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>🎬</button>}
+      {preview&&(()=>{const _ev=LIB.findIndex(o=>o.name&&o.name.indexOf('Evans')>=0);const _open=(i)=>{setPreview(false);setHomeScreen(false);setMode('learn');selectOpening(i>=0?i:0);};
+        const SC=[
+          {l:'🏅 MASTERED celebration',n:'full overlay, confetti',r:()=>setCelebrate({kind:'mastered',title:'Evans Gambit',sub:'10 flawless days · every line learned'})},
+          {l:'✓ LEARNED celebration',n:'full overlay',r:()=>setCelebrate({kind:'learned',title:'Evans Gambit',sub:'Day 1 of 10 to Mastered'})},
+          {l:'✅ Banked-day banner',n:'top drop banner',r:()=>setCelebrate({kind:'bank',title:'Day 3 banked · flawless',sub:'Evans Gambit · 7 to Mastered'})},
+          {l:'🔔 Online toast',n:'top blue toast',r:()=>setOnlineInfo('Friend request sent to Kunal2023')},
+          {l:'♞ Open a lesson (Evans)',n:'demo, tap through to variations',r:()=>_open(_ev)},
+        ];
+        return(<div style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(8,10,16,.94)',display:'flex',flexDirection:'column',padding:'calc(env(safe-area-inset-top,0px) + 16px) 16px 16px'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}><div style={{fontSize:16,fontWeight:800,color:'#fff'}}>Preview gallery</div><button onClick={()=>setPreview(false)} style={{width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.06)',color:'#fff',fontSize:16,cursor:'pointer'}}>✕</button></div>
+          <div style={{fontSize:12,color:'rgba(255,255,255,.55)',marginBottom:14,lineHeight:1.4}}>Tap one to jump to that screen, then screen-record or screenshot it for me. This list is our recording backlog and grows as I need things.</div>
+          <div style={{display:'flex',flexDirection:'column',gap:8,overflowY:'auto'}}>{SC.map((x,i)=>(<button key={i} onClick={()=>{setPreview(false);x.r();}} style={{textAlign:'left',padding:'13px 15px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',cursor:'pointer'}}><div style={{fontSize:14,fontWeight:700,color:'#fff'}}>{x.l}</div><div style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:2}}>{x.n}</div></button>))}</div>
+        </div>);})()}
       {celebrate&&(celebrate.kind==='bank'
         ?<div onClick={()=>setCelebrate(null)} style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:'50%',transform:'translateX(-50%)',zIndex:9999,display:'flex',alignItems:'center',gap:10,background:'linear-gradient(135deg,rgba(62,207,122,.96),rgba(40,160,90,.96))',borderRadius:14,padding:'11px 16px',boxShadow:'0 8px 24px rgba(0,0,0,.5)',color:'#06180c',maxWidth:'92vw',animation:'ctDrop .5s cubic-bezier(.2,1.4,.4,1)'}}><span style={{fontSize:20,lineHeight:1}}>✅</span><span style={{minWidth:0}}><b style={{display:'block',fontSize:14,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{celebrate.title}</b><span style={{fontSize:11.5,opacity:.85}}>{celebrate.sub}</span></span><style>{'@media (prefers-reduced-motion: no-preference){@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}@keyframes ctStamp{0%{transform:scale(2.6);opacity:0}70%{transform:scale(.94)}100%{transform:scale(1);opacity:1}}@keyframes ctFall{to{transform:translateY(70vh) rotate(540deg);opacity:0}}}'}</style></div>
         :<div onClick={()=>setCelebrate(null)} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(8,10,16,.78)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
