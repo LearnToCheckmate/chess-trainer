@@ -4362,7 +4362,7 @@ export default function App(){
           </>)}
           {null}
           {!railed&&learnPhase!=='practice'&&learnPlansBox}
-          {!railed&&learnVideoBox}
+          {!railed&&learnPhase!=='practice'&&learnVideoBox}
         </>)}
       </div>)}
 
@@ -4493,7 +4493,7 @@ export default function App(){
         ) : (mode==='learn'&&openIdx!==null) ? (
           <div style={{flex:1,alignSelf:'stretch',width:'100%',minHeight:0,display:'flex',flexDirection:'column',alignItems:'center'}}>
             {_blurbs}
-            {learnPhase==='practice'&&(<div style={{width:boardPx,maxWidth:'98vw',display:'flex',flexDirection:'column',gap:9,marginTop:6}}>{(()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';return(<button onClick={()=>setOpenIdx(null)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','rgba(255,255,255,.85)'),width:'100%',fontSize:'clamp(11px,2.5vw,13px)'}}>‹ All {noun}</button>);})()}{learnPlansBox}</div>)}
+            {learnPhase==='practice'&&(<div style={{width:boardPx,maxWidth:'98vw',display:'flex',flexDirection:'column',gap:9,marginTop:6}}>{(()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';return(<button onClick={()=>setOpenIdx(null)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','rgba(255,255,255,.85)'),width:'100%',fontSize:'clamp(11px,2.5vw,13px)'}}>‹ All {noun}</button>);})()}{learnPlansBox}{learnVideoBox}</div>)}
             <div style={{flex:1,minHeight:10}}/>
             {_board}
             {_controls}
