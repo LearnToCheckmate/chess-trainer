@@ -687,3 +687,7 @@ Forgotten-item adds: fd-legal (privacy/terms/account deletion, needed before Str
 - Banked-day banner: slides from the top on any banked flawless run (and learned-a-line), auto-dismisses in 2.8s, tap to dismiss. [#147]
 - LEARNED overlay (first day on a single-line lesson, or last line of a multi-line lesson) and MASTERED overlay (stamp animation, falling confetti, gold radial, Keep going button). Wired into finishRep's exact success points; painted with the #146 tokens. [#147]
 - Remaining Phase B: sound pairing (pl-sound) and a share card on MASTERED.
+
+## Build #148 — Phase A slice 3 + new operating mode (2026-06-12)
+- Ordering law on both draw prompts: Decline left, Accept right, matching the rematch prompts. [#148]
+- OPERATING MODE CHANGE (Kunal): every message now triggers the longest safe run, phases chained back to back; stop only when blocked or done. Next message launches Phases C+D+E (Play re-chrome, lesson action bar, puzzles art) as one continuous run, folding in the remaining gray/radius outlier sweep.

@@ -3824,7 +3824,7 @@ export default function App(){
                 else if(iReq)body=(<div style={{display:'flex',flexDirection:'column',gap:8}}><button disabled style={{...cb(cG),opacity:.6,cursor:'default'}}>🔄 Rematch offered…</button><div style={g2}><button onClick={onlineCancelRematch} style={cb(cG)}>Cancel</button><button onClick={onlineLeave} style={cb(cV)}>← Leave</button></div></div>);
                 else body=(<div style={{display:'flex',flexDirection:'column',gap:8}}><button onClick={onlineOfferRematch} style={acc}>🔄 Rematch</button><div style={g2}><button onClick={()=>setFlip(f=>!f)} style={cb(cV)}>⟳ Flip</button><button onClick={onlineLeave} style={cb(cG)}>← Leave</button></div>{cloudUser&&(()=>{const ou=(myColor==='w'?(og.b&&og.b.uid):(og.w&&og.w.uid));const on2=(myColor==='w'?(og.b&&og.b.name):(og.w&&og.w.name))||'opponent';const isF=ou&&(friendsData.friends||[]).some(function(f){return f.uid===ou;});if(!ou||isF)return null;return(<button onClick={async()=>{try{await window.CTCloud.friendRequest(ou,on2);setOnlineInfo("Friend request sent to "+on2+".");}catch(e){const m=e&&e.message;setOnlineInfo(m==='pending'?("Request already sent to "+on2+"."):m==='already'?"Already friends.":"Could not send the request.");}}} style={cb(cG)}>➕ Add {on2} as friend</button>);})()}</div>);
               } else if(oppOffered){
-                body=(<div style={{display:'flex',flexDirection:'column',gap:8}}>{banner('🤝 '+oppName+' offers a draw')}<div style={g2}><button onClick={onlineAcceptDraw} style={acc}>Accept ½–½</button><button onClick={onlineDeclineDraw} style={cb(cG)}>Decline</button></div></div>);
+                body=(<div style={{display:'flex',flexDirection:'column',gap:8}}>{banner('🤝 '+oppName+' offers a draw')}<div style={g2}><button onClick={onlineDeclineDraw} style={cb(cG)}>Decline</button><button onClick={onlineAcceptDraw} style={acc}>Accept ½–½</button></div></div>);
               } else if(confirmResign){
                 body=(<div style={{display:'flex',flexDirection:'column',gap:8}}><div style={{textAlign:'center',fontSize:'clamp(12px,2.8vw,14.5px)',color:'#ec9a90',fontWeight:800}}>Resign this game?</div><div style={g2}><button onClick={()=>{onlineResign();setConfirmResign(false);}} style={cb(cR)}>Yes, resign</button><button onClick={()=>setConfirmResign(false)} style={cb(cG)}>Keep playing</button></div></div>);
               } else {
@@ -4335,7 +4335,7 @@ export default function App(){
                 return(<div style={{position:'absolute',top:0,left:0,right:0,display:'flex',justifyContent:'center',padding:8,zIndex:9,pointerEvents:'auto'}}>
                   <div style={{background:'rgba(10,12,18,.95)',border:'1px solid rgba(110,168,254,.5)',borderRadius:12,padding:'10px 14px',boxShadow:'0 8px 28px rgba(0,0,0,.6)',display:'flex',flexDirection:'column',gap:8,alignItems:'center',maxWidth:'94%'}}>
                     <div style={{fontSize:'clamp(12px,2.8vw,15px)',fontWeight:800,color:'#cfe0ff'}}>🤝 {oppName} offers a draw</div>
-                    <div style={{display:'flex',gap:8}}><button onClick={onlineAcceptDraw} style={oBtn}>Accept ½–½</button><button onClick={onlineDeclineDraw} style={gBtn}>Decline</button></div>
+                    <div style={{display:'flex',gap:8}}><button onClick={onlineDeclineDraw} style={gBtn}>Decline</button><button onClick={onlineAcceptDraw} style={oBtn}>Accept ½–½</button></div>
                   </div></div>);
               }
               const meWon=(og.result==='1-0'&&myColor==='w')||(og.result==='0-1'&&myColor==='b');const isDraw=og.result==='1/2-1/2';
