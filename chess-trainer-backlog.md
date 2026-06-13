@@ -752,3 +752,12 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - Solving a puzzle fires a falling confetti burst (fourteen pieces, emoji set 🎉✨⭐🟡, 1.2s) over the browse view, and a combo counter (🔥 N in a row, at 2+) rides the status line using the existing streak state. [#156]
 - Judgment calls flagged for veto: burst palette is the four-emoji set, progress ring thickness is 4px. Phase E and the A-E design program are complete; next per the approved order is Review 3 of 8 (first-session funnel). [#156]
 - Housekeeping: chess-tracker.template.html is now committed to the repo (it previously lived only in the sandbox and was lost between chats); gen_tracker.py reads the repo copy first with the old path as fallback. [#156]
+
+## Review 3 of 8 delivered — first-session funnel (2026-06-12)
+- Deliverable: chess-funnel-review.html. Method: static code trace of the cold open at build #156, tap-counted. Headline: puzzles-in-two-taps is the activation path; nothing on Home points at it; sign-in is invisible until a gate slams.
+- New Open items from the review (in:2026-06-12, funnel review):
+- [ ] fn-signin: quiet "Sign in" pill on the Home top bar when signed out, and every "Sign in first — open ☰ menu → Account" gate becomes a button that opens the Account sheet directly. (F2, high)
+- [ ] fn-sample-review: "See a sample review" link under the Review import field loading one embedded short PGN into the eval graph, so the tile pays off with zero accounts. (F3, med)
+- [ ] fn-quickplay: primary "Quick play" button atop Play setup (White, 10 min, computer at saved Elo) above the full option grid. (F4, med)
+- [ ] fn-a2hs: one-time dismissible toast after the first completed activity teaching iOS Add to Home Screen; suppressed for the sign-in-loop case. (F5, med)
+- Folded into existing items rather than new ones: first-run shape of the Today card → hm-today (F1); activation counters first_puzzle_solved / first_lesson_demo_done / first_game_finished → fd-errlog (F7).
