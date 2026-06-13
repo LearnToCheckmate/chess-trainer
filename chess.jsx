@@ -2,6 +2,8 @@ import { useState, useMemo, useRef, useEffect, memo, useCallback } from "react";
 
 // Build stamp — __BUILD__ is replaced at deploy time (esbuild --define); falls back to 'dev build' in the artifact preview.
 const BUILD_INFO = (typeof __BUILD__ !== "undefined") ? __BUILD__ : null;
+// Telemetry relay URL (a Cloud Function that forwards reports to a GitHub repo Claude can read). Empty = autonomous send off; the in-app copy-to-clipboard still works.
+const LOG_ENDPOINT = "";
 
 // Embedded piece graphics (cburnett set)
 const PIECE_IMG = {
@@ -1771,6 +1773,19 @@ export default function App(){
   const [celebrate,setCelebrate]=useState(null);
   const [preview,setPreview]=useState(false);
   const [recCap,setRecCap]=useState(null);
+  const [diagMsg,setDiagMsg]=useState("");
+  const errLogRef=useRef([]);
+  const diagRef=useRef({});
+  const postReport=(kind,payload)=>{if(!LOG_ENDPOINT)return;try{fetch(LOG_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,t:Date.now(),build:BUILD_INFO,...payload})}).catch(()=>{});}catch(e){}};
+  const collectDiagnostics=()=>{let d={...diagRef.current};try{d.ua=navigator.userAgent;d.innerW=window.innerWidth;d.innerH=window.innerHeight;d.scrollH=document.documentElement.scrollHeight;d.overflow=document.documentElement.scrollHeight>window.innerHeight+4;}catch(e){}d.errs=errLogRef.current.slice(-10);return JSON.stringify(d,null,2);};
+  useEffect(()=>{
+    const push=(o)=>{const a=errLogRef.current;a.push(o);if(a.length>20)a.shift();return o;};
+    const onErr=(e)=>{try{postReport('error',push({t:Date.now(),msg:String((e&&e.message)||'error').slice(0,200),src:String((e&&e.filename)||'').slice(-60),line:e&&e.lineno,col:e&&e.colno,stack:String((e&&e.error&&e.error.stack)||'').slice(0,500),screen:diagRef.current.screen||'',build:BUILD_INFO}));}catch(_){}};
+    const onRej=(e)=>{try{const r=e&&e.reason;postReport('error',push({t:Date.now(),msg:String((r&&r.message)||r||'unhandledrejection').slice(0,200),stack:String((r&&r.stack)||'').slice(0,500),screen:diagRef.current.screen||'',build:BUILD_INFO}));}catch(_){}};
+    window.addEventListener('error',onErr);window.addEventListener('unhandledrejection',onRej);
+    if(LOG_ENDPOINT)setTimeout(()=>{try{postReport('open',JSON.parse(collectDiagnostics()));}catch(_){}},1500);
+    return ()=>{window.removeEventListener('error',onErr);window.removeEventListener('unhandledrejection',onRej);};
+  },[]);
   const [tourOpen,setTourOpen]=useState(false);
   const [tours,setTours]=useState([]);
   const [tourView,setTourView]=useState('list');
@@ -2791,6 +2806,7 @@ export default function App(){
 
   const showBoard=mode==='play'||(mode==='puzzle'&&(pzView==='browse'||(pzView==='online'&&!!(curPuz&&curPuz.ext))))||(mode==='learn'&&openIdx!==null)||inReview;
   const railed=wide&&showBoard;   // only use the board+rails layout when a board is actually shown
+  diagRef.current={build:BUILD_INFO,mode,screen:homeScreen?'home':(playSetup?'play-setup':mode),openIdx,opp:opponent,phase:learnPhase,vw,vh:vp.h,dpr:(typeof window!=='undefined'?window.devicePixelRatio:1),wide,railed,boardPx,SQ};
   const hb=vp.w>=720;             // tablet-sized screen: scale the Home screen up to use the real estate
   const hLand=vp.w>vp.h&&vp.w>=720;   // landscape Home on a roomy screen: tiles in one row, compact intro
   const hbig=hb&&!hLand;              // tablet PORTRAIT Home: scale up (landscape stays compact to fit the short height)
@@ -2946,6 +2962,7 @@ export default function App(){
         </div>);})()}
       {onlineInfo&&<div style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'linear-gradient(135deg,rgba(110,168,254,.96),rgba(74,120,220,.96))',color:'#0d1626',borderRadius:14,padding:'10px 16px',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,boxShadow:'0 8px 24px rgba(0,0,0,.5)',maxWidth:'92vw',textAlign:'center',animation:'ctDrop .4s cubic-bezier(.2,1.4,.4,1)'}}>{onlineInfo}<style>{'@media (prefers-reduced-motion: no-preference){@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}}'}</style></div>}
       {recCap&&(<div style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 8px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'rgba(10,12,18,.92)',border:'1px solid rgba(110,168,254,.55)',borderRadius:12,padding:'8px 14px',color:'#cfe0ff',fontSize:13,fontWeight:800,boxShadow:'0 6px 20px rgba(0,0,0,.5)',pointerEvents:'none',whiteSpace:'nowrap',maxWidth:'92vw',overflow:'hidden',textOverflow:'ellipsis'}}>🎬 {recCap.i>0?recCap.i+'/'+recCap.n+' · ':''}{recCap.l}</div>)}
+      {diagMsg&&(<div style={{position:'fixed',bottom:'calc(env(safe-area-inset-bottom,0px) + 54px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'rgba(10,12,18,.95)',border:'1px solid rgba(110,168,254,.55)',borderRadius:12,padding:'10px 16px',color:'#cfe0ff',fontSize:13,fontWeight:700,boxShadow:'0 6px 20px rgba(0,0,0,.5)',pointerEvents:'none',maxWidth:'90vw',textAlign:'center'}}>🩺 {diagMsg}</div>)}
       {!preview&&<button onClick={()=>setPreview(true)} title="Preview gallery (dev)" style={{position:'fixed',left:'calc(env(safe-area-inset-left,0px) + 8px)',bottom:'calc(env(safe-area-inset-bottom,0px) + 8px)',zIndex:9997,width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>🎬</button>}
       {preview&&(()=>{const _ev=LIB.findIndex(o=>o.name&&o.name.indexOf('Evans')>=0);
         const _lesson=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);};
@@ -2986,6 +3003,7 @@ export default function App(){
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}><div style={{fontSize:16,fontWeight:800,color:'#fff'}}>Preview gallery</div><button onClick={()=>setPreview(false)} style={{width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.06)',color:'#fff',fontSize:16,cursor:'pointer'}}>✕</button></div>
           <div style={{fontSize:12,color:'rgba(255,255,255,.55)',marginBottom:14,lineHeight:1.4}}>Tap one to jump to that screen, then screen-record or screenshot it for me. This list holds only what I still need. As I confirm screens I remove them, so you never re-shoot the same thing. It grows as I need things. Or, to catch them in one clip: start your iPhone screen recording first (Control Center), THEN tap Play all up top and let it run.</div>
           {SC.length>1&&<button onClick={_runAll} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,width:'100%',padding:'13px 15px',borderRadius:12,marginBottom:10,background:'linear-gradient(135deg,#6ea8fe,#3b76e8)',border:'none',color:'#0a1020',fontSize:14,fontWeight:800,cursor:'pointer'}}>▶ Play all {SC.length} (you screen-record)</button>}
+          <button onClick={()=>{const j=collectDiagnostics();let ok=false;try{navigator.clipboard.writeText(j);ok=true;}catch(e){}if(!ok){try{const ta=document.createElement('textarea');ta.value=j;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();document.execCommand('copy');document.body.removeChild(ta);ok=true;}catch(_){}}try{postReport('diag',JSON.parse(j));}catch(_){}setPreview(false);setDiagMsg(LOG_ENDPOINT?('Sent to Claude'+(ok?' and copied':'')):(ok?'Copied. Paste it to Claude here.':'Could not copy. Screenshot this instead.'));setTimeout(()=>setDiagMsg(''),5000);}} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,width:'100%',padding:'12px 15px',borderRadius:12,marginBottom:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'#cfe0ff',fontSize:13,fontWeight:700,cursor:'pointer'}}>🩺 Send Claude a diagnostics report</button>
           <div style={{display:'flex',flexDirection:'column',gap:8,overflowY:'auto'}}>{SC.map((x,i)=>(<button key={i} onClick={()=>{setPreview(false);x.r();}} style={{textAlign:'left',padding:'13px 15px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',cursor:'pointer'}}><div style={{fontSize:14,fontWeight:700,color:'#fff'}}>{x.l}</div><div style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:2}}>{x.n}</div></button>))}{SC.length===0&&<div style={{padding:'18px 4px',color:'rgba(255,255,255,.5)',fontSize:13,lineHeight:1.5}}>Nothing needed right now. I will add screens here whenever I need a fresh recording, and remove them once you send them.</div>}</div>
         </div>);})()}
       {celebrate&&(celebrate.kind==='bank'
