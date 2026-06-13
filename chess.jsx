@@ -4218,10 +4218,8 @@ export default function App(){
                 <button onClick={()=>{setLearnPhase('demo');setDemoPly(0);setDemoPlaying(true);setOpenMsg('');setFlip(LIB[openIdx].side==='b');setGame(LIB[openIdx].fen?fromFEN(LIB[openIdx].fen):initGame());setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>▶ Watch again</button>
                 <button onClick={()=>startPractice(learnLine,learnLabel)} style={btn('#4a6741','none','#fff')}>↻ Try again</button>
               </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6}}>
                 <button onClick={()=>setFlip(f=>!f)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⟳ Flip</button>
-              </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
                 <button onClick={()=>{const nv=!showHint;setShowHint(nv);setHintFor(LIB[openIdx]?.name,nv);if(nv)setRevealHint(false);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)',showHint?'var(--ac2)':'rgba(255,255,255,.6)'),fontSize:'clamp(11px,2.5vw,13px)'}}>{showHint?'💡 Hints: on':'💡 Hints: off'}</button>
                 <button onClick={()=>{const nv=!trainTap;if(nv&&!showHint){setShowHint(true);setHintFor(LIB[openIdx]?.name,true);}setTrainTap(nv);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)',trainTap?'var(--ac2)':'rgba(255,255,255,.6)'),fontSize:'clamp(11px,2.5vw,13px)'}}>{trainTap?'🔤 Tap moves':'✋ Drag piece'}</button>
               </div>

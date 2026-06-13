@@ -736,3 +736,6 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - Faint-text tier lifted: all 22 rgba(.45) text colors raised to .58 for WCAG body-size contrast; decorative .45 strokes/insets untouched. a11y-faint closed. [#154]
 - Radius sweep finished: 39 remaining borderRadius:9 controls normalized to system 12 (judgment: radius-11 rows left, visually identical to 12). Gray pass found no off-token text grays. [#154]
 - Shared keyframes (ctGlow, ctDraw, ctFall, ctPop) staged in index.html behind the reduced-motion guard for Phases D/E.
+
+## Build #156 — Phase D slice 2: practice rows consolidated (2026-06-12)
+- The practice screen's half-empty Flip row merged with the toggles: Flip, Hints, and Guide taps now share one 3-column utility row under [Watch again | Try again]. Two rows instead of three. [#156]
