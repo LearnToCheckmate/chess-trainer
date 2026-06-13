@@ -800,3 +800,8 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 ## Build #168 — Tournaments Stage 1a: host cloud methods (2026-06-12)
 - Added CTCloud tournament methods to the host (index.html): tourCreate, tourList (live snapshot of the 'tournaments' collection, sorted by start time), tourWatch, tourJoin (arrayUnion players), tourUpdate. Additive and inert until the front-end calls them; no behavior change yet. [#168]
 - Depends on the Firestore rule for /tournaments (Kunal's one manual step). Next: Stage 1b, the Tournaments screen (list + create + join overlay) in chess.jsx.
+
+## Build #169 — Tournaments Stage 1b: the screen (2026-06-12)
+- The lobby "Tournaments" button (SOON badge removed) now opens a real Tournaments overlay (sign-in gated). Three views: live list (subscribed to the cloud), Create form (name + format + datetime-local start), and Detail (players list + Join). [#169]
+- Formats with auto-clocks: Round robin 5+3, Knockout 10+5, Swiss 5+0. Create writes to the 'tournaments' collection; the list updates live across devices; Join uses arrayUnion. Friendly error if the Firestore rule is not yet published. [#169]
+- Stage 2 (next): pairing engines per format + live results/standings once a tournament starts. Needs the /tournaments Firestore rule live to test end-to-end (two accounts).

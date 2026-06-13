@@ -1768,8 +1768,18 @@ export default function App(){
   const learnKeyRef=useRef('');
   const [celebrate,setCelebrate]=useState(null);
   const [preview,setPreview]=useState(false);
+  const [tourOpen,setTourOpen]=useState(false);
+  const [tours,setTours]=useState([]);
+  const [tourView,setTourView]=useState('list');
+  const [tourSel,setTourSel]=useState(null);
+  const [tourName,setTourName]=useState('');
+  const [tourFmt,setTourFmt]=useState('roundrobin');
+  const [tourWhen,setTourWhen]=useState('');
+  const [tourBusy,setTourBusy]=useState(false);
+  const [tourMsg,setTourMsg]=useState('');
   useEffect(()=>{if(celebrate&&celebrate.kind==='bank'){const t=setTimeout(()=>setCelebrate(null),2800);return ()=>clearTimeout(t);}},[celebrate]);
   useEffect(()=>{if(onlineInfo){const t=setTimeout(()=>setOnlineInfo(''),4500);return ()=>clearTimeout(t);}},[onlineInfo]);
+  useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!tourOpen||!C||!C.tourList)return;const un=C.tourList(a=>setTours(Array.isArray(a)?a:[]));return ()=>{try{un&&un();}catch(e){}};},[tourOpen]);
   const [coachTargets,setCoachTargets]=useState(()=>{try{const a=JSON.parse(localStorage.getItem('ct_coachtargets')||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}});
   const coachTargetsRef=useRef(coachTargets); coachTargetsRef.current=coachTargets;
   const hintLockRef=useRef((()=>{try{return JSON.parse(localStorage.getItem('ct_hintlock')||'{}')||{};}catch(e){return {};}})());
@@ -2871,6 +2881,58 @@ export default function App(){
 
   return(
     <div ref={rootRef} style={{'--ac':TH.accent,'--ac2':TH.accent2,'--acr':TH.rgb,'--ok':'#3ecf7a','--gold':'#f0c24d','--warn':'#e0a83a','--bad':'#e85d4a','--r':'12px','--head':headFont,'--pcfilter':SK.pcf||'none',minHeight:'100dvh',width:'100%',maxWidth:'100vw',overflowX:'hidden',background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:railed?'center':'flex-start',paddingTop:wide?'calc(env(safe-area-inset-top,0px) + 6px)':'calc(env(safe-area-inset-top,0px) + 8px)',paddingLeft:'calc(env(safe-area-inset-left,0px) + 3px)',paddingRight:'calc(env(safe-area-inset-right,0px) + 3px)',paddingBottom:wide?6:8,fontFamily:"'Segoe UI',system-ui,sans-serif",userSelect:'none',WebkitUserSelect:'none',color:'#fff',transition:'background .3s'}}>
+      {tourOpen&&(()=>{
+        const FMT={roundrobin:{label:'Round robin',tc:{init:300,inc:3},blurb:'Everyone plays everyone'},knockout:{label:'Knockout',tc:{init:600,inc:5},blurb:'Single elimination bracket'},swiss:{label:'Swiss',tc:{init:300,inc:0},blurb:'Paired by score, fixed rounds'}};
+        const me=cloudUser?{uid:cloudUser.uid,name:cloudUser.name||'Player',photo:cloudUser.photo||''}:null;
+        const clk=(tc)=>tc?((tc.init/60)+'+'+tc.inc):'';
+        const whenTxt=(ms)=>{if(!ms)return '';const d=new Date(ms);return d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});};
+        const joined=(t)=>!!(me&&t.players&&t.players.some(p=>p&&p.uid===me.uid));
+        const card={background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:14,padding:'13px 15px'};
+        const doCreate=async()=>{const C=window.CTCloud;if(!C||!me)return;const nm=tourName.trim();if(!nm){setTourMsg('Give it a name.');return;}const startAt=tourWhen?new Date(tourWhen).getTime():(Date.now()+3600000);if(isNaN(startAt)||startAt<Date.now()-60000){setTourMsg('Pick a future start time.');return;}setTourBusy(true);setTourMsg('');try{const f=FMT[tourFmt];await C.tourCreate({name:nm,format:tourFmt,tc:f.tc,startAt:startAt,players:[me]});setTourName('');setTourWhen('');setTourView('list');}catch(e){const m=String((e&&e.message)||e);setTourMsg(m.indexOf('permission')>=0||m.indexOf('insufficient')>=0?'Cloud rule not published yet — publish the /tournaments rule.':'Could not create. Try again.');}setTourBusy(false);};
+        const doJoin=async(t)=>{const C=window.CTCloud;if(!C||!me)return;setTourMsg('');try{await C.tourJoin(t.id,me);}catch(e){setTourMsg('Could not join.');}};
+        const sel=tourSel?tours.find(x=>x.id===tourSel):null;
+        return(<div style={{position:'fixed',inset:0,zIndex:9991,background:'rgba(10,12,18,.97)',display:'flex',flexDirection:'column',padding:'calc(env(safe-area-inset-top,0px) + 14px) 16px 16px'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+            <div style={{fontSize:19,fontWeight:800,color:'#fff'}}>🏆 Tournaments</div>
+            <button onClick={()=>{setTourOpen(false);}} style={{width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.06)',color:'#fff',fontSize:16,cursor:'pointer'}}>✕</button>
+          </div>
+          {tourMsg&&<div style={{background:'rgba(224,168,58,.16)',border:'1px solid rgba(224,168,58,.4)',color:'#f0c24d',borderRadius:10,padding:'9px 12px',fontSize:12.5,marginBottom:12}}>{tourMsg}</div>}
+          <div style={{flex:1,overflowY:'auto'}}>
+          {tourView==='list'&&<div style={{display:'flex',flexDirection:'column',gap:10}}>
+            <button onClick={()=>{setTourMsg('');setTourView('create');}} style={{padding:'13px',borderRadius:12,border:'none',background:'var(--ac)',color:'#101010',fontWeight:800,fontSize:14,cursor:'pointer'}}>+ Create a tournament</button>
+            {tours.length===0&&<div style={{padding:'24px 6px',textAlign:'center',color:'rgba(255,255,255,.5)',fontSize:13,lineHeight:1.5}}>No tournaments yet. Create the first one, or check back when others have.</div>}
+            {tours.map(t=>(<button key={t.id} onClick={()=>{setTourSel(t.id);setTourView('detail');}} style={{...card,textAlign:'left',cursor:'pointer'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:8}}><span style={{fontSize:15,fontWeight:800,color:'#fff'}}>{t.name}</span><span style={{fontSize:11,fontWeight:800,color:t.status==='live'?'var(--ok)':'var(--ac2)'}}>{(t.status||'upcoming').toUpperCase()}</span></div>
+              <div style={{fontSize:12,color:'rgba(255,255,255,.6)',marginTop:3}}>{(FMT[t.format]||{}).label||t.format} · {clk(t.tc)} · {whenTxt(t.startAt)}</div>
+              <div style={{fontSize:11.5,color:'rgba(255,255,255,.45)',marginTop:2}}>{(t.players||[]).length} joined{joined(t)?' · you are in':''}</div>
+            </button>))}
+          </div>}
+          {tourView==='create'&&<div style={{display:'flex',flexDirection:'column',gap:14}}>
+            <div><div style={{fontSize:12,fontWeight:700,color:'rgba(255,255,255,.7)',marginBottom:6}}>Name</div>
+              <input value={tourName} onChange={e=>setTourName(e.target.value)} placeholder="Friday Blitz Arena" maxLength={40} style={{width:'100%',boxSizing:'border-box',padding:'12px 14px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',fontSize:15}}/></div>
+            <div><div style={{fontSize:12,fontWeight:700,color:'rgba(255,255,255,.7)',marginBottom:6}}>Format</div>
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>{Object.keys(FMT).map(k=>(<button key={k} onClick={()=>setTourFmt(k)} style={{textAlign:'left',padding:'11px 14px',borderRadius:12,cursor:'pointer',background:tourFmt===k?'rgba(var(--acr),.2)':'rgba(255,255,255,.05)',border:tourFmt===k?'1px solid var(--ac)':'1px solid rgba(255,255,255,.15)'}}>
+                <div style={{fontSize:14,fontWeight:800,color:tourFmt===k?'var(--ac2)':'#fff'}}>{FMT[k].label} <span style={{fontWeight:600,fontSize:11.5,color:'rgba(255,255,255,.5)'}}>{clk(FMT[k].tc)}</span></div>
+                <div style={{fontSize:11.5,color:'rgba(255,255,255,.55)',marginTop:1}}>{FMT[k].blurb}</div></button>))}</div></div>
+            <div><div style={{fontSize:12,fontWeight:700,color:'rgba(255,255,255,.7)',marginBottom:6}}>Starts</div>
+              <input type="datetime-local" value={tourWhen} onChange={e=>setTourWhen(e.target.value)} style={{width:'100%',boxSizing:'border-box',padding:'12px 14px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',fontSize:15}}/>
+              <div style={{fontSize:11,color:'rgba(255,255,255,.4)',marginTop:4}}>Leave blank for one hour from now. I pick a sensible clock for each format.</div></div>
+            <div style={{display:'flex',gap:8,marginTop:2}}>
+              <button onClick={()=>{setTourMsg('');setTourView('list');}} style={{flex:1,padding:'12px',borderRadius:12,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:700,fontSize:13,cursor:'pointer'}}>Cancel</button>
+              <button onClick={doCreate} disabled={tourBusy} style={{flex:1.4,padding:'12px',borderRadius:12,border:'none',background:'var(--ac)',color:'#101010',fontWeight:800,fontSize:13,cursor:'pointer',opacity:tourBusy?.6:1}}>{tourBusy?'Creating…':'Create'}</button></div>
+          </div>}
+          {tourView==='detail'&&sel&&<div style={{display:'flex',flexDirection:'column',gap:14}}>
+            <button onClick={()=>{setTourView('list');setTourSel(null);}} style={{alignSelf:'flex-start',padding:'7px 12px',borderRadius:10,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.05)',color:'rgba(255,255,255,.8)',fontSize:12.5,cursor:'pointer'}}>‹ All tournaments</button>
+            <div><div style={{fontSize:20,fontWeight:800,color:'#fff'}}>{sel.name}</div>
+              <div style={{fontSize:13,color:'rgba(255,255,255,.6)',marginTop:4}}>{(FMT[sel.format]||{}).label||sel.format} · clock {clk(sel.tc)} · starts {whenTxt(sel.startAt)}</div></div>
+            <div style={card}><div style={{fontSize:12,fontWeight:800,letterSpacing:.5,color:'var(--ac2)',marginBottom:8}}>PLAYERS · {(sel.players||[]).length}</div>
+              {(sel.players||[]).map((p,i)=>(<div key={i} style={{display:'flex',alignItems:'center',gap:9,padding:'5px 0'}}>{p.photo?<img src={p.photo} width={26} height={26} style={{borderRadius:'50%'}} alt=""/>:<span style={{width:26,height:26,borderRadius:'50%',background:'rgba(255,255,255,.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13}}>👤</span>}<span style={{fontSize:13.5,color:'#fff'}}>{p.name||'Player'}</span>{sel.host===p.uid&&<span style={{fontSize:10,fontWeight:800,color:'var(--ac)'}}>HOST</span>}</div>))}
+              {(sel.players||[]).length===0&&<div style={{fontSize:12.5,color:'rgba(255,255,255,.5)'}}>No players yet.</div>}</div>
+            {!joined(sel)?<button onClick={()=>doJoin(sel)} style={{padding:'13px',borderRadius:12,border:'none',background:'var(--ac)',color:'#101010',fontWeight:800,fontSize:14,cursor:'pointer'}}>Join this tournament</button>
+              :<div style={{padding:'13px',borderRadius:12,textAlign:'center',background:'rgba(62,207,122,.14)',border:'1px solid rgba(62,207,122,.4)',color:'var(--ok)',fontWeight:800,fontSize:13.5}}>✓ You are in. Pairings appear here when it starts.</div>}
+          </div>}
+          </div>
+        </div>);})()}
       {onlineInfo&&<div style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'linear-gradient(135deg,rgba(110,168,254,.96),rgba(74,120,220,.96))',color:'#0d1626',borderRadius:14,padding:'10px 16px',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:800,boxShadow:'0 8px 24px rgba(0,0,0,.5)',maxWidth:'92vw',textAlign:'center',animation:'ctDrop .4s cubic-bezier(.2,1.4,.4,1)'}}>{onlineInfo}<style>{'@media (prefers-reduced-motion: no-preference){@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}}'}</style></div>}
       {!preview&&<button onClick={()=>setPreview(true)} title="Preview gallery (dev)" style={{position:'fixed',left:'calc(env(safe-area-inset-left,0px) + 8px)',bottom:'calc(env(safe-area-inset-bottom,0px) + 8px)',zIndex:9997,width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>🎬</button>}
       {preview&&(()=>{const _ev=LIB.findIndex(o=>o.name&&o.name.indexOf('Evans')>=0);
@@ -3193,8 +3255,8 @@ export default function App(){
                 </button>);})}
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginTop:8}}>
-              {[{k:'friends',ic:'👥',t:'Friends',tint:['#0ea5e9','#0369a1']},{k:'nearby',ic:'📍',t:'Play nearby',tint:['#10b981','#047857']},{k:'tourney',ic:'🏆',t:'Tournaments',tint:['#eab308','#a16207'],soon:true}].map(o=>(
-                <button key={o.k} onClick={()=>{ setSoonMsg(''); if(o.k==='tourney'){ setSoonMsg('Tournaments are coming soon.'); return; } if(!cloudUser){ setUpgradeMsg(o.k==='nearby'?'Sign in to play nearby players.':'Sign in to use friends.'); setAcctOpen(true); return; } if(o.k==='friends'){ setFriendMsg(''); setFriendsOpen(true); } else { setNearbyMsg(''); setNearbyOpen(true); } }} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,padding:'14px 6px',borderRadius:14,cursor:'pointer',background:'rgba(255,255,255,.05)',border:'1.5px solid rgba(255,255,255,.14)',color:'rgba(255,255,255,.62)',position:'relative'}}>
+              {[{k:'friends',ic:'👥',t:'Friends',tint:['#0ea5e9','#0369a1']},{k:'nearby',ic:'📍',t:'Play nearby',tint:['#10b981','#047857']},{k:'tourney',ic:'🏆',t:'Tournaments',tint:['#eab308','#a16207']}].map(o=>(
+                <button key={o.k} onClick={()=>{ setSoonMsg(''); if(o.k==='tourney'){ if(!cloudUser){ setUpgradeMsg('Sign in to join tournaments.'); setAcctOpen(true); return; } setTourMsg(''); setTourSel(null); setTourView('list'); setTourOpen(true); return; } if(!cloudUser){ setUpgradeMsg(o.k==='nearby'?'Sign in to play nearby players.':'Sign in to use friends.'); setAcctOpen(true); return; } if(o.k==='friends'){ setFriendMsg(''); setFriendsOpen(true); } else { setNearbyMsg(''); setNearbyOpen(true); } }} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,padding:'14px 6px',borderRadius:14,cursor:'pointer',background:'rgba(255,255,255,.05)',border:'1.5px solid rgba(255,255,255,.14)',color:'rgba(255,255,255,.62)',position:'relative'}}>
                   {o.soon&&<span style={{position:'absolute',top:6,right:8,fontSize:'clamp(7.5px,1.8vw,9px)',fontWeight:800,letterSpacing:.5,color:'#1a1407',background:'var(--ac)',borderRadius:6,padding:'1px 6px'}}>SOON</span>}
                   <span style={{width:46,height:46,borderRadius:13,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,background:`linear-gradient(150deg,${o.tint[0]},${o.tint[1]})`,border:SK.trim?`1.5px solid ${SK.trim}`:'none',boxShadow:`0 3px 0 rgba(0,0,0,.22),0 6px 12px ${o.tint[1]}55,inset 0 1px 0 rgba(255,255,255,.4),inset 0 -3px 6px rgba(0,0,0,.22)`,opacity:.92}}>{o.ic}</span>
                   <span style={{fontSize:'clamp(10px,2.4vw,12px)',fontWeight:700}}>{o.t}</span>
