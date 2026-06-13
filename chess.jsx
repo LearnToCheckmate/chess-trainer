@@ -4437,6 +4437,13 @@ export default function App(){
             {_board}
             <div className="ctside" style={sideColStyle}>{_blurbs}{_controls}</div>
           </div>
+        ) : (mode==='learn'&&openIdx!==null) ? (
+          <div style={{flex:1,alignSelf:'stretch',width:'100%',minHeight:0,display:'flex',flexDirection:'column',alignItems:'center'}}>
+            {_blurbs}
+            <div style={{flex:1,minHeight:10}}/>
+            {_board}
+            {_controls}
+          </div>
         ) : (<>{_blurbs}{_board}{_controls}</>);
       })()}
 
