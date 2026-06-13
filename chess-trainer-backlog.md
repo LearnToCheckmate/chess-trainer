@@ -746,3 +746,9 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - Roadmap path now draws itself in: completed segments animate with a staggered stroke draw on open (static under reduced motion). [#156]
 - Active tier node gets a soft pulsing color glow; every unlocked unfinished node now wears an SVG progress ring filling toward its solve target, with a live transition as you solve. [#156]
 - Solve moment: a 1.2s confetti burst over the board on every solved puzzle, and the puzzle header shows a fire combo counter from 2 consecutive solves (existing streak machinery, now visible). [#156]
+
+## Build #156 — Phase E: puzzles art pass (2026-06-12)
+- The puzzle road now draws itself in: the path animates stroke-dash on load, the current node breathes with a soft colored glow, and any unlocked node with partial progress wears an animated SVG progress ring (4px arc over a faint track). [#156]
+- Solving a puzzle fires a falling confetti burst (fourteen pieces, emoji set 🎉✨⭐🟡, 1.2s) over the browse view, and a combo counter (🔥 N in a row, at 2+) rides the status line using the existing streak state. [#156]
+- Judgment calls flagged for veto: burst palette is the four-emoji set, progress ring thickness is 4px. Phase E and the A-E design program are complete; next per the approved order is Review 3 of 8 (first-session funnel). [#156]
+- Housekeeping: chess-tracker.template.html is now committed to the repo (it previously lived only in the sandbox and was lost between chats); gen_tracker.py reads the repo copy first with the old path as fallback. [#156]
