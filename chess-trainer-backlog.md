@@ -691,3 +691,6 @@ Forgotten-item adds: fd-legal (privacy/terms/account deletion, needed before Str
 ## Build #148 — Phase A slice 3 + new operating mode (2026-06-12)
 - Ordering law on both draw prompts: Decline left, Accept right, matching the rematch prompts. [#148]
 - OPERATING MODE CHANGE (Kunal): every message now triggers the longest safe run, phases chained back to back; stop only when blocked or done. Next message launches Phases C+D+E (Play re-chrome, lesson action bar, puzzles art) as one continuous run, folding in the remaining gray/radius outlier sweep.
+
+## BUILDGO protocol (established 2026-06-12)
+Kunal can pre-authorize runs by pasting lines starting with the exact token BUILDGO (optionally followed by instructions) into the feedback chat or ahead of time in the build chat. The build chat must: (1) at the START of every session and (2) AFTER every completed run, conversation_search for "BUILDGO", dedupe against ones already consumed (track consumed ones in this backlog with timestamps), and execute any new ones within the same session before ending the reply. Hard stops only at the session memory edge or a true blocker. Caveats acknowledged: cross-chat search indexing can lag; each new session still requires one message from Kunal in the build chat. Consumed so far: none.
