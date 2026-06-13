@@ -1960,7 +1960,7 @@ export default function App(){
 
   const RAIL=Math.max(190,Math.min(320,Math.round(vp.w*0.255)));   // comfortable side-rail width, scales with screen
   const wide=vp.w>vp.h&&(vp.w-RAIL-48)>=360;                       // one sidebar + board; board fills the rest
-  const SQ=useMemo(()=>{if(wide){const availH=vp.h-24;const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20;const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,bp/8);}const reserved=4+((inReview||(mode==='play'&&opponent==='computer'))?18:0);const widthCap=vw-reserved;const wh=vp.h;const heightCap=mode==='play'?(wh-262):(wh*0.60-16);const hardCap=mode==='play'?900:820;const bp=Math.floor(Math.min(widthCap,heightCap,hardCap)/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent]);
+  const SQ=useMemo(()=>{if(wide){const availH=vp.h-24;const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20;const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,bp/8);}const reserved=4+((inReview||(mode==='play'&&opponent==='computer'))?0:0);const widthCap=vw-reserved;const wh=vp.h;const heightCap=mode==='play'?(wh-262):(wh*0.60-16);const hardCap=mode==='play'?900:820;const bp=Math.floor(Math.min(widthCap,heightCap,hardCap)/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent]);
   const boardPx=SQ*8;
   const sideW=wide?Math.max(200,Math.min(vp.w-boardPx-20,520)):RAIL;
   // outerRowStyle / sideColStyle are defined after showBoard (they need railed = wide && showBoard)
@@ -3683,11 +3683,11 @@ export default function App(){
       {mode==='play'&&opponent!=='online'&&(<div style={{marginTop:10,display:'flex',flexDirection:'column',alignItems:'center',gap:8,width:boardPx,maxWidth:'98vw'}}>
         {opponent==='computer'?(<div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,flexWrap:'wrap'}}>
           {selBot&&botById(selBot)?(<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:'clamp(8.5px,1.95vw,11px)',color:'rgba(255,255,255,.72)',fontWeight:700}}><BotFace id={selBot} size={20}/>{botById(selBot).name}</span>):(<span style={{fontSize:'clamp(8px,1.85vw,10.5px)',color:'rgba(255,255,255,.58)'}}>🤖 vs Computer</span>)}
-          <div style={{display:'flex',alignItems:'center',gap:5,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 5px'}}>
+          {!(playHist.length>0&&!isOver&&!playEnd)&&(<div style={{display:'flex',alignItems:'center',gap:5,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 5px'}}>
             <button onClick={()=>setCpuElo(e=>Math.max(ELO_MIN,e-100))} title="Weaker" style={{width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.12)',color:'#fff',fontSize:16,fontWeight:700,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>−</button>
             <span style={{fontSize:'clamp(9px,2vw,11px)',fontWeight:700,color:'var(--ac2)',minWidth:58,textAlign:'center'}}>≈{cpuElo} Elo</span>
             <button onClick={()=>setCpuElo(e=>Math.min(ELO_MAX,e+100))} title="Stronger" style={{width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.12)',color:'#fff',fontSize:16,fontWeight:700,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
-          </div>
+          </div>)}
         </div>):(<div style={{fontSize:'clamp(8px,1.85vw,10.5px)',color:'rgba(255,255,255,.58)'}}>{`👤 vs Human${timeCtrl?(' · '+timeCtrl.label):' · no clock'}`}</div>)}
         {opponent==='computer'&&!(playHist.length>0&&!isOver&&!playEnd)&&(<input type="range" min={ELO_MIN} max={ELO_MAX} step={25} value={cpuElo} onChange={e=>setCpuElo(+e.target.value)} title="Fine-tune strength" style={{width:'100%',maxWidth:320,accentColor:TH.accent,cursor:'pointer',margin:'0 0 2px'}}/>)}
         <div style={{display:'flex',gap:8,alignItems:'center',width:'100%'}}>

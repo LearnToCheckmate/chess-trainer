@@ -757,3 +757,7 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - From Kunal's first Play screenshot: the clipped, half-offscreen eval bar (the "-5.1" sliver) is deleted; eval lives as a monospace pill at the left of the top player bar, same on/off setting respected. [#158]
 - Black pieces get a subtle white halo (double drop-shadow) so they read on dark squares; theme piece filters preserved. [#158]
 - The Elo fine-tune slider hides while a game is in progress (returns before move 1 and after the game). Stepper pill kept pending the next screenshot. [#158]
+
+## Build #159 — Play screenshot fixes, round 2 (2026-06-12)
+- Board width: the 18px eval reserve in the SQ formula is gone (eval is a bar pill now), so the board grows ~18px wider in computer games on portrait phones. [#159]
+- The Elo stepper pill now hides during active play alongside the slider; the top player bar already names the bot. Both return before move 1 and after the game. [#159]
