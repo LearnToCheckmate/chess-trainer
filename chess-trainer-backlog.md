@@ -706,3 +706,6 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 
 ### BUILDGO ledger
 - "Buildgo" · build chat · 2026-06-12 ≈21:00 EDT · value 1 · remaining 0 (burned on #149)
+
+## Build #150 — Housekeeping (2026-06-12)
+- Icon strip duplicate style keys removed; compile is warning-free. Housekeeping: no BUILDGO fuel burned. Sweep at session start: no BUILDGO tank found yet (paste lag possible); ledger empty.
