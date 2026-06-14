@@ -2989,7 +2989,6 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
-          {l:'Practice screen, stripped (#189)', n:'Portrait. Board prominent and low. Above it: only the title and the All-openings bar. Below it: a single action row (flip, hint, Try again, more). NO multiple-choice move buttons, NO plans/video boxes. You play the move on the board. Banner #189 or higher.', r:()=>{setHomeScreen(false);setMode('learn');selectOpening(_it);setTimeout(()=>startPractice(LIB[_it].line,LIB[_it].name),220);},h:6000},
         ];
         const _runAll=()=>{
           setPreview(false);const N=SC.length;let i=0;
