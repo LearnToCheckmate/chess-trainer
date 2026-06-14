@@ -907,3 +907,7 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 
 ## Build (shell) — Splash now guaranteed-visible (2026-06-13)
 - Kunal could not see the boot splash because it only filled the pre-mount gap (sub-second on warm loads). Reworked it into a separate #splash overlay (sibling of #root, z-index 9999) that holds a minimum ~0.75s from page open, then fades out (.42s). A MutationObserver on #root detects the React mount, so on a slow/cold load the splash stays until the app is actually ready (no premature reveal) and adds no delay after mount; 8s safety net. Reduced-motion users still get the static version (knight/dot animations remain inside the no-preference guard). index.html only. [shell-polish]
+
+
+## Build (shell) — Splash removed (2026-06-13)
+- Kunal: the splash screen is unnecessary. Reverted index.html to the plain minimal loading state (bare "Loading Chess Trainer..." text, simple #boot rule), removing the splash overlay, the knight/wordmark/dots, the bootDot animation, and the min-hold/fade script. index.html now byte-identical to its pre-splash state. [shell-polish: splash dropped]
