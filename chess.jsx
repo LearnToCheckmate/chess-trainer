@@ -471,7 +471,7 @@ const OPENINGS=[
       "White develops a knight and hits the e5-pawn.",
       "Black defends e5 and develops.",
       "The Italian bishop, aiming at the soft f7-square — White looks harmless.",
-      "…f5 — the Rousseau Gambit! Black hits e4 and tears open the f-file. Now see how White replies below.",
+      "…f5 — the Rousseau Gambit! Black blasts the f-file open and invites White into the chaos. Objectively dubious, but a wild attacking try that catches club players cold.",
     ],
     plans:"You've reached the gambit. The big idea: open the f-file, aim the bishop and queen at f2, and attack White's king. Below are White's four tries — two greedy mistakes you punish, and the two best moves where you still get an easy, aggressive game. Tap each to watch it all the way through.",
     video:{ id:"Y6-RXOh50_w", title:"The Rousseau Gambit — Every Move is a Trap!", author:"GM Igor Smirnov · Remote Chess Academy", length:"~12 min" },
@@ -743,12 +743,12 @@ const OPENINGS=[
   { name:"Latvian Gambit", eco:"C40", side:"b", cat:"⚔️ Gambits — as Black",
     line:["e4","e5","Nf3","f5","Nxe5","Qf6","d4","d6","Nc4","fxe4"],
     idea:"A wild, dubious-but-fun mirror of the King's Gambit — with Black! 2…f5 throws a pawn at White's centre for a violent attack. Unsound at the top, deadly in blitz.",
-    notes:["e4 — King's pawn.","…e5 — the Open Game.","Nf3 — attack e5.","…f5!? The Latvian Gambit — Black counter-gambits, hitting e4 and the f-file. Risky, but a fierce surprise.","Nxe5 — White grabs the pawn, the critical test.","…Qf6 — hit the e5-knight and eye the open f-file.","d4 — defend the knight and grab the centre.","…d6 — kick the knight again.","Nc4 — the knight retreats to safety.","…fxe4 — Black wins the pawn back. Material is level, the f-file is open and the pieces are active. White is a touch better, but it's a real fight."],
+    notes:["e4 — King's pawn.","…e5 — the Open Game.","Nf3 — attack e5.","…f5!? The Latvian Gambit — Black counter-gambits, hitting e4 and the f-file. Risky, but a fierce surprise.","Nxe5 — White grabs the pawn, the critical test.","…Qf6 — hit the e5-knight and eye the open f-file.","d4 — defend the knight and grab the centre.","…d6 — kick the knight again.","Nc4 — the knight retreats to safety.","…fxe4 — Black wins the pawn back, the f-file flies open, and the pieces pour out. Objectively dubious — but the Latvian is pure chaos, and one careless move by White lets Black’s attack crash through."],
     plans:"Pure attack: open the f-file and throw the queen and pieces at White's king before the extra material tells. Know White is theoretically better — so this is a practical try, best in fast games. Trade soundness for chaos." },
   { name:"Elephant Gambit", eco:"C40", side:"b", cat:"⚔️ Gambits — as Black",
     line:["e4","e5","Nf3","d5","exd5","e4","Qe2","Qe7","Nd4","Nf6"],
     idea:"A cheeky offbeat gambit: 2…d5 strikes the centre immediately, gambiting a pawn for quick development and surprise value. Dubious but tricky.",
-    notes:["e4 — King's pawn.","…e5 — the Open Game.","Nf3 — attack e5.","…d5!? The Elephant Gambit — strike the centre at once.","exd5 — White grabs the pawn.","…e4! — gain space and kick the f3-knight.","Qe2 — pin and attack the e4-pawn.","…Qe7 — defend e4 and prepare to develop.","Nd4 — the knight hops to safety.","…Nf6 — develop, guard e4, and aim to regain d5. Black is a pawn down but has the e4 wedge and fast piece play; White stands a bit better."],
+    notes:["e4 — King's pawn.","…e5 — the Open Game.","Nf3 — attack e5.","…d5!? The Elephant Gambit — strike the centre at once.","exd5 — White grabs the pawn.","…e4! — gain space and kick the f3-knight.","Qe2 — pin and attack the e4-pawn.","…Qe7 — defend e4 and prepare to develop.","Nd4 — the knight hops to safety.","…Nf6 — develop fast and lean on the e4 wedge. Down a pawn and objectively worse, yet the Elephant throws White out of book on move two — a cheeky surprise that thrives on unfamiliar ground."],
     plans:"Develop quickly and open lines (…Bd6, …Nf6, …O-O) to justify the pawn. White is theoretically better, so play it for the surprise and the open, tactical positions. A practical blitz weapon." },
   { name:"Fishing Pole Trap", eco:"C65", side:"b", cat:"⚔️ Gambits — as Black",
     line:["e4","e5","Nf3","Nc6","Bb5","Nf6","O-O","Ng4","h3","h5","hxg4","hxg4","Ne1","Qh4","Qf3","gxf3","Nxf3","Qh1#"],
@@ -768,7 +768,7 @@ const OPENINGS=[
   { name:"From's Gambit", eco:"A02", side:"b", cat:"⚔️ Gambits — as Black",
     line:["f4","e5","fxe5","d6","exd6","Bxd6","Nf3","g5","g3","g4","Nh4"],
     idea:"A sharp answer to Bird's Opening (1.f4): Black gambits a pawn with 1…e5 to blow open lines straight at White's slightly weakened kingside. (Beware — White can sidestep into a King's Gambit with 2.e4!)",
-    notes:["f4 — Bird's Opening, grabbing kingside space.","…e5!? From's Gambit — offer a pawn to rip the position open (2.e4!? would transpose to a King's Gambit).","fxe5 — White accepts.","…d6 — chip at the e5-pawn to open lines.","exd6 — White grabs the pawn.","…Bxd6 — recapture; the bishop already eyes h2.","Nf3 — White blunts the …Qh4+ ideas and develops.","…g5! — the thematic pawn storm: threaten …g4 to chase the knight.","g3 — White tries to blunt the attack.","…g4 — kick the knight away from f3.","Nh4 — the knight is shoved to the rim. For a pawn, Black has space and a fast attack on the loose white kingside; roughly balanced."],
+    notes:["f4 — Bird's Opening, grabbing kingside space.","…e5!? From's Gambit — offer a pawn to rip the position open (2.e4!? would transpose to a King's Gambit).","fxe5 — White accepts.","…d6 — chip at the e5-pawn to open lines.","exd6 — White grabs the pawn.","…Bxd6 — recapture; the bishop already eyes h2.","Nf3 — White blunts the …Qh4+ ideas and develops.","…g5! — the thematic pawn storm: threaten …g4 to chase the knight.","g3 — White tries to blunt the attack.","…g4 — kick the knight away from f3.","Nh4 — the knight’s shoved to the rim while Black pours down the kingside. A pawn down, but the loose white king is a real target — From’s is a vicious trap for anyone who hasn’t seen it."],
     plans:"Attack the loosened white kingside: …Bd6 eyeing h2, …Nf6/…g5/…Ng4 and queen lifts toward h4. The famous trap is …g5–g4 hitting f3; if White grabs greedily, …Bg3+! can be crushing. One pawn for a roaring initiative." },
   { name:"Blackmar-Diemer Gambit", eco:"D00", side:"w", cat:"⚔️ Gambits — as White",
     line:["d4","d5","e4","dxe4","Nc3","Nf6","f3","exf3","Nxf3","g6","Bc4","Bg7","O-O","O-O"],
@@ -3579,7 +3579,8 @@ export default function App(){
       {mode==='learn'&&openIdx!==null&&introCard&&(<div onClick={()=>setIntroCard(false)} style={{position:'fixed',inset:0,zIndex:120,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',padding:18}}>
         <div onClick={e=>e.stopPropagation()} style={{maxWidth:380,width:'92%',background:'linear-gradient(150deg,#1b1d24,#101116)',border:'1px solid rgba(var(--acr),.5)',borderRadius:16,padding:'18px 18px 16px',boxShadow:'0 20px 60px rgba(0,0,0,.6)',position:'relative'}}>
           <div style={{fontSize:'clamp(15px,3.8vw,20px)',fontWeight:800,color:'var(--ac2)',marginBottom:8,paddingRight:30}}>{learnLabel||LIB[openIdx].name}</div>
-          <div style={{fontSize:'clamp(13px,3vw,15px)',color:'rgba(255,255,255,.9)',lineHeight:1.55,maxHeight:'46vh',overflowY:'auto'}}>{learnIdea||LIB[openIdx].idea}</div>
+          <div style={{fontSize:'clamp(13px,3vw,15px)',color:'rgba(255,255,255,.9)',lineHeight:1.55,maxHeight:'40vh',overflowY:'auto'}}>{learnIdea||LIB[openIdx].idea}</div>
+          {(learnPlans||LIB[openIdx].plans)&&(<div style={{fontSize:'clamp(12px,2.8vw,14px)',color:'rgba(255,255,255,.7)',lineHeight:1.5,marginTop:13,paddingTop:13,borderTop:'1px solid rgba(255,255,255,.13)',maxHeight:'26vh',overflowY:'auto'}}>{learnPlans||LIB[openIdx].plans}</div>)}
           <button onClick={()=>setIntroCard(false)} style={{...btn('var(--ac)','none','#fff'),width:'100%',marginTop:15}}>Got it \u2014 play \u25B6</button>
           <button onClick={()=>setIntroCard(false)} aria-label="Close" style={{position:'absolute',top:9,right:9,width:30,height:30,borderRadius:8,background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.22)',color:'#fff',fontSize:15,lineHeight:1,cursor:'pointer'}}>\u2715</button>
         </div>
@@ -4353,7 +4354,7 @@ export default function App(){
             </div>
           </>)}
           {null}
-          {!railed&&learnPhase!=='practice'&&learnPlansBox}
+          {false&&learnPlansBox}
           {!railed&&learnPhase!=='practice'&&learnVideoBox}
         </>)}
       </div>)}

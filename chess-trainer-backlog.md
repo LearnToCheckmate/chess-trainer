@@ -926,3 +926,9 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - Ran Stockfish on every flat-group ending (gambiteer POV): Halloween -181, King's -109, Rousseau -170, Latvian -192, Elephant -138, From's -144 (objectively worse); Scotch -8, Wing -28, Smith-Morra -47, Blackmar-Diemer -52 (essentially equal/sound). VERDICT: none has an advantage hiding ahead, so line extensions can't manufacture a payoff. The right fix is framing, not moves.
 - Halloween: rewrote the closing note to end on the practical punch ("Blitz poison") instead of "Black is objectively better." Template for the dubious group.
 - PENDING (offered): same closing-note punch-up for the other dubious gambits (King's, Rousseau, Latvian, Elephant, From's); the sound ones (Scotch, Wing, Smith-Morra, BDG) end fine as-is.
+
+## Build #195 — plans into flash + 4 dubious-gambit endings (2026-06-14)
+- Verified from #194 Play-all recording: board sits high and fully on screen (cutoff fixed), "ℹ about" present, flash correctly suppressed in auto-play. Remaining dangler was the "What we're trying to do" plans box at the very bottom.
+- UI: folded plans into the "ℹ about" flash card (idea + plans = full about-this-opening) and dropped the standalone plans box from the phone demo. Demo bottom is now clean: board, All-gambits, Now-I'll-try-it/Flip.
+- Gambit closing notes flipped to end on the punch (engine-honest): Rousseau (catches club players cold), Latvian (pure chaos / attack crashes through), Elephant (out of book on move two), From's (vicious trap). King's already landed on "ferocious" - left as-is. Sound group (Scotch/Wing/Smith-Morra/BDG) untouched.
+- STILL TO VERIFY (needs a manual lesson-open recording, not Play-all): the flash card itself rendering on open + now showing idea+plans.
