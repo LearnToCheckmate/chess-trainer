@@ -899,3 +899,7 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 
 ## Build #188 — Share button (growth) (2026-06-13)
 - Added "📣 Share Chess Trainer" to the menu (above Send feedback). Uses the native share sheet (navigator.share) on mobile, falls back to copy-link + a toast on desktop. Pairs with the og-card so a shared link renders the brand preview. Additive, no logic touched. [growth]
+
+
+## Build (shell) — Animated boot splash (2026-06-13)
+- Replaced the bare "Loading Chess Trainer..." text with a proper splash: a glowing knight, the Chess/Trainer wordmark, and three pulsing dots. Reuses the existing ctGlow keyframe and adds bootDot; all animation lives inside the prefers-reduced-motion:no-preference query, so reduced-motion users get a clean static splash. index.html only, no bundle change, app shell (loader, CTCloud bridge, SW) intact. [shell-polish]
