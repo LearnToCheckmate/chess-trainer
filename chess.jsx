@@ -1675,7 +1675,8 @@ const ACHV=[
 const Arrows=memo(_Arrows),Piece=memo(_Piece),AppIcon=memo(_AppIcon),Coach=memo(_Coach),BotFace=memo(_BotFace);
 export default function App(){
   const [mode,setMode]=useState('learn');
-  const [infoOpen,setInfoOpen]=useState(true);
+  const [infoOpen,setInfoOpen]=useState(false);
+  const [introCard,setIntroCard]=useState(false);
   const [copyMsg,setCopyMsg]=useState('');
   const [theme,setTheme]=useState(()=>{try{const v=localStorage.getItem('ct_theme');return v!==null?parseInt(v):2;}catch{return 2;}});
   const [testPro,setTestPro]=useState(()=>{try{return localStorage.getItem('ct_pro')==='1';}catch{return false;}});  // dev/test Pro override
@@ -2270,7 +2271,7 @@ export default function App(){
     setDemoPly(0);setDemoPlaying(true);
     setLearnNotes(op.notes||[]);setLearnPlans(op.plans||'');setLearnIdea(op.idea||'');setLearnArrows(op.arrows||null);setLearnVideo(op.video||null);setShowVideo(false);
     setLearnFEN(op.fen||null);
-    setFlip(op.side==='b');setGame(op.fen?fromFEN(op.fen):initGame());setLastMv(null);setInfoOpen(true);
+    setFlip(op.side==='b');setGame(op.fen?fromFEN(op.fen):initGame());setLastMv(null);setInfoOpen(false);setIntroCard(true);
     UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
   };
   const startPractice=(line,label)=>{
@@ -2284,7 +2285,7 @@ export default function App(){
     else{setLastMv(null);setOpenStep(0);}
     setGame(g);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
   };
-  const pickVariation=(v)=>{const op=LIB[openIdxRef.current];const _tl=op.line||[];let _cp=0;while(_cp<v.line.length&&_cp<_tl.length&&v.line[_cp]===_tl[_cp])_cp++;setLearnPhase('demo');setDemoPly(_cp);setDemoPlaying(true);setLearnLine(v.line);setLearnLabel(op.name+' → '+v.name);setOpenMsg('');setOpenStep(0);setLearnNotes(v.notes||[]);setLearnPlans(v.plans||op.plans||'');setLearnIdea(v.idea||op.idea||'');setLearnArrows(v.arrows||null);setLearnVideo(op.video||null);setShowVideo(false);setFlip(op.side==='b');setGame(initGame());setLastMv(null);setInfoOpen(true);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
+  const pickVariation=(v)=>{const op=LIB[openIdxRef.current];const _tl=op.line||[];let _cp=0;while(_cp<v.line.length&&_cp<_tl.length&&v.line[_cp]===_tl[_cp])_cp++;setLearnPhase('demo');setDemoPly(_cp);setDemoPlaying(true);setLearnLine(v.line);setLearnLabel(op.name+' → '+v.name);setOpenMsg('');setOpenStep(0);setLearnNotes(v.notes||[]);setLearnPlans(v.plans||op.plans||'');setLearnIdea(v.idea||op.idea||'');setLearnArrows(v.arrows||null);setLearnVideo(op.video||null);setShowVideo(false);setFlip(op.side==='b');setGame(initGame());setLastMv(null);setInfoOpen(false);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
 
   // ── Puzzles ──
   const loadPuzzle=(idx)=>{
@@ -2988,7 +2989,7 @@ export default function App(){
           setTimeout(stepFn,750);
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
-        const SC=LIB.map((o,i)=>({o,i})).filter(({o})=>/Gambits/.test(o.cat||'')).sort((a,b)=>{const pr=x=>x.o.name==='Tennison Gambit'?0:(x.o.name==='Fishing Pole Trap'?1:2);return pr(a)-pr(b);}).map(({o,i})=>({l:o.name,n:'Auto-plays the finishing moves. Tap any lesson to watch the whole line.',r:()=>{setHomeScreen(false);setMode('learn');selectOpening(i);setTimeout(()=>{const L=(LIB[i].line||[]).length;setDemoPly(Math.max(0,L-5));setDemoPlaying(true);},350);},h:11000}));
+        const SC=LIB.map((o,i)=>({o,i})).filter(({o})=>/Gambits/.test(o.cat||'')).sort((a,b)=>{const pr=x=>x.o.name==='Tennison Gambit'?0:(x.o.name==='Fishing Pole Trap'?1:2);return pr(a)-pr(b);}).map(({o,i})=>({l:o.name,n:'Auto-plays the finishing moves. Tap any lesson to watch the whole line.',r:()=>{setHomeScreen(false);setMode('learn');selectOpening(i);setIntroCard(false);setTimeout(()=>{const L=(LIB[i].line||[]).length;setDemoPly(Math.max(0,L-5));setDemoPlaying(true);},350);},h:11000}));
         const _runAll=()=>{
           setPreview(false);const N=SC.length;let i=0;
           const go=()=>{
@@ -3575,6 +3576,14 @@ export default function App(){
 
       {(()=>{
         const _blurbs=(<>
+      {mode==='learn'&&openIdx!==null&&introCard&&(<div onClick={()=>setIntroCard(false)} style={{position:'fixed',inset:0,zIndex:120,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',padding:18}}>
+        <div onClick={e=>e.stopPropagation()} style={{maxWidth:380,width:'92%',background:'linear-gradient(150deg,#1b1d24,#101116)',border:'1px solid rgba(var(--acr),.5)',borderRadius:16,padding:'18px 18px 16px',boxShadow:'0 20px 60px rgba(0,0,0,.6)',position:'relative'}}>
+          <div style={{fontSize:'clamp(15px,3.8vw,20px)',fontWeight:800,color:'var(--ac2)',marginBottom:8,paddingRight:30}}>{learnLabel||LIB[openIdx].name}</div>
+          <div style={{fontSize:'clamp(13px,3vw,15px)',color:'rgba(255,255,255,.9)',lineHeight:1.55,maxHeight:'46vh',overflowY:'auto'}}>{learnIdea||LIB[openIdx].idea}</div>
+          <button onClick={()=>setIntroCard(false)} style={{...btn('var(--ac)','none','#fff'),width:'100%',marginTop:15}}>Got it \u2014 play \u25B6</button>
+          <button onClick={()=>setIntroCard(false)} aria-label="Close" style={{position:'absolute',top:9,right:9,width:30,height:30,borderRadius:8,background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.22)',color:'#fff',fontSize:15,lineHeight:1,cursor:'pointer'}}>\u2715</button>
+        </div>
+      </div>)}
       {/* Context bars */}
       {mode==='play'&&!(isOver||playEnd)&&(<div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7,minHeight:18}}>
         <div style={{width:9,height:9,borderRadius:'50%',background:game.turn==='w'?'#fff':'rgba(255,255,255,.2)',boxShadow:game.turn==='w'?'0 0 7px #fff':'none',border:'1.5px solid rgba(255,255,255,.4)'}}/>
@@ -3601,7 +3610,7 @@ export default function App(){
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>
           <div style={{fontSize:'clamp(14px,3.5vw,19px)',fontWeight:800,color:'var(--ac2)',letterSpacing:.3}}>{learnLabel||LIB[openIdx].name}{(()=>{const _cs=lessonStats(LIB[openIdx]);if(_cs.linesLearned===0)return null;const m=_cs.mastered;if(m)return <span style={{marginLeft:8,fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,color:'#f0c24d',background:'rgba(240,180,41,.14)',border:'1px solid rgba(240,180,41,.45)',borderRadius:20,padding:'2px 9px',verticalAlign:'middle'}}>★ Mastered</span>;if(_cs.coverage)return <span style={{marginLeft:8,fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,color:'#6cc78a',background:'rgba(108,199,138,.12)',border:'1px solid rgba(108,199,138,.4)',borderRadius:20,padding:'2px 9px',verticalAlign:'middle'}}>✓ {_cs.unionDays}/{LEARN_GOAL}</span>;return null;})()}</div>
           {(()=>{const _st=lessonStats(LIB[openIdx]);const n=_st.unionDays;const m=_st.mastered;return(<div style={{display:'flex',alignItems:'center',gap:4,marginTop:4}}>{Array.from({length:LEARN_GOAL}).map((_,i)=>(<span key={i} style={{width:9,height:9,borderRadius:'50%',background:i<n?(m?'#f0c24d':'#6cc78a'):'rgba(255,255,255,.10)',border:'1px solid '+(i<n?(m?'#f0c24d':'#6cc78a'):'rgba(255,255,255,.28)')}}/>))}<span style={{marginLeft:6,fontSize:'clamp(9px,2.1vw,11px)',fontWeight:800,color:m?'#f0c24d':(n>0?'#6cc78a':'rgba(255,255,255,.55)')}}>{m?'Mastered':(n+' of '+LEARN_GOAL+' flawless days'+(_st.lines>1?(' · '+_st.linesLearned+'/'+_st.lines+' lines'):''))}</span></div>);})()}
-          <button onClick={()=>setInfoOpen(o=>!o)} title={infoOpen?'Hide notes for a bigger board':'Show the notes'} style={{flexShrink:0,minWidth:26,height:24,borderRadius:6,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.7)',fontSize:11,fontWeight:700,cursor:'pointer',lineHeight:1,padding:'0 6px'}}>{infoOpen?'▾':'▸ notes'}</button>
+          <button onClick={()=>setIntroCard(true)} title="About this opening" style={{flexShrink:0,height:24,borderRadius:6,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.7)',fontSize:11,fontWeight:700,cursor:'pointer',lineHeight:1,padding:'0 9px'}}>ℹ about</button>
         </div>
         {infoOpen?(<>
           <div style={{margin:'8px auto 0',background:'linear-gradient(150deg,rgba(var(--acr),.20),rgba(var(--acr),.08))',border:'1px solid rgba(var(--acr),.34)',borderRadius:12,padding:'11px 13px',fontSize:'clamp(12px,2.7vw,14.5px)',color:'rgba(255,255,255,.92)',lineHeight:1.55,textAlign:'left',boxShadow:SHADOW_BOX}}>{learnIdea||LIB[openIdx].idea}</div>
@@ -3900,7 +3909,7 @@ export default function App(){
                 </button>);
               })}
             </div>
-            <button onClick={refreshMyGames} style={{marginTop:7,alignSelf:'flex-start',padding:'5px 11px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.7)',cursor:'pointer',fontSize:'clamp(9px,2vw,11px)',fontWeight:700}}>↻ Refresh</button>
+            <button onClick={refreshMyGames} style={{marginTop:7,alignSelf:'flex-start',padding:'8px 14px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.82)',cursor:'pointer',fontSize:'clamp(12px,2.7vw,14px)',fontWeight:700,minHeight:38}}>↻ Refresh</button>
           </div>)}
         </div>);
         const oppData=myColor==='w'?og.b:og.w;
