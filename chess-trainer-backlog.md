@@ -900,14 +900,6 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 ## Build #188 — Share button (growth) (2026-06-13)
 - Added "📣 Share Chess Trainer" to the menu (above Send feedback). Uses the native share sheet (navigator.share) on mobile, falls back to copy-link + a toast on desktop. Pairs with the og-card so a shared link renders the brand preview. Additive, no logic touched. [growth]
 
-
-## Build (shell) — Animated boot splash (2026-06-13)
-- Replaced the bare "Loading Chess Trainer..." text with a proper splash: a glowing knight, the Chess/Trainer wordmark, and three pulsing dots. Reuses the existing ctGlow keyframe and adds bootDot; all animation lives inside the prefers-reduced-motion:no-preference query, so reduced-motion users get a clean static splash. index.html only, no bundle change, app shell (loader, CTCloud bridge, SW) intact. [shell-polish]
-
-
-## Build (shell) — Splash now guaranteed-visible (2026-06-13)
-- Kunal could not see the boot splash because it only filled the pre-mount gap (sub-second on warm loads). Reworked it into a separate #splash overlay (sibling of #root, z-index 9999) that holds a minimum ~0.75s from page open, then fades out (.42s). A MutationObserver on #root detects the React mount, so on a slow/cold load the splash stays until the app is actually ready (no premature reveal) and adds no delay after mount; 8s safety net. Reduced-motion users still get the static version (knight/dot animations remain inside the no-preference guard). index.html only. [shell-polish]
-
-
-## Build (shell) — Splash removed (2026-06-13)
-- Kunal: the splash screen is unnecessary. Reverted index.html to the plain minimal loading state (bare "Loading Chess Trainer..." text, simple #boot rule), removing the splash overlay, the knight/wordmark/dots, the bootDot animation, and the min-hold/fade script. index.html now byte-identical to its pre-splash state. [shell-polish: splash dropped]
+## Build #189 — Strip down the practice screen (2026-06-13)
+- Kunal (from the 22:34 clip): the practice screen was buried by content above and multiple-choice options below. Cut, per "both / strip it down": (1) removed the multiple-choice "tap the book move" picker below the board, (2) removed the input-mode toggle (🔤/✋) that only existed to switch into that picker, (3) removed the plans box and video box from ABOVE the board (they pushed it down into a scroll). Kept above the board: title + the thin "‹ All openings" bar. Kept below: the single action row (flip, hint, Try again, more) plus the end-of-line variation chips (contextual). You now just play the move on the board (board pointer input was always independent of the picker; verified onPtrDown/onPtrUp commit moves regardless). Demo phase unchanged (still has plans/video). trainTap is now inert state. [practice declutter]
+- Gallery: replaced the verified #182 item with "Practice screen, stripped (#189)" describing the new minimal layout to confirm.

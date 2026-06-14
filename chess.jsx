@@ -2989,7 +2989,7 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
-          {l:'Lesson layout (#182): practice phase', n:'Portrait. The board should sit LOW. Above it: the All-openings bar, the plans box (What we are trying to do), and the video box. Below it: only the action row (flip, hint, input, Try again, more). The banner should read #186 or higher.', r:()=>{setHomeScreen(false);setMode('learn');selectOpening(_it);setTimeout(()=>startPractice(LIB[_it].line,LIB[_it].name),220);},h:6000},
+          {l:'Practice screen, stripped (#189)', n:'Portrait. Board prominent and low. Above it: only the title and the All-openings bar. Below it: a single action row (flip, hint, Try again, more). NO multiple-choice move buttons, NO plans/video boxes. You play the move on the board. Banner #189 or higher.', r:()=>{setHomeScreen(false);setMode('learn');selectOpening(_it);setTimeout(()=>startPractice(LIB[_it].line,LIB[_it].name),220);},h:6000},
         ];
         const _runAll=()=>{
           setPreview(false);const N=SC.length;let i=0;
@@ -4317,22 +4317,6 @@ export default function App(){
             )}
           </>)}
           {learnPhase==='practice'&&(<>
-            {(()=>{const op=LIB[openIdx];const line=learnLine;const step=openStep;
-              if(!op||!trainTap||!showHint||step>=line.length||boardGame.turn!==op.side)return null;
-              const correct=cleanSAN(line[step]);const seen=new Set();const uniq=[];
-              for(const mv of getLegal(boardGame)){const s=cleanSAN(toSAN(boardGame,mv,applyMove(boardGame.board,mv)));if(!seen.has(s)){seen.add(s);uniq.push({s,mv});}}
-              const correctItem=uniq.find(u=>u.s===correct)||{s:correct,mv:findMoveBySAN(boardGame,line[step])};
-              const others=uniq.filter(u=>u.s!==correct);
-              for(let i=others.length-1;i>0;i--){const j=(step*37+i*101)%(i+1);const t=others[i];others[i]=others[j];others[j]=t;}
-              const picks=[correctItem,...others.slice(0,3)];
-              for(let i=picks.length-1;i>0;i--){const j=(step*53+i*89)%(i+1);const t=picks[i];picks[i]=picks[j];picks[j]=t;}
-              return(<div style={{alignSelf:'stretch',background:'rgba(var(--acr),.10)',border:'1px solid rgba(var(--acr),.3)',borderRadius:12,padding:'10px 11px',boxShadow:SHADOW_BOX}}>
-                <div style={{fontSize:'clamp(10px,2.3vw,12.5px)',fontWeight:800,color:'var(--ac2)',marginBottom:8,textAlign:'center'}}>Your move — tap the book move</div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7}}>
-                  {picks.map((p,pi)=>(<button key={pi} onClick={()=>{if(p.mv)doMove(boardGame,p.mv);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.22)','#fff'),fontSize:'clamp(13px,3vw,16px)',fontWeight:800,minHeight:46,fontFamily:'"Segoe UI",system-ui,sans-serif'}}>{p.s}</button>))}
-                </div>
-              </div>);
-            })()}
             {openStep>=learnLine.length&&LIB[openIdx].vars&&(
               <div style={{width:'100%',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:12,padding:'9px 11px'}}>
                 <div style={{fontSize:'clamp(10px,2.3vw,12px)',color:'var(--ac2)',fontWeight:700,marginBottom:6,textAlign:'center'}}>{learnLabel.includes(' → ')?"♟ See another of White's replies:":"♟ How does White reply? Tap a line to watch it through"}</div>
@@ -4348,7 +4332,6 @@ export default function App(){
               <div style={{display:'flex',gap:6,alignItems:'stretch'}}>
                 <button onClick={()=>setFlip(f=>!f)} aria-label="Flip board" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.4vw,19px)'}}>⟳</button>
                 <button onClick={()=>{const nv=!showHint;setShowHint(nv);setHintFor(LIB[openIdx]?.name,nv);if(nv)setRevealHint(false);}} aria-label="Hints" style={{...btn(showHint?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',showHint?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',showHint?'var(--ac2)':'rgba(255,255,255,.6)'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.4vw,19px)'}}>💡</button>
-                <button onClick={()=>{const nv=!trainTap;if(nv&&!showHint){setShowHint(true);setHintFor(LIB[openIdx]?.name,true);}setTrainTap(nv);}} aria-label="Input mode" style={{...btn(trainTap?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',trainTap?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',trainTap?'var(--ac2)':'rgba(255,255,255,.6)'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.4vw,19px)'}}>{trainTap?'🔤':'✋'}</button>
                 <button onClick={()=>startPractice(learnLine,learnLabel)} style={{...btn('#4a6741','none','#fff'),flex:1,fontWeight:800}}>↻ Try again</button>
                 <button onClick={()=>setLearnSheet(true)} aria-label="More actions" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.4vw,19px)'}}>⋯</button>
               </div>
@@ -4495,7 +4478,7 @@ export default function App(){
         ) : (mode==='learn'&&openIdx!==null) ? (
           <div style={{flex:1,alignSelf:'stretch',width:'100%',minHeight:0,display:'flex',flexDirection:'column',alignItems:'center'}}>
             {_blurbs}
-            {learnPhase==='practice'&&(<div style={{width:boardPx,maxWidth:'98vw',display:'flex',flexDirection:'column',gap:9,marginTop:6}}>{(()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';return(<button onClick={()=>setOpenIdx(null)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','rgba(255,255,255,.85)'),width:'100%',fontSize:'clamp(11px,2.5vw,13px)'}}>‹ All {noun}</button>);})()}{learnPlansBox}{learnVideoBox}</div>)}
+            {learnPhase==='practice'&&(<div style={{width:boardPx,maxWidth:'98vw',display:'flex',flexDirection:'column',gap:9,marginTop:6}}>{(()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';return(<button onClick={()=>setOpenIdx(null)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','rgba(255,255,255,.85)'),width:'100%',fontSize:'clamp(11px,2.5vw,13px)'}}>‹ All {noun}</button>);})()}</div>)}
             <div style={{flex:1,minHeight:10}}/>
             {_board}
             {_controls}
