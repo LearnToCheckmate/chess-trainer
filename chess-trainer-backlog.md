@@ -906,3 +906,6 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 
 ## Build #190 — Practice strip verified; gallery cleared (2026-06-14)
 - 10:14 clip confirmed the #189 stripped practice screen: board prominent and low, only title + All-openings bar above, single action row below (flip, hint, Try again, more), no picker, no plans/video, no scroll. Verified clean. Removed the gallery item -> Preview gallery is now empty (nothing outstanding). [practice declutter: DONE]
+
+## Build #191 — Tennison Gambit: show the queen-win payoff (2026-06-14)
+- Kunal (raised before, never logged): the Tennison first line was useless because you never saw the queen-win payoff; it ended on the quiet ...Bxd3 Nc6 O-O even though the app tags it payoff='win'. Root cause: the famous queen trap (...h6 Nxf7! Kxf7 Bg6+! Kxg6 Qxd8) already existed but only as a variation. Fix: swapped them. The trap is now the MAIN line (engine-verified, black queen comes off with no recapture, White up Q for two minors); the quiet line is kept as the "The sound line (...Nc6)" variation for when Black declines. Notes/idea/plans/arrows moved with each. History: this was flagged conceptually on June 5 (Evans got reworked then, Tennison slipped through and was never tracked). [gambit payoff: DONE]
