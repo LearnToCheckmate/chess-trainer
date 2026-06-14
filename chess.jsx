@@ -751,10 +751,10 @@ const OPENINGS=[
     notes:["e4 — King's pawn.","…e5 — the Open Game.","Nf3 — attack e5.","…d5!? The Elephant Gambit — strike the centre at once.","exd5 — White grabs the pawn.","…e4! — gain space and kick the f3-knight.","Qe2 — pin and attack the e4-pawn.","…Qe7 — defend e4 and prepare to develop.","Nd4 — the knight hops to safety.","…Nf6 — develop, guard e4, and aim to regain d5. Black is a pawn down but has the e4 wedge and fast piece play; White stands a bit better."],
     plans:"Develop quickly and open lines (…Bd6, …Nf6, …O-O) to justify the pawn. White is theoretically better, so play it for the surprise and the open, tactical positions. A practical blitz weapon." },
   { name:"Fishing Pole Trap", eco:"C65", side:"b", cat:"⚔️ Gambits — as Black",
-    line:["e4","e5","Nf3","Nc6","Bb5","Nf6","O-O","Ng4","h3","h5","hxg4","hxg4","Ne1","Qh4"],
+    line:["e4","e5","Nf3","Nc6","Bb5","Nf6","O-O","Ng4","h3","h5","hxg4","hxg4","Ne1","Qh4","Qf3","gxf3","Nxf3","Qh1#"],
     idea:"A devilish trap in the Ruy López: Black dangles the g4-knight as bait. If White grabs it with hxg4??, …hxg4 rips open the h-file and the queen and rook crash through for mate.",
-    notes:["e4 — King's pawn.","…e5 — the Open Game.","Nf3 — develop and hit e5.","…Nc6 — defend e5.","Bb5 — the Ruy López.","…Nf6 — develop and hit e4.","O-O — White castles.","…Ng4!? — the fishing pole: the knight lunges at h2, looking greedy.","h3 — White questions the knight…","…h5! — the hook! Black offers the knight to lure hxg4.","hxg4?? — White bites. This is the losing mistake (White had to decline with d3 or Re1).","…hxg4 — the h-file rips wide open, straight at White's king.","Ne1 — the f3-knight flees the g4-pawn; it was lost either way.","…Qh4 — the queen swings in. With the h-file open, …Qh1+ and …g3 crash through; the engine confirms a forced win for Black."],
-    plans:"The trap is hxg4?? hxg4, and the h-file opens straight onto White's king (…Qh4, …g3 / …gxf3, mate). If White declines correctly, you've still got an aggressive position. A famous blitz haymaker." },
+    notes:["e4 — King's pawn.","…e5 — the Open Game.","Nf3 — develop and hit e5.","…Nc6 — defend e5.","Bb5 — the Ruy López.","…Nf6 — develop and hit e4.","O-O — White castles.","…Ng4!? — the fishing pole: the knight lunges at h2, looking greedy.","h3 — White questions the knight…","…h5! — the hook! Black offers the knight to lure hxg4.","hxg4?? — White bites. This is the losing mistake (White had to decline with d3 or Re1).","…hxg4 — the h-file rips wide open, straight at White's king.","Ne1 — the f3-knight flees the g4-pawn; it was lost either way.","…Qh4 — the queen swings to the open h-file, threatening …Qh1#.","Qf3 — the only square that guards h1 — but it steps right in front of the g4-pawn.","…gxf3 — the pawn snaps the queen off; nothing covers h1 now.","Nxf3 — recapture, but far too late.","…Qh1# — mate. The rook on the open h-file backs the queen, and White's king is smothered by its own pieces."],
+    plans:"The trap is hxg4?? hxg4, opening the h-file onto White's king. …Qh4 threatens …Qh1#, and the only guard, Qf3, drops to …gxf3. If White declines the bait correctly, you've still got an aggressive position. A famous blitz haymaker." },
   { name:"Traxler Counterattack", eco:"C57", side:"b", cat:"⚔️ Gambits — as Black",
     line:["e4","e5","Nf3","Nc6","Bc4","Nf6","Ng5","Bc5","Nxf7","Bxf2+","Kxf2","Nxe4+","Kg1","Qh4"],
     idea:"One of the most fearless lines in chess: instead of defending f7 against the Fried Liver, Black ignores it with 4…Bc5!?, aiming his own bishop at f2. If White grabs f7, Black gets a raging attack.",
@@ -2988,8 +2988,7 @@ export default function App(){
           setTimeout(stepFn,750);
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
-        const SC=[
-        ];
+        const SC=LIB.map((o,i)=>({o,i})).filter(({o})=>/Gambits/.test(o.cat||'')).sort((a,b)=>{const pr=x=>x.o.name==='Tennison Gambit'?0:(x.o.name==='Fishing Pole Trap'?1:2);return pr(a)-pr(b);}).map(({o,i})=>({l:o.name,n:'Auto-plays the finishing moves. Tap any lesson to watch the whole line.',r:()=>{setHomeScreen(false);setMode('learn');selectOpening(i);setTimeout(()=>{const L=(LIB[i].line||[]).length;setDemoPly(Math.max(0,L-5));setDemoPlaying(true);},350);},h:11000}));
         const _runAll=()=>{
           setPreview(false);const N=SC.length;let i=0;
           const go=()=>{
