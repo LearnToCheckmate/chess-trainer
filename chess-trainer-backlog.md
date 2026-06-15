@@ -944,3 +944,8 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - Safe fix shipped: the "ℹ about" toggle (was a flat 11px) bumped to clamp(12px,2.6vw,13px), height 26, to match the lesson-flow secondary buttons.
 - DEFERRED (needs Kunal's eyes, blind blanket changes risk breaking screens): a canonical button-tier system (Primary ~14 / Secondary ~13 / Compact ~12 / Icon) applied screen-by-screen; the back-bar styles differ across screens (some btn()-styled, some 12.5px) and should be unified once Kunal flags which screens look off.
 - Still open offer: tuck the demo "Watch it explained" video box (collapse to a compact button) so the demo bottom is fully clean.
+
+## Build #198 — closed solo items: board freeze + video collapse (2026-06-14)
+- Board freeze (airtight): the longest lesson notes are 5-6 line checkmate payoffs, so a 2-line floor still grew. Switched the compact per-move note to a FIXED 56px height with internal scroll, so the box height is constant and the board never moves during a demo, regardless of note length. Long notes scroll within the box.
+- Video box collapsed: "📺 Watch it explained" is now a single tappable header (▸/▾); the player, links, and coach chips are hidden until tapped, and it resets to collapsed on each lesson open. Demo (and practice) bottom is now clean.
+- CLOSED the solo-doable queue. Remaining open items all NEED Kunal: button-consistency screen-by-screen pass (send screenshots), manual-open verify of the flash/freeze on device, legal-page placeholder values, Firebase/Cloudflare manual steps (Friends/Play-nearby rules, scanBoard function, gambitcoach.com), live two-account testing, Stripe go-live, and the PreMove feature build (codeable but needs your online-game testing).
