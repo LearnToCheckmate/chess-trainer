@@ -938,3 +938,9 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - Board-jump fix (Kunal): the compact per-move note grew 1↔2 lines and bounced the board. Reserved a fixed 46px floor with vertically-centered text, so the note keeps a constant height and the board stays frozen during the demo.
 - Note: rare 3-line notes may still grow once; bump the floor if any lesson is reported jumping.
 - Still in demo below the board: the "Watch it explained" video box (partially off-screen). Left as-is for now; can fold/relocate if Kunal wants the demo bottom fully clean.
+
+## Build #197 — button/font audit + about-button bump (2026-06-14)
+- Ran an app-wide button audit: ~60 distinct fontSize values, 71 buttons under 12px min. Confirms the felt inconsistency. BUT most sub-12px are intentionally small decorative elements (puzzle tier labels, captured-piece chips, chevron glyphs) where bumping would overflow/wrap layouts.
+- Safe fix shipped: the "ℹ about" toggle (was a flat 11px) bumped to clamp(12px,2.6vw,13px), height 26, to match the lesson-flow secondary buttons.
+- DEFERRED (needs Kunal's eyes, blind blanket changes risk breaking screens): a canonical button-tier system (Primary ~14 / Secondary ~13 / Compact ~12 / Icon) applied screen-by-screen; the back-bar styles differ across screens (some btn()-styled, some 12.5px) and should be unified once Kunal flags which screens look off.
+- Still open offer: tuck the demo "Watch it explained" video box (collapse to a compact button) so the demo bottom is fully clean.
