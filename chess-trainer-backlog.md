@@ -932,3 +932,9 @@ Every reply that completes one or more runs ends with a table: Fuel (BUILDGO cou
 - UI: folded plans into the "ℹ about" flash card (idea + plans = full about-this-opening) and dropped the standalone plans box from the phone demo. Demo bottom is now clean: board, All-gambits, Now-I'll-try-it/Flip.
 - Gambit closing notes flipped to end on the punch (engine-honest): Rousseau (catches club players cold), Latvian (pure chaos / attack crashes through), Elephant (out of book on move two), From's (vicious trap). King's already landed on "ferocious" - left as-is. Sound group (Scotch/Wing/Smith-Morra/BDG) untouched.
 - STILL TO VERIFY (needs a manual lesson-open recording, not Play-all): the flash card itself rendering on open + now showing idea+plans.
+
+## Build #196 — flash glyph fix + freeze board (2026-06-14)
+- Confirmed from a manual lesson-open screenshot (Légal Trap, #195): flash card renders well with idea + plan + divider. BUG found: close button and CTA showed literal \u2715 and "\u2014 \u25B6" (a double-escape from the #193 modal). Fixed to real ✕ / "Got it — play ▶".
+- Board-jump fix (Kunal): the compact per-move note grew 1↔2 lines and bounced the board. Reserved a fixed 46px floor with vertically-centered text, so the note keeps a constant height and the board stays frozen during the demo.
+- Note: rare 3-line notes may still grow once; bump the floor if any lesson is reported jumping.
+- Still in demo below the board: the "Watch it explained" video box (partially off-screen). Left as-is for now; can fold/relocate if Kunal wants the demo bottom fully clean.

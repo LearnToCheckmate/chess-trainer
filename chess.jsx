@@ -3581,8 +3581,8 @@ export default function App(){
           <div style={{fontSize:'clamp(15px,3.8vw,20px)',fontWeight:800,color:'var(--ac2)',marginBottom:8,paddingRight:30}}>{learnLabel||LIB[openIdx].name}</div>
           <div style={{fontSize:'clamp(13px,3vw,15px)',color:'rgba(255,255,255,.9)',lineHeight:1.55,maxHeight:'40vh',overflowY:'auto'}}>{learnIdea||LIB[openIdx].idea}</div>
           {(learnPlans||LIB[openIdx].plans)&&(<div style={{fontSize:'clamp(12px,2.8vw,14px)',color:'rgba(255,255,255,.7)',lineHeight:1.5,marginTop:13,paddingTop:13,borderTop:'1px solid rgba(255,255,255,.13)',maxHeight:'26vh',overflowY:'auto'}}>{learnPlans||LIB[openIdx].plans}</div>)}
-          <button onClick={()=>setIntroCard(false)} style={{...btn('var(--ac)','none','#fff'),width:'100%',marginTop:15}}>Got it \u2014 play \u25B6</button>
-          <button onClick={()=>setIntroCard(false)} aria-label="Close" style={{position:'absolute',top:9,right:9,width:30,height:30,borderRadius:8,background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.22)',color:'#fff',fontSize:15,lineHeight:1,cursor:'pointer'}}>\u2715</button>
+          <button onClick={()=>setIntroCard(false)} style={{...btn('var(--ac)','none','#fff'),width:'100%',marginTop:15}}>Got it — play ▶</button>
+          <button onClick={()=>setIntroCard(false)} aria-label="Close" style={{position:'absolute',top:9,right:9,width:30,height:30,borderRadius:8,background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.22)',color:'#fff',fontSize:15,lineHeight:1,cursor:'pointer'}}>✕</button>
         </div>
       </div>)}
       {/* Context bars */}
@@ -3626,7 +3626,7 @@ export default function App(){
             </div>
           </div>
         </>):(
-          <div style={{margin:'5px auto 0',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,padding:'5px 11px',fontSize:'clamp(10px,2.3vw,12px)',lineHeight:1.4,textAlign:'left',color:'rgba(255,255,255,.85)'}}>
+          <div style={{margin:'5px auto 0',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,padding:'6px 11px',minHeight:46,boxSizing:'border-box',display:'flex',alignItems:'center',fontSize:'clamp(10px,2.3vw,12px)',lineHeight:1.4,textAlign:'left',color:'rgba(255,255,255,.85)'}}>
             {learnPhase==='demo'
               ? (demoPly===0?<span style={{color:'var(--ac2)'}}>▶ Press Play to watch</span>:<span><span style={{fontWeight:700,color:'#f0b429'}}>{Math.ceil(demoPly/2)}{demoPly%2===1?'.':'…'} {learnLine[demoPly-1]}</span>{curNote?<span> — {curNote}</span>:null}</span>)
               : <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{openMsg||`Your move (${LIB[openIdx].side==='w'?'White':'Black'})`}</span>}
