@@ -1757,6 +1757,8 @@ export default function App(){
   const [playHist,setPlayHist]=useState([]);
   const [pvIdx,setPvIdx]=useState(null);          // live-game move viewer: null=live, else position index (after N moves)
   const pvIdxRef=useRef(null);
+  const [lpv,setLpv]=useState(null);
+  const lpvRef=useRef(null);
   const [playHintMv,setPlayHintMv]=useState(null);
   const [pColor,setPColor]=useState('w');
   const [thinking,setThinking]=useState(false);
@@ -1968,9 +1970,18 @@ export default function App(){
   const inReview=mode==='analyze'&&review!==null;
   const inDemo=mode==='learn'&&learnPhase==='demo'&&learnLine.length>0;
   const demoSt=useMemo(()=>inDemo?demoState(learnLine,demoPly,learnFEN):null,[inDemo,learnLine,demoPly,learnFEN]);
+  const lpHist=useMemo(()=>{
+    if(mode!=='learn'||learnPhase!=='practice'||openIdx==null)return [];
+    const op=LIB[openIdx]; if(!op)return [];
+    let g=op.fen?fromFEN(op.fen):initGame(); const out=[g];
+    const lim=Math.min(openStep,learnLine.length);
+    for(let i=0;i<lim;i++){const mv=findMoveBySAN(g,learnLine[i]); if(!mv)break; g=makeMove(g,mv); out.push(g);}
+    return out;
+  },[mode,learnPhase,openIdx,openStep,learnLine]);
+  const _lpLive=(mode==='learn'&&learnPhase==='practice'&&lpv!=null&&lpHist.length>0&&lpv<lpHist.length);
   const _pvLive=(mode==='play'&&!inReview&&!inDemo&&pvIdx!=null&&pvIdx<playHist.length);
-  const boardGame=inReview?review.positions[ply]:(inDemo?demoSt.game:(_pvLive?playHist[pvIdx]:game));
-  const boardLast=inReview?(ply>0?review.plies[ply-1].move:null):(inDemo?demoSt.last:(_pvLive?((boardGame.history&&boardGame.history.length)?boardGame.history[boardGame.history.length-1].move:null):lastMv));
+  const boardGame=inReview?review.positions[ply]:(inDemo?demoSt.game:(_pvLive?playHist[pvIdx]:(_lpLive?lpHist[lpv]:game)));
+  const boardLast=inReview?(ply>0?review.plies[ply-1].move:null):(inDemo?demoSt.last:((_pvLive||_lpLive)?((boardGame.history&&boardGame.history.length)?boardGame.history[boardGame.history.length-1].move:null):lastMv));
   // Arrows shown on the board during the demo: the move just played (amber) + any idea arrows (blue)
   const boardArrows=useMemo(()=>{
     if(!inDemo)return [];
@@ -2021,6 +2032,8 @@ export default function App(){
   useEffect(()=>{timeCtrlRef.current=timeCtrl;},[timeCtrl]);
   useEffect(()=>{pvIdxRef.current=pvIdx;},[pvIdx]);
   useEffect(()=>{setPvIdx(null);},[playHist.length]);
+  useEffect(()=>{lpvRef.current=lpv;},[lpv]);
+  useEffect(()=>{setLpv(null);},[openStep,learnPhase,openIdx]);
   useEffect(()=>{playEndRef.current=playEnd;},[playEnd]);
 
   useEffect(()=>{if(cyclingRef.current)return;try{localStorage.setItem('ct_theme',theme);}catch{}},[theme]);
@@ -2759,7 +2772,7 @@ export default function App(){
   };
   const getSquare=(cx,cy)=>{const rect=boardRef.current?.getBoundingClientRect();if(!rect)return null;const x=cx-rect.left,y=cy-rect.top;const dC=Math.floor(x/SQ),dR=Math.floor(y/SQ);if(dR<0||dR>=8||dC<0||dC>=8)return null;const f=flipRef.current;return[f?7-dR:dR,f?7-dC:dC];};
   const canMoveNow=humanCanMove();
-  const onPtrDown=(e)=>{if(e.pointerType==='touch'&&(e.clientX<=10||e.clientX>=((window.innerWidth||9999)-10)))return;if(modeRef.current==='play'&&pvIdxRef.current!=null){setPvIdx(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}if(!humanCanMove()){const pmc=canPreMoveNow();if(pmc){e.preventDefault();const sq=getSquare(e.clientX,e.clientY);const g=gameRef.current;const ui=UI.current;if(preMvRef.current)setPreMv(null);if(sq){const[r,c]=sq;const piece=g.board[r][c];if(piece&&piece.c===pmc){if(ui.sel&&ui.sel[0]===r&&ui.sel[1]===c)UI.current={sel:null,tgts:[],drag:null,dragging:false};else UI.current={sel:[r,c],tgts:[],drag:{from:[r,c],piece,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY},dragging:false};}else if(ui.sel){const[fr,fc]=ui.sel;const p2=g.board[fr][fc];if(p2&&p2.c===pmc)setPreMv({fr,fc,tr:r,tc:c});UI.current={sel:null,tgts:[],drag:null,dragging:false};}else UI.current={sel:null,tgts:[],drag:null,dragging:false};}repaint();return;}return;}e.preventDefault();const sq=getSquare(e.clientX,e.clientY);if(!sq)return;const[r,c]=sq;const g=gameRef.current;const ui=UI.current;if(ui.sel){if(commitOrPromote(g,ui.tgts,r,c))return;}const piece=g.board[r][c];if(piece&&piece.c===g.turn){if(ui.sel?.[0]===r&&ui.sel?.[1]===c)UI.current={sel:null,tgts:[],drag:null,dragging:false};else{const moves=getMovesFrom(g,r,c);UI.current={sel:[r,c],tgts:moves,drag:{from:[r,c],piece,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY},dragging:false};}}else UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
+  const onPtrDown=(e)=>{if(e.pointerType==='touch'&&(e.clientX<=10||e.clientX>=((window.innerWidth||9999)-10)))return;if(modeRef.current==='play'&&pvIdxRef.current!=null){setPvIdx(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}if(modeRef.current==='learn'&&learnPhaseRef.current==='practice'&&lpvRef.current!=null){setLpv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}if(!humanCanMove()){const pmc=canPreMoveNow();if(pmc){e.preventDefault();const sq=getSquare(e.clientX,e.clientY);const g=gameRef.current;const ui=UI.current;if(preMvRef.current)setPreMv(null);if(sq){const[r,c]=sq;const piece=g.board[r][c];if(piece&&piece.c===pmc){if(ui.sel&&ui.sel[0]===r&&ui.sel[1]===c)UI.current={sel:null,tgts:[],drag:null,dragging:false};else UI.current={sel:[r,c],tgts:[],drag:{from:[r,c],piece,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY},dragging:false};}else if(ui.sel){const[fr,fc]=ui.sel;const p2=g.board[fr][fc];if(p2&&p2.c===pmc)setPreMv({fr,fc,tr:r,tc:c});UI.current={sel:null,tgts:[],drag:null,dragging:false};}else UI.current={sel:null,tgts:[],drag:null,dragging:false};}repaint();return;}return;}e.preventDefault();const sq=getSquare(e.clientX,e.clientY);if(!sq)return;const[r,c]=sq;const g=gameRef.current;const ui=UI.current;if(ui.sel){if(commitOrPromote(g,ui.tgts,r,c))return;}const piece=g.board[r][c];if(piece&&piece.c===g.turn){if(ui.sel?.[0]===r&&ui.sel?.[1]===c)UI.current={sel:null,tgts:[],drag:null,dragging:false};else{const moves=getMovesFrom(g,r,c);UI.current={sel:[r,c],tgts:moves,drag:{from:[r,c],piece,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY},dragging:false};}}else UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
   const onPtrMove=(e)=>{const ui=UI.current;if(!ui.drag)return;e.preventDefault();const dx=e.clientX-ui.drag.sx,dy=e.clientY-ui.drag.sy;const dragging=ui.dragging||(dx*dx+dy*dy>30);UI.current={...ui,drag:{...ui.drag,x:e.clientX,y:e.clientY},dragging};repaint();};
   const onPtrUp=(e)=>{try{e.currentTarget.releasePointerCapture(e.pointerId);}catch(_){}const ui=UI.current;if(!ui.drag)return;e.preventDefault();if(ui.dragging){const sq=getSquare(e.clientX,e.clientY);if(sq){const[r,c]=sq;if(commitOrPromote(gameRef.current,ui.tgts,r,c))return;const pmc=canPreMoveNow();const g=gameRef.current;const fp=g.board[ui.drag.from[0]][ui.drag.from[1]];if(pmc&&fp&&fp.c===pmc&&!(ui.drag.from[0]===r&&ui.drag.from[1]===c)){setPreMv({fr:ui.drag.from[0],fc:ui.drag.from[1],tr:r,tc:c});UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}}}UI.current={...ui,drag:null,dragging:false};repaint();};
   const onPtrCancel=(e)=>{try{e.currentTarget.releasePointerCapture(e.pointerId);}catch(_){}const ui=UI.current;if(ui.drag||ui.dragging){UI.current={...ui,drag:null,dragging:false};repaint();}};
@@ -4338,6 +4351,7 @@ export default function App(){
             )}
             <div style={{alignSelf:'stretch',display:'flex',flexDirection:'column',gap:8}}>
               <div style={{height:4,borderRadius:2,background:'rgba(255,255,255,.12)',overflow:'hidden'}}><div style={{height:'100%',width:(learnLine.length?Math.round(100*Math.min(openStep,learnLine.length)/learnLine.length):0)+'%',background:'var(--ac)',borderRadius:2,transition:'width .25s'}}/></div>
+              {openStep>0&&lpHist.length>1&&(()=>{const n=lpHist.length-1;const cur=lpv==null?n:lpv;const sb=(lbl,fn,dis)=>(<button key={lbl} disabled={dis} onClick={fn} style={{flex:1,minHeight:36,borderRadius:8,background:dis?'rgba(255,255,255,.04)':'rgba(255,255,255,.09)',border:'1px solid rgba(255,255,255,.18)',color:dis?'rgba(255,255,255,.28)':'#fff',fontSize:'clamp(14px,3.4vw,17px)',fontWeight:800,cursor:dis?'default':'pointer'}}>{lbl}</button>);return(<div style={{display:'flex',gap:6,alignItems:'center'}}>{sb('⏮',()=>setLpv(0),cur===0)}{sb('‹',()=>setLpv(Math.max(0,cur-1)),cur===0)}<span style={{flex:'0 0 auto',minWidth:74,textAlign:'center',fontSize:'clamp(9px,2vw,11px)',fontWeight:800,color:lpv==null?'#86d99a':'var(--ac2)',fontFamily:'monospace',letterSpacing:.5}}>{lpv==null?'● LIVE':('Move '+cur+'/'+n)}</span>{sb('›',()=>{const nv=Math.min(n,cur+1);setLpv(nv>=n?null:nv);},cur>=n)}{sb('⏭',()=>setLpv(null),lpv==null)}</div>);})()}
               <div style={{display:'flex',gap:6,alignItems:'stretch'}}>
                 <button onClick={()=>setFlip(f=>!f)} aria-label="Flip board" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.4vw,19px)'}}>⟳</button>
                 <button onClick={()=>{const nv=!showHint;setShowHint(nv);setHintFor(LIB[openIdx]?.name,nv);if(nv)setRevealHint(false);}} aria-label="Hints" style={{...btn(showHint?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',showHint?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',showHint?'var(--ac2)':'rgba(255,255,255,.6)'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.4vw,19px)'}}>💡</button>
