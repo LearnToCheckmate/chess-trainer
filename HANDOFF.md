@@ -1,9 +1,9 @@
-# Chess Trainer — Build Chat Handoff (refreshed 2026-06-12, app at build #173)
+# Chess Trainer — Build Chat Handoff (refreshed 2026-06-16, app at build #200)
 
 ## Boot sequence for the new build chat
 1. SECRET FIRST: the GitHub fine-grained PAT is NOT in this repo and must never be written to any file. Retrieve it by searching the original build chat for "github_pat" (conversation_search). Use it inline in env only.
 2. Refetch chess.jsx, gen_tracker.py, chess-trainer-backlog.md (and index.html when touching the host) from this repo via the contents API with Accept: application/vnd.github.raw at the START of every session (disk reverts between turns).
-3. Read chess-trainer-backlog.md fully: it is the single source of truth for the queue, decisions, and notes. Standing authorization is unlimited (BUILDGO retired); every Kunal message buys the longest safe run.
+3. Read chess-trainer-backlog.md fully: it is the single source of truth. The ACTIVE QUEUE is the section at the TOP of that file. RECONCILE the queue at the END of every run: move shipped items to Recently-shipped, delete stale ones, keep only genuinely-open items each tagged CLAUDE or KUNAL. Standing authorization is unlimited (BUILDGO retired); every Kunal message buys the longest safe run.
 4. Conventions: timing line at top and bottom of every reply (sandbox clock; note it can read UTC across turns — the build STAMP via TZ=America/New_York is the correct EDT). Build stamp line at the very bottom. Run table (Fuel | Run | Started | Ended | Duration), Fuel = infinity. No em-dashes in replies or app labels. Lead with the answer, minimal formatting. High autonomy: batch work, make judgment calls and flag for veto, defer design-taste/device/backend calls to Kunal.
 
 ## Deploy recipe (battle-tested, unchanged)
@@ -23,7 +23,9 @@
 - Paywall card corrected to match real gating (Pro = Coach + themes only; puzzles/review are free) (#167).
 - Review suite 8/8 DONE (delivered as HTML in outputs): accessibility, first-session funnel, content QA (130/130 lines engine-verified legal), competitive, performance (measured: 233KB gz; 188 useState/0 useCallback in one component), retention, paywall.
 
-## Queue (in priority order)
+## Queue -> see the ACTIVE QUEUE at the TOP of chess-trainer-backlog.md (reconciled every run). The list below is stale (build #173 era), kept only for reference.
+
+## Stale queue (build #173 reference)
 1. perf-memo-board + perf-callback-handlers: React.memo the board grid + player bars, useCallback the square-tap/drag/move handlers. HIGH RISK blind — the board is a SHARED render and the component has 188 useState; wrong deps cause SILENT stale-render bugs. Do with Kunal screenshotting gameplay immediately after each step to verify.
 2. lesson-board-bottom-anchor: full "board anchored to bottom, content flows from top, ONE button row at bottom" reorder. The board is shared across play+lesson through ~700 lines (SQ at ~1974; lesson chrome at 3555-3572 and 4248-4264). Real restructure; do carefully with screenshots.
 3. Tournaments Stage 2b then 2c (needs the /tournaments Firestore rule live + two accounts).

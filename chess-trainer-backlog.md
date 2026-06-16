@@ -1,3 +1,44 @@
+# ACTIVE QUEUE - reconciled 2026-06-16 (app at build #200)
+
+RULE: reconcile this section at the END of every run. Move shipped items to "Recently shipped", delete anything stale, keep only genuinely-open items, each tagged with an owner (CLAUDE or KUNAL). Everything below the "LOG" divider is historical and is NOT the queue.
+
+## CLAUDE can build now (no Kunal needed)
+- [ ] Fixed-size button conversion (last button-consistency item). ~30 buttons still use fixed px fonts (13/14/15) that render larger on a phone than the #199 tiers. Can do blind; Kunal spot-checks after. Low-value polish - optional.
+
+## WAITING ON KUNAL
+
+Screenshots Claude needs (for the fixed-size button pass - one shot of each screen):
+- [ ] Home (the four tiles + the coach tile)
+- [ ] Play setup (opponent picker + time-control picker)
+- [ ] Puzzles (the roadmap / list)
+- [ ] Online lobby (the globe screen: Friends / Tournaments / Challenge)
+- [ ] Settings / menu (the hamburger screen: subscription, sign-out, links)
+
+On-device checks:
+- [ ] Confirm the #200 practice move-stepper and the #196 flash glyphs + frozen board look right.
+
+Kunal's consoles / accounts:
+- [ ] Firebase: publish Friends + Play-nearby Firestore rules; deploy the scanBoard Cloud Function (+ ANTHROPIC_API_KEY secret).
+- [ ] Cloudflare: register gambitcoach.com.
+- [ ] Stripe: finish the extension setup, then go live (test to live).
+- [ ] Legal pages: fill in the [placeholder] values.
+- [ ] Live two-account test: Friends, Tournaments, Play-nearby.
+
+Content from Kunal:
+- [ ] Send the openings you play that aren't in the library yet, so Claude adds your real repertoire.
+
+## BIGGER BUILDS (codeable, but need Kunal testing after - pick when ready)
+- [ ] Tournaments Stage 2b/2c: wire pairings to real online games + live standings (needs the /tournaments rule live + two accounts).
+- [ ] Lesson-board bottom-anchor reorder (large shared-board restructure; do with screenshots).
+- [ ] Themes phase 2: custom piece art.
+- [ ] Video long tail + iPad two-column Home mockups.
+
+## RECENTLY SHIPPED
+#200 practice move-stepper / #199 button tiers (49 to 5) + back-arrow glyph / PreMove (verified already built) / #198 board freeze + video collapse / #197 about-button bump / #196 flash glyph fix + board freeze / #195 plans-into-flash + 4 gambit endings / #194 gambit engine verdict + Halloween note / #193 idea flash + board real-estate.
+
+----------------------------------------------------------------------
+# LOG (historical - NOT the queue)
+
 # Chess Trainer - Status Tracker
 
 Living doc: what is DONE and what is OPEN. Updated each time we ship.
