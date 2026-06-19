@@ -16,6 +16,7 @@ Screenshots Claude needs (for the fixed-size button pass - one shot of each scre
 
 On-device checks:
 - [ ] Confirm the #200 practice move-stepper and the #196 flash glyphs + frozen board look right.
+- [ ] Confirm the #201 review look: pieces fill their squares, the on-board move-quality badges read clearly, and a brilliant move glows teal. Compare to Chess.com side by side.
 
 Kunal's consoles / accounts:
 - [ ] Firebase: publish Friends + Play-nearby Firestore rules; deploy the scanBoard Cloud Function (+ ANTHROPIC_API_KEY secret).
@@ -34,6 +35,7 @@ Content from Kunal:
 - [ ] Video long tail + iPad two-column Home mockups.
 
 ## RECENTLY SHIPPED
+#201 Game Review board overhaul: pieces scaled to fill their squares (whole app), on-board move-quality badge on each reviewed move's destination square (corner circle in the classification color), and move squares glow in the classification color so brilliants light up teal. /
 #200 practice move-stepper / #199 button tiers (49 to 5) + back-arrow glyph / PreMove (verified already built) / #198 board freeze + video collapse / #197 about-button bump / #196 flash glyph fix + board freeze / #195 plans-into-flash + 4 gambit endings / #194 gambit engine verdict + Halloween note / #193 idea flash + board real-estate.
 
 ----------------------------------------------------------------------

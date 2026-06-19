@@ -3,7 +3,7 @@
 # After each build run: edit TASKS/GROUPS, set STAMP, run:  python3 gen_tracker.py
 import json, datetime
 
-STAMP = "Updated through build #179 - 2026-06-13"
+STAMP = "Updated through build #201 - 2026-06-19"
 
 GROUPS = [
     {"key": "online", "nm": "Online & multiplayer", "color": "#7bd1ff", "isNew": True},
@@ -23,7 +23,8 @@ GROUPS = [
 
 # s: open | part | done ; you: needs Kunal ; b: build tag
 TASKS = [
-    # Online & multiplayer
+    {"g": "review", "id": "rv-board", "s": "done", "b": "#201", "you": True, "t": "Review board: match / exceed Chess.com", "n": "Built (#201) from Kunal's Chess.com comparison: (1) the board pieces now scale up to fill their square across the whole app, matching Chess.com's fuller pieces; (2) every reviewed move shows its quality badge superimposed on the destination square (a corner circle in the classification colour: !! for Brilliant in cyan, ! for Great, a star for Best, ?! / ? / ?? for inaccuracy / mistake / blunder) instead of only in the coach bubble; (3) the move's squares now glow in that same classification colour, so a brilliant move lights up teal and a blunder red. The coach bubble explanation stays. NEEDS YOU: open a review, step through the moves, and compare to Chess.com (piece fit, on-board badges, brilliant glow)."},
+        # Online & multiplayer
     {"g": "online", "id": "on-decline",  "s": "done", "b": "#111", "t": "Show a \u201cDraw declined\u201d message", "n": "Now shows in the side panel and as a board toast to the offerer. Re-test on #111."},
     {"g": "online", "id": "on-btnsize",  "s": "part", "t": "Stop action buttons resizing / shifting the panel", "n": "The control area already has a fixed minimum height. Tell me (screenshot) if it still shifts and I will lock it fully. #144: Claim-win button now matches the panel metrics (full width, 48px, fixed font). Remaining movement is row-count changing with state, which is structural; flag if it still bothers."},
     {"g": "online", "id": "on-prompt",   "s": "done", "t": "Incoming draw prompt at the top as a board overlay", "n": "Already implemented (built after build 81). Re-test on #111."},
