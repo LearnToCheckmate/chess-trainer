@@ -17,6 +17,7 @@ Screenshots Claude needs (for the fixed-size button pass - one shot of each scre
 On-device checks:
 - [ ] Confirm the #200 practice move-stepper and the #196 flash glyphs + frozen board look right.
 - [ ] Confirm the #201 review look: pieces fill their squares, the on-board move-quality badges read clearly, and a brilliant move glows teal. Compare to Chess.com side by side.
+- [ ] Verify #211: finish an ONLINE game (or have one end), and on the game-over/rematch overlay tap 'Review this game' - confirm it analyzes the online game and shows your accuracy from your side.
 - [ ] Verify #209: finish a game vs the computer, tap 'Review this game', confirm it analyzes and opens the review of that game with your accuracy/mistakes. (Note: I pass userColor but not a cache key to importGame - if the review mis-attributes a side or re-analyzes, tell me.)
 - [ ] Verify #208: every reviewed move (including Best/Good) now shows an explanation, so the annotation area is no longer empty on quiet moves.
 - [ ] Verify #207: stepping through a review no longer makes the buttons jump (the annotation block is now fixed-height). If you still see jumping on any OTHER screen (play, lessons), tell me which and I will pin those too.
@@ -42,6 +43,7 @@ Content from Kunal:
 - [ ] Video long tail + iPad two-column Home mockups.
 
 ## RECENTLY SHIPPED
+#211 Online games -> Review: the 'Review this game' button now also appears on the online game-over overlay (the rematch screen), so online matches flow into the full review too, not just local games. Generalized reviewPlayedGame to build the PGN from onlineGame.moves and use my own color. Now EVERY finished game (vs computer, pass-and-play, and online) can open the review. (#209 did local; this completes it.)
 #210 Wiped the preview gallery (Kunal standing request): the in-app film-clapper gallery still held stale gambit-recording scenarios from June 12. Emptied the SC array (const SC=[]) so the gallery holds only screens I currently still need (default empty). NEW STANDING RULE (also in HANDOFF): wipe the preview gallery at the END of every run, same discipline as the queue reconciliation.
 #209 Play -> Review connector: after any local game (vs computer or pass-and-play) ends, a prominent 'Review this game' button now appears on the game-over screen. It builds a PGN from the game's move history and drops it straight into the full analysis/review (the free hook), so the most-played mode now flows into our distinguishing feature. (Online games not wired yet - they have the rematch overlay; can add later.)
 #208 Review explanations for every move: previously Best / Excellent / Good moves showed no explanation (just the pill), which left the now-fixed annotation block looking empty on quiet moves. Added concise explanations for those, so every reviewed move is explained (with eval context), more coverage than Chess.com, and the reserved space is always used. Also audited the play screen for jitter and confirmed it is stable (clock is monospace, the thinking indicator sits in a fixed-height row, captured pieces fit one line).
