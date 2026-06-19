@@ -3,7 +3,7 @@
 # After each build run: edit TASKS/GROUPS, set STAMP, run:  python3 gen_tracker.py
 import json, datetime
 
-STAMP = "Updated through build #201 - 2026-06-19"
+STAMP = "Updated through build #202 - 2026-06-19"
 
 GROUPS = [
     {"key": "online", "nm": "Online & multiplayer", "color": "#7bd1ff", "isNew": True},
@@ -23,7 +23,8 @@ GROUPS = [
 
 # s: open | part | done ; you: needs Kunal ; b: build tag
 TASKS = [
-    {"g": "review", "id": "rv-board", "s": "done", "b": "#201", "you": True, "t": "Review board: match / exceed Chess.com", "n": "Built (#201) from Kunal's Chess.com comparison: (1) the board pieces now scale up to fill their square across the whole app, matching Chess.com's fuller pieces; (2) every reviewed move shows its quality badge superimposed on the destination square (a corner circle in the classification colour: !! for Brilliant in cyan, ! for Great, a star for Best, ?! / ? / ?? for inaccuracy / mistake / blunder) instead of only in the coach bubble; (3) the move's squares now glow in that same classification colour, so a brilliant move lights up teal and a blunder red. The coach bubble explanation stays. NEEDS YOU: open a review, step through the moves, and compare to Chess.com (piece fit, on-board badges, brilliant glow)."},
+    {"g": "review", "id": "rv-board2", "s": "open", "t": "Review parity round 2 (Chess.com polish)", "n": "Queued on Kunal's ask (2026-06-19), build on his go: (a) true overhang badge spilling outside the square like Chess.com (needs the board cell to stop clipping - a real structure change); (b) a floating Brilliant / classification text label above the move square; (c) a brilliant celebration animation plus a sound; (d) a best-move arrow drawn on the board when Best is tapped (we currently only tint the squares). Core parity already shipped in #201."},
+    {"g": "review", "id": "rv-board", "s": "done", "b": "#201", "you": True, "t": "Review board: match / exceed Chess.com", "n": "Built (#201) from Kunal's Chess.com comparison: (1) the board pieces now scale up to fill their square across the whole app, matching Chess.com's fuller pieces; (2) every reviewed move shows its quality badge superimposed on the destination square (a corner circle in the classification colour: !! for Brilliant in cyan, ! for Great, a star for Best, ?! / ? / ?? for inaccuracy / mistake / blunder) instead of only in the coach bubble; (3) the move's squares now glow in that same classification colour, so a brilliant move lights up teal and a blunder red. The coach bubble explanation stays. NEEDS YOU: open a review, step through the moves, and compare to Chess.com (piece fit, on-board badges, brilliant glow). #202: dialed the piece scale back from 1.12 to 1.06 after Kunal found #201 a touch crowded; the board already runs full-width so piece size is the lever, not board size."},
         # Online & multiplayer
     {"g": "online", "id": "on-decline",  "s": "done", "b": "#111", "t": "Show a \u201cDraw declined\u201d message", "n": "Now shows in the side panel and as a board toast to the offerer. Re-test on #111."},
     {"g": "online", "id": "on-btnsize",  "s": "part", "t": "Stop action buttons resizing / shifting the panel", "n": "The control area already has a fixed minimum height. Tell me (screenshot) if it still shifts and I will lock it fully. #144: Claim-win button now matches the panel metrics (full width, 48px, fixed font). Remaining movement is row-count changing with state, which is structural; flag if it still bothers."},
