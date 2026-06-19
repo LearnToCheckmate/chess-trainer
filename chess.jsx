@@ -3850,7 +3850,7 @@ export default function App(){
         const _controls=(<>
       {/* ── Review controls ── */}
       {inReview&&(
-        <div style={{width:boardPx,maxWidth:'98vw',marginTop:9,display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
+        <div style={{width:boardPx,maxWidth:'98vw',marginTop:8,display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
           {/* move annotation */}
           <div style={{minHeight:34,width:'100%',display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
             {curAnno?(<>
@@ -3875,9 +3875,6 @@ export default function App(){
             <button onClick={()=>jumpKey(1)} style={{...btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)'),fontWeight:800}}>⏭ Next key moment</button>
             <span style={{fontSize:'clamp(9px,2.1vw,11px)',color:'rgba(255,255,255,.5)'}}>{keyPlies.length} total</span>
           </div>)}
-          {/* eval graph */}
-          <EvalGraph analysis={review.analysis} plies={review.plies} ply={ply} onJump={(p)=>setPly(Math.max(0,Math.min(review.plies.length,p)))} width={wide?Math.max(160,sideW-12):boardPx} height={wide?96:78}/>
-          {review.openingName&&(<div style={{width:'100%',textAlign:'center',fontSize:'clamp(10px,2.3vw,12.5px)',color:'rgba(255,255,255,.8)'}}>📖 Opening: <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b> <span style={{color:'rgba(255,255,255,.58)'}}>({review.openingName.eco})</span></div>)}
           {/* summary + actions */}
           <div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
             {review.counts.Brilliant>0&&<button onClick={()=>jumpToIssue('Brilliant')} title="Jump to next brilliant move" style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(13px,3vw,15px)',fontWeight:800,color:'#22d3ee',background:'#22d3ee1f',border:'1px solid #22d3ee66',borderRadius:20,padding:'5px 12px',cursor:'pointer',boxShadow:'0 2px 0 rgba(0,0,0,.25),0 4px 9px rgba(0,0,0,.22)'}}><b style={{fontSize:'clamp(16px,4vw,20px)'}}>{review.counts.Brilliant}</b> brilliant{review.counts.Brilliant>1?' moves':' move'} !! <span style={{opacity:.75,fontSize:'.9em'}}>›</span></button>}
@@ -3887,6 +3884,9 @@ export default function App(){
                 : <span key={lab} style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(12px,3vw,15px)',fontWeight:700,color:c,opacity:.5,background:c+'14',border:'1px solid '+c+'33',borderRadius:20,padding:'5px 12px'}}><b style={{fontSize:'clamp(16px,4vw,20px)'}}>{cn}</b> {lab}</span>
             ))}
           </div>
+          {/* eval graph */}
+          <EvalGraph analysis={review.analysis} plies={review.plies} ply={ply} onJump={(p)=>setPly(Math.max(0,Math.min(review.plies.length,p)))} width={wide?Math.max(160,sideW-12):boardPx} height={wide?86:62}/>
+          {review.openingName&&(<div style={{width:'100%',textAlign:'center',fontSize:'clamp(10px,2.3vw,12.5px)',color:'rgba(255,255,255,.8)'}}>📖 Opening: <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b> <span style={{color:'rgba(255,255,255,.58)'}}>({review.openingName.eco})</span></div>)}
           <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'center'}}>
             <button onClick={()=>{setSetupFromFEN(toFEN(boardGame));setOpponent('computer');setPColor(boardGame.turn);setTimeCtrl(null);timeCtrlRef.current=null;setOpenIdx(null);setMode('play');setPlaySetup(true);}} style={btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)')}>▶ Play from here</button>
             <button onClick={()=>setShowBest(b=>!b)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)',showBest?'var(--ac)':'rgba(255,255,255,.7)')}>{showBest?'✓ Showing best':'💡 Show best move'}</button>
