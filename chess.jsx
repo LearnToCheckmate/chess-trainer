@@ -2401,11 +2401,12 @@ export default function App(){
       }
       for(let i=0;i<N;i++){
         const pos=res.positions[i],mover=pos.turn,before=evW[i],after=evW[i+1];
-        const loss=Math.max(0,mover==='w'?(before-after):(after-before));
+        let loss=Math.min(1500,Math.max(0,mover==='w'?(before-after):(after-before)));
         let bestMv=null,bestSan='';const bu=bU[i];
         if(bu){bestMv=uciToMove(pos,bu);if(bestMv)bestSan=toSAN(pos,bestMv,applyMove(pos.board,bestMv));}
         const evA=Math.max(-99,Math.min(99,after/100)),evB=Math.max(-99,Math.min(99,before/100));
         const pl=res.plies[i].move;
+        if(bestMv&&bestMv.fr===pl.fr&&bestMv.fc===pl.fc&&bestMv.tr===pl.tr&&bestMv.tc===pl.tc){loss=0;bestSan='';bestMv=null;}
         let cls=isBrilliant(pos,pl,loss,evA,evB)?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(loss);
         if(cls.label!=='Brilliant'){const _bm=mover==='w'?before:-before,_pm=mover==='w'?after:-after,_h2=ev2W[i]!=null,_s2=_h2?(mover==='w'?ev2W[i]:-ev2W[i]):null;
           if((cls.label==='Best'||cls.label==='Excellent')&&_h2&&(_bm-_s2)>=160)cls={label:'Great',c:'#7bd3c0',i:'!'};
@@ -2422,10 +2423,11 @@ export default function App(){
         const actualVal=actual?actual.v:(res.positions[i].turn==='w'?-9999:9999);
         const mover=res.positions[i].turn;
         const loss=Math.max(0,mover==='w'?bestVal-actualVal:actualVal-bestVal);
-        const bestSan=toSAN(res.positions[i],bestMv,applyMove(res.positions[i].board,bestMv));
+        let bestSan=toSAN(res.positions[i],bestMv,applyMove(res.positions[i].board,bestMv));let _bMv2=bestMv;
+        if(bestMv.fr===pl.fr&&bestMv.fc===pl.fc&&bestMv.tr===pl.tr&&bestMv.tc===pl.tc){bestSan='';_bMv2=null;}
         const _evA=evalPawns(res.positions[i+1]);
         const _cls=isBrilliant(res.positions[i],pl,Math.round(loss),_evA)?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(loss);
-        out.push({loss:Math.round(loss),cls:_cls,bestSan,bestMove:bestMv,evalAfter:_evA});
+        out.push({loss:Math.round(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA});
         if(i%2===0){setProgress((i+1)/res.plies.length);await new Promise(r=>setTimeout(r,0));}
       }
     }
