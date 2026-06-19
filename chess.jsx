@@ -3047,7 +3047,7 @@ export default function App(){
           setTimeout(stepFn,750);
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
-        const SC=LIB.map((o,i)=>({o,i})).filter(({o})=>/Gambits/.test(o.cat||'')).sort((a,b)=>{const pr=x=>x.o.name==='Tennison Gambit'?0:(x.o.name==='Fishing Pole Trap'?1:2);return pr(a)-pr(b);}).map(({o,i})=>({l:o.name,n:'Auto-plays the finishing moves. Tap any lesson to watch the whole line.',r:()=>{setHomeScreen(false);setMode('learn');selectOpening(i);setIntroCard(false);setTimeout(()=>{const L=(LIB[i].line||[]).length;setDemoPly(Math.max(0,L-5));setDemoPlaying(true);},350);},h:11000}));
+        const SC=[];
         const _runAll=()=>{
           setPreview(false);const N=SC.length;let i=0;
           const go=()=>{
