@@ -3,7 +3,7 @@
 # After each build run: edit TASKS/GROUPS, set STAMP, run:  python3 gen_tracker.py
 import json, datetime
 
-STAMP = "Updated through build #204 - 2026-06-19"
+STAMP = "Updated through build #205 - 2026-06-19"
 
 GROUPS = [
     {"key": "online", "nm": "Online & multiplayer", "color": "#7bd1ff", "isNew": True},
@@ -23,6 +23,7 @@ GROUPS = [
 
 # s: open | part | done ; you: needs Kunal ; b: build tag
 TASKS = [
+    {"g": "review", "id": "rv-board3", "s": "done", "b": "#205", "you": True, "t": "Review: loading screen + key-moment jump", "n": "Built (#205): the analysis loading screen was a plain progress bar; now it is an animated circular progress ring with a bobbing knight, rotating chess tips and a live percentage. Also added a prominent Next key moment button right under the move stepper that hops through every notable move (brilliant, great, inaccuracy, mistake, miss, blunder), so you do not have to step through every move. NOTE for Kunal: the per-category jump chips (brilliant / blunders / mistakes / inaccuracies) already existed but sat below the eval graph where they were easy to miss; kept them - say if you want them moved up next to the stepper too."},
     {"g": "review", "id": "rv-board2", "s": "done", "b": "#203", "you": True, "t": "Review parity round 2 (Chess.com polish)", "n": "Built (#203): (a) the move-quality badge now OVERHANGS the destination square corner via a board-level overlay (it spills onto neighbour squares like Chess.com; clips only at the board outer edge); (b) a floating classification label sits above the square for notable moves (Brilliant / Great / Best / Miss / Mistake / Blunder) while quiet moves get just the badge; (c) brilliant celebration: an expanding teal ring + a pop-in on the badge/label + a rising WebAudio chime (the app's first sound); (d) a green best-move arrow is drawn on the board when Show best is tapped. NEEDS YOU: confirm the overhang reads well incl. edge squares, the chime is pleasant (no mute toggle yet), and the arrow. Label-on-notable-only and the chime are judgment calls - easy to widen or remove."},
     {"g": "review", "id": "rv-board", "s": "done", "b": "#201", "you": True, "t": "Review board: match / exceed Chess.com", "n": "Built (#201) from Kunal's Chess.com comparison: (1) the board pieces now scale up to fill their square across the whole app, matching Chess.com's fuller pieces; (2) every reviewed move shows its quality badge superimposed on the destination square (a corner circle in the classification colour: !! for Brilliant in cyan, ! for Great, a star for Best, ?! / ? / ?? for inaccuracy / mistake / blunder) instead of only in the coach bubble; (3) the move's squares now glow in that same classification colour, so a brilliant move lights up teal and a blunder red. The coach bubble explanation stays. NEEDS YOU: open a review, step through the moves, and compare to Chess.com (piece fit, on-board badges, brilliant glow). #202: dialed the piece scale back from 1.12 to 1.06 after Kunal found #201 a touch crowded; the board already runs full-width so piece size is the lever, not board size."},
         # Online & multiplayer

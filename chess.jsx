@@ -2469,6 +2469,8 @@ export default function App(){
   };
   const resetReview=()=>{setReview(null);setPgnText('');setPgnErr('');setPly(0);setCcErr('');if(ccGames&&ccGames.length){setTimeout(()=>{try{gamesListRef.current&&gamesListRef.current.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},140);}};
   const jumpToIssue=(label)=>{if(!review||!review.analysis)return;const idxs=[];review.analysis.forEach((o,i)=>{if(o.cls&&o.cls.label===label)idxs.push(i+1);});if(!idxs.length)return;const nxt=idxs.find(p=>p>ply);setPly(nxt!==undefined?nxt:idxs[0]);};
+  const keyPlies=useMemo(()=>{if(!review||!review.analysis)return [];const KS=['Brilliant','Great','Miss','Mistake','Blunder','Inaccuracy'];const out=[];review.analysis.forEach((o,i)=>{if(o.cls&&KS.indexOf(o.cls.label)>=0)out.push(i+1);});return out;},[review]);
+  const jumpKey=(d)=>{if(!keyPlies.length)return;let nx;if(d>0){nx=keyPlies.find(p=>p>ply);if(nx===undefined)nx=keyPlies[0];}else{const b=keyPlies.filter(p=>p<ply);nx=b.length?b[b.length-1]:keyPlies[keyPlies.length-1];}setPly(nx);};
   const mergeGames=()=>{const a=[...(ccRawRef.current||[]),...(liRawRef.current||[])];a.sort((x,y)=>(y.date||0)-(x.date||0));setCcGames(a.length?a:null);};
   const fetchChessCom=async()=>{
     const u=chessUser.trim().toLowerCase().replace(/^@/,'');
@@ -3827,15 +3829,22 @@ export default function App(){
       )}
 
       {/* ── Analyze: analyzing progress ── */}
-      {mode==='analyze'&&analyzing&&(
-        <div style={{width:boardPx,maxWidth:'98vw',marginTop:40,display:'flex',flexDirection:'column',alignItems:'center',gap:14}}>
-          <div style={{fontSize:'clamp(13px,3vw,16px)',color:'var(--ac)',fontWeight:600}}>Analyzing your game…</div>
-          <div style={{width:'100%',height:10,background:'rgba(0,0,0,.3)',borderRadius:5,overflow:'hidden'}}>
-            <div style={{width:`${Math.round(progress*100)}%`,height:'100%',background:'var(--ac)',transition:'width .2s'}}/>
+      {mode==='analyze'&&analyzing&&(()=>{const pct=Math.round(progress*100);const R=46,CIRC=2*Math.PI*R;const TIPS=['A brilliant move (!!) gives up material for a winning blow.','Accuracy measures how close your moves were to the best ones.','Blunders are the moves that cost you the most.','Tap a key-moment chip to jump straight to it.','The eval bar shows who is winning, and by how much.'];const tip=TIPS[Math.min(TIPS.length-1,Math.floor(progress*TIPS.length))];return(
+        <div style={{width:boardPx,maxWidth:'98vw',marginTop:34,display:'flex',flexDirection:'column',alignItems:'center',gap:16}}>
+          <div style={{position:'relative',width:124,height:124,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <svg width="124" height="124" style={{position:'absolute',top:0,left:0,transform:'rotate(-90deg)'}}>
+              <circle cx="62" cy="62" r={R} fill="none" stroke="rgba(255,255,255,.10)" strokeWidth="8"/>
+              <circle cx="62" cy="62" r={R} fill="none" stroke="var(--ac)" strokeWidth="8" strokeLinecap="round" strokeDasharray={CIRC} strokeDashoffset={CIRC*(1-Math.max(0.02,progress))} style={{transition:'stroke-dashoffset .3s ease'}}/>
+            </svg>
+            <div style={{animation:'floaty 1.6s ease-in-out infinite'}}><Piece t="n" color="w" sz={56}/></div>
           </div>
-          <div style={{fontSize:'clamp(10px,2.3vw,12px)',color:'rgba(255,255,255,.5)'}}>{Math.round(progress*100)}% · checking every move</div>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+            <div style={{fontSize:'clamp(15px,3.7vw,19px)',color:'#fff',fontWeight:800,letterSpacing:.2}}>Analyzing your game</div>
+            <div style={{fontSize:'clamp(11px,2.6vw,13px)',color:'var(--ac2)',fontWeight:700}}>{pct}% · checking every move</div>
+          </div>
+          <div style={{maxWidth:344,minHeight:36,textAlign:'center',fontSize:'clamp(10px,2.4vw,12.5px)',color:'rgba(255,255,255,.62)',lineHeight:1.45,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:12,padding:'10px 14px'}}>💡 {tip}</div>
         </div>
-      )}
+      );})()}
 
         </>);
         const _controls=(<>
@@ -3861,6 +3870,11 @@ export default function App(){
             <button onClick={()=>setPly(p=>Math.min(review.plies.length,p+1))} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>Next ›</button>
             <button onClick={()=>setPly(review.plies.length)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⏭</button>
           </div>
+          {keyPlies.length>0&&(<div style={{display:'flex',gap:7,alignItems:'center',justifyContent:'center'}}>
+            <button onClick={()=>jumpKey(-1)} title="Previous key moment" style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>‹</button>
+            <button onClick={()=>jumpKey(1)} style={{...btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)'),fontWeight:800}}>⏭ Next key moment</button>
+            <span style={{fontSize:'clamp(9px,2.1vw,11px)',color:'rgba(255,255,255,.5)'}}>{keyPlies.length} total</span>
+          </div>)}
           {/* eval graph */}
           <EvalGraph analysis={review.analysis} plies={review.plies} ply={ply} onJump={(p)=>setPly(Math.max(0,Math.min(review.plies.length,p)))} width={wide?Math.max(160,sideW-12):boardPx} height={wide?96:78}/>
           {review.openingName&&(<div style={{width:'100%',textAlign:'center',fontSize:'clamp(10px,2.3vw,12.5px)',color:'rgba(255,255,255,.8)'}}>📖 Opening: <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b> <span style={{color:'rgba(255,255,255,.58)'}}>({review.openingName.eco})</span></div>)}
