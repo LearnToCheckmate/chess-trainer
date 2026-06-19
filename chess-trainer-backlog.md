@@ -17,6 +17,7 @@ Screenshots Claude needs (for the fixed-size button pass - one shot of each scre
 On-device checks:
 - [ ] Confirm the #200 practice move-stepper and the #196 flash glyphs + frozen board look right.
 - [ ] Confirm the #201 review look: pieces fill their squares, the on-board move-quality badges read clearly, and a brilliant move glows teal. Compare to Chess.com side by side.
+- [ ] Verify #208: every reviewed move (including Best/Good) now shows an explanation, so the annotation area is no longer empty on quiet moves.
 - [ ] Verify #207: stepping through a review no longer makes the buttons jump (the annotation block is now fixed-height). If you still see jumping on any OTHER screen (play, lessons), tell me which and I will pin those too.
 - [ ] Verify #206 review layout: chips now sit right under the Next-key-moment button, eval graph is shorter. Does more of it fit on one screen now?
 - [ ] Verify #205 review: the new animated loading screen and the "Next key moment" jump button under the stepper. Also note the category jump chips were already there (below the eval graph) - tell me if you want them moved up too.
@@ -40,6 +41,7 @@ Content from Kunal:
 - [ ] Video long tail + iPad two-column Home mockups.
 
 ## RECENTLY SHIPPED
+#208 Review explanations for every move: previously Best / Excellent / Good moves showed no explanation (just the pill), which left the now-fixed annotation block looking empty on quiet moves. Added concise explanations for those, so every reviewed move is explained (with eval context), more coverage than Chess.com, and the reserved space is always used. Also audited the play screen for jitter and confirmed it is stable (clock is monospace, the thinking indicator sits in a fixed-height row, captured pieces fit one line).
 #207 Layout-jitter fix: the review annotation block under the board had only a 34px min-height but its content ranges from a single pill (Best moves) to a 'Better was' line plus a 3-line explanation (Brilliant/Mistake), so every Next press shifted the stepper and all buttons below it. Gave it a fixed height so nothing below moves when you step. Also fixed the puzzle message area (was min-height, could grow) to a fixed reserve so the puzzle nav buttons stay put.
 #206 Review layout: moved the category jump chips up directly under the new Next-key-moment button so all the jumping lives in one place, and tightened the stack (shorter eval graph + smaller gaps) so less falls below the fold on the phone.
 #205 Review polish: redesigned the analysis loading screen (was a plain bar) into an animated circular progress ring with a bobbing knight + rotating chess tips + live %, and added a prominent "Next key moment" jump button right under the stepper (cycles through every notable move - brilliant/great/inaccuracy/mistake/miss/blunder) so you never have to step through every move. Note: the category jump chips (brilliant/blunders/mistakes/inaccuracies) already existed lower down; kept them.

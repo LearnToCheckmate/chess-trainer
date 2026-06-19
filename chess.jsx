@@ -2946,12 +2946,15 @@ export default function App(){
   useEffect(()=>{if(mistakeMode&&puzSolved&&drillKindRef.current==='mistake'){const q=mistakeQueueRef.current||[];const cur=q[mistakeIdxRef.current];if(cur)setMyMistakes(prev=>prev.filter(x=>x.fen!==cur.fen));}},[puzSolved,mistakeMode]);
   const curAnno=inReview&&ply>0?review.analysis[ply-1]:null;
   useEffect(()=>{ if(inReview&&ply>0&&review&&review.analysis[ply-1]&&review.analysis[ply-1].cls&&review.analysis[ply-1].cls.label==='Brilliant')playBrilliantChime(); },[inReview,ply,review]);
-  const _annoWhy=(()=>{if(!curAnno||!inReview)return null;const ai=ply-1,a=curAnno,L=a.cls&&a.cls.label;if(!L||L==='Best'||L==='Excellent'||L==='Good')return null;const moverSign=(ai%2===0)?1:-1,mover=(ai%2===0)?'White':'Black';const ev=(typeof a.evalAfter==='number')?a.evalAfter:0,evM=ev*moverSign,lossP=(a.loss||0)/100;let matNote='';const b0=review.positions[ai]&&review.positions[ai].board,b2=review.positions[ai+2]&&review.positions[ai+2].board;if(b0&&b2){const d=(materialDiff(b2)-materialDiff(b0))*moverSign;if(d<=-2)matNote=' Your opponent won material as a result.';else if(d>=2&&L==='Brilliant')matNote=' And the material came back with interest.';}
+  const _annoWhy=(()=>{if(!curAnno||!inReview)return null;const ai=ply-1,a=curAnno,L=a.cls&&a.cls.label;if(!L)return null;const moverSign=(ai%2===0)?1:-1,mover=(ai%2===0)?'White':'Black';const ev=(typeof a.evalAfter==='number')?a.evalAfter:0,evM=ev*moverSign,lossP=(a.loss||0)/100;let matNote='';const b0=review.positions[ai]&&review.positions[ai].board,b2=review.positions[ai+2]&&review.positions[ai+2].board;if(b0&&b2){const d=(materialDiff(b2)-materialDiff(b0))*moverSign;if(d<=-2)matNote=' Your opponent won material as a result.';else if(d>=2&&L==='Brilliant')matNote=' And the material came back with interest.';}
     if(L==='Great')return '⭐ A great move — the best move here, and clearly stronger than any alternative.';
     if(L==='Miss')return 'A miss — you were clearly better, but this let a big part of the advantage slip.'+matNote;
     if(L==='Brilliant')return '🔆 A brilliant move — a strong, hard-to-spot idea, often a sacrifice or the only move that keeps the win.'+matNote+(Math.abs(evM)>=1.5?(' The engine has '+mover.toLowerCase()+' clearly on top here.'):'');
     if(L==='Blunder'||L==='Mistake')return 'This '+L.toLowerCase()+' gave away about '+lossP.toFixed(1)+' '+(lossP<1.4?'pawn':'pawns')+' of advantage.'+matNote+(evM<=-1.5?(' '+mover+' is now worse.'):(evM>=1.5?(' '+mover+' is still better, just by less.'):' The game is roughly level now.'));
     if(L==='Inaccuracy')return 'A small inaccuracy — about '+lossP.toFixed(1)+' pawns short of the best move.';
+    if(L==='Best')return '✓ The best move here — exactly what the engine plays in this position.'+(Math.abs(evM)>=1.5?(' '+mover+' is clearly on top.'):(Math.abs(evM)<0.5?' The position stays balanced.':''));
+    if(L==='Excellent')return '✓ An excellent move, right among the top engine choices.';
+    if(L==='Good')return 'A solid, sensible move that keeps your position healthy.';
     return null;})();
 
   return(
