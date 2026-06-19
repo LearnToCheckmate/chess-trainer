@@ -899,8 +899,24 @@ function classify(loss){
   if(loss<320)return{label:'Mistake',   c:'#f0a24e',i:'?'};
   return            {label:'Blunder',   c:'#ec5c4e',i:'??'};
 }
+let SFX_ON=true; let _ctxSfx=null;
+function _sfxCtx(){try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;if(!_ctxSfx)_ctxSfx=new A();if(_ctxSfx.state==='suspended')_ctxSfx.resume();return _ctxSfx;}catch(e){return null;}}
+function _sfxTone(ctx,type,f,t0,dur,vol,f2){try{const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.setValueAtTime(f,t0);if(f2!=null)o.frequency.exponentialRampToValueAtTime(Math.max(1,f2),t0+dur);g.gain.setValueAtTime(0.0001,t0);g.gain.linearRampToValueAtTime(vol,t0+0.008);g.gain.exponentialRampToValueAtTime(0.0006,t0+dur);o.connect(g);g.connect(ctx.destination);o.start(t0);o.stop(t0+dur+0.03);}catch(e){}}
+function _sfxNoise(ctx,t0,dur,vol,cut){try{const n=Math.max(1,Math.floor(ctx.sampleRate*dur));const buf=ctx.createBuffer(1,n,ctx.sampleRate);const d=buf.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2.2);const sc=ctx.createBufferSource();sc.buffer=buf;const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=cut||1400;const g=ctx.createGain();g.gain.value=vol;sc.connect(lp);lp.connect(g);g.connect(ctx.destination);sc.start(t0);sc.stop(t0+dur+0.03);}catch(e){}}
+function playSfx(kind){
+  if(!SFX_ON)return;const ctx=_sfxCtx();if(!ctx)return;const t=ctx.currentTime;
+  try{
+    if(kind==='move'){_sfxTone(ctx,'triangle',300,t,0.055,0.13,210);_sfxNoise(ctx,t,0.028,0.045,1200);}
+    else if(kind==='capture'){_sfxNoise(ctx,t,0.085,0.13,950);_sfxTone(ctx,'sine',150,t,0.10,0.12,85);}
+    else if(kind==='castle'){_sfxTone(ctx,'triangle',250,t,0.05,0.11,200);_sfxTone(ctx,'triangle',250,t+0.08,0.05,0.11,200);}
+    else if(kind==='check'){_sfxTone(ctx,'square',1080,t,0.06,0.085,1080);_sfxTone(ctx,'square',1480,t+0.085,0.085,0.085,1480);}
+    else if(kind==='promote'){[523,659,784,1047].forEach(function(f,i){_sfxTone(ctx,'triangle',f,t+i*0.065,0.11,0.10);});}
+    else if(kind==='end'){[392,330,262].forEach(function(f,i){_sfxTone(ctx,'sine',f,t+i*0.13,0.22,0.11);});}
+  }catch(e){}
+}
 let _ctxBril=null;
 function playBrilliantChime(){
+  if(!SFX_ON)return;
   try{
     const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
     if(!_ctxBril)_ctxBril=new AC();
@@ -1760,6 +1776,8 @@ export default function App(){
   const [sfReady,setSfReady]=useState(false);       // worker ready (state, to retrigger the eval effect)
   const [sfEval,setSfEval]=useState(null);          // {cp,mate,fen} from White's POV, or null
   const [hideEval,setHideEval]=useState(()=>{try{return localStorage.getItem('ct_hideEval')==='1';}catch{return false;}});
+  const [soundOn,setSoundOn]=useState(()=>{try{return localStorage.getItem('ct_sound')!=='0';}catch{return true;}});
+  const _sfxLastRef=useRef('');
   const [playEnd,setPlayEnd]=useState(null);        // null | {reason:'resign'|'time', winner:'w'|'b'}
   const playEndRef=useRef(null);
   const [timeCtrl,setTimeCtrl]=useState(null);      // null | {label,init,inc}
@@ -2056,6 +2074,7 @@ export default function App(){
   useEffect(()=>{if(cyclingRef.current)return;try{localStorage.setItem('ct_theme',theme);}catch{}},[theme]);
   useEffect(()=>{try{localStorage.setItem('ct_skin',skin);}catch{}},[skin]);
   useEffect(()=>{try{localStorage.setItem('ct_elo',cpuElo);}catch{}},[cpuElo]);
+  useEffect(()=>{SFX_ON=soundOn;try{localStorage.setItem('ct_sound',soundOn?'1':'0');}catch{}},[soundOn]);
   useEffect(()=>{try{if(selBot)localStorage.setItem('ct_bot',selBot);else localStorage.removeItem('ct_bot');}catch{}},[selBot]);
   useEffect(()=>{try{localStorage.setItem('ct_coachstyle',coachStyle);}catch{}},[coachStyle]);
   useEffect(()=>{try{localStorage.setItem('ct_traintap',trainTap?'1':'0');}catch{}},[trainTap]);
@@ -2167,7 +2186,7 @@ export default function App(){
     const mover=game.turn;
     const applyMv=(mv)=>{
       if(playEndRef.current){setThinking(false);return;}
-      if(mv){setPlayHist(h=>[...h,game]);setGame(g=>makeMove(g,mv));setLastMv(mv);const tc=timeCtrlRef.current;if(tc)setClock(c=>({...c,run:true,[mover]:c[mover]+tc.inc*1000}));}
+      if(mv){setPlayHist(h=>[...h,game]);setGame(g=>makeMove(g,mv));setLastMv(mv);sfxMove(game,mv);const tc=timeCtrlRef.current;if(tc)setClock(c=>({...c,run:true,[mover]:c[mover]+tc.inc*1000}));}
       setThinking(false);
       if(mv&&preMvRef.current){const ng=makeMove(game,mv);const pm=preMvRef.current;const st2=getStatus(ng);
         if(st2==='checkmate'||st2==='stalemate'||playEndRef.current){setPreMv(null);}
@@ -2249,7 +2268,7 @@ export default function App(){
     const moves=onlineGame.moves||[];
     let g=initGame(),last=null;const hist=[];
     for(const san of moves){const mv=findMoveBySAN(g,san);if(!mv)break;hist.push(g);last=mv;g=makeMove(g,mv);}
-    setGame(g);setLastMv(last);setPlayHist(hist);
+    setGame(g);setLastMv(last);setPlayHist(hist);{const _ls=moves.length?moves[moves.length-1]:'';if(_ls&&_ls!==_sfxLastRef.current)sfxMove(hist.length?hist[hist.length-1]:null,last);_sfxLastRef.current=_ls;}
     UI.current={sel:null,tgts:[],drag:null,dragging:false};
     const pm=preMvRef.current;
     if(pm){
@@ -2557,6 +2576,7 @@ export default function App(){
     setCelebrate({kind:'bank',title:'Day '+stN.unionDays+' banked · flawless',sub:op.name+' · '+Math.max(0,LEARN_GOAL-stN.unionDays)+' to Mastered'});
     return ' Flawless \u00b7 day '+stN.unionDays+' of '+LEARN_GOAL+' toward Mastered.'+tail;
   };
+  const sfxMove=(gB,mv)=>{try{if(!gB||!mv)return;const ng=makeMove(gB,mv);let k='move';if(ng&&ng.board&&isInCheck(ng.board,ng.turn))k='check';else if(mv.castle)k='castle';else if(mv.promo)k='promote';else if((gB.board&&gB.board[mv.tr]&&gB.board[mv.tr][mv.tc])||mv.epCap)k='capture';playSfx(k);}catch(e){}};
   const doMove=(g,mv)=>{
     if(modeRef.current==='puzzle'){
       if(puzSolvedRef.current){UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}
@@ -2616,7 +2636,7 @@ export default function App(){
     }
     if(modeRef.current==='play'){setPlayHist(h=>[...h,g]);const tc=timeCtrlRef.current;if(tc&&tc.kind!=='corr'){const mover=g.turn;setClock(c=>({...c,run:true,[mover]:c[mover]+tc.inc*1000}));}}
     setPlayHintMv(null);
-    setGame(makeMove(g,mv));setLastMv(mv);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
+    sfxMove(g,mv);setGame(makeMove(g,mv));setLastMv(mv);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
   };
 
   // Commit a move to (r,c); if it's a pawn promotion with a choice, open the picker instead
@@ -3585,6 +3605,10 @@ export default function App(){
             <button onClick={()=>setHideEval(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
               <span style={{fontSize:'clamp(10px,2.2vw,12px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Evaluation bar</span>
               <span style={{fontSize:'clamp(9px,2vw,11px)',fontWeight:800,color:!hideEval?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:!hideEval?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:`1px solid ${!hideEval?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'}`}}>{!hideEval?'ON':'OFF'}</span>
+            </button>
+            <button onClick={()=>setSoundOn(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
+              <span style={{fontSize:'clamp(10px,2.2vw,12px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Sound</span>
+              <span style={{fontSize:'clamp(9px,2vw,11px)',fontWeight:800,color:soundOn?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:soundOn?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:`1px solid ${soundOn?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'}`}}>{soundOn?'ON':'OFF'}</span>
             </button>
             <div style={{width:'100%',height:1,background:'rgba(255,255,255,.08)',margin:'4px 0 2px'}}/>
             <div style={{width:'100%'}}>

@@ -17,6 +17,7 @@ Screenshots Claude needs (for the fixed-size button pass - one shot of each scre
 On-device checks:
 - [ ] Confirm the #200 practice move-stepper and the #196 flash glyphs + frozen board look right.
 - [ ] Confirm the #201 review look: pieces fill their squares, the on-board move-quality badges read clearly, and a brilliant move glows teal. Compare to Chess.com side by side.
+- [ ] Verify #204 SOUND on device: move / capture / check / castle / promotion sounds and the brilliant chime - are they pleasant and at a good volume? Toggle is in the menu (Sound ON/OFF). Tune or mute any that are off.
 - [ ] Verify #203: the overhang badge + floating label read well (incl. edge squares), the brilliant ring/pop animation, the BRILLIANT CHIME (is it pleasant / not annoying? there is no mute yet), and the best-move arrow when you tap Show best.
 
 Kunal's consoles / accounts:
@@ -36,6 +37,7 @@ Content from Kunal:
 - [ ] Video long tail + iPad two-column Home mockups.
 
 ## RECENTLY SHIPPED
+#204 Sound system: a WebAudio engine with distinct synthesized sounds for move / capture / check / castle / promotion, wired into the human, bot, and online move paths, plus the brilliant chime from #203, all behind a new Sound on/off toggle in the menu (persisted, default ON). Haptics skipped (iOS Safari has no vibration API for web).
 #203 Review parity round 2: badge now OVERHANGS the destination square's corner (board-level overlay) + a floating classification label above the square for notable moves + brilliant CELEBRATION (expanding teal ring + pop animation + a rising WebAudio chime, first sound in the app) + a green BEST-MOVE ARROW on the board when Show-best is tapped.
 #202 review tuning: dialed the board piece scale back from 1.12 to 1.06 (pieces were a touch crowded at #201) while keeping the lifted drag piece larger.
 #201 Game Review board overhaul: pieces scaled to fill their squares (whole app), on-board move-quality badge on each reviewed move's destination square (corner circle in the classification color), and move squares glow in the classification color so brilliants light up teal. /
