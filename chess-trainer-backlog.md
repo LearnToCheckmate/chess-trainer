@@ -17,6 +17,7 @@ Screenshots Claude needs (for the fixed-size button pass - one shot of each scre
 On-device checks:
 - [ ] Confirm the #200 practice move-stepper and the #196 flash glyphs + frozen board look right.
 - [ ] Confirm the #201 review look: pieces fill their squares, the on-board move-quality badges read clearly, and a brilliant move glows teal. Compare to Chess.com side by side.
+- [ ] Verify #207: stepping through a review no longer makes the buttons jump (the annotation block is now fixed-height). If you still see jumping on any OTHER screen (play, lessons), tell me which and I will pin those too.
 - [ ] Verify #206 review layout: chips now sit right under the Next-key-moment button, eval graph is shorter. Does more of it fit on one screen now?
 - [ ] Verify #205 review: the new animated loading screen and the "Next key moment" jump button under the stepper. Also note the category jump chips were already there (below the eval graph) - tell me if you want them moved up too.
 - [ ] Verify #204 SOUND on device: move / capture / check / castle / promotion sounds and the brilliant chime - are they pleasant and at a good volume? Toggle is in the menu (Sound ON/OFF). Tune or mute any that are off.
@@ -39,6 +40,7 @@ Content from Kunal:
 - [ ] Video long tail + iPad two-column Home mockups.
 
 ## RECENTLY SHIPPED
+#207 Layout-jitter fix: the review annotation block under the board had only a 34px min-height but its content ranges from a single pill (Best moves) to a 'Better was' line plus a 3-line explanation (Brilliant/Mistake), so every Next press shifted the stepper and all buttons below it. Gave it a fixed height so nothing below moves when you step. Also fixed the puzzle message area (was min-height, could grow) to a fixed reserve so the puzzle nav buttons stay put.
 #206 Review layout: moved the category jump chips up directly under the new Next-key-moment button so all the jumping lives in one place, and tightened the stack (shorter eval graph + smaller gaps) so less falls below the fold on the phone.
 #205 Review polish: redesigned the analysis loading screen (was a plain bar) into an animated circular progress ring with a bobbing knight + rotating chess tips + live %, and added a prominent "Next key moment" jump button right under the stepper (cycles through every notable move - brilliant/great/inaccuracy/mistake/miss/blunder) so you never have to step through every move. Note: the category jump chips (brilliant/blunders/mistakes/inaccuracies) already existed lower down; kept them.
 #204 Sound system: a WebAudio engine with distinct synthesized sounds for move / capture / check / castle / promotion, wired into the human, bot, and online move paths, plus the brilliant chime from #203, all behind a new Sound on/off toggle in the menu (persisted, default ON). Haptics skipped (iOS Safari has no vibration API for web).
