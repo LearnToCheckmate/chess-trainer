@@ -1,5 +1,22 @@
 # ACTIVE QUEUE - reconciled 2026-06-20 (app at build #241)
 
+## 2026-06-20 - FULL PROJECT-WIDE CHAT SCAN (one-time, per Kunal) - additional stray items folded in
+From #3 manual-tasks chat (draw/rematch flow, logged 2026-06-08; VERIFY vs current code next run, some may be fixed):
+- [CLAUDE] Draw DECLINE is invisible to the offerer (button silently reverts) - show a clear "declined" state.
+- [CLAUDE] Action buttons resize on state change, shifting the panel - use fixed-size buttons.
+- [CLAUDE] Incoming draw prompt sits at the bottom under the thumb - reposition higher.
+- [CLAUDE] Accepted draw lacks a board-overlay confirmation - match the checkmate overlay treatment.
+- [CLAUDE] Rematch starts immediately without opponent consent - mirror the draw offer (accept/decline) flow.
+From #2 Feedback chat (additional, beyond the first sweep; VERIFY, some may be done):
+- [CLAUDE] Rousseau Gambit lesson: a knight is reportedly attacked twice but defended once - verify the line with python-chess before any change.
+- [CLAUDE] Lesson auto-play: after a correct answer, auto-play the finishing moves.
+- [CLAUDE] Hint cooldown friction - replace the timer cooldown with an activity-based unlock.
+- [CLAUDE] Avatar position: move from bottom-right to the top.
+- [DESIGN] Coach avatar redesign (Chess.com / Lichess refs; Canva + image-gen).
+- [CLAUDE] Time controls discoverability: on the vs-Computer setup the minute pills sit below the strength slider (off-screen); surface them higher.
+DELIVERED THIS TURN: HTML "answer all open questions" form (chess-questions.html) - the flagged priority item; presented to Kunal to fill in + paste back.
+
+
 ## 2026-06-20 - FEEDBACK CHAT SWEEP (reconciled "#2 Feedback only chat" vs the live #241 code)
 Missed sweeping this chat earlier in the session; swept + reconciled now. Most of the chat is a running log and was already shipped.
 
