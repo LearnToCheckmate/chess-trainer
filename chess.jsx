@@ -1534,7 +1534,29 @@ const MORE=[
    line:["e4", "e5", "f4", "exf4", "Nf3", "Be7", "Bc4", "Bh4+", "g3", "fxg3", "O-O"],
    idea:"Black plays …Be7 to drop the bishop to h4 with check and stop White castling. White can ignore it: castle into the gambit and use the open f-file and lead in development.",
    notes:["King's pawn forward.", "Black mirrors.", "The King's Gambit.", "Black grabs the pawn.", "Develop and eye e5 and f7.", "The Cunningham: the bishop heads for h4.", "Aim the bishop at f7.", "Check, to stop White from castling.", "Block with the pawn.", "Black snaps it off and opens lines.", "Castle anyway: a pawn down for the open f-file, a development lead and pressure on f7."],
-   plans:"White ignores the material, plays d4, Nc3 and doubles on the f-file against f7. Black must give the pawn back, finish developing and trade attackers to reach a safe, slightly better structure."}
+   plans:"White ignores the material, plays d4, Nc3 and doubles on the f-file against f7. Black must give the pawn back, finish developing and trade attackers to reach a safe, slightly better structure."},
+  {name:"Two Knights Defense",eco:"C57",side:"b",cat:"Defenses to 1. e4",
+   line:["e4", "e5", "Nf3", "Nc6", "Bc4", "Nf6", "Ng5", "d5", "exd5", "Na5"],
+   idea:"Black meets the Italian bishop with the combative …Nf6, inviting the sharp Ng5. After …d5 …Na5 Black gives a pawn for a big lead in development and dangerous activity.",
+   notes:["King's pawn forward.", "Black mirrors.", "Develop and pressure e5.", "Defend e5.", "The Italian bishop targets f7.", "Counterattack e4 and dare Ng5.", "The raid on f7, the critical test.", "Block and counter in the centre.", "White grabs the pawn.", "The Polerio: hit the bishop rather than fall for the Fried Liver, accepting a pawn deficit for the initiative."],
+   plans:"Black plays …Nxc4 (or …h6), …Bc5/…Bd6 and quick castling, using the lead in development and open lines against White's loose pieces. White must give the extra pawn back and untangle to keep an edge."},
+  {name:"Ruy Lopez: Closed",eco:"C84",side:"w",cat:"1. e4 — King's Pawn",
+   line:["e4", "e5", "Nf3", "Nc6", "Bb5", "a6", "Ba4", "Nf6", "O-O", "Be7", "Re1", "b5"],
+   idea:"The main-line Ruy Lopez: White pressures the e5/c6 complex and slowly builds with c3, d4 and a kingside regroup, the deepest strategic battleground in 1.e4 e5.",
+   notes:["King's pawn forward.", "Black mirrors.", "Develop and pressure e5.", "Defend e5.", "The Spanish bishop pins toward c6 and e5.", "Question the bishop at once.", "Retreat, keeping the pin alive.", "Develop and hit e4.", "Castle and defend e4 by tactics on e5.", "Develop the bishop, ready to castle.", "Defend e4 and prepare d4.", "Gain space and shut the bishop's diagonal; the closed main lines begin."],
+   plans:"White retreats Bb3, plays c3 and d4 and regroups with Nbd2-f1-g3 to attack the kingside. Black sets up …d6, …O-O, …Na5 or …Re8 and fights for …d5 or queenside space."},
+  {name:"Arabian Mate",eco:"R+N#",side:"w",cat:"♚ Endgames & Theory",
+   fen:"7k/1R6/5N2/8/8/8/8/6K1 w - - 0 1",
+   line:["Rh7#"],
+   idea:"One of the oldest patterns known: a rook and knight team up to trap a king in the corner. The knight covers the escape square and shields the rook, which mates from right beside the king.",
+   notes:["The rook swings to h7. The knight on f6 covers g8 and defends the rook, so the king cannot escape or capture: mate."],
+   plans:"Keep the picture in mind: a knight a knight's-move from the cornered king (guarding the flight square and protecting), with the rook mating on the adjacent rank. It recurs constantly in rook-and-knight endings."},
+  {name:"Epaulette Mate",eco:"Q#",side:"w",cat:"♚ Endgames & Theory",
+   fen:"3rkr2/1Q6/3P4/8/8/8/8/6K1 w - - 0 1",
+   line:["Qe7#"],
+   idea:"This mate strikes when a king is boxed in by its own pieces on either side, like epaulettes on its shoulders. The queen mates from directly in front, defended so it cannot be taken.",
+   notes:["The queen lands on e7, defended by the d6-pawn. The king's own rooks block d8 and f8, the queen covers d7 and f7, and the king cannot capture: mate."],
+   plans:"Look for an enemy king flanked by its own rooks or pieces, then find a protected queen or rook to deliver mate on the square between them. It often appears when a king is herded onto a crowded back rank."}
 ];
 const LIB=OPENINGS.concat(ENDGAMES).concat(MORE);
 // ── Persistent progress: window.storage in Claude artifacts, localStorage on the web, else in-memory ──
