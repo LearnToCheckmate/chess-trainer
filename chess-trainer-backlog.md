@@ -1,4 +1,11 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #243)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #244)
+
+## 2026-06-20 - BUILD #244 - duplicate lesson title + gallery banner
+- DROPPED the duplicate lesson title: the About-this-opening popup was repeating the lesson name that the top header bar already shows. The popup now shows only a real variation label (learnLabel) when there is one, and no title for the main line. The header remains the single name source. [JUDGMENT CALL - revert if Kunal meant a different spot]
+- Moved the preview-gallery caption banner from the TOP to the BOTTOM so it stops covering titles/headers in recordings.
+- Confirmed via recording: taste-then-gate paywall (#242) renders correctly with the "last free Coach preview" message; gallery Play all works.
+- NEXT: font pass (have the 5 screens), then the four greenlit features as focused builds.
+
 
 ## 2026-06-20 - BUILD #243 - gallery surfaces what I need eyes on
 - Added two preview-gallery scenarios at the TOP: a LESSON view (Italian Game) so I can see the large title vs the small header name and decide which duplicate to drop, and the COACH PAYWALL (the taste-then-gate end state with the message). Added a clean-slate (close all modals) before each scenario + at run end so nothing bleeds.
