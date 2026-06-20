@@ -3454,7 +3454,17 @@ export default function App(){
           setTimeout(stepFn,750);
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
-        const SC=[];
+        const SC=[
+          {l:"Font check: Home (tiles + coach card)", n:"The home screen: four tiles plus the coach tile. Check the label fonts.", r:()=>{setHomeScreen(true);setMenuOpen(false);}},
+          {l:"Lesson auto-play (the line plays itself)", n:"Opens a lesson and plays the whole line through on its own. After each move it auto-advances - this is the lesson auto-play. No taps needed.", r:()=>{setHomeScreen(false);setCoachOpen(false);setMenuOpen(false);setMode('learn');selectOpening(0);setTimeout(()=>setIntroCard(false),90);}, h:16000},
+          {l:"Font check: Discover (opening tiles)", n:"The openings list - check the tile label fonts.", r:()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup('openings');}, h:5500},
+          {l:"Font check: Coach", n:"The Coach screen - check the coach-section fonts.", r:()=>{setHomeScreen(false);setCoachOpen(true);}, h:5500},
+          {l:"Font check: Game review", n:"The Review/analyze screen fonts.", r:()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');setOpenIdx(null);}, h:5500},
+          {l:"Font check: Play setup", n:"Play setup: the opponent picker plus the time-control picker.", r:()=>{setHomeScreen(false);setMode('play');setOpponent('computer');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}},
+          {l:"Font check: Puzzles", n:"The Puzzles roadmap and list.", r:()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},
+          {l:"Font check: Online", n:"The online screen. Shows a sign-in prompt if you are signed out, which is fine.", r:()=>{setHomeScreen(false);setMode('play');setOpponent('online');setOnlineGame(null);setMyColor(null);setOnlineErr('');setPlaySetup(false);}},
+          {l:"Font check: Menu", n:"The hamburger menu: subscription, sign-out, links.", r:()=>{setHomeScreen(true);setMenuOpen(true);}},
+        ];
         const _runAll=()=>{
           setPreview(false);setTrainerDemo(false);const N=SC.length;let i=0;
           const go=()=>{
@@ -4050,6 +4060,7 @@ export default function App(){
           {learnLabel&&<div style={{fontSize:'clamp(15px,4vw,20px)',fontWeight:800,color:'var(--ac2)',marginBottom:8,paddingRight:30}}>{learnLabel}</div>}
           <div style={{fontSize:'clamp(14px,3.2vw,16px)',color:'rgba(255,255,255,.9)',lineHeight:1.55,maxHeight:'40vh',overflowY:'auto'}}>{learnIdea||LIB[openIdx].idea}</div>
           {(learnPlans||LIB[openIdx].plans)&&(<div style={{fontSize:'clamp(13px,3vw,15px)',color:'rgba(255,255,255,.7)',lineHeight:1.5,marginTop:13,paddingTop:13,borderTop:'1px solid rgba(255,255,255,.13)',maxHeight:'26vh',overflowY:'auto'}}>{learnPlans||LIB[openIdx].plans}</div>)}
+          {(()=>{const _c=LIB[openIdx].cat||'';if(_c.indexOf('Gambit')<0)return null;const _sib=[];for(let _i=0;_i<LIB.length;_i++){if(_i!==openIdx&&LIB[_i].cat===_c)_sib.push(_i);}if(!_sib.length)return null;const _cw=LIB[openIdx].side==='w'?'White':'Black';return(<div style={{marginTop:13,paddingTop:13,borderTop:'1px solid rgba(255,255,255,.13)'}}><div style={{fontSize:'clamp(11px,2.5vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:700,marginBottom:8,letterSpacing:.3}}>↔ More gambits as {_cw}</div><div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{_sib.slice(0,8).map(_i=>(<button key={_i} onClick={()=>{setIntroCard(false);setTimeout(()=>selectOpening(_i),50);}} style={{padding:'6px 11px',borderRadius:16,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.34)',color:'var(--ac2)',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{LIB[_i].name}</button>))}</div></div>);})()}
           <button onClick={()=>setIntroCard(false)} style={{...btn('var(--ac)','none','#fff'),width:'100%',marginTop:15}}>Got it — play ▶</button>
           <button onClick={()=>setIntroCard(false)} aria-label="Close" style={{position:'absolute',top:9,right:9,width:30,height:30,borderRadius:8,background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.22)',color:'#fff',fontSize:15,lineHeight:1,cursor:'pointer'}}>✕</button>
         </div>
