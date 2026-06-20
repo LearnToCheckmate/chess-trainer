@@ -120,12 +120,12 @@ def main():
 
     # 5) poll Pages
     if not a.skip_pages:
-        for i in range(10):
+        for i in range(12):
             try:
                 b = req("GET", API + "/pages/builds/latest", tok)
                 st, cm = b.get("status"), (b.get("commit") or "")[:8]
                 print("  pages:", i, st, cm)
-                if st == "built":
+                if st == "built" and cm == csha[:8]:
                     break
             except SystemExit:
                 break
