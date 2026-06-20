@@ -1,4 +1,21 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #241)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #242)
+
+## 2026-06-20 - BUILD #242 + Kunal's decisions (from the HTML questions form)
+SHIPPED #242:
+- Coach paywall = TASTE-THEN-GATE: non-Pro users get 3 free Coach previews (localStorage ct_coachfree), then the upgrade screen with a clear message; Pro/test = unlimited. Card badge still reads PRO (a free look is a pleasant surprise on tap); badge could later read "free look".
+DECISIONS LOGGED (Kunal, 2026-06-20):
+- Pricing $2.99/mo, $19.99/yr (Stripe TEST price objects need recreating at these amounts when Stripe setup runs; app has no hardcoded price, Stripe checkout shows it).
+- Skins stay Pro. Gambits = first-move buckets (keep). iPad two-column home = NOT a priority (parked). Avatar = leave bottom-right.
+- Custom piece art = HIGH priority (generate style options). Generate coach avatar + piece art options = YES.
+- All setup tasks (relay, Stripe, domain, legal, Firebase) parked / placeholders for now.
+GREENLIT, QUEUED FOR NEXT RUNS (each a focused build, not a rushed blind batch):
+- [CLAUDE] Back/forward move nav during a LIVE game.
+- [CLAUDE] Lesson auto-play after a correct move.
+- [CLAUDE] Hint cooldown -> activity-based unlock (the ct_hintlock day-banking lock).
+- [CLAUDE] Cross-link gambits/traps by color.
+- [CLAUDE] Drop the duplicate large lesson title (need a lesson screenshot to confirm WHICH title; header name is small).
+- [DESIGN] Generate custom piece-art + coach-avatar options (Canva + image-gen).
+
 
 ## 2026-06-20 - FULL PROJECT-WIDE CHAT SCAN (one-time, per Kunal) - additional stray items folded in
 From #3 manual-tasks chat (draw/rematch flow, logged 2026-06-08; VERIFY vs current code next run, some may be fixed):

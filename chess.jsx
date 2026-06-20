@@ -2108,6 +2108,8 @@ export default function App(){
   const [copyMsg,setCopyMsg]=useState('');
   const [theme,setTheme]=useState(()=>{try{const v=localStorage.getItem('ct_theme');return v!==null?parseInt(v):2;}catch{return 2;}});
   const [testPro,setTestPro]=useState(()=>{try{return localStorage.getItem('ct_pro')==='1';}catch{return false;}});  // dev/test Pro override
+  const COACH_FREE_LOOKS=3;
+  const [coachFree,setCoachFree]=useState(()=>{try{return parseInt(localStorage.getItem('ct_coachfree')||'0',10)||0;}catch{return COACH_FREE_LOOKS;}});
   const [subPro,setSubPro]=useState(false);   // real Pro entitlement from Stripe (firestore-stripe-payments extension)
   const isPro = subPro || testPro;             // effective Pro = a live subscription OR the test override
   const [skin,setSkin]=useState(()=>{try{const v=localStorage.getItem('ct_skin');const i=v!==null?parseInt(v):CLASSIC_IDX;return (i>=0&&i<SKINS.length)?i:CLASSIC_IDX;}catch{return CLASSIC_IDX;}});
@@ -2492,6 +2494,7 @@ export default function App(){
   useEffect(()=>{try{localStorage.setItem('ct_depth',boardDepth?'1':'0');}catch{}},[boardDepth]);
   useEffect(()=>{try{localStorage.setItem('ct_hideEval',hideEval?'1':'0');}catch{}},[hideEval]);
   useEffect(()=>{try{localStorage.setItem('ct_pro',testPro?'1':'0');}catch{}},[testPro]);
+  useEffect(()=>{try{localStorage.setItem('ct_coachfree',String(coachFree));}catch{}},[coachFree]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!C.proWatch||!cloudUser){setSubPro(false);return;}let unsub=null;try{unsub=C.proWatch(a=>setSubPro(!!a));}catch(e){setSubPro(false);}return()=>{try{unsub&&unsub();}catch(e){}};},[cloudUser]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!C.friendsWatch||!cloudUser){setFriendsData({incoming:[],friends:[]});return;}let unsub=null;try{unsub=C.friendsWatch(d=>setFriendsData(d||{incoming:[],friends:[]}));}catch(e){}return()=>{try{unsub&&unsub();}catch(e){}};},[cloudUser]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!C.nearbyList||!cloudUser||!nearbyGeo){return;}let unsub=null;try{unsub=C.nearbyList(nearbyGeo,list=>{const me=cloudUser&&cloudUser.uid;const cutoff=Date.now()-14*24*3600*1000;setNearbyData((list||[]).filter(x=>x&&x.uid!==me&&(!x.at||x.at>cutoff)));});}catch(e){}return()=>{try{unsub&&unsub();}catch(e){}};},[cloudUser,nearbyGeo]);
@@ -3514,7 +3517,7 @@ export default function App(){
               </button>);})}
           </div>
           {(()=>{const cn=coachNudge();return(
-            <div onClick={()=>{if(!isPro){setUpgradeMsg('');setAcctOpen(true);}else setCoachOpen(true);}} style={{marginTop:16,width:'100%',display:'flex',alignItems:'center',gap:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',borderRadius:16,padding:'12px 13px',boxShadow:SHADOW_BOX,cursor:'pointer'}}>
+            <div onClick={()=>{if(isPro){setCoachOpen(true);}else if(coachFree<COACH_FREE_LOOKS){setCoachFree(coachFree+1);setCoachOpen(true);}else{setUpgradeMsg('That was your last free Coach preview. Unlock Pro to keep your coach.');setAcctOpen(true);}}} style={{marginTop:16,width:'100%',display:'flex',alignItems:'center',gap:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',borderRadius:16,padding:'12px 13px',boxShadow:SHADOW_BOX,cursor:'pointer'}}>
               <Coach size={46} accent="var(--ac)" style={coachStyle}/>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:'clamp(9px,2.1vw,11px)',color:'var(--ac2)',fontWeight:800,letterSpacing:.5,textTransform:'uppercase'}}>Your coach</div>
