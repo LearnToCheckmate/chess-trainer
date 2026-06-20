@@ -1597,7 +1597,27 @@ const MORE=[
    line:["b8=Q+", "Ka6", "Qb6#"],
    idea:"This short endgame shows the three special symbols the first notation lesson only mentioned. A pawn that reaches the far side promotes, written with the new piece after an equals sign, like b8=Q (you can also choose a rook, bishop, or knight: b8=R, b8=B, b8=N). A plus sign after a move means check, and a hash sign means checkmate. So b8=Q+ reads as 'pawn promotes to a queen, with check', and Qb6# reads as 'queen to b6, checkmate'.",
    notes:["The pawn reaches the last rank and becomes a queen. Promotion is written with the new piece after an equals sign: b8=Q. The plus sign means the move also gives check.", "The black king has only this one legal square. The new queen is guarded by its own king, so it cannot be captured.", "Checkmate. The hash sign marks mate. The queen covers every escape square and is defended by the king, leaving the black king trapped."],
-   plans:"Two more symbols complete your toolkit: castling is O-O on the kingside and O-O-O on the queenside, and an en passant capture is written like any pawn capture, for example exd6. With piece letters, captures, promotion, check, mate, castling and en passant, you can now read and write every move in any chess book or game."}
+   plans:"Two more symbols complete your toolkit: castling is O-O on the kingside and O-O-O on the queenside, and an en passant capture is written like any pawn capture, for example exd6. With piece letters, captures, promotion, check, mate, castling and en passant, you can now read and write every move in any chess book or game."},
+  {name:"The Fork",eco:"",side:"w",cat:"♚ Endgames & Theory",fen:"3q3k/ppp3pp/8/6N1/8/8/PP6/6K1 w - - 0 1",
+   line:["Nf7+", "Kg8", "Nxd8"],
+   idea:"A fork is one piece attacking two enemy targets at once. Knights are the best forkers: their odd jump hits squares no other piece covers, and a knight check cannot be blocked. Here the knight leaps to f7 and hits the king and the queen on the same move. Because it is check, Black must save the king first, and the queen falls.",
+   notes:["The knight forks the king and the queen at the same time. It is check, so Black must deal with the king and cannot save the queen.", "The only legal square. The king steps aside but leaves the queen hanging.", "The knight grabs the queen. That is the power of a fork: two targets, one move, and the opponent can save only one."],
+   plans:"When you see an enemy king and queen (or king and rook) a knight's-move apart, look for a safe square that hits both. Forks with check are strongest, because the check forces a reply and you collect the second piece for free. Watch for the same pattern aimed at your own king."},
+  {name:"The Skewer",eco:"",side:"w",cat:"♚ Endgames & Theory",fen:"4q3/pp1k1ppp/8/8/8/8/PP4PP/3B2K1 w - - 0 1",
+   line:["Ba4+", "Kd6", "Bxe8"],
+   idea:"A skewer is a pin in reverse: you attack a valuable piece in front, and when it moves out of the way you win the piece lined up behind it. Here the bishop checks the king along the diagonal, with the queen directly behind it on the same line. The king must move, and the queen is left undefended.",
+   notes:["The bishop checks the king along the diagonal, with the black queen sitting right behind it on the same line.", "The king has to step off the diagonal. Wherever it goes, it can no longer shield the queen.", "The bishop captures the queen. The king was forced to move and could not protect the piece behind it."],
+   plans:"Skewers work along ranks, files, and diagonals with rooks, bishops, and queens. Line up your long-range piece so the enemy king (or another valuable piece) sits in front with a target behind it on the same line. A check makes it forcing."},
+  {name:"Discovered Check",eco:"",side:"w",cat:"♚ Endgames & Theory",fen:"4k3/p5pp/8/2q5/4N3/8/P5PP/4R1K1 w - - 0 1",
+   line:["Nxc5+", "Kd8"],
+   idea:"A discovered check happens when one piece moves out of the way and uncovers a check from a piece behind it. The moving piece is suddenly free to do almost anything, because the opponent must answer the check first. Here the knight steps off the e-file, revealing the rook's check, and on the way it captures the queen.",
+   notes:["The knight moves off the e-file and snatches the queen. Stepping away uncovers the rook, which now checks the king: that is the discovered check.", "Black must answer the rook's check and cannot recapture the knight. White stays a whole queen ahead."],
+   plans:"Set up a discovered check by placing a piece in front of your rook, bishop, or queen, all aimed at the enemy king. When the front piece moves it gives check for free and can grab material or make a big threat at the same time. These are among the most powerful tactics in chess."},
+  {name:"Double Check",eco:"",side:"w",cat:"♚ Endgames & Theory",fen:"4k3/p5pp/4N3/3q4/8/8/P5PP/4R1K1 w - - 0 1",
+   line:["Nc7+", "Kf8", "Nxd5"],
+   idea:"A double check is a discovered check where the moving piece ALSO gives check, so two pieces attack the king at once. You cannot block two checks or capture two checkers in a single move, so the king is forced to move no matter what. Here the knight checks from c7 while uncovering the rook on the e-file, and once the king runs, the knight scoops up the queen.",
+   notes:["Double check. The knight checks the king and also uncovers the rook behind it. Two checkers at once means Black cannot block or capture: the king must move.", "Forced to walk. With two pieces giving check there is no other way out.", "Now the knight is free to take the queen. The double check did the work by forcing the king to abandon it."],
+   plans:"Double check is the most forcing move in chess, which is why it appears in many famous mates. Look for it when you can move a piece with check while uncovering a second checker behind it. Because the king must move, you often gain the tempo to win material or land a mate."}
 ];
 const LIB=OPENINGS.concat(ENDGAMES).concat(MORE);
 // ── Persistent progress: window.storage in Claude artifacts, localStorage on the web, else in-memory ──
@@ -3438,7 +3458,11 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
-          {l:"Notation: special symbols - new (#235)", n:"Second notation lesson. Confirm the demo plays b8=Q+ Ka6 Qb6# and the notes explain promotion (=Q), check (+) and checkmate (#). ALSO: the large duplicate title under the header is gone now - only the top header names the lesson.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Notation: Checks, Mates & Promotion"))},
+          {l:"The Fork - new (#237)", n:"New tactics lesson. Confirm the knight plays Nf7+ forking the king and queen, then Nxd8 wins the queen.", r:()=>_lesson(LIB.findIndex(o=>o.name==="The Fork"))},
+          {l:"The Skewer - new (#237)", n:"New tactics lesson. Confirm Ba4+ checks along the diagonal, the king steps off, and Bxe8 wins the queen lined up behind it.", r:()=>_lesson(LIB.findIndex(o=>o.name==="The Skewer"))},
+          {l:"Discovered Check - new (#237)", n:"New tactics lesson. Confirm Nxc5+ uncovers the rook's check while grabbing the queen, and the knight stays safe.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Discovered Check"))},
+          {l:"Double Check - new (#237)", n:"New tactics lesson. Confirm Nc7+ is a double check (king is forced to move), then Nxd5 wins the queen.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Double Check"))},
+          {l:"Notation: special symbols (#235)", n:"Confirm the demo plays b8=Q+ Ka6 Qb6# and the notes explain promotion (=Q), check (+) and checkmate (#). ALSO confirm the large duplicate title under the header is gone (only the top header names the lesson).", r:()=>_lesson(LIB.findIndex(o=>o.name==="Notation: Checks, Mates & Promotion"))},
         ];
         const _runAll=()=>{
           setPreview(false);const N=SC.length;let i=0;
