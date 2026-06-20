@@ -2339,6 +2339,7 @@ export default function App(){
   const dailyRef=useRef(daily); dailyRef.current=daily;
   const bumpDaily=()=>{const now=new Date();const t=dstr(now);const y=new Date(now);y.setDate(y.getDate()-1);const ys=dstr(y);const d=dailyRef.current||{date:'',count:0,streak:0};const nd=(d.date===t)?{...d,count:(d.count||0)+1}:{date:t,count:1,streak:(d.date===ys?((d.streak||0)+1):1)};setDaily(nd);try{localStorage.setItem('ct_daily',JSON.stringify(nd));}catch(e){}};
   const [coachHidden,setCoachHidden]=useState(()=>{try{return localStorage.getItem('ct_coach_dismiss')===dstr(new Date());}catch{return false;}});
+  const [streakDismiss,setStreakDismiss]=useState(()=>{try{return localStorage.getItem('ct_streak_dismiss')===dstr(new Date());}catch{return false;}});
   const [coachOpen,setCoachOpen]=useState(false);
   const [pzOLoading,setPzOLoading]=useState(false);
   const [pzOErr,setPzOErr]=useState('');
@@ -2960,6 +2961,7 @@ export default function App(){
   const lessonStats=(op)=>{const ls=linesOf(op);const u=new Set();let lr=0;ls.forEach(l=>{const d=lineDays(l.key);if(d.length>=1)lr++;d.forEach(x=>u.add(x));});return {lines:ls.length,linesLearned:lr,unionDays:u.size,coverage:lr>=ls.length,mastered:(u.size>=LEARN_GOAL&&lr>=ls.length)};};
   const finishRep=()=>{
     const op=LIB[openIdxRef.current]; if(!op)return '';
+    bumpDaily();
     const rep=learnRepRef.current||{}; learnRepRef.current={hints:false,miss:false};
     const key=learnKeyRef.current||op.name;
     const st0=lessonStats(op);
@@ -3502,6 +3504,23 @@ export default function App(){
             <div style={{color:'rgba(255,255,255,.38)',fontSize:hbig?14:11,marginTop:hbig?10:(hLand?5:7),letterSpacing:2,textTransform:'uppercase'}}>Your personal chess coach</div>
           </div>
           {(()=>{const isNew=!(pzXP>0||Object.values(trainMastery||{}).some(m=>m&&m.learned));if(!isNew)return null;const ti=LIB.map((o,i)=>i).filter(i=>{const g=groupOf(LIB[i].cat);return g==='openings'||g==='gambits';});const start=ti.length?ti[0]:0;return(<button onClick={()=>selectOpening(start)} style={{width:'100%',marginBottom:hbig?22:16,padding:'16px 18px',borderRadius:16,border:'none',cursor:'pointer',textAlign:'left',background:'linear-gradient(135deg,var(--ac),var(--ac2))',boxShadow:'0 6px 22px rgba(0,0,0,.3)'}}><div style={{fontSize:12,fontWeight:800,letterSpacing:.5,color:'rgba(0,0,0,.55)',textTransform:'uppercase'}}>New here? Start here</div><div style={{fontSize:'clamp(15px,3.8vw,18px)',fontWeight:800,color:'#0b0b0b',marginTop:3}}>Learn your first opening →</div><div style={{fontSize:'clamp(12px,2.7vw,14px)',color:'rgba(0,0,0,.62)',marginTop:2}}>Two minutes, move by move. You will finish with your first win banked.</div></button>);})()}
+          {(()=>{const _t=dstr(new Date());const _yd=new Date();_yd.setDate(_yd.getDate()-1);const _ys=dstr(_yd);const _n=(daily&&daily.streak)||0;
+            if(daily&&daily.date===_ys&&_n>=1&&!streakDismiss){return(
+              <div style={{width:'100%',marginBottom:hbig?22:16,display:'flex',alignItems:'center',gap:11,background:'linear-gradient(135deg,rgba(245,158,11,.22),rgba(180,83,9,.16))',border:'1px solid rgba(245,158,11,.5)',borderRadius:16,padding:'13px 14px',boxShadow:SHADOW_BOX}}>
+                <div onClick={()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}} style={{flex:1,minWidth:0,cursor:'pointer',display:'flex',alignItems:'center',gap:11}}>
+                  <span style={{fontSize:30,lineHeight:1,flexShrink:0}}>🔥</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:'clamp(14px,3.4vw,17px)',fontWeight:800,color:'#f0b429',lineHeight:1.2}}>{_n}-day streak at risk</div>
+                    <div style={{fontSize:'clamp(11.5px,2.7vw,13.5px)',color:'rgba(255,255,255,.82)',lineHeight:1.35,marginTop:2}}>Do one lesson or puzzle today to keep it going. Tap to solve a puzzle →</div>
+                  </div>
+                </div>
+                <button onClick={()=>{setStreakDismiss(true);try{localStorage.setItem('ct_streak_dismiss',_t);}catch(e){}}} aria-label="Dismiss" style={{flexShrink:0,width:28,height:28,borderRadius:8,background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.22)',color:'rgba(255,255,255,.7)',fontSize:13,lineHeight:1,cursor:'pointer'}}>✕</button>
+              </div>);}
+            if(daily&&daily.date===_t&&_n>=2){return(
+              <div style={{marginBottom:hbig?18:13,display:'flex',alignItems:'center',gap:7,padding:'6px 13px',borderRadius:20,background:'rgba(245,158,11,.16)',border:'1px solid rgba(245,158,11,.4)'}}>
+                <span style={{fontSize:16,lineHeight:1}}>🔥</span><span style={{fontSize:'clamp(12px,2.8vw,14px)',fontWeight:800,color:'#f0b429'}}>{_n}-day streak</span><span style={{fontSize:'clamp(11px,2.5vw,12.5px)',color:'rgba(255,255,255,.6)'}}>· safe today ✓</span>
+              </div>);}
+            return null;})()}
           <div style={{display:'grid',gridTemplateColumns:hLand?'repeat(4,1fr)':'1fr 1fr',gap:hbig?22:(hLand?30:16),width:'100%'}}>
             {[
               {icon:'🔭',label:'Discover',sub:'Openings, gambits & endgames',tint:['#3b82f6','#1d4ed8'],k:'learn',fn:()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup(null);}},
