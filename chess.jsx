@@ -3457,14 +3457,15 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
-          {l:"Lesson view - duplicate title check", n:"A lesson opened (Italian Game). I need to see the LARGE lesson title and the small header name together so I can pick which duplicate to drop. Record this screen for me.", r:()=>{const _i=LIB.findIndex(o=>o.name&&/Italian/i.test(o.name));_lesson(_i>=0?_i:0);}, h:6500},
-          {l:"Coach paywall (taste-then-gate #242)", n:"What a free user sees after their 3 free Coach previews are used up: the upgrade screen plus the message. Record this to confirm the paywall card and the wording.", r:()=>{setHomeScreen(true);setUpgradeMsg('That was your last free Coach preview. Unlock Pro to keep your coach.');setAcctOpen(true);}, h:6000},
-          {l:"Home screen (screenshot for font pass)", n:"The home screen: four tiles plus the coach tile. Screenshot this one for the small-fonts button pass.", r:()=>{setHomeScreen(true);setMenuOpen(false);}},
-          {l:"Play setup (screenshot)", n:"Play setup: the opponent picker plus the time-control picker. Screenshot this one.", r:()=>{setHomeScreen(false);setMode('play');setOpponent('computer');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}},
-          {l:"Puzzles roadmap (screenshot)", n:"The Puzzles roadmap and list. Screenshot this one.", r:()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},
-          {l:"Online lobby (screenshot)", n:"The online screen: Quick match, Create, Join, Friends, Tournaments. Screenshot this one. (Shows a sign-in prompt if you are signed out, which is fine.)", r:()=>{setHomeScreen(false);setMode('play');setOpponent('online');setOnlineGame(null);setMyColor(null);setOnlineErr('');setPlaySetup(false);}},
-          {l:"Menu and settings (screenshot)", n:"The hamburger menu: subscription, sign-out, links. Screenshot this one.", r:()=>{setHomeScreen(true);setMenuOpen(true);}},
-          {l:"Tactics & Strategy trainer (auto-demo #241)", n:"Plays itself. In Play all it auto-pages through all 13 tactics (revealing each answer) then every strategy concept. No taps needed - just let the recording run.", r:()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup('tactics');setTrainerDemo(true);setTimeout(()=>setIntroCard(false),60);},h:47000},
+          {l:"Font check: Home (tiles + coach card)", n:"The home screen: four tiles plus the coach tile. Screenshot this one for the small-fonts button pass.", r:()=>{setHomeScreen(true);setMenuOpen(false);}},
+          {l:"Font check: Discover (opening tiles)", n:"The openings list - check the tile label fonts after the #245 bump.", r:()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup('openings');}, h:5500},
+          {l:"Font check: Coach", n:"The Coach screen - check the coach-section fonts.", r:()=>{setHomeScreen(false);setCoachOpen(true);}, h:5500},
+          {l:"Font check: Game review", n:"The Review/analyze screen - check the review fonts.", r:()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');setOpenIdx(null);}, h:5500},
+          {l:"Font check: Play setup", n:"Play setup: the opponent picker plus the time-control picker. Screenshot this one.", r:()=>{setHomeScreen(false);setMode('play');setOpponent('computer');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}},
+          {l:"Font check: Puzzles", n:"The Puzzles roadmap and list. Screenshot this one.", r:()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},
+          {l:"Font check: Online", n:"The online screen: Quick match, Create, Join, Friends, Tournaments. Screenshot this one. (Shows a sign-in prompt if you are signed out, which is fine.)", r:()=>{setHomeScreen(false);setMode('play');setOpponent('online');setOnlineGame(null);setMyColor(null);setOnlineErr('');setPlaySetup(false);}},
+          {l:"Font check: Menu", n:"The hamburger menu: subscription, sign-out, links. Screenshot this one.", r:()=>{setHomeScreen(true);setMenuOpen(true);}},
+          {l:"Font check: Tactics trainer (auto-demo)", n:"Plays itself. In Play all it auto-pages through all 13 tactics (revealing each answer) then every strategy concept. No taps needed - just let the recording run.", r:()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup('tactics');setTrainerDemo(true);setTimeout(()=>setIntroCard(false),60);},h:47000},
         ];
         const _runAll=()=>{
           setPreview(false);setTrainerDemo(false);const N=SC.length;let i=0;

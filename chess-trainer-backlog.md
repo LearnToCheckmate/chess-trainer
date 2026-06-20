@@ -1,4 +1,9 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #245)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #246)
+
+## 2026-06-20 - BUILD #246 - gallery cleaned to font-verification screens only
+- Removed the two DONE items: Lesson-view title check (shipped #244) and Coach paywall (confirmed via recording).
+- Relabeled remaining screens as "Font check: X"; added Discover (opening tiles), Coach, and Game review so the gallery now covers all of Kunal's flagged font areas (home, tiles, coach, tactics, review). Gallery = 9 font-check screens. Old items cleared per policy.
+
 
 ## 2026-06-20 - BUILD #245 - font pass (conservative first bump)
 - Bumped 412 of 459 body-text fontSize clamps app-wide: min +1px, vw +0.2, max +1px (left the 47 title-size clamps >=15px alone). On phones the min usually applies, so the smallest labels/notes/tile text get ~+1px. Covers home, tiles, coach, tactics, review.
