@@ -2386,7 +2386,7 @@ export default function App(){
     let out=[];
     if(useSF){
       // Full-strength Stockfish: eval every position (White POV cp; mate as a large ±cp), then derive each move's loss and the engine's best move.
-      const N=res.plies.length,MT=N>80?340:480;
+      const N=res.plies.length,MT=Math.max(700,Math.min(2000,Math.round(60000/(N+1))));
       const evW=new Array(N+1),ev2W=new Array(N+1),bU=new Array(N);
       for(let i=0;i<=N;i++){
         const pos=res.positions[i];
@@ -3051,7 +3051,7 @@ export default function App(){
           setTimeout(stepFn,750);
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
-        const SC=[{l:'Review: a full game plays itself',n:'Loads the famous Opera Game (Morphy), shows the loading screen, then auto-plays the review end to end: on-board badges, an explanation on every move, and the brilliant queen-sacrifice celebration with its chime near the end. Just hit record then Play and wait for All done.',r:()=>{setHomeScreen(false);setMode('analyze');const _pgn="1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8#";setPgnText(_pgn);importGame(_pgn,{userColor:'w'});setRevAuto(true);},h:70000}];
+        const SC=[{l:'Review: a full game plays itself',n:'Loads the famous Opera Game (Morphy), shows the loading screen, then auto-plays the review end to end: on-board badges, an explanation on every move, and the brilliant queen-sacrifice celebration with its chime near the end. It now runs a deeper, slower analysis (about two minutes total) so a deep sacrifice like the queen sac can register as Brilliant. Hit record then Play and wait for All done.',r:()=>{setHomeScreen(false);setMode('analyze');const _pgn="1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8#";setPgnText(_pgn);importGame(_pgn,{userColor:'w'});setRevAuto(true);},h:120000}];
         const _runAll=()=>{
           setPreview(false);const N=SC.length;let i=0;
           const go=()=>{
