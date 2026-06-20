@@ -1,13 +1,21 @@
 # ACTIVE QUEUE - reconciled 2026-06-20 (app at build #246)
 
 ## GALLERY STATE (sync every run; WIPE items with evidence at run start)
-AWAITING KUNAL'S EVIDENCE (in the SC array now): Font check: Discover + Font check: Puzzles. 2 items. Streak nudge + Curated cross-link REMOVED #254 (Kunal recorded all 4 in his screen recording). The 2 font screens kept to re-verify the #254 (bigger) bump.
+AWAITING KUNAL'S EVIDENCE (in the SC array now): Curated cross-links + Font check: Discover + Font check: Puzzles. 3 items. Curated cross-link RE-ADDED #255 (Kunal asked to put it back). The 2 font screens for re-verifying the #254 (bigger) bump.
 HAS EVIDENCE: lesson title check (#244), Coach paywall (#242).
 LESSON: do NOT wipe gallery screens that still have an OPEN QUESTION on them - the font size was open when #247 wiped them, so they came back #248.
 
 ## OPEN QUESTIONS (the ONLY content the HTML form may contain; if empty, send no form)
 - FONT SIZE: #252 bumped min<=11.5 +1; Kunal verified (screen recording) and said still too small + NOT crowded. #254 bumped min<=12 +1 (body text 12->13px, floor now 9). PENDING: Kunal verify the new bigger size reads well + still not crowded.
 
+
+## 2026-06-20 - BUILD #255 - gallery: Curated re-added + FULL Feedback-chat sweep
+- Kunal: "put the second item in the gallery too" + "sweep the other chats, my feedback's not getting picked up." Did a full sweep of #2 Feedback (updated 19:51) and confirmed the other project chats are older (no new items).
+- GALLERY: re-added the Curated gambit cross-links scenario (opens Italian Game about-card -> Related chips). Now 3 items: Curated, Discover font, Puzzles font.
+- SWEEP RESULT: cross-checked EVERY item in the Feedback rollup against code + backlog. Nearly all ALREADY BUILT:
+  Train -> Home: #96. Discover declutter/bunch shortcuts: #99-101. Board-state labels: #97. "You are Black" online label: not in code (handled). Eval bar moved to a pill (no longer eats board): done. Captured pieces: done. Drag-to-castle both gestures: done. Minute clocks: done (#253 surfaced vs-Computer). Curated cross-links: #251. Auto-play after correct answer: done. Hint cooldown -> activity unlock: done. Game Review White/Black -> ONE two-column card: ALREADY done (L4155-56). Best-move suggestion: done (review arrow + in-play hint). Fonts: #252+#254.
+- GENUINELY OPEN (need Kunal / design / hard): iPad board sizing + two-column landscape Home (needs iPad screenshots); coach avatar redesign + custom piece art (design, image-gen, mockups-first); Gmail for AI work (Kunal's task); sign-in OAuth-persist loop (iOS PWA storage partitioning, workaround Safari); lesson-row priority reorder (needs Kunal's order); Rousseau 4.d4 (Kunal's call).
+- ASKED Kunal to paste any specific recent item that isn't surfacing, for immediate pickup.
 
 ## 2026-06-20 - BUILD #254 - smallest fonts bumped again (Kunal: still too small, not crowded)
 - Kunal recorded #252 (32s screen recording, the gallery Play-all, all 4 items) and confirmed: the smallest fonts can still be bigger, and they are NOT crowded (room to grow). Viewed frames: home tile sublabels, opening descriptions, puzzle stats, roadmap node labels - readable but small with room.
