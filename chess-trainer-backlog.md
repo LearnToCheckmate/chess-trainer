@@ -1,4 +1,4 @@
-# ACTIVE QUEUE - reconciled 2026-06-19 (app at build #233)
+# ACTIVE QUEUE - reconciled 2026-06-19 (app at build #234)
 
 RULE: reconcile this section at the END of every run. Move shipped items to "Recently shipped", delete anything stale, keep only genuinely-open items, each tagged with an owner (CLAUDE or KUNAL). Everything below the "LOG" divider is historical and is NOT the queue.
 
@@ -45,7 +45,7 @@ Bigger features, all GREENLIT:
 
 ## WAITING ON KUNAL
 - [ ] DECIDE feedback auto-pickup path (Kunal, asked 2026-06-20): pick (A) BUILD THE RELAY = a tiny Firebase Cloud Function that verifies the Firebase Auth token and APPENDS each feedback submit to a repo file (feedback-inbox.md) via a fine-grained repo-scoped GitHub PAT in the function secrets, so Claude reads it every run with NO pasting and NO network-allowlist change; or (B) BATCH = Claude makes feedback accumulate so Kunal pastes once per session. Until decided, the clipboard-paste path works.
-- [ ] DECIDE (Kunal, 2026-06-20): in learn mode the header now shows the lesson/gambit/ending name AND there is still a larger duplicate title below it. Keep the larger title, or drop it to reclaim vertical space?
+- [ ] DECIDE (Kunal, 2026-06-20): in learn mode the header shows the content name AND there is still a larger duplicate title below it. CONFIRMED on every lesson screen in Kunal's 06-20 recording. Keep the larger title (it is the readable one) or drop it to reclaim vertical space (header gives a persistent label, but it is small and the gallery pill overlaps it during recording). Claude lean: drop the larger title for normal use; if the small header name feels insufficient, keep the title and shrink the flawless-days row / Press-Play box instead. Rertical space?
 
 
 - [ ] PGN of the game where Chess.com flagged the brilliant move - to validate the brilliant heuristic against the real move (parked at Kunal's request 2026-06-19; not blocking).
@@ -94,6 +94,7 @@ Content from Kunal:
 - [ ] Video long tail + iPad two-column Home mockups.
 
 ## RECENTLY SHIPPED
+#234 FOOL'S MATE lesson (the one clear classic gap; engine-verified as the fastest checkmate, framed as a king-safety warning, side b so the board flips and the user delivers Qh4#). Library now 155. ALSO processed Kunal's 06-20 06:58 screen recording: it walks gallery scenarios 2-6 on build #228 (King's Gambit Cunningham, Arabian Mate, Epaulette Mate, Dovetail Mate, Two Knights Defense) and all render correctly - positions right, board flips for the Black opening, demo plays/pauses, NO bugs. Flushed those 5 recorded scenarios from the gallery; gallery is now 8 (Fool's Mate, Petroff, Reading Chess Notation, Italian, Sicilian, Square of the Pawn, Ruy Closed, Caro-Kann) for Kunal to re-record on #234. The recording also confirms the duplicate-title issue on every lesson screen (open question).
 #233 LIBRARY +4 common openings that were genuine gaps (engine-verified, audit PASS, library now 154 lessons): Petroff / Russian Defense (C42), Closed Sicilian (B25), Ruy Lopez Steinitz Defense (C62), Leningrad Dutch (A88). Checked the library against ~45 common openings first; these were the clear missing ones a beginner would expect. Also committed the deploy.py Pages-poll fix (waits for the new commit's SHA, not just any built status).
 #232 MISFIRE / no-op: the opening-append script crashed on an apostrophe in the inline gallery line (Python single-quote escape bug) BEFORE writing chess.jsx, so #232 shipped unchanged #231 content under a #232 stamp. Re-done correctly in #233. Lesson: never put apostrophes in inline-heredoc JS string literals - use json.dumps or a separate file.
 #231 GREAT JUMP CHIP (review overhaul): the review summary had a Brilliant chip and Blunder/Mistake/Inaccuracy chips but no Great chip, even though 'Great' is a real classification. Added Great:0 to review.counts (the existing loop auto-tallies it) and a teal chip beside Brilliant that jumps to the next great move. Verify by reviewing a game that has a great move.

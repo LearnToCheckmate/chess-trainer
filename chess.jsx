@@ -1587,7 +1587,12 @@ const MORE=[
    line:["d4", "f5", "g3", "Nf6", "Bg2", "g6", "Nf3", "Bg7", "O-O", "O-O", "c4", "d6"],
    idea:"The Leningrad Dutch pairs the Dutch ...f5 with a king's-fianchetto setup (...g6, ...Bg7). Black accepts a slightly loosened kingside for active piece play and a thematic ...e5 break, aiming for a double-edged fight rather than a quiet game.",
    notes:["White opens with the queen's pawn.", "Black answers with the Dutch, grabbing kingside space with the f-pawn.", "White fianchettoes, the standard antidote to the Dutch.", "Black develops the knight.", "The bishop takes the long diagonal.", "Black prepares a kingside fianchetto of his own, the Leningrad System.", "White develops the knight.", "Black's bishop reaches g7, raking the long diagonal toward White's centre.", "White castles.", "Black castles, reaching the classic Leningrad setup.", "White grabs central space with c4.", "Black supports a future ...e5 break. The Leningrad is the most aggressive Dutch, combining a fianchetto with the bite of ...f5."],
-   plans:"Black castles, then strikes the centre with ...e5 (after ...Nc6 or ...Qe8 to prepare it), or expands on the kingside. White uses the extra central space and the long-diagonal bishop, often probing with d5 or play down the half-open c-file."}
+   plans:"Black castles, then strikes the centre with ...e5 (after ...Nc6 or ...Qe8 to prepare it), or expands on the kingside. White uses the extra central space and the long-diagonal bishop, often probing with d5 or play down the half-open c-file."},
+  {name:"Fool's Mate",eco:"",side:"b",cat:"♚ Endgames & Theory",
+   line:["f3", "e5", "g4", "Qh4#"],
+   idea:"Fool's Mate is the fastest possible checkmate, delivered in only two moves. It happens only if White carelessly plays f3 (or f4) and then g4, tearing open the diagonal to the king. You will almost never see it in a real game, but it teaches the most important opening rule of all: keep your king safe and do not throw away the pawns that shield it.",
+   notes:["This careless pawn move opens the diagonal toward White's own king. Already a mistake.", "Black grabs the centre and clears a path for the queen.", "A second weakening pawn move. The diagonal to the White king is now wide open, and this loses on the spot.", "Checkmate. The queen swoops to h4, checking the king down the open diagonal with no escape and no block. This is Fool's Mate, the fastest checkmate there is."],
+   plans:"The lesson here is the warning, not the moves. Avoid pushing the f- and g-pawns early, since they guard your king. The same diagonal weakness appears in real games after a loose f3 or ...f6. Castle early, develop your pieces, and keep that pawn shield intact."}
 ];
 const LIB=OPENINGS.concat(ENDGAMES).concat(MORE);
 // ── Persistent progress: window.storage in Claude artifacts, localStorage on the web, else in-memory ──
@@ -3428,18 +3433,14 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
-          {l:"Petroff (Russian) Defense - new (#233)", n:"Common Black defense to 1.e4 (symmetrical Nf6). Confirm the first move auto-plays, the board flips, and the notes explain the d6-before-recapture point.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Petroff (Russian) Defense"))},
-          {l:"Reading Chess Notation - NEW lesson (#230)", n:"New theory lesson teaching algebraic notation move by move. Confirm the demo plays through and the notes explain each notation type (pawn moves, piece letters N/B, captures x, castling O-O).", r:()=>_lesson(LIB.findIndex(o=>o.name==='Reading Chess Notation'))},
-          {l:"Italian Game - cleaned notes (#229)", n:"Old lesson. The per-move notes no longer repeat the move (the header already shows it). Confirm they read cleanly under each move label.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Italian Game'))},
-          {l:"Sicilian Defense - cleaned notes (#229)", n:"Old lesson. Confirm the notes read cleanly with no move-prefix repetition.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Sicilian Defense'))},
-          {l:"Square of the Pawn - box viz", n:"Tap 'Show the square of the pawn' under the board. The tinted box + catches/promotes verdict should appear and shrink as the pawn advances.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Square of the Pawn'))},
-          {l:"King's Gambit: Cunningham - Prev/Next + header", n:"Check the header shows the lesson name (not CHESS TRAINER) and the Prev/Next buttons step between gambits.", r:()=>_lesson(LIB.findIndex(o=>o.name==="King's Gambit: Cunningham"))},
-          {l:"Arabian Mate (pattern)", n:"Rook + knight corner mate. Confirm the board and the single mating move.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Arabian Mate'))},
-          {l:"Epaulette Mate (pattern)", n:"Queen mate, king boxed by its own rooks.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Epaulette Mate'))},
-          {l:"Dovetail Mate (pattern)", n:"Queen mate, king flanked by its own pawns.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Dovetail Mate'))},
-          {l:"Two Knights Defense (Black)", n:"Confirm White's first move auto-plays and the board flips.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Two Knights Defense'))},
-          {l:"Ruy Lopez: Closed (White)", n:"Main-line Ruy. Confirm the board and notes render.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Ruy Lopez: Closed'))},
-          {l:"Caro-Kann: Classical (Black)", n:"Confirm the board and notes render.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Caro-Kann: Classical'))},
+          {l:"Fool's Mate - new (#234)", n:"Fastest checkmate (f3 e5 g4 Qh4#). Confirm the demo plays to mate and the notes frame it as a king-safety warning. Board flips for Black.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Fool's Mate"))},
+          {l:"Petroff (Russian) Defense - new (#233)", n:"Common Black defense to 1.e4. Confirm the first move auto-plays, the board flips, and the notes explain the d6-before-recapture point.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Petroff (Russian) Defense"))},
+          {l:"Reading Chess Notation - new (#230)", n:"Notation lesson. Confirm the demo plays and the notes explain pawn moves, piece letters N/B, captures x, and castling O-O.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Reading Chess Notation"))},
+          {l:"Italian Game - cleaned notes (#229)", n:"Old lesson. Confirm the per-move notes read cleanly with no move-prefix repetition under each move label.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Italian Game"))},
+          {l:"Sicilian Defense - cleaned notes (#229)", n:"Old lesson. Confirm the notes read cleanly with no move-prefix repetition.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Sicilian Defense"))},
+          {l:"Square of the Pawn - box viz", n:"Tap 'Show the square of the pawn' under the board; the tinted box + verdict should appear and shrink as the pawn advances.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Square of the Pawn"))},
+          {l:"Ruy Lopez: Closed (White)", n:"Main-line Ruy. Confirm board and notes render.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Ruy Lopez: Closed"))},
+          {l:"Caro-Kann: Classical (Black)", n:"Confirm board and notes render.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Caro-Kann: Classical"))},
         ];
         const _runAll=()=>{
           setPreview(false);const N=SC.length;let i=0;
