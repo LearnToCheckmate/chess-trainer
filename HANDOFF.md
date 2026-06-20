@@ -52,3 +52,7 @@
 ## Feedback (shipped #223)
 - A floating button + a menu item capture the screen context (build/screen/lesson/phase/step/moves) and copy a paste-ready '[Chess Trainer feedback]' block to the clipboard; Kunal pastes it into chat (the sandbox cannot read Firebase/localStorage; LOG_ENDPOINT is empty).
 - Auto-pickup decision is PARKED in the backlog: (A) a tiny Firebase Cloud Function that verifies the Firebase Auth token and appends each submit to a repo file Claude reads each run, vs (B) batch the feedback so Kunal pastes once per session.
+
+
+## FEEDBACK RELAY (#240) - read at run start
+Feedback now flows from the app to **feedback-inbox.md** via a Firebase Function (functions/index.js). AT THE START OF EVERY RUN, read feedback-inbox.md and fold any new items into chess-trainer-backlog.md, then clear them from the inbox in that run's commit. The relay is BUILT but goes LIVE only once Kunal deploys the function and Claude sets LOG_ENDPOINT + RELAY_KEY in chess.jsx (see the backlog 'Feedback auto-pickup' item for the exact remaining steps).

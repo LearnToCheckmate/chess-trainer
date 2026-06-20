@@ -1,4 +1,4 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #239)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #240)
 
 RULE: reconcile this section at the END of every run. Move shipped items to "Recently shipped", delete anything stale, keep only genuinely-open items, each tagged with an owner (CLAUDE or KUNAL). Everything below the "LOG" divider is historical and is NOT the queue.
 
@@ -53,7 +53,7 @@ KEY: the app ALREADY HAS two interactive trainers, reached from the learn home's
 - [ ] Fixed-size button conversion (last button-consistency item). ~30 buttons still use fixed px fonts (13/14/15) that render larger on a phone than the #199 tiers. Can do blind; Kunal spot-checks after. Low-value polish - optional.
 
 ## WAITING ON KUNAL
-- [ ] DECIDE feedback auto-pickup path (Kunal, asked 2026-06-20): pick (A) BUILD THE RELAY = a tiny Firebase Cloud Function that verifies the Firebase Auth token and APPENDS each feedback submit to a repo file (feedback-inbox.md) via a fine-grained repo-scoped GitHub PAT in the function secrets, so Claude reads it every run with NO pasting and NO network-allowlist change; or (B) BATCH = Claude makes feedback accumulate so Kunal pastes once per session. Until decided, the clipboard-paste path works.
+- [x] Feedback auto-pickup: Kunal chose **A (the relay)**. BUILT in #240. Cloud Function functions/index.js (v2 onRequest, us-central1) checks a shared secret then appends feedback + JS errors to feedback-inbox.md via a repo-scoped PAT. App already relays via postReport->LOG_ENDPOINT (sendFbNote already calls postReport('feedback')); #240 added RELAY_KEY to the payload. REMAINING KUNAL STEPS (at computer): (1) firebase deploy the function; (2) make a fine-grained GitHub PAT (Contents read+write, chess-trainer only); (3) set function secrets GH_PAT + RELAY_SECRET; (4) send Claude the function URL + the RELAY_SECRET. THEN Claude sets LOG_ENDPOINT=URL and RELAY_KEY=secret in chess.jsx + redeploys -> live. RUN-START: Claude now also reads feedback-inbox.md and folds new items into this backlog.
 - [x] RESOLVED (Kunal: 'drop it', #236): removed the larger duplicate lesson title; the header keeps the persistent name. Rertical space?
 
 

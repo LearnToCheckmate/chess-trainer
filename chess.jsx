@@ -4,6 +4,7 @@ import { useState, useMemo, useRef, useEffect, memo, useCallback } from "react";
 const BUILD_INFO = (typeof __BUILD__ !== "undefined") ? __BUILD__ : null;
 // Telemetry relay URL (a Cloud Function that forwards reports to a GitHub repo Claude can read). Empty = autonomous send off; the in-app copy-to-clipboard still works.
 const LOG_ENDPOINT = "";
+const RELAY_KEY = "";  // shared secret; set to match the function RELAY_SECRET when the relay is deployed
 
 // Embedded piece graphics (cburnett set)
 const PIECE_IMG = {
@@ -2196,7 +2197,7 @@ export default function App(){
   const [shareMsg,setShareMsg]=useState("");
   const errLogRef=useRef([]);
   const diagRef=useRef({});
-  const postReport=(kind,payload)=>{if(!LOG_ENDPOINT)return;try{fetch(LOG_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,t:Date.now(),build:BUILD_INFO,...payload})}).catch(()=>{});}catch(e){}};
+  const postReport=(kind,payload)=>{if(!LOG_ENDPOINT)return;try{fetch(LOG_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,t:Date.now(),build:BUILD_INFO,key:RELAY_KEY,...payload})}).catch(()=>{});}catch(e){}};
   const collectDiagnostics=()=>{let d={...diagRef.current};try{d.ua=navigator.userAgent;d.innerW=window.innerWidth;d.innerH=window.innerHeight;d.scrollH=document.documentElement.scrollHeight;d.overflow=document.documentElement.scrollHeight>window.innerHeight+4;}catch(e){}d.errs=errLogRef.current.slice(-10);return JSON.stringify(d,null,2);};
   useEffect(()=>{
     const push=(o)=>{const a=errLogRef.current;a.push(o);if(a.length>20)a.shift();return o;};
