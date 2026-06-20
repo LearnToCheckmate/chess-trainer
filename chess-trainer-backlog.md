@@ -1,4 +1,11 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #260)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #261)
+
+## 2026-06-20 - BUILD #261 - move toward chess.com's minimalist screen (Kunal's reference screenshot)
+- Kunal likes chess.com's simplified/minimalist screen; wants to get closer.
+- FINDINGS (we are closer than it looks): (1) board colors ALREADY = chess.com's exact #eeeed2/#769656 (the "Forest" default theme). (2) Pieces are ALREADY the clean flat cburnett set (data-URI SVGs in PIECE_IMG, L10) - swappable in ONE place if Kunal wants a different open set. (3) We HAVE a move list + move nav (prev/next) + full Analyze/Review in live play.
+- THE GAP = layout/chrome: chess.com uses a compact HORIZONTAL move strip + minimal chrome; ours was a tall vertical move-list box below the board.
+- SHIPPED #261: live-play move list -> compact HORIZONTAL strip that auto-scrolls to the latest move (chess.com-style), reclaiming vertical space. Verify in any vs-Computer game (the gallery helpers load positions WITHOUT move history, so a scenario can't show the strip filled).
+- PARKED/DIRECTION (subjective layout + Claude is blind, so Kunal drives, verifies via screenshot): (a) move the strip to the TOP above the board like chess.com; (b) trim play-screen chrome further; (c) swap PIECE_IMG to a different open set if he wants closer-to-neo pieces (cburnett is fine + GPL-licensed).
 
 ## 2026-06-20 - BUILD #260 - eval bar built + into the gallery; mockups parked
 - Kunal: the #259 SVG piece/avatar mockups are NOT app-grade. PARKED custom pieces/avatar - I can't author app-quality piece art blind or generate raster art. Path: Kunal sends a set/art, picks an open licensed set, or parks it.
