@@ -9,6 +9,15 @@ LESSON: do NOT wipe gallery screens that still have an OPEN QUESTION on them - t
 - FONT SIZE: #252 bumped min<=11.5 +1; Kunal verified (screen recording) and said still too small + NOT crowded. #254 bumped min<=12 +1 (body text 12->13px, floor now 9). PENDING: Kunal verify the new bigger size reads well + still not crowded.
 
 
+## 2026-06-20 - OPEN QUESTIONS surfaced (HTML form sent, post-#255)
+Kunal asked (Feedback chat, ~1-2h ago, the item that wasn't getting picked up): "show what's left + put up the open-questions HTML so we can knock them out." Built + sent chess-questions.html (what's-left list grouped by owner + 6 free-text questions, one-tap Copy). The 6 OPEN QUESTIONS (drive the next form; never re-ask once answered):
+1. Fonts: #254 made body 13px - good now, or bigger still?
+2. Rousseau 4.d4 line (sharp ending): end a move earlier / extend / leave it (Kunal checks his engine)?
+3. Coach avatar + custom piece art: generate a few style options? any direction?
+4. Lesson rows by priority: what order (which lessons/sections first)?
+5. Streak: lessons count toward streak (added #249) or make it puzzle-only?
+6. vs-Computer setup #253: time control now above the slider - reads well, or adjust further?
+
 ## 2026-06-20 - BUILD #255 - gallery: Curated re-added + FULL Feedback-chat sweep
 - Kunal: "put the second item in the gallery too" + "sweep the other chats, my feedback's not getting picked up." Did a full sweep of #2 Feedback (updated 19:51) and confirmed the other project chats are older (no new items).
 - GALLERY: re-added the Curated gambit cross-links scenario (opens Italian Game about-card -> Related chips). Now 3 items: Curated, Discover font, Puzzles font.
