@@ -1,12 +1,18 @@
 # ACTIVE QUEUE - reconciled 2026-06-20 (app at build #246)
 
 ## GALLERY STATE (sync every run; WIPE items with evidence at run start)
-AWAITING KUNAL'S EVIDENCE (in the SC array now): Font check x9 - Home, Discover tiles, Coach, Game review, Play setup, Puzzles, Online, Menu, Tactics trainer (all for the #245 font pass; awaiting one Play all recording).
-HAS EVIDENCE / ALREADY REMOVED: lesson title check (#244, recorded), Coach paywall (#242, confirmed/recorded).
+AWAITING KUNAL'S EVIDENCE (in the SC array now): NONE - gallery is EMPTY. Repopulate when the next feature has something visual to verify.
+HAS EVIDENCE / ALREADY REMOVED: font check x9 (#246, browser recording 06-20 confirmed fonts render well, wiped #247), lesson title check (#244), Coach paywall (#242).
 
 ## OPEN QUESTIONS (the ONLY content the HTML form may contain; if empty, send no form)
-- none open. All 2026-06-20 decisions are captured (pricing $2.99/$19.99, taste-then-gate, skins Pro, gambits buckets, iPad parked, avatar bottom-right, piece-art high + generate options, 4 features greenlit any-order). Do NOT re-ask any of these.
+- FONT SIZE (asked inline 06-20): #245 bump rendered; Claude's read is the fonts look good/readable. Does Kunal want them bigger still? Single question, asked inline, no form.
 
+
+## 2026-06-20 - BUILD #247 - hint cooldown now activity-based + gallery wiped
+- Hint cooldown: removed the 10-minute timer lock. A clean replay (no hints, no wrong moves) now banks a mastery day immediately. The per-rep check still means the rep where you peeked does not bank - you just do one clean run after, no waiting.
+- Greenlit feature audit: LESSON AUTO-PLAY after a correct move is ALREADY implemented (L3019: the opponent's reply auto-plays 420ms after each correct move, and the final move of a line auto-plays too). Marked done - no build needed.
+- Wiped the 9 recorded font-check screens from the gallery (Kunal recorded them via the 06-20 browser recording; fonts verified rendering well). Gallery now empty.
+- REMAINING greenlit: back/forward move-nav during a LIVE online game (needs careful tracing - online sync risk), cross-link gambits/traps by color (needs a counterpart mapping). Both queued for focused runs.
 
 ## 2026-06-20 - BUILD #246 - gallery cleaned to font-verification screens only
 - Removed the two DONE items: Lesson-view title check (shipped #244) and Coach paywall (confirmed via recording).
