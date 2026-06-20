@@ -1,7 +1,7 @@
 # ACTIVE QUEUE - reconciled 2026-06-20 (app at build #256)
 
 ## GALLERY STATE (sync every run; WIPE items with evidence at run start)
-AWAITING KUNAL'S EVIDENCE (in the SC array now): Curated cross-links + Font check: Discover + Font check: Puzzles. 3 items. Curated cross-link RE-ADDED #255 (Kunal asked to put it back). The 2 font screens for re-verifying the #256 (body 14px) bump. Captured-pieces contrast fix (#256) is verify-in-PLAY, not a gallery item (captured pieces need a live game; a play-setup scenario would break Play-all).
+AWAITING KUNAL'S EVIDENCE (in the SC array now): Captured pieces (contrast fix) + Curated cross-links + Font check: Discover + Font check: Puzzles. 4 items. Curated cross-link RE-ADDED #255 (Kunal asked to put it back). The 2 font screens for re-verifying the #256 (body 14px) bump. Captured-pieces fix is NOW a gallery scenario (#257): _play(FEN,'w') loads a live game at a position with captures on both sides so both bars render. Safe in Play-all (_play sets playSetup=false, not the setup overlay; the next scenario's r() resets mode).
 HAS EVIDENCE: lesson title check (#244), Coach paywall (#242).
 LESSON: do NOT wipe gallery screens that still have an OPEN QUESTION on them - the font size was open when #247 wiped them, so they came back #248.
 
@@ -19,6 +19,12 @@ Kunal asked (Feedback chat, ~1-2h ago, the item that wasn't getting picked up): 
 4. Lesson rows -> ANSWERED "most popular openings first" -> QUEUED (CLAUDE; investigate lesson render/order, then reorder by popularity safely).
 5. Streak -> ANSWERED "keep lessons counting" -> no change (already #249).
 6. vs-Computer time control -> ANSWERED "reads well" -> confirmed good (#253).
+
+## 2026-06-20 - BUILD #257 - captured-pieces check + font checks into the auto-gallery
+- Kunal: "put the bottom two items (font check + captured pieces) in the Preview gallery and automate them." Font checks were already gallery scenarios (Discover + Puzzles); added the CAPTURED-PIECES scenario at the TOP of SC.
+- Used the existing _play(fen,col) helper (L3442: mode='play', playSetup=FALSE, opponent='computer', fullReset(fromFEN(fen))) so a scenario drops straight into a live game - no setup overlay, safe in Play-all (next scenario's r() resets mode; _play's playSetup=false is NOT the setup-screen overlay the old warning was about). Orientation: bottomColor=flip?'b':'w' (L4910) + the pColor effect sets flip=false for White, so White (player) sits at the bottom = matches Kunal's screenshot.
+- FEN r1bq1rk1/ppp2pp1/5n2/8/2B5/4BN2/PPP2PPP/R2Q1RK1 w (validated legal, no check). White (bottom) captured a black bishop + knight + 3 pawns -> bottom bar shows 5 black glyphs on the new light chips (the fix) + "+4" lead. Black captured a white knight + 2 pawns -> top bar plain white (always fine).
+- Gallery now 4 items: Captured pieces, Curated cross-links, Font Discover, Font Puzzles. 7s hold on the captured screen.
 
 ## 2026-06-20 - BUILD #256 - captured-pieces contrast + body fonts to 14px + Kunal's 6 answers
 - Kunal pasted all 6 form answers (tap-to-pick) + a screenshot of the captured-pieces contrast bug.
