@@ -16,6 +16,7 @@ Bigger features, all GREENLIT:
 - Video call during online play (needs signaling + TURN = Kunal step).
 - Brilliant-move course / Notation-learning section / Cross-link gambits-traps (opposite side).
 - In-app feedback system (needs a Firestore rule = Kunal step).
+- Openings: Kunal has NO personal openings to add. Claude delivered an exhaustive 'not in library' list (openings-not-in-library.md, 2026-06-19), grouped by category with priority tags; Kunal to pick which to build.
 
 ## CLAUDE can build now (no Kunal needed)
 - [ ] Taste-then-gate paywall (DECIDED): let free users sample the Coach before locking; design the free allowance.
@@ -25,6 +26,8 @@ Bigger features, all GREENLIT:
 - [ ] Notation-learning section (DECIDED): read/write algebraic notation as a mini track.
 - [ ] Cross-link gambits/traps (DECIDED): play the same line from the opposite side.
 - [ ] In-app feedback UI (DECIDED): like/dislike/ok + occasional prompt (backend rule is a Kunal step).
+- [ ] Square of the Pawn: VISUALIZE the box on the board (draw the pawn's promotion square), plus toggleable examples of king-INSIDE-the-box (catches the pawn) vs king-OUTSIDE (can't). Text explains it but nothing is drawn - make the geometry real, not just the pawn advancing. [KUNAL 2026-06-19]
+- [ ] Dev-feedback button on EVERY screen (extends in-app feedback UI): tap -> capture current screen context (mode/screen/lesson/FEN/build) + a typed note -> write to a Firestore feedback collection Claude can read. v1 = context + note (no pixel screenshot); v2 = real screenshot via html2canvas -> Firebase Storage. Needs the Firestore feedback rule (already in WAITING). [KUNAL 2026-06-19]
 
 ### REVIEW OVERHAUL - in progress (2026-06-19 deep feedback session). #217 shipped part 1; remaining:
 - [ ] Eval bar beside the review board (+ show the eval swing for the current move).
@@ -40,6 +43,8 @@ Bigger features, all GREENLIT:
 - [ ] Fixed-size button conversion (last button-consistency item). ~30 buttons still use fixed px fonts (13/14/15) that render larger on a phone than the #199 tiers. Can do blind; Kunal spot-checks after. Low-value polish - optional.
 
 ## WAITING ON KUNAL
+
+- [ ] PGN of the game where Chess.com flagged the brilliant move - to validate the brilliant heuristic against the real move (parked at Kunal's request 2026-06-19; not blocking).
 
 Screenshots Claude needs (for the fixed-size button pass - one shot of each screen):
 - [ ] Home (the four tiles + the coach tile)
