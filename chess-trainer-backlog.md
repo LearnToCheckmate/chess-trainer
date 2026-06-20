@@ -1,4 +1,11 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #262)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #263)
+
+## 2026-06-20 - BUILD #263 - gallery bug fixes from Kunal's screen recording
+Kunal recorded a Play-all run (19:45). Two bugs found + fixed:
+1. EVAL BAR not rendering: the bar is gated by !hideEval, and hideEval was ON on Kunal's device (he'd hidden the eval pill at some point, which also suppressed the new bar). The eval-bar scenario now forces setHideEval(false) so the bar shows for judgment. The bar code itself works - it was just suppressed.
+2. STALE "RESIGNED" OVERLAY bleeding onto lesson boards (Rousseau scenario showed "Resigned/Black wins"): the game-over overlay (L4971) was gated only by opponent!=='online', so a stale playEnd from a prior resign rendered in learn mode too. Now gated to mode==='play' - shows only in actual games, never in lessons/review/puzzles. (_play already clears playEnd via fullReset, so play scenarios start clean.)
+- Verified in frames: best-move green arrow renders correctly (Ra8#); captured-pieces + font scenarios were clean.
+- NOTE: eval bar keep/remove is still open (form Q1). Kunal having it hidden is itself a signal.
 
 ## 2026-06-20 - BUILD #262 - best-move arrow into the gallery
 - Kunal: "show me the best move in the gallery too."
