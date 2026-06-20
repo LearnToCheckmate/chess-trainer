@@ -3459,6 +3459,7 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
+          {l:"Curated gambit cross-links", n:"The Italian Game about-card - scroll to 'Related lessons' and check the chips (Evans Gambit, Fried Liver) make sense.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setHomeScreen(false);setMode('learn');selectOpening(_it);}, h:9000},
           {l:"Font check: Discover (smallest fonts bumped)", n:"The openings list - tile sublabels are among the smallest fonts. Check they read better now and nothing looks crowded.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup('openings');}, h:5500},
           {l:"Font check: Puzzles (smallest fonts bumped)", n:"The puzzles roadmap - small labels. Check the smallest fonts read better without crowding.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setHomeScreen(false);setMistakeMode(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}, h:5000},
         ];
