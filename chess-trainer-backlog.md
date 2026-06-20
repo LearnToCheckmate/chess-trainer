@@ -1,13 +1,18 @@
 # ACTIVE QUEUE - reconciled 2026-06-20 (app at build #246)
 
 ## GALLERY STATE (sync every run; WIPE items with evidence at run start)
-AWAITING KUNAL'S EVIDENCE (in the SC array now): Streak nudge preview (item 1, NEW #250) + 8 font screens (size question open) + Lesson auto-play. 10 items.
+AWAITING KUNAL'S EVIDENCE (in the SC array now): Streak nudge + Curated gambit links. 2 items. Font screens + lesson auto-play REMOVED #251 (Kunal had recorded them - they were lingering; only the font-SIZE verdict is pending, gotten verbally).
 HAS EVIDENCE: lesson title check (#244), Coach paywall (#242).
 LESSON: do NOT wipe gallery screens that still have an OPEN QUESTION on them - the font size was open when #247 wiped them, so they came back #248.
 
 ## OPEN QUESTIONS (the ONLY content the HTML form may contain; if empty, send no form)
-- FONT SIZE (asked inline 06-20): #245 bump rendered; Claude's read is the fonts look good/readable. Does Kunal want them bigger still? Single question, asked inline, no form.
+- FONT SIZE (asked inline 06-20): Kunal has recorded the fonts 3x; the only thing pending is his verdict - bigger or good? Asked inline, no form.
 
+
+## 2026-06-20 - BUILD #251 - curated cross-link + gallery decluttered
+- Cross-link REBUILT: replaced the generic "more gambits as [color]" list (Kunal flagged it as low-value since all gambits are already in the list) with a hand-built RELATED map (57 entries, 77 links, all validated vs real lesson names). Each gambit/opening now shows curated "Related lessons" on its about-card: parent opening (Evans Gambit -> Italian Game), its famous trap (Budapest -> Kieninger Trap), or the opposite-color counter (King's Gambit -> Falkbeer Counter-Gambit), plus reverse links (mainline -> its gambits). Built entirely solo, no input needed from Kunal.
+- Gallery decluttered to 2 items: Streak nudge + Curated gambit links. REMOVED the 8 font screens + lesson auto-play (recorded already, were lingering = the gallery-clutter complaint). Clean-slate now also closes the about-card between scenarios.
+- RELATED lives right after the LIB concat; the about-card resolves names to LIB indices via findIndex. CROSS-LINK ITEM NOW DONE (curated).
 
 ## 2026-06-20 - BUILD #249-250 - streak retention (phase 1: in-app)
 - Streak nudge (#249): the home shows a "N-day streak at risk" banner when the user was active YESTERDAY but not today (catches them on app-open, the highest-ROI retention moment). Tap -> puzzles; X dismisses for today. Plus a small "N-day streak - safe today" badge when active today + streak>=2.
