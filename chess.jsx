@@ -1562,7 +1562,12 @@ const MORE=[
    line:["Qd5#"],
    idea:"Also called Cozio's mate. The king is flanked by two of its own pieces on the squares diagonally behind it, and a protected queen mates from directly in front, leaving no escape.",
    notes:["The queen slides to d5, defended by the c4-pawn. The king's own pawns on c7 and e7 block the diagonal flights, the queen covers the rest, and it cannot capture: mate."],
-   plans:"The signature is a king boxed by its own pawns or pieces on the two diagonal squares behind it, with the queen mating in front and defended. Spotting the blocked flight squares is the key."}
+   plans:"The signature is a king boxed by its own pawns or pieces on the two diagonal squares behind it, with the queen mating in front and defended. Spotting the blocked flight squares is the key."},
+  {name:"Reading Chess Notation",eco:"",side:"w",cat:"♚ Endgames & Theory",
+   line:["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "O-O", "Nf6", "Ng5", "d5", "exd5", "Nxd5"],
+   idea:"Algebraic notation is the standard way to write chess moves. A move names the piece by a capital letter (or nothing at all for a pawn) and then the square it moves to. A capture adds an x. A few more symbols finish the picture: + means check, # means checkmate, O-O is kingside castling and O-O-O is queenside, and a promoting pawn is written with its new piece, like e8=Q. When two identical pieces can reach the same square, add the file or rank they came from to tell them apart, like Nbd2.",
+   notes:["Pawn moves are written as just the square the pawn lands on. There is no letter for a pawn.", "Black answers in the centre. Again, only the destination square is written.", "Pieces get a capital letter: N is the knight (K is the king, so the knight borrows N). This is knight to f3.", "Black's knight comes to c6, defending the e5-pawn.", "B is the bishop. Bishop to c4, aiming at the f7 square.", "Black's bishop mirrors on c5.", "Castling kingside is written O-O, two capital letter O's. The king and rook move together in one move.", "Black develops the second knight and eyes the e4-pawn.", "The knight jumps to g5, attacking f7.", "Black hits back in the centre with a pawn to d5.", "When a pawn captures, write its file, then x, then the square: the e-pawn takes on d5, so exd5.", "When a piece captures, put x after the letter: the knight takes the pawn on d5, so Nxd5."],
+   plans:"Read every move as piece-then-square, with pawns as the exception (just the square). The best practice is to write down a few of your own games move by move. Once notation clicks, every chess book, puzzle, and online lesson opens up to you."}
 ];
 const LIB=OPENINGS.concat(ENDGAMES).concat(MORE);
 // ── Persistent progress: window.storage in Claude artifacts, localStorage on the web, else in-memory ──
@@ -3403,6 +3408,7 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
+          {l:"Reading Chess Notation - NEW lesson (#230)", n:"New theory lesson teaching algebraic notation move by move. Confirm the demo plays through and the notes explain each notation type (pawn moves, piece letters N/B, captures x, castling O-O).", r:()=>_lesson(LIB.findIndex(o=>o.name==='Reading Chess Notation'))},
           {l:"Italian Game - cleaned notes (#229)", n:"Old lesson. The per-move notes no longer repeat the move (the header already shows it). Confirm they read cleanly under each move label.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Italian Game'))},
           {l:"Sicilian Defense - cleaned notes (#229)", n:"Old lesson. Confirm the notes read cleanly with no move-prefix repetition.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Sicilian Defense'))},
           {l:"Square of the Pawn - box viz", n:"Tap 'Show the square of the pawn' under the board. The tinted box + catches/promotes verdict should appear and shrink as the pawn advances.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Square of the Pawn'))},

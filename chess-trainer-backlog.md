@@ -1,4 +1,4 @@
-# ACTIVE QUEUE - reconciled 2026-06-19 (app at build #229)
+# ACTIVE QUEUE - reconciled 2026-06-19 (app at build #230)
 
 RULE: reconcile this section at the END of every run. Move shipped items to "Recently shipped", delete anything stale, keep only genuinely-open items, each tagged with an owner (CLAUDE or KUNAL). Everything below the "LOG" divider is historical and is NOT the queue.
 
@@ -23,7 +23,7 @@ Bigger features, all GREENLIT:
 - [ ] Custom-drawn skin icons (DECIDED): generate an icon set to replace the medieval emoji swaps.
 - [ ] Palm / bottom-edge touch rejection (DECIDED): inert touch zone along the bottom edge during play (conservative; test after).
 - [ ] Brilliant-move course (DECIDED): practice scenarios + why each brilliant move works.
-- [ ] Notation-learning section (DECIDED): read/write algebraic notation as a mini track.
+- [x] Notation-learning section (DECIDED): shipped 'Reading Chess Notation' (#230) - a theory lesson teaching algebraic notation move by move (pawn moves, piece letters, captures, castling; +/#/=Q/disambiguation in the summary). Placed in Endgames & Theory; a dedicated Basics section + interactive drills could follow.
 - [ ] Cross-link gambits/traps (DECIDED): play the same line from the opposite side.
 - [ ] In-app feedback UI (DECIDED): like/dislike/ok + occasional prompt (backend rule is a Kunal step).
 - [x] Square of the Pawn: VISUALIZE the box on the board (draw the pawn's promotion square), plus toggleable examples of king-INSIDE-the-box (catches the pawn) vs king-OUTSIDE (can't). Text explains it but nothing is drawn - make the geometry real, not just the pawn advancing. [KUNAL 2026-06-19] (SHIPPED #226)
@@ -94,6 +94,7 @@ Content from Kunal:
 - [ ] Video long tail + iPad two-column Home mockups.
 
 ## RECENTLY SHIPPED
+#230 NOTATION LESSON (greenlit, also requested in the feedback chat): added 'Reading Chess Notation' to Endgames & Theory - a 12-ply demo whose per-move notes teach algebraic notation (pawns = destination square, piece letters K/Q/R/B/N, captures with x, kingside castling O-O), with check/checkmate/promotion/disambiguation covered in the idea + plans. Line engine-verified legal; audit PASS. First version of the notation track; a dedicated Basics category or interactive write-the-move drills would be the natural follow-up (a UI build to confirm on device).
 #229 CONSISTENCY: stripped the move prefix from 938 notes in the OLDER lessons (OPENINGS + ENDGAMES) so the whole library now matches the post-#224 convention - no more '…Bc5 — Black copies' redundancy where the UI already shows the move label. Validated with the new audit.py (149 lessons PASS; 1 remaining warning is a false positive, the prose word 'Forced —'). ALSO created the run tooling the standing protocol depends on: audit.py (parses chess.jsx, validates every lesson - legal lines, legal FENs, aligned notes, correct #/+ annotations; warns on move-prefix notes; exit 1 on FAIL) and deploy.py (audit gate -> bundle with stamp -> one Git Data API commit -> Pages poll).
 #228 Dovetail (Cozio's) Mate added (FEN validated legal + forced mate). Considered also adding a Swallow's Tail/Gueridon mate but skipped it: the two patterns are near-identical and easy to mislabel, and shipping a wrong pattern name is worse than omitting it. Also refreshed the preview gallery to 12 scenarios that surface this run's work for Kunal to record: Square of the Pawn box viz (top), King's Gambit Cunningham (shows Prev/Next nav + header content title), Arabian/Epaulette/Dovetail mates, Two Knights, Ruy Lopez Closed, Albin, Caro Classical, French Rubinstein, Hippopotamus, Grand Prix.
 #227 LIBRARY +4: confirmed the library already covers the major openings (Italian, Evans, Scotch, KID, Grunfeld, Catalan, London, Dutch, Pirc, Smith-Morra, Danish, Vienna all already present - earlier name-extraction had under-counted). Added the two genuinely-missing openings (Two Knights Defense, Ruy Lopez: Closed main line) plus two classic checkmate patterns the library lacked (Arabian Mate, Epaulette Mate); both mate FENs validated legal + forced mate with python-chess.
