@@ -20,9 +20,9 @@ T=[
  ("play","vs-Computer time control surfaced in setup","done","#253",""),
  ("play","Captured-pieces display per player","done","#256","Contrast fixed in #256."),
  ("play","Drag-and-drop castling","done","",""),
- ("play","Remove redundant 'You are Black' / turn labels","open","","Player bars already show side + whose turn."),
- ("play","Correspondence mode (1/3/7-day per move)","open","","Picker in the online lobby."),
- ("play","Play nearby (neighbours by approx location)","open","",""),
+ ("play","Turn cue consolidated into player bars","done","#259","Text labels were gone (#97/#119); #259 highlights the active player's bar + dropped the redundant dots."),
+ ("play","Correspondence mode (1/3/7-day per move)","done","","Already live: 1/3/7-day picker in the online lobby + multi-day clocks."),
+ ("play","Play nearby (neighbours by approx location)","done","#129","App-side done: coarse geolocation + ZIP fallback + challenge. Backend is your CTCloud side."),
  ("play","Video call during online play (WebRTC)","open","",""),
  ("lessons","Openings library (~175 engine-verified lessons)","done","",""),
  ("lessons","Gambits bucketed by first move","done","",""),
@@ -34,7 +34,7 @@ T=[
  ("lessons","Square of the Pawn visualization","done","",""),
  ("lessons","Move-prefix stripped from all lesson notes","done","#229",""),
  ("lessons","Rousseau 4.d4 line fixed (Smirnov trap)","done","#258","Auto-plays in the gallery to verify."),
- ("lessons","Reorder lesson rows by popularity","open","","You chose 'most popular first'."),
+ ("lessons","Reorder lesson rows by popularity","done","#259","Sorted by best-guess popularity (display-only; progress is name-keyed so safe)."),
  ("puzzles","Lichess CC0 puzzle roadmap (tiered)","done","",""),
  ("puzzles","Puzzles free (not Pro-gated)","done","#108",""),
  ("review","Chess.com + Lichess game import","done","",""),
@@ -42,12 +42,12 @@ T=[
  ("review","Two-column Game Review summary card","done","#98",""),
  ("review","Great-move classification chip","done","#231",""),
  ("review","Tap 'Better was X' to show best move on board","done","#42",""),
- ("review","Review overhaul (eval bar, brilliant heuristic)","part","#217","Part 1 shipped; rest needs a sample PGN."),
- ("review","Best-move play-out (full engine line, then snap back)","open","",""),
+ ("review","Review overhaul (eval bar, brilliant heuristic)","part","#217","Eval is a pill + a graph (board-side bar was removed - ate board width). Decide on the bar; brilliant heuristic needs a sample PGN."),
+ ("review","Best-move play-out (full engine line, then snap back)","open","","Only the single best move is stored (green arrow). Full PV needs an on-demand engine run - confirm scope."),
  ("coach","Coach section (Pro, taste-then-gate)","done","#242","3 free Coach replies before paywall."),
  ("tourn","Tournaments lobby + create + pairing (all 3 formats)","done","","Round-robin, knockout, Swiss."),
- ("tourn","Tournaments full run (Stage 3+)","open","","Needs your testing after."),
- ("social","Friends network (add by user ID, mutual accept)","open","","'Add friend' on past opponents."),
+ ("tourn","Tournaments full run (Stage 3+)","open","","Lobby/create/join/pairing/start built (#168-170); the live run (results -> standings -> advance) needs backend + your testing."),
+ ("social","Friends network (add by user ID, mutual accept)","done","","Already built: share-your-ID, add by ID, mutual accept, friends list. Backend is your CTCloud side."),
  ("money","Pro gates Coach section only","done","",""),
  ("money","Pricing $2.99/mo + $19.99/yr (in-app paywall)","done","",""),
  ("money","Board skins (Playful/Medieval) stay Pro","done","",""),
@@ -66,10 +66,10 @@ T=[
  ("polish","iPad two-column landscape Home","openY","","Parked; needs iPad screenshots."),
  ("money","Recreate Stripe TEST prices at $2.99/$19.99","openY","","Current test IDs are old $0.99/$9.99."),
  ("money","Run Stripe 4242 test checkout","openY","",""),
- ("infra","Sign-in persistence on installed iOS PWA","open","","Known WebKit issue; workaround Safari."),
+ ("infra","Sign-in persistence on installed iOS PWA","open","","Known WebKit storage-partitioning; real fix needs device testing. Safari works now."),
  ("infra","Buy gambitcoach.com domain","openY","","~$10.46 at Cloudflare."),
  ("infra","Closed-app streak push (FCM VAPID key)","openY","","Biggest retention gap."),
- ("infra","Photo-to-board (scanBoard function + vision API)","openY","","Function deploy + API key."),
+ ("infra","Photo-to-board: app-side built; needs scanBoard function","openY","#127","App capture/upload/render done #127; deploy the Cloud Function + vision API key."),
  ("infra","Legal pages (privacy + terms)","openY","",""),
 ]
 TASKS=[]
@@ -77,12 +77,12 @@ for g,t,s,b,n in T:
     you=s.endswith("Y"); s=s[:-1] if you else s
     TASKS.append({"g":g,"t":t,"s":s,"you":you,"b":b,"n":n})
 QUESTIONS=[
- {"id":"big","q":"Which bigger build should I tackle next?","o":["Correspondence mode","Friends network","Tournaments full run","Video call in online play","Photo-to-board"]},
- {"id":"style","q":"Custom pieces + coach avatar: which look should I mock up first?","o":["Flat geometric","Clean line-art","Simplified classic"]},
- {"id":"reorder","q":"Lesson rows by popularity: how should I get the order?","o":["Use my best-guess popularity now","Wait for your openings list"]},
+ {"id":"avatar","q":"Which coach avatar should I refine and wire in? (see the mockups I sent)","o":["Sir Knight","The Mentor","Coach King"]},
+ {"id":"evalbar","q":"Re-add a thin vertical eval bar in Review? (it was removed before for eating board width)","o":["Yes, add a thin lichess-style bar","No - the eval pill + graph is enough"]},
+ {"id":"playout","q":"Best-move play-out: how far should it go?","o":["Play the full engine line, then snap back","Just animate the single best move"]},
 ]
 edt=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=4)).strftime("%Y-%m-%d %-I:%M %p")
-stamp="Snapshot "+edt+" EDT - live build #258"
+stamp="Snapshot "+edt+" EDT - live build #259"
 HTML=r'''<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chess Trainer - plan</title><style>
