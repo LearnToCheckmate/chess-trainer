@@ -4892,9 +4892,9 @@ export default function App(){
             {nb('›',()=>{const nv=Math.min(n,cur+1);setPvIdx(nv>=n?null:nv);},cur>=n)}
             {nb('⏭',()=>setPvIdx(null),pvIdx==null)}
           </div>);})()}
-        <div className="scroll" style={{maxHeight:80,overflowY:'auto',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:8,padding:'6px 11px',WebkitUserSelect:'text',userSelect:'text'}}>
-          <div style={{fontSize:'clamp(14px,2.7vw,14.5px)',lineHeight:1.85,fontFamily:'monospace'}}>
-            {boardGame.history.map((h,i)=>(<span key={i}>{i%2===0&&<span style={{color:'rgba(255,255,255,.35)',marginRight:2}}>{Math.floor(i/2)+1}.</span>}<span style={{color:i%2===0?'#e0e0e0':'var(--ac2)',marginRight:i%2===1?10:4,fontWeight:i===boardGame.history.length-1?'bold':'normal'}}>{h.san}</span></span>))}
+        <div className="scroll" ref={el=>{if(el)el.scrollLeft=el.scrollWidth;}} style={{overflowX:'auto',overflowY:'hidden',whiteSpace:'nowrap',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:8,padding:'7px 11px',WebkitUserSelect:'text',userSelect:'text',WebkitOverflowScrolling:'touch'}}>
+          <div style={{display:'inline-flex',alignItems:'center',fontSize:'clamp(14px,2.7vw,14.5px)',fontFamily:'monospace'}}>
+            {boardGame.history.map((h,i)=>(<span key={i} style={{display:'inline-flex',alignItems:'center'}}>{i%2===0&&<span style={{color:'rgba(255,255,255,.35)',marginRight:3}}>{Math.floor(i/2)+1}.</span>}<span style={{color:i%2===0?'#e0e0e0':'var(--ac2)',marginRight:i%2===1?12:5,fontWeight:i===boardGame.history.length-1?'bold':'normal'}}>{h.san}</span></span>))}
           </div>
         </div>
         <div style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.42)',marginTop:3,lineHeight:1.4}}>Tap <span style={{color:'var(--ac2)',fontWeight:600}}>🔍 Analyze</span> to review this line move-by-move and play on from any point.</div>
