@@ -2111,6 +2111,7 @@ export default function App(){
   const [pvIdx,setPvIdx]=useState(null);          // live-game move viewer: null=live, else position index (after N moves)
   const pvIdxRef=useRef(null);
   const [lpv,setLpv]=useState(null);
+  const [sqShow,setSqShow]=useState(false);
   const lpvRef=useRef(null);
   const [playHintMv,setPlayHintMv]=useState(null);
   const [pColor,setPColor]=useState('w');
@@ -3145,6 +3146,7 @@ export default function App(){
 
   const{sel:_uSel,tgts:_uTgts,drag,dragging}=UI.current;const sel=_pvLive?null:_uSel;const tgts=_pvLive?[]:_uTgts;
   const dBoard=flip?[...boardGame.board].reverse().map(r=>[...r].reverse()):boardGame.board;
+  const kpInfo=(()=>{const B=boardGame.board;if(!B)return null;let pawn=null,wk=null,bk=null,pawns=0,others=0;for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=B[r][c];if(!p)continue;if(p.t==='p'){pawn={r,c,col:p.c};pawns++;}else if(p.t==='k'){if(p.c==='w')wk={r,c};else bk={r,c};}else others++;}if(pawns!==1||!wk||!bk||others>0)return null;const pc=pawn.col,pr=pawn.r,prc=pawn.c;let rA,rB,pm;if(pc==='w'){const rk=8-pr;pm=(rk===2)?5:(8-rk);rA=0;rB=pm;}else{const rk=8-pr;pm=(rk===7)?5:(rk-1);rB=7;rA=7-pm;}const dk=pc==='w'?bk:wk;const cd=dk.c>=prc?1:-1;let cA=prc,cB=prc+cd*pm;if(cB<cA){const t=cA;cA=cB;cB=t;}cA=Math.max(0,cA);cB=Math.min(7,cB);const cells=new Set();for(let r=Math.max(0,rA);r<=Math.min(7,rB);r++)for(let c=cA;c<=cB;c++)cells.add(r+'-'+c);const dc2=pc==='w'?'b':'w',dtm=boardGame.turn===dc2;const inb=cells.has(dk.r+'-'+dk.c);let cs=false;if(dtm&&!inb){for(let q=-1;q<=1;q++)for(let w=-1;w<=1;w++)if(cells.has((dk.r+q)+'-'+(dk.c+w)))cs=true;}return{cells,catches:inb||cs,defToMove:dtm};})();
   const rankLabels=flip?['1','2','3','4','5','6','7','8']:['8','7','6','5','4','3','2','1'];
   const fileLabels=flip?['h','g','f','e','d','c','b','a']:['a','b','c','d','e','f','g','h'];
 
@@ -4569,7 +4571,7 @@ export default function App(){
       </div>);})()}
 
       {/* ── Learn controls ── */}
-      {mode==='learn'&&(<div style={{marginTop:11,width:boardPx,maxWidth:'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>
+      {mode==='learn'&&(<div style={{marginTop:11,width:boardPx,maxWidth:'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>{kpInfo&&openIdx!==null&&(<div style={{width:'100%',display:'flex',flexDirection:'column',gap:6}}><button onClick={()=>setSqShow(v=>!v)} style={{...btn('rgba(110,168,254,.14)','1px solid rgba(110,168,254,.45)','#cfe0ff'),width:'100%',fontSize:'clamp(11px,2.5vw,13px)'}}>{sqShow?'Hide the square':'Show the square of the pawn'}</button>{sqShow&&(<div style={{fontSize:'clamp(11px,2.6vw,13px)',textAlign:'center',padding:'7px 10px',borderRadius:9,background:kpInfo.catches?'rgba(110,214,110,.14)':'rgba(255,170,60,.14)',border:'1px solid '+(kpInfo.catches?'rgba(110,214,110,.5)':'rgba(255,170,60,.5)'),color:'#fff',lineHeight:1.4}}>{kpInfo.catches?'The king is inside the square, so it catches the pawn.':'The king is outside the square, so the pawn promotes.'}</div>)}</div>)}
         {openIdx!==null?(
           (()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';const idxs=LIB.map((o,i)=>groupOf(o.cat)===grp?i:-1).filter(i=>i>=0);const pos=idxs.indexOf(openIdx);const hasPrev=pos>0,hasNext=pos<idxs.length-1;
             const nav=(on)=>({...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),opacity:on?1:.35,cursor:on?'pointer':'default'});
@@ -4844,10 +4846,11 @@ export default function App(){
               const isChk=chkSq===sq;const isHint=hintMove&&((hintMove.fr===ar&&hintMove.fc===ac)||(hintMove.tr===ar&&hintMove.tc===ac));
               const isBest=reviewBest&&((reviewBest.fr===ar&&reviewBest.fc===ac)||(reviewBest.tr===ar&&reviewBest.tc===ac));
               const isDragSrc=drag&&drag.from[0]===ar&&drag.from[1]===ac&&dragging;
-              const isPre=mode==='play'&&!_pvLive&&preMv&&((preMv.fr===ar&&preMv.fc===ac)||(preMv.tr===ar&&preMv.tc===ac));
+              const isPre=mode==='play'&&!_pvLive&&preMv&&((preMv.fr===ar&&preMv.fc===ac)||(preMv.tr===ar&&preMv.tc===ac));const isBox=sqShow&&kpInfo&&kpInfo.cells.has(ar+'-'+ac);
               return(<div key={sq} style={{width:SQ,height:SQ,background:isLight?TH.light:TH.dark,position:'relative',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',boxShadow:boardDepth?'inset 0 0 0 0.5px rgba(0,0,0,.13), inset 0 2px 3px rgba(255,255,255,.13), inset 0 -3px 6px rgba(0,0,0,.2)':'none',touchAction:'none'}}>
                 {(isSel||isLast)&&<div style={{position:'absolute',inset:0,background:isSel?HL_SEL:((inReview&&curAnno&&curAnno.cls)?curAnno.cls.c+'4d':HL_LAST),pointerEvents:'none',zIndex:1}}/>}
-                {isPre&&<div style={{position:'absolute',inset:0,background:HL_PRE,pointerEvents:'none',zIndex:1}}/>}
+                {isBox&&<div style={{position:'absolute',inset:0,background:kpInfo.catches?'rgba(110,214,110,.26)':'rgba(255,170,60,.26)',boxShadow:'inset 0 0 0 1px '+(kpInfo.catches?'rgba(110,214,110,.55)':'rgba(255,170,60,.55)'),pointerEvents:'none',zIndex:0}}/>}
+                 {isPre&&<div style={{position:'absolute',inset:0,background:HL_PRE,pointerEvents:'none',zIndex:1}}/>}
                 {isHint&&<div style={{position:'absolute',inset:0,background:HL_HINT,pointerEvents:'none',zIndex:1}}/>}
                 {isBest&&<div style={{position:'absolute',inset:0,background:HL_BEST,pointerEvents:'none',zIndex:1}}/>}
                 {isChk&&<div style={{position:'absolute',inset:0,background:status==='checkmate'?'radial-gradient(circle,rgba(229,57,53,.92),rgba(120,10,10,.82))':HL_CHK,boxShadow:status==='checkmate'?'inset 0 0 0 3px #ff5252':'none',pointerEvents:'none',zIndex:1}}/>}
