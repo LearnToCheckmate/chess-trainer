@@ -1,13 +1,19 @@
 # ACTIVE QUEUE - reconciled 2026-06-20 (app at build #246)
 
 ## GALLERY STATE (sync every run; WIPE items with evidence at run start)
-AWAITING KUNAL'S EVIDENCE (in the SC array now): 8 font screens (re-added #248 - Kunal wants to judge the size himself) + Lesson auto-play (item 2, the line plays itself). 9 items.
+AWAITING KUNAL'S EVIDENCE (in the SC array now): Streak nudge preview (item 1, NEW #250) + 8 font screens (size question open) + Lesson auto-play. 10 items.
 HAS EVIDENCE: lesson title check (#244), Coach paywall (#242).
 LESSON: do NOT wipe gallery screens that still have an OPEN QUESTION on them - the font size was open when #247 wiped them, so they came back #248.
 
 ## OPEN QUESTIONS (the ONLY content the HTML form may contain; if empty, send no form)
 - FONT SIZE (asked inline 06-20): #245 bump rendered; Claude's read is the fonts look good/readable. Does Kunal want them bigger still? Single question, asked inline, no form.
 
+
+## 2026-06-20 - BUILD #249-250 - streak retention (phase 1: in-app)
+- Streak nudge (#249): the home shows a "N-day streak at risk" banner when the user was active YESTERDAY but not today (catches them on app-open, the highest-ROI retention moment). Tap -> puzzles; X dismisses for today. Plus a small "N-day streak - safe today" badge when active today + streak>=2.
+- Lessons now count toward the daily streak (added bumpDaily() to finishRep; previously only puzzles bumped it). So any daily practice keeps the streak. Revert if Kunal wants puzzle-only.
+- Preview (#250): a streakPreview flag + a "Streak nudge" gallery scenario (item 1) so the banner can be seen/recorded (otherwise hard to stage). Resets between Play-all scenarios.
+- PHASE 2 (closed-app push) = NOT built, NEEDS KUNAL: an FCM web-push VAPID key (Firebase console) + a scheduled Cloud Function (checks each user's daily.date; if not today, send a push) + a SW push handler + client permission/subscription. Claude writes the function+SW+client when Kunal has the VAPID key. On iOS this only works for the PWA added to the home screen with notifications allowed.
 
 ## 2026-06-20 - BUILD #248 - green list finished + gallery repopulated
 - GREEN LIST DONE (all 4): (1) lesson auto-play = ALREADY built (opponent reply auto-plays 420ms after each correct move, last move plays too); (2) hint cooldown activity-based = shipped #247; (3) move-nav during a LIVE online game = ALREADY built (nav buttons render in online play; tapping the board while scrubbed snaps to live so no accidental move; a new move snaps to live); (4) cross-link gambits by color = shipped #248.
