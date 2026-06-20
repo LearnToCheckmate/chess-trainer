@@ -1,4 +1,4 @@
-# ACTIVE QUEUE - reconciled 2026-06-19 (app at build #234)
+# ACTIVE QUEUE - reconciled 2026-06-19 (app at build #235)
 
 RULE: reconcile this section at the END of every run. Move shipped items to "Recently shipped", delete anything stale, keep only genuinely-open items, each tagged with an owner (CLAUDE or KUNAL). Everything below the "LOG" divider is historical and is NOT the queue.
 
@@ -23,7 +23,7 @@ Bigger features, all GREENLIT:
 - [ ] Custom-drawn skin icons (DECIDED): generate an icon set to replace the medieval emoji swaps.
 - [ ] Palm / bottom-edge touch rejection (DECIDED): inert touch zone along the bottom edge during play (conservative; test after).
 - [ ] Brilliant-move course (DECIDED): practice scenarios + why each brilliant move works.
-- [x] Notation-learning section (DECIDED): shipped 'Reading Chess Notation' (#230) - a theory lesson teaching algebraic notation move by move (pawn moves, piece letters, captures, castling; +/#/=Q/disambiguation in the summary). Placed in Endgames & Theory; a dedicated Basics section + interactive drills could follow.
+- [x] Notation-learning section (DECIDED): now a 2-lesson track in Endgames & Theory - 'Reading Chess Notation' (#230, the basics: pawn/piece moves, captures x, castling O-O) and 'Notation: Checks, Mates & Promotion' (#235, the special symbols =Q / + / # via a forced b8=Q+ Ka6 Qb6# mate). Verified on device. A dedicated Basics category or interactive write-the-move drills could still follow.
 - [ ] Cross-link gambits/traps (DECIDED): play the same line from the opposite side.
 - [ ] In-app feedback UI (DECIDED): like/dislike/ok + occasional prompt (backend rule is a Kunal step).
 - [x] Square of the Pawn: VISUALIZE the box on the board (draw the pawn's promotion square), plus toggleable examples of king-INSIDE-the-box (catches the pawn) vs king-OUTSIDE (can't). Text explains it but nothing is drawn - make the geometry real, not just the pawn advancing. [KUNAL 2026-06-19] (SHIPPED #226)
@@ -94,6 +94,7 @@ Content from Kunal:
 - [ ] Video long tail + iPad two-column Home mockups.
 
 ## RECENTLY SHIPPED
+#235 SECOND NOTATION LESSON 'Notation: Checks, Mates & Promotion' (rounds out the notation track): a forced 3-ply mate b8=Q+ Ka6 Qb6# whose notes teach promotion (=Q), check (+) and checkmate (#), with castling O-O-O and en passant covered in the summary. Engine-verified (forced, queen defended). Library now 156. ALSO processed Kunal's 08:22 recording on build #234: he used 'Play all 8' to capture every new gallery scenario (Fool's Mate, Petroff, Reading Chess Notation, the #229 cleaned Italian/Sicilian, Square of the Pawn, Ruy Closed, Caro-Kann). All render correctly, the note convention works on device (UI supplies the '1. e4 -' label, the lesson note is clean after it), NO bugs. Flushed all 8 confirmed scenarios; gallery now holds only the new notation lesson.
 #234 FOOL'S MATE lesson (the one clear classic gap; engine-verified as the fastest checkmate, framed as a king-safety warning, side b so the board flips and the user delivers Qh4#). Library now 155. ALSO processed Kunal's 06-20 06:58 screen recording: it walks gallery scenarios 2-6 on build #228 (King's Gambit Cunningham, Arabian Mate, Epaulette Mate, Dovetail Mate, Two Knights Defense) and all render correctly - positions right, board flips for the Black opening, demo plays/pauses, NO bugs. Flushed those 5 recorded scenarios from the gallery; gallery is now 8 (Fool's Mate, Petroff, Reading Chess Notation, Italian, Sicilian, Square of the Pawn, Ruy Closed, Caro-Kann) for Kunal to re-record on #234. The recording also confirms the duplicate-title issue on every lesson screen (open question).
 #233 LIBRARY +4 common openings that were genuine gaps (engine-verified, audit PASS, library now 154 lessons): Petroff / Russian Defense (C42), Closed Sicilian (B25), Ruy Lopez Steinitz Defense (C62), Leningrad Dutch (A88). Checked the library against ~45 common openings first; these were the clear missing ones a beginner would expect. Also committed the deploy.py Pages-poll fix (waits for the new commit's SHA, not just any built status).
 #232 MISFIRE / no-op: the opening-append script crashed on an apostrophe in the inline gallery line (Python single-quote escape bug) BEFORE writing chess.jsx, so #232 shipped unchanged #231 content under a #232 stamp. Re-done correctly in #233. Lesson: never put apostrophes in inline-heredoc JS string literals - use json.dumps or a separate file.

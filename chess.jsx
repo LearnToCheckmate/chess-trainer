@@ -1592,7 +1592,12 @@ const MORE=[
    line:["f3", "e5", "g4", "Qh4#"],
    idea:"Fool's Mate is the fastest possible checkmate, delivered in only two moves. It happens only if White carelessly plays f3 (or f4) and then g4, tearing open the diagonal to the king. You will almost never see it in a real game, but it teaches the most important opening rule of all: keep your king safe and do not throw away the pawns that shield it.",
    notes:["This careless pawn move opens the diagonal toward White's own king. Already a mistake.", "Black grabs the centre and clears a path for the queen.", "A second weakening pawn move. The diagonal to the White king is now wide open, and this loses on the spot.", "Checkmate. The queen swoops to h4, checking the king down the open diagonal with no escape and no block. This is Fool's Mate, the fastest checkmate there is."],
-   plans:"The lesson here is the warning, not the moves. Avoid pushing the f- and g-pawns early, since they guard your king. The same diagonal weakness appears in real games after a loose f3 or ...f6. Castle early, develop your pieces, and keep that pawn shield intact."}
+   plans:"The lesson here is the warning, not the moves. Avoid pushing the f- and g-pawns early, since they guard your king. The same diagonal weakness appears in real games after a loose f3 or ...f6. Castle early, develop your pieces, and keep that pawn shield intact."},
+  {name:"Notation: Checks, Mates & Promotion",eco:"",side:"w",cat:"♚ Endgames & Theory",fen:"8/kPK5/8/8/8/8/8/8 w - - 0 1",
+   line:["b8=Q+", "Ka6", "Qb6#"],
+   idea:"This short endgame shows the three special symbols the first notation lesson only mentioned. A pawn that reaches the far side promotes, written with the new piece after an equals sign, like b8=Q (you can also choose a rook, bishop, or knight: b8=R, b8=B, b8=N). A plus sign after a move means check, and a hash sign means checkmate. So b8=Q+ reads as 'pawn promotes to a queen, with check', and Qb6# reads as 'queen to b6, checkmate'.",
+   notes:["The pawn reaches the last rank and becomes a queen. Promotion is written with the new piece after an equals sign: b8=Q. The plus sign means the move also gives check.", "The black king has only this one legal square. The new queen is guarded by its own king, so it cannot be captured.", "Checkmate. The hash sign marks mate. The queen covers every escape square and is defended by the king, leaving the black king trapped."],
+   plans:"Two more symbols complete your toolkit: castling is O-O on the kingside and O-O-O on the queenside, and an en passant capture is written like any pawn capture, for example exd6. With piece letters, captures, promotion, check, mate, castling and en passant, you can now read and write every move in any chess book or game."}
 ];
 const LIB=OPENINGS.concat(ENDGAMES).concat(MORE);
 // ── Persistent progress: window.storage in Claude artifacts, localStorage on the web, else in-memory ──
@@ -3433,14 +3438,7 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
-          {l:"Fool's Mate - new (#234)", n:"Fastest checkmate (f3 e5 g4 Qh4#). Confirm the demo plays to mate and the notes frame it as a king-safety warning. Board flips for Black.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Fool's Mate"))},
-          {l:"Petroff (Russian) Defense - new (#233)", n:"Common Black defense to 1.e4. Confirm the first move auto-plays, the board flips, and the notes explain the d6-before-recapture point.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Petroff (Russian) Defense"))},
-          {l:"Reading Chess Notation - new (#230)", n:"Notation lesson. Confirm the demo plays and the notes explain pawn moves, piece letters N/B, captures x, and castling O-O.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Reading Chess Notation"))},
-          {l:"Italian Game - cleaned notes (#229)", n:"Old lesson. Confirm the per-move notes read cleanly with no move-prefix repetition under each move label.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Italian Game"))},
-          {l:"Sicilian Defense - cleaned notes (#229)", n:"Old lesson. Confirm the notes read cleanly with no move-prefix repetition.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Sicilian Defense"))},
-          {l:"Square of the Pawn - box viz", n:"Tap 'Show the square of the pawn' under the board; the tinted box + verdict should appear and shrink as the pawn advances.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Square of the Pawn"))},
-          {l:"Ruy Lopez: Closed (White)", n:"Main-line Ruy. Confirm board and notes render.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Ruy Lopez: Closed"))},
-          {l:"Caro-Kann: Classical (Black)", n:"Confirm board and notes render.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Caro-Kann: Classical"))},
+          {l:"Notation: special symbols - new (#235)", n:"Second notation lesson. Confirm the demo plays b8=Q+ Ka6 Qb6# and the notes explain promotion (=Q), check (+) and checkmate (#).", r:()=>_lesson(LIB.findIndex(o=>o.name==="Notation: Checks, Mates & Promotion"))},
         ];
         const _runAll=()=>{
           setPreview(false);const N=SC.length;let i=0;
