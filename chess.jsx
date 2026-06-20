@@ -4085,10 +4085,8 @@ export default function App(){
         </div>
       </div>)}
       {/* Context bars */}
-      {mode==='play'&&!(isOver||playEnd)&&(<div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7,minHeight:18}}>
-        <div style={{width:9,height:9,borderRadius:'50%',background:game.turn==='w'?'#fff':'rgba(255,255,255,.2)',boxShadow:game.turn==='w'?'0 0 7px #fff':'none',border:'1.5px solid rgba(255,255,255,.4)'}}/>
-        <span style={{fontSize:'clamp(13px,2.4vw,13px)',color:status==='check'||status==='checkmate'?'#ff6b6b':(isOver||playEnd)?'var(--ac)':'rgba(255,255,255,.8)',fontWeight:500}}>{thinking&&!playEnd?'Computer thinking…':((isOver||playEnd||status==='check')?turnTxt:'')}</span>
-        <div style={{width:9,height:9,borderRadius:'50%',background:game.turn==='b'?'#333':'rgba(255,255,255,.1)',boxShadow:game.turn==='b'?'0 0 7px rgba(0,0,0,.8)':'none',border:'1.5px solid rgba(255,255,255,.25)'}}/>
+      {mode==='play'&&!(isOver||playEnd)&&(thinking||status==='check')&&(<div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:7,minHeight:18}}>
+        <span style={{fontSize:'clamp(13px,2.4vw,13px)',color:status==='check'?'#ff6b6b':'rgba(255,255,255,.8)',fontWeight:600}}>{thinking&&!playEnd?'Computer thinking…':'Check!'}</span>
       </div>)}
       {false&&mode==='play'&&(()=>{const md=materialDiff(game.board);const start={p:8,n:2,b:2,r:2,q:1};const cnt={w:{},b:{}};for(const rr of game.board)for(const pp of rr)if(pp&&pp.t!=='k')cnt[pp.c][pp.t]=(cnt[pp.c][pp.t]||0)+1;const capOf=(victim)=>['q','r','b','n','p'].flatMap(t=>{const k=(start[t]||0)-(cnt[victim][t]||0);return k>0?Array.from({length:k},(_,i)=>t+'_'+i):[];});const wCap=capOf('b'),bCap=capOf('w');const gl=(arr,color)=>arr.map((tok,i)=>(<span key={i} style={{marginRight:-2}}><Piece t={tok[0]} color={color} sz={15}/></span>));return(
         <div style={{marginBottom:8,display:'flex',justifyContent:'center',alignItems:'center',gap:12,flexWrap:'wrap',minHeight:21}}>
@@ -4776,12 +4774,14 @@ export default function App(){
             {(()=>{
               const fmKey=op=>{const f=op.line&&op.line[0];return f==='e4'?'e4':f==='d4'?'d4':'other';};
               const idxsBy=(pred)=>LIB.map((op,i)=>pred(op,i)?i:-1).filter(i=>i>=0);
+              const POP={"Italian Game":1,"Ruy López (Spanish)":2,"Scotch Game":3,"Vienna Game":4,"Four Knights Game":5,"Bishop's Opening":6,"Queen's Gambit":1,"London System":2,"Catalan Opening":3,"Trompowsky Attack":4,"Colle System":5,"English Opening":1,"Réti Opening":2,"King's Indian Attack":3,"Bird's Opening":4,"Nimzo-Larsen Attack":5,"Sicilian Defense":1,"French Defense":2,"Caro-Kann Defense":3,"Scandinavian Defense":4,"Najdorf Sicilian":5,"Sicilian Dragon":6,"Petroff (Russian) Defense":7,"Petrov (Russian) Defense":7,"Pirc Defense":8,"Modern Defense":9,"Alekhine Defense":10,"Two Knights Defense":11,"King's Indian Defense":1,"Nimzo-Indian Defense":2,"Queen's Gambit Declined":3,"Slav Defense":4,"Grünfeld Defense":5,"Semi-Slav Defense":6,"Queen's Gambit Accepted":7,"Dutch Defense":8,"Benoni Defense":9,"Queen's Indian Defense":10,"King's Gambit":1,"Evans Gambit":2,"Scotch Gambit":3,"Smith-Morra Gambit":4,"Danish Gambit":5,"Fried Liver Attack":6,"Vienna Gambit":7,"Göring Gambit":8,"Max Lange Attack":9,"Halloween Gambit":10,"Stafford Gambit: Mating Trap":1,"Latvian Gambit":2,"Traxler Counterattack":3,"Elephant Gambit":4,"Blackburne Shilling Gambit":5,"Schliemann Gambit":6,"Marshall Attack":7,"Fishing Pole Trap":8,"Blackmar-Diemer Gambit":1,"Staunton Gambit":2,"Benko Gambit":1,"Budapest Gambit":2,"Albin Counter-Gambit":3,"Englund Gambit":4,"Blumenfeld Gambit":5};
+              const byPop=(a,b)=>((POP[LIB[a].name]||999)-(POP[LIB[b].name]||999))||(a-b);
               let groups=[];
               if(learnGroup==='openings'){
                 const subW={e4:'After King\u2019s Pawn (1.e4)',d4:'After Queen\u2019s Pawn (1.d4)',other:'Other first moves'};
                 const subB={e4:'Defences to 1.e4 (King\u2019s Pawn)',d4:'Defences to 1.d4 (Queen\u2019s Pawn)',other:'Other defences'};
                 [['w','\u2654  White\u2019s openings',true,subW],['b','\u265A  Black\u2019s openings',false,subB]].forEach(([side,htxt,w,subL])=>{
-                  const subs=['e4','d4','other'].map(k=>({label:subL[k],idxs:idxsBy(op=>groupOf(op.cat)==='openings'&&op.side===side&&fmKey(op)===k)})).filter(s=>s.idxs.length);
+                  const subs=['e4','d4','other'].map(k=>({label:subL[k],idxs:idxsBy(op=>groupOf(op.cat)==='openings'&&op.side===side&&fmKey(op)===k).sort(byPop)})).filter(s=>s.idxs.length);
                   if(subs.length)groups.push({head:{txt:htxt,w},subs});
                 });
               }else if(learnGroup==='gambits'){
@@ -4789,7 +4789,7 @@ export default function App(){
                 ['e4','d4','other'].forEach(k=>{
                   const idxs=idxsBy(op=>groupOf(op.cat)==='gambits'&&fmKey(op)===k);
                   if(!idxs.length)return;
-                  const subs=[['w','\u2654  As White'],['b','\u265A  As Black']].map(([sd,lb])=>({label:lb,idxs:idxs.filter(i=>LIB[i].side===sd)})).filter(s=>s.idxs.length);
+                  const subs=[['w','\u2654  As White'],['b','\u265A  As Black']].map(([sd,lb])=>({label:lb,idxs:idxs.filter(i=>LIB[i].side===sd).sort(byPop)})).filter(s=>s.idxs.length);
                   groups.push({head:{txt:subL[k],ic:'\u2694\uFE0F',accent:true,n:idxs.length},subs});
                 });
               }else{
@@ -4922,7 +4922,8 @@ export default function App(){
           let clk=null, ticking=false;
           if(_isOnlineG&&_og.tc&&_og.tc.kind!=='corr'&&_og.tc.init&&_og.clk){ const base=liveNow-(_og.moveAt||liveNow); const rem=Math.max(0,(_og.clk[col]||0)-(col===game.turn?base:0)); clk=clockFmt(rem); ticking=(col===game.turn)&&_og.status==='active'&&!_og.result; }
           else if(!_isOnlineG&&timeCtrl&&timeCtrl.kind!=='corr'&&clock){ clk=clockFmt(clock[col]); ticking=(col===game.turn)&&!(isOver||playEnd); }
-          return(<div style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'4px 9px',background:'rgba(0,0,0,.34)',borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:3}}>{isTop&&_evalOn&&!isOver&&!playEnd&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.14)',color:'#fff'}}>{evalTxt}</span>}
+          const _myTurn=(col===game.turn)&&!isOver&&!playEnd&&!(_isOnlineG&&_og&&_og.result);
+          return(<div style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'4px 9px',background:_myTurn?'rgba(var(--acr),.20)':'rgba(0,0,0,.34)',boxShadow:_myTurn?'inset 0 0 0 1.5px rgba(var(--acr),.55)':'none',borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:3}}>{isTop&&_evalOn&&!isOver&&!playEnd&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.14)',color:'#fff'}}>{evalTxt}</span>}
             {av}
             <div style={{minWidth:0,flex:1}}>
               <div style={{fontSize:'clamp(14px,3.2vw,16px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1.15}}>{name}</div>
