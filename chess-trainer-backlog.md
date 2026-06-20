@@ -1,4 +1,20 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #256)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #259)
+
+## 2026-06-20 - BUILD #259 + 10-ITEM PLAN RECONCILED (Kunal's tracker plan)
+Kunal queued a 10-item plan from the interactive tracker. On code investigation MOST were ALREADY BUILT but stale on the tracker (the recurring stale-tracker problem - the tracker listed them open, so Kunal re-queued built features). True state:
+- #1 turn labels: text gone #97/#119; #259 added an active-player BAR HIGHLIGHT (pBar _myTurn) + removed the redundant turn dots (Context-bars block now only shows thinking/check). DONE.
+- #2 correspondence (1/3/7-day): ALREADY BUILT - CORR_CONTROLS picker live in the ONLINE lobby (L1214, rendered L3860) + multi-day clocks + corrDeadline + "close the app" waiting message. DONE.
+- #3 play nearby: ALREADY BUILT app-side (#129) - coarse geolocation (0.1deg rounding for privacy) + ZIP fallback + nearby list + challenge (L3120-3148, modal L3675-3708). Backend = Kunal's CTCloud. DONE app-side.
+- #5 lesson reorder: SHIPPED #259 - best-guess POP rank, display-only sort per bucket (LIB untouched; progress name-keyed). DONE.
+- #9 friends: ALREADY BUILT app-side - friends modal: share-your-ID, add by ID, mutual accept, friends list (L2264-2267, L3712-3731, CTCloud.friendsWatch). Backend = Kunal's CTCloud. DONE app-side.
+- #8 tournaments: lobby/create/join/pairing/start BUILT (#168-170, all 3 formats). Stage 3+ (live run: results -> standings -> advance rounds) = backend + Kunal testing. PARTIAL.
+- #6 review eval bar: eval is a PILL + an EvalGraph; the board-side vertical bar was DELIBERATELY removed before (ate board width). DECISION: thin bar back, or pill+graph enough. Brilliant heuristic needs a sample PGN. TUCKED.
+- #7 best-move play-out: review stores only the SINGLE best move (green arrow L4965); full PV play-out needs an on-demand Stockfish run + animation, untestable blind. SCOPE decision. TUCKED.
+- #4 video call (WebRTC): NOT built. Big. TUCKED.
+- #10 sign-in iOS PWA: known WebKit storage-partitioning; real fix needs device testing (Safari works now). TUCKED.
+- DECISION photo-to-board: app-side ALREADY built #127 (capture/upload/render); only the scanBoard Cloud Function + ANTHROPIC_API_KEY remain (Kunal's).
+- DECISION pieces/avatar = Simplified classic: authored chess-piece-mockups.html (simplified-classic piece set + 3 coach avatars: Sir Knight / The Mentor / Coach King). Mockups-first; pick one and I refine + wire it in.
+- DECISION lesson order = best-guess now: shipped #259.
 
 ## GALLERY STATE (sync every run; WIPE items with evidence at run start)
 AWAITING KUNAL'S EVIDENCE (in the SC array now): Rousseau 4.d4 fixed-line (auto-plays via pickVariation) + Captured pieces (contrast fix) + Curated cross-links + Font check: Discover + Font check: Puzzles. 5 items. Curated cross-link RE-ADDED #255 (Kunal asked to put it back). The 2 font screens for re-verifying the #256 (body 14px) bump. Captured-pieces fix is NOW a gallery scenario (#257): _play(FEN,'w') loads a live game at a position with captures on both sides so both bars render. Safe in Play-all (_play sets playSetup=false, not the setup overlay; the next scenario's r() resets mode).
@@ -6,8 +22,13 @@ HAS EVIDENCE: lesson title check (#244), Coach paywall (#242).
 LESSON: do NOT wipe gallery screens that still have an OPEN QUESTION on them - the font size was open when #247 wiped them, so they came back #248.
 
 ## OPEN QUESTIONS (the ONLY content the HTML form may contain; if empty, send no form)
-Kunal answered all 6 form questions 2026-06-20 (tap-to-pick). Remaining truly-open:
-- FONT SIZE: #256 took body text to 14px (floor 10, was body 13/floor 9). PENDING: Kunal verify the bigger body reads well + not crowded. If still "bigger," next bump the 15px header tier too.
+Genuinely-open after the #259 reconcile (tracker QUESTIONS regenerated to match):
+- AVATAR: which coach avatar to refine + wire in - Sir Knight / The Mentor / Coach King (see chess-piece-mockups.html).
+- EVAL BAR (Review): re-add a thin vertical eval bar (was removed for eating board width) or keep the pill + graph.
+- BEST-MOVE PLAY-OUT scope: full engine PV line (needs on-demand Stockfish run) or just animate the single stored best move.
+- BRILLIANT HEURISTIC: needs a sample PGN from Kunal (a game where a brilliant should fire) to tune.
+- FONT SIZE: #256 took body to 14px (floor 10). PENDING: Kunal verify the bigger body reads well + not crowded.
+- ROUSSEAU 4.d4: #258 fixed line pending Kunal's verify (auto-plays in the gallery).
 
 
 ## 2026-06-20 - OPEN QUESTIONS surfaced (HTML form sent, post-#255)
@@ -756,7 +777,7 @@ QUEUED next: #8 quick-match matchmaking (standalone, needs an 'mm' Firestore rul
 - Build-blind; Kunal verifies feel on device. If the lite engine ignores MultiPV, no candidates -> falls back to plain Stockfish (no personality, no breakage).
 
 ## Gathered 2026-06-07 — outstanding items found across chats (newly folded in)
-- [ ] (in:2026-06-07, feedback) Remove the redundant "You are Black" / "White to move" labels — the #114 player bars now show whose turn and which side you are, so the text is duplicative.
+- [x] DONE: the "You are Black"/"White to move" text was removed (#97 local, #119 online); #259 consolidated the turn cue into the player bars (active-player highlight + dropped the redundant dots).
 - [ ] (in:2026-06-07, manual chat) Pre-warm Firestore on app open (a tiny throwaway read/auth touch) to kill the one-time 5-10s lag on the first cloud action / first online move.
 - NEEDS CLARIFICATION (not added as definite Open):
   - "Back/forward move navigation during live games": confirm this means stepping through earlier moves during an ONLINE live game (vs-computer and pass & play already have move nav).
