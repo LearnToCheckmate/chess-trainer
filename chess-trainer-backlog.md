@@ -1,4 +1,4 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #240)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #241)
 
 RULE: reconcile this section at the END of every run. Move shipped items to "Recently shipped", delete anything stale, keep only genuinely-open items, each tagged with an owner (CLAUDE or KUNAL). Everything below the "LOG" divider is historical and is NOT the queue.
 
@@ -54,6 +54,7 @@ KEY: the app ALREADY HAS two interactive trainers, reached from the learn home's
 
 ## WAITING ON KUNAL
 - [x] Feedback auto-pickup: Kunal chose **A (the relay)**. BUILT in #240. Cloud Function functions/index.js (v2 onRequest, us-central1) checks a shared secret then appends feedback + JS errors to feedback-inbox.md via a repo-scoped PAT. App already relays via postReport->LOG_ENDPOINT (sendFbNote already calls postReport('feedback')); #240 added RELAY_KEY to the payload. REMAINING KUNAL STEPS (at computer): (1) firebase deploy the function; (2) make a fine-grained GitHub PAT (Contents read+write, chess-trainer only); (3) set function secrets GH_PAT + RELAY_SECRET; (4) send Claude the function URL + the RELAY_SECRET. THEN Claude sets LOG_ENDPOINT=URL and RELAY_KEY=secret in chess.jsx + redeploys -> live. RUN-START: Claude now also reads feedback-inbox.md and folds new items into this backlog.
+- #241: PREVIEW GALLERY AUTOMATION (Kunal feedback 2026-06-20: the manual trainer paging was too much work). The Tactics trainer now has an auto-demo mode (demo prop) - in Play all it auto-pages through all 13 tactics (revealing each answer) then every strategy concept, no taps. PRINCIPLE GOING FORWARD: gallery scenarios must auto-run end to end; never ask Kunal to tap through / page manually.
 - [x] RESOLVED (Kunal: 'drop it', #236): removed the larger duplicate lesson title; the header keeps the persistent name. Rertical space?
 
 

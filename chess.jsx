@@ -1981,7 +1981,7 @@ const STRAT=[
  {title:"Connected passed pawns",fen:"4k3/8/8/1PP5/8/8/8/4K3 w - - 0 1",text:"Two passed pawns on neighbouring files protect each other as they advance, so the enemy king or rook cannot blockade both. A pair of connected passers, especially far from the enemy king, often wins the game on its own.",look:"The b- and c-pawns guard each other and roll forward together."},
  {title:"Activate your king in the endgame",fen:"6k1/5ppp/8/8/4K3/8/5PPP/8 w - - 0 1",text:"In the middlegame the king hides from attack, but once the queens are gone it becomes a strong piece. March it toward the centre and into the action. An active, centralized king is often worth an extra pawn in the endgame.",look:"White's king strides to the centre while Black's stays at home."},
 ];
-function TacticsTrainer({light,dark}){
+function TacticsTrainer({light,dark,demo}){
   const [tab,setTab]=useState('motifs');
   const [mi,setMi]=useState(0);
   const [sel,setSel]=useState(null);
@@ -1990,6 +1990,20 @@ function TacticsTrainer({light,dark}){
   const [wrong,setWrong]=useState(false);
   const [showHint,setShowHint]=useState(false);
   const [si,setSi]=useState(0);
+  useEffect(()=>{
+    if(!demo)return;
+    let cancel=false;const ids=[];const at=(fn,ms)=>{ids.push(setTimeout(()=>{if(!cancel)fn();},ms));};
+    let t=0;const QH=700,AH=1300,SH=1100,GAP=420;
+    at(()=>setTab('motifs'),t);t+=GAP;
+    for(let i=0;i<TACTICS.length;i++){
+      at(()=>{setMi(i);setSel(null);setSolved(false);setShown(false);setWrong(false);setShowHint(false);},t);t+=QH;
+      at(()=>setShown(true),t);t+=AH;
+    }
+    at(()=>setTab('strategy'),t);t+=GAP;
+    for(let i=0;i<STRAT.length;i++){at(()=>setSi(i),t);t+=SH;}
+    return ()=>{cancel=true;ids.forEach(clearTimeout);};
+  },[demo]);
+
   const cur=TACTICS[mi%TACTICS.length];
   const pos=fromFEN(cur.fen);
   const nextM=()=>{setMi(i=>(i+1)%TACTICS.length);setSel(null);setSolved(false);setShown(false);setWrong(false);setShowHint(false);};
@@ -2106,6 +2120,8 @@ export default function App(){
   const cyclingRef=useRef(false);
   const [learnCat,setLearnCat]=useState(null);
   const [learnGroup,setLearnGroup]=useState(null);
+  const [trainerDemo,setTrainerDemo]=useState(false);
+  useEffect(()=>{if(learnGroup!=='tactics')setTrainerDemo(false);},[learnGroup]);
   const skEff=(SKINS[skin]&&SKINS[skin].pro&&!isPro)?CLASSIC_IDX:skin;
   const SK=SKINS[skEff]||SKINS[CLASSIC_IDX]||SKINS[0];
   const TH=THEMES[theme]||THEMES[2];
@@ -3443,12 +3459,12 @@ export default function App(){
           {l:"Puzzles roadmap (screenshot)", n:"The Puzzles roadmap and list. Screenshot this one.", r:()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},
           {l:"Online lobby (screenshot)", n:"The online screen: Quick match, Create, Join, Friends, Tournaments. Screenshot this one. (Shows a sign-in prompt if you are signed out, which is fine.)", r:()=>{setHomeScreen(false);setMode('play');setOpponent('online');setOnlineGame(null);setMyColor(null);setOnlineErr('');setPlaySetup(false);}},
           {l:"Menu and settings (screenshot)", n:"The hamburger menu: subscription, sign-out, links. Screenshot this one.", r:()=>{setHomeScreen(true);setMenuOpen(true);}},
-          {l:"Tactics & Strategy trainer (extended #238) - TAP THIS ONE, do not Play-all", n:"Tap this individually and page through both tabs. Tactics tab, page to the end for the 3 new puzzles (Deflection, Decoy/smothered mate, Discovered attack). Strategy tab, page to the end for the 6 new concepts. Record it.", r:()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup('tactics');setTimeout(()=>setIntroCard(false),60);},h:9000},
+          {l:"Tactics & Strategy trainer (auto-demo #241)", n:"Plays itself. In Play all it auto-pages through all 13 tactics (revealing each answer) then every strategy concept. No taps needed - just let the recording run.", r:()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup('tactics');setTrainerDemo(true);setTimeout(()=>setIntroCard(false),60);},h:47000},
         ];
         const _runAll=()=>{
-          setPreview(false);const N=SC.length;let i=0;
+          setPreview(false);setTrainerDemo(false);const N=SC.length;let i=0;
           const go=()=>{
-            if(i>=N){setRecCap({i:N,n:N,l:'All done. You can stop recording.'});setTimeout(()=>{setRecCap(null);setPreview(true);},4500);return;}
+            if(i>=N){setRecCap({i:N,n:N,l:'All done. You can stop recording.'});setTimeout(()=>{setRecCap(null);setPreview(true);setTrainerDemo(false);},4500);return;}
             const sc=SC[i];setRecCap({i:i+1,n:N,l:sc.l});sc.r();const hold=sc.h||5000;i++;setTimeout(go,hold);
           };
           setRecCap({i:0,n:N,l:'Starting…'});setTimeout(go,1300);
@@ -4675,7 +4691,7 @@ export default function App(){
         ):learnGroup==='tactics'?(
           <div style={{width:'100%'}}>
             <button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(10px,2.3vw,12px)',fontWeight:600,marginBottom:12}}>‹ Back</button>
-            <TacticsTrainer light={TH.light} dark={TH.dark}/>
+            <TacticsTrainer light={TH.light} dark={TH.dark} demo={trainerDemo}/>
           </div>
         ):learnGroup==='train'?((()=>{
           const trainable=LIB.map((o,i)=>i).filter(i=>{const g=groupOf(LIB[i].cat);return g==='openings'||g==='gambits';});
