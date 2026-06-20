@@ -3438,7 +3438,7 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
-          {l:"Notation: special symbols - new (#235)", n:"Second notation lesson. Confirm the demo plays b8=Q+ Ka6 Qb6# and the notes explain promotion (=Q), check (+) and checkmate (#).", r:()=>_lesson(LIB.findIndex(o=>o.name==="Notation: Checks, Mates & Promotion"))},
+          {l:"Notation: special symbols - new (#235)", n:"Second notation lesson. Confirm the demo plays b8=Q+ Ka6 Qb6# and the notes explain promotion (=Q), check (+) and checkmate (#). ALSO: the large duplicate title under the header is gone now - only the top header names the lesson.", r:()=>_lesson(LIB.findIndex(o=>o.name==="Notation: Checks, Mates & Promotion"))},
         ];
         const _runAll=()=>{
           setPreview(false);const N=SC.length;let i=0;
@@ -4063,7 +4063,7 @@ export default function App(){
       </div>)}
       {mode==='learn'&&openIdx!==null&&(<div style={{textAlign:'center',marginBottom:8,maxWidth:boardPx+44,width:'98vw'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>
-          <div style={{fontSize:'clamp(14px,3.5vw,19px)',fontWeight:800,color:'var(--ac2)',letterSpacing:.3}}>{learnLabel||LIB[openIdx].name}{(()=>{const _cs=lessonStats(LIB[openIdx]);if(_cs.linesLearned===0)return null;const m=_cs.mastered;if(m)return <span style={{marginLeft:8,fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,color:'#f0c24d',background:'rgba(240,180,41,.14)',border:'1px solid rgba(240,180,41,.45)',borderRadius:20,padding:'2px 9px',verticalAlign:'middle'}}>★ Mastered</span>;if(_cs.coverage)return <span style={{marginLeft:8,fontSize:'clamp(10px,2.4vw,12px)',fontWeight:800,color:'#6cc78a',background:'rgba(108,199,138,.12)',border:'1px solid rgba(108,199,138,.4)',borderRadius:20,padding:'2px 9px',verticalAlign:'middle'}}>✓ {_cs.unionDays}/{LEARN_GOAL}</span>;return null;})()}</div>
+          
           {(()=>{const _st=lessonStats(LIB[openIdx]);const n=_st.unionDays;const m=_st.mastered;return(<div style={{display:'flex',alignItems:'center',gap:4,marginTop:4}}>{Array.from({length:LEARN_GOAL}).map((_,i)=>(<span key={i} style={{width:9,height:9,borderRadius:'50%',background:i<n?(m?'#f0c24d':'#6cc78a'):'rgba(255,255,255,.10)',border:'1px solid '+(i<n?(m?'#f0c24d':'#6cc78a'):'rgba(255,255,255,.28)')}}/>))}<span style={{marginLeft:6,fontSize:'clamp(9px,2.1vw,11px)',fontWeight:800,color:m?'#f0c24d':(n>0?'#6cc78a':'rgba(255,255,255,.55)')}}>{m?'Mastered':(n+' of '+LEARN_GOAL+' flawless days'+(_st.lines>1?(' · '+_st.linesLearned+'/'+_st.lines+' lines'):''))}</span></div>);})()}
           <button onClick={()=>setIntroCard(true)} title="About this opening" style={{flexShrink:0,height:26,borderRadius:7,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',fontSize:'clamp(11px,2.5vw,13px)',fontWeight:700,cursor:'pointer',lineHeight:1,padding:'0 11px'}}>ℹ about</button>
         </div>
