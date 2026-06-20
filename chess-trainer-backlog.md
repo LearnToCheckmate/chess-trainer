@@ -1,5 +1,26 @@
 # ACTIVE QUEUE - reconciled 2026-06-20 (app at build #241)
 
+## 2026-06-20 - FEEDBACK CHAT SWEEP (reconciled "#2 Feedback only chat" vs the live #241 code)
+Missed sweeping this chat earlier in the session; swept + reconciled now. Most of the chat is a running log and was already shipped.
+
+VERIFIED ALREADY SHIPPED (feedback stale, confirmed in code at #241):
+- Castling by drag: works. Drag king two squares OR onto its own rook; same commitOrPromote/matchTarget path as tap-to-castle.
+- Minute time controls (1/2/3/5 min+): present in vs-Computer / vs-Human setup, under the No-clock pill (TIME_CONTROLS map).
+- Captured-pieces display: player bars (pBar) render captured glyphs + material lead (+N). No longer plain "Material even".
+- Eval bar: moved into the player bar as a pill (evalW=0); no longer eats board width. hideEval toggle exists.
+- Notation lesson: built (#230/#235) then folded into the NotationTrainer; standalone lessons removed as redundant.
+
+STILL OPEN (folded in, deduped):
+- [KUNAL->CLAUDE] Font pass app-wide: BLOCKED only on the 5 screenshots - now one auto-running "Play all" recording (#241 gallery).
+- [KUNAL] iPad board size/layout (must fit w/o scrolling; two-column landscape home): needs iPad screenshots.
+- [CLAUDE] Button sizing/alignment consistency (Play-vs-Computer, Gambits screens).
+- [CLAUDE] Back/forward move navigation during a LIVE game (step through earlier positions mid-game).
+- [CLAUDE] Cross-link gambits/traps to their opposite-color counterpart.
+- [FIREBASE/KUNAL] Sign-in returns to home without authenticating on iPad (Google completes its side): known iOS-PWA storage-partitioning issue; workaround Safari; fix is Firebase-side.
+
+PROCESS FIX: sweep "#2 Feedback only chat" + "#3 manual project tasks" at EVERY run start. This was the miss; reinforced in HANDOFF + memory.
+
+
 RULE: reconcile this section at the END of every run. Move shipped items to "Recently shipped", delete anything stale, keep only genuinely-open items, each tagged with an owner (CLAUDE or KUNAL). Everything below the "LOG" divider is historical and is NOT the queue.
 
 ## DECISIONS - 2026-06-19 (parked-questions review; Kunal answered 12)
