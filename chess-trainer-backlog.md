@@ -1,4 +1,4 @@
-# ACTIVE QUEUE - reconciled 2026-06-19 (app at build #216)
+# ACTIVE QUEUE - reconciled 2026-06-19 (app at build #217)
 
 RULE: reconcile this section at the END of every run. Move shipped items to "Recently shipped", delete anything stale, keep only genuinely-open items, each tagged with an owner (CLAUDE or KUNAL). Everything below the "LOG" divider is historical and is NOT the queue.
 
@@ -25,6 +25,16 @@ Bigger features, all GREENLIT:
 - [ ] Notation-learning section (DECIDED): read/write algebraic notation as a mini track.
 - [ ] Cross-link gambits/traps (DECIDED): play the same line from the opposite side.
 - [ ] In-app feedback UI (DECIDED): like/dislike/ok + occasional prompt (backend rule is a Kunal step).
+
+### REVIEW OVERHAUL - in progress (2026-06-19 deep feedback session). #217 shipped part 1; remaining:
+- [ ] Eval bar beside the review board (+ show the eval swing for the current move).
+- [ ] Layout: kill the dead gap above the controls and fit the eval graph + clickable chips without shrinking the board (mock options if needed).
+- [ ] Brilliant heuristic: loosen the 'already winning' ceiling + handle mating sacs so genuine brilliancies fire (VALIDATE against Kunal's PGN).
+- [ ] Best-move play-out: capture the full engine PV, then 'Show best move' plays the line out a few moves (why it's best), then snaps back. Lives on inaccuracies/mistakes/blunders.
+- [ ] Loading screen: stack the actual findings (blunders/mistakes) as cards as they're computed.
+- [ ] Summary: bigger font, label the two columns with player names, add a coach one-liner from the counts.
+- [ ] Add a Great jump chip next to the existing Brilliant one.
+- [ ] FINAL: stage one comprehensive gallery scenario for Kunal's single recording (then he records).
 - [ ] Fixed-size button conversion (last button-consistency item). ~30 buttons still use fixed px fonts (13/14/15) that render larger on a phone than the #199 tiers. Can do blind; Kunal spot-checks after. Low-value polish - optional.
 
 ## WAITING ON KUNAL
@@ -73,6 +83,7 @@ Content from Kunal:
 - [ ] Video long tail + iPad two-column Home mockups.
 
 ## RECENTLY SHIPPED
+#217 Review polish pass 1 (deep-feedback session): (1) celebration restraint - the floating move-quality label and the badge pop are now reserved for Brilliant and Blunder; Great/Best/Good/etc. show only a small static corner badge, so a Great no longer reads like a Brilliant. (2) Loading screen now explains it is running a deep Stockfish pass, so the wait makes sense. (3) A result card (e.g. 'Black won / by checkmate') now appears at the final move of a review, so a finished game reads as finished instead of an ordinary move. (4) Wiped the preview gallery back to empty ahead of staging the new review demo.
 #216 Hid the ECO codes (Kunal's call; they add little for beginners): the classification code shown after the detected opening on the Review screen (e.g. "Italian Game (C50)") now reads just "Italian Game". That opening line was the only place ECO codes ever surfaced; lessons never showed them.
 #215 Auto-play in the review (user-facing): the review auto-advance (revAuto) that powered the gallery walkthrough is now a real feature - a play/pause toggle at the front of the move stepper steps through the whole game on its own (~1.25s/move) with the on-board badges, per-move sounds, and the brilliant celebration + chime. Any manual nav (the four stepper buttons or any key-moment/category jump) pauses it; at the end, tapping play restarts from move 1. Non-analysis change, so it does not affect the pending re-record.
 #214 Deeper review analysis (Kunal chose accuracy over speed): the engine now searches an adaptive 700-2000ms/position (was 340-480ms), ~60s total regardless of game length, deep enough to see forced mates so tactical evals are accurate AND a deep sacrifice like Qb8+ can register as Brilliant. Tradeoff: a review now takes ~1 min vs ~16s; gallery walkthrough hold extended to ~2 min. Retune via the 60000 constant + 700/2000 bounds in the analysis loop.
