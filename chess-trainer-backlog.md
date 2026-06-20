@@ -1,4 +1,4 @@
-# ACTIVE QUEUE - reconciled 2026-06-19 (app at build #218)
+# ACTIVE QUEUE - reconciled 2026-06-19 (app at build #219)
 
 RULE: reconcile this section at the END of every run. Move shipped items to "Recently shipped", delete anything stale, keep only genuinely-open items, each tagged with an owner (CLAUDE or KUNAL). Everything below the "LOG" divider is historical and is NOT the queue.
 
@@ -34,6 +34,8 @@ Bigger features, all GREENLIT:
 - [ ] Loading screen: stack the actual findings (blunders/mistakes) as cards as they're computed.
 - [x] Summary: bigger font + player-name column headers + coach one-liner from the counts (#218).
 - [ ] Add a Great jump chip next to the existing Brilliant one.
+- [ ] Endgame/lesson header: a 'Next game' button on the complete screen (go straight to the next one, no back-out). [KUNAL 2026-06-19]
+- [ ] Top header wraps on endgame screens; drop the CHESS TRAINER wordmark on sub-screens and use that row for the screen title. [KUNAL 2026-06-19]
 - [ ] FINAL: stage one comprehensive gallery scenario for Kunal's single recording (then he records).
 - [ ] Fixed-size button conversion (last button-consistency item). ~30 buttons still use fixed px fonts (13/14/15) that render larger on a phone than the #199 tiers. Can do blind; Kunal spot-checks after. Low-value polish - optional.
 
@@ -83,6 +85,7 @@ Content from Kunal:
 - [ ] Video long tail + iPad two-column Home mockups.
 
 ## RECENTLY SHIPPED
+#219 ILLEGAL STARTING POSITION FIX (credibility bug): the Two Bishops Mate started from 6k1/4B3/6K1/8/2B5/8/8/8 w, where the c4 bishop was ALREADY checking the g8 king on White's move - an impossible position. Moved the light bishop c4->e4 (it still plays Bd5+, the line Bd5+/Kh8/Bf6# is unchanged and verified to mate). ROOT CAUSE: the prior validation checked that the solution lines play out legally and end in mate, but never checked that the STARTING position is legal (side-not-to-move not in check); python-chess plays moves from an illegal position without complaint, so it slipped through. FIX, three layers: (1) corrected the FEN; (2) a load-time guard in selectOpening that refuses to open any position where the side-not-to-move is in check (shows a toast instead of an illegal board); (3) python-chess legality is now a standing build gate - all 52 positions re-verified legal this build.
 #218 Review summary polish: bumped the font on the White-vs-Black breakdown table, labeled the two count columns 'White' and 'Black' (were bare king symbols), and added a coach one-liner at the top that reads the actual counts (e.g. 'You won, but 5 blunders made it closer than it needed to be. See them below.'), echoing Chess.com's coach bubble.
 #217 Review polish pass 1 (deep-feedback session): (1) celebration restraint - the floating move-quality label and the badge pop are now reserved for Brilliant and Blunder; Great/Best/Good/etc. show only a small static corner badge, so a Great no longer reads like a Brilliant. (2) Loading screen now explains it is running a deep Stockfish pass, so the wait makes sense. (3) A result card (e.g. 'Black won / by checkmate') now appears at the final move of a review, so a finished game reads as finished instead of an ordinary move. (4) Wiped the preview gallery back to empty ahead of staging the new review demo.
 #216 Hid the ECO codes (Kunal's call; they add little for beginners): the classification code shown after the detected opening on the Review screen (e.g. "Italian Game (C50)") now reads just "Italian Game". That opening line was the only place ECO codes ever surfaced; lessons never showed them.

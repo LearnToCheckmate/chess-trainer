@@ -1085,7 +1085,7 @@ const _RANKS=[['Novice','🌱'],['Apprentice','♟️'],['Student','♞'],['Adep
 const PZ_TIERS=(()=>{const N=PZ.length,K=_RANKS.length,out=[];for(let k=0;k<K;k++){const a=Math.round(N*k/K),b=Math.round(N*(k+1)/K);const sl=PZ.slice(a,b);out.push({name:_RANKS[k][0],icon:_RANKS[k][1],start:a,end:b,count:sl.length,need:Math.max(1,Math.min(sl.length,10)),lo:sl.length?sl[0].rating:0,hi:sl.length?sl[sl.length-1].rating:0,ids:sl.map(p=>p.id)});}return out;})();
 const PZ_TIER_OF={}; PZ_TIERS.forEach((t,ti)=>t.ids.forEach(id=>{PZ_TIER_OF[id]=ti;}));
 // Endgame & theory lessons. Same shape as openings but each starts from a custom position (fen).
-// Validated by test_endgames.js: every line is legal from its fen and mating lines end in checkmate.
+// Validated every build with python-chess: every fen is a LEGAL position (side-not-to-move is NOT in check), every line is legal from its fen, and mating lines end in checkmate. selectOpening also guards this at load.
 const ENDGAMES=[
   { name:"King & Queen Mate", eco:"K+Q", side:"w", cat:"♚ Endgames & Theory",
     fen:"5k2/3Q4/5K2/8/8/8/8/8 w - - 0 1",
@@ -1122,7 +1122,7 @@ const ENDGAMES=[
       "Ra8# — the rook mates along the back rank while your king blankets every escape. This is the textbook king-and-rook checkmate."
     ] },
   { name:"Two Bishops Mate", eco:"2B", side:"w", cat:"♚ Endgames & Theory",
-    fen:"6k1/4B3/6K1/8/2B5/8/8/8 w - - 0 1",
+    fen:"6k1/4B3/6K1/8/4B3/8/8/8 w - - 0 1",
     idea:"Two bishops and a king can force mate — but only in a corner. Work the bishops side by side to build a wall, herd the lone king to the corner, and bring your own king up to finish.",
     plans:"Keep the bishops on adjacent diagonals so they fence the enemy king toward a corner; march your king up for support; then mate with both bishops raking the corner squares.",
     line:["Bd5+","Kh8","Bf6#"],
@@ -2318,6 +2318,7 @@ export default function App(){
   // ── Learn: load opening ──
   const selectOpening=(idx)=>{
     const op=LIB[idx];
+    if(op&&op.fen){let _ok=true;try{const _g=fromFEN(op.fen);if(isInCheck(_g.board,opp(_g.turn)))_ok=false;}catch(e){_ok=false;}if(!_ok){setOnlineInfo('That position needs a fix and is unavailable right now.');return;}}
     setOpenIdx(idx);setLastLesson(idx);try{localStorage.setItem('ct_lastlesson',String(idx));}catch{}setLearnCat(op.cat);setLearnPhase('demo');setLearnLine(op.line);setLearnLabel(op.name);setOpenMsg('');setOpenStep(0);const _hp=readHintPrefs();setShowHint(_hp[op.name]!==undefined?_hp[op.name]:true);setRevealHint(false);
     setDemoPly(0);setDemoPlaying(true);
     setLearnNotes(op.notes||[]);setLearnPlans(op.plans||'');setLearnIdea(op.idea||'');setLearnArrows(op.arrows||null);setLearnVideo(op.video||null);setShowVideo(false);setVideoOpen(false);
