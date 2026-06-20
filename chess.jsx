@@ -2472,9 +2472,9 @@ export default function App(){
   };
   const resetReview=()=>{setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');setPly(0);setCcErr('');if(ccGames&&ccGames.length){setTimeout(()=>{try{gamesListRef.current&&gamesListRef.current.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},140);}};
   const reviewPlayedGame=()=>{let mvs,uc;if(opponent==='online'){const og=onlineGameRef.current;mvs=(og&&og.moves)||[];uc=myColorRef.current||'w';}else{mvs=((game&&game.history)||[]).map(h=>h.san);uc=(opponent==='computer')?pColor:'w';}if(mvs.length<2)return;let pgn='';for(let i=0;i<mvs.length;i++){if(i%2===0)pgn+=(i/2+1)+'. ';pgn+=mvs[i]+' ';}pgn=pgn.trim();setMode('analyze');setPlaySetup(false);setPgnText(pgn);importGame(pgn,{userColor:uc});};
-  const jumpToIssue=(label)=>{if(!review||!review.analysis)return;const idxs=[];review.analysis.forEach((o,i)=>{if(o.cls&&o.cls.label===label)idxs.push(i+1);});if(!idxs.length)return;const nxt=idxs.find(p=>p>ply);setPly(nxt!==undefined?nxt:idxs[0]);};
+  const jumpToIssue=(label)=>{setRevAuto(false);if(!review||!review.analysis)return;const idxs=[];review.analysis.forEach((o,i)=>{if(o.cls&&o.cls.label===label)idxs.push(i+1);});if(!idxs.length)return;const nxt=idxs.find(p=>p>ply);setPly(nxt!==undefined?nxt:idxs[0]);};
   const keyPlies=useMemo(()=>{if(!review||!review.analysis)return [];const KS=['Brilliant','Great','Miss','Mistake','Blunder','Inaccuracy'];const out=[];review.analysis.forEach((o,i)=>{if(o.cls&&KS.indexOf(o.cls.label)>=0)out.push(i+1);});return out;},[review]);
-  const jumpKey=(d)=>{if(!keyPlies.length)return;let nx;if(d>0){nx=keyPlies.find(p=>p>ply);if(nx===undefined)nx=keyPlies[0];}else{const b=keyPlies.filter(p=>p<ply);nx=b.length?b[b.length-1]:keyPlies[keyPlies.length-1];}setPly(nx);};
+  const jumpKey=(d)=>{setRevAuto(false);if(!keyPlies.length)return;let nx;if(d>0){nx=keyPlies.find(p=>p>ply);if(nx===undefined)nx=keyPlies[0];}else{const b=keyPlies.filter(p=>p<ply);nx=b.length?b[b.length-1]:keyPlies[keyPlies.length-1];}setPly(nx);};
   const mergeGames=()=>{const a=[...(ccRawRef.current||[]),...(liRawRef.current||[])];a.sort((x,y)=>(y.date||0)-(x.date||0));setCcGames(a.length?a:null);};
   const fetchChessCom=async()=>{
     const u=chessUser.trim().toLowerCase().replace(/^@/,'');
@@ -3872,11 +3872,11 @@ export default function App(){
           </div>
           {/* nav */}
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
-            <button onClick={()=>setPly(0)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⏮</button>
-            <button onClick={()=>setPly(p=>Math.max(0,p-1))} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>‹ Prev</button>
+            <button onClick={()=>{if(ply>=review.plies.length){setPly(0);setRevAuto(true);}else setRevAuto(a=>!a);}} title={revAuto?'Pause':'Auto-play through the game'} style={revAuto?{...btn('rgba(var(--acr),.22)','1px solid var(--ac)','var(--ac2)'),fontWeight:800}:btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>{revAuto?'⏸':'▶'}</button><button onClick={()=>{setRevAuto(false);setPly(0);}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⏮</button>
+            <button onClick={()=>{setRevAuto(false);setPly(p=>Math.max(0,p-1));}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>‹ Prev</button>
             <span style={{fontSize:'clamp(9px,2.1vw,11px)',color:'rgba(255,255,255,.6)',minWidth:54,textAlign:'center',fontFamily:'monospace'}}>{ply}/{review.plies.length}</span>
-            <button onClick={()=>setPly(p=>Math.min(review.plies.length,p+1))} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>Next ›</button>
-            <button onClick={()=>setPly(review.plies.length)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⏭</button>
+            <button onClick={()=>{setRevAuto(false);setPly(p=>Math.min(review.plies.length,p+1));}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>Next ›</button>
+            <button onClick={()=>{setRevAuto(false);setPly(review.plies.length);}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⏭</button>
           </div>
           {keyPlies.length>0&&(<div style={{display:'flex',gap:7,alignItems:'center',justifyContent:'center'}}>
             <button onClick={()=>jumpKey(-1)} title="Previous key moment" style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>‹</button>
