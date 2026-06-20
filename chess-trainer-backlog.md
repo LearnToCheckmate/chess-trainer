@@ -1,4 +1,9 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #244)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #245)
+
+## 2026-06-20 - BUILD #245 - font pass (conservative first bump)
+- Bumped 412 of 459 body-text fontSize clamps app-wide: min +1px, vw +0.2, max +1px (left the 47 title-size clamps >=15px alone). On phones the min usually applies, so the smallest labels/notes/tile text get ~+1px. Covers home, tiles, coach, tactics, review.
+- This is a MEASURED first pass; if Kunal wants it bigger, bump again (can raise min more or touch the vw). Verify via the gallery Play all (banner now at the bottom so titles show).
+
 
 ## 2026-06-20 - BUILD #244 - duplicate lesson title + gallery banner
 - DROPPED the duplicate lesson title: the About-this-opening popup was repeating the lesson name that the top header bar already shows. The popup now shows only a real variation label (learnLabel) when there is one, and no title for the main line. The header remains the single name source. [JUDGMENT CALL - revert if Kunal meant a different spot]
