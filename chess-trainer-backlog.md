@@ -1,8 +1,30 @@
-# ACTIVE QUEUE - reconciled 2026-06-16 (app at build #200)
+# ACTIVE QUEUE - reconciled 2026-06-19 (app at build #216)
 
 RULE: reconcile this section at the END of every run. Move shipped items to "Recently shipped", delete anything stale, keep only genuinely-open items, each tagged with an owner (CLAUDE or KUNAL). Everything below the "LOG" divider is historical and is NOT the queue.
 
+## DECISIONS - 2026-06-19 (parked-questions review; Kunal answered 12)
+Monetization:
+- Pro price -> $2.99/month (was $0.99). KUNAL creates the $2.99/mo TEST price on prod_Uf4EArTELOKeS0 and sends the price_ id; also revisit $9.99/yr (steep vs $2.99/mo). CLAUDE then swaps the id.
+- Board skins Playful + Medieval STAY Pro (no change).
+- Paywall -> taste-then-gate (free users sample the Coach before it locks). CLAUDE builds; design the free allowance.
+Retention / polish:
+- Streak-about-to-break reminder -> BUILD (KUNAL does FCM push setup; CLAUDE does the in-app trigger + service worker).
+- Custom-drawn skin icons -> BUILD (CLAUDE generates an icon set to replace the emoji swaps).
+- ECO codes -> HIDE (done #216).
+- Palm / bottom-edge touch rejection -> BUILD (inert touch zone at the bottom during play; on-device test after).
+Bigger features, all GREENLIT:
+- Video call during online play (needs signaling + TURN = Kunal step).
+- Brilliant-move course / Notation-learning section / Cross-link gambits-traps (opposite side).
+- In-app feedback system (needs a Firestore rule = Kunal step).
+
 ## CLAUDE can build now (no Kunal needed)
+- [ ] Taste-then-gate paywall (DECIDED): let free users sample the Coach before locking; design the free allowance.
+- [ ] Custom-drawn skin icons (DECIDED): generate an icon set to replace the medieval emoji swaps.
+- [ ] Palm / bottom-edge touch rejection (DECIDED): inert touch zone along the bottom edge during play (conservative; test after).
+- [ ] Brilliant-move course (DECIDED): practice scenarios + why each brilliant move works.
+- [ ] Notation-learning section (DECIDED): read/write algebraic notation as a mini track.
+- [ ] Cross-link gambits/traps (DECIDED): play the same line from the opposite side.
+- [ ] In-app feedback UI (DECIDED): like/dislike/ok + occasional prompt (backend rule is a Kunal step).
 - [ ] Fixed-size button conversion (last button-consistency item). ~30 buttons still use fixed px fonts (13/14/15) that render larger on a phone than the #199 tiers. Can do blind; Kunal spot-checks after. Low-value polish - optional.
 
 ## WAITING ON KUNAL
@@ -30,7 +52,10 @@ On-device checks:
 Kunal's consoles / accounts:
 - [ ] Firebase: publish Friends + Play-nearby Firestore rules; deploy the scanBoard Cloud Function (+ ANTHROPIC_API_KEY secret).
 - [ ] Cloudflare: register gambitcoach.com.
-- [ ] Stripe: finish the extension setup, then go live (test to live).
+- [ ] Stripe: create a $2.99/mo price on prod_Uf4EArTELOKeS0 (TEST), send the price_ id (also revisit $9.99/yr); then finish the extension setup and go live (test to live).
+- [ ] Streak reminder: set up Firebase Cloud Messaging (web push key + a test send) so the reminder can reach a closed app.
+- [ ] Video call: stand up signaling (Firestore works) + a TURN service for connections behind NAT.
+- [ ] Feedback system: publish a Firestore rule for the feedback collection (write-own, no public read).
 - [ ] Legal pages: fill in the [placeholder] values.
 - [ ] Live two-account test: Friends, Tournaments, Play-nearby.
 
@@ -38,12 +63,17 @@ Content from Kunal:
 - [ ] Send the openings you play that aren't in the library yet, so Claude adds your real repertoire.
 
 ## BIGGER BUILDS (codeable, but need Kunal testing after - pick when ready)
+- [ ] Video call during online play (GREENLIT): WebRTC video + signaling; needs the TURN/signaling step above.
+- [ ] Streak-about-to-break reminder (GREENLIT): in-app trigger + service worker; needs the FCM step above.
+- [ ] Brilliant-move course (GREENLIT) / Notation-learning section (GREENLIT) / Cross-link gambits-traps (GREENLIT).
+- [ ] In-app feedback system (GREENLIT): UI + backend; needs the Firestore rule above.
 - [ ] Tournaments Stage 2b/2c: wire pairings to real online games + live standings (needs the /tournaments rule live + two accounts).
 - [ ] Lesson-board bottom-anchor reorder (large shared-board restructure; do with screenshots).
 - [ ] Themes phase 2: custom piece art.
 - [ ] Video long tail + iPad two-column Home mockups.
 
 ## RECENTLY SHIPPED
+#216 Hid the ECO codes (Kunal's call; they add little for beginners): the classification code shown after the detected opening on the Review screen (e.g. "Italian Game (C50)") now reads just "Italian Game". That opening line was the only place ECO codes ever surfaced; lessons never showed them.
 #215 Auto-play in the review (user-facing): the review auto-advance (revAuto) that powered the gallery walkthrough is now a real feature - a play/pause toggle at the front of the move stepper steps through the whole game on its own (~1.25s/move) with the on-board badges, per-move sounds, and the brilliant celebration + chime. Any manual nav (the four stepper buttons or any key-moment/category jump) pauses it; at the end, tapping play restarts from move 1. Non-analysis change, so it does not affect the pending re-record.
 #214 Deeper review analysis (Kunal chose accuracy over speed): the engine now searches an adaptive 700-2000ms/position (was 340-480ms), ~60s total regardless of game length, deep enough to see forced mates so tactical evals are accurate AND a deep sacrifice like Qb8+ can register as Brilliant. Tradeoff: a review now takes ~1 min vs ~16s; gallery walkthrough hold extended to ~2 min. Retune via the 60000 constant + 700/2000 bounds in the analysis loop.
 #213 Review accuracy fix - a best move is never a blunder: the Stockfish path measured loss as the eval swing (before minus after), so a sound sacrifice past the search horizon looked like a huge loss even when the engine itself picked it (the recording showed 15. Bxd7+ as a ?? Blunder with 'better: Bxd7+', accuracy floored at 15%). Fix: when the played move equals the engine's best move, loss is forced to 0 (classifies as Best, never a blunder) and the self-referential 'better' is cleared everywhere; also capped per-move loss at 1500cp so mate-score swings can't floor whole-game accuracy. Both Stockfish + fallback paths. The recording also CONFIRMED the UI works: loading screen, on-board badges + floating labels, an explanation on every move, the stepper, and steady no-jitter stepping.

@@ -3715,7 +3715,7 @@ export default function App(){
               <div style={{fontFamily:headFont,fontSize:'clamp(22px,6vw,30px)',fontWeight:800,color:'#fff',letterSpacing:.5}}>Game Review</div>
               <div style={{marginTop:4,fontSize:'clamp(12px,2.9vw,14px)',color:'rgba(255,255,255,.7)',fontWeight:600}}>{review.headers.White||'White'} vs {review.headers.Black||'Black'}{review.headers.Result?(' · '+review.headers.Result):''}</div>
             </div>
-            {review.openingName&&(<div style={{textAlign:'center',fontSize:'clamp(12px,2.8vw,14px)',color:'rgba(255,255,255,.8)'}}>📖 <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b> <span style={{color:'rgba(255,255,255,.58)'}}>({review.openingName.eco})</span></div>)}
+            {review.openingName&&(<div style={{textAlign:'center',fontSize:'clamp(12px,2.8vw,14px)',color:'rgba(255,255,255,.8)'}}>📖 <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>)}
             {(()=>{const W=S.w,B=S.b,uc=S.userColor;const colHead=(sk,sl,d)=>{const me=uc===sk;return(<div style={{flex:1,minWidth:0,textAlign:'center',padding:'6px 2px',borderRadius:12,background:me?'rgba(var(--acr),.14)':'transparent',border:me?'1px solid var(--ac)':'1px solid transparent'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,marginBottom:5}}><Piece t="k" color={sk} sz={20}/><span style={{fontSize:'clamp(13px,3.2vw,15px)',fontWeight:800,color:'#fff'}}>{sl}</span>{me&&<span style={{fontSize:8.5,fontWeight:800,color:'var(--ac2)',background:'rgba(var(--acr),.2)',borderRadius:6,padding:'1px 5px'}}>YOU</span>}</div>
                 <div style={{fontSize:'clamp(27px,8vw,38px)',fontWeight:900,color:'#fff',lineHeight:1}}>{d.accuracy}<span style={{fontSize:'.45em',fontWeight:700,color:'rgba(255,255,255,.55)'}}>%</span></div>
@@ -3894,7 +3894,7 @@ export default function App(){
           </div>
           {/* eval graph */}
           <EvalGraph analysis={review.analysis} plies={review.plies} ply={ply} onJump={(p)=>setPly(Math.max(0,Math.min(review.plies.length,p)))} width={wide?Math.max(160,sideW-12):boardPx} height={wide?86:62}/>
-          {review.openingName&&(<div style={{width:'100%',textAlign:'center',fontSize:'clamp(10px,2.3vw,12.5px)',color:'rgba(255,255,255,.8)'}}>📖 Opening: <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b> <span style={{color:'rgba(255,255,255,.58)'}}>({review.openingName.eco})</span></div>)}
+          {review.openingName&&(<div style={{width:'100%',textAlign:'center',fontSize:'clamp(10px,2.3vw,12.5px)',color:'rgba(255,255,255,.8)'}}>📖 Opening: <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>)}
           <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'center'}}>
             <button onClick={()=>{setSetupFromFEN(toFEN(boardGame));setOpponent('computer');setPColor(boardGame.turn);setTimeCtrl(null);timeCtrlRef.current=null;setOpenIdx(null);setMode('play');setPlaySetup(true);}} style={btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)')}>▶ Play from here</button>
             <button onClick={()=>setShowBest(b=>!b)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)',showBest?'var(--ac)':'rgba(255,255,255,.7)')}>{showBest?'✓ Showing best':'💡 Show best move'}</button>
