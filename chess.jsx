@@ -3833,12 +3833,6 @@ export default function App(){
               {[{k:'w',t:'White'},{k:'b',t:'Black'}].map(c=>{const on=pColor===c.k;return(
                 <button key={c.k} onClick={()=>setPColor(c.k)} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'10px',borderRadius:12,cursor:'pointer',background:on?'rgba(var(--acr),.22)':'rgba(255,255,255,.05)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.14)',color:on?'var(--ac2)':'rgba(255,255,255,.7)',fontWeight:700,fontSize:'clamp(13px,2.9vw,15px)'}}><Piece t="k" color={c.k} sz={24}/>{c.t}</button>);})}
             </div>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}}>
-              <span style={{fontSize:'clamp(11px,2.2vw,12px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:1,textTransform:'uppercase'}}>Strength</span>
-              <span style={{fontSize:'clamp(12px,2.8vw,14px)',color:'var(--ac2)',fontWeight:800}}>≈ {cpuElo} Elo</span>
-            </div>
-            <input type="range" min={ELO_MIN} max={ELO_MAX} step={25} value={cpuElo} onChange={e=>{const v=+e.target.value;setCpuElo(v);setSelBot(botForElo(v)?botForElo(v).id:null);}} style={{width:'100%',accentColor:TH.accent,cursor:'pointer'}}/>
-            <div style={{display:'flex',justifyContent:'space-between',fontSize:8,color:'rgba(255,255,255,.4)'}}><span>Beginner</span><span>Club</span><span>Strong</span></div>
           </div>)}
 
           {opponent!=='online'&&(<div>
@@ -3848,6 +3842,14 @@ export default function App(){
               {TIME_CONTROLS.map(tc=>(<span key={tc.label} style={pill(!!timeCtrl&&timeCtrl.label===tc.label)} onClick={()=>{timeCtrlRef.current=tc;setTimeCtrl(tc);}}>{tc.label}</span>))}
             </div>
             <div style={{fontSize:'clamp(10px,2vw,11px)',color:'rgba(255,255,255,.4)',marginTop:6}}>minutes + increment per move — e.g. 3+1 means 3 minutes, +1 second each move</div>
+          </div>)}
+          {opponent==='computer'&&(<div style={{marginTop:14}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}}>
+              <span style={{fontSize:'clamp(11px,2.2vw,12px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:1,textTransform:'uppercase'}}>Strength</span>
+              <span style={{fontSize:'clamp(12px,2.8vw,14px)',color:'var(--ac2)',fontWeight:800}}>≈ {cpuElo} Elo</span>
+            </div>
+            <input type="range" min={ELO_MIN} max={ELO_MAX} step={25} value={cpuElo} onChange={e=>{const v=+e.target.value;setCpuElo(v);setSelBot(botForElo(v)?botForElo(v).id:null);}} style={{width:'100%',accentColor:TH.accent,cursor:'pointer'}}/>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:8,color:'rgba(255,255,255,.4)'}}><span>Beginner</span><span>Club</span><span>Strong</span></div>
           </div>)}
 
           {opponent==='online'&&(<div>
