@@ -1,13 +1,19 @@
 # ACTIVE QUEUE - reconciled 2026-06-20 (app at build #246)
 
 ## GALLERY STATE (sync every run; WIPE items with evidence at run start)
-AWAITING KUNAL'S EVIDENCE (in the SC array now): Streak nudge + Curated gambit links + Font check: Discover + Font check: Puzzles. 4 items. The 2 font screens re-added #252 so Kunal can verify the smallest-font bump + check crowding.
+AWAITING KUNAL'S EVIDENCE (in the SC array now): Font check: Discover + Font check: Puzzles. 2 items. Streak nudge + Curated cross-link REMOVED #254 (Kunal recorded all 4 in his screen recording). The 2 font screens kept to re-verify the #254 (bigger) bump.
 HAS EVIDENCE: lesson title check (#244), Coach paywall (#242).
 LESSON: do NOT wipe gallery screens that still have an OPEN QUESTION on them - the font size was open when #247 wiped them, so they came back #248.
 
 ## OPEN QUESTIONS (the ONLY content the HTML form may contain; if empty, send no form)
-- FONT SIZE: verdict was 'smallest still a bit too small, headers OK, Game Review size is the target.' SHIPPED #252 (every fontSize clamp with min<=11.5 bumped +1; 218 changed). PENDING: Kunal verify it reads better without crowding (gallery Discover+Puzzles). NOTE: Kunal re-sent the identical note AFTER #252 deployed = a duplicate; #252 already covers it; do NOT double-bump unless he confirms still-too-small.
+- FONT SIZE: #252 bumped min<=11.5 +1; Kunal verified (screen recording) and said still too small + NOT crowded. #254 bumped min<=12 +1 (body text 12->13px, floor now 9). PENDING: Kunal verify the new bigger size reads well + still not crowded.
 
+
+## 2026-06-20 - BUILD #254 - smallest fonts bumped again (Kunal: still too small, not crowded)
+- Kunal recorded #252 (32s screen recording, the gallery Play-all, all 4 items) and confirmed: the smallest fonts can still be bigger, and they are NOT crowded (room to grow). Viewed frames: home tile sublabels, opening descriptions, puzzle stats, roadmap node labels - readable but small with room.
+- BUMPED: every fontSize clamp with min<=12px got +1px (body text 12->13). Floor now 9px (was 8). Headers (>=15) + mid-range (13.5-14.5) left alone. No invalid clamps.
+- GALLERY: Kunal recorded the Streak nudge + Curated cross-link (no open question on them) -> REMOVED. Kept the 2 font screens (Discover, Puzzles) to re-verify the new bigger size. Gallery now 2 items.
+- PENDING: Kunal verify the new (bigger) smallest fonts read well and still are not crowded.
 
 ## 2026-06-20 - BUILD #253 - vs-Computer time control surfaced + play feedback swept
 - Pre-flight swept #2 Feedback + #3 manual-tasks. On CODE investigation, almost all flagged PLAY items are ALREADY BUILT (stale, from the #174-#235 era):
