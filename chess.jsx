@@ -3437,7 +3437,12 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
-          {l:"Tactics & Strategy trainer (extended #238)", n:"Open the Tactics & Strategy section. On the Tactics tab, page through to the three new puzzles at the end: Deflection, Decoy (smothered mate), and Discovered attack. On the Strategy tab, the six new concepts at the end (rooks behind passers, good vs bad bishop, space, the opposition, connected passers, active king).", r:()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup('tactics');setTimeout(()=>setIntroCard(false),60);}},
+          {l:"Home screen (screenshot for font pass)", n:"The home screen: four tiles plus the coach tile. Screenshot this one for the small-fonts button pass.", r:()=>{setHomeScreen(true);setMenuOpen(false);}},
+          {l:"Play setup (screenshot)", n:"Play setup: the opponent picker plus the time-control picker. Screenshot this one.", r:()=>{setHomeScreen(false);setMode('play');setOpponent('computer');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}},
+          {l:"Puzzles roadmap (screenshot)", n:"The Puzzles roadmap and list. Screenshot this one.", r:()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},
+          {l:"Online lobby (screenshot)", n:"The online screen: Quick match, Create, Join, Friends, Tournaments. Screenshot this one. (Shows a sign-in prompt if you are signed out, which is fine.)", r:()=>{setHomeScreen(false);setMode('play');setOpponent('online');setOnlineGame(null);setMyColor(null);setOnlineErr('');setPlaySetup(false);}},
+          {l:"Menu and settings (screenshot)", n:"The hamburger menu: subscription, sign-out, links. Screenshot this one.", r:()=>{setHomeScreen(true);setMenuOpen(true);}},
+          {l:"Tactics & Strategy trainer (extended #238) - TAP THIS ONE, do not Play-all", n:"Tap this individually and page through both tabs. Tactics tab, page to the end for the 3 new puzzles (Deflection, Decoy/smothered mate, Discovered attack). Strategy tab, page to the end for the 6 new concepts. Record it.", r:()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup('tactics');setTimeout(()=>setIntroCard(false),60);},h:9000},
         ];
         const _runAll=()=>{
           setPreview(false);const N=SC.length;let i=0;

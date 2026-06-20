@@ -1,4 +1,4 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #238)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #239)
 
 RULE: reconcile this section at the END of every run. Move shipped items to "Recently shipped", delete anything stale, keep only genuinely-open items, each tagged with an owner (CLAUDE or KUNAL). Everything below the "LOG" divider is historical and is NOT the queue.
 
@@ -25,6 +25,7 @@ KEY: the app ALREADY HAS two interactive trainers, reached from the learn home's
 - EXTENDED TacticsTrainer: +3 engine-validated puzzles (Deflection, Decoy/smothered-mate, Discovered attack) -> 13 motifs; +6 strategy concepts (rooks behind passers, good/bad bishop, space, opposition, connected passers, active king) -> 18 concepts.
 - EXTENDED NotationTrainer: +4 move-meaning quiz items (now 9).
 - Fixed the Englund Rosen-Trap note (cleared the audit WARN). Gallery now opens the extended Tactics trainer.
+- #239: added the 5 font-pass screens to the preview gallery (Home, Play setup, Puzzles roadmap, Online lobby, Menu/settings) so Kunal captures all 5 screenshots + the trainer recording in one session. Screens use the same nav as the home tiles; online lobby = play + opponent online + playSetup false.
 
 ## CLAUDE can build now (no Kunal needed)
 - [ ] Taste-then-gate paywall (DECIDED): let free users sample the Coach before locking; design the free allowance.
