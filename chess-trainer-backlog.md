@@ -1,4 +1,10 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #259)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #260)
+
+## 2026-06-20 - BUILD #260 - eval bar built + into the gallery; mockups parked
+- Kunal: the #259 SVG piece/avatar mockups are NOT app-grade. PARKED custom pieces/avatar - I can't author app-quality piece art blind or generate raster art. Path: Kunal sends a set/art, picks an open licensed set, or parks it.
+- Kunal: "put the other items in the preview gallery, I'll look and answer." Only the EVAL BAR is cleanly gallery-demoable (the play-out is Review+engine; video/tournaments/sign-in aren't visual).
+- BUILT the thin vertical EVAL BAR #260: re-enabled the evalW placeholder (was 0); 14px bar left of the board, light fill = White's share (lichess-style, grows from White's side), shows in Review + vs-Computer. Added an eval-bar gallery scenario at the TOP of SC (White +3 position). Decide keep/remove from the gallery.
+- Best-move play-out: NOT built - Review + on-demand Stockfish + animation, can't be auto-demoed in the gallery. Presented as a scope decision (full line vs single move).
 
 ## 2026-06-20 - BUILD #259 + 10-ITEM PLAN RECONCILED (Kunal's tracker plan)
 Kunal queued a 10-item plan from the interactive tracker. On code investigation MOST were ALREADY BUILT but stale on the tracker (the recurring stale-tracker problem - the tracker listed them open, so Kunal re-queued built features). True state:
@@ -17,14 +23,14 @@ Kunal queued a 10-item plan from the interactive tracker. On code investigation 
 - DECISION lesson order = best-guess now: shipped #259.
 
 ## GALLERY STATE (sync every run; WIPE items with evidence at run start)
-AWAITING KUNAL'S EVIDENCE (in the SC array now): Rousseau 4.d4 fixed-line (auto-plays via pickVariation) + Captured pieces (contrast fix) + Curated cross-links + Font check: Discover + Font check: Puzzles. 5 items. Curated cross-link RE-ADDED #255 (Kunal asked to put it back). The 2 font screens for re-verifying the #256 (body 14px) bump. Captured-pieces fix is NOW a gallery scenario (#257): _play(FEN,'w') loads a live game at a position with captures on both sides so both bars render. Safe in Play-all (_play sets playSetup=false, not the setup overlay; the next scenario's r() resets mode).
+AWAITING KUNAL'S EVIDENCE (in the SC array now): Rousseau 4.d4 fixed-line (auto-plays via pickVariation) + Captured pieces (contrast fix) + Curated cross-links + Font check: Discover + Font check: Puzzles + Eval bar (#260, decide keep/remove). 6 items. Curated cross-link RE-ADDED #255 (Kunal asked to put it back). The 2 font screens for re-verifying the #256 (body 14px) bump. Captured-pieces fix is NOW a gallery scenario (#257): _play(FEN,'w') loads a live game at a position with captures on both sides so both bars render. Safe in Play-all (_play sets playSetup=false, not the setup overlay; the next scenario's r() resets mode).
 HAS EVIDENCE: lesson title check (#244), Coach paywall (#242).
 LESSON: do NOT wipe gallery screens that still have an OPEN QUESTION on them - the font size was open when #247 wiped them, so they came back #248.
 
 ## OPEN QUESTIONS (the ONLY content the HTML form may contain; if empty, send no form)
 Genuinely-open after the #259 reconcile (tracker QUESTIONS regenerated to match):
-- AVATAR: which coach avatar to refine + wire in - Sir Knight / The Mentor / Coach King (see chess-piece-mockups.html).
-- EVAL BAR (Review): re-add a thin vertical eval bar (was removed for eating board width) or keep the pill + graph.
+- PIECES/AVATAR: my #259 SVG mockups were not app-grade (rejected). I can't author app-quality piece art blind or generate raster art. Path: Kunal sends a set/art, picks an open licensed set, or parks it.
+- EVAL BAR: BUILT #260 (thin vertical, Review + vs-Computer); in the gallery (top scenario). Decide: keep it or remove it.
 - BEST-MOVE PLAY-OUT scope: full engine PV line (needs on-demand Stockfish run) or just animate the single stored best move.
 - BRILLIANT HEURISTIC: needs a sample PGN from Kunal (a game where a brilliant should fire) to tune.
 - FONT SIZE: #256 took body to 14px (floor 10). PENDING: Kunal verify the bigger body reads well + not crowded.
