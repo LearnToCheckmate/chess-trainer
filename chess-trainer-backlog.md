@@ -1,13 +1,12 @@
 # ACTIVE QUEUE - reconciled 2026-06-20 (app at build #256)
 
 ## GALLERY STATE (sync every run; WIPE items with evidence at run start)
-AWAITING KUNAL'S EVIDENCE (in the SC array now): Captured pieces (contrast fix) + Curated cross-links + Font check: Discover + Font check: Puzzles. 4 items. Curated cross-link RE-ADDED #255 (Kunal asked to put it back). The 2 font screens for re-verifying the #256 (body 14px) bump. Captured-pieces fix is NOW a gallery scenario (#257): _play(FEN,'w') loads a live game at a position with captures on both sides so both bars render. Safe in Play-all (_play sets playSetup=false, not the setup overlay; the next scenario's r() resets mode).
+AWAITING KUNAL'S EVIDENCE (in the SC array now): Rousseau 4.d4 fixed-line (auto-plays via pickVariation) + Captured pieces (contrast fix) + Curated cross-links + Font check: Discover + Font check: Puzzles. 5 items. Curated cross-link RE-ADDED #255 (Kunal asked to put it back). The 2 font screens for re-verifying the #256 (body 14px) bump. Captured-pieces fix is NOW a gallery scenario (#257): _play(FEN,'w') loads a live game at a position with captures on both sides so both bars render. Safe in Play-all (_play sets playSetup=false, not the setup overlay; the next scenario's r() resets mode).
 HAS EVIDENCE: lesson title check (#244), Coach paywall (#242).
 LESSON: do NOT wipe gallery screens that still have an OPEN QUESTION on them - the font size was open when #247 wiped them, so they came back #248.
 
 ## OPEN QUESTIONS (the ONLY content the HTML form may contain; if empty, send no form)
 Kunal answered all 6 form questions 2026-06-20 (tap-to-pick). Remaining truly-open:
-- ROUSSEAU 4.d4 line: Kunal answered "extend it" - BUT python-chess re-check PROVES the line is lost for Black (after 8...Bc5, d5 attacked x2 [Qd1,Bc4] defended x1 [Qd8]; 9.Bxd5 Qxd5 10.Qxd5 = White +10, Black cannot recapture). Extending it shows Black getting crushed = contradicts the "Black has all the fun" lesson. REPORTED to Kunal; his call: (a) end the line a move or two earlier at a calm point, (b) he supplies the corrected continuation from his engine, or (c) drop the 4.d4 variation. No Stockfish in sandbox so I cannot find the fix blind.
 - FONT SIZE: #256 took body text to 14px (floor 10, was body 13/floor 9). PENDING: Kunal verify the bigger body reads well + not crowded. If still "bigger," next bump the 15px header tier too.
 
 
@@ -19,6 +18,14 @@ Kunal asked (Feedback chat, ~1-2h ago, the item that wasn't getting picked up): 
 4. Lesson rows -> ANSWERED "most popular openings first" -> QUEUED (CLAUDE; investigate lesson render/order, then reorder by popularity safely).
 5. Streak -> ANSWERED "keep lessons counting" -> no change (already #249).
 6. vs-Computer time control -> ANSWERED "reads well" -> confirmed good (#253).
+
+## 2026-06-20 - BUILD #258 - Rousseau 4.d4 line FIXED (Smirnov trap) + gallery auto-play
+- Kunal: use Remote Chess Academy (GM Igor Smirnov) Rousseau videos to extend the 4.d4 line. Found his 2 Rousseau videos (Y6-RXOh50_w "Every Move is a Trap" = already the lesson's video; _pYCIQ9ON5U "Top 10 Traps") + companion articles (chess-teacher.com/rousseau-gambit, /rousseau-gambit-traps-black). Article TEXT confirms his line to 6...d5 (matches the lesson) and says "Black gets a decisive advantage in 12 moves", but the deeper moves sit in a JS chess viewer web_fetch cannot read + the sandbox network cannot reach the site to pull the raw PGN.
+- THE BUG: the lesson's continuation 7...Nxd5 8.O-O Bc5 LOSES the queen (9.Bxd5 Qxd5 10.Qxd5 = +10 White) - python-chess confirmed. The recapture was wrong.
+- THE FIX (python-chess validated): 7...Qxd5! recapture with the QUEEN (saves the c6-knight that the d5-pawn attacks; forks the c4-bishop + the loose f5-knight). White's natural 8.Nc3 (develop + hit the queen) walks into 8...Qxf5! winning the loose knight = Black up a clean piece (material -2; verified Black stays up in ALL legal White 9th moves). White's ONLY hold is the awkward 8.Ne3 (defends c4 AND hits the queen) - acknowledged honestly in the note. Matches Smirnov's "decisive advantage" framing + the trap theme.
+- Line extended 16->18 plies: ...exd5 Qxd5 Nc3 Qxf5 O-O Bd6. Notes/idea/plans/arrows rewritten to the trap framing (dropped the "Black has all the fun" oversell). Audit PASS (notes==line, legal FENs). Video kept (Y6-RXOh50_w is the real Smirnov main video, confirmed by the article's youtu.be link).
+- GALLERY (Kunal's gallery-first rule): added a scenario at the TOP of SC that opens the Rousseau lesson + pickVariation() auto-plays the corrected 4.d4 line, so Kunal verifies it in the gallery. Gallery now 5 items.
+- RESIDUAL for Kunal: could not read the video's exact 12-move game (JS-locked); the fix is a verified-sound trap line matching Smirnov's framing - if his video shows a different continuation, paste it + Claude matches it exactly.
 
 ## 2026-06-20 - BUILD #257 - captured-pieces check + font checks into the auto-gallery
 - Kunal: "put the bottom two items (font check + captured pieces) in the Preview gallery and automate them." Font checks were already gallery scenarios (Discover + Puzzles); added the CAPTURED-PIECES scenario at the TOP of SC.
