@@ -3459,6 +3459,7 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
+          {l:"Eval bar (the new vertical bar)", n:"A live game where White is up a piece. Look at the thin bar to the LEFT of the board - it should be filled mostly white, since White is winning. The bar shows in Review and in games vs Computer. Decide if you want to keep it, or if the eval pill is enough.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setFlip(false);_play('rnbqkb1r/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','w');}, h:8000},
           {l:"Rousseau 4.d4 line (fixed - Black wins a piece)", n:"The corrected Stockfish's-best line auto-plays. Let it run or step with the arrows to the end: 7...Qxd5! recaptures and forks, 8.Nc3 Qxf5! wins the loose knight, and Black is up a clean piece. Check the moves and notes read right.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);const _r=Math.max(0,LIB.findIndex(o=>o.name==='Rousseau Gambit'));setHomeScreen(false);setMode('learn');selectOpening(_r);const _v=(LIB[_r].vars||[]).find(v=>v.name.indexOf('4.d4')>=0);setTimeout(()=>{if(_v)pickVariation(_v);},700);}, h:14000},
           {l:"Captured pieces (contrast fix)", n:"A live game with captures on both sides. Your captured pieces are the BLACK ones in the bottom bar - check they now read clearly on the new light chips. The white captures up top were always fine.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setFlip(false);_play('r1bq1rk1/ppp2pp1/5n2/8/2B5/4BN2/PPP2PPP/R2Q1RK1 w - - 0 1','w');}, h:7000},
           {l:"Curated gambit cross-links", n:"The Italian Game about-card - scroll to 'Related lessons' and check the chips (Evans Gambit, Fried Liver) make sense.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setHomeScreen(false);setMode('learn');selectOpening(_it);}, h:9000},
@@ -4907,7 +4908,7 @@ export default function App(){
       </div>)}
 
         </>);
-        const evalW=0;const _evalOn=((inReview||(mode==='play'&&opponent==='computer'))&&!hideEval);
+        const _evalOn=((inReview||(mode==='play'&&opponent==='computer'))&&!hideEval);const evalW=_evalOn?14:0;
         const _og=onlineGame; const _cap=capturedList(game.board); const _md=materialDiff(game.board);
         const bottomColor=flip?'b':'w'; const topColor=flip?'w':'b';
         const _isOnlineG=opponent==='online'&&!!_og;
@@ -4938,6 +4939,7 @@ export default function App(){
       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',order:wide?0:(pzLow?2:0),marginTop:pzLow&&!wide?10:0}}>
         {_showBars&&pBar(topColor,true)}
         <div style={{display:'flex',alignItems:'flex-start'}}>
+          {_evalOn&&(()=>{const fr=Math.max(0.03,Math.min(0.97,0.5+evalNow/12));const wb=bottomColor==='w';return(<div style={{width:evalW-4,marginRight:4,height:boardPx,borderRadius:3,overflow:'hidden',background:'#312f37',position:'relative',flexShrink:0,alignSelf:'flex-start'}}><div style={{position:'absolute',left:0,right:0,[wb?'bottom':'top']:0,height:(fr*100)+'%',background:'linear-gradient(180deg,#f3f1ea,#d9d6cc)',transition:'height .35s ease'}}/><div style={{position:'absolute',left:0,right:0,top:'50%',height:1,background:'rgba(0,0,0,.35)'}}/></div>);})()}
           <div ref={boardRef} onPointerDown={onPtrDown} onPointerMove={onPtrMove} onPointerUp={onPtrUp} onPointerCancel={onPtrCancel}
             style={{display:'grid',gridTemplateColumns:`repeat(8,${SQ}px)`,gridTemplateRows:`repeat(8,${SQ}px)`,width:boardPx,height:boardPx,borderRadius:3,overflow:'hidden',boxShadow:'0 0 0 3px #4a6741, 0 12px 50px rgba(0,0,0,.7)',cursor:dragging?'grabbing':'default',touchAction:'none',position:'relative'}}>
             {dBoard.map((row,rI)=>row.map((piece,cI)=>{
