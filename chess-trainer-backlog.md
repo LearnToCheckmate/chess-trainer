@@ -1,4 +1,4 @@
-# ACTIVE QUEUE - reconciled 2026-06-19 (app at build #237)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #238)
 
 RULE: reconcile this section at the END of every run. Move shipped items to "Recently shipped", delete anything stale, keep only genuinely-open items, each tagged with an owner (CLAUDE or KUNAL). Everything below the "LOG" divider is historical and is NOT the queue.
 
@@ -18,12 +18,20 @@ Bigger features, all GREENLIT:
 - In-app feedback system (needs a Firestore rule = Kunal step).
 - Openings: Kunal has NO personal openings to add. Claude delivered an exhaustive 'not in library' list (openings-not-in-library.md, 2026-06-19), grouped by category with priority tags; Kunal to pick which to build.
 
+## SHIPPED #238 (2026-06-20) + KEY LEARNING
+KEY: the app ALREADY HAS two interactive trainers, reached from the learn home's 'Tactics & Strategy' button and the 'Read chess notation' row: **TacticsTrainer** (TACTICS array = find-the-move motif puzzles, STRAT array = strategy concepts) and **NotationTrainer**. Tactics / strategy / notation content belongs in THOSE arrays, NOT as taught lessons in the library. Do NOT add tactics or notation as lessons.
+#238 did:
+- REMOVED 6 redundant lessons duplicating the trainers: 4 tactics (The Fork, The Skewer, Discovered Check, Double Check, from #237) + 2 notation (Reading Chess Notation #230, Notation: Checks Mates & Promotion #235). Library 160 -> 154. (Progress is keyed by lesson NAME, not index - removal is always safe; the old 'never shift indices' caution was unnecessary.)
+- EXTENDED TacticsTrainer: +3 engine-validated puzzles (Deflection, Decoy/smothered-mate, Discovered attack) -> 13 motifs; +6 strategy concepts (rooks behind passers, good/bad bishop, space, opposition, connected passers, active king) -> 18 concepts.
+- EXTENDED NotationTrainer: +4 move-meaning quiz items (now 9).
+- Fixed the Englund Rosen-Trap note (cleared the audit WARN). Gallery now opens the extended Tactics trainer.
+
 ## CLAUDE can build now (no Kunal needed)
 - [ ] Taste-then-gate paywall (DECIDED): let free users sample the Coach before locking; design the free allowance.
 - [ ] Custom-drawn skin icons (DECIDED): generate an icon set to replace the medieval emoji swaps.
 - [ ] Palm / bottom-edge touch rejection (DECIDED): inert touch zone along the bottom edge during play (conservative; test after).
 - [ ] Brilliant-move course (DECIDED): practice scenarios + why each brilliant move works.
-- [x] Notation-learning section (DECIDED): now a 2-lesson track in Endgames & Theory - 'Reading Chess Notation' (#230, the basics: pawn/piece moves, captures x, castling O-O) and 'Notation: Checks, Mates & Promotion' (#235, the special symbols =Q / + / # via a forced b8=Q+ Ka6 Qb6# mate). Verified on device. A dedicated Basics category or interactive write-the-move drills could still follow.
+- [x] Notation-learning section: REMOVED the 2 taught lessons in #238 - they duplicated the PRE-EXISTING interactive NotationTrainer (Squares tap-drill + Pieces + Symbols + a 'what does this move mean?' quiz), reached from the 'Read chess notation' row. #238 enriched that trainer's quiz with 4 more items (Rxe8+, O-O-O, b8=N, Kxf7). The interactive trainer IS the home; do NOT re-add notation as taught lessons.
 - [ ] Cross-link gambits/traps (DECIDED): play the same line from the opposite side.
 - [ ] In-app feedback UI (DECIDED): like/dislike/ok + occasional prompt (backend rule is a Kunal step).
 - [x] Square of the Pawn: VISUALIZE the box on the board (draw the pawn's promotion square), plus toggleable examples of king-INSIDE-the-box (catches the pawn) vs king-OUTSIDE (can't). Text explains it but nothing is drawn - make the geometry real, not just the pawn advancing. [KUNAL 2026-06-19] (SHIPPED #226)
