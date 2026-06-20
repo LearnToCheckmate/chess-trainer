@@ -1,4 +1,9 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #242)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #243)
+
+## 2026-06-20 - BUILD #243 - gallery surfaces what I need eyes on
+- Added two preview-gallery scenarios at the TOP: a LESSON view (Italian Game) so I can see the large title vs the small header name and decide which duplicate to drop, and the COACH PAYWALL (the taste-then-gate end state with the message). Added a clean-slate (close all modals) before each scenario + at run end so nothing bleeds.
+- WAITING ON KUNAL: open the film-clapper -> Play all -> record once. The two screens I need are first in the run.
+
 
 ## 2026-06-20 - BUILD #242 + Kunal's decisions (from the HTML questions form)
 SHIPPED #242:

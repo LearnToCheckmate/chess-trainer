@@ -3457,6 +3457,8 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
+          {l:"Lesson view - duplicate title check", n:"A lesson opened (Italian Game). I need to see the LARGE lesson title and the small header name together so I can pick which duplicate to drop. Record this screen for me.", r:()=>{const _i=LIB.findIndex(o=>o.name&&/Italian/i.test(o.name));_lesson(_i>=0?_i:0);}, h:6500},
+          {l:"Coach paywall (taste-then-gate #242)", n:"What a free user sees after their 3 free Coach previews are used up: the upgrade screen plus the message. Record this to confirm the paywall card and the wording.", r:()=>{setHomeScreen(true);setUpgradeMsg('That was your last free Coach preview. Unlock Pro to keep your coach.');setAcctOpen(true);}, h:6000},
           {l:"Home screen (screenshot for font pass)", n:"The home screen: four tiles plus the coach tile. Screenshot this one for the small-fonts button pass.", r:()=>{setHomeScreen(true);setMenuOpen(false);}},
           {l:"Play setup (screenshot)", n:"Play setup: the opponent picker plus the time-control picker. Screenshot this one.", r:()=>{setHomeScreen(false);setMode('play');setOpponent('computer');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}},
           {l:"Puzzles roadmap (screenshot)", n:"The Puzzles roadmap and list. Screenshot this one.", r:()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},
@@ -3467,8 +3469,8 @@ export default function App(){
         const _runAll=()=>{
           setPreview(false);setTrainerDemo(false);const N=SC.length;let i=0;
           const go=()=>{
-            if(i>=N){setRecCap({i:N,n:N,l:'All done. You can stop recording.'});setTimeout(()=>{setRecCap(null);setPreview(true);setTrainerDemo(false);},4500);return;}
-            const sc=SC[i];setRecCap({i:i+1,n:N,l:sc.l});sc.r();const hold=sc.h||5000;i++;setTimeout(go,hold);
+            if(i>=N){setRecCap({i:N,n:N,l:'All done. You can stop recording.'});setTimeout(()=>{setRecCap(null);setPreview(true);setTrainerDemo(false);setAcctOpen(false);setMenuOpen(false);setCoachOpen(false);},4500);return;}
+            setAcctOpen(false);setMenuOpen(false);setCoachOpen(false);const sc=SC[i];setRecCap({i:i+1,n:N,l:sc.l});sc.r();const hold=sc.h||5000;i++;setTimeout(go,hold);
           };
           setRecCap({i:0,n:N,l:'Starting…'});setTimeout(go,1300);
         };
