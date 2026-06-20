@@ -1,22 +1,32 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #246)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #256)
 
 ## GALLERY STATE (sync every run; WIPE items with evidence at run start)
-AWAITING KUNAL'S EVIDENCE (in the SC array now): Curated cross-links + Font check: Discover + Font check: Puzzles. 3 items. Curated cross-link RE-ADDED #255 (Kunal asked to put it back). The 2 font screens for re-verifying the #254 (bigger) bump.
+AWAITING KUNAL'S EVIDENCE (in the SC array now): Curated cross-links + Font check: Discover + Font check: Puzzles. 3 items. Curated cross-link RE-ADDED #255 (Kunal asked to put it back). The 2 font screens for re-verifying the #256 (body 14px) bump. Captured-pieces contrast fix (#256) is verify-in-PLAY, not a gallery item (captured pieces need a live game; a play-setup scenario would break Play-all).
 HAS EVIDENCE: lesson title check (#244), Coach paywall (#242).
 LESSON: do NOT wipe gallery screens that still have an OPEN QUESTION on them - the font size was open when #247 wiped them, so they came back #248.
 
 ## OPEN QUESTIONS (the ONLY content the HTML form may contain; if empty, send no form)
-- FONT SIZE: #252 bumped min<=11.5 +1; Kunal verified (screen recording) and said still too small + NOT crowded. #254 bumped min<=12 +1 (body text 12->13px, floor now 9). PENDING: Kunal verify the new bigger size reads well + still not crowded.
+Kunal answered all 6 form questions 2026-06-20 (tap-to-pick). Remaining truly-open:
+- ROUSSEAU 4.d4 line: Kunal answered "extend it" - BUT python-chess re-check PROVES the line is lost for Black (after 8...Bc5, d5 attacked x2 [Qd1,Bc4] defended x1 [Qd8]; 9.Bxd5 Qxd5 10.Qxd5 = White +10, Black cannot recapture). Extending it shows Black getting crushed = contradicts the "Black has all the fun" lesson. REPORTED to Kunal; his call: (a) end the line a move or two earlier at a calm point, (b) he supplies the corrected continuation from his engine, or (c) drop the 4.d4 variation. No Stockfish in sandbox so I cannot find the fix blind.
+- FONT SIZE: #256 took body text to 14px (floor 10, was body 13/floor 9). PENDING: Kunal verify the bigger body reads well + not crowded. If still "bigger," next bump the 15px header tier too.
 
 
 ## 2026-06-20 - OPEN QUESTIONS surfaced (HTML form sent, post-#255)
 Kunal asked (Feedback chat, ~1-2h ago, the item that wasn't getting picked up): "show what's left + put up the open-questions HTML so we can knock them out." Built + sent chess-questions.html (what's-left list grouped by owner + 6 free-text questions, one-tap Copy). The 6 OPEN QUESTIONS (drive the next form; never re-ask once answered):
-1. Fonts: #254 made body 13px - good now, or bigger still?
-2. Rousseau 4.d4 line (sharp ending): end a move earlier / extend / leave it (Kunal checks his engine)?
-3. Coach avatar + custom piece art: generate a few style options? any direction?
-4. Lesson rows by priority: what order (which lessons/sections first)?
-5. Streak: lessons count toward streak (added #249) or make it puzzle-only?
-6. vs-Computer setup #253: time control now above the slider - reads well, or adjust further?
+1. Fonts -> ANSWERED "bigger still" -> #256 body 13->14px, floor 10 (verify pending).
+2. Rousseau 4.d4 -> ANSWERED "extend" -> but the line is LOST for Black (see OPEN QUESTIONS above); NOT extended, awaiting Kunal's call.
+3. Coach avatar + piece art -> ANSWERED "yes, minimalist" -> QUEUED (build minimalist SVG piece concepts as mockups first, then apply the chosen one).
+4. Lesson rows -> ANSWERED "most popular openings first" -> QUEUED (CLAUDE; investigate lesson render/order, then reorder by popularity safely).
+5. Streak -> ANSWERED "keep lessons counting" -> no change (already #249).
+6. vs-Computer time control -> ANSWERED "reads well" -> confirmed good (#253).
+
+## 2026-06-20 - BUILD #256 - captured-pieces contrast + body fonts to 14px + Kunal's 6 answers
+- Kunal pasted all 6 form answers (tap-to-pick) + a screenshot of the captured-pieces contrast bug.
+- CAPTURED PIECES: in the player bar, _cap[col] = the OPPONENT's captured pieces (mk returns the other color's missing). So White's bar shows BLACK glyphs (color='b') -> dark-on-dark = invisible (Kunal's screenshot). FIX: the per-piece wrapper span now gets a light chip (background rgba(238,241,247,.95) + borderRadius 4 + 1px2px padding) ONLY when enemy==='b'; white pieces stay transparent (already visible). marginRight eased -3 -> 1 for chipped pieces so chips do not overlap. Robust vs <Piece> being img-or-glyph (chip sits on the wrapper, not the glyph). Verify-in-PLAY.
+- FONTS (Q1 "bigger still", 3rd pass): bumped every fontSize clamp min<=13.5 by +1. Body text 13->14px (229 clamps = dominant size), floor 9->10. Hierarchy ascending (no inversion); headers 15+ untouched per "headers fine."
+- ROUSSEAU 4.d4 (Q2 "extend"): did NOT extend. python-chess proves Black is lost (9.Bxd5 wins the queen, +10). Reported + asked Kunal. See OPEN QUESTIONS.
+- Q5 streak = no change (already #249). Q6 time control = #253 confirmed.
+- QUEUED next: Q4 lesson-row reorder (most popular first); Q3 minimalist piece art (SVG mockups first).
 
 ## 2026-06-20 - BUILD #255 - gallery: Curated re-added + FULL Feedback-chat sweep
 - Kunal: "put the second item in the gallery too" + "sweep the other chats, my feedback's not getting picked up." Did a full sweep of #2 Feedback (updated 19:51) and confirmed the other project chats are older (no new items).
