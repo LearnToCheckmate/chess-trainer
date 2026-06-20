@@ -1556,7 +1556,13 @@ const MORE=[
    line:["Qe7#"],
    idea:"This mate strikes when a king is boxed in by its own pieces on either side, like epaulettes on its shoulders. The queen mates from directly in front, defended so it cannot be taken.",
    notes:["The queen lands on e7, defended by the d6-pawn. The king's own rooks block d8 and f8, the queen covers d7 and f7, and the king cannot capture: mate."],
-   plans:"Look for an enemy king flanked by its own rooks or pieces, then find a protected queen or rook to deliver mate on the square between them. It often appears when a king is herded onto a crowded back rank."}
+   plans:"Look for an enemy king flanked by its own rooks or pieces, then find a protected queen or rook to deliver mate on the square between them. It often appears when a king is herded onto a crowded back rank."},
+  {name:"Dovetail Mate",eco:"Q#",side:"w",cat:"♚ Endgames & Theory",
+   fen:"8/2p1p3/3k4/Q7/2P5/8/8/6K1 w - - 0 1",
+   line:["Qd5#"],
+   idea:"Also called Cozio's mate. The king is flanked by two of its own pieces on the squares diagonally behind it, and a protected queen mates from directly in front, leaving no escape.",
+   notes:["The queen slides to d5, defended by the c4-pawn. The king's own pawns on c7 and e7 block the diagonal flights, the queen covers the rest, and it cannot capture: mate."],
+   plans:"The signature is a king boxed by its own pawns or pieces on the two diagonal squares behind it, with the queen mating in front and defended. Spotting the blocked flight squares is the key."}
 ];
 const LIB=OPENINGS.concat(ENDGAMES).concat(MORE);
 // ── Persistent progress: window.storage in Claude artifacts, localStorage on the web, else in-memory ──
@@ -3397,16 +3403,18 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
-          {l:"Square of the Pawn (board for the box viz)", n:"Endgame. The card auto-dismisses now, so I can see the pawn and king layout for designing the box overlay.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Square of the Pawn')), h:7000},
-          {l:"King's Indian Attack (new, White)", n:"Flank system. Confirm the board and the notes render.", r:()=>_lesson(LIB.findIndex(o=>o.name==="King's Indian Attack")), h:8000},
-          {l:"Exchange QGD (new, White, 1.d4)", n:"White 1.d4 line. Confirm the board and notes.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Exchange QGD')), h:8000},
-          {l:"Semi-Slav (new, Black, 1.d4)", n:"Black 1.d4 defense. Confirm White's first move auto-plays and the board flips.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Semi-Slav Defense')), h:8000},
-          {l:"Muzio Gambit (new, White)", n:"The O-O knight sacrifice. Confirm the dramatic line plays out.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Muzio Gambit')), h:9000},
-          {l:"Vienna Gambit (new, White)", n:"Confirm the gambit line renders and the notes read right.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Vienna Gambit')), h:8000},
-          {l:"French: Winawer (new, Black)", n:"Black defense, the …Bb4 pin. Confirm the flip and the notes.", r:()=>_lesson(LIB.findIndex(o=>o.name==='French: Winawer')), h:8000},
-          {l:"Caro-Kann: Advance (new, Black)", n:"Black defense. Confirm the flip and the notes.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Caro-Kann: Advance')), h:8000},
-          {l:"Modern Benoni (new, Black, 1.d4)", n:"Black 1.d4 defense. Confirm the flip and notes.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Modern Benoni')), h:8000},
-          {l:"Grand Prix Attack (new, White, anti-Sicilian)", n:"White anti-Sicilian. Confirm the board and notes.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Grand Prix Attack')), h:8000},
+          {l:"Square of the Pawn - NEW box viz", n:"Tap 'Show the square of the pawn' under the board. The tinted box + verdict (catches vs promotes) should appear and shrink as the pawn advances.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Square of the Pawn'))},
+          {l:"King's Gambit: Cunningham - Prev/Next + header", n:"New lesson. Check the header shows the lesson name (not CHESS TRAINER) and the Prev/Next buttons step between gambits.", r:()=>_lesson(LIB.findIndex(o=>o.name==="King's Gambit: Cunningham"))},
+          {l:"Arabian Mate (new pattern)", n:"Rook + knight corner mate. Confirm the board and the single mating move.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Arabian Mate'))},
+          {l:"Epaulette Mate (new pattern)", n:"Queen mate with the king boxed by its own rooks.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Epaulette Mate'))},
+          {l:"Dovetail Mate (new pattern)", n:"Queen mate, king flanked by its own pawns.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Dovetail Mate'))},
+          {l:"Two Knights Defense (new, Black)", n:"Black defense. Confirm White's first move auto-plays and the board flips.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Two Knights Defense'))},
+          {l:"Ruy Lopez: Closed (new, White)", n:"Main-line Ruy. Confirm the board and notes render.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Ruy Lopez: Closed'))},
+          {l:"Albin Counter-Gambit (new, Black)", n:"Black gambit vs 1.d4. Confirm flip + notes.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Albin Counter-Gambit'))},
+          {l:"Caro-Kann: Classical (new, Black)", n:"Black defense. Confirm the board and notes.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Caro-Kann: Classical'))},
+          {l:"French: Rubinstein (new, Black)", n:"Black defense. Confirm the board and notes.", r:()=>_lesson(LIB.findIndex(o=>o.name==='French: Rubinstein'))},
+          {l:"Hippopotamus Defense (new, Black)", n:"Offbeat Black setup. Confirm the board and notes.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Hippopotamus Defense'))},
+          {l:"Grand Prix Attack (anti-Sicilian)", n:"Confirm the board and notes render.", r:()=>_lesson(LIB.findIndex(o=>o.name==='Grand Prix Attack'))},
         ];
         const _runAll=()=>{
           setPreview(false);const N=SC.length;let i=0;
