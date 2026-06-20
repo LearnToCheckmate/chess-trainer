@@ -1,10 +1,10 @@
-# Chess Trainer — Build Chat Handoff (refreshed 2026-06-16, app at build #200)
+# Chess Trainer — Build Chat Handoff (refreshed 2026-06-20, app at build #228)
 
 ## Boot sequence for the new build chat
 1. SECRET FIRST: the GitHub fine-grained PAT is NOT in this repo and must never be written to any file. Retrieve it by searching the original build chat for "github_pat" (conversation_search). Use it inline in env only.
 2. Refetch chess.jsx, gen_tracker.py, chess-trainer-backlog.md (and index.html when touching the host) from this repo via the contents API with Accept: application/vnd.github.raw at the START of every session (disk reverts between turns).
-3. Read chess-trainer-backlog.md fully: it is the single source of truth. The ACTIVE QUEUE is the section at the TOP of that file. RECONCILE the queue at the END of every run: move shipped items to Recently-shipped, delete stale ones, keep only genuinely-open items each tagged CLAUDE or KUNAL. WIPE THE PREVIEW GALLERY every run too: the in-app film-clapper tool is the `SC` array in chess.jsx, and it must hold ONLY screens I still need Kunal to record, so empty it (`const SC=[]`) once those screens are confirmed (default state is empty). Standing authorization is unlimited (BUILDGO retired); every Kunal message buys the longest safe run.
-4. Conventions: timing line at top and bottom of every reply (sandbox clock; note it can read UTC across turns — the build STAMP via TZ=America/New_York is the correct EDT). Build stamp line at the very bottom. Run table (Fuel | Run | Started | Ended | Duration), Fuel = infinity. No em-dashes in replies or app labels. Lead with the answer, minimal formatting. High autonomy: batch work, make judgment calls and flag for veto, defer design-taste/device/backend calls to Kunal.
+3. Read chess-trainer-backlog.md fully: it is the single source of truth. The ACTIVE QUEUE is the section at the TOP of that file. RECONCILE the queue at the END of every run: move shipped items to Recently-shipped, delete stale ones, keep only genuinely-open items each tagged CLAUDE or KUNAL. PREVIEW GALLERY POLICY (updated 2026-06-19, SUPERSEDES the old wipe-to-empty rule): the in-app film-clapper tool is the `SC` array in chess.jsx. KEEP ~10 screens I want Kunal to record after every run (even nice-to-haves); add more-important screens to the TOP; cap at ~25 (if overflowing, keep the 25 most important and park the rest); remove an item only once Kunal confirms it via a recording. Gallery scenarios auto-dismiss the intro/flash card (the `_lesson` helper calls setIntroCard(false) shortly after opening) so the board shows without a manual tap. Standing authorization is unlimited (BUILDGO retired); every Kunal message buys the longest safe run.
+4. Conventions: timing line at top and bottom of every reply (sandbox clock; note it can read UTC across turns — the build STAMP via TZ=America/New_York is the correct EDT). Build stamp line at the very bottom. Post-run STATUS as a VERTICAL stack of lines (Run/number, Ended time, Active build time, Fuel: unlimited) NOT a wide table (it runs off-screen on phone). End each build-run reply with a short 'What I need from you' section of a few easy things Kunal can provide now. Manual-task handoffs: give paste-ready steps FIRST at the very top, then run the build. No em-dashes in replies or app labels. Lead with the answer, minimal formatting. High autonomy: batch work, make judgment calls and flag for veto, defer design-taste/device/backend calls to Kunal.
 
 ## Deploy recipe (battle-tested, unchanged)
 - Edit via python with assert-unique anchors; ENCODE BEFORE WRITE: buf=s.encode('utf-8'); open(path,'wb').write(buf).
@@ -36,3 +36,19 @@
 - Publish /tournaments Firestore rule: inside match /databases/{database}/documents add `match /tournaments/{tid} { allow read: if true; allow create, update: if request.auth != null; }` then Publish. Unblocks all Tournaments testing.
 - Publish Friends + Play-nearby Firestore rules. Stripe 4242 TEST checkout (then revisit the $0.99 price vs ~$2.99-3.99 per Review 5/8). Deploy scanBoard Cloud Function with ANTHROPIC_API_KEY. Buy gambitcoach.com (Cloudflare).
 - Two-account live tests: Tournaments create/join/start, Friends, Play-nearby.
+
+
+## Recent state (build #228, 2026-06-20)
+- Library is comprehensive (~150 engine-verified lessons across OPENINGS/ENDGAMES/MORE): all major openings, dozens of gambits, the standard checkmate patterns, and endgame theory. Verify gaps before adding (earlier name-extraction under-counted; the majors are already in).
+- #226 shipped the Square of the Pawn VISUALIZATION: in any king+pawn endgame a 'Show the square of the pawn' toggle draws a live tinted box (computed from the pawn, shrinks as it advances) + a catches/promotes verdict, using the per-cell overlay pattern (no change to the shared board render).
+- #224 shipped Prev/Next lesson navigation (the [‹ Prev][All ...][Next ›] row in the learn controls; infra was pre-computed at the nav IIFE) and a content-aware HEADER (shows the lesson/gambit/ending name, or Play/Online/Puzzles/Game review, instead of CHESS TRAINER on content screens; wordmark stays on home).
+
+## New-lesson convention (since #224)
+- Append to the `MORE` array (LIB=OPENINGS.concat(ENDGAMES).concat(MORE)) via the concat-last pattern so existing LIB indices never shift.
+- Validate EVERY line legal with python-chess (board.push_san); for endgame/mate FENs assert is_valid() AND not in check at start AND is_checkmate() after the line.
+- assert notes length == line length; assert no double-quotes in any string.
+- Per-move notes do NOT repeat the move (the UI prepends the move label): write 'The Sicilian: fight for d4' NOT '…c5 — the Sicilian'.
+
+## Feedback (shipped #223)
+- A floating button + a menu item capture the screen context (build/screen/lesson/phase/step/moves) and copy a paste-ready '[Chess Trainer feedback]' block to the clipboard; Kunal pastes it into chat (the sandbox cannot read Firebase/localStorage; LOG_ENDPOINT is empty).
+- Auto-pickup decision is PARKED in the backlog: (A) a tiny Firebase Cloud Function that verifies the Firebase Auth token and appends each submit to a repo file Claude reads each run, vs (B) batch the feedback so Kunal pastes once per session.
