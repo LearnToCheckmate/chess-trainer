@@ -9,6 +9,15 @@ LESSON: do NOT wipe gallery screens that still have an OPEN QUESTION on them - t
 - FONT SIZE: verdict was 'smallest still a bit too small, headers OK, Game Review size is the target.' SHIPPED #252 (every fontSize clamp with min<=11.5 bumped +1; 218 changed). PENDING: Kunal verify it reads better without crowding (gallery Discover+Puzzles). NOTE: Kunal re-sent the identical note AFTER #252 deployed = a duplicate; #252 already covers it; do NOT double-bump unless he confirms still-too-small.
 
 
+## 2026-06-20 - BUILD #253 - vs-Computer time control surfaced + play feedback swept
+- Pre-flight swept #2 Feedback + #3 manual-tasks. On CODE investigation, almost all flagged PLAY items are ALREADY BUILT (stale, from the #174-#235 era):
+  - Captured pieces during play: DONE - player bar renders the taken pieces as <Piece> glyphs (L4926), shown in play mode.
+  - Drag-to-castle BOTH gestures: DONE - engine generates the castle move (king->g1 works) AND matchTarget (L1647) handles the Chess.com-style king-dragged-onto-own-rook gesture.
+  - Online real-time minute clocks: DONE - online setup already has TIME_CONTROLS (minute presets), not only day/correspondence.
+- SHIPPED #253: vs-Computer TIME CONTROL moved ABOVE the strength slider in the full-screen Play setup (Setup A). It sat below the slider = off-screen on phone (Kunal's flag). The bot roster already sets strength, so the slider is now an optional fine-tune at the bottom. The menu's compact setup (Setup B) already had time-control-above-strength; left as-is. PENDING: Kunal verify via Play -> vs Computer.
+- ROUSSEAU GAMBIT (Kunal flagged a knight 'attacked twice, defended once'): all 5 lines verified LEGAL via python-chess. The 'Stockfish's best (4.d4)' line ends on a genuinely sharp position (Black Nd5 atk2/def1, White Nf5 also loose, White to move) - matches the flag. Did NOT change: no Stockfish in the sandbox, and altering an engine-sourced line on a heuristic is riskier than leaving it (sharp, not clearly losing - Black has ...Bxf2+/...Bxf5). Kunal can check his engine; offer to end the line earlier or extend it.
+- NEW sweep items folded (Open): notation-reading/writing lesson (needs design - not a standard move-sequence lesson, BIGGER); create a Gmail account for AI work (KUNAL manual task); sign-in OAuth-persist loop (iOS PWA WebKit storage partitioning - hard to fix in code, workaround = Safari).
+
 ## 2026-06-20 - BUILD #252 - smallest font tier +1 (Kunal's verdict)
 - Kunal's font verdict: headers fine, the smallest fonts across the board still a little too small, Game Review's reduced smaller-font size is a good target, make the smallest bigger without crowding.
 - BUMPED: every fontSize clamp with min<=11.5px got +1px (218 actually changed; smallest tier 7-11.5 -> 8-12.5px). Headers (min>=15) + mid-range (12-14.5) left alone. 8 non-font clamps correctly skipped. Ensured max>=new_min so no invalid clamp.
