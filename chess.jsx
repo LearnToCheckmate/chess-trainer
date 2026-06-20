@@ -2785,7 +2785,7 @@ export default function App(){
       }
     }
     // Summary counts
-    const counts={Brilliant:0,Blunder:0,Mistake:0,Inaccuracy:0};
+    const counts={Brilliant:0,Great:0,Blunder:0,Mistake:0,Inaccuracy:0};
     out.forEach(o=>{if(counts[o.cls.label]!==undefined)counts[o.cls.label]++;});
     if(meta&&meta.key){
       const uc=meta.userColor;let bril=0,great=0,inacc=0,mist=0,blun=0;
@@ -4255,6 +4255,7 @@ export default function App(){
           {/* summary + actions */}
           <div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
             {review.counts.Brilliant>0&&<button onClick={()=>jumpToIssue('Brilliant')} title="Jump to next brilliant move" style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(13px,3vw,15px)',fontWeight:800,color:'#22d3ee',background:'#22d3ee1f',border:'1px solid #22d3ee66',borderRadius:20,padding:'5px 12px',cursor:'pointer',boxShadow:'0 2px 0 rgba(0,0,0,.25),0 4px 9px rgba(0,0,0,.22)'}}><b style={{fontSize:'clamp(16px,4vw,20px)'}}>{review.counts.Brilliant}</b> brilliant{review.counts.Brilliant>1?' moves':' move'} !! <span style={{opacity:.75,fontSize:'.9em'}}>›</span></button>}
+            {review.counts.Great>0&&<button onClick={()=>jumpToIssue('Great')} title="Jump to next great move" style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(13px,3vw,15px)',fontWeight:800,color:'#7bd3c0',background:'#7bd3c01f',border:'1px solid #7bd3c066',borderRadius:20,padding:'5px 12px',cursor:'pointer',boxShadow:'0 2px 0 rgba(0,0,0,.25),0 4px 9px rgba(0,0,0,.22)'}}><b style={{fontSize:'clamp(16px,4vw,20px)'}}>{review.counts.Great}</b> great{review.counts.Great>1?' moves':' move'} ! <span style={{opacity:.75,fontSize:'.9em'}}>›</span></button>}
             {[[review.counts.Blunder,'#ec5c4e','blunders','Blunder'],[review.counts.Mistake,'#f0a24e','mistakes','Mistake'],[review.counts.Inaccuracy,'#f0cf5e','inaccuracies','Inaccuracy']].map(([cn,c,lab,L])=>(
               cn>0
                 ? <button key={lab} onClick={()=>jumpToIssue(L)} title={`Jump to next ${lab.replace(/s$/,'')}`} style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(13px,3vw,15px)',fontWeight:700,color:c,background:c+'1f',border:'1px solid '+c+'66',borderRadius:20,padding:'5px 12px',cursor:'pointer',boxShadow:'0 2px 0 rgba(0,0,0,.25),0 4px 9px rgba(0,0,0,.22)'}}><b style={{fontSize:'clamp(16px,4vw,20px)'}}>{cn}</b> {lab} <span style={{opacity:.7,fontSize:'.9em'}}>›</span></button>

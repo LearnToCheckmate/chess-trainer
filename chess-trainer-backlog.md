@@ -1,4 +1,4 @@
-# ACTIVE QUEUE - reconciled 2026-06-19 (app at build #230)
+# ACTIVE QUEUE - reconciled 2026-06-19 (app at build #231)
 
 RULE: reconcile this section at the END of every run. Move shipped items to "Recently shipped", delete anything stale, keep only genuinely-open items, each tagged with an owner (CLAUDE or KUNAL). Everything below the "LOG" divider is historical and is NOT the queue.
 
@@ -36,7 +36,7 @@ Bigger features, all GREENLIT:
 - [ ] Best-move play-out: capture the full engine PV, then 'Show best move' plays the line out a few moves (why it's best), then snaps back. Lives on inaccuracies/mistakes/blunders.
 - [ ] Loading screen: stack the actual findings (blunders/mistakes) as cards as they're computed.
 - [x] Summary: bigger font + player-name column headers + coach one-liner from the counts (#218).
-- [ ] Add a Great jump chip next to the existing Brilliant one.
+- [x] Add a Great jump chip next to the existing Brilliant one (#231): added Great:0 to review.counts so it tallies, and a teal 'N great moves !' chip beside the Brilliant chip that jumps to the next great move. Needs a reviewed game containing a Great move to see.
 - [x] Endgame/lesson header: shipped as Prev/Next lesson navigation (#224) - the [‹ Prev][All ...][Next ›] row steps through lessons in a group. [KUNAL 2026-06-19]
 - [x] Top header now shows the content name (lesson/gambit/ending, or Play/Online/Puzzles/Game review) instead of CHESS TRAINER on content screens (#224). [KUNAL 2026-06-19]
 - [ ] FINAL: stage one comprehensive gallery scenario for Kunal's single recording (then he records).
@@ -94,6 +94,7 @@ Content from Kunal:
 - [ ] Video long tail + iPad two-column Home mockups.
 
 ## RECENTLY SHIPPED
+#231 GREAT JUMP CHIP (review overhaul): the review summary had a Brilliant chip and Blunder/Mistake/Inaccuracy chips but no Great chip, even though 'Great' is a real classification. Added Great:0 to review.counts (the existing loop auto-tallies it) and a teal chip beside Brilliant that jumps to the next great move. Verify by reviewing a game that has a great move.
 #230 NOTATION LESSON (greenlit, also requested in the feedback chat): added 'Reading Chess Notation' to Endgames & Theory - a 12-ply demo whose per-move notes teach algebraic notation (pawns = destination square, piece letters K/Q/R/B/N, captures with x, kingside castling O-O), with check/checkmate/promotion/disambiguation covered in the idea + plans. Line engine-verified legal; audit PASS. First version of the notation track; a dedicated Basics category or interactive write-the-move drills would be the natural follow-up (a UI build to confirm on device).
 #229 CONSISTENCY: stripped the move prefix from 938 notes in the OLDER lessons (OPENINGS + ENDGAMES) so the whole library now matches the post-#224 convention - no more '…Bc5 — Black copies' redundancy where the UI already shows the move label. Validated with the new audit.py (149 lessons PASS; 1 remaining warning is a false positive, the prose word 'Forced —'). ALSO created the run tooling the standing protocol depends on: audit.py (parses chess.jsx, validates every lesson - legal lines, legal FENs, aligned notes, correct #/+ annotations; warns on move-prefix notes; exit 1 on FAIL) and deploy.py (audit gate -> bundle with stamp -> one Git Data API commit -> Pages poll).
 #228 Dovetail (Cozio's) Mate added (FEN validated legal + forced mate). Considered also adding a Swallow's Tail/Gueridon mate but skipped it: the two patterns are near-identical and easy to mislabel, and shipping a wrong pattern name is worse than omitting it. Also refreshed the preview gallery to 12 scenarios that surface this run's work for Kunal to record: Square of the Pawn box viz (top), King's Gambit Cunningham (shows Prev/Next nav + header content title), Arabian/Epaulette/Dovetail mates, Two Knights, Ruy Lopez Closed, Albin, Caro Classical, French Rubinstein, Hippopotamus, Grand Prix.
