@@ -1,13 +1,19 @@
 # ACTIVE QUEUE - reconciled 2026-06-20 (app at build #246)
 
 ## GALLERY STATE (sync every run; WIPE items with evidence at run start)
-AWAITING KUNAL'S EVIDENCE (in the SC array now): Streak nudge + Curated gambit links. 2 items. Font screens + lesson auto-play REMOVED #251 (Kunal had recorded them - they were lingering; only the font-SIZE verdict is pending, gotten verbally).
+AWAITING KUNAL'S EVIDENCE (in the SC array now): Streak nudge + Curated gambit links + Font check: Discover + Font check: Puzzles. 4 items. The 2 font screens re-added #252 so Kunal can verify the smallest-font bump + check crowding.
 HAS EVIDENCE: lesson title check (#244), Coach paywall (#242).
 LESSON: do NOT wipe gallery screens that still have an OPEN QUESTION on them - the font size was open when #247 wiped them, so they came back #248.
 
 ## OPEN QUESTIONS (the ONLY content the HTML form may contain; if empty, send no form)
-- FONT SIZE (asked inline 06-20): Kunal has recorded the fonts 3x; the only thing pending is his verdict - bigger or good? Asked inline, no form.
+- FONT SIZE: verdict was 'smallest still a bit too small, headers OK, Game Review size is the target.' SHIPPED #252 (every fontSize clamp with min<=11.5 bumped +1; 218 changed). PENDING: Kunal verify it reads better without crowding (gallery Discover+Puzzles). NOTE: Kunal re-sent the identical note AFTER #252 deployed = a duplicate; #252 already covers it; do NOT double-bump unless he confirms still-too-small.
 
+
+## 2026-06-20 - BUILD #252 - smallest font tier +1 (Kunal's verdict)
+- Kunal's font verdict: headers fine, the smallest fonts across the board still a little too small, Game Review's reduced smaller-font size is a good target, make the smallest bigger without crowding.
+- BUMPED: every fontSize clamp with min<=11.5px got +1px (218 actually changed; smallest tier 7-11.5 -> 8-12.5px). Headers (min>=15) + mid-range (12-14.5) left alone. 8 non-font clamps correctly skipped. Ensured max>=new_min so no invalid clamp.
+- Gallery now 4 items: Streak nudge, Curated gambit links, Font check: Discover, Font check: Puzzles (last two re-added to verify the new size + crowding).
+- PENDING: Kunal verify the +1 reads well without crowding.
 
 ## 2026-06-20 - BUILD #251 - curated cross-link + gallery decluttered
 - Cross-link REBUILT: replaced the generic "more gambits as [color]" list (Kunal flagged it as low-value since all gambits are already in the list) with a hand-built RELATED map (57 entries, 77 links, all validated vs real lesson names). Each gambit/opening now shows curated "Related lessons" on its about-card: parent opening (Evans Gambit -> Italian Game), its famous trap (Budapest -> Kieninger Trap), or the opposite-color counter (King's Gambit -> Falkbeer Counter-Gambit), plus reverse links (mainline -> its gambits). Built entirely solo, no input needed from Kunal.
