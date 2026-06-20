@@ -18,12 +18,12 @@ T=[
  ("play","Back/forward move navigation in live games","done","",""),
  ("play","Minute-based time controls (1/2/3/5/10 min)","done","",""),
  ("play","vs-Computer time control surfaced in setup","done","#253",""),
- ("play","Captured-pieces display per player","done","#256","Replaced 'Material even'; dark-on-dark contrast fixed in #256."),
+ ("play","Captured-pieces display per player","done","#256","Contrast fixed in #256."),
  ("play","Drag-and-drop castling","done","",""),
- ("play","Remove redundant 'You are Black' / turn labels","open","","Player bars already show side + whose turn; labels are redundant."),
- ("play","Correspondence mode (1/3/7-day per move)","open","","Bigger build; picker in the online lobby."),
- ("play","Play nearby (neighbours by approx location)","open","","Bigger build."),
- ("play","Video call during online play (WebRTC)","open","","Bigger build."),
+ ("play","Remove redundant 'You are Black' / turn labels","open","","Player bars already show side + whose turn."),
+ ("play","Correspondence mode (1/3/7-day per move)","open","","Picker in the online lobby."),
+ ("play","Play nearby (neighbours by approx location)","open","",""),
+ ("play","Video call during online play (WebRTC)","open","",""),
  ("lessons","Openings library (~175 engine-verified lessons)","done","",""),
  ("lessons","Gambits bucketed by first move","done","",""),
  ("lessons","Endgames & theory lessons","done","",""),
@@ -33,8 +33,8 @@ T=[
  ("lessons","Lesson-to-lesson navigation buttons","done","",""),
  ("lessons","Square of the Pawn visualization","done","",""),
  ("lessons","Move-prefix stripped from all lesson notes","done","#229",""),
- ("lessons","Rousseau 4.d4 line fixed (Smirnov trap)","done","#258","7...Qxd5 8.Nc3 Qxf5 wins a piece; auto-plays in the gallery."),
- ("lessons","Reorder lesson rows by popularity","open","","You chose 'most popular first'; reorder pending."),
+ ("lessons","Rousseau 4.d4 line fixed (Smirnov trap)","done","#258","Auto-plays in the gallery to verify."),
+ ("lessons","Reorder lesson rows by popularity","open","","You chose 'most popular first'."),
  ("puzzles","Lichess CC0 puzzle roadmap (tiered)","done","",""),
  ("puzzles","Puzzles free (not Pro-gated)","done","#108",""),
  ("review","Chess.com + Lichess game import","done","",""),
@@ -42,12 +42,12 @@ T=[
  ("review","Two-column Game Review summary card","done","#98",""),
  ("review","Great-move classification chip","done","#231",""),
  ("review","Tap 'Better was X' to show best move on board","done","#42",""),
- ("review","Review overhaul (eval bar, brilliant heuristic)","part","#217","Part 1 shipped; rest needs a sample PGN from you."),
+ ("review","Review overhaul (eval bar, brilliant heuristic)","part","#217","Part 1 shipped; rest needs a sample PGN."),
  ("review","Best-move play-out (full engine line, then snap back)","open","",""),
- ("coach","Coach section (Pro, taste-then-gate)","done","#242","3 free Coach replies before the paywall."),
- ("tourn","Tournaments lobby + create + pairing (all 3 formats)","done","","Round-robin, knockout, Swiss; pairing engine verified."),
- ("tourn","Tournaments full run (Stage 3+)","open","","Bigger build; needs your testing."),
- ("social","Friends network (add by user ID, mutual accept)","open","","Planned; 'Add friend' on past opponents."),
+ ("coach","Coach section (Pro, taste-then-gate)","done","#242","3 free Coach replies before paywall."),
+ ("tourn","Tournaments lobby + create + pairing (all 3 formats)","done","","Round-robin, knockout, Swiss."),
+ ("tourn","Tournaments full run (Stage 3+)","open","","Needs your testing after."),
+ ("social","Friends network (add by user ID, mutual accept)","open","","'Add friend' on past opponents."),
  ("money","Pro gates Coach section only","done","",""),
  ("money","Pricing $2.99/mo + $19.99/yr (in-app paywall)","done","",""),
  ("money","Board skins (Playful/Medieval) stay Pro","done","",""),
@@ -56,18 +56,17 @@ T=[
  ("polish","Smallest fonts bumped (Discover, Puzzles)","done","#254",""),
  ("polish","Duplicate lesson title removed","done","#236",""),
  ("polish","Avatar at bottom-right","done","",""),
- ("polish","Preview gallery (verification scenarios)","done","","Ongoing; auto-plays screens for you to record."),
+ ("polish","Preview gallery (verification scenarios)","done","","Auto-plays screens for you to record."),
  ("polish","Streak retention phase 1 (in-app)","done","#249",""),
  ("infra","React PWA on GitHub Pages (installable)","done","",""),
  ("infra","Firebase (Google auth, Firestore, Blaze)","done","",""),
- # NEEDS-YOU (open + you)
  ("lessons","List your own openings not yet in the library","openY","","You still owe me this list."),
- ("coach","Coach avatar redesign (minimalist)","openY","","You said yes/minimalist; needs SVG mockups first."),
+ ("coach","Coach avatar redesign (minimalist)","openY","","Needs SVG mockups first."),
  ("polish","Custom piece art (theme phase 2)","openY","","Needs style mockups first."),
  ("polish","iPad two-column landscape Home","openY","","Parked; needs iPad screenshots."),
- ("money","Recreate Stripe TEST prices at $2.99/$19.99","openY","","Current test IDs are the old $0.99/$9.99."),
+ ("money","Recreate Stripe TEST prices at $2.99/$19.99","openY","","Current test IDs are old $0.99/$9.99."),
  ("money","Run Stripe 4242 test checkout","openY","",""),
- ("infra","Sign-in persistence on installed iOS PWA","open","","Known WebKit storage-partitioning issue; workaround Safari."),
+ ("infra","Sign-in persistence on installed iOS PWA","open","","Known WebKit issue; workaround Safari."),
  ("infra","Buy gambitcoach.com domain","openY","","~$10.46 at Cloudflare."),
  ("infra","Closed-app streak push (FCM VAPID key)","openY","","Biggest retention gap."),
  ("infra","Photo-to-board (scanBoard function + vision API)","openY","","Function deploy + API key."),
@@ -77,13 +76,66 @@ TASKS=[]
 for g,t,s,b,n in T:
     you=s.endswith("Y"); s=s[:-1] if you else s
     TASKS.append({"g":g,"t":t,"s":s,"you":you,"b":b,"n":n})
-edt=datetime.datetime.utcnow()-datetime.timedelta(hours=4)
-stamp="Snapshot "+edt.strftime("%Y-%m-%d %-I:%M %p")+" EDT - live build #258 - significant items, curated from the backlog"
-tpl=open("chess-tracker.template.html",encoding="utf-8").read()
-html=tpl.replace("__STAMP__",stamp).replace("__GROUPS_JSON__",json.dumps(GROUPS)).replace("__TASKS_JSON__",json.dumps(TASKS))
-assert "__GROUPS_JSON__" not in html and "__TASKS_JSON__" not in html and "__STAMP__" not in html
+QUESTIONS=[
+ {"id":"big","q":"Which bigger build should I tackle next?","o":["Correspondence mode","Friends network","Tournaments full run","Video call in online play","Photo-to-board"]},
+ {"id":"style","q":"Custom pieces + coach avatar: which look should I mock up first?","o":["Flat geometric","Clean line-art","Simplified classic"]},
+ {"id":"reorder","q":"Lesson rows by popularity: how should I get the order?","o":["Use my best-guess popularity now","Wait for your openings list"]},
+]
+edt=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=4)).strftime("%Y-%m-%d %-I:%M %p")
+stamp="Snapshot "+edt+" EDT - live build #258"
+HTML=r'''<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chess Trainer - plan</title><style>
+:root{--bg:#14171c;--card:#1c2027;--line:rgba(255,255,255,.08);--tx:#e8eaee;--dim:rgba(255,255,255,.58);--r:12px;--ac:#2c5f8a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:18px 14px 100px}
+h1{font-size:20px;margin:0 0 2px}h2{font-size:15px;margin:18px 0 8px}
+.stamp{color:var(--dim);font-size:12.5px;margin-bottom:10px}
+.intro{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:11px 13px;font-size:13px;color:var(--dim);margin-bottom:16px;line-height:1.5}
+.q{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:11px 13px;margin-bottom:10px}
+.qt{font-size:14px;font-weight:600;margin-bottom:8px}
+.opts{display:flex;gap:7px;flex-wrap:wrap}
+.opt{border:1px solid var(--line);background:#222730;color:var(--tx);border-radius:10px;padding:8px 12px;font-size:13px;cursor:pointer}
+.opt.sel{background:#2c6e3f;border-color:#2c6e3f;color:#fff;font-weight:600}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--tx);border-radius:18px;padding:7px 14px;font-size:13px;cursor:pointer}
+.chip.on{background:var(--ac);border-color:var(--ac)}
+.grp{margin-bottom:18px}.gh{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;margin:0 0 8px}
+.gdot{width:10px;height:10px;border-radius:50%}
+.task{background:var(--card);border:1px solid var(--line);border-left-width:3px;border-radius:var(--r);padding:10px 12px;margin-bottom:8px}
+.trow{display:flex;align-items:flex-start;gap:8px}.tt{flex:1;font-size:14px;font-weight:550}
+.pill{font-size:10.5px;border-radius:8px;padding:2px 8px;font-weight:700;white-space:nowrap;margin-top:1px}
+.p-open{background:rgba(123,209,255,.16);color:#7bd1ff}.p-part{background:rgba(224,184,90,.16);color:#e0b85a}.p-done{background:rgba(74,103,65,.5);color:#9fd28f}
+.you{font-size:10.5px;border-radius:8px;padding:2px 8px;font-weight:700;background:rgba(224,90,90,.18);color:#f0a0a0;margin-top:1px;white-space:nowrap}
+.bb{font-size:10.5px;color:var(--dim);margin-top:1px;white-space:nowrap}.nn{color:var(--dim);font-size:12.5px;margin-top:5px}
+.pick{margin-top:8px;border:1px solid #3a6e8a;background:transparent;color:#9bd0f0;border-radius:9px;padding:6px 11px;font-size:12.5px;font-weight:600;cursor:pointer}
+.pick.on{background:#2c5f8a;border-color:#2c5f8a;color:#fff}.num{display:inline-block;min-width:15px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:rgba(20,23,28,.97);border-top:1px solid var(--line);padding:10px 14px calc(env(safe-area-inset-bottom,0px) + 10px);display:flex;align-items:center;gap:10px}
+.cnt{flex:1;font-size:12.5px;color:var(--dim)}
+.cpy{border:none;background:linear-gradient(135deg,#6ea8fe,#3b76e8);color:#fff;border-radius:11px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer}
+</style></head><body>
+<h1>Chess Trainer - plan</h1><div class="stamp">__STAMP__</div>
+<div class="intro">Tap <b>+ Build next</b> on the open items you want me to do, in the order you want them (the number is priority). Answer the decisions. Then tap <b>Copy my plan</b> and paste it back to me.</div>
+<div id="qsec"></div><div class="chips" id="chips"></div><div id="root"></div>
+<div class="bar"><div class="cnt" id="cnt"></div><button class="cpy" id="cpy">Copy my plan</button></div>
+<script>
+const GROUPS=__GROUPS__,TASKS=__TASKS__,QUESTIONS=__QUESTIONS__;
+const picks=[],answers={};let filt="all";
+const FILTS=[["all","All"],["open","To build"],["you","Needs you"],["done","Done"]];
+function esc(x){return String(x||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function pill(s){return s==="open"?'<span class="pill p-open">OPEN</span>':s==="part"?'<span class="pill p-part">IN PROGRESS</span>':'<span class="pill p-done">DONE</span>';}
+function able(t){return (t.s==="open"&&!t.you)||t.s==="part";}
+function pass(t){if(filt==="all")return true;if(filt==="you")return t.you&&t.s!=="done";if(filt==="open")return able(t);return t.s===filt;}
+function qr(){var q=document.getElementById("qsec");q.innerHTML='<h2>Decisions</h2>'+QUESTIONS.map(function(Q){return '<div class="q"><div class="qt">'+esc(Q.q)+'</div><div class="opts">'+Q.o.map(function(o){return '<button class="opt'+(answers[Q.id]===o?' sel':'')+'" data-q="'+Q.id+'" data-o="'+esc(o)+'">'+esc(o)+'</button>';}).join('')+'</div></div>';}).join('');q.querySelectorAll('.opt').forEach(function(b){b.onclick=function(){answers[b.dataset.q]=b.dataset.o;qr();cnt();};});}
+function tr(){var root=document.getElementById("root");root.innerHTML="";GROUPS.forEach(function(g){var ts=TASKS.filter(function(t){return t.g===g.key&&pass(t);});if(!ts.length)return;var d=document.createElement("div");d.className="grp";d.innerHTML='<div class="gh"><span class="gdot" style="background:'+g.color+'"></span>'+esc(g.nm)+'</div>'+ts.map(function(t){var i=TASKS.indexOf(t);var pi=picks.indexOf(i);return '<div class="task" style="border-left-color:'+g.color+'"><div class="trow"><div class="tt">'+esc(t.t)+'</div>'+pill(t.s)+(t.you&&t.s!=="done"?'<span class="you">NEEDS YOU</span>':'')+(t.b?'<span class="bb">'+esc(t.b)+'</span>':'')+'</div>'+(t.n?'<div class="nn">'+esc(t.n)+'</div>':'')+(able(t)?'<button class="pick'+(pi>=0?' on':'')+'" data-i="'+i+'">'+(pi>=0?'<span class="num">'+(pi+1)+'.</span> Queued':'+ Build next')+'</button>':'')+'</div>';}).join('');root.appendChild(d);});root.querySelectorAll('.pick').forEach(function(b){b.onclick=function(){var i=+b.dataset.i;var at=picks.indexOf(i);if(at>=0)picks.splice(at,1);else picks.push(i);tr();cnt();};});}
+function chips(){var c=document.getElementById("chips");c.innerHTML="";FILTS.forEach(function(f){var b=document.createElement("button");b.className="chip"+(filt===f[0]?" on":"");b.textContent=f[1];b.onclick=function(){filt=f[0];chips();tr();};c.appendChild(b);});}
+function cnt(){var na=Object.keys(answers).length;document.getElementById("cnt").textContent=picks.length+" queued \u00b7 "+na+"/"+QUESTIONS.length+" answered";}
+function plan(){var s="[Chess Trainer plan]\nBuild next (in order):\n";if(picks.length)picks.forEach(function(i,n){s+=(n+1)+". "+TASKS[i].t+"\n";});else s+="(none picked)\n";s+="\nDecisions:\n";QUESTIONS.forEach(function(Q){s+="- "+Q.q+" => "+(answers[Q.id]||"(no answer)")+"\n";});return s;}
+document.getElementById("cpy").onclick=function(){var txt=plan(),ok=false;try{navigator.clipboard.writeText(txt);ok=true;}catch(e){}if(!ok){try{var ta=document.createElement("textarea");ta.value=txt;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.focus();ta.select();ok=document.execCommand("copy");document.body.removeChild(ta);}catch(e){}}if(ok){var b=document.getElementById("cpy");b.textContent="Copied!";setTimeout(function(){b.textContent="Copy my plan";},1600);}else{prompt("Copy this and paste it back to me:",txt);}};
+qr();chips();tr();cnt();
+</script></body></html>'''
+html=HTML.replace("__STAMP__",stamp).replace("__GROUPS__",json.dumps(GROUPS)).replace("__TASKS__",json.dumps(TASKS)).replace("__QUESTIONS__",json.dumps(QUESTIONS))
+assert "__" not in html.replace("__STAMP__","X"), "placeholder leftover"
+for ph in ["__GROUPS__","__TASKS__","__QUESTIONS__","__STAMP__"]: assert ph not in html
 open("chess-tracker.html","w",encoding="utf-8").write(html)
-from collections import Counter
-c=Counter(t["s"] for t in TASKS); y=sum(1 for t in TASKS if t["you"] and t["s"]!="done")
-print("tasks:",len(TASKS),"| done:",c["done"],"| open:",c["open"],"| in progress:",c["part"],"| need you:",y)
-print("bytes:",len(html))
+print("buildable open items:",sum(1 for t in TASKS if (t["s"]=="open" and not t["you"]) or t["s"]=="part"))
+print("questions:",len(QUESTIONS),"| html bytes:",len(html))
