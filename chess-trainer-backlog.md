@@ -1,12 +1,18 @@
 # ACTIVE QUEUE - reconciled 2026-06-20 (app at build #246)
 
 ## GALLERY STATE (sync every run; WIPE items with evidence at run start)
-AWAITING KUNAL'S EVIDENCE (in the SC array now): NONE - gallery is EMPTY. Repopulate when the next feature has something visual to verify.
-HAS EVIDENCE / ALREADY REMOVED: font check x9 (#246, browser recording 06-20 confirmed fonts render well, wiped #247), lesson title check (#244), Coach paywall (#242).
+AWAITING KUNAL'S EVIDENCE (in the SC array now): 8 font screens (re-added #248 - Kunal wants to judge the size himself) + Lesson auto-play (item 2, the line plays itself). 9 items.
+HAS EVIDENCE: lesson title check (#244), Coach paywall (#242).
+LESSON: do NOT wipe gallery screens that still have an OPEN QUESTION on them - the font size was open when #247 wiped them, so they came back #248.
 
 ## OPEN QUESTIONS (the ONLY content the HTML form may contain; if empty, send no form)
 - FONT SIZE (asked inline 06-20): #245 bump rendered; Claude's read is the fonts look good/readable. Does Kunal want them bigger still? Single question, asked inline, no form.
 
+
+## 2026-06-20 - BUILD #248 - green list finished + gallery repopulated
+- GREEN LIST DONE (all 4): (1) lesson auto-play = ALREADY built (opponent reply auto-plays 420ms after each correct move, last move plays too); (2) hint cooldown activity-based = shipped #247; (3) move-nav during a LIVE online game = ALREADY built (nav buttons render in online play; tapping the board while scrubbed snaps to live so no accidental move; a new move snaps to live); (4) cross-link gambits by color = shipped #248.
+- Cross-link (#248): on a gambit lesson's about-card, a "More gambits as White/Black" chip row links to up to 8 sibling gambits of the SAME color (gambits are already in "as White"/"as Black" categories). Tap a chip to open that gambit. INTERPRETATION CALL - if Kunal meant something else (e.g. traps linked to their parent opening), easy to swap.
+- Gallery: re-added the 8 static font screens + a "Lesson auto-play" scenario as item 2 (opens Italian Game, demo auto-plays itself). 9 items.
 
 ## 2026-06-20 - BUILD #247 - hint cooldown now activity-based + gallery wiped
 - Hint cooldown: removed the 10-minute timer lock. A clean replay (no hints, no wrong moves) now banks a mastery day immediately. The per-rep check still means the rep where you peeked does not bank - you just do one clean run after, no waiting.
