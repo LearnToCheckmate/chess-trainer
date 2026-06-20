@@ -2484,7 +2484,7 @@ export default function App(){
   useEffect(()=>{try{localStorage.setItem('ct_coachtargets',JSON.stringify(coachTargets));}catch{}},[coachTargets]);
   useEffect(()=>{try{localStorage.setItem('ct_coachtier',JSON.stringify(coachTier));}catch{}},[coachTier]);
   useEffect(()=>{if(!coachOpen)return;setCoachTier(t=>{const at=(typeof t.swapAt==='number')?t.swapAt:0;if(Date.now()-at>=432000000&&(t.swapsLeft||0)<2)return {...t,swapsLeft:2,swapAt:Date.now()};if(typeof t.swapAt!=='number')return {...t,swapAt:Date.now()};return t;});},[coachOpen]);
-  useEffect(()=>{if(mode==='learn'&&learnPhase==='practice'&&(showHint||revealHint)){learnRepRef.current.hints=true;const _op=LIB[openIdxRef.current];const nm=_op&&_op.name;if(nm){hintLockRef.current={...hintLockRef.current,[nm]:Date.now()+600000};try{localStorage.setItem('ct_hintlock',JSON.stringify(hintLockRef.current));}catch(e){}}}},[mode,learnPhase,showHint,revealHint]);
+  useEffect(()=>{if(mode==='learn'&&learnPhase==='practice'&&(showHint||revealHint)){learnRepRef.current.hints=true;}},[mode,learnPhase,showHint,revealHint]);
   useEffect(()=>{
     if(mode==='learn'&&learnPhase==='practice'&&openIdx!=null&&learnLine.length>0){
       if(openStep<learnLine.length){trainArmed.current=true;}
@@ -2967,8 +2967,6 @@ export default function App(){
     const days=Array.isArray(cur.days)?cur.days.slice():[];
     if(rep.hints)return days.length?'':' Nice run with hints on. Hints-off runs are the ones that bank days.';
     if(rep.miss)return days.length?' A wrong try slipped in, so no day banked. Flawless runs only.':' A wrong try slipped in. Learned needs one flawless run: no hints, no wrong tries. You are close.';
-    const lockedUntil=(hintLockRef.current&&hintLockRef.current[op.name])||0;
-    if(Date.now()<lockedUntil){const mins=Math.max(1,Math.ceil((lockedUntil-Date.now())/60000));return ' Flawless, but hints were on for this lesson in the last 10 minutes. It can bank a day again in about '+mins+' min.';}
     const today=dstr(new Date());
     const wasM=days.length>=LEARN_GOAL;
     const first=days.length===0;
@@ -3456,17 +3454,7 @@ export default function App(){
           setTimeout(stepFn,750);
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
-        const SC=[
-          {l:"Font check: Home (tiles + coach card)", n:"The home screen: four tiles plus the coach tile. Screenshot this one for the small-fonts button pass.", r:()=>{setHomeScreen(true);setMenuOpen(false);}},
-          {l:"Font check: Discover (opening tiles)", n:"The openings list - check the tile label fonts after the #245 bump.", r:()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup('openings');}, h:5500},
-          {l:"Font check: Coach", n:"The Coach screen - check the coach-section fonts.", r:()=>{setHomeScreen(false);setCoachOpen(true);}, h:5500},
-          {l:"Font check: Game review", n:"The Review/analyze screen - check the review fonts.", r:()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');setOpenIdx(null);}, h:5500},
-          {l:"Font check: Play setup", n:"Play setup: the opponent picker plus the time-control picker. Screenshot this one.", r:()=>{setHomeScreen(false);setMode('play');setOpponent('computer');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}},
-          {l:"Font check: Puzzles", n:"The Puzzles roadmap and list. Screenshot this one.", r:()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},
-          {l:"Font check: Online", n:"The online screen: Quick match, Create, Join, Friends, Tournaments. Screenshot this one. (Shows a sign-in prompt if you are signed out, which is fine.)", r:()=>{setHomeScreen(false);setMode('play');setOpponent('online');setOnlineGame(null);setMyColor(null);setOnlineErr('');setPlaySetup(false);}},
-          {l:"Font check: Menu", n:"The hamburger menu: subscription, sign-out, links. Screenshot this one.", r:()=>{setHomeScreen(true);setMenuOpen(true);}},
-          {l:"Font check: Tactics trainer (auto-demo)", n:"Plays itself. In Play all it auto-pages through all 13 tactics (revealing each answer) then every strategy concept. No taps needed - just let the recording run.", r:()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup('tactics');setTrainerDemo(true);setTimeout(()=>setIntroCard(false),60);},h:47000},
-        ];
+        const SC=[];
         const _runAll=()=>{
           setPreview(false);setTrainerDemo(false);const N=SC.length;let i=0;
           const go=()=>{
