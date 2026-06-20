@@ -1,5 +1,13 @@
 # ACTIVE QUEUE - reconciled 2026-06-20 (app at build #246)
 
+## GALLERY STATE (sync every run; WIPE items with evidence at run start)
+AWAITING KUNAL'S EVIDENCE (in the SC array now): Font check x9 - Home, Discover tiles, Coach, Game review, Play setup, Puzzles, Online, Menu, Tactics trainer (all for the #245 font pass; awaiting one Play all recording).
+HAS EVIDENCE / ALREADY REMOVED: lesson title check (#244, recorded), Coach paywall (#242, confirmed/recorded).
+
+## OPEN QUESTIONS (the ONLY content the HTML form may contain; if empty, send no form)
+- none open. All 2026-06-20 decisions are captured (pricing $2.99/$19.99, taste-then-gate, skins Pro, gambits buckets, iPad parked, avatar bottom-right, piece-art high + generate options, 4 features greenlit any-order). Do NOT re-ask any of these.
+
+
 ## 2026-06-20 - BUILD #246 - gallery cleaned to font-verification screens only
 - Removed the two DONE items: Lesson-view title check (shipped #244) and Coach paywall (confirmed via recording).
 - Relabeled remaining screens as "Font check: X"; added Discover (opening tiles), Coach, and Game review so the gallery now covers all of Kunal's flagged font areas (home, tiles, coach, tactics, review). Gallery = 9 font-check screens. Old items cleared per policy.
