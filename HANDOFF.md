@@ -1,4 +1,13 @@
-# Chess Trainer — Build Chat Handoff (refreshed 2026-06-20, app at build #228)
+# Chess Trainer — Build Chat Handoff (refreshed 2026-06-20, app at build #246)
+
+## EVERY-RUN PRE-FLIGHT (MANDATORY - do FIRST, before any building, and REPORT it at the TOP of every run reply)
+The report is the forcing function: if these results must appear at the top of the reply, they cannot be skipped. Run all four every run:
+1. SWEEP CHATS - read the #2 Feedback chat and the #3 manual-tasks chat for new items (and scan ALL project chats about once a day). Fold anything new into chess-trainer-backlog.md (Open, dated). Report which chats were swept and what was folded (or "nothing new").
+2. WIPE GALLERY - remove every preview-gallery (SC) item Kunal has already given evidence for (recorded or screenshotted) with no pending change. The gallery only ever holds screens awaiting NEW evidence. Report what was removed and what remains.
+3. SYNC BACKLOG - mark shipped items Done; refresh the Open list and the OPEN QUESTIONS list. The backlog is the single source of truth; nothing lives only in a chat or in memory.
+4. FORM = OPEN QUESTIONS ONLY - if building the HTML questions form, use ONLY the backlog's OPEN QUESTIONS section. Never include a decided item. If OPEN QUESTIONS is empty, send NO form.
+At run END: add to the gallery only the screens THIS run changed that still need Kunal's eyes; move shipped items to Done; refresh OPEN QUESTIONS. The gallery and the form are GENERATED FROM the backlog, never assembled ad-hoc.
+
 
 ## Boot sequence for the new build chat
 1. SECRET FIRST: the GitHub fine-grained PAT is NOT in this repo and must never be written to any file. Retrieve it by searching the original build chat for "github_pat" (conversation_search). Use it inline in env only.
