@@ -42,7 +42,7 @@ T=[
  ("review","Two-column Game Review summary card","done","#98",""),
  ("review","Great-move classification chip","done","#231",""),
  ("review","Tap 'Better was X' to show best move on board","done","#42",""),
- ("review","Review overhaul (eval bar, brilliant heuristic)","part","#217","Eval is a pill + a graph (board-side bar was removed - ate board width). Decide on the bar; brilliant heuristic needs a sample PGN."),
+ ("review","Review overhaul (eval bar, brilliant heuristic)","part","#260","Eval bar BUILT #260 (thin vertical, in the gallery - decide keep/remove). Brilliant heuristic still needs a sample PGN."),
  ("review","Best-move play-out (full engine line, then snap back)","open","","Only the single best move is stored (green arrow). Full PV needs an on-demand engine run - confirm scope."),
  ("coach","Coach section (Pro, taste-then-gate)","done","#242","3 free Coach replies before paywall."),
  ("tourn","Tournaments lobby + create + pairing (all 3 formats)","done","","Round-robin, knockout, Swiss."),
@@ -61,8 +61,8 @@ T=[
  ("infra","React PWA on GitHub Pages (installable)","done","",""),
  ("infra","Firebase (Google auth, Firestore, Blaze)","done","",""),
  ("lessons","List your own openings not yet in the library","openY","","You still owe me this list."),
- ("coach","Coach avatar redesign (minimalist)","openY","","Needs SVG mockups first."),
- ("polish","Custom piece art (theme phase 2)","openY","","Needs style mockups first."),
+ ("coach","Coach avatar redesign","openY","","My mockups weren't app-grade; send art or pick an open set."),
+ ("polish","Custom piece art (theme phase 2)","openY","","My mockups weren't app-grade; send art or pick an open set."),
  ("polish","iPad two-column landscape Home","openY","","Parked; needs iPad screenshots."),
  ("money","Recreate Stripe TEST prices at $2.99/$19.99","openY","","Current test IDs are old $0.99/$9.99."),
  ("money","Run Stripe 4242 test checkout","openY","",""),
@@ -77,12 +77,12 @@ for g,t,s,b,n in T:
     you=s.endswith("Y"); s=s[:-1] if you else s
     TASKS.append({"g":g,"t":t,"s":s,"you":you,"b":b,"n":n})
 QUESTIONS=[
- {"id":"avatar","q":"Which coach avatar should I refine and wire in? (see the mockups I sent)","o":["Sir Knight","The Mentor","Coach King"]},
- {"id":"evalbar","q":"Re-add a thin vertical eval bar in Review? (it was removed before for eating board width)","o":["Yes, add a thin lichess-style bar","No - the eval pill + graph is enough"]},
+ {"id":"evalbar","q":"The eval bar is built and in the gallery (top scenario) - keep it or remove it?","o":["Keep it","Remove it"]},
  {"id":"playout","q":"Best-move play-out: how far should it go?","o":["Play the full engine line, then snap back","Just animate the single best move"]},
+ {"id":"pieces","q":"Custom pieces/avatar: how should we source art? (my mockups weren't app-grade)","o":["I'll send a set or art","Use an open licensed set","Park it for now"]},
 ]
 edt=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=4)).strftime("%Y-%m-%d %-I:%M %p")
-stamp="Snapshot "+edt+" EDT - live build #259"
+stamp="Snapshot "+edt+" EDT - live build #260"
 HTML=r'''<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chess Trainer - plan</title><style>
