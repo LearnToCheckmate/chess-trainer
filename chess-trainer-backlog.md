@@ -1,4 +1,10 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #273)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #274)
+
+## 2026-06-21 - BUILD #274 - Review best-move line is now engine-perfect
+- Kunal answer #3: make the whole best-move line engine-perfect (was: strong first move from the engine + 3 weak depth-3 JS follow-up plies).
+- FIX: the analysis Stockfish worker already streams a principal variation (PV) on its info lines; now captured. Added sfBestLine(fen,movetime) that returns the engine's best line as UCI moves. playBestLine now anchors the first move on the labelled "Better was X" move (so the badge still matches), then plays the engine's PV continuation from there (up to ~4 more plies), converted via uciToMove. Graceful fallback to the old JS follow-ups if the engine worker is unavailable (sandbox) or returns nothing.
+- Cost: one ~1.1s engine think when the user taps "tap to see it" in Review; the line that plays is then full-strength.
+- Eval bar (answer #1): verified already correct - only shows in Review and vs-Computer, never in a human game. No change needed.
 
 ## 2026-06-20 - BUILD #273 - Review: brilliant detection fixed + Copy game (PGN export)
 - Kunal (chess.com screenshot): chess.com tagged his 17...Bxh3 (a bishop sac) BRILLIANT; our review called it "Good" and never even tested it for brilliance. ROOT CAUSE: isBrilliant's first gate required the move to be the engine's essentially-top choice (loss < 15cp). A real sac shows a small eval dip at our analysis depth before the payoff, so it lands as Good (loss 40-90) and skips the brilliant test. FIX: the gate now accepts any sound move (Good or better, loss < 90) and keys off the SACRIFICE (gives up >=2 after the exchanges settle) + still-winning-after (evAfter>=0.8) + contested-before (evBefore -1.0..3.5) - matching how chess.com flags brilliancies (the sac, not "exactly the top move"). Applies to both the Stockfish and JS-fallback paths (same fn).
