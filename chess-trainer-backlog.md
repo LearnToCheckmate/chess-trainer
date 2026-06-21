@@ -1,4 +1,7 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #266)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #267)
+
+## 2026-06-20 - BUILD #267 - gallery wiped to live items only
+- Kunal: gallery had too many items he'd already been through. Stripped it from 9 to 3, keeping ONLY what's live now: Play-out OPTION A (single move), Play-out OPTION B (full line), and the corrected Rousseau 4.d4 line to verify. Removed (all already recorded or settled): eval bar, best-move arrow, captured pieces (contrast), gambit cross-links, font check Discover, font check Puzzles.
 
 ## 2026-06-20 - BUILD #266 - play-out both options + trim chrome
 - PLAY-OUT (Kunal: show both options in gallery to choose): added BOTH to the gallery so he can compare. Option A "single move" (relabeled, Rxd5 only) and Option B "full line" (new, the engine's whole skewer line Rg1+ Kf6 Rxg8 plays out move by move then snaps back). Awaiting his pick. Gallery now 9 scenarios.
@@ -58,7 +61,7 @@ Kunal queued a 10-item plan from the interactive tracker. On code investigation 
 - DECISION lesson order = best-guess now: shipped #259.
 
 ## GALLERY STATE (sync every run; WIPE items with evidence at run start)
-AWAITING KUNAL'S EVIDENCE (in the SC array now): Rousseau 4.d4 fixed-line (auto-plays via pickVariation) + Captured pieces (contrast fix) + Curated cross-links + Font check: Discover + Font check: Puzzles + Eval bar (#260, decide keep/remove) + Best move arrow (#262) + Play-out single move + Play-out full line (#266). 9 items. Curated cross-link RE-ADDED #255 (Kunal asked to put it back). The 2 font screens for re-verifying the #256 (body 14px) bump. Captured-pieces fix is NOW a gallery scenario (#257): _play(FEN,'w') loads a live game at a position with captures on both sides so both bars render. Safe in Play-all (_play sets playSetup=false, not the setup overlay; the next scenario's r() resets mode).
+AWAITING KUNAL'S EVIDENCE (in the SC array now): Rousseau 4.d4 fixed-line (auto-plays via pickVariation) + Captured pieces (contrast fix) + Curated cross-links + Font check: Discover + Font check: Puzzles + Eval bar (#260, decide keep/remove) + Best move arrow (#262) GALLERY (3, live only): Play-out A, Play-out B, Rousseau corrected. Removed 6 settled/recorded (#267). Curated cross-link RE-ADDED #255 (Kunal asked to put it back). The 2 font screens for re-verifying the #256 (body 14px) bump. Captured-pieces fix is NOW a gallery scenario (#257): _play(FEN,'w') loads a live game at a position with captures on both sides so both bars render. Safe in Play-all (_play sets playSetup=false, not the setup overlay; the next scenario's r() resets mode).
 HAS EVIDENCE: lesson title check (#244), Coach paywall (#242).
 LESSON: do NOT wipe gallery screens that still have an OPEN QUESTION on them - the font size was open when #247 wiped them, so they came back #248.
 
