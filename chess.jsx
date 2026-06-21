@@ -934,11 +934,11 @@ function playBrilliantChime(){
   }catch(e){}
 }
 
-// Heuristic "Brilliant" (!!): an essentially-best move that gives up real material (after the exchanges
+// Heuristic "Brilliant" (!!): a sound move (Good or better) that gives up real material (after the exchanges
 // fully settle) yet keeps the mover clearly better, from a genuinely contested (not already-winning) position.
 // Deliberately strict — better to miss one than to over-award. NOTE: this is OUR heuristic, not a Stockfish output.
 function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
-  if(loss>=15)return false;                       // must be (essentially) the best move
+  if(loss>=90)return false;                       // must be (essentially) the best move
   const mc=pos.turn,sgn=mc==='w'?1:-1;
   const matBefore=sgn*materialDiff(pos.board);
   let g2;try{g2=makeMove(pos,pl);}catch(e){return false;}
@@ -950,7 +950,7 @@ function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
   try{const rep2=rankMoves(g3,1);if(rep2&&rep2[0]&&rep2[0].m)settled=applyMove(g3.board,rep2[0].m);}catch(e){}
   const sac=matBefore-sgn*materialDiff(settled);
   const evAfter=sgn*evalAfterWhite,evBefore=sgn*(evalBeforeWhite!=null?evalBeforeWhite:evalPawns(pos));
-  return sac>=2 && evAfter>=0.8 && evBefore>-1.0 && evBefore<3.0;
+  return sac>=2 && evAfter>=0.8 && evBefore>-1.0 && evBefore<3.5;
 }
 
 // Background tally of a game's move quality for the USER (or all moves if color unknown). Yields periodically so it can run without freezing the UI.
@@ -2300,6 +2300,7 @@ export default function App(){
   const [ccLoading,setCcLoading]=useState(false);
   const [review,setReview]=useState(null);
   const [reviewView,setReviewView]=useState('moves');
+  const [pgnCopied,setPgnCopied]=useState(false);
   const [lastReview,setLastReview]=useState(null);
   const [myBrilliant,setMyBrilliant]=useState(()=>{try{const v=localStorage.getItem('ct_mybrilliancies');return v?JSON.parse(v):[];}catch{return [];}});
   const [ply,setPly]=useState(0);
@@ -2878,7 +2879,7 @@ export default function App(){
     const bookN=openingBookPlies(playedSans);
     const _sideStats=(side)=>{const c={Brilliant:0,Great:0,Best:0,Good:0,Book:0,Inaccuracy:0,Miss:0,Mistake:0,Blunder:0};let sl=0,n=0;out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(mc!==side)return;if(i<bookN){c.Book++;return;}const L=o.cls&&o.cls.label;if(L==='Brilliant')c.Brilliant++;else if(L==='Great')c.Great++;else if(L==='Best'||L==='Excellent')c.Best++;else if(L==='Good')c.Good++;else if(L==='Inaccuracy')c.Inaccuracy++;else if(L==='Miss')c.Miss++;else if(L==='Mistake')c.Mistake++;else if(L==='Blunder')c.Blunder++;sl+=Math.max(0,o.loss||0);n++;});const acpl=n?sl/n:0;const acc=Math.max(15,Math.min(99.5,100*Math.exp(-acpl/300)));const rating=Math.max(450,Math.min(2500,Math.round(600+(acc-50)*28)));return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10,rating};};
     const summary={w:_sideStats('w'),b:_sideStats('b'),userColor:(meta&&meta.userColor)||null,book:bookN};
-    const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary};
+    const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,pgn:text};
     setReview(_rv);setLastReview(_rv);setReviewView('summary');
     setPly(0);setFlip(false);setAnalyzing(false);setProgress(1);
   };
@@ -4341,6 +4342,7 @@ export default function App(){
           <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'center'}}>
             <button onClick={()=>{setSetupFromFEN(toFEN(boardGame));setOpponent('computer');setPColor(boardGame.turn);setTimeCtrl(null);timeCtrlRef.current=null;setOpenIdx(null);setMode('play');setPlaySetup(true);}} style={btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)')}>▶ Play from here</button>
             <button onClick={()=>setShowBest(b=>!b)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)',showBest?'var(--ac)':'rgba(255,255,255,.7)')}>{showBest?'✓ Showing best':'💡 Show best move'}</button>
+            <button onClick={()=>{let _p=(review.pgn&&review.pgn.trim())?review.pgn.trim():'';if(!_p){const _h=review.headers||{};const _t=['Event','Site','Date','White','Black','Result'].map(k=>'['+k+' "'+(_h[k]||(k==='Result'?'*':'?'))+'"]').join('\n');let _m='';for(let i=0;i<review.plies.length;i++){if(i%2===0)_m+=(i/2+1)+'. ';_m+=review.plies[i].san+' ';}_p=_t+'\n\n'+_m.trim()+' '+(_h.Result||'*');}try{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(_p);}catch(e){}try{const _ta=document.createElement('textarea');_ta.value=_p;_ta.style.position='fixed';_ta.style.opacity='0';document.body.appendChild(_ta);_ta.focus();_ta.select();document.execCommand('copy');document.body.removeChild(_ta);}catch(e){}setPgnCopied(true);setTimeout(()=>setPgnCopied(false),1800);}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>{pgnCopied?'✓ Copied':'Copy game'}</button>
             <button onClick={()=>setFlip(f=>!f)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⟳ Flip</button>
             <button onClick={resetReview} style={btn('#4a6741','none','#fff')}>＋ New game</button>
           </div>

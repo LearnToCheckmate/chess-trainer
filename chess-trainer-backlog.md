@@ -1,4 +1,10 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #272)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #273)
+
+## 2026-06-20 - BUILD #273 - Review: brilliant detection fixed + Copy game (PGN export)
+- Kunal (chess.com screenshot): chess.com tagged his 17...Bxh3 (a bishop sac) BRILLIANT; our review called it "Good" and never even tested it for brilliance. ROOT CAUSE: isBrilliant's first gate required the move to be the engine's essentially-top choice (loss < 15cp). A real sac shows a small eval dip at our analysis depth before the payoff, so it lands as Good (loss 40-90) and skips the brilliant test. FIX: the gate now accepts any sound move (Good or better, loss < 90) and keys off the SACRIFICE (gives up >=2 after the exchanges settle) + still-winning-after (evAfter>=0.8) + contested-before (evBefore -1.0..3.5) - matching how chess.com flags brilliancies (the sac, not "exactly the top move"). Applies to both the Stockfish and JS-fallback paths (same fn).
+- HONEST NOTE on speed: analysis runs Stockfish in-browser (WASM), ~1.3s/position, ~1 min/game - inherently slower than chess.com's server-side engine. Did NOT cut the time (would hurt accuracy, the actual complaint). The classification fix is the accuracy lever.
+- COPY GAME: new "Copy game" button in the Review move view copies the game PGN to the clipboard (original imported PGN if present, else rebuilt from moves+headers). Source PGN now stored on the review object.
+- VERIFY: re-analyze the Bxh3 game on #273 (should read Brilliant) + use Copy game to paste me the PGN so I can confirm + fine-tune the threshold.
 
 ## 2026-06-20 - BUILD #272 - captured-pieces pane = one solid white strip
 - Kunal (recording of #271): the captured fix still looked inconsistent - the white was only a thin tray hugging the dark boxes (white pieces), while the black pieces sat in separate individual white boxes. He wants the WHOLE pane the pieces sit on to be one solid white strip, not little boxes.
