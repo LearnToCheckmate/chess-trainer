@@ -1,4 +1,10 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #269)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #270)
+
+## 2026-06-20 - BUILD #270 - play-out animation fix + captured-piece tray
+- Kunal feedback: the best-move play-out looked wrong (rook/king visible in BOTH old and new squares = ghost; captured queen vanished before the rook arrived). Root cause: the play-out set the slide anim BEFORE updating the board, so the board showed the before-state during the slide AND the to-piece hide didn't apply cleanly. FIX: the play-out now holds the BEFORE state for the whole slide with the moving piece's FROM square hidden (new slideFromHide flag flips the cell hide from the to-square to the from-square), advancing to the after-state only when the slide lands - so no ghost, and a captured piece stays put until the moving piece lands on it (a natural capture). Applied to BOTH playBestLine (real Review) and the gallery demo. Real-game moves untouched (slideFromHide defaults false).
+- NOTE for later: in-game computer moves still use the after-state pattern (captured piece vanishes a touch early). Offered to give them the same natural-capture polish if Kunal wants the two to match exactly.
+- Kunal feedback: captured WHITE pieces were transparent (no box) while captured BLACK pieces sit in white boxes. FIX: captured white pieces now render in dark boxes wrapped in a single white tray, so they stand out the way the black-piece white boxes do.
+- GALLERY: kept the one play-out card so Kunal can re-check the fixed motion.
 
 ## 2026-06-20 - BUILD #269 - B shipped (best-move plays the line out in Review)
 - B (Kunal chose it): in a game review, on an inaccuracy/mistake/blunder, "Show best move" now PLAYS THE ENGINE'S LINE OUT move by move (the strong analysis pick first, then a few follow-ups from the built-in engine), then snaps back to the game. Implemented via a board override (bestLineBoard) so it never corrupts review state; cancels cleanly if you navigate plies. Arrow still shows after the line.
