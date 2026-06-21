@@ -1,4 +1,10 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #274)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #275)
+
+## 2026-06-21 - BUILD #275 - three new piece sets (answer #2: pick multiple open sets)
+- Added Merida (GPLv2+), Chessnut (Apache 2.0), and Spatial (MIT) as selectable piece sets alongside Classic (cburnett) and Symbol (unicode). All three are commercial-use-safe licenses (checked Lichess COPYING) - important because the app is monetized. The popular sets (Maestro, Staunty, etc.) are CC-BY-NC and were rejected as non-commercial.
+- Wiring: each set embedded as a base64 data-URI map (PIECE_MERIDA / PIECE_CHESSNUT / PIECE_SPATIAL); _Piece now reads the active map via a module pointer (_ACTIVE_PIECES) that the component sets from pieceSet each render; picker extended to 5 options with flexWrap.
+- Bundle grew ~125KB (one-time, cached). Pieces fall back to unicode if a data-URI ever fails to load.
+- TO VERIFY (Kunal): open the piece picker (same panel as board theme) and tap Merida / Chessnut / Spatial - the board updates live. Tell me which to keep; I can add more safe sets (Fantasy, Celtic, rhosgfx CC0, mono) or drop any that look off.
 
 ## 2026-06-21 - BUILD #274 - Review best-move line is now engine-perfect
 - Kunal answer #3: make the whole best-move line engine-perfect (was: strong first move from the engine + 3 weak depth-3 JS follow-up plies).
