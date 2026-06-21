@@ -1,4 +1,10 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #275)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #276)
+
+## 2026-06-21 - BUILD #276 - hide the in-game Hint in online human games (answer)
+- Kunal: hide the Hint (lightbulb) in online human games - it's fair vs the Computer and in pass-and-play (shared screen), but in an online game vs a person it gives away the answer.
+- FIX: in play mode with opponent==='online' the Hint button is hidden (display:none), requestHint() is a no-op, and the hint arrow (hintMove) returns null. Hint stays fully available vs Computer and in pass-and-play.
+- Bigger board: CLOSED - Kunal confirmed if it's already maxed we're good; portrait board is already full screen width, no change.
+- Videos: NOT auto-filling guessed IDs (see chat) - a blind 11-char ID shows a blank/unavailable player and can't be verified from here; wiring stays ready for any IDs Kunal pastes. Feature itself is complete (embedded player + link-outs + per-lesson search links; 24 lessons already have curated videos).
 
 ## 2026-06-21 - BUILD #275 - three new piece sets (answer #2: pick multiple open sets)
 - Added Merida (GPLv2+), Chessnut (Apache 2.0), and Spatial (MIT) as selectable piece sets alongside Classic (cburnett) and Symbol (unicode). All three are commercial-use-safe licenses (checked Lichess COPYING) - important because the app is monetized. The popular sets (Maestro, Staunty, etc.) are CC-BY-NC and were rejected as non-commercial.
