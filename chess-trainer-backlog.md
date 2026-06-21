@@ -1,4 +1,17 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #278)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #279)
+
+## 2026-06-21 - BUILD #279 - library: 5 genuinely-missing notable lines (not padding)
+- PRE-FLIGHT: Feedback sweep = nothing new (the #2 Feedback chat last moved 2026-06-20, BEFORE the #278 overnight sweep already folded everything in; manual-tasks chat unchanged). Backlog synced. Gallery: additive content only this run, no app-visible UI change, so no new cards; the existing 5 (3 piece-set + captured-tray + best-line) stand pending Kunal recordings.
+- BUILT 5 engine-verified lessons appended to MORE (LIB indices unchanged), each a REAL gap in an otherwise-complete library:
+  1. Kings Gambit: Allgaier Gambit (C39, White) - the 5.Ng5 / 6.Nxf7 romantic knight sac; joins Cunningham/Bishops/Muzio/Kieseritzky.
+  2. Caro-Kann: Fantasy Variation (B12, 3.f3) - Blacks clean ...dxe4 then ...e5 equalizer.
+  3. Pirc: Austrian Attack (B09, 4.f4) - the main aggressive anti-Pirc with ...c5 counterplay.
+  4. Alekhine: Four Pawns Attack (B03) - the maximal-centre line and how Black besieges it.
+  5. Sicilian: OKelly Variation (B28, 2...a6) - the move-order trap that punishes an automatic 3.d4 with ...e5.
+- Library now 159 (audit PASS: legal lines, aligned notes, legal FENs, correct #/+). Bundle 1,007KB, stamp #279.
+- HONEST STATE on "build them all": the old named list is essentially DONE app-side (Hungarian, Three Knights, St. George, Classical Sicilian, English Symmetrical/Reversed, Hippopotamus, Scandinavian Portuguese/Icelandic, French Rubinstein/Exchange, Caro Classical, KG Cunningham already shipped). Remaining adds are quality-over-quantity single lines like todays, not a bulk batch.
+- DELIBERATELY NOT TOUCHED: in-game/board render + paywall UI. A separate design-mockup chat is actively locking in-game-bar + nav decisions; building there now would collide. Live-opening-ID box + taste-then-gate deferred until those land.
+
 
 ## 2026-06-21 - OVERNIGHT RUN - BUILD #278 - lesson videos + iPad Home mockups + full-list sweep
 - Kunal queued a long overnight "knock out everything" run. Swept the whole master list; most big builds are already DONE app-side and the gaps are backend (CTCloud / Firestore rules / Cloud Functions) or decisions, not app code.
@@ -349,7 +362,7 @@ KEY: the app ALREADY HAS two interactive trainers, reached from the learn home's
 - [x] Endgame/lesson header: shipped as Prev/Next lesson navigation (#224) - the [‹ Prev][All ...][Next ›] row steps through lessons in a group. [KUNAL 2026-06-19]
 - [x] Top header now shows the content name (lesson/gambit/ending, or Play/Online/Puzzles/Game review) instead of CHESS TRAINER on content screens (#224). [KUNAL 2026-06-19]
 - [ ] FINAL: stage one comprehensive gallery scenario for Kunal's single recording (then he records).
-- [ ] Library expansion (BUILD THEM ALL, in progress): 48 shipped (batches 1-4, #220-#222). Still to build: King's Gambit branches Allgaier/Cunningham/Salvio (Muzio/Kieseritzky done), Scandinavian gambits (Portuguese/Icelandic), Albin main, Hungarian, Three Knights, St. George, Classical Sicilian, more Caro/French named lines (Classical Caro, Rubinstein/Exchange French), English sub-lines (Symmetrical, Reversed Sicilian), Hippopotamus + assorted offbeat. [CLAUDE]
+- [~] Library expansion: the bulk build-them-all list is essentially DONE app-side (159 lessons; #279 added Allgaier KG, Caro Fantasy, Pirc Austrian, Alekhine 4-Pawns, Sicilian OKelly). Now quality-over-quantity single lines only. History: 48 shipped (batches 1-4, #220-#222). Still to build: King's Gambit branches Allgaier/Cunningham/Salvio (Muzio/Kieseritzky done), Scandinavian gambits (Portuguese/Icelandic), Albin main, Hungarian, Three Knights, St. George, Classical Sicilian, more Caro/French named lines (Classical Caro, Rubinstein/Exchange French), English sub-lines (Symmetrical, Reversed Sicilian), Hippopotamus + assorted offbeat. [CLAUDE]
 - [ ] Fixed-size button conversion (last button-consistency item). ~30 buttons still use fixed px fonts (13/14/15) that render larger on a phone than the #199 tiers. Can do blind; Kunal spot-checks after. Low-value polish - optional.
 
 ## WAITING ON KUNAL
@@ -404,6 +417,7 @@ Content from Kunal:
 - [ ] Video long tail + iPad two-column Home mockups.
 
 ## RECENTLY SHIPPED
+#279 LIBRARY +5 notable lines (Allgaier KG, Caro Fantasy, Pirc Austrian, Alekhine Four Pawns, Sicilian OKelly); library 159, audit PASS. Additive to MORE, no index shift, no render change.
 #237 TACTICS MINI-TRACK: added 4 core tactical-motif lessons to Endgames & Theory, joining the existing Pin lesson - The Fork (knight royal fork Nf7+ winning the queen), The Skewer (Ba4+ along the diagonal, win the queen behind the king), Discovered Check (Nxc5+ uncovers the rook while grabbing the queen), and Double Check (Nc7+ two checkers, king must move, then Nxd5). All four are forcing (check-based) so the lines are engine-verified SOUND with no refutation; each wins the queen. Library now 160. Possible follow-ups: Deflection, Decoy, Overload, Removing-the-defender, Zwischenzug, and a dedicated Tactics category (needs UI grouping, parked).
 #236 DROPPED THE DUPLICATE LESSON TITLE (Kunal answered open question 1 with 'drop it'). In learn mode the header already shows the lesson/gambit/ending name (since #224), but a larger duplicate title sat below it on every lesson screen (confirmed in both of today's recordings). Removed that larger title and its redundant progress badge (the flawless-days dots row already shows the same progress), so the row shrinks and reclaims vertical space on every lesson screen. Compile clean, audit PASS.
 #235 SECOND NOTATION LESSON 'Notation: Checks, Mates & Promotion' (rounds out the notation track): a forced 3-ply mate b8=Q+ Ka6 Qb6# whose notes teach promotion (=Q), check (+) and checkmate (#), with castling O-O-O and en passant covered in the summary. Engine-verified (forced, queen defended). Library now 156. ALSO processed Kunal's 08:22 recording on build #234: he used 'Play all 8' to capture every new gallery scenario (Fool's Mate, Petroff, Reading Chess Notation, the #229 cleaned Italian/Sicilian, Square of the Pawn, Ruy Closed, Caro-Kann). All render correctly, the note convention works on device (UI supplies the '1. e4 -' label, the lesson note is clean after it), NO bugs. Flushed all 8 confirmed scenarios; gallery now holds only the new notation lesson.

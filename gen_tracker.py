@@ -24,7 +24,7 @@ T=[
  ("play","Correspondence mode (1/3/7-day per move)","done","","Already live: 1/3/7-day picker in the online lobby + multi-day clocks."),
  ("play","Play nearby (neighbours by approx location)","done","#129","App-side done: coarse geolocation + ZIP fallback + challenge. Backend is your CTCloud side."),
  ("play","Video call during online play (WebRTC)","open","",""),
- ("lessons","Openings library (~175 engine-verified lessons)","done","",""),
+ ("lessons","Openings library (159 engine-verified lessons)","done","#279","#279 added Allgaier KG, Caro Fantasy, Pirc Austrian, Alekhine Four Pawns, Sicilian OKelly."),
  ("lessons","Gambits bucketed by first move","done","",""),
  ("lessons","Endgames & theory lessons","done","",""),
  ("lessons","Tactics mini-track (Fork, Skewer, Discovered/Double Check, Pin)","done","#237",""),
@@ -82,7 +82,7 @@ QUESTIONS=[
  {"id":"videos","q":"Lesson videos - keep auto-adding curated YouTube IDs in batches?","o":["Yes, keep adding in batches","I'll curate them myself"]},
 ]
 edt=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=4)).strftime("%Y-%m-%d %-I:%M %p")
-stamp="Snapshot "+edt+" EDT - live build #278"
+stamp="Snapshot "+edt+" EDT - live build #279"
 HTML=r'''<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chess Trainer - plan</title><style>
