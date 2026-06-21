@@ -1,4 +1,14 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #282)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #283)
+
+## 2026-06-21 - BUILD #283 - Puzzle roadmap scenery: MUCH richer SVG (Kunal picked richer-SVG)
+- Kunal saw the #280 scenery for the first time (post #282 black-screen fix) and said it read "very basic" - small, dark, margin-hugging, lots of empty space. He picked "much richer SVG now" over going to painted/image art.
+- Full rewrite of _RoadScenery into a layered illustrated landscape the tier road threads through: bolder multi-stop sky per theme (.82 opacity) + horizon glow, two full-width far mountain ranges, a distant keep on the horizon for castle themes, and BIG per-tier hero clusters in the flank opposite each node (so node labels stay readable).
+- Heroes scaled up ~1.45-1.5x and detailed: multi-tower castles (keep+gatehouse+portcullis+wall+lit windows+flags+moat+torches), a flying dragon + embers for Dragonstone, moon+stars+banners for Royal, tall layered pine groves + a deer for Forest, golden autumn woods for Walnut, lighthouse+sailboat+island+full-width waves for Ocean, starfield+moon+layered ranges+fireflies for Dusk, underwater reef with god-rays+colorful coral+fish+bubbles for Coral, dramatic snow-capped crags+mist for Graphite/Slate, candy hills+lollipops for Candy. Plus continuous foreground ground + margin silhouettes and more ambient (clouds/birds/stars).
+- Fixed two palette bugs caught in render review: Coral was reading as fire/desert (now teal underwater) and Walnut's autumn trees looked like flames (now golden foliage).
+- Rendered all 12 themes and eyeballed; verified node-label flank-opposite placement. Full bundle mounts clean (no black screen), audit PASS (159), library unchanged. stamp #283.
+- Painted/AI-image backgrounds remain available as a separate heavier upgrade if richer SVG still isn't enough.
+- BUILD GUARD held: entry.jsx imports build-local ./chess.jsx (single React).
+
 
 ## 2026-06-21 - BUILD #282 - HOTFIX: black screen (duplicate React in the bundle)
 - Kunal hit a BLACK SCREEN loading the app after #281. Root cause found via jsdom mount test: the deploy bundled TWO copies of React. entry.jsx imported ../repo/chess.jsx, and esbuild resolved chess.jsx's `react` from a stray GLOBAL install (/home/claude/.npm-global) while react-dom resolved from build/node_modules -> two ReactCurrentDispatchers -> the client dispatcher was null at App's first useState -> nothing renders -> black screen. (renderToString masked it; only the real createRoot mount reproduced it.)
