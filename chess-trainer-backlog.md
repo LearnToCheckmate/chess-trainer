@@ -1,4 +1,20 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #285)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #286)
+
+## 2026-06-21 - BUILD #286 - Home streak/XP strip + Discover 2x2 tiles (autonomous run while Kunal away)
+- HOME STREAK/XP STRIP: persistent stats strip near the top of Home showing day streak (daily.streak), total XP (pzXP), and today's puzzle goal (daily.count/DAILY_GOAL) with a progress bar. Shows for anyone with progress; force-shows under streakPreview for the gallery (sample values 3 / 120 / 2 when real data is 0). Tapping jumps to puzzles. Additive - existing at-risk and safe-today banners untouched.
+- DISCOVER 2x2 TILES: the Discover landing (learnGroup===null) converted from a vertical list to a 2x2 grid of big colored tiles - Openings, Gambits & Traps, Endgames, Tactics & Strategy - each with a count badge. Tiles route to the existing setLearnGroup() drill-in lists, which are UNCHANGED. Conservative: only the landing's 4 cards were restyled.
+- Two auto-running gallery cards added (top of SC): "Streak + XP home strip" and "Discover 2x2 category tiles".
+- Full bundle mounts clean (ROOT_LEN 30450, no errors); audit PASS (159). entry.jsx single-React guard held.
+
+### STAGED - NEEDS KUNAL (true blockers, why)
+- ONLINE in-game bar -> Moves/Back/Forward/Flip/More + More sheet: online is a delicate 6-state machine AND a gallery scenario cannot simulate a live opponent, so it cannot be verified hands-free. Needs Kunal on two devices (or Safari). Deferred deliberately.
+- HOME one-screen tidy: fuzzy, taste-driven, high visual risk; needs Kunal's eye (mockup-first).
+- TAB BAR tweak: hide during an active game, or keep it below the in-game bar? (flagged in #285 gallery card)
+- DISCOVER lesson rows: add a mini board preview + progress per lesson row (bigger; confirm tile direction first).
+
+### CLAUDE CAN STILL DO (low-value polish, not blocking)
+- Review + puzzle nav: apply _CIcon filled-icon family.
+
 
 ## 2026-06-21 - BUILD #285 - Bottom tab bar (first structural reorg slice)
 - Persistent bottom tab bar with filled icons + labels: Home / Discover / Puzzles / Review / Play. Active tab highlights green (var(--ac2)). Icons are inline SVG (house, compass, puzzle, magnifier, pawn) - render-verified shapes before splicing.
