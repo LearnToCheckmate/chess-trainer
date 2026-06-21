@@ -1,4 +1,9 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #276)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #277)
+
+## 2026-06-21 - BUILD #277 - piece-set preview cards + Brilliant card pending real PGN
+- Kunal asked to build the top-two "what I need" items into the Preview gallery so he can just record them. Top of SC now has 3 piece-set cards: Merida / Chessnut / Spatial, each opening the start position (all 6 piece types in both colors) with that set active so he can eyeball each. Record via Play all.
+- BRILLIANT BADGE: deferred to Kunal's actual Bxh3 game. Built + verified several synthetic sacrifices against sandbox Stockfish; all failed the app's real classifier (Fried Liver wins the piece back via Bxd5+ so it is correctly not a true sac; hand-built Greek Gifts are unsound, engine refutes them and eval-after is negative). A reliable Brilliant demo needs a genuine brilliancy, and his real Bxh3 PGN is guaranteed valid. WAITING ON KUNAL: paste the Bxh3 PGN (Copy game in Review) and I add it as a gallery card that auto-jumps to the Bxh3 move with the badge showing. Auto-jump mechanism (demoBrillRef + findIndex Brilliant at importGame completion) ready to wire with the PGN.
+- Gallery now 5 cards (3 piece + captured-tray #272 + best-line #274); flush as Kunal records.
 
 ## 2026-06-21 - BUILD #276 - hide the in-game Hint in online human games (answer)
 - Kunal: hide the Hint (lightbulb) in online human games - it's fair vs the Computer and in pass-and-play (shared screen), but in an online game vs a person it gives away the answer.
