@@ -63,3 +63,6 @@ The PRINTED block is the forcing function: its absence is Kunal's instant signal
 
 ## FEEDBACK RELAY (#240) - read at run start
 Feedback now flows from the app to **feedback-inbox.md** via a Firebase Function (functions/index.js). AT THE START OF EVERY RUN, read feedback-inbox.md and fold any new items into chess-trainer-backlog.md, then clear them from the inbox in that run's commit. The relay is BUILT but goes LIVE only once Kunal deploys the function and Claude sets LOG_ENDPOINT + RELAY_KEY in chess.jsx (see the backlog 'Feedback auto-pickup' item for the exact remaining steps).
+
+## ENGINE SWEEP - content safeguard (added 2026-06-20)
+Stockfish 16 is installed at /usr/games/stockfish. audit.py only proves moves are LEGAL; it does NOT catch a line that is legal but relies on a move no engine plays (the Rousseau bug: a variation mislabeled "Stockfish's best" that only "won" because White played 6.Nxf5). RUN `python3 sweep.py` (in repo) on any NEW or CHANGED lesson before deploy: it evals every position and flags moves that lose >200cp vs best. Named traps/gambits flag BY DESIGN - confirm those are framed as traps ("if White greedily grabs", "??", "objectively losing"), never as "best". A full-library sweep on 2026-06-20 found no silent mislabels beyond the already-fixed Rousseau.
