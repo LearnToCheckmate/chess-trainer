@@ -1,4 +1,12 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #281)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #282)
+
+## 2026-06-21 - BUILD #282 - HOTFIX: black screen (duplicate React in the bundle)
+- Kunal hit a BLACK SCREEN loading the app after #281. Root cause found via jsdom mount test: the deploy bundled TWO copies of React. entry.jsx imported ../repo/chess.jsx, and esbuild resolved chess.jsx's `react` from a stray GLOBAL install (/home/claude/.npm-global) while react-dom resolved from build/node_modules -> two ReactCurrentDispatchers -> the client dispatcher was null at App's first useState -> nothing renders -> black screen. (renderToString masked it; only the real createRoot mount reproduced it.)
+- This is a BUILD/resolution bug, not a source bug: #279/#280/#281 source all mount clean when React resolves to a single copy. The scenery (#280) and in-game bar (#281) code are fine and unchanged.
+- FIX: entry.jsx now imports the build-local ./chess.jsx (deploy.py already copies chess.jsx into the build dir), so every React import resolves from build/node_modules = one copy. Verified: fixed bundle mounts clean (root renders, zero console errors) vs the broken one (null dispatcher).
+- No source change to chess.jsx; library 159, audit PASS; stamp #282. The in-game bar redesign + roadmap scenery are now actually reachable.
+- PERMANENT GUARD: every future deploy turn must create build/entry.jsx importing "./chess.jsx" (never "../repo/chess.jsx"). Noted here as the single source of truth.
+
 
 ## 2026-06-21 - BUILD #281 - REDESIGN slices 1-2: filled control icons + in-game bar (vs Computer / pass-and-play)
 - Kunal tapped the layout mockup picks: icons = A solid filled, More = bottom sheet, ticker = compact last-few, tab bar = icons+labels, Discover = 2x2 tiles, streak = home top strip, BUILD FIRST = in-game bar + icons. This run builds that first slice.
