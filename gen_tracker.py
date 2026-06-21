@@ -35,6 +35,7 @@ T=[
  ("lessons","Move-prefix stripped from all lesson notes","done","#229",""),
  ("lessons","Rousseau 4.d4 line fixed (Smirnov trap)","done","#258","Auto-plays in the gallery to verify."),
  ("lessons","Reorder lesson rows by popularity","done","#259","Sorted by best-guess popularity (display-only; progress is name-keyed so safe)."),
+ ("lessons","Lesson videos (embedded player + curated IDs)","part","#278","Player + link-outs done; 24 lessons had videos. #278 added real YouTube IDs for Najdorf, Dragon, Nimzo-Indian, Alekhine. ~100 lessons still need a curated ID - I can keep adding in batches; you swap any bad picks."),
  ("puzzles","Lichess CC0 puzzle roadmap (tiered)","done","",""),
  ("puzzles","Puzzles free (not Pro-gated)","done","#108",""),
  ("review","Chess.com + Lichess game import","done","",""),
@@ -63,7 +64,7 @@ T=[
  ("lessons","List your own openings not yet in the library","openY","","You still owe me this list."),
  ("coach","Coach avatar redesign","openY","","My mockups weren't app-grade; send art or pick an open set."),
  ("polish","Custom piece art (theme phase 2)","openY","","My mockups weren't app-grade; send art or pick an open set."),
- ("polish","iPad two-column landscape Home","openY","","Parked; needs iPad screenshots."),
+ ("polish","iPad two-column landscape Home","openY","#278","Mockups built (3 layouts A/B/C) - open ipad-home-mockups.html and tap one; I'll build it."),
  ("money","Recreate Stripe TEST prices at $2.99/$19.99","openY","","Current test IDs are old $0.99/$9.99."),
  ("money","Run Stripe 4242 test checkout","openY","",""),
  ("infra","Sign-in persistence on installed iOS PWA","open","","Known WebKit storage-partitioning; real fix needs device testing. Safari works now."),
@@ -77,12 +78,11 @@ for g,t,s,b,n in T:
     you=s.endswith("Y"); s=s[:-1] if you else s
     TASKS.append({"g":g,"t":t,"s":s,"you":you,"b":b,"n":n})
 QUESTIONS=[
- {"id":"evalbar","q":"The eval bar is built and in the gallery (top scenario) - keep it or remove it?","o":["Keep it","Remove it"]},
- {"id":"playout","q":"Best-move play-out: how far should it go?","o":["Play the full engine line, then snap back","Just animate the single best move"]},
- {"id":"pieces","q":"Custom pieces/avatar: how should we source art? (my mockups weren't app-grade)","o":["I'll send a set or art","Use an open licensed set","Park it for now"]},
+ {"id":"ipadhome","q":"iPad landscape Home - which layout should I build? (see ipad-home-mockups.html)","o":["A - Spotlight + grid","B - Sidebar + dashboard","C - Hero + two columns"]},
+ {"id":"videos","q":"Lesson videos - keep auto-adding curated YouTube IDs in batches?","o":["Yes, keep adding in batches","I'll curate them myself"]},
 ]
 edt=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=4)).strftime("%Y-%m-%d %-I:%M %p")
-stamp="Snapshot "+edt+" EDT - live build #260"
+stamp="Snapshot "+edt+" EDT - live build #278"
 HTML=r'''<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chess Trainer - plan</title><style>

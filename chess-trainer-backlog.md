@@ -1,4 +1,13 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #277)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #278)
+
+## 2026-06-21 - OVERNIGHT RUN - BUILD #278 - lesson videos + iPad Home mockups + full-list sweep
+- Kunal queued a long overnight "knock out everything" run. Swept the whole master list; most big builds are already DONE app-side and the gaps are backend (CTCloud / Firestore rules / Cloud Functions) or decisions, not app code.
+- VIDEOS (#278): added real, verified YouTube IDs to 4 popular top-level lessons that lacked one - Najdorf Sicilian (mcyquJNlj8E), Sicilian Dragon (llxseqADMCY), Nimzo-Indian Defense (VBImnh_ioJk), Alekhine Defense (lbMHf80bFb8). 28 lessons now carry a video. Method: web-search the opening, take the watch?v= id from a reputable channel. ~100 lessons still lack one - I can keep adding in batches; you swap any bad picks. NEVER fabricate IDs (blank player) - only real search results.
+- iPad LANDSCAPE HOME: built ipad-home-mockups.html with 3 layout options (A Spotlight+grid, B Sidebar+dashboard, C Hero+two-columns). Mockups-first per the rule. WAITING ON KUNAL: tap a layout in that file; I build the chosen one.
+- RE-VERIFIED (state Kunal may not realize): Correspondence 1/3/7-day picker = LIVE in the online lobby. Friends (add by ID, mutual accept, list, "Add {name} as friend" on a past opponent) = built app-side. Play-nearby (coarse-location list + challenge) = built app-side. Online games + invite codes + quick-match = built app-side. Photo-to-board capture/upload/render = built app-side (#127). ALL light up once the backend is live (CTCloud methods in index.html + Firestore rules published + scanBoard function + vision key).
+- MORE-notes prefix strip (old debt): MOOT - scanned every MORE note, none start with a redundant move label; already clean. No change (running it would have corrupted good notes).
+- Custom piece art / more sets: skipped - each set is ~50KB of data-URIs and needs sourced art; low priority vs the above. The 3 sets from #275 (Merida/Chessnut/Spatial) stand.
+- DID NOT touch photo-to-board front-end or build live online clocks this run: both are backend-blocked, so a blind front-end change risks looking broken with nothing behind it. Plans noted for when the backend is ready.
 
 ## 2026-06-21 - BUILD #277 - piece-set preview cards + Brilliant card pending real PGN
 - Kunal asked to build the top-two "what I need" items into the Preview gallery so he can just record them. Top of SC now has 3 piece-set cards: Merida / Chessnut / Spatial, each opening the start position (all 6 piece types in both colors) with that set active so he can eyeball each. Record via Play all.

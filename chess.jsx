@@ -396,7 +396,7 @@ const OPENINGS=[
         plans:"Against the Fianchetto the raw kingside storm is less effective (the g2-bishop defends well), so play flexibly: …Nbd7, …e5, …c6/…Qb6 or …Nc6/…e5, and fight for the centre and queenside. Patience over brute force here.",
         arrows:{ 6:[["g7","a1"]], 9:[["g2","a8"]] } },
     ] },
-  { name:"Nimzo-Indian Defense", eco:"E20", side:"b", cat:"Defenses to 1. d4",
+  { name:"Nimzo-Indian Defense", video:{ id:"VBImnh_ioJk", title:"Nimzo-Indian: Ultimate Opening Guide", author:"Chess opening guide", length:"lesson" }, eco:"E20", side:"b", cat:"Defenses to 1. d4",
     line:["d4","Nf6","c4","e6","Nc3","Bb4","e3","O-O"],
     idea:"Pin the knight and fight for the centre with pieces rather than pawns. One of the most respected defenses to 1.d4.",
     notes:["White's queen's pawn.","Develop.","White grabs the centre.","Flexible, preparing …d5 or …Bb4.","Develop, supporting e4.","The Nimzo-Indian! Pin the c3-knight, fighting for the centre (especially e4) with pieces, not pawns.","The flexible Rubinstein setup.","Castle. The Nimzo's theme: trade the bishop for the c3-knight to damage White's pawns and rule the light squares (e4), or keep the tension. Strategically deep and very sound."],
@@ -715,7 +715,7 @@ const OPENINGS=[
     idea:"Even more flexible than the Pirc — Black fianchettoes immediately and keeps options open, inviting White to overextend. A favourite of creative, provocative players.",
     notes:["King's pawn.","The Modern: say little and prepare the fianchetto.","White takes the centre.","The bishop rakes the long diagonal at White's centre.","Support e4 and develop.","Keep the centre flexible and open the bishop's diagonal.","Develop.","A typical Modern move, preparing …b5 and queenside expansion before committing. Provocative and flexible."],
     plans:"White builds a broad centre and more space; Black stays compact and counter-punches with …c5, …b5 and pressure from the g7-bishop, hoping White overextends. Very flexible — can transpose to the Pirc." },
-  { name:"Alekhine Defense", eco:"B02", side:"b", cat:"Defenses to 1. e4",
+  { name:"Alekhine Defense", video:{ id:"lbMHf80bFb8", title:"Alekhine Defense: Opening Masterclass", author:"Chess opening guide", length:"lesson" }, eco:"B02", side:"b", cat:"Defenses to 1. e4",
     line:["e4","Nf6","e5","Nd5","d4","d6","Nf3","g6"],
     idea:"The ultimate provocation: 1…Nf6 dares White to chase the knight with pawns, then Black attacks the over-extended centre. Hypermodern and tricky.",
     notes:["King's pawn.","…Nf6!? The Alekhine: provoke the pawns forward by hitting e4 at once.","White obliges, kicking the knight and grabbing space.","The knight hops to a good square.","White builds a huge pawn centre (the whole point).","Black starts chipping at the e5-pawn immediately.","Defend e5.","Fianchetto to add pressure. Black bets the big centre becomes a weakness."],
@@ -1226,12 +1226,12 @@ function gameAfterLine(line){let g=initGame();for(const s of line){const mv=find
 function demoState(line,ply,startFEN){let g=startFEN?fromFEN(startFEN):initGame(),last=null;for(let i=0;i<ply&&i<line.length;i++){const mv=findMoveBySAN(g,line[i]);if(!mv)break;last=mv;g=makeMove(g,mv);}return{game:g,last};}
 // Batch 1 additions (2026-06-19): mainstream Sicilians, anti-Sicilians, Semi-Slav, KIA + 4 gambits. Lines engine-verified.
 const MORE=[
-  { name:"Najdorf Sicilian", eco:"B90", side:"b", cat:"Defenses to 1. e4",
+  { name:"Najdorf Sicilian", video:{ id:"mcyquJNlj8E", title:"The Najdorf Sicilian, Explained", author:"GM Anish Giri", length:"lesson" }, eco:"B90", side:"b", cat:"Defenses to 1. e4",
     line:["e4","c5","Nf3","d6","d4","cxd4","Nxd4","Nf6","Nc3","a6"],
     idea:"The most famous Sicilian. 5…a6 is a flexible waiting move: it stops Nb5 and Bb5 and prepares …e5 or …e6 with queenside expansion by …b5. Razor-sharp and deeply analyzed.",
     notes:["White grabs the centre.","The Sicilian: fight for d4 without symmetry.","Develop and prepare d4.","Control e5 and open lines for the c8-bishop later.","Strike the centre open.","Black gets the half-open c-file in return.","Recapture; the knight sits proudly in the centre.","Develop and hit e4, forcing White to defend it.","Defend e4 and develop.","The Najdorf: stop Nb5 and Bb5, and prepare …e5 and …b5."],
     plans:"Fight for the centre with …e5 or …e6, expand on the queenside with …b5 and …Bb7, and develop quickly. White's main try is the English Attack (Be3, f3, Qd2, O-O-O, g4), so the game often becomes a race of opposite-side attacks." },
-  { name:"Sicilian Dragon", eco:"B70", side:"b", cat:"Defenses to 1. e4",
+  { name:"Sicilian Dragon", video:{ id:"llxseqADMCY", title:"The Dragon Sicilian, Explained", author:"GM Anish Giri", length:"lesson" }, eco:"B70", side:"b", cat:"Defenses to 1. e4",
     line:["e4","c5","Nf3","d6","d4","cxd4","Nxd4","Nf6","Nc3","g6"],
     idea:"Black fianchettoes the dark-squared bishop on g7, aiming it down the long diagonal at White's queenside. Both sides usually castle opposite and attack at full speed — one of the sharpest openings in chess.",
     notes:["Central pawn.","The Sicilian.","Develop, prepare d4.","Support e5, open the c8-bishop later.","Open the centre.","Half-open c-file.","Strong central knight.","Hit e4.","Defend e4.","The Dragon: fianchetto on g7 and rake the long diagonal."],
