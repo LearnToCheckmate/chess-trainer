@@ -2431,6 +2431,24 @@ const ACHV=[
 ];
 
 const Arrows=memo(_Arrows),Piece=memo(_Piece),AppIcon=memo(_AppIcon),Coach=memo(_Coach),BotFace=memo(_BotFace);
+function _navIcon(n,c){
+  if(n==='home')return(<svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 3.2 2.6 11.2l1.4 1.7L5 12v8h5v-5h4v5h5v-8l1 .9 1.4-1.7z" fill={c}/></svg>);
+  if(n==='learn')return(<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke={c} strokeWidth="1.8"/><path d="M12 6.2 14 12l-6 0z" fill={c}/><path d="M12 17.8 10 12l6 0z" fill={c} opacity=".5"/></svg>);
+  if(n==='puzzle')return(<svg width="22" height="22" viewBox="0 0 24 24"><path d="M10 3.2a2 2 0 0 1 4 0c0 .5-.3.9-.3 1.4 0 .3.2.5.5.5H17a1 1 0 0 1 1 1v2.7c0 .3.2.5.5.5.5 0 .9-.3 1.4-.3a2 2 0 0 1 0 4c-.5 0-.9-.3-1.4-.3-.3 0-.5.2-.5.5V20a1 1 0 0 1-1 1h-3.1c-.3 0-.5-.2-.5-.5 0-.5.3-.9.3-1.4a2 2 0 0 0-4 0c0 .5.3.9.3 1.4 0 .3-.2.5-.5.5H6a1 1 0 0 1-1-1v-3.1c0-.3-.2-.5-.5-.5-.5 0-.9.3-1.4.3a2 2 0 0 1 0-4c.5 0 .9.3 1.4.3.3 0 .5-.2.5-.5V6a1 1 0 0 1 1-1h2.6c.3 0 .5-.2.5-.5 0-.5-.3-.9-.3-1.4z" fill={c}/></svg>);
+  if(n==='analyze')return(<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.2" fill="none" stroke={c} strokeWidth="1.9"/><path d="M15.2 15.2 19.5 19.5" stroke={c} strokeWidth="2.1" strokeLinecap="round"/></svg>);
+  return(<svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 3.4a2.7 2.7 0 0 1 1.7 4.8c1 .8 1.6 2 1.3 3.4L14.7 14H9.3L9 11.6c-.3-1.4.3-2.6 1.3-3.4A2.7 2.7 0 0 1 12 3.4zM7.6 15.3h8.8l1.1 4.1c.1.5-.2.9-.7.9H7.2c-.5 0-.8-.4-.7-.9z" fill={c}/></svg>);
+}
+function _TabBar({active,go}){
+  const tabs=[['home','Home'],['learn','Discover'],['puzzle','Puzzles'],['analyze','Review'],['play','Play']];
+  return(<div style={{position:'fixed',left:0,right:0,bottom:0,zIndex:470,display:'flex',justifyContent:'space-around',alignItems:'stretch',background:'rgba(13,16,21,.97)',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',borderTop:'1px solid rgba(255,255,255,.10)',padding:'6px 2px calc(6px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -6px 20px rgba(0,0,0,.45)',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    {tabs.map(([k,lab])=>{const on=active===k;const c=on?'var(--ac2)':'rgba(255,255,255,.6)';return(
+      <button key={k} onClick={()=>go(k)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'none',border:'none',cursor:'pointer',padding:'2px 1px',color:c,minWidth:0}}>
+        <span style={{display:'inline-flex',width:24,height:24,alignItems:'center',justifyContent:'center'}}>{_navIcon(k,c)}</span>
+        <span style={{fontSize:10.5,fontWeight:on?800:600,letterSpacing:.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'}}>{lab}</span>
+      </button>);})}
+  </div>);
+}
+
 export default function App(){
   const [mode,setMode]=useState('learn');
   const [infoOpen,setInfoOpen]=useState(false);
@@ -3812,6 +3830,7 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
+          {l:"Bottom tab bar (in-section nav)", n:"NEW this build. A persistent bottom tab bar with filled icons and labels: Home, Discover, Puzzles, Review, Play. It shows inside the sections (never on the Home screen) and the active tab highlights green. This scenario opens Discover then auto-hops Discover - Puzzles - Review - Discover so you can see the bar and the active highlight move. Tapping a tab jumps straight to that section. FLAG: it currently also shows during an active game, sitting below the in-game bar; tell me if you would rather hide it while playing.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);const _seq=[()=>{setMode('learn');setOpenIdx(null);setLearnGroup(null);setLearnCat(null);},()=>{setMode('puzzle');setOpenIdx(null);setPzView('roadmap');},()=>{setMode('analyze');},()=>{setMode('learn');setOpenIdx(null);setLearnGroup(null);setLearnCat(null);}];let _i=0;const _tok=(++_scnTok);const _step=()=>{if(_tok!==_scnTok)return;if(_i>=_seq.length)return;_seq[_i]();_i++;setTimeout(_step,1600);};_step();}, h:4*1600+900},
           {l:"In-game bar redesign (vs Computer)", n:"NEW this build. The redesigned in-game bar: Moves, Back, Forward, Hint, Flip, More (filled, labeled icons - Option A). A compact move ticker sits just above it. This scenario plays a few opening moves so the ticker and Back/Forward light up, then auto-opens the More sheet (Takeback, New game, Resign) and the full Moves list. Online keeps its current controls for now; its More menu (Resign, Draw, Chat, Leave) is the next slice.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setMoreOpen(false);setMovesOpen(false);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setOpponent('computer');setPColor('w');setTimeCtrl(null);timeCtrlRef.current=null;setMode('play');setFlip(false);let _g=initGame();const _h=[];const _sans=['e4','e5','Nf3','Nc6','Bc4','Bc5','c3','Nf6'];for(const _s of _sans){const _m=findMoveBySAN(_g,_s);if(!_m)break;_h.push(_g);_g=makeMove(_g,_m);}setPlayHist(_h);setGame(_g);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();setTimeout(()=>setMoreOpen(true),1700);setTimeout(()=>setMoreOpen(false),3700);setTimeout(()=>setMovesOpen(true),4300);setTimeout(()=>setMovesOpen(false),6800);}, h:8200},
           {l:"Puzzle roadmap scenery (cycles all 12 themes)", n:"MUCH RICHER this build - bigger, denser, brighter. Lands on the Puzzles roadmap and auto-cycles every board theme so you can see the themed landscape the road threads through: castles + moat + torches + pennants for the medieval themes (Dragonstone adds a dragon and embers, Royal adds stars and a moon), tree groves for Forest, autumn woods for Walnut, lighthouse and sailboat for Ocean, starfield for Dusk, coral reef for Coral, misty crags for Graphite and Slate, and candy hills for Candy. Scenery sits BESIDE the path, never under it. Restores your theme at the end.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setMode('puzzle');setPzView('roadmap');const _orig=theme;const _order=[7,8,9,10,0,1,2,3,4,5,6,11];const _tok=(++_scnTok);let _k=0;const _step=()=>{if(_tok!==_scnTok)return;if(_k>=_order.length){setTheme(_orig);return;}setTheme(_order[_k]);_k++;setTimeout(_step,1600);};setTheme(_order[0]);_k=1;setTimeout(_step,1600);}, h:12*1600+1200},
           {l:"Piece set: Merida", n:"New commercial-safe piece art (GPLv2). Opens the start position so all six piece types show in both colors. Check the Merida set reads clearly at board size.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setFlip(false);setPieceSet('merida');_play('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','w');}, h:6000},
@@ -5382,6 +5401,8 @@ export default function App(){
       })()}
 
       {drag&&dragging&&(<div style={{position:'fixed',left:drag.x-SQ*.55,top:drag.y-SQ*.55,width:SQ*1.1,height:SQ*1.1,pointerEvents:'none',zIndex:9999,filter:'drop-shadow(0 8px 16px rgba(0,0,0,.6))',transform:'scale(1.12)'}}><Piece t={drag.piece.t} color={drag.piece.c} sz={SQ*1.1} useFallback={fallback} onFail={onPieceFail}/></div>)}
+      {!homeScreen&&(<div aria-hidden="true" style={{height:'calc(62px + env(safe-area-inset-bottom,0px))',flexShrink:0,width:'100%'}}/>)}
+      {!homeScreen&&(()=>{const _ta=mode==='learn'?'learn':mode==='puzzle'?'puzzle':mode==='analyze'?'analyze':mode==='play'?'play':'';const _go=(k)=>{setMenuOpen(false);setCoachOpen(false);if(k==='home'){setHomeScreen(true);return;}setHomeScreen(false);if(k==='learn'){setMode('learn');setOpenIdx(null);setLearnGroup(null);setLearnCat(null);}else if(k==='puzzle'){setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}else if(k==='analyze'){setMode('analyze');}else if(k==='play'){setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}};return <_TabBar active={_ta} go={_go}/>;})()}
     </div>
   );
 }

@@ -1,4 +1,21 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #284)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #285)
+
+## 2026-06-21 - BUILD #285 - Bottom tab bar (first structural reorg slice)
+- Persistent bottom tab bar with filled icons + labels: Home / Discover / Puzzles / Review / Play. Active tab highlights green (var(--ac2)). Icons are inline SVG (house, compass, puzzle, magnifier, pawn) - render-verified shapes before splicing.
+- _navIcon(name,color) + _TabBar({active,go}) defined before App. Rendered at z-index 470 so Home (z500), play-setup (z520), menu (z1000) and other overlays naturally cover it; gated by !homeScreen. Trailing in-flow spacer (62px + safe-area) so content scrolls above the fixed bar and the in-game bar is never hidden.
+- go(k) mirrors the slide-out menu "Go to" handlers (learn resets openIdx/group/cat; puzzle -> roadmap; analyze; play -> setup overlay; home -> setHomeScreen(true)).
+- JUDGMENT FLAGGED TO KUNAL (gallery note): the bar currently also shows during an active game, sitting below the in-game bar. Easy to hide in Play if he prefers.
+- Auto-running gallery card "Bottom tab bar (in-section nav)" added at TOP of SC: opens Discover then hops Discover->Puzzles->Review->Discover so the bar + active highlight are visible for a hands-free recording.
+- Full bundle mounts clean (ROOT_LEN 30450, no errors); audit PASS (159). entry.jsx single-React guard held.
+
+### STAGED NEXT (one verifiable slice per run, each behind a gallery scenario)
+- Discover 2x2 category tiles + lesson rows (board preview + name + progress)
+- Streak + XP home top strip (re-investigate streak/XP state first)
+- Home one-screen tidy (fuzziest; last)
+- Online in-game bar -> Moves/Back/Forward/Flip/More + More sheet (Resign/Draw/Chat/Leave)
+- Review + puzzle nav: apply _CIcon filled-icon family
+- Possible tab-bar follow-ups pending Kunal: hide during active game? custom SVG vs current icons?
+
 
 ## 2026-06-21 - BUILD #284 - Captured-pieces tray REBUILT (Kunal's seat-color approach)
 - Kunal has given this feedback several times and it never landed right; contrast was bad. His approach (implemented): tint each player bar by THAT seat's playing color. White seat -> light bar; the black pieces it captured sit directly on it. Black seat -> dark bar; captured white pieces sit on it. Captured pieces are always the enemy color = opposite of the bar tint, so contrast always works. Dropped the old dark-box-on-light-tray workaround entirely.
