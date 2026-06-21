@@ -1,4 +1,9 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #271)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #272)
+
+## 2026-06-20 - BUILD #272 - captured-pieces pane = one solid white strip
+- Kunal (recording of #271): the captured fix still looked inconsistent - the white was only a thin tray hugging the dark boxes (white pieces), while the black pieces sat in separate individual white boxes. He wants the WHOLE pane the pieces sit on to be one solid white strip, not little boxes.
+- FIX: both player bars now render the captured row on a SINGLE continuous white strip (one white background span around the whole row). Black pieces sit bare directly on the strip (dark-on-white, visible). White pieces sit in small dark chips on the strip (white-on-dark, visible) - the only way to keep white pieces legible on white. So the pane is consistently white in both bars; the dark chips are just the white pieces sitting on it.
+- Gallery: captured-tray scenario stays live to re-verify.
 
 ## 2026-06-20 - BUILD #271 - captured-tray gallery scenario + feedback re-scan
 - Kunal asked: are BOTH fixes (play-out + captured tray) in the gallery? Added a CAPTURED-PIECES TRAY scenario (the play-out was already in). _play() drops into a live position (r1bqk2r/ppp2ppp/8/8/8/8/PPPP1PPP/R1BQK2R) with captures on both sides so both bars fill: bottom = captured black pieces in white boxes, top = captured white pieces in dark boxes inside a white tray. Gallery now 2 items.
