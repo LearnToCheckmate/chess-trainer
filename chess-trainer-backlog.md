@@ -1,4 +1,20 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #283)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #284)
+
+## 2026-06-21 - BUILD #284 - Captured-pieces tray REBUILT (Kunal's seat-color approach)
+- Kunal has given this feedback several times and it never landed right; contrast was bad. His approach (implemented): tint each player bar by THAT seat's playing color. White seat -> light bar; the black pieces it captured sit directly on it. Black seat -> dark bar; captured white pieces sit on it. Captured pieces are always the enemy color = opposite of the bar tint, so contrast always works. Dropped the old dark-box-on-light-tray workaround entirely.
+- pBar(col,isTop) now computes _lightBar=(col==='w'); bar bg light/dark gradient; name/eval/clock text + pills + avatar glyph recolored per bar; captured pieces render direct via taken.map(<Piece color={enemy}/>). Green "my turn" inset border kept on both. Works regardless of who plays which color (bar tints by seat, board flip handled).
+- Full bundle mounts clean (ROOT_LEN 30450, no errors); audit PASS (159). entry.jsx single-React guard held.
+- Gallery "Captured pieces tray (both bars)" card note updated to the new approach.
+
+### STAGED NEXT (core navigation/screen rebuild - deliberately NOT blind-shipped this run)
+After tonight's black-screen, these core-structure rebuilds will each ship behind a gallery scenario so Kunal can verify on-device, one at a time, rather than all blind in one run:
+- Bottom tab bar (icons+labels) inside sections, never home - NEW persistent element (today section nav lives only in the slide-out menu + home tiles). Needs fixed-position + in-game-bar-overlap + safe-area handling -> build first, behind gallery.
+- Discover 2x2 category tiles + lesson rows (board preview + name + progress)
+- Streak + XP home top strip (re-investigate streak/XP state first; did not surface cleanly in grep)
+- Home one-screen tidy (fuzziest/highest visual risk; last)
+- Online in-game bar -> Moves/Back/Forward/Flip/More + More sheet (Resign/Draw/Chat/Leave); handlers all exist; touch only the active else-branch of the 6-state machine
+- Review + puzzle nav: apply _CIcon filled-icon family
+
 
 ## 2026-06-21 - BUILD #283 - Puzzle roadmap scenery: MUCH richer SVG (Kunal picked richer-SVG)
 - Kunal saw the #280 scenery for the first time (post #282 black-screen fix) and said it read "very basic" - small, dark, margin-hugging, lots of empty space. He picked "much richer SVG now" over going to painted/image art.
