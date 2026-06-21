@@ -1,4 +1,15 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #263)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #265)
+
+## 2026-06-20 - BUILDS #264-#265 - form answers actioned
+Kunal answered the open-questions form. Actioned:
+- ROUSSEAU 4.d4 (#264): flagged as a blunder/wrong. Re-researched (Chessable, chess.com, Wikipedia, Chessreps). Old line had White hang a piece with 6.Nxf5 (a blunder no engine plays). Replaced with the sound central main line 4.d4 exd4 5.e5 d5! 6.exd6 Qxd6 7.O-O Nf6 8.Re1+ Be7 - Black a clean pawn up, White holds development, roughly balanced. python-chess validated; audit PASS. Gallery note updated.
+- EVAL BAR (#264): Kunal kept it but flagged "+4.3 without a move played." Old scenario FEN was White-up-a-knight but looked like the start, and +4.3 sits in the top (opponent) bar so it read as Astrid's score. Changed to a clear midgame (White up bishop+pawn, both castled) + a note that + is from White's view and the bar fills toward the leader. Eval value itself is correct.
+- MOVE STRIP: keep the horizontal strip. DONE.
+- BEST-MOVE PLAY-OUT (#264): Kunal asked to see the snap-back in the gallery. Added a scenario: engine move (Rxd5) animates on, holds, snaps back, repeats. SINGLE-move version. OPEN: full line vs single move.
+- PIECES (#265): Kunal asked for multiple looks. Added a Piece style picker in Settings: Classic (cburnett) / Symbol (Unicode glyphs - existing fallback exposed). Board + captured pieces switch live, persisted. OPEN: more photorealistic sets need art (can't author app-grade blind or fetch external sets); Kunal sends art/open set, or Classic+Symbol is enough.
+- FONTS: reads well now. DONE.
+- TRIM CHROME: Kunal asked what it means - explained in chat; his call.
+Gallery now 8 scenarios (added the play-out).
 
 ## 2026-06-20 - BUILD #263 - gallery bug fixes from Kunal's screen recording
 Kunal recorded a Play-all run (19:45). Two bugs found + fixed:
@@ -42,7 +53,7 @@ Kunal queued a 10-item plan from the interactive tracker. On code investigation 
 - DECISION lesson order = best-guess now: shipped #259.
 
 ## GALLERY STATE (sync every run; WIPE items with evidence at run start)
-AWAITING KUNAL'S EVIDENCE (in the SC array now): Rousseau 4.d4 fixed-line (auto-plays via pickVariation) + Captured pieces (contrast fix) + Curated cross-links + Font check: Discover + Font check: Puzzles + Eval bar (#260, decide keep/remove) + Best move arrow (#262). 7 items. Curated cross-link RE-ADDED #255 (Kunal asked to put it back). The 2 font screens for re-verifying the #256 (body 14px) bump. Captured-pieces fix is NOW a gallery scenario (#257): _play(FEN,'w') loads a live game at a position with captures on both sides so both bars render. Safe in Play-all (_play sets playSetup=false, not the setup overlay; the next scenario's r() resets mode).
+AWAITING KUNAL'S EVIDENCE (in the SC array now): Rousseau 4.d4 fixed-line (auto-plays via pickVariation) + Captured pieces (contrast fix) + Curated cross-links + Font check: Discover + Font check: Puzzles + Eval bar (#260, decide keep/remove) + Best move arrow (#262) + Best-move play-out (#264). 8 items. Curated cross-link RE-ADDED #255 (Kunal asked to put it back). The 2 font screens for re-verifying the #256 (body 14px) bump. Captured-pieces fix is NOW a gallery scenario (#257): _play(FEN,'w') loads a live game at a position with captures on both sides so both bars render. Safe in Play-all (_play sets playSetup=false, not the setup overlay; the next scenario's r() resets mode).
 HAS EVIDENCE: lesson title check (#244), Coach paywall (#242).
 LESSON: do NOT wipe gallery screens that still have an OPEN QUESTION on them - the font size was open when #247 wiped them, so they came back #248.
 
