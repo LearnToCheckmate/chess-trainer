@@ -2135,8 +2135,10 @@ export default function App(){
   const [game,setGame]=useState(initGame);
   const [flip,setFlip]=useState(false);
   const [lastMv,setLastMv]=useState(null);
-  const [fallback,setFallback]=useState(false);
-  const onPieceFail=useCallback(()=>setFallback(true),[]);
+  const [_imgFail,setImgFail]=useState(false);
+  const [pieceSet,setPieceSet]=useState(()=>{try{return localStorage.getItem('ct_pieceSet')||'classic';}catch{return 'classic';}});
+  const fallback=_imgFail||pieceSet==='symbol';
+  const onPieceFail=useCallback(()=>setImgFail(true),[]);
 
   // Play
   const [opponent,setOpponent]=useState('computer');
@@ -2497,6 +2499,7 @@ export default function App(){
   },[mode,learnPhase,openStep,learnLine,openIdx]);
   useEffect(()=>{try{localStorage.setItem('ct_depth',boardDepth?'1':'0');}catch{}},[boardDepth]);
   useEffect(()=>{try{localStorage.setItem('ct_hideEval',hideEval?'1':'0');}catch{}},[hideEval]);
+  useEffect(()=>{try{localStorage.setItem('ct_pieceSet',pieceSet);}catch{}},[pieceSet]);
   useEffect(()=>{try{localStorage.setItem('ct_pro',testPro?'1':'0');}catch{}},[testPro]);
   useEffect(()=>{try{localStorage.setItem('ct_coachfree',String(coachFree));}catch{}},[coachFree]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!C.proWatch||!cloudUser){setSubPro(false);return;}let unsub=null;try{unsub=C.proWatch(a=>setSubPro(!!a));}catch(e){setSubPro(false);}return()=>{try{unsub&&unsub();}catch(e){}};},[cloudUser]);
@@ -4056,6 +4059,10 @@ export default function App(){
               <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Sound</span>
               <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:soundOn?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:soundOn?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:`1px solid ${soundOn?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'}`}}>{soundOn?'ON':'OFF'}</span>
             </button>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',marginTop:6}}>
+              <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Piece style</span>
+              <div style={{display:'flex',gap:5}}>{[['classic','Classic'],['symbol','Symbol']].map(([pv,plab])=>(<button key={pv} onClick={()=>setPieceSet(pv)} style={{fontSize:12,fontWeight:800,padding:'4px 11px',borderRadius:9,cursor:'pointer',background:pieceSet===pv?'rgba(var(--acr),.2)':'rgba(255,255,255,.06)',border:'1px solid '+(pieceSet===pv?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'),color:pieceSet===pv?'var(--ac2)':'rgba(255,255,255,.6)'}}>{plab}</button>))}</div>
+            </div>
             <div style={{width:'100%',height:1,background:'rgba(255,255,255,.08)',margin:'4px 0 2px'}}/>
             <div style={{width:'100%'}}>
               <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.6)',fontWeight:700,marginBottom:7}}>Coach look</div>
