@@ -1,4 +1,10 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #267)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #268)
+
+## 2026-06-20 - BUILD #268 - engine sweep + gallery flush
+- Kunal concern (why wasn't the Rousseau blunder caught, how many others): ran Stockfish 16 (/usr/games/stockfish, it's in the sandbox) over ALL 154 lessons. 26 flagged for >200cp swings; on review ALL legitimate - ~16 are checkmate lessons (the swing is the mate), the rest are NAMED, correctly-framed traps/gambits (Legal, Stafford, Blackburne Shilling, Fishing Pole, Englund Rosen, Albin Lasker, Budapest Kieninger, Tennison, Jerome, Scholar/Fool mate) where the opponent's mistake is the lesson and is marked ?? / "greedily" / "objectively losing". NO other silent Rousseau-style mislabels. WHY the old checks missed Rousseau: they validated legality, not engine-optimality.
+- SAFEGUARD: saved sweep.py to the repo + HANDOFF; new/changed lessons now get engine-swept before deploy, not just legality-checked.
+- GALLERY flushed to Play-out OPTION B only (Rousseau verified by Kunal -> removed; Play-out A rejected since Kunal chose B -> removed).
+- B (full-line play-out chosen): DEFERRED to next build - the review analysis currently stores only the single best move per ply, not the engine's full continuation (PV). Wiring B needs the analysis to capture + store the PV then animate it; doing that properly next run rather than rushing a blind change to the engine code.
 
 ## 2026-06-20 - BUILD #267 - gallery wiped to live items only
 - Kunal: gallery had too many items he'd already been through. Stripped it from 9 to 3, keeping ONLY what's live now: Play-out OPTION A (single move), Play-out OPTION B (full line), and the corrected Rousseau 4.d4 line to verify. Removed (all already recorded or settled): eval bar, best-move arrow, captured pieces (contrast), gambit cross-links, font check Discover, font check Puzzles.
