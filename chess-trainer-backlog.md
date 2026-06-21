@@ -1,4 +1,16 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #279)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #280)
+
+## 2026-06-21 - BUILD #280 - REDESIGN slice: Puzzle roadmap scenery, all 12 themes
+- FIRST run as the sole redesign build agent (handoff consolidated into this chat; HEAD was 63f43c18 = #279, not stale, cleared to build). Structure decisions Q1-Q9 are LOCKED in REDESIGN-HANDOFF.md - not relitigated.
+- PRE-FLIGHT: Feedback sweep = nothing new (#2 Feedback + #3 manual-tasks both unchanged since the #278 overnight sweep). Backlog synced. Gallery: +1 card at top (scenery cycle); existing 5 (3 piece-set + captured-tray + best-line) still pending Kunal recordings -> 6 live.
+- BUILT the active art task (Q4): a new top-level _RoadScenery component renders a rich, layered SVG landscape BEHIND the puzzle roadmap (zIndex 0, road=1, nodes=2), so the winding path threads THROUGH the scenery and is never covered by it. Clusters sit in the OPEN flank opposite the road at each tier; far elements hazy/small/high, near elements crisp/large/low (parallax depth). Scenery follows the player's selected board THEME, all 12 mapped:
+  - Medieval (Stone Keep / Parchment / Royal / Dragonstone): castle complex (towers, gatehouse + portcullis, battlements, lit windows, pennants), moat, trail torches, knight banner, hazy distant keep, far mountains. Dragonstone adds a flying dragon + volcano embers; Royal adds a starfield + moon.
+  - Forest: tree groves on hills + deer/bush. Walnut: autumn woods + leaf-fall. Ocean: lighthouse + sailboat + island + waves + gulls. Dusk: starfield + moon + mountain silhouettes. Coral: reef bed + coral fans + fish + bubbles. Graphite/Slate: layered misty crags (premium-minimal). Candy: rolling candy hills + lollipops + gumdrops + pastel clouds.
+- VERIFIED hands-free: rendered all 12 to static SVG via react-dom/server, rasterized (cairosvg), eyeballed contact sheets - all 12 read well; enriched a first sparse pass (forest/walnut/crag/reef/candy grounded + denser) before shipping.
+- GALLERY: new card "Puzzle roadmap scenery (cycles all 12 themes)" at the top of SC - lands on the roadmap and auto-cycles every theme (castles first), then restores Kunal's theme. Guarded by a module token (_scnTok) so a re-run cancels the prior cycle. Record via Play all for hands-free review.
+- Library unchanged (159, audit PASS). Full bundle compiles (esbuild). stamp #280.
+- NEXT redesign slice (per handoff order, flagged for veto): control-icon system (filled+labeled) + in-game bar restructure (Moves/Back/Forward/Hint/Flip/More, contextual by mode, More sheet = Resign/Draw/Chat, ticker below bottom avatar). Held for its own focused run because the bar is spread across 3 render paths (vs-computer / online / review) and is the most delicate area - a careful, gallery-verified pass.
+
 
 ## 2026-06-21 - BUILD #279 - library: 5 genuinely-missing notable lines (not padding)
 - PRE-FLIGHT: Feedback sweep = nothing new (the #2 Feedback chat last moved 2026-06-20, BEFORE the #278 overnight sweep already folded everything in; manual-tasks chat unchanged). Backlog synced. Gallery: additive content only this run, no app-visible UI change, so no new cards; the existing 5 (3 piece-set + captured-tray + best-line) stand pending Kunal recordings.

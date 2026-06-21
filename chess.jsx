@@ -1730,6 +1730,271 @@ function _Piece({t,color,sz,ghost,useFallback,onFail}){
   if(useFallback)return(<div style={{...style,display:'flex',alignItems:'center',justifyContent:'center',fontSize:sz*0.72,lineHeight:1,color:color==='w'?'#fff':'#1a1a1a',textShadow:color==='w'?'0 0 2px #000,1px 1px 0 #444,-1px -1px 0 #444':'0 0 2px rgba(255,255,255,.6)'}}>{UNI[color][t]}</div>);
   return <img src={(_ACTIVE_PIECES||PIECE_IMG)[color+t]} width={sz} height={sz} style={{...style,filter:color==='b'?'var(--pcfilter) drop-shadow(0 0 1px rgba(255,255,255,.55)) drop-shadow(0 0 1.5px rgba(255,255,255,.28))':'var(--pcfilter)'}} onError={onFail} draggable={false} alt=""/>;
 }
+// ════════ Puzzle roadmap scenery (theme-mapped layered SVG landscape) ════════
+let _scnTok=0;
+// ── Puzzle roadmap scenery ───────────────────────────────────────────────
+// A rich, layered SVG landscape that the winding tier road travels THROUGH.
+// Clusters sit in the OPEN flank opposite the road at each tier, so the path
+// threads PAST castles / dragons / trees, never under them. Far elements are
+// hazy, small and high; near elements are crisp, larger and low (parallax depth).
+// Scenery follows the player's selected board THEME, every theme included.
+
+const _scLerp=(a,b,t)=>a+(b-a)*t;
+
+// ---- element primitives (absolute coords in the RW×PH space) ----
+const _scMtn=(k,cx,by,w,h,fill,cap,op)=>(
+  <g key={k} opacity={op||1}>
+    <path d={'M '+(cx-w/2)+' '+by+' L '+cx+' '+(by-h)+' L '+(cx+w/2)+' '+by+' Z'} fill={fill}/>
+    {cap&&<path d={'M '+(cx-w*0.16)+' '+(by-h*0.66)+' L '+cx+' '+(by-h)+' L '+(cx+w*0.2)+' '+(by-h*0.6)+' L '+(cx+w*0.06)+' '+(by-h*0.52)+' L '+(cx-w*0.03)+' '+(by-h*0.58)+' L '+(cx-w*0.12)+' '+(by-h*0.5)+' Z'} fill={cap}/>}
+  </g>
+);
+const _scPine=(k,cx,by,s,dk,lt)=>(
+  <g key={k}>
+    <rect x={cx-1.3*s} y={by-3.2*s} width={2.6*s} height={4.4*s} fill="#3a2a1b"/>
+    <path d={'M '+cx+' '+(by-27*s)+' L '+(cx-9*s)+' '+(by-13*s)+' L '+(cx+9*s)+' '+(by-13*s)+' Z'} fill={dk}/>
+    <path d={'M '+cx+' '+(by-20*s)+' L '+(cx-10.5*s)+' '+(by-3*s)+' L '+(cx+10.5*s)+' '+(by-3*s)+' Z'} fill={lt}/>
+    <path d={'M '+cx+' '+(by-27*s)+' L '+(cx-9*s)+' '+(by-13*s)+' L '+cx+' '+(by-16*s)+' Z'} fill="#000" opacity=".18"/>
+  </g>
+);
+const _scHill=(k,cx,by,w,h,fill,op)=>(
+  <path key={k} d={'M '+(cx-w/2)+' '+by+' Q '+cx+' '+(by-h)+' '+(cx+w/2)+' '+by+' Z'} fill={fill} opacity={op||1}/>
+);
+const _scBush=(k,cx,by,s,fill)=>(
+  <g key={k} fill={fill}><circle cx={cx-3*s} cy={by-2*s} r={3.2*s}/><circle cx={cx+3*s} cy={by-2*s} r={3.4*s}/><circle cx={cx} cy={by-4.5*s} r={3.8*s}/></g>
+);
+const _scStar=(k,x,y,r,c)=>(<circle key={k} cx={x} cy={y} r={r} fill={c}/>);
+const _scBird=(k,x,y,s,c)=>(<path key={k} d={'M '+x+' '+y+' q '+(2*s)+' '+(-2*s)+' '+(4*s)+' 0 q '+(2*s)+' '+(-2*s)+' '+(4*s)+' 0'} stroke={c} strokeWidth={0.9*s} fill="none" strokeLinecap="round"/>);
+const _scCloud=(k,cx,cy,s,c)=>(
+  <g key={k} fill={c}><ellipse cx={cx} cy={cy} rx={13*s} ry={5*s}/><ellipse cx={cx-8*s} cy={cy+1.5*s} rx={8*s} ry={4*s}/><ellipse cx={cx+9*s} cy={cy+1.8*s} rx={7*s} ry={3.6*s}/></g>
+);
+const _scMoon=(k,cx,cy,r,c,glow)=>(
+  <g key={k}><circle cx={cx} cy={cy} r={r*2.1} fill={glow}/><circle cx={cx} cy={cy} r={r} fill={c}/></g>
+);
+const _scTorch=(k,x,by,s)=>(
+  <g key={k}>
+    <rect x={x-0.9*s} y={by-9*s} width={1.8*s} height={9*s} fill="#4a3422"/>
+    <circle cx={x} cy={by-9*s} r={2.6*s} fill="rgba(245,170,70,.32)"/>
+    <path d={'M '+x+' '+(by-13.5*s)+' q '+(2.6*s)+' '+(2.6*s)+' 0 '+(5*s)+' q '+(-2.6*s)+' '+(-2.4*s)+' 0 '+(-5*s)+' Z'} fill="#f3a93a"/>
+    <path d={'M '+x+' '+(by-12*s)+' q '+(1.4*s)+' '+(1.6*s)+' 0 '+(3*s)+' q '+(-1.4*s)+' '+(-1.4*s)+' 0 '+(-3*s)+' Z'} fill="#ffe07a"/>
+  </g>
+);
+// Castle complex (towers, gatehouse, portcullis, lit windows, pennants). Anchored bottom-center at (cx,by).
+const _scCastle=(k,cx,by,s,stone,stoneD,roof,trim,winC)=>{
+  const T=(x,w,h,top,fill)=>(<g><rect x={cx+x*s} y={by-(top+h)*s} width={w*s} height={h*s} fill={fill}/><path d={'M '+(cx+(x-0.8)*s)+' '+(by-(top+h)*s)+' L '+(cx+(x+w/2)*s)+' '+(by-(top+h+5)*s)+' L '+(cx+(x+w+0.8)*s)+' '+(by-(top+h)*s)+' Z'} fill={roof}/></g>);
+  const batt=(x,w,top)=>{const out=[];const n=Math.max(2,Math.round(w/3));for(let i=0;i<n;i++){out.push(<rect key={i} x={cx+(x+i*(w/n))*s} y={by-(top+2.4)*s} width={(w/n*0.6)*s} height={2.6*s} fill={stoneD}/>);}return <g>{out}</g>;};
+  return(
+    <g key={k}>
+      {T(13,7,30,0,stoneD)}
+      <rect x={cx-2*s} y={by-26*s} width={13*s} height={26*s} fill={stone}/>
+      {batt(-2,13,26)}
+      {T(-11,7,22,0,stone)}
+      <rect x={cx-19*s} y={by-15*s} width={9*s} height={15*s} fill={stoneD}/>
+      {batt(-19,9,15)}
+      <path d={'M '+(cx+1.5*s)+' '+by+' v '+(-9*s)+' a '+(4.5*s)+' '+(4.5*s)+' 0 0 1 '+(9*s)+' 0 v '+(9*s)+' Z'} fill="#1c1710"/>
+      <g stroke={stoneD} strokeWidth={0.5*s} fill="none"><path d={'M '+(cx+3.4*s)+' '+(by-1*s)+' v '+(-7*s)+' M '+(cx+6*s)+' '+(by-1*s)+' v '+(-8.5*s)+' M '+(cx+8.6*s)+' '+(by-1*s)+' v '+(-7*s)+' M '+(cx+1.8*s)+' '+(by-4*s)+' h '+(8.5*s)+' M '+(cx+1.8*s)+' '+(by-6.5*s)+' h '+(8.5*s)}/></g>
+      <g fill={winC}><rect x={cx+1*s} y={by-20*s} width={2*s} height={3*s}/><rect x={cx+6*s} y={by-16*s} width={2*s} height={3*s}/><rect x={cx+14.5*s} y={by-22*s} width={1.9*s} height={2.9*s}/><rect x={cx-16*s} y={by-11*s} width={1.7*s} height={2.6*s}/><rect x={cx-7*s} y={by-15*s} width={1.8*s} height={2.7*s}/></g>
+      <path d={'M '+(cx+16.5*s)+' '+(by-30*s)+' v '+(-6*s)+' l '+(5*s)+' '+(2*s)+' l '+(-5*s)+' '+(2*s)} fill={trim}/>
+      <path d={'M '+(cx-7.5*s)+' '+(by-22*s)+' v '+(-5.5*s)+' l '+(4.6*s)+' '+(1.8*s)+' l '+(-4.6*s)+' '+(1.8*s)} fill={trim}/>
+    </g>
+  );
+};
+const _scDragon=(k,cx,cy,s,body,wing,fire)=>(
+  <g key={k} transform={'translate('+cx+','+cy+') scale('+s+')'}>
+    <g fill={body}>
+      <path d="M22 8 q-9 -1 -14 3 q-4 2 -7 -0.5 q2 3.5 5.5 3 q-3 2 -2 4.5 q3.5 -2.5 6.5 -1.5 q-1 3 1.5 4 q1 -3.5 4.5 -3.5 l2 -2 q4 -3.5 9.5 -3z"/>
+      <path d="M6 11 l-4 -4 2.5 5z"/>
+      <path d="M19 11 q13 -2 23 4 q9.5 4.5 12.5 13 q-7.5 -4.5 -16 -4.5 q-12.5 0 -20.5 -4z"/>
+      <path d="M52 25 q11 3 15.5 12 q-2.5 -1.5 -4.5 -1 l2.5 3.5 q-4.5 -2.5 -7 -1 l1.5 3.5 q-5.5 -3.5 -9.5 -2 q3.5 -7.5 1.5 -14.5z"/>
+      <path d="M40 25 l3.5 7 -5.5 -1z"/>
+    </g>
+    <path d="M29 8 q2.5 -19 16.5 -26.5 q-3 8.5 0 14 q-2.5 1 -3.5 3 q5.5 -5.5 11.5 -6.5 q-3 6.5 -1 11.5 q-2.5 0.5 -4.5 2.5 q4.5 -3.5 9.5 -3.5 q-4.5 6.5 -10.5 7.5 q-13 2 -26 -2z" fill={wing}/>
+    <circle cx="4.5" cy="13" r="0.8" fill={fire}/>
+    <circle cx="0" cy="13" r="1.5" fill="#f0a04a" opacity=".85"/>
+  </g>
+);
+const _scSailboat=(k,cx,by,s,hull,sail)=>(
+  <g key={k}>
+    <path d={'M '+(cx-7*s)+' '+by+' L '+(cx+7*s)+' '+by+' L '+(cx+5*s)+' '+(by+3.4*s)+' L '+(cx-5*s)+' '+(by+3.4*s)+' Z'} fill={hull}/>
+    <rect x={cx-0.5*s} y={by-15*s} width={1*s} height={15*s} fill="#6b4a2c"/>
+    <path d={'M '+cx+' '+(by-14*s)+' L '+cx+' '+(by-1*s)+' L '+(cx+8*s)+' '+(by-1*s)+' Z'} fill={sail}/>
+    <path d={'M '+cx+' '+(by-14*s)+' L '+cx+' '+(by-1*s)+' L '+(cx-6*s)+' '+(by-1*s)+' Z'} fill={sail} opacity=".82"/>
+  </g>
+);
+const _scLighthouse=(k,cx,by,s,body,beam)=>(
+  <g key={k}>
+    <path d={'M '+(cx-3.4*s)+' '+by+' L '+(cx-2.2*s)+' '+(by-20*s)+' L '+(cx+2.2*s)+' '+(by-20*s)+' L '+(cx+3.4*s)+' '+by+' Z'} fill={body}/>
+    <g fill="#c0413a"><path d={'M '+(cx-3*s)+' '+(by-4*s)+' h '+(6*s)+' v '+(3*s)+' h '+(-6*s)+' Z'}/><path d={'M '+(cx-2.6*s)+' '+(by-12*s)+' h '+(5.2*s)+' v '+(3*s)+' h '+(-5.2*s)+' Z'}/></g>
+    <rect x={cx-2.6*s} y={by-25*s} width={5.2*s} height={5*s} fill="#3a3a44"/>
+    <circle cx={cx} cy={by-22.5*s} r={2.4*s} fill={beam}/>
+    <path d={'M '+cx+' '+(by-22.5*s)+' L '+(cx+16*s)+' '+(by-28*s)+' L '+(cx+16*s)+' '+(by-17*s)+' Z'} fill={beam} opacity=".22"/>
+  </g>
+);
+const _scWave=(k,y,RW,c,op)=>(
+  <path key={k} d={'M 0 '+y+' q '+(RW*0.12)+' '+(-5)+' '+(RW*0.25)+' 0 t '+(RW*0.25)+' 0 t '+(RW*0.25)+' 0 t '+(RW*0.25)+' 0'} stroke={c} strokeWidth="2" fill="none" opacity={op||1} strokeLinecap="round"/>
+);
+const _scDeer=(k,cx,by,s,c)=>(
+  <g key={k} fill={c}>
+    <ellipse cx={cx} cy={by-5*s} rx={5*s} ry={2.6*s}/>
+    <rect x={cx-4*s} y={by-5*s} width={1.3*s} height={5*s}/><rect x={cx+3*s} y={by-5*s} width={1.3*s} height={5*s}/>
+    <rect x={cx+4.5*s} y={by-10*s} width={1.4*s} height={6*s}/>
+    <circle cx={cx+5.3*s} cy={by-11*s} r={1.8*s}/>
+    <path d={'M '+(cx+5*s)+' '+(by-12*s)+' l '+(-1.4*s)+' '+(-3*s)+' M '+(cx+5.6*s)+' '+(by-12*s)+' l '+(1.4*s)+' '+(-3*s)} stroke={c} strokeWidth={0.8*s}/>
+  </g>
+);
+const _scCoral=(k,cx,by,s,c1,c2)=>(
+  <g key={k}>
+    <path d={'M '+cx+' '+by+' q '+(-6*s)+' '+(-4*s)+' '+(-5*s)+' '+(-12*s)+' q '+(3*s)+' '+(5*s)+' '+(5*s)+' 0 q '+(2*s)+' '+(-6*s)+' '+(5*s)+' '+(-11*s)+' q '+(-1*s)+' '+(8*s)+' '+(3*s)+' '+(4*s)+' q '+(-1*s)+' '+(6*s)+' '+(-6*s)+' '+(11*s)} fill={c1}/>
+    <path d={'M '+(cx+5*s)+' '+by+' q '+(2*s)+' '+(-6*s)+' '+(1*s)+' '+(-11*s)+' q '+(3*s)+' '+(4*s)+' '+(2*s)+' '+(11*s)} fill={c2}/>
+  </g>
+);
+const _scCandyHill=(k,cx,by,w,h,c1,c2)=>(
+  <g key={k}><path d={'M '+(cx-w/2)+' '+by+' Q '+cx+' '+(by-h)+' '+(cx+w/2)+' '+by+' Z'} fill={c1}/><path d={'M '+(cx-w*0.3)+' '+(by-h*0.55)+' q '+(w*0.3)+' '+(-h*0.25)+' '+(w*0.6)+' 0'} stroke={c2} strokeWidth="2.5" fill="none" opacity=".6"/></g>
+);
+const _scLollipop=(k,cx,by,s,c)=>(
+  <g key={k}><rect x={cx-0.7*s} y={by-9*s} width={1.4*s} height={9*s} fill="#fff" opacity=".8"/><circle cx={cx} cy={by-11*s} r={3.4*s} fill={c}/><path d={'M '+cx+' '+(by-14*s)+' a '+(3.4*s)+' '+(3.4*s)+' 0 0 1 0 '+(6.4*s)} stroke="#fff" strokeWidth={1*s} fill="none" opacity=".7"/></g>
+);
+const _scKnight=(k,cx,by,s,c,banner)=>(
+  <g key={k}>
+    <rect x={cx-0.7*s} y={by-16*s} width={1.4*s} height={16*s} fill="#5a4a38"/>
+    <path d={'M '+(cx+0.7*s)+' '+(by-16*s)+' h '+(8*s)+' l '+(-2*s)+' '+(3*s)+' l '+(2*s)+' '+(3*s)+' h '+(-8*s)+' Z'} fill={banner}/>
+    <g fill={c}><circle cx={cx-3*s} cy={by-9*s} r={2.4*s}/><path d={'M '+(cx-6*s)+' '+by+' q 0 '+(-7*s)+' '+(3*s)+' '+(-7.5*s)+' q '+(3*s)+' '+(0.5*s)+' '+(3*s)+' '+(7.5*s)+' Z'}/></g>
+  </g>
+);
+
+// theme name → scene recipe
+const _SCENE_OF={
+  'Forest':{biome:'forest',sky:['#1d2a1e','#161d16'],far:'#27331f',mtn:'#223018',near:'#1b2415',a:'#9ab860',a2:'#c3e08a'},
+  'Walnut':{biome:'autumn',sky:['#2a1d12','#1a120b'],far:'#3a2a18',mtn:'#3a2615',near:'#26190e',a:'#d79a4e',a2:'#f0c074'},
+  'Ocean':{biome:'sea',sky:['#16263b','#0e1726'],far:'#1c3450',mtn:'#21405e',near:'#13283e',a:'#5b9bd5',a2:'#9fcdf2'},
+  'Dusk':{biome:'night',sky:['#1c1330','#120b22'],far:'#2a2046',mtn:'#241a3c',near:'#160f28',a:'#a47fc8',a2:'#cdaaea'},
+  'Coral':{biome:'reef',sky:['#2e1813','#1c0f0b'],far:'#46241c',mtn:'#54271d',near:'#2a1410',a:'#dd8a68',a2:'#f6b58e'},
+  'Graphite':{biome:'crag',sky:['#1a1a1d','#101012'],far:'#2a2a2f',mtn:'#26262b',near:'#1a1a1d',a:'#a6acba',a2:'#cdd2dc',mono:true},
+  'Slate':{biome:'crag',sky:['#141b24','#0e131b'],far:'#22303f',mtn:'#243341',near:'#16202b',a:'#7e94a8',a2:'#b1c5d8'},
+  'Stone Keep':{biome:'castle',sky:['#241f18','#15110c'],far:'#332c20',mtn:'#2e271c',near:'#1d1812',a:'#a99a82',a2:'#d6c6a8',stone:'#6a5f4c',stoneD:'#4a4234',roof:'#6a4836',trim:'#8a9a5a',win:'#f0c24d'},
+  'Parchment':{biome:'castle',sky:['#2a2014','#1a130a'],far:'#3e2f18','mtn':'#3a2c16',near:'#241a0e',a:'#c69a4f',a2:'#ecc878',stone:'#7a6440',stoneD:'#564429',roof:'#7a4e2c',trim:'#caa24c',win:'#ffd86a',gold:true},
+  'Dragonstone':{biome:'castle',sky:['#2a1612','#160b09'],far:'#3a1f18',mtn:'#3a2018',near:'#1f100c',a:'#d2603a',a2:'#f4906a',stone:'#4c4742',stoneD:'#332e2a',roof:'#7a2f22',trim:'#d2603a',win:'#ffae5a',dragon:true,volcano:true},
+  'Royal':{biome:'castle',sky:['#1d1230','#120a22'],far:'#2c2046',mtn:'#281c40',near:'#170f28',a:'#c6a24c',a2:'#ecc869',stone:'#5a4a6e',stoneD:'#3e3150',roof:'#6f5391',trim:'#e7c869',win:'#ffe07a',royal:true,night:true},
+  'Candy':{biome:'candy',sky:['#3a1c30','#26152a'],far:'#5a2a4a',mtn:'#6a2f54',near:'#3a1c30',a:'#ff7fb0',a2:'#ffc2dc'},
+};
+
+function _RoadScenery({theme,RW,PH}){
+  const TH=(typeof THEMES!=='undefined'&&THEMES[theme])||null;
+  const name=TH?TH.name:'Forest';
+  const R=_SCENE_OF[name]||_SCENE_OF['Forest'];
+  const K=8,GAP=168,NODE=96;
+  const nodeY=i=>60+i*GAP;
+  const nodeX=i=>RW*(i%2===0?0.20:0.80);
+  const sf=Math.max(0.62,Math.min(1.15,RW/360));
+  const el=[];
+  const grad='scsky_'+name.replace(/[^a-z]/gi,'');
+  // soft atmospheric wash (kept translucent so the app's dark bg shows through)
+  el.push(
+    <defs key="defs"><linearGradient id={grad} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stopColor={R.sky[0]}/><stop offset="1" stopColor={R.sky[1]}/>
+    </linearGradient></defs>
+  );
+  el.push(<rect key="wash" x="0" y="0" width={RW} height={PH} fill={'url(#'+grad+')'} opacity=".55"/>);
+
+  // FAR layer: hazy mountain/horizon band near the top
+  const fy=nodeY(0)+34;
+  el.push(<path key="farband" d={'M 0 '+fy+' L '+(RW*0.18)+' '+(fy-46*sf)+' L '+(RW*0.36)+' '+(fy-14*sf)+' L '+(RW*0.55)+' '+(fy-52*sf)+' L '+(RW*0.74)+' '+(fy-18*sf)+' L '+(RW*0.9)+' '+(fy-44*sf)+' L '+RW+' '+(fy-10*sf)+' L '+RW+' '+PH+' L 0 '+PH+' Z'} fill={R.far} opacity=".42"/>);
+
+  // AMBIENT sky: stars (night/royal) or birds/clouds
+  if(R.night||R.biome==='night'){
+    el.push(_scMoon('moon',RW*0.74,nodeY(0)-2,7*sf,R.a2,'rgba(240,228,190,.18)'));
+    for(let i=0;i<26;i++){const x=_scLerp(0.05,0.95,(i*0.137)%1)*RW;const y=_scLerp(8,nodeY(1)+40,(i*0.083)%1);const r=(0.5+((i*7)%3)*0.4)*sf;el.push(_scStar('st'+i,x,y,r,i%5===0?R.a2:'rgba(255,255,255,.7)'));}
+  } else if(R.biome==='sea'){
+    el.push(_scCloud('cl1',RW*0.7,nodeY(0)-8,sf,'rgba(220,232,245,.18)'));
+    el.push(_scCloud('cl2',RW*0.28,nodeY(0)+10,sf*0.8,'rgba(220,232,245,.13)'));
+    [0,1,2].forEach(i=>el.push(_scBird('bd'+i,RW*(0.3+i*0.16),nodeY(0)-14+i*5,sf*1.1,'rgba(255,255,255,.5)')));
+  } else {
+    el.push(_scCloud('cl1',RW*0.68,nodeY(0)-6,sf*0.9,'rgba(255,255,255,.08)'));
+    [0,1,2].forEach(i=>el.push(_scBird('bd'+i,RW*(0.28+i*0.15),nodeY(0)-16+i*4,sf,'rgba(255,255,255,.35)')));
+  }
+  if(R.volcano){el.push(<circle key="sun" cx={RW*0.24} cy={nodeY(0)-4} r={6*sf} fill="rgba(245,140,70,.45)"/>);}
+
+  // PER-TIER flank clusters: opposite the road, far→near down the journey
+  for(let i=0;i<K;i++){
+    const open=i%2===0?'R':'L';                 // road is on the left at even rows → cluster right
+    const cx=open==='R'?RW*0.80:RW*0.20;
+    const by=nodeY(i)+58;                        // sit just below the node
+    const depth=i/(K-1);                          // 0 far(top) → 1 near(bottom)
+    const s=sf*_scLerp(0.82,1.34,depth);
+    const op=_scLerp(0.55,1,depth);
+    const g=[];
+    if(R.biome==='forest'){
+      g.push(_scHill('h'+i+'b',cx-6*s,by+5*s,96*s,30*s,R.far,op));
+      g.push(_scHill('h'+i+'a',cx+14*s,by+8*s,72*s,22*s,R.near,op));
+      g.push(_scPine('p'+i+'a',cx-30*s,by,s*0.9,R.mtn,R.a));
+      g.push(_scPine('p'+i+'b',cx-16*s,by+3*s,s*1.25,R.mtn,R.a2));
+      g.push(_scPine('p'+i+'c',cx-1*s,by+1*s,s*1.55,R.mtn,R.a2));
+      g.push(_scPine('p'+i+'d',cx+16*s,by+3*s,s*1.15,R.mtn,R.a));
+      g.push(_scPine('p'+i+'e',cx+30*s,by,s*0.85,R.mtn,R.a));
+      if(i%2===1)g.push(_scDeer('d'+i,cx+8*s,by+6*s,s*1.1,'#8a663f'));
+      else g.push(_scBush('bu'+i,cx-26*s,by+5*s,s*1.2,R.mtn));
+    } else if(R.biome==='autumn'){
+      g.push(_scHill('h'+i+'b',cx-4*s,by+6*s,98*s,28*s,R.far,op));
+      g.push(_scHill('h'+i+'a',cx+12*s,by+9*s,70*s,20*s,R.near,op));
+      g.push(_scPine('p'+i+'a',cx-28*s,by+2*s,s*0.95,'#6e4a22',R.a));
+      g.push(_scPine('p'+i+'b',cx-12*s,by+3*s,s*1.4,'#7a3f1c',R.a2));
+      g.push(_scPine('p'+i+'c',cx+6*s,by+1*s,s*1.2,'#8a4a1e',R.a));
+      g.push(_scPine('p'+i+'d',cx+24*s,by+3*s,s*0.95,'#6e4a22',R.a2));
+      for(let j=0;j<10;j++)g.push(<circle key={'lf'+i+j} cx={cx-30*s+j*7*s} cy={by-16*s+((j*5)%4)*7*s} r={1.5*s} fill={j%2?R.a:'#c2622e'} opacity=".75"/>);
+    } else if(R.biome==='crag'){
+      g.push(<path key={'crf'+i} d={'M '+(cx-40*s)+' '+by+' L '+(cx-20*s)+' '+(by-34*s)+' L '+(cx-4*s)+' '+(by-12*s)+' L '+(cx+14*s)+' '+(by-46*s)+' L '+(cx+34*s)+' '+(by-18*s)+' L '+(cx+44*s)+' '+by+' Z'} fill={R.far} opacity={0.7*op}/>);
+      g.push(<path key={'cr'+i} d={'M '+(cx-30*s)+' '+by+' L '+(cx-12*s)+' '+(by-30*s)+' L '+(cx-2*s)+' '+(by-14*s)+' L '+(cx+14*s)+' '+(by-44*s)+' L '+(cx+30*s)+' '+by+' Z'} fill={R.mtn} opacity={op}/>);
+      g.push(<path key={'cr2'+i} d={'M '+(cx+2*s)+' '+by+' L '+(cx+14*s)+' '+(by-44*s)+' L '+(cx+22*s)+' '+(by-24*s)+' Z'} fill={R.a2} opacity=".4"/>);
+      g.push(<path key={'cr3'+i} d={'M '+(cx-12*s)+' '+(by-30*s)+' L '+(cx-7*s)+' '+(by-22*s)+' L '+(cx-2*s)+' '+(by-26*s)+' Z'} fill={R.a2} opacity=".5"/>);
+      if(i%2===0)g.push(<path key={'mist'+i} d={'M '+(cx-34*s)+' '+(by-8*s)+' q '+(34*s)+' '+(-7*s)+' '+(68*s)+' 0'} stroke="rgba(255,255,255,.12)" strokeWidth={6*s} fill="none" strokeLinecap="round"/>);
+    } else if(R.biome==='sea'){
+      g.push(_scWave('w'+i+'a',by-6*s,RW,'rgba(255,255,255,.10)',op));
+      g.push(_scWave('w'+i+'b',by+2*s,RW,R.a+'55',op));
+      if(i%3===0)g.push(_scLighthouse('lh'+i,cx,by-4*s,s,'#e7e0d2',R.a2));
+      else if(i%3===1)g.push(_scSailboat('sb'+i,cx,by-6*s,s*1.1,'#6b4a2c',R.a2));
+      else g.push(<g key={'is'+i}><path d={'M '+(cx-14*s)+' '+by+' q '+(14*s)+' '+(-10*s)+' '+(28*s)+' 0 Z'} fill="#caa86a"/><rect x={cx-1*s} y={by-12*s} width={1.6*s} height={8*s} fill="#6b4a2c"/><path d={'M '+cx+' '+(by-13*s)+' q '+(7*s)+' '+(1*s)+' '+(8*s)+' '+(5*s)+' q '+(-6*s)+' '+(-2*s)+' '+(-8*s)+' '+(1*s)+' q '+(6*s)+' 0 '+(7*s)+' '+(4*s)+' q '+(-6*s)+' '+(-3*s)+' '+(-8*s)+' '+(1*s)+' Z'} fill={R.a}/></g>);
+    } else if(R.biome==='night'){
+      g.push(_scMtn('nm'+i,cx,by,72*s,40*s,R.mtn,null,op));
+      g.push(_scMtn('nm2'+i,cx+22*s,by,46*s,26*s,R.near,null,op));
+      for(let j=0;j<5;j++)g.push(_scStar('ns'+i+j,cx-24*s+j*12*s,by-44*s+(j%2)*8*s,0.9*s,R.a2));
+    } else if(R.biome==='reef'){
+      g.push(_scHill('sb'+i,cx,by+6*s,92*s,18*s,R.far,op));
+      g.push(_scWave('rw'+i,by-30*s,RW,'rgba(255,255,255,.10)',op));
+      g.push(_scCoral('co'+i+'a',cx-20*s,by+4*s,s*1.0,R.a,R.a2));
+      g.push(_scCoral('co'+i+'b',cx-2*s,by+5*s,s*1.4,'#e0746a','#f2a890'));
+      g.push(_scCoral('co'+i+'c',cx+18*s,by+4*s,s*1.05,'#caa24c','#e6c178'));
+      g.push(<g key={'fish'+i} fill={R.a2} opacity=".7"><ellipse cx={cx+8*s} cy={by-22*s} rx={3*s} ry={1.6*s}/><path d={'M '+(cx+11*s)+' '+(by-22*s)+' l '+(3*s)+' '+(-2*s)+' v '+(4*s)+' z'}/></g>);
+      for(let j=0;j<5;j++)g.push(<circle key={'bub'+i+j} cx={cx-4*s+j*4*s} cy={by-16*s-j*6*s} r={(1+0.35*j)*s*0.6} fill="rgba(255,255,255,.2)"/>);
+    } else if(R.biome==='candy'){
+      g.push(_scCandyHill('ch'+i+'b',cx-18*s,by+5*s,80*s,26*s,'#d96aa0',R.a2));
+      g.push(_scCandyHill('ch'+i+'a',cx+16*s,by+8*s,76*s,30*s,i%2?R.a:'#ff9ec4',R.a2));
+      g.push(_scLollipop('lp'+i+'a',cx-22*s,by+2*s,s*1.15,i%2?'#ff5e9a':'#7ac6ff'));
+      g.push(_scLollipop('lp'+i+'b',cx-2*s,by,s*1.45,'#ffd24a'));
+      g.push(_scLollipop('lp'+i+'c',cx+20*s,by+2*s,s*1.0,i%2?'#9be86a':'#ff7fb0'));
+      g.push(<g key={'gd'+i} fill="#9be86a"><path d={'M '+(cx+30*s)+' '+(by+4*s)+' a '+(4.5*s)+' '+(4.5*s)+' 0 0 1 '+(9*s)+' 0 Z'}/></g>);
+      g.push(_scCloud('cdc'+i,cx+6*s,by-34*s,s*0.7,'rgba(255,210,235,.4)'));
+    } else if(R.biome==='castle'){
+      // far hazy keep on the OTHER flank for depth
+      const ox=open==='R'?RW*0.20:RW*0.80;
+      g.push(<g key={'fk'+i} opacity={0.3*op}><rect x={ox-3*s} y={by-26*s} width={6*s} height={26*s} fill={R.far}/><rect x={ox+3*s} y={by-32*s} width={5*s} height={32*s} fill={R.far}/><path d={'M '+(ox-4*s)+' '+(by-26*s)+' l '+(4*s)+' '+(-5*s)+' '+(4*s)+' 5z'} fill={R.far}/><path d={'M '+(ox+2*s)+' '+(by-32*s)+' l '+(3.5*s)+' '+(-4.5*s)+' '+(3.5*s)+' 4.5z'} fill={R.far}/></g>);
+      g.push(_scCastle('cas'+i,cx,by,s*1.25,R.stone,R.stoneD,R.roof,R.trim,R.win));
+      // moat sweep
+      g.push(<path key={'moat'+i} d={'M '+(cx-34*s)+' '+by+' q '+(34*s)+' '+(8*s)+' '+(68*s)+' '+(-2*s)+' v '+(8*s)+' q '+(-34*s)+' '+(10*s)+' '+(-68*s)+' '+(2*s)+' Z'} fill={R.night?'#27406a':'#2a4a5e'} opacity=".55"/>);
+      g.push(_scTorch('t'+i+'a',cx-30*s,by,s));
+      g.push(_scTorch('t'+i+'b',cx+30*s,by,s));
+      if(i%2===0)g.push(_scKnight('kn'+i,cx-26*s,by,s,'#3a3026',R.trim));
+      if(R.dragon&&(i===2||i===5)){const dx=open==='R'?RW*0.22:RW*0.64;g.push(_scDragon('dr'+i,dx,by-70*s,s*0.7,'#1b1420',R.a,R.a2));}
+      if(R.volcano&&i%3===2){for(let j=0;j<5;j++)g.push(<circle key={'em'+i+j} cx={cx-10*s+j*6*s} cy={by-30*s-j*6*s} r={(0.6+0.3*(j%2))*s} fill="rgba(245,140,70,.6)"/>);}
+    }
+    el.push(<g key={'cluster'+i} opacity={op}>{g}</g>);
+  }
+
+  // FOREGROUND ground strip
+  const gy=PH-20;
+  el.push(<path key="ground" d={'M 0 '+gy+' Q '+(RW*0.3)+' '+(gy-12)+' '+(RW*0.6)+' '+(gy-4)+' T '+RW+' '+(gy-6)+' V '+PH+' H 0 Z'} fill={R.near} opacity=".85"/>);
+
+  return(<svg width={RW} height={PH} viewBox={'0 0 '+RW+' '+PH} style={{position:'absolute',left:0,top:0,zIndex:0,pointerEvents:'none',overflow:'visible'}}>{el}</svg>);
+}
+
 function Tab({label,active,onClick}){
   return <button onClick={onClick} style={{flex:1,padding:'8px 4px',border:'none',cursor:'pointer',background:active?'var(--ac)':'transparent',color:active?'#fff':'rgba(255,255,255,.55)',fontSize:'clamp(14px,2.7vw,14px)',fontWeight:active?700:500,borderRadius:6,transition:'all .15s',letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>{label}</button>;
 }
@@ -3510,6 +3775,7 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
+          {l:"Puzzle roadmap scenery (cycles all 12 themes)", n:"NEW this build. Lands on the Puzzles roadmap and auto-cycles every board theme so you can see the themed landscape the road threads through: castles + moat + torches + pennants for the medieval themes (Dragonstone adds a dragon and embers, Royal adds stars and a moon), tree groves for Forest, autumn woods for Walnut, lighthouse and sailboat for Ocean, starfield for Dusk, coral reef for Coral, misty crags for Graphite and Slate, and candy hills for Candy. Scenery sits BESIDE the path, never under it. Restores your theme at the end.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setMode('puzzle');setPzView('roadmap');const _orig=theme;const _order=[7,8,9,10,0,1,2,3,4,5,6,11];const _tok=(++_scnTok);let _k=0;const _step=()=>{if(_tok!==_scnTok)return;if(_k>=_order.length){setTheme(_orig);return;}setTheme(_order[_k]);_k++;setTimeout(_step,1600);};setTheme(_order[0]);_k=1;setTimeout(_step,1600);}, h:12*1600+1200},
           {l:"Piece set: Merida", n:"New commercial-safe piece art (GPLv2). Opens the start position so all six piece types show in both colors. Check the Merida set reads clearly at board size.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setFlip(false);setPieceSet('merida');_play('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','w');}, h:6000},
           {l:"Piece set: Chessnut", n:"New commercial-safe piece art (Apache 2.0). Start position, all pieces in both colors. Check the Chessnut set.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setFlip(false);setPieceSet('chessnut');_play('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','w');}, h:6000},
           {l:"Piece set: Spatial", n:"New commercial-safe piece art (MIT). Start position, all pieces in both colors. Check the Spatial set.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setFlip(false);setPieceSet('spatial');_play('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','w');}, h:6000},
@@ -4594,7 +4860,7 @@ export default function App(){
         {(()=>{const K=PZ_TIERS.length,GAP=168,NODE=96;const TC=['#7c8694','#22c55e','#14b8a6','#3b82f6','#6366f1','#a855f7','#f59e0b','#eab308'];const RW=Math.max(170,Math.min(railed?(sideW-6):Math.round(vp.w*0.92),460));const PH=(K-1)*GAP+NODE+44;const xpf=i=>i%2===0?20:80;const cxf=i=>RW*xpf(i)/100;const cyf=i=>NODE/2+i*GAP+12;
           const seg=i=>{const x1=cxf(i),y1=cyf(i),x2=cxf(i+1),y2=cyf(i+1),ym=(y1+y2)/2;return 'M '+x1+' '+y1+' C '+x1+' '+ym+' '+x2+' '+ym+' '+x2+' '+y2;};const road=(<svg width={RW} height={PH} viewBox={'0 0 '+RW+' '+PH} style={{position:'absolute',left:0,top:0,zIndex:1,pointerEvents:'none',overflow:'visible'}}>{PZ_TIERS.slice(0,K-1).map((_,i)=>(<path key={'b'+i} d={seg(i)} fill="none" stroke="rgba(255,255,255,.12)" strokeWidth="17" strokeLinecap="round"/>))}{PZ_TIERS.slice(0,K-1).map((_,i)=>{const lit=pzUnlock||(i+1)<=rank;return lit?(<path key={'l'+i} d={seg(i)} fill="none" strokeLinecap="round" pathLength="1" style={{stroke:'var(--ac)',strokeWidth:12,opacity:.9,strokeDasharray:1,strokeDashoffset:0,animation:'ctDraw .8s ease both',animationDelay:(i*.12)+'s'}}/>):null;})}{PZ_TIERS.slice(0,K-1).map((_,i)=>(<path key={'d'+i} d={seg(i)} fill="none" stroke="rgba(255,255,255,.45)" strokeWidth="2.4" strokeLinecap="round" strokeDasharray="0.5 13"/>))}</svg>);
           const nodes=PZ_TIERS.map((t,ti)=>{const sv=pzSolvedInTier(pzSolvedMap,ti);const done=sv>=t.need;const unlocked=pzUnlock||ti<=rank;const isActive=ti===active&&!allDone;const x=cxf(ti),y=cyf(ti);const col=TC[ti%TC.length];const bg=done?'linear-gradient(145deg,#6fc47a,#3c8348)':isActive?`linear-gradient(145deg,${col},${col})`:unlocked?`linear-gradient(145deg,${col}cc,${col}77)`:'linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,.04))';return(<button key={ti} disabled={!unlocked} onClick={()=>unlocked&&pzEnterBrowse(pzNextInTier(pzSolvedMap,ti),ti)} title={t.name} style={{position:'absolute',left:x-NODE/2,top:y-NODE/2,width:NODE,height:NODE,borderRadius:'50%',zIndex:2,overflow:'visible',display:'flex',alignItems:'center',justifyContent:'center',padding:0,cursor:unlocked?'pointer':'default',opacity:unlocked?1:.6,color:'#fff',fontSize:done?29:34,lineHeight:1,background:bg,border:isActive?'3px solid #fff':'3px solid rgba(255,255,255,.45)',boxShadow:isActive?`0 5px 0 rgba(0,0,0,.30),0 0 0 6px rgba(var(--acr),.28),0 12px 22px ${col}66,inset 0 3px 4px rgba(255,255,255,.5),inset 0 -4px 8px rgba(0,0,0,.28)`:unlocked?`0 5px 0 rgba(0,0,0,.28),0 10px 20px ${col}55,inset 0 3px 4px rgba(255,255,255,.45),inset 0 -4px 8px rgba(0,0,0,.3)`:'0 3px 0 rgba(0,0,0,.3),0 4px 10px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08)'}}>{isActive&&(<span style={{position:'absolute',inset:-9,borderRadius:'50%',boxShadow:'0 0 26px 9px '+col,opacity:.5,animation:'ctGlow 2.2s ease-in-out infinite',pointerEvents:'none'}}/>)}{unlocked&&!done&&(()=>{const D=NODE+16;const fr=Math.min(1,sv/t.need);return(<svg width={D} height={D} viewBox={'0 0 '+D+' '+D} style={{position:'absolute',left:-8,top:-8,transform:'rotate(-90deg)',pointerEvents:'none'}}><circle cx={D/2} cy={D/2} r={(NODE+9)/2} pathLength="1" fill="none" stroke="rgba(255,255,255,.13)" strokeWidth="4"/>{fr>0&&(<circle cx={D/2} cy={D/2} r={(NODE+9)/2} pathLength="1" fill="none" stroke={col} strokeWidth="4" strokeLinecap="round" strokeDasharray={fr+' '+(1-fr)} style={{transition:'stroke-dasharray .6s ease',filter:'drop-shadow(0 0 4px '+col+')'}}/>)}</svg>);})()}{done?'✓':t.icon}{!unlocked&&(<span style={{position:'absolute',top:-3,right:-3,fontSize:15,lineHeight:1,filter:'drop-shadow(0 1px 2px rgba(0,0,0,.6))'}}>🔒</span>)}<span style={{position:'absolute',top:NODE+5,left:'50%',transform:'translateX(-50%)',whiteSpace:'nowrap',fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:800,color:isActive?'var(--ac2)':done?'#86d99a':unlocked?'rgba(255,255,255,.78)':'rgba(255,255,255,.5)'}}>{t.name}</span>{unlocked&&!done&&(<span style={{position:'absolute',top:NODE+19,left:'50%',transform:'translateX(-50%)',whiteSpace:'nowrap',fontSize:'clamp(10px,1.5vw,10px)',fontWeight:600,color:'rgba(255,255,255,.5)'}}>{sv}/{t.need}</span>)}</button>);});
-          return(<div style={{position:'relative',width:RW,height:PH,margin:'2px auto 4px'}}>{road}{nodes}</div>);})()}
+          return(<div style={{position:'relative',width:RW,height:PH,margin:'2px auto 4px'}}><_RoadScenery theme={theme} RW={RW} PH={PH}/>{road}{nodes}</div>);})()}
         <button onClick={()=>pzEnterBrowse(puzIdx,null)} style={{...btn('rgba(255,255,255,.07)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%'}}>🧩 Free play — browse any puzzle</button>
         <button onClick={()=>{setPzOErr('');setPzOInfo('');setPzView('online');if(!pzPack&&!(curPuz&&curPuz.ext))loadDaily();}} style={{...btn('rgba(110,168,254,.13)','1px solid rgba(110,168,254,.4)','#cfe0ff'),width:'100%'}}>🌐 Online puzzles (Lichess) — {pzOSolved} solved</button>
         {!pzUnlock?(
