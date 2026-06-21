@@ -1995,6 +1995,54 @@ function _RoadScenery({theme,RW,PH}){
   return(<svg width={RW} height={PH} viewBox={'0 0 '+RW+' '+PH} style={{position:'absolute',left:0,top:0,zIndex:0,pointerEvents:'none',overflow:'visible'}}>{el}</svg>);
 }
 
+// ════════ Filled control-icon family (in-game / review controls) ════════
+function _CIcon({name,size=21,style}){
+  const P={
+    moves:<g fill="currentColor"><rect x="4" y="5" width="16" height="2.4" rx="1.2"/><rect x="4" y="10.8" width="16" height="2.4" rx="1.2"/><rect x="4" y="16.6" width="16" height="2.4" rx="1.2"/></g>,
+    back:<path fill="currentColor" d="M15 5 L8 12 L15 19 Z"/>,
+    forward:<path fill="currentColor" d="M9 5 L16 12 L9 19 Z"/>,
+    first:<g fill="currentColor"><rect x="5" y="5" width="2.4" height="14" rx="1"/><path d="M19 5 L9 12 L19 19 Z"/></g>,
+    last:<g fill="currentColor"><path d="M5 5 L15 12 L5 19 Z"/><rect x="16.6" y="5" width="2.4" height="14" rx="1"/></g>,
+    hint:<g fill="currentColor"><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2v.7h5.2v-.7c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/><rect x="9.4" y="18" width="5.2" height="2" rx="1"/><rect x="10" y="20.6" width="4" height="1.8" rx=".9"/></g>,
+    flip:<g fill="none" stroke="currentColor" strokeWidth="2.1"><path d="M4 9a8 8 0 0 1 14-3"/><path d="M20 15a8 8 0 0 1-14 3"/><path d="M18 3v3.2h-3.2M6 20.8V17.6h3.2" fill="currentColor" stroke="none"/></g>,
+    more:<g fill="currentColor"><circle cx="6" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="18" cy="12" r="2"/></g>,
+    takeback:<g fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 7 L4 11 L9 15"/><path d="M4 11h9a6 6 0 0 1 0 12h-1"/></g>,
+    resign:<path fill="currentColor" d="M5 3v18h2.2v-7l3.8 1.4c2 .8 4 .2 6-1V4c-2 1.2-4 1.8-6 1L7.2 3.5C6.6 3.3 5.8 3 5 3z"/>,
+    draw:<g fill="currentColor"><path d="M4 8h7l-2-2 1.4-1.4L14.8 8.8 10.4 13l-1.4-1.4 2-2H4z"/><path d="M20 16h-7l2 2-1.4 1.4L9.2 15.2 13.6 11l1.4 1.4-2 2H20z"/></g>,
+    chat:<path fill="currentColor" d="M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-4 3v-3H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>,
+    leave:<g fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M14 5H6a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8"/><path d="M11 12h9M17 8l4 4-4 4"/></g>,
+    newgame:<g fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8" stroke="currentColor"/></g>,
+  };
+  return(<svg viewBox="0 0 24 24" width={size} height={size} style={{display:'block',...style}}>{P[name]||null}</svg>);
+}
+// One in-game control button: filled icon + tiny label (chess.com-style).
+function _CBtn({icon,label,on,dis,accent,active}){
+  return(
+    <button onClick={dis?undefined:on} disabled={dis} title={label} style={{
+      flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,
+      padding:'7px 2px',borderRadius:12,cursor:dis?'default':'pointer',
+      background:accent?'linear-gradient(145deg,rgba(var(--acr),.22),rgba(var(--acr),.10))':active?'rgba(var(--acr),.14)':'var(--card,#1a212a)',
+      border:'1px solid '+(accent?'rgba(var(--acr),.5)':active?'rgba(var(--acr),.45)':'rgba(255,255,255,.12)'),
+      color:dis?'rgba(255,255,255,.30)':(accent||active)?'var(--ac2)':'#fff',opacity:dis?.6:1
+    }}>
+      <_CIcon name={icon} size={21}/>
+      <span style={{fontSize:9.5,fontWeight:800,letterSpacing:.2,color:dis?'rgba(255,255,255,.30)':(accent||active)?'var(--ac2)':'rgba(255,255,255,.62)'}}>{label}</span>
+    </button>
+  );
+}
+// One row in the More bottom sheet.
+function _SheetItem({icon,label,on,dis,warn}){
+  return(
+    <button onClick={dis?undefined:on} disabled={dis} style={{
+      display:'flex',alignItems:'center',gap:11,width:'100%',padding:'12px 13px',borderRadius:11,marginBottom:7,
+      background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',cursor:dis?'default':'pointer',
+      color:dis?'rgba(255,255,255,.32)':warn?'#f0a99f':'#fff',fontSize:14,fontWeight:700,textAlign:'left',opacity:dis?.6:1
+    }}>
+      <span style={{color:dis?'rgba(255,255,255,.3)':warn?'#ec7b6e':'var(--ac2)',display:'flex'}}><_CIcon name={icon} size={19}/></span>{label}
+    </button>
+  );
+}
+
 function Tab({label,active,onClick}){
   return <button onClick={onClick} style={{flex:1,padding:'8px 4px',border:'none',cursor:'pointer',background:active?'var(--ac)':'transparent',color:active?'#fff':'rgba(255,255,255,.55)',fontSize:'clamp(14px,2.7vw,14px)',fontWeight:active?700:500,borderRadius:6,transition:'all .15s',letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>{label}</button>;
 }
@@ -2487,6 +2535,8 @@ export default function App(){
   const timeCtrlRef=useRef(null);
   const [clock,setClock]=useState({w:0,b:0,run:false}); // ms remaining; run starts after move 1
   const [playHist,setPlayHist]=useState([]);
+  const [movesOpen,setMovesOpen]=useState(false);
+  const [moreOpen,setMoreOpen]=useState(false);
   const [pvIdx,setPvIdx]=useState(null);          // live-game move viewer: null=live, else position index (after N moves)
   const pvIdxRef=useRef(null);
   const [lpv,setLpv]=useState(null);
@@ -3751,6 +3801,7 @@ export default function App(){
       {diagMsg&&(<div style={{position:'fixed',bottom:'calc(env(safe-area-inset-bottom,0px) + 54px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'rgba(10,12,18,.95)',border:'1px solid rgba(110,168,254,.55)',borderRadius:12,padding:'10px 16px',color:'#cfe0ff',fontSize:13,fontWeight:700,boxShadow:'0 6px 20px rgba(0,0,0,.5)',pointerEvents:'none',maxWidth:'90vw',textAlign:'center'}}>🩺 {diagMsg}</div>)}
       {shareMsg&&(<div style={{position:'fixed',bottom:'calc(env(safe-area-inset-bottom,0px) + 54px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'rgba(10,12,18,.95)',border:'1px solid rgba(110,168,254,.55)',borderRadius:12,padding:'10px 16px',color:'#cfe0ff',fontSize:13,fontWeight:700,boxShadow:'0 6px 20px rgba(0,0,0,.5)',pointerEvents:'none',maxWidth:'90vw',textAlign:'center'}}>{shareMsg}</div>)}
       {!preview&&!fbOpen&&<button onClick={()=>{setFbText('');setFbSent(false);setFbCopied(false);setFbOpen(true);}} title="Send feedback to Claude" style={{position:'fixed',left:'calc(env(safe-area-inset-left,0px) + 48px)',bottom:'calc(env(safe-area-inset-bottom,0px) + 8px)',zIndex:9997,width:34,height:34,borderRadius:10,border:'1px solid rgba(110,168,254,.45)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>{'\uD83D\uDCAC'}</button>}
+      {moreOpen&&mode==='play'&&opponent!=='online'&&(<div onClick={()=>setMoreOpen(false)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'10px 14px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -10px 30px rgba(0,0,0,.5)'}}><div style={{width:38,height:4,borderRadius:3,background:'rgba(255,255,255,.22)',margin:'2px auto 12px'}}/><_SheetItem icon="takeback" label="Takeback" dis={playHist.length===0} on={()=>{takeback();setMoreOpen(false);}}/><_SheetItem icon="newgame" label="New game" on={()=>{fullReset();setMoreOpen(false);}}/><_SheetItem icon="resign" label="Resign" warn dis={isOver||!!playEnd} on={()=>{resign();setMoreOpen(false);}}/></div></div>)}
       {!preview&&!fbOpen&&<button onClick={()=>setPreview(true)} title="Preview gallery (dev)" style={{position:'fixed',left:'calc(env(safe-area-inset-left,0px) + 8px)',bottom:'calc(env(safe-area-inset-bottom,0px) + 8px)',zIndex:9997,width:34,height:34,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>🎬</button>}
       {preview&&(()=>{const _ev=LIB.findIndex(o=>o.name&&o.name.indexOf('Evans')>=0);
         const _lesson=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);setTimeout(()=>setIntroCard(false),60);};
@@ -3775,6 +3826,7 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
+          {l:"In-game bar redesign (vs Computer)", n:"NEW this build. The redesigned in-game bar: Moves, Back, Forward, Hint, Flip, More (filled, labeled icons - Option A). A compact move ticker sits just above it. This scenario plays a few opening moves so the ticker and Back/Forward light up, then auto-opens the More sheet (Takeback, New game, Resign) and the full Moves list. Online keeps its current controls for now; its More menu (Resign, Draw, Chat, Leave) is the next slice.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setMoreOpen(false);setMovesOpen(false);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setOpponent('computer');setPColor('w');setTimeCtrl(null);timeCtrlRef.current=null;setMode('play');setFlip(false);let _g=initGame();const _h=[];const _sans=['e4','e5','Nf3','Nc6','Bc4','Bc5','c3','Nf6'];for(const _s of _sans){const _m=findMoveBySAN(_g,_s);if(!_m)break;_h.push(_g);_g=makeMove(_g,_m);}setPlayHist(_h);setGame(_g);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();setTimeout(()=>setMoreOpen(true),1700);setTimeout(()=>setMoreOpen(false),3700);setTimeout(()=>setMovesOpen(true),4300);setTimeout(()=>setMovesOpen(false),6800);}, h:8200},
           {l:"Puzzle roadmap scenery (cycles all 12 themes)", n:"NEW this build. Lands on the Puzzles roadmap and auto-cycles every board theme so you can see the themed landscape the road threads through: castles + moat + torches + pennants for the medieval themes (Dragonstone adds a dragon and embers, Royal adds stars and a moon), tree groves for Forest, autumn woods for Walnut, lighthouse and sailboat for Ocean, starfield for Dusk, coral reef for Coral, misty crags for Graphite and Slate, and candy hills for Candy. Scenery sits BESIDE the path, never under it. Restores your theme at the end.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setMode('puzzle');setPzView('roadmap');const _orig=theme;const _order=[7,8,9,10,0,1,2,3,4,5,6,11];const _tok=(++_scnTok);let _k=0;const _step=()=>{if(_tok!==_scnTok)return;if(_k>=_order.length){setTheme(_orig);return;}setTheme(_order[_k]);_k++;setTimeout(_step,1600);};setTheme(_order[0]);_k=1;setTimeout(_step,1600);}, h:12*1600+1200},
           {l:"Piece set: Merida", n:"New commercial-safe piece art (GPLv2). Opens the start position so all six piece types show in both colors. Check the Merida set reads clearly at board size.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setFlip(false);setPieceSet('merida');_play('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','w');}, h:6000},
           {l:"Piece set: Chessnut", n:"New commercial-safe piece art (Apache 2.0). Start position, all pieces in both colors. Check the Chessnut set.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setFlip(false);setPieceSet('chessnut');_play('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','w');}, h:6000},
@@ -4671,14 +4723,17 @@ export default function App(){
         </div>):(<div style={{fontSize:'clamp(12px,2.05vw,12px)',color:'rgba(255,255,255,.58)'}}>{`👤 vs Human${timeCtrl?(' · '+timeCtrl.label):' · no clock'}`}</div>)}
         {opponent==='computer'&&!(playHist.length>0&&!isOver&&!playEnd)&&(<input type="range" min={ELO_MIN} max={ELO_MAX} step={25} value={cpuElo} onChange={e=>setCpuElo(+e.target.value)} title="Fine-tune strength" style={{width:'100%',maxWidth:320,accentColor:TH.accent,cursor:'pointer',margin:'0 0 2px'}}/>)}
         {(isOver||playEnd)&&game.history&&game.history.length>=2&&<button onClick={reviewPlayedGame} style={{width:'100%',padding:'13px',borderRadius:13,border:'none',background:'linear-gradient(135deg,#6ea8fe,#3b76e8)',color:'#0a1020',fontWeight:800,fontSize:'clamp(14px,3.2vw,16px)',cursor:'pointer',boxShadow:'0 4px 14px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.35)',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>🔍 Review this game</button>}
-          <div style={{display:'flex',gap:8,alignItems:'center',width:'100%'}}>
-          <button onClick={takeback} disabled={playHist.length===0} title='Takeback' style={{width:46,height:46,flexShrink:0,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:19,padding:0,background:'rgba(255,255,255,.05)',border:'1.5px solid rgba(255,255,255,.18)',color:'#fff',opacity:playHist.length===0?.35:1,cursor:playHist.length===0?'default':'pointer'}}>↶</button>
-          <button onClick={requestHint} title='Hint' style={{width:46,height:46,flexShrink:0,borderRadius:12,display:opponent==='online'?'none':'flex',alignItems:'center',justifyContent:'center',fontSize:19,padding:0,background:'rgba(255,255,255,.05)',border:'1.5px solid rgba(255,255,255,.18)',cursor:'pointer',borderColor:'rgba(var(--acr),.4)',color:'var(--ac2)'}}>💡</button>
-          <button onClick={()=>setFlip(f=>!f)} title='Flip board' style={{width:46,height:46,flexShrink:0,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:19,padding:0,background:'rgba(255,255,255,.05)',border:'1.5px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer'}}>⟳</button>
-          <button onClick={resign} disabled={isOver||!!playEnd} title='Resign' style={{width:46,height:46,flexShrink:0,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:19,padding:0,background:'rgba(255,255,255,.05)',border:'1.5px solid rgba(255,255,255,.18)',borderColor:'rgba(232,93,74,.5)',color:'#ff9d8d',opacity:(isOver||playEnd)?.35:1,cursor:(isOver||playEnd)?'default':'pointer'}}>⚐</button>
-          <span style={{flex:1}}></span>
-          <button onClick={()=>fullReset()} style={{height:46,padding:'0 20px',borderRadius:12,border:'none',background:'var(--ac)',color:'#101010',fontWeight:800,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer',boxShadow:'0 4px 14px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.35)'}}>New game</button>
-        </div>
+          <>
+          {boardGame.history.length>0&&(<div style={{display:'flex',alignItems:'center',gap:8,width:'100%',padding:'5px 10px',background:'rgba(255,255,255,.035)',border:'1px solid rgba(255,255,255,.10)',borderRadius:9,overflow:'hidden'}}>{(()=>{const h=boardGame.history;const s=Math.max(0,h.length-3);return h.slice(s).map((m,i)=>{const gi=s+i;const cur=gi===h.length-1;return(<span key={gi} style={{fontSize:'clamp(11.5px,2.1vw,12px)',fontWeight:700,whiteSpace:'nowrap',fontVariantNumeric:'tabular-nums',color:cur?'var(--ac2)':'rgba(255,255,255,.55)'}}>{Math.floor(gi/2)+1}{gi%2===0?'.':'\u2026'}<b style={{marginLeft:3,color:cur?'var(--ac2)':'#fff'}}>{m.san}</b></span>);});})()}</div>)}
+          <div style={{display:'flex',gap:6,width:'100%'}}>
+            <_CBtn icon="moves" label="Moves" active={movesOpen} on={()=>setMovesOpen(o=>!o)}/>
+            <_CBtn icon="back" label="Back" dis={playHist.length===0||pvIdx===0} on={()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;setPvIdx(Math.max(0,cur-1));}}/>
+            <_CBtn icon="forward" label="Forward" dis={playHist.length===0||pvIdx==null} on={()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;const nv=Math.min(n,cur+1);setPvIdx(nv>=n?null:nv);}}/>
+            <_CBtn icon="hint" label="Hint" accent on={requestHint}/>
+            <_CBtn icon="flip" label="Flip" on={()=>setFlip(f=>!f)}/>
+            <_CBtn icon="more" label="More" on={()=>setMoreOpen(true)}/>
+          </div>
+        </>
       </div>)}
 
       {/* ── Online multiplayer panel ── */}
@@ -5197,7 +5252,7 @@ export default function App(){
       </div>)}
 
       {/* Move history (play/learn) */}
-      {!inReview&&!pzLow&&boardGame.history.length>0&&!(mode==='learn'&&openIdx===null)&&(<div style={{marginTop:10,width:boardPx,maxWidth:'98vw'}}>
+      {!inReview&&!pzLow&&boardGame.history.length>0&&!(mode==='learn'&&openIdx===null)&&(mode!=='play'||movesOpen)&&(<div style={{marginTop:10,width:boardPx,maxWidth:'98vw'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:4}}>
           <span style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.4)',letterSpacing:1.5,fontFamily:'monospace'}}>MOVES</span>
           <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}>

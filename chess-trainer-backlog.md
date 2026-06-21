@@ -1,4 +1,17 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #280)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #281)
+
+## 2026-06-21 - BUILD #281 - REDESIGN slices 1-2: filled control icons + in-game bar (vs Computer / pass-and-play)
+- Kunal tapped the layout mockup picks: icons = A solid filled, More = bottom sheet, ticker = compact last-few, tab bar = icons+labels, Discover = 2x2 tiles, streak = home top strip, BUILD FIRST = in-game bar + icons. This run builds that first slice.
+- PRE-FLIGHT: Feedback sweep = nothing new (#2 + #3 unchanged). Backlog synced. Gallery: +1 card at top (in-game bar redesign). Now 7 live (in-game + scenery + 3 piece-set + captured-tray + best-line); the 5 older ones still await Kunal recordings.
+- NEW filled, labeled control-icon family (_CIcon): moves, back, forward, first, last, hint, flip, more, takeback, resign, draw, chat, leave, newgame. Solid fill (Option A). Rendered + eyeballed all 14 - clean and legible.
+- IN-GAME BAR (vs Computer + pass-and-play) restructured to the chess.com-style layout: Moves | Back | Forward | Hint | Flip | More (filled icons + tiny labels), via _CBtn. Back/Forward reuse the existing pvIdx scrubber; Hint = requestHint; Flip = setFlip.
+- COMPACT MOVE TICKER added just above the bar (last 3 plies, current accented). The full move list now opens via the Moves button (gated behind movesOpen in play mode); it stays always-on in Learn.
+- MORE bottom sheet (_SheetItem): Takeback, New game, Resign - contextual, mounted at app root, tap-scrim to dismiss. Demonstrates the contextual More pattern.
+- ONLINE LEFT INTACT this run by design: its control set already has Resign/Draw/Chat/Leave working inside a 6-state machine (waiting/searching/draw-offered/resign-confirm/active/over). Reworking it into the new bar+More is the NEXT slice - done in its own focused, gallery-verified run to avoid destabilizing multiplayer blind. Flagged for veto.
+- GALLERY card "In-game bar redesign (vs Computer)" plays a short opening so the ticker + Back/Forward populate, then auto-opens the More sheet and the Moves list for hands-free review.
+- Library unchanged (159, audit PASS). Full bundle compiles. stamp #281.
+- NEXT redesign slices (per Kunal order): finish in-game bar for ONLINE (More = Resign/Draw/Chat/Leave) + apply _CIcon to review & puzzle controls; then bottom tab bar (3), Discover tiles + lesson rows (4), streak+XP home strip (6), home one-screen tidy (7).
+
 
 ## 2026-06-21 - BUILD #280 - REDESIGN slice: Puzzle roadmap scenery, all 12 themes
 - FIRST run as the sole redesign build agent (handoff consolidated into this chat; HEAD was 63f43c18 = #279, not stale, cleared to build). Structure decisions Q1-Q9 are LOCKED in REDESIGN-HANDOFF.md - not relitigated.

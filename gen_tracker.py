@@ -64,7 +64,7 @@ T=[
  ("infra","Firebase (Google auth, Firestore, Blaze)","done","",""),
  ("lessons","List your own openings not yet in the library","openY","","You still owe me this list."),
  ("coach","Coach avatar redesign","openY","","My mockups weren't app-grade; send art or pick an open set."),
- ("polish","Chess.com-style redesign (structure borrow, dark+green identity)","part","#280","Decisions Q1-Q9 LOCKED. #280 shipped slice 5 (roadmap scenery, all themes). NEXT: control-icon system + in-game bar (Moves/Back/Forward/Hint/Flip/More, More sheet, ticker below avatar), then bottom tab bar, Discover tiles, gamification, home one-screen tidy."),
+ ("polish","Chess.com-style redesign (structure borrow, dark+green identity)","part","#281","Q1-Q9 LOCKED. #280 roadmap scenery (all themes). #281 filled control icons + in-game bar for vs Computer/pass-and-play (Moves/Back/Forward/Hint/Flip/More + More sheet + compact ticker). NEXT: same bar for Online, review/puzzle control icons, bottom tab bar, Discover tiles, streak+XP, home tidy."),
  ("polish","Custom piece art (theme phase 2)","openY","","My mockups weren't app-grade; send art or pick an open set."),
  ("polish","iPad two-column landscape Home","openY","#278","Mockups built (3 layouts A/B/C) - open ipad-home-mockups.html and tap one; I'll build it."),
  ("money","Recreate Stripe TEST prices at $2.99/$19.99","openY","","Current test IDs are old $0.99/$9.99."),
@@ -84,7 +84,7 @@ QUESTIONS=[
  {"id":"videos","q":"Lesson videos - keep auto-adding curated YouTube IDs in batches?","o":["Yes, keep adding in batches","I'll curate them myself"]},
 ]
 edt=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=4)).strftime("%Y-%m-%d %-I:%M %p")
-stamp="Snapshot "+edt+" EDT - live build #280"
+stamp="Snapshot "+edt+" EDT - live build #281"
 HTML=r'''<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chess Trainer - plan</title><style>
