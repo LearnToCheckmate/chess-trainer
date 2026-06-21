@@ -1,4 +1,10 @@
-# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #268)
+# ACTIVE QUEUE - reconciled 2026-06-20 (app at build #269)
+
+## 2026-06-20 - BUILD #269 - B shipped (best-move plays the line out in Review)
+- B (Kunal chose it): in a game review, on an inaccuracy/mistake/blunder, "Show best move" now PLAYS THE ENGINE'S LINE OUT move by move (the strong analysis pick first, then a few follow-ups from the built-in engine), then snaps back to the game. Implemented via a board override (bestLineBoard) so it never corrupts review state; cancels cleanly if you navigate plies. Arrow still shows after the line.
+- HONEST NOTE: the review analysis stores only the single best move per ply (the WASM engine returns just the bestmove), so the FIRST move of the played-out line is Stockfish-strength but the 2-3 follow-ups come from the app's lighter built-in engine - good enough to show the idea, not a deep PV. Storing the full WASM PV is a bigger change if we ever want the whole line engine-perfect.
+- RE-SWEEP (Kunal asked): re-ran the Stockfish lesson sweep after the build - identical result, no lesson line touched by the B change (B is a review-display feature, it does not alter the curated lesson lines).
+- GALLERY: relabeled the one item to "Best move plays the line out (now LIVE in Review)" - a preview of the now-shipped motion.
 
 ## 2026-06-20 - BUILD #268 - engine sweep + gallery flush
 - Kunal concern (why wasn't the Rousseau blunder caught, how many others): ran Stockfish 16 (/usr/games/stockfish, it's in the sandbox) over ALL 154 lessons. 26 flagged for >200cp swings; on review ALL legitimate - ~16 are checkmate lessons (the swing is the mate), the rest are NAMED, correctly-framed traps/gambits (Legal, Stafford, Blackburne Shilling, Fishing Pole, Englund Rosen, Albin Lasker, Budapest Kieninger, Tennison, Jerome, Scholar/Fool mate) where the opponent's mistake is the lesson and is marked ?? / "greedily" / "objectively losing". NO other silent Rousseau-style mislabels. WHY the old checks missed Rousseau: they validated legality, not engine-optimality.
