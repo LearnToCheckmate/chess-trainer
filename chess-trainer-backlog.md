@@ -1,4 +1,12 @@
-# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #303)
+# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #304)
+
+## 2026-06-22 - BUILD #304 - Lesson video batch (5 more)
+- Added 5 more real Hanging Pawns walkthrough videos to video-less top-level lessons (all confirmed IDs from search, never fabricated): Modern Defense slNeLTit2J8, Trompowsky Attack 2fQdICXQvks, Queen's Indian Defense 9Jt3AypZ59c, Grand Prix Attack hqJOyV9_Bms, Accelerated Dragon rd1eKLJ3DGQ. About 44 lessons now have a video; ~121 top-level lessons still without one (keep batching - videos are plan items #1/#2).
+- Inserted via the standard pattern; compile + audit PASS. Opening-videos gallery card now opens Modern Defense; DRIVE-VERIFIED on the live bundle (lesson + video title + Watch button, 0 errors).
+- Gallery lean at 3: iPad landscape Home (#302), Brilliant gate readout (#300/#301, awaiting your numbers), Opening videos (#304, Modern Defense + new batch).
+
+### NEEDS KUNAL: paste me the Bxh3 loss/sac/evAfter/evBefore from the Brilliant gate card (only open ask). Optional: name openings you want videos on next.
+### NEXT (plan): more video batches (~121 left); then #3 best-move play-out; #4 Tournaments Stage 3+; #5 chess.com redesign; #6 iOS PWA sign-in.
 
 ## 2026-06-22 - BUILD #303 - Lesson video batch (5) + tab-bar decision settled
 - Tab bar during games (#293): Kunal chose KEEP HIDDEN (more board). That's already the live behavior, so no code change; recorded as settled/Done. No open decisions remain in the tracker.
