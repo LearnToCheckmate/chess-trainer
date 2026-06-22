@@ -86,3 +86,9 @@ Stockfish 16 is installed at /usr/games/stockfish. audit.py only proves moves ar
 
 ## Gallery demo cards that must land on a specific move (build #301)
 - importGame resets ply to 0 when analysis completes, and Stockfish on a real device takes tens of seconds - so a demo card that steps via a fixed setTimeout will fire before analysis finishes and get wiped. Pattern: set a ref (e.g. gateDemoRef.current=targetPly) BEFORE importGame, and a useEffect on [review] performs the jump (setReviewView/ setPly/ setShowGates) once review is set. Never rely on timers alone for post-analysis navigation.
+
+## Home layout: iPad landscape two-column (build #302)
+- `hbig = vp.w>=720`; `hLand = (vp.w>vp.h && vp.w>=720) || forcePreviewWide`. hbig is TRUE whenever hLand (hLand implies width>=720), so any `hbig?:(hLand?:)` ternary never reaches the hLand branch - watch for that.
+- The Home render (the `{homeScreen&&(...)}` block) middle section is ONE wrapper IIFE that builds consts `_streak/_newhere/_risk/_tiles/_coach/_continue` then switches: if hLand -> two-col flex (LEFT div = {_continue}{_streak}{_risk}{_coach}, RIGHT div = {_newhere}{_tiles}); else the original stacked fragment `<>{_streak}{_newhere}{_risk}{_tiles}{_coach}</>`. Header (wordmark) + footer (toggles/build) stay full-width outside the switch. PHONE/iPad-portrait is the else branch, unchanged.
+- Tiles grid is now `'1fr 1fr'` always (was `hLand?'repeat(4,1fr)'`). `_continue` resumes lastLesson (only renders if lastLesson!=null && LIB[lastLesson]).
+- `forcePreviewWide` state OR's into hLand so the 'iPad landscape Home' gallery card previews the two-col layout on ANY device (set it + streakPreview(true) + homeScreen(true)). VERIFY landscape layouts in jsdom by setting window.innerWidth/innerHeight BEFORE mount (vp inits from window) - 1180x820 makes hLand true naturally; assert a div with display:flex+gap:24px+2 children, tiles in child[1], coach/streak in child[0].
