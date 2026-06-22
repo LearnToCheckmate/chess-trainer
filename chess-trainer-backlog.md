@@ -1,4 +1,13 @@
-# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #305)
+# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #306)
+
+## 2026-06-22 - BUILD #306 - Upload a board photo (not just camera scan)
+- Kunal: "Give me the ability to also upload a picture instead of just scan." CLOSED the long-open Feedback-chat item "upload a screenshot of a board position (not just take a photo) and play from that point." The New Game screen's single "Scan a board from a photo" button used a file input with capture="environment", which on iPhone forces the live camera and blocks picking a saved photo/screenshot. Split into TWO buttons sharing the same read pipeline: "Scan with camera" (capture="environment", live) and "Upload a photo" (no capture attribute, so iOS opens Photo Library / Files). Both feed scanBoardFile -> canvas downsize -> CTCloud.scanBoard -> FEN validate -> Play this position. Helper copy updated to explain both. Added uploadInputRef alongside scanInputRef.
+- NOTE: the read itself still needs the scanBoard Cloud Function + vision API key deployed (Kunal's manual step, unchanged) - this build only adds the missing upload entry point. Until the function is live both buttons surface the same friendly "not set up yet" message.
+- compile + audit PASS. DRIVE-VERIFIED in jsdom on the live #306 bundle: gallery card lands on the New Game screen; both "Scan with camera" + "Upload a photo" render; 2 file inputs present (1 with capture, 1 without); 0 console/runtime errors.
+- Gallery lean at 3: Upload a board photo (#306, NEW), Brilliant gate readout (awaiting your Stockfish numbers), Opening videos.
+
+### NEEDS KUNAL: open the "Upload a board photo" gallery card and tap "Upload a photo" to confirm it opens your photo library (not the camera). Still open: paste me Bxh3 loss/sac/evAfter/evBefore from the Brilliant gate card.
+### NEXT (plan): more lesson-video batches; then #3 best-move play-out; #4 Tournaments Stage 3+; #5 iOS PWA sign-in.
 
 ## 2026-06-22 - BUILD #305 - Lesson video batch (2) + flush verified iPad-Home card
 - Verified the iPad landscape two-column Home on Kunal's ACTUAL iPad (2732x2048 landscape recording): two columns render clean (Continue/streak/streak-at-risk/coach on the left, 2x2 Discover/Puzzles/Review/Play on the right), text wraps normally. The phone-preview squish (one word per line) was purely a narrow-width artifact, not a layout bug. Flushed the "iPad landscape Home (NEW)" gallery card (verified). Gallery now lean at 2: Brilliant gate readout, Opening videos.
