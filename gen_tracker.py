@@ -65,7 +65,7 @@ T=[
  ("infra","Firebase (Google auth, Firestore, Blaze)","done","",""),
  ("lessons","List your own openings not yet in the library","openY","","You still owe me this list."),
  ("coach","Coach avatar redesign","openY","","My mockups weren't app-grade; send art or pick an open set."),
- ("polish","Chess.com-style redesign (structure borrow, dark+green identity)","part","#281","Q1-Q9 LOCKED. #280 roadmap scenery (all themes). #281 filled control icons + in-game bar for vs Computer/pass-and-play (Moves/Back/Forward/Hint/Flip/More + More sheet + compact ticker). NEXT: same bar for Online, review/puzzle control icons, bottom tab bar, Discover tiles, streak+XP, home tidy."),
+ ("polish","Look and feel: keep the current dark + gold identity","done","#281","CLOSED 2026-06-22 - keeping the current look (Kunal's call). No chess.com-style identity redesign. The polish that already shipped stays: #280 roadmap scenery, #281 filled control icons + in-game bar. No further redesign work."),
  ("polish","Custom piece art (theme phase 2)","openY","","My mockups weren't app-grade; send art or pick an open set."),
  ("polish","iPad two-column landscape Home","done","#302","Built: in landscape the iPad Home is two columns - Continue, streak and coach on the LEFT, the four buttons as a 2x2 on the RIGHT. Phone and iPad-portrait unchanged. Preview it with the iPad landscape Home gallery card, or rotate your iPad."),
  ("polish","Tab bar hidden during active games","done","#293","Kept hidden during games for more board room; Kunal confirmed keep 2026-06-22."),
