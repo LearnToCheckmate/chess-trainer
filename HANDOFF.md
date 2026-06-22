@@ -83,3 +83,6 @@ Stockfish 16 is installed at /usr/games/stockfish. audit.py only proves moves ar
 - isBrilliant() just returns brilliantGate(...).ok (after a cheap loss>=250 reject). Both analysis loops store gate:_g per ply.
 - VERIFIED in jsdom on the Harris game: Bxh3 sac=2, Nd5 sac=3, trades (Bxf6/Bxg4/Qxd7+) sac=0, nothing falsely flagged in the weak fallback. The sandbox CANNOT reproduce the phone's Stockfish eval, so the eval side is validated on-device.
 - ON-DEVICE READOUT: Review has a "show brilliant-gate numbers" toggle (showGates state) under the move nav; it prints loss/sac/evAfter/evBefore/cap + verdict from curAnno.gate. Use it to read REAL Stockfish numbers per move and tune the 1.2 (winning) and 220 (near-best cap) thresholds. Bxh3 is the reference case.
+
+## Gallery demo cards that must land on a specific move (build #301)
+- importGame resets ply to 0 when analysis completes, and Stockfish on a real device takes tens of seconds - so a demo card that steps via a fixed setTimeout will fire before analysis finishes and get wiped. Pattern: set a ref (e.g. gateDemoRef.current=targetPly) BEFORE importGame, and a useEffect on [review] performs the jump (setReviewView/ setPly/ setShowGates) once review is set. Never rely on timers alone for post-analysis navigation.
