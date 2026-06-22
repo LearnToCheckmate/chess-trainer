@@ -1,4 +1,15 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #290)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #291)
+
+## 2026-06-21 - BUILD #291 - Lesson-row progress bars + iPad Home mockups (autonomous run while Kunal away)
+- LESSON ROW PROGRESS BARS: in the Discover category drill-in lists, each lesson row now has a thin progress bar under its status (green while learning = linesLearned/lines or unionDays/LEARN_GOAL; gold/full when mastered). Computed from lessonStats(LIB[i]); shows only on started lessons. Lightweight (one bar per row, no per-row board render - that would lag a 50-90 row list, so deferred pending Kunal's call).
+- Gallery card "Discover lesson rows + progress (NEW)" opens the Openings list; DRIVE-VERIFIED in jsdom (open gallery -> click card -> full list renders, ROOT_LEN 126732, zero errors). audit PASS (159).
+- iPad LANDSCAPE HOME MOCKUPS delivered as an artifact (ipad-home-mockups.html): 3 options - A Split (brand/stats/coach left, 2x2 tiles right), B One row (all four tiles in a row), C Left nav rail (vertical tab bar + 2x2). Awaiting Kunal's pick; this is the "show mockups first, then build chosen" step.
+- NOTE-POLISH DEBT: investigated - effectively already cleared. Only 12 MORE notes still carry a move-label prefix and they are intentional opening names ("1. e4 - King's Pawn"); left as-is. Removing this item from the queue.
+
+### CLAUDE CAN STILL DO (safe, no input): review/puzzle nav -> _CIcon filled icons; new engine-verified lessons batch into MORE.
+### OPEN DECISIONS (form): iPad Home layout (A/B/C - mockups now exist); lesson videos auto-add; brilliant heuristic.
+### STAGED / NEEDS KUNAL: lesson-row board thumbnail (perf/clutter call); Takeback/New game sheet design Q; Online in-game bar (2-device); Tab bar during active game (keep/hide).
+
 
 ## 2026-06-21 - BUILD #290 - Puzzle scenery VARIETY for medieval themes (Kunal-specced)
 - Was: a castle at every roadmap tier on the medieval themes. Now the hero ROTATES per tier: 0 castle, 1 dragon, 2 knight on horseback, 3 galleon (repeating). Kept the subtle brown palette (don't change colors), placement (flank opposite node), size (~castle-sized), and the animation. Applies to all castle-biome themes (Stone Keep, Parchment, Dragonstone, Royal); Dragonstone still stacks its extra flying dragon + embers, Royal keeps stars + moon.
