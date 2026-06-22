@@ -117,6 +117,7 @@ h1{font-size:20px;margin:0 0 2px}h2{font-size:15px;margin:18px 0 8px}
 </style></head><body>
 <h1>Chess Trainer - plan</h1><div class="stamp">__STAMP__</div>
 <div class="intro">Tap <b>+ Build next</b> on the open items you want me to do, in the order you want them (the number is priority). Answer the decisions. Then tap <b>Copy my plan</b> and paste it back to me.</div>
+<button class="cpy" id="cpytop" style="margin:2px 0 16px;width:100%">Copy my plan</button>
 <div id="qsec"></div><div class="chips" id="chips"></div><div id="root"></div>
 <div class="bar"><div class="cnt" id="cnt"></div><button class="cpy" id="cpy">Copy my plan</button></div>
 <script>
@@ -132,7 +133,7 @@ function tr(){var root=document.getElementById("root");root.innerHTML="";GROUPS.
 function chips(){var c=document.getElementById("chips");c.innerHTML="";FILTS.forEach(function(f){var b=document.createElement("button");b.className="chip"+(filt===f[0]?" on":"");b.textContent=f[1];b.onclick=function(){filt=f[0];chips();tr();};c.appendChild(b);});}
 function cnt(){var na=Object.keys(answers).length;document.getElementById("cnt").textContent=picks.length+" queued \u00b7 "+na+"/"+QUESTIONS.length+" answered";}
 function plan(){var s="[Chess Trainer plan]\nBuild next (in order):\n";if(picks.length)picks.forEach(function(i,n){s+=(n+1)+". "+TASKS[i].t+"\n";});else s+="(none picked)\n";s+="\nDecisions:\n";QUESTIONS.forEach(function(Q){s+="- "+Q.q+" => "+(answers[Q.id]||"(no answer)")+"\n";});return s;}
-document.getElementById("cpy").onclick=function(){var txt=plan(),ok=false;try{navigator.clipboard.writeText(txt);ok=true;}catch(e){}if(!ok){try{var ta=document.createElement("textarea");ta.value=txt;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.focus();ta.select();ok=document.execCommand("copy");document.body.removeChild(ta);}catch(e){}}if(ok){var b=document.getElementById("cpy");b.textContent="Copied!";setTimeout(function(){b.textContent="Copy my plan";},1600);}else{prompt("Copy this and paste it back to me:",txt);}};
+function _flashCpy(m){["cpy","cpytop"].forEach(function(id){var b=document.getElementById(id);if(b)b.textContent=m;});setTimeout(function(){["cpy","cpytop"].forEach(function(id){var b=document.getElementById(id);if(b)b.textContent="Copy my plan";});},1600);}function doCopy(){var txt=plan(),ok=false;try{navigator.clipboard.writeText(txt);ok=true;}catch(e){}if(!ok){try{var ta=document.createElement("textarea");ta.value=txt;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.focus();ta.select();ok=document.execCommand("copy");document.body.removeChild(ta);}catch(e){}}if(ok){_flashCpy("Copied!");}else{prompt("Copy this and paste it back to me:",txt);}}document.getElementById("cpy").onclick=doCopy;var _ct=document.getElementById("cpytop");if(_ct)_ct.onclick=doCopy;
 qr();chips();tr();cnt();
 </script></body></html>'''
 html=HTML.replace("__STAMP__",stamp).replace("__GROUPS__",json.dumps(GROUPS)).replace("__TASKS__",json.dumps(TASKS)).replace("__QUESTIONS__",json.dumps(QUESTIONS))
