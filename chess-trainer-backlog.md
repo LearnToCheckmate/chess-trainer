@@ -1,4 +1,18 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #298)
+# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #299)
+
+## 2026-06-22 - BUILD #299 - Brilliant v2 investigated+HELD; lesson videos (Slav Defense, QGD)
+- BRILLIANT v2 (greenlit, then HELD for safety): built a sacrifice-aware classifier (relax the near-best loss cap for clearly-winning sacs; new sac-detection = material hanging on the move's destination square; widen evBefore). STRESS-TESTED on the Harris game in jsdom: the detector UNDERCOUNTED Bxh3 as sac=1 (the queen can grab a pawn back on h3, muddying the one-recapture settle) - it needs proper STATIC EXCHANGE EVALUATION to be trustworthy. And the eval side cannot be validated without the phone's Stockfish (the sandbox only has the weak depth-2 fallback, which rates Bxh3 at evAfter +0.55, loss 230). REVERTED v2 to the conservative #296 classifier rather than risk another Bc7-style false tag.
+- DIAGNOSIS CONFIRMED (with instrumentation): Bxh3 is rejected by the LOSS gate. Phone Stockfish rated it loss~90 (just over the <90 line = Inaccuracy), best Rdg8. chess.com flags it !! because it rewards a winning sacrifice even when it is not the single best move. The sac is real (bishop for pawn); the blocker is "must be near-best".
+- HONEST NEXT STEP: implement SEE-based sac-detection (verifiable against python-chess) + an on-device gate-numbers readout (loss/sac/evAfter per move) so Kunal can validate against real Stockfish. Needs his go-ahead.
+- LESSON VIDEOS: added real Hanging Pawns walkthroughs to two TOP-LEVEL lessons: Slav Defense (arOboSUK-m0) and Queen's Gambit Declined (CMy65JeSShw).
+- GOTCHA learned: the lesson video box only renders for TOP-LEVEL lessons (those with eco/cat). A video added to a vars:[] variation never shows (variations inherit the parent's op.video). First pass mistakenly put Evans/Slav videos on VARIATION entries - reverted. 131 top-level lessons still lack video.
+- compile + audit PASS. DRIVE-VERIFIED in jsdom: open Slav Defense lesson -> "Watch it explained" shows "Slav Defense Theory, Main Line - Hanging Pawns", zero errors.
+- Gallery (3 live cards): "Review auto-flips to your color" (#296), "Copy PGN in Review" (#298), "Opening videos" (#299).
+
+### NEEDS KUNAL (easy): record/confirm the 3 gallery cards; GREENLIGHT SEE-based Brilliant v3 + on-device gate readout (the honest path to catching Bxh3); iPad A/B/C; keep/revert tab-bar-hide (#293).
+### NEXT (plan): keep adding video batches (131 top-level lessons left); #2 Review overhaul = Brilliant v3 with SEE; #3 best-move play-out; #4 Tournaments Stage 3+; #5 chess.com redesign; #6 iOS PWA sign-in.
+
+
 
 ## 2026-06-21 - BUILD #298 - Fix: no way to copy moves in Review (Kunal bug report)
 - ROOT CAUSE: the "📋 Copy moves" button lives in the play/learn move-history block gated !inReview (L5317), so it's hidden during review. The only copy in Review was "Copy game", buried in the Summary sub-tab (L4786) - invisible while stepping through moves (where Kunal was).
