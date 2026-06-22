@@ -1,4 +1,18 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #288)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #289)
+
+## 2026-06-21 - BUILD #289 - Review eval bar AUTO-PLAY gallery scenario (standing-instruction fix)
+- Kunal (rightly) called out that #288 asked him to manually step through a review instead of putting it in the Preview gallery. Standing instruction: EVERYTHING he verifies goes in the gallery as an auto-running scenario. Fixed.
+- New gallery card "Review eval bar + auto-play (NEW)" at TOP of SC: builds a valid synthetic review object (positions/plies via loadSANs - guaranteed valid; analysis/counts/summary/headers matching importGame's exact _rv shape; one Blunder + one Brilliant), enters Review (mode analyze, reviewView moves), then triggers the existing revAuto auto-play so it steps the whole game on its own. The eval bar (left of board) shows the running white-relative NUMBER + swings; no tapping.
+- VERIFIED HANDS-FREE IN JSDOM: mounted app, clicked the gallery button, clicked the card, confirmed the review + eval bar render (ROOT_LEN 75959), the eval number is present in the DOM (+/M pattern), and ZERO console/runtime errors. (Also shimmed element.scrollTo in the harness - the review auto-scrolls the move list; that was a jsdom gap, not an app bug.)
+- audit PASS (159).
+- PROCESS NOTE: jsdom can now drive gallery scenarios (open gallery -> click card) to verify screens that aren't the default home render. Use this to verify future in-section/scenario builds, not just the home mount.
+
+### OPEN DECISIONS (Kunal's plan - awaiting the decisions.html form)
+- iPad landscape Home layout (rebuild mockups?); Lesson videos auto-add (keep/pause); Brilliant heuristic (keep strict / loosen / real PGN).
+
+### STAGED / NEEDS KUNAL
+- Puzzle scenery variety (castle/dragon/knight/galleon). Takeback/New game More-sheet design question. Online in-game bar (2-device). Tab bar during active game (keep/hide).
+
 
 ## 2026-06-21 - BUILD #288 - Review overhaul: eval bar numeric readout (per plan: "Review overhaul - eval bar, brilliant heuristic")
 - Found the eval bar already exists and is already enabled in Review (inReview is in _evalOn) and already sources the precomputed per-ply review eval (evalFallback = review.analysis[ply-1].evalAfter, overridden by live full-strength Stockfish when it has scored the displayed FEN). The genuine gap: it is a thin bar with NO number, and Review shows no player bars, so the eval figure was never visible ("who is winning" but not "by how much" - which a loading tip even promises).
