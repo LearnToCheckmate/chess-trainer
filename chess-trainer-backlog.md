@@ -1,4 +1,16 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #295)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #296)
+
+## 2026-06-21 - BUILD #296 - Kunal feedback: tighten !! + auto-orient review board
+- TIGHTENED Brilliant heuristic: reverted #295 loosening back to original (loss<90, evAfter>=0.8, evBefore -1.0..3.5). Kunal saw 13...Bc7 (a bishop RETREAT) falsely tagged !! - the loosening was too generous. Original is conservative ("rather miss than over-award").
+- AUTO-ORIENT review board to user color: importGame now does setFlip(meta.userColor==='b') instead of always setFlip(false). Fixes Kunal reviewing his Black games from White's side. Covers ALL review paths (chess.com/lichess via gameInfo.userColor, played-game review via reviewPlayedGame uc, online via myColor).
+- Gallery card "Review auto-flips to your color (NEW)" imports a short Black game -> board opens from Black's side. DRIVE-VERIFIED in jsdom: top-left rank label = "1" (flipped), zero errors.
+- compile + audit PASS.
+
+### KNOWN LIMITATION (explained to Kunal): 17...Bxh3 (a real brilliancy, chess.com !! at -2.96) is tagged ?! Inaccuracy by the app. Root cause = the in-app engine is shallow (rankMoves depth 2); it doesn't see the sac wins, so it rates Bxh3 ~0.9 worse than Rdg8 and evals Black as NOT clearly on top after the sac. This is an ENGINE-DEPTH issue, not a threshold one - no loosening catches it without flooding false positives. Options for Kunal: (a) accept conservative !! detection; (b) deepen the review engine (bigger build); (c) leave as-is. NEEDS his PGN paste to test/tune against (screenshots alone can't be run through the analyzer).
+
+### NEEDS KUNAL (easy): paste the PGN text of the Harris game (and the papakehtehain game) so I can run them through the analyzer. iPad A/B/C pick. Veto/keep tab-bar-hide (#293).
+### NEXT (plan): #3 best-move play-out -> #4 Tournaments Stage 3+ -> #5 chess.com redesign -> #6 iOS PWA sign-in. Plus lesson-video batches (~192 remain).
+
 
 ## 2026-06-21 - BUILD #295 - Review overhaul: loosen the Brilliant (!!) heuristic (plan item #2; FLAG for veto)
 - Kunal chose "loosen a bit (flag more)". isBrilliant (L945) thresholds widened MODESTLY, strict superset of before (still requires a real material sac):

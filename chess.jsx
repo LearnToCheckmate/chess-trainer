@@ -943,7 +943,7 @@ function playBrilliantChime(){
 // fully settle) yet keeps the mover clearly better, from a genuinely contested (not already-winning) position.
 // Deliberately strict — better to miss one than to over-award. NOTE: this is OUR heuristic, not a Stockfish output.
 function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
-  if(loss>=110)return false;                      // must be near-best (loosened from 90 so more sacs qualify)
+  if(loss>=90)return false;                       // must be (essentially) the best move
   const mc=pos.turn,sgn=mc==='w'?1:-1;
   const matBefore=sgn*materialDiff(pos.board);
   let g2;try{g2=makeMove(pos,pl);}catch(e){return false;}
@@ -955,7 +955,7 @@ function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
   try{const rep2=rankMoves(g3,1);if(rep2&&rep2[0]&&rep2[0].m)settled=applyMove(g3.board,rep2[0].m);}catch(e){}
   const sac=matBefore-sgn*materialDiff(settled);
   const evAfter=sgn*evalAfterWhite,evBefore=sgn*(evalBeforeWhite!=null?evalBeforeWhite:evalPawns(pos));
-  return sac>=2 && evAfter>=0.5 && evBefore>-1.5 && evBefore<4.5;  // loosened: smaller edge & wider start window flag more
+  return sac>=2 && evAfter>=0.8 && evBefore>-1.0 && evBefore<3.5;
 }
 
 // Background tally of a game's move quality for the USER (or all moves if color unknown). Yields periodically so it can run without freezing the UI.
@@ -3324,7 +3324,7 @@ export default function App(){
     const summary={w:_sideStats('w'),b:_sideStats('b'),userColor:(meta&&meta.userColor)||null,book:bookN};
     const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,pgn:text};
     setReview(_rv);setLastReview(_rv);setReviewView('summary');
-    setPly(0);setFlip(false);setAnalyzing(false);setProgress(1);
+    setPly(0);setFlip((meta&&meta.userColor==='b')?true:false);setAnalyzing(false);setProgress(1);
   };
   const resetReview=()=>{setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');setPly(0);setCcErr('');if(ccGames&&ccGames.length){setTimeout(()=>{try{gamesListRef.current&&gamesListRef.current.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},140);}};
   const reviewPlayedGame=()=>{let mvs,uc;if(opponent==='online'){const og=onlineGameRef.current;mvs=(og&&og.moves)||[];uc=myColorRef.current||'w';}else{mvs=((game&&game.history)||[]).map(h=>h.san);uc=(opponent==='computer')?pColor:'w';}if(mvs.length<2)return;let pgn='';for(let i=0;i<mvs.length;i++){if(i%2===0)pgn+=(i/2+1)+'. ';pgn+=mvs[i]+' ';}pgn=pgn.trim();setMode('analyze');setPlaySetup(false);setPgnText(pgn);importGame(pgn,{userColor:uc});};
@@ -3914,6 +3914,7 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
+          {l:"Review auto-flips to your color (NEW)", n:"NEW this build. When you review a game you played as Black, the board now opens from Black's side automatically (no manual Flip). This card imports a short game as Black and lands in Review; the board should show Black at the bottom, with rank 1 at the top.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setRevAuto(false);setMode('analyze');importGame('1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6',{userColor:'b'});}, h:9000},
           {l:"New lessons: 4 main lines (NEW)", n:"NEW this build. Four engine-verified main-line lessons added to Discover: Sicilian Sveshnikov, Sicilian Dragon, King's Indian Classical, and the Ruy Lopez Marshall Attack. Every move was validated with python-chess. This card opens the Marshall Attack lesson so you can step through it; the other three are in Discover under their categories (Defenses to 1. e4 / 1. d4, Open Games).", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const _ix=LIB.findIndex(o=>o.name==='Ruy Lopez: Marshall Attack');if(_ix>=0)selectOpening(_ix);setTimeout(()=>setIntroCard(false),400);}, h:6000},
           {l:"Discover lesson rows + progress (NEW)", n:"NEW this build. Opens the Openings lesson list (drill-in from the Discover tiles). Each row shows the lesson name, its status (Not started / In progress / Learned / Mastered) and now a thin PROGRESS BAR underneath - green while you're learning it, gold once mastered. Bars appear on lessons you've started, so your real progress shows here.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setMode('learn');setLearnGroup('openings');setLearnCat(null);}, h:5000},
           {l:"Review eval bar + auto-play (NEW)", n:"NEW this build. Opens a sample game in Review and auto-plays through it so you can watch the eval bar on the left of the board: it now shows the running evaluation NUMBER (white-relative, e.g. +1.4 or M3), widened and polished, on top of the white/black fill. The sample includes a Blunder and a Brilliant !! so you can see those land and the bar swing. No tapping needed - it plays itself.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setRevAuto(false);const _sans=['e4','e5','Nf3','Nc6','Bb5','a6','Bxc6','dxc6','O-O','f6','d4','exd4','Nxd4','c5'];const _res=loadSANs(_sans);if(!_res||!_res.ok||!_res.plies.length)return;const _ev=[0.3,0.2,0.4,0.3,0.5,0.4,0.7,0.5,0.8,1.9,2.0,0.6,1.7,1.5];const _mk=(l,c,i)=>({label:l,c:c,i:i});const _an=_res.plies.map((p,k)=>{let cls;if(k===9)cls=_mk('Blunder','#ec5c4e','??');else if(k===12)cls=_mk('Brilliant','#22d3ee','!!');else if(k%2===0)cls=_mk('Best','#7bd88f','');else cls=_mk('Good','#9ccb8f','');const loss=cls.label==='Blunder'?170:cls.label==='Brilliant'?0:(cls.label==='Best'?5:25);return {loss,cls,bestSan:'',bestMove:null,evalAfter:(_ev[k]!=null?_ev[k]:0)};});const _cnt={Brilliant:1,Great:0,Blunder:1,Mistake:0,Inaccuracy:0};const _side=(s)=>({counts:{Brilliant:s==='w'?1:0,Great:0,Best:3,Good:2,Book:2,Inaccuracy:0,Miss:0,Mistake:0,Blunder:s==='b'?1:0},moves:7,acpl:s==='w'?22:48,accuracy:s==='w'?91.5:82,rating:s==='w'?1680:1480});const _rv={positions:_res.positions,plies:_res.plies,headers:{Result:'*',White:'Kunal',Black:'Astrid'},analysis:_an,counts:_cnt,openingName:null,summary:{w:_side('w'),b:_side('b'),userColor:'w',book:4},pgn:_sans.join(' ')};setMode('analyze');setReview(_rv);setReviewView('moves');setPly(0);setFlip(false);const _tok=(++_scnTok);setTimeout(()=>{if(_tok===_scnTok)setRevAuto(true);},900);}, h:20000},
