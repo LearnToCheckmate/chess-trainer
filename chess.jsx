@@ -5270,7 +5270,7 @@ export default function App(){
       </div>)}
 
         </>);
-        const _evalOn=((inReview||(mode==='play'&&opponent==='computer'))&&!hideEval);const evalW=_evalOn?14:0;
+        const _evalOn=((inReview||(mode==='play'&&opponent==='computer'))&&!hideEval);const evalW=_evalOn?(inReview?22:14):0;
         const _og=onlineGame; const _cap=capturedList(game.board); const _md=materialDiff(game.board);
         const bottomColor=flip?'b':'w'; const topColor=flip?'w':'b';
         const _isOnlineG=opponent==='online'&&!!_og;
@@ -5307,7 +5307,7 @@ export default function App(){
       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',order:wide?0:(pzLow?2:0),marginTop:pzLow&&!wide?10:0}}>
         {_showBars&&pBar(topColor,true)}
         <div style={{display:'flex',alignItems:'flex-start'}}>
-          {_evalOn&&(()=>{const fr=Math.max(0.03,Math.min(0.97,0.5+evalNow/12));const wb=bottomColor==='w';return(<div style={{width:evalW-4,marginRight:4,height:boardPx,borderRadius:3,overflow:'hidden',background:'#312f37',position:'relative',flexShrink:0,alignSelf:'flex-start'}}><div style={{position:'absolute',left:0,right:0,[wb?'bottom':'top']:0,height:(fr*100)+'%',background:'linear-gradient(180deg,#f3f1ea,#d9d6cc)',transition:'height .35s ease'}}/><div style={{position:'absolute',left:0,right:0,top:'50%',height:1,background:'rgba(0,0,0,.35)'}}/></div>);})()}
+          {_evalOn&&(()=>{const fr=Math.max(0.03,Math.min(0.97,0.5+evalNow/12));const wb=bottomColor==='w';const _num=(inReview&&typeof evalTxt==='string')?evalTxt:null;return(<div style={{width:evalW-4,marginRight:4,height:boardPx,borderRadius:4,overflow:'hidden',background:'#2b2932',position:'relative',flexShrink:0,alignSelf:'flex-start',boxShadow:'inset 0 0 0 1px rgba(0,0,0,.45)'}}><div style={{position:'absolute',left:0,right:0,[wb?'bottom':'top']:0,height:(fr*100)+'%',background:'linear-gradient(180deg,#f6f4ee,#dcd9cf)',transition:'height .35s ease'}}/><div style={{position:'absolute',left:0,right:0,top:'50%',height:1,background:'rgba(0,0,0,.4)'}}/>{_num&&<div style={{position:'absolute',left:0,right:0,[wb?'bottom':'top']:2,textAlign:'center',fontSize:8.5,fontWeight:800,fontFamily:'ui-monospace,Menlo,monospace',lineHeight:1,letterSpacing:'-.3px',color:wb?'#1a1a1a':'#ededee',zIndex:2,textShadow:wb?'none':'0 1px 1px rgba(0,0,0,.5)'}}>{_num}</div>}</div>);})()}
           <div ref={boardRef} onPointerDown={onPtrDown} onPointerMove={onPtrMove} onPointerUp={onPtrUp} onPointerCancel={onPtrCancel}
             style={{display:'grid',gridTemplateColumns:`repeat(8,${SQ}px)`,gridTemplateRows:`repeat(8,${SQ}px)`,width:boardPx,height:boardPx,borderRadius:3,overflow:'hidden',boxShadow:'0 0 0 3px #4a6741, 0 12px 50px rgba(0,0,0,.7)',cursor:dragging?'grabbing':'default',touchAction:'none',position:'relative'}}>
             {dBoard.map((row,rI)=>row.map((piece,cI)=>{

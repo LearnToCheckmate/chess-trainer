@@ -1,4 +1,22 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #287)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #288)
+
+## 2026-06-21 - BUILD #288 - Review overhaul: eval bar numeric readout (per plan: "Review overhaul - eval bar, brilliant heuristic")
+- Found the eval bar already exists and is already enabled in Review (inReview is in _evalOn) and already sources the precomputed per-ply review eval (evalFallback = review.analysis[ply-1].evalAfter, overridden by live full-strength Stockfish when it has scored the displayed FEN). The genuine gap: it is a thin bar with NO number, and Review shows no player bars, so the eval figure was never visible ("who is winning" but not "by how much" - which a loading tip even promises).
+- EVAL BAR OVERHAUL: in Review the bar is widened (evalW 14->22) and now shows the white-relative eval number (evalTxt, e.g. +1.4 / M3) at the leading end, color-contrasted to the fill; plus a subtle polish (rounder, inset border, brighter white fill, gloss). Play (vs computer) eval bar unchanged except the cosmetic polish; number only renders in Review.
+- BRILLIANT HEURISTIC: reviewed isBrilliant (L945). It already implements the strict spec (near-best move, settle opponent-reply + recapture, genuine material sacrifice >=2, still >=+0.8 after, from a contested -1.0..+3.5 position). Deliberately NOT loosened blind - Kunal's own comment is "rather miss one than over-award," and changes are unverifiable without a real brilliant game. Needs Kunal's direction + his real Bxh3 PGN to tune/showcase (the long-standing pending gallery item).
+- Full bundle mounts clean (ROOT_LEN 28316, no errors); audit PASS (159).
+- No gallery card: the review eval bar needs a loaded, analyzed game (Stockfish), which a quick scenario cannot fake. Kunal verifies by importing any game in Review and stepping through - the bar is left of the board, now with the number.
+
+### OPEN DECISIONS (from Kunal's plan - no answer yet)
+- iPad landscape Home layout: which option? (ipad-home-mockups.html)
+- Lesson videos: keep auto-adding curated YouTube IDs in batches?
+
+### STAGED / NEEDS KUNAL
+- Brilliant heuristic: loosen, keep, or tune? + real Bxh3 PGN for the showcase card.
+- Puzzle scenery variety (castle/dragon/knight/galleon) - still queued.
+- Takeback/New game More-sheet design question.
+- Online in-game bar (2-device test). Tab bar during active game (keep/hide).
+
 
 ## 2026-06-21 - BUILD #287 - Feedback pass: Discover tiles toned down, home tidy, piece-card fix
 - DISCOVER TILES restyled from big bright saturated boxes to the understated Home-tile look: gradient icon chip + label + lesson count, transparent button, breathing room, 2x2. Kunal: old tiles too bright/gaudy/gimmicky and too big; wanted them like the Home page. Labels shortened (Gambits, Tactics). Drill-in lists unchanged.
