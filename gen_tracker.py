@@ -66,7 +66,7 @@ T=[
  ("coach","Coach avatar redesign","openY","","My mockups weren't app-grade; send art or pick an open set."),
  ("polish","Chess.com-style redesign (structure borrow, dark+green identity)","part","#281","Q1-Q9 LOCKED. #280 roadmap scenery (all themes). #281 filled control icons + in-game bar for vs Computer/pass-and-play (Moves/Back/Forward/Hint/Flip/More + More sheet + compact ticker). NEXT: same bar for Online, review/puzzle control icons, bottom tab bar, Discover tiles, streak+XP, home tidy."),
  ("polish","Custom piece art (theme phase 2)","openY","","My mockups weren't app-grade; send art or pick an open set."),
- ("polish","iPad two-column landscape Home","openY","#278","Mockups built (3 layouts A/B/C) - open ipad-home-mockups.html and tap one; I'll build it."),
+ ("polish","iPad two-column landscape Home","done","#302","Built: in landscape the iPad Home is two columns - Continue, streak and coach on the LEFT, the four buttons as a 2x2 on the RIGHT. Phone and iPad-portrait unchanged. Preview it with the iPad landscape Home gallery card, or rotate your iPad."),
  ("money","Recreate Stripe TEST prices at $2.99/$19.99","openY","","Current test IDs are old $0.99/$9.99."),
  ("money","Run Stripe 4242 test checkout","openY","",""),
  ("infra","Sign-in persistence on installed iOS PWA","open","","Known WebKit storage-partitioning; real fix needs device testing. Safari works now."),
@@ -80,11 +80,10 @@ for g,t,s,b,n in T:
     you=s.endswith("Y"); s=s[:-1] if you else s
     TASKS.append({"g":g,"t":t,"s":s,"you":you,"b":b,"n":n})
 QUESTIONS=[
- {"id":"ipadhome","q":"iPad landscape Home - which layout should I build? (see ipad-home-mockups.html)","o":["A - Spotlight + grid","B - Sidebar + dashboard","C - Hero + two columns"]},
- {"id":"videos","q":"Lesson videos - keep auto-adding curated YouTube IDs in batches?","o":["Yes, keep adding in batches","I'll curate them myself"]},
+ {"id":"tabbar","q":"Hide the bottom tab bar during an active game (#293) - keep it hidden or revert to always showing it?","o":["Keep it hidden in games","Revert - always show it"]},
 ]
 edt=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=4)).strftime("%Y-%m-%d %-I:%M %p")
-stamp="Snapshot "+edt+" EDT - live build #301"
+stamp="Snapshot "+edt+" EDT - live build #302"
 HTML=r'''<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chess Trainer - plan</title><style>

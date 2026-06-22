@@ -1,4 +1,13 @@
-# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #301)
+# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #302)
+
+## 2026-06-22 - BUILD #302 - iPad landscape Home: two-column layout (Kunal picked A, mirrored)
+- Kunal: "Build A but flip the buttons to the right and the continue and streak to the left." Built exactly that. On iPad held in landscape (hLand = wide + landscape, or forcePreviewWide), Home is now two columns: LEFT = Continue card (resume last lesson) + streak/XP strip + streak-risk + coach nudge; RIGHT = the four buttons as a 2x2 (Discover, Puzzles, Review, Play) + the new-here CTA. Header (wordmark) and footer (theme/style toggles, build stamp) span full width. Phone and iPad-portrait Home are byte-identical (same stack, tiles already 2x2).
+- Implementation: home middle section refactored into one IIFE that builds consts (_streak/_newhere/_risk/_tiles/_coach/_continue) then switches: hLand -> two-col flex; else the original stacked fragment. Added forcePreviewWide state OR'd into hLand so a gallery card previews it on any device. New _continue card resumes lastLesson.
+- compile + audit PASS. DRIVE-VERIFIED twice in jsdom: (a) natural 1180x820 -> two-column container, tiles right, coach left, 0 errors; (b) card-driven force on 390x844 -> two-column, streak+risk left, tiles right, 0 errors.
+- Gallery trimmed to 3 lean cards: iPad landscape Home (#302), Brilliant gate readout (#300/#301, awaiting your Stockfish numbers), Opening videos (#299). Dropped the two oldest stable cards (Copy PGN #298, auto-flip #296).
+
+### NEEDS KUNAL: preview the iPad landscape Home card (or rotate your iPad on Home); paste me Bxh3 loss/sac/evAfter/evBefore from the Brilliant gate card; keep/revert tab-bar-hide (#293).
+### NEXT (plan): video batches (131 top-level lessons left); tune Brilliant thresholds from your real numbers; #3 best-move play-out; #4 Tournaments Stage 3+; #5 chess.com redesign; #6 iOS PWA sign-in.
 
 ## 2026-06-22 - BUILD #301 - Fix: Brilliant-gate demo card now lands on Bxh3 after analysis (any device)
 - Kunal flagged that my "What I need" ask described MANUAL stepping/tapping - against the gallery-verify rule. The card DID auto-step, but on a fixed <=6.5s timer, and importGame resets ply to 0 when analysis completes (L3366). On a phone (Stockfish takes tens of seconds) the timed step fired early and got wiped, so the card landed on the start position, not Bxh3.
