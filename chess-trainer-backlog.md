@@ -1,4 +1,15 @@
-# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #300)
+# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #301)
+
+## 2026-06-22 - BUILD #301 - Fix: Brilliant-gate demo card now lands on Bxh3 after analysis (any device)
+- Kunal flagged that my "What I need" ask described MANUAL stepping/tapping - against the gallery-verify rule. The card DID auto-step, but on a fixed <=6.5s timer, and importGame resets ply to 0 when analysis completes (L3366). On a phone (Stockfish takes tens of seconds) the timed step fired early and got wiped, so the card landed on the start position, not Bxh3.
+- FIX: gateDemoRef + a useEffect on [review] that, once analysis completes and a demo jump is pending, sets reviewView('moves') + showGates + steps to the target ply. Robust regardless of Stockfish duration. The card sets gateDemoRef.current=34 before importGame; timed retries kept as belt-and-suspenders.
+- compile + audit PASS. DRIVE-VERIFIED: card lands on 17...Bxh3 with the readout open ("loss 230 sac 2 evAfter 0.55"), zero errors, even though importGame reset ply to 0 first.
+- Gallery (4 live cards): auto-flip (#296), Copy PGN (#298), Opening videos (#299), Brilliant gate readout (#300, now reliable on-device #301).
+
+### NEEDS KUNAL (high value): just tap the "Brilliant gate readout" card, let it analyze, and paste me loss/sac/evAfter/evBefore for Bxh3 (it lands there by itself now). Also: record/confirm the 4 cards; iPad A/B/C; keep/revert tab-bar-hide (#293).
+### NEXT (plan): tune Brilliant thresholds from your real Stockfish numbers; video batches (131 top-level lessons left); #3 best-move play-out; #4 Tournaments Stage 3+; #5 chess.com redesign; #6 iOS PWA sign-in.
+
+
 
 ## 2026-06-22 - BUILD #300 - Brilliant v3: SEE-based sacrifice detection + on-device gate readout
 - NEW classifier (brilliantGate + seeSq): sacrifice size is now measured by proper STATIC EXCHANGE EVALUATION on the move's landing square, then sac = (piece offered) minus (piece this move captured), gated on the piece actually being winnable (SEE>0). Effects, all VERIFIED on the Harris game in jsdom:
