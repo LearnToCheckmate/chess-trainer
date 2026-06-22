@@ -1,4 +1,4 @@
-# Chess Trainer — Build Chat Handoff (refreshed 2026-06-20, app at build #267)
+# Chess Trainer — Build Chat Handoff (refreshed 2026-06-21, app at build #290)
 
 ## EVERY-REPLY PRE-FLIGHT (MANDATORY - do FIRST, and PRINT it as the first lines of EVERY reply in this project, not just big build runs)
 The PRINTED block is the forcing function: its absence is Kunal's instant signal that the routine was skipped, so he can reset it in one word instead of discovering drift later. Print 3 short lines at the very top of every reply:
@@ -6,6 +6,13 @@ The PRINTED block is the forcing function: its absence is Kunal's instant signal
 2. Gallery: PROACTIVELY flushed every SC item Kunal now has evidence for (any recording/screenshot/confirmation) AND added any newly-outstanding screen; report what changed + the new count. Lean = 2-3 live items, NEVER pad. Never wait to be asked - a recording/confirmation triggers the flush THAT SAME TURN.
 3. Backlog: synced (single source of truth; the gallery + the questions-form are generated FROM it; the form uses ONLY OPEN QUESTIONS, and if empty send no form).
 
+
+## GALLERY-VERIFY HARD RULE (missed 10+ times - the #1 rule, do not break)
+NEVER ask Kunal to manually open / navigate / step through any screen to verify a change. EVERY change he must see ships as an AUTO-RUNNING Preview-gallery scenario (the `SC` array in chess.jsx) that sets itself up and plays itself, so he just hits record once. Building the scenario is PART OF THE BUILD and the definition-of-done, not an afterthought.
+- "It can't be shown in the gallery" is almost always FALSE. Tools: `_play(fen,col)` for live board/game states; `selectOpening`/`_lesson` for lessons; for screens that need data, BUILD a synthetic auto-play scenario - e.g. Review: construct a valid review object via `loadSANs` + synthetic `analysis` matching importGame's `_rv` shape ({positions,plies,headers,analysis,counts,openingName,summary,pgn}) and trigger `setRevAuto(true)`.
+- Only ask Kunal separately if Claude must first go OBTAIN external info (e.g. an opening line from a video).
+- VERIFY the scenario renders before shipping by DRIVING it in jsdom: mount app -> click the clapper button (textContent includes the clapper emoji) -> click the new card by its label -> assert the screen renders with zero console/runtime errors. Shim `window.HTMLElement.prototype.scrollTo` + `scrollIntoView` + `Element.prototype.scrollTo` (jsdom lacks them; that error is NOT an app bug). Run the driver from the build dir so `jsdom` resolves.
+- A "please check / step through X" ask that is NOT a gallery scenario means Claude drifted.
 
 ## Boot sequence for the new build chat
 1. SECRET FIRST: the GitHub fine-grained PAT is NOT in this repo and must never be written to any file. Retrieve it by searching the original build chat for "github_pat" (conversation_search). Use it inline in env only.
