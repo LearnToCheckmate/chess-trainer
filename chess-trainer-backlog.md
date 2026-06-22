@@ -1,4 +1,13 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #296)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #297)
+
+## 2026-06-21 - BUILD #297 - GALLERY WIPE (Kunal recorded 12 items; I had let it pile up)
+- Process miss: gallery grew to 12 cards because shipped/confirmed items were not being flushed each run. Kunal recorded all 12 (113s recording reviewed via ffmpeg frames - every screen rendered cleanly: 4-main-line lessons, lesson rows+progress, review eval bar+auto-play, streak/XP strip, 2x2 tiles, in-section tab bar, in-game bar, puzzle scenery variety, Merida/Chessnut/Spatial piece sets, best-move play-out). Evidence RECEIVED for all 12.
+- Wiped SC array 13 -> 1. Kept only "Review auto-flips to your color (NEW)" (#296, added AFTER his 22:26 recording, still unverified). DRIVE-VERIFIED: old cards gone, auto-flip card present + still flips board to Black, zero errors.
+- DISCIPLINE: flush the gallery of recorded/confirmed items at the END of EVERY run from now on (policy already in HANDOFF; the failure was execution). 2-3 live items max; currently 1.
+
+### NEEDS KUNAL (easy): Harris game PGN (to test/tune !! against a real brilliancy); iPad A/B/C; keep/revert tab-bar-hide (#293); yes/no on deepening the review engine (so !! can catch deep sacs like Bxh3).
+### NEXT (plan): #3 best-move play-out polish -> #4 Tournaments Stage 3+ -> #5 chess.com redesign -> #6 iOS PWA sign-in. Plus lesson-video batches (~192 remain).
+
 
 ## 2026-06-21 - BUILD #296 - Kunal feedback: tighten !! + auto-orient review board
 - TIGHTENED Brilliant heuristic: reverted #295 loosening back to original (loss<90, evAfter>=0.8, evBefore -1.0..3.5). Kunal saw 13...Bc7 (a bishop RETREAT) falsely tagged !! - the loosening was too generous. Original is conservative ("rather miss than over-award").
