@@ -73,3 +73,6 @@ Feedback now flows from the app to **feedback-inbox.md** via a Firebase Function
 
 ## ENGINE SWEEP - content safeguard (added 2026-06-20)
 Stockfish 16 is installed at /usr/games/stockfish. audit.py only proves moves are LEGAL; it does NOT catch a line that is legal but relies on a move no engine plays (the Rousseau bug: a variation mislabeled "Stockfish's best" that only "won" because White played 6.Nxf5). RUN `python3 sweep.py` (in repo) on any NEW or CHANGED lesson before deploy: it evals every position and flags moves that lose >200cp vs best. Named traps/gambits flag BY DESIGN - confirm those are framed as traps ("if White greedily grabs", "??", "objectively losing"), never as "best". A full-library sweep on 2026-06-20 found no silent mislabels beyond the already-fixed Rousseau.
+
+## Lesson videos (gotcha)
+- The lesson video box renders ONLY for TOP-LEVEL lessons (objects with eco:/cat:), reading op.video where op=LIB[openIdx]. A `video:` added to a vars:[] VARIATION never displays (variations inherit the parent's video via pickVariation). When batching videos, target TOP-LEVEL video-less lessons only (name:"X", eco:... with no video:). Verify by driving a gallery card that opens the lesson and asserting the video title+author render.
