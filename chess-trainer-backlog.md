@@ -1,4 +1,13 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #291)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #292)
+
+## 2026-06-21 - BUILD #292 - 4 new engine-verified lessons (autonomous run cont.)
+- Added to MORE (indices never shift): Sicilian: Sveshnikov, Sicilian: Dragon, King's Indian: Classical, Ruy Lopez: Marshall Attack. Every line validated with python-chess (legality + canonical SAN, so audit's notation check passes); names checked against the 214 existing (no dups); notes length asserted == line length. Each has idea + plans. Library now ~163 lessons.
+- Gallery card "New lessons: 4 main lines (NEW)" opens the Marshall Attack lesson; DRIVE-VERIFIED in jsdom (open gallery -> click card -> lesson renders, ROOT_LEN 70476, zero errors). audit PASS.
+
+### CLAUDE CAN STILL DO (safe, no input): review/puzzle nav -> _CIcon filled icons; more lessons.
+### OPEN DECISIONS (form): iPad Home A/B/C (mockups exist); lesson videos auto-add; brilliant heuristic.
+### STAGED / NEEDS KUNAL: lesson-row board thumbnail (perf/clutter call); Takeback/New game sheet Q; Online in-game bar (2-device); Tab bar during active game (keep/hide).
+
 
 ## 2026-06-21 - BUILD #291 - Lesson-row progress bars + iPad Home mockups (autonomous run while Kunal away)
 - LESSON ROW PROGRESS BARS: in the Discover category drill-in lists, each lesson row now has a thin progress bar under its status (green while learning = linesLearned/lines or unionDays/LEARN_GOAL; gold/full when mastered). Computed from lessonStats(LIB[i]); shows only on started lessons. Lightweight (one bar per row, no per-row board render - that would lag a 50-90 row list, so deferred pending Kunal's call).
