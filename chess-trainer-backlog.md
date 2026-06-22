@@ -1,4 +1,16 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #289)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #290)
+
+## 2026-06-21 - BUILD #290 - Puzzle scenery VARIETY for medieval themes (Kunal-specced)
+- Was: a castle at every roadmap tier on the medieval themes. Now the hero ROTATES per tier: 0 castle, 1 dragon, 2 knight on horseback, 3 galleon (repeating). Kept the subtle brown palette (don't change colors), placement (flank opposite node), size (~castle-sized), and the animation. Applies to all castle-biome themes (Stone Keep, Parchment, Dragonstone, Royal); Dragonstone still stacks its extra flying dragon + embers, Royal keeps stars + moon.
+- New artwork: _scKnight (mounted knight, arched neck, 4 striding legs, rider with plume + couched lance + pennant) and _scGalleon (hull + stern castle + two masts with square sails + flags + bowsprit, on a small water base). Both render-verified to PNG before splicing, then verified in the full themed roadmap (StoneKeep/Dragonstone/Royal contact sheet).
+- Castle subject keeps moat + flanking torches; dragon/knight get a ground shadow; galleon gets a water base.
+- Scenery gallery card note updated to describe the rotation.
+- VERIFIED HANDS-FREE: drove the "Puzzle roadmap scenery" gallery card in jsdom (open gallery -> click card) - roadmap + scenery render (ROOT_LEN 55048, >20 svg paths), ZERO errors. audit PASS (159).
+- Also baked the GALLERY-VERIFY HARD RULE into HANDOFF.md this run (promised).
+
+### OPEN DECISIONS (awaiting decisions.html form): iPad Home layout; lesson videos auto-add; brilliant heuristic.
+### STAGED / NEEDS KUNAL: Takeback/New game More-sheet design Q; Online in-game bar (2-device); Tab bar during active game (keep/hide).
+
 
 ## 2026-06-21 - BUILD #289 - Review eval bar AUTO-PLAY gallery scenario (standing-instruction fix)
 - Kunal (rightly) called out that #288 asked him to manually step through a review instead of putting it in the Preview gallery. Standing instruction: EVERYTHING he verifies goes in the gallery as an auto-running scenario. Fixed.

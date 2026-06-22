@@ -1849,6 +1849,57 @@ const _scLolly=(k,cx,by,s,c)=>(<g key={k}><rect x={cx-1*s} y={by-13*s} width={2*
 const _scCandyHill=(k,cx,by,w,h,c1,c2)=>(<g key={k}><path d={'M '+(cx-w/2)+' '+(by+4)+' Q '+cx+' '+(by-h)+' '+(cx+w/2)+' '+(by+4)+' L '+(cx+w/2)+' '+(by+60)+' L '+(cx-w/2)+' '+(by+60)+' Z'} fill={c1}/><path d={'M '+(cx-w*0.34)+' '+(by-h*0.5)+' q '+(w*0.34)+' '+(-h*0.32)+' '+(w*0.68)+' 0'} stroke={c2} strokeWidth={3} fill="none" opacity=".55"/></g>);
 const _scGround=(k,RW,y,fill,op)=>(<path key={k} d={'M 0 '+y+' Q '+(RW*0.25)+' '+(y-16)+' '+(RW*0.5)+' '+(y-6)+' T '+RW+' '+(y-10)+' L '+RW+' '+(y+80)+' L 0 '+(y+80)+' Z'} fill={fill} opacity={op==null?1:op}/>);
 
+const _scKnight=(k,cx,by,s,c,trim)=>(
+  <g key={k} transform={'translate('+cx+','+by+') scale('+s+')'}>
+    <g fill={c}>
+      {/* body */}
+      <ellipse cx="-2" cy="-14" rx="19" ry="8.5"/>
+      {/* haunch */}
+      <circle cx="-15" cy="-15" r="9"/>
+      {/* arched neck */}
+      <path d="M12 -16 q9 0 16 -10 q3 -4 2 -9 l-5 -1 q-1 5 -5 8 q-6 5 -12 9 z"/>
+      {/* head: cheek + muzzle pointing down-right */}
+      <path d="M25 -37 q7 1 8 7 q0 4 -4 6 l-3 1 -2 -5 q-3 -1 -3 -5 q0 -3 4 -5 z"/>
+      {/* ears */}
+      <path d="M26 -40 l0 -5 3 4 z"/><path d="M29.5 -40 l1.5 -4.5 2 4 z"/>
+      {/* front legs (striding) */}
+      <path d="M9 -13 l5 14 4 0 -5 -15 z"/>
+      <path d="M15 -12 l8 13 3.5 -1.5 -8 -13 z"/>
+      {/* back legs */}
+      <path d="M-16 -12 l-6 14 4 0 5 -14 z"/>
+      <path d="M-12 -12 l1 15 4 0 0 -15 z"/>
+      {/* tail */}
+      <path d="M-22 -16 q-11 1 -15 13 q6 -5 10 -5 q-4 5 -3 10 q5 -8 9 -11 q3 -3 -1 -7 z"/>
+    </g>
+    <g fill={c}>
+      {/* rider torso leaning forward */}
+      <path d="M-5 -20 q-2 -11 4 -19 q4 3 7 3 q2 7 -3 13 q-4 4 -8 3 z"/>
+      {/* helmet head */}
+      <circle cx="1" cy="-38" r="4.4"/>
+      {/* plume */}
+      <path d="M-3 -41 q-1 -7 3 -10 q3 4 1 9 z" fill={trim}/>
+    </g>
+    {/* couched lance + pennant */}
+    <line x1="11" y1="-49" x2="-15" y2="-15" stroke={c} strokeWidth="2.4" strokeLinecap="round"/>
+    <path d="M11 -49 l11 1.5 -9 5 z" fill={trim}/>
+  </g>
+);
+const _scGalleon=(k,cx,by,s,hull,sail,trim)=>(
+  <g key={k} transform={'translate('+cx+','+by+') scale('+s+')'}>
+    <path d="M-28 -7 q5 9 13 10 l30 0 q9 -1 13 -10 q-5 -4 -12 -4 l-44 0 q-7 0 -13 4 z" fill={hull}/>
+    <path d="M16 -7 l11 0 0 -11 -9 0 z" fill={hull}/>
+    <path d="M16 -7 l11 0 0 -11 -9 0 z" fill="#000" opacity=".14"/>
+    <rect x="-13" y="-46" width="2.4" height="40" fill="#3a2716"/>
+    <rect x="7" y="-53" width="2.6" height="47" fill="#3a2716"/>
+    <path d="M-24 -40 l22 0 -2 15 -18 0 z" fill={sail}/>
+    <path d="M-3 -47 l22 0 -2 17 -18 0 z" fill={sail}/>
+    <path d="M-24 -40 l22 0 -11 15 z" fill="#000" opacity=".08"/>
+    <path d="M-3 -47 l22 0 -11 17 z" fill="#000" opacity=".08"/>
+    <path d="M-12 -46 l9 2.5 -9 2.5 z" fill={trim}/>
+    <path d="M8 -53 l9 2.5 -9 2.5 z" fill={trim}/>
+    <line x1="-28" y1="-5" x2="-39" y2="-11" stroke="#3a2716" strokeWidth="2.2"/>
+  </g>
+);
 const _SCENE_OF={
   'Forest':{biome:'forest',sky:['#2a3d2c','#1d2a1e','#141d15'],far:'#2f4226',mtn:'#28381c',mid:'#22301a',near:'#172013',a:'#9ab860',a2:'#c3e08a',a3:'#6f9444'},
   'Walnut':{biome:'autumn',sky:['#3a2c1a','#2a1f12','#180f08'],far:'#46351e',mtn:'#3c2c18',mid:'#33260f',near:'#22180a',a:'#d8b066',a2:'#f0d49a',a3:'#a07038'},
@@ -1960,9 +2011,22 @@ function _RoadScenery({theme,RW,PH}){
       const ox=open==='R'?RW*0.22:RW*0.78;
       g.push(<g key={'fk'+i} opacity={0.32*op}><rect x={ox-4*s} y={by-34*s} width={8*s} height={34*s} fill={R.far}/><rect x={ox+4*s} y={by-42*s} width={7*s} height={42*s} fill={R.far}/><path d={'M '+(ox-5*s)+' '+(by-34*s)+' l '+(5*s)+' '+(-6*s)+' 5 6z'} fill={R.far}/><path d={'M '+(ox+3*s)+' '+(by-42*s)+' l '+(4.5*s)+' '+(-5.5*s)+' 4.5 5.5z'} fill={R.far}/></g>);
       g.push(_scHill('ch'+i,cx,by+8,150*s,30*s,R.mid,op));
-      g.push(_scCastle('cas'+i,cx,by,s*1.45,R.stone,R.stoneD,R.stoneL,R.roof,R.trim,R.win));
-      g.push(<path key={'moat'+i} d={'M '+(cx-48*s)+' '+(by+2)+' q '+(48*s)+' '+(12*s)+' '+(96*s)+' '+(-2)+' v '+(11*s)+' q '+(-48*s)+' '+(13*s)+' '+(-96*s)+' '+(2)+' Z'} fill={R.night?'#2a3f6e':'#2a5060'} opacity=".6"/>);
-      g.push(_scTorch('tA'+i,cx-42*s,by+2,s));g.push(_scTorch('tB'+i,cx+44*s,by+2,s));
+      const _subj=i%4; // rotate the medieval hero: 0 castle, 1 dragon, 2 knight, 3 galleon
+      if(_subj===0){
+        g.push(_scCastle('cas'+i,cx,by,s*1.45,R.stone,R.stoneD,R.stoneL,R.roof,R.trim,R.win));
+        g.push(<path key={'moat'+i} d={'M '+(cx-48*s)+' '+(by+2)+' q '+(48*s)+' '+(12*s)+' '+(96*s)+' '+(-2)+' v '+(11*s)+' q '+(-48*s)+' '+(13*s)+' '+(-96*s)+' '+(2)+' Z'} fill={R.night?'#2a3f6e':'#2a5060'} opacity=".6"/>);
+        g.push(_scTorch('tA'+i,cx-42*s,by+2,s));g.push(_scTorch('tB'+i,cx+44*s,by+2,s));
+      } else if(_subj===1){
+        g.push(<ellipse key={'dsh'+i} cx={cx} cy={by+4} rx={34*s} ry={6*s} fill="#000" opacity=".22"/>);
+        g.push(_scDragon('drh'+i,cx,by-22*s,s*1.5,R.night?'#171028':'#1b1622',R.a,R.a2));
+      } else if(_subj===2){
+        g.push(<ellipse key={'ksh'+i} cx={cx} cy={by+4} rx={32*s} ry={6*s} fill="#000" opacity=".22"/>);
+        g.push(_scKnight('kn'+i,cx-2*s,by+2,s*1.5,R.night?'#171028':'#15101c',R.trim));
+      } else {
+        g.push(<ellipse key={'gw'+i} cx={cx} cy={by+5} rx={46*s} ry={8*s} fill={R.night?'#22345a':'#244a5c'} opacity=".7"/>);
+        g.push(<ellipse key={'gw2'+i} cx={cx} cy={by+3} rx={40*s} ry={5*s} fill={R.night?'#2c4068':'#2e5668'} opacity=".6"/>);
+        g.push(_scGalleon('gal'+i,cx,by-2*s,s*1.4,'#5a4632',R.a2,R.roof));
+      }
       if(R.dragon&&(i===2||i===5)){const dx=open==='R'?RW*0.30:RW*0.58;g.push(_scDragon('dr'+i,dx,by-96*s,s*0.95,'#1b1420',R.a,R.a2));}
       if(R.volcano&&i%3===2){for(let j=0;j<7;j++)g.push(<circle key={'em'+i+j} cx={cx-14*s+j*7*s} cy={by-40*s-j*7*s} r={(0.7+0.3*(j%2))*s} fill="rgba(250,150,70,.65)"/>);}
       if(R.night&&i%2===0){for(let j=0;j<4;j++)g.push(_scStar('cst'+i+j,cx-30*s+j*16*s,by-60*s,1.3*s,R.a2));}
@@ -3835,7 +3899,7 @@ export default function App(){
           {l:"Discover 2x2 category tiles", n:"NEW this build. The Discover landing is now a compact 2x2 grid in the same understated style as the Home tiles - icon chip, label, lesson count - Openings, Gambits, Endgames, Tactics. Toned down from the big bright boxes. Tapping a tile drills into that category's lessons (unchanged). This scenario opens the Discover landing.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setMode('learn');setLearnGroup(null);setLearnCat(null);}, h:4200},
           {l:"Bottom tab bar (in-section nav)", n:"NEW this build. A persistent bottom tab bar with filled icons and labels: Home, Discover, Puzzles, Review, Play. It shows inside the sections (never on the Home screen) and the active tab highlights green. This scenario opens Discover then auto-hops Discover - Puzzles - Review - Discover so you can see the bar and the active highlight move. Tapping a tab jumps straight to that section. FLAG: it currently also shows during an active game, sitting below the in-game bar; tell me if you would rather hide it while playing.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);const _seq=[()=>{setMode('learn');setOpenIdx(null);setLearnGroup(null);setLearnCat(null);},()=>{setMode('puzzle');setOpenIdx(null);setPzView('roadmap');},()=>{setMode('analyze');},()=>{setMode('learn');setOpenIdx(null);setLearnGroup(null);setLearnCat(null);}];let _i=0;const _tok=(++_scnTok);const _step=()=>{if(_tok!==_scnTok)return;if(_i>=_seq.length)return;_seq[_i]();_i++;setTimeout(_step,1600);};_step();}, h:4*1600+900},
           {l:"In-game bar redesign (vs Computer)", n:"NEW this build. The redesigned in-game bar: Moves, Back, Forward, Hint, Flip, More (filled, labeled icons - Option A). A compact move ticker sits just above it. This scenario plays a few opening moves so the ticker and Back/Forward light up, then auto-opens the More sheet (Takeback, New game, Resign) and the full Moves list. Online keeps its current controls for now; its More menu (Resign, Draw, Chat, Leave) is the next slice.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setMoreOpen(false);setMovesOpen(false);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setOpponent('computer');setPColor('w');setTimeCtrl(null);timeCtrlRef.current=null;setMode('play');setFlip(false);let _g=initGame();const _h=[];const _sans=['e4','e5','Nf3','Nc6','Bc4','Bc5','c3','Nf6'];for(const _s of _sans){const _m=findMoveBySAN(_g,_s);if(!_m)break;_h.push(_g);_g=makeMove(_g,_m);}setPlayHist(_h);setGame(_g);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();setTimeout(()=>setMoreOpen(true),1700);setTimeout(()=>setMoreOpen(false),3700);setTimeout(()=>setMovesOpen(true),4300);setTimeout(()=>setMovesOpen(false),6800);}, h:8200},
-          {l:"Puzzle roadmap scenery (cycles all 12 themes)", n:"MUCH RICHER this build - bigger, denser, brighter. Lands on the Puzzles roadmap and auto-cycles every board theme so you can see the themed landscape the road threads through: castles + moat + torches + pennants for the medieval themes (Dragonstone adds a dragon and embers, Royal adds stars and a moon), tree groves for Forest, autumn woods for Walnut, lighthouse and sailboat for Ocean, starfield for Dusk, coral reef for Coral, misty crags for Graphite and Slate, and candy hills for Candy. Scenery sits BESIDE the path, never under it. Restores your theme at the end.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setMode('puzzle');setPzView('roadmap');const _orig=theme;const _order=[7,8,9,10,0,1,2,3,4,5,6,11];const _tok=(++_scnTok);let _k=0;const _step=()=>{if(_tok!==_scnTok)return;if(_k>=_order.length){setTheme(_orig);return;}setTheme(_order[_k]);_k++;setTimeout(_step,1600);};setTheme(_order[0]);_k=1;setTimeout(_step,1600);}, h:12*1600+1200},
+          {l:"Puzzle roadmap scenery (cycles all 12 themes)", n:"MUCH RICHER this build - bigger, denser, brighter. Lands on the Puzzles roadmap and auto-cycles every board theme so you can see the themed landscape the road threads through: the medieval themes now ROTATE the hero each tier - castle, dragon, knight on horseback, galleon - keeping the subtle brown palette, placement, size and animation (Dragonstone keeps its extra flying dragon + embers, Royal its stars and moon), tree groves for Forest, autumn woods for Walnut, lighthouse and sailboat for Ocean, starfield for Dusk, coral reef for Coral, misty crags for Graphite and Slate, and candy hills for Candy. Scenery sits BESIDE the path, never under it. Restores your theme at the end.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setMode('puzzle');setPzView('roadmap');const _orig=theme;const _order=[7,8,9,10,0,1,2,3,4,5,6,11];const _tok=(++_scnTok);let _k=0;const _step=()=>{if(_tok!==_scnTok)return;if(_k>=_order.length){setTheme(_orig);return;}setTheme(_order[_k]);_k++;setTimeout(_step,1600);};setTheme(_order[0]);_k=1;setTimeout(_step,1600);}, h:12*1600+1200},
           {l:"Piece set: Merida", n:"New commercial-safe piece art (GPLv2). Opens the start position so all six piece types show in both colors. Check the Merida set reads clearly at board size.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setFlip(false);const _ops=pieceSet;setPieceSet('merida');setTimeout(()=>setPieceSet(_ops),6500);_play('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','w');}, h:6000},
           {l:"Piece set: Chessnut", n:"New commercial-safe piece art (Apache 2.0). Start position, all pieces in both colors. Check the Chessnut set.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setFlip(false);const _ops=pieceSet;setPieceSet('chessnut');setTimeout(()=>setPieceSet(_ops),6500);_play('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','w');}, h:6000},
           {l:"Piece set: Spatial", n:"New commercial-safe piece art (MIT). Start position, all pieces in both colors. Check the Spatial set.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setFlip(false);const _ops=pieceSet;setPieceSet('spatial');setTimeout(()=>setPieceSet(_ops),6500);_play('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','w');}, h:6000},
