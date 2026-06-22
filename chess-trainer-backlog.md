@@ -1,4 +1,14 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #297)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #298)
+
+## 2026-06-21 - BUILD #298 - Fix: no way to copy moves in Review (Kunal bug report)
+- ROOT CAUSE: the "📋 Copy moves" button lives in the play/learn move-history block gated !inReview (L5317), so it's hidden during review. The only copy in Review was "Copy game", buried in the Summary sub-tab (L4786) - invisible while stepping through moves (where Kunal was).
+- FIX: added a "📋 Copy PGN" button to the Review header bar (next to "‹ Summary"), which renders in BOTH review sub-views (it's gated only by inReview). Copies review.pgn, or reconstructs a full PGN (7-tag headers + movetext + result) if pgn is missing. clipboard API with execCommand textarea fallback. Reuses pgnCopied flash.
+- compile + audit PASS. DRIVE-VERIFIED in jsdom: import a game into Review -> "📋 Copy PGN" present in header -> clicking flashes "✓ Copied", zero errors.
+- Gallery (2 live cards now): "Review auto-flips to your color" (#296) + "Copy PGN in Review" (#298).
+
+### NEEDS KUNAL (easy): now you can Copy PGN from Review - paste the Harris game PGN so I can run Bxh3 through the analyzer. iPad A/B/C. keep/revert tab-bar-hide. yes/no deepen review engine.
+### NEXT (plan): #3 best-move play-out -> #4 Tournaments Stage 3+ -> #5 chess.com redesign -> #6 iOS PWA sign-in. Plus lesson-video batches (~192).
+
 
 ## 2026-06-21 - BUILD #297 - GALLERY WIPE (Kunal recorded 12 items; I had let it pile up)
 - Process miss: gallery grew to 12 cards because shipped/confirmed items were not being flushed each run. Kunal recorded all 12 (113s recording reviewed via ffmpeg frames - every screen rendered cleanly: 4-main-line lessons, lesson rows+progress, review eval bar+auto-play, streak/XP strip, 2x2 tiles, in-section tab bar, in-game bar, puzzle scenery variety, Merida/Chessnut/Spatial piece sets, best-move play-out). Evidence RECEIVED for all 12.
