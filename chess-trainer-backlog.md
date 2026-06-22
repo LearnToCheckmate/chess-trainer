@@ -1,4 +1,13 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #292)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #293)
+
+## 2026-06-21 - BUILD #293 - Hide bottom tab bar during an active game (sensible default, FLAGGED for veto)
+- Kunal had flagged (back in #285): should the bottom tab bar show during an active game? Default chosen: HIDE it (and its 62px spacer) while a game is in progress - mode play, not in setup, opponent set, game not over - because the in-game control bar already provides the controls and chess.com hides bottom nav on the board. The tab bar RETURNS when the game ends (isOver/playEnd) so the player can navigate away. JUDGMENT CALL - easy one-line revert if Kunal wants it kept.
+- VERIFIED in jsdom (differential): tab labels present in Discover/learn (5), ZERO on the active play board; no errors. Visible via any existing play-board gallery card (e.g. "Best move plays the line out", "In-game bar redesign") vs a section card.
+
+### OPEN DECISIONS (form): iPad Home A/B/C (mockups exist); lesson videos auto-add; brilliant heuristic.
+### STAGED / NEEDS KUNAL: confirm/veto tab-bar-hide; lesson-row board thumbnail (perf/clutter); Takeback/New game sheet design Q; Online in-game bar (2-device).
+### SAFE QUEUE ESSENTIALLY EXHAUSTED - remaining work needs Kunal input or 2-device testing.
+
 
 ## 2026-06-21 - BUILD #292 - 4 new engine-verified lessons (autonomous run cont.)
 - Added to MORE (indices never shift): Sicilian: Sveshnikov, Sicilian: Dragon, King's Indian: Classical, Ruy Lopez: Marshall Attack. Every line validated with python-chess (legality + canonical SAN, so audit's notation check passes); names checked against the 214 existing (no dups); notes length asserted == line length. Each has idea + plans. Library now ~163 lessons.
