@@ -34,6 +34,7 @@ T=[
  ("lessons","Square of the Pawn visualization","done","",""),
  ("lessons","Move-prefix stripped from all lesson notes","done","#229",""),
  ("lessons","Rousseau 4.d4 line fixed (Smirnov trap)","done","#258","Auto-plays in the gallery to verify."),
+ ("lessons","Lesson walkthrough videos (Hanging Pawns, in-app)","part","#303","Real in-app walkthrough videos added in batches. #303 added King's Gambit, Queen's Gambit Accepted, Petrov, Benoni, Semi-Slav (about 39 lessons now have a video). Still batching the rest."),
  ("lessons","Reorder lesson rows by popularity","done","#259","Sorted by best-guess popularity (display-only; progress is name-keyed so safe)."),
  ("lessons","Lesson videos (embedded player + curated IDs)","part","#278","Player + link-outs done; 24 lessons had videos. #278 added real YouTube IDs for Najdorf, Dragon, Nimzo-Indian, Alekhine. ~100 lessons still need a curated ID - I can keep adding in batches; you swap any bad picks."),
  ("puzzles","Lichess CC0 puzzle roadmap (tiered)","done","",""),
@@ -67,6 +68,7 @@ T=[
  ("polish","Chess.com-style redesign (structure borrow, dark+green identity)","part","#281","Q1-Q9 LOCKED. #280 roadmap scenery (all themes). #281 filled control icons + in-game bar for vs Computer/pass-and-play (Moves/Back/Forward/Hint/Flip/More + More sheet + compact ticker). NEXT: same bar for Online, review/puzzle control icons, bottom tab bar, Discover tiles, streak+XP, home tidy."),
  ("polish","Custom piece art (theme phase 2)","openY","","My mockups weren't app-grade; send art or pick an open set."),
  ("polish","iPad two-column landscape Home","done","#302","Built: in landscape the iPad Home is two columns - Continue, streak and coach on the LEFT, the four buttons as a 2x2 on the RIGHT. Phone and iPad-portrait unchanged. Preview it with the iPad landscape Home gallery card, or rotate your iPad."),
+ ("polish","Tab bar hidden during active games","done","#293","Kept hidden during games for more board room; Kunal confirmed keep 2026-06-22."),
  ("money","Recreate Stripe TEST prices at $2.99/$19.99","openY","","Current test IDs are old $0.99/$9.99."),
  ("money","Run Stripe 4242 test checkout","openY","",""),
  ("infra","Sign-in persistence on installed iOS PWA","open","","Known WebKit storage-partitioning; real fix needs device testing. Safari works now."),
@@ -80,10 +82,9 @@ for g,t,s,b,n in T:
     you=s.endswith("Y"); s=s[:-1] if you else s
     TASKS.append({"g":g,"t":t,"s":s,"you":you,"b":b,"n":n})
 QUESTIONS=[
- {"id":"tabbar","q":"Hide the bottom tab bar during an active game (#293) - keep it hidden or revert to always showing it?","o":["Keep it hidden in games","Revert - always show it"]},
 ]
 edt=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=4)).strftime("%Y-%m-%d %-I:%M %p")
-stamp="Snapshot "+edt+" EDT - live build #302"
+stamp="Snapshot "+edt+" EDT - live build #303"
 HTML=r'''<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chess Trainer - plan</title><style>
@@ -127,7 +128,7 @@ function esc(x){return String(x||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");
 function pill(s){return s==="open"?'<span class="pill p-open">OPEN</span>':s==="part"?'<span class="pill p-part">IN PROGRESS</span>':'<span class="pill p-done">DONE</span>';}
 function able(t){return (t.s==="open"&&!t.you)||t.s==="part";}
 function pass(t){if(filt==="all")return true;if(filt==="you")return t.you&&t.s!=="done";if(filt==="open")return able(t);return t.s===filt;}
-function qr(){var q=document.getElementById("qsec");q.innerHTML='<h2>Decisions</h2>'+QUESTIONS.map(function(Q){return '<div class="q"><div class="qt">'+esc(Q.q)+'</div><div class="opts">'+Q.o.map(function(o){return '<button class="opt'+(answers[Q.id]===o?' sel':'')+'" data-q="'+Q.id+'" data-o="'+esc(o)+'">'+esc(o)+'</button>';}).join('')+'</div></div>';}).join('');q.querySelectorAll('.opt').forEach(function(b){b.onclick=function(){answers[b.dataset.q]=b.dataset.o;qr();cnt();};});}
+function qr(){var q=document.getElementById("qsec");q.innerHTML=(QUESTIONS.length?'<h2>Decisions</h2>':'')+QUESTIONS.map(function(Q){return '<div class="q"><div class="qt">'+esc(Q.q)+'</div><div class="opts">'+Q.o.map(function(o){return '<button class="opt'+(answers[Q.id]===o?' sel':'')+'" data-q="'+Q.id+'" data-o="'+esc(o)+'">'+esc(o)+'</button>';}).join('')+'</div></div>';}).join('');q.querySelectorAll('.opt').forEach(function(b){b.onclick=function(){answers[b.dataset.q]=b.dataset.o;qr();cnt();};});}
 function tr(){var root=document.getElementById("root");root.innerHTML="";GROUPS.forEach(function(g){var ts=TASKS.filter(function(t){return t.g===g.key&&pass(t);});if(!ts.length)return;var d=document.createElement("div");d.className="grp";d.innerHTML='<div class="gh"><span class="gdot" style="background:'+g.color+'"></span>'+esc(g.nm)+'</div>'+ts.map(function(t){var i=TASKS.indexOf(t);var pi=picks.indexOf(i);return '<div class="task" style="border-left-color:'+g.color+'"><div class="trow"><div class="tt">'+esc(t.t)+'</div>'+pill(t.s)+(t.you&&t.s!=="done"?'<span class="you">NEEDS YOU</span>':'')+(t.b?'<span class="bb">'+esc(t.b)+'</span>':'')+'</div>'+(t.n?'<div class="nn">'+esc(t.n)+'</div>':'')+(able(t)?'<button class="pick'+(pi>=0?' on':'')+'" data-i="'+i+'">'+(pi>=0?'<span class="num">'+(pi+1)+'.</span> Queued':'+ Build next')+'</button>':'')+'</div>';}).join('');root.appendChild(d);});root.querySelectorAll('.pick').forEach(function(b){b.onclick=function(){var i=+b.dataset.i;var at=picks.indexOf(i);if(at>=0)picks.splice(at,1);else picks.push(i);tr();cnt();};});}
 function chips(){var c=document.getElementById("chips");c.innerHTML="";FILTS.forEach(function(f){var b=document.createElement("button");b.className="chip"+(filt===f[0]?" on":"");b.textContent=f[1];b.onclick=function(){filt=f[0];chips();tr();};c.appendChild(b);});}
 function cnt(){var na=Object.keys(answers).length;document.getElementById("cnt").textContent=picks.length+" queued \u00b7 "+na+"/"+QUESTIONS.length+" answered";}

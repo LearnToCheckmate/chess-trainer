@@ -1,4 +1,14 @@
-# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #302)
+# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #303)
+
+## 2026-06-22 - BUILD #303 - Lesson video batch (5) + tab-bar decision settled
+- Tab bar during games (#293): Kunal chose KEEP HIDDEN (more board). That's already the live behavior, so no code change; recorded as settled/Done. No open decisions remain in the tracker.
+- Added 5 real Hanging Pawns walkthrough videos to video-less top-level lessons (confirmed IDs from search, never fabricated): King's Gambit rmiBGuSwUrw, Queen's Gambit Accepted DlXXfcXcF5o, Petrov (Russian) Defense L8X6f8rBiVA, Benoni Defense x0TDJK973ms, Semi-Slav Defense OXffjL9fLAw. About 39 lessons now have a video; ~126 top-level lessons still without one (keep batching).
+- Inserted via the standard pattern (video:{id,title,author:"Hanging Pawns",length:"lesson"} between name and eco on the top-level lesson). compile + audit PASS.
+- Updated the "Opening videos" gallery card to open the King's Gambit lesson and expand its video box. DRIVE-VERIFIED in jsdom on the live #303 bundle: card lands on King's Gambit, video title "King's Gambit: Ideas, Principles..." + Watch button render, 0 errors.
+- Gallery stays lean at 3: iPad landscape Home (#302), Brilliant gate readout (#300/#301, awaiting your numbers), Opening videos (#303, now King's Gambit + 5-video note).
+
+### NEEDS KUNAL: paste me the Bxh3 loss/sac/evAfter/evBefore from the Brilliant gate card (last open ask). Optional: any opening you specifically want a video on next.
+### NEXT (plan): more video batches (~126 left); tune Brilliant thresholds from your numbers; #3 best-move play-out; #4 Tournaments Stage 3+; #5 chess.com redesign; #6 iOS PWA sign-in.
 
 ## 2026-06-22 - BUILD #302 - iPad landscape Home: two-column layout (Kunal picked A, mirrored)
 - Kunal: "Build A but flip the buttons to the right and the continue and streak to the left." Built exactly that. On iPad held in landscape (hLand = wide + landscape, or forcePreviewWide), Home is now two columns: LEFT = Continue card (resume last lesson) + streak/XP strip + streak-risk + coach nudge; RIGHT = the four buttons as a 2x2 (Discover, Puzzles, Review, Play) + the new-here CTA. Header (wordmark) and footer (theme/style toggles, build stamp) span full width. Phone and iPad-portrait Home are byte-identical (same stack, tiles already 2x2).
