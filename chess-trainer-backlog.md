@@ -1,4 +1,18 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #294)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #295)
+
+## 2026-06-21 - BUILD #295 - Review overhaul: loosen the Brilliant (!!) heuristic (plan item #2; FLAG for veto)
+- Kunal chose "loosen a bit (flag more)". isBrilliant (L945) thresholds widened MODESTLY, strict superset of before (still requires a real material sac):
+  - loss gate 90 -> 110 (allow near-best, not strictly best)
+  - evAfter 0.8 -> 0.5 (a smaller resulting edge still counts)
+  - evBefore window (-1.0..3.5) -> (-1.5..4.5) (allow launching from slightly worse OR already-better)
+  - sac>=2 UNCHANGED (the shallow settle still must show >=2 pts of material given up with no straight recapture) - this is what keeps it from flooding.
+- Eval bar piece of plan #2 was already done in #288 (widened bar + white-relative numeric readout in review).
+- compile + audit PASS. NO-REGRESSION verified: drove "Review eval bar + auto-play" gallery scenario in jsdom -> review renders + auto-plays, zero errors (ROOT_LEN 75959).
+- CAVEAT (flagged): magnitude of "how many more" can't be judged without real games; the synthetic review card forces a Brilliant via cls label so it doesn't exercise the classifier. Kunal's real Bxh3 PGN would let us confirm/tune. Easy to retighten any single threshold.
+
+### NEXT (plan order): #3 best-move play-out (full engine line, snap back) -> #4 Tournaments Stage 3+ -> #5 chess.com redesign -> #6 iOS PWA sign-in. Plus: keep adding lesson-video batches (~192 remain).
+### OPEN DECISIONS: iPad Home A/B/C (no pick; do NOT build). STAGED/NEEDS KUNAL: confirm/veto tab-bar-hide (#293) + brilliant loosening (#295); lesson-row thumbnail; Takeback sheet Q; Online in-game bar (2-device).
+
 
 ## 2026-06-21 - BUILD #294 - Lesson videos batch 1 (plan item #1)
 - Added curated, REAL YouTube IDs (pulled via search, never fabricated) to the 4 new lessons, all from Hanging Pawns (Stjepan Tomic), each an exact title match:

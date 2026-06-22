@@ -943,7 +943,7 @@ function playBrilliantChime(){
 // fully settle) yet keeps the mover clearly better, from a genuinely contested (not already-winning) position.
 // Deliberately strict — better to miss one than to over-award. NOTE: this is OUR heuristic, not a Stockfish output.
 function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
-  if(loss>=90)return false;                       // must be (essentially) the best move
+  if(loss>=110)return false;                      // must be near-best (loosened from 90 so more sacs qualify)
   const mc=pos.turn,sgn=mc==='w'?1:-1;
   const matBefore=sgn*materialDiff(pos.board);
   let g2;try{g2=makeMove(pos,pl);}catch(e){return false;}
@@ -955,7 +955,7 @@ function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
   try{const rep2=rankMoves(g3,1);if(rep2&&rep2[0]&&rep2[0].m)settled=applyMove(g3.board,rep2[0].m);}catch(e){}
   const sac=matBefore-sgn*materialDiff(settled);
   const evAfter=sgn*evalAfterWhite,evBefore=sgn*(evalBeforeWhite!=null?evalBeforeWhite:evalPawns(pos));
-  return sac>=2 && evAfter>=0.8 && evBefore>-1.0 && evBefore<3.5;
+  return sac>=2 && evAfter>=0.5 && evBefore>-1.5 && evBefore<4.5;  // loosened: smaller edge & wider start window flag more
 }
 
 // Background tally of a game's move quality for the USER (or all moves if color unknown). Yields periodically so it can run without freezing the UI.
