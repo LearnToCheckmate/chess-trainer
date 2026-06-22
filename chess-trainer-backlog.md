@@ -1,4 +1,22 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #286)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #287)
+
+## 2026-06-21 - BUILD #287 - Feedback pass: Discover tiles toned down, home tidy, piece-card fix
+- DISCOVER TILES restyled from big bright saturated boxes to the understated Home-tile look: gradient icon chip + label + lesson count, transparent button, breathing room, 2x2. Kunal: old tiles too bright/gaudy/gimmicky and too big; wanted them like the Home page. Labels shortened (Gambits, Tactics). Drill-in lists unchanged.
+- HOME TIDY: home overlay justify center->flex-start + top padding max(36px)->max(12px) so content starts higher and no longer clips/spills; wordmark block marginBottom reduced; removed the redundant "N-day streak safe today" pill (the new strip already shows the streak). At-risk banner kept (conditional, retention CTA). JUDGMENT FLAGGED: dropped the safe-today pill; can restore if wanted.
+- PIECE-SET GALLERY CARDS (Merida/Chessnut/Spatial) now capture the original pieceSet and restore it ~6.5s later, so previewing a set no longer hijacks Kunal's pieces. (Root cause of his "where do I change pieces / why are my pieces different" - a preview card had left him on Merida.)
+- ANSWERED (no build): piece picker already exists at Settings > Appearance (Classic/Merida/Chessnut/Spatial/Symbol); Classic = the standard cburnett set he likes. Pink puzzle roadmap = Candy board theme (scenery follows board color theme).
+- Removed approved "Captured pieces tray" gallery card (Kunal confirmed it reads correctly). Updated Discover gallery card note.
+- Full bundle mounts clean (ROOT_LEN 28316, no errors); audit PASS (159).
+
+### NEXT BUILD (clearly specced, deferred for artwork care)
+- PUZZLE SCENERY VARIETY (medieval/castle themes): not a castle at every tier. Keep brown palette + placement + size + animation, but rotate subjects: castle -> dragon (castle-sized) -> knight on horseback -> galleon. Need new _scKnight + _scGalleon SVG primitives (render-verify before splice). Dragonstone already has a dragon.
+
+### STILL NEEDS KUNAL
+- TAKEBACK / NEW GAME More-sheet design: Kunal questioned it in the recording; unclear exactly what bugs him (looks plain? placement?). Ask what he wants - polish the sheet rows, or move these controls.
+- ONLINE in-game bar: needs 2-device live test (cannot verify via gallery).
+- Custom "highlight the subject" effect (inspired by iOS long-press sticker) - idea only, needs direction.
+- Tab bar during active game: keep below in-game bar, or hide while playing?
+
 
 ## 2026-06-21 - BUILD #286 - Home streak/XP strip + Discover 2x2 tiles (autonomous run while Kunal away)
 - HOME STREAK/XP STRIP: persistent stats strip near the top of Home showing day streak (daily.streak), total XP (pzXP), and today's puzzle goal (daily.count/DAILY_GOAL) with a progress bar. Shows for anyone with progress; force-shows under streakPreview for the gallery (sample values 3 / 120 / 2 when real data is 0). Tapping jumps to puzzles. Additive - existing at-risk and safe-today banners untouched.
