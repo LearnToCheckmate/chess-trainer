@@ -1,4 +1,20 @@
-# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #299)
+# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #300)
+
+## 2026-06-22 - BUILD #300 - Brilliant v3: SEE-based sacrifice detection + on-device gate readout
+- NEW classifier (brilliantGate + seeSq): sacrifice size is now measured by proper STATIC EXCHANGE EVALUATION on the move's landing square, then sac = (piece offered) minus (piece this move captured), gated on the piece actually being winnable (SEE>0). Effects, all VERIFIED on the Harris game in jsdom:
+  - Bxh3 = sac 2 (bishop for pawn). Correct (the old crude settle gave 1).
+  - Nd5 = sac 3 (knight offer, declined).
+  - Bxf6, Bxg4, Qxd7+ = sac 0 (even TRADES, no longer mistaken for sacs - this was the bug in the naive SEE).
+  - Retreats / safely-defended moves = sac 0 -> can NEVER be a false !!. This structurally closes the old Bc7 false-positive vector.
+- Relaxed near-best rule, SAFELY: a clearly-winning sacrifice (sac>=2 AND evAfter>=1.2) may be up to 220cp off the engine's top move; everything else still must be essentially best (cap 90). On the phone's Stockfish, Bxh3 (sac 2, evAfter ~+2.96, loss ~90) should now flag !!. In the weak sandbox fallback it does not (evAfter only +0.55) - that is the honest engine-depth limit, and NOTHING is falsely flagged in the fallback.
+- ON-DEVICE READOUT: Review now has a "show brilliant-gate numbers" toggle under the move controls. For any move it shows loss / sac / evAfter / evBefore / cap and a plain verdict. This lets Kunal validate !! against real Stockfish and paste back the numbers (esp. for Bxh3) so I can confirm/tune the thresholds.
+- compile + audit PASS. DRIVE-VERIFIED: gate card imports the Harris game, steps to 17...Bxh3, readout shows "loss 230 sac 2 evAfter 0.55 ... real sac but engine does not rate it winning", zero errors. SEE values verified per-move.
+- Gallery (4 live cards): auto-flip (#296), Copy PGN (#298), Opening videos (#299), Brilliant gate readout (#300).
+
+### NEEDS KUNAL (high value): open the "Brilliant gate readout" card on your phone, step to Bxh3, tap "show brilliant-gate numbers", and paste me loss/sac/evAfter/evBefore - that confirms whether !! now fires with real Stockfish (and lets me tune the 1.2/220 thresholds). Also: record/confirm the 4 cards; iPad A/B/C; keep/revert tab-bar-hide (#293).
+### NEXT (plan): tune Brilliant thresholds from Kunal's real numbers; keep adding video batches (131 top-level lessons left); #3 best-move play-out; #4 Tournaments Stage 3+; #5 chess.com redesign; #6 iOS PWA sign-in.
+
+
 
 ## 2026-06-22 - BUILD #299 - Brilliant v2 investigated+HELD; lesson videos (Slav Defense, QGD)
 - BRILLIANT v2 (greenlit, then HELD for safety): built a sacrifice-aware classifier (relax the near-best loss cap for clearly-winning sacs; new sac-detection = material hanging on the move's destination square; widen evBefore). STRESS-TESTED on the Harris game in jsdom: the detector UNDERCOUNTED Bxh3 as sac=1 (the queen can grab a pawn back on h3, muddying the one-recapture settle) - it needs proper STATIC EXCHANGE EVALUATION to be trustworthy. And the eval side cannot be validated without the phone's Stockfish (the sandbox only has the weak depth-2 fallback, which rates Bxh3 at evAfter +0.55, loss 230). REVERTED v2 to the conservative #296 classifier rather than risk another Bc7-style false tag.

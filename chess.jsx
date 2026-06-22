@@ -942,20 +942,56 @@ function playBrilliantChime(){
 // Heuristic "Brilliant" (!!): a sound move (Good or better) that gives up real material (after the exchanges
 // fully settle) yet keeps the mover clearly better, from a genuinely contested (not already-winning) position.
 // Deliberately strict — better to miss one than to over-award. NOTE: this is OUR heuristic, not a Stockfish output.
-function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
-  if(loss>=90)return false;                       // must be (essentially) the best move
+const SEEVAL={p:1,n:3,b:3,r:5,q:9,k:99};
+// Static Exchange Evaluation on one square: how much material does `side` win by initiating the
+// capture sequence on (tr,tc), least-valuable-attacker first, each capture optional? Recursive and
+// x-ray-aware (getLegal re-reads the updated board). Returns pawns, >=0.
+function seeSq(game,tr,tc,side){
+  const row=game.board[tr]; const tgt=row&&row[tc]; if(!tgt)return 0;
+  let caps;
+  try{caps=getLegal({...game,turn:side}).filter(m=>m&&m.tr===tr&&m.tc===tc);}catch(e){return 0;}
+  if(!caps.length)return 0;
+  caps.sort((a,b)=>(SEEVAL[game.board[a.fr][a.fc].t]||0)-(SEEVAL[game.board[b.fr][b.fc].t]||0));
+  const cap=caps[0];
+  const captured=SEEVAL[tgt.t]||0;
+  const nb=applyMove(game.board,cap);
+  const opp=side==='w'?'b':'w';
+  const val=captured-seeSq({...game,board:nb,turn:opp},tr,tc,opp);
+  return Math.max(0,val);
+}
+// Brilliant gate (v3): a genuine material SACRIFICE (measured by SEE on the landing square) that
+// keeps the game clearly winning. A retreat or a safely-defended move scores SEE sac=0 and can never
+// qualify - this structurally closes the old false-positive vector (e.g. the Bc7 retreat). Returns the
+// decision AND the diagnostic numbers, so the Review screen can show them for on-device validation.
+function brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
   const mc=pos.turn,sgn=mc==='w'?1:-1;
-  const matBefore=sgn*materialDiff(pos.board);
-  let g2;try{g2=makeMove(pos,pl);}catch(e){return false;}
-  if(!g2)return false;
-  // Settle the position: opponent's best reply, THEN the mover's best recapture, so a piece you win
-  // straight back is not counted as a sacrifice (this was the bug behind false "brilliant" tags).
-  let settled=g2.board,g3=g2;
-  try{const rep=rankMoves(g2,1);if(rep&&rep[0]&&rep[0].m){const gg=makeMove(g2,rep[0].m);if(gg){g3=gg;settled=gg.board;}}}catch(e){}
-  try{const rep2=rankMoves(g3,1);if(rep2&&rep2[0]&&rep2[0].m)settled=applyMove(g3.board,rep2[0].m);}catch(e){}
-  const sac=matBefore-sgn*materialDiff(settled);
+  // Sacrifice size = (value of the piece we just placed) minus (value of what this move captured),
+  // but ONLY if the opponent can actually win that piece (SEE on the landing square > 0). A trade
+  // (capture of equal/greater value) and a safely-defended move both score 0, so neither can be a !!.
+  let sac=0;
+  try{
+    const g2=makeMove(pos,pl);
+    if(g2){
+      const seeOpp=seeSq(g2,pl.tr,pl.tc,g2.turn);
+      if(seeOpp>0){
+        const before=pos.board[pl.tr]&&pos.board[pl.tr][pl.tc];
+        const cell=g2.board[pl.tr]&&g2.board[pl.tr][pl.tc];
+        const movedVal=cell?(SEEVAL[cell.t]||0):0;
+        const capVal=before?(SEEVAL[before.t]||0):0;
+        sac=Math.max(0,movedVal-capVal);
+      }
+    }
+  }catch(e){}
+  const isSac=sac>=2;
   const evAfter=sgn*evalAfterWhite,evBefore=sgn*(evalBeforeWhite!=null?evalBeforeWhite:evalPawns(pos));
-  return sac>=2 && evAfter>=0.8 && evBefore>-1.0 && evBefore<3.5;
+  // A clearly-winning sacrifice may be up to ~2 pawns off the engine's top move; anything else must be essentially best.
+  const cap=(isSac&&evAfter>=1.2)?220:90;
+  const ok=loss<cap && isSac && evAfter>=0.8 && evBefore>-1.0 && evBefore<4.5;
+  return {ok, loss:Math.round(loss), sac:Math.round(sac*10)/10, evAfter:Math.round(evAfter*100)/100, evBefore:Math.round(evBefore*100)/100, cap, isSac};
+}
+function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
+  if(loss>=250)return false;
+  return brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite).ok;
 }
 
 // Background tally of a game's move quality for the USER (or all moves if color unknown). Yields periodically so it can run without freezing the UI.
@@ -2742,6 +2778,7 @@ export default function App(){
   const [progress,setProgress]=useState(0);
   const [pgnErr,setPgnErr]=useState('');
   const [showBest,setShowBest]=useState(false);
+  const [showGates,setShowGates]=useState(false);
   const [bestLineBoard,setBestLineBoard]=useState(null);
   const bestLineTokenRef=useRef(0);
   const [slideFromHide,setSlideFromHide]=useState(false);
@@ -3263,11 +3300,12 @@ export default function App(){
         const evA=Math.max(-99,Math.min(99,after/100)),evB=Math.max(-99,Math.min(99,before/100));
         const pl=res.plies[i].move;
         if(bestMv&&bestMv.fr===pl.fr&&bestMv.fc===pl.fc&&bestMv.tr===pl.tr&&bestMv.tc===pl.tc){loss=0;bestSan='';bestMv=null;}
-        let cls=isBrilliant(pos,pl,loss,evA,evB)?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(loss);
+        const _g=brilliantGate(pos,pl,loss,evA,evB);
+        let cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(loss);
         if(cls.label!=='Brilliant'){const _bm=mover==='w'?before:-before,_pm=mover==='w'?after:-after,_h2=ev2W[i]!=null,_s2=_h2?(mover==='w'?ev2W[i]:-ev2W[i]):null;
           if((cls.label==='Best'||cls.label==='Excellent')&&_h2&&(_bm-_s2)>=160)cls={label:'Great',c:'#7bd3c0',i:'!'};
           else if((cls.label==='Mistake'||cls.label==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130)cls={label:'Miss',c:'#f08a5d',i:'×'};}
-        out.push({loss:Math.round(loss),cls,bestSan,bestMove:bestMv,evalAfter:evA});
+        out.push({loss:Math.round(loss),cls,bestSan,bestMove:bestMv,evalAfter:evA,gate:_g});
       }
     }else{
       QDEPTH=2;
@@ -3282,8 +3320,9 @@ export default function App(){
         let bestSan=toSAN(res.positions[i],bestMv,applyMove(res.positions[i].board,bestMv));let _bMv2=bestMv;
         if(bestMv.fr===pl.fr&&bestMv.fc===pl.fc&&bestMv.tr===pl.tr&&bestMv.tc===pl.tc){bestSan='';_bMv2=null;}
         const _evA=evalPawns(res.positions[i+1]);
-        const _cls=isBrilliant(res.positions[i],pl,Math.round(loss),_evA)?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(loss);
-        out.push({loss:Math.round(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA});
+        const _g=brilliantGate(res.positions[i],pl,Math.round(loss),_evA);
+        const _cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(loss);
+        out.push({loss:Math.round(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,gate:_g});
         if(i%2===0){setProgress((i+1)/res.plies.length);await new Promise(r=>setTimeout(r,0));}
       }
     }
@@ -3914,6 +3953,7 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
+          {l:"Brilliant gate readout (NEW)", n:"NEW this build. Brilliant detection rebuilt with proper static-exchange evaluation - a retreat or an even trade now scores sac=0 and can never be a false !! (closes the old Bc7 problem). And Review has an on-device readout: tap show brilliant-gate numbers under the move controls to see loss / sac / evAfter / evBefore / cap and the verdict for any move. This card imports the Harris game, steps to 17...Bxh3 (your real brilliancy) and opens the readout. On your phone Stockfish the sac shows 2 and it should read winning - paste me those numbers so I can confirm the threshold.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setRevAuto(false);setMode('analyze');setShowGates(true);importGame('1. e4 e5 2. d3 Nc6 3. Nf3 Bc5 4. h3 d6 5. Be2 f5 6. exf5 Nf6 7. O-O Bxf5 8. Nc3 h5 9. Bg5 Qe7 10. Nd5 Qf7 11. Bxf6 gxf6 12. Ne3 Be6 13. Nh2 O-O-O 14. a3 f5 15. Nc4 f4 16. Bf3 Qd7 17. Bxh5 Bxh3 18. Bg4 Bxg4 19. Qxg4 Rh7 20. Qxd7+ Kxd7 21. Nf3 Rdh8 22. b4 Rh1#',{userColor:'b'});[2500,4200,6500].forEach(t=>setTimeout(()=>{setReviewView('moves');setPly(34);setShowGates(true);},t));}, h:12000},
           {l:"Opening videos (NEW)", n:"NEW this build. Two more lessons got a real walkthrough video: Slav Defense and Queens Gambit Declined (both Hanging Pawns). This card opens the Slav Defense lesson and expands the Watch it explained box - you should see the video title and a Watch in app button.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const i=LIB.findIndex(o=>o&&o.video&&o.video.id==='arOboSUK-m0');setMode('learn');selectOpening(i>=0?i:0);setTimeout(()=>setVideoOpen(true),400);}, h:9000},
           {l:"Copy PGN in Review (NEW)", n:"NEW this build. You can now copy a game's moves (PGN) straight from the Review move-stepping view, not only the Summary tab. This card imports a game into Review and lands on the moves view; tap the '📋 Copy PGN' button in the header (next to '‹ Summary') to copy the full PGN to your clipboard.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setRevAuto(false);setMode('analyze');importGame('1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Be2 e5',{userColor:'b'});setTimeout(()=>setReviewView('moves'),1300);}, h:9000},
           {l:"Review auto-flips to your color (NEW)", n:"NEW this build. When you review a game you played as Black, the board now opens from Black's side automatically (no manual Flip). This card imports a short game as Black and lands in Review; the board should show Black at the bottom, with rank 1 at the top.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setRevAuto(false);setMode('analyze');importGame('1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6',{userColor:'b'});}, h:9000}
@@ -4767,6 +4807,11 @@ export default function App(){
             <button onClick={()=>{setRevAuto(false);setPly(p=>Math.min(review.plies.length,p+1));}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>Next ›</button>
             <button onClick={()=>{setRevAuto(false);setPly(review.plies.length);}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⏭</button>
           </div>
+          {/* on-device brilliant-gate readout (for validating !! against real Stockfish) */}
+          {inReview&&(<div style={{width:'100%',maxWidth:boardPx,marginTop:2,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+            <button onClick={()=>setShowGates(g=>!g)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'clamp(12px,2.2vw,12px)',color:'rgba(255,255,255,.5)',textDecoration:'underline',textUnderlineOffset:2,padding:'2px 4px'}}>{showGates?'hide brilliant-gate numbers':'show brilliant-gate numbers'}</button>
+            {showGates&&(curAnno&&curAnno.gate?(()=>{const G=curAnno.gate;const cell=(k,v)=>(<span style={{display:'inline-flex',gap:4}}><b style={{color:'rgba(255,255,255,.5)',fontWeight:700}}>{k}</b><span style={{color:'#fff'}}>{v}</span></span>);const verdict=G.ok?('!! Brilliant — sac '+G.sac+', winning, within '+G.cap+'cp of best'):(G.sac>=2?(G.evAfter<0.8?'real sac, but engine does not rate it winning (evAfter '+G.evAfter+')':(G.loss>=G.cap?'real sac, but too far from the best move (loss '+G.loss+' ≥ cap '+G.cap+')':'sac ok')):'not a sacrifice (sac '+G.sac+')');return(<div style={{width:'100%',maxWidth:440,fontSize:'clamp(12px,2.3vw,12.5px)',fontFamily:'monospace',color:'rgba(255,255,255,.85)',background:'rgba(0,0,0,.28)',border:'1px solid rgba(255,255,255,.14)',borderRadius:9,padding:'8px 11px'}}><div style={{display:'flex',flexWrap:'wrap',gap:'3px 14px',justifyContent:'center'}}>{cell('loss',G.loss)}{cell('sac',G.sac)}{cell('evAfter',G.evAfter)}{cell('evBefore',G.evBefore)}{cell('cap',G.cap)}</div><div style={{textAlign:'center',marginTop:5,fontWeight:800,color:G.ok?'#22d3ee':'rgba(255,255,255,.62)'}}>{verdict}</div></div>);})():<div style={{fontSize:'clamp(12px,2.2vw,12px)',color:'rgba(255,255,255,.4)'}}>step to a played move to see its gate</div>)}
+          </div>)}
           {keyPlies.length>0&&(<div style={{display:'flex',gap:7,alignItems:'center',justifyContent:'center'}}>
             <button onClick={()=>jumpKey(-1)} title="Previous key moment" style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>‹</button>
             <button onClick={()=>jumpKey(1)} style={{...btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)'),fontWeight:800}}>⏭ Next key moment</button>
