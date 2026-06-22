@@ -1,4 +1,9 @@
-# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #304)
+# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #305)
+
+## 2026-06-22 - BUILD #305 - Lesson video batch (2) + flush verified iPad-Home card
+- Verified the iPad landscape two-column Home on Kunal's ACTUAL iPad (2732x2048 landscape recording): two columns render clean (Continue/streak/streak-at-risk/coach on the left, 2x2 Discover/Puzzles/Review/Play on the right), text wraps normally. The phone-preview squish (one word per line) was purely a narrow-width artifact, not a layout bug. Flushed the "iPad landscape Home (NEW)" gallery card (verified). Gallery now lean at 2: Brilliant gate readout, Opening videos.
+- Added 2 confirmed Hanging Pawns videos (each verified via lichess/youtube before embedding, never fabricated): Philidor Defense Q4bp4qlRqGg, Sicilian Alapin (2.c3) VGP0qWscORM. About 46 lessons now have a video; ~119 top-level lessons still without one (keep batching).
+- HELD the Modern Bishop's Opening video wgeshBzJNh0: it is real Hanging Pawns but covers the Italian-game line (1.e4 e5 2.Nf3 Nc6 3.Bc4 d3), not the app's plain 2.Bc4 "Bishop's Opening" lesson - embedding it there would mislabel, so skipped.
 
 ## 2026-06-22 - DECISION: Chess.com-style redesign CLOSED
 - Kunal is keeping the CURRENT look (dark + gold identity, colorful tiles). No chess.com identity/structure redesign. Tracker task marked done/closed and removed from the plan order. The small polish that shipped earlier stays: #280 roadmap scenery, #281 filled control icons + in-game bar. Do not resurface this item.
