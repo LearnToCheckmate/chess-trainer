@@ -1,4 +1,17 @@
-# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #293)
+# ACTIVE QUEUE - reconciled 2026-06-21 (app at build #294)
+
+## 2026-06-21 - BUILD #294 - Lesson videos batch 1 (plan item #1)
+- Added curated, REAL YouTube IDs (pulled via search, never fabricated) to the 4 new lessons, all from Hanging Pawns (Stjepan Tomic), each an exact title match:
+  - Sicilian: Sveshnikov -> vM5KUWXPkbo  | Sicilian: Dragon -> Q4_OTquKti0
+  - King's Indian: Classical -> rKs3DgFISy0 | Ruy Lopez: Marshall Attack -> OzFVBBVHAZs
+- video:{ id, title, author:"Hanging Pawns", length:"lesson" } inserted after each name (count==1 asserts). compile + audit PASS.
+- DRIVE-VERIFIED: gallery card "New lessons: 4 main lines" opens the Marshall lesson which now shows the "Watch it explained" video box (ROOT_LEN 70658, zero errors).
+- Decision logged: keep auto-adding video IDs in batches (YES). 192 lessons still lack video -> more batches to follow. Brilliant heuristic = loosen a bit (plan #2, next build).
+
+### NEXT (Kunal's plan order): #2 Review overhaul (loosen brilliant heuristic) -> #3 best-move play-out -> #4 Tournaments Stage 3+ -> #5 chess.com redesign -> #6 iOS PWA sign-in persistence.
+### OPEN DECISIONS (form): iPad Home A/B/C still no pick (do NOT build iPad Home).
+### STAGED / NEEDS KUNAL: confirm/veto tab-bar-hide (#293); lesson-row board thumbnail; Takeback/New game sheet Q; Online in-game bar (2-device).
+
 
 ## 2026-06-21 - BUILD #293 - Hide bottom tab bar during an active game (sensible default, FLAGGED for veto)
 - Kunal had flagged (back in #285): should the bottom tab bar show during an active game? Default chosen: HIDE it (and its 62px spacer) while a game is in progress - mode play, not in setup, opponent set, game not over - because the in-game control bar already provides the controls and chess.com hides bottom nav on the board. The tab bar RETURNS when the game ends (isOver/playEnd) so the player can navigate away. JUDGMENT CALL - easy one-line revert if Kunal wants it kept.
