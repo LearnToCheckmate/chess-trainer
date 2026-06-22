@@ -76,3 +76,10 @@ Stockfish 16 is installed at /usr/games/stockfish. audit.py only proves moves ar
 
 ## Lesson videos (gotcha)
 - The lesson video box renders ONLY for TOP-LEVEL lessons (objects with eco:/cat:), reading op.video where op=LIB[openIdx]. A `video:` added to a vars:[] VARIATION never displays (variations inherit the parent's video via pickVariation). When batching videos, target TOP-LEVEL video-less lessons only (name:"X", eco:... with no video:). Verify by driving a gallery card that opens the lesson and asserting the video title+author render.
+
+## Brilliant detection v3 (build #300) - how it works + how to tune it
+- `seeSq(game,tr,tc,side)`: recursive Static Exchange Evaluation on one square (least-valuable-attacker first, each capture optional, x-ray-aware via getLegal on the updated board). Returns pawns the initiating side wins.
+- `brilliantGate(pos,pl,loss,evA,evB)` returns {ok, loss, sac, evAfter, evBefore, cap, isSac}. sac = (value of piece just placed) - (value of what the move captured), but only if SEE>0 (the piece is actually winnable). So an even TRADE = 0, a RETREAT/defended move = 0 (this is what structurally kills the old Bc7 false positive). A clearly-winning sac (sac>=2 AND evAfter>=1.2) gets a relaxed near-best cap of 220cp; otherwise cap is 90.
+- isBrilliant() just returns brilliantGate(...).ok (after a cheap loss>=250 reject). Both analysis loops store gate:_g per ply.
+- VERIFIED in jsdom on the Harris game: Bxh3 sac=2, Nd5 sac=3, trades (Bxf6/Bxg4/Qxd7+) sac=0, nothing falsely flagged in the weak fallback. The sandbox CANNOT reproduce the phone's Stockfish eval, so the eval side is validated on-device.
+- ON-DEVICE READOUT: Review has a "show brilliant-gate numbers" toggle (showGates state) under the move nav; it prints loss/sac/evAfter/evBefore/cap + verdict from curAnno.gate. Use it to read REAL Stockfish numbers per move and tune the 1.2 (winning) and 220 (near-best cap) thresholds. Bxh3 is the reference case.
