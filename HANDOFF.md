@@ -1,4 +1,4 @@
-# Chess Trainer — Build Chat Handoff (refreshed 2026-06-22, app at build #307)
+# Chess Trainer — Build Chat Handoff (refreshed 2026-06-23, app at build #308)
 
 ## EVERY-REPLY PRE-FLIGHT (MANDATORY - do FIRST, and PRINT it as the first lines of EVERY reply in this project, not just big build runs)
 The PRINTED block is the forcing function: its absence is Kunal's instant signal that the routine was skipped, so he can reset it in one word instead of discovering drift later. Print 3 short lines at the very top of every reply:
@@ -95,3 +95,10 @@ Stockfish 16 is installed at /usr/games/stockfish. audit.py only proves moves ar
 
 ## Photo-to-board: camera vs upload (build #306)
 - The New Game (play-setup) screen has TWO entry points that both feed `scanBoardFile(file)`: "Scan with camera" uses `scanInputRef` (input has `capture="environment"`, forces live camera) and "Upload a photo" uses `uploadInputRef` (input has NO capture, so iOS opens Photo Library / Files - needed for screenshots). Do not re-merge them; the missing no-capture input was the whole bug. Both still depend on `window.CTCloud.scanBoard` (Cloud Function + vision key = Kunal's manual deploy); until then both show the friendly "not set up yet" message. Gallery card "Upload a board photo" lands on this screen via setOpponent('computer')+setMode('play')+setPlaySetup(true).
+
+## PGN import: tolerant SAN matching (build #308)
+- `loadSANs` no longer truncates a game when one token doesn't match exactly. Flow per ply: try exact `cleanSAN(toSAN(...))===token` (fast path, unchanged); if it fails, call `matchSanLenient(game, rawToken)` which parses destination square + piece type + promotion + disambiguation hints from the SAN and returns the UNIQUE legal move that fits (null if zero or 2+ fit, so an illegal token still errors instead of guessing). This absorbs over/under-specified disambiguation ("Nbd7" vs "Nd7", "R1e2" vs "Re2"), leftover zero-castling, figurine glyphs and stray +#!?.
+- `parsePGN` now normalizes zero-castling (0-0/0-0-0 -> O-O/O-O-O) and figurine pieces (U+2654..U+265E -> KQRBN) BEFORE the `/[a-hKQRBNO]/` token filter, because "0-0" has none of those chars and was being dropped entirely (desync -> truncation). Order matters: do this AFTER the results strip (1-0/0-1) so it can't clobber a result token.
+- Truncation is now loud: importGame shows "Couldn't read past move N: ... Analyzed the first N half-moves only - check that move in your PGN." Never a silent cutoff.
+- The Review move strip (`data-mstrip`) is a horizontal scroll that renders the FULL `review.plies` list and auto-centres the current ply; "only ~7 visible" is just the iPhone-width viewport, not a cap. Do not add a slice.
+- Verify the parser in isolation by slicing the engine block (`const FILES='abcdefgh';` -> before `const OPENINGS=[`) + PGN block (`function cleanSAN` -> before `function rankMoves`) into a CommonJS file and running node tests; both blocks are DOM-free and run in plain node.

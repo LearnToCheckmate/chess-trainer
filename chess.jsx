@@ -865,6 +865,8 @@ function parsePGN(pgn){
   t=t.replace(/\$\d+/g,' ');                  // $NAGs
   t=t.replace(/\d+\.(\.\.)?/g,' ');           // move numbers 12. / 12...
   t=t.replace(/\b(1-0|0-1|1\/2-1\/2|\*)\b/g,' '); // results
+  t=t.replace(/0-0-0/g,'O-O-O').replace(/0-0/g,'O-O'); // zero-castling -> letter O (else the filter below drops it and desyncs the game)
+  t=t.replace(/[\u2654\u265A]/g,'K').replace(/[\u2655\u265B]/g,'Q').replace(/[\u2656\u265C]/g,'R').replace(/[\u2657\u265D]/g,'B').replace(/[\u2658\u265E]/g,'N'); // figurine pieces -> letters
   return t.trim().split(/\s+/).filter(x=>x.length>0&&/[a-hKQRBNO]/.test(x));
 }
 
@@ -876,6 +878,36 @@ function parsePGNHeaders(pgn){
   return h;
 }
 
+// Tolerant SAN matcher: used when an exact text match fails. Parses the destination square, moving
+// piece, promotion and any disambiguation hints out of the raw token, then finds the unique legal move
+// that fits. This survives over/under-specified disambiguation (e.g. "Nbd7" vs "Nd7", "R1e2" vs "Re2"),
+// leftover zero-castling, figurine glyphs and stray check/annotation marks. Returns a move or null
+// (null only when no single legal move fits — so a genuinely illegal token still errors rather than guessing wrong).
+function matchSanLenient(game,raw){
+  let s=cleanSAN(raw);if(!s)return null;
+  s=s.replace(/[\u2654\u265A]/g,'K').replace(/[\u2655\u265B]/g,'Q').replace(/[\u2656\u265C]/g,'R').replace(/[\u2657\u265D]/g,'B').replace(/[\u2658\u265E]/g,'N');
+  const legal=getLegal(game);
+  if(s==='O-O'||s==='O-O-O'){const want=s==='O-O'?'K':'Q';return legal.find(m=>m.castle===want)||null;}
+  let promo=null;const pm=s.match(/=([QRBN])/i);if(pm){promo=pm[1].toLowerCase();s=s.replace(/=([QRBN]).*$/i,'');}
+  let pieceType='p';if(/^[KQRBN]/.test(s)){pieceType=s[0].toLowerCase();s=s.slice(1);}
+  s=s.replace(/x/g,'');
+  const dm=s.match(/([a-h])([1-8])(?![\s\S]*[a-h][1-8])/);if(!dm)return null;
+  const tc=FILES.indexOf(dm[1]),tr=8-parseInt(dm[2],10);
+  const before=s.slice(0,dm.index);let dfile=null,drank=null;
+  for(const ch of before){if(/[a-h]/.test(ch))dfile=FILES.indexOf(ch);else if(/[1-8]/.test(ch))drank=8-parseInt(ch,10);}
+  const cands=legal.filter(m=>{
+    if(m.castle)return false;
+    if(m.tr!==tr||m.tc!==tc)return false;
+    const pc=game.board[m.fr][m.fc];if(!pc||pc.t!==pieceType)return false;
+    if(promo){if(!m.promo||m.promo.toLowerCase()!==promo)return false;}else if(m.promo)return false;
+    if(dfile!=null&&m.fc!==dfile)return false;
+    if(drank!=null&&m.fr!==drank)return false;
+    return true;
+  });
+  if(cands.length===1)return cands[0];
+  if(cands.length>1&&!promo){const q=cands.filter(m=>!m.promo);if(q.length===1)return q[0];}
+  return null;
+}
 // Build positions + plies from SAN list
 function loadSANs(sans){
   let game=initGame();
@@ -883,6 +915,7 @@ function loadSANs(sans){
   for(let i=0;i<sans.length;i++){
     const want=cleanSAN(sans[i]);let found=null;
     for(const mv of getLegal(game)){const nb=applyMove(game.board,mv);if(cleanSAN(toSAN(game,mv,nb))===want){found=mv;break;}}
+    if(!found)found=matchSanLenient(game,sans[i]); // tolerant fallback before giving up
     if(!found)return{ok:false,positions,plies,error:`Move ${i+1} ("${sans[i]}") didn't fit the position.`,parsed:i};
     game=makeMove(game,found);positions.push(game);plies.push({san:sans[i],move:found});
   }
@@ -3275,7 +3308,7 @@ export default function App(){
     const res=loadSANs(sans);
     if(res.plies.length===0){setPgnErr(res.error||'Could not read any moves.');return;}
     const headers=parsePGNHeaders(text);
-    if(!res.ok)setPgnErr(`Heads up: ${res.error} Reviewing the first ${res.plies.length} moves.`);
+    if(!res.ok)setPgnErr(`Couldn't read past move ${res.plies.length+1}: ${res.error} Analyzed the first ${res.plies.length} half-moves only — check that move in your PGN.`);
     setAnalyzing(true);setProgress(0);
     await new Promise(r=>setTimeout(r,30));
     const useSF=sfReadyRef.current?await ensureAna():false;
@@ -3957,7 +3990,8 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
-          {l:"Opening videos (NEW)", n:"NEW this build. Two more lessons got a real Hanging Pawns walkthrough video: Réti Opening and Ponziani Opening. This card opens the Réti Opening lesson and expands the Watch it explained box - you should see the video title and a Watch in app button.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const i=LIB.findIndex(o=>o&&o.video&&o.video.id==='eStsxnEzvI4');setMode('learn');selectOpening(i>=0?i:0);setTimeout(()=>setVideoOpen(true),400);}, h:9000},
+          {l:"PGN import - no more truncation (NEW)", n:"NEW this build. Fixes the bug where a 21-move paste only analyzed the first 13. This card pastes a tricky 21-half-move game (zero-castling written as 0-0, a figurine knight, Nbd7-style disambiguation, a clock comment) straight into Review. You should land on the Review board and the move strip under the board should hold ALL 21 half-moves - scroll it right and the last one is Nbd2, not a cut-off in the teens. Give it a few seconds to finish analyzing.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const pgn="1. e4 e5 2. \u2658f3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. 0-0 Be7 6. Re1 b5 7. Bb3 d6 8. c3 0-0 9. h3 Nb8 10. d4 Nbd7 11. Nbd2 {[%clk 0:09:12]}";setMode('analyze');setPgnText(pgn);importGame(pgn);}, h:13000},
+          {l:"Opening videos (NEW)", n:"NEW last build. Two more lessons got a real Hanging Pawns walkthrough video: Réti Opening and Ponziani Opening. This card opens the Réti Opening lesson and expands the Watch it explained box - you should see the video title and a Watch in app button.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const i=LIB.findIndex(o=>o&&o.video&&o.video.id==='eStsxnEzvI4');setMode('learn');selectOpening(i>=0?i:0);setTimeout(()=>setVideoOpen(true),400);}, h:9000},
         ];
         const _runAll=()=>{
           setPreview(false);setTrainerDemo(false);const N=SC.length;let i=0;

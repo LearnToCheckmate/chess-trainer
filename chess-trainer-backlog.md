@@ -1,4 +1,18 @@
-# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #307)
+# ACTIVE QUEUE - reconciled 2026-06-23 (app at build #308)
+
+## 2026-06-23 - BUILD #308 - Fix: PGN import truncation (21 moves -> only 13 analyzed)
+- Kunal pasted a 21-move Chess.com game (as Black, vs mbv327) into Review's PGN box; only the first 13 were analyzed and the move strip appeared to stop early. ROOT CAUSE: the importer matched each move by EXACT text (cleanSAN(toSAN(...))===token) and STOPPED at the first token that didn't match, reviewing only the plies up to that point. One quirky token killed everything after it. Two concrete gaps reproduced: (1) zero-castling "0-0"/"0-0-0" was DROPPED entirely by parsePGN's token filter before cleanSAN could normalize it -> desync -> truncation; (2) figurine pieces + over/under-specified disambiguation (e.g. PGN "Nbd7" when the app's minimal SAN is "Nd7", or "R1e2" vs "Re2") failed the exact match.
+- FIX (3 edits in chess.jsx PGN block):
+  - parsePGN: normalize zero-castling (0-0/0-0-0 -> O-O/O-O-O) and figurine glyphs (♔♕♖♗♘ etc -> KQRBN) BEFORE the [a-hKQRBNO] filter, so castling tokens survive.
+  - loadSANs: added matchSanLenient() fallback. Exact text match runs first (unchanged); if it fails, the lenient matcher parses destination square + piece type + promotion + disambiguation hints and returns the UNIQUE legal move that fits. Returns null only when no single legal move matches, so a genuinely illegal token still errors instead of guessing wrong. This absorbs disambiguation mismatches, leftover zero-castling, figurines and stray +#!? glyphs.
+  - importGame: clearer truncation message ("Couldn't read past move N: ... Analyzed the first N half-moves only - check that move in your PGN.") so a future failure is never a silent cutoff.
+- The "only first 7 visible at the bottom" was NOT data loss: the Review move strip is a horizontal-scroll strip (overflowX auto, whitespace nowrap) that auto-centres the current ply; ~7 half-moves fit the iPhone width before you scroll. It renders the FULL review.plies list (no slice/cap). Confirmed.
+- VERIFIED: node test on the actual edited engine+parser slices - a tricky 21-half-move game (zero-castling 0-0, figurine knight, Nbd7 disambiguation, a {[%clk]} comment): OLD parser truncated to 2 plies (stopped at ply 3); FIXED parser reads all 21. Clean minimal SAN still reads 21 on both. esbuild clean (no error/warning). jsdom: real entry.jsx bundle mounts clean (28.5k DOM, 0 runtime errors), #308 stamp present, new gallery card compiled in.
+- NOTE: I don't have Kunal's exact PGN, so I can't 100%-confirm his specific game's failing token - but the tolerant matcher now handles the full class of common causes (zero-castling, figurine, disambiguation, glyphs), so any legal SAN should import in full. If one still truncates, the new error names the exact move.
+- Gallery lean at 2: PGN import - no more truncation (#308, NEW), Opening videos (#307, Réti + Ponziani, still unverified).
+
+### NEEDS KUNAL: open the "PGN import - no more truncation" gallery card (Preview gallery) - it pastes a tricky 21-half-move game into Review; the move strip under the board should scroll all the way to the 21st half-move (Nbd2), not cut off in the teens. Even better: re-paste your actual mbv327 game and confirm all 21 moves now analyze. The only standing manual item is still the scanBoard Cloud Function + vision key (your Firebase step).
+### NEXT (plan): more lesson-video batches (~117 left); then #3 best-move play-out; #4 Tournaments Stage 3+; #5 iOS PWA sign-in.
 
 ## 2026-06-22 - BUILD #307 - Video batch (Réti, Ponziani) + flushed 3 verified cards
 - Kunal sent two screen recordings. VERIFIED + FLUSHED all three #306 gallery cards this turn:
