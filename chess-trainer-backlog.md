@@ -1,4 +1,16 @@
-# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #306)
+# ACTIVE QUEUE - reconciled 2026-06-22 (app at build #307)
+
+## 2026-06-22 - BUILD #307 - Video batch (Réti, Ponziani) + flushed 3 verified cards
+- Kunal sent two screen recordings. VERIFIED + FLUSHED all three #306 gallery cards this turn:
+  - Upload a board photo: the New Game screen renders both "Scan with camera" and "Upload a photo" cleanly on his phone (8:05 PM recording). Upload entry point CONFIRMED shipped. (The native iOS photo-picker that opens on tap is OS-level UI outside the app DOM, so it cannot be a gallery scenario; the no-capture input is the correct mechanism, jsdom-confirmed in #306.)
+  - Brilliant gate readout: CLOSED. On his real-device Stockfish, 17...Bxh3 reads !! Brilliant. Confirmed numbers from the recording: loss 101, sac 2, evAfter 2.86, evBefore 3.87, cap 220 -> "sac 2, winning, within 220cp of best". The conservative thresholds are correct; NO change needed. This closes the long-running "paste me the Bxh3 numbers" ask.
+  - Opening videos (#304/#306 Modern Defense): card behaviour verified in his recording (gallery auto-cycled through it).
+- Added 2 MORE real Hanging Pawns walkthrough videos to video-less top-level lessons (IDs confirmed via search against the unmistakable Hanging Pawns "Ideas, Principles..." title signature, never fabricated; YouTube direct-fetch was 429-blocked so used title-signature + cross-source attribution): Réti Opening eStsxnEzvI4, Ponziani Opening zoCfGnNjlbo. About 42 lessons now have a video; ~117 top-level lessons still without one (keep batching). Held back several uncertain openings (e.g. Vienna Gambit) where no clean Hanging Pawns video surfaced - will only embed exact-signature matches.
+- compile + audit PASS (163 lessons). DRIVE-VERIFIED in jsdom on the live #307 bundle: the Opening-videos gallery card opens the Réti Opening lesson, the Watch-it-explained box + video title render, 0 console/runtime errors.
+- Gallery lean at 1: Opening videos (#307, Réti + Ponziani).
+
+### NEEDS KUNAL: nothing blocking. Optional: record the "Opening videos" card if you want to eyeball the Réti video box. The only standing manual item is the scanBoard Cloud Function + vision key (your Firebase step) to make the photo read actually work.
+### NEXT (plan): more lesson-video batches (~117 left); then #3 best-move play-out; #4 Tournaments Stage 3+; #5 iOS PWA sign-in.
 
 ## 2026-06-22 - BUILD #306 - Upload a board photo (not just camera scan)
 - Kunal: "Give me the ability to also upload a picture instead of just scan." CLOSED the long-open Feedback-chat item "upload a screenshot of a board position (not just take a photo) and play from that point." The New Game screen's single "Scan a board from a photo" button used a file input with capture="environment", which on iPhone forces the live camera and blocks picking a saved photo/screenshot. Split into TWO buttons sharing the same read pipeline: "Scan with camera" (capture="environment", live) and "Upload a photo" (no capture attribute, so iOS opens Photo Library / Files). Both feed scanBoardFile -> canvas downsize -> CTCloud.scanBoard -> FEN validate -> Play this position. Helper copy updated to explain both. Added uploadInputRef alongside scanInputRef.

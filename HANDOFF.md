@@ -1,4 +1,4 @@
-# Chess Trainer — Build Chat Handoff (refreshed 2026-06-22, app at build #306)
+# Chess Trainer — Build Chat Handoff (refreshed 2026-06-22, app at build #307)
 
 ## EVERY-REPLY PRE-FLIGHT (MANDATORY - do FIRST, and PRINT it as the first lines of EVERY reply in this project, not just big build runs)
 The PRINTED block is the forcing function: its absence is Kunal's instant signal that the routine was skipped, so he can reset it in one word instead of discovering drift later. Print 3 short lines at the very top of every reply:
