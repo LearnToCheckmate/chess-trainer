@@ -1471,8 +1471,8 @@ export default function App(){
   const toastSeq=useRef(1);
   const toast=(msg,kind)=>{const id=toastSeq.current++;setToasts(t=>[...t.slice(-2),{id,msg:String(msg||''),kind:kind||'info'}]);setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),3200);};
   const toastRef=useRef(toast);toastRef.current=toast;
-  const introHoldRef=useRef(false); // #315: intro card auto-dismiss
-  useEffect(()=>{if(!(mode==='learn'&&openIdx!==null&&introCard))return;introHoldRef.current=false;const t=setTimeout(()=>{if(!introHoldRef.current)setIntroCard(false);},4000);return()=>clearTimeout(t);},[introCard,openIdx,mode]);
+  const [lessonMore,setLessonMore]=useState(false); // #316 focus-mode sheet
+  const introHoldRef=useRef(false); // #315: intro card auto-dismiss (effect lives after state decls)
   // ── Progress sync (#310): mirror key progress to users/{uid} via CTCloud.load/save (merge:true).
   const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_coachstyle','ct_coachtargets','ct_coachtier'];
   const syncTimer=useRef(null);
@@ -1558,6 +1558,9 @@ export default function App(){
 
   // Learn
   const [openIdx,setOpenIdx]=useState(null);
+  const lessonFocus=(mode==='learn'&&openIdx!==null); // #316
+  useEffect(()=>{if(!(mode==='learn'&&openIdx!==null&&introCard))return;introHoldRef.current=false;const t=setTimeout(()=>{if(!introHoldRef.current)setIntroCard(false);},4000);return()=>clearTimeout(t);},[introCard,openIdx,mode]); // #315 intro auto-dismiss
+  useEffect(()=>{setLessonMore(false);},[openIdx,mode]);
   const [openStep,setOpenStep]=useState(0);
   const [openMsg,setOpenMsg]=useState('');
   const [showHint,setShowHint]=useState(true);
@@ -2849,7 +2852,8 @@ export default function App(){
           setTimeout(stepFn,750);
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
-        const SC=[{l:"Hygiene fixes (NEW)", n:"Stage: quick fixes you approved. The lesson intro card now auto-dismisses after 4 seconds so auto-plays and recordings are never covered; tap the card body once to keep it open while you read. Tab bar has a uniform height. This card opens a lesson so you can watch the intro card dismiss itself.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setDemoBest(null);setPlayEnd(null);setPlaySetup(false);setRevAuto(false);setHomeScreen(false);const i=LIB.findIndex(o=>o&&o.name==='Italian Game');setMode('learn');selectOpening(i>=0?i:0);setIntroCard(true);}, h:9000},
+        const SC=[{l:"Lesson focus mode (NEW)", n:"Stage: the big one from your screenshot, first cut. Inside a lesson the tab bar and the stacked video, plans and branches boxes are gone from the page; the board gets the room. A slim bottom bar holds an X to leave the lesson and a 3-dot button that slides those boxes up in a sheet. Still to come in the next stage: moving the replay row to the bottom and hiding the two floating corner buttons. This card opens the Fried Liver lesson; tap the 3 dots, then the X.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setDemoBest(null);setPlayEnd(null);setPlaySetup(false);setRevAuto(false);setHomeScreen(false);const i=LIB.findIndex(o=>o&&o.name==='Fried Liver Attack');setMode('learn');selectOpening(i>=0?i:0);}, h:9000},
+  {l:"Hygiene fixes (NEW)", n:"Stage: quick fixes you approved. The lesson intro card now auto-dismisses after 4 seconds so auto-plays and recordings are never covered; tap the card body once to keep it open while you read. Tab bar has a uniform height. This card opens a lesson so you can watch the intro card dismiss itself.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setDemoBest(null);setPlayEnd(null);setPlaySetup(false);setRevAuto(false);setHomeScreen(false);const i=LIB.findIndex(o=>o&&o.name==='Italian Game');setMode('learn');selectOpening(i>=0?i:0);setIntroCard(true);}, h:9000},
   {l:"Home regroup (NEW)", n:"Stage 2 of the simplification you approved. Home is now one screen: compact header row instead of the big pawn and wordmark, Continue folded into the Daily 3 lesson slot, tiles two by two, and the coach and risk cards merged into one slim line at the bottom. iPad landscape keeps the roomy header. This card jumps to Home; check nothing needs scrolling on your phone.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setPlaySetup(false);setRevAuto(false);setHomeScreen(true);}, h:9000},
   
           ];
@@ -4297,7 +4301,7 @@ export default function App(){
           </>)}
           {null}
           {false&&learnPlansBox}
-          {!railed&&learnPhase!=='practice'&&learnVideoBox}{!railed&&learnPhase!=='practice'&&learnBranchesBox}
+          {null}
         </>)}
       </div>)}
 
@@ -4447,7 +4451,17 @@ export default function App(){
 
       {drag&&dragging&&(<div style={{position:'fixed',left:drag.x-SQ*.55,top:drag.y-SQ*.55,width:SQ*1.1,height:SQ*1.1,pointerEvents:'none',zIndex:9999,filter:'drop-shadow(0 8px 16px rgba(0,0,0,.6))',transform:'scale(1.12)'}}><Piece t={drag.piece.t} color={drag.piece.c} sz={SQ*1.1} useFallback={fallback} onFail={onPieceFail}/></div>)}
       {!homeScreen&&!(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd)&&(<div aria-hidden="true" style={{height:'calc(62px + env(safe-area-inset-bottom,0px))',flexShrink:0,width:'100%'}}/>)}
-      {!homeScreen&&!(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd)&&(()=>{const _ta=mode==='learn'?'learn':mode==='puzzle'?'puzzle':mode==='analyze'?'analyze':mode==='play'?'play':'';const _go=(k)=>{setMenuOpen(false);setCoachOpen(false);if(k==='home'){setHomeScreen(true);return;}setHomeScreen(false);if(k==='learn'){setMode('learn');setOpenIdx(null);setLearnGroup(null);setLearnCat(null);}else if(k==='puzzle'){setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}else if(k==='analyze'){setMode('analyze');}else if(k==='play'){setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}};return <_TabBar active={_ta} go={_go}/>;})()}
+      {!homeScreen&&!(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd)&&(()=>{const _ta=mode==='learn'?'learn':mode==='puzzle'?'puzzle':mode==='analyze'?'analyze':mode==='play'?'play':'';const _go=(k)=>{setMenuOpen(false);setCoachOpen(false);if(k==='home'){setHomeScreen(true);return;}setHomeScreen(false);if(k==='learn'){setMode('learn');setOpenIdx(null);setLearnGroup(null);setLearnCat(null);}else if(k==='puzzle'){setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}else if(k==='analyze'){setMode('analyze');}else if(k==='play'){setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}};return lessonFocus?null:<_TabBar active={_ta} go={_go}/>;})()}
+      {lessonFocus&&(<div style={{position:'fixed',left:0,right:0,bottom:0,zIndex:471,display:'flex',gap:10,alignItems:'center',padding:'8px 12px calc(8px + env(safe-area-inset-bottom,0px))',background:'rgba(13,16,21,.97)',borderTop:'1px solid rgba(255,255,255,.12)'}}>
+        <button onClick={()=>{setLessonMore(false);setOpenIdx(null);}} aria-label="Close lesson" style={{minWidth:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontSize:17,cursor:'pointer'}}>{'\u2715'}</button>
+        <div style={{flex:1,textAlign:'center',fontSize:12.5,color:'rgba(255,255,255,.55)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{LIB[openIdx]?LIB[openIdx].name:''}</div>
+        <button onClick={()=>setLessonMore(v=>!v)} aria-label="More for this lesson" style={{minWidth:44,minHeight:44,borderRadius:10,background:lessonMore?'rgba(212,175,55,.2)':'rgba(255,255,255,.08)',border:'1px solid '+(lessonMore?'rgba(212,175,55,.55)':'rgba(255,255,255,.2)'),color:lessonMore?'var(--ac2)':'#fff',fontSize:19,cursor:'pointer'}}>{'\u22EF'}</button>
+      </div>)}
+      {lessonFocus&&lessonMore&&(<div onClick={()=>setLessonMore(false)} style={{position:'fixed',inset:0,zIndex:470,background:'rgba(0,0,0,.55)',display:'flex',flexDirection:'column',justifyContent:'flex-end'}}>
+        <div onClick={e=>e.stopPropagation()} style={{maxHeight:'72vh',overflowY:'auto',background:'#151922',borderTop:'1px solid rgba(212,175,55,.35)',borderRadius:'16px 16px 0 0',padding:'14px 14px calc(72px + env(safe-area-inset-bottom,0px))',display:'flex',flexDirection:'column',gap:10}}>
+          {learnVideoBox}{learnPlansBox}{learnBranchesBox}
+        </div>
+      </div>)}
       {toasts.length>0&&<div style={{position:'fixed',left:'50%',transform:'translateX(-50%)',bottom:'calc(72px + env(safe-area-inset-bottom))',zIndex:9999,display:'flex',flexDirection:'column',gap:6,pointerEvents:'none'}}>{toasts.map(t=><div key={t.id} style={{background:t.kind==='err'?'#5b1f24':t.kind==='ok'?'#1f4d2e':'#2a2a33',color:'#f4f0e6',border:'1px solid rgba(212,175,55,.45)',borderRadius:10,padding:'8px 14px',fontSize:13,maxWidth:'82vw',boxShadow:'0 4px 14px rgba(0,0,0,.5)',textAlign:'center'}}>{t.msg}</div>)}</div>}
     </div>
   );

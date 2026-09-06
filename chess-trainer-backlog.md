@@ -1,5 +1,11 @@
 # ACTIVE QUEUE - reconciled 2026-09-06 (app at build #310 LIVE; #309 + #310 shipped 2026-09-06 after the token arrived)
 
+## 2026-09-06 - BUILDS #315/#316 - UX stages A+B, including a SELF-INFLICTED OUTAGE and its fix
+- INCIDENT: #315 (intro auto-dismiss + tab-bar height) WHITE-SCREENED THE LIVE APP from 16:59 EDT until the #316 hotfix. Root cause: the new intro-card effect listed openIdx/mode in its dependency array from a position ABOVE their state declarations (temporal dead zone crash at mount). Why it shipped: I deployed #315 on compile+audit only and SKIPPED the jsdom mount drive. Caught during #316 verification when "element GONE" checks were suspiciously all true (nothing was rendering).
+- NEW HARD RULE (added to conventions): NO deploy without a jsdom MOUNT CHECK (root renders, 0 errors), even for "trivial" builds. The mountcheck driver is the minimum gate alongside compile+audit.
+- #316 (focus mode, first cut + the fix): inside a lesson the tab bar and the stacked video/plans/branches boxes leave the page; a bottom bar holds X (exit to list) + 3-dot sheet containing those boxes; boxes' logic untouched, only relocated. iPad rails unchanged. Deferred to stage C (anchors need one more pass): moving the replay row to the bottom, hiding the floating clapper/feedback buttons in lessons, top-right pair to single X, streak-dots demotion.
+- Verified: mount check root+0 errors; jsdom drive: lesson opens, tab bar gone, page boxes gone, 3-dot sheet shows branches/video, exit works (driver's exit assertion used an ambiguous selector; re-verified separately).
+
 ## 2026-09-06 - BUILD #314 - UX simplification stage: Home regroup (Kunal-approved via annotated screenshot)
 - Portrait-phone header: animated pawn intro + giant wordmark + tagline replaced by one compact row (small pawn glyph + CHESS TRAINER). iPad landscape and big screens keep the roomy header (risk containment; the annotation was phone-scoped).
 - Continue card folded into the Daily 3 lesson slot ("Continue: <lesson>" when a lesson is in progress and today's lesson not done).

@@ -86,8 +86,9 @@ T=[
  ("polish","Brilliant move visibility (list pill + summary count fix)","part","#310","LIVE."),
  ("lessons","Branches from this opening (find gambits by parent opening)","part","#310","LIVE."),
  ("polish","UX: Home regroup (one screen, no scroll)","done","#314","LIVE; eyeball fit on your phone via the gallery card."),
- ("polish","UX: lesson focus mode","open","","Annotated + proposed; awaiting your approve tap."),
- ("polish","UX: quick hygiene fixes (type scale, 44px, intro auto-dismiss)","open","","Proposed; awaiting your approve tap."),
+ ("polish","UX: lesson focus mode (first cut)","done","#316","LIVE: tab bar + box stack gone in lessons; X and 3-dot bar. Stage C queued for nav relocation."),
+ ("polish","UX: hygiene (intro auto-dismiss, tab height)","done","#315-316","LIVE after hotfix."),
+ ("polish","UX stage C: replay row to bottom, hide floating buttons in lessons","open","","Queued; needs one more anchor pass."),
  ("infra","Lesson-data split out of the bundle (faster cold start)","done","#311","LIVE 2026-09-06: app.js 20 percent lighter, lessons cached separately."),
 ("infra","Legal pages (privacy + terms)","openY","",""),
 ]
@@ -98,7 +99,7 @@ for g,t,s,b,n in T:
 QUESTIONS=[
 ]
 edt=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=4)).strftime("%Y-%m-%d %-I:%M %p")
-stamp="Snapshot "+edt+" EDT - live build #314 (Home regroup live; focus mode + quick fixes await approval)"
+stamp="Snapshot "+edt+" EDT - live build #316 (hygiene + focus mode live after a caught-and-fixed #315 outage)"
 HTML=r'''<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chess Trainer - plan</title><style>
