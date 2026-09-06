@@ -1,5 +1,11 @@
 # ACTIVE QUEUE - reconciled 2026-09-06 (app at build #310 LIVE; #309 + #310 shipped 2026-09-06 after the token arrived)
 
+## 2026-09-06 - BUILD #317 - Focus mode stage C (annotation complete, one leftover)
+- Replay controls moved INTO the bottom bar: back / play-pause / forward sit beside the X and 3-dot; the old row above the board is gone. Practice phase shows no move controls (just X + 3-dot).
+- Streak-dots + about row hidden in lessons; top-right Home/Menu pair hidden in lessons; Menu and settings now lives in the 3-dot sheet.
+- LEFTOVER (only piece of the annotation not done): hiding the floating clapper + feedback bubble inside lessons - their render site has no unique anchor yet; queued, not forgotten.
+- Verified per the new hard rule: mount check (root renders, 0 errors) + full jsdom drive (nav row gone, dots gone, bottom back/forward step the lesson, sheet Menu works). Deployed only after all of it passed.
+
 ## 2026-09-06 - BUILDS #315/#316 - UX stages A+B, including a SELF-INFLICTED OUTAGE and its fix
 - INCIDENT: #315 (intro auto-dismiss + tab-bar height) WHITE-SCREENED THE LIVE APP from 16:59 EDT until the #316 hotfix. Root cause: the new intro-card effect listed openIdx/mode in its dependency array from a position ABOVE their state declarations (temporal dead zone crash at mount). Why it shipped: I deployed #315 on compile+audit only and SKIPPED the jsdom mount drive. Caught during #316 verification when "element GONE" checks were suspiciously all true (nothing was rendering).
 - NEW HARD RULE (added to conventions): NO deploy without a jsdom MOUNT CHECK (root renders, 0 errors), even for "trivial" builds. The mountcheck driver is the minimum gate alongside compile+audit.
