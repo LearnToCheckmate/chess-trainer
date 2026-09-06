@@ -1,5 +1,11 @@
 # ACTIVE QUEUE - reconciled 2026-09-06 (app at build #310 LIVE; #309 + #310 shipped 2026-09-06 after the token arrived)
 
+## 2026-09-06 - BUILD #312 - Caro-Kann Fantasy video + roadmap truth-up
+- Caro-Kann: Fantasy Variation got Hanging Pawns video 0yMkAJ6Pyig ("Fantasy Variation of the Caro-Kann"). Sourced from a compiled list that names the channel per entry with playlist-consistent IDs; SINGLE-SOURCE attribution, so Kunal should eyeball playback via the repointed "Opening videos" gallery card. First lessons.js-only data payoff of the #311 split. Held for lack of a matching lesson: HP Two Knights Caro (S5OjT1K_s58) and Karpov (YLEmufSFoGk) - candidates if we ever add those lessons. Four Knights (e4) HP video: still not found published.
+- ROADMAP CORRECTION: "Review best-move play-out" was ALREADY LIVE (playBestLine + Show-best-line button on Mistake/Blunder plies + Play-from-here). Tracker flipped to done; not rebuilt.
+- AUTONOMOUS QUEUE NOW DRAINED: every remaining roadmap item needs Kunal (Stripe prices, gambitcoach.com, scanBoard function, Firestore rules for tournaments/friends/nearby, old-token deletion, gallery recordings, two-device sync check).
+- Verified in jsdom: video card opens Fantasy lesson, video box title renders, #311 features regression-pass, 0 runtime errors; audit PASS 170.
+
 ## 2026-09-06 - BUILD #311 - Lesson-data split (the deferred one, now in its own dedicated commit)
 - The 170-lesson library moved out of chess.jsx into lessons.js (window.CTLESSONS), loaded by index.html BEFORE app.js so LIB stays synchronous - no async refactor. app.js 1118599 -> 897882 bytes (20 percent lighter parse on cold start); lessons.js 225785 bytes, cached separately; future lesson edits ship as small data diffs.
 - sw.js bumped to chess-trainer-v4 with lessons.js in the network-first set. index.html gains one script tag. audit.py now reads lessons.js (with a FATAL guard if no arrays found - the first patch attempt silently audited 0 lessons and "passed", which the guard now makes impossible).

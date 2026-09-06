@@ -77,6 +77,8 @@ T=[
  ("infra","Photo-to-board: scan + upload built; needs scanBoard function","openY","#306","App side done: New Game has Scan with camera AND Upload a photo (#306 added the upload-from-library path so screenshots work, not just live camera). Still needs the scanBoard Cloud Function + vision API key deployed (your manual step) before either reads a board."),
   ("lessons","7 new gambit lessons (Milner-Barry, Portuguese, Marshall, Nakhmanson, Fajarowicz, Frankenstein-Dracula, French Wing)","part","#309","Built + engine-verified; LIVE as of 2026-09-06."),
  ("lessons","Fried Liver Attack lesson video (Hanging Pawns)","part","#309","LIVE as of 2026-09-06."),
+ ("lessons","Caro-Kann Fantasy video (Hanging Pawns)","done","#312","LIVE; single-source ID, eyeball via the Opening videos card."),
+ ("polish","Review best-move play-out","done","","Was already live (Show best line on mistakes/blunders); tracker corrected."),
  ("infra","Progress cloud sync (iPhone and iPad share progress)","part","#310","LIVE; needs your two-device check."),
  ("polish","Daily 3 habit card on Home","part","#310","LIVE."),
  ("coach","Coach's take after every Review","part","#310","LIVE."),
@@ -93,7 +95,7 @@ for g,t,s,b,n in T:
 QUESTIONS=[
 ]
 edt=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=4)).strftime("%Y-%m-%d %-I:%M %p")
-stamp="Snapshot "+edt+" EDT - live build #311 (data split shipped; app 20 percent lighter)"
+stamp="Snapshot "+edt+" EDT - live build #312 (autonomous queue drained; everything left needs Kunal)"
 HTML=r'''<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chess Trainer - plan</title><style>
