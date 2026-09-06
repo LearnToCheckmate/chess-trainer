@@ -4,8 +4,8 @@
 // IMPORTANT: only same-origin GETs are handled. Cross-origin requests (Firestore realtime,
 // Firebase SDK on gstatic, Lichess/Chess.com APIs) pass straight to the network untouched —
 // intercepting them breaks Firestore's live connection and forces slow polling.
-const CACHE = 'chess-trainer-v3';
-const ASSETS = ['./','./index.html','./app.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
+const CACHE = 'chess-trainer-v4';
+const ASSETS = ['./','./index.html','./app.js','./lessons.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -26,6 +26,7 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== self.location.origin) return;
   const fresh = e.request.mode === 'navigate'
     || url.pathname.endsWith('/app.js')
+    || url.pathname.endsWith('/lessons.js')
     || url.pathname.endsWith('/index.html')
     || url.pathname.endsWith('/');
   if (fresh) {

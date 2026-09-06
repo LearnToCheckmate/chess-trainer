@@ -83,7 +83,7 @@ T=[
  ("polish","Toast notices for errors and confirmations","part","#310","LIVE."),
  ("polish","Brilliant move visibility (list pill + summary count fix)","part","#310","LIVE."),
  ("lessons","Branches from this opening (find gambits by parent opening)","part","#310","LIVE."),
- ("infra","Lesson-data split out of the bundle (faster cold start)","open","","Green-lit; gets its own dedicated build next - too risky to batch with four features."),
+ ("infra","Lesson-data split out of the bundle (faster cold start)","done","#311","LIVE 2026-09-06: app.js 20 percent lighter, lessons cached separately."),
 ("infra","Legal pages (privacy + terms)","openY","",""),
 ]
 TASKS=[]
@@ -93,7 +93,7 @@ for g,t,s,b,n in T:
 QUESTIONS=[
 ]
 edt=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=4)).strftime("%Y-%m-%d %-I:%M %p")
-stamp="Snapshot "+edt+" EDT - live build #310 (both June builds shipped 2026-09-06)"
+stamp="Snapshot "+edt+" EDT - live build #311 (data split shipped; app 20 percent lighter)"
 HTML=r'''<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chess Trainer - plan</title><style>

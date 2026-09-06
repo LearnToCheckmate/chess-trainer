@@ -27,6 +27,13 @@ except ImportError:
 
 SRC = sys.argv[1] if len(sys.argv) > 1 else "chess.jsx"
 s = open(SRC, encoding="utf-8").read()
+# #311 data split: lessons live in lessons.js; audit that file too when present
+import os as _os
+if _os.path.exists("lessons.js"):
+    s = open("lessons.js", encoding="utf-8").read() + s
+if "const OPENINGS=[" not in s:
+    print("FATAL: no lesson arrays found in lessons.js/chess.jsx"); sys.exit(2)
+
 
 
 def _array_body(name):

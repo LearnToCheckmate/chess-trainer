@@ -1,5 +1,12 @@
 # ACTIVE QUEUE - reconciled 2026-09-06 (app at build #310 LIVE; #309 + #310 shipped 2026-09-06 after the token arrived)
 
+## 2026-09-06 - BUILD #311 - Lesson-data split (the deferred one, now in its own dedicated commit)
+- The 170-lesson library moved out of chess.jsx into lessons.js (window.CTLESSONS), loaded by index.html BEFORE app.js so LIB stays synchronous - no async refactor. app.js 1118599 -> 897882 bytes (20 percent lighter parse on cold start); lessons.js 225785 bytes, cached separately; future lesson edits ship as small data diffs.
+- sw.js bumped to chess-trainer-v4 with lessons.js in the network-first set. index.html gains one script tag. audit.py now reads lessons.js (with a FATAL guard if no arrays found - the first patch attempt silently audited 0 lessons and "passed", which the guard now makes impossible).
+- Caught in verification before shipping: the first extraction also swept helper functions (demoState, gameAfterLine) into the lessons closure and broke the lesson demo player in jsdom. Redone with balanced-bracket scans of exactly the three arrays; helpers asserted to remain in chess.jsx.
+- VERIFIED in jsdom with production script order: 170 lessons load via CTLESSONS, Home + Daily 3 mount, Italian lesson opens from split data, branches row works, 0 runtime errors; compile CLEAN; audit PASS 170.
+- KUNAL: after this ships, force-close and reopen the app once; if anything looks empty, one more reload picks up sw v4. Then normal use.
+
 ## 2026-06-29 (shipped 2026-09-06) - BUILD #310 - App review follow-through: 4 improvements
 Kunal asked for a detailed app review, then green-lit ALL recommendations. Built this run:
 1. TOAST LAYER: non-blocking notices (info/ok/err), bottom-anchored above the tab bar, max 3, auto-dismiss 3.2s. Used by sync + Daily 3; available app-wide via toastRef.
