@@ -75,7 +75,16 @@ T=[
  ("infra","Buy gambitcoach.com domain","openY","","~$10.46 at Cloudflare."),
  ("infra","Closed-app streak push (FCM VAPID key)","openY","","Biggest retention gap."),
  ("infra","Photo-to-board: scan + upload built; needs scanBoard function","openY","#306","App side done: New Game has Scan with camera AND Upload a photo (#306 added the upload-from-library path so screenshots work, not just live camera). Still needs the scanBoard Cloud Function + vision API key deployed (your manual step) before either reads a board."),
- ("infra","Legal pages (privacy + terms)","openY","",""),
+  ("lessons","7 new gambit lessons (Milner-Barry, Portuguese, Marshall, Nakhmanson, Fajarowicz, Frankenstein-Dracula, French Wing)","part","#309","Built + engine-verified; STAGED. Goes live when you send a fresh GitHub token."),
+ ("lessons","Fried Liver Attack lesson video (Hanging Pawns)","part","#309","STAGED, pending token."),
+ ("infra","Progress cloud sync (iPhone and iPad share progress)","part","#310","Built + verified in-sandbox; needs your two-device check after it ships. STAGED."),
+ ("polish","Daily 3 habit card on Home","part","#310","1 lesson + 2 puzzles a day, streak-tied. STAGED."),
+ ("coach","Coach's take after every Review","part","#310","Plain-English post-game read + Train buttons. STAGED."),
+ ("polish","Toast notices for errors and confirmations","part","#310","STAGED."),
+ ("polish","Brilliant move visibility (list pill + summary count fix)","part","#310","Your screenshots: glowing brilliant pill on game rows; summary no longer counts a book-line brilliant as 0. STAGED."),
+ ("lessons","Branches from this opening (find gambits by parent opening)","part","#310","Your request: tap any lesson, see every gambit/line that grows out of it. STAGED."),
+ ("infra","Lesson-data split out of the bundle (faster cold start)","open","","Green-lit; gets its own dedicated build next - too risky to batch with four features."),
+("infra","Legal pages (privacy + terms)","openY","",""),
 ]
 TASKS=[]
 for g,t,s,b,n in T:
@@ -84,7 +93,7 @@ for g,t,s,b,n in T:
 QUESTIONS=[
 ]
 edt=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=4)).strftime("%Y-%m-%d %-I:%M %p")
-stamp="Snapshot "+edt+" EDT - live build #307"
+stamp="Snapshot "+edt+" EDT - live build #308; #309 and #310 STAGED (need your GitHub token to go live)"
 HTML=r'''<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chess Trainer - plan</title><style>
