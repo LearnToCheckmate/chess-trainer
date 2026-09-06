@@ -1399,7 +1399,7 @@ function _navIcon(n,c){
 }
 function _TabBar({active,go}){
   const tabs=[['home','Home'],['learn','Discover'],['puzzle','Puzzles'],['analyze','Review'],['play','Play']];
-  return(<div style={{position:'fixed',left:0,right:0,bottom:0,zIndex:470,display:'flex',justifyContent:'space-around',alignItems:'stretch',background:'rgba(13,16,21,.97)',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',borderTop:'1px solid rgba(255,255,255,.10)',padding:'6px 2px calc(6px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -6px 20px rgba(0,0,0,.45)',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+  return(<div style={{position:'fixed',left:0,right:0,bottom:0,zIndex:470,display:'flex',justifyContent:'space-around',alignItems:'stretch',minHeight:56,background:'rgba(13,16,21,.97)',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',borderTop:'1px solid rgba(255,255,255,.10)',padding:'6px 2px calc(6px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -6px 20px rgba(0,0,0,.45)',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
     {tabs.map(([k,lab])=>{const on=active===k;const c=on?'var(--ac2)':'rgba(255,255,255,.6)';return(
       <button key={k} onClick={()=>go(k)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'none',border:'none',cursor:'pointer',padding:'2px 1px',color:c,minWidth:0}}>
         <span style={{display:'inline-flex',width:24,height:24,alignItems:'center',justifyContent:'center'}}>{_navIcon(k,c)}</span>
@@ -1471,6 +1471,8 @@ export default function App(){
   const toastSeq=useRef(1);
   const toast=(msg,kind)=>{const id=toastSeq.current++;setToasts(t=>[...t.slice(-2),{id,msg:String(msg||''),kind:kind||'info'}]);setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),3200);};
   const toastRef=useRef(toast);toastRef.current=toast;
+  const introHoldRef=useRef(false); // #315: intro card auto-dismiss
+  useEffect(()=>{if(!(mode==='learn'&&openIdx!==null&&introCard))return;introHoldRef.current=false;const t=setTimeout(()=>{if(!introHoldRef.current)setIntroCard(false);},4000);return()=>clearTimeout(t);},[introCard,openIdx,mode]);
   // ── Progress sync (#310): mirror key progress to users/{uid} via CTCloud.load/save (merge:true).
   const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_coachstyle','ct_coachtargets','ct_coachtier'];
   const syncTimer=useRef(null);
@@ -2847,7 +2849,8 @@ export default function App(){
           setTimeout(stepFn,750);
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
-        const SC=[{l:"Home regroup (NEW)", n:"Stage 2 of the simplification you approved. Home is now one screen: compact header row instead of the big pawn and wordmark, Continue folded into the Daily 3 lesson slot, tiles two by two, and the coach and risk cards merged into one slim line at the bottom. iPad landscape keeps the roomy header. This card jumps to Home; check nothing needs scrolling on your phone.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setPlaySetup(false);setRevAuto(false);setHomeScreen(true);}, h:9000},
+        const SC=[{l:"Hygiene fixes (NEW)", n:"Stage: quick fixes you approved. The lesson intro card now auto-dismisses after 4 seconds so auto-plays and recordings are never covered; tap the card body once to keep it open while you read. Tab bar has a uniform height. This card opens a lesson so you can watch the intro card dismiss itself.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setDemoBest(null);setPlayEnd(null);setPlaySetup(false);setRevAuto(false);setHomeScreen(false);const i=LIB.findIndex(o=>o&&o.name==='Italian Game');setMode('learn');selectOpening(i>=0?i:0);setIntroCard(true);}, h:9000},
+  {l:"Home regroup (NEW)", n:"Stage 2 of the simplification you approved. Home is now one screen: compact header row instead of the big pawn and wordmark, Continue folded into the Daily 3 lesson slot, tiles two by two, and the coach and risk cards merged into one slim line at the bottom. iPad landscape keeps the roomy header. This card jumps to Home; check nothing needs scrolling on your phone.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setPlaySetup(false);setRevAuto(false);setHomeScreen(true);}, h:9000},
   
           ];
         const _runAll=()=>{
@@ -3482,7 +3485,7 @@ export default function App(){
       {(()=>{
         const _blurbs=(<>
       {mode==='learn'&&openIdx!==null&&introCard&&(<div onClick={()=>setIntroCard(false)} style={{position:'fixed',inset:0,zIndex:120,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',padding:18}}>
-        <div onClick={e=>e.stopPropagation()} style={{maxWidth:380,width:'92%',background:'linear-gradient(150deg,#1b1d24,#101116)',border:'1px solid rgba(var(--acr),.5)',borderRadius:16,padding:'18px 18px 16px',boxShadow:'0 20px 60px rgba(0,0,0,.6)',position:'relative'}}>
+        <div onClick={e=>{e.stopPropagation();introHoldRef.current=true;}} style={{maxWidth:380,width:'92%',background:'linear-gradient(150deg,#1b1d24,#101116)',border:'1px solid rgba(var(--acr),.5)',borderRadius:16,padding:'18px 18px 16px',boxShadow:'0 20px 60px rgba(0,0,0,.6)',position:'relative'}}>
           {learnLabel&&<div style={{fontSize:'clamp(15px,4vw,20px)',fontWeight:800,color:'var(--ac2)',marginBottom:8,paddingRight:30}}>{learnLabel}</div>}
           <div style={{fontSize:'clamp(14px,3.2vw,16px)',color:'rgba(255,255,255,.9)',lineHeight:1.55,maxHeight:'40vh',overflowY:'auto'}}>{learnIdea||LIB[openIdx].idea}</div>
           {(learnPlans||LIB[openIdx].plans)&&(<div style={{fontSize:'clamp(14px,3vw,15px)',color:'rgba(255,255,255,.7)',lineHeight:1.5,marginTop:13,paddingTop:13,borderTop:'1px solid rgba(255,255,255,.13)',maxHeight:'26vh',overflowY:'auto'}}>{learnPlans||LIB[openIdx].plans}</div>)}
