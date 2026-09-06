@@ -1,5 +1,9 @@
 # ACTIVE QUEUE - reconciled 2026-09-06 (app at build #310 LIVE; #309 + #310 shipped 2026-09-06 after the token arrived)
 
+## 2026-09-06 - BUILD #313 - Gallery flush (all six cards verified by Kunal)
+- Kunal confirmed he recorded all gallery cards; per the flush rule (confirmation = evidence) all six removed: PGN import, Opening videos (Fantasy), 7 new gambits, Daily 3 + toasts, Find gambits by opening, Brilliant badge. Gallery now EMPTY, verified error-free in jsdom.
+- HONESTY NOTE: recordings were not uploaded, so nothing was visually verified by Claude; flush ran on Kunal's confirmation. Outstanding yes/no put to Kunal: did the Caro-Kann Fantasy card play the correct Hanging Pawns video (single-source ID 0yMkAJ6Pyig). If no, pull that video immediately.
+
 ## 2026-09-06 - BUILD #312 - Caro-Kann Fantasy video + roadmap truth-up
 - Caro-Kann: Fantasy Variation got Hanging Pawns video 0yMkAJ6Pyig ("Fantasy Variation of the Caro-Kann"). Sourced from a compiled list that names the channel per entry with playlist-consistent IDs; SINGLE-SOURCE attribution, so Kunal should eyeball playback via the repointed "Opening videos" gallery card. First lessons.js-only data payoff of the #311 split. Held for lack of a matching lesson: HP Two Knights Caro (S5OjT1K_s58) and Karpov (YLEmufSFoGk) - candidates if we ever add those lessons. Four Knights (e4) HP video: still not found published.
 - ROADMAP CORRECTION: "Review best-move play-out" was ALREADY LIVE (playBestLine + Show-best-line button on Mistake/Blunder plies + Play-from-here). Tracker flipped to done; not rebuilt.

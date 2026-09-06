@@ -95,7 +95,7 @@ for g,t,s,b,n in T:
 QUESTIONS=[
 ]
 edt=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=4)).strftime("%Y-%m-%d %-I:%M %p")
-stamp="Snapshot "+edt+" EDT - live build #312 (autonomous queue drained; everything left needs Kunal)"
+stamp="Snapshot "+edt+" EDT - live build #313 (gallery flushed clean; 6 remaining items all need Kunal)"
 HTML=r'''<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chess Trainer - plan</title><style>
