@@ -90,7 +90,9 @@ T=[
  ("polish","UX: hygiene (intro auto-dismiss, tab height)","done","#315-316","LIVE after hotfix."),
  ("polish","UX stage C: replay row to bottom bar, rows + top pair hidden","done","#317","LIVE."),
  ("polish","UX: New Game on one screen","done","#319","LIVE; check the fold on your phone."),
- ("polish","UX stragglers: floating buttons in lessons + Prev/All/Next row","open","","Both queued for one anchor pass."),
+ ("polish","UX: tappable review counts + strip removed + 2 fixes","done","#320","LIVE."),
+ ("polish","UX straggler: Prev/All/Next row in lessons","open","","Last annotation piece."),
+ ("polish","App-wide space audit (Puzzles, Discover, Menu)","open","","Queued per Kunal."),
  ("infra","Lesson-data split out of the bundle (faster cold start)","done","#311","LIVE 2026-09-06: app.js 20 percent lighter, lessons cached separately."),
 ("infra","Legal pages (privacy + terms)","openY","",""),
 ]
@@ -101,7 +103,7 @@ for g,t,s,b,n in T:
 QUESTIONS=[
 ]
 edt=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=4)).strftime("%Y-%m-%d %-I:%M %p")
-stamp="Snapshot "+edt+" EDT - live build #319 (New Game compacted; 2 UX stragglers queued)"
+stamp="Snapshot "+edt+" EDT - live build #320 (tappable review counts; 1 straggler + space audit queued)"
 HTML=r'''<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chess Trainer - plan</title><style>

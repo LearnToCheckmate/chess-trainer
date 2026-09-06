@@ -1,5 +1,12 @@
 # ACTIVE QUEUE - reconciled 2026-09-06 (app at build #310 LIVE; #309 + #310 shipped 2026-09-06 after the token arrived)
 
+## 2026-09-06 - BUILD #320 - Review summary: tappable counts, strip gone, two bug fixes (Kunal screenshot)
+- Summary count numbers are now big tappable buttons: tap any nonzero count to jump straight to the first move of that class for that color (uses the existing setReviewView/setPly jump). Key moments strip removed; space reclaimed. Row type bumped.
+- BUG FIX from his screenshot: coach take said "about 15.0 pawns" for a mate-score swing; now says "a game-deciding swing" for anything >= 8 pawns.
+- BUG FIX (third photobomb): floating Preview-gallery + Send-feedback buttons now render ONLY on Home. If Kunal misses feedback elsewhere it goes into the lesson 3-dot sheet next.
+- STRAGGLER CLOSED: that was the floating-buttons item. Remaining UX straggler: the Prev/All-openings/Next row in lessons.
+- Verified: mount clean; drive: card imports a PGN, summary opens without the strip, floating buttons absent off-Home, an enabled count button exists and tapping it exits summary into the moves view; 0 runtime errors. App-wide space audit queued as the next pass.
+
 ## 2026-09-06 - BUILD #319 - New Game on one screen (Kunal screenshot request)
 - Four-line scan explainer cut to one line; all opponent tiles half-height (both grids); bot cards shrunk to avatar 40 + name + Elo, description renders only for the selected bot. Play-as and start rise toward/above the fold.
 - Verified: mount check clean; drive: New Game opens, short explainer only, selecting Rosa shows exactly her blurb and hides the rest; 0 runtime errors. One-screen fit needs Kunal's eyes (gallery card).
