@@ -1,5 +1,9 @@
 # ACTIVE QUEUE - reconciled 2026-09-06 (app at build #310 LIVE; #309 + #310 shipped 2026-09-06 after the token arrived)
 
+## 2026-09-06 - BUILD #318 - Gallery flush from Kunal's 17:59 recording (frame-verified)
+- Recording (on #316, one minute pre-#317) VERIFIED: Home regroup fits one screen (compact row, Continue in Daily 3, 2x2 tiles, slim coach line); focus mode v1 (no tab bar, big board); intro card auto-dismisses mid-auto-play. Cards flushed: Home regroup, Hygiene fixes, Lesson focus mode. KEPT: Focus mode stage C (needs his #317 look).
+- His frames CAUGHT A MISS: the Prev / All-openings / Next row still renders under the board. Queued with the floating clapper/feedback hide as the two annotation stragglers.
+
 ## 2026-09-06 - BUILD #317 - Focus mode stage C (annotation complete, one leftover)
 - Replay controls moved INTO the bottom bar: back / play-pause / forward sit beside the X and 3-dot; the old row above the board is gone. Practice phase shows no move controls (just X + 3-dot).
 - Streak-dots + about row hidden in lessons; top-right Home/Menu pair hidden in lessons; Menu and settings now lives in the 3-dot sheet.
