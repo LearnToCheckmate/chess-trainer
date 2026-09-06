@@ -1,5 +1,13 @@
 # ACTIVE QUEUE - reconciled 2026-09-06 (app at build #310 LIVE; #309 + #310 shipped 2026-09-06 after the token arrived)
 
+## 2026-09-06 - BUILD #314 - UX simplification stage: Home regroup (Kunal-approved via annotated screenshot)
+- Portrait-phone header: animated pawn intro + giant wordmark + tagline replaced by one compact row (small pawn glyph + CHESS TRAINER). iPad landscape and big screens keep the roomy header (risk containment; the annotation was phone-scoped).
+- Continue card folded into the Daily 3 lesson slot ("Continue: <lesson>" when a lesson is in progress and today's lesson not done).
+- Risk + coach cards replaced on Home by one slim line: streak-at-risk warning (tap dismisses) or the coach's daily lesson pick (tap opens it). The old _risk/_coach cards remain in code but unrendered on Home.
+- Gallery card "Home regroup (NEW)" jumps to Home; Kunal to check one-screen fit on his real phone.
+- Verified in jsdom at 390x844 (compact header, no tagline, Daily 3, slim line, 0 errors) and 1180x820 (big header preserved, 0 errors); compile CLEAN. Fit-without-scroll cannot be proven in jsdom; that is exactly what the gallery card asks Kunal to eyeball.
+- Remaining approved-or-open simplification stages: quick hygiene fixes and lesson focus mode (NOT yet approved by Kunal; awaiting his taps).
+
 ## 2026-09-06 - BUILD #313 - Gallery flush (all six cards verified by Kunal)
 - Kunal confirmed he recorded all gallery cards; per the flush rule (confirmation = evidence) all six removed: PGN import, Opening videos (Fantasy), 7 new gambits, Daily 3 + toasts, Find gambits by opening, Brilliant badge. Gallery now EMPTY, verified error-free in jsdom.
 - HONESTY NOTE: recordings were not uploaded, so nothing was visually verified by Claude; flush ran on Kunal's confirmation. Outstanding yes/no put to Kunal: did the Caro-Kann Fantasy card play the correct Hanging Pawns video (single-source ID 0yMkAJ6Pyig). If no, pull that video immediately.

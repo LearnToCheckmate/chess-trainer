@@ -85,6 +85,9 @@ T=[
  ("polish","Toast notices for errors and confirmations","part","#310","LIVE."),
  ("polish","Brilliant move visibility (list pill + summary count fix)","part","#310","LIVE."),
  ("lessons","Branches from this opening (find gambits by parent opening)","part","#310","LIVE."),
+ ("polish","UX: Home regroup (one screen, no scroll)","done","#314","LIVE; eyeball fit on your phone via the gallery card."),
+ ("polish","UX: lesson focus mode","open","","Annotated + proposed; awaiting your approve tap."),
+ ("polish","UX: quick hygiene fixes (type scale, 44px, intro auto-dismiss)","open","","Proposed; awaiting your approve tap."),
  ("infra","Lesson-data split out of the bundle (faster cold start)","done","#311","LIVE 2026-09-06: app.js 20 percent lighter, lessons cached separately."),
 ("infra","Legal pages (privacy + terms)","openY","",""),
 ]
@@ -95,7 +98,7 @@ for g,t,s,b,n in T:
 QUESTIONS=[
 ]
 edt=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=4)).strftime("%Y-%m-%d %-I:%M %p")
-stamp="Snapshot "+edt+" EDT - live build #313 (gallery flushed clean; 6 remaining items all need Kunal)"
+stamp="Snapshot "+edt+" EDT - live build #314 (Home regroup live; focus mode + quick fixes await approval)"
 HTML=r'''<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chess Trainer - plan</title><style>
