@@ -1,6 +1,6 @@
-# ACTIVE QUEUE - reconciled 2026-06-28 (app at build #308 live; #309 and #310 STAGED, pending commit)
+# ACTIVE QUEUE - reconciled 2026-09-06 (app at build #310 LIVE; #309 + #310 shipped 2026-09-06 after the token arrived)
 
-## 2026-06-28/29 - BUILD #310 (STAGED, needs token; commit AFTER #309 snapshot) - App review follow-through: 4 improvements
+## 2026-06-29 (shipped 2026-09-06) - BUILD #310 - App review follow-through: 4 improvements
 Kunal asked for a detailed app review, then green-lit ALL recommendations. Built this run:
 1. TOAST LAYER: non-blocking notices (info/ok/err), bottom-anchored above the tab bar, max 3, auto-dismiss 3.2s. Used by sync + Daily 3; available app-wide via toastRef.
 2. PROGRESS CLOUD SYNC: mirrors 13 progress keys (learnprog, daily, daily3, gamestats, achv, brilliancies, mistakes, train, lastlesson, elo, coach prefs) to users/{uid}.ctProgress via the EXISTING CTCloud.load/save (merge:true confirmed in index.html, so no index.html changes and no clobber risk). Pull-on-sign-in merges by keep-richer-payload rule and toasts "Progress restored"; push is debounced 2.5s via a patched localStorage.setItem; failures toast, never block. NOTE: users/{uid} rules already allow self-writes (friendId/pro flows use the same doc); if a device shows the backup-failed toast persistently, rules are the first suspect.
@@ -13,7 +13,7 @@ Kunal asked for a detailed app review, then green-lit ALL recommendations. Built
 - VERIFIED in-sandbox on the live #310 bundle in jsdom: Home renders the Daily 3 card; the gallery card lands Home and the sample toast shows; the PGN card's analysis completes and the Coach's take box renders with phase text and train buttons; compile CLEAN; audit PASS (170 lessons); 0 runtime errors in all drives. NOT verifiable in-sandbox: real Google sign-in (so the sync pull/push path is code-reviewed + failure-toasted but needs Kunal's two-device check).
 - COMMIT PLAN when token arrives: commit A = #309 snapshot (chess-309-snapshot files kept in outputs), commit B = #310 (current). Single writer, sequential.
 
-## 2026-06-28 - BUILD #309 (STAGED, needs token to commit) - Fried Liver video + 7 new gambit lessons
+## 2026-06-28 (shipped 2026-09-06) - BUILD #309 - Fried Liver video + 7 new gambit lessons
 - 7 NEW gambit lessons appended to MORE (concat-last, LIB indices stable). Library 163 -> 170 lessons. Chosen by Kunal from the tap-to-pick, sourced from Chess Vibes "7 Most Successful Gambits" (all of that video's actual picks were ALREADY in the app, so these are genuinely-new additions instead):
     1. Milner-Barry Gambit (French Advance, W) - roughly equal, dangerous in practice.
     2. Portuguese Gambit (Scandinavian, B) - dubious at top, real practical weapon.
@@ -33,7 +33,7 @@ Kunal asked for a detailed app review, then green-lit ALL recommendations. Built
 - CLOSED (verified, no code change): the MORE-array note-prefix polish debt. Scanned all 733 MORE notes, zero redundantly repeat the move label; audit clean. This item is done and struck from the queue.
 - Gallery lean at 2: "Opening videos" (#309, now Fried Liver Attack, NEW), "PGN import - no more truncation" (#308, still unverified by Kunal vs his real mbv327 game).
 
-### NEEDS KUNAL: (1) a fresh fine-grained GitHub PAT (write to LearnToCheckmate/chess-trainer) so #309 can commit; (2) record the "Opening videos" gallery card to eyeball the Fried Liver video box. Standing manual item unchanged: scanBoard Cloud Function + vision key (your Firebase step).
+### NEEDS KUNAL (post-ship): (1) DELETE the old no-expiration 'Chess Trainer Deploy' token on the GitHub fine-grained-tokens page (rotation complete once done); (2) record the "Opening videos" gallery card to eyeball the Fried Liver video box. Standing manual item unchanged: scanBoard Cloud Function + vision key (your Firebase step).
 ### NEXT (plan): more video batches via web-sourced confirmed IDs (~116 left); then Review best-move play-out; Tournaments Stage 3+; iOS PWA sign-in.
 
 

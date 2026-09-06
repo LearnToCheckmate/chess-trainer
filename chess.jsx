@@ -2687,7 +2687,49 @@ export default function App(){
   const [cpuElo,setCpuElo]=useState(()=>{try{const v=localStorage.getItem('ct_elo');return v!==null?parseInt(v):800;}catch{return 800;}});          // adaptive strength; nudged by results
   const [selBot,setSelBot]=useState(()=>{try{return localStorage.getItem('ct_bot')||null;}catch{return null;}});   // chosen named opponent
   const [coachStyle,setCoachStyle]=useState(()=>{try{return localStorage.getItem('ct_coachstyle')||'comb';}catch{return 'comb';}});   // coach look A/B/C/D
-  const [cloudUser,setCloudUser]=useState(null);   // {uid,name,email,photo} when signed in (deployed app only)
+  const [cloudUser,setCloudUser]=useState(null);
+  // ── Toast layer (#310): tiny non-blocking notices for failures/confirmations
+  const [toasts,setToasts]=useState([]);
+  const toastSeq=useRef(1);
+  const toast=(msg,kind)=>{const id=toastSeq.current++;setToasts(t=>[...t.slice(-2),{id,msg:String(msg||''),kind:kind||'info'}]);setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),3200);};
+  const toastRef=useRef(toast);toastRef.current=toast;
+  // ── Progress sync (#310): mirror key progress to users/{uid} via CTCloud.load/save (merge:true).
+  const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_coachstyle','ct_coachtargets','ct_coachtier'];
+  const syncTimer=useRef(null);
+  const syncPush=()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.save||!cloudUser)return;
+    if(syncTimer.current)clearTimeout(syncTimer.current);
+    syncTimer.current=setTimeout(()=>{try{const prog={};SYNC_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!=null)prog[k]=v;}catch(e){}});C.save({ctProgress:prog}).catch(()=>{toastRef.current('Could not back up progress (offline?)','err');});}catch(e){}},2500);};
+  const syncPushRef=useRef(syncPush);syncPushRef.current=syncPush;
+  const [syncPulled,setSyncPulled]=useState(false);
+  // ── Daily 3 (#310): one lesson + two puzzles per day, tied to the streak
+  const [daily3,setDaily3]=useState(()=>{try{const d=JSON.parse(localStorage.getItem('ct_daily3')||'null');return (d&&d.date)?d:{date:'',lesson:0,puz:0};}catch(e){return {date:'',lesson:0,puz:0};}});
+  const daily3Ref=useRef(daily3);daily3Ref.current=daily3;
+  const markDaily3=(kind)=>{const t=dstr(new Date());const cur=(daily3Ref.current&&daily3Ref.current.date===t)?daily3Ref.current:{date:t,lesson:0,puz:0};
+    const nx={...cur,date:t};
+    if(kind==='lesson')nx.lesson=Math.min(1,(cur.lesson||0)+1);
+    if(kind==='puz')nx.puz=Math.min(2,(cur.puz||0)+1);
+    setDaily3(nx);try{localStorage.setItem('ct_daily3',JSON.stringify(nx));}catch(e){}
+    if(nx.lesson>=1&&nx.puz>=2&&!(cur.lesson>=1&&cur.puz>=2)){toastRef.current('Daily 3 complete! Streak safe.','ok');}};
+
+  useEffect(()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.load||!cloudUser){setSyncPulled(false);return;}
+    let dead=false;
+    C.load().then(d=>{if(dead)return;const prog=d&&d.ctProgress;let applied=0;
+      if(prog){SYNC_KEYS.forEach(k=>{try{const cloudV=prog[k];if(cloudV==null)return;const localV=localStorage.getItem(k);
+        if(localV==null){localStorage.setItem(k,cloudV);applied++;return;}
+        // never lose progress: for JSON objects keep whichever stamp/state is richer; simple rule = keep LONGER payload
+        if(localV!==cloudV&&String(cloudV).length>String(localV).length){localStorage.setItem(k,cloudV);applied++;}
+      }catch(e){}});}
+      setSyncPulled(true);
+      if(applied>0){toastRef.current('Progress restored from your account','ok');}
+      // push local state up so a fresh cloud doc gets seeded
+      syncPushRef.current();
+    }).catch(()=>{setSyncPulled(true);});
+    return ()=>{dead=true;};
+  },[cloudUser]);
+  // push on any progress-shaped localStorage write: patch setItem once
+  useEffect(()=>{try{const orig=localStorage.setItem.bind(localStorage);if(localStorage.__ctPatched)return;Object.defineProperty(localStorage,'__ctPatched',{value:true});
+    localStorage.setItem=(k,v)=>{orig(k,v);try{if(SYNC_KEYS.indexOf(k)>=0)syncPushRef.current();}catch(e){}};}catch(e){}},[]);
+   // {uid,name,email,photo} when signed in (deployed app only)
   const [acctOpen,setAcctOpen]=useState(false);    // account panel (opened from the Home avatar)
   const [upgradeMsg,setUpgradeMsg]=useState('');   // upgrade-flow feedback (payments not wired yet)
   const [cloudAvail,setCloudAvail]=useState(false);// true when the Firebase bridge is present
@@ -2878,7 +2920,7 @@ export default function App(){
   const DAILY_GOAL=5;
   const [daily,setDaily]=useState(()=>{try{return JSON.parse(localStorage.getItem('ct_daily')||'null')||{date:'',count:0,streak:0};}catch{return {date:'',count:0,streak:0};}});
   const dailyRef=useRef(daily); dailyRef.current=daily;
-  const bumpDaily=()=>{const now=new Date();const t=dstr(now);const y=new Date(now);y.setDate(y.getDate()-1);const ys=dstr(y);const d=dailyRef.current||{date:'',count:0,streak:0};const nd=(d.date===t)?{...d,count:(d.count||0)+1}:{date:t,count:1,streak:(d.date===ys?((d.streak||0)+1):1)};setDaily(nd);try{localStorage.setItem('ct_daily',JSON.stringify(nd));}catch(e){}};
+  const bumpDaily=(kind)=>{try{if(kind)markDaily3(kind);}catch(e){}const now=new Date();const t=dstr(now);const y=new Date(now);y.setDate(y.getDate()-1);const ys=dstr(y);const d=dailyRef.current||{date:'',count:0,streak:0};const nd=(d.date===t)?{...d,count:(d.count||0)+1}:{date:t,count:1,streak:(d.date===ys?((d.streak||0)+1):1)};setDaily(nd);try{localStorage.setItem('ct_daily',JSON.stringify(nd));}catch(e){}};
   const [coachHidden,setCoachHidden]=useState(()=>{try{return localStorage.getItem('ct_coach_dismiss')===dstr(new Date());}catch{return false;}});
   const [streakDismiss,setStreakDismiss]=useState(()=>{try{return localStorage.getItem('ct_streak_dismiss')===dstr(new Date());}catch{return false;}});
   const [streakPreview,setStreakPreview]=useState(false);
@@ -3423,7 +3465,7 @@ export default function App(){
       }
     }catch(e){}
     const bookN=openingBookPlies(playedSans);
-    const _sideStats=(side)=>{const c={Brilliant:0,Great:0,Best:0,Good:0,Book:0,Inaccuracy:0,Miss:0,Mistake:0,Blunder:0};let sl=0,n=0;out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(mc!==side)return;if(i<bookN){c.Book++;return;}const L=o.cls&&o.cls.label;if(L==='Brilliant')c.Brilliant++;else if(L==='Great')c.Great++;else if(L==='Best'||L==='Excellent')c.Best++;else if(L==='Good')c.Good++;else if(L==='Inaccuracy')c.Inaccuracy++;else if(L==='Miss')c.Miss++;else if(L==='Mistake')c.Mistake++;else if(L==='Blunder')c.Blunder++;sl+=Math.max(0,o.loss||0);n++;});const acpl=n?sl/n:0;const acc=Math.max(15,Math.min(99.5,100*Math.exp(-acpl/300)));const rating=Math.max(450,Math.min(2500,Math.round(600+(acc-50)*28)));return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10,rating};};
+    const _sideStats=(side)=>{const c={Brilliant:0,Great:0,Best:0,Good:0,Book:0,Inaccuracy:0,Miss:0,Mistake:0,Blunder:0};let sl=0,n=0;out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(mc!==side)return;const L=o.cls&&o.cls.label;if(i<bookN&&L!=='Brilliant'&&L!=='Great'){c.Book++;return;}if(L==='Brilliant')c.Brilliant++;else if(L==='Great')c.Great++;else if(L==='Best'||L==='Excellent')c.Best++;else if(L==='Good')c.Good++;else if(L==='Inaccuracy')c.Inaccuracy++;else if(L==='Miss')c.Miss++;else if(L==='Mistake')c.Mistake++;else if(L==='Blunder')c.Blunder++;sl+=Math.max(0,o.loss||0);n++;});const acpl=n?sl/n:0;const acc=Math.max(15,Math.min(99.5,100*Math.exp(-acpl/300)));const rating=Math.max(450,Math.min(2500,Math.round(600+(acc-50)*28)));return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10,rating};};
     const summary={w:_sideStats('w'),b:_sideStats('b'),userColor:(meta&&meta.userColor)||null,book:bookN};
     const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,pgn:text};
     setReview(_rv);setLastReview(_rv);setReviewView('summary');
@@ -3507,7 +3549,7 @@ export default function App(){
     setPzSolvedMap(nmap);setPzStreak(nstreak);setPzBest(nbest);setPzXP(nxp);
     PZSTORE.set(PZKEY,JSON.stringify({solved:nmap,streak:nstreak,best:nbest,xp:nxp,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current}));
     const rankAfter=pzRank(nmap);
-    bumpDaily();
+    bumpDaily('puz');
     return rankAfter>rankBefore?PZ_TIERS[rankAfter-1]:null;
   };
   const pzBreakStreak=()=>{if(pzStreakRef.current>0){setPzStreak(0);PZSTORE.set(PZKEY,JSON.stringify({solved:pzSolvedRef.current,streak:0,best:pzBestRef.current,xp:pzXPRef.current,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current}));}};
@@ -3517,7 +3559,7 @@ export default function App(){
   const lessonStats=(op)=>{const ls=linesOf(op);const u=new Set();let lr=0;ls.forEach(l=>{const d=lineDays(l.key);if(d.length>=1)lr++;d.forEach(x=>u.add(x));});return {lines:ls.length,linesLearned:lr,unionDays:u.size,coverage:lr>=ls.length,mastered:(u.size>=LEARN_GOAL&&lr>=ls.length)};};
   const finishRep=()=>{
     const op=LIB[openIdxRef.current]; if(!op)return '';
-    bumpDaily();
+    bumpDaily('lesson');
     const rep=learnRepRef.current||{}; learnRepRef.current={hints:false,miss:false};
     const key=learnKeyRef.current||op.name;
     const st0=lessonStats(op);
@@ -3835,7 +3877,17 @@ export default function App(){
   const sideColStyle=railed?{display:'flex',flexDirection:'column',alignItems:'stretch',justifyContent:'flex-start',gap:8,width:sideW,height:boardPx,paddingTop:42,overflowY:'auto',overflowX:'hidden'}:{display:'contents'};
   const learnPlansBox=(mode==='learn'&&openIdx!==null&&learnPlans)?(<div style={{width:'100%',background:'linear-gradient(150deg,rgba(var(--acr),.18),rgba(var(--acr),.06))',border:'1px solid rgba(var(--acr),.42)',borderRadius:12,padding:'11px 13px',boxShadow:SHADOW_BOX}}>
 <div style={{fontSize:'clamp(14px,2.7vw,14px)',fontWeight:800,color:'var(--ac2)',marginBottom:4}}>🎯 What we're trying to do</div><div style={{fontSize:'clamp(14px,2.7vw,14.5px)',color:'rgba(255,255,255,.9)',lineHeight:1.55}}>{learnPlans}</div></div>):null;
-  const learnVideoBox=(mode==='learn'&&openIdx!==null)?(<div style={{width:'100%',background:'linear-gradient(150deg,rgba(255,255,255,.08),rgba(255,255,255,.03))',border:'1px solid rgba(255,255,255,.16)',borderRadius:12,padding:'11px 13px',boxShadow:SHADOW_BOX}}><div onClick={()=>setVideoOpen(o=>!o)} style={{fontSize:'clamp(14px,2.7vw,14px)',fontWeight:700,color:'#e0b34d',cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>📺 Watch it explained<span style={{fontSize:13,opacity:.85}}>{videoOpen?'▾':'▸'}</span></div>{videoOpen&&(<>{learnVideo&&(<><div style={{fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.7)',margin:'2px 0 8px',lineHeight:1.45}}>{learnVideo.title} · {learnVideo.author} ({learnVideo.length})</div><div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}><button onClick={()=>setShowVideo(s=>!s)} style={btn('var(--ac)','none','#fff')}>{showVideo?'Hide player':'▶ Watch in app'}</button><a href={`https://youtu.be/${learnVideo.id}`} target="_blank" rel="noopener noreferrer" style={{fontSize:'clamp(13px,2.3vw,13px)',color:'var(--ac2)',textDecoration:'underline'}}>open on YouTube ↗</a></div>{showVideo&&(<div style={{marginTop:8,position:'relative',width:'100%',paddingTop:'56.25%',borderRadius:8,overflow:'hidden',background:'#000'}}><iframe src={`https://www.youtube-nocookie.com/embed/${learnVideo.id}`} title={learnVideo.title} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:0}} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/></div>)}{showVideo&&<div style={{fontSize:'clamp(12px,2.2vw,12px)',color:'rgba(255,255,255,.58)',marginTop:5,lineHeight:1.4}}>If the player stays blank in this preview, tap “open on YouTube” — the embedded player works once the app is deployed to a real site.</div>}</>)}<div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.6)',margin:`${learnVideo?9:4}px 0 6px`,lineHeight:1.4}}>{learnVideo?'More on this opening from top coaches:':'Find this opening explained by top coaches:'}</div><div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{['Remote Chess Academy','GothamChess','Chess Vibes'].map(ch=>(<a key={ch} href={`https://www.youtube.com/results?search_query=${encodeURIComponent(LIB[openIdx].name+' '+ch)}`} target="_blank" rel="noopener noreferrer" style={{padding:'5px 10px',borderRadius:7,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.32)',color:'var(--ac2)',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:600,textDecoration:'none',whiteSpace:'nowrap'}}>▶ {ch}</a>))}</div></>)}</div>):null;
+  const learnBranchesBox=(()=>{if(mode!=='learn'||openIdx===null)return null;const cur=LIB[openIdx];if(!cur||!cur.line||cur.line.length<5)return null; // branches (#310)
+        const K=5;const pre=cur.line.slice(0,K).join('|');
+        const sibs=[];LIB.forEach((o,i)=>{if(i===openIdx||!o||!o.line||o.line.length<K)return;if(!(o.eco||o.cat))return;if(o.line.slice(0,K).join('|')===pre)sibs.push(i);});
+        if(!sibs.length)return null;
+        const w=(n)=>/gambit|trap|attack|counter/i.test(LIB[n].name)?0:1;
+        sibs.sort((a,b)=>w(a)-w(b)||LIB[a].name.localeCompare(LIB[b].name));
+        return(<div style={{width:'100%',background:'linear-gradient(150deg,rgba(255,255,255,.07),rgba(255,255,255,.03))',border:'1px solid rgba(255,255,255,.15)',borderRadius:14,padding:'10px 12px',marginTop:10}}>
+          <div style={{fontSize:12,fontWeight:700,color:'var(--ac2)',marginBottom:7}}>Branches from this opening</div>
+          <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{sibs.slice(0,12).map(i=>{const gb=w(i)===0;return(<button key={i} onClick={()=>selectOpening(i)} style={{background:gb?'rgba(212,175,55,.14)':'rgba(255,255,255,.05)',border:'1px solid '+(gb?'rgba(212,175,55,.45)':'rgba(255,255,255,.2)'),borderRadius:9,color:gb?'#f0e6cf':'#ccc',fontSize:12,padding:'6px 10px',cursor:'pointer'}}>{LIB[i].name}</button>);})}</div>
+        </div>);})();
+      const learnVideoBox=(mode==='learn'&&openIdx!==null)?(<div style={{width:'100%',background:'linear-gradient(150deg,rgba(255,255,255,.08),rgba(255,255,255,.03))',border:'1px solid rgba(255,255,255,.16)',borderRadius:12,padding:'11px 13px',boxShadow:SHADOW_BOX}}><div onClick={()=>setVideoOpen(o=>!o)} style={{fontSize:'clamp(14px,2.7vw,14px)',fontWeight:700,color:'#e0b34d',cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>📺 Watch it explained<span style={{fontSize:13,opacity:.85}}>{videoOpen?'▾':'▸'}</span></div>{videoOpen&&(<>{learnVideo&&(<><div style={{fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.7)',margin:'2px 0 8px',lineHeight:1.45}}>{learnVideo.title} · {learnVideo.author} ({learnVideo.length})</div><div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}><button onClick={()=>setShowVideo(s=>!s)} style={btn('var(--ac)','none','#fff')}>{showVideo?'Hide player':'▶ Watch in app'}</button><a href={`https://youtu.be/${learnVideo.id}`} target="_blank" rel="noopener noreferrer" style={{fontSize:'clamp(13px,2.3vw,13px)',color:'var(--ac2)',textDecoration:'underline'}}>open on YouTube ↗</a></div>{showVideo&&(<div style={{marginTop:8,position:'relative',width:'100%',paddingTop:'56.25%',borderRadius:8,overflow:'hidden',background:'#000'}}><iframe src={`https://www.youtube-nocookie.com/embed/${learnVideo.id}`} title={learnVideo.title} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:0}} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/></div>)}{showVideo&&<div style={{fontSize:'clamp(12px,2.2vw,12px)',color:'rgba(255,255,255,.58)',marginTop:5,lineHeight:1.4}}>If the player stays blank in this preview, tap “open on YouTube” — the embedded player works once the app is deployed to a real site.</div>}</>)}<div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.6)',margin:`${learnVideo?9:4}px 0 6px`,lineHeight:1.4}}>{learnVideo?'More on this opening from top coaches:':'Find this opening explained by top coaches:'}</div><div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{['Remote Chess Academy','GothamChess','Chess Vibes'].map(ch=>(<a key={ch} href={`https://www.youtube.com/results?search_query=${encodeURIComponent(LIB[openIdx].name+' '+ch)}`} target="_blank" rel="noopener noreferrer" style={{padding:'5px 10px',borderRadius:7,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.32)',color:'var(--ac2)',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:600,textDecoration:'none',whiteSpace:'nowrap'}}>▶ {ch}</a>))}</div></>)}</div>):null;
   const pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online');  // board sits below the goal/message text
   useEffect(()=>{try{localStorage.setItem('ct_feedback',JSON.stringify(fbMap));}catch{}},[fbMap]);
   const sendLessonFb=(name,v)=>setFbMap(m=>({...m,[name]:v}));
@@ -3894,7 +3946,7 @@ export default function App(){
   // Enter the solving board for a given puzzle index, optionally tagged to a roadmap tier
   const pzEnterBrowse=(idx,tier)=>{setPzTrainTier(tier);loadPuzzle(idx);setPzView('browse');};
   // ── Lichess online puzzles ──
-  const onlineSolved=(p)=>{const ids=pzOSolvedIdsRef.current,already=!!ids[p.id];const nids=already?ids:{...ids,[p.id]:1};const nstreak=pzStreakRef.current+1,nbest=Math.max(pzBestRef.current,nstreak),nxp=pzXPRef.current+(already?3:Math.max(8,Math.round((p.rating||1200)/10))),nc=already?pzOSolvedRef.current:pzOSolvedRef.current+1;setPzOSolvedIds(nids);setPzStreak(nstreak);setPzBest(nbest);setPzXP(nxp);setPzOSolved(nc);PZSTORE.set(PZKEY,JSON.stringify({solved:pzSolvedRef.current,streak:nstreak,best:nbest,xp:nxp,online:nc,onlineIds:nids}));bumpDaily();};
+  const onlineSolved=(p)=>{const ids=pzOSolvedIdsRef.current,already=!!ids[p.id];const nids=already?ids:{...ids,[p.id]:1};const nstreak=pzStreakRef.current+1,nbest=Math.max(pzBestRef.current,nstreak),nxp=pzXPRef.current+(already?3:Math.max(8,Math.round((p.rating||1200)/10))),nc=already?pzOSolvedRef.current:pzOSolvedRef.current+1;setPzOSolvedIds(nids);setPzStreak(nstreak);setPzBest(nbest);setPzXP(nxp);setPzOSolved(nc);PZSTORE.set(PZKEY,JSON.stringify({solved:pzSolvedRef.current,streak:nstreak,best:nbest,xp:nxp,online:nc,onlineIds:nids}));bumpDaily('puz');};
   const loadExternal=(obj)=>{if(!obj){setPzOErr('That puzzle could not be read.');return false;}setGame(obj.pos);setLastMv(obj.last||null);setFlip(obj.pos.turn==='b');setPuzStep(0);setPuzMsg('');setPuzSolved(false);setPuzReveal(false);setPuzSide(obj.pos.turn);setCurPuz(obj);UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzView('online');repaint();return true;};
   const loadDaily=async()=>{setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/daily');const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('📅 Daily · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr("Couldn't reach Lichess. This works on the deployed site with internet — it may be blocked in this in-app preview.");}setPzOLoading(false);};
   const loadById=async(id)=>{const c=String(id||'').trim().replace(/[^A-Za-z0-9]/g,'');if(!c){setPzOErr('Enter a puzzle ID (the code from lichess.org/training/XXXXX).');return;}setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/'+c);const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('🎲 '+c+' · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr("Couldn't load puzzle '"+c+"'. Check the ID — or it may be blocked in this preview.");}setPzOLoading(false);};
@@ -4018,8 +4070,11 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
-          {l:"PGN import - no more truncation (NEW)", n:"NEW this build. Fixes the bug where a 21-move paste only analyzed the first 13. This card pastes a tricky 21-half-move game (zero-castling written as 0-0, a figurine knight, Nbd7-style disambiguation, a clock comment) straight into Review. You should land on the Review board and the move strip under the board should hold ALL 21 half-moves - scroll it right and the last one is Nbd2, not a cut-off in the teens. Give it a few seconds to finish analyzing.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const pgn="1. e4 e5 2. \u2658f3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. 0-0 Be7 6. Re1 b5 7. Bb3 d6 8. c3 0-0 9. h3 Nb8 10. d4 Nbd7 11. Nbd2 {[%clk 0:09:12]}";setMode('analyze');setPgnText(pgn);importGame(pgn);}, h:13000},
-          {l:"7 new gambits (NEW)", n:"NEW this build. Seven new gambit lessons were added: Milner-Barry, Portuguese, Marshall (Semi-Slav), Nakhmanson, Fajarowicz, Frankenstein-Dracula, and Wing Gambit (French). This card opens the Milner-Barry Gambit lesson and steps through its mainline so you can see a new lesson rendering; the rest are in Discover under the Gambits categories.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const i=LIB.findIndex(o=>o&&o.name==='Milner-Barry Gambit');setMode('learn');selectOpening(i>=0?i:0);}, h:9000},
+          {l:"PGN import - no more truncation (NEW)", n:"NEW this build. Fixes the bug where a 21-move paste only analyzed the first 13. This card pastes a tricky 21-half-move game (zero-castling written as 0-0, a figurine knight, Nbd7-style disambiguation, a clock comment) straight into Review. You should land on the Review board and the move strip under the board should hold ALL 21 half-moves - scroll it right and the last one is Nbd2, not a cut-off in the teens. Give it a few seconds to finish analyzing. NEW: once analysis finishes, open the Summary view - a Coach's take box now sits under the opening name with a plain-English read of where the trouble was and Train buttons.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const pgn="1. e4 e5 2. \u2658f3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. 0-0 Be7 6. Re1 b5 7. Bb3 d6 8. c3 0-0 9. h3 Nb8 10. d4 Nbd7 11. Nbd2 {[%clk 0:09:12]}";setMode('analyze');setPgnText(pgn);importGame(pgn);}, h:13000},
+          {l:"Brilliant badge on games list (NEW)", n:"From your screenshots. Two fixes: (1) on the Review import list, a game with a brilliant now gets a glowing cyan pill saying !! 1 brilliant instead of tiny glyphs you can miss; (2) the Summary table no longer swallows a brilliant played inside book moves - your Englund Rosen Trap game will now show Brilliant 1 in the table instead of 0, and the headline will celebrate it instead of just saying Clean game. This card opens the import screen with a sample game row so you can see the new pill; re-fetch your real games to see it on the Shironesh game.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setMode('analyze');const demo={src:'cc',white:'Shironesh',black:'Kunal2023',date:Date.now(),result:'0-1',tc:'600',pgn:''};try{gameStatsRef.current[gkey(demo)]={bril:1,great:0,inacc:0,mist:0,blun:0};}catch(e){}setCcGames([demo]);setTimeout(()=>{try{gamesListRef.current&&gamesListRef.current.scrollIntoView();}catch(e){}},400);}, h:9000},
+    {l:"Find gambits by opening (NEW)", n:"NEW this build, from your request. Every lesson now shows a Branches from this opening row: all lessons sharing the same first moves, gambits and traps highlighted in gold, each chip tappable. This card opens the Italian Game lesson - you should see Evans Gambit, Fried Liver Attack, Nakhmanson, Jerome, Blackburne Shilling, Rousseau, Legal Trap, Traxler and more listed under the video box. The Four Knights Game lesson shows Halloween and Belgrade the same way.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const i=LIB.findIndex(o=>o&&o.name==='Italian Game');setMode('learn');selectOpening(i>=0?i:0);}, h:9000},
+    {l:"Daily 3 + toasts (NEW)", n:"NEW this build. The Home screen has a Daily 3 card: one lesson and two puzzles per day, with checkmarks and a done state, feeding the streak. This card jumps to Home so you can see it, and fires a sample toast notice at the bottom (the new non-blocking style used for errors and confirmations, like progress backup failures). Progress cloud sync also shipped: sign in on one device, play, then open the other device and you should get a Progress restored notice.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setPlaySetup(false);setRevAuto(false);setHomeScreen(true);setTimeout(()=>{toastRef.current('Sample toast: progress backed up','ok');},600);}, h:9000},
+    {l:"7 new gambits (NEW)", n:"NEW this build. Seven new gambit lessons were added: Milner-Barry, Portuguese, Marshall (Semi-Slav), Nakhmanson, Fajarowicz, Frankenstein-Dracula, and Wing Gambit (French). This card opens the Milner-Barry Gambit lesson and steps through its mainline so you can see a new lesson rendering; the rest are in Discover under the Gambits categories.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const i=LIB.findIndex(o=>o&&o.name==='Milner-Barry Gambit');setMode('learn');selectOpening(i>=0?i:0);}, h:9000},
     {l:"Opening videos (NEW)", n:"NEW last build. The Fried Liver Attack lesson now has a real Hanging Pawns walkthrough video. This card opens the Fried Liver Attack lesson and expands the Watch it explained box - you should see the video title 'Fried Liver Attack | Italian Game Theory' and a Watch in app button.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const i=LIB.findIndex(o=>o&&o.video&&o.video.id==='VxTPwHQ1Rv8');setMode('learn');selectOpening(i>=0?i:0);setTimeout(()=>setVideoOpen(true),400);}, h:9000},
         ];
         const _runAll=()=>{
@@ -4075,6 +4130,12 @@ export default function App(){
               </div>);}
 
             return null;})();
+            const _daily3=(()=>{const t=dstr(new Date());const d=(daily3&&daily3.date===t)?daily3:{lesson:0,puz:0};const L=d.lesson>=1,P1=d.puz>=1,P2=d.puz>=2;const allDone=L&&P1&&P2;
+              const dot=(done,lab)=>(<span style={{display:'flex',alignItems:'center',gap:6}}><span style={{width:18,height:18,borderRadius:9,display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:11,background:done?'#2e6b3f':'rgba(255,255,255,.08)',border:'1px solid '+(done?'#4faf6b':'rgba(255,255,255,.22)'),color:done?'#eaf6ec':'#bbb'}}>{done?'✓':''}</span><span style={{fontSize:12,color:done?'#cfe8d4':'#cfc9bd'}}>{lab}</span></span>);
+              return(<button onClick={()=>{setHomeScreen(false);if(!L&&lastLesson!=null&&LIB[lastLesson]){selectOpening(lastLesson);}else if(!L){setMode('learn');setOpenIdx(null);}else{setMode('puzzle');}}} style={{width:'100%',display:'flex',flexDirection:'column',gap:8,background:allDone?'linear-gradient(135deg,rgba(79,175,107,.16),rgba(46,107,63,.10))':'linear-gradient(135deg,rgba(212,175,55,.14),rgba(120,90,20,.10))',border:'1px solid '+(allDone?'rgba(79,175,107,.45)':'rgba(212,175,55,.4)'),borderRadius:16,padding:'12px 14px',boxShadow:SHADOW_BOX,cursor:'pointer',textAlign:'left',color:'inherit'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}><span style={{fontWeight:700,fontSize:14,color:'#f0e6cf'}}>Daily 3</span><span style={{fontSize:11,color:'#b8b0a0'}}>{allDone?'done for today':'keep the streak alive'}</span></div>
+                <div style={{display:'flex',gap:14,flexWrap:'wrap'}}>{dot(L,'1 lesson')}{dot(P1,'puzzle')}{dot(P2,'puzzle')}</div>
+              </button>);})();
             const _tiles=(<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:hbig?22:(hLand?30:16),width:'100%'}}>
             {[
               {icon:'🔭',label:'Discover',sub:'Openings, gambits & endgames',tint:['#3b82f6','#1d4ed8'],k:'learn',fn:()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup(null);}},
@@ -4102,10 +4163,10 @@ export default function App(){
             const _continue=(lastLesson!=null&&LIB[lastLesson])?(<button onClick={()=>{setHomeScreen(false);selectOpening(lastLesson);}} style={{width:'100%',display:'flex',alignItems:'center',gap:12,background:'linear-gradient(135deg,rgba(240,162,78,.18),rgba(180,99,31,.12))',border:'1px solid rgba(240,162,78,.42)',borderRadius:16,padding:'13px 14px',boxShadow:SHADOW_BOX,cursor:'pointer',textAlign:'left',color:'inherit'}}><span style={{fontSize:30,lineHeight:1,flexShrink:0}}>↩</span><div style={{flex:1,minWidth:0}}><div style={{fontSize:'clamp(13px,2.3vw,13px)',color:'var(--ac2)',fontWeight:800,letterSpacing:.5,textTransform:'uppercase'}}>Continue</div><div style={{fontSize:'clamp(14px,2.8vw,15.5px)',fontWeight:700,color:'#fff',lineHeight:1.3,marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{LIB[lastLesson].name}</div></div><span style={{flexShrink:0,fontSize:22,color:'var(--ac2)',opacity:.75}}>›</span></button>):null;
             if(hLand)return(
               <div style={{display:'flex',gap:24,width:'100%',alignItems:'flex-start'}}>
-                <div style={{flex:'1 1 0',minWidth:0,display:'flex',flexDirection:'column',gap:14}}>{_continue}{_streak}{_risk}{_coach}</div>
+                <div style={{flex:'1 1 0',minWidth:0,display:'flex',flexDirection:'column',gap:14}}>{_continue}{_streak}{_daily3}{_risk}{_coach}</div>
                 <div style={{flex:'1 1 0',minWidth:0,display:'flex',flexDirection:'column',gap:14}}>{_newhere}{_tiles}</div>
               </div>);
-            return(<>{_streak}{_newhere}{_risk}{_tiles}{_coach}</>);
+            return(<>{_streak}{_daily3}{_newhere}{_risk}{_tiles}{_coach}</>);
           })()}
           <div style={{marginTop:18,width:'100%',display:'flex',flexDirection:'column',gap:10,alignItems:'center'}}>
             <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
@@ -4709,7 +4770,7 @@ export default function App(){
       </div>)}
       {railed&&learnPlansBox}
       {null}
-      {railed&&learnVideoBox}
+      {railed&&learnVideoBox}{railed&&learnBranchesBox}
       {inReview&&reviewView==='summary'&&review.summary&&(()=>{const S=review.summary;const CATS=[['Brilliant','#22d3ee'],['Great','#7bd3c0'],['Best','#7bd88f'],['Good','#9ccb8f'],['Book','#9aa6b2'],['Inaccuracy','#f0cf5e'],['Miss','#f08a5d'],['Mistake','#f0a24e'],['Blunder','#ec5c4e']];const sides=[['w','White'],['b','Black']];return(
         <div style={{position:'fixed',inset:0,zIndex:500,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`max(24px,env(safe-area-inset-top,0px)) 18px max(20px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
           <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
@@ -4717,7 +4778,30 @@ export default function App(){
               <div style={{fontFamily:headFont,fontSize:'clamp(22px,6vw,30px)',fontWeight:800,color:'#fff',letterSpacing:.5}}>Game Review</div>
               <div style={{marginTop:4,fontSize:'clamp(14px,3.1vw,15px)',color:'rgba(255,255,255,.7)',fontWeight:600}}>{review.headers.White||'White'} vs {review.headers.Black||'Black'}{review.headers.Result?(' · '+review.headers.Result):''}</div>
             </div>
-            {review.openingName&&(<div style={{textAlign:'center',fontSize:'clamp(14px,3vw,15px)',color:'rgba(255,255,255,.8)'}}>📖 <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>)}{(()=>{const uc=S.userColor;if(!uc)return null;const me=S[uc];const c=me.counts;const acc=me.accuracy;const R=review.headers.Result;const won=(R==='1-0'&&uc==='w')||(R==='0-1'&&uc==='b');const lost=(R==='1-0'&&uc==='b')||(R==='0-1'&&uc==='w');const bl=c.Blunder||0,mi=(c.Mistake||0)+(c.Miss||0),br=c.Brilliant||0;let m;if(br>0)m='Sharp eye. You found '+br+' brilliant move'+(br>1?'s':'')+'. '+(won?'A deserved win.':bl>0?('Now clean up the '+bl+' blunder'+(bl>1?'s':'')+' below.'):'Strong play.');else if(won&&bl===0&&acc>=85)m='Clean game. You stayed accurate and converted without slipping.';else if(won&&bl>0)m='You won, but '+bl+' blunder'+(bl>1?'s':'')+' made it closer than it needed to be. See them below.';else if(lost&&bl>0)m='Those '+bl+' blunder'+(bl>1?'s':'')+' cost you. Step through them below to see the better line.';else if(lost)m='A tough one. The key moments below show where it turned.';else m=(bl+mi>0)?('Solid overall. Tighten the '+(bl+mi)+' costly move'+((bl+mi)>1?'s':'')+' flagged below.'):'Solid, accurate game throughout.';return(<div style={{display:'flex',gap:9,alignItems:'flex-start',background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:14,padding:'10px 13px'}}><span style={{fontSize:18,lineHeight:1.2}}>💬</span><span style={{fontSize:'clamp(14px,3.1vw,15.5px)',color:'#fff',fontWeight:600,lineHeight:1.45}}>{m}</span></div>);})()}
+            {review.openingName&&(<div style={{textAlign:'center',fontSize:'clamp(14px,3vw,15px)',color:'rgba(255,255,255,.8)'}}>📖 <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>)}{(()=>{const an=review.analysis||[];if(!an.length)return null;const uc=S.userColor; // coach take (#310)
+              const mine=(i)=>{const mc=i%2===0?'w':'b';return uc?mc===uc:true;};
+              let op=0,mid=0,end=0,worstI=-1,worstL=0,blun=0;
+              an.forEach((a,i)=>{if(!mine(i))return;const L=a.cls&&a.cls.label;const bad=(L==='Blunder'||L==='Mistake');if(L==='Blunder')blun++;
+                if(bad){if(i<16)op++;else if(i<50)mid++;else end++;}
+                if((a.loss||0)>worstL){worstL=a.loss||0;worstI=i;}});
+              const phases=[['the opening',op],['the middlegame',mid],['the endgame',end]].filter(p=>p[1]>0).sort((x,y)=>y[1]-x[1]);
+              const psan=(i)=>{const p=review.plies&&review.plies[i];return (p&&(p.san||p))||('ply '+(i+1));};
+              let msg;
+              if(!phases.length){msg=uc?'A clean game: no mistakes or blunders on your side. Keep testing yourself against stronger opposition.':'A clean game on both sides.';}
+              else{const ph=phases[0][0];msg=(uc?'Most of your trouble came in ':'Most trouble came in ')+ph+'.';
+                if(worstI>=0&&worstL>=90){msg+=' The toughest moment was '+psan(worstI)+' (about '+(worstL/100).toFixed(1)+' pawns).';}
+                if(blun>=2){msg+=' Several outright blunders: a short daily puzzle habit is the fastest fix.';}}
+              let trainIdx=-1;
+              if(review.openingName&&review.openingName.name){const nm=String(review.openingName.name).toLowerCase();
+                trainIdx=LIB.findIndex(o=>o&&o.name&&(nm.indexOf(o.name.toLowerCase())>=0||o.name.toLowerCase().indexOf(nm.split(':')[0].trim())>=0));}
+              return(<div style={{margin:'10px auto 2px',maxWidth:520,background:'rgba(212,175,55,.08)',border:'1px solid rgba(212,175,55,.35)',borderRadius:14,padding:'10px 14px'}}>
+                <div style={{fontSize:12,fontWeight:700,color:'var(--ac2)',marginBottom:4}}>Coach's take</div>
+                <div style={{fontSize:13,color:'rgba(255,255,255,.85)',lineHeight:1.45}}>{msg}</div>
+                <div style={{display:'flex',gap:8,marginTop:8,flexWrap:'wrap'}}>
+                  {trainIdx>=0&&<button onClick={()=>{setMode('learn');selectOpening(trainIdx);}} style={{background:'rgba(212,175,55,.18)',border:'1px solid rgba(212,175,55,.5)',borderRadius:9,color:'#f0e6cf',fontSize:12,padding:'6px 11px',cursor:'pointer'}}>Train this opening</button>}
+                  <button onClick={()=>{setMode('puzzle');}} style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.25)',borderRadius:9,color:'#ddd',fontSize:12,padding:'6px 11px',cursor:'pointer'}}>Sharpen with puzzles</button>
+                </div>
+              </div>);})()}{(()=>{const uc=S.userColor;if(!uc)return null;const me=S[uc];const c=me.counts;const acc=me.accuracy;const R=review.headers.Result;const won=(R==='1-0'&&uc==='w')||(R==='0-1'&&uc==='b');const lost=(R==='1-0'&&uc==='b')||(R==='0-1'&&uc==='w');const bl=c.Blunder||0,mi=(c.Mistake||0)+(c.Miss||0),br=c.Brilliant||0;let m;if(br>0)m='Sharp eye. You found '+br+' brilliant move'+(br>1?'s':'')+'. '+(won?'A deserved win.':bl>0?('Now clean up the '+bl+' blunder'+(bl>1?'s':'')+' below.'):'Strong play.');else if(won&&bl===0&&acc>=85)m='Clean game. You stayed accurate and converted without slipping.';else if(won&&bl>0)m='You won, but '+bl+' blunder'+(bl>1?'s':'')+' made it closer than it needed to be. See them below.';else if(lost&&bl>0)m='Those '+bl+' blunder'+(bl>1?'s':'')+' cost you. Step through them below to see the better line.';else if(lost)m='A tough one. The key moments below show where it turned.';else m=(bl+mi>0)?('Solid overall. Tighten the '+(bl+mi)+' costly move'+((bl+mi)>1?'s':'')+' flagged below.'):'Solid, accurate game throughout.';return(<div style={{display:'flex',gap:9,alignItems:'flex-start',background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:14,padding:'10px 13px'}}><span style={{fontSize:18,lineHeight:1.2}}>💬</span><span style={{fontSize:'clamp(14px,3.1vw,15.5px)',color:'#fff',fontWeight:600,lineHeight:1.45}}>{m}</span></div>);})()}
             {(()=>{const W=S.w,B=S.b,uc=S.userColor;const colHead=(sk,sl,d)=>{const me=uc===sk;return(<div style={{flex:1,minWidth:0,textAlign:'center',padding:'6px 2px',borderRadius:12,background:me?'rgba(var(--acr),.14)':'transparent',border:me?'1px solid var(--ac)':'1px solid transparent'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,marginBottom:5}}><Piece t="k" color={sk} sz={20}/><span style={{fontSize:'clamp(14px,3.4vw,16px)',fontWeight:800,color:'#fff'}}>{sl}</span>{me&&<span style={{fontSize:8.5,fontWeight:800,color:'var(--ac2)',background:'rgba(var(--acr),.2)',borderRadius:6,padding:'1px 5px'}}>YOU</span>}</div>
                 <div style={{fontSize:'clamp(27px,8vw,38px)',fontWeight:900,color:'#fff',lineHeight:1}}>{d.accuracy}<span style={{fontSize:'.45em',fontWeight:700,color:'rgba(255,255,255,.55)'}}>%</span></div>
@@ -4823,7 +4907,7 @@ export default function App(){
                   <span style={{minWidth:0,flex:1}}>
                     <span style={{display:'block',fontSize:'clamp(14.5px,3.6vw,17px)',fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{info.opp?('vs '+info.opp):(g.white+' vs '+g.black)}</span>
                     <span style={{display:'block',fontSize:'clamp(14.5px,3vw,15.5px)',color:'rgba(255,255,255,.55)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}><span style={{color:g.src==='li'?'#c9b6ff':'#9bd6a0',fontWeight:700}}>{g.src==='li'?'Lichess':'Chess.com'}</span>{info.userColor?(' · '+(info.userColor==='w'?'as White':'as Black')):''}{g.tc?(' · '+tcLabel(g.tc)):''}{g.date?(' · '+new Date(g.date).toLocaleDateString(undefined,{month:'short',day:'numeric'})):''}</span>
-                    {st&&(<span style={{display:'inline-flex',gap:9,marginTop:4,fontSize:'clamp(14.5px,3.2vw,16.5px)',fontWeight:800,fontFamily:'monospace'}}>{st.bril>0&&<span style={{color:'#22d3ee'}}>!! {st.bril}</span>}<span style={{color:'#6fd66f'}}>★ {st.great}</span><span style={{color:'#f0a24e'}}>? {st.mist}</span><span style={{color:'#ec5c4e'}}>?? {st.blun}</span></span>)}
+                    {st&&(<span style={{display:'inline-flex',gap:9,marginTop:4,fontSize:'clamp(14.5px,3.2vw,16.5px)',fontWeight:800,fontFamily:'monospace'}}>{st.bril>0&&<span style={{color:'#062a30',background:'linear-gradient(135deg,#22d3ee,#7be9f7)',border:'1px solid #22d3ee',borderRadius:8,padding:'1px 8px',fontWeight:900,boxShadow:'0 0 10px rgba(34,211,238,.55)'}}>!! {st.bril} brilliant</span>}<span style={{color:'#6fd66f'}}>★ {st.great}</span><span style={{color:'#f0a24e'}}>? {st.mist}</span><span style={{color:'#ec5c4e'}}>?? {st.blun}</span></span>)}
                   </span>
                   <span style={{flexShrink:0,fontSize:'clamp(14.5px,3vw,15.5px)',color:'var(--ac2)',fontWeight:700}}>Review ›</span>
                 </button>);})}
@@ -5436,7 +5520,7 @@ export default function App(){
           </>)}
           {null}
           {false&&learnPlansBox}
-          {!railed&&learnPhase!=='practice'&&learnVideoBox}
+          {!railed&&learnPhase!=='practice'&&learnVideoBox}{!railed&&learnPhase!=='practice'&&learnBranchesBox}
         </>)}
       </div>)}
 
@@ -5587,6 +5671,7 @@ export default function App(){
       {drag&&dragging&&(<div style={{position:'fixed',left:drag.x-SQ*.55,top:drag.y-SQ*.55,width:SQ*1.1,height:SQ*1.1,pointerEvents:'none',zIndex:9999,filter:'drop-shadow(0 8px 16px rgba(0,0,0,.6))',transform:'scale(1.12)'}}><Piece t={drag.piece.t} color={drag.piece.c} sz={SQ*1.1} useFallback={fallback} onFail={onPieceFail}/></div>)}
       {!homeScreen&&!(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd)&&(<div aria-hidden="true" style={{height:'calc(62px + env(safe-area-inset-bottom,0px))',flexShrink:0,width:'100%'}}/>)}
       {!homeScreen&&!(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd)&&(()=>{const _ta=mode==='learn'?'learn':mode==='puzzle'?'puzzle':mode==='analyze'?'analyze':mode==='play'?'play':'';const _go=(k)=>{setMenuOpen(false);setCoachOpen(false);if(k==='home'){setHomeScreen(true);return;}setHomeScreen(false);if(k==='learn'){setMode('learn');setOpenIdx(null);setLearnGroup(null);setLearnCat(null);}else if(k==='puzzle'){setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}else if(k==='analyze'){setMode('analyze');}else if(k==='play'){setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}};return <_TabBar active={_ta} go={_go}/>;})()}
+      {toasts.length>0&&<div style={{position:'fixed',left:'50%',transform:'translateX(-50%)',bottom:'calc(72px + env(safe-area-inset-bottom))',zIndex:9999,display:'flex',flexDirection:'column',gap:6,pointerEvents:'none'}}>{toasts.map(t=><div key={t.id} style={{background:t.kind==='err'?'#5b1f24':t.kind==='ok'?'#1f4d2e':'#2a2a33',color:'#f4f0e6',border:'1px solid rgba(212,175,55,.45)',borderRadius:10,padding:'8px 14px',fontSize:13,maxWidth:'82vw',boxShadow:'0 4px 14px rgba(0,0,0,.5)',textAlign:'center'}}>{t.msg}</div>)}</div>}
     </div>
   );
 }
