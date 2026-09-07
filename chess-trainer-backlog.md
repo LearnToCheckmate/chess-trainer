@@ -1,6 +1,6 @@
-# ACTIVE QUEUE - reconciled 2026-09-07 (app at build #321 LIVE; Cowork session, single writer)
+# ACTIVE QUEUE - reconciled 2026-09-06 22:50 EDT (app at build #321 LIVE; Cowork session, single writer)
 
-## 2026-09-07 - BUILD #321 - Last UX straggler: Prev / All-openings / Next row gone in lessons
+## 2026-09-06 - BUILD #321 - Last UX straggler: Prev / All-openings / Next row gone in lessons
 - Inside a lesson (focus mode) the Prev / All openings / Next row under the board no longer renders, in the watch phase AND the practice phase (the practice-phase "All openings" button is gone too). The X in the bottom bar is the single exit to the list, as the annotation asked.
 - Previous / next lesson moved to the TOP of the 3-dot sheet as two named buttons (e.g. "Ruy Lopez (Spanish)"), same family walk as before (groupOf-based), disabled at the ends; tapping closes the sheet and opens the lesson. Non-focus paths (iPad rails etc.) unchanged: the old row still renders wherever lessonFocus is false.
 - Gallery card "Lesson nav row gone (NEW)": opens the Italian lesson, then auto-opens the 3-dot sheet after 1.8 s so the new row is visible. Live cards now 4 (this + the three awaiting his recordings).
