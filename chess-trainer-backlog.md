@@ -1,4 +1,12 @@
-# ACTIVE QUEUE - reconciled 2026-09-06 22:50 EDT (app at build #321 LIVE; Cowork session, single writer)
+# ACTIVE QUEUE - reconciled 2026-09-06 23:15 EDT (app at build #322 LIVE; Cowork session, single writer)
+
+## 2026-09-06 - BUILD #322 - Gallery flush, verified by Claude in Kunal's Chrome (new verification path)
+- NEW PATH: with Kunal's standing approval, Claude drove the LIVE #321 app in his Chrome (Claude in Chrome, "Personal Chrome", desktop width 1278) and verified from the DOM plus screenshots. Pages liveness confirmed there: "Build #321 · 2026-09-06 22:47 EDT".
+- FLUSHED (verified live): "Lesson nav row gone" (no Prev/Next/All-openings buttons in the lesson, sheet nav row reads "‹ First lesson | Ruy Lopez (Spanish) ›", X present) and "Tappable review numbers" (Summary shows count buttons, nonzero ones enabled, Key moments strip absent, floating buttons absent off-Home, tapping Great 1 jumps to 7.Bb3 at 13/21 labeled Great).
+- KEPT for Kunal's phone: "New Game on one screen" and "Focus mode stage C" (both are one-screen-fit questions; the desktop Chrome window would not resize to phone width, so fit cannot be judged there).
+- Observation for the space audit (added as L3, not built): at iPad/desktop rail widths the 3-dot sheet duplicates the rail (video, plan, branches appear twice). Sheet could hide the boxes when railed and keep only prev/next + Menu.
+- Gallery now 2 live cards.
+
 
 ## 2026-09-06 - BUILD #321 - Last UX straggler: Prev / All-openings / Next row gone in lessons
 - Inside a lesson (focus mode) the Prev / All openings / Next row under the board no longer renders, in the watch phase AND the practice phase (the practice-phase "All openings" button is gone too). The X in the bottom bar is the single exit to the list, as the annotation asked.
