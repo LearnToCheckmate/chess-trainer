@@ -31,7 +31,9 @@ self.addEventListener('fetch', (e) => {
     || url.pathname.endsWith('/');
   if (fresh) {
     e.respondWith(
-      fetch(e.request).then((res) => {
+      // cache:'no-cache' bypasses the browser HTTP cache (Pages sends max-age=600) and revalidates by ETag,
+      // so a new build shows on the very next open instead of up to 10 minutes later. (#323)
+      fetch(e.request, { cache: 'no-cache' }).then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(e.request, copy));
         return res;

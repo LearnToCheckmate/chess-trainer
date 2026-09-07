@@ -1,4 +1,11 @@
-# ACTIVE QUEUE - reconciled 2026-09-06 23:15 EDT (app at build #322 LIVE; Cowork session, single writer)
+# ACTIVE QUEUE - reconciled 2026-09-06 23:30 EDT (app at build #323 LIVE; Cowork session, single writer)
+
+## 2026-09-06 - BUILD #323 - Service worker: new builds show on the next open (root cause of the force-close ritual)
+- FOUND while verifying #322 in Kunal's Chrome: after a normal reload the app still showed #321 even though the network had #322. Cause: sw.js "network-first" calls fetch(e.request) with default cache mode, which consults the browser HTTP cache first, and GitHub Pages serves app.js/lessons.js/index.html with Cache-Control: max-age=600. So any visit within 10 minutes of the previous one gets the stale bundle from the HTTP cache, and the SW then caches THAT. Confirmed by headers (max-age=600, ETag present) and by a cache:'reload' fetch returning #322 while the page showed #321.
+- FIX: the fresh set (navigations, app.js, lessons.js, index.html, ./) now fetches with {cache:'no-cache'}: still network-first, revalidates by ETag (a 304 when unchanged, so no extra bytes), and returns the new bundle on the very next open. Cache name stays chess-trainer-v4 (no 7 MB engine re-download). Offline fallback unchanged.
+- Not user-visible UI, so no gallery card; the proof is the stamp updating on a plain reload after future deploys. First deploy after this one still needs one old-style reload to pick up the new sw.js itself.
+- Verified: compile clean, audit PASS 170, mount check PASS; sw.js parses (node --check).
+
 
 ## 2026-09-06 - BUILD #322 - Gallery flush, verified by Claude in Kunal's Chrome (new verification path)
 - NEW PATH: with Kunal's standing approval, Claude drove the LIVE #321 app in his Chrome (Claude in Chrome, "Personal Chrome", desktop width 1278) and verified from the DOM plus screenshots. Pages liveness confirmed there: "Build #321 · 2026-09-06 22:47 EDT".
