@@ -91,7 +91,7 @@ T=[
  ("polish","UX stage C: replay row to bottom bar, rows + top pair hidden","done","#317","LIVE."),
  ("polish","UX: New Game on one screen","done","#319","LIVE; check the fold on your phone."),
  ("polish","UX: tappable review counts + strip removed + 2 fixes","done","#320","LIVE."),
- ("polish","UX straggler: Prev/All/Next row in lessons","open","","Last annotation piece."),
+ ("polish","UX straggler: Prev/All/Next row in lessons","done","#321","LIVE: row gone under the board (watch + practice); previous/next lesson moved into the 3-dot sheet, named."),
  ("polish","App-wide space audit (Puzzles, Discover, Menu)","open","","Queued per Kunal."),
  ("infra","Lesson-data split out of the bundle (faster cold start)","done","#311","LIVE 2026-09-06: app.js 20 percent lighter, lessons cached separately."),
 ("infra","Legal pages (privacy + terms)","openY","",""),
