@@ -1,5 +1,5 @@
 # Chess Trainer - HANDOFF (boot document for any new session, chat or Cowork)
-**Written 2026-09-06. Live repo HEAD = build #321 (`#320 · 2026-09-06 19:16 EDT`).**
+**Written 2026-09-06. Live repo HEAD = build #321 (`#321 · 2026-09-06 22:47 EDT`).**
 Give this file to Claude in Cowork as the first thing in the session.
 
 ## 0) THE PEN RULE (read first)
