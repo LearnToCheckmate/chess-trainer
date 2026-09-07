@@ -1,4 +1,13 @@
-# ACTIVE QUEUE - reconciled 2026-09-07 00:40 EDT (app at build #326 LIVE; Cowork session, single writer)
+# ACTIVE QUEUE - reconciled 2026-09-07 01:10 EDT (app at build #327 LIVE; Cowork session, single writer)
+
+## 2026-09-07 - BUILD #327 - Space audit batch 1: the four pure subtractions (Kunal: "keep going", went to bed)
+- Kunal asked me to continue without input. Rule applied: only the audit items that are pure subtraction with no taste call, leaving P2/P5/D1/D2/D3/M2/M3/L2 for his taps.
+- P1: the Home button in the top bar now renders only where the tab bar is absent (live play games); every tab-bar screen lost the duplicate. Wide/iPad path: Home stays on Home screen, live games and lesson focus (no rail tab bar there either), gone elsewhere.
+- P3: the "Progress in <tier>" bar under the Puzzles header removed; the glowing node shows the same count.
+- M1: the "Go to" section (Discover / Puzzles / Review / Play) removed from the Menu sheet; the tab bar is the navigation. From a lesson, X first, then the tab bar.
+- L1: in lesson focus mode the whole phone header row is gone (the lesson name was already in the bottom bar; Home and Menu were already hidden there). About 34 px back above the commentary box.
+- Gallery card "Space audit, batch 1 (NEW)" opens the Puzzles map. Verified in jsdom: no "Progress in", no Home button on Puzzles, Menu has no "Go to" but still renders toggles, lesson focus shows the name only in the bottom bar; 0 errors; compile clean; audit PASS 170; mount check both widths.
+
 
 ## 2026-09-07 - BUILD #326 - Ring bar wraps in the iPad/desktop rail
 - Verified #325 live in Kunal's Chrome (signed in as him): the demo card shows the "Your opponent is calling" bar in the online rail. The rail is ~210 px wide there and Decline clipped off the edge. Fixed: text on its own line, Answer / Decline as a full-width pair underneath. Phone width was already fine. Verified in jsdom (same drive325), 0 errors.
