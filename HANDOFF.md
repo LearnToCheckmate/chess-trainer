@@ -1,15 +1,19 @@
 # Chess Trainer - HANDOFF (boot document for any new session, chat or Cowork)
-**Written 2026-09-06. Live repo HEAD = build #322 (`#322 · 2026-09-06 23:00 EDT`).**
+**Written 2026-09-06. Live repo HEAD = build #323 (`#323 · 2026-09-06 23:08 EDT`).**
 Give this file to Claude in Cowork as the first thing in the session.
 
 ## 0) THE PEN RULE (read first)
 Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two writers once caused a GitHub account suspension. When Cowork starts building, say "Cowork has the pen" in the old chat so it stands down, and vice versa. Never let both deploy in the same sitting.
 
 ## 1) Boot sequence for a new session
-1. Ask Kunal to paste the GitHub fine-grained PAT (never write it to any file; env-inline only). Current token: chess-trainer-deploy, expires Dec 5 2026, Contents read-write on the one repo. NOTE: the OLD no-expiration "Chess Trainer Deploy" token may still exist on his tokens page; remind him to delete it.
+1. Ask Kunal to paste the GitHub fine-grained PAT (never write it to any file; env-inline only). Current token: chess-trainer-deploy, expires Dec 5 2026, Contents read-write on the one repo. The old no-expiration token was deleted 2026-09-06. Also pick his Chrome (switch_browser) if live verification is planned.
 2. Refetch from the repo at session start (source of truth): `chess.jsx`, `lessons.js`, `chess-trainer-backlog.md`, `gen_tracker.py`, `deploy.py`, `audit.py`, `sweep.py`, `chess-tracker.template.html` from `https://raw.githubusercontent.com/LearnToCheckmate/chess-trainer/main/FILE`. For verifying deploys, fetch by COMMIT HASH (the main path caches ~5 min).
 3. Read the backlog fully; ACTIVE QUEUE is at the top; reconcile it at the end of every run.
-4. Kunal's standing authorization is unlimited: every message buys the longest safe run.
+4. READ KUNAL'S FEEDBACK FROM THE TWO ARTIFACTS before choosing work (Artifact tool, action read_db, db_op list):
+   - Roadmap: url https://claude.ai/code/artifact/b0acbc6c-af09-4af3-8c0e-a31e84ae63ec, collection "feedback" (doc id = roadmap item id; fields text, pick, at). pick=true means "Build next"; text is his per-item feedback. Treat as his instructions for the queue.
+   - Space audit: url https://claude.ai/code/artifact/ca66f603-c14a-4163-85f7-7660e6ce6a02, collection "decisions" (doc id P1..L2; status approve/skip/discuss or A/B/C for L2).
+   Acknowledge what was read in the pre-flight block ("Feedback swept: N roadmap notes, M audit verdicts"). Republish the roadmap artifact (same URL, capabilities db) whenever gen_tracker.py changes so the item list stays current; item ids are t<index>-<slug>, keep them stable by appending new items at the end of T.
+5. Kunal's standing authorization is unlimited: every message buys the longest safe run.
 
 ## 2) Architecture (CHANGED since June - read carefully)
 - App = one React component in `chess.jsx` (~816KB) bundled to `app.js`. **The 170-lesson library now lives in `lessons.js`** (window.CTLESSONS, loaded by index.html BEFORE app.js; #311 split). Lesson edits are lessons.js-only data commits. audit.py reads lessons.js and HARD-FAILS if it finds no arrays.
@@ -32,10 +36,10 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 - Design-taste decisions: annotate his actual screenshots (color-coded keep/change/demote) + a decision table + tap-to-approve buttons. He explicitly likes approving in place. The chess.com-style redesign is PERMANENTLY closed; current simplification work is subtraction only, identity untouched.
 - Trap/gambit lessons must frame unsound moves honestly (sweep.py flags; named traps flag by design). Videos: only embed Hanging Pawns IDs confirmed via search with attribution; never from memory; note confidence.
 
-## 5) State at handoff (build #322, Cowork session 2026-09-06 evening)
+## 5) State at handoff (build #323, Cowork session 2026-09-06 evening)
 - #321 shipped from Cowork: the last UX straggler. Prev / All-openings / Next row gone inside lessons (watch + practice); previous/next lesson now named buttons at the top of the 3-dot sheet. Gallery card "Lesson nav row gone (NEW)".
 - COWORK DEPLOY PATH (differs from deploy.py): the Cowork sandbox blocks api.github.com AND learntocheckmate.github.io. Deploy = same gates, esbuild bundle, then `git commit` + `git push` over github.com with the PAT as an HTTP Basic header: `git -c credential.helper= -c "http.extraHeader=Authorization: Basic $(printf 'x-access-token:%s' "$T" | base64 -w0)" push https://github.com/LearnToCheckmate/chess-trainer.git HEAD:main` with GIT_CONFIG_GLOBAL=/dev/null (the sandbox git proxy refuses a token on the URL; the header form works). Verify by fetching raw.githubusercontent.com at the COMMIT HASH (works); Pages liveness must be confirmed by Kunal's phone (host blocked). Driver files live in the build dir: mountcheck.js (gate 3 + drive runner), deploy_git.py.
-- #322: gallery flush. Two cards verified LIVE by Claude driving Kunal's Chrome (see next bullet) and removed. Gallery: 2 live cards, both one-screen-fit questions that need his phone: "New Game on one screen", "Focus mode stage C".
+- #323: sw.js fetches the fresh set with cache:no-cache (Pages max-age=600 was hiding new builds for up to 10 min; that was the force-close ritual). #322: gallery flush. Two cards verified LIVE by Claude driving Kunal's Chrome (see next bullet) and removed. Gallery: 2 live cards, both one-screen-fit questions that need his phone: "New Game on one screen", "Focus mode stage C".
 - NEW VERIFICATION PATH (Kunal's standing approval, 2026-09-06): Claude in Chrome is connected to his "Personal Chrome" (Windows). Claude may open learntocheckmate.github.io there, run gallery cards, read the DOM with javascript_tool, screenshot, and FLUSH cards it confirms. Limits: the window would not resize below desktop width (1278), so phone-fit questions still need Kunal; Pages liveness can be read there (sandbox cannot reach the host). Pick the browser with switch_browser at session start (two Chromes are registered on the account).
 - Space audit: proposed (not built) as a tap-to-approve artifact with real Chromium renders of #321: Puzzles header (P1-P5), Discover rows (D1-D4), Menu sheet (M1-M4), lesson focus (L1 title duplicate, L2 the 123 px flex-spacer band above the board, options A/B/C). Build only what Kunal approves; read his taps back from the artifact db (collection "decisions").
 - Waiting on Kunal (his dashboard): old GitHub token DELETED 2026-09-06 (done); two-device sync check; Stripe test prices at $2.99/$19.99 + checkout test; buy gambitcoach.com; deploy scanBoard function; publish Firestore rules for tournaments/friends/nearby (this last one unlocks three buildable features).
