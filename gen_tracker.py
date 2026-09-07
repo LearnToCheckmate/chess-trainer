@@ -23,7 +23,7 @@ T=[
  ("play","Turn cue consolidated into player bars","done","#259","Text labels were gone (#97/#119); #259 highlights the active player's bar + dropped the redundant dots."),
  ("play","Correspondence mode (1/3/7-day per move)","done","","Already live: 1/3/7-day picker in the online lobby + multi-day clocks."),
  ("play","Play nearby (neighbours by approx location)","done","#129","App-side done: coarse geolocation + ZIP fallback + challenge. Backend is your CTCloud side."),
- ("play","Video call during online play (WebRTC)","open","",""),
+ ("play","Video call during online play (WebRTC)","part","#325","First cut LIVE: Video call button in online games, ring bar, mute/camera/hang up. STUN only; needs your two-device test and, for NAT-heavy networks, a TURN relay (your infra item)."),
  ("lessons","Openings library (159 engine-verified lessons)","done","#279","#279 added Allgaier KG, Caro Fantasy, Pirc Austrian, Alekhine Four Pawns, Sicilian OKelly."),
  ("lessons","Gambits bucketed by first move","done","",""),
  ("lessons","Endgames & theory lessons","done","",""),
