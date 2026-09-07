@@ -46,7 +46,7 @@ T=[
  ("review","Great-move classification chip","done","#231",""),
  ("review","Tap 'Better was X' to show best move on board","done","#42",""),
  ("review","Review overhaul (eval bar, brilliant heuristic)","part","#260","Eval bar BUILT #260 (thin vertical, in the gallery - decide keep/remove). Brilliant heuristic still needs a sample PGN."),
- ("review","Best-move play-out (full engine line, then snap back)","open","","Only the single best move is stored (green arrow). Full PV needs an on-demand engine run - confirm scope."),
+ ("review","Best-move play-out (full engine line, then snap back)","done","","Duplicate of the Polish entry; live since the Show-best-line button (playBestLine). Deduped 2026-09-06."),
  ("coach","Coach section (Pro, taste-then-gate)","done","#242","3 free Coach replies before paywall."),
  ("tourn","Tournaments lobby + create + pairing (all 3 formats)","done","","Round-robin, knockout, Swiss."),
  ("tourn","Tournaments full run (Stage 3+)","open","","Lobby/create/join/pairing/start built (#168-170); the live run (results -> standings -> advance) needs backend + your testing."),
