@@ -1,4 +1,8 @@
-# ACTIVE QUEUE - reconciled 2026-09-07 00:30 EDT (app at build #325 LIVE; Cowork session, single writer)
+# ACTIVE QUEUE - reconciled 2026-09-07 00:40 EDT (app at build #326 LIVE; Cowork session, single writer)
+
+## 2026-09-07 - BUILD #326 - Ring bar wraps in the iPad/desktop rail
+- Verified #325 live in Kunal's Chrome (signed in as him): the demo card shows the "Your opponent is calling" bar in the online rail. The rail is ~210 px wide there and Decline clipped off the edge. Fixed: text on its own line, Answer / Decline as a full-width pair underneath. Phone width was already fine. Verified in jsdom (same drive325), 0 errors.
+
 
 ## 2026-09-07 - BUILD #325 - Video call during online play (WebRTC, first cut) + gallery flush
 - BUILT (roadmap item "Video call during online play (WebRTC)"): in an active online game the panel above Chat shows a Video call button. Caller: getUserMedia (front camera 640x480 + mic), RTCPeerConnection with Google STUN, offer written to the game doc as rtc:{from,id,offer,answer,hangup,ts} via the existing CTCloud.gamePush (no index.html change, no new collection, so no new Firestore rule). Callee sees a ring bar (Answer / Decline) when rtc.from is not them, no answer yet, offer under 2 minutes old. Answer writes rtc.answer; ICE candidates trickle as JSON strings in rtcC_w / rtcC_b (each side overwrites only its own array, debounced 350 ms, capped at 120). Candidates apply after the remote description is set (also re-applied right after the caller's setRemoteDescription resolves). Hang up or Decline writes rtc.hangup; both sides tear down on it. Mute / Camera off toggle track.enabled. Remote tile 4:3 with a mirrored local preview in the corner. Connection failed -> honest message that a relay is not set up.
