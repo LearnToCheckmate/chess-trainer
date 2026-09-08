@@ -1,4 +1,12 @@
-# ACTIVE QUEUE - reconciled 2026-09-07 01:10 EDT (app at build #327 LIVE; Cowork session, single writer)
+# ACTIVE QUEUE - reconciled 2026-09-08 (app at build #328 LIVE; Cowork session, single writer)
+
+## 2026-09-08 - BUILD #328 - Opening videos batch 2 (11 more, channel-confirmed)
+- Same method as #324: channel-scoped search on youtube.com/@HangingPawns, then each ID confirmed on its own watch page via ytInitialPlayerResponse.videoDetails (title, author, length). Videos 71 -> 82 of 170 lessons.
+- ADDED: Blackmar-Diemer 4IwxHPouUJQ; From's Gambit 4fXvAdX8pqo; Two Knights Defense rKoZkrBWDbU (HP's "The Knight Attack (4.Ng5) | Italian Game Theory", the main Two Knights line); Nimzowitsch Defense fqQHlOCFmW8; Richter-Veresov Q8vB7eWjDaY; Torre Attack xbUgaJGb5Ps; Moscow Variation vwQVr9bHmXk; French Rubinstein THkLmg9vmv0; French Winawer NWFL6b38BUQ; Albin Counter-Gambit drRFTPODZlA; Hippopotamus Defense 656d__sO3XM.
+- NOTE on Winawer: the earlier "Winawer" channel search (#324) returned nothing; the video surfaced under a "Milner-Barry" search. Channel search is keyword-flaky, so a NONE result means "not found by that term", not "does not exist". Terms that returned nothing this pass: Englund, Trompowsky, Semi-Slav, Slav Defense, Ruy Lopez Exchange.
+- HELD (video exists, no exact lesson match): King's Gambit overview rmiBGuSwUrw (we only have KG sub-lines: Bishop's, Cunningham, Allgaier, Muzio, Kieseritzky); Scandinavian main line EG6UQZnlvAg (we only have Icelandic and Portuguese); Stonewall Dutch FYcvCPpovzA (our lesson is the White Stonewall ATTACK, a different opening - deliberately not applied); QGA DlXXfcXcF5o and Dutch intro hVNzZi0EBfo (no matching video-less lesson).
+- Gallery card "11 more opening videos (NEW)" opens Torre Attack with the video box expanded. Verified in jsdom: card lands, title + author render, 82 videos counted, all 11 new ids present in CTLESSONS, 0 errors; compile clean; audit PASS 170; mount check both widths.
+
 
 ## 2026-09-07 - BUILD #327 - Space audit batch 1: the four pure subtractions (Kunal: "keep going", went to bed)
 - Kunal asked me to continue without input. Rule applied: only the audit items that are pure subtraction with no taste call, leaving P2/P5/D1/D2/D3/M2/M3/L2 for his taps.

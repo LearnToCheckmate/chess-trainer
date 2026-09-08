@@ -34,7 +34,7 @@ T=[
  ("lessons","Square of the Pawn visualization","done","",""),
  ("lessons","Move-prefix stripped from all lesson notes","done","#229",""),
  ("lessons","Rousseau 4.d4 line fixed (Smirnov trap)","done","#258","Auto-plays in the gallery to verify."),
- ("lessons","Lesson walkthrough videos (Hanging Pawns, in-app)","part","#307","Real in-app walkthrough videos added in batches (Hanging Pawns, verified IDs only). Recent: #304 Modern Defense/Trompowsky/Queen's Indian/Grand Prix/Accelerated Dragon; #307 Réti, Ponziani. About 42 lessons now have a video; still batching the rest (~117 to go)."),
+ ("lessons","Lesson walkthrough videos (Hanging Pawns, in-app)","part","#328","82 of 170 lessons now have a Hanging Pawns walkthrough (#324 added 21, #328 added 11), every ID read off the channel and confirmed on its watch page. Remaining lessons mostly have no HP video at all; see the backlog for the searched-and-empty list."),
  ("lessons","Reorder lesson rows by popularity","done","#259","Sorted by best-guess popularity (display-only; progress is name-keyed so safe)."),
  ("lessons","Lesson videos (embedded player + curated IDs)","part","#278","Player + link-outs done; 24 lessons had videos. #278 added real YouTube IDs for Najdorf, Dragon, Nimzo-Indian, Alekhine. ~100 lessons still need a curated ID - I can keep adding in batches; you swap any bad picks."),
  ("puzzles","Lichess CC0 puzzle roadmap (tiered)","done","",""),
