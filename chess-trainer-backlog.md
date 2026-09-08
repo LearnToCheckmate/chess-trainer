@@ -1,4 +1,12 @@
-# ACTIVE QUEUE - reconciled 2026-09-08 (app at build #328 LIVE; Cowork session, single writer)
+# ACTIVE QUEUE - reconciled 2026-09-08 (app at build #329 LIVE; Cowork session, single writer)
+
+## 2026-09-08 - BUILD #329 - FIX: join-by-CODE fails while the invite LINK works (long-standing known issue)
+- ROOT CAUSE FOUND by reading the two paths side by side. Both end in the same onlineJoin, but the LINK path sanitizes the code at parse time (`replace(/[^A-Z0-9]/g,'').slice(0,6)`) while the TYPED path only did `.trim().toUpperCase()`. So any stray character the keyboard leaves behind - a space, a period, an autocorrect artifact - was sent verbatim as a Firestore document id, missed, and surfaced as the generic "No game found with that code". That is exactly the reported shape: link works, typing does not.
+- FIX (chess.jsx only, no backend change): (1) the code box strips to [A-Z0-9] and caps at 6 as you type, and now carries autoCapitalize=characters, autoCorrect=off, autoComplete=off, spellCheck=false so iOS stops "helping"; (2) onlineJoin applies the same strip before it calls gameJoin, so a pasted code is cleaned too; (3) the not-found message now names the exact code that was tried, so a future failure can never be silent again; (4) a too-short entry is rejected with the raw text quoted back, before any network call.
+- HONESTY: this is a strong root cause, not a reproduction. I could not reproduce Kunal's original failure (it needs his device and a real game). If a clean 5-character code still fails after this, the next suspect is Firestore rules on the games collection, and the new error message will name the code to check.
+- Gallery card "Join by code, fixed (NEW)": opens the online screen with a deliberately messy code already in the box, so tapping Join shows the cleaning happen.
+- Verified in jsdom with a stubbed CTCloud: typed "zz 9k!" becomes ZZ9K in the box, gameJoin receives exactly "ZZ9K", the error names ZZ9K, a 1-character entry never reaches the server; input attributes asserted; 0 runtime errors; compile clean; audit PASS 170; mount check both widths.
+
 
 ## 2026-09-08 - BUILD #328 - Opening videos batch 2 (11 more, channel-confirmed)
 - Same method as #324: channel-scoped search on youtube.com/@HangingPawns, then each ID confirmed on its own watch page via ytInitialPlayerResponse.videoDetails (title, author, length). Videos 71 -> 82 of 170 lessons.

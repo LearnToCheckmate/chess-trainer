@@ -14,7 +14,7 @@ GROUPS=[
 T=[
  ("play","Play vs Stockfish engine","done","",""),
  ("play","Pass-and-play (local 2-player)","done","",""),
- ("play","Online play by invite code","done","#162",""),
+ ("play","Online play by invite code","done","#329","Invite link and typed code both work. #329 fixed the typed path: the code box now strips stray characters (the link path always did), which is why links worked and typing did not."),
  ("play","Back/forward move navigation in live games","done","",""),
  ("play","Minute-based time controls (1/2/3/5/10 min)","done","",""),
  ("play","vs-Computer time control surfaced in setup","done","#253",""),
