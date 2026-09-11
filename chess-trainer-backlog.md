@@ -1,4 +1,7 @@
-# ACTIVE QUEUE - reconciled 2026-09-11 (app at build #335 LIVE; Cowork session, single writer)
+# ACTIVE QUEUE - reconciled 2026-09-11 (app at build #336 LIVE; Cowork session, single writer)
+
+## 2026-09-11 - BUILD #336 - Eval bar number flipped 180 degrees (Kunal)
+- Kunal: flip the -0.7 by 180 degrees. Done: the number now reads upward at either end of the bar (rotate 180 on the vertical text, no longer position-dependent). Gate: mount at 390 and 320, number text present, rotation, writing mode and 13 px asserted, zero errors.
 
 ## 2026-09-11 - BUILD #335 - Eval readout: chip removed, the number lives in the bar (bigger, along the bar, on the leading side)
 - Kunal on the #333 rendering: the chip under the board duplicates the bar's number; remove it, and show the number in the bar better, bigger text and maybe a flipped orientation.
