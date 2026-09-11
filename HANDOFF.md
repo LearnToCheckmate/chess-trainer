@@ -1,5 +1,5 @@
 # Chess Trainer - HANDOFF (boot document for any new session, chat or Cowork)
-**Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned).**
+**Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip).**
 Give this file to Claude in Cowork as the first thing in the session.
 
 ## 0) THE PEN RULE (read first)
@@ -53,7 +53,8 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 - Waiting on Kunal (his dashboard): old GitHub token DELETED 2026-09-06 (done); two-device sync check; Stripe test prices at $2.99/$19.99 + checkout test; buy gambitcoach.com; deploy scanBoard function; publish Firestore rules for tournaments/friends/nearby (this last one unlocks three buildable features).
 - Sourcing notes: Caro-Kann Fantasy video 0yMkAJ6Pyig is single-source attribution; Kunal has not yet confirmed playback. Held HP IDs (no matching lessons yet): Two Knights Caro S5OjT1K_s58, Karpov YLEmufSFoGk.
 
-## 5a) State at builds #331 to #334 (Cowork session 2026-09-10 evening into 2026-09-11)
+## 5a) State at builds #331 to #335 (Cowork session 2026-09-10 evening into 2026-09-11)
+- #335: eval chip removed on Kunal's note; the eval bar's number is 13 px, vertical along the bar, at the leading side's end. Audit page R2 reworded (along the bar vs wider bar with horizontal number).
 - #334: Game Review summary got a pinned footer (Back to games, Start review) with the body scrolling under it; Kunal's second note of the day, built after the move-screen piece reached its waiting-on-taps state. Gallery card "Summary: buttons pinned to the bottom".
 - #333 (2026-09-11 afternoon): Kunal's four-point feedback on the Review move screen. FIXED: board plus eval bar overflowed the phone width (both sides clipped). ADDED: eval chip on every move line. PREVIEW (off by default, gallery card turns it on, the review three-dots sheet turns it off): one-screen review layout; his verdicts land in the "Review Screen Audit" artifact (9597e210-cb6c-4174-99d6-204d256dfb56, collection decisions, R1..R6 + Q1). READ IT FIRST next session, then: if R1 approved, make revCompact the default and delete the classic move-screen block and the Classic review layout sheet item; apply R2..R6 as tapped. The black band is undiagnosed; the "Layout numbers" card toasts the phone's viewport numbers and Q1 asks how he launches the app.
 - #332: gallery-card-only fix. Verifying #331 LIVE in Kunal's Chrome showed the Review screen's one-time auto-fetch replacing the staged demo rows with his real 20-game list within seconds (the sandbox never sees this because Chess.com is blocked there). The card now sets gamesAutoRef and seeds ccRawRef before entering analyze mode. Lesson: any card that stages the games list must do this.

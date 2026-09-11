@@ -1,4 +1,9 @@
-# ACTIVE QUEUE - reconciled 2026-09-11 (app at build #334 LIVE; Cowork session, single writer)
+# ACTIVE QUEUE - reconciled 2026-09-11 (app at build #335 LIVE; Cowork session, single writer)
+
+## 2026-09-11 - BUILD #335 - Eval readout: chip removed, the number lives in the bar (bigger, along the bar, on the leading side)
+- Kunal on the #333 rendering: the chip under the board duplicates the bar's number; remove it, and show the number in the bar better, bigger text and maybe a flipped orientation.
+- BUILT: the chip is gone from both the classic move line and the one-screen preview. The bar's number went from 8.5 px horizontal to 13 px, written vertically along the bar (reads upward at the bottom end, downward at the top end), placed at the end of the side that is ahead (Chess.com convention), dark text on the white part, light text on the dark part, mate as M5 / -M3. The audit page's R2 now asks along-the-bar (shipped) vs a wider bar with a horizontal number.
+- GATES (real Chromium 390x844 and 320x568): mount, board inside the viewport, bar number text present, no overflow, compact preview still fits, sheet, classic switch-back, zero errors. Gallery card renamed "Board fits the screen, eval readable in the bar".
 
 ## 2026-09-11 - BUILD #334 - Summary screen: Back to games and Start review pinned to the bottom (Kunal's second note)
 - Kunal (screenshot of the Game Review summary, vs firauka): likes the view; the two buttons should be pinned to the bottom of the screen so he does not scroll to reach Back or Start review.
