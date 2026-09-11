@@ -1,5 +1,5 @@
 # Chess Trainer - HANDOFF (boot document for any new session, chat or Cowork)
-**Written 2026-09-06, updated 2026-09-10. Live repo HEAD = build #331 (Cowork, 2026-09-10 evening EDT).**
+**Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #332 (Cowork; #331 = commit 5f745f8, #332 = the card fix on top of it).**
 Give this file to Claude in Cowork as the first thing in the session.
 
 ## 0) THE PEN RULE (read first)
@@ -53,7 +53,8 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 - Waiting on Kunal (his dashboard): old GitHub token DELETED 2026-09-06 (done); two-device sync check; Stripe test prices at $2.99/$19.99 + checkout test; buy gambitcoach.com; deploy scanBoard function; publish Firestore rules for tournaments/friends/nearby (this last one unlocks three buildable features).
 - Sourcing notes: Caro-Kann Fantasy video 0yMkAJ6Pyig is single-source attribution; Kunal has not yet confirmed playback. Held HP IDs (no matching lessons yet): Two Knights Caro S5OjT1K_s58, Karpov YLEmufSFoGk.
 
-## 5a) State at build #331 (Cowork session 2026-09-10 evening)
+## 5a) State at builds #331 and #332 (Cowork session 2026-09-10 evening into 2026-09-11)
+- #332: gallery-card-only fix. Verifying #331 LIVE in Kunal's Chrome showed the Review screen's one-time auto-fetch replacing the staged demo rows with his real 20-game list within seconds (the sandbox never sees this because Chess.com is blocked there). The card now sets gamesAutoRef and seeds ccRawRef before entering analyze mode. Lesson: any card that stages the games list must do this.
 - #331: brilliant-pill inconsistency fixed at the UI and data layer, not the gate. Background tallies are stamped src:'est' and render as EST rows with a hollow dashed "!! N brilliant?" pill; a full review stamps src:'review' (solid glowing pill) and, if it finds fewer brilliants than the stored count, keeps was:N so the row says "review found 0 brilliant (estimate said 1)". The missing evalBefore argument in analyzeGameCounts is fixed (latent: the gate's null check already fell back to the same value; 0 verdict diffs across 286 plies). Gate thresholds UNCHANGED, by evidence: the Bxg5 brilliancy (gomdz game, not dev_mooie as the brief said) passes the deep gate with loss 0; the shallow pass fails it on loss 130 and evAfter 0.70. Full readout of all six evidence games is the top backlog entry.
 - Open decision for Kunal (one line either way): keep the hollow estimate pill, or drop brilliant from the estimate pass entirely (0 for 4 precision on the Sep 10 sample).
 - Bxh3 knife-edge: at depth 18 in the sandbox engine, evBefore reads 4.52 against the 4.5 ceiling (his phone read 3.87 and passes). If it ever shows ?! on device, raise the evBefore ceiling to 5.0; do not touch the caps.

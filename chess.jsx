@@ -2899,6 +2899,7 @@ export default function App(){
       {src:'demo',white:'mr_dhanzzxnsx',black:'Kunal2023',wr:'resigned',tc:'bullet',date:1789080853000,pgn:'[White "mr_dhanzzxnsx"] [Black "Kunal2023"] 1. e4 e5 2. d3 Nc6 3. f3 f6 4. c3 Bc5 5. f4 d6 6. fxe5 dxe5 7. Qh5+ g6 8. Qd1 Nge7 9. Na3 f5 10. Nc4 f4 11. Nxe5 Nxe5 12. d4 Bxd4 13. cxd4 N5c6 14. d5 Ne5 15. Qd4 Bg4 16. h3 Bd7 17. Qxe5 Bb5 18. Qxh8+ Kd7 19. Bxb5+ Kd6 20. e5+ Kxd5 21. e6 Qxh8 22. Bc4+ Kxc4 23. Ke2 Kd5 24. Nf3 Kxe6 25. Nd4+ Kd7 0-1'},
       {src:'demo',white:'vinnimt',black:'Kunal2023',wr:'resigned',tc:'bullet',date:1789080728000,pgn:'[White "vinnimt"] [Black "Kunal2023"] 1. d4 e5 2. e3 f6 3. dxe5 fxe5 4. Nf3 d6 5. Bd3 Nf6 6. O-O Nc6 7. Nc3 Be6 8. e4 Qd7 9. Bb5 O-O-O 10. Bxc6 Qxc6 11. Be3 Kb8 12. a4 Nd7 13. a5 Nc5 14. Bxc5 dxc5 15. a6 b6 16. Nd5 Bxd5 17. exd5 Rxd5 18. Qe2 Bd6 19. c4 Rd4 20. Nxd4 exd4 21. Rfe1 h5 22. Qe6 g6 23. Qxg6 h4 24. h3 Kc8 25. Qg7 Rd8 26. Qg4+ Kb8 0-1'}];
     if(!chessUser)setChessUser('Kunal2023');
+    gamesAutoRef.current=true;ccRawRef.current=_d;liRawRef.current=[]; // #332: stop the Review screen's one-time auto-fetch from replacing the staged rows (seen live on #331: the real 20-game list took over within seconds)
     recordGameStats(gkey(_d[0]),{bril:1,great:9,inacc:3,mist:2,blun:1,src:'est'});
     recordGameStats(gkey(_d[1]),{bril:1,great:11,inacc:2,mist:1,blun:2,src:'review',engine:'sf'});
     recordGameStats(gkey(_d[2]),{bril:0,great:10,inacc:3,mist:2,blun:1,src:'review',engine:'sf',was:1});
