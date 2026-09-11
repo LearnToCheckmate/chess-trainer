@@ -1,4 +1,12 @@
-# ACTIVE QUEUE - reconciled 2026-09-11 (app at build #336 LIVE; Cowork session, single writer)
+# ACTIVE QUEUE - reconciled 2026-09-11 (app at build #337 LIVE; Cowork session, single writer)
+
+## 2026-09-11 - BUILD #337 - One-screen review is the DEFAULT, with Kunal's three further cuts
+- Kunal (screenshot of the classic move screen on #336, 14. gxf3): remove the text box at the bottom; remove the Game review line and the players line at the top; the board is too small, maximize it; the move/verdict line and the Better-was line must be one line, not two.
+- DECISION: these are the one-screen layout's cuts asked for a second time on the classic screen, so revCompact is now the default (localStorage ct_revCompact defaults on; Classic review layout stays in the three-dots sheet as the escape hatch). The audit page R1 now reads "Keep as default / Back to classic".
+- BUILT on the one-screen layout: (1) the global Game review header (title + menu) is hidden on this screen on phones; Menu and settings moved into the three-dots sheet; (2) the head row is ‹ Summary and ⋯ only, players line gone (they stay on the Summary screen); (3) the text box is gone; (4) the move line is ONE line: move, verdict pill, "best Nxd6 ›" chip (tap plays the best move on the board, only on inaccuracies, mistakes, blunders), ply counter at the right; (5) board reserve trimmed from 32 to 28 px, so the board is 360 px beside the bar on a 390 phone (was 352), 288 on a 320 phone; (6) the compact height cap recomputed for the shorter stack.
+- Measured (real Chromium): 390x844 page height 844, strip bottom 554 vs tab top 788, board 360 at x 26..386; 320x568 fits too (board 288). Move line overflow 0 at both widths with a Blunder verdict and a best chip.
+- GATES: mount, header and names gone, no text box, one-line move row, board full width, fits, no horizontal overflow, sheet items incl. Menu and settings, classic still renders via the sheet with the fixed board, diag toast, summary footer pinned, Start review, zero errors, at 390x844 and 320x568.
+- Gallery card renamed "One-screen review is now the default (NEW)". Audit page republished (v3) with the #337 renders; R5 and R6 reworded to the shipped state.
 
 ## 2026-09-11 - BUILD #336 - Eval bar number flipped 180 degrees (Kunal)
 - Kunal: flip the -0.7 by 180 degrees. Done: the number now reads upward at either end of the bar (rotate 180 on the vertical text, no longer position-dependent). Gate: mount at 390 and 320, number text present, rotation, writing mode and 13 px asserted, zero errors.
