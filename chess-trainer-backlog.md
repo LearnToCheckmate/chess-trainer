@@ -1,4 +1,12 @@
-# ACTIVE QUEUE - reconciled 2026-09-11 (app at build #338 LIVE; Cowork session, single writer)
+# ACTIVE QUEUE - reconciled 2026-09-11 (app at build #339 LIVE; Cowork session, single writer)
+
+## 2026-09-11 - BUILD #339 - The one-screen layout finally reaches Kunal, bigger board, blue Great
+- Kunal (screenshot at 5:11 pm, speedo23 game, 12...Rfb8 Great): board still too small; Great is too close to Brilliant, chess.com uses a blue; the Game review and Summary rows are eating space, get rid of them.
+- WHY HE WAS STILL SEEING THE OLD SCREEN: his screenshot is the CLASSIC move screen, header and all, even though #337 made the one-screen layout the default. Cause: during the #333 preview the layout defaulted OFF and an effect persisted ct_revCompact='0' to his phone; #337 read that stored '0' as an explicit choice, so the new default never applied to him. FIX: a one-time migration (ct_revmig339) flips existing installs to the one-screen layout once; an explicit Classic pick after the migration still sticks. Everything he asked for in point three was already built in #337, it just could not reach him.
+- BIGGER BOARD, the only lever left: the board was width-capped, not height-capped (392 px of 430 on his phone), and the 22 px eval bar beside it was the whole difference. The bar now sits UNDER the board by default as a full-width 17 px strip, number horizontal at the leading end at 13 px. Board 424 px of 430 on his phone (98.6 percent of the screen), 384 of 390. The three-dots sheet cycles Eval bar: under the board / beside the board / off, so the old side bar is one tap away.
+- BLACK VOID: the leftover vertical slack (the board is square, the phone is tall) is now split above and below the board block with auto margins rather than pooling under the move strip. Auto margins collapse to zero when there is no slack, so unlike justify-content:center they can never clip the top on a short screen.
+- GREAT COLOUR: #7bd3c0 teal -> #5d93e8 blue, all five places (move verdict pill, summary counts, review counts pill, eval graph, jump buttons). Clearly apart from Brilliant cyan #22d3ee and Best green #7bd88f.
+- GATES: review gate at 430x932 and 390x844 including the new width expectation (floor((W-6)/8)*8) and an assertion that the strip and its number render; puzzle gate re-run at both sizes (the eval change touches every board); zero errors. Gallery card "Bigger board, blue Great, one-screen layout for real (NEW)".
 
 ## 2026-09-11 - BUILD #338 - Puzzle screen: empty band at the top and the board cut off at the bottom (ROOT CAUSE was one missing CSS order)
 - Kunal (screenshot of the brilliancy replay inside the Puzzles screen): a third of the screen empty black at the top, the board cut off under the tab bar.
