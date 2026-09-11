@@ -1,4 +1,9 @@
-# ACTIVE QUEUE - reconciled 2026-09-11 (app at build #339 LIVE; Cowork session, single writer)
+# ACTIVE QUEUE - reconciled 2026-09-11 (app at build #340 LIVE; Cowork session, single writer)
+
+## 2026-09-11 - BUILD #340 - Eval bar moved ABOVE the board (Kunal's call, same idea as #339 with the position he asked for)
+- Kunal: "instead of [the] vertical bar we could consider using a horizontal bar above the board to get a bigger board" (voice-to-text rendered vertical as "terrible bare"). That is exactly the #339 change, which he had not seen yet, except #339 put the strip UNDER the board. Moved it above, directly under the Summary / three-dots row.
+- Board unchanged at 424 px of 430 (the win came from dropping the side bar in #339, not from the position). Strip is full width, 17 px, white advantage filling from the bottom player's side, number horizontal at the leading end at 13 px. Sheet label now reads "Eval bar: above the board"; the cycle is above / beside / off.
+- GATES: review gate at 430x932 and 390x844, board width and strip asserted, zero errors. Gallery card "Eval bar above the board (NEW)".
 
 ## 2026-09-11 - BUILD #339 - The one-screen layout finally reaches Kunal, bigger board, blue Great
 - Kunal (screenshot at 5:11 pm, speedo23 game, 12...Rfb8 Great): board still too small; Great is too close to Brilliant, chess.com uses a blue; the Game review and Summary rows are eating space, get rid of them.
