@@ -83,7 +83,7 @@ T=[
  ("polish","Daily 3 habit card on Home","part","#310","LIVE."),
  ("coach","Coach's take after every Review","part","#310","LIVE."),
  ("polish","Toast notices for errors and confirmations","part","#310","LIVE."),
- ("polish","Brilliant move visibility (list pill + summary count fix)","part","#310","LIVE."),
+ ("polish","Brilliant move visibility (list pill + summary count fix)","done","#331","LIVE. #331: list pills are marked EST (hollow, dashed) until a full review stamps the game; a review that finds fewer brilliants than the estimate leaves a one-line note instead of erasing the pill. Root cause and Stockfish readout in the backlog."),
  ("lessons","Branches from this opening (find gambits by parent opening)","part","#310","LIVE."),
  ("polish","UX: Home regroup (one screen, no scroll)","done","#314","LIVE; eyeball fit on your phone via the gallery card."),
  ("polish","UX: lesson focus mode (first cut)","done","#316","LIVE: tab bar + box stack gone in lessons; X and 3-dot bar. Stage C queued for nav relocation."),

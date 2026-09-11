@@ -375,7 +375,8 @@ async function analyzeGameCounts(pgn,userColor){
       const actual=scored.find(s=>s.m.fr===pl.fr&&s.m.fc===pl.fc&&s.m.tr===pl.tr&&s.m.tc===pl.tc);
       const actualVal=actual?actual.v:(pos.turn==='w'?-9999:9999);
       const loss=Math.max(0,mc==='w'?bestVal-actualVal:actualVal-bestVal);
-      const L=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]))?'Brilliant':classify(loss).label;
+      // #331: evalBefore was missing here, so the gate ran with evB undefined in the background pass (it fell back to evalPawns(pos) inside brilliantGate, but only by accident of the null check). Pass it explicitly.
+      const L=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos))?'Brilliant':classify(loss).label;
       if(L==='Brilliant')bril++;else if(L==='Best'||L==='Great')great++;else if(L==='Inaccuracy')inacc++;else if(L==='Mistake'||L==='Miss')mist++;else if(L==='Blunder')blun++;
       if((++proc)%2===0)await new Promise(r=>setTimeout(r,0));
     }
@@ -2216,7 +2217,7 @@ export default function App(){
         let bestSan=toSAN(res.positions[i],bestMv,applyMove(res.positions[i].board,bestMv));let _bMv2=bestMv;
         if(bestMv.fr===pl.fr&&bestMv.fc===pl.fc&&bestMv.tr===pl.tr&&bestMv.tc===pl.tc){bestSan='';_bMv2=null;}
         const _evA=evalPawns(res.positions[i+1]);
-        const _g=brilliantGate(res.positions[i],pl,Math.round(loss),_evA);
+        const _g=brilliantGate(res.positions[i],pl,Math.round(loss),_evA,evalPawns(res.positions[i]));
         const _cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(loss);
         out.push({loss:Math.round(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,gate:_g});
         if(i%2===0){setProgress((i+1)/res.plies.length);await new Promise(r=>setTimeout(r,0));}
@@ -2228,7 +2229,13 @@ export default function App(){
     if(meta&&meta.key){
       const uc=meta.userColor;let bril=0,great=0,inacc=0,mist=0,blun=0;
       out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(uc&&mc!==uc)return;const L=o.cls.label;if(L==='Brilliant')bril++;else if(L==='Best'||L==='Great')great++;else if(L==='Inaccuracy')inacc++;else if(L==='Mistake'||L==='Miss')mist++;else if(L==='Blunder')blun++;});
-      recordGameStats(meta.key,{bril,great,inacc,mist,blun});
+      // #331: a full review STAMPS the game (src:'review'). If a background estimate had shown more brilliants than
+      // the review found, keep the old number as `was` so the row can say "review found N (estimate said M)" instead of
+      // silently erasing the pill. A later review that finds the brilliant again clears the note.
+      const _prev=gameStatsRef.current[meta.key];
+      let _was=null;
+      if(_prev){if((_prev.bril||0)>bril)_was=_prev.bril||0;else if(_prev.was!=null&&(_prev.bril||0)===bril)_was=_prev.was;}
+      recordGameStats(meta.key,{bril,great,inacc,mist,blun,src:'review',engine:useSF?'sf':'fallback',...(_was!=null?{was:_was}:{})});
     }
     const playedSans=res.positions.slice(0,res.plies.length).map((pos,i)=>toSAN(pos,res.plies[i].move,applyMove(pos.board,res.plies[i].move)));
     const openingName=nameOpening(playedSans);
@@ -2320,7 +2327,7 @@ export default function App(){
         if(cancelled)return;
         const c=await analyzeGameCounts(g.pgn,gameInfo(g).userColor);
         if(cancelled)return;
-        if(c)recordGameStats(k,c);
+        if(c)recordGameStats(k,{...c,src:'est'}); // #331: background tallies are ESTIMATES (depth-2 static eval) until a full review stamps the game
         await new Promise(r=>setTimeout(r,60));
       }
     })();
@@ -2887,7 +2894,16 @@ export default function App(){
           setTimeout(stepFn,750);
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
-        const SC=[{l:"First endgame videos (NEW)", n:"The endgame lessons had no walkthroughs at all until now. Bishop and Knight Mate and Queen vs Pawn on the 7th each got the Hanging Pawns video on exactly that endgame. Only these two cleared the bar: the channel has no video specifically on Lucena, Philidor, the opposition, rook vs pawn or the two-rook mate, and I would rather leave a lesson video-less than point it at a compilation that only mentions it. This card opens Bishop and Knight Mate with the video box expanded.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const i=LIB.findIndex(o=>o&&o.video&&o.video.id==='oX_pq-2kiJI');setMode('learn');selectOpening(i>=0?i:0);setTimeout(()=>{setVideoOpen(true);setLessonMore(true);},600);}, h:9000},
+        const SC=[{l:"Brilliant pills: estimates vs reviewed (NEW)", n:"Why brilliant pills used to vanish: the games list is filled by a quick background pass (depth-2 static eval), the full review uses real Stockfish, and both fed the same gate, so the list could say 1 brilliant and the review 0, then the review silently overwrote the list. Now: a background tally shows as EST with a hollow dashed pill and a question mark; a full review stamps the row with the solid glowing pill; and if the review finds fewer brilliants than the estimate said, the row keeps a one-line note (review found 0 brilliant, estimate said 1) instead of erasing it. This card loads three of your Sep 10 games with the counts STAGED so you see one row in each state (estimate, reviewed, reviewed-with-downgrade note); tap any row and the real review replaces the staged numbers.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');
+    const _d=[{src:'demo',white:'Kunal2023',black:'gomdz',wr:'win',tc:'blitz',date:1789078874000,pgn:'[White "Kunal2023"] [Black "gomdz"] 1. d4 b6 2. Nf3 Bb7 3. c3 Bxf3 4. exf3 d5 5. Bd3 Nf6 6. O-O Nc6 7. Nd2 e6 8. Re1 Bd6 9. Qc2 O-O 10. Nf1 a5 11. Bg5 h6 12. Be3 Qe7 13. Qd2 g5 14. Bxg5 hxg5 15. Qxg5+ Kh8 16. Qh6+ Kg8 17. Ng3 Bxg3 18. fxg3 e5 19. dxe5 Nxe5 20. f4 Neg4 21. Qg5+ Kh8 22. Rxe7 1-0'},
+      {src:'demo',white:'mr_dhanzzxnsx',black:'Kunal2023',wr:'resigned',tc:'bullet',date:1789080853000,pgn:'[White "mr_dhanzzxnsx"] [Black "Kunal2023"] 1. e4 e5 2. d3 Nc6 3. f3 f6 4. c3 Bc5 5. f4 d6 6. fxe5 dxe5 7. Qh5+ g6 8. Qd1 Nge7 9. Na3 f5 10. Nc4 f4 11. Nxe5 Nxe5 12. d4 Bxd4 13. cxd4 N5c6 14. d5 Ne5 15. Qd4 Bg4 16. h3 Bd7 17. Qxe5 Bb5 18. Qxh8+ Kd7 19. Bxb5+ Kd6 20. e5+ Kxd5 21. e6 Qxh8 22. Bc4+ Kxc4 23. Ke2 Kd5 24. Nf3 Kxe6 25. Nd4+ Kd7 0-1'},
+      {src:'demo',white:'vinnimt',black:'Kunal2023',wr:'resigned',tc:'bullet',date:1789080728000,pgn:'[White "vinnimt"] [Black "Kunal2023"] 1. d4 e5 2. e3 f6 3. dxe5 fxe5 4. Nf3 d6 5. Bd3 Nf6 6. O-O Nc6 7. Nc3 Be6 8. e4 Qd7 9. Bb5 O-O-O 10. Bxc6 Qxc6 11. Be3 Kb8 12. a4 Nd7 13. a5 Nc5 14. Bxc5 dxc5 15. a6 b6 16. Nd5 Bxd5 17. exd5 Rxd5 18. Qe2 Bd6 19. c4 Rd4 20. Nxd4 exd4 21. Rfe1 h5 22. Qe6 g6 23. Qxg6 h4 24. h3 Kc8 25. Qg7 Rd8 26. Qg4+ Kb8 0-1'}];
+    if(!chessUser)setChessUser('Kunal2023');
+    recordGameStats(gkey(_d[0]),{bril:1,great:9,inacc:3,mist:2,blun:1,src:'est'});
+    recordGameStats(gkey(_d[1]),{bril:1,great:11,inacc:2,mist:1,blun:2,src:'review',engine:'sf'});
+    recordGameStats(gkey(_d[2]),{bril:0,great:10,inacc:3,mist:2,blun:1,src:'review',engine:'sf',was:1});
+    setMode('analyze');setCcGames(_d);setTimeout(()=>{try{gamesListRef.current&&gamesListRef.current.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},400);}, h:9000},
+  {l:"First endgame videos (NEW)", n:"The endgame lessons had no walkthroughs at all until now. Bishop and Knight Mate and Queen vs Pawn on the 7th each got the Hanging Pawns video on exactly that endgame. Only these two cleared the bar: the channel has no video specifically on Lucena, Philidor, the opposition, rook vs pawn or the two-rook mate, and I would rather leave a lesson video-less than point it at a compilation that only mentions it. This card opens Bishop and Knight Mate with the video box expanded.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const i=LIB.findIndex(o=>o&&o.video&&o.video.id==='oX_pq-2kiJI');setMode('learn');selectOpening(i>=0?i:0);setTimeout(()=>{setVideoOpen(true);setLessonMore(true);},600);}, h:9000},
   {l:"Join by code, fixed (NEW)", n:"The long-standing bug where the invite LINK worked but typing the CODE did not. Cause: the link path stripped anything that is not a letter or number, the typed path did not, so one stray character from the keyboard (a space, a period, an autocorrect leftover) was sent to the server and came back as no game found. The code box now strips as you type, has autocorrect and autocapitalize set for it, and if a join ever does fail the message names the exact code it tried. This card opens the online screen with a deliberately messy code in the box; tap Join and it will be cleaned before it is sent.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setRevAuto(false);setHomeScreen(false);setMode('play');setPlaySetup(false);setOpponent('online');setOnlineGame(null);setOnlineErr('');setOnlineInfo('');if(!cloudUser)setCloudUser({uid:'demo-you',name:'You'});setOnlineCodeInput('ab 3d.');}, h:9000},
   {l:"11 more opening videos (NEW)", n:"Second video batch, same channel-confirmed method: Blackmar-Diemer, From's Gambit, Two Knights Defense, Nimzowitsch Defense, Richter-Veresov, Torre Attack, Moscow Variation, French Rubinstein, French Winawer, Albin Counter-Gambit and the Hippopotamus. 82 of 170 lessons now carry a Hanging Pawns walkthrough. This card opens the Torre Attack lesson with the video box expanded in the 3-dot sheet.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const i=LIB.findIndex(o=>o&&o.video&&o.video.id==='xbUgaJGb5Ps');setMode('learn');selectOpening(i>=0?i:0);setTimeout(()=>{setVideoOpen(true);setLessonMore(true);},600);}, h:9000},
   {l:"Space audit, batch 1 (NEW)", n:"Four pure subtractions from the audit page, nothing redesigned: (1) the Home button in the top bar is gone on every screen that already has the tab bar (it stays in live games, where there is no tab bar); (2) the Progress in Novice bar under the Puzzles header is gone, the glowing node already shows that number; (3) the Go to section is gone from the Menu sheet, it duplicated the tab bar; (4) inside a lesson the small title above the board is gone, the bottom bar carries the name. This card opens the Puzzles map; then check the Menu sheet and any lesson.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setPlaySetup(false);setRevAuto(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}, h:9000},
@@ -3721,7 +3737,14 @@ export default function App(){
                   <span style={{minWidth:0,flex:1}}>
                     <span style={{display:'block',fontSize:'clamp(14.5px,3.6vw,17px)',fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{info.opp?('vs '+info.opp):(g.white+' vs '+g.black)}</span>
                     <span style={{display:'block',fontSize:'clamp(14.5px,3vw,15.5px)',color:'rgba(255,255,255,.55)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}><span style={{color:g.src==='li'?'#c9b6ff':'#9bd6a0',fontWeight:700}}>{g.src==='li'?'Lichess':'Chess.com'}</span>{info.userColor?(' · '+(info.userColor==='w'?'as White':'as Black')):''}{g.tc?(' · '+tcLabel(g.tc)):''}{g.date?(' · '+new Date(g.date).toLocaleDateString(undefined,{month:'short',day:'numeric'})):''}</span>
-                    {st&&(<span style={{display:'inline-flex',gap:9,marginTop:4,fontSize:'clamp(14.5px,3.2vw,16.5px)',fontWeight:800,fontFamily:'monospace'}}>{st.bril>0&&<span style={{color:'#062a30',background:'linear-gradient(135deg,#22d3ee,#7be9f7)',border:'1px solid #22d3ee',borderRadius:8,padding:'1px 8px',fontWeight:900,boxShadow:'0 0 10px rgba(34,211,238,.55)'}}>!! {st.bril} brilliant</span>}<span style={{color:'#6fd66f'}}>★ {st.great}</span><span style={{color:'#f0a24e'}}>? {st.mist}</span><span style={{color:'#ec5c4e'}}>?? {st.blun}</span></span>)}
+                    {st&&(()=>{const est=st.src!=='review';return(<span data-ct={est?'gstat-est':'gstat-rev'} style={{display:'inline-flex',flexWrap:'wrap',alignItems:'center',gap:9,marginTop:4,fontSize:'clamp(14.5px,3.2vw,16.5px)',fontWeight:800,fontFamily:'monospace',opacity:est?.78:1}}>
+                      {est&&<span data-ct="gstat-esttag" style={{fontSize:'.72em',fontWeight:700,letterSpacing:.6,color:'rgba(255,255,255,.5)',border:'1px solid rgba(255,255,255,.22)',borderRadius:5,padding:'0 5px'}}>EST</span>}
+                      {st.bril>0&&(est
+                        ?<span data-ct="bril-pill-est" style={{color:'#7be9f7',background:'transparent',border:'1px dashed rgba(34,211,238,.75)',borderRadius:8,padding:'1px 8px',fontWeight:800}}>!! {st.bril} brilliant?</span>
+                        :<span data-ct="bril-pill" style={{color:'#062a30',background:'linear-gradient(135deg,#22d3ee,#7be9f7)',border:'1px solid #22d3ee',borderRadius:8,padding:'1px 8px',fontWeight:900,boxShadow:'0 0 10px rgba(34,211,238,.55)'}}>!! {st.bril} brilliant</span>)}
+                      <span style={{color:'#6fd66f'}}>★ {st.great}</span><span style={{color:'#f0a24e'}}>? {st.mist}</span><span style={{color:'#ec5c4e'}}>?? {st.blun}</span>
+                      {!est&&st.was!=null&&st.was>(st.bril||0)&&<span data-ct="bril-downgrade" style={{flexBasis:'100%',fontSize:'.8em',fontWeight:600,fontFamily:"'Segoe UI',system-ui,sans-serif",color:'rgba(123,233,247,.75)'}}>review found {st.bril||0} brilliant (estimate said {st.was})</span>}
+                    </span>);})()}
                   </span>
                   <span style={{flexShrink:0,fontSize:'clamp(14.5px,3vw,15.5px)',color:'var(--ac2)',fontWeight:700}}>Review ›</span>
                 </button>);})}
