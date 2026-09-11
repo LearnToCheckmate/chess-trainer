@@ -1,5 +1,5 @@
 # Chess Trainer - HANDOFF (boot document for any new session, chat or Cowork)
-**Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT with the header, players line and text box removed).**
+**Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix).**
 Give this file to Claude in Cowork as the first thing in the session.
 
 ## 0) THE PEN RULE (read first)
@@ -53,7 +53,8 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 - Waiting on Kunal (his dashboard): old GitHub token DELETED 2026-09-06 (done); two-device sync check; Stripe test prices at $2.99/$19.99 + checkout test; buy gambitcoach.com; deploy scanBoard function; publish Firestore rules for tournaments/friends/nearby (this last one unlocks three buildable features).
 - Sourcing notes: Caro-Kann Fantasy video 0yMkAJ6Pyig is single-source attribution; Kunal has not yet confirmed playback. Held HP IDs (no matching lessons yet): Two Knights Caro S5OjT1K_s58, Karpov YLEmufSFoGk.
 
-## 5a) State at builds #331 to #337 (Cowork session 2026-09-10 evening into 2026-09-11)
+## 5a) State at builds #331 to #338 (Cowork session 2026-09-10 evening into 2026-09-11)
+- #338: the tab-bar spacer now carries order 99. It had none, and the puzzle screen is the only screen that orders its children, so there the spacer rendered FIRST (empty band at the top) and reserved nothing at the bottom (board and controls under the tab bar). If you ever add order to another screen's children, give every sibling an order or this returns. Puzzle boards are now sized from a measured pzStackH; the drill hides the Lichess panel; dev loaders are collapsed.
 - #337: one-screen review is the default (Kunal asked for its cuts a second time on the classic screen): no app header on this screen, ‹ Summary and ⋯ only, no text box, move + verdict + best chip on one line, board 360 px beside the bar. Classic stays in the sheet until he confirms R1; then delete the classic move-screen block and the sheet item. Audit page v3 reflects this.
 - #336: bar number reads upward at both ends (Kunal asked for the 180-degree flip).
 - #335: eval chip removed on Kunal's note; the eval bar's number is 13 px, vertical along the bar, at the leading side's end. Audit page R2 reworded (along the bar vs wider bar with horizontal number).
