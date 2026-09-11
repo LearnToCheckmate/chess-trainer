@@ -1,4 +1,11 @@
-# ACTIVE QUEUE - reconciled 2026-09-11 (app at build #333 LIVE; Cowork session, single writer)
+# ACTIVE QUEUE - reconciled 2026-09-11 (app at build #334 LIVE; Cowork session, single writer)
+
+## 2026-09-11 - BUILD #334 - Summary screen: Back to games and Start review pinned to the bottom (Kunal's second note)
+- Kunal (screenshot of the Game Review summary, vs firauka): likes the view; the two buttons should be pinned to the bottom of the screen so he does not scroll to reach Back or Start review.
+- BUILT: the summary overlay is now a column with a scrolling body and a footer pinned to the bottom (same near-black glass as the tab bar, safe-area padding): Back to games (secondary, left) and Start review (primary, fills the rest) side by side. The disclaimer line stays at the end of the scroll. Nothing else on the screen changed.
+- Gallery card "Summary: buttons pinned to the bottom (NEW)" analyzes a short game and lands on the summary.
+- GATES (real Chromium 390x844 and 320x568): mount, footer bottom equals the viewport bottom, body scrolls under it, both buttons present, no horizontal overflow, Start review opens the move view, zero errors.
+- QUEUE ORDER, as he asked: the move-screen decisions (#333 audit page) come first; this was built after that piece reached the point of waiting on his taps.
 
 ## 2026-09-11 - BUILD #333 - Review move screen: board overflow FIXED, eval on every move, one-screen layout as a PREVIEW (Kunal's four points)
 - KUNAL'S FEEDBACK (Sep 11 screenshot, vs firauka, 8. c3): (1) still too much on the page, (2) needs scrolling, (3) black band at the bottom, (4) the eval (-1, +3, mate in 10) is not visible while stepping.
