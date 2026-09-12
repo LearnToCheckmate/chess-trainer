@@ -31,6 +31,7 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 ## 4) Conventions (Kunal's, unchanged and non-negotiable)
 - Pre-flight block printed at the top of every reply: Feedback swept / Gallery state / Backlog synced.
 - After every deployed build, END the reply with a faithful rendered mockup of the changed screen (phone frame, real colors/text), labeled as a rendering.
+- END EVERY run with a brief three-part close-out: what was accomplished, what is next, what the remaining gap is. Short. Kunal asked for this as a standing habit on 2026-09-12, not a one-off.
 - No em-dashes in replies or UI labels. No emojis unless he uses them. US spelling. Answer-first. Vertical status blocks. Build stamp at the bottom only when a deploy happened.
 - Voice-to-text decoding: "PNG"=PGN, "bills"=builds, "gosling"=castling, "Fortnite's game"=Four Knights, "Maltese"=make sure. Repeated identical messages = one message.
 - Design-taste decisions: annotate his actual screenshots (color-coded keep/change/demote) + a decision table + tap-to-approve buttons. He explicitly likes approving in place. The chess.com-style redesign is PERMANENTLY closed; current simplification work is subtraction only, identity untouched.
