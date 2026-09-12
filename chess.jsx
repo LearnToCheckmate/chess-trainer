@@ -576,6 +576,25 @@ function moveHits(board,fr,fc,tr,tc){
   while(r!==tr||c!==tc){if(board[r][c])return false;r+=sr;c+=sc;}
   return true;
 }
+// #357 WHAT YOU GET BACK. A brilliancy is a sacrifice, so the only thing worth saying about one
+// is what it buys: "you give up the queen, and Nxb8 Rd8 is mate". Three attempts at this line said
+// how MUCH was given up and what the evaluation was afterwards, which between them restate the
+// definition of a brilliancy without ever explaining one, and Kunal called it useless three times.
+// The continuation costs nothing to build: the review has already evaluated every position, so the
+// best move at every later ply is known. Walk forward while the game STAYED on the engine's line -
+// a ply with no recorded better move is one where the played move WAS the best move - and stop at
+// the first deviation, naming the better move there. Everything in the result is therefore either a
+// move that was actually played or the engine's own first choice, never a guess.
+function contLine(out,plies,i,max){
+  const sans=[];
+  for(let j=i+1;j<out.length&&sans.length<max;j++){
+    const a=out[j];
+    if(a&&a.bestSan){sans.push(String(a.bestSan).replace(/[!?]+$/,''));break;}   // they deviated here
+    const p=plies[j]; if(!p||!p.san)break;
+    sans.push(String(p.san).replace(/[!?]+$/,''));
+  }
+  return sans;
+}
 // ── The sentence under the board (#350) ─────────────────────────────────────────────────────
 // The review used to explain a move purely as arithmetic - "about 1.4 pawns gone" - which says
 // how much and never what. Each line now LEADS with what happened on the board and keeps the
@@ -621,18 +640,41 @@ function explainAnno(a,ctx){
     }catch(e){}
     return tail==='mate'?(reply+' is mate.'):(reply+' is the answer'+tail+'.');})();
   const motifTxt=has('mate')?'Checkmate.':has('fork')?'It forks two pieces at once.':has('discovered check')?'A discovered check, which is why it lands so hard.':has('promotion')?'The pawn promotes.':'';
+  // A continuation is only an EXPLANATION when it is forcing. On a quiet move the next few plies
+  // are just the next few plies - "Then e5 Nf3 d6 d4 follows" after 1.e4 says nothing at all - so
+  // the line is shown when every move in it is a capture, a check or mate, and on a sacrifice when
+  // they simply take the offered piece.
+  const _pv=a.pv||[];
+  const pvMates=!!(_pv.length&&/#/.test(_pv[_pv.length-1]));
+  const pvForcing=_pv.length>0&&_pv.every(m=>/[x+#]/.test(m));
+  const pvTakes=_pv.length>0&&/x/.test(_pv[0]);
+  const pvShow=(also)=>{
+    if(!_pv.length||!(also||pvForcing))return '';
+    const line=_pv.slice(0,pvMates?_pv.length:3).join(' ');
+    return pvMates?(line+' is mate.'):(line+' follows.');
+  };
+  const pvTxt=pvShow(false);
   if(has('mate'))return 'Checkmate.';
   if(has('stalemate'))return 'Stalemate. The game is drawn.';
-  const standing=evM>=3?(mover+' is winning here.'):evM>=1?(mover+' is clearly better.'):evM<=-3?(mover+' is losing here.'):evM<=-1?(mover+' is clearly worse.'):'The position stays roughly level.';
+  // nothing that follows a forced mate is worth reading, least of all how the position "stands"
+  const standing=pvMates?'':evM>=3?(mover+' is winning here.'):evM>=1?(mover+' is clearly better.'):evM<=-3?(mover+' is losing here.'):evM<=-1?(mover+' is clearly worse.'):'The position stays roughly level.';
+  // #357 The verdict chip already says "Brilliant", so saying it again is a wasted clause. What it
+  // does NOT say is what the sacrifice buys, and that is the only thing worth reading here.
   if(L==='Brilliant'){const g=a.gate||{};
-    return pack([didTxt,'It gives up '+(g.sac>=5?'a rook or more':g.sac>=3?'a piece':'material')+' and still reads '+(evM>0?'+':'')+evM.toFixed(1)+'.',motifTxt||'Hard to see, and it holds.']);}
+    const what=g.sac>=9?'the queen':g.sac>=5?'a rook':g.sac>=3?'a piece':g.sac>=1?'a pawn':'material';
+    const _l=pvShow(pvTakes);
+    const _give='You give up '+what+(_l?(', and '+_l):'.');
+    // a forced mate ends the discussion: nothing after it is worth the two lines it would take
+    return pvMates?_give:pack([_give,motifTxt,standing,didTxt]);}
   if(L==='Great'){const alt=(a.altSan&&a.altDrop!=null&&a.altDrop>=120)?(a.altSan+', the next best, was about '+(a.altDrop/100).toFixed(1)+' pawns worse.'):'';
-    return pack([didTxt,'The only move that keeps it.',motifTxt,alt]);}
+    return pack(['The only move that keeps it.',pvTxt,didTxt,motifTxt,alt]);}
   const gapTxt=(()=>{if(!a.altSan||a.altDrop==null)return '';const d=a.altDrop/100;
     if(d>=1.0)return 'Nothing else came close: '+a.altSan+' was about '+d.toFixed(1)+' pawns worse.';
     if(d>=0.35)return a.altSan+' was the only other try, about '+d.toFixed(1)+' pawns worse.';
     return a.altSan+' was just as good.';})();
-  if(L==='Best'||L==='Excellent')return pack([didTxt,(L==='Best'?'The engine’s first choice.':'Right among the top choices.'),motifTxt,standing,gapTxt]);
+  // "The engine's first choice" is exactly what the chip beside it already says. Cut it, and let
+  // the clauses that carry information move up: what the move did, and what follows from it.
+  if(L==='Best'||L==='Excellent')return pack([didTxt,pvTxt,motifTxt,standing,gapTxt]);
   if(L==='Good')return pack([didTxt,'Sound, if not the sharpest.',(a.bestSan?(a.bestSan+' was sharper.'):''),motifTxt,standing]);
   if(L==='Book')return pack([didTxt,'Still in the book.',standing,gapTxt]);
   if(L==='Miss')return pack([hangTxt||didTxt,'You were on top and this let it slip.',(a.bestSan?(a.bestSan+' was the one.'):''),('About '+lossP.toFixed(1)+' pawns gone.'),replyTxt]);
@@ -2770,7 +2812,13 @@ export default function App(){
         let altSan='',altDrop=null;
         try{const au=aU[i];if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));}}
           if(ev2W[i]!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2W[i]:-ev2W[i];altDrop=Math.max(0,Math.round(_b-_s2));}}catch(e){}
-        out.push({loss:Math.round(loss),cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl)});
+        out.push({loss:Math.round(loss),cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null});
+      }
+      // #357 done in a second pass because the line reads FORWARD from each move, so the whole
+      // array has to exist first. Only the classes that are worth a demonstration carry one.
+      for(let i=0;i<out.length;i++){
+        const L=out[i].cls&&out[i].cls.label;
+        if(L==='Brilliant'||L==='Great'||L==='Best'||L==='Excellent')out[i].pv=contLine(out,res.plies,i,4);
       }
     }else{
       QDEPTH=2;
