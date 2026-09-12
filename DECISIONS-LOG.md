@@ -117,3 +117,29 @@ they are drawn straight onto the bar, same as ours.
 - **Eval graph (y1b)** → *Still not sure, draw C properly first.*
 - **Home icons (y3b)** → *B, all four emoji, ink-matched.*
 - **Live-game buttons (y5d)** → his note "chess.com shows more buttons" predates the redraw from his screenshot; awaiting a fresh answer.
+
+## Round 2, how the answers were read when building #366 — 2026-09-12, 16:30 ET
+
+Four of the ten needed no further answer and went into #366. Where an answer left room, this is
+the reading I took, so it can be reversed on purpose rather than by accident:
+
+- **y3b, all four emoji, ink-matched.** The set is the one on the approved mockup: 🔭 🧩 🔍 ♟️. That
+  set replaces Classic's 📖 📈 👑 (two of which were never shown, because Puzzles and Play were drawn
+  pieces on Classic). Medieval keeps its own themed four. Ink-matching is done on the device at run
+  time, not baked in, because Apple's emoji and the test browser's emoji draw different ink.
+- **y11b, "3 or 4 lines is okay".** Three, not four. On his phone four lines took 8px off the
+  board; three, paid for by the redundant hint line under the moves panel, let the lesson board
+  reach 375 edge to edge for the first time. 716 of 734 notes fit in three; 18 scroll. If he wants
+  four, the price is a 352 board, or the MOVES header row.
+- **y15b, round button on the board, board full size.** The control row STAYS with first / play /
+  last / key-moment; only Analyze moved onto the board. The "Proposed" frame on the question had
+  the whole row gone, but that frame also shrank the board, and he rejected that frame for this
+  option. Removing the other four controls was never asked for.
+- **lay, all three.** Readout (#361), overlay (#366), recordings (accepted as they arrive). The
+  overlay measures the painted board element, not SQ, so it cannot agree with the arithmetic by
+  construction - that is the point.
+- **y12c, "I accept your proposal"** is read as the picker screen (board colours and piece style,
+  drawn, pick by looking). The home icons are NOT tied to it: y3b fixed them as one emoji set on
+  every skin in the same round. Not built yet.
+- Still open from the round: y17b Skills panel (unblocked by #365), y1b draw option C properly,
+  y5d fresh answer on the redrawn live-game button row.

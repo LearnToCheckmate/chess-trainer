@@ -1038,7 +1038,10 @@ const SKINS=[
     font:"'Playfair Display',serif",
     tex:'radial-gradient(circle at 50% 0%, rgba(200,154,90,.07), transparent 55%), radial-gradient(circle at 50% 120%, rgba(0,0,0,0), rgba(0,0,0,.22))',
     tints:{learn:['#5f8a9c','#3f6675'],puzzle:['#bf9a57','#8f6d33'],analyze:['#7f9a6a','#566f45'],play:['#5a9a63','#3c7a45']},
-    icons:{learn:'📖',puzzle:'🧩',analyze:'📈',play:'👑'} },
+    /* #366 y3b: Classic used to draw Puzzles and Play as chess pieces and the other two as emoji, so the four
+       tiles were never one set. Kunal chose "all four emoji, ink-matched" on the decisions page (round 2), looking
+       at exactly this set; the drawn-piece override is gone and every skin's tile glyph goes through inkScale. */
+    icons:{learn:'🔭',puzzle:'🧩',analyze:'🔍',play:'♟️'} },
   { key:'medieval', name:'Medieval', blurb:'Aged stone, parchment & gold', pal:8, pro:true,
     font:"'Cinzel',serif",
     pcf:'drop-shadow(0 2px 2px rgba(0,0,0,.45))',
@@ -1577,6 +1580,32 @@ function ChevIcon({size=20,dir='right'}){
       strokeLinecap="round" strokeLinejoin="round"/>
   </svg>);
 }
+/* #366 y3b. The same lesson a third time, for emoji. Four emoji in four identical boxes never look
+   the same size, because an emoji's font-size is not its drawn size: measured, the pawn drew 15px of
+   ink where the telescope drew 26. Kunal chose "all four emoji, ink-matched". The matching happens on
+   the DEVICE, not in a build script: Apple Color Emoji and Noto draw different ink for the same glyph,
+   so a factor measured in headless Chromium would be wrong on his phone. inkScale paints the glyph on
+   an offscreen canvas, finds the bounding box of its ink, and returns the factor that makes the larger
+   side of that box the same fraction of the font size for every glyph. Cached per glyph and font; if
+   the canvas is unavailable it returns 1, which is exactly today. Numbers appear in Layout readout. */
+const _inkCache={};
+function inkScale(glyph,font,target){
+  target=target||1.1; const key=glyph+'|'+font+'|'+target;
+  if(_inkCache[key]!=null)return _inkCache[key];
+  let s=1, ext=0;
+  try{
+    if(typeof document!=='undefined'){
+      const N=96, W=N*2; const c=document.createElement('canvas'); c.width=W; c.height=W;
+      const x=c.getContext('2d',{willReadFrequently:true});
+      if(x){ x.font=N+'px '+font; x.textBaseline='middle'; x.textAlign='center'; x.fillText(glyph,N,N);
+        const d=x.getImageData(0,0,W,W).data; let x0=W,x1=-1,y0=W,y1=-1;
+        for(let y=0;y<W;y++){for(let xx=0;xx<W;xx++){if(d[(y*W+xx)*4+3]>40){if(xx<x0)x0=xx;if(xx>x1)x1=xx;if(y<y0)y0=y;if(y>y1)y1=y;}}}
+        if(x1>=0){ ext=Math.max(x1-x0+1,y1-y0+1)/N; if(ext>0.2&&ext<1.6)s=Math.max(0.7,Math.min(1.6,target/ext)); }
+      }
+    }
+  }catch(e){ s=1; }
+  s=Math.round(s*100)/100; _inkCache[key]=s; _inkCache[key+'#ext']=Math.round(ext*100)/100; return s;
+}
 function QueenGlyph({idp='q',style}){
   return(<svg viewBox="0 0 56 66" aria-hidden="true" style={style}>
     <defs>
@@ -2019,6 +2048,14 @@ export default function App(){
     return localStorage.getItem('ct_evalunder')!=='0';}catch{return false;}});
   useEffect(()=>{try{localStorage.setItem('ct_evalunder',evalUnder?'1':'0');}catch{}},[evalUnder]);
   const [layoutInfo,setLayoutInfo]=useState(false);   /* #361: a readout of what THIS device computes, so a screenshot settles a layout report instead of a paragraph */
+  /* #366 lay-B. Kunal's round-2 answer to "how we stop fighting the layout": all three - the readout, a grid
+     overlay that draws the real edges on screen, and screen recordings. This is the overlay: a fixed layer
+     that outlines the board, tints the empty band either side of it with the gap in pixels, marks the safe
+     area, and prints the numbers in a strip. It measures the board element itself four times a second while
+     on, so it shows what is painted, not what was computed. Persisted, so it survives a reload mid-report. */
+  const [layoutGrid,setLayoutGrid]=useState(()=>{try{return localStorage.getItem('ct_layoutgrid')==='1';}catch(e){return false;}});
+  const [gridRect,setGridRect]=useState(null);
+  useEffect(()=>{try{localStorage.setItem('ct_layoutgrid',layoutGrid?'1':'0');}catch(e){}},[layoutGrid]);
   const [soundOn,setSoundOn]=useState(()=>{try{return localStorage.getItem('ct_sound')!=='0';}catch{return true;}});
   const _sfxLastRef=useRef('');
   const [playEnd,setPlayEnd]=useState(null);        // null | {reason:'resign'|'time', winner:'w'|'b'}
@@ -2308,6 +2345,11 @@ export default function App(){
   const pzRelock=()=>{setPzUnlock(false);PZSTORE.set(PZUKEY,'0');};
   useEffect(()=>{if(pzCelebrate){const t=setTimeout(()=>setPzCelebrate(null),5000);return()=>clearTimeout(t);}},[pzCelebrate]);
   const boardRef=useRef(null);
+  useEffect(()=>{ /* #366 lay-B: measure the painted board while the overlay is on */
+    if(!layoutGrid){setGridRect(null);return;}
+    let t=0;const tick=()=>{const g=boardRef.current;if(g){const r=g.getBoundingClientRect();const n={l:Math.round(r.left*10)/10,t:Math.round(r.top*10)/10,w:Math.round(r.width*10)/10,h:Math.round(r.height*10)/10};setGridRect(p=>(p&&p.l===n.l&&p.t===n.t&&p.w===n.w&&p.h===n.h)?p:n);}else setGridRect(p=>p?null:p);t=setTimeout(tick,250);};
+    tick();return()=>clearTimeout(t);
+  },[layoutGrid]);
   const rootRef=useRef(null);
 
   const inReview=mode==='analyze'&&review!==null;
@@ -3984,9 +4026,10 @@ export default function App(){
               {icon:'♟️',label:'Play',sub:'vs Computer or Human',big:true,tint:['#22c55e','#15803d'],k:'play',fn:()=>{setHomeScreen(false);setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}},
             ].map(({icon,label,sub,fn,big,tint,pro,k})=>{
               const ic=(SK.icons&&SK.icons[k])||icon; const tn=(SK.tints&&SK.tints[k])||tint;
+              const _tf=42*(hbig?1.3:(hLand?1.64:1)); const _ts=inkScale(ic,"'Segoe UI',system-ui,sans-serif",1.1); /* #366 y3b: ink-matched on this device */
               return(
               <button key={label} onClick={fn} style={{background:'transparent',border:'none',padding:'10px 4px',cursor:'pointer',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',color:'inherit'}}>
-                <div style={{position:'relative',width:84*(hbig?1.32:(hLand?1.74:1)),height:84*(hbig?1.32:(hLand?1.74:1)),borderRadius:hbig?30:(hLand?30:24),display:'flex',alignItems:'center',justifyContent:'center',marginBottom:hbig?14:(hLand?18:11),fontSize:42*(hbig?1.3:(hLand?1.64:1)),lineHeight:1,background:`linear-gradient(150deg,${tn[0]},${tn[1]})`,border:SK.trim?`1.5px solid ${SK.trim}`:'none',boxShadow:`0 5px 0 rgba(0,0,0,.28),0 13px 22px ${tn[1]}66,inset 0 2px 0 rgba(255,255,255,.5),inset 0 -5px 9px rgba(0,0,0,.28)`}}>{SK.key==='classic'&&(k==='puzzle'||k==='play')?<Piece t={k==='puzzle'?'n':'k'} color="w" sz={Math.round(52*(hbig?1.3:(hLand?1.64:1)))}/>:ic}{pro&&!isPro&&<span style={{position:'absolute',top:-7,right:-7,fontSize:'clamp(12px,1.7vw,12px)',fontWeight:800,color:'#2a2010',background:'#f0d48a',borderRadius:8,padding:'2px 6px',boxShadow:'0 2px 5px rgba(0,0,0,.45)'}}>PRO</span>}</div>
+                <div style={{position:'relative',width:84*(hbig?1.32:(hLand?1.74:1)),height:84*(hbig?1.32:(hLand?1.74:1)),borderRadius:hbig?30:(hLand?30:24),display:'flex',alignItems:'center',justifyContent:'center',marginBottom:hbig?14:(hLand?18:11),fontSize:42*(hbig?1.3:(hLand?1.64:1)),lineHeight:1,background:`linear-gradient(150deg,${tn[0]},${tn[1]})`,border:SK.trim?`1.5px solid ${SK.trim}`:'none',boxShadow:`0 5px 0 rgba(0,0,0,.28),0 13px 22px ${tn[1]}66,inset 0 2px 0 rgba(255,255,255,.5),inset 0 -5px 9px rgba(0,0,0,.28)`}}><span data-ct={'tile-ic-'+k} data-ink={_ts} style={{fontSize:Math.round(_tf*_ts),lineHeight:1,display:'block'}}>{ic}</span>{pro&&!isPro&&<span style={{position:'absolute',top:-7,right:-7,fontSize:'clamp(12px,1.7vw,12px)',fontWeight:800,color:'#2a2010',background:'#f0d48a',borderRadius:8,padding:'2px 6px',boxShadow:'0 2px 5px rgba(0,0,0,.45)'}}>PRO</span>}</div>
                 <div style={{color:'rgba(255,255,255,.98)',fontSize:hbig?'clamp(25px,2.8vw,31px)':(hLand?'clamp(23px,2.9vw,31px)':'clamp(17.5px,4.7vw,22px)'),fontWeight:800,marginBottom:hbig?6:4,letterSpacing:.3}}>{label}</div>
                 <div style={{color:'rgba(255,255,255,.62)',fontSize:hbig?'clamp(15px,1.9vw,18px)':(hLand?'clamp(15px,1.9vw,18px)':'clamp(12.5px,3.2vw,15px)'),lineHeight:1.4}}>{sub}</div>
               </button>);})}
@@ -4527,7 +4570,12 @@ export default function App(){
               <div>{'board '+Math.round(boardPx)+'  square '+SQ+'  gap '+Math.round((vw-boardPx)/2)+' each side'}</div>
               <div>{'mode '+mode+'  wide '+(wide?1:0)+'  edge '+(_edge?1:0)+'  compact '+(revCompact?1:0)+(mode==='puzzle'?('  pzstack '+pzStackH):'')}</div>
               <div>{'eval '+(hideEval?'off':(evalUnder?'above':'left'))+'  moves '+(movesOpen?'open':'shut')+'  build '+(typeof __BUILD__!=='undefined'?__BUILD__:'?')}</div>
+              <div>{'tile ink '+['learn','puzzle','analyze','play'].map(k=>{const g=(SK.icons&&SK.icons[k])||'';const s=_inkCache[g+"|'Segoe UI',system-ui,sans-serif|1.1"];const e=_inkCache[g+"|'Segoe UI',system-ui,sans-serif|1.1#ext"];return g+(s!=null?('×'+s+(e!=null?('('+e+')'):'')):'');}).join('  ')}</div>
             </div>)}
+            <button onClick={()=>setLayoutGrid(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
+              <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Layout overlay</span>
+              <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:layoutGrid?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:layoutGrid?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)'}}>{layoutGrid?'drawn on screen':'OFF'}</span>
+            </button>
             <button onClick={()=>setSoundOn(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
               <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Sound</span>
               <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:soundOn?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:soundOn?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:`1px solid ${soundOn?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'}`}}>{soundOn?'ON':'OFF'}</span>
@@ -4607,7 +4655,13 @@ export default function App(){
             </div>
           </div>
         </>):(
-          <div style={{margin:'5px auto 0',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,padding:'7px 11px',height:56,boxSizing:'border-box',overflowY:'auto',fontSize:'clamp(14px,2.5vw,14px)',lineHeight:1.4,textAlign:'left',color:'rgba(255,255,255,.85)'}}>
+          /* #366 y11b. Kunal: "for lessons the text is important, so you can give it more space as long as it's
+             consistent and doesn't make the board jump; even 3 or 4 lines is okay." Three lines at 15px (it was
+             two at 14), and the height is FIXED at 75 whatever the note says, so the board sits in the same
+             place on every ply. Three, not four, because on his phone (375x679 usable) four lines cost the
+             board 8px and three, paid for by the moves panel's hint line, let it reach the full 375. Of the 734
+             lesson notes, 716 fit in three lines; the other 18 scroll inside the box. */
+          <div data-ct="lesson-note" style={{margin:'3px auto 0',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,padding:'7px 11px',height:75,boxSizing:'border-box',overflowY:'auto',fontSize:'clamp(15px,2.6vw,15px)',lineHeight:1.35,textAlign:'left',color:'rgba(255,255,255,.88)'}}>
             {learnPhase==='demo'
               ? (demoPly===0?<span style={{color:'var(--ac2)'}}>▶ Press Play to watch</span>:<span><span style={{fontWeight:700,color:'#f0b429'}}>{Math.ceil(demoPly/2)}{demoPly%2===1?'.':'…'} {learnLine[demoPly-1]}</span>{curNote?<span> — {curNote}</span>:null}</span>)
               : <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{openMsg||`Your move (${LIB[openIdx].side==='w'?'White':'Black'})`}</span>}
@@ -4818,6 +4872,12 @@ export default function App(){
       );})()}
 
         </>);
+        /* #366 y15b. "The review button on the board": Analyze stops being a button in the control row and
+           becomes a round button sitting ON the board's corner, the way a map app puts its controls on the
+           map. Kunal's round-2 answer: round button on the board, but keep the board full size. So the board
+           keeps every pixel it has, the row keeps first / play / last / key-moment, and this one handler is
+           shared by the round button (rev-fab, inside the board grid) and analysis mode's own exit path. */
+        const _goAnalyze=()=>{setRevAuto(false);setShowBest(false);bestLineTokenRef.current++;setBestLineBoard(null);setAnaHist([]);setGame(review.positions[ply]);setLastMv(null);anaModeRef.current=true;setAnaMode(true);setEngOn(true);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
         const _controls=(<>
       {/* ── Review controls, one-screen preview (#333) ── */}
       {inReview&&revCompact&&(()=>{
@@ -4870,7 +4930,7 @@ export default function App(){
               {cb(revAuto?'\u23f8':'\u25b6',()=>{if(ply>=review.plies.length){setPly(0);setRevAuto(true);}else setRevAuto(a=>!a);},0,revAuto,revAuto?'Pause':'Auto-play')}
               {cb('\u23ed',()=>{setRevAuto(false);setPly(review.plies.length);},0,false,'Last move')}
               {keyPlies.length>0&&cb('\u2605',()=>jumpKey(1),0,true,'Next key moment ('+keyPlies.length+')')}
-              {cb(<MagIcon size={21}/>,()=>{setRevAuto(false);setShowBest(false);bestLineTokenRef.current++;setBestLineBoard(null);setAnaHist([]);setGame(review.positions[ply]);setLastMv(null);anaModeRef.current=true;setAnaMode(true);setEngOn(true);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,false,'Analyze: play this position out yourself')}
+              {/* #366 y15b: Analyze moved onto the board as the round button (rev-fab). */}
             </>)}
           </div>
           {showGates&&(curAnno&&curAnno.gate?(()=>{const G=curAnno.gate;return(<div style={{fontSize:'clamp(12px,2.3vw,12.5px)',fontFamily:'monospace',color:'rgba(255,255,255,.85)',background:'rgba(0,0,0,.28)',border:'1px solid rgba(255,255,255,.14)',borderRadius:9,padding:'6px 10px',textAlign:'center'}}>loss {G.loss} · sac {G.sac} · evAfter {G.evAfter} · evBefore {G.evBefore} · cap {G.cap} · {G.ok?'!! passes':'no'}</div>);})():null)}
@@ -5514,7 +5574,8 @@ export default function App(){
             {boardGame.history.map((h,i)=>(<span key={i} style={{display:'inline-flex',alignItems:'center'}}>{i%2===0&&<span style={{color:'rgba(255,255,255,.35)',marginRight:3}}>{Math.floor(i/2)+1}.</span>}<span style={{color:i%2===0?'#e0e0e0':'var(--ac2)',marginRight:i%2===1?12:5,fontWeight:i===boardGame.history.length-1?'bold':'normal'}}>{h.san}</span></span>))}
           </div>
         </div>
-        {boardGame.history.length>0&&(<div style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.42)',marginTop:3,lineHeight:1.4}}>Tap <span style={{color:'var(--ac2)',fontWeight:600}}>🔍 Analyze</span> to review this line move-by-move and play on from any point.</div>)}
+        {/* #366 y11b: on a phone in a lesson this 34px hint paid for the taller note box above the board. */}
+        {boardGame.history.length>0&&!(mode==='learn'&&!wide)&&(<div style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.42)',marginTop:3,lineHeight:1.4}}>Tap <span style={{color:'var(--ac2)',fontWeight:600}}>🔍 Analyze</span> to review this line move-by-move and play on from any point.</div>)}
       </div>));})()}
 
       {/* Move list (review, clickable + colored) — single horizontal strip */}
@@ -5659,6 +5720,10 @@ export default function App(){
                 {sub&&<div style={{fontSize:'clamp(14px,3vw,17px)',fontWeight:700,color:'rgba(255,255,255,.82)',marginTop:4}}>{sub}</div>}
                 <div style={{marginTop:14,display:'flex',gap:9,justifyContent:'center',flexWrap:'wrap'}}>{actions}</div>
               </div></div>);})()}
+            {/* #366 y15b: the round Analyze button, on the board's bottom-right corner. The board keeps its full
+                size (Kunal's answer); translucent so the corner square still reads through it, and it stops the
+                pointer event so the board never mistakes the tap for a piece drag. Hidden inside analysis. */}
+            {inReview&&revCompact&&reviewView!=='summary'&&!anaMode&&(<button data-ct="rev-fab" onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();_goAnalyze();}} title="Analyze: play this position out yourself" aria-label="Analyze this position" style={{position:'absolute',right:7,bottom:7,width:42,height:42,borderRadius:'50%',zIndex:12,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(16,20,28,.80)',border:'1.5px solid rgba(255,255,255,.6)',color:'#fff',cursor:'pointer',padding:0,boxShadow:'0 3px 10px rgba(0,0,0,.55)',backdropFilter:'blur(3px)',WebkitBackdropFilter:'blur(3px)',touchAction:'manipulation'}}><MagIcon size={23}/></button>)}
           </div>
         </div>
         {_showBars&&pBar(bottomColor,false)}
@@ -5673,7 +5738,7 @@ export default function App(){
           <div style={{flex:1,alignSelf:'stretch',width:'100%',minHeight:0,display:'flex',flexDirection:'column',alignItems:'center'}}>
             {_blurbs}
             {learnPhase==='practice'&&!lessonFocus&&(<div style={{width:boardPx,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',gap:9,marginTop:6}}>{(()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';return(<button onClick={()=>setOpenIdx(null)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','rgba(255,255,255,.85)'),width:'100%',fontSize:'clamp(14px,2.7vw,14px)'}}>‹ All {noun}</button>);})()}</div>)}
-            <div style={{flex:1,minHeight:10}}/>
+            <div style={{flex:1,minHeight:wide?10:4}}/>
             {_board}
             {_controls}
           </div>
@@ -5681,6 +5746,25 @@ export default function App(){
       })()}
 
       {drag&&dragging&&(<div style={{position:'fixed',left:drag.x-SQ*.55,top:drag.y-SQ*.55,width:SQ*1.1,height:SQ*1.1,pointerEvents:'none',zIndex:9999,filter:'drop-shadow(0 8px 16px rgba(0,0,0,.6))',transform:'scale(1.12)'}}><Piece t={drag.piece.t} color={drag.piece.c} sz={SQ*1.1} useFallback={fallback} onFail={onPieceFail}/></div>)}
+      {/* #366 lay-B: the layout overlay. Everything here is measured off the painted board (gridRect), never off SQ. */}
+      {layoutGrid&&(()=>{const R=gridRect;const W=vw,H=vp.h;const _mono={fontFamily:'ui-monospace,Menlo,Consolas,monospace',fontWeight:800,fontSize:12,lineHeight:1.2};const C='#ff7a59',S='#4fd1e8';
+        const gl=R?Math.round(R.l):null,gr=R?Math.round(W-(R.l+R.w)):null;
+        return(<div data-ct="layout-grid" aria-hidden="true" style={{position:'fixed',inset:0,zIndex:9990,pointerEvents:'none'}}>
+          {/* safe area: the usable rectangle, dashed cyan */}
+          <div style={{position:'absolute',left:0,right:0,top:safeTop,bottom:safeBot,outline:'2px dashed '+S,outlineOffset:-2,opacity:.9}}/>
+          {safeTop>0&&<div style={{position:'absolute',left:0,right:0,top:0,height:safeTop,background:'rgba(79,209,232,.14)'}}/>}
+          {safeBot>0&&<div style={{position:'absolute',left:0,right:0,bottom:0,height:safeBot,background:'rgba(79,209,232,.14)'}}/>}
+          {R&&(<>
+            {/* the empty band either side of the board, tinted, with its width printed */}
+            {gl>0&&<div style={{position:'absolute',left:0,top:R.t,width:R.l,height:R.h,background:'rgba(255,122,89,.22)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',..._mono,textShadow:'0 1px 2px #000',overflow:'hidden'}}>{gl>=14?gl:''}</div>}
+            {gr>0&&<div style={{position:'absolute',right:0,top:R.t,width:Math.max(0,W-(R.l+R.w)),height:R.h,background:'rgba(255,122,89,.22)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',..._mono,textShadow:'0 1px 2px #000',overflow:'hidden'}}>{gr>=14?gr:''}</div>}
+            {/* the board's real edges, dashed orange, and the 8x8 grid it claims */}
+            <div style={{position:'absolute',left:R.l,top:R.t,width:R.w,height:R.h,outline:'2px dashed '+C,outlineOffset:-1,backgroundImage:'linear-gradient(rgba(255,122,89,.55) 1px,transparent 1px),linear-gradient(90deg,rgba(255,122,89,.55) 1px,transparent 1px)',backgroundSize:(R.w/8)+'px '+(R.h/8)+'px'}}/>
+            <div style={{position:'absolute',left:R.l+3,top:R.t+3,padding:'1px 6px',background:C,color:'#1a0a06',borderRadius:4,..._mono}}>{'board '+Math.round(R.w)+' at y '+Math.round(R.t)}</div>
+          </>)}
+          {/* the strip: what a screenshot needs to carry */}
+          <div style={{position:'absolute',left:8,right:8,bottom:safeBot+6,display:'flex',justifyContent:'center'}}><div style={{padding:'4px 9px',borderRadius:6,background:'rgba(0,0,0,.78)',border:'1px solid '+C,color:'#fff',..._mono,fontSize:11.5,textAlign:'center',whiteSpace:'normal',maxWidth:'100%'}}>{(R?('board '+Math.round(R.w)+' · sq '+(Math.round(R.w/8*10)/10)+' · gap '+gl+'|'+gr):'no board on screen')+' · vw '+W+' · vh '+H+' · safe '+safeTop+'/'+safeBot+' · '+(typeof __BUILD__!=='undefined'?String(__BUILD__).split(' ')[0]:'?')}</div></div>
+        </div>);})()}
       {!homeScreen&&!_hideTabs&&(<div aria-hidden="true" style={{order:99,height:'calc(62px + env(safe-area-inset-bottom,0px))',flexShrink:0,width:'100%'}}/>)}
       {!homeScreen&&!_hideTabs&&(()=>{const _ta=mode==='learn'?'learn':mode==='puzzle'?'puzzle':mode==='analyze'?'analyze':mode==='play'?'play':'';const _go=(k)=>{setMenuOpen(false);setCoachOpen(false);if(k==='home'){setHomeScreen(true);return;}setHomeScreen(false);if(k==='learn'){setMode('learn');setOpenIdx(null);setLearnGroup(null);setLearnCat(null);}else if(k==='puzzle'){setMistakeMode(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}else if(k==='analyze'){setMode('analyze');}else if(k==='play'){setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}};return lessonFocus?null:<_TabBar active={_ta} go={_go}/>;})()}
       {lessonFocus&&(<div style={{position:'fixed',left:0,right:0,bottom:0,zIndex:471,display:'flex',gap:10,alignItems:'center',padding:'8px 12px calc(8px + env(safe-area-inset-bottom,0px))',background:'rgba(13,16,21,.97)',borderTop:'1px solid rgba(255,255,255,.12)'}}>

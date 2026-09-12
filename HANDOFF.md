@@ -2,9 +2,18 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 13:50 ET)
-LIVE = **#364** (app.js stamp "#364 - 2026-09-12 14:15 ET", commit 89b703d on origin/main, verified byte-identical at
-raw.githubusercontent.com). chess.jsx for #364 is staged for one more upload click so source matches bundle.
+## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 16:35 ET)
+LIVE = **#365** (app.js stamp "#365 - 2026-09-12 15:06 ET", commit 34d8710 on origin/main, verified at
+raw.githubusercontent.com; chess.jsx, HANDOFF, FEEDBACK-INBOX and DECISIONS-LOG went up in the same upload, so
+source, bundle and docs on GitHub all match this build). Local history is merged with that commit (26a12ad),
+`git diff origin/main` is empty.
+BUILT, GATED, STAGED FOR HIS CLICK = **#366** (stamp "#366 - 2026-09-12 16:28 ET"): y3b home icons all emoji,
+ink-matched at run time (inkScale, canvas on the device); y15b round Analyze button on the Review board
+(data-ct rev-fab), board full size, row keeps four; y11b lesson note box fixed at 75px / three lines at 15px,
+lesson board 360 -> 375 on his phone; lay-B Layout overlay (menu row, ct_layoutgrid, data-ct layout-grid).
+Evidence: work/build/shots366/ (before = #365, after = #366, all at 375x679) and tracker rows y3 y11 y15 k7.
+Harnesses: before366.js (home ink + lesson layout + review row/fab), overlay366.js (overlay gate).
+Previously: #364 (89b703d, "#364 - 2026-09-12 14:15 ET").
 KUNAL'S PHONE, from his Layout readout: **375x761, dpr 3, insets 51/31 = 375x679 usable.** Emulate as a 375x679
 viewport with insets 0 (or ct_safe='51,31'). HEIGHT binds there, not width; every width-only check will pass
 while the board is squeezed. Harnesses: work/build/kunal364c.js (play/puzzle/lesson) and kunal364d.js (review).

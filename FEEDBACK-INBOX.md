@@ -301,6 +301,9 @@ DISPOSITIONS (settled by him, no action)
 ### Round 2 answers, all ten [2026-09-12 16:36-16:49 ET]
 
 Recorded in DECISIONS-LOG.md. Built in #365: the brilliancy explanation the chess.com way.
+Built in #366 (16:28 ET): y3b, y15b, y11b and the lay-B overlay - the four that needed no
+further answer from him. Open from this round: y12c (picker), y17b (Skills panel), y1b (draw C),
+y5d (fresh answer wanted on the redrawn q5).
 - [2026-09-12 16:40 ET] status: closed #365
   y18b "look at what chess.com does and replicate that." Done for the text: a sacrifice is now
   explained by what happens if it is TAKEN (the opponent's capture is found, the position after it
@@ -312,17 +315,40 @@ Recorded in DECISIONS-LOG.md. Built in #365: the brilliancy explanation the ches
   on iPad where height is free. The BUBBLE placement is not done: on his phone there is no free
   vertical space for a bubble, so it would cost board; parked until he says otherwise.
 - [2026-09-12 16:48 ET] status: closed, decided  evw: eval bar stays beside; the width is worth it.
-- [2026-09-12 16:49 ET] status: open  lay: "All three, and stop guessing" -> the grid overlay (B)
-  is still to build; readout (A) shipped in #361; recordings (C) accepted.
-- [2026-09-12 16:45 ET] status: open  y11b: lesson text may take 3-4 lines as long as it is
-  CONSISTENT and never makes the board jump -> a fixed-height text box, to build.
-- [2026-09-12 16:47 ET] status: open  y12c: "I accept your proposal" -> theme + piece picker with
-  the home icons tied to it, to build.
-- [2026-09-12 16:37 ET] status: open  y15b: round Analyze button ON the board, board stays full
-  size, to build.
+- [2026-09-12 16:49 ET] status: closed #366  lay: "All three, and stop guessing" -> readout (A)
+  shipped in #361; recordings (C) accepted as they come; the grid overlay (B) is in #366: menu ->
+  Layout overlay. Outlines the board AS PAINTED (dashed orange plus the 8x8 grid), tints the empty
+  band either side with its width, marks the safe area in cyan, prints board/sq/gap/vw/vh/safe/build
+  in a strip. Measured off the board element 4x a second; persisted in ct_layoutgrid so it survives
+  a reload mid-report. Gate: overlay366.js (outline sits exactly on the board; strip carries the
+  numbers; survives reload).
+- [2026-09-12 16:45 ET] status: closed #366  y11b: lesson text may take 3-4 lines as long as it is
+  CONSISTENT and never makes the board jump. Built: the note box is a FIXED 75px, three lines at
+  15px (was two at 14, scrolling). Three not four: at his geometry (375x679) four lines cost the
+  board 8px (352), three - paid for by deleting the "Tap Analyze to review this line" hint under
+  the moves panel and 6px of spacer - let the lesson board reach 375 edge to edge (it was 360).
+  716 of 734 lesson notes fit in three lines; 18 scroll inside the box. Measured: board 360 -> 375,
+  note box 56 -> 75, no page scroll.
+- [2026-09-12 16:47 ET] status: open  y12c: "I accept your proposal" -> theme + piece picker (a
+  screen with the boards drawn, pick by looking). NOTE the home icons are NOT tied to it: y3b was
+  answered "all four emoji" on the same round, so the icons are one set on every skin; tying them to
+  the picker would reopen y3b. Logged in DECISIONS-LOG.
+- [2026-09-12 16:37 ET] status: closed #366  y15b: round Analyze button ON the board, board stays
+  full size. Built: a 42px round button (data-ct rev-fab) inside the board grid at its bottom-right
+  corner, translucent with a blur so the corner square reads through it, onPointerDown
+  stopPropagation so the board's drag logic never sees the tap; hidden inside analysis mode. Analyze
+  left the control row, which keeps first / play / last / key-moment. Measured at his geometry:
+  board 349 before and after, row 42 before and after, fab 42x42 inset 7/7.
 - [2026-09-12 16:46 ET] status: open  y17b: Skills panel, full, AFTER the explanations - now unblocked.
 - [2026-09-12 16:36 ET] status: open  y1b: draw option C (graph inside the player bars) properly first.
-- [2026-09-12 16:40 ET] status: open  y3b: home icons, all four emoji ink-matched, to build.
+- [2026-09-12 16:40 ET] status: closed #366  y3b: home icons, all four emoji ink-matched. Built:
+  Classic's drawn-piece override (Puzzles/Play as SVG pieces) is gone and its icon set is the one he
+  approved on the mockup (telescope, puzzle piece, magnifier, pawn). Matching is done ON THE DEVICE
+  by inkScale(): paints the glyph on a hidden canvas, measures the ink's bounding box, scales the
+  font so the larger side is 1.1x the nominal size for every glyph; cached; returns 1 if canvas is
+  unavailable. Reason: Apple Color Emoji and Noto draw different ink, so a build-time factor would
+  be right here and wrong on his phone. Layout readout prints the four factors as "tile ink". In
+  Noto all four land at x0.99 (ink 47px in an 84 box); on his phone the pawn will grow.
 - [2026-09-12 16:43 ET] status: open  y5d: his note predates the redraw from his screenshot; the
   redrawn question is waiting for a fresh answer.
 - Tracker flag b1 "still broken" at 12:57 ET predates #364, which reworked exactly that. Needs
