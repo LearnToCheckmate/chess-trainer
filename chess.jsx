@@ -2552,9 +2552,14 @@ export default function App(){
     const finish=(bm)=>{if(done)return;done=true;sfAnaCbRef.current=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null});};
     const to=setTimeout(()=>finish(null),Math.max(4000,movetime*8));
     sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=sign*s.mate;cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=sign*s.mate;cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm)};
-    try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null);}
+    try{w.postMessage('stop');w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null);}
   });
   // Engine's best line (principal variation) from a position; resolves an array of UCI moves or null. Lets Review play the better line out at full engine strength.
+  // #354 STOP BEFORE REPOSITIONING. Both play-it-out buttons turn the engine on and ask it for a
+  // line in the same click, so the analysis worker could still be searching when a new
+  // `position fen` arrived. Stockfish traps on that (RuntimeError: unreachable, surfaced as a page
+  // error) and the line never plays. One `stop` makes the handoff legal. Applied at every site that
+  // repositions a shared worker, not just the one where it was caught.
   const sfBestLine=(fen,movetime,onScore)=>new Promise(resolve=>{
     const w=sfAnaRef.current;
     if(!w||!sfAnaReadyRef.current){resolve(null);return;}
@@ -2562,7 +2567,7 @@ export default function App(){
     const finish=(r)=>{if(done)return;done=true;sfAnaCbRef.current=null;clearTimeout(to);resolve(r);};
     const to=setTimeout(()=>finish(line),Math.max(4000,movetime*8));
     sfAnaCbRef.current={score:(sc)=>{if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(arr&&arr.length)line=arr;},best:(bm)=>finish(line||(bm&&bm!=='(none)'?[bm]:null))};
-    try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null);}
+    try{w.postMessage('stop');w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null);}
   });
   // ── #343: parallel review workers ────────────────────────────────────────
   // A game review is 60-80 INDEPENDENT position evaluations, so it parallelises almost perfectly.
@@ -3276,7 +3281,7 @@ export default function App(){
   },[onlineGame,myColor]);
 
   const reviewBest=useMemo(()=>{if(!inReview||!showBest||ply===0||bestLineBoard)return null;return review.analysis[ply-1]?.bestMove||null;},[inReview,showBest,ply,review,bestLineBoard]);
-  const playBestLine=async()=>{if(!inReview||ply===0||!review||!review.analysis[ply-1])return;const first=review.analysis[ply-1].bestMove;if(!first)return;const tok=++bestLineTokenRef.current;const basePos=review.positions[ply-1];setBestLineBoard(basePos);let g1;try{g1=makeMove(basePos,first);}catch(e){setBestLineBoard(null);return;}let moves=[first],states=[basePos,g1];try{const pv=await sfBestLine(toFEN(g1),1100);if(bestLineTokenRef.current!==tok)return;if(pv&&pv.length){let g=g1;for(let k=0;k<4;k++){if(k>=pv.length)break;const mv=uciToMove(g,pv[k]);if(!mv)break;let ng;try{ng=makeMove(g,mv);}catch(e){break;}moves.push(mv);g=ng;states.push(g);}}}catch(e){}if(moves.length<=1){let g=g1;for(let k=0;k<3;k++){let m;try{m=bestMove(g,3,0);}catch(e){break;}if(!m)break;let ng;try{ng=makeMove(g,m);}catch(e){break;}moves.push(m);g=ng;states.push(g);}}if(bestLineTokenRef.current!==tok)return;
+  const playBestLine=async(firstOverride)=>{if(!inReview||ply===0||!review||!review.analysis[ply-1])return;const first=firstOverride||review.analysis[ply-1].bestMove;if(!first)return;const tok=++bestLineTokenRef.current;const basePos=review.positions[ply-1];setBestLineBoard(basePos);let g1;try{g1=makeMove(basePos,first);}catch(e){setBestLineBoard(null);return;}let moves=[first],states=[basePos,g1];try{const pv=await sfBestLine(toFEN(g1),1100);if(bestLineTokenRef.current!==tok)return;if(pv&&pv.length){let g=g1;for(let k=0;k<4;k++){if(k>=pv.length)break;const mv=uciToMove(g,pv[k]);if(!mv)break;let ng;try{ng=makeMove(g,mv);}catch(e){break;}moves.push(mv);g=ng;states.push(g);}}}catch(e){}if(moves.length<=1){let g=g1;for(let k=0;k<3;k++){let m;try{m=bestMove(g,3,0);}catch(e){break;}if(!m)break;let ng;try{ng=makeMove(g,m);}catch(e){break;}moves.push(m);g=ng;states.push(g);}}if(bestLineTokenRef.current!==tok)return;
     try{let txt='',g=basePos,num=Math.floor((ply-1)/2)+1,first=true;
       for(let i=0;i<moves.length;i++){const nb=applyMove(g.board,moves[i]);const san=toSAN(g,moves[i],nb);const wt=g.turn==='w';
         txt+=(first?'':' ')+((wt?(num+'. '):(first?(num+'... '):''))+san);if(!wt)num++;first=false;g=makeMove(g,moves[i]);}
@@ -4487,6 +4492,9 @@ export default function App(){
       {inReview&&revCompact&&(()=>{
         const _mvTxt=curAnno?((Math.floor((ply-1)/2)+1)+((ply-1)%2===0?'.':'…')+' '+review.plies[ply-1].san):null;
         const _hasBetter=!!(curAnno&&(curAnno.cls.label==='Inaccuracy'||curAnno.cls.label==='Mistake'||curAnno.cls.label==='Blunder')&&curAnno.bestSan);
+        // #354 a move that WAS the best one has no "better" move to show, so it used to get no
+        // demonstration at all. Play the move itself out instead, with what the engine says follows.
+        const _wasBest=!!(curAnno&&!_hasBetter&&['Brilliant','Great','Best','Excellent'].indexOf(curAnno.cls.label)>=0&&review.plies[ply-1]&&review.plies[ply-1].move);
         const cb=(lab,on,w,hot,title)=>(<button onClick={on} title={title} aria-label={title} style={{flex:w?('0 0 '+w+'px'):'1 1 0',minWidth:0,minHeight:48,borderRadius:12,cursor:'pointer',fontSize:(String(lab).length<=2?'clamp(21px,5.4vw,26px)':'clamp(14px,2.9vw,15px)'),fontWeight:800,background:hot?'rgba(var(--acr),.22)':'rgba(255,255,255,.08)',backgroundImage:'linear-gradient(rgba(255,255,255,.20),rgba(255,255,255,.04) 48%,rgba(0,0,0,.10))',border:hot?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',color:hot?'var(--ac2)':'#fff',letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif",display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap',boxShadow:SHADOW_BTN,padding:'0 6px'}}>{lab}</button>);
         return(<div data-ct="rev-compact" style={{width:boardPx+((hideEval||evalUnder)?0:22),maxWidth:_edge?'100vw':'98vw',marginTop:6,display:'flex',flexDirection:'column',alignItems:'stretch',gap:6}}>
           {/* #337: one line: move, verdict, best move (tap shows it on the board). No text box (Kunal). */}
@@ -4497,6 +4505,7 @@ export default function App(){
             </>):curAnno?(<>
               <span style={{flex:'0 0 auto',fontSize:'clamp(15px,3.8vw,19px)',fontWeight:800,color:'#fff'}}>{_mvTxt}</span>
               <span style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',gap:4,fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,color:curAnno.cls.c,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'66',borderRadius:22,padding:'3px 10px'}}><span style={{fontSize:'clamp(13px,3.2vw,17px)',lineHeight:1}}>{curAnno.cls.i}</span>{curAnno.cls.label}</span>
+              {_wasBest&&<button data-ct="rev-playout" onClick={()=>{setEngOn(true);playBestLine(review.plies[ply-1].move);}} title="Play this move out and see what it leads to" aria-label="Play this move out and see what it leads to" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:5,padding:'3px 11px',borderRadius:22,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'88',color:curAnno.cls.c,cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden',whiteSpace:'nowrap'}}>{'\u25b6'} why</button>}
               {_hasBetter&&<button data-ct="rev-best" onClick={()=>{setShowBest(true);setEngOn(true);playBestLine();}} title="Show the best move on the board" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:5,padding:'3px 10px',borderRadius:22,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.45)',color:'var(--ac2)',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden'}}><span style={{fontWeight:600,color:'rgba(255,255,255,.6)',fontSize:'.85em'}}>best</span>{curAnno.bestSan}<span style={{opacity:.8}}>{showBest?'✓':'›'}</span></button>}
             </>):(<span style={{fontSize:'clamp(14px,3vw,16px)',fontWeight:700,color:'rgba(255,255,255,.6)'}}>Start position</span>)}
             {!anaMode&&<span style={{flex:'1 1 auto'}}/>}
