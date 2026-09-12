@@ -61,7 +61,7 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 - Waiting on Kunal (his dashboard): old GitHub token DELETED 2026-09-06 (done); two-device sync check; Stripe test prices at $2.99/$19.99 + checkout test; buy gambitcoach.com; deploy scanBoard function; publish Firestore rules for tournaments/friends/nearby (this last one unlocks three buildable features).
 - Sourcing notes: Caro-Kann Fantasy video 0yMkAJ6Pyig is single-source attribution; Kunal has not yet confirmed playback. Held HP IDs (no matching lessons yet): Two Knights Caro S5OjT1K_s58, Karpov YLEmufSFoGk.
 
-## 5a) State at builds #331 to #356 (Cowork session 2026-09-10 evening into 2026-09-12)
+## 5a) State at builds #331 to #357 (Cowork session 2026-09-10 evening into 2026-09-12)
 - #341: the review move screen has no tab bar, a back arrow as the only exit, a one-line reason under the move, thin arrows on the move strip, and "Analyze with the engine" (eval plus the engine's line in notation, cached per FEN). The engine pass for a whole game is cached in localStorage (ct_evalcache, keyed on the move list plus movetime, 24 games LRU): 62 s first run, 4 s on a repeat. If review output ever looks stale after changing the analysis code, bump the key string in evalCacheKey. Screen audit at 430x932: review board 424 of 430, puzzle and drill 416, play 416, lesson 416; play and lesson still carry heavy chrome, and the base-layout decision for them is open.
 - #339: LESSON WORTH KEEPING. Flipping a default is not enough when an effect has already persisted the old value to every install: #337 made the one-screen review the default but Kunal's phone had ct_revCompact='0' stored from the preview era, so he kept seeing the classic screen and re-reported the same complaints. Any future default flip needs a one-time migration key like ct_revmig339. Also in #339: the eval bar moved off the side (full width strip, horizontal number) so the board takes the full screen width, with a three-way sheet control (above / beside / off); #340 put that strip above the board at his request. Great is now blue #5d93e8, not teal.
 - #338: the tab-bar spacer now carries order 99. It had none, and the puzzle screen is the only screen that orders its children, so there the spacer rendered FIRST (empty band at the top) and reserved nothing at the bottom (board and controls under the tab bar). If you ever add order to another screen's children, give every sibling an order or this returns. Puzzle boards are now sized from a measured pzStackH; the drill hides the Lichess panel; dev loaders are collapsed.
@@ -291,6 +291,30 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 - When an item does not match, do NOT quietly fix the nearest thing. Say what the build actually
   renders, put it on the decisions page under "these don't match what's live", and ask for one
   screenshot. He asked for requests to go there rather than be buried in a reply.
+
+### #357 the brilliancy explanation, fourth attempt and the first useful one
+- **A SACRIFICE IS EXPLAINED BY WHAT IT BUYS, AND NOTHING ELSE.** Three passes described how much
+  material went and what the evaluation was afterwards, which together restate the DEFINITION of a
+  brilliancy without explaining one. "You give up the queen, and Nxb8 Rd8# is mate" is the whole
+  job. If this ever regresses, the test is whether the sentence names the follow-up moves.
+- `contLine` costs nothing: the review has already evaluated every position, so the best move at
+  every later ply is known. Walk forward while the game STAYED on the engine's line (a ply with no
+  recorded `bestSan` is one where the played move was the best move) and stop at the first
+  deviation, naming the better move there. Everything in the output is a move that was played or
+  the engine's own first choice, so it can never be a guess, and no extra engine call is made.
+- **ONLY SHOW A CONTINUATION WHEN IT IS FORCING** (every move a capture, check or mate), or on a
+  sacrifice when they simply take. Shown unconditionally it made 1.e4 read "Then e5 Nf3 d6 d4
+  follows", which is the next four plies dressed up as an insight.
+- Never write what the badge already says. "The engine's first choice" sat next to a chip reading
+  "Best" on every single one. And a forced mate ends the sentence: announcing mate and then adding
+  "the position stays roughly level" is absurd, so `standing` is empty when the line mates.
+- **THE PROCESS LESSON, which is the expensive one.** Three builds went into this complaint before
+  anyone read the actual sentence on an actual brilliancy. Doing that took ten minutes and the cause
+  was immediately obvious. WHEN THE SAME FEEDBACK RETURNS A THIRD TIME, STOP IMPROVING AND GO AND
+  LOOK AT THE EXACT OUTPUT on a real example. The harness for it is `bril357gate.js`, which drives
+  three famous sacrifices (Morphy's Opera Game, Legal's Mate, the Evans Gambit) through the real
+  composer and asserts on CONTENT rather than code paths, and rebuilds its pure slice from the live
+  source each run so it cannot test a stale copy.
 
 ## 6) Files in this handoff
 This MD is self-sufficient; everything else refetches from the repo (section 1.2). The repo's own HANDOFF.md is June-era; this file supersedes it until committed.

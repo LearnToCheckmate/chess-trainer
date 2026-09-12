@@ -65,7 +65,7 @@ REVIEW SCREEN
   Analyze icon is still too small; the icons in front of player usernames are small too. When
   the avatar falls back to a king icon, make it bigger. Also check whether his own profile photo
   should show when he is one of the two players in a review.
-- [2026-09-12 01:06 ET] status: closed #354  [re-raised]
+- [2026-09-12 01:06 ET] status: closed #354 then REOPENED, closed #357  [re-raised x4]
   The brilliancy explanation is useless, it does not say WHY it is brilliant. Show the best move
   and PLAY IT OUT to explain why, like chess.com. Earlier "show best move and play it out"
   feedback (Fork, Fishing Pole) felt missed; fold together.
@@ -520,3 +520,19 @@ Times not captured for this batch; see the Timestamps note above.
   note: The habit that catches this is driving the app and screenshotting the screen BEFORE writing
   any code, which is now in HANDOFF. The ask back to Kunal is one fresh screenshot per disputed
   screen, which is on the decisions page.
+
+- [2026-09-12 05:09 ET] status: closed #357
+  "The explanations for the brilliant moves are still almost useless." Fourth time raised.
+  closed: [2026-09-12 05:40 ET] He was right, and three attempts missed for the same reason: none of
+  them said what the sacrifice BUYS. #350 made the sentence positional, #354 added a button that
+  plays the line out, and the sentence still read "It gives up a piece and still reads +2.4. Hard to
+  see, and it holds." That is the definition of a brilliancy restated, not an explanation of one.
+  Now: "You give up the queen, and Nxb8 Rd8# is mate." The continuation costs nothing, because the
+  review has already evaluated every position: walk forward while the game stayed on the engine's
+  line and stop at the first deviation, so every move named is either one that was played or the
+  engine's own first choice. The line is only shown when it is FORCING, because on a quiet move the
+  next few plies are just the next few plies. Also cut "The engine's first choice", which is exactly
+  what the chip beside it already says.
+  LESSON: three incremental passes at the same complaint, each adjacent to the problem rather than
+  on it. When the same feedback comes back a third time, stop improving and go and read the exact
+  output on a real example first. Doing that took ten minutes and the cause was obvious.
