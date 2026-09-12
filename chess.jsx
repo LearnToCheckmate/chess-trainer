@@ -87,7 +87,14 @@ function disambig(game,move){
   const sameFile=others.some(m=>m.fc===move.fc),sameRank=others.some(m=>m.fr===move.fr);
   if(!sameFile)return FILES[move.fc];if(!sameRank)return String(8-move.fr);return FILES[move.fc]+(8-move.fr);
 }
-function toSAN(game,move,nb){const piece=game.board[move.fr][move.fc];if(move.castle==='K')return'O-O';if(move.castle==='Q')return'O-O-O';const tgt=rc2sq(move.tr,move.tc);const isCap=!!game.board[move.tr][move.tc]||move.epCap;const chk=isInCheck(nb,opp(piece.c));let san='';if(piece.t==='p'){if(isCap)san=FILES[move.fc]+'x';san+=tgt;if(move.promo)san+='='+move.promo.toUpperCase();}else{san=piece.t.toUpperCase()+disambig(game,move);if(isCap)san+='x';san+=tgt;}san+=chk?'+':'';return san;}
+function toSAN(game,move,nb){const piece=game.board[move.fr][move.fc];if(move.castle==='K')return'O-O';if(move.castle==='Q')return'O-O-O';const tgt=rc2sq(move.tr,move.tc);const isCap=!!game.board[move.tr][move.tc]||move.epCap;const chk=isInCheck(nb,opp(piece.c));
+  // #358 SAN has always rendered checkmate as '+'. It is wrong notation, and it quietly broke #357:
+  // a mate reached through the engine's own best move (bestSan, which comes from here) read as an
+  // ordinary check, so "Nxb8 Rd8# is mate" degraded to "Nxb8 Rd8+ follows" on exactly the lines
+  // that most needed the word. Stale castling or ep rights on the probe can only ADD an escape,
+  // so this can under-report mate but never invent one.
+  let _mate=false; if(chk){try{_mate=getLegal({...game,board:nb,turn:opp(piece.c)}).length===0;}catch(e){}}
+  let san='';if(piece.t==='p'){if(isCap)san=FILES[move.fc]+'x';san+=tgt;if(move.promo)san+='='+move.promo.toUpperCase();}else{san=piece.t.toUpperCase()+disambig(game,move);if(isCap)san+='x';san+=tgt;}san+=chk?(_mate?'#':'+'):'';return san;}
 function makeMove(game,move){
   const piece=game.board[move.fr][move.fc];const nb=applyMove(game.board,move);const dir=piece?.c==='w'?-1:1;
   const ca={...game.castling};
@@ -439,6 +446,20 @@ function seeSq(game,tr,tc,side){
 // for every move but is only TRUE-as-criticism when the engine also disliked the move; a hanging
 // piece after a Best move is an offer, not an oversight, so the caller decides when to use it.
 const PNAME={p:'pawn',n:'knight',b:'bishop',r:'rook',q:'queen',k:'king'};
+// #358 The payoff after a solved tactic: the opponent's forced reply and the capture it allows.
+// Pure and module-level ON PURPOSE - the alternative is driving a solve through the DOM, which is
+// flaky, while this can be run against every puzzle in the library in a second.
+function finishLine(g0,maxPly){
+  const out=[];let g=g0;
+  for(let i=0;i<maxPly;i++){
+    const st=getStatus(g); if(st==='checkmate'||st==='stalemate')break;
+    let mv=null; try{mv=bestMove(g,2,0);}catch(e){}
+    if(!mv)break;
+    let ng; try{ng=makeMove(g,mv);}catch(e){break;}
+    out.push({mv,g:ng}); g=ng;
+  }
+  return out;
+}
 function moveGist(pos,mv){
   const D=[],left=[];let pinned=false;
   try{
@@ -3051,6 +3072,13 @@ export default function App(){
           const alt=isMate&&!matchesLine;
           if(p.ext){onlineSolved(p);setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'')+p.explain);}
           else{setPuzDone(d=>({...d,[puzIdxRef.current]:true}));const ru=recordSolve(p);if(ru)setPzCelebrate(ru);setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'Solved! ')+p.explain+(ru?'   ⬆ Rank up — you reached '+ru.icon+' '+ru.name+'!':''));}
+          // #358 ONLY when the finish is a forced mate. The obvious-looking version, "play on after
+          // any solve", is wrong: most tactics already carry their payoff in the solution itself -
+          // the royal-fork puzzle's own moves are Ne2+ then Nxc3, the king step and the capture -
+          // so playing further would append a random continuation to a finished tactic. A mate is
+          // never noise, and it is the case Kunal actually named (the Fishing Pole queen).
+          if(!isMate){const _fl=finishLine(ng,4);
+            if(_fl.length&&getStatus(_fl[_fl.length-1].g)==='checkmate')playFinish(_fl);}
         }else{setPuzMsg('✓ '+played+' — good! Now finish it.');const rep=p.reply&&p.reply[step];if(rep){setTimeout(()=>{const omv=findMoveBySAN(ng,rep);if(omv){setGame(g2=>makeMove(g2,omv));setLastMv(omv);}setPuzStep(s);},450);}else setPuzStep(s);}
         repaint();
       }else{pzBreakStreak();setPuzMsg('✗ '+played+" isn't it — try again. (Tap 💡 for a hint.)");UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
@@ -3067,7 +3095,9 @@ export default function App(){
         if(isMate&&!matches){setOpenStep(line.length);setOpenMsg('🎉 '+played+' is checkmate — that works too! Any legal mate ends the game.');repaint();return;}
         let s=step+1;setOpenMsg('✓ '+played+' — correct!');
         if(s<line.length){setTimeout(()=>{const omv=findMoveBySAN(ng,line[s]);if(omv){setGame(g2=>makeMove(g2,omv));setLastMv(omv);setOpenStep(s+1);if(s+1>=line.length)setOpenMsg('🎉 Complete! That\'s the '+learnLabel+'.'+finishRep());}},420);setOpenStep(s);}
-        else{setOpenStep(s);setOpenMsg('🎉 Complete! That\'s the '+learnLabel+'.'+finishRep());}
+        else{setOpenStep(s);setOpenMsg('🎉 Complete! That\'s the '+learnLabel+'.'+finishRep());
+          const _fl=finishLine(ng,4);
+          if(_fl.length&&getStatus(_fl[_fl.length-1].g)==='checkmate'){setOpenMsg('🎉 Complete! That\'s the '+learnLabel+'. Watch how it finishes.'+finishRep());playFinish(_fl);}}
         repaint();
       }else{learnRepRef.current.miss=true;setOpenMsg(showHintRef.current?('✗ Not the book move — it goes '+line[step]+' here. Try again.'):('✗ '+played+" isn't the line — try again. (Tap 💡 Hint to see it.)"));UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
       return;
@@ -3377,6 +3407,26 @@ export default function App(){
   },[onlineGame,myColor]);
 
   const reviewBest=useMemo(()=>{if(!inReview||!showBest||ply===0||bestLineBoard)return null;return review.analysis[ply-1]?.bestMove||null;},[inReview,showBest,ply,review,bestLineBoard]);
+  // #358 Kunal: "after a tactic is solved, play out the continuation to show the payoff - the king
+  // moves out of check, then you take the queen. For the Fishing Pole Trap auto-play the queen
+  // delivering checkmate, no user input. Make auto-play the finish a general lesson behaviour."
+  // The payoff was only ever described in the explain text; the board stopped on the solving move,
+  // so the part a beginner most needs to SEE was the part they never saw.
+  // The line is computed up front rather than a move at a time, because a lesson only plays its
+  // finish when that finish is a forced mate, and that cannot be known without looking first.
+  const finishTokRef=useRef(0);
+  const playFinish=(list)=>{
+    if(!list||!list.length)return;
+    const tok=++finishTokRef.current;
+    let i=0;
+    const step=()=>{
+      if(finishTokRef.current!==tok||i>=list.length)return;
+      const {mv,g}=list[i++];
+      setGame(g); setLastMv(mv);
+      setTimeout(step,780);
+    };
+    setTimeout(step,1000);            // a beat first, so the solved message lands before the board moves
+  };
   const playBestLine=async(firstOverride)=>{if(!inReview||ply===0||!review||!review.analysis[ply-1])return;const first=firstOverride||review.analysis[ply-1].bestMove;if(!first)return;const tok=++bestLineTokenRef.current;const basePos=review.positions[ply-1];setBestLineBoard(basePos);let g1;try{g1=makeMove(basePos,first);}catch(e){setBestLineBoard(null);return;}let moves=[first],states=[basePos,g1];try{const pv=await sfBestLine(toFEN(g1),1100);if(bestLineTokenRef.current!==tok)return;if(pv&&pv.length){let g=g1;for(let k=0;k<4;k++){if(k>=pv.length)break;const mv=uciToMove(g,pv[k]);if(!mv)break;let ng;try{ng=makeMove(g,mv);}catch(e){break;}moves.push(mv);g=ng;states.push(g);}}}catch(e){}if(moves.length<=1){let g=g1;for(let k=0;k<3;k++){let m;try{m=bestMove(g,3,0);}catch(e){break;}if(!m)break;let ng;try{ng=makeMove(g,m);}catch(e){break;}moves.push(m);g=ng;states.push(g);}}if(bestLineTokenRef.current!==tok)return;
     try{let txt='',g=basePos,num=Math.floor((ply-1)/2)+1,first=true;
       for(let i=0;i<moves.length;i++){const nb=applyMove(g.board,moves[i]);const san=toSAN(g,moves[i],nb);const wt=g.turn==='w';
