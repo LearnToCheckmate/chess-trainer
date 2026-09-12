@@ -61,7 +61,7 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 - Waiting on Kunal (his dashboard): old GitHub token DELETED 2026-09-06 (done); two-device sync check; Stripe test prices at $2.99/$19.99 + checkout test; buy gambitcoach.com; deploy scanBoard function; publish Firestore rules for tournaments/friends/nearby (this last one unlocks three buildable features).
 - Sourcing notes: Caro-Kann Fantasy video 0yMkAJ6Pyig is single-source attribution; Kunal has not yet confirmed playback. Held HP IDs (no matching lessons yet): Two Knights Caro S5OjT1K_s58, Karpov YLEmufSFoGk.
 
-## 5a) State at builds #331 to #353 (Cowork session 2026-09-10 evening into 2026-09-12)
+## 5a) State at builds #331 to #355 (Cowork session 2026-09-10 evening into 2026-09-12)
 - #341: the review move screen has no tab bar, a back arrow as the only exit, a one-line reason under the move, thin arrows on the move strip, and "Analyze with the engine" (eval plus the engine's line in notation, cached per FEN). The engine pass for a whole game is cached in localStorage (ct_evalcache, keyed on the move list plus movetime, 24 games LRU): 62 s first run, 4 s on a repeat. If review output ever looks stale after changing the analysis code, bump the key string in evalCacheKey. Screen audit at 430x932: review board 424 of 430, puzzle and drill 416, play 416, lesson 416; play and lesson still carry heavy chrome, and the base-layout decision for them is open.
 - #339: LESSON WORTH KEEPING. Flipping a default is not enough when an effect has already persisted the old value to every install: #337 made the one-screen review the default but Kunal's phone had ct_revCompact='0' stored from the preview era, so he kept seeing the classic screen and re-reported the same complaints. Any future default flip needs a one-time migration key like ct_revmig339. Also in #339: the eval bar moved off the side (full width strip, horizontal number) so the board takes the full screen width, with a three-way sheet control (above / beside / off); #340 put that strip above the board at his request. Great is now blue #5d93e8, not teal.
 - #338: the tab-bar spacer now carries order 99. It had none, and the puzzle screen is the only screen that orders its children, so there the spacer rendered FIRST (empty band at the top) and reserved nothing at the bottom (board and controls under the tab bar). If you ever add order to another screen's children, give every sibling an order or this returns. Puzzle boards are now sized from a measured pzStackH; the drill hides the Lichess panel; dev loaders are collapsed.
@@ -225,6 +225,42 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 - Decisions artifact for Kunal (nine open calls, the backlog, and a pick-next list), read his
   answers with `read_db`, collection `answers`:
   https://claude.ai/code/artifact/99232fb2-f9f3-4019-a285-c3c16eb7de68
+
+### #354 and #355 (2026-09-12, overnight)
+- **THE DEMONSTRATION EXISTED ALL ALONG AND NEVER RAN FOR THE MOVES THAT NEEDED IT.**
+  `playBestLine` animates a line on the board. It starts from `analysis[i].bestMove`, and the review
+  NULLS that whenever the played move already was the best one. So Brilliant, Great, Best and
+  Excellent, the four verdicts where the played move IS the best move, had nothing to start from and
+  no button at all. Kunal asked twice why a brilliancy never explains itself; that was the answer.
+  `playBestLine(firstOverride)` now takes the played move, and `_wasBest` renders a "why" button.
+- **THE SCROLLHEIGHT TRAP, and it had been costing board size on every device.** The fit loop's
+  grow branch tested `over < -24` where `over = scrollHeight - clientHeight`. scrollHeight is
+  CLAMPED to at least clientHeight, so a page that fits reports exactly 0 and never a negative
+  number: the loop could shrink and could never grow back, and one over-correction was permanent.
+  It now measures the bottom-most laid-out child of the root (skipping fixed/absolute overlays),
+  which can be smaller than the viewport and answers in both directions.
+- **AND IT OVER-CORRECTED, because setBoardTrim is async.** Measuring on every animation frame meant
+  measuring the SAME overflow several times before the DOM had shrunk once, and every one of those
+  frames trimmed again: a 6px overflow took 128px off the board. The loop now sits out one frame
+  after each correction. If you touch this loop, keep the settle frame.
+- The fit loop no longer refuses wide layouts. An iPad in LANDSCAPE was the last board screen sized
+  by a constant, and that constant predates #344's player bars: 102px of overflow on an iPad Air.
+  Every iPad PORTRAIT size already fitted, which is why measuring first mattered.
+- On a WIDE screen the player bars must not flex. On a phone they absorb the slack a square board
+  leaves (#344); on a wide screen the rail beside the board holds real content and the slack belongs
+  there.
+- **SQ IS ONE VERY LONG LINE. A `//` COMMENT INSIDE IT SWALLOWS THE REST OF THE LINE.** That cost a
+  build. Use `/* */` inside any of the long single-line useMemos.
+- KNOWN, MEASURED, NOT FIXED: the first play-it-out tap after a review traps the Stockfish worker
+  once (RuntimeError: unreachable). `engcrash.js` taps each button first in its own fresh context and
+  BOTH the new one and the long-standing best button produce exactly one trap, so it is not #354's
+  doing. The line still plays because the local fallback search takes over. why354 allows that one
+  error BY EXACT TEXT so any other error still fails the gate; remove the allowance when it is fixed.
+- Adding `stop` before every reposition of a shared engine worker is correct UCI hygiene and is in,
+  but it did NOT fix the trap. Do not let the commit message or the code imply otherwise.
+- Harness traps worth knowing: matching a control by GLYPH found "Last move" before the aria-label
+  for "Next move" and pinned a 44-ply walk to the final ply; and a board signature built from string
+  LENGTHS barely moves when a piece does, so a working animation looked dead. Assert on content.
 
 ## 6) Files in this handoff
 This MD is self-sufficient; everything else refetches from the repo (section 1.2). The repo's own HANDOFF.md is June-era; this file supersedes it until committed.

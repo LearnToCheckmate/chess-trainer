@@ -65,7 +65,7 @@ REVIEW SCREEN
   Analyze icon is still too small; the icons in front of player usernames are small too. When
   the avatar falls back to a king icon, make it bigger. Also check whether his own profile photo
   should show when he is one of the two players in a review.
-- [2026-09-12 01:06 ET] status: open  [re-raised]
+- [2026-09-12 01:06 ET] status: closed #354  [re-raised]
   The brilliancy explanation is useless, it does not say WHY it is brilliant. Show the best move
   and PLAY IT OUT to explain why, like chess.com. Earlier "show best move and play it out"
   feedback (Fork, Fishing Pole) felt missed; fold together.
@@ -81,6 +81,11 @@ REVIEW SCREEN
   The row is deleted. Taking it away exposed 23px of dead space above the board, now 2px.
   closed: [2026-09-12 02:12 ET] Already exactly that: one card, White and Black as two columns, one list
   of categories down the side. Another one I would have rebuilt.
+  closed: [2026-09-12 03:32 ET] The animation existed and had never run for these moves. It starts
+  from the BEST move, and the review nulls that out whenever the played move already was the best
+  one, so the four verdicts where they are the same move had no demonstration at all. A Brilliant,
+  Great, Best or Excellent move now carries a "why" button that plays the move out with the engine's
+  continuation: the sacrifice, their best answer, and the point.
 
 PLAY SCREEN (phone)
 - [2026-09-12 01:06 ET] status: open, NEEDS KUNAL, decisions page question 3
@@ -114,7 +119,7 @@ PLAY SCREEN (phone)
   to know which gesture failed: a short drag, dropping on the rook, or something else.
 
 PLAY SCREEN (iPad)
-- [2026-09-12 01:06 ET] status: open
+- [2026-09-12 01:06 ET] status: closed #355, partly
   Board spills over and he has to scroll; it should fit the iPad screen with no scrolling. Keep
   opponent on top and him at the bottom, but replace "You" with his username. Buttons need
   better organisation and sizing; Analyze and Copy moves are too small.
@@ -122,6 +127,11 @@ PLAY SCREEN (iPad)
   Undecided, propose options: what to add in the empty free space on the right; whether the
   current button set is right; how many moves back Takeback can go; what else the moves screen
   needs.
+  closed: [2026-09-12 03:32 ET] Measured first: every iPad PORTRAIT size already fitted; LANDSCAPE
+  overflowed by 102px on an Air and 106px on a 12.9 Pro, because the fit loop refused to run on a
+  wide layout. Both are 0 now and the board grew as well (792 to 632 after a deeper fix, 1000 to 840
+  on the Pro). His username already replaces "You" when signed in. Button sizing on the rail, and
+  what fills the empty right-hand column, are still open and are question 6 on the decisions page.
 
 CAPTURED PIECES
 - [2026-09-12 01:06 ET] status: open
