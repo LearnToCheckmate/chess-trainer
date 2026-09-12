@@ -1518,6 +1518,18 @@ function MagIcon({size=23}){
     <line x1={cx+r*0.72} y1={cy+r*0.72} x2={size*0.86} y2={size*0.86} stroke="currentColor" strokeWidth={sw} strokeLinecap="round"/>
   </svg>);
 }
+/* #360. The MagIcon lesson, generalised. A glyph's font-size is not its drawn size: measured on
+   a real phone, the single-angle quotes the move arrows use draw only 6x11 of ink at font-size 24,
+   a 46% fill, while the neighbouring transport glyphs draw 21x12. That is the same defect Kunal
+   caught on the analyze icon, and #359 made these arrows visible by default. Drawn, not typed. */
+function ChevIcon({size=20,dir='right'}){
+  const sw=Math.max(2,size*0.13), m=size*0.30, t=size*0.20, b=size-t;
+  const x1=dir==='left'?(size-m):m, x2=dir==='left'?m:(size-m);
+  return(<svg width={size} height={size} viewBox={'0 0 '+size+' '+size} fill="none" aria-hidden="true" style={{display:'block'}}>
+    <polyline points={x1+','+t+' '+x2+','+(size/2)+' '+x1+','+b} stroke="currentColor" strokeWidth={sw}
+      strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>);
+}
 function QueenGlyph({idp='q',style}){
   return(<svg viewBox="0 0 56 66" aria-hidden="true" style={style}>
     <defs>
@@ -1948,10 +1960,18 @@ export default function App(){
   // into the handoff - "any future default flip needs a one-time migration key" - and I flipped
   // this one without applying it. Anyone who deliberately wants the bar beside can set it again;
   // the migration runs once.
+  /* #361: Kunal, 2026-09-12, looking at the live app: "remember I had asked the eval bar to the
+     left. I'm still seeing the eval bar on top." He is right and this one is mine twice over.
+     #340 made above-the-board the default; #359 then FORCED it onto every device with a one-time
+     key, to fix his empty-sides report - which silently overrode the placement he had ASKED FOR.
+     So the migration to undo is #359's, not #340's. Beside costs the board 22px of width in
+     review and 14 in play; he knows and wants it anyway. A new key, because the old one has
+     already run on his phone and will never run again. */
   const [evalUnder,setEvalUnder]=useState(()=>{try{
-    if(localStorage.getItem('ct_evalmig359')!=='1'){localStorage.setItem('ct_evalmig359','1');localStorage.setItem('ct_evalunder','1');return true;}
-    return localStorage.getItem('ct_evalunder')!=='0';}catch{return true;}}); // #339/#340: eval bar above the board (default) instead of beside it, so the board takes the full width
+    if(localStorage.getItem('ct_evalmig361')!=='1'){localStorage.setItem('ct_evalmig361','1');localStorage.setItem('ct_evalunder','0');return false;}
+    return localStorage.getItem('ct_evalunder')!=='0';}catch{return false;}});
   useEffect(()=>{try{localStorage.setItem('ct_evalunder',evalUnder?'1':'0');}catch{}},[evalUnder]);
+  const [layoutInfo,setLayoutInfo]=useState(false);   /* #361: a readout of what THIS device computes, so a screenshot settles a layout report instead of a paragraph */
   const [soundOn,setSoundOn]=useState(()=>{try{return localStorage.getItem('ct_sound')!=='0';}catch{return true;}});
   const _sfxLastRef=useRef('');
   const [playEnd,setPlayEnd]=useState(null);        // null | {reason:'resign'|'time', winner:'w'|'b'}
@@ -2284,7 +2304,7 @@ export default function App(){
   // MUST stay below `wide`: an earlier placement above it was a TDZ ReferenceError and a white
   // screen, which is the #315 failure mode verbatim.
   const _edge=!wide&&((mode==='analyze'&&review!==null&&revCompact)||(mode==='play'&&!playSetup)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null));
-  const SQ=useMemo(()=>{if(wide){const _bars=((mode==='play'&&!playSetup)||(inReview&&revCompact))?130:0; /* two 52px bars plus margins, measured on an iPad in landscape; SQ is one long line, so NEVER use // in here */const availH=vp.h-24-_bars;const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20;const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,Math.round((bp-boardTrim)/8*100)/100);}const _evOn=(inReview||(mode==='play'&&opponent==='computer'))&&!hideEval&&!evalUnder;const reserved=((inReview&&revCompact)||evalUnder||hideEval?0:4)+(_evOn?(inReview?22:14):0)+(_edge?0:6);const widthCap=vw-reserved;const _pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online'); /* #333: the eval bar sits beside the board, so its width (22 in review, 14 in play) plus the root's side padding must come out of the board, or the row overflows and gets clipped on both sides (Kunal's iPhone screenshot: eval number and h-file cut off) */const wh=vp.h;const heightCap=mode==='play'?(wh-232):(_pzLow?Math.max(232,wh-safeTop-8-pzStackH-62-26):((inReview&&revCompact)?Math.max(184,wh-safeTop-safeBot-REV_CHROME):(wh*0.66-16)));const hardCap=mode==='play'?900:820;const _trim=boardTrim;const _cap=Math.min(widthCap,heightCap,hardCap)-_trim;if(_edge)return Math.max(24,Math.round(_cap/8*100)/100);const bp=Math.floor(_cap/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent,hideEval,evalUnder,revCompact,safeTop,safeBot,pzView,pzStackH,boardTrim,_edge]);
+  const SQ=useMemo(()=>{if(wide){const _bars=((mode==='play'&&!playSetup)||(inReview&&revCompact))?130:70; /* two 52px bars plus margins, measured on an iPad in landscape; SQ is one long line, so NEVER use // in here. #360: the 0 was wrong for puzzle and lesson screens, which keep the 62px bottom nav in flow under the board: the iPad measured a 744px board in a 768 viewport and overflowed by 50 on EVERY stored profile, which is the half of Kunal's iPad scrolling report that #355 did not reach. 70 = the nav plus its margin. */const availH=vp.h-24-_bars;const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20;const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,Math.round((bp-boardTrim)/8*100)/100);}const _evOn=(inReview||(mode==='play'&&opponent==='computer'))&&!hideEval&&!evalUnder;const reserved=(_evOn?4:0)+(_evOn?(inReview?22:14):0)+(_edge?0:6); /* #362: that leading 4 used to be charged on EVERY screen that was not review-compact, including lesson and puzzle screens that have no eval bar at all - a 4px gutter each side with nothing in it, which is part of what Kunal keeps reporting as empty space on the sides. It is padding for the bar, so it is only owed when the bar is actually beside the board. */const widthCap=vw-reserved;const _pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online'); /* #333: the eval bar sits beside the board, so its width (22 in review, 14 in play) plus the root's side padding must come out of the board, or the row overflows and gets clipped on both sides (Kunal's iPhone screenshot: eval number and h-file cut off) */const wh=vp.h;const heightCap=mode==='play'?(wh-232):(_pzLow?Math.max(232,wh-safeTop-8-pzStackH-62-26):((inReview&&revCompact)?Math.max(184,wh-safeTop-safeBot-REV_CHROME):(wh*0.66-16)));const hardCap=mode==='play'?900:820;const _trim=boardTrim;const _cap=Math.min(widthCap,heightCap,hardCap)-_trim;if(_edge)return Math.max(24,Math.round(_cap/8*100)/100);const bp=Math.floor(_cap/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent,hideEval,evalUnder,revCompact,safeTop,safeBot,pzView,pzStackH,boardTrim,_edge]);
   const boardPx=SQ*8;
   // #346: the geometry this trim belongs to. Anything NOT in here is content, and content must not reset the trim.
   const _geoKey=vp.w+'x'+vp.h+':'+safeTop+':'+safeBot+':'+mode+':'+(inReview?1:0)+(revCompact?1:0)+(wide?1:0)+(playSetup?1:0)+':'+pzView+':'+openIdx+':'+reviewView+':'+(evalUnder?1:0)+(hideEval?1:0);
@@ -3703,7 +3723,7 @@ export default function App(){
       {diagMsg&&(<div style={{position:'fixed',bottom:'calc(env(safe-area-inset-bottom,0px) + 54px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'rgba(10,12,18,.95)',border:'1px solid rgba(110,168,254,.55)',borderRadius:12,padding:'10px 16px',color:'#cfe0ff',fontSize:13,fontWeight:700,boxShadow:'0 6px 20px rgba(0,0,0,.5)',pointerEvents:'none',maxWidth:'90vw',textAlign:'center'}}>🩺 {diagMsg}</div>)}
       {shareMsg&&(<div style={{position:'fixed',bottom:'calc(env(safe-area-inset-bottom,0px) + 54px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'rgba(10,12,18,.95)',border:'1px solid rgba(110,168,254,.55)',borderRadius:12,padding:'10px 16px',color:'#cfe0ff',fontSize:13,fontWeight:700,boxShadow:'0 6px 20px rgba(0,0,0,.5)',pointerEvents:'none',maxWidth:'90vw',textAlign:'center'}}>{shareMsg}</div>)}
       {homeScreen&&!preview&&!fbOpen&&<button onClick={()=>{setFbText('');setFbSent(false);setFbCopied(false);setFbOpen(true);}} title="Send feedback to Claude" style={{position:'fixed',left:'calc(env(safe-area-inset-left,0px) + 48px)',bottom:'calc(env(safe-area-inset-bottom,0px) + 8px)',zIndex:9997,width:34,height:34,borderRadius:10,border:'1px solid rgba(110,168,254,.45)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>{'\uD83D\uDCAC'}</button>}
-      {moreOpen&&mode==='play'&&opponent!=='online'&&(<div onClick={()=>setMoreOpen(false)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'10px 14px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -10px 30px rgba(0,0,0,.5)'}}><div style={{width:38,height:4,borderRadius:3,background:'rgba(255,255,255,.22)',margin:'2px auto 12px'}}/><_SheetItem icon="takeback" label="Takeback" dis={playHist.length===0} on={()=>{takeback();setMoreOpen(false);}}/><_SheetItem icon="newgame" label="New game" on={()=>{fullReset();setMoreOpen(false);}}/><_SheetItem icon="resign" label="Resign" warn dis={isOver||!!playEnd} on={()=>{resign();setMoreOpen(false);}}/></div></div>)}
+      {moreOpen&&mode==='play'&&opponent!=='online'&&(<div onClick={()=>setMoreOpen(false)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'10px 14px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -10px 30px rgba(0,0,0,.5)'}}><div style={{width:38,height:4,borderRadius:3,background:'rgba(255,255,255,.22)',margin:'2px auto 12px'}}/>{/* #362: Takeback removed from live play (his pick on the decisions page, 2026-09-12: "remove it from live play"). Practice keeps its own back-a-move arrows and the analysis board keeps Undo. */}<_SheetItem icon="newgame" label="New game" on={()=>{fullReset();setMoreOpen(false);}}/><_SheetItem icon="resign" label="Resign" warn dis={isOver||!!playEnd} on={()=>{resign();setMoreOpen(false);}}/></div></div>)}
       {revMore&&inReview&&(<div onClick={()=>setRevMore(false)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div data-ct="rev-sheet" onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,maxHeight:'82vh',overflowY:'auto',background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'10px 14px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -10px 30px rgba(0,0,0,.5)'}}><div style={{width:38,height:4,borderRadius:3,background:'rgba(255,255,255,.22)',margin:'2px auto 12px'}}/>
         {review.openingName&&(<div style={{textAlign:'center',fontSize:'clamp(13.5px,2.5vw,14px)',color:'rgba(255,255,255,.8)',marginBottom:10}}>📖 Opening: <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>)}
         <div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center',marginBottom:10}}>
@@ -4374,6 +4394,22 @@ export default function App(){
               <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Evaluation bar</span>
               <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:!hideEval?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:!hideEval?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:`1px solid ${!hideEval?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'}`}}>{!hideEval?'ON':'OFF'}</span>
             </button>
+            <button onClick={()=>setEvalUnder(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
+              <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Eval bar sits</span>
+              <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:'var(--ac2)',padding:'2px 10px',borderRadius:20,background:'rgba(var(--acr),.2)',border:'1px solid rgba(var(--acr),.45)'}}>{evalUnder?'above the board':'left of the board'}</span>
+            </button>
+            <button onClick={()=>setLayoutInfo(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
+              <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Layout readout</span>
+              <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:layoutInfo?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:layoutInfo?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)'}}>{layoutInfo?'shown':'screenshot this'}</span>
+            </button>
+            {layoutInfo&&(<div style={{marginTop:6,padding:'9px 11px',borderRadius:12,background:'rgba(0,0,0,.42)',border:'1px solid rgba(255,255,255,.16)',fontFamily:'monospace',fontSize:11.5,lineHeight:1.55,color:'rgba(255,255,255,.86)',WebkitUserSelect:'text',userSelect:'text'}}>
+              <div style={{color:'var(--ac2)',fontWeight:700,marginBottom:3}}>what THIS device computes</div>
+              <div>{'screen '+vp.w+'x'+vp.h+'  vw '+vw+'  dpr '+((typeof devicePixelRatio!=='undefined')?devicePixelRatio:'?')}</div>
+              <div>{'safe top '+safeTop+'  bottom '+safeBot+'  trim '+boardTrim}</div>
+              <div>{'board '+Math.round(boardPx)+'  square '+SQ+'  gap '+Math.round((vw-boardPx)/2)+' each side'}</div>
+              <div>{'mode '+mode+'  wide '+(wide?1:0)+'  edge '+(_edge?1:0)+'  compact '+(revCompact?1:0)}</div>
+              <div>{'eval '+(hideEval?'off':(evalUnder?'above':'left'))+'  moves '+(movesOpen?'open':'shut')+'  build '+(typeof __BUILD__!=='undefined'?__BUILD__:'?')}</div>
+            </div>)}
             <button onClick={()=>setSoundOn(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
               <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Sound</span>
               <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:soundOn?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:soundOn?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:`1px solid ${soundOn?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'}`}}>{soundOn?'ON':'OFF'}</span>
@@ -5320,7 +5356,7 @@ export default function App(){
       </div>)}
 
       {/* Move history (play/learn) */}
-      {!inReview&&!pzLow&&boardGame.history.length>0&&!(mode==='learn'&&openIdx===null)&&(mode!=='play'||movesOpen)&&(<div style={{marginTop:10,width:boardPx,maxWidth:_edge?'100vw':'98vw'}}>
+      {(()=>{const _pFill=(mode==='play'&&!wide&&movesOpen&&!playSetup&&!!opponent);return (!inReview&&!pzLow&&(boardGame.history.length>0||_pFill)&&!(mode==='learn'&&openIdx===null)&&(mode!=='play'||movesOpen)&&(<div style={{marginTop:10,width:boardPx,maxWidth:_edge?'100vw':'98vw',...(_pFill?{flex:'1 1 auto',minHeight:0,display:'flex',flexDirection:'column'}:null)}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:4}}>
           <span style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.4)',letterSpacing:1.5,fontFamily:'monospace'}}>MOVES</span>
           <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}>
@@ -5328,32 +5364,32 @@ export default function App(){
             <button onClick={copyMoves} style={{padding:'3px 11px',borderRadius:6,background:copyMsg?'rgba(var(--acr),.25)':'rgba(255,255,255,.08)',border:`1px solid ${copyMsg?'rgba(var(--acr),.5)':'rgba(255,255,255,.18)'}`,color:copyMsg?'var(--ac2)':'rgba(255,255,255,.72)',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:600,cursor:'pointer',whiteSpace:'nowrap'}}>{copyMsg||'📋 Copy moves'}</button>
           </div>
         </div>
-        {mode==='play'&&playHist.length>0&&(()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;const nb=(lbl,on,dis)=>(<button key={lbl} disabled={dis} onClick={on} style={{flex:1,minHeight:30,borderRadius:8,background:dis?'rgba(255,255,255,.04)':'rgba(255,255,255,.09)',border:'1px solid rgba(255,255,255,.18)',color:dis?'rgba(255,255,255,.28)':'#fff',fontSize:'clamp(15px,3.6vw,17px)',fontWeight:800,cursor:dis?'default':'pointer'}}>{lbl}</button>);return(
+        {mode==='play'&&playHist.length>0&&(()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;const nb=(lbl,on,dis)=>(<button key={typeof lbl==='string'?lbl:(dis?'d':'e')+String(on).length} disabled={dis} onClick={on} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',flex:1,minHeight:30,borderRadius:8,background:dis?'rgba(255,255,255,.04)':'rgba(255,255,255,.09)',border:'1px solid rgba(255,255,255,.18)',color:dis?'rgba(255,255,255,.28)':'#fff',fontSize:'clamp(15px,3.6vw,17px)',fontWeight:800,cursor:dis?'default':'pointer'}}>{lbl}</button>);return(
           <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
             {nb('⏮',()=>setPvIdx(0),cur===0)}
-            {nb('‹',()=>setPvIdx(Math.max(0,cur-1)),cur===0)}
+            {nb(<ChevIcon size={19} dir="left"/>,()=>setPvIdx(Math.max(0,cur-1)),cur===0)}
             <span style={{flex:'0 0 auto',minWidth:66,textAlign:'center',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:pvIdx==null?'#86d99a':'var(--ac2)',fontFamily:'monospace',letterSpacing:.5}}>{pvIdx==null?'● LIVE':('Move '+cur+'/'+n)}</span>
-            {nb('›',()=>{const nv=Math.min(n,cur+1);setPvIdx(nv>=n?null:nv);},cur>=n)}
+            {nb(<ChevIcon size={19} dir="right"/>,()=>{const nv=Math.min(n,cur+1);setPvIdx(nv>=n?null:nv);},cur>=n)}
             {nb('⏭',()=>setPvIdx(null),pvIdx==null)}
           </div>);})()}
-        <div className="scroll" ref={el=>{if(el)el.scrollLeft=el.scrollWidth;}} style={{overflowX:'auto',overflowY:'hidden',whiteSpace:'nowrap',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:8,padding:'7px 11px',WebkitUserSelect:'text',userSelect:'text',WebkitOverflowScrolling:'touch'}}>
-          <div style={{display:'inline-flex',alignItems:'center',fontSize:'clamp(14px,2.7vw,14.5px)',fontFamily:'monospace'}}>
+        <div className="scroll" ref={el=>{if(el){if(_pFill)el.scrollTop=el.scrollHeight;else el.scrollLeft=el.scrollWidth;}}} style={{overflowX:_pFill?'hidden':'auto',overflowY:_pFill?'auto':'hidden',whiteSpace:_pFill?'normal':'nowrap',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:8,padding:'7px 11px',WebkitUserSelect:'text',userSelect:'text',WebkitOverflowScrolling:'touch',...(_pFill?{flex:'1 1 auto',minHeight:34}:null)}}>
+          <div style={{display:_pFill?'flex':'inline-flex',flexWrap:_pFill?'wrap':'nowrap',alignItems:'center',alignContent:'flex-start',rowGap:_pFill?4:0,fontSize:'clamp(14px,2.7vw,14.5px)',fontFamily:'monospace'}}>{_pFill&&boardGame.history.length===0&&(<span style={{color:'rgba(255,255,255,.3)',fontSize:'.88em'}}>Your moves appear here as you play.</span>)}
             {boardGame.history.map((h,i)=>(<span key={i} style={{display:'inline-flex',alignItems:'center'}}>{i%2===0&&<span style={{color:'rgba(255,255,255,.35)',marginRight:3}}>{Math.floor(i/2)+1}.</span>}<span style={{color:i%2===0?'#e0e0e0':'var(--ac2)',marginRight:i%2===1?12:5,fontWeight:i===boardGame.history.length-1?'bold':'normal'}}>{h.san}</span></span>))}
           </div>
         </div>
-        <div style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.42)',marginTop:3,lineHeight:1.4}}>Tap <span style={{color:'var(--ac2)',fontWeight:600}}>🔍 Analyze</span> to review this line move-by-move and play on from any point.</div>
-      </div>)}
+        {boardGame.history.length>0&&(<div style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.42)',marginTop:3,lineHeight:1.4}}>Tap <span style={{color:'var(--ac2)',fontWeight:600}}>🔍 Analyze</span> to review this line move-by-move and play on from any point.</div>)}
+      </div>));})()}
 
       {/* Move list (review, clickable + colored) — single horizontal strip */}
-      {inReview&&(()=>{const _arrows=revCompact&&!wide;const _abtn=(lbl,on,lab)=>(<button onClick={on} aria-label={lab} style={{flex:'0 0 auto',width:26,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',color:'rgba(255,255,255,.75)',fontSize:15,cursor:'pointer',padding:0}}>{lbl}</button>);return(
+      {inReview&&(()=>{const _arrows=revCompact&&!wide;const _abtn=(lbl,on,lab)=>(<button onClick={on} aria-label={lab} style={{flex:'0 0 auto',width:26,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',color:'rgba(255,255,255,.75)',fontSize:15,cursor:'pointer',padding:0,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{lbl}</button>);return(
       <div data-ct="strip-row" style={{marginTop:10,marginBottom:(revCompact&&!wide)?'auto':0,width:boardPx+((hideEval||evalUnder)?0:22),maxWidth:_edge?'100vw':'98vw',display:'flex',alignItems:'stretch',gap:6}}>
-        {_arrows&&_abtn('\u2039',()=>{setRevAuto(false);setPly(p=>Math.max(0,p-1));},'Previous move')}
+        {_arrows&&_abtn(<ChevIcon size={17} dir="left"/>,()=>{setRevAuto(false);setPly(p=>Math.max(0,p-1));},'Previous move')}
         <div data-mstrip="1" className="scroll" style={{flex:'1 1 auto',minWidth:0,overflowX:'auto',overflowY:'hidden',whiteSpace:'nowrap',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:12,padding:'9px 11px',position:'relative',WebkitOverflowScrolling:'touch'}}>
         <div style={{display:'inline-flex',alignItems:'center',fontSize:'clamp(14px,2.9vw,16px)',fontFamily:'monospace'}}>
           {review.plies.map((p,i)=>{const a=review.analysis[i];const isCur=ply===i+1;const notable=['Brilliant','Great','Miss','Inaccuracy','Mistake','Blunder'].indexOf(a.cls.label)>=0;return(<span key={i} style={{display:'inline-flex',alignItems:'center'}}>{i%2===0&&<span style={{color:'rgba(255,255,255,.35)',margin:'0 3px 0 7px'}}>{Math.floor(i/2)+1}.</span>}<span ref={isCur?(el=>{if(!el)return;const c=el.closest('[data-mstrip]');if(c){const t=el.offsetLeft-(c.clientWidth-el.offsetWidth)/2;c.scrollTo({left:Math.max(0,t),behavior:'smooth'});}}):undefined} onClick={()=>setPly(i+1)} style={{cursor:'pointer',color:notable?a.cls.c:(i%2===0?'#e0e0e0':'var(--ac2)'),padding:'3px 6px',borderRadius:5,background:isCur?(notable?a.cls.c+'3d':'rgba(255,216,77,.28)'):'transparent',boxShadow:isCur?('inset 0 0 0 1px '+(notable?a.cls.c+'aa':'rgba(255,216,77,.5)')):'none',fontWeight:isCur?'bold':'normal'}}>{p.san}{notable?a.cls.i:''}</span></span>);})}
         </div>
         </div>
-        {_arrows&&_abtn('\u203A',()=>{setRevAuto(false);setPly(p=>Math.min(review.plies.length,p+1));},'Next move')}
+        {_arrows&&_abtn(<ChevIcon size={17} dir="right"/>,()=>{setRevAuto(false);setPly(p=>Math.min(review.plies.length,p+1));},'Next move')}
       </div>);})()}
 
         </>);
@@ -5365,10 +5401,10 @@ export default function App(){
         const _img=(src)=>(<img src={src} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}}/>);
         const pBar=(col,isTop)=>{
           const enemy=col==='w'?'b':'w'; let name, av;
-          if(inReview){ const _H=(review&&review.headers)||{}; const _n=col==='w'?_H.White:_H.Black; name=_n||(col==='w'?'White':'Black'); av=_avBox(<span style={{fontSize:27,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>); }
-          else if(_isOnlineG){ const pd=col==='w'?_og.w:_og.b; name=(pd&&pd.name)?pd.name:(col==='w'?'White':'Black'); av=_avBox((pd&&pd.photo)?_img(pd.photo):(<span style={{fontSize:27,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); }
-          else if(opponent==='computer'){ if(col===pColor){ name=(cloudUser&&cloudUser.name)?cloudUser.name:'You'; av=_avBox((cloudUser&&cloudUser.photo)?_img(cloudUser.photo):(<span style={{fontSize:27,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); } else { name=botById(selBot)?botById(selBot).name:'Computer'; av=_avBox(<BotFace id={selBot} size={36}/>); } }
-          else { name=col==='w'?'White':'Black'; av=_avBox(<span style={{fontSize:27,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>); }
+          if(inReview){ const _H=(review&&review.headers)||{}; const _n=col==='w'?_H.White:_H.Black; name=_n||(col==='w'?'White':'Black'); av=_avBox(<span style={{fontSize:35,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>); }
+          else if(_isOnlineG){ const pd=col==='w'?_og.w:_og.b; name=(pd&&pd.name)?pd.name:(col==='w'?'White':'Black'); av=_avBox((pd&&pd.photo)?_img(pd.photo):(<span style={{fontSize:35,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); }
+          else if(opponent==='computer'){ if(col===pColor){ name=(cloudUser&&cloudUser.name)?cloudUser.name:'You'; av=_avBox((cloudUser&&cloudUser.photo)?_img(cloudUser.photo):(<span style={{fontSize:35,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); } else { name=botById(selBot)?botById(selBot).name:'Computer'; /* #360: BotFace returns null for an unnamed opponent, which is the DEFAULT - press Start game without picking a bot and the bar showed an empty grey square. */ av=_avBox(botById(selBot)?<BotFace id={selBot} size={36}/>:<span style={{fontSize:27,lineHeight:1}}>{'\u{1F916}'}</span>); } }
+          else { name=col==='w'?'White':'Black'; av=_avBox(<span style={{fontSize:35,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>); }
           const taken=_cap[col]||[]; const lead=col==='w'?(_md>0?_md:0):(_md<0?-_md:0);
           // #348: whatever we actually know about this player. Rating from the PGN headers in review (chess.com
           // and lichess both set WhiteElo/BlackElo), the bot's own Elo in play. Nothing is invented: if we do not
@@ -5397,7 +5433,7 @@ export default function App(){
           const _hb=isTop&&inReview&&revCompact;
           const _hbPlay=isTop&&!wide&&_livePlay;
           const _hbSty={flex:'0 0 auto',display:'inline-flex',alignItems:'center',justifyContent:'center',width:34,height:30,borderRadius:9,background:_pillBg,border:'1px solid '+_pillBd,color:_fg,cursor:'pointer',fontWeight:800,lineHeight:1,padding:0};
-          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...((inReview||mode==='play')?(wide?{flex:'0 0 auto',minHeight:52}:{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(vp.h>900?86:74)}):null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>setReviewView('summary')} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:20}}>{'\u2190'}</button>}
+          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...((inReview||mode==='play')?(wide?{flex:'0 0 auto',minHeight:52}:{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(vp.h>900?86:74)}):null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>setReviewView('summary')} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:25}}>{'\u2190'}</button>}
             {_hbPlay&&<button data-ct="play-home" onClick={()=>setHomeScreen(true)} aria-label="Home" title="Home" style={{..._hbSty,fontSize:18}}>{'\u2302'}</button>}
             {isTop&&_evalOn&&!inReview&&!isOver&&!playEnd&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:_pillBg,border:'1px solid '+_pillBd,color:_fg}}>{evalTxt}</span>}
             {av}
@@ -5406,7 +5442,10 @@ export default function App(){
                 {flag&&<span data-ct={'pbar-flag-'+col} title="Country" style={{flexShrink:0,fontSize:'clamp(13px,2.8vw,15px)',lineHeight:1.15}}>{flag}</span>}
                 <span style={{fontSize:'clamp(14px,3.2vw,16px)',fontWeight:800,color:_fg,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1.15}}>{name}</span>
                 {rating&&<span data-ct={'pbar-rating-'+col} style={{flexShrink:0,fontSize:'clamp(11.5px,2.2vw,12.5px)',fontWeight:800,color:_fg,opacity:.72,fontFamily:'ui-monospace,Menlo,monospace',lineHeight:1.15}}>{rating}</span>}
-                <span data-ct={'pbar-side-'+col} style={{flexShrink:0,fontSize:'clamp(11px,2.1vw,12px)',fontWeight:700,letterSpacing:.4,textTransform:'uppercase',color:_fgDim,lineHeight:1.15}}>{col==='w'?'White':'Black'}</span>
+                {/* #362: the WHITE / BLACK word is gone. He asked for it in #344 because his own
+                    name in a black bar while playing White threw him off; having lived with it he
+                    asked for it back out on the decisions page, 2026-09-12. Do not re-add it
+                    without asking - see DECISIONS-LOG.md, round 1. */}
               </div>
               <div data-ct={'pbar-taken-'+col} style={{display:'flex',alignItems:'center',height:18,flexShrink:0,flexWrap:'nowrap',overflow:'hidden'}}>{taken.length>0&&taken.map((t,i)=>(<span key={i} style={{display:'inline-flex',marginRight:-2}}><Piece t={t} color={enemy} sz={18} useFallback={fallback} onFail={onPieceFail}/></span>))}{lead>0&&<span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:_fgDim,marginLeft:6}}>+{lead}</span>}</div>
             </div>
@@ -5508,9 +5547,9 @@ export default function App(){
       {!homeScreen&&!_hideTabs&&(<div aria-hidden="true" style={{order:99,height:'calc(62px + env(safe-area-inset-bottom,0px))',flexShrink:0,width:'100%'}}/>)}
       {!homeScreen&&!_hideTabs&&(()=>{const _ta=mode==='learn'?'learn':mode==='puzzle'?'puzzle':mode==='analyze'?'analyze':mode==='play'?'play':'';const _go=(k)=>{setMenuOpen(false);setCoachOpen(false);if(k==='home'){setHomeScreen(true);return;}setHomeScreen(false);if(k==='learn'){setMode('learn');setOpenIdx(null);setLearnGroup(null);setLearnCat(null);}else if(k==='puzzle'){setMistakeMode(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}else if(k==='analyze'){setMode('analyze');}else if(k==='play'){setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}};return lessonFocus?null:<_TabBar active={_ta} go={_go}/>;})()}
       {lessonFocus&&(<div style={{position:'fixed',left:0,right:0,bottom:0,zIndex:471,display:'flex',gap:10,alignItems:'center',padding:'8px 12px calc(8px + env(safe-area-inset-bottom,0px))',background:'rgba(13,16,21,.97)',borderTop:'1px solid rgba(255,255,255,.12)'}}>
-        {learnPhase!=='practice'&&(<><button onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.max(0,p-1));}} aria-label="Back a move" style={{minWidth:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontSize:16,cursor:'pointer'}}>{'\u2039'}</button>
+        {learnPhase!=='practice'&&(<><button onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.max(0,p-1));}} aria-label="Back a move" style={{minWidth:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontSize:16,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={22} dir="left"/></button>
         <button onClick={()=>{if(demoPly>=learnLine.length){setDemoPly(0);setDemoPlaying(true);}else setDemoPlaying(p=>!p);}} aria-label="Play or pause" style={{minWidth:52,minHeight:44,borderRadius:10,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:13,cursor:'pointer'}}>{demoPlaying?'\u23F8':(demoPly>=learnLine.length?'\u21BB':'\u25B6')}</button>
-        <button onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.min(learnLine.length,p+1));}} aria-label="Forward a move" style={{minWidth:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontSize:16,cursor:'pointer'}}>{'\u203A'}</button></>)}
+        <button onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.min(learnLine.length,p+1));}} aria-label="Forward a move" style={{minWidth:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontSize:16,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={22} dir="right"/></button></>)}
         <button onClick={()=>{setLessonMore(false);setOpenIdx(null);}} aria-label="Close lesson" style={{minWidth:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontSize:17,cursor:'pointer'}}>{'\u2715'}</button>
         <div style={{flex:1,textAlign:'center',fontSize:12.5,color:'rgba(255,255,255,.55)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{LIB[openIdx]?LIB[openIdx].name:''}</div>
         <button onClick={()=>setLessonMore(v=>!v)} aria-label="More for this lesson" style={{minWidth:44,minHeight:44,borderRadius:10,background:lessonMore?'rgba(212,175,55,.2)':'rgba(255,255,255,.08)',border:'1px solid '+(lessonMore?'rgba(212,175,55,.55)':'rgba(255,255,255,.2)'),color:lessonMore?'var(--ac2)':'#fff',fontSize:19,cursor:'pointer'}}>{'\u22EF'}</button>
