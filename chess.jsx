@@ -421,6 +421,221 @@ function seeSq(game,tr,tc,side){
   const val=captured-seeSq({...game,board:nb,turn:opp},tr,tc,opp);
   return Math.max(0,val);
 }
+// ── What the move DID on the board, in plain English (#350) ─────────────────────────────────
+// The review already explains a move in engine arithmetic ("about 1.4 pawns gone"). That tells
+// you HOW MUCH and never WHAT. This tells you what: it develops, it hits the bishop, it leaves
+// the knight hanging. Chess.com's review reads positionally for exactly this reason.
+// HARD RULE for anything added here: every phrase must be provable from the two board positions
+// alone, never inferred from the evaluation. A positional claim that is merely plausible reads
+// worse than no claim at all, because the reader cannot tell which kind they are looking at.
+// Returns {did:[...],left:[...]} - what it accomplished, and what it exposed. `left` is computed
+// for every move but is only TRUE-as-criticism when the engine also disliked the move; a hanging
+// piece after a Best move is an offer, not an oversight, so the caller decides when to use it.
+const PNAME={p:'pawn',n:'knight',b:'bishop',r:'rook',q:'queen',k:'king'};
+function moveGist(pos,mv){
+  const D=[],left=[];let pinned=false;
+  try{
+    const me=pos.turn,them=opp(me);
+    const pc=pos.board[mv.fr]&&pos.board[mv.fr][mv.fc]; if(!pc)return{did:[],left};
+    const cap=pos.board[mv.tr]&&pos.board[mv.tr][mv.tc];
+    const nb=applyMove(pos.board,mv);
+    const g2={...pos,board:nb,ep:null};   // ep from BEFORE the move must not survive into a SEE probe
+    const mvVal=SEEVAL[pc.t]||0;
+    const tgtSq=rc2sq(mv.tr,mv.tc);
+    // --- castling reads for itself
+    if(mv.castle){D.push({r:50,s:'castles the king to safety'});}
+    // --- development: a minor off its home rank, and only while there is still developing to do
+    const homeR=me==='w'?7:0;
+    if(!mv.castle&&(pc.t==='n'||pc.t==='b')&&mv.fr===homeR){
+      let athome=0;for(let c=0;c<8;c++){const p=nb[homeR][c];if(p&&p.c===me&&(p.t==='n'||p.t==='b'))athome++;}
+      if(athome>=1)D.push({r:40,s:'develops the '+PNAME[pc.t]});
+    }
+    // --- a pawn taking one of the four central squares
+    if(pc.t==='p'&&(mv.tr===3||mv.tr===4)&&(mv.tc===3||mv.tc===4))D.push({r:35,s:'stakes out the centre'});
+    // --- a rook arriving on a file with no pawns left on it
+    if(pc.t==='r'){
+      let pawns=0;for(let r=0;r<8;r++){const p=nb[r][mv.tc];if(p&&p.t==='p')pawns++;}
+      if(pawns===0)D.push({r:38,s:'takes the open '+FILES[mv.tc]+' file'});
+    }
+    // --- a passed pawn: nothing of theirs can stop it on its file or either neighbour
+    if(pc.t==='p'){
+      const dir=me==='w'?-1:1;let blocked=false;
+      for(let c=Math.max(0,mv.tc-1);c<=Math.min(7,mv.tc+1)&&!blocked;c++)
+        for(let r=mv.tr+dir;r>=0&&r<8;r+=dir){const p=nb[r][c];if(p&&p.t==='p'&&p.c===them){blocked=true;break;}}
+      if(!blocked&&Math.abs(mv.tr-homeR)>=3)D.push({r:55,s:'makes a passed pawn'});
+    }
+    // --- what the piece now attacks. Cheapest useful reading of "creates a threat".
+    let best=null;
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+      const t=nb[r][c]; if(!t||t.c!==them||t.t==='k')continue;
+      const tv=SEEVAL[t.t]||0; if(tv<3)continue;
+      if(!moveHits(nb,mv.tr,mv.tc,r,c))continue;          // hit by THIS piece, not by the side
+      if(isAttacked(pos.board,r,c,me))continue;            // and it is a NEW attack
+      const gain=seeSq({...g2,turn:me},r,c,me);
+      if(gain<=0)continue;                                  // defended well enough to be no threat
+      const sc=tv*10+(mvVal<tv?5:0);
+      if(!best||sc>best.sc)best={sc,t:t.t,sq:rc2sq(r,c),chase:mvVal<tv};
+    }
+    if(best)D.push(best.chase?{r:65,s:'chases the '+PNAME[best.t]+' off '+best.sq}:{r:60,s:'hits the '+PNAME[best.t]+' on '+best.sq});
+    // --- a pin or skewer laid by the piece that just moved
+    if(pc.t==='b'||pc.t==='r'||pc.t==='q'){
+      pinned=false;const rays=pc.t==='b'?[[-1,-1],[-1,1],[1,-1],[1,1]]:pc.t==='r'?[[-1,0],[1,0],[0,-1],[0,1]]:[[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]];
+      for(const[dr,dc]of rays){
+        let r=mv.tr+dr,c=mv.tc+dc,first=null;
+        while(inB(r,c)){
+          const p=nb[r][c];
+          if(p){
+            if(p.c===me)break;
+            if(!first){first=p;}
+            else{
+              const fv=SEEVAL[first.t]||0,sv=SEEVAL[p.t]||0;
+              if(fv>=3){                                     // pinning a pawn is true and pointless
+                if(p.t==='k'){D.push({r:80,s:'pins the '+PNAME[first.t]+' to the king'});pinned=true;}
+                else if(sv>fv&&sv>=5){D.push({r:70,s:'pins the '+PNAME[first.t]+' to the '+PNAME[p.t]});pinned=true;}
+              }
+              break;
+            }
+          }
+          r+=dr;c+=dc;
+        }
+        if(pinned)break;
+      }
+    }
+    // --- a capture that wins material outright, as opposed to an even trade
+    if(cap&&!mv.promo){
+      const capV=SEEVAL[cap.t]||0;
+      const back=seeSq({...g2,turn:them},mv.tr,mv.tc,them);
+      if(capV-back>=1)D.push({r:90,s:'wins the '+PNAME[cap.t]});
+      else if(back>0&&capV>0)D.push({r:20,s:'trades the '+PNAME[cap.t]+'s off'});
+    }
+    // --- a piece pulled out of danger, or newly defended.
+    // Neither side may be in check for this reading to mean anything. SEE forces the side to
+    // move, so on a board where the mover is IN check every one of their pieces scores as
+    // winnable (the opponent "captures" while the king is still attacked) and every escape then
+    // looks like it rescued the whole army; and on a board where the OPPONENT is in check
+    // nothing of ours can be taken at all, so every checking move looks like it defended
+    // everything. Both directions produced sentences that were false in the same way.
+    if(!isInCheck(nb,them)&&!isInCheck(pos.board,me)){
+      let saved=null,work2=0;
+      if(mvVal>=3&&pc.t!=='k'&&isAttacked(pos.board,mv.fr,mv.fc,them)&&seeSq({...pos,turn:them},mv.fr,mv.fc,them)>=3
+         &&seeSq({...g2,turn:them},mv.tr,mv.tc,them)<3)
+        saved={r:58,s:'gets the '+PNAME[pc.t]+' out of danger'};
+      for(let r=0;r<8&&work2<5&&!saved;r++)for(let c=0;c<8&&work2<5&&!saved;c++){
+        const q=pos.board[r][c]; if(!q||q.c!==me||q.t==='k')continue;
+        if(r===mv.fr&&c===mv.fc)continue;                    // that one moved, handled just above
+        if((SEEVAL[q.t]||0)<3)continue;
+        if(!isAttacked(pos.board,r,c,them))continue;
+        work2++;
+        if(seeSq({...pos,turn:them},r,c,them)<3)continue;     // it was never actually in danger
+        if(!nb[r][c])continue;                                 // still on the board after the move
+        if(seeSq({...g2,turn:them},r,c,them)>=3)continue;      // still in danger, so nothing was saved
+        saved={r:57,s:'defends the '+PNAME[q.t]+' on '+rc2sq(r,c)};
+      }
+      if(saved)D.push(saved);
+    }
+    // --- what it left behind: anything of theirs that can now be taken for profit, that could
+    //     not be before. Bounded to pieces worth taking, so this is a handful of SEE calls.
+    let work=0;
+    for(let r=0;r<8&&work<7;r++)for(let c=0;c<8&&work<7;c++){
+      const p=nb[r][c]; if(!p||p.c!==me||p.t==='k')continue;
+      const pv=SEEVAL[p.t]||0; if(pv<3)continue;
+      if(!isAttacked(nb,r,c,them))continue;
+      work++;
+      const lose=seeSq({...g2,turn:them},r,c,them);
+      if(lose<3)continue;
+      const wasR=(r===mv.tr&&c===mv.tc)?mv.fr:r, wasC=(r===mv.tr&&c===mv.tc)?mv.fc:c;
+      if(isAttacked(pos.board,wasR,wasC,them)&&seeSq({...pos,turn:them},wasR,wasC,them)>=lose)continue; // already hanging before
+      left.push({t:p.t,sq:rc2sq(r,c),v:lose,moved:(r===mv.tr&&c===mv.tc)});
+    }
+    left.sort((a,b)=>b.v-a.v);
+  }catch(e){}
+  // ranked, most interesting first, so a clipped line still leads with the thing worth reading
+  return{did:D.sort((a,b)=>b.r-a.r).map(x=>x.s),left};
+}
+// Does the piece standing on (fr,fc) attack (tr,tc) on this board? A single-piece version of
+// isAttacked, so a threat can be credited to the piece that just moved rather than to the side.
+function moveHits(board,fr,fc,tr,tc){
+  const p=board[fr]&&board[fr][fc]; if(!p)return false;
+  const dr=tr-fr,dc=tc-fc,ar=Math.abs(dr),ac=Math.abs(dc);
+  if(p.t==='n')return (ar===1&&ac===2)||(ar===2&&ac===1);
+  if(p.t==='k')return ar<=1&&ac<=1&&(ar||ac);
+  if(p.t==='p'){const d=p.c==='w'?-1:1;return dr===d&&ac===1;}
+  const diag=ar===ac&&ar>0, straight=(dr===0||dc===0)&&(ar||ac);
+  if(p.t==='b'&&!diag)return false;
+  if(p.t==='r'&&!straight)return false;
+  if(p.t==='q'&&!diag&&!straight)return false;
+  const sr=Math.sign(dr),sc=Math.sign(dc);
+  let r=fr+sr,c=fc+sc;
+  while(r!==tr||c!==tc){if(board[r][c])return false;r+=sr;c+=sc;}
+  return true;
+}
+// ── The sentence under the board (#350) ─────────────────────────────────────────────────────
+// The review used to explain a move purely as arithmetic - "about 1.4 pawns gone" - which says
+// how much and never what. Each line now LEADS with what happened on the board and keeps the
+// numbers as the tail, because the box is two lines and whatever gets clipped should be the
+// arithmetic rather than the chess. Clauses are packed in priority order against a character
+// budget rather than concatenated blind, so a long piece name cannot push out the verdict.
+// Pure and module-level on purpose: this is the wording users actually read, so the harness has
+// to be able to exercise the real thing rather than a copy of it that can drift.
+// ctx: {mover:'White'|'Black', next, nextPly, nextPos} - the annotation, ply and position that
+// follow this move, used to describe the opponent's answer rather than only naming it.
+const WHY_MAXW=130;
+function explainAnno(a,ctx){
+  if(!a)return null;
+  const L=a.cls&&a.cls.label; if(!L)return null;
+  const mover=(ctx&&ctx.mover)||'White';
+  const ev=(typeof a.evalAfter==='number')?a.evalAfter:0;
+  const evM=ev*(mover==='White'?1:-1);                        // + = good for the player who moved
+  const lossP=Math.max(0,(a.loss||0))/100;
+  const mot=(a.motifs||[]); const has=(m)=>mot.indexOf(m)>=0;
+  const nxt=ctx&&ctx.next, nxtPly=ctx&&ctx.nextPly;
+  // the punishment: the opponent's best reply. When they actually played it the review stores no
+  // "better" move, so fall back to the move itself.
+  let reply=null;
+  if(nxt&&nxt.bestSan)reply=nxt.bestSan;
+  else if(nxtPly&&nxtPly.san)reply=String(nxtPly.san).replace(/[!?]+$/,'');
+  const pack=(parts)=>{let o='';for(const t of parts){if(!t)continue;const n=o?(o+' '+t):t;if(n.length>WHY_MAXW&&o)break;o=n;}return o||null;};
+  // what the move did, at most two clauses, already ranked most-interesting-first by moveGist
+  const G=a.gist||{};
+  const _d=(G.did||[]).slice(0,2);
+  const didTxt=_d.length?(_d[0].charAt(0).toUpperCase()+_d[0].slice(1)+(_d[1]?(' and '+_d[1]):'')+'.'):'';
+  // what it exposed. Only ever used on a move the engine also disliked: after a Best move a piece
+  // under fire is an offer, not an oversight, and calling it hanging would be a lie.
+  const _h=(G.left||[])[0];
+  const hangTxt=_h?(_h.moved?('It puts the '+PNAME[_h.t]+' on '+_h.sq+' en prise.'):('It leaves the '+PNAME[_h.t]+' on '+_h.sq+' hanging.')):'';
+  // describe the answer rather than only naming it
+  const replyTxt=(()=>{
+    if(!reply)return '';
+    let tail='';
+    try{
+      const pn=ctx&&ctx.nextPos, pm=(nxt&&nxt.bestMove)||(nxtPly&&nxtPly.move);
+      if(pn&&pm){const m2=moveMotifs(pn,pm);
+        tail=m2.indexOf('mate')>=0?'mate':m2.indexOf('fork')>=0?', forking two at once':m2.indexOf('discovered check')>=0?', a discovered check':'';}
+    }catch(e){}
+    return tail==='mate'?(reply+' is mate.'):(reply+' is the answer'+tail+'.');})();
+  const motifTxt=has('mate')?'Checkmate.':has('fork')?'It forks two pieces at once.':has('discovered check')?'A discovered check, which is why it lands so hard.':has('promotion')?'The pawn promotes.':'';
+  if(has('mate'))return 'Checkmate.';
+  if(has('stalemate'))return 'Stalemate. The game is drawn.';
+  const standing=evM>=3?(mover+' is winning here.'):evM>=1?(mover+' is clearly better.'):evM<=-3?(mover+' is losing here.'):evM<=-1?(mover+' is clearly worse.'):'The position stays roughly level.';
+  if(L==='Brilliant'){const g=a.gate||{};
+    return pack([didTxt,'It gives up '+(g.sac>=5?'a rook or more':g.sac>=3?'a piece':'material')+' and still reads '+(evM>0?'+':'')+evM.toFixed(1)+'.',motifTxt||'Hard to see, and it holds.']);}
+  if(L==='Great'){const alt=(a.altSan&&a.altDrop!=null&&a.altDrop>=120)?(a.altSan+', the next best, was about '+(a.altDrop/100).toFixed(1)+' pawns worse.'):'';
+    return pack([didTxt,'The only move that keeps it.',motifTxt,alt]);}
+  const gapTxt=(()=>{if(!a.altSan||a.altDrop==null)return '';const d=a.altDrop/100;
+    if(d>=1.0)return 'Nothing else came close: '+a.altSan+' was about '+d.toFixed(1)+' pawns worse.';
+    if(d>=0.35)return a.altSan+' was the only other try, about '+d.toFixed(1)+' pawns worse.';
+    return a.altSan+' was just as good.';})();
+  if(L==='Best'||L==='Excellent')return pack([didTxt,(L==='Best'?'The engine’s first choice.':'Right among the top choices.'),motifTxt,standing,gapTxt]);
+  if(L==='Good')return pack([didTxt,'Sound, if not the sharpest.',(a.bestSan?(a.bestSan+' was sharper.'):''),motifTxt,standing]);
+  if(L==='Book')return pack([didTxt,'Still in the book.',standing,gapTxt]);
+  if(L==='Miss')return pack([hangTxt||didTxt,'You were on top and this let it slip.',(a.bestSan?(a.bestSan+' was the one.'):''),('About '+lossP.toFixed(1)+' pawns gone.'),replyTxt]);
+  if(L==='Blunder'||L==='Mistake'||L==='Inaccuracy'){
+    const size=L==='Inaccuracy'?'A small slip.':(L==='Mistake'?'A mistake.':'A blunder.');
+    const cost=lossP>=0.15?('About '+lossP.toFixed(1)+' '+(lossP.toFixed(1)==='1.0'?'pawn':'pawns')+' of advantage gone.'):'';
+    const better=a.bestSan?(a.bestSan+' held it.'):'';
+    return pack([hangTxt,size,replyTxt,better,cost,standing]);}
+  return null;
+}
 // Brilliant gate (v3): a genuine material SACRIFICE (measured by SEE on the landing square) that
 // keeps the game clearly winning. A retreat or a safely-defended move scores SEE sac=0 and can never
 // qualify - this structurally closes the old false-positive vector (e.g. the Bc7 retreat). Returns the
@@ -2481,7 +2696,7 @@ export default function App(){
         let altSan='',altDrop=null;
         try{const au=aU[i];if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));}}
           if(ev2W[i]!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2W[i]:-ev2W[i];altDrop=Math.max(0,Math.round(_b-_s2));}}catch(e){}
-        out.push({loss:Math.round(loss),cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl)});
+        out.push({loss:Math.round(loss),cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl)});
       }
     }else{
       QDEPTH=2;
@@ -3173,43 +3388,14 @@ export default function App(){
   useEffect(()=>{ if(inReview&&ply>0&&review&&review.analysis[ply-1]&&review.analysis[ply-1].cls&&review.analysis[ply-1].cls.label==='Brilliant')playBrilliantChime(); },[inReview,ply,review]);
   useEffect(()=>{ if(review&&review.plies&&gateDemoRef.current!=null){ const t=Math.min(gateDemoRef.current,review.plies.length); gateDemoRef.current=null; setReviewView('moves'); setShowGates(true); setRevAuto(false); setTimeout(()=>setPly(t),40); } if(review&&review.plies&&revDemoPlyRef.current!=null){ const t=Math.min(revDemoPlyRef.current,review.plies.length); revDemoPlyRef.current=null; setReviewView('moves'); setRevAuto(false); setTimeout(()=>setPly(t),40); } },[review]);
   useEffect(()=>{ if(!revAuto||!inReview||!review)return; if(ply>=review.plies.length){const t=setTimeout(()=>setRevAuto(false),1900);return ()=>clearTimeout(t);} const t=setTimeout(()=>{const np=ply+1;const san=(review.plies[np-1]&&review.plies[np-1].san)||'';try{playSfx(/x/.test(san)?'capture':(/[+#]/.test(san)?'check':'move'));}catch(e){} setPly(np);},1250); return ()=>clearTimeout(t); },[revAuto,inReview,ply,review]);
-  // #342: the reason a move earned its verdict, in a coach's words. Everything here comes from data the review already has:
-  // the engine's loss, the best move, the runner-up, the opponent's best reply (the punishment), and what the move does on the board.
-  const _annoWhy=(()=>{
+  // #342 the reason a move earned its verdict, in a coach's words; #350 in board terms first.
+  // The wording itself lives in explainAnno, module-level and pure, so the harness exercises the
+  // real sentences rather than a copy that can drift away from what ships.
+  const _annoWhy=useMemo(()=>{
     if(!curAnno||!inReview||!review)return null;
-    const ai=ply-1,a=curAnno,L=a.cls&&a.cls.label;if(!L)return null;
-    const mover=(ai%2===0)?'White':'Black',sgn=(ai%2===0)?1:-1;
-    const ev=(typeof a.evalAfter==='number')?a.evalAfter:0, evM=ev*sgn;           // + = good for the player who moved
-    const lossP=Math.max(0,(a.loss||0))/100;
-    const mot=(a.motifs||[]);
-    const has=(m)=>mot.indexOf(m)>=0;
-    const nxt=review.analysis[ai+1], nxtPly=review.plies[ai+1];
-    // the punishment: the opponent's best reply. When they actually played it, the review stores no "better" move, so use the move itself.
-    let reply=null;
-    if(nxt&&nxt.bestSan)reply=nxt.bestSan;
-    else if(nxtPly&&nxtPly.san)reply=String(nxtPly.san).replace(/[!?]+$/,'');
-    const motifTxt=has('mate')?'Checkmate.':has('fork')?'It forks two pieces at once.':has('discovered check')?'A discovered check, which is why it lands so hard.':has('promotion')?'The pawn promotes.':'';
-    const standing=evM>=3?(mover+' is winning here.'):evM>=1?(mover+' is clearly better.'):evM<=-3?(mover+' is losing here.'):evM<=-1?(mover+' is clearly worse.'):'The position stays roughly level.';
-    if(L==='Brilliant'){const g=a.gate||{};
-      return 'Brilliant: you gave up '+(g.sac>=5?'a rook or more':g.sac>=3?'a piece':'material')+' and the position still reads '+(evM>0?'+':'')+evM.toFixed(1)+' for '+mover.toLowerCase()+'. '+(motifTxt||'Hard to see, and it holds.');}
-    if(L==='Great'){const alt=(a.altSan&&a.altDrop!=null&&a.altDrop>=120)?(' The next best, '+a.altSan+', was about '+(a.altDrop/100).toFixed(1)+' pawns worse.'):'';
-      return 'The only move that keeps it.'+alt+(motifTxt?(' '+motifTxt):'');}
-    const gapTxt=(()=>{if(!a.altSan||a.altDrop==null)return '';const d=a.altDrop/100;
-      if(d>=1.0)return ' Nothing else came close: '+a.altSan+' was about '+d.toFixed(1)+' pawns worse.';
-      if(d>=0.35)return ' '+a.altSan+' was the only other try, about '+d.toFixed(1)+' pawns worse.';
-      return ' '+a.altSan+' was just as good.';})();
-    if(L==='Best'||L==='Excellent')return (L==='Best'?'The engine\'s first choice.':'Right among the top choices.')+(motifTxt?(' '+motifTxt):'')+gapTxt+' '+standing;
-    if(L==='Good')return 'Sound, if not the sharpest.'+(a.bestSan?(' '+a.bestSan+' was sharper.'):'')+(motifTxt?(' '+motifTxt):'')+' '+standing;
-    if(L==='Book')return 'Still in the book.'+gapTxt+' '+standing;
-    if(L==='Miss'){const b=a.bestSan?(a.bestSan+' was the one: '):'';
-      return 'You were on top and this let it slip. '+b+'about '+lossP.toFixed(1)+' pawns gone.'+(reply?(' '+reply+' is the reply.'):'');}
-    if(L==='Blunder'||L==='Mistake'||L==='Inaccuracy'){
-      const size=L==='Inaccuracy'?'A small slip, ':(L==='Mistake'?'A mistake, ':'A blunder, ');
-      const cost=lossP>=0.15?('about '+lossP.toFixed(1)+' '+(lossP<1.4?'pawn':'pawns')+' of advantage gone. '):'';
-      const punish=reply?(reply+' is the punishment. '):'';
-      const better=a.bestSan?(a.bestSan+' held it. '):'';
-      return size+cost+punish+better+standing;}
-    return null;})();
+    const ai=ply-1;
+    return explainAnno(curAnno,{mover:(ai%2===0)?'White':'Black',next:review.analysis[ai+1],nextPly:review.plies[ai+1],nextPos:review.positions&&review.positions[ai+1]});
+  },[curAnno,inReview,review,ply]);
 
   return(
     <div ref={rootRef} style={{'--ac':TH.accent,'--ac2':TH.accent2,'--acr':TH.rgb,'--ok':'#3ecf7a','--gold':'#f0c24d','--warn':'#e0a83a','--bad':'#e85d4a','--r':'12px','--head':headFont,'--pcfilter':SK.pcf||'none',minHeight:'100dvh',width:'100%',maxWidth:'100vw',overflowX:'hidden',background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:railed?'center':'flex-start',paddingTop:wide?'calc(env(safe-area-inset-top,0px) + 6px)':'calc(env(safe-area-inset-top,0px) + 8px)',paddingLeft:'calc(env(safe-area-inset-left,0px) + 3px)',paddingRight:'calc(env(safe-area-inset-right,0px) + 3px)',paddingBottom:wide?6:8,fontFamily:"'Segoe UI',system-ui,sans-serif",userSelect:'none',WebkitUserSelect:'none',color:'#fff',transition:'background .3s'}}>
