@@ -61,7 +61,7 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 - Waiting on Kunal (his dashboard): old GitHub token DELETED 2026-09-06 (done); two-device sync check; Stripe test prices at $2.99/$19.99 + checkout test; buy gambitcoach.com; deploy scanBoard function; publish Firestore rules for tournaments/friends/nearby (this last one unlocks three buildable features).
 - Sourcing notes: Caro-Kann Fantasy video 0yMkAJ6Pyig is single-source attribution; Kunal has not yet confirmed playback. Held HP IDs (no matching lessons yet): Two Knights Caro S5OjT1K_s58, Karpov YLEmufSFoGk.
 
-## 5a) State at builds #331 to #350 (Cowork session 2026-09-10 evening into 2026-09-12)
+## 5a) State at builds #331 to #353 (Cowork session 2026-09-10 evening into 2026-09-12)
 - #341: the review move screen has no tab bar, a back arrow as the only exit, a one-line reason under the move, thin arrows on the move strip, and "Analyze with the engine" (eval plus the engine's line in notation, cached per FEN). The engine pass for a whole game is cached in localStorage (ct_evalcache, keyed on the move list plus movetime, 24 games LRU): 62 s first run, 4 s on a repeat. If review output ever looks stale after changing the analysis code, bump the key string in evalCacheKey. Screen audit at 430x932: review board 424 of 430, puzzle and drill 416, play 416, lesson 416; play and lesson still carry heavy chrome, and the base-layout decision for them is open.
 - #339: LESSON WORTH KEEPING. Flipping a default is not enough when an effect has already persisted the old value to every install: #337 made the one-screen review the default but Kunal's phone had ct_revCompact='0' stored from the preview era, so he kept seeing the classic screen and re-reported the same complaints. Any future default flip needs a one-time migration key like ct_revmig339. Also in #339: the eval bar moved off the side (full width strip, horizontal number) so the board takes the full screen width, with a three-way sheet control (above / beside / off); #340 put that strip above the board at his request. Great is now blue #5d93e8, not teal.
 - #338: the tab-bar spacer now carries order 99. It had none, and the puzzle screen is the only screen that orders its children, so there the spacer rendered FIRST (empty band at the top) and reserved nothing at the bottom (board and controls under the tab bar). If you ever add order to another screen's children, give every sibling an order or this returns. Puzzle boards are now sized from a measured pzStackH; the drill hides the Lichess panel; dev loaders are collapsed.
@@ -164,6 +164,67 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
   "about 1.1 pawn", and all four check artefacts. No assertion would have flagged any of them.
 - Cost 294us per ply, cheaper than the motif pass already running, 0.1% of the 24-second budget. A
   describer that walks the board a few times is not what makes a review slow.
+
+### #351 to #353 and the outage I caused (2026-09-12)
+- **NEVER `git reset --hard origin/main` UNLESS EVERY CHANGED FILE WAS UPLOADED.** The GitHub web
+  upload only carries the files you attach, so a hard reset afterwards silently reverts every local
+  file you did NOT attach. It ate tonight's whole FEEDBACK-INBOX batch (recovered from the local
+  commit via `git show <sha>:FILE`, and the project copy was untouched because project_write does
+  not go through git). Either attach every changed file, or reconcile with `git fetch` alone and
+  leave the branch ahead.
+- **THE BUILD COMMAND IS build.sh AND NOTHING ELSE.** `/home/claude/work/build/build.sh "#NNN"`.
+  I bundled #350 by hand with `esbuild chess.jsx` rather than `esbuild entry.jsx`. chess.jsx only
+  DEFINES the component; entry.jsx is what calls createRoot. The shipped bundle therefore had no
+  mount call in it and the live app was a white screen for about forty minutes. build.sh uses the
+  right entry, minifies, stamps, runs node --check, REFUSES to emit a bundle with no createRoot,
+  and writes ct/app.js and work/build/site/app.js from the same bytes.
+- **AND THE GATES WERE LYING.** The browser harnesses serve `work/build/site/app.js` and nothing
+  copied a new build into it, so all six gates I ran for #350 executed against the #349 bundle and
+  reported on code I was not shipping. A gate that passes against a stale file is worse than no
+  gate, because it buys confidence. If you ever hand-build, `md5sum ct/app.js site/app.js` before
+  believing a single gate result. HANDOFF gate 3 (mount check) is the one that catches this class
+  in seconds; run it FIRST, not last.
+- A third bug rode along: `const _edge` referenced `wide` 35 lines before `wide` was declared. TDZ
+  ReferenceError, white screen, the #315 failure mode verbatim. Declaration ORDER inside this
+  component is load-bearing; putting a derived const near where it reads well is not safe.
+- **THE BOARD IS NOW EXACTLY THE SCREEN WIDTH.** Kunal raised "visible borders on the top and the
+  sides" three times and the first two fixes missed, because the cause was not padding. SQ was
+  floored to a whole multiple of 8, so a 430px screen could never exceed a 424px board however
+  much padding came off. On a board screen (`_edge`) the square is FRACTIONAL. If you ever
+  reintroduce integer squares, those borders come back and he will raise it a fourth time.
+- Slack on a board screen belongs to the player bars, and the board column must not CENTRE its
+  children: taking the header row away handed it 40px which reappeared as a dead band ABOVE the
+  board. `justifyContent:flex-start` when `_edge`.
+- The back arrow, the dots, and on Play the house and the hamburger, all live INSIDE the top
+  player bar now. Their rows are deleted. This is the cheapest 40-50px on any board screen and the
+  bar had the room.
+- **DRIVE THE APP BEFORE BUILDING FROM A FEEDBACK LIST.** Of the items Kunal pasted in, back and
+  forward during a live game already existed, the summary was already one card with two columns,
+  and a notation section already exists (coach sheet, learnGroup 'notation'). I would have rebuilt
+  all three. His feedback spans several deploys, so some of it is already answered; screenshot the
+  current build and check before writing code.
+- Equally: "remove the You are Black label and the White to move indicator" does not match what
+  the build renders. The only turn text left is "Computer thinking..." and "Check!". The nearest
+  thing is the WHITE/BLACK word #344 added BECAUSE he said reading his side from colour alone
+  threw him off. When two notes pull opposite ways, ask; do not pick one.
+- The "minute time controls disappeared" report is NOT a regression: online play has never offered
+  them, in at least twenty builds. The ones he remembers are on the vs-computer screen, which
+  still has them. Check `git log -S` before accepting a regression report.
+- Castling by drag could not be reproduced: `matchTarget` accepts the king dropped on g1/c1 AND on
+  its own rook, and `commitOrPromote` calls it. Left open with a request for detail rather than
+  "fixed".
+- **#353 imported games were never persisted at all.** The username was one string and every fetch
+  assigned `ccRawRef.current` wholesale, so looking up a friend destroyed your own history with no
+  undo, and a reload did not help because nothing was ever written down. Games are now filed per
+  account under `ct_acctgames` with `ct_accts`, capped 8 accounts x 40 games. `gameInfo` asks the
+  GAME which account it came from rather than reading whatever is typed in the box, because with
+  several accounts loaded the box is wrong for every game but the last.
+- `acct353.js` asserts SURVIVAL, not the happy path, because the bug was silent and destructive.
+  Writing it caught a harness hole first: `addInitScript` re-runs on every navigation, so an
+  unguarded seed restored the removed account and the reload assertion was testing the seed.
+- Decisions artifact for Kunal (nine open calls, the backlog, and a pick-next list), read his
+  answers with `read_db`, collection `answers`:
+  https://claude.ai/code/artifact/99232fb2-f9f3-4019-a285-c3c16eb7de68
 
 ## 6) Files in this handoff
 This MD is self-sufficient; everything else refetches from the repo (section 1.2). The repo's own HANDOFF.md is June-era; this file supersedes it until committed.

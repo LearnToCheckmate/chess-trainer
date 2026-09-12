@@ -37,6 +37,209 @@ marked rather than invented.
 
 ## Open
 
+Decisions page for everything marked NEEDS KUNAL (nine questions, the backlog, and a
+pick-what's-next list): https://claude.ai/code/artifact/99232fb2-f9f3-4019-a285-c3c16eb7de68
+
+### Batch from the feedback chat, pasted in by Kunal [2026-09-12 01:06 ET] — all status: open
+He had been giving feedback in a separate chat with screenshots; that chat was not reliably
+writing to this file, so he had it type up a paste-able block instead. Timestamps below are the
+minute the batch arrived, not the minute each item was first said, which is not recoverable.
+[re-report] means an earlier fix did not satisfy him.
+
+REVIEW SCREEN
+- [2026-09-12 01:06 ET] status: closed #351  [re-report]
+  Board is still too small; not just the board, the whole page is too small, there are visible
+  borders on the top and the sides. Use full width and height.
+- [2026-09-12 01:06 ET] status: closed #351
+  The back arrow and three-dots at the top take too much space. Relocate them, reclaim the
+  space. Think about where they should go.
+- [2026-09-12 01:06 ET] status: open  NEEDS A PROPOSAL FIRST
+  Show the eval graph on the review screen while playing through it. Instead of dots, use lines:
+  red for blunders, teal for brilliancies, so they jump out. Fit it in without taking much
+  space. He asked explicitly for layouts to be proposed before implementing.
+- [2026-09-12 01:06 ET] status: open  NEEDS A PROPOSAL FIRST
+  The review board can be a little smaller (review only, NOT play). Put the review button on the
+  left instead of the top and use the freed side space for the graph. Treat review and play
+  layouts as separate.
+- [2026-09-12 01:06 ET] status: open
+  Analyze icon is still too small; the icons in front of player usernames are small too. When
+  the avatar falls back to a king icon, make it bigger. Also check whether his own profile photo
+  should show when he is one of the two players in a review.
+- [2026-09-12 01:06 ET] status: open  [re-raised]
+  The brilliancy explanation is useless, it does not say WHY it is brilliant. Show the best move
+  and PLAY IT OUT to explain why, like chess.com. Earlier "show best move and play it out"
+  feedback (Fork, Fishing Pole) felt missed; fold together.
+  note: #350 made the reason line positional, which is a different thing from playing the line
+  out on the board. This is asking for the demonstration, not the sentence.
+- [2026-09-12 01:06 ET] status: closed, already built
+  On the Game Review summary, merge the separate White and Black cards into ONE card with two
+  columns; list the categories (Brilliant through Blunder) once, one value column per player.
+  closed: [2026-09-12 02:12 ET] Third attempt, first correct one. The cause was never padding: SQ was
+  floored to a whole multiple of 8, so a 430px screen could not exceed a 424px board however much
+  padding came off. The square is fractional on board screens now. 430 -> 430, 390 -> 390.
+  closed: [2026-09-12 02:12 ET] Into the top player bar, which was already on screen with slack to spare.
+  The row is deleted. Taking it away exposed 23px of dead space above the board, now 2px.
+  closed: [2026-09-12 02:12 ET] Already exactly that: one card, White and Black as two columns, one list
+  of categories down the side. Another one I would have rebuilt.
+
+PLAY SCREEN (phone)
+- [2026-09-12 01:06 ET] status: open, NEEDS KUNAL, decisions page question 3
+  Remove the "You are Black" label and the "White to move" / "White in check" turn indicator;
+  it is obvious from the board and the from/to highlight. Reclaim the space.
+- [2026-09-12 01:06 ET] status: closed, already built
+  Add back/forward buttons to step through moves during a live game, to look back a few moves.
+- [2026-09-12 01:06 ET] status: open, NOT A REGRESSION, decisions page question 8
+  The real-time minute time controls (1, 2, 3, 5, 10 min) disappeared from game setup; only
+  1 day / 7 day / no-time show. Bring the minute options back.
+- [2026-09-12 01:06 ET] status: open, COULD NOT REPRODUCE
+  Castling only works by click-king-then-square; make it work by dragging the king too, like
+  chess.com.
+- [2026-09-12 01:06 ET] status: open
+  chess.com's board looks much larger than ours; find out why and make ours that large.
+  Reconsider how many buttons the screen needs; fix bottom-button sizing, fonts, alignment.
+  During a live game, maximise the board and minimise everything else (fine to scroll for
+  buttons).
+  note: [2026-09-12 02:12 ET] Does not match what the build renders. The only turn text left is
+  "Computer thinking..." and "Check!". The nearest thing is the WHITE/BLACK word in each player bar,
+  which #344 added BECAUSE he said seeing his name in black while playing White threw him off. Those
+  two notes pull opposite ways, so it is a question rather than a guess.
+  closed: [2026-09-12 02:12 ET] They exist and work, in the bottom control row, greyed until there is a
+  move to step back to. Found by driving the app rather than reading the code; I would have rebuilt them.
+  note: [2026-09-12 02:12 ET] Checked the history: online play has never offered minute controls, in at
+  least twenty builds. The ones he remembers are on the vs-computer screen, which still has them.
+  Making them work online means real clocks synced between two phones plus a flag-fall rule, so it is
+  a feature to agree rather than a restore.
+  note: [2026-09-12 02:12 ET] matchTarget already accepts the king dropped on g1/c1 AND dropped on its
+  own rook, and the drop handler calls it. Rather than "fix" something that reads as working, I need
+  to know which gesture failed: a short drag, dropping on the rook, or something else.
+
+PLAY SCREEN (iPad)
+- [2026-09-12 01:06 ET] status: open
+  Board spills over and he has to scroll; it should fit the iPad screen with no scrolling. Keep
+  opponent on top and him at the bottom, but replace "You" with his username. Buttons need
+  better organisation and sizing; Analyze and Copy moves are too small.
+- [2026-09-12 01:06 ET] status: open  NEEDS A PROPOSAL FIRST
+  Undecided, propose options: what to add in the empty free space on the right; whether the
+  current button set is right; how many moves back Takeback can go; what else the moves screen
+  needs.
+
+CAPTURED PIECES
+- [2026-09-12 01:06 ET] status: open
+  Inconsistent: black pieces sit on individual white square tiles, white pieces on the plain
+  dark background. Use one consistent white background instead of per-piece squares.
+
+PERSISTENCE / ACCOUNTS
+- [2026-09-12 01:06 ET] status: closed #353
+  Only one chess.com ID is kept at a time, so importing friends wiped his games. Keep imported
+  IDs and their games forever, for multiple accounts; do not replace on import.
+- [2026-09-12 01:06 ET] status: open
+  Keep saved reviews forever, on the account so they carry across devices.
+  closed: [2026-09-12 02:12 ET] Worse than reported: the games were never stored at all, only held in a
+  ref until the next fetch replaced them, so a reload lost them too. Filed per account and persisted
+  now, each with a chip showing its count and an x to drop just that one. The new gate asserts
+  survival rather than the happy path.
+
+NEW FEATURES
+- [2026-09-12 01:06 ET] status: open
+  During a game, identify what opening/gambit/tactic the opponent is playing and what he is
+  playing: a box on top (opponent) and bottom (him), as far into the opening as each has gone.
+  Especially for beginners.
+- [2026-09-12 01:06 ET] status: open
+  Alongside taking a photo of a board, let him upload a picture or screenshot to read the
+  position, then play the computer from that point.
+- [2026-09-12 01:06 ET] status: open  NEEDS A PROPOSAL FIRST
+  A button on the home screen (or in themes) to pick the theme and a set of piece styles. Use
+  good styles only (the latest set plus the classic ones from before); include a curated list.
+- [2026-09-12 01:06 ET] status: closed, already built
+  Build a section for learning to read and write chess moves and notation. May already exist
+  from earlier notation work.
+- [2026-09-12 01:06 ET] status: open  VERIFY FIRST
+  A feature to ask the app what the best move is in a position. There is already "Show best
+  move" in the menu; confirm whether that covers it.
+- [2026-09-12 01:06 ET] status: open
+  In Gambits & Traps, link related gambits and traps executable with the other colour pieces.
+  closed: [2026-09-12 02:12 ET] It exists: "Read chess notation - squares, pieces & move symbols", in the
+  coach sheet, learnGroup 'notation'. Worth surfacing somewhere more findable, which folds into the
+  Discover reshuffle.
+
+LESSONS & DISCOVER
+- [2026-09-12 01:06 ET] status: open
+  After a tactic is solved (e.g. Fork), play out the continuation to show the payoff (king moves
+  out of check, then take the queen). For the Fishing Pole Trap, auto-play the queen delivering
+  checkmate after completion, no user input. Make "auto-play the finish to demonstrate" a
+  GENERAL lesson behaviour.
+- [2026-09-12 01:06 ET] status: open
+  On the gambit lesson screen, move the first two button rows (All gambits, and the Prev/Next
+  pager) further down; the Watch/Try, Play vs Computer, Hints, Hint/Flip buttons are the useful
+  ones. Rationalise and size; should not need three rows.
+- [2026-09-12 01:06 ET] status: open
+  Move the Train section out of Discover onto the home page. Remove the bottom two Discover
+  tiles (Coach Says, Continue where you left off) and place them elsewhere.
+
+HINTS / ENGAGEMENT
+- [2026-09-12 01:06 ET] status: open
+  Hints being on sometimes blocks progressing to the next move and puts the lesson in a
+  10-minute cooldown. Fix that friction. After cooldown, remind him he can bank a flawless day,
+  and the reminder should open the trap with hints OFF by default. Better: playing another
+  lesson should also unlock banking a flawless day (then drop the time limit); for lessons
+  already practised with hints where he did well, proactively suggest banking the flawless day.
+
+HOME & FONTS
+- [2026-09-12 01:06 ET] status: open, NEEDS KUNAL, decisions page question 4
+  The four home tile icons are not aligned and are sized inconsistently; even them out.
+- [2026-09-12 01:06 ET] status: closed #352, partly
+  Fonts are too small across the app, especially tile subtitles and labels (Discover, Puzzles,
+  Review, Play) and the Your Coach text. Increase app-wide, and bigger still. On iPad use the
+  extra space: make Your Coach bigger and the "Chess Trainer" title and tagline larger.
+  note: [2026-09-12 02:12 ET] Confirmed by screenshot. They are four emoji, and the phone draws emoji at
+  different optical weights, so sizing alone will not square them up. It is a direction choice.
+  closed: [2026-09-12 02:12 ET] Tile subtitles were clamped to 9.5-11.5px, smaller than anything else on
+  the screen; 12.5-15px now, labels up with them, Your coach bigger on a phone and much bigger on an
+  iPad. The app-wide sweep and the iPad title and tagline are still open.
+
+VISUALS / AVATARS
+- [2026-09-12 01:06 ET] status: open  NEEDS A PROPOSAL FIRST
+  He does not like either of the two coach avatars suggested; come up with fresh options.
+  chess.com's Play Coach and its illustrated lady avatar are references. If it is just an icon,
+  make it bigger.
+- [2026-09-12 01:06 ET] status: open
+  Explore Canva plus image generation for nicer visuals (piece art, board skins, avatars); use
+  Canva for logo and marketing graphics.
+- [2026-09-12 01:06 ET] status: open
+  Look through chess.com's and lichess's websites for design inspiration.
+
+OPS
+- [2026-09-12 01:06 ET] status: open  KUNAL'S TASK
+  Create a separate Gmail account for the AI work. Claude cannot create accounts.
+
+PROCESS (how the build chat runs)
+- [2026-09-12 01:06 ET] status: open
+  On every build or deploy: give an ETA before starting, then report actual time from his
+  instruction to being ready, and compare actual against ETA to refine it. Put elapsed time at
+  the end of every response. Track it by checkpointing every 5 minutes to a persistent place, so
+  a sandbox timeout still gives a reliable lower bound across restarts.
+- [2026-09-12 01:06 ET] status: open
+  Tackle a larger batch per run (a longer list of smaller tasks); watch for regressions.
+- [2026-09-12 01:06 ET] status: open
+  The chat can only ask 3 questions at a time: put all open questions into an HTML form
+  (multiple choice) he can fill in one go, and share the interactive HTML produced after each
+  run so he can pick what is next. On the next run, also show what is left plus open questions
+  in that form.
+- [2026-09-12 01:06 ET] status: open
+  When something is needed from him (especially screenshots), put the request in the Preview
+  gallery, not just a note.
+- [2026-09-12 01:06 ET] status: open
+  When feedback is swept into the tracker, acknowledge at the BOTTOM of the output that all
+  outstanding items have been picked up, with a timestamp.
+
+DISPOSITIONS (settled by him, no action)
+- [2026-09-12 01:06 ET] status: closed, no action
+  Rousseau Gambit 4.d4 line: tactic confirmed and lesson fixed (#258) — confirmed good.
+  Curated gambit cross-links: approved (the build item is logged above under NEW FEATURES).
+  chess.com Game Review reference recording: already logged as an open item.
+
+### Earlier open items
+
 - [2026-09-12 00:05 ET] status: open, one of three parts shipped
   Screen recording of chess.com's Game Review. Three things in it: the coach speech bubble
   with an avatar and the eval chip; explanations written positionally ("this move builds more
