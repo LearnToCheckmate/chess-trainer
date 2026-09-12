@@ -298,6 +298,36 @@ DISPOSITIONS (settled by him, no action)
   Curated gambit cross-links: approved (the build item is logged above under NEW FEATURES).
   chess.com Game Review reference recording: already logged as an open item.
 
+### Round 2 answers, all ten [2026-09-12 16:36-16:49 ET]
+
+Recorded in DECISIONS-LOG.md. Built in #365: the brilliancy explanation the chess.com way.
+- [2026-09-12 16:40 ET] status: closed #365
+  y18b "look at what chess.com does and replicate that." Done for the text: a sacrifice is now
+  explained by what happens if it is TAKEN (the opponent's capture is found, the position after it
+  is analysed on demand, and the sentence says "If cxb5, Bxb5+ and White is winning"), then what
+  the next best move was worth ("Nothing else came close: Bxf6 was 2.0 pawns worse"). Great moves
+  get the same treatment when they are sacrifices. Three lines of prose on phones, paid for out of
+  the player bars (74 -> 52 on Review), the move line, the control row and the strip - the board
+  stayed at 349 on his geometry. The next-best strip (played vs alternative with evaluations) shows
+  on iPad where height is free. The BUBBLE placement is not done: on his phone there is no free
+  vertical space for a bubble, so it would cost board; parked until he says otherwise.
+- [2026-09-12 16:48 ET] status: closed, decided  evw: eval bar stays beside; the width is worth it.
+- [2026-09-12 16:49 ET] status: open  lay: "All three, and stop guessing" -> the grid overlay (B)
+  is still to build; readout (A) shipped in #361; recordings (C) accepted.
+- [2026-09-12 16:45 ET] status: open  y11b: lesson text may take 3-4 lines as long as it is
+  CONSISTENT and never makes the board jump -> a fixed-height text box, to build.
+- [2026-09-12 16:47 ET] status: open  y12c: "I accept your proposal" -> theme + piece picker with
+  the home icons tied to it, to build.
+- [2026-09-12 16:37 ET] status: open  y15b: round Analyze button ON the board, board stays full
+  size, to build.
+- [2026-09-12 16:46 ET] status: open  y17b: Skills panel, full, AFTER the explanations - now unblocked.
+- [2026-09-12 16:36 ET] status: open  y1b: draw option C (graph inside the player bars) properly first.
+- [2026-09-12 16:40 ET] status: open  y3b: home icons, all four emoji ink-matched, to build.
+- [2026-09-12 16:43 ET] status: open  y5d: his note predates the redraw from his screenshot; the
+  redrawn question is waiting for a fresh answer.
+- Tracker flag b1 "still broken" at 12:57 ET predates #364, which reworked exactly that. Needs
+  his re-check on #364/#365 before it is anything else.
+
 ### From Kunal after validating #362 on his phone [2026-09-12 13:52 ET]
 
 - [2026-09-12 13:52 ET] status: closed #363

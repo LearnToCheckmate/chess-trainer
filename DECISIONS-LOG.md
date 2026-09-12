@@ -104,3 +104,16 @@ not from memory - the q5 mockup is now traced off this, and the old frame was wr
 Confirms two open items from the other direction: n9 (his own profile photo in the player bar) and
 the captured-pieces presentation. It does NOT confirm the captured-pieces-on-tiles report: here
 they are drawn straight onto the bar, same as ours.
+
+## Round 2 answers — 2026-09-12, 16:36–16:49 ET (10 of 10)
+
+- **Eval bar width (evw)** → *A, keep it beside; the width is worth it.* Board 349 on his phone, by choice.
+- **How we work the layout (lay)** → *All three, and stop guessing.* Readout (shipped #361), grid overlay (to build), recordings (accepted).
+- **Lesson chrome (y11b)** → note: the text matters; give it space "as long as it's consistent and doesn't make the board jump. Even 3 or 4 lines if needed is okay." → fixed-height text box, up to 4 lines.
+- **Theme picker (y12c)** → *I accept your proposal.* Picker for board + pieces, home icons tied to it.
+- **Review button on the board (y15b)** → *Round button on the board, keep the board full size.*
+- **Skills panel (y17b)** → *Full panel, but after the explanations are fixed.*
+- **Brilliancy explanation (y18b)** → *look at what chess.com does and replicate that.* Built in #365 for the text; the bubble placement parked (no free height on his phone).
+- **Eval graph (y1b)** → *Still not sure, draw C properly first.*
+- **Home icons (y3b)** → *B, all four emoji, ink-matched.*
+- **Live-game buttons (y5d)** → his note "chess.com shows more buttons" predates the redraw from his screenshot; awaiting a fresh answer.

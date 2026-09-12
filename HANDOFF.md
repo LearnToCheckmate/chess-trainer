@@ -3,7 +3,12 @@
 Give this file to Claude in Cowork as the first thing in the session.
 
 ## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 13:50 ET)
-LIVE = **#362** (app.js stamp 2026-09-12 12:36 ET, commit b0bb10b on origin/main, verified at raw.githubusercontent.com).
+LIVE = **#364** (app.js stamp "#364 - 2026-09-12 14:15 ET", commit 89b703d on origin/main, verified byte-identical at
+raw.githubusercontent.com). chess.jsx for #364 is staged for one more upload click so source matches bundle.
+KUNAL'S PHONE, from his Layout readout: **375x761, dpr 3, insets 51/31 = 375x679 usable.** Emulate as a 375x679
+viewport with insets 0 (or ct_safe='51,31'). HEIGHT binds there, not width; every width-only check will pass
+while the board is squeezed. Harnesses: work/build/kunal364c.js (play/puzzle/lesson) and kunal364d.js (review).
+Previously: #362
 Builds #359-#362 went live TOGETHER, committed by Kunal through GitHub's web upload page - I staged
 app.js and chess.jsx into the form from this session with Claude in Chrome and he pressed Commit.
 

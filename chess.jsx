@@ -627,6 +627,44 @@ function contLine(out,plies,i,max){
 // ctx: {mover:'White'|'Black', next, nextPly, nextPos} - the annotation, ply and position that
 // follow this move, used to describe the opponent's answer rather than only naming it.
 const WHY_MAXW=130;
+/* #365 Kunal, fifth time on the brilliancy text, finally precise: "on chess.com they show you the next
+   best moves along with an explanation of why the brilliant move was actually brilliant. You write
+   'you're clearly better' or '1.5 pawns of material' but that doesn't tell me WHY I'm better." A
+   sacrifice is explained by what happens if it is TAKEN. This finds the opponent's capture of the
+   piece that was just offered, so the review can analyse the position after it and say so. */
+function sacTaker(posBefore,mv){
+  try{
+    const g1=makeMove(posBefore,mv);
+    const caps=getLegal(g1).filter(m=>m.tr===mv.tr&&m.tc===mv.tc);
+    if(!caps.length)return null;
+    caps.sort((a,b)=>(VAL[(g1.board[a.fr][a.fc]||{}).t]||0)-(VAL[(g1.board[b.fr][b.fc]||{}).t]||0));
+    const cap=caps[0];const nb=applyMove(g1.board,cap);
+    return {game:g1,move:cap,san:toSAN(g1,cap,nb),after:makeMove(g1,cap)};
+  }catch(e){return null;}
+}
+/* an evaluation as a person reads it, from White's side: +1.3, -0.4, M3, -M2 */
+function evTxt(cpW){
+  if(cpW==null)return '';
+  if(Math.abs(cpW)>=90000){const n=Math.max(1,Math.round((100000-Math.abs(cpW))/100));return (cpW>0?'M':'-M')+n;}
+  const v=cpW/100;return (v>=0?'+':'')+v.toFixed(1);
+}
+/* the annotations keep evaluations in PAWNS, clamped to +-99, and a mate collapses to 99: the
+   distance is gone by then, so it reads as "mate" and nothing more precise */
+function evPawnsTxt(p){
+  if(p==null||typeof p!=='number')return '';
+  if(Math.abs(p)>=99)return p>0?'mate':'-mate';
+  return (p>=0?'+':'')+p.toFixed(1);
+}
+/* how much worse the other move was, in words a person would use: a gap that spans a mate is
+   "throws the win away", never "995 pawns" */
+function dropTxt(altSan,altDrop){
+  if(!altSan||altDrop==null)return '';
+  if(altDrop>=9000)return altSan+', the next best, throws the win away.';
+  const d=altDrop/100;
+  if(d>=1.0)return 'Nothing else came close: '+altSan+' was '+d.toFixed(1)+' pawns worse.';
+  if(d>=0.35)return altSan+' was the only other try, '+d.toFixed(1)+' worse.';
+  return altSan+' was as good on paper, but nothing like as forcing.';
+}
 function explainAnno(a,ctx){
   if(!a)return null;
   const L=a.cls&&a.cls.label; if(!L)return null;
@@ -641,7 +679,8 @@ function explainAnno(a,ctx){
   let reply=null;
   if(nxt&&nxt.bestSan)reply=nxt.bestSan;
   else if(nxtPly&&nxtPly.san)reply=String(nxtPly.san).replace(/[!?]+$/,'');
-  const pack=(parts)=>{let o='';for(const t of parts){if(!t)continue;const n=o?(o+' '+t):t;if(n.length>WHY_MAXW&&o)break;o=n;}return o||null;};
+  const _maxw=(ctx&&ctx.maxw)||WHY_MAXW;
+  const pack=(parts)=>{let o='';for(const t of parts){if(!t)continue;const n=o?(o+' '+t):t;if(n.length>_maxw&&o)break;o=n;}return o||null;};
   // what the move did, at most two clauses, already ranked most-interesting-first by moveGist
   const G=a.gist||{};
   const _d=(G.did||[]).slice(0,2);
@@ -682,17 +721,22 @@ function explainAnno(a,ctx){
   // #357 The verdict chip already says "Brilliant", so saying it again is a wasted clause. What it
   // does NOT say is what the sacrifice buys, and that is the only thing worth reading here.
   if(L==='Brilliant'){const g=a.gate||{};
-    const what=g.sac>=9?'the queen':g.sac>=5?'a rook':g.sac>=3?'a piece':g.sac>=1?'a pawn':'material';
-    const _l=pvShow(pvTakes);
+    const what=g.sac>=9?'the queen':g.sac>=5?'a rook':g.sac>=2?'a piece':g.sac>=1?'a pawn':'material';
+    const R=ctx&&ctx.refute;
+    const _l=(R&&R.capSan&&R.replySan)?'':pvShow(pvTakes);   // the refutation says it better than the bare line
     const _give='You give up '+what+(_l?(', and '+_l):'.');
-    // a forced mate ends the discussion: nothing after it is worth the two lines it would take
-    return pvMates?_give:pack([_give,motifTxt,standing,didTxt]);}
-  if(L==='Great'){const alt=(a.altSan&&a.altDrop!=null&&a.altDrop>=120)?(a.altSan+', the next best, was about '+(a.altDrop/100).toFixed(1)+' pawns worse.'):'';
-    return pack(['The only move that keeps it.',pvTxt,didTxt,motifTxt,alt]);}
-  const gapTxt=(()=>{if(!a.altSan||a.altDrop==null)return '';const d=a.altDrop/100;
-    if(d>=1.0)return 'Nothing else came close: '+a.altSan+' was about '+d.toFixed(1)+' pawns worse.';
-    if(d>=0.35)return a.altSan+' was the only other try, about '+d.toFixed(1)+' pawns worse.';
-    return a.altSan+' was just as good.';})();
+    // #365 WHY it works: what happens if they take (analysed on demand, handed in through ctx.refute),
+    // and what the next best move would have got instead. Those two clauses are the explanation;
+    // the material count and the standing were only ever the definition.
+    const refTxt=(R&&R.capSan&&R.replySan)?('If '+R.capSan+', '+R.replySan+(R.verdict?(' '+R.verdict):'')+'.'):'';
+    const cmpTxt=dropTxt(a.altSan,a.altDrop);
+    return pvMates?pack([_give,refTxt,cmpTxt]):pack([_give,refTxt,cmpTxt,motifTxt,standing]);}
+  if(L==='Great'){const alt=(a.altSan&&a.altDrop!=null&&a.altDrop>=120)?dropTxt(a.altSan,a.altDrop):'';
+    const R=ctx&&ctx.refute;
+    const refTxt=(R&&R.capSan&&R.replySan)?('If '+R.capSan+', '+R.replySan+(R.verdict?(' '+R.verdict):'')+'.'):'';
+    const _pv=(refTxt?'':pvTxt);   /* #365 the refutation says the line with its reason attached; do not say it twice */
+    return pack(['The only move that keeps it.',refTxt,_pv,didTxt,motifTxt,alt]);}
+  const gapTxt=(()=>{if(!a.altSan||a.altDrop==null)return '';if(a.altDrop<35)return a.altSan+' was just as good.';return dropTxt(a.altSan,a.altDrop);})();
   // "The engine's first choice" is exactly what the chip beside it already says. Cut it, and let
   // the clauses that carry information move up: what the move did, and what follows from it.
   if(L==='Best'||L==='Excellent')return pack([didTxt,pvTxt,motifTxt,standing,gapTxt]);
@@ -715,7 +759,10 @@ function explainAnno(a,ctx){
 // so the first paint lands close; the real work is done by the fit loop below, which measures actual overflow and
 // shrinks the board until there is none. Do not tune this number to fix a specific phone - that is what the loop is
 // for, and a constant cannot know about a wrapped name, a two-line reason, a mate score or a larger system font.
-const REV_CHROME = 360;
+const REV_CHROME = 304;  // #364: 360 was measured with the player bars at their 74px cap. They are flex and their
+// minimum is 46, so the honest first guess is 56 lower. On Kunal's phone (375x761, insets 51/31) 360 pinned the
+// board at 319 with a 28px gutter each side, and the loop above could not grow it back. 304 lets the width cap
+// bind on a phone, as it should; the loop still trims if a wrapped name or a long reason needs the room.
 
 function brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
   const mc=pos.turn,sgn=mc==='w'?1:-1;
@@ -2140,12 +2187,14 @@ export default function App(){
   const [ratingMsg,setRatingMsg]=useState('');   // "+10" shown once when a game settles
   const [revFlags,setRevFlags]=useState({});      // #348: {w,b} country codes for the reviewed game, best-effort
   const [boardTrim,setBoardTrim]=useState(0);   // #344: px shaved off the board so the screen actually fits, MEASURED per device
+  const [fitBump,setFitBump]=useState(0);        /* #364: re-arms the fit loop when the root's size changes after the loop has run its 36 passes - a lesson's text arriving late left an 11px overflow uncorrected on a 375x679 phone */
+  useEffect(()=>{if(!window.ResizeObserver||!rootRef.current)return;let last=0;const ro=new ResizeObserver(es=>{const h=Math.round(es[0].contentRect.height);if(Math.abs(h-last)>2){last=h;setFitBump(b=>b+1);}});ro.observe(rootRef.current);return()=>ro.disconnect();},[]);
   const boardTrimRef=useRef(0);boardTrimRef.current=boardTrim;
   const fitGeoRef=useRef('');                  // #346: the last GEOMETRY the trim was derived for
   // #338: the puzzle screen stacks text above the board and controls below it; measure both so the board is sized to what is actually left.
   const pzTopRef=useRef(null),pzBotRef=useRef(null);
   const [pzStackH,setPzStackH]=useState(0);
-  useEffect(()=>{try{const pr=document.createElement('div');pr.style.cssText='position:fixed;left:0;top:0;height:env(safe-area-inset-top,0px);width:1px;visibility:hidden;pointer-events:none';document.body.appendChild(pr);const h=Math.round(pr.getBoundingClientRect().height);document.body.removeChild(pr);if(h>=0&&h<120)setSafeTop(h);}catch(e){}
+  useEffect(()=>{try{/* #364 dev-only: ct_safe='51,31' fakes the insets so a phone's Layout readout can be reproduced in the build sandbox, where env() is always 0. Kunal's phone reports 51/31 and no test rig here can emulate that natively. */const _ov=(localStorage.getItem('ct_safe')||'').split(',').map(Number);if(_ov.length===2&&_ov.every(n=>n>=0&&n<120)){setSafeTop(_ov[0]);setSafeBot(_ov[1]);return;}const pr=document.createElement('div');pr.style.cssText='position:fixed;left:0;top:0;height:env(safe-area-inset-top,0px);width:1px;visibility:hidden;pointer-events:none';document.body.appendChild(pr);const h=Math.round(pr.getBoundingClientRect().height);document.body.removeChild(pr);if(h>=0&&h<120)setSafeTop(h);}catch(e){}
     try{const pb=document.createElement('div');pb.style.cssText='position:fixed;left:0;bottom:0;height:env(safe-area-inset-bottom,0px);width:1px;visibility:hidden;pointer-events:none';document.body.appendChild(pb);const h2=Math.round(pb.getBoundingClientRect().height);document.body.removeChild(pb);if(h2>=0&&h2<80)setSafeBot(h2);}catch(e){}},[]);
   const [bestLineBoard,setBestLineBoard]=useState(null);
   const [bestLineSan,setBestLineSan]=useState('');   // #344: the best move AND what follows it, in words (Kunal: "that's where the value is")
@@ -2304,7 +2353,7 @@ export default function App(){
   // MUST stay below `wide`: an earlier placement above it was a TDZ ReferenceError and a white
   // screen, which is the #315 failure mode verbatim.
   const _edge=!wide&&((mode==='analyze'&&review!==null&&revCompact)||(mode==='play'&&!playSetup)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null));
-  const SQ=useMemo(()=>{if(wide){const _bars=((mode==='play'&&!playSetup)||(inReview&&revCompact))?130:70; /* two 52px bars plus margins, measured on an iPad in landscape; SQ is one long line, so NEVER use // in here. #360: the 0 was wrong for puzzle and lesson screens, which keep the 62px bottom nav in flow under the board: the iPad measured a 744px board in a 768 viewport and overflowed by 50 on EVERY stored profile, which is the half of Kunal's iPad scrolling report that #355 did not reach. 70 = the nav plus its margin. */const availH=vp.h-24-_bars;const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20;const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,Math.round((bp-boardTrim)/8*100)/100);}const _evOn=(inReview||(mode==='play'&&opponent==='computer'))&&!hideEval&&!evalUnder;const reserved=(_evOn?4:0)+(_evOn?(inReview?22:14):0)+(_edge?0:6); /* #362: that leading 4 used to be charged on EVERY screen that was not review-compact, including lesson and puzzle screens that have no eval bar at all - a 4px gutter each side with nothing in it, which is part of what Kunal keeps reporting as empty space on the sides. It is padding for the bar, so it is only owed when the bar is actually beside the board. */const widthCap=vw-reserved;const _pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online'); /* #333: the eval bar sits beside the board, so its width (22 in review, 14 in play) plus the root's side padding must come out of the board, or the row overflows and gets clipped on both sides (Kunal's iPhone screenshot: eval number and h-file cut off) */const wh=vp.h;const heightCap=mode==='play'?(wh-232):(_pzLow?Math.max(232,wh-safeTop-8-pzStackH-62-26):((inReview&&revCompact)?Math.max(184,wh-safeTop-safeBot-REV_CHROME):(wh*0.66-16)));const hardCap=mode==='play'?900:820;const _trim=boardTrim;const _cap=Math.min(widthCap,heightCap,hardCap)-_trim;if(_edge)return Math.max(24,Math.round(_cap/8*100)/100);const bp=Math.floor(_cap/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent,hideEval,evalUnder,revCompact,safeTop,safeBot,pzView,pzStackH,boardTrim,_edge]);
+  const SQ=useMemo(()=>{if(wide){const _bars=((mode==='play'&&!playSetup)||(inReview&&revCompact))?130:70; /* two 52px bars plus margins, measured on an iPad in landscape; SQ is one long line, so NEVER use // in here. #360: the 0 was wrong for puzzle and lesson screens, which keep the 62px bottom nav in flow under the board: the iPad measured a 744px board in a 768 viewport and overflowed by 50 on EVERY stored profile, which is the half of Kunal's iPad scrolling report that #355 did not reach. 70 = the nav plus its margin. */const availH=vp.h-24-_bars;const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20;const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,Math.round((bp-boardTrim)/8*100)/100);}const _evOn=(inReview||(mode==='play'&&opponent==='computer'))&&!hideEval&&!evalUnder;const reserved=(_evOn?4:0)+(_evOn?(inReview?22:14):0)+(_edge?0:6); /* #362: that leading 4 used to be charged on EVERY screen that was not review-compact, including lesson and puzzle screens that have no eval bar at all - a 4px gutter each side with nothing in it, which is part of what Kunal keeps reporting as empty space on the sides. It is padding for the bar, so it is only owed when the bar is actually beside the board. */const widthCap=vw-reserved;const _pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online'); /* #333: the eval bar sits beside the board, so its width (22 in review, 14 in play) plus the root's side padding must come out of the board, or the row overflows and gets clipped on both sides (Kunal's iPhone screenshot: eval number and h-file cut off) */const wh=vp.h;const heightCap=mode==='play'?(wh-232):(_pzLow?Math.max(232,wh-safeTop-8-pzStackH-62-26):((inReview&&revCompact)?Math.max(184,wh-safeTop-safeBot-REV_CHROME):(wh*0.66-16)));const hardCap=mode==='play'?900:820;const _trim=boardTrim;const _cap=Math.min(widthCap,Math.min(heightCap,hardCap)-_trim);if(_edge)return Math.max(24,Math.round(_cap/8*100)/100);const bp=Math.floor(_cap/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent,hideEval,evalUnder,revCompact,safeTop,safeBot,pzView,pzStackH,boardTrim,_edge]);
   const boardPx=SQ*8;
   // #346: the geometry this trim belongs to. Anything NOT in here is content, and content must not reset the trim.
   const _geoKey=vp.w+'x'+vp.h+':'+safeTop+':'+safeBot+':'+mode+':'+(inReview?1:0)+(revCompact?1:0)+(wide?1:0)+(playSetup?1:0)+':'+pzView+':'+openIdx+':'+reviewView+':'+(evalUnder?1:0)+(hideEval?1:0);
@@ -2341,23 +2390,29 @@ export default function App(){
       const rEl=rootRef.current;
       if(rEl){
         const rb=rEl.getBoundingClientRect(); let bottom=0;
+        let spacers=0;
         for(let i=0;i<rEl.children.length;i++){
           const c=rEl.children[i], r=c.getBoundingClientRect();
           if(r.height<=0)continue;
-          const pos=getComputedStyle(c).position;
-          if(pos==='fixed'||pos==='absolute')continue;          // overlays and sheets are not content
+          const cs=getComputedStyle(c);
+          if(cs.position==='fixed'||cs.position==='absolute')continue;          // overlays and sheets are not content
+          // #364: the #338 centring spacers (aria-hidden, flex-grow) SWALLOW the slack this loop needs to see.
+          // On Kunal's phone the puzzle board sat 32px under its cap forever: one early overflow trimmed it, the
+          // spacers absorbed the room that came back, and "over" never went negative again. Their height is
+          // slack, not content, so it is subtracted here and they go on centring whatever is left.
+          if(c.getAttribute('aria-hidden')==='true'&&parseFloat(cs.flexGrow)>0&&c.children.length===0){spacers+=r.height;continue;}
           if(r.bottom-rb.top>bottom)bottom=r.bottom-rb.top;
         }
         const padB=parseFloat(getComputedStyle(rEl).paddingBottom)||0;
-        over=bottom>0?(bottom+padB-de.clientHeight):(de.scrollHeight-de.clientHeight);
+        over=bottom>0?(bottom-spacers+padB-de.clientHeight):(de.scrollHeight-de.clientHeight);
       } else over=de.scrollHeight-de.clientHeight;
       if(over>0){setBoardTrim(t=>Math.min(600,t+Math.ceil(over/8)*8+8));settle=true;}
-      else if(over<-24){setBoardTrim(t=>t>0?Math.max(0,t-Math.min(64,Math.floor(-over/8)*8)):t);settle=true;}
+      else if(over<-24){setBoardTrim(t=>Math.max(-480,t-Math.min(64,Math.floor(-over/8)*8)));settle=true;} /* #364: t>0?...:t meant the loop could only UNDO a trim, never grow past SQ's first guess. Kunal's phone (375x761, insets 51/31) sat at board 319 with trim 0 and 56px of slack nobody could claim. Negative trim is growth; SQ clamps it to the width cap so it can never push the board off the sides. */
       if(++passes<36)raf=requestAnimationFrame(tick);
     };
     raf=requestAnimationFrame(tick);
     return()=>{stop=true;cancelAnimationFrame(raf);};
-  },[_geoKey,inReview,revCompact,wide,ply,anaMode,engOn,reviewView,showBest,bestLineSan,mode,playSetup,pzView,openIdx,learnPhase,playHist.length,isOver,playEnd,movesOpen]);
+  },[_geoKey,inReview,revCompact,wide,ply,anaMode,engOn,reviewView,showBest,bestLineSan,mode,playSetup,pzView,openIdx,learnPhase,playHist.length,isOver,playEnd,movesOpen,fitBump]);
   const sideW=wide?Math.max(200,Math.min(vp.w-boardPx-20,520)):RAIL;
   // outerRowStyle / sideColStyle are defined after showBoard (they need railed = wide && showBoard)
   const analyzeLine=()=>{const h=boardGame.history;if(!h||!h.length)return;let s='';for(let i=0;i<h.length;i++){if(i%2===0)s+=(i/2+1)+'. ';s+=h[i].san+' ';}s=s.trim();setOpenIdx(null);setMenuOpen(false);setHomeScreen(false);setMode('analyze');importGame(s);};
@@ -3650,10 +3705,73 @@ export default function App(){
   // #342 the reason a move earned its verdict, in a coach's words; #350 in board terms first.
   // The wording itself lives in explainAnno, module-level and pure, so the harness exercises the
   // real sentences rather than a copy that can drift away from what ships.
+  /* #365 chess.com explains a sacrifice by what happens if it is taken. When the current move is a
+     Brilliant, find the opponent's capture of the offered piece, ask the engine what follows, and
+     hand the answer to the sentence. Once per ply per review, on demand, never during the review
+     itself (the pool is busy then and the number is only wanted when someone is looking). */
+  const sacRef=useRef({key:null,byPly:{}});
+  const [sacTick,setSacTick]=useState(0);
+  const sacWantRef=useRef(null), sacBusyRef=useRef(false);
+  /* #365 SINGLE FLIGHT, DEBOUNCED. The first version fired one engine query per ply as the user (or the
+     harness) stepped, each aborting the last, and Stockfish hit RuntimeError: unreachable within
+     twelve plies - the #356 trap again: "stop" is asynchronous and a new "position" before readyok
+     kills the worker. Now at most one query is ever in flight, a step is only asked about after it
+     has rested 450ms, and a step that arrives mid-query is answered when that query finishes. */
+  const sacRun=useCallback(async()=>{
+    if(sacBusyRef.current)return;
+    const w=sacWantRef.current; if(!w)return; sacWantRef.current=null;
+    sacBusyRef.current=true;
+    try{
+      let r=null; try{ if(sfReadyRef.current&&await ensureAna()) r=await sfEval1(toFEN(w.t.after),700); }catch(e){}
+      let replySan='',verdict='';
+      try{ if(r&&r.bestmove){const rm=uciToMove(w.t.after,r.bestmove); if(rm){replySan=toSAN(w.t.after,rm,applyMove(w.t.after.board,rm));}} }catch(e){}
+      const mover=w.pos.turn, moverName=mover==='w'?'White':'Black';
+      if(r&&!/#/.test(replySan)){   /* a reply that is itself mate needs no verdict after it */
+        if(r.mate!=null){ const forMover=(r.mate>0)===(mover==='w'); verdict=forMover?('and it is mate in '+Math.abs(r.mate)):''; }
+        else if(r.cp!=null){ const c=mover==='w'?r.cp:-r.cp; verdict=c>=300?('and '+moverName+' is winning'):c>=100?('and '+moverName+' keeps a clear edge'):c>=-30?('and '+moverName+' holds'):''; }
+      }
+      if(sacRef.current.key===w.key)sacRef.current.byPly[w.ai]={capSan:w.t.san,replySan,verdict,cpW:r?r.cp:null,mateW:r?r.mate:null};
+      setSacTick(x=>x+1);
+    }finally{
+      sacBusyRef.current=false;
+      if(sacWantRef.current)setTimeout(sacRun,60);
+    }
+  },[]);
+  useEffect(()=>{
+    if(!inReview||!review||!curAnno||ply<1)return;
+    const L=curAnno.cls&&curAnno.cls.label; if(L!=='Brilliant'&&L!=='Great')return;
+    const key=(review.headers&&(review.headers.White+'|'+review.headers.Black+'|'+review.plies.length))||String(review.plies.length);
+    if(sacRef.current.key!==key){sacRef.current={key,byPly:{}};}
+    const ai=ply-1; if(sacRef.current.byPly[ai])return;
+    const pos=review.positions&&review.positions[ai], pl=review.plies[ai];
+    if(!pos||!pl||!pl.move){sacRef.current.byPly[ai]={none:true};return;}
+    const t=sacTaker(pos,pl.move);
+    if(!t){sacRef.current.byPly[ai]={none:true};return;}
+    sacRef.current.byPly[ai]={pending:true,capSan:t.san};
+    const timer=setTimeout(()=>{sacWantRef.current={key,ai,t,pos};sacRun();},450);
+    return()=>{clearTimeout(timer);if(sacRef.current.byPly[ai]&&sacRef.current.byPly[ai].pending)delete sacRef.current.byPly[ai];};
+  },[inReview,review,ply,curAnno,sacRun]);
   const _annoWhy=useMemo(()=>{
     if(!curAnno||!inReview||!review)return null;
     const ai=ply-1;
-    return explainAnno(curAnno,{mover:(ai%2===0)?'White':'Black',next:review.analysis[ai+1],nextPly:review.plies[ai+1],nextPos:review.positions&&review.positions[ai+1]});
+    const R=sacRef.current.byPly[ai]; const refute=(R&&!R.pending&&!R.none&&R.replySan)?R:null;
+    return explainAnno(curAnno,{mover:(ai%2===0)?'White':'Black',next:review.analysis[ai+1],nextPly:review.plies[ai+1],nextPos:review.positions&&review.positions[ai+1],refute,maxw:(!wide?150:WHY_MAXW)});
+  },[curAnno,inReview,review,ply,sacTick,wide]);
+  /* #365 the next-best strip: the move that was played and the engine's other choice, each with its
+     evaluation, the way chess.com's engine panel shows them. Data the review already had; it was
+     only ever shown as a number in a sentence. */
+  const _cmpStrip=useMemo(()=>{
+    if(!curAnno||!inReview||!review||ply<1)return null;
+    const ai=ply-1, pl=review.plies[ai]; if(!pl)return null;
+    const mover=(ai%2===0)?'w':'b';
+    const played={san:String(pl.san||'').replace(/[!?]+$/,''),ev:curAnno.evalAfter};
+    const rows=[played];
+    if(curAnno.altSan&&curAnno.altDrop!=null&&typeof curAnno.evalBefore==='number'){
+      rows.push({san:curAnno.altSan,ev:mover==='w'?(curAnno.evalBefore-curAnno.altDrop/100):(curAnno.evalBefore+curAnno.altDrop/100),alt:true});
+    } else if(curAnno.bestSan&&curAnno.bestSan!==played.san){
+      rows.push({san:curAnno.bestSan,ev:curAnno.evalBefore,best:true});
+    }
+    return rows.length>1?rows:null;
   },[curAnno,inReview,review,ply]);
 
   return(
@@ -4407,7 +4525,7 @@ export default function App(){
               <div>{'screen '+vp.w+'x'+vp.h+'  vw '+vw+'  dpr '+((typeof devicePixelRatio!=='undefined')?devicePixelRatio:'?')}</div>
               <div>{'safe top '+safeTop+'  bottom '+safeBot+'  trim '+boardTrim}</div>
               <div>{'board '+Math.round(boardPx)+'  square '+SQ+'  gap '+Math.round((vw-boardPx)/2)+' each side'}</div>
-              <div>{'mode '+mode+'  wide '+(wide?1:0)+'  edge '+(_edge?1:0)+'  compact '+(revCompact?1:0)}</div>
+              <div>{'mode '+mode+'  wide '+(wide?1:0)+'  edge '+(_edge?1:0)+'  compact '+(revCompact?1:0)+(mode==='puzzle'?('  pzstack '+pzStackH):'')}</div>
               <div>{'eval '+(hideEval?'off':(evalUnder?'above':'left'))+'  moves '+(movesOpen?'open':'shut')+'  build '+(typeof __BUILD__!=='undefined'?__BUILD__:'?')}</div>
             </div>)}
             <button onClick={()=>setSoundOn(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
@@ -4708,10 +4826,10 @@ export default function App(){
         // #354 a move that WAS the best one has no "better" move to show, so it used to get no
         // demonstration at all. Play the move itself out instead, with what the engine says follows.
         const _wasBest=!!(curAnno&&!_hasBetter&&['Brilliant','Great','Best','Excellent'].indexOf(curAnno.cls.label)>=0&&review.plies[ply-1]&&review.plies[ply-1].move);
-        const cb=(lab,on,w,hot,title)=>(<button onClick={on} title={title} aria-label={title} style={{flex:w?('0 0 '+w+'px'):'1 1 0',minWidth:0,minHeight:48,borderRadius:12,cursor:'pointer',fontSize:(String(lab).length<=2?'clamp(21px,5.4vw,26px)':'clamp(14px,2.9vw,15px)'),fontWeight:800,background:hot?'rgba(var(--acr),.22)':'rgba(255,255,255,.08)',backgroundImage:'linear-gradient(rgba(255,255,255,.20),rgba(255,255,255,.04) 48%,rgba(0,0,0,.10))',border:hot?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',color:hot?'var(--ac2)':'#fff',letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif",display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap',boxShadow:SHADOW_BTN,padding:'0 6px'}}>{lab}</button>);
+        const cb=(lab,on,w,hot,title)=>(<button onClick={on} title={title} aria-label={title} style={{flex:w?('0 0 '+w+'px'):'1 1 0',minWidth:0,minHeight:(wide?48:42),borderRadius:12,cursor:'pointer',fontSize:(String(lab).length<=2?'clamp(21px,5.4vw,26px)':'clamp(14px,2.9vw,15px)'),fontWeight:800,background:hot?'rgba(var(--acr),.22)':'rgba(255,255,255,.08)',backgroundImage:'linear-gradient(rgba(255,255,255,.20),rgba(255,255,255,.04) 48%,rgba(0,0,0,.10))',border:hot?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',color:hot?'var(--ac2)':'#fff',letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif",display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap',boxShadow:SHADOW_BTN,padding:'0 6px'}}>{lab}</button>);
         return(<div data-ct="rev-compact" style={{width:boardPx+((hideEval||evalUnder)?0:22),maxWidth:_edge?'100vw':'98vw',marginTop:6,display:'flex',flexDirection:'column',alignItems:'stretch',gap:6}}>
           {/* #337: one line: move, verdict, best move (tap shows it on the board). No text box (Kunal). */}
-          <div data-ct="rev-move-line" style={{display:'flex',alignItems:'center',gap:7,minHeight:38,whiteSpace:'nowrap'}}>
+          <div data-ct="rev-move-line" style={{display:'flex',alignItems:'center',gap:7,minHeight:(wide?38:32),whiteSpace:'nowrap'}}>
             {anaMode?(<>
               <span style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',gap:5,fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,color:'var(--ac2)',background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.5)',borderRadius:22,padding:'3px 10px'}}>⌕ Analysis</span>
               <span style={{flex:'1 1 auto',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',fontSize:'clamp(13px,2.8vw,14.5px)',color:'rgba(255,255,255,.62)',fontWeight:700}}>{anaHist.length?(anaHist.length+' move'+(anaHist.length===1?'':'s')+' in · '+(boardGame.turn==='w'?'White':'Black')+' to play'):'your board · play any move'}</span>
@@ -4725,13 +4843,16 @@ export default function App(){
             {!anaMode&&<span style={{flex:'0 0 auto',fontSize:'clamp(12.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.55)',fontFamily:'monospace',fontWeight:700}}>{ply}/{review.plies.length}</span>}
           </div>
           {/* #341: chess.com-style one-liner on why the move got its verdict, plain text, no box (Kunal asked for the reason back, and for the box gone). */}
-          {(()=>{const _reasonH=anaMode?0:38;const _engH=engOn?20:0;const _bestH=(showBest&&bestLineSan&&!anaMode)?20:0;const _whyH=_reasonH+_engH+_bestH;return _whyH>0&&(
+          {(()=>{const _tall=!wide;const _stripH=(wide&&_cmpStrip&&!anaMode)?20:0;const _reasonH=anaMode?0:(_tall?58:38);const _engH=engOn?20:0;const _bestH=(showBest&&bestLineSan&&!anaMode)?20:0;const _whyH=_stripH+_reasonH+_engH+_bestH;return _whyH>0&&(
             <div data-ct="rev-why" style={{height:_whyH,flexShrink:0,overflow:'hidden',display:'flex',flexDirection:'column',gap:2}}>
             {showBest&&bestLineSan&&!anaMode&&(<div data-ct="rev-bestline" style={{display:'flex',alignItems:'baseline',gap:7,fontSize:'clamp(13px,2.8vw,14.5px)',whiteSpace:'nowrap',overflowX:'auto',overflowY:'hidden'}} className="scroll">
               <b style={{flex:'0 0 auto',fontWeight:800,color:'rgba(255,255,255,.55)'}}>best line</b>
               <span style={{flex:'0 0 auto',color:'var(--ac2)',fontWeight:700,fontFamily:'ui-monospace,Menlo,monospace'}}>{bestLineSan}</span>
             </div>)}
-            {!anaMode&&<div data-ct="rev-why-txt" style={{height:38,flexShrink:0,fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{_annoWhy||'\u00a0'}</div>}
+            {_stripH>0&&(<div data-ct="rev-cmp" style={{height:20,flexShrink:0,display:'flex',alignItems:'baseline',gap:10,fontSize:'clamp(12.5px,2.7vw,14px)',fontFamily:'ui-monospace,Menlo,monospace',whiteSpace:'nowrap',overflow:'hidden'}}>
+              {_cmpStrip.map((r,i)=>(<span key={i} style={{display:'inline-flex',gap:5,alignItems:'baseline'}}><b style={{fontWeight:800,color:i===0?'#e8e8ea':'rgba(255,255,255,.6)'}}>{r.san}</b><span style={{color:i===0?'var(--ac2)':'rgba(255,255,255,.55)',fontWeight:700}}>{evPawnsTxt(r.ev)}</span>{i>0&&<span style={{color:'rgba(255,255,255,.35)',fontSize:'.85em'}}>{r.best?'best':'next best'}</span>}</span>))}
+            </div>)}
+            {!anaMode&&<div data-ct="rev-why-txt" style={{height:_tall?58:38,flexShrink:0,fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:_tall?3:2,WebkitBoxOrient:'vertical'}}>{_annoWhy||'\u00a0'}</div>}
             {engOn&&(<div data-ct="rev-engline" style={{height:20,flexShrink:0,display:'flex',alignItems:'baseline',gap:7,fontSize:'clamp(13px,2.8vw,14.5px)',whiteSpace:'nowrap',overflowX:'auto',overflowY:'hidden'}} className="scroll">
               {engLine&&<b style={{flex:'0 0 auto',fontFamily:'ui-monospace,Menlo,monospace',fontWeight:800,color:engLine.cp==null?'rgba(255,255,255,.5)':(engLine.cp>=0?'#e8e8ea':'#9fb4c9')}}>{engLine.txt}</b>}
               {engLine&&<span style={{flex:'0 0 auto',color:'var(--ac2)',fontWeight:700,fontFamily:'ui-monospace,Menlo,monospace'}}>{engLine.line||'…'}</span>}
@@ -5052,14 +5173,15 @@ export default function App(){
       {mode==='puzzle'&&pzView==='browse'&&(()=>{const p=curPuz||PZ[puzIdx];return(
       <div ref={pzTopRef} data-ct="pz-top" style={{order:1,marginTop:8,width:Math.min(vw-8,440),maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
         {pzBurst>0&&(<div style={{position:'fixed',inset:0,pointerEvents:'none',zIndex:9500}}>{Array.from({length:14}).map((_,i)=>(<span key={pzBurst+'_'+i} style={{position:'absolute',left:(8+(i*6.3)%84)+'%',top:'16%',fontSize:15+(i*7)%14,animation:'ctFall '+(0.7+(i%5)*0.12)+'s ease-in forwards',animationDelay:(i%4)*0.05+'s',opacity:.95}}>{['🎉','✨','⭐','🟡'][i%4]}</span>))}</div>)}
-        <div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
           <button onClick={()=>setPzView('roadmap')} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>‹ Roadmap</button>
-          <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600}}>{pzTrainTier!=null?(PZ_TIERS[pzTrainTier].icon+' '+PZ_TIERS[pzTrainTier].name):'Free play'} · ✓ {pzTotalSolved(pzSolvedMap)}</span>
+          {!wide&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,letterSpacing:.4,whiteSpace:'nowrap'}}>{puzIdx+1} / {PZ.length} · <span style={{color:'var(--ac2)',fontWeight:700}}>{pzStreak>=2?('🔥 '+pzStreak+' · '):''}{pzSolvedMap[p.id]?'✓ solved':p.rating}</span></span>)}
+          <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap'}}>{pzTrainTier!=null?(PZ_TIERS[pzTrainTier].icon+' '+PZ_TIERS[pzTrainTier].name):'Free play'} · ✓ {pzTotalSolved(pzSolvedMap)}</span>
         </div>
-        <div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        {wide&&(<div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <span style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:600,letterSpacing:.5}}>PUZZLE {puzIdx+1} / {PZ.length}</span>
           <span style={{fontSize:'clamp(13px,2.2vw,13px)',color:'var(--ac2)',fontWeight:700}}>{pzStreak>=2?('🔥 '+pzStreak+' in a row · '):''}{pzSolvedMap[p.id]?'✓ solved':('rating '+p.rating)}</span>
-        </div>
+        </div>)}
         <div style={{width:'100%',background:puzSolved?'rgba(123,216,143,.12)':'rgba(var(--acr),.1)',border:`1px solid ${puzSolved?'rgba(123,216,143,.4)':'rgba(var(--acr),.3)'}`,borderRadius:12,padding:'12px 14px'}}>
           <div style={{fontSize:'clamp(15px,3.8vw,17px)',fontWeight:800,color:'#fff',marginBottom:6}}>🎯 {p.goal}</div>
           <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
@@ -5067,10 +5189,24 @@ export default function App(){
             <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'rgba(255,255,255,.6)',background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.15)',borderRadius:20,padding:'2px 9px'}}>{p.level}</span>
           </div>
         </div>
-        <div style={{width:'100%',height:74,overflowY:'auto'}}>{puzMsg&&(<div key={puzMsg} style={{width:'100%',fontSize:'clamp(14.5px,3.2vw,16px)',fontWeight:700,color:puzSolved?'#aef0bd':(puzMsg[0]==='✗'?'#ffb3a8':'#cfe0ff'),lineHeight:1.5,background:puzSolved?'rgba(123,216,143,.16)':(puzMsg[0]==='✗'?'rgba(236,154,144,.16)':'rgba(110,168,254,.14)'),border:'1px solid '+(puzSolved?'rgba(123,216,143,.45)':(puzMsg[0]==='✗'?'rgba(236,154,144,.45)':'rgba(110,168,254,.4)')),borderLeft:'4px solid '+(puzSolved?'#7bd88f':(puzMsg[0]==='✗'?'#ec9a90':'#6ea8fe')),borderRadius:10,padding:'12px 13px',animation:'pzflash .3s ease-out'}}>{puzMsg}</div>)}</div>
+        <div style={{width:'100%',height:(vp.h<820?30:74),overflowY:'auto'}}>{puzMsg&&(/* #364: this box reserves room for the puzzle verdict so nothing jumps when it appears. 74px on a 761px phone (Kunal's) was a tenth of the screen, taken straight out of the board. One line is enough there. */<div key={puzMsg} style={{width:'100%',fontSize:'clamp(14.5px,3.2vw,16px)',fontWeight:700,color:puzSolved?'#aef0bd':(puzMsg[0]==='✗'?'#ffb3a8':'#cfe0ff'),lineHeight:1.5,background:puzSolved?'rgba(123,216,143,.16)':(puzMsg[0]==='✗'?'rgba(236,154,144,.16)':'rgba(110,168,254,.14)'),border:'1px solid '+(puzSolved?'rgba(123,216,143,.45)':(puzMsg[0]==='✗'?'rgba(236,154,144,.45)':'rgba(110,168,254,.4)')),borderLeft:'4px solid '+(puzSolved?'#7bd88f':(puzMsg[0]==='✗'?'#ec9a90':'#6ea8fe')),borderRadius:10,padding:'12px 13px',animation:'pzflash .3s ease-out'}}>{puzMsg}</div>)}</div>
       </div>);})()}
       {mode==='puzzle'&&pzView==='browse'&&(()=>{const p=curPuz||PZ[puzIdx];return(
       <div ref={pzBotRef} data-ct="pz-bottom" style={{order:3,marginTop:8,width:Math.min(vw-8,440),maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>
+        {/* #364: ONE control row on phones. Kunal's phone (375 wide, 679 of usable height) had the puzzle board
+            squeezed to 198px with 89px of black each side, because two stacked button rows (44 + 52 + gap) plus a
+            74px verdict box and the roadmap header left it nowhere to go. The height cap was doing exactly what
+            it was told; what it was told was too much chrome. Prev/Next become chevrons at the ends of the same
+            row as Hint/Show/Reset, which is also how his chess.com screenshot lays its row out. iPad keeps two rows. */}
+        {!wide?(<div style={{display:'flex',gap:6,width:'100%',alignItems:'stretch'}}>
+          <button onClick={()=>loadPuzzle(puzIdx-1)} aria-label="Previous puzzle" style={{...navBtn(false),flex:'0 0 46px',minWidth:46,padding:0,minHeight:44,display:'inline-flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={20} dir="left"/></button>
+          {!puzSolved&&(<>
+            <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>💡 Hint</button>
+            <button onClick={()=>{setPuzReveal(true);setPuzMsg('👁 Play '+p.sol[puzStep]+' — the squares are highlighted on the board.');}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>👁 Show</button>
+            <button onClick={()=>loadPuzzle(puzIdx)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>↺ Reset</button>
+          </>)}
+          <button onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current));else loadPuzzle(puzIdx+1);}} aria-label="Next puzzle" style={puzSolved?{...navBtn(true),minHeight:44,padding:'9px 14px'}:{...navBtn(false),flex:'0 0 46px',minWidth:46,padding:0,minHeight:44,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{puzSolved?'Next ›':<ChevIcon size={20} dir="right"/>}</button>
+        </div>):(<>
         {!puzSolved&&(<div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
           <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>💡 Hint</button>
           <button onClick={()=>{setPuzReveal(true);setPuzMsg('👁 Play '+p.sol[puzStep]+' — the squares are highlighted on the board.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
@@ -5080,6 +5216,7 @@ export default function App(){
           <button onClick={()=>loadPuzzle(puzIdx-1)} style={navBtn(false)}>‹ Prev</button>
           <button onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current));else loadPuzzle(puzIdx+1);}} style={navBtn(puzSolved)}>Next ›</button>
         </div>
+        </>)}
       </div>);})()}
 
       {/* ── Puzzle: ONLINE (Lichess) view ── */}
@@ -5382,9 +5519,9 @@ export default function App(){
 
       {/* Move list (review, clickable + colored) — single horizontal strip */}
       {inReview&&(()=>{const _arrows=revCompact&&!wide;const _abtn=(lbl,on,lab)=>(<button onClick={on} aria-label={lab} style={{flex:'0 0 auto',width:26,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',color:'rgba(255,255,255,.75)',fontSize:15,cursor:'pointer',padding:0,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{lbl}</button>);return(
-      <div data-ct="strip-row" style={{marginTop:10,marginBottom:(revCompact&&!wide)?'auto':0,width:boardPx+((hideEval||evalUnder)?0:22),maxWidth:_edge?'100vw':'98vw',display:'flex',alignItems:'stretch',gap:6}}>
+      <div data-ct="strip-row" style={{marginTop:(revCompact&&!wide)?6:10,marginBottom:(revCompact&&!wide)?'auto':0,width:boardPx+((hideEval||evalUnder)?0:22),maxWidth:_edge?'100vw':'98vw',display:'flex',alignItems:'stretch',gap:6}}>
         {_arrows&&_abtn(<ChevIcon size={17} dir="left"/>,()=>{setRevAuto(false);setPly(p=>Math.max(0,p-1));},'Previous move')}
-        <div data-mstrip="1" className="scroll" style={{flex:'1 1 auto',minWidth:0,overflowX:'auto',overflowY:'hidden',whiteSpace:'nowrap',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:12,padding:'9px 11px',position:'relative',WebkitOverflowScrolling:'touch'}}>
+        <div data-mstrip="1" className="scroll" style={{flex:'1 1 auto',minWidth:0,overflowX:'auto',overflowY:'hidden',whiteSpace:'nowrap',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:12,padding:(revCompact&&!wide)?'6px 11px':'9px 11px',position:'relative',WebkitOverflowScrolling:'touch'}}>
         <div style={{display:'inline-flex',alignItems:'center',fontSize:'clamp(14px,2.9vw,16px)',fontFamily:'monospace'}}>
           {review.plies.map((p,i)=>{const a=review.analysis[i];const isCur=ply===i+1;const notable=['Brilliant','Great','Miss','Inaccuracy','Mistake','Blunder'].indexOf(a.cls.label)>=0;return(<span key={i} style={{display:'inline-flex',alignItems:'center'}}>{i%2===0&&<span style={{color:'rgba(255,255,255,.35)',margin:'0 3px 0 7px'}}>{Math.floor(i/2)+1}.</span>}<span ref={isCur?(el=>{if(!el)return;const c=el.closest('[data-mstrip]');if(c){const t=el.offsetLeft-(c.clientWidth-el.offsetWidth)/2;c.scrollTo({left:Math.max(0,t),behavior:'smooth'});}}):undefined} onClick={()=>setPly(i+1)} style={{cursor:'pointer',color:notable?a.cls.c:(i%2===0?'#e0e0e0':'var(--ac2)'),padding:'3px 6px',borderRadius:5,background:isCur?(notable?a.cls.c+'3d':'rgba(255,216,77,.28)'):'transparent',boxShadow:isCur?('inset 0 0 0 1px '+(notable?a.cls.c+'aa':'rgba(255,216,77,.5)')):'none',fontWeight:isCur?'bold':'normal'}}>{p.san}{notable?a.cls.i:''}</span></span>);})}
         </div>
@@ -5433,7 +5570,7 @@ export default function App(){
           const _hb=isTop&&inReview&&revCompact;
           const _hbPlay=isTop&&!wide&&_livePlay;
           const _hbSty={flex:'0 0 auto',display:'inline-flex',alignItems:'center',justifyContent:'center',width:34,height:30,borderRadius:9,background:_pillBg,border:'1px solid '+_pillBd,color:_fg,cursor:'pointer',fontWeight:800,lineHeight:1,padding:0};
-          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...((inReview||mode==='play')?(wide?{flex:'0 0 auto',minHeight:52}:{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(vp.h>900?86:74)}):null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>setReviewView('summary')} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:25}}>{'\u2190'}</button>}
+          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...((inReview||mode==='play')?(wide?{flex:'0 0 auto',minHeight:52}:{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(inReview?52:(vp.h>900?86:74))}):null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>setReviewView('summary')} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:25}}>{'\u2190'}</button>}
             {_hbPlay&&<button data-ct="play-home" onClick={()=>setHomeScreen(true)} aria-label="Home" title="Home" style={{..._hbSty,fontSize:18}}>{'\u2302'}</button>}
             {isTop&&_evalOn&&!inReview&&!isOver&&!playEnd&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:_pillBg,border:'1px solid '+_pillBd,color:_fg}}>{evalTxt}</span>}
             {av}
