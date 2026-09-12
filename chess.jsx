@@ -1507,6 +1507,17 @@ function PawnGlyph({idp='p',style}){
   </svg>);
 }
 // Matching 3D ivory/gold queen.
+// #359 The analyze button used U+2315, which DRAWS 13.5px wide at the control row's font size
+// where its neighbours draw 21.5 - it is 37% smaller than everything beside it, which is exactly
+// what Kunal kept reporting. No font-size bump fixes that proportionally; the glyph is the problem.
+// An inline SVG renders identically on every device and its size is stated rather than hoped for.
+function MagIcon({size=23}){
+  const r=size*0.30, cx=size*0.43, cy=size*0.42, sw=Math.max(1.8,size*0.095);
+  return(<svg width={size} height={size} viewBox={'0 0 '+size+' '+size} fill="none" aria-hidden="true" style={{display:'block'}}>
+    <circle cx={cx} cy={cy} r={r} stroke="currentColor" strokeWidth={sw}/>
+    <line x1={cx+r*0.72} y1={cy+r*0.72} x2={size*0.86} y2={size*0.86} stroke="currentColor" strokeWidth={sw} strokeLinecap="round"/>
+  </svg>);
+}
 function QueenGlyph({idp='q',style}){
   return(<svg viewBox="0 0 56 66" aria-hidden="true" style={style}>
     <defs>
@@ -1929,7 +1940,17 @@ export default function App(){
   const [sfReady,setSfReady]=useState(false);       // worker ready (state, to retrigger the eval effect)
   const [sfEval,setSfEval]=useState(null);          // {cp,mate,fen} from White's POV, or null
   const [hideEval,setHideEval]=useState(()=>{try{return localStorage.getItem('ct_hideEval')==='1';}catch{return false;}});
-  const [evalUnder,setEvalUnder]=useState(()=>{try{return localStorage.getItem('ct_evalunder')!=='0';}catch{return true;}}); // #339/#340: eval bar above the board (default) instead of beside it, so the board takes the full width
+  // #359 ONE-TIME MIGRATION, and the reason Kunal kept seeing "empty space along the sides".
+  // #340 moved the eval bar above the board and made that the default, but every device that had
+  // used the app before then had already persisted 'beside', so the new default never reached a
+  // single existing install. With the bar beside, 22px comes out of the board and it renders 372
+  // of 390 with a 16px gutter on the left. This is EXACTLY the failure #339 documented and wrote
+  // into the handoff - "any future default flip needs a one-time migration key" - and I flipped
+  // this one without applying it. Anyone who deliberately wants the bar beside can set it again;
+  // the migration runs once.
+  const [evalUnder,setEvalUnder]=useState(()=>{try{
+    if(localStorage.getItem('ct_evalmig359')!=='1'){localStorage.setItem('ct_evalmig359','1');localStorage.setItem('ct_evalunder','1');return true;}
+    return localStorage.getItem('ct_evalunder')!=='0';}catch{return true;}}); // #339/#340: eval bar above the board (default) instead of beside it, so the board takes the full width
   useEffect(()=>{try{localStorage.setItem('ct_evalunder',evalUnder?'1':'0');}catch{}},[evalUnder]);
   const [soundOn,setSoundOn]=useState(()=>{try{return localStorage.getItem('ct_sound')!=='0';}catch{return true;}});
   const _sfxLastRef=useRef('');
@@ -1946,7 +1967,14 @@ export default function App(){
   const timeCtrlRef=useRef(null);
   const [clock,setClock]=useState({w:0,b:0,run:false}); // ms remaining; run starts after move 1
   const [playHist,setPlayHist]=useState([]);
-  const [movesOpen,setMovesOpen]=useState(false);
+  // #359 open by default. A square board on a tall phone leaves roughly 200px that the board
+  // cannot use, and #344 spent it inflating the two player bars to three times their content -
+  // 124px tall holding 38px of ink, twice, which is what Kunal kept seeing as "empty space along
+  // the top". Capping the bars alone just moves that emptiness below the board and recreates the
+  // black band he disliked in #337. The moves panel already existed behind a button and is exactly
+  // what he asked for ("add back/forward buttons to step through moves during a live game"), so
+  // the slack now holds the move list instead of padding.
+  const [movesOpen,setMovesOpen]=useState(()=>{try{return !(window.matchMedia&&window.matchMedia('(orientation:landscape)').matches);}catch(e){return true;}});
   const [moreOpen,setMoreOpen]=useState(false);
   const [pvIdx,setPvIdx]=useState(null);          // live-game move viewer: null=live, else position index (after N moves)
   const pvIdxRef=useRef(null);
@@ -4685,7 +4713,7 @@ export default function App(){
               {cb(revAuto?'\u23f8':'\u25b6',()=>{if(ply>=review.plies.length){setPly(0);setRevAuto(true);}else setRevAuto(a=>!a);},0,revAuto,revAuto?'Pause':'Auto-play')}
               {cb('\u23ed',()=>{setRevAuto(false);setPly(review.plies.length);},0,false,'Last move')}
               {keyPlies.length>0&&cb('\u2605',()=>jumpKey(1),0,true,'Next key moment ('+keyPlies.length+')')}
-              {cb('\u2315',()=>{setRevAuto(false);setShowBest(false);bestLineTokenRef.current++;setBestLineBoard(null);setAnaHist([]);setGame(review.positions[ply]);setLastMv(null);anaModeRef.current=true;setAnaMode(true);setEngOn(true);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,false,'Analyze: play this position out yourself')}
+              {cb(<MagIcon size={21}/>,()=>{setRevAuto(false);setShowBest(false);bestLineTokenRef.current++;setBestLineBoard(null);setAnaHist([]);setGame(review.positions[ply]);setLastMv(null);anaModeRef.current=true;setAnaMode(true);setEngOn(true);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,false,'Analyze: play this position out yourself')}
             </>)}
           </div>
           {showGates&&(curAnno&&curAnno.gate?(()=>{const G=curAnno.gate;return(<div style={{fontSize:'clamp(12px,2.3vw,12.5px)',fontFamily:'monospace',color:'rgba(255,255,255,.85)',background:'rgba(0,0,0,.28)',border:'1px solid rgba(255,255,255,.14)',borderRadius:9,padding:'6px 10px',textAlign:'center'}}>loss {G.loss} · sac {G.sac} · evAfter {G.evAfter} · evBefore {G.evBefore} · cap {G.cap} · {G.ok?'!! passes':'no'}</div>);})():null)}
@@ -5369,7 +5397,7 @@ export default function App(){
           const _hb=isTop&&inReview&&revCompact;
           const _hbPlay=isTop&&!wide&&_livePlay;
           const _hbSty={flex:'0 0 auto',display:'inline-flex',alignItems:'center',justifyContent:'center',width:34,height:30,borderRadius:9,background:_pillBg,border:'1px solid '+_pillBd,color:_fg,cursor:'pointer',fontWeight:800,lineHeight:1,padding:0};
-          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...((inReview||mode==='play')?(wide?{flex:'0 0 auto',minHeight:52}:{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(vp.h>900?148:124)}):null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>setReviewView('summary')} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:20}}>{'\u2190'}</button>}
+          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...((inReview||mode==='play')?(wide?{flex:'0 0 auto',minHeight:52}:{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(vp.h>900?86:74)}):null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>setReviewView('summary')} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:20}}>{'\u2190'}</button>}
             {_hbPlay&&<button data-ct="play-home" onClick={()=>setHomeScreen(true)} aria-label="Home" title="Home" style={{..._hbSty,fontSize:18}}>{'\u2302'}</button>}
             {isTop&&_evalOn&&!inReview&&!isOver&&!playEnd&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:_pillBg,border:'1px solid '+_pillBd,color:_fg}}>{evalTxt}</span>}
             {av}
