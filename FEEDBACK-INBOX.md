@@ -137,6 +137,8 @@ CAPTURED PIECES
 - [2026-09-12 01:06 ET] status: open
   Inconsistent: black pieces sit on individual white square tiles, white pieces on the plain
   dark background. Use one consistent white background instead of per-piece squares.
+  note: [2026-09-12 05:20 ET] Could not reproduce. Both bars draw captured pieces straight onto the bar
+  with no tiles behind them, on the light bar and the dark one. Needs a screenshot.
 
 PERSISTENCE / ACCOUNTS
 - [2026-09-12 01:06 ET] status: closed #353
@@ -185,6 +187,14 @@ LESSONS & DISCOVER
 - [2026-09-12 01:06 ET] status: open
   Move the Train section out of Discover onto the home page. Remove the bottom two Discover
   tiles (Coach Says, Continue where you left off) and place them elsewhere.
+  note: [2026-09-12 05:20 ET] DOES NOT MATCH THE LIVE BUILD. Discover has exactly four tiles now:
+  Openings, Gambits, Endgames, Tactics. No Train section, no Coach Says, no Continue where you left
+  off. Screenshotted rather than assumed. There IS a lot of empty space under the four tiles, which
+  may be the real complaint. On the decisions page under "these don't match what's live".
+  note: [2026-09-12 05:20 ET] Three button rows confirmed, exactly as described, but the USEFUL ones
+  are already first: Try and Flip, then the moves header carrying Analyze and Copy, then the pager.
+  The thing I can measure on that screen is 220px of text above the board, which is the lessons
+  content decision still waiting on him. Needs a screenshot to settle what he means.
 
 HINTS / ENGAGEMENT
 - [2026-09-12 01:06 ET] status: open
@@ -488,3 +498,25 @@ Times not captured for this batch; see the Timestamps note above.
   MY FAILURE, recorded: I read this artifact once early in the session and then reported it as
   untapped in four consecutive close-outs. Re-read every feedback source on every run; never
   carry an empty answer forward.
+
+- [2026-09-12 03:20 ET] status: closed #356, one part still open
+  MY OWN FINDING, not Kunal's: the first play-it-out tap after a review trapped the Stockfish
+  worker (RuntimeError: unreachable). Logged in #354 rather than quietly allowed.
+  closed: [2026-09-12 05:20 ET] Three separate UCI protocol violations, each independently causing
+  traps: both analysis queries repositioning the worker immediately after `stop`, which is not
+  synchronous; the eval bar doing the same on EVERY ply change, which is why it showed up while
+  stepping rather than on a tap; and the idle handshake's own timeout proceeding when the engine had
+  not acknowledged, which is the violation it exists to prevent. Tapping either button is clean now,
+  0 and 0 where it was 1 and 1. ONE unattributed trap survives in one long test sequence, is not
+  reproducible in isolation, and breaks nothing user-visible. Still open, allowed in the gate by
+  exact text so anything new still fails.
+
+- [2026-09-12 05:20 ET] status: open, PATTERN WORTH NAMING
+  A large share of the pasted batch describes a build that no longer exists, because it was
+  collected across many deploys. Already-built: back and forward in a live game, the merged summary
+  card, the notation section. Does not match: the Discover reshuffle, the You are Black label, the
+  captured-pieces backgrounds, castling by drag. Mismatched: the minute clocks, reported as a
+  regression when online never had them.
+  note: The habit that catches this is driving the app and screenshotting the screen BEFORE writing
+  any code, which is now in HANDOFF. The ask back to Kunal is one fresh screenshot per disputed
+  screen, which is on the decisions page.

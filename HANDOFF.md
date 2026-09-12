@@ -61,7 +61,7 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 - Waiting on Kunal (his dashboard): old GitHub token DELETED 2026-09-06 (done); two-device sync check; Stripe test prices at $2.99/$19.99 + checkout test; buy gambitcoach.com; deploy scanBoard function; publish Firestore rules for tournaments/friends/nearby (this last one unlocks three buildable features).
 - Sourcing notes: Caro-Kann Fantasy video 0yMkAJ6Pyig is single-source attribution; Kunal has not yet confirmed playback. Held HP IDs (no matching lessons yet): Two Knights Caro S5OjT1K_s58, Karpov YLEmufSFoGk.
 
-## 5a) State at builds #331 to #355 (Cowork session 2026-09-10 evening into 2026-09-12)
+## 5a) State at builds #331 to #356 (Cowork session 2026-09-10 evening into 2026-09-12)
 - #341: the review move screen has no tab bar, a back arrow as the only exit, a one-line reason under the move, thin arrows on the move strip, and "Analyze with the engine" (eval plus the engine's line in notation, cached per FEN). The engine pass for a whole game is cached in localStorage (ct_evalcache, keyed on the move list plus movetime, 24 games LRU): 62 s first run, 4 s on a repeat. If review output ever looks stale after changing the analysis code, bump the key string in evalCacheKey. Screen audit at 430x932: review board 424 of 430, puzzle and drill 416, play 416, lesson 416; play and lesson still carry heavy chrome, and the base-layout decision for them is open.
 - #339: LESSON WORTH KEEPING. Flipping a default is not enough when an effect has already persisted the old value to every install: #337 made the one-screen review the default but Kunal's phone had ct_revCompact='0' stored from the preview era, so he kept seeing the classic screen and re-reported the same complaints. Any future default flip needs a one-time migration key like ct_revmig339. Also in #339: the eval bar moved off the side (full width strip, horizontal number) so the board takes the full screen width, with a three-way sheet control (above / beside / off); #340 put that strip above the board at his request. Great is now blue #5d93e8, not teal.
 - #338: the tab-bar spacer now carries order 99. It had none, and the puzzle screen is the only screen that orders its children, so there the spacer rendered FIRST (empty band at the top) and reserved nothing at the bottom (board and controls under the tab bar). If you ever add order to another screen's children, give every sibling an order or this returns. Puzzle boards are now sized from a measured pzStackH; the drill hides the Lichess panel; dev loaders are collapsed.
@@ -261,6 +261,36 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 - Harness traps worth knowing: matching a control by GLYPH found "Last move" before the aria-label
   for "Next move" and pinned a 44-ply walk to the final ply; and a board signature built from string
   LENGTHS barely moves when a piece does, so a working animation looked dead. Assert on content.
+
+### #356 and the pattern behind the whole batch (2026-09-12, early morning)
+- **`stop` IS NOT SYNCHRONOUS.** Sending `setoption` or `position` straight after it is a UCI
+  violation while a search unwinds, and Stockfish answers a violation by trapping
+  (RuntimeError: unreachable). readyok is the defined idle point: ask for it and WAIT. Three
+  separate sites were doing it, and each independently caused traps:
+  both analysis queries; the eval-bar effect, whose cleanup posted `stop` and whose next run posted
+  `position` on EVERY ply change (this is the one that fires while stepping a review, which is why
+  #354 looked only at the buttons and missed it); and the idle handshake's own timeout, which
+  PROCEEDED when the engine had not acknowledged - the violation it exists to prevent, on a delay.
+  A handshake timeout must ABANDON. A skipped evaluation is invisible; the next ply asks again.
+- `sfAnaCbRef` is a SINGLE callback slot, so only one query may own the analysis worker. Nothing
+  enforced that; a new query now retires the old one first.
+- Still open and honest about it: one unattributed trap survives in why354's full sequence (44-ply
+  walk, playout, second walk), deterministic there, not reproducible in isolation, no functional
+  assertion affected. Allowed in the gate BY EXACT TEXT. `trap356.js` and `engcrash.js` are the
+  tools; re-run both before changing that allowance.
+- **THE PATTERN THAT MATTERS MOST FOR NEXT TIME.** Kunal collects feedback in another chat across
+  many deploys and pastes it in as one batch, so a large share of any batch describes a build that
+  NO LONGER EXISTS. From this one: back/forward in a live game, the merged summary card and the
+  notation section were already built; the Discover reshuffle, the "You are Black" label, the
+  captured-pieces backgrounds and castling-by-drag do not match what the app renders at all; and the
+  "minute time controls regression" was never a regression. That is roughly a third of the list.
+  DRIVE THE APP AND SCREENSHOT THE SCREEN BEFORE WRITING ANY CODE. `shots351.js` and `shotdisc.js`
+  are the pattern: click through to the screen, screenshot it, and dump the measured geometry.
+  Reading the source is not enough - two of these look correct in the source and wrong on screen,
+  and three look wrong in the description and correct on screen.
+- When an item does not match, do NOT quietly fix the nearest thing. Say what the build actually
+  renders, put it on the decisions page under "these don't match what's live", and ask for one
+  screenshot. He asked for requests to go there rather than be buried in a reply.
 
 ## 6) Files in this handoff
 This MD is self-sufficient; everything else refetches from the repo (section 1.2). The repo's own HANDOFF.md is June-era; this file supersedes it until committed.
