@@ -1875,7 +1875,13 @@ const ACHV=[
   {id:'br1',ic:'💎',name:'Brilliant!',desc:'Play a brilliant move in a reviewed game',test:s=>s.bril>=1},
 ];
 
-const Arrows=memo(_Arrows),Piece=memo(_Piece),AppIcon=memo(_AppIcon),Coach=memo(_Coach),BotFace=memo(_BotFace);
+const Arrows=memo(_Arrows),_PieceM=memo(_Piece),AppIcon=memo(_AppIcon),Coach=memo(_Coach),BotFace=memo(_BotFace);
+/* #367: Piece is memoised on its props, but it reads the piece SET from a module global, so switching sets left
+   every piece already on screen showing the old set until something else re-rendered it (found by the picker
+   gate: the preview kept Classic after Merida was tapped; the menu's own Piece style row had the same defect on
+   the live board). The epoch is bumped when the set changes and rides along as a prop, so memo sees it. */
+let _PIECE_EPOCH=0;
+function Piece(props){return <_PieceM {...props} epoch={_PIECE_EPOCH}/>;}
 function _navIcon(n,c){
   if(n==='home')return(<svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 3.2 2.6 11.2l1.4 1.7L5 12v8h5v-5h4v5h5v-8l1 .9 1.4-1.7z" fill={c}/></svg>);
   if(n==='learn')return(<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke={c} strokeWidth="1.8"/><path d="M12 6.2 14 12l-6 0z" fill={c}/><path d="M12 17.8 10 12l6 0z" fill={c} opacity=".5"/></svg>);
@@ -1911,6 +1917,7 @@ export default function App(){
   const [forcePreviewWide,setForcePreviewWide]=useState(false);
   const [themeOpen,setThemeOpen]=useState(false);
   const [skinOpen,setSkinOpen]=useState(false);
+  const [lookOpen,setLookOpen]=useState(false); /* #367 y12c: the Look and feel picker - a drawn board that changes as you tap, so you pick by looking */
   const [menuOpen,setMenuOpen]=useState(false);
   const [boardDepth,setBoardDepth]=useState(()=>{try{return localStorage.getItem('ct_depth')==='1';}catch{return false;}});
   const cyclingRef=useRef(false);
@@ -1930,7 +1937,7 @@ export default function App(){
   const [lastMv,setLastMv]=useState(null);
   const [_imgFail,setImgFail]=useState(false);
   const [pieceSet,setPieceSet]=useState(()=>{try{return localStorage.getItem('ct_pieceSet')||'classic';}catch{return 'classic';}});
-  const fallback=_imgFail||pieceSet==='symbol';_ACTIVE_PIECES=PIECE_SETS[pieceSet]||PIECE_IMG;
+  const fallback=_imgFail||pieceSet==='symbol';{const _np=PIECE_SETS[pieceSet]||PIECE_IMG;if(_np!==_ACTIVE_PIECES){_ACTIVE_PIECES=_np;_PIECE_EPOCH++;}}
   const onPieceFail=useCallback(()=>setImgFail(true),[]);
 
   // Play
@@ -4053,7 +4060,8 @@ export default function App(){
           })()}
           <div style={{marginTop:18,width:'100%',display:'flex',flexDirection:'column',gap:10,alignItems:'center'}}>
             <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
-              <button onClick={()=>setTheme((theme+1)%THEMES.length)} title="Tap to change board colors" style={{display:'flex',alignItems:'center',gap:6,padding:'6px 11px',borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.82)',cursor:'pointer',fontSize:'clamp(13px,2.3vw,13px)',fontWeight:600,boxShadow:SHADOW_BTN}}><span style={{width:16,height:16,borderRadius:4,overflow:'hidden',display:'grid',gridTemplateColumns:'1fr 1fr',gridTemplateRows:'1fr 1fr',flexShrink:0}}><span style={{background:TH.light}}/><span style={{background:TH.dark}}/><span style={{background:TH.dark}}/><span style={{background:TH.light}}/></span>Colors: {TH.name}</button>
+              {/* #367 y12c: this used to cycle to the next palette blind; it opens the drawn picker now */}
+              <button data-ct="home-look" onClick={()=>setLookOpen(true)} title="Board colours and pieces, with a preview" style={{display:'flex',alignItems:'center',gap:6,padding:'6px 11px',borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.82)',cursor:'pointer',fontSize:'clamp(13px,2.3vw,13px)',fontWeight:600,boxShadow:SHADOW_BTN}}><span style={{width:16,height:16,borderRadius:4,overflow:'hidden',display:'grid',gridTemplateColumns:'1fr 1fr',gridTemplateRows:'1fr 1fr',flexShrink:0}}><span style={{background:TH.light}}/><span style={{background:TH.dark}}/><span style={{background:TH.dark}}/><span style={{background:TH.light}}/></span>Colours &amp; pieces: {TH.name}</button>
               <button onClick={()=>{if(!isPro){setUpgradeMsg('');setAcctOpen(true);}else setSkin((skin+1)%SKINS.length);}} title={isPro?"Tap to change style":"Playful & Medieval are Pro"} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 11px',borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.82)',cursor:'pointer',fontSize:'clamp(13px,2.3vw,13px)',fontWeight:600,boxShadow:SHADOW_BTN}}><span style={{width:16,height:16,borderRadius:4,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:headFont,fontSize:11,fontWeight:700,color:'#fff',background:'rgba(255,255,255,.12)'}}>A</span>Style: {SK.name}{!isPro&&<span style={{marginLeft:4}}>🔒</span>}</button>
             </div>
           </div>
@@ -4469,6 +4477,51 @@ export default function App(){
           </div>
         </div>
       </div>)}
+      {/* #367 y12c. Kunal, round 2: "I accept your proposal" - a screen with the board DRAWN, so you pick a colour or a
+          piece set by looking at it instead of picking blind in the menu and going back to check. Everything on it
+          is the live setting: the preview is painted from the same TH / pieceSet / boardDepth the real board uses, so
+          what you see here is exactly what the next screen shows. The home icons are NOT tied to this (y3b fixed them
+          as one emoji set on every skin, same round). Reached from the home Colors button and the menu. */}
+      {lookOpen&&(()=>{const _fen='r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2P2N2/PP1P1PPP/RNBQK2R';const rows=_fen.split('/').map(r=>{const out=[];for(const ch of r){if(/\d/.test(ch)){for(let i=0;i<+ch;i++)out.push(null);}else out.push({t:ch.toLowerCase(),c:ch===ch.toUpperCase()?'w':'b'});}return out;});
+        const pb=Math.min(vw-52,wide?360:290);const sq=pb/8;const lab=Math.max(8,Math.round(sq*0.26));
+        const chip=(on)=>({display:'flex',flexDirection:'column',alignItems:'center',gap:4,padding:'7px 2px 6px',borderRadius:12,background:on?'rgba(var(--acr),.16)':'rgba(255,255,255,.04)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.12)',cursor:'pointer',minWidth:0});
+        const lbl=(on)=>({fontSize:11,letterSpacing:-0.3,fontWeight:700,color:on?'var(--ac2)':'rgba(255,255,255,.72)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'});
+        const sets=[['classic','Classic'],['merida','Merida'],['chessnut','Chessnut'],['spatial','Spatial'],['symbol','Symbol']];
+        return(<div data-ct="look" onClick={()=>setLookOpen(false)} style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,.66)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'max(10px,env(safe-area-inset-top,0px)) 10px max(10px,env(safe-area-inset-bottom,0px))',overflowY:'auto'}}>
+        <div onClick={e=>e.stopPropagation()} className="scroll" style={{width:'100%',maxWidth:440,maxHeight:'100%',overflowY:'auto',background:'#191622',borderRadius:18,border:'1px solid rgba(255,255,255,.12)',padding:'13px 13px 15px',boxShadow:SHADOW_CARD,fontFamily:"'Segoe UI',system-ui,sans-serif",boxSizing:'border-box'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}><span style={{fontFamily:"var(--head)",fontSize:'clamp(18px,4.6vw,21px)',fontWeight:700,color:'var(--ac2)'}}>Look and feel</span><button onClick={()=>setLookOpen(false)} aria-label="Close" style={{width:32,height:32,borderRadius:9,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:15}}>✕</button></div>
+          <div style={{fontSize:'clamp(13px,2.6vw,14px)',color:'rgba(255,255,255,.6)',marginBottom:10,lineHeight:1.4}}>Tap a colour or a piece set and watch the board change. What you see here is what every screen uses.</div>
+          <div data-ct="look-board" style={{width:pb,height:pb,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(8,'+sq+'px)',gridTemplateRows:'repeat(8,'+sq+'px)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 3px #4a6741, 0 10px 30px rgba(0,0,0,.6)'}}>
+            {rows.map((row,rI)=>row.map((pc,cI)=>{const light=(rI+cI)%2===0;return(<div key={rI+'-'+cI} style={{width:sq,height:sq,background:light?TH.light:TH.dark,position:'relative',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:boardDepth?'inset 0 0 0 0.5px rgba(0,0,0,.13), inset 0 2px 3px rgba(255,255,255,.13), inset 0 -3px 6px rgba(0,0,0,.2)':'none'}}>
+              {pc&&<div style={{transform:'scale(1.06)'}}><Piece t={pc.t} color={pc.c} sz={sq} useFallback={fallback} onFail={onPieceFail}/></div>}
+              {cI===0&&<span style={{position:'absolute',top:1,left:2,fontSize:lab,fontWeight:700,color:light?TH.dark:TH.light,lineHeight:1}}>{8-rI}</span>}
+              {rI===7&&<span style={{position:'absolute',bottom:1,right:3,fontSize:lab,fontWeight:700,color:light?TH.dark:TH.light,lineHeight:1}}>{'abcdefgh'[cI]}</span>}
+            </div>);}))}
+          </div>
+          <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'13px 2px 7px'}}>Board colours · <span style={{color:'var(--ac2)',textTransform:'none',letterSpacing:0}}>{TH.name}</span></div>
+          <div data-ct="look-colours" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:7}}>
+            {THEMES.map((t,i)=>{const on=theme===i;return(<button key={i} data-ct={'look-th-'+i} onClick={()=>setTheme(i)} title={t.name} aria-pressed={on} style={chip(on)}>
+              <span style={{width:34,height:34,borderRadius:8,overflow:'hidden',display:'grid',gridTemplateColumns:'1fr 1fr',gridTemplateRows:'1fr 1fr',boxShadow:'inset 0 0 0 1px rgba(0,0,0,.35)'}}><span style={{background:t.light}}/><span style={{background:t.dark}}/><span style={{background:t.dark}}/><span style={{background:t.light}}/></span>
+              <span style={lbl(on)}>{t.name}</span>
+            </button>);})}
+          </div>
+          <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'13px 2px 7px'}}>Pieces · <span style={{color:'var(--ac2)',textTransform:'none',letterSpacing:0}}>{(sets.find(s=>s[0]===pieceSet)||sets[0])[1]}</span></div>
+          <div data-ct="look-pieces" style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:7}}>
+            {sets.map(([pv,plab])=>{const on=pieceSet===pv;const src=PIECE_SETS[pv]&&PIECE_SETS[pv].wn;return(<button key={pv} data-ct={'look-pc-'+pv} onClick={()=>setPieceSet(pv)} aria-pressed={on} style={chip(on)}>
+              <span style={{width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,background:TH.dark}}>{src?<img src={src} width={30} height={30} alt="" draggable={false} style={{display:'block'}}/>:<span style={{fontSize:26,lineHeight:1,color:'#fff',textShadow:'0 0 2px #000'}}>{'♞'}</span>}</span>
+              <span style={lbl(on)}>{plab}</span>
+            </button>);})}
+          </div>
+          <button onClick={()=>setBoardDepth(d=>!d)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'8px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:12}}>
+            <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Cell depth &amp; texture</span>
+            <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:boardDepth?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:boardDepth?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:`1px solid ${boardDepth?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'}`}}>{boardDepth?'ON':'OFF'}</span>
+          </button>
+          <button onClick={()=>{setLookOpen(false);setSkinOpen(true);}} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'8px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
+            <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Style · fonts, icons, finish</span>
+            <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:'var(--ac2)'}}>{SK.name} ›</span>
+          </button>
+        </div>
+      </div>);})()}
       {menuOpen&&(<div onClick={()=>setMenuOpen(false)} style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,.6)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:12,overflowY:'auto'}}>
         <div onClick={e=>e.stopPropagation()} className="scroll" style={{marginTop:'5vh',marginBottom:24,width:'100%',maxWidth:380,maxHeight:'88vh',overflowY:'auto',background:'#16161d',border:'1px solid rgba(255,255,255,.14)',borderRadius:16,padding:'12px 14px 18px',boxShadow:'0 24px 70px rgba(0,0,0,.65)'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
@@ -4525,6 +4578,10 @@ export default function App(){
             </>)}
           </>)}
           <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'16px 2px 8px'}}>Appearance</div>
+          <button data-ct="menu-look" onClick={()=>{setMenuOpen(false);setLookOpen(true);}} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'9px 11px',borderRadius:12,background:'rgba(var(--acr),.10)',border:'1px solid rgba(var(--acr),.35)',cursor:'pointer',marginBottom:10}}>
+            <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'#fff',fontWeight:700}}>Look and feel</span>
+            <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:700,color:'var(--ac2)'}}>pick by looking ›</span>
+          </button>
           <div style={{marginBottom:10}}>
             <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.6)',fontWeight:700,marginBottom:7}}>Board colors · <span style={{color:'var(--ac2)'}}>{TH.name}</span></div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:6}}>

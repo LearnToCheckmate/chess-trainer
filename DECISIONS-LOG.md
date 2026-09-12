@@ -143,3 +143,6 @@ the reading I took, so it can be reversed on purpose rather than by accident:
   every skin in the same round. Not built yet.
 - Still open from the round: y17b Skills panel (unblocked by #365), y1b draw option C properly,
   y5d fresh answer on the redrawn live-game button row.
+- **#367 (17:14 ET) built y12c** as read above: the picker, home icons untouched. One thing decided
+  on my own while building it, reversible: the home "Colors" button no longer cycles to the next
+  palette on tap - it opens the picker. Cycling blind was the complaint the picker answers.

@@ -2,18 +2,24 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 16:35 ET)
-LIVE = **#365** (app.js stamp "#365 - 2026-09-12 15:06 ET", commit 34d8710 on origin/main, verified at
-raw.githubusercontent.com; chess.jsx, HANDOFF, FEEDBACK-INBOX and DECISIONS-LOG went up in the same upload, so
-source, bundle and docs on GitHub all match this build). Local history is merged with that commit (26a12ad),
-`git diff origin/main` is empty.
-BUILT, GATED, STAGED FOR HIS CLICK = **#366** (stamp "#366 - 2026-09-12 16:28 ET"): y3b home icons all emoji,
-ink-matched at run time (inkScale, canvas on the device); y15b round Analyze button on the Review board
-(data-ct rev-fab), board full size, row keeps four; y11b lesson note box fixed at 75px / three lines at 15px,
-lesson board 360 -> 375 on his phone; lay-B Layout overlay (menu row, ct_layoutgrid, data-ct layout-grid).
-Evidence: work/build/shots366/ (before = #365, after = #366, all at 375x679) and tracker rows y3 y11 y15 k7.
-Harnesses: before366.js (home ink + lesson layout + review row/fab), overlay366.js (overlay gate).
-Previously: #364 (89b703d, "#364 - 2026-09-12 14:15 ET").
+## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 17:20 ET)
+LIVE = **#366** (app.js stamp "#366 - 2026-09-12 16:28 ET", commit 6cd1449 on origin/main, Kunal's upload at
+17:09 ET, verified by hash at raw.githubusercontent.com; source and docs went up with it). Local history is merged.
+#366 = y3b home icons all emoji, ink-matched at run time (inkScale, canvas on the device); y15b round Analyze
+button on the Review board (data-ct rev-fab), board full size, row keeps four; y11b lesson note box fixed at
+75px / three lines at 15px, lesson board 360 -> 375 on his phone; lay-B Layout overlay (menu row, ct_layoutgrid,
+data-ct layout-grid). Evidence: work/build/shots366/ (before = #365, after = #366, all at 375x679) and tracker
+rows y3 y11 y15 k7. Harnesses: before366.js, overlay366.js.
+BUILT, GATED, STAGED FOR HIS CLICK = **#367** (stamp "#367 - 2026-09-12 17:14 ET"): y12c the Look and feel
+picker (data-ct look; a drawn preview board painted from the live TH / pieceSet / boardDepth, 12 colour chips,
+5 piece-set chips, depth toggle, a Style row into the skin sheet). Reached from the home "Colours & pieces"
+button (data-ct home-look; it used to CYCLE palettes blind) and a "Look and feel" row at the top of the menu's
+Appearance section (data-ct menu-look). Found and fixed while gating it: Piece is memo'd on props but read the
+piece SET from a module global, so switching sets left pieces already on screen stale - now an epoch prop
+(_PIECE_EPOCH) bumps when the set changes. Gate: look367.js (opens from both places, preview repaints on a
+colour tap and a piece tap, the real board matches, persists, no errors). Shots: shots366/before366-menulook,
+after-look, after-look2.
+Previously: #365 (34d8710), #364 (89b703d).
 KUNAL'S PHONE, from his Layout readout: **375x761, dpr 3, insets 51/31 = 375x679 usable.** Emulate as a 375x679
 viewport with insets 0 (or ct_safe='51,31'). HEIGHT binds there, not width; every width-only check will pass
 while the board is squeezed. Harnesses: work/build/kunal364c.js (play/puzzle/lesson) and kunal364d.js (review).

@@ -301,9 +301,9 @@ DISPOSITIONS (settled by him, no action)
 ### Round 2 answers, all ten [2026-09-12 16:36-16:49 ET]
 
 Recorded in DECISIONS-LOG.md. Built in #365: the brilliancy explanation the chess.com way.
-Built in #366 (16:28 ET): y3b, y15b, y11b and the lay-B overlay - the four that needed no
-further answer from him. Open from this round: y12c (picker), y17b (Skills panel), y1b (draw C),
-y5d (fresh answer wanted on the redrawn q5).
+Built in #366 (16:28 ET, live 17:09 ET): y3b, y15b, y11b and the lay-B overlay - the four that
+needed no further answer from him. Built in #367 (17:14 ET): y12c, the Look and feel picker.
+Open from this round: y17b (Skills panel), y1b (draw C), y5d (fresh answer wanted on the redrawn q5).
 - [2026-09-12 16:40 ET] status: closed #365
   y18b "look at what chess.com does and replicate that." Done for the text: a sacrifice is now
   explained by what happens if it is TAKEN (the opponent's capture is found, the position after it
@@ -329,10 +329,19 @@ y5d (fresh answer wanted on the redrawn q5).
   the moves panel and 6px of spacer - let the lesson board reach 375 edge to edge (it was 360).
   716 of 734 lesson notes fit in three lines; 18 scroll inside the box. Measured: board 360 -> 375,
   note box 56 -> 75, no page scroll.
-- [2026-09-12 16:47 ET] status: open  y12c: "I accept your proposal" -> theme + piece picker (a
-  screen with the boards drawn, pick by looking). NOTE the home icons are NOT tied to it: y3b was
-  answered "all four emoji" on the same round, so the icons are one set on every skin; tying them to
-  the picker would reopen y3b. Logged in DECISIONS-LOG.
+- [2026-09-12 16:47 ET] status: closed #367  y12c: "I accept your proposal" -> the Look and feel
+  picker. A drawn board (the Italian Game position) painted from the LIVE theme, piece set and depth
+  setting, so what it shows is what every screen uses; 12 colour chips with their swatch and name, 5
+  piece-set chips each showing that set's knight, the depth toggle, and a Style row into the skin
+  sheet. Reached from the home "Colours & pieces" button (which used to cycle palettes blind - the
+  exact complaint) and a "Look and feel" row at the top of the menu's Appearance section. The home
+  icons are NOT tied to it: y3b fixed them as one emoji set on every skin in the same round.
+  FOUND WHILE GATING IT: Piece is memoised on its props but read the piece set from a module global,
+  so changing the set left every piece already on screen showing the OLD set until something else
+  re-rendered it - the menu's own Piece style row had this defect on the live board. Fixed with an
+  epoch prop that bumps when the set changes. Gate look367.js: opens from both places, the preview
+  repaints on a colour tap and on a piece tap, the real board then matches the preview, persists
+  across reload, no errors; reg343 / pzgate / bril357gate / kunal364c green after it.
 - [2026-09-12 16:37 ET] status: closed #366  y15b: round Analyze button ON the board, board stays
   full size. Built: a 42px round button (data-ct rev-fab) inside the board grid at its bottom-right
   corner, translucent with a blur so the corner square reads through it, onPointerDown
