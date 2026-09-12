@@ -3617,16 +3617,16 @@ export default function App(){
               return(
               <button key={label} onClick={fn} style={{background:'transparent',border:'none',padding:'10px 4px',cursor:'pointer',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',color:'inherit'}}>
                 <div style={{position:'relative',width:84*(hbig?1.32:(hLand?1.74:1)),height:84*(hbig?1.32:(hLand?1.74:1)),borderRadius:hbig?30:(hLand?30:24),display:'flex',alignItems:'center',justifyContent:'center',marginBottom:hbig?14:(hLand?18:11),fontSize:42*(hbig?1.3:(hLand?1.64:1)),lineHeight:1,background:`linear-gradient(150deg,${tn[0]},${tn[1]})`,border:SK.trim?`1.5px solid ${SK.trim}`:'none',boxShadow:`0 5px 0 rgba(0,0,0,.28),0 13px 22px ${tn[1]}66,inset 0 2px 0 rgba(255,255,255,.5),inset 0 -5px 9px rgba(0,0,0,.28)`}}>{SK.key==='classic'&&(k==='puzzle'||k==='play')?<Piece t={k==='puzzle'?'n':'k'} color="w" sz={Math.round(52*(hbig?1.3:(hLand?1.64:1)))}/>:ic}{pro&&!isPro&&<span style={{position:'absolute',top:-7,right:-7,fontSize:'clamp(12px,1.7vw,12px)',fontWeight:800,color:'#2a2010',background:'#f0d48a',borderRadius:8,padding:'2px 6px',boxShadow:'0 2px 5px rgba(0,0,0,.45)'}}>PRO</span>}</div>
-                <div style={{color:'rgba(255,255,255,.98)',fontSize:hbig?'clamp(22px,2.4vw,27px)':(hLand?'clamp(20px,2.5vw,27px)':'clamp(16px,4.3vw,20px)'),fontWeight:800,marginBottom:hbig?6:4,letterSpacing:.3}}>{label}</div>
-                <div style={{color:'rgba(255,255,255,.5)',fontSize:hbig?'clamp(12.5px,1.5vw,15px)':(hLand?'clamp(12.5px,1.6vw,15.5px)':'clamp(9.5px,2.3vw,11.5px)'),lineHeight:1.4}}>{sub}</div>
+                <div style={{color:'rgba(255,255,255,.98)',fontSize:hbig?'clamp(25px,2.8vw,31px)':(hLand?'clamp(23px,2.9vw,31px)':'clamp(17.5px,4.7vw,22px)'),fontWeight:800,marginBottom:hbig?6:4,letterSpacing:.3}}>{label}</div>
+                <div style={{color:'rgba(255,255,255,.62)',fontSize:hbig?'clamp(15px,1.9vw,18px)':(hLand?'clamp(15px,1.9vw,18px)':'clamp(12.5px,3.2vw,15px)'),lineHeight:1.4}}>{sub}</div>
               </button>);})}
           </div>);
             const _coach=(()=>{const cn=coachNudge();return(
             <div onClick={()=>{if(isPro){setCoachOpen(true);}else if(coachFree<COACH_FREE_LOOKS){setCoachFree(coachFree+1);setCoachOpen(true);}else{setUpgradeMsg('That was your last free Coach preview. Unlock Pro to keep your coach.');setAcctOpen(true);}}} style={{marginTop:16,width:'100%',display:'flex',alignItems:'center',gap:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',borderRadius:16,padding:'12px 13px',boxShadow:SHADOW_BOX,cursor:'pointer'}}>
               <Coach size={46} accent="var(--ac)" style={coachStyle}/>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:'clamp(13px,2.3vw,13px)',color:'var(--ac2)',fontWeight:800,letterSpacing:.5,textTransform:'uppercase'}}>Your coach</div>
-                <div style={{fontSize:'clamp(13.5px,2.8vw,14.5px)',color:'rgba(255,255,255,.9)',fontWeight:600,lineHeight:1.35,marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cn.tip}</div>
+                <div style={{fontSize:wide?'clamp(15px,1.7vw,17px)':'clamp(13.5px,2.9vw,15px)',color:'var(--ac2)',fontWeight:800,letterSpacing:.5,textTransform:'uppercase'}}>Your coach</div>
+                <div style={{fontSize:wide?'clamp(17px,2vw,20px)':'clamp(15px,3.5vw,17px)',color:'rgba(255,255,255,.92)',fontWeight:600,lineHeight:1.35,marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cn.tip}</div>
               </div>
               {isPro?<span style={{flexShrink:0,fontSize:22,color:'var(--ac2)',opacity:.7}}>›</span>:<span style={{flexShrink:0,fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:'#2a2010',background:'#f0d48a',borderRadius:8,padding:'3px 8px',boxShadow:'0 2px 5px rgba(0,0,0,.35)'}}>PRO 🔒</span>}
             </div>);})();
@@ -3968,7 +3968,7 @@ export default function App(){
         </div>
       </div>)}
 
-      {!pzLow&&!wide&&!lessonFocus&&!(inReview&&revCompact&&reviewView!=='summary')&&(<div style={{display:'flex',alignItems:'center',justifyContent:'flex-start',gap:9,marginBottom:8,width:'100%',maxWidth:boardPx+44,position:'relative',paddingLeft:2}}>
+      {!pzLow&&!wide&&!lessonFocus&&!(inReview&&revCompact&&reviewView!=='summary')&&!(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd)&&(<div style={{display:'flex',alignItems:'center',justifyContent:'flex-start',gap:9,marginBottom:8,width:'100%',maxWidth:boardPx+44,position:'relative',paddingLeft:2}}>
         <div onClick={()=>setHomeScreen(true)} title="Home" style={{fontFamily:"var(--head)",fontSize:'clamp(18px,5vw,28px)',color:'var(--ac)',letterSpacing:2,textShadow:'0 2px 12px rgba(var(--acr),.4)',cursor:'pointer',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:'0.16em',maxWidth:'calc(100% - 92px)',overflow:'hidden'}}>{(()=>{const _hT=homeScreen?null:((mode==='learn'&&openIdx!==null&&LIB[openIdx])?LIB[openIdx].name:((mode==='play'&&!playSetup)?(opponent==='computer'?'Play':opponent==='online'?'Online game':opponent==='local'?'Pass & play':'Play'):((mode==='puzzle')?'Puzzles':((mode==='analyze')?'Game review':null))));return _hT?(<span style={{fontSize:'clamp(15px,4.1vw,19px)',fontWeight:800,color:'#fff',letterSpacing:.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'}}>{_hT}</span>):(<><QueenGlyph idp="s" style={{width:'1.15em',height:'1.15em',flexShrink:0,filter:'drop-shadow(0 2px 4px rgba(0,0,0,.5))'}}/>CHESS TRAINER</>);})()}</div>
         {!lessonFocus&&(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd)&&(<button onClick={()=>setHomeScreen(true)} title="Home" style={{position:'absolute',right:46,top:'50%',transform:'translateY(-50%)',flexShrink:0,minWidth:38,height:30,borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:15,lineHeight:1,padding:'0 9px'}}>🏠</button>)}
         {!lessonFocus&&(<button onClick={()=>setMenuOpen(true)} title="Menu &amp; settings" style={{position:'absolute',right:0,top:'50%',transform:'translateY(-50%)',flexShrink:0,minWidth:38,height:30,borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:16,lineHeight:1,padding:'0 9px'}}>☰</button>)}
@@ -5117,14 +5117,14 @@ export default function App(){
         const _og=onlineGame; const _cap=capturedList(boardGame.board); const _md=materialDiff(boardGame.board);
         const bottomColor=flip?'b':'w'; const topColor=flip?'w':'b';
         const _isOnlineG=opponent==='online'&&!!_og;
-        const _avBox=(node)=>(<div style={{width:28,height:28,borderRadius:7,overflow:'hidden',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(125,130,140,.22)'}}>{node}</div>);
+        const _avBox=(node)=>(<div style={{width:38,height:38,borderRadius:9,overflow:'hidden',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(125,130,140,.22)'}}>{node}</div>);
         const _img=(src)=>(<img src={src} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}}/>);
         const pBar=(col,isTop)=>{
           const enemy=col==='w'?'b':'w'; let name, av;
-          if(inReview){ const _H=(review&&review.headers)||{}; const _n=col==='w'?_H.White:_H.Black; name=_n||(col==='w'?'White':'Black'); av=_avBox(<span style={{fontSize:18,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>); }
-          else if(_isOnlineG){ const pd=col==='w'?_og.w:_og.b; name=(pd&&pd.name)?pd.name:(col==='w'?'White':'Black'); av=_avBox((pd&&pd.photo)?_img(pd.photo):(<span style={{fontSize:18,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); }
-          else if(opponent==='computer'){ if(col===pColor){ name=(cloudUser&&cloudUser.name)?cloudUser.name:'You'; av=_avBox((cloudUser&&cloudUser.photo)?_img(cloudUser.photo):(<span style={{fontSize:18,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); } else { name=botById(selBot)?botById(selBot).name:'Computer'; av=_avBox(<BotFace id={selBot} size={26}/>); } }
-          else { name=col==='w'?'White':'Black'; av=_avBox(<span style={{fontSize:18,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>); }
+          if(inReview){ const _H=(review&&review.headers)||{}; const _n=col==='w'?_H.White:_H.Black; name=_n||(col==='w'?'White':'Black'); av=_avBox(<span style={{fontSize:27,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>); }
+          else if(_isOnlineG){ const pd=col==='w'?_og.w:_og.b; name=(pd&&pd.name)?pd.name:(col==='w'?'White':'Black'); av=_avBox((pd&&pd.photo)?_img(pd.photo):(<span style={{fontSize:27,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); }
+          else if(opponent==='computer'){ if(col===pColor){ name=(cloudUser&&cloudUser.name)?cloudUser.name:'You'; av=_avBox((cloudUser&&cloudUser.photo)?_img(cloudUser.photo):(<span style={{fontSize:27,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); } else { name=botById(selBot)?botById(selBot).name:'Computer'; av=_avBox(<BotFace id={selBot} size={36}/>); } }
+          else { name=col==='w'?'White':'Black'; av=_avBox(<span style={{fontSize:27,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>); }
           const taken=_cap[col]||[]; const lead=col==='w'?(_md>0?_md:0):(_md<0?-_md:0);
           // #348: whatever we actually know about this player. Rating from the PGN headers in review (chess.com
           // and lichess both set WhiteElo/BlackElo), the bot's own Elo in play. Nothing is invented: if we do not
@@ -5149,9 +5149,12 @@ export default function App(){
           // #351 Kunal: "the back arrow and three-dots at the top take too much space. Relocate them."
           // They belong in the top player bar, which is already on screen and already has slack. That
           // deletes a 40px row outright and hands every pixel of it to the board.
+          const _livePlay=(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd);
           const _hb=isTop&&inReview&&revCompact;
+          const _hbPlay=isTop&&!wide&&_livePlay;
           const _hbSty={flex:'0 0 auto',display:'inline-flex',alignItems:'center',justifyContent:'center',width:34,height:30,borderRadius:9,background:_pillBg,border:'1px solid '+_pillBd,color:_fg,cursor:'pointer',fontWeight:800,lineHeight:1,padding:0};
           return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...((inReview||mode==='play')?{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(vp.h>900?148:124)}:null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>setReviewView('summary')} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:20}}>{'\u2190'}</button>}
+            {_hbPlay&&<button data-ct="play-home" onClick={()=>setHomeScreen(true)} aria-label="Home" title="Home" style={{..._hbSty,fontSize:18}}>{'\u2302'}</button>}
             {isTop&&_evalOn&&!inReview&&!isOver&&!playEnd&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:_pillBg,border:'1px solid '+_pillBd,color:_fg}}>{evalTxt}</span>}
             {av}
             <div style={{minWidth:0,flex:1}}>
@@ -5164,6 +5167,7 @@ export default function App(){
               <div data-ct={'pbar-taken-'+col} style={{display:'flex',alignItems:'center',height:18,flexShrink:0,flexWrap:'nowrap',overflow:'hidden'}}>{taken.length>0&&taken.map((t,i)=>(<span key={i} style={{display:'inline-flex',marginRight:-2}}><Piece t={t} color={enemy} sz={18} useFallback={fallback} onFail={onPieceFail}/></span>))}{lead>0&&<span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:_fgDim,marginLeft:6}}>+{lead}</span>}</div>
             </div>
             {_hb&&<button data-ct="rev-more" onClick={()=>setRevMore(true)} aria-label="More" style={{..._hbSty,fontSize:19}}>{'\u22ef'}</button>}
+            {_hbPlay&&<button data-ct="play-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" style={{..._hbSty,fontSize:17}}>{'\u2630'}</button>}
             {clk!=null&&<div style={{fontFamily:'monospace',fontSize:'clamp(15px,4.4vw,21px)',fontWeight:800,padding:'4px 11px',borderRadius:8,flexShrink:0,background:ticking?'rgba(110,180,90,.22)':_pillBg,border:'1px solid '+(ticking?'rgba(110,180,90,.55)':_pillBd),color:clk==='0:00'?'#d23b2e':(ticking?(_lightBar?'#2f7a26':'#86d99a'):_fg)}}>{clk}</div>}
           </div>);
         };
