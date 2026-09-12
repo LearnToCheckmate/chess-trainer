@@ -1854,6 +1854,9 @@ export default function App(){
   const sfCandRef=useRef(null);                     // collects the engine's top lines during a personality bot's move search
   const sfAnaRef=useRef(null);                      // dedicated Stockfish worker for game review analysis (separate from play/eval-bar)
   const sfAnaReadyRef=useRef(false);
+  const sfAnaSyncRef=useRef(null);                  // #356 fired on the next readyok, so a caller can wait for the engine to be idle
+  const sfAnaAbortRef=useRef(null);                 // #356 cancels whatever query currently owns the analysis worker
+  const sfSyncRef=useRef(null);                     // #356 same idle hook for the play / eval-bar worker
   const sfAnaCbRef=useRef(null);                    // {score,best} handlers for the in-flight analysis eval
   const sfPoolRef=useRef([]);                       // #343: extra review workers. A review is N independent evals, so it parallelises cleanly.
   const [poolN,setPoolN]=useState(0);               // how many review workers actually came up (shown on the progress line)
@@ -2358,7 +2361,7 @@ export default function App(){
       const w=new Worker('./stockfish-18-lite-single.js');
       w.onmessage=(e)=>{
         const msg=String(e.data||'');
-        if(msg==='readyok'){sfReadyRef.current=true;setSfReady(true);}
+        if(msg==='readyok'){sfReadyRef.current=true;setSfReady(true);const _s=sfSyncRef.current;if(_s){sfSyncRef.current=null;try{_s();}catch(_e){}}}
         // During a full-strength eval search, read the score and convert to White's POV.
         if(sfEvalingRef.current&&msg.startsWith('info')&&msg.indexOf(' score ')!==-1){
           const fen=sfEvalFenRef.current; const stm=(fen.split(' ')[1]||'w'); const sign=(stm==='w')?1:-1;
@@ -2559,7 +2562,7 @@ export default function App(){
     if(!sfAnaRef.current){
       try{
         const w=new Worker('./stockfish-18-lite-single.js');
-        w.onmessage=(e)=>{const msg=String(e.data||'');if(msg==='readyok'){sfAnaReadyRef.current=true;return;}const cb=sfAnaCbRef.current;if(!cb)return;if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1){const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;const mm=msg.match(/score mate (-?\d+)/),cm=msg.match(/score cp (-?\d+)/);const _p1=msg.match(/ pv (\S+)/);const _fm=_p1?_p1[1]:null;if(mm)cb.score({mate:parseInt(mm[1],10),cp:null,mpv:mpv,first:_fm});else if(cm)cb.score({mate:null,cp:parseInt(cm[1],10),mpv:mpv,first:_fm});if(cb.pv&&mpv===1){const pi=msg.indexOf(' pv ');if(pi!==-1)cb.pv(msg.slice(pi+4).trim().split(/\s+/));}}else if(msg.startsWith('bestmove')){cb.best(msg.split(' ')[1]);}};
+        w.onmessage=(e)=>{const msg=String(e.data||'');if(msg==='readyok'){sfAnaReadyRef.current=true;const _s=sfAnaSyncRef.current;if(_s){sfAnaSyncRef.current=null;try{_s();}catch(_e){}}return;}const cb=sfAnaCbRef.current;if(!cb)return;if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1){const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;const mm=msg.match(/score mate (-?\d+)/),cm=msg.match(/score cp (-?\d+)/);const _p1=msg.match(/ pv (\S+)/);const _fm=_p1?_p1[1]:null;if(mm)cb.score({mate:parseInt(mm[1],10),cp:null,mpv:mpv,first:_fm});else if(cm)cb.score({mate:null,cp:parseInt(cm[1],10),mpv:mpv,first:_fm});if(cb.pv&&mpv===1){const pi=msg.indexOf(' pv ');if(pi!==-1)cb.pv(msg.slice(pi+4).trim().split(/\s+/));}}else if(msg.startsWith('bestmove')){cb.best(msg.split(' ')[1]);}};
         w.onerror=()=>{sfAnaRef.current=null;sfAnaReadyRef.current=false;};
         w.postMessage('uci');w.postMessage('setoption name MultiPV value 2');w.postMessage('isready');
         sfAnaRef.current=w;
@@ -2568,30 +2571,51 @@ export default function App(){
     let t=0;const iv=setInterval(()=>{if(sfAnaReadyRef.current||t++>50){clearInterval(iv);resolve(!!sfAnaReadyRef.current);}},100);
   });
   // Evaluate one position on the dedicated worker (full strength). White-POV cp; mate as a large ±cp via the caller. Resolves {cp,mate,bestmove} or null.
+  // #356 THE REAL FIX FOR THE ENGINE TRAP. `stop` is not synchronous: the engine acknowledges it
+  // whenever it gets round to it. Sending `setoption` and `position` straight after `stop` is a UCI
+  // protocol violation while a search is still unwinding, and Stockfish answers it by trapping
+  // (RuntimeError: unreachable). #354 added the `stop` and honestly reported that it had NOT fixed
+  // the trap; this is why. readyok is the defined "I am idle now" point, so ask for it and wait,
+  // with a short ceiling so a wedged engine cannot hang the caller.
+  // The timeout must ABANDON, never proceed. An earlier version posted anyway if readyok had not
+  // arrived within its ceiling, which is the protocol violation it exists to prevent, just on a
+  // delay: under load the handshake is exactly when the engine is slowest to answer. `then` now
+  // receives whether the engine actually acknowledged, and every caller skips the work when it did
+  // not. A skipped evaluation is invisible - the next ply change asks again - and a skipped line
+  // resolves null, which the callers already handle.
+  const engIdle=(w,ref,then)=>{
+    let fired=false;
+    const go=(idle)=>{if(fired)return;fired=true;clearTimeout(t);if(ref.current===readyGo)ref.current=null;then(idle===true);};
+    const readyGo=()=>go(true);
+    const t=setTimeout(()=>go(false),2500);
+    ref.current=readyGo;
+    try{w.postMessage('stop');w.postMessage('isready');}catch(e){go(false);}
+    return()=>{fired=true;clearTimeout(t);if(ref.current===readyGo)ref.current=null;};   // cancel a pending handshake
+  };
+  const anaIdle=(w,then)=>engIdle(w,sfAnaSyncRef,then);
   const sfEval1=(fen,movetime)=>new Promise(resolve=>{
     const w=sfAnaRef.current;
     if(!w||!sfAnaReadyRef.current){resolve(null);return;}
+    try{const _p=sfAnaAbortRef.current;if(_p)_p();}catch(e){}
     const stm=(fen.split(' ')[1]||'w'),sign=stm==='w'?1:-1;
     let cp=null,mate=null,cp2=null,mate2=null,alt=null,done=false;
-    const finish=(bm)=>{if(done)return;done=true;sfAnaCbRef.current=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null});};
+    const finish=(bm)=>{if(done)return;done=true;sfAnaCbRef.current=null;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null});};
+    const _abort=()=>finish(null); sfAnaAbortRef.current=_abort;
     const to=setTimeout(()=>finish(null),Math.max(4000,movetime*8));
     sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=sign*s.mate;cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=sign*s.mate;cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm)};
-    try{w.postMessage('stop');w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null);}
+    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null);return;}try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null);}});
   });
   // Engine's best line (principal variation) from a position; resolves an array of UCI moves or null. Lets Review play the better line out at full engine strength.
-  // #354 STOP BEFORE REPOSITIONING. Both play-it-out buttons turn the engine on and ask it for a
-  // line in the same click, so the analysis worker could still be searching when a new
-  // `position fen` arrived. Stockfish traps on that (RuntimeError: unreachable, surfaced as a page
-  // error) and the line never plays. One `stop` makes the handoff legal. Applied at every site that
-  // repositions a shared worker, not just the one where it was caught.
   const sfBestLine=(fen,movetime,onScore)=>new Promise(resolve=>{
     const w=sfAnaRef.current;
     if(!w||!sfAnaReadyRef.current){resolve(null);return;}
+    try{const _p=sfAnaAbortRef.current;if(_p)_p();}catch(e){}
     let line=null,done=false;
-    const finish=(r)=>{if(done)return;done=true;sfAnaCbRef.current=null;clearTimeout(to);resolve(r);};
+    const finish=(r)=>{if(done)return;done=true;sfAnaCbRef.current=null;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearTimeout(to);resolve(r);};
+    const _abort=()=>finish(null); sfAnaAbortRef.current=_abort;
     const to=setTimeout(()=>finish(line),Math.max(4000,movetime*8));
     sfAnaCbRef.current={score:(sc)=>{if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(arr&&arr.length)line=arr;},best:(bm)=>finish(line||(bm&&bm!=='(none)'?[bm]:null))};
-    try{w.postMessage('stop');w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null);}
+    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null);return;}try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null);}});
   });
   // ── #343: parallel review workers ────────────────────────────────────────
   // A game review is 60-80 INDEPENDENT position evaluations, so it parallelises almost perfectly.
@@ -3337,9 +3361,12 @@ export default function App(){
     if(!showEval)return;
     const w=sfRef.current; if(!w||!sfReady)return;
     if(!inReview&&mode==='play'&&opponent==='computer'&&game.turn!==pColor)return; // opponent is thinking on the single worker
-    sfEvalFenRef.current=dispFen; sfEvalingRef.current=true;
-    try{ w.postMessage('setoption name UCI_LimitStrength value false'); w.postMessage('setoption name MultiPV value 1'); w.postMessage('position fen '+dispFen); w.postMessage('go depth 12'); }catch(e){}
-    return()=>{try{w.postMessage('stop');}catch(e){}};
+    const cancel=engIdle(w,sfSyncRef,(idle)=>{
+      if(!idle)return;                       // the next ply change will ask again
+      sfEvalFenRef.current=dispFen; sfEvalingRef.current=true;
+      try{ w.postMessage('setoption name UCI_LimitStrength value false'); w.postMessage('setoption name MultiPV value 1'); w.postMessage('position fen '+dispFen); w.postMessage('go depth 12'); }catch(e){}
+    });
+    return()=>{cancel();try{w.postMessage('stop');}catch(e){}};
   },[dispFen,inReview,ply,mode,opponent,sfReady,pColor,game.turn]);
 
   const SHADOW_BTN=boardDepth?'0 4px 0 rgba(0,0,0,.45),0 7px 14px rgba(0,0,0,.36),inset 0 1.5px 0 rgba(255,255,255,.30),inset 0 -3px 6px rgba(0,0,0,.22)':'0 3px 0 rgba(0,0,0,.40),0 5px 11px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.22)';
