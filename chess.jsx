@@ -2190,7 +2190,7 @@ export default function App(){
   // MUST stay below `wide`: an earlier placement above it was a TDZ ReferenceError and a white
   // screen, which is the #315 failure mode verbatim.
   const _edge=!wide&&((mode==='analyze'&&review!==null&&revCompact)||(mode==='play'&&!playSetup)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null));
-  const SQ=useMemo(()=>{if(wide){const availH=vp.h-24;const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20;const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,bp/8);}const _evOn=(inReview||(mode==='play'&&opponent==='computer'))&&!hideEval&&!evalUnder;const reserved=((inReview&&revCompact)||evalUnder||hideEval?0:4)+(_evOn?(inReview?22:14):0)+(_edge?0:6);const widthCap=vw-reserved;const _pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online'); /* #333: the eval bar sits beside the board, so its width (22 in review, 14 in play) plus the root's side padding must come out of the board, or the row overflows and gets clipped on both sides (Kunal's iPhone screenshot: eval number and h-file cut off) */const wh=vp.h;const heightCap=mode==='play'?(wh-232):(_pzLow?Math.max(232,wh-safeTop-8-pzStackH-62-26):((inReview&&revCompact)?Math.max(184,wh-safeTop-safeBot-REV_CHROME):(wh*0.66-16)));const hardCap=mode==='play'?900:820;const _trim=boardTrim;const _cap=Math.min(widthCap,heightCap,hardCap)-_trim;if(_edge)return Math.max(24,Math.round(_cap/8*100)/100);const bp=Math.floor(_cap/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent,hideEval,evalUnder,revCompact,safeTop,safeBot,pzView,pzStackH,boardTrim,_edge]);
+  const SQ=useMemo(()=>{if(wide){const _bars=((mode==='play'&&!playSetup)||(inReview&&revCompact))?130:0; /* two 52px bars plus margins, measured on an iPad in landscape; SQ is one long line, so NEVER use // in here */const availH=vp.h-24-_bars;const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20;const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,Math.round((bp-boardTrim)/8*100)/100);}const _evOn=(inReview||(mode==='play'&&opponent==='computer'))&&!hideEval&&!evalUnder;const reserved=((inReview&&revCompact)||evalUnder||hideEval?0:4)+(_evOn?(inReview?22:14):0)+(_edge?0:6);const widthCap=vw-reserved;const _pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online'); /* #333: the eval bar sits beside the board, so its width (22 in review, 14 in play) plus the root's side padding must come out of the board, or the row overflows and gets clipped on both sides (Kunal's iPhone screenshot: eval number and h-file cut off) */const wh=vp.h;const heightCap=mode==='play'?(wh-232):(_pzLow?Math.max(232,wh-safeTop-8-pzStackH-62-26):((inReview&&revCompact)?Math.max(184,wh-safeTop-safeBot-REV_CHROME):(wh*0.66-16)));const hardCap=mode==='play'?900:820;const _trim=boardTrim;const _cap=Math.min(widthCap,heightCap,hardCap)-_trim;if(_edge)return Math.max(24,Math.round(_cap/8*100)/100);const bp=Math.floor(_cap/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent,hideEval,evalUnder,revCompact,safeTop,safeBot,pzView,pzStackH,boardTrim,_edge]);
   const boardPx=SQ*8;
   // #346: the geometry this trim belongs to. Anything NOT in here is content, and content must not reset the trim.
   const _geoKey=vp.w+'x'+vp.h+':'+safeTop+':'+safeBot+':'+mode+':'+(inReview?1:0)+(revCompact?1:0)+(wide?1:0)+(playSetup?1:0)+':'+pzView+':'+openIdx+':'+reviewView+':'+(evalUnder?1:0)+(hideEval?1:0);
@@ -2202,20 +2202,44 @@ export default function App(){
   // Shrink fast (one pass clears the whole overflow), grow back slowly and only with 12px of proven slack, so it
   // settles instead of oscillating. Bounded passes per trigger; never runs outside the one-screen review.
   useLayoutEffect(()=>{
-    const _fitScreen=!wide&&((inReview&&revCompact)||(mode==='play'&&!playSetup)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null));
+    const _fitScreen=((inReview&&revCompact)||(mode==='play'&&!playSetup))||(!wide&&((mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null)));
     if(!_fitScreen){if(boardTrimRef.current!==0)setBoardTrim(0);fitGeoRef.current='';return;}
     // Reset ONLY on a geometry change (rotate, resize, different screen). A content change - a move played, a
     // banner appearing - settles from the CURRENT trim, or the board visibly jumps to full size and back on
     // every single move, which is exactly what Kunal saw.
     if(fitGeoRef.current!==_geoKey){fitGeoRef.current=_geoKey;setBoardTrim(0);}
-    let raf=0,passes=0,stop=false;
+    let raf=0,passes=0,stop=false,settle=false;
     const tick=()=>{
       if(stop)return;
+      // #355 SETTLE BETWEEN CORRECTIONS. setBoardTrim is async, so measuring on every frame meant
+      // measuring the SAME overflow several times before the DOM had shrunk once, and each of those
+      // frames trimmed again. A 6px overflow could take 128px off the board. One idle frame after
+      // each correction lets layout catch up, so the next measurement is of the new size.
+      if(settle){settle=false;if(++passes<36)raf=requestAnimationFrame(tick);return;}
       const de=document.documentElement;
-      const over=de.scrollHeight-de.clientHeight;
-      if(over>0)setBoardTrim(t=>Math.min(600,t+Math.ceil(over/8)*8+8));
-      else if(over<-24)setBoardTrim(t=>t>0?Math.max(0,t-8):t);   // real, sustained slack: give it back slowly
-      if(++passes<24)raf=requestAnimationFrame(tick);
+      // #355 MEASURE THE CONTENT, NOT THE DOCUMENT. scrollHeight is clamped to at least
+      // clientHeight, so a page that FITS always reports overflow 0 and never negative. The loop
+      // could therefore shrink but never grow back, and on any screen where height is the binding
+      // cap (an iPad in landscape) the board stayed permanently small after one over-correction.
+      // The real content height is the bottom-most laid-out child, which can be smaller than the
+      // viewport and gives a signed answer in both directions.
+      let over;
+      const rEl=rootRef.current;
+      if(rEl){
+        const rb=rEl.getBoundingClientRect(); let bottom=0;
+        for(let i=0;i<rEl.children.length;i++){
+          const c=rEl.children[i], r=c.getBoundingClientRect();
+          if(r.height<=0)continue;
+          const pos=getComputedStyle(c).position;
+          if(pos==='fixed'||pos==='absolute')continue;          // overlays and sheets are not content
+          if(r.bottom-rb.top>bottom)bottom=r.bottom-rb.top;
+        }
+        const padB=parseFloat(getComputedStyle(rEl).paddingBottom)||0;
+        over=bottom>0?(bottom+padB-de.clientHeight):(de.scrollHeight-de.clientHeight);
+      } else over=de.scrollHeight-de.clientHeight;
+      if(over>0){setBoardTrim(t=>Math.min(600,t+Math.ceil(over/8)*8+8));settle=true;}
+      else if(over<-24){setBoardTrim(t=>t>0?Math.max(0,t-Math.min(64,Math.floor(-over/8)*8)):t);settle=true;}
+      if(++passes<36)raf=requestAnimationFrame(tick);
     };
     raf=requestAnimationFrame(tick);
     return()=>{stop=true;cancelAnimationFrame(raf);};
@@ -5220,7 +5244,7 @@ export default function App(){
           const _hb=isTop&&inReview&&revCompact;
           const _hbPlay=isTop&&!wide&&_livePlay;
           const _hbSty={flex:'0 0 auto',display:'inline-flex',alignItems:'center',justifyContent:'center',width:34,height:30,borderRadius:9,background:_pillBg,border:'1px solid '+_pillBd,color:_fg,cursor:'pointer',fontWeight:800,lineHeight:1,padding:0};
-          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...((inReview||mode==='play')?{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(vp.h>900?148:124)}:null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>setReviewView('summary')} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:20}}>{'\u2190'}</button>}
+          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...((inReview||mode==='play')?(wide?{flex:'0 0 auto',minHeight:52}:{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(vp.h>900?148:124)}):null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>setReviewView('summary')} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:20}}>{'\u2190'}</button>}
             {_hbPlay&&<button data-ct="play-home" onClick={()=>setHomeScreen(true)} aria-label="Home" title="Home" style={{..._hbSty,fontSize:18}}>{'\u2302'}</button>}
             {isTop&&_evalOn&&!inReview&&!isOver&&!playEnd&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:_pillBg,border:'1px solid '+_pillBd,color:_fg}}>{evalTxt}</span>}
             {av}
