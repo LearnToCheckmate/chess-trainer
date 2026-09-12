@@ -307,6 +307,41 @@ function playBrilliantChime(){
   }catch(e){}
 }
 
+// #342: what a move actually DOES, in plain chess terms, from the position alone. Used to explain a verdict
+// ("a fork", "a discovered check") the way a coach would, with no extra engine time.
+function moveMotifs(pos,mv){
+  const out=[];
+  try{
+    const me=pos.turn, them=opp(me);
+    const cap=pos.board[mv.tr]&&pos.board[mv.tr][mv.tc];
+    const nb=applyMove(pos.board,mv);
+    const g2=makeMove(pos,mv);
+    const st=getStatus(g2);
+    if(st==='checkmate'){out.push('mate');return out;}
+    if(st==='stalemate'){out.push('stalemate');return out;}
+    const inChk=isInCheck(nb,them);
+    if(inChk){
+      // a check delivered by a piece OTHER than the one that moved is a discovered check
+      let byMover=false;
+      try{const probe={...g2,turn:me};for(const m of getLegal(probe)){const t=nb[m.tr]&&nb[m.tr][m.tc];if(t&&t.t==='k'&&t.c===them&&m.fr===mv.tr&&m.fc===mv.tc){byMover=true;break;}}}catch(e){byMover=true;}
+      out.push(byMover?'check':'discovered check');
+    }
+    if(mv.promo)out.push('promotion');
+    else if(cap)out.push('capture');
+    // fork: the piece that just moved now hits two or more valuable targets
+    try{
+      const probe={...g2,turn:me};let hits=0;
+      for(const m of getLegal(probe)){
+        if(m.fr!==mv.tr||m.fc!==mv.tc)continue;
+        const t=nb[m.tr]&&nb[m.tr][m.tc];
+        if(t&&t.c===them&&(SEEVAL[t.t]||0)>=3)hits++;
+      }
+      if(inChk&&hits>=1)hits++;
+      if(hits>=2)out.push('fork');
+    }catch(e){}
+  }catch(e){}
+  return out;
+}
 // Heuristic "Brilliant" (!!): a sound move (Good or better) that gives up real material (after the exchanges
 // fully settle) yet keeps the mover clearly better, from a genuinely contested (not already-winning) position.
 // Deliberately strict — better to miss one than to over-award. NOTE: this is OUR heuristic, not a Stockfish output.
@@ -1532,6 +1567,8 @@ export default function App(){
   const sfAnaRef=useRef(null);                      // dedicated Stockfish worker for game review analysis (separate from play/eval-bar)
   const sfAnaReadyRef=useRef(false);
   const sfAnaCbRef=useRef(null);                    // {score,best} handlers for the in-flight analysis eval
+  const sfPoolRef=useRef([]);                       // #343: extra review workers. A review is N independent evals, so it parallelises cleanly.
+  const [poolN,setPoolN]=useState(0);               // how many review workers actually came up (shown on the progress line)
   const sfEvalingRef=useRef(false);                 // a full-strength eval search is running (vs a move search)
   const sfEvalFenRef=useRef('');                    // the fen the pending eval search is for
   const [sfReady,setSfReady]=useState(false);       // worker ready (state, to retrigger the eval effect)
@@ -1691,6 +1728,9 @@ export default function App(){
   useEffect(()=>{try{const pr=document.createElement('div');pr.style.cssText='position:fixed;left:0;top:0;height:env(safe-area-inset-top,0px);width:1px;visibility:hidden;pointer-events:none';document.body.appendChild(pr);const h=Math.round(pr.getBoundingClientRect().height);document.body.removeChild(pr);if(h>=0&&h<120)setSafeTop(h);}catch(e){}},[]);
   const [bestLineBoard,setBestLineBoard]=useState(null);
   const [engOn,setEngOn]=useState(false);          // #341: engine analysis of the position on screen, on demand
+  const [anaMode,setAnaMode]=useState(false);      // #342: analysis board - play the position out yourself from the review
+  const anaModeRef=useRef(false);anaModeRef.current=anaMode;
+  const [anaHist,setAnaHist]=useState([]);
   const [engLine,setEngLine]=useState(null);       // {txt, cp, line} for the current ply
   const engCacheRef=useRef({});                    // fen -> {txt,cp,line}, so stepping back and forth never re-runs the engine
   const bestLineTokenRef=useRef(0);
@@ -1812,7 +1852,7 @@ export default function App(){
   },[mode,learnPhase,openIdx,openStep,learnLine]);
   const _lpLive=(mode==='learn'&&learnPhase==='practice'&&lpv!=null&&lpHist.length>0&&lpv<lpHist.length);
   const _pvLive=(mode==='play'&&!inReview&&!inDemo&&pvIdx!=null&&pvIdx<playHist.length);
-  const boardGame=inReview?(bestLineBoard||review.positions[ply]):(inDemo?demoSt.game:(_pvLive?playHist[pvIdx]:(_lpLive?lpHist[lpv]:game)));
+  const boardGame=inReview?(anaMode?game:(bestLineBoard||review.positions[ply])):(inDemo?demoSt.game:(_pvLive?playHist[pvIdx]:(_lpLive?lpHist[lpv]:game)));
   const boardLast=inReview?(ply>0?review.plies[ply-1].move:null):(inDemo?demoSt.last:((_pvLive||_lpLive)?((boardGame.history&&boardGame.history.length)?boardGame.history[boardGame.history.length-1].move:null):lastMv));
   // Arrows shown on the board during the demo: the move just played (amber) + any idea arrows (blue)
   const boardArrows=useMemo(()=>{
@@ -2151,7 +2191,7 @@ export default function App(){
     if(!sfAnaRef.current){
       try{
         const w=new Worker('./stockfish-18-lite-single.js');
-        w.onmessage=(e)=>{const msg=String(e.data||'');if(msg==='readyok'){sfAnaReadyRef.current=true;return;}const cb=sfAnaCbRef.current;if(!cb)return;if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1){const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;const mm=msg.match(/score mate (-?\d+)/),cm=msg.match(/score cp (-?\d+)/);if(mm)cb.score({mate:parseInt(mm[1],10),cp:null,mpv:mpv});else if(cm)cb.score({mate:null,cp:parseInt(cm[1],10),mpv:mpv});if(cb.pv&&mpv===1){const pi=msg.indexOf(' pv ');if(pi!==-1)cb.pv(msg.slice(pi+4).trim().split(/\s+/));}}else if(msg.startsWith('bestmove')){cb.best(msg.split(' ')[1]);}};
+        w.onmessage=(e)=>{const msg=String(e.data||'');if(msg==='readyok'){sfAnaReadyRef.current=true;return;}const cb=sfAnaCbRef.current;if(!cb)return;if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1){const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;const mm=msg.match(/score mate (-?\d+)/),cm=msg.match(/score cp (-?\d+)/);const _p1=msg.match(/ pv (\S+)/);const _fm=_p1?_p1[1]:null;if(mm)cb.score({mate:parseInt(mm[1],10),cp:null,mpv:mpv,first:_fm});else if(cm)cb.score({mate:null,cp:parseInt(cm[1],10),mpv:mpv,first:_fm});if(cb.pv&&mpv===1){const pi=msg.indexOf(' pv ');if(pi!==-1)cb.pv(msg.slice(pi+4).trim().split(/\s+/));}}else if(msg.startsWith('bestmove')){cb.best(msg.split(' ')[1]);}};
         w.onerror=()=>{sfAnaRef.current=null;sfAnaReadyRef.current=false;};
         w.postMessage('uci');w.postMessage('setoption name MultiPV value 2');w.postMessage('isready');
         sfAnaRef.current=w;
@@ -2164,22 +2204,83 @@ export default function App(){
     const w=sfAnaRef.current;
     if(!w||!sfAnaReadyRef.current){resolve(null);return;}
     const stm=(fen.split(' ')[1]||'w'),sign=stm==='w'?1:-1;
-    let cp=null,mate=null,cp2=null,mate2=null,done=false;
-    const finish=(bm)=>{if(done)return;done=true;sfAnaCbRef.current=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,bestmove:bm&&bm!=='(none)'?bm:null});};
+    let cp=null,mate=null,cp2=null,mate2=null,alt=null,done=false;
+    const finish=(bm)=>{if(done)return;done=true;sfAnaCbRef.current=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null});};
     const to=setTimeout(()=>finish(null),Math.max(4000,movetime*8));
-    sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=sign*s.mate;cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=sign*s.mate;cp2=null;}else{cp2=sign*s.cp;mate2=null;}}},best:(bm)=>finish(bm)};
+    sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=sign*s.mate;cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=sign*s.mate;cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm)};
     try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null);}
   });
   // Engine's best line (principal variation) from a position; resolves an array of UCI moves or null. Lets Review play the better line out at full engine strength.
-  const sfBestLine=(fen,movetime)=>new Promise(resolve=>{
+  const sfBestLine=(fen,movetime,onScore)=>new Promise(resolve=>{
     const w=sfAnaRef.current;
     if(!w||!sfAnaReadyRef.current){resolve(null);return;}
     let line=null,done=false;
     const finish=(r)=>{if(done)return;done=true;sfAnaCbRef.current=null;clearTimeout(to);resolve(r);};
     const to=setTimeout(()=>finish(line),Math.max(4000,movetime*8));
-    sfAnaCbRef.current={score:()=>{},pv:(arr)=>{if(arr&&arr.length)line=arr;},best:(bm)=>finish(line||(bm&&bm!=='(none)'?[bm]:null))};
+    sfAnaCbRef.current={score:(sc)=>{if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(arr&&arr.length)line=arr;},best:(bm)=>finish(line||(bm&&bm!=='(none)'?[bm]:null))};
     try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null);}
   });
+  // ── #343: parallel review workers ────────────────────────────────────────
+  // A game review is 60-80 INDEPENDENT position evaluations, so it parallelises almost perfectly.
+  // Each worker is its own single-threaded Stockfish with its own callback slot; no SharedArrayBuffer,
+  // no cross-origin isolation, nothing new to download. Sized off the device so an older phone is not
+  // asked to hold four copies of a 7MB engine at once, and torn down when the review ends.
+  const poolWanted=()=>{try{
+    const _f=parseInt((typeof localStorage!=='undefined'&&localStorage.getItem('ct_pool'))||'',10);
+    if(_f>=1&&_f<=6)return _f;     // manual override, for testing and for anyone who wants to cap it
+    const hc=(typeof navigator!=='undefined'&&navigator.hardwareConcurrency)||4;
+    const dm=(typeof navigator!=='undefined'&&navigator.deviceMemory)||null;
+    let n=Math.min(4,Math.max(1,hc-2));
+    if(dm!=null&&dm<=4)n=Math.min(n,2);
+    return Math.max(1,n);
+  }catch(e){return 2;}};
+  const poolSlotMsg=(slot)=>(e)=>{
+    const msg=String(e.data||'');
+    if(msg==='readyok'){slot.ready=true;return;}
+    const cb=slot.cb;if(!cb)return;
+    if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1){
+      const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;
+      const mm=msg.match(/score mate (-?\d+)/),cm=msg.match(/score cp (-?\d+)/);
+      const _p1=msg.match(/ pv (\S+)/);const _fm=_p1?_p1[1]:null;
+      if(mm)cb.score({mate:parseInt(mm[1],10),cp:null,mpv:mpv,first:_fm});
+      else if(cm)cb.score({mate:null,cp:parseInt(cm[1],10),mpv:mpv,first:_fm});
+    }else if(msg.startsWith('bestmove')){cb.best(msg.split(' ')[1]);}
+  };
+  const ensurePool=(want)=>new Promise(resolve=>{
+    try{
+      while(sfPoolRef.current.length<want){
+        const slot={w:null,ready:false,cb:null};
+        const w=new Worker('./stockfish-18-lite-single.js');
+        w.onmessage=poolSlotMsg(slot);
+        w.onerror=()=>{slot.ready=false;slot.dead=true;};
+        w.postMessage('uci');
+        w.postMessage('setoption name MultiPV value 2');
+        w.postMessage('setoption name Hash value 16');   // keep each worker small: four of these live at once
+        w.postMessage('isready');
+        slot.w=w;sfPoolRef.current.push(slot);
+      }
+    }catch(e){}
+    let t=0;const iv=setInterval(()=>{
+      const rd=sfPoolRef.current.filter(x=>x.ready&&!x.dead);
+      if(rd.length>=want||t++>90){clearInterval(iv);resolve(sfPoolRef.current.filter(x=>x.ready&&!x.dead));}
+    },100);
+  });
+  const poolClose=()=>{try{sfPoolRef.current.forEach(s=>{try{s.w&&s.w.terminate();}catch(e){}});}catch(e){}sfPoolRef.current=[];};
+  useEffect(()=>()=>poolClose(),[]);
+  // One eval on one pool worker. Same contract as sfEval1.
+  const sfEvalOn=(slot,fen,movetime)=>new Promise(resolve=>{
+    if(!slot||!slot.w||!slot.ready||slot.dead){resolve(null);return;}
+    const stm=(fen.split(' ')[1]||'w'),sign=stm==='w'?1:-1;
+    let cp=null,mate=null,cp2=null,mate2=null,alt=null,done=false;
+    const finish=(bm)=>{if(done)return;done=true;slot.cb=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null});};
+    const to=setTimeout(()=>finish(null),Math.max(4000,movetime*8));
+    slot.cb={score:(sc)=>{const _m=sc.mpv||1;
+        if(_m===1){if(sc.mate!=null){mate=sign*sc.mate;cp=null;}else{cp=sign*sc.cp;mate=null;}}
+        else if(_m===2){if(sc.mate!=null){mate2=sign*sc.mate;cp2=null;}else{cp2=sign*sc.cp;mate2=null;}if(sc.first)alt=sc.first;}},
+      best:(bm)=>finish(bm)};
+    try{slot.w.postMessage('setoption name UCI_LimitStrength value false');slot.w.postMessage('position fen '+fen);slot.w.postMessage('go movetime '+movetime);}catch(e){finish(null);}
+  });
+
   const importGame=async(pgnArg,meta)=>{
     const text=(typeof pgnArg==='string')?pgnArg:pgnText;
     setPgnErr('');
@@ -2195,26 +2296,47 @@ export default function App(){
     let out=[];
     if(useSF){
       // Full-strength Stockfish: eval every position (White POV cp; mate as a large ±cp), then derive each move's loss and the engine's best move.
-      const N=res.plies.length,MT=Math.max(700,Math.min(2000,Math.round(60000/(N+1))));
-      const evW=new Array(N+1),ev2W=new Array(N+1),bU=new Array(N);
-      const _ck=evalCacheKey(res.plies,MT);const _hit=evalCacheGet(_ck);
+      const N=res.plies.length;
+      const evW=new Array(N+1),ev2W=new Array(N+1),bU=new Array(N),aU=new Array(N);
+      const _ck=evalCacheKey(res.plies);const _hit=evalCacheGet(_ck);
       if(_hit&&_hit.evW&&_hit.evW.length===N+1){
-        for(let i=0;i<=N;i++){evW[i]=_hit.evW[i];ev2W[i]=_hit.ev2W?_hit.ev2W[i]:null;if(i<N)bU[i]=_hit.bU?_hit.bU[i]:null;}
+        for(let i=0;i<=N;i++){evW[i]=_hit.evW[i];ev2W[i]=_hit.ev2W?_hit.ev2W[i]:null;if(i<N){bU[i]=_hit.bU?_hit.bU[i]:null;aU[i]=_hit.aU?_hit.aU[i]:null;}}
         setProgress(1);await new Promise(r=>setTimeout(r,10));
       }else{
-      for(let i=0;i<=N;i++){
+      // #343: aim for a ~25s wall clock instead of ~60s AND give each position more thinking time than before,
+      // because P workers run at once. A single worker falls back to the old 60s budget so nothing regresses.
+      const _P=Math.max(1,(await ensurePool(poolWanted())).length);setPoolN(_P);
+      const MT=_P>1?Math.max(900,Math.min(2600,Math.round(25000*_P/(N+1))))
+                   :Math.max(700,Math.min(2000,Math.round(60000/(N+1))));
+      const _store=(i,r)=>{
         const pos=res.positions[i];
-        const r=await sfEval1(toFEN(pos),MT);
         let cpW;
         if(!r)cpW=Math.round(evalPawns(pos)*100);
         else if(r.mate!=null)cpW=r.mate>0?(100000-r.mate*100):(-100000-r.mate*100);
         else cpW=(r.cp==null?Math.round(evalPawns(pos)*100):r.cp);
         let cp2W=null;if(r){if(r.mate2!=null)cp2W=r.mate2>0?(100000-r.mate2*100):(-100000-r.mate2*100);else if(r.cp2!=null)cp2W=r.cp2;}
-        evW[i]=cpW;ev2W[i]=cp2W;if(i<N)bU[i]=r?r.bestmove:null;
-        setProgress((i+1)/(N+1));
+        evW[i]=cpW;ev2W[i]=cp2W;if(i<N){bU[i]=r?r.bestmove:null;aU[i]=r?r.alt:null;}
+      };
+      const _slots=sfPoolRef.current.filter(x=>x.ready&&!x.dead);
+      if(_slots.length>1){
+        // work queue: every worker takes the next unclaimed position, so a slow position never idles the others
+        let next=0,done=0;
+        await Promise.all(_slots.map(async(sl)=>{
+          for(;;){
+            const i=next++;if(i>N)break;
+            const r=await sfEvalOn(sl,toFEN(res.positions[i]),MT);
+            _store(i,r);done++;setProgress(done/(N+1));
+          }
+        }));
+      }else{
+        for(let i=0;i<=N;i++){
+          const r=await sfEval1(toFEN(res.positions[i]),MT);
+          _store(i,r);setProgress((i+1)/(N+1));
+        }
       }
-      evalCacheSet(_ck,{evW,ev2W,bU});
+      evalCacheSet(_ck,{evW,ev2W,bU,aU});
       }
+      poolClose();
       for(let i=0;i<N;i++){
         const pos=res.positions[i],mover=pos.turn,before=evW[i],after=evW[i+1];
         let loss=Math.min(1500,Math.max(0,mover==='w'?(before-after):(after-before)));
@@ -2228,7 +2350,10 @@ export default function App(){
         if(cls.label!=='Brilliant'){const _bm=mover==='w'?before:-before,_pm=mover==='w'?after:-after,_h2=ev2W[i]!=null,_s2=_h2?(mover==='w'?ev2W[i]:-ev2W[i]):null;
           if((cls.label==='Best'||cls.label==='Excellent')&&_h2&&(_bm-_s2)>=160)cls={label:'Great',c:'#5d93e8',i:'!'};
           else if((cls.label==='Mistake'||cls.label==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130)cls={label:'Miss',c:'#f08a5d',i:'×'};}
-        out.push({loss:Math.round(loss),cls,bestSan,bestMove:bestMv,evalAfter:evA,gate:_g});
+        let altSan='',altDrop=null;
+        try{const au=aU[i];if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));}}
+          if(ev2W[i]!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2W[i]:-ev2W[i];altDrop=Math.max(0,Math.round(_b-_s2));}}catch(e){}
+        out.push({loss:Math.round(loss),cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl)});
       }
     }else{
       QDEPTH=2;
@@ -2463,6 +2588,7 @@ export default function App(){
       if(window.CTCloud)window.CTCloud.gamePush(og.id,push).catch(err=>{const c=(err&&(err.code||err.message))||'error';setOnlineInfo('Move not saved ('+c+'). Check your connection; if it mentions permissions, the database rules need a tweak.');});
       repaint();return;
     }
+    if(modeRef.current==='analyze'&&anaModeRef.current){setAnaHist(h=>[...h,g]);sfxMove(g,mv);setGame(makeMove(g,mv));setLastMv(mv);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}
     if(modeRef.current==='play'){setPlayHist(h=>[...h,g]);const tc=timeCtrlRef.current;if(tc&&tc.kind!=='corr'){const mover=g.turn;setClock(c=>({...c,run:true,[mover]:c[mover]+tc.inc*1000}));}}
     setPlayHintMv(null);
     sfxMove(g,mv);setGame(makeMove(g,mv));setLastMv(mv);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
@@ -2648,7 +2774,7 @@ export default function App(){
   useEffect(()=>()=>{vcCleanup();},[]);
 
   const humanCanMove=()=>{
-    if(modeRef.current==='analyze')return false;
+    if(modeRef.current==='analyze'){if(!anaModeRef.current)return false;const st=getStatus(gameRef.current);return st!=='checkmate'&&st!=='stalemate';}
     if(modeRef.current==='puzzle')return !puzSolvedRef.current&&gameRef.current.turn===puzSideRef.current;
     if(getStatus(gameRef.current)==='checkmate'||getStatus(gameRef.current)==='stalemate')return false;
     if(modeRef.current==='play'&&opponentRef.current==='online'){const og=onlineGameRef.current;return !!og&&og.status==='active'&&!og.result&&myColorRef.current===gameRef.current.turn;}
@@ -2677,17 +2803,19 @@ export default function App(){
   // #341: engine analysis of the position on screen. One Stockfish call per position, cached by FEN, so stepping back and forth is free.
   useEffect(()=>{
     if(!engOn||!inReview||!review||!review.positions){setEngLine(null);return;}
-    const pos=review.positions[ply];if(!pos){setEngLine(null);return;}
+    const pos=anaMode?game:review.positions[ply];if(!pos){setEngLine(null);return;}
     const fen=toFEN(pos);const hit=engCacheRef.current[fen];
-    const ev=(ply>0&&review.analysis[ply-1]&&typeof review.analysis[ply-1].evalAfter==='number')?review.analysis[ply-1].evalAfter:evalPawns(pos);
+    const ev=(!anaMode&&ply>0&&review.analysis[ply-1]&&typeof review.analysis[ply-1].evalAfter==='number')?review.analysis[ply-1].evalAfter:evalPawns(pos);
     const txt=(ev>0?'+':'')+Math.max(-99,Math.min(99,ev)).toFixed(1);
-    if(hit){setEngLine({...hit,txt,cp:ev});return;}
+    if(hit){setEngLine({...hit,txt:hit.txt||txt,cp:(hit.cp!=null?hit.cp:ev)});return;}
     let dead=false;setEngLine({txt,cp:ev,line:''});
     (async()=>{
       const ok=sfReadyRef.current?await ensureAna():false;
       if(dead)return;
       if(!ok){setEngLine({txt,cp:ev,line:'engine not loaded'});return;}
-      const pv=await sfBestLine(fen,900);
+      let _lcp=null,_lmate=null;
+      const _sgn=((fen.split(' ')[1]||'w')==='w')?1:-1;
+      const pv=await sfBestLine(fen,900,anaMode?((sc)=>{if((sc.mpv||1)!==1)return;if(sc.mate!=null){_lmate=_sgn*sc.mate;_lcp=null;}else if(sc.cp!=null){_lcp=_sgn*sc.cp;_lmate=null;}}):null);
       if(dead)return;
       let line='';
       try{let g=pos,n=0,num=Math.floor(ply/2)+1,first=true;
@@ -2695,13 +2823,16 @@ export default function App(){
           const wt=g.turn==='w';const pre=wt?(num+'. '):(first?(num+'... '):'');
           line+=(first?'':' ')+pre+san;if(!wt)num++;first=false;g=makeMove(g,mv);n++;if(n>=6)break;}
       }catch(e){}
-      const val={line:line.trim()};engCacheRef.current[fen]=val;setEngLine({...val,txt,cp:ev});
+      const val={line:line.trim()};engCacheRef.current[fen]=val;
+      const _t2=(_lmate!=null)?((_lmate>0?'M':'-M')+Math.abs(_lmate)):((_lcp!=null)?((_lcp>0?'+':'')+(_lcp/100).toFixed(1)):txt);
+      const _c2=(_lmate!=null)?(_lmate>0?99:-99):((_lcp!=null)?_lcp/100:ev);
+      engCacheRef.current[fen]={...val,txt:_t2,cp:_c2};setEngLine({...val,txt:_t2,cp:_c2});
     })();
     return()=>{dead=true;};
-  },[engOn,ply,inReview,review]);
+  },[engOn,ply,inReview,review,anaMode,game]);
   const reviewBest=useMemo(()=>{if(!inReview||!showBest||ply===0||bestLineBoard)return null;return review.analysis[ply-1]?.bestMove||null;},[inReview,showBest,ply,review,bestLineBoard]);
   const playBestLine=async()=>{if(!inReview||ply===0||!review||!review.analysis[ply-1])return;const first=review.analysis[ply-1].bestMove;if(!first)return;const tok=++bestLineTokenRef.current;const basePos=review.positions[ply-1];setBestLineBoard(basePos);let g1;try{g1=makeMove(basePos,first);}catch(e){setBestLineBoard(null);return;}let moves=[first],states=[basePos,g1];try{const pv=await sfBestLine(toFEN(g1),1100);if(bestLineTokenRef.current!==tok)return;if(pv&&pv.length){let g=g1;for(let k=0;k<4;k++){if(k>=pv.length)break;const mv=uciToMove(g,pv[k]);if(!mv)break;let ng;try{ng=makeMove(g,mv);}catch(e){break;}moves.push(mv);g=ng;states.push(g);}}}catch(e){}if(moves.length<=1){let g=g1;for(let k=0;k<3;k++){let m;try{m=bestMove(g,3,0);}catch(e){break;}if(!m)break;let ng;try{ng=makeMove(g,m);}catch(e){break;}moves.push(m);g=ng;states.push(g);}}if(bestLineTokenRef.current!==tok)return;let plays=0;const step=(i)=>{if(bestLineTokenRef.current!==tok)return;if(i>=moves.length){setTimeout(()=>{if(bestLineTokenRef.current!==tok)return;setAnim(null);setSlideFromHide(false);plays++;if(plays<2){setBestLineBoard(states[0]);setTimeout(()=>step(0),650);}else{setBestLineBoard(null);}},950);return;}const pc=states[i].board[moves[i].fr][moves[i].fc];setBestLineBoard(states[i]);setSlideFromHide(true);setAnim({piece:pc,from:[moves[i].fr,moves[i].fc],to:[moves[i].tr,moves[i].tc]});setAnimTo(false);requestAnimationFrame(()=>requestAnimationFrame(()=>setAnimTo(true)));setTimeout(()=>{if(bestLineTokenRef.current!==tok)return;setBestLineBoard(states[i+1]);setSlideFromHide(false);setAnim(null);setTimeout(()=>step(i+1),430);},470);};step(0);};
-  useEffect(()=>{bestLineTokenRef.current++;setBestLineBoard(null);},[ply]);
+  useEffect(()=>{bestLineTokenRef.current++;setBestLineBoard(null);setAnaMode(false);setAnaHist([]);},[ply]);
 
   const{sel:_uSel,tgts:_uTgts,drag,dragging}=UI.current;const sel=_pvLive?null:_uSel;const tgts=_pvLive?[]:_uTgts;
   const dBoard=flip?[...boardGame.board].reverse().map(r=>[...r].reverse()):boardGame.board;
@@ -2713,11 +2844,14 @@ export default function App(){
   const _winSide=playEnd?playEnd.winner:(status==='checkmate'?(boardGame.turn==='w'?'b':'w'):null);
   const _winTxt=_winSide==null?'Draw':((mode==='play'&&opponent==='computer')?(_winSide===pColor?'You win! 🎉':'You lose'):(_winSide==='w'?'White wins':'Black wins'));
   const gameResult=(isOver||playEnd)?{head:(playEnd?(playEnd.reason==='time'?'Time!':'Resigned'):(status==='checkmate'?'Checkmate!':'Stalemate')),sub:_winTxt}:null;
-  const evalFallback=inReview?(ply>0?review.analysis[ply-1].evalAfter:0):((mode==='play'&&opponent==='computer')?evalPawns(game):0);
+  const evalFallback=inReview?(anaMode?((engLine&&engLine.cp!=null)?Math.max(-99,Math.min(99,engLine.cp)):evalPawns(boardGame)):(ply>0?review.analysis[ply-1].evalAfter:0)):((mode==='play'&&opponent==='computer')?evalPawns(game):0);
   const dispFen=toFEN(boardGame);
   const sfHit=(sfEval&&sfEval.fen===dispFen)?sfEval:null;
-  const evalNow=sfHit?(sfHit.mate!=null?(sfHit.mate>0?10:-10):sfHit.cp/100):evalFallback;
-  const evalTxt=sfHit?(sfHit.mate!=null?((sfHit.mate>0?'M':'-M')+Math.abs(sfHit.mate)):((sfHit.cp>0?'+':'')+(sfHit.cp/100).toFixed(1))):((evalFallback>0?'+':'')+Math.max(-9.9,Math.min(9.9,evalFallback)).toFixed(1));
+  // #342: when the engine readout is on in review, the bar and the engine line are the same number.
+  // They used to come from two different searches at two different depths and disagreed on screen.
+  const _engBar=(inReview&&engOn&&engLine&&engLine.cp!=null&&engLine.txt)?engLine:null;
+  const evalNow=_engBar?Math.max(-99,Math.min(99,_engBar.cp)):(sfHit?(sfHit.mate!=null?(sfHit.mate>0?10:-10):sfHit.cp/100):evalFallback);
+  const evalTxt=_engBar?_engBar.txt:(sfHit?(sfHit.mate!=null?((sfHit.mate>0?'M':'-M')+Math.abs(sfHit.mate)):((sfHit.cp>0?'+':'')+(sfHit.cp/100).toFixed(1))):((evalFallback>0?'+':'')+Math.max(-9.9,Math.min(9.9,evalFallback)).toFixed(1)));
   // Live eval bar — full-strength Stockfish on the displayed position (separate from the strength-limited opponent search).
   useEffect(()=>{
     const showEval=inReview?(ply>0):(mode==='play'&&opponent==='computer');
@@ -2835,7 +2969,7 @@ export default function App(){
   const onlineSolved=(p)=>{const ids=pzOSolvedIdsRef.current,already=!!ids[p.id];const nids=already?ids:{...ids,[p.id]:1};const nstreak=pzStreakRef.current+1,nbest=Math.max(pzBestRef.current,nstreak),nxp=pzXPRef.current+(already?3:Math.max(8,Math.round((p.rating||1200)/10))),nc=already?pzOSolvedRef.current:pzOSolvedRef.current+1;setPzOSolvedIds(nids);setPzStreak(nstreak);setPzBest(nbest);setPzXP(nxp);setPzOSolved(nc);PZSTORE.set(PZKEY,JSON.stringify({solved:pzSolvedRef.current,streak:nstreak,best:nbest,xp:nxp,online:nc,onlineIds:nids}));bumpDaily('puz');};
   // #341: a finished Stockfish pass is worth keeping. Key on the exact move list plus the movetime budget, store only the engine's own output
   // (white-POV centipawns, the second line, the best move per ply); everything else the review shows is derived from those in pure JS.
-  const evalCacheKey=(plies,mt)=>{let h=5381;const str=plies.map(p=>p.san).join(' ')+'|'+mt+'|sf18';for(let i=0;i<str.length;i++){h=((h<<5)+h+str.charCodeAt(i))>>>0;}return 'g'+h.toString(36)+'-'+plies.length;};
+  const evalCacheKey=(plies)=>{let h=5381;const str=plies.map(p=>p.san).join(' ')+'|sf18c';for(let i=0;i<str.length;i++){h=((h<<5)+h+str.charCodeAt(i))>>>0;}return 'g'+h.toString(36)+'-'+plies.length;};
   const evalCacheAll=()=>{try{return JSON.parse(localStorage.getItem('ct_evalcache')||'{}')||{};}catch(e){return {};}};
   const evalCacheGet=(k)=>{try{const all=evalCacheAll();const v=all[k];if(!v)return null;v.at=Date.now();try{localStorage.setItem('ct_evalcache',JSON.stringify(all));}catch(e){}return v;}catch(e){return null;}};
   const evalCacheSet=(k,v)=>{try{const all=evalCacheAll();all[k]={...v,at:Date.now()};const keys=Object.keys(all);
@@ -2861,15 +2995,37 @@ export default function App(){
   useEffect(()=>{ if(inReview&&ply>0&&review&&review.analysis[ply-1]&&review.analysis[ply-1].cls&&review.analysis[ply-1].cls.label==='Brilliant')playBrilliantChime(); },[inReview,ply,review]);
   useEffect(()=>{ if(review&&review.plies&&gateDemoRef.current!=null){ const t=Math.min(gateDemoRef.current,review.plies.length); gateDemoRef.current=null; setReviewView('moves'); setShowGates(true); setRevAuto(false); setTimeout(()=>setPly(t),40); } if(review&&review.plies&&revDemoPlyRef.current!=null){ const t=Math.min(revDemoPlyRef.current,review.plies.length); revDemoPlyRef.current=null; setReviewView('moves'); setRevAuto(false); setTimeout(()=>setPly(t),40); } },[review]);
   useEffect(()=>{ if(!revAuto||!inReview||!review)return; if(ply>=review.plies.length){const t=setTimeout(()=>setRevAuto(false),1900);return ()=>clearTimeout(t);} const t=setTimeout(()=>{const np=ply+1;const san=(review.plies[np-1]&&review.plies[np-1].san)||'';try{playSfx(/x/.test(san)?'capture':(/[+#]/.test(san)?'check':'move'));}catch(e){} setPly(np);},1250); return ()=>clearTimeout(t); },[revAuto,inReview,ply,review]);
-  const _annoWhy=(()=>{if(!curAnno||!inReview)return null;const ai=ply-1,a=curAnno,L=a.cls&&a.cls.label;if(!L)return null;const moverSign=(ai%2===0)?1:-1,mover=(ai%2===0)?'White':'Black';const ev=(typeof a.evalAfter==='number')?a.evalAfter:0,evM=ev*moverSign,lossP=(a.loss||0)/100;let matNote='';const b0=review.positions[ai]&&review.positions[ai].board,b2=review.positions[ai+2]&&review.positions[ai+2].board;if(b0&&b2){const d=(materialDiff(b2)-materialDiff(b0))*moverSign;if(d<=-2)matNote=' Your opponent won material as a result.';else if(d>=2&&L==='Brilliant')matNote=' And the material came back with interest.';}
-    if(L==='Great')return '⭐ A great move — the best move here, and clearly stronger than any alternative.';
-    if(L==='Miss')return 'A miss — you were clearly better, but this let a big part of the advantage slip.'+matNote;
-    if(L==='Brilliant')return '🔆 A brilliant move — a strong, hard-to-spot idea, often a sacrifice or the only move that keeps the win.'+matNote+(Math.abs(evM)>=1.5?(' The engine has '+mover.toLowerCase()+' clearly on top here.'):'');
-    if(L==='Blunder'||L==='Mistake')return 'This '+L.toLowerCase()+' gave away about '+lossP.toFixed(1)+' '+(lossP<1.4?'pawn':'pawns')+' of advantage.'+matNote+(evM<=-1.5?(' '+mover+' is now worse.'):(evM>=1.5?(' '+mover+' is still better, just by less.'):' The game is roughly level now.'));
-    if(L==='Inaccuracy')return 'A small inaccuracy — about '+lossP.toFixed(1)+' pawns short of the best move.';
-    if(L==='Best')return '✓ The best move here — exactly what the engine plays in this position.'+(Math.abs(evM)>=1.5?(' '+mover+' is clearly on top.'):(Math.abs(evM)<0.5?' The position stays balanced.':''));
-    if(L==='Excellent')return '✓ An excellent move, right among the top engine choices.';
-    if(L==='Good')return 'A solid, sensible move that keeps your position healthy.';
+  // #342: the reason a move earned its verdict, in a coach's words. Everything here comes from data the review already has:
+  // the engine's loss, the best move, the runner-up, the opponent's best reply (the punishment), and what the move does on the board.
+  const _annoWhy=(()=>{
+    if(!curAnno||!inReview||!review)return null;
+    const ai=ply-1,a=curAnno,L=a.cls&&a.cls.label;if(!L)return null;
+    const mover=(ai%2===0)?'White':'Black',sgn=(ai%2===0)?1:-1;
+    const ev=(typeof a.evalAfter==='number')?a.evalAfter:0, evM=ev*sgn;           // + = good for the player who moved
+    const lossP=Math.max(0,(a.loss||0))/100;
+    const mot=(a.motifs||[]);
+    const has=(m)=>mot.indexOf(m)>=0;
+    const nxt=review.analysis[ai+1], nxtPly=review.plies[ai+1];
+    // the punishment: the opponent's best reply. When they actually played it, the review stores no "better" move, so use the move itself.
+    let reply=null;
+    if(nxt&&nxt.bestSan)reply=nxt.bestSan;
+    else if(nxtPly&&nxtPly.san)reply=String(nxtPly.san).replace(/[!?]+$/,'');
+    const motifTxt=has('mate')?'Checkmate.':has('fork')?'It forks two pieces at once.':has('discovered check')?'A discovered check, which is why it lands so hard.':has('promotion')?'The pawn promotes.':'';
+    const standing=evM>=3?(mover+' is winning here.'):evM>=1?(mover+' is clearly better.'):evM<=-3?(mover+' is losing here.'):evM<=-1?(mover+' is clearly worse.'):'The position stays roughly level.';
+    if(L==='Brilliant'){const g=a.gate||{};
+      return 'Brilliant: you gave up '+(g.sac>=5?'a rook or more':g.sac>=3?'a piece':'material')+' and the position still reads '+(evM>0?'+':'')+evM.toFixed(1)+' for '+mover.toLowerCase()+'. '+(motifTxt||'Hard to see, and it holds.');}
+    if(L==='Great'){const alt=(a.altSan&&a.altDrop!=null&&a.altDrop>=120)?(' The next best, '+a.altSan+', was about '+(a.altDrop/100).toFixed(1)+' pawns worse.'):'';
+      return 'The only move that keeps it.'+alt+(motifTxt?(' '+motifTxt):'');}
+    if(L==='Best'||L==='Excellent')return (L==='Best'?'The engine\'s first choice.':'Right among the top choices.')+(motifTxt?(' '+motifTxt):' ')+standing;
+    if(L==='Good')return 'Sound, if not the sharpest. '+standing;
+    if(L==='Miss'){const b=a.bestSan?(a.bestSan+' was the one: '):'';
+      return 'You were on top and this let it slip. '+b+'about '+lossP.toFixed(1)+' pawns gone.'+(reply?(' '+reply+' is the reply.'):'');}
+    if(L==='Blunder'||L==='Mistake'||L==='Inaccuracy'){
+      const size=L==='Inaccuracy'?'A small slip, ':(L==='Mistake'?'A mistake, ':'A blunder, ');
+      const cost=lossP>=0.15?('about '+lossP.toFixed(1)+' '+(lossP<1.4?'pawn':'pawns')+' of advantage gone. '):'';
+      const punish=reply?(reply+' is the punishment. '):'';
+      const better=a.bestSan?(a.bestSan+' held it. '):'';
+      return size+cost+punish+better+standing;}
     return null;})();
 
   return(
@@ -2980,15 +3136,17 @@ export default function App(){
           setTimeout(stepFn,750);
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
-        const SC=[{l:"Review screen, chess.com pass (NEW)", n:"Your six points. (1) No tab bar on this screen any more, so the 62 px goes to the board. (2) Out of the screen is a single back arrow, top left, nothing else next to it but the three dots. (3) The reason a move got its verdict is back, as one line of plain text under the move, no box. (4) Thin arrows either side of the move strip, so you can step without reaching for the big buttons. (5) Analyze: the three-dots sheet has Analyze with the engine, which puts the engine evaluation and the line it wants to play under the move, in real notation, and follows you as you step. Tapping the best chip on a mistake turns it on too. (6) The best move plays out on the board as before and now shows its follow-up sequence as text. Plus: a finished review is saved, so opening the same game again is instant instead of another full Stockfish run.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setRevCompact(true);setHideEval(false);setEvalUnder(true);setEngOn(true);setReview(null);setMode('analyze');revDemoPlyRef.current=17;const _pg='[White "speedo23"] [Black "Kunal2023"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
-  {l:"Eval bar above the board (NEW)", n:"Your call: drop the vertical bar and run it horizontally above the board instead, so the board keeps the full screen width. That is what this is. The strip sits directly above the board, full width, white advantage filling from your side, the number horizontal at the leading end. Board stays 424 px of 430 on your phone. The three-dots sheet still cycles Eval bar: above the board / beside the board / off if you want to compare. This card opens a game at a blunder.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setRevCompact(true);setHideEval(false);setEvalUnder(true);setReview(null);setMode('analyze');revDemoPlyRef.current=17;const _pg='[White "speedo23"] [Black "Kunal2023"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
-  {l:"Bigger board, blue Great, one-screen layout for real (NEW)", n:"Three things from your Sep 11 screenshot. (1) You were still on the OLD classic screen: your phone had the one-screen layout stored as off from back when it was a preview, so the #337 default never reached you. A one-time migration flips it, and the Game review header, the Summary and Copy PGN row and the players line are gone from this screen for good. (2) The board is bigger: the eval bar moved from beside the board to a slim strip UNDER it, so the board now takes the full screen width (424 px of 430 on your phone, up from 392), and the number on the strip is horizontal and easier to read. The three-dots sheet has Eval bar: under the board / beside the board / off if you want it back at the side. (3) Great moves are now a blue instead of the teal that sat too close to brilliant cyan. This card opens a game at a blunder so you can see the board, the strip and the best-move chip.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setRevCompact(true);setReview(null);setMode('analyze');revDemoPlyRef.current=17;const _pg='[White "speedo23"] [Black "Kunal2023"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
-  {l:"Puzzle screen: the board fits again (NEW)", n:"Your screenshot: a third of the Puzzles screen was empty black at the top and the board was cut off under the tab bar. Cause found: the spacer that reserves room for the tab bar carried no display order, and the puzzle screen is the one screen that orders its children, so the spacer jumped to the TOP as an empty band and stopped holding space at the BOTTOM. It is now pinned last. On top of that: replaying your brilliancies or mistakes no longer shows the Lichess daily panel or the dev loaders (they belong to the Lichess view, not to your own positions), the dev loaders are collapsed behind a small link even there, the empty message box no longer reserves 74 px, and the board is sized from the space actually left after the text above and the buttons below, then centered. This card opens Free play browse, the same screen with the same fix.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setMode('puzzle');setOpenIdx(null);pzEnterBrowse(puzIdx,null);}, h:9000},
-  {l:"Summary: buttons pinned to the bottom (NEW)", n:"Your second note: on the Game Review summary, Back to games and Start review no longer sit at the end of the scroll. They live in a footer pinned to the bottom of the screen, side by side, and the summary scrolls underneath it. Nothing else on that screen changed. This card analyzes a short game and lands on the summary.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setReview(null);setMode('analyze');const _pg='[White "firauka"] [Black "Kunal2023"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
-  {l:"One-screen review is now the default (NEW)", n:"Your notes, all applied to the move screen and now the default: the Game review header and the players line are gone from this screen, the text box is gone, the board takes the full width beside the eval bar, and the move, its verdict and the best move sit on one line (tap the best-move chip to see it on the board). Under that: one row of controls and the move strip; nothing scrolls on your phone. Everything else is behind the three-dots button at the top right, including Menu and settings and a Classic review layout switch if you ever want the old screen back. This card opens a game at move 8.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setRevCompact(true);setReview(null);setMode('analyze');revDemoPlyRef.current=15;const _pg='[White "dev_mooie"] [Black "Kunal2023"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
-  {l:"Board fits the screen, eval readable in the bar (NEW)", n:"Your screenshot showed the review board cut off on both sides: the eval bar's number clipped on the left and the h-file clipped on the right. Cause: the board was sized to the full screen width and the eval bar was then added beside it, so the row was 22 px too wide (14 px in games vs the computer, same bug). The board now leaves room for the bar. The score: per your note the chip under the board is gone; the number lives in the bar, 13 px instead of 8, running along the bar, always at the end of the side that is ahead, dark on the white part and light on the dark part, reading upward at either end (your 180-degree flip, #336), plus or minus in pawns or M and the number for a forced mate. This card analyzes a short game and lands on move 8.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setReview(null);setMode('analyze');revDemoPlyRef.current=15;const _pg='[White "dev_mooie"] [Black "Kunal2023"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
-  {l:"Layout numbers for the black band (NEW)", n:"Your screenshot had a black band under the tab bar. I cannot reproduce it in Chromium, where the bar sits flush at the bottom, so this card reads the numbers straight from your phone: window height vs screen height vs visual viewport, the bottom safe-area inset, and whether the app is running from the home-screen icon or inside a browser. Tap it and send me a screenshot of the toast, or tell me the numbers.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);try{const pr=document.createElement('div');pr.style.cssText='position:fixed;left:0;bottom:0;height:env(safe-area-inset-bottom,0px);width:1px;visibility:hidden;pointer-events:none';document.body.appendChild(pr);const sab=Math.round(pr.getBoundingClientRect().height);document.body.removeChild(pr);const vv=window.visualViewport;const sa=(navigator.standalone===true)?'home-screen icon':(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches?'standalone':'browser tab');const msg='inner '+window.innerHeight+' · screen '+(screen&&screen.height)+' · visual '+(vv?Math.round(vv.height):'?')+' (off '+(vv?Math.round(vv.offsetTop):'?')+') · dvh '+Math.round((()=>{const d=document.createElement('div');d.style.cssText='position:fixed;top:0;height:100dvh;width:1px;visibility:hidden';document.body.appendChild(d);const h=d.getBoundingClientRect().height;document.body.removeChild(d);return h;})())+' · inset-bottom '+sab+' · '+sa+' · '+(navigator.userAgent.match(/CriOS|FxiOS|EdgiOS/)||['Safari engine'])[0];toastRef.current&&toastRef.current(msg,'ok');setTimeout(()=>toastRef.current&&toastRef.current(msg,'ok'),4200);}catch(e){toastRef.current&&toastRef.current('diag failed: '+e.message,'err');}}, h:9000},
-  {l:"Brilliant pills: estimates vs reviewed (NEW)", n:"Why brilliant pills used to vanish: the games list is filled by a quick background pass (depth-2 static eval), the full review uses real Stockfish, and both fed the same gate, so the list could say 1 brilliant and the review 0, then the review silently overwrote the list. Now: a background tally shows as EST with a hollow dashed pill and a question mark; a full review stamps the row with the solid glowing pill; and if the review finds fewer brilliants than the estimate said, the row keeps a one-line note (review found 0 brilliant, estimate said 1) instead of erasing it. This card loads three of your Sep 10 games with the counts STAGED so you see one row in each state (estimate, reviewed, reviewed-with-downgrade note); tap any row and the real review replaces the staged numbers.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');
+        const SC=[
+  {l:"Why a move got its verdict, an analysis board, and a faster review (NEW)", n:"Two things you asked for. First, the line under the move now says WHY: what the move cost you, what the opponent's best reply would have been, which move held the position instead, and the tactical point when there is one. Second, the Analyze button under the transport row hands you the board at that exact position. Play any move for either side, Undo steps back, Exit analysis returns you to the game. The engine line follows whatever you play. Two more things in this build. The review now runs several Stockfish engines side by side instead of one, which took a 44-move game from 61 seconds to 27 AND gave each position more thinking time, so it is deeper as well as faster. And the screen itself is the layout we agreed: back arrow and dots, player bar, board at full width, player bar, one context line, one row of controls, with the bars absorbing the slack a square board leaves on a tall phone. No black band. This card opens at a blunder with the reason showing.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setRevCompact(true);setHideEval(false);setEvalUnder(true);setAnaMode(false);setAnaHist([]);setReview(null);setMode('analyze');revDemoPlyRef.current=17;const _pg='[White "speedo23"] [Black "Kunal2023"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
+  {l:"Review screen, chess.com pass", n:"Your six points. (1) No tab bar on this screen any more, so the 62 px goes to the board. (2) Out of the screen is a single back arrow, top left, nothing else next to it but the three dots. (3) The reason a move got its verdict is back, as one line of plain text under the move, no box. (4) Thin arrows either side of the move strip, so you can step without reaching for the big buttons. (5) Analyze: the three-dots sheet has Analyze with the engine, which puts the engine evaluation and the line it wants to play under the move, in real notation, and follows you as you step. Tapping the best chip on a mistake turns it on too. (6) The best move plays out on the board as before and now shows its follow-up sequence as text. Plus: a finished review is saved, so opening the same game again is instant instead of another full Stockfish run.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setRevCompact(true);setHideEval(false);setEvalUnder(true);setEngOn(true);setReview(null);setMode('analyze');revDemoPlyRef.current=17;const _pg='[White "speedo23"] [Black "Kunal2023"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
+  {l:"Eval bar above the board", n:"Your call: drop the vertical bar and run it horizontally above the board instead, so the board keeps the full screen width. That is what this is. The strip sits directly above the board, full width, white advantage filling from your side, the number horizontal at the leading end. Board stays 424 px of 430 on your phone. The three-dots sheet still cycles Eval bar: above the board / beside the board / off if you want to compare. This card opens a game at a blunder.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setRevCompact(true);setHideEval(false);setEvalUnder(true);setReview(null);setMode('analyze');revDemoPlyRef.current=17;const _pg='[White "speedo23"] [Black "Kunal2023"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
+  {l:"Bigger board, blue Great, one-screen layout for real", n:"Three things from your Sep 11 screenshot. (1) You were still on the OLD classic screen: your phone had the one-screen layout stored as off from back when it was a preview, so the #337 default never reached you. A one-time migration flips it, and the Game review header, the Summary and Copy PGN row and the players line are gone from this screen for good. (2) The board is bigger: the eval bar moved from beside the board to a slim strip UNDER it, so the board now takes the full screen width (424 px of 430 on your phone, up from 392), and the number on the strip is horizontal and easier to read. The three-dots sheet has Eval bar: under the board / beside the board / off if you want it back at the side. (3) Great moves are now a blue instead of the teal that sat too close to brilliant cyan. This card opens a game at a blunder so you can see the board, the strip and the best-move chip.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setRevCompact(true);setReview(null);setMode('analyze');revDemoPlyRef.current=17;const _pg='[White "speedo23"] [Black "Kunal2023"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
+  {l:"Puzzle screen: the board fits again", n:"Your screenshot: a third of the Puzzles screen was empty black at the top and the board was cut off under the tab bar. Cause found: the spacer that reserves room for the tab bar carried no display order, and the puzzle screen is the one screen that orders its children, so the spacer jumped to the TOP as an empty band and stopped holding space at the BOTTOM. It is now pinned last. On top of that: replaying your brilliancies or mistakes no longer shows the Lichess daily panel or the dev loaders (they belong to the Lichess view, not to your own positions), the dev loaders are collapsed behind a small link even there, the empty message box no longer reserves 74 px, and the board is sized from the space actually left after the text above and the buttons below, then centered. This card opens Free play browse, the same screen with the same fix.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setMode('puzzle');setOpenIdx(null);pzEnterBrowse(puzIdx,null);}, h:9000},
+  {l:"Summary: buttons pinned to the bottom", n:"Your second note: on the Game Review summary, Back to games and Start review no longer sit at the end of the scroll. They live in a footer pinned to the bottom of the screen, side by side, and the summary scrolls underneath it. Nothing else on that screen changed. This card analyzes a short game and lands on the summary.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setReview(null);setMode('analyze');const _pg='[White "firauka"] [Black "Kunal2023"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
+  {l:"One-screen review is now the default", n:"Your notes, all applied to the move screen and now the default: the Game review header and the players line are gone from this screen, the text box is gone, the board takes the full width beside the eval bar, and the move, its verdict and the best move sit on one line (tap the best-move chip to see it on the board). Under that: one row of controls and the move strip; nothing scrolls on your phone. Everything else is behind the three-dots button at the top right, including Menu and settings and a Classic review layout switch if you ever want the old screen back. This card opens a game at move 8.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setRevCompact(true);setReview(null);setMode('analyze');revDemoPlyRef.current=15;const _pg='[White "dev_mooie"] [Black "Kunal2023"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
+  {l:"Board fits the screen, eval readable in the bar", n:"Your screenshot showed the review board cut off on both sides: the eval bar's number clipped on the left and the h-file clipped on the right. Cause: the board was sized to the full screen width and the eval bar was then added beside it, so the row was 22 px too wide (14 px in games vs the computer, same bug). The board now leaves room for the bar. The score: per your note the chip under the board is gone; the number lives in the bar, 13 px instead of 8, running along the bar, always at the end of the side that is ahead, dark on the white part and light on the dark part, reading upward at either end (your 180-degree flip, #336), plus or minus in pawns or M and the number for a forced mate. This card analyzes a short game and lands on move 8.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setReview(null);setMode('analyze');revDemoPlyRef.current=15;const _pg='[White "dev_mooie"] [Black "Kunal2023"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
+  {l:"Layout numbers for the black band", n:"Your screenshot had a black band under the tab bar. I cannot reproduce it in Chromium, where the bar sits flush at the bottom, so this card reads the numbers straight from your phone: window height vs screen height vs visual viewport, the bottom safe-area inset, and whether the app is running from the home-screen icon or inside a browser. Tap it and send me a screenshot of the toast, or tell me the numbers.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);try{const pr=document.createElement('div');pr.style.cssText='position:fixed;left:0;bottom:0;height:env(safe-area-inset-bottom,0px);width:1px;visibility:hidden;pointer-events:none';document.body.appendChild(pr);const sab=Math.round(pr.getBoundingClientRect().height);document.body.removeChild(pr);const vv=window.visualViewport;const sa=(navigator.standalone===true)?'home-screen icon':(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches?'standalone':'browser tab');const msg='inner '+window.innerHeight+' · screen '+(screen&&screen.height)+' · visual '+(vv?Math.round(vv.height):'?')+' (off '+(vv?Math.round(vv.offsetTop):'?')+') · dvh '+Math.round((()=>{const d=document.createElement('div');d.style.cssText='position:fixed;top:0;height:100dvh;width:1px;visibility:hidden';document.body.appendChild(d);const h=d.getBoundingClientRect().height;document.body.removeChild(d);return h;})())+' · inset-bottom '+sab+' · '+sa+' · '+(navigator.userAgent.match(/CriOS|FxiOS|EdgiOS/)||['Safari engine'])[0];toastRef.current&&toastRef.current(msg,'ok');setTimeout(()=>toastRef.current&&toastRef.current(msg,'ok'),4200);}catch(e){toastRef.current&&toastRef.current('diag failed: '+e.message,'err');}}, h:9000},
+  {l:"Brilliant pills: estimates vs reviewed", n:"Why brilliant pills used to vanish: the games list is filled by a quick background pass (depth-2 static eval), the full review uses real Stockfish, and both fed the same gate, so the list could say 1 brilliant and the review 0, then the review silently overwrote the list. Now: a background tally shows as EST with a hollow dashed pill and a question mark; a full review stamps the row with the solid glowing pill; and if the review finds fewer brilliants than the estimate said, the row keeps a one-line note (review found 0 brilliant, estimate said 1) instead of erasing it. This card loads three of your Sep 10 games with the counts STAGED so you see one row in each state (estimate, reviewed, reviewed-with-downgrade note); tap any row and the real review replaces the staged numbers.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');
     const _d=[{src:'demo',white:'Kunal2023',black:'gomdz',wr:'win',tc:'blitz',date:1789078874000,pgn:'[White "Kunal2023"] [Black "gomdz"] 1. d4 b6 2. Nf3 Bb7 3. c3 Bxf3 4. exf3 d5 5. Bd3 Nf6 6. O-O Nc6 7. Nd2 e6 8. Re1 Bd6 9. Qc2 O-O 10. Nf1 a5 11. Bg5 h6 12. Be3 Qe7 13. Qd2 g5 14. Bxg5 hxg5 15. Qxg5+ Kh8 16. Qh6+ Kg8 17. Ng3 Bxg3 18. fxg3 e5 19. dxe5 Nxe5 20. f4 Neg4 21. Qg5+ Kh8 22. Rxe7 1-0'},
       {src:'demo',white:'mr_dhanzzxnsx',black:'Kunal2023',wr:'resigned',tc:'bullet',date:1789080853000,pgn:'[White "mr_dhanzzxnsx"] [Black "Kunal2023"] 1. e4 e5 2. d3 Nc6 3. f3 f6 4. c3 Bc5 5. f4 d6 6. fxe5 dxe5 7. Qh5+ g6 8. Qd1 Nge7 9. Na3 f5 10. Nc4 f4 11. Nxe5 Nxe5 12. d4 Bxd4 13. cxd4 N5c6 14. d5 Ne5 15. Qd4 Bg4 16. h3 Bd7 17. Qxe5 Bb5 18. Qxh8+ Kd7 19. Bxb5+ Kd6 20. e5+ Kxd5 21. e6 Qxh8 22. Bc4+ Kxc4 23. Ke2 Kd5 24. Nf3 Kxe6 25. Nd4+ Kd7 0-1'},
       {src:'demo',white:'vinnimt',black:'Kunal2023',wr:'resigned',tc:'bullet',date:1789080728000,pgn:'[White "vinnimt"] [Black "Kunal2023"] 1. d4 e5 2. e3 f6 3. dxe5 fxe5 4. Nf3 d6 5. Bd3 Nf6 6. O-O Nc6 7. Nc3 Be6 8. e4 Qd7 9. Bb5 O-O-O 10. Bxc6 Qxc6 11. Be3 Kb8 12. a4 Nd7 13. a5 Nc5 14. Bxc5 dxc5 15. a6 b6 16. Nd5 Bxd5 17. exd5 Rxd5 18. Qe2 Bd6 19. c4 Rd4 20. Nxd4 exd4 21. Rfe1 h5 22. Qe6 g6 23. Qxg6 h4 24. h3 Kc8 25. Qg7 Rd8 26. Qg4+ Kb8 0-1'}];
@@ -2998,13 +3156,13 @@ export default function App(){
     recordGameStats(gkey(_d[1]),{bril:1,great:11,inacc:2,mist:1,blun:2,src:'review',engine:'sf'});
     recordGameStats(gkey(_d[2]),{bril:0,great:10,inacc:3,mist:2,blun:1,src:'review',engine:'sf',was:1});
     setMode('analyze');setCcGames(_d);setTimeout(()=>{try{gamesListRef.current&&gamesListRef.current.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},400);}, h:9000},
-  {l:"First endgame videos (NEW)", n:"The endgame lessons had no walkthroughs at all until now. Bishop and Knight Mate and Queen vs Pawn on the 7th each got the Hanging Pawns video on exactly that endgame. Only these two cleared the bar: the channel has no video specifically on Lucena, Philidor, the opposition, rook vs pawn or the two-rook mate, and I would rather leave a lesson video-less than point it at a compilation that only mentions it. This card opens Bishop and Knight Mate with the video box expanded.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const i=LIB.findIndex(o=>o&&o.video&&o.video.id==='oX_pq-2kiJI');setMode('learn');selectOpening(i>=0?i:0);setTimeout(()=>{setVideoOpen(true);setLessonMore(true);},600);}, h:9000},
-  {l:"Join by code, fixed (NEW)", n:"The long-standing bug where the invite LINK worked but typing the CODE did not. Cause: the link path stripped anything that is not a letter or number, the typed path did not, so one stray character from the keyboard (a space, a period, an autocorrect leftover) was sent to the server and came back as no game found. The code box now strips as you type, has autocorrect and autocapitalize set for it, and if a join ever does fail the message names the exact code it tried. This card opens the online screen with a deliberately messy code in the box; tap Join and it will be cleaned before it is sent.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setRevAuto(false);setHomeScreen(false);setMode('play');setPlaySetup(false);setOpponent('online');setOnlineGame(null);setOnlineErr('');setOnlineInfo('');if(!cloudUser)setCloudUser({uid:'demo-you',name:'You'});setOnlineCodeInput('ab 3d.');}, h:9000},
-  {l:"11 more opening videos (NEW)", n:"Second video batch, same channel-confirmed method: Blackmar-Diemer, From's Gambit, Two Knights Defense, Nimzowitsch Defense, Richter-Veresov, Torre Attack, Moscow Variation, French Rubinstein, French Winawer, Albin Counter-Gambit and the Hippopotamus. 82 of 170 lessons now carry a Hanging Pawns walkthrough. This card opens the Torre Attack lesson with the video box expanded in the 3-dot sheet.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const i=LIB.findIndex(o=>o&&o.video&&o.video.id==='xbUgaJGb5Ps');setMode('learn');selectOpening(i>=0?i:0);setTimeout(()=>{setVideoOpen(true);setLessonMore(true);},600);}, h:9000},
-  {l:"Space audit, batch 1 (NEW)", n:"Four pure subtractions from the audit page, nothing redesigned: (1) the Home button in the top bar is gone on every screen that already has the tab bar (it stays in live games, where there is no tab bar); (2) the Progress in Novice bar under the Puzzles header is gone, the glowing node already shows that number; (3) the Go to section is gone from the Menu sheet, it duplicated the tab bar; (4) inside a lesson the small title above the board is gone, the bottom bar carries the name. This card opens the Puzzles map; then check the Menu sheet and any lesson.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setPlaySetup(false);setRevAuto(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}, h:9000},
-  {l:"Video call in online play (NEW)", n:"In an online game the panel above Chat now has a Video call button. Tap it and your opponent sees an incoming-call bar with Answer and Decline; once connected you both get a video tile with your own preview in the corner, plus Mute, Camera off and Hang up. Signaling rides the existing game document, media goes peer to peer (STUN only for now, so some office or mobile networks will fail to connect and say so). This card seeds a demo online game where the opponent is already calling, so you can see the ring bar; Answer will ask for camera permission and then wait, since the demo opponent is not real. Real test: two signed-in devices in one online game.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setRevAuto(false);setHomeScreen(false);setMode('play');setPlaySetup(false);setOpponent('online');setOnlineErr('');setOnlineInfo('');const me=cloudUser||{uid:'demo-you',name:'You'};if(!cloudUser)setCloudUser(me);setMyColor('w');fullReset();setOnlineGame({id:'demo-vc',code:'DEMO',status:'active',moves:[],chat:[{uid:'demo-opp',name:'Coach',text:'Want to talk through this one?',t:Date.now()}],tc:null,moveAt:Date.now(),w:{uid:me.uid,name:me.name||'You'},b:{uid:'demo-opp',name:'Coach'},rtc:{from:'demo-opp',id:'demo-'+Date.now(),offer:{type:'offer',sdp:'v=0'},answer:null,hangup:null,ts:Date.now()}});}, h:9000},
-  {l:"New Game on one screen (NEW)", n:"From your screenshot. The New Game screen is compacted: the four-line scan explainer is one line, the six opponent tiles are half-height, and the bot cards are small (avatar, name, Elo) with the description showing only on the selected bot. Play-as and the start button should now be visible without scrolling, or much closer to it. This card opens New Game.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setRevAuto(false);setHomeScreen(false);setMode('play');setOpenIdx(null);setPlaySetup(true);}, h:9000},
-  {l:"Focus mode stage C (NEW)", n:"The rest of your annotation. In a lesson: the replay controls now live in the BOTTOM bar (back, play-pause, forward next to the X and 3 dots), the old row above the board is gone, the streak dots row is gone, and the two top-right buttons are gone; Menu moved into the 3-dot sheet. Practice mode shows no move controls at all, just you and the board. This card opens the Italian lesson.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setDemoBest(null);setPlayEnd(null);setPlaySetup(false);setRevAuto(false);setHomeScreen(false);const i=LIB.findIndex(o=>o&&o.name==='Italian Game');setMode('learn');selectOpening(i>=0?i:0);}, h:9000},
+  {l:"First endgame videos", n:"The endgame lessons had no walkthroughs at all until now. Bishop and Knight Mate and Queen vs Pawn on the 7th each got the Hanging Pawns video on exactly that endgame. Only these two cleared the bar: the channel has no video specifically on Lucena, Philidor, the opposition, rook vs pawn or the two-rook mate, and I would rather leave a lesson video-less than point it at a compilation that only mentions it. This card opens Bishop and Knight Mate with the video box expanded.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const i=LIB.findIndex(o=>o&&o.video&&o.video.id==='oX_pq-2kiJI');setMode('learn');selectOpening(i>=0?i:0);setTimeout(()=>{setVideoOpen(true);setLessonMore(true);},600);}, h:9000},
+  {l:"Join by code, fixed", n:"The long-standing bug where the invite LINK worked but typing the CODE did not. Cause: the link path stripped anything that is not a letter or number, the typed path did not, so one stray character from the keyboard (a space, a period, an autocorrect leftover) was sent to the server and came back as no game found. The code box now strips as you type, has autocorrect and autocapitalize set for it, and if a join ever does fail the message names the exact code it tried. This card opens the online screen with a deliberately messy code in the box; tap Join and it will be cleaned before it is sent.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setRevAuto(false);setHomeScreen(false);setMode('play');setPlaySetup(false);setOpponent('online');setOnlineGame(null);setOnlineErr('');setOnlineInfo('');if(!cloudUser)setCloudUser({uid:'demo-you',name:'You'});setOnlineCodeInput('ab 3d.');}, h:9000},
+  {l:"11 more opening videos", n:"Second video batch, same channel-confirmed method: Blackmar-Diemer, From's Gambit, Two Knights Defense, Nimzowitsch Defense, Richter-Veresov, Torre Attack, Moscow Variation, French Rubinstein, French Winawer, Albin Counter-Gambit and the Hippopotamus. 82 of 170 lessons now carry a Hanging Pawns walkthrough. This card opens the Torre Attack lesson with the video box expanded in the 3-dot sheet.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);const i=LIB.findIndex(o=>o&&o.video&&o.video.id==='xbUgaJGb5Ps');setMode('learn');selectOpening(i>=0?i:0);setTimeout(()=>{setVideoOpen(true);setLessonMore(true);},600);}, h:9000},
+  {l:"Space audit, batch 1", n:"Four pure subtractions from the audit page, nothing redesigned: (1) the Home button in the top bar is gone on every screen that already has the tab bar (it stays in live games, where there is no tab bar); (2) the Progress in Novice bar under the Puzzles header is gone, the glowing node already shows that number; (3) the Go to section is gone from the Menu sheet, it duplicated the tab bar; (4) inside a lesson the small title above the board is gone, the bottom bar carries the name. This card opens the Puzzles map; then check the Menu sheet and any lesson.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setPlaySetup(false);setRevAuto(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}, h:9000},
+  {l:"Video call in online play", n:"In an online game the panel above Chat now has a Video call button. Tap it and your opponent sees an incoming-call bar with Answer and Decline; once connected you both get a video tile with your own preview in the corner, plus Mute, Camera off and Hang up. Signaling rides the existing game document, media goes peer to peer (STUN only for now, so some office or mobile networks will fail to connect and say so). This card seeds a demo online game where the opponent is already calling, so you can see the ring bar; Answer will ask for camera permission and then wait, since the demo opponent is not real. Real test: two signed-in devices in one online game.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setRevAuto(false);setHomeScreen(false);setMode('play');setPlaySetup(false);setOpponent('online');setOnlineErr('');setOnlineInfo('');const me=cloudUser||{uid:'demo-you',name:'You'};if(!cloudUser)setCloudUser(me);setMyColor('w');fullReset();setOnlineGame({id:'demo-vc',code:'DEMO',status:'active',moves:[],chat:[{uid:'demo-opp',name:'Coach',text:'Want to talk through this one?',t:Date.now()}],tc:null,moveAt:Date.now(),w:{uid:me.uid,name:me.name||'You'},b:{uid:'demo-opp',name:'Coach'},rtc:{from:'demo-opp',id:'demo-'+Date.now(),offer:{type:'offer',sdp:'v=0'},answer:null,hangup:null,ts:Date.now()}});}, h:9000},
+  {l:"New Game on one screen", n:"From your screenshot. The New Game screen is compacted: the four-line scan explainer is one line, the six opponent tiles are half-height, and the bot cards are small (avatar, name, Elo) with the description showing only on the selected bot. Play-as and the start button should now be visible without scrolling, or much closer to it. This card opens New Game.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setRevAuto(false);setHomeScreen(false);setMode('play');setOpenIdx(null);setPlaySetup(true);}, h:9000},
+  {l:"Focus mode stage C", n:"The rest of your annotation. In a lesson: the replay controls now live in the BOTTOM bar (back, play-pause, forward next to the X and 3 dots), the old row above the board is gone, the streak dots row is gone, and the two top-right buttons are gone; Menu moved into the 3-dot sheet. Practice mode shows no move controls at all, just you and the board. This card opens the Italian lesson.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setDemoBest(null);setPlayEnd(null);setPlaySetup(false);setRevAuto(false);setHomeScreen(false);const i=LIB.findIndex(o=>o&&o.name==='Italian Game');setMode('learn');selectOpening(i>=0?i:0);}, h:9000},
   ];
         const _runAll=()=>{
           setPreview(false);setTrainerDemo(false);const N=SC.length;let i=0;
@@ -3880,7 +4038,7 @@ export default function App(){
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
             <div style={{fontSize:'clamp(15px,3.9vw,19px)',color:'#fff',fontWeight:800,letterSpacing:.2}}>Analyzing your game</div>
             <div style={{fontSize:'clamp(14px,2.8vw,14px)',color:'var(--ac2)',fontWeight:700}}>{pct}% · checking every move</div>
-            <div style={{fontSize:'clamp(13.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,marginTop:2,maxWidth:312,textAlign:'center',lineHeight:1.4}}>Running a deep Stockfish pass to catch the tactics and brilliancies, so this takes a few seconds.</div>
+            <div data-ct="ana-engines" style={{fontSize:'clamp(13.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,marginTop:2,maxWidth:312,textAlign:'center',lineHeight:1.4}}>{poolN>1?('Running '+poolN+' Stockfish engines side by side, one position each, to catch the tactics and brilliancies.'):'Running a deep Stockfish pass to catch the tactics and brilliancies, so this takes a few seconds.'}</div>
           </div>
           <div style={{maxWidth:344,minHeight:36,textAlign:'center',fontSize:'clamp(14px,2.6vw,14px)',color:'rgba(255,255,255,.62)',lineHeight:1.45,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:12,padding:'10px 14px'}}>💡 {tip}</div>
         </div>
@@ -3896,17 +4054,20 @@ export default function App(){
         return(<div data-ct="rev-compact" style={{width:boardPx+((hideEval||evalUnder)?0:22),maxWidth:'98vw',marginTop:6,display:'flex',flexDirection:'column',alignItems:'stretch',gap:6}}>
           {/* #337: one line: move, verdict, best move (tap shows it on the board). No text box (Kunal). */}
           <div data-ct="rev-move-line" style={{display:'flex',alignItems:'center',gap:7,minHeight:38,whiteSpace:'nowrap'}}>
-            {curAnno?(<>
+            {anaMode?(<>
+              <span style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',gap:5,fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,color:'var(--ac2)',background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.5)',borderRadius:22,padding:'3px 10px'}}>⌕ Analysis</span>
+              <span style={{flex:'1 1 auto',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',fontSize:'clamp(13px,2.8vw,14.5px)',color:'rgba(255,255,255,.62)',fontWeight:700}}>{anaHist.length?(anaHist.length+' move'+(anaHist.length===1?'':'s')+' in · '+(boardGame.turn==='w'?'White':'Black')+' to play'):'your board · play any move'}</span>
+            </>):curAnno?(<>
               <span style={{flex:'0 0 auto',fontSize:'clamp(15px,3.8vw,19px)',fontWeight:800,color:'#fff'}}>{_mvTxt}</span>
               <span style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',gap:4,fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,color:curAnno.cls.c,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'66',borderRadius:22,padding:'3px 10px'}}><span style={{fontSize:'clamp(13px,3.2vw,17px)',lineHeight:1}}>{curAnno.cls.i}</span>{curAnno.cls.label}</span>
               {_hasBetter&&<button data-ct="rev-best" onClick={()=>{setShowBest(true);setEngOn(true);playBestLine();}} title="Show the best move on the board" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:5,padding:'3px 10px',borderRadius:22,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.45)',color:'var(--ac2)',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden'}}><span style={{fontWeight:600,color:'rgba(255,255,255,.6)',fontSize:'.85em'}}>best</span>{curAnno.bestSan}<span style={{opacity:.8}}>{showBest?'✓':'›'}</span></button>}
             </>):(<span style={{fontSize:'clamp(14px,3vw,16px)',fontWeight:700,color:'rgba(255,255,255,.6)'}}>Start position</span>)}
-            <span style={{flex:'1 1 auto'}}/>
-            <span style={{flex:'0 0 auto',fontSize:'clamp(12.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.55)',fontFamily:'monospace',fontWeight:700}}>{ply}/{review.plies.length}</span>
+            {!anaMode&&<span style={{flex:'1 1 auto'}}/>}
+            {!anaMode&&<span style={{flex:'0 0 auto',fontSize:'clamp(12.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.55)',fontFamily:'monospace',fontWeight:700}}>{ply}/{review.plies.length}</span>}
           </div>
           {/* #341: chess.com-style one-liner on why the move got its verdict, plain text, no box (Kunal asked for the reason back, and for the box gone). */}
-          {(_annoWhy||engLine)&&(<div data-ct="rev-why" style={{minHeight:19,display:'flex',flexDirection:'column',gap:2}}>
-            {_annoWhy&&<div style={{fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{_annoWhy}</div>}
+          {((_annoWhy&&!anaMode)||engLine)&&(<div data-ct="rev-why" style={{minHeight:19,display:'flex',flexDirection:'column',gap:2}}>
+            {_annoWhy&&!anaMode&&<div data-ct="rev-why-txt" style={{fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{_annoWhy}</div>}
             {engLine&&(<div data-ct="rev-engline" style={{display:'flex',alignItems:'baseline',gap:7,fontSize:'clamp(13px,2.8vw,14.5px)',whiteSpace:'nowrap',overflowX:'auto',overflowY:'hidden'}} className="scroll">
               <b style={{flex:'0 0 auto',fontFamily:'ui-monospace,Menlo,monospace',fontWeight:800,color:engLine.cp==null?'rgba(255,255,255,.5)':(engLine.cp>=0?'#e8e8ea':'#9fb4c9')}}>{engLine.txt}</b>
               <span style={{flex:'0 0 auto',color:'var(--ac2)',fontWeight:700,fontFamily:'ui-monospace,Menlo,monospace'}}>{engLine.line||'…'}</span>
@@ -3918,7 +4079,16 @@ export default function App(){
             {cb(revAuto?'⏸':'▶',()=>{if(ply>=review.plies.length){setPly(0);setRevAuto(true);}else setRevAuto(a=>!a);},44,revAuto,revAuto?'Pause':'Auto-play')}
             {cb('Next ›',()=>{setRevAuto(false);setPly(p=>Math.min(review.plies.length,p+1));})}
             {cb('⏭',()=>{setRevAuto(false);setPly(review.plies.length);},42,false,'Last move')}
-            {keyPlies.length>0&&cb('★›',()=>jumpKey(1),46,true,'Next key moment ('+keyPlies.length+')')}
+          </div>
+          {/* #342: analysis board. Play the position out yourself, take moves back, come back to the game. */}
+          <div data-ct="rev-row2" style={{display:'flex',gap:6,alignItems:'stretch'}}>
+            {anaMode?(<>
+              {cb('↶ Undo',()=>{setAnaHist(h=>{if(!h.length)return h;setGame(h[h.length-1]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};return h.slice(0,-1);});},0,false,'Take back the last move')}
+              {cb('✕ Exit analysis',()=>{anaModeRef.current=false;setAnaMode(false);setAnaHist([]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,true,'Back to the game')}
+            </>):(<>
+              {keyPlies.length>0&&cb('★ Next key moment',()=>jumpKey(1),0,true,'Next key moment ('+keyPlies.length+')')}
+              {cb('⌕ Analyze',()=>{setRevAuto(false);setShowBest(false);bestLineTokenRef.current++;setBestLineBoard(null);setAnaHist([]);setGame(review.positions[ply]);setLastMv(null);anaModeRef.current=true;setAnaMode(true);setEngOn(true);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,false,'Play this position out yourself')}
+            </>)}
           </div>
           {showGates&&(curAnno&&curAnno.gate?(()=>{const G=curAnno.gate;return(<div style={{fontSize:'clamp(12px,2.3vw,12.5px)',fontFamily:'monospace',color:'rgba(255,255,255,.85)',background:'rgba(0,0,0,.28)',border:'1px solid rgba(255,255,255,.14)',borderRadius:9,padding:'6px 10px',textAlign:'center'}}>loss {G.loss} · sac {G.sac} · evAfter {G.evAfter} · evBefore {G.evBefore} · cap {G.cap} · {G.ok?'!! passes':'no'}</div>);})():null)}
         </div>);})()}
@@ -4554,28 +4724,29 @@ export default function App(){
 
         </>);
         const _evalOn=((inReview||(mode==='play'&&opponent==='computer'))&&!hideEval);const evalW=(_evalOn&&!evalUnder)?(inReview?22:14):0;
-        const _og=onlineGame; const _cap=capturedList(game.board); const _md=materialDiff(game.board);
+        const _og=onlineGame; const _cap=capturedList(boardGame.board); const _md=materialDiff(boardGame.board);
         const bottomColor=flip?'b':'w'; const topColor=flip?'w':'b';
         const _isOnlineG=opponent==='online'&&!!_og;
         const _avBox=(node)=>(<div style={{width:28,height:28,borderRadius:7,overflow:'hidden',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(125,130,140,.22)'}}>{node}</div>);
         const _img=(src)=>(<img src={src} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}}/>);
         const pBar=(col,isTop)=>{
           const enemy=col==='w'?'b':'w'; let name, av;
-          if(_isOnlineG){ const pd=col==='w'?_og.w:_og.b; name=(pd&&pd.name)?pd.name:(col==='w'?'White':'Black'); av=_avBox((pd&&pd.photo)?_img(pd.photo):(<span style={{fontSize:18,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); }
+          if(inReview){ const _H=(review&&review.headers)||{}; const _n=col==='w'?_H.White:_H.Black; name=_n||(col==='w'?'White':'Black'); av=_avBox(<span style={{fontSize:18,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>); }
+          else if(_isOnlineG){ const pd=col==='w'?_og.w:_og.b; name=(pd&&pd.name)?pd.name:(col==='w'?'White':'Black'); av=_avBox((pd&&pd.photo)?_img(pd.photo):(<span style={{fontSize:18,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); }
           else if(opponent==='computer'){ if(col===pColor){ name=(cloudUser&&cloudUser.name)?cloudUser.name:'You'; av=_avBox((cloudUser&&cloudUser.photo)?_img(cloudUser.photo):(<span style={{fontSize:18,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); } else { name=botById(selBot)?botById(selBot).name:'Computer'; av=_avBox(<BotFace id={selBot} size={26}/>); } }
           else { name=col==='w'?'White':'Black'; av=_avBox(<span style={{fontSize:18,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>); }
           const taken=_cap[col]||[]; const lead=col==='w'?(_md>0?_md:0):(_md<0?-_md:0);
           let clk=null, ticking=false;
           if(_isOnlineG&&_og.tc&&_og.tc.kind!=='corr'&&_og.tc.init&&_og.clk){ const base=liveNow-(_og.moveAt||liveNow); const rem=Math.max(0,(_og.clk[col]||0)-(col===game.turn?base:0)); clk=clockFmt(rem); ticking=(col===game.turn)&&_og.status==='active'&&!_og.result; }
-          else if(!_isOnlineG&&timeCtrl&&timeCtrl.kind!=='corr'&&clock){ clk=clockFmt(clock[col]); ticking=(col===game.turn)&&!(isOver||playEnd); }
-          const _myTurn=(col===game.turn)&&!isOver&&!playEnd&&!(_isOnlineG&&_og&&_og.result);
+          else if(!inReview&&!_isOnlineG&&timeCtrl&&timeCtrl.kind!=='corr'&&clock){ clk=clockFmt(clock[col]); ticking=(col===game.turn)&&!(isOver||playEnd); }
+          const _myTurn=inReview?(col===boardGame.turn):((col===game.turn)&&!isOver&&!playEnd&&!(_isOnlineG&&_og&&_og.result));
           const _lightBar=(col==='w');
           const _barBg=_lightBar?'linear-gradient(180deg,#f1f0e8,#dbd9ce)':'linear-gradient(180deg,#252934,#14161c)';
           const _fg=_lightBar?'#1b1c20':'#ffffff';
           const _fgDim=_lightBar?'rgba(0,0,0,.5)':'rgba(255,255,255,.62)';
           const _pillBg=_lightBar?'rgba(0,0,0,.06)':'rgba(255,255,255,.08)';
           const _pillBd=_lightBar?'rgba(0,0,0,.14)':'rgba(255,255,255,.14)';
-          return(<div style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',background:_barBg,boxShadow:_myTurn?'inset 0 0 0 2px rgba(var(--acr),.85)':(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{isTop&&_evalOn&&!isOver&&!playEnd&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:_pillBg,border:'1px solid '+_pillBd,color:_fg}}>{evalTxt}</span>}
+          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...(inReview?{flex:'1 1 0',minHeight:46,maxHeight:96}:null),background:_barBg,boxShadow:_myTurn?'inset 0 0 0 2px rgba(var(--acr),.85)':(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{isTop&&_evalOn&&!inReview&&!isOver&&!playEnd&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:_pillBg,border:'1px solid '+_pillBd,color:_fg}}>{evalTxt}</span>}
             {av}
             <div style={{minWidth:0,flex:1}}>
               <div style={{fontSize:'clamp(14px,3.2vw,16px)',fontWeight:800,color:_fg,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1.15}}>{name}</div>
@@ -4584,10 +4755,12 @@ export default function App(){
             {clk!=null&&<div style={{fontFamily:'monospace',fontSize:'clamp(15px,4.4vw,21px)',fontWeight:800,padding:'4px 11px',borderRadius:8,flexShrink:0,background:ticking?'rgba(110,180,90,.22)':_pillBg,border:'1px solid '+(ticking?'rgba(110,180,90,.55)':_pillBd),color:clk==='0:00'?'#d23b2e':(ticking?(_lightBar?'#2f7a26':'#86d99a'):_fg)}}>{clk}</div>}
           </div>);
         };
-        const _showBars=mode==='play'&&!(opponent==='online'&&!_og);
+        // #344: one base shell for every board screen. A square board on a tall phone always leaves slack;
+        // rather than a black band, the two players fill it, the way chess.com does.
+        const _showBars=(mode==='play'&&!(opponent==='online'&&!_og))||(inReview&&revCompact&&reviewView!=='summary');
         const _board=(<>
       {showBoard&&(()=>{const lab=Math.max(9,Math.round(SQ*0.26));const cc=(light)=>light?TH.dark:TH.light;return(
-      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',order:wide?0:(pzLow?2:0),marginTop:(inReview&&revCompact&&!wide)?'auto':(pzLow&&!wide?10:0)}}>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',justifyContent:'center',order:wide?0:(pzLow?2:0),flex:(inReview&&revCompact&&!wide)?'1 1 auto':undefined,minHeight:0,marginTop:(pzLow&&!wide?10:0)}}>
         {_showBars&&pBar(topColor,true)}
         {/* #340: eval bar ABOVE the board (Kunal), full width, so the board itself keeps every pixel of screen width. The number sits at the leading end, horizontal and readable. */}
         {_evalOn&&evalUnder&&(()=>{const fr=Math.max(0.03,Math.min(0.97,0.5+evalNow/12));const wb=bottomColor==='w';const _wAhead=evalNow>=0;const _num=(inReview&&typeof evalTxt==='string')?evalTxt:null;return(
@@ -4599,7 +4772,7 @@ export default function App(){
         <div style={{display:'flex',alignItems:'flex-start'}}>
           {_evalOn&&!evalUnder&&(()=>{const fr=Math.max(0.03,Math.min(0.97,0.5+evalNow/12));const wb=bottomColor==='w';const _num=(inReview&&typeof evalTxt==='string')?evalTxt:null;return(<div style={{width:evalW-4,marginRight:4,height:boardPx,borderRadius:4,overflow:'hidden',background:'#2b2932',position:'relative',flexShrink:0,alignSelf:'flex-start',boxShadow:'inset 0 0 0 1px rgba(0,0,0,.45)'}}><div style={{position:'absolute',left:0,right:0,[wb?'bottom':'top']:0,height:(fr*100)+'%',background:'linear-gradient(180deg,#f6f4ee,#dcd9cf)',transition:'height .35s ease'}}/><div style={{position:'absolute',left:0,right:0,top:'50%',height:1,background:'rgba(0,0,0,.4)'}}/>{_num&&(()=>{const _wAhead=evalNow>=0;const _atBottom=_wAhead?wb:!wb;return(<div data-ct="eval-bar-num" style={{position:'absolute',left:0,right:0,[_atBottom?'bottom':'top']:6,display:'flex',justifyContent:'center',zIndex:2,pointerEvents:'none'}}><span style={{writingMode:'vertical-rl',transform:'rotate(180deg)',fontSize:13,fontWeight:800,fontFamily:'ui-monospace,Menlo,monospace',lineHeight:1,letterSpacing:'.3px',color:_wAhead?'#141414':'#f2f2f2',textShadow:_wAhead?'none':'0 1px 1px rgba(0,0,0,.55)'}}>{_num}</span></div>);})()}</div>);})()}
           <div ref={boardRef} onPointerDown={onPtrDown} onPointerMove={onPtrMove} onPointerUp={onPtrUp} onPointerCancel={onPtrCancel}
-            style={{display:'grid',gridTemplateColumns:`repeat(8,${SQ}px)`,gridTemplateRows:`repeat(8,${SQ}px)`,width:boardPx,height:boardPx,borderRadius:3,overflow:'hidden',boxShadow:'0 0 0 3px #4a6741, 0 12px 50px rgba(0,0,0,.7)',cursor:dragging?'grabbing':'default',touchAction:'none',position:'relative'}}>
+            style={{display:'grid',flexShrink:0,gridTemplateColumns:`repeat(8,${SQ}px)`,gridTemplateRows:`repeat(8,${SQ}px)`,width:boardPx,height:boardPx,borderRadius:3,overflow:'hidden',boxShadow:'0 0 0 3px #4a6741, 0 12px 50px rgba(0,0,0,.7)',cursor:dragging?'grabbing':'default',touchAction:'none',position:'relative'}}>
             {dBoard.map((row,rI)=>row.map((piece,cI)=>{
               const isLight=(rI+cI)%2===0;const ar=flip?7-rI:rI,ac=flip?7-cI:cI;const sq=rc2sq(ar,ac);
               const isSel=sel&&sel[0]===ar&&sel[1]===ac;const tgt=tgts.find(m=>m.tr===ar&&m.tc===ac);
