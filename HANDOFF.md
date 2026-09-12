@@ -61,7 +61,7 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 - Waiting on Kunal (his dashboard): old GitHub token DELETED 2026-09-06 (done); two-device sync check; Stripe test prices at $2.99/$19.99 + checkout test; buy gambitcoach.com; deploy scanBoard function; publish Firestore rules for tournaments/friends/nearby (this last one unlocks three buildable features).
 - Sourcing notes: Caro-Kann Fantasy video 0yMkAJ6Pyig is single-source attribution; Kunal has not yet confirmed playback. Held HP IDs (no matching lessons yet): Two Knights Caro S5OjT1K_s58, Karpov YLEmufSFoGk.
 
-## 5a) State at builds #331 to #349 (Cowork session 2026-09-10 evening into 2026-09-12)
+## 5a) State at builds #331 to #350 (Cowork session 2026-09-10 evening into 2026-09-12)
 - #341: the review move screen has no tab bar, a back arrow as the only exit, a one-line reason under the move, thin arrows on the move strip, and "Analyze with the engine" (eval plus the engine's line in notation, cached per FEN). The engine pass for a whole game is cached in localStorage (ct_evalcache, keyed on the move list plus movetime, 24 games LRU): 62 s first run, 4 s on a repeat. If review output ever looks stale after changing the analysis code, bump the key string in evalCacheKey. Screen audit at 430x932: review board 424 of 430, puzzle and drill 416, play 416, lesson 416; play and lesson still carry heavy chrome, and the base-layout decision for them is open.
 - #339: LESSON WORTH KEEPING. Flipping a default is not enough when an effect has already persisted the old value to every install: #337 made the one-screen review the default but Kunal's phone had ct_revCompact='0' stored from the preview era, so he kept seeing the classic screen and re-reported the same complaints. Any future default flip needs a one-time migration key like ct_revmig339. Also in #339: the eval bar moved off the side (full width strip, horizontal number) so the board takes the full screen width, with a three-way sheet control (above / beside / off); #340 put that strip above the board at his request. Great is now blue #5d93e8, not teal.
 - #338: the tab-bar spacer now carries order 99. It had none, and the puzzle screen is the only screen that orders its children, so there the spacer rendered FIRST (empty band at the top) and reserved nothing at the bottom (board and controls under the tab bar). If you ever add order to another screen's children, give every sibling an order or this returns. Puzzle boards are now sized from a measured pzStackH; the drill hides the Lichess panel; dev loaders are collapsed.
@@ -129,6 +129,41 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 - AND BEWARE THE TEST THAT PROVES NOTHING: generating simulated results from the player's OWN CURRENT rating makes the walk driftless by construction, so it wanders until the floor absorbs it and looks like a bug in the code. The meaningful test gives the player a TRUE strength, generates results from that, and asserts the rating converges on it. elo349.js does both that and a direct drift measurement.
 - THE EXCHANGE HAS NO SERVER REFEREE: each side's rating is written into the game record at create/join (index.html `_gameCreate`/`_gameJoin` take a meta argument), so both devices compute the same delta from the same two starting ratings. Guarded by `ct_rated` (already-settled game ids) because the watcher reports a result repeatedly. An opponent on an older build has no rating in the record, and then NO exchange happens rather than one side guessing.
 - index.html IS PART OF THE APP, not just a shell: CTCloud lives there. When it changes, parse-check its classic script blocks as well as bundling chess.jsx, because esbuild never sees it.
+
+### #350 the move describer (2026-09-12)
+- THE SHAPE OF THE GAP, worth naming because it recurred three times: #343 asked for why a move is
+  good or bad, #347 for why a move is brilliant, and the chess.com recording is the same question a
+  third time. Our answers were always ARITHMETIC ("about 1.4 pawns gone", "nothing else came close").
+  Chess.com's are POSITIONAL ("this builds pressure and creates a threat", "you chased the bishop
+  away"). Both are explanations; only one is about chess. When Kunal says an explanation "doesn't
+  help", check first whether the sentence describes the board at all.
+- `moveGist(pos,mv)` returns `{did,left}` from the two board positions ALONE. The hard rule written
+  into its comment: never infer a phrase from the evaluation. A positional claim that is merely
+  plausible reads worse than none, because the reader cannot tell which kind they are looking at.
+  `did` is ranked by interest so a clipped two-line box still leads with the thing worth reading.
+- `explainAnno(a,ctx)` is module-level and PURE, not a closure inside the component. That is what
+  lets a harness exercise the wording that actually ships. Any future wording change goes there.
+- SEE FORCES THE SIDE TO MOVE, AND THAT FABRICATES FACTS AT BOTH ENDS. On a board where the MOVER is
+  in check, every one of their pieces scores as winnable (the opponent "captures" while the king is
+  still attacked), so every escape looks like it rescued the army. On a board where the OPPONENT is
+  in check, nothing can be captured at all, so every checking move looks like it defended everything:
+  Bxf7+ does not "defend the knight on e5", it just means Black has something more urgent to do.
+  Guard any SEE-derived CLAIM with `!isInCheck` on both boards. Note the asymmetry: check suppresses
+  a hanging verdict (fine, conservative) and invents a rescue (not fine).
+- A VERIFIER THAT SHARES AN ASSUMPTION WITH THE CODE IS BLIND BY CONSTRUCTION. gist350's square
+  exchange forces the side to move exactly as SEE does, so it could never have caught the four false
+  sentences above; reading the output caught them. Where an invariant is known, ASSERT IT DIRECTLY
+  (gist350 now asserts no rescue is claimed on a board with either king in check) rather than hoping
+  a derived check notices.
+- AND A VERIFIER CAN SIMPLY BE THE WRONG ONE. The first version of that check was a 2-ply search that
+  modelled the recapture as the largest piece able to reach the square. It raised 17 false alarms and
+  was thrown away, not acted on. Before believing a harness over shipped code, hand-check ONE case.
+- READ THE OUTPUT. read350.js prints every explanation line of two full games with its character
+  count. It is the only thing that caught: pointless pawn pins (five in one club game), "Checkmate.
+  The position stays roughly level.", "Qxf3, forking two at once is the answer" as a comma splice,
+  "about 1.1 pawn", and all four check artefacts. No assertion would have flagged any of them.
+- Cost 294us per ply, cheaper than the motif pass already running, 0.1% of the 24-second budget. A
+  describer that walks the board a few times is not what makes a review slow.
 
 ## 6) Files in this handoff
 This MD is self-sufficient; everything else refetches from the repo (section 1.2). The repo's own HANDOFF.md is June-era; this file supersedes it until committed.
