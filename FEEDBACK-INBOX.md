@@ -2,6 +2,21 @@
 
 Append-only. Nothing is ever deleted from this file.
 
+## THE LIVE VIEW OF THIS FILE
+
+**https://claude.ai/code/artifact/20acb6cb-42bf-44a3-b2fe-5a8223cca1e2** — the feedback tracker.
+Every item, its status, the build it shipped in, and the evidence line saying how it was checked.
+Searchable, filterable, and every row has a "still broken" button that writes to db collection
+`flags` ({broken, note, at}, doc id = item id). Kunal taps it instead of retyping feedback.
+
+Built 2026-09-12 after he tested the live app himself and found two items marked done that were not
+done. Reconciling the tracker against this file turned up **ten items that were in here and not on
+the working list** — including the coach speech bubble and the Skills panel from his chess.com
+recording, the smaller-Review-board proposal, the username icons, the live-game button block, and
+the chess.com/lichess design pass. That is the miss rate this page exists to stop.
+
+Any `flags` doc with broken=true outranks the rest of the queue. Read it at the start of every run.
+
 ## READ THIS BEFORE YOU HAND KUNAL A LIST TO PASTE
 
 If you are the chat that collects Kunal's feedback and types it up for him to paste into the build
@@ -282,6 +297,101 @@ DISPOSITIONS (settled by him, no action)
   Rousseau Gambit 4.d4 line: tactic confirmed and lesson fixed (#258) — confirmed good.
   Curated gambit cross-links: approved (the build item is logged above under NEW FEATURES).
   chess.com Game Review reference recording: already logged as an open item.
+
+### From Kunal after validating #362 on his phone [2026-09-12 13:52 ET]
+
+- [2026-09-12 13:52 ET] status: closed #363
+  "2026-09-12 12:36 ET this I have validated. It doesn't show me an app number anymore for some
+  reason. We should reinstate that." He is right: build.sh made the number optional and every
+  build since #350 was made without one, so the menu showed only a timestamp. The number is
+  now REQUIRED by build.sh; the stamp reads "#363 - 2026-09-12 13:54 ET".
+  closed: #363, stamp-only build.
+
+### All 19 decisions answered [2026-09-12 16:05-16:27 ET]
+
+Full record with reasoning: **claude/DECISIONS-LOG.md** (new, append-only, his request:
+"we should keep a log of these questions, so next time we cover the same topic we can reference
+what we did earlier"). SEARCH THAT FILE BEFORE ASKING HIM ANYTHING.
+
+Settled and shipped in #362: WHITE/BLACK label removed (reverses #344 - do not re-add),
+Takeback out of live play.
+Settled, not yet built: coach avatar = a chess piece with character; coach bubble WITHOUT the
+avatar; online clocks built properly with flag-fall; feedback channel = a second Cowork session
+in this project.
+PARKED by him: the iPad, entirely, until the phone layout is locked.
+
+- [2026-09-12 16:24 ET] status: open  FIFTH TIME, AND NOW NAMED PRECISELY
+  The brilliancy explanations: "not by much". His reasoning: chess.com shows the NEXT BEST MOVES
+  beside the brilliant one with an explanation of why it was brilliant. Mine writes "you're
+  clearly better" or "1.5 pawns worth of material" - "that doesn't tell me why I'm better".
+  The line states the OUTCOME and never the COMPARISON. Showing what the move BEAT is the missing
+  half. Also: put it in a bubble over the top, not the fixed text box at the bottom. Mockup first.
+
+- [2026-09-12 16:27 ET] status: open  HIS INSTRUCTION
+  Screenshot requests go in the Preview gallery, as agreed long ago. He will share a screen
+  RECORDING, so the pipeline must accept a large file. And FLUSH the preview gallery - remove
+  anything not currently needed.
+
+- [2026-09-12 16:17 ET] status: closed #362  HIS INSTRUCTION
+  Put the mockups on the question screens themselves, for every question, every round. Done:
+  round 2 is ten questions each with drawn frames, now against proposed, and chess.com where he
+  asked for the comparison.
+
+### From Kunal in the build chat [2026-09-12 11:58 ET], with a Review screenshot
+
+- [2026-09-12 11:58 ET] status: open  RE-REPORT, THIRD TIME
+  The whole PAGE is still too small, not just the board. Empty bars on the sides AND the top AND
+  the bottom. His screenshot (iPhone, Review, start position, 0/47) shows the board at roughly 85%
+  of the screen width with a gutter each side, and a large black area between the move list and the
+  bottom of the screen.
+  note: my own measurements keep returning 390/390 on Play. This screenshot is REVIEW with an
+  imported chess.com game, which is a configuration I have never measured: real PGN headers, two
+  named players, flags, ratings. Measure THAT, not a synthetic board.
+
+- [2026-09-12 11:58 ET] status: open  MY FAULT, REGRESSION I CAUSED
+  He asked for the eval bar on the LEFT of the board. It is on TOP. #340 made "above the board" the
+  default and #359 FORCED it on every device with a one-time migration (ct_evalmig359) - so the
+  migration I shipped to fix his empty-sides report actively overrode the placement he had asked
+  for. He is seeing the result of my fix, not of the old default.
+  note: the fix is to put the bar back on the left and add a new migration key, not to undo #359.
+
+- [2026-09-12 11:58 ET] status: open  PROCESS
+  He wants to give feedback WHILE a run is in flight without interrupting it. Pressing enter in the
+  build chat either interrupts the run or the items get missed. He proposed a separate chat or
+  Cowork session that writes somewhere I can scan - Google Drive was his example - and asked what a
+  workable map of that process is.
+
+- [2026-09-12 11:58 ET] status: open  PROCESS
+  He wants the loop to end with HIM certifying an item closed, not me. I may mark it closed; he
+  certifies. Each closed item must show before/after screenshots plus an explanation of what was
+  done.
+
+### Found by me on 2026-09-12, not reported by Kunal [added 2026-09-12 06:45 ET]
+
+These came out of two things he asked for implicitly by catching my misses: SCREENSHOTTING the
+screen instead of reading a number off it, and sweeping every stored-preference profile instead of
+a fresh install. All four are in #360, which is BUILT AND GATED BUT NOT DEPLOYED - the GitHub PAT
+is not in this session and he has to paste it again.
+
+- [2026-09-12 06:35 ET] status: closed #360 (built, not deployed)
+  The opponent's avatar square in the Play top bar was EMPTY on every default game. BotFace returns
+  null for an unnamed bot, and no named bot is the default. Now a robot mark.
+- [2026-09-12 06:36 ET] status: closed #360 (built, not deployed)
+  145px of dead black under the board on the Play screen. #359's claim that the freed space "now
+  holds the move list" was FALSE: the list is gated on history.length > 0 and is a 35px horizontal
+  strip. It now renders from move 0, wraps, and flexes to fill.
+- [2026-09-12 06:39 ET] status: closed #360 (built, not deployed)
+  iPad landscape PUZZLES overflowed by 50px on all 14 stored profiles. SQ reserved 0 for chrome on
+  non-Play screens but puzzles and lessons keep the 62px bottom nav under the board. This is the
+  half of his iPad scrolling report that #355 did not reach.
+- [2026-09-12 06:33 ET] status: closed #360 (built, not deployed)
+  The move-navigation arrows draw 6x11 of ink at font-size 24, a 46% fill, against 21x12 for the
+  transport glyphs beside them - the analyze-icon defect three more times, and #359 had just made
+  them visible by default. Replaced with drawn SVG chevrons. Same measurement found the king in the
+  player bars drawing 20px next to a 26px bot face; set to 35.
+- [2026-09-12 06:40 ET] status: open
+  The phone puzzle screen puts the board 260px from the top where Play puts it at 125. It fits with
+  no scrolling so nothing is broken, but it is a lot of chrome. Needs his word before moving it up.
 
 ### Earlier open items
 

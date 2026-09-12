@@ -2,6 +2,47 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 13:50 ET)
+LIVE = **#362** (app.js stamp 2026-09-12 12:36 ET, commit b0bb10b on origin/main, verified at raw.githubusercontent.com).
+Builds #359-#362 went live TOGETHER, committed by Kunal through GitHub's web upload page - I staged
+app.js and chess.jsx into the form from this session with Claude in Chrome and he pressed Commit.
+
+WHY IT WENT THAT WAY, so nobody repeats the afternoon: this session's git proxy refuses to push to
+LearnToCheckmate/chess-trainer ("not in this session's authorized repository set") and the GitHub
+API is gated the same way. That set is fixed when a task STARTS and there is no tool in-session to
+extend it. A PAT does NOT help - the gateway rejects before any credential is read. What DID get
+fixed today: his GitHub account is now linked to Claude Code and the Claude GitHub App is installed
+on LearnToCheckmate, scoped to chess-trainer. **A new task started with the repo attached will have
+push access from the first second.** Until then, deploy = stage the built files into
+github.com/LearnToCheckmate/chess-trainer/upload/main via Claude in Chrome's file_upload (it reads
+straight from /mnt/user-data/outputs), fill the commit message, and let him press the button.
+
+Also learned: deploy.py writes commits DIRECTLY on GitHub, so a local commit for the same build is a
+DIFFERENT commit and the histories diverge. Always `git fetch` and rebase onto origin/main before
+assuming a push is a fast-forward. And never version `.run/` - it was the only content difference.
+
+## 0b) BEFORE / AFTER SCREENSHOTS ARE PART OF CLOSING AN ITEM (2026-09-12)
+Kunal: "for the feedback tracker show me screenshots of before and after for each of these items
+under the item. I need to see them to certify them."
+
+The machinery is in `/home/claude/work/snap/`:
+- `mk.sh <commit>` builds ANY historical chess.jsx from git into `snap/site/app.js`.
+- `shot.js --root <dir> --out <dir> --tag <t> --screens <list> --port N [--store '{json}']`
+  drives the app and screenshots named screens: home, discover, menu, play0 (start position),
+  play (three moves in), lesson, puzzle, ipad (puzzles, 1024x768), ipadplay, review, review2.
+  `--store` seeds localStorage, which is how the veteran-profile bug is photographed at all.
+- `run.sh` is the whole sweep; `shots/` holds the PNGs at deviceScaleFactor 1 (~80-230KB each).
+- Publish them as a MULTI-FILE artifact: copy to the scratchpad, then pass `root` + a
+  `files` map of {"shots/x.png": "x.png"}. 33 files, 3.8MB, well inside the limits.
+
+TWO RULES LEARNED DOING IT:
+1. The before shot must be taken in the CONFIGURATION THAT WAS BROKEN. `b358-play0.png` (fresh
+   install) shows no gutter at all; `b358v-play0.png` (same build, ct_evalunder='0') shows the
+   16px gutter he reported. A before shot that does not show the bug is worse than none.
+2. Check the two files are not byte-identical before claiming a change. b354-ipad and b359-ipad
+   came out the same size because #355 never touched the iPad PUZZLE screen - it fixed Play. The
+   pair was relabelled to ipadplay, where the before shot really does show rank 1 cut off.
+
 ## 0) THE PEN RULE (read first)
 Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two writers once caused a GitHub account suspension. When Cowork starts building, say "Cowork has the pen" in the old chat so it stands down, and vice versa. Never let both deploy in the same sitting.
 
@@ -9,11 +50,13 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 1. Ask Kunal to paste the GitHub fine-grained PAT (never write it to any file; env-inline only). Current token: chess-trainer-deploy, expires Dec 5 2026, Contents read-write on the one repo. The old no-expiration token was deleted 2026-09-06. Also pick his Chrome (switch_browser) if live verification is planned.
 2. Refetch from the repo at session start (source of truth): `chess.jsx`, `lessons.js`, `chess-trainer-backlog.md`, `gen_tracker.py`, `deploy.py`, `audit.py`, `sweep.py`, `chess-tracker.template.html` from `https://raw.githubusercontent.com/LearnToCheckmate/chess-trainer/main/FILE`. For verifying deploys, fetch by COMMIT HASH (the main path caches ~5 min).
 3. Read the backlog fully; ACTIVE QUEUE is at the top; reconcile it at the end of every run.
-4. READ KUNAL'S FEEDBACK FROM THE TWO ARTIFACTS before choosing work (Artifact tool, action read_db, db_op list):
+4. **READ THE FEEDBACK TRACKER FIRST: https://claude.ai/code/artifact/20acb6cb-42bf-44a3-b2fe-5a8223cca1e2** (Artifact action read_db, collection `flags`; doc id = item id, fields {broken, note, at}). Built 2026-09-12 after Kunal tested the live app himself and found two items I had marked done were not done, and concluded — correctly — that others were probably missed too. It holds every item he has raised with its status, the build it shipped in, and **the evidence line saying how it was checked**, plus a "still broken" button per row. ANY doc in `flags` with broken=true is a claim of mine that failed on his phone: it outranks everything else in the queue. Read it at the START of every run and again before the close-out. When an item's status changes, republish the page (same URL, file path in the scratchpad, capabilities db) so the list does not drift from reality.
+   - THE RULE THAT PUT IT THERE: a "done" is only done in the configuration it was measured in. Both misses were closed on a FRESH-INSTALL measurement while his phone carried preferences saved months earlier. Run `work/build/veteran360.js` (the stored-profile sweep) before claiming any layout item is fixed.
+5. READ KUNAL'S FEEDBACK FROM THE TWO ARTIFACTS before choosing work (Artifact tool, action read_db, db_op list):
    - Roadmap: url https://claude.ai/code/artifact/b0acbc6c-af09-4af3-8c0e-a31e84ae63ec, collection "feedback" (doc id = roadmap item id; fields text, pick, at). pick=true means "Build next"; text is his per-item feedback. Treat as his instructions for the queue.
    - Space audit: url https://claude.ai/code/artifact/ca66f603-c14a-4163-85f7-7660e6ce6a02, collection "decisions" (doc id P1..L2; status approve/skip/discuss or A/B/C for L2).
    Acknowledge what was read in the pre-flight block ("Feedback swept: N roadmap notes, M audit verdicts"). Republish the roadmap artifact (same URL, capabilities db) whenever gen_tracker.py changes so the item list stays current; item ids are t<index>-<slug>, keep them stable by appending new items at the end of T.
-5. Kunal's standing authorization is unlimited: every message buys the longest safe run.
+6. Kunal's standing authorization is unlimited: every message buys the longest safe run.
 
 ## 2) Architecture (CHANGED since June - read carefully)
 - App = one React component in `chess.jsx` (~816KB) bundled to `app.js`. **The 170-lesson library now lives in `lessons.js`** (window.CTLESSONS, loaded by index.html BEFORE app.js; #311 split). Lesson edits are lessons.js-only data commits. audit.py reads lessons.js and HARD-FAILS if it finds no arrays.
