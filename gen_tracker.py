@@ -46,6 +46,7 @@ T=[
  ("review","Great-move classification chip","done","#231",""),
  ("review","Tap 'Better was X' to show best move on board","done","#42",""),
  ("review","Review overhaul (eval bar, brilliant heuristic)","part","#307","Eval bar BUILT #260 (thin vertical, in the gallery - decide keep/remove). Brilliant heuristic CLOSED in #307: your Bxh3 recording confirmed the thresholds read !! correctly, no change needed. Only the eval-bar keep/remove decision is left, and that one is yours."),
+ ("polish","Board holds still, no layout shift on any board screen","done","#346","Four conditionally-rendered rows were moving the board: the thinking banner, the reason line, the strength selector and the play move row. Plus a fit loop that reset on every move. shift346.js asserts one board position per screen."),
  ("review","Move strip carries every verdict colour","done","#345","Strip coloured only the negative half of the scale and the selected chip was a hard-coded amber. Brilliant, Great and Miss had no colour and lost their !! and ! symbols."),
  ("review","Reason line works on good moves, not just mistakes","done","#345","Was restating the label; now spends the runner-up gap it already computed."),
  ("review","Board fits every phone (measured, not tuned)","done","#344","Was sized from width only; the height cap under-counted by ~124px and had a floor that overrode it. Now measures real overflow after paint and shrinks until zero. 14/14 viewports fit, from a Pro Max to a 320px screen."),
