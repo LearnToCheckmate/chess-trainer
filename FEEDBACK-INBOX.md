@@ -302,8 +302,12 @@ DISPOSITIONS (settled by him, no action)
 
 Recorded in DECISIONS-LOG.md. Built in #365: the brilliancy explanation the chess.com way.
 Built in #366 (16:28 ET, live 17:09 ET): y3b, y15b, y11b and the lay-B overlay - the four that
-needed no further answer from him. Built in #367 (17:14 ET): y12c, the Look and feel picker.
-Open from this round: y17b (Skills panel), y1b (draw C), y5d (fresh answer wanted on the redrawn q5).
+needed no further answer from him. Built in #367 (17:14 ET, live 17:17 ET): y12c, the Look and feel picker. Built in #368 (17:21 ET):
+y17b, the Skills panel. Built in #369 (17:27 ET): y1b option C for real, behind a switch. Built in #370 (17:45 ET): n3 the
+opening named live, n9 own photo in Review, and A NEW FINDING fixed - the Play board shrank by 62px after
+the first move on his phone (see k8 below). Round 3 opened on the decisions
+page: y1c (the graph: on / switch / out), y17c (Skills: counts or x/10), y5e (the live-game button row
+asked again, since his y5d note predates the redraw).
 - [2026-09-12 16:40 ET] status: closed #365
   y18b "look at what chess.com does and replicate that." Done for the text: a sacrifice is now
   explained by what happens if it is TAKEN (the opponent's capture is found, the position after it
@@ -348,8 +352,52 @@ Open from this round: y17b (Skills panel), y1b (draw C), y5d (fresh answer wante
   stopPropagation so the board's drag logic never sees the tap; hidden inside analysis mode. Analyze
   left the control row, which keeps first / play / last / key-moment. Measured at his geometry:
   board 349 before and after, row 42 before and after, fab 42x42 inset 7/7.
-- [2026-09-12 16:46 ET] status: open  y17b: Skills panel, full, AFTER the explanations - now unblocked.
-- [2026-09-12 16:36 ET] status: open  y1b: draw option C (graph inside the player bars) properly first.
+- [2026-09-12 16:46 ET] status: closed #368  y17b: Skills panel, full, AFTER the explanations. Built on
+  the review summary under the accuracy table, same two columns (White / Black, the user's side in the
+  accent). Four groups, nine rows, every number COUNTED off the board by gameSkills(): FUNDAMENTALS -
+  develops pieces (n of the first ten moves that brought a knight or bishop out for the first time or
+  castled), castled (the move it happened on, or "no"), checks faced, weak pawns at the end (doubled +
+  isolated in the final position); OPENING - book moves (plies inside the lesson library's lines);
+  TACTICS - forks played (moveMotifs), forks missed (the engine's move was a fork, >= 50cp lost playing
+  something else), pieces left hanging (the move lost >= 100cp, was not a Brilliant/Great, and left a
+  piece the opponent wins >= 2 pawns of material on, by seeSq); STRATEGY - rooks to open files (rook
+  moves sideways onto a file with none of its own pawns). Each row says what it counts under the label;
+  a number that has moves behind it is a button that jumps into the review at the first one. Opera
+  Game check: Morphy develops 4/10, castles move 12, forks 4, rooks to open files 1 (Rd1, and the tap
+  lands on ply 27); Black faces 3 checks, never castles, 1 weak pawn. Chess.com's x/10 scores are
+  their own scale and are not copied; ours are counts, with the definition printed.
+- [2026-09-12 17:45 ET] status: closed #370  k8, MY OWN FINDING, and probably the shape behind several of
+  his "the board is small / empty at the sides" reports on Play: on his phone the Play board is 357 at move
+  0 and was 295 AFTER 1.e4 (pass & play 351 -> 279). Once there is history, the moves panel grows a nav
+  row (first / prev / LIVE / next / last) and the "Tap Analyze to review this line" hint, +67px of minimum,
+  and the fit loop pays for it out of the board. Every Play measurement I ever took - reg343, veteran360,
+  kunal364c, the before/after pairs - was at the start position, the one configuration that never shows
+  it. Fixed: on phones the nav row and the hint are gone (Back / Forward already exist in the button row)
+  and the list has a fixed 34px flex basis so its content scrolls instead of pushing. jump370.js measures
+  before and after 1.e4 in both modes: 357 -> 357, 351 -> 351 over eleven plies. The rule from #360
+  ("a done is only done in the configuration it was measured in") now has a second configuration axis:
+  the START POSITION is not a game. Measure after moves.
+- [2026-09-12 17:57 ET] status: closed #370  k9, my own finding while applying the k8 rule to Puzzles
+  (measure AFTER, not at the start): the puzzle board holds 375 after Show, good - but the one-line
+  verdict box #364 gave his phone (30px) held a message styled for 74px: 12px of padding and 16px text,
+  so "Play Re8+ - the squares are highlighted on the board" showed as one clipped line with the rest
+  scrolling inside a 30px box. Now 14px text, 4px padding, one line with an ellipsis, and the reveal
+  text is shorter ("squares highlighted."). Board unchanged at 375.
+- [2026-09-12 17:40 ET] status: closed #370  n3: the opening both sides are playing, named live in Play.
+  In the status line that already exists above the board ("Computer thinking" / "Check!" take precedence),
+  so it costs no height. Needs four plies of theory to say anything (nameOpening's rule), so it appears
+  after 2...Nc6, not after 1.e4. Gate open370.js: pass & play 1.e4 e5 2.Nf3 Nc6 -> "Italian Game".
+  First try put it in the MOVES header, where it truncated to "Italian..." beside the Analyze / Copy
+  buttons; moved.
+- [2026-09-12 17:40 ET] status: closed #370  n9: my own profile photo in the Review player bar when I am
+  one of the players (review.summary.userColor, set for games imported from an account or played here)
+  and signed in. Code path only; the sandbox cannot sign in. Needs his eye on one of his own games.
+- [2026-09-12 16:36 ET] status: you, round 3  y1b: "draw option C properly first". Not drawn - BUILT, in
+  #369, behind a switch that ships OFF (menu -> Eval graph in the player bars). The graph sits in the spare
+  width of the bottom player bar: 154x38 on his phone, the bar stays 52 and the board stays 349 (gate
+  graph369.js), red ticks on blunders, teal on brilliancies, the current ply marked, a tap jumps to that
+  ply. Round 3 on the decisions page (y1c) shows three real screenshots and asks: on for everyone / keep
+  the switch / take it out. He can answer from his own phone with it switched on.
 - [2026-09-12 16:40 ET] status: closed #366  y3b: home icons, all four emoji ink-matched. Built:
   Classic's drawn-piece override (Puzzles/Play as SVG pieces) is gone and its icon set is the one he
   approved on the mockup (telescope, puzzle piece, magnifier, pawn). Matching is done ON THE DEVICE

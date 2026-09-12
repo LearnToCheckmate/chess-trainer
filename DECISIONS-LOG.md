@@ -146,3 +146,21 @@ the reading I took, so it can be reversed on purpose rather than by accident:
 - **#367 (17:14 ET) built y12c** as read above: the picker, home icons untouched. One thing decided
   on my own while building it, reversible: the home "Colors" button no longer cycles to the next
   palette on tap - it opens the picker. Cycling blind was the complaint the picker answers.
+- **#368 (17:21 ET) built y17b, the full Skills panel.** One reading to note: chess.com's rows are
+  scores on a scale of ten ("King safety 7/10") that nobody can audit. Ours are COUNTS with the
+  definition printed under each label (develops pieces 4/10 is literally four of the first ten moves;
+  "castled: move 12"; "forks played: 4"). If he wants the chess.com look with x/10 everywhere, that
+  is a presentation change, not a data change - the counts stay.
+
+## Round 3 opened — 2026-09-12, 17:40 ET (3 questions, real screenshots)
+
+- **y1c** the eval graph, option C, built for real in #369 behind an OFF switch. Choices: on for
+  everyone / keep the switch / take it out / other.
+- **y17c** the Skills panel: counts with definitions (as built in #368) or chess.com's x/10 scores.
+- **y5e** the live-game button row, asked again against his chess.com screenshot; his y5d note
+  ("chess.com shows more buttons") predates the redraw and is kept in the r2 collection.
+- **#370 (17:45 ET), a decision I took alone, reversible:** on phones the move list's own nav row
+  (first / prev / LIVE / next / last) and the "Tap Analyze" hint are gone from live Play, because they
+  were what shrank the board by 62px after the first move. Back / Forward stay in the button row. If
+  he wants first/last back, they cost nothing INSIDE the button row; they cannot come back as a
+  second row under the board.

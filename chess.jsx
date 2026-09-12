@@ -838,6 +838,52 @@ function openingBookPlies(playedSans){
   for(const op of OPENINGS){consider(op.line);if(op.vars)for(const v of op.vars)consider(v.line);}
   return Math.min(best,24);
 }
+/* #368 y17b. The Skills panel, the third thing in Kunal's chess.com recording: counters per category, built
+   from the game just reviewed. Every number here is COUNTED off the board, never estimated, and every row that
+   points at moves keeps their ply indexes so the summary can jump to them. Pure: positions (N+1), plies (N,
+   with .move and .san), out (the analysis array, may lack motifs on the fallback engine), bookN.
+   develop: of the side's first ten moves, how many brought a knight or bishop off its home square for the
+     first time, or castled. castled: the side's move number, or null. checksFaced: checks the side had to
+     answer. weakPawns: doubled (each extra) plus isolated pawns in the FINAL position. book: plies inside the
+     lesson library's lines. forks: the side's moves that forked (moveMotifs). forksMissed: the engine's move
+     was a fork and the side lost >= 50cp playing something else. hanging: the side's move lost >= 100cp, was
+     not a sacrifice the engine liked, and left a piece the opponent wins >= 2 pawns of material on (seeSq).
+     rookFiles: rook moves sideways onto a file with none of the side's own pawns. */
+function gameSkills(positions,plies,out,bookN){
+  const mk=()=>({develop:{n:0,of:0},castled:null,checksFaced:0,weakPawns:0,book:0,forks:[],forksMissed:[],hanging:[],rookFiles:[]});
+  const S={w:mk(),b:mk()};
+  try{
+    const home={w:{'7,1':1,'7,2':1,'7,5':1,'7,6':1},b:{'0,1':1,'0,2':1,'0,5':1,'0,6':1}};
+    const left={w:{},b:{}};
+    const N=plies.length;
+    for(let i=0;i<N;i++){
+      const pos=positions[i];const mv=plies[i]&&plies[i].move;if(!pos||!mv)continue;
+      const side=pos.turn,them=side==='w'?'b':'w',s=S[side];
+      const pc=pos.board[mv.fr]&&pos.board[mv.fr][mv.fc];if(!pc)continue;
+      const moveNo=Math.floor(i/2)+1;
+      const isCastle=pc.t==='k'&&Math.abs(mv.tc-mv.fc)===2;
+      const key=mv.fr+','+mv.fc;
+      if(moveNo<=10){s.develop.of++;const out1=(pc.t==='n'||pc.t==='b')&&home[side][key]&&!left[side][key];if(isCastle||out1)s.develop.n++;}
+      if((pc.t==='n'||pc.t==='b')&&home[side][key])left[side][key]=1;
+      if(isCastle&&s.castled==null)s.castled=moveNo;
+      const san=(plies[i].san||'');if(/\+/.test(san))S[them].checksFaced++;
+      if(i<bookN)s.book++;
+      const a=out[i]||{};
+      let mo=a.motifs;if(!mo){try{mo=moveMotifs(pos,mv);}catch(e){mo=[];}}
+      if(mo.indexOf('fork')>=0)s.forks.push(i);
+      else if(a.bestMove&&(a.loss||0)>=50){try{if(moveMotifs(pos,a.bestMove).indexOf('fork')>=0)s.forksMissed.push(i);}catch(e){}}
+      const L=a.cls&&a.cls.label;
+      if((a.loss||0)>=100&&L!=='Brilliant'&&L!=='Great'){const p2=positions[i+1];if(p2){let hung=false;
+        for(let r=0;r<8&&!hung;r++)for(let c=0;c<8&&!hung;c++){const q=p2.board[r][c];if(q&&q.c===side&&q.t!=='k'&&q.t!=='p'){try{if(seeSq(p2,r,c,them)>=2)hung=true;}catch(e){}}}
+        if(hung)s.hanging.push(i);}}
+      if(pc.t==='r'&&mv.fc!==mv.tc){const nb=applyMove(pos.board,mv);let own=0;for(let r=0;r<8;r++){const q=nb[r][mv.tc];if(q&&q.t==='p'&&q.c===side)own++;}if(own===0)s.rookFiles.push(i);}
+    }
+    const fin=positions[N]||positions[N-1];
+    if(fin){for(const side of ['w','b']){const f=[0,0,0,0,0,0,0,0];for(let r=0;r<8;r++)for(let c=0;c<8;c++){const q=fin.board[r][c];if(q&&q.t==='p'&&q.c===side)f[c]++;}
+      let weak=0;for(let c=0;c<8;c++){if(f[c]>=2)weak+=f[c]-1;if(f[c]>0&&(c===0||f[c-1]===0)&&(c===7||f[c+1]===0))weak+=1;}S[side].weakPawns=weak;}}
+  }catch(e){}
+  return S;
+}
 // Pull a capped list of SAN tokens out of a PGN movetext (enough for opening identification).
 function pgnSans(pgn,max){
   if(!pgn)return [];
@@ -2035,6 +2081,15 @@ export default function App(){
   const [sfReady,setSfReady]=useState(false);       // worker ready (state, to retrigger the eval effect)
   const [sfEval,setSfEval]=useState(null);          // {cp,mate,fen} from White's POV, or null
   const [hideEval,setHideEval]=useState(()=>{try{return localStorage.getItem('ct_hideEval')==='1';}catch{return false;}});
+  /* #369 y1b. Kunal on the eval graph: "Still not sure, draw C properly first." C = the graph INSIDE the player
+     bars, the board unchanged. Rather than a drawing, this is the real thing behind a switch that ships OFF:
+     menu -> "Eval graph in the player bars". He can turn it on on his own phone, look at it on a real game,
+     and decide; the decisions page carries a screenshot of it at his geometry. The graph is a sparkline of
+     evalAfter per ply in the bottom player bar's spare width, white's advantage filled light above the middle,
+     black's dark below, red ticks on blunders and teal on brilliancies, the current ply marked; tapping it
+     jumps to that ply. Nothing else moves: the bar keeps its height, the board keeps its size. */
+  const [evalGraph,setEvalGraph]=useState(()=>{try{return localStorage.getItem('ct_evalgraph')==='1';}catch{return false;}});
+  useEffect(()=>{try{localStorage.setItem('ct_evalgraph',evalGraph?'1':'0');}catch{}},[evalGraph]);
   // #359 ONE-TIME MIGRATION, and the reason Kunal kept seeing "empty space along the sides".
   // #340 moved the eval bar above the board and made that the default, but every device that had
   // used the app before then had already persisted 'beside', so the new default never reached a
@@ -3056,13 +3111,15 @@ export default function App(){
     const bookN=openingBookPlies(playedSans);
     const _sideStats=(side)=>{const c={Brilliant:0,Great:0,Best:0,Good:0,Book:0,Inaccuracy:0,Miss:0,Mistake:0,Blunder:0};let sl=0,n=0;out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(mc!==side)return;const L=o.cls&&o.cls.label;if(i<bookN&&L!=='Brilliant'&&L!=='Great'){c.Book++;return;}if(L==='Brilliant')c.Brilliant++;else if(L==='Great')c.Great++;else if(L==='Best'||L==='Excellent')c.Best++;else if(L==='Good')c.Good++;else if(L==='Inaccuracy')c.Inaccuracy++;else if(L==='Miss')c.Miss++;else if(L==='Mistake')c.Mistake++;else if(L==='Blunder')c.Blunder++;sl+=Math.max(0,o.loss||0);n++;});const acpl=n?sl/n:0;const acc=Math.max(15,Math.min(99.5,100*Math.exp(-acpl/300)));const rating=Math.max(450,Math.min(2500,Math.round(600+(acc-50)*28)));return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10,rating};};
     const summary={w:_sideStats('w'),b:_sideStats('b'),userColor:(meta&&meta.userColor)||null,book:bookN};
-    const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,pgn:text};
+    let skills=null;try{skills=gameSkills(res.positions,res.plies,out,bookN);}catch(e){skills=null;} /* #368 y17b */
+    const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,skills,pgn:text};
     setReview(_rv);setLastReview(_rv);setReviewView('summary');
     setPly(0);setFlip((meta&&meta.userColor==='b')?true:false);setAnalyzing(false);setProgress(1);
   };
   const resetReview=()=>{setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');setPly(0);setCcErr('');if(ccGames&&ccGames.length){setTimeout(()=>{try{gamesListRef.current&&gamesListRef.current.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},140);}};
   const reviewPlayedGame=()=>{let mvs,uc;if(opponent==='online'){const og=onlineGameRef.current;mvs=(og&&og.moves)||[];uc=myColorRef.current||'w';}else{mvs=((game&&game.history)||[]).map(h=>h.san);uc=(opponent==='computer')?pColor:'w';}if(mvs.length<2)return;let pgn='';for(let i=0;i<mvs.length;i++){if(i%2===0)pgn+=(i/2+1)+'. ';pgn+=mvs[i]+' ';}pgn=pgn.trim();setMode('analyze');setPlaySetup(false);setPgnText(pgn);importGame(pgn,{userColor:uc});};
   const jumpToIssue=(label)=>{setRevAuto(false);if(!review||!review.analysis)return;const idxs=[];review.analysis.forEach((o,i)=>{if(o.cls&&o.cls.label===label)idxs.push(i+1);});if(!idxs.length)return;const nxt=idxs.find(p=>p>ply);setPly(nxt!==undefined?nxt:idxs[0]);};
+  const _liveOpening=useMemo(()=>{try{if(mode!=='play')return null;const h=(boardGame&&boardGame.history)||[];if(!h.length)return null;const sans=h.slice(0,24).map(x=>x.san);const o=nameOpening(sans);return (o&&o.name)?o:null;}catch(e){return null;}},[mode,boardGame]); /* #370 n3 */
   const keyPlies=useMemo(()=>{if(!review||!review.analysis)return [];const KS=['Brilliant','Great','Miss','Mistake','Blunder','Inaccuracy'];const out=[];review.analysis.forEach((o,i)=>{if(o.cls&&KS.indexOf(o.cls.label)>=0)out.push(i+1);});return out;},[review]);
   const jumpKey=(d)=>{setRevAuto(false);if(!keyPlies.length)return;let nx;if(d>0){nx=keyPlies.find(p=>p>ply);if(nx===undefined)nx=keyPlies[0];}else{const b=keyPlies.filter(p=>p<ply);nx=b.length?b[b.length-1]:keyPlies[keyPlies.length-1];}setPly(nx);};
   // #353 every imported account contributes; a fetch adds to the pile instead of becoming it.
@@ -4616,6 +4673,10 @@ export default function App(){
               <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Eval bar sits</span>
               <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:'var(--ac2)',padding:'2px 10px',borderRadius:20,background:'rgba(var(--acr),.2)',border:'1px solid rgba(var(--acr),.45)'}}>{evalUnder?'above the board':'left of the board'}</span>
             </button>
+            <button data-ct="menu-evalgraph" onClick={()=>setEvalGraph(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
+              <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Eval graph in the player bars</span>
+              <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:evalGraph?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:evalGraph?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)'}}>{evalGraph?'ON · try it in Review':'OFF · option C'}</span>
+            </button>
             <button onClick={()=>setLayoutInfo(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
               <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Layout readout</span>
               <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:layoutInfo?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:layoutInfo?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)'}}>{layoutInfo?'shown':'screenshot this'}</span>
@@ -4674,9 +4735,9 @@ export default function App(){
         </div>
       </div>)}
       {/* Context bars */}
-      {mode==='play'&&!(isOver||playEnd)&&(()=>{const _txt=thinking&&!playEnd?'Computer thinking\u2026':(status==='check'?'Check!':'');return(
+      {mode==='play'&&!(isOver||playEnd)&&(()=>{const _op=(!thinking&&status!=='check'&&_liveOpening)?_liveOpening.name:'';const _txt=thinking&&!playEnd?'Computer thinking\u2026':(status==='check'?'Check!':_op); /* #370 n3: the opening both sides are playing, named live in the status line that already exists above the board, so it costs no height; thinking and check still take precedence */ return(
         <div data-ct="play-context" aria-live="polite" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:7,height:18,flexShrink:0}}>
-          <span style={{fontSize:'clamp(13px,2.4vw,13px)',color:status==='check'?'#ff6b6b':'rgba(255,255,255,.8)',fontWeight:600,opacity:_txt?1:0,transition:'opacity .12s'}}>{_txt||'\u00a0'}</span>
+          <span data-ct="play-opening" style={{fontSize:'clamp(13px,2.4vw,13px)',color:status==='check'?'#ff6b6b':(_op&&_txt===_op?'rgba(255,255,255,.62)':'rgba(255,255,255,.8)'),fontWeight:600,opacity:_txt?1:0,transition:'opacity .12s',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'96vw'}}>{_txt||'\u00a0'}</span>
         </div>);})()}
       {false&&mode==='play'&&(()=>{const md=materialDiff(game.board);const start={p:8,n:2,b:2,r:2,q:1};const cnt={w:{},b:{}};for(const rr of game.board)for(const pp of rr)if(pp&&pp.t!=='k')cnt[pp.c][pp.t]=(cnt[pp.c][pp.t]||0)+1;const capOf=(victim)=>['q','r','b','n','p'].flatMap(t=>{const k=(start[t]||0)-(cnt[victim][t]||0);return k>0?Array.from({length:k},(_,i)=>t+'_'+i):[];});const wCap=capOf('b'),bCap=capOf('w');const gl=(arr,color)=>arr.map((tok,i)=>(<span key={i} style={{marginRight:-2}}><Piece t={tok[0]} color={color} sz={15}/></span>));return(
         <div style={{marginBottom:8,display:'flex',justifyContent:'center',alignItems:'center',gap:12,flexWrap:'wrap',minHeight:21}}>
@@ -4784,6 +4845,34 @@ export default function App(){
                 </div>))}
               </div>
             </div>);})()}
+            {/* #368 y17b: the Skills panel. Kunal, round 2: "Full panel, but after the explanations are fixed" (#365 did
+                those). Counted off the board by gameSkills, per side, in the same two columns as the table above;
+                a number you can tap jumps to the first move behind it. Each row says what it counts. */}
+            {review.skills&&(()=>{const K=review.skills;const uc=S.userColor;
+              const go=(idx)=>{if(idx==null)return;setRevAuto(false);setReviewView('moves');setPly(idx+1);};
+              const ROWS=[
+                ['FUNDAMENTALS',null],
+                ['Develops pieces',(k)=>[k.develop.n+'/'+k.develop.of,null,k.develop.n>0],'of the first ten moves, how many brought a knight or bishop out for the first time, or castled'],
+                ['Castled',(k)=>[k.castled!=null?('move '+k.castled):'no',null,k.castled!=null],'the move it happened on'],
+                ['Checks faced',(k)=>[String(k.checksFaced),null,k.checksFaced>0],'checks this side had to answer'],
+                ['Weak pawns at the end',(k)=>[String(k.weakPawns),null,k.weakPawns>0],'doubled and isolated pawns in the final position'],
+                ['OPENING',null],
+                ['Book moves',(k)=>[String(k.book),null,k.book>0],'moves that followed a line in the lesson library'],
+                ['TACTICS',null],
+                ['Forks played',(k)=>[String(k.forks.length),k.forks[0],k.forks.length>0],'moves that attacked two pieces at once'],
+                ['Forks missed',(k)=>[String(k.forksMissed.length),k.forksMissed[0],k.forksMissed.length>0],'the engine had a fork and something else was played'],
+                ['Pieces left hanging',(k)=>[String(k.hanging.length),k.hanging[0],k.hanging.length>0],'moves that left a piece the other side could simply win'],
+                ['STRATEGY',null],
+                ['Rooks to open files',(k)=>[String(k.rookFiles.length),k.rookFiles[0],k.rookFiles.length>0],'rook moves onto a file with none of its own pawns'],
+              ];
+              return(<div data-ct="rev-skills" style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.16)',borderRadius:16,padding:'12px 14px 10px',boxShadow:SHADOW_BOX}}>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 56px 56px',gap:8,alignItems:'baseline'}}><span style={{fontFamily:headFont,fontSize:'clamp(16px,4vw,19px)',fontWeight:800,color:'#fff'}}>Skills</span><span style={{textAlign:'center',fontSize:'clamp(13.5px,2.3vw,13.5px)',color:uc==='w'?'var(--ac2)':'rgba(255,255,255,.6)',fontWeight:800}}>White</span><span style={{textAlign:'center',fontSize:'clamp(13.5px,2.3vw,13.5px)',color:uc==='b'?'var(--ac2)':'rgba(255,255,255,.6)',fontWeight:800}}>Black</span></div>
+                {ROWS.map(([lbl,fn,sub],ri)=>fn==null?(<div key={ri} style={{marginTop:ri===0?6:10,fontSize:'clamp(11.5px,2vw,12px)',fontWeight:800,letterSpacing:1.2,color:'rgba(255,255,255,.45)'}}>{lbl}</div>):(
+                  <div key={ri} data-ct={'skill-'+lbl.toLowerCase().replace(/[^a-z]+/g,'-')} style={{display:'grid',gridTemplateColumns:'1fr 56px 56px',alignItems:'center',gap:8,marginTop:5}}>
+                    <span style={{minWidth:0}}><span style={{display:'block',fontSize:'clamp(14.5px,3.3vw,16px)',color:'rgba(255,255,255,.85)',fontWeight:600,lineHeight:1.2}}>{lbl}</span><span style={{display:'block',fontSize:'clamp(11.5px,2.4vw,12.5px)',color:'rgba(255,255,255,.45)',lineHeight:1.25,marginTop:1}}>{sub}</span></span>
+                    {['w','b'].map(sd=>{const [val,idx,on]=fn(K[sd]);const can=idx!=null;return(<button key={sd} onClick={()=>go(idx)} disabled={!can} style={{textAlign:'center',background:on?'rgba(255,255,255,.06)':'none',border:on?'1px solid rgba(255,255,255,.18)':'none',borderRadius:9,padding:'4px 0',color:on?'#fff':'rgba(255,255,255,.3)',fontWeight:800,fontSize:val.length>4?'clamp(12px,2.8vw,13px)':'clamp(16px,3.8vw,18px)',cursor:can?'pointer':'default',lineHeight:1.2,whiteSpace:'nowrap'}}>{val}</button>);})}
+                  </div>))}
+              </div>);})()}
             {(()=>{const moments=review.analysis.map((o,i)=>({o,i})).filter(({o,i})=>{const mc=i%2===0?'w':'b';if(S.userColor&&mc!==S.userColor)return false;const L=o.cls&&o.cls.label;return L==='Blunder'||L==='Mistake';}).sort((a,b)=>(b.o.loss||0)-(a.o.loss||0)).slice(0,3);if(!moments.length)return null;return(
               <div style={{display:'flex',flexDirection:'column',gap:7}}>
                 
@@ -5306,7 +5395,7 @@ export default function App(){
             <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'rgba(255,255,255,.6)',background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.15)',borderRadius:20,padding:'2px 9px'}}>{p.level}</span>
           </div>
         </div>
-        <div style={{width:'100%',height:(vp.h<820?30:74),overflowY:'auto'}}>{puzMsg&&(/* #364: this box reserves room for the puzzle verdict so nothing jumps when it appears. 74px on a 761px phone (Kunal's) was a tenth of the screen, taken straight out of the board. One line is enough there. */<div key={puzMsg} style={{width:'100%',fontSize:'clamp(14.5px,3.2vw,16px)',fontWeight:700,color:puzSolved?'#aef0bd':(puzMsg[0]==='✗'?'#ffb3a8':'#cfe0ff'),lineHeight:1.5,background:puzSolved?'rgba(123,216,143,.16)':(puzMsg[0]==='✗'?'rgba(236,154,144,.16)':'rgba(110,168,254,.14)'),border:'1px solid '+(puzSolved?'rgba(123,216,143,.45)':(puzMsg[0]==='✗'?'rgba(236,154,144,.45)':'rgba(110,168,254,.4)')),borderLeft:'4px solid '+(puzSolved?'#7bd88f':(puzMsg[0]==='✗'?'#ec9a90':'#6ea8fe')),borderRadius:10,padding:'12px 13px',animation:'pzflash .3s ease-out'}}>{puzMsg}</div>)}</div>
+        <div style={{width:'100%',height:(vp.h<820?30:74),overflowY:'auto'}}>{puzMsg&&(/* #364: this box reserves room for the puzzle verdict so nothing jumps when it appears. 74px on a 761px phone (Kunal's) was a tenth of the screen, taken straight out of the board. One line is enough there. */<div key={puzMsg} style={{width:'100%',boxSizing:'border-box',fontSize:(vp.h<820)?14:'clamp(14.5px,3.2vw,16px)',fontWeight:700,color:puzSolved?'#aef0bd':(puzMsg[0]==='✗'?'#ffb3a8':'#cfe0ff'),lineHeight:(vp.h<820)?1.3:1.5,background:puzSolved?'rgba(123,216,143,.16)':(puzMsg[0]==='✗'?'rgba(236,154,144,.16)':'rgba(110,168,254,.14)'),border:'1px solid '+(puzSolved?'rgba(123,216,143,.45)':(puzMsg[0]==='✗'?'rgba(236,154,144,.45)':'rgba(110,168,254,.4)')),borderLeft:'4px solid '+(puzSolved?'#7bd88f':(puzMsg[0]==='✗'?'#ec9a90':'#6ea8fe')),borderRadius:10,padding:(vp.h<820)?'4px 10px':'12px 13px',...((vp.h<820)?{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',height:30}:null),animation:'pzflash .3s ease-out'}}>{puzMsg}</div>)}</div>
       </div>);})()}
       {mode==='puzzle'&&pzView==='browse'&&(()=>{const p=curPuz||PZ[puzIdx];return(
       <div ref={pzBotRef} data-ct="pz-bottom" style={{order:3,marginTop:8,width:Math.min(vw-8,440),maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>
@@ -5319,14 +5408,14 @@ export default function App(){
           <button onClick={()=>loadPuzzle(puzIdx-1)} aria-label="Previous puzzle" style={{...navBtn(false),flex:'0 0 46px',minWidth:46,padding:0,minHeight:44,display:'inline-flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={20} dir="left"/></button>
           {!puzSolved&&(<>
             <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>💡 Hint</button>
-            <button onClick={()=>{setPuzReveal(true);setPuzMsg('👁 Play '+p.sol[puzStep]+' — the squares are highlighted on the board.');}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>👁 Show</button>
+            <button onClick={()=>{setPuzReveal(true);setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>👁 Show</button>
             <button onClick={()=>loadPuzzle(puzIdx)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>↺ Reset</button>
           </>)}
           <button onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current));else loadPuzzle(puzIdx+1);}} aria-label="Next puzzle" style={puzSolved?{...navBtn(true),minHeight:44,padding:'9px 14px'}:{...navBtn(false),flex:'0 0 46px',minWidth:46,padding:0,minHeight:44,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{puzSolved?'Next ›':<ChevIcon size={20} dir="right"/>}</button>
         </div>):(<>
         {!puzSolved&&(<div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
           <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>💡 Hint</button>
-          <button onClick={()=>{setPuzReveal(true);setPuzMsg('👁 Play '+p.sol[puzStep]+' — the squares are highlighted on the board.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
+          <button onClick={()=>{setPuzReveal(true);setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
           <button onClick={()=>loadPuzzle(puzIdx)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>↺ Reset</button>
         </div>)}
         <div style={{display:'flex',gap:7,width:'100%'}}>
@@ -5385,7 +5474,7 @@ export default function App(){
       <div ref={pzBotRef} data-ct="pz-bottom" style={{order:3,marginTop:8,width:bw,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'stretch',gap:8}}>
         {!puzSolved&&(<div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
           <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>💡 Hint</button>
-          <button onClick={()=>{setPuzReveal(true);setPuzMsg('👁 Play '+p.sol[puzStep]+' — the squares are highlighted on the board.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
+          <button onClick={()=>{setPuzReveal(true);setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
           <button onClick={()=>loadExternal(curPuz)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>↺ Reset</button>
         </div>)}
         <div style={{display:'flex',gap:7,width:'100%',alignItems:'center'}}>
@@ -5612,13 +5701,18 @@ export default function App(){
       {/* Move history (play/learn) */}
       {(()=>{const _pFill=(mode==='play'&&!wide&&movesOpen&&!playSetup&&!!opponent);return (!inReview&&!pzLow&&(boardGame.history.length>0||_pFill)&&!(mode==='learn'&&openIdx===null)&&(mode!=='play'||movesOpen)&&(<div style={{marginTop:10,width:boardPx,maxWidth:_edge?'100vw':'98vw',...(_pFill?{flex:'1 1 auto',minHeight:0,display:'flex',flexDirection:'column'}:null)}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:4}}>
-          <span style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.4)',letterSpacing:1.5,fontFamily:'monospace'}}>MOVES</span>
+          <span data-ct="moves-head" style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.4)',letterSpacing:1.5,fontFamily:'monospace'}}>MOVES</span>
           <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}>
             <button onClick={analyzeLine} style={{padding:'3px 11px',borderRadius:6,background:'rgba(var(--acr),.18)',border:'1px solid rgba(var(--acr),.4)',color:'var(--ac2)',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:600,cursor:'pointer',whiteSpace:'nowrap'}}>🔍 Analyze</button>
             <button onClick={copyMoves} style={{padding:'3px 11px',borderRadius:6,background:copyMsg?'rgba(var(--acr),.25)':'rgba(255,255,255,.08)',border:`1px solid ${copyMsg?'rgba(var(--acr),.5)':'rgba(255,255,255,.18)'}`,color:copyMsg?'var(--ac2)':'rgba(255,255,255,.72)',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:600,cursor:'pointer',whiteSpace:'nowrap'}}>{copyMsg||'📋 Copy moves'}</button>
           </div>
         </div>
-        {mode==='play'&&playHist.length>0&&(()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;const nb=(lbl,on,dis)=>(<button key={typeof lbl==='string'?lbl:(dis?'d':'e')+String(on).length} disabled={dis} onClick={on} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',flex:1,minHeight:30,borderRadius:8,background:dis?'rgba(255,255,255,.04)':'rgba(255,255,255,.09)',border:'1px solid rgba(255,255,255,.18)',color:dis?'rgba(255,255,255,.28)':'#fff',fontSize:'clamp(15px,3.6vw,17px)',fontWeight:800,cursor:dis?'default':'pointer'}}>{lbl}</button>);return(
+        {/* #370: FOUND BY MEASURING AFTER THE FIRST MOVE, not at the start position. On Kunal's phone the Play board
+            was 357 at move 0 and 295 after 1.e4: this nav row and the hint line under the list appear once there is
+            history, the panel's minimum grows by 67px, and the fit loop takes it out of the board. Every play
+            measurement before this one was taken at move 0, which is the configuration that never shows it. On
+            phones the row's own Back / Forward buttons already do this job, so the nav row and the hint are wide-only. */}
+        {mode==='play'&&playHist.length>0&&!_pFill&&(()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;const nb=(lbl,on,dis)=>(<button key={typeof lbl==='string'?lbl:(dis?'d':'e')+String(on).length} disabled={dis} onClick={on} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',flex:1,minHeight:30,borderRadius:8,background:dis?'rgba(255,255,255,.04)':'rgba(255,255,255,.09)',border:'1px solid rgba(255,255,255,.18)',color:dis?'rgba(255,255,255,.28)':'#fff',fontSize:'clamp(15px,3.6vw,17px)',fontWeight:800,cursor:dis?'default':'pointer'}}>{lbl}</button>);return(
           <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
             {nb('⏮',()=>setPvIdx(0),cur===0)}
             {nb(<ChevIcon size={19} dir="left"/>,()=>setPvIdx(Math.max(0,cur-1)),cur===0)}
@@ -5626,13 +5720,13 @@ export default function App(){
             {nb(<ChevIcon size={19} dir="right"/>,()=>{const nv=Math.min(n,cur+1);setPvIdx(nv>=n?null:nv);},cur>=n)}
             {nb('⏭',()=>setPvIdx(null),pvIdx==null)}
           </div>);})()}
-        <div className="scroll" ref={el=>{if(el){if(_pFill)el.scrollTop=el.scrollHeight;else el.scrollLeft=el.scrollWidth;}}} style={{overflowX:_pFill?'hidden':'auto',overflowY:_pFill?'auto':'hidden',whiteSpace:_pFill?'normal':'nowrap',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:8,padding:'7px 11px',WebkitUserSelect:'text',userSelect:'text',WebkitOverflowScrolling:'touch',...(_pFill?{flex:'1 1 auto',minHeight:34}:null)}}>
+        <div className="scroll" ref={el=>{if(el){if(_pFill)el.scrollTop=el.scrollHeight;else el.scrollLeft=el.scrollWidth;}}} style={{overflowX:_pFill?'hidden':'auto',overflowY:_pFill?'auto':'hidden',whiteSpace:_pFill?'normal':'nowrap',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:8,padding:'7px 11px',WebkitUserSelect:'text',userSelect:'text',WebkitOverflowScrolling:'touch',...(_pFill?{flex:'1 1 34px',minHeight:34}:null)}}>{/* #370: a FIXED basis, so the list's own content can never push the board; it scrolls instead */}
           <div style={{display:_pFill?'flex':'inline-flex',flexWrap:_pFill?'wrap':'nowrap',alignItems:'center',alignContent:'flex-start',rowGap:_pFill?4:0,fontSize:'clamp(14px,2.7vw,14.5px)',fontFamily:'monospace'}}>{_pFill&&boardGame.history.length===0&&(<span style={{color:'rgba(255,255,255,.3)',fontSize:'.88em'}}>Your moves appear here as you play.</span>)}
             {boardGame.history.map((h,i)=>(<span key={i} style={{display:'inline-flex',alignItems:'center'}}>{i%2===0&&<span style={{color:'rgba(255,255,255,.35)',marginRight:3}}>{Math.floor(i/2)+1}.</span>}<span style={{color:i%2===0?'#e0e0e0':'var(--ac2)',marginRight:i%2===1?12:5,fontWeight:i===boardGame.history.length-1?'bold':'normal'}}>{h.san}</span></span>))}
           </div>
         </div>
         {/* #366 y11b: on a phone in a lesson this 34px hint paid for the taller note box above the board. */}
-        {boardGame.history.length>0&&!(mode==='learn'&&!wide)&&(<div style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.42)',marginTop:3,lineHeight:1.4}}>Tap <span style={{color:'var(--ac2)',fontWeight:600}}>🔍 Analyze</span> to review this line move-by-move and play on from any point.</div>)}
+        {boardGame.history.length>0&&!(mode==='learn'&&!wide)&&!_pFill&&(<div style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.42)',marginTop:3,lineHeight:1.4}}>Tap <span style={{color:'var(--ac2)',fontWeight:600}}>🔍 Analyze</span> to review this line move-by-move and play on from any point.</div>)}
       </div>));})()}
 
       {/* Move list (review, clickable + colored) — single horizontal strip */}
@@ -5656,7 +5750,7 @@ export default function App(){
         const _img=(src)=>(<img src={src} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}}/>);
         const pBar=(col,isTop)=>{
           const enemy=col==='w'?'b':'w'; let name, av;
-          if(inReview){ const _H=(review&&review.headers)||{}; const _n=col==='w'?_H.White:_H.Black; name=_n||(col==='w'?'White':'Black'); av=_avBox(<span style={{fontSize:35,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>); }
+          if(inReview){ const _H=(review&&review.headers)||{}; const _n=col==='w'?_H.White:_H.Black; name=_n||(col==='w'?'White':'Black'); const _meRev=!!(review&&review.summary&&review.summary.userColor===col&&cloudUser&&cloudUser.photo); /* #370 n9: my own photo when the game is mine (imported from my account or played here) and I am signed in */ av=_avBox(_meRev?_img(cloudUser.photo):(<span style={{fontSize:35,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); }
           else if(_isOnlineG){ const pd=col==='w'?_og.w:_og.b; name=(pd&&pd.name)?pd.name:(col==='w'?'White':'Black'); av=_avBox((pd&&pd.photo)?_img(pd.photo):(<span style={{fontSize:35,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); }
           else if(opponent==='computer'){ if(col===pColor){ name=(cloudUser&&cloudUser.name)?cloudUser.name:'You'; av=_avBox((cloudUser&&cloudUser.photo)?_img(cloudUser.photo):(<span style={{fontSize:35,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); } else { name=botById(selBot)?botById(selBot).name:'Computer'; /* #360: BotFace returns null for an unnamed opponent, which is the DEFAULT - press Start game without picking a bot and the bar showed an empty grey square. */ av=_avBox(botById(selBot)?<BotFace id={selBot} size={36}/>:<span style={{fontSize:27,lineHeight:1}}>{'\u{1F916}'}</span>); } }
           else { name=col==='w'?'White':'Black'; av=_avBox(<span style={{fontSize:35,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>); }
@@ -5704,6 +5798,21 @@ export default function App(){
               </div>
               <div data-ct={'pbar-taken-'+col} style={{display:'flex',alignItems:'center',height:18,flexShrink:0,flexWrap:'nowrap',overflow:'hidden'}}>{taken.length>0&&taken.map((t,i)=>(<span key={i} style={{display:'inline-flex',marginRight:-2}}><Piece t={t} color={enemy} sz={18} useFallback={fallback} onFail={onPieceFail}/></span>))}{lead>0&&<span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:_fgDim,marginLeft:6}}>+{lead}</span>}</div>
             </div>
+            {!isTop&&inReview&&revCompact&&evalGraph&&review&&review.analysis&&review.analysis.length>1&&(()=>{const A=review.analysis;const n=A.length;const gw=Math.max(90,Math.min(170,Math.round(boardPx*0.44)));const gh=Math.max(26,Math.min(40,(vp.h<640?32:46)-8));const mid=gh/2;const cl=(v)=>Math.max(-5,Math.min(5,(typeof v==='number'?v:0)));
+              const xs=(i)=>Math.round((i/(n-1))*(gw-2)*10)/10+1;const ys=(v)=>Math.round((mid-cl(v)/5*(mid-1))*10)/10;
+              const pts=A.map((a,i)=>xs(i)+','+ys(a.evalAfter));const line='M'+pts.join(' L');
+              const area='M'+xs(0)+','+mid+' L'+pts.join(' L')+' L'+xs(n-1)+','+mid+' Z';
+              const cur=ply>0?Math.min(n-1,ply-1):-1;
+              const marks=[];A.forEach((a,i)=>{const L=a.cls&&a.cls.label;if(L==='Blunder'||L==='Brilliant')marks.push({x:xs(i),c:L==='Blunder'?'#ec5c4e':'#22d3ee'});});
+              const onTap=(e)=>{e.stopPropagation();const r=e.currentTarget.getBoundingClientRect();const fx=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));setRevAuto(false);setPly(Math.round(fx*(n-1))+1);};
+              return(<svg data-ct="eval-graph" onClick={onTap} width={gw} height={gh} viewBox={'0 0 '+gw+' '+gh} style={{flexShrink:0,display:'block',borderRadius:6,background:_lightBar?'rgba(0,0,0,.08)':'rgba(255,255,255,.06)',cursor:'pointer',touchAction:'manipulation'}} aria-label="Evaluation graph, tap to jump">
+                <defs><clipPath id="egw"><rect x="0" y="0" width={gw} height={mid}/></clipPath><clipPath id="egb"><rect x="0" y={mid} width={gw} height={gh-mid}/></clipPath></defs>
+                <path d={area} fill="rgba(246,244,238,.9)" clipPath="url(#egw)"/><path d={area} fill="rgba(20,22,28,.85)" clipPath="url(#egb)"/>
+                <line x1="0" y1={mid} x2={gw} y2={mid} stroke={_lightBar?'rgba(0,0,0,.35)':'rgba(255,255,255,.35)'} strokeWidth="1"/>
+                <path d={line} fill="none" stroke={_lightBar?'#3a4150':'#c9d2dc'} strokeWidth="1.2"/>
+                {marks.map((m,i)=>(<line key={i} x1={m.x} y1="1" x2={m.x} y2={gh-1} stroke={m.c} strokeWidth="1.5"/>))}
+                {cur>=0&&<line x1={xs(cur)} y1="0" x2={xs(cur)} y2={gh} stroke="var(--ac)" strokeWidth="2"/>}
+              </svg>);})()}
             {_hb&&<button data-ct="rev-more" onClick={()=>setRevMore(true)} aria-label="More" style={{..._hbSty,fontSize:19}}>{'\u22ef'}</button>}
             {_hbPlay&&<button data-ct="play-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" style={{..._hbSty,fontSize:17}}>{'\u2630'}</button>}
             {clk!=null&&<div style={{fontFamily:'monospace',fontSize:'clamp(15px,4.4vw,21px)',fontWeight:800,padding:'4px 11px',borderRadius:8,flexShrink:0,background:ticking?'rgba(110,180,90,.22)':_pillBg,border:'1px solid '+(ticking?'rgba(110,180,90,.55)':_pillBd),color:clk==='0:00'?'#d23b2e':(ticking?(_lightBar?'#2f7a26':'#86d99a'):_fg)}}>{clk}</div>}

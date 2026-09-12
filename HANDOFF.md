@@ -2,24 +2,50 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 17:20 ET)
-LIVE = **#366** (app.js stamp "#366 - 2026-09-12 16:28 ET", commit 6cd1449 on origin/main, Kunal's upload at
-17:09 ET, verified by hash at raw.githubusercontent.com; source and docs went up with it). Local history is merged.
-#366 = y3b home icons all emoji, ink-matched at run time (inkScale, canvas on the device); y15b round Analyze
-button on the Review board (data-ct rev-fab), board full size, row keeps four; y11b lesson note box fixed at
-75px / three lines at 15px, lesson board 360 -> 375 on his phone; lay-B Layout overlay (menu row, ct_layoutgrid,
-data-ct layout-grid). Evidence: work/build/shots366/ (before = #365, after = #366, all at 375x679) and tracker
-rows y3 y11 y15 k7. Harnesses: before366.js, overlay366.js.
-BUILT, GATED, STAGED FOR HIS CLICK = **#367** (stamp "#367 - 2026-09-12 17:14 ET"): y12c the Look and feel
-picker (data-ct look; a drawn preview board painted from the live TH / pieceSet / boardDepth, 12 colour chips,
-5 piece-set chips, depth toggle, a Style row into the skin sheet). Reached from the home "Colours & pieces"
-button (data-ct home-look; it used to CYCLE palettes blind) and a "Look and feel" row at the top of the menu's
-Appearance section (data-ct menu-look). Found and fixed while gating it: Piece is memo'd on props but read the
-piece SET from a module global, so switching sets left pieces already on screen stale - now an epoch prop
-(_PIECE_EPOCH) bumps when the set changes. Gate: look367.js (opens from both places, preview repaints on a
-colour tap and a piece tap, the real board matches, persists, no errors). Shots: shots366/before366-menulook,
-after-look, after-look2.
-Previously: #365 (34d8710), #364 (89b703d).
+## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 17:50 ET)
+LIVE = **#367** (app.js stamp "#367 - 2026-09-12 17:14 ET", commit e65119c on origin/main, Kunal's upload at
+17:17 ET, verified by hash at raw.githubusercontent.com; source and docs went up with it). Local history is merged.
+#367 = y12c the Look and feel picker (data-ct look; drawn preview board painted from the live TH / pieceSet /
+boardDepth, 12 colour chips, 5 piece-set chips, depth toggle, Style row). From the home "Colours & pieces"
+button (data-ct home-look; it used to CYCLE palettes blind) and the "Look and feel" row at the top of the
+menu's Appearance section (data-ct menu-look). Fixed with it: Piece is memo'd on props but read the piece SET
+from a module global, so a set change left pieces on screen stale - _PIECE_EPOCH rides along as a prop now.
+Gate look367.js. Shots: shots366/before366-menulook, after-look, after-look2.
+#366 (6cd1449, 17:09 ET) = y3b home icons all emoji, ink-matched at run time (inkScale, canvas on the
+device); y15b round Analyze button on the Review board (data-ct rev-fab), board full size, row keeps four;
+y11b lesson note box fixed at 75px / three lines at 15px, lesson board 360 -> 375 on his phone; lay-B Layout
+overlay (menu row, ct_layoutgrid, data-ct layout-grid). Evidence: shots366/ and tracker rows y3 y11 y15 k7.
+Harnesses: before366.js, overlay366.js.
+BUILT, GATED, STAGED FOR HIS CLICK = **#370** (stamp "#370 - 2026-09-12 17:45 ET", carries #368 and #369):
+THE FINDING OF THE RUN: on his phone the Play board was 357 at move 0 and **295 after 1.e4** (pass & play 351 ->
+279). The moves panel's nav row (first/prev/LIVE/next/last) and the "Tap Analyze" hint appear once there is
+history, the panel's minimum grows by 67px and the fit loop takes it out of the board. EVERY play measurement
+before this was taken at the start position, the one configuration that never shows it (jump370.js is the
+harness: measures before and after 1.e4, vs computer and pass & play). Fix: on phones (_pFill) the nav row and
+the hint are gone (the row's own Back/Forward do the job) and the move list has a FIXED flex basis of 34px so
+its content can never push the board; it scrolls. Now 357 -> 357 and 351 -> 351 across eleven plies.
+Also in #370: n3 the opening both sides are playing, named live in the status line above the board
+(data-ct play-opening; thinking / check take precedence; nameOpening needs four matched plies, so it appears
+after 2...Nc6, not after 1.e4) - gate open370.js; n9 my own photo in the Review player bar when the game is
+mine (review.summary.userColor) and I am signed in (cloudUser.photo), untested here (no sign-in in the sandbox).
+Also #370 (17:57 ET rebuild): the puzzle verdict box on phones (30px since #364) now holds one whole line -
+14px text, 4px padding, ellipsis - instead of a 74px-styled message clipped inside it (pzafter370.js).
+#369 (stamp "#369 - 2026-09-12 17:27 ET"): y1b
+option C, the eval graph INSIDE the bottom player bar, built for real behind a switch that ships OFF (state
+evalGraph / ct_evalgraph, menu row data-ct menu-evalgraph "Eval graph in the player bars", svg data-ct
+eval-graph in pbar-bottom). Sparkline of evalAfter per ply, white light above the middle, black dark below,
+red ticks blunders, teal brilliancies, accent line = current ply, tap jumps to that ply. Gate graph369.js:
+bars 52 -> 52, board 349 -> 349, no scroll, tap 19 -> 30. Shots 369-graph-off/on/zoom are on the decisions
+page as ROUND 3 (ids y1c, y17c, and y5e = the live-game button row asked again). No mockup was drawn: he can
+switch it on on his own phone and answer from the real thing.
+#368 (stamp "#368 - 2026-09-12 17:21 ET"): y17b the Skills panel on
+the review summary (data-ct rev-skills, rows data-ct skill-*). gameSkills(positions,plies,out,bookN) is a pure
+function next to openingBookPlies; it COUNTS everything off the board (develops pieces n/10, castled move,
+checks faced, weak pawns at the end, book moves, forks played / missed, pieces left hanging via seeSq, rooks to
+open files), keeps the ply indexes so a tapped number jumps into the review, and is exported into engine350.js.
+Gates: skills368.js (pure, Opera Game, 17ms) and summary368.js (real app, Opera Game, the panel's numbers and
+the jump to 14.Rd1). Shots: shots366/before367-summary (no panel) and after-summary.
+Previously: #366 (6cd1449), #365 (34d8710), #364 (89b703d).
 KUNAL'S PHONE, from his Layout readout: **375x761, dpr 3, insets 51/31 = 375x679 usable.** Emulate as a 375x679
 viewport with insets 0 (or ct_safe='51,31'). HEIGHT binds there, not width; every width-only check will pass
 while the board is squeezed. Harnesses: work/build/kunal364c.js (play/puzzle/lesson) and kunal364d.js (review).
