@@ -235,6 +235,36 @@ async function fetchCountry(site,user){
   return cc;
 }
 
+// ── #349: player rating for human-vs-human games ────────────────────────────
+// Standard Elo. The one thing a single K-factor cannot do is give both "about 10 points for a close game"
+// and "up to 50 for a big upset", so K decays with games played the way chess.com's rating deviation does:
+// a new player finds their level fast, a settled player moves slowly.
+//   under 10 games : K 56   (equal-opponent win +28, a 400-point upset +51)
+//   10 to 29 games : K 32   (equal +16)
+//   30+ games      : K 20   (equal +10, a 400-point upset +18, exactly Kunal's spec)
+//   30+ and 2100+  : K 12   (equal +6)
+// PURE FUNCTIONS ON PURPOSE: identical code can move to a Cloud Function later and produce identical numbers.
+const RATING_START=400, RATING_FLOOR=100;
+function eloK(games,rating){
+  if(games<10)return 56;
+  if(games<30)return 32;
+  if(rating>=2100)return 12;
+  return 20;
+}
+function eloExpected(mine,theirs){ return 1/(1+Math.pow(10,(theirs-mine)/400)); }
+// score: 1 win, 0.5 draw, 0 loss. Returns the EXACT change to apply to `mine`, unrounded.
+// Two things here are deliberate and a simulation caught both:
+//  - NO forced minimum of one point. An earlier version rounded every result away from zero so that
+//    "something always happens". That breaks Elo's fixed point: a player facing stronger opposition gains
+//    ~+20 on a rare win but pays a forced -1 on every expected loss, which drifts about -0.8 a game. In a
+//    4000-game simulation it sank a correctly-rated player all the way to the floor.
+//  - The rating is kept as a FLOAT and rounded only for display, so repeated rounding cannot leak either.
+function eloDelta(mine,theirs,score,games){
+  if(typeof mine!=='number'||typeof theirs!=='number')return 0;
+  const d=eloK(games||0,mine)*(score-eloExpected(mine,theirs));
+  return Math.max(RATING_FLOOR-mine,d);   // never push anyone below the floor
+}
+
 function parsePGNHeaders(pgn){
   const h={};
   const re=/\[(\w+)\s+"([^"]*)"\]/g;let m;
@@ -1553,7 +1583,7 @@ export default function App(){
   const [lessonMore,setLessonMore]=useState(false); // #316 focus-mode sheet
   const introHoldRef=useRef(false); // #315: intro card auto-dismiss (effect lives after state decls)
   // ── Progress sync (#310): mirror key progress to users/{uid} via CTCloud.load/save (merge:true).
-  const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_coachstyle','ct_coachtargets','ct_coachtier'];
+  const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_rating','ct_coachstyle','ct_coachtargets','ct_coachtier'];
   const syncTimer=useRef(null);
   const syncPush=()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.save||!cloudUser)return;
     if(syncTimer.current)clearTimeout(syncTimer.current);
@@ -1760,6 +1790,11 @@ export default function App(){
   const [revMore,setRevMore]=useState(false);
   const [safeTop,setSafeTop]=useState(0);
   const [safeBot,setSafeBot]=useState(0);
+  // #349: {r: rating, n: games played}. Human games only; a rating earned against a bot whose strength you
+  // picked yourself would not mean anything.
+  const [rating,setRating]=useState(()=>{try{const v=JSON.parse(localStorage.getItem('ct_rating')||'null');return (v&&typeof v.r==='number')?v:{r:RATING_START,n:0};}catch{return {r:RATING_START,n:0};}});
+  const ratingRef=useRef(rating);ratingRef.current=rating;
+  const [ratingMsg,setRatingMsg]=useState('');   // "+10" shown once when a game settles
   const [revFlags,setRevFlags]=useState({});      // #348: {w,b} country codes for the reviewed game, best-effort
   const [boardTrim,setBoardTrim]=useState(0);   // #344: px shaved off the board so the screen actually fits, MEASURED per device
   const boardTrimRef=useRef(0);boardTrimRef.current=boardTrim;
@@ -1983,6 +2018,7 @@ export default function App(){
   useEffect(()=>{if(cyclingRef.current)return;try{localStorage.setItem('ct_theme',theme);}catch{}},[theme]);
   useEffect(()=>{try{localStorage.setItem('ct_skin',skin);}catch{}},[skin]);
   useEffect(()=>{try{localStorage.setItem('ct_elo',cpuElo);}catch{}},[cpuElo]);
+  useEffect(()=>{try{localStorage.setItem('ct_rating',JSON.stringify(rating));}catch{}},[rating]);
   useEffect(()=>{SFX_ON=soundOn;try{localStorage.setItem('ct_sound',soundOn?'1':'0');}catch{}},[soundOn]);
   useEffect(()=>{try{if(selBot)localStorage.setItem('ct_bot',selBot);else localStorage.removeItem('ct_bot');}catch{}},[selBot]);
   useEffect(()=>{try{localStorage.setItem('ct_coachstyle',coachStyle);}catch{}},[coachStyle]);
@@ -2794,7 +2830,7 @@ export default function App(){
   const onlineCreate=async(color)=>{const C=window.CTCloud;
     if(!cloudUser||!C){setOnlineErr('Sign in first — open ☰ menu → Account.');return;}
     setOnlineErr('');setOnlineInfo('Creating game…');
-    try{const tc=timeCtrlRef.current||null;const r=await C.gameCreate(color,tc);setMyColor(color);
+    try{const tc=timeCtrlRef.current||null;const r=await C.gameCreate(color,tc,{rating:Math.round(ratingRef.current.r),rgames:ratingRef.current.n});setMyColor(color);
       C.gameWatch(r.id,d=>{if(d)setOnlineGame(Object.assign({},d,{id:r.id}));});
       setOnlineGame({id:r.id,code:r.code,status:'waiting',moves:[],chat:[],tc:tc,moveAt:Date.now(),[color==='b'?'b':'w']:{uid:cloudUser.uid,name:cloudUser.name}});
       setOnlineInfo('');fullReset();
@@ -2807,7 +2843,7 @@ export default function App(){
     const code=raw.trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
     if(code.length<4){setOnlineErr(raw.trim()?('That does not look like a game code: '+raw.trim()+'. It is 5 letters or numbers.'):'Enter the 5-character code your friend shared.');return;}
     setOnlineErr('');setOnlineInfo('Joining…');
-    try{const r=await C.gameJoin(code);setMyColor(r.color);
+    try{const r=await C.gameJoin(code,{rating:Math.round(ratingRef.current.r),rgames:ratingRef.current.n});setMyColor(r.color);
       C.gameWatch(r.id,d=>{if(d)setOnlineGame(Object.assign({},d,{id:r.id}));});
       setOnlineCodeInput('');setOnlineInfo('');
     }catch(e){const m=e&&e.message;setOnlineErr(m==='notfound'?('No game found with code '+code+'. Check it with your friend, or use their invite link.'):m==='full'?'That game is already full.':'Could not join. Check the code and your connection.');setOnlineInfo('');}};
@@ -2944,6 +2980,29 @@ export default function App(){
     })();
     return()=>{dead=true;};
   },[inReview,review]);
+  // #349: settle the rating once a human game has a result. Both devices run the SAME pure function over the
+  // SAME two ratings stored in the game record, so they agree without a server refereeing it. Guarded by a
+  // list of already-rated game ids in localStorage, because the watcher reports the result more than once.
+  useEffect(()=>{
+    const og=onlineGame;
+    if(!og||!og.result||!og.id&&!og.code)return;
+    const gid=String(og.id||og.code);
+    const me=myColor; if(me!=='w'&&me!=='b')return;
+    const mine=og[me], theirs=og[me==='w'?'b':'w'];
+    if(!mine||!theirs)return;
+    let done=[];try{done=JSON.parse(localStorage.getItem('ct_rated')||'[]');}catch(e){done=[];}
+    if(done.indexOf(gid)>=0)return;
+    const myR=(typeof mine.rating==='number')?mine.rating:ratingRef.current.r;
+    const opR=(typeof theirs.rating==='number')?theirs.rating:null;
+    if(opR===null)return;                       // opponent joined on an older build: no rating, no exchange
+    const res=String(og.result);
+    const score=res==='1/2-1/2'?0.5:((res==='1-0')===(me==='w')?1:0);
+    const d=eloDelta(myR,opR,score,ratingRef.current.n);
+    try{done.push(gid);localStorage.setItem('ct_rated',JSON.stringify(done.slice(-200)));}catch(e){}
+    setRating(prev=>({r:Math.max(RATING_FLOOR,prev.r+d),n:(prev.n||0)+1}));
+    const _shown=Math.round(ratingRef.current.r+d)-Math.round(ratingRef.current.r);setRatingMsg((_shown>0?'+':'')+_shown);
+  },[onlineGame,myColor]);
+
   const reviewBest=useMemo(()=>{if(!inReview||!showBest||ply===0||bestLineBoard)return null;return review.analysis[ply-1]?.bestMove||null;},[inReview,showBest,ply,review,bestLineBoard]);
   const playBestLine=async()=>{if(!inReview||ply===0||!review||!review.analysis[ply-1])return;const first=review.analysis[ply-1].bestMove;if(!first)return;const tok=++bestLineTokenRef.current;const basePos=review.positions[ply-1];setBestLineBoard(basePos);let g1;try{g1=makeMove(basePos,first);}catch(e){setBestLineBoard(null);return;}let moves=[first],states=[basePos,g1];try{const pv=await sfBestLine(toFEN(g1),1100);if(bestLineTokenRef.current!==tok)return;if(pv&&pv.length){let g=g1;for(let k=0;k<4;k++){if(k>=pv.length)break;const mv=uciToMove(g,pv[k]);if(!mv)break;let ng;try{ng=makeMove(g,mv);}catch(e){break;}moves.push(mv);g=ng;states.push(g);}}}catch(e){}if(moves.length<=1){let g=g1;for(let k=0;k<3;k++){let m;try{m=bestMove(g,3,0);}catch(e){break;}if(!m)break;let ng;try{ng=makeMove(g,m);}catch(e){break;}moves.push(m);g=ng;states.push(g);}}if(bestLineTokenRef.current!==tok)return;
     try{let txt='',g=basePos,num=Math.floor((ply-1)/2)+1,first=true;
@@ -3261,7 +3320,8 @@ export default function App(){
         };
         const _it=Math.max(0,LIB.findIndex(o=>o.name==='Italian Game'));
         const SC=[
-  {l:"Player ratings and country flags (NEW)", n:"Your idea: show whatever we actually know about the players. Ratings turned out to be free, because chess.com and lichess both write WhiteElo and BlackElo into the PGN and we were parsing every header already and then ignoring those two. They now sit next to each name in both player bars, and in Play the computer\u2019s bar shows the Elo you picked. Nothing is invented: if we do not have a rating, no rating appears, and I did not put a number on your own bar in Play because the app has no real rating for you, only the strength you are playing against. Flags are different, because no PGN carries a country. Those need one lookup per opponent against chess.com or lichess, so the first review of a new opponent fetches it and every review after that is free. The result is cached for good, misses included, so a player with no country set is never looked up twice. If the network is unavailable or the profile has no country, there is simply no flag and nothing else changes. This card opens a game whose PGN carries both ratings.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setRevCompact(true);setHideEval(false);setEvalUnder(true);setAnaMode(false);setAnaHist([]);setReview(null);setMode('analyze');revDemoPlyRef.current=17;const _pg='[White "speedo23"] [Black "Kunal2023"] [WhiteElo "1187"] [BlackElo "1243"] [Site "Chess.com"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
+  {l:"Your own rating, built by playing people (NEW)", n:"Your spec, and the arithmetic behind it. A single Elo K-factor cannot give you both about 10 points for a close game AND up to 50 for a big upset, so K decays as you play, which is how chess.com gets the same effect. Under 10 games it is 56, so an equal win is +28 and beating someone 400 points stronger is +51. From 10 to 29 it is 32. At 30 and beyond it is 20, which makes an equal win exactly +10, a +100 opponent +13, a +400 opponent +18, and losing to someone 200 below you -15. Above 2100 it drops again. You start at 400 and there is a floor at 100. This is for human games only, because a rating earned against a bot whose strength you picked yourself would not mean anything. A simulation caught a real bug while I built it: I had forced every result to move at least one point so that something always happened, and that quietly drained about half a point a game from anyone facing stronger opposition, enough to sink a correctly-rated player to the floor over a few thousand games. The rating is kept as a precise number and rounded only for display, and the average exchange now measures 0.002 points a game instead of -0.581.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setRevCompact(true);setHideEval(false);setEvalUnder(true);setAnaMode(false);setAnaHist([]);setReview(null);setMode('analyze');revDemoPlyRef.current=17;const _pg='[White "speedo23"] [Black "Kunal2023"] [WhiteElo "1187"] [BlackElo "1243"] [Site "Chess.com"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
+  {l:"Player ratings and country flags", n:"Your idea: show whatever we actually know about the players. Ratings turned out to be free, because chess.com and lichess both write WhiteElo and BlackElo into the PGN and we were parsing every header already and then ignoring those two. They now sit next to each name in both player bars, and in Play the computer\u2019s bar shows the Elo you picked. Nothing is invented: if we do not have a rating, no rating appears, and I did not put a number on your own bar in Play because the app has no real rating for you, only the strength you are playing against. Flags are different, because no PGN carries a country. Those need one lookup per opponent against chess.com or lichess, so the first review of a new opponent fetches it and every review after that is free. The result is cached for good, misses included, so a player with no country set is never looked up twice. If the network is unavailable or the profile has no country, there is simply no flag and nothing else changes. This card opens a game whose PGN carries both ratings.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setRevCompact(true);setHideEval(false);setEvalUnder(true);setAnaMode(false);setAnaHist([]);setReview(null);setMode('analyze');revDemoPlyRef.current=17;const _pg='[White "speedo23"] [Black "Kunal2023"] [WhiteElo "1187"] [BlackElo "1243"] [Site "Chess.com"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
   {l:"Eight fixes from your screenshots", n:"All of it. The board jumping when captures piled up: the captured-pieces row was wrapping to a second line and growing the player bar, so it is one clipped line now and the bars never change height. The review taking over a minute: two causes, and both were mine. I bumped the eval cache tag in an earlier build, which silently threw away every review you had already cached, so a repeat review ran from scratch; and when I added parallel engines I spent the saving on depth, raising per-position thinking time from about 1333ms to 2270ms based on sandbox hardware rather than your phone. The budget is now a wall-clock target that measures your actual device after the first few positions and trims itself to land on it. The board being smaller than the screen: that was the reserved rows from the last build, and with one control row it measures 424 of 430 on a Pro Max, which is the maximum the screen allows. Icons are much bigger. The green to-move ring now pops on the light bar as well as the dark one. The queen-drops-in animation is back on phones, where it had only ever run on tablets and in landscape; tap the title to replay it. New to chess? now opens the lesson it names instead of doing nothing, which was a one-word bug, .i where it should have been .idx. And the brilliant-move trainer finally says WHY the move was brilliant instead of just Nicely done.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setRevCompact(true);setHideEval(false);setEvalUnder(true);setAnaMode(false);setAnaHist([]);setReview(null);setMode('analyze');revDemoPlyRef.current=17;const _pg='[White "speedo23"] [Black "Kunal2023"] [WhiteElo "1187"] [BlackElo "1243"] [Site "Chess.com"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
   {l:"The board holds still", n:"You said the board jumped every time you moved, with the computer thinking on top, and asked me to make sure it was not happening anywhere else. It was two things stacked, and one of them was mine. First, \"Computer thinking...\" was a whole row that got inserted and removed on every move, shoving everything 25 pixels up and down. It now holds its space permanently and only the text inside it changes. Second, the fit loop I added two builds ago listed the move count among the things that make it re-measure, so every move reset the board to full size and shrank it back again. It now only re-derives when the screen geometry actually changes. Then I went looking for the same class of bug elsewhere and found two more: the reason line under a move is one or two lines depending on the move, and because the player bars absorb slack that moved the board 8 pixels on every step; and the strength selector used to vanish on your first move, freeing 111 pixels and jumping the board 26. Both reserved now. There is a harness that plays a real move and samples the board position 26 times through the computer\u2019s think, and steps 14 plies in review, and it reports one single position for each.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setRevCompact(true);setHideEval(false);setEvalUnder(true);setAnaMode(false);setAnaHist([]);setReview(null);setMode('analyze');revDemoPlyRef.current=17;const _pg='[White "speedo23"] [Black "Kunal2023"] [WhiteElo "1187"] [BlackElo "1243"] [Site "Chess.com"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
   {l:"Verdict colours in the move strip, and the shell on Play", n:"You spotted that a Brilliant move showed gold in the strip at the bottom instead of cyan. It was worse than that: the strip only coloured Inaccuracy, Mistake and Blunder, so Brilliant, Great and Miss had no colour at all and lost their !! and ! symbols too, and the selected-move chip was a hard-coded amber that overrode whatever the verdict was. All three fixed. Ordinary Best and Good moves stay neutral on purpose so the key moments still stand out. Second thing: the explainer used to fall back to a restatement on anything that was not a mistake, so a Best move read \"The engine\u2019s first choice. Black is losing here.\" It now spends the runner-up number it already had: how much daylight your move had over the next best. Third: the base shell is on Play now. The board went from 416 to 424, the player bars absorb the leftover height, and the black band at the bottom went from 237 pixels to zero. Puzzles picked up the wider board from the same change.", r:()=>{setMenuOpen(false);setCoachOpen(false);setStreakPreview(false);setIntroCard(false);setDemoBest(null);setPlayEnd(null);setHomeScreen(false);setPlaySetup(false);setRevAuto(false);setRevCompact(true);setHideEval(false);setEvalUnder(true);setAnaMode(false);setAnaHist([]);setReview(null);setMode('analyze');revDemoPlyRef.current=17;const _pg='[White "speedo23"] [Black "Kunal2023"] [WhiteElo "1187"] [BlackElo "1243"] [Site "Chess.com"] [Result "0-1"] 1. e4 e5 2. Nc3 Nc6 3. Bb5 f5 4. Nf3 fxe4 5. Bxc6 dxc6 6. Nxe5 Nf6 7. O-O Bd6 8. Nc4 O-O 9. Re1 Bg4 10. f3 exf3 11. Nxd6 cxd6 12. d3 f2+ 13. Kxf2 Bxd1 14. Rxd1 d5 15. Kg1 Re8 16. Rf1 Qd6 17. Bg5 Re5 18. Nd1 Rae8 19. Bxf6 Qxf6 20. Nf2 Re1 21. Ng4 Rxf1+ 22. Rxf1 Qxf1+ 0-1';setPgnText(_pg);setTimeout(()=>importGame(_pg,{userColor:'b'}),80);}, h:9000},
@@ -4426,10 +4486,18 @@ export default function App(){
               const acc=cb('var(--ac)','#15210a');const g2={display:'grid',gridTemplateColumns:'1fr 1fr',gap:8};
               const banner=(txt)=>(<div style={{background:'rgba(110,168,254,.16)',border:'1px solid rgba(110,168,254,.42)',borderRadius:11,padding:'10px 12px',textAlign:'center',fontSize:'clamp(14px,3vw,15.5px)',color:'#cfe0ff',fontWeight:800}}>{txt}</div>);
               let body;
+              // #349: what the game did to your rating, shown once, right where the result is.
+              const _ratingLine=(og.result&&ratingMsg)?(
+                <div data-ct="rating-change" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'7px 12px',borderRadius:11,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.13)',fontSize:'clamp(13px,2.6vw,14.5px)',fontWeight:700}}>
+                  <span style={{color:'rgba(255,255,255,.62)'}}>Rating</span>
+                  <b style={{fontFamily:'ui-monospace,Menlo,monospace',color:'#fff'}}>{Math.round(rating.r)}</b>
+                  <b style={{fontFamily:'ui-monospace,Menlo,monospace',color:ratingMsg.charAt(0)==='-'?'#e8846e':'#7fd6a0'}}>{ratingMsg}</b>
+                  {rating.n<10&&<span style={{color:'rgba(255,255,255,.5)',fontWeight:600}}>· {10-rating.n} more to settle</span>}
+                </div>):null;
               if(og.result){
-                if(oppReq)body=(<div style={{display:'flex',flexDirection:'column',gap:8}}>{banner('🔄 '+oppName+' wants a rematch')}<div style={g2}><button onClick={onlineDeclineRematch} style={cb(cG)}>Decline</button><button onClick={onlineAcceptRematch} style={acc}>Accept</button></div></div>);
-                else if(iReq)body=(<div style={{display:'flex',flexDirection:'column',gap:8}}><button disabled style={{...cb(cG),opacity:.6,cursor:'default'}}>🔄 Rematch offered…</button><div style={g2}><button onClick={onlineCancelRematch} style={cb(cG)}>Cancel</button><button onClick={onlineLeave} style={cb(cV)}>← Leave</button></div></div>);
-                else body=(<div style={{display:'flex',flexDirection:'column',gap:8}}>{og.moves&&og.moves.length>=2&&<button onClick={reviewPlayedGame} style={{width:'100%',minHeight:48,borderRadius:11,border:'none',background:'linear-gradient(135deg,#6ea8fe,#3b76e8)',color:'#0a1020',fontWeight:800,fontSize:'clamp(14.5px,3.2vw,16px)',letterSpacing:.3,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>🔍 Review this game</button>}<button onClick={onlineOfferRematch} style={acc}>🔄 Rematch</button><div style={g2}><button onClick={()=>setFlip(f=>!f)} style={cb(cV)}>⟳ Flip</button><button onClick={onlineLeave} style={cb(cG)}>← Leave</button></div>{cloudUser&&(()=>{const ou=(myColor==='w'?(og.b&&og.b.uid):(og.w&&og.w.uid));const on2=(myColor==='w'?(og.b&&og.b.name):(og.w&&og.w.name))||'opponent';const isF=ou&&(friendsData.friends||[]).some(function(f){return f.uid===ou;});if(!ou||isF)return null;return(<button onClick={async()=>{try{await window.CTCloud.friendRequest(ou,on2);setOnlineInfo("Friend request sent to "+on2+".");}catch(e){const m=e&&e.message;setOnlineInfo(m==='pending'?("Request already sent to "+on2+"."):m==='already'?"Already friends.":"Could not send the request.");}}} style={cb(cG)}>➕ Add {on2} as friend</button>);})()}</div>);
+                if(oppReq)body=(<div style={{display:'flex',flexDirection:'column',gap:8}}>{_ratingLine}{banner('🔄 '+oppName+' wants a rematch')}<div style={g2}><button onClick={onlineDeclineRematch} style={cb(cG)}>Decline</button><button onClick={onlineAcceptRematch} style={acc}>Accept</button></div></div>);
+                else if(iReq)body=(<div style={{display:'flex',flexDirection:'column',gap:8}}>{_ratingLine}<button disabled style={{...cb(cG),opacity:.6,cursor:'default'}}>🔄 Rematch offered…</button><div style={g2}><button onClick={onlineCancelRematch} style={cb(cG)}>Cancel</button><button onClick={onlineLeave} style={cb(cV)}>← Leave</button></div></div>);
+                else body=(<div style={{display:'flex',flexDirection:'column',gap:8}}>{_ratingLine}{og.moves&&og.moves.length>=2&&<button onClick={reviewPlayedGame} style={{width:'100%',minHeight:48,borderRadius:11,border:'none',background:'linear-gradient(135deg,#6ea8fe,#3b76e8)',color:'#0a1020',fontWeight:800,fontSize:'clamp(14.5px,3.2vw,16px)',letterSpacing:.3,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>🔍 Review this game</button>}<button onClick={onlineOfferRematch} style={acc}>🔄 Rematch</button><div style={g2}><button onClick={()=>setFlip(f=>!f)} style={cb(cV)}>⟳ Flip</button><button onClick={onlineLeave} style={cb(cG)}>← Leave</button></div>{cloudUser&&(()=>{const ou=(myColor==='w'?(og.b&&og.b.uid):(og.w&&og.w.uid));const on2=(myColor==='w'?(og.b&&og.b.name):(og.w&&og.w.name))||'opponent';const isF=ou&&(friendsData.friends||[]).some(function(f){return f.uid===ou;});if(!ou||isF)return null;return(<button onClick={async()=>{try{await window.CTCloud.friendRequest(ou,on2);setOnlineInfo("Friend request sent to "+on2+".");}catch(e){const m=e&&e.message;setOnlineInfo(m==='pending'?("Request already sent to "+on2+"."):m==='already'?"Already friends.":"Could not send the request.");}}} style={cb(cG)}>➕ Add {on2} as friend</button>);})()}</div>);
               } else if(oppOffered){
                 body=(<div style={{display:'flex',flexDirection:'column',gap:8}}>{banner('🤝 '+oppName+' offers a draw')}<div style={g2}><button onClick={onlineDeclineDraw} style={cb(cG)}>Decline</button><button onClick={onlineAcceptDraw} style={acc}>Accept ½–½</button></div></div>);
               } else if(confirmResign){
@@ -4875,6 +4943,9 @@ export default function App(){
           let rating='';
           if(inReview){const _H=(review&&review.headers)||{};const _r=col==='w'?_H.WhiteElo:_H.BlackElo;if(_r&&/^\d{3,4}$/.test(String(_r).trim()))rating=String(_r).trim();}
           else if(opponent==='computer'&&col!==pColor){const _b=botById(selBot);rating=String((_b&&_b.elo)||cpuElo);}
+          else if(_isOnlineG){const _pd=col==='w'?_og.w:_og.b;
+            if(_pd&&typeof _pd.rating==='number')rating=String(_pd.rating);
+            else if(col===myColor)rating=String(Math.round(ratingRef.current.r));}
           const flag=inReview?flagOf(revFlags[col]||''):'';
           let clk=null, ticking=false;
           if(_isOnlineG&&_og.tc&&_og.tc.kind!=='corr'&&_og.tc.init&&_og.clk){ const base=liveNow-(_og.moveAt||liveNow); const rem=Math.max(0,(_og.clk[col]||0)-(col===game.turn?base:0)); clk=clockFmt(rem); ticking=(col===game.turn)&&_og.status==='active'&&!_og.result; }

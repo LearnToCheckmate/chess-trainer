@@ -75,8 +75,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
       signOut:function(){ return this._signOut ? this._signOut() : Promise.resolve(); },
       load:function(){ return this._load ? this._load() : Promise.resolve(null); },
       save:function(d){ return this._save ? this._save(d) : Promise.resolve(); },
-      gameCreate:function(c){ return this._gameCreate ? this._gameCreate(c) : Promise.reject(new Error('cloud-not-ready')); },
-      gameJoin:function(c){ return this._gameJoin ? this._gameJoin(c) : Promise.reject(new Error('cloud-not-ready')); },
+      gameCreate:function(c,tc,meta){ return this._gameCreate ? this._gameCreate(c,tc,meta) : Promise.reject(new Error('cloud-not-ready')); },
+      gameJoin:function(c,meta){ return this._gameJoin ? this._gameJoin(c,meta) : Promise.reject(new Error('cloud-not-ready')); },
       gameWatch:function(id,cb){ return this._gameWatch ? this._gameWatch(id,cb) : function(){}; },
       gamePush:function(id,d){ return this._gamePush ? this._gamePush(id,d) : Promise.resolve(); },
       gameChat:function(id,m){ return this._gameChat ? this._gameChat(id,m) : Promise.resolve(); },
@@ -143,19 +143,21 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
       C._load    = async function(){ const u=auth.currentUser; if(!u) return null; const snap=await getDoc(doc(db,'users',u.uid)); return snap.exists()?snap.data():null; };
       C._save    = async function(d){ const u=auth.currentUser; if(!u) return; await setDoc(doc(db,'users',u.uid), Object.assign({}, d, {updatedAt:Date.now()}), {merge:true}); };
       let _gu=null;
-      C._gameCreate = async function(color, tc){ const u=auth.currentUser; if(!u) throw new Error('signin');
+      C._gameCreate = async function(color, tc, meta){ const u=auth.currentUser; if(!u) throw new Error('signin');
         const code=Math.random().toString(36).slice(2,7).toUpperCase();
         const me={uid:u.uid,name:u.displayName||'Player',photo:u.photoURL||''};
+        if(meta&&typeof meta.rating==='number'){me.rating=Math.round(meta.rating);me.rgames=Math.max(0,Math.round(meta.rgames||0));}
         const now=Date.now();
         const _live = tc && tc.kind!=='corr' && tc.init; const data={code:code,status:'waiting',moves:[],result:null,chat:[],tc:tc||null,clk:_live?{w:tc.init*1000,b:tc.init*1000}:null,createdAt:now,updatedAt:now,moveAt:now};
         data[color==='b'?'b':'w']=me;
         await setDoc(doc(db,'games',code), data);
         try{ await setDoc(doc(db,'users',u.uid), {games:arrayUnion(code), updatedAt:now}, {merge:true}); }catch(e){}
         return {id:code,code:code}; };
-      C._gameJoin = async function(code){ const u=auth.currentUser; if(!u) throw new Error('signin');
+      C._gameJoin = async function(code, meta){ const u=auth.currentUser; if(!u) throw new Error('signin');
         code=String(code||'').trim().toUpperCase(); const ref=doc(db,'games',code); const snap=await getDoc(ref);
         if(!snap.exists()) throw new Error('notfound'); const g=snap.data();
         const me={uid:u.uid,name:u.displayName||'Player',photo:u.photoURL||''};
+        if(meta&&typeof meta.rating==='number'){me.rating=Math.round(meta.rating);me.rgames=Math.max(0,Math.round(meta.rgames||0));}
         const remember=async function(){ try{ await setDoc(doc(db,'users',u.uid), {games:arrayUnion(code), updatedAt:Date.now()}, {merge:true}); }catch(e){} };
         if(g.w&&g.w.uid===u.uid){ await remember(); return {id:code,color:'w'}; }
         if(g.b&&g.b.uid===u.uid){ await remember(); return {id:code,color:'b'}; }
