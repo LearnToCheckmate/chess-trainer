@@ -211,6 +211,13 @@ function flagOf(cc){
   if(!cc||cc.length!==2||!/^[A-Za-z]{2}$/.test(cc))return '';
   try{return String.fromCodePoint(...[...cc.toUpperCase()].map(ch=>0x1F1E6+ch.charCodeAt(0)-65));}catch(e){return '';}
 }
+// #353 Imported accounts and their games, kept for good and across reloads. Bounded so a long
+// history cannot fill the origin's storage: 8 accounts, 40 games each, oldest account dropped
+// first. A quota failure keeps the games in memory for this session rather than losing the fetch.
+const ACCT_K='ct_accts', ACCT_G='ct_acctgames', ACCT_MAX=8, ACCT_GMAX=40;
+function acctGamesLoad(){try{const o=JSON.parse(localStorage.getItem(ACCT_G)||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}}
+function acctGamesSave(map){try{localStorage.setItem(ACCT_G,JSON.stringify(map));}catch(e){}}
+const acctId=(src,user)=>src+':'+String(user||'').trim().toLowerCase().replace(/^@/,'');
 // Country lookup, cached in localStorage for good. A miss is remembered too, so a player with no country set
 // is not looked up again on every review. Never throws, never blocks anything.
 const CC_CACHE_KEY='ct_country';
@@ -1976,6 +1983,13 @@ export default function App(){
   const [importSrc,setImportSrc]=useState(()=>{try{if(!localStorage.getItem('ct_ccuser')&&localStorage.getItem('ct_liuser'))return 'li';}catch{}return 'cc';});
   const [gameSearch,setGameSearch]=useState('');
   const ccRawRef=useRef(null),liRawRef=useRef(null),gamesAutoRef=useRef(false);
+  // #353 Kunal: "only one chess.com ID is kept at a time, so importing friends wiped my games.
+  // Keep imported IDs and their games forever, for multiple accounts, don't replace on import."
+  // Every fetch used to overwrite ccRawRef wholesale, and the username was a single string, so
+  // looking up a friend cost you your own history. Games are now filed PER ACCOUNT and kept in
+  // localStorage, so they survive a reload as well as the next import.
+  const [ccAccts,setCcAccts]=useState(()=>{try{return JSON.parse(localStorage.getItem(ACCT_K)||'[]')||[];}catch(e){return [];}});
+  const acctGamesRef=useRef(acctGamesLoad());
   const gameStatsRef=useRef((()=>{try{return JSON.parse(localStorage.getItem('ct_gamestats')||'{}')||{};}catch{return {};}})());  // gkey -> {bril,great,inacc,mist,blun}
   const [gsVer,setGsVer]=useState(0);   // bump to re-render game rows as background stats fill in
   const analyzingRef=useRef(false);
@@ -2777,7 +2791,37 @@ export default function App(){
   const jumpToIssue=(label)=>{setRevAuto(false);if(!review||!review.analysis)return;const idxs=[];review.analysis.forEach((o,i)=>{if(o.cls&&o.cls.label===label)idxs.push(i+1);});if(!idxs.length)return;const nxt=idxs.find(p=>p>ply);setPly(nxt!==undefined?nxt:idxs[0]);};
   const keyPlies=useMemo(()=>{if(!review||!review.analysis)return [];const KS=['Brilliant','Great','Miss','Mistake','Blunder','Inaccuracy'];const out=[];review.analysis.forEach((o,i)=>{if(o.cls&&KS.indexOf(o.cls.label)>=0)out.push(i+1);});return out;},[review]);
   const jumpKey=(d)=>{setRevAuto(false);if(!keyPlies.length)return;let nx;if(d>0){nx=keyPlies.find(p=>p>ply);if(nx===undefined)nx=keyPlies[0];}else{const b=keyPlies.filter(p=>p<ply);nx=b.length?b[b.length-1]:keyPlies[keyPlies.length-1];}setPly(nx);};
-  const mergeGames=()=>{const a=[...(ccRawRef.current||[]),...(liRawRef.current||[])];a.sort((x,y)=>(y.date||0)-(x.date||0));setCcGames(a.length?a:null);};
+  // #353 every imported account contributes; a fetch adds to the pile instead of becoming it.
+  // Deduped on the game key, because re-fetching an account returns games you already have.
+  const mergeGames=()=>{
+    const seen={},a=[];
+    const push=(g)=>{const k=(g.src||'')+':'+(g.date||0)+':'+(g.white||'')+':'+(g.black||'');if(seen[k])return;seen[k]=1;a.push(g);};
+    (ccRawRef.current||[]).forEach(push); (liRawRef.current||[]).forEach(push);
+    const M=acctGamesRef.current||{};
+    Object.keys(M).forEach(id=>(M[id]||[]).forEach(push));
+    a.sort((x,y)=>(y.date||0)-(x.date||0));
+    setCcGames(a.length?a:null);
+  };
+  // file one account's fetch, evicting the oldest account if we are at the cap
+  const acctStore=(src,user,rows)=>{
+    const id=acctId(src,user); if(!id.split(':')[1])return;
+    const M={...(acctGamesRef.current||{})};
+    M[id]=rows.slice(0,ACCT_GMAX);
+    let ids=Object.keys(M);
+    const order=[...ccAccts.filter(x=>x!==id),id];
+    while(ids.length>ACCT_MAX){const drop=order.shift()||ids[0];delete M[drop];ids=Object.keys(M);}
+    acctGamesRef.current=M; acctGamesSave(M);
+    const next=order.filter(x=>M[x]);
+    setCcAccts(next);
+    try{localStorage.setItem(ACCT_K,JSON.stringify(next));}catch(e){}
+  };
+  const acctForget=(id)=>{
+    const M={...(acctGamesRef.current||{})}; delete M[id];
+    acctGamesRef.current=M; acctGamesSave(M);
+    const next=ccAccts.filter(x=>x!==id); setCcAccts(next);
+    try{localStorage.setItem(ACCT_K,JSON.stringify(next));}catch(e){}
+    mergeGames();
+  };
   const fetchChessCom=async()=>{
     const u=chessUser.trim().toLowerCase().replace(/^@/,'');
     if(!u){setCcErr('Enter your Chess.com username first.');return;}
@@ -2790,14 +2834,17 @@ export default function App(){
       const gr=await fetch(archives[archives.length-1]);const grj=await gr.json();
       const games=(grj.games||[]).filter(g=>g.pgn).slice(-20).reverse();
       if(!games.length)throw new Error('no recent games found');
-      ccRawRef.current=games.map(g=>({src:'cc',pgn:g.pgn,white:(g.white&&g.white.username)||'White',black:(g.black&&g.black.username)||'Black',wr:g.white&&g.white.result,tc:g.time_class,date:(g.end_time||0)*1000}));mergeGames();
+      const rows=games.map(g=>({src:'cc',acct:u,pgn:g.pgn,white:(g.white&&g.white.username)||'White',black:(g.black&&g.black.username)||'Black',wr:g.white&&g.white.result,tc:g.time_class,date:(g.end_time||0)*1000}));
+      ccRawRef.current=null; acctStore('cc',u,rows); mergeGames();
     }catch(e){setCcErr('Couldn’t reach Chess.com ('+((e&&e.message)||'network blocked')+'). Fetching works once this app is on a real website — the preview sandbox blocks outside connections. You can still paste a PGN below.');}
     setCcLoading(false);
   };
   const ccResult=(g)=>{const w=g.wr;if(w==='win')return g.white+' won';if(['checkmated','resigned','timeout','abandoned','lose','kingofthehill','threecheck','bughousepartnerlose'].includes(w))return g.black+' won';return 'draw';};
   const gkey=(g)=>g.src+':'+(g.date||0)+':'+(g.white||'')+':'+(g.black||'');
-  const myName=(src)=>((src==='li'?lichessUser:chessUser)||'').trim().toLowerCase().replace(/^@/,'');
-  const gameInfo=(g)=>{const mn=myName(g.src),wl=(g.white||'').toLowerCase(),bl=(g.black||'').toLowerCase();const userColor=mn&&wl===mn?'w':(mn&&bl===mn?'b':null);const opp=userColor==='w'?g.black:(userColor==='b'?g.white:null);const w=g.wr;const whiteRes=w==='win'?'w':(['checkmated','resigned','timeout','abandoned','lose','kingofthehill','threecheck','bughousepartnerlose'].includes(w)?'b':'draw');const code=whiteRes==='draw'?'draw':(userColor?(whiteRes===userColor?'win':'loss'):null);return {userColor,opp,code};};
+  // #353 with more than one imported account, "which side am I" is a property of the GAME, not
+  // of whatever is currently typed in the box. Fall back to the box for anything imported before.
+  const myName=(src,g)=>(g&&g.acct)?String(g.acct).toLowerCase():((src==='li'?lichessUser:chessUser)||'').trim().toLowerCase().replace(/^@/,'');
+  const gameInfo=(g)=>{const mn=myName(g.src,g),wl=(g.white||'').toLowerCase(),bl=(g.black||'').toLowerCase();const userColor=mn&&wl===mn?'w':(mn&&bl===mn?'b':null);const opp=userColor==='w'?g.black:(userColor==='b'?g.white:null);const w=g.wr;const whiteRes=w==='win'?'w':(['checkmated','resigned','timeout','abandoned','lose','kingofthehill','threecheck','bughousepartnerlose'].includes(w)?'b':'draw');const code=whiteRes==='draw'?'draw':(userColor?(whiteRes===userColor?'win':'loss'):null);return {userColor,opp,code};};
   const tcLabel=(tc)=>{if(!tc)return '';const t=String(tc);return t.charAt(0).toUpperCase()+t.slice(1);};
   const outcomeBadge=(code)=>code==='win'?{t:'WON',c:'#bff0c0',bg:'rgba(111,214,111,.18)',br:'rgba(111,214,111,.45)'}:code==='loss'?{t:'LOST',c:'#ffc2bc',bg:'rgba(236,92,78,.16)',br:'rgba(236,92,78,.45)'}:code==='draw'?{t:'DRAW',c:'#e2e6ee',bg:'rgba(255,255,255,.10)',br:'rgba(255,255,255,.24)'}:{t:'GAME',c:'rgba(255,255,255,.6)',bg:'rgba(255,255,255,.06)',br:'rgba(255,255,255,.16)'};
   const fetchLichess=async()=>{
@@ -2811,11 +2858,14 @@ export default function App(){
       if(!lines.length)throw new Error('no games on that account');
       const games=lines.map(l=>{try{return JSON.parse(l);}catch{return null;}}).filter(g=>g&&g.pgn);
       if(!games.length)throw new Error('no recent games found');
-      liRawRef.current=games.map(g=>{const wn=(g.players&&g.players.white&&g.players.white.user&&g.players.white.user.name)||'White';const bn=(g.players&&g.players.black&&g.players.black.user&&g.players.black.user.name)||'Black';return {src:'li',pgn:g.pgn,white:wn,black:bn,wr:g.winner==='white'?'win':(g.winner==='black'?'resigned':'draw'),tc:g.speed||'game',date:g.lastMoveAt||g.createdAt||0};});mergeGames();
+      const _rows=games.map(g=>{const wn=(g.players&&g.players.white&&g.players.white.user&&g.players.white.user.name)||'White';const bn=(g.players&&g.players.black&&g.players.black.user&&g.players.black.user.name)||'Black';return {src:'li',acct:u.toLowerCase(),pgn:g.pgn,white:wn,black:bn,wr:g.winner==='white'?'win':(g.winner==='black'?'resigned':'draw'),tc:g.speed||'game',date:g.lastMoveAt||g.createdAt||0};});
+      liRawRef.current=null; acctStore('li',u,_rows); mergeGames();
     }catch(e){setCcErr('Couldn’t reach Lichess ('+((e&&e.message)||'network blocked')+'). Fetching works once this app is on a real website; the preview sandbox blocks outside connections. You can still paste a PGN below.');}
     setCcLoading(false);
   };
   const pickCcGame=(g)=>{const info=gameInfo(g);setPgnText(g.pgn);importGame(g.pgn,{key:gkey(g),userColor:info.userColor});};
+  // #353 show what is already stored the moment the Review screen opens, before any network call
+  useEffect(()=>{if(mode!=='analyze')return;const M=acctGamesRef.current||{};if(Object.keys(M).length)mergeGames();},[mode]);
   useEffect(()=>{if(mode!=='analyze'||gamesAutoRef.current)return;const cu=chessUser.trim(),lu=lichessUser.trim();if(cu||lu){gamesAutoRef.current=true;if(cu)fetchChessCom();if(lu)fetchLichess();}},[mode]);
   useEffect(()=>{analyzingRef.current=analyzing;},[analyzing]);
   // Background pass: fill in move-quality counts for every fetched game, one at a time, only while on the Review screen, pausing while a manual review is computing.
@@ -4365,6 +4415,14 @@ export default function App(){
               <input value={importSrc==='cc'?chessUser:lichessUser} onChange={e=>(importSrc==='cc'?setChessUser:setLichessUser)(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')(importSrc==='cc'?fetchChessCom:fetchLichess)();}} placeholder={importSrc==='cc'?'Chess.com username':'Lichess username'} style={{flex:1,minWidth:0,padding:'9px 11px',borderRadius:8,background:'#2a2a40',color:'#fff',border:'1.5px solid rgba(255,255,255,.18)',fontSize:'clamp(15px,3.4vw,17px)'}}/>
               <button onClick={()=>(importSrc==='cc'?fetchChessCom:fetchLichess)()} disabled={ccLoading} style={{...btn('var(--ac)','none','#fff'),whiteSpace:'nowrap',opacity:ccLoading?.6:1}}>{ccLoading?'…':'Fetch'}</button>
             </div>
+            {ccAccts.length>0&&(<div data-ct="acct-chips" style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center',marginTop:2}}>
+              <span style={{fontSize:'clamp(13px,2.4vw,13.5px)',color:'rgba(255,255,255,.45)',fontWeight:700}}>Imported</span>
+              {ccAccts.map(id=>{const _s=id.split(':')[0],_u=id.slice(_s.length+1),_n=((acctGamesRef.current||{})[id]||[]).length;return(
+                <span key={id} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 6px 4px 10px',borderRadius:16,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.16)',fontSize:'clamp(13px,2.5vw,14px)',color:'#fff',fontWeight:700}}>
+                  {_u}<span style={{color:'rgba(255,255,255,.42)',fontWeight:600}}>{_n}</span>
+                  <button onClick={()=>acctForget(id)} aria-label={'Remove '+_u} title={'Remove '+_u+' and its games'} style={{width:20,height:20,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.1)',color:'rgba(255,255,255,.7)',cursor:'pointer',fontSize:12,lineHeight:1,padding:0}}>{'\u00d7'}</button>
+                </span>);})}
+            </div>)}
             {ccErr&&<div style={{fontSize:'clamp(14px,3.1vw,16px)',color:'#ffb86b',lineHeight:1.5}}>{ccErr}</div>}
             {ccGames&&ccGames.length>0&&(()=>{const _gs=gameSearch.trim().toLowerCase();const _shown=ccGames.filter(g=>!_gs||((g.white+' '+g.black+' '+(g.src==='li'?'lichess':'chess.com')).toLowerCase().includes(_gs)));return(<>
               <div ref={gamesListRef} style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:8,marginTop:3}}>
