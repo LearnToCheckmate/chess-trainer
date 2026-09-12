@@ -2,7 +2,7 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 17:50 ET)
+## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 19:00 ET)
 LIVE = **#367** (app.js stamp "#367 - 2026-09-12 17:14 ET", commit e65119c on origin/main, Kunal's upload at
 17:17 ET, verified by hash at raw.githubusercontent.com; source and docs went up with it). Local history is merged.
 #367 = y12c the Look and feel picker (data-ct look; drawn preview board painted from the live TH / pieceSet /
@@ -16,7 +16,22 @@ device); y15b round Analyze button on the Review board (data-ct rev-fab), board 
 y11b lesson note box fixed at 75px / three lines at 15px, lesson board 360 -> 375 on his phone; lay-B Layout
 overlay (menu row, ct_layoutgrid, data-ct layout-grid). Evidence: shots366/ and tracker rows y3 y11 y15 k7.
 Harnesses: before366.js, overlay366.js.
-BUILT, GATED, STAGED FOR HIS CLICK = **#370** (stamp "#370 - 2026-09-12 17:45 ET", carries #368 and #369):
+BUILT (gating with gates.sh as this is written) = **#371** (stamp "#371 - 2026-09-12 18:56 ET"), the response to
+the three agents Kunal asked for (see 0c). Fixed: A-02/X-01 the Play board collapsed 357 -> 192 at GAME OVER on
+phones (title row, tab bar, Elo stepper, slider and a full-width Review button all came back) - a finished game
+keeps the live chrome and the Hint/Flip slots become Review/Rematch, same row, same height (gameover371.js:
+357 -> 357, scroll 0); A-01 the lesson board collapsed 375 -> 272 at the demo's END and in practice (a 100px
+variations box, then a spacer that swallowed the slack) - the box lives in the ⋯ sheet behind an "Other lines"
+button on phones, the spacer is fixed 4px and aria-hidden, board 375 at top 92 in every phase (lesson371.js);
+A-03 a checkmated side read as the WINNER (UCI mate 0 flipped by sign gave 0): mateW()/mateLbl(), labels
+"1-0"/"0-1", cached reviews patched on read (mate371.js); X-02 every check counted as a fork (the king was a
+target AND the check added one) - fixed in moveMotifs, Morphy's forks 4 -> 2; X-03 inkScale blends the larger
+side with the ink's geometric mean; X-05 the round Analyze button steps to the bottom-left when the last move
+landed on g1/h1/g2/h2; X-06 the eval graph is 126 wide on his phone; A-06 puzzle hints show as a banner over the
+top of the board on phones (data-ct pz-hint-banner); X-04 the live opening name is the base name; X-10 the name
+stays put while the computer thinks; X-11 open file = no pawn of either colour, '#' counts as a check; note box
+77px; "Rematch" not "New game" so the label does not wrap. Decisions taken alone are in DECISIONS-LOG.
+BUILT, GATED, STAGED FOR HIS CLICK = **#370** (stamp "#370 - 2026-09-12 17:57 ET", carries #368 and #369):
 THE FINDING OF THE RUN: on his phone the Play board was 357 at move 0 and **295 after 1.e4** (pass & play 351 ->
 279). The moves panel's nav row (first/prev/LIVE/next/last) and the "Tap Analyze" hint appear once there is
 history, the panel's minimum grows by 67px and the fit loop takes it out of the board. EVERY play measurement
@@ -66,6 +81,31 @@ straight from /mnt/user-data/outputs), fill the commit message, and let him pres
 Also learned: deploy.py writes commits DIRECTLY on GitHub, so a local commit for the same build is a
 DIFFERENT commit and the histories diverge. Always `git fetch` and rebase onto origin/main before
 assuming a push is a fast-forward. And never version `.run/` - it was the only content difference.
+
+## 0c) THE THREE AGENTS (Kunal's instruction, 2026-09-12 17:07 ET, from the feedback session)
+"Start the next run by creating three agents: a supervisory agent; an antagonistic agent that really looks through
+the work being done and the issues being hit, especially from a layout perspective but also everything else; an
+audit agent that goes through the app as it currently is and identifies all the possible issues it can find."
+They ran for the first time at 18:00-18:50 ET (Agent tool, general-purpose subagents). Their reports:
+/home/claude/work/agents/{audit,antagonist,supervisor}/*-REPORT.md (also summarised in FEEDBACK-INBOX under #371).
+The audit found two P0s no gate had ever seen (the board collapsing at game over and at the lesson's end), the
+antagonist found the Skills panel and the eval graph showing wrong numbers, the supervisor ruled on process
+(RUN-LOG.md exists because of it). HOW THE NEXT RUN USES THEM (supervisor ruling D, adopted):
+- AUDIT at the START of every run, against the bundle that is live on his phone (verify the stamp first), at his
+  geometry and 390x844, AFTER interaction on every board screen (moves played, game ended by resign AND checkmate,
+  puzzle solved and failed, review at ply 0 / mid / last). Output: ranked P0/P1/P2, one screenshot + one
+  measurement per finding, a "not checked" list. Hard rule: no finding without a measured number and a PNG.
+- ANTAGONIST BEFORE EACH DEPLOY, on that build's diff and gate log only. Output: for every claim, "measured /
+  measured in one configuration / prose", the state the gate skipped, at least one disputed number. Hard rule:
+  it must try to break each claim in a configuration the gate did not use and report the numbers.
+- SUPERVISOR at CLOSE-OUT (and whenever a tracker `flags` doc is broken=true). Output: the next run's priorities,
+  the process scorecard (p1-p7, evidenced or "not evidenced"), the plain paragraph for Kunal. Hard rule: it does
+  not build or drive; every sentence cites a file or a report id; it may veto the deploy click on a red gate.
+- Their summaries go into FEEDBACK-INBOX under the build they belong to, so they survive the session.
+- THE GATE IS ONE SCRIPT NOW: work/build/gates.sh runs every harness and exits 1 on any FAIL, "<<<" or a
+  non-zero exit; a build is "gated" only when gates<N>.log ends in GATES GREEN. Hand-typed lists are over.
+- MEASURE AT THE END, NOT ONLY AFTER THE FIRST MOVE: game over (resign and mate), lesson end and practice,
+  puzzle solved and failed, review last ply. Two P0s lived there for months.
 
 ## 0b) BEFORE / AFTER SCREENSHOTS ARE PART OF CLOSING AN ITEM (2026-09-12)
 Kunal: "for the feedback tracker show me screenshots of before and after for each of these items

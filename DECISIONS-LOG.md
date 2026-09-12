@@ -164,3 +164,18 @@ the reading I took, so it can be reversed on purpose rather than by accident:
   were what shrank the board by 62px after the first move. Back / Forward stay in the button row. If
   he wants first/last back, they cost nothing INSIDE the button row; they cannot come back as a
   second row under the board.
+
+## #371 (18:56 ET) — decisions taken alone while answering the three agents, all reversible
+
+- On phones a FINISHED game keeps the live screen: tabs hidden, home and menu in the top bar, and the
+  Hint / Flip buttons become Review / Rematch. The Elo stepper, the slider and the "vs Computer" line
+  leave the phone game-over screen (they were the 130px that shrank the board to 192); the strength
+  chip's text goes to the status line above the board. Flip is still in More. iPad is unchanged.
+- At the demo's end on phones the variations box ("How does White reply? Tap a line") lives in the ⋯
+  sheet, reached by an "Other lines (n)" button that takes Flip's slot; Flip joins the sheet.
+- The round Analyze button jumps to the bottom-left corner when the last move landed on g1/h1/g2/h2.
+  The alternative was shrinking the badge or the button; neither was asked for.
+- A puzzle hint on phones is a banner over the top of the board (over rank 8), not a taller box under
+  it, because a taller box costs the board 18px at his geometry.
+- A checkmate is written "1-0" / "0-1" in the eval label, not "M0".
+- The three agents are standing process now (HANDOFF 0c), run by the build session itself.

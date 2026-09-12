@@ -113,6 +113,12 @@ function getStatus(game){const l=getLegal(game);const chk=isInCheck(game.board,g
 //  AI  — minimax + alpha-beta, piece-square evaluation
 // ═══════════════════════════════════════════════════════════════
 const VAL={p:100,n:320,b:330,r:500,q:900,k:0};
+/* #371 (audit A-03): UCI 'score mate 0' means the side to move is ALREADY mated. Flipping it to White's view by sign
+   gave 0, which every consumer read as 'Black is mating' - the bar went 95% black and the label said -M0 at 17.Rd8#.
+   A mated side to move is encoded as half a mate for the OTHER side, so the sign carries the winner and the magnitude
+   (<1) tells the labels to print the result instead of a number. */
+const mateW=(raw,sign)=>(raw===0?-sign*0.5:sign*raw);
+const mateLbl=(m)=>(Math.abs(m)<1?(m>0?'1-0':'0-1'):((m>0?'M':'-M')+Math.abs(m)));
 const PST={
   p:[0,0,0,0,0,0,0,0, 50,50,50,50,50,50,50,50, 10,10,20,30,30,20,10,10, 5,5,10,25,25,10,5,5, 0,0,0,20,20,0,0,0, 5,-5,-10,0,0,-10,-5,5, 5,10,10,-20,-20,10,10,5, 0,0,0,0,0,0,0,0],
   n:[-50,-40,-30,-30,-30,-30,-40,-50, -40,-20,0,0,0,0,-20,-40, -30,0,10,15,15,10,0,-30, -30,5,15,20,20,15,5,-30, -30,0,15,20,20,15,0,-30, -30,5,10,15,15,10,5,-30, -40,-20,0,5,5,0,-20,-40, -50,-40,-30,-30,-30,-30,-40,-50],
@@ -407,7 +413,7 @@ function moveMotifs(pos,mv){
       for(const m of getLegal(probe)){
         if(m.fr!==mv.tr||m.fc!==mv.tc)continue;
         const t=nb[m.tr]&&nb[m.tr][m.tc];
-        if(t&&t.c===them&&(SEEVAL[t.t]||0)>=3)hits++;
+        if(t&&t.c===them&&t.t!=='k'&&(SEEVAL[t.t]||0)>=3)hits++; /* #371 (antagonist X-02): the king counted as a target AND the check added one more, so every check was a fork */
       }
       if(inChk&&hits>=1)hits++;
       if(hits>=2)out.push('fork');
@@ -645,6 +651,7 @@ function sacTaker(posBefore,mv){
 /* an evaluation as a person reads it, from White's side: +1.3, -0.4, M3, -M2 */
 function evTxt(cpW){
   if(cpW==null)return '';
+  if(Math.abs(cpW)>=99900)return cpW>0?'1-0':'0-1'; /* #371: a mated side to move (see mateW) */
   if(Math.abs(cpW)>=90000){const n=Math.max(1,Math.round((100000-Math.abs(cpW))/100));return (cpW>0?'M':'-M')+n;}
   const v=cpW/100;return (v>=0?'+':'')+v.toFixed(1);
 }
@@ -866,7 +873,7 @@ function gameSkills(positions,plies,out,bookN){
       if(moveNo<=10){s.develop.of++;const out1=(pc.t==='n'||pc.t==='b')&&home[side][key]&&!left[side][key];if(isCastle||out1)s.develop.n++;}
       if((pc.t==='n'||pc.t==='b')&&home[side][key])left[side][key]=1;
       if(isCastle&&s.castled==null)s.castled=moveNo;
-      const san=(plies[i].san||'');if(/\+/.test(san))S[them].checksFaced++;
+      const san=(plies[i].san||'');if(/[+#]/.test(san))S[them].checksFaced++; /* #371 (X-11): the mating check is a check */
       if(i<bookN)s.book++;
       const a=out[i]||{};
       let mo=a.motifs;if(!mo){try{mo=moveMotifs(pos,mv);}catch(e){mo=[];}}
@@ -876,7 +883,7 @@ function gameSkills(positions,plies,out,bookN){
       if((a.loss||0)>=100&&L!=='Brilliant'&&L!=='Great'){const p2=positions[i+1];if(p2){let hung=false;
         for(let r=0;r<8&&!hung;r++)for(let c=0;c<8&&!hung;c++){const q=p2.board[r][c];if(q&&q.c===side&&q.t!=='k'&&q.t!=='p'){try{if(seeSq(p2,r,c,them)>=2)hung=true;}catch(e){}}}
         if(hung)s.hanging.push(i);}}
-      if(pc.t==='r'&&mv.fc!==mv.tc){const nb=applyMove(pos.board,mv);let own=0;for(let r=0;r<8;r++){const q=nb[r][mv.tc];if(q&&q.t==='p'&&q.c===side)own++;}if(own===0)s.rookFiles.push(i);}
+      if(pc.t==='r'&&mv.fc!==mv.tc){const nb=applyMove(pos.board,mv);let pawns=0;for(let r=0;r<8;r++){const q=nb[r][mv.tc];if(q&&q.t==='p')pawns++;}if(pawns===0)s.rookFiles.push(i);} /* #371 (X-11): open means no pawn of EITHER colour */
     }
     const fin=positions[N]||positions[N-1];
     if(fin){for(const side of ['w','b']){const f=[0,0,0,0,0,0,0,0];for(let r=0;r<8;r++)for(let c=0;c<8;c++){const q=fin.board[r][c];if(q&&q.t==='p'&&q.c===side)f[c]++;}
@@ -1440,6 +1447,7 @@ function _CIcon({name,size=21,style}){
     chat:<path fill="currentColor" d="M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-4 3v-3H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>,
     leave:<g fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M14 5H6a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8"/><path d="M11 12h9M17 8l4 4-4 4"/></g>,
     newgame:<g fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8" stroke="currentColor"/></g>,
+    analyze:<g fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><circle cx="10.3" cy="10.1" r="6.2"/><path d="M15 14.8 L20.6 20.4"/></g>,
   };
   return(<svg viewBox="0 0 24 24" width={size} height={size} style={{display:'block',...style}}>{P[name]||null}</svg>);
 }
@@ -1646,7 +1654,7 @@ function inkScale(glyph,font,target){
       if(x){ x.font=N+'px '+font; x.textBaseline='middle'; x.textAlign='center'; x.fillText(glyph,N,N);
         const d=x.getImageData(0,0,W,W).data; let x0=W,x1=-1,y0=W,y1=-1;
         for(let y=0;y<W;y++){for(let xx=0;xx<W;xx++){if(d[(y*W+xx)*4+3]>40){if(xx<x0)x0=xx;if(xx>x1)x1=xx;if(y<y0)y0=y;if(y>y1)y1=y;}}}
-        if(x1>=0){ ext=Math.max(x1-x0+1,y1-y0+1)/N; if(ext>0.2&&ext<1.6)s=Math.max(0.7,Math.min(1.6,target/ext)); }
+        if(x1>=0){ const w=x1-x0+1,h=y1-y0+1; ext=(Math.max(w,h)+Math.sqrt(w*h))/2/N; /* #371 (antagonist X-03): the larger side alone let a tall thin pawn pass as 'matched'; half the weight now goes to the ink's area */ if(ext>0.2&&ext<1.6)s=Math.max(0.7,Math.min(1.6,target/ext)); }
       }
     }
   }catch(e){ s=1; }
@@ -2636,7 +2644,7 @@ export default function App(){
         if(sfEvalingRef.current&&msg.startsWith('info')&&msg.indexOf(' score ')!==-1){
           const fen=sfEvalFenRef.current; const stm=(fen.split(' ')[1]||'w'); const sign=(stm==='w')?1:-1;
           const mm=msg.match(/score mate (-?\d+)/); const cm=msg.match(/score cp (-?\d+)/);
-          if(mm){setSfEval({mate:sign*parseInt(mm[1],10),cp:null,fen});}
+          if(mm){setSfEval({mate:mateW(parseInt(mm[1],10),sign),cp:null,fen});}
           else if(cm){setSfEval({mate:null,cp:sign*parseInt(cm[1],10),fen});}
         }
         if(!sfEvalingRef.current&&sfCandRef.current&&msg.startsWith('info')&&msg.indexOf(' multipv ')!==-1&&msg.indexOf(' pv ')!==-1&&msg.indexOf(' score ')!==-1){
@@ -2872,7 +2880,7 @@ export default function App(){
     const finish=(bm)=>{if(done)return;done=true;sfAnaCbRef.current=null;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null});};
     const _abort=()=>finish(null); sfAnaAbortRef.current=_abort;
     const to=setTimeout(()=>finish(null),Math.max(4000,movetime*8));
-    sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=sign*s.mate;cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=sign*s.mate;cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm)};
+    sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=mateW(s.mate,sign);cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=mateW(s.mate,sign);cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm)};
     anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null);return;}try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null);}});
   });
   // Engine's best line (principal variation) from a position; resolves an array of UCI moves or null. Lets Review play the better line out at full engine strength.
@@ -2942,8 +2950,8 @@ export default function App(){
     const finish=(bm)=>{if(done)return;done=true;slot.cb=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null});};
     const to=setTimeout(()=>finish(null),Math.max(4000,movetime*8));
     slot.cb={score:(sc)=>{const _m=sc.mpv||1;
-        if(_m===1){if(sc.mate!=null){mate=sign*sc.mate;cp=null;}else{cp=sign*sc.cp;mate=null;}}
-        else if(_m===2){if(sc.mate!=null){mate2=sign*sc.mate;cp2=null;}else{cp2=sign*sc.cp;mate2=null;}if(sc.first)alt=sc.first;}},
+        if(_m===1){if(sc.mate!=null){mate=mateW(sc.mate,sign);cp=null;}else{cp=sign*sc.cp;mate=null;}}
+        else if(_m===2){if(sc.mate!=null){mate2=mateW(sc.mate,sign);cp2=null;}else{cp2=sign*sc.cp;mate2=null;}if(sc.first)alt=sc.first;}},
       best:(bm)=>finish(bm)};
     try{slot.w.postMessage('setoption name UCI_LimitStrength value false');slot.w.postMessage('position fen '+fen);slot.w.postMessage('go movetime '+movetime);}catch(e){finish(null);}
   });
@@ -2970,6 +2978,8 @@ export default function App(){
       const _ck=evalCacheKey(res.plies);const _hit=evalCacheGet(_ck);
       if(_hit&&_hit.evW&&_hit.evW.length===N+1){
         for(let i=0;i<=N;i++){evW[i]=_hit.evW[i];ev2W[i]=_hit.ev2W?_hit.ev2W[i]:null;if(i<N){bU[i]=_hit.bU?_hit.bU[i]:null;aU[i]=_hit.aU?_hit.aU[i]:null;}}
+        /* #371: reviews cached before the mate-0 fix hold the mated side as the winner at a checkmate; the position itself says who is mated, so patch on read rather than throw the cache away (the #343 lesson) */
+        for(let i=0;i<=N;i++){const _p=res.positions[i];try{if(_p&&getStatus(_p)==='checkmate')evW[i]=(_p.turn==='w')?-99950:99950;}catch(e){}}
         setProgress(1);await new Promise(r=>setTimeout(r,10));
       }else{
       // #343: aim for a ~25s wall clock instead of ~60s AND give each position more thinking time than before,
@@ -2988,6 +2998,7 @@ export default function App(){
         if(!r)cpW=Math.round(evalPawns(pos)*100);
         else if(r.mate!=null)cpW=r.mate>0?(100000-r.mate*100):(-100000-r.mate*100);
         else cpW=(r.cp==null?Math.round(evalPawns(pos)*100):r.cp);
+        try{if(getStatus(pos)==='checkmate')cpW=(pos.turn==='w')?-99950:99950;}catch(e){} /* #371: a mated side to move is a loss for that side, whatever the engine string said */
         let cp2W=null;if(r){if(r.mate2!=null)cp2W=r.mate2>0?(100000-r.mate2*100):(-100000-r.mate2*100);else if(r.cp2!=null)cp2W=r.cp2;}
         evW[i]=cpW;ev2W[i]=cp2W;if(i<N){bU[i]=r?r.bestmove:null;aU[i]=r?r.alt:null;}
       };
@@ -3119,7 +3130,7 @@ export default function App(){
   const resetReview=()=>{setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');setPly(0);setCcErr('');if(ccGames&&ccGames.length){setTimeout(()=>{try{gamesListRef.current&&gamesListRef.current.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},140);}};
   const reviewPlayedGame=()=>{let mvs,uc;if(opponent==='online'){const og=onlineGameRef.current;mvs=(og&&og.moves)||[];uc=myColorRef.current||'w';}else{mvs=((game&&game.history)||[]).map(h=>h.san);uc=(opponent==='computer')?pColor:'w';}if(mvs.length<2)return;let pgn='';for(let i=0;i<mvs.length;i++){if(i%2===0)pgn+=(i/2+1)+'. ';pgn+=mvs[i]+' ';}pgn=pgn.trim();setMode('analyze');setPlaySetup(false);setPgnText(pgn);importGame(pgn,{userColor:uc});};
   const jumpToIssue=(label)=>{setRevAuto(false);if(!review||!review.analysis)return;const idxs=[];review.analysis.forEach((o,i)=>{if(o.cls&&o.cls.label===label)idxs.push(i+1);});if(!idxs.length)return;const nxt=idxs.find(p=>p>ply);setPly(nxt!==undefined?nxt:idxs[0]);};
-  const _liveOpening=useMemo(()=>{try{if(mode!=='play')return null;const h=(boardGame&&boardGame.history)||[];if(!h.length)return null;const sans=h.slice(0,24).map(x=>x.san);const o=nameOpening(sans);return (o&&o.name)?o:null;}catch(e){return null;}},[mode,boardGame]); /* #370 n3 */
+  const _liveOpening=useMemo(()=>{try{if(mode!=='play')return null;const h=(boardGame&&boardGame.history)||[];if(!h.length)return null;const sans=h.slice(0,24).map(x=>x.san);const o=nameOpening(sans);return (o&&o.name)?{name:String(o.name).split(' \u2014 ')[0].split(' - ')[0]}:null;}catch(e){return null;}},[mode,boardGame]); /* #370 n3; #371: the base name only - lesson titles carry commentary after an em dash (the antagonist found 49 of 114 do) */
   const keyPlies=useMemo(()=>{if(!review||!review.analysis)return [];const KS=['Brilliant','Great','Miss','Mistake','Blunder','Inaccuracy'];const out=[];review.analysis.forEach((o,i)=>{if(o.cls&&KS.indexOf(o.cls.label)>=0)out.push(i+1);});return out;},[review]);
   const jumpKey=(d)=>{setRevAuto(false);if(!keyPlies.length)return;let nx;if(d>0){nx=keyPlies.find(p=>p>ply);if(nx===undefined)nx=keyPlies[0];}else{const b=keyPlies.filter(p=>p<ply);nx=b.length?b[b.length-1]:keyPlies[keyPlies.length-1];}setPly(nx);};
   // #353 every imported account contributes; a fetch adds to the pile instead of becoming it.
@@ -3567,7 +3578,7 @@ export default function App(){
           line+=(first?'':' ')+pre+san;if(!wt)num++;first=false;g=makeMove(g,mv);n++;if(n>=6)break;}
       }catch(e){}
       const val={line:line.trim()};engCacheRef.current[fen]=val;
-      const _t2=(_lmate!=null)?((_lmate>0?'M':'-M')+Math.abs(_lmate)):((_lcp!=null)?((_lcp>0?'+':'')+(_lcp/100).toFixed(1)):txt);
+      const _t2=(_lmate!=null)?mateLbl(_lmate):((_lcp!=null)?((_lcp>0?'+':'')+(_lcp/100).toFixed(1)):txt);
       const _c2=(_lmate!=null)?(_lmate>0?99:-99):((_lcp!=null)?_lcp/100:ev);
       engCacheRef.current[fen]={...val,txt:_t2,cp:_c2};setEngLine({...val,txt:_t2,cp:_c2});
     })();
@@ -3661,7 +3672,7 @@ export default function App(){
   // They used to come from two different searches at two different depths and disagreed on screen.
   const _engBar=(inReview&&engOn&&engLine&&engLine.cp!=null&&engLine.txt)?engLine:null;
   const evalNow=_engBar?Math.max(-99,Math.min(99,_engBar.cp)):(sfHit?(sfHit.mate!=null?(sfHit.mate>0?10:-10):sfHit.cp/100):evalFallback);
-  const evalTxt=_engBar?_engBar.txt:(sfHit?(sfHit.mate!=null?((sfHit.mate>0?'M':'-M')+Math.abs(sfHit.mate)):((sfHit.cp>0?'+':'')+(sfHit.cp/100).toFixed(1))):((evalFallback>0?'+':'')+Math.max(-9.9,Math.min(9.9,evalFallback)).toFixed(1)));
+  const evalTxt=_engBar?_engBar.txt:(sfHit?(sfHit.mate!=null?mateLbl(sfHit.mate):((sfHit.cp>0?'+':'')+(sfHit.cp/100).toFixed(1))):((evalFallback>0?'+':'')+Math.max(-9.9,Math.min(9.9,evalFallback)).toFixed(1)));
   // Live eval bar — full-strength Stockfish on the displayed position (separate from the strength-limited opponent search).
   useEffect(()=>{
     const showEval=inReview?(ply>0):(mode==='play'&&opponent==='computer');
@@ -3713,7 +3724,8 @@ export default function App(){
       const learnVideoBox=(mode==='learn'&&openIdx!==null)?(<div style={{width:'100%',background:'linear-gradient(150deg,rgba(255,255,255,.08),rgba(255,255,255,.03))',border:'1px solid rgba(255,255,255,.16)',borderRadius:12,padding:'11px 13px',boxShadow:SHADOW_BOX}}><div onClick={()=>setVideoOpen(o=>!o)} style={{fontSize:'clamp(14px,2.7vw,14px)',fontWeight:700,color:'#e0b34d',cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>📺 Watch it explained<span style={{fontSize:13,opacity:.85}}>{videoOpen?'▾':'▸'}</span></div>{videoOpen&&(<>{learnVideo&&(<><div style={{fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.7)',margin:'2px 0 8px',lineHeight:1.45}}>{learnVideo.title} · {learnVideo.author} ({learnVideo.length})</div><div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}><button onClick={()=>setShowVideo(s=>!s)} style={btn('var(--ac)','none','#fff')}>{showVideo?'Hide player':'▶ Watch in app'}</button><a href={`https://youtu.be/${learnVideo.id}`} target="_blank" rel="noopener noreferrer" style={{fontSize:'clamp(13px,2.3vw,13px)',color:'var(--ac2)',textDecoration:'underline'}}>open on YouTube ↗</a></div>{showVideo&&(<div style={{marginTop:8,position:'relative',width:'100%',paddingTop:'56.25%',borderRadius:8,overflow:'hidden',background:'#000'}}><iframe src={`https://www.youtube-nocookie.com/embed/${learnVideo.id}`} title={learnVideo.title} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:0}} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/></div>)}{showVideo&&<div style={{fontSize:'clamp(12px,2.2vw,12px)',color:'rgba(255,255,255,.58)',marginTop:5,lineHeight:1.4}}>If the player stays blank in this preview, tap “open on YouTube” — the embedded player works once the app is deployed to a real site.</div>}</>)}<div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.6)',margin:`${learnVideo?9:4}px 0 6px`,lineHeight:1.4}}>{learnVideo?'More on this opening from top coaches:':'Find this opening explained by top coaches:'}</div><div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{['Remote Chess Academy','GothamChess','Chess Vibes'].map(ch=>(<a key={ch} href={`https://www.youtube.com/results?search_query=${encodeURIComponent(LIB[openIdx].name+' '+ch)}`} target="_blank" rel="noopener noreferrer" style={{padding:'5px 10px',borderRadius:7,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.32)',color:'var(--ac2)',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:600,textDecoration:'none',whiteSpace:'nowrap'}}>▶ {ch}</a>))}</div></>)}</div>):null;
   const pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online');  // board sits below the goal/message text
   // #341: screens that own the whole phone - a live game, and the review move screen - hide the tab bar so the board gets that 62px.
-  const _hideTabs=(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd)||(inReview&&revCompact&&reviewView!=='summary');
+  /* #371: on phones a FINISHED game keeps the live screen's chrome (tabs hidden, home and menu in the top bar). The audit and the antagonist both measured the board collapsing 357 -> 192 at game over because the title row, the tab bar, the Elo stepper, the slider and a full-width Review button all came back at once. */
+  const _hideTabs=(mode==='play'&&!playSetup&&opponent&&(!wide||(!isOver&&!playEnd)))||(inReview&&revCompact&&reviewView!=='summary');
   // #338: keep pzStackH in step with the text above / controls below the puzzle board. Their widths do NOT depend on the board, so this cannot feed back into itself.
   useEffect(()=>{
     if(!pzLow){if(pzStackH!==0)setPzStackH(0);return;}
@@ -3833,7 +3845,7 @@ export default function App(){
       try{ if(r&&r.bestmove){const rm=uciToMove(w.t.after,r.bestmove); if(rm){replySan=toSAN(w.t.after,rm,applyMove(w.t.after.board,rm));}} }catch(e){}
       const mover=w.pos.turn, moverName=mover==='w'?'White':'Black';
       if(r&&!/#/.test(replySan)){   /* a reply that is itself mate needs no verdict after it */
-        if(r.mate!=null){ const forMover=(r.mate>0)===(mover==='w'); verdict=forMover?('and it is mate in '+Math.abs(r.mate)):''; }
+        if(r.mate!=null){ const forMover=(r.mate>0)===(mover==='w'); verdict=forMover?(Math.abs(r.mate)<1?'and it is mate':('and it is mate in '+Math.abs(r.mate))):''; }
         else if(r.cp!=null){ const c=mover==='w'?r.cp:-r.cp; verdict=c>=300?('and '+moverName+' is winning'):c>=100?('and '+moverName+' keeps a clear edge'):c>=-30?('and '+moverName+' holds'):''; }
       }
       if(sacRef.current.key===w.key)sacRef.current.byPly[w.ai]={capSan:w.t.san,replySan,verdict,cpW:r?r.cp:null,mateW:r?r.mate:null};
@@ -4446,7 +4458,7 @@ export default function App(){
         </div>
       </div>)}
 
-      {!pzLow&&!wide&&!lessonFocus&&!(inReview&&revCompact&&reviewView!=='summary')&&!(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd)&&(<div style={{display:'flex',alignItems:'center',justifyContent:'flex-start',gap:9,marginBottom:8,width:'100%',maxWidth:boardPx+44,position:'relative',paddingLeft:2}}>
+      {!pzLow&&!wide&&!lessonFocus&&!(inReview&&revCompact&&reviewView!=='summary')&&!(mode==='play'&&!playSetup&&opponent)&&(<div style={{display:'flex',alignItems:'center',justifyContent:'flex-start',gap:9,marginBottom:8,width:'100%',maxWidth:boardPx+44,position:'relative',paddingLeft:2}}>
         <div onClick={()=>setHomeScreen(true)} title="Home" style={{fontFamily:"var(--head)",fontSize:'clamp(18px,5vw,28px)',color:'var(--ac)',letterSpacing:2,textShadow:'0 2px 12px rgba(var(--acr),.4)',cursor:'pointer',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:'0.16em',maxWidth:'calc(100% - 92px)',overflow:'hidden'}}>{(()=>{const _hT=homeScreen?null:((mode==='learn'&&openIdx!==null&&LIB[openIdx])?LIB[openIdx].name:((mode==='play'&&!playSetup)?(opponent==='computer'?'Play':opponent==='online'?'Online game':opponent==='local'?'Pass & play':'Play'):((mode==='puzzle')?'Puzzles':((mode==='analyze')?'Game review':null))));return _hT?(<span style={{fontSize:'clamp(15px,4.1vw,19px)',fontWeight:800,color:'#fff',letterSpacing:.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'}}>{_hT}</span>):(<><QueenGlyph idp="s" style={{width:'1.15em',height:'1.15em',flexShrink:0,filter:'drop-shadow(0 2px 4px rgba(0,0,0,.5))'}}/>CHESS TRAINER</>);})()}</div>
         {!lessonFocus&&(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd)&&(<button onClick={()=>setHomeScreen(true)} title="Home" style={{position:'absolute',right:46,top:'50%',transform:'translateY(-50%)',flexShrink:0,minWidth:38,height:30,borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:15,lineHeight:1,padding:'0 9px'}}>🏠</button>)}
         {!lessonFocus&&(<button onClick={()=>setMenuOpen(true)} title="Menu &amp; settings" style={{position:'absolute',right:0,top:'50%',transform:'translateY(-50%)',flexShrink:0,minWidth:38,height:30,borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:16,lineHeight:1,padding:'0 9px'}}>☰</button>)}
@@ -4735,7 +4747,7 @@ export default function App(){
         </div>
       </div>)}
       {/* Context bars */}
-      {mode==='play'&&!(isOver||playEnd)&&(()=>{const _op=(!thinking&&status!=='check'&&_liveOpening)?_liveOpening.name:'';const _txt=thinking&&!playEnd?'Computer thinking\u2026':(status==='check'?'Check!':_op); /* #370 n3: the opening both sides are playing, named live in the status line that already exists above the board, so it costs no height; thinking and check still take precedence */ return(
+      {mode==='play'&&(!(isOver||playEnd)||!wide)&&(()=>{const _done=(isOver||playEnd);const _op=(!thinking&&status!=='check'&&_liveOpening)?_liveOpening.name:'';const _opAny=(_liveOpening&&_liveOpening.name)||'';const _txt=_done?((opponent==='computer'&&eloMsg)?eloMsg:_op):(thinking&&!playEnd?(_opAny?(_opAny+' \u00b7 thinking\u2026'):'Computer thinking\u2026'):(status==='check'?'Check!':_op)); /* #371 (X-10): the name stays put while the computer thinks */ /* #370 n3: the opening both sides are playing, named live in the status line that already exists above the board, so it costs no height; thinking and check still take precedence */ return(
         <div data-ct="play-context" aria-live="polite" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:7,height:18,flexShrink:0}}>
           <span data-ct="play-opening" style={{fontSize:'clamp(13px,2.4vw,13px)',color:status==='check'?'#ff6b6b':(_op&&_txt===_op?'rgba(255,255,255,.62)':'rgba(255,255,255,.8)'),fontWeight:600,opacity:_txt?1:0,transition:'opacity .12s',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'96vw'}}>{_txt||'\u00a0'}</span>
         </div>);})()}
@@ -4752,7 +4764,7 @@ export default function App(){
             <span style={{fontFamily:'monospace',fontSize:'clamp(14px,3.6vw,17px)',fontWeight:800,letterSpacing:.5,color:clock[side]<=0?'#ec9a90':(low?'#f0b429':'#fff')}}>{fmtClock(clock[side])}</span>
           </div>);})}
       </div>)}
-      {mode==='play'&&opponent==='computer'&&eloMsg&&(isOver||playEnd)&&(<div style={{textAlign:'center',marginBottom:8}}>
+      {mode==='play'&&opponent==='computer'&&eloMsg&&(isOver||playEnd)&&wide&&(<div style={{textAlign:'center',marginBottom:8}}>
         <span style={{fontSize:'clamp(13px,2.3vw,13px)',fontWeight:700,color:'var(--ac2)',background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'3px 11px'}}>{eloMsg}</span>
       </div>)}
       {mode==='learn'&&openIdx!==null&&(<div style={{textAlign:'center',marginBottom:8,maxWidth:boardPx+44,width:'98vw'}}>
@@ -4779,7 +4791,7 @@ export default function App(){
              place on every ply. Three, not four, because on his phone (375x679 usable) four lines cost the
              board 8px and three, paid for by the moves panel's hint line, let it reach the full 375. Of the 734
              lesson notes, 716 fit in three lines; the other 18 scroll inside the box. */
-          <div data-ct="lesson-note" style={{margin:'3px auto 0',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,padding:'7px 11px',height:75,boxSizing:'border-box',overflowY:'auto',fontSize:'clamp(15px,2.6vw,15px)',lineHeight:1.35,textAlign:'left',color:'rgba(255,255,255,.88)'}}>
+          <div data-ct="lesson-note" style={{margin:'3px auto 0',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,padding:'7px 11px',height:77,boxSizing:'border-box',overflowY:'auto',fontSize:'clamp(15px,2.6vw,15px)',lineHeight:1.35,textAlign:'left',color:'rgba(255,255,255,.88)'}}>
             {learnPhase==='demo'
               ? (demoPly===0?<span style={{color:'var(--ac2)'}}>▶ Press Play to watch</span>:<span><span style={{fontWeight:700,color:'#f0b429'}}>{Math.ceil(demoPly/2)}{demoPly%2===1?'.':'…'} {learnLine[demoPly-1]}</span>{curNote?<span> — {curNote}</span>:null}</span>)
               : <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{openMsg||`Your move (${LIB[openIdx].side==='w'?'White':'Black'})`}</span>}
@@ -4852,7 +4864,7 @@ export default function App(){
               const go=(idx)=>{if(idx==null)return;setRevAuto(false);setReviewView('moves');setPly(idx+1);};
               const ROWS=[
                 ['FUNDAMENTALS',null],
-                ['Develops pieces',(k)=>[k.develop.n+'/'+k.develop.of,null,k.develop.n>0],'of the first ten moves, how many brought a knight or bishop out for the first time, or castled'],
+                ['Develops pieces',(k)=>[k.develop.n+'/'+k.develop.of,null,k.develop.n>0],'of the first ten moves (or as many as were played), how many brought a knight or bishop out for the first time, or castled'],
                 ['Castled',(k)=>[k.castled!=null?('move '+k.castled):'no',null,k.castled!=null],'the move it happened on'],
                 ['Checks faced',(k)=>[String(k.checksFaced),null,k.checksFaced>0],'checks this side had to answer'],
                 ['Weak pawns at the end',(k)=>[String(k.weakPawns),null,k.weakPawns>0],'doubled and isolated pawns in the final position'],
@@ -5139,23 +5151,29 @@ export default function App(){
       {/* ── Play controls ── */}
       {mode==='play'&&opponent!=='online'&&(<div style={{marginTop:5,display:'flex',flexDirection:'column',alignItems:'center',gap:7,width:boardPx,maxWidth:_edge?'100vw':'98vw'}}>
         {opponent==='computer'?(<div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,flexWrap:'wrap'}}>
-          {!(opponent&&!isOver&&!playEnd)&&(selBot&&botById(selBot)?(<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:'clamp(12.5px,2.15vw,12.5px)',color:'rgba(255,255,255,.72)',fontWeight:700}}><BotFace id={selBot} size={20}/>{botById(selBot).name}</span>):(<span style={{fontSize:'clamp(12px,2.05vw,12px)',color:'rgba(255,255,255,.58)'}}>🤖 vs Computer</span>))}
-          {!(opponent&&!isOver&&!playEnd)&&(<div style={{display:'flex',alignItems:'center',gap:5,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 5px'}}>
+          {!(opponent&&!isOver&&!playEnd)&&wide&&(selBot&&botById(selBot)?(<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:'clamp(12.5px,2.15vw,12.5px)',color:'rgba(255,255,255,.72)',fontWeight:700}}><BotFace id={selBot} size={20}/>{botById(selBot).name}</span>):(<span style={{fontSize:'clamp(12px,2.05vw,12px)',color:'rgba(255,255,255,.58)'}}>🤖 vs Computer</span>))}
+          {!(opponent&&!isOver&&!playEnd)&&wide&&(<div style={{display:'flex',alignItems:'center',gap:5,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 5px'}}>
             <button onClick={()=>setCpuElo(e=>Math.max(ELO_MIN,e-100))} title="Weaker" style={{width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.12)',color:'#fff',fontSize:16,fontWeight:700,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>−</button>
             <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:700,color:'var(--ac2)',minWidth:58,textAlign:'center'}}>≈{cpuElo} Elo</span>
             <button onClick={()=>setCpuElo(e=>Math.min(ELO_MAX,e+100))} title="Stronger" style={{width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.12)',color:'#fff',fontSize:16,fontWeight:700,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
           </div>)}
         </div>):(<div style={{fontSize:'clamp(12px,2.05vw,12px)',color:'rgba(255,255,255,.58)'}}>{`👤 vs Human${timeCtrl?(' · '+timeCtrl.label):' · no clock'}`}</div>)}
-        {opponent==='computer'&&!(opponent&&!isOver&&!playEnd)&&(<input type="range" min={ELO_MIN} max={ELO_MAX} step={25} value={cpuElo} onChange={e=>setCpuElo(+e.target.value)} title="Fine-tune strength" style={{width:'100%',maxWidth:320,accentColor:TH.accent,cursor:'pointer',margin:'0 0 2px'}}/>)}
-        {(isOver||playEnd)&&game.history&&game.history.length>=2&&<button onClick={reviewPlayedGame} style={{width:'100%',padding:'13px',borderRadius:13,border:'none',background:'linear-gradient(135deg,#6ea8fe,#3b76e8)',color:'#0a1020',fontWeight:800,fontSize:'clamp(14px,3.2vw,16px)',cursor:'pointer',boxShadow:'0 4px 14px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.35)',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>🔍 Review this game</button>}
+        {opponent==='computer'&&!(opponent&&!isOver&&!playEnd)&&wide&&(<input type="range" min={ELO_MIN} max={ELO_MAX} step={25} value={cpuElo} onChange={e=>setCpuElo(+e.target.value)} title="Fine-tune strength" style={{width:'100%',maxWidth:320,accentColor:TH.accent,cursor:'pointer',margin:'0 0 2px'}}/>)}
+        {(isOver||playEnd)&&wide&&game.history&&game.history.length>=2&&<button onClick={reviewPlayedGame} style={{width:'100%',padding:'13px',borderRadius:13,border:'none',background:'linear-gradient(135deg,#6ea8fe,#3b76e8)',color:'#0a1020',fontWeight:800,fontSize:'clamp(14px,3.2vw,16px)',cursor:'pointer',boxShadow:'0 4px 14px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.35)',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>🔍 Review this game</button>}
           <>
           {(<div data-ct="play-moverow" style={{display:'flex',alignItems:'center',gap:8,width:'100%',height:30,flexShrink:0,padding:'0 10px',background:boardGame.history.length>0?'rgba(255,255,255,.035)':'transparent',border:'1px solid '+(boardGame.history.length>0?'rgba(255,255,255,.10)':'transparent'),borderRadius:9,overflow:'hidden'}}>{(()=>{const h=boardGame.history;const s=Math.max(0,h.length-3);return h.slice(s).map((m,i)=>{const gi=s+i;const cur=gi===h.length-1;return(<span key={gi} style={{fontSize:'clamp(11.5px,2.1vw,12px)',fontWeight:700,whiteSpace:'nowrap',fontVariantNumeric:'tabular-nums',color:cur?'var(--ac2)':'rgba(255,255,255,.55)'}}>{Math.floor(gi/2)+1}{gi%2===0?'.':'\u2026'}<b style={{marginLeft:3,color:cur?'var(--ac2)':'#fff'}}>{m.san}</b></span>);});})()}</div>)}
           <div style={{display:'flex',gap:6,width:'100%'}}>
             <_CBtn icon="moves" label="Moves" active={movesOpen} on={()=>setMovesOpen(o=>!o)}/>
             <_CBtn icon="back" label="Back" dis={playHist.length===0||pvIdx===0} on={()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;setPvIdx(Math.max(0,cur-1));}}/>
             <_CBtn icon="forward" label="Forward" dis={playHist.length===0||pvIdx==null} on={()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;const nv=Math.min(n,cur+1);setPvIdx(nv>=n?null:nv);}}/>
-            <_CBtn icon="hint" label="Hint" accent on={requestHint}/>
-            <_CBtn icon="flip" label="Flip" on={()=>setFlip(f=>!f)}/>
+            {/* #371: when the game is over on a phone, Hint and Flip give their two slots to Review and New game - same row, same height, the board does not move (Flip is still in More). */}
+            {(!wide&&(isOver||playEnd))?(<>
+              <_CBtn icon="analyze" label="Review" accent dis={!(game.history&&game.history.length>=2)} on={reviewPlayedGame}/>
+              <_CBtn icon="newgame" label="Rematch" on={()=>{fullReset();}}/>
+            </>):(<>
+              <_CBtn icon="hint" label="Hint" accent on={requestHint}/>
+              <_CBtn icon="flip" label="Flip" on={()=>setFlip(f=>!f)}/>
+            </>)}
             <_CBtn icon="more" label="More" on={()=>setMoreOpen(true)}/>
           </div>
         </>
@@ -5649,9 +5667,9 @@ export default function App(){
           {learnPhase==='demo'&&(<>
             <div style={{alignSelf:'stretch',display:'grid',gridTemplateColumns:'1.8fr 1fr',gap:6}}>
               <button onClick={()=>startPractice(learnLine,learnLabel)} style={btn('var(--ac)','none','#fff')}>✋ Now I'll try it</button>
-              <button onClick={()=>setFlip(f=>!f)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⟳ Flip</button>
+              {(!wide&&demoPly>=learnLine.length&&LIB[openIdx].vars&&LIB[openIdx].vars.length>0)?(<button data-ct="lesson-lines" onClick={()=>setLessonMore(true)} style={btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.4)','var(--ac2)')}>♟ Other lines ({LIB[openIdx].vars.length})</button>):(<button onClick={()=>setFlip(f=>!f)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⟳ Flip</button>)}
             </div>
-            {demoPly>=learnLine.length&&LIB[openIdx].vars&&(
+            {demoPly>=learnLine.length&&LIB[openIdx].vars&&wide&&(/* #371: on phones this 100px box took the board from 375 to 272 at the demo's end (A-01); the lines live in the ⋯ sheet there */
               <div style={{width:'100%',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:12,padding:'9px 11px'}}>
                 <div style={{fontSize:'clamp(14px,2.5vw,14px)',color:'var(--ac2)',fontWeight:700,marginBottom:6,textAlign:'center'}}>{learnLabel.includes(' → ')?"♟ See another of White's replies:":"♟ How does White reply? Tap a line to watch it through"}</div>
                 <div style={{display:'flex',gap:7,overflowX:'auto',WebkitOverflowScrolling:'touch',padding:'2px 1px 6px'}}>
@@ -5663,7 +5681,7 @@ export default function App(){
             )}
           </>)}
           {learnPhase==='practice'&&(<>
-            {openStep>=learnLine.length&&LIB[openIdx].vars&&(
+            {openStep>=learnLine.length&&LIB[openIdx].vars&&wide&&(
               <div style={{width:'100%',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:12,padding:'9px 11px'}}>
                 <div style={{fontSize:'clamp(14px,2.5vw,14px)',color:'var(--ac2)',fontWeight:700,marginBottom:6,textAlign:'center'}}>{learnLabel.includes(' → ')?"♟ See another of White's replies:":"♟ How does White reply? Tap a line to watch it through"}</div>
                 <div style={{display:'flex',gap:7,overflowX:'auto',WebkitOverflowScrolling:'touch',padding:'2px 1px 6px'}}>
@@ -5778,7 +5796,7 @@ export default function App(){
           // #351 Kunal: "the back arrow and three-dots at the top take too much space. Relocate them."
           // They belong in the top player bar, which is already on screen and already has slack. That
           // deletes a 40px row outright and hands every pixel of it to the board.
-          const _livePlay=(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd);
+          const _livePlay=(mode==='play'&&!playSetup&&opponent&&(!wide||(!isOver&&!playEnd))); /* #371: phones keep the live bar chrome after the game ends */
           const _hb=isTop&&inReview&&revCompact;
           const _hbPlay=isTop&&!wide&&_livePlay;
           const _hbSty={flex:'0 0 auto',display:'inline-flex',alignItems:'center',justifyContent:'center',width:34,height:30,borderRadius:9,background:_pillBg,border:'1px solid '+_pillBd,color:_fg,cursor:'pointer',fontWeight:800,lineHeight:1,padding:0};
@@ -5798,7 +5816,7 @@ export default function App(){
               </div>
               <div data-ct={'pbar-taken-'+col} style={{display:'flex',alignItems:'center',height:18,flexShrink:0,flexWrap:'nowrap',overflow:'hidden'}}>{taken.length>0&&taken.map((t,i)=>(<span key={i} style={{display:'inline-flex',marginRight:-2}}><Piece t={t} color={enemy} sz={18} useFallback={fallback} onFail={onPieceFail}/></span>))}{lead>0&&<span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:_fgDim,marginLeft:6}}>+{lead}</span>}</div>
             </div>
-            {!isTop&&inReview&&revCompact&&evalGraph&&review&&review.analysis&&review.analysis.length>1&&(()=>{const A=review.analysis;const n=A.length;const gw=Math.max(90,Math.min(170,Math.round(boardPx*0.44)));const gh=Math.max(26,Math.min(40,(vp.h<640?32:46)-8));const mid=gh/2;const cl=(v)=>Math.max(-5,Math.min(5,(typeof v==='number'?v:0)));
+            {!isTop&&inReview&&revCompact&&evalGraph&&review&&review.analysis&&review.analysis.length>1&&(()=>{const A=review.analysis;const n=A.length;const gw=Math.max(90,Math.min(130,Math.round(boardPx*0.36))); /* #371: 154 left 'Duke Kar…' in 89px; 126 on his phone */const gh=Math.max(26,Math.min(40,(vp.h<640?32:46)-8));const mid=gh/2;const cl=(v)=>Math.max(-5,Math.min(5,(typeof v==='number'?v:0)));
               const xs=(i)=>Math.round((i/(n-1))*(gw-2)*10)/10+1;const ys=(v)=>Math.round((mid-cl(v)/5*(mid-1))*10)/10;
               const pts=A.map((a,i)=>xs(i)+','+ys(a.evalAfter));const line='M'+pts.join(' L');
               const area='M'+xs(0)+','+mid+' L'+pts.join(' L')+' L'+xs(n-1)+','+mid+' Z';
@@ -5833,7 +5851,7 @@ export default function App(){
             {_num&&<div data-ct="eval-bar-num" style={{position:'absolute',top:0,bottom:0,[(_wAhead===wb)?'left':'right']:7,display:'flex',alignItems:'center',fontSize:13,fontWeight:800,fontFamily:'ui-monospace,Menlo,monospace',letterSpacing:'.2px',color:_wAhead?'#141414':'#f2f2f2',textShadow:_wAhead?'none':'0 1px 1px rgba(0,0,0,.5)',zIndex:2,pointerEvents:'none'}}>{_num}</div>}
           </div>);})()}
         <div style={{display:'flex',alignItems:'flex-start'}}>
-          {_evalOn&&!evalUnder&&(()=>{const fr=Math.max(0.03,Math.min(0.97,0.5+evalNow/12));const wb=bottomColor==='w';const _num=(inReview&&typeof evalTxt==='string')?evalTxt:null;return(<div style={{width:evalW-4,marginRight:4,height:boardPx,borderRadius:4,overflow:'hidden',background:'#2b2932',position:'relative',flexShrink:0,alignSelf:'flex-start',boxShadow:'inset 0 0 0 1px rgba(0,0,0,.45)'}}><div style={{position:'absolute',left:0,right:0,[wb?'bottom':'top']:0,height:(fr*100)+'%',background:'linear-gradient(180deg,#f6f4ee,#dcd9cf)',transition:'height .35s ease'}}/><div style={{position:'absolute',left:0,right:0,top:'50%',height:1,background:'rgba(0,0,0,.4)'}}/>{_num&&(()=>{const _wAhead=evalNow>=0;const _atBottom=_wAhead?wb:!wb;return(<div data-ct="eval-bar-num" style={{position:'absolute',left:0,right:0,[_atBottom?'bottom':'top']:6,display:'flex',justifyContent:'center',zIndex:2,pointerEvents:'none'}}><span style={{writingMode:'vertical-rl',transform:'rotate(180deg)',fontSize:13,fontWeight:800,fontFamily:'ui-monospace,Menlo,monospace',lineHeight:1,letterSpacing:'.3px',color:_wAhead?'#141414':'#f2f2f2',textShadow:_wAhead?'none':'0 1px 1px rgba(0,0,0,.55)'}}>{_num}</span></div>);})()}</div>);})()}
+          {_evalOn&&!evalUnder&&(()=>{const fr=Math.max(0.03,Math.min(0.97,0.5+evalNow/12));const wb=bottomColor==='w';const _num=(inReview&&typeof evalTxt==='string')?evalTxt:null;return(<div data-ct="eval-bar-v" style={{width:evalW-4,marginRight:4,height:boardPx,borderRadius:4,overflow:'hidden',background:'#2b2932',position:'relative',flexShrink:0,alignSelf:'flex-start',boxShadow:'inset 0 0 0 1px rgba(0,0,0,.45)'}}><div style={{position:'absolute',left:0,right:0,[wb?'bottom':'top']:0,height:(fr*100)+'%',background:'linear-gradient(180deg,#f6f4ee,#dcd9cf)',transition:'height .35s ease'}}/><div style={{position:'absolute',left:0,right:0,top:'50%',height:1,background:'rgba(0,0,0,.4)'}}/>{_num&&(()=>{const _wAhead=evalNow>=0;const _atBottom=_wAhead?wb:!wb;return(<div data-ct="eval-bar-num" style={{position:'absolute',left:0,right:0,[_atBottom?'bottom':'top']:6,display:'flex',justifyContent:'center',zIndex:2,pointerEvents:'none'}}><span style={{writingMode:'vertical-rl',transform:'rotate(180deg)',fontSize:13,fontWeight:800,fontFamily:'ui-monospace,Menlo,monospace',lineHeight:1,letterSpacing:'.3px',color:_wAhead?'#141414':'#f2f2f2',textShadow:_wAhead?'none':'0 1px 1px rgba(0,0,0,.55)'}}>{_num}</span></div>);})()}</div>);})()}
           <div ref={boardRef} onPointerDown={onPtrDown} onPointerMove={onPtrMove} onPointerUp={onPtrUp} onPointerCancel={onPtrCancel}
             style={{display:'grid',flexShrink:0,gridTemplateColumns:`repeat(8,${SQ}px)`,gridTemplateRows:`repeat(8,${SQ}px)`,width:boardPx,height:boardPx,borderRadius:3,overflow:'hidden',boxShadow:'0 0 0 3px #4a6741, 0 12px 50px rgba(0,0,0,.7)',cursor:dragging?'grabbing':'default',touchAction:'none',position:'relative'}}>
             {dBoard.map((row,rI)=>row.map((piece,cI)=>{
@@ -5886,10 +5904,12 @@ export default function App(){
                 {sub&&<div style={{fontSize:'clamp(14px,3vw,17px)',fontWeight:700,color:'rgba(255,255,255,.82)',marginTop:4}}>{sub}</div>}
                 <div style={{marginTop:14,display:'flex',gap:9,justifyContent:'center',flexWrap:'wrap'}}>{actions}</div>
               </div></div>);})()}
+            {/* #371 (audit A-06): a puzzle hint is a sentence, and the one-line box under the board cannot hold one on his phone; on phones it is shown over the top of the board instead, and the box keeps its one line. */}
+            {mode==='puzzle'&&!wide&&puzMsg&&/^💡/.test(puzMsg)&&(<div data-ct="pz-hint-banner" style={{position:'absolute',left:0,right:0,top:0,zIndex:11,background:'rgba(10,14,22,.88)',color:'#cfe0ff',fontSize:14,fontWeight:700,lineHeight:1.3,padding:'7px 11px',borderBottom:'1px solid rgba(110,168,254,.45)',pointerEvents:'none'}}>{puzMsg}</div>)}
             {/* #366 y15b: the round Analyze button, on the board's bottom-right corner. The board keeps its full
                 size (Kunal's answer); translucent so the corner square still reads through it, and it stops the
                 pointer event so the board never mistakes the tap for a piece drag. Hidden inside analysis. */}
-            {inReview&&revCompact&&reviewView!=='summary'&&!anaMode&&(<button data-ct="rev-fab" onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();_goAnalyze();}} title="Analyze: play this position out yourself" aria-label="Analyze this position" style={{position:'absolute',right:7,bottom:7,width:42,height:42,borderRadius:'50%',zIndex:12,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(16,20,28,.80)',border:'1.5px solid rgba(255,255,255,.6)',color:'#fff',cursor:'pointer',padding:0,boxShadow:'0 3px 10px rgba(0,0,0,.55)',backdropFilter:'blur(3px)',WebkitBackdropFilter:'blur(3px)',touchAction:'manipulation'}}><MagIcon size={23}/></button>)}
+            {inReview&&revCompact&&reviewView!=='summary'&&!anaMode&&(()=>{let _left=false;if(boardLast){const dCol=flip?7-boardLast.tc:boardLast.tc,dRow=flip?7-boardLast.tr:boardLast.tr;if(dCol>=6&&dRow>=6)_left=true;} /* #371 (antagonist): the button hid the verdict badge of any move to g1/h1; it steps aside */ return(<button data-ct="rev-fab" onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();_goAnalyze();}} title="Analyze: play this position out yourself" aria-label="Analyze this position" style={{position:'absolute',[_left?'left':'right']:7,bottom:7,width:42,height:42,borderRadius:'50%',zIndex:12,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(16,20,28,.80)',border:'1.5px solid rgba(255,255,255,.6)',color:'#fff',cursor:'pointer',padding:0,boxShadow:'0 3px 10px rgba(0,0,0,.55)',backdropFilter:'blur(3px)',WebkitBackdropFilter:'blur(3px)',touchAction:'manipulation'}}><MagIcon size={23}/></button>);})()}
           </div>
         </div>
         {_showBars&&pBar(bottomColor,false)}
@@ -5904,7 +5924,7 @@ export default function App(){
           <div style={{flex:1,alignSelf:'stretch',width:'100%',minHeight:0,display:'flex',flexDirection:'column',alignItems:'center'}}>
             {_blurbs}
             {learnPhase==='practice'&&!lessonFocus&&(<div style={{width:boardPx,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',gap:9,marginTop:6}}>{(()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';return(<button onClick={()=>setOpenIdx(null)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','rgba(255,255,255,.85)'),width:'100%',fontSize:'clamp(14px,2.7vw,14px)'}}>‹ All {noun}</button>);})()}</div>)}
-            <div style={{flex:1,minHeight:wide?10:4}}/>
+            <div aria-hidden="true" style={{flex:wide?1:'0 0 4px',minHeight:wide?10:4}}/>{/* #371: aria-hidden so the fit loop counts this as slack (A-01: the board sat at 272 under a 182px empty band in practice because this spacer swallowed the room and the loop never grew the board back); on phones it no longer grows at all, so the board's top edge is the same in the demo and in practice */}
             {_board}
             {_controls}
           </div>
@@ -5945,6 +5965,11 @@ export default function App(){
         <div onClick={e=>e.stopPropagation()} style={{maxHeight:'72vh',overflowY:'auto',background:'#151922',borderTop:'1px solid rgba(212,175,55,.35)',borderRadius:'16px 16px 0 0',padding:'14px 14px calc(72px + env(safe-area-inset-bottom,0px))',display:'flex',flexDirection:'column',gap:10}}>
           {(()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';const idxs=LIB.map((o,i)=>groupOf(o.cat)===grp?i:-1).filter(i=>i>=0);const pos=idxs.indexOf(openIdx);const hasPrev=pos>0,hasNext=pos<idxs.length-1;const nb=(on)=>({flex:1,minHeight:44,padding:'0 10px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.2)',color:'#eee',fontSize:13,cursor:on?'pointer':'default',opacity:on?1:.35,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'});
             return(<div data-ct="lesson-sheet-nav" style={{display:'flex',gap:8}}><button onClick={()=>{if(hasPrev){setLessonMore(false);selectOpening(idxs[pos-1]);}}} disabled={!hasPrev} style={nb(hasPrev)}>{'\u2039'} {hasPrev?LIB[idxs[pos-1]].name:'First lesson'}</button><button onClick={()=>{if(hasNext){setLessonMore(false);selectOpening(idxs[pos+1]);}}} disabled={!hasNext} style={nb(hasNext)}>{hasNext?LIB[idxs[pos+1]].name:'Last lesson'} {'\u203A'}</button></div>);})()}
+          {LIB[openIdx].vars&&LIB[openIdx].vars.length>0&&(<div data-ct="lesson-sheet-lines" style={{background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:12,padding:'9px 11px'}}>
+            <div style={{fontSize:13,color:'var(--ac2)',fontWeight:700,marginBottom:6}}>{learnLabel.includes(' → ')?"♟ See another of White's replies":"♟ How does White reply? Tap a line to watch it through"}</div>
+            <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{LIB[openIdx].vars.map((v,vi)=>{const active=learnLabel.endsWith(v.name);const got=lineDays(LIB[openIdx].name+'§'+v.name).length>=1;return(<button key={vi} onClick={()=>{setLessonMore(false);pickVariation(v);}} style={{padding:'8px 13px',borderRadius:18,border:active?'1.5px solid var(--ac)':'1px solid rgba(255,255,255,.22)',background:active?'rgba(var(--acr),.22)':'rgba(255,255,255,.06)',color:active?'var(--ac2)':'#fff',fontWeight:800,fontSize:13,cursor:'pointer'}}>{got?'✓ ':''}{v.name}</button>);})}</div>
+          </div>)}
+          <button onClick={()=>{setLessonMore(false);setFlip(f=>!f);}} style={{width:'100%',padding:'11px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.2)',color:'#eee',fontSize:13,cursor:'pointer'}}>⟳ Flip board</button>
           {learnVideoBox}{learnPlansBox}{learnBranchesBox}
           <button onClick={()=>{setLessonMore(false);setMenuOpen(true);}} style={{width:'100%',padding:'11px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.2)',color:'#eee',fontSize:13,cursor:'pointer'}}>Menu and settings</button>
         </div>

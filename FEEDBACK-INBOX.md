@@ -69,6 +69,88 @@ marked rather than invented.
 
 ## Open
 
+### From Kunal in the feedback session [2026-09-12 17:07 ET]
+
+- [2026-09-12 17:07 ET] status: done 18:00-18:50 ET, and adopted as standing process (HANDOFF 0c)
+  HIS INSTRUCTION, DO THIS FIRST. Start the next run by creating THREE agents, before other build work:
+  (1) a SUPERVISORY agent; (2) an ANTAGONISTIC agent that really looks through the work being done and
+  the issues being hit, especially from a LAYOUT perspective, but also everything else; (3) an AUDIT
+  agent that goes through the app as it currently is and identifies all the possible issues it can find.
+  his words: "I want it to start by creating two agents, one supervisory agent and one antagonistic agent
+  that can really look through the work we're doing and the issues we're having, especially from a layout
+  perspective, but also from everything else and also an audit agent to go through and check and
+  identify all the possible issues that it can find with the app as it is currently. I wanted to create
+  those three agents." (dictated; "on audit agent" = "an audit agent".)
+  done: [2026-09-12 18:50 ET] Seen at 18:00 ET in the tracker's flags (doc kunal-three-agents) and the
+  addendum doc, i.e. after #366-#370 had been built - the instruction said "the next run", and this run
+  had started at 16:10. Created the moment it was read. Reports in /home/claude/work/agents/. What they
+  found and what #371 did about it is the next block. The addendum doc is folded here and deleted.
+
+### The three agents' first run, and #371 [2026-09-12 18:00-19:00 ET]
+
+- [2026-09-12 18:18 ET] AUDIT (25 findings, P0 x2, P1 x14, P2 x9; 148 screenshots at 375x679 and 390x844,
+  measured AFTER interaction). Worst: A-01 the lesson board 375 -> 272 with a 182px empty band above it once
+  the demo reaches its last move and through practice; A-02 the Play board 357 -> 247 at game over (the
+  antagonist measured 192); A-03 at 17.Rd8# the eval label read "-M0", the bar was 95% black and the graph
+  plunged although White mated. Also: puzzle hint truncated (A-06); ☰ unreachable from Home (A-04); the
+  floating 🎬/💬 buttons cover the build line, a chip, the menu sheet edge (A-05); the round Analyze button
+  hides the h1 rook (A-08); "!" badges on rank 8 clipped 3.6-4px (A-09); Next-puzzle arrow inert until
+  solved (A-10); ~40 tap targets under 40px (A-11); board moves 23px when Moves is toggled (A-12); Pass & Play
+  setup scrolls 32px (A-13); board widths 375/357/351/349 across screens (A-14); truncated names (A-15);
+  menu sheet ends 36px above the screen (A-16); P2s A-17..A-25 (wording, 8-11px text, empty band under the
+  Discover tiles, readout "board 368" on no screen, hero art cut, two ⋯ buttons on lesson practice,
+  console noise, header text 4px from the edge).
+- [2026-09-12 18:35 ET] ANTAGONIST (verdict: honest about what was measured, wrong about what was not; the
+  k8 rule was applied one state short - the END of the game). X-01 game over 357 -> 192 with 57px of page
+  scroll, at every phone size; X-02 every check counted as a fork (king was a target AND the check added
+  one), Morphy "4 forks" = 3 plain checks + 1; X-03 inkScale a no-op for the pawn (larger-side metric);
+  X-04 the live opening line printed lesson titles with commentary; X-05 the Analyze button hides the
+  verdict badge of a move to g1/h1; X-06 graph on + user as Black: "Duke Kar…" in 89px, graph ends on the
+  wrong side at mate; X-07 wrong-move puzzle message 363px in a 362px box; X-08 note box 2.91 lines;
+  X-09 Moves toggle moves the board; X-10 status line flickers name / "Computer thinking"; X-11 three
+  Skills definitions off (half-open files counted, '#' not a check, "of the first ten" on short games);
+  X-12 picker scrolls inside its card on small phones; X-13 PROCESS: no ETA, no actual, no elapsed
+  recorded for five builds; n9 "closed" while untested.
+- [2026-09-12 18:50 ET] SUPERVISOR: ruling adopted - RUN-LOG.md now carries ETA/actual per build; gates.sh
+  is the single gate; audit at run start, antagonist before each deploy, supervisor at close-out (HANDOFF
+  0c); n9 is "you - needs your phone", not closed; before/after pairs for #371 come from the agents' own
+  before shots; b1 must be re-checked by him; the four decisions #371 took alone are in DECISIONS-LOG.
+- [2026-09-12 18:56 ET] status: built #371, gating  A-02/X-01 game over: on phones a finished game keeps the
+  live chrome (tabs hidden, home/menu in the bar) and Hint/Flip give their slots to Review/Rematch - same
+  row, same height; the Elo stepper, the slider and the strength chip leave the phone screen (the chip's
+  text goes to the status line above the board). gameover371.js: 357 -> 357, scroll 0, row Moves Back
+  Forward Review Rematch More.
+- [2026-09-12 18:56 ET] status: built #371, gating  A-01 lesson end / practice: the variations box moved into
+  the ⋯ sheet behind an "Other lines (n)" button that takes Flip's slot at the demo's end (Flip is in the
+  sheet); the spacer above the board is fixed 4px and aria-hidden. lesson371.js: 375 at top 92 in demo
+  start / +3 / end / practice.
+- [2026-09-12 18:56 ET] status: built #371, gating  A-03/X-06 mate sign: UCI "mate 0" (side to move is mated)
+  flipped by sign gave 0, read everywhere as Black mating. mateW() encodes it as half a mate for the other
+  side, mateLbl() prints 1-0 / 0-1, the analysis path forces a mated position to +-99950, and reviews cached
+  before today are patched on read (the position says who is mated; the cache tag is NOT bumped - #343).
+- [2026-09-12 18:56 ET] status: built #371, gating  X-02 forks: the king is no longer a target in moveMotifs,
+  so a plain check is not a fork; check + a piece is. skills368.js asserts Bxb5+ and Qb8+ are not forks.
+- [2026-09-12 18:56 ET] status: built #371, gating  X-03 inkScale metric: (larger side + geometric mean)/2.
+  Still unmeasured on Apple Color Emoji; his "tile ink" readout line is the evidence.
+- [2026-09-12 18:56 ET] status: built #371, gating  X-05 the round Analyze button steps to the bottom-left when
+  the last move landed on g1/h1/g2/h2 (screen corner), so the verdict badge is never under it.
+- [2026-09-12 18:56 ET] status: built #371, gating  X-06 graph width 126 on his phone (was 154). X-04 the base
+  opening name only. X-10 "Italian Game · thinking…" instead of alternating. X-11 open file = no pawn of
+  either colour; '#' counts as a check faced; the develops label says "or as many as were played".
+  A-06 puzzle hints on phones show as a banner over the top of the board (the one-line box keeps one line).
+  X-08 note box 77px. "New game" -> "Rematch" so the 9.5px label does not wrap.
+- [2026-09-12 19:00 ET] status: open  FROM THE AGENTS, NOT YET DONE (ids are theirs): A-04 menu unreachable from
+  Home (the Home overlay has no ☰); A-05 the floating 🎬/💬 buttons overlap things - Kunal's call whether they
+  stay; A-09 rank-8 verdict badges clipped ~4px; A-10 Next-puzzle arrow enabled but inert until solved; A-11
+  ~40 tap targets under 40px (Analyze/Copy moves 23px, piece chips 24px, footer links 16px); A-12/X-09 the
+  board moves 23px when Moves is toggled; A-13 Pass & Play setup scrolls 32px; A-14 one board-width rule
+  (375/357/351/349) - the 16px band beside the Play board is the eval bar he chose; A-15 truncated names;
+  A-16 menu sheet ends 36px above the screen; A-17..A-25 P2s; X-07 wrong-move message 363 in 362; X-12 the
+  picker scrolls inside its card on small phones. And the supervisor's five for the next run.
+- [2026-09-12 19:00 ET] status: you  n9 own photo in Review: reclassified from "closed #370" to NEEDS YOUR PHONE
+  (the sandbox cannot sign in). Country flags and the rating exchange carry the same label.
+
+
 Decisions page for everything marked NEEDS KUNAL (nine questions, the backlog, and a
 pick-what's-next list): https://claude.ai/code/artifact/99232fb2-f9f3-4019-a285-c3c16eb7de68
 
