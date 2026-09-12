@@ -2169,7 +2169,14 @@ export default function App(){
 
   const RAIL=Math.max(190,Math.min(320,Math.round(vp.w*0.255)));   // comfortable side-rail width, scales with screen
   const wide=vp.w>vp.h&&(vp.w-RAIL-48)>=360;                       // one sidebar + board; board fills the rest
-  const SQ=useMemo(()=>{if(wide){const availH=vp.h-24;const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20;const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,bp/8);}const _evOn=(inReview||(mode==='play'&&opponent==='computer'))&&!hideEval&&!evalUnder;const reserved=((inReview&&revCompact)||evalUnder||hideEval?0:4)+(_evOn?(inReview?22:14):0)+6;const widthCap=vw-reserved;const _pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online'); /* #333: the eval bar sits beside the board, so its width (22 in review, 14 in play) plus the root's side padding must come out of the board, or the row overflows and gets clipped on both sides (Kunal's iPhone screenshot: eval number and h-file cut off) */const wh=vp.h;const heightCap=mode==='play'?(wh-232):(_pzLow?Math.max(232,wh-safeTop-8-pzStackH-62-26):((inReview&&revCompact)?Math.max(184,wh-safeTop-safeBot-REV_CHROME):(wh*0.66-16)));const hardCap=mode==='play'?900:820;const _trim=boardTrim;const bp=Math.floor((Math.min(widthCap,heightCap,hardCap)-_trim)/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent,hideEval,evalUnder,revCompact,safeTop,safeBot,pzView,pzStackH,boardTrim]);
+  // #351 Kunal: "the whole page is too small, there are visible borders on the top and the sides".
+  // On a board screen the root's 3px side padding and the 98vw caps are exactly those borders, and
+  // they cost the board twice over: once in width, and again in height because it is square. Board
+  // screens now run to the hardware edge; the safe-area insets stay, because those are real.
+  // MUST stay below `wide`: an earlier placement above it was a TDZ ReferenceError and a white
+  // screen, which is the #315 failure mode verbatim.
+  const _edge=!wide&&((mode==='analyze'&&review!==null&&revCompact)||(mode==='play'&&!playSetup)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null));
+  const SQ=useMemo(()=>{if(wide){const availH=vp.h-24;const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20;const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,bp/8);}const _evOn=(inReview||(mode==='play'&&opponent==='computer'))&&!hideEval&&!evalUnder;const reserved=((inReview&&revCompact)||evalUnder||hideEval?0:4)+(_evOn?(inReview?22:14):0)+(_edge?0:6);const widthCap=vw-reserved;const _pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online'); /* #333: the eval bar sits beside the board, so its width (22 in review, 14 in play) plus the root's side padding must come out of the board, or the row overflows and gets clipped on both sides (Kunal's iPhone screenshot: eval number and h-file cut off) */const wh=vp.h;const heightCap=mode==='play'?(wh-232):(_pzLow?Math.max(232,wh-safeTop-8-pzStackH-62-26):((inReview&&revCompact)?Math.max(184,wh-safeTop-safeBot-REV_CHROME):(wh*0.66-16)));const hardCap=mode==='play'?900:820;const _trim=boardTrim;const _cap=Math.min(widthCap,heightCap,hardCap)-_trim;if(_edge)return Math.max(24,Math.round(_cap/8*100)/100);const bp=Math.floor(_cap/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent,hideEval,evalUnder,revCompact,safeTop,safeBot,pzView,pzStackH,boardTrim,_edge]);
   const boardPx=SQ*8;
   // #346: the geometry this trim belongs to. Anything NOT in here is content, and content must not reset the trim.
   const _geoKey=vp.w+'x'+vp.h+':'+safeTop+':'+safeBot+':'+mode+':'+(inReview?1:0)+(revCompact?1:0)+(wide?1:0)+(playSetup?1:0)+':'+pzView+':'+openIdx+':'+reviewView+':'+(evalUnder?1:0)+(hideEval?1:0);
@@ -3398,7 +3405,7 @@ export default function App(){
   },[curAnno,inReview,review,ply]);
 
   return(
-    <div ref={rootRef} style={{'--ac':TH.accent,'--ac2':TH.accent2,'--acr':TH.rgb,'--ok':'#3ecf7a','--gold':'#f0c24d','--warn':'#e0a83a','--bad':'#e85d4a','--r':'12px','--head':headFont,'--pcfilter':SK.pcf||'none',minHeight:'100dvh',width:'100%',maxWidth:'100vw',overflowX:'hidden',background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:railed?'center':'flex-start',paddingTop:wide?'calc(env(safe-area-inset-top,0px) + 6px)':'calc(env(safe-area-inset-top,0px) + 8px)',paddingLeft:'calc(env(safe-area-inset-left,0px) + 3px)',paddingRight:'calc(env(safe-area-inset-right,0px) + 3px)',paddingBottom:wide?6:8,fontFamily:"'Segoe UI',system-ui,sans-serif",userSelect:'none',WebkitUserSelect:'none',color:'#fff',transition:'background .3s'}}>
+    <div ref={rootRef} style={{'--ac':TH.accent,'--ac2':TH.accent2,'--acr':TH.rgb,'--ok':'#3ecf7a','--gold':'#f0c24d','--warn':'#e0a83a','--bad':'#e85d4a','--r':'12px','--head':headFont,'--pcfilter':SK.pcf||'none',minHeight:'100dvh',width:'100%',maxWidth:'100vw',overflowX:'hidden',background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:railed?'center':'flex-start',paddingTop:wide?'calc(env(safe-area-inset-top,0px) + 6px)':(_edge?'calc(env(safe-area-inset-top,0px) + 2px)':'calc(env(safe-area-inset-top,0px) + 8px)'),paddingLeft:_edge?'env(safe-area-inset-left,0px)':'calc(env(safe-area-inset-left,0px) + 3px)',paddingRight:_edge?'env(safe-area-inset-right,0px)':'calc(env(safe-area-inset-right,0px) + 3px)',paddingBottom:wide?6:8,fontFamily:"'Segoe UI',system-ui,sans-serif",userSelect:'none',WebkitUserSelect:'none',color:'#fff',transition:'background .3s'}}>
       {tourOpen&&(()=>{
         const FMT={roundrobin:{label:'Round robin',tc:{init:300,inc:3},blurb:'Everyone plays everyone'},knockout:{label:'Knockout',tc:{init:600,inc:5},blurb:'Single elimination bracket'},swiss:{label:'Swiss',tc:{init:300,inc:0},blurb:'Paired by score, fixed rounds'}};
         const me=cloudUser?{uid:cloudUser.uid,name:cloudUser.name||'Player',photo:cloudUser.photo||''}:null;
@@ -4298,12 +4305,8 @@ export default function App(){
             <button onClick={()=>setReviewView('moves')} style={{...navBtn(true),flex:'1 1 0',minWidth:0,maxWidth:432}}>Start review ›</button>
           </div>
         </div>);})()}
-      {inReview&&revCompact&&(<div data-ct="rev-compact-head" style={{width:boardPx+((hideEval||evalUnder)?0:22),maxWidth:'98vw',marginBottom:4,marginTop:wide?0:2,display:'flex',alignItems:'center',gap:8}}>
-        <button onClick={()=>setReviewView('summary')} aria-label="Back" title="Back to the summary" style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',justifyContent:'center',width:38,height:34,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',cursor:'pointer',fontSize:19,lineHeight:1,fontWeight:700,boxShadow:SHADOW_BTN}}>{'\u2190'}</button>
-        <div style={{flex:1}}/>
-        <button onClick={()=>setRevMore(true)} aria-label="More" style={{flex:'0 0 auto',minWidth:38,minHeight:34,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',cursor:'pointer',fontSize:18,fontWeight:800,lineHeight:1,boxShadow:SHADOW_BTN}}>⋯</button>
-      </div>)}
-      {inReview&&!revCompact&&(<div style={{width:boardPx,maxWidth:'98vw',marginBottom:6}}>
+      {/* #351 the compact review header row is gone; its back arrow and ⋯ live in the top player bar */}
+      {inReview&&!revCompact&&(<div style={{width:boardPx,maxWidth:_edge?'100vw':'98vw',marginBottom:6}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
           <button onClick={()=>setReviewView('summary')} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'7px 13px',borderRadius:10,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.4)',color:'var(--ac2)',cursor:'pointer',fontSize:'clamp(14px,2.9vw,15px)',fontWeight:700,boxShadow:SHADOW_BTN}}>‹ Summary</button>
           <button onClick={()=>{let _p=(review.pgn&&review.pgn.trim())?review.pgn.trim():'';if(!_p){const _h=review.headers||{};const _t=['Event','Site','Date','White','Black','Result'].map(k=>'['+k+' "'+(_h[k]||(k==='Result'?'*':'?'))+'"]').join('\n');let _m='';for(let i=0;i<review.plies.length;i++){if(i%2===0)_m+=(i/2+1)+'. ';_m+=review.plies[i].san+' ';}_p=_t+'\n\n'+_m.trim()+' '+(_h.Result||'*');}try{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(_p);}catch(e){}try{const _ta=document.createElement('textarea');_ta.value=_p;_ta.style.position='fixed';_ta.style.opacity='0';document.body.appendChild(_ta);_ta.focus();_ta.select();document.execCommand('copy');document.body.removeChild(_ta);}catch(e){}setPgnCopied(true);setTimeout(()=>setPgnCopied(false),1800);}} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'7px 13px',borderRadius:10,background:pgnCopied?'rgba(var(--acr),.22)':'rgba(255,255,255,.08)',border:'1px solid '+(pgnCopied?'rgba(var(--acr),.5)':'rgba(255,255,255,.2)'),color:pgnCopied?'var(--ac2)':'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(14px,2.9vw,15px)',fontWeight:700,boxShadow:SHADOW_BTN}}>{pgnCopied?'✓ Copied':'📋 Copy PGN'}</button>
@@ -4316,7 +4319,7 @@ export default function App(){
 
       {/* ── Analyze: import panel (no review yet) ── */}
       {mode==='analyze'&&!inReview&&!analyzing&&(
-        <div style={{width:boardPx+22,maxWidth:'98vw',display:'flex',flexDirection:'column',gap:10,marginTop:6}}>
+        <div style={{width:boardPx+22,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',gap:10,marginTop:6}}>
           {lastReview&&!review&&(<button onClick={()=>{setReview(lastReview);setReviewView('summary');}} style={{alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:7,padding:'8px 13px',borderRadius:10,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.4)',color:'var(--ac2)',cursor:'pointer',fontSize:'clamp(15px,3.6vw,17px)',fontWeight:700,boxShadow:SHADOW_BTN}}>‹ Back to your analysis</button>)}
           <div style={{textAlign:'center'}}>
             <div style={{fontSize:'clamp(15px,3.6vw,18px)',color:'#fff',fontWeight:800}}>Review any game, from anywhere</div>
@@ -4403,7 +4406,7 @@ export default function App(){
 
       {/* ── Analyze: analyzing progress ── */}
       {mode==='analyze'&&analyzing&&(()=>{const pct=Math.round(progress*100);const R=46,CIRC=2*Math.PI*R;const TIPS=['A brilliant move (!!) gives up material for a winning blow.','Accuracy measures how close your moves were to the best ones.','Blunders are the moves that cost you the most.','Tap a key-moment chip to jump straight to it.','The eval bar shows who is winning, and by how much.'];const tip=TIPS[Math.min(TIPS.length-1,Math.floor(progress*TIPS.length))];return(
-        <div style={{width:boardPx,maxWidth:'98vw',marginTop:34,display:'flex',flexDirection:'column',alignItems:'center',gap:16}}>
+        <div style={{width:boardPx,maxWidth:_edge?'100vw':'98vw',marginTop:34,display:'flex',flexDirection:'column',alignItems:'center',gap:16}}>
           <div style={{position:'relative',width:124,height:124,display:'flex',alignItems:'center',justifyContent:'center'}}>
             <svg width="124" height="124" style={{position:'absolute',top:0,left:0,transform:'rotate(-90deg)'}}>
               <circle cx="62" cy="62" r={R} fill="none" stroke="rgba(255,255,255,.10)" strokeWidth="8"/>
@@ -4427,7 +4430,7 @@ export default function App(){
         const _mvTxt=curAnno?((Math.floor((ply-1)/2)+1)+((ply-1)%2===0?'.':'…')+' '+review.plies[ply-1].san):null;
         const _hasBetter=!!(curAnno&&(curAnno.cls.label==='Inaccuracy'||curAnno.cls.label==='Mistake'||curAnno.cls.label==='Blunder')&&curAnno.bestSan);
         const cb=(lab,on,w,hot,title)=>(<button onClick={on} title={title} aria-label={title} style={{flex:w?('0 0 '+w+'px'):'1 1 0',minWidth:0,minHeight:48,borderRadius:12,cursor:'pointer',fontSize:(String(lab).length<=2?'clamp(21px,5.4vw,26px)':'clamp(14px,2.9vw,15px)'),fontWeight:800,background:hot?'rgba(var(--acr),.22)':'rgba(255,255,255,.08)',backgroundImage:'linear-gradient(rgba(255,255,255,.20),rgba(255,255,255,.04) 48%,rgba(0,0,0,.10))',border:hot?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',color:hot?'var(--ac2)':'#fff',letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif",display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap',boxShadow:SHADOW_BTN,padding:'0 6px'}}>{lab}</button>);
-        return(<div data-ct="rev-compact" style={{width:boardPx+((hideEval||evalUnder)?0:22),maxWidth:'98vw',marginTop:6,display:'flex',flexDirection:'column',alignItems:'stretch',gap:6}}>
+        return(<div data-ct="rev-compact" style={{width:boardPx+((hideEval||evalUnder)?0:22),maxWidth:_edge?'100vw':'98vw',marginTop:6,display:'flex',flexDirection:'column',alignItems:'stretch',gap:6}}>
           {/* #337: one line: move, verdict, best move (tap shows it on the board). No text box (Kunal). */}
           <div data-ct="rev-move-line" style={{display:'flex',alignItems:'center',gap:7,minHeight:38,whiteSpace:'nowrap'}}>
             {anaMode?(<>
@@ -4473,7 +4476,7 @@ export default function App(){
         </div>);})()}
       {/* ── Review controls ── */}
       {inReview&&!revCompact&&(
-        <div style={{width:boardPx,maxWidth:'98vw',marginTop:8,display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+        <div style={{width:boardPx,maxWidth:_edge?'100vw':'98vw',marginTop:8,display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
           {/* move annotation */}
           <div style={{height:118,width:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',gap:5,overflowY:'auto'}}>
             {curAnno?(<>
@@ -4527,7 +4530,7 @@ export default function App(){
       )}
 
       {/* ── Play controls ── */}
-      {mode==='play'&&opponent!=='online'&&(<div style={{marginTop:5,display:'flex',flexDirection:'column',alignItems:'center',gap:7,width:boardPx,maxWidth:'98vw'}}>
+      {mode==='play'&&opponent!=='online'&&(<div style={{marginTop:5,display:'flex',flexDirection:'column',alignItems:'center',gap:7,width:boardPx,maxWidth:_edge?'100vw':'98vw'}}>
         {opponent==='computer'?(<div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,flexWrap:'wrap'}}>
           {!(opponent&&!isOver&&!playEnd)&&(selBot&&botById(selBot)?(<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:'clamp(12.5px,2.15vw,12.5px)',color:'rgba(255,255,255,.72)',fontWeight:700}}><BotFace id={selBot} size={20}/>{botById(selBot).name}</span>):(<span style={{fontSize:'clamp(12px,2.05vw,12px)',color:'rgba(255,255,255,.58)'}}>🤖 vs Computer</span>))}
           {!(opponent&&!isOver&&!playEnd)&&(<div style={{display:'flex',alignItems:'center',gap:5,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 5px'}}>
@@ -4554,7 +4557,7 @@ export default function App(){
       {/* ── Online multiplayer panel ── */}
       {mode==='play'&&opponent==='online'&&(()=>{
         const og=onlineGame;
-        const card={width:boardPx,maxWidth:'98vw',marginTop:10,background:'rgba(110,168,254,.08)',border:'1px solid rgba(110,168,254,.28)',borderRadius:14,padding:'14px 15px',display:'flex',flexDirection:'column',gap:10,alignItems:'stretch'};
+        const card={width:boardPx,maxWidth:_edge?'100vw':'98vw',marginTop:10,background:'rgba(110,168,254,.08)',border:'1px solid rgba(110,168,254,.28)',borderRadius:14,padding:'14px 15px',display:'flex',flexDirection:'column',gap:10,alignItems:'stretch'};
         const lbl={fontSize:'clamp(14px,2.5vw,14px)',color:'rgba(255,255,255,.55)',fontWeight:700,letterSpacing:.5,textTransform:'uppercase'};
         if(!cloudUser)return(<div style={card}>
           <div style={{fontSize:'clamp(14px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>🌐 Play a friend online</div>
@@ -4728,7 +4731,7 @@ export default function App(){
         </div>);
       })()}
       {mode==='puzzle'&&pzView==='roadmap'&&(()=>{const rank=pzRank(pzSolvedMap);const active=Math.min(rank,PZ_TIERS.length-1);const total=pzTotalSolved(pzSolvedMap);const at=PZ_TIERS[active];const inActive=pzSolvedInTier(pzSolvedMap,active);const allDone=rank>=PZ_TIERS.length;const dTd=(daily&&daily.date===dstr(new Date()))?(daily.count||0):0;return(
-      <div style={{marginTop:6,width:boardPx,maxWidth:'98vw',display:'flex',flexDirection:'column',gap:10}}>
+      <div style={{marginTop:6,width:boardPx,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',gap:10}}>
         <div style={{width:'100%',background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:14,padding:'14px 16px'}}>
           <div style={{display:'flex',alignItems:'center',gap:12}}>
             <div style={{fontSize:34,lineHeight:1}}>{allDone?'🏆':at.icon}</div>
@@ -4767,7 +4770,7 @@ export default function App(){
 
       {/* ── Puzzle: BROWSE / solving view ── */}
       {mode==='puzzle'&&pzView==='browse'&&(()=>{const p=curPuz||PZ[puzIdx];return(
-      <div ref={pzTopRef} data-ct="pz-top" style={{order:1,marginTop:8,width:Math.min(vw-8,440),maxWidth:'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
+      <div ref={pzTopRef} data-ct="pz-top" style={{order:1,marginTop:8,width:Math.min(vw-8,440),maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
         {pzBurst>0&&(<div style={{position:'fixed',inset:0,pointerEvents:'none',zIndex:9500}}>{Array.from({length:14}).map((_,i)=>(<span key={pzBurst+'_'+i} style={{position:'absolute',left:(8+(i*6.3)%84)+'%',top:'16%',fontSize:15+(i*7)%14,animation:'ctFall '+(0.7+(i%5)*0.12)+'s ease-in forwards',animationDelay:(i%4)*0.05+'s',opacity:.95}}>{['🎉','✨','⭐','🟡'][i%4]}</span>))}</div>)}
         <div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <button onClick={()=>setPzView('roadmap')} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>‹ Roadmap</button>
@@ -4787,7 +4790,7 @@ export default function App(){
         <div style={{width:'100%',height:74,overflowY:'auto'}}>{puzMsg&&(<div key={puzMsg} style={{width:'100%',fontSize:'clamp(14.5px,3.2vw,16px)',fontWeight:700,color:puzSolved?'#aef0bd':(puzMsg[0]==='✗'?'#ffb3a8':'#cfe0ff'),lineHeight:1.5,background:puzSolved?'rgba(123,216,143,.16)':(puzMsg[0]==='✗'?'rgba(236,154,144,.16)':'rgba(110,168,254,.14)'),border:'1px solid '+(puzSolved?'rgba(123,216,143,.45)':(puzMsg[0]==='✗'?'rgba(236,154,144,.45)':'rgba(110,168,254,.4)')),borderLeft:'4px solid '+(puzSolved?'#7bd88f':(puzMsg[0]==='✗'?'#ec9a90':'#6ea8fe')),borderRadius:10,padding:'12px 13px',animation:'pzflash .3s ease-out'}}>{puzMsg}</div>)}</div>
       </div>);})()}
       {mode==='puzzle'&&pzView==='browse'&&(()=>{const p=curPuz||PZ[puzIdx];return(
-      <div ref={pzBotRef} data-ct="pz-bottom" style={{order:3,marginTop:8,width:Math.min(vw-8,440),maxWidth:'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>
+      <div ref={pzBotRef} data-ct="pz-bottom" style={{order:3,marginTop:8,width:Math.min(vw-8,440),maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>
         {!puzSolved&&(<div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
           <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>💡 Hint</button>
           <button onClick={()=>{setPuzReveal(true);setPuzMsg('👁 Play '+p.sol[puzStep]+' — the squares are highlighted on the board.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
@@ -4804,7 +4807,7 @@ export default function App(){
       {pzLow&&!wide&&(<div aria-hidden="true" style={{order:0,flex:'1 1 0',minHeight:0,width:'100%'}}/>)}
       {pzLow&&!wide&&(<div aria-hidden="true" style={{order:98,flex:'1 1 0',minHeight:0,width:'100%'}}/>)}
       {mode==='puzzle'&&pzView==='online'&&(()=>{const p=(curPuz&&curPuz.ext)?curPuz:null;const bw=Math.min(vw-8,440);const _drill=mistakeMode;const _dn=(mistakeQueueRef.current||[]).length,_di=mistakeIdxRef.current+1;return(
-      <div ref={pzTopRef} data-ct="pz-top" style={{order:1,marginTop:p?8:6,width:bw,maxWidth:'98vw',display:'flex',flexDirection:'column',alignItems:'stretch',gap:8}}>
+      <div ref={pzTopRef} data-ct="pz-top" style={{order:1,marginTop:p?8:6,width:bw,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'stretch',gap:8}}>
         <div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
           <button onClick={()=>{if(_drill)exitMistakes();else setPzView('roadmap');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>{_drill?'‹ Review':'‹ Roadmap'}</button>
           <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_drill?((drillKindRef.current==='brilliant'?'✨ Your brilliant moves':'🔎 Your mistakes')+(_dn>1?(' · '+_di+' of '+_dn):'')):('🌐 Lichess · ✓ '+pzOSolved+' solved')}</span>
@@ -4845,7 +4848,7 @@ export default function App(){
         </>)}
       </div>);})()}
       {mode==='puzzle'&&pzView==='online'&&(()=>{const p=(curPuz&&curPuz.ext)?curPuz:null;const bw=Math.min(vw-8,440);return(p&&(
-      <div ref={pzBotRef} data-ct="pz-bottom" style={{order:3,marginTop:8,width:bw,maxWidth:'98vw',display:'flex',flexDirection:'column',alignItems:'stretch',gap:8}}>
+      <div ref={pzBotRef} data-ct="pz-bottom" style={{order:3,marginTop:8,width:bw,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'stretch',gap:8}}>
         {!puzSolved&&(<div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
           <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>💡 Hint</button>
           <button onClick={()=>{setPuzReveal(true);setPuzMsg('👁 Play '+p.sol[puzStep]+' — the squares are highlighted on the board.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
@@ -4883,7 +4886,7 @@ export default function App(){
       </div>);})()}
 
       {/* ── Learn controls ── */}
-      {mode==='learn'&&(<div style={{marginTop:11,width:boardPx,maxWidth:'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>{kpInfo&&openIdx!==null&&(<div style={{width:'100%',display:'flex',flexDirection:'column',gap:6}}><button onClick={()=>setSqShow(v=>!v)} style={{...btn('rgba(110,168,254,.14)','1px solid rgba(110,168,254,.45)','#cfe0ff'),width:'100%',fontSize:'clamp(14px,2.7vw,14px)'}}>{sqShow?'Hide the square':'Show the square of the pawn'}</button>{sqShow&&(<div style={{fontSize:'clamp(14px,2.8vw,14px)',textAlign:'center',padding:'7px 10px',borderRadius:9,background:kpInfo.catches?'rgba(110,214,110,.14)':'rgba(255,170,60,.14)',border:'1px solid '+(kpInfo.catches?'rgba(110,214,110,.5)':'rgba(255,170,60,.5)'),color:'#fff',lineHeight:1.4}}>{kpInfo.catches?'The king is inside the square, so it catches the pawn.':'The king is outside the square, so the pawn promotes.'}</div>)}</div>)}
+      {mode==='learn'&&(<div style={{marginTop:11,width:boardPx,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>{kpInfo&&openIdx!==null&&(<div style={{width:'100%',display:'flex',flexDirection:'column',gap:6}}><button onClick={()=>setSqShow(v=>!v)} style={{...btn('rgba(110,168,254,.14)','1px solid rgba(110,168,254,.45)','#cfe0ff'),width:'100%',fontSize:'clamp(14px,2.7vw,14px)'}}>{sqShow?'Hide the square':'Show the square of the pawn'}</button>{sqShow&&(<div style={{fontSize:'clamp(14px,2.8vw,14px)',textAlign:'center',padding:'7px 10px',borderRadius:9,background:kpInfo.catches?'rgba(110,214,110,.14)':'rgba(255,170,60,.14)',border:'1px solid '+(kpInfo.catches?'rgba(110,214,110,.5)':'rgba(255,170,60,.5)'),color:'#fff',lineHeight:1.4}}>{kpInfo.catches?'The king is inside the square, so it catches the pawn.':'The king is outside the square, so the pawn promotes.'}</div>)}</div>)}
         {openIdx!==null?(
           (()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';const idxs=LIB.map((o,i)=>groupOf(o.cat)===grp?i:-1).filter(i=>i>=0);const pos=idxs.indexOf(openIdx);const hasPrev=pos>0,hasNext=pos<idxs.length-1;
             const nav=(on)=>({...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),opacity:on?1:.35,cursor:on?'pointer':'default'});
@@ -5073,7 +5076,7 @@ export default function App(){
       </div>)}
 
       {/* Move history (play/learn) */}
-      {!inReview&&!pzLow&&boardGame.history.length>0&&!(mode==='learn'&&openIdx===null)&&(mode!=='play'||movesOpen)&&(<div style={{marginTop:10,width:boardPx,maxWidth:'98vw'}}>
+      {!inReview&&!pzLow&&boardGame.history.length>0&&!(mode==='learn'&&openIdx===null)&&(mode!=='play'||movesOpen)&&(<div style={{marginTop:10,width:boardPx,maxWidth:_edge?'100vw':'98vw'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:4}}>
           <span style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.4)',letterSpacing:1.5,fontFamily:'monospace'}}>MOVES</span>
           <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}>
@@ -5099,7 +5102,7 @@ export default function App(){
 
       {/* Move list (review, clickable + colored) — single horizontal strip */}
       {inReview&&(()=>{const _arrows=revCompact&&!wide;const _abtn=(lbl,on,lab)=>(<button onClick={on} aria-label={lab} style={{flex:'0 0 auto',width:26,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',color:'rgba(255,255,255,.75)',fontSize:15,cursor:'pointer',padding:0}}>{lbl}</button>);return(
-      <div data-ct="strip-row" style={{marginTop:10,marginBottom:(revCompact&&!wide)?'auto':0,width:boardPx+((hideEval||evalUnder)?0:22),maxWidth:'98vw',display:'flex',alignItems:'stretch',gap:6}}>
+      <div data-ct="strip-row" style={{marginTop:10,marginBottom:(revCompact&&!wide)?'auto':0,width:boardPx+((hideEval||evalUnder)?0:22),maxWidth:_edge?'100vw':'98vw',display:'flex',alignItems:'stretch',gap:6}}>
         {_arrows&&_abtn('\u2039',()=>{setRevAuto(false);setPly(p=>Math.max(0,p-1));},'Previous move')}
         <div data-mstrip="1" className="scroll" style={{flex:'1 1 auto',minWidth:0,overflowX:'auto',overflowY:'hidden',whiteSpace:'nowrap',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:12,padding:'9px 11px',position:'relative',WebkitOverflowScrolling:'touch'}}>
         <div style={{display:'inline-flex',alignItems:'center',fontSize:'clamp(14px,2.9vw,16px)',fontFamily:'monospace'}}>
@@ -5143,7 +5146,13 @@ export default function App(){
           const _fgDim=_lightBar?'rgba(0,0,0,.5)':'rgba(255,255,255,.62)';
           const _pillBg=_lightBar?'rgba(0,0,0,.06)':'rgba(255,255,255,.08)';
           const _pillBd=_lightBar?'rgba(0,0,0,.14)':'rgba(255,255,255,.14)';
-          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...((inReview||mode==='play')?{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(vp.h>900?116:96)}:null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{isTop&&_evalOn&&!inReview&&!isOver&&!playEnd&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:_pillBg,border:'1px solid '+_pillBd,color:_fg}}>{evalTxt}</span>}
+          // #351 Kunal: "the back arrow and three-dots at the top take too much space. Relocate them."
+          // They belong in the top player bar, which is already on screen and already has slack. That
+          // deletes a 40px row outright and hands every pixel of it to the board.
+          const _hb=isTop&&inReview&&revCompact;
+          const _hbSty={flex:'0 0 auto',display:'inline-flex',alignItems:'center',justifyContent:'center',width:34,height:30,borderRadius:9,background:_pillBg,border:'1px solid '+_pillBd,color:_fg,cursor:'pointer',fontWeight:800,lineHeight:1,padding:0};
+          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...((inReview||mode==='play')?{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(vp.h>900?148:124)}:null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>setReviewView('summary')} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:20}}>{'\u2190'}</button>}
+            {isTop&&_evalOn&&!inReview&&!isOver&&!playEnd&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:_pillBg,border:'1px solid '+_pillBd,color:_fg}}>{evalTxt}</span>}
             {av}
             <div style={{minWidth:0,flex:1}}>
               <div style={{display:'flex',alignItems:'baseline',gap:6,minWidth:0}}>
@@ -5154,6 +5163,7 @@ export default function App(){
               </div>
               <div data-ct={'pbar-taken-'+col} style={{display:'flex',alignItems:'center',height:18,flexShrink:0,flexWrap:'nowrap',overflow:'hidden'}}>{taken.length>0&&taken.map((t,i)=>(<span key={i} style={{display:'inline-flex',marginRight:-2}}><Piece t={t} color={enemy} sz={18} useFallback={fallback} onFail={onPieceFail}/></span>))}{lead>0&&<span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:_fgDim,marginLeft:6}}>+{lead}</span>}</div>
             </div>
+            {_hb&&<button data-ct="rev-more" onClick={()=>setRevMore(true)} aria-label="More" style={{..._hbSty,fontSize:19}}>{'\u22ef'}</button>}
             {clk!=null&&<div style={{fontFamily:'monospace',fontSize:'clamp(15px,4.4vw,21px)',fontWeight:800,padding:'4px 11px',borderRadius:8,flexShrink:0,background:ticking?'rgba(110,180,90,.22)':_pillBg,border:'1px solid '+(ticking?'rgba(110,180,90,.55)':_pillBd),color:clk==='0:00'?'#d23b2e':(ticking?(_lightBar?'#2f7a26':'#86d99a'):_fg)}}>{clk}</div>}
           </div>);
         };
@@ -5162,7 +5172,7 @@ export default function App(){
         const _showBars=(mode==='play'&&!(opponent==='online'&&!_og))||(inReview&&revCompact&&reviewView!=='summary');
         const _board=(<>
       {showBoard&&(()=>{const lab=Math.max(9,Math.round(SQ*0.26));const cc=(light)=>light?TH.dark:TH.light;return(
-      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',justifyContent:'center',order:wide?0:(pzLow?2:0),flex:(!wide&&((inReview&&revCompact)||(mode==='play'&&!playSetup)))?'1 1 auto':undefined,minHeight:0,marginTop:(pzLow&&!wide?10:0)}}>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',justifyContent:_edge?'flex-start':'center',order:wide?0:(pzLow?2:0),flex:(!wide&&((inReview&&revCompact)||(mode==='play'&&!playSetup)))?'1 1 auto':undefined,minHeight:0,marginTop:(pzLow&&!wide?10:0)}}>
         {_showBars&&pBar(topColor,true)}
         {/* #340: eval bar ABOVE the board (Kunal), full width, so the board itself keeps every pixel of screen width. The number sits at the leading end, horizontal and readable. */}
         {_evalOn&&evalUnder&&(()=>{const fr=Math.max(0.03,Math.min(0.97,0.5+evalNow/12));const wb=bottomColor==='w';const _wAhead=evalNow>=0;const _num=(inReview&&typeof evalTxt==='string')?evalTxt:null;return(
@@ -5238,7 +5248,7 @@ export default function App(){
         ) : (mode==='learn'&&openIdx!==null) ? (
           <div style={{flex:1,alignSelf:'stretch',width:'100%',minHeight:0,display:'flex',flexDirection:'column',alignItems:'center'}}>
             {_blurbs}
-            {learnPhase==='practice'&&!lessonFocus&&(<div style={{width:boardPx,maxWidth:'98vw',display:'flex',flexDirection:'column',gap:9,marginTop:6}}>{(()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';return(<button onClick={()=>setOpenIdx(null)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','rgba(255,255,255,.85)'),width:'100%',fontSize:'clamp(14px,2.7vw,14px)'}}>‹ All {noun}</button>);})()}</div>)}
+            {learnPhase==='practice'&&!lessonFocus&&(<div style={{width:boardPx,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',gap:9,marginTop:6}}>{(()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';return(<button onClick={()=>setOpenIdx(null)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','rgba(255,255,255,.85)'),width:'100%',fontSize:'clamp(14px,2.7vw,14px)'}}>‹ All {noun}</button>);})()}</div>)}
             <div style={{flex:1,minHeight:10}}/>
             {_board}
             {_controls}
