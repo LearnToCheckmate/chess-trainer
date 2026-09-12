@@ -61,7 +61,7 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 - Waiting on Kunal (his dashboard): old GitHub token DELETED 2026-09-06 (done); two-device sync check; Stripe test prices at $2.99/$19.99 + checkout test; buy gambitcoach.com; deploy scanBoard function; publish Firestore rules for tournaments/friends/nearby (this last one unlocks three buildable features).
 - Sourcing notes: Caro-Kann Fantasy video 0yMkAJ6Pyig is single-source attribution; Kunal has not yet confirmed playback. Held HP IDs (no matching lessons yet): Two Knights Caro S5OjT1K_s58, Karpov YLEmufSFoGk.
 
-## 5a) State at builds #331 to #357 (Cowork session 2026-09-10 evening into 2026-09-12)
+## 5a) State at builds #331 to #358 (Cowork session 2026-09-10 evening into 2026-09-12)
 - #341: the review move screen has no tab bar, a back arrow as the only exit, a one-line reason under the move, thin arrows on the move strip, and "Analyze with the engine" (eval plus the engine's line in notation, cached per FEN). The engine pass for a whole game is cached in localStorage (ct_evalcache, keyed on the move list plus movetime, 24 games LRU): 62 s first run, 4 s on a repeat. If review output ever looks stale after changing the analysis code, bump the key string in evalCacheKey. Screen audit at 430x932: review board 424 of 430, puzzle and drill 416, play 416, lesson 416; play and lesson still carry heavy chrome, and the base-layout decision for them is open.
 - #339: LESSON WORTH KEEPING. Flipping a default is not enough when an effect has already persisted the old value to every install: #337 made the one-screen review the default but Kunal's phone had ct_revCompact='0' stored from the preview era, so he kept seeing the classic screen and re-reported the same complaints. Any future default flip needs a one-time migration key like ct_revmig339. Also in #339: the eval bar moved off the side (full width strip, horizontal number) so the board takes the full screen width, with a three-way sheet control (above / beside / off); #340 put that strip above the board at his request. Great is now blue #5d93e8, not teal.
 - #338: the tab-bar spacer now carries order 99. It had none, and the puzzle screen is the only screen that orders its children, so there the spacer rendered FIRST (empty band at the top) and reserved nothing at the bottom (board and controls under the tab bar). If you ever add order to another screen's children, give every sibling an order or this returns. Puzzle boards are now sized from a measured pzStackH; the drill hides the Lichess panel; dev loaders are collapsed.
@@ -315,6 +315,28 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
   three famous sacrifices (Morphy's Opera Game, Legal's Mate, the Evans Gambit) through the real
   composer and asserts on CONTENT rather than code paths, and rebuilds its pure slice from the live
   source each run so it cannot test a stale copy.
+
+### #358 auto-playing the finish, and the SAN bug it uncovered
+- **"PLAY ON AFTER ANY SOLVE" IS THE WRONG BUILD.** Most tactics already carry their payoff in the
+  solution itself: the royal-fork puzzle Kunal named as his example has the moves Ne2+ then Nxc3,
+  which IS "the king moves out of check, then take the queen". Playing further appends a random
+  engine continuation to a finished tactic. 243 of 876 puzzles end in mate with nothing left to
+  show. The finish auto-plays only when it is a FORCED MATE: never noise, and the case he actually
+  named (the Fishing Pole queen). 43 fire, 590 are left alone.
+- `finishLine` is pure and module-level SO THAT IT CAN BE TESTED. Two attempts at driving a puzzle
+  solve through the DOM failed on highlight detection and taught nothing; moving the function to
+  module scope took five minutes and let the rule run against all 876 puzzles in a second. Same
+  lesson as `explainAnno` and `moveGist`: if a rule matters, make it pure and test it on the
+  library, not through a browser.
+- **toSAN RENDERED CHECKMATE AS '+', ALWAYS.** Wrong notation on its own, and it silently broke
+  #357 within the hour: `bestSan` comes from toSAN, so a mate found through the ENGINE read as an
+  ordinary check and "Nxb8 Rd8# is mate" degraded to "Nxb8 Rd8+ follows" on exactly the lines that
+  most needed the word. Fixed. The probe uses the parent game's castling and ep rights, which can
+  only ADD an escape, so it can under-report mate but never invent one. `cleanSAN` strips both
+  symbols, so nothing that matches moves was affected.
+- The general lesson from tonight, stated once: a feature shipped an hour ago can be broken by a
+  bug that predates it. When a new feature depends on the SHAPE of an existing output (here, that
+  a mate carries a '#'), verify that shape rather than assuming it.
 
 ## 6) Files in this handoff
 This MD is self-sufficient; everything else refetches from the repo (section 1.2). The repo's own HANDOFF.md is June-era; this file supersedes it until committed.
