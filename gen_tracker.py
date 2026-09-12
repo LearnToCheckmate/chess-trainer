@@ -46,6 +46,8 @@ T=[
  ("review","Great-move classification chip","done","#231",""),
  ("review","Tap 'Better was X' to show best move on board","done","#42",""),
  ("review","Review overhaul (eval bar, brilliant heuristic)","part","#307","Eval bar BUILT #260 (thin vertical, in the gallery - decide keep/remove). Brilliant heuristic CLOSED in #307: your Bxh3 recording confirmed the thresholds read !! correctly, no change needed. Only the eval-bar keep/remove decision is left, and that one is yours."),
+ ("review","Player ratings in the bars (review and play)","done","#348","Free: chess.com and lichess both write WhiteElo/BlackElo into the PGN and we were already parsing every header. No rating shown where we do not have one."),
+ ("review","Country flags in the player bars","part","#348","Built and cached, but api.chess.com is blocked from the build sandbox so the lookup can only be confirmed on a real device. Needs Kunal to eyeball one chess.com game."),
  ("review","Review budget adapts to the device (wall-clock target)","done","#347","#343 spent the parallel saving on depth using a sandbox measurement, which wiped out the speedup on a real phone. Now measures actual elapsed after one round of the pool and scales to land on 24s."),
  ("review","Brilliant-move trainer says why the move was brilliant","done","#347","Was just \"Nicely done.\" The reason is now stored with the position when the brilliancy is captured."),
  ("polish","Coach card opens the lesson it names","done","#347","One-word bug: selectOpening(_coachRec.i) where the object only has .idx, so the card did nothing."),
