@@ -69,6 +69,31 @@ marked rather than invented.
 
 ## Open
 
+### From the second (sandbox) session, ported into the pushed line as #375 [2026-09-13 16:40 ET]
+
+- [2026-09-13 16:40 ET] status: built #375  Two sessions built this app at the same time today. The pushed line
+  (#373, #374) is the trunk; this session's parallel work was ported onto it and its duplicate fixes dropped.
+  What #375 adds: reviews are reproducible (the same game twice gave Black 84.6% and then 58.4% - fixed depth,
+  contiguous worker blocks, a 20 s stuck-worker guard, a cold re-search of mate boundaries; ~17 s instead of
+  24); a move that walks into mate is no longer praised (15...Nxd7 reads "?? Blunder best Qxd7"); a mate in one
+  reads M1; "Start review" starts at the start; a long lesson note scrolls and opens in full on a tap; Resign
+  asks twice; the result card leaves the board after 3 s and the result moves to the line above it.
+- [2026-09-13 16:40 ET] status: closed by measurement  uat372-k10 ("rank 1 renders at 60% at game over" on your
+  #372 recording) was a misread of the low-resolution contact sheet. At full resolution the rank labels are
+  140 px apart all the way down, the board's painted edge is at y 1512 with the g1 knight's base at 1500, and
+  the game-over frame is pixel-identical to the mid-game frame in that region. Nothing to fix.
+- [2026-09-13 16:40 ET] status: closed by reproduction  uat372-k12 ("the board stepped back a ply at the mate")
+  is real and reproduces in one step: at the mate, tap "▶ why". It asked the engine for a continuation from the
+  mated position and parked the board a ply behind for 10-14 s. Fixed, and gated (mate373.js drives the tap).
+- [2026-09-13 16:45 ET] status: open, yours  From the Review test pass: the zero-count chips on the summary look
+  tappable and do nothing; and with the eval graph switched on, a tap on the graph did not always jump the ply.
+  Both small, both waiting behind decisions you have open (y1c for the graph).
+- [2026-09-13 16:45 ET] status: you  ONE SESSION SHOULD HOLD THE PEN. Today cost about four hours of duplicated
+  work: two audits, two Review charter passes, two sets of fixes for the same five items. The session with push
+  access should be the builder; this one is better used for reading your recordings and for the work that needs
+  your Chrome.
+
+
 ### Build #373 [2026-09-12 21:28 ET to close-out] - the first run from a Claude Code session with push access
 
 - [2026-09-12 21:28 ET] status: built #373  Run opened per HANDOFF 0c: #372 confirmed LIVE at 7c51f10 by hash (your

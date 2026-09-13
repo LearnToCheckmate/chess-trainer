@@ -651,7 +651,7 @@ function sacTaker(posBefore,mv){
 /* an evaluation as a person reads it, from White's side: +1.3, -0.4, M3, -M2 */
 function evTxt(cpW){
   if(cpW==null)return '';
-  if(Math.abs(cpW)>=99900)return cpW>0?'1-0':'0-1'; /* #371: a mated side to move (see mateW) */
+  if(Math.abs(cpW)>=99925)return cpW>0?'1-0':'0-1'; /* #375: 99900 is mate IN ONE; only the mated sentinel is a result */ /* #371: a mated side to move (see mateW) */
   if(Math.abs(cpW)>=90000){const n=Math.max(1,Math.round((100000-Math.abs(cpW))/100));return (cpW>0?'M':'-M')+n;}
   const v=cpW/100;return (v>=0?'+':'')+v.toFixed(1);
 }
@@ -2028,6 +2028,9 @@ export default function App(){
   const toast=(msg,kind)=>{const id=toastSeq.current++;setToasts(t=>[...t.slice(-2),{id,msg:String(msg||''),kind:kind||'info'}]);setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),3200);};
   const toastRef=useRef(toast);toastRef.current=toast;
   const [lessonMore,setLessonMore]=useState(false); // #316 focus-mode sheet
+  const [noteOpen,setNoteOpen]=useState(false);     // #375 (audit A2-02): the whole lesson note when the 75px box cannot hold it
+  const [noteOver,setNoteOver]=useState(false);
+  const noteInnerRef=useRef(null);
   const introHoldRef=useRef(false); // #315: intro card auto-dismiss (effect lives after state decls)
   // ── Progress sync (#310): mirror key progress to users/{uid} via CTCloud.load/save (merge:true).
   const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_rating','ct_coachstyle','ct_coachtargets','ct_coachtier'];
@@ -2152,6 +2155,7 @@ export default function App(){
   // the slack now holds the move list instead of padding.
   const [movesOpen,setMovesOpen]=useState(()=>{try{return !(window.matchMedia&&window.matchMedia('(orientation:landscape)').matches);}catch(e){return true;}});
   const [moreOpen,setMoreOpen]=useState(false);
+  const [resignArm,setResignArm]=useState(false);   // #375: the first tap arms Resign for 4 s, the second resigns
   const [pvIdx,setPvIdx]=useState(null);          // live-game move viewer: null=live, else position index (after N moves)
   const pvIdxRef=useRef(null);
   const [lpv,setLpv]=useState(null);
@@ -2451,9 +2455,14 @@ export default function App(){
     return out;
   },[inDemo,boardLast,learnArrows,demoPly]);
   const curNote=inDemo&&demoPly>0?(learnNotes[demoPly-1]||''):'';
+  useEffect(()=>{const el=noteInnerRef.current;if(!el){setNoteOver(false);return;}try{el.scrollTop=0;}catch(e){}const over=el.scrollHeight>el.clientHeight+1;setNoteOver(over);if(!over)setNoteOpen(false);},[demoPly,openMsg,curNote,learnPhase,openIdx,mode,vw]); /* #375: the note box scrolls, and a tap opens the whole note - it used to drop its last line for good */
+  useEffect(()=>{setNoteOpen(false);},[openIdx,learnPhase]);
 
   const status=useMemo(()=>getStatus(boardGame),[boardGame]);
   const isOver=status==='checkmate'||status==='stalemate';
+  const [resultCardFade,setResultCardFade]=useState(false);const [resultCardGone,setResultCardGone]=useState(false); // #375 (audit A2-06): the result card sat on the final position until Rematch
+  const _resultKey=(isOver||playEnd)?1:0;
+  useEffect(()=>{setResultCardFade(false);setResultCardGone(false);if(!_resultKey)return;const a=setTimeout(()=>setResultCardFade(true),2600),b=setTimeout(()=>setResultCardGone(true),3300);return()=>{clearTimeout(a);clearTimeout(b);};},[_resultKey,mode]);
   const chkSq=useMemo(()=>{
     const st=getStatus(boardGame);
     if(st!=='check'&&st!=='checkmate')return null;
@@ -2921,8 +2930,9 @@ export default function App(){
       const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;
       const mm=msg.match(/score mate (-?\d+)/),cm=msg.match(/score cp (-?\d+)/);
       const _p1=msg.match(/ pv (\S+)/);const _fm=_p1?_p1[1]:null;
-      if(mm)cb.score({mate:parseInt(mm[1],10),cp:null,mpv:mpv,first:_fm});
-      else if(cm)cb.score({mate:null,cp:parseInt(cm[1],10),mpv:mpv,first:_fm});
+      const _dm=msg.match(/ depth (\d+)/);const _d=_dm?parseInt(_dm[1],10):null; /* #375: which depth the score came from */
+      if(mm)cb.score({mate:parseInt(mm[1],10),cp:null,mpv:mpv,first:_fm,depth:_d});
+      else if(cm)cb.score({mate:null,cp:parseInt(cm[1],10),mpv:mpv,first:_fm,depth:_d});
     }else if(msg.startsWith('bestmove')){cb.best(msg.split(' ')[1]);}
   };
   const ensurePool=(want)=>new Promise(resolve=>{
@@ -2947,17 +2957,22 @@ export default function App(){
   const poolClose=()=>{try{sfPoolRef.current.forEach(s=>{try{s.w&&s.w.terminate();}catch(e){}});}catch(e){}sfPoolRef.current=[];};
   useEffect(()=>()=>poolClose(),[]);
   // One eval on one pool worker. Same contract as sfEval1.
-  const sfEvalOn=(slot,fen,movetime)=>new Promise(resolve=>{
+  const sfEvalOn=(slot,fen,movetime,fresh)=>new Promise(resolve=>{
     if(!slot||!slot.w||!slot.ready||slot.dead){resolve(null);return;}
     const stm=(fen.split(' ')[1]||'w'),sign=stm==='w'?1:-1;
     let cp=null,mate=null,cp2=null,mate2=null,alt=null,done=false;
     const finish=(bm)=>{if(done)return;done=true;slot.cb=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null});};
-    const to=setTimeout(()=>finish(null),Math.max(4000,movetime*8));
+    const to=setTimeout(()=>finish(null),Math.max(20000,movetime*8)); /* #375: the search is bounded by depth now, so this is only a stuck-worker guard. At 4 s it cut real searches short and stored a shallow opinion as the answer - which is how a move that walks into mate came to be called "Great". */
+    const DCAP=16;  // the review's search depth: reproducible, and faster than the old 1.8 s-per-position budget
     slot.cb={score:(sc)=>{const _m=sc.mpv||1;
         if(_m===1){if(sc.mate!=null){mate=mateW(sc.mate,sign);cp=null;}else{cp=sign*sc.cp;mate=null;}}
         else if(_m===2){if(sc.mate!=null){mate2=mateW(sc.mate,sign);cp2=null;}else{cp2=sign*sc.cp;mate2=null;}if(sc.first)alt=sc.first;}},
       best:(bm)=>finish(bm)};
-    try{slot.w.postMessage('setoption name UCI_LimitStrength value false');slot.w.postMessage('position fen '+fen);slot.w.postMessage('go movetime '+movetime);}catch(e){finish(null);}
+    /* #375 (SAT finding R-01): every position used to be searched by TIME, so a busy phone thought less and
+       scored differently - the same game reviewed twice gave Black 84.6% one run and 58.4% the next, with the
+       verdicts to match. A fixed DEPTH makes a review reproducible, correct on the Opera Game's famous moves,
+       and about 7 s faster. `fresh` clears the table for the handful of positions that need a clean look. */
+    try{slot.w.postMessage('setoption name UCI_LimitStrength value false');if(fresh)slot.w.postMessage('ucinewgame');slot.w.postMessage('position fen '+fen);slot.w.postMessage('go depth '+DCAP);}catch(e){finish(null);}
   });
 
   const importGame=async(pgnArg,meta)=>{
@@ -3008,11 +3023,15 @@ export default function App(){
       };
       const _slots=sfPoolRef.current.filter(x=>x.ready&&!x.dead);
       if(_slots.length>1){
-        // work queue: every worker takes the next unclaimed position, so a slow position never idles the others
-        let next=0,done=0;
-        await Promise.all(_slots.map(async(sl)=>{
-          for(;;){
-            const i=next++;if(i>N)break;
+        /* #375: each worker takes a fixed CONTIGUOUS block of the game instead of racing for the next unclaimed
+           position. The old queue made the assignment depend on timing, so a position met a different
+           transposition table on every run and the review's numbers moved; a contiguous block is also what keeps
+           a review at ~17 s, because a worker walking consecutive positions reuses that table (handing each
+           worker every third position instead costs 72 s). A slow position now idles its own worker only. */
+        let done=0;const _chunk=Math.ceil((N+1)/_slots.length);
+        await Promise.all(_slots.map(async(sl,_k)=>{
+          const _hi=Math.min(N,(_k+1)*_chunk-1);
+          for(let i=_k*_chunk;i<=_hi;i++){
             const r=await sfEvalOn(sl,toFEN(res.positions[i]),MT);
             _store(i,r);done++;setProgress(done/(N+1));
             // after one full round of the pool, we know what this DEVICE costs per position; correct the budget once.
@@ -3036,6 +3055,21 @@ export default function App(){
           _store(i,r);setProgress((i+1)/(N+1));
         }
       }
+      /* #375: reusing a worker's table between neighbouring positions is what keeps a review fast, but a table
+         carried in from the move before can hold a position's refutation out of view. The case that matters is
+         the move that ALLOWS A MATE: if the next position is mate and this one reads like an ordinary
+         middlegame, the move gets called Great instead of what it is. Those boundaries only (at most 8, ~2 s
+         each) are searched again from a cleared table. Measured on the Opera Game: 15...Nxd7 goes from "Great"
+         to "Blunder, best Qxd7", which is the truth. */
+      try{
+        const _M=(v)=>Math.abs(v)>=90000;const _fix=[];
+        for(let i=0;i<N;i++)if(_M(evW[i+1])&&!_M(evW[i]))_fix.push(i);
+        const _sl2=sfPoolRef.current.filter(x=>x.ready&&!x.dead);
+        if(_sl2.length&&_fix.length)for(const i of _fix.slice(0,8)){
+          const r2=await sfEvalOn(_sl2[0],toFEN(res.positions[i]),MT,true);
+          if(r2&&(r2.mate!=null||r2.cp!=null))_store(i,r2);
+        }
+      }catch(e){}
       evalCacheSet(_ck,{evW,ev2W,bU,aU});
       }
       poolClose();
@@ -3566,7 +3600,10 @@ export default function App(){
     const ev=(!anaMode&&ply>0&&review.analysis[ply-1]&&typeof review.analysis[ply-1].evalAfter==='number')?review.analysis[ply-1].evalAfter:evalPawns(pos);
     /* #373 (audit N-review-2): on a checkmated position the engine has no line to give, so this placeholder was the label - and the review's forced mate score printed as "+99.0" where A-03 (#371) had put 1-0. The mated side to move decides the label. */
     let _mated=false;try{_mated=getStatus(pos)==='checkmate';}catch(e){}
-    const txt=_mated?(pos.turn==='w'?'0-1':'1-0'):((ev>0?'+':'')+Math.max(-99,Math.min(99,ev)).toFixed(1));
+    /* #375 (SAT TC-R14): a stored +-99 IS a mate, so it must read M<n>, never "+99.0" - M1 when a mating move
+       exists from here. This is the label one ply before the mate, which read "+99.0" until now. */
+    const _mateTxt=(v)=>{let m1=false;try{m1=getLegal(pos).some(m=>getStatus(makeMove(pos,m))==='checkmate');}catch(e){}return ((v>0)?'':'-')+(m1?'M1':'M');};
+    const txt=_mated?(pos.turn==='w'?'0-1':'1-0'):((Math.abs(ev)>=99)?_mateTxt(ev):((ev>0?'+':'')+Math.max(-99,Math.min(99,ev)).toFixed(1)));
     if(_mated){setEngLine({txt,cp:pos.turn==='w'?-99:99,line:''});return;} /* #374 (antagonist on #373): a mated position gets no engine query at all - Stockfish's answer on it (a mate score with no line) printed "M1" for a mate delivered by Black on the analysis board */
     if(hit){setEngLine({...hit,txt:hit.txt||txt,cp:(hit.cp!=null?hit.cp:ev)});return;}
     let dead=false;setEngLine({txt,cp:ev,line:''});
@@ -3576,7 +3613,7 @@ export default function App(){
       if(!ok){setEngLine({txt,cp:ev,line:'engine not loaded'});return;}
       let _lcp=null,_lmate=null;
       const _sgn=((fen.split(' ')[1]||'w')==='w')?1:-1;
-      const pv=await sfBestLine(fen,900,anaMode?((sc)=>{if((sc.mpv||1)!==1)return;if(sc.mate!=null){_lmate=_sgn*sc.mate;_lcp=null;}else if(sc.cp!=null){_lcp=_sgn*sc.cp;_lmate=null;}}):null);
+      const pv=await sfBestLine(fen,900,((sc)=>{if((sc.mpv||1)!==1)return;if(sc.mate!=null){_lmate=mateW(sc.mate,_sgn);_lcp=null;}else if(sc.cp!=null){_lcp=_sgn*sc.cp;_lmate=null;}})); /* #375: read the engine's mate score in the moves view too, and through mateW so "mate 0" (a mated side to move) does not read as the other side winning */
       if(dead)return;
       let line='';
       try{let g=pos,n=0,num=Math.floor(ply/2)+1,first=true;
@@ -3967,7 +4004,7 @@ export default function App(){
       {diagMsg&&(<div style={{position:'fixed',bottom:'calc(env(safe-area-inset-bottom,0px) + 54px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'rgba(10,12,18,.95)',border:'1px solid rgba(110,168,254,.55)',borderRadius:12,padding:'10px 16px',color:'#cfe0ff',fontSize:13,fontWeight:700,boxShadow:'0 6px 20px rgba(0,0,0,.5)',pointerEvents:'none',maxWidth:'90vw',textAlign:'center'}}>🩺 {diagMsg}</div>)}
       {shareMsg&&(<div style={{position:'fixed',bottom:'calc(env(safe-area-inset-bottom,0px) + 54px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'rgba(10,12,18,.95)',border:'1px solid rgba(110,168,254,.55)',borderRadius:12,padding:'10px 16px',color:'#cfe0ff',fontSize:13,fontWeight:700,boxShadow:'0 6px 20px rgba(0,0,0,.5)',pointerEvents:'none',maxWidth:'90vw',textAlign:'center'}}>{shareMsg}</div>)}
       {homeScreen&&!preview&&!fbOpen&&<button onClick={()=>{setFbText('');setFbSent(false);setFbCopied(false);setFbOpen(true);}} title="Send feedback to Claude" style={{position:'fixed',left:'calc(env(safe-area-inset-left,0px) + 48px)',bottom:'calc(env(safe-area-inset-bottom,0px) + 8px)',zIndex:9997,width:34,height:34,borderRadius:10,border:'1px solid rgba(110,168,254,.45)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>{'\uD83D\uDCAC'}</button>}
-      {moreOpen&&mode==='play'&&opponent!=='online'&&(<div onClick={()=>setMoreOpen(false)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'10px 14px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -10px 30px rgba(0,0,0,.5)'}}><div style={{width:38,height:4,borderRadius:3,background:'rgba(255,255,255,.22)',margin:'2px auto 12px'}}/>{/* #362: Takeback removed from live play (his pick on the decisions page, 2026-09-12: "remove it from live play"). Practice keeps its own back-a-move arrows and the analysis board keeps Undo. */}<_SheetItem icon="newgame" label="New game" on={()=>{fullReset();setMoreOpen(false);}}/>{!(isOver||playEnd)&&<_SheetItem icon="resign" label="Resign" warn on={()=>{resign();setMoreOpen(false);}}/>}</div></div>)}
+      {moreOpen&&mode==='play'&&opponent!=='online'&&(<div onClick={()=>{setMoreOpen(false);setResignArm(false);}} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'10px 14px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -10px 30px rgba(0,0,0,.5)'}}><div style={{width:38,height:4,borderRadius:3,background:'rgba(255,255,255,.22)',margin:'2px auto 12px'}}/>{/* #362: Takeback removed from live play (his pick on the decisions page, 2026-09-12: "remove it from live play"). Practice keeps its own back-a-move arrows and the analysis board keeps Undo. */}<_SheetItem icon="newgame" label="New game" on={()=>{fullReset();setMoreOpen(false);}}/>{!(isOver||playEnd)&&<_SheetItem icon="resign" label={resignArm?'Tap again to resign':'Resign'} warn on={()=>{if(!resignArm){setResignArm(true);setTimeout(()=>setResignArm(false),4000);return;}setResignArm(false);resign();setMoreOpen(false);}}/>} {/* #375 (audit A2-03): a 45px row under "New game" ended the game on one tap */}</div></div>)}
       {revMore&&inReview&&(<div onClick={()=>setRevMore(false)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div data-ct="rev-sheet" onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,maxHeight:'82vh',overflowY:'auto',background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'10px 14px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -10px 30px rgba(0,0,0,.5)'}}><div style={{width:38,height:4,borderRadius:3,background:'rgba(255,255,255,.22)',margin:'2px auto 12px'}}/>
         {review.openingName&&(<div style={{textAlign:'center',fontSize:'clamp(13.5px,2.5vw,14px)',color:'rgba(255,255,255,.8)',marginBottom:10}}>📖 Opening: <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>)}
         <div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center',marginBottom:10}}>
@@ -4751,7 +4788,7 @@ export default function App(){
         </div>
       </div>)}
       {/* Context bars */}
-      {mode==='play'&&(!(isOver||playEnd)||!wide)&&(()=>{const _done=(isOver||playEnd);const _op=(!thinking&&status!=='check'&&_liveOpening)?_liveOpening.name:'';const _opAny=(_liveOpening&&_liveOpening.name)||'';const _txt=_done?((opponent==='computer'&&eloMsg)?eloMsg:_op):(thinking&&!playEnd?(_opAny?(_opAny+' \u00b7 thinking\u2026'):'Computer thinking\u2026'):(status==='check'?'Check!':_op)); /* #371 (X-10): the name stays put while the computer thinks */ /* #370 n3: the opening both sides are playing, named live in the status line that already exists above the board, so it costs no height; thinking and check still take precedence */ return(
+      {mode==='play'&&(!(isOver||playEnd)||!wide)&&(()=>{const _done=(isOver||playEnd);const _op=(!thinking&&status!=='check'&&_liveOpening)?_liveOpening.name:'';const _opAny=(_liveOpening&&_liveOpening.name)||'';const _res=(_done&&gameResult)?(gameResult.head+(gameResult.sub?(' \u00b7 '+gameResult.sub):'')):'';const _txt=_done?((opponent==='computer'&&eloMsg)?eloMsg:(resultCardGone?(_res||_op):_op)):(thinking&&!playEnd?(_opAny?(_opAny+' \u00b7 thinking\u2026'):'Computer thinking\u2026'):(status==='check'?'Check!':_op)); /* #371 (X-10): the name stays put while the computer thinks */ /* #370 n3: the opening both sides are playing, named live in the status line that already exists above the board, so it costs no height; thinking and check still take precedence */ return(
         <div data-ct="play-context" aria-live="polite" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:7,height:18,flexShrink:0}}>
           <span data-ct="play-opening" style={{fontSize:'clamp(13px,2.4vw,13px)',color:status==='check'?'#ff6b6b':(_op&&_txt===_op?'rgba(255,255,255,.62)':'rgba(255,255,255,.8)'),fontWeight:600,opacity:_txt?1:0,transition:'opacity .12s',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'96vw'}}>{_txt||'\u00a0'}</span>
         </div>);})()}
@@ -4795,12 +4832,17 @@ export default function App(){
              place on every ply. Three, not four, because on his phone (375x679 usable) four lines cost the
              board 8px and three, paid for by the moves panel's hint line, let it reach the full 375. Of the 734
              lesson notes, 716 fit in three lines; the other 18 scroll inside the box. */
-          <div data-ct="lesson-note" style={{margin:'3px auto 0',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,padding:'7px 11px',height:75,boxSizing:'border-box',overflow:'hidden',fontSize:14.5,lineHeight:1.32,textAlign:'left',color:'rgba(255,255,255,.88)'}}><div style={{display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
+          <div data-ct="lesson-note" onClick={()=>{if(noteOver)setNoteOpen(true);}} style={{margin:'3px auto 0',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,padding:'7px 11px',height:75,boxSizing:'border-box',overflow:'hidden',fontSize:14.5,lineHeight:1.32,textAlign:'left',color:'rgba(255,255,255,.88)',position:'relative',cursor:noteOver?'pointer':'default'}}><div ref={noteInnerRef} className="scroll" style={{height:'100%',overflowY:'auto',overflowX:'hidden',WebkitOverflowScrolling:'touch',paddingRight:noteOver?74:0}}>
             {learnPhase==='demo'
               ? (demoPly===0?<span style={{color:'var(--ac2)'}}>▶ Press Play to watch</span>:<span><span style={{fontWeight:700,color:'#f0b429'}}>{Math.ceil(demoPly/2)}{demoPly%2===1?'.':'…'} {learnLine[demoPly-1]}</span>{curNote?<span> — {curNote}</span>:null}</span>)
               : <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{openMsg||`Your move (${LIB[openIdx].side==='w'?'White':'Black'})`}</span>}
-          </div></div>
+          </div>{noteOver&&<span data-ct="lesson-note-more" style={{position:'absolute',right:7,bottom:6,fontSize:11.5,fontWeight:800,letterSpacing:.3,color:'var(--ac2)',background:'rgba(20,24,32,.92)',border:'1px solid rgba(255,255,255,.18)',borderRadius:7,padding:'2px 7px',pointerEvents:'none'}}>more ▾</span>}</div>
         )}
+        {noteOpen&&(<div data-ct="lesson-note-sheet" onClick={()=>setNoteOpen(false)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.55)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:560,background:'#1c2130',borderRadius:'16px 16px 0 0',padding:'14px 16px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -8px 40px rgba(0,0,0,.6)',maxHeight:'70vh',overflowY:'auto',fontSize:16,lineHeight:1.45,color:'rgba(255,255,255,.92)',textAlign:'left'}}>
+          {learnPhase==='demo'&&demoPly>0&&<div style={{fontWeight:800,color:'#f0b429',marginBottom:6}}>{Math.ceil(demoPly/2)}{demoPly%2===1?'.':'…'} {learnLine[demoPly-1]}</div>}
+          <div>{learnPhase==='demo'?(curNote||''):(openMsg||'')}</div>
+          <button onClick={()=>setNoteOpen(false)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%',marginTop:14,minHeight:44}}>Close</button>
+        </div></div>)}
         {learnPhase==='demo'&&!lessonFocus&&((<><div style={{margin:'9px auto 0',maxWidth:340,display:'flex',gap:6,alignItems:'stretch'}}>
           <button onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.max(0,p-1));}} aria-label="Step back" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,17px)'}}>‹</button>
           <button onClick={()=>{if(demoPly>=learnLine.length){setDemoPly(0);setDemoPlaying(true);}else setDemoPlaying(p=>!p);}} style={{...btn('var(--ac)','none','#fff'),flex:1,padding:'8px 6px',fontWeight:800}}>{demoPlaying?'⏸ Pause':(demoPly>=learnLine.length?'↻ Replay':'▶ Play')}</button>
@@ -4904,7 +4946,7 @@ export default function App(){
           </div>
           <div data-ct="rev-summary-foot" style={{flexShrink:0,display:'flex',gap:10,alignItems:'stretch',justifyContent:'center',padding:'10px 14px calc(10px + env(safe-area-inset-bottom,0px))',background:'rgba(13,16,21,.97)',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',borderTop:'1px solid rgba(255,255,255,.10)',boxShadow:'0 -6px 20px rgba(0,0,0,.45)'}}>
             <button onClick={resetReview} style={{...navBtn(false),flex:'0 0 auto',minWidth:0,minHeight:50,padding:'12px 16px',fontSize:'clamp(14px,3.2vw,16px)'}}>‹ Back to games</button>
-            <button onClick={()=>setReviewView('moves')} style={{...navBtn(true),flex:'1 1 0',minWidth:0,maxWidth:432}}>Start review ›</button>
+            <button onClick={()=>{setRevAuto(false);setPly(0);setReviewView('moves');}} style={{...navBtn(true),flex:'1 1 0',minWidth:0,maxWidth:432}}>Start review ›</button> {/* #375 (SAT TC-R08): it says Start, so it starts at move 0; the summary's chips open a particular move and "Back to your analysis" resumes */}
           </div>
         </div>);})()}
       {/* #351 the compact review header row is gone; its back arrow and ⋯ live in the top player bar */}
@@ -4984,7 +5026,7 @@ export default function App(){
               {ccGames.length>6&&(<input value={gameSearch} onChange={e=>setGameSearch(e.target.value)} placeholder="Filter by player name" style={{width:'100%',padding:'6px 10px',borderRadius:7,background:'rgba(0,0,0,.25)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.10)',fontSize:'clamp(14px,3.1vw,16px)'}}/>)}
               <div className="scroll" style={{display:'flex',flexDirection:'column',gap:6,maxHeight:'min(46vh,340px)',overflowY:'auto'}}>
               {_shown.map((g,i)=>{const info=gameInfo(g);const bd=outcomeBadge(info.code);const st=gameStatsRef.current[gkey(g)];return(
-                <button key={i} onClick={()=>pickCcGame(g)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 11px',borderRadius:10,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',textAlign:'left',fontFamily:"'Segoe UI',system-ui,sans-serif",boxShadow:SHADOW_BTN}}>
+                <button key={i} data-ct="game-row" onClick={()=>pickCcGame(g)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 11px',borderRadius:10,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',textAlign:'left',fontFamily:"'Segoe UI',system-ui,sans-serif",boxShadow:SHADOW_BTN}}>
                   <span style={{flexShrink:0,width:44,textAlign:'center',fontSize:'clamp(14.5px,3vw,15.5px)',fontWeight:800,letterSpacing:.4,color:bd.c,background:bd.bg,border:'1px solid '+bd.br,borderRadius:7,padding:'6px 0'}}>{bd.t}</span>
                   <span style={{minWidth:0,flex:1}}>
                     <span style={{display:'block',fontSize:'clamp(14.5px,3.6vw,17px)',fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{info.opp?('vs '+info.opp):(g.white+' vs '+g.black)}</span>
@@ -5887,7 +5929,7 @@ export default function App(){
             }))}
             <Arrows arrows={[...(reviewBest?[...boardArrows,{from:[reviewBest.fr,reviewBest.fc],to:[reviewBest.tr,reviewBest.tc],color:'#5bd16a'}]:boardArrows),...(demoBest?[{from:[demoBest.fr,demoBest.fc],to:[demoBest.tr,demoBest.tc],color:'#5bd16a'}]:[])]} SQ={SQ} flip={flip} boardPx={boardPx}/>
             {anim&&anim.piece&&(()=>{const sCol=flip?7-anim.from[1]:anim.from[1],sRow=flip?7-anim.from[0]:anim.from[0],dCol=flip?7-anim.to[1]:anim.to[1],dRow=flip?7-anim.to[0]:anim.to[0];const x=(animTo?dCol:sCol)*SQ,y=(animTo?dRow:sRow)*SQ;return(<div style={{position:'absolute',top:0,left:0,width:SQ,height:SQ,transform:`translate(${x}px,${y}px)`,transition:animTo?'transform .42s ease-in-out':'none',zIndex:5,pointerEvents:'none'}}><span style={{display:'block',transform:'scale(1.06)'}}><Piece t={anim.piece.t} color={anim.piece.c} sz={SQ} useFallback={fallback} onFail={onPieceFail}/></span></div>);})()}{inReview&&curAnno&&curAnno.cls&&boardLast&&(()=>{const B=curAnno.cls;const dCol=flip?7-boardLast.tc:boardLast.tc,dRow=flip?7-boardLast.tr:boardLast.tr;const x=dCol*SQ,y=dRow*SQ;const bs=Math.round(SQ*0.46);const big=B.label==='Brilliant';const emph=big||B.label==='Blunder';const showLabel=emph;return(<div key={'rvov'+ply} style={{position:'absolute',top:0,left:0,width:boardPx,height:boardPx,zIndex:7,pointerEvents:'none'}}>{big&&<div style={{position:'absolute',left:x+SQ/2-SQ/2,top:y+SQ/2-SQ/2,width:SQ,height:SQ,borderRadius:'50%',border:'3px solid '+B.c,animation:'brilburst .6s ease-out both'}}/>}{showLabel&&<div data-ct="rev-badge-label" style={{position:'absolute',left:Math.min(Math.max(x+SQ/2,SQ*0.9),boardPx-SQ*0.9),top:Math.max(1,y-Math.round(SQ*0.32)),transform:'translateX(-50%)',whiteSpace:'nowrap'}}>{/* #374 (antagonist on #373): the pop animation's final keyframe (scale(1) rotate(0)) replaced this element's translateX(-50%), so the label sat anchored at its left edge and ran off the h-file by 16px; the animation now lives on an inner span and the centring transform stays put */}<span style={{display:'inline-block',background:B.c,color:'#fff',fontWeight:900,fontSize:Math.max(9,Math.round(SQ*0.2)),padding:'2px 8px',borderRadius:20,boxShadow:'0 2px 7px rgba(0,0,0,.5)',textShadow:'0 1px 2px rgba(0,0,0,.45)',animation:'iconpop .4s cubic-bezier(.34,1.56,.64,1) both'}}>{B.label}</span></div>}<div data-ct="rev-badge" style={{position:'absolute',left:Math.min(boardPx-bs-1,x+SQ-bs*0.62),top:Math.max(1,y-bs*0.38) /* #373 (audit A-09): the grid clips at its edge (overflow hidden for the rounded corners), so on rank 8 and the h-file the badge lost ~4px; it is clamped inside the board now */,width:bs,height:bs,borderRadius:'50%',background:B.c,border:'2.5px solid #fff',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:big?('0 0 10px 3px '+B.c):'0 2px 5px rgba(0,0,0,.55)',animation:emph?'iconpop .4s cubic-bezier(.34,1.56,.64,1) both':'none'}}><span style={{fontSize:Math.round(bs*(B.i.length>1?0.46:0.6)),fontWeight:900,color:'#fff',lineHeight:1,letterSpacing:B.i.length>1?-0.5:0}}>{B.i}</span></div></div>);})()}{inReview&&review&&ply===review.plies.length&&review.plies.length>0&&review.headers&&review.headers.Result&&review.headers.Result!=='*'&&(()=>{const R=review.headers.Result;const isDraw=R==='1/2-1/2';const wWon=R==='1-0';const lastSan=(review.plies[review.plies.length-1].san)||'';const isMate=/#/.test(lastSan);const head=isDraw?'Draw':(wWon?'White won':'Black won');const sub=isDraw?'½–½':(isMate?'by checkmate':'game over');const bg=wWon?'linear-gradient(160deg,#fff,#dde2e9)':isDraw?'rgba(12,14,20,.94)':'linear-gradient(160deg,#1b1f2a,#0a0c12)';const bd=wWon?'#c6ccd6':'#ffd84d';const hc=wWon?'#161922':'#fff';const sc2=wWon?'#3a4150':'rgba(255,255,255,.86)';return(<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none',zIndex:9}}><div style={{background:bg,border:'2px solid '+bd,borderRadius:14,padding:'10px 20px',textAlign:'center',boxShadow:'0 12px 44px rgba(0,0,0,.7)'}}><div style={{fontSize:'clamp(17px,4.6vw,28px)',fontWeight:800,color:hc,lineHeight:1.05}}>{head}</div><div style={{fontSize:'clamp(14px,2.7vw,15px)',fontWeight:800,color:sc2,marginTop:3}}>{sub}</div></div></div>);})()}
-            {mode==='play'&&opponent!=='online'&&gameResult&&(()=>{const ww=_winSide==='w',bw=_winSide==='b';const bg=ww?'linear-gradient(160deg,#ffffff,#dde2e9)':bw?'linear-gradient(160deg,#1b1f2a,#0a0c12)':'rgba(10,12,18,.9)';const bd=ww?'#c6ccd6':bw?'#ffd84d':'rgba(255,255,255,.55)';const hc=ww?'#161922':'#fff';const sc=ww?'#3a4150':bw?'#ffd84d':'rgba(255,255,255,.85)';return(<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none',zIndex:8}}><div style={{background:bg,border:'2px solid '+bd,borderRadius:16,padding:'12px 20px',textAlign:'center',boxShadow:'0 12px 48px rgba(0,0,0,.7)',maxWidth:'86%'}}><div style={{fontSize:'clamp(20px,5.2vw,40px)',fontWeight:800,color:hc,letterSpacing:.5,lineHeight:1.05}}>{gameResult.head}</div><div style={{fontSize:'clamp(14px,3vw,18px)',fontWeight:800,color:sc,marginTop:4}}>{gameResult.sub}</div></div></div>);})()}
+            {mode==='play'&&opponent!=='online'&&gameResult&&!resultCardGone&&(()=>{const ww=_winSide==='w',bw=_winSide==='b';const bg=ww?'linear-gradient(160deg,#ffffff,#dde2e9)':bw?'linear-gradient(160deg,#1b1f2a,#0a0c12)':'rgba(10,12,18,.9)';const bd=ww?'#c6ccd6':bw?'#ffd84d':'rgba(255,255,255,.55)';const hc=ww?'#161922':'#fff';const sc=ww?'#3a4150':bw?'#ffd84d':'rgba(255,255,255,.85)';return(<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none',zIndex:8,opacity:resultCardFade?0:1,transition:'opacity .6s ease'}}><div data-ct="result-card" style={{background:bg,border:'2px solid '+bd,borderRadius:16,padding:'12px 20px',textAlign:'center',boxShadow:'0 12px 48px rgba(0,0,0,.7)',maxWidth:'86%'}}><div style={{fontSize:'clamp(20px,5.2vw,40px)',fontWeight:800,color:hc,letterSpacing:.5,lineHeight:1.05}}>{gameResult.head}</div><div style={{fontSize:'clamp(14px,3vw,18px)',fontWeight:800,color:sc,marginTop:4}}>{gameResult.sub}</div></div></div>);})()}
             {opponent==='online'&&onlineGame&&(()=>{const og=onlineGame;const mn=(og.notice&&og.notice.for===myColor)?og.notice:null;const incDraw=(og.drawBy&&og.drawBy!==myColor&&!og.result);if(!mn||og.result||incDraw)return null;return(<div style={{position:'absolute',top:0,left:0,right:0,display:'flex',justifyContent:'center',padding:8,zIndex:10,pointerEvents:'auto'}}><div onClick={onlineDismissNotice} style={{background:'rgba(236,154,144,.96)',borderRadius:11,padding:'9px 14px',boxShadow:'0 8px 24px rgba(0,0,0,.5)',fontSize:'clamp(14px,3vw,15.5px)',fontWeight:800,color:'#2a1410',cursor:'pointer'}}>{mn.msg}　✕</div></div>);})()}
             {opponent==='online'&&onlineGame&&(()=>{const og=onlineGame;const dB=og.drawBy||null;const rB=og.rematchBy||null;
               const oppName=(myColor==='w'?(og.b&&og.b.name):(og.w&&og.w.name))||'Opponent';

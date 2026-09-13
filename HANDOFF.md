@@ -2,6 +2,65 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+## 0a0) TWO SESSIONS BUILT THE SAME APP ON 2026-09-13 - READ THIS FIRST
+
+Kunal ran two build sessions against this repo at once. The session with push access built #373 and #374 and
+pushed them (everything in 0a below). A second session - the original sandbox one, which can only deploy through
+GitHub's upload page - built its own "#373" from the same #372 base, in parallel, and found things the pushed
+line did not. At 16:40 ET the second session **took the pushed #374 as the trunk and ported its unique work onto
+it as #375**; its duplicate fixes for A-04, A-10, A-12, A-13 and A-16 were DROPPED in favour of the pushed
+versions. Nothing from #373/#374 was overwritten.
+
+**What #375 adds to #374** (all measured, gates below):
+1. **A review is reproducible.** The Review screen's own test pass found the same game giving two different
+   answers: Black 84.6% (~1569) one run and 58.4% (~836) the next, on one bundle, with 15...Nxd7 reading
+   "Great" in one and "Blunder" in the other. Every position was searched by TIME (`go movetime`), so a busy
+   phone thinks less and scores differently, and the pool's work queue handed positions to workers in a racing
+   order, so a position met a different transposition table every run. #375: `go depth 16`, each worker takes a
+   contiguous block of the game, the stuck-worker guard is 20 s (at 4 s it was cutting real searches and storing
+   a shallow opinion as the answer), and the positions on a mate boundary are re-searched from a cleared table.
+   Same game twice: 98.3 / 57.7 both times, and about 17 s instead of 24. Gate: work/build/repro373.js.
+2. **A move that walks into mate is no longer praised.** 15...Nxd7 allows 16.Qb8+ Nxb8 17.Rd8#; it read
+   "! Great" because the position before it was scored from a table carried in from the move before (+2.8, best
+   = Nxd7) while the position after it was correctly mate in 2. From a cleared table the engine gives -6.5 and
+   prefers Qxd7. Now: 15.Bxd7+ Great, 15...Nxd7 "?? Blunder best Qxd7", 16.Qb8+ Great, 17.Rd8# Great 1-0.
+3. **A mate in one reads M1** in the moves view (it read "+99.0"), the engine's mate score is read through
+   mateW in BOTH views, and evTxt only calls it a result at the mated sentinel (99900 is mate IN ONE).
+4. **"Start review ›" starts at the start** (it reopened at the last move you had jumped to).
+5. **A long lesson note can be read**: the 75px box scrolls, shows a "more ▾" chip when it overflows, and opens
+   in full on a tap (it used to drop its last line for good). data-ct lesson-note-more / lesson-note-sheet.
+6. **Resign asks twice** (the row becomes "Tap again to resign" for 4 s), and **the result card fades off the
+   board after ~3 s**, with the result moving to the status line above the board.
+7. The games-list rows carry `data-ct="game-row"`.
+
+**Two P0s the pushed line left open are answered by measurement, not by a fix:**
+- `uat372-k10` ("rank 1 renders at 60% at game over" from his #372 recording) is a MISREAD of the low-resolution
+  contact sheet. Measured on the original clip at full resolution (1126x2436): the rank labels sit at y 690,
+  830, 965, 1110, 1245, 1390 - 140 px apart, every rank the same - and the board's painted edge is at 1512 with
+  the g1 knight's base at 1500, inside it. The game-over frame (11 s) and the mid-game frame (16 s) are
+  pixel-identical in that region. The file letters sit inside the bottom squares, as they do in every sandbox
+  screenshot. Nothing to fix; close it.
+- `uat372-k12` ("the board stepped back a ply at the mate", not reproduced in three configurations) IS real and
+  reproduces in one line: at the mate, tap **"▶ why"** (data-ct rev-playout). playBestLine asked the engine for
+  a continuation FROM THE MATED POSITION and waited, leaving the board on the pre-move position with "+99.0"
+  for 10-14 s (work/build/why373.js). #372's card 6 auto-tapped nothing, so it only happened on his phone
+  because he tapped it. #374's "no engine query on a checkmated position" fixes the label half; the board half
+  is covered in #375 by the same change plus mate373.js, which drives the tap and asserts the board is back on
+  the mate with 1-0 inside 6 s.
+
+**One more thing #375 did NOT keep.** This session's 12-card Preview gallery (cards 9-12 for Resign, the Moves
+panel, the lesson note and Home's menu, and the caption strip moved to the top of the screen) was dropped in
+favour of the pushed line's gallery, whose card 6 is the Review journey with in-card checkpoints. The two gates
+that asserted the 12-card design (gallery373.js, playall373.js) are commented out of work/build/gates.sh for the
+same reason; the pushed line's gates/ suite covers its own gallery. If the caption strip ever covers a button
+row again, the fix is one line: the strip is `data-ct="rec-cap"` and it should sit at the top except on the
+hint card.
+
+**Which tooling is which.** The pushed line moved the build and gate tooling INTO the repo (`gates/`). The
+sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) and that is what gated #375:
+gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
+`gates/` rather than re-writing them.
+
 ## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 22:2x ET, written by the #373 run)
 LIVE = **#372** (commit 7c51f10 on origin/main, Kunal's click; verified by hash from this session at 21:28 ET, byte-identical
 to the local app.js). **#373 = the first build pushed to main BY THE SESSION ITSELF** (this environment has push access;

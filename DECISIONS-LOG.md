@@ -321,3 +321,33 @@ the reading I took, so it can be reversed on purpose rather than by accident:
   acceptable ONCE under the session limit and is not a precedent - the scripted pass found none of the agent's three
   objections. Adopted: no push without the agent antagonist's report, and the tracker flags are drained before every
   push, not only at the close-out (the P0 flags written at 21:34 ET were read at 23:02, after the 22:55 push).
+
+## #375 (2026-09-13 16:38-17:0x ET) — the parallel session's work, ported onto the pushed #374
+
+Context: two sessions built this app at the same time (HANDOFF 0a0). This is the sandbox session's record.
+Decisions taken alone, all reversible:
+
+- **The pushed line is the trunk.** Where both sessions fixed the same item (A-04 Home's menu, A-10 the
+  Next-puzzle arrow, A-12 the board sliding when Moves is shut, A-13 the Pass & Play setup, A-16 the menu
+  sheet), the PUSHED version is kept and this session's version was dropped, even where the two differed in
+  detail. Reason: theirs is live and tested on the phone; a second way of doing the same thing is churn.
+- **A review is searched to a fixed depth (16), not for a fixed time.** This is the one change here with a
+  real trade-off: a slow phone can no longer "think less" to keep the 24 s budget, so on a very slow device a
+  review will take longer instead of getting worse. That is the right way round - a review that changes its
+  mind between runs is worth less than a review that takes a few seconds longer. Measured here: 17 s (was 24),
+  identical twice. The stuck-worker guard (20 s per position) is what stops a pathological device hanging.
+- **Each worker takes a contiguous block of the game.** A striped assignment is equally deterministic but costs
+  72 s instead of 17, because a worker walking consecutive positions reuses the transposition table.
+- **The positions on a mate boundary are re-searched from a cleared table** (at most 8, ~2 s). This is a
+  deliberate, narrow exception to "reuse the table": it is the only case where the carried-in table was found
+  to change a verdict that matters (a move that allows mate reading as Great).
+- **A mate in one reads "M1"**, not "+99.0"; only the mated sentinel reads as "1-0"/"0-1".
+- **"Start review ›" resets to move 0.** The summary's chips are the way to open a particular move, and "Back
+  to your analysis" is the way to resume.
+- **A long lesson note opens in a sheet on tap** rather than growing the box (growing it moves the board, which
+  Kunal has ruled out), and the box itself scrolls.
+- **Resign asks twice**, and **the result card fades after ~3 s** with the result moving to the status line, so
+  the final position is in the clear.
+- **uat372-k10 is closed by measurement, not by a fix** - the rank-1 report was a misread of a low-resolution
+  contact sheet. Stated plainly because the charter says the recording wins: it does, and reading the recording
+  at full resolution is part of that.
