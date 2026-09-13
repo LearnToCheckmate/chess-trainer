@@ -39,7 +39,9 @@
 //   discover-tactics-end  … scrolled to the end
 //   discover-back         ‹ Back from the Openings list
 'use strict';
-const KEYS=['ct_lastlesson','ct_daily3','ct_daily','chesstrainer.progress.v1','ct_train','ct_learnprog','ct_coachtier','ct_streakdismiss'];
+// ct_theme / ct_pieceSet / ct_depth are reset too: the look-picker states change them and every later state (the
+// Tactics board, the lesson) would otherwise run in that colour set
+const KEYS=['ct_lastlesson','ct_daily3','ct_daily','chesstrainer.progress.v1','ct_train','ct_learnprog','ct_coachtier','ct_streakdismiss','ct_theme','ct_pieceSet','ct_depth'];
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 
 async function setStore(b,obj){await b.page.evaluate((o)=>{for(const k in o){if(o[k]==null)localStorage.removeItem(k);else localStorage.setItem(k,typeof o[k]==='string'?o[k]:JSON.stringify(o[k]));}},obj);await b.open();}

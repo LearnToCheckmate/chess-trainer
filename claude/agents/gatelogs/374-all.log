@@ -1,0 +1,293 @@
+gates.sh #374  bundle /home/user/chess-trainer/app.js  md5 14399777c067  2026-09-13 04:07:19 UTC
+=== mountcheck ===
+PASS kunal: build stamp in the DOM  [#374 - 2026-09-12 23:59 ET]
+PASS kunal: stamp is #374  [#374 - 2026-09-12 23:59 ET]
+PASS kunal: four home tiles render (1128ms to mount)  [["Discover","Puzzles","Review","Play"]]
+PASS kunal: zero app console errors on Home  [[]]
+PASS kunal: Discover opens with zero errors  [[]]
+     Discover metrics {"board":null,"over":{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS kunal: Puzzles opens with zero errors  [[]]
+     Puzzles metrics {"board":null,"over":{"bottom":1787,"vh":679,"over":1108,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS kunal: Review opens with zero errors  [[]]
+     Review metrics {"board":null,"over":{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS kunal: Play opens with zero errors  [[]]
+     Play metrics {"board":{"w":344,"top":111,"left":22.5,"flip":false},"over":{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS 390: build stamp in the DOM  [#374 - 2026-09-12 23:59 ET]
+PASS 390: stamp is #374  [#374 - 2026-09-12 23:59 ET]
+PASS 390: four home tiles render (1097ms to mount)  [["Discover","Puzzles","Review","Play"]]
+PASS 390: zero app console errors on Home  [[]]
+PASS 390: Discover opens with zero errors  [[]]
+     Discover metrics {"board":null,"over":{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+PASS 390: Puzzles opens with zero errors  [[]]
+     Puzzles metrics {"board":null,"over":{"bottom":1787,"vh":844,"over":943,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+PASS 390: Review opens with zero errors  [[]]
+     Review metrics {"board":null,"over":{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+PASS 390: Play opens with zero errors  [[]]
+     Play metrics {"board":{"w":360,"top":111.4,"left":22,"flip":false},"over":{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+MOUNTCHECK: 16 pass, 0 fail
+    mountcheck: green (16 PASS)
+=== 10-gameover ===
+PASS kunal: board present mid-game and after the mate  [{"mid":{"w":351,"top":78,"left":12,"flip":false},"end":{"w":351,"top":78,"left":12,"flip":false}}]
+PASS kunal: board width unchanged at game over (351 -> 351)
+PASS kunal: board top unchanged at game over (78 -> 78)
+PASS kunal: nothing scrolls at game over  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: row reads Review · Rematch, no Resign  [⌂ | ☰ | Moves | Back | Forward | Review | Rematch | More | 🔍 Analyze | 📋 Copy moves]
+PASS kunal: zero app errors  [[]]
+PASS 390: board present mid-game and after the mate  [{"mid":{"w":390,"top":103,"left":0,"flip":false},"end":{"w":390,"top":103,"left":0,"flip":false}}]
+PASS 390: board width unchanged at game over (390 -> 390)
+PASS 390: board top unchanged at game over (103 -> 103)
+PASS 390: nothing scrolls at game over  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: row reads Review · Rematch, no Resign  [⌂ | ☰ | Moves | Back | Forward | Review | Rematch | More | 🔍 Analyze | 📋 Copy moves]
+PASS 390: zero app errors  [[]]
+GAMEOVER: 12 pass, 0 fail
+    10-gameover: green (12 PASS)
+=== 11-lesson ===
+PASS kunal: demo end shows a board  [{"w":375,"top":92,"left":0,"flip":false}]
+PASS kunal: demo end board is 375 wide (375)
+PASS kunal: demo end board top is 92 (92)
+PASS kunal: note box is 75px  [75]
+PASS kunal: no scroll at the demo end  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: practice board = demo board (w 375 top 92)
+PASS kunal: board unchanged after one practice move (w 375 top 92)
+PASS kunal: no scroll after the move  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: zero app errors  [[]]
+PASS 390: demo end shows a board  [{"w":390,"top":92,"left":0,"flip":false}]
+PASS 390: note box is 75px  [75]
+PASS 390: no scroll at the demo end  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: practice board = demo board (w 390 top 92)
+PASS 390: board unchanged after one practice move (w 390 top 92)
+PASS 390: no scroll after the move  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: zero app errors  [[]]
+LESSON: 16 pass, 0 fail
+    11-lesson: green (16 PASS)
+=== 12-hint ===
+PASS kunal: puzzle board present before and with the hint
+PASS kunal: board unmoved by the hint (top 181.5 -> 181.5, w 375)
+PASS kunal: hint header shows the hint  [💡 It's mate in 2 — start with the most forcing check.]
+PASS kunal: hint text not clipped (scroll 27 vs 27)
+PASS kunal: hint header sits above the board, on screen
+PASS kunal: no scroll with the hint  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: zero app errors  [[]]
+PASS 390: puzzle board present before and with the hint
+PASS 390: board unmoved by the hint (top 278.5 -> 278.5, w 390)
+PASS 390: hint header shows the hint  [💡 It's mate in 2 — start with the most forcing check.]
+PASS 390: hint text not clipped (scroll 27 vs 27)
+PASS 390: hint header sits above the board, on screen
+PASS 390: no scroll with the hint  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: zero app errors  [[]]
+PASS se: puzzle board present before and with the hint
+PASS se: board unmoved by the hint (top 184 -> 184, w 259)
+PASS se: hint header shows the hint  [💡 It's mate in 2 — start with the most forcing check.]
+PASS se: hint text not clipped (scroll 25 vs 25)
+PASS se: hint header sits above the board, on screen
+PASS se: no scroll with the hint  [{"bottom":568,"vh":568,"over":0,"scrollY":0,"docScroll":0}]
+PASS se: zero app errors  [[]]
+HINT: 21 pass, 0 fail
+    12-hint: green (21 PASS)
+=== 13-play-after-moves ===
+PASS kunal: card k8 board unchanged over four plies (w 351 -> 351, top 78 -> 78)
+PASS kunal: Pass & Play board has ONE width and ONE top across five plies  [{"ws":[351],"tops":[78]}]
+PASS kunal: Pass & Play board is 351 (351)
+PASS kunal: the five plies registered (Bb5 in the move list)
+PASS kunal: no scroll after five plies  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: zero app errors  [[]]
+PASS 390: card k8 board unchanged over four plies (w 390 -> 390, top 103 -> 103)
+PASS 390: Pass & Play board has ONE width and ONE top across five plies  [{"ws":[390],"tops":[103]}]
+PASS 390: the five plies registered (Bb5 in the move list)
+PASS 390: no scroll after five plies  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: zero app errors  [[]]
+PLAY-AFTER-MOVES: 11 pass, 0 fail
+    13-play-after-moves: green (11 PASS)
+=== 14-uat-review-card ===
+PASS the Review journey card is in the gallery  [["1 · k10 · Game over: the board must not shrink (#371)","2 · k8 · Play after the first moves (#370)","3 · k11 · Lesson at the end of the demo (#371)","4 · k11 · Lesson in practice (#371, #372)","5 · A-06 · Puzzle with a hint showing (#372)","6 · US-R · The Review journey: import, summary, brilliancy, checkmate, analysis board (#373 UAT)","7 · y3 · Layout readout, with the tile ink line","8 · y3 · Home: the four icons (#366)"]]
+PASS caption at start names US-R01  [🎬 #374 · US-R01 Review: the Opera Game is being imported and analysed (about 45 s, the card waits)]
+PASS 52 s: caption names US-R03  [🎬 #374 · US-R03 Summary: accuracy, ten counts per side, Skills panel, footer pinned]
+PASS 52 s: the summary is up with its footer pinned  [679]
+PASS 52 s: the caption strip is inside the viewport  [667]
+PASS 58 s: caption names US-R04  [🎬 #374 · US-R04 Move screen at ply 0: board full width, eval bar on the left, nothing scrolls]
+PASS 58 s: move screen, board 349, no scroll  [{"board":{"w":349,"top":56,"left":24,"flip":false},"over":0}]
+PASS 64 s: US-R06 at 10.Nxb5  [10. Nxb5
+!!
+Brilliant
+▶ why
+19/33]
+PASS 64 s: the reason names the forcing line  [You give up a piece. If cxb5, Bxb5+ and White is winning. Nothing else came clos]
+PASS 70 s: k12 at 17.Rd8# with the label 1-0  [{"cap":"🎬 #374 · k12 17.Rd8#: the eval label reads 1-0 and the bar is white","num":"1-0"}]
+PASS 76 s: US-R07 analysis board with Undo and Exit  [{"cap":"🎬 #374 · US-R07 Analysis board from the round button: Undo and Exit analysis, both sides movable","btns":["↶ Undo","✕ Exit analysis"]}]
+PASS 82 s: US-R09 back on the summary  [🎬 #374 · US-R09 Exit analysis, then back to the summary]
+PASS 88 s: the caption clears after the card's hold
+PASS zero app errors beyond the allowed engine trap  [[]]
+UAT-REVIEW-CARD: 14 pass, 0 fail
+    14-uat-review-card: green (14 PASS)
+=== 20-review ===
+PASS kunal: TC-R01 PGN import reaches the summary in under 90 s (21 s)
+PASS kunal: TC-R01 zero app errors during import  [[]]
+PASS kunal: TC-R04 accuracy and the eight verdict categories are on the summary  [[]]
+PASS kunal: TC-R04 summary footer pinned inside the viewport (bottom 679 of 679)
+PASS kunal: TC-R05 Skills panel present
+PASS kunal: TC-R05 tapping the Skills number opens the review at 14.Rd1  [{"jumped":"clicked","text":"14. Rd1\n!\nGreat\n▶ why\n27/33"}]
+PASS kunal: TC-R13 back arrow from the move screen returns to the summary
+PASS kunal: TC-R06 one board width and one top across plies 0/10/19/33  [{"ws":[349],"tops":[56]}]
+PASS kunal: TC-R06 review board is 349 wide (349)
+PASS kunal: TC-R06 nothing scrolls at any ply  [[0,0,0,0]]
+PASS kunal: TC-R14 player bars keep one height across plies  [[[52,52],[52,52],[52,52],[52,52]]]
+PASS kunal: TC-R14 nothing spills out of a player bar  [[[0,0],[0,0],[0,0],[0,0]]]
+PASS kunal: TC-R14 rating pills carry the PGN Elo headers  [["2600","1800"]]
+PASS kunal: TC-R09 eval label reads 1-0 at 17.Rd8# and differs from ply 0  [{"p0":"0.0","p33":"1-0"}]
+PASS kunal: TC-R09 eval label still reads 1-0 at 17.Rd8# with the engine line on (was +99.0 on #372)  [{"num":"1-0","engline":"1-0 …"}]
+PASS kunal: TC-R07 a verdict badge is drawn at 17.Rd8#  [[{"t":"!","dx":0,"dy":0,"top":57,"left":186.1,"w":20}]]
+PASS kunal: TC-R07 the rank-8 badge is entirely inside the board (A-09)  [[{"t":"!","dx":0,"dy":0,"top":57,"left":186.1,"w":20}]]
+PASS kunal: TC-R08 10.Nxb5 reads Brilliant with no best-move chip  [{"ml":"10. Nxb5\n!!\nBrilliant\n▶ why\n19/33","best":false}]
+PASS kunal: TC-R08 a negative verdict carries a best-move chip (found at ply 18)  [{"ply":18,"ml":"9… b5 ?! Inaccuracy best Na6 › 18/33"}]
+PASS kunal: TC-R08 the move strip uses at least three distinct colours (9)
+PASS kunal: TC-R08 the reason line is present on 10.Nxb5  [You give up a piece. If cxb5, Bxb5+ and White is winning. Nothing else]
+PASS kunal: TC-R11 round Analyze button 42x42 in the board's bottom corner  [{"x":324.015625,"y":356.03125,"w":42,"h":42,"text":""}]
+PASS kunal: TC-R11 analysis board offers Undo and Exit analysis  [← | ⋯ | ↶ Undo | ✕ Exit analysis | Previous move | Next move]
+PASS kunal: TC-R11 two moves register on the analysis board
+PASS kunal: TC-R11 Undo takes one move back
+PASS kunal: TC-R11 Exit returns to 10.Nxb5 with the board unchanged (349)
+PASS kunal: TC-R13 the ⋯ sheet opens
+PASS kunal: TC-R13 the sheet closes and the board is unchanged
+PASS kunal: TC-R13 Back to games returns to the list
+PASS kunal: no app error across the review beyond the one allowed engine trap (#356)  [{"allowed":1,"other":[]}]
+PASS kunal: TC-R02 the cached re-analysis reaches the summary in under 8 s (0.9 s)
+PASS kunal: TC-R02 the cached summary carries identical numbers
+PASS kunal: TC-R12 the eval graph renders in the player bar with the switch on  [{"w":126,"h":38}]
+PASS kunal: TC-R12 graph on: bar height and board width unchanged  [{"bar":52,"was":52,"board":349}]
+PASS kunal: TC-R12 a tap on the graph jumps to a later ply  [12. O-O-O
+!
+Great
+▶ why
+23/33]
+PASS 390: TC-R01 PGN import reaches the summary in under 90 s (21 s)
+PASS 390: TC-R01 zero app errors during import  [[]]
+PASS 390: TC-R04 accuracy and the eight verdict categories are on the summary  [[]]
+PASS 390: TC-R04 summary footer pinned inside the viewport (bottom 844 of 844)
+PASS 390: TC-R05 Skills panel present
+PASS 390: TC-R05 tapping the Skills number opens the review at 14.Rd1  [{"jumped":"clicked","text":"14. Rd1\n!\nGreat\n▶ why\n27/33"}]
+PASS 390: TC-R13 back arrow from the move screen returns to the summary
+PASS 390: TC-R06 one board width and one top across plies 0/10/19/33  [{"ws":[364],"tops":[56]}]
+PASS 390: TC-R06 nothing scrolls at any ply  [[0,0,0,0]]
+PASS 390: TC-R14 player bars keep one height across plies  [[[52,52],[52,52],[52,52],[52,52]]]
+PASS 390: TC-R14 nothing spills out of a player bar  [[[0,0],[0,0],[0,0],[0,0]]]
+PASS 390: TC-R14 rating pills carry the PGN Elo headers  [["2600","1800"]]
+PASS 390: TC-R09 eval label reads 1-0 at 17.Rd8# and differs from ply 0  [{"p0":"0.0","p33":"1-0"}]
+PASS 390: TC-R09 eval label still reads 1-0 at 17.Rd8# with the engine line on (was +99.0 on #372)  [{"num":"1-0","engline":"1-0 …"}]
+PASS 390: TC-R07 a verdict badge is drawn at 17.Rd8#  [[{"t":"!","dx":0,"dy":0,"top":57,"left":193,"w":21}]]
+PASS 390: TC-R07 the rank-8 badge is entirely inside the board (A-09)  [[{"t":"!","dx":0,"dy":0,"top":57,"left":193,"w":21}]]
+PASS 390: TC-R08 10.Nxb5 reads Brilliant with no best-move chip  [{"ml":"10. Nxb5\n!!\nBrilliant\n▶ why\n19/33","best":false}]
+PASS 390: TC-R08 a negative verdict carries a best-move chip (found at ply 18)  [{"ply":18,"ml":"9… b5 ?! Inaccuracy best Kd8 › 18/33"}]
+PASS 390: TC-R08 the move strip uses at least three distinct colours (8)
+PASS 390: TC-R08 the reason line is present on 10.Nxb5  [You give up a piece. If cxb5, Bxb5+ and White is winning. Nothing else]
+PASS 390: TC-R11 round Analyze button 42x42 in the board's bottom corner  [{"x":339,"y":371,"w":42,"h":42,"text":""}]
+PASS 390: TC-R11 analysis board offers Undo and Exit analysis  [← | ⋯ | ↶ Undo | ✕ Exit analysis | Previous move | Next move]
+PASS 390: TC-R11 two moves register on the analysis board
+PASS 390: TC-R11 Undo takes one move back
+PASS 390: TC-R11 Exit returns to 10.Nxb5 with the board unchanged (364)
+PASS 390: TC-R13 the ⋯ sheet opens
+PASS 390: TC-R13 the sheet closes and the board is unchanged
+PASS 390: TC-R13 Back to games returns to the list
+PASS 390: no app error across the review beyond the one allowed engine trap (#356)  [{"allowed":0,"other":[]}]
+PASS 390: TC-R02 the cached re-analysis reaches the summary in under 8 s (0.8 s)
+PASS 390: TC-R02 the cached summary carries identical numbers
+PASS 390: TC-R12 the eval graph renders in the player bar with the switch on  [{"w":130,"h":38}]
+PASS 390: TC-R12 graph on: bar height and board width unchanged  [{"bar":52,"was":52,"board":364}]
+PASS 390: TC-R12 a tap on the graph jumps to a later ply  [12. O-O-O
+!
+Great
+▶ why
+23/33]
+PASS kunal: TC-R03 two account chips render  [Imported
+jsmiller1112
+1
+×
+kunal2023
+1
+×]
+PASS kunal: TC-R03 a stored game names its opponent in the list
+PASS kunal: TC-R03 both accounts survive a reload
+PASS kunal: TC-R03 zero app errors  [[]]
+REVIEW: 73 pass, 0 fail
+    20-review: green (73 PASS)
+=== 21-review-brilliant ===
+PASS at 10.Nxb5  [10. Nxb5
+!!
+Brilliant
+▶ why
+19/33]
+     reason: You give up a piece. If cxb5, Bxb5+ and White is winning. Nothing else came close: Bxf6 was 2.2 pawns worse. White is clearly better.
+PASS TC-R10 the reason says what was given up
+PASS TC-R10 the reason names the forcing follow-up (cxb5 / Bxb5+)
+PASS TC-R10 the reason compares with the next-best move
+PASS TC-R10 the play-out (why) button exists on the brilliancy
+PASS TC-R10 the play-out moves a piece within ~4 s
+PASS TC-R10 no app error beyond the one allowed engine trap  [{"allowed":0,"other":[]}]
+REVIEW-BRILLIANT: 7 pass, 0 fail
+    21-review-brilliant: green (7 PASS)
+=== 30-p1-fixes ===
+PASS kunal: A-04 Home has a ☰ button of at least 40px  [{"x":259,"y":14,"w":46,"h":46,"text":"☰"}]
+PASS kunal: A-04 the ☰ on Home opens the menu sheet
+PASS kunal: A-16 menu sheet reaches the bottom (bottom 669 of 679)
+PASS kunal: A-11 the five piece chips are at least 40px tall  [[40,40,40,40,40]]
+PASS kunal: A-11 the four footer links are at least 40px tall  [[40,40,40,40]]
+PASS kunal: the menu closes on a backdrop tap
+PASS kunal: A-16 from Discover the sheet reaches the bottom too (bottom 669)
+PASS kunal: A-13 the Pass & Play setup sheet does not scroll (overflow 0)
+PASS kunal: A-13 the build line is on screen (bottom 594)  [{"y":581,"h":13}]
+PASS kunal: A-11 Analyze and Copy moves tap boxes are at least 40px tall  [{"analyze":43,"copy":43}]
+PASS kunal: A-12 the board keeps its width and top across Moves closed and open  [{"w":[351,351,351],"top":[78,78,78]}]
+PASS kunal: A-12 the Moves toggle hides and shows the panel content  [{"closed":"hidden","open":"visible"}]
+PASS kunal: A-12 no scroll after toggling  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: A-10 Next puzzle shows a different puzzle before the first is solved
+PASS kunal: A-10 Previous puzzle returns to the first
+PASS kunal: zero app errors  [[]]
+PASS 390: A-04 Home has a ☰ button of at least 40px  [{"x":274,"y":14,"w":46,"h":46,"text":"☰"}]
+PASS 390: A-04 the ☰ on Home opens the menu sheet
+PASS 390: A-16 menu sheet reaches the bottom (bottom 834 of 844)
+PASS 390: A-11 the five piece chips are at least 40px tall  [[40,40,40,40,40]]
+PASS 390: A-11 the four footer links are at least 40px tall  [[40,40,40,40]]
+PASS 390: the menu closes on a backdrop tap
+PASS 390: A-16 from Discover the sheet reaches the bottom too (bottom 834)
+PASS 390: A-13 the Pass & Play setup sheet does not scroll (overflow 0)
+PASS 390: A-13 the build line is on screen (bottom 623)  [{"y":609.5,"h":13}]
+PASS 390: A-11 Analyze and Copy moves tap boxes are at least 40px tall  [{"analyze":43,"copy":43}]
+PASS 390: A-12 the board keeps its width and top across Moves closed and open  [{"w":[390,390,390],"top":[103,103,103]}]
+PASS 390: A-12 the Moves toggle hides and shows the panel content  [{"closed":"hidden","open":"visible"}]
+PASS 390: A-12 no scroll after toggling  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: A-10 Next puzzle shows a different puzzle before the first is solved
+PASS 390: A-10 Previous puzzle returns to the first
+PASS 390: zero app errors  [[]]
+PASS 375x640: A-13 the Pass & Play setup sheet does not scroll (overflow 0, was 16 on #372)
+P1-FIXES: 33 pass, 0 fail
+    30-p1-fixes: green (33 PASS)
+=== 31-antagonist373 ===
+PASS kunal: at 3.Qxh7  [3. Qxh7
+??
+Blunder
+best
+Qxe5+
+›
+5/12]
+PASS kunal: the verdict label on h7 is inside the board (was 16.5px out on #373)  [{"left":305.9,"right":361.6,"bl":24,"br":373,"outR":-11.4,"outL":-281.9,"text":"Blunder"}]
+PASS kunal: fool's mate on the analysis board reads 0-1 (was M1)  [0-1]
+PASS kunal: Analyze and Copy hit 6px above and below their chips (was: below did nothing)  [{"moves-analyze":{"above6":true,"below6":true,"above9":true,"below9":true},"moves-copy":{"above6":true,"below6":true,"above9":true,"below9":true}}]
+PASS kunal: the Online lobby without sign-in has a ‹ Back of at least 40px (N-play-1)  [{"w":68.03125,"h":40}]
+PASS kunal: ‹ Back returns to the setup sheet
+PASS kunal: no app error beyond the allowed trap  [["PAGEERROR RuntimeError: unreachable"]]
+PASS se: at 3.Qxh7  [3. Qxh7
+??
+Blunder
+best
+Qxe5+
+›
+5/12]
+PASS se: the verdict label on h7 is inside the board (was 16.5px out on #373)  [{"left":245.4,"right":301.2,"bl":39,"br":303,"outR":-1.8,"outL":-206.4,"text":"Blunder"}]
+PASS se: fool's mate on the analysis board reads 0-1 (was M1)  [0-1]
+PASS se: Analyze and Copy hit 6px above and below their chips (was: below did nothing)  [{"moves-analyze":{"above6":true,"below6":true,"above9":true,"below9":true},"moves-copy":{"above6":true,"below6":true,"above9":true,"below9":true}}]
+PASS se: the Online lobby without sign-in has a ‹ Back of at least 40px (N-play-1)  [{"w":68.03125,"h":40}]
+PASS se: ‹ Back returns to the setup sheet
+PASS se: no app error beyond the allowed trap  [["PAGEERROR RuntimeError: unreachable"]]
+ANTAGONIST-373: 14 pass, 0 fail
+    31-antagonist373: green (14 PASS)
+regression assertions (PASS lines): 217
+GATES GREEN #374

@@ -50,7 +50,7 @@ async function leaves(b){return b.page.evaluate((F)=>{const o=eval(F);if(!o)retu
 async function scrollSheet(b,where){await b.page.evaluate(([F,w])=>{const o=eval(F);if(!o)return;o.s.scrollTop=w==='end'?o.s.scrollHeight:(typeof w==='number'?w:0);},[FIND,where]);await b.page.waitForTimeout(300);}
 // the smallest visible button/link INSIDE the sheet whose text matches; scrolled into the sheet's view first
 async function tapRow(b,re,wait){
-  const h=await b.page.evaluateHandle(([F,src])=>{const o=eval(F);if(!o)return null;const re=new RegExp(src[0],src[1]);let best=null,ba=1e12;for(const el of o.s.querySelectorAll('button,a,[role=button]')){const t=(el.innerText||'').replace(/\s+/g,' ').trim();if(!re.test(t))continue;const r=el.getBoundingClientRect();if(r.width<2||r.height<2)continue;const a=r.width*r.height;if(a<ba){ba=a;best=el;}}if(best)best.scrollIntoView({block:'center'});return best;},[FIND,[re.source,re.flags]]);
+  const h=await b.page.evaluateHandle(([F,src])=>{const o=eval(F);if(!o)return null;const re=new RegExp(src[0],src[1]);let best=null,ba=1e12;for(const el of o.s.querySelectorAll('button,a,[role=button]')){const t=(el.innerText||'').replace(/\s+/g,' ').trim();if(!re.test(t)&&!re.test(el.title||''))continue;const r=el.getBoundingClientRect();if(r.width<2||r.height<2)continue;const a=r.width*r.height;if(a<ba){ba=a;best=el;}}if(best)best.scrollIntoView({block:'center'});return best;},[FIND,[re.source,re.flags]]);
   const el=h.asElement();if(!el)throw new Error('tapRow: nothing in the sheet matches '+re);
   await b.page.waitForTimeout(200);const box=await el.boundingBox();await b.page.mouse.click(box.x+box.width/2,box.y+box.height/2);await b.page.waitForTimeout(wait==null?500:wait);return box;
 }
@@ -66,6 +66,10 @@ async function overlayText(b){return b.page.evaluate(()=>{const g=document.query
 // the readout box text (the monospace lines) inside the sheet
 async function readoutText(b){return b.page.evaluate((F)=>{const o=eval(F);if(!o)return null;const box=[...o.s.querySelectorAll('div')].find(d=>/what THIS device computes/.test(d.innerText||'')&&d.children.length>3);if(!box)return null;const r=box.getBoundingClientRect();return {text:(box.innerText||'').trim(),lines:(box.innerText||'').trim().split('\n').map(x=>x.trim()),y:Math.round(r.top),h:Math.round(r.height),w:Math.round(r.width),fs:getComputedStyle(box).fontSize,sw:box.scrollWidth,cw:box.clientWidth};},FIND);}
 async function setStore(b,obj){await b.page.evaluate((o)=>{for(const k in o){if(o[k]==null)localStorage.removeItem(k);else localStorage.setItem(k,typeof o[k]==='string'?o[k]:JSON.stringify(o[k]));}},obj);}
+// a toggle row: tap it only when its pill does not already read `want` (the settings persist across reloads, so a
+// plain tap would flip a value the previous state left behind). Returns the row text after.
+async function setToggle(b,rowRe,want){const txt=async()=>b.page.evaluate(([F,src])=>{const o=eval(F);if(!o)return null;const re=new RegExp(src);const el=[...o.s.querySelectorAll('button')].find(x=>re.test((x.innerText||'').replace(/\s+/g,' ').trim()));return el?(el.innerText||'').replace(/\s+/g,' ').trim():null;},[FIND,rowRe.source]);
+  let t=await txt();if(t==null)throw new Error('setToggle: no row '+rowRe);if(!want.test(t)){await tapRow(b,rowRe,500);t=await txt();}return t;}
 const S={};
 S['home']=async(b)=>{await b.home();};
 S['menu-discover']=async(b)=>{await fromTile(b,'Discover');};
@@ -80,18 +84,20 @@ S['menu-backdrop-close']=async(b)=>{await S['menu-discover'](b);await b.page.mou
 S['menu-look']=async(b)=>{await S['menu-discover'](b);await b.tapCt('menu-look',700);};
 S['menu-colour-forest']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^Forest$/,400);};
 S['menu-skin-pro']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^🔭♟️ Playful/,600);};
-S['menu-celldepth-on']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^Cell depth & texture/,400);};
-S['menu-evalgraph-on']=async(b)=>{await S['menu-discover'](b);await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="menu-evalgraph"]');if(e)e.scrollIntoView({block:'center'});});await b.settle(200);await b.tapCt('menu-evalgraph',400);};
-S['menu-readout']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^Layout readout/,500);await b.page.evaluate((F)=>{const o=eval(F);const box=[...o.s.querySelectorAll('div')].find(d=>/what THIS device computes/.test(d.innerText||'')&&d.children.length>3);if(box)box.scrollIntoView({block:'center'});},FIND);await b.settle(200);};
-S['menu-overlay-on']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^Layout overlay/,500);};
+S['menu-celldepth-on']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^Cell depth & texture/,/ON$/);};
+S['menu-evalgraph-on']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^Eval graph in the player bars/,/ON ·/);};
+S['menu-readout']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^Layout readout/,/shown$/);await b.page.evaluate((F)=>{const o=eval(F);const box=[...o.s.querySelectorAll('div')].find(d=>/what THIS device computes/.test(d.innerText||'')&&d.children.length>3);if(box)box.scrollIntoView({block:'center'});},FIND);await b.settle(200);};
+S['menu-overlay-on']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^Layout overlay/,/drawn on screen$/);};
 S['overlay-play-live']=async(b)=>{await S['menu-overlay-on'](b);await tapRow(b,/^✕$/,400);const P=require('./play');await P.states['pp-m0'](b);await b.settle(400);};
-S['menu-sound-off']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^Sound/,400);};
+S['menu-sound-off']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^Sound/,/OFF$/);};
 S['menu-signin']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/Sign in with Google|Sign-in unavailable/,1500);};
 S['menu-share']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^📣 Share/,900);};
 S['feedback-home']=async(b)=>{await b.home();await b.tapText(/^💬$/,{wait:600});};
 S['feedback-menu']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^💬 Send feedback$/,600);};
 S['feedback-typed']=async(b)=>{await S['feedback-home'](b);await b.page.locator('textarea[placeholder="Your feedback..."]').fill('audit note');await b.tapText(/^Copy for Claude$/,{wait:700});};
-S['card7']=async(b)=>{await b.card(7,2500);};
+// any zIndex-1100 sheet (feedback, account, look) hides the gallery button on Home: close it first
+async function closeOverlays(b){for(let i=0;i<3;i++){if(!(await overlay1100(b,/./)))break;await b.tapText(/^✕$/,{wait:300}).catch(()=>b.page.mouse.click(4,4));}}
+S['card7']=async(b)=>{await closeOverlays(b);await closeSheet(b);await b.card(7,2500);};
 
-module.exports={states:S,sheet,hasSheet,rows,leaves,scrollSheet,tapRow,closeSheet,tapHeaderMenu,menuBtnRects,fromTile,overlay1100,overlayText,readoutText,setStore,FIND,
+module.exports={states:S,setToggle,closeOverlays,sheet,hasSheet,rows,leaves,scrollSheet,tapRow,closeSheet,tapHeaderMenu,menuBtnRects,fromTile,overlay1100,overlayText,readoutText,setStore,FIND,
   notes:'The menu is a fixed backdrop (zIndex 1000, padding max(10px,safe) 12px) with a scrolling sheet inside (on #372: margin-top 5vh, max-height 88vh, margin-bottom 24px; on #373 the sheet takes the padded viewport). Entries: the header ☰ of Discover/Puzzles/Review (title "Menu & settings"), data-ct play-menu in a live game, "Menu and settings" in the lesson ⋯ sheet and the review ⋯ sheet. Home has no ☰ on #372. The sheet: Account (Sign in with Google), Appearance (menu-look, 12 colour chips, SKIN x3, Cell depth, Evaluation bar, Eval bar sits, menu-evalgraph, Layout readout, Layout overlay, Sound, Piece style x5, Coach look x4), Share, Send feedback, Privacy/Terms/Refunds/Delete account, Build line. The Look and feel picker (data-ct look), the feedback sheet and the account sheet are fixed zIndex-1100 overlays. The layout overlay is data-ct layout-grid (fixed, pointer-events none) and persists in ct_layoutgrid.'};

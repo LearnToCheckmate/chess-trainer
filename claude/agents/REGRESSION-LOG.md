@@ -26,7 +26,7 @@ rise. A gate that is red blocks the build (GATES RED); a build is "gated" only w
 |---|---|---|---|
 | #372 | 138 | the old sandbox's gates.sh (lost with the sandbox) | gatelogs/372-all.log (not in the repo) |
 | #373 | 203 (the run of record on the pushed bundle, 22:41 ET; a trial run earlier had 200 before the engine-on label check was added) | 10 | claude/agents/gatelogs/373-all.log |
-| #374 | __374_COUNT__ (adds 31-antagonist373.js) | 11 | claude/agents/gatelogs/374-all.log |
+| #374 | 217 (adds 31-antagonist373.js) | 11 | claude/agents/gatelogs/374-all.log |
 
 Not yet ported (the old suite's other harnesses, to be rebuilt as the screens get their charter pass): fit.js (14
 phone viewports per board screen), shift346 (26 samples through the engine's think), veteran360 (stored-profile

@@ -75,7 +75,7 @@ async function lookChrome(b){return b.page.evaluate(()=>{
   const cs=chips.map(x=>{const r=x.getBoundingClientRect();return {id:x.getAttribute('data-ct'),w:r1(r.width),h:r1(r.height),y:r1(r.top),bottom:r1(r.bottom),below:r.bottom>innerHeight};});
   const img=bd?bd.querySelector('img'):null;
   return {card:{x:r1(cr.left),y:r1(cr.top),w:r1(cr.width),h:r1(cr.height),bottom:r1(cr.bottom),sh:card.scrollHeight,ch:card.clientHeight,st:card.scrollTop,scrolls:card.scrollHeight>card.clientHeight+1,over:card.scrollHeight-card.clientHeight},
-    board:br?{x:r1(br.left),y:r1(br.top),w:r1(br.width),h:r1(br.height),light:getComputedStyle(bd.children[0]).backgroundColor,dark:getComputedStyle(bd.children[1]).backgroundColor,pieceSrc:img?img.getAttribute('src').slice(0,48):null}:null,
+    board:br?{x:r1(br.left),y:r1(br.top),w:r1(br.width),h:r1(br.height),light:getComputedStyle(bd.children[0]).backgroundColor,dark:getComputedStyle(bd.children[1]).backgroundColor,pieceSrc:img?(function(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return 'len'+s.length+' h'+h.toString(16);})(img.getAttribute('src')):null}:null,
     on,chipMin:r1(Math.min(...cs.map(c=>Math.min(c.w,c.h)))),chipsBelowFold:cs.filter(c=>c.below).map(c=>c.id),chips:cs.length};});}
 
 async function measure(b,geo,st){
