@@ -179,3 +179,73 @@ the reading I took, so it can be reversed on purpose rather than by accident:
   it, because a taller box costs the board 18px at his geometry.
 - A checkmate is written "1-0" / "0-1" in the eval label, not "M0".
 - The three agents are standing process now (HANDOFF 0c), run by the build session itself.
+
+## #372 (built 19:55; final bundle 20:20 ET) — decisions taken alone, all reversible
+
+- **The Preview gallery IS the user acceptance test now** (Kunal 19:16 ET: "you know what the test is... put it in
+  the preview gallery, then I just have to record it and upload it to you"; charter 19:39 ET). The old cards are
+  gone. Eight cards, one per item he should look at: k10 game over, k8 four plies in, k11 demo end, k11 practice,
+  A-06 hint, k12 review last ply (1-0 at 17.Rd8#), y3 Layout readout, y3 Home. "▶ Play all 8 (screen-record
+  this)" drives them unattended; every card shows a caption strip with the item id and what should be true, held
+  at least 5 s (the charter asks for 2 s), and the run ends on a green "RECORDING COMPLETE — you can stop now."
+  frame held 6 s. The recording he uploads is the evidence; where the sandbox and the recording disagree, the
+  recording wins (charter). The build note calls the button what the screen calls it: "Play all".
+- **The puzzle hint on phones takes the whole header row** (antagonist Z-01 acted on, not overruled): the
+  Roadmap button collapses to a 44px "‹" while a hint shows, the hint gets the rest of the row at 12px with up to
+  three lines. Measured with a 136-character string, the longest curated hint is 135: nothing hidden, board top
+  unmoved. The #371 banner over rank 8 is gone.
+- **20:20 ET, the gate caught what the 136-character test string had hidden:** with the real longest hint (135
+  chars, an em dash and long words) the header clipped at 375 — 1 of 27 curated hints; at 320, 6 of 27. Two
+  decisions: (1) the hint text on phones 340 wide or narrower is 11px instead of 12 (the SE class; his phone
+  keeps 12); (2) the six longest hints were shortened by a few words each, meaning unchanged (e.g. "ignore your
+  queen entirely" → "ignore your queen"), so every curated hint fits three lines at 320, 375 and 390 — a new
+  gate, hintcap372, sets all 27 into the live header at each width and fails on any clip; gallery372 reads the
+  longest hint from the source instead of a pasted string, so it cannot go stale again. The alternatives —
+  a fourth line (the header grows 10-14px and the board moves) or a permanently taller row (board loses 6px on
+  every puzzle) — both break a rule he has stated.
+- **The lesson's playback row folds on phones**; the moves panel absorbs the slack (`_lFill`), so the board sits
+  at 375@92 from the demo's first frame through a wrong practice move to "Complete!". Same trade Play makes.
+- **No Resign after the game** in the More sheet (Y-06). The note box is 75px with three whole lines at
+  14.5px/1.32 — no sliver of a fourth line (Y-09).
+- **The round Analyze button is 55% translucent** (background rgba .55) so the piece under it reads through;
+  the corner rule from #371 stays (see the overrules below).
+- **lesson371 now asserts** (PASS/FAIL line + exit code) 375@92 and scroll 0 across demo start / +3 / end /
+  practice / practice + one move; it does not use the `say()` helper, which is why a grep for `say(` reads it
+  as empty. gates.sh is the single gate and is re-run from the top on the final bundle with nothing else
+  running (the 19:37 run was measured against a bundle replaced mid-run — the #351 class — and is void).
+- **Tracker rows never lose `acked`/`handled`** on a tap (flag / note / certify merge instead of replacing), and
+  flags docs that are not rows render under "From your feedback session" with the acked line per ACK-PROTOCOL.
+
+## OVERRULED OBJECTIONS — shipped over the antagonist, with the reason (rule: "log the objection and why")
+
+- **Y-04 / Z-05 / A-08 — the round button covers the corner rook (h8 37×37 of 44 at 17.Qxa8 flipped).**
+  Shipped with the button at 55% alpha and the corner jump from #371. Why: the alternatives are a smaller
+  button (he asked for a round button ON the board), a smaller badge, or a strip under the board (which costs
+  board height — the one thing he has never allowed). Whether a rook reads through 55% is his call on his
+  screen; A-08 stays OPEN until he says so. Not certified by me.
+- **Y-05 — iPad portrait (768 wide) is "not wide" and takes every new phone path** (game-over row, lesson
+  sheet, hint header). Shipped unchanged. Why: iPad is PARKED by his instruction; changing the `wide`
+  threshold is an iPad decision. Logged here so it is a decision and not an accident.
+- **Y-07 — the ink metric cannot be measured on Apple Color Emoji here; the pawn may now overshoot (×1.11).**
+  Shipped. Why: the metric is measured on his device at run time and the Layout readout prints the "tile ink"
+  line — that line from his phone is the evidence, and card 7 of the gallery is built to show it. If the pawn
+  is visibly bigger on his phone, the target factor drops; no guess taken.
+- **Y-08 — the "Italian Game · thinking…" status line may flicker when the engine answers instantly.**
+  Shipped unmeasured. Why: no gate seeds a book reply on a phone-sized run and the line is one text node; noted
+  as open (P2), to be measured on the recording (card 2 shows the status line after four plies).
+- **Z-02 — card 1's board is 351, not the 357 of a game from New Game (A-14 on the card he will record).**
+  Shipped. Why: card 1 is a scripted game against the 'demo' opponent, which has no eval bar, so the board is
+  wider than the live-vs-computer 357 by the bar's width — a different screen, not a shrink. The one-board-width
+  rule (A-14, his z7 question) is open and his to decide; it is not something #372 could settle.
+- **Z-03 — at 390×844 the slack sits inside the lesson's moves panel (~150px of bordered box).** Shipped.
+  Why: it is the same device Play uses since #370 and the panel is a real panel (moves appear there); the note
+  box taking 40px of it is a content decision he has not made. Recorded as P2.
+- **Z-04 — the one-line verdict box under the goal card is blank (46px) while a hint shows.** Shipped. Why:
+  collapsing it moves the board 46px while the hint is up ("doesn't make the board jump"); filling it repeats the
+  hint. It reads as a gap, not a defect (the antagonist's own words); P2.
+- **Z-06 — the lesson board at 320×568 is 239 (Play shows 272 on the same phone).** Shipped. Why: the 75px
+  note, the controls and the moves panel cost 33px on the smallest phone; he tests on 375×761 and the 320 phone
+  is a secondary width. Recorded so 239 is not a surprise on a 320 recording.
+- **X-12 (pass 1) — the Look picker scrolls inside its card on the small phones and ellipses a chip.**
+  Shipped as built in #367. Why: P2, not in #371/#372's scope; the picker's card can grow on 320 when the
+  queue reaches it. Open.

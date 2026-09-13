@@ -150,6 +150,79 @@ marked rather than invented.
 - [2026-09-12 19:00 ET] status: you  n9 own photo in Review: reclassified from "closed #370" to NEEDS YOUR PHONE
   (the sandbox cannot sign in). Country flags and the rating exchange carry the same label.
 
+### From Kunal in the feedback session, second batch [2026-09-12 19:16-19:50 ET] — read 19:52 ET, standing
+
+- [2026-09-12 19:16 ET] status: done in #372  "the supervisor's what-to-look-at-first list is the kind of thing
+  you should always front load and put in the preview gallery, instead of making me play a game. you know
+  what the test is. so you should carry it out. Put it in the preview gallery. then i just have to record it
+  and upload it to you." Done: the gallery is the test now - eight cards, one per item, "▶ Play all 8
+  (screen-record this)" runs them unattended with a caption strip per card (item id + what should be true,
+  held >= 5 s) and ends on a green "RECORDING COMPLETE - you can stop now." frame. Card list: k10 game over,
+  k8 four plies in, k11 demo end, k11 practice, A-06 hint, k12 review last ply (1-0), y3 Layout readout, y3
+  Home. playall372.js drives all eight and asserts the captions and the final frame.
+- [2026-09-12 19:39 ET] status: standing, acknowledged 19:52 ET  THE TESTING CHARTER (tracker flag
+  kunal-testing-charter; project doc claude/agents/CHARTER.md). His words: "it should be testing everything
+  from scratch. the entire workflow and functionality... I'm okay if we don't do as many builds. as long the
+  builds make the product progressively better. right now it feels like a lot of spinning of wheels." Five
+  testing roles on top of the three reviewers (user-story author, test-case author, regression agent with a
+  permanent suite inside the deploy gate, SAT agent, UAT agent = the gallery card that plays the journey);
+  coverage screen by screen in the order Review, Play, Lesson, Puzzles, Home/Discover, Menu, then the
+  never-tested areas; nothing written that is not executed in the same pass; four numbers at every
+  close-out (open P0 = 0, open P1 falling, coverage = screens fully specced AND tested, regression
+  assertions only rising); where the sandbox and his recording disagree, THE RECORDING WINS; output
+  claude/agents/UAT-PACK.md; prune the gallery. Status: the gallery half is built (#372); the stories, cases,
+  regression log, SAT pass and UAT-PACK start next run with the Review screen. Standing in HANDOFF 0c.
+- [2026-09-12 19:4x ET] status: standing, in force from 19:52 ET  THE ACK PROTOCOL (claude/agents/ACK-PROTOCOL.md):
+  every flags item gets `acked` (timestamp + build + one line of what the build chat understands it to ask)
+  the moment it is read, before work; `handled` stays; the tracker renders both per row; the close-out ends
+  with every item picked up by id with a timestamp. Done: b1, kunal-three-agents and kunal-testing-charter
+  carry `acked`; the tracker (v20) prints "picked up · …" and "handled · …" under each row and lists flags
+  docs that are not rows under "From your feedback session"; a tap on flag / note / certify never erases them.
+
+### The agents' second pass, and #372 [2026-09-12 19:20-20:15 ET]
+
+- [2026-09-12 19:20 ET] ANTAGONIST on #371 (ANTAGONIST-371.md, verdict FIX FIRST): Y-01 the lesson board 375 ->
+  320 after ONE practice move (the state lesson371 never measured); Y-02 the playback row appears in practice
+  and shrinks the board at 390x844; Y-03 the hint banner over rank 8 covers pieces; Y-04 the corner rule still
+  puts the button over the h8 rook; Y-05 iPad portrait takes the phone paths; Y-06 Resign still offered after
+  the game; Y-07 the ink metric may overshoot on the pawn (x1.11); Y-08 the status line may flicker; Y-09 the
+  77px note box showed a sliver of a fourth line.
+- [2026-09-12 19:50 ET] ANTAGONIST on #372 (ANTAGONIST-372.md, verdict FIX FIRST -> answered): Y-01, Y-02,
+  Y-04 (as stated), Y-06, Y-09 confirmed fixed by measurement (375@92 through a wrong practice move and the
+  line's end, scroll 0; no Resign after the game; 75px note with three whole lines). Z-01 [blocked] the hint
+  header clamped at ~55 characters (median curated hint is 89) - ANSWERED in the final #372: the hint takes
+  the whole header row, three lines at 12px, measured with a 136-character string. Z-02 the button is "Play
+  all", card 1's board is 351 (demo opponent, no eval bar); Z-03 the 390x844 slack sits inside the moves
+  panel; Z-04 the verdict box is blank while a hint shows; Z-05 alpha cannot be measured as "reads through";
+  Z-06 the 320 lesson board is 239. Z-02..Z-06 shipped as they are - each one is in DECISIONS-LOG under
+  OVERRULED OBJECTIONS with the reason.
+- [2026-09-12 19:52 ET] SUPERVISOR pass 2 (SUPERVISOR-PASS-2.md): NO-GO on the #372 click until gates.sh is
+  re-run from the top on the final bundle (the 19:37 run measured a bundle replaced mid-run - the #351
+  class), the overrules and the #372 decisions are in DECISIONS-LOG, RUN-LOG carries the actual, the cards
+  carry item-id captions and a recording-complete frame, and the tracker header names what one click
+  carries. Drift table for #366-#372 (y12c, y17b, y1b, y18b, n3 drifted knowingly - all written down now);
+  the charter flag was unacknowledged at 19:52 - acknowledged above.
+- [2026-09-12 20:01 ET] status: built #372, gated  Y-01/Y-02 lesson practice: the playback row folds on phones
+  and the moves panel absorbs the slack; lesson371.js asserts 375@92 across demo start / +3 / end / practice /
+  practice + one move (PASS line + exit code; it does not use the say() helper, which is why a grep for
+  say( reads it as empty). Y-03/Z-01 hint: the whole header row, three lines at 12px, a 44px "‹" back
+  button; gallery372.js proves the longest curated hint unclipped with the board top unmoved, and hintcap372.js
+  sets every curated hint (27) into the live header at 320 / 375 / 390 and fails on any clip - on its first
+  pass it caught the real longest hint clipping at 375 (the 136-character test string had hidden it): six hints
+  shortened by a few words, 11px on phones 340 wide or narrower, all 27 fit at all three widths now. Y-06 no Resign
+  after the game. Y-09 note 75px, three whole lines. Y-04 the round button at 55% alpha (corner rule kept).
+  The gallery: eight cards, captions with the item id, RECORDING COMPLETE frame (playall372.js). Two gates
+  (mountcheck, pzgate) drove gallery cards that #372 removed; both now drive the real paths (stored account
+  rows on the Review list; the Puzzles screen's own Free play button) with the same assertions plus one.
+- [2026-09-12 20:40 ET] status: live  #371 is LIVE: your upload at 19:23 ET (2a74c13), byte-identical to the
+  staged #371, verified by hash at 20:40 ET. #372 is staged as one click of its own.
+- [2026-09-12 20:15 ET] status: open  Still open from the agents after #372 (P1, none has your sentence):
+  A-04 ☰ unreachable from Home; A-05/A-16 the floating 🎬/💬 buttons and the menu sheet edge; A-09 rank-8
+  badges clipped; A-10 Next-puzzle arrow inert; A-11 ~40 targets under 40px; A-12/X-09 Moves toggle moves the
+  board 23px; A-13 Pass & Play setup scrolls 32px; A-14/Z-02 one board-width rule (your z7); A-15 truncated
+  names; X-07 wrong-move message clipped; A-08/Y-04/Z-05 the round button over a corner rook (your call on
+  55% alpha). P2: A-17..A-25, X-12, Y-05 (iPad, parked), Y-07 (your tile-ink line), Y-08, Z-03, Z-04, Z-06.
+
 
 Decisions page for everything marked NEEDS KUNAL (nine questions, the backlog, and a
 pick-what's-next list): https://claude.ai/code/artifact/99232fb2-f9f3-4019-a285-c3c16eb7de68

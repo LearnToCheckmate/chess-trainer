@@ -2,9 +2,28 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 19:00 ET)
-LIVE = **#367** (app.js stamp "#367 - 2026-09-12 17:14 ET", commit e65119c on origin/main, Kunal's upload at
-17:17 ET, verified by hash at raw.githubusercontent.com; source and docs went up with it). Local history is merged.
+## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 20:20 ET)
+LIVE = **#371** (app.js stamp "#371 - 2026-09-12 18:56 ET", commit 2a74c13 on origin/main, Kunal's upload at
+19:23 ET, verified by hash at raw.githubusercontent.com at 20:40 ET - byte-identical to local #371). Local history
+is merged (`-s ours`; #372 sits on top). **ONE CLICK CARRIES #372**: the staged upload (tab
+github.com/LearnToCheckmate/chess-trainer/upload/main, files from /mnt/user-data/outputs/docs-372/) holds app.js
+with the stamp "#372 - 2026-09-12 20:20 ET"; after his commit the Layout readout must show #372.
+BUILT, GATED (gates.sh from the top on the final bundle, gates372c.log), STAGED = **#372**: the antagonist's
+objections on #371 answered (Y-01/Y-02 the lesson's playback row folds on phones and the moves panel absorbs the
+slack - 375@92 through a wrong practice move to "Complete!", lesson371.js asserts it; Y-03/Z-01 the puzzle hint
+takes the whole header row, three lines at 12px, a 44px "‹" back button, a 135-character hint unclipped with
+the board top unmoved - gallery372.js reads the longest hint from the source; hintcap372.js sets all 27 curated
+hints into the live header at 320/375/390 and fails on any clip - it caught a clip at 375 on the first pass, fixed
+by shortening six hints and 11px text on phones <= 340 wide; Y-06 no Resign after the game; Y-09 note box 75px, three whole lines;
+Y-04 the round Analyze button at 55% alpha, corner rule kept) and THE PREVIEW GALLERY REBUILT AS KUNAL'S UAT
+(his 19:16 instruction and the 19:39 charter): eight cards - k10 game over, k8 four plies in, k11 demo end,
+k11 practice, A-06 hint, k12 review last ply (1-0 at 17.Rd8#), y3 Layout readout, y3 Home - "▶ Play all 8
+(screen-record this)" runs them unattended with a caption strip per card (data-ct rec-cap: item id + what should
+be true, held >= 5 s) and ends on a green "RECORDING COMPLETE - you can stop now." frame (playall372.js drives
+all eight). Everything decided alone, and every antagonist objection shipped over, is in DECISIONS-LOG (#372 and
+OVERRULED OBJECTIONS). Two gates (mountcheck, pzgate) used to drive gallery cards that #372 removed; they now
+drive the real paths (stored account rows on the Review list; the Puzzles screen's own Free play button) with the
+same assertions plus one - the 19:37 gates372.log is VOID (bundle replaced mid-run, the #351 class).
 #367 = y12c the Look and feel picker (data-ct look; drawn preview board painted from the live TH / pieceSet /
 boardDepth, 12 colour chips, 5 piece-set chips, depth toggle, Style row). From the home "Colours & pieces"
 button (data-ct home-look; it used to CYCLE palettes blind) and the "Look and feel" row at the top of the
@@ -16,7 +35,7 @@ device); y15b round Analyze button on the Review board (data-ct rev-fab), board 
 y11b lesson note box fixed at 75px / three lines at 15px, lesson board 360 -> 375 on his phone; lay-B Layout
 overlay (menu row, ct_layoutgrid, data-ct layout-grid). Evidence: shots366/ and tracker rows y3 y11 y15 k7.
 Harnesses: before366.js, overlay366.js.
-BUILT (gating with gates.sh as this is written) = **#371** (stamp "#371 - 2026-09-12 18:56 ET"), the response to
+BUILT, GATED (gates.sh GREEN, gates371c.log), STAGED = **#371** (stamp "#371 - 2026-09-12 18:56 ET"), the response to
 the three agents Kunal asked for (see 0c). Fixed: A-02/X-01 the Play board collapsed 357 -> 192 at GAME OVER on
 phones (title row, tab bar, Elo stepper, slider and a full-width Review button all came back) - a finished game
 keeps the live chrome and the Hint/Flip slots become Review/Rematch, same row, same height (gameover371.js:
@@ -106,6 +125,27 @@ antagonist found the Skills panel and the eval graph showing wrong numbers, the 
   non-zero exit; a build is "gated" only when gates<N>.log ends in GATES GREEN. Hand-typed lists are over.
 - MEASURE AT THE END, NOT ONLY AFTER THE FIRST MOVE: game over (resign and mate), lesson end and practice,
   puzzle solved and failed, review last ply. Two P0s lived there for months.
+
+STANDING SINCE 19:39 ET - THE TESTING CHARTER AND THE ACK PROTOCOL (Kunal's, in the Project: claude/agents/CHARTER.md
+and claude/agents/ACK-PROTOCOL.md; tracker flag kunal-testing-charter). Read both before any work. In short:
+- Five testing roles on top of the three reviewers: user-story author (claude/stories/USER-STORIES.md, US-ids),
+  test-case author (claude/stories/TEST-CASES.md), regression agent (a permanent suite inside gates.sh +
+  claude/agents/REGRESSION-LOG.md), SAT agent (each story's criteria on the running app before anything reaches
+  him), UAT agent (a Preview gallery card per BATCH that plays the whole journey; captions name the item id and
+  what should be true, held >= 2 s; ends on a visible "recording complete" frame; verification from the frames of
+  the clip he uploads - WHERE THE SANDBOX AND THE RECORDING DISAGREE, THE RECORDING WINS; output
+  claude/agents/UAT-PACK.md; prune the gallery).
+- COVERAGE: "testing everything from scratch, the entire workflow and functionality"; fewer builds is fine if each
+  makes the product progressively better. Spec and test the whole app screen by screen in the order Review, Play,
+  Lesson, Puzzles, Home/Discover, Menu, then the never-tested areas. Nothing written that is not executed in the
+  same pass. Status at 20:20 ET: the gallery half is built (#372, eight cards); stories, cases, regression log,
+  SAT and UAT-PACK are NOT started - the next run opens with the audit against the live stamp AND the Review
+  screen's stories and cases, executed in the same pass.
+- FOUR NUMBERS AT EVERY CLOSE-OUT: open P0 (must be zero), open P1 (must fall), coverage (screens fully specced
+  AND tested), regression assertions (only rises). A new screen's coverage finding old defects is a GOOD run.
+- ACK: write `acked` (timestamp + build + ONE line of what the build chat understands the item to ask) onto every
+  tracker `flags` item the moment it is read, before work; keep `handled`; the tracker renders both per row; the
+  close-out ends with every item picked up by id with a timestamp.
 
 ## 0b) BEFORE / AFTER SCREENSHOTS ARE PART OF CLOSING AN ITEM (2026-09-12)
 Kunal: "for the feedback tracker show me screenshots of before and after for each of these items
