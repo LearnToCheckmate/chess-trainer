@@ -66,7 +66,8 @@ board, #350), and what the engine preferred (the best-move chip) when the played
   (TC-R08)
 - The move strip (strip-row) colours every verdict on the whole scale, not only the negative half (#345).
   (TC-R08)
-- A checkmate is written 1-0 / 0-1 in the eval label, never M0 (#371). (TC-R09)
+- A checkmate is written 1-0 / 0-1 in the eval label, never M0 (#371), and still when the engine line is switched
+  on from the ⋯ sheet (audit N-review-2: it read +99.0 on #372; fixed #373). (TC-R09)
 
 ### US-R06 A brilliancy explains what the sacrifice buys, and can be played out
 As a player who played (or suffered) a brilliancy, I read what was given up and the forcing line that makes it

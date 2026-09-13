@@ -276,9 +276,22 @@ the reading I took, so it can be reversed on purpose rather than by accident:
   Moves button disappear on phones, that is one line.
 - **A-09:** the verdict badge (and the Brilliant/Blunder label) is clamped inside the board box instead of
   protruding past rank 8 / the h-file, because the grid clips at its edge for the rounded corners.
+- **N-review-2 (the run-start audit's Review agent):** with the engine line on, 17.Rd8# read "+99.0" instead of
+  1-0 - the engine effect's placeholder text, which is all a mated position ever gets because the engine has no line
+  to return. On a checkmated position the label now names the mated side (1-0 / 0-1) on that path too. Folded into
+  #373 before the push because it sits beside A-03's fix and the Review gate already covers the ply.
 - **The Review UAT card replaces the k12 card:** one 88-second journey with seven captioned checkpoints; the k12
   check (1-0 at 17.Rd8#) is its 70 s checkpoint, so nothing he was asked to look at is lost. Steps re-caption the
   strip from inside one card (`steps` on a gallery card).
 - **Not built, waiting on his word:** A-05 (the floating 🎬/💬 buttons: stay, move or go), A-08 (the round button
   over a corner rook at 55% alpha), A-14/Z-02 (one board-width rule, his z7), A-15 (names truncate: whether to shrink
   the rating/flag pills first is a look decision; the bars are measured not to overflow).
+- **The antagonist, #373:** the agent form was cut off by the session's API limit at 22:40 ET and relaunched at
+  22:48 ET; rather than push blind or stall, the build session ran the antagonist pass itself as a script
+  (gates/audit/selfantagonist373.js: the #373 claims at 320x568, 430x932, landscape 844x390 and a stored profile with
+  the eval bar above and the graph on - 19 of 19 hold, the Pass & Play sheet scrolls at 320 and in landscape as
+  before) and pushed on GATES GREEN (203). The agent's verdict, when it lands, is applied to #374 in this run and
+  logged here; any overrule too.
+- **P0s found by the audit after the bundle was gated** (N-play-1, the Online sign-in dead end; N-review-1, the
+  engine trap) are NOT in #373: the charter's "open P0 = 0" is not met at this close-out and the number is reported
+  as it is, with both as the first items of #374.

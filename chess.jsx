@@ -3564,7 +3564,9 @@ export default function App(){
     const pos=anaMode?game:review.positions[ply];if(!pos){setEngLine(null);return;}
     const fen=toFEN(pos);const hit=engCacheRef.current[fen];
     const ev=(!anaMode&&ply>0&&review.analysis[ply-1]&&typeof review.analysis[ply-1].evalAfter==='number')?review.analysis[ply-1].evalAfter:evalPawns(pos);
-    const txt=(ev>0?'+':'')+Math.max(-99,Math.min(99,ev)).toFixed(1);
+    /* #373 (audit N-review-2): on a checkmated position the engine has no line to give, so this placeholder was the label - and the review's forced mate score printed as "+99.0" where A-03 (#371) had put 1-0. The mated side to move decides the label. */
+    let _mated=false;try{_mated=getStatus(pos)==='checkmate';}catch(e){}
+    const txt=_mated?(pos.turn==='w'?'0-1':'1-0'):((ev>0?'+':'')+Math.max(-99,Math.min(99,ev)).toFixed(1));
     if(hit){setEngLine({...hit,txt:hit.txt||txt,cp:(hit.cp!=null?hit.cp:ev)});return;}
     let dead=false;setEngLine({txt,cp:ev,line:''});
     (async()=>{

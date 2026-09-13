@@ -47,6 +47,10 @@ L.run(async()=>{
     L.say(rat[0]&&/2600/.test(rat[0])&&rat[1]&&/1800/.test(rat[1]),geo+': TC-R14 rating pills carry the PGN Elo headers',rat);
     // TC-R09 mate label
     L.say(/1-0/.test(at.p33.num||'')&&at.p33.num!==at.p0.num,geo+': TC-R09 eval label reads 1-0 at 17.Rd8# and differs from ply 0',{p0:at.p0.num,p33:at.p33.num});
+    // TC-R09b (audit N-review-2): the label must still read 1-0 with the engine line switched on from the ⋯ sheet
+    await b.tapCt('rev-more',400);await b.tapText(/^Analyze with the engine$/,{wait:2500});const numEng=await b.rect('[data-ct="eval-bar-num"]');const engl=await b.text('[data-ct="rev-engline"]');
+    L.say(!!numEng&&/1-0/.test(numEng.text),geo+': TC-R09 eval label still reads 1-0 at 17.Rd8# with the engine line on (was +99.0 on #372)',{num:numEng&&numEng.text,engline:(engl||'').slice(0,40)});
+    await b.tapCt('rev-more',400);await b.tapText(/^Engine line: on$/,{wait:600});
     // TC-R07 badges on rank 8 at ply 33 (Rd8#) and ply 31 (Qb8+)
     const b33=await badgesOutside(b);
     L.say(!!b33&&b33.badges.length>0,geo+': TC-R07 a verdict badge is drawn at 17.Rd8#',b33&&b33.badges);
