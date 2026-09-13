@@ -22,7 +22,7 @@ y13/n9/y14 (device-only), the recordings of gallery cards 1-6.
 board on the h-file (animation moved to an inner span), no engine query on a checkmated position (a mate by Black on the
 analysis board read M1), Analyze/Copy tap boxes effective for their full 43px, a "‹ Back" on the Online lobby without
 sign-in (audit N-play-1, P0), and the readout/overlay print the painted board HEIGHT for the rank-1 finding on his #372
-recording. Commit __374_SHA__. Gate 31-antagonist373.js. Open P0s at the close-out: uat372-k10 (his phone: rank 1 at 60%
+recording. Commit 1035aee (pushed 00:16 ET, raw stamp and md5 verified at that SHA). Gate 31-antagonist373.js. Open P0s at the close-out: uat372-k10 (his phone: rank 1 at 60%
 at game over - instrumented, not fixed), uat372-k12 (his phone: the board stepped back a ply at the mate - not reproduced
 in three configurations), N-review-1 (the Stockfish "unreachable" trap whenever the engine line runs - allowed by exact
 text since #354; the root-cause agent was cut off by the session limit: FIRST AGENT OF THE NEXT RUN, brief in
