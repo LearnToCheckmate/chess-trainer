@@ -26,7 +26,12 @@ const BLOCK=/gstatic\.com|googleapis\.com|firebaseio|firebase\.com|api\.chess\.c
 // 2026-09-12: with both, the review board is 293 instead of the 349 his phone shows; with 679 alone, 349 and the
 // Pass & Play board 351, both matching HANDOFF). 'kunal761' is the other emulation (full height + ct_safe), kept for
 // cross-checks; its Play numbers differ because headless Chromium has no real env() padding.
-const GEOS={kunal:{w:375,h:679,safe:'',label:'375x679 = Kunal usable area'},kunal761:{w:375,h:761,safe:'51,31',label:'375x761 with ct_safe 51,31'},'390':{w:390,h:844,safe:'',label:'390x844'},'430':{w:430,h:932,safe:'',label:'430x932'},se:{w:320,h:568,safe:'',label:'320x568'}};
+// 2026-09-13, from Kunal and his feedback session: his phone's LAYOUT VIEWPORT is 375x730. The 679 came from a
+// readout that subtracted the 51pt status bar a second time, and two sessions made that mistake independently.
+// 'kunal730' is the real phone and new gates should use it; 'kunal' stays 375x679 as the shorter-phone column
+// until each existing assertion has been re-measured at 730 deliberately, one gate at a time, rather than having
+// every expected number change at once inside an unrelated build.
+const GEOS={kunal730:{w:375,h:730,safe:'',label:'375x730 = Kunal\'s real phone'},kunal:{w:375,h:679,safe:'',label:'375x679 = shorter-phone column'},kunal761:{w:375,h:761,safe:'51,31',label:'375x761 with ct_safe 51,31'},'390':{w:390,h:844,safe:'',label:'390x844'},'430':{w:430,h:932,safe:'',label:'430x932'},se:{w:320,h:568,safe:'',label:'320x568'}};
 
 function pw(){
   try{return require('/opt/node22/lib/node_modules/playwright');}catch(e){}

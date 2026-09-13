@@ -72,6 +72,16 @@ wider one.
 - **Measure after interaction, not at the start position.** Two P0s lived for months at game over
   and at a lesson's end because every measurement was taken at move 0.
 
+## Temporary code, with an expiry
+
+Anything shipped as a diagnostic gets a removal condition written down here on the day it ships, because
+permanent dead code is how the last pile of ghosts built up. Remove it when its condition is met, and delete
+its row.
+
+| what | where | comes out when |
+|---|---|---|
+| the ply log: records each ply change behind the Layout readout switch | `chess.jsx`, search `plyLogOnRef`; gate `gates/regress/32-plylog.js` | Kunal certifies `k12` closed on his own phone (#376, 2026-09-13) |
+
 ## Parked
 
 The iPad, entirely, until the phone layout is settled. Do not spend a run on it and do not ask

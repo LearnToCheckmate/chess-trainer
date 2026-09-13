@@ -2187,7 +2187,7 @@ export default function App(){
   const errLogRef=useRef([]);
   const diagRef=useRef({});
   const postReport=(kind,payload)=>{if(!LOG_ENDPOINT)return;try{fetch(LOG_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,t:Date.now(),build:BUILD_INFO,key:RELAY_KEY,...payload})}).catch(()=>{});}catch(e){}};
-  const collectDiagnostics=()=>{let d={...diagRef.current};try{d.ua=navigator.userAgent;d.innerW=window.innerWidth;d.innerH=window.innerHeight;d.scrollH=document.documentElement.scrollHeight;d.overflow=document.documentElement.scrollHeight>window.innerHeight+4;}catch(e){}d.errs=errLogRef.current.slice(-10);return JSON.stringify(d,null,2);};
+  const collectDiagnostics=()=>{let d={...diagRef.current};try{d.ua=navigator.userAgent;d.innerW=window.innerWidth;d.innerH=window.innerHeight;d.scrollH=document.documentElement.scrollHeight;d.overflow=document.documentElement.scrollHeight>window.innerHeight+4;}catch(e){}d.errs=errLogRef.current.slice(-10);try{d.plyLog=plyLogOnRef.current?plyLogRef.current.slice(-16):'off (turn on Layout readout to record)';}catch(e){}return JSON.stringify(d,null,2);};
   useEffect(()=>{
     const push=(o)=>{const a=errLogRef.current;a.push(o);if(a.length>20)a.shift();return o;};
     const onErr=(e)=>{try{postReport('error',push({t:Date.now(),msg:String((e&&e.message)||'error').slice(0,200),src:String((e&&e.filename)||'').slice(-60),line:e&&e.lineno,col:e&&e.colno,stack:String((e&&e.error&&e.error.stack)||'').slice(0,500),screen:diagRef.current.screen||'',build:BUILD_INFO}));}catch(_){}};
@@ -2277,7 +2277,40 @@ export default function App(){
   const [pgnCopied,setPgnCopied]=useState(false);
   const [lastReview,setLastReview]=useState(null);
   const [myBrilliant,setMyBrilliant]=useState(()=>{try{const v=localStorage.getItem('ct_mybrilliancies');return v?JSON.parse(v):[];}catch{return [];}});
-  const [ply,setPly]=useState(0);
+  const [ply,_setPlyRaw]=useState(0);
+  /* #376 PLY LOG - TEMPORARY, WITH AN EXPIRY. REMOVE IT WHEN KUNAL CERTIFIES k12 CLOSED ON HIS OWN PHONE.
+     His decision, 2026-09-13: keep the instrumentation because his phone is the one place with no other
+     visibility, but give it a retirement condition, because permanent dead code is how the last pile of ghosts
+     built up. What it is for: on his iPhone the review board once re-rendered ONE PLY EARLIER at 17.Rd8# with no
+     visible tap while the move row still read 33/33. The cause was found and fixed in #375 (tapping "why" at a
+     mate asked the engine for a continuation from the mated position), and the feedback session then measured
+     fifty samples on live #375 with no recurrence. This is the tripwire in case it comes back, not an open
+     investigation. DEV-GATED: it records only while the Layout readout or the Layout overlay is switched on in
+     the menu, so it never runs for an ordinary user - no listeners attached, no stack captured, nothing kept.
+     What it records per ply change: the new ply, the time, the milliseconds since the last real user input (a
+     change nobody touched shows a large number) and two frames of the call stack. The buffer rides in the
+     diagnostics report and its last entries print in the Layout readout, so one screenshot names the caller.
+     Recording only: it never changes what setPly does. Gate: gates/regress/32-plylog.js. */
+  const plyLogRef=useRef([]);
+  const lastInputRef=useRef(0);
+  const plyLogOnRef=useRef(false);
+  const setPly=useCallback((v)=>{
+    if(plyLogOnRef.current){try{
+      const now=(typeof performance!=='undefined'&&performance.now)?Math.round(performance.now()):Date.now();
+      const st=String((new Error()).stack||'').split('\n').slice(2,4).map(x=>x.trim().replace(/^at /,'').slice(0,60)).join(' < ');
+      const a=plyLogRef.current;
+      a.push({t:now,to:(typeof v==='function'?'fn':v),sinceInput:(lastInputRef.current?now-lastInputRef.current:-1),from:st});
+      if(a.length>40)a.shift();
+    }catch(e){}}
+    _setPlyRaw(v);
+  },[]);
+  useEffect(()=>{
+    const on=!!(layoutInfo||layoutGrid);plyLogOnRef.current=on;
+    if(!on){plyLogRef.current=[];return;}
+    const mark=()=>{try{lastInputRef.current=(typeof performance!=='undefined'&&performance.now)?Math.round(performance.now()):Date.now();}catch(e){}};
+    for(const ev of ['pointerdown','touchstart','keydown','wheel'])window.addEventListener(ev,mark,{passive:true,capture:true});
+    return()=>{for(const ev of ['pointerdown','touchstart','keydown','wheel'])window.removeEventListener(ev,mark,{capture:true});};
+  },[layoutInfo,layoutGrid]);
   const [revAuto,setRevAuto]=useState(false);
   const [analyzing,setAnalyzing]=useState(false);
   const [progress,setProgress]=useState(0);
@@ -4739,6 +4772,7 @@ export default function App(){
               <div>{'screen '+vp.w+'x'+vp.h+'  vw '+vw+'  dpr '+((typeof devicePixelRatio!=='undefined')?devicePixelRatio:'?')}</div>
               <div>{'safe top '+safeTop+'  bottom '+safeBot+'  trim '+boardTrim}</div>
               <div>{'board '+Math.round(boardPx)+'  square '+SQ+'  gap '+Math.round((vw-boardPx)/2)+' each side'+(gridRect?('  painted '+Math.round(gridRect.w)+'x'+Math.round(gridRect.h)):'') /* #374: the painted height beside the computed width - Kunal's #372 recording showed rank 1 at 60% height at game over, which no width can show */}</div>
+              {plyLogRef.current.length>0&&<div style={{opacity:.85}}>{'ply log '+plyLogRef.current.slice(-3).map(x=>x.to+(x.sinceInput>=0?('@'+(x.sinceInput>1500?'NO-INPUT-':'')+Math.round(x.sinceInput/100)/10+'s'):'')).join('  ')}</div>}{/* #375: the last three ply changes and how long after the last touch each one happened - k12 */}
               <div>{'mode '+mode+'  wide '+(wide?1:0)+'  edge '+(_edge?1:0)+'  compact '+(revCompact?1:0)+(mode==='puzzle'?('  pzstack '+pzStackH):'')}</div>
               <div>{'eval '+(hideEval?'off':(evalUnder?'above':'left'))+'  moves '+(movesOpen?'open':'shut')+'  build '+(typeof __BUILD__!=='undefined'?__BUILD__:'?')}</div>
               <div>{'tile ink '+['learn','puzzle','analyze','play'].map(k=>{const g=(SK.icons&&SK.icons[k])||'';const s=_inkCache[g+"|'Segoe UI',system-ui,sans-serif|1.1"];const e=_inkCache[g+"|'Segoe UI',system-ui,sans-serif|1.1#ext"];return g+(s!=null?('×'+s+(e!=null?('('+e+')'):'')):'');}).join('  ')}</div>

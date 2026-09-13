@@ -127,7 +127,7 @@ marked rather than invented.
   assertions. The antagonist agent was cut off by the session limit and relaunched; the build session ran the pass
   itself as a script first (19 of 19 claims hold at 320x568, 430x932, landscape and a stored profile).
 
-### Build #374 [2026-09-12 23:2x ET, same run] - the antagonist's objections on #373 and the audit's Play P0
+### Build #374 [2026-09-12 23:05 - 2026-09-13 00:16 ET, same run; bundle stamp 23:59 ET, pushed 00:16 ET as 1035aee] - the antagonist's objections on #373 and the audit's Play P0
 
 - [2026-09-12 23:15 ET] status: built #374, gating  ANTAGONIST on #373 (claude/agents/ANTAGONIST-373.md, verdict FIX
   FIRST, arrived after the #373 push): the Brilliant/Blunder label ran 16.5px off the h-file (the pop animation

@@ -12,7 +12,8 @@ const path=require('path'),fs=require('fs');
 process.env.CT_SHOTS=path.join(__dirname,'..','shots','audit','menu');
 const L=require('../lib');const M=require('../drive/menu');
 const ALL=Object.keys(M.states);
-const WIDTH_STATES=['home','menu-discover','menu-bottom','menu-look','menu-readout','feedback-home','menu-play-live'];
+// menu-play-live is not in the width list: gates/drive/play.js's Pass & Play setup is written for 375/390 only
+const WIDTH_STATES=['home','menu-discover','menu-bottom','menu-look','menu-readout','feedback-home'];
 const PLAN=[['kunal',ALL],['390',ALL],['se',WIDTH_STATES],['430',WIDTH_STATES]];
 const BOARD_UNDER=/^(menu-play-live|menu-lesson|menu-review-more)$/;
 const R={};
@@ -75,10 +76,10 @@ async function measure(b,geo,st){
   if(/^feedback/.test(st)){const fb=await sheet1100(b,/Send feedback/);M_(geo,st,'feedback',fb?{y:fb.y,bottom:fb.bottom,w:fb.w,h:fb.h,gapBelow:fb.gapBelow,inner:fb.inner,ovf:fb.ovf}:'none');if(fb){M_(geo,st,'feedback.fits',fb.y>=0&&fb.bottom<=b.geo.h);M_(geo,st,'feedback.textarea.h',fb.ta);M_(geo,st,'feedback.buttons',fb.btns.join('; '));M_(geo,st,'feedback.ctx',fb.ctx);M_(geo,st,'feedback.text',fb.text.slice(0,160));}}
   if(st==='menu-skin-pro'){const ac=await sheet1100(b,/^Account/);M_(geo,st,'account',ac?{y:ac.y,bottom:ac.bottom,h:ac.h,gapBelow:ac.gapBelow,inner:ac.inner,ovf:ac.ovf}:'none');if(ac)M_(geo,st,'account.buttons',ac.btns.join('; '));}
   if(st==='menu-signin'){M_(geo,st,'signin.msg',await msgLeaf(b,/Sign-in|Sync your|sign in|retry|unavailable/i));}
-  if(st==='menu-share'){M_(geo,st,'share.msg',await msgLeaf(b,/Link copied|Copy the link|address bar/i));}
-  if(st==='menu-colour-forest'){M_(geo,st,'colours.after',await msgLeaf(b,/^Board colors/));}
+  if(st==='menu-share'){const t=await M.toast(b);M_(geo,st,'share.toast',t?t.text+' @y'+t.y+' h'+t.h:'none');}
+  if(st==='menu-colour-forest'){M_(geo,st,'colours.after',await M.sheetText(b,/^Board colors/));}
   // a board under the sheet: close the sheet and re-measure (the board must keep its top and width)
-  if(BOARD_UNDER.test(st)&&s&&m.board){await M.tapRow(b,/^✕$/,500);const m2=await b.metrics();M_(geo,st,'afterClose.board',m2.board);M_(geo,st,'afterClose.moved',!m2.board||m2.board.w!==m.board.w||m2.board.top!==m.board.top);M_(geo,st,'afterClose.over',m2.over.over);M_(geo,st,'afterClose.sheet',!!(await M.sheet(b)));}
+  if(BOARD_UNDER.test(st)&&s&&m.board){await b.shot(geo+'-'+st+'-open');await M.tapRow(b,/^✕$/,500);const m2=await b.metrics();M_(geo,st,'afterClose.board',m2.board);M_(geo,st,'afterClose.moved',!m2.board||m2.board.w!==m.board.w||m2.board.top!==m.board.top);M_(geo,st,'afterClose.over',m2.over.over);M_(geo,st,'afterClose.sheet',!!(await M.sheet(b)));}
 }
 
 L.run(async()=>{
