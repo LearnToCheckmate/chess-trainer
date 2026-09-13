@@ -2,7 +2,29 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 20:20 ET)
+## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 22:2x ET, written by the #373 run)
+LIVE = **#372** (commit 7c51f10 on origin/main, Kunal's click; verified by hash from this session at 21:28 ET, byte-identical
+to the local app.js). **#373 = the first build pushed to main BY THE SESSION ITSELF** (this environment has push access;
+no upload page, no PAT: `git push origin HEAD:main`, then verify raw.githubusercontent.com/<SHA>/app.js by stamp).
+Commit: __373_SHA__, stamp "__373_STAMP__". Kunal's phone shows it after a reload (Pages serves it within minutes;
+the host is blocked from this container, so liveness on the phone is his check).
+WHAT #373 CARRIES: (1) `gates/` - the build and gate tooling in the repo (the old suite is gone with its sandbox;
+see "### #373" in section 5 for the rules); (2) the open P1s from the #371/#372 agents that needed no decision -
+A-04, A-09, A-10, A-11 (partly), A-12/X-09, A-13, A-16, X-07 - each with a before/after measurement in the tracker;
+(3) the testing charter's first screen, Review: stories, cases, a regression suite (gates/regress/20-*, 21-*), the UAT
+card (gallery card 6, 88 s, seven captioned checkpoints) and the packs in claude/agents/; (4) the run-start audit as a
+workflow (six screen agents + verifiers) whose report lands in claude/agents/AUDIT-373.md - if it was still running at
+the close-out, its findings are the next build's queue.
+STILL KUNAL'S: A-05 (floating buttons), A-08 (round button over a corner rook), A-14/Z-02 (one board-width rule, z7),
+A-15 (names truncate - a look decision), b1 (his re-check of the Review board width on his phone: measured 349 here),
+y13/n9/y14 (device-only), the recordings of gallery cards 1-6.
+THE FOUR NUMBERS at the #373 close-out are in RUN-LOG.md.
+BOOT FOR THE NEXT RUN: read this file, FEEDBACK-INBOX.md, DECISIONS-LOG.md, RUN-LOG.md; `cd gates && npm ci`; verify the
+live stamp by SHA; run `node gates/mountcheck.js` (must be 14/14 green on the live bundle) BEFORE anything else; drain
+the tracker flags, the pickup board, the inbox artifact and round 3 (all read at 21:28 ET this run: flags b1 and the
+charter still open, everything else empty); write `acked` the moment an item is read.
+
+## 0a-history) WHERE THE BUILD WAS AT THE #372 CLOSE-OUT (2026-09-12 20:20 ET, superseded by the block above)
 LIVE = **#371** (app.js stamp "#371 - 2026-09-12 18:56 ET", commit 2a74c13 on origin/main, Kunal's upload at
 19:23 ET, verified by hash at raw.githubusercontent.com at 20:40 ET - byte-identical to local #371). Local history
 is merged (`-s ours`; #372 sits on top). **ONE CLICK CARRIES #372**: the staged upload (tab
@@ -514,6 +536,39 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 - The general lesson from tonight, stated once: a feature shipped an hour ago can be broken by a
   bug that predates it. When a new feature depends on the SHAPE of an existing output (here, that
   a mate carries a '#'), verify that shape rather than assuming it.
+
+### #373 (2026-09-12 evening, the first run from a Claude Code session with push access)
+- **THE GATES LIVE IN THE REPO NOW: `gates/`.** The whole previous suite (build.sh, gates.sh, 138 assertions of
+  harnesses) existed only in the Cowork sandbox and is gone with it. `cd gates && npm ci` once, then
+  `gates/build.sh '#NNN'` (entry.jsx + esbuild, stamp via __BUILD__, refuses a bundle without createRoot) and
+  `gates/gates.sh '#NNN'` (mountcheck first, then every gates/regress/*.js, logs in gates/logs, PASS count in
+  the footer, GATES GREEN / RED). `gates/lib.js` is the one harness library; read its header. Old harnesses are
+  ported into gates/regress as each screen gets its charter pass (REGRESSION-LOG.md lists what is still unported).
+- **TRIAL BUNDLES NEVER TOUCH app.js:** `CT_OUT=/path gates/build.sh '#NNN'` writes the bundle elsewhere and
+  `CT_APP=/path node gates/...` or `CT_APP=/path gates/gates.sh '#NNN'` serves it. The repo's app.js changes only
+  for the final build, so an audit of the live bundle can run while a build is being tried.
+- **HARNESS TRAP, COST AN HOUR: DO NOT EMULATE HIS PHONE AS 375x679 *AND* ct_safe='51,31'.** 679 already is the
+  usable height; ct_safe makes the app subtract the insets a second time, and the height-bound Review board came
+  out 293 instead of 349 in every path (a "finding" that was the harness). Width-bound screens (Play 351, lesson
+  375, puzzle 375) hide the error, which is why it survived the vocab pass. lib.js GEOS.kunal is 375x679 with no
+  ct_safe; that reproduces every number in this file (review 349@56, Pass & Play 351@78, lesson 375@92).
+  Corollary: a "finding" that is confined to one geometry and vanishes at the others is suspect until re-measured.
+- **`rect()` KEEPS 80 CHARACTERS OF TEXT; `text()` KEEPS ALL OF IT.** The brilliancy gate "failed" because the
+  comparison sentence starts at character 81. Assert on `text()`.
+- **"Start review" RESUMES AT THE LAST VIEWED PLY.** After a Skills jump (ply 27) the move screen opens at 27, not
+  0. A gate that assumes ply 0 measures the wrong plies; press First move (aria-label) first.
+- **THE SUMMARY LISTS EIGHT VERDICTS, NOT TEN:** Excellent is folded into Best in analyzeGameCounts and Book is a
+  Skills row. The story (US-R03) says so now; do not "fix" the summary to show Excellent.
+- **GALLERY CARDS CAN CARRY `steps`:** `{at, id, l, fn}` re-captions the strip mid-journey and moves the app on.
+  fn runs in the closure of the render that opened the gallery, so it may call state setters (setPly,
+  setReviewView) but NOT render-scoped helpers that read state (`_goAnalyze` reads `review` and `ply`; click the
+  DOM button instead, `_dom('[data-ct="rev-fab"]')`). The Review journey card (card 6) is the first user.
+- **THE CHARTER PASS FOR REVIEW:** claude/stories/USER-STORIES.md (US-R01..R11), claude/stories/TEST-CASES.md
+  (TC-R01..R14), gates/regress/20-review.js + 21-review-brilliant.js (the executed cases), 14-uat-review-card.js
+  (the UAT card, checkpoint by checkpoint), claude/agents/UAT-PACK.md, claude/agents/REGRESSION-LOG.md.
+- **THE AUDIT IS A WORKFLOW NOW:** six screen agents (each writes gates/drive/<screen>.js and gates/audit/<screen>.js
+  and returns measured findings), two adversarial verifiers per P0/P1 in a configuration the finder did not use.
+  Reports: claude/agents/AUDIT-373.md. The drive modules are reusable by every later gate.
 
 ## 6) Files in this handoff
 This MD is self-sufficient; everything else refetches from the repo (section 1.2). The repo's own HANDOFF.md is June-era; this file supersedes it until committed.

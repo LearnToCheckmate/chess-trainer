@@ -69,6 +69,34 @@ marked rather than invented.
 
 ## Open
 
+### Build #373 [2026-09-12 21:28 ET to close-out] - the first run from a Claude Code session with push access
+
+- [2026-09-12 21:28 ET] status: built #373  Run opened per HANDOFF 0c: #372 confirmed LIVE at 7c51f10 by hash (your
+  click landed; the "staged" note in 0a was stale). The old sandbox's gate suite was never committed and is gone,
+  so gates/ was rebuilt inside the repo first (2eff4f4, 21:47 ET): build.sh, lib.js, mountcheck, gates.sh.
+- [2026-09-12 22:16 ET] status: built #373, gated on the trial bundle (200 PASS lines, gates/logs/373-all.log)
+  THE OPEN P1s FROM THE AGENTS, each closed by a measurement: A-04 Home ☰ (46px, opens the menu); A-16 the menu
+  sheet reaches the bottom (669 of 679, was 643); A-12/X-09 Moves toggle - the board keeps 351@78 across closed/open
+  (was top 78 → 103 on #372); A-09 the rank-8 badge inside the board (was 6.5px outside at 375x679, 8px at 390x844,
+  7.6px measured again before the shots); A-10 Next puzzle advances before solving (the old scan returned the puzzle
+  on screen); A-11 Analyze/Copy tap boxes 43px without growing the row, piece chips 40, footer links 40 (Elo
+  steppers parked with the iPad); A-13 the Pass & Play sheet: re-measured at your usable height it already fitted -
+  the 32px was a harness that subtracted your insets twice; real at 375x640 (16 → 0), scrolls either way at
+  320x568 (154 → 108); X-07 the wrong-move line on phones is "✗ d5 isn't it. Try again, or tap 💡." NOT built,
+  yours: A-05, A-08, A-14/Z-02, A-15.
+- [2026-09-12 22:06 ET] status: built #373  THE TESTING CHARTER, first screen (Review): claude/stories/USER-STORIES.md
+  US-R01..R11, claude/stories/TEST-CASES.md TC-R01..R14, executed by gates/regress/20-review.js and
+  21-review-brilliant.js at 375x679 and 390x844 (SAT = the PASS lines in the gate log); UAT = gallery card 6 "The
+  Review journey" (88 s, seven captioned checkpoints; the k12 card is folded in as its 70 s frame), driven by
+  14-uat-review-card.js; claude/agents/UAT-PACK.md and REGRESSION-LOG.md written. Coverage 1 of 6.
+- [2026-09-12 22:05 ET] status: closed, harness  MY OWN FINDING THAT WAS NOT ONE: the review board measured 293
+  at "your geometry" in every path. Cause: 375x679 is already your usable area and the harness also set ct_safe
+  51/31, so the app took the insets twice. At 375x679 alone every number in HANDOFF reproduces (review 349,
+  Pass & Play 351, lesson 375@92). Written into HANDOFF #373 so it is not repeated; b1 stays yours to re-check.
+- [2026-09-12 22:18 ET] status: open  The run-start AUDIT (six screen agents + verifiers) is still running at this
+  point of the run; its findings feed the next build in this run (#374) or the next run. The antagonist on the
+  #373 diff runs before the push; its objections and any overrule go to DECISIONS-LOG.
+
 ### From Kunal in the feedback session [2026-09-12 17:07 ET]
 
 - [2026-09-12 17:07 ET] status: done 18:00-18:50 ET, and adopted as standing process (HANDOFF 0c)

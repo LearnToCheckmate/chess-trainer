@@ -23,5 +23,6 @@ node --check "$B/app.js" || { echo "FAIL: node --check"; exit 1; }
 grep -q 'createRoot' "$B/app.js" || { echo "FAIL: bundle has no createRoot (chess.jsx bundled instead of entry.jsx?)"; exit 1; }
 grep -qF "$STAMP" "$B/app.js" || { echo "FAIL: stamp '$STAMP' not in bundle"; exit 1; }
 grep -qF '"18.3.1"' "$B/app.js" || { echo "FAIL: React 18.3.1 not in bundle"; exit 1; }
-cp "$B/app.js" "$ROOT/app.js"
-echo "BUILD OK: $STAMP  bytes=$(stat -c %s "$ROOT/app.js")  md5=$(md5sum "$ROOT/app.js" | cut -c1-12)"
+OUT="${CT_OUT:-$ROOT/app.js}"   # CT_OUT=/some/path builds a trial bundle without touching the repo's app.js (CT_APP serves it)
+cp "$B/app.js" "$OUT"
+echo "BUILD OK: $STAMP  -> $OUT  bytes=$(stat -c %s "$OUT")  md5=$(md5sum "$OUT" | cut -c1-12)"

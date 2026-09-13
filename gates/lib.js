@@ -3,7 +3,7 @@
 // the container (global) or playwright-core (executablePath from PLAYWRIGHT_BROWSERS_PATH).
 //
 //   const L=require('./lib');
-//   const b=await L.launch({geo:'kunal'});      // 375x679 with ct_safe '51,31' (his phone), or '390' (390x844), or {w,h,safe}
+//   const b=await L.launch({geo:'kunal'});      // 375x679 = his phone's usable area (no ct_safe: see GEOS), or '390' (390x844), or {w,h,safe}
 //   await b.open();                             // serves the repo (or CT_APP) and waits for the app to mount
 //   await b.tile('Play'); await b.tab('Review'); await b.tapText(/^Pass & Play$/);
 //   const bd=b.board();                         // {x,y,w,h,sq,flip} of the painted board grid, or null
@@ -21,7 +21,12 @@ const ROOT=path.resolve(__dirname,'..');
 const SHOTS=process.env.CT_SHOTS||path.join(__dirname,'shots');
 const NET_NOISE=/ERR_TUNNEL_CONNECTION_FAILED|ERR_CONNECTION_RESET|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION_REFUSED|ERR_FAILED|net::ERR|gstatic|googleapis|firebase|Failed to load resource/i;
 const BLOCK=/gstatic\.com|googleapis\.com|firebaseio|firebase\.com|api\.chess\.com|lichess\.org|fonts\.g|google-analytics|googletagmanager|cloudfunctions/;
-const GEOS={kunal:{w:375,h:679,safe:'51,31',label:'375x679 insets 51/31 (Kunal)'},'390':{w:390,h:844,safe:'',label:'390x844'},'430':{w:430,h:932,safe:'',label:'430x932'},se:{w:320,h:568,safe:'',label:'320x568'}};
+// Kunal's phone is 375x761 with insets 51/31 = 375x679 USABLE. Emulate it as a 375x679 viewport with NO ct_safe:
+// the 679 already is the usable area, and ct_safe would make the app subtract the insets a second time (measured
+// 2026-09-12: with both, the review board is 293 instead of the 349 his phone shows; with 679 alone, 349 and the
+// Pass & Play board 351, both matching HANDOFF). 'kunal761' is the other emulation (full height + ct_safe), kept for
+// cross-checks; its Play numbers differ because headless Chromium has no real env() padding.
+const GEOS={kunal:{w:375,h:679,safe:'',label:'375x679 = Kunal usable area'},kunal761:{w:375,h:761,safe:'51,31',label:'375x761 with ct_safe 51,31'},'390':{w:390,h:844,safe:'',label:'390x844'},'430':{w:430,h:932,safe:'',label:'430x932'},se:{w:320,h:568,safe:'',label:'320x568'}};
 
 function pw(){
   try{return require('/opt/node22/lib/node_modules/playwright');}catch(e){}
@@ -42,7 +47,10 @@ function siteDir(app){
 let _srv=null;
 async function serve(opts={}){
   if(_srv&&!opts.fresh)return _srv;
-  const app=path.resolve(opts.app||process.env.CT_APP||path.join(ROOT,'app.js'));
+  // gates/.pin-app.js, when present, is served by default instead of the repo's app.js: it pins the bundle an
+  // audit is measuring while a new build lands in app.js (gates.sh always names its bundle explicitly).
+  const pinned=path.join(__dirname,'.pin-app.js');
+  const app=path.resolve(opts.app||process.env.CT_APP||(fs.existsSync(pinned)?pinned:path.join(ROOT,'app.js')));
   const dir=siteDir(app);const port=await freePort();
   const p=cp.spawn('python3',['-m','http.server',String(port),'--bind','127.0.0.1'],{cwd:dir,stdio:'ignore'});
   const url='http://127.0.0.1:'+port+'/';
@@ -109,6 +117,7 @@ async function launch(opts={}){
     async texts(){return page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.bottom>0&&r.top<innerHeight;}).map(x=>(x.innerText||x.getAttribute('aria-label')||x.title||'').replace(/\s+/g,' ').trim()).filter(Boolean));},
     async cts(){return page.evaluate(()=>[...document.querySelectorAll('[data-ct]')].map(x=>{const r=x.getBoundingClientRect();return x.getAttribute('data-ct')+'@'+Math.round(r.left)+','+Math.round(r.top)+' '+Math.round(r.width)+'x'+Math.round(r.height);}));},
     async rect(sel){return page.evaluate((s)=>{const e=document.querySelector(s);if(!e)return null;const r=e.getBoundingClientRect();return {x:r.left,y:r.top,w:r.width,h:r.height,text:(e.innerText||'').slice(0,80)};},sel);},
+    async text(sel){return page.evaluate((s)=>{const e=document.querySelector(s);return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;},sel);},   // the FULL text (rect() keeps 80 chars)
     async shot(name,o={}){fs.mkdirSync(SHOTS,{recursive:true});const p=path.join(SHOTS,name+'.png');await page.screenshot(Object.assign({path:p},o));return p;},
     // open the Preview gallery from Home and run one card by its id token (e.g. 'k10'), holding for `hold` ms
     // id may be an item id ('k10'; the FIRST card with that id), a card number (4 -> the 4th card) or a RegExp on the card title

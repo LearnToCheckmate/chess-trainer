@@ -11,7 +11,8 @@ N="${1:-}"; [[ "$N" =~ ^#[0-9]{3,4}$ ]] || { echo "usage: gates/gates.sh '#373'"
 G="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(dirname "$G")"; TAG="${N#\#}"
 mkdir -p "$G/logs"; ALL="$G/logs/$TAG-all.log"; : > "$ALL"
 export CT_EXPECT="${CT_EXPECT:-$N}"; export CT_SHOTS="${CT_SHOTS:-$G/shots/gates-$TAG}"
-echo "gates.sh $N  app.js md5 $(md5sum "$ROOT/app.js" | cut -c1-12)  $(date '+%Y-%m-%d %H:%M:%S %Z')" | tee -a "$ALL"
+APP="${CT_APP:-$ROOT/app.js}"; export CT_APP="$APP"   # CT_APP=/path/bundle.js gates a trial bundle; the default is the repo's app.js, named explicitly so a gates/.pin-app.js cannot divert the gate
+echo "gates.sh $N  bundle $APP  md5 $(md5sum "$APP" | cut -c1-12)  $(date '+%Y-%m-%d %H:%M:%S %Z')" | tee -a "$ALL"
 red=0; gates=("$G/mountcheck.js"); for f in "$G"/regress/*.js; do [ -e "$f" ] && gates+=("$f"); done
 for f in "${gates[@]}"; do
   name="$(basename "$f" .js)"; log="$G/logs/$TAG-$name.log"

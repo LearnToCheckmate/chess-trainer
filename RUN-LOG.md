@@ -20,6 +20,8 @@ and the antagonist's objections arrive after the first bundle, so the honest ETA
 attack is build + 15 min gates + 20-30 min of answering objections + a second gate run. From #373 on the ETA
 line names those parts separately.
 
+| #373 | run-start audit of live #372 (six screen agents + two verifiers per P0/P1), the Review screen's charter pass (stories, cases, regression suite in gates/, SAT, UAT card), the audit P0s and the open P1s that need no decision | ETA stated 21:50 ET: ready ~02:20 ET = audit 90 min (two browser agents at a time on 4 cores) + charter pass 45 + build 60 + gates 15 + antagonist 30 + re-gate 15 + record 20 | 21:28 (session start; gates/ tooling rebuilt in the repo and pushed at 21:47, 2eff4f4) | — | — | — | — | — |
+
 ## The four numbers (charter), first measured at the #372 close-out, 2026-09-12 20:52 ET
 | close-out | open P0 | open P1 | coverage (screens fully specced AND tested, of 6) | regression assertions (PASS lines, gates.sh) |
 |---|---|---|---|---|

@@ -249,3 +249,36 @@ the reading I took, so it can be reversed on purpose rather than by accident:
 - **X-12 (pass 1) — the Look picker scrolls inside its card on the small phones and ellipses a chip.**
   Shipped as built in #367. Why: P2, not in #371/#372's scope; the picker's card can grow on 320 when the
   queue reaches it. Open.
+
+## #373 (2026-09-12 evening, Claude Code session with push access) — decisions taken alone, all reversible
+
+- **The gate tooling lives in the repo now (gates/).** The previous suite (138 assertions) existed only in a sandbox
+  that is gone; nothing of it could be recovered. Rebuilt as `gates/lib.js` + `gates/regress/*.js` + `gates/gates.sh`,
+  committed, so this cannot happen a third time. Old harnesses are ported as the screens get their charter pass.
+- **A-04:** Home gets a ☰ of its own, the same 46px round button as the account button, to its left. Alternative
+  was moving the account button; not asked for.
+- **A-16:** the menu sheet fills the viewport minus the safe-area insets (10px minimum) instead of 5vh + 88vh.
+- **A-13:** on screens under 720px tall the Play setup sheet's rhythm tightens (gap 16 → 10, build line margin
+  12 → 2); nothing is removed. Re-measured at 375x679 without the double-counted insets the sheet already fitted on
+  #372 (the audit's 32px was the same harness error); it is real at 375x640 (16 → 0) and at 320x568 the sheet
+  scrolls either way (154 → 108). If a shorter phone still needs it, the next step is hiding the "Point at a
+  board" caption there.
+- **A-10:** Next puzzle advances to the next unsolved puzzle AFTER the current one (then an unsolved one before it,
+  then simply the next). The old scan returned the first unsolved puzzle in the tier, which was the one on screen.
+- **X-07:** the wrong-move line on phones reads "✗ Nf3 isn't it. Try again, or tap 💡." (the long form stays on
+  tall screens). Wording only.
+- **A-11:** Analyze / Copy moves keep their 23px look; the tap box around them is 43px via padding cancelled by a
+  negative margin, so the row does not grow (a taller row would come out of the board). Piece chips 40px, footer
+  links 41px in the menu, where height is free. The Elo steppers (22px) are on the iPad-only path and are parked
+  with the iPad.
+- **A-12 / X-09:** in a live phone game the moves panel is always laid out; the Moves button hides its content
+  (visibility) instead of removing the row. The board therefore cannot move on a toggle. If Kunal would rather the
+  Moves button disappear on phones, that is one line.
+- **A-09:** the verdict badge (and the Brilliant/Blunder label) is clamped inside the board box instead of
+  protruding past rank 8 / the h-file, because the grid clips at its edge for the rounded corners.
+- **The Review UAT card replaces the k12 card:** one 88-second journey with seven captioned checkpoints; the k12
+  check (1-0 at 17.Rd8#) is its 70 s checkpoint, so nothing he was asked to look at is lost. Steps re-caption the
+  strip from inside one card (`steps` on a gallery card).
+- **Not built, waiting on his word:** A-05 (the floating 🎬/💬 buttons: stay, move or go), A-08 (the round button
+  over a corner rook at 55% alpha), A-14/Z-02 (one board-width rule, his z7), A-15 (names truncate: whether to shrink
+  the rating/flag pills first is a look decision; the bars are measured not to overflow).

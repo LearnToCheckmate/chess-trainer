@@ -1,5 +1,7 @@
 node_modules/
 .build/
+.site/
+.pin-app.js
 shots/
 logs/
 *.png
