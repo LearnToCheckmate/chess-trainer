@@ -143,9 +143,17 @@ and claude/agents/ACK-PROTOCOL.md; tracker flag kunal-testing-charter). Read bot
   screen's stories and cases, executed in the same pass.
 - FOUR NUMBERS AT EVERY CLOSE-OUT: open P0 (must be zero), open P1 (must fall), coverage (screens fully specced
   AND tested), regression assertions (only rises). A new screen's coverage finding old defects is a GOOD run.
+  Baseline at #372 (20:52 ET): P0 0, P1 12, coverage 0 of 6, assertions 138 (gates.sh counts the PASS lines of
+  every gate into gatelogs/<N>-all.log and prints the number in its footer; RUN-LOG keeps the table).
 - ACK: write `acked` (timestamp + build + ONE line of what the build chat understands the item to ask) onto every
   tracker `flags` item the moment it is read, before work; keep `handled`; the tracker renders both per row; the
   close-out ends with every item picked up by id with a timestamp.
+- THE PICKUP BOARD (his feedback session built it 19:57 ET; Project doc claude/agents/PICKUP-BOARD.md):
+  https://claude.ai/code/artifact/f38b7157-4bd7-4ae2-b2ce-2c7594b8cf36, collection `pickup`, one doc per item
+  (title, ask, source, loggedAt, state logged|acked|shipped|certified, ackAt/ackBuild/ackNote, shipAt/shipBuild/
+  shipNote). Set state "acked" with ackAt, ackBuild and a one-line ackNote THE MOMENT an item is read, before work
+  (write_db update with the version from a read). Drain it at run start and before every close-out, like the
+  tracker flags. First written 20:40 ET (ack-mechanism and tracker-set-bug shipped, testing-charter acked/part).
 
 ## 0b) BEFORE / AFTER SCREENSHOTS ARE PART OF CLOSING AN ITEM (2026-09-12)
 Kunal: "for the feedback tracker show me screenshots of before and after for each of these items

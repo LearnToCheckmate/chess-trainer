@@ -179,6 +179,13 @@ marked rather than invented.
   carry `acked`; the tracker (v20) prints "picked up · …" and "handled · …" under each row and lists flags
   docs that are not rows under "From your feedback session"; a tap on flag / note / certify never erases them.
 
+- [2026-09-12 19:57 ET] status: standing, first written 20:40 ET  THE PICKUP BOARD (claude/agents/PICKUP-BOARD.md,
+  artifact f38b7157…, collection `pickup`): his feedback session built a page that shows whether each item was
+  picked up, because the tracker rendered none of it (true until v20). Rows: three-agents (shipped, theirs),
+  ack-mechanism (now shipped: tracker v20/v21 + this board), testing-charter (acked; the gallery half shipped),
+  tracker-set-bug (now shipped: set() replaced the doc and erased handled - fixed in v20 with keep()). Standing:
+  ack on the board the moment an item is read; drained with the flags before every close-out (HANDOFF 0c).
+
 ### The agents' second pass, and #372 [2026-09-12 19:20-20:15 ET]
 
 - [2026-09-12 19:20 ET] ANTAGONIST on #371 (ANTAGONIST-371.md, verdict FIX FIRST): Y-01 the lesson board 375 ->

@@ -19,3 +19,8 @@ Lesson from #372: the ETA covered the build and not the record. Gates from the t
 and the antagonist's objections arrive after the first bundle, so the honest ETA for a build that the agents
 attack is build + 15 min gates + 20-30 min of answering objections + a second gate run. From #373 on the ETA
 line names those parts separately.
+
+## The four numbers (charter), first measured at the #372 close-out, 2026-09-12 20:52 ET
+| close-out | open P0 | open P1 | coverage (screens fully specced AND tested, of 6) | regression assertions (PASS lines, gates.sh) |
+|---|---|---|---|---|
+| #372 | 0 | 12 (A-04, A-05, A-08, A-09, A-10, A-11, A-12/X-09, A-13, A-14/Z-02, A-15, A-16, X-07) — was 13, A-06/Z-01 closed by #372 | 0 of 6 | 138 (gatelogs/372-all.log; gates.sh now keeps every gate's output and prints this line) |
