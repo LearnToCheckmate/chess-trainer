@@ -35,7 +35,8 @@
 //   discover-gambits-end  … scrolled to the end
 //   discover-endgames     👑 Endgames list
 //   discover-endgames-end … scrolled to the end
-//   discover-tactics      💡 Tactics (the trainer)
+//   discover-tactics      💡 Tactics (the trainer: Fork, Easy 1/13, a board under the tab bar at 375x679)
+//   discover-tactics-end  … scrolled to the end
 //   discover-back         ‹ Back from the Openings list
 'use strict';
 const KEYS=['ct_lastlesson','ct_daily3','ct_daily','chesstrainer.progress.v1','ct_train','ct_learnprog','ct_coachtier','ct_streakdismiss'];
@@ -61,6 +62,8 @@ async function tapBtn(b,re,wait){
   await b.page.waitForTimeout(150);const box=await el.boundingBox();
   await b.page.mouse.click(box.x+box.width/2,box.y+box.height/2);await b.page.waitForTimeout(wait==null?500:wait);return box;
 }
+// tap a [data-ct] hook after scrolling it into view (lib's tapCt clicks the bounding box even when it is below the fold)
+async function tapCtScroll(b,id,wait){const el=b.page.locator('[data-ct="'+id+'"]').last();await el.waitFor({state:'attached',timeout:8000});await el.evaluate(e=>e.scrollIntoView({block:'center',inline:'center'}));await b.page.waitForTimeout(150);const box=await el.boundingBox();await b.page.mouse.click(box.x+box.width/2,box.y+box.height/2);await b.page.waitForTimeout(wait==null?500:wait);return box;}
 async function tapTitle(b,title,wait){const el=b.page.locator('button[title="'+title+'"]').last();await el.waitFor({state:'visible',timeout:8000});const box=await el.boundingBox();await b.page.mouse.click(box.x+box.width/2,box.y+box.height/2);await b.page.waitForTimeout(wait==null?500:wait);return box;}
 // visible buttons with rects (viewport coordinates)
 async function btnRects(b){return b.page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.bottom>0&&r.top<innerHeight;}).map(x=>{const r=x.getBoundingClientRect();const st=getComputedStyle(x);return {t:(x.innerText||x.getAttribute('aria-label')||x.title||'').replace(/\s+/g,' ').trim().slice(0,48),title:x.title||'',x:Math.round(r.left*10)/10,y:Math.round(r.top*10)/10,w:Math.round(r.width*10)/10,h:Math.round(r.height*10)/10,fixed:st.position==='fixed',z:st.zIndex,dis:x.disabled};}));}
@@ -82,9 +85,11 @@ S['home-daily3-lesson']=async(b)=>{await fresh(b,{ct_daily3:{date:today(),lesson
 S['home-daily3-continue']=async(b)=>{await fresh(b,{ct_lastlesson:'0'});await tapBtn(b,/^Daily 3 /,1200);};
 S['home-newhere']=async(b)=>{await fresh(b);await tapBtn(b,/^NEW HERE\? START HERE /,1200);};
 S['home-coachline']=async(b)=>{await fresh(b);await tapBtn(b,/^🎓 .* open$/,1200);};
-S['home-look']=async(b)=>{await fresh(b);await b.tapCt('home-look',600);};
-S['home-look-chip']=async(b)=>{await S['home-look'](b);await b.tapCt('look-th-3',500);};
-S['home-look-piece']=async(b)=>{await S['home-look'](b);const id=await b.page.evaluate(()=>{const c=document.querySelectorAll('[data-ct="look-pieces"] button');return c[1]?c[1].getAttribute('data-ct'):null;});if(!id)throw new Error('no second piece chip');await b.tapCt(id,500);};
+// the Colours & pieces chip sits below the fold at 375x679 (y 713): scroll the overlay to its end first, lib's tapCt does not scroll
+S['home-look']=async(b)=>{await fresh(b);await scrollHome(b,'end');await b.tapCt('home-look',600);};
+S['home-look-chip']=async(b)=>{await S['home-look'](b);await tapCtScroll(b,'look-th-3',500);};
+// the piece chips sit below the fold of the picker card at 375x679 (y 694): scrolled into view first
+S['home-look-piece']=async(b)=>{await S['home-look'](b);const id=await b.page.evaluate(()=>{const c=document.querySelectorAll('[data-ct="look-pieces"] button');return c[1]?c[1].getAttribute('data-ct'):null;});if(!id)throw new Error('no second piece chip');await tapCtScroll(b,id,500);};
 S['home-style']=async(b)=>{await fresh(b);await tapBtn(b,/^A Style: /,600);};
 S['discover']=async(b)=>{await fresh(b);await b.tile('Discover');await b.settle(500);await scrollTo(b,'top');};
 S['discover-menu']=async(b)=>{await S['discover'](b);await tapBtn(b,/^☰$/,600);};
@@ -96,9 +101,10 @@ S['discover-gambits-end']=async(b)=>{await S['discover-gambits'](b);await scroll
 S['discover-endgames']=group(/^👑 Endgames /);
 S['discover-endgames-end']=async(b)=>{await S['discover-endgames'](b);await scrollTo(b,'end');};
 S['discover-tactics']=group(/^💡 Tactics /);
+S['discover-tactics-end']=async(b)=>{await S['discover-tactics'](b);await scrollTo(b,'end');};
 S['discover-back']=async(b)=>{await S['discover-openings'](b);await tapBtn(b,/^‹ Back$/,600);};
 
-module.exports={states:S,fresh,setStore,overlay,scrollHome,scrollBox,scrollTo,tapBtn,tapTitle,btnRects,textNodes,today,
+module.exports={states:S,fresh,setStore,overlay,scrollHome,scrollBox,scrollTo,tapBtn,tapTitle,tapCtScroll,btnRects,textNodes,today,
   notes:'Home is a fixed overlay (zIndex 500, overflowY auto) over Discover: measure its scroll with overlay(b), not lib over(). '+
         'The 🎬/💬 buttons are fixed zIndex 9997 and exist only while Home is up; 👋 is button[title="Sign in"]. Discover is reached by the Discover tile; '+
         'its lists scroll the document (scrollBox/scrollTo). States reset ct_lastlesson/ct_daily3/puzzle progress so the card set is deterministic.'};

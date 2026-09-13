@@ -317,3 +317,7 @@ the reading I took, so it can be reversed on purpose rather than by accident:
   recording outranks the harness, so it stays open as a P0 with the engine trap as the prime suspect (the
   root-cause agent was cut off by the session limit and is the first agent of the next run).
 - Gate 31-antagonist373.js keeps the three antagonist numbers and the Online back button as measurements.
+- **Supervisor ruling on the #373 push (SUPERVISOR-373.md):** pushing before the agent antagonist's verdict was
+  acceptable ONCE under the session limit and is not a precedent - the scripted pass found none of the agent's three
+  objections. Adopted: no push without the agent antagonist's report, and the tracker flags are drained before every
+  push, not only at the close-out (the P0 flags written at 21:34 ET were read at 23:02, after the 22:55 push).

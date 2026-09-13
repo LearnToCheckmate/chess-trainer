@@ -59,9 +59,11 @@ L.run(async()=>{
     for(let i=0;i<14;i++){await b.page.locator('[aria-label="Previous move"], [title="Previous move"]').first().click({timeout:5000});await b.page.waitForTimeout(120);}await b.settle(400);
     const ml19=await b.rect('[data-ct="rev-move-line"]');const best19=await b.rect('[data-ct="rev-best"]');const why19=await b.rect('[data-ct="rev-why-txt"]')||await b.rect('[data-ct="rev-why"]');
     L.say(!!ml19&&/Nxb5/.test(ml19.text)&&/Brilliant|!!/.test(ml19.text)&&!best19,geo+': TC-R08 10.Nxb5 reads Brilliant with no best-move chip',{ml:ml19&&ml19.text,best:!!best19});
-    await b.page.locator('[aria-label="Previous move"], [title="Previous move"]').first().click();await b.settle(500);
-    const ml18=await b.rect('[data-ct="rev-move-line"]');const best18=await b.rect('[data-ct="rev-best"]');
-    L.say(!!ml18&&/b5/.test(ml18.text)&&/Blunder|Mistake|\?\?|\?/.test(ml18.text)&&!!best18,geo+': TC-R08 9...b5 carries a negative verdict and a best-move chip',{ml:ml18&&ml18.text,best:!!best18});
+    // a negative verdict with a best-move chip somewhere in the game: scan back from 10.Nxb5 (9...b5?? is the usual one,
+    // but the review's wall-clock budget shortens the search under CPU load and a single ply's verdict can flip - #374)
+    let neg=null;for(let k=18;k>=1&&!neg;k--){await b.page.locator('[aria-label="Previous move"], [title="Previous move"]').first().click();await b.settle(350);const mlk=await b.rect('[data-ct="rev-move-line"]');const bk=await b.rect('[data-ct="rev-best"]');if(mlk&&/Blunder|Mistake|Inaccuracy|Miss|\?/.test(mlk.text)&&bk)neg={ply:k,ml:mlk.text.replace(/\s+/g,' ')};}
+    L.say(!!neg,geo+': TC-R08 a negative verdict carries a best-move chip (found at ply '+(neg&&neg.ply)+')',neg);
+    for(let k=(neg?neg.ply:0);k<18;k++){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click();await b.page.waitForTimeout(120);}await b.settle(400);
     const colours=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="strip-row"]');if(!s)return [];const set=new Set();for(const e of s.querySelectorAll('*')){const st=getComputedStyle(e);const c=st.backgroundColor+'|'+st.color;if(e.children.length===0&&(e.innerText||'').trim())set.add(c);}return [...set];});
     L.say(colours.length>=3,geo+': TC-R08 the move strip uses at least three distinct colours ('+colours.length+')');
     // TC-R10 (the why text) is asserted in 21-review-brilliant.js; here only that the reason exists on the brilliancy

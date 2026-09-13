@@ -18,13 +18,15 @@ rise. A gate that is red blocks the build (GATES RED); a build is "gated" only w
 | 20-review.js | TC-R01..R09, R11..R14: import < 90 s, summary content and pinned footer, Skills jump, board 349 with one top/width across plies, bars one height, ratings from headers, 1-0 at mate, rank-8 badge inside the board, verdict chips, analysis board, sheet and navigation, cached re-import < 8 s with identical numbers, eval graph, stored accounts survive a reload | rev342 / mate371 / summary368 / graph369 / acct353 (partly) |
 | 21-review-brilliant.js | TC-R10: the brilliancy's reason names the sacrifice, the forcing line and the comparison; the play-out moves a piece; only the one allowed engine trap | bril357gate / why354 |
 | 30-p1-fixes.js | the #373 P1 fixes: Home ☰, menu sheet to the bottom, Pass & Play setup fits, Next puzzle advances, 40px targets, Moves toggle leaves the board still | new (#373) |
+| 31-antagonist373.js | the antagonist's three numbers on #373 (label inside the board on the h-file, 0-1 for a mate by Black on the analysis board, Analyze/Copy hit 6px above and below the chip) and the Online lobby's Back | new (#374) |
 
 ## Counts
 
 | build | PASS lines | gates | log |
 |---|---|---|---|
 | #372 | 138 | the old sandbox's gates.sh (lost with the sandbox) | gatelogs/372-all.log (not in the repo) |
-| #373 | 200 on the trial bundle (22:16 ET, gates/logs/373-all.log; the final run on the pushed bundle is the number of record and is in the same file) | 10 | gates/logs/373-all.log |
+| #373 | 203 (the run of record on the pushed bundle, 22:41 ET; a trial run earlier had 200 before the engine-on label check was added) | 10 | claude/agents/gatelogs/373-all.log |
+| #374 | __374_COUNT__ (adds 31-antagonist373.js) | 11 | claude/agents/gatelogs/374-all.log |
 
 Not yet ported (the old suite's other harnesses, to be rebuilt as the screens get their charter pass): fit.js (14
 phone viewports per board screen), shift346 (26 samples through the engine's think), veteran360 (stored-profile
