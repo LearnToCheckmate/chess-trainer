@@ -1,0 +1,10 @@
+{
+  "name": "chess-trainer-gates",
+  "private": true,
+  "description": "Build and gate tooling for Chess Trainer. npm ci here, then gates/build.sh '#NNN' and gates/gates.sh.",
+  "dependencies": {
+    "esbuild": "0.27.7",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}
