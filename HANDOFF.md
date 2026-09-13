@@ -61,7 +61,27 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-12 22:2x ET, written by the #373 run)
+## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-13 evening, written by the #376 run)
+LIVE = **#376**, commit __376_SHA__, stamp "#376 - 2026-09-13 19:23 ET", pushed by this session and verified by
+stamp and md5 at that SHA. It is #375 (14f06ac) with the second build line rebased on top and renumbered.
+**THE PEN: only session_01Ar5fWLg9DZuPaRDBfKnXvs builds, gates, commits or pushes** (Kunal, 2026-09-13). Never the
+GitHub upload page: it strips the Claude-Session trailer, which is why 14f06ac is the one untraceable commit here.
+Build numbers come from that one session, one sequence. **READ CLAUDE.md AND claude/BUILD-CONTEXT.md FIRST** - they
+are new as of this run and they carry the map that used to live only in the claude.ai project docs, which a build
+session cannot see. Then read tracker flag `start-here-read-first` and the whole `flags` collection.
+WHAT #376 CARRIES: the two #375 trees consolidated by rebase (main's reproducible-review work underneath, the
+branch's work on top); the ply log dev-gated behind the Layout readout switch with a retirement condition recorded
+in CLAUDE.md (it comes out when Kunal certifies k12 closed on his phone); three new gates - the recording-free
+gallery runner, the ply-log gate, and the reproducibility gate that is the only guard on the stuck-worker timeout;
+`kunal730` in the harness, his real 375x730 layout viewport; and thirteen false opens closed in FEEDBACK-INBOX.md
+on evidence rather than rebuilt.
+GEOMETRY: his phone is **375x730** of layout viewport. Not 375x679 - that came from subtracting the 51pt status bar
+a second time, and two sessions made the mistake independently. New gates use `kunal730`; the older ones keep 679 as
+a shorter-phone column until each assertion is re-measured at 730 deliberately.
+k12 (the phone-only ply desync) is FIXED and verified: the cause was tapping "why" at a mate, which asked the engine
+for a continuation from the mated position. Fifty samples on live #375 showed ply 33/33 and the label 1-0 throughout.
+
+## 0a-373) WHERE THE BUILD WAS AT THE #373 RUN (2026-09-12 22:2x ET, superseded by the block above)
 LIVE = **#372** (commit 7c51f10 on origin/main, Kunal's click; verified by hash from this session at 21:28 ET, byte-identical
 to the local app.js). **#373 = the first build pushed to main BY THE SESSION ITSELF** (this environment has push access;
 no upload page, no PAT: `git push origin HEAD:main`, then verify raw.githubusercontent.com/<SHA>/app.js by stamp).

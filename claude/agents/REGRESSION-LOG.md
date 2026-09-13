@@ -18,6 +18,9 @@ rise. A gate that is red blocks the build (GATES RED); a build is "gated" only w
 | 20-review.js | TC-R01..R09, R11..R14: import < 90 s, summary content and pinned footer, Skills jump, board 349 with one top/width across plies, bars one height, ratings from headers, 1-0 at mate, rank-8 badge inside the board, verdict chips, analysis board, sheet and navigation, cached re-import < 8 s with identical numbers, eval graph, stored accounts survive a reload | rev342 / mate371 / summary368 / graph369 / acct353 (partly) |
 | 21-review-brilliant.js | TC-R10: the brilliancy's reason names the sacrifice, the forcing line and the comparison; the play-out moves a piece; only the one allowed engine trap | bril357gate / why354 |
 | 30-p1-fixes.js | the #373 P1 fixes: Home ☰, menu sheet to the bottom, Pass & Play setup fits, Next puzzle advances, 40px targets, Moves toggle leaves the board still | new (#373) |
+| 15-gallery-playall.js | the recording-free gallery gate Kunal's feedback session asked for: drives "Play all" at 375x730 and 375x812, every caption reached in order, no page scroll, no board shrink inside a card, the RECORDING COMPLETE frame | new (#376) |
+| 32-plylog.js | the ply log is dev-gated and temporary: plies stepped with the switch off leave nothing behind when the readout is later turned on, plies stepped with it on are recorded and printed, switching off clears the buffer | new (#376) |
+| 33-reproducible-review.js | THE ONLY GUARD ON THE STUCK-WORKER TIMEOUT: two fresh contexts with the eval cache cleared, same PGN, sequential; accuracy within 1.0 point, verdict counts identical, run times within 12 s, and 10.Nxb5 not scored as a mistake | rebuilt from repro373, which died with its sandbox (#376) |
 | 31-antagonist373.js | the antagonist's three numbers on #373 (label inside the board on the h-file, 0-1 for a mate by Black on the analysis board, Analyze/Copy hit 6px above and below the chip) and the Online lobby's Back | new (#374) |
 
 ## Counts
@@ -27,6 +30,8 @@ rise. A gate that is red blocks the build (GATES RED); a build is "gated" only w
 | #372 | 138 | the old sandbox's gates.sh (lost with the sandbox) | gatelogs/372-all.log (not in the repo) |
 | #373 | 203 (the run of record on the pushed bundle, 22:41 ET; a trial run earlier had 200 before the engine-on label check was added) | 10 | claude/agents/gatelogs/373-all.log |
 | #374 | 217 (adds 31-antagonist373.js) | 11 | claude/agents/gatelogs/374-all.log |
+| #375 | 160 over 24 gates, in the retiring chat's own suite, which is not in this repo | 24 (theirs) | not in the repo; see flag handover-from-brilliant-chat |
+| #376 | __376_COUNT__ (adds 15-gallery-playall, 32-plylog, 33-reproducible-review) | 14 | claude/agents/gatelogs/376-all.log |
 
 Not yet ported (the old suite's other harnesses, to be rebuilt as the screens get their charter pass): fit.js (14
 phone viewports per board screen), shift346 (26 samples through the engine's think), veteran360 (stored-profile

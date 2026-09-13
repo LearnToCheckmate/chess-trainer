@@ -24,6 +24,8 @@ line names those parts separately.
 
 | #374 | the antagonist's three objections on #373 (label off the h-file, M1 on the analysis board, 37px tap box), the audit's N-play-1 (Online dead end), the painted-height readout for his k10 recording | no separate ETA (the build.sh run at 23:20 ET preceded this line - a process miss, recorded) | 23:05 | 23:59 bundle (the stamp; the edit and build were queued behind the running gate) | 15 min build; gates from the top with the new 31-antagonist373 gate: see the close-out line | — | GATES GREEN #374, 217 PASS lines (claude/agents/gatelogs/374-all.log; a first run had one red line, TC-R08 pinned to one ply whose verdict flips under CPU load - the case was made to scan the game and the gate re-run from the top) | pushed to main by the session at 00:16 ET, 1035aee; raw app.js verified by stamp and md5; his phone after a reload |
 
+| #376 | the two build lines consolidated: rebase the second #375 onto the live one, dev-gate the ply log with an expiry, the headless gallery gate, the reproducibility gate, his real 375x730 in the harness, and thirteen false opens closed on evidence | no separate ETA: the order was set by Kunal (CLAUDE.md first, then #376, then the reproducibility gate, then the false opens) | 19:0x | bundle 19:23 ET | about 40 min to the bundle including reading 34 flags and the 21 KB handover | — | __376_GATES__ | __376_LIVE__ |
+
 ## The four numbers (charter), first measured at the #372 close-out, 2026-09-12 20:52 ET
 | close-out | open P0 | open P1 | coverage (screens fully specced AND tested, of 6) | regression assertions (PASS lines, gates.sh) |
 |---|---|---|---|---|

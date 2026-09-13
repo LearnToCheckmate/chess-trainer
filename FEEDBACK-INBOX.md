@@ -365,14 +365,26 @@ REVIEW SCREEN
   Show the eval graph on the review screen while playing through it. Instead of dots, use lines:
   red for blunders, teal for brilliancies, so they jump out. Fit it in without taking much
   space. He asked explicitly for layouts to be proposed before implementing.
+  note: [2026-09-13 19:26 ET] Half of this shipped in #369: option C is built and ships OFF behind a switch
+    (menu, Eval graph in the player bars). Measured on #374 at 375x730 it costs no board height: 154x38 inside the
+    bottom player bar, bar still 52, board still 375. His round-3 answer is UNSETTLED - he tapped Keep the switch
+    and then wrote "I'm not sure about my choice yet. let's talk in the chat". Flag kunal-decided-eval-graph. Do
+    not change the default until he settles it.
 - [2026-09-12 01:06 ET] status: open  NEEDS A PROPOSAL FIRST
   The review board can be a little smaller (review only, NOT play). Put the review button on the
   left instead of the top and use the freed side space for the graph. Treat review and play
   layouts as separate.
-- [2026-09-12 01:06 ET] status: open
+  note: [2026-09-13 19:26 ET] His answer is on record and it is not a build yet: "Draw me options first"
+    (flag kunal-decided-review-board-graph). Starting point measured on #374 at 375x730: the review board is 349
+    wide at x=24 with the eval bar in the left gutter. Needs at least three mockups over that screenshot, each
+    stating the pixel cost, on the decisions page before anything ships.
+- [2026-09-12 01:06 ET] status: closed #359 #360 #370
   Analyze icon is still too small; the icons in front of player usernames are small too. When
   the avatar falls back to a king icon, make it bigger. Also check whether his own profile photo
   should show when he is one of the two players in a review.
+  closed: [2026-09-13 19:26 ET] Closed on evidence, not rebuilt. Analyze became a drawn SVG magnifier in #359; the
+    king in the player bars went from 20px to 26px of ink in #360; the own-photo path shipped in #370 and the
+    feedback session has since measured his photo rendering in the player bar on his phone. Source: claude/BUILD-CONTEXT.md §7 and tracker flags handover-from-brilliant-chat, handover-verified-independently, ground-truth-open-items-375.
 - [2026-09-12 01:06 ET] status: closed #354 then REOPENED, closed #357  [re-raised x4]
   The brilliancy explanation is useless, it does not say WHY it is brilliant. Show the best move
   and PLAY IT OUT to explain why, like chess.com. Earlier "show best move and play it out"
@@ -396,14 +408,20 @@ REVIEW SCREEN
   continuation: the sacrifice, their best answer, and the point.
 
 PLAY SCREEN (phone)
-- [2026-09-12 01:06 ET] status: open, NEEDS KUNAL, decisions page question 3
+- [2026-09-12 01:06 ET] status: closed #362
   Remove the "You are Black" label and the "White to move" / "White in check" turn indicator;
   it is obvious from the board and the from/to highlight. Reclaim the space.
+  closed: [2026-09-13 19:26 ET] Closed by measurement on live #375: none of "You are Black", "White to move" or a
+    bare WHITE/BLACK word appears anywhere in a live game. Removed in #362 per his round-1 decision, which reversed
+    his own #344 request. Do not re-add without asking.
 - [2026-09-12 01:06 ET] status: closed, already built
   Add back/forward buttons to step through moves during a live game, to look back a few moves.
-- [2026-09-12 01:06 ET] status: open, NOT A REGRESSION, decisions page question 8
+- [2026-09-12 01:06 ET] status: closed, verified present
   The real-time minute time controls (1, 2, 3, 5, 10 min) disappeared from game setup; only
   1 day / 7 day / no-time show. Bring the minute options back.
+  closed: [2026-09-13 19:26 ET] Closed by measurement on live #375: game setup offers 1, 2, 3, 5 and 10 minutes plus
+    1+1, 2+1 and 3+1. Never a regression for online play, which has never had them; what he remembered is the
+    vs-computer screen, which still has them.
 - [2026-09-12 01:06 ET] status: open, COULD NOT REPRODUCE
   Castling only works by click-king-then-square; make it work by dragging the king too, like
   chess.com.
@@ -460,22 +478,30 @@ PERSISTENCE / ACCOUNTS
   survival rather than the happy path.
 
 NEW FEATURES
-- [2026-09-12 01:06 ET] status: open
+- [2026-09-12 01:06 ET] status: closed #370
   During a game, identify what opening/gambit/tactic the opponent is playing and what he is
   playing: a box on top (opponent) and bottom (him), as far into the opening as each has gone.
   Especially for beginners.
+  closed: [2026-09-13 19:26 ET] Closed on evidence. #370 names the opening live in the status line above the board
+    (data-ct play-opening) once four plies match. One deliberate departure, logged in DECISIONS-LOG under #370: he
+    asked for a box per side and it shipped as one line for both, to spend no board height.
 - [2026-09-12 01:06 ET] status: open
   Alongside taking a photo of a board, let him upload a picture or screenshot to read the
   position, then play the computer from that point.
-- [2026-09-12 01:06 ET] status: open  NEEDS A PROPOSAL FIRST
+- [2026-09-12 01:06 ET] status: closed #367
   A button on the home screen (or in themes) to pick the theme and a set of piece styles. Use
   good styles only (the latest set plus the classic ones from before); include a curated list.
+  closed: [2026-09-13 19:26 ET] Closed on evidence. #367 shipped the Look and feel picker (data-ct look), reached
+    from the Home Colours & pieces button and a row at the top of the menu's Appearance section.
 - [2026-09-12 01:06 ET] status: closed, already built
   Build a section for learning to read and write chess moves and notation. May already exist
   from earlier notation work.
-- [2026-09-12 01:06 ET] status: open  VERIFY FIRST
+- [2026-09-12 01:06 ET] status: closed, already built
   A feature to ask the app what the best move is in a position. There is already "Show best
   move" in the menu; confirm whether that covers it.
+  closed: [2026-09-13 19:26 ET] Verified rather than built: Show best move exists in the REVIEW screen's ... sheet,
+    beside Show brilliant-gate numbers, and #354 plays the line out. The feedback session first recorded it as
+    missing after checking only two menus, then withdrew that: absence needs every screen enumerated, not one.
 - [2026-09-12 01:06 ET] status: open
   In Gambits & Traps, link related gambits and traps executable with the other colour pieces.
   closed: [2026-09-12 02:12 ET] It exists: "Read chess notation - squares, pieces & move symbols", in the
@@ -492,7 +518,7 @@ LESSONS & DISCOVER
   On the gambit lesson screen, move the first two button rows (All gambits, and the Prev/Next
   pager) further down; the Watch/Try, Play vs Computer, Hints, Hint/Flip buttons are the useful
   ones. Rationalise and size; should not need three rows.
-- [2026-09-12 01:06 ET] status: open
+- [2026-09-12 01:06 ET] status: closed, verified
   Move the Train section out of Discover onto the home page. Remove the bottom two Discover
   tiles (Coach Says, Continue where you left off) and place them elsewhere.
   note: [2026-09-12 05:20 ET] DOES NOT MATCH THE LIVE BUILD. Discover has exactly four tiles now:
@@ -513,6 +539,9 @@ LESSONS & DISCOVER
 
 
 HINTS / ENGAGEMENT
+  closed: [2026-09-13 19:26 ET] Closed by measurement on live #375: Train, Coach Says and Continue-where-you-left-off
+    are all absent from Discover. The separate question of what fills the space under the four tiles is not closed
+    here: the feedback session's 279px reading was withdrawn as a selector artifact and needs re-measuring.
 - [2026-09-12 01:06 ET] status: open
   Hints being on sometimes blocks progressing to the next move and puts the lesson in a
   10-minute cooldown. Fix that friction. After cooldown, remind him he can bank a flawless day,
@@ -521,8 +550,11 @@ HINTS / ENGAGEMENT
   already practised with hints where he did well, proactively suggest banking the flawless day.
 
 HOME & FONTS
-- [2026-09-12 01:06 ET] status: open, NEEDS KUNAL, decisions page question 4
+- [2026-09-12 01:06 ET] status: closed #366
   The four home tile icons are not aligned and are sized inconsistently; even them out.
+  closed: [2026-09-13 19:26 ET] Closed on evidence. #366 made all four emoji and ink-matches them on the device
+    (inkScale). Measured on live #375: three glyphs render at 52.4px and the pawn at 58.7px, which is inkScale
+    deliberately growing the pawn, the behaviour he approved in round 2. Working as designed, not uneven.
 - [2026-09-12 01:06 ET] status: closed #352, partly
   Fonts are too small across the app, especially tile subtitles and labels (Discover, Puzzles,
   Review, Play) and the Your Coach text. Increase app-wide, and bigger still. On iPad use the
@@ -549,26 +581,32 @@ OPS
   Create a separate Gmail account for the AI work. Claude cannot create accounts.
 
 PROCESS (how the build chat runs)
-- [2026-09-12 01:06 ET] status: open
+- [2026-09-12 01:06 ET] status: closed, standing
   On every build or deploy: give an ETA before starting, then report actual time from his
   instruction to being ready, and compare actual against ETA to refine it. Put elapsed time at
   the end of every response. Track it by checkpointing every 5 minutes to a persistent place, so
   a sandbox timeout still gives a reliable lower bound across restarts.
-- [2026-09-12 01:06 ET] status: open
+  closed: [2026-09-13 19:26 ET] Standing since #372. RUN-LOG.md carries the ETA and the actual per build.
+- [2026-09-12 01:06 ET] status: closed, standing
   Tackle a larger batch per run (a longer list of smaller tasks); watch for regressions.
-- [2026-09-12 01:06 ET] status: open
+  closed: [2026-09-13 19:26 ET] Standing. #373 and #374 each carried a batch rather than a single fix.
+- [2026-09-12 01:06 ET] status: closed, standing
   The chat can only ask 3 questions at a time: put all open questions into an HTML form
   (multiple choice) he can fill in one go, and share the interactive HTML produced after each
   run so he can pick what is next. On the next run, also show what is left plus open questions
   in that form.
-- [2026-09-12 01:06 ET] status: open
+  closed: [2026-09-13 19:26 ET] Done and since superseded: rounds 1, 2 and 3 of the decisions page, and now the
+    metrics dashboard's Waiting on you section, which gathers every open decision from every lane in one pass.
+- [2026-09-12 01:06 ET] status: closed, standing
   When something is needed from him (especially screenshots), put the request in the Preview
   gallery, not just a note.
-- [2026-09-12 01:06 ET] status: open
+  closed: [2026-09-13 19:26 ET] Done in #372: screenshot requests are Preview gallery cards, not notes.
+- [2026-09-12 01:06 ET] status: closed, standing
   When feedback is swept into the tracker, acknowledge at the BOTTOM of the output that all
   outstanding items have been picked up, with a timestamp.
 
 DISPOSITIONS (settled by him, no action)
+  closed: [2026-09-13 19:26 ET] Standing: every close-out ends with each item picked up by id and a timestamp.
 - [2026-09-12 01:06 ET] status: closed, no action
   Rousseau Gambit 4.d4 line: tactic confirmed and lesson fixed (#258) — confirmed good.
   Curated gambit cross-links: approved (the build item is logged above under NEW FEATURES).
