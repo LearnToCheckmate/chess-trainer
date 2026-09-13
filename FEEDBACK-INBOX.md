@@ -97,6 +97,52 @@ marked rather than invented.
   point of the run; its findings feed the next build in this run (#374) or the next run. The antagonist on the
   #373 diff runs before the push; its objections and any overrule go to DECISIONS-LOG.
 
+- [2026-09-12 22:55 ET] status: live  #373 pushed to main by this session (commit 5946b3c); raw app.js at that SHA
+  verified by stamp "#373 - 2026-09-12 22:22 ET" and md5 758b7fa3 (identical to the local bundle). Gates GREEN, 203
+  assertions. The antagonist agent was cut off by the session limit and relaunched; the build session ran the pass
+  itself as a script first (19 of 19 claims hold at 320x568, 430x932, landscape and a stored profile).
+
+### Build #374 [2026-09-12 23:2x ET, same run] - the antagonist's objections on #373 and the audit's Play P0
+
+- [2026-09-12 23:15 ET] status: built #374, gating  ANTAGONIST on #373 (claude/agents/ANTAGONIST-373.md, verdict FIX
+  FIRST, arrived after the #373 push): the Brilliant/Blunder label ran 16.5px off the h-file (the pop animation
+  overwrote its centring transform; fixed - the animation is on an inner span); a mate by Black on the analysis
+  board read "M1" (fixed - no engine query on a checkmated position); the Analyze/Copy tap box was 37px effective
+  of 43 (fixed - stacking context). Holding under its attack: A-04, A-16, A-10 (111-puzzle lap, 0 dead presses),
+  X-07, A-12, the badge half of A-09, the Review card at 1 worker and 8x CPU throttling.
+- [2026-09-12 23:15 ET] status: built #374, gating  N-play-1 (P0 from the audit's Play agent): Online → Continue
+  without sign-in was a dead end (0 navigation controls, no tab bar). A "‹ Back" heads that card now.
+- [2026-09-12 23:15 ET] status: built #374, gating  uat372-k10 diagnostics: the Layout readout and the overlay strip
+  print the board's painted HEIGHT beside its width ("painted 351x351"), so one screenshot from your phone gives
+  the number behind the 60% rank 1. No layout change was made blind.
+- [2026-09-12 23:10 ET] status: open  uat372-k12 reproduction: three attempts on #373 (1-worker pool, graph on,
+  engine line on; the board sampled every 400 ms for 25 s at 17.Rd8#) - stable, label 1-0. Not closed: your
+  recording wins. Prime suspect: the engine trap (N-review-1), which the sandbox raises on the same path.
+
+### From Kunal's feedback session while #373 was building [2026-09-12 21:34-21:51 ET] - read 23:02 ET at the close-out drain
+
+- [2026-09-12 21:50 ET] status: closed #373  kunal-next-run-testing-first: the next run opens with the five testing
+  roles, Review first, before more fixes; USER-STORIES, TEST-CASES, REGRESSION-LOG, UAT-PACK at least for Review.
+  closed: [2026-09-12 23:02 ET] All four exist for Review and are executed (gates/regress/20-review.js and
+  21-review-brilliant.js, 80 PASS lines); the #373 fixes were built alongside, not before - from here the order holds.
+- [2026-09-12 21:50 ET] status: open, acked  kunal-benchmark-agent: a fourth standing agent, the Benchmark agent
+  (proposals only, chess.com side by side through Claude in Chrome, mockups on the decisions page, after the
+  testing roles cover a screen). Acked on the pickup board. This session has no Chrome connection, so chess.com was
+  not reachable; the first pass (Review) needs a Chrome-connected session or a folder of chess.com screenshots.
+- [2026-09-12 21:34 ET] status: open, P0 on your phone  uat372-k10-rank1-clipped: on your #372 recording, card 1 at
+  game over renders rank 1 at about 60% height (pieces sliced, file letters on the pieces), milder mid-game; the
+  bottom row shows icons without Review / Rematch labels. THE RECORDING WINS over every harness here (the sandbox
+  measures the board 351x351 at game over on #372 and #373). Reopens A-02/X-01. Not in #373 (pushed before it was
+  read). #374 opens with it: the Layout readout prints the board's painted height and the row's label state.
+- [2026-09-12 21:34 ET] status: open, P0 on your phone  uat372-k12-board-desync: card 6, at 17.Rd8# the board
+  re-rendered one ply earlier with no tap while the move row still said 33/33 (+99.0 was the label for that earlier
+  position). #373 fixes the label path only (1-0 with the engine line on), NOT the desync. Reproduction attempt at
+  the close-out: see the next entry.
+- [2026-09-12 21:34 ET] status: open  uat372-cards-7-8-unverified: your recording stopped on card 6 at 1m42s; cards
+  7 and 8 were never reached and no RECORDING COMPLETE frame appeared; card 3's King's Gambit intro modal covers the
+  board for its first four seconds. #374: the modal is dismissed before card 3's caption; the k12 hold (now inside
+  the Review journey card) is checked against the phone's analysis time.
+
 ### From Kunal in the feedback session [2026-09-12 17:07 ET]
 
 - [2026-09-12 17:07 ET] status: done 18:00-18:50 ET, and adopted as standing process (HANDOFF 0c)

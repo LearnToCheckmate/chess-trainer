@@ -6,7 +6,7 @@ Give this file to Claude in Cowork as the first thing in the session.
 LIVE = **#372** (commit 7c51f10 on origin/main, Kunal's click; verified by hash from this session at 21:28 ET, byte-identical
 to the local app.js). **#373 = the first build pushed to main BY THE SESSION ITSELF** (this environment has push access;
 no upload page, no PAT: `git push origin HEAD:main`, then verify raw.githubusercontent.com/<SHA>/app.js by stamp).
-Commit: __373_SHA__, stamp "__373_STAMP__". Kunal's phone shows it after a reload (Pages serves it within minutes;
+Commit: 5946b3c (pushed 22:55 ET, raw stamp and md5 verified at that SHA), stamp "#373 - 2026-09-12 22:22 ET". Kunal's phone shows it after a reload (Pages serves it within minutes;
 the host is blocked from this container, so liveness on the phone is his check).
 WHAT #373 CARRIES: (1) `gates/` - the build and gate tooling in the repo (the old suite is gone with its sandbox;
 see "### #373" in section 5 for the rules); (2) the open P1s from the #371/#372 agents that needed no decision -
@@ -18,7 +18,16 @@ the close-out, its findings are the next build's queue.
 STILL KUNAL'S: A-05 (floating buttons), A-08 (round button over a corner rook), A-14/Z-02 (one board-width rule, z7),
 A-15 (names truncate - a look decision), b1 (his re-check of the Review board width on his phone: measured 349 here),
 y13/n9/y14 (device-only), the recordings of gallery cards 1-6.
-THE FOUR NUMBERS at the #373 close-out are in RUN-LOG.md.
+**#374 (same run, after the antagonist's FIX FIRST on #373 arrived post-push):** the Brilliant/Blunder label kept inside the
+board on the h-file (animation moved to an inner span), no engine query on a checkmated position (a mate by Black on the
+analysis board read M1), Analyze/Copy tap boxes effective for their full 43px, a "‹ Back" on the Online lobby without
+sign-in (audit N-play-1, P0), and the readout/overlay print the painted board HEIGHT for the rank-1 finding on his #372
+recording. Commit __374_SHA__. Gate 31-antagonist373.js. Open P0s at the close-out: uat372-k10 (his phone: rank 1 at 60%
+at game over - instrumented, not fixed), uat372-k12 (his phone: the board stepped back a ply at the mate - not reproduced
+in three configurations), N-review-1 (the Stockfish "unreachable" trap whenever the engine line runs - allowed by exact
+text since #354; the root-cause agent was cut off by the session limit: FIRST AGENT OF THE NEXT RUN, brief in
+claude/agents/AUDIT-373.md).
+THE FOUR NUMBERS at the #373/#374 close-out are in RUN-LOG.md.
 BOOT FOR THE NEXT RUN: read this file, FEEDBACK-INBOX.md, DECISIONS-LOG.md, RUN-LOG.md; `cd gates && npm ci`; verify the
 live stamp by SHA; run `node gates/mountcheck.js` (must be 14/14 green on the live bundle) BEFORE anything else; drain
 the tracker flags, the pickup board, the inbox artifact and round 3 (all read at 21:28 ET this run: flags b1 and the

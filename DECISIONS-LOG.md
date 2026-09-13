@@ -295,3 +295,25 @@ the reading I took, so it can be reversed on purpose rather than by accident:
 - **P0s found by the audit after the bundle was gated** (N-play-1, the Online sign-in dead end; N-review-1, the
   engine trap) are NOT in #373: the charter's "open P0 = 0" is not met at this close-out and the number is reported
   as it is, with both as the first items of #374.
+
+## #374 (2026-09-12 23:xx ET, same run) — the antagonist's FIX FIRST on #373, plus the audit's Play P0
+
+- **The antagonist's verdict on #373 arrived after the push** (its first run was cut off by the session limit; the
+  scripted pass had found nothing). Its two measured objections are real and are fixed here rather than argued:
+  the Brilliant/Blunder LABEL ran 16.5px off the h-file because the pop animation's last keyframe replaced the
+  centring transform (the animation now lives on an inner span); a mate delivered by Black on the analysis board
+  read "M1" because a mated position was still queried (no engine query on a checkmated position now). Its third
+  point, the Analyze/Copy box being 37px effective of 43 (the moves panel's margin covered the bottom 6px), is fixed
+  with a stacking context on the buttons. Its fourth is a wording correction adopted: "the setup sheet already fit
+  at 375x679" was true of Pass & Play only; the Computer sheet with a named bot scrolls 312px there (N-play-2,
+  queued: a pinned footer for the setup sheet).
+- **N-play-1 (P0, the audit's Play agent):** the Online lobby without sign-in had no way back. A "‹ Back" (to the
+  setup sheet) heads the card. Alternative was a house icon in the bar; the sheet's own "‹ Home" is one tap further.
+- **k10 on Kunal's recording (rank 1 at 60% height at game over):** not reproducible here (the harness measures
+  351x351). Decision: instrument rather than guess - the Layout readout and the overlay strip print the painted
+  board HEIGHT beside the width, so his next readout screenshot carries the number. No layout change made blind.
+- **k12 on his recording (the board stepping back one ply at 17.Rd8#):** three reproduction attempts (1-worker
+  pool, graph on, engine line on; the board sampled for 25 s) show a stable board. Not fixed, not closed; his
+  recording outranks the harness, so it stays open as a P0 with the engine trap as the prime suspect (the
+  root-cause agent was cut off by the session limit and is the first agent of the next run).
+- Gate 31-antagonist373.js keeps the three antagonist numbers and the Online back button as measurements.

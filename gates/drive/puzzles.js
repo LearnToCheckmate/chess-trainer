@@ -17,7 +17,8 @@
 //   roadmap            Puzzles tile, fresh store: the Novice card, ▶ Start training, the road (scrolled to top)
 //   roadmap-bottom     the roadmap scrolled to its end: 🧩 Free play, 🌐 Online puzzles, the Unlock code row
 //   roadmap-rank1      seeded: Novice done (95 solved), Apprentice the active tier
-//   daily3             Home 'Daily 3' card with today's lesson already done (ct_daily3) - it opens the puzzles
+//   daily3             Home 'Daily 3' card with today's lesson already done (ct_daily3) - it opens the puzzle roadmap
+//   daily3-solved      … then ▶ Start training and a solve (ct_daily3.puz should read 1)
 //   train              ▶ Start training: PZ[0], nothing played
 //   train-show         👁 Show (the solution squares highlighted, the 👁 message in the verdict box)
 //   train-step1        Re8+ played: '✓ Re8+ — good! Now finish it.' and Black's reply Rf8 auto-played
@@ -75,6 +76,8 @@ S['roadmap']=async(b)=>{await fresh(b);await b.tile('Puzzles');await b.settle(50
 S['roadmap-bottom']=async(b)=>{await S['roadmap'](b);await scrollTo(b,'end');};
 S['roadmap-rank1']=async(b)=>{await seedSolved(b,FIRST95);await b.tile('Puzzles');await b.settle(500);await scrollTo(b,'top');};
 S['daily3']=async(b)=>{await setStore(b,{[PZKEY]:null,[PZUKEY]:null,ct_daily:null,ct_daily3:{date:today(),lesson:1,puz:0}});await b.home();await b.tapText(/^Daily 3\n/,{wait:800});};
+// the Daily 3 card lands on the roadmap (setMode('puzzle')); Start training + a solve should bump ct_daily3.puz to 1
+S['daily3-solved']=async(b)=>{await S['daily3'](b);await tapBtn(b,/^▶ (Start training|Train next puzzle)$/,900);await b.move('e1','e8',0);await waitMsg(b,/^✓/,3000);await b.settle(900);await b.move('e8','f8',0);await waitMsg(b,/^🎉/,3000);await b.settle(1400);};
 S['train']=async(b)=>{await fresh(b);await startTraining(b);};
 S['train-show']=async(b)=>{await S['train'](b);await tapBtn(b,/^👁 Show$/,600);};
 S['train-step1']=async(b)=>{await S['train'](b);await b.move('e1','e8',0);await waitMsg(b,/^✓/,3000);await b.settle(900);};   // the reply Rf8 comes 450 ms later
@@ -90,7 +93,8 @@ S['train-back']=async(b)=>{await S['train'](b);await tapBtn(b,/^‹ Roadmap$/,60
 S['free-play']=async(b)=>{await S['roadmap'](b);await tapBtn(b,/^🧩 Free play/,800);};
 S['free-play-next']=async(b)=>{await S['free-play'](b);await tapAria(b,'Next puzzle',600);};
 // PZ[95] = c0 through the Novice node with 95 solved
-async function openC0(b){await seedSolved(b,FIRST95);await b.tile('Puzzles');await b.settle(500);await tapBtn(b,/^🌱$/,900);
+// the Novice node reads '✓ Novice' once the tier's 10 are solved (rank 1), '🌱 Novice n/10' before that
+async function openC0(b){await seedSolved(b,FIRST95);await b.tile('Puzzles');await b.settle(500);await tapBtn(b,/^(✓|🌱)\s*Novice/,900);
   const goal=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');return t?(t.innerText||''):'';});
   if(!/mate in 1/.test(goal))throw new Error('openC0: expected PZ[95] (White to play — mate in 1), got: '+goal.replace(/\s+/g,' ').slice(0,120));}
 S['long-hint']=async(b)=>{await openC0(b);await tapBtn(b,/^💡 Hint$/,600);};

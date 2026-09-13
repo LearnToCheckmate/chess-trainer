@@ -12,9 +12,11 @@
 // "Play or pause") and then steps with "Back a move" / "Forward a move" (aria-labels), so the ply is exact.
 // The demo ply is read back from the note box (data-ct lesson-note: "▶ Press Play to watch" = 0, "N. san" = 2N-1,
 // "N… san" = 2N). Practice moves are piece-tap then target-tap; the app answers for the other side after 420 ms.
-// The first opening row is the Italian Game (e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d3 d6), the first gambit row the
-// King's Gambit, the first endgame row King & Queen Mate (a FEN lesson, 3 plies); the from/to squares of any
-// lesson's line are learned from the demo's last-move highlights (lineSquares) so Complete! is reachable generically.
+// The first opening row is the Italian Game (LIB 0: e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d3 d6), the first gambit row the
+// King's Gambit, the first endgame row King & Queen Mate (a FEN lesson); the from/to squares of any lesson's line
+// can be learned from the demo's last-move highlights (lineSquares) so Complete! is reachable generically.
+// TRAP: the intro card's 'Related lessons' chips sit right above 'Got it' - a tap there opens the related lesson
+// (Italian Game -> Fried Liver Attack); the hold-tap goes on the card's title.
 //
 // STATES:
 //   discover              the Discover screen (four group tiles)
@@ -33,7 +35,7 @@
 //   practice-correct      ... 1.e4 played (correct) and Black's reply
 //   practice-wrong        practice from move 0, 1.d4 played (NOT the book move)
 //   practice-wrong-hintoff  💡 off, then 1.d4 (the other wording of the miss)
-//   practice-complete     the whole line played: 'Complete!'
+//   practice-complete     the whole line played (learned from the demo): 'Complete!'
 //   practice-more         the practice row's ⋯ ("More actions") sheet
 //   practice-bottom-more  the bottom bar's ⋯ ("More for this lesson") sheet in practice
 //   practice-tryagain     '↻ Try again' after a wrong move (practice back at move 0)
@@ -85,7 +87,9 @@ async function openRow(b,which){
   await b.page.waitForTimeout(150);const box=await el.boundingBox();await b.page.mouse.click(box.x+box.width/2,box.y+box.height/2);
   await b.page.waitForTimeout(350);
   // hold the intro card: a tap on its title sets introHoldRef so the 4 s auto-dismiss does not fire mid-measure
-  const t=await textRect(b,/^Got it/);if(t){await b.page.mouse.click(t.x+t.w/2,t.y-30);await b.page.waitForTimeout(120);}
+  // (NOT 'Got it' minus 30px: that is the Related-lessons chip row, and a chip opens ANOTHER lesson - found 2026-09-13)
+  const card=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));if(!g)return null;let p=g;for(let i=0;i<8&&p.parentElement;i++){p=p.parentElement;const s=getComputedStyle(p);if(s.position==='fixed'||s.position==='absolute')break;}const r=p.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+14};});
+  if(card){await b.page.mouse.click(card.x,card.y);await b.page.waitForTimeout(120);}
 }
 async function openLesson(b,grp,which){await group(b,grp);await openRow(b,which);}
 // 'Got it', pause the autoplay at once, rewind to ply 0
@@ -133,7 +137,7 @@ S['practice-correct']=async(b)=>{await S['practice-m0'](b);await b.move('e2','e4
 S['practice-wrong']=async(b)=>{await S['practice-m0'](b);await b.move('d2','d4',900);};
 S['practice-wrong-hintoff']=async(b)=>{await S['practice-m0'](b);await tapBtn(b,/^Hints$/,300);await b.move('d2','d4',900);};
 S['practice-tryagain']=async(b)=>{await S['practice-wrong'](b);await tapBtn(b,/^↻ Try again$/,600);};
-S['practice-complete']=async(b)=>{await S['practice-m0'](b);for(const [f,t] of [['e2','e4'],['g1','f3'],['f1','c4'],['c2','c3'],['d2','d3']]){await b.move(f,t,1100);}await b.settle(600);};
+S['practice-complete']=async(b)=>{await S['practice-m0'](b);for(const [f,t] of [['e2','e4'],['g1','f3'],['f1','c4'],['c2','c3'],['d2','d3']]){await b.move(f,t,1100);if(/Complete!/.test((await noteText(b))||''))break;}await b.settle(600);};
 S['practice-more']=async(b)=>{await S['practice-correct'](b);await tapBtn(b,/^More actions$/,500);};
 S['practice-bottom-more']=async(b)=>{await S['practice-correct'](b);await tapBtn(b,/^More for this lesson$/,500);};
 S['close']=async(b)=>{await S['practice-correct'](b);await tapBtn(b,/^Close lesson$/,600);};
