@@ -119,6 +119,21 @@ marked rather than invented.
   engine line on; the board sampled every 400 ms for 25 s at 17.Rd8#) - stable, label 1-0. Not closed: your
   recording wins. Prime suspect: the engine trap (N-review-1), which the sandbox raises on the same path.
 
+- [2026-09-13 00:25 ET] status: open, from the resumed audit (claude/agents/AUDIT-373.md)  PUZZLES (25 states) and LESSON
+  (32 states) landed after the session limit; Home and Menu and the verifiers are still cut off. New P1s, each with a
+  number: k9 the one-line verdict box hides the rank-up and long solved messages (231px and 853px hidden); N-puzzles-1
+  the road's SVG scenery paints over the Free play button (its label reads 4x dimmer); N-puzzles-2 the browse header
+  counter runs 20px off the right edge at 375; N-puzzles-3 Previous from the tier's first puzzle wraps to puzzle 890
+  (Expert) under the Novice header; N-lesson-2 long notes are line-clamped with an ellipsis, not scrolled (HANDOFF
+  said 18 scroll inside the box - they are cut; the 238-character Back-Rank Mate note shows 3 of 6 lines); N-lesson-3
+  the control row and the MOVES head jump 12px between demo and practice (the board holds); N-lesson-4 the Tactics
+  landing's board runs under the tab bar - re-measured at your usable 375x679: board 367.5 wide at top 320.5, bottom
+  688 on a 679 screen, tab bar from 623, so rank 1 is under the bar and 9px off-screen (5px at 390x844). One P0 at
+  320x568 only: N-lesson-1 the lesson board 270.9 -> 230.9 from demo to practice. Confirmed on #372 and already fixed
+  in #373: A-10, X-07 (10-12px clipped). Not reproduced: A-06/Z-01 (three lines unclipped at 320/375/390), Y-01/Y-02.
+  These are the next build's queue in the order above; the charter's rule applies - the open count went UP because
+  four screens were audited after interaction for the first time.
+
 ### From Kunal's feedback session while #373 was building [2026-09-12 21:34-21:51 ET] - read 23:02 ET at the close-out drain
 
 - [2026-09-12 21:50 ET] status: closed #373  kunal-next-run-testing-first: the next run opens with the five testing
