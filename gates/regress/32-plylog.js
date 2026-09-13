@@ -20,9 +20,19 @@
 const L=require('../lib');
 const PGN='[White "Morphy"] [Black "Duke Karl / Count Isouard"] 1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0';
 
-// Open the menu and read the Layout readout block. Returns {shown, plyLine} and leaves the menu OPEN.
+// Open the menu WITHOUT leaving the screen. This matters: the readout switch is plain state, so any route that
+// reloads the page (the harness's home() falls back to a reload when no tab bar is on screen) silently turns it
+// off again, and the gate then measures an app that is not in the state it thinks it is. From the review move
+// screen the ... sheet has a "Menu and settings" row, so the whole journey happens without a navigation.
+const openMenu=async(b)=>{
+  if(await b.page.locator('[data-ct="home-menu"]').first().isVisible().catch(()=>false)){await b.tapCt('home-menu',600);return;}
+  if(await b.page.locator('[data-ct="rev-more"]').first().isVisible().catch(()=>false)){
+    await b.tapCt('rev-more',400);await b.tapText(/^Menu and settings$/,{wait:600});return;}
+  await b.tapText(/^☰$/,{wait:600});
+};
+// Read the Layout readout block with the menu open. Returns {shown, plyLine}; leaves the menu OPEN.
 const openReadout=async(b)=>{
-  await b.home();await b.tapCt('home-menu',600);
+  await openMenu(b);
   return b.page.evaluate(()=>{
     const anchor=[...document.querySelectorAll('div')].find(d=>d.children.length===0&&/what THIS device computes/.test(d.innerText||''));
     if(!anchor)return {shown:false,plyLine:null};
@@ -35,13 +45,12 @@ const closeMenu=async(b)=>{await b.page.mouse.click(4,4);await b.settle(400);};
 const toggle=async(b)=>{await b.tapText(/^Layout readout$/,{wait:500});};
 const step=async(b,n)=>{for(let i=0;i<n;i++){await b.page.locator('[aria-label="Next move"]').first().click({timeout:5000});await b.page.waitForTimeout(170);}await b.settle(400);};
 const toReview=async(b)=>{
+  if(await b.page.locator('[aria-label="Next move"]').first().isVisible().catch(()=>false))return;   // already there
   await b.tile('Review');
-  if(!(await b.page.locator('[aria-label="Next move"]').first().isVisible().catch(()=>false))){
-    const ta=b.page.locator('textarea').first();
-    if(await ta.isVisible().catch(()=>false)){await ta.fill(PGN);await b.tapText(/^⚡ Analyze Game$/,{wait:300});await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});await b.settle(400);}
-    await b.tapText(/^Start review/,{wait:800}).catch(()=>{});
-    await b.page.locator('[aria-label="First move"]').first().click().catch(()=>{});await b.settle(400);
-  }
+  const ta=b.page.locator('textarea').first();
+  if(await ta.isVisible().catch(()=>false)){await ta.fill(PGN);await b.tapText(/^⚡ Analyze Game$/,{wait:300});await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});await b.settle(400);}
+  await b.tapText(/^Start review/,{wait:800}).catch(()=>{});
+  await b.page.locator('[aria-label="First move"]').first().click().catch(()=>{});await b.settle(400);
 };
 
 L.run(async()=>{
@@ -65,7 +74,7 @@ L.run(async()=>{
     await toReview(b);await step(b,4);
     r=await openReadout(b);
     L.say(!!r.plyLine&&/^ply log /.test(r.plyLine),geo+': with the readout on, ply changes are recorded and printed',r.plyLine);
-    L.say(!!r.plyLine&&/\d/.test(r.plyLine),geo+': the printed entries carry ply numbers and their timing',r.plyLine);
+    L.say(!!r.plyLine&&/ \d+@/.test(r.plyLine),geo+': the entries name the ply they became, not "fn", and how long after the last touch',r.plyLine);
     await b.shot('plylog-'+geo+'-on');
     // off, then on again: the buffer is empty
     await toggle(b);await closeMenu(b);

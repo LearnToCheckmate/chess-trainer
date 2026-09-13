@@ -20,7 +20,7 @@ rise. A gate that is red blocks the build (GATES RED); a build is "gated" only w
 | 30-p1-fixes.js | the #373 P1 fixes: Home ☰, menu sheet to the bottom, Pass & Play setup fits, Next puzzle advances, 40px targets, Moves toggle leaves the board still | new (#373) |
 | 15-gallery-playall.js | the recording-free gallery gate Kunal's feedback session asked for: drives "Play all" at 375x730 and 375x812, every caption reached in order, no page scroll, no board shrink inside a card, the RECORDING COMPLETE frame | new (#376) |
 | 32-plylog.js | the ply log is dev-gated and temporary: plies stepped with the switch off leave nothing behind when the readout is later turned on, plies stepped with it on are recorded and printed, switching off clears the buffer | new (#376) |
-| 33-reproducible-review.js | THE ONLY GUARD ON THE STUCK-WORKER TIMEOUT: two fresh contexts with the eval cache cleared, same PGN, sequential; accuracy within 1.0 point, verdict counts identical, run times within 12 s, and 10.Nxb5 not scored as a mistake | rebuilt from repro373, which died with its sandbox (#376) |
+| 33-reproducible-review.js | the stuck-worker timeout read straight out of the bundle under test (at least 20 s), plus reproducibility: two fresh contexts with the eval cache cleared, same PGN, sequential; accuracy within 1.0 point, all nine verdict counts identical, run times within 12 s, and 10.Nxb5 not scored as a mistake | rebuilt from repro373, which died with its sandbox (#376) |
 | 31-antagonist373.js | the antagonist's three numbers on #373 (label inside the board on the h-file, 0-1 for a mate by Black on the analysis board, Analyze/Copy hit 6px above and below the chip) and the Online lobby's Back | new (#374) |
 
 ## Counts
@@ -37,3 +37,15 @@ Not yet ported (the old suite's other harnesses, to be rebuilt as the screens ge
 phone viewports per board screen), shift346 (26 samples through the engine's think), veteran360 (stored-profile
 sweep), skills368 (pure gameSkills), elo349, gist350 / read350, engcrash / trap356, look367, overlay366, open370,
 pzafter370, acct353's full survival set, chrome347, kunal364c/d.
+
+## Negative controls: does a gate still fail when the thing it guards is broken?
+
+BUILD-CONTEXT §2 asks for this, and it changed a gate on the day it was first run.
+
+| gate | broken build used | result | what it changed |
+|---|---|---|---|
+| 33-reproducible-review | the stuck-worker guard put back from 20 s to 4 s, bundled and served | **PASSED, 8 of 8** | The behavioural half cannot see that regression on this machine: a whole 33-ply review finishes here in 9 to 10 s with three workers, so no search approaches even the broken 4 s ceiling. The bug bit on a slower device. The constant is now read directly out of the bundle under test, and the same broken build then goes RED on it. The reproducibility assertions stay, but they are no longer described as protecting the timeout, because they measurably do not. |
+
+The lesson generalises past this gate: a suite that has never been run against a broken build is a suite whose
+greens have not been earned. Where a behavioural assertion cannot reach the fault on this hardware, guard the
+artifact directly and say which half is doing the work.

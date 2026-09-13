@@ -2311,6 +2311,9 @@ export default function App(){
     for(const ev of ['pointerdown','touchstart','keydown','wheel'])window.addEventListener(ev,mark,{passive:true,capture:true});
     return()=>{for(const ev of ['pointerdown','touchstart','keydown','wheel'])window.removeEventListener(ev,mark,{capture:true});};
   },[layoutInfo,layoutGrid]);
+  /* Most ply changes arrive as setPly(p=>p+1), so the wrapper can only write "fn" - and the one thing the log
+     exists to say is which ply it became. This resolves the last entry once the render has happened. */
+  useEffect(()=>{if(!plyLogOnRef.current)return;const a=plyLogRef.current;const last=a[a.length-1];if(last&&last.to==='fn')last.to=ply;},[ply]);
   const [revAuto,setRevAuto]=useState(false);
   const [analyzing,setAnalyzing]=useState(false);
   const [progress,setProgress]=useState(0);
