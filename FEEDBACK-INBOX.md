@@ -1289,3 +1289,46 @@ Times not captured for this batch; see the Timestamps note above.
   shipping it: a mate reached through the ENGINE's best move comes from toSAN, so "Nxb8 Rd8# is
   mate" degraded to "Nxb8 Rd8+ follows" on exactly the lines that most needed the word. One line.
   The probe can only under-report mate, never invent one.
+
+- [2026-09-14 03:1x ET] status: closed #380
+  TEST LANE, item 1 of the overnight queue. The ⏮ button leaves the move strip stranded. From the
+  end of a review, ⏮ returns the board to the start position but the strip stays scrolled to the
+  far end, so the board reads "Start position 0/N" while the strip shows the last moves of the
+  game. Raised by the test-lane agents against #378 with scrollLeft 1691 at 375x730, 1676 at
+  390x844, 1776 at 320x568.
+  closed: [2026-09-14 03:1x ET] Reproduced exactly, then fixed. The strip follows the board through
+  a ref on the CURRENT CHIP, and chips are numbered from ply 1, so ply 0 has no chip and nothing
+  ever pulled the strip back. Every other jump re-synced, which is what made it a bug rather than a
+  design. The container now carries its own conditional ref for the one ply the chips cannot cover.
+  Measured after: scrollLeft 0 at all three, on both the compact and the classic review screen.
+  Gated by gates/regress/37-strip-sync.js, which is RED on #379.
+
+- [2026-09-14 03:1x ET] status: closed, NOT A DEFECT
+  TEST LANE, item 2 of the overnight queue: "the ⋯ sheet's content is below the fold at five of six
+  geometries", with the last row (New game) at 847/833/842/848/863/909 against viewports of
+  568/679/730/761/844/932.
+  closed: [2026-09-14 03:1x ET] Measured, and it is not a defect. The sheet is maxHeight 82vh with
+  overflowY auto, pinned to the bottom of a fixed overlay, so those rows are the ones you scroll the
+  sheet to reach. Scrolled to its end the last row sits at bottom 545 (vh 568) · 656 (679) · 707
+  (730) · 821 (844) · 909 (932, needing no scroll at all - its maxScroll is 0). Every row was then
+  checked one at a time: all reachable, and all tappable where they sit (elementFromPoint at each
+  row's centre lands on the row, not the overlay).
+  The reported numbers are the last row's position BEFORE the sheet is scrolled, which is a reading
+  of where a row happens to sit rather than a measurement of whether it can be reached - the same
+  class of error as gate 35's first version walking past an overflow:hidden ancestor, and the same
+  one CLAUDE.md names when it says a bad selector is a reading and not a measurement.
+  The gate was written anyway and kept, with the claim inverted: gates/regress/38-rev-sheet-reach.js
+  guards the reachability the app HAS. It asserts the last BUTTON's bottom rather than the
+  container's, as the item asked (TC-RL-070), plus the structural properties that make ANY amount of
+  content reachable. Delete the maxHeight and the overflowY and it goes red - including one row
+  genuinely off the top at 320x568.
+
+- [2026-09-14 03:1x ET] status: OPEN, not this build's
+  MY OWN FINDING while gating #380. On the CLASSIC review screen (ct_revCompact=0, a preference the
+  user can still set from the ⋯ sheet) the page lays out 393px past the viewport at 375x730 -
+  bottom 1123 against vh 730 - with document scrollHeight equal to clientHeight, so there is no
+  document scroll to recover it. Measured identically on the #379 bundle, so it predates this
+  change and is not caused by it. Not asserted in gate 37, which notes the number instead: a gate
+  that fails on a pre-existing condition it did not cause blocks every later build.
+  Needs its own look: whether the classic screen has an inner scroller that makes this reachable,
+  the way the ⋯ sheet does, or whether content is genuinely stranded there.

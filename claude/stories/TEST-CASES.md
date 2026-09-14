@@ -1,5 +1,10 @@
 # Chess Trainer test cases
 
+> **Ids here are the REPO suite.** `TC-Rnn` and `US-Rnn` in this file mean the gate-executed Review
+> suite and nothing else. A different 30-story / 31-case suite in the claude.ai project uses the same prefix for
+> different cases, so a bare "TC-R05" is ambiguous outside this file. See `claude/stories/README.md`, the id-space
+> register, before quoting an id anywhere else.
+
 One case per acceptance criterion in USER-STORIES.md. Each case names the gate that executes it and the
 build it was last executed against; a case with no gate is not a case, it is a wish. Results are copied
 from gates/logs/<N>-all.log by the SAT pass, never typed from memory.

@@ -1,5 +1,10 @@
 # Chess Trainer user stories
 
+> **Ids here are the REPO suite.** `TC-Rnn` and `US-Rnn` in this file mean the gate-executed Review
+> suite and nothing else. A different 30-story / 31-case suite in the claude.ai project uses the same prefix for
+> different cases, so a bare "TC-R05" is ambiguous outside this file. See `claude/stories/README.md`, the id-space
+> register, before quoting an id anywhere else.
+
 Kunal's testing charter (2026-09-12 19:39 ET): spec and test the whole app screen by screen, in the order
 Review, Play, Lesson, Puzzles, Home/Discover, Menu, then the never-tested areas. Nothing is written here that
 is not executed in the same pass: every story names the test cases that check it (claude/stories/TEST-CASES.md)
