@@ -190,6 +190,14 @@ wider one.
   good variation a bare ellipsis - red on a healthy build. **When an assertion parses something an engine wrote,
   enumerate what the engine can legally produce and unit-test the predicate against that list**, including the
   cases it must REJECT. Eight strings took a minute and would have caught it on the day. #391.
+- **"THAT WOULD BE A BIGGER CHANGE" IS AN ESTIMATE, AND AN ESTIMATE IS NOT A MEASUREMENT.** At #389 the
+  first-visit half of the engine-trap defect was deferred with the words "fixing the first visit means detecting
+  the trap and recovering the worker, which is a bigger change", and a wrong-signed evaluation - a number telling
+  the user they are LOSING a position they are winning - shipped as a named residual for two builds. It was one
+  line. `sfBestLine` resolves `line||[bm]`, so an empty line means the search returned neither a pv nor a
+  bestmove; it died, and the partial score came out of that same dead search, so the fix is to fall back to the
+  stored analysis. Naming a residual honestly is good and it is not a substitute for spending ten minutes
+  finding out how big it actually is. **Before deferring something user-visible, open the code and look.** #392.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never

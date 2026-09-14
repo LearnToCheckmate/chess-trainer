@@ -3540,8 +3540,21 @@ export default function App(){
         setSetupFromFEN(fen); setOpponent('computer'); setPColor(g.turn); setTimeCtrl(null); timeCtrlRef.current=null; setOpenIdx(null); setMode('play'); setHomeScreen(false); setPlaySetup(true);
       }catch(e){
         setScanBusy(false);
+        /* #392 (scan-board-cloud-function-never-deployed): DO NOT TELL SOMEONE TO TRY AGAIN AT SOMETHING THAT
+           CANNOT SUCCEED. functions/index.js contains no `scanBoard` - the only thing in it is the Build 240
+           feedback relay - so httpsCallable resolves a callable that is not deployed and Firebase throws
+           functions/not-found. That matched neither branch below and fell through to "Please try again", which
+           Kunal did, on #390, and can keep doing for ever.
+           The honest message was already written and was UNREACHABLE: 'cloud-not-ready' only fires when
+           C._scanBoard is falsy, and index.html:282 assigns it unconditionally as soon as the cloud bridge
+           loads. So the guard could never fire on a real device. Now the not-found case reaches it too.
+           THIS FIXES THE MESSAGE, NOT THE FEATURE. Board scanning still does not work and cannot until someone
+           deploys the function; whether the button should stay visible in the meantime is Kunal's call, not
+           mine, and is asked in the flag rather than decided here. */
         const m=e&&e.message;
-        setScanMsg(m==='unauthenticated'?'Sign in first to scan a board.':m==='cloud-not-ready'?'Board scanning is not set up yet (the cloud function still needs to be deployed).':'Could not read the board right now. Please try again.');
+        const _code=String((e&&e.code)||'');
+        const _undeployed=/not-found|unimplemented/i.test(_code)||/not.?found/i.test(String(m||''));
+        setScanMsg(m==='unauthenticated'?'Sign in first to scan a board.':(m==='cloud-not-ready'||_undeployed)?'Board scanning is not set up yet — the cloud function still needs to be deployed. Nothing you do here will help; set the position up by hand for now.':'Could not read the board right now. Please try again.');
       }
     };
     img.onerror=()=>{ try{URL.revokeObjectURL(url);}catch(_){} setScanBusy(false); setScanMsg('Could not open that image.'); };
@@ -3714,8 +3727,20 @@ export default function App(){
           line+=(first?'':' ')+pre+san;if(!wt)num++;first=false;g=makeMove(g,mv);n++;if(n>=6)break;}
       }catch(e){}
       const val={line:line.trim()};
-      const _t2=(_lmate!=null)?mateLbl(_lmate):((_lcp!=null)?((_lcp>0?'+':'')+(_lcp/100).toFixed(1)):txt);
-      const _c2=(_lmate!=null)?(_lmate>0?99:-99):((_lcp!=null)?_lcp/100:ev);
+      /* #392 (review-engline-wrong-sign-on-trap): A DEAD SEARCH'S SCORE IS AS UNTRUSTWORTHY AS ITS MISSING LINE.
+         #389 stopped CACHING a failed query, so the position is re-queried and recovers on the next visit. It
+         left the worse half: the trapped search returns a PARTIAL SCORE, and that score has the wrong sign.
+         Measured on #390 at ply 19 of the Opera Game - the engine line read about -2.6 in a position the stored
+         analysis, the coach chip and the eval bar all call about +3.0 FOR WHITE. A user stepping through once,
+         forwards, reads that they are losing a position they are winning, and never comes back to see it fixed.
+         Same class as uat385-coach-eval-chip-100x and testlane-loss-reported-as-draw: a SILENT wrong answer
+         about who is winning, with nothing on screen saying the number cannot be trusted.
+         An empty `line` means sfBestLine produced neither a pv nor a bestmove (it resolves `line||[bm]`), so the
+         search died - and `_lcp`/`_lmate` came out of that same dead search. Fall back to the STORED analysis,
+         which is what the fallback `txt`/`ev` already hold, rather than printing the wreckage. */
+      const _dead=!line.trim();
+      const _t2=_dead?txt:((_lmate!=null)?mateLbl(_lmate):((_lcp!=null)?((_lcp>0?'+':'')+(_lcp/100).toFixed(1)):txt));
+      const _c2=_dead?ev:((_lmate!=null)?(_lmate>0?99:-99):((_lcp!=null)?_lcp/100:ev));
       /* #389 (uat387-engine-wasm-trap-ply25): CACHE ONLY A REAL ANSWER. sfBestLine RESOLVES NULL on every
          failure path - worker not ready, idle check failed, postMessage threw, abort, or the WASM trapping
          mid-search - so `line` is '' and the old code stored {line:''} as though it were the engine's reply.

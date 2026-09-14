@@ -61,7 +61,47 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by #391, TOOLING)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by BUILD #392)
+LIVE = **#392**, stamp "#392 - 2026-09-14 18:24 ET", md5 5ae07928f0be... over 947951 bytes.
+GATES GREEN: **27 suites, 1033 PASS, 0 fail** (claude/agents/gatelogs/392-all.log, verified by
+`gates/verify-log.sh`). The rise from 1029 is the four new assertions in gate 22.
+
+**TWO SILENT WRONG ANSWERS, BOTH FIXED.** Under the new priority rule 1b a live defect outranks every lane, so
+these went ahead of the tooling queue.
+
+**1. THE ENGINE LINE TOLD YOU YOU WERE LOSING A POSITION YOU WERE WINNING** (`review-engline-wrong-sign-on-trap`).
+#389 stopped caching a failed engine query, so the missing LINE recovers when you come back to the move. It left
+the worse half: a trapped Stockfish search returns a **partial score with the wrong sign**, and a user stepping
+through a game once, forwards, never comes back to see it corrected. Measured on #390, ply 19 of the Opera Game:
+the engine line read **-2.5** where the stored analysis, the coach chip and the eval bar all say about **+3.0**.
+On #392 it reads **+3.0**; ply 25 goes **-5.0 → +5.4**.
+
+The fix is one line, and **I estimated it wrong at #389 and shipped the defect for two builds because of that.**
+I wrote that fixing the first visit "means detecting the trap and recovering the worker, which is a bigger
+change". It does not. `sfBestLine` resolves `line||[bm]`, so an EMPTY line means it returned neither a pv nor a
+bestmove - the search died, and `_lcp` came out of that same dead search. Fall back to the stored analysis.
+**The line is still missing on the trapping visit** - that part really is inside the WASM - but the number is
+right now, which is the part that was actively lying.
+
+**2. "PLEASE TRY AGAIN" FOR SOMETHING THAT CAN NEVER SUCCEED** (`scan-board-cloud-function-never-deployed`).
+Kunal tapped Upload a photo on #390 and got "Could not read the board right now. Please try again." He could
+retry that for ever. `functions/index.js` contains **no `scanBoard`** - the only thing in it is the Build 240
+feedback relay - so `httpsCallable` resolves a callable that is not deployed, Firebase throws
+`functions/not-found`, and that matched neither branch of the catch.
+
+The honest message was **already written and unreachable**: `cloud-not-ready` only fires when `C._scanBoard` is
+falsy, and `index.html:282` assigns it unconditionally as soon as the cloud bridge loads. The not-found case now
+reaches it, and it no longer invites a retry: *"Board scanning is not set up yet — the cloud function still needs
+to be deployed. Nothing you do here will help; set the position up by hand for now."*
+
+**THIS FIXES THE MESSAGE, NOT THE FEATURE.** Board scanning still does not work and cannot until someone deploys
+the function, which is not something a build session can do from this repo. **Whether the button should stay
+visible meanwhile is Kunal's call** and is asked in the flag rather than decided here.
+
+**GATE: `22-engline-recovery.js` grows to 14 assertions**, and its control is the shipped #390 release at
+**2 of 14 red** on exactly the two new lines. No trial bundle needed.
+
+## 0a-prev0) #391 TOOLING (subset gating and the log verifier)
 LIVE = **#390**, stamp "#390 - 2026-09-14 16:23 ET", md5 5fc71d38a468... **#391 changed NO app code** - it is
 the tooling lane's first item plus three corrections. GATES GREEN: **27 suites, 1029 PASS, 0 fail**
 (claude/agents/gatelogs/391-regate-of-the-390-bundle.log - the REAL gates/logs file, 1228 lines, and the first

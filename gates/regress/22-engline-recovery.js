@@ -61,6 +61,15 @@ L.run(async()=>{
     L.say(!!at&&at.indexOf(target+'/33')>=0,'reached ply '+target+' (state-reached check, not assumed)',at);
     const first=await engTxt(b);
     L.note('ply '+target+' first visit: '+JSON.stringify(first));
+    /* #392 (review-engline-wrong-sign-on-trap): THE FIRST VISIT'S NUMBER MUST NOT LIE ABOUT WHO IS WINNING.
+       #389 stopped caching the failed query so the LINE recovers on a revisit. It left the worse half: a
+       trapped search returns a partial score with the WRONG SIGN, and a user stepping through once, forwards,
+       never sees the correction. Measured on #390: ply 19 read -2.5 in a position everything else calls +3.0.
+       The line may still be missing here - the WASM trap is not ours - but the NUMBER comes from the stored
+       analysis now, so it is right even when the search died. */
+    const fn=num(first);
+    L.say(fn!==null,'ply '+target+': the FIRST visit leads with a readable number, trapped search or not',first);
+    L.say(fn!==null&&fn>=1.0,'ply '+target+': and that first-visit number is POSITIVE - a dead search no longer prints its wrong-signed partial score (was '+(target===19?'-2.5':'-5.0')+' on #390)',{first:first,n:fn});
     // step away and back - this is the revisit the old build could never recover from
     await fwd(b,1);await b.settle(2500);await back(b,1);await b.settle(5000);
     const again=await engTxt(b);
