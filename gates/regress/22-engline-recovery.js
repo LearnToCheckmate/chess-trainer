@@ -32,8 +32,15 @@ const PGN='[White "Morphy"] [Black "Duke Karl / Count Isouard"] 1. e4 e5 2. Nf3 
 const TRAP_PLIES=[19,25];   // measured on #387: the two positions the WASM traps on, in both directions
 const engTxt=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-engline"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
 const plyTxt=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-move-line"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
-// a variation is present when something after the leading evaluation looks like SAN
-const hasVar=(s)=>{if(!s)return false;const rest=s.replace(/^\S+\s*/,'');return /\d+\.+\s*[KQRBNO]?[a-h1-8]/.test(rest);};
+// A variation is present when something after the leading evaluation is a move number followed by real SAN.
+// #391 - THIS PREDICATE WAS FLAKY AND THE SUITE CAUGHT IT, four builds after it shipped. It used to read
+// /\d+\.+\s*[KQRBNO]?[a-h1-8]/, which requires a FILE OR RANK immediately after the piece letter - so it
+// matches "16. Qd5+" and does NOT match "16. Qxf7", because the character after Q is the capture x. It passed
+// at #389 only because those two runs happened to return lines containing a non-capture move. On a run where
+// the engine returned "13... Nxd7 14. Bxe7 Bxe7 15. Bxd7+ Kxd7 16. Qxf7" - every move a capture - it called a
+// perfectly good variation a bare ellipsis and went red on a healthy build. Use real SAN, captures included.
+const SAN='(?:O-O-O|O-O|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?[+#]?)';
+const hasVar=(s)=>{if(!s)return false;const rest=s.replace(/^\S+\s*/,'');return new RegExp('\\d+\\.+\\s*'+SAN).test(rest);};
 const num=(s)=>{if(!s)return null;const m=String(s).match(/^([+-]?\d+\.\d)/);return m?parseFloat(m[1]):null;};
 const fwd=async(b,n)=>{for(let i=0;i<n;i++){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});await b.page.waitForTimeout(110);}};
 const back=async(b,n)=>{for(let i=0;i<n;i++){await b.page.locator('[aria-label="Previous move"], [title="Previous move"]').first().click({timeout:5000});await b.page.waitForTimeout(110);}};

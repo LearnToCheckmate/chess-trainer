@@ -52,6 +52,21 @@ wider one.
 - `cd gates && npm ci` once, then `gates/build.sh '#NNN'` to bundle and stamp, and
   `gates/gates.sh '#NNN'` from the top before any push. A build is gated only when the log ends
   `GATES GREEN`.
+- **`gates/gates.sh '#NNN' '20-review 21-*'` runs a SUBSET, and a subset NEVER authorises a push.** Measured at
+  #391: three gates in **2m27s** against about **60 minutes** for the full suite, so the diagnose-fix-recheck
+  loop costs two and a half minutes instead of an hour. The guard is mechanical, not a comment: a subset run
+  **cannot emit the string `GATES GREEN`** (every consumer in this project greps for exactly that, so a subset
+  log is unusable as a push gate by every reader that already exists), it writes to `<N>-subset-all.log` so it
+  can never overwrite the full log, and an unknown gate name fails loudly rather than silently running fewer.
+- **`gates/verify-log.sh <log> [#NNN]` is the one place that decides whether a log authorises a push.** Run it
+  before citing any log. It refuses a subset, refuses anything not ending in a clean `GATES GREEN #NNN`, and
+  refuses a log whose header and footer name different builds - which is the #388 mistake an external challenger
+  caught and this lane did not.
+- **COPY `gates/logs/<N>-all.log` INTO `claude/agents/gatelogs/`, NOT the terminal output.** They are different
+  files: gates.sh `tee`s only the summary lines to stdout and writes every PASS line to the log. Every gatelog
+  committed before #391 is the 57-line stdout capture rather than the ~1200-line real log, so the footer totals
+  in them are right and nothing else can be audited. `verify-log.sh` reports the PASS count, which makes the
+  thin ones obvious: a full suite reporting "0 PASS" is the tell.
 - The harness library is `gates/lib.js`; read its header before writing a gate.
 - Serve locally. `learntocheckmate.github.io` is blocked by the egress proxy; `github.com` is not.
   Chromium is at `/opt/pw-browsers/chromium`; never run `playwright install`.
@@ -165,6 +180,16 @@ wider one.
   sentence GROWS about half a second after you land on it — the sacrifice refutation comes from a debounced
   engine query. A 220ms settle measured the short sentence and a 240ms one sometimes the long. Settle past
   the thing you are racing, then prove it by running the gate twice and getting the same numbers.
+- **A PREDICATE THAT DEPENDS ON WHICH ANSWER AN ENGINE HAPPENS TO RETURN IS A COIN FLIP WITH EXTRA STEPS, and
+  running the gate twice will NOT find it.** #387's rule - settle past what you are racing, then prove it with
+  two identical runs - covers timing. It does not cover this. Gate 22 shipped at #389 with
+  `/\d+\.+\s*[KQRBNO]?[a-h1-8]/` as its test for "is this a chess variation": that needs a file or rank
+  immediately after the piece letter, so it matches `16. Qd5+` and NOT `16. Qxf7`, where the next character is
+  the capture `x`. It went green twice because both runs happened to return a line containing one non-capture
+  move, and four builds later the engine returned a line that was ALL captures and the gate called a perfectly
+  good variation a bare ellipsis - red on a healthy build. **When an assertion parses something an engine wrote,
+  enumerate what the engine can legally produce and unit-test the predicate against that list**, including the
+  cases it must REJECT. Eight strings took a minute and would have caught it on the day. #391.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never

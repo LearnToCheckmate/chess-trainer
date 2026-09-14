@@ -61,7 +61,56 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by BUILD #390)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by #391, TOOLING)
+LIVE = **#390**, stamp "#390 - 2026-09-14 16:23 ET", md5 5fc71d38a468... **#391 changed NO app code** - it is
+the tooling lane's first item plus three corrections. GATES GREEN: **27 suites, 1029 PASS, 0 fail**
+(claude/agents/gatelogs/391-regate-of-the-390-bundle.log - the REAL gates/logs file, 1228 lines, and the first
+log this project has committed that `verify-log.sh` actually passes).
+
+**SUBSET GATING, AND THE MEASUREMENT THAT JUSTIFIES IT.** `gates/gates.sh '#NNN' '20-review 21-*'` runs only the
+named gates. Measured: **3 gates in 2m27s against about 60 minutes for the full suite** - the diagnose-fix-recheck
+loop now costs two and a half minutes instead of an hour. THIRTEEN wakes were stood down at step 0 on 14 Sep
+because the suite swallowed the whole hour against a schedule that pokes three times an hour.
+
+**A SUBSET NEVER AUTHORISES A PUSH, and the guard is mechanical rather than a comment:**
+- a subset run **cannot emit the string `GATES GREEN`**. Every consumer in this project greps for exactly that,
+  so a subset log is unusable as a push gate by every reader that already exists, including ones nobody
+  remembers to update. It ends `SUBSET OK #NNN — NOT A PUSH GATE` instead.
+- it writes to `<N>-subset-all.log`, so it can never overwrite or be confused with the full log;
+- an unknown gate name **fails loudly** rather than silently running a smaller set.
+All four proved by running them, not by reading the script.
+
+**`gates/verify-log.sh <log> [#NNN]` IS NOW THE ONE PLACE THAT DECIDES WHETHER A LOG AUTHORISES A PUSH.** Run it
+before citing any log. It refuses an empty log, a subset, anything not ending in a clean `GATES GREEN #NNN`, and
+a log whose header and footer name different builds. That last one is the #388 mistake an external challenger
+caught and this lane did not - and `verify-log.sh` now catches it retroactively, which is the evidence it is the
+right check.
+
+**TWO NUMBERS THIS LANE WAS OVERSTATING, BOTH CORRECTED:**
+1. **Coverage is 0 of 10, not 1.** Kunal rolled Review back to `open` because its cases are not in the repo, had
+   not run against the current build, and were miscounted. My own #390 snapshot then carried the old `done`
+   forward, because the close-out procedure says to copy the tree across untouched and I copied the part that
+   had just been corrected. The lane HEADER and the four-numbers block both went on reading 1 while every item
+   under them read `open`. **Never restore a coverage item you find as `open`.**
+2. **Gate 22 had a flaky predicate and the suite caught it, four builds after I shipped it.** Its test for "is
+   this a chess variation" needed a file or rank straight after the piece letter, so it matched `16. Qd5+` but
+   not `16. Qxf7`. This run's engine line was all captures, so it called a good variation a bare ellipsis and
+   went **red on a healthy build**. It passed twice at #389 only because those lines each happened to contain
+   one non-capture move. **Running a gate twice does not find this** - the runs were identical, the engine's
+   answer was not, which is a different failure from #387's timing race. Unit-test a predicate that parses
+   engine output against what the engine can legally produce, including what it must reject.
+3. **The committed gate logs were the wrong file.** `gates.sh` tees only summary lines to stdout; every gatelog
+   before #391 is the 57-line stdout capture rather than the ~1200-line real log, so their footer totals are
+   right and nothing else in them can be audited. Found by `verify-log.sh` reporting "0 PASS" on a log footed
+   1029. Copy `gates/logs/<N>-all.log`, never the terminal output.
+
+**AND A SNAPSHOT BUILT ON A STALE BASE SILENTLY UNDOES A CLOSE-OUT.** The page renders whichever snapshot is
+newest. Two written after the #390 close-out carried #389's 1007 assertions, so the dashboard was reporting the
+previous build's count against the current app. Build yours on the NEWEST snapshot, not on your own last one.
+**And prune to the newest twelve every close-out** - at 42 documents the collection went too big to deliver and
+the dashboard rendered completely blank.
+
+## 0a-prev0) BUILD #390 (the full-walk gallery)
 LIVE = **#390**, stamp "#390 - 2026-09-14 16:23 ET", md5 5fc71d38a468... over 947759 bytes.
 GATES GREEN: **27 suites, 1029 PASS, 0 fail** (claude/agents/gatelogs/390-all.log). The rise from 1007 is
 ENTIRELY the new gate 23 at 22 assertions. Self-consistent log: `gates.sh #390` against a #390 bundle.
