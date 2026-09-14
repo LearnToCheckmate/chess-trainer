@@ -62,7 +62,7 @@ gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, 
 `gates/` rather than re-writing them.
 
 ## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-13 evening, written by the #376 run)
-LIVE = **#378**, commit __378_SHA__, stamp "#378 - 2026-09-14 00:07 ET", md5 985d61643b883822d477d0a6522e5c9e
+LIVE = **#378**, commit 88cd2a1, stamp "#378 - 2026-09-14 00:07 ET", md5 985d61643b883822d477d0a6522e5c9e
 over 942243 bytes, verified at that SHA. WHAT #378 CARRIES: the three feedback decisions that had a real answer
 AND no holding note. fb-controls - Analyze and Copy moves fold out of the MOVES header row into the More sheet
 ("Just those two"), and stay as chips on every screen that has no More sheet (lesson, puzzle, analysis board,
