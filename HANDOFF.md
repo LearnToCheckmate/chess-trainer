@@ -61,7 +61,45 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-13 evening, written by the #376 run)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #380 run)
+LIVE = **#380**, commit c2d1bed, stamp "#380 - 2026-09-14 03:05 ET", md5 024ff47fe0b3b51110e5442fd6266307 over
+942321 bytes, verified at that SHA. GATES GREEN: 17 suites, 379 PASS, 0 fail.
+
+**#379** shipped fb-evalbar: the Play eval bar 10 -> 14 wide, the track from #2b2932 to #8f8d9e and a hairline
+outline. The colour in the plan was CHECKED BY SAMPLING and failed - it computed over 3:1 and paints 2.36:1,
+below the very floor that motivated the change. Six candidates were built and sampled to find one that clears
+it, and the method was validated against a known answer first. Measure, do not read, applies to colour too.
+
+**#380** took the first three items of the overnight test-lane queue.
+- **The move strip now re-syncs at ply 0** (TC-RL-039). It followed the board through a ref on the CURRENT
+  CHIP, and chips are numbered from ply 1, so ply 0 never had one: the board read "Start position 0/N" while
+  the strip showed the last moves. Before: scrollLeft 1691 at 375x730, 1676 at 390x844, 1776 at 320x568. After:
+  0 at all three, compact and classic. Gate `37-strip-sync.js`, 41 assertions, red on the #379 bundle itself.
+- **The "... sheet below the fold" report was measured and did not survive it** (TC-RL-070). The sheet is
+  maxHeight 82vh with overflowY auto; the reported numbers are the last row's position BEFORE it is scrolled.
+  Scrolled to its end the last row is at 545 (vh 568), 656 (679), 707 (730), 821 (844), 909 (932, no scroll
+  needed). Every row reachable AND tappable. **Nothing shipped for this item, and that is the right outcome.**
+  Gate `38-rev-sheet-reach.js` was kept with its claim inverted: it guards the reachability the app HAS.
+- **The TC-R id collision is settled on this side.** `claude/stories/README.md` is the id-space register; both
+  story documents carry a header naming which suite their ids belong to. The project's 30/31 pair is the half
+  that moves, to the reserved `REVIEW-SUITE-FULL.md`, and that cannot be done from a build session.
+
+**TWO PROCESS FAULTS THIS RUN, both caught by the machinery rather than by reading.**
+1. The first full #380 suite was built from a tree sitting on the **fb-chrome branch**, so the bundle carried a
+   change Kunal has not released for short phones. `13-play-after-moves` caught it in seconds: Pass & Play
+   board 295 instead of 351 at 375x679, board top 53px lower. The suite was thrown away and rebuilt from
+   `origin/main`. **Check `git log -1` before `build.sh`, not only `git status`.**
+2. Gate 37's own first version was a **false green on a branch it never entered**. It seeded `ct_revCompact=0`
+   to exercise the classic review screen; a `#339` one-time migration overwrites that preference unless
+   `ct_revmig339` is already set, so it measured compact twice and called it coverage. A seed is an intention;
+   only a measurement of the painted screen is a branch.
+
+**OPEN, FOUND THIS RUN, NOT FIXED:** on the classic review screen (`ct_revCompact=0`) the page lays out 393px
+past the viewport at 375x730 with no document scroll to recover it. Measured identically on #379, so it
+predates #380. Gate 37 notes the number rather than asserting it, because a gate that fails on a pre-existing
+condition it did not cause blocks every later build.
+
+## 0a-prev) WHERE THE BUILD WAS AT #378 (2026-09-13 evening, written by the #376 run)
 LIVE = **#378**, commit 88cd2a1, stamp "#378 - 2026-09-14 00:07 ET", md5 985d61643b883822d477d0a6522e5c9e
 over 942243 bytes, verified at that SHA. WHAT #378 CARRIES: the three feedback decisions that had a real answer
 AND no holding note. fb-controls - Analyze and Copy moves fold out of the MOVES header row into the More sheet
