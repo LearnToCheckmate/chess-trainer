@@ -1413,3 +1413,18 @@ Times not captured for this batch; see the Timestamps note above.
   rewritten gate goes red with scrollers:0 and reached:false on three boxes. Also recorded in the gate:
   the named-help-text assertion stays GREEN on that broken build, because the leaf carrying the phrase
   is on screen at rest and it is the block below it that strands - so that green is not coverage.
+
+- [2026-09-14 08:3x ET] status: WITHDRAWN, my own false report
+  classic-review-overflows-393, which I raised at #380. Measured properly with the method from
+  gates/regress/40-reachability.js: the classic review screen at 375x730 has 64 painted boxes below
+  the fold and every one is reachable - each has #root as a user-scrollable ancestor, and scrolling it
+  brings them all on screen (restBottom 749 to 1123, all landing at 722 or better against vh 730, zero
+  stranded). The branch was verified, not assumed: strip chevrons 0, so it was genuinely the classic
+  screen. The 393px is #root's scroll range, not spill.
+  I made the exact error I had spent that same run proving the test lane had made twice: I measured a
+  bottom against the viewport, saw document.scrollHeight equal to clientHeight, and concluded nothing
+  could recover it - having already read the index.html comment that says the document never scrolls
+  in this app. Filing it without a severity was right and is why it cost only noise; taking the
+  measurement before filing would have been better.
+  Three false reachability reports in one night from one error, one of them mine. The rule is in
+  CLAUDE.md and has a gate.
