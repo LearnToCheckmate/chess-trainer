@@ -61,7 +61,34 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #382 run)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #383 run)
+LIVE = **#383**, commit 8d3cc3d, stamp "#383 - 2026-09-14 07:25 ET", md5 cd67020cecd0e4d672633ecadc2f2e09
+over 942880 bytes, verified at that SHA. GATES GREEN: 19 suites, 489 PASS, 0 fail.
+
+**#383: a lost game no longer reports itself as a draw.** `gameInfo`'s loss vocabulary listed `'lose'`
+(Chess.com's real code) but not `'loss'`, so a row carrying `'loss'` fell through to DRAW. Measured: win ->
+WON, lose -> LOST, loss -> DRAW. No source sends `'loss'` today so it was not live harm, but a wrong answer
+about whether you won is worse than a visible error. **It had to go in TWO places** - line 3283 builds the
+sentence, 3288 the WON/LOST/DRAW code, both carrying the same list - and the first edit failed its own
+assertion because it expected one occurrence and found two. That is how the duplicate surfaced.
+
+**#383 also fixed two harness waits that were silent greens.** `gates/drive/review.js` waited 6 s for
+`rev-engline` and SWALLOWED its expiry with `.catch(()=>{})`; the lane measured that line taking up to 8 s
+on a device, so on anything slower than this container the state continued with no engine line and every
+assertion about it passed while measuring nothing. Now 12 s with a printed NOTE. `20-review.js` slept a flat
+2500 ms before reading; it now waits for the element and ASSERTS it arrived.
+
+**THE RULE THIS WEEK KEEPS PRODUCING, in three forms:** an assertion that compares a value only to ITSELF
+cannot fail (10-gameover, A-12, 11-lesson - all fixed by PINNING the number); an invariant that always holds
+is no better (my "the column fills the viewport" assertion, which passed against a 90% board); and a
+SWALLOWED TIMEOUT is a silent green. Before writing an assertion, ask what bundle would make it red. If you
+cannot build one, it is not an assertion.
+
+**MEASURE BEFORE BELIEVING A LAYOUT REPORT.** Four of six this week did not survive it. The two that did
+were both HORIZONTAL spill; the four that did not were vertical shortfall, where the app was doing its job.
+`#root` scrolls and the page never does, so `docScrollY` is 0 on every screen BY DESIGN.
+
+## 0a-prev) WHERE THE BUILD WAS AT #382
 LIVE = **#382**, commit ac3084e, stamp "#382 - 2026-09-14 06:19 ET", md5 6d208b9c834962d61e53c198c6d75c46
 over 942866 bytes, verified at that SHA. GATES GREEN: 19 suites, 453 PASS, 0 fail.
 
