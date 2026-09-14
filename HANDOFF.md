@@ -63,7 +63,11 @@ gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, 
 
 ## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #388 RE-GATE)
 LIVE = **#387**, stamp "#387 - 2026-09-14 12:11 ET", md5 ae5ebbc44976... over 944311 bytes.
-GATES GREEN: **26 suites, 990 PASS, 0 fail** (claude/agents/gatelogs/388-all.log) - the rise from 973 is ENTIRELY gate 21 going 7 assertions to 24. **#388 changed no app code at all** — one gate file, one rule,
+GATES GREEN: **25 suites, 990 PASS, 0 fail** (claude/agents/gatelogs/388-all.log) - the rise from 973 is ENTIRELY gate 21 going 7 assertions to 24.
+**AND A MISCOUNT CORRECTED WHILE WRITING THIS:** the suite is **25**, not the 26 reported at the #387
+close-out and carried in HANDOFF, RUN-LOG and the #387 dashboard snapshot. It is 24 files in `gates/regress/`
+plus `mountcheck` - counted off the log's own `=== ` blocks rather than from memory. The PASS totals were
+always right; only the suite count was one high. **#388 changed no app code at all** — one gate file, one rule,
 and the evidence behind them. `app.js` is byte-identical to the #387 push.
 
 **A GATE THAT COVERED THE ITEM KUNAL RAISED FIVE TIMES COULD NOT SEE IT CHANGE.** An external challenger
