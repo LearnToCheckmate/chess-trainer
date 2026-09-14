@@ -97,6 +97,10 @@ L.run(async()=>{
   L.say(pAfter===pBefore-2,'the takeback gave back BOTH plies - the engine\'s reply and his move - so it is his move again ('+pBefore+' -> '+pAfter+')',{before:pBefore,after:pAfter});
   L.say(!!before.board&&!!after.board&&Math.abs(before.board.w-after.board.w)<0.6&&Math.abs(before.board.top-after.board.top)<0.6,
         'the board does not move across a takeback (w '+(before.board&&before.board.w)+' -> '+(after.board&&after.board.w)+', top '+(before.board&&before.board.top)+' -> '+(after.board&&after.board.top)+')');
+  // #384 (derived test-lane item 6): the board-movement assertion nearby compares two MEASURED values and
+  // nothing else, so it is true of a board that has been the wrong size since before the first sample. That is
+  // exactly what left 10-gameover passing 12 of 12 on a board 16px wrong. Pinned for the same reason; measured on #383.
+  L.say(!!after.board&&Math.abs(after.board.w-353)<0.6,'the vs-Computer board is 353 wide after the takeback - the measured size for his phone, not merely unchanged',{measured:after.board&&after.board.w,want:353});
   L.say(after.over.over<=0&&after.over.docScroll===0,'no scroll after a takeback',after.over);
   await b.shot('takeback-'+geo+'-after');
 

@@ -12,6 +12,9 @@ L.run(async()=>{
     const head=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pz-hint-head"]');if(!e)return null;const r=e.getBoundingClientRect();return {x:r.left,y:r.top,w:r.width,h:r.height,sh:e.scrollHeight,ch:e.clientHeight,text:(e.innerText||'').trim()};});
     L.say(!!before.board&&!!after.board,geo+': puzzle board present before and with the hint');
     if(before.board&&after.board){L.say(Math.abs(before.board.top-after.board.top)<0.6&&Math.abs(before.board.w-after.board.w)<0.6,geo+': board unmoved by the hint (top '+before.board.top+' -> '+after.board.top+', w '+after.board.w+')');}
+      // #384 (derived test-lane item 6): the board-movement assertion above compares two MEASURED values and nothing else, so it is true of a board that has been the wrong size since before the first sample. That is exactly what left 10-gameover passing 12 of 12 on a board 16px wrong. The width is pinned here for the same reason. Measured on #383.
+      const WANT={kunal:375,'390':390,se:259};
+      if(WANT[geo]!=null)L.say(!!after.board&&Math.abs(after.board.w-WANT[geo])<0.6,geo+': the puzzle board is '+WANT[geo]+' wide with the hint up - the measured size, not merely the same as a moment ago',{measured:after.board&&after.board.w,want:WANT[geo]});
     L.say(!!head&&head.text.length>10,geo+': hint header shows the hint',head&&head.text.slice(0,60));
     L.say(!!head&&head.sh<=head.ch+1,geo+': hint text not clipped (scroll '+(head&&head.sh)+' vs '+(head&&head.ch)+')');
     L.say(!!head&&head.y>=0&&head.y+head.h<=(after.board?after.board.top:1e9)+0.5,geo+': hint header sits above the board, on screen');

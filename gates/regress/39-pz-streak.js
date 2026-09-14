@@ -58,6 +58,11 @@ L.run(async()=>{
     L.say(!!filled&&!/\u{1F4A1}/u.test(filled.t||''),geo+': the box does NOT repeat the hint text',filled&&filled.t);
     L.say(!!before.board&&!!afterHint.board&&Math.abs(before.board.w-afterHint.board.w)<0.6&&Math.abs(before.board.top-afterHint.board.top)<0.6,
           geo+': the board does not move when the hint appears (w '+(before.board&&before.board.w)+' -> '+(afterHint.board&&afterHint.board.w)+', top '+(before.board&&before.board.top)+' -> '+(afterHint.board&&afterHint.board.top)+')');
+    // #384 (derived test-lane item 6): the board-movement assertion nearby compares two MEASURED values and
+    // nothing else, so it is true of a board that has been the wrong size since before the first sample. That is
+    // exactly what left 10-gameover passing 12 of 12 on a board 16px wrong. Pinned for the same reason; measured on #383.
+    const WANTB={kunal730:375,se:259,'390':390};
+    if(WANTB[geo]!=null)L.say(!!afterHint.board&&Math.abs(afterHint.board.w-WANTB[geo])<0.6,geo+': the puzzle board is '+WANTB[geo]+' wide with the hint up - the measured size, not merely unmoved',{measured:afterHint.board&&afterHint.board.w,want:WANTB[geo]});
     L.say(!!filled&&/\/\s*\d+/.test(filled.t||''),geo+': with no streak yet it falls back to the counter the header gave up rather than claiming a streak of zero',filled&&filled.t);
 
     // ---- the verdict takes the same box back, instantly, and the board still does not move

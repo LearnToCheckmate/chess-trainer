@@ -125,6 +125,11 @@ L.run(async()=>{
     L.say(!!cTop&&cTop.ply===0,tag+': ⏮ put the BOARD at the start position',cTop);
     L.say(!!sTop&&sTop.left===0,tag+': and the STRIP is back at the start too (scrollLeft '+(sTop&&sTop.left)+', was '+(sEnd&&sEnd.left)+' before the tap). This is the defect: ply 0 has no chip, so nothing used to pull the strip back.',{strip:sTop,counter:cTop});
     const mTop=await b.metrics();
+    // #384 (derived test-lane item 6): the board-movement assertion nearby compares two MEASURED values and
+    // nothing else, so it is true of a board that has been the wrong size since before the first sample. That is
+    // exactly what left 10-gameover passing 12 of 12 on a board 16px wrong. Pinned for the same reason; measured on #383.
+    const WANTW={'kunal730/compact1':349,'kunal730/compact0':336,'se/compact1':264};
+    if(WANTW[tag]!=null)L.say(!!mTop.board&&Math.abs(mTop.board.w-WANTW[tag])<0.6,tag+': the review board is '+WANTW[tag]+' wide - the measured size for this geometry AND this branch, so a board wrong from the start cannot pass here',{measured:mTop.board&&mTop.board.w,want:WANTW[tag]});
     L.say(!!m0.board&&!!mTop.board&&Math.abs(m0.board.w-mTop.board.w)<0.6&&Math.abs(m0.board.top-mTop.board.top)<0.6,
           tag+': the board did not move across the end-and-back trip (w '+(m0.board&&m0.board.w)+' -> '+(mTop.board&&mTop.board.w)+', top '+(m0.board&&m0.board.top)+' -> '+(mTop.board&&mTop.board.top)+')');
 

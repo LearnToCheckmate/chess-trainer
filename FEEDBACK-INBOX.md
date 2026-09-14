@@ -1588,3 +1588,30 @@ Times not captured for this batch; see the Timestamps note above.
   to drift.
   Gated by four assertions in 20-review.js covering win, lose, loss and agreed. Against the #382
   bundle the suite goes 1 red, on exactly the 'loss' line, with the other three correct on both.
+
+- [2026-09-14 12:0x ET] status: closed, test-lane item 6 DERIVED not read
+  The nine replacement pass conditions live in SUITE-AUDIT section 2, which a build session cannot read -
+  there is no project tool here. Saying that plainly rather than implying otherwise. What was done
+  instead is the thing that section is for: a mechanical audit of every assertion in the suite for the
+  class this week has caught five times.
+  SCANNED: 235 L.say assertions across gates/regress and gates/drive, looking for (A) comparisons of two
+  MEASURED values with no pinned literal on either side, and (B) swallowed failures.
+  CLASS A FOUND FOUR GATES WITH NO PINNED WIDTH AT ALL, each asserting only that the board did not MOVE:
+  12-hint, 34-takeback, 37-strip-sync and 39-pz-streak. Every one of them would pass on a board that had
+  been the wrong size since before its first sample - exactly what left 10-gameover green at 12 of 12 on
+  a board 16px wrong. All four are now pinned to the values measured on #383: 12-hint 375/390/259,
+  34-takeback 353, 37-strip-sync 349/336/264 (per branch, not just per geometry), 39-pz-streak
+  375/259/390.
+  CONTROLLED with one bundle, the board at 90%: 12-hint 3 red, 37-strip-sync 3 red, 39-pz-streak red on
+  its pinned line. 34-takeback goes red too but EARLIER - the smaller board makes b.move miss its
+  squares and the harness throws before reaching the new assertion - so that one is a red, not an
+  isolation of the line I added. Said rather than counted.
+  MY OWN EDIT HAD A BUG THE CONTROL CAUGHT: the 39-pz-streak line used `tag`, which is not in scope in
+  that gate, and threw a ReferenceError. It would have thrown on the real bundle too and been obvious,
+  but it is worth noting that the control found it before the suite did.
+  CLASS B, RECORDED NOT FIXED: seven swallowed failures remain, all `.catch(()=>{})` on navigation -
+  32-plylog lines 52 and 53, 33-reproducible-review 76, 36-evalbar 79, 37-strip-sync 87,
+  38-rev-sheet-reach 81, 34-takeback 115. These are taps whose failure would make the assertions after
+  them fail loudly anyway, unlike the drive/review.js one fixed in #383 which swallowed a WAIT and let
+  a state continue half-built. Left alone deliberately; named here so the next pass can judge rather
+  than rediscover.
