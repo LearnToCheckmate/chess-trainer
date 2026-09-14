@@ -69,6 +69,52 @@ marked rather than invented.
 
 ## Open
 
+### Build #379 [2026-09-14] - the eval bar, picked by sampling rather than by arithmetic
+
+- [2026-09-14 status: built #379] **fb-evalbar, "B: A, plus widen to 14px".** "Maybe we need some background
+  coloring because it's pretty clean now. But since the background is just black, the one thing I'm noticing is
+  that it's hard to see where the bar... the points bar... ends." Released by him after seeing the renders:
+  "Lighter track plus a hairline outline, and widen the bar from 10px to 14px. The 4px of width beside the board
+  is accepted knowingly."
+  Shipped: the Play bar goes 10 -> 14 wide, the track goes from `#2b2932` to `#8f8d9e`, and it carries a 1px
+  hairline outline. The board cost is exactly what he accepted and no more: vs Computer 357 -> 353 at 375x730,
+  the same -4 at 375x679 and 390x844, NO change at 320x568 (the board is height-bound there so the 4px never
+  binds) and no change at all on Pass & Play, which has no eval bar.
+  THE COLOUR WAS CHOSEN BY SAMPLING PAINTED PIXELS, AND THAT MATTERED. The plan for this change proposed
+  `#6b6978` and computed it at over 3:1. Screenshotted from a running build it paints rgb(84,82,94) for
+  **2.36:1** - it fails the very floor that motivated the change. Six candidates were built and sampled before
+  `#8f8d9e` was picked, which paints rgb(112,110,124) for **3.62:1**. As a check on the method, the OLD colour
+  sampled at **1.12:1**, independently reproducing the 1.15:1 in his decision. A contrast ratio computed from a
+  hex literal is a reading, not a measurement, and this one was wrong by a whole category.
+- [2026-09-14 status: note, HE SHOULD SEE THIS] **Lightening the track costs eval-reading contrast, and nobody
+  costed it.** Measured on the same screenshots, track against the WHITE half: `#2b2932` was 8.03:1 and
+  `#8f8d9e` is **2.63:1**. So the change does what he asked - the bar's extent against the page goes 1.12 ->
+  3.62 - but the boundary between the two halves, which is how you actually read the eval, got less crisp. At
+  2.63:1 between two large adjacent fills it is still clearly visible, and the hairline now marks the bar's
+  extent independently of the track, so a DARKER track would also work if he prefers the old crispness. His
+  call; nothing is blocked on it.
+- [2026-09-14 status: open, NOT BUILT] **fb-chrome is released and was not built in #379.** Not a hold on his
+  side - he cleared the note and confirmed "swap it, and fade the change". Held for one build for reasons that
+  are entirely about the change being done properly:
+  1. The design is sound and its premise CHECKS OUT. The decision says "board top 93 -> 132, board stays 357".
+     Measured baseline vs Computer at 375x730: board 357 at top 92.8. That is his number, on his screen.
+  2. The patch produced for it CANNOT BE APPLIED as written and would white-screen if half-applied: two of its
+     six edits carry the literal glyphs for the house and the hamburger where chess.jsx stores the JS escapes,
+     so those two match nothing - while the two edits that DELETE the consts they depend on match fine. Running
+     it leaves a ReferenceError. It needs rebuilding against the escaped source, not just running.
+  3. It moves the board on every Play screen, so a batch of pinned board assertions has to move WITH it and be
+     re-measured at four geometries. That is the build's real work and it deserves its own pass.
+  ALSO WORTH KNOWING FOR IT: chess.jsx:4585 already renders a header row (title, house, hamburger) on every
+  phone screen EXCEPT a live Play game - its condition ends with the #351 removal. So this is not a new
+  component on five screens; it is restoring the one screen that lost it, which answers "which board screens?"
+  without anyone having to choose.
+- [2026-09-14 status: note] **`gates/.pin-app.js` is a stale #372 bundle and `gates/lib.js` serves it by
+  default.** `serve()` resolves the bundle as `opts.app || CT_APP || (.pin-app.js if it exists) || app.js`, and
+  that file stamps "#372 - 2026-09-12 20:20 ET" while the repo is on #379. `gates.sh` exports CT_APP itself so
+  the SUITE is immune, and every measurement taken tonight passed CT_APP explicitly - but a bare
+  `node gates/regress/X.js` silently measures a six-build-old app and reports a pass. Left in place rather than
+  deleted, because it may be someone's deliberate pin, and written down here and in gates/pending/README.md.
+
 ### Build #378 [2026-09-14] - the three feedback items that carried a real answer
 
 - [2026-09-14 status: built #378] **fb-controls, "Just those two".** "I like how you collapsed that resign and
