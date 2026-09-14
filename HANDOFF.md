@@ -61,7 +61,32 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #380 run)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #381 run)
+LIVE = **#381**, commit 5b35406, stamp "#381 - 2026-09-14 03:46 ET", md5 9de857145278a678aeeea729e4f936b9
+over 942681 bytes, verified at that SHA. GATES GREEN: 18 suites, 430 PASS, 0 fail.
+
+**#381** took the two answered, unblocked decisions that had never been attempted.
+- **A-08: the round Analyze button is off the board.** It was 42x42 at (324,356) with the board at x24-373
+  y56-405, sitting on h1 and part of g1 - on the white rook for twenty-two plies of the Opera game. His note
+  is the answer ("Move it to the right edge of Morphy's box") and he says so himself, because the dashboard
+  would not let him clear the option he had tapped. It is now the last child of `pbar-bottom`, flush to the
+  same 9px gutter the ⋯ uses in the top bar. Board unchanged at every geometry; bar heights unchanged.
+  It stays 40px rather than taking its siblings' 34x30, because **A-11 is still unanswered** - he replied to
+  that question asking about the render, not choosing an option. The #371 step-aside hack came out with it.
+- **Z-04: the Puzzles verdict box no longer sits empty.** On a phone a hint takes the header row and the
+  counters step aside, so the reserved box was empty AND the streak was unreadable. It now carries the
+  readout the header gives up - "1 / 890 · 🔥 4 in a row", or the counter before there is a streak. Reserved
+  height unchanged (30 phone / 74 above 820), board unmoved on both transitions.
+  His question says the box is 46px; it is 30 now, since #364. A gate written from the question text would
+  have been wrong - the measurement is the source, not the ticket.
+
+**THE ASSERTION THAT MOVED WITH THE BUTTON is the lesson of this build.** TC-R11 used to assert "42x42 in the
+board's bottom corner" - the defect stated as a requirement. Rewritten to say where the button is and where
+it must not be, it goes 8 of 79 red when the button is put back. Its FUNCTIONAL half (Undo, Exit analysis)
+passes on that broken build, because moving a button does not change what it does. Nothing else in 430
+assertions would have noticed.
+
+## 0a-prev2) WHERE THE BUILD WAS AT #380
 LIVE = **#380**, commit c2d1bed, stamp "#380 - 2026-09-14 03:05 ET", md5 024ff47fe0b3b51110e5442fd6266307 over
 942321 bytes, verified at that SHA. GATES GREEN: 17 suites, 379 PASS, 0 fail.
 
