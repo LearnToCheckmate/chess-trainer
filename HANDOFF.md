@@ -61,7 +61,51 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #387 run)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #387 RE-GATE)
+LIVE = **#387**, stamp "#387 - 2026-09-14 12:11 ET", md5 ae5ebbc44976... over 944311 bytes.
+GATES GREEN: **26 suites** (see 387-all.log). The re-gate added test coverage, NOT app code.
+
+**PLAY AND PLAY SETUP NOW HAVE STORIES, CASES AND GATES. They had none of any of it.** Two other sessions
+authored them on the afternoon of 2026-09-14 and handed over **working gate source**, not descriptions:
+- `gates/regress/45-play-setup.js` — 10 stories, 56 cases, 43 running, **165 assertions**, six geometries.
+- `gates/regress/46-play.js` — 10 stories, 60 cases, 52 running, **128 assertions**, three geometries.
+Both ran UNCHANGED against #387 and returned their authors' numbers exactly, though both were written
+against #386. That cross-check matters: two independently authored suites reproducing their own
+measurements on a bundle they never saw means neither was fitted to the build it was written on. Both
+lanes also built and proved their own negative controls first — eight and four.
+
+**CLAIM A GATE NUMBER IN THE COMMIT THAT ADDS THE FILE.** All three lanes published a gate the same
+afternoon and two picked 43. Mine was already pushed and named in a commit, in `gates/logs/`, in RUN-LOG
+and in the stories README, so theirs moved to 45 and 46; **44 is deliberately empty** so the renumbering is
+visible in the directory. `claude/stories/README.md` now carries the register.
+
+**TWO BUGS IN THE SHARED HARNESS, found by the Play lane and fixed here.** Both are the "a test that passes
+because it silently stopped checking" case, and both were in `gates/drive/play.js`:
+- `movesShown()` read whether `[data-ct="moves-head"]` was in the DOM. #373 made the MOVES panel always
+  laid out and merely `visibility:hidden` — deliberately, so the fit loop could not hand its height to the
+  board — so the node never leaves the DOM and the helper was **TRUE IN BOTH STATES**. `ensureMovesShown()`
+  could therefore never restore a hidden list. Now reads computed visibility.
+- `cpu-resigned` tapped `Resign` once, which since #375 only **ARMS** a two-tap confirm. That state and the
+  two built on it were landing on a **live** game, so anything asserted through them was asserting about the
+  wrong screen. Now taps the confirm.
+Neither is used by any gate `gates.sh` runs — only by `gates/audit/*` — so nothing in the suite changed.
+
+**THREE MEASURED FINDINGS FROM THOSE LANES, none built, all needing Kunal:**
+1. **`▶ Start game` is below the fold on the default setup screen** at five of six geometries, and at **all
+   six** once a persona is chosen (the row grows 95→170 and Start drops 75px). It IS reachable and
+   hit-tests clean, so it is not #372 repeated — but nothing was watching it, because A-13 in
+   `30-p1-fixes.js` only ever selects Pass & Play, the shortest variant and the only one that fits.
+2. **Online → "3 days / move" → Computer** leaves all nine Computer time pills unselected and the footer
+   reading `vs Milo · White · 3 days / move`. Two taps from the default screen, every geometry.
+3. **Once a game ends the board cannot be flipped anywhere**, while chess.jsx:5319 says "(Flip is still in
+   More)". It is not.
+
+**AND A CORRECTION TO A CASE NOBODY HAS CODED YET:** `TC-RL-086` in the staged Review case document names
+`[data-ct="play-context"]` as the carrier of the "Continuing from your reviewed position" banner. It is
+not — `play-context` is the live game's opening row, rendering *under* the setup overlay with no ink, and
+the banner has no `data-ct` at all. Fix the case before coding it.
+
+## 0a-prev0) THE #387 BUILD ITSELF (the two coach-bubble defects)
 LIVE = **#387**, stamp "#387 - 2026-09-14 12:11 ET", md5 ae5ebbc44976... over 944311 bytes.
 GATES GREEN: **24 suites** (see 387-all.log).
 

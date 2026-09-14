@@ -29,6 +29,26 @@ The audit of 2026-09-14 asked for one of the two to be renamed, and asked for it
 | `US-RFnn` / `TC-RFnn` | the **full** Review suite, 30 stories and 31 cases — a specification, broader than what the gates execute | `claude/stories/REVIEW-SUITE-FULL.md` (reserved; the document is still in the claude.ai project) | the test-lane sessions |
 | `TC-RL-nnn` | the Review test lane: the 94 measured cases from `TEST-CASES-REVIEW.md`, 92 of them automatable | `gates/regress/*.js` as they are coded | the test-lane sessions, coded here by the build session |
 
+### The gate-number register — read before adding a gate file
+
+Three lanes published a gate on the afternoon of 2026-09-14 and two of them chose the same number, because
+nobody could see what the others had just taken. The collision cost nothing only because it was caught before
+any of them landed. **Claim a number here in the same commit that adds the file.**
+
+| file | lane | authored as | notes |
+|---|---|---|---|
+| `41-coach-bubble.js` | build session | 41 | |
+| `42-home-devrow.js` | build session | 42 | |
+| `43-tcrl-analysis.js` | build session (TC-RL batch 1) | 43 | pushed first, so it kept 43 |
+| `45-play-setup.js` | Play setup lane | **43** | renumbered: 43 was already pushed |
+| `46-play.js` | Play lane | **44** | renumbered with it, to keep the two lanes adjacent |
+
+Theirs moved rather than mine for one reason, and it is the same reason this register exists for `TC-R` ids:
+`43-tcrl-analysis` is named in a pushed commit, in `gates/logs/`, in `RUN-LOG.md` and in this file, and renaming
+it would rewrite the record of what was measured and when. `gates.sh` runs `gates/regress/*.js` in NAME order,
+so the number is ordering and nothing else. **44 is deliberately free** — leaving the gap costs nothing and
+makes the renumbering visible to anyone reading the directory.
+
 ### TC-RL coding progress (started 2026-09-14, #386 re-gate)
 
 The 94-case document is staged in the tracker artifact `20acb6cb-42bf-44a3-b2fe-5a8223cca1e2`, collection

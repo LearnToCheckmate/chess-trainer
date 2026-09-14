@@ -1798,3 +1798,54 @@ Great move the sentence GROWS half a second later when the sacrifice refutation 
 `21-review-brilliant.js` stays green against a build where the brilliancy explanation changed, because its
 regex accepts the bare word "worse" which is in every branch. That gate covers the item you raised five
 times. It is next.
+
+## #387 re-gate - 2026-09-14 - two whole lanes landed, written by other sessions
+
+**No bundle change.** app.js is untouched at md5 ae5ebbc4497645dd19a7215a0402010e, still stamped
+"#387 - 2026-09-14 12:11 ET". This is test coverage, not app code.
+
+**Play and Play setup now have stories, cases and running gates - they had none of any of it.** Two other
+sessions spent the afternoon authoring them and, crucially, handed over WORKING GATE SOURCE rather than
+descriptions. Play setup: 10 stories, 56 cases, 43 running, `gates/regress/45-play-setup.js`, 165 assertions
+across six geometries. Play: 10 stories, 60 cases, 52 running, `gates/regress/46-play.js`, 128 assertions.
+
+**I ran both unchanged against #387 and got their numbers exactly** - 165 and 128, zero failures. They were
+authored against #386, so that is a real cross-check rather than a formality: two independently written
+suites reproducing their own measurements on a bundle they had never seen means neither was quietly fitted
+to the build it was written on. Both lanes also built and proved their own negative controls before handing
+over - eight and four.
+
+**A numbering collision, caught before it cost anything.** All three lanes published a gate the same
+afternoon and two of them picked 43. Mine was already pushed and is named in a commit, in the logs and in
+RUN-LOG, so theirs moved to 45 and 46; 44 is left deliberately empty so the renumbering is visible in the
+directory. `claude/stories/README.md` now carries a gate-number register - claim a number in the same commit
+that adds the file.
+
+**Two bugs in the shared test harness, found by the Play lane and fixed here.** Both are the "a test that
+passes because it silently stopped checking" case:
+- `movesShown()` read whether the MOVES heading was in the DOM. #373 made that panel always laid out and
+  merely hidden - deliberately, so the fit loop could not give its height to the board - so the helper
+  returned TRUE IN BOTH STATES and `ensureMovesShown()` could never restore a hidden list.
+- `cpu-resigned` tapped Resign once, which since #375 only ARMS a two-tap confirm. That state, and the two
+  built on it, were landing on a LIVE game - so anything asserted through them was asserting about the wrong
+  screen entirely.
+
+**THREE FINDINGS FROM THOSE LANES THAT NEED YOU**, all measured, none built:
+
+1. **`▶ Start game` is below the fold on the screen every game starts from.** On the default setup (vs
+   Computer) it sits at 874/808/844/844/827 against viewports of 568/679/730/761/844 - off screen at five of
+   six sizes. Choose an opponent, which is what the screen is for, and the persona row grows 95→170 and Start
+   drops another 75px: **below the fold at all six.** It IS reachable by scrolling and hit-tests clean, so
+   this is not the old #372 failure - but nothing in the suite was watching it, because the one guard we had
+   only ever selected Pass & Play, the shortest variant and the only one that fits.
+
+2. **Two taps from the default screen produce a setup whose footer lies.** Online → "3 days / move" →
+   Computer leaves all nine Computer time pills unselected and the footer reading `vs Milo · White · 3 days /
+   move` - a multi-day correspondence limit named as the clock of a local game against Stockfish, from a list
+   that screen cannot even select. The game starts with it. Reproduced at every geometry.
+
+3. **Once a game ends the board cannot be flipped anywhere** - not the control row, not the More sheet, not
+   the menu - while chess.jsx says in a comment "(Flip is still in More)". It is not, and never was.
+
+Sixteen more questions are marked NEEDS-KUNAL across the two lanes; they are in the lane documents rather
+than here so this note stays readable.

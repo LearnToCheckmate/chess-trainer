@@ -59,7 +59,13 @@ async function waitPlies(b,n,ms){const t0=Date.now();while(Date.now()-t0<(ms||20
 // the status line above the board (data-ct play-context / play-opening)
 async function status(b){return b.page.evaluate(()=>{const e=document.querySelector('[data-ct="play-opening"]');const c=document.querySelector('[data-ct="play-context"]');return {txt:e?(e.innerText||'').trim():null,h:c?Math.round(c.getBoundingClientRect().height*10)/10:null};});}
 // the move list under the control row is shown when its MOVES head is in the DOM
-async function movesShown(b){return b.page.evaluate(()=>!!document.querySelector('[data-ct="moves-head"]'));}
+// #387: this used to read !!document.querySelector('[data-ct="moves-head"]'), and it was BLIND. #373 made the
+// MOVES panel ALWAYS laid out and merely visibility:hidden when Moves is off (chess.jsx:5885) - precisely so the
+// fit loop could not hand its height to the board - so the head never leaves the DOM and the old helper returned
+// TRUE IN BOTH STATES. ensureMovesShown() could therefore never restore a hidden list, and S['cpu-moves-hidden']
+// did not reach the state its name claims. Found by the Play lane authoring pass, measured at 320x568 and
+// 375x730. The computed visibility is the honest measurement.
+async function movesShown(b){return b.page.evaluate(()=>{const p=document.querySelector('[data-ct="moves-panel"]');return p?getComputedStyle(p).visibility==='visible':false;});}
 async function ensureMovesShown(b){if(!(await movesShown(b))){await tapBtn(b,/^Moves$/,400);return true;}return false;}
 // every scrolling box on screen (the setup sheet is one): scrollHeight vs clientHeight
 async function scrollers(b){return b.page.evaluate(()=>{const r=[];for(const el of document.querySelectorAll('div')){const st=getComputedStyle(el);if((st.overflowY==='auto'||st.overflowY==='scroll')&&el.scrollHeight>el.clientHeight+1){const rc=el.getBoundingClientRect();r.push({top:Math.round(rc.top),h:Math.round(rc.height),sh:el.scrollHeight,ch:el.clientHeight,pos:st.position,scrollTop:Math.round(el.scrollTop)});}}return r;});}
@@ -90,7 +96,12 @@ S['cpu-forward']=async(b)=>{await S['cpu-back'](b);await tapBtn(b,/^Forward$/,40
 S['cpu-hint']=async(b)=>{await S['cpu-4ply'](b);await tapBtn(b,/^Hint$/,700);};
 S['cpu-flip']=async(b)=>{await S['cpu-4ply'](b);await tapBtn(b,/^Flip$/,500);};
 S['cpu-more']=async(b)=>{await S['cpu-4ply'](b);await tapBtn(b,/^More$/,500);};
-S['cpu-resigned']=async(b)=>{await S['cpu-more'](b);await tapBtn(b,/^Resign$/,900);};
+// #387: this used to tap Resign ONCE and stop, which since #375 only ARMS it - a 45px row under "New game" was
+// ending games on a single tap, so it became a two-tap confirm. Measured on the one-tap version: the control row
+// still read Moves-Back-Forward-Hint-Flip-More, the More sheet was still open, and there was no result card, so
+// 'cpu-resigned', 'cpu-resigned-more' and 'cpu-rematch' all landed on a LIVE game and anything asserted through
+// them was asserting about the wrong screen. Found by the Play lane authoring pass.
+S['cpu-resigned']=async(b)=>{await S['cpu-more'](b);await tapBtn(b,/^Resign$/,600);await tapBtn(b,/^Tap again to resign$/,1100);};
 S['cpu-resigned-more']=async(b)=>{await S['cpu-resigned'](b);await tapBtn(b,/^More$/,500);};
 S['cpu-rematch']=async(b)=>{await S['cpu-resigned'](b);await tapBtn(b,/^Rematch$/,900);};
 S['cpu-black']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Pip\n/,200);await tapBtn(b,/^Black$/,200);await tapBtn(b,/^▶ Start game$/,600);await ensureMovesShown(b);await waitPlies(b,1);await b.settle(500);};
