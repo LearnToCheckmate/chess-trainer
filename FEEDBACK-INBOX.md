@@ -1477,3 +1477,22 @@ Times not captured for this batch; see the Timestamps note above.
   it can fail. The width is pinned now regardless (351/390), the same fix 10-gameover needed.
   Still no control at all: 14-uat-review-card (14) and 15-gallery-playall (12), both gallery-driven and
   slow. A-16, A-13 and A-10 inside 30-p1-fixes also still have none.
+
+- [2026-09-14 10:0x ET] status: CLOSED, test-lane item 7 complete
+  All 19 suites have now been run against a bundle built to fail them and gone red. The last five this
+  pass: A-16 (4 of 35, sheet bottom 537 of 679 with maxHeight dropped to 80%), A-10 (4 of 35, Next
+  puzzle emptied), A-13 (1 of 35, at 375x640 only, which is correct - the short-screen branch only
+  exists below 720 and the gate already samples there), 14-uat-review-card (1 of 14, caption bottom 739
+  against a 730 viewport) and 15-gallery-playall (2 of 12).
+  15-gallery-playall's control REPRODUCED THE #378 DEFECT EXACTLY: board 375 -> 367 inside card k10 and
+  3px of page scroll, which is what Kunal reported. The comparison is the lesson - 10-gameover, whose
+  whole subject is card k10, was blind to that same bundle until its width was pinned last pass, while
+  15-gallery-playall caught it. The overlap between the two gates earned its keep.
+  TWO MORE NON-CONTROLS on the way, making four in the session. A-16 first: marginBottom:40 on the menu
+  sheet reached the bundle and moved nothing, because the backdrop is flex/flex-start and the sheet is
+  already clamped by maxHeight, so a bottom margin extends past it without changing the height that
+  A-16 actually measures. And gate 14 first: the caption widened to 130vw, when the assertion is on its
+  BOTTOM. Checking the break reaches the CODE is not enough - it has to reach the MECHANISM the
+  assertion is about.
+  ONE ASSERTION REMAINS UNFALSIFIED, recorded rather than counted as covered: A-12's across-toggle
+  claim, which survives the only break that should break it (see the previous entry).
