@@ -94,6 +94,12 @@ wider one.
   left the row still overflowing its box, by 19px instead of 48 - but the trailing button landed at 294 on a 320
   screen and stayed on it, so the gate was right to stay green. "The numbers moved" is necessary and not
   sufficient; they have to move past the line the assertion actually draws.
+- **A gate that enters a state by the shortest route often enters the wrong one.** #385's "no bubble in
+  analysis mode" passed against a bundle with that guard deleted, because the gate reached analysis through
+  the driver's shortest path - which goes to ply 0, where an unrelated `ply>0` condition already hid the
+  bubble. The assertion was about `anaMode` and `anaMode` was never the thing under test. When an assertion
+  says "X is absent in state S", assert FIRST that X was present just before, and that S was actually
+  reached; both checks are one line each and they are what turn a green into evidence.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never

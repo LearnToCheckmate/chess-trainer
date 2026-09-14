@@ -1643,3 +1643,41 @@ at 375, is not a defect. Every piece is drawn inside `transform:scale(1.06)` and
 measured number to four decimals; the board clips at 374.98, inside the viewport, so none of it ever reached
 the screen. The gate was reading paint as layout. That is the fifth of this week's layout reports that did not
 survive measurement, and both of the two that did were horizontal spill with no transform in the chain.
+
+## #385 - 2026-09-14 - the coach speech bubble (chain link 12)
+
+**Shipped.** The coach speech bubble, which had been parked since 2026-09-12 for one reason only: on your
+phone there is no free vertical space for it, so it would have cost board height. You were shown the mockup
+and answered "Build it, over the board, dismiss on tap", with the note "would it dismiss when the player
+plays the next move. DOn't want to make it an explicit dismissal by having to click a cross somewhere. SO it
+doesn't interrupt the flow of play". Both halves are built and both are gated.
+
+**It costs the board nothing, and that is the assertion the gate guards hardest.** The bubble is an overlay
+inside the board container, so the board is the same size in the same place with it up and with it gone -
+measured 349 wide at 375x730 and 264 at 320x568, before and after. The geometry matches the mockup you
+approved: 333 wide inside a 349 board, an 8px inset, 97.6px tall against the mockup's 128 cap.
+
+**Dismissal.** A tap anywhere on the bubble retires it - it is a 333x98 target, so there is nothing to hunt
+for and no cross. Stepping to the next move brings that move's comment up on its own, so you never have to
+close anything to carry on. Tapping a move's comment away keeps it away for that move if you step back to it.
+
+**No face, deliberately.** DECISIONS-LOG: "the bubble and the eval chip, but no face until the piece-mascot
+direction is drawn." So it carries the verdict chip, the eval, and the sentence, and no avatar. It is also
+hidden in analysis mode, where a box over a third of the squares would eat taps meant for pieces.
+
+**ONE THING I DECIDED THAT YOU MAY WANT DIFFERENTLY, so it is written down rather than buried.** Your answer
+settled where the bubble goes and how it goes away, but not when it appears. I have it appear on every move
+that has a comment, which is the reading your note implies - "dismiss on the next move" only makes sense if
+there is a next bubble. If you would rather it spoke only on the notable moves (blunders and brilliancies,
+say), that is a one-line change to the condition.
+
+**A note on the test, because it is the more useful half of this pass.** My own new gate had an assertion
+that could not fail: "no bubble in analysis mode" passed against a bundle with that guard deleted, because
+the gate entered analysis at move 0 where the bubble is hidden anyway. Caught by its own negative control on
+the day it was written. Sixth blind assertion this week, first one caught the same day.
+
+**Also found, and it is not a build problem.** Test-lane item 8 - code the 92 automatable TC-RL cases - CANNOT
+be done from this session. Those cases are defined in TEST-CASES-REVIEW.md, which lives in the claude.ai
+project; the whole repo contains exactly three TC-RL ids and all three are already coded. It had been sitting
+at the top of the untried queue as though it were available work. Flagged as
+testlane-item8-not-doable-from-build with what would unblock it.

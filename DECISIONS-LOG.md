@@ -35,6 +35,14 @@ Not a person, not abstract, not no-avatar. He rejected two earlier illustrated-p
 
 **Coach speech bubble.** → *Build it WITHOUT the avatar.*
 The bubble and the eval chip, but no face until the piece-mascot direction is drawn.
+**Round 2, 2026-09-13, after the mockup:** → *"Build it, over the board, dismiss on tap"*, with the note
+*"would it dismiss when the player plays the next move. DOn't want to make it an explicit dismissal by having
+to click a cross somewhere. SO it doesn't interrupt the flow of play"*. Both halves binding: a tap retires it
+AND stepping to the next move brings that move's comment up, so nothing ever has to be closed. He chose over
+the board when told the alternative was paying board height for it. **Built in #385.** What his answer did
+NOT settle, and what I chose: it appears on every move that has a comment. That reading follows from his own
+note - "dismiss on the next move" presupposes a next bubble - but if he wants the coach to speak only on
+notable moves it is a one-line change to the render condition.
 
 **Takeback.** → *Remove it from live play.* Keep it for practice, not for rated games.
 

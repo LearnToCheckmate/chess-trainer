@@ -61,7 +61,42 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #384 run)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #385 run)
+LIVE = **#385**, stamp "#385 - 2026-09-14 09:35 ET", md5 572bb8366efa... over 944534 bytes.
+GATES GREEN: **21 suites** (see 385-all.log for the PASS count).
+
+**#385: the coach speech bubble.** Parked since 2026-09-12 for exactly one reason - on Kunal's phone there is
+no free vertical space for it, so it would have cost board height - and unparked by his 2026-09-13 answer:
+"Build it, over the board, dismiss on tap", with the note "would it dismiss when the player plays the next
+move. DOn't want to make it an explicit dismissal by having to click a cross somewhere. SO it doesn't
+interrupt the flow of play". Both halves are binding and both are built.
+
+It is an overlay INSIDE the board container, so the board pays nothing by construction. The mockup he
+approved was 333x128 inside a 349 board; measured 333.03 wide at an 8px inset, 97.6 tall against the 128 cap,
+and the board is 349 at 375x730 and 264 at 320x568 with the bubble up AND after it is gone. It carries the
+verdict chip, the eval and the sentence, and NO avatar - DECISIONS-LOG: "the bubble and the eval chip, but no
+face until the piece-mascot direction is drawn". Hidden in analysis mode, where a box over a third of the
+squares would eat taps meant for pieces.
+
+**WHAT HIS ANSWER DID NOT SETTLE, and what I chose:** it appears on every move that has a comment. That
+follows from his own note - "dismiss on the next move" presupposes a next bubble - but if he wants the coach
+to speak only on notable moves, it is a one-line change to the render condition. Written into DECISIONS-LOG
+and the inbox rather than left implicit.
+
+**THE MORE USEFUL HALF OF THIS PASS IS THE TEST.** My own new gate had an assertion that COULD NOT FAIL: "no
+bubble in analysis mode" passed 38 of 38 against a bundle with that guard deleted, because the gate entered
+analysis through the driver's shortest path, which goes to ply 0 - where an unrelated `ply>0` condition
+already hid the bubble. When an assertion says "X is absent in state S", assert first that X was present just
+before and that S was actually reached. Sixth blind assertion this week, and the first caught by its own
+control on the day it was written rather than in a later audit. New CLAUDE.md bullet.
+
+**TEST-LANE ITEM 8 IS NOT DOABLE FROM A BUILD SESSION**, and it had been sitting at the top of the untried
+queue for several chain links as though it were available work. The 92 automatable TC-RL cases are defined in
+TEST-CASES-REVIEW.md, which lives in the claude.ai project; grepping the whole repo returns exactly three
+TC-RL ids (033, 039, 070) and all three are already coded. Flag: testlane-item8-not-doable-from-build, with
+what would unblock it. This is the same shape as item 6, whose pass conditions are in SUITE-AUDIT section 2.
+
+## 0a-prev1) WHERE THE BUILD WAS AT #384 (updated 2026-09-14 by the #384 run)
 LIVE = **#384**, stamp "#384 - 2026-09-14 08:50 ET", md5 068259a9504e... over 942979 bytes.
 GATES GREEN: **20 suites, 547 PASS, 0 fail** (384-all.log). Every pre-existing gate is byte-identical in count
 to #383; the +48 is entirely the new suite.
@@ -98,7 +133,7 @@ this build reverted the style and left the shortened label: the row still overfl
 of 48, but the trailing button landed at 294 on a 320 screen and stayed on it. The gate was right to stay
 green. "The numbers moved" is necessary and not sufficient.
 
-## 0a-prev1) WHERE THE BUILD WAS AT #383 (updated 2026-09-14 by the #383 run)
+## 0a-prev2) WHERE THE BUILD WAS AT #383 (updated 2026-09-14 by the #383 run)
 LIVE = **#383**, commit 8d3cc3d, stamp "#383 - 2026-09-14 07:25 ET", md5 cd67020cecd0e4d672633ecadc2f2e09
 over 942880 bytes, verified at that SHA. GATES GREEN: 19 suites, 489 PASS, 0 fail.
 
