@@ -1717,3 +1717,42 @@ legitimate fixed full-viewport layer. The assertion that actually holds is behav
 when the column scrolls. And the gate's own tap was failing at exactly the two geometries where the row sits
 below the fold - the gate was tapping off screen, not the app misbehaving; it now scrolls first and asserts
 the button is on screen before tapping.
+
+## #386 re-gate - 2026-09-14 - the Review test lane starts landing (chain link 14)
+
+**No bundle change.** app.js is untouched at md5 7ef5d916feb0a27ea03f63e7f123cdc0, still stamped
+"#386 - 2026-09-14 10:17 ET". This pass added test coverage, not app code, so it is a re-gate rather than a
+new build number.
+
+**Test-lane item 8 is unblocked and the first batch is coded.** Last pass I reported that the 92 Review cases
+could not be coded from a build session because they lived in a project document I cannot read. The feedback
+session staged the whole document in the tracker, and the procedure now says so. Batch 1 is
+`gates/regress/43-tcrl-analysis.js`: cases TC-RL-001 to 011, thirty-two assertions.
+
+Three of the eleven are deliberately not coded, and they are named rather than quietly skipped: **TC-RL-004**
+and **TC-RL-008** and **TC-RL-009** are all marked NEEDS-KUNAL. 008 the document itself says headless
+Chromium cannot reproduce (backgrounding the app needs a real phone), and 009 has no failure state defined in
+the build to assert against. None of them is coded against a guess.
+
+**What the batch proves, in your terms:** a pasted game shows honest progress that never goes backwards
+(sampled 3,18,29,41,47,68,76,85,91,97,100 on this run); you cannot start a second review over a running one -
+the PGN box is gone and there are exactly six buttons on screen; leaving the tab and coming back returns you
+to the progress screen rather than losing the run; and the same game analysed cold in three independent
+browsers gives a byte-identical answer - `White 98% ACCURACY ~1945 / Black 62.4% ACCURACY ~948`, matching the
+document's measured values exactly.
+
+**One thing I refused to pin, on purpose.** The document measured the summary arriving in 15-27 seconds. That
+is a property of the machine, not of the app: pinning it would make the gate red on a slow container and
+green on a fast one, which is backwards. The time is REPORTED on every run instead (13 s here), so a real
+slowdown is visible to anyone reading the log without the suite crying wolf.
+
+**Three negative controls, and one of them justified a guard I nearly did not write.** Rewording the progress
+line broke the percentage sampler, so TC-RL-002 had zero samples to check - and it went RED rather than
+passing vacuously on an empty list, because the case carries a separate assertion that at least three samples
+were taken. Without that guard, a wording change would have silently switched off the monotonic check and
+left it green.
+
+**Two assertion groups in this batch have NO control and I am saying so rather than implying coverage.**
+TC-RL-007 and TC-RL-010 are untested against a broken build. TC-RL-010's property already has its own
+controlled gate (33-reproducible-review), and breaking it deliberately would mean reverting the #377
+determinism fix, which is not a change to make casually. TC-RL-007 should get a control in a later batch.

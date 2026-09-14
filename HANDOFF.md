@@ -61,7 +61,40 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #386 run)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #386 RE-GATE)
+LIVE = **#386**, stamp "#386 - 2026-09-14 10:17 ET", md5 7ef5d916feb0... over 944530 bytes.
+GATES GREEN: **23 suites** (see 386-all.log). The re-gate added test coverage, NOT app code: app.js is
+byte-identical to the #386 build below.
+
+**THE REVIEW TEST LANE HAS STARTED LANDING, and item 8 is no longer blocked.** The #385 pass reported that
+the 92 automatable TC-RL cases could not be coded here because they lived in a claude.ai project document a
+build session cannot read. The feedback session staged the whole 94-case document in the tracker artifact
+`20acb6cb-42bf-44a3-b2fe-5a8223cca1e2`, collection `docs`, doc id `test-cases-review`, and the build-run
+procedure (now v11) points at it. **Read it from there, in batches of about ten cases per chain link, in
+document order, and gate after each batch.** `claude/stories/README.md` carries the batch table.
+
+Batch 1 is `gates/regress/43-tcrl-analysis.js` (US-R04, 32 assertions): TC-RL-001, 002, 003, 005, 006, 007,
+010, 011. **004, 008 and 009 are NEEDS-KUNAL and are named in the gate header rather than silently skipped** -
+008 the document itself says headless Chromium cannot reproduce (it needs a phone recording), and 009 has no
+failure state defined in the build to assert against.
+
+**THE RULE THIS BATCH ADDS: do not pin a number that belongs to the machine.** The document measured the
+summary arriving in 15-27 s across six geometries. Pinning that would make the gate red on a slow container
+and green on a fast one - the opposite of a regression test. Elapsed is REPORTED on every run instead (13 s
+here). What IS pinned is what the app controls: the exact progress wording, the engine element, the
+percentage never going backwards, exactly six buttons while an analysis runs, and byte-identical accuracy
+across three cold contexts.
+
+**AND A GUARD WORTH COPYING.** TC-RL-002 asserts the percentage never decreases AND, separately, that at
+least three samples were taken. The control that reworded the progress line broke the sampler, so the sample
+list was empty - and the case went RED instead of passing vacuously over an empty array. Without that second
+assertion, a wording change would have silently switched the monotonic check off and left it green.
+
+**Two of this batch's assertion groups have NO negative control, recorded rather than implied:** TC-RL-007
+and TC-RL-010. TC-RL-010's property has its own controlled gate already (33-reproducible-review) and breaking
+it deliberately would mean reverting the #377 determinism fix. TC-RL-007 should get one in a later batch.
+
+## 0a-prev0) THE #386 BUILD ITSELF (A-05 and the harness trap)
 LIVE = **#386**, stamp "#386 - 2026-09-14 10:17 ET", md5 7ef5d916feb0... over 944530 bytes.
 GATES GREEN: **22 suites** (see 386-all.log for the PASS count).
 

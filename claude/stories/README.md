@@ -29,6 +29,24 @@ The audit of 2026-09-14 asked for one of the two to be renamed, and asked for it
 | `US-RFnn` / `TC-RFnn` | the **full** Review suite, 30 stories and 31 cases — a specification, broader than what the gates execute | `claude/stories/REVIEW-SUITE-FULL.md` (reserved; the document is still in the claude.ai project) | the test-lane sessions |
 | `TC-RL-nnn` | the Review test lane: the 94 measured cases from `TEST-CASES-REVIEW.md`, 92 of them automatable | `gates/regress/*.js` as they are coded | the test-lane sessions, coded here by the build session |
 
+### TC-RL coding progress (started 2026-09-14, #386 re-gate)
+
+The 94-case document is staged in the tracker artifact `20acb6cb-42bf-44a3-b2fe-5a8223cca1e2`, collection
+`docs`, doc id `test-cases-review` — put there by the feedback session after this session flagged that the
+project copy was unreadable from a build session (`testlane-item8-not-doable-from-build`). Work it in batches
+of about ten, one batch per chain link, in document order, and gate after each batch.
+
+| batch | cases | gate | coded | left out, and why |
+|---|---|---|---|---|
+| 1 | TC-RL-001 … 011 (US-R04) | `gates/regress/43-tcrl-analysis.js`, 32 assertions | 001, 002, 003, 005, 006, 007, 010, 011 | **004** NEEDS-KUNAL (K15: is a 200-ply review in scope at all); **008** NEEDS-KUNAL and the doc's own note says headless Chromium cannot reproduce it — it needs a phone recording; **009** NEEDS-KUNAL, no failure state exists in the build to assert against |
+
+**What batch 1 deliberately does NOT pin:** the doc measured the summary arriving in 15–27 s. That is a
+property of the machine, not the app, so pinning it would make the gate red on a slow container and green on
+a fast one. Elapsed time is REPORTED on every run instead, so a real slowdown is visible without being
+asserted against. What is pinned is what the app controls: the exact progress wording, the engine element,
+the percentage never going backwards, exactly six buttons while an analysis runs, and byte-identical accuracy
+across three cold contexts.
+
 `TC-RL-nnn` does not collide with anything and needs no rename. `TC-RL-039` (the strip must re-sync at ply 0) and
 `TC-RL-070` (every row of the review ⋯ sheet must be reachable) are coded as `gates/regress/37-strip-sync.js` and
 `gates/regress/38-rev-sheet-reach.js`.
