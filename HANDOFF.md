@@ -62,8 +62,10 @@ gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, 
 `gates/` rather than re-writing them.
 
 ## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-13 evening, written by the #376 run)
-LIVE = **#376**, commit __376_SHA__, stamp "#376 - 2026-09-13 19:23 ET", pushed by this session and verified by
-stamp and md5 at that SHA. It is #375 (14f06ac) with the second build line rebased on top and renumbered.
+LIVE = **#376**, commit c3eb13a, stamp "#376 - 2026-09-13 19:42 ET", md5 8ae83724470bbdd0843e7027672d5355 over
+942172 bytes. Pushed by this session and verified the way #375 was: the raw app.js was fetched back from
+raw.githubusercontent.com AT THAT SHA and its stamp and md5 matched the gated bundle byte for byte. Gates before
+the push: **GATES GREEN #376**, 12 suites, 256 PASS lines, 0 fail (claude/agents/gatelogs/376-all.log). It is #375 (14f06ac) with the second build line rebased on top and renumbered.
 **THE PEN: only session_01Ar5fWLg9DZuPaRDBfKnXvs builds, gates, commits or pushes** (Kunal, 2026-09-13). Never the
 GitHub upload page: it strips the Claude-Session trailer, which is why 14f06ac is the one untraceable commit here.
 Build numbers come from that one session, one sequence. **READ CLAUDE.md AND claude/BUILD-CONTEXT.md FIRST** - they

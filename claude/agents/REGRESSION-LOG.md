@@ -31,7 +31,7 @@ rise. A gate that is red blocks the build (GATES RED); a build is "gated" only w
 | #373 | 203 (the run of record on the pushed bundle, 22:41 ET; a trial run earlier had 200 before the engine-on label check was added) | 10 | claude/agents/gatelogs/373-all.log |
 | #374 | 217 (adds 31-antagonist373.js) | 11 | claude/agents/gatelogs/374-all.log |
 | #375 | 160 over 24 gates, in the retiring chat's own suite, which is not in this repo | 24 (theirs) | not in the repo; see flag handover-from-brilliant-chat |
-| #376 | __376_COUNT__ (adds 15-gallery-playall, 32-plylog, 33-reproducible-review) | 14 | claude/agents/gatelogs/376-all.log |
+| #376 | 256 across 12 suites (adds 15-gallery-playall 12, 32-plylog 16, 33-reproducible-review 11) | 12 | claude/agents/gatelogs/376-all.log |
 
 Not yet ported (the old suite's other harnesses, to be rebuilt as the screens get their charter pass): fit.js (14
 phone viewports per board screen), shift346 (26 samples through the engine's think), veteran360 (stored-profile
