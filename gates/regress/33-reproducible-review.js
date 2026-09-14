@@ -72,12 +72,20 @@ async function reviewOnce(geo,tag){
 L.run(async()=>{
   // The direct guard, first, because it is instant and it is the one that catches an edit to the constant.
   // esbuild minifies 20000 to 2e4, so match either spelling and read the number back.
+  // THREE sites share the shape Math.max(N, movetime*8) and only ONE of them is the review pool's. The other two
+  // guard the single analysis worker, whose searches are bounded by `go movetime`, so 8x movetime is a sane
+  // ceiling there and 4 s is correct. The pool's search is bounded by DEPTH, so its duration is unbounded and 4 s
+  // truncated it. Matching the first occurrence in file order reads an analysis site and calls a healthy bundle
+  // broken - which is exactly what it did on the first record run. The pool site is the one immediately followed
+  // by the depth constant, so both halves of the #375 reproducibility fix are asserted together: if either the
+  // timeout or the depth moves, the verdicts rot and this line goes red.
   const bundle=process.env.CT_APP||path.join(L.ROOT,'app.js');
   const src=fs.readFileSync(bundle,'utf8');
-  const m=src.match(/Math\.max\((\d+(?:e\d+)?)\s*,\s*\w+\*8\)/);
-  const guard=m?Number(m[1]):null;
-  L.say(!!m,'the stuck-worker guard is present in the bundle under test',m&&m[0]);
-  L.say(guard!==null&&guard>=20000,'the stuck-worker timeout is at least 20 s in the bundle ('+guard+' ms). At 4 s it cut real searches short and stored a shallow depth-14 opinion as the answer, which is what made a move that walks into mate read as Great.',bundle);
+  const m=src.match(/Math\.max\((\d+(?:e\d+)?)\s*,\s*\w+\*8\)\)\s*,\s*\w+\s*=\s*(\d+)\s*[,;]/);
+  const guard=m?Number(m[1]):null, depth=m?Number(m[2]):null;
+  L.say(!!m,'the review pool\'s search is identifiable in the bundle under test (its guard followed by its depth)',m&&m[0]);
+  L.say(guard!==null&&guard>=20000,'the pool\'s stuck-worker timeout is at least 20 s ('+guard+' ms). At 4 s it cut real searches short and stored a shallow opinion as the answer, which is what made a move that walks into mate read as Great.',bundle);
+  L.say(depth===16,'the pool searches to depth 16 ('+depth+'). At 14 the engine prefers 15...Nxd7, never sees the mate, and the famous move is mislabelled; 18 is correct but takes 36 s on this machine.',bundle);
 
   const geo='kunal730';
   const A=await reviewOnce(geo,'A');
