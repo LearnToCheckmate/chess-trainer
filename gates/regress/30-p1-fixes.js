@@ -50,6 +50,18 @@ L.run(async()=>{
     await b.tapText(/^Moves$/,{wait:700});const m1=await b.metrics();const vis1=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="moves-panel"]');return e?getComputedStyle(e).visibility:null;});
     await b.tapText(/^Moves$/,{wait:700});const m2=await b.metrics();const vis2=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="moves-panel"]');return e?getComputedStyle(e).visibility:null;});
     L.say(m0.board&&m1.board&&m2.board&&Math.abs(m0.board.w-m1.board.w)<0.6&&Math.abs(m0.board.w-m2.board.w)<0.6&&Math.abs(m0.board.top-m1.board.top)<0.6&&Math.abs(m0.board.top-m2.board.top)<0.6,geo+': A-12 the board keeps its width and top across Moves closed and open',{w:[m0.board&&m0.board.w,m1.board&&m1.board.w,m2.board&&m2.board.w],top:[m0.board&&m0.board.top,m1.board&&m1.board.top,m2.board&&m2.board.top]});
+    // #381 re-gate: A-12's board assertion compares the board only against ITSELF across the three samples,
+    // which is the exact shape that left 10-gameover unable to see a board 16px wrong. Pinned here for the same
+    // reason. Measured on #381: 351 at 375x679, 390 at 390x844.
+    // SAID PLAINLY, because it is a gap and not a proof: no negative control has been found for A-12's
+    // board claim. Breaking the panel's space reservation (visibility:hidden -> display:none) moves the
+    // VISIBILITY assertion below but leaves the board at 353/368/288/353 across 375x679, 390x844, 320x568 and
+    // 375x730 - identical on both bundles. So the panel's reservation is not what holds the board steady here,
+    // and the comment that says it does is describing an intention rather than the mechanism. The pin below is
+    // a real guard against a board that is the wrong size throughout; the unchanged-across-toggle claim above
+    // still has nothing proving it can fail.
+    const A12={kunal:351,'390':390};
+    if(A12[geo]!=null)L.say(!!m2.board&&Math.abs(m2.board.w-A12[geo])<0.6,geo+': A-12 the board is '+A12[geo]+' wide after the toggle, the measured size - not merely the same as before it',{measured:m2.board&&m2.board.w,want:A12[geo]});
     L.say(vis1!==vis2&&(vis1==='hidden'||vis2==='hidden'),geo+': A-12 the Moves toggle hides and shows the panel content',{closed:vis1,open:vis2});
     L.say(m2.over.over<=0&&m2.over.docScroll===0,geo+': A-12 no scroll after toggling',m2.over);
     // A-10

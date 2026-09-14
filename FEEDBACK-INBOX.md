@@ -1464,3 +1464,16 @@ Times not captured for this batch; see the Timestamps note above.
   Also partial: 30-p1-fixes carries six separate findings and this pass exercised only A-04/A-11. The
   other five (A-16 sheet bottom, A-13 setup sheet, A-10 puzzle navigation, A-12 Moves toggle) still
   have no control. "The gate went red" is not the same as "the gate is proved".
+
+- [2026-09-14 09:3x ET] status: test-lane item 7, four more controls, one gap that stays open
+  31-antagonist373 (2 of 14, label 6.1px off the board at 375 and 11.4px at 320), 11-lesson (2 of 16,
+  demo board 368@98 where it pins 375@92) and 21-review-brilliant (2 of 7, play-out button gone) all
+  fire cleanly.
+  A-12 IN 30-p1-fixes DOES NOT, and that is the finding. Breaking the MOVES panel's space reservation
+  (visibility:hidden -> display:none) moved only the visibility assertion. The board did not move at
+  all: 353/368/288/353 at 375x679, 390x844, 320x568 and 375x730, identical on both bundles. So the
+  panel's reservation is NOT what keeps the board steady on that screen, and A-12's own comment is
+  describing an intention rather than the mechanism. Its across-toggle claim still has nothing proving
+  it can fail. The width is pinned now regardless (351/390), the same fix 10-gameover needed.
+  Still no control at all: 14-uat-review-card (14) and 15-gallery-playall (12), both gallery-driven and
+  slow. A-16, A-13 and A-10 inside 30-p1-fixes also still have none.
