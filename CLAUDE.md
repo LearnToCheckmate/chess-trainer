@@ -36,7 +36,7 @@ and write docs and flags. The live rule is tracker flag `pen-lock-one-writer`.
 | `RUN-LOG.md` | ETA against actual per build, and the four numbers per close-out. |
 | `claude/stories/`, `claude/agents/` | stories, test cases, and the agent reports this repo owns. |
 | tracker flags `20acb6cb-42bf-44a3-b2fe-5a8223cca1e2` | live instructions, both directions. The only two-way channel between the sessions. |
-| metrics dashboard `3478220d-8023-43ba-b08a-4397eb054cc3` | the open decisions and the scope baseline. Read-only from here. |
+| metrics dashboard `3478220d-8023-43ba-b08a-4397eb054cc3` | the open decisions and the scope baseline. Read `decisions`; WRITE a `snapshots` row at close-out so the numbers move when a build lands (Kunal, 2026-09-14 - it used to be read-only from here). Never set `certified` anywhere: that is his alone. |
 | pickup board `f38b7157-4bd7-4ae2-b2ce-2c7594b8cf36` | who did what, append-only. |
 
 **Nothing waiting on an answer gets built before the answer exists.** Check the item's id in
@@ -92,6 +92,16 @@ its row.
 | what | where | comes out when |
 |---|---|---|
 | the ply log: records each ply change behind the Layout readout switch | `chess.jsx`, search `plyLogOnRef`; gate `gates/regress/32-plylog.js` | Kunal certifies `k12` closed on his own phone (#376, 2026-09-13) |
+
+## The overnight run
+
+A scheduled task wakes THIS session at 04:00 UTC (midnight ET) — never a fresh chat, because a second
+builder is exactly what collided on 13 September. It runs only if there is work, and the bar is
+deliberately high: a flag counts as outstanding only when `broken` is true AND it has no `handled`
+field. **`acked` is not `handled`** — the first means someone read it, the second means it shipped.
+An answered decision counts only when the `choice` selects a real option; "draw me options first" and
+"let's talk" are not answers. Nothing outstanding means stop silently; a quiet night on a clean queue
+is the right outcome, and inventing work to justify the run is the failure mode.
 
 ## Parked
 
