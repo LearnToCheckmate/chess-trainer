@@ -3280,12 +3280,12 @@ export default function App(){
     }catch(e){setCcErr('Couldn’t reach Chess.com ('+((e&&e.message)||'network blocked')+'). Fetching works once this app is on a real website — the preview sandbox blocks outside connections. You can still paste a PGN below.');}
     setCcLoading(false);
   };
-  const ccResult=(g)=>{const w=g.wr;if(w==='win')return g.white+' won';if(['checkmated','resigned','timeout','abandoned','lose','kingofthehill','threecheck','bughousepartnerlose'].includes(w))return g.black+' won';return 'draw';};
+  const ccResult=(g)=>{const w=g.wr;if(w==='win')return g.white+' won';if(['checkmated','resigned','timeout','abandoned','lose','loss','kingofthehill','threecheck','bughousepartnerlose'].includes(w))return g.black+' won';return 'draw';};
   const gkey=(g)=>g.src+':'+(g.date||0)+':'+(g.white||'')+':'+(g.black||'');
   // #353 with more than one imported account, "which side am I" is a property of the GAME, not
   // of whatever is currently typed in the box. Fall back to the box for anything imported before.
   const myName=(src,g)=>(g&&g.acct)?String(g.acct).toLowerCase():((src==='li'?lichessUser:chessUser)||'').trim().toLowerCase().replace(/^@/,'');
-  const gameInfo=(g)=>{const mn=myName(g.src,g),wl=(g.white||'').toLowerCase(),bl=(g.black||'').toLowerCase();const userColor=mn&&wl===mn?'w':(mn&&bl===mn?'b':null);const opp=userColor==='w'?g.black:(userColor==='b'?g.white:null);const w=g.wr;const whiteRes=w==='win'?'w':(['checkmated','resigned','timeout','abandoned','lose','kingofthehill','threecheck','bughousepartnerlose'].includes(w)?'b':'draw');const code=whiteRes==='draw'?'draw':(userColor?(whiteRes===userColor?'win':'loss'):null);return {userColor,opp,code};};
+  const gameInfo=(g)=>{const mn=myName(g.src,g),wl=(g.white||'').toLowerCase(),bl=(g.black||'').toLowerCase();const userColor=mn&&wl===mn?'w':(mn&&bl===mn?'b':null);const opp=userColor==='w'?g.black:(userColor==='b'?g.white:null);const w=g.wr;const whiteRes=w==='win'?'w':(['checkmated','resigned','timeout','abandoned','lose','loss','kingofthehill','threecheck','bughousepartnerlose'].includes(w)?'b':'draw');const code=whiteRes==='draw'?'draw':(userColor?(whiteRes===userColor?'win':'loss'):null);return {userColor,opp,code};};
   const tcLabel=(tc)=>{if(!tc)return '';const t=String(tc);return t.charAt(0).toUpperCase()+t.slice(1);};
   const outcomeBadge=(code)=>code==='win'?{t:'WON',c:'#bff0c0',bg:'rgba(111,214,111,.18)',br:'rgba(111,214,111,.45)'}:code==='loss'?{t:'LOST',c:'#ffc2bc',bg:'rgba(236,92,78,.16)',br:'rgba(236,92,78,.45)'}:code==='draw'?{t:'DRAW',c:'#e2e6ee',bg:'rgba(255,255,255,.10)',br:'rgba(255,255,255,.24)'}:{t:'GAME',c:'rgba(255,255,255,.6)',bg:'rgba(255,255,255,.06)',br:'rgba(255,255,255,.16)'};
   const fetchLichess=async()=>{

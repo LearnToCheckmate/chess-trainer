@@ -57,7 +57,16 @@ L.run(async()=>{
     // TC-R09 mate label
     L.say(/1-0/.test(at.p33.num||'')&&at.p33.num!==at.p0.num,geo+': TC-R09 eval label reads 1-0 at 17.Rd8# and differs from ply 0',{p0:at.p0.num,p33:at.p33.num});
     // TC-R09b (audit N-review-2): the label must still read 1-0 with the engine line switched on from the ⋯ sheet
-    await b.tapCt('rev-more',400);await b.tapText(/^Analyze with the engine$/,{wait:2500});const numEng=await b.rect('[data-ct="eval-bar-num"]');const engl=await b.text('[data-ct="rev-engline"]');
+    // #382: this used to tap and then sleep a flat 2500 ms before reading. The test lane measured rev-engline
+    // taking up to 8 s on a real device, so on anything slower than this container the read happened before the
+    // line existed and the assertion below tested nothing. Wait for the ELEMENT, with a timeout well past the
+    // measured worst case, and say so out loud if it never arrives rather than reading an empty string.
+    await b.tapCt('rev-more',400);await b.tapText(/^Analyze with the engine$/,{wait:0});
+    const engOk=await b.page.locator('[data-ct="rev-engline"]').last().waitFor({state:'visible',timeout:12000}).then(()=>true).catch(()=>false);
+    if(!engOk)L.note('rev-engline never appeared within 12 s; the TC-R09b assertion below is not measuring the engine-line case');
+    await b.settle(300);
+    const numEng=await b.rect('[data-ct="eval-bar-num"]');const engl=await b.text('[data-ct="rev-engline"]');
+    L.say(engOk,geo+': TC-R09b the engine line actually appears when it is switched on (measured 8 ms in this container; the lane measured up to 8 s on a device, which is why the wait is 12 s and not a flat sleep)',{engline:(engl||'').slice(0,40)});
     L.say(!!numEng&&/1-0/.test(numEng.text),geo+': TC-R09 eval label still reads 1-0 at 17.Rd8# with the engine line on (was +99.0 on #372)',{num:numEng&&numEng.text,engline:(engl||'').slice(0,40)});
     await b.tapCt('rev-more',400);await b.tapText(/^Engine line: on$/,{wait:600});
     // TC-R07 badges on rank 8 at ply 33 (Rd8#) and ply 31 (Qb8+)
@@ -128,4 +137,34 @@ L.run(async()=>{
   L.say(!!chips2&&/jsmiller1112/.test(chips2.text)&&/kunal2023/.test(chips2.text),'kunal: TC-R03 both accounts survive a reload');
   L.say(b.errs.length===0,'kunal: TC-R03 zero app errors',b.errs.slice(0,3));
   await b.close();
+
+  // ---- #382 TC-R04 (test-lane item 10): THE STORED-ROW VERDICT VOCABULARY, which is the app telling you whether
+  // you won. Two separate things were found here and only one of them was the app's.
+  //
+  // THE HARNESS TRAP, which is what the lane actually reported: a stored row shows no verdict at all unless
+  // ct_ccuser is seeded, because that is how the code works out which side you were. Seed it and the row reads
+  // "WON vs mr_dhanzzxnsx".
+  //
+  // THE APP FINDING, measured on #382: gameInfo's loss vocabulary listed 'lose' - Chess.com's real code, handled
+  // correctly - but not 'loss'. A row carrying 'loss' fell through to DRAW and reported a lost game as a draw,
+  // silently. No source sends 'loss' today, so this was not live harm; it is a wrong answer waiting for one that
+  // does, and one word closes it. Measured before: lose -> LOST, win -> WON, loss -> DRAW. After: all three right.
+  // Asserted here because "did I win" is user-facing truth, and a silent draw is worse than a visible error.
+  {
+    const b3=await L.launch({geo:'kunal730',name:'row-verdicts',store:{}});await b3.open();
+    for(const [wr,want] of [['win','WON'],['lose','LOST'],['loss','LOST'],['agreed','DRAW']]){
+      await b3.page.evaluate((wr)=>{
+        localStorage.setItem('ct_ccuser','jsmiller1112');
+        localStorage.setItem('ct_accts',JSON.stringify(['cc:jsmiller1112']));
+        localStorage.setItem('ct_acctgames',JSON.stringify({'cc:jsmiller1112':[
+          {src:'cc',white:'jsmiller1112',black:'mr_dhanzzxnsx',wr:wr,pgn:'[White "jsmiller1112"] [Black "mr_dhanzzxnsx"] 1. e4 e5 *',end:1757000000}]}));
+      },wr);
+      await b3.open();
+      await b3.tile('Review');await b3.settle(700);
+      const row=await b3.page.evaluate(()=>{const t=(document.getElementById('root').innerText||'').replace(/\s+/g,' ');
+        const m=t.match(/(WON|LOST|DRAW|DREW)[^|]{0,30}mr_dhanzzxnsx/i);return m?m[0].trim():'no verdict row';});
+      L.say(new RegExp('^'+want,'i').test(row),'TC-R04 a stored game with wr="'+wr+'" reads '+want+' (seeding ct_ccuser is what makes the verdict appear at all)',row);
+    }
+    await b3.close();
+  }
 },'REVIEW');

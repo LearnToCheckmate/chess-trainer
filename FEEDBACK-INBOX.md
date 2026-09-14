@@ -1562,3 +1562,29 @@ Times not captured for this batch; see the Timestamps note above.
   as explaining the shape rather than guarding it.
   That is three gates in three passes - 10-gameover, A-12 and now this - where the failure was a value
   compared against something that always holds. PIN THE NUMBER is the rule that keeps earning itself.
+
+- [2026-09-14 11:2x ET] status: closed #383
+  TEST LANE items 9 and 10, the last two that needed no thought. Both turned out to have an app or
+  harness fault underneath that the ticket only half described.
+  ITEM 9, the engine-line waits. The recorded FAIL does NOT reproduce here: measured on #382,
+  rev-engline is visible 8ms after the tap and rev-bestline 22ms after it, not the 8s and 3.5s the doc
+  records. So the fix is not justified by a red I saw; it is justified by the doc's numbers being
+  upper bounds from a real device, and by what I found while checking.
+  WHAT I FOUND: gates/drive/review.js waited 6000ms for rev-engline and SWALLOWED its own expiry with
+  .catch(()=>{}). Too short for the measured 8s worst case AND silent about it, so on any slower
+  machine the 'why-open' state continued with no engine line and every assertion about it downstream
+  was measuring nothing, quietly. Raised to 12s and the silence replaced with a printed NOTE.
+  gates/regress/20-review.js had the same shape differently: it tapped 'Analyze with the engine' then
+  slept a flat 2500ms before reading. It now waits for the ELEMENT with a 12s timeout and ASSERTS that
+  it appeared, so the TC-R09b case can no longer pass by reading an empty string.
+  ITEM 10, the stored-row verdict. The harness half is as reported: a row shows no verdict unless
+  ct_ccuser is seeded, because that is how the code works out which side you were.
+  THE APP HALF IS A REAL, SILENT WRONG ANSWER. gameInfo's loss vocabulary listed 'lose' - Chess.com's
+  actual code, handled correctly - but not 'loss'. Measured on #382: wr 'lose' reads LOST, 'win' reads
+  WON, and 'loss' reads DRAW. A lost game reported as a draw, with nothing to indicate it.
+  No source sends 'loss' today, so this was not live harm - it is a wrong answer waiting for one that
+  does. One word closes it, and it had to go in TWO places: line 3283 builds the sentence and line
+  3288 builds the WON/LOST/DRAW code, and they carried the same list. Fixing one would have left them
+  to drift.
+  Gated by four assertions in 20-review.js covering win, lose, loss and agreed. Against the #382
+  bundle the suite goes 1 red, on exactly the 'loss' line, with the other three correct on both.
