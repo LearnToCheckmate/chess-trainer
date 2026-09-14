@@ -61,7 +61,42 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #385 run)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #386 run)
+LIVE = **#386**, stamp "#386 - 2026-09-14 10:17 ET", md5 7ef5d916feb0... over 944530 bytes.
+GATES GREEN: **22 suites** (see 386-all.log for the PASS count).
+
+**READ THIS FIRST IF YOU ARE ABOUT TO MEASURE ANYTHING. The harness used to serve a two-day-old bundle
+whenever you forgot one environment variable, and it caught me.** `gates/lib.js` resolved the bundle as
+`opts.app || CT_APP || gates/.pin-app.js || app.js`, and `.pin-app.js` was a **#372** build, gitignored so
+`git status` never mentioned it. `gates.sh` names its bundle explicitly, so the SUITE was always immune - but
+a bare `node gates/regress/<x>.js` or an ad-hoc probe was not. Four such probes in the #386 pass measured the
+old app and were written up as the current build, one of them in a message to Kunal as "ground truth on the
+shipped bundle". A warning describing precisely this was ALREADY sitting in `gates/pending/README.md`.
+
+Fixed in #386: the stale file is deleted, the pin is opt-in (`CT_PIN=1`), and **every `L.launch` prints the
+bundle path and the stamp read out of it, plus why it chose that file**. Every gate log now opens with a line
+like `bundle: app.js  stamp #386 - 2026-09-14 10:17 ET  (default app.js)`. If a run's output does not say
+what it measured, it is not evidence - and no shipped conclusion changed, because every validating run used
+`CT_APP` or `gates.sh`.
+
+**#386 also shipped A-05, "Keep them, just move them clear."** The two 34x34 dev buttons (gallery preview,
+send feedback) were `position:fixed` in the bottom-left corner. Measured on #385 before the move: at 375x730
+each covered the "New to chess?" banner by 7px and the Look-picker row by 9px; **at 320x568 both sat entirely
+on the Review tile**, 34x34 over its 84x84 icon. There is no sideways room (the column is 339 inside 375, so
+the gutters are 18px), so they moved DOWN into the flow at the foot of the column beside the build stamp.
+After: they cover nothing at 375x730, 320x568 or 390x844, and they still work.
+
+**TWO OF MY OWN ASSERTIONS WERE CAUGHT WEAK BY THEIR OWN CONTROLS, and the second correction is the
+interesting one.** "The button is in the flow" asked only for the BUTTON's `position !== 'fixed'`; a control
+that pinned the ROW sailed past, since the buttons stayed `static` inside a `fixed` parent. Tightening it to
+"no fixed ancestor" then went RED ON THE GOOD BUILD - the whole home screen is a legitimate `position:fixed`
+full-viewport layer. The assertion that actually holds is BEHAVIOURAL: the button must MOVE when the column
+is scrolled. A pinned control does not; an in-flow one does. Separately, the gate's own tap was failing at
+exactly the two geometries where the row is below the fold - the gate was tapping off screen, not the app
+failing - so it now scrolls the finger-scrollable ancestor first and asserts the button is on screen before
+tapping.
+
+## 0a-prev1) WHERE THE BUILD WAS AT #385 (updated 2026-09-14 by the #385 run)
 LIVE = **#385**, stamp "#385 - 2026-09-14 09:35 ET", md5 572bb8366efa... over 944534 bytes.
 GATES GREEN: **21 suites** (see 385-all.log for the PASS count).
 
@@ -96,7 +131,7 @@ TEST-CASES-REVIEW.md, which lives in the claude.ai project; grepping the whole r
 TC-RL ids (033, 039, 070) and all three are already coded. Flag: testlane-item8-not-doable-from-build, with
 what would unblock it. This is the same shape as item 6, whose pass conditions are in SUITE-AUDIT section 2.
 
-## 0a-prev1) WHERE THE BUILD WAS AT #384 (updated 2026-09-14 by the #384 run)
+## 0a-prev2) WHERE THE BUILD WAS AT #384 (updated 2026-09-14 by the #384 run)
 LIVE = **#384**, stamp "#384 - 2026-09-14 08:50 ET", md5 068259a9504e... over 942979 bytes.
 GATES GREEN: **20 suites, 547 PASS, 0 fail** (384-all.log). Every pre-existing gate is byte-identical in count
 to #383; the +48 is entirely the new suite.
@@ -133,7 +168,7 @@ this build reverted the style and left the shortened label: the row still overfl
 of 48, but the trailing button landed at 294 on a 320 screen and stayed on it. The gate was right to stay
 green. "The numbers moved" is necessary and not sufficient.
 
-## 0a-prev2) WHERE THE BUILD WAS AT #383 (updated 2026-09-14 by the #383 run)
+## 0a-prev3) WHERE THE BUILD WAS AT #383 (updated 2026-09-14 by the #383 run)
 LIVE = **#383**, commit 8d3cc3d, stamp "#383 - 2026-09-14 07:25 ET", md5 cd67020cecd0e4d672633ecadc2f2e09
 over 942880 bytes, verified at that SHA. GATES GREEN: 19 suites, 489 PASS, 0 fail.
 

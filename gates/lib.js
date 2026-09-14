@@ -52,10 +52,27 @@ function siteDir(app){
 let _srv=null;
 async function serve(opts={}){
   if(_srv&&!opts.fresh)return _srv;
-  // gates/.pin-app.js, when present, is served by default instead of the repo's app.js: it pins the bundle an
-  // audit is measuring while a new build lands in app.js (gates.sh always names its bundle explicitly).
+  // WHICH BUNDLE IS SERVED, SAID OUT LOUD, BECAUSE A SILENT SUBSTITUTION COST A WHOLE PASS.
+  //
+  // gates/.pin-app.js used to be served by DEFAULT whenever CT_APP was unset - it pinned the bundle an audit
+  // was measuring while a new build landed in app.js. gates.sh always names its bundle explicitly, so the
+  // suite was immune; a bare `node gates/regress/<x>.js` was not. On 2026-09-14 that trap took four ad-hoc
+  // measurements against a #372 bundle from two days earlier and reported them as the current build - after
+  // a written warning in gates/pending/README.md had been sitting there saying exactly that would happen.
+  // A warning you have to already know to read is not a guard.
+  //
+  // So the pin is now OPT-IN (CT_PIN=1) and never silent, and EVERY launch prints the bundle it is serving
+  // with the stamp read out of the file. If a run's output does not say what it measured, it is not evidence.
   const pinned=path.join(__dirname,'.pin-app.js');
-  const app=path.resolve(opts.app||process.env.CT_APP||(fs.existsSync(pinned)?pinned:path.join(ROOT,'app.js')));
+  const usePin=process.env.CT_PIN==='1'&&fs.existsSync(pinned);
+  const app=path.resolve(opts.app||process.env.CT_APP||(usePin?pinned:path.join(ROOT,'app.js')));
+  try{
+    const head=fs.readFileSync(app,'utf8');
+    const m=head.match(/#\d{3,4} - 20\d\d-\d\d-\d\d \d\d:\d\d ET/);
+    const how=opts.app?'opts.app':(process.env.CT_APP?'CT_APP':(usePin?'CT_PIN=1 -> .pin-app.js':'default app.js'));
+    console.log('     bundle: '+path.relative(ROOT,app)+'  stamp '+(m?m[0]:'NONE')+'  ('+how+')');
+    if(!m)console.log('     WARNING: that bundle carries no build stamp at all.');
+  }catch(e){console.log('     bundle: '+app+'  (could not be read: '+e.message+')');}
   const dir=siteDir(app);const port=await freePort();
   const p=cp.spawn('python3',['-m','http.server',String(port),'--bind','127.0.0.1'],{cwd:dir,stdio:'ignore'});
   const url='http://127.0.0.1:'+port+'/';

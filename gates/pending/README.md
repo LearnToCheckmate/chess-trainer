@@ -18,9 +18,19 @@ a later build. `gates.sh` exports `CT_EXPECT` itself (defaulting to its own argu
 stamp mismatch is caught in about 21 seconds - but a bare `node` run is not, and it is the same shape of trap as
 the pinned-bundle one below.
 
-**Always pass `CT_APP`.** `gates/lib.js` falls back to `gates/.pin-app.js` when it is unset, and that file
-is a stale **#372** bundle from 2026-09-13. `gates.sh` exports `CT_APP` itself so the suite is immune, but
-a bare `node` run is not, and it will silently measure a six-build-old app and tell you it passed.
+**~~Always pass `CT_APP`.~~ FIXED IN #386 - the trap is gone, and how it went is worth keeping.** `gates/lib.js`
+used to fall back to `gates/.pin-app.js` when `CT_APP` was unset, and that file was a stale **#372** bundle.
+`gates.sh` exports `CT_APP` itself so the suite was always immune; a bare `node` run was not.
+
+**This warning was already written here, and it did not work.** On 2026-09-14 a build session wrote four
+ad-hoc `node gates/...` probes without `CT_APP`, measured the two-day-old bundle, and reported the numbers as
+the current build - one of them in a message to Kunal as "ground truth on the shipped bundle". Nothing shipped
+was wrong (every validating run used `CT_APP` or `gates.sh`) but four measurements were mislabelled. A
+paragraph you have to already know to read is not a guard.
+
+So, in #386: `gates/.pin-app.js` is deleted, the pin is **opt-in** (`CT_PIN=1`), and **every `L.launch` prints
+the bundle path and the build stamp read out of that file**, with the reason it chose it. A run that does not
+say what it measured is not evidence. Keep it that way.
 
 | gate | why it is held | moves into `regress/` when |
 |---|---|---|

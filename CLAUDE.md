@@ -100,6 +100,16 @@ wider one.
   bubble. The assertion was about `anaMode` and `anaMode` was never the thing under test. When an assertion
   says "X is absent in state S", assert FIRST that X was present just before, and that S was actually
   reached; both checks are one line each and they are what turn a green into evidence.
+- **A written warning is not a guard, and a harness that substitutes the thing under test silently will be
+  believed.** `gates/lib.js` used to serve `gates/.pin-app.js` by DEFAULT whenever `CT_APP` was unset. That
+  file was a **#372** bundle from two days earlier; it was gitignored, so `git status` never mentioned it,
+  and `gates/pending/README.md` carried a paragraph saying exactly what would go wrong. It went wrong anyway:
+  on 2026-09-14 four ad-hoc `node gates/...` probes measured the two-day-old app and were reported as the
+  current build, including one written up to Kunal as "ground truth on the shipped bundle". `gates.sh` names
+  its bundle explicitly, so the SUITE was never affected and no shipped conclusion changed - but the
+  provenance of four measurements did. The pin is now opt-in (`CT_PIN=1`) and the stale file is deleted, and
+  **every `L.launch` prints the bundle path and the stamp it read out of it**. If a run's output does not say
+  what it measured, it is not evidence. Ask of any harness default: *what does it do when I forget?*
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never

@@ -1681,3 +1681,39 @@ be done from this session. Those cases are defined in TEST-CASES-REVIEW.md, whic
 project; the whole repo contains exactly three TC-RL ids and all three are already coded. It had been sitting
 at the top of the untried queue as though it were available work. Flagged as
 testlane-item8-not-doable-from-build with what would unblock it.
+
+## #386 - 2026-09-14 - A-05, and a trap in my own harness that cost four measurements (chain link 13)
+
+**Shipped A-05, "Keep them, just move them clear."** The two 34x34 dev buttons (gallery preview, send
+feedback) were pinned to the bottom-left corner, floating over whatever the home column happened to be
+showing there. Measured on #385 before moving them: at 375x730 each covered the "New to chess?" banner by 7px
+and the Look-picker row by 9px; **at 320x568 both sat entirely on the Review tile** - 34x34 of full overlap on
+its 84x84 icon, which is a primary navigation target rather than a cosmetic clash.
+
+There is no sideways room to move them into: the home column is 339 wide inside 375, so the gutters are 18px
+and a 34px button does not fit in one. So they moved DOWN - out of `position:fixed` and into the flow at the
+foot of the column, beside the build stamp. Measured after: they cover nothing at 375x730, 320x568 and
+390x844. Same size, same look, same titles; they are kept, as you asked.
+
+**A TRAP IN MY OWN HARNESS, AND IT CAUGHT ME.** `gates/lib.js` served `gates/.pin-app.js` by default whenever
+`CT_APP` was unset - a **#372 bundle from two days earlier**, gitignored so `git status` never showed it.
+Four ad-hoc probes I ran this pass measured that old bundle, and in my last message I described one of them
+to you as "ground truth on the shipped #383 bundle". It was not; it was #372.
+
+**Nothing shipped is affected** - `gates.sh` names its bundle explicitly, so every suite run and every
+negative control measured the real thing, and the defects those probes pointed at were independently
+confirmed on current source. But the provenance of four numbers I quoted was wrong, and you should hear that
+from me rather than find it.
+
+The worse part: a warning describing this exact failure was already written in `gates/pending/README.md`.
+A paragraph you have to already know to read is not a guard. So: the stale file is deleted, the pin is now
+opt-in (`CT_PIN=1`), and **every browser launch now prints the bundle path and the build stamp it read out of
+that file**. If a run's output does not say what it measured, it is not evidence.
+
+**Two more assertions of my own caught being weak**, both by their own controls. "The button is in the flow"
+asked only about the button's own `position`, so a control that pinned the ROW walked past it - and
+tightening it to "no fixed ancestor" then went red on the GOOD build, because the whole home screen is a
+legitimate fixed full-viewport layer. The assertion that actually holds is behavioural: the button must MOVE
+when the column scrolls. And the gate's own tap was failing at exactly the two geometries where the row sits
+below the fold - the gate was tapping off screen, not the app misbehaving; it now scrolls first and asserts
+the button is on screen before tapping.
