@@ -24,6 +24,35 @@ L.run(async()=>{
     L.say(b.errs.length===0,geo+': TC-R01 zero app errors during import',b.errs.slice(0,3));
     await b.settle(800);await b.shot('review-'+geo+'-summary');
     // TC-R04 summary
+    /* #393 (uat390-review-summary-menu-covered): THE SUMMARY MUST OFFER A WAY INTO THE MENU, AND IT MUST
+       ACTUALLY OPEN. The panel is position:fixed inset:0 zIndex:500 and opaque, so the shared header row and
+       its ☰ sit BEHIND it - measured at (337,-4) with no ink painted anywhere in that box. It was reported as
+       a visible control that could not be tapped; it was not visible at all. The fix follows the one this
+       codebase already chose for Home (chess.jsx:4276): a dedicated button INSIDE the overlay.
+       The last assertion is BEHAVIOURAL on purpose - a button in the right place that opens nothing would
+       satisfy a rect check, and this whole defect is about a control that looked present and did nothing. */
+    const revMenu=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-summary-menu"]');
+      if(!e)return null;const q=e.getBoundingClientRect();
+      const h=document.elementFromPoint(Math.round(q.left+q.width/2),Math.round(q.top+q.height/2));
+      return {x:Math.round(q.left),y:Math.round(q.top),w:Math.round(q.width),h:Math.round(q.height),
+              press:!!h&&(h===e||e.contains(h))};});
+    L.say(!!revMenu,geo+': the review summary has its own menu button (rev-summary-menu)',revMenu);
+    L.say(!!revMenu&&revMenu.y>=0&&revMenu.w>=30&&revMenu.h>=28,geo+': it is fully on screen and a real tap target',revMenu);
+    L.say(!!revMenu&&revMenu.press,geo+': elementFromPoint at its centre returns the button - nothing covers it',revMenu);
+    /* GUARDED so a MISSING button goes red HERE and does not abort the other ninety assertions below.
+       The first version of this block threw on the control bundle, which is red either way - but a gate that
+       stops at the first absence hides every regression after it, and this gate is the Review screen's only
+       coverage. Red, then carry on. */
+    let menuOpened=false;
+    if(revMenu){
+      try{await b.tapCt('rev-summary-menu',700);
+        menuOpened=await b.page.evaluate(()=>!!document.querySelector('[data-ct="menu-sheet"]'));
+        await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>(e.innerText||'').trim()==='✕');if(x)x.click();});
+        await b.settle(500);
+      }catch(e){L.note(geo+': tapping rev-summary-menu threw: '+((e&&e.message)||e));}
+    }
+    L.say(menuOpened,geo+': and TAPPING IT OPENS THE MENU - behaviour, not position',menuOpened);
+    L.say(!!(await b.rect('[data-ct="rev-summary"]')),geo+': and closing the menu returns to the summary (state restored for the assertions below)');
     const sumText=await summaryCounts(b);const foot=await b.rect('[data-ct="rev-summary-foot"]');
     L.say(/Accuracy/i.test(sumText)&&CATS.every(c=>sumText.includes(c)),geo+': TC-R04 accuracy and the eight verdict categories are on the summary',CATS.filter(c=>!sumText.includes(c)));
     L.say(!!foot&&foot.y+foot.h<=b.geo.h+0.5&&foot.y>b.geo.h*0.5,geo+': TC-R04 summary footer pinned inside the viewport (bottom '+(foot&&Math.round(foot.y+foot.h))+' of '+b.geo.h+')');

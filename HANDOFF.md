@@ -61,7 +61,51 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by BUILD #392)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by BUILD #393)
+LIVE = **#393**, stamp "#393 - 2026-09-14 19:29 ET", md5 22eee57d90bb... over 948467 bytes.
+GATES GREEN: **27 suites, 1043 PASS, 0 fail** (`claude/agents/gatelogs/393-all.log`, 1242 lines - the REAL
+log, not the stdout capture - verified by `gates/verify-log.sh`). Suite ran 23:29-00:00 UTC, 31 minutes.
+
+**THE REVIEW SUMMARY HAD NO WAY INTO THE MENU** (`uat390-review-summary-menu-covered`, headless UAT lane).
+Fixed by adding `data-ct="rev-summary-menu"` INSIDE the summary panel.
+
+**THE REPORT WAS RIGHT THAT SOMETHING WAS WRONG AND WRONG ABOUT WHAT, and the difference decides the fix.**
+It called this "a visible control that is covered and does not respond to a tap". Its own measurement (1) says
+no ink paints anywhere in the button's box - so it was never visible. The stacking trace settles it:
+
+    ROW chain:  DIV relative z=5  <  DIV static  <  DIV static  <  BODY
+    HIT chain:  DIV static  <  DIV[data-ct=rev-summary] FIXED z=500  <  ...
+
+`rev-summary` is a **`position:fixed; inset:0; zIndex:500` opaque full-screen panel**, a sibling of the shared
+header row and later in DOM order. The ☰ is not covered by a hero - it is BEHIND A FULL-SCREEN OVERLAY, exactly
+like Home. And chess.jsx:4276 already records the precedent and the answer: *"Home had no way into the menu -
+every ☰ sits under this overlay (zIndex 500)"*, fixed by a dedicated button INSIDE the overlay.
+
+**SO RAISING THE ROW IS THE WRONG FIX, AND IT WAS TRIED AND MEASURED FIRST.** `minHeight:30` + `zIndex:5` on the
+row fixed the clipping (top -4 → 2) and the button was **still unpressable**, because a z-index of 5 on a sibling
+cannot beat a fixed z-500 panel. It would also have cost ~12px of board height on every screen sharing that row.
+Reverted.
+
+**WHAT IS NOT FILED, and why.** 24 of the 40 buttons inside the summary test as unpressable - their hit-winner is
+`rev-summary-foot`, the deliberately pinned footer over a scrolling list. Those are reachable by scrolling:
+"below the fold is not unreachable" in another costume. `‹ Back to games` and `Start review ›` are pressable, so
+nobody was ever stranded on that screen.
+
+**GATE: `20-review` gains 5 assertions per geometry** (87 PASS to 97, and NOTHING ELSE IN THE SUITE MOVED - 1033 to 1043, which is what a fix confined to one screen should look like), and the last is BEHAVIOURAL - tapping the button must
+actually open the menu, because a button in the right place that opens nothing satisfies a rect check and that
+is precisely the defect class here. Control: the shipped #392 release, **8 of 97 red**.
+
+**AND THE CONTROL'S FIRST RUN ABORTED THE GATE**, which is its own lesson: `tapCt` throws on a missing element,
+so the Review screen's only coverage stopped at the first absence with 90 assertions unrun. Now guarded - red on
+its own line, then carry on: 89 pass / 8 fail instead of 2 pass / 4 fail.
+
+**A GENERAL "EVERY VISIBLE BUTTON MUST BE PRESSABLE" GATE WAS ATTEMPTED AND DELIBERATELY NOT SHIPPED.** The UAT
+lane suggested it and it is a good idea. Three versions all mis-classified: v1 flagged six screens that were
+buttons behind deliberate overlays; v2 excused "the covering element is big" and **hid the very defect being
+fixed**; v3 excused by z-index mechanism and still mis-fired. An assertion that cannot be grounded is worse than
+none, so the defect was fixed on direct measurement and the general gate is a follow-up.
+
+## 0a-prev0) BUILD #392 (two silent wrong answers)
 LIVE = **#392**, stamp "#392 - 2026-09-14 18:24 ET", md5 5ae07928f0be... over 947951 bytes.
 GATES GREEN: **27 suites, 1033 PASS, 0 fail** (claude/agents/gatelogs/392-all.log, verified by
 `gates/verify-log.sh`). The rise from 1029 is the four new assertions in gate 22.

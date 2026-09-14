@@ -198,6 +198,22 @@ wider one.
   bestmove; it died, and the partial score came out of that same dead search, so the fix is to fall back to the
   stored analysis. Naming a residual honestly is good and it is not a substitute for spending ten minutes
   finding out how big it actually is. **Before deferring something user-visible, open the code and look.** #392.
+- **A GATE THAT HALTS ON THE FIRST MISSING ELEMENT HIDES EVERY REGRESSION AFTER IT.** `tapCt` throws when its
+  target is absent, so #393's new assertion took the whole Review gate down against its control bundle: 4 red
+  and then the harness threw, leaving NINETY assertions unrun. Red either way, so the control still worked - but
+  had that been a real regression on a real build, the Review screen's only coverage would have stopped at the
+  first absence and reported nothing about the rest. Guard anything that TAPS or NAVIGATES on a thing that might
+  not be there: go red on its own assertion, then carry on. 89 pass / 8 fail says far more than 2 pass / 4 fail.
+- **THE APP KEEPS SEVERAL SCREENS MOUNTED AT ONCE, so "in the DOM, laid out, on screen" is NOT "the user can use
+  it".** Home is a `position:fixed` full-viewport layer over the tab screens; `rev-summary` is `fixed inset:0
+  zIndex:500` and opaque; menu, look and setup are sheets. A naive hit test that asks "does elementFromPoint at
+  this button's centre return this button" reports SIX SCREENS of false defects, because every button on every
+  screen underneath fails it. Excusing them by "the covering element is big" is worse than useless: `rev-summary`
+  IS big, so that rule hid the very defect the probe was written to find - the same shape as the clip-intersection
+  trap, which excuses the real 38.9px overflow as readily as the false 1.4px one. #393 tried three versions and
+  shipped none of them; the defect was fixed on direct measurement instead. **An assertion you cannot ground is
+  worse than no assertion**, and a pinned footer over a scrolling list will fool the same probe again - those
+  buttons are reachable by scrolling, which is "below the fold is not unreachable" wearing another costume.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never

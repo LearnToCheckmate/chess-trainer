@@ -5041,6 +5041,17 @@ export default function App(){
       {railed&&learnVideoBox}{railed&&learnBranchesBox}
       {inReview&&reviewView==='summary'&&review.summary&&(()=>{const S=review.summary;const CATS=[['Brilliant','#22d3ee'],['Great','#5d93e8'],['Best','#7bd88f'],['Good','#9ccb8f'],['Book','#9aa6b2'],['Inaccuracy','#f0cf5e'],['Miss','#f08a5d'],['Mistake','#f0a24e'],['Blunder','#ec5c4e']];const sides=[['w','White'],['b','Black']];return(
         <div data-ct="rev-summary" style={{position:'fixed',inset:0,zIndex:500,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'stretch',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+          {/* #393 (uat390-review-summary-menu-covered): THE SUMMARY HAD NO WAY INTO THE MENU. This panel is
+              position:fixed inset:0 zIndex:500 and opaque, so the shared header row - and the ☰ in it - is
+              behind it: measured at 375x730 the row's button sits at (337,-4) and a pixel scan of that region
+              finds NO INK AT ALL. So this was never a visible control that could not be tapped, which is how it
+              was first reported; it was a screen with no menu button, plus a dead one hidden behind the panel.
+              THE FIX IS THE ONE THIS CODEBASE ALREADY CHOSE FOR THE SAME PROBLEM. chess.jsx:4276 records it for
+              Home: "Home had no way into the menu - every ☰ sits under this overlay (zIndex 500)", answered by
+              putting a dedicated button INSIDE the overlay rather than trying to lift the buried row. Raising
+              the row cannot work here anyway - a z-index of 5 on a sibling cannot beat a fixed z-500 panel -
+              and it would cost board height on every screen that shares that row. */}
+          <button data-ct="rev-summary-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu &amp; settings" style={{position:'absolute',top:'calc(env(safe-area-inset-top,0px) + 10px)',right:'calc(env(safe-area-inset-right,0px) + 12px)',zIndex:3,width:38,height:30,borderRadius:8,padding:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',fontSize:16,lineHeight:1,cursor:'pointer'}}>{'\u2630'}</button>
           {/* #334: the summary scrolls inside this box; the two action buttons live in a footer pinned to the bottom of the screen (Kunal: no scrolling to reach Start review or Back) */}
           <div className="scroll" style={{flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column',alignItems:'center',padding:`max(24px,env(safe-area-inset-top,0px)) 18px 16px`,WebkitOverflowScrolling:'touch'}}>
           <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
