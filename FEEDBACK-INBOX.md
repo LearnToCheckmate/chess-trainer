@@ -1615,3 +1615,31 @@ Times not captured for this batch; see the Timestamps note above.
   them fail loudly anyway, unlike the drive/review.js one fixed in #383 which swallowed a WAIT and let
   a state continue half-built. Left alone deliberately; named here so the next pass can judge rather
   than rediscover.
+
+## #384 - 2026-09-14 - the 320-wide containment work Z-06 authorised (chain link 11)
+
+**Shipped.** The `...` button on the lesson practice screen ran 3.1px off a 320-wide phone with no page scroll
+to recover it. The control row is three fixed 46px buttons and one flexible "Try again"; the flexible one
+carried the CSS default `min-width:auto`, so it refused to shrink below its own min-content width and pushed
+the trailing button off the screen. `minWidth:0` lets it shrink. The budget left for it at 320 is then 74.88px
+and the full label needs 92.52px at any padding, so the label shortens to "Again" at 340 and below - the same
+mechanism as the puzzle header's Roadmap chevron in #382.
+
+**Kunal's condition on Z-06 is measured, not promised.** "i want to make sure it doesn't impact the display on
+the larger screens that we've so painstakingly tried to improve." All four children of that row, at 375 and at
+390, are identical before and after: 0/46, 52/98, 104/323, 329/375. Swept 320, 340, 341, 360, 375 and 390 to
+check there is no dead zone at the breakpoint - every width fits, nothing runs off.
+
+**Still blocked on him, and the question is now smaller than it was.** "Other lines (2)" still hangs 38.9px off
+a 320 screen. I built the fix I had offered him as option (a) - `minmax(0,...)` on the grid tracks - purely as
+a negative control, and measured it: the label needs 137.19px and the button becomes 131.80 at 375 and 137.14
+at 390, so it CLIPS THE TEXT AT EVERY WIDTH, including his own phone. That is not the "few pixels" my flag
+promised him, so option (a) is withdrawn. Option (b) - shorten the label at narrow widths only - is now the
+only one that meets his condition, and it is the mechanism he has already accepted twice. What is left for him
+is just what the short label should say.
+
+**One of my own flags withdrawn.** `puzzle-board-square-1px-375`, filed this morning as a real 1.4px overhang
+at 375, is not a defect. Every piece is drawn inside `transform:scale(1.06)` and 46.875 x 1.06 = 49.6875, the
+measured number to four decimals; the board clips at 374.98, inside the viewport, so none of it ever reached
+the screen. The gate was reading paint as layout. That is the fifth of this week's layout reports that did not
+survive measurement, and both of the two that did were horizontal spill with no transform in the chain.

@@ -61,7 +61,44 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #383 run)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #384 run)
+LIVE = **#384**, stamp "#384 - 2026-09-14 08:50 ET", md5 068259a9504e... over 942979 bytes.
+GATES GREEN: **20 suites, 547 PASS, 0 fail** (384-all.log). Every pre-existing gate is byte-identical in count
+to #383; the +48 is entirely the new suite.
+
+**#384: the 320-wide containment work Z-06 authorised, and the gate that had been stranded on a branch.**
+The `...` button on the lesson practice screen ran 3.1px off a 320-wide phone with no page scroll to recover
+it. That control row is three fixed 46px buttons and one flexible "Try again", and the flexible one carried
+the CSS default `min-width:auto` - so it would not shrink below its own min-content width and pushed the
+trailing button off the screen. `minWidth:0` lets it shrink; the budget left at 320 is then 74.88px and the
+full label needs 92.52px at ANY padding, so the label shortens to "Again" at <=340, which is the same
+mechanism as the puzzle header's Roadmap chevron in #382.
+
+**His Z-06 condition is measured, not promised.** All four children of that row are identical at 375 AND 390
+before and after: 0/46, 52/98, 104/323, 329/375. Swept 320, 340, 341, 360, 375, 390 for a dead zone at the
+breakpoint - there is none, every width fits.
+
+**`gates/regress/35-width-containment.js` is now on main and green**, which the flag that filed it said could
+not happen while a real defect was outstanding. The one defect that is BLOCKED on Kunal - "Other lines (2)",
+38.9px off at 320 - is PINNED rather than deleted: the gate asserts it still hangs exactly 38.9px, so the
+suite stays green while it is unfixed and goes RED the day it moves in either direction. Proved against a
+bundle carrying the blocked fix: red on the pin and on nothing else.
+
+**A FALSE FLAG OF MY OWN, WITHDRAWN, AND THE RULE UNDER IT.** `puzzle-board-square-1px-375` said a board
+square overhangs 1.4px at 375. It does not. Every piece is drawn inside `transform:scale(1.06)` and
+46.875 x 1.06 = 49.6875 - the measured number to four decimals - and the board clips at 374.98, INSIDE the
+viewport, so none of it was ever painted past the edge. `getBoundingClientRect()` includes transforms, so the
+gate was reading paint as layout. It reproduced in a clean browser, in one state, on two bundles:
+**reproducible and real are not the same claim.** Clip-intersection is the obvious fix and it is WRONG - the
+board clips at 374.98 and the lesson column at exactly 320, so it excuses the real 38.9px defect just as
+readily. See the new CLAUDE.md bullet.
+
+**AND A NEGATIVE CONTROL MUST CROSS THE THRESHOLD, not merely disturb the mechanism.** My first control for
+this build reverted the style and left the shortened label: the row still overflowed its box, by 19px instead
+of 48, but the trailing button landed at 294 on a 320 screen and stayed on it. The gate was right to stay
+green. "The numbers moved" is necessary and not sufficient.
+
+## 0a-prev1) WHERE THE BUILD WAS AT #383 (updated 2026-09-14 by the #383 run)
 LIVE = **#383**, commit 8d3cc3d, stamp "#383 - 2026-09-14 07:25 ET", md5 cd67020cecd0e4d672633ecadc2f2e09
 over 942880 bytes, verified at that SHA. GATES GREEN: 19 suites, 489 PASS, 0 fail.
 

@@ -5837,7 +5837,14 @@ export default function App(){
               <div style={{display:'flex',gap:6,alignItems:'stretch'}}>
                 <button onClick={()=>setFlip(f=>!f)} aria-label="Flip board" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>⟳</button>
                 <button onClick={()=>{const nv=!showHint;setShowHint(nv);setHintFor(LIB[openIdx]?.name,nv);if(nv)setRevealHint(false);}} aria-label="Hints" style={{...btn(showHint?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',showHint?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',showHint?'var(--ac2)':'rgba(255,255,255,.6)'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>💡</button>
-                <button onClick={()=>startPractice(learnLine,learnLabel)} style={{...btn('#4a6741','none','#fff'),flex:1,fontWeight:800}}>↻ Try again</button>
+                {/* #384 (Z-06 "Support 320 properly"): this row is three fixed 46px buttons and one flexible one, and the
+                    flexible one defaulted to min-width:auto - so it refused to shrink below its own min-content width and
+                    pushed the trailing (...) button 3.1px off a 320 screen, with no page scroll to recover it. minWidth:0
+                    lets it shrink; the budget left for it at 320 is then 74.88px, and the full label needs 92.52px at any
+                    padding, so the label shortens at <=340 exactly as the puzzle header's Roadmap chevron has since #382.
+                    At 375 and 390 the row has room to spare and neither branch is reachable: all four children measured
+                    identical before and after, which is his condition on Z-06. */}
+                <button onClick={()=>startPractice(learnLine,learnLabel)} aria-label="Try again" style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(vp.w<=340?{padding:'9px 4px'}:null),fontWeight:800}}>{vp.w<=340?'↻ Again':'↻ Try again'}</button>
                 <button onClick={()=>setLearnSheet(true)} aria-label="More actions" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>⋯</button>
               </div>
               {learnSheet&&(<div onClick={()=>setLearnSheet(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:9000,display:'flex',alignItems:'flex-end'}}>

@@ -77,6 +77,23 @@ wider one.
   version made both mistakes and went green against a build with the scroller removed. Vertical spill inside a
   scroller is fine. **Horizontal** spill past the viewport is the real unrecoverable bug - see
   `sweep372-other-lines-320`.
+- **A transform is paint, not layout, and `getBoundingClientRect()` cannot tell you which you are looking at.**
+  It includes transforms, so a deliberate visual effect reads as a layout failure. Every piece on the board is
+  drawn inside `transform:scale(1.06)`; 46.875 x 1.06 = 49.6875, and that 49.69px box "overhanging 1.4px at 375"
+  was filed as a real defect (`puzzle-board-square-1px-375`) before anyone checked the source. It was never
+  painted past the edge at all - the board clips at 374.98, INSIDE the viewport. It reproduced in a clean
+  browser, in one state, on two bundles: **reproducible and real are not the same claim.** Clip-intersection is
+  the obvious fix and it is wrong, because the board clips at 374.98 and the lesson column clips at exactly 320,
+  so it excuses the REAL 38.9px defect just as readily as the false one. What separates them is that one is a
+  transform and the other is layout: excuse an element only when its nearest layout box above the outermost
+  transform in its chain is itself inside the viewport. `gates/regress/35-width-containment.js` is the reference,
+  and it pins the exclusion to its MECHANISM - every excused box must be a div or img exactly 1.06x the square it
+  sits in - because the first draft asserted a bare count and a count loose enough to pass is loose enough to hide
+  a real defect appearing beside the pieces.
+- **A negative control must cross the threshold, not just disturb the mechanism.** Reverting half of #384's fix
+  left the row still overflowing its box, by 19px instead of 48 - but the trailing button landed at 294 on a 320
+  screen and stayed on it, so the gate was right to stay green. "The numbers moved" is necessary and not
+  sufficient; they have to move past the line the assertion actually draws.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never
