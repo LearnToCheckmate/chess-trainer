@@ -61,7 +61,39 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #381 run)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #382 run)
+LIVE = **#382**, commit ac3084e, stamp "#382 - 2026-09-14 06:19 ET", md5 6d208b9c834962d61e53c198c6d75c46
+over 942866 bytes, verified at that SHA. GATES GREEN: 19 suites, 453 PASS, 0 fail.
+
+**#382** fixes the puzzle header at 320: the tier badge ran 16.8px off the screen inside an `overflow-x:
+hidden` ancestor with `document.scrollWidth` pinned at 320, so it was gone rather than scrollable. The
+Roadmap label now shrinks to a chevron at `vp.w<=340` - what the HINT branch of that same row has done
+since #372. **Kunal's Z-06 condition is measured, not promised:** 375 reads 119@4, 93@148, 105@266,
+identical to before, and gate 40 pins those numbers.
+
+**BETWEEN #381 AND #382 THE BUNDLE DID NOT CHANGE FOR FOUR PASSES**, and that work is why the suite is
+worth more than its count. Every one of the 19 suites has now been run against a bundle built to fail it
+and gone red. Two gates were found unable to fail: 10-gameover read a board 16px wrong and passed 12 of 12,
+and 40-reachability went green on a screen with its scroller removed hours after being written to catch
+exactly that. Both are fixed. **The rule underneath: a gate that compares a value only to ITSELF cannot see
+a change that arrived before its first sample. Pin the number.**
+
+**FOUR OF THE CONTROLS ATTEMPTED WERE NOT CONTROLS**, and the check is free: if the numbers do not move,
+the break never reached the code. Worse, one of them reached the BUNDLE and still moved nothing (a
+marginBottom on a sheet already clamped by maxHeight). The break must reach the MECHANISM the assertion is
+about.
+
+**THREE FALSE REACHABILITY REPORTS in one night, one of them mine.** `index.html` styles `#root` with
+`overflow-y:auto` and says the page never scrolls, so `docScrollY` is 0 on every screen BY DESIGN. See the
+rule in CLAUDE.md and `gates/regress/40-reachability.js`. Vertical spill inside a scroller is fine;
+**horizontal** spill is the real bug, which is what #382 actually fixed.
+
+**OPEN, and a correction:** `puzzle-board-square-1px-375` - a piece box inside the board grid measures
+49.69 wide ending at 376.39 at 375x730, 1.39px past the viewport. An earlier flag of mine explained this
+away as gate state-leakage; it reproduces in a clean browser, so that was wrong. Not fixed in #382: board
+geometry deserves its own pass.
+
+## 0a-prev) WHERE THE BUILD WAS AT #381
 LIVE = **#381**, commit 5b35406, stamp "#381 - 2026-09-14 03:46 ET", md5 9de857145278a678aeeea729e4f936b9
 over 942681 bytes, verified at that SHA. GATES GREEN: 18 suites, 430 PASS, 0 fail.
 
