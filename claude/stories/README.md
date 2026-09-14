@@ -37,11 +37,17 @@ any of them landed. **Claim a number here in the same commit that adds the file.
 
 | file | lane | authored as | notes |
 |---|---|---|---|
+| `22-engline-recovery.js` | build session | 22 | #389. Inside the new **10-29 build lane** range (procedure v13, section 6e item 4) |
 | `41-coach-bubble.js` | build session | 41 | |
 | `42-home-devrow.js` | build session | 42 | |
 | `43-tcrl-analysis.js` | build session (TC-RL batch 1) | 43 | pushed first, so it kept 43 |
 | `45-play-setup.js` | Play setup lane | **43** | renumbered: 43 was already pushed |
 | `46-play.js` | Play lane | **44** | renumbered with it, to keep the two lanes adjacent |
+
+**RANGES RESERVED, from procedure v13 section 6e item 4:** **10-29 build lane**, **30-49 test-authoring lane**,
+**50-69 challengers and audits**, **70-89 the play lane**, **90-99 scratch and never committed.** Existing files
+are NOT renumbered - the ranges apply from here on, which is why 41/42/43 and 45/46 sit outside them. `gates.sh`
+should fail loudly on a duplicate number; until it does, this table is the only check.
 
 Theirs moved rather than mine for one reason, and it is the same reason this register exists for `TC-R` ids:
 `43-tcrl-analysis` is named in a pushed commit, in `gates/logs/`, in `RUN-LOG.md` and in this file, and renaming

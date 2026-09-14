@@ -130,6 +130,23 @@ wider one.
   known templates matched, and check the NUMBER the template printed lies in the band that template is printed
   for - the challenger's break puts a 1.1 inside the 0.35-0.99 wording, and that mismatch is detectable even if
   the pin is later loosened. #388.
+- **A CROSS-CHECK AGAINST A READOUT FED BY THE THING UNDER TEST IS NOT A CROSS-CHECK.** The "shape is not a
+  value" rule sends you to whatever else on screen shows the same quantity - but check WHERE that second
+  readout gets its number first. #389's gate needed to prove the engine line's evaluation was not wrong-signed,
+  and the eval bar shows the same quantity eight pixels away. It is worthless there: with `engOn` the bar
+  renders `engLine` ITSELF (`_engBar`, chess.jsx:3809), so the two agree by construction and the assertion is
+  decoration that looks like rigour. The genuinely independent readout, the coach chip, turned out to render
+  EMPTY in that state, and two assertions built on it went red on the GOOD bundle before that was noticed.
+  What survived is pinned to a fact about the GAME rather than to any readout: White is winning after both
+  10.Nxb5 and 13.Rxd7, so a negative number is wrong no matter which element prints it. When no independent
+  readout exists, pin to the domain, not to a sibling of the thing under test.
+- **A FAILED QUERY IS NOT AN ANSWER, AND CACHING IT IS HOW "BROKEN ONCE" BECOMES "BROKEN FOR EVER."** `sfBestLine`
+  resolves `null` on every failure path - worker not ready, idle check failed, postMessage threw, aborted, or
+  the WASM trapping mid-search - and never rejects, so the caller could not tell a dead search from a real one
+  and stored `{line:''}` as the engine's reply. The position was then never re-queried and the user read a bare
+  ellipsis for the rest of the session. Measured on #387: plies 19 and 25 of the reference game, three revisits
+  each, never recovered. Before caching anything that came from a worker, an engine or a network call, ask what
+  that call returns when it FAILS, and whether the cache can tell the difference. #389.
 - **When something is cut off, assert WHICH THING DID THE CUTTING.** "Nothing is ever truncated" is usually
   the wrong test — on a small screen some text genuinely will not fit. What must never happen is cutting
   without saying so. A `-webkit-line-clamp` draws an ellipsis; a box with `overflow:hidden` does not, and if

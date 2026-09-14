@@ -3688,7 +3688,7 @@ export default function App(){
   useEffect(()=>{
     if(!engOn||!inReview||!review||!review.positions){setEngLine(null);return;}
     const pos=anaMode?game:review.positions[ply];if(!pos){setEngLine(null);return;}
-    const fen=toFEN(pos);const hit=engCacheRef.current[fen];
+    const fen=toFEN(pos);const _c=engCacheRef.current[fen];const hit=(_c&&_c.line)?_c:null; /* #389: an entry with NO line is a FAILED query, not an answer - see below */
     const ev=(!anaMode&&ply>0&&review.analysis[ply-1]&&typeof review.analysis[ply-1].evalAfter==='number')?review.analysis[ply-1].evalAfter:evalPawns(pos);
     /* #373 (audit N-review-2): on a checkmated position the engine has no line to give, so this placeholder was the label - and the review's forced mate score printed as "+99.0" where A-03 (#371) had put 1-0. The mated side to move decides the label. */
     let _mated=false;try{_mated=getStatus(pos)==='checkmate';}catch(e){}
@@ -3713,10 +3713,18 @@ export default function App(){
           const wt=g.turn==='w';const pre=wt?(num+'. '):(first?(num+'... '):'');
           line+=(first?'':' ')+pre+san;if(!wt)num++;first=false;g=makeMove(g,mv);n++;if(n>=6)break;}
       }catch(e){}
-      const val={line:line.trim()};engCacheRef.current[fen]=val;
+      const val={line:line.trim()};
       const _t2=(_lmate!=null)?mateLbl(_lmate):((_lcp!=null)?((_lcp>0?'+':'')+(_lcp/100).toFixed(1)):txt);
       const _c2=(_lmate!=null)?(_lmate>0?99:-99):((_lcp!=null)?_lcp/100:ev);
-      engCacheRef.current[fen]={...val,txt:_t2,cp:_c2};setEngLine({...val,txt:_t2,cp:_c2});
+      /* #389 (uat387-engine-wasm-trap-ply25): CACHE ONLY A REAL ANSWER. sfBestLine RESOLVES NULL on every
+         failure path - worker not ready, idle check failed, postMessage threw, abort, or the WASM trapping
+         mid-search - so `line` is '' and the old code stored {line:''} as though it were the engine's reply.
+         That made a hit on the next visit, so the position was NEVER re-queried and the user read a bare
+         ellipsis for the rest of the session. Measured on #387: plies 19 and 25 of the Opera Game, three
+         revisits each, never recovered. The trap itself is inside Stockfish and is not ours to fix; leaving
+         the failure out of the cache is, and it turns 'never' into 'tries again when you come back'. */
+      if(line.trim()){engCacheRef.current[fen]={...val,txt:_t2,cp:_c2};}else{delete engCacheRef.current[fen];}
+      setEngLine({...val,txt:_t2,cp:_c2});
     })();
     return()=>{dead=true;};
   },[engOn,ply,inReview,review,anaMode,game]);

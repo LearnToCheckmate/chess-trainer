@@ -61,9 +61,64 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #388 RE-GATE)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by BUILD #389)
+LIVE = **#389**, stamp "#389 - 2026-09-14 15:40 ET", md5 ffdbfa5971d6... over 944339 bytes.
+**This is the first BUNDLE change since #387** - #388 was two passes of gate work with app.js untouched.
+GATES GREEN: **26 suites, 1007 PASS, 0 fail** (claude/agents/gatelogs/389-all.log). The rise from 997 is
+ENTIRELY the new gate 22 at 10 assertions. This log IS self-consistent: `gates.sh #389` against a #389
+bundle, footer `GATES GREEN #389`, so it is filed as `389-all.log` under the ordinary convention.
+
+**A FAILED ENGINE QUERY WAS BEING CACHED AS AN ANSWER, so one bad position stayed bad for the whole session.**
+Flag `uat387-engine-wasm-trap-ply25`, from the headless UAT lane (P2, not a regression, at least as old as #385).
+The single-file Stockfish traps (`RuntimeError: unreachable`) on certain positions of the reference game. That
+trap is inside the WASM and is **not ours to fix**. What was ours:
+
+    const val={line:line.trim()};engCacheRef.current[fen]=val;
+
+`sfBestLine` (chess.jsx:2952) **resolves null on every failure path** - worker not ready, idle check failed,
+postMessage threw, aborted, or the WASM trapping mid-search - and never rejects. So on a trap `line` was `''`
+and the old code stored `{line:''}` as though it were the engine's reply. The next visit got a cache HIT, never
+re-queried, and the user read a bare ellipsis **for the rest of the session**. #389 caches only a real answer
+and deletes the entry otherwise, which turns "never" into "tries again when you come back".
+
+**MEASURED, BEFORE AND AFTER, with two independently written probes:**
+
+| | #387 (shipped) | #389 |
+|---|---|---|
+| ply 19, first visit | `-2.6 …` | `-2.5 …` (unchanged - see the residual) |
+| ply 19, three revisits | `-2.6 …` every time | `+2.9 10... Qb4+ 11. Qxb4 Bxb4+ 12. c3 cxb5 13. Bxb5+` |
+| ply 25, first visit | `-5.4 …` | `-5.3 …` |
+| ply 25, three revisits | `-5.4 …` every time | `+5.3 13... Nxd7 14. Bxe7 Bxe7 15. Bxd7+ Kxd7 16. Qd5+` |
+
+**THE PROBE FOUND MORE THAN THE REPORT DID, and one of the extras is a trap for whoever gates this next:**
+- The report named ply 25. It is **19 and 25**, and **two** WASM traps per session, not one.
+- Ply 33 also shows no line - and that is **CORRECT by design** (#374: a mated position gets no engine query
+  at all). A naive "every ply must have a line" gate would file a false defect on it. It nearly did here.
+- **The number was wrong, not just missing.** Ply 19 read `-2.8` on a position the coach chip calls `+3.0`:
+  the trapped search delivers a partial score with the wrong sign, and that was cached permanently too. The
+  retry corrects the sign as well as the line.
+
+**THE RESIDUAL, STATED SO NOBODY READS #389 AS MORE THAN IT IS:** on the visit where the trap actually fires,
+the number is still wrong-signed and the line still absent. #389 makes that **self-heal on the next visit**
+instead of persisting for ever. Fixing the first visit means recovering the worker after a trap, which is a
+bigger change and is deliberately NOT in this build.
+
+**GATE: `gates/regress/22-engline-recovery.js`, 10 assertions, and its negative control is the shipped release
+itself** - the live #387 bundle goes **4 of 10 red** on it, needing no trial bundle at all.
+
+**A CROSS-CHECK I HAD TO ABANDON, and the rule it produced.** The obvious way to prove the number is not
+wrong-signed is the eval bar, which shows the same quantity eight pixels away. It is **circular**: with `engOn`
+the bar renders `engLine` itself (chess.jsx:3809, `_engBar`), so the two agree by construction. The coach chip
+IS independent and renders empty in that state - two assertions built on it went red on the GOOD bundle before
+I noticed. What survives is pinned to a fact about the GAME: White is winning after both 10.Nxb5 and 13.Rxd7,
+so a negative number is wrong whichever element prints it.
+
+**WHY NOTHING SAW THIS FOR AT LEAST FOUR BUILDS:** the gallery's Review card visits plies 0, 19, 33 and 19
+again, and the other Review gates stop at a handful. 29 of the 33 plies had never been rendered by anything.
+
+## 0a-prev0) THE #388 RE-GATE (the brilliancy pin and the control-coverage tally)
 LIVE = **#387**, stamp "#387 - 2026-09-14 12:11 ET", md5 ae5ebbc44976... over 944311 bytes.
-GATES GREEN: **25 suites, 997 PASS, 0 fail** (claude/agents/gatelogs/388b-all.log, after chain link 2; 990 at 388-all.log before it) - the rise from 973 is ENTIRELY gate 21 going 7 assertions to 24.
+GATES GREEN: **25 suites, 997 PASS, 0 fail** (claude/agents/gatelogs/388b-regate-of-the-387-bundle.log, after chain link 2; 990 at 388-regate-of-the-387-bundle.log before it. BOTH ran against the #387 BUNDLE and their footers say so - the files were renamed at #389 after an external challenger pointed out that a log footed `GATES GREEN #387` filed as `388-all.log` is a provenance claim nobody can check without opening it. See gatelogs/README.md) - the rise from 973 is ENTIRELY gate 21 going 7 assertions to 24.
 **AND A MISCOUNT CORRECTED WHILE WRITING THIS:** the suite is **25**, not the 26 reported at the #387
 close-out and carried in HANDOFF, RUN-LOG and the #387 dashboard snapshot. It is 24 files in `gates/regress/`
 plus `mountcheck` - counted off the log's own `=== ` blocks rather than from memory. The PASS totals were

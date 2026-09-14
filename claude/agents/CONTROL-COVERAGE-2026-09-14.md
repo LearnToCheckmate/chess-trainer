@@ -73,6 +73,38 @@ So the challenger's "five gates with no control" does not survive re-derivation 
 correction is not in our favour, because the thing it was pointing at is worse than a count of gates. The
 finding it produced, `21-review-brilliant`, was a gate that the old tally would have scored as covered.
 
+## REVISED at #389 by a second external challenger (`uat-ext-2026-09-14b`), who was half right
+
+They re-derived the same tally from the FLAG `gates-without-a-negative-control` and got a much worse number:
+**474 of 990 assertions behind no control, 288 more controlled-then-modified, 77% total.** Checked line by line:
+
+**Their headline is wrong, and it is a sourcing difference, not a judgement call.** Four of their six
+"no recorded control" gates have controls with red counts in `claude/agents/REGRESSION-LOG.md` — 41-coach-bubble
+(9 rows, 6/42, 6/42, 2/42, then 6/56 and 2/56), 35-width-containment (three at #384, each 1/48),
+42-home-devrow (11/45, 10/45, 3/45), 43-tcrl-analysis (1/32, 3/32, 2/32). The flag's ledger stops at the #381
+re-gate; the regression log does not, and CLAUDE.md names the regression log. So the genuinely
+uncontrolled-by-us pair is **45-play-setup (165) and 46-play (128) = 293**, not 474. Likewise
+21-review-brilliant is not "2 of 7 vouching for 24": it was re-controlled at #388 against the current file,
+3 of 24, which their own earlier flag is what forced.
+
+**But their CATEGORY is better than mine and is adopted.** "Controlled, then the file changed" is its own
+state, not a pass. My table above has a `gate last changed` column and then scores those gates `yes`, which
+lets a control run at #381 vouch for assertions added at #383. It should not. Where the two dates disagree,
+read the row as *partly* proved: the assertions present at control time are covered and the ones added since
+are not, and nothing in this repo currently records which is which.
+
+**So both tallies overstate, in opposite directions, and the number neither of us computed is the one that
+matters:** how many ASSERTIONS are proved able to fail *against the file as it stands today*. Driving that up
+is the work; arguing about the gate count is not. Their spot-check method — run ONE gate against a real break
+each pass and rotate — produces that evidence directly and is better than any tally. Their 42-home-devrow
+check (34 pass / 11 fail on a `position:fixed` revert) independently reproduces what this lane measured at
+#386, which is the first time two sessions have confirmed the same control.
+
+**Two further findings of theirs, accepted and NOT yet done:** 115 assertions run at exactly one width (375)
+and `GEOS` has no 360 or 414 at all — that belongs with flag `phone-width-matrix`; and the dashboard snapshot
+still carries "Review: 30 stories, 30 cases, all executed", which is stale and rides in the tree this lane
+copies forward untouched every close-out.
+
 ## The next controls to run, in the order they are worth running
 
 1. ~~**`13-play-after-moves`**~~ — **DONE at #388.** See the regression log; it was not the formality it looked.
