@@ -1756,3 +1756,45 @@ left it green.
 TC-RL-007 and TC-RL-010 are untested against a broken build. TC-RL-010's property already has its own
 controlled gate (33-reproducible-review), and breaking it deliberately would mean reverting the #377
 determinism fix, which is not a change to make casually. TC-RL-007 should get a control in a later batch.
+
+## #387 - 2026-09-14 - two defects I shipped in #385, found by the UAT lane and fixed
+
+The overnight UAT lane filed two flags against the coach bubble I built in #385. Both are real, both were
+mine, and both were live in what you would have opened on your phone. They are fixed.
+
+**1. The eval chip was wrong on every ply of every game.** It read the evaluation divided by a hundred. On
+the Brilliant at 10.Nxb5 the bubble said `+0.0` while its own sentence underneath said "White is winning
+here" and the eval bar down the side of the same board said `+2.7`. Over the whole Opera Game the chip took
+three values - `+0.0`, `+0.1`, `+1.0` - where the bar ran from 0.0 to 1-0. A mated king read `+1.0`.
+
+The cause was one word: I formatted it with `evTxt`, the CENTIPAWN formatter, against a number the
+annotations hold in PAWNS. The correct formatter, `evPawnsTxt`, sits eight lines below it in the same file,
+and the comment directly above it says the annotations keep evaluations in pawns. Now `+1.3`, `+2.2`, `+3.0`,
+`+5.0`, `+5.3`, `+6.1`, `mate`.
+
+**Why my gate passed it, which matters more than the bug.** I asserted the chip's SHAPE with a regex, and
+"+0.0" is a perfectly well-formed evaluation. Nothing compared it to the eval bar showing the same quantity
+eight pixels away. The gate now cross-checks the two, on scale rather than exact equality since they are
+different snapshots - a factor of a hundred is not a rounding difference.
+
+**2. At 320 the sentence was cut mid-phrase with no ellipsis, on 14 of the 33 plies.** I capped the bubble's
+height at a PROPORTION of the board - the mockup's 128 of 349 written as a ratio - which gives only 97px on a
+264-wide board. The bubble hit that cap before the line-clamp could fire, so the text was clipped by the BOX,
+which draws no ellipsis. It read as a sentence that simply stopped.
+
+The cap is now the mockup's absolute number, 128. At 375 and 390 the bubble renders exactly as before, so
+nothing moved on the screens that already worked - measured across all 33 plies at both. At 320 the box now
+never clips: two plies are still truncated, but by the CLAMP, which draws an ellipsis, and the full sentence
+is always readable in the box under the board. That distinction is the fix: not "nothing is ever cut", but
+"nothing is ever cut without saying so".
+
+**Two more of my own assertions were caught blind on the way.** The new chip-versus-bar cross-check, in its
+first version, sat on a ply where the bar reads "M1" - not a number - so it was skipped every time and stayed
+silent on the broken build. And the ply walk disagreed with itself between runs, because on a Brilliant or
+Great move the sentence GROWS half a second later when the sacrifice refutation arrives from the engine; a
+220ms wait measured the short version. Both fixed, and the gate now gives the same numbers twice running.
+
+**Not yet done, and it is a real one:** the external challenger's flag `uat-ext-2026-09-14` says
+`21-review-brilliant.js` stays green against a build where the brilliancy explanation changed, because its
+regex accepts the bare word "worse" which is in every branch. That gate covers the item you raised five
+times. It is next.

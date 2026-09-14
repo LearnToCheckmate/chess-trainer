@@ -110,6 +110,24 @@ wider one.
   provenance of four measurements did. The pin is now opt-in (`CT_PIN=1`) and the stale file is deleted, and
   **every `L.launch` prints the bundle path and the stamp it read out of it**. If a run's output does not say
   what it measured, it is not evidence. Ask of any harness default: *what does it do when I forget?*
+- **A SHAPE is not a VALUE, and the cheapest way to find out is to cross-check against whatever else on
+  screen shows the same quantity.** #385's coach chip shipped formatted with the CENTIPAWN formatter against
+  a number held in PAWNS, so it printed every evaluation divided by a hundred: `+0.0` on twenty-one plies of
+  the Opera Game while the eval bar beside it on the same board read up to `+5.9`, and `+1.0` over a mated
+  king. Its gate was green, because the assertion was a regex on the chip's text and `+0.0` satisfies a regex
+  for an evaluation perfectly. Nothing compared it to the bar eight pixels away. When two elements show the
+  same quantity, assert they agree — not exact equality if they are different snapshots of it, but SCALE: a
+  factor of a hundred is not a rounding difference.
+- **When something is cut off, assert WHICH THING DID THE CUTTING.** "Nothing is ever truncated" is usually
+  the wrong test — on a small screen some text genuinely will not fit. What must never happen is cutting
+  without saying so. A `-webkit-line-clamp` draws an ellipsis; a box with `overflow:hidden` does not, and if
+  the box is the shorter of the two it wins silently. #387's assertion is that the bubble never sits on its
+  own height cap, so the clamp is always what truncates.
+- **A flaky assertion is worse than no assertion, and text that arrives late is a common cause.** #387's ply
+  walk disagreed with itself between runs of the SAME bundle, because on a Brilliant or Great move the coach
+  sentence GROWS about half a second after you land on it — the sacrifice refutation comes from a debounced
+  engine query. A 220ms settle measured the short sentence and a 240ms one sometimes the long. Settle past
+  the thing you are racing, then prove it by running the gate twice and getting the same numbers.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never

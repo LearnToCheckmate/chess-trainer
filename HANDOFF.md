@@ -61,7 +61,49 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #386 RE-GATE)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #387 run)
+LIVE = **#387**, stamp "#387 - 2026-09-14 12:11 ET", md5 ae5ebbc44976... over 944311 bytes.
+GATES GREEN: **24 suites** (see 387-all.log).
+
+**#387 FIXES TWO DEFECTS I SHIPPED IN #385, both found by the overnight UAT lane, both live on his phone.**
+
+1. **The eval chip in the coach bubble was wrong on every ply of every game.** It printed the evaluation
+   DIVIDED BY A HUNDRED: `evTxt` is the centipawn formatter and `curAnno.evalAfter` is held in PAWNS. Over
+   the Opera Game the chip took three values (`+0.0`, `+0.1`, `+1.0`) while the eval bar on the same board
+   ran to `+5.9` and `M1`; a mated king read `+1.0`. `evPawnsTxt` is the right formatter and sits eight lines
+   below in the same file, under a comment saying the annotations keep evaluations in pawns.
+2. **At 320 the sentence was cut mid-phrase with no ellipsis, on 14 of 33 plies.** The height cap was a
+   PROPORTION of the board (`boardPx*0.367`), which is 97px on a 264 board, so the BOX clipped the text
+   before `-webkit-line-clamp` could fire - and a box draws no ellipsis. The cap is now the mockup's
+   ABSOLUTE number, 128, and the clamp is width-aware (4 lines at <=340, 5 above). 375 and 390 measured
+   IDENTICAL across all 33 plies; at 320 the box now never clips.
+
+**THE PART TO LEARN FROM: MY OWN GATE PASSED BOTH.** It asserted the chip's SHAPE with a regex, and `+0.0`
+is a perfectly well-formed evaluation. A shape is not a value. Nothing compared the chip to the eval bar
+showing the same quantity eight pixels away. When two elements on screen show the same thing, cross-check
+them - on SCALE if they are different snapshots of it, because a factor of a hundred is not a rounding error.
+
+**AND TWO MORE OF MY ASSERTIONS WERE CAUGHT BLIND WHILE FIXING IT:**
+- The new cross-check, first version, sat on ply 31 - a MATE, where the bar reads "M1" and not a number - and
+  was guarded by "if both are numbers". It was skipped every time, silent on good and broken builds alike.
+  It now samples six plies and ASSERTS AT LEAST THREE COMPARABLE PAIRS WERE FOUND. Same lesson as TC-RL-002
+  one pass earlier: an assertion over a collection needs a companion assertion that the collection is not empty.
+- The ply walk DISAGREED WITH ITSELF between runs of the same bundle. On a Brilliant or Great ply the coach
+  sentence GROWS about half a second after arrival - the sacrifice refutation arrives from `sacRun`, debounced
+  450ms. A 220ms settle measured the short sentence. The walk now settles 1100ms and gives the same two plies
+  (19, 25) on repeated runs. A flaky assertion is worse than no assertion.
+
+**ASSERT WHICH THING DID THE CUTTING, not that nothing is ever cut.** At 320 the grown sentence genuinely
+cannot fit a bubble that respects the board - and it does not need to, because the full text is always in the
+box UNDER the board, which the bubble was added alongside rather than instead of. The assertion is that the
+bubble never sits on its own height cap, so the CLAMP is always what truncates and an ellipsis is always drawn.
+
+**STILL OPEN, and it is real:** flag `uat-ext-2026-09-14` from the external challenger - `21-review-brilliant.js`
+stays GREEN against a build where the brilliancy explanation changed, because its regex accepts the bare word
+"worse", which appears in every branch. That is the only gate covering the item Kunal raised five times. It
+also reports five gates with no negative control at all. Take it next.
+
+## 0a-prev0) THE #386 RE-GATE (TC-RL batch 1)
 LIVE = **#386**, stamp "#386 - 2026-09-14 10:17 ET", md5 7ef5d916feb0... over 944530 bytes.
 GATES GREEN: **23 suites** (see 386-all.log). The re-gate added test coverage, NOT app code: app.js is
 byte-identical to the #386 build below.

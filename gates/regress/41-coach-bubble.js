@@ -66,7 +66,82 @@ L.run(async()=>{
     L.say(await seen(b,'[data-ct="coach-say"]'),geo+': it carries the coach sentence');
     L.say(await seen(b,'[data-ct="coach-eval"]'),geo+': it carries the eval chip - DECISIONS-LOG, "the bubble and the eval chip, but no face until the piece-mascot direction is drawn"');
     const ev=await rect(b,'[data-ct="coach-eval"]');
-    L.say(!!ev&&/^(\+|-)?(\d+\.\d|M\d+|-M\d+|1-0|0-1)$/.test(ev.text),geo+': the eval chip reads as an evaluation rather than an empty box',ev&&ev.text);
+    L.say(!!ev&&/^(\+|-)?(\d+\.\d|mate|-mate)$/.test(ev.text),geo+': the eval chip reads as an evaluation rather than an empty box',ev&&ev.text);
+
+    // THE ASSERTION THAT WAS MISSING IN #385, AND THE DEFECT IT LET THROUGH.
+    // The chip shipped formatted with evTxt - the CENTIPAWN formatter - against curAnno.evalAfter, which is
+    // held in PAWNS. So it printed the right number divided by a hundred: +0.0 on 21 plies of the Opera
+    // Game, +0.1 on 8, +1.0 on 4, while the eval bar beside it on the same board read up to +5.9 and M1.
+    // The original assertion here checked the chip's SHAPE with a regex, and "+0.0" satisfies a regex for
+    // an evaluation perfectly. A shape is not a value.
+    //
+    // What catches it is a CROSS-CHECK against the other thing on screen that shows the same quantity. Not
+    // equality - the chip is the eval AFTER this move and the bar is the position now, so they are allowed
+    // to differ by a little - but they must be on the SAME SCALE. A factor of a hundred is not a little.
+    // AND IT HAS TO BE CHECKED WHERE BOTH NUMBERS EXIST. The first version of this cross-check ran at ply
+    // 31 - a MATE, where the bar reads "M1" and not a plain number - so the comparison was skipped and the
+    // assertion never executed once. A control that restored the defect left it silent. Sample several
+    // plies, compare wherever both are plain numbers, and ASSERT THAT AT LEAST ONE SUCH PLY WAS FOUND, so
+    // an empty comparison set fails instead of passing quietly.
+    const num=(x)=>(x&&/^[+-]?\d+(\.\d+)?$/.test(x))?Math.abs(parseFloat(x)):null;
+    const pairs=[];
+    for(const ply of [9,14,19,21,24,28]){
+      await R.goPly(b,ply); await b.settle(1100);
+      const pr=await b.page.evaluate(()=>{
+        const t=(s)=>{const e=document.querySelector(s);return e?(e.innerText||'').trim():null;};
+        return {chip:t('[data-ct="coach-eval"]'),bar:t('[data-ct="eval-bar-num"]')};
+      });
+      const cN=num(pr.chip),bN=num(pr.bar);
+      if(cN!=null&&bN!=null&&bN>=0.5)pairs.push({ply,chip:pr.chip,bar:pr.bar,cN,bN});
+    }
+    L.say(pairs.length>=3,geo+': at least three plies gave a plain number in BOTH the coach chip and the eval bar to compare ('+pairs.length+'). Without this the scale check below can pass by never running - which is exactly what it did when it sat on a mate ply',pairs.map(x=>x.ply));
+    const offScale=pairs.filter(x=>!(x.cN>=x.bN/3&&x.cN<=x.bN*3));
+    L.say(offScale.length===0,geo+': the coach chip and the eval bar are on the SAME SCALE wherever both are numbers. #385 shipped them a FACTOR OF 100 apart - the chip used the centipawn formatter on a value held in pawns - and a regex on the chip\'s shape could not see it',{pairs,offScale});
+
+    // AND THE SAME DEFECT SEEN A SECOND WAY, because one ply can agree by luck. Across the whole game the
+    // chip must actually MOVE: the broken build took three distinct values in thirty-three plies.
+    const vals=[];
+    for(const ply of [5,9,14,19,21,24,28,30,33]){
+      await R.goPly(b,ply); await b.settle(260);
+      const v=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="coach-eval"]');return e?(e.innerText||'').trim():null;});
+      if(v)vals.push(v);
+    }
+    const distinct=[...new Set(vals)];
+    L.say(distinct.length>=5,geo+': the chip takes at least five distinct values across nine plies of the Opera Game ('+distinct.join(', ')+'). The #385 build took THREE across all thirty-three, because dividing every evaluation by a hundred flattens the game into +0.0',{vals,distinct});
+    L.say(vals.some(v=>v==='mate'),geo+': a mate reads "mate" rather than a small number - dividing 99 pawns by a hundred printed "+1.0" over a mated king',vals);
+
+    // THE SENTENCE MUST NOT BE CUT, at any ply, at any width. At 320 the old cap was a PROPORTION of the
+    // board (boardPx*0.367 = 97px) and the bubble hit it before -webkit-line-clamp could fire, so the text
+    // was cut by the BOX and no ellipsis was drawn: measured 14 of 33 plies cut, 28 of 33 sitting exactly
+    // on the cap. Walking plies here rather than trusting one, because the sentence length varies per move.
+    // THE WALK MUST WAIT OUT THE DEBOUNCE OR IT MEASURES THE WRONG SENTENCE. On a Brilliant or Great ply
+    // _annoWhy GROWS about half a second after arrival: the sacrifice refutation comes from a debounced
+    // engine query (sacRun, 450ms) and is appended. A 220ms settle caught the short version and this walk
+    // disagreed with itself between runs - one ply cut or none, depending on timing. A flaky assertion is
+    // worse than no assertion, so the settle is past the debounce and the numbers below are the grown text.
+    let cutAt=[],capAt=0,walked=0;
+    for(let ply=1;ply<=33;ply++){
+      await R.goPly(b,ply); await b.settle(1100);
+      const r=await b.page.evaluate(()=>{
+        const bub=document.querySelector('[data-ct="coach-bubble"]'),say=document.querySelector('[data-ct="coach-say"]');
+        if(!bub||!say)return null;
+        return {h:bub.getBoundingClientRect().height,cap:parseFloat(getComputedStyle(bub).maxHeight),
+          sh:say.scrollHeight,ch:say.clientHeight};
+      });
+      if(!r)continue;
+      walked++;
+      if(r.sh>r.ch+1)cutAt.push(ply);
+      if(Math.abs(r.h-r.cap)<1.5)capAt++;
+    }
+    L.say(walked>=30,geo+': the bubble was present on at least thirty plies to walk ('+walked+') - a cut-text check over an empty walk proves nothing',walked);
+    // WHICH THING DOES THE CUTTING IS THE WHOLE ASSERTION. The clamp draws an ellipsis; the box does not.
+    // #386 let the BOX clip, on 14 of 33 plies at 320, so the sentence just stopped mid-phrase. Asserting
+    // "nothing is ever cut" would be the wrong test - at 320 the grown sentence genuinely cannot fit a
+    // bubble that respects the board, and the full text is always readable in the box UNDER the board.
+    // What must never happen is cutting WITHOUT SAYING SO.
+    L.say(capAt===0,geo+': the bubble never sits jammed against its own height cap ('+capAt+' of '+walked+' plies), so the BOX is never what clips the sentence. The #386 build sat on the cap on 28 of 33 at 320 and cut the text silently',capAt);
+    L.say(cutAt.length<=4,geo+': at most four plies of '+walked+' are clamped at all ('+cutAt.length+': '+(cutAt.join(', ')||'none')+'), and a clamp draws an ellipsis. A build that truncated most of the game would fail here even though every cut was "signalled"',cutAt);
+    await R.goPly(b,31); await b.settle(300);
     const say=await rect(b,'[data-ct="coach-say"]');
     L.say(!!say&&say.text.length>12,geo+': the sentence is a sentence, not a placeholder',say&&say.text.slice(0,80));
     await b.shot('coach-'+geo+'-ply31');
