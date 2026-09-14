@@ -2088,7 +2088,6 @@ export default function App(){
   const sfAnaCbRef=useRef(null);                    // {score,best} handlers for the in-flight analysis eval
   const sfPoolRef=useRef([]);                       // #343: extra review workers. A review is N independent evals, so it parallelises cleanly.
   const [poolN,setPoolN]=useState(0);               // how many review workers actually came up (shown on the progress line)
-  const [poolNote,setPoolNote]=useState('');        // #347: what the adaptive budget decided, so the wait is explained
   const sfEvalingRef=useRef(false);                 // a full-strength eval search is running (vs a move search)
   const sfEvalFenRef=useRef('');                    // the fen the pending eval search is for
   const [sfReady,setSfReady]=useState(false);       // worker ready (state, to retrigger the eval effect)
@@ -2920,7 +2919,16 @@ export default function App(){
     return()=>{fired=true;clearTimeout(t);if(ref.current===readyGo)ref.current=null;};   // cancel a pending handshake
   };
   const anaIdle=(w,then)=>engIdle(w,sfAnaSyncRef,then);
-  const sfEval1=(fen,movetime)=>new Promise(resolve=>{
+  /* #377: sfEval1 takes an optional DEPTH. With it, this path searches exactly like the pool path
+     (sfEvalOn, 'go depth '+DCAP with DCAP=16, and a 20 s stuck-worker guard); without it, it is the old
+     time-based search, which is still right for the callers that want a quick opinion inside a fixed budget.
+     WHY THIS EXISTS. #375 made the review reproducible by moving it from 'go movetime' to 'go depth 16' and
+     raising the stuck-worker guard from 4 s to 20 s - but it only changed the POOL path. The review falls back
+     to this function whenever the pool has one worker, and poolWanted() returns 1 for hardwareConcurrency 2 or
+     3, and for the ct_pool=1 override. So a smaller or older phone got the PRE-#375 review out of a post-#375
+     build, with no indication which one it had: a time-based search (unreproducible) behind a 4 s guard (which
+     is how a move that walks into mate came to be called Great). Found by reading the source, not reported. */
+  const sfEval1=(fen,movetime,depth)=>new Promise(resolve=>{
     const w=sfAnaRef.current;
     if(!w||!sfAnaReadyRef.current){resolve(null);return;}
     try{const _p=sfAnaAbortRef.current;if(_p)_p();}catch(e){}
@@ -2928,9 +2936,9 @@ export default function App(){
     let cp=null,mate=null,cp2=null,mate2=null,alt=null,done=false;
     const finish=(bm)=>{if(done)return;done=true;sfAnaCbRef.current=null;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null});};
     const _abort=()=>finish(null); sfAnaAbortRef.current=_abort;
-    const to=setTimeout(()=>finish(null),Math.max(4000,movetime*8));
+    const to=setTimeout(()=>finish(null),depth?Math.max(20000,movetime*8):Math.max(4000,movetime*8));
     sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=mateW(s.mate,sign);cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=mateW(s.mate,sign);cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm)};
-    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null);return;}try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null);}});
+    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null);return;}try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));}catch(e){finish(null);}});
   });
   // Engine's best line (principal variation) from a position; resolves an array of UCI moves or null. Lets Review play the better line out at full engine strength.
   const sfBestLine=(fen,movetime,onScore)=>new Promise(resolve=>{
@@ -3020,7 +3028,7 @@ export default function App(){
     if(res.plies.length===0){setPgnErr(res.error||'Could not read any moves.');return;}
     const headers=parsePGNHeaders(text);
     if(!res.ok)setPgnErr(`Couldn't read past move ${res.plies.length+1}: ${res.error} Analyzed the first ${res.plies.length} half-moves only — check that move in your PGN.`);
-    setAnalyzing(true);setProgress(0);setPoolNote('');
+    setAnalyzing(true);setProgress(0);
     await new Promise(r=>setTimeout(r,30));
     const useSF=sfReadyRef.current?await ensureAna():false;
     let out=[];
@@ -3040,13 +3048,19 @@ export default function App(){
       // #343: aim for a ~25s wall clock instead of ~60s AND give each position more thinking time than before,
       // because P workers run at once. A single worker falls back to the old 60s budget so nothing regresses.
       const _P=Math.max(1,(await ensurePool(poolWanted())).length);setPoolN(_P);
-      // #347: the budget is a WALL CLOCK TARGET, adapted to whatever device this actually is.
-      // #343 assumed sandbox speed and spent the parallel saving on depth (1333ms -> ~2270ms per position).
-      // On a slower phone with fewer workers that ate the entire speedup, and Kunal measured over a minute.
-      // Start deliberately low, then measure real elapsed time after the first batch and scale to land on target.
-      const _TARGET=24000;
-      let MT=Math.max(500,Math.min(1800,Math.round(_TARGET*_P/(N+1))));
-      let _mtLocked=false;const _t0=Date.now();
+      /* #377: THE ADAPTIVE TIME BUDGET IS GONE, AND WITH IT A MESSAGE THAT WAS NOT TRUE.
+         #347 computed a per-position budget MT against a 24 s wall-clock target, measured the real elapsed time
+         after the first round of the pool, rescaled MT, and when it trimmed told the user 'slower device,
+         trimming to keep this under 24s'. #375 then moved the pool from 'go movetime' to 'go depth 16' and
+         sfEvalOn stopped passing movetime to the engine at all - so from #375 on, MT changed NOTHING on the pool
+         path. It fed only the stuck-worker ceiling Math.max(20000, MT*8), and MT was capped at 2400, so the
+         ceiling was exactly 20000 whatever MT did. The rescale was inert and the note was false: it told a user
+         on a slow phone that the review was being trimmed to hit a time target while nothing was being trimmed
+         and the review took exactly as long as depth 16 takes on that device - shown at the moment they are most
+         likely to be watching the progress bar. #377 puts the single-worker path on fixed depth too, so MT is
+         now inert everywhere. What survives is one constant feeding that ceiling. If a real time budget is ever
+         wanted back, it has to bound the SEARCH, not just the watchdog. */
+      const MT=2000;
       const _store=(i,r)=>{
         const pos=res.positions[i];
         let cpW;
@@ -3058,36 +3072,47 @@ export default function App(){
         evW[i]=cpW;ev2W[i]=cp2W;if(i<N){bU[i]=r?r.bestmove:null;aU[i]=r?r.alt:null;}
       };
       const _slots=sfPoolRef.current.filter(x=>x.ready&&!x.dead);
-      if(_slots.length>1){
+      /* #377: ONE WORKER IS NOT A DIFFERENT ALGORITHM, IT IS THE SAME ALGORITHM WITH ONE BLOCK.
+         This read `_slots.length>1`, so a device with a single pool worker skipped everything below and fell
+         through to sfEval1 - which #375 never updated, and which runs on the shared ANALYSIS worker while the
+         pool worker it had just started sat idle. Three things diverged at once, not one: the search was by time
+         rather than depth, the `fresh` table discipline below did not apply, and the analysis worker carries
+         whatever the analysis board last searched. poolWanted() returns 1 for hardwareConcurrency 2 or 3, so
+         that was an ordinary older phone, not an edge case. With `>=1` the block split does the right thing on
+         its own - _chunk becomes N+1 and the one worker walks the whole game contiguously, which is exactly what
+         the loop already does per worker. sfEval1 stays as the fallback for having NO pool worker at all, and it
+         searches by depth too now, so no path is left searching by time. */
+      if(_slots.length>=1){
         /* #375: each worker takes a fixed CONTIGUOUS block of the game instead of racing for the next unclaimed
            position. The old queue made the assignment depend on timing, so a position met a different
            transposition table on every run and the review's numbers moved; a contiguous block is also what keeps
            a review at ~17 s, because a worker walking consecutive positions reuses that table (handing each
            worker every third position instead costs 72 s). A slow position now idles its own worker only. */
-        let done=0;const _chunk=Math.ceil((N+1)/_slots.length);
+        /* #377: THE REVIEW'S ANSWER MUST NOT DEPEND ON HOW MANY WORKERS THE DEVICE HAS.
+           #375 gave each worker a contiguous block and reused its transposition table down that block, which is
+           what keeps a review at ~10 s. But a table cleared only at each BLOCK START means the table entering
+           position i depends on where the block boundaries fell - and those fall wherever (N+1)/workers puts
+           them. Three workers cleared at 0, 11 and 22; one worker cleared only at 0. Same build, same game,
+           different verdicts: measured on the Opera Game, Best 5,5 vs 7,6, Good 1,5 vs 0,4, Black's accuracy
+           57.7 vs 58.8. Fixing the search to depth 16 did not fix this, because it is the table and not the
+           search that differs.
+           So the table is cleared on a FIXED CADENCE tied to the POSITION INDEX, and the blocks are aligned to
+           that cadence. Every position is now searched with a table cleared at floor(i/_TBLK)*_TBLK and warmed
+           by its own group, whatever the worker count - the answer is a function of the game, not the phone.
+           _TBLK is 4 rather than 8 because the blocks must be whole multiples of it: at 8 a 33-position game
+           across three workers splits 16/16/1 and the wall clock is set by the 16. */
+        const _TBLK=4;
+        let done=0;const _chunk=Math.max(_TBLK,Math.ceil(Math.ceil((N+1)/_slots.length)/_TBLK)*_TBLK);
         await Promise.all(_slots.map(async(sl,_k)=>{
           const _hi=Math.min(N,(_k+1)*_chunk-1);
           for(let i=_k*_chunk;i<=_hi;i++){
-            const r=await sfEvalOn(sl,toFEN(res.positions[i]),MT);
+            const r=await sfEvalOn(sl,toFEN(res.positions[i]),MT,(i%_TBLK)===0);
             _store(i,r);done++;setProgress(done/(N+1));
-            // after one full round of the pool, we know what this DEVICE costs per position; correct the budget once.
-            if(!_mtLocked&&done>=Math.max(4,_P*2)){
-              _mtLocked=true;
-              const _el=Date.now()-_t0, _proj=(_el/done)*(N+1);
-              if(_proj>_TARGET*1.12){
-                const _scale=Math.max(0.3,_TARGET/_proj);
-                MT=Math.max(250,Math.round(MT*_scale));
-                setPoolNote('slower device, trimming to keep this under '+Math.round(_TARGET/1000)+'s');
-              }else if(_proj<_TARGET*0.55){
-                MT=Math.min(2400,Math.round(MT*Math.min(2.2,_TARGET/Math.max(1,_proj))));
-                setPoolNote('');
-              }
-            }
           }
         }));
       }else{
         for(let i=0;i<=N;i++){
-          const r=await sfEval1(toFEN(res.positions[i]),MT);
+          const r=await sfEval1(toFEN(res.positions[i]),MT,16);   /* #377: the SAME depth the pool uses (DCAP in sfEvalOn). If one of these moves, the other must move with it - gate 33 asserts both. */
           _store(i,r);setProgress((i+1)/(N+1));
         }
       }
@@ -5106,7 +5131,7 @@ export default function App(){
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
             <div style={{fontSize:'clamp(15px,3.9vw,19px)',color:'#fff',fontWeight:800,letterSpacing:.2}}>Analyzing your game</div>
             <div style={{fontSize:'clamp(14px,2.8vw,14px)',color:'var(--ac2)',fontWeight:700}}>{pct}% · checking every move</div>
-            <div data-ct="ana-engines" style={{fontSize:'clamp(13.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,marginTop:2,maxWidth:312,textAlign:'center',lineHeight:1.4}}>{poolNote?poolNote:(poolN>1?('Running '+poolN+' Stockfish engines side by side, one position each, to catch the tactics and brilliancies.'):'Running a deep Stockfish pass to catch the tactics and brilliancies, so this takes a few seconds.')}</div>
+            <div data-ct="ana-engines" style={{fontSize:'clamp(13.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,marginTop:2,maxWidth:312,textAlign:'center',lineHeight:1.4}}>{(poolN>1?('Running '+poolN+' Stockfish engines side by side, one position each, to catch the tactics and brilliancies.'):'Running a deep Stockfish pass to catch the tactics and brilliancies, so this takes a few seconds.')}</div>
           </div>
           <div style={{maxWidth:344,minHeight:36,textAlign:'center',fontSize:'clamp(14px,2.6vw,14px)',color:'rgba(255,255,255,.62)',lineHeight:1.45,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:12,padding:'10px 14px'}}>💡 {tip}</div>
         </div>

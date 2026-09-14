@@ -69,6 +69,62 @@ marked rather than invented.
 
 ## Open
 
+### Builds #376 and #377 [2026-09-13 evening, the run that took the pen] - the consolidation, and a bug found by reading the source
+
+- [2026-09-13 19:42 ET] status: built #376, gated, pushed as c3eb13a  The two build lines consolidated by REBASE,
+  not merge, so main's reproducible-review work stays underneath and the branch's work sits on top with one build
+  number sequence. Also: CLAUDE.md and claude/BUILD-CONTEXT.md committed FIRST (b656c2c) so a session that can
+  only reach git inherits the map; the ply log kept but DEV-GATED behind the Layout readout switch with a written
+  retirement condition (it comes out when Kunal certifies k12 closed on his own phone); three new gates; the
+  harness taught Kunal's real geometry, 375x730 - not 375x679, which double-counted the 51pt status bar and cost
+  two sessions an hour each. Thirteen items in this file closed on evidence rather than re-fixed.
+- [2026-09-14 status: open -> built #377] **THE #375 REPRODUCIBILITY FIX ONLY COVERED HALF THE REVIEW.** Found by
+  reading the source of live #375, not reported by anyone. The review uses the worker pool only when it has MORE
+  THAN ONE worker; otherwise it falls back to sfEval1, which #375 never touched - still `go movetime` (the
+  time-based search that made reviews unreproducible) behind a `Math.max(4000, ...)` guard (the 4 s ceiling that
+  #375's own comment calls "how a move that walks into mate came to be called Great"). poolWanted() returns 1 for
+  hardwareConcurrency 2 OR 3, and for the ct_pool=1 override. So a smaller or older phone got the PRE-#375 review
+  out of a POST-#375 build, with nothing on screen to say which one it had. Measured, not argued: on a bundle with
+  the old path, a one-worker review of the Opera Game publishes different verdicts from the three-worker review of
+  the same game - Best 5,5 vs 6,7; Good 1,5 vs 0,2; and an extra Mistake against Black. #377 sends `go depth 16`
+  on that path too and raises its guard to 20 s. The single-worker review gets SLOWER, which is correct: it was
+  only fast because it was thinking less.
+- [2026-09-14 status: open -> built #377] **THE REVIEW TOLD THE USER IT WAS "TRIMMING" WHEN IT WAS NOT.** Same
+  reading. #347 computed a per-position budget MT against a 24 s wall-clock target, rescaled it after the first
+  round of the pool, and when it trimmed printed "slower device, trimming to keep this under 24s". #375 then moved
+  the pool to fixed depth and sfEvalOn stopped passing movetime to the engine at all - so from #375 on MT changed
+  NOTHING on that path. It fed only the stuck-worker ceiling `Math.max(20000, MT*8)`, and MT was capped at 2400,
+  so the ceiling was exactly 20000 whatever MT did. The rescale was inert and the message was false, shown at the
+  moment a user on a slow phone is most likely to be watching the progress bar. #377 deletes MT's adaptive
+  machinery, the message, and the now-dead poolNote state behind it.
+- [2026-09-14 status: open -> built #377] **THE REVIEW'S ANSWER DEPENDED ON HOW MANY WORKERS THE PHONE HAD.**
+  Not the bug above, and not found by reading - found because the gate written for the bug above FAILED after the
+  bug above was fixed. Putting both paths on depth 16 was not enough, and the reason is the transposition table,
+  not the search. #375 gave each worker a contiguous block and reused its table down that block, which is what
+  keeps a review near 10 s; but the table was cleared only at each BLOCK START, and block boundaries fall wherever
+  (positions)/(workers) puts them. Three workers cleared at 0, 11 and 22. One worker cleared only at 0. So the
+  table entering a given position - and therefore its depth-16 score - was a function of the DEVICE. Measured on
+  the Opera Game, same build, same game: Best 5,5 vs 7,6; Good 1,5 vs 0,4; Black's accuracy 57.7 against 58.8.
+  FIX: clear the table on a fixed cadence tied to the POSITION INDEX (every 4), and align the block sizes to that
+  cadence, so every position is searched with a table cleared at floor(i/4)*4 and warmed by its own group
+  whatever the worker count. The answer is now a function of the game, not the phone: one worker and three
+  workers both return accuracy [98.0, 62.4] with identical counts in all nine categories. It cost nothing
+  measurable - the three-worker review is still 10 s.
+  NOTE THE PUBLISHED NUMBERS MOVED. Black's accuracy on the Opera Game reads 62.4 where #376 read 57.7, because
+  the table regime changed. The ground truth #375 established is unaffected and still gated: 10.Nxb5 is Brilliant
+  and 15...Nxd7 is a Blunder whose best was Qxd7.
+  THIS DOES NOT CLOSE uat375-review-not-reproducible. That flag measured a residue with pool size held CONSTANT
+  at 2; what #377 removes is the variation ACROSS pool sizes. Run-to-run variation within one configuration does
+  not appear on this machine (two runs at pool 3 agree exactly, 0.0 points apart) but that is not proof it is
+  gone on his phone.
+
+- [2026-09-14 status: note] **THE GATE THAT WAS BLIND TO IT WAS MINE, WRITTEN THE SAME EVENING.** Gate 33, the
+  reproducibility gate, forced ct_pool=3 for both of its runs - so it exercised the fixed path twice and would
+  have gone green on every build that shipped the broken one. It now runs a third review at ct_pool=1 and asserts
+  the two paths publish identical verdicts, and reads both search sites out of the bundle under test. Recorded
+  here rather than quietly fixed, because the lesson is the general one: a gate that only exercises the
+  configuration the fix was written for proves nothing about the configuration the user has.
+
 ### From the second (sandbox) session, ported into the pushed line as #375 [2026-09-13 16:40 ET]
 
 - [2026-09-13 16:40 ET] status: built #375  Two sessions built this app at the same time today. The pushed line
@@ -169,15 +225,28 @@ marked rather than invented.
   (proposals only, chess.com side by side through Claude in Chrome, mockups on the decisions page, after the
   testing roles cover a screen). Acked on the pickup board. This session has no Chrome connection, so chess.com was
   not reachable; the first pass (Review) needs a Chrome-connected session or a folder of chess.com screenshots.
-- [2026-09-12 21:34 ET] status: open, P0 on your phone  uat372-k10-rank1-clipped: on your #372 recording, card 1 at
+- [2026-09-12 21:34 ET] status: closed, WITHDRAWN by Kunal  uat372-k10-rank1-clipped: on your #372 recording, card 1 at
   game over renders rank 1 at about 60% height (pieces sliced, file letters on the pieces), milder mid-game; the
   bottom row shows icons without Review / Rematch labels. THE RECORDING WINS over every harness here (the sandbox
   measures the board 351x351 at game over on #372 and #373). Reopens A-02/X-01. Not in #373 (pushed before it was
   read). #374 opens with it: the Layout readout prints the board's painted height and the row's label state.
-- [2026-09-12 21:34 ET] status: open, P0 on your phone  uat372-k12-board-desync: card 6, at 17.Rd8# the board
+  closed: [2026-09-14, #377 close-out] Withdrawn by the feedback session itself (tracker flag
+  uat372-k10-WITHDRAWN, and a closure was already appended in the #375 section of this file): a pixel scan of the
+  recording frames at 11s and 16s puts every rank at 139-141px in both, identical at game over and mid-game - the
+  original reading was a crop where large pieces and the overlapping file letters made rank 1 look squashed. Left
+  standing as an open P0 here through three close-outs after it had been withdrawn. Closing it on his evidence,
+  not re-measuring it: he certifies closed, and he is the one who withdrew it.
+- [2026-09-12 21:34 ET] status: closed, verified fixed on #375  uat372-k12-board-desync: card 6, at 17.Rd8# the board
   re-rendered one ply earlier with no tap while the move row still said 33/33 (+99.0 was the label for that earlier
   position). #373 fixes the label path only (1-0 with the engine line on), NOT the desync. Reproduction attempt at
   the close-out: see the next entry.
+  closed: [2026-09-14, #377 close-out] Does not reproduce on live #375 (tracker flag k12-verified-fixed-on-375,
+  and Kunal confirmed it directly: "k12 is verified fixed"). Measured at 375x730 against 14f06ac by driving the
+  exact path named - review the Opera Game, step to 33/33 at 17.Rd8#, tap the "why" play-out, sample every 400ms
+  for 20 s: fifty samples, the ply readout 33/33 in ALL FIFTY and the eval label 1-0 in ALL FIFTY. NOTE WHAT IS
+  NOT BEING CLAIMED: two brief rank-8 excursions were recorded (at 400ms, and 2000-2800ms) and are NOT being
+  chased, by his call. The ply log built in #376 stays in as a tripwire, dev-gated behind the Layout readout
+  switch, and comes OUT when he certifies k12 closed on his own phone - the expiry is in CLAUDE.md.
 - [2026-09-12 21:34 ET] status: open  uat372-cards-7-8-unverified: your recording stopped on card 6 at 1m42s; cards
   7 and 8 were never reached and no RECORDING COMPLETE frame appeared; card 3's King's Gambit intro modal covers the
   board for its first four seconds. #374: the modal is dismissed before card 3's caption; the k12 hold (now inside
@@ -343,6 +412,17 @@ marked rather than invented.
   board 23px; A-13 Pass & Play setup scrolls 32px; A-14/Z-02 one board-width rule (your z7); A-15 truncated
   names; X-07 wrong-move message clipped; A-08/Y-04/Z-05 the round button over a corner rook (your call on
   55% alpha). P2: A-17..A-25, X-12, Y-05 (iPad, parked), Y-07 (your tile-ink line), Y-08, Z-03, Z-04, Z-06.
+  reconciled: [2026-09-14, #377 close-out] THIS ENTRY IS A SNAPSHOT FROM #372 AND HAS BEEN STALE FOR FOUR BUILDS.
+  It was still reading as eleven open P1s and inflating every count since. Closed since it was written, each one
+  cited to evidence already in this file or to his own decision, not re-measured here: A-04 (Home ☰ 46px, opens
+  the menu), A-16 (the menu sheet reaches the bottom, 669 of 679), A-12/X-09 (the Moves toggle - the board keeps
+  351@78 across closed and open), A-09 (the rank-8 badge inside the board), A-10 (Next puzzle advances before
+  solving) and X-07 (the wrong-move message, 10-12px clipped) all closed in #373 with measurements, see the #373
+  section above; A-14/Z-02 closed by Kunal on the decisions page - "Agreed - close it, the rule is 375 minus the
+  eval bar". STILL OPEN from this entry: A-05 (the floating 🎬/💬 buttons, 34x34), A-11 (targets under 40px -
+  still 40-odd, and nine on the Play row at 320x568, measured on #372 and unchanged through #377), A-13 (Pass &
+  Play setup scrolls 32px), A-15 (truncated names), A-08/Y-04/Z-05 (the round button over a corner rook, waiting
+  on his call about 55% alpha). The P2 list is not reconciled here and should not be read as current.
 
 
 Decisions page for everything marked NEEDS KUNAL (nine questions, the backlog, and a

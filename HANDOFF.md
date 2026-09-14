@@ -62,7 +62,30 @@ gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, 
 `gates/` rather than re-writing them.
 
 ## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-13 evening, written by the #376 run)
-LIVE = **#376**, commit c3eb13a, stamp "#376 - 2026-09-13 19:42 ET", md5 8ae83724470bbdd0843e7027672d5355 over
+LIVE = **#377**, commit __377_SHA__, stamp "#377 - 2026-09-13 21:18 ET", md5 de8b356d3bb5901c249873e5d3741e4d over 941775 bytes,
+verified at that SHA. WHAT #377 IS: the half of the #375 reproducibility fix that was never made. The review uses
+its worker pool only when it has MORE THAN ONE worker; otherwise it falls back to sfEval1, which #375 never
+touched - still `go movetime` behind a 4 s stuck-worker guard, which is the exact pair #375 fixed on the other
+path and described as "how a move that walks into mate came to be called Great". poolWanted() returns 1 for
+hardwareConcurrency 2 or 3, so an older phone got the PRE-#375 review out of a POST-#375 build with nothing on
+screen to say which. Measured on a bundle with the old path: a one-worker review of the Opera Game publishes
+Best 6,7 where the pool says 5,5, Good 0,2 where it says 1,5, and an extra Mistake against Black. #377 also
+deletes the adaptive time budget, inert on the pool path since #375, and the "slower device, trimming to keep
+this under 24s" message it printed - a message that had been false for two builds. FOUND BY READING THE SOURCE,
+not by any agent, gate or UAT run; and the gate written that same evening to guard reproducibility was blind to
+it, because it forced a 3-worker pool for both of its runs. Gate 33 now runs a third review at ct_pool=1 - and
+that run then went RED against the fix, correctly. Fixing the search was not enough: what differed was the
+transposition TABLE. #375 cleared it at each worker's BLOCK START, and block boundaries fall wherever
+(positions)/(workers) puts them - three workers cleared at 0, 11 and 22; one worker only at 0 - so a position's
+depth-16 score was a function of the DEVICE. The table is now cleared on a fixed cadence tied to the POSITION
+INDEX (every 4) with the block sizes aligned to it, so one worker and three workers return the same review:
+accuracy [98.0, 62.4] with identical counts in all nine categories, and the three-worker review is still 10 s.
+THE PUBLISHED NUMBERS MOVED: Black reads 62.4 on the Opera Game where #376 read 57.7, because the table regime
+changed. The #375 ground truth is unaffected and still gated - 10.Nxb5 Brilliant, 15...Nxd7 a Blunder whose best
+was Qxd7. THIS DOES NOT CLOSE uat375-review-not-reproducible: that flag measured a residue with pool size held
+constant, and what #377 removes is the variation ACROSS pool sizes.
+
+PREVIOUS: #376, commit c3eb13a, stamp "#376 - 2026-09-13 19:42 ET", md5 8ae83724470bbdd0843e7027672d5355 over
 942172 bytes. Pushed by this session and verified the way #375 was: the raw app.js was fetched back from
 raw.githubusercontent.com AT THAT SHA and its stamp and md5 matched the gated bundle byte for byte. Gates before
 the push: **GATES GREEN #376**, 12 suites, 256 PASS lines, 0 fail (claude/agents/gatelogs/376-all.log). It is #375 (14f06ac) with the second build line rebased on top and renumbered.

@@ -71,6 +71,17 @@ wider one.
 - **Kunal certifies closed, not you.** Done is a claim until he confirms on his phone.
 - **Measure after interaction, not at the start position.** Two P0s lived for months at game over
   and at a lesson's end because every measurement was taken at move 0.
+- **A gate must exercise the configuration the USER has, not the one the fix was written for.**
+  #375 made the review reproducible on the worker-pool path and left the single-worker fallback
+  serving the old, unreproducible code out of the same build - and the gate written to guard that
+  fix forced a 3-worker pool for every run, so it exercised the fixed path twice and would have gone
+  green on every broken build. Found in #377 by reading the source. When a code path is chosen by
+  the device (`hardwareConcurrency`, `deviceMemory`, a `ct_*` override), the gate covers EVERY
+  branch or it is not a gate.
+- **Prove a gate against a deliberately broken build before trusting its green.** Twice in one day a
+  gate passed on a bundle built to fail it. Both times the fix was to assert the thing itself, in the
+  BUNDLE UNDER TEST, rather than only its downstream symptom - a symptom that a fast machine may not
+  be able to produce at all.
 
 ## Temporary code, with an expiry
 

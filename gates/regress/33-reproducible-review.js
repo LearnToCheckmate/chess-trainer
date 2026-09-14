@@ -24,6 +24,20 @@
 //      cause - but they must not be described as protecting the timeout, because they measurably do not;
 //   2. the constant itself is guarded DIRECTLY, in the BUNDLE UNDER TEST rather than in the source, since the
 //      bundle is what ships. That check fails against the broken bundle, which is what makes this gate honest.
+//
+// #377, AND WHAT THIS GATE CAUGHT BY GOING RED ON ITS OWN AUTHOR'S FIX. Two more faults were found through this
+// gate, in this order. First, by reading the source: #375 only ever fixed the POOL path. The review falls back to
+// sfEval1 whenever the pool has one worker (hardwareConcurrency 2 or 3, or ct_pool=1), and that fallback was
+// still 'go movetime' behind a 4 s guard - the exact pair #375 was written to remove. This gate could not have
+// seen it, because it forced ct_pool=3 for both of its runs: it exercised the fixed path twice. It runs a third
+// review at ct_pool=1 now.
+// Second, that third run then FAILED against the fix, and it was right to. Putting both paths on depth 16 was not
+// enough, because what differed was the transposition TABLE and not the search: the table was cleared only at
+// each worker's block start, and block boundaries fall wherever (positions)/(workers) puts them, so a position's
+// depth-16 score was a function of the DEVICE. Three workers and one worker returned Best 5,5 vs 7,6 and Black
+// 57.7 vs 58.8 on the same build. The app now clears the table on a fixed cadence tied to the position index and
+// aligns the blocks to it. The lesson worth keeping: the assertion that looked too strong was the true one, and
+// weakening it to match the code would have buried a real defect.
 'use strict';
 const fs=require('fs'),path=require('path');
 const L=require('../lib');
@@ -31,8 +45,8 @@ const PGN='[Event "Opera Game"] [White "Morphy"] [Black "Duke Karl / Count Isoua
 const CATS=['Brilliant','Great','Best','Good','Book','Inaccuracy','Mistake','Miss','Blunder'];
 
 // One review from a clean slate. Returns {ms, accuracy:[w,b], counts:{cat:[w,b]}, verdict19}.
-async function reviewOnce(geo,tag){
-  const b=await L.launch({geo,name:'repro-'+tag,store:{ct_pool:'3'}});
+async function reviewOnce(geo,tag,pool){
+  const b=await L.launch({geo,name:'repro-'+tag,store:{ct_pool:String(pool||3)}});
   await b.open();
   await b.page.evaluate(()=>{try{localStorage.removeItem('ct_evalcache');}catch(e){}});
   await b.open();                                   // reload so the app starts with no cached review
@@ -87,6 +101,24 @@ L.run(async()=>{
   L.say(guard!==null&&guard>=20000,'the pool\'s stuck-worker timeout is at least 20 s ('+guard+' ms). At 4 s it cut real searches short and stored a shallow opinion as the answer, which is what made a move that walks into mate read as Great.',bundle);
   L.say(depth===16,'the pool searches to depth 16 ('+depth+'). At 14 the engine prefers 15...Nxd7, never sees the mate, and the famous move is mislabelled; 18 is correct but takes 36 s on this machine.',bundle);
 
+  /* #377: THE SINGLE-WORKER PATH, WHICH THIS GATE USED TO BE BLIND TO.
+     The review uses the pool only when it has more than one worker; otherwise it falls back to sfEval1, and
+     poolWanted() returns 1 for hardwareConcurrency 2 or 3 and for the ct_pool=1 override. Up to #377 that
+     fallback was still the pre-#375 code: 'go movetime' behind a 4 s guard. This gate forced ct_pool=3 for both
+     of its runs, so it exercised the fixed path twice and would have gone green on every build that shipped the
+     broken one. Both halves are covered now. In the bundle, esbuild hoists the ternary guard, so a depth-mode
+     search reads Math.max(<depth>?2e4:4e3, <movetime>*8): the SAME variable must also choose 'go depth' over
+     'go movetime', which is what ties the 20 s guard to the fixed-depth search rather than leaving two
+     unrelated edits that happen to both be present. */
+  const g1=src.match(/Math\.max\((\w+)\?2e4:4e3,\w+\*8\)/);
+  const dv=g1&&g1[1];
+  const esc=(x)=>x.replace(/\$/g,'\\$');
+  const wired=dv?new RegExp('\\('+esc(dv)+'\\?"go depth "\\+'+esc(dv)+':"go movetime "').test(src):false;
+  L.say(!!g1,'the single-worker search takes a depth, and gets a 20 s guard when it does (was a flat 4 s)',g1&&g1[0]);
+  L.say(wired,'the same depth argument chooses "go depth" over "go movetime", so the fixed depth and the 20 s guard are one change and not two',dv);
+  L.say(/\.positions\[\w+\]\),\w+,16\)/.test(src),'the review asks the single-worker path for depth 16, the same depth the pool uses',(src.match(/\.positions\[\w+\]\),\w+,16\)/)||[])[0]);
+  L.say(!/trimming to keep this under/.test(src),'the review no longer tells the user it is "trimming" to hit a time target. It was printing that on the pool path, where the budget it claimed to be trimming had been inert since #375 and nothing was trimmed.');
+
   const geo='kunal730';
   const A=await reviewOnce(geo,'A');
   L.note('run A: '+Math.round(A.ms/1000)+' s, accuracy '+JSON.stringify(A.acc)+', ply19 "'+A.ply19+'"');
@@ -107,4 +139,22 @@ L.run(async()=>{
   L.say(!!A.ply19&&A.ply19===B.ply19,'10.Nxb5 gets the same verdict in both runs',{A:A.ply19,B:B.ply19});
   L.say(/Nxb5/.test(A.ply19)&&!/Blunder|Mistake|Inaccuracy/.test(A.ply19),'10.Nxb5 is not scored as a mistake (the shallow-search symptom)',A.ply19);
   L.say(A.errs.length===0&&B.errs.length===0,'no app error beyond the allowed engine trap in either run',[A.errs.slice(0,1),B.errs.slice(0,1)]);
+
+  /* #377: run C is the same game on ONE worker - the path an older phone actually gets. Before #377 this run
+     searched by time behind a 4 s guard and could not agree with A; agreeing with it now is the proof that both
+     paths search identically, which is the thing the fix claims. Its RUN TIME is deliberately not compared:
+     one worker doing the work of three is slower and that is correct - it is currently only fast because it is
+     thinking less. What must match is every published verdict. */
+  const C=await reviewOnce(geo,'C-1worker',1);
+  L.note('run C (ct_pool=1): '+Math.round(C.ms/1000)+' s, accuracy '+JSON.stringify(C.acc)+', ply19 "'+C.ply19+'"');
+  const readC=CATS.filter(c=>A.counts[c]&&C.counts[c]);
+  L.say(readC.length===CATS.length,'all '+CATS.length+' verdict counts were read from the single-worker run too',{read:readC});
+  const differC=readC.filter(c=>A.counts[c][0]!==C.counts[c][0]||A.counts[c][1]!==C.counts[c][1]);
+  L.say(differC.length===0,'the SINGLE-WORKER review returns the same verdict counts as the pool review. Until #377 this path was the pre-#375 code and an older phone got a different review out of the same build, with nothing on screen to say which one it had.',differC.map(c=>c+': pool '+A.counts[c]+' vs 1-worker '+C.counts[c]));
+  if(A.acc.length===2&&C.acc.length===2){
+    const dW=Math.abs(A.acc[0]-C.acc[0]),dB=Math.abs(A.acc[1]-C.acc[1]);
+    L.say(dW<=1.0&&dB<=1.0,'the single-worker run agrees with the pool run on accuracy within 1.0 point (white '+dW.toFixed(1)+', black '+dB.toFixed(1)+')',{pool:A.acc,one:C.acc});
+  }
+  L.say(!!C.ply19&&C.ply19===A.ply19,'10.Nxb5 gets the same verdict on one worker as on three',{pool:A.ply19,one:C.ply19});
+  L.say(C.errs.length===0,'no app error beyond the allowed engine trap on the single-worker path',C.errs.slice(0,1));
 },'REPRODUCIBLE-REVIEW');
