@@ -62,7 +62,7 @@ gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, 
 `gates/` rather than re-writing them.
 
 ## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-13 evening, written by the #376 run)
-LIVE = **#377**, commit __377_SHA__, stamp "#377 - 2026-09-13 21:18 ET", md5 de8b356d3bb5901c249873e5d3741e4d over 941775 bytes,
+LIVE = **#377**, commit 248b55d, stamp "#377 - 2026-09-13 21:18 ET", md5 de8b356d3bb5901c249873e5d3741e4d over 941775 bytes,
 verified at that SHA. WHAT #377 IS: the half of the #375 reproducibility fix that was never made. The review uses
 its worker pool only when it has MORE THAN ONE worker; otherwise it falls back to sfEval1, which #375 never
 touched - still `go movetime` behind a 4 s stuck-worker guard, which is the exact pair #375 fixed on the other
