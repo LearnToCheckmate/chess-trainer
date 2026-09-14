@@ -63,7 +63,7 @@ gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, 
 
 ## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #388 RE-GATE)
 LIVE = **#387**, stamp "#387 - 2026-09-14 12:11 ET", md5 ae5ebbc44976... over 944311 bytes.
-GATES GREEN: **25 suites, 990 PASS, 0 fail** (claude/agents/gatelogs/388-all.log) - the rise from 973 is ENTIRELY gate 21 going 7 assertions to 24.
+GATES GREEN: **25 suites, 997 PASS, 0 fail** (claude/agents/gatelogs/388b-all.log, after chain link 2; 990 at 388-all.log before it) - the rise from 973 is ENTIRELY gate 21 going 7 assertions to 24.
 **AND A MISCOUNT CORRECTED WHILE WRITING THIS:** the suite is **25**, not the 26 reported at the #387
 close-out and carried in HANDOFF, RUN-LOG and the #387 dashboard snapshot. It is 24 files in `gates/regress/`
 plus `mountcheck` - counted off the log's own `=== ` blocks rather than from memory. The PASS totals were
@@ -105,10 +105,33 @@ could never be observed. Breaking the **call site** instead (`if(plyLogOnRef.cur
 2298) makes recording happen while the switch is off, and gate 32 goes **4 of 16 red** at both geometries.
 So: the control was inert, the **gate is not blind**. Verified here rather than taken on trust.
 
-**STILL OPEN FROM THAT FLAG, and deliberately not claimed as done:** its third finding, that five gates had no
-negative control at all when the suite was 18 gates at #383. The suite is 26 now and that tally has to be
-re-derived against the current directory, gate by gate, rather than carried forward — it is a pass of its own.
-`claude/agents/REGRESSION-LOG.md` is the record of which breakages have actually been run.
+**THE THIRD FINDING IS NOW DONE TOO, at chain link 2, and it did not survive re-derivation in the form it was
+reported.** The claim was "five gates have no control at all", measured at #383 when the suite was 18. The tally
+re-derived against the current 25 is in **`claude/agents/CONTROL-COVERAGE-2026-09-14.md`**: 23 of 25 suites have
+been run against a bundle built to fail them and gone red HERE; 2 (`45-play-setup`, `46-play`) rest on their
+authors' recorded evidence, which I have read but not reproduced; and four carry a NAMED internal gap
+(`30-p1-fixes` A-12, `43-tcrl-analysis` TC-RL-007/-010, `46-play` NC5-NC12 named-but-not-run, `34-takeback`'s
+#383 control never reaching the line it was aimed at).
+
+**But read that document for its first section, not its table.** "Does this gate have a control" is the WRONG
+QUESTION, and #388 is the proof: `21-review-brilliant` HAD one, run at #381, red 2 of 7, recorded clean — and it
+was the gate that then passed 7 of 7 against a changed sentence, because the control that had been run broke the
+*play-out button* and nothing had ever broken the *sentence*. A gate is not controlled or uncontrolled; each
+ASSERTION is proved able to fail or it is not. Which means the assertion total is not a coverage figure and goes
+UP when someone adds a check that cannot fail.
+
+**AND THE FIRST ITEM OFF THAT LIST WAS RUN IN THE SAME PASS.** `13-play-after-moves` was the only suite that had
+never been deliberately controlled — its single red, 1 of 12 at #380, was an accident on a bundle nobody meant to
+gate. Two controls at #388:
+- **a board 90% of its computed size, CONSTANTLY** → 3 of 11 red, and only ONE of those three was the point. Both
+  headline assertions — "board unchanged over four plies" and "ONE width and ONE top across five plies" — PASSED
+  at both geometries on a board reading 338 instead of 351, because each compares the board to ITSELF.
+- **the MOVES panel's reservation removed** → 2 of 11 red at 375x679, board jumping 375→279 and top 103→80.2.
+  That is k8 itself, so the SUBJECT was guarded even while the SIZE was not.
+Every board number is now pinned per geometry AND per configuration (card k8 and Pass & Play are both 351 @ 78 at
+375x679 and 390 @ 103 at 390x844, measured on #387). The same two bundles now fire **8 of 18** and **4 of 18**,
+and control A fires at 390 where nothing about the board fired before. Seventh gate fixed by the same rule:
+**pin the number.** A stale comment fell out of it too — the header claimed the vs-Computer board is 357; it is 351.
 
 ## 0a-prev0) THE #387 RE-GATE (the Play and Play setup lanes)
 LIVE = **#387**, stamp "#387 - 2026-09-14 12:11 ET", md5 ae5ebbc44976... over 944311 bytes.
