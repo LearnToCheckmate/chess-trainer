@@ -1469,9 +1469,9 @@ function _CBtn({icon,label,on,dis,accent,active}){
   );
 }
 // One row in the More bottom sheet.
-function _SheetItem({icon,label,on,dis,warn}){
+function _SheetItem({icon,label,on,dis,warn,ct}){
   return(
-    <button onClick={dis?undefined:on} disabled={dis} style={{
+    <button data-ct={ct} onClick={dis?undefined:on} disabled={dis} style={{
       display:'flex',alignItems:'center',gap:11,width:'100%',padding:'12px 13px',borderRadius:11,marginBottom:7,
       background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',cursor:dis?'default':'pointer',
       color:dis?'rgba(255,255,255,.32)':warn?'#f0a99f':'#fff',fontSize:14,fontWeight:700,textAlign:'left',opacity:dis?.6:1
@@ -3461,12 +3461,35 @@ export default function App(){
     doMove(g,opts[0]);return true;
   };
 
+  /* fb-takeback (Kunal, "Computer only, as answered"): #362 pulled takeback out of live play on his own
+     round-1 answer, "remove it from live play, keep it for practice, not for rated games". A game against a
+     bot IS practice, so it comes back for the COMPUTER ONLY - not Pass & Play ('human'), not online, not demo.
+     The function below survived #362 intact with no callers; this revives it rather than rewriting it.
+
+     IT IS DELIBERATELY ONLY OFFERED WHEN IT IS ALREADY HIS MOVE (game.turn===pColor), which means the engine
+     has already replied and both plies are on the stack. Allowing it WHILE the engine is searching is the one
+     thing that would make this change expensive: the search is on a shared worker whose bestmove callback is a
+     single slot, so a reply landing after the position changed would be applied to a dead position, and
+     guarding that needs generation counters on the worker - counters whose own failure mode (one dropped or
+     one extra bestmove desyncs them permanently and the computer never moves again) is worse than the race
+     they fix. Nobody asked for a mid-search takeback. Turns alternate, so when it is his move the position to
+     restore is playHist[n-2] and never further back.
+
+     isOver is NOT usable here: it derives from boardGame (line 2481), which is playHist[pvIdx] while the
+     Back/Forward preview is live, so on a finished game it reads false as soon as he steps back a move. The
+     over-check below reads the REAL game. */
+  const _tbIdx=(()=>{
+    if(mode!=='play'||opponent!=='computer'||playEnd)return -1;
+    try{const st=getStatus(game);if(st==='checkmate'||st==='stalemate')return -1;}catch(e){return -1;}
+    if(game.turn!==pColor)return -1;                  // the engine is still to move: wait for its reply
+    const n=playHist.length;
+    return (n>1&&playHist[n-2].turn===pColor)?n-2:-1;
+  })();
+  const canTakeback=_tbIdx>=0;
   const takeback=()=>{
-    if(mode!=='play'||playHist.length===0||opponent==='online')return;
-    const arr=playHist.slice();let g=arr.pop();
-    if(opponent==='computer'){while(g&&g.turn!==pColor&&arr.length){g=arr.pop();}}
-    if(!g)return;
-    setGame(g);setLastMv(null);setPlayHintMv(null);setPlayHist(arr);setPreMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
+    if(_tbIdx<0)return;
+    setGame(playHist[_tbIdx]);setLastMv(null);setPlayHintMv(null);setPlayHist(playHist.slice(0,_tbIdx));setPreMv(null);
+    UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
   };
   const requestHint=()=>{
     if(mode!=='play')return;
@@ -4065,7 +4088,7 @@ export default function App(){
       {diagMsg&&(<div style={{position:'fixed',bottom:'calc(env(safe-area-inset-bottom,0px) + 54px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'rgba(10,12,18,.95)',border:'1px solid rgba(110,168,254,.55)',borderRadius:12,padding:'10px 16px',color:'#cfe0ff',fontSize:13,fontWeight:700,boxShadow:'0 6px 20px rgba(0,0,0,.5)',pointerEvents:'none',maxWidth:'90vw',textAlign:'center'}}>🩺 {diagMsg}</div>)}
       {shareMsg&&(<div style={{position:'fixed',bottom:'calc(env(safe-area-inset-bottom,0px) + 54px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'rgba(10,12,18,.95)',border:'1px solid rgba(110,168,254,.55)',borderRadius:12,padding:'10px 16px',color:'#cfe0ff',fontSize:13,fontWeight:700,boxShadow:'0 6px 20px rgba(0,0,0,.5)',pointerEvents:'none',maxWidth:'90vw',textAlign:'center'}}>{shareMsg}</div>)}
       {homeScreen&&!preview&&!fbOpen&&<button onClick={()=>{setFbText('');setFbSent(false);setFbCopied(false);setFbOpen(true);}} title="Send feedback to Claude" style={{position:'fixed',left:'calc(env(safe-area-inset-left,0px) + 48px)',bottom:'calc(env(safe-area-inset-bottom,0px) + 8px)',zIndex:9997,width:34,height:34,borderRadius:10,border:'1px solid rgba(110,168,254,.45)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>{'\uD83D\uDCAC'}</button>}
-      {moreOpen&&mode==='play'&&opponent!=='online'&&(<div onClick={()=>{setMoreOpen(false);setResignArm(false);}} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'10px 14px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -10px 30px rgba(0,0,0,.5)'}}><div style={{width:38,height:4,borderRadius:3,background:'rgba(255,255,255,.22)',margin:'2px auto 12px'}}/>{/* #362: Takeback removed from live play (his pick on the decisions page, 2026-09-12: "remove it from live play"). Practice keeps its own back-a-move arrows and the analysis board keeps Undo. */}<_SheetItem icon="newgame" label="New game" on={()=>{fullReset();setMoreOpen(false);}}/>{!(isOver||playEnd)&&<_SheetItem icon="resign" label={resignArm?'Tap again to resign':'Resign'} warn on={()=>{if(!resignArm){setResignArm(true);setTimeout(()=>setResignArm(false),4000);return;}setResignArm(false);resign();setMoreOpen(false);}}/>} {/* #375 (audit A2-03): a 45px row under "New game" ended the game on one tap */}</div></div>)}
+      {moreOpen&&mode==='play'&&opponent!=='online'&&(<div onClick={()=>{setMoreOpen(false);setResignArm(false);}} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div data-ct="more-sheet" onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'10px 14px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -10px 30px rgba(0,0,0,.5)'}}><div style={{width:38,height:4,borderRadius:3,background:'rgba(255,255,255,.22)',margin:'2px auto 12px'}}/>{/* fb-takeback: back HERE only - vs Computer, in the More sheet, not a seventh button (the six-button row and the board keep their height). MOUNTED for the whole game and merely DISABLED when there is nothing to give back, rather than unmounted: opponent does not change mid-game, so no row above New game ever appears or disappears under a finger. Resign already unmounts at game over, but it is the LAST row, so nothing moves above it. */}{opponent==='computer'&&<_SheetItem ct="more-takeback" icon="takeback" label="Takeback" dis={!canTakeback} on={()=>{takeback();setMoreOpen(false);}}/>}<_SheetItem icon="newgame" label="New game" on={()=>{fullReset();setMoreOpen(false);}}/>{!(isOver||playEnd)&&<_SheetItem icon="resign" label={resignArm?'Tap again to resign':'Resign'} warn on={()=>{if(!resignArm){setResignArm(true);setTimeout(()=>setResignArm(false),4000);return;}setResignArm(false);resign();setMoreOpen(false);}}/>}<_SheetItem ct="moves-analyze" icon="analyze" label="Analyze" on={()=>{setResignArm(false);setMoreOpen(false);analyzeLine();}}/><_SheetItem ct="moves-copy" icon="moves" label={copyMsg||'Copy moves'} on={copyMoves}/>{/* fb-controls (Kunal, "Just those two"): Analyze and Copy moves came out of the MOVES row into this sheet. Analyze MUST close the sheet - analyzeLine only sets mode, so moreOpen would still be true when Play comes back. Copy must NOT close it, or the copyMsg flash is the one thing the user never sees. */} {/* #375 (audit A2-03): a 45px row under "New game" ended the game on one tap */}</div></div>)}
       {revMore&&inReview&&(<div onClick={()=>setRevMore(false)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div data-ct="rev-sheet" onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,maxHeight:'82vh',overflowY:'auto',background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'10px 14px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -10px 30px rgba(0,0,0,.5)'}}><div style={{width:38,height:4,borderRadius:3,background:'rgba(255,255,255,.22)',margin:'2px auto 12px'}}/>
         {review.openingName&&(<div style={{textAlign:'center',fontSize:'clamp(13.5px,2.5vw,14px)',color:'rgba(255,255,255,.8)',marginBottom:10}}>📖 Opening: <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>)}
         <div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center',marginBottom:10}}>
@@ -5830,13 +5853,14 @@ export default function App(){
 
       {/* Move history (play/learn) */}
       {(()=>{const _lFill=(mode==='learn'&&openIdx!==null&&!wide); /* #372 (antagonist Y-02): in a lesson on a phone this panel is always there and absorbs the slack, so the board's top edge holds and there is no empty band under it on taller phones */ const _pLive=(mode==='play'&&!wide&&!playSetup&&!!opponent); /* #373 (audit A-12 / antagonist X-09): on a phone this panel used to leave the flow when Moves was closed, and the fit loop handed its ~64px to the board - the board moved 23px on every toggle. HANDOFF rule: a row that can appear or disappear must reserve its space; toggle its CONTENT, never the row. So in a live phone game the panel is always laid out and Moves only hides what is in it. */ const _pFill=_pLive||_lFill;const _pHide=_pLive&&!movesOpen;return (!inReview&&!pzLow&&(boardGame.history.length>0||_pFill)&&!(mode==='learn'&&openIdx===null)&&(mode!=='play'||movesOpen||_pLive)&&(<div data-ct="moves-panel" style={{marginTop:10,width:boardPx,maxWidth:_edge?'100vw':'98vw',visibility:_pHide?'hidden':'visible',...(_pFill?{flex:'1 1 auto',minHeight:0,display:'flex',flexDirection:'column'}:null)}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:4}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:4,minHeight:23}}>{/* #378: minHeight is the chips' own drawn height. fb-controls removes them on the play screen only, and without this the row shrinks there, the board grows into the slack (Pass & Play 351 -> 367) and then shrinks back at game over (375 -> 367) - the board jumping, which gate 15 caught inside the k10 card. A row that can appear reserves its space. */}
           <span data-ct="moves-head" style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.4)',letterSpacing:1.5,fontFamily:'monospace'}}>MOVES</span>
-          <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}>
+          {/* fb-controls (Kunal, "Just those two"): in a live game Analyze and Copy moves are rows in the More sheet, not chips in this row. They stay HERE on every screen that has no More sheet - a lesson, a puzzle, the analysis board, an online game - because there they are the only way to reach either control. The predicate is the sheet's own: chess.jsx line 4068 renders the sheet on mode==='play'&&opponent!=='online'. */}
+          {!(mode==='play'&&opponent!=='online')&&(<div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}>
             {/* #373 (audit A-11): these drew 23px tall. The visible chip keeps its size; the button around it carries 10px of padding cancelled by a negative margin, so the tap box is 43px without the row growing (a taller row would come out of the board). */}
             <button data-ct="moves-analyze" onClick={analyzeLine} style={{padding:'10px 0',margin:'-10px 0',position:'relative',zIndex:1 /* #374: the moves panel's top margin used to cover the bottom 6px of this box (antagonist: 37 effective of 43) */,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap'}}><span style={{display:'inline-block',padding:'3px 11px',borderRadius:6,background:'rgba(var(--acr),.18)',border:'1px solid rgba(var(--acr),.4)',color:'var(--ac2)',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:600}}>🔍 Analyze</span></button>
             <button data-ct="moves-copy" onClick={copyMoves} style={{padding:'10px 0',margin:'-10px 0',position:'relative',zIndex:1,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap'}}><span style={{display:'inline-block',padding:'3px 11px',borderRadius:6,background:copyMsg?'rgba(var(--acr),.25)':'rgba(255,255,255,.08)',border:`1px solid ${copyMsg?'rgba(var(--acr),.5)':'rgba(255,255,255,.18)'}`,color:copyMsg?'var(--ac2)':'rgba(255,255,255,.72)',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:600}}>{copyMsg||'📋 Copy moves'}</span></button>
-          </div>
+          </div>)}
         </div>
         {/* #370: FOUND BY MEASURING AFTER THE FIRST MOVE, not at the start position. On Kunal's phone the Play board
             was 357 at move 0 and 295 after 1.e4: this nav row and the hint line under the list appear once there is

@@ -37,8 +37,16 @@ L.run(async()=>{
     L.say(!!bl&&bl.y+bl.h<=b.geo.h+0.5,geo+': A-13 the build line is on screen (bottom '+(bl&&Math.round(bl.y+bl.h))+')',bl);
     await b.shot('p1-'+geo+'-setup-passplay');
     // A-12 + A-11 in a live game (card k8: four plies, then toggle Moves twice)
-    await b.card('k8',6500);const m0=await b.metrics();const an=await b.rect('[data-ct="moves-analyze"]');const cp=await b.rect('[data-ct="moves-copy"]');
-    L.say(!!an&&an.h>=40&&!!cp&&cp.h>=40,geo+': A-11 Analyze and Copy moves tap boxes are at least 40px tall',{analyze:an&&an.h,copy:cp&&cp.h});
+    await b.card('k8',6500);const m0=await b.metrics();
+    /* fb-controls (#378): Analyze and Copy moves are rows in the More sheet now, not chips in the MOVES row.
+       A-11 MOVES WITH THEM rather than being deleted - the rule it guards (a tap target is at least 40px) did
+       not stop applying because the control moved. Measured with the sheet OPEN, since that is the only state
+       in which they exist on this screen; b.rect returns null for a selector that is not in the DOM, so left
+       unchanged this line would simply have gone FAIL on the first build that shipped the move. */
+    await b.tapText(/^More$/,{wait:600});
+    const an=await b.rect('[data-ct="moves-analyze"]');const cp=await b.rect('[data-ct="moves-copy"]');
+    L.say(!!an&&an.h>=40&&!!cp&&cp.h>=40,geo+': A-11 Analyze and Copy moves rows are at least 40px tall in the More sheet',{analyze:an&&an.h,copy:cp&&cp.h});
+    await b.page.mouse.click(4,4);await b.settle(400);   // shut the sheet: it is zIndex 9990 and covers the board
     await b.tapText(/^Moves$/,{wait:700});const m1=await b.metrics();const vis1=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="moves-panel"]');return e?getComputedStyle(e).visibility:null;});
     await b.tapText(/^Moves$/,{wait:700});const m2=await b.metrics();const vis2=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="moves-panel"]');return e?getComputedStyle(e).visibility:null;});
     L.say(m0.board&&m1.board&&m2.board&&Math.abs(m0.board.w-m1.board.w)<0.6&&Math.abs(m0.board.w-m2.board.w)<0.6&&Math.abs(m0.board.top-m1.board.top)<0.6&&Math.abs(m0.board.top-m2.board.top)<0.6,geo+': A-12 the board keeps its width and top across Moves closed and open',{w:[m0.board&&m0.board.w,m1.board&&m1.board.w,m2.board&&m2.board.w],top:[m0.board&&m0.board.top,m1.board&&m1.board.top,m2.board&&m2.board.top]});

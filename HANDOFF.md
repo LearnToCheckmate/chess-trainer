@@ -62,7 +62,27 @@ gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, 
 `gates/` rather than re-writing them.
 
 ## 0a) WHERE THE BUILD ACTUALLY IS (2026-09-13 evening, written by the #376 run)
-LIVE = **#377**, commit 248b55d, stamp "#377 - 2026-09-13 21:18 ET", md5 de8b356d3bb5901c249873e5d3741e4d over 941775 bytes,
+LIVE = **#378**, commit __378_SHA__, stamp "#378 - 2026-09-14 00:07 ET", md5 985d61643b883822d477d0a6522e5c9e
+over 942243 bytes, verified at that SHA. WHAT #378 CARRIES: the three feedback decisions that had a real answer
+AND no holding note. fb-controls - Analyze and Copy moves fold out of the MOVES header row into the More sheet
+("Just those two"), and stay as chips on every screen that has no More sheet (lesson, puzzle, analysis board,
+online), because there they are the only way to reach either control. fb-takeback - takeback returns vs Computer
+ONLY, reviving the function #362 left as dead code with no callers; it is offered only when it is already his
+move, which is what kept the change to two edits instead of seven (a mid-search takeback would need generation
+counters on the shared Stockfish worker, whose own failure mode is worse than the race they fix).
+TWO THINGS THE GATES CAUGHT THAT READING WOULD NOT HAVE. Folding the chips out let the MOVES header row shrink,
+so the board grew 351 -> 367 in Pass & Play AND THEN SHRANK 375 -> 367 mid-card at game over - the board
+jumping, caught inside the k10 gallery card. Fixed by RESERVING the row height (a row that can appear must
+reserve its space), not by re-pinning the gate to the new number. And the new takeback gate went red three times
+on a correct build because it was counting MOVES-panel ROWS as plies; it was fixed against a dump of the real
+text, which is measure-do-not-read applied to the harness itself.
+**fb-movedup WAS ON THE LIST AND WAS DELIBERATELY NOT BUILT.** See flag `fb-movedup-held-needs-kunal`: in
+landscape the MOVES panel is not in the DOM, so the strip is the only move readout and removing it leaves none;
+the board moves 9.2px down on his own phone where the decision told him it would not move at all; and
+gates/drive/play.js counts plies off that strip, so removing it breaks three drive states while gates.sh still
+prints GREEN.
+
+PREVIOUS: #377, commit 248b55d, stamp "#377 - 2026-09-13 21:18 ET", md5 de8b356d3bb5901c249873e5d3741e4d over 941775 bytes,
 verified at that SHA. WHAT #377 IS: the half of the #375 reproducibility fix that was never made. The review uses
 its worker pool only when it has MORE THAN ONE worker; otherwise it falls back to sfEval1, which #375 never
 touched - still `go movetime` behind a 4 s stuck-worker guard, which is the exact pair #375 fixed on the other

@@ -69,6 +69,56 @@ marked rather than invented.
 
 ## Open
 
+### Build #378 [2026-09-14] - the three feedback items that carried a real answer
+
+- [2026-09-14 status: built #378] **fb-controls, "Just those two".** "I like how you collapsed that resign and
+  new game into the button. I think we can also collapse the analyze, copy, etcetera into the button." Analyze
+  (92x43) and Copy moves (121x43) came out of the MOVES header row and are rows in the More sheet now, beside
+  New game and Resign. His answer settled the one open part - only those two, nothing else.
+  NOT deleted, MOVED, and only on the screen the decision describes: the More sheet renders on
+  `mode==='play'&&opponent!=='online'`, so the chips stay where they are in a lesson, in a puzzle, on the
+  analysis board and in an online game, because on those screens they are the only way to reach either control.
+  Analyze also disarms Resign on its way out - arm Resign, tap Analyze, come back, and one tap would otherwise
+  have resigned a live game.
+- [2026-09-14 status: built #378] **fb-takeback, "Computer only, as answered".** "Against the computer, right,
+  we should have the option to do a take back, which we don't have right now." It is back, in the More sheet,
+  vs Computer ONLY - not Pass & Play, not online, not demo. NOT a contradiction of the #362 round-1 rule
+  ("remove it from live play, keep it for practice, not for rated games"): a game against a bot is practice.
+  The `takeback` function had survived #362 intact with NO CALLERS - dead code for sixteen builds - so this
+  revives it rather than rewriting it, and none of its guards had ever run in production.
+  IT IS ONLY OFFERED WHEN IT IS ALREADY HIS MOVE, which is what kept the change small. A takeback while the
+  engine is still searching would change the position under an in-flight search on the shared worker, whose
+  bestmove callback is a single slot; guarding that needs generation counters whose own failure mode (one
+  dropped or one extra bestmove desyncs them permanently and the computer never moves again) is worse than the
+  race they fix. Nobody asked for a mid-search takeback, so it is simply not offered.
+- [2026-09-14 status: OPEN, NOT BUILT - waiting on Kunal] **fb-movedup, "Drop the strip, keep the panel".**
+  Held back deliberately, with the measurements, because the premise he answered on is wrong and because as
+  specified it breaks something he did not ask to lose. All three of these were measured on real built bundles,
+  not predicted:
+  1. **LANDSCAPE LOSES ITS ONLY MOVE LIST.** At 730x375 the MOVES panel is not in the DOM at all (movesOpen
+     defaults closed in landscape and the panel's render condition fails), so the strip is the sole move
+     readout there. With the strip removed, "Bb5" went from present to ABSENT in the page text. His words were
+     "we ended up with two boxes... that's redundant" - in landscape there is one box, so the reasoning does
+     not reach it. The faithful fix is to drop the strip only where the panel exists, which is a different
+     change from the one he answered.
+  2. **THE BOARD MOVES, AND HE WAS TOLD IT WOULD NOT.** The decision's own framing says "the board stays 357
+     either way, so this buys clarity, not a bigger board". Measured after five plies with the strip removed:
+     at 375x730, his phone, Pass & Play goes 375@84.8 -> 375@94.0, the board sliding 9.2px DOWN; vs Computer
+     goes 357@92.8 -> 357@102.0, also 9.2px down. At 375x679 the board GROWS from 351 to 375 wide. The width
+     sentence is literally true on his phone and the conclusion drawn from it is not.
+  3. **IT BREAKS A TEST FIXTURE SILENTLY.** `gates/drive/play.js` reads `[data-ct="play-moverow"]` - the strip -
+     to count plies, and `waitPlies()` is how the whole drive library waits for the engine. Remove the strip and
+     `plies()` returns -1 and `waitPlies` throws, breaking three drive states, while `gates.sh` still prints
+     GREEN because the drive library is not in the regress run. An audit assertion also becomes vacuously true:
+     `antagonist373-play.js` proves "we left the live game" by the ABSENCE of play-moverow.
+  Also: `phone-width-matrix` was raised AFTER this decision's framing and outranks it - the width gate it asks
+  for should land before the strip is touched, because it changes how the removal would be validated.
+- [2026-09-14 status: note] **The gate for takeback did not exist and nothing failed without it.** The
+  adversarial pass on #378 checked every assertion under gates/ and found that NOT ONE of them breaks on adding
+  a takeback - which is a finding, not a comfort: the feature would have shipped completely ungated.
+  `gates/regress/34-takeback.js` is new, and proved against a bundle built with the "Computer only" guard
+  removed, where it goes red on exactly the Pass & Play line.
+
 ### Builds #376 and #377 [2026-09-13 evening, the run that took the pen] - the consolidation, and a bug found by reading the source
 
 - [2026-09-13 19:42 ET] status: built #376, gated, pushed as c3eb13a  The two build lines consolidated by REBASE,

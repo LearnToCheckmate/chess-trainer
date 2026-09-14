@@ -23,10 +23,19 @@ L.run(async()=>{
     for(const [f,t] of [['f2','f3'],['e7','e5'],['g2','g4'],['d8','h4']])await b.move(f,t,500);await b.settle(2500);
     const num=await b.rect('[data-ct="eval-bar-num"]');L.say(!!num&&/0-1/.test(num.text),geo+': fool\'s mate on the analysis board reads 0-1 (was M1)',num&&num.text);
     await b.tapText(/Exit analysis/,{wait:500});
-    // Analyze / Copy effective tap box in a live game
+    /* Analyze / Copy effective tap box in a live game. THE ASSERTION MOVED WITH THE CONTROLS IN #378 rather
+       than being deleted: fb-controls ("Just those two") folded both into the More sheet, so the 23px chip with
+       a 43px padded tap box is gone from this screen and with it the thing the old probe measured. What the
+       objection was actually about survives unchanged - that a tap landing anywhere on the control's visible
+       height does something - so it is measured the same way, by elementFromPoint, against the row's own box.
+       A sheet row IS the button, so the probe is taken INSIDE its top and bottom edges rather than 6px outside
+       them, and a row that reports a hit at both ends has no dead band. */
     await b.home();await b.card('k8',6500);
-    const hit=await b.page.evaluate(()=>{const out={};for(const k of ['moves-analyze','moves-copy']){const e=document.querySelector('[data-ct="'+k+'"]');if(!e){out[k]=null;continue;}const chip=e.firstElementChild.getBoundingClientRect();const x=chip.left+chip.width/2;const probe=(y)=>{const t=document.elementFromPoint(x,y);return !!(t&&(t===e||e.contains(t)));};out[k]={above6:probe(chip.top-6),below6:probe(chip.bottom+6),above9:probe(chip.top-9),below9:probe(chip.bottom+9)};}return out;});
-    L.say(!!hit['moves-analyze']&&hit['moves-analyze'].above6&&hit['moves-analyze'].below6&&hit['moves-copy']&&hit['moves-copy'].above6&&hit['moves-copy'].below6,geo+': Analyze and Copy hit 6px above and below their chips (was: below did nothing)',hit);
+    await b.tapText(/^More$/,{wait:600});
+    const hit=await b.page.evaluate(()=>{const out={};for(const k of ['moves-analyze','moves-copy']){const e=document.querySelector('[data-ct="'+k+'"]');if(!e){out[k]=null;continue;}const r=e.getBoundingClientRect();const x=r.left+r.width/2;const probe=(y)=>{const t=document.elementFromPoint(x,y);return !!(t&&(t===e||e.contains(t)));};out[k]={h:Math.round(r.height*10)/10,top3:probe(r.top+3),mid:probe(r.top+r.height/2),bot3:probe(r.bottom-3)};}return out;});
+    const eff=(k)=>!!hit[k]&&hit[k].h>=40&&hit[k].top3&&hit[k].mid&&hit[k].bot3;
+    L.say(eff('moves-analyze')&&eff('moves-copy'),geo+': Analyze and Copy are effective across their full height as More-sheet rows (#378 moved them there)',hit);
+    await b.page.mouse.click(4,4);await b.settle(400);
     // Online lobby without sign-in has a way back
     await b.home();await b.tile('Play');await b.tapText(/^Online$/);await b.tapText(/^Continue/,{wait:800});
     const back=await b.rect('[data-ct="online-back"]');L.say(!!back&&back.h>=40,geo+': the Online lobby without sign-in has a ‹ Back of at least 40px (N-play-1)',back&&{w:back.w,h:back.h});
