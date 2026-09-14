@@ -118,6 +118,18 @@ wider one.
   for an evaluation perfectly. Nothing compared it to the bar eight pixels away. When two elements show the
   same quantity, assert they agree — not exact equality if they are different snapshots of it, but SCALE: a
   factor of a hundred is not a rounding difference.
+- **AN ALTERNATION THAT MATCHES EVERY BRANCH PINS NOTHING.** `gates/regress/21-review-brilliant.js` is the
+  only gate covering brilliancy explanations - the item Kunal raised five times before it landed - and it passed
+  7 of 7 against a build whose explanation had CHANGED, from "Nothing else came close: Bxf6 was 1.1 pawns worse"
+  to "Bxf6 was the only other try, 1.1 worse". The assertion read
+  `/Nothing else came close|worse|next best|instead/i` and the bare word "worse" appears in all four branches of
+  `dropTxt` (chess.jsx:667-673), so it could not tell them apart. An external challenger found it on 2026-09-14
+  by running the designed negative control; nobody reading the gate had noticed, because the regex looks
+  thorough. Before writing an alternation over wordings, READ ALL THE BRANCHES THE CODE CAN PRINT and check the
+  pattern rejects the others. Better still, assert the branch: match ONE template, assert exactly one of the
+  known templates matched, and check the NUMBER the template printed lies in the band that template is printed
+  for - the challenger's break puts a 1.1 inside the 0.35-0.99 wording, and that mismatch is detectable even if
+  the pin is later loosened. #388.
 - **When something is cut off, assert WHICH THING DID THE CUTTING.** "Nothing is ever truncated" is usually
   the wrong test — on a small screen some text genuinely will not fit. What must never happen is cutting
   without saying so. A `-webkit-line-clamp` draws an ellipsis; a box with `overflow:hidden` does not, and if

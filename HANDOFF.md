@@ -61,7 +61,52 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #387 RE-GATE)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by the #388 RE-GATE)
+LIVE = **#387**, stamp "#387 - 2026-09-14 12:11 ET", md5 ae5ebbc44976... over 944311 bytes.
+GATES GREEN: **26 suites, 990 PASS, 0 fail** (claude/agents/gatelogs/388-all.log) - the rise from 973 is ENTIRELY gate 21 going 7 assertions to 24. **#388 changed no app code at all** — one gate file, one rule,
+and the evidence behind them. `app.js` is byte-identical to the #387 push.
+
+**A GATE THAT COVERED THE ITEM KUNAL RAISED FIVE TIMES COULD NOT SEE IT CHANGE.** An external challenger
+(flag `uat-ext-2026-09-14`) ran the thirteen designed negative controls one at a time and found
+`gates/regress/21-review-brilliant.js` — the ONLY gate covering brilliancy explanations — passing **7 of 7**
+against a build whose explanation had demonstrably changed:
+
+    was:  "Nothing else came close: Bxf6 was 1.1 pawns worse."
+    became: "Bxf6 was the only other try, 1.1 worse."
+
+The assertion meant to catch that read `/Nothing else came close|worse|next best|instead/i`, and the bare word
+**"worse" is in all four branches** of `dropTxt` (chess.jsx:667-673). An alternation that matches every branch
+pins nothing. Reproduced here on my own trial bundle (md5 f1d2c11239fe) before a line was changed.
+
+**The gate now pins the sentence three different ways, on purpose**, and goes **3 of 24 red** against that same
+bundle while its seven original assertions all still pass on it — which is the measurement that proves the
+blindness was in the assertions, not in the state the gate reaches:
+1. **The pin.** The whole sentence is compared verbatim to the one measured on #387, and each of the four clause
+   builders (`_give`, `refTxt`, `cmpTxt`, `standing`) is pinned separately so a red says WHICH clause moved.
+2. **The branch/value check.** Exactly one of `dropTxt`'s four templates must match, and the number it printed
+   must lie in the band that template is printed for. The break puts a **1.1 inside the 0.35-0.99 wording**, so
+   this fires even if the pin is later loosened.
+3. **The cross-check.** "White is winning here" is a WORD for a quantity the coach chip shows as a NUMBER eight
+   pixels away; #385 shipped a chip reading +0.0 beside a bar reading +5.9 because nothing compared them.
+
+**Stability was measured before pinning, not assumed.** The good bundle was run twice and returned the same 131
+characters and the same `+3.0` chip. One thing to know if it ever goes red: that chip sits **exactly on** the
+`>= 3` threshold that selects "White is winning here". If it ever reads 2.9 the standing clause flips and the
+pin fails honestly — re-measure then, do not loosen it.
+
+**THE CHALLENGER'S SECOND FINDING SPLITS IN TWO, AND THE HALVES NEED DIFFERENT WORK.** It reported the
+`32-plylog` negative control as inert because chess.jsx:2308 overwrites `plyLogOnRef` on mount. That is true of
+the control as DESIGNED — it broke the `useRef(false)` initialiser at 2296, which the effect overwrites, so it
+could never be observed. Breaking the **call site** instead (`if(plyLogOnRef.current){` → `if(true){`, line
+2298) makes recording happen while the switch is off, and gate 32 goes **4 of 16 red** at both geometries.
+So: the control was inert, the **gate is not blind**. Verified here rather than taken on trust.
+
+**STILL OPEN FROM THAT FLAG, and deliberately not claimed as done:** its third finding, that five gates had no
+negative control at all when the suite was 18 gates at #383. The suite is 26 now and that tally has to be
+re-derived against the current directory, gate by gate, rather than carried forward — it is a pass of its own.
+`claude/agents/REGRESSION-LOG.md` is the record of which breakages have actually been run.
+
+## 0a-prev0) THE #387 RE-GATE (the Play and Play setup lanes)
 LIVE = **#387**, stamp "#387 - 2026-09-14 12:11 ET", md5 ae5ebbc44976... over 944311 bytes.
 GATES GREEN: **26 suites** (see 387-all.log). The re-gate added test coverage, NOT app code.
 
