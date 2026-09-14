@@ -1496,3 +1496,37 @@ Times not captured for this batch; see the Timestamps note above.
   assertion is about.
   ONE ASSERTION REMAINS UNFALSIFIED, recorded rather than counted as covered: A-12's across-toggle
   claim, which survives the only break that should break it (see the previous entry).
+
+- [2026-09-14 10:2x ET] status: closed #382
+  uat378-puzzle-header-clipped-320. Headless UAT of #378: the puzzle header's tier badge
+  '🌱 Novice · ✓ 0' laid out at x=232.13 w=104.31, right edge 336.44 against a 320 viewport, with an
+  ancestor at overflow-x hidden and document.scrollWidth pinned at 320 - so 16.44px was simply gone,
+  not scrollable. Passed at every other geometry. Card 5/8 stayed GREEN throughout because it asserts
+  a position, not a width.
+  closed: [2026-09-14 10:2x ET] Reproduced on #381 before anything was changed: right edge 336.84,
+  16.84px over. THIS IS THE HORIZONTAL KIND and it is real - unlike the three vertical reports this
+  week, there is no scroller to recover it, which is the distinction CLAUDE.md's new rule draws.
+  The row laid 333px of content (119 + 93 + 105, plus two 8px gaps) into a 312px box. The Roadmap
+  label now shrinks to a chevron at vp.w<=340, which is exactly what the HINT branch of this same row
+  has done since #372 - the precedent is in the row itself. The badge now ends at 316 with its full
+  text; no ellipsis is needed. Both info spans also gained minWidth:0 and textOverflow:ellipsis as a
+  guarantee against text that grows later, not as the fix.
+  KUNAL'S Z-06 CONDITION IS MEASURED, NOT PROMISED: at 375 the three children are 119@4, 93@148 and
+  105@266 - identical to before the change, and gate 40 asserts those numbers. 360 is identical too.
+  Checked before building that this is NOT one of the three overhangs blocked on z-06: those are
+  lesson-lines and a 46px ⋯, both on LESSON screens.
+  Gated by gates/regress/40-reachability.js, which goes red at 320 on the #381 bundle itself.
+
+- [2026-09-14 10:2x ET] status: OPEN, and a correction to an earlier note of mine
+  A board-square box inside the puzzle board's grid measures 49.69 wide ending at 376.39 at 375x730 -
+  1.39px past the viewport, clipped by an ancestor at overflow-x hidden, with document.scrollWidth
+  pinned at 375.
+  THE CORRECTION: width320-gate-red-needs-kunal records "a 49.7px element overhanging 1.4px at 375 on
+  four states" and says "this is probably my gate's fault... most likely leakage from an earlier
+  state". That was wrong. It reproduces in a CLEAN browser, one state, on the puzzle training screen.
+  The gate was right and my explanation of it was not.
+  It is 1.39px of a piece box inside the board grid, not a control or a label, so it is cosmetic
+  rather than a P0 - but it is horizontal, which is the unrecoverable kind, and it should be traced to
+  whatever makes the grid's last column exceed its container. NOT fixed in #382: board geometry is the
+  most load-bearing thing in the app and this deserves its own pass rather than a rider on a header
+  fix.

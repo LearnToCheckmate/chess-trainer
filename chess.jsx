@@ -5533,9 +5533,14 @@ export default function App(){
           {/* #372 (antagonist Y-03, then Z-01): on phones a hint takes over this header row - the one row that costs the board nothing and covers no piece. While it shows, Roadmap shrinks to a chevron and the counters step aside, so three lines at 12.5px hold the longest curated hint (135 characters); the banner over rank 8 (#371) is gone. */}
           {(!wide&&puzMsg&&/^💡/.test(puzMsg))?(<><button onClick={()=>setPzView('roadmap')} aria-label="Roadmap" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'0 0 44px',width:44,minWidth:44,padding:'8px 0'}}>‹</button>
           <span data-ct="pz-hint-head" style={{flex:'1 1 auto',minWidth:0,fontSize:(vp.w<=340?11:12),fontWeight:700,letterSpacing:-0.15,color:'#cfe0ff',lineHeight:1.12,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{puzMsg}</span></>):(<>
-          <button onClick={()=>setPzView('roadmap')} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>‹ Roadmap</button>
-          {!wide&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,letterSpacing:.4,whiteSpace:'nowrap'}}>{puzIdx+1} / {PZ.length} · <span style={{color:'var(--ac2)',fontWeight:700}}>{pzStreak>=2?('🔥 '+pzStreak+' · '):''}{pzSolvedMap[p.id]?'✓ solved':p.rating}</span></span>)}
-          <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap'}}>{pzTrainTier!=null?(PZ_TIERS[pzTrainTier].icon+' '+PZ_TIERS[pzTrainTier].name):'Free play'} · ✓ {pzTotalSolved(pzSolvedMap)}</span></>)}
+          {/* #382 uat378-puzzle-header-clipped-320: on a 320 screen this row laid out 333px of content into 312px
+              and the tier badge ran 16.8px off the right, with an ancestor at overflow-x hidden and
+              document.scrollWidth pinned at 320 - so it was simply gone, not scrollable. The label shrinks to a
+              chevron at 340 and below, which is what the HINT branch of this very row already does (#372 Y-03),
+              and which is why the precedent is safe. Nothing changes at 360 and above: measured identical. */}
+          <button onClick={()=>setPzView('roadmap')} aria-label="Roadmap" title="Roadmap" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'0 0 auto'}}>{vp.w<=340?'‹':'‹ Roadmap'}</button>
+          {!wide&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,letterSpacing:.4,whiteSpace:'nowrap',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{puzIdx+1} / {PZ.length} · <span style={{color:'var(--ac2)',fontWeight:700}}>{pzStreak>=2?('🔥 '+pzStreak+' · '):''}{pzSolvedMap[p.id]?'✓ solved':p.rating}</span></span>)}
+          <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{pzTrainTier!=null?(PZ_TIERS[pzTrainTier].icon+' '+PZ_TIERS[pzTrainTier].name):'Free play'} · ✓ {pzTotalSolved(pzSolvedMap)}</span></>)}
         </div>
         {wide&&(<div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <span style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:600,letterSpacing:.5}}>PUZZLE {puzIdx+1} / {PZ.length}</span>

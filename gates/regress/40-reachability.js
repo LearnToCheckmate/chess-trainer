@@ -47,6 +47,7 @@
 //   written to warn about a measurement error, making exactly that error, is the most useful thing in this file.
 'use strict';
 const L=require('../lib');
+const Z=require('../drive/puzzles');
 
 // The correct reachability measurement, and the reference implementation of the rule. Two things make it correct,
 // and BOTH were wrong in this gate's first version, which went green against a bundle built to fail it:
@@ -147,6 +148,42 @@ L.run(async()=>{
     await b.shot('reach-'+geo);
     const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
     L.say(bad.length===0,geo+': no app error beyond the allowed engine trap',bad.slice(0,2));
+    await b.close();
+  }
+
+  // ---- THE PUZZLE HEADER AT 320, which is the OTHER half of this gate's subject: the spill that really cannot
+  // be recovered. uat378 measured the tier badge ending at 336.44 on a 320 screen with document.scrollWidth
+  // pinned at 320 and an ancestor at overflow-x hidden - 16.44px simply gone, no scroll to reach it. Reproduced
+  // on #381 at 336.84. #382 shrinks the Roadmap label to a chevron at 340 and below, which is what the HINT
+  // branch of this same row already does, and the badge ends at 316.
+  // 375 is measured too and asserted to be UNCHANGED by that fix, because Kunal's Z-06 condition is that fixing
+  // 320 must not move the larger screens.
+  for(const geo of ['se','kunal730']){
+    const b=await L.launch({geo,name:'pzhdr-'+geo,store:{}});
+    await b.open();
+    await Z.states['train'](b);await b.settle(500);
+    const row=await b.page.evaluate(()=>{
+      const top=document.querySelector('[data-ct="pz-top"]');const r=top&&top.querySelector('div');
+      if(!r)return null;
+      return {vw:innerWidth,docScrollW:document.documentElement.scrollWidth,
+              kids:[...r.children].map(c=>{const q=c.getBoundingClientRect();
+                return {t:(c.innerText||'').replace(/\s+/g,' ').trim().slice(0,24),x:Math.round(q.left),w:Math.round(q.width),right:Math.round(q.right*100)/100};})};
+    });
+    L.say(!!row,geo+': the puzzle header row is on screen',row);
+    const past=(row&&row.kids||[]).filter(k=>k.right>row.vw+0.5);
+    L.say(past.length===0,geo+': NOTHING in the puzzle header runs off the right edge. This is the spill that cannot be recovered - the row sits inside an ancestor with overflow-x hidden and document.scrollWidth stays at the viewport width, so anything past the edge is gone rather than scrollable.',{past,docScrollW:row&&row.docScrollW});
+    if(geo==='kunal730'){
+      // Z-06's condition, asserted rather than promised: the 320 fix must not move 375.
+      const want=[{w:119,x:4},{w:93,x:148},{w:105,x:266}];
+      const got=(row&&row.kids)||[];
+      const same=got.length===want.length&&want.every((wv,i)=>Math.abs(got[i].w-wv.w)<1.5&&Math.abs(got[i].x-wv.x)<1.5);
+      L.say(same,'kunal730: the header is UNCHANGED at 375 by the 320 fix - Roadmap 119@4, counter 93@148, tier badge 105@266. His Z-06 condition was that fixing the small screen must not move the large one, so it is measured here rather than asserted in a commit message.',got);
+    }
+    // NOT asserted here, and said out loud so nobody reads its absence as coverage: at 375x730 a board-square box
+    // inside the grid measures 49.69 wide ending at 376.39, 1.39px past the viewport, clipped by an ancestor at
+    // overflow-x hidden. It reproduces in a clean browser and is NOT this row. See flag
+    // puzzle-board-square-1px-375. Scoping this check to the header row keeps the two findings apart.
+    await b.shot('pzhdr-'+geo);
     await b.close();
   }
 },'REACHABILITY');
