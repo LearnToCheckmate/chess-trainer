@@ -12,6 +12,12 @@ Run one by hand, with the bundle named explicitly:
 
     CT_APP=$PWD/app.js node gates/pending/<gate>.js
 
+**Always pass `CT_EXPECT` too, when you run `mountcheck.js` by hand.** With it unset, mountcheck skips the stamp
+comparison entirely: measured 2026-09-14, the **#378** bundle passed 16 of 16 and exited 0 while being presented as
+a later build. `gates.sh` exports `CT_EXPECT` itself (defaulting to its own argument), so the suite is immune and a
+stamp mismatch is caught in about 21 seconds - but a bare `node` run is not, and it is the same shape of trap as
+the pinned-bundle one below.
+
 **Always pass `CT_APP`.** `gates/lib.js` falls back to `gates/.pin-app.js` when it is unset, and that file
 is a stale **#372** bundle from 2026-09-13. `gates.sh` exports `CT_APP` itself so the suite is immune, but
 a bare `node` run is not, and it will silently measure a six-build-old app and tell you it passed.

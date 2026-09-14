@@ -1428,3 +1428,39 @@ Times not captured for this batch; see the Timestamps note above.
   measurement before filing would have been better.
   Three false reachability reports in one night from one error, one of them mine. The rule is in
   CLAUDE.md and has a gate.
+
+- [2026-09-14 08:5x ET] status: in progress, test-lane item 7 (the negative controls)
+  The thirteen controls named in SUITE-AUDIT section 6 are not readable from a build session - that doc
+  lives in the claude.ai project and there is no project tool here. The prompt says not to stall on it,
+  so the controls were DESIGNED FROM THE SOURCE instead, one break per gate aimed at that gate's central
+  claim. Six run this pass. Five gates still have no control of their own and are named below.
+  The 14th control, which IS fully specified, passes: gating the #378 bundle while claiming #379 makes
+  mountcheck reject the stamp at both geometries in 21 seconds, before any behavioural gate runs.
+  ONE FINDING ATTACHED TO IT: with CT_EXPECT unset, that same six-build-old bundle passes 16 of 16 and
+  exits 0. gates.sh exports CT_EXPECT itself so the suite is immune; a bare `node gates/mountcheck.js`
+  is not. Recorded in gates/pending/README.md next to the .pin-app.js trap it resembles.
+
+- [2026-09-14 08:5x ET] status: FIXED, a gate was blind
+  10-gameover only ever asserted that the board's width was UNCHANGED between mid-game and game over.
+  Run against a bundle with the MOVES header row's minHeight:23 removed - the #378 regression exactly -
+  the board read 367 instead of 351 and the gate passed 12 of 12. A value compared only against itself
+  cannot reveal a change that arrived before the first sample, so the defect #378 fixed in the app was
+  left with a guard that could not see it come back.
+  Fixed by pinning the width: 351 at 375x679, 390 at 390x844. The same broken bundle now goes 13 pass,
+  1 fail; the real bundle 14 pass, 0 fail.
+
+- [2026-09-14 08:5x ET] status: noted, second worthless control of the night
+  The first attempt to break 32-plylog changed the ply-log READOUT to print regardless of the switch.
+  Output came back byte-identical, because the switch gates the RECORDING too: with recording still
+  gated the buffer is empty whether or not the readout would print it. Breaking the recording site
+  instead (`if(plyLogOnRef.current)` -> `if(true)`) takes the gate to 4 of 16 red, on exactly the
+  OFF-case assertions.
+  Twice in one session now. The check is free and is worth making a habit: if the numbers do not move,
+  the break never reached the code under test.
+
+- [2026-09-14 08:5x ET] status: OPEN, five gates still have no negative control
+  11-lesson (16 assertions), 14-uat-review-card (14), 15-gallery-playall (12), 21-review-brilliant (7)
+  and 31-antagonist373 (14). 63 assertions whose ability to fail has never been demonstrated.
+  Also partial: 30-p1-fixes carries six separate findings and this pass exercised only A-04/A-11. The
+  other five (A-16 sheet bottom, A-13 setup sheet, A-10 puzzle navigation, A-12 Moves toggle) still
+  have no control. "The gate went red" is not the same as "the gate is proved".
