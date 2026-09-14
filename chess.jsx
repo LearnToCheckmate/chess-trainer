@@ -4587,6 +4587,30 @@ export default function App(){
         {!lessonFocus&&(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd)&&(<button onClick={()=>setHomeScreen(true)} title="Home" style={{position:'absolute',right:46,top:'50%',transform:'translateY(-50%)',flexShrink:0,minWidth:38,height:30,borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:15,lineHeight:1,padding:'0 9px'}}>🏠</button>)}
         {!lessonFocus&&(<button onClick={()=>setMenuOpen(true)} title="Menu &amp; settings" style={{position:'absolute',right:0,top:'50%',transform:'translateY(-50%)',flexShrink:0,minWidth:38,height:30,borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:16,lineHeight:1,padding:'0 9px'}}>☰</button>)}
       </div>)}
+      {/* #380 fb-chrome (Kunal: "Confirmed, swap it, and fade the change"). He reversed his own #351 feedback:
+          "I know I provided the feedback of putting the home button and the three lines button into the top layer
+          itself, but I think that was my mistake. We should move that to the top, a dedicated row."
+          THIS IS NOT A NEW COMPONENT ON FIVE SCREENS. The header row directly above renders on every phone screen
+          EXCEPT a live Play game - its condition ends with the #351 removal - so this restores the ONE screen that
+          lost it, and the two conditions are exact complements: every phone screen now has exactly one chrome row,
+          in the same slot.
+          IT IS AN IN-FLOW DIRECT CHILD OF THE ROOT, deliberately. The fit loop measures the bottom-most laid-out
+          direct child and skips position:fixed and position:absolute ones, so a fixed row here would not be charged
+          for and the board would paint underneath it.
+          THE MIDDLE CANNOT MOVE THE BOARD. The row's height is pinned at 44 regardless of content; the title box is
+          a fixed 20px with both strings position:absolute, so the swap at four plies changes OPACITY ONLY. He chose
+          the swap over a blank middle, so it is never empty either. The pattern is data-ct="play-context" one screen
+          down, which has reserved its own height and cross-faded since #347.
+          The buttons are 44x38, up from the 34x30 they were inside the player bar, which closes two of the six
+          undersized tap targets (A-11). They keep their data-ct names so every existing selector still finds them. */}
+      {!wide&&mode==='play'&&!playSetup&&!!opponent&&(<div data-ct="board-chrome" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:9,marginBottom:8,width:'100%',maxWidth:boardPx+44,height:44,flexShrink:0,paddingLeft:2,paddingRight:2}}>
+        <button data-ct="play-home" onClick={()=>setHomeScreen(true)} aria-label="Home" title="Home" style={{flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:44,height:38,borderRadius:9,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontWeight:800,lineHeight:1,padding:0}}>{'\u2302'}</button>
+        <div data-ct="chrome-title" style={{position:'relative',flex:'1 1 0',minWidth:0,height:20}}>
+          <span data-ct="chrome-app" style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"var(--head)",fontSize:'clamp(13px,3.4vw,16px)',letterSpacing:1.6,color:'var(--ac)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',opacity:(_liveOpening&&_liveOpening.name)?0:1,transition:'opacity .18s'}}>Chess Trainer</span>
+          <span data-ct="chrome-opening" style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'clamp(13px,2.6vw,14px)',fontWeight:600,color:'rgba(255,255,255,.82)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',opacity:(_liveOpening&&_liveOpening.name)?1:0,transition:'opacity .18s'}}>{(_liveOpening&&_liveOpening.name)||'\u00a0'}</span>
+        </div>
+        <button data-ct="play-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu and settings" style={{flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:44,height:38,borderRadius:9,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontWeight:800,lineHeight:1,padding:0}}>{'\u2630'}</button>
+      </div>)}
       {!pzLow&&wide&&(homeScreen||(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd)||lessonFocus)&&(<button onClick={()=>setHomeScreen(true)} title="Home" style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 6px)',right:'calc(env(safe-area-inset-right,0px) + 58px)',zIndex:60,minWidth:40,height:32,borderRadius:8,background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',cursor:'pointer',fontSize:16,lineHeight:1,padding:'0 10px'}}>🏠</button>)}
       {!pzLow&&wide&&(<button onClick={()=>setMenuOpen(true)} title="Menu &amp; settings" style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 6px)',right:'calc(env(safe-area-inset-right,0px) + 10px)',zIndex:60,minWidth:40,height:32,borderRadius:8,background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',cursor:'pointer',fontSize:17,lineHeight:1,padding:'0 10px'}}>☰</button>)}
       {acctOpen&&(<div onClick={()=>setAcctOpen(false)} style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,.62)',display:'flex',alignItems:'center',justifyContent:'center',padding:16,overflowY:'auto'}}>
@@ -5933,12 +5957,10 @@ export default function App(){
           // #351 Kunal: "the back arrow and three-dots at the top take too much space. Relocate them."
           // They belong in the top player bar, which is already on screen and already has slack. That
           // deletes a 40px row outright and hands every pixel of it to the board.
-          const _livePlay=(mode==='play'&&!playSetup&&opponent&&(!wide||(!isOver&&!playEnd))); /* #371: phones keep the live bar chrome after the game ends */
           const _hb=isTop&&inReview&&revCompact;
-          const _hbPlay=isTop&&!wide&&_livePlay;
           const _hbSty={flex:'0 0 auto',display:'inline-flex',alignItems:'center',justifyContent:'center',width:34,height:30,borderRadius:9,background:_pillBg,border:'1px solid '+_pillBd,color:_fg,cursor:'pointer',fontWeight:800,lineHeight:1,padding:0};
           return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...((inReview||mode==='play')?(wide?{flex:'0 0 auto',minHeight:52}:{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(inReview?52:(vp.h>900?86:74))}):null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>setReviewView('summary')} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:25}}>{'\u2190'}</button>}
-            {_hbPlay&&<button data-ct="play-home" onClick={()=>setHomeScreen(true)} aria-label="Home" title="Home" style={{..._hbSty,fontSize:18}}>{'\u2302'}</button>}
+            {/* #380 fb-chrome: the house moved OUT of the player bar into data-ct="board-chrome", the dedicated top row. */}
             {isTop&&_evalOn&&!inReview&&!isOver&&!playEnd&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:_pillBg,border:'1px solid '+_pillBd,color:_fg}}>{evalTxt}</span>}
             {av}
             <div style={{minWidth:0,flex:1}}>
@@ -5969,7 +5991,7 @@ export default function App(){
                 {cur>=0&&<line x1={xs(cur)} y1="0" x2={xs(cur)} y2={gh} stroke="var(--ac)" strokeWidth="2"/>}
               </svg>);})()}
             {_hb&&<button data-ct="rev-more" onClick={()=>setRevMore(true)} aria-label="More" style={{..._hbSty,fontSize:19}}>{'\u22ef'}</button>}
-            {_hbPlay&&<button data-ct="play-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" style={{..._hbSty,fontSize:17}}>{'\u2630'}</button>}
+            {/* #380 fb-chrome: the hamburger moved OUT of the player bar into data-ct="board-chrome". */}
             {clk!=null&&<div style={{fontFamily:'monospace',fontSize:'clamp(15px,4.4vw,21px)',fontWeight:800,padding:'4px 11px',borderRadius:8,flexShrink:0,background:ticking?'rgba(110,180,90,.22)':_pillBg,border:'1px solid '+(ticking?'rgba(110,180,90,.55)':_pillBd),color:clk==='0:00'?'#d23b2e':(ticking?(_lightBar?'#2f7a26':'#86d99a'):_fg)}}>{clk}</div>}
           </div>);
         };
