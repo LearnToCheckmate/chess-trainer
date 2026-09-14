@@ -70,8 +70,19 @@ L.run(async()=>{
     await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click();await b.settle(500);
     const why={text:(await b.text('[data-ct="rev-why"]'))||''};L.say(why.text.length>20,geo+': TC-R08 the reason line is present on 10.Nxb5',why&&why.text.slice(0,70));
     // TC-R11 analysis board from the round button at ply 19 (Black to move)
+    // #381 A-08: this assertion MOVED WITH THE BUTTON rather than being deleted. It used to read "42x42 in the
+    // board's bottom corner", which was the defect: the button sat ON the board over h1 and part of g1, and in
+    // this very game it covered the white rook from the first ply to the twenty-second. Kunal's answer was to
+    // move it to "the right edge of Morphy's box", the player bar directly under the board. So the assertion now
+    // says where it IS and, more importantly, where it must NOT be - anything that puts it back over the board
+    // fails here. 40x40, not 42: A-11 (tap targets under 40px) is still unanswered, so the button keeps a size
+    // at the 40px threshold rather than dropping to the 34x30 of its siblings in the bar.
     const fab=await b.rect('[data-ct="rev-fab"]');const bd=await b.board();
-    L.say(!!fab&&Math.abs(fab.w-42)<1&&Math.abs(fab.h-42)<1&&fab.x>=bd.x-0.5&&fab.x+fab.w<=bd.x+bd.w+0.5&&fab.y+fab.h<=bd.y+bd.h+0.5&&fab.y>bd.y+bd.h/2,geo+': TC-R11 round Analyze button 42x42 in the board\'s bottom corner',fab);
+    const bar=await b.rect('[data-ct="pbar-bottom"]');
+    L.say(!!fab&&Math.abs(fab.w-40)<1&&Math.abs(fab.h-40)<1,geo+': TC-R11 the round Analyze button is 40x40',fab);
+    L.say(!!fab&&!!bd&&fab.y>=bd.y+bd.h-0.5,geo+': TC-R11 A-08 - the Analyze button is BELOW the board and no longer covers h1/g1 (fab top '+(fab&&fab.y)+' vs board bottom '+(bd&&(bd.y+bd.h))+')',{fab,boardBottom:bd&&(bd.y+bd.h)});
+    L.say(!!fab&&!!bar&&fab.y>=bar.y-0.5&&fab.y+fab.h<=bar.y+bar.h+0.5,geo+': TC-R11 it sits inside the bottom player bar - "the right edge of Morphy\'s box", which is the answer he asked us to read',{fab,bar});
+    L.say(!!fab&&!!bar&&Math.abs((bar.x+bar.w)-(fab.x+fab.w)-9)<1.5,geo+': TC-R11 it is flush to the bar\'s right edge, on the same 9px gutter as ⋯ in the top bar (gap '+(fab&&bar&&Math.round(((bar.x+bar.w)-(fab.x+fab.w))*10)/10)+')',{fabRight:fab&&(fab.x+fab.w),barRight:bar&&(bar.x+bar.w)});
     const sig0=await gridSig(b);await b.tapCt('rev-fab',700);const tx=await b.texts();
     L.say(tx.some(t=>/Undo/.test(t))&&tx.some(t=>/Exit analysis/.test(t)),geo+': TC-R11 analysis board offers Undo and Exit analysis',tx.join(' | ').slice(0,200));
     await b.move('a7','a6',500);await b.move('h2','h3',500);const sig2=await gridSig(b);

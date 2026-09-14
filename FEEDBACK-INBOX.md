@@ -1332,3 +1332,44 @@ Times not captured for this batch; see the Timestamps note above.
   that fails on a pre-existing condition it did not cause blocks every later build.
   Needs its own look: whether the classic screen has an inner scroller that makes this reachable,
   the way the ⋯ sheet does, or whether content is genuinely stranded there.
+
+- [2026-09-14 03:4x ET] status: closed #381
+  A-08 (also logged as Y-04). KUNAL, 2026-09-13 on the metrics dashboard. The question put to him: "The
+  round Analyze button is 42x42 at (324,356) and the review board spans x24-373, y56-405 - so it sits
+  ON the board, over h1 and part of g1. In the Opera game the white rook on h1 is behind it from the
+  first ply to the twenty-second." His choice: "Right edge of the player bar, as my note said". His
+  note: "Move it to the right edge of Morphy's box. i can't unselect the option above. so you should
+  build that into your next release."
+  closed: [2026-09-14 03:4x ET] Measured first, on live #380, and the defect was unchanged from the
+  #375 baseline he answered against: fab 42x42 at (324,356), board x24-373 y56-405, identical numbers.
+  "Morphy's box" is the bottom player bar, the one directly under the board, and he flagged himself
+  that the dashboard would not let him clear a previously tapped option - so the note is the answer.
+  The button is now the last child of pbar-bottom, flush to the same 9px gutter the ⋯ uses in the top
+  bar. Measured after: fab 40x40 at (324,413), board unchanged at 349@(24,56), bar height unchanged at
+  52 (49 at 320x568, 52 at 390x844). The board does not move at any geometry.
+  Kept round and kept at 40px rather than taking the 34x30 of its siblings, because A-11 - the
+  under-40px tap targets - is still UNANSWERED, and shrinking a control that is 42px today would
+  quietly make an open question worse.
+  The #371 step-aside hack came out with it: it moved the button to the left corner whenever the last
+  move landed on g1 or h1, and a button that is no longer on the board cannot cover a badge.
+  Gated by TC-R11 in gates/regress/20-review.js, whose assertion MOVED WITH THE BUTTON rather than
+  being deleted - it now fails anything that puts it back over the board. Proved: against a bundle
+  with the button restored to the board it goes 8 of 79 red, on exactly the four position assertions
+  at both geometries, while the functional half (Undo, Exit analysis) correctly still passes.
+
+- [2026-09-14 03:4x ET] status: closed #381
+  Z-04. KUNAL, 2026-09-13. The question: "On Puzzles the one-line verdict box stays blank (46px of
+  empty bordered box) while a hint is showing. Collapsing it moves the board 46px, which is the jump
+  you told us to avoid; filling it means repeating the hint." His choice: "Streak". No note.
+  closed: [2026-09-14 03:4x ET] On a phone a hint takes the header row (Y-03/Z-01) and the counters
+  step aside, so while a hint was up the reserved box sat empty AND the streak was not readable
+  anywhere on the screen. The box now carries the readout the header gives up - the same text, never
+  the hint repeated. Measured: "1 / 890 · 🔥 4 in a row" with a live streak, "1 / 890 · rating 600"
+  before there is one, because claiming a streak of zero would be worse than the counter.
+  The reserved height is unchanged and the board does not move: 30px at 375x730 and 320x568, 74px at
+  390x844 (the split is vp.h<820, a branch the device picks, so both are run). The verdict takes the
+  same box back on a wrong move with the board still unmoved - that transition is the half that would
+  have broken silently.
+  Note the 46px in his question is now 30px on a phone; #364 reduced it. The answer is unaffected.
+  Gated by gates/regress/39-pz-streak.js, 45 assertions, red at 21 of 45 against a bundle with the
+  fill deleted.
