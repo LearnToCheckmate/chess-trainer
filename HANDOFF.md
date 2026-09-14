@@ -61,7 +61,49 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by BUILD #389)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by BUILD #390)
+LIVE = **#390**, stamp "#390 - 2026-09-14 16:23 ET", md5 5fc71d38a468... over 947759 bytes.
+GATES GREEN: **27 suites, 1029 PASS, 0 fail** (claude/agents/gatelogs/390-all.log). The rise from 1007 is
+ENTIRELY the new gate 23 at 22 assertions. Self-consistent log: `gates.sh #390` against a #390 bundle.
+
+**THE PREVIEW GALLERY NOW HAS A FULL WALK, and it is for Kunal to record on his own phone.** He asked for it
+directly: *"Did the recording get put into the preview gallery? Because I can do that now."* His phone is the
+only place real fonts, real Apple emoji ink, real safe-area insets and real iOS Safari behaviour exist, and two
+of his open questions (K16 backgrounding, K17 the Analyze button over h1) cannot be answered any other way.
+
+**🎬 Walk every screen (13, about 2.6 min)** sits above Play all in the gallery. It is an ADDITION: the eight
+existing cards are untouched, because gate 15 asserts them and they are a different thing - a "what I still
+need" list of specific fixes, not a tour. The walk goes HOME, MENU, COLOURS & PIECES, PLAY SETUP, PLAY live,
+PLAY game over, LESSON list, LESSON demo, LESSON practice, PUZZLE, PUZZLE with hint, REVIEW entry, REVIEW
+(import, summary, moves, brilliancy, mate, analysis board).
+
+Three things make the video machine-readable afterwards rather than just a video:
+- **An opening frame naming the build** - "FULL WALK of #390 - 2026-09-14 16:23 ET", held 4 s.
+- **Every caption carries the MEASURED viewport**, e.g. `🎬 #390 · PLAY-LIVE · 375x730`, so a single frame
+  pulled out of the clip says which build and which geometry it came from with no other context.
+- **No dev-only chrome in shot**: the Preview and feedback buttons are hidden while a recording runs.
+
+**NO SHA IS BAKED IN, deliberately.** The brief asked the opening frame to name the build stamp AND the SHA. The
+bundle is built BEFORE the commit exists, so a SHA compiled into it would name the PREVIOUS commit - worse than
+none. The stamp is the identifier and RUN-LOG.md maps it to a SHA.
+
+**A MEASURED CORRECTION TO THE BRIEF, because the next reader will meet the brief before the code.** Section 6d
+says the gallery holds SIX cards, all Review, and that "Play, Lesson, Puzzles, Home/Discover and Menu have no
+card at all". Counted in `chess.jsx`, `SC` holds **EIGHT**, and they already cover Play (k10, k8), Lesson (k11
+twice), Puzzles (A-06), Review (US-R01) and Home/Menu (y3 twice). The brief was right about what to build and
+wrong about why. Nothing was removed on the strength of it.
+
+**GATE: `gates/regress/23-full-walk.js`, 22 assertions at 375x730 and 320x568.** It drives the real walk and
+checks the caption ids arrive in the declared order, so a walk that silently stalls three screens in cannot pass
+- that is the failure mode that would cost him a wasted recording. Control: the `!recCap` guard removed, 2 of 22
+red on exactly its own line.
+
+**AND THE GATE'S OWN FIRST RUN WENT 4 RED FOR A REASON ALREADY WRITTEN DOWN.** `tapCt('home-preview')` landed on
+nothing, because the dev row is below the fold at both geometries - exactly what `42-home-devrow` discovered at
+#386 and fixed there. The lesson was in CLAUDE.md and it still did not carry, because it had been filed as a
+fact about one gate rather than a habit. It is now a rule in its own right.
+
+## 0a-prev0) BUILD #389 (the cached failed engine query)
 LIVE = **#389**, stamp "#389 - 2026-09-14 15:40 ET", md5 ffdbfa5971d6... over 944339 bytes.
 **This is the first BUNDLE change since #387** - #388 was two passes of gate work with app.js untouched.
 GATES GREEN: **26 suites, 1007 PASS, 0 fail** (claude/agents/gatelogs/389-all.log). The rise from 997 is

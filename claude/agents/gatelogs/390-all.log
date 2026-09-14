@@ -1,0 +1,57 @@
+gates.sh #390  bundle /home/user/chess-trainer/app.js  md5 5fc71d38a468  2026-09-14 20:23:24 UTC
+=== mountcheck ===
+    mountcheck: green (16 PASS)
+=== 10-gameover ===
+    10-gameover: green (14 PASS)
+=== 11-lesson ===
+    11-lesson: green (46 PASS)
+=== 12-hint ===
+    12-hint: green (24 PASS)
+=== 13-play-after-moves ===
+    13-play-after-moves: green (18 PASS)
+=== 14-uat-review-card ===
+    14-uat-review-card: green (14 PASS)
+=== 15-gallery-playall ===
+    15-gallery-playall: green (12 PASS)
+=== 20-review ===
+    20-review: green (87 PASS)
+=== 21-review-brilliant ===
+    21-review-brilliant: green (24 PASS)
+=== 22-engline-recovery ===
+    22-engline-recovery: green (10 PASS)
+=== 23-full-walk ===
+    23-full-walk: green (22 PASS)
+=== 30-p1-fixes ===
+    30-p1-fixes: green (35 PASS)
+=== 31-antagonist373 ===
+    31-antagonist373: green (14 PASS)
+=== 32-plylog ===
+    32-plylog: green (16 PASS)
+=== 33-reproducible-review ===
+    33-reproducible-review: green (20 PASS)
+=== 34-takeback ===
+    34-takeback: green (15 PASS)
+=== 35-width-containment ===
+    35-width-containment: green (48 PASS)
+=== 36-evalbar ===
+    36-evalbar: green (14 PASS)
+=== 37-strip-sync ===
+    37-strip-sync: green (44 PASS)
+=== 38-rev-sheet-reach ===
+    38-rev-sheet-reach: green (45 PASS)
+=== 39-pz-streak ===
+    39-pz-streak: green (48 PASS)
+=== 40-reachability ===
+    40-reachability: green (17 PASS)
+=== 41-coach-bubble ===
+    41-coach-bubble: green (56 PASS)
+=== 42-home-devrow ===
+    42-home-devrow: green (45 PASS)
+=== 43-tcrl-analysis ===
+    43-tcrl-analysis: green (32 PASS)
+=== 45-play-setup ===
+    45-play-setup: green (165 PASS)
+=== 46-play ===
+    46-play: green (128 PASS)
+regression assertions (PASS lines): 1029
+GATES GREEN #390

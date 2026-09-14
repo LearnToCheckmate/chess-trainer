@@ -37,6 +37,7 @@ any of them landed. **Claim a number here in the same commit that adds the file.
 
 | file | lane | authored as | notes |
 |---|---|---|---|
+| `23-full-walk.js` | build session | 23 | #390. Build-lane range |
 | `22-engline-recovery.js` | build session | 22 | #389. Inside the new **10-29 build lane** range (procedure v13, section 6e item 4) |
 | `41-coach-bubble.js` | build session | 41 | |
 | `42-home-devrow.js` | build session | 42 | |

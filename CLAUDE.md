@@ -147,6 +147,14 @@ wider one.
   ellipsis for the rest of the session. Measured on #387: plies 19 and 25 of the reference game, three revisits
   each, never recovered. Before caching anything that came from a worker, an engine or a network call, ask what
   that call returns when it FAILS, and whether the cache can tell the difference. #389.
+- **A LESSON RECORDED IN ONE GATE DOES NOT TRAVEL TO THE NEXT ONE BY ITSELF.** At #386, `42-home-devrow` found
+  that its own tap was landing on nothing, because the home dev row is BELOW THE FOLD at 375x730 and 320x568; it
+  was fixed there by scrolling the finger-scrollable ancestor and asserting the button is on screen before
+  tapping. At #390 a brand new gate, `23-full-walk`, opened the SAME gallery from the SAME button and went 4 red
+  on the first run for the SAME reason. The rule was written down, in this file, and it still did not carry,
+  because it had been filed as a fact about one gate rather than as a habit. **Before tapping anything in a new
+  gate, ask whether an existing gate already had to fight that control** - `git log` and the regression log are
+  faster than rediscovering it.
 - **When something is cut off, assert WHICH THING DID THE CUTTING.** "Nothing is ever truncated" is usually
   the wrong test — on a small screen some text genuinely will not fit. What must never happen is cutting
   without saying so. A `-webkit-line-clamp` draws an ellipsis; a box with `overflow:hidden` does not, and if
