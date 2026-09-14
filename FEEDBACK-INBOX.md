@@ -1373,3 +1373,43 @@ Times not captured for this batch; see the Timestamps note above.
   Note the 46px in his question is now 30px on a phone; #364 reduced it. The answer is unaffected.
   Gated by gates/regress/39-pz-streak.js, 45 assertions, red at 21 of 45 against a bundle with the
   fill deleted.
+
+- [2026-09-14 08:2x ET] status: closed, gate fixed (no build number: gates and docs only)
+  TEST LANE, item 4. "The gate is blind to an R-03 re-regression." gates/regress/20-review.js tapped
+  "Start review" and then clicked First move, with a comment saying "Start review resumes at the last
+  viewed ply". That was true before #373 and false since #375 made the button do what it says.
+  closed: [2026-09-14 08:2x ET] Verified rather than assumed: measured on live #381, after a Skills
+  jump left the review at ply 27, "Start review" lands at "Start position 0/33" with no helper click.
+  So the click was doing nothing, and a build where the button silently went back to resuming would
+  have passed. The click is gone and the behaviour is ASSERTED (TC-RL-033).
+  PROVED BOTH WAYS on one deliberately broken bundle - Start review no longer resetting the ply:
+  the OLD gate reports 79 pass, 0 fail. The NEW gate reports 79 pass, 2 fail. That is the finding
+  stated as a measurement rather than an argument.
+
+- [2026-09-14 08:2x ET] status: closed, NOT A DEFECT
+  TEST LANE, item 3: "the Review ENTRY screen overflows 80.2px at 320x568 with docScrollY 0, so the
+  'Getting your game from Chess.com' help text is unreachable on the smallest phones."
+  closed: [2026-09-14 08:2x ET] Measured, and it is the SAME error as item 2 - the second false
+  reachability report in one night. The content past the fold sits inside a scroll container whose
+  maxScroll is exactly 80px, which is the "80.2" in the report: the scroller's own range read as if
+  it were spill. The help text scrolls to top 385 / bottom 401 in a 568-tall viewport.
+  WHY docScrollY IS 0, and it is the design rather than the defect: index.html styles #root with
+  overflow-y auto and says so in a comment - "The app scrolls inside here if its content ever
+  overflows, the page never does." Any report that asks the DOCUMENT whether it scrolls will get 0 on
+  every screen of this app, always, and conclude that nothing can be reached.
+  Guarded by gates/regress/40-reachability.js, which does the measurement correctly and exists to
+  stop this recurring. The rule is now in CLAUDE.md.
+
+- [2026-09-14 08:2x ET] status: MY OWN GATE WAS WRONG FIRST, recorded because it nearly repeated the error
+  gates/regress/40-reachability.js was written to catch exactly the mistake above and, in its first
+  version, made both halves of it: it used scrollIntoView (which scrolls an overflow:hidden box that a
+  finger cannot) and it accepted ANY scrollable ancestor rather than one that actually moves the
+  element. It reported 12 of 12 green against a build with the app's scroller removed.
+  Worse, the first negative control was worthless: I set overflowY to hidden on a .scroll div inside
+  the screen and every measured number came back byte-identical, because that div is not the scroller
+  serving that screen. A control that does not move the measurement proves nothing, and reading its
+  green as "the gate is fine" would have been the real mistake.
+  The scroller is #root, from index.html, not from chess.jsx. With #root set to overflow-y hidden the
+  rewritten gate goes red with scrollers:0 and reached:false on three boxes. Also recorded in the gate:
+  the named-help-text assertion stays GREEN on that broken build, because the leaf carrying the phrase
+  is on screen at rest and it is the block below it that strands - so that green is not coverage.

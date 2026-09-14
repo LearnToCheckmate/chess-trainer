@@ -64,6 +64,19 @@ wider one.
 - **Measure, do not read.** No claim about size, spacing, overflow or position taken from source.
 - **A crop is a reading, not a measurement, and so is a bad selector.** Both produced false P0s in
   one day. Scope selectors to painted elements; exclude `head` and `style` nodes.
+- **"Below the fold" is not "unreachable", and `document.scrollingElement` is the wrong thing to ask.** `#root` is
+  the app's scroller and index.html says so: "The app scrolls inside here if its content ever overflows - the page
+  never does." So `docScrollY` is 0 on every screen BY DESIGN, and a report that reads it as "nothing scrolls"
+  will call reachable content stranded. This produced TWO false P0s in one night (#380 the ⋯ sheet, #382 the
+  Review entry screen), both with real-looking numbers - the second one's "overflows 80.2px" was the scroller's
+  own range read as spill. An element below the fold is unreachable only when NO ancestor with a computed
+  `overflow-y` of auto or scroll can bring it on screen, measured by ACTUALLY SCROLLING that ancestor and
+  re-reading the rect. Two traps inside that: script can scroll an `overflow:hidden` box and a finger cannot, so
+  `scrollIntoView` always says yes; and finding *some* scrollable ancestor proves nothing unless scrolling it
+  moves THIS element. `gates/regress/40-reachability.js` is the reference implementation, and its own first
+  version made both mistakes and went green against a build with the scroller removed. Vertical spill inside a
+  scroller is fine. **Horizontal** spill past the viewport is the real unrecoverable bug - see
+  `sweep372-other-lines-320`.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never

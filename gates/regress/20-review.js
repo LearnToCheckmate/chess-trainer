@@ -34,7 +34,16 @@ L.run(async()=>{
     L.say(jumped==='clicked'&&!!mlJump&&/Rd1/.test(mlJump.text),geo+': TC-R05 tapping the Skills number opens the review at 14.Rd1',{jumped,text:mlJump&&mlJump.text});
     await b.tapCt('rev-back',500);L.say(!!(await b.rect('[data-ct="rev-summary"]')),geo+': TC-R13 back arrow from the move screen returns to the summary');
     // TC-R06 plies
-    await b.tapText(/^Start review/,{wait:900});await b.page.locator('[aria-label="First move"]').first().click();await b.settle(700); // Start review resumes at the last viewed ply (the Skills jump left it at 27)
+    // TC-RL-033 / R-03. The line that used to be here tapped "Start review" and then clicked First move, with a
+    // comment saying "Start review resumes at the last viewed ply". That was true BEFORE #373 and has been false
+    // since: #375 made the button do what it says ("it says Start, so it starts at move 0"). So the helper click
+    // was landing on a review that was already at ply 0 and doing nothing - which meant this gate would have gone
+    // green on a build where Start review silently went back to resuming, and R-03 could re-regress unseen.
+    // The click is gone and the behaviour is now ASSERTED instead. Measured on #381: after a Skills jump to ply 27
+    // and back to the summary, Start review lands at "Start position 0/33" with no helper of any kind.
+    await b.tapText(/^Start review/,{wait:900});await b.settle(700);
+    const startAt=await b.text('[data-ct="rev-move-line"]');
+    L.say(!!startAt&&/Start position/.test(startAt)&&/\b0\/33\b/.test(startAt),geo+': TC-RL-033 (R-03) "Start review" starts at the START, even though the Skills jump just left the review at ply 27. Asserted, not helped along by a click.',startAt);
     const at={};const rec=async(k)=>{const m=await b.metrics();const bars=await barInfo(b);const num=await b.rect('[data-ct="eval-bar-num"]');const ml=await b.rect('[data-ct="rev-move-line"]');at[k]={board:m.board,over:m.over,bars,num:num&&num.text,ml:ml&&ml.text,why:(await b.rect('[data-ct="rev-why"]'))};};
     await rec('p0');await step(b,10);await rec('p10');await step(b,9);await rec('p19');await b.shot('review-'+geo+'-ply19');await step(b,14);await rec('p33');await b.shot('review-'+geo+'-ply33');
     const ws=new Set(Object.values(at).map(x=>x.board&&x.board.w)),tops=new Set(Object.values(at).map(x=>x.board&&x.board.top));
