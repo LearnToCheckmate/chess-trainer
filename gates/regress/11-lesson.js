@@ -3,6 +3,7 @@
 // move; then one correct practice move (1.e4) and the board must not change size or move.
 'use strict';
 const L=require('../lib');
+const D=require('../drive/lesson');
 L.run(async()=>{
   for(const geo of ['kunal','390']){
     const b=await L.launch({geo,name:'lesson-'+geo});await b.open();
@@ -19,5 +20,57 @@ L.run(async()=>{
     L.say(after.over.over<=0&&after.over.docScroll===0,geo+': no scroll after the move',after.over);
     L.say(b.errs.length===0,geo+': zero app errors',b.errs.slice(0,3));
     await b.close();
+  }
+
+  // ---- SHORT AND NARROW PHONES, which this gate did not run until #383 and which is why it encoded an
+  // assumption that is false there. uat378-lesson-board-not-edge-to-edge reported the lesson board failing to
+  // reach the screen edges at 320x568, 360x640 and 375x667 while passing at 375x679 and above, and gallery
+  // cards 3/8 and 4/8 assert "board edge to edge" throughout.
+  //
+  // MEASURED ON #382, and it is NOT a defect in the app: at every one of those geometries the column fills the
+  // viewport EXACTLY - bottom equals innerHeight, zero slack - so the board is already as large as the height
+  // allows. A square board cannot be as wide as the screen when the screen is shorter than it is wide plus the
+  // chrome. At 320x568 the demo board is 270.9 and practice 230.9, and the 40px difference is exactly the extra
+  // chrome practice carries: a 56px control row against demo's 44 (+12) and a 98.1px MOVES panel against demo's
+  // 70.1 (+28). 12 + 28 = 40. Nothing is stealing width; there is no width to steal.
+  //
+  // So "edge to edge" is an unachievable absolute at those sizes, and asserting it would be asserting geometry
+  // away. What IS testable, and is the real invariant, is that the board is GIVEN EVERYTHING AVAILABLE: no slack
+  // below the column, and the leftover width shared evenly so the board stays centred. That is asserted here.
+  //
+  // NOTE WHAT THIS ALSO EXPOSES about the assertion above: "practice board = demo board" holds only where BOTH
+  // are width-bound. It is true at 375x679 and 390x844 and false at 320x568 and 375x667, and it passed for
+  // months because this gate ran only the two geometries where it happens to hold.
+  for(const [name,g] of [['320x568',{w:320,h:568,safe:''}],['360x640',{w:360,h:640,safe:''}],['375x667',{w:375,h:667,safe:''}]]){
+    for(const st of ['demo-end','practice-m0']){
+      const b=await L.launch({geo:g,name:'lesson-'+name+'-'+st,store:{}});await b.open();
+      await D.states[st](b);await b.settle(600);
+      const m=await b.page.evaluate(()=>{
+        const root=document.getElementById('root');let bottom=0;
+        const walk=(el,d)=>{for(const c of el.children){const s=getComputedStyle(c);
+          if(s.position==='fixed'||s.position==='absolute')continue;const r=c.getBoundingClientRect();
+          if(r.height>0)bottom=Math.max(bottom,r.bottom);if(d<4)walk(c,d+1);}};
+        walk(root,0);
+        const gr=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''))
+          .map(e=>e.getBoundingClientRect()).sort((a,b)=>b.width-a.width)[0];
+        return {vw:innerWidth,vh:innerHeight,bottom:Math.round(bottom*10)/10,
+                board:gr?{w:Math.round(gr.width*10)/10,x:Math.round(gr.left*10)/10}:null};
+      });
+      const tag=name+' '+st;
+      L.say(!!m.board,tag+': the lesson board is on screen',m.board);
+      // THIS ONE DOES NOT DISCRIMINATE, and it is kept only because it is true and explains the shape.
+      // Proved: against a bundle with the board shrunk to 90% it still passes, because the MOVES panel carries
+      // flex:'1 1 auto' and stretches to absorb whatever the board gives up, so the column fills the viewport
+      // either way. Recorded rather than quietly relied on - it looks like the assertion that matters and is not.
+      L.say(Math.abs(m.bottom-m.vh)<2,tag+': the column fills the viewport (bottom '+m.bottom+' of '+m.vh+'). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.',{bottom:m.bottom,vh:m.vh});
+      // THIS is the assertion that guards the board. Same fix 10-gameover and A-12 needed: a size compared only
+      // to itself, or to an invariant that always holds, cannot see the board get smaller. Measured on #382.
+      const WANT={'320x568 demo-end':270.9,'320x568 practice-m0':230.9,'360x640 demo-end':342.4,'360x640 practice-m0':326.4,'375x667 demo-end':375,'375x667 practice-m0':352.2};
+      if(WANT[tag]!=null)L.say(!!m.board&&Math.abs(m.board.w-WANT[tag])<1.5,tag+': the board is '+WANT[tag]+' wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.',{measured:m.board&&m.board.w,want:WANT[tag]});
+      L.say(!!m.board&&m.board.w<=m.vw+0.6,tag+': the board never exceeds the viewport width',m.board);
+      L.say(!!m.board&&Math.abs(m.board.x-(m.vw-m.board.w)/2)<1.5,tag+': the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x '+(m.board&&m.board.x)+', expected '+(m.board?Math.round((m.vw-m.board.w)/2*10)/10:'-')+')',m.board);
+      await b.shot('lesson-'+name+'-'+st);
+      await b.close();
+    }
   }
 },'LESSON');

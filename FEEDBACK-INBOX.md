@@ -1530,3 +1530,35 @@ Times not captured for this batch; see the Timestamps note above.
   whatever makes the grid's last column exceed its container. NOT fixed in #382: board geometry is the
   most load-bearing thing in the app and this deserves its own pass rather than a rider on a header
   fix.
+
+- [2026-09-14 10:5x ET] status: closed, NOT A DEFECT
+  uat378-lesson-board-not-edge-to-edge. The lesson board fails to reach the screen edges at 320x568,
+  360x640 and 375x667 while passing at 375x679, 375x730, 390x844, 414x896 and 440x956, and gallery
+  cards 3/8 and 4/8 assert "board edge to edge" throughout.
+  closed: [2026-09-14 10:5x ET] Measured on #382 and it is geometry, not a bug. At EVERY failing
+  geometry the column fills the viewport exactly - bottom equals innerHeight, zero slack - so the board
+  has already been given every pixel of height available. A square board cannot be as wide as the
+  screen when the screen is shorter than its width plus the chrome above and below it.
+  THE 40px DIFFERENCE BETWEEN DEMO AND PRACTICE AT 320 IS ACCOUNTED FOR EXACTLY, so nothing is
+  unexplained: demo board 270.9, practice 230.9. Practice carries a 56px control row against demo's 44
+  (+12) and a 98.1px MOVES panel against demo's 70.1 (+28). 12 + 28 = 40. Both columns total 467px of
+  content in a 568px viewport with the same 78px header and 4px gap.
+  So the card's claim is an unachievable absolute at those sizes, not a symptom. Asserting it would be
+  asserting geometry away. The gate now asserts what IS true instead: the board is the largest square
+  the height allows, pinned per geometry, and the leftover width is shared evenly so it stays centred.
+  WHAT THIS ALSO EXPOSED, and it is the more useful half: gate 11 asserted "practice board = demo
+  board", which is FALSE at 320x568 and 375x667. It passed for months because the gate ran only
+  375x679 and 390x844, the two geometries where it happens to hold. Same shape as A-13's coverage,
+  except A-13's gate already carried a short-screen sample and this one did not. It does now.
+
+- [2026-09-14 10:5x ET] status: noted, my FIFTH non-control of the session and the most instructive
+  The first version of the new short-phone assertion was "the column fills the viewport exactly",
+  which reads like the thing that matters and cannot fail: against a bundle with the board shrunk to
+  90% it still passed, because the MOVES panel carries flex:'1 1 auto' and stretches to absorb
+  whatever the board gives up. One red line came from the OLD pinned 375 assertion and none from my
+  new one.
+  Replaced with the board's width PINNED per geometry (270.9 / 230.9 / 342.4 / 326.4 / 375 / 352.2).
+  The same bundle now goes 7 red instead of 1. The assertion is kept alongside, labelled in the gate
+  as explaining the shape rather than guarding it.
+  That is three gates in three passes - 10-gameover, A-12 and now this - where the failure was a value
+  compared against something that always holds. PIN THE NUMBER is the rule that keeps earning itself.
