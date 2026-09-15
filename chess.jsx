@@ -766,7 +766,8 @@ function explainAnno(a,ctx){
 // so the first paint lands close; the real work is done by the fit loop below, which measures actual overflow and
 // shrinks the board until there is none. Do not tune this number to fix a specific phone - that is what the loop is
 // for, and a constant cannot know about a wrapped name, a two-line reason, a mate score or a larger system font.
-const COACH_MAXH = 128;  // #387: the coach bubble's height cap, the mockup's own number (128 of a 349 board). Absolute, NOT a ratio - see the note at the bubble.
+/* #394: COACH_MAXH went with the bubble. The #387 work it encoded - that a CLAMP must do the cutting
+   rather than a box, so an ellipsis is drawn - now applies to rev-why-txt, which is clamped, not clipped. */
 const REV_CHROME = 304;  // #364: 360 was measured with the player bars at their 74px cap. They are flex and their
 // minimum is 46, so the honest first guess is 56 lower. On Kunal's phone (375x761, insets 51/31) 360 pinned the
 // board at 319 with a 28px gutter each side, and the loop above could not grow it back. 304 lets the width cap
@@ -2400,7 +2401,7 @@ export default function App(){
      and they are the SAME act - retiring the comment on the move you have finished with - so one number
      does both: the ply whose bubble has been tapped away. Stepping changes ply, so the next move's comment
      appears on its own and nothing has to be closed. No cross, no timer. */
-  const [coachBubbleGone,setCoachBubbleGone]=useState(null);
+  /* #394: coachBubbleGone went with the bubble (kunal-review-floating-bubble-remove). Nothing else read it. */
   const [pzOLoading,setPzOLoading]=useState(false);
   const [pzOErr,setPzOErr]=useState('');
   const [pzOInfo,setPzOInfo]=useState('');
@@ -6151,46 +6152,21 @@ export default function App(){
                 {rI===7&&<span style={{position:'absolute',bottom:1,right:3,fontSize:lab,fontWeight:700,color:cc(isLight),zIndex:2,pointerEvents:'none',lineHeight:1}}>{fileLabels[cI]}</span>}
               </div>);
             }))}
-            {/* #385 THE COACH SPEECH BUBBLE. Over the board, which is what he chose when told it would
-                otherwise cost board height - so it is absolutely positioned inside the board container and
-                the board's own geometry is untouched by construction. The mockup he approved was 333x128
-                inside the top of a 349 board, which is boardPx-16 wide at an 8px inset; the height is a CAP
-                rather than a fixed box, because the sentence varies and a fixed 128 would either clip a long
-                one or leave a hole under a short one. Hidden in anaMode, exactly as the sentence under the
-                board is, because there you are playing the position out and the bubble would swallow taps on
-                a third of the squares. */}
-            {/* #387, second half. WHICH THING DOES THE CUTTING MATTERS MORE THAN WHETHER ANYTHING IS CUT.
-                On a Brilliant or Great ply the sentence GROWS about half a second after you land on it - the
-                sacrifice refutation arrives from a debounced engine query (sacRun, 450ms) and is appended.
-                At 320 that grown sentence does not fit a bubble that still respects the board, and it should
-                not: the full text is always readable in the box UNDER the board, which this bubble was added
-                alongside rather than instead of. So the job is to make truncation VISIBLE. The clamp draws an
-                ellipsis; the box does not. With the cap at 128 there is room for five lines at 375 and four
-                at 320, so the CLAMP fires first at both and the box never clips. That is the difference
-                between "there is more, tap the sentence below" and a sentence that stops mid-phrase.
-                Measured across all 33 plies, waiting out the debounce each time: box-clipped plies 2 -> 0. */}
-          {/* #387 (uat385-coach-say-truncated-320): the cap used to be a PROPORTION of the board,
-                Math.round(boardPx*0.367) - the mockup's 128 of 349 expressed as a ratio. That is wrong at
-                320, where the board is 264 and the same ratio gives 97px: the bubble hit the cap before
-                -webkit-line-clamp could fire, so the sentence was cut by the BOX and no ellipsis was ever
-                drawn. It read as a sentence that simply stopped, on 30 of the Opera Game's 33 plies.
-                The cap is now the mockup's ABSOLUTE number. At 375 and above the bubble renders 97.6px and
-                never reaches it, so nothing moves on any screen that already worked; at 320 it has the room
-                the sentence needs. The clamp stays as the backstop for text that grows later. */}
-            {inReview&&!anaMode&&ply>0&&_annoWhy&&coachBubbleGone!==ply&&(
-              <div data-ct="coach-bubble" onClick={(e)=>{e.stopPropagation();setCoachBubbleGone(ply);}}
-                style={{position:'absolute',top:8,left:8,width:Math.max(0,boardPx-16),maxHeight:COACH_MAXH,zIndex:8,
-                  background:'rgba(16,18,24,.95)',border:'1px solid rgba(255,255,255,.18)',borderRadius:14,
-                  boxShadow:'0 10px 30px rgba(0,0,0,.55)',padding:'10px 12px',cursor:'pointer',
-                  display:'flex',flexDirection:'column',gap:6,overflow:'hidden'}}>
-                <div style={{display:'flex',alignItems:'center',gap:8,flex:'0 0 auto'}}>
-                  {curAnno&&curAnno.cls&&<span data-ct="coach-verdict" style={{flex:'0 0 auto',background:curAnno.cls.c,color:'#fff',fontWeight:900,fontSize:11,letterSpacing:.2,padding:'2px 8px',borderRadius:20,whiteSpace:'nowrap'}}>{curAnno.cls.label}</span>}
-                  {/* the eval chip: DECISIONS-LOG, "the bubble and the eval chip, but no face until the
-                      piece-mascot direction is drawn" - so no avatar here, deliberately. */}
-                  <span data-ct="coach-eval" style={{flex:'0 0 auto',marginLeft:'auto',fontFamily:'ui-monospace,Menlo,monospace',fontWeight:800,fontSize:13,color:(curAnno&&typeof curAnno.evalAfter==='number'&&curAnno.evalAfter<0)?'#9fb4c9':'#e8e8ea'}}>{curAnno?evPawnsTxt(curAnno.evalAfter):''}</span>
-                </div>
-                <div data-ct="coach-say" style={{flex:'1 1 auto',minHeight:0,fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.35,color:'rgba(255,255,255,.88)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:(vp.w<=340?4:5),WebkitBoxOrient:'vertical'}}>{_annoWhy}</div>
-              </div>)}
+            {/* #394 (kunal-review-floating-bubble-remove): THE COACH BUBBLE IS GONE, AND THIS REVERSES A
+                DECISION HE MADE HIMSELF, so the reasoning stays here to stop it being re-added.
+                On 2026-09-12 he asked to "put it in a bubble over the top, not the fixed text box at the
+                bottom". #385 shipped the bubble AND KEPT the bottom box, so he ended up with both - and the
+                bubble's body text is `_annoWhy`, the SAME variable the box under the board renders at
+                rev-why-txt. It cost a quarter of the board to say nothing new.
+                MEASURED off his own screenshot (1125x2436, 2.616 px/pt): board 405.2pt, one rank 50.6pt,
+                bubble 379.2 x 110.8pt - 2.19 ranks, 27% of board height, 26% of board AREA, hiding ranks 1-3
+                including the black king on g8. #365 predicted exactly this ("no free vertical space for a
+                bubble on his phone, so it would cost board") and parked it until he said otherwise. He has
+                now said otherwise, with the cost measured rather than predicted.
+                THE BENCHMARK DOES NOT PORT: chess.com puts its coach bubble in the right-hand PANEL, never
+                over the board. On a desktop there is a panel to put it in; on a phone there is not, and
+                copying the pattern onto the board is what produced this.
+                SCOPE IS REVIEW ONLY. The lesson screen's note box sits ABOVE its board, not on it. */}
             <Arrows arrows={[...(reviewBest?[...boardArrows,{from:[reviewBest.fr,reviewBest.fc],to:[reviewBest.tr,reviewBest.tc],color:'#5bd16a'}]:boardArrows),...(demoBest?[{from:[demoBest.fr,demoBest.fc],to:[demoBest.tr,demoBest.tc],color:'#5bd16a'}]:[])]} SQ={SQ} flip={flip} boardPx={boardPx}/>
             {anim&&anim.piece&&(()=>{const sCol=flip?7-anim.from[1]:anim.from[1],sRow=flip?7-anim.from[0]:anim.from[0],dCol=flip?7-anim.to[1]:anim.to[1],dRow=flip?7-anim.to[0]:anim.to[0];const x=(animTo?dCol:sCol)*SQ,y=(animTo?dRow:sRow)*SQ;return(<div style={{position:'absolute',top:0,left:0,width:SQ,height:SQ,transform:`translate(${x}px,${y}px)`,transition:animTo?'transform .42s ease-in-out':'none',zIndex:5,pointerEvents:'none'}}><span style={{display:'block',transform:'scale(1.06)'}}><Piece t={anim.piece.t} color={anim.piece.c} sz={SQ} useFallback={fallback} onFail={onPieceFail}/></span></div>);})()}{inReview&&curAnno&&curAnno.cls&&boardLast&&(()=>{const B=curAnno.cls;const dCol=flip?7-boardLast.tc:boardLast.tc,dRow=flip?7-boardLast.tr:boardLast.tr;const x=dCol*SQ,y=dRow*SQ;const bs=Math.round(SQ*0.46);const big=B.label==='Brilliant';const emph=big||B.label==='Blunder';const showLabel=emph;return(<div key={'rvov'+ply} style={{position:'absolute',top:0,left:0,width:boardPx,height:boardPx,zIndex:7,pointerEvents:'none'}}>{big&&<div style={{position:'absolute',left:x+SQ/2-SQ/2,top:y+SQ/2-SQ/2,width:SQ,height:SQ,borderRadius:'50%',border:'3px solid '+B.c,animation:'brilburst .6s ease-out both'}}/>}{showLabel&&<div data-ct="rev-badge-label" style={{position:'absolute',left:Math.min(Math.max(x+SQ/2,SQ*0.9),boardPx-SQ*0.9),top:Math.max(1,y-Math.round(SQ*0.32)),transform:'translateX(-50%)',whiteSpace:'nowrap'}}>{/* #374 (antagonist on #373): the pop animation's final keyframe (scale(1) rotate(0)) replaced this element's translateX(-50%), so the label sat anchored at its left edge and ran off the h-file by 16px; the animation now lives on an inner span and the centring transform stays put */}<span style={{display:'inline-block',background:B.c,color:'#fff',fontWeight:900,fontSize:Math.max(9,Math.round(SQ*0.2)),padding:'2px 8px',borderRadius:20,boxShadow:'0 2px 7px rgba(0,0,0,.5)',textShadow:'0 1px 2px rgba(0,0,0,.45)',animation:'iconpop .4s cubic-bezier(.34,1.56,.64,1) both'}}>{B.label}</span></div>}<div data-ct="rev-badge" style={{position:'absolute',left:Math.min(boardPx-bs-1,x+SQ-bs*0.62),top:Math.max(1,y-bs*0.38) /* #373 (audit A-09): the grid clips at its edge (overflow hidden for the rounded corners), so on rank 8 and the h-file the badge lost ~4px; it is clamped inside the board now */,width:bs,height:bs,borderRadius:'50%',background:B.c,border:'2.5px solid #fff',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:big?('0 0 10px 3px '+B.c):'0 2px 5px rgba(0,0,0,.55)',animation:emph?'iconpop .4s cubic-bezier(.34,1.56,.64,1) both':'none'}}><span style={{fontSize:Math.round(bs*(B.i.length>1?0.46:0.6)),fontWeight:900,color:'#fff',lineHeight:1,letterSpacing:B.i.length>1?-0.5:0}}>{B.i}</span></div></div>);})()}{inReview&&review&&ply===review.plies.length&&review.plies.length>0&&review.headers&&review.headers.Result&&review.headers.Result!=='*'&&(()=>{const R=review.headers.Result;const isDraw=R==='1/2-1/2';const wWon=R==='1-0';const lastSan=(review.plies[review.plies.length-1].san)||'';const isMate=/#/.test(lastSan);const head=isDraw?'Draw':(wWon?'White won':'Black won');const sub=isDraw?'½–½':(isMate?'by checkmate':'game over');const bg=wWon?'linear-gradient(160deg,#fff,#dde2e9)':isDraw?'rgba(12,14,20,.94)':'linear-gradient(160deg,#1b1f2a,#0a0c12)';const bd=wWon?'#c6ccd6':'#ffd84d';const hc=wWon?'#161922':'#fff';const sc2=wWon?'#3a4150':'rgba(255,255,255,.86)';return(<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none',zIndex:9}}><div style={{background:bg,border:'2px solid '+bd,borderRadius:14,padding:'10px 20px',textAlign:'center',boxShadow:'0 12px 44px rgba(0,0,0,.7)'}}><div style={{fontSize:'clamp(17px,4.6vw,28px)',fontWeight:800,color:hc,lineHeight:1.05}}>{head}</div><div style={{fontSize:'clamp(14px,2.7vw,15px)',fontWeight:800,color:sc2,marginTop:3}}>{sub}</div></div></div>);})()}
             {mode==='play'&&opponent!=='online'&&gameResult&&!resultCardGone&&(()=>{const ww=_winSide==='w',bw=_winSide==='b';const bg=ww?'linear-gradient(160deg,#ffffff,#dde2e9)':bw?'linear-gradient(160deg,#1b1f2a,#0a0c12)':'rgba(10,12,18,.9)';const bd=ww?'#c6ccd6':bw?'#ffd84d':'rgba(255,255,255,.55)';const hc=ww?'#161922':'#fff';const sc=ww?'#3a4150':bw?'#ffd84d':'rgba(255,255,255,.85)';return(<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none',zIndex:8,opacity:resultCardFade?0:1,transition:'opacity .6s ease'}}><div data-ct="result-card" style={{background:bg,border:'2px solid '+bd,borderRadius:16,padding:'12px 20px',textAlign:'center',boxShadow:'0 12px 48px rgba(0,0,0,.7)',maxWidth:'86%'}}><div style={{fontSize:'clamp(20px,5.2vw,40px)',fontWeight:800,color:hc,letterSpacing:.5,lineHeight:1.05}}>{gameResult.head}</div><div style={{fontSize:'clamp(14px,3vw,18px)',fontWeight:800,color:sc,marginTop:4}}>{gameResult.sub}</div></div></div>);})()}

@@ -75,15 +75,44 @@ L.run(async()=>{
   L.say(!!m&&parseFloat(m[2])===1.1,'TC-R10 PINNED the gap is 1.1 pawns',m&&m[2]);
 
   // ── 3. THE WORD AGAINST THE NUMBER, on the same screen, before anything is tapped ────────────────
-  const say=await b.text('[data-ct="coach-say"]');
-  L.say(!!say&&say.length>20,'TC-R10 the coach bubble is on screen with a sentence in it (non-empty companion)',say&&say.slice(0,40));
-  L.say(say===txt,'TC-R10 the coach bubble and the why panel show the SAME sentence',{bubble:say&&say.slice(0,60),panel:txt.slice(0,60)});
-  const chip=await b.text('[data-ct="coach-eval"]');
+  /* #394: THESE THREE LINES MOVED WITH THE BUBBLE RATHER THAN BEING DELETED, which is what the header of
+     this gate told whoever removed it to do. The coach bubble is gone (kunal-review-floating-bubble-remove),
+     so coach-say and coach-eval no longer exist. The cross-check still has to read something OTHER than the
+     why panel to be a cross-check, and it is now BETTER than it was:
+       - the sentence companion moves to rev-why-txt, which is where the sentence lives now. Note this is the
+         same element `txt` came from, so the old "both show the SAME sentence" assertion compared two
+         renderings of one variable - circular by the #389 rule, and it retires with the element.
+       - the NUMBER moves to eval-bar-num, which is genuinely independent HERE: with the engine off it renders
+         evalTxt from a live sfHit probe, while the retired chip rendered curAnno.evalAfter from the stored
+         review analysis. Different sources, same quantity - a real cross-check.
+     THE ENGINE MUST BE OFF FOR THAT TO HOLD, and that is asserted rather than assumed: with engOn the bar
+     renders engLine ITSELF (_engBar, chess.jsx) and the check would be decoration. That is flag
+     testlane-engine-on-makes-the-bar-circular, applied forward instead of rediscovered. */
+  const say=await b.text('[data-ct="rev-why-txt"]');
+  L.say(!!say&&say.length>20,'TC-R10 the coach sentence is on screen under the board (non-empty companion)',say&&say.slice(0,40));
+  const engOff=!(await b.rect('[data-ct="rev-engline"]'));
+  L.say(engOff,'TC-R10 the engine line is OFF, so the eval bar is NOT rendering engLine and the cross-check below is independent rather than circular (#389)');
+  const chip=await b.text('[data-ct="eval-bar-num"]');
   const cN=(chip==='mate')?99:((chip==='-mate')?-99:(/^[+-]?\d+\.\d$/.test(String(chip))?parseFloat(chip):null));
-  L.say(cN!==null,'TC-R10 the coach chip shows a readable evaluation to cross-check the words against',chip);
+  L.say(cN!==null,'TC-R10 the eval bar shows a readable evaluation to cross-check the words against',chip);
   const saysWinning=/White is winning here\.$/.test(txt);
   L.say(saysWinning,'TC-R10 PINNED the standing clause reads "White is winning here."','...'+txt.slice(-26));
-  L.say(cN!==null&&saysWinning&&cN>=3,'TC-R10 the VERDICT WORD agrees with the eval NUMBER beside it (>= +3.0 for "is winning")',{chip:chip,n:cN,words:txt.slice(-26)});
+  /* #394, AND THIS ASSERTION CAUGHT ME MAKING THE EXACT MISTAKE IT EXISTS TO CATCH. It first read `cN>=3`,
+     carried over unchanged from the retired coach chip, and went RED at +2.8 on a healthy bundle.
+     3.0 is a REAL band and it is the app's own: chess.jsx:727 prints "<mover> is winning here." iff evM>=3.
+     But evM is the STORED per-ply analysis, which is what the chip rendered. The eval bar renders a LIVE
+     sfHit probe of the position (evalTxt). Two different measurements of the same quantity are allowed to
+     disagree in the decimal - that is the whole reason this is an independent cross-check and not a circular
+     one - so applying the stored reading's threshold to the live one is a category error, and it is the same
+     shape as the #389 mistake of reading a number off a readout fed by the thing under test.
+     So the check splits in two, and together they are STRONGER than the single number was:
+       - the BRANCH is pinned above: the app printed "is winning here", which it does only for evM>=3.
+       - the independent bar must AGREE IN SIGN AND SCALE. >= +2.0 still rejects everything this is for: a
+         wrong sign (#389 shipped -2.5 on a won position), a hundredfold error (#385 printed +0.0 beside a
+         bar reading +5.9), and a dead search returning nothing. It does not pretend two instruments agree
+         to a decimal they have no reason to agree to. */
+  L.say(cN!==null&&saysWinning&&cN>=2,'TC-R10 the VERDICT WORD agrees with the independent eval NUMBER in SIGN AND SCALE (bar >= +2.0 while the text says "is winning"). White IS winning after 10.Nxb5, so a negative, near-zero or hundredfold-off number here is wrong whichever element prints it',{bar:chip,n:cN,words:txt.slice(-26)});
+  L.say(cN!==null&&cN<20,'TC-R10 and the bar is not absurdly large either - a mate would print "mate", not a three-figure pawn count, so this catches a scale error in the other direction',{bar:chip,n:cN});
 
   const po=await b.rect('[data-ct="rev-playout"]');L.say(!!po,'TC-R10 the play-out (why) button exists on the brilliancy');
   const s0=await gridSig(b);await b.tapCt('rev-playout',400);let moved=false;for(let i=0;i<12;i++){await b.settle(350);if((await gridSig(b))!==s0){moved=true;break;}}

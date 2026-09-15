@@ -359,3 +359,37 @@ Decisions taken alone, all reversible:
 - **uat372-k10 is closed by measurement, not by a fix** - the rank-1 report was a misread of a low-resolution
   contact sheet. Stated plainly because the charter says the recording wins: it does, and reading the recording
   at full resolution is part of that.
+
+---
+
+## 2026-09-15 — THE COACH BUBBLE IS REMOVED, REVERSING HIS OWN EARLIER CHOICE (#394)
+
+**Coach speech bubble over the board.** → *Remove the bubble, keep the bottom text box.*
+
+This reverses a decision he made himself, so both halves are recorded here to stop it being re-added
+by anyone reading only the earlier one.
+
+- **2026-09-12 16:24 ET, round 1:** *"put it in a bubble over the top, not the fixed text box at the bottom"*.
+- **2026-09-13:** shown the mockup and told the bubble had no free vertical space on his phone and would
+  otherwise cost board height, he chose *"Build it, over the board, dismiss on tap"*, with the note that it
+  must also dismiss when he plays the next move and must never need a close cross. Shipped in #385.
+- **2026-09-15, now:** remove it. Keep the bottom box.
+
+**WHY THE SECOND ANSWER IS NOT A CONTRADICTION OF THE FIRST.** He asked for the bubble INSTEAD OF the bottom
+box. #385 shipped the bubble and KEPT the box, so he ended up with both, showing the same sentence twice -
+the bubble's body is `_annoWhy`, the same variable `rev-why-txt` renders under the board. He was never asked
+to choose between "one readout in a bubble" and "two readouts"; he got the second without deciding on it.
+
+**THE COST, MEASURED OFF HIS OWN SCREENSHOT** (1125x2436, 2.616 px/pt) rather than predicted: board 405.2pt,
+one rank 50.6pt, bubble 379.2 x 110.8pt = **2.19 ranks, 27% of board height, 26% of board AREA**, hiding
+ranks 1-3 including the black king on g8. #365 predicted exactly this and parked it until he said otherwise.
+
+**WHAT IT COSTS TO REMOVE IT, ALSO MEASURED.** `rev-why-txt` clamps to 3 lines on a phone where the bubble
+allowed 5. Walked seven plies: **0 of 7 overflow at 375x730, 1 of 7 at 320** - ply 19, the 131-character
+brilliancy sentence for 10.Nxb5. Nothing on his phone; one sentence's tail on the smallest one.
+
+**AND THE BENCHMARK DOES NOT PORT, which is worth recording because it is what produced the bubble.**
+chess.com puts its coach bubble in the right-hand PANEL and never over the board. On a desktop there is a
+panel to put it in; on a phone there is not. Copying the pattern onto the board is the mistake.
+
+Scope is Review only. The lesson screen's note box sits ABOVE its board, not on it, and is untouched.

@@ -61,7 +61,61 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-14 by BUILD #393)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-15 by BUILD #394)
+LIVE = **#394**, stamp "#394 - 2026-09-14 20:28 ET", md5 927eddc6c4d7... over 947131 bytes.
+GATES GREEN: **27 suites, 1022 PASS, 0 fail** (`claude/agents/gatelogs/394-all.log`, 1223 lines, verified by
+`gates/verify-log.sh`). Suite ran 00:48-01:19 UTC, 31 minutes. **THE COUNT FELL, 1043 to 1022, AND THE WHOLE
+DROP IS ACCOUNTED FOR:** gate 41 goes 56 to 34 because its 28 assertions about the bubble's geometry describe
+an element that no longer exists, replaced by 17 about its absence; gate 21 gains 1. Every other gate is
+unchanged to the line. A falling assertion count is fine when the thing it measured is gone - and the
+standing warning holds either way, 1022 is not a coverage figure (claude/agents/CONTROL-COVERAGE-2026-09-14.md).
+
+**THE COACH BUBBLE IS GONE** (`kunal-review-floating-bubble-remove`), and **this reverses a decision Kunal
+made himself**, so the reasoning is in the source at the removal site to stop it being re-added.
+
+On 2026-09-12 he asked to "put it in a bubble over the top, not the fixed text box at the bottom". #385
+shipped the bubble AND KEPT the bottom box, so he ended up with both - showing the same sentence twice,
+because the bubble's body is `_annoWhy`, the SAME variable `rev-why-txt` renders under the board.
+
+**MEASURED off his own screenshot** (1125x2436, 2.616 px/pt): board 405.2pt, one rank 50.6pt, bubble
+379.2 x 110.8pt. That is **2.19 ranks, 27% of board height, 26% of board AREA**, hiding ranks 1-3 including
+the black king on g8. #365 predicted exactly this ("no free vertical space for a bubble on his phone, so it
+would cost board") and parked it until he said otherwise. He has now said otherwise, with the cost measured
+rather than predicted.
+
+**THE RESIDUAL, MEASURED RATHER THAN ESTIMATED.** `rev-why-txt` clamps to 3 lines on a phone where the bubble
+allowed 5, so removing it costs reading room for long sentences. Walked seven plies, settling past the 450ms
+`sacRun` debounce: **0 of 7 overflow at 375x730 (his phone), 1 of 7 at 320** - ply 19, the 131-character
+brilliancy sentence for 10.Nxb5. So it costs him nothing and costs the smallest phone one sentence's tail.
+The box CLAMPS rather than clipping, so what is cut draws an ellipsis (#387's rule, now asserted here).
+
+**GATE 41 WAS INVERTED, NOT DELETED.** It asserts the bubble is gone AND that nine points across the top
+third of the board hit-test to a SQUARE. Every absence assertion is paired with a positive precondition
+proving the old render condition (`inReview && !anaMode && ply>0 && _annoWhy`) was satisfied at the moment of
+the check - the #385 trap, where an assertion about a state never reached went 38 of 38 green.
+
+**AND THAT HIT TEST PASSED AGAINST THE CONTROL WITH THE BUBBLE FULLY UP, which is how two bugs in my own gate
+were caught before it shipped.** Its ancestor selector named `[data-ct="rev-grid"]` and `[data-ct="board"]`,
+NEITHER of which exists - the board carries no `data-ct` at all, and `gates/lib.js` finds it by looking for a
+`repeat(8,...)` grid style. Then `contains(grid)` was satisfied by the bubble itself, because the bubble
+rendered as a CHILD of the grid, a sibling of the 64 squares. "The thing under your finger is somewhere
+inside the board" is satisfied by the very overlay it was written to detect. Now tested against the squares:
+control **12 red**, fixed bundle **34 of 34 green**.
+
+**GATE 21'S THREE COUPLED LINES MOVED WITH THE BUBBLE**, which is what that gate's own header told whoever
+removed it to do. `coach-say` becomes `rev-why-txt`; the eval cross-check moves to `eval-bar-num`, which is
+genuinely independent here - with the engine off it renders a LIVE `sfHit` probe while the retired chip
+rendered the STORED `curAnno.evalAfter`. The gate now ASSERTS the engine is off, so the check cannot quietly
+go circular (`testlane-engine-on-makes-the-bar-circular`, applied forward instead of rediscovered).
+
+**AND THAT CROSS-CHECK CAUGHT ME MAKING ITS OWN MISTAKE.** It carried `cN>=3` over from the chip and went RED
+at +2.8 on a healthy bundle. 3.0 is real and is the app's own band - chess.jsx:727 prints "is winning here"
+iff `evM>=3` - but `evM` is the STORED analysis and the bar is a LIVE probe. Two instruments measuring one
+quantity may differ in the decimal; that is what makes it a cross-check rather than a tautology. Split into a
+branch pin plus a sign-and-scale band (>= +2.0), which still rejects a wrong sign (#389 shipped -2.5 on a won
+position), a hundredfold error (#385 printed +0.0 beside a bar reading +5.9) and a dead search.
+
+## 0a-prev0) BUILD #393 (the Review summary had no way into the menu)
 LIVE = **#393**, stamp "#393 - 2026-09-14 19:29 ET", md5 22eee57d90bb... over 948467 bytes.
 GATES GREEN: **27 suites, 1043 PASS, 0 fail** (`claude/agents/gatelogs/393-all.log`, 1242 lines - the REAL
 log, not the stdout capture - verified by `gates/verify-log.sh`). Suite ran 23:29-00:00 UTC, 31 minutes.

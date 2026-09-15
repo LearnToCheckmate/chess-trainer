@@ -214,6 +214,33 @@ wider one.
   shipped none of them; the defect was fixed on direct measurement instead. **An assertion you cannot ground is
   worse than no assertion**, and a pinned footer over a scrolling list will fool the same probe again - those
   buttons are reachable by scrolling, which is "below the fold is not unreachable" wearing another costume.
+- **AN OVERLAY RENDERED INSIDE THE THING IT COVERS DEFEATS EVERY "IS IT STILL THE THING" HIT TEST, and that
+  is the containment trap wearing its third costume.** #394 removed the coach bubble and the gate's headline
+  assertion - nine points across the top third of the board must hit-test to the board - PASSED against the
+  control bundle with the bubble fully up. Two faults, and the second is the one that generalises. First, the
+  ancestor selector named `[data-ct="rev-grid"]` and `[data-ct="board"]` and NEITHER EXISTS: the board carries
+  no `data-ct` at all, and `gates/lib.js` finds it the only way there is, by the widest div whose
+  `gridTemplateColumns` is a `repeat(8,...)`. A selector that cannot match reports a defect that is not there,
+  which is the "a bad selector is a reading" rule again. Second, and worse: once the selector was right,
+  `grid.contains(hit)` was STILL satisfied by the bubble, because the bubble renders as a child of the grid, a
+  sibling of the 64 squares. **"The element under your finger is somewhere inside the board" is satisfied by
+  the very overlay you are trying to detect.** The fix is to name the thing that must be hit, not its
+  container: the 64 squares, so a piece, a badge or a rank label still counts and anything else does not. Ask
+  of any containment check: *is the thing I am trying to exclude a DESCENDANT of the thing I am asserting?*
+  The same shape as clip-intersection excusing the real 38.9px overflow, and as "the covering element is big"
+  hiding the very defect it was written for at #393.
+- **A THRESHOLD BELONGS TO THE INSTRUMENT IT WAS CALIBRATED ON, AND MOVING A CROSS-CHECK TO A NEW READOUT DOES
+  NOT CARRY THE NUMBER WITH IT.** When the bubble went, gate 21's eval cross-check moved from the coach chip to
+  the eval bar and kept its `>= 3.0`. It went RED at +2.8 on a healthy bundle. The 3.0 is real and is the app's
+  own - `chess.jsx:727` prints "<mover> is winning here." iff `evM>=3` - but `evM` is the STORED per-ply
+  analysis, which is what the chip rendered, while the bar renders a LIVE `sfHit` probe. Two instruments
+  measuring the same quantity are allowed to disagree in the decimal; that difference is exactly what makes
+  the check independent rather than circular, so demanding they agree to it is self-defeating. Split it: pin
+  the BRANCH (the app printed the winning clause, so the stored value is in that band by construction) and
+  require the independent readout to agree in SIGN AND SCALE. A >= +2.0 band still rejects everything the
+  assertion exists for - a wrong sign (#389 shipped -2.5 on a won position), a hundredfold error (#385 printed
+  +0.0 beside a bar reading +5.9), and a dead search returning nothing. **When an assertion you just moved goes
+  red, find out which of the two readings changed before you touch the number.**
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never
