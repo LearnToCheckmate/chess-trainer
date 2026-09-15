@@ -61,7 +61,70 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-15 by BUILD #395)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-15 by BUILD #396)
+LIVE = **#396**, stamp "#396 - 2026-09-14 22:10 ET", md5 d28e3d07a010... over 947413 bytes.
+GATES GREEN: **28 suites, 1047 PASS, 0 fail** (`claude/agents/gatelogs/396-all.log`, verified by
+`gates/verify-log.sh`). Assertions 1040 to 1047: **+7, all of it the new gate 24**, every other gate unchanged
+to the line - which is what a change to one code path should look like. The suite is 28 suites now, not 27.
+
+**THE OPPONENT'S MOVE SEARCH NOW HANDSHAKES** (`kunal-decided-engine-handshake`). **Kunal's decision,
+2026-09-15**, chosen over three alternatives including doing nothing: *fix the cause, and add the gate that
+can see it* - explicitly so this project stops building a third fallback for the same crash.
+
+**THE DEFECT.** `chess.jsx` posted `setoption` / `position` / `go` for the opponent's move DIRECTLY on
+`sfRef`, about 1 ms after a `stop` from the eval bar's own cleanup. The #356 comment **in that same file**
+says what that costs: *"Sending setoption and position straight after stop is a UCI protocol violation while
+a search is still unwinding, and Stockfish answers it by trapping (RuntimeError: unreachable)."* The #356 fix
+went to the ANALYSIS callers and never to this one. **#389 and #392 were both spent surviving a crash whose
+cause nobody had touched in five builds.** Both fallbacks STAY - the cause going away does not make surviving
+it worthless.
+
+**VERIFIED BY RE-RECORDING, NOT BY READING**, because the point of the finding is that the source looked fine
+to five builds. `Worker.postMessage` wrapped before the app builds its workers, real traffic, Viktor (2350):
+
+    #395 (pre-fix)            #396 (fixed)
+    1  stop                   1  stop
+    2  setoption UCI_Limit..  2  stop
+    3  setoption UCI_Elo      3  isready          <- the handshake
+    4  setoption MultiPV      4  setoption UCI_LimitStrength
+    5  position fen           5  setoption UCI_Elo 2350
+    6  go movetime 2600       6  setoption MultiPV 3
+                              7  position fen
+                              8  go movetime 2600
+
+**THE ONE REAL DESIGN DECISION WAS THE FAILURE PATH.** #356's rule is that the handshake timeout must ABANDON
+and never proceed, because a skipped evaluation is invisible - the next ply change asks again. **This caller
+cannot do that: skipping means the computer never moves and the game just sits there.** So the abandon path
+falls back to the built-in engine, the same one the <=1300 branch uses and always available. The protocol
+violation is never committed either way, and the worst case is one move played by the weaker engine.
+
+**THE NEW GATE IS `24-opponent-handshake.js`, AND WHAT IT GUARDS BEYOND THIS BUG MATTERS MORE.** The
+Stockfish opponent branch needs `cpuElo >= 1320`. **Every Play gate in this suite uses Pip (500) or the 800
+default**, both of which take the homemade-engine branch and never send a single UCI message to that worker -
+so ~1000 assertions had never once exercised the path. The gate therefore asserts the blind spot itself: a
+Pip control that must post ZERO `UCI_Elo` messages, so moving this gate onto a weaker bot goes RED rather
+than quietly testing nothing. Control on the shipped #395 bundle: **2 red, with all five companions and
+controls still passing** - it fails on the thing under test, not wholesale.
+
+**NAMED DIFFERENTLY FROM THE FLAG ON PURPOSE.** The flag calls for `24-sit-blast-radius.js` covering all
+three SIT findings. Kunal commissioned ONE. The other two - the Preview walk rewriting `ct_lastlesson` (a
+SYNC_KEYS key, so it backs over his cloud progress) and a card-6 tap removing Home's Preview and feedback
+buttons for 86 seconds - are real, measured and unfixed, and asserting them would put RED on main for
+behaviour nobody has commissioned a fix for. The file is named for what it actually covers.
+
+**A CORRECTION I OWE, from the headless UAT lane (`uat394-rev-why-clips-fourth-line-320`).** My #394
+close-out said of the sentence box: *"what is cut draws an ellipsis because the box clamps rather than
+clips."* **It does both, and they measured it** - a pixel scan found FOUR ink bands where I assumed three, the
+fourth cut through the middle of its glyphs at the box edge, under an ellipsis that had already ended the
+sentence. My gate asserted `-webkit-line-clamp !== none` and I treated that as settling it; it does not,
+because the clamp counts line boxes while `overflow:hidden` decides where the container ends. 3 x 16.9 = 50.7
+inside a 58px box leaves 7.3px of slack. **Not fixed here** - it is one number, but it frees 7px in a flex
+column and needs its own measurement of what takes that space back before it ships. It is next, and the
+assertion belongs in gate 41: not "the box clamps" but "the container is no taller than the lines the clamp
+allows". They also checked it against #393 and found it byte-identical, so they filed it as pre-existing
+rather than as my regression.
+
+## 0a-prev0) BUILD #395 (the lesson footer icons)
 LIVE = **#395**, stamp "#395 - 2026-09-14 21:29 ET", md5 9b00c4674caf... over 947159 bytes.
 GATES GREEN: **27 suites, 1040 PASS, 0 fail** (`claude/agents/gatelogs/395-all.log`, verified by
 `gates/verify-log.sh`). Suite ran 01:33-01:5x UTC. Assertions 1022 to 1040: **+18, all of it in 11-lesson**

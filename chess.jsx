@@ -2760,12 +2760,47 @@ export default function App(){
         if(!mv)mv=(uci&&uciToMove(game,uci))||bestMove(game,1,0);
         applyMv(mv);
       };
-      sfRef.current.postMessage('setoption name UCI_LimitStrength value true');
-      sfRef.current.postMessage('setoption name UCI_Elo value '+e);
-      sfRef.current.postMessage('setoption name MultiPV value '+(_style==='balanced'?1:3));
-      sfRef.current.postMessage('position fen '+toFEN(game));
-      sfRef.current.postMessage('go movetime '+(cpuElo<1500?1100:cpuElo<2000?1900:2600));
-      return()=>{cancelled=true;sfCbRef.current=null;try{sfRef.current?.postMessage('stop');}catch(e){}};
+      /* #396 (kunal-decided-engine-handshake): THE OPPONENT'S MOVE SEARCH NOW HANDSHAKES LIKE EVERY OTHER
+         CALLER. It used to post setoption / position / go DIRECTLY on sfRef, and SIT run 1 recorded it
+         landing 1 ms after a `stop` issued by the eval bar's own cleanup - three times in three moves
+         against Viktor (2350), deterministic rather than racy. The #356 comment a few hundred lines below
+         describes that exact sequence and what it costs: "Sending setoption and position straight after
+         stop is a UCI protocol violation while a search is still unwinding, and Stockfish answers it by
+         trapping (RuntimeError: unreachable)." The #356 fix was applied to the ANALYSIS callers and never
+         to this one, so #389 and #392 were both spent surviving a crash whose cause nobody had touched.
+         Kunal's decision, 2026-09-15: fix the cause and add a gate that can see it, explicitly so we stop
+         building a third fallback for the same crash. Both earlier fallbacks STAY - the cause going away
+         does not make surviving it worthless.
+         WHAT HAPPENS WHEN THE HANDSHAKE FAILS IS DIFFERENT HERE, AND THAT IS THE ONE REAL DECISION.
+         #356's rule is that the timeout must ABANDON and never proceed, because a skipped evaluation is
+         invisible - the next ply change asks again. This caller cannot do that: skipping means THE
+         COMPUTER NEVER MOVES and the game sits there. So the abandon path falls back to the built-in
+         engine, which is the same engine the <=1300 branch below uses and is always available. The
+         protocol violation is never committed either way; the worst case is one move played by the
+         weaker engine, which is invisible next to a hung game or a trapped worker. */
+      const _mvTime=(cpuElo<1500?1100:cpuElo<2000?1900:2600);
+      const _cancelIdle=engIdle(sfRef.current,sfSyncRef,(idle)=>{
+        if(cancelled)return;
+        if(!idle){
+          /* the engine never answered readyok. Do NOT post into a search that is still unwinding. */
+          const {d:_d,r:_r}=eloParams(cpuElo);
+          const _bs=(selBot&&botById(selBot)&&botById(selBot).style)||'balanced';
+          try{applyMv(bestMove(game,_d,_r,_bs));}catch(err){setThinking(false);}
+          return;
+        }
+        try{
+          sfRef.current.postMessage('setoption name UCI_LimitStrength value true');
+          sfRef.current.postMessage('setoption name UCI_Elo value '+e);
+          sfRef.current.postMessage('setoption name MultiPV value '+(_style==='balanced'?1:3));
+          sfRef.current.postMessage('position fen '+toFEN(game));
+          sfRef.current.postMessage('go movetime '+_mvTime);
+        }catch(err){
+          const {d:_d,r:_r}=eloParams(cpuElo);
+          const _bs=(selBot&&botById(selBot)&&botById(selBot).style)||'balanced';
+          try{applyMv(bestMove(game,_d,_r,_bs));}catch(e2){setThinking(false);}
+        }
+      });
+      return()=>{cancelled=true;sfCbRef.current=null;try{_cancelIdle&&_cancelIdle();}catch(e){}try{sfRef.current?.postMessage('stop');}catch(e){}};
     }else{
       // Beginner / club range (≤1300): the built-in engine is tuned to play gently and blunder. Stockfish can't play this weakly (even Skill Level 0 is ~1300+ Elo), so we use the homemade engine here for fair, beatable games.
       const {d:depth,r:rnd}=eloParams(cpuElo); QDEPTH=2;

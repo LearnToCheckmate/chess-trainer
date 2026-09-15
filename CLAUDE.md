@@ -175,6 +175,17 @@ wider one.
   without saying so. A `-webkit-line-clamp` draws an ellipsis; a box with `overflow:hidden` does not, and if
   the box is the shorter of the two it wins silently. #387's assertion is that the bubble never sits on its
   own height cap, so the clamp is always what truncates.
+- **A CLAMP AND A CLIP ARE TWO DIFFERENT BOXES, AND ASSERTING THE CLAMP EXISTS DOES NOT SETTLE WHICH ONE CUTS.**
+  #387's rule above says make truncation VISIBLE, and #394's gate encoded it as `-webkit-line-clamp !== none`.
+  That is necessary and NOT sufficient, and the headless UAT lane caught it with a pixel scan the same night.
+  The clamp governs how many LINE BOXES are drawn; `overflow:hidden` governs where the CONTAINER ends. If the
+  container is taller than the clamped lines, the next line paints into the slack and is cut at the box edge -
+  so the screen shows a row of decapitated glyphs UNDER a sentence that has already ended in an ellipsis. It
+  does both. The arithmetic is the whole defect and it is one number: `rev-why-txt` at 320 is 3 lines of
+  16.9px = 50.7 inside a 58px box, leaving 7.3px of slack. **Assert the CONTAINER is no taller than the lines
+  the clamp allows** (`clientHeight <= ceil(lines x lineHeight)`), not merely that a clamp is set. And note how
+  it was found: by scanning the painted pixels for ink bands and counting four where the assertion assumed
+  three. `uat394-rev-why-clips-fourth-line-320`, #396.
 - **A flaky assertion is worse than no assertion, and text that arrives late is a common cause.** #387's ply
   walk disagreed with itself between runs of the SAME bundle, because on a Brilliant or Great move the coach
   sentence GROWS about half a second after you land on it — the sacrifice refutation comes from a debounced
