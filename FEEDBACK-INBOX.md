@@ -1849,3 +1849,47 @@ passes because it silently stopped checking" case:
 
 Sixteen more questions are marked NEEDS-KUNAL across the two lanes; they are in the lane documents rather
 than here so this note stays readable.
+
+---
+
+## 2026-09-15, #399 — the lost #398 follow-up, and what the antagonist found in it
+
+Append-only. Kunal's own words for this run, from chat: *"That is your first job: work lost when a container
+expired this morning. The run reports it names say what was done, so do not rediscover it."*
+
+**He was right that it should not be rediscovered, and the cheaper finding is that most of it was not lost.**
+The flag named two items. `fdb8c0b` on origin already *is* the corrected `gap:0` commit, so a push had got
+through before the refusals began — nothing to redo, and the withdrawn `(rows-1)*2` formula was never touched.
+The genuinely missing half, `gates/regress/47-menu.js`, had its full 464 lines staged in the tracker, so it was
+a paste. Total recovery cost: one paste, four negative controls, two full gate suites.
+
+**Eight questions about the Menu screen are now in the repo and unanswered.** They arrived with
+`MENU-LANE-2026-09-15.md`, which this build committed because the gate cited it five times while it existed
+nowhere in git. None is answered in the gate, and the gate asserts current behaviour without blessing it:
+
+1. The menu offers **Sign in with Google**, enabled, with "Sync your Elo, theme & lesson settings across all
+   your devices" — in a sandbox where Google is unreachable. There is a second branch, "Sign-in unavailable
+   here", that never shows because `cloudAvail` is true. What should it show when sign-in cannot reach Google?
+2. **Cell depth & texture appears twice**, in the menu sheet and on Look and feel, both writing `ct_depth`.
+3. **Piece style appears twice** as well — five text chips in the menu, five preview chips in Look.
+4. The menu says **"Board colors"**; the Look screen says **"BOARD COLOURS"**. Which spelling ships? (The gate
+   matches case- and spelling-insensitively on purpose rather than pinning one for you.)
+5. **Layout readout** and **Layout overlay** are developer diagnostics sitting in the shipping menu between
+   Sound and Piece style. Behind the dev row, or staying?
+6. **Layout readout persists nothing** while every other switch in the sheet does. Deliberate or an oversight?
+7. Two of the three skins are **PRO-locked** and the badge is the only thing saying so. What should a tap on a
+   locked skin do, and should it say why?
+8. The sheet is **1437px of content in a 730px phone** — everything below Sound needs a scroll, with no section
+   index. Acceptable, or should Appearance move behind "Look and feel" and leave the menu short?
+
+**One thing measured that only your phone can settle.** TC-MN-003 asserts the menu sheet's height is exactly
+`viewport − 20`, and that is a *sandbox* identity, not a fact about your phone. The overlay's padding is
+`max(10px, env(safe-area-inset-top,0px))`; headless Chromium reports `env()` as 0, so the identity holds at all
+six geometries by construction. On your phone the insets are 51 and 31, so the sheet should be 648, not 710.
+Seeding `ct_safe:'51,31'` does **not** reach this overlay — it measured 741 = 761 − 20, insets ignored — because
+the overlay reads raw CSS `env()` while `safeTop`/`safeBot` is React state used elsewhere. Not changed here; it
+is a real fit assertion in the sandbox. But it must never be cited as evidence about a real phone.
+
+**Not a defect, said plainly so nobody files it as one.** The menu opened from a live game at 320x568 pushes
+"Look and feel" to 567 in a 568-tall viewport, because GAME SETUP inserts ~364px above it. That state measured
+clean on every other count and no gate enters it; it is a coverage gap, recorded in the gate's header.
