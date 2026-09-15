@@ -766,6 +766,7 @@ function explainAnno(a,ctx){
 // so the first paint lands close; the real work is done by the fit loop below, which measures actual overflow and
 // shrinks the board until there is none. Do not tune this number to fix a specific phone - that is what the loop is
 // for, and a constant cannot know about a wrapped name, a two-line reason, a mate score or a larger system font.
+const LESSON_FOOT_GLYPH='clamp(20px,5.4vw,24px)';  // #394 (kunal-lesson-footer-icons-small): one glyph size for all five lesson-footer buttons. #347's shape, scaled to this row's 44px box rather than that one's 48px. Raised INSIDE the box, so no layout height moves.
 /* #394: COACH_MAXH went with the bubble. The #387 work it encoded - that a CLAMP must do the cutting
    rather than a box, so an ellipsis is drawn - now applies to rev-why-txt, which is clamped, not clipped. */
 const REV_CHROME = 304;  // #364: 360 was measured with the player bars at their 74px cap. They are flex and their
@@ -6248,13 +6249,28 @@ export default function App(){
         </div>);})()}
       {!homeScreen&&!_hideTabs&&(<div aria-hidden="true" style={{order:99,height:'calc(62px + env(safe-area-inset-bottom,0px))',flexShrink:0,width:'100%'}}/>)}
       {!homeScreen&&!_hideTabs&&(()=>{const _ta=mode==='learn'?'learn':mode==='puzzle'?'puzzle':mode==='analyze'?'analyze':mode==='play'?'play':'';const _go=(k)=>{setMenuOpen(false);setCoachOpen(false);if(k==='home'){setHomeScreen(true);return;}setHomeScreen(false);if(k==='learn'){setMode('learn');setOpenIdx(null);setLearnGroup(null);setLearnCat(null);}else if(k==='puzzle'){setMistakeMode(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}else if(k==='analyze'){setMode('analyze');}else if(k==='play'){setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}};return lessonFocus?null:<_TabBar active={_ta} go={_go}/>;})()}
+      {/* #394 (kunal-lesson-footer-icons-small): THE BOXES WERE NEVER THE PROBLEM, THE GLYPHS WERE.
+          Measured off his screenshot (1125x2436, 2.616 px/pt, so pt == CSS px): the five buttons are 50.5pt
+          square, ABOVE the 44pt minimum and the same height as the pills above them - but the ink inside them
+          is 9.2pt for the close x, 13.8 x 18.3 for the chevrons and 17.2 x 3.1 for the dots. Re-measured here
+          at 375x730 and it agrees: 44x44 boxes carrying a 14x19 x, a 22x22 chevron and a 19x21 dots.
+          SO A CONTAINER-HEIGHT BUMP IS THE WRONG FIX and would not have satisfied him. The sizes are raised
+          INSIDE the existing boxes; minHeight stays 44, the row stays position:fixed, and NO BOARD HEIGHT IS
+          SPENT - which is the only reason this can ship without going in a sheet.
+          THIS IS #347 AGAIN, verbatim: "icons still sized for the text labels they stopped carrying", fixed
+          there to clamp(21px,5.4vw,26px) on a 48px row. The tell is the play button at fontSize 13 - that is
+          the size for the words "Pause" and "Replay", which it no longer carries; it is a bare glyph now.
+          One shared size for all five so "consistent" is a fact rather than a judgement.
+          NOT TOUCHED: the Review tab's footer. His note asks for those to match and its target could not be
+          measured - the #389 recording covers it with the caption strip in every frame - so what "consistent"
+          means numerically over there is still open. Guessing it would be inventing scope while he is asleep. */}
       {lessonFocus&&(<div style={{position:'fixed',left:0,right:0,bottom:0,zIndex:471,display:'flex',gap:10,alignItems:'center',padding:'8px 12px calc(8px + env(safe-area-inset-bottom,0px))',background:'rgba(13,16,21,.97)',borderTop:'1px solid rgba(255,255,255,.12)'}}>
-        {learnPhase!=='practice'&&(<><button onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.max(0,p-1));}} aria-label="Back a move" style={{minWidth:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontSize:16,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={22} dir="left"/></button>
-        <button onClick={()=>{if(demoPly>=learnLine.length){setDemoPly(0);setDemoPlaying(true);}else setDemoPlaying(p=>!p);}} aria-label="Play or pause" style={{minWidth:52,minHeight:44,borderRadius:10,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:13,cursor:'pointer'}}>{demoPlaying?'\u23F8':(demoPly>=learnLine.length?'\u21BB':'\u25B6')}</button>
-        <button onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.min(learnLine.length,p+1));}} aria-label="Forward a move" style={{minWidth:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontSize:16,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={22} dir="right"/></button></>)}
-        <button onClick={()=>{setLessonMore(false);setOpenIdx(null);}} aria-label="Close lesson" style={{minWidth:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontSize:17,cursor:'pointer'}}>{'\u2715'}</button>
+        {learnPhase!=='practice'&&(<><button onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.max(0,p-1));}} aria-label="Back a move" style={{minWidth:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontSize:LESSON_FOOT_GLYPH,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={27} dir="left"/></button>
+        <button onClick={()=>{if(demoPly>=learnLine.length){setDemoPly(0);setDemoPlaying(true);}else setDemoPlaying(p=>!p);}} aria-label="Play or pause" style={{minWidth:52,minHeight:44,borderRadius:10,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:LESSON_FOOT_GLYPH,cursor:'pointer'}}>{demoPlaying?'\u23F8':(demoPly>=learnLine.length?'\u21BB':'\u25B6')}</button>
+        <button onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.min(learnLine.length,p+1));}} aria-label="Forward a move" style={{minWidth:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontSize:LESSON_FOOT_GLYPH,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={27} dir="right"/></button></>)}
+        <button onClick={()=>{setLessonMore(false);setOpenIdx(null);}} aria-label="Close lesson" style={{minWidth:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontSize:LESSON_FOOT_GLYPH,cursor:'pointer'}}>{'\u2715'}</button>
         <div style={{flex:1,textAlign:'center',fontSize:12.5,color:'rgba(255,255,255,.55)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{LIB[openIdx]?LIB[openIdx].name:''}</div>
-        <button onClick={()=>setLessonMore(v=>!v)} aria-label="More for this lesson" style={{minWidth:44,minHeight:44,borderRadius:10,background:lessonMore?'rgba(212,175,55,.2)':'rgba(255,255,255,.08)',border:'1px solid '+(lessonMore?'rgba(212,175,55,.55)':'rgba(255,255,255,.2)'),color:lessonMore?'var(--ac2)':'#fff',fontSize:19,cursor:'pointer'}}>{'\u22EF'}</button>
+        <button onClick={()=>setLessonMore(v=>!v)} aria-label="More for this lesson" style={{minWidth:44,minHeight:44,borderRadius:10,background:lessonMore?'rgba(212,175,55,.2)':'rgba(255,255,255,.08)',border:'1px solid '+(lessonMore?'rgba(212,175,55,.55)':'rgba(255,255,255,.2)'),color:lessonMore?'var(--ac2)':'#fff',fontSize:LESSON_FOOT_GLYPH,cursor:'pointer'}}>{'\u22EF'}</button>
       </div>)}
       {lessonFocus&&lessonMore&&(<div onClick={()=>setLessonMore(false)} style={{position:'fixed',inset:0,zIndex:470,background:'rgba(0,0,0,.55)',display:'flex',flexDirection:'column',justifyContent:'flex-end'}}>
         <div onClick={e=>e.stopPropagation()} style={{maxHeight:'72vh',overflowY:'auto',background:'#151922',borderTop:'1px solid rgba(212,175,55,.35)',borderRadius:'16px 16px 0 0',padding:'14px 14px calc(72px + env(safe-area-inset-bottom,0px))',display:'flex',flexDirection:'column',gap:10}}>

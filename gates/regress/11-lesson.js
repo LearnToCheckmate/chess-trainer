@@ -69,6 +69,40 @@ L.run(async()=>{
       if(WANT[tag]!=null)L.say(!!m.board&&Math.abs(m.board.w-WANT[tag])<1.5,tag+': the board is '+WANT[tag]+' wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.',{measured:m.board&&m.board.w,want:WANT[tag]});
       L.say(!!m.board&&m.board.w<=m.vw+0.6,tag+': the board never exceeds the viewport width',m.board);
       L.say(!!m.board&&Math.abs(m.board.x-(m.vw-m.board.w)/2)<1.5,tag+': the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x '+(m.board&&m.board.x)+', expected '+(m.board?Math.round((m.vw-m.board.w)/2*10)/10:'-')+')',m.board);
+
+      /* #394 (kunal-lesson-footer-icons-small): THE GLYPHS IN THE LESSON FOOTER, NOT THE BOXES.
+         He reported the footer icons as too small. The CONTAINERS were never the problem - measured 50.5pt
+         square on his phone, above the 44pt minimum - so a container check would have gone green while the
+         complaint stood. What is small is the INK: a 9.2pt close x, 13.8 x 18.3 chevrons, 17.2 x 3.1 dots.
+         So this asserts the GLYPH, by measuring the text node's own box rather than the button's, and it
+         asserts all five agree - "consistent" is what he actually asked for, and one shared size is the only
+         way that is a fact rather than a judgement.
+         AND IT ASSERTS THE BOXES DID NOT GROW, because the fix had to cost no layout: this row is
+         position:fixed with minHeight 44, so the board must be untouched. A version of this fix that bumped
+         the container would satisfy "bigger" and break the rule that matters more. */
+      const foot=await b.page.evaluate(()=>{
+        const vh=innerHeight;
+        return [...document.querySelectorAll('button[aria-label]')].map(e=>{
+          const r=e.getBoundingClientRect();
+          if(r.width<1||r.bottom<vh-140||r.top>vh)return null;
+          if(!/Back a move|Forward a move|Play or pause|Close lesson|More for this lesson/.test(e.getAttribute('aria-label')||''))return null;
+          let gw=0,gh=0;
+          const svg=e.querySelector('svg');
+          if(svg){const g=svg.getBoundingClientRect();gw=+g.width.toFixed(1);gh=+g.height.toFixed(1);}
+          else{const rg=document.createRange();rg.selectNodeContents(e);const g=rg.getBoundingClientRect();gw=+g.width.toFixed(1);gh=+g.height.toFixed(1);}
+          return {aria:e.getAttribute('aria-label'),w:+r.width.toFixed(1),h:+r.height.toFixed(1),
+                  fs:parseFloat(getComputedStyle(e).fontSize),gw,gh};
+        }).filter(Boolean);
+      });
+      if(st==='demo-end'){
+        L.say(foot.length===5,name+': the lesson footer shows its five buttons (precondition - without this the size checks below pass by measuring nothing)',foot.map(f=>f.aria));
+        L.say(foot.every(f=>f.h>=44&&f.h<=46),name+': every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent',foot.map(f=>f.h));
+        L.say(foot.every(f=>f.gh>=20),name+': every footer GLYPH is at least 20px tall. The boxes were always big enough; the ink was not, and that is what he reported',foot.map(f=>({a:f.aria,gh:f.gh})));
+        L.say(foot.every(f=>f.gw>=16),name+': and at least 16px wide',foot.map(f=>({a:f.aria,gw:f.gw})));
+        const sizes=[...new Set(foot.map(f=>f.fs))];
+        L.say(sizes.length===1,name+': all five carry ONE font size, so "consistent" is a fact rather than a judgement. The play button shipped at 13px because it used to carry the word "Pause" - #347, icons still sized for the labels they stopped carrying',sizes);
+        L.say(foot.every(f=>f.gw<=f.w-6&&f.gh<=f.h-6),name+': and no glyph fills its box edge to edge - raising the ink must not make the button look like a solid block',foot.map(f=>({a:f.aria,gw:f.gw,w:f.w})));
+      }
       await b.shot('lesson-'+name+'-'+st);
       await b.close();
     }

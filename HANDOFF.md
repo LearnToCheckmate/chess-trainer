@@ -61,7 +61,49 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-15 by BUILD #394)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-15 by BUILD #395)
+LIVE = **#395**, stamp "#395 - 2026-09-14 21:29 ET", md5 9b00c4674caf... over 947159 bytes.
+GATES GREEN: **27 suites, 1040 PASS, 0 fail** (`claude/agents/gatelogs/395-all.log`, verified by
+`gates/verify-log.sh`). Suite ran 01:33-01:5x UTC. Assertions 1022 to 1040: **+18, all of it in 11-lesson**
+(6 new assertions at each of three geometries) and nothing else moved to the line.
+
+**THE LESSON FOOTER ICONS** (`kunal-lesson-footer-icons-small`), and the interesting part is that the obvious
+check would have passed.
+
+**THE BOXES WERE NEVER THE PROBLEM.** Measured off his screenshot (1125x2436 at 2.616 px/pt, so pt == CSS px),
+the five footer buttons are **50.5pt square** - above the 44pt minimum and the same height as the pills above
+them. A tap-target gate would have gone green while his complaint stood. What is small is the **ink**: a
+9.2pt close x, 13.8 x 18.3 chevrons, 17.2 x 3.1 dots. Re-measured here at 375x730 and it agrees: 44x44 boxes
+carrying a 14x19 x, a 22x22 chevron and a 19x21 dots.
+
+**SO THE FIX GOES INSIDE THE BOX**, never to the box. One shared `clamp(20px,5.4vw,24px)` across all five, and
+the chevron SVG from 22 to 27. Measured after: all five at 20.25px, chevrons 27x27, x and play glyph 17x22,
+dots 20x22. Containers unchanged at 44x44 and 52x44. **The row is `position:fixed` with `minHeight:44`, so no
+board height is spent** - the only reason this could ship outside a sheet.
+
+**THIS IS #347 VERBATIM**: *"icons still sized for the text labels they stopped carrying"*, fixed there to
+`clamp(21px,5.4vw,26px)` on a 48px row. The tell here was the play button at **fontSize 13** - that is the
+size for the words "Pause" and "Replay", which it no longer carries; it is a bare glyph now.
+
+**THE GATE ASSERTS THE GLYPH, NOT THE BUTTON**, by measuring the text node's own box (or the SVG's) rather
+than the button's, plus that all five carry ONE font size, plus that the containers did NOT grow. The control
+splits exactly along that line: on the #394 bundle it goes **9 red on the glyph assertions at all three
+geometries while the container-height assertion stays GREEN**. That is the whole flag in one result.
+
+**NOT TOUCHED, and it is still open:** the Review tab's footer. His note asks for those to match, and its
+target could not be measured - the #389 recording covers it with the caption strip in every frame - so what
+"consistent" means numerically over there is unsettled. Guessing it would be inventing scope while he sleeps.
+
+**ALSO THIS PASS, NO BUILD REQUIRED:** `gates-without-a-negative-control` is **REOPENED at 27 suites** on the
+external challenger's finding (`uat-ext-2026-09-15`). It read `handled=DONE` with "ALL 19 SUITES have now been
+run against a bundle built to fail them" - true when written, and the suite has since grown to 27, so the one
+place anyone would look to ask *which gates are uncontrolled* answered "none". A closed flag with a frozen
+denominator is worse than an open one with a bad number. I checked its list rather than repeating it: a grep
+for "control" clears `45-play-setup` and `46-play` wrongly, because both use the word to mean a UI control.
+The live list is **six**, and 41-coach-bubble came off it in #394 - where the control immediately caught that
+gate's headline assertion passing against a bundle with the bubble fully up.
+
+## 0a-prev0) BUILD #394 (the coach bubble comes off the board)
 LIVE = **#394**, stamp "#394 - 2026-09-14 20:28 ET", md5 927eddc6c4d7... over 947131 bytes.
 GATES GREEN: **27 suites, 1022 PASS, 0 fail** (`claude/agents/gatelogs/394-all.log`, 1223 lines, verified by
 `gates/verify-log.sh`). Suite ran 00:48-01:19 UTC, 31 minutes. **THE COUNT FELL, 1043 to 1022, AND THE WHOLE

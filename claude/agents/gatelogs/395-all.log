@@ -1,0 +1,1241 @@
+gates.sh #395  bundle /home/user/chess-trainer/app.js  md5 9b00c4674caf  2026-09-15 01:33:25 UTC
+=== mountcheck ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS kunal: build stamp in the DOM  [#395 - 2026-09-14 21:29 ET]
+PASS kunal: stamp is #395  [#395 - 2026-09-14 21:29 ET]
+PASS kunal: four home tiles render (1114ms to mount)  [["Discover","Puzzles","Review","Play"]]
+PASS kunal: zero app console errors on Home  [[]]
+PASS kunal: Discover opens with zero errors  [[]]
+     Discover metrics {"board":null,"over":{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS kunal: Puzzles opens with zero errors  [[]]
+     Puzzles metrics {"board":null,"over":{"bottom":1787,"vh":679,"over":1108,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS kunal: Review opens with zero errors  [[]]
+     Review metrics {"board":null,"over":{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS kunal: Play opens with zero errors  [[]]
+     Play metrics {"board":{"w":344,"top":111,"left":24.5,"flip":false},"over":{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS 390: build stamp in the DOM  [#395 - 2026-09-14 21:29 ET]
+PASS 390: stamp is #395  [#395 - 2026-09-14 21:29 ET]
+PASS 390: four home tiles render (1105ms to mount)  [["Discover","Puzzles","Review","Play"]]
+PASS 390: zero app console errors on Home  [[]]
+PASS 390: Discover opens with zero errors  [[]]
+     Discover metrics {"board":null,"over":{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+PASS 390: Puzzles opens with zero errors  [[]]
+     Puzzles metrics {"board":null,"over":{"bottom":1787,"vh":844,"over":943,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+PASS 390: Review opens with zero errors  [[]]
+     Review metrics {"board":null,"over":{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+PASS 390: Play opens with zero errors  [[]]
+     Play metrics {"board":{"w":360,"top":111.4,"left":24,"flip":false},"over":{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+MOUNTCHECK: 16 pass, 0 fail
+    mountcheck: green (16 PASS)
+=== 10-gameover ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS kunal: board present mid-game and after the mate  [{"mid":{"w":351,"top":78,"left":12,"flip":false},"end":{"w":351,"top":78,"left":12,"flip":false}}]
+PASS kunal: board width unchanged at game over (351 -> 351)
+PASS kunal: board top unchanged at game over (78 -> 78)
+PASS kunal: the board at game over is 351 wide, the measured size for this geometry - not merely the same as it was a moment ago  [{"measured":351,"want":351}]
+PASS kunal: nothing scrolls at game over  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: row reads Review · Rematch, no Resign  [⌂ | ☰ | Moves | Back | Forward | Review | Rematch | More]
+PASS kunal: zero app errors  [[]]
+PASS 390: board present mid-game and after the mate  [{"mid":{"w":390,"top":103,"left":0,"flip":false},"end":{"w":390,"top":103,"left":0,"flip":false}}]
+PASS 390: board width unchanged at game over (390 -> 390)
+PASS 390: board top unchanged at game over (103 -> 103)
+PASS 390: the board at game over is 390 wide, the measured size for this geometry - not merely the same as it was a moment ago  [{"measured":390,"want":390}]
+PASS 390: nothing scrolls at game over  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: row reads Review · Rematch, no Resign  [⌂ | ☰ | Moves | Back | Forward | Review | Rematch | More]
+PASS 390: zero app errors  [[]]
+GAMEOVER: 14 pass, 0 fail
+    10-gameover: green (14 PASS)
+=== 11-lesson ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS kunal: demo end shows a board  [{"w":375,"top":92,"left":0,"flip":false}]
+PASS kunal: demo end board is 375 wide (375)
+PASS kunal: demo end board top is 92 (92)
+PASS kunal: note box is 75px  [75]
+PASS kunal: no scroll at the demo end  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: practice board = demo board (w 375 top 92)
+PASS kunal: board unchanged after one practice move (w 375 top 92)
+PASS kunal: no scroll after the move  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: zero app errors  [[]]
+PASS 390: demo end shows a board  [{"w":390,"top":92,"left":0,"flip":false}]
+PASS 390: note box is 75px  [75]
+PASS 390: no scroll at the demo end  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: practice board = demo board (w 390 top 92)
+PASS 390: board unchanged after one practice move (w 390 top 92)
+PASS 390: no scroll after the move  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: zero app errors  [[]]
+PASS 320x568 demo-end: the lesson board is on screen  [{"w":270.9,"x":24.6}]
+PASS 320x568 demo-end: the column fills the viewport (bottom 568 of 568). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":568,"vh":568}]
+PASS 320x568 demo-end: the board is 270.9 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":270.9,"want":270.9}]
+PASS 320x568 demo-end: the board never exceeds the viewport width  [{"w":270.9,"x":24.6}]
+PASS 320x568 demo-end: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 24.6, expected 24.6)  [{"w":270.9,"x":24.6}]
+PASS 320x568: the lesson footer shows its five buttons (precondition - without this the size checks below pass by measuring nothing)  [["Back a move","Play or pause","Forward a move","Close lesson","More for this lesson"]]
+PASS 320x568: every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent  [[44,44,44,44,44]]
+PASS 320x568: every footer GLYPH is at least 20px tall. The boxes were always big enough; the ink was not, and that is what he reported  [[{"a":"Back a move","gh":27},{"a":"Play or pause","gh":22},{"a":"Forward a move","gh":27},{"a":"Close lesson","gh":22},{"a":"More for this lesson","gh":22}]]
+PASS 320x568: and at least 16px wide  [[{"a":"Back a move","gw":27},{"a":"Play or pause","gw":17},{"a":"Forward a move","gw":27},{"a":"Close lesson","gw":17},{"a":"More for this lesson","gw":20}]]
+PASS 320x568: all five carry ONE font size, so "consistent" is a fact rather than a judgement. The play button shipped at 13px because it used to carry the word "Pause" - #347, icons still sized for the labels they stopped carrying  [[20]]
+PASS 320x568: and no glyph fills its box edge to edge - raising the ink must not make the button look like a solid block  [[{"a":"Back a move","gw":27,"w":44},{"a":"Play or pause","gw":17,"w":52},{"a":"Forward a move","gw":27,"w":44},{"a":"Close lesson","gw":17,"w":44},{"a":"More for this lesson","gw":20,"w":44}]]
+PASS 320x568 practice-m0: the lesson board is on screen  [{"w":230.9,"x":44.6}]
+PASS 320x568 practice-m0: the column fills the viewport (bottom 568 of 568). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":568,"vh":568}]
+PASS 320x568 practice-m0: the board is 230.9 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":230.9,"want":230.9}]
+PASS 320x568 practice-m0: the board never exceeds the viewport width  [{"w":230.9,"x":44.6}]
+PASS 320x568 practice-m0: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 44.6, expected 44.6)  [{"w":230.9,"x":44.6}]
+PASS 360x640 demo-end: the lesson board is on screen  [{"w":342.4,"x":8.8}]
+PASS 360x640 demo-end: the column fills the viewport (bottom 640 of 640). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":640,"vh":640}]
+PASS 360x640 demo-end: the board is 342.4 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":342.4,"want":342.4}]
+PASS 360x640 demo-end: the board never exceeds the viewport width  [{"w":342.4,"x":8.8}]
+PASS 360x640 demo-end: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 8.8, expected 8.8)  [{"w":342.4,"x":8.8}]
+PASS 360x640: the lesson footer shows its five buttons (precondition - without this the size checks below pass by measuring nothing)  [["Back a move","Play or pause","Forward a move","Close lesson","More for this lesson"]]
+PASS 360x640: every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent  [[44,44,44,44,44]]
+PASS 360x640: every footer GLYPH is at least 20px tall. The boxes were always big enough; the ink was not, and that is what he reported  [[{"a":"Back a move","gh":27},{"a":"Play or pause","gh":22},{"a":"Forward a move","gh":27},{"a":"Close lesson","gh":22},{"a":"More for this lesson","gh":22}]]
+PASS 360x640: and at least 16px wide  [[{"a":"Back a move","gw":27},{"a":"Play or pause","gw":17},{"a":"Forward a move","gw":27},{"a":"Close lesson","gw":17},{"a":"More for this lesson","gw":20}]]
+PASS 360x640: all five carry ONE font size, so "consistent" is a fact rather than a judgement. The play button shipped at 13px because it used to carry the word "Pause" - #347, icons still sized for the labels they stopped carrying  [[20]]
+PASS 360x640: and no glyph fills its box edge to edge - raising the ink must not make the button look like a solid block  [[{"a":"Back a move","gw":27,"w":44},{"a":"Play or pause","gw":17,"w":52},{"a":"Forward a move","gw":27,"w":44},{"a":"Close lesson","gw":17,"w":44},{"a":"More for this lesson","gw":20,"w":44}]]
+PASS 360x640 practice-m0: the lesson board is on screen  [{"w":326.4,"x":16.8}]
+PASS 360x640 practice-m0: the column fills the viewport (bottom 640 of 640). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":640,"vh":640}]
+PASS 360x640 practice-m0: the board is 326.4 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":326.4,"want":326.4}]
+PASS 360x640 practice-m0: the board never exceeds the viewport width  [{"w":326.4,"x":16.8}]
+PASS 360x640 practice-m0: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 16.8, expected 16.8)  [{"w":326.4,"x":16.8}]
+PASS 375x667 demo-end: the lesson board is on screen  [{"w":375,"x":0}]
+PASS 375x667 demo-end: the column fills the viewport (bottom 667 of 667). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":667,"vh":667}]
+PASS 375x667 demo-end: the board is 375 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":375,"want":375}]
+PASS 375x667 demo-end: the board never exceeds the viewport width  [{"w":375,"x":0}]
+PASS 375x667 demo-end: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 0, expected 0)  [{"w":375,"x":0}]
+PASS 375x667: the lesson footer shows its five buttons (precondition - without this the size checks below pass by measuring nothing)  [["Back a move","Play or pause","Forward a move","Close lesson","More for this lesson"]]
+PASS 375x667: every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent  [[44,44,44,44,44]]
+PASS 375x667: every footer GLYPH is at least 20px tall. The boxes were always big enough; the ink was not, and that is what he reported  [[{"a":"Back a move","gh":27},{"a":"Play or pause","gh":22},{"a":"Forward a move","gh":27},{"a":"Close lesson","gh":22},{"a":"More for this lesson","gh":22}]]
+PASS 375x667: and at least 16px wide  [[{"a":"Back a move","gw":27},{"a":"Play or pause","gw":17},{"a":"Forward a move","gw":27},{"a":"Close lesson","gw":17},{"a":"More for this lesson","gw":20}]]
+PASS 375x667: all five carry ONE font size, so "consistent" is a fact rather than a judgement. The play button shipped at 13px because it used to carry the word "Pause" - #347, icons still sized for the labels they stopped carrying  [[20.25]]
+PASS 375x667: and no glyph fills its box edge to edge - raising the ink must not make the button look like a solid block  [[{"a":"Back a move","gw":27,"w":44},{"a":"Play or pause","gw":17,"w":52},{"a":"Forward a move","gw":27,"w":44},{"a":"Close lesson","gw":17,"w":44},{"a":"More for this lesson","gw":20,"w":44}]]
+PASS 375x667 practice-m0: the lesson board is on screen  [{"w":352.2,"x":11.4}]
+PASS 375x667 practice-m0: the column fills the viewport (bottom 667 of 667). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":667,"vh":667}]
+PASS 375x667 practice-m0: the board is 352.2 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":352.2,"want":352.2}]
+PASS 375x667 practice-m0: the board never exceeds the viewport width  [{"w":352.2,"x":11.4}]
+PASS 375x667 practice-m0: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 11.4, expected 11.4)  [{"w":352.2,"x":11.4}]
+LESSON: 64 pass, 0 fail
+    11-lesson: green (64 PASS)
+=== 12-hint ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS kunal: puzzle board present before and with the hint
+PASS kunal: board unmoved by the hint (top 181.5 -> 181.5, w 375)
+PASS kunal: the puzzle board is 375 wide with the hint up - the measured size, not merely the same as a moment ago  [{"measured":375,"want":375}]
+PASS kunal: hint header shows the hint  [💡 It's mate in 2 — start with the most forcing check.]
+PASS kunal: hint text not clipped (scroll 27 vs 27)
+PASS kunal: hint header sits above the board, on screen
+PASS kunal: no scroll with the hint  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: zero app errors  [[]]
+PASS 390: puzzle board present before and with the hint
+PASS 390: board unmoved by the hint (top 278.5 -> 278.5, w 390)
+PASS 390: the puzzle board is 390 wide with the hint up - the measured size, not merely the same as a moment ago  [{"measured":390,"want":390}]
+PASS 390: hint header shows the hint  [💡 It's mate in 2 — start with the most forcing check.]
+PASS 390: hint text not clipped (scroll 27 vs 27)
+PASS 390: hint header sits above the board, on screen
+PASS 390: no scroll with the hint  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: zero app errors  [[]]
+PASS se: puzzle board present before and with the hint
+PASS se: board unmoved by the hint (top 184 -> 184, w 259)
+PASS se: the puzzle board is 259 wide with the hint up - the measured size, not merely the same as a moment ago  [{"measured":259,"want":259}]
+PASS se: hint header shows the hint  [💡 It's mate in 2 — start with the most forcing check.]
+PASS se: hint text not clipped (scroll 25 vs 25)
+PASS se: hint header sits above the board, on screen
+PASS se: no scroll with the hint  [{"bottom":568,"vh":568,"over":0,"scrollY":0,"docScroll":0}]
+PASS se: zero app errors  [[]]
+HINT: 24 pass, 0 fail
+    12-hint: green (24 PASS)
+=== 13-play-after-moves ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS kunal: card k8 board unchanged over four plies (w 351 -> 351, top 78 -> 78)
+PASS kunal: Pass & Play board has ONE width and ONE top across five plies  [{"ws":[351],"tops":[78]}]
+PASS kunal: card k8 board is PINNED at 351 after four plies  [351]
+PASS kunal: card k8 board top is PINNED at 78 after four plies  [78]
+PASS kunal: Pass & Play board is PINNED at 351 after five plies  [351]
+PASS kunal: Pass & Play board top is PINNED at 78 after five plies  [78]
+PASS kunal: the five plies registered (Bb5 in the move list)
+PASS kunal: no scroll after five plies  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: zero app errors  [[]]
+PASS 390: card k8 board unchanged over four plies (w 390 -> 390, top 103 -> 103)
+PASS 390: Pass & Play board has ONE width and ONE top across five plies  [{"ws":[390],"tops":[103]}]
+PASS 390: card k8 board is PINNED at 390 after four plies  [390]
+PASS 390: card k8 board top is PINNED at 103 after four plies  [103]
+PASS 390: Pass & Play board is PINNED at 390 after five plies  [390]
+PASS 390: Pass & Play board top is PINNED at 103 after five plies  [103]
+PASS 390: the five plies registered (Bb5 in the move list)
+PASS 390: no scroll after five plies  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: zero app errors  [[]]
+PLAY-AFTER-MOVES: 18 pass, 0 fail
+    13-play-after-moves: green (18 PASS)
+=== 14-uat-review-card ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS the Review journey card is in the gallery  [["1 · k10 · Game over: the board must not shrink (#371)","2 · k8 · Play after the first moves (#370)","3 · k11 · Lesson at the end of the demo (#371)","4 · k11 · Lesson in practice (#371, #372)","5 · A-06 · Puzzle with a hint showing (#372)","6 · US-R · The Review journey: import, summary, brilliancy, checkmate, analysis board (#373 UAT)","7 · y3 · Layout readout, with the tile ink line","8 · y3 · Home: the four icons (#366)"]]
+PASS caption at start names US-R01  [🎬 #395 · US-R01 · 375x679 Review: the Opera Game is being imported and analysed (about 45 s, the card waits)]
+PASS 52 s: caption names US-R03  [🎬 #395 · US-R03 · 375x679 Summary: accuracy, ten counts per side, Skills panel, footer pinned]
+PASS 52 s: the summary is up with its footer pinned  [679]
+PASS 52 s: the caption strip is inside the viewport  [667]
+PASS 58 s: caption names US-R04  [🎬 #395 · US-R04 · 375x679 Move screen at ply 0: board full width, eval bar on the left, nothing scrolls]
+PASS 58 s: move screen, board 349, no scroll  [{"board":{"w":349,"top":56,"left":24,"flip":false},"over":0}]
+PASS 64 s: US-R06 at 10.Nxb5  [10. Nxb5
+!!
+Brilliant
+▶ why
+19/33]
+PASS 64 s: the reason names the forcing line  [You give up a piece. If cxb5, Bxb5+ and White is winning. Nothing else came clos]
+PASS 70 s: k12 at 17.Rd8# with the label 1-0  [{"cap":"🎬 #395 · k12 · 375x679 17.Rd8#: the eval label reads 1-0 and the bar is white","num":"1-0"}]
+PASS 76 s: US-R07 analysis board with Undo and Exit  [{"cap":"🎬 #395 · US-R07 · 375x679 Analysis board from the round button: Undo and Exit analysis, both sides movable","btns":["↶ Undo","✕ Exit analysis"]}]
+PASS 82 s: US-R09 back on the summary  [🎬 #395 · US-R09 · 375x679 Exit analysis, then back to the summary]
+PASS 88 s: the caption clears after the card's hold
+PASS zero app errors beyond the allowed engine trap  [[]]
+UAT-REVIEW-CARD: 14 pass, 0 fail
+    14-uat-review-card: green (14 PASS)
+=== 15-gallery-playall ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS kunal: the gallery holds 8 cards  [["1 k10","2 k8","3 k11","4 k11","5 A-06","6 US-R","7 y3","8 y3"]]
+PASS kunal: the run ends on the RECORDING COMPLETE frame (16 captions seen)
+PASS kunal: every card was reached in order (16 of 8)  [["🎬 #395 · 375x679 Starting…","🎬 #395 · 1/8 · k10 · 375x679 game over: the","🎬 #395 · 2/8 · k8 · 375x679 four plies in: ","🎬 #395 · 3/8 · k11 · 375x679 demo end: boar","🎬 #395 · 4/8 · k11 · 375x679 practice: boar","🎬 #395 · 5/8 · A-06 · 375x679 the whole hin","🎬 #395 · 6/8 · US-R01 · 375x679 Review: the","🎬 #395 · 6/8 · US-R03 · 375x679 Summary: ac","🎬 #395 · 6/8 · US-R04 · 375x679 Move screen","🎬 #395 · 6/8 · US-R06 · 375x679 10.Nxb5!!: ","🎬 #395 · 6/8 · k12 · 375x679 17.Rd8#: the e","🎬 #395 · 6/8 · US-R07 · 375x679 Analysis bo","🎬 #395 · 6/8 · US-R09 · 375x679 Exit analys","🎬 #395 · 7/8 · y3 · 375x679 Layout readout:","🎬 #395 · 8/8 · y3 · 375x679 Home: four emoj","🎬 #395 · 8/8 · END · 375x679 RECORDING COMP"]]
+PASS kunal: no card leaves the page scrolling  [[]]
+PASS kunal: no board shrinks inside a card  [[]]
+PASS kunal: no app error beyond the allowed engine trap  [{"allowed":0,"other":[]}]
+PASS 375x812: the gallery holds 8 cards  [["1 k10","2 k8","3 k11","4 k11","5 A-06","6 US-R","7 y3","8 y3"]]
+PASS 375x812: the run ends on the RECORDING COMPLETE frame (16 captions seen)
+PASS 375x812: every card was reached in order (16 of 8)  [["🎬 #395 · 375x812 Starting…","🎬 #395 · 1/8 · k10 · 375x812 game over: the","🎬 #395 · 2/8 · k8 · 375x812 four plies in: ","🎬 #395 · 3/8 · k11 · 375x812 demo end: boar","🎬 #395 · 4/8 · k11 · 375x812 practice: boar","🎬 #395 · 5/8 · A-06 · 375x812 the whole hin","🎬 #395 · 6/8 · US-R01 · 375x812 Review: the","🎬 #395 · 6/8 · US-R03 · 375x812 Summary: ac","🎬 #395 · 6/8 · US-R04 · 375x812 Move screen","🎬 #395 · 6/8 · US-R06 · 375x812 10.Nxb5!!: ","🎬 #395 · 6/8 · k12 · 375x812 17.Rd8#: the e","🎬 #395 · 6/8 · US-R07 · 375x812 Analysis bo","🎬 #395 · 6/8 · US-R09 · 375x812 Exit analys","🎬 #395 · 7/8 · y3 · 375x812 Layout readout:","🎬 #395 · 8/8 · y3 · 375x812 Home: four emoj","🎬 #395 · 8/8 · END · 375x812 RECORDING COMP"]]
+PASS 375x812: no card leaves the page scrolling  [[]]
+PASS 375x812: no board shrinks inside a card  [[]]
+PASS 375x812: no app error beyond the allowed engine trap  [{"allowed":0,"other":[]}]
+GALLERY-PLAYALL: 12 pass, 0 fail
+    15-gallery-playall: green (12 PASS)
+=== 20-review ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS kunal: TC-R01 PGN import reaches the summary in under 90 s (10 s)
+PASS kunal: TC-R01 zero app errors during import  [[]]
+PASS kunal: the review summary has its own menu button (rev-summary-menu)  [{"x":325,"y":10,"w":38,"h":30,"press":true}]
+PASS kunal: it is fully on screen and a real tap target  [{"x":325,"y":10,"w":38,"h":30,"press":true}]
+PASS kunal: elementFromPoint at its centre returns the button - nothing covers it  [{"x":325,"y":10,"w":38,"h":30,"press":true}]
+PASS kunal: and TAPPING IT OPENS THE MENU - behaviour, not position  [true]
+PASS kunal: and closing the menu returns to the summary (state restored for the assertions below)
+PASS kunal: TC-R04 accuracy and the eight verdict categories are on the summary  [[]]
+PASS kunal: TC-R04 summary footer pinned inside the viewport (bottom 679 of 679)
+PASS kunal: TC-R05 Skills panel present
+PASS kunal: TC-R05 tapping the Skills number opens the review at 14.Rd1  [{"jumped":"clicked","text":"14. Rd1\n!\nGreat\n▶ why\n27/33"}]
+PASS kunal: TC-R13 back arrow from the move screen returns to the summary
+PASS kunal: TC-RL-033 (R-03) "Start review" starts at the START, even though the Skills jump just left the review at ply 27. Asserted, not helped along by a click.  [Start position 0/33]
+PASS kunal: TC-R06 one board width and one top across plies 0/10/19/33  [{"ws":[349],"tops":[56]}]
+PASS kunal: TC-R06 review board is 349 wide (349)
+PASS kunal: TC-R06 nothing scrolls at any ply  [[0,0,0,0]]
+PASS kunal: TC-R14 player bars keep one height across plies  [[[52,52],[52,52],[52,52],[52,52]]]
+PASS kunal: TC-R14 nothing spills out of a player bar  [[[0,0],[0,0],[0,0],[0,0]]]
+PASS kunal: TC-R14 rating pills carry the PGN Elo headers  [["2600","1800"]]
+PASS kunal: TC-R09 eval label reads 1-0 at 17.Rd8# and differs from ply 0  [{"p0":"0.0","p33":"1-0"}]
+PASS kunal: TC-R09b the engine line actually appears when it is switched on (measured 8 ms in this container; the lane measured up to 8 s on a device, which is why the wait is 12 s and not a flat sleep)  [{"engline":"1-0 …"}]
+PASS kunal: TC-R09 eval label still reads 1-0 at 17.Rd8# with the engine line on (was +99.0 on #372)  [{"num":"1-0","engline":"1-0 …"}]
+PASS kunal: TC-R07 a verdict badge is drawn at 17.Rd8#  [[{"t":"!","dx":0,"dy":0,"top":57,"left":186.1,"w":20}]]
+PASS kunal: TC-R07 the rank-8 badge is entirely inside the board (A-09)  [[{"t":"!","dx":0,"dy":0,"top":57,"left":186.1,"w":20}]]
+PASS kunal: TC-R08 10.Nxb5 reads Brilliant with no best-move chip  [{"ml":"10. Nxb5\n!!\nBrilliant\n▶ why\n19/33","best":false}]
+PASS kunal: TC-R08 a negative verdict carries a best-move chip (found at ply 12)  [{"ply":12,"ml":"6… Nf6 ?! Inaccuracy best Qf6 › 12/33"}]
+PASS kunal: TC-R08 the move strip uses at least three distinct colours (9)
+PASS kunal: TC-R08 the reason line is present on 10.Nxb5  [You give up a piece. If cxb5, Bxb5+ and White is winning. Nothing else]
+PASS kunal: TC-R11 the round Analyze button is 40x40  [{"x":324.015625,"y":413.03125,"w":40,"h":40,"text":""}]
+PASS kunal: TC-R11 A-08 - the Analyze button is BELOW the board and no longer covers h1/g1 (fab top 413.03125 vs board bottom 405.03125)  [{"fab":{"x":324.015625,"y":413.03125,"w":40,"h":40,"text":""},"boardBottom":405.03125}]
+PASS kunal: TC-R11 it sits inside the bottom player bar - "the right edge of Morphy's box", which is the answer he asked us to read  [{"fab":{"x":324.015625,"y":413.03125,"w":40,"h":40,"text":""},"bar":{"x":23.984375,"y":407.03125,"w":349.03125,"h":52,"text":"♔\nMorphy\n2600\n+1"}}]
+PASS kunal: TC-R11 it is flush to the bar's right edge, on the same 9px gutter as ⋯ in the top bar (gap 9)  [{"fabRight":364.015625,"barRight":373.015625}]
+PASS kunal: TC-R11 analysis board offers Undo and Exit analysis  [← | ⋯ | ↶ Undo | ✕ Exit analysis | Previous move | Next move]
+PASS kunal: TC-R11 two moves register on the analysis board
+PASS kunal: TC-R11 Undo takes one move back
+PASS kunal: TC-R11 Exit returns to 10.Nxb5 with the board unchanged (349)
+PASS kunal: TC-R13 the ⋯ sheet opens
+PASS kunal: TC-R13 the sheet closes and the board is unchanged
+PASS kunal: TC-R13 Back to games returns to the list
+PASS kunal: no app error across the review beyond the one allowed engine trap (#356)  [{"allowed":2,"other":[]}]
+PASS kunal: TC-R02 the cached re-analysis reaches the summary in under 8 s (0.7 s)
+PASS kunal: TC-R02 the cached summary carries identical numbers
+PASS kunal: TC-R12 the eval graph renders in the player bar with the switch on  [{"w":126,"h":38}]
+PASS kunal: TC-R12 graph on: bar height and board width unchanged  [{"bar":52,"was":52,"board":349}]
+PASS kunal: TC-R12 a tap on the graph jumps to a later ply  [12. O-O-O
+!
+Great
+▶ why
+23/33]
+PASS 390: TC-R01 PGN import reaches the summary in under 90 s (10 s)
+PASS 390: TC-R01 zero app errors during import  [[]]
+PASS 390: the review summary has its own menu button (rev-summary-menu)  [{"x":340,"y":10,"w":38,"h":30,"press":true}]
+PASS 390: it is fully on screen and a real tap target  [{"x":340,"y":10,"w":38,"h":30,"press":true}]
+PASS 390: elementFromPoint at its centre returns the button - nothing covers it  [{"x":340,"y":10,"w":38,"h":30,"press":true}]
+PASS 390: and TAPPING IT OPENS THE MENU - behaviour, not position  [true]
+PASS 390: and closing the menu returns to the summary (state restored for the assertions below)
+PASS 390: TC-R04 accuracy and the eight verdict categories are on the summary  [[]]
+PASS 390: TC-R04 summary footer pinned inside the viewport (bottom 844 of 844)
+PASS 390: TC-R05 Skills panel present
+PASS 390: TC-R05 tapping the Skills number opens the review at 14.Rd1  [{"jumped":"clicked","text":"14. Rd1\n!\nGreat\n▶ why\n27/33"}]
+PASS 390: TC-R13 back arrow from the move screen returns to the summary
+PASS 390: TC-RL-033 (R-03) "Start review" starts at the START, even though the Skills jump just left the review at ply 27. Asserted, not helped along by a click.  [Start position 0/33]
+PASS 390: TC-R06 one board width and one top across plies 0/10/19/33  [{"ws":[364],"tops":[56]}]
+PASS 390: TC-R06 nothing scrolls at any ply  [[0,0,0,0]]
+PASS 390: TC-R14 player bars keep one height across plies  [[[52,52],[52,52],[52,52],[52,52]]]
+PASS 390: TC-R14 nothing spills out of a player bar  [[[0,0],[0,0],[0,0],[0,0]]]
+PASS 390: TC-R14 rating pills carry the PGN Elo headers  [["2600","1800"]]
+PASS 390: TC-R09 eval label reads 1-0 at 17.Rd8# and differs from ply 0  [{"p0":"0.0","p33":"1-0"}]
+PASS 390: TC-R09b the engine line actually appears when it is switched on (measured 8 ms in this container; the lane measured up to 8 s on a device, which is why the wait is 12 s and not a flat sleep)  [{"engline":"1-0 …"}]
+PASS 390: TC-R09 eval label still reads 1-0 at 17.Rd8# with the engine line on (was +99.0 on #372)  [{"num":"1-0","engline":"1-0 …"}]
+PASS 390: TC-R07 a verdict badge is drawn at 17.Rd8#  [[{"t":"!","dx":0,"dy":0,"top":57,"left":193,"w":21}]]
+PASS 390: TC-R07 the rank-8 badge is entirely inside the board (A-09)  [[{"t":"!","dx":0,"dy":0,"top":57,"left":193,"w":21}]]
+PASS 390: TC-R08 10.Nxb5 reads Brilliant with no best-move chip  [{"ml":"10. Nxb5\n!!\nBrilliant\n▶ why\n19/33","best":false}]
+PASS 390: TC-R08 a negative verdict carries a best-move chip (found at ply 12)  [{"ply":12,"ml":"6… Nf6 ?! Inaccuracy best Qf6 › 12/33"}]
+PASS 390: TC-R08 the move strip uses at least three distinct colours (9)
+PASS 390: TC-R08 the reason line is present on 10.Nxb5  [You give up a piece. If cxb5, Bxb5+ and White is winning. Nothing else]
+PASS 390: TC-R11 the round Analyze button is 40x40  [{"x":339,"y":428,"w":40,"h":40,"text":""}]
+PASS 390: TC-R11 A-08 - the Analyze button is BELOW the board and no longer covers h1/g1 (fab top 428 vs board bottom 420)  [{"fab":{"x":339,"y":428,"w":40,"h":40,"text":""},"boardBottom":420}]
+PASS 390: TC-R11 it sits inside the bottom player bar - "the right edge of Morphy's box", which is the answer he asked us to read  [{"fab":{"x":339,"y":428,"w":40,"h":40,"text":""},"bar":{"x":24,"y":422,"w":364,"h":52,"text":"♔\nMorphy\n2600\n+1"}}]
+PASS 390: TC-R11 it is flush to the bar's right edge, on the same 9px gutter as ⋯ in the top bar (gap 9)  [{"fabRight":379,"barRight":388}]
+PASS 390: TC-R11 analysis board offers Undo and Exit analysis  [← | ⋯ | ↶ Undo | ✕ Exit analysis | Previous move | Next move]
+PASS 390: TC-R11 two moves register on the analysis board
+PASS 390: TC-R11 Undo takes one move back
+PASS 390: TC-R11 Exit returns to 10.Nxb5 with the board unchanged (364)
+PASS 390: TC-R13 the ⋯ sheet opens
+PASS 390: TC-R13 the sheet closes and the board is unchanged
+PASS 390: TC-R13 Back to games returns to the list
+PASS 390: no app error across the review beyond the one allowed engine trap (#356)  [{"allowed":2,"other":[]}]
+PASS 390: TC-R02 the cached re-analysis reaches the summary in under 8 s (0.7 s)
+PASS 390: TC-R02 the cached summary carries identical numbers
+PASS 390: TC-R12 the eval graph renders in the player bar with the switch on  [{"w":130,"h":38}]
+PASS 390: TC-R12 graph on: bar height and board width unchanged  [{"bar":52,"was":52,"board":364}]
+PASS 390: TC-R12 a tap on the graph jumps to a later ply  [12. O-O-O
+!
+Great
+▶ why
+23/33]
+PASS kunal: TC-R03 two account chips render  [Imported
+jsmiller1112
+1
+×
+kunal2023
+1
+×]
+PASS kunal: TC-R03 a stored game names its opponent in the list
+PASS kunal: TC-R03 both accounts survive a reload
+PASS kunal: TC-R03 zero app errors  [[]]
+PASS TC-R04 a stored game with wr="win" reads WON (seeding ct_ccuser is what makes the verdict appear at all)  [WON vs mr_dhanzzxnsx]
+PASS TC-R04 a stored game with wr="lose" reads LOST (seeding ct_ccuser is what makes the verdict appear at all)  [LOST vs mr_dhanzzxnsx]
+PASS TC-R04 a stored game with wr="loss" reads LOST (seeding ct_ccuser is what makes the verdict appear at all)  [LOST vs mr_dhanzzxnsx]
+PASS TC-R04 a stored game with wr="agreed" reads DRAW (seeding ct_ccuser is what makes the verdict appear at all)  [DRAW vs mr_dhanzzxnsx]
+REVIEW: 97 pass, 0 fail
+    20-review: green (97 PASS)
+=== 21-review-brilliant ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS at 10.Nxb5  [10. Nxb5
+!!
+Brilliant
+▶ why
+19/33]
+     reason: You give up a piece. If cxb5, Bxb5+ and White is winning. Nothing else came close: Bxf6 was 1.1 pawns worse. White is winning here.
+PASS TC-R10 the reason says what was given up
+PASS TC-R10 the reason names the forcing follow-up (cxb5 / Bxb5+)
+PASS TC-R10 the reason compares with the next-best move
+PASS TC-R10 PINNED the brilliancy sentence is EXACTLY the one measured on #387  [{"want":"You give up a piece. If cxb5, Bxb5+ and White is winning. Nothing else came close: Bxf6 was 1.1 pawns worse. White is winning here.","got":"You give up a piece. If cxb5, Bxb5+ and White is winning. Nothing else came close: Bxf6 was 1.1 pawns worse. White is winning here."}]
+PASS TC-R10 clause 1 matches the _give template verbatim  [You give up a piece. If cxb5, Bxb5+ and Whit]
+PASS TC-R10 clause 1 PINNED to "a piece" - Nxb5 gives up a knight  [You give up a piece. If ]
+PASS TC-R10 clause 2 is the refutation template "If <capture>, <reply>."
+PASS TC-R10 clause 4 matches a `standing` template verbatim and closes the sentence  [...awns worse. White is winning here.]
+PASS TC-R10 the comparison clause matches EXACTLY ONE dropTxt template  [{"matched":["nothing-came-close"],"n":1}]
+PASS TC-R10 the comparison clause yielded a move to read  [{"form":"nothing-came-close","clause":". Nothing else came close: Bxf6 was 1.1 pawns worse."}]
+PASS TC-R10 PINNED the branch is "Nothing else came close" - the gap at 10.Nxb5 is over a pawn  [nothing-came-close]
+PASS TC-R10 the drop VALUE lies in the band its own wording is printed for (a 1.1 cannot wear the 0.35-0.99 sentence)  [{"form":"nothing-came-close","clause":". Nothing else came close: Bxf6 was 1.1 pawns worse."}]
+PASS TC-R10 the comparison names a move OTHER than the one played  [{"alt":"Bxf6","played":"Nxb5"}]
+PASS TC-R10 PINNED the next-best move is Bxf6  [Bxf6]
+PASS TC-R10 PINNED the gap is 1.1 pawns  [1.1]
+PASS TC-R10 the coach sentence is on screen under the board (non-empty companion)  [You give up a piece. If cxb5, Bxb5+ and ]
+PASS TC-R10 the engine line is OFF, so the eval bar is NOT rendering engLine and the cross-check below is independent rather than circular (#389)
+PASS TC-R10 the eval bar shows a readable evaluation to cross-check the words against  [+2.8]
+PASS TC-R10 PINNED the standing clause reads "White is winning here."  [...se. White is winning here.]
+PASS TC-R10 the VERDICT WORD agrees with the independent eval NUMBER in SIGN AND SCALE (bar >= +2.0 while the text says "is winning"). White IS winning after 10.Nxb5, so a negative, near-zero or hundredfold-off number here is wrong whichever element prints it  [{"bar":"+2.8","n":2.8,"words":"se. White is winning here."}]
+PASS TC-R10 and the bar is not absurdly large either - a mate would print "mate", not a three-figure pawn count, so this catches a scale error in the other direction  [{"bar":"+2.8","n":2.8}]
+PASS TC-R10 the play-out (why) button exists on the brilliancy
+PASS TC-R10 the play-out moves a piece within ~4 s
+PASS TC-R10 no app error beyond the one allowed engine trap  [{"allowed":0,"other":[]}]
+REVIEW-BRILLIANT: 25 pass, 0 fail
+    21-review-brilliant: green (25 PASS)
+=== 22-engline-recovery ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS the engine line row is on screen at all (non-empty companion: everything below is vacuous without it)  [+0.4
+1. e4]
+PASS reached ply 19 (state-reached check, not assumed)  [10. Nxb5 !! Brilliant ▶ why 19/33]
+     ply 19 first visit: "+3.0 …"
+PASS ply 19: the FIRST visit leads with a readable number, trapped search or not  [+3.0 …]
+PASS ply 19: and that first-visit number is POSITIVE - a dead search no longer prints its wrong-signed partial score (was -2.5 on #390)  [{"first":"+3.0 …","n":3}]
+     ply 19 after revisit: "+3.1 10... Qb4+ 11. Qxb4 Bxb4+ 12. c3 cxb5 13. Bxb5+"
+PASS ply 19: a REVISIT yields a variation, not a bare ellipsis (#389: a failed query is no longer cached as an answer)  [+3.1 10... Qb4+ 11. Qxb4 Bxb4+ 12. c3 cxb5 13. Bxb5+]
+PASS ply 19: the revisited engine line still leads with a readable number  [+3.1 10... Qb4+ 11. Qxb4 Bxb4+ 12. c3 cxb5 13. Bxb5+]
+PASS ply 19: that number is POSITIVE and over a pawn - White is winning both of these positions, and a trapped search used to leave a negative here  [{"engline":3.1,"wasOnBrokenBuild":-2.8}]
+PASS reached ply 25 (state-reached check, not assumed)  [13. Rxd7 ! Great ▶ why 25/33]
+     ply 25 first visit: "+5.4 …"
+PASS ply 25: the FIRST visit leads with a readable number, trapped search or not  [+5.4 …]
+PASS ply 25: and that first-visit number is POSITIVE - a dead search no longer prints its wrong-signed partial score (was -5.0 on #390)  [{"first":"+5.4 …","n":5.4}]
+     ply 25 after revisit: "+5.4 13... Nxd7 14. Bxe7 Bxe7 15. Bxd7+ Rxd7 16. Qb8+"
+PASS ply 25: a REVISIT yields a variation, not a bare ellipsis (#389: a failed query is no longer cached as an answer)  [+5.4 13... Nxd7 14. Bxe7 Bxe7 15. Bxd7+ Rxd7 16. Qb8+]
+PASS ply 25: the revisited engine line still leads with a readable number  [+5.4 13... Nxd7 14. Bxe7 Bxe7 15. Bxd7+ Rxd7 16. Qb8+]
+PASS ply 25: that number is POSITIVE and over a pawn - White is winning both of these positions, and a trapped search used to leave a negative here  [{"engline":5.4,"wasOnBrokenBuild":-5}]
+     page errors seen (the WASM trap is EXPECTED and allowed by exact text): ["PAGEERROR RuntimeError: unreachable","PAGEERROR RuntimeError: unreachable","PAGEERROR RuntimeError: unreachable"]
+PASS no app error beyond the allowed engine trap  [{"allowed":3,"other":[]}]
+ENGLINE-RECOVERY: 14 pass, 0 fail
+    22-engline-recovery: green (14 PASS)
+=== 23-full-walk ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS kunal730: the dev row is on the home screen BEFORE any recording (non-empty companion - the absence check below is vacuous without this)  [🎬
+💬]
+PASS kunal730: the Preview button is fully on screen before it is tapped (scrolled=true)  [{"x":149.5,"y":653,"w":34,"h":34,"text":"🎬"}]
+PASS kunal730: the gallery offers a "Walk every screen" button distinct from "Play all"  [🎬 Walk every screen (13, about 2.6 min)]
+PASS kunal730: "Play all" still exists - the walk is an ADDITION, not a replacement (gate 15 asserts those cards)  [▶ Play all 8 (screen-record this)]
+PASS kunal730: the button says how many screens and roughly how long, because he has to hold the phone for it  [🎬 Walk every screen (13, about 2.6 min)]
+PASS kunal730: the opening frame names the BUILD this recording is of  [🎬 #395 · BUILD · 375x730 FULL WALK of #395 - 2026-09-14 21:29 ET — every screen, in order. Put the phone down.]
+PASS kunal730: the caption carries the MEASURED viewport, so a single extracted frame says which geometry it came from  [🎬 #395 · BUILD · 375x730 FULL WALK of #395 - 2026-09-14 21:29 ET — every screen, in order. Put the phone down.]
+PASS kunal730: NO dev-only chrome in shot - the Preview and feedback buttons are gone while recording  [null]
+     kunal730: caption ids seen in order: ["BUILD","HOME","MENU","LOOK","PLAY-SETUP","PLAY-LIVE"]
+PASS kunal730: the walk reached at least 6 screens without stalling  [{"seen":["BUILD","HOME","MENU","LOOK","PLAY-SETUP","PLAY-LIVE"],"want":["BUILD","HOME","MENU","LOOK","PLAY-SETUP","PLAY-LIVE"]}]
+PASS kunal730: and it reached them IN THE ORDER the walk declares  [{"seen":["BUILD","HOME","MENU","LOOK","PLAY-SETUP","PLAY-LIVE"],"want":["BUILD","HOME","MENU","LOOK","PLAY-SETUP","PLAY-LIVE"]}]
+PASS kunal730: no app error during the walk beyond the allowed engine trap  [{"other":[]}]
+PASS se: the dev row is on the home screen BEFORE any recording (non-empty companion - the absence check below is vacuous without this)  [🎬
+💬]
+PASS se: the Preview button is fully on screen before it is tapped (scrolled=true)  [{"x":122,"y":491,"w":34,"h":34,"text":"🎬"}]
+PASS se: the gallery offers a "Walk every screen" button distinct from "Play all"  [🎬 Walk every screen (13, about 2.6 min)]
+PASS se: "Play all" still exists - the walk is an ADDITION, not a replacement (gate 15 asserts those cards)  [▶ Play all 8 (screen-record this)]
+PASS se: the button says how many screens and roughly how long, because he has to hold the phone for it  [🎬 Walk every screen (13, about 2.6 min)]
+PASS se: the opening frame names the BUILD this recording is of  [🎬 #395 · BUILD · 320x568 FULL WALK of #395 - 2026-09-14 21:29 ET — every screen, in order. Put the phone down.]
+PASS se: the caption carries the MEASURED viewport, so a single extracted frame says which geometry it came from  [🎬 #395 · BUILD · 320x568 FULL WALK of #395 - 2026-09-14 21:29 ET — every screen, in order. Put the phone down.]
+PASS se: NO dev-only chrome in shot - the Preview and feedback buttons are gone while recording  [null]
+     se: caption ids seen in order: ["BUILD","HOME","MENU","LOOK","PLAY-SETUP","PLAY-LIVE"]
+PASS se: the walk reached at least 6 screens without stalling  [{"seen":["BUILD","HOME","MENU","LOOK","PLAY-SETUP","PLAY-LIVE"],"want":["BUILD","HOME","MENU","LOOK","PLAY-SETUP","PLAY-LIVE"]}]
+PASS se: and it reached them IN THE ORDER the walk declares  [{"seen":["BUILD","HOME","MENU","LOOK","PLAY-SETUP","PLAY-LIVE"],"want":["BUILD","HOME","MENU","LOOK","PLAY-SETUP","PLAY-LIVE"]}]
+PASS se: no app error during the walk beyond the allowed engine trap  [{"other":[]}]
+FULL-WALK: 22 pass, 0 fail
+    23-full-walk: green (22 PASS)
+=== 30-p1-fixes ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS kunal: A-04 Home has a ☰ button of at least 40px  [{"x":259,"y":14,"w":46,"h":46,"text":"☰"}]
+PASS kunal: A-04 the ☰ on Home opens the menu sheet
+PASS kunal: A-16 menu sheet reaches the bottom (bottom 669 of 679)
+PASS kunal: A-11 the five piece chips are at least 40px tall  [[40,40,40,40,40]]
+PASS kunal: A-11 the four footer links are at least 40px tall  [[40,40,40,40]]
+PASS kunal: the menu closes on a backdrop tap
+PASS kunal: A-16 from Discover the sheet reaches the bottom too (bottom 669)
+PASS kunal: A-13 the Pass & Play setup sheet does not scroll (overflow 0)
+PASS kunal: A-13 the build line is on screen (bottom 594)  [{"y":581,"h":13}]
+PASS kunal: A-11 Analyze and Copy moves rows are at least 40px tall in the More sheet  [{"analyze":45,"copy":45}]
+PASS kunal: A-12 the board keeps its width and top across Moves closed and open  [{"w":[351,351,351],"top":[78,78,78]}]
+PASS kunal: A-12 the board is 351 wide after the toggle, the measured size - not merely the same as before it  [{"measured":351,"want":351}]
+PASS kunal: A-12 the Moves toggle hides and shows the panel content  [{"closed":"hidden","open":"visible"}]
+PASS kunal: A-12 no scroll after toggling  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: A-10 Next puzzle shows a different puzzle before the first is solved
+PASS kunal: A-10 Previous puzzle returns to the first
+PASS kunal: zero app errors  [[]]
+PASS 390: A-04 Home has a ☰ button of at least 40px  [{"x":274,"y":14,"w":46,"h":46,"text":"☰"}]
+PASS 390: A-04 the ☰ on Home opens the menu sheet
+PASS 390: A-16 menu sheet reaches the bottom (bottom 834 of 844)
+PASS 390: A-11 the five piece chips are at least 40px tall  [[40,40,40,40,40]]
+PASS 390: A-11 the four footer links are at least 40px tall  [[40,40,40,40]]
+PASS 390: the menu closes on a backdrop tap
+PASS 390: A-16 from Discover the sheet reaches the bottom too (bottom 834)
+PASS 390: A-13 the Pass & Play setup sheet does not scroll (overflow 0)
+PASS 390: A-13 the build line is on screen (bottom 623)  [{"y":609.5,"h":13}]
+PASS 390: A-11 Analyze and Copy moves rows are at least 40px tall in the More sheet  [{"analyze":45,"copy":45}]
+PASS 390: A-12 the board keeps its width and top across Moves closed and open  [{"w":[390,390,390],"top":[103,103,103]}]
+PASS 390: A-12 the board is 390 wide after the toggle, the measured size - not merely the same as before it  [{"measured":390,"want":390}]
+PASS 390: A-12 the Moves toggle hides and shows the panel content  [{"closed":"hidden","open":"visible"}]
+PASS 390: A-12 no scroll after toggling  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: A-10 Next puzzle shows a different puzzle before the first is solved
+PASS 390: A-10 Previous puzzle returns to the first
+PASS 390: zero app errors  [[]]
+PASS 375x640: A-13 the Pass & Play setup sheet does not scroll (overflow 0, was 16 on #372)
+P1-FIXES: 35 pass, 0 fail
+    30-p1-fixes: green (35 PASS)
+=== 31-antagonist373 ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS kunal: at 3.Qxh7  [3. Qxh7
+??
+Blunder
+best
+Qxe5+
+›
+5/12]
+PASS kunal: the verdict label on h7 is inside the board (was 16.5px out on #373)  [{"left":305.9,"right":361.6,"bl":24,"br":373,"outR":-11.4,"outL":-281.9,"text":"Blunder"}]
+PASS kunal: fool's mate on the analysis board reads 0-1 (was M1)  [0-1]
+PASS kunal: Analyze and Copy are effective across their full height as More-sheet rows (#378 moved them there)  [{"moves-analyze":{"h":45,"top3":true,"mid":true,"bot3":true},"moves-copy":{"h":45,"top3":true,"mid":true,"bot3":true}}]
+PASS kunal: the Online lobby without sign-in has a ‹ Back of at least 40px (N-play-1)  [{"w":68.03125,"h":40}]
+PASS kunal: ‹ Back returns to the setup sheet
+PASS kunal: no app error beyond the allowed trap  [["PAGEERROR RuntimeError: unreachable"]]
+PASS se: at 3.Qxh7  [3. Qxh7
+??
+Blunder
+best
+Qxe5+
+›
+5/12]
+PASS se: the verdict label on h7 is inside the board (was 16.5px out on #373)  [{"left":245.4,"right":301.2,"bl":39,"br":303,"outR":-1.8,"outL":-206.4,"text":"Blunder"}]
+PASS se: fool's mate on the analysis board reads 0-1 (was M1)  [0-1]
+PASS se: Analyze and Copy are effective across their full height as More-sheet rows (#378 moved them there)  [{"moves-analyze":{"h":45,"top3":true,"mid":true,"bot3":true},"moves-copy":{"h":45,"top3":true,"mid":true,"bot3":true}}]
+PASS se: the Online lobby without sign-in has a ‹ Back of at least 40px (N-play-1)  [{"w":68.03125,"h":40}]
+PASS se: ‹ Back returns to the setup sheet
+PASS se: no app error beyond the allowed trap  [["PAGEERROR RuntimeError: unreachable"]]
+ANTAGONIST-373: 14 pass, 0 fail
+    31-antagonist373: green (14 PASS)
+=== 32-plylog ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS kunal730: with the switch off there is no Layout readout block in the menu
+PASS kunal730: tapping Layout readout shows the readout block
+PASS kunal730: plies stepped with the switch OFF left nothing in the buffer  [null]
+PASS kunal730: with the readout on, ply changes are recorded and printed  [ply log 6@0s 7@0s 8@0s]
+PASS kunal730: the entries name the ply they became, not "fn", and how long after the last touch  [ply log 6@0s 7@0s 8@0s]
+PASS kunal730: switching it off hides the readout again
+PASS kunal730: plies stepped while it was off again left nothing behind (the buffer is cleared)  [null]
+PASS kunal730: no app error beyond the allowed engine trap  [[]]
+PASS kunal: with the switch off there is no Layout readout block in the menu
+PASS kunal: tapping Layout readout shows the readout block
+PASS kunal: plies stepped with the switch OFF left nothing in the buffer  [null]
+PASS kunal: with the readout on, ply changes are recorded and printed  [ply log 6@0s 7@0s 8@0s]
+PASS kunal: the entries name the ply they became, not "fn", and how long after the last touch  [ply log 6@0s 7@0s 8@0s]
+PASS kunal: switching it off hides the readout again
+PASS kunal: plies stepped while it was off again left nothing behind (the buffer is cleared)  [null]
+PASS kunal: no app error beyond the allowed engine trap  [[]]
+PLYLOG: 16 pass, 0 fail
+    32-plylog: green (16 PASS)
+=== 33-reproducible-review ===
+PASS the review pool's search is identifiable in the bundle under test (its guard followed by its depth)  [Math.max(2e4,p*8)),re=16;]
+PASS the pool's stuck-worker timeout is at least 20 s (20000 ms). At 4 s it cut real searches short and stored a shallow opinion as the answer, which is what made a move that walks into mate read as Great.  [/home/user/chess-trainer/app.js]
+PASS the pool searches to depth 16 (16). At 14 the engine prefers 15...Nxd7, never sees the mate, and the famous move is mislabelled; 18 is correct but takes 36 s on this machine.  [/home/user/chess-trainer/app.js]
+PASS the single-worker search takes a depth, and gets a 20 s guard when it does (was a flat 4 s)  [Math.max(p?2e4:4e3,s*8)]
+PASS the same depth argument chooses "go depth" over "go movetime", so the fixed depth and the 20 s guard are one change and not two  [p]
+PASS the review asks the single-worker path for depth 16, the same depth the pool uses  [.positions[R]),E,16)]
+PASS the review no longer tells the user it is "trimming" to hit a time target. It was printing that on the pool path, where the budget it claimed to be trimming had been inert since #375 and nothing was trimmed.
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+     run A: 10 s, accuracy [98,62.4], ply19 "10. Nxb5 !! Brilliant ▶ why 19/33"
+     run B: 9 s, accuracy [98,62.4], ply19 "10. Nxb5 !! Brilliant ▶ why 19/33"
+PASS both runs reported an accuracy for each side  [{"A":[98,62.4],"B":[98,62.4]}]
+PASS the two runs agree on accuracy within 1.0 point (white 0.0, black 0.0)  [{"A":[98,62.4],"B":[98,62.4]}]
+PASS all 9 verdict counts were read from the summary in both runs (a partial read would make the comparison below vacuous)  [{"read":["Brilliant","Great","Best","Good","Book","Inaccuracy","Mistake","Miss","Blunder"],"A":{"Brilliant":[1,0],"Great":[6,0],"Best":[6,9],"Good":[1,2],"Book":[3,2],"Inaccuracy":[0,1],"Mistake":[0,1],"Miss":[0,0],"Blunder":[0,1]},"B":{"Brilliant":[1,0],"Great":[6,0],"Best":[6,9],"Good":[1,2],"Book":[3,2],"Inaccuracy":[0,1],"Mistake":[0,1],"Miss":[0,0],"Blunder":[0,1]}}]
+PASS every verdict count is identical across the two runs  [[]]
+PASS the two run times are within 12 s of each other (1.1 s apart: 10 s and 9 s)
+PASS 10.Nxb5 gets the same verdict in both runs  [{"A":"10. Nxb5 !! Brilliant ▶ why 19/33","B":"10. Nxb5 !! Brilliant ▶ why 19/33"}]
+PASS 10.Nxb5 is not scored as a mistake (the shallow-search symptom)  [10. Nxb5 !! Brilliant ▶ why 19/33]
+PASS no app error beyond the allowed engine trap in either run  [[[],[]]]
+     run C (ct_pool=1): 15 s, accuracy [98,62.4], ply19 "10. Nxb5 !! Brilliant ▶ why 19/33"
+PASS all 9 verdict counts were read from the single-worker run too  [{"read":["Brilliant","Great","Best","Good","Book","Inaccuracy","Mistake","Miss","Blunder"]}]
+PASS the SINGLE-WORKER review returns the same verdict counts as the pool review. Until #377 this path was the pre-#375 code and an older phone got a different review out of the same build, with nothing on screen to say which one it had.  [[]]
+PASS the single-worker run agrees with the pool run on accuracy within 1.0 point (white 0.0, black 0.0)  [{"pool":[98,62.4],"one":[98,62.4]}]
+PASS 10.Nxb5 gets the same verdict on one worker as on three  [{"pool":"10. Nxb5 !! Brilliant ▶ why 19/33","one":"10. Nxb5 !! Brilliant ▶ why 19/33"}]
+PASS no app error beyond the allowed engine trap on the single-worker path  [[]]
+REPRODUCIBLE-REVIEW: 20 pass, 0 fail
+    33-reproducible-review: green (20 PASS)
+=== 34-takeback ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS vs Computer the Takeback row is in the More sheet  [{"present":true,"disabled":true,"label":"Takeback"}]
+PASS at move 0 Takeback is DISABLED - nothing has been played to give back  [{"present":true,"disabled":true,"label":"Takeback"}]
+PASS the row is still mounted while the engine thinks (it is disabled, not unmounted, so the sheet never reflows under a finger)  [{"present":true,"disabled":false,"label":"Takeback"}]
+     NOT SAMPLED: the engine finished before the sheet opened, so the mid-search case was not exercised on this run. The disabled path itself is proved by the move-0 and post-takeback cases.
+PASS after the engine has replied, Takeback is ENABLED  [{"present":true,"disabled":false,"label":"Takeback"}]
+PASS the row reads Takeback  [Takeback]
+PASS there were at least two plies on the board before the takeback  [{"before":2}]
+PASS the takeback gave back BOTH plies - the engine's reply and his move - so it is his move again (2 -> 0)  [{"before":2,"after":0}]
+PASS the board does not move across a takeback (w 353 -> 353, top 93.8 -> 93.8)
+PASS the vs-Computer board is 353 wide after the takeback - the measured size for his phone, not merely unchanged  [{"measured":353,"want":353}]
+PASS no scroll after a takeback  [{"bottom":730,"vh":730,"over":0,"scrollY":0,"docScroll":0}]
+PASS the More sheet closes behind a takeback (it is zIndex 9990 and would cover the board)
+PASS after giving back the only pair of plies, Takeback is disabled again - the state tracks the position, it is not latched on at game start  [{"row":{"present":true,"disabled":true,"label":"Takeback"},"plies":0}]
+PASS in PASS & PLAY there is no Takeback row at all - Kunal answered "Computer only", and this sheet opens on that screen too  [{"present":false,"disabled":null,"label":null}]
+PASS the Pass & Play More sheet is genuinely open (New game is in it), so the absence above was measured and is not a missed sheet  [["New game","Resign","Analyze","Copy moves","⌂","☰","Moves","Back","Forward","Hint","Flip","More"]]
+PASS no app error beyond the allowed engine trap in Pass & Play  [[]]
+TAKEBACK: 15 pass, 0 fail
+    34-takeback: green (15 PASS)
+=== 35-width-containment ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS se: no app error beyond the allowed engine trap while walking the states  [[]]
+PASS kunal730: no app error beyond the allowed engine trap while walking the states  [[]]
+PASS se (320 wide): nothing runs off the right edge on "home"  [[]]
+PASS se (320 wide): the page does not scroll sideways on "home" (scrollWidth 320 vs 320)
+PASS se (320 wide): nothing runs off the right edge on "play-setup"  [[]]
+PASS se (320 wide): the page does not scroll sideways on "play-setup" (scrollWidth 320 vs 320)
+PASS se (320 wide): nothing runs off the right edge on "play-live"  [[]]
+PASS se (320 wide): the page does not scroll sideways on "play-live" (scrollWidth 320 vs 320)
+PASS se (320 wide): nothing runs off the right edge on "play-gameover"  [[]]
+PASS se (320 wide): the page does not scroll sideways on "play-gameover" (scrollWidth 320 vs 320)
+PASS se (320 wide): nothing runs off the right edge on "puzzles"  [[]]
+PASS se (320 wide): the page does not scroll sideways on "puzzles" (scrollWidth 320 vs 320)
+PASS se (320 wide): nothing runs off the right edge on "review-paste"  [[]]
+PASS se (320 wide): the page does not scroll sideways on "review-paste" (scrollWidth 320 vs 320)
+PASS se (320 wide): nothing runs off the right edge on "menu"  [[]]
+PASS se (320 wide): the page does not scroll sideways on "menu" (scrollWidth 320 vs 320)
+PASS se (320 wide): nothing runs off the right edge on "lesson-demo-end"  [[]]
+PASS se (320 wide): the page does not scroll sideways on "lesson-demo-end" (scrollWidth 320 vs 320)
+PASS se (320 wide): nothing runs off the right edge on "lesson-practice"  [[]]
+PASS se (320 wide): the page does not scroll sideways on "lesson-practice" (scrollWidth 320 vs 320)
+PASS se (320 wide): nothing runs off the right edge on "look-picker"  [[]]
+PASS se (320 wide): the page does not scroll sideways on "look-picker" (scrollWidth 320 vs 320)
+PASS kunal730 (375 wide): nothing runs off the right edge on "home"  [[]]
+PASS kunal730 (375 wide): the page does not scroll sideways on "home" (scrollWidth 375 vs 375)
+PASS kunal730 (375 wide): nothing runs off the right edge on "play-setup"  [[]]
+PASS kunal730 (375 wide): the page does not scroll sideways on "play-setup" (scrollWidth 375 vs 375)
+PASS kunal730 (375 wide): nothing runs off the right edge on "play-live"  [[]]
+PASS kunal730 (375 wide): the page does not scroll sideways on "play-live" (scrollWidth 375 vs 375)
+PASS kunal730 (375 wide): nothing runs off the right edge on "play-gameover"  [[]]
+PASS kunal730 (375 wide): the page does not scroll sideways on "play-gameover" (scrollWidth 375 vs 375)
+PASS kunal730 (375 wide): nothing runs off the right edge on "puzzles"  [[]]
+PASS kunal730 (375 wide): the page does not scroll sideways on "puzzles" (scrollWidth 375 vs 375)
+PASS kunal730 (375 wide): nothing runs off the right edge on "review-paste"  [[]]
+PASS kunal730 (375 wide): the page does not scroll sideways on "review-paste" (scrollWidth 375 vs 375)
+PASS kunal730 (375 wide): nothing runs off the right edge on "menu"  [[]]
+PASS kunal730 (375 wide): the page does not scroll sideways on "menu" (scrollWidth 375 vs 375)
+PASS kunal730 (375 wide): nothing runs off the right edge on "lesson-demo-end"  [[]]
+PASS kunal730 (375 wide): the page does not scroll sideways on "lesson-demo-end" (scrollWidth 375 vs 375)
+PASS kunal730 (375 wide): nothing runs off the right edge on "lesson-practice"  [[]]
+PASS kunal730 (375 wide): the page does not scroll sideways on "lesson-practice" (scrollWidth 375 vs 375)
+PASS kunal730 (375 wide): nothing runs off the right edge on "look-picker"  [[]]
+PASS kunal730 (375 wide): the page does not scroll sideways on "look-picker" (scrollWidth 375 vs 375)
+PASS the one blocked defect is EXACTLY where it was left: "lesson-lines" still hangs 38.9px off the right edge at 320 on "lesson-demo-end". It is blocked on Kunal (flag width320-gate-red-needs-kunal, three options, none of them mine to pick). If this line is red the defect MOVED - either it was fixed, and this pin comes out, or it got worse.  [{"ct":"lesson-lines","tag":"button","text":"♟ Other lines (2)","left":189.7,"right":358.9,"over":38.9,"w":169.2}]
+PASS se (320 wide): every box the transform rule excused is a piece - a div or img exactly 1.06x the square it sits in, which is the scale(1.06) in chess.jsx and nothing else. 0 excused across nowhere.  [[]]
+PASS se (320 wide): the exclusion only ever fires on a screen that paints a board, never on home, the menu or a picker  [[]]
+PASS kunal730 (375 wide): every box the transform rule excused is a piece - a div or img exactly 1.06x the square it sits in, which is the scale(1.06) in chess.jsx and nothing else. 34 excused across play-live, play-gameover, lesson-demo-end, lesson-practice.  [[]]
+PASS kunal730 (375 wide): the exclusion only ever fires on a screen that paints a board, never on home, the menu or a picker  [["play-live","play-gameover","lesson-demo-end","lesson-practice"]]
+PASS 375x730, his own phone, is clean at the same time as 320 - his condition on Z-06 was that supporting the small screen must not cost anything on the large one  [[]]
+WIDTH-CONTAINMENT: 48 pass, 0 fail
+    35-width-containment: green (48 PASS)
+=== 36-evalbar ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS the eval bar is on the Play screen vs Computer  [{"w":14,"bg":"rgb(143, 141, 158)","border":"1px rgba(255, 255, 255, 0.42)","radius":"4px"}]
+PASS the Play eval bar is 14px wide (it was 10 - "widen to 14px")  [14]
+PASS the track colour is readable from the computed style  [rgb(143, 141, 158)]
+PASS the track is no longer the old #2b2932, which painted at 1.12:1 against the page and is the whole reason for this change  [rgb(143, 141, 158)]
+PASS the track is #8f8d9e, the value chosen by SAMPLING six candidates on a running build (it paints rgb(112,110,124) for 3.62:1). The plan's #6b6978 computed over 3:1 and measured 2.36:1, so this number must be re-sampled and never re-computed.  [rgb(143, 141, 158)]
+PASS the bar carries a hairline outline, which is what shows where it ENDS independently of the track colour  [1px rgba(255, 255, 255, 0.42)]
+PASS the board does not move between move 0 and four plies (w 353 -> 353, top 93.8 -> 93.8)
+PASS the vs-Computer board is 353 on his phone, 4px narrower than the 357 of #378 - the cost he accepted knowingly  [353]
+PASS the bar is still 14 wide after four plies  [14]
+PASS nothing scrolls  [{"bottom":730,"vh":730,"over":0,"scrollY":0,"docScroll":0}]
+PASS no app error beyond the allowed engine trap  [[]]
+PASS the REVIEW bar is still 18 wide - the decision named the 10px Play bar, and widening Review was never asked for  [18]
+PASS the Review bar DOES get the lighter track, because both placements are one element - a consequence of the change, recorded rather than hidden  [rgb(143, 141, 158)]
+PASS the review board is still 349 - Review's gutter did not change, so its pinned width must not either  [349]
+EVALBAR: 14 pass, 0 fail
+    36-evalbar: green (14 PASS)
+=== 37-strip-sync ===
+     --- kunal730/compact1: his phone, compact review (the stored default)
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS kunal730/compact1: the run is genuinely in COMPACT review - strip chevrons present: 1  [{"arrows":1}]
+PASS kunal730/compact1: the move strip is on the review screen  [{"left":0,"max":537,"w":305}]
+PASS kunal730/compact1: THE FIXTURE IS REAL - the strip overflows its box by 537px, so "scrolled to 0" is a claim that can fail  [{"left":537,"max":537,"w":305}]
+PASS kunal730/compact1: at the last ply the strip really is scrolled away from the start (left 537 of 537)  [{"strip":{"left":537,"max":537,"w":305},"counter":{"ply":16,"total":16}}]
+PASS kunal730/compact1: ⏮ put the BOARD at the start position  [{"ply":0,"total":16}]
+PASS kunal730/compact1: and the STRIP is back at the start too (scrollLeft 0, was 537 before the tap). This is the defect: ply 0 has no chip, so nothing used to pull the strip back.  [{"strip":{"left":0,"max":537,"w":305},"counter":{"ply":0,"total":16}}]
+PASS kunal730/compact1: the review board is 349 wide - the measured size for this geometry AND this branch, so a board wrong from the start cannot pass here  [{"measured":349,"want":349}]
+PASS kunal730/compact1: the board did not move across the end-and-back trip (w 349 -> 349, top 56 -> 56)
+PASS kunal730/compact1: ⏭ scrolls the strip forward again - the container ref fires only at ply 0 and does not pin the strip there  [{"left":537,"max":537,"w":305}]
+     kunal730/compact1: the second path stepped with strip arrow
+PASS kunal730/compact1: one step forward from the start really did reach ply 1, so the step back below is measured and not skipped  [{"ply":1,"total":16}]
+PASS kunal730/compact1: stepping back one ply from ply 1 reaches the start position again  [{"ply":0,"total":16}]
+PASS kunal730/compact1: reached that way the strip is at 0 as well - the re-sync follows the POSITION, not the ⏮ button  [{"strip":{"left":0,"max":537,"w":305},"counter":{"ply":0,"total":16}}]
+PASS kunal730/compact1: the document itself does not scroll - the strip scrolls inside its own box  [{"bottom":730,"vh":730,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal730/compact1: the compact review screen still fits its viewport after all of that  [{"bottom":730,"vh":730,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal730/compact1: no app error beyond the allowed engine trap  [[]]
+     --- kunal730/compact0: his phone, CLASSIC review - ct_revCompact=0, the other branch of this very row
+PASS kunal730/compact0: the run is genuinely in CLASSIC review - strip chevrons present: 0  [{"arrows":0}]
+PASS kunal730/compact0: the move strip is on the review screen  [{"left":0,"max":486,"w":356}]
+PASS kunal730/compact0: THE FIXTURE IS REAL - the strip overflows its box by 486px, so "scrolled to 0" is a claim that can fail  [{"left":486,"max":486,"w":356}]
+PASS kunal730/compact0: at the last ply the strip really is scrolled away from the start (left 486 of 486)  [{"strip":{"left":486,"max":486,"w":356},"counter":{"ply":16,"total":16}}]
+PASS kunal730/compact0: ⏮ put the BOARD at the start position  [{"ply":0,"total":16}]
+PASS kunal730/compact0: and the STRIP is back at the start too (scrollLeft 0, was 486 before the tap). This is the defect: ply 0 has no chip, so nothing used to pull the strip back.  [{"strip":{"left":0,"max":486,"w":356},"counter":{"ply":0,"total":16}}]
+PASS kunal730/compact0: the review board is 336 wide - the measured size for this geometry AND this branch, so a board wrong from the start cannot pass here  [{"measured":336,"want":336}]
+PASS kunal730/compact0: the board did not move across the end-and-back trip (w 336 -> 336, top 95 -> 95)
+PASS kunal730/compact0: ⏭ scrolls the strip forward again - the container ref fires only at ply 0 and does not pin the strip there  [{"left":486,"max":486,"w":356}]
+     kunal730/compact0: the second path stepped with "Next ›"
+PASS kunal730/compact0: one step forward from the start really did reach ply 1, so the step back below is measured and not skipped  [{"ply":1,"total":16}]
+PASS kunal730/compact0: stepping back one ply from ply 1 reaches the start position again  [{"ply":0,"total":16}]
+PASS kunal730/compact0: reached that way the strip is at 0 as well - the re-sync follows the POSITION, not the ⏮ button  [{"strip":{"left":0,"max":486,"w":356},"counter":{"ply":0,"total":16}}]
+PASS kunal730/compact0: the document itself does not scroll - the strip scrolls inside its own box  [{"bottom":1123,"vh":730,"over":393,"scrollY":0,"docScroll":0}]
+     kunal730/compact0: classic review lays out 393px past the viewport (bottom 1123 vs vh 730). PRE-EXISTING: measured identically on #379, before this change. Not asserted here; see FEEDBACK-INBOX.md.
+PASS kunal730/compact0: no app error beyond the allowed engine trap  [[]]
+     --- se/compact1: 320x568, where the strip overflows hardest
+PASS se/compact1: the run is genuinely in COMPACT review - strip chevrons present: 1  [{"arrows":1}]
+PASS se/compact1: the move strip is on the review screen  [{"left":0,"max":622,"w":220}]
+PASS se/compact1: THE FIXTURE IS REAL - the strip overflows its box by 622px, so "scrolled to 0" is a claim that can fail  [{"left":622,"max":622,"w":220}]
+PASS se/compact1: at the last ply the strip really is scrolled away from the start (left 622 of 622)  [{"strip":{"left":622,"max":622,"w":220},"counter":{"ply":16,"total":16}}]
+PASS se/compact1: ⏮ put the BOARD at the start position  [{"ply":0,"total":16}]
+PASS se/compact1: and the STRIP is back at the start too (scrollLeft 0, was 622 before the tap). This is the defect: ply 0 has no chip, so nothing used to pull the strip back.  [{"strip":{"left":0,"max":622,"w":220},"counter":{"ply":0,"total":16}}]
+PASS se/compact1: the review board is 264 wide - the measured size for this geometry AND this branch, so a board wrong from the start cannot pass here  [{"measured":264,"want":264}]
+PASS se/compact1: the board did not move across the end-and-back trip (w 264 -> 264, top 53 -> 53)
+PASS se/compact1: ⏭ scrolls the strip forward again - the container ref fires only at ply 0 and does not pin the strip there  [{"left":622,"max":622,"w":220}]
+     se/compact1: the second path stepped with strip arrow
+PASS se/compact1: one step forward from the start really did reach ply 1, so the step back below is measured and not skipped  [{"ply":1,"total":16}]
+PASS se/compact1: stepping back one ply from ply 1 reaches the start position again  [{"ply":0,"total":16}]
+PASS se/compact1: reached that way the strip is at 0 as well - the re-sync follows the POSITION, not the ⏮ button  [{"strip":{"left":0,"max":622,"w":220},"counter":{"ply":0,"total":16}}]
+PASS se/compact1: the document itself does not scroll - the strip scrolls inside its own box  [{"bottom":568,"vh":568,"over":0,"scrollY":0,"docScroll":0}]
+PASS se/compact1: the compact review screen still fits its viewport after all of that  [{"bottom":568,"vh":568,"over":0,"scrollY":0,"docScroll":0}]
+PASS se/compact1: no app error beyond the allowed engine trap  [[]]
+STRIP-SYNC: 44 pass, 0 fail
+    37-strip-sync: green (44 PASS)
+=== 38-rev-sheet-reach ===
+     --- se
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS se: the ⋯ sheet opened  [{"top":102,"bottom":568,"h":466,"scrollH":699,"clientH":465,"maxScroll":234,"overflowY":"auto","maxHeight":"465.76px","vh":568}]
+PASS se: the sheet itself is inside the viewport (top 102, bottom 568, vh 568)  [{"top":102,"bottom":568,"h":466,"scrollH":699,"clientH":465,"maxScroll":234,"overflowY":"auto","maxHeight":"465.76px","vh":568}]
+PASS se: the sheet is a scroll container, which is what makes content taller than the screen reachable AT ALL - this is the property the queue item mistook for a defect  [auto]
+PASS se: its maxHeight (465.76px) is under the viewport (568), so it can never grow past the screen however many rows it gains  [465.76px]
+PASS se: scrolled to its end, the LAST ROW ("New game") is fully on screen - bottom 545 vs vh 568. Asserted on the last BUTTON, not the container (TC-RL-070).  [{"label":"New game","top":500,"bottom":545,"vh":568,"scrollTop":234}]
+PASS se: the sheet has 11 painted rows, so "every row" is a real claim  [["1 inaccuracies ›","Show best move","Analyze with the engine","Play from here","Flip board","Copy PGN","Eval bar: beside the board","Show brilliant-gate numbers","Classic review layout","Menu and settings","New game"]]
+PASS se: EVERY row can be brought fully on screen by scrolling the sheet  [[]]
+PASS se: and every row is genuinely under the finger where it sits - elementFromPoint at its centre lands on the row itself, not on the overlay above it  [[]]
+PASS se: no app error beyond the allowed engine trap  [[]]
+     --- kunal
+PASS kunal: the ⋯ sheet opened  [{"top":122,"bottom":679,"h":557,"scrollH":699,"clientH":556,"maxScroll":143,"overflowY":"auto","maxHeight":"556.78px","vh":679}]
+PASS kunal: the sheet itself is inside the viewport (top 122, bottom 679, vh 679)  [{"top":122,"bottom":679,"h":557,"scrollH":699,"clientH":556,"maxScroll":143,"overflowY":"auto","maxHeight":"556.78px","vh":679}]
+PASS kunal: the sheet is a scroll container, which is what makes content taller than the screen reachable AT ALL - this is the property the queue item mistook for a defect  [auto]
+PASS kunal: its maxHeight (556.78px) is under the viewport (679), so it can never grow past the screen however many rows it gains  [556.78px]
+PASS kunal: scrolled to its end, the LAST ROW ("New game") is fully on screen - bottom 656 vs vh 679. Asserted on the last BUTTON, not the container (TC-RL-070).  [{"label":"New game","top":611,"bottom":656,"vh":679,"scrollTop":143}]
+PASS kunal: the sheet has 11 painted rows, so "every row" is a real claim  [["1 inaccuracies ›","Show best move","Analyze with the engine","Play from here","Flip board","Copy PGN","Eval bar: beside the board","Show brilliant-gate numbers","Classic review layout","Menu and settings","New game"]]
+PASS kunal: EVERY row can be brought fully on screen by scrolling the sheet  [[]]
+PASS kunal: and every row is genuinely under the finger where it sits - elementFromPoint at its centre lands on the row itself, not on the overlay above it  [[]]
+PASS kunal: no app error beyond the allowed engine trap  [[]]
+     --- kunal730
+PASS kunal730: the ⋯ sheet opened  [{"top":131,"bottom":730,"h":599,"scrollH":699,"clientH":598,"maxScroll":101,"overflowY":"auto","maxHeight":"598.6px","vh":730}]
+PASS kunal730: the sheet itself is inside the viewport (top 131, bottom 730, vh 730)  [{"top":131,"bottom":730,"h":599,"scrollH":699,"clientH":598,"maxScroll":101,"overflowY":"auto","maxHeight":"598.6px","vh":730}]
+PASS kunal730: the sheet is a scroll container, which is what makes content taller than the screen reachable AT ALL - this is the property the queue item mistook for a defect  [auto]
+PASS kunal730: its maxHeight (598.6px) is under the viewport (730), so it can never grow past the screen however many rows it gains  [598.6px]
+PASS kunal730: scrolled to its end, the LAST ROW ("New game") is fully on screen - bottom 707 vs vh 730. Asserted on the last BUTTON, not the container (TC-RL-070).  [{"label":"New game","top":662,"bottom":707,"vh":730,"scrollTop":101}]
+PASS kunal730: the sheet has 11 painted rows, so "every row" is a real claim  [["1 inaccuracies ›","Show best move","Analyze with the engine","Play from here","Flip board","Copy PGN","Eval bar: beside the board","Show brilliant-gate numbers","Classic review layout","Menu and settings","New game"]]
+PASS kunal730: EVERY row can be brought fully on screen by scrolling the sheet  [[]]
+PASS kunal730: and every row is genuinely under the finger where it sits - elementFromPoint at its centre lands on the row itself, not on the overlay above it  [[]]
+PASS kunal730: no app error beyond the allowed engine trap  [[]]
+     --- 390
+PASS 390: the ⋯ sheet opened  [{"top":152,"bottom":844,"h":692,"scrollH":699,"clientH":691,"maxScroll":8,"overflowY":"auto","maxHeight":"692.08px","vh":844}]
+PASS 390: the sheet itself is inside the viewport (top 152, bottom 844, vh 844)  [{"top":152,"bottom":844,"h":692,"scrollH":699,"clientH":691,"maxScroll":8,"overflowY":"auto","maxHeight":"692.08px","vh":844}]
+PASS 390: the sheet is a scroll container, which is what makes content taller than the screen reachable AT ALL - this is the property the queue item mistook for a defect  [auto]
+PASS 390: its maxHeight (692.08px) is under the viewport (844), so it can never grow past the screen however many rows it gains  [692.08px]
+PASS 390: scrolled to its end, the LAST ROW ("New game") is fully on screen - bottom 821 vs vh 844. Asserted on the last BUTTON, not the container (TC-RL-070).  [{"label":"New game","top":776,"bottom":821,"vh":844,"scrollTop":8}]
+PASS 390: the sheet has 11 painted rows, so "every row" is a real claim  [["1 inaccuracies ›","Show best move","Analyze with the engine","Play from here","Flip board","Copy PGN","Eval bar: beside the board","Show brilliant-gate numbers","Classic review layout","Menu and settings","New game"]]
+PASS 390: EVERY row can be brought fully on screen by scrolling the sheet  [[]]
+PASS 390: and every row is genuinely under the finger where it sits - elementFromPoint at its centre lands on the row itself, not on the overlay above it  [[]]
+PASS 390: no app error beyond the allowed engine trap  [[]]
+     --- 430
+PASS 430: the ⋯ sheet opened  [{"top":232,"bottom":932,"h":700,"scrollH":699,"clientH":699,"maxScroll":0,"overflowY":"auto","maxHeight":"764.24px","vh":932}]
+PASS 430: the sheet itself is inside the viewport (top 232, bottom 932, vh 932)  [{"top":232,"bottom":932,"h":700,"scrollH":699,"clientH":699,"maxScroll":0,"overflowY":"auto","maxHeight":"764.24px","vh":932}]
+PASS 430: the sheet is a scroll container, which is what makes content taller than the screen reachable AT ALL - this is the property the queue item mistook for a defect  [auto]
+PASS 430: its maxHeight (764.24px) is under the viewport (932), so it can never grow past the screen however many rows it gains  [764.24px]
+PASS 430: scrolled to its end, the LAST ROW ("New game") is fully on screen - bottom 909 vs vh 932. Asserted on the last BUTTON, not the container (TC-RL-070).  [{"label":"New game","top":864,"bottom":909,"vh":932,"scrollTop":0}]
+PASS 430: the sheet has 11 painted rows, so "every row" is a real claim  [["1 inaccuracies ›","Show best move","Analyze with the engine","Play from here","Flip board","Copy PGN","Eval bar: beside the board","Show brilliant-gate numbers","Classic review layout","Menu and settings","New game"]]
+PASS 430: EVERY row can be brought fully on screen by scrolling the sheet  [[]]
+PASS 430: and every row is genuinely under the finger where it sits - elementFromPoint at its centre lands on the row itself, not on the overlay above it  [[]]
+PASS 430: no app error beyond the allowed engine trap  [[]]
+REV-SHEET-REACH: 45 pass, 0 fail
+    38-rev-sheet-reach: green (45 PASS)
+=== 39-pz-streak ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS kunal730: with no hint up the streak fill is absent - it exists only in the branch where the box would otherwise be empty, so it never competes with a verdict  [null]
+PASS kunal730: the hint really did take the header row, which is the state this whole item is about  [💡 It's mate in 2 — start with the most forcing ch]
+PASS kunal730: the reserved box is FILLED while the hint is up (it used to be empty bordered space)  [{"y":167,"w":367,"h":30,"t":"1 / 890 \\u00b7 rating 600"}]
+PASS kunal730: the fill is exactly the reserved height, 30px - it borrows the space, it does not ask for more  [30]
+PASS kunal730: the box does NOT repeat the hint text  [1 / 890 \u00b7 rating 600]
+PASS kunal730: the board does not move when the hint appears (w 375 -> 375, top 207 -> 207)
+PASS kunal730: the puzzle board is 375 wide with the hint up - the measured size, not merely unmoved  [{"measured":375,"want":375}]
+PASS kunal730: with no streak yet it falls back to the counter the header gave up rather than claiming a streak of zero  [1 / 890 \u00b7 rating 600]
+PASS kunal730: a wrong move produces the verdict  [✗ Re7 isn't it. Try again, or tap 💡.]
+PASS kunal730: and the streak fill steps back out of the box for it - one box, never two  [null]
+PASS kunal730: the board does not move when the verdict replaces the streak - the transition is the half that would break silently
+PASS kunal730: no app error beyond the allowed engine trap  [[]]
+PASS kunal730: with a live streak the box reads the STREAK, which is the one word of his answer  [1 / 890 \u00b7 🔥 4 in a row]
+PASS kunal730: and it is the value the store actually carries (4), not a placeholder  [1 / 890 \u00b7 🔥 4 in a row]
+PASS kunal730: the streak text does not change the reserved height either  [30]
+PASS kunal730: the board does not move on the streak branch either
+PASS se: with no hint up the streak fill is absent - it exists only in the branch where the box would otherwise be empty, so it never competes with a verdict  [null]
+PASS se: the hint really did take the header row, which is the state this whole item is about  [💡 It's mate in 2 — start with the most forcing ch]
+PASS se: the reserved box is FILLED while the hint is up (it used to be empty bordered space)  [{"y":144,"w":312,"h":30,"t":"1 / 890 \\u00b7 rating 600"}]
+PASS se: the fill is exactly the reserved height, 30px - it borrows the space, it does not ask for more  [30]
+PASS se: the box does NOT repeat the hint text  [1 / 890 \u00b7 rating 600]
+PASS se: the board does not move when the hint appears (w 259 -> 259, top 184 -> 184)
+PASS se: the puzzle board is 259 wide with the hint up - the measured size, not merely unmoved  [{"measured":259,"want":259}]
+PASS se: with no streak yet it falls back to the counter the header gave up rather than claiming a streak of zero  [1 / 890 \u00b7 rating 600]
+PASS se: a wrong move produces the verdict  [✗ Re7 isn't it. Try again, or tap 💡.]
+PASS se: and the streak fill steps back out of the box for it - one box, never two  [null]
+PASS se: the board does not move when the verdict replaces the streak - the transition is the half that would break silently
+PASS se: no app error beyond the allowed engine trap  [[]]
+PASS se: with a live streak the box reads the STREAK, which is the one word of his answer  [1 / 890 \u00b7 🔥 4 in a row]
+PASS se: and it is the value the store actually carries (4), not a placeholder  [1 / 890 \u00b7 🔥 4 in a row]
+PASS se: the streak text does not change the reserved height either  [30]
+PASS se: the board does not move on the streak branch either
+PASS 390: with no hint up the streak fill is absent - it exists only in the branch where the box would otherwise be empty, so it never competes with a verdict  [null]
+PASS 390: the hint really did take the header row, which is the state this whole item is about  [💡 It's mate in 2 — start with the most forcing ch]
+PASS 390: the reserved box is FILLED while the hint is up (it used to be empty bordered space)  [{"y":194.5,"w":382,"h":74,"t":"1 / 890 \\u00b7 rating 600"}]
+PASS 390: the fill is exactly the reserved height, 74px - it borrows the space, it does not ask for more  [74]
+PASS 390: the box does NOT repeat the hint text  [1 / 890 \u00b7 rating 600]
+PASS 390: the board does not move when the hint appears (w 390 -> 390, top 278.5 -> 278.5)
+PASS 390: the puzzle board is 390 wide with the hint up - the measured size, not merely unmoved  [{"measured":390,"want":390}]
+PASS 390: with no streak yet it falls back to the counter the header gave up rather than claiming a streak of zero  [1 / 890 \u00b7 rating 600]
+PASS 390: a wrong move produces the verdict  [✗ Re7 isn't it — try again. (Tap 💡 for a hi]
+PASS 390: and the streak fill steps back out of the box for it - one box, never two  [null]
+PASS 390: the board does not move when the verdict replaces the streak - the transition is the half that would break silently
+PASS 390: no app error beyond the allowed engine trap  [[]]
+PASS 390: with a live streak the box reads the STREAK, which is the one word of his answer  [1 / 890 \u00b7 🔥 4 in a row]
+PASS 390: and it is the value the store actually carries (4), not a placeholder  [1 / 890 \u00b7 🔥 4 in a row]
+PASS 390: the streak text does not change the reserved height either  [74]
+PASS 390: the board does not move on the streak branch either
+PZ-STREAK: 48 pass, 0 fail
+    39-pz-streak: green (48 PASS)
+=== 40-reachability ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+     se: 4 painted boxes sit below the fold at rest; docScroll 0
+        {"ct":null,"t":"Game review ☰ Review any game, from anyw","scrollers":1,"tall":true,"restBottom":648,"afterBottom":568,"reached":true}
+        {"ct":null,"t":"Review any game, from anywhere Pull in y","scrollers":1,"tall":false,"restBottom":578,"afterBottom":560,"reached":true}
+        {"ct":null,"t":"Getting your game from Chess.com: Open t","scrollers":1,"tall":false,"restBottom":578,"afterBottom":560,"reached":true}
+        {"ct":null,"t":"","scrollers":1,"tall":false,"restBottom":640,"afterBottom":560,"reached":true}
+PASS se: every box below the fold on the Review entry screen can be SCROLLED onto the screen by a finger - measured by actually scrolling its user-scrollable ancestors and re-reading the rect, not by finding one and assuming. "Below the fold" is not "unreachable", and that is the measurement the test lane got wrong twice in one night.  [[]]
+PASS se: the help text the report named is on this screen at all  [{"found":true,"scrollers":1,"top":385,"bottom":401,"vh":568,"onScreen":true}]
+PASS se: and a finger can reach it (top 385, bottom 401, viewport 568, via 1 user-scrollable ancestor(s)). The report called it unreachable at 320x568; the 80.2px it cites is the scroller's own range.  [{"found":true,"scrollers":1,"top":385,"bottom":401,"vh":568,"onScreen":true}]
+PASS se: the DOCUMENT still does not scroll - which is the design here, not the defect. It is the signal that was misread into two false reports, so it is pinned rather than left to be rediscovered.  [0]
+PASS se: nothing hangs off the RIGHT - the spill that genuinely cannot be recovered on a phone, unlike vertical spill inside a scroller  [{"docScrollW":320,"vw":320,"bad":[]}]
+PASS se: no app error beyond the allowed engine trap  [[]]
+     kunal730: 0 painted boxes sit below the fold at rest; docScroll 0
+PASS kunal730: every box below the fold on the Review entry screen can be SCROLLED onto the screen by a finger - measured by actually scrolling its user-scrollable ancestors and re-reading the rect, not by finding one and assuming. "Below the fold" is not "unreachable", and that is the measurement the test lane got wrong twice in one night.  [[]]
+PASS kunal730: the help text the report named is on this screen at all  [{"found":true,"scrollers":0,"top":466,"bottom":482,"vh":730,"onScreen":true}]
+PASS kunal730: and a finger can reach it (top 466, bottom 482, viewport 730, via 0 user-scrollable ancestor(s)). The report called it unreachable at 320x568; the 80.2px it cites is the scroller's own range.  [{"found":true,"scrollers":0,"top":466,"bottom":482,"vh":730,"onScreen":true}]
+PASS kunal730: the DOCUMENT still does not scroll - which is the design here, not the defect. It is the signal that was misread into two false reports, so it is pinned rather than left to be rediscovered.  [0]
+PASS kunal730: nothing hangs off the RIGHT - the spill that genuinely cannot be recovered on a phone, unlike vertical spill inside a scroller  [{"docScrollW":375,"vw":375,"bad":[]}]
+PASS kunal730: no app error beyond the allowed engine trap  [[]]
+PASS se: the puzzle header row is on screen  [{"vw":320,"docScrollW":320,"kids":[{"t":"‹","x":4,"w":38,"right":42.08},{"t":"1 / 890 · 600","x":80,"w":93,"right":173.09},{"t":"🌱 Novice · ✓ 0","x":211,"w":105,"right":315.98}]}]
+PASS se: NOTHING in the puzzle header runs off the right edge. This is the spill that cannot be recovered - the row sits inside an ancestor with overflow-x hidden and document.scrollWidth stays at the viewport width, so anything past the edge is gone rather than scrollable.  [{"past":[],"docScrollW":320}]
+PASS kunal730: the puzzle header row is on screen  [{"vw":375,"docScrollW":375,"kids":[{"t":"‹ Roadmap","x":4,"w":119,"right":123.28},{"t":"1 / 890 · 600","x":148,"w":93,"right":241.2},{"t":"🌱 Novice · ✓ 0","x":266,"w":105,"right":371}]}]
+PASS kunal730: NOTHING in the puzzle header runs off the right edge. This is the spill that cannot be recovered - the row sits inside an ancestor with overflow-x hidden and document.scrollWidth stays at the viewport width, so anything past the edge is gone rather than scrollable.  [{"past":[],"docScrollW":375}]
+PASS kunal730: the header is UNCHANGED at 375 by the 320 fix - Roadmap 119@4, counter 93@148, tier badge 105@266. His Z-06 condition was that fixing the small screen must not move the large one, so it is measured here rather than asserted in a commit message.  [[{"t":"‹ Roadmap","x":4,"w":119,"right":123.28},{"t":"1 / 890 · 600","x":148,"w":93,"right":241.2},{"t":"🌱 Novice · ✓ 0","x":266,"w":105,"right":371}]]
+REACHABILITY: 17 pass, 0 fail
+    40-reachability: green (17 PASS)
+=== 41-coach-bubble ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS kunal730: the review board is 349 wide - pinned, so this gate cannot go green against a board that was wrong from the start  [349.03125]
+PASS kunal730: PRECONDITION - ply 31 has a coach sentence, so the removed bubble would have had something to say here  [The only move that keeps it. Nxb8 Rd8# is mate. Qb]
+PASS kunal730: PRECONDITION - not in analysis mode, the one state the bubble was always hidden in anyway  [{"ana":false}]
+PASS kunal730: the coach bubble is GONE at a ply that has a verdict and a sentence
+PASS kunal730: and it is absent from the DOM, not merely invisible - an element still laid out over the board would still eat taps
+PASS kunal730: its sentence element is gone with it
+PASS kunal730: its eval chip is gone with it
+PASS kunal730: its verdict pill is gone with it
+PASS kunal730: every one of nine points across the TOP THIRD of the board hit-tests to a SQUARE of the board - the ranks the bubble covered are the user's again. Asserted by hit test against the 64 squares rather than by element name, so anything else that lands there fails this too  [[]]
+PASS kunal730: the sentence is still on screen under the board, which is the box he told us to keep  [{"h":58,"y":574}]
+PASS kunal730: and it is BELOW the board, not over it  [{"whyY":574,"boardBottom":405.03125}]
+PASS kunal730: the truncation walk actually measured the box at six or more plies  [7]
+PASS kunal730: the box CLAMPS rather than merely hiding overflow, so when the sentence does not fit an ellipsis is drawn and the user can see there is more. #387: a box with overflow:hidden and no clamp cuts silently  [3]
+     kunal730: sentence overflows the 3-line box at 0 of 7 plies walked (RESIDUAL of removing the bubble, recorded not asserted): [{"p":9,"len":97,"over":false},{"p":14,"len":59,"over":false},{"p":19,"len":131,"over":false},{"p":21,"len":95,"over":false},{"p":24,"len":85,"over":false},{"p":28,"len":63,"over":false},{"p":31,"len":84,"over":false}]
+PASS kunal730: PRECONDITION - ply 32 has a sentence before analysis is entered
+PASS kunal730: PRECONDITION - analysis mode was actually entered from ply 32. An assertion about a state never reached is not an assertion (#385)
+PASS kunal730: still no bubble in analysis mode
+PASS kunal730: zero app errors beyond the allowed engine trap  [[]]
+PASS se: the review board is 264 wide - pinned, so this gate cannot go green against a board that was wrong from the start  [264]
+PASS se: PRECONDITION - ply 31 has a coach sentence, so the removed bubble would have had something to say here  [The only move that keeps it. Nxb8 Rd8# is mate. Qb]
+PASS se: PRECONDITION - not in analysis mode, the one state the bubble was always hidden in anyway  [{"ana":false}]
+PASS se: the coach bubble is GONE at a ply that has a verdict and a sentence
+PASS se: and it is absent from the DOM, not merely invisible - an element still laid out over the board would still eat taps
+PASS se: its sentence element is gone with it
+PASS se: its eval chip is gone with it
+PASS se: its verdict pill is gone with it
+PASS se: every one of nine points across the TOP THIRD of the board hit-tests to a SQUARE of the board - the ranks the bubble covered are the user's again. Asserted by hit test against the 64 squares rather than by element name, so anything else that lands there fails this too  [[]]
+PASS se: the sentence is still on screen under the board, which is the box he told us to keep  [{"h":58,"y":412}]
+PASS se: and it is BELOW the board, not over it  [{"whyY":412,"boardBottom":317}]
+PASS se: the truncation walk actually measured the box at six or more plies  [7]
+PASS se: the box CLAMPS rather than merely hiding overflow, so when the sentence does not fit an ellipsis is drawn and the user can see there is more. #387: a box with overflow:hidden and no clamp cuts silently  [3]
+     se: sentence overflows the 3-line box at 1 of 7 plies walked (RESIDUAL of removing the bubble, recorded not asserted): [{"p":9,"len":97,"over":false},{"p":14,"len":59,"over":false},{"p":19,"len":131,"over":true},{"p":21,"len":95,"over":false},{"p":24,"len":85,"over":false},{"p":28,"len":63,"over":false},{"p":31,"len":84,"over":false}]
+PASS se: PRECONDITION - ply 32 has a sentence before analysis is entered
+PASS se: PRECONDITION - analysis mode was actually entered from ply 32. An assertion about a state never reached is not an assertion (#385)
+PASS se: still no bubble in analysis mode
+PASS se: zero app errors beyond the allowed engine trap  [[]]
+COACH-BUBBLE-REMOVED: 34 pass, 0 fail
+    41-coach-bubble: green (34 PASS)
+=== 42-home-devrow ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS 375x730: the preview button still exists - "Keep them" is half the answer and deleting them would satisfy the other half  [{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":795,"left":149.5}]
+PASS 375x730: the preview button SCROLLS WITH THE CONTENT rather than floating over it - the test is behavioural because the static one is not available: the whole home screen is a legitimate fixed full-viewport layer, so "no fixed ancestor" is red on a correct build, and asking only for the BUTTON's own position lets a control that pins the ROW walk straight past. A corner-pinned control does not move when the column scrolls; an in-flow one does  [{"found":true,"scrollers":1,"moved":true,"onScreenAfterScroll":true,"detail":{"by":872,"top":653,"bottom":687},"beforeTop":795,"vh":730}]
+PASS 375x730: the preview button is still 34x34 - the same button, moved, not a redesign  [{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":795,"left":149.5}]
+PASS 375x730: the preview button covers nothing - measured against every painted, text-bearing element on the screen. Before #386 this was the Review tile at 320 and the banner and Look picker at 375  [[]]
+PASS 375x730: the feedback button still exists - "Keep them" is half the answer and deleting them would satisfy the other half  [{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":795,"left":191.5}]
+PASS 375x730: the feedback button SCROLLS WITH THE CONTENT rather than floating over it - the test is behavioural because the static one is not available: the whole home screen is a legitimate fixed full-viewport layer, so "no fixed ancestor" is red on a correct build, and asking only for the BUTTON's own position lets a control that pins the ROW walk straight past. A corner-pinned control does not move when the column scrolls; an in-flow one does  [{"found":true,"scrollers":1,"moved":true,"onScreenAfterScroll":true,"detail":{"by":872,"top":653,"bottom":687},"beforeTop":795,"vh":730}]
+PASS 375x730: the feedback button is still 34x34 - the same button, moved, not a redesign  [{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":795,"left":191.5}]
+PASS 375x730: the feedback button covers nothing - measured against every painted, text-bearing element on the screen. Before #386 this was the Review tile at 320 and the banner and Look picker at 375  [[]]
+PASS 375x730: the dev row sits above the build stamp at the foot of the column  [{"row":795,"stamp":839}]
+PASS 375x730: the two are side by side on one row, preview then feedback  [{"pv":{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":795,"left":149.5},"fb":{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":795,"left":191.5}}]
+PASS 375x730: the preview button can be brought on screen by a finger - either it is already visible, or an ancestor a finger can scroll brings it there, measured by SCROLLING that ancestor and re-reading the rect  [{"found":true,"scrollers":1,"moved":true,"onScreenAfterScroll":true,"detail":{"by":872,"top":653,"bottom":687},"beforeTop":795,"vh":730}]
+PASS 375x730: the feedback button can be brought on screen by a finger - either it is already visible, or an ancestor a finger can scroll brings it there, measured by SCROLLING that ancestor and re-reading the rect  [{"found":true,"scrollers":1,"moved":true,"onScreenAfterScroll":true,"detail":{"by":872,"top":653,"bottom":687},"beforeTop":795,"vh":730}]
+PASS 375x730: after scrolling the column to the bottom the preview button is fully on screen, so the tap below lands on a real target rather than into empty space
+PASS 375x730: tapping preview still opens the gallery - a button that covers nothing because it does nothing is not the fix he asked for
+PASS 375x730: zero app errors beyond the allowed engine trap  [[]]
+PASS 320x568: the preview button still exists - "Keep them" is half the answer and deleting them would satisfy the other half  [{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":795,"left":122}]
+PASS 320x568: the preview button SCROLLS WITH THE CONTENT rather than floating over it - the test is behavioural because the static one is not available: the whole home screen is a legitimate fixed full-viewport layer, so "no fixed ancestor" is red on a correct build, and asking only for the BUTTON's own position lets a control that pins the ROW walk straight past. A corner-pinned control does not move when the column scrolls; an in-flow one does  [{"found":true,"scrollers":1,"moved":true,"onScreenAfterScroll":true,"detail":{"by":872,"top":491,"bottom":525},"beforeTop":795,"vh":568}]
+PASS 320x568: the preview button is still 34x34 - the same button, moved, not a redesign  [{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":795,"left":122}]
+PASS 320x568: the preview button covers nothing - measured against every painted, text-bearing element on the screen. Before #386 this was the Review tile at 320 and the banner and Look picker at 375  [[]]
+PASS 320x568: the feedback button still exists - "Keep them" is half the answer and deleting them would satisfy the other half  [{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":795,"left":164}]
+PASS 320x568: the feedback button SCROLLS WITH THE CONTENT rather than floating over it - the test is behavioural because the static one is not available: the whole home screen is a legitimate fixed full-viewport layer, so "no fixed ancestor" is red on a correct build, and asking only for the BUTTON's own position lets a control that pins the ROW walk straight past. A corner-pinned control does not move when the column scrolls; an in-flow one does  [{"found":true,"scrollers":1,"moved":true,"onScreenAfterScroll":true,"detail":{"by":872,"top":491,"bottom":525},"beforeTop":795,"vh":568}]
+PASS 320x568: the feedback button is still 34x34 - the same button, moved, not a redesign  [{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":795,"left":164}]
+PASS 320x568: the feedback button covers nothing - measured against every painted, text-bearing element on the screen. Before #386 this was the Review tile at 320 and the banner and Look picker at 375  [[]]
+PASS 320x568: the dev row sits above the build stamp at the foot of the column  [{"row":795,"stamp":839}]
+PASS 320x568: the two are side by side on one row, preview then feedback  [{"pv":{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":795,"left":122},"fb":{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":795,"left":164}}]
+PASS 320x568: the preview button can be brought on screen by a finger - either it is already visible, or an ancestor a finger can scroll brings it there, measured by SCROLLING that ancestor and re-reading the rect  [{"found":true,"scrollers":1,"moved":true,"onScreenAfterScroll":true,"detail":{"by":872,"top":491,"bottom":525},"beforeTop":795,"vh":568}]
+PASS 320x568: the feedback button can be brought on screen by a finger - either it is already visible, or an ancestor a finger can scroll brings it there, measured by SCROLLING that ancestor and re-reading the rect  [{"found":true,"scrollers":1,"moved":true,"onScreenAfterScroll":true,"detail":{"by":872,"top":491,"bottom":525},"beforeTop":795,"vh":568}]
+PASS 320x568: after scrolling the column to the bottom the preview button is fully on screen, so the tap below lands on a real target rather than into empty space
+PASS 320x568: tapping preview still opens the gallery - a button that covers nothing because it does nothing is not the fix he asked for
+PASS 320x568: zero app errors beyond the allowed engine trap  [[]]
+PASS 390x844: the preview button still exists - "Keep them" is half the answer and deleting them would satisfy the other half  [{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":779.5,"left":157}]
+PASS 390x844: the preview button SCROLLS WITH THE CONTENT rather than floating over it - the test is behavioural because the static one is not available: the whole home screen is a legitimate fixed full-viewport layer, so "no fixed ancestor" is red on a correct build, and asking only for the BUTTON's own position lets a control that pins the ROW walk straight past. A corner-pinned control does not move when the column scrolls; an in-flow one does  [{"found":true,"scrollers":1,"moved":true,"onScreenAfterScroll":true,"detail":{"by":857,"top":766.5,"bottom":800.5},"beforeTop":779.5,"vh":844}]
+PASS 390x844: the preview button is still 34x34 - the same button, moved, not a redesign  [{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":779.5,"left":157}]
+PASS 390x844: the preview button covers nothing - measured against every painted, text-bearing element on the screen. Before #386 this was the Review tile at 320 and the banner and Look picker at 375  [[]]
+PASS 390x844: the feedback button still exists - "Keep them" is half the answer and deleting them would satisfy the other half  [{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":779.5,"left":199}]
+PASS 390x844: the feedback button SCROLLS WITH THE CONTENT rather than floating over it - the test is behavioural because the static one is not available: the whole home screen is a legitimate fixed full-viewport layer, so "no fixed ancestor" is red on a correct build, and asking only for the BUTTON's own position lets a control that pins the ROW walk straight past. A corner-pinned control does not move when the column scrolls; an in-flow one does  [{"found":true,"scrollers":1,"moved":true,"onScreenAfterScroll":true,"detail":{"by":857,"top":766.5,"bottom":800.5},"beforeTop":779.5,"vh":844}]
+PASS 390x844: the feedback button is still 34x34 - the same button, moved, not a redesign  [{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":779.5,"left":199}]
+PASS 390x844: the feedback button covers nothing - measured against every painted, text-bearing element on the screen. Before #386 this was the Review tile at 320 and the banner and Look picker at 375  [[]]
+PASS 390x844: the dev row sits above the build stamp at the foot of the column  [{"row":779.5,"stamp":823.5}]
+PASS 390x844: the two are side by side on one row, preview then feedback  [{"pv":{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":779.5,"left":157},"fb":{"pos":"static","pinned":{"tag":"div","ct":null,"pos":"fixed"},"w":34,"h":34,"top":779.5,"left":199}}]
+PASS 390x844: the preview button can be brought on screen by a finger - either it is already visible, or an ancestor a finger can scroll brings it there, measured by SCROLLING that ancestor and re-reading the rect  [{"found":true,"scrollers":1,"moved":true,"onScreenAfterScroll":true,"detail":{"by":857,"top":766.5,"bottom":800.5},"beforeTop":779.5,"vh":844}]
+PASS 390x844: the feedback button can be brought on screen by a finger - either it is already visible, or an ancestor a finger can scroll brings it there, measured by SCROLLING that ancestor and re-reading the rect  [{"found":true,"scrollers":1,"moved":true,"onScreenAfterScroll":true,"detail":{"by":857,"top":766.5,"bottom":800.5},"beforeTop":779.5,"vh":844}]
+PASS 390x844: after scrolling the column to the bottom the preview button is fully on screen, so the tap below lands on a real target rather than into empty space
+PASS 390x844: tapping preview still opens the gallery - a button that covers nothing because it does nothing is not the fix he asked for
+PASS 390x844: zero app errors beyond the allowed engine trap  [[]]
+HOME-DEVROW: 45 pass, 0 fail
+    42-home-devrow: green (45 PASS)
+=== 43-tcrl-analysis ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS TC-RL-001: within 0.8 s the progress line reads "Analyzing your game <n>% · checking every move", in those words  [Analyzing your game
+6% · checking every move]
+PASS TC-RL-001: the engine readout [data-ct="ana-engines"] is on the progress screen
+PASS TC-RL-005: the PGN box is gone while the analysis runs (textarea count 0), so a second review cannot be pasted over the first  [{"textareas":0,"analyze":0,"buttons":6}]
+PASS TC-RL-005: there is no "Analyze Game" button on screen while one is running  [{"textareas":0,"analyze":0,"buttons":6}]
+PASS TC-RL-005: exactly six buttons during the analysis - the hamburger and the five tab-bar buttons. Pinned, because "some buttons" is not an assertion  [{"textareas":0,"analyze":0,"buttons":6}]
+PASS TC-RL-011 (375x730): the progress screen does not overflow the viewport (over 0)  [{"bottom":730,"vh":730,"over":0,"scrollY":0,"docScroll":0}]
+PASS TC-RL-011 (375x730): the progress screen does not scroll sideways
+PASS TC-RL-001: the summary arrived after 11 s (the doc measured 15-27 s on its machine). REPORTED, NOT ASSERTED: this number belongs to the container, not to the app
+PASS TC-RL-002: the percentage was sampled at least three times before the summary (9 samples) - fewer than that cannot show a direction  [[6,26,38,47,71,82,91,97,100]]
+PASS TC-RL-002: every sample is >= the one before it, so the progress percentage never goes backwards  [{"samples":[6,26,38,47,71,82,91,97,100],"backwards":[]}]
+PASS TC-RL-001: the summary carries the accuracy table  [☰ Game Review Jsmiller1112 vs DukeKarlCountIsouard99 · 1-0 📖 Philidor Defense Coach's tak]
+PASS TC-RL-001: zero app errors through a whole cold analysis  [[]]
+PASS TC-RL-011 (320x568): the progress screen was actually reached, so the two measurements below are of the state the case names
+PASS TC-RL-011 (320x568): the progress screen does not overflow the viewport (over 0)  [{"bottom":568,"vh":568,"over":0,"scrollY":0,"docScroll":0}]
+PASS TC-RL-011 (320x568): the progress screen does not scroll sideways
+PASS TC-RL-011 (390x844): the progress screen was actually reached, so the two measurements below are of the state the case names
+PASS TC-RL-011 (390x844): the progress screen does not overflow the viewport (over 0)  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS TC-RL-011 (390x844): the progress screen does not scroll sideways
+PASS TC-RL-003: a one-ply game produces a summary at all
+PASS TC-RL-003: the summary head names both players, "A vs B"  [☰ Game Review A vs B · * Coach's take A clean game on both sides. Sharpen with p]
+PASS TC-RL-003: an unfinished game shows its result as *  [☰ Game Review A vs B · * Coach's take A clean game on both sides. Sharpen with p]
+PASS TC-RL-003: zero app errors on a one-ply review  [[]]
+PASS TC-RL-006: six taps in the middle of the progress screen do not send the percentage backwards (9 -> 97)  [{"before6":9,"after6":97}]
+PASS TC-RL-006: the summary still arrives after the taps
+PASS TC-RL-006: the taps raised no page error  [[]]
+PASS TC-RL-007: going Home and back to Review during an analysis returns to the PROGRESS screen, not to a fresh entry screen  [{"progress":true,"textareas":0}]
+PASS TC-RL-007: and the PGN box is still absent, so the run cannot be started over from there  [{"progress":true,"textareas":0}]
+PASS TC-RL-007: the summary still arrives after leaving the tab and returning
+PASS TC-RL-007: zero app errors across the navigation  [[]]
+PASS TC-RL-010: an accuracy line was read from all three cold runs  [{"a1":"White 98% ACCURACY ≈1945 EST Black 62.4% ACCURACY ≈948","a7":"White 98% ACCURACY ≈1945 EST Black 62.4% ACCURACY ≈948","a10":"White 98% ACCURACY ≈1945 EST Black 62.4% ACCURACY ≈948"}]
+PASS TC-RL-010: three INDEPENDENT cold browser contexts give a byte-identical accuracy line for the same game - the reproducibility fix still holds  [{"a1":"White 98% ACCURACY ≈1945 EST Black 62.4% ACCURACY ≈948","a7":"White 98% ACCURACY ≈1945 EST Black 62.4% ACCURACY ≈948","a10":"White 98% ACCURACY ≈1945 EST Black 62.4% ACCURACY ≈948"}]
+PASS TC-RL-010: and the whole summary block matches across those three runs, not just the accuracy line  [{"len":[1229,1229,1229]}]
+TCRL-BATCH-1: 32 pass, 0 fail
+    43-tcrl-analysis: green (32 PASS)
+=== 45-play-setup ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS se: TC-PS-001 the Play tile on Home opens [data-ct="setup-sheet"] - the only data-ct this whole screen carries  [{"w":288,"h":946,"pos":"fixed","overflowY":"auto","maxScroll":414,"vh":568,"vw":320,"docScrollY":0,"docScroll":0,"docScrollW":320}]
+PASS se: TC-PS-002 the sheet is 288 wide - the measured number, not "the same as last time". It is the viewport less the overlay's 16px gutters, capped at maxWidth 420  [{"measured":288,"want":288}]
+PASS se: TC-PS-003 the setup screen is a position:fixed overlay that scrolls ITSELF (overflowY auto). This is what makes a sheet taller than the phone recoverable at all, and it is why L.over() - which skips fixed children of #root - cannot see this screen. Any Play-setup assertion built on L.over() is measuring the screen behind the overlay.  [{"w":288,"h":946,"pos":"fixed","overflowY":"auto","maxScroll":414,"vh":568,"vw":320,"docScrollY":0,"docScroll":0,"docScrollW":320}]
+PASS se: TC-PS-004 the DOCUMENT still does not scroll (docScroll 0). #root carries overflow-y:auto by design, so document.scrollingElement never moves in this app - pinned here because reading it and concluding "nothing scrolls" is the error that produced three false findings in one night.  [{"w":288,"h":946,"pos":"fixed","overflowY":"auto","maxScroll":414,"vh":568,"vw":320,"docScrollY":0,"docScroll":0,"docScrollW":320}]
+PASS se: TC-PS-005 nothing in the sheet escapes the RIGHT edge and document.scrollWidth stays at 320. Vertical spill inside a scroller is fine; horizontal spill past the viewport cannot be recovered on a phone (flag sweep372-other-lines-320).  [{"vw":320,"docScrollW":320,"bad":[]}]
+     se: Start game at rest 874..922 in a 568-tall viewport; the overlay can scroll 414px
+PASS se: TC-PS-006 Start game sits at y=874 at rest, measured. It is BELOW THE FOLD at five of the six gate geometries - only 430x932 shows it without a scroll - and 30-p1-fixes.js A-13 does not see this because it only ever selects Pass & Play, the one variant short enough to fit.  [{"measured":874,"want":874,"restOn":false}]
+PASS se: TC-PS-007 and a thumb CAN get to it: scrolling only the overlay's own user-scrollable range brings Start game fully on screen (512..560 of 568) and document.elementFromPoint at the centre of it lands on the button itself, not on something layered over it. Below the fold is not unreachable; not hit-testable is.  [{"found":true,"label":"▶ Start game","restTop":874,"restBottom":922,"restRight":304,"restOn":false,"top":512,"bottom":560,"left":16,"right":304,"w":288,"h":48,"onScreen":true,"scrollers":2,"hit":true,"hitWas":"button","vh":568,"vw":320}]
+PASS se: zero app errors on the setup screen  [[]]
+PASS kunal: TC-PS-001 the Play tile on Home opens [data-ct="setup-sheet"] - the only data-ct this whole screen carries  [{"w":343,"h":880,"pos":"fixed","overflowY":"auto","maxScroll":237,"vh":679,"vw":375,"docScrollY":0,"docScroll":0,"docScrollW":375}]
+PASS kunal: TC-PS-002 the sheet is 343 wide - the measured number, not "the same as last time". It is the viewport less the overlay's 16px gutters, capped at maxWidth 420  [{"measured":343,"want":343}]
+PASS kunal: TC-PS-003 the setup screen is a position:fixed overlay that scrolls ITSELF (overflowY auto). This is what makes a sheet taller than the phone recoverable at all, and it is why L.over() - which skips fixed children of #root - cannot see this screen. Any Play-setup assertion built on L.over() is measuring the screen behind the overlay.  [{"w":343,"h":880,"pos":"fixed","overflowY":"auto","maxScroll":237,"vh":679,"vw":375,"docScrollY":0,"docScroll":0,"docScrollW":375}]
+PASS kunal: TC-PS-004 the DOCUMENT still does not scroll (docScroll 0). #root carries overflow-y:auto by design, so document.scrollingElement never moves in this app - pinned here because reading it and concluding "nothing scrolls" is the error that produced three false findings in one night.  [{"w":343,"h":880,"pos":"fixed","overflowY":"auto","maxScroll":237,"vh":679,"vw":375,"docScrollY":0,"docScroll":0,"docScrollW":375}]
+PASS kunal: TC-PS-005 nothing in the sheet escapes the RIGHT edge and document.scrollWidth stays at 375. Vertical spill inside a scroller is fine; horizontal spill past the viewport cannot be recovered on a phone (flag sweep372-other-lines-320).  [{"vw":375,"docScrollW":375,"bad":[]}]
+     kunal: Start game at rest 808..856 in a 679-tall viewport; the overlay can scroll 237px
+PASS kunal: TC-PS-006 Start game sits at y=808 at rest, measured. It is BELOW THE FOLD at five of the six gate geometries - only 430x932 shows it without a scroll - and 30-p1-fixes.js A-13 does not see this because it only ever selects Pass & Play, the one variant short enough to fit.  [{"measured":808,"want":808,"restOn":false}]
+PASS kunal: TC-PS-007 and a thumb CAN get to it: scrolling only the overlay's own user-scrollable range brings Start game fully on screen (623..671 of 679) and document.elementFromPoint at the centre of it lands on the button itself, not on something layered over it. Below the fold is not unreachable; not hit-testable is.  [{"found":true,"label":"▶ Start game","restTop":808,"restBottom":856,"restRight":359,"restOn":false,"top":623,"bottom":671,"left":16,"right":359,"w":343,"h":48,"onScreen":true,"scrollers":1,"hit":true,"hitWas":"button","vh":679,"vw":375}]
+PASS kunal: zero app errors on the setup screen  [[]]
+PASS kunal730: TC-PS-001 the Play tile on Home opens [data-ct="setup-sheet"] - the only data-ct this whole screen carries  [{"w":343,"h":938,"pos":"fixed","overflowY":"auto","maxScroll":244,"vh":730,"vw":375,"docScrollY":0,"docScroll":0,"docScrollW":375}]
+PASS kunal730: TC-PS-002 the sheet is 343 wide - the measured number, not "the same as last time". It is the viewport less the overlay's 16px gutters, capped at maxWidth 420  [{"measured":343,"want":343}]
+PASS kunal730: TC-PS-003 the setup screen is a position:fixed overlay that scrolls ITSELF (overflowY auto). This is what makes a sheet taller than the phone recoverable at all, and it is why L.over() - which skips fixed children of #root - cannot see this screen. Any Play-setup assertion built on L.over() is measuring the screen behind the overlay.  [{"w":343,"h":938,"pos":"fixed","overflowY":"auto","maxScroll":244,"vh":730,"vw":375,"docScrollY":0,"docScroll":0,"docScrollW":375}]
+PASS kunal730: TC-PS-004 the DOCUMENT still does not scroll (docScroll 0). #root carries overflow-y:auto by design, so document.scrollingElement never moves in this app - pinned here because reading it and concluding "nothing scrolls" is the error that produced three false findings in one night.  [{"w":343,"h":938,"pos":"fixed","overflowY":"auto","maxScroll":244,"vh":730,"vw":375,"docScrollY":0,"docScroll":0,"docScrollW":375}]
+PASS kunal730: TC-PS-005 nothing in the sheet escapes the RIGHT edge and document.scrollWidth stays at 375. Vertical spill inside a scroller is fine; horizontal spill past the viewport cannot be recovered on a phone (flag sweep372-other-lines-320).  [{"vw":375,"docScrollW":375,"bad":[]}]
+     kunal730: Start game at rest 844..892 in a 730-tall viewport; the overlay can scroll 244px
+PASS kunal730: TC-PS-006 Start game sits at y=844 at rest, measured. It is BELOW THE FOLD at five of the six gate geometries - only 430x932 shows it without a scroll - and 30-p1-fixes.js A-13 does not see this because it only ever selects Pass & Play, the one variant short enough to fit.  [{"measured":844,"want":844,"restOn":false}]
+PASS kunal730: TC-PS-007 and a thumb CAN get to it: scrolling only the overlay's own user-scrollable range brings Start game fully on screen (674..722 of 730) and document.elementFromPoint at the centre of it lands on the button itself, not on something layered over it. Below the fold is not unreachable; not hit-testable is.  [{"found":true,"label":"▶ Start game","restTop":844,"restBottom":892,"restRight":359,"restOn":false,"top":674,"bottom":722,"left":16,"right":359,"w":343,"h":48,"onScreen":true,"scrollers":1,"hit":true,"hitWas":"button","vh":730,"vw":375}]
+PASS kunal730: zero app errors on the setup screen  [[]]
+PASS kunal761: TC-PS-001 the Play tile on Home opens [data-ct="setup-sheet"] - the only data-ct this whole screen carries  [{"w":343,"h":938,"pos":"fixed","overflowY":"auto","maxScroll":213,"vh":761,"vw":375,"docScrollY":0,"docScroll":0,"docScrollW":375}]
+PASS kunal761: TC-PS-002 the sheet is 343 wide - the measured number, not "the same as last time". It is the viewport less the overlay's 16px gutters, capped at maxWidth 420  [{"measured":343,"want":343}]
+PASS kunal761: TC-PS-003 the setup screen is a position:fixed overlay that scrolls ITSELF (overflowY auto). This is what makes a sheet taller than the phone recoverable at all, and it is why L.over() - which skips fixed children of #root - cannot see this screen. Any Play-setup assertion built on L.over() is measuring the screen behind the overlay.  [{"w":343,"h":938,"pos":"fixed","overflowY":"auto","maxScroll":213,"vh":761,"vw":375,"docScrollY":0,"docScroll":0,"docScrollW":375}]
+PASS kunal761: TC-PS-004 the DOCUMENT still does not scroll (docScroll 0). #root carries overflow-y:auto by design, so document.scrollingElement never moves in this app - pinned here because reading it and concluding "nothing scrolls" is the error that produced three false findings in one night.  [{"w":343,"h":938,"pos":"fixed","overflowY":"auto","maxScroll":213,"vh":761,"vw":375,"docScrollY":0,"docScroll":0,"docScrollW":375}]
+PASS kunal761: TC-PS-005 nothing in the sheet escapes the RIGHT edge and document.scrollWidth stays at 375. Vertical spill inside a scroller is fine; horizontal spill past the viewport cannot be recovered on a phone (flag sweep372-other-lines-320).  [{"vw":375,"docScrollW":375,"bad":[]}]
+     kunal761: Start game at rest 844..892 in a 761-tall viewport; the overlay can scroll 213px
+PASS kunal761: TC-PS-006 Start game sits at y=844 at rest, measured. It is BELOW THE FOLD at five of the six gate geometries - only 430x932 shows it without a scroll - and 30-p1-fixes.js A-13 does not see this because it only ever selects Pass & Play, the one variant short enough to fit.  [{"measured":844,"want":844,"restOn":false}]
+PASS kunal761: TC-PS-007 and a thumb CAN get to it: scrolling only the overlay's own user-scrollable range brings Start game fully on screen (705..753 of 761) and document.elementFromPoint at the centre of it lands on the button itself, not on something layered over it. Below the fold is not unreachable; not hit-testable is.  [{"found":true,"label":"▶ Start game","restTop":844,"restBottom":892,"restRight":359,"restOn":false,"top":705,"bottom":753,"left":16,"right":359,"w":343,"h":48,"onScreen":true,"scrollers":1,"hit":true,"hitWas":"button","vh":761,"vw":375}]
+PASS kunal761: zero app errors on the setup screen  [[]]
+PASS 390: TC-PS-001 the Play tile on Home opens [data-ct="setup-sheet"] - the only data-ct this whole screen carries  [{"w":358,"h":920.5,"pos":"fixed","overflowY":"auto","maxScroll":113,"vh":844,"vw":390,"docScrollY":0,"docScroll":0,"docScrollW":390}]
+PASS 390: TC-PS-002 the sheet is 358 wide - the measured number, not "the same as last time". It is the viewport less the overlay's 16px gutters, capped at maxWidth 420  [{"measured":358,"want":358}]
+PASS 390: TC-PS-003 the setup screen is a position:fixed overlay that scrolls ITSELF (overflowY auto). This is what makes a sheet taller than the phone recoverable at all, and it is why L.over() - which skips fixed children of #root - cannot see this screen. Any Play-setup assertion built on L.over() is measuring the screen behind the overlay.  [{"w":358,"h":920.5,"pos":"fixed","overflowY":"auto","maxScroll":113,"vh":844,"vw":390,"docScrollY":0,"docScroll":0,"docScrollW":390}]
+PASS 390: TC-PS-004 the DOCUMENT still does not scroll (docScroll 0). #root carries overflow-y:auto by design, so document.scrollingElement never moves in this app - pinned here because reading it and concluding "nothing scrolls" is the error that produced three false findings in one night.  [{"w":358,"h":920.5,"pos":"fixed","overflowY":"auto","maxScroll":113,"vh":844,"vw":390,"docScrollY":0,"docScroll":0,"docScrollW":390}]
+PASS 390: TC-PS-005 nothing in the sheet escapes the RIGHT edge and document.scrollWidth stays at 390. Vertical spill inside a scroller is fine; horizontal spill past the viewport cannot be recovered on a phone (flag sweep372-other-lines-320).  [{"vw":390,"docScrollW":390,"bad":[]}]
+     390: Start game at rest 827..875 in a 844-tall viewport; the overlay can scroll 113px
+PASS 390: TC-PS-006 Start game sits at y=827 at rest, measured. It is BELOW THE FOLD at five of the six gate geometries - only 430x932 shows it without a scroll - and 30-p1-fixes.js A-13 does not see this because it only ever selects Pass & Play, the one variant short enough to fit.  [{"measured":827,"want":827,"restOn":false}]
+PASS 390: TC-PS-007 and a thumb CAN get to it: scrolling only the overlay's own user-scrollable range brings Start game fully on screen (788..836 of 844) and document.elementFromPoint at the centre of it lands on the button itself, not on something layered over it. Below the fold is not unreachable; not hit-testable is.  [{"found":true,"label":"▶ Start game","restTop":827,"restBottom":875,"restRight":374,"restOn":false,"top":788,"bottom":836,"left":16,"right":374,"w":358,"h":48,"onScreen":true,"scrollers":1,"hit":true,"hitWas":"button","vh":844,"vw":390}]
+PASS 390: zero app errors on the setup screen  [[]]
+PASS 430: TC-PS-001 the Play tile on Home opens [data-ct="setup-sheet"] - the only data-ct this whole screen carries  [{"w":398,"h":920.5,"pos":"fixed","overflowY":"auto","maxScroll":25,"vh":932,"vw":430,"docScrollY":0,"docScroll":0,"docScrollW":430}]
+PASS 430: TC-PS-002 the sheet is 398 wide - the measured number, not "the same as last time". It is the viewport less the overlay's 16px gutters, capped at maxWidth 420  [{"measured":398,"want":398}]
+PASS 430: TC-PS-003 the setup screen is a position:fixed overlay that scrolls ITSELF (overflowY auto). This is what makes a sheet taller than the phone recoverable at all, and it is why L.over() - which skips fixed children of #root - cannot see this screen. Any Play-setup assertion built on L.over() is measuring the screen behind the overlay.  [{"w":398,"h":920.5,"pos":"fixed","overflowY":"auto","maxScroll":25,"vh":932,"vw":430,"docScrollY":0,"docScroll":0,"docScrollW":430}]
+PASS 430: TC-PS-004 the DOCUMENT still does not scroll (docScroll 0). #root carries overflow-y:auto by design, so document.scrollingElement never moves in this app - pinned here because reading it and concluding "nothing scrolls" is the error that produced three false findings in one night.  [{"w":398,"h":920.5,"pos":"fixed","overflowY":"auto","maxScroll":25,"vh":932,"vw":430,"docScrollY":0,"docScroll":0,"docScrollW":430}]
+PASS 430: TC-PS-005 nothing in the sheet escapes the RIGHT edge and document.scrollWidth stays at 430. Vertical spill inside a scroller is fine; horizontal spill past the viewport cannot be recovered on a phone (flag sweep372-other-lines-320).  [{"vw":430,"docScrollW":430,"bad":[]}]
+     430: Start game at rest 827..875 in a 932-tall viewport; the overlay can scroll 25px
+PASS 430: TC-PS-006 Start game sits at y=827 at rest, measured. It is BELOW THE FOLD at five of the six gate geometries - only 430x932 shows it without a scroll - and 30-p1-fixes.js A-13 does not see this because it only ever selects Pass & Play, the one variant short enough to fit.  [{"measured":827,"want":827,"restOn":true}]
+PASS 430: TC-PS-007 and a thumb CAN get to it: scrolling only the overlay's own user-scrollable range brings Start game fully on screen (827..875 of 932) and document.elementFromPoint at the centre of it lands on the button itself, not on something layered over it. Below the fold is not unreachable; not hit-testable is.  [{"found":true,"label":"▶ Start game","restTop":827,"restBottom":875,"restRight":414,"restOn":true,"top":827,"bottom":875,"left":16,"right":414,"w":398,"h":48,"onScreen":true,"scrollers":1,"hit":true,"hitWas":"button","vh":932,"vw":430}]
+PASS 430: zero app errors on the setup screen  [[]]
+PASS se: TC-PS-008 choosing a persona grows EVERY chip in the row from 95 to 170 - the selected one gains its blurb line and the row is a flex row, so all five follow. Same at every width.  [{"before":[95,95,95,95,95],"after":[169.9,169.9,169.9,169.9,169.9]}]
+PASS se: TC-PS-009 and that pushes Start game down 75px, to 949. After a persona is chosen Start game is below the fold at ALL SIX geometries, 430x932 included - the one geometry where it fitted before.  [{"before":874,"after":949,"vh":568,"restOn":false}]
+PASS se: TC-PS-010 it is still reachable and still hit-testable in the taller sheet (512..560 of 568)  [{"found":true,"label":"▶ Start game","restTop":949,"restBottom":997,"restRight":304,"restOn":false,"top":512,"bottom":560,"left":16,"right":304,"w":288,"h":48,"onScreen":true,"scrollers":2,"hit":true,"hitWas":"button","vh":568,"vw":320}]
+PASS kunal: TC-PS-008 choosing a persona grows EVERY chip in the row from 95 to 170 - the selected one gains its blurb line and the row is a flex row, so all five follow. Same at every width.  [{"before":[95,95,95,95,95],"after":[169.9,169.9,169.9,169.9,169.9]}]
+PASS kunal: TC-PS-009 and that pushes Start game down 75px, to 883. After a persona is chosen Start game is below the fold at ALL SIX geometries, 430x932 included - the one geometry where it fitted before.  [{"before":808,"after":883,"vh":679,"restOn":false}]
+PASS kunal: TC-PS-010 it is still reachable and still hit-testable in the taller sheet (623..671 of 679)  [{"found":true,"label":"▶ Start game","restTop":883,"restBottom":931,"restRight":359,"restOn":false,"top":623,"bottom":671,"left":16,"right":359,"w":343,"h":48,"onScreen":true,"scrollers":1,"hit":true,"hitWas":"button","vh":679,"vw":375}]
+PASS kunal730: TC-PS-008 choosing a persona grows EVERY chip in the row from 95 to 170 - the selected one gains its blurb line and the row is a flex row, so all five follow. Same at every width.  [{"before":[95,95,95,95,95],"after":[169.9,169.9,169.9,169.9,169.9]}]
+PASS kunal730: TC-PS-009 and that pushes Start game down 75px, to 919. After a persona is chosen Start game is below the fold at ALL SIX geometries, 430x932 included - the one geometry where it fitted before.  [{"before":844,"after":919,"vh":730,"restOn":false}]
+PASS kunal730: TC-PS-010 it is still reachable and still hit-testable in the taller sheet (674..722 of 730)  [{"found":true,"label":"▶ Start game","restTop":919,"restBottom":967,"restRight":359,"restOn":false,"top":674,"bottom":722,"left":16,"right":359,"w":343,"h":48,"onScreen":true,"scrollers":1,"hit":true,"hitWas":"button","vh":730,"vw":375}]
+PASS kunal761: TC-PS-008 choosing a persona grows EVERY chip in the row from 95 to 170 - the selected one gains its blurb line and the row is a flex row, so all five follow. Same at every width.  [{"before":[95,95,95,95,95],"after":[169.9,169.9,169.9,169.9,169.9]}]
+PASS kunal761: TC-PS-009 and that pushes Start game down 75px, to 919. After a persona is chosen Start game is below the fold at ALL SIX geometries, 430x932 included - the one geometry where it fitted before.  [{"before":844,"after":919,"vh":761,"restOn":false}]
+PASS kunal761: TC-PS-010 it is still reachable and still hit-testable in the taller sheet (705..753 of 761)  [{"found":true,"label":"▶ Start game","restTop":919,"restBottom":967,"restRight":359,"restOn":false,"top":705,"bottom":753,"left":16,"right":359,"w":343,"h":48,"onScreen":true,"scrollers":1,"hit":true,"hitWas":"button","vh":761,"vw":375}]
+PASS 390: TC-PS-008 choosing a persona grows EVERY chip in the row from 95 to 170 - the selected one gains its blurb line and the row is a flex row, so all five follow. Same at every width.  [{"before":[95,95,95,95,95],"after":[169.9,169.9,169.9,169.9,169.9]}]
+PASS 390: TC-PS-009 and that pushes Start game down 74px, to 901. After a persona is chosen Start game is below the fold at ALL SIX geometries, 430x932 included - the one geometry where it fitted before.  [{"before":827,"after":901,"vh":844,"restOn":false}]
+PASS 390: TC-PS-010 it is still reachable and still hit-testable in the taller sheet (788..836 of 844)  [{"found":true,"label":"▶ Start game","restTop":901,"restBottom":949,"restRight":374,"restOn":false,"top":788,"bottom":836,"left":16,"right":374,"w":358,"h":48,"onScreen":true,"scrollers":1,"hit":true,"hitWas":"button","vh":844,"vw":390}]
+PASS 430: TC-PS-008 choosing a persona grows EVERY chip in the row from 95 to 170 - the selected one gains its blurb line and the row is a flex row, so all five follow. Same at every width.  [{"before":[95,95,95,95,95],"after":[169.9,169.9,169.9,169.9,169.9]}]
+PASS 430: TC-PS-009 and that pushes Start game down 74px, to 901. After a persona is chosen Start game is below the fold at ALL SIX geometries, 430x932 included - the one geometry where it fitted before.  [{"before":827,"after":901,"vh":932,"restOn":false}]
+PASS 430: TC-PS-010 it is still reachable and still hit-testable in the taller sheet (876..924 of 932)  [{"found":true,"label":"▶ Start game","restTop":901,"restBottom":949,"restRight":414,"restOn":false,"top":876,"bottom":924,"left":16,"right":414,"w":398,"h":48,"onScreen":true,"scrollers":1,"hit":true,"hitWas":"button","vh":932,"vw":430}]
+PASS se: TC-PS-011 three opponent tiles - Online, Computer, Pass & Play  [["Online 90.7x84","Computer 90.7x84","Pass & Play 90.7x84"]]
+PASS se: TC-PS-012 exactly ONE is selected on arrival and it is Computer (chess.jsx:2000 useState('computer')). This is why the default screen is the tall one, and why measuring only Pass & Play measures the variant nobody lands on.  [[{"t":"Online","on":false,"h":84,"w":90.7},{"t":"Computer","on":true,"h":84,"w":90.7},{"t":"Pass & Play","on":false,"h":84,"w":90.7}]]
+PASS se: TC-PS-013 every opponent tile is at least 44px tall (measured 84)  [[84,84,84]]
+PASS se: TC-PS-014 Pass & Play drops the persona row, the colour row and the strength slider - there is no input[type=range] on screen at all, which is exactly why its sheet fits (640 tall, overlay scroll 108) where the Computer sheet does not
+PASS se: TC-PS-015 the persona row is on screen
+PASS se: TC-PS-016 five personas, each naming its exact Elo: Pip 500, Rosa 900, Milo 1300, Astrid 1900, Viktor 2350  [["Pip ≈ 500 Elo","Rosa ≈ 900 Elo","Milo ≈ 1300 Elo","Astrid ≈ 1900 Elo","Viktor ≈ 2350 Elo"]]
+PASS se: TC-PS-017 every one of the five can be brought fully on screen AND is hit-testable there - the row is a horizontal scroller, so the ones off the right edge are swiped to, not lost. Reached by scrolling the row for real, never by scrollIntoView.  [["Pip rest.right=112 -> 16..112 hit=true","Rosa rest.right=218 -> 122..218 hit=true","Milo rest.right=324 -> 200..296 hit=true","Astrid rest.right=430 -> 200..296 hit=true","Viktor rest.right=536 -> 208..304 hit=true"]]
+PASS se: TC-PS-018 Viktor is NEVER visible at rest - his right edge is at 536 against a 320px viewport at every width in the gate set. The strongest opponent in the app always costs a sideways swipe to find. Visible at rest here: Pip, Rosa  [{"restRight":536,"vw":320,"atRest":["Pip","Rosa"]}]
+PASS se: TC-PS-019 tapping one persona selects exactly one  [[{"t":"Milo","on":true,"h":169.9,"w":96}]]
+PASS se: TC-PS-020 the strength slider runs 400 to 2400 in steps of 25 (ELO_MIN/ELO_MAX, chess.jsx:990)  [{"min":"400","max":"2400","step":"25","value":"1300","w":288,"label":"≈ 1300 Elo"}]
+PASS se: TC-PS-021 choosing Milo drives the slider to his Elo and the readout to "≈ 1300 Elo" - the persona chips and the slider are one value, not two  [{"min":"400","max":"2400","step":"25","value":"1300","w":288,"label":"≈ 1300 Elo"}]
+PASS se: TC-PS-022 and it works the other way: dragging the slider onto a persona's exact Elo selects that persona  [{"sel":[{"t":"Astrid","on":true,"h":155.5,"w":96}],"foot":"vs Astrid · White · No clock"}]
+PASS se: TC-PS-023 one step off a persona's Elo (1925) deselects every chip and the footer falls back to the unnamed "vs Computer". botForElo is an EXACT match (chess.jsx:1550), so only 5 of the slider's 81 stops name an opponent - and the app's own default, 800, is not one of them.  [{"sel":[],"foot":"vs Computer · White · No clock","elo":"1925"}]
+PASS se: TC-PS-024 the slider's top end is 2400 but the strongest persona is Viktor at 2350, so the maximum strength in the app has no face and no name  [{"foot":"vs Computer · White · No clock"}]
+PASS se: TC-PS-025 and the bottom end, 400, is below Pip's 500 and is equally unnamed  [{"foot":"vs Computer · White · No clock"}]
+PASS se: TC-PS-026 two colour buttons, White selected by default (chess.jsx:2164 useState('w'))  [[{"t":"White","on":true,"h":46,"w":140},{"t":"Black","on":false,"h":46,"w":140}]]
+PASS se: TC-PS-027 both colour buttons are at least 44px tall (measured 46)  [[46,46]]
+PASS se: TC-PS-028 tapping Black moves the selection and the footer follows it  [{"sel":[{"t":"Black","on":true,"h":46,"w":140}],"foot":"vs Milo · Black · No clock"}]
+PASS se: TC-PS-029 nine time controls: No clock plus the eight in TIME_CONTROLS (chess.jsx:994)  [["No clock","1 min","2 min","3 min","5 min","10 min","1+1","2+1","3+1"]]
+PASS se: TC-PS-030 No clock is selected on arrival and it is the only one selected  [[{"t":"No clock","on":true,"h":29,"w":87.8},{"t":"1 min","on":false,"h":29,"w":66.8},{"t":"2 min","on":false,"h":29,"w":66.8},{"t":"3 min","on":false,"h":29,"w":66.8},{"t":"5 min","on":false,"h":29,"w":66.8},{"t":"10 min","on":false,"h":29,"w":75.9},{"t":"1+1","on":false,"h":29,"w":55},{"t":"2+1","on":false,"h":29,"w":55},{"t":"3+1","on":false,"h":29,"w":55}]]
+PASS se: TC-PS-031 picking one moves the selection and the footer names it  [{"sel":[{"t":"3+1","on":true,"h":29,"w":55}],"foot":"vs Milo · White · 3+1"}]
+PASS se: TC-PS-032 DEFECT, measured. Switch to Online while a blitz control is selected and the "Time per move" row shows FOUR pills with NONE of them selected. timeCtrl is still {label:"3+1"}, so `!timeCtrl` is false and no CORR_CONTROLS label matches (chess.jsx:4589) - there is no state on screen saying what this game will use, and Continue proceeds anyway.  [[{"t":"No limit","on":false,"h":29,"w":83.5},{"t":"1 day / move","on":false,"h":29,"w":119.3},{"t":"3 days / move","on":false,"h":29,"w":127},{"t":"7 days / move","on":false,"h":29,"w":127}]]
+PASS se: TC-PS-033 DEFECT, and the other direction is worse. Pick "3 days / move" under Online, switch back to Computer, and all nine Computer pills read unselected while the footer states "vs Milo · White · 3 days / move" - a multi-day correspondence limit named as the time control of a local game against Stockfish, from a list this screen does not offer and cannot select back. Two taps from the default screen, at every geometry.  [{"selected":[],"foot":"vs Milo · White · 3 days / move"}]
+PASS se: TC-PS-034 the footer states the three choices in order - opponent, colour, clock. It is the only line on the screen that says what is about to start.  [vs Milo · White · No clock]
+PASS se: TC-PS-035 Pass & Play restates itself as "Pass & play on one device · No clock" and keeps the clock choice across the opponent switch  [{"foot":"Pass & play on one device · No clock","label":"▶ Start game"}]
+PASS se: TC-PS-036 Online names no clock and no colour, and the button becomes "Continue →" because the next screen is where the game is actually made  [{"foot":"Online · play a friend by invite code","label":"Continue →"}]
+PASS se: zero app errors across the control sweep  [[]]
+PASS kunal730: TC-PS-011 three opponent tiles - Online, Computer, Pass & Play  [["Online 109x84","Computer 109x84","Pass & Play 109x84"]]
+PASS kunal730: TC-PS-012 exactly ONE is selected on arrival and it is Computer (chess.jsx:2000 useState('computer')). This is why the default screen is the tall one, and why measuring only Pass & Play measures the variant nobody lands on.  [[{"t":"Online","on":false,"h":84,"w":109},{"t":"Computer","on":true,"h":84,"w":109},{"t":"Pass & Play","on":false,"h":84,"w":109}]]
+PASS kunal730: TC-PS-013 every opponent tile is at least 44px tall (measured 84)  [[84,84,84]]
+PASS kunal730: TC-PS-014 Pass & Play drops the persona row, the colour row and the strength slider - there is no input[type=range] on screen at all, which is exactly why its sheet fits (620 tall, overlay scroll 0) where the Computer sheet does not
+PASS kunal730: TC-PS-015 the persona row is on screen
+PASS kunal730: TC-PS-016 five personas, each naming its exact Elo: Pip 500, Rosa 900, Milo 1300, Astrid 1900, Viktor 2350  [["Pip ≈ 500 Elo","Rosa ≈ 900 Elo","Milo ≈ 1300 Elo","Astrid ≈ 1900 Elo","Viktor ≈ 2350 Elo"]]
+PASS kunal730: TC-PS-017 every one of the five can be brought fully on screen AND is hit-testable there - the row is a horizontal scroller, so the ones off the right edge are swiped to, not lost. Reached by scrolling the row for real, never by scrollIntoView.  [["Pip rest.right=112 -> 16..112 hit=true","Rosa rest.right=218 -> 122..218 hit=true","Milo rest.right=324 -> 228..324 hit=true","Astrid rest.right=430 -> 255..351 hit=true","Viktor rest.right=536 -> 263..359 hit=true"]]
+PASS kunal730: TC-PS-018 Viktor is NEVER visible at rest - his right edge is at 536 against a 375px viewport at every width in the gate set. The strongest opponent in the app always costs a sideways swipe to find. Visible at rest here: Pip, Rosa, Milo  [{"restRight":536,"vw":375,"atRest":["Pip","Rosa","Milo"]}]
+PASS kunal730: TC-PS-019 tapping one persona selects exactly one  [[{"t":"Milo","on":true,"h":169.9,"w":96}]]
+PASS kunal730: TC-PS-020 the strength slider runs 400 to 2400 in steps of 25 (ELO_MIN/ELO_MAX, chess.jsx:990)  [{"min":"400","max":"2400","step":"25","value":"1300","w":343,"label":"≈ 1300 Elo"}]
+PASS kunal730: TC-PS-021 choosing Milo drives the slider to his Elo and the readout to "≈ 1300 Elo" - the persona chips and the slider are one value, not two  [{"min":"400","max":"2400","step":"25","value":"1300","w":343,"label":"≈ 1300 Elo"}]
+PASS kunal730: TC-PS-022 and it works the other way: dragging the slider onto a persona's exact Elo selects that persona  [{"sel":[{"t":"Astrid","on":true,"h":155.5,"w":96}],"foot":"vs Astrid · White · No clock"}]
+PASS kunal730: TC-PS-023 one step off a persona's Elo (1925) deselects every chip and the footer falls back to the unnamed "vs Computer". botForElo is an EXACT match (chess.jsx:1550), so only 5 of the slider's 81 stops name an opponent - and the app's own default, 800, is not one of them.  [{"sel":[],"foot":"vs Computer · White · No clock","elo":"1925"}]
+PASS kunal730: TC-PS-024 the slider's top end is 2400 but the strongest persona is Viktor at 2350, so the maximum strength in the app has no face and no name  [{"foot":"vs Computer · White · No clock"}]
+PASS kunal730: TC-PS-025 and the bottom end, 400, is below Pip's 500 and is equally unnamed  [{"foot":"vs Computer · White · No clock"}]
+PASS kunal730: TC-PS-026 two colour buttons, White selected by default (chess.jsx:2164 useState('w'))  [[{"t":"White","on":true,"h":46,"w":167.5},{"t":"Black","on":false,"h":46,"w":167.5}]]
+PASS kunal730: TC-PS-027 both colour buttons are at least 44px tall (measured 46)  [[46,46]]
+PASS kunal730: TC-PS-028 tapping Black moves the selection and the footer follows it  [{"sel":[{"t":"Black","on":true,"h":46,"w":167.5}],"foot":"vs Milo · Black · No clock"}]
+PASS kunal730: TC-PS-029 nine time controls: No clock plus the eight in TIME_CONTROLS (chess.jsx:994)  [["No clock","1 min","2 min","3 min","5 min","10 min","1+1","2+1","3+1"]]
+PASS kunal730: TC-PS-030 No clock is selected on arrival and it is the only one selected  [[{"t":"No clock","on":true,"h":29,"w":87.8},{"t":"1 min","on":false,"h":29,"w":66.8},{"t":"2 min","on":false,"h":29,"w":66.8},{"t":"3 min","on":false,"h":29,"w":66.8},{"t":"5 min","on":false,"h":29,"w":66.8},{"t":"10 min","on":false,"h":29,"w":75.9},{"t":"1+1","on":false,"h":29,"w":55},{"t":"2+1","on":false,"h":29,"w":55},{"t":"3+1","on":false,"h":29,"w":55}]]
+PASS kunal730: TC-PS-031 picking one moves the selection and the footer names it  [{"sel":[{"t":"3+1","on":true,"h":29,"w":55}],"foot":"vs Milo · White · 3+1"}]
+PASS kunal730: TC-PS-032 DEFECT, measured. Switch to Online while a blitz control is selected and the "Time per move" row shows FOUR pills with NONE of them selected. timeCtrl is still {label:"3+1"}, so `!timeCtrl` is false and no CORR_CONTROLS label matches (chess.jsx:4589) - there is no state on screen saying what this game will use, and Continue proceeds anyway.  [[{"t":"No limit","on":false,"h":29,"w":83.5},{"t":"1 day / move","on":false,"h":29,"w":119.3},{"t":"3 days / move","on":false,"h":29,"w":127},{"t":"7 days / move","on":false,"h":29,"w":127}]]
+PASS kunal730: TC-PS-033 DEFECT, and the other direction is worse. Pick "3 days / move" under Online, switch back to Computer, and all nine Computer pills read unselected while the footer states "vs Milo · White · 3 days / move" - a multi-day correspondence limit named as the time control of a local game against Stockfish, from a list this screen does not offer and cannot select back. Two taps from the default screen, at every geometry.  [{"selected":[],"foot":"vs Milo · White · 3 days / move"}]
+PASS kunal730: TC-PS-034 the footer states the three choices in order - opponent, colour, clock. It is the only line on the screen that says what is about to start.  [vs Milo · White · No clock]
+PASS kunal730: TC-PS-035 Pass & Play restates itself as "Pass & play on one device · No clock" and keeps the clock choice across the opponent switch  [{"foot":"Pass & play on one device · No clock","label":"▶ Start game"}]
+PASS kunal730: TC-PS-036 Online names no clock and no colour, and the button becomes "Continue →" because the next screen is where the game is actually made  [{"foot":"Online · play a friend by invite code","label":"Continue →"}]
+PASS kunal730: zero app errors across the control sweep  [[]]
+PASS 430: TC-PS-011 three opponent tiles - Online, Computer, Pass & Play  [["Online 127.3x84","Computer 127.3x84","Pass & Play 127.3x84"]]
+PASS 430: TC-PS-012 exactly ONE is selected on arrival and it is Computer (chess.jsx:2000 useState('computer')). This is why the default screen is the tall one, and why measuring only Pass & Play measures the variant nobody lands on.  [[{"t":"Online","on":false,"h":84,"w":127.3},{"t":"Computer","on":true,"h":84,"w":127.3},{"t":"Pass & Play","on":false,"h":84,"w":127.3}]]
+PASS 430: TC-PS-013 every opponent tile is at least 44px tall (measured 84)  [[84,84,84]]
+PASS 430: TC-PS-014 Pass & Play drops the persona row, the colour row and the strength slider - there is no input[type=range] on screen at all, which is exactly why its sheet fits (602.5 tall, overlay scroll 0) where the Computer sheet does not
+PASS 430: TC-PS-015 the persona row is on screen
+PASS 430: TC-PS-016 five personas, each naming its exact Elo: Pip 500, Rosa 900, Milo 1300, Astrid 1900, Viktor 2350  [["Pip ≈ 500 Elo","Rosa ≈ 900 Elo","Milo ≈ 1300 Elo","Astrid ≈ 1900 Elo","Viktor ≈ 2350 Elo"]]
+PASS 430: TC-PS-017 every one of the five can be brought fully on screen AND is hit-testable there - the row is a horizontal scroller, so the ones off the right edge are swiped to, not lost. Reached by scrolling the row for real, never by scrollIntoView.  [["Pip rest.right=112 -> 16..112 hit=true","Rosa rest.right=218 -> 122..218 hit=true","Milo rest.right=324 -> 228..324 hit=true","Astrid rest.right=430 -> 310..406 hit=true","Viktor rest.right=536 -> 318..414 hit=true"]]
+PASS 430: TC-PS-018 Viktor is NEVER visible at rest - his right edge is at 536 against a 430px viewport at every width in the gate set. The strongest opponent in the app always costs a sideways swipe to find. Visible at rest here: Pip, Rosa, Milo, Astrid  [{"restRight":536,"vw":430,"atRest":["Pip","Rosa","Milo","Astrid"]}]
+PASS 430: TC-PS-019 tapping one persona selects exactly one  [[{"t":"Milo","on":true,"h":169.9,"w":96}]]
+PASS 430: TC-PS-020 the strength slider runs 400 to 2400 in steps of 25 (ELO_MIN/ELO_MAX, chess.jsx:990)  [{"min":"400","max":"2400","step":"25","value":"1300","w":398,"label":"≈ 1300 Elo"}]
+PASS 430: TC-PS-021 choosing Milo drives the slider to his Elo and the readout to "≈ 1300 Elo" - the persona chips and the slider are one value, not two  [{"min":"400","max":"2400","step":"25","value":"1300","w":398,"label":"≈ 1300 Elo"}]
+PASS 430: TC-PS-022 and it works the other way: dragging the slider onto a persona's exact Elo selects that persona  [{"sel":[{"t":"Astrid","on":true,"h":155.5,"w":96}],"foot":"vs Astrid · White · No clock"}]
+PASS 430: TC-PS-023 one step off a persona's Elo (1925) deselects every chip and the footer falls back to the unnamed "vs Computer". botForElo is an EXACT match (chess.jsx:1550), so only 5 of the slider's 81 stops name an opponent - and the app's own default, 800, is not one of them.  [{"sel":[],"foot":"vs Computer · White · No clock","elo":"1925"}]
+PASS 430: TC-PS-024 the slider's top end is 2400 but the strongest persona is Viktor at 2350, so the maximum strength in the app has no face and no name  [{"foot":"vs Computer · White · No clock"}]
+PASS 430: TC-PS-025 and the bottom end, 400, is below Pip's 500 and is equally unnamed  [{"foot":"vs Computer · White · No clock"}]
+PASS 430: TC-PS-026 two colour buttons, White selected by default (chess.jsx:2164 useState('w'))  [[{"t":"White","on":true,"h":46,"w":195},{"t":"Black","on":false,"h":46,"w":195}]]
+PASS 430: TC-PS-027 both colour buttons are at least 44px tall (measured 46)  [[46,46]]
+PASS 430: TC-PS-028 tapping Black moves the selection and the footer follows it  [{"sel":[{"t":"Black","on":true,"h":46,"w":195}],"foot":"vs Milo · Black · No clock"}]
+PASS 430: TC-PS-029 nine time controls: No clock plus the eight in TIME_CONTROLS (chess.jsx:994)  [["No clock","1 min","2 min","3 min","5 min","10 min","1+1","2+1","3+1"]]
+PASS 430: TC-PS-030 No clock is selected on arrival and it is the only one selected  [[{"t":"No clock","on":true,"h":29,"w":87.8},{"t":"1 min","on":false,"h":29,"w":66.8},{"t":"2 min","on":false,"h":29,"w":66.8},{"t":"3 min","on":false,"h":29,"w":66.8},{"t":"5 min","on":false,"h":29,"w":66.8},{"t":"10 min","on":false,"h":29,"w":75.9},{"t":"1+1","on":false,"h":29,"w":55},{"t":"2+1","on":false,"h":29,"w":55},{"t":"3+1","on":false,"h":29,"w":55}]]
+PASS 430: TC-PS-031 picking one moves the selection and the footer names it  [{"sel":[{"t":"3+1","on":true,"h":29,"w":55}],"foot":"vs Milo · White · 3+1"}]
+PASS 430: TC-PS-032 DEFECT, measured. Switch to Online while a blitz control is selected and the "Time per move" row shows FOUR pills with NONE of them selected. timeCtrl is still {label:"3+1"}, so `!timeCtrl` is false and no CORR_CONTROLS label matches (chess.jsx:4589) - there is no state on screen saying what this game will use, and Continue proceeds anyway.  [[{"t":"No limit","on":false,"h":29,"w":83.5},{"t":"1 day / move","on":false,"h":29,"w":119.3},{"t":"3 days / move","on":false,"h":29,"w":127},{"t":"7 days / move","on":false,"h":29,"w":127}]]
+PASS 430: TC-PS-033 DEFECT, and the other direction is worse. Pick "3 days / move" under Online, switch back to Computer, and all nine Computer pills read unselected while the footer states "vs Milo · White · 3 days / move" - a multi-day correspondence limit named as the time control of a local game against Stockfish, from a list this screen does not offer and cannot select back. Two taps from the default screen, at every geometry.  [{"selected":[],"foot":"vs Milo · White · 3 days / move"}]
+PASS 430: TC-PS-034 the footer states the three choices in order - opponent, colour, clock. It is the only line on the screen that says what is about to start.  [vs Milo · White · No clock]
+PASS 430: TC-PS-035 Pass & Play restates itself as "Pass & play on one device · No clock" and keeps the clock choice across the opponent switch  [{"foot":"Pass & play on one device · No clock","label":"▶ Start game"}]
+PASS 430: TC-PS-036 Online names no clock and no colour, and the button becomes "Continue →" because the next screen is where the game is actually made  [{"foot":"Online · play a friend by invite code","label":"Continue →"}]
+PASS 430: zero app errors across the control sweep  [[]]
+     se: came from "2. Nf3 ★ Best ▶ why 3/16"
+PASS se: TC-PS-037 the setup sheet opens with the banner, word for word, naming the side to move  [{"sheet":true,"present":true,"ct":null,"t":"♟ Continuing from your reviewed position. You'll play Black (the side to move) — switch the color below if you'd rather take the other side.","h":103,"pcPresent":true,"pcInk":""}]
+PASS se: TC-PS-038 the banner carries NO data-ct. [data-ct="play-context"] IS in the DOM - it is the live game's opening row rendering under the overlay - and it carries no ink at all there (its text is a lone non-breaking space). TEST-CASES-REVIEW.md TC-RL-086 names play-context as the carrier of this string; it is not, and a gate written from that case asserts on the wrong element.  [{"sheet":true,"present":true,"ct":null,"t":"♟ Continuing from your reviewed position. You'll play Black (the side to move) — switch the color below if you'd rather take the other side.","h":103,"pcPresent":true,"pcInk":""}]
+PASS se: TC-PS-039 the colour preselected is the SIDE TO MOVE at that ply (Black after 2.Nf3), not the reviewer's own side, and the footer agrees. US-R28 asks for "my side"; this is what the build does (chess.jsx:4106 setPColor(boardGame.turn)).  [{"col":[{"t":"White","on":false,"h":46,"w":140},{"t":"Black","on":true,"h":46,"w":140}],"foot":"vs Computer · Black · No clock"}]
+PASS se: TC-PS-040 the button relabels itself "▶ Play this position", and it is reachable and hit-testable at 512..560 of 568 (at rest it sits at 987, below the fold at both geometries)  [{"found":true,"label":"▶ Play this position","restTop":987,"restBottom":1035,"restRight":304,"restOn":false,"top":512,"bottom":560,"left":16,"right":304,"w":288,"h":48,"onScreen":true,"scrollers":2,"hit":true,"hitWas":"button","vh":568,"vw":320}]
+PASS se: no app error beyond the allowed engine trap  [[]]
+     kunal730: came from "2. Nf3 ★ Best ▶ why 3/16"
+PASS kunal730: TC-PS-037 the setup sheet opens with the banner, word for word, naming the side to move  [{"sheet":true,"present":true,"ct":null,"t":"♟ Continuing from your reviewed position. You'll play Black (the side to move) — switch the color below if you'd rather take the other side.","h":103,"pcPresent":true,"pcInk":""}]
+PASS kunal730: TC-PS-038 the banner carries NO data-ct. [data-ct="play-context"] IS in the DOM - it is the live game's opening row rendering under the overlay - and it carries no ink at all there (its text is a lone non-breaking space). TEST-CASES-REVIEW.md TC-RL-086 names play-context as the carrier of this string; it is not, and a gate written from that case asserts on the wrong element.  [{"sheet":true,"present":true,"ct":null,"t":"♟ Continuing from your reviewed position. You'll play Black (the side to move) — switch the color below if you'd rather take the other side.","h":103,"pcPresent":true,"pcInk":""}]
+PASS kunal730: TC-PS-039 the colour preselected is the SIDE TO MOVE at that ply (Black after 2.Nf3), not the reviewer's own side, and the footer agrees. US-R28 asks for "my side"; this is what the build does (chess.jsx:4106 setPColor(boardGame.turn)).  [{"col":[{"t":"White","on":false,"h":46,"w":167.5},{"t":"Black","on":true,"h":46,"w":167.5}],"foot":"vs Computer · Black · No clock"}]
+PASS kunal730: TC-PS-040 the button relabels itself "▶ Play this position", and it is reachable and hit-testable at 674..722 of 730 (at rest it sits at 963, below the fold at both geometries)  [{"found":true,"label":"▶ Play this position","restTop":963,"restBottom":1011,"restRight":359,"restOn":false,"top":674,"bottom":722,"left":16,"right":359,"w":343,"h":48,"onScreen":true,"scrollers":2,"hit":true,"hitWas":"button","vh":730,"vw":375}]
+PASS kunal730: no app error beyond the allowed engine trap  [[]]
+PASS se: TC-PS-041 Start game dismisses the setup sheet and lands on a painted board with the live Play chrome  [{"after":{"sheet":false,"home":true},"board":{"x":25,"y":63,"w":288}}]
+PASS se: TC-PS-042 and the colour chosen is honoured - Black was selected, so the board comes up flipped  [{"flip":true}]
+PASS se: TC-PS-043 "‹ Home" leaves setup without starting anything and returns to Home
+PASS se: zero app errors leaving the screen  [[]]
+PASS kunal730: TC-PS-041 Start game dismisses the setup sheet and lands on a painted board with the live Play chrome  [{"after":{"sheet":false,"home":true},"board":{"x":20,"y":94,"w":353}}]
+PASS kunal730: TC-PS-042 and the colour chosen is honoured - Black was selected, so the board comes up flipped  [{"flip":true}]
+PASS kunal730: TC-PS-043 "‹ Home" leaves setup without starting anything and returns to Home
+PASS kunal730: zero app errors leaving the screen  [[]]
+PLAY-SETUP: 165 pass, 0 fail
+    45-play-setup: green (165 PASS)
+=== 46-play ===
+     bundle: app.js  stamp #395 - 2026-09-14 21:29 ET  (CT_APP)
+PASS se: at move 0 the control row is exactly Moves · Back · Forward · Hint · Flip · More  [Moves,Back,Forward,Hint,Flip,More]
+PASS se: at move 0 Back AND Forward are disabled - there is no position behind and none ahead  [{"back":true,"forward":true}]
+PASS se: the MOVES panel holds no plies at move 0 (the empty-state line is not a ply)  [0]
+PASS se: the vs-Computer board is 288 wide at (25,62.5) - the measured size for this geometry  [{"measured":{"w":288,"top":62.5,"left":25,"flip":false},"want":{"bw":288,"bx":25,"by":62.5,"barW":288,"barH":33.5}}]
+PASS se: nothing scrolls vertically in a live game  [{"bottom":568,"vh":568,"over":0,"scrollY":0,"docScroll":0}]
+PASS se: nothing scrolls sideways either (scrollWidth 320 = viewport 320)
+PASS se: both player bars are 288 wide - the board's own width  [{"top":288,"bottom":288,"want":288}]
+PASS se: both player bars are 33.5 tall  [{"top":33.5,"bottom":33.5,"want":33.5}]
+PASS se: the ⌂ and ☰ live in the TOP player bar (#351: they were a 40px row of their own and every pixel of it went to the board)  [{"home":true,"menu":true}]
+PASS se: in a live game the row is Moves · Back · Forward · Hint · Flip · More  [Moves,Back,Forward,Hint,Flip,More]
+PASS se: every control button is 51 tall  [Moves:51 Back:51 Forward:51 Hint:51 Flip:51 More:51]
+PASS se: the whole control row is inside the viewport before any tap (bottom 486 <= 568)  [{"bottom":486,"vh":568}]
+PASS se: no control button hangs off either edge  [16..58.6 64.6..107.3 113.3..158.1 164.1..206.8 212.8..255.4 261.4..304]
+     se: narrowest control button is 42.6 wide x 51 tall (NEEDS-KUNAL K-PL-1: 44px)
+PASS se: after four plies Back is live and Forward is dead - the board is at the head of the game  [{"back":false,"forward":true}]
+PASS se: Moves toggles the list's VISIBILITY (visible -> hidden -> visible), it does not unmount the row  [{"v1":"visible","v2":"hidden","v3":"visible"}]
+PASS se: the board has ONE top and ONE width across the Moves toggle (#373: it used to move 23px)  [{"tops":[62.5],"wids":[288]}]
+PASS se: and that width is still the pinned 288 with the list hidden  [{"measured":288,"want":288}]
+PASS se: Back steps the painted position back exactly one ply (4 -> 3)  [{"live":4,"back":3}]
+PASS se: Forward comes alive as soon as the board is behind the head  [{"forward":false}]
+PASS se: the board does not move when a past ply is previewed  [{"measured":{"w":288,"top":62.5,"left":25,"flip":false},"want":{"bw":288,"bx":25,"by":62.5,"barW":288,"barH":33.5}}]
+PASS se: one board tap while previewing returns to the live position and plays NO move (3 -> 4, the game still has 4 plies)  [{"back":3,"afterTap":4,"live":4}]
+PASS se: and Forward is dead again, because the board is back at the head  [{"forward":true}]
+PASS se: zero app errors across the live screen  [[]]
+PASS kunal730: at move 0 the control row is exactly Moves · Back · Forward · Hint · Flip · More  [Moves,Back,Forward,Hint,Flip,More]
+PASS kunal730: at move 0 Back AND Forward are disabled - there is no position behind and none ahead  [{"back":true,"forward":true}]
+PASS kunal730: the MOVES panel holds no plies at move 0 (the empty-state line is not a ply)  [0]
+PASS kunal730: the vs-Computer board is 353 wide at (20,93.8) - the measured size for this geometry  [{"measured":{"w":353,"top":93.8,"left":20,"flip":false},"want":{"bw":353,"bx":20,"by":93.8,"barW":353,"barH":64.8}}]
+PASS kunal730: nothing scrolls vertically in a live game  [{"bottom":730,"vh":730,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal730: nothing scrolls sideways either (scrollWidth 375 = viewport 375)
+PASS kunal730: both player bars are 353 wide - the board's own width  [{"top":353.03125,"bottom":353.03125,"want":353}]
+PASS kunal730: both player bars are 64.8 tall  [{"top":64.75,"bottom":64.75,"want":64.8}]
+PASS kunal730: the ⌂ and ☰ live in the TOP player bar (#351: they were a 40px row of their own and every pixel of it went to the board)  [{"home":true,"menu":true}]
+PASS kunal730: in a live game the row is Moves · Back · Forward · Hint · Flip · More  [Moves,Back,Forward,Hint,Flip,More]
+PASS kunal730: every control button is 51 tall  [Moves:51 Back:51 Forward:51 Hint:51 Flip:51 More:51]
+PASS kunal730: the whole control row is inside the viewport before any tap (bottom 613.5 <= 730)  [{"bottom":613.5,"vh":730}]
+PASS kunal730: no control button hangs off either edge  [11..64.8 70.8..124.7 130.7..184.5 190.5..244.4 250.4..304.2 310.2..364]
+     kunal730: narrowest control button is 53.8 wide x 51 tall (NEEDS-KUNAL K-PL-1: 44px)
+PASS kunal730: after four plies Back is live and Forward is dead - the board is at the head of the game  [{"back":false,"forward":true}]
+PASS kunal730: Moves toggles the list's VISIBILITY (visible -> hidden -> visible), it does not unmount the row  [{"v1":"visible","v2":"hidden","v3":"visible"}]
+PASS kunal730: the board has ONE top and ONE width across the Moves toggle (#373: it used to move 23px)  [{"tops":[93.8],"wids":[353]}]
+PASS kunal730: and that width is still the pinned 353 with the list hidden  [{"measured":353,"want":353}]
+PASS kunal730: Back steps the painted position back exactly one ply (4 -> 3)  [{"live":4,"back":3}]
+PASS kunal730: Forward comes alive as soon as the board is behind the head  [{"forward":false}]
+PASS kunal730: the board does not move when a past ply is previewed  [{"measured":{"w":353,"top":93.8,"left":20,"flip":false},"want":{"bw":353,"bx":20,"by":93.8,"barW":353,"barH":64.8}}]
+PASS kunal730: one board tap while previewing returns to the live position and plays NO move (3 -> 4, the game still has 4 plies)  [{"back":3,"afterTap":4,"live":4}]
+PASS kunal730: and Forward is dead again, because the board is back at the head  [{"forward":true}]
+PASS kunal730: zero app errors across the live screen  [[]]
+PASS 390: at move 0 the control row is exactly Moves · Back · Forward · Hint · Flip · More  [Moves,Back,Forward,Hint,Flip,More]
+PASS 390: at move 0 Back AND Forward are disabled - there is no position behind and none ahead  [{"back":true,"forward":true}]
+PASS 390: the MOVES panel holds no plies at move 0 (the empty-state line is not a ply)  [0]
+PASS 390: the vs-Computer board is 368 wide at (20,103) - the measured size for this geometry  [{"measured":{"w":368,"top":103,"left":20,"flip":false},"want":{"bw":368,"bx":20,"by":103,"barW":368,"barH":74}}]
+PASS 390: nothing scrolls vertically in a live game  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: nothing scrolls sideways either (scrollWidth 390 = viewport 390)
+PASS 390: both player bars are 368 wide - the board's own width  [{"top":368,"bottom":368,"want":368}]
+PASS 390: both player bars are 74 tall  [{"top":74,"bottom":74,"want":74}]
+PASS 390: the ⌂ and ☰ live in the TOP player bar (#351: they were a 40px row of their own and every pixel of it went to the board)  [{"home":true,"menu":true}]
+PASS 390: in a live game the row is Moves · Back · Forward · Hint · Flip · More  [Moves,Back,Forward,Hint,Flip,More]
+PASS 390: every control button is 51 tall  [Moves:51 Back:51 Forward:51 Hint:51 Flip:51 More:51]
+PASS 390: the whole control row is inside the viewport before any tap (bottom 678 <= 844)  [{"bottom":678,"vh":844}]
+PASS 390: no control button hangs off either edge  [11..67.3 73.3..129.7 135.7..192 198..254.3 260.3..316.6 322.6..379]
+     390: narrowest control button is 56.3 wide x 51 tall (NEEDS-KUNAL K-PL-1: 44px)
+PASS 390: after four plies Back is live and Forward is dead - the board is at the head of the game  [{"back":false,"forward":true}]
+PASS 390: Moves toggles the list's VISIBILITY (visible -> hidden -> visible), it does not unmount the row  [{"v1":"visible","v2":"hidden","v3":"visible"}]
+PASS 390: the board has ONE top and ONE width across the Moves toggle (#373: it used to move 23px)  [{"tops":[103],"wids":[368]}]
+PASS 390: and that width is still the pinned 368 with the list hidden  [{"measured":368,"want":368}]
+PASS 390: Back steps the painted position back exactly one ply (4 -> 3)  [{"live":4,"back":3}]
+PASS 390: Forward comes alive as soon as the board is behind the head  [{"forward":false}]
+PASS 390: the board does not move when a past ply is previewed  [{"measured":{"w":368,"top":103,"left":20,"flip":false},"want":{"bw":368,"bx":20,"by":103,"barW":368,"barH":74}}]
+PASS 390: one board tap while previewing returns to the live position and plays NO move (3 -> 4, the game still has 4 plies)  [{"back":3,"afterTap":4,"live":4}]
+PASS 390: and Forward is dead again, because the board is back at the head  [{"forward":true}]
+PASS 390: zero app errors across the live screen  [[]]
+PASS no square is hint-painted before Hint is asked for  [0]
+PASS Hint paints exactly TWO squares - the piece to move and where it goes  [{"painted":2}]
+PASS the board does not move for a hint, and is still the pinned 353  [{"before":{"w":353,"top":93.8,"left":20,"flip":false},"after":{"w":353,"top":93.8,"left":20,"flip":false}}]
+PASS nothing scrolls when a hint is shown  [{"bottom":730,"vh":730,"over":0,"scrollY":0,"docScroll":0}]
+PASS the hint clears the moment a move is played - it never survives onto a position it was not computed for  [0]
+PASS Flip turns the board round  [{"flip":true}]
+PASS Flip swaps which player is in which bar  [{"topBefore":"⌂ -0.7 Pip 500 +1 ☰","topAfter":"⌂ -0.7 ♔ You ☰","botBefore":"♔ You","botAfter":"Pip 500 +1"}]
+PASS the board does not change size or position when it is flipped  [{"before":{"w":353,"top":93.8,"left":20,"flip":false},"after":{"w":353,"top":93.8,"left":20,"flip":true}}]
+PASS Flip again puts it back  [{"flip":false}]
+PASS zero app errors across Hint and Flip  [[]]
+PASS a 1 min clock shows 1:00 on both sides at move 0  [{"top":"1:00","bot":"1:00"}]
+PASS and neither side loses a second before the first move is played - three seconds of sitting still cost nothing  [{"top":"1:00","bot":"1:00"}]
+PASS after 1.e4 the side that MOVED is not charged for the opponent's thinking time  [{"top":"1:00","bot":"0:56"}]
+PASS the side TO MOVE is charged - about 4s gone after a 4s wait  [{"top":"1:00","bot":"0:56"}]
+     the clock pill carries NO data-ct (chess.jsx:6016): it can only be read as the m:ss inside pbar-top / pbar-bottom. Flagged so a later gate does not assert the wrong element.
+PASS zero app errors with a clock running  [[]]
+PASS se: the Pass & Play board is 272 wide at x=24 - wider than the vs-Computer board, which gives 18px to the eval bar  [{"measured":{"w":272,"top":63,"left":24,"flip":false},"want":{"bw":272,"bx":24,"by":63,"barW":272,"barH":34}}]
+PASS se: the result card names the result in full  [{"card":"Checkmate! Black wins"}]
+PASS se: the board at game over is still the pinned 272 at y=63 - the mate is not a layout event  [{"measured":{"w":272,"top":63,"left":24,"flip":false},"want":{"bw":272,"bx":24,"by":63,"barW":272,"barH":34}}]
+PASS se: nothing scrolls at game over  [{"bottom":568,"vh":568,"over":0,"scrollY":0,"docScroll":0}]
+PASS se: at game over the row is Moves · Back · Forward · Review · Rematch · More - Hint and Flip give their two slots to Review and Rematch, same row, same height (#371)  [Moves,Back,Forward,Review,Rematch,More]
+PASS se: and every one of them is still 51 tall, so the row below the board did not change height  [Moves:51 Back:51 Forward:51 Review:51 Rematch:51 More:51]
+PASS se: the whole game-over row is inside the viewport before any tap  [{"bottom":485,"vh":568}]
+PASS se: Review is live on a finished four-ply game  [{"review":{"t":"Review","x":160,"y":434,"w":40,"h":51,"bottom":485,"right":200,"dis":false}}]
+PASS se: the More sheet on a finished game is New game · Analyze · Copy moves - Resign has left, and it was the LAST row so nothing above it moved  [New game,Analyze,Copy moves]
+PASS se: there is no way to resign a game that is already over  [["New game","Analyze","Copy moves"]]
+PASS se: the LAST row of the sheet ends inside the viewport (545 <= 568) - the content, not just the container  [{"last":{"t":"Copy moves","h":45,"bottom":545,"dis":false},"vh":568}]
+PASS se: every sheet row is at least 44 tall  [New game:45 Analyze:45 Copy moves:45]
+PASS se: RECORDED, NOT ENDORSED - after the game ends there is no Flip anywhere: not in the row, not in the More sheet. chess.jsx:5319 says "Flip is still in More"; it is not. K-PL-4  [{"flipAnywhere":false}]
+PASS the result card fades off the board within 8s, so it never sits over the position for good  [{"card":null}]
+PASS se: the card is the board grid's one extra child while it is up (65 -> 64) - compare x/y/w/h, never the whole board object, or this legitimate change reads as a false difference  [{"withCard":65,"after":64}]
+PASS se: and the board is untouched by the card leaving  [{"measured":{"w":272,"top":63,"left":24,"flip":false},"want":{"bw":272,"bx":24,"by":63,"barW":272,"barH":34}}]
+PASS se: zero app errors across the game ending  [[]]
+PASS kunal730: the Pass & Play board is 375 wide at x=0 - wider than the vs-Computer board, which gives 18px to the eval bar  [{"measured":{"w":375,"top":84.8,"left":0,"flip":false},"want":{"bw":375,"bx":0,"by":84.8,"barW":375,"barH":55.8}}]
+PASS kunal730: the result card names the result in full  [{"card":"Checkmate! Black wins"}]
+PASS kunal730: the board at game over is still the pinned 375 at y=84.8 - the mate is not a layout event  [{"measured":{"w":375,"top":84.8,"left":0,"flip":false},"want":{"bw":375,"bx":0,"by":84.8,"barW":375,"barH":55.8}}]
+PASS kunal730: nothing scrolls at game over  [{"bottom":730,"vh":730,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal730: at game over the row is Moves · Back · Forward · Review · Rematch · More - Hint and Flip give their two slots to Review and Rematch, same row, same height (#371)  [Moves,Back,Forward,Review,Rematch,More]
+PASS kunal730: and every one of them is still 51 tall, so the row below the board did not change height  [Moves:51 Back:51 Forward:51 Review:51 Rematch:51 More:51]
+PASS kunal730: the whole game-over row is inside the viewport before any tap  [{"bottom":631.5,"vh":730}]
+PASS kunal730: Review is live on a finished four-ply game  [{"review":{"t":"Review","x":190.5,"y":580.5,"w":57.5,"h":51,"bottom":631.5,"right":248,"dis":false}}]
+PASS kunal730: the More sheet on a finished game is New game · Analyze · Copy moves - Resign has left, and it was the LAST row so nothing above it moved  [New game,Analyze,Copy moves]
+PASS kunal730: there is no way to resign a game that is already over  [["New game","Analyze","Copy moves"]]
+PASS kunal730: the LAST row of the sheet ends inside the viewport (707 <= 730) - the content, not just the container  [{"last":{"t":"Copy moves","h":45,"bottom":707,"dis":false},"vh":730}]
+PASS kunal730: every sheet row is at least 44 tall  [New game:45 Analyze:45 Copy moves:45]
+PASS kunal730: RECORDED, NOT ENDORSED - after the game ends there is no Flip anywhere: not in the row, not in the More sheet. chess.jsx:5319 says "Flip is still in More"; it is not. K-PL-4  [{"flipAnywhere":false}]
+PASS the result card fades off the board within 8s, so it never sits over the position for good  [{"card":null}]
+PASS kunal730: the card is the board grid's one extra child while it is up (65 -> 64) - compare x/y/w/h, never the whole board object, or this legitimate change reads as a false difference  [{"withCard":65,"after":64}]
+PASS kunal730: and the board is untouched by the card leaving  [{"measured":{"w":375,"top":84.8,"left":0,"flip":false},"want":{"bw":375,"bx":0,"by":84.8,"barW":375,"barH":55.8}}]
+PASS kunal730: zero app errors across the game ending  [[]]
+PASS vs Computer the live More sheet is Takeback · New game · Resign · Analyze · Copy moves  [Takeback,New game,Resign,Analyze,Copy moves]
+PASS one tap only ARMS Resign - the row reads "Tap again to resign" (#375: a 45px row under New game used to end the game on one tap)  [Takeback,New game,Tap again to resign,Analyze,Copy moves]
+PASS and the game is still LIVE while it is armed - the control row has not changed  [Moves,Back,Forward,Hint,Flip,More]
+PASS the second tap resigns and the card says so  [{"card":"Resigned You lose"}]
+PASS a resigned game gets the same game-over row as a mated one  [Moves,Back,Forward,Review,Rematch,More]
+PASS resigning at move 0 leaves Review DISABLED - there is no game to review  [{"review":{"t":"Review","x":190.5,"y":562.5,"w":53.8,"h":51,"bottom":613.5,"right":244.4,"dis":true}}]
+PASS and Back and Forward are dead too, because no ply was ever played  [{"back":true,"forward":true}]
+PASS the board is still the pinned 353 after a resignation at move 0  [{"measured":{"w":353,"top":93.8,"left":20,"flip":false},"want":{"bw":353,"bx":20,"by":93.8,"barW":353,"barH":64.8}}]
+PASS nothing scrolls after a resignation  [{"bottom":730,"vh":730,"over":0,"scrollY":0,"docScroll":0}]
+PASS zero app errors across a resignation  [[]]
+PLAY: 128 pass, 0 fail
+    46-play: green (128 PASS)
+regression assertions (PASS lines): 1040
+GATES GREEN #395

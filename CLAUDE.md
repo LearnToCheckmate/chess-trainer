@@ -241,6 +241,28 @@ wider one.
   assertion exists for - a wrong sign (#389 shipped -2.5 on a won position), a hundredfold error (#385 printed
   +0.0 beside a bar reading +5.9), and a dead search returning nothing. **When an assertion you just moved goes
   red, find out which of the two readings changed before you touch the number.**
+- **A CONTAINER IS NOT ITS CONTENTS, AND THE CHECK YOU WOULD NATURALLY WRITE PASSES ON THE BUNDLE HE IS
+  COMPLAINING ABOUT.** Kunal reported the lesson footer icons as too small. Every one of those buttons measures
+  50.5pt square on his phone - above the 44pt minimum, the same height as the pills above them - so a tap-target
+  assertion, which is the obvious one to reach for, goes GREEN while the complaint stands. What was small was
+  the INK: a 9.2pt close x, 13.8 x 18.3 chevrons, 17.2 x 3.1 dots, inside those 50.5pt boxes. Measure the thing
+  the user is looking at: the text node's own box (a Range over the button's contents) or the SVG's, not the
+  button's rect. The fix then goes INSIDE the box and never to the box, because that row is `position:fixed` and
+  growing it spends board height. `gates/regress/11-lesson.js` is the reference, and its control is the proof
+  the distinction is real: on the pre-fix bundle the three GLYPH assertions go red at every geometry while the
+  container-height assertion stays green. #395, and the same family as #347's "icons still sized for the text
+  labels they stopped carrying" - the tell there and here is a bare glyph left at a font size that was chosen
+  for a word.
+- **A CLOSED FLAG WITH A FROZEN DENOMINATOR ANSWERS "NONE" TO THE QUESTION IT EXISTS FOR.**
+  `gates-without-a-negative-control` was closed at #381 reading "ALL 19 SUITES have now been run against a
+  bundle built to fail them". True when written. The suite is now 27, nine gates landed after it closed, and
+  the one place anyone would look to ask *which gates are uncontrolled* said "none" - so 44% of the assertions
+  in this suite had never been shown able to fail, including its two largest gates, covering the two screens
+  the audit ranks #1 and #2 by risk. An external challenger found it; nobody inside the lane did, because the
+  flag looked finished. **When a ledger counts against a total that can grow, either it tracks the total or it
+  must be reopened when the total moves - never closed at the number that happened to be true that day.** And
+  when someone hands you a list like that, CHECK IT rather than repeat it: a grep for "control" clears
+  `45-play-setup` and `46-play` wrongly, because both use the word to mean a UI control. #395.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never
