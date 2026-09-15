@@ -175,6 +175,16 @@ wider one.
   without saying so. A `-webkit-line-clamp` draws an ellipsis; a box with `overflow:hidden` does not, and if
   the box is the shorter of the two it wins silently. #387's assertion is that the bubble never sits on its
   own height cap, so the clamp is always what truncates.
+- **CHECK THE POLARITY OF YOUR INK TEST BEFORE YOU BELIEVE A PIXEL SCAN.** Confirming #397's fix, I scanned
+  the sentence box for text-line bands with `luminance < 110` and got ONE band filling the whole box on both
+  bundles - a result that reads like "no lines at all" and would have been reported as "no fourth line" if I
+  had squinted at it approvingly. This app is DARK-THEMED: the ground is luminance 20 and the text is 204, so
+  a low-luminance threshold selects the BACKGROUND and every row comes back full-width. Inverted to the bright
+  pixels, the same crops gave 4 bands on the broken bundle - the fourth only 5 rows tall where a full line is
+  13, so visibly cut - and 3 on the fixed one, independently reproducing what the UAT lane had found. Derive
+  the threshold from the crop's own min and max rather than hard-coding one, and sanity-check the count
+  against what you can already see: a band spanning the entire box means you are measuring the background.
+  #397.
 - **A CLAMP AND A CLIP ARE TWO DIFFERENT BOXES, AND ASSERTING THE CLAMP EXISTS DOES NOT SETTLE WHICH ONE CUTS.**
   #387's rule above says make truncation VISIBLE, and #394's gate encoded it as `-webkit-line-clamp !== none`.
   That is necessary and NOT sufficient, and the headless UAT lane caught it with a pixel scan the same night.

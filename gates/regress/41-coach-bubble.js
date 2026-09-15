@@ -116,13 +116,24 @@ L.run(async()=>{
       const m=await b.page.evaluate(()=>{
         const e=document.querySelector('[data-ct="rev-why-txt"]'); if(!e)return null;
         const cs=getComputedStyle(e);
-        return {sh:e.scrollHeight,ch:e.clientHeight,clamp:cs.webkitLineClamp||cs.getPropertyValue('-webkit-line-clamp'),
-                ov:cs.overflow,len:(e.textContent||'').trim().length};
+        return {sh:e.scrollHeight,ch:e.clientHeight,clamp:parseInt(cs.webkitLineClamp||cs.getPropertyValue('-webkit-line-clamp')||'0',10),
+                lh:parseFloat(cs.lineHeight),ov:cs.overflow,len:(e.textContent||'').trim().length};
       });
       if(m)cut.push({ply,...m,over:m.sh>m.ch+1});
     }
     L.say(cut.length>=6,geo+': the truncation walk actually measured the box at six or more plies',cut.length);
     L.say(cut.every(c=>c.clamp&&c.clamp!=='none'),geo+': the box CLAMPS rather than merely hiding overflow, so when the sentence does not fit an ellipsis is drawn and the user can see there is more. #387: a box with overflow:hidden and no clamp cuts silently',cut.map(c=>c.clamp)[0]);
+
+    /* #397 (uat394-rev-why-clips-fourth-line-320): AND THE CLAMP BEING SET IS NOT ENOUGH, which is the
+       assertion above being too weak and the headless UAT lane proving it with a pixel scan the same night.
+       A clamp counts LINE BOXES; overflow:hidden decides where the CONTAINER ends. They are different boxes.
+       The old box was 58 tall for a 3-line clamp at line-height 16.9, so three lines took 50.7 and left 7.3px
+       of slack - and the fourth line painted into that slack and was cut at the box edge, under an ellipsis
+       that had already ended the sentence. Measured at 320 on ply 19: FOUR ink bands, the fourth only 5 rows
+       tall where a full line is 13. So assert the geometry that makes it impossible rather than the property
+       that merely suggests it. */
+    const slack=cut.map(c=>({ply:c.ply,ch:c.ch,need:+( (c.clamp&&c.lh)?(c.clamp*c.lh):0 ).toFixed(2),slack:+(c.ch-((c.clamp&&c.lh)?c.clamp*c.lh:c.ch)).toFixed(2)}));
+    L.say(slack.length>0&&slack.every(x=>x.need>0&&x.slack<1.0),geo+': THE CONTAINER IS NO TALLER THAN THE LINES ITS CLAMP ALLOWS - less than 1px of slack, so there is nowhere for a fourth line to paint. 7.3px of slack is what let one paint and be cut at #394, and asserting only that a clamp was set could not see it',slack);
     // NOT an assertion that nothing is ever truncated - on a phone some sentences genuinely will not fit,
     // and CLAUDE.md says so. This RECORDS how often, because removing the bubble took the roomier of the
     // two readouts away and the honest thing is to publish that number rather than estimate it.

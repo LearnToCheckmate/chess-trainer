@@ -5341,7 +5341,16 @@ export default function App(){
             {!anaMode&&<span style={{flex:'0 0 auto',fontSize:'clamp(12.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.55)',fontFamily:'monospace',fontWeight:700}}>{ply}/{review.plies.length}</span>}
           </div>
           {/* #341: chess.com-style one-liner on why the move got its verdict, plain text, no box (Kunal asked for the reason back, and for the box gone). */}
-          {(()=>{const _tall=!wide;const _stripH=(wide&&_cmpStrip&&!anaMode)?20:0;const _reasonH=anaMode?0:(_tall?58:38);const _engH=engOn?20:0;const _bestH=(showBest&&bestLineSan&&!anaMode)?20:0;const _whyH=_stripH+_reasonH+_engH+_bestH;return _whyH>0&&(
+          {(()=>{const _tall=!wide;const _stripH=(wide&&_cmpStrip&&!anaMode)?20:0;/* #397 (uat394-rev-why-clips-fourth-line-320): THE BOX MUST BE NO TALLER THAN THE LINES ITS CLAMP ALLOWS.
+                 It was 58 for a 3-line clamp at line-height 16.9, so 3 x 16.9 = 50.7 fitted with 7.3px of SLACK left over -
+                 and overflow:hidden cut the FOURTH line at the box edge instead of never drawing it. At 320 on ply 19 that
+                 painted a row of decapitated glyphs UNDERNEATH an ellipsis that had already ended the sentence. Measured by
+                 the headless UAT lane with a pixel scan: four ink bands where three were assumed, scrollHeight 68 against
+                 clientHeight 58. A CLAMP AND A CLIP ARE DIFFERENT BOXES - the clamp counts line boxes, overflow decides
+                 where the container ends - and #394 asserted only that a clamp was set, which is why this survived.
+                 ceil(3 x 16.9) = 51 and ceil(2 x 16.9) = 34. The child now takes _reasonH rather than repeating the
+                 literal, so the two can never drift apart again; that duplication is how 58 outlived its line height. */
+                 const _reasonH=anaMode?0:(_tall?51:34);const _engH=engOn?20:0;const _bestH=(showBest&&bestLineSan&&!anaMode)?20:0;const _whyH=_stripH+_reasonH+_engH+_bestH;return _whyH>0&&(
             <div data-ct="rev-why" style={{height:_whyH,flexShrink:0,overflow:'hidden',display:'flex',flexDirection:'column',gap:2}}>
             {showBest&&bestLineSan&&!anaMode&&(<div data-ct="rev-bestline" style={{display:'flex',alignItems:'baseline',gap:7,fontSize:'clamp(13px,2.8vw,14.5px)',whiteSpace:'nowrap',overflowX:'auto',overflowY:'hidden'}} className="scroll">
               <b style={{flex:'0 0 auto',fontWeight:800,color:'rgba(255,255,255,.55)'}}>best line</b>
@@ -5350,7 +5359,7 @@ export default function App(){
             {_stripH>0&&(<div data-ct="rev-cmp" style={{height:20,flexShrink:0,display:'flex',alignItems:'baseline',gap:10,fontSize:'clamp(12.5px,2.7vw,14px)',fontFamily:'ui-monospace,Menlo,monospace',whiteSpace:'nowrap',overflow:'hidden'}}>
               {_cmpStrip.map((r,i)=>(<span key={i} style={{display:'inline-flex',gap:5,alignItems:'baseline'}}><b style={{fontWeight:800,color:i===0?'#e8e8ea':'rgba(255,255,255,.6)'}}>{r.san}</b><span style={{color:i===0?'var(--ac2)':'rgba(255,255,255,.55)',fontWeight:700}}>{evPawnsTxt(r.ev)}</span>{i>0&&<span style={{color:'rgba(255,255,255,.35)',fontSize:'.85em'}}>{r.best?'best':'next best'}</span>}</span>))}
             </div>)}
-            {!anaMode&&<div data-ct="rev-why-txt" style={{height:_tall?58:38,flexShrink:0,fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:_tall?3:2,WebkitBoxOrient:'vertical'}}>{_annoWhy||'\u00a0'}</div>}
+            {!anaMode&&<div data-ct="rev-why-txt" style={{height:_reasonH,flexShrink:0,fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:_tall?3:2,WebkitBoxOrient:'vertical'}}>{_annoWhy||'\u00a0'}</div>}
             {engOn&&(<div data-ct="rev-engline" style={{height:20,flexShrink:0,display:'flex',alignItems:'baseline',gap:7,fontSize:'clamp(13px,2.8vw,14.5px)',whiteSpace:'nowrap',overflowX:'auto',overflowY:'hidden'}} className="scroll">
               {engLine&&<b style={{flex:'0 0 auto',fontFamily:'ui-monospace,Menlo,monospace',fontWeight:800,color:engLine.cp==null?'rgba(255,255,255,.5)':(engLine.cp>=0?'#e8e8ea':'#9fb4c9')}}>{engLine.txt}</b>}
               {engLine&&<span style={{flex:'0 0 auto',color:'var(--ac2)',fontWeight:700,fontFamily:'ui-monospace,Menlo,monospace'}}>{engLine.line||'…'}</span>}

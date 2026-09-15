@@ -61,7 +61,51 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-15 by BUILD #396)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-15 by BUILD #397)
+LIVE = **#397**, stamp "#397 - 2026-09-14 22:56 ET", md5 78967f2e327d... over 947407 bytes.
+GATES GREEN: **28 suites, 1049 PASS, 0 fail** (`claude/agents/gatelogs/397-all.log`, verified by
+`gates/verify-log.sh`). Assertions 1047 to 1049: **+2, both the new container-height assertion in gate 41**
+(one per geometry), every other gate unchanged to the line.
+
+**THE REVIEW SENTENCE BOX NO LONGER CLIPS A FOURTH LINE** (`uat394-rev-why-clips-fourth-line-320`), and this
+one is here because **I published a wrong claim at #394 and the headless UAT lane measured it false.**
+
+My #394 close-out said of this box: *"what is cut draws an ellipsis because the box clamps rather than
+clips."* It does BOTH. A clamp counts LINE BOXES; `overflow:hidden` decides where the CONTAINER ends. They
+are different boxes, and if the container is taller than the clamped lines the next line paints into the
+slack and is cut at the box edge - a row of decapitated glyphs UNDER a sentence that already ended in three
+dots. My gate asserted `-webkit-line-clamp !== none` and I treated that as settling it. It does not.
+
+**THE ARITHMETIC IS THE WHOLE DEFECT AND IT IS ONE NUMBER.** `rev-why-txt` was 58 tall for a 3-line clamp at
+line-height 16.9. Three lines take 50.7, leaving **7.3px of slack**. Now `ceil(3 x 16.9) = 51`, and 34 for the
+2-line wide case. **The child element now takes `_reasonH` instead of repeating the literal**, so the two can
+never drift again - that duplication is exactly how 58 outlived its line height.
+
+**BOARD IMPACT, MEASURED BEFORE AND AFTER AT FOUR GEOMETRIES**, because freeing 7px in a flex column is the
+one thing that could have made this unshippable:
+
+    geometry    board before      board after
+    320x568     264.0 @ 53.0      264.0 @ 56.0      <- 3px LOWER, width unchanged
+    375x667     349.0 @ 56.0      349.0 @ 56.0      unchanged
+    375x730     349.0 @ 56.0      349.0 @ 56.0      unchanged (his phone)
+    390x844     364.0 @ 56.0      364.0 @ 56.0      unchanged
+
+The board never shrinks. At 320 the freed 7px splits around a centred board, so it sits 3px lower. Nothing
+else moves, and the board cannot grow there because it is width-bound (264 of 320), not height-bound.
+
+**PROVED BY PIXEL SCAN, AND I GOT THE SCAN WRONG TWICE FIRST.** My threshold was `luminance < 110`, which on a
+dark-themed app selects the BACKGROUND - every row came back full-width and the result read like "no lines at
+all", which I could easily have accepted as "no fourth line". Ground is luminance 20 and text is 204.
+Inverted to the bright pixels, the same crops give **4 text-line bands on #396** - the fourth only 5 rows tall
+where a full line is 13, so visibly cut - and **3 on #397**. That independently reproduces what the UAT lane
+found. Now a rule in CLAUDE.md.
+
+**THE ASSERTION THAT SHOULD HAVE EXISTED** is now in gate 41: not "a clamp is set" but **"the container is no
+taller than the lines its clamp allows"**, under 1px of slack. Control on the shipped #396 bundle: **2 red,
+exactly that assertion**, with the other 34 green. A first draft of it carried a dead `x.lhGuard` term that
+made half the expression unfalsifiable; caught and removed before it ran.
+
+## 0a-prev0) BUILD #396 (the opponent's move search finally handshakes)
 LIVE = **#396**, stamp "#396 - 2026-09-14 22:10 ET", md5 d28e3d07a010... over 947413 bytes.
 GATES GREEN: **28 suites, 1047 PASS, 0 fail** (`claude/agents/gatelogs/396-all.log`, verified by
 `gates/verify-log.sh`). Assertions 1040 to 1047: **+7, all of it the new gate 24**, every other gate unchanged
