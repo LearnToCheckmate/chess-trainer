@@ -44,11 +44,34 @@ any of them landed. **Claim a number here in the same commit that adds the file.
 | `43-tcrl-analysis.js` | build session (TC-RL batch 1) | 43 | pushed first, so it kept 43 |
 | `45-play-setup.js` | Play setup lane | **43** | renumbered: 43 was already pushed |
 | `46-play.js` | Play lane | **44** | renumbered with it, to keep the two lanes adjacent |
+| `47-menu.js` | Menu/settings test-authoring lane, pasted by the build session | 47 | #399. **47 WAS CLAIMED TWICE MORE.** See below |
 
 **RANGES RESERVED, from procedure v13 section 6e item 4:** **10-29 build lane**, **30-49 test-authoring lane**,
 **50-69 challengers and audits**, **70-89 the play lane**, **90-99 scratch and never committed.** Existing files
-are NOT renumbered - the ranges apply from here on, which is why 41/42/43 and 45/46 sit outside them. `gates.sh`
-should fail loudly on a duplicate number; until it does, this table is the only check.
+are NOT renumbered - the ranges apply from here on, which is why 41/42/43 and 45/46 sit outside them.
+
+**`gates.sh` NOW FAILS LOUDLY ON A DUPLICATE NUMBER (#399, procedure 6e item 4).** This table stopped being the
+only check. The guard reads the `regress/` DIRECTORY rather than the gates this invocation runs, so a subset run
+catches a collision too, and it exits 1 naming both files before a single gate starts. Negative-controlled at
+#399: with a second `47-*.js` present it printed `47: 47-dupe-control.js 47-menu.js` and exited 1 in under a
+second; with the file removed the suite ran normally.
+
+**NUMBER 47 WAS CLAIMED THREE TIMES, and two of the three claimants are still unpushed.** The external
+supervisor caught this on 2026-09-15 while it was still catchable. `47-puzzles.js` (PUZZLES-LANE-2026-09-14)
+came first by authoring date; `47-menu.js` (MENU-LANE-2026-09-15, 01:50Z) came second, and the two lane
+documents written after it - LESSON-LANE and HOME-LANE - both assume 47 is menu and take 48 and 49. So:
+
+- **47 goes to `47-menu.js`**, which is what this commit pushes. Not because it was first (it was not) but by
+  this register's own existing rule: the file named in a pushed commit, in `gates/logs/` and in `RUN-LOG.md`
+  keeps its number, because renaming it would rewrite the record of what was measured and when. Three of the
+  four lane documents already read 47 as menu; moving it would falsify three documents to spare one.
+- **`47-puzzles.js` must renumber before it is pasted.** `44` is the recommendation: it is in the
+  test-authoring range, it is adjacent, and it is currently free. That does spend the deliberate 44 gap - the
+  gap was left to make the 43/45/46 renumbering visible in the directory listing, and this paragraph now
+  carries that record instead, which a directory listing never could.
+- `48-lesson-flow.js` and `49-home.js` are unaffected and remain claimed by LESSON-LANE and HOME-LANE. Both
+  are still ABSENT from git (`standing-a-c2-gates-claimed-not-in-git`): 189 and an unmeasured count of
+  assertions are published as run and execute nowhere. They are the build session's to paste, next.
 
 Theirs moved rather than mine for one reason, and it is the same reason this register exists for `TC-R` ids:
 `43-tcrl-analysis` is named in a pushed commit, in `gates/logs/`, in `RUN-LOG.md` and in this file, and renaming
