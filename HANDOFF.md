@@ -61,7 +61,77 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-15 by BUILD #397)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-15 by BUILD #398)
+LIVE = **#398**, stamp "#398 - 2026-09-15 03:18 ET", md5 367b6d1d39c0... over 947407 bytes.
+GATES GREEN: **28 suites, 1052 PASS, 0 fail** on the first full run; re-gated after the antagonist pass (numbers
+confirmed at close-out, `gates/verify-log.sh` run on the log before it was cited).
+
+**A BOX WAS CLIPPING ITS OWN CHILD** (`review-engline-clipped-2px`). Two things about this build matter more
+than the fix, and both are corrections to what I first wrote: the first fix was **VETOED by the antagonist**,
+and the defect **was never visible to the user**. I nearly shipped both overstatements.
+
+`rev-why` is a flex column whose height `_whyH` is a RESERVATION - fixed, so the board does not jump when a row
+appears or disappears - computed as the sum of its rows' DECLARED heights. The container also carried `gap:2`,
+and a gap costs real pixels the reservation never counted. With the engine row on, measured at 375x730: parent
+561..632, children `rev-why-txt` 51 and `rev-engline` 20, the engine row running to 634 inside a parent ending
+at 632. Its bottom 2px were removed by `overflow:hidden`, at every ply from 1 to 33.
+
+**BUT NO PAINTED PIXEL WAS EVER LOST, AND THE WRITE-UP SAID OTHERWISE UNTIL IT WAS MEASURED.** The antagonist
+asked for an ink scan rather than more rect arithmetic, and it was right to. Bright-pixel scan on the #397
+bundle, threshold taken from each crop's own range: inside `rev-engline`'s 20px box the ink runs 616..625, with
+**9px of bottom slack**, because the row is `alignItems:'baseline'` and the line box sits at the cross-start. The
+clipped band (630..632) is **empty in every state tested**, including the one where the line overflows
+horizontally (`scrollWidth` 398 vs `clientWidth` 371) - and the 5px `.scroll` scrollbar reserves no height there
+either (`clientHeight` 20 = `offsetHeight` 20), so it contributes no ink. **The engine line was clipped as
+geometry and never as paint.** It is still worth fixing - a box that clips its own child is a latent fault, and a
+longer line, a larger accessibility font or iOS's real scrollbar would each put ink in that band - but nobody
+saw a cut number, and this section is not going to imply they did.
+
+**THE FIRST FIX ADDED `(rows-1)*2` TO THE RESERVATION. THE ANTAGONIST KILLED IT WITH TWO MEASUREMENTS:**
+
+1. **The formula is false.** `_bestH=20` describes `rev-bestline`, the only child with no height style and the
+   only one that can shrink; it paints 12-15px. So the deficit is `(rows-1)*gap` only when every present row
+   carries an explicit height. With the best-line row showing, 3 rows measured a deficit of **-1** where the
+   formula predicted **+4**. In landscape at 4 rows it measured **0** against a predicted +6.
+2. **It cost 16px of board at 320x568.** Over-reserving 4px in the showBest state tipped the board's fit loop
+   past zero, and it trims in 8px steps: SQ 33 to 31, board **264 to 248** - in a state where nothing had been
+   clipped. **The board is sacred**, and that trade was backwards.
+
+**THE SECOND FIX REMOVES THE COST INSTEAD OF PAYING FOR IT: `gap:0`.** `_whyH` is byte-identical to #397's
+(verified against `git show HEAD:chess.jsx`, not against my own comment), so **not one extra pixel is reserved
+and no board anywhere can move** - confirmed at the mechanism: the fit loop at `chess.jsx:2563-2578` reads the
+`getBoundingClientRect()` of `#root`'s direct children, and a descendant's overflow cannot change an ancestor's
+rect. Every one of the nine reachable row combinations fits.
+
+**THE PRICE, MEASURED RATHER THAN ESTIMATED.** I first wrote "the rows lose 2px of separation, which is the
+whole price" without looking at either side of it. Painted separation between the last ink of `rev-why-txt` and
+the first ink of `rev-engline`, worst case (ply 19, the sentence filling all three of its line boxes): **10px on
+#397, 8px on #398**. The 2px is a fifth of it, not the third that was guessed, and 8px is still clearly visible.
+
+**WHAT THE GATE ACTUALLY COVERS, STATED AS COVERAGE AND NOT AS FORM.** Gate 22's containment assertions are
+evaluated at one ply, in one geometry (`kunal730`, portrait), in the two-row state. That is the state the defect
+lives in, and it is the state with no slack and no shrinkable row - which is exactly why the defect showed up
+there and only there. The assertions' *form* is general; their *exercise* is not, and the two are not the same
+claim. Landscape - where the same arithmetic gives a 4px deficit with the engine on - has **no assertion at all**.
+
+**THE THREE-ROW STATE IS NOW COVERED, AND FILING IT AS UNDRIVABLE WAS WRONG.** I wrote that two attempts failed
+and left it as an open gap. The route was thirty lines away in a sibling gate: `20-review.js:111` scans back for
+a ply carrying both a negative verdict and a `rev-best` chip, whose handler is
+`setShowBest(true);setEngOn(true);playBestLine()`. That is CLAUDE.md's "a lesson recorded in one gate does not
+travel to the next one by itself", firing again in the same week it was written.
+
+**AND COVERING IT TURNED UP A SECOND DEFECT OF THE SAME FAMILY, WHICH IS WHY THE FIRST THREE-ROW ASSERTION WAS
+THROWN AWAY.** The obvious check - "does any child paint past the parent's bottom edge" - **cannot fail in this
+state.** Against three deliberately broken bundles: `flexShrink:0` on `rev-bestline` changes nothing (21 pass, 0
+fail - its natural height is under its term); `gap:3` fits exactly (14+51+20+6 = 91); and at `gap:4` the check
+**still passes**, because `rev-bestline` shrinks 15 -> 12 and absorbs the overrun exactly. Flex-shrink does not
+prevent the clip - it **moves** it onto `rev-bestline`, which is `overflowY:hidden` and so cuts its own text with
+no ellipsis: the same silent cut this build exists to remove, one row down. The assertion is therefore pinned to
+the squeeze (`scrollHeight` vs `clientHeight` on every row), which reads 0 on the shipped bundle and **3** at
+`gap:4`. Same family as the clip-intersection trap and the overlay-inside-the-board trap: the thing being
+detected was being absorbed by the mechanism being asserted over.
+
+## 0a-prev0) BUILD #397 (the sentence box was taller than its own clamp)
 LIVE = **#397**, stamp "#397 - 2026-09-14 22:56 ET", md5 78967f2e327d... over 947407 bytes.
 GATES GREEN: **28 suites, 1049 PASS, 0 fail** (`claude/agents/gatelogs/397-all.log`, verified by
 `gates/verify-log.sh`). Assertions 1047 to 1049: **+2, both the new container-height assertion in gate 41**

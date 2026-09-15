@@ -284,6 +284,29 @@ wider one.
   must be reopened when the total moves - never closed at the number that happened to be true that day.** And
   when someone hands you a list like that, CHECK IT rather than repeat it: a grep for "control" clears
   `45-play-setup` and `46-play` wrongly, because both use the word to mean a UI control. #395.
+- **FLEX-SHRINK DOES NOT PREVENT A CLIP, IT MOVES IT - so a containment assertion over a flex container CANNOT FAIL
+  while any child can shrink.** #398 fixed `rev-why` clipping `rev-engline` and added the check anyone would write:
+  no child may paint past the parent's bottom edge. In the two-row state that is a real assertion. In the three-row
+  state it is **incapable of going red**, proved against three bundles built to fail it: `flexShrink:0` on the one
+  content-sized row changes nothing (21 pass, 0 fail - its natural height is under the height its term reserves),
+  `gap:3` fits exactly, and at `gap:4` the check STILL passes because that row shrinks 15px to 12px and absorbs the
+  overrun to the pixel. Nothing painted past the edge, and nothing was contained either: the row had its own text
+  cut instead, silently, because it is `overflowY:hidden` and a squeezed box draws no ellipsis. **The damage moved
+  to the row nobody was asserting over.** This is the fourth costume of the same trap - clip-intersection excusing
+  the real 38.9px overflow, "the covering element is big" hiding the defect it was written for at #393, the bubble
+  satisfying `grid.contains()` at #394 - and the question that catches all four is the same: *is the thing I am
+  trying to detect absorbed, contained, or excused by the very mechanism I am asserting over?* Here the fix is to
+  assert the squeeze (`scrollHeight` vs `clientHeight` on every child), which reads 0 shipped and 3 on the control.
+- **AN ELEMENT OVERFLOWING ITS CLIPPING PARENT IS NOT PROOF THAT ANY INK WAS LOST, and "clipped by 2px" in a
+  write-up will be read as something the user saw.** The #398 defect was real as geometry - `rev-engline` ran to 634
+  inside a parent ending at 632, at every ply - and removed **no painted pixel at all**. The row is
+  `alignItems:'baseline'`, so its line box sits at the cross-start and the ink ran 616..625 inside a 20px box with
+  **9px of bottom slack**; the clipped band was empty in every state, including an overflowing line, where the 5px
+  `.scroll` bar also reserves no height (`clientHeight` == `offsetHeight`). Fix it anyway - a box that clips its own
+  child is a latent fault a longer string or a larger accessibility font will cash in - but the ink scan costs ten
+  minutes and is the difference between "this was cut" and "this could be cut". The same discipline as #395's
+  container-is-not-its-contents, pointed the other way: there the box was fine and the ink was wrong; here the box
+  was wrong and the ink was fine.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never

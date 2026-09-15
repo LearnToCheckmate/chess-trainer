@@ -5350,8 +5350,45 @@ export default function App(){
                  where the container ends - and #394 asserted only that a clamp was set, which is why this survived.
                  ceil(3 x 16.9) = 51 and ceil(2 x 16.9) = 34. The child now takes _reasonH rather than repeating the
                  literal, so the two can never drift apart again; that duplication is how 58 outlived its line height. */
-                 const _reasonH=anaMode?0:(_tall?51:34);const _engH=engOn?20:0;const _bestH=(showBest&&bestLineSan&&!anaMode)?20:0;const _whyH=_stripH+_reasonH+_engH+_bestH;return _whyH>0&&(
-            <div data-ct="rev-why" style={{height:_whyH,flexShrink:0,overflow:'hidden',display:'flex',flexDirection:'column',gap:2}}>
+                 const _reasonH=anaMode?0:(_tall?51:34);const _engH=engOn?20:0;const _bestH=(showBest&&bestLineSan&&!anaMode)?20:0;/* #398 (review-engline-clipped-2px): THE PARENT RESERVES A FIXED HEIGHT AND THE GAPS WERE SPENDING IT.
+                 rev-why is display:flex column and _whyH is a RESERVATION - a fixed height so the board does not jump when
+                 a row appears or disappears. It is the sum of the rows' DECLARED heights. The container also had gap:2,
+                 and a gap costs real pixels that the reservation never included, so the children needed sum+gaps and got
+                 sum: with the engine row on, rev-engline ran 614..634 inside a parent ending at 632 and overflow:hidden
+                 cut its bottom 2px. Measured at 375x730, and at every ply from 1 to 33 - the ply is not load-bearing.
+                 THE FIRST FIX FOR THIS ADDED (rows-1)*2 TO THE RESERVATION AND WAS VETOED BY THE ANTAGONIST, RIGHTLY.
+                 One of the four rows, rev-bestline, carries NO height style and flex-shrink:1 - it paints 14-16px against
+                 the 20 _bestH claims - so the deficit is (rows-1)*gap only when every present row has an explicit height.
+                 Measured with the best-line row showing: 3 rows gave -1 (slack), not the +4 that formula predicts. Adding
+                 4px there over-reserved, and at 320x568 that tipped the board's fit loop past zero and cost SIXTEEN pixels
+                 of board - in a state where nothing had been clipped. The board is sacred; that trade was backwards.
+                 SO REMOVE THE COST INSTEAD OF PAYING FOR IT: gap:0. It reserves not one pixel more than before, so no board
+                 anywhere can move, and with no gap the children can no longer need more than the sum of their terms.
+                 BUT NOT FOR THE REASON IT IS TEMPTING TO WRITE DOWN. The tidy sentence would be "every child's
+                 painted height is at most its declared height", and that is FALSE of rev-bestline, the one child with
+                 no height style at all. Measured at 375x730 in the three-row state rather than reasoned about: it
+                 paints 12 to 15px against the 20 that _bestH reserves for it, so this state carries 5-6px of
+                 STRUCTURAL SLACK, and that slack - not the gap arithmetic - is what actually absorbs a small error.
+                 Three deliberately broken bundles, all run through gate 22: flexShrink:0 on rev-bestline changes
+                 nothing at all (21 pass, 0 fail) because its natural height is under its term; gap:3 fits exactly
+                 (14+51+20+6 = 91 = the reservation); gap:4 overruns, and rev-bestline SHRINKS from 15 to 12 to
+                 swallow it. So flex-shrink here is not a guarantee that nothing is clipped - it MOVES THE CLIP onto
+                 rev-bestline, which is overflowY:hidden and therefore cuts its own text with no ellipsis, the very
+                 silent cut this build exists to remove. The two-row state has no slack and no shrinkable row, which
+                 is why the defect showed up there and only there. See the note on rev-bestline below. */
+                 const _whyH=_stripH+_reasonH+_engH+_bestH;return _whyH>0&&(
+            <div data-ct="rev-why" style={{height:_whyH,flexShrink:0,overflow:'hidden',display:'flex',flexDirection:'column',gap:0}}>
+            {/* #398: THIS ROW IS THE ONE WITH NO DECLARED HEIGHT, AND THAT IS DELIBERATE. rev-why reserves a fixed
+                height summed from its rows' declared heights; this row is content-sized and _bestH reserves 20 for
+                it, which measures 12-15 in practice - so it carries the slack for the whole box. It is also the only
+                child that can shrink, and being a scroll container its automatic minimum height is 0.
+                MEASURED, NOT ASSUMED: adding flexShrink:0 here breaks nothing today (gate 22, 21 pass 0 fail) - the
+                natural height is under the term, so there is nothing to shrink. What the shrink actually does when
+                the box IS over-subscribed is move the damage here: at gap:4 this row is squeezed 15 -> 12 and, being
+                overflowY:hidden, cuts its own text with no ellipsis while every containment check still reads green.
+                That is why gate 22's three-row assertion checks scrollHeight against clientHeight on every row and
+                not just whether anything overflows the parent. If you change this row's height, its overflow or its
+                shrink, run gate 22 - the three-row block is the only thing watching it. */}
             {showBest&&bestLineSan&&!anaMode&&(<div data-ct="rev-bestline" style={{display:'flex',alignItems:'baseline',gap:7,fontSize:'clamp(13px,2.8vw,14.5px)',whiteSpace:'nowrap',overflowX:'auto',overflowY:'hidden'}} className="scroll">
               <b style={{flex:'0 0 auto',fontWeight:800,color:'rgba(255,255,255,.55)'}}>best line</b>
               <span style={{flex:'0 0 auto',color:'var(--ac2)',fontWeight:700,fontFamily:'ui-monospace,Menlo,monospace'}}>{bestLineSan}</span>
