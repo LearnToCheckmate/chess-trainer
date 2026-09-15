@@ -340,15 +340,34 @@ if(blk('C'))for(const geo of ['se','kunal730','430']){
     geo+': TC-PS-031 picking one moves the selection and the footer names it',{sel:tc2,foot:await FOOT(b)});
   // THE CROSS-OPPONENT STATE. Two taps from the default screen.
   await TAP(b,'Online',600);
-  const onl=(await GROUP(b,/^(No limit|\d days? \/ move)$/)).items;
-  L.say(onl.length===4&&onl.filter(x=>x.on).length===0,
-    geo+': TC-PS-032 DEFECT, measured. Switch to Online while a blitz control is selected and the "Time per move" row shows FOUR pills with NONE of them selected. timeCtrl is still {label:"3+1"}, so `!timeCtrl` is false and no CORR_CONTROLS label matches (chess.jsx:4589) - there is no state on screen saying what this game will use, and Continue proceeds anyway.',onl);
+  // #400 CLOSED THIS DEFECT AND THE PIN MOVES WITH IT rather than being deleted (CLAUDE.md). What this used to
+  // pin: switching to Online with 3+1 selected showed FOUR "Time per move" pills with NONE selected, because
+  // timeCtrl was still {label:'3+1'} so `!timeCtrl` was false and no CORR_CONTROLS label matched - no state on
+  // screen said what the game would use, and Continue proceeded anyway. #400 (R-OC-1/R-OC-2) shows the live row
+  // for an online game and keeps the selection, so the answer is now on screen. This assertion went RED on the
+  // #400 bundle before being rewritten, which is the gate doing its job: it detected the behaviour moving, in the
+  // good direction, from a different driver and different geometries than gate 25-online-clocks uses.
+  const onlLive=(await GROUP(b,/^(No clock|\d+ min|\d\+\d)$/)).items;
+  const onlCorr=(await GROUP(b,/^(No limit|\d days? \/ move)$/)).items;
+  const onlSel=[...onlLive,...onlCorr].filter(x=>x.on);
+  L.say(onlLive.length===9&&onlSel.length===1&&onlSel[0].t==='3+1',
+    geo+': TC-PS-032 the blitz control a player picked SURVIVES the switch to Online, and the live row is on screen there to show it - nine live pills plus the day limits, with exactly one selection across both rows. Before #400 this screen offered no minute clocks for an online game at all and showed four day pills with nothing selected',{live:onlLive.length,corr:onlCorr.length,selected:onlSel});
+  L.say(onlCorr.length===3&&!onlCorr.some(x=>x.t==='No limit'),
+    geo+': TC-PS-032b the day-limit row no longer carries its own "No limit" null pill - the null option lives ONCE, as "No clock" in the live row above, because two null pills keyed off the same !timeCtrl state both lit up at once and the screen showed two selections for one setting',onlCorr.map(x=>x.t));
   await TAP(b,'3 days / move',400);
   await TAP(b,'Computer',600);
   const back=await GROUP(b,/^(No clock|\d+ min|\d\+\d)$/);
   const footBack=await FOOT(b);
-  L.say(back.items.filter(x=>x.on).length===0&&/· 3 days \/ move$/.test(footBack),
-    geo+': TC-PS-033 DEFECT, and the other direction is worse. Pick "3 days / move" under Online, switch back to Computer, and all nine Computer pills read unselected while the footer states "'+footBack+'" - a multi-day correspondence limit named as the time control of a local game against Stockfish, from a list this screen does not offer and cannot select back. Two taps from the default screen, at every geometry.',{selected:back.items.filter(x=>x.on),foot:footBack});
+  // #400 CLOSED THIS ONE TOO, and it was the worse half. What it used to pin: pick "3 days / move" under Online,
+  // switch back to Computer, and all nine Computer pills read unselected while the FOOTER named the correspondence
+  // limit as the time control of a local game against Stockfish - from a list this screen does not offer and
+  // cannot select back. #400's R-OC-2 clears a corr limit when the opponent stops being online. NOTE FOR WHOEVER
+  // READS THE #400 DIFF: the first version of that fix went on the MENU's opponent spans (chess.jsx:4898) and NOT
+  // on this sheet's opponent buttons (chess.jsx:4656), so this very assertion would still have been red - the
+  // antagonist pass found it, and this gate would have caught it independently.
+  const backSel=back.items.filter(x=>x.on);
+  L.say(backSel.length===1&&backSel[0].t==='No clock'&&!/\/ move$/.test(footBack),
+    geo+': TC-PS-033 a correspondence day-limit does NOT follow the player back into a local game: exactly one live pill is selected ("No clock") and the footer reads "'+footBack+'" with no per-move limit in it. Before #400 nine pills read unselected and the footer named a multi-day limit on a game against Stockfish',{selected:backSel,foot:footBack});
   await TAP(b,'No clock',400);
 
   // ---- PS-H the footer line. TC-PS-034..036

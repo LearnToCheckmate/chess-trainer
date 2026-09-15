@@ -4653,7 +4653,19 @@ export default function App(){
             <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',marginBottom:8}}>Opponent</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
               {[{k:'online',ic:'online',t:'Online'},{k:'computer',ic:'computer',t:'Computer'},{k:'human',ic:'human',t:'Pass & Play'}].map(o=>{const on=opponent===o.k;const OPPT={computer:['#5b8def','#2f6fd0'],human:['#22c55e','#15803d'],online:['#a855f7','#7c3aed']};const tint=(SK.tints&&(o.k==='computer'?SK.tints.analyze:o.k==='human'?SK.tints.learn:SK.tints.play))||OPPT[o.k];return(
-                <button key={o.k} onClick={()=>{setSoonMsg('');if(o.k==='online'){setOpponent('online');setOnlineGame(null);setMyColor(null);setOnlineErr('');setOnlineInfo('');}else setOpponent(o.k);}} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,padding:'8px 4px',borderRadius:12,cursor:'pointer',background:on?'rgba(var(--acr),.2)':'rgba(255,255,255,.05)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.14)',color:on?'var(--ac2)':'rgba(255,255,255,.78)'}}>
+                <button key={o.k} onClick={()=>{setSoonMsg('');if(o.k==='online'){setOpponent('online');setOnlineGame(null);setMyColor(null);setOnlineErr('');setOnlineInfo('');}else {setOpponent(o.k);
+                  /* #400 R-OC-2, SECOND CALL SITE - and the one a player actually uses. My first version of
+                     this requirement put the corr-clear only on the MENU's opponent spans (chess.jsx:4898),
+                     because the spec pointed at that line; the NEW GAME SHEET's opponent buttons are these,
+                     and they are the path from Home. So the clause was written twice and still missed the
+                     screen it was for. Measured on the menu-only build at 375x679 AND 430x932: Online ->
+                     '3 days / move' -> this Computer button left ZERO pills selected and the summary under
+                     the Start button reading 'vs Computer · White · 3 days / move' - a day-per-move limit
+                     advertised on a computer game, and on a live Pass & Play board as '👤 vs Human · 3 days
+                     / move' with no clock running. Pre-existing at #399; what #400 nearly shipped was the
+                     CLAIM that it was fixed, with an assertion that could not see it. Found by the
+                     antagonist pass. */
+                  if(timeCtrlRef.current&&timeCtrlRef.current.kind==='corr'){timeCtrlRef.current=null;setTimeCtrl(null);}}}} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,padding:'8px 4px',borderRadius:12,cursor:'pointer',background:on?'rgba(var(--acr),.2)':'rgba(255,255,255,.05)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.14)',color:on?'var(--ac2)':'rgba(255,255,255,.78)'}}>
                   <span style={{width:46,height:46,borderRadius:13,display:'flex',alignItems:'center',justifyContent:'center',background:`linear-gradient(150deg,${tint[0]},${tint[1]})`,border:SK.trim?`1.5px solid ${SK.trim}`:'none',boxShadow:`0 3px 0 rgba(0,0,0,.22),0 6px 12px ${tint[1]}55,inset 0 1px 0 rgba(255,255,255,.4),inset 0 -3px 6px rgba(0,0,0,.22)`}}><AppIcon name={o.ic} size={26} sw={2.2} color="rgba(255,255,255,.96)"/></span>
                   <span style={{fontSize:'clamp(14px,2.6vw,14px)',fontWeight:700}}>{o.t}</span>
                 </button>);})}
@@ -4687,7 +4699,18 @@ export default function App(){
             </div>
           </div>)}
 
-          {opponent!=='online'&&(<div>
+          {/* #400, R-OC-1 (build-spec-online-clocks): this row used to be hidden from an online game by an
+              {opponent!=='online'} guard, and that single guard is why online minute clocks were BUILT AND
+              UNREACHABLE. Everything behind them already worked at #399 - the game document seeds clk from
+              tc.init, a move debits the mover and writes clk back, a move that exhausts the clock writes
+              result/status:'over'/endBy:'time', both panel clocks and both player-bar clocks tick, and
+              flag-fall raises a claim control. A player simply had no way to CHOOSE a minute clock, so
+              tc.kind!=='corr' && tc.init was never true for an online game and clk was always null.
+              Measured on #399 before the change, at 375x730 AND 320x568: the only pills on this branch were
+              No limit / 1 day / 3 days / 7 days. Both rows now show, under their own headings, because they
+              mean different things to a player (spec Q3 option a). AMBER, recorded before the act in tracker
+              flag amber-online-clock-pills-2026-09-15 and Decision Desk defaults/oc-clock-pills-2026-09-15. */}
+          {(<div>
             <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',marginBottom:8}}>⏱ Time control</div>
             <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
               <span style={pill(!timeCtrl)} onClick={()=>{timeCtrlRef.current=null;setTimeCtrl(null);}}>No clock</span>
@@ -4707,11 +4730,18 @@ export default function App(){
           {opponent==='online'&&(<div>
             <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',marginBottom:8}}>⏳ Time per move</div>
             <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-              <span style={pill(!timeCtrl)} onClick={()=>{timeCtrlRef.current=null;setTimeCtrl(null);}}>No limit</span>
+              {/* #400: THIS ROW'S OWN NULL PILL IS GONE, and it is the one thing my first version of R-OC-1 got
+                  wrong. Both rows now render for an online game, and both null pills key off the SAME state
+                  (!timeCtrl), so 'No clock' and 'No limit' both lit up at once - measured ["No clock","No limit"]
+                  at 375x730 and 320x568. Two pills reading as selected on one screen is exactly the kind of
+                  cross-element inconsistency this app has no assertions for, and R-OC-1 is explicit: ONE
+                  exclusive selection, with 'No clock' as the null option. So the null option lives once, in the
+                  row above; tapping it clears a day limit just as it clears a minute clock, because there is
+                  only one timeCtrl. Found by measuring my own change rather than by reading it. */}
               {CORR_CONTROLS.map(c=>{const o={label:c.label,kind:'corr',days:c.days};const on=!!timeCtrl&&timeCtrl.kind==='corr'&&timeCtrl.days===c.days;return(<span key={c.label} style={pill(on)} onClick={()=>{timeCtrlRef.current=o;setTimeCtrl(o);}}>{c.label}</span>);})}
             </div>
             <div style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.58)',marginTop:6,lineHeight:1.5}}>Multi-day game: you and your friend each have this long to reply to every move. Play whenever you like — the game waits for you and shows up under “Your games” when you sign in on any device.</div>
-            <div style={{marginTop:9,padding:'12px 14px',borderRadius:12,background:'rgba(110,168,254,.1)',border:'1px solid rgba(110,168,254,.3)',fontSize:'clamp(13.5px,2.6vw,13.5px)',color:'#cfe0ff',lineHeight:1.5}}>You'll create a game or join a friend's code on the next screen. Sign in with Google is required. <span style={{color:'rgba(255,255,255,.5)'}}>(Live ticking clocks for online are still coming; the day limits above work now.)</span></div>
+            <div style={{marginTop:9,padding:'12px 14px',borderRadius:12,background:'rgba(110,168,254,.1)',border:'1px solid rgba(110,168,254,.3)',fontSize:'clamp(13.5px,2.6vw,13.5px)',color:'#cfe0ff',lineHeight:1.5}}>You'll create a game or join a friend's code on the next screen. Sign in with Google is required.</div>
           </div>)}
 
           <button onClick={()=>{setPlaySetup(false);if(opponent!=='online')fullReset(setupFromFEN?fromFEN(setupFromFEN):undefined);setSetupFromFEN(null);}} style={{marginTop:4,padding:'15px',borderRadius:14,border:'none',background:'var(--ac)',color:'#191919',fontWeight:800,fontSize:'clamp(15px,3.6vw,17px)',cursor:'pointer',boxShadow:`0 8px 24px rgba(${TH.rgb},.35)`}}>{opponent==='online'?'Continue →':(setupFromFEN?'▶ Play this position':'▶ Start game')}</button>
@@ -4877,9 +4907,9 @@ export default function App(){
           {mode==='play'&&(<>
             <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'16px 2px 8px'}}>Game setup</div>
             <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'center',marginBottom:8}}>
-              <span style={pill(opponent==='human')} onClick={()=>{setOpponent('human');fullReset();}}>👤 vs Human</span>
-              <span style={pill(opponent==='computer')} onClick={()=>{setOpponent('computer');fullReset();}}>🤖 vs Computer</span>
-              <span style={pill(opponent==='online')} onClick={()=>{setOpponent('online');timeCtrlRef.current=null;setTimeCtrl(null);setOnlineGame(null);setMyColor(null);setOnlineErr('');setOnlineInfo('');setMenuOpen(false);fullReset();}}>🌐 Online</span>
+              <span style={pill(opponent==='human')} onClick={()=>{setOpponent('human');/* #400 R-OC-2 says clear the clock only when it is MEANINGLESS for the new opponent. A day-per-move limit is exactly that in an offline game, and it was reachable before #400 (Online -> 3 days / move -> Computer) and is more reachable now, so drop it here and keep everything else. */if(timeCtrlRef.current&&timeCtrlRef.current.kind==='corr'){timeCtrlRef.current=null;setTimeCtrl(null);}fullReset();}}>👤 vs Human</span>
+              <span style={pill(opponent==='computer')} onClick={()=>{setOpponent('computer');/* #400 R-OC-2 says clear the clock only when it is MEANINGLESS for the new opponent. A day-per-move limit is exactly that in an offline game, and it was reachable before #400 (Online -> 3 days / move -> Computer) and is more reachable now, so drop it here and keep everything else. */if(timeCtrlRef.current&&timeCtrlRef.current.kind==='corr'){timeCtrlRef.current=null;setTimeCtrl(null);}fullReset();}}>🤖 vs Computer</span>
+              <span style={pill(opponent==='online')} onClick={()=>{setOpponent('online');/* #400 R-OC-2: this used to run timeCtrlRef.current=null;setTimeCtrl(null), silently discarding the clock the player had just chosen - and with R-OC-1 shipped it would discard the selection made for the very game being started. A live OR a corr clock is meaningful for an online game, so nothing is cleared here. */setOnlineGame(null);setMyColor(null);setOnlineErr('');setOnlineInfo('');setMenuOpen(false);fullReset();}}>🌐 Online</span>
             </div>
             {opponent!=='online'&&(<div style={{display:'flex',flexDirection:'column',gap:6,alignItems:'center',width:'100%'}}>
               <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:.6,textTransform:'uppercase'}}>⏱ Time control</div>
