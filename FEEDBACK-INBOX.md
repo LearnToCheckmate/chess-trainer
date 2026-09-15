@@ -1893,3 +1893,49 @@ is a real fit assertion in the sandbox. But it must never be cited as evidence a
 **Not a defect, said plainly so nobody files it as one.** The menu opened from a live game at 320x568 pushes
 "Look and feel" to 567 in a 568-tall viewport, because GAME SETUP inserts ~364px above it. That state measured
 clean on every other count and no gate enters it; it is a coverage gap, recorded in the gate's header.
+
+---
+
+## 2026-09-15, #400 — online clocks: you can now pick one, and three questions before anyone loses on time
+
+Append-only. Your instruction for this run, from the procedure's section 2a-ter: *"there is a set of features that
+we talked about that need to be built but haven't been built out... can we start the builds at least."* Online
+clocks was first in that order, and its spec was ready, so that is what ran.
+
+**The premise turned out to be wrong, in a good way.** This was recorded as "not started as of #397, three days
+and twenty-four builds". It was actually **built and unreachable.** Everything behind the feature already worked
+— the clock seeding, the per-move debit, the loss-on-time write, all four ticking clock readouts, the flag-claim
+button. One guard hid the minute-clock row from online games, so you could never *choose* a clock, and with no
+clock chosen none of the machinery could ever run. That guard is gone. You can now pick 1, 2, 3, 5, 10 minutes or
+1+1 / 2+1 / 3+1 for an online game, at every phone width tested, and the clock you pick is no longer thrown away
+when you tap Online.
+
+**THREE QUESTIONS, and nothing about losing on time is built until you answer them.** They are the spec author's,
+not mine, and they were raised with their own recommendations:
+
+1. **When both players have walked away and one clock has run out, who ends the game?** Options: (a) whichever
+   phone opens the game next writes the result, *including the loser's own phone*, after a short grace period;
+   (b) only the winner can claim it, and an unclaimed game stays open for ever; (c) nobody — an unclaimed game is
+   abandoned rather than lost. The spec recommends (a), and measured why: today, if nobody taps "Claim win", the
+   game sits `active` with a zeroed clock permanently and shows in "Your games" as a live game that can never be
+   finished. (b) is what the code does now, and that is the hole. **Its author flags (a) as a product decision
+   they made alone — nothing in your words covers letting a losing player's phone end their own game.**
+2. **How long should the app wait after a flag falls before ending the game?** 5s, 15s, or 60s. The spec says 15
+   and is straight about it: *"This is a number I picked and cannot defend with a measurement."*
+3. **Should an online game offer minute clocks and day limits side by side, or make you pick a mode first?** I
+   built side-by-side — both rows under their existing headings — because it is the smaller change and both
+   headings already existed. One commit reverses it. Recorded as an amber call before I made it.
+
+**One thing I changed that you would see, beyond the pills.** The day-limit row used to carry its own "No limit"
+button. With both rows showing, that and "No clock" both lit up at once — two selections for one setting — so the
+null option now lives once, as "No clock". Tapping it clears a day limit too.
+
+**And a real defect I did not fix, because I cannot verify it from here.** Each phone stamps the move time with
+its *own* clock and the other phone reads it as if the two agreed. A phone thirty seconds fast shows its opponent
+thirty seconds less time than they have — half the clock on a one-minute game. The fix is a server timestamp and
+needs Firestore, which the sandbox cannot reach, so shipping it unverified would be guessing. It is the next
+thing on this feature.
+
+**Still on screen and now false:** the menu's *"📅 Correspondence · online soon"* block says day limits
+*"unlocks when we put games online"*. Day limits have worked online since before #399. Same class as the notice
+this build deleted; not touched because it is separate copy and yours to word.
