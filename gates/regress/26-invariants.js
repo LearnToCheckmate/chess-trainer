@@ -82,19 +82,28 @@
 //
 //   NC-A  THE SHIPPED RELEASE ITSELF, which is the strongest form of control available here and needs no trial
 //         bundle at all: `git cat-file -p 3b7a4c2:app.js`, md5 4e59a9f4a4ed, stamp '#400 - 2026-09-15 16:56 ET'.
-//         -> 61 pass, 3 FAIL, and the three are exactly the three screens that carry the three defects #404
-//            fixed, all at 320x568, measured to the hundredth of a pixel:
+//         -> RE-RUN AGAINST THE FINAL GATE (the numbers below are the final ones; the pre-veto gate scored
+//            61/3 and that figure is superseded - a control number that does not match the gate it is printed
+//            beside is the frozen denominator again): 63 pass, 4 FAIL, all at 320x568, to the hundredth:
 //              se lesson-demo      "♟ Other lines (" 6.17px, "3" 16.22px, ")" 22.92px  (clipper: the 320-wide
 //                                  root box, client 320 scroll 359)
 //              se rev-last-engine  "10" 15px in [pbar-taken-b], client 116 scroll 131, ink 248.91..267 vs box
 //                                  136..252 - the same number standing checks B and the recurrence job each
 //                                  measured independently, 26 hours apart
 //              se rev-why-open     "why" 8.37px in [rev-playout], client 47 scroll 66
+//              se rev-best-ply30   THE PINNED RESIDUAL ASSERTION GOES RED, and it is supposed to: #400 cuts
+//                                  THREE text nodes there ("best" 1.95px, "Qxd7" 44.74px, "›" 55.1px, client 35
+//                                  scroll 100) where #404 cuts two. So the pin is not a blanket exclusion - it
+//                                  detects the residual MOVING in either direction, which is the whole reason
+//                                  35-width-containment pinned its own 38.9px the same way. It also puts a
+//                                  number on the improvement: "Qxd7" 44.74 -> 27.74 is 17.00px exactly.
 //         -> AND WHAT STAYED GREEN IS THE HALF THAT MATTERS: home, play-captures, play-gameover, puzzles,
-//            rev-summary, rev-ply31 and rev-more-sheet at 320, and ALL TEN SCREENS at 375x730, plus every
-//            excuse assertion on every screen. So the gate fires on the states that contain the defects and on
-//            no others - it is not simply red everywhere at 320.
-//         The same run on the #404 bundle: 64 pass, 0 fail.
+//            rev-summary, rev-ply31 and rev-more-sheet at 320, and ALL ELEVEN SCREENS at 375x730, plus all
+//            nine fixture cases at both geometries - the fixture is bundle-independent by construction and
+//            proving that it does not move with the bundle is part of trusting it.
+//            So the gate fires on the states that contain the defects and on no others; it is not simply red
+//            everywhere at 320.
+//         The same run on the #404 bundle: 67 pass, 0 fail.
 //
 //   NC-B  chess.jsx:6191, the player-bar name span: textOverflow:'ellipsis' REMOVED, nothing else changed.
 //         Trial bundle md5 ecefca169ff0 built with CT_OUT; chess.jsx restored and md5-verified afterwards.
