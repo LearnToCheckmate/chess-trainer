@@ -136,6 +136,13 @@ const SCAN = function(){
   const clipper=(el,axis)=>{
     for(let e=el;e&&e!==document.documentElement;e=e.parentElement){
       const s=getComputedStyle(e);
+      // AN INLINE BOX NEVER CLIPS. `overflow` does not apply to a non-replaced inline element, and
+      // clientWidth/clientHeight are DEFINED as 0 for one - so treating it as the clipper both invents a
+      // clip that does not happen and feeds a degenerate 0-width padding box into the arithmetic below.
+      // Found by this gate's own fixture, which reported a row with cs=0 ss=0 and an `overshoot` kind derived
+      // from 0<=0.5. A span inside a flex row is NOT inline (it blockifies), which is why the real player-name
+      // span still reports 167/198 and is still measured.
+      if(s.display==='inline')continue;
       const o=axis==='x'?s.overflowX:s.overflowY;
       if(o==='auto'||o==='scroll'){scrollable++;return null;}
       if(o==='hidden'||o==='clip')return e;
@@ -202,13 +209,30 @@ const SCAN = function(){
       const overT=cb.t-ink.t, overB=ink.b-cb.b;
       const isAvatar = axis==='y' && anc.clientWidth===38 && anc.clientHeight===38 &&
         /^[\u2654\u265a]$/.test(t) && cut<=2.0 && overT>0 && overB>0 && (anc.scrollHeight-anc.clientHeight)<=1.5;
+      // (E4) CLAMPED, and this one carries #396's arithmetic rather than #394's mistake. A `-webkit-line-clamp`
+      //      draws an ellipsis, so a vertical cut it accounts for IS signalled - but #396's whole finding is that
+      //      asserting the clamp EXISTS does not settle which box cuts: the clamp governs how many LINE BOXES are
+      //      drawn and `overflow:hidden` governs where the CONTAINER ends, so if the container is TALLER than the
+      //      clamped lines the next line paints into the slack and is cut at the box edge - a row of decapitated
+      //      glyphs under a sentence that has already ended in an ellipsis. So the excuse requires the container
+      //      to be no taller than the lines the clamp allows, which is exactly the assertion #396 shipped:
+      //      `rev-why-txt` at 320 is clamp 3 x 16.9px = 50.7 in a clientHeight of 51 -> EXCUSED, and #396's
+      //      defect was the same three lines in a 58px box -> NOT excused, still a `cut`.
+      //      Range rects report the UNTRUNCATED extent, which is why a healthy clamped box shows up here at all:
+      //      measured on the shipped bundle, plies 19 and 25 at 320 give scrollHeight 68 against clientHeight 51,
+      //      and a pixel scan of the same box finds three ink bands and an ellipsis, so no ink was lost. Without
+      //      this the gate went red on a healthy build one navigation step outside its own state list.
+      const clampN = parseFloat(sA.webkitLineClamp);
+      const lhN = parseFloat(sA.lineHeight);
+      const isClamped = axis==='y' && clampN>0 && lhN>0 && anc.clientHeight <= Math.ceil(clampN*lhN)+1;
       const layoutOver = axis==='x' ? (anc.scrollWidth-anc.clientWidth>0.5) : (anc.scrollHeight-anc.clientHeight>0.5);
-      const kind = isAvatar ? 'avatar' : (axis==='x'&&sA.textOverflow==='ellipsis') ? 'signalled' : (!layoutOver ? 'overshoot' : 'cut');
+      const kind = isAvatar ? 'avatar' : isClamped ? 'clamped' : (axis==='x'&&sA.textOverflow==='ellipsis') ? 'signalled' : (!layoutOver ? 'overshoot' : 'cut');
       const row={kind, axis, cut:Math.round(cut*100)/100, text:t.slice(0,28),
         el:path(el), anc:(anc.getAttribute('data-ct')||anc.tagName.toLowerCase()), ancSame:(anc===el),
         ink:axis==='x'?[Math.round(ink.l*100)/100,Math.round(ink.r*100)/100]:[Math.round(ink.t*100)/100,Math.round(ink.b*100)/100],
         box:axis==='x'?[Math.round(cb.l*100)/100,Math.round(cb.r*100)/100]:[Math.round(cb.t*100)/100,Math.round(cb.b*100)/100],
         cs:axis==='x'?anc.clientWidth:anc.clientHeight, ss:axis==='x'?anc.scrollWidth:anc.scrollHeight,
+        clampN:isFinite(clampN)?clampN:null, lhN:isFinite(lhN)?lhN:null,
         cw:anc.clientWidth, ch:anc.clientHeight, sym:[Math.round(overT*100)/100,Math.round(overB*100)/100],
         teAnc:sA.textOverflow, teEl:getComputedStyle(el).textOverflow, ov:axis==='x'?sA.overflowX:sA.overflowY};
       if(kind==='cut') out.push(row); else other.push(row);
@@ -216,6 +240,52 @@ const SCAN = function(){
   }
   return {rows:out, other, skipped, seen:{nodes,inked,clipped,scrollable}};
 };
+
+
+// ── THE CLASSIFIER'S OWN UNIT TEST, which is what a real check on the excuses looks like. #391's rule. ────────
+// Nine DOM shapes, injected into the live page, scanned with the SAME `SCAN` the screens use, and each one
+// asserted to the kind it must get. FOUR OF THE NINE ARE CASES THE EXCUSES MUST REJECT, because a predicate
+// tested only on what it should accept is the alternation that matches every branch (#388). The fixture is
+// built from HTML the classifier has never seen, so none of these assertions can be satisfied by the
+// classifier's own bookkeeping - which is exactly what went wrong with the assertion this replaces.
+const FIXTURE = function(){
+  const wrap=document.createElement('div');
+  wrap.id='ct-inv-fixture';
+  wrap.setAttribute('style','position:fixed;left:0;top:0;width:340px;z-index:2147483000;background:#111;color:#ccc;font:13px/1.3 system-ui');
+  wrap.innerHTML=[
+    // 1 MUST REJECT: the ellipsis is on an INNER span, the CLIPPING box is the outer one. #396's two boxes.
+    '<div id="f1" style="width:60px;overflow:hidden;white-space:nowrap;text-overflow:clip"><span style="text-overflow:ellipsis">AAAAAAAAAAAAAAAAAAAA</span></div>',
+    // 2 MUST ACCEPT as signalled: the ellipsis is ON the clipping box.
+    '<div id="f2" style="width:60px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">BBBBBBBBBBBBBBBBBBBB</div>',
+    // 3 MUST REJECT: a 38x38 box, but a WORD in it, not a single glyph.
+    '<div id="f3" style="width:38px;height:38px;overflow:hidden;white-space:nowrap">Checkmate!!</div>',
+    // 4 MUST REJECT: a 38x38 box with one king glyph, but oversized so it really does not fit.
+    '<div id="f4" style="width:38px;height:38px;overflow:hidden;line-height:1;font-size:60px">\u2654</div>',
+    // 5 MUST ACCEPT as avatar: the real _avBox shape - 38x38, one king, font-size 35, line-height 1.
+    '<div id="f5" style="width:38px;height:38px;overflow:hidden;display:flex;align-items:center;justify-content:center;line-height:1;font-size:35px">\u2654</div>',
+    // 6 MUST ACCEPT as clamped: clamp 3 and a container exactly the clamped lines (ceil(3*16)=48).
+    '<div id="f6" style="width:120px;height:48px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;line-height:16px">one two three four five six seven eight nine ten eleven twelve thirteen</div>',
+    // 7 MUST REJECT: #396's ACTUAL DEFECT - clamp 3 in a container with slack, so a fourth line paints and is cut.
+    '<div id="f7" style="width:120px;height:58px;overflow:hidden;-webkit-line-clamp:3;line-height:16px">one two three four five six seven eight nine ten eleven twelve thirteen</div>',
+    // 8 MUST NOT BE REPORTED AT ALL: a SCROLLABLE ancestor - a finger can reach it, so it is not cut.
+    '<div id="f8" style="width:60px;overflow-x:auto;white-space:nowrap">CCCCCCCCCCCCCCCCCCCC</div>',
+    // 9 MUST REJECT: text-overflow:ellipsis declared but the cut is VERTICAL, where ellipsis does nothing.
+    '<div id="f9" style="width:120px;height:8px;overflow:hidden;text-overflow:ellipsis;line-height:16px">DDDD</div>'
+  ].join('');
+  document.body.appendChild(wrap);
+  return true;
+};
+const FIXTURE_WANT=[
+  ['AAAA','cut',      'an ellipsis on an INNER span does not excuse the OUTER box that clips - #396, two different boxes'],
+  ['BBBB','signalled','an ellipsis ON the clipping box is a visible truncation'],
+  ['Checkmate!!','cut','a 38x38 box is not a licence: a WORD cut in one is a defect, not avatar overshoot'],
+  ['\u2654-big','cut','a king glyph too big for its 38x38 box really is cut, and is not excused as overshoot'],
+  ['\u2654-real','avatar','the real _avBox shape - 38x38, one king at font-size 35 - is the named cosmetic residual'],
+  ['clamp-fit','clamped','a clamp whose container is exactly the clamped lines draws an ellipsis and loses nothing'],
+  ['clamp-slack','cut', '#396 EXACTLY: clamp 3 in a 58px box paints a fourth line into the slack and cuts it silently'],
+  ['scrollable','none', 'a scrollable ancestor is never reported - a finger can bring that content back'],
+  ['y-ellipsis','cut',  'text-overflow:ellipsis does nothing on the BLOCK axis, so it must not excuse a vertical cut']
+];
 
 // ── THE SCREENS. Every state is named here rather than inline so "what was checked" is one list. ──────────────
 const SCREENS=[
@@ -229,7 +299,31 @@ const SCREENS=[
   ['rev-last-engine', async(b)=>{await R.states['moves-last-engine'](b);}],
   ['rev-why-open',    async(b)=>{await R.states['why-open'](b);}],
   ['rev-more-sheet',  async(b)=>{await R.states['more-sheet'](b);}],
+  // #404, AND THIS ONE IS HERE BECAUSE THE GATE'S FIRST VERSION HAD ITS BLIND SPOT POINTED STRAIGHT AT IT.
+  // `rev-playout` (the "why" button) and `rev-best` (the "best <san> ›" pill) are MUTUALLY EXCLUSIVE branches of
+  // the same conditional in chess.jsx:5366-5374, and #404 edited BOTH in the same two lines of diff. The five
+  // review states above reach plies 0, 10, 31, 33 and - `why-open`, deterministically, three runs identical -
+  // ply 19, which is a Brilliant move. So every one of them renders the branch that was fixed and not one of
+  // them renders the branch beside it. The #404 antagonist pass found that by walking all 34 plies.
+  // Ply 30 is 15...Nxd7 ?? Blunder, best Qxd7: the largest `rev-best` overrun in the reference game.
+  ['rev-best-ply30',  async(b)=>{await R.states['moves-ply0'](b);await R.goPly(b,30);await b.settle(600);}],
 ];
+
+// THE ONE RESIDUAL THIS GATE PINS RATHER THAN HIDES, and it is not mine to close. #404.
+// At 320x568, ply 30, `[data-ct="rev-best"]` is clientWidth 45 against scrollWidth 86 and the pill reads
+// "best Qx" - about 28px of "Qxd7" and the whole "›" painted outside the box that clips them, no ellipsis. It
+// is a RESIDUAL AND NOT A REGRESSION: the shipped #400 bundle cuts the same text by 44.74px and the chevron by
+// 55.1px at the same ply, so #404's padding change improved it by roughly 17px and did not close it.
+// WHY IT IS NOT CLOSED HERE. The row is nowrap and holds three pieces of information at 320 - the move played,
+// the verdict, and the best move - and every remaining way to make it fit spends one of them: drop the "best"
+// prefix and "Qxd7 ›" beside "?? Blunder" is ambiguous; drop the verdict word and the pill stops saying what
+// happened; wrap the row and the board moves on the smallest screen, which #371 and the board-is-sacred rule
+// both forbid without asking. That is a product choice with a real cost either way, so it went to Kunal on the
+// Decision Desk with a screenshot and three options rather than being decided here at 03:00.
+// Pinned exactly as 35-width-containment pinned its own 38.9px: the value is asserted, so if it is FIXED this
+// goes red and the pin comes out, and if it gets WORSE this goes red too. Scoped by state, geometry AND
+// data-ct, so the exclusion cannot widen to cover a second defect that appears beside it.
+const PINNED={state:'rev-best-ply30',geo:'se',anc:'rev-best',cuts:2,tol:3.5};
 
 const GEOS=['se','kunal730'];
 
@@ -249,20 +343,71 @@ L.run(async()=>{
       totalRows+=res.rows.length; totalSkipped+=res.skipped.length;
       // PRESENCE FIRST: an empty screen scans clean, so a zero-ink screen is not evidence of anything (#385).
       L.say(res.seen.inked>=6, g+' '+name+': the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green', res.seen);
-      const worst=res.rows.slice().sort((a,c)=>c.cut-a.cut)[0];
-      L.say(res.rows.length===0, g+' '+name+': NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport',
-        res.rows.length? {cuts:res.rows.length, worst} : {cuts:0, inked:res.seen.inked, clippedChecks:res.seen.clipped, excused:res.other.length});
+      const isPinned=(r)=>g===PINNED.geo&&name===PINNED.state&&r.anc===PINNED.anc;
+      const rows=res.rows.filter(r=>!isPinned(r));
+      const pinnedRows=res.rows.filter(isPinned);
+      const worst=rows.slice().sort((a,c)=>c.cut-a.cut)[0];
+      L.say(rows.length===0, g+' '+name+': NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport',
+        rows.length? {cuts:rows.length, worst} : {cuts:0, inked:res.seen.inked, clippedChecks:res.seen.clipped, excused:res.other.length, pinned:pinnedRows.length});
+      if(g===PINNED.geo&&name===PINNED.state){
+        // The pinned residual, asserted on its own so it is in the log every run rather than implied by a
+        // filter nobody reads. It is on Kunal's Decision Desk; see the PINNED comment above.
+        L.say(pinnedRows.length===PINNED.cuts, g+' '+name+': the ONE pinned residual is exactly where it was left - "'+PINNED.anc+'" still cuts '+PINNED.cuts+' text nodes at 320 (the best-move pill reads "best Qx"). RED here means it MOVED: fixed, and this pin comes out, or worse, and it needs looking at',
+          pinnedRows.map(r=>({text:r.text,cut:r.cut,cs:r.cs,ss:r.ss})));
+      }
       for(const r of res.rows) L.note('    CUT '+r.cut+'px '+r.axis+'  "'+r.text+'"  in '+r.anc+'  ('+r.el+')  ink '+r.ink.join('..')+' vs box '+r.box.join('..')+'  client '+r.cs+' scroll '+r.ss+'  text-overflow(clipper):'+r.teAnc);
-      // THE EXCUSES, ASSERTED RATHER THAN TRUSTED. An excuse nobody checks is how "the covering element is big"
-      // hid the very defect it was written for (#393). Every SIGNALLED row must carry the ellipsis ON THE BOX
-      // THAT CLIPS - not on some inner span - and every OVERSHOOT row must genuinely have had no layout overflow.
-      const badSig=res.other.filter(r=>r.kind==='signalled'&&r.teAnc!=='ellipsis');
-      const badOver=res.other.filter(r=>r.kind==='overshoot'&&(r.ss-r.cs)>0.5);
-      const badAv=res.other.filter(r=>r.kind==='avatar'&&!(r.axis==='y'&&r.cw===38&&r.ch===38&&r.cut<=2&&/^[\u2654\u265a]$/.test(r.text)&&r.sym[0]>0&&r.sym[1]>0&&(r.ss-r.cs)<=1.5));
-      L.say(badSig.length===0&&badOver.length===0&&badAv.length===0, g+' '+name+': every excused row is excused by the mechanism claimed for it - the ellipsis sits on the CLIPPING box, an overshoot box really had no layout overflow, and an avatar row is a single chess glyph bleeding out of BOTH ends of a 38x38 box by under 2px with at most 1.5px of layout overflow',
-        {signalled:res.other.filter(r=>r.kind==='signalled').length, overshoot:res.other.filter(r=>r.kind==='overshoot').length, avatar:res.other.filter(r=>r.kind==='avatar').length, badSig:badSig.length, badOver:badOver.length, badAv:badAv.length});
+      // THE EXCUSE COUNTS ARE REPORTED, NOT ASSERTED, AND THE REASON IS A VETO THIS GATE EARNED ON ITS FIRST
+      // DAY. The assertion that used to stand here read "every excused row is excused by the mechanism claimed
+      // for it" and appeared TWENTY times in this gate's 64. IT COULD NOT GO RED AGAINST ANY BUNDLE WHATSOEVER,
+      // because all three of its filters re-read the very fields that had assigned `kind` four lines earlier:
+      // `kind==='signalled'` is true only when `sA.textOverflow==='ellipsis'`, and `row.teAnc` is set FROM THAT
+      // SAME READ, so `filter(r=>r.kind==='signalled' && r.teAnc!=='ellipsis')` is the empty set by
+      // construction; `kind==='overshoot'` is true only when `ss-cs<=0.5`, so the badOver filter is empty the
+      // same way; and badAv re-tested the six conditions `isAvatar` had just used, from the row those
+      // conditions built. The #404 antagonist pass measured it rather than reading it - it ran this gate's own
+      // SCAN over a DOM built to violate every stated excuse, got 6 `cut` rows and 3 excused, and still got
+      // badSig 0, badOver 0, badAv 0 - and vetoed the push. It was right, and the failure is the one this
+      // gate's own header warns about two screens up: "an excuse nobody checks is how 'the covering element is
+      // big' hid the very defect it was written for (#393)". A comment is not the check.
+      //
+      // What replaced it is FIXTURE_CASES below, run once per geometry: the classifier is fed an enumerated
+      // list of DOM shapes INCLUDING THE ONES IT MUST REJECT, which is #391's rule ("when an assertion parses
+      // something an engine wrote, enumerate what it can legally produce and unit-test the predicate against
+      // that list"). Those assertions CAN go red, because the fixture is independent of the classifier.
       for(const r of res.other) L.note('    '+r.kind.toUpperCase()+' '+r.cut+'px '+r.axis+'  "'+r.text+'"  in '+r.anc+'  client '+r.cs+' scroll '+r.ss+'  text-overflow(clipper):'+r.teAnc);
     }
+    // THE CLASSIFIER'S UNIT TEST, run on this geometry's live page. Nine shapes, four of them cases the excuses
+    // MUST reject. Independent of the classifier's own bookkeeping, which is the whole point.
+    await b.home();
+    await b.page.evaluate(FIXTURE);
+    await b.settle(150);
+    const fx=await b.page.evaluate(SCAN);
+    const all=[...fx.rows,...fx.other];
+    const pick=(re)=>all.filter(r=>re.test(r.text));
+    const kindOf=(re)=>{const m=pick(re);return m.length?m.map(r=>r.kind).sort().join('+'):'none';};
+    const checks=[
+      [/^A+$/,'cut',FIXTURE_WANT[0][2]],
+      [/^B+$/,'signalled',FIXTURE_WANT[1][2]],
+      [/^Checkmate!!$/,'cut',FIXTURE_WANT[2][2]],
+      [/^C+$/,'none',FIXTURE_WANT[7][2]],
+      [/^D+$/,'cut',FIXTURE_WANT[8][2]]
+    ];
+    for(const [re,want,why] of checks){
+      const got=kindOf(re);
+      L.say(got===want, g+' fixture: '+why, {want, got, rows:pick(re).map(r=>({kind:r.kind,axis:r.axis,cut:r.cut,anc:r.anc}))});
+    }
+    // the two king cases share their text, so they are told apart by the box that clips them
+    const kings=all.filter(r=>/^\u2654$/.test(r.text));
+    const kBig=kings.find(r=>r.cut>5), kReal=kings.find(r=>r.cut<=2);
+    L.say(!!kBig&&kBig.kind==='cut', g+' fixture: '+FIXTURE_WANT[3][2], kBig||{kings:kings.map(k=>({kind:k.kind,cut:k.cut,axis:k.axis}))});
+    L.say(!!kReal&&kReal.kind==='avatar', g+' fixture: '+FIXTURE_WANT[4][2], kReal||{kings:kings.map(k=>({kind:k.kind,cut:k.cut,axis:k.axis}))});
+    // the two clamp cases share their text too, and are told apart by the container's own slack
+    const cl=all.filter(r=>/^one two three/.test(r.text));
+    const cFit=cl.find(r=>r.cs===48), cSlack=cl.find(r=>r.cs===58);
+    L.say(!!cFit&&cFit.kind==='clamped', g+' fixture: '+FIXTURE_WANT[5][2], cFit||{clamps:cl.map(c=>({kind:c.kind,cs:c.cs,cut:c.cut}))});
+    L.say(!!cSlack&&cSlack.kind==='cut', g+' fixture: '+FIXTURE_WANT[6][2], cSlack||{clamps:cl.map(c=>({kind:c.kind,cs:c.cs,cut:c.cut}))});
+    await b.page.evaluate(()=>{const e=document.getElementById('ct-inv-fixture');if(e)e.remove();});
+
     // (b): a rotated ancestor is skipped rather than measured wrong, so the skip count must stay zero or the
     // gate has quietly stopped covering something.
     L.say(totalSkipped===0, g+': no clipping ancestor was skipped for a rotated/skewed transform (a skip is coverage silently lost, not a pass)', {skipped:totalSkipped});

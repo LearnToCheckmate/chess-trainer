@@ -282,8 +282,19 @@ L.run(async()=>{
 
     // --- TC-LS-013: at the demo end the "other lines" button names how many there are (#371: on phones the
     // lines live behind this button instead of a 100px box that cost the board 103px).
+    //
+    // #404: THE COUNT IS DELIBERATELY ABSENT BELOW 340px WIDE, and this assertion moved with the change rather
+    // than being deleted. Kunal answered it on 2026-09-15 02:08 UTC, decision `lesson-lines-320-label`, choice
+    // "Other lines": the count drops, and ONLY below 340, because at 375 the button is already flush to the
+    // screen edge and his Z-06 condition is that supporting 320 must not cost the larger screens anything.
+    // Before #404 the counted label was 169.19px wide at EVERY viewport and hung 38.9px off a 320 screen with
+    // nothing able to scroll to it. THIS GATE IS WHAT CAUGHT THE PIN: the first full #404 suite went RED here,
+    // on exactly this line, at `se` - which is the whole point of pinning a label rather than a shape.
+    // The narrow branch is asserted as tightly as the wide one: the count must be ABSENT, not merely optional.
     const lines=await b.rect('[data-ct="lesson-lines"]');
-    L.say(!!lines&&/^♟ Other lines \(3\)$/.test((lines.text||'').trim()),geo+': the demo end offers "♟ Other lines (3)" - the Italian Game\'s three variations, counted',lines&&lines.text);
+    const lTxt=((lines&&lines.text)||'').trim();
+    L.say(!!lines&&(geo==='se'?/^♟ Other lines$/.test(lTxt):/^♟ Other lines \(3\)$/.test(lTxt)),
+      geo+': the demo end offers '+(geo==='se'?'"♟ Other lines" with NO count, per decision lesson-lines-320-label (320 is below the 340 threshold)':'"♟ Other lines (3)" - the Italian Game\'s three variations, counted'),lTxt);
 
     // --- TC-LS-014: the ⋯ sheet's prev/next row. The Italian Game is the FIRST opening, so prev is the
     // boundary: disabled and saying so rather than silently dead.
