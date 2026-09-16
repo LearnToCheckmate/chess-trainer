@@ -21,6 +21,14 @@
 //   - the #387 TRUNCATION work does NOT disappear: it MOVES here, onto rev-why-txt, which is now the only
 //     place the sentence is readable. That box is clamped, not clipped, so an ellipsis is drawn - which is
 //     the property #387 established must hold ("assert WHICH THING DID THE CUTTING").
+// ── CONTROL RE-VERIFIED 2026-09-16 at #402. ─────────────────────────────────────────────────────────────────
+// Same exercise as gate 22's: #401 proved this gate's control EXISTS (in RUN-LOG) and not that it still
+// discriminates after the gate grew 34 -> 36. Both controls are shipped releases, so no trial bundle is needed.
+//   vs the shipped #393 (79083a8, app.js md5 22eee57d90bb): 14 FAIL / 22 PASS  (RUN-LOG #394 recorded 12 of 34)
+//   vs the shipped #396 (37c54e5, app.js md5 d28e3d07a010):  2 FAIL / 34 PASS  (RUN-LOG #397 recorded 2 red - exact)
+// The #396 figure reproducing to the line is the more useful of the two: that control was written for ONE
+// assertion (the container may be no taller than the lines its clamp allows) and it still fires on exactly that
+// one and nothing else, which is what a targeted control is supposed to do two builds later.
 'use strict';
 const L=require('../lib');
 const R=require('../drive/review');

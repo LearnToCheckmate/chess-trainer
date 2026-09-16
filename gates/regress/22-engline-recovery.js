@@ -26,6 +26,16 @@
 // suite's other Review gates stop at a handful of plies. 29 of the 33 plies had never been rendered by
 // anything. This gate does not walk all 33 either - that costs two minutes a geometry - it goes straight
 // to the two positions the trap is reproducible on and asserts the RECOVERY, which is the part we fixed.
+// ── CONTROL RE-VERIFIED 2026-09-16 at #402, AND IT STILL BITES HARDER THAN WHEN IT WAS RECORDED. ─────────────
+// #401 established that this gate HAS a recorded control (in RUN-LOG rows, not here) but not that the control
+// still discriminates against the file AS IT STANDS - the gate has gained 11 assertions since, 10 -> 21, and
+// none of the additions was covered by the original measurement. That gap is now closed, and the record lives
+// here rather than in a RUN-LOG row nobody greps.
+// Both controls are SHIPPED RELEASES, so no trial bundle is needed - the strongest kind of control there is.
+//   vs the shipped #387 (6e19f7e, app.js md5 ae5ebbc44976):  6 FAIL / 15 PASS   (RUN-LOG #389 recorded 4 of 10)
+//   vs the shipped #390 (ecf733d, app.js md5 5fc71d38a468):  3 FAIL / 18 PASS   (RUN-LOG #392 recorded 2 of 14)
+// The red count rose with the assertion count in both cases, which is the result that matters: the assertions
+// added at #392 and #398 are covered by the same bundles, not riding free on a green earned by the originals.
 'use strict';
 const L=require('../lib');
 const PGN='[White "Morphy"] [Black "Duke Karl / Count Isouard"] 1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0';

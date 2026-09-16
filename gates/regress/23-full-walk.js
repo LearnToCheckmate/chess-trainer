@@ -19,6 +19,22 @@
 // card at all. Counted in chess.jsx, SC holds EIGHT and they already cover Play, Lesson, Puzzles, Review, Home
 // and Menu. What was genuinely missing is the ORDERED WALK and the viewport in the caption. The brief was right
 // about what to build and wrong about why, which is worth knowing before anyone "restores" the six.
+// ── CONTROL RE-VERIFIED 2026-09-16 at #402, AND A SECOND ONE FOUND BY GETTING THE FIRST ONE WRONG. ──────────
+// The recorded control (RUN-LOG #390, "the !recCap guard removed, 2 of 22 red") reproduces EXACTLY:
+//   chess.jsx:4395  {!preview&&!fbOpen&&!recCap&&  ->  {!preview&&!fbOpen&&   (trial md5 bf8d7a165eae)
+//   -> 2 FAIL, both "NO dev-only chrome in shot", one per geometry, {"w":76,"h":34}. Nothing else moved.
+// This gate file has ONE commit and has not changed since its control was recorded, so this is the clean case:
+// same gate, same break, same numbers, six builds later.
+//
+// AND A SECOND CONTROL, which exists only because I first reproduced the wrong break - I suppressed the caption
+// ELEMENT (chess.jsx:4165, {recCap&&(<div data-ct="rec-cap") rather than the guard at 4395. Worth keeping
+// because it is strictly stronger and it documents a dependency the gate never states:
+//   caption element suppressed (trial md5 7c4a3a51cba4) -> 8 FAIL / 14 PASS, and the payload is the finding:
+//   seen:[] against want:["BUILD","HOME","MENU","LOOK","PLAY-SETUP",...]. THE CAPTION IS HOW THIS WALK
+//   IDENTIFIES SCREENS. Remove it and the gate cannot tell which screen it is on, so "reached at least 6
+//   screens" and "in the declared order" fail along with the two caption assertions. That is correct behaviour
+//   and not a defect - but it means the caption is load-bearing for the WHOLE gate rather than for the two
+//   assertions that name it, and nothing said so before now.
 'use strict';
 const L=require('../lib');
 // the first screens of the walk, in order. Deliberately NOT all fourteen: the Review leg alone is ~84s and this
