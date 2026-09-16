@@ -19,6 +19,23 @@
 // screen, that the percentage never goes backwards, that no second analysis can be started over a running
 // one, and that two cold runs of the same game give byte-identical accuracy. Elapsed time is REPORTED on
 // every run so a real slowdown is visible to a reader without being asserted against.
+// ── NEGATIVE CONTROL, run 2026-09-16 at #401. ────────────────────────────────────────────────────────────────
+// This gate was the LAST in the suite with no recorded control anywhere - not in this header, not in any
+// RUN-LOG row. The audit that named seven uncontrolled gates was wrong about five of them and right about this
+// one and 35-width-containment; see flag gates-without-a-negative-control update6.
+//
+//   NC-A  chess.jsx:5335  the progress line  {pct}% -> {100-pct}%
+//         Chosen deliberately so the SHAPE of the line is byte-identical and only the VALUE regresses. Trial
+//         bundle md5 7994b6f156d0, built with CT_OUT; chess.jsx restored and md5-verified to 688815d19019.
+//         -> 2 FAIL, and only these two: TC-RL-002 (samples came back 94, 79, 68, 53, 47, 24, 12, 9, 3, 0 -
+//            monotonically DOWN) and TC-RL-006 (six taps in the middle of the progress screen took it 94 -> 6).
+//         -> AND TC-RL-001 STAYED GREEN, which is the whole point of choosing this break. That assertion reads
+//            the line as "Analyzing your game <n>% · checking every move, in those words" - a SHAPE - and a
+//            percentage running backwards satisfies it perfectly. This is #385's coach chip in miniature: the
+//            regex was never the thing doing the work, and if this gate had only had TC-RL-001 it would have
+//            reported green on a progress bar counting down to zero. The value assertions are what earn the
+//            green here, and now that is demonstrated rather than assumed.
+
 'use strict';
 const L=require('../lib');
 const R=require('../drive/review');

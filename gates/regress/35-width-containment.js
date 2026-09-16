@@ -25,6 +25,30 @@
 // Measured at 320x568, the floor, AND at 375x730, his own phone, in the same run - because his condition is
 // that fixing the small screen must not cost anything on the large one, and a before-and-after at one width
 // cannot show that. The 375 numbers are recorded next to the 320 ones for exactly that comparison.
+// ── NEGATIVE CONTROL, run 2026-09-16 at #401. ────────────────────────────────────────────────────────────────
+// This gate had NONE until tonight, and it is one of only two in the suite that genuinely did not - the audit
+// that said seven gates were uncontrolled was wrong about five of them (45-play-setup records eight controls in
+// its own header, 46-play four, and 41/22/23 have theirs in RUN-LOG rows). See flag
+// gates-without-a-negative-control update6. A green that has never been disproved is worth nothing, and this is
+// the gate Kunal's Z-06 condition rests on, so it should not have been the last to get one.
+//
+//   NC-A  chess.jsx:1462  _CBtn  flex:1 -> flex:1,minWidth:90
+//         Five control buttons at a 90px floor force a 450px row into a 375 and a 320 viewport. Trial bundle
+//         md5 09646906bf03, built with CT_OUT; chess.jsx restored and md5-verified to 688815d19019 after.
+//         -> 7 FAIL. "nothing runs off the right edge" goes red on play-setup, play-live and play-gameover at
+//            BOTH 320 and 375 - the More button measured left 504, right 594, over 274 at 320x568 and over 195
+//            at 375x730 - plus the Z-06 assertion that his own phone stays clean while 320 is supported.
+//         -> AND WHAT STAYED GREEN IS THE HALF THAT MATTERS: lesson-demo-end, lesson-practice, puzzles and
+//            review-paste are untouched by this break and all stayed green, the page-scrollWidth assertions
+//            stayed green (the row spills without making the document scroll, which is exactly the
+//            unrecoverable case this gate exists for), the transform-exclusion assertions stayed green, and the
+//            PINNED lesson-lines 38.9 defect stayed green rather than being disturbed. So the gate fires on the
+//            states that contain the broken element and on no others.
+//
+// STILL UNCONTROLLED AFTER TONIGHT: gates/regress/43-tcrl-analysis.js (32 assertions) is now the only gate in
+// the suite with no recorded control in its header and none in any RUN-LOG row. Named here rather than left for
+// another audit to rediscover.
+
 'use strict';
 const L=require('../lib');
 
