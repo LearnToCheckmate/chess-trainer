@@ -1977,3 +1977,44 @@ does not fit; that choice picks which.
 tall, so 1.5px of the king's crown and base are shaved — at every screen size, including yours. No word, digit or
 letter is lost. The gate excuses it by a condition tied to that exact mechanism rather than by a loosened
 threshold, so anything else of the kind still goes red. Flag `inv4-avatar-glyph-overshoot-cosmetic`.
+
+
+---
+
+## #405 — board scanning has started, and the part that needed nothing from you is done
+
+**The feature you asked for on 15 September.** Your words were *"I've talked about this feature for scanning, uh,
+opposition, etcetera... can we start the builds at least"*, and your answer on `scan-in-scope` was *"Build it
+properly — it is a real feature I want."* This build lands the half of it that waits on nothing at all: the FEN
+validator, which is the thing standing between a confident misread of your photograph and a game played from a
+wrong position. 72 assertions, and it runs in under a second without a network or a key.
+
+**Why that half first, and not the camera.** The Cloud Function needs you to deploy it and needs a vision-model
+key. The validator does not. The spec said to land it first for exactly that reason — so your deploy is not
+sitting on the critical path of anything.
+
+**It immediately caught a real defect in its own specification.** When the model is told not to guess castling
+rights — which it is, because no photograph can ever show them — the validator works them out from the board
+instead. But it was only *recording* that it had done so when the answer came out different from "all four".
+So a photograph of the opening position handed back full castling rights with no note that they had been
+inferred rather than seen. One line. It was visible only because the test asks for the exact list of repairs
+rather than "some repair".
+
+**Three small things in the app itself.** A guard that said *"Board scanning is not set up on this build yet"*
+is gone — it could never fire, and while it sat there it was hiding the message you actually need, the one that
+says the function still has to be deployed. The sign-in path now reads the error's code instead of its wording,
+so a friendlier message from the server can't silently break it. And the three scan controls carry test labels.
+
+**One thing deliberately not built, and there is a test asserting it is missing.** There is still no spinner
+while a scan is in flight — only a dimmed button and a line of text. Adding one properly means giving the row a
+fixed height so the board does not move when it appears, which is your most-restated rule, and that goes with
+the rest of the failure messages in the next pass. The test goes red the day it lands, so it cannot be
+forgotten.
+
+**And three records this lane had written that said the wrong thing**, all found by an outside challenger and
+each checked here before being believed: a flag citing the wrong commit for its own fix; a ledger row storing
+two timestamps in a format nothing else uses; and — the one worth knowing — **`verify-log.sh`, the script that
+decides whether a gate run counts as evidence, was accepting logs with no test results in them at all.** It
+accepted a four-line file with a made-up total. Counting the real logs afterwards also corrected this project's
+own induction document, which claimed every gate log before #391 was a worthless copy: measured, exactly three
+are, and fifteen perfectly good ones had been tarred with them.
