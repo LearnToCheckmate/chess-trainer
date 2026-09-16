@@ -162,19 +162,24 @@ const STATES=[
   ['look-picker',     async(b)=>{await b.home();await b.tapCt('home-look',700);}],
 ];
 
-// THE ONE DEFECT THAT IS NOT MINE TO FIX, PINNED RATHER THAN HIDDEN. "Other lines (2)" at 320 is blocked on
-// Kunal - flag width320-gate-red-needs-kunal puts three options to him and none of them can be chosen here,
-// because the row is a grid of '1.8fr 1fr' whose second track is blown out by the button's min-content width,
-// and every available fix also moves the row at 375 where it is already flush to the screen edge. Z-06's
-// condition ("i want to make sure it doesn't impact the display on the larger screens") is exactly what he
-// has to weigh, so he weighs it.
+// ── THE BLOCKED PIN IS GONE, BECAUSE THE DEFECT IS FIXED. #404. ──────────────────────────────────────────────
+// It used to read: `const BLOCKED={state:'lesson-demo-end',geo:'se',ct:'lesson-lines',over:38.9,tol:0.6}` -
+// "Other lines (2)" hanging 38.9px off a 320 screen, excluded from the containment assertion for its state and
+// asserted as a KNOWN value instead, because the three available fixes all moved the row at 375 too and
+// choosing between them was Kunal's call under his own Z-06 condition. That pin said "a fix cannot land
+// silently"; this is the fix, and it is not landing silently.
 //
-// Leaving the gate RED on it would keep the whole suite red and block every future build, and deleting the
-// assertion would lose the defect. So it is pinned instead: the exact overhang is asserted as a KNOWN value.
-// If it is fixed, this goes red and must be updated - a fix cannot land silently. If it gets WORSE, this goes
-// red too. It is the one element excluded from the containment assertion for its state, named by data-ct so
-// the exclusion cannot widen to cover a second defect that appears next to it.
-const BLOCKED={state:'lesson-demo-end',geo:'se',ct:'lesson-lines',over:38.9,tol:0.6};
+// HE ANSWERED IT on 2026-09-15 02:08 UTC, decision `lesson-lines-320-label`, choice "Other lines" - the COUNT
+// DROPS, and only below 340px wide, so nothing changes at 375 or above by construction. That is what #404
+// shipped (chess.jsx:6035, the same `vp.w<=340` mechanism already used for the puzzle Roadmap chevron at #382
+// and "Try again" at #384). Decision `width320-gate-red` - "Fix 'Other lines (2)' first, then land the gate" -
+// is what makes this the pin's proper end rather than a convenience.
+//
+// So `lesson-lines` is no longer excluded from anything: the general containment assertion for
+// se/lesson-demo-end now covers it like every other element, and the two assertions below replace the pin by
+// asserting the FIX rather than the defect - the label at 320 carries no count, the label at 375 still does,
+// and its width is no longer the 169.19px that was identical at every viewport.
+const FIXED={state:'lesson-demo-end',ct:'lesson-lines',wasOver:38.9};
 
 L.run(async()=>{
   const report={};
@@ -185,7 +190,10 @@ L.run(async()=>{
       try{
         await go(b);await b.settle(350);
         const res=await overhang(b);const ps=await pageScroll(b);
-        rows.push({state:name,off:res.off,ex:res.excused,ps});
+        // #404: read the lesson-lines label text in the same pass, so the label half of his answer is asserted
+        // from the same visit as the geometry half rather than from a second, differently-driven run.
+        const lines=name===FIXED.state?await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="lesson-lines"]');return e?(e.innerText||'').trim():null;}):undefined;
+        rows.push({state:name,off:res.off,ex:res.excused,ps,lines});
         if(res.off.length)await b.shot('width-'+geo+'-'+name+'-overhang');
       }catch(e){rows.push({state:name,err:String(e).slice(0,120)});}
     }
@@ -199,20 +207,27 @@ L.run(async()=>{
     const w=geo==='se'?320:375;
     for(const r of report[geo]){
       if(r.err){L.say(false,geo+' ('+w+' wide): the state "'+r.state+'" could not be reached, so containment there is UNMEASURED rather than green',r.err);continue;}
-      const isBlocked=(o)=>geo===BLOCKED.geo&&r.state===BLOCKED.state&&o.ct===BLOCKED.ct;
-      const off=r.off.filter(o=>!isBlocked(o));
+      const off=r.off;   // #404: nothing is excluded any more - the one exclusion this gate had was `lesson-lines`, and it is fixed
       L.say(off.length===0,geo+' ('+w+' wide): nothing runs off the right edge on "'+r.state+'"',off);
       L.say(r.ps.sw<=r.ps.iw+0.5,geo+' ('+w+' wide): the page does not scroll sideways on "'+r.state+'" (scrollWidth '+r.ps.sw+' vs '+r.ps.iw+')');
     }
   }
 
-  // The pinned known defect, asserted on its own so it is visible in the log every run rather than implied by
-  // a filter nobody reads.
-  const bRow=report[BLOCKED.geo].find(r=>r.state===BLOCKED.state);
-  const bHit=bRow&&!bRow.err&&bRow.off.find(o=>o.ct===BLOCKED.ct);
-  L.say(!!bHit&&Math.abs(bHit.over-BLOCKED.over)<BLOCKED.tol,
-    'the one blocked defect is EXACTLY where it was left: "'+BLOCKED.ct+'" still hangs '+BLOCKED.over+'px off the right edge at 320 on "'+BLOCKED.state+'". It is blocked on Kunal (flag width320-gate-red-needs-kunal, three options, none of them mine to pick). If this line is red the defect MOVED - either it was fixed, and this pin comes out, or it got worse.',
-    bHit||'no overhang found on '+BLOCKED.ct+' at all');
+  // WHAT REPLACED THE PIN. The defect is gone from the containment sweep above by not being excluded from it any
+  // more, which is necessary and not sufficient: "it no longer hangs off" would also be satisfied by the button
+  // disappearing, or by the count dropping at EVERY width - and the second of those breaks Kunal's Z-06
+  // condition rather than meeting it. So both halves of his answer are asserted, at both widths.
+  for(const geo of ['se','kunal730']){
+    const fRow=report[geo].find(r=>r.state===FIXED.state);
+    const hit=fRow&&!fRow.err&&fRow.off.find(o=>o.ct===FIXED.ct);
+    L.say(!!fRow&&!fRow.err&&!hit,
+      geo+': "'+FIXED.ct+'" is contained - the #404 fix for the one defect this gate used to pin as BLOCKED at '+FIXED.wasOver+'px off the right edge at 320 (decision lesson-lines-320-label)',
+      hit||(fRow&&fRow.err)||'contained');
+    const lab=fRow&&fRow.lines;
+    if(lab!==undefined) L.say(geo==='se'?(lab!==null&&!/\(/.test(lab)):(lab!==null&&/\(\d+\)/.test(lab)),
+      geo+': the label itself carries what his answer says - no count below 340, the count kept at 375 and above, so supporting 320 costs the larger screens nothing (Z-06)',
+      {label:lab});
+  }
 
   // THE TRANSFORM EXCLUSION, PINNED TO ITS MECHANISM RATHER THAN TO A COUNT. Every piece on the board is drawn
   // inside scale(1.06), so a board screen excuses a handful of boxes and a screen with no board excuses none.

@@ -1939,3 +1939,41 @@ thing on this feature.
 **Still on screen and now false:** the menu's *"📅 Correspondence · online soon"* block says day limits
 *"unlocks when we put games online"*. Day limits have worked online since before #399. Same class as the notice
 this build deleted; not touched because it is separate copy and yours to word.
+
+
+---
+
+## #404 — the text that was being cut without saying so, at 320
+
+**Your answer that had been sitting unbuilt for a day and a half.** Decision `lesson-lines-320-label`, 2026-09-15
+02:08 UTC: *"Other lines"* — the count drops, and only below 340px wide. That is now what the button says at 320,
+and it still reads *"♟ Other lines (3)"* at 375 and above, unchanged. It was the one defect
+`gates/regress/35-width-containment.js` had been carrying as a PINNED known value — 38.9px of the button hanging
+off a 320 screen, with nothing able to scroll to it — because the three available fixes all moved the row at 375
+too and that was yours to weigh under Z-06. The pin is gone and the gate now asserts the fix, at both widths,
+including the half that matters to you: *"i want to make sure it doesn't impact the display on the larger
+screens"*.
+
+**Two more things were being cut at 320 and both had been open 26 hours across five builds.** In the review
+player bar, the captured-material number `+10` was sliced through its own digits — 15px of ink gone, no ellipsis,
+so at 320 you would read a wrong material advantage or none. And the `▶ why` button on a Brilliant move read
+`▶ wh`. Both clean on your own phone, which is why neither would ever have reached you.
+
+**What I actually built, and it is the thing worth your attention.** Not the three fixes — the gate that can see
+them. This class has been closed FOUR times (#382, #387, #395, #397) and each fix pinned the one element, so the
+class itself was never covered: every containment assertion in this repository measures against the SCREEN edge,
+and all of these boxes clip their own text hundreds of pixels inside it. `gates/regress/26-invariants.js` is the
+first assertion here that measures painted INK against the box that actually clips it. It is invariant 4 of the
+four you commissioned on 2026-09-15 (`invariant-gate`, "Yes — all four invariants"); the other three are named in
+its header as not yet implemented, so the filename cannot be read as coverage it does not have.
+
+**Two changes you would see, both taken on a stated default and both reversible in one commit** (flags
+`amber-404-narrow-pill-padding` and `amber-404-captured-tally-yields-not-the-number`): below 340px the review
+move-line pills give back some side padding, and in the captured-pieces row the TAIL OF THE PIECE TALLY is now
+what gets clipped when the row will not fit, instead of the number. Something has to give in a row that genuinely
+does not fit; that choice picks which.
+
+**One residual, named rather than absorbed.** The 38x38 player-bar avatar holds a chess glyph whose ink is 40px
+tall, so 1.5px of the king's crown and base are shaved — at every screen size, including yours. No word, digit or
+letter is lost. The gate excuses it by a condition tied to that exact mechanism rather than by a loosened
+threshold, so anything else of the kind still goes red. Flag `inv4-avatar-glyph-overshoot-cosmetic`.

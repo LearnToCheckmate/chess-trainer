@@ -5363,9 +5363,15 @@ export default function App(){
               <span style={{flex:'1 1 auto',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',fontSize:'clamp(13px,2.8vw,14.5px)',color:'rgba(255,255,255,.62)',fontWeight:700}}>{anaHist.length?(anaHist.length+' move'+(anaHist.length===1?'':'s')+' in · '+(boardGame.turn==='w'?'White':'Black')+' to play'):'your board · play any move'}</span>
             </>):curAnno?(<>
               <span style={{flex:'0 0 auto',fontSize:'clamp(15px,3.8vw,19px)',fontWeight:800,color:'#fff'}}>{_mvTxt}</span>
-              <span style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',gap:4,fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,color:curAnno.cls.c,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'66',borderRadius:22,padding:'3px 10px'}}><span style={{fontSize:'clamp(13px,3.2vw,17px)',lineHeight:1}}>{curAnno.cls.i}</span>{curAnno.cls.label}</span>
-              {_wasBest&&<button data-ct="rev-playout" onClick={()=>{setEngOn(true);playBestLine(review.plies[ply-1].move);}} title="Play this move out and see what it leads to" aria-label="Play this move out and see what it leads to" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:5,padding:'3px 11px',borderRadius:22,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'88',color:curAnno.cls.c,cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden',whiteSpace:'nowrap'}}>{'\u25b6'} why</button>}
-              {_hasBetter&&<button data-ct="rev-best" onClick={()=>{setShowBest(true);setEngOn(true);playBestLine();}} title="Show the best move on the board" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:5,padding:'3px 10px',borderRadius:22,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.45)',color:'var(--ac2)',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden'}}><span style={{fontWeight:600,color:'rgba(255,255,255,.6)',fontSize:'.85em'}}>best</span>{curAnno.bestSan}<span style={{opacity:.8}}>{showBest?'✓':'›'}</span></button>}
+              {/* #404, flag `recur-rev-playout-clipped-320`: at 320 this nowrap row demanded ~19px more than it
+                  had, flex-shrink took every one of them out of the ONE shrinkable item - rev-playout, the only
+                  member with flex:'0 1 auto' - and the button read "▶ wh" with no ellipsis. The row fits when
+                  these two pills give back their side padding below 340, which is the same <=340 mechanism
+                  already shipped at #382 and #384, and nothing at all changes at 375 or above (Kunal's Z-06
+                  condition: supporting 320 must not cost the larger screens anything). */}
+              <span style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',gap:4,fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,color:curAnno.cls.c,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'66',borderRadius:22,padding:(vp.w<=340?'3px 5px':'3px 10px')}}><span style={{fontSize:'clamp(13px,3.2vw,17px)',lineHeight:1}}>{curAnno.cls.i}</span>{curAnno.cls.label}</span>
+              {_wasBest&&<button data-ct="rev-playout" onClick={()=>{setEngOn(true);playBestLine(review.plies[ply-1].move);}} title="Play this move out and see what it leads to" aria-label="Play this move out and see what it leads to" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(vp.w<=340?3:5),padding:(vp.w<=340?'3px 5px':'3px 11px'),borderRadius:22,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'88',color:curAnno.cls.c,cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden',whiteSpace:'nowrap'}}>{'\u25b6'} why</button>}
+              {_hasBetter&&<button data-ct="rev-best" onClick={()=>{setShowBest(true);setEngOn(true);playBestLine();}} title="Show the best move on the board" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(vp.w<=340?3:5),padding:(vp.w<=340?'3px 5px':'3px 10px'),borderRadius:22,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.45)',color:'var(--ac2)',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden'}}><span style={{fontWeight:600,color:'rgba(255,255,255,.6)',fontSize:'.85em'}}>best</span>{curAnno.bestSan}<span style={{opacity:.8}}>{showBest?'✓':'›'}</span></button>}
             </>):(<span style={{fontSize:'clamp(14px,3vw,16px)',fontWeight:700,color:'rgba(255,255,255,.6)'}}>Start position</span>)}
             {!anaMode&&<span style={{flex:'1 1 auto'}}/>}
             {!anaMode&&<span style={{flex:'0 0 auto',fontSize:'clamp(12.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.55)',fontFamily:'monospace',fontWeight:700}}>{ply}/{review.plies.length}</span>}
@@ -6032,7 +6038,20 @@ export default function App(){
           {learnPhase==='demo'&&(<>
             <div style={{alignSelf:'stretch',display:'grid',gridTemplateColumns:'1.8fr 1fr',gap:6}}>
               <button onClick={()=>startPractice(learnLine,learnLabel)} style={btn('var(--ac)','none','#fff')}>✋ Now I'll try it</button>
-              {(!wide&&demoPly>=learnLine.length&&LIB[openIdx].vars&&LIB[openIdx].vars.length>0)?(<button data-ct="lesson-lines" onClick={()=>setLessonMore(true)} style={btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.4)','var(--ac2)')}>♟ Other lines ({LIB[openIdx].vars.length})</button>):(<button onClick={()=>setFlip(f=>!f)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⟳ Flip</button>)}
+              {(!wide&&demoPly>=learnLine.length&&LIB[openIdx].vars&&LIB[openIdx].vars.length>0)?(<button data-ct="lesson-lines" onClick={()=>setLessonMore(true)} style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.4)','var(--ac2)'),...(vp.w<=340?{padding:'9px 6px'}:null)}}>{/* #404, decision `lesson-lines-320-label`, Kunal 2026-09-15 02:08 UTC: "Other lines" - the COUNT DROPS - and only below 340px wide. Above 340 nothing changes by construction. Measured before: the button is 169.19px wide at EVERY viewport and never shrinks, so at 320 it ran 189.73..358.92 with documentElement.scrollWidth still 320 and 38.92px unreachable. Same <=340 mechanism as the puzzle Roadmap chevron (#382) and "Try again" (#384) - reused rather than invented a third time, as his note asked. */}{vp.w<=340?'\u265f Other lines':'\u265f Other lines ('+LIB[openIdx].vars.length+')'}</button>):(<button onClick={()=>setFlip(f=>!f)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),...(vp.w<=340?{padding:'9px 6px'}:null)}}>⟳ Flip</button>)}
+              {/* #404, AND THE HALF HIS ANSWER DID NOT REACH. Dropping the count took the overhang from 38.9px
+                  to 10.3px and NOT to zero: measured at 320x568 after the label change, the button still ran
+                  left 189.7 to right 330.3, w 140.6, 10.3px past a 320 screen with nothing able to scroll to
+                  it. NO INK was lost at that point - the new invariant-4 gate reads 0 cuts on this screen,
+                  because the shorter label's glyphs now end inside 320 - but the pill's rounded right end, its
+                  border and its background are still cut, and #398's rule cuts both ways: a box that clips its
+                  own child is a latent fault that a longer string or a larger accessibility font will cash in.
+                  The row is a grid of '1.8fr 1fr' whose second track cannot go below this button's min-content
+                  width, so the 15px side padding is what is left to give: 9px 15px -> 9px 6px below 340 frees
+                  18px of min-content, which is more than the 10.3px owed. Same <=340 mechanism, same
+                  precedent (chess.jsx:6091 already does exactly this for 'Try again' at #384), and nothing
+                  changes at 375 or above. Asserted by gates/regress/35-width-containment.js, which was RED at
+                  10.3 on the label fix alone - that is how this half was found rather than assumed. */}
             </div>
             {demoPly>=learnLine.length&&LIB[openIdx].vars&&wide&&(/* #371: on phones this 100px box took the board from 375 to 272 at the demo's end (A-01); the lines live in the ⋯ sheet there */
               <div style={{width:'100%',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:12,padding:'9px 11px'}}>
@@ -6195,7 +6214,17 @@ export default function App(){
                     asked for it back out on the decisions page, 2026-09-12. Do not re-add it
                     without asking - see DECISIONS-LOG.md, round 1. */}
               </div>
-              <div data-ct={'pbar-taken-'+col} style={{display:'flex',alignItems:'center',height:18,flexShrink:0,flexWrap:'nowrap',overflow:'hidden'}}>{taken.length>0&&taken.map((t,i)=>(<span key={i} style={{display:'inline-flex',marginRight:-2}}><Piece t={t} color={enemy} sz={18} useFallback={fallback} onFail={onPieceFail}/></span>))}{lead>0&&<span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:_fgDim,marginLeft:6}}>+{lead}</span>}</div>
+              {/* #404, flag `recur-pbar-taken-sliced-320`. THE NUMBER IS NOT ALLOWED TO BE THE THING THAT FALLS OFF.
+                  Measured at 320x568 in review state moves-last-engine: this row was clientWidth 116 against
+                  scrollWidth 131, and because the +{lead} span came LAST in a nowrap overflow:hidden row, the
+                  '+10' was painted out to x=267 inside a box whose clip edge is x=252 - 15px of ink cut straight
+                  through the digits, with no ellipsis to say so. A player at 320 read a wrong material advantage
+                  or none at all. Three sessions measured it to the same hundredth of a pixel over 26 hours.
+                  The captured pieces are a visual tally and losing the tail of one costs nothing; the number is
+                  information. So the PIECES get their own shrinkable, clipping box and the number is pinned
+                  flexShrink:0. Something has to give in a row that genuinely does not fit - #398's lesson is that
+                  the squeeze MOVES rather than disappearing - and this chooses what gives. */}
+              <div data-ct={'pbar-taken-'+col} style={{display:'flex',alignItems:'center',height:18,flexShrink:0,flexWrap:'nowrap',overflow:'hidden'}}>{taken.length>0&&<div data-ct={'pbar-takenpc-'+col} style={{display:'flex',alignItems:'center',flexWrap:'nowrap',minWidth:0,flexShrink:1,overflow:'hidden'}}>{taken.map((t,i)=>(<span key={i} style={{display:'inline-flex',marginRight:-2}}><Piece t={t} color={enemy} sz={18} useFallback={fallback} onFail={onPieceFail}/></span>))}</div>}{lead>0&&<span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:_fgDim,marginLeft:6,flexShrink:0}}>+{lead}</span>}</div>
             </div>
             {!isTop&&inReview&&revCompact&&evalGraph&&review&&review.analysis&&review.analysis.length>1&&(()=>{const A=review.analysis;const n=A.length;const gw=Math.max(90,Math.min(130,Math.round(boardPx*0.36))); /* #371: 154 left 'Duke Kar…' in 89px; 126 on his phone */const gh=Math.max(26,Math.min(40,(vp.h<640?32:46)-8));const mid=gh/2;const cl=(v)=>Math.max(-5,Math.min(5,(typeof v==='number'?v:0)));
               const xs=(i)=>Math.round((i/(n-1))*(gw-2)*10)/10+1;const ys=(v)=>Math.round((mid-cl(v)/5*(mid-1))*10)/10;

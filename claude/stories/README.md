@@ -45,6 +45,8 @@ any of them landed. **Claim a number here in the same commit that adds the file.
 | `45-play-setup.js` | Play setup lane | **43** | renumbered: 43 was already pushed |
 | `46-play.js` | Play lane | **44** | renumbered with it, to keep the two lanes adjacent |
 | `47-menu.js` | Menu/settings test-authoring lane, pasted by the build session | 47 | #399. **47 WAS CLAIMED TWICE MORE.** See below |
+| `48-lesson-flow.js` | Lesson test-authoring lane, pasted by the build session | 48 | #403. 195 assertions |
+| `26-invariants.js` | build session | **26** | #404. Authored as `47-invariants.js` by two flags; 47 was gone. See below |
 
 **RANGES RESERVED, from procedure v13 section 6e item 4:** **10-29 build lane**, **30-49 test-authoring lane**,
 **50-69 challengers and audits**, **70-89 the play lane**, **90-99 scratch and never committed.** Existing files
@@ -69,9 +71,21 @@ documents written after it - LESSON-LANE and HOME-LANE - both assume 47 is menu 
   test-authoring range, it is adjacent, and it is currently free. That does spend the deliberate 44 gap - the
   gap was left to make the 43/45/46 renumbering visible in the directory listing, and this paragraph now
   carries that record instead, which a directory listing never could.
-- `48-lesson-flow.js` and `49-home.js` are unaffected and remain claimed by LESSON-LANE and HOME-LANE. Both
-  are still ABSENT from git (`standing-a-c2-gates-claimed-not-in-git`): 189 and an unmeasured count of
-  assertions are published as run and execute nowhere. They are the build session's to paste, next.
+- `48-lesson-flow.js` and `49-home.js` are unaffected and remain claimed by LESSON-LANE and HOME-LANE.
+  `48-lesson-flow.js` LANDED at #403 with 195 assertions (two of its taps had to be guarded first: as pasted,
+  its own negative control measured 16 FAIL of only 48 assertions RUN, because `D.tapBtn` throws and `L.run`
+  catches at top level). `49-home.js` is the last one still ABSENT from git
+  (`standing-a-c2-gates-claimed-not-in-git`), 50 TC-HM cases published as run and executing nowhere. It is the
+  build session's to paste, next.
+
+**THE INVARIANT GATE IS 26, NOT 47, AND THAT IS THE FOURTH CLAIM ON 47.** #404. Flag `build-the-invariant-gate`
+and flag `class-ink-clipped-by-own-ancestor-2026-09-15` were both written on 2026-09-15 and both name
+`gates/regress/47-invariants.js`; `47-menu.js` landed the following night. By this register's own rule the
+pushed file keeps the number, so the invariant gate moved - and it moved INTO the range it always belonged in:
+**10-29 is the build lane**, and the invariant gate is the build session's own. 26 was free and sits next to
+`25-online-clocks.js`. Nobody had to renumber anything, because nothing had been pushed under the name yet;
+this is the first of the four 47 claims to be settled before it cost anything, and the reason is `gates.sh`'s
+duplicate-number guard (#399) plus this table, not anyone remembering.
 
 Theirs moved rather than mine for one reason, and it is the same reason this register exists for `TC-R` ids:
 `43-tcrl-analysis` is named in a pushed commit, in `gates/logs/`, in `RUN-LOG.md` and in this file, and renaming
