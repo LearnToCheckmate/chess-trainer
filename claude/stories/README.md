@@ -47,6 +47,7 @@ any of them landed. **Claim a number here in the same commit that adds the file.
 | `47-menu.js` | Menu/settings test-authoring lane, pasted by the build session | 47 | #399. **47 WAS CLAIMED TWICE MORE.** See below |
 | `48-lesson-flow.js` | Lesson test-authoring lane, pasted by the build session | 48 | #403. 195 assertions |
 | `26-invariants.js` | build session | **26** | #404. Authored as `47-invariants.js` by two flags; 47 was gone. See below |
+| `27-scan-fen.js` | build session (board-scan spec, Part 6.1) | **27** | #405. The spec pencilled in **50**; 50-69 is the challenger range. See below |
 
 **RANGES RESERVED, from procedure v13 section 6e item 4:** **10-29 build lane**, **30-49 test-authoring lane**,
 **50-69 challengers and audits**, **70-89 the play lane**, **90-99 scratch and never committed.** Existing files
@@ -77,6 +78,19 @@ documents written after it - LESSON-LANE and HOME-LANE - both assume 47 is menu 
   catches at top level). `49-home.js` is the last one still ABSENT from git
   (`standing-a-c2-gates-claimed-not-in-git`), 50 TC-HM cases published as run and executing nowhere. It is the
   build session's to paste, next.
+
+**THE BOARD-SCAN GATE IS 27, NOT THE 50 ITS SPEC PENCILLED IN.** #405. The spec (tracker
+`jobs/build-spec-board-scan-server`, Part 6) wrote `gates/regress/50-scan-fen.js` and said in the same
+paragraph that the number was "to be confirmed by the build lane", having noticed that three specs written on
+the night of 2026-09-15 each picked a gate number without coordinating - online clocks took 47, video call took
+49, and board scan took 50 - which is precisely how `45-play-setup.js` and `46-play.js` collided. Two things
+settle it: **50-69 is reserved for challengers and audits**, and this is build-lane work, so it belongs in
+**10-29**; and 27 is the next free number after `26-invariants.js`. The spec's own words were "somebody should
+own the register before any of the three lands" - this table is that owner, and `gates.sh`'s duplicate-number
+guard (#399) is what makes it mechanical rather than a matter of remembering. **The video-call spec's claim on
+49 is still live and still uncoordinated**, and 49 is also claimed by HOME-LANE for `49-home.js`, which is
+named in three lane documents and is the next gate due to land. Whoever pastes the video-call gate should take
+a free build-lane number (16-19 or 28-29) rather than 49.
 
 **THE INVARIANT GATE IS 26, NOT 47, AND THAT IS THE FOURTH CLAIM ON 47.** #404. Flag `build-the-invariant-gate`
 and flag `class-ink-clipped-by-own-ancestor-2026-09-15` were both written on 2026-09-15 and both name

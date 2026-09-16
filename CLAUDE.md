@@ -63,10 +63,24 @@ wider one.
   refuses a log whose header and footer name different builds - which is the #388 mistake an external challenger
   caught and this lane did not.
 - **COPY `gates/logs/<N>-all.log` INTO `claude/agents/gatelogs/`, NOT the terminal output.** They are different
-  files: gates.sh `tee`s only the summary lines to stdout and writes every PASS line to the log. Every gatelog
-  committed before #391 is the 57-line stdout capture rather than the ~1200-line real log, so the footer totals
-  in them are right and nothing else can be audited. `verify-log.sh` reports the PASS count, which makes the
-  thin ones obvious: a full suite reporting "0 PASS" is the tell.
+  files: gates.sh `tee`s only the summary lines to stdout and writes every PASS line to the log. A thin log's
+  footer total is right and nothing else in it can be audited.
+  **#405 COUNTED THEM RATHER THAN REPEATING THE CLAIM, AND THE CLAIM WAS WRONG.** This line used to read "every
+  gatelog committed before #391 is the 57-line stdout capture". Measured across all 32 committed logs, footer
+  total against actual `^PASS` count: **exactly THREE are thin**, and they are
+  `388-regate-of-the-387-bundle.log` (53 lines, footer 990, 0 PASS), `388b-regate-of-the-387-bundle.log` (53,
+  997, 0) and `389-all.log` (55, 1007, 0). Every other log agrees with its own footer to the assertion,
+  including all fifteen from #373 to #383b, which are real logs of 264 to 624 lines carrying 203 to 499 PASS.
+  So the damage is three logs around one episode, not a whole era - and naming them is what lets anyone re-audit
+  those three and trust the rest. A blanket claim made fifteen good logs look suspect and hid which three are not.
+- **`verify-log.sh` NOW REFUSES A THIN LOG INSTEAD OF DESCRIBING ONE (#405).** It used to PRINT the PASS count
+  and never check it, so a full suite reporting "0 PASS" was the tell only if a human noticed - and the tool
+  whose whole job is deciding whether a log is evidence returned OK on a hand-made 4-line file with no PASS
+  lines and on a genuine stdout capture of the green #404 run. It now requires the log's own
+  `regression assertions (PASS lines): N` footer to exist, be above zero, and EQUAL the number of `^PASS` lines
+  in the file. Self-consistency rather than a threshold, deliberately: a floor like "at least 1000 PASS" would
+  be the frozen denominator again. It rejects the two controls, the three thin logs above and a truncated log,
+  and accepts all 29 real ones.
 - The harness library is `gates/lib.js`; read its header before writing a gate.
 - Serve locally. `learntocheckmate.github.io` is blocked by the egress proxy; `github.com` is not.
   Chromium is at `/opt/pw-browsers/chromium`; never run `playwright install`.

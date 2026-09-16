@@ -3554,7 +3554,20 @@ export default function App(){
   const scanBoardFile=(file)=>{
     if(!file) return;
     const C=(typeof window!=='undefined')?window.CTCloud:null;
-    if(!C||!C.scanBoard){ setScanMsg('Board scanning is not set up on this build yet.'); return; }
+    /* #405, R-BS-3 of the board-scan spec. THE SECOND HALF OF THIS GUARD - the one that tested the facade for a
+       scanBoard method - CAME OUT BECAUSE IT COULD NEVER FIRE, and while it sat here it was the reason the
+       RIGHT message was unreachable for two builds.
+       (The removed predicate is deliberately NOT quoted anywhere in this comment. R-BS-3's gate is a source
+       grep for that exact string expecting a count of zero, so a comment explaining the removal would have
+       defeated the check for the very thing it documents - which it did, twice, before this wording. A crude
+       grep is still a real gate; write around it rather than through it.)
+       index.html:96 defines scanBoard on the CTCloud facade unconditionally and :282 assigns the real
+       _scanBoard as soon as the bridge loads, so C.scanBoard is always truthy on a real device - the branch
+       that says "not set up on this build yet" was dead code shadowing the live deploy message in the catch at
+       :3595, which is the one a player actually needs. Decision `q-pz-tier-code`, in his words via the
+       feedback session: "a client guard is not a lock, and assigning a wrapper is not a deployed function."
+       `if(!C)` stays: CTCloud genuinely can be absent if index.html's plain script has not run. */
+    if(!C){ setScanMsg('Board scanning is not available right now.'); return; }
     setScanBusy(true); setScanMsg('Reading the board…');
     const url=URL.createObjectURL(file);
     const img=new Image();
@@ -3591,7 +3604,13 @@ export default function App(){
         const m=e&&e.message;
         const _code=String((e&&e.code)||'');
         const _undeployed=/not-found|unimplemented/i.test(_code)||/not.?found/i.test(String(m||''));
-        setScanMsg(m==='unauthenticated'?'Sign in first to scan a board.':(m==='cloud-not-ready'||_undeployed)?'Board scanning is not set up yet — the cloud function still needs to be deployed. Nothing you do here will help; set the position up by hand for now.':'Could not read the board right now. Please try again.');
+        /* #405, R-BS-4: test the CODE as well as the message. A callable HttpsError delivers its MESSAGE to the
+           client and not its code word, so the server had to set its message literally to "unauthenticated" to
+           keep this line working - a string coupling across two files with nothing asserting it, which the
+           first person to write a friendlier message would break silently. Reading e.code too means the
+           coupling stops mattering and the server is free to say something a human would want to read. */
+        const _unauth=/unauthenticated/i.test(_code)||m==='unauthenticated';
+        setScanMsg(_unauth?'Sign in first to scan a board.':(m==='cloud-not-ready'||_undeployed)?'Board scanning is not set up yet — the cloud function still needs to be deployed. Nothing you do here will help; set the position up by hand for now.':'Could not read the board right now. Please try again.');
       }
     };
     img.onerror=()=>{ try{URL.revokeObjectURL(url);}catch(_){} setScanBusy(false); setScanMsg('Could not open that image.'); };
@@ -4655,12 +4674,21 @@ export default function App(){
           {setupFromFEN&&(<div style={{padding:'10px 13px',borderRadius:12,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',fontSize:'clamp(14px,2.6vw,14px)',color:'var(--ac2)',lineHeight:1.45}}>♟ Continuing from your reviewed position. You'll play <b>{pColor==='w'?'White':'Black'}</b> (the side to move) — switch the color below if you'd rather take the other side.</div>)}
           <div>
             <div style={{display:'flex',gap:10}}>
-              <button onClick={()=>{ setScanMsg(''); if(!cloudUser){ setUpgradeMsg('Sign in to scan a board.'); setAcctOpen(true); return; } if(scanInputRef.current) scanInputRef.current.click(); }} disabled={scanBusy} style={{flex:1,minWidth:0,padding:'13px 10px',borderRadius:13,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:scanBusy?'default':'pointer',opacity:scanBusy?.6:1,display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>📷 Scan with camera</button>
-              <button onClick={()=>{ setScanMsg(''); if(!cloudUser){ setUpgradeMsg('Sign in to read a board.'); setAcctOpen(true); return; } if(uploadInputRef.current) uploadInputRef.current.click(); }} disabled={scanBusy} style={{flex:1,minWidth:0,padding:'13px 10px',borderRadius:13,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:scanBusy?'default':'pointer',opacity:scanBusy?.6:1,display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>🖼 Upload a photo</button>
+              <button data-ct="scan-camera" onClick={()=>{ setScanMsg(''); if(!cloudUser){ setUpgradeMsg('Sign in to scan a board.'); setAcctOpen(true); return; } if(scanInputRef.current) scanInputRef.current.click(); }} disabled={scanBusy} style={{flex:1,minWidth:0,padding:'13px 10px',borderRadius:13,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:scanBusy?'default':'pointer',opacity:scanBusy?.6:1,display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>📷 Scan with camera</button>
+              <button data-ct="scan-upload" onClick={()=>{ setScanMsg(''); if(!cloudUser){ setUpgradeMsg('Sign in to read a board.'); setAcctOpen(true); return; } if(uploadInputRef.current) uploadInputRef.current.click(); }} disabled={scanBusy} style={{flex:1,minWidth:0,padding:'13px 10px',borderRadius:13,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:scanBusy?'default':'pointer',opacity:scanBusy?.6:1,display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>🖼 Upload a photo</button>
             </div>
             <input ref={scanInputRef} type="file" accept="image/*" capture="environment" onChange={e=>{const f=e.target.files&&e.target.files[0];e.target.value='';scanBoardFile(f);}} style={{display:'none'}}/>
             <input ref={uploadInputRef} type="file" accept="image/*" onChange={e=>{const f=e.target.files&&e.target.files[0];e.target.value='';scanBoardFile(f);}} style={{display:'none'}}/>
-            {scanMsg&&<div style={{fontSize:'clamp(14px,2.5vw,14px)',color:'var(--ac2)',marginTop:8,lineHeight:1.45}}>{scanMsg}</div>}
+            {/* #405, R-BS-5 of the board-scan spec, and decision `q-test-labels` ("Add test labels to both").
+                The three scan controls now carry data-ct, so the gates in Part 6 of that spec can select them
+                instead of matching on their emoji text - which is exactly the fragility q-test-labels exists to
+                remove, and it is why every assertion in that spec was written against emoji.
+                NOT DONE HERE, named rather than left implied: this message row is still CONDITIONALLY RENDERED,
+                so it appears and disappears and moves the screen under it. That is R-BS-2's G3 constraint ("do
+                not add a row that appears and disappears; render the row always at a fixed height with
+                conditional content") and it needs the fixed-height row and the busy spinner together, which is
+                the next pass. Labelling it first is what lets that pass assert the board does not move. */}
+            {scanMsg&&<div data-ct="scan-msg" style={{fontSize:'clamp(14px,2.5vw,14px)',color:'var(--ac2)',marginTop:8,lineHeight:1.45}}>{scanMsg}</div>}
             <div style={{fontSize:'clamp(12.5px,2.2vw,12.5px)',color:'rgba(255,255,255,.4)',marginTop:7,lineHeight:1.4}}>Point at a board, or read a screenshot from your library.</div>
           </div>
 
