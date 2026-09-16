@@ -142,9 +142,25 @@ baseline:
   never move.** Kunal's reason: *"if we think of an additional feature, that's a nightmare... so we
   can keep ourselves honest."* Currently 2 items, both changes of mind, priced at 1.1 runs.
 
-Current: **43% complete, 37.8 of 88.6 runs.** 60% functional, 10% assured. That gap — largely built,
+Current: **46% complete, 39.3 of 87.5 runs. 62% functional, 0% ASSURED.** That gap — largely built,
 barely verified — is the honest state of the app and the reason it kept feeling like going round and
 round.
+
+> **CORRECTED 2026-09-16 at #403.** This line read *"43% complete, 37.8 of 88.6 runs. 60% functional,
+> 10% assured"* and every part of it was stale — the assured figure most of all. Kunal rolled Review's
+> coverage back from `done` to `open` on 2026-09-14 (*"put it back to what it really is"*), because its
+> 30 cases had been executed ONCE, against #373, by a file that was not in the repository. Assured has
+> been **0 of 10** ever since, not 10%. The figures above are read off the dashboard's live snapshot.
+>
+> Why this one line mattered more than its size: STANDING CHECKS A found it (check C2-3, run
+> 2026-09-16-08) and pointed out that **this is the document new build sessions are told to read
+> first**, right after CLAUDE.md — so a withdrawn number sat at the top of the onboarding path for two
+> days. A stale figure in a working note is untidy; the same figure in the induction document is how a
+> corrected number comes back to life.
+>
+> **Do not re-cite a completion figure from here.** The live pair is in the dashboard's newest
+> `snapshots` row (artifact `3478220d-8023-43ba-b08a-4397eb054cc3`), and `assuredDone` moves only when
+> a whole screen closes — its three conditions are in the build procedure's section 5.
 
 ## 7. Kunal's feedback from 2026-09-13, measured before it was written down
 

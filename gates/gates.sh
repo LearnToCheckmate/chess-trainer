@@ -32,7 +32,28 @@ N="${1:-}"; [[ "$N" =~ ^#[0-9]{3,4}$ ]] || { echo "usage: gates/gates.sh '#373' 
 SUBSET="${2:-}"
 G="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(dirname "$G")"; TAG="${N#\#}"
 mkdir -p "$G/logs"
-if [ -n "$SUBSET" ]; then ALL="$G/logs/$TAG-subset-all.log"; else ALL="$G/logs/$TAG-all.log"; fi
+# ── #403: A FULL LOG NEVER OVERWRITES AN EARLIER FULL LOG OF THE SAME TAG. ───────────────────────────────────
+# The log name came from the build TAG alone, so two passes gating the SAME bundle wrote the same file and the
+# second silently destroyed the first. That is not hypothetical: #401 and #402 both re-gated the unchanged #400
+# bundle, #402's run overwrote #401's log, and STANDING CHECKS A (2026-09-16-08, check C2-2) then reported the
+# executed evidence for HEAD as UNKNOWN - correctly, because no committed log covered either pass even though the
+# full suite had been run and verified twice. A record that cannot distinguish two runs of the same bundle is the
+# same defect class as the frozen denominator and the three-places control record.
+# The repo's own committed names already show the convention this restores by hand: 381b, 381c, 381d, 382b, 383b.
+# Subset logs are deliberately still overwritten - they are the iteration loop and must never accumulate.
+if [ -n "$SUBSET" ]; then
+  ALL="$G/logs/$TAG-subset-all.log"
+else
+  ALL="$G/logs/$TAG-all.log"
+  if [ -e "$ALL" ]; then
+    for sfx in b c d e f g h i j k l m n o p q r s t u v w x y z; do
+      cand="$G/logs/$TAG$sfx-all.log"
+      [ -e "$cand" ] || { ALL="$cand"; break; }
+    done
+    [ "$ALL" = "$G/logs/$TAG-all.log" ] && { echo "FAIL: $TAG-all.log through ${TAG}z-all.log all exist; move some out of $G/logs/ first"; exit 1; }
+    echo "NOTE: $TAG-all.log already exists, so this run writes $(basename "$ALL") rather than overwriting it."
+  fi
+fi
 : > "$ALL"
 export CT_EXPECT="${CT_EXPECT:-$N}"; export CT_SHOTS="${CT_SHOTS:-$G/shots/gates-$TAG}"
 APP="${CT_APP:-$ROOT/app.js}"; export CT_APP="$APP"   # CT_APP=/path/bundle.js gates a trial bundle; the default is the repo's app.js, named explicitly so a gates/.pin-app.js cannot divert the gate
