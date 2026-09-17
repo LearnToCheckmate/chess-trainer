@@ -321,6 +321,17 @@ wider one.
   minutes and is the difference between "this was cut" and "this could be cut". The same discipline as #395's
   container-is-not-its-contents, pointed the other way: there the box was fine and the ink was wrong; here the box
   was wrong and the ink was fine.
+- **A WATCHER THAT GREPS FOR A PROCESS MATCHES ITSELF, so the one thing that was supposed to notice the hour-long
+  step finishing can be the one thing that cannot.** #407 left `while pgrep -f "gates/gates.sh" >/dev/null; do
+  sleep 30; done` running in the background so the suite's green would wake the session. `pgrep -f` reads whole
+  command lines, and that loop's own command line contains the pattern, so it waited on itself: the suite went
+  green at 05:32 UTC and nothing looked at it until the 08:22 scheduled wake - **two hours fifty minutes of a
+  four-hour slot**, on a pass whose work was already committed and whose log was already on disk. Nothing was
+  lost and the whole cost was the slot. It is the same shape as the traps three rules above (an assertion whose
+  expected value is read from the thing that selects the case; a cross-check fed by the thing under test): *the
+  check and the thing being checked were the same object.* Exclude yourself (`| grep -v $$`), or match the
+  `node` process, or wait on the PID you started - and do not let one watcher be the ONLY way a finished step
+  gets noticed.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never
