@@ -142,8 +142,9 @@
 //         in the pbar row). Trial bundle md5 75d2c18501ec; chess.jsx restored and md5-verified afterwards.
 //         INTENDED to make a 198px name paint across the rating in an 82px box at every geometry, so that
 //         4b's 375x730 half stopped being silence. IT DID NOT, AND THE REASON IS THE CONTROL'S WHOLE VALUE:
-//         -> 190 pass, 10 FAIL - and all ten are 4a `cut` rows on [pbar-rating-b] (47.23px at 320x568,
-//            19.73px at 375x568, none at 375x730), with ZERO 4b rows. `overflow:hidden` is what lets a flex
+//         -> 190 pass, 10 FAIL - and all ten are 4a `cut` rows, with ZERO 4b rows. TWO elements, not one:
+//            [pbar-rating-b] (the rating: 47.23px at 320x568, 19.73px at 375x568, none at 375x730) and the
+//            name div itself (13.53px), which the first write-up of this control did not name. `overflow:hidden` is what lets a flex
 //            item shrink below its min-content width: the automatic minimum size of a flex item is zero only
 //            when its overflow is NOT visible. So flipping that one word does not make the span spill - it
 //            makes the span REFUSE TO SHRINK, grow to its full 198px, and push the rating out of the row,
@@ -364,11 +365,26 @@ const FIXTURE_WANT=[
 //     A SCROLLER CLAMPS TOO, and deliberately: a finger can bring scrolled content back, which is what makes
 //     it "not cut" for 4a - but it does not change what is painted on top of the neighbour RIGHT NOW.
 //
-// (ii) A SPILL INTO A GAP IS NOT A COLLISION, and asserting on the spill alone goes red on a healthy build.
-//     The lesson row's own title does it at every geometry on the SHIPPED bundle: "Italian Game" is nowrap in
-//     a 73px box (scroll 80) and paints 6.97px past its right edge into the flex gap, overlapping no sibling
-//     and losing no letter. It is reported as a NEAR row every run and asserted over by nothing. The
-//     condition that separates it from the defect is the one the flag names - a SIBLING under the ink.
+// (ii) A SPILL INTO A GAP IS NOT A COLLISION, so the sibling clause is not decoration. THE EXAMPLE THIS
+//     COMMENT USED TO GIVE WAS WRONG AND THE ANTAGONIST PASS MEASURED IT: it said the lesson row's title
+//     "Italian Game" (nowrap, 73px box, scroll 80, 6.97px past its right edge) "is reported as a NEAR row
+//     every run". There are ZERO near rows anywhere - `"near":0` in all 36 head screen-scans and in 48 more
+//     of the antagonist's - because that title's holder CLIPS on x, so 4a owns it (it is logged SIGNALLED,
+//     with an ellipsis) and 4b skips it before the gap ever comes up. The 6.97px is never painted. The gap
+//     case is real, it is what `near` exists for, and today the only thing that exercises it is the fixture's
+//     s2 - which is the honest statement and is why that fixture case is not optional.
+//
+// (ii-bis) TWO PRACTICE STATES ARE NOT SWEPT AND THEY DO FIRE. `practice-wrong` and `practice-complete` at
+//     375x568 carry a REAL spill on the shipped #413 bundle - "↻ Again" 13.89px to the left of its 36px
+//     button, 7.89 x 16px of it over the 💡 beside it, in a 192px row of [46, 46, 36, 46] - and it survives
+//     BOTH samples, so it is not the settling frame that produced the same numbers once at `practice-m0`
+//     (see the two-sample comment in the run loop). Adding those states would make this gate RED on a
+//     healthy bundle, and the fix is a product change to a label that a player reads, which is an amber call
+//     wanting a written default first. So the states are named here and filed as
+//     `spill-practice-row-after-a-wrong-move-375x568` rather than absorbed into a green, and the next build
+//     takes them. Two things are measured and worth carrying: no ink-on-ink was found under that overlap (it
+//     is a box collision, not two texts on top of each other), and the same row is clean at 320x568 and
+//     375x730, so it is the wide-and-short corner again.
 //
 // (iii) THE Y AXIS IS SOMEBODY ELSE'S. Every vertical row this scanner would see is ink overshooting its own
 //     line box by 2-3px - the tile emoji, the player-bar kings, a stat number - which is E2/E3 in 4a above,
@@ -396,6 +412,20 @@ const FIXTURE_WANT=[
 // asserted); the block axis (above); ink-on-ink, so a spill onto a sibling whose own text happens to sit
 // elsewhere in its box still counts - deliberately, since the neighbour's text can move with one string
 // change; a box that wraps its text and grows instead; and anything on a screen not in SCREENS.
+// FOUR OF THOSE GAPS WERE MEASURED BY THE ANTAGONIST PASS AT #413 RATHER THAN REASONED ABOUT, through this
+// gate's own SPILL scanner at 375x761, and the numbers are here so nobody has to rediscover them:
+//   - a spill onto a SIBLING fires (20.80px), and so does one onto a NEPHEW - a child of a sibling - (25.53px)
+//     and one onto an ABSOLUTELY POSITIONED element (12.22px), because all three still leave the sibling's
+//     RECT under the ink. Good: the predicate is wider than its name suggests.
+//   - a spill onto a sibling's WRAPPED content is DEMOTED TO A NEAR MISS (33.06px) even though 3.72px of real
+//     ink-on-ink was measured under it, because the sibling's rect had moved out from under the spill region
+//     while its text had not. That is the one shape 4b gets wrong today. None was found live in 84 screen-scans.
+// THE ANTI-FLAKE FILTER HAS A HOLE OF ITS OWN, also measured: it keys rows on `holder|text|side`, so a label
+// whose STRING changes between the two samples is demoted twice and the spill disappears. Proved on the #407
+// bundle - untouched it reports the 8.83px defect, and with only the label's text changed between samples the
+// same gate reads 200/0 on that broken bundle. No natural instance exists on these screens (zero key changes
+// across 2/8/7/93 labels on four states), but a debounced engine sentence is exactly the shape that would.
+//
 // AND ONE THAT IS A POTENTIAL FALSE POSITIVE RATHER THAN A GAP, so it is named here instead of being
 // discovered by whoever next reads a red: this app keeps several screens MOUNTED AT ONCE (Home is a fixed
 // full-viewport layer, `rev-summary` is `fixed inset:0 zIndex:500` and opaque, and menu/look/setup are
@@ -498,7 +528,9 @@ const SPILL = function(){
   return {rows:out, near, seen:{nowrapBoxes, inked}};
 };
 
-// ── 4b's OWN UNIT TEST. Six shapes, FOUR OF THEM CASES THE PREDICATE MUST REJECT. #388/#391's rule. ──────────
+// ── 4b's OWN UNIT TEST. Six shapes: ONE must be reported as a spill, ONE must be demoted to a near miss,
+// and FOUR must not be reported at all. #388/#391's rule. (The first write-up of this said "four of them
+// cases the predicate must reject", which undercounts: five of the six must not come out as a defect.) ──────
 // Built from HTML the scanner has never seen, so no assertion here can be satisfied by the scanner's own
 // bookkeeping - which is the fault the #404 antagonist vetoed in this very file.
 const FIXTURE2 = function(){
@@ -579,14 +611,21 @@ const SCREENS=[
 // #413 MAKES IT A TABLE, ONE ROW PER GEOMETRY, AND THE SECOND ROW IS THE FINDING OF THE PASS. Adding the
 // 375x568 column put this residual on a SECOND geometry, and the numbers there are not merely similar to the
 // 320x568 ones - they are THE SAME NUMBERS: [data-ct="rev-best"] is clientWidth 45 against scrollWidth 86 at
-// both, "Qxd7" cut 27.74px and "›" 36.1px at both. That is not a coincidence and it is the whole thesis of
-// the flag this pass came from (`class-spilled-ink-and-viewport-keyed-board-rows-2026-09-17`): the review row
-// is sized to the BOARD, the lesson-and-review board is fit to HEIGHT, and 375x568 and 320x568 have the same
-// 230.88px board. So a defect filed as "at 320 the Review screen says the best move was Q" is not a
-// smallest-phone defect at all - it is every SHORT phone, including a wide one, and the flag
-// `rev-best-reads-best-Q-at-320` says "nobody on Kunal's phone would ever see it" on the strength of one
-// geometry. Pinned per geometry with its own count so it still goes red if it moves in either direction at
-// either size, which is what a pin is for; it is Kunal's to close (needsKunal, P1, on the Decision Desk).
+// both, "Qxd7" cut 27.74px and "›" 36.1px at both. THE ROW EXPLAINS IT AND I MEASURED THE WRONG ROW FIRST:
+// [data-ct="rev-move-line"] and [data-ct="rev-compact"] are 286.00px at BOTH 320x568 and 375x568, and
+// 371.03px at 375x679 and 375x730. The first version of this comment said "both have the same 230.88px
+// board" - 230.88 is the LESSON practice row, measured in the same pass for the other half of this work and
+// carried across into an explanation of a different screen. The antagonist pass disputed it with a
+// measurement and it was wrong by 33.12px, INSIDE THE ASSERTION STRING BELOW, which the log prints twice a
+// run. The thesis survives the correction: the review row follows the board, the board is fit to HEIGHT, so
+// two viewports of the same height give the same row whatever their width.
+// AND THE CLAIM THAT FOLLOWED IT WAS TOO BROAD. "Every SHORT phone" is not what this measures: at 375x679
+// `rev-best` is clientWidth 100 against scrollWidth 100 and nothing is cut at all. So it is the two 568-tall
+// columns that carry it, and what a taller viewport buys is a wider row (371.03) rather than a wider phone.
+// Either way a defect filed as "at 320 the Review screen says the best move was Q" is NOT a smallest-phone
+// defect, and the flag `rev-best-reads-best-Q-at-320` says "nobody on Kunal's phone would ever see it" on the
+// strength of one geometry. Pinned per geometry with its own count so it still goes red if it moves in either
+// direction at either size, which is what a pin is for; it is Kunal's to close (needsKunal, P1, on the Desk).
 const PINNED=[{state:'rev-best-ply30',geo:'se',anc:'rev-best',cuts:2,tol:3.5},
               {state:'rev-best-ply30',geo:'short375',anc:'rev-best',cuts:2,tol:3.5}];
 const pinFor=(g,name)=>PINNED.find(p=>p.geo===g&&p.state===name)||null;
@@ -603,7 +642,7 @@ L.run(async()=>{
     const b=await L.launch({geo:g,store:R.SEED,name:'inv-'+g});
     await b.open();
     L.note(g+' ('+L.GEOS[g].label+')  stamp '+(await b.stamp()));
-    let totalRows=0, totalSkipped=0, seenAny=0, totalSpill=0, nowrapSeen=0, totalTransient=0;
+    let totalRows=0, totalSkipped=0, seenAny=0, totalSpill=0, nowrapSeen=0, totalTransient=0, measuredScreens=0;
     for(const [name,go] of SCREENS){
       let reached=true, res=null;
       try{ await go(b); }catch(e){ reached=false; L.say(false,g+' '+name+': the state could not be reached at all - every ink assertion on this screen is UNRUN, not green',String(e).slice(0,140)); }
@@ -624,7 +663,7 @@ L.run(async()=>{
       if(pin){
         // The pinned residual, asserted on its own so it is in the log every run rather than implied by a
         // filter nobody reads. It is on Kunal's Decision Desk; see the PINNED comment above.
-        L.say(pinnedRows.length===pin.cuts, g+' '+name+': the pinned residual is exactly where it was left - "'+pin.anc+'" still cuts '+pin.cuts+' text nodes at '+L.GEOS[g].label+' (the best-move pill reads "best Qx"). The SAME two cuts to the hundredth at 320x568 and 375x568, because both have a 230.88px board: this is a SHORT-phone defect, not a narrow-phone one. RED here means it MOVED: fixed, and this pin comes out, or worse, and it needs looking at',
+        L.say(pinnedRows.length===pin.cuts, g+' '+name+': the pinned residual is exactly where it was left - "'+pin.anc+'" still cuts '+pin.cuts+' text nodes at '+L.GEOS[g].label+' (the best-move pill reads "best Qx"). The SAME two cuts to the hundredth at 320x568 and 375x568, because [data-ct="rev-move-line"] measures 286.00px at both - it follows the board and the board is fit to HEIGHT - against 371.03px at 375x679 and 375x730, where the pill is client 100 / scroll 100 and nothing is cut. So this is not a narrow-phone defect. RED here means it MOVED: fixed, and this pin comes out, or worse, and it needs looking at',
           pinnedRows.map(r=>({text:r.text,cut:r.cut,cs:r.cs,ss:r.ss})));
       }
       for(const r of res.rows) L.note('    CUT '+r.cut+'px '+r.axis+'  "'+r.text+'"  in '+r.anc+'  ('+r.el+')  ink '+r.ink.join('..')+' vs box '+r.box.join('..')+'  client '+r.cs+' scroll '+r.ss+'  text-overflow(clipper):'+r.teAnc);
@@ -671,10 +710,18 @@ L.run(async()=>{
       sp.rows=inBoth;
       for(const r of oneFrame) L.note('    TRANSIENT (one sample only, NOT asserted - the board fit was still settling) '+r.over+'px '+r.side+'  "'+r.text+'"  '+r.holder+' client '+r.cs+' scroll '+r.ss+'  row '+r.parW+' = ['+(r.kids||[]).join(', ')+']');
       totalSpill+=sp.rows.length; nowrapSeen+=sp.seen.nowrapBoxes; totalTransient+=oneFrame.length;
-      // PRESENCE FIRST, and here it is not a formality: every clause of 4b's predicate narrows, so a screen
-      // with no nowrap box at all reports zero for a reason that has nothing to do with the app being right.
-      // This says which of the two a zero is (#385's rule, and 4a's own presence check above).
-      L.say(sp.seen.nowrapBoxes>=1, g+' '+name+': the screen has at least one box whose text cannot wrap, so 4b\'s predicate was actually exercised here rather than returning zero for want of a candidate', sp.seen);
+      // PRESENCE, AND IT ASSERTED THE WRONG POPULATION IN ITS FIRST VERSION. It read `nowrapBoxes>=1` and
+      // claimed that meant "the predicate was actually exercised here" - but `nowrapBoxes` is counted BEFORE
+      // the two filters that follow it (the holder must not clip on x, and the text must have ink), so a
+      // screen where every nowrap box clips passes that check having measured NOTHING. The antagonist pass
+      // found exactly that on HOME: 2 nowrap boxes, both clipping, `measured: 0` at all three swept
+      // geometries and all four it tried besides, with the green reading as coverage. `inked` is the honest
+      // number - text nodes that reached the ink comparison - so it is what the log reports per screen and
+      // what the geometry-level assertion below counts. It is NOT asserted per screen, because Home
+      // legitimately measures nothing and a per-screen floor would go red on a healthy bundle for a true
+      // reason; the assertion that can fail is "almost every screen was measured", at the foot of the loop.
+      if(sp.seen.inked>=1) measuredScreens++;
+      L.note('    4b population: '+sp.seen.nowrapBoxes+' nowrap boxes, '+sp.seen.inked+' of them eligible and measured'+(sp.seen.inked?'':'  <- NOTHING MEASURED HERE, so this screen\'s 4b green is not coverage'));
       const worstSp=sp.rows.slice().sort((a,c)=>c.over-a.over)[0];
       L.say(sp.rows.length===0, g+' '+name+': NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder\'s own padding box, which is a frame no other gate in this suite uses',
         sp.rows.length? {spills:sp.rows.length, worst:worstSp} : {spills:0, nowrapBoxes:sp.seen.nowrapBoxes, measured:sp.seen.inked, near:sp.near.length});
@@ -733,7 +780,11 @@ L.run(async()=>{
     // gate has quietly stopped covering something.
     L.say(totalSkipped===0, g+': no clipping ancestor was skipped for a rotated/skewed transform (a skip is coverage silently lost, not a pass)', {skipped:totalSkipped});
     L.say(seenAny>=60, g+': the sweep as a whole measured a real quantity of ink across the screens', {inkedTextNodes:seenAny});
-    L.say(nowrapSeen>=12, g+': 4b had a real population of unwrappable boxes to measure across the twelve screens, so its zero is a measurement and not an empty set', {nowrapBoxes:nowrapSeen, spills:totalSpill, transientsSeen:totalTransient});
+    // 11 of the 12 screens measure at least one eligible text node today; HOME is the one that measures none
+    // (its two nowrap boxes both clip), and that is named in the header rather than hidden in a green. A floor
+    // of 10 leaves room for one more screen to legitimately stop qualifying and still goes red if 4b quietly
+    // stops reaching the screens it is supposed to cover - which is the failure `nowrapBoxes>=1` could not see.
+    L.say(measuredScreens>=10, g+': 4b actually measured ink against its own box on at least 10 of the 12 screens, so its zeros are measurements rather than an empty set (Home measures none: its two nowrap boxes both clip)', {screensMeasured:measuredScreens, nowrapBoxes:nowrapSeen, spills:totalSpill, transientsSeen:totalTransient});
     await b.close();
   }
 },'26-invariants');
