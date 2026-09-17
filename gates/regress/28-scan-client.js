@@ -50,6 +50,41 @@
 // 938. The 29px the row reserves is spent permanently, and it buys a sheet that does not move when a scan
 // starts. It is height inside a SCROLLING sheet, not board height, which is the trade CLAUDE.md asks for
 // ("if a fix costs board height, put it in a sheet" - this is already in one).
+// ── THE ANTAGONIST VETOED THIS BUILD, AND THE VETO IS WHY TC-SC-032..038 EXIST ──────────────────────────────
+// Run as its own subagent against the bundle, before the push, per the procedure's step 2b. It reproduced the
+// height identity at SEVEN geometries rather than my one (975/975 at 320x568, 944/944 at 360x640, 967/967 at
+// 375x730, 909/909 at 375x568, 950/950 at 390x844 and 430x932, 967/967 at 375x761 with insets seeded), through
+// the CAMERA input as well as the upload one, on all three opponent tiles, and with the reviewed-position
+// banner up - so the claim generalises further than I measured it. Then it broke the build in a configuration
+// this gate never fed:
+//
+//   R-BS-1 IS THE FIRST PLACE IN THE APP TO INTERPOLATE UNBOUNDED SERVER TEXT INTO THE DOM, and the row it
+//   goes in had no break opportunity. Ink right edge against the viewport, measured with a Range: a signed
+//   storage URL overhung 118.58px at 320 and 63.58px at 375; a Java-style exception 368.98/313.98; a 64-char
+//   sha 250.98/195.98; a 200-char token 1270.19/1215.19. The shortest pure token that spilled was 40
+//   characters at 320x568, 44 at 375x730; 200 characters of PROSE was always safe, so the trigger is
+//   specifically an unbroken run - which is exactly what a URL, a hash, a stack frame or a model error id is.
+//   AND IT WAS NOT MERELY PAINTED PAST THE EDGE: an ancestor computes overflow-x:auto, and the antagonist
+//   proved it moves by actually scrolling it - scrollLeft 0 -> 1215, which dragged the Start-game button to
+//   x=-1199 and took the sheet's title off screen with it.
+//
+// FIXED with one declaration (overflowWrap:'anywhere' on the message) and CONTROLLED against the bundle that
+// was one push away: `git cat-file -p 27bae89:app.js` (md5 0a6db93eef13) scores 36 pass / 4 FAIL, and the four
+// are TC-SC-033 (ink 560.81 against a 320 viewport), TC-SC-034 (row scrollWidth 545 vs clientWidth 288),
+// TC-SC-035 (the ancestor scroller at 561 vs 320) and TC-SC-036 (the mechanism). The fixed bundle reads ink
+// 298.55 inside 320, row 288/288, scroller 320/320.
+//
+//   AND TC-SC-037 IS GREEN ON BOTH BUNDLES, said out loud rather than counted: document.documentElement's
+//   scrollWidth is 320 either way, because the spill lives inside an inner scroller and never reaches the
+//   page. That is CLAUDE.md's own rule - "document.scrollingElement is the wrong thing to ask" - showing up
+//   as an assertion that cannot see the defect it sits beside. It is kept because it would catch a page-level
+//   spill, and it is named here so nobody reads its green as coverage of this one.
+//
+// IT ALSO DISPUTED TWO OF MY NUMBERS AND WAS RIGHT ABOUT BOTH. "The 19.8px ring" is a rotation bounding box
+// (ten samples 37ms apart: 15.71, 18.29, 19.12, 19.13, 19.80 - sqrt(2) x 14 at 45 degrees); the layout height
+// is 14, and TC-SC-010b now measures 14 + marginTop 3 against the 21px reserve instead. "One line to the
+// pixel" was 20.3px against a 21px reserve, so 0.7px of slack, not exact. Both corrections are in the code
+// below and in the build note, rather than quietly dropped.
 'use strict';
 const L=require('../lib');
 const P=require('../drive/play');
@@ -97,7 +132,14 @@ const stub=(b,mode,payload)=>b.page.evaluate(([mode,payload])=>{
 
 const feed=async(b)=>{ await b.page.locator('input[type=file]').nth(1).setInputFiles(FILE); };
 const msg=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="scan-msg"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
-const sheet=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="setup-sheet"]');if(!e)return null;const r=e.getBoundingClientRect();return {sh:e.scrollHeight,ch:e.clientHeight,h:Math.round(r.height*100)/100,top:Math.round(r.top*100)/100};});
+/* THE SHEET'S OWN scrollHeight EQUALS ITS clientHeight (967/967 here, 938/938 on the #407 control), so `sh`
+   below is the sheet's CONTENT height and not a scroll range - the element that actually scrolls is its parent
+   overlay, measured at 1003/730 against the control's 974/730. The antagonist's correction, and it matters
+   because an assertion named for a scroll range while measuring content height is the kind of mislabel this
+   project keeps filing. Both are read here: `sh` is what the reserve changes, `oh`/`oc` is the scroller. */
+const sheet=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="setup-sheet"]');if(!e)return null;const r=e.getBoundingClientRect();
+  let sc=e.parentElement; while(sc&&sc!==document.documentElement){const o=getComputedStyle(sc).overflowY;if(o==='auto'||o==='scroll')break;sc=sc.parentElement;}
+  return {sh:e.scrollHeight,ch:e.clientHeight,h:Math.round(r.height*100)/100,top:Math.round(r.top*100)/100,oh:sc?sc.scrollHeight:null,oc:sc?sc.clientHeight:null};});
 const busy=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="scan-busy"]');if(!e)return null;const r=e.getBoundingClientRect(),s=getComputedStyle(e);
   return {w:Math.round(r.width*100)/100,h:Math.round(r.height*100)/100,vis:s.visibility!=='hidden'&&s.display!=='none'&&r.width>0&&r.height>0,anim:s.animationName,dur:s.animationDuration};});
 const screenText=(b)=>b.page.evaluate(()=>(document.body.innerText||'').replace(/\s+/g,' '));
@@ -142,11 +184,18 @@ L.run(async()=>{
   L.say(!!busyRun,'TC-SC-008 with a scan IN FLIGHT, [data-ct="scan-busy"] exists (R-BS-2, claim 1 of 2)',busyRun);
   L.say(!!busyRun&&busyRun.vis===true,'TC-SC-009 ... and it is visible, not merely in the DOM',busyRun&&{vis:busyRun.vis,w:busyRun.w,h:busyRun.h});
   L.say(!!busyRun&&busyRun.anim==='ctScanSpin'&&parseFloat(busyRun.dur)>0,'TC-SC-010 ... and it is actually SPINNING: a static ring is a lie about whether the phone is working, which is the whole complaint R-BS-2 comes from',busyRun&&{anim:busyRun.anim,dur:busyRun.dur});
-  /* THE MECHANISM BEHIND TC-SC-011, not another reading of its symptom. The row holds its height only while
-     the spinner FITS INSIDE the reserve; measured, the ring paints 19.8px inside a 21px row, which is 1.2px of
-     slack and not much. Assert the relationship, so a larger ring or a smaller reserve goes red HERE, naming
-     the cause, instead of showing up as a height that moved. */
-  L.say(!!busyRun&&!!rowIdle&&busyRun.h<=rowIdle.h+0.01,'TC-SC-010b ... and the spinner FITS INSIDE the reserved row, which is why the height below cannot move: ring '+(busyRun&&busyRun.h)+'px inside a '+(rowIdle&&rowIdle.h)+'px reserve',{ring:busyRun&&busyRun.h,reserve:rowIdle&&rowIdle.h});
+  /* THE MECHANISM BEHIND TC-SC-011, and the first version of this assertion measured the WRONG QUANTITY -
+     the antagonist's dispute, and it was right. It compared getBoundingClientRect().height, which for a box
+     under `animation: ctScanSpin` is the ROTATION BOUNDING BOX: sampled ten times 37ms apart the same 14px
+     ring read 15.71, 18.29, 19.12, 19.13, 19.80 - sqrt(2) x 14 = 19.799 at 45 degrees. So the number varied
+     run to run, and the assertion would have gone red on a 16px ring that moves nothing (layout 16 + 3 = 19,
+     inside the 21px reserve) while its own sentence claimed to be about layout. CLAUDE.md, in as many words:
+     a transform is paint, not layout, and getBoundingClientRect() cannot tell you which.
+     The quantity that decides whether the row can grow is the ring's LAYOUT height plus its top margin
+     against the reserve - 14 + 3 = 17 against 21, four pixels of slack - so that is what is asserted. */
+  const ringBox=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="scan-busy"]');if(!e)return null;const s=getComputedStyle(e);
+    return {off:e.offsetHeight,mt:parseFloat(s.marginTop)||0,rect:Math.round(e.getBoundingClientRect().height*100)/100};});
+  L.say(!!ringBox&&!!rowIdle&&(ringBox.off+ringBox.mt)<=rowIdle.h+0.01,'TC-SC-010b ... and the spinner FITS INSIDE the reserved row IN LAYOUT, which is why the height below cannot move: offsetHeight '+(ringBox&&ringBox.off)+' + marginTop '+(ringBox&&ringBox.mt)+' against a '+(rowIdle&&rowIdle.h)+'px reserve. Its painted rect is larger and varies (it is a rotating box) and is deliberately NOT what this tests.',ringBox&&{layout:ringBox.off+ringBox.mt,reserve:rowIdle&&rowIdle.h,paintedRect:ringBox.rect});
   L.say(!!sheetIdle&&!!sheetRun&&sheetRun.sh===sheetIdle.sh,'TC-SC-011 the setup sheet\'s scroll height is IDENTICAL before the scan and while it runs, to the pixel (R-BS-2, claim 2 of 2 - G3, and the reason the row is reserved)',{idle:sheetIdle&&sheetIdle.sh,running:sheetRun&&sheetRun.sh});
   L.say(!!rowIdle&&!!rowRun&&Math.abs(rowRun.h-rowIdle.h)<0.5&&Math.abs(rowRun.y-rowIdle.y)<0.5,'TC-SC-012 ... and the row itself has not grown or moved either (h '+(rowIdle&&rowIdle.h)+' -> '+(rowRun&&rowRun.h)+', y '+(rowIdle&&rowIdle.y)+' -> '+(rowRun&&rowRun.y)+')');
   L.say(msgRun==='Reading the board…','TC-SC-013 and the in-flight message is the one chess.jsx sets, beside the spinner rather than instead of it',msgRun);
@@ -183,6 +232,53 @@ L.run(async()=>{
   const r5=await caseMsg(b3,'reject',{code:'functions/internal',message:'The board reader is not answering right now. Try again in a moment.'});
   L.say(!!r5.m&&/[Tt]ry again/.test(r5.m)&&!/not set up yet/.test(r5.m),'TC-SC-026 a transient internal failure says try again - which is CORRECT here and wrong for #392, and the two must not share a message (PART 6.3 row 9)',r5.m);
   await b3.close();
+
+  // ── THE ANTAGONIST'S VETO, #408. UNBOUNDED SERVER TEXT WITH NO BREAK OPPORTUNITY. ──────────────────────────
+  // R-BS-1 makes this row the first place in the app to interpolate text the SERVER chose into the DOM, and
+  // every reason the assertions above feed is short prose, which wraps at its spaces and hides the whole
+  // problem. A refusal reason from a vision model is just as likely to be a URL, a stack frame, a sha or a
+  // snake_case id - an unbroken run, which `overflow-wrap:normal` cannot break. Run at 320x568, the width
+  // where it is worst, and asserted as INK against the viewport plus the scroller it was found to move.
+  const b5=await L.launch({geo:'se',name:'scan-spill',store:{ct_pool:'3'}});await b5.open();
+  const TOK='9f2c1ab7e4d05c83be71f6a94d2e0b5c7a38f1e6d4b09c25a7f3e8d1c6b42a90';   // 64 hex: a sha-shaped reason
+  const rspill=await caseMsg(b5,'resolve',{fen:null,ok:false,reason:TOK});
+  L.say(!!rspill.m&&rspill.m.indexOf(TOK)>=0,'TC-SC-032 the 64-character token really did reach the screen, so the four assertions below are measuring the interpolation and not an empty row',rspill.m&&rspill.m.length);
+  const spill=await b5.page.evaluate(()=>{
+    const e=document.querySelector('[data-ct="scan-msg"]'); if(!e)return null;
+    const row=document.querySelector('[data-ct="scan-row"]');
+    const rng=document.createRange(); rng.selectNodeContents(e);
+    const rects=[...rng.getClientRects()];
+    const ink=rects.length?rects.reduce((m,x)=>Math.max(m,x.right),-1e9):null;
+    let sc=e.parentElement, scInfo=null;
+    while(sc&&sc!==document.documentElement){const o=getComputedStyle(sc).overflowX;
+      if(o==='auto'||o==='scroll'){scInfo={sw:sc.scrollWidth,cw:sc.clientWidth,who:sc.getAttribute('data-ct')||sc.tagName+'.'+(sc.className||'').toString().slice(0,18)};break;}
+      sc=sc.parentElement;}
+    const n=(v)=>v==null?null:Math.round(v*100)/100;
+    return {ink:n(ink),lines:rects.length,vw:innerWidth,wrap:getComputedStyle(e).overflowWrap,
+            rowSw:row?row.scrollWidth:null,rowCw:row?row.clientWidth:null,sc:scInfo,docSw:document.documentElement.scrollWidth};
+  });
+  L.say(!!spill&&spill.ink!==null&&spill.ink<=spill.vw+0.5,'TC-SC-033 THE PAINTED INK STAYS INSIDE THE VIEWPORT with an unbreakable 64-character reason. Measured with a Range over the text node, not the element box. Before the fix this overhung 250.98px at 320 and 195.98px at 375.',spill&&{ink:spill.ink,vw:spill.vw,lines:spill.lines});
+  L.say(!!spill&&spill.rowSw!==null&&spill.rowSw<=spill.rowCw+0.5,'TC-SC-034 ... and the row is not overflowing itself either (scrollWidth vs clientWidth), so nothing is hidden inside it',spill&&{sw:spill.rowSw,cw:spill.rowCw});
+  L.say(!!spill&&(!spill.sc||spill.sc.sw<=spill.sc.cw+0.5),'TC-SC-035 ... and the nearest ancestor that CAN scroll horizontally has gained no scroll range. This is the assertion that matters: the spill was not merely painted past the edge, it made that ancestor scrollable, and scrolling it dragged the Start-game button to x=-1199 with the sheet title off screen.',spill&&spill.sc);
+  L.say(!!spill&&spill.wrap==='anywhere','TC-SC-036 ... and the MECHANISM is pinned, not just its symptom: the message computes overflow-wrap:anywhere. A wrapped line is one fix among several and the next person changing this style should go red here, at the cause.',spill&&spill.wrap);
+  L.say(!!spill&&spill.docSw<=spill.vw,'TC-SC-037 ... and the page itself still has no horizontal scroll range',spill&&{docSw:spill.docSw,vw:spill.vw});
+
+  /* THE STATE THIS GATE DOES NOT ASSERT, measured by the antagonist and recorded here rather than left for
+     someone to rediscover. TC-SC-011 compares an EMPTY row to a BUSY row, which is the transition R-BS-2 is
+     about. It is not the only transition a player sees: with a failed message already in the row, tapping
+     Scan again fires setScanMsg('') in the button's own onClick before the picker opens, so the row collapses
+     60.89 -> 21.00 and the sheet 1007 -> 967 at 375x730 (81.19 -> 21.00 and 1035 -> 975 at 320x568) the
+     instant the finger lands. That is 40px and 60px of screen moving on a transition the player is watching -
+     larger than the 28px this build removed, in the opposite direction. The message also SURVIVES closing and
+     reopening the sheet, so "idle" is not always a 21px state. Not fixed here because the honest fix is a
+     design choice with a permanent cost (reserve two lines and scroll inside the row, or clear the message
+     later and move the collapse rather than remove it), and guessing between them is what flag
+     scan-row-collapses-on-second-tap exists to stop. */
+  L.note('NOT ASSERTED, measured by the #408 antagonist: a SECOND scan with a failed message standing collapses the row 60.89 -> 21.00 and the sheet 1007 -> 967 at 375x730 (81.19 -> 21.00, 1035 -> 975 at 320x568) at the moment of the tap, because the button clears the message itself. See flag scan-row-collapses-on-second-tap.');
+  const bad5=b5.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
+  L.say(bad5.length===0,'TC-SC-038 no app error while rendering an unbreakable reason at 320x568',bad5.slice(0,2));
+  await b5.shot('scan-client-spill-320');
+  await b5.close();
 
   // ── The success path, and G3 across the whole cycle. ──
   const b4=await L.launch({geo:'kunal730',name:'scan-success',store:{ct_pool:'3'}});await b4.open();

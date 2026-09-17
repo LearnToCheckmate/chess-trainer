@@ -4749,7 +4749,20 @@ export default function App(){
                 watches (idle -> reading) and grows once on the transition that ends the interaction. */}
             <div data-ct="scan-row" style={{marginTop:8,minHeight:21,display:'flex',alignItems:'flex-start',gap:8}}>
               {scanBusy&&<span data-ct="scan-busy" aria-label="Reading the board" style={{width:14,height:14,marginTop:3,flexShrink:0,borderRadius:'50%',border:'2px solid rgba(255,255,255,.25)',borderTopColor:'var(--ac2)',animation:'ctScanSpin .8s linear infinite'}}/>}
-              {!!scanMsg&&<div data-ct="scan-msg" style={{fontSize:'clamp(14px,2.5vw,14px)',color:'var(--ac2)',lineHeight:1.45,minWidth:0}}>{scanMsg}</div>}
+              {/* #408, AND THIS ONE CAME FROM THE ANTAGONIST'S VETO RATHER THAN FROM THE SPEC. R-BS-1 makes this
+                  the first place in the app that interpolates UNBOUNDED SERVER TEXT into the DOM: the message is
+                  'Could not read the board: ' + whatever `reason` the function sent. The default
+                  `overflow-wrap:normal` only breaks at spaces and hyphens, and a model's refusal reason can
+                  easily be a URL, a stack frame, a sha or a snake_case id with no break opportunity in it.
+                  MEASURED on the bundle before this declaration, ink right edge against the viewport: a signed
+                  storage URL overhung 118.58px at 320 and 63.58px at 375; a Java-style exception 368.98/313.98;
+                  a 64-char sha 250.98/195.98; a 200-char token 1270.19/1215.19. And it was NOT merely painted
+                  past the edge - an ancestor computes overflow-x:auto, and scrolling it actually moved
+                  (scrollLeft 0 -> 1215), dragging the Start-game button to x=-1199 with the sheet title off
+                  screen. Horizontal spill past the viewport is the unrecoverable one (CLAUDE.md), and the
+                  shortest pure token that did it was 40 characters at 320x568. 200 characters of PROSE was
+                  always safe, so the trigger is specifically an unbroken run. */}
+              {!!scanMsg&&<div data-ct="scan-msg" style={{fontSize:'clamp(14px,2.5vw,14px)',color:'var(--ac2)',lineHeight:1.45,minWidth:0,overflowWrap:'anywhere',wordBreak:'break-word'}}>{scanMsg}</div>}
             </div>
             <div style={{fontSize:'clamp(12.5px,2.2vw,12.5px)',color:'rgba(255,255,255,.4)',marginTop:7,lineHeight:1.4}}>Point at a board, or read a screenshot from your library.</div>
           </div>
