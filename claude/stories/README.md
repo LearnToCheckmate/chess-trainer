@@ -49,6 +49,7 @@ any of them landed. **Claim a number here in the same commit that adds the file.
 | `26-invariants.js` | build session | **26** | #404. Authored as `47-invariants.js` by two flags; 47 was gone. See below |
 | `27-scan-fen.js` | build session (board-scan spec, Part 6.1) | **27** | #405. The spec pencilled in **50**; 50-69 is the challenger range. See below |
 | `28-scan-client.js` | build session (board-scan spec, Parts 4 and 6.3) | **28** | #408. The browser half of board scanning: R-BS-1 and R-BS-2. Next free build-lane number after 27 |
+| `49-home.js` | test authoring lane (HOME-LANE-2026-09-15) | **49** | #411. Published complete in docs/home-lane on 2026-09-15 and pasted unchanged. Its own header explains why 47 and 48 were not free |
 
 **RANGES RESERVED, from procedure v13 section 6e item 4:** **10-29 build lane**, **30-49 test-authoring lane**,
 **50-69 challengers and audits**, **70-89 the play lane**, **90-99 scratch and never committed.** Existing files
@@ -76,9 +77,12 @@ documents written after it - LESSON-LANE and HOME-LANE - both assume 47 is menu 
 - `48-lesson-flow.js` and `49-home.js` are unaffected and remain claimed by LESSON-LANE and HOME-LANE.
   `48-lesson-flow.js` LANDED at #403 with 195 assertions (two of its taps had to be guarded first: as pasted,
   its own negative control measured 16 FAIL of only 48 assertions RUN, because `D.tapBtn` throws and `L.run`
-  catches at top level). `49-home.js` is the last one still ABSENT from git
-  (`standing-a-c2-gates-claimed-not-in-git`), 50 TC-HM cases published as run and executing nowhere. It is the
-  build session's to paste, next.
+  catches at top level). `49-home.js` LANDED AT #411, pasted unchanged from
+  `docs/home-lane`, and it is the last of the published-but-absent gates: 158 pass / 0 fail on #410, twelve
+  builds after the run that authored it, so nothing on Home had moved. Its NC2 was re-run here rather than
+  cited - 27 red on the full gate where the document records 15, because the document's 15 was a
+  `CT_HM_BLOCKS=A,B` subset run printed as a bare count (measured: that subset gives exactly 15). So
+  `standing-a-c2-gates-claimed-not-in-git` has nothing left in this column.
 
 **THE BOARD-SCAN GATE IS 27, NOT THE 50 ITS SPEC PENCILLED IN.** #405. The spec (tracker
 `jobs/build-spec-board-scan-server`, Part 6) wrote `gates/regress/50-scan-fen.js` and said in the same
@@ -89,9 +93,9 @@ settle it: **50-69 is reserved for challengers and audits**, and this is build-l
 **10-29**; and 27 is the next free number after `26-invariants.js`. The spec's own words were "somebody should
 own the register before any of the three lands" - this table is that owner, and `gates.sh`'s duplicate-number
 guard (#399) is what makes it mechanical rather than a matter of remembering. **The video-call spec's claim on
-49 is still live and still uncoordinated**, and 49 is also claimed by HOME-LANE for `49-home.js`, which is
-named in three lane documents and is the next gate due to land. Whoever pastes the video-call gate should take
-a free build-lane number (16-19 or 29) rather than 49 - **28 went to `28-scan-client.js` at #408**, so the spare
+49 IS NOW A COLLISION AND NOT A RISK: `49-home.js` is in the repo since #411**, and `gates.sh`'s
+duplicate-number guard will refuse the second file rather than let two gates share the number. Whoever pastes
+the video-call gate must take a free build-lane number (16-19 or 29) rather than 49 - **28 went to `28-scan-client.js` at #408**, so the spare
 build-lane numbers are now 16, 17, 18, 19 and 29.
 
 **THE INVARIANT GATE IS 26, NOT 47, AND THAT IS THE FOURTH CLAIM ON 47.** #404. Flag `build-the-invariant-gate`
