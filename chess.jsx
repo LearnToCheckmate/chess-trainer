@@ -2144,7 +2144,7 @@ export default function App(){
   useEffect(()=>{try{localStorage.setItem('ct_layoutgrid',layoutGrid?'1':'0');}catch(e){}},[layoutGrid]);
   const [soundOn,setSoundOn]=useState(()=>{try{return localStorage.getItem('ct_sound')!=='0';}catch{return true;}});
   const _sfxLastRef=useRef('');
-  const [playEnd,setPlayEnd]=useState(null);        // null | {reason:'resign'|'time', winner:'w'|'b'}
+  const [playEnd,setPlayEnd]=useState(null);        // null | {reason:'resign'|'time', winner:'w'|'b'} | {reason:'draw', by:'repetition'|'fifty'}  (#414)
   const playEndRef=useRef(null);
   const [timeCtrl,setTimeCtrl]=useState(null);      // null | {label,init,inc}
   const [playSetup,setPlaySetup]=useState(false);   // pre-game setup screen shown when entering Play
@@ -2835,6 +2835,53 @@ export default function App(){
     if(clock.w<=0&&(clock.w||clock.b))setPlayEnd({reason:'time',winner:'b'});
     else if(clock.b<=0&&(clock.w||clock.b))setPlayEnd({reason:'time',winner:'w'});
   },[clock.w,clock.b,mode,timeCtrl,playEnd,game]);
+
+  // #414 A DRAWN GAME MUST END, AND TWO OF THE FOUR WAYS IT HAPPENS DID NOT END IT.
+  // `getStatus` (chess.jsx:110) knows exactly one drawing rule: no legal moves and no check is a stalemate,
+  // and that DOES end the game. Threefold repetition and the fifty-move rule were not detected anywhere, so a
+  // game that was drawn simply ran for ever. MEASURED on the shipped #413 bundle at 375x730 in Pass & Play:
+  // twelve plies of 1.Nf3 Nf6 2.Ng1 Ng8 put the start position on the board for the FOURTH time with
+  // [data-ct="result-card"] null after every cycle and the control row still reading Hint/Flip - a live game.
+  // The fifty-move half was measured by the #413 auditor pass: 110 plies, no capture and no pawn move,
+  // result-card null at plies 100, 102 and 110. Raised as auditor-413; the ending itself is an AMBER call
+  // (auto-draw, as chess.com does and as stalemate already does here, rather than a Claim draw button) and is
+  // recorded BEFORE it was built in `amber-414-auto-draw-on-repetition-and-fifty` and Desk default D-AUTODRAW.
+  //
+  // NO NEW STATE AND NO NEW TERMINAL KIND, deliberately - `isOver` is read at twenty-odd sites and threading a
+  // third status through them is how a small fix becomes a big one. Instead:
+  //   * `playHist` ALREADY holds the game object before every ply (:2744 for a human move, :3499 for the
+  //     engine's), so [...playHist, game] is the full position sequence, and `toFEN` already emits
+  //     position + turn + castling + en-passant with its two clock fields constant - which IS the FIDE
+  //     repetition key, with nothing to write.
+  //   * the fifty-move clock comes from the SANs `toSAN` produces, and the two predicates are sound against
+  //     everything it can emit: a capture is the only thing that puts an 'x' in a SAN (pawn "exd5", piece
+  //     "Nxe5"), and a pawn move is the only SAN that starts with a lowercase file ("e4", "exd5", "e8=Q") -
+  //     piece moves start with an uppercase letter, including disambiguated ones like "Nbd2" and "R1e2", and
+  //     castling starts with 'O'. Both are unit-tested against that enumerated list in gates/regress/29-draws.js
+  //     rather than trusted, which is #391's rule.
+  //   * the ending reuses `playEnd`, which exists for endings that are not on the board (resign, time). And
+  //     `reason:'draw'` was ALREADY handled in the adaptive-Elo effect below and set by nothing, so a draw
+  //     scores correctly there with no change at all.
+  // NOT ONLINE, said out loud: an online game's result is the server's to declare (`og.result`, pushed with
+  // `endBy`), so a client-side auto-draw there would fight it. This covers Pass & Play and vs Computer, which
+  // is where it was measured, and both of those push to `playHist`, so ONE check covers BOTH branches - the
+  // #375 rule, a fix must cover the configuration the user has and not only the one it was written for.
+  const drawBy=useMemo(()=>{
+    if(mode!=='play'||opponent==='online'||playEnd)return null;
+    const st=getStatus(game); if(st==='checkmate'||st==='stalemate')return null;
+    const keys=[...playHist,game].map(toFEN);
+    const cur=keys[keys.length-1];
+    let seen=0; for(const k of keys) if(k===cur) seen++;
+    if(seen>=3)return 'repetition';
+    const h=game.history||[];
+    let quiet=0;
+    for(let i=h.length-1;i>=0;i--){const sn=String((h[i]&&h[i].san)||''); if(/x/.test(sn)||/^[a-h]/.test(sn))break; quiet++;}
+    if(quiet>=100)return 'fifty';
+    return null;
+  },[mode,opponent,playEnd,game,playHist]);
+  useEffect(()=>{
+    if(drawBy&&!playEnd&&mode==='play'&&opponent!=='online')setPlayEnd({reason:'draw',by:drawBy});
+  },[drawBy,playEnd,mode,opponent]);
 
   // Adaptive Elo — adjust once when a vs-Computer game ends
   useEffect(()=>{
@@ -3912,10 +3959,13 @@ export default function App(){
   const rankLabels=flip?['1','2','3','4','5','6','7','8']:['8','7','6','5','4','3','2','1'];
   const fileLabels=flip?['h','g','f','e','d','c','b','a']:['a','b','c','d','e','f','g','h'];
 
-  const turnTxt=playEnd?(playEnd.reason==='time'?`${playEnd.winner==='w'?'White':'Black'} wins on time`:`${opp(playEnd.winner)==='w'?'White':'Black'} resigned — ${playEnd.winner==='w'?'White':'Black'} wins`):isOver?(status==='checkmate'?`Checkmate — ${boardGame.turn==='w'?'Black':'White'} wins!`:'Stalemate — draw'):status==='check'?`${boardGame.turn==='w'?'White':'Black'} in check`:`${boardGame.turn==='w'?'White':'Black'} to move`;
+  const turnTxt=playEnd?(playEnd.reason==='draw'?(playEnd.by==='fifty'?'Draw \u2014 fifty-move rule':'Draw \u2014 threefold repetition'):playEnd.reason==='time'?`${playEnd.winner==='w'?'White':'Black'} wins on time`:`${opp(playEnd.winner)==='w'?'White':'Black'} resigned — ${playEnd.winner==='w'?'White':'Black'} wins`):isOver?(status==='checkmate'?`Checkmate — ${boardGame.turn==='w'?'Black':'White'} wins!`:'Stalemate — draw'):status==='check'?`${boardGame.turn==='w'?'White':'Black'} in check`:`${boardGame.turn==='w'?'White':'Black'} to move`;
   const _winSide=playEnd?playEnd.winner:(status==='checkmate'?(boardGame.turn==='w'?'b':'w'):null);
   const _winTxt=_winSide==null?'Draw':((mode==='play'&&opponent==='computer')?(_winSide===pColor?'You win! 🎉':'You lose'):(_winSide==='w'?'White wins':'Black wins'));
-  const gameResult=(isOver||playEnd)?{head:(playEnd?(playEnd.reason==='time'?'Time!':'Resigned'):(status==='checkmate'?'Checkmate!':'Stalemate')),sub:_winTxt}:null;
+  // #414: a draw by repetition or the fifty-move rule names the RULE in the sub-line, because "Draw" alone
+  // does not tell the player why a game they were still playing has just ended. `_winTxt` already reads
+  // 'Draw' here, since `playEnd.winner` is undefined for a draw and `_winSide==null` is a loose comparison.
+  const gameResult=(isOver||playEnd)?{head:(playEnd?(playEnd.reason==='draw'?'Draw':playEnd.reason==='time'?'Time!':'Resigned'):(status==='checkmate'?'Checkmate!':'Stalemate')),sub:(playEnd&&playEnd.reason==='draw')?(playEnd.by==='fifty'?'Fifty-move rule':'Threefold repetition'):_winTxt}:null;
   const evalFallback=inReview?(anaMode?((engLine&&engLine.cp!=null)?Math.max(-99,Math.min(99,engLine.cp)):evalPawns(boardGame)):(ply>0?review.analysis[ply-1].evalAfter:0)):((mode==='play'&&opponent==='computer')?evalPawns(game):0);
   const dispFen=toFEN(boardGame);
   const sfHit=(sfEval&&sfEval.fen===dispFen)?sfEval:null;
