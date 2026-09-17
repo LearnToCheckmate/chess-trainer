@@ -332,6 +332,18 @@ wider one.
   check and the thing being checked were the same object.* Exclude yourself (`| grep -v $$`), or match the
   `node` process, or wait on the PID you started - and do not let one watcher be the ONLY way a finished step
   gets noticed.
+- **A COUNT WITH NO SCOPE CANNOT BE CHECKED, AND TWO OF SIX PUBLISHED CONTROL RESULTS TURNED OUT TO BE SUBSET
+  RUNS.** `gates/regress/49-home.js` arrived with six negative controls recorded in its lane document as bare
+  numbers ("NC2: 15 red", "NC5: 12 red"). Re-run here, the full gate gives **27** and **14**; measured,
+  `CT_HM_BLOCKS=A,B` gives exactly 15 and `CT_HM_BLOCKS=B` exactly 12, so both counts were taken with the run
+  restricted and published as though they were the whole gate. Neither number was WRONG - what was wrong is
+  that no reader could reproduce them, and in NC5's case the subset dropped the two assertions that most
+  directly prove the breakage (the tile taps: after swapping Review and Play, the analyze tile opens Play).
+  NC1, NC3 and NC4 reproduced exactly and their notes even name their own vacuities, so this is not a story
+  about a careless lane; it is about what a number means. **Publish the command with the count** - the bundle,
+  the geometry, the block filter, the assertion ids - or the next person re-derives it from scratch or, worse,
+  trusts it. Same family as the thin gatelog whose footer was right and whose body had no PASS lines (#405)
+  and gate 47's control recipe naming line numbers that had moved 36 down (#399). #411, #412.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never

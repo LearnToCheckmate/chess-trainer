@@ -153,6 +153,38 @@
 //   names, and this one did not name it. NC1 and NC3..NC6 remain the lane's recorded results, re-run by nobody
 //   here - said plainly rather than counted as coverage.
 //
+// ── ALL SIX RECORDED CONTROLS, RE-RUN HERE AT #412 EXCEPT ONE, AND TWO OF THE SIX COUNTS ARE SUBSET RUNS ─────
+// #411 pasted this file and re-ran ONE control. #412 re-ran four more, each as a one-line trial bundle via
+// CT_OUT with chess.jsx md5-verified restored to 3832598c243fee38793f1487319996d5 after every build. The point
+// was not to doubt the lane's work - it is to make its numbers reproducible, because a count with no scope
+// cannot be checked by the next reader. Baseline throughout: 158 pass / 0 fail.
+//
+//   NC1  the Home overlay overflowY:'auto' -> 'hidden'        (md5 d78e49194100)
+//        -> 11 red, THE DOCUMENT'S NUMBER TO THE LINE, and its named assertions exactly: TC-HM-001 x4 and
+//           TC-HM-019/020/021 at 375x730 and 320x568, plus TC-HM-018 at 320x568 ONLY. Its own note is right
+//           that at 375 and above all four tiles are on screen at rest, so that claim is vacuous there and
+//           stays green on a build with no scroller at all - the document says so itself, which is the
+//           opposite of the problem below.
+//   NC3  const isNew=!(pzXP>0||...) -> const isNew=true       (md5 7fb8444a035e)  -> 2 red, TC-HM-037 x2. Exact.
+//   NC4  the goal bar _pct -> 1                               (md5 9fe911030890)  -> 2 red, TC-HM-040 x2. Exact,
+//        and TC-HM-041 (the 100%-and-green one) stays GREEN exactly as the document predicts: a bar pinned only
+//        at its full value passes on a bar that is always full, which is why TC-HM-040 exists.
+//   NC5  the tiles array, Review and Play swapped             (md5 41fcb9bc4146)
+//        -> 14 red on the full gate where THE DOCUMENT RECORDS 12. Measured: CT_HM_BLOCKS=B gives exactly 12,
+//           so that count is a block-B-only run. The two the subset hides are TC-HM-025 and TC-HM-026 in block
+//           D - "the analyze tile opens Game review AND Home comes down with it" and the same for play - which
+//           are the assertions that most directly prove the swap happened, because after it the analyze tile
+//           opens Play. So the subset did not merely undercount; it dropped the most on-point failures.
+//   NC2  the tile icon box 84 -> 70 (re-run at #411)          -> 27 red on the full gate where the document
+//        records 15, and CT_HM_BLOCKS=A,B gives exactly 15. Same shape as NC5.
+//   NC6  NOT RE-RUN, and said so rather than counted: it reverts a shipped fix to trip its own tripwire
+//        (TC-HM-050), and its 2-red claim is the narrowest of the six. The lane's recorded result stands.
+//
+// SO: FOUR OF THE FIVE COUNTS CHECKED REPRODUCE, AND TWO OF THEM WERE TAKEN AT A SCOPE THE DOCUMENT DOES NOT
+// NAME. NC1, NC3 and NC4 are exact and their own notes even name their vacuities. NC2 and NC5 are correct
+// numbers for a restricted run, printed as bare counts that read as the whole gate. The gate is sound either
+// way - it goes red on all five breakages - and what was unfalsifiable was the RECORD, not the coverage.
+//
 'use strict';
 const L=require('../lib');
 const H=require('../drive/home');
