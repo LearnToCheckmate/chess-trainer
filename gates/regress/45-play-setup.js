@@ -195,7 +195,23 @@ const PGN='[White "Morphy"] [Black "Duke"] 1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 
 const GEOS=['se','kunal','kunal730','kunal761','390','430'];
 // Measured on #386. Both tables are the POINT of this lane: an assertion that runs at one width is not a test.
 // "rest" = where Start game sits before anything is scrolled, in the DEFAULT (vs Computer) configuration.
-const START_REST={se:874,kunal:808,kunal730:844,kunal761:844,'390':827,'430':827};
+/* #408 MOVED EVERY NUMBER IN THIS TABLE BY EXACTLY +29, AND THE TABLE IS A RECORD RATHER THAN A REQUIREMENT -
+   which is the distinction this gate's own header turns on ("this gate tests REACHABILITY and not position").
+   R-BS-2 of the board-scan spec reserves the scan message row so the sheet stops moving when a scan starts
+   (measured on the shipped #407 release: the sheet's content height jumped 938 -> 966 the moment a scan began,
+   28px under the player's thumb). The reserve is 21px of row plus its 8px top margin, and it sits above Start
+   game, so Start game moved down by that 29 at EVERY geometry: se 874 -> 903, kunal 808 -> 837, kunal730 and
+   kunal761 844 -> 873, 390 and 430 827 -> 856. Uniform, because the reserve is a fixed height and not a
+   proportion. TC-PS-007 - a thumb can still reach it by scrolling the overlay's own range - stayed GREEN at all
+   six, which is what says this is a cost and not a defect.
+   THE COST IS WORTH SEEING PLAINLY: 29px of sheet is now spent on every setup, on every screen, to reserve
+   space for a message from a feature whose cloud function is still not deployed (flag
+   scan-board-cloud-function-never-deployed). Two cheaper shapes were measured and not taken at #408 - merging
+   the message into the helper line's existing row (about +3.5px, but it changes when that helper copy shows,
+   and R-BS-6 is AMBER with a recommendation to change nothing), and dropping the helper line's own 7px margin
+   (+22px). Flag scan-row-collapses-on-second-tap carries all three with their numbers, because the row's final
+   shape is one decision and not three separate nudges. */
+const START_REST={se:903,kunal:837,kunal730:873,kunal761:873,'390':856,'430':856};
 const SHEET_W   ={se:288,kunal:343,kunal730:343,kunal761:343,'390':358,'430':398};
 
 // CT_PS_BLOCKS=A,B  runs only the named blocks. It exists for the NEGATIVE CONTROLS - proving eight one-line
