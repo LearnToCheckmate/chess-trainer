@@ -6210,7 +6210,21 @@ export default function App(){
                     padding, so the label shortens at <=340 exactly as the puzzle header's Roadmap chevron has since #382.
                     At 375 and 390 the row has room to spare and neither branch is reachable: all four children measured
                     identical before and after, which is his condition on Z-06. */}
-                <button onClick={()=>startPractice(learnLine,learnLabel)} aria-label="Try again" style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(vp.w<=340?{padding:'9px 4px'}:null),fontWeight:800}}>{vp.w<=340?'↻ Again':'↻ Try again'}</button>
+                {/* #409: THE LAST SITE ON THE OLD INSTRUMENT, and it was broken on the WIDER phone. This
+                    button chose its label and its padding from `vp.w<=340` while the row it sits in is sized to
+                    the BOARD, and the lesson board is fit to HEIGHT - so at 375x568 and 390x568 the viewport is
+                    wide, the board is 230.88, and the row's budget for this flexible button is 74.88px after
+                    three 46px buttons and three 6px gaps. The long label's ink is 92.52px wide, so it painted
+                    167.25..259.77 inside a box of 176.06..250.94: 8.83px past its own right edge, 8.81px past
+                    its left, and 2.83px over the ⋯ button's left edge at 256.94. At 320x568 the same row is
+                    230.88 and the label was already short, so the narrow phone was right and the wide-and-short
+                    one was wrong - which is exactly what #406 found for the six other sites and why no viewport
+                    threshold can reach it. `rowNarrow` is boardPx<340: true at 230.88, false at the 375.03 of
+                    375x730 where the ink clears by 63px. Raised by the external supervisor
+                    (kunal-q-narrow-threshold-everywhere-2026-09-17) and re-measured here before it was
+                    believed; recorded as an amber default in amber-409-try-again-keyed-to-the-row, and the RULE
+                    is a question open with Kunal rather than settled by this build. */}
+                <button onClick={()=>startPractice(learnLine,learnLabel)} aria-label="Try again" style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800}}>{rowNarrow?'↻ Again':'↻ Try again'}</button>
                 <button onClick={()=>setLearnSheet(true)} aria-label="More actions" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>⋯</button>
               </div>
               {learnSheet&&(<div onClick={()=>setLearnSheet(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:9000,display:'flex',alignItems:'flex-end'}}>

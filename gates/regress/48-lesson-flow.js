@@ -165,6 +165,26 @@ const row=(b)=>b.page.evaluate(()=>[...document.querySelectorAll('button')]
   .filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&/^(Flip board|Hints|Try again|More actions)$/.test(x.getAttribute('aria-label')||'');})
   .map(x=>{const r=x.getBoundingClientRect();return {a:x.getAttribute('aria-label'),t:(x.innerText||'').trim(),
     x:+r.left.toFixed(1),y:+r.top.toFixed(1),w:+r.width.toFixed(1),h:+r.height.toFixed(1),right:+r.right.toFixed(1),bottom:+r.bottom.toFixed(1)};}));
+// #409: THE INK OF EACH CONTROL ON THAT ROW, AND WHETHER ANY TWO OF THEM OVERLAP. A Range over the button's
+// contents, because the defect this was written for is a label painting OUTSIDE its own button and over the next
+// one while every box stays inside the viewport - so neither a viewport-containment check (gate 35) nor an
+// ink-versus-the-box-that-clips-it check (gate 26, invariant 4) could see it: nothing here clips at all.
+const rowInk=(b)=>b.page.evaluate(()=>{
+  const bs=[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();
+    return r.width>1&&r.height>1&&/^(Flip board|Hints|Try again|More actions)$/.test(x.getAttribute('aria-label')||'');});
+  const n=(v)=>Math.round(v*100)/100;
+  const out=bs.map(x=>{const r=x.getBoundingClientRect();const g=document.createRange();g.selectNodeContents(x);
+    const rects=[...g.getClientRects()].filter(q=>q.width>0&&q.height>0);
+    const il=rects.length?Math.min(...rects.map(q=>q.left)):null, ir=rects.length?Math.max(...rects.map(q=>q.right)):null;
+    return {a:x.getAttribute('aria-label'),t:(x.innerText||'').trim(),l:n(r.left),r:n(r.right),w:n(r.width),
+            inkL:il==null?null:n(il),inkR:ir==null?null:n(ir),
+            overL:il==null?null:n(r.left-il),overR:ir==null?null:n(ir-r.right)};});
+  let worstOverlap=null;
+  for(let i=1;i<out.length;i++){const gap=n(out[i].l-out[i-1].r);
+    const inkBleed=(out[i-1].inkR!=null)?n(out[i-1].inkR-out[i].l):null;
+    if(worstOverlap===null||(inkBleed!==null&&inkBleed>worstOverlap.inkBleed))worstOverlap={pair:out[i-1].a+' -> '+out[i].a,gap,inkBleed};}
+  return {btns:out,worstOverlap,vw:innerWidth};
+});
 // The note box and its own inner scroller. h is the thing #366 fixed at 75; sh vs ch says whether the note is
 // longer than the three lines it gets; `more` is the badge that says so to Kunal.
 const note=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="lesson-note"]');if(!e)return null;
@@ -361,10 +381,27 @@ L.run(async()=>{
       geo+': and the whole row is inside the viewport BEFORE any tap. #384: the flexible ↻ button defaulted to min-width:auto, refused to shrink, and pushed the ⋯ 3.1px off a 320 screen with no page scroll to recover it',{left:r0[0]&&r0[0].x,right:r0[3]&&r0[3].right,vw});
     L.say(r0.length===4&&near(r0[0].x,Pr.left)&&near(r0[3].right,Pr.left+Pr.w),
       geo+': the row is the board\'s own width ('+Pr.left+' to '+(Pr.left+Pr.w)+')',{rowLeft:r0[0]&&r0[0].x,rowRight:r0[3]&&r0[3].right});
-    // #384's other half: the label shortens at <=340 and ONLY there.
-    const wantLabel=vw<=340?'↻ Again':'↻ Try again';
+    /* #384's other half: the label shortens when it does not fit and ONLY then. THIS EXPECTATION USED TO READ
+       `vw<=340`, WHICH IS THE VIEWPORT, AND THE VIEWPORT NEVER DECIDED IT - the same fault #406 fixed in the
+       app for six sites and in gate 35's own label assertion, sitting here unfixed in the expectation. The row
+       is the board's width and the lesson board is fit to HEIGHT, so at 375x568 the viewport is wide, the row
+       is 230.88, and the long label painted 8.83px outside its own button and 2.83px over the ⋯ next to it
+       while this line happily expected the long one. It now computes the BUDGET the way the row does - the
+       row's width less the three 46px buttons and their three 6px gaps - and compares it with the long label's
+       measured min-content width of 92.52px, so it follows the rule rather than the geometry table. #409. */
+    const budget=Pr.w-(3*46)-(3*6);
+    const wantLabel=budget<92.52?'↻ Again':'↻ Try again';
     L.say(r0.length===4&&r0[2].t===wantLabel,geo+': at '+vw+' wide the ↻ button reads "'+wantLabel+'" (#384: the full label needs 92.52px and the budget at 320 is 74.88, so it shortens at <=340 and only there)',r0[2]&&r0[2].t);
 
+    /* #409: AND THE INK, not only the boxes. The defect that produced these two assertions painted the long
+       label 8.83px past its own right edge and 2.83px OVER the ⋯ button beside it, at 375x568 and 390x568,
+       while every box stayed inside the viewport - so the row-containment assertion above was green, gate 35
+       was green (nothing leaves the viewport) and gate 26 was green (nothing clips, so there is nothing to
+       clip against). Measured with a Range over each button's own contents. */
+    const ri=await rowInk(b);
+    const bad=(ri.btns||[]).filter(x=>x.inkR!==null&&(x.overR>0.5||x.overL>0.5));
+    L.say(bad.length===0,geo+': every label on the practice row paints INSIDE its own button - measured as a Range over the button\'s contents, not as its box',bad.map(x=>x.a+' overR '+x.overR+' overL '+x.overL).join(' | ')||'none');
+    L.say(!!ri.worstOverlap&&ri.worstOverlap.inkBleed!==null&&ri.worstOverlap.inkBleed<=0,geo+': and no label\'s ink reaches the next button\'s box (worst pair '+(ri.worstOverlap&&ri.worstOverlap.pair)+')',ri.worstOverlap);
     // --- TC-LS-022/023: the practice board, pinned; and the footer loses the transport.
     const p0=await b.metrics();
     L.say(!!p0.board&&near(p0.board.w,Pr.w)&&near(p0.board.left,Pr.left)&&near(p0.board.top,BOARD_TOP,1),
@@ -445,5 +482,43 @@ L.run(async()=>{
     await b.shot('lesson-flow-'+geo+'-practice');
     await b.close();
   }
+ }
+
+ // CONTROLLED AGAINST THE SHIPPED #408 RELEASE (b95fa49, md5 ab89460652aa, recovered with git cat-file):
+ // 209 pass, 6 FAIL, and the six are exactly these three assertions at each of the two wide-and-short columns -
+ // the label ("↻ Try again" where the budget is 74.8px and the label needs 92.52), the ink 8.83px outside its
+ // own button, and 2.83px of it bleeding onto the ⋯. Every other assertion in this gate stayed green, including
+ // the same three ink checks at 320x568, 375x730 and 390x844, which is what says they fire on the defect rather
+ // than on the row. AND "every box is still inside the viewport" STAYED GREEN AT BOTH on that bundle: that is
+ // the reason this column exists as ink assertions and not as another containment check.
+ // ══ D. THE WIDE-AND-SHORT COLUMN, #409 ════════════════════════════════════════════════════════════════════
+ // This gate's three geometries are 320x568, 375x730 and 390x844 - narrow-and-short, and two tall ones. None
+ // of them has width >= 360 AND height <= 600, which is #406's two-axis finding, and it is exactly where the
+ // practice row breaks: the row is the board's width, the lesson board is fit to HEIGHT, so a WIDE and SHORT
+ // viewport gives a wide screen and a 230.88px row. Measured on the shipped #408 bundle at 375x568: the long
+ // label's ink ran 167.25..259.77 inside a button of 176.06..250.94 - 8.83px past its own right edge, 8.81px
+ // past its left, and 2.83px over the ⋯ button's left edge at 256.94 - with documentElement.scrollWidth equal
+ // to the viewport, so nothing scrolls to recover it and no viewport-keyed assertion can see it.
+ // ONE ROW, not the whole gate: adding a fourth column to the loop above would mean re-measuring every pinned
+ // board width, left and top in DEMO and PRAC for a geometry nothing else asserts about. This block asserts
+ // only what the defect was about, and says so.
+ for(const geo of ['short375','390x568']){
+   const g = geo==='390x568' ? {w:390,h:568,safe:'',label:'390x568 = the wide-and-short corner, one step up'} : geo;
+   const vw = typeof g==='object' ? g.w : L.GEOS[g].w;
+   const b=await L.launch({geo:g,name:'lesson-flow-wideshort-'+geo});await b.open();
+   L.note(geo+': bundle stamp in the page = '+(await b.stamp()));
+   await D.states['practice-m0'](b);
+   const r0=await row(b), ri=await rowInk(b), m=await b.metrics();
+   L.say(r0.length===4,geo+': the practice row is there at all (four controls)',r0.map(x=>x.a).join(','));
+   L.say(!!m.board&&m.board.w<340,geo+': and the board really is under 340 wide here ('+(m.board&&m.board.w)+') while the viewport is '+vw+' - which is why a viewport threshold cannot decide this row',{board:m.board&&m.board.w,vw});
+   const budget=r0.length===4?Math.round((r0[3].right-r0[0].x-(3*46)-(3*6))*100)/100:null;
+   L.say(budget!==null&&budget<92.52&&r0[2].t==='↻ Again',geo+': the ↻ button reads "↻ Again", because the budget the row leaves it is '+budget+'px and the long label needs 92.52px. It read "↻ Try again" on the shipped #408 bundle, keyed to the VIEWPORT.',{budget,label:r0.length===4?r0[2].t:null});
+   const bad=(ri.btns||[]).filter(x=>x.inkR!==null&&(x.overR>0.5||x.overL>0.5));
+   L.say(bad.length===0,geo+': every label paints INSIDE its own button (this is the assertion the defect crossed: 8.83px past the right edge, 8.81px past the left)',bad.map(x=>x.a+' overR '+x.overR).join(' | ')||'none');
+   L.say(!!ri.worstOverlap&&ri.worstOverlap.inkBleed!==null&&ri.worstOverlap.inkBleed<=0,geo+': and no label\'s ink reaches the next button (it bled 2.83px onto the ⋯ before the fix)',ri.worstOverlap);
+   L.say(r0.length===4&&r0.every(x=>x.x>=-0.6&&x.right<=vw+0.6),geo+': and every box is still inside the viewport - true BEFORE the fix as well, which is why this column needed the ink assertions above rather than another containment check',r0.map(x=>x.a+':'+x.right).join(' '));
+   L.say(m.over.docScroll===0,geo+': nothing scrolls the page here',m.over);
+   await b.shot('lesson-practice-row-'+geo);
+   await b.close();
  }
 },'LESSON-FLOW');
