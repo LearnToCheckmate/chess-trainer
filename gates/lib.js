@@ -31,7 +31,16 @@ const BLOCK=/gstatic\.com|googleapis\.com|firebaseio|firebase\.com|api\.chess\.c
 // 'kunal730' is the real phone and new gates should use it; 'kunal' stays 375x679 as the shorter-phone column
 // until each existing assertion has been re-measured at 730 deliberately, one gate at a time, rather than having
 // every expected number change at once inside an unrelated build.
-const GEOS={kunal730:{w:375,h:730,safe:'',label:'375x730 = Kunal\'s real phone'},kunal:{w:375,h:679,safe:'',label:'375x679 = shorter-phone column'},kunal761:{w:375,h:761,safe:'51,31',label:'375x761 with ct_safe 51,31'},'390':{w:390,h:844,safe:'',label:'390x844'},'430':{w:430,h:932,safe:'',label:'430x932'},se:{w:320,h:568,safe:'',label:'320x568'}};
+const GEOS={kunal730:{w:375,h:730,safe:'',label:'375x730 = Kunal\'s real phone'},kunal:{w:375,h:679,safe:'',label:'375x679 = shorter-phone column'},kunal761:{w:375,h:761,safe:'51,31',label:'375x761 with ct_safe 51,31'},'390':{w:390,h:844,safe:'',label:'390x844'},'430':{w:430,h:932,safe:'',label:'430x932'},se:{w:320,h:568,safe:'',label:'320x568'},
+// #406, from SIT run 5: "a geometry list has TWO axes and this project has only ever laddered one". Every
+// geometry above either is narrow AND short or wide AND tall, so NO size in this list, in the headless UAT's
+// nine, or in #404's own sweep table had width >= 360 AND height <= 600. That corner is where the lesson
+// board - which is fit to HEIGHT - stays 270.88px wide while the viewport is 375 or 390 wide, so a row sized
+// to the board overhangs a screen nothing can scroll. Measured there: the counted "Other lines (2)" button ran
+// 18.91px off a 360x568 screen, 11.41px off 375x568 and 3.91px off 390x568, unchanged from #403, while #404's
+// viewport-width threshold could not reach it by construction. `short375` is that corner, and it is a real
+// phone shape: a 375-wide device in a browser with a large toolbar, or any 16:9 Android at 375dp.
+short375:{w:375,h:568,safe:'',label:'375x568 = the wide-and-short corner nothing used to cover'}};
 
 function pw(){
   try{return require('/opt/node22/lib/node_modules/playwright');}catch(e){}

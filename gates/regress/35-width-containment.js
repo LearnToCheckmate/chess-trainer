@@ -170,10 +170,22 @@ const STATES=[
 // silently"; this is the fix, and it is not landing silently.
 //
 // HE ANSWERED IT on 2026-09-15 02:08 UTC, decision `lesson-lines-320-label`, choice "Other lines" - the COUNT
-// DROPS, and only below 340px wide, so nothing changes at 375 or above by construction. That is what #404
-// shipped (chess.jsx:6035, the same `vp.w<=340` mechanism already used for the puzzle Roadmap chevron at #382
-// and "Try again" at #384). Decision `width320-gate-red` - "Fix 'Other lines (2)' first, then land the gate" -
+// DROPS. #404 shipped that as a VIEWPORT-WIDTH threshold and #405 widened it to 360 after measuring the band
+// it left open; #406 REPLACED IT ENTIRELY, and the reason is the point of this gate.
+//
+// SIT run 5: "a geometry list has TWO axes and this project has only ever laddered one." The lesson board is
+// fit to HEIGHT and the button row is sized to the BOARD, not to the viewport - so at vp.h=568 the board is
+// 270.88px wide at EVERY width from 320 to 390, and the counted label still ran 18.91px off a 360x568 screen,
+// 11.41px off 375x568 and 3.91px off 390x568, with documentElement.scrollWidth equal to the viewport and
+// nothing able to scroll. A viewport-width threshold cannot reach that however wide it is set, because the
+// viewport is not the quantity that decides whether the row fits. The condition is now `boardPx<340`, keyed on
+// the fit loop's own output. Decision `width320-gate-red` - "Fix 'Other lines (2)' first, then land the gate" -
 // is what makes this the pin's proper end rather than a convenience.
+//
+// AND THIS GATE NOW SWEEPS THAT CORNER. It ran 'se' (320x568) and 'kunal730' (375x730) only: narrow-and-short,
+// wide-and-tall. Both were green throughout, correctly, and neither could see a defect that needs wide AND
+// short together. `short375` (375x568) is the third column, and it is where the assertion below goes red on
+// the #405 bundle.
 //
 // So `lesson-lines` is no longer excluded from anything: the general containment assertion for
 // se/lesson-demo-end now covers it like every other element, and the two assertions below replace the pin by
@@ -183,7 +195,7 @@ const FIXED={state:'lesson-demo-end',ct:'lesson-lines',wasOver:38.9};
 
 L.run(async()=>{
   const report={};
-  for(const geo of ['se','kunal730']){
+  for(const geo of ['se','short375','kunal730']){
     const b=await L.launch({geo,name:'width-'+geo,store:{ct_pool:'3'}});
     const rows=[];
     for(const [name,go] of STATES){
@@ -193,7 +205,11 @@ L.run(async()=>{
         // #404: read the lesson-lines label text in the same pass, so the label half of his answer is asserted
         // from the same visit as the geometry half rather than from a second, differently-driven run.
         const lines=name===FIXED.state?await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="lesson-lines"]');return e?(e.innerText||'').trim():null;}):undefined;
-        rows.push({state:name,off:res.off,ex:res.excused,ps,lines});
+        // #406: the board width comes from the SAME visit as the label and the geometry, because the whole
+        // finding is that these three are not interchangeable and a gate that reads them from different runs
+        // cannot tell them apart.
+        const bd=name===FIXED.state?await b.board():null;
+        rows.push({state:name,off:res.off,ex:res.excused,ps,lines,boardW:bd?Math.round(bd.w*100)/100:null});
         if(res.off.length)await b.shot('width-'+geo+'-'+name+'-overhang');
       }catch(e){rows.push({state:name,err:String(e).slice(0,120)});}
     }
@@ -203,8 +219,8 @@ L.run(async()=>{
     await b.close();
   }
 
-  for(const geo of ['se','kunal730']){
-    const w=geo==='se'?320:375;
+  for(const geo of ['se','short375','kunal730']){
+    const w=L.GEOS[geo].w;
     for(const r of report[geo]){
       if(r.err){L.say(false,geo+' ('+w+' wide): the state "'+r.state+'" could not be reached, so containment there is UNMEASURED rather than green',r.err);continue;}
       const off=r.off;   // #404: nothing is excluded any more - the one exclusion this gate had was `lesson-lines`, and it is fixed
@@ -217,16 +233,26 @@ L.run(async()=>{
   // more, which is necessary and not sufficient: "it no longer hangs off" would also be satisfied by the button
   // disappearing, or by the count dropping at EVERY width - and the second of those breaks Kunal's Z-06
   // condition rather than meeting it. So both halves of his answer are asserted, at both widths.
-  for(const geo of ['se','kunal730']){
+  for(const geo of ['se','short375','kunal730']){
     const fRow=report[geo].find(r=>r.state===FIXED.state);
     const hit=fRow&&!fRow.err&&fRow.off.find(o=>o.ct===FIXED.ct);
     L.say(!!fRow&&!fRow.err&&!hit,
       geo+': "'+FIXED.ct+'" is contained - the #404 fix for the one defect this gate used to pin as BLOCKED at '+FIXED.wasOver+'px off the right edge at 320 (decision lesson-lines-320-label)',
       hit||(fRow&&fRow.err)||'contained');
-    const lab=fRow&&fRow.lines;
-    if(lab!==undefined) L.say(geo==='se'?(lab!==null&&!/\(/.test(lab)):(lab!==null&&/\(\d+\)/.test(lab)),
-      geo+': the label itself carries what his answer says - no count below 340, the count kept at 375 and above, so supporting 320 costs the larger screens nothing (Z-06)',
-      {label:lab});
+    // THE LABEL ASSERTION, AND WHY ITS FIRST VERSION COULD NOT SEE #406's DEFECT. It keyed off the GEOMETRY
+    // NAME - "at se expect no count, otherwise expect one" - which is a restatement of the geometry list, so it
+    // stayed green at both columns while the mechanism underneath it was wrong. It now asserts the RULE the app
+    // actually implements: the count is present exactly when the board is wide enough to hold it, measured from
+    // the board rather than assumed from the viewport. On the #405 bundle this goes RED at short375, which is
+    // what makes it an assertion rather than a description.
+    const lab=fRow&&fRow.lines, bw=fRow&&fRow.boardW;
+    if(lab!==undefined&&bw){
+      const wantCount=bw>=340;
+      const hasCount=lab!==null&&/\(\d+\)/.test(lab);
+      L.say(hasCount===wantCount,
+        geo+' (board '+bw+'px wide): the count is present exactly when the board can hold it - his answer was that the count DROPS on a narrow phone, and the thing that decides is the board width, not the viewport (#406, SIT run 5: a geometry list has two axes)',
+        {label:lab, boardW:bw, wantCount, hasCount});
+    }
   }
 
   // THE TRANSFORM EXCLUSION, PINNED TO ITS MECHANISM RATHER THAN TO A COUNT. Every piece on the board is drawn
@@ -238,8 +264,8 @@ L.run(async()=>{
   // defect appearing beside the pieces. So the assertion is on WHAT is excused instead: every excused box must
   // be a piece-sized box whose layout reference is the board square it sits in. Anything else - a button, a
   // label, a box of the wrong size - fails here even if the count never moves.
-  for(const geo of ['se','kunal730']){
-    const w=geo==='se'?320:375;
+  for(const geo of ['se','short375','kunal730']){
+    const w=L.GEOS[geo].w;
     const all=[];for(const r of report[geo]){if(!r.err)for(const e of (r.ex||[]))all.push({state:r.state,...e});}
     const withBoard=[...new Set(all.map(e=>e.state))];
     // the scaled box is the square x 1.06, so the ratio is the mechanism and it holds at any board width

@@ -3930,6 +3930,33 @@ export default function App(){
   // beyond the width he named - to honour the intent of Z-06 ("supporting all standard screen sizes") where his
   // own number did not reach. 375 and above are untouched either way.
   const NARROW=360;
+  // #406: AND NARROW WAS STILL THE WRONG INSTRUMENT, which is the whole finding of SIT run 5. #404 swept
+  // 320/341/350/360 at ONE HEIGHT, found its crossover and shipped a WIDTH threshold - but the lesson board is
+  // FIT TO HEIGHT, and the button row is sized to the BOARD, not to the viewport. So at vp.h=568 the board is
+  // 270.88px wide at EVERY width from 320 to 390, and the counted label still hung off the screen: measured
+  // +18.91px at 360x568, +11.41px at 375x568 and +3.91px at 390x568, with documentElement.scrollWidth equal to
+  // the viewport and no horizontally scrollable ancestor - unreachable, not merely off-screen. A viewport-width
+  // threshold CANNOT REACH THAT BY CONSTRUCTION, however wide you set it, because the quantity that decides
+  // whether the row fits is not the viewport.
+  // "A geometry list has two axes and this project has only ever laddered one": no geometry in the gate suite
+  // (10 sizes), the UAT matrix (9) or #404's own sweep table has width >= 360 AND height <= 600, which is
+  // exactly where this lives. It was not introduced by #404 - it is unchanged from #403 to within 0.01px - but
+  // #404 claimed to have fixed it and had only fixed the corner it measured.
+  // SO THE CONDITION KEYS OFF `boardPx`, the fit loop's own output, which IS the row's width. Measured: the
+  // count is safe at boardPx 342.39 (360x640, -8.81px) and 375.03 (375x730 and 375x667, flush at 0.00), and
+  // unsafe at 270.88 at every width tried. 340 sits between the two measured values rather than being rounded
+  // to a familiar number. NARROW stays for the two sites where the viewport genuinely is the constraint.
+  // THE COST OF KEYING ON ONE VARIABLE, said out loud because it is a real if small regression. The button's
+  // right edge depends on BOTH the column width and where the centred column sits, so the exact safe condition
+  // is roughly vp.w >= boardPx + 127 - and that formula does not hold at all when boardPx approaches vp.w,
+  // because the row is then full-width and clipped at the viewport rather than centred with slack. Rather than
+  // fit a two-variable rule to eleven measured points, this errs one way: at a WIDE BUT SHORT viewport
+  // (430x568, boardPx 270.88) the count is dropped although it would have fitted with 16px to spare. Losing a
+  // count where there was room is a cosmetic cost; leaving content off an unscrollable edge is not, and #404
+  // spent a whole pass on that. Measured after the change at eleven geometries, every one at or inside the
+  // edge: 320/360/375/390/430 x 568 all drop the count and clear by 7.7 to 62.7px; 375x730, 375x667, 390x844
+  // and 430x932 keep it and sit flush at 0.00; 360x640 keeps it with 8.81px to spare; 320x730 drops it.
+  const rowNarrow=boardPx<340;
   const btn=(bg,bd,col)=>({padding:'9px 15px',borderRadius:12,cursor:'pointer',fontSize:'clamp(14px,2.9vw,15px)',fontWeight:700,background:bg,backgroundImage:'linear-gradient(rgba(255,255,255,.20),rgba(255,255,255,.04) 48%,rgba(0,0,0,.10))',border:bd,color:col,letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif",display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,minHeight:44,whiteSpace:'nowrap',boxShadow:boardDepth?'0 4px 0 rgba(0,0,0,.38),0 9px 18px rgba(0,0,0,.36),inset 0 1.5px 0 rgba(255,255,255,.34),inset 0 -4px 8px rgba(0,0,0,.22)':'0 3px 0 rgba(0,0,0,.34),0 7px 16px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.30),inset 0 -3px 6px rgba(0,0,0,.16)'});
   // Primary/secondary navigation buttons: equal width, larger text, stronger tactile depth, consistent palette.
   const navBtn=(primary)=>({flex:1,textAlign:'center',padding:'14px 16px',borderRadius:13,cursor:'pointer',fontSize:'clamp(14px,3.4vw,17px)',fontWeight:800,minHeight:52,letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif",display:'inline-flex',alignItems:'center',justifyContent:'center',gap:7,whiteSpace:'nowrap',color:primary?'#191919':'#fff',background:primary?'var(--ac)':'rgba(255,255,255,.10)',backgroundImage:'linear-gradient(rgba(255,255,255,.22),rgba(255,255,255,.05) 48%,rgba(0,0,0,.12))',border:primary?'none':'1px solid rgba(255,255,255,.22)',boxShadow:primary?'0 5px 0 rgba(0,0,0,.30),0 11px 22px rgba(var(--acr),.32),inset 0 1px 0 rgba(255,255,255,.42),inset 0 -3px 7px rgba(0,0,0,.18)':'0 5px 0 rgba(0,0,0,.42),0 11px 22px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.30),inset 0 -3px 7px rgba(0,0,0,.20)'});
@@ -5409,12 +5436,14 @@ export default function App(){
               {/* #404, flag `recur-rev-playout-clipped-320`: at 320 this nowrap row demanded ~19px more than it
                   had, flex-shrink took every one of them out of the ONE shrinkable item - rev-playout, the only
                   member with flex:'0 1 auto' - and the button read "▶ wh" with no ellipsis. The row fits when
-                  these two pills give back their side padding below 340, which is the same <=340 mechanism
-                  already shipped at #382 and #384, and nothing at all changes at 375 or above (Kunal's Z-06
-                  condition: supporting 320 must not cost the larger screens anything). */}
-              <span style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',gap:4,fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,color:curAnno.cls.c,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'66',borderRadius:22,padding:(vp.w<NARROW?'3px 5px':'3px 10px')}}><span style={{fontSize:'clamp(13px,3.2vw,17px)',lineHeight:1}}>{curAnno.cls.i}</span>{curAnno.cls.label}</span>
-              {_wasBest&&<button data-ct="rev-playout" onClick={()=>{setEngOn(true);playBestLine(review.plies[ply-1].move);}} title="Play this move out and see what it leads to" aria-label="Play this move out and see what it leads to" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(vp.w<NARROW?3:5),padding:(vp.w<NARROW?'3px 5px':'3px 11px'),borderRadius:22,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'88',color:curAnno.cls.c,cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden',whiteSpace:'nowrap'}}>{'\u25b6'} why</button>}
-              {_hasBetter&&<button data-ct="rev-best" onClick={()=>{setShowBest(true);setEngOn(true);playBestLine();}} title="Show the best move on the board" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(vp.w<NARROW?3:5),padding:(vp.w<NARROW?'3px 5px':'3px 10px'),borderRadius:22,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.45)',color:'var(--ac2)',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden'}}><span style={{fontWeight:600,color:'rgba(255,255,255,.6)',fontSize:'.85em'}}>best</span>{curAnno.bestSan}<span style={{opacity:.8}}>{showBest?'✓':'›'}</span></button>}
+                  these two pills give back their side padding when the ROW is narrow. #404 keyed that off the
+                  viewport width and #406 re-keyed it off `boardPx`, because rev-move-line is sized to the board:
+                  SIT run 5 measured it at 238px inside a 730px viewport in landscape, where a viewport-width
+                  threshold does nothing at all. Kunal's Z-06 condition still holds - nothing changes on any
+                  geometry where the row already fits. */}
+              <span style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',gap:4,fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,color:curAnno.cls.c,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'66',borderRadius:22,padding:(rowNarrow?'3px 5px':'3px 10px')}}><span style={{fontSize:'clamp(13px,3.2vw,17px)',lineHeight:1}}>{curAnno.cls.i}</span>{curAnno.cls.label}</span>
+              {_wasBest&&<button data-ct="rev-playout" onClick={()=>{setEngOn(true);playBestLine(review.plies[ply-1].move);}} title="Play this move out and see what it leads to" aria-label="Play this move out and see what it leads to" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(rowNarrow?3:5),padding:(rowNarrow?'3px 5px':'3px 11px'),borderRadius:22,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'88',color:curAnno.cls.c,cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden',whiteSpace:'nowrap'}}>{'\u25b6'} why</button>}
+              {_hasBetter&&<button data-ct="rev-best" onClick={()=>{setShowBest(true);setEngOn(true);playBestLine();}} title="Show the best move on the board" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(rowNarrow?3:5),padding:(rowNarrow?'3px 5px':'3px 10px'),borderRadius:22,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.45)',color:'var(--ac2)',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden'}}><span style={{fontWeight:600,color:'rgba(255,255,255,.6)',fontSize:'.85em'}}>best</span>{curAnno.bestSan}<span style={{opacity:.8}}>{showBest?'✓':'›'}</span></button>}
             </>):(<span style={{fontSize:'clamp(14px,3vw,16px)',fontWeight:700,color:'rgba(255,255,255,.6)'}}>Start position</span>)}
             {!anaMode&&<span style={{flex:'1 1 auto'}}/>}
             {!anaMode&&<span style={{flex:'0 0 auto',fontSize:'clamp(12.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.55)',fontFamily:'monospace',fontWeight:700}}>{ply}/{review.plies.length}</span>}
@@ -6081,7 +6110,7 @@ export default function App(){
           {learnPhase==='demo'&&(<>
             <div style={{alignSelf:'stretch',display:'grid',gridTemplateColumns:'1.8fr 1fr',gap:6}}>
               <button onClick={()=>startPractice(learnLine,learnLabel)} style={btn('var(--ac)','none','#fff')}>✋ Now I'll try it</button>
-              {(!wide&&demoPly>=learnLine.length&&LIB[openIdx].vars&&LIB[openIdx].vars.length>0)?(<button data-ct="lesson-lines" onClick={()=>setLessonMore(true)} style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.4)','var(--ac2)'),...(vp.w<NARROW?{padding:'9px 6px'}:null)}}>{/* #404, decision `lesson-lines-320-label`, Kunal 2026-09-15 02:08 UTC: "Other lines" - the COUNT DROPS - and only below 340px wide. Above 340 nothing changes by construction. Measured before: the button is 169.19px wide at EVERY viewport and never shrinks, so at 320 it ran 189.73..358.92 with documentElement.scrollWidth still 320 and 38.92px unreachable. Same <=340 mechanism as the puzzle Roadmap chevron (#382) and "Try again" (#384) - reused rather than invented a third time, as his note asked. */}{vp.w<NARROW?'\u265f Other lines':'\u265f Other lines ('+LIB[openIdx].vars.length+')'}</button>):(<button onClick={()=>setFlip(f=>!f)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),...(vp.w<NARROW?{padding:'9px 6px'}:null)}}>⟳ Flip</button>)}
+              {(!wide&&demoPly>=learnLine.length&&LIB[openIdx].vars&&LIB[openIdx].vars.length>0)?(<button data-ct="lesson-lines" onClick={()=>setLessonMore(true)} style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.4)','var(--ac2)'),...(rowNarrow?{padding:'9px 6px'}:null)}}>{/* #404, decision `lesson-lines-320-label`, Kunal 2026-09-15 02:08 UTC: "Other lines" - the COUNT DROPS on a narrow phone. Measured before: the button is 169.19px wide at EVERY viewport and never shrinks, so at 320 it ran 189.73..358.92 with documentElement.scrollWidth still 320 and 38.92px unreachable. HIS NOTE SAID "only below 340px wide, above 340 nothing changes by construction", and that clause was a wrong measurement rather than a preference: #405 widened it to a measured 360 and #406 replaced the viewport threshold altogether with `boardPx<340`, because this row is sized to the BOARD and the board is fit to HEIGHT. See the NARROW/rowNarrow block for the eleven measured geometries. */}{rowNarrow?'\u265f Other lines':'\u265f Other lines ('+LIB[openIdx].vars.length+')'}</button>):(<button onClick={()=>setFlip(f=>!f)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),...(rowNarrow?{padding:'9px 6px'}:null)}}>⟳ Flip</button>)}
               {/* #404, AND THE HALF HIS ANSWER DID NOT REACH. Dropping the count took the overhang from 38.9px
                   to 10.3px and NOT to zero: measured at 320x568 after the label change, the button still ran
                   left 189.7 to right 330.3, w 140.6, 10.3px past a 320 screen with nothing able to scroll to
@@ -6090,8 +6119,10 @@ export default function App(){
                   border and its background are still cut, and #398's rule cuts both ways: a box that clips its
                   own child is a latent fault that a longer string or a larger accessibility font will cash in.
                   The row is a grid of '1.8fr 1fr' whose second track cannot go below this button's min-content
-                  width, so the 15px side padding is what is left to give: 9px 15px -> 9px 6px below 340 frees
-                  18px of min-content, which is more than the 10.3px owed. Same <=340 mechanism, same
+                  width, so the 15px side padding is what is left to give: 9px 15px -> 9px 6px frees 18px of
+                  min-content, which is more than the 10.3px owed. #406 re-keyed the condition from the viewport
+                  width to `boardPx` - see the NARROW/rowNarrow block - because this row is sized to the board and
+                  the board is fit to HEIGHT, so the viewport width never decided it. Same
                   precedent (chess.jsx:6091 already does exactly this for 'Try again' at #384), and nothing
                   changes at 375 or above. Asserted by gates/regress/35-width-containment.js, which was RED at
                   10.3 on the label fix alone - that is how this half was found rather than assumed. */}

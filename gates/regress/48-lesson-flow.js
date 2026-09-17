@@ -283,10 +283,15 @@ L.run(async()=>{
     // --- TC-LS-013: at the demo end the "other lines" button names how many there are (#371: on phones the
     // lines live behind this button instead of a 100px box that cost the board 103px).
     //
-    // #404: THE COUNT IS DELIBERATELY ABSENT BELOW 340px WIDE, and this assertion moved with the change rather
+    // #404: THE COUNT IS DELIBERATELY ABSENT ON A NARROW ROW, and this assertion moved with the change rather
     // than being deleted. Kunal answered it on 2026-09-15 02:08 UTC, decision `lesson-lines-320-label`, choice
-    // "Other lines": the count drops, and ONLY below 340, because at 375 the button is already flush to the
+    // "Other lines": the count drops on a narrow phone, because at 375x730 the button is already flush to the
     // screen edge and his Z-06 condition is that supporting 320 must not cost the larger screens anything.
+    // #406: the CONDITION is no longer a viewport width. It is `boardPx<340` - the board is fit to HEIGHT and
+    // this row is sized to the board, so at vp.h=568 the board is 270.88px wide at every width from 320 to 390
+    // and a viewport-width threshold could not reach it. This gate's three geometries (se, kunal730, 390) all
+    // happen to agree with the old rule, so this assertion did NOT go red on the change; gates/regress/
+    // 35-width-containment.js carries the `short375` column that does.
     // Before #404 the counted label was 169.19px wide at EVERY viewport and hung 38.9px off a 320 screen with
     // nothing able to scroll to it. THIS GATE IS WHAT CAUGHT THE PIN: the first full #404 suite went RED here,
     // on exactly this line, at `se` - which is the whole point of pinning a label rather than a shape.
