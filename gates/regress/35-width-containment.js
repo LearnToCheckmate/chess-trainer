@@ -45,6 +45,21 @@
 //            PINNED lesson-lines 38.9 defect stayed green rather than being disturbed. So the gate fires on the
 //            states that contain the broken element and on no others.
 //
+// ── NEGATIVE CONTROL FOR THE #406 COLUMN, and it is the shipped release again. ───────────────────────────────
+//   NC-B  THE SHIPPED #405 BUNDLE (git cat-file -p 6821aea:app.js, md5 e9eeb7ee95df) against this gate as it
+//         now stands.
+//         -> 73 pass, 3 FAIL, AND ALL THREE ARE AT `short375` AND NOWHERE ELSE:
+//              containment on lesson-demo-end: "♟ Other lines (2)" left 217.2 right 386.4, over 11.4, w 169.2
+//              the FIXED pin: the same element, not contained
+//              the label rule: board 270.88px wide and the count still present
+//         -> `se` (320x568) and `kunal730` (375x730) STAYED GREEN ON THE BROKEN BUNDLE. That is the finding
+//            rather than a footnote: those two columns are narrow-and-short and wide-and-tall, and this defect
+//            needs wide AND short together, so no number of runs at those two geometries could ever have found
+//            it. The suite grew from 51 to 76 assertions here and 25 of them are the new column.
+//         -> the external challenger (flag uat-ext-2026-09-16) also caught that this gate's recorded control
+//            was run at #401 while the file was last modified at #404, leaving 3 assertions never controlled.
+//            NC-B re-runs the control against the current file, so that gap is closed rather than noted.
+//
 // STILL UNCONTROLLED AFTER TONIGHT: gates/regress/43-tcrl-analysis.js (32 assertions) is now the only gate in
 // the suite with no recorded control in its header and none in any RUN-LOG row. Named here rather than left for
 // another audit to rediscover.
