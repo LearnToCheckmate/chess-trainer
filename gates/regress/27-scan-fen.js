@@ -223,9 +223,24 @@ L.run(async () => {
       'TC-BS-041 (R-BS-5): the scan control [data-ct="' + ct + '"] carries a test label, so the client gates can select it instead of matching on its emoji text - decision q-test-labels, "Add test labels to both"',
       {found: src.includes('data-ct="' + ct + '"')});
   }
-  L.say(!src.includes('data-ct="scan-busy"'),
-    'TC-BS-042: [data-ct="scan-busy"] is still ABSENT, and this assertion exists so the omission is on the record rather than forgotten. R-BS-2 (the loading indicator) is NOT built: it needs a fixed-height row so the board does not move when it appears, which is G3, and that goes with the ok:false rendering in the next pass. WHEN scan-busy LANDS THIS LINE GOES RED and must be replaced by the real assertion',
-    {absent: !src.includes('data-ct="scan-busy"')});
+  /* #408: TC-BS-042 WAS THE OTHER WAY UP AND THAT IS WHY IT IS WORTH READING. Until this build it asserted
+     that [data-ct="scan-busy"] was ABSENT, so the omission of R-BS-2 sat on the record instead of being
+     forgotten - and it did its job: it went red the day the indicator landed, which is what an assertion about
+     an absence is for. It now asserts the label EXISTS, and the behaviour behind it (a spinner, visible, in a
+     row whose height does not move) is gates/regress/28-scan-client.js, which needs a browser.
+     ALSO WORTH NOTING, because the standing-checks spec gate found it first (flag spec-gate-d8-tracker-R-BS-5):
+     while this line read ABSENT, the executed gate CONTRADICTED the published requirement row, which says "all
+     four selectors resolve". The row was right about the intent and this gate was right about the build, and a
+     session reading only the row would have built the wrong thing. Both agree again at #408. */
+  L.say(src.includes('data-ct="scan-busy"'),
+    'TC-BS-042 (R-BS-2): [data-ct="scan-busy"] now EXISTS in chess.jsx - the loading indicator is built, and this line asserted its ABSENCE until #408 so the gap could not be forgotten. Its behaviour is asserted in the browser by 28-scan-client.js (TC-SC-008..012).',
+    {found: src.includes('data-ct="scan-busy"')});
+  L.say(src.includes('data-ct="scan-row"'),
+    'TC-BS-044 (R-BS-2, G3): the message row is rendered ALWAYS, with its own label, rather than appearing when a message arrives. Measured on the shipped #407 release, the conditional row moved the New Game sheet\'s scroll height from 938 to 966 the moment a scan started.',
+    {found: src.includes('data-ct="scan-row"')});
+  L.say(/r\s*&&\s*r\.ok\s*===\s*false/.test(src),
+    'TC-BS-045 (R-BS-1): the client has a branch for an HONEST REFUSAL - a successful call answering {fen:null, ok:false, reason} - so a refusal no longer falls through to the generic message or the catch. The rendering is asserted in the browser by 28-scan-client.js (TC-SC-019..023).',
+    {found: /r\s*&&\s*r\.ok\s*===\s*false/.test(src)});
   L.say(/unauthenticated\/i\.test\(_code\)/.test(src) || src.includes('/unauthenticated/i.test(_code)'),
     'TC-BS-043 (R-BS-4): the unauthenticated path tests the error CODE and not only its message. A callable HttpsError delivers its message to the client, not its code word, so the old test forced the server to set its message literally to "unauthenticated" - a string coupling across two files with nothing asserting it',
     {found: src.includes('/unauthenticated/i.test(_code)')});

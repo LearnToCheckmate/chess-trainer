@@ -48,6 +48,7 @@ any of them landed. **Claim a number here in the same commit that adds the file.
 | `48-lesson-flow.js` | Lesson test-authoring lane, pasted by the build session | 48 | #403. 195 assertions |
 | `26-invariants.js` | build session | **26** | #404. Authored as `47-invariants.js` by two flags; 47 was gone. See below |
 | `27-scan-fen.js` | build session (board-scan spec, Part 6.1) | **27** | #405. The spec pencilled in **50**; 50-69 is the challenger range. See below |
+| `28-scan-client.js` | build session (board-scan spec, Parts 4 and 6.3) | **28** | #408. The browser half of board scanning: R-BS-1 and R-BS-2. Next free build-lane number after 27 |
 
 **RANGES RESERVED, from procedure v13 section 6e item 4:** **10-29 build lane**, **30-49 test-authoring lane**,
 **50-69 challengers and audits**, **70-89 the play lane**, **90-99 scratch and never committed.** Existing files
@@ -90,7 +91,8 @@ own the register before any of the three lands" - this table is that owner, and 
 guard (#399) is what makes it mechanical rather than a matter of remembering. **The video-call spec's claim on
 49 is still live and still uncoordinated**, and 49 is also claimed by HOME-LANE for `49-home.js`, which is
 named in three lane documents and is the next gate due to land. Whoever pastes the video-call gate should take
-a free build-lane number (16-19 or 28-29) rather than 49.
+a free build-lane number (16-19 or 29) rather than 49 - **28 went to `28-scan-client.js` at #408**, so the spare
+build-lane numbers are now 16, 17, 18, 19 and 29.
 
 **THE INVARIANT GATE IS 26, NOT 47, AND THAT IS THE FOURTH CLAIM ON 47.** #404. Flag `build-the-invariant-gate`
 and flag `class-ink-clipped-by-own-ancestor-2026-09-15` were both written on 2026-09-15 and both name

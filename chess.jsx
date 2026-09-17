@@ -3590,6 +3590,23 @@ export default function App(){
         const b64=cv.toDataURL('image/jpeg',0.85).split(',')[1];
         const r=await C.scanBoard(b64);
         const fen=r&&r.fen;
+        /* #408, R-BS-1 of the board-scan spec. AN HONEST REFUSAL IS A SUCCESSFUL CALL AND MUST NOT READ AS A
+           CRASH. The deployed function answers {fen:null, ok:false, reason} when it could see the photo and
+           could not read a board out of it - a hand over the bottom ranks, a photo of something else, a
+           position that is not legal. Letting that fall through to the catch prints the #392 deploy message,
+           "nothing you do here will help", at the one moment when trying again with a better photo is exactly
+           what WOULD help. So it is handled here, on the success path, ahead of the generic branch below -
+           which stays, for a malformed reply that carries no reason at all. */
+        if(r&&r.ok===false){
+          setScanBusy(false);
+          const rs=String((r&&r.reason)||'').trim();
+          setScanMsg(rs==='invalid-position'
+            ? 'That photo did not read as a legal chess position. Try again with the whole board in frame.'
+            : rs
+              ? 'Could not read the board: '+rs+' \u2014 try a clearer, straight-on photo with the whole board in frame.'
+              : 'Could not read the board. Try a clearer, straight-on, well-lit photo with the whole board in frame.');
+          return;
+        }
         if(!fen){ setScanBusy(false); setScanMsg('Could not read the board. Try a clearer, straight-on, well-lit photo with the whole board in frame.'); return; }
         const pp=String(fen).split(/\s+/)[0]||'';
         if((pp.match(/K/g)||[]).length<1 || (pp.match(/k/g)||[]).length<1){ setScanBusy(false); setScanMsg('That photo did not read as a full chess position. Try again with the whole board in frame.'); return; }
@@ -4377,7 +4394,7 @@ export default function App(){
             <div style={{fontSize:11.5,color:'rgba(255,255,255,.62)',marginTop:3}}>{celebrate.sub}</div>
             <button onClick={()=>setCelebrate(null)} style={{marginTop:14,padding:'10px 24px',borderRadius:12,border:'none',background:celebrate.kind==='mastered'?'var(--gold)':'var(--ac)',color:'#101010',fontWeight:800,fontSize:13,cursor:'pointer'}}>Keep going</button>
           <style>{'@media (prefers-reduced-motion: no-preference){@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}@keyframes ctStamp{0%{transform:scale(2.6);opacity:0}70%{transform:scale(.94)}100%{transform:scale(1);opacity:1}}@keyframes ctFall{to{transform:translateY(70vh) rotate(540deg);opacity:0}}}'}</style></div></div>)}
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Cinzel:wght@600;700&family=Baloo+2:wght@600;700;800&display=swap');*{box-sizing:border-box;}button:active{transform:translateY(1px);filter:brightness(.93);}select,textarea{font-family:inherit;}textarea{touch-action:auto;}input:not([type=range]),textarea{font-size:16px !important;}.scroll::-webkit-scrollbar{height:5px;width:5px;}.scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:3px;}.ctside>*{max-width:100%!important;min-width:0!important;}@keyframes iconpop{0%{transform:scale(.4) rotate(-14deg);opacity:0}60%{transform:scale(1.14) rotate(5deg)}100%{transform:scale(1) rotate(0);opacity:1}}@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes brilburst{0%{transform:scale(.35);opacity:.85}100%{transform:scale(1.85);opacity:0}}@keyframes ctqdrop{0%{transform:translateY(-175px) rotate(-6deg);opacity:0}10%{opacity:1}64%{transform:translateY(0) rotate(0)}74%{transform:translateY(0) scaleY(.87) scaleX(1.1)}85%{transform:translateY(-8px) scaleY(1.04) scaleX(.98)}100%{transform:translateY(0) scaleY(1) scaleX(1)}}@keyframes ctTopL{0%{transform:rotate(0) translate(0,0);opacity:1}100%{transform:rotate(-86deg) translate(-22px,9px);opacity:0}}@keyframes ctTopR{0%{transform:rotate(0) translate(0,0);opacity:1}100%{transform:rotate(86deg) translate(22px,9px);opacity:0}}.ct-qdrop{animation:ctqdrop 3s cubic-bezier(.42,0,.5,1) both}.ct-topl{animation:ctTopL 1.2s cubic-bezier(.3,.45,.5,1) both}.ct-topr{animation:ctTopR 1.2s cubic-bezier(.3,.45,.5,1) both}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Cinzel:wght@600;700&family=Baloo+2:wght@600;700;800&display=swap');*{box-sizing:border-box;}button:active{transform:translateY(1px);filter:brightness(.93);}select,textarea{font-family:inherit;}textarea{touch-action:auto;}input:not([type=range]),textarea{font-size:16px !important;}.scroll::-webkit-scrollbar{height:5px;width:5px;}.scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:3px;}.ctside>*{max-width:100%!important;min-width:0!important;}@keyframes iconpop{0%{transform:scale(.4) rotate(-14deg);opacity:0}60%{transform:scale(1.14) rotate(5deg)}100%{transform:scale(1) rotate(0);opacity:1}}@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes brilburst{0%{transform:scale(.35);opacity:.85}100%{transform:scale(1.85);opacity:0}}@keyframes ctqdrop{0%{transform:translateY(-175px) rotate(-6deg);opacity:0}10%{opacity:1}64%{transform:translateY(0) rotate(0)}74%{transform:translateY(0) scaleY(.87) scaleX(1.1)}85%{transform:translateY(-8px) scaleY(1.04) scaleX(.98)}100%{transform:translateY(0) scaleY(1) scaleX(1)}}@keyframes ctTopL{0%{transform:rotate(0) translate(0,0);opacity:1}100%{transform:rotate(-86deg) translate(-22px,9px);opacity:0}}@keyframes ctTopR{0%{transform:rotate(0) translate(0,0);opacity:1}100%{transform:rotate(86deg) translate(22px,9px);opacity:0}}.ct-qdrop{animation:ctqdrop 3s cubic-bezier(.42,0,.5,1) both}.ct-topl{animation:ctTopL 1.2s cubic-bezier(.3,.45,.5,1) both}.ct-topr{animation:ctTopR 1.2s cubic-bezier(.3,.45,.5,1) both}@keyframes ctScanSpin{to{transform:rotate(360deg)}}`}</style>
 
       {homeScreen&&(<div style={{position:'fixed',inset:0,zIndex:500,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',padding:`max(12px,env(safe-area-inset-top,0px)) 18px max(20px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
         {/* #373 (audit A-04): Home had no way into the menu - every ☰ sits under this overlay (zIndex 500). Same size and row as the account button. */}
@@ -4716,15 +4733,24 @@ export default function App(){
             <input ref={scanInputRef} type="file" accept="image/*" capture="environment" onChange={e=>{const f=e.target.files&&e.target.files[0];e.target.value='';scanBoardFile(f);}} style={{display:'none'}}/>
             <input ref={uploadInputRef} type="file" accept="image/*" onChange={e=>{const f=e.target.files&&e.target.files[0];e.target.value='';scanBoardFile(f);}} style={{display:'none'}}/>
             {/* #405, R-BS-5 of the board-scan spec, and decision `q-test-labels` ("Add test labels to both").
-                The three scan controls now carry data-ct, so the gates in Part 6 of that spec can select them
+                The three scan controls carry data-ct so the gates in Part 6 of that spec can select them
                 instead of matching on their emoji text - which is exactly the fragility q-test-labels exists to
                 remove, and it is why every assertion in that spec was written against emoji.
-                NOT DONE HERE, named rather than left implied: this message row is still CONDITIONALLY RENDERED,
-                so it appears and disappears and moves the screen under it. That is R-BS-2's G3 constraint ("do
-                not add a row that appears and disappears; render the row always at a fixed height with
-                conditional content") and it needs the fixed-height row and the busy spinner together, which is
-                the next pass. Labelling it first is what lets that pass assert the board does not move. */}
-            {scanMsg&&<div data-ct="scan-msg" style={{fontSize:'clamp(14px,2.5vw,14px)',color:'var(--ac2)',marginTop:8,lineHeight:1.45}}>{scanMsg}</div>}
+                #408, R-BS-2, AND IT IS THE HALF #405 NAMED RATHER THAN BUILT. The row below used to be
+                CONDITIONALLY RENDERED, so it appeared when a message arrived and disappeared when one was
+                cleared, moving everything under it - the board preview included. G3 in the spec, and Kunal's
+                most-restated constraint: render the row ALWAYS, at a reserved height, with conditional content.
+                SCAN_ROW_H is 21, which is one line of this text to the pixel (14px at lineHeight 1.45 = 20.3,
+                and the 14px spinner plus its 3px offset is 17), so the sheet's scroll height is IDENTICAL
+                before a scan starts and while it runs. That identity is what the gate asserts.
+                MEASURED RESIDUAL, named rather than implied: a FAILURE message runs to two or three lines at
+                375 and the row grows to hold it, because reserving three lines permanently would spend ~41px of
+                sheet above the board preview on emptiness. So the row is fixed across the transition the player
+                watches (idle -> reading) and grows once on the transition that ends the interaction. */}
+            <div data-ct="scan-row" style={{marginTop:8,minHeight:21,display:'flex',alignItems:'flex-start',gap:8}}>
+              {scanBusy&&<span data-ct="scan-busy" aria-label="Reading the board" style={{width:14,height:14,marginTop:3,flexShrink:0,borderRadius:'50%',border:'2px solid rgba(255,255,255,.25)',borderTopColor:'var(--ac2)',animation:'ctScanSpin .8s linear infinite'}}/>}
+              {!!scanMsg&&<div data-ct="scan-msg" style={{fontSize:'clamp(14px,2.5vw,14px)',color:'var(--ac2)',lineHeight:1.45,minWidth:0}}>{scanMsg}</div>}
+            </div>
             <div style={{fontSize:'clamp(12.5px,2.2vw,12.5px)',color:'rgba(255,255,255,.4)',marginTop:7,lineHeight:1.4}}>Point at a board, or read a screenshot from your library.</div>
           </div>
 
