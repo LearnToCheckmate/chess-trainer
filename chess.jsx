@@ -2851,8 +2851,16 @@ export default function App(){
   // third status through them is how a small fix becomes a big one. Instead:
   //   * `playHist` ALREADY holds the game object before every ply (:2744 for a human move, :3499 for the
   //     engine's), so [...playHist, game] is the full position sequence, and `toFEN` already emits
-  //     position + turn + castling + en-passant with its two clock fields constant - which IS the FIDE
-  //     repetition key, with nothing to write.
+  //     position + turn + castling + en-passant with its two clock fields constant - which is the repetition
+  //     key with nothing to write.
+  //     IT IS NOT *EXACTLY* THE FIDE KEY, and the first version of this comment claimed it was. `makeMove`
+  //     records an en-passant square after EVERY double pawn push, while FIDE counts the ep square only when
+  //     the capture is actually available - so a position with a dangling ep square does not match the same
+  //     position without one, and the app's key is FINER than the rule's. MEASURED by the antagonist pass at
+  //     #414 and adopted as a pinned assertion in gates/regress/29-draws.js: after 1.Nf3 Nf6 2.e4 (which sets
+  //     ep=e3) plus two knight round trips, the FIDE position is on the board three times at PLY 11 and this
+  //     app draws at PLY 15 - two full moves late. The error is entirely in the safe direction: a finer key
+  //     can only DELAY a draw, never invent one, which is why it is pinned rather than urgent.
   //   * the fifty-move clock comes from the SANs `toSAN` produces, and the two predicates are sound against
   //     everything it can emit: a capture is the only thing that puts an 'x' in a SAN (pawn "exd5", piece
   //     "Nxe5"), and a pawn move is the only SAN that starts with a lowercase file ("e4", "exd5", "e8=Q") -
@@ -2862,10 +2870,18 @@ export default function App(){
   //   * the ending reuses `playEnd`, which exists for endings that are not on the board (resign, time). And
   //     `reason:'draw'` was ALREADY handled in the adaptive-Elo effect below and set by nothing, so a draw
   //     scores correctly there with no change at all.
-  // NOT ONLINE, said out loud: an online game's result is the server's to declare (`og.result`, pushed with
-  // `endBy`), so a client-side auto-draw there would fight it. This covers Pass & Play and vs Computer, which
-  // is where it was measured, and both of those push to `playHist`, so ONE check covers BOTH branches - the
-  // #375 rule, a fix must cover the configuration the user has and not only the one it was written for.
+  // NOT ONLINE - AND THE REASON I FIRST GAVE FOR THAT WAS FALSE, which is worse than the gap itself. This
+  // comment used to say "an online game's result is the server's to declare", and there IS NO SERVER GAME
+  // LOGIC: `functions/index.js` is 88 lines whose only export is `feedbackRelay`, and nothing under
+  // `functions/` mentions repetition or the fifty-move rule. The CLIENT declares online results, from the
+  // same function - chess.jsx:3540-41 pushes `endBy='mate'` and, one line later, `endBy='stalemate'` with
+  // `result='1/2-1/2'`, so it already declares a rule-based DRAW online. (`og.drawBy` is a draw OFFER, not a
+  // rule.) So this build's defect survives intact for one of the three opponents, and the honest statement is
+  // that online is NOT DONE rather than not ours: it needs the same check derived from `og.moves` and pushed
+  // as `endBy='repetition'`, which is a different derivation and touches what the other player sees. Filed as
+  // `draws-online-not-covered-2026-09-17`. Found by the antagonist pass at #414 by reading `functions/`.
+  // What this DOES cover is Pass & Play and vs Computer, where it was measured, and both push to `playHist`,
+  // so one check serves both - the #375 rule, a fix must cover the configuration the user has.
   const drawBy=useMemo(()=>{
     if(mode!=='play'||opponent==='online'||playEnd)return null;
     const st=getStatus(game); if(st==='checkmate'||st==='stalemate')return null;
@@ -3959,7 +3975,13 @@ export default function App(){
   const rankLabels=flip?['1','2','3','4','5','6','7','8']:['8','7','6','5','4','3','2','1'];
   const fileLabels=flip?['h','g','f','e','d','c','b','a']:['a','b','c','d','e','f','g','h'];
 
-  const turnTxt=playEnd?(playEnd.reason==='draw'?(playEnd.by==='fifty'?'Draw \u2014 fifty-move rule':'Draw \u2014 threefold repetition'):playEnd.reason==='time'?`${playEnd.winner==='w'?'White':'Black'} wins on time`:`${opp(playEnd.winner)==='w'?'White':'Black'} resigned — ${playEnd.winner==='w'?'White':'Black'} wins`):isOver?(status==='checkmate'?`Checkmate — ${boardGame.turn==='w'?'Black':'White'} wins!`:'Stalemate — draw'):status==='check'?`${boardGame.turn==='w'?'White':'Black'} in check`:`${boardGame.turn==='w'?'White':'Black'} to move`;
+  /* #414: NO DRAW BRANCH HERE, DELIBERATELY. `turnTxt` is assigned once and read NOWHERE - one occurrence in
+     the whole file, and in the shipped bundle its minified name appears only in its own assignment. #414's
+     first draft added a draw branch to it, which would have been new dead code on top of old dead code, and
+     the antagonist pass caught it by grepping rather than assuming. The string a player actually reads comes
+     from `gameResult` below. The dead variable itself is filed as `dead-turntxt-2026-09-17` rather than
+     removed here, because deleting an unrelated variable is not this build's job. */
+  const turnTxt=playEnd?(playEnd.reason==='time'?`${playEnd.winner==='w'?'White':'Black'} wins on time`:`${opp(playEnd.winner)==='w'?'White':'Black'} resigned — ${playEnd.winner==='w'?'White':'Black'} wins`):isOver?(status==='checkmate'?`Checkmate — ${boardGame.turn==='w'?'Black':'White'} wins!`:'Stalemate — draw'):status==='check'?`${boardGame.turn==='w'?'White':'Black'} in check`:`${boardGame.turn==='w'?'White':'Black'} to move`;
   const _winSide=playEnd?playEnd.winner:(status==='checkmate'?(boardGame.turn==='w'?'b':'w'):null);
   const _winTxt=_winSide==null?'Draw':((mode==='play'&&opponent==='computer')?(_winSide===pColor?'You win! 🎉':'You lose'):(_winSide==='w'?'White wins':'Black wins'));
   // #414: a draw by repetition or the fifty-move rule names the RULE in the sub-line, because "Draw" alone

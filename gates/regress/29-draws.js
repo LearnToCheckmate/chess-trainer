@@ -40,19 +40,20 @@
 // (C) THE BOUNDARY, asserted from the game's own side: the draw must NOT fire at the SECOND occurrence. That
 //     is the assertion that fails if somebody writes `>=2`, and without it "a draw appeared" is satisfied by a
 //     rule that ends every game the moment a position comes round once.
-// (D) A QUIET RUN WELL SHORT OF 100 PLIES MUST NOT END THE GAME. Cheap, and it fails if the fifty-move
-//     threshold is set an order of magnitude low.
+// (D) THE FIFTY-MOVE RULE, DRIVEN TO PLY 100 with a generated 106-ply knight sequence whose 107 positions are
+//     all distinct, so repetition cannot fire first. Checkpoints at plies 20/40/60/80 must NOT be drawn, ply
+//     100 must be, and the card must say "Fifty-move rule" rather than "Threefold repetition" - that string
+//     is the only thing that proves which branch ended the game.
+// (E) THE EN-PASSANT KEY DEVIATION, pinned at its measured plies: this app's key is finer than FIDE's, so a
+//     draw that the rule would give at ply 11 arrives at ply 15. Safe direction, pinned so a change is loud.
 //
 // WHAT THIS GATE DOES NOT COVER, said out loud because absence is the hardest thing to measure:
-//   * THE 100-PLY FIFTY-MOVE PATH IS NOT DRIVEN. Reaching it needs a hundred consecutive quiet plies in which
-//     no position occurs three times - otherwise repetition fires first and the fifty-move branch is never
-//     tested - and a knight's moves alternate square colour, so every knight cycle is EVEN and the obvious
-//     shuttles all repeat inside twenty plies. Building a pair of cycles whose combined period exceeds 51
-//     moves is possible and is not free, so what stands here is (A) the predicate that decides the clock and
-//     (D) the low-side boundary, plus the auditor's own 110-ply measurement as evidence the state is
-//     reachable. The 100-ply integration is named in the flag as the next thing to add, NOT claimed here.
-//   * ONLINE. An online game's result is the server's to declare (`og.result`, pushed with `endBy`), so the
-//     client-side check deliberately excludes `opponent==='online'` and this gate asserts nothing there.
+//   * ONLINE, AND NOT FOR THE REASON THIS HEADER FIRST GAVE. It said an online game's result is the server's
+//     to declare. There is no server game logic at all: `functions/index.js` is 88 lines exporting only
+//     `feedbackRelay`, and the CLIENT declares online results (chess.jsx:3540-41 pushes endBy='mate' and
+//     endBy='stalemate' with result='1/2-1/2'). So online is NOT DONE rather than not ours, it needs the same
+//     check derived from `og.moves`, and it is filed as `draws-online-not-covered-2026-09-17`. This gate
+//     asserts nothing there and no longer pretends that is somebody else's boundary.
 //   * Insufficient material and dead positions: not implemented in the app, not asserted here, still open.
 //   * The fifty-move rule's interaction with a pawn move or capture resetting the clock mid-run: covered by
 //     (A) at the predicate level only.
@@ -175,17 +176,75 @@ L.run(async()=>{
     await b.close();
   }
 
-  // ── (D) the low-side boundary of the fifty-move clock.
-  const c=await L.launch({geo:'kunal730',name:'draws-quiet'});
-  await c.open();
-  await P.states['pp-m0'](c);
-  // sixteen quiet plies that do NOT repeat a position three times: two knights out and back on different
-  // squares each time. Distinct positions, no capture, no pawn move.
-  const QUIET=[['g1','f3'],['g8','f6'],['b1','c3'],['b8','c6'],['f3','g5'],['f6','g4'],['c3','b5'],['c6','b4'],
-               ['g5','h3'],['g4','h6'],['b5','a3'],['b4','a6'],['h3','g1'],['h6','g8'],['a3','b1'],['a6','b8']];
-  let played=0;
-  for(const [f,t] of QUIET){ await c.move(f,t,260); played++; const st=await c.page.evaluate(S); if(st.over)break; }
-  const sq=await c.page.evaluate(S);
-  L.say(played===QUIET.length&&!sq.over,'(D) '+QUIET.length+' consecutive QUIET plies (no capture, no pawn move, no position three times) do NOT end the game - this fails if the fifty-move threshold is set an order of magnitude low, and it is the only thing in this gate that touches the clock through the UI',{played,state:sq});
-  await c.close();
+  // ── (D) THE FIFTY-MOVE RULE, DRIVEN ALL THE WAY TO PLY 100. #414's antagonist pass built this and the
+  // gate adopts it, because the first version of this file SAID THE 100-PLY PATH WAS NOT DRIVEN and left the
+  // whole rule resting on a predicate unit test. The problem was real: a hundred quiet plies in which no
+  // position occurs three times cannot be produced by any simple shuttle, since a knight's moves alternate
+  // square colour so every knight cycle is EVEN and the obvious ones repeat inside twenty plies. The sequence
+  // below is generated (knight moves only, both sides, no capture, no pawn move, no king or rook move so
+  // castling rights never change and ep is always null) and every one of its 107 positions is DISTINCT - so
+  // repetition cannot fire first and what ends the game can only be the clock.
+  // THE DISCRIMINATOR IS THE CARD'S OWN TEXT: it must say "Fifty-move rule" and not "Threefold repetition".
+  // That one string is what proves this drove the branch it claims to drive.
+const QUIET106=[
+  ['b1','c3'],['b8','c6'],['c3','d5'],['c6','e5'],['d5','f4'],['e5','g6'],['f4','h5'],['g6','h4'],
+  ['h5','g3'],['h4','f5'],['g3','h5'],['f5','h6'],['h5','g3'],['h6','g4'],['g3','h5'],['g4','e3'],
+  ['h5','g3'],['e3','c4'],['g3','h5'],['c4','d6'],['h5','g3'],['d6','e4'],['g3','h5'],['e4','f6'],
+  ['h5','g3'],['f6','h5'],['g3','e4'],['h5','g3'],['e4','g5'],['g3','h5'],['g5','h3'],['h5','g3'],
+  ['h3','f4'],['g3','h5'],['f4','g6'],['h5','g3'],['g6','h4'],['g3','h5'],['h4','f3'],['h5','g3'],
+  ['f3','d4'],['g3','h5'],['d4','e6'],['h5','g3'],['e6','c5'],['g3','h5'],['c5','d3'],['h5','g3'],
+  ['d3','e5'],['g3','h5'],['e5','g4'],['h5','g3'],['g4','h6'],['g3','h5'],['h6','f5'],['h5','g3'],
+  ['f5','e3'],['g3','h5'],['e3','c4'],['h5','g3'],['c4','a3'],['g3','h5'],['a3','b5'],['h5','g3'],
+  ['b5','c3'],['g3','h5'],['c3','d5'],['h5','g3'],['d5','b4'],['g3','h5'],['b4','c6'],['h5','g3'],
+  ['c6','a5'],['g3','h5'],['a5','b3'],['h5','g3'],['g1','h3'],['g3','h5'],['b3','c5'],['h5','g3'],
+  ['c5','e6'],['g3','h5'],['e6','g5'],['h5','g3'],['g5','f3'],['g3','h5'],['f3','h4'],['h5','g3'],
+  ['h4','f5'],['g3','h5'],['f5','h6'],['h5','g3'],['h6','g4'],['g3','h5'],['g4','e3'],['h5','g3'],
+  ['e3','c4'],['g3','h5'],['c4','e5'],['h5','g3'],['e5','g6'],['g3','h5'],['g6','f4'],['h5','g3'],
+  ['f4','h5'],['g3','e4']
+];
+  {
+    const c=await L.launch({geo:'kunal730',name:'draws-fifty'});
+    await c.open();
+    await P.states['pp-m0'](c);
+    const marks={};
+    let fired=null;
+    for(let i=0;i<QUIET106.length;i++){
+      const [f,t]=QUIET106[i];
+      await c.move(f,t,150);
+      const ply=i+1;
+      if(ply===20||ply===40||ply===60||ply===80) marks[ply]=await c.page.evaluate(S);
+      if(ply>=96&&ply<=106){ const st=await c.page.evaluate(S); if(st.over&&!fired){fired={ply,st};} }
+    }
+    for(const ply of [20,40,60,80]){
+      L.say(marks[ply]&&!marks[ply].over,'(D) the fifty-move clock has NOT ended the game at ply '+ply+' - four checkpoints on the way up, so a threshold set an order of magnitude low fails here rather than passing quietly',{ply,state:marks[ply]});
+    }
+    L.say(!!fired&&fired.ply===100,'(D) THE GAME IS DRAWN AT PLY 100 EXACTLY - a hundred plies with no capture and no pawn move. Not 99 and not 101, which is what pins the threshold rather than the direction',fired||{fired:null,drivenPlies:QUIET106.length});
+    L.say(!!fired&&/fifty/i.test(fired.st.card||''),'(D) and the card says "Fifty-move rule", NOT "Threefold repetition" - which is the only thing that proves this drove the clock branch and not the repetition branch, since all 107 positions in the sequence are distinct',fired||{});
+    L.say(!!fired&&fired.st.over&&!fired.st.live,'(D) the control row switched to the game-over row, so the fifty-move draw really ends the game',fired||{});
+    await c.close();
+  }
+
+  // ── (E) THE EN-PASSANT KEY DEVIATION, PINNED WITH ITS MEASURED PLIES RATHER THAN HIDDEN.
+  // `makeMove` records an ep square after EVERY double pawn push; FIDE counts it only when the capture is
+  // actually available. So this app's repetition key is FINER than the rule's, and a position with a dangling
+  // ep square does not match the same position without one. After 1.Nf3 Nf6 2.e4 (ep=e3) and two knight round
+  // trips the FIDE position is on the board three times at PLY 11, and this app draws at PLY 15 - two full
+  // moves late. THE ERROR IS ENTIRELY IN THE SAFE DIRECTION: a finer key can only delay a draw, never invent
+  // one, which is why this is pinned and not urgent. Pinned exactly as 35-width-containment pins its own
+  // 38.9px: if the key is ever made FIDE-exact this goes red and the pin comes out; if the deviation grows,
+  // it goes red too. Measured by the antagonist pass at #414.
+  {
+    const EP=[['g1','f3'],['g8','f6'],['e2','e4'],
+              ['f6','g4'],['f3','e5'],['g4','f6'],['e5','f3'],
+              ['f6','h5'],['f3','d4'],['h5','f6'],['d4','f3'],
+              ['f6','d5'],['f3','h4'],['d5','f6'],['h4','f3']];
+    const d=await L.launch({geo:'kunal730',name:'draws-ep'});
+    await d.open();
+    await P.states['pp-m0'](d);
+    let at=null;
+    for(let i=0;i<EP.length;i++){ const [f,t]=EP[i]; await d.move(f,t,200); const st=await d.page.evaluate(S); if(st.over&&!at){at={ply:i+1,card:st.card};break;} }
+    L.say(!!at&&at.ply===15,'(E) the pinned en-passant deviation is exactly where it was left: the draw fires at ply 15, where a FIDE-exact key would fire at ply 11, because a dangling ep square makes two otherwise-identical positions differ. RED here means the key CHANGED - made exact, and this pin comes out, or made coarser, which would be a false-positive risk',at||{fired:null});
+    L.say(!!at&&/repetition/i.test(at.card||''),'(E) and when it does fire it is the REPETITION branch, so this pins the key rather than some other ending',at||{});
+    await d.close();
+  }
 },'29-draws');
