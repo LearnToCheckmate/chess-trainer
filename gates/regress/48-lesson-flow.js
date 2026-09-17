@@ -316,10 +316,25 @@ L.run(async()=>{
     // nothing able to scroll to it. THIS GATE IS WHAT CAUGHT THE PIN: the first full #404 suite went RED here,
     // on exactly this line, at `se` - which is the whole point of pinning a label rather than a shape.
     // The narrow branch is asserted as tightly as the wide one: the count must be ABSENT, not merely optional.
+    /* #410: THIS EXPECTATION WAS KEYED TO THE GEOMETRY'S NAME - `geo==='se' ? no count : count` - which is
+       the third copy of the same fault in four builds: gate 35's was fixed at #406, this file's OTHER one (the
+       practice row's Try again label) at #409, and this was the last one the suite had. An expectation chosen
+       by the fixture agrees with itself at every fixture in its own list, so it cannot see a change in the rule
+       it is supposed to be checking - which is precisely what the comment above this line already admitted
+       ("the three geometries happen to agree with the old rule, so this assertion did NOT go red on the
+       change").
+       It now reads the rule the app implements, the way gate 35 does: the count is present exactly when the
+       DEMO BOARD can hold it, measured in the same visit, with 340 being the app's own `rowNarrow` boundary
+       (chess.jsx, boardPx<340). Found by sweeping the whole suite for expectations derived from a geometry name
+       or the viewport - see the run report for what the sweep actually found, because the list it started from
+       was wrong about two of the three gates it named. */
     const lines=await b.rect('[data-ct="lesson-lines"]');
     const lTxt=((lines&&lines.text)||'').trim();
-    L.say(!!lines&&(geo==='se'?/^♟ Other lines$/.test(lTxt):/^♟ Other lines \(3\)$/.test(lTxt)),
-      geo+': the demo end offers '+(geo==='se'?'"♟ Other lines" with NO count, per decision lesson-lines-320-label (320 is below the 340 threshold)':'"♟ Other lines (3)" - the Italian Game\'s three variations, counted'),lTxt);
+    const dmBoard=(await b.metrics()).board;
+    const wantCount=!!dmBoard&&dmBoard.w>=340;
+    L.say(!!lines&&(wantCount?/^♟ Other lines \(3\)$/.test(lTxt):/^♟ Other lines$/.test(lTxt)),
+      geo+': the demo board is '+(dmBoard&&dmBoard.w)+' wide, so the button reads '+(wantCount?'"♟ Other lines (3)" - the Italian Game\'s three variations, because the row can hold the count':'"♟ Other lines" with NO count, because it cannot')+'. Keyed to the BOARD, which is what decides it, and not to the geometry\'s name.',
+      {board:dmBoard&&dmBoard.w,wantCount,label:lTxt});
 
     // --- TC-LS-014: the ⋯ sheet's prev/next row. The Italian Game is the FIRST opening, so prev is the
     // boundary: disabled and saying so rather than silently dead.
@@ -507,6 +522,27 @@ L.run(async()=>{
    const vw = typeof g==='object' ? g.w : L.GEOS[g].w;
    const b=await L.launch({geo:g,name:'lesson-flow-wideshort-'+geo});await b.open();
    L.note(geo+': bundle stamp in the page = '+(await b.stamp()));
+   await D.states['practice-m0'](b);
+   /* CONTROLLED, #410, with a one-line trial bundle: chess.jsx:6161's demo label keyed back to `vp.w<NARROW`
+      (md5 901531c8998f via CT_OUT, chess.jsx md5-verified restored after). 219 pass, 2 FAIL, and the two are
+      the label assertion below at each of the two wide-and-short columns.
+      THE DETAIL WORTH READING, because it is the whole argument for this column: THE RE-KEYED EXPECTATION IN
+      THE MAIN LOOP STAYED GREEN ON THAT CONTROL. At 320x568, 375x730 and 390x844 a viewport rule and a board
+      rule give the same answer, so reading the rule instead of the fixture removed the tautology but caught
+      nothing on its own. The re-key and the column are two halves of one fix: the first makes the assertion
+      mean something, the second gives it a fixture where the two rules disagree. An assertion keyed to the
+      right variable, run only where every variable agrees, is still unable to fail. */
+   /* #410: THE DEMO ROW'S COUNTED LABEL, at the two geometries that can tell the two rules apart. This is the
+      column the re-keyed expectation above needed: at 320x568 and at 375x730 a viewport rule and a board rule
+      AGREE, which is why keying it to `geo==='se'` stayed green through #406's change. Here they disagree - the
+      viewport is 375 or 390 and the demo board is 270.88 - so the label must have NO count, and a bundle keyed
+      to the viewport shows one. */
+   await D.states['demo-end'](b);
+   const dm=await b.metrics(), dl=await b.rect('[data-ct="lesson-lines"]');
+   const dTxt=((dl&&dl.text)||'').trim();
+   L.say(!!dm.board&&dm.board.w<340,geo+': the DEMO board is under 340 here too ('+(dm.board&&dm.board.w)+') while the viewport is '+vw,{board:dm.board&&dm.board.w,vw});
+   L.say(!!dl&&/^♟ Other lines$/.test(dTxt),geo+': so the demo end\'s button reads "♟ Other lines" with NO count - the assertion a viewport-keyed rule gets wrong, because 375 and 390 are above any threshold anyone would set while the row is 270.88 wide',dTxt);
+   L.say(!!dl&&dl.x>=-0.6&&dl.x+dl.w<=vw+0.6,geo+': and that button is inside the viewport, which is what the count being dropped buys',{l:dl&&dl.x,r:dl&&dl.w!=null?Math.round((dl.x+dl.w)*100)/100:null,vw});
    await D.states['practice-m0'](b);
    const r0=await row(b), ri=await rowInk(b), m=await b.metrics();
    L.say(r0.length===4,geo+': the practice row is there at all (four controls)',r0.map(x=>x.a).join(','));
