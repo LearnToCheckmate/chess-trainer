@@ -2,6 +2,17 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **SECTION 0a WAS LAST WRITTEN BY #398; THE LIVE LINE IS #407 (noted 2026-09-17).** So the newest thing this
+> file says about "where the build actually is" is nine builds old, and section 0a's `LIVE = #398` is no longer
+> the live bundle. Read 0a and 0a-prev1 as the history of how the app got here; for where the last run left off
+> read `RUN-LOG.md` (one row per build, newest at the bottom), then `claude/BUILD-CONTEXT.md`, the tracker flags
+> on artifact `20acb6cb-42bf-44a3-b2fe-5a8223cca1e2`, and the `runs` collection on the metrics dashboard.
+>
+> This note is here because the first version of it, written the same minute, said "FROZEN AT #375" - from a grep
+> for `#40x` that found nothing, without checking what the file's own headings say. It is off by twenty-three
+> builds and it is the project's own rule broken in the act of citing it: measure, do not read. Left visible
+> rather than quietly corrected, because a wrong number about the record is exactly what this note warns about.
+
 ## 0a0) TWO SESSIONS BUILT THE SAME APP ON 2026-09-13 - READ THIS FIRST
 
 Kunal ran two build sessions against this repo at once. The session with push access built #373 and #374 and
