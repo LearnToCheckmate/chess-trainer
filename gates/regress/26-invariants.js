@@ -11,7 +11,8 @@
 //   1. TAP TARGETS (every visible interactive element >= 44x44 at every width)     NOT YET IMPLEMENTED
 //   2. ONE ICON SIZE PER ROW (glyph heights equal within 1px in a control row)     NOT YET IMPLEMENTED
 //   3. A SHORT LIST OF ICON SIZES (report today's count first, then assert it)     NOT YET IMPLEMENTED
-//   4. INK INSIDE ITS OWN CLIPPING BOX                                             THIS FILE, BELOW
+//   4a. INK INSIDE ITS OWN CLIPPING BOX (text cut by the box that clips it)        THIS FILE, BELOW
+//   4b. INK INSIDE ITS OWN BOX (text painted outside itself, onto a sibling)       THIS FILE, #413
 // 1-3 are the #403-#404 backlog and each needs its known-failure list pinned before it can go green; 4 is here
 // first because its class is LIVE and was filed three times by three sessions while the other three were not.
 //
@@ -73,9 +74,9 @@
 // See the CONTROL block at the foot of this header - it is filled in from the run, not from an estimate.
 //
 // WHAT THIS GATE DOES NOT COVER, said out loud because absence is the hardest thing to measure: it sweeps the
-// states listed in SCREENS below at two geometries (320x568 and 375x730). Landscape is not swept
-// (`uat397-rev-why-clips-landscape` is a separate open flag). 375x679, 375x761, 390x844 and 430x932 are not
-// swept by this gate - 35-width-containment carries the width matrix. Text inside <canvas> or an <img> alt is
+// states listed in SCREENS below at THREE geometries (320x568, 375x730 and, since #413, 375x568). Landscape
+// is not swept (`uat397-rev-why-clips-landscape` is a separate open flag). 375x679, 375x761, 390x844 and
+// 430x932 are not swept by this gate - 35-width-containment carries the width matrix. Text inside <canvas> or an <img> alt is
 // not text to a Range and is invisible here. A box that clips an IMAGE rather than text is not covered.
 //
 // ── NEGATIVE CONTROLS, both run at #404. A green that has never been disproved is worth nothing. ─────────────
@@ -119,6 +120,49 @@
 //            NOT SILENCE, which is what NC-A on its own could not establish.
 //         -> and the excuse assertions stayed green throughout: with the ellipsis gone the row is correctly
 //            reclassified from SIGNALLED to CUT rather than being excused on the strength of the inner span.
+//
+// ── 4b's OWN CONTROLS, all three run at #413. Every number below is from a run, not an estimate. ────────────
+//
+//   NC-E  THE SHIPPED #407 RELEASE, and it needs no trial bundle: `git cat-file -p 5332a8d:app.js`, md5
+//         e719c5842b43, stamp '#407 - 2026-09-17 00:53 ET'. This is 4b's headline control because the defect
+//         it was written for is IN that bundle and was fixed at #409 by re-keying the label to the row
+//         (`amber-409-try-again-keyed-to-the-row`), so the same gate reads red on one and green on the other.
+//         -> 199 pass, 1 FAIL. The one red is 4b at 375x568 on lesson-practice: "↻ Try again" painted
+//            167.25..259.77 against its own padding box of 176.06..250.94 - 8.83px past its right edge -
+//            and 2.81 x 16px of that landed on the ⋯ button beside it, with the row measured 230.88 =
+//            [46, 46, 74.88, 46]. THE SAME 8.83px THE EXTERNAL SUPERVISOR MEASURED BY HAND on that bundle
+//            (`class-spilled-ink-and-viewport-keyed-board-rows-2026-09-17`), to the hundredth, from a
+//            different instrument - which is the cross-check that makes this control worth more than a
+//            number this gate produced and then agreed with.
+//         -> Head (#412, md5 b5d8188374fb) on the same gate: 200 pass, 0 fail.
+//         -> AND NOTHING ELSE MOVED: 4a stayed exactly as it is at head on that bundle, both pinned rows
+//            included, so the gate fires on the one state that holds the defect and on no other.
+//
+//   NC-F  THE PLAYER-BAR NAME SPAN, `overflow:'hidden'` -> `'visible'` (chess.jsx, the span carrying {name}
+//         in the pbar row). Trial bundle md5 75d2c18501ec; chess.jsx restored and md5-verified afterwards.
+//         INTENDED to make a 198px name paint across the rating in an 82px box at every geometry, so that
+//         4b's 375x730 half stopped being silence. IT DID NOT, AND THE REASON IS THE CONTROL'S WHOLE VALUE:
+//         -> 190 pass, 10 FAIL - and all ten are 4a `cut` rows on [pbar-rating-b] (47.23px at 320x568,
+//            19.73px at 375x568, none at 375x730), with ZERO 4b rows. `overflow:hidden` is what lets a flex
+//            item shrink below its min-content width: the automatic minimum size of a flex item is zero only
+//            when its overflow is NOT visible. So flipping that one word does not make the span spill - it
+//            makes the span REFUSE TO SHRINK, grow to its full 198px, and push the rating out of the row,
+//            where 4a catches the rating being cut. The break moved to a different element and a different
+//            invariant. A control that changes the very mechanism it was meant to stress is not a failed
+//            control, it is a measurement of the CSS - but it proves nothing about 4b, so NC-G was built.
+//
+//   NC-G  THE PRACTICE ROW'S TRAILING ⋯ BUTTON, `width:46,minWidth:46` -> `190,190` (chess.jsx, the button
+//         with aria-label "More actions"). Trial bundle md5 0540434ab567; chess.jsx restored and verified.
+//         This starves the one flexible child of the row at EVERY geometry instead of only in the
+//         wide-and-short corner, which is what the 375x730 half needed.
+//         -> 197 pass, 3 FAIL, one per geometry, all of them 4b on lesson-practice:
+//              kunal730   "↻ Try again"  8.77px right, onto the ⋯ button by 2.75 x 16, row 375 = [46,46,75,190]
+//              se         "↻ Again"     27.89px left,  onto the 💡 button by 21.89 x 16, row 230.88 = [46,46,8,190]
+//              short375   "↻ Again"     27.89px left,  onto the 💡 button by 21.89 x 16, row 230.88 = [46,46,8,190]
+//         -> SO 4b's GREEN AT 375x730 IS EVIDENCE AND NOT SILENCE, which is the same thing NC-B does for 4a
+//            and the reason both are here. Note also that the spill goes LEFT when the box is starved to 8px:
+//            the label is centred, so the side it escapes on is an artefact of the budget, and an assertion
+//            that only looked right would have missed two of these three.
 'use strict';
 const L=require('../lib');
 const R=require('../drive/review');
@@ -296,12 +340,212 @@ const FIXTURE_WANT=[
   ['y-ellipsis','cut',  'text-overflow:ellipsis does nothing on the BLOCK axis, so it must not excuse a vertical cut']
 ];
 
+
+// ── THE SECOND SCANNER: INK THAT SPILLS ONTO A SIBLING (invariant 4b) ─────────────────────────────────────────
+// 4a above measures ink CUT BY a clipping ancestor. This one measures the other half of the same class, and
+// the external supervisor filed it because 1553 assertions could not see an 8.83px instance of it live at
+// HEAD: `class-spilled-ink-and-viewport-keyed-board-rows-2026-09-17`. Its words, and they are the spec:
+// "Ink that overlaps a sibling is as invisible to a player as ink that is cut, and neither is covered today."
+//
+// THE MECHANISM, and every condition below is one clause of it: a box whose text cannot wrap (`nowrap`) and
+// does not clip (`overflow-x: visible`) and does not fit (`scrollWidth > clientWidth`) paints its overflow
+// OUTSIDE ITSELF, and where a sibling sits in that space two texts are drawn in the same place.
+//
+// FOUR THINGS THIS SCANNER GETS RIGHT THAT THE FIRST DRAFT OF IT DID NOT. All four were measured, on the
+// #407 bundle at 375x568, with the probe that became this code - not reasoned about:
+//
+// (i) RANGE INK REPORTS THE UNTRUNCATED EXTENT, so a box that clips its own text reports ink where NOTHING IS
+//     PAINTED. 4a's header already says this and it is exactly what makes a naive spill scan lie: the
+//     player-bar name span reports "DukeKarlCountIsouard99" running 115.23px past its own box and 27.7px
+//     across [pbar-rating-b] - and it paints not one of those pixels, because the span itself is
+//     overflow:hidden with an ellipsis at 245.8. So the ink is CLAMPED to every ancestor whose overflow-x is
+//     not `visible` before anything is measured, and a holder that clips on x is skipped outright: that row
+//     belongs to 4a, which classifies it `signalled`.
+//     A SCROLLER CLAMPS TOO, and deliberately: a finger can bring scrolled content back, which is what makes
+//     it "not cut" for 4a - but it does not change what is painted on top of the neighbour RIGHT NOW.
+//
+// (ii) A SPILL INTO A GAP IS NOT A COLLISION, and asserting on the spill alone goes red on a healthy build.
+//     The lesson row's own title does it at every geometry on the SHIPPED bundle: "Italian Game" is nowrap in
+//     a 73px box (scroll 80) and paints 6.97px past its right edge into the flex gap, overlapping no sibling
+//     and losing no letter. It is reported as a NEAR row every run and asserted over by nothing. The
+//     condition that separates it from the defect is the one the flag names - a SIBLING under the ink.
+//
+// (iii) THE Y AXIS IS SOMEBODY ELSE'S. Every vertical row this scanner would see is ink overshooting its own
+//     line box by 2-3px - the tile emoji, the player-bar kings, a stat number - which is E2/E3 in 4a above,
+//     already named and already bound to its mechanism. Asserting over it here would re-file the avatar
+//     residual as a new defect under a second name. So 4b is INLINE AXIS ONLY, said out loud rather than
+//     left as an accident of the predicate.
+//
+// (iv) THE SIBLING MUST BE UNDER THE PART THAT IS OUTSIDE THE BOX, not merely near it. The overlap is
+//     computed against the spill REGIONS ([painted.l, box.l] and [box.r, painted.r]) rather than against the
+//     ink as a whole, or every text in a tight row overlaps its neighbour by construction.
+//
+// (v) `scrollWidth > clientWidth` IS NOT A USABLE TEST FOR "THE TEXT DOES NOT FIT", and this one cost a
+//     control run. The first version of 4b required it, on the reasoning that a box whose content fits has
+//     nothing to spill - and it read TRUE on the #407 button (75 against 84) and FALSE on a `<span>` whose
+//     text overflows it by 115px, because the scrolling area is only defined for a scroll container and
+//     Chromium reports `scrollWidth == clientWidth` for an `overflow:visible` span. So NC-C below - the
+//     player-bar name span with its `overflow:hidden` removed, which paints an untruncated 22-character name
+//     straight across the rating beside it - went TEN RED ON 4a AND ZERO ON 4b, and the half the control was
+//     built to prove was the half it could not reach. The clause is gone: the ink and the padding box are
+//     measured directly, which is what the assertion is about, and the element's type no longer decides
+//     whether it is eligible. `cs`/`ss` are still REPORTED on every row, because they are useful to read and
+//     useless to branch on.
+//
+// WHAT 4b DOES NOT COVER, because absence is the hardest thing to measure: a spill into a gap (reported, not
+// asserted); the block axis (above); ink-on-ink, so a spill onto a sibling whose own text happens to sit
+// elsewhere in its box still counts - deliberately, since the neighbour's text can move with one string
+// change; a box that wraps its text and grows instead; and anything on a screen not in SCREENS.
+// AND ONE THAT IS A POTENTIAL FALSE POSITIVE RATHER THAN A GAP, so it is named here instead of being
+// discovered by whoever next reads a red: this app keeps several screens MOUNTED AT ONCE (Home is a fixed
+// full-viewport layer, `rev-summary` is `fixed inset:0 zIndex:500` and opaque, and menu/look/setup are
+// sheets), and both scanners walk the whole of `document.body`. So a spill on a screen the player cannot
+// currently see would be reported as though it were on screen. 4a has had exactly this property since #404
+// and it has never mis-fired, because `vis()` still rejects `display:none` and the app unmounts most of
+// what it hides - and the alternative is the probe #393 tried three times and shipped none of, where "is
+// this element still the thing under your finger" reported six screens of false defects and then EXCUSED
+// the real one because the covering element was big. An assertion that cannot be grounded is worse than no
+// assertion; a named limitation is neither.
+const SPILL = function(){
+  const out=[], near=[];
+  let nowrapBoxes=0, inked=0;
+  const vis=(el)=>{
+    for(let e=el;e&&e!==document.documentElement;e=e.parentElement){
+      const s=getComputedStyle(e);
+      if(s.display==='none'||s.visibility==='hidden'||s.visibility==='collapse')return false;
+      if(parseFloat(s.opacity)===0)return false;
+    }
+    return true;
+  };
+  // the nearest non-inline box the text sits in. `overflow` does not apply to an inline box and its
+  // clientWidth is defined as 0, which is the degenerate case 4a's own fixture caught.
+  const holder=(el)=>{for(let e=el;e&&e!==document.body;e=e.parentElement){if(getComputedStyle(e).display!=='inline')return e;}return null;};
+  const padBox=(e)=>{
+    const r=e.getBoundingClientRect();
+    if(!e.offsetWidth||!e.offsetHeight)return null;
+    const t=getComputedStyle(e).transform;
+    const m=new DOMMatrixReadOnly(t==='none'?'':t);
+    if(Math.abs(m.b)>1e-6||Math.abs(m.c)>1e-6)return 'rotated';
+    const sx=r.width/e.offsetWidth, sy=r.height/e.offsetHeight;
+    return {l:r.left+e.clientLeft*sx, t:r.top+e.clientTop*sy, r:r.left+(e.clientLeft+e.clientWidth)*sx, b:r.top+(e.clientTop+e.clientHeight)*sy};
+  };
+  // (i): the x range this ink can actually PAINT into - clamped by every ancestor that does not let it out.
+  const paintedX=(el,ink)=>{
+    let l=ink.l, r=ink.r;
+    for(let e=el;e&&e!==document.documentElement;e=e.parentElement){
+      const s=getComputedStyle(e);
+      if(s.display==='inline')continue;
+      if(s.overflowX==='visible')continue;
+      const cb=padBox(e);
+      if(!cb||cb==='rotated')continue;
+      l=Math.max(l,cb.l); r=Math.min(r,cb.r);
+    }
+    return {l,r};
+  };
+  const path=(el)=>{const p=[];for(let e=el;e&&e!==document.body&&p.length<4;e=e.parentElement){const d=e.getAttribute&&e.getAttribute('data-ct');p.push(d?'['+d+']':e.tagName.toLowerCase());}return p.join('<');};
+  const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  for(let n=w.nextNode();n;n=w.nextNode()){
+    const t=(n.nodeValue||'').trim(); if(!t) continue;
+    const el=n.parentElement; if(!el||!vis(el)) continue;
+    const h=holder(el); if(!h) continue;
+    const hs=getComputedStyle(h);
+    if(hs.whiteSpace!=='nowrap'&&hs.whiteSpace!=='pre') continue;   // the mechanism: text that cannot wrap
+    nowrapBoxes++;
+    if(hs.overflowX!=='visible') continue;                          // it clips its own text -> 4a's row, see (i)
+    const hb=padBox(h); if(!hb||hb==='rotated') continue;
+    const rg=document.createRange(); rg.selectNodeContents(n);
+    const rects=[...rg.getClientRects()].filter(r=>r.width>0.2&&r.height>0.2);
+    if(!rects.length) continue;
+    inked++;
+    const ink={l:Math.min(...rects.map(r=>r.left)),t:Math.min(...rects.map(r=>r.top)),r:Math.max(...rects.map(r=>r.right)),b:Math.max(...rects.map(r=>r.bottom))};
+    const px=paintedX(el,ink);
+    const overL=hb.l-px.l, overR=px.r-hb.r;
+    const over=Math.max(overL,overR);
+    if(over<=1.0) continue;
+    // (iv) the sibling must be under the part that is OUTSIDE the box.
+    const par=h.parentElement;
+    const regions=[];
+    if(overL>1.0) regions.push([px.l,hb.l]);
+    if(overR>1.0) regions.push([hb.r,px.r]);
+    let hit=null;
+    if(par) for(const c of par.children){
+      if(c===h||c.contains(h)) continue;
+      const cr=c.getBoundingClientRect();
+      if(cr.width<0.5||cr.height<0.5) continue;
+      if(getComputedStyle(c).visibility==='hidden') continue;
+      const oy=Math.min(ink.b,cr.bottom)-Math.max(ink.t,cr.top);
+      if(oy<=1.0) continue;
+      for(const [a,z] of regions){
+        const ox=Math.min(z,cr.right)-Math.max(a,cr.left);
+        if(ox>1.0){ hit={sib:(c.getAttribute('data-ct')||c.tagName.toLowerCase()), ox:Math.round(ox*100)/100, oy:Math.round(oy*100)/100}; break; }
+      }
+      if(hit) break;
+    }
+    // THE PARENT'S OWN WIDTH AND CHILD WIDTHS GO IN THE ROW, because a spill is a budget failure and the
+    // budget is a property of the ROW - #412's rule, publish the scope with the count. The first run of this
+    // gate reported a 36px button where the same state measured in isolation gives 74.88, and the row width
+    // is the number that says which layout was on screen.
+    const pr=par?par.getBoundingClientRect():null;
+    const row={over:Math.round(over*100)/100, text:t.slice(0,28), el:path(el),
+      holder:(h.getAttribute('data-ct')||h.tagName.toLowerCase()), tag:h.tagName.toLowerCase(),
+      cs:h.clientWidth, ss:h.scrollWidth,
+      parW:pr?Math.round(pr.width*100)/100:null,
+      kids:par?[...par.children].map(c=>Math.round(c.getBoundingClientRect().width*100)/100):null,
+      ink:[Math.round(px.l*100)/100,Math.round(px.r*100)/100], box:[Math.round(hb.l*100)/100,Math.round(hb.r*100)/100],
+      side:(overR>overL?'right':'left'), onSib:hit};
+    if(hit) out.push(row); else near.push(row);
+  }
+  return {rows:out, near, seen:{nowrapBoxes, inked}};
+};
+
+// ── 4b's OWN UNIT TEST. Six shapes, FOUR OF THEM CASES THE PREDICATE MUST REJECT. #388/#391's rule. ──────────
+// Built from HTML the scanner has never seen, so no assertion here can be satisfied by the scanner's own
+// bookkeeping - which is the fault the #404 antagonist vetoed in this very file.
+const FIXTURE2 = function(){
+  const wrap=document.createElement('div');
+  wrap.id='ct-spill-fixture';
+  wrap.setAttribute('style','position:fixed;left:0;top:300px;width:360px;z-index:2147483000;background:#111;color:#ccc;font:13px/1.3 system-ui');
+  const btn='padding:0;border:0;font:13px/1.3 system-ui;background:#222;color:#ccc;height:20px';
+  wrap.innerHTML=[
+    // s1 MUST ACCEPT: the #407 defect's shape - nowrap, does not fit, does not clip, and a sibling under the spill.
+    '<div style="display:flex;width:120px"><button style="'+btn+';width:40px;white-space:nowrap;flex:0 0 40px">SPILLONE</button><button style="'+btn+';width:80px;flex:0 0 80px">r1</button></div>',
+    // s2 MUST REJECT: the same spill landing in a GAP. "Italian Game" on the shipped bundle, every geometry.
+    '<div style="display:flex;width:200px"><button style="'+btn+';width:40px;white-space:nowrap;flex:0 0 40px">SPILLTWO</button><button style="'+btn+';width:40px;margin-left:70px;flex:0 0 40px">r2</button></div>',
+    // s3 MUST REJECT: the holder clips its own text, so 4a owns the row and nothing is painted outside.
+    '<div style="display:flex;width:120px"><div style="width:40px;white-space:nowrap;overflow:hidden;flex:0 0 40px">SPILLTHREE</div><div style="width:80px;flex:0 0 80px">r3</div></div>',
+    // s4 MUST REJECT: the text WRAPS. A box that grows instead of spilling is not this defect.
+    '<div style="display:flex;width:120px"><div style="width:40px;white-space:normal;flex:0 0 40px">SPILLFOUR SPILLFOUR</div><div style="width:80px;flex:0 0 80px">r4</div></div>',
+    // s5 MUST REJECT: nowrap and a sibling, but the text FITS its own box.
+    '<div style="display:flex;width:200px"><button style="'+btn+';width:120px;white-space:nowrap;flex:0 0 120px">S5</button><button style="'+btn+';width:80px;flex:0 0 80px">r5</button></div>',
+    // s6 MUST REJECT, and this is the one that proves the PAINT CLAMP in (i) is doing something: the sibling
+    // IS under the spill, and an ancestor clips the spill away before it reaches the sibling. Without the
+    // clamp this reads as a 10px collision; with it the painted ink stops at the holder's own right edge.
+    '<div style="width:40px;overflow:hidden"><div style="display:flex;width:90px"><button style="'+btn+';width:40px;white-space:nowrap;flex:0 0 40px">SPILLSIX</button><button style="'+btn+';width:50px;flex:0 0 50px">r6</button></div></div>'
+  ].join('');
+  document.body.appendChild(wrap);
+  return true;
+};
+const FIXTURE2_WANT=[
+  [/^SPILLONE$/,  'spill', 'the #407 shape: nowrap, does not fit, does not clip, a sibling under the spill - THE defect 4b exists for'],
+  [/^SPILLTWO$/,  'near',  'a spill into a GAP is not a collision - "Italian Game" does this on the shipped bundle at every geometry'],
+  [/^SPILLTHREE$/,'none',  'a holder that clips its own text is 4a\'s row, not 4b\'s, and paints nothing outside itself (Range ink lies here)'],
+  [/^SPILLFOUR/,  'none',  'text that WRAPS does not spill - the box grows instead'],
+  [/^S5$/,        'none',  'nowrap with a sibling but the text FITS: no layout overflow, no spill'],
+  [/^SPILLSIX$/,  'none',  'the spill is clipped away by an ancestor before it reaches the sibling - this is what the paint clamp is for']
+];
+
 // ── THE SCREENS. Every state is named here rather than inline so "what was checked" is one list. ──────────────
 const SCREENS=[
   ['home',            async(b)=>{await b.home();}],
   ['play-captures',   async(b)=>{await P.states['pp-captures'](b);}],
   ['play-gameover',   async(b)=>{await P.states['pp-mate'](b);}],
   ['lesson-demo',     async(b)=>{await LS.states['demo-end'](b);}],
+  // #413, AND THE GATE COULD NOT HAVE SEEN 4b's DEFECT WITHOUT IT. The 8.83px spill the external supervisor
+  // measured is on the lesson PRACTICE row - the four buttons under the board after "Now I'll try it" - and
+  // this file's eleven states did not include it. `48-lesson-flow.js` drives that row with 221 assertions and
+  // pins each button's rect at four geometries; what it does not do is compare a label's ink to its own box,
+  // which is the whole of 4b. Two gates over one row, each blind to the other's question.
+  ['lesson-practice', async(b)=>{await LS.states['practice-m0'](b);}],
   ['puzzles',         async(b)=>{await PZ.states['train'](b);}],
   ['rev-summary',     async(b)=>{await R.states['summary'](b);}],
   ['rev-ply31',       async(b)=>{await R.states['moves-ply31'](b);}],
@@ -332,16 +576,34 @@ const SCREENS=[
 // Pinned exactly as 35-width-containment pinned its own 38.9px: the value is asserted, so if it is FIXED this
 // goes red and the pin comes out, and if it gets WORSE this goes red too. Scoped by state, geometry AND
 // data-ct, so the exclusion cannot widen to cover a second defect that appears beside it.
-const PINNED={state:'rev-best-ply30',geo:'se',anc:'rev-best',cuts:2,tol:3.5};
+// #413 MAKES IT A TABLE, ONE ROW PER GEOMETRY, AND THE SECOND ROW IS THE FINDING OF THE PASS. Adding the
+// 375x568 column put this residual on a SECOND geometry, and the numbers there are not merely similar to the
+// 320x568 ones - they are THE SAME NUMBERS: [data-ct="rev-best"] is clientWidth 45 against scrollWidth 86 at
+// both, "Qxd7" cut 27.74px and "›" 36.1px at both. That is not a coincidence and it is the whole thesis of
+// the flag this pass came from (`class-spilled-ink-and-viewport-keyed-board-rows-2026-09-17`): the review row
+// is sized to the BOARD, the lesson-and-review board is fit to HEIGHT, and 375x568 and 320x568 have the same
+// 230.88px board. So a defect filed as "at 320 the Review screen says the best move was Q" is not a
+// smallest-phone defect at all - it is every SHORT phone, including a wide one, and the flag
+// `rev-best-reads-best-Q-at-320` says "nobody on Kunal's phone would ever see it" on the strength of one
+// geometry. Pinned per geometry with its own count so it still goes red if it moves in either direction at
+// either size, which is what a pin is for; it is Kunal's to close (needsKunal, P1, on the Decision Desk).
+const PINNED=[{state:'rev-best-ply30',geo:'se',anc:'rev-best',cuts:2,tol:3.5},
+              {state:'rev-best-ply30',geo:'short375',anc:'rev-best',cuts:2,tol:3.5}];
+const pinFor=(g,name)=>PINNED.find(p=>p.geo===g&&p.state===name)||null;
 
-const GEOS=['se','kunal730'];
+// #413 ADDS short375 (375x568), AND IT IS THE POINT OF THE PASS RATHER THAN A TIDY-UP: 4b's defect is
+// INVISIBLE at 320x568 and at 375x730 and appears only in the wide-and-short corner, because the label's
+// branch is chosen by the BOARD width (which is the same 230.88 at 375x568 and 320x568) while the row's own
+// width is not. `35-width-containment.js` gained this column at #406 for the same corner. It is the only
+// size in lib.js GEOS with width >= 360 AND height <= 600.
+const GEOS=['se','kunal730','short375'];
 
 L.run(async()=>{
   for(const g of GEOS){
     const b=await L.launch({geo:g,store:R.SEED,name:'inv-'+g});
     await b.open();
     L.note(g+' ('+L.GEOS[g].label+')  stamp '+(await b.stamp()));
-    let totalRows=0, totalSkipped=0, seenAny=0;
+    let totalRows=0, totalSkipped=0, seenAny=0, totalSpill=0, nowrapSeen=0, totalTransient=0;
     for(const [name,go] of SCREENS){
       let reached=true, res=null;
       try{ await go(b); }catch(e){ reached=false; L.say(false,g+' '+name+': the state could not be reached at all - every ink assertion on this screen is UNRUN, not green',String(e).slice(0,140)); }
@@ -352,16 +614,17 @@ L.run(async()=>{
       totalRows+=res.rows.length; totalSkipped+=res.skipped.length;
       // PRESENCE FIRST: an empty screen scans clean, so a zero-ink screen is not evidence of anything (#385).
       L.say(res.seen.inked>=6, g+' '+name+': the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green', res.seen);
-      const isPinned=(r)=>g===PINNED.geo&&name===PINNED.state&&r.anc===PINNED.anc;
+      const pin=pinFor(g,name);
+      const isPinned=(r)=>!!pin&&r.anc===pin.anc;
       const rows=res.rows.filter(r=>!isPinned(r));
       const pinnedRows=res.rows.filter(isPinned);
       const worst=rows.slice().sort((a,c)=>c.cut-a.cut)[0];
       L.say(rows.length===0, g+' '+name+': NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport',
         rows.length? {cuts:rows.length, worst} : {cuts:0, inked:res.seen.inked, clippedChecks:res.seen.clipped, excused:res.other.length, pinned:pinnedRows.length});
-      if(g===PINNED.geo&&name===PINNED.state){
+      if(pin){
         // The pinned residual, asserted on its own so it is in the log every run rather than implied by a
         // filter nobody reads. It is on Kunal's Decision Desk; see the PINNED comment above.
-        L.say(pinnedRows.length===PINNED.cuts, g+' '+name+': the ONE pinned residual is exactly where it was left - "'+PINNED.anc+'" still cuts '+PINNED.cuts+' text nodes at 320 (the best-move pill reads "best Qx"). RED here means it MOVED: fixed, and this pin comes out, or worse, and it needs looking at',
+        L.say(pinnedRows.length===pin.cuts, g+' '+name+': the pinned residual is exactly where it was left - "'+pin.anc+'" still cuts '+pin.cuts+' text nodes at '+L.GEOS[g].label+' (the best-move pill reads "best Qx"). The SAME two cuts to the hundredth at 320x568 and 375x568, because both have a 230.88px board: this is a SHORT-phone defect, not a narrow-phone one. RED here means it MOVED: fixed, and this pin comes out, or worse, and it needs looking at',
           pinnedRows.map(r=>({text:r.text,cut:r.cut,cs:r.cs,ss:r.ss})));
       }
       for(const r of res.rows) L.note('    CUT '+r.cut+'px '+r.axis+'  "'+r.text+'"  in '+r.anc+'  ('+r.el+')  ink '+r.ink.join('..')+' vs box '+r.box.join('..')+'  client '+r.cs+' scroll '+r.ss+'  text-overflow(clipper):'+r.teAnc);
@@ -384,6 +647,40 @@ L.run(async()=>{
       // something an engine wrote, enumerate what it can legally produce and unit-test the predicate against
       // that list"). Those assertions CAN go red, because the fixture is independent of the classifier.
       for(const r of res.other) L.note('    '+r.kind.toUpperCase()+' '+r.cut+'px '+r.axis+'  "'+r.text+'"  in '+r.anc+'  client '+r.cs+' scroll '+r.ss+'  text-overflow(clipper):'+r.teAnc);
+
+      // ── INVARIANT 4b, THE OTHER HALF OF THE SAME CLASS. #413. ──────────────────────────────────────────
+      // TWO SAMPLES, AND THE SECOND ONE IS NOT CEREMONY - IT IS THE FIRST THING THIS ASSERTION GOT WRONG.
+      // Its first run at head reported a 13.89px spill on the practice row: "↻ Again" in a 36px button
+      // (scroll 50) painting 7.89px over the 💡 beside it, with the row measured at 192px. Real numbers, a
+      // real element, and NOT A DEFECT: the same state measured in isolation gives a 230.88px row and a
+      // 74.88px button that fits, and the spill did not reappear in three single-geometry runs or two further
+      // full runs. The lesson board is FIT TO HEIGHT, so between mount and the final layout pass the row is
+      // briefly narrower, and a scan can land in that frame. #387's rule is "settle past the thing you are
+      // racing, then prove it by running twice and getting the same numbers" - so the gate does the running
+      // twice ITSELF, per screen, and reports only what is in BOTH samples. A spill is a static property of a
+      // layout; one that appears in a single frame is the fit in progress. The transients are NOTED rather
+      // than dropped silently, because "it was flaky" is a measurement too and the next reader needs the
+      // number. Without this the assertion is worse than no assertion (CLAUDE.md), and it would have gone red
+      // on a healthy bundle roughly one run in five.
+      const sp1=await b.page.evaluate(SPILL);
+      await b.settle(260);
+      const sp=await b.page.evaluate(SPILL);
+      const skey=(r)=>r.holder+'|'+r.text+'|'+r.side;
+      const inBoth=sp.rows.filter(r=>sp1.rows.some(x=>skey(x)===skey(r)));
+      const oneFrame=[...sp1.rows,...sp.rows].filter(r=>!inBoth.some(x=>skey(x)===skey(r)));
+      sp.rows=inBoth;
+      for(const r of oneFrame) L.note('    TRANSIENT (one sample only, NOT asserted - the board fit was still settling) '+r.over+'px '+r.side+'  "'+r.text+'"  '+r.holder+' client '+r.cs+' scroll '+r.ss+'  row '+r.parW+' = ['+(r.kids||[]).join(', ')+']');
+      totalSpill+=sp.rows.length; nowrapSeen+=sp.seen.nowrapBoxes; totalTransient+=oneFrame.length;
+      // PRESENCE FIRST, and here it is not a formality: every clause of 4b's predicate narrows, so a screen
+      // with no nowrap box at all reports zero for a reason that has nothing to do with the app being right.
+      // This says which of the two a zero is (#385's rule, and 4a's own presence check above).
+      L.say(sp.seen.nowrapBoxes>=1, g+' '+name+': the screen has at least one box whose text cannot wrap, so 4b\'s predicate was actually exercised here rather than returning zero for want of a candidate', sp.seen);
+      const worstSp=sp.rows.slice().sort((a,c)=>c.over-a.over)[0];
+      L.say(sp.rows.length===0, g+' '+name+': NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder\'s own padding box, which is a frame no other gate in this suite uses',
+        sp.rows.length? {spills:sp.rows.length, worst:worstSp} : {spills:0, nowrapBoxes:sp.seen.nowrapBoxes, measured:sp.seen.inked, near:sp.near.length});
+      for(const r of sp.rows) L.note('    SPILL '+r.over+'px '+r.side+'  "'+r.text+'"  '+r.holder+' client '+r.cs+' scroll '+r.ss+'  painted '+r.ink.join('..')+' vs own box '+r.box.join('..')+'  ONTO '+r.onSib.sib+' by '+r.onSib.ox+'x'+r.onSib.oy+'  row '+r.parW+' = ['+(r.kids||[]).join(', ')+']  ('+r.el+')');
+      // the near misses are the record that the gap case is SEEN and deliberately not asserted over.
+      for(const r of sp.near) L.note('    NEAR  '+r.over+'px '+r.side+'  "'+r.text+'"  '+r.holder+' client '+r.cs+' scroll '+r.ss+'  spills into a gap, no sibling under it  ('+r.el+')');
     }
     // THE CLASSIFIER'S UNIT TEST, run on this geometry's live page. Nine shapes, four of them cases the excuses
     // MUST reject. Independent of the classifier's own bookkeeping, which is the whole point.
@@ -417,10 +714,26 @@ L.run(async()=>{
     L.say(!!cSlack&&cSlack.kind==='cut', g+' fixture: '+FIXTURE_WANT[6][2], cSlack||{clamps:cl.map(c=>({kind:c.kind,cs:c.cs,cut:c.cut}))});
     await b.page.evaluate(()=>{const e=document.getElementById('ct-inv-fixture');if(e)e.remove();});
 
+    // 4b's CLASSIFIER UNIT TEST. Six shapes, four of them cases the predicate must REJECT.
+    await b.page.evaluate(FIXTURE2);
+    await b.settle(150);
+    const sx=await b.page.evaluate(SPILL);
+    const kind2=(re)=>{
+      const a=sx.rows.filter(r=>re.test(r.text)), n=sx.near.filter(r=>re.test(r.text));
+      return a.length? 'spill' : n.length? 'near' : 'none';
+    };
+    for(const [re,want,why] of FIXTURE2_WANT){
+      const got=kind2(re);
+      L.say(got===want, g+' spill fixture: '+why, {want, got,
+        rows:[...sx.rows,...sx.near].filter(r=>re.test(r.text)).map(r=>({over:r.over,cs:r.cs,ss:r.ss,onSib:r.onSib}))});
+    }
+    await b.page.evaluate(()=>{const e=document.getElementById('ct-spill-fixture');if(e)e.remove();});
+
     // (b): a rotated ancestor is skipped rather than measured wrong, so the skip count must stay zero or the
     // gate has quietly stopped covering something.
     L.say(totalSkipped===0, g+': no clipping ancestor was skipped for a rotated/skewed transform (a skip is coverage silently lost, not a pass)', {skipped:totalSkipped});
     L.say(seenAny>=60, g+': the sweep as a whole measured a real quantity of ink across the screens', {inkedTextNodes:seenAny});
+    L.say(nowrapSeen>=12, g+': 4b had a real population of unwrappable boxes to measure across the twelve screens, so its zero is a measurement and not an empty set', {nowrapBoxes:nowrapSeen, spills:totalSpill, transientsSeen:totalTransient});
     await b.close();
   }
 },'26-invariants');
