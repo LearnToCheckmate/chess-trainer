@@ -526,9 +526,10 @@ L.run(async()=>{
  // gate 26's. The headless UAT lane bisected the threshold and corrected the flag
  // (`uat413-practice-row-spill-is-a-height-threshold-not-375x568`); I re-measured it here before believing it.
  // 520 is not exotic: a phone with a 568 or 667 point screen loses 50 to 150 points to browser toolbars.
- for(const geo of ['short375','390x568','375x520']){
+ for(const geo of ['short375','390x568','375x520','320x520']){
    const g = geo==='390x568' ? {w:390,h:568,safe:'',label:'390x568 = the wide-and-short corner, one step up'}
-           : geo==='375x520' ? {w:375,h:520,safe:'',label:'375x520 = short enough that the practice row starves'} : geo;
+           : geo==='375x520' ? {w:375,h:520,safe:'',label:'375x520 = short enough that the practice row starves'}
+           : geo==='320x520' ? {w:320,h:520,safe:'',label:'320x520 = narrow AND short: the worst case of both rows'} : geo;
    const vw = typeof g==='object' ? g.w : L.GEOS[g].w;
    const b=await L.launch({geo:g,name:'lesson-flow-wideshort-'+geo});await b.open();
    L.note(geo+': bundle stamp in the page = '+(await b.stamp()));
@@ -567,9 +568,17 @@ L.run(async()=>{
       `lesson-lines-off-screen-on-a-short-viewport-2026-09-18` and pinned here to its MEASURED value, the way
       35-width-containment pinned its own 38.9px: red if it is fixed and the pin should come out, red if it
       gets worse. It is NOT excused - the log carries the number every run. */
+   /* #415's antagonist pass: THE PIN WAS ONE POINT WIDE AND IT WAS THE BEST CASE. Pinned only at 375x520
+      (4.23px), the 320x520 case - 31.73px, SEVEN AND A HALF TIMES WORSE, and named in this build's own commit
+      message - sat in no column of any gate and could never go red. That is #395's frozen denominator applied
+      to a geometry list: fix 375x520 alone and the suite would go green with the worse case still broken. Each
+      pinned geometry now carries its OWN measured value. Off-screen heights the antagonist bisected and that
+      are still NOT pinned, said out loud rather than implied: 375x525 (3.00px), 375x530 (1.31) and 375x531
+      (1.00), inside from 375x533. */
    const _lnOff = dl ? Math.round((dl.x+dl.w-vw)*100)/100 : null;
-   if(geo==='375x520'){
-     L.say(_lnOff!==null&&Math.abs(_lnOff-4.23)<=0.6,geo+': the PINNED residual is where it was left - "♟ Other lines" runs '+_lnOff+'px past the right edge here (pinned at 4.23) with nothing able to scroll it back. This is a live defect being reported, not excused; see lesson-lines-off-screen-on-a-short-viewport-2026-09-18',{off:_lnOff,l:dl&&dl.x,w:dl&&dl.w,vw});
+   const _lnPin = {'375x520':4.23,'320x520':31.73}[geo];
+   if(_lnPin!==undefined){
+     L.say(_lnOff!==null&&Math.abs(_lnOff-_lnPin)<=0.6,geo+': the PINNED residual is where it was left - "♟ Other lines" runs '+_lnOff+'px past the right edge here (pinned at '+_lnPin+') with nothing able to scroll it back. A live defect being REPORTED, not excused; on the Desk as Q-OTHERLINES-SHORT and filed as lesson-lines-off-screen-on-a-short-viewport-2026-09-18',{off:_lnOff,pinned:_lnPin,l:dl&&dl.x,w:dl&&dl.w,vw});
    } else {
    L.say(!!dl&&dl.x>=-0.6&&dl.x+dl.w<=vw+0.6,geo+': and that button is inside the viewport, which is what the count being dropped buys',{l:dl&&dl.x,r:dl&&dl.w!=null?Math.round((dl.x+dl.w)*100)/100:null,vw});
    }
@@ -586,7 +595,7 @@ L.run(async()=>{
       budget < 184. The INK widths are what those thresholds are there to clear: 63.78px for "↻ Again" and
       92.52px for "↻ Try again". */
    const wantLabel = budget===null?null : budget<73 ? '↻' : budget<184 ? '↻ Again' : '↻ Try again';
-   L.say(budget!==null&&r0[2].t===wantLabel,geo+': the ↻ button reads "'+wantLabel+'", computed from the budget the row actually leaves it ('+budget+'px) and the rule the app implements, not from this geometry list. Under 73px there is no room for a word at all - the short label needs 63.78px of ink plus its 4px of padding each side - so it falls back to the bare glyph, which is what chess.jsx:5221 already does for this action in the demo row Try again" on the shipped #408 bundle, keyed to the VIEWPORT.',{budget,label:r0.length===4?r0[2].t:null});
+   L.say(budget!==null&&r0[2].t===wantLabel,geo+': the ↻ button reads "'+wantLabel+'", computed from the budget the row actually leaves it ('+budget+'px) and the rule the app implements, not from this geometry list. Under 73px there is no room for a word at all - the short label needs 63.78px of ink plus its 4px of padding each side - so it falls back to the bare glyph, which is what chess.jsx:5221 already does for this action in the demo row.',{budget,label:r0.length===4?r0[2].t:null});
    const bad=(ri.btns||[]).filter(x=>x.inkR!==null&&(x.overR>0.5||x.overL>0.5));
    L.say(bad.length===0,geo+': every label paints INSIDE its own button (this is the assertion the defect crossed: 8.83px past the right edge, 8.81px past the left)',bad.map(x=>x.a+' overR '+x.overR).join(' | ')||'none');
    L.say(!!ri.worstOverlap&&ri.worstOverlap.inkBleed!==null&&ri.worstOverlap.inkBleed<=0,geo+': and no label\'s ink reaches the next button (it bled 2.83px onto the ⋯ before the fix)',ri.worstOverlap);
