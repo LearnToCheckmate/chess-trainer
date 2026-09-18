@@ -120,6 +120,27 @@ for f in "${gates[@]}"; do
 done
 PASSN=$(grep -c '^PASS' "$ALL" || true)
 echo "regression assertions (PASS lines): $PASSN" | tee -a "$ALL"
+# ── WHICH TREE DID THIS GATE? (#417, flag class-gate-verifies-a-bundle-never-a-ref-2026-09-18) ──────────────
+# Every one of this suite's assertions answers "is the tree in this working directory correct?" and NOT ONE
+# answers "is this the tree that ships". That is not hypothetical: #416 went green at 1940 PASS, verify-log.sh
+# passed it, and the dashboard published it - for a commit that was on refs/heads/claude/nice-einstein-hnoipk
+# and on no other ref, while origin/main was still #415. Two lanes each spent a run re-deriving that.
+# So the log now STATES the ref rather than leaving it to be discovered. It never fails the run: a gate
+# legitimately runs before its push, and a gate that reddens on a pre-push tree blocks every build.
+HEADSHA="$(cd "$ROOT" && git rev-parse HEAD 2>/dev/null || echo unknown)"
+MAINSHA="$(cd "$ROOT" && git ls-remote origin main 2>/dev/null | cut -f1)"
+if [ -z "$MAINSHA" ]; then
+  REFLINE="ref: HEAD $HEADSHA | origin/main UNKNOWN (ls-remote failed - offline or refused; NOT a pass)"
+elif [ "$HEADSHA" = "$MAINSHA" ]; then
+  REFLINE="ref: HEAD $HEADSHA | origin/main $MAINSHA | HEAD IS origin/main"
+elif (cd "$ROOT" && git merge-base --is-ancestor "$HEADSHA" "$MAINSHA" 2>/dev/null); then
+  REFLINE="ref: HEAD $HEADSHA | origin/main $MAINSHA | HEAD is an ancestor of origin/main (already shipped)"
+else
+  AHEAD="$(cd "$ROOT" && git rev-list --count "$MAINSHA..$HEADSHA" 2>/dev/null || echo '?')"
+  ONREFS="$(cd "$ROOT" && git branch -a --contains "$HEADSHA" 2>/dev/null | sed 's/^[* ] *//' | paste -sd, - )"
+  REFLINE="ref: HEAD $HEADSHA | origin/main $MAINSHA | NOT ON MAIN - $AHEAD commit(s) ahead, on: ${ONREFS:-no ref}"
+fi
+echo "$REFLINE" | tee -a "$ALL"
 if [ -n "$SUBSET" ]; then
   # DELIBERATELY NOT "GATES GREEN": every consumer greps for that string, so a subset must never produce it.
   if [ $red -eq 0 ]; then echo "SUBSET OK $N — NOT A PUSH GATE (${#gates[@]} gates ran: $SUBSET)" | tee -a "$ALL"; exit 0

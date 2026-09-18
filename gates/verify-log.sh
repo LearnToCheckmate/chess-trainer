@@ -33,9 +33,22 @@
 #    be the frozen denominator again - true the day it was written and wrong as the suite grows or shrinks.
 #    Asking the log to agree with ITSELF ages perfectly and catches more: a truncated log, a hand-edited one,
 #    and a stdout capture all fail it, at any suite size.
+#  - (7) --on-main, added #417 for flag class-gate-verifies-a-bundle-never-a-ref-2026-09-18. It is OPT-IN, and
+#    that is a correction to the flag's own proposal rather than an oversight. The flag asks for this script to
+#    "REFUSE a log whose footer claims a green for a build whose SHA is on no ref of origin". Checked against the
+#    mechanism before implementing it, which is what CLAUDE.md now says to do with a flag's suggested fix: this
+#    script's DEFAULT job is to authorise a push, and at that moment the tree is by definition not yet on any
+#    ref of origin - so that refusal, in the default path, would block every push this project makes. The half
+#    that works is the half for LATER READERS: a dashboard, a supervisor or a run report asking "does this green
+#    describe the tree that ships?". That is --on-main. It reads the `ref:` line gates.sh now writes, takes the
+#    HEAD sha recorded THERE, and asks git whether that sha is an ancestor-or-equal of origin/main RIGHT NOW.
+#    NEGATIVE CONTROL, free and already on disk, no trial bundle (run at #417):
+#      gates/verify-log.sh claude/agents/gatelogs/416b-all.log '#416' --on-main  -> REFUSED (9154327 not on main)
+#      the same on a log whose ref line records a sha that IS on main            -> OK
 set -uo pipefail
-LOG="${1:-}"; WANT="${2:-}"
-[ -n "$LOG" ] || { echo "usage: gates/verify-log.sh <logfile> [#NNN]"; exit 1; }
+LOG="${1:-}"; WANT=""; ONMAIN=0
+for a in "${@:2}"; do case "$a" in --on-main) ONMAIN=1;; *) WANT="$a";; esac; done
+[ -n "$LOG" ] || { echo "usage: gates/verify-log.sh <logfile> [#NNN] [--on-main]"; exit 1; }
 [ -s "$LOG" ] || { echo "REFUSED: $LOG is missing or empty"; exit 1; }
 if grep -q '^SUBSET RUN:' "$LOG"; then
   echo "REFUSED: $LOG is a SUBSET run and cannot authorise a push"; sed -n '2,3p' "$LOG"; exit 1
@@ -68,5 +81,25 @@ if [ "$CLAIMED" != "$ACTUAL" ]; then
     echo "  stdout and writes every PASS line to gates/logs/<N>-all.log. Copy the LOG, not the terminal output."
   fi
   exit 1
+fi
+# (7) --on-main: does this green describe the tree that SHIPS? Opt-in; see the note in the header.
+if [ "$ONMAIN" -eq 1 ]; then
+  REF="$(grep -o '^ref: HEAD [0-9a-f]\{7,40\}' "$LOG" | tail -1 | awk '{print $3}' || true)"
+  if [ -z "$REF" ]; then
+    echo "REFUSED (--on-main): $LOG carries no 'ref: HEAD <sha>' line, so the tree it gated cannot be identified."
+    echo "  Logs from before #417 have none - re-gate, or check the ref by hand and say so where you cite this log."
+    exit 1
+  fi
+  MAIN="$(git ls-remote origin main 2>/dev/null | cut -f1)"
+  if [ -z "$MAIN" ]; then
+    echo "REFUSED (--on-main): could not read origin/main (offline or refused). UNKNOWN is not a pass."; exit 1
+  fi
+  if [ "$REF" != "$MAIN" ] && ! git merge-base --is-ancestor "$REF" "$MAIN" 2>/dev/null; then
+    echo "REFUSED (--on-main): $LOG gated $REF, which is NOT on origin/main ($MAIN)."
+    echo "  on: $(git branch -a --contains "$REF" 2>/dev/null | sed 's/^[* ] *//' | paste -sd, - || echo 'no local ref')"
+    echo "  The log is honest and the suite was green; this green just does not describe the tree that ships."
+    exit 1
+  fi
+  echo "ON-MAIN OK: $REF is an ancestor-or-equal of origin/main ($MAIN)"
 fi
 echo "OK: $LOG is a full-suite green for $FOOT ($(grep -c '^=== ' "$LOG") suites, $ACTUAL PASS, footer agrees)"
