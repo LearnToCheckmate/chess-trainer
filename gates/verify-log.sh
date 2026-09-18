@@ -71,6 +71,21 @@ LOG="${1:-}"; WANT=""; ONMAIN=0; THISBUNDLE=0
 for a in "${@:2}"; do case "$a" in --on-main) ONMAIN=1;; --this-bundle) THISBUNDLE=1;; *) WANT="$a";; esac; done
 [ -n "$LOG" ] || { echo "usage: gates/verify-log.sh <logfile> [#NNN] [--on-main] [--this-bundle]"; exit 1; }
 [ -s "$LOG" ] || { echo "REFUSED: $LOG is missing or empty"; exit 1; }
+# (9) NUL bytes mean the file was read while something else was writing it, so no part of it can be trusted
+# to be what that run measured. #418 produced exactly this: two full suites ran ten seconds apart, the per-gate
+# log path had no run identity, and 418b-all.log came out with an 18,165-byte hole of NULs where 'cat' hit a
+# file the other process had truncated. THIS SCRIPT ALREADY REFUSED THAT LOG - BY LUCK, NOT BY CHECKING. grep
+# switches to binary mode on a NUL and prints "binary file matches" instead of the matched text, so the footer
+# extraction below came back empty and the log was refused for "carries no footer", which is false: the footer
+# is there and reads 1855. A wrong reason that happens to reach the right verdict fails the moment the
+# corruption lands somewhere else in the file - and its sibling 418c, collaged from the same two runs with no
+# NUL in it at all, was accepted at 1935 PASS.
+NULS="$(tr -dc '\000' < "$LOG" | wc -c | tr -d ' ')"
+if [ "${NULS:-0}" != "0" ]; then
+  echo "REFUSED: $LOG contains $NULS NUL byte(s), so it was captured while something else was writing it."
+  echo "  A gate log is a record of one run. Re-gate; do not try to read around the hole."
+  exit 1
+fi
 if grep -q '^SUBSET RUN:' "$LOG"; then
   echo "REFUSED: $LOG is a SUBSET run and cannot authorise a push"; sed -n '2,3p' "$LOG"; exit 1
 fi
