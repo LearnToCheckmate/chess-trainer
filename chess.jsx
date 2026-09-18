@@ -4055,6 +4055,53 @@ export default function App(){
   // edge: 320/360/375/390/430 x 568 all drop the count and clear by 7.7 to 62.7px; 375x730, 375x667, 390x844
   // and 430x932 keep it and sit flush at 0.00; 360x640 keeps it with 8.81px to spare; 320x730 drops it.
   const rowNarrow=boardPx<340;
+  // #415 A SECOND STEP ON THE SAME INSTRUMENT, and the arithmetic is here so nobody re-derives it. `rowNarrow`
+  // drops the word "Try" from the practice row's flexible button; `rowTiny` drops the words altogether, because
+  // on a SHORT viewport even the short label does not fit and paints over the button beside it.
+  // MEASURED on the shipped #414 bundle in state practice-wrong, two samples 1.5s apart identical at every
+  // geometry, so this is a settled layout and not a race:
+  //   375x520 / 320x520 / 414x520  row 192     button 36 (client 36, scroll 50)  ink 13.89px past EACH edge,
+  //                                            7.89px on top of the hint button. IDENTICAL AT ALL THREE WIDTHS.
+  //   375x545                      row 215.67  button 59.67                      2.05px out, no overlap
+  //   375x563                      row 219.59  button 63.59                      0.09px out - the threshold
+  //   375x564                      row 220.23  button 64.23                      clean
+  //   375x568                      row 230.88  button 74.88                      clean, 5.55px clear each side
+  // THE AXIS IS HEIGHT AND NOTHING ELSE: the lesson board is fit to HEIGHT and this row is sized to the board,
+  // so three different widths at the same height give the same row to the hundredth. Spill from h<=563, and it
+  // reaches the hint button from h<=545.
+  // THE NUMBER: the row gives this button boardPx - 3*46 - 3*6 = boardPx - 156, and the short label needs
+  // 63.78px of ink plus 4px of padding each side = 71.78px. boardPx 229 leaves 73, clearing it by 1.22px; 228
+  // would leave 72 and clear by 0.22px, so 229 is the same boundary with a pixel of slack.
+  // The glyph alone is what chess.jsx:5221 already uses for this very action in the demo row at a 46px button,
+  // so this is the app's own answer rather than a new idea, and the aria-label still reads "Try again".
+  // Amber, recorded BEFORE the change in `amber-415-practice-label-icon-only-on-a-short-viewport` and Desk
+  // default D-PRACTICE-GLYPH. FOUND BY THE HEADLESS UAT LANE CORRECTING ME: at #414 I looked for this five
+  // times, and four more with the CPU throttled 6x, and found nothing - every one of those runs was at height
+  // 568, which is genuinely clean, so I was varying the one axis that does not matter
+  // (`uat413-practice-row-spill-is-a-height-threshold-not-375x568`).
+  const rowTiny=boardPx<229;
+  // #415 FOUND, MEASURED AND DID NOT FIX A SECOND DEFECT ON THE SAME ROW, and the reason is worth the space
+  // because the obvious fix is worse than the defect. At a short viewport the demo row's "Other lines" button
+  // runs OFF THE SCREEN: measured on the shipped #414 bundle at the demo end, 320x520 puts it at
+  // 229.17..351.73 - 31.73px past the right edge of a 320 viewport - and 375x520 at 256.67..379.23, 4.23px
+  // past. `document.documentElement.scrollWidth` EQUALS the viewport at both, so nothing scrolls to bring it
+  // back, which is the one kind of overflow CLAUDE.md calls unrecoverable. It is the defect
+  // `width320-gate-red-needs-kunal` closed at #404 arriving at a geometry nobody had measured: #404 dropped
+  // the COUNT below a viewport threshold so the label fits at 320 WIDE, and #406 re-keyed this row to the
+  // BOARD, so at a short viewport the board is 192 rather than 270.88 and the two-column grid hands this
+  // button a 93px cell for a 122.56px `nowrap` label.
+  // THE OBVIOUS FIX WAS BUILT AND MEASURED AND THEN REVERTED: `minWidth:0` plus overflow and textOverflow -
+  // the mechanism #384 used for the practice row - does stop the overflow, and it costs more than the
+  // overflow does. Measured on that trial bundle (md5 4519cfcb8e84): the button becomes 26.83px wide at
+  // 320x520, which is the pawn glyph and an ellipsis and nothing else, and it also starts truncating at
+  // 375x568 (122.56 -> 94.59) where nothing was wrong before. The button was always wider than its grid
+  // cell; only the viewport edge made it visible. So letting it shrink destroys Kunal's own answer
+  // (`lesson-lines-320-label`, the words "Other lines") at every short geometry rather than at the broken
+  // one. The real fix has to give the row more width or a second line, which spends board height or changes
+  // the layout under the board - a product choice with a cost either way, and this button already has his
+  // decision on it once. Filed with the numbers and the options as
+  // `lesson-lines-off-screen-on-a-short-viewport-2026-09-18`; pinned in gates/regress/48-lesson-flow.js so
+  // the suite reports it every run rather than going quiet about it.
   const btn=(bg,bd,col)=>({padding:'9px 15px',borderRadius:12,cursor:'pointer',fontSize:'clamp(14px,2.9vw,15px)',fontWeight:700,background:bg,backgroundImage:'linear-gradient(rgba(255,255,255,.20),rgba(255,255,255,.04) 48%,rgba(0,0,0,.10))',border:bd,color:col,letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif",display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,minHeight:44,whiteSpace:'nowrap',boxShadow:boardDepth?'0 4px 0 rgba(0,0,0,.38),0 9px 18px rgba(0,0,0,.36),inset 0 1.5px 0 rgba(255,255,255,.34),inset 0 -4px 8px rgba(0,0,0,.22)':'0 3px 0 rgba(0,0,0,.34),0 7px 16px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.30),inset 0 -3px 6px rgba(0,0,0,.16)'});
   // Primary/secondary navigation buttons: equal width, larger text, stronger tactile depth, consistent palette.
   const navBtn=(primary)=>({flex:1,textAlign:'center',padding:'14px 16px',borderRadius:13,cursor:'pointer',fontSize:'clamp(14px,3.4vw,17px)',fontWeight:800,minHeight:52,letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif",display:'inline-flex',alignItems:'center',justifyContent:'center',gap:7,whiteSpace:'nowrap',color:primary?'#191919':'#fff',background:primary?'var(--ac)':'rgba(255,255,255,.10)',backgroundImage:'linear-gradient(rgba(255,255,255,.22),rgba(255,255,255,.05) 48%,rgba(0,0,0,.12))',border:primary?'none':'1px solid rgba(255,255,255,.22)',boxShadow:primary?'0 5px 0 rgba(0,0,0,.30),0 11px 22px rgba(var(--acr),.32),inset 0 1px 0 rgba(255,255,255,.42),inset 0 -3px 7px rgba(0,0,0,.18)':'0 5px 0 rgba(0,0,0,.42),0 11px 22px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.30),inset 0 -3px 7px rgba(0,0,0,.20)'});
@@ -6296,7 +6343,7 @@ export default function App(){
                     (kunal-q-narrow-threshold-everywhere-2026-09-17) and re-measured here before it was
                     believed; recorded as an amber default in amber-409-try-again-keyed-to-the-row, and the RULE
                     is a question open with Kunal rather than settled by this build. */}
-                <button onClick={()=>startPractice(learnLine,learnLabel)} aria-label="Try again" style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800}}>{rowNarrow?'↻ Again':'↻ Try again'}</button>
+                <button onClick={()=>startPractice(learnLine,learnLabel)} aria-label="Try again" style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800}}>{rowTiny?'↻':rowNarrow?'↻ Again':'↻ Try again'}</button>
                 <button onClick={()=>setLearnSheet(true)} aria-label="More actions" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>⋯</button>
               </div>
               {learnSheet&&(<div onClick={()=>setLearnSheet(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:9000,display:'flex',alignItems:'flex-end'}}>

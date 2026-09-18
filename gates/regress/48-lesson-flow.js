@@ -517,8 +517,18 @@ L.run(async()=>{
  // ONE ROW, not the whole gate: adding a fourth column to the loop above would mean re-measuring every pinned
  // board width, left and top in DEMO and PRAC for a geometry nothing else asserts about. This block asserts
  // only what the defect was about, and says so.
- for(const geo of ['short375','390x568']){
-   const g = geo==='390x568' ? {w:390,h:568,safe:'',label:'390x568 = the wide-and-short corner, one step up'} : geo;
+ // #415 ADDS A THIRD ENTRY, 375x520, AND IT IS THE ONLY ONE THAT REACHES THE DEFECT THIS BLOCK NOW ALSO GUARDS.
+ // The practice row's spill was filed as a 375x568 defect and it is not one: measured on the shipped #414
+ // bundle, the axis is viewport HEIGHT alone. 320x520, 375x520 and 414x520 are IDENTICAL TO THE HUNDREDTH
+ // (row 192, button 36, ink 13.89px past each edge, 7.89px on top of the hint button), spill starts at h<=563
+ // and reaches the hint button at h<=545, and 375x568 is clean with 5.55px of clearance. So none of this
+ // gate's columns - 320x568, 375x730, 390x844, short375, 390x568 - could see it, and neither could any of
+ // gate 26's. The headless UAT lane bisected the threshold and corrected the flag
+ // (`uat413-practice-row-spill-is-a-height-threshold-not-375x568`); I re-measured it here before believing it.
+ // 520 is not exotic: a phone with a 568 or 667 point screen loses 50 to 150 points to browser toolbars.
+ for(const geo of ['short375','390x568','375x520']){
+   const g = geo==='390x568' ? {w:390,h:568,safe:'',label:'390x568 = the wide-and-short corner, one step up'}
+           : geo==='375x520' ? {w:375,h:520,safe:'',label:'375x520 = short enough that the practice row starves'} : geo;
    const vw = typeof g==='object' ? g.w : L.GEOS[g].w;
    const b=await L.launch({geo:g,name:'lesson-flow-wideshort-'+geo});await b.open();
    L.note(geo+': bundle stamp in the page = '+(await b.stamp()));
@@ -542,13 +552,41 @@ L.run(async()=>{
    const dTxt=((dl&&dl.text)||'').trim();
    L.say(!!dm.board&&dm.board.w<340,geo+': the DEMO board is under 340 here too ('+(dm.board&&dm.board.w)+') while the viewport is '+vw,{board:dm.board&&dm.board.w,vw});
    L.say(!!dl&&/^♟ Other lines$/.test(dTxt),geo+': so the demo end\'s button reads "♟ Other lines" with NO count - the assertion a viewport-keyed rule gets wrong, because 375 and 390 are above any threshold anyone would set while the row is 270.88 wide',dTxt);
+   /* #415 PINS THIS AT 375x520 INSTEAD OF ASSERTING IT, because at that height the button really is off the
+      screen and the fix is not this build's to make. MEASURED on the shipped #414 bundle at the demo end:
+      320x520 puts it at 229.17..351.73, 31.73px past the right edge of a 320 viewport; 375x520 at
+      256.67..379.23, 4.23px past; and documentElement.scrollWidth EQUALS the viewport at both, so nothing
+      scrolls to recover it. It is `width320-gate-red-needs-kunal` (closed at #404) arriving at a geometry
+      nobody had measured: #404 dropped the count below a VIEWPORT threshold so the label fits at 320 wide,
+      #406 re-keyed the row to the BOARD, and at a short viewport the board is 192 rather than 270.88 so the
+      two-column grid gives this button a 93px cell for a 122.56px nowrap label.
+      THE OBVIOUS FIX WAS BUILT, MEASURED AND REVERTED IN THIS PASS: minWidth:0 plus an ellipsis stops the
+      overflow and squeezes the button to 26.83px at 320x520 - the glyph and an ellipsis - and starts
+      truncating at 375x568 too, where nothing was wrong. It destroys Kunal's own answer (the words "Other
+      lines") at every short geometry to fix one. So it is filed with its options as
+      `lesson-lines-off-screen-on-a-short-viewport-2026-09-18` and pinned here to its MEASURED value, the way
+      35-width-containment pinned its own 38.9px: red if it is fixed and the pin should come out, red if it
+      gets worse. It is NOT excused - the log carries the number every run. */
+   const _lnOff = dl ? Math.round((dl.x+dl.w-vw)*100)/100 : null;
+   if(geo==='375x520'){
+     L.say(_lnOff!==null&&Math.abs(_lnOff-4.23)<=0.6,geo+': the PINNED residual is where it was left - "♟ Other lines" runs '+_lnOff+'px past the right edge here (pinned at 4.23) with nothing able to scroll it back. This is a live defect being reported, not excused; see lesson-lines-off-screen-on-a-short-viewport-2026-09-18',{off:_lnOff,l:dl&&dl.x,w:dl&&dl.w,vw});
+   } else {
    L.say(!!dl&&dl.x>=-0.6&&dl.x+dl.w<=vw+0.6,geo+': and that button is inside the viewport, which is what the count being dropped buys',{l:dl&&dl.x,r:dl&&dl.w!=null?Math.round((dl.x+dl.w)*100)/100:null,vw});
+   }
    await D.states['practice-m0'](b);
    const r0=await row(b), ri=await rowInk(b), m=await b.metrics();
    L.say(r0.length===4,geo+': the practice row is there at all (four controls)',r0.map(x=>x.a).join(','));
    L.say(!!m.board&&m.board.w<340,geo+': and the board really is under 340 wide here ('+(m.board&&m.board.w)+') while the viewport is '+vw+' - which is why a viewport threshold cannot decide this row',{board:m.board&&m.board.w,vw});
    const budget=r0.length===4?Math.round((r0[3].right-r0[0].x-(3*46)-(3*6))*100)/100:null;
-   L.say(budget!==null&&budget<92.52&&r0[2].t==='↻ Again',geo+': the ↻ button reads "↻ Again", because the budget the row leaves it is '+budget+'px and the long label needs 92.52px. It read "↻ Try again" on the shipped #408 bundle, keyed to the VIEWPORT.',{budget,label:r0.length===4?r0[2].t:null});
+   /* #415 RE-KEYS THIS TO THE RULE THE APP NOW IMPLEMENTS, WHICH IS THREE-WAY RATHER THAN TWO-WAY, and the
+      expectation is computed from the same arithmetic the app uses rather than from this geometry list -
+      #410's rule, an expectation keyed to the fixture agrees with itself at every fixture in its own list.
+      The app chooses on boardPx: < 229 the bare glyph, < 340 the short label, otherwise the long one. The row
+      hands the flexible button boardPx - 3*46 - 3*6, so boardPx < 229 is budget < 73 and boardPx < 340 is
+      budget < 184. The INK widths are what those thresholds are there to clear: 63.78px for "↻ Again" and
+      92.52px for "↻ Try again". */
+   const wantLabel = budget===null?null : budget<73 ? '↻' : budget<184 ? '↻ Again' : '↻ Try again';
+   L.say(budget!==null&&r0[2].t===wantLabel,geo+': the ↻ button reads "'+wantLabel+'", computed from the budget the row actually leaves it ('+budget+'px) and the rule the app implements, not from this geometry list. Under 73px there is no room for a word at all - the short label needs 63.78px of ink plus its 4px of padding each side - so it falls back to the bare glyph, which is what chess.jsx:5221 already does for this action in the demo row Try again" on the shipped #408 bundle, keyed to the VIEWPORT.',{budget,label:r0.length===4?r0[2].t:null});
    const bad=(ri.btns||[]).filter(x=>x.inkR!==null&&(x.overR>0.5||x.overL>0.5));
    L.say(bad.length===0,geo+': every label paints INSIDE its own button (this is the assertion the defect crossed: 8.83px past the right edge, 8.81px past the left)',bad.map(x=>x.a+' overR '+x.overR).join(' | ')||'none');
    L.say(!!ri.worstOverlap&&ri.worstOverlap.inkBleed!==null&&ri.worstOverlap.inkBleed<=0,geo+': and no label\'s ink reaches the next button (it bled 2.83px onto the ⋯ before the fix)',ri.worstOverlap);
