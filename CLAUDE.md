@@ -119,6 +119,14 @@ wider one.
   and it pins the exclusion to its MECHANISM - every excused box must be a div or img exactly 1.06x the square it
   sits in - because the first draft asserted a bare count and a count loose enough to pass is loose enough to hide
   a real defect appearing beside the pieces.
+- **AND BEFORE THAT: CHECK THE CONTROL MOVED THE QUANTITY THE ASSERTION READS AT ALL.** #416's first shrink
+  control injected `grid-template-columns:repeat(8,...)!important` on the board and the board's rect did not
+  move one pixel, because the same element carries an inline `width:boardPx` (chess.jsx:6537) and it is the
+  width that fixes the box. The injection was real, the log said what it had done, three cards later everything
+  still measured 375.03 - a control that disturbs something genuine and leaves the measured number untouched
+  reads exactly like a gate that cannot fail. Print the before and after of the MEASURED value, not of the
+  thing you changed. This is the rule below failing one step earlier: not "the numbers moved but not past the
+  line", but the numbers had not moved.
 - **A negative control must cross the threshold, not just disturb the mechanism.** Reverting half of #384's fix
   left the row still overflowing its box, by 19px instead of 48 - but the trailing button landed at 294 on a 320
   screen and stayed on it, so the gate was right to stay green. "The numbers moved" is necessary and not
@@ -331,7 +339,11 @@ wider one.
   expected value is read from the thing that selects the case; a cross-check fed by the thing under test): *the
   check and the thing being checked were the same object.* Exclude yourself (`| grep -v $$`), or match the
   `node` process, or wait on the PID you started - and do not let one watcher be the ONLY way a finished step
-  gets noticed.
+  gets noticed. **#416 broke this twice in one hour, in the hour it spent writing about self-reference.** First
+  the same waiter (`until pgrep -f "15-gallery-playall.js"`, which waits on itself), then the sibling that is
+  worse: `pkill -f "<pattern>"` at the head of a compound command **kills its own shell**, because the shell's
+  command line contains the pattern - so the edit behind it never ran and three control runs were lost. `pgrep`
+  hangs; `pkill` terminates the thing that called it. Wait on a FILE the job writes, or on a PID you captured.
 - **A COUNT WITH NO SCOPE CANNOT BE CHECKED, AND TWO OF SIX PUBLISHED CONTROL RESULTS TURNED OUT TO BE SUBSET
   RUNS.** `gates/regress/49-home.js` arrived with six negative controls recorded in its lane document as bare
   numbers ("NC2: 15 red", "NC5: 12 red"). Re-run here, the full gate gives **27** and **14**; measured,
@@ -344,6 +356,15 @@ wider one.
   the geometry, the block filter, the assertion ids - or the next person re-derives it from scratch or, worse,
   trusts it. Same family as the thin gatelog whose footer was right and whose body had no PASS lines (#405)
   and gate 47's control recipe naming line numbers that had moved 36 down (#399). #411, #412.
+- **THE FIX A FLAG PROPOSES IS A HYPOTHESIS, NOT A PRESCRIPTION - CHECK IT AGAINST THE MECHANISM BEFORE
+  IMPLEMENTING IT.** `gate15-baseline-is-the-unsettled-frame` named its own remedy: "require the shrink to
+  persist across two consecutive samples the way 26-invariants.js's 4b does". Written by the session that had
+  just measured the defect, citing a real precedent, and it **does not work**: 4b's two-sample filter drops a
+  transient ROW, but here the transient is the **BASELINE**, and the shrink from it to the settled value
+  persists for ever - so a persistence filter keeps the false red to the pixel. The proposal was wrong for the
+  same reason the defect existed, and implementing it on the flag's authority would have shipped a fix, a
+  control, a log line and a closing note for a red that still fired. A flag's measurement is evidence; its
+  suggested fix is one more claim to break. #416.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never
