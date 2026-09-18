@@ -91,6 +91,19 @@
 // for the rest of the window, and such a card lands in `noBase` and reds with a misleading reason. Not
 // reachable here - no caption group in five 40ms sweeps has a board present early and null later.
 //
+// ── CONTROL-RECORD lines, the machine-readable form gates/control-audit.js reads (#418). One per control, and
+// every one of these numbers was produced by the command in the block below, on this file at 955501e. `scope`
+// is mandatory and is why the format exists: all six ran at 375x679 only, where this gate runs 25 of its 36
+// assertions, and a count without its scope is not evidence (#411, where two of six published control counts
+// turned out to be subset runs nobody could reproduce).
+// CONTROL-RECORD: 955501e 2026-09-18 total=25 red=0 scope=CT_G15_GEOS=kunal how=shipped bundle, no injection - the baseline the other five are read against
+// CONTROL-RECORD: 955501e 2026-09-18 total=25 red=1 scope=CT_G15_GEOS=kunal how=board width+height+squares cut 24px from card 2 on, persistent
+// CONTROL-RECORD: 955501e 2026-09-18 total=25 red=1 scope=CT_G15_GEOS=kunal how=a laid-out 14px child appended to #root
+// CONTROL-RECORD: 955501e 2026-09-18 total=25 red=2 scope=CT_G15_GEOS=kunal how=board width flipped every 60ms so no 900ms window has a settled tail
+// CONTROL-RECORD: 955501e 2026-09-18 total=25 red=1 scope=CT_G15_GEOS=kunal how=board display:none after the entry window - the hole the antagonist found
+// CONTROL-RECORD: 955501e 2026-09-18 total=25 red=1 scope=CT_G15_GEOS=kunal how=board display:none before the entry window
+// CONTROL-RECORD: 955501e 2026-09-18 total=25 red=1 scope=CT_G15_GEOS=kunal how=body forced out of position:fixed with 3000px appended, so the page really scrolls
+//
 // THE CONTROLS, each with the command that reproduces its count (#412: publish the command with the number).
 // Measured on the shipped #415 bundle (app.js md5 6f42b141eac4), 2026-09-18, all at 375x679:
 //   CT_G15_GEOS=kunal node gates/regress/15-gallery-playall.js                     -> 24 pass, 0 fail  (shipped)
