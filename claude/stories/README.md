@@ -45,7 +45,7 @@ any of them landed. **Claim a number here in the same commit that adds the file.
 | `45-play-setup.js` | Play setup lane | **43** | renumbered: 43 was already pushed |
 | `46-play.js` | Play lane | **44** | renumbered with it, to keep the two lanes adjacent |
 | `47-menu.js` | Menu/settings test-authoring lane, pasted by the build session | 47 | #399. **47 WAS CLAIMED TWICE MORE.** See below |
-| `48-lesson-flow.js` | Lesson test-authoring lane, pasted by the build session | 48 | #403. 195 assertions |
+| `48-lesson-flow.js` | Lesson test-authoring lane, pasted by the build session | 48 | #403. 195 assertions; **241 at #415** - the practice row's ink at #409, the demo label re-keyed at #410, and short-viewport columns at #415 (375x520 and 320x520, the band where the row starves and the demo button leaves the screen) |
 | `26-invariants.js` | build session | **26** | #404, extended #413. Authored as `47-invariants.js` by two flags; 47 was gone. See below. **67** assertions on two geometries as it last ran at #412 (its own header's #404 control run says 67 too; the "64" I first wrote here was a guess and the number is read off `gates/logs/412-all.log`); **200 at #413**, and the suite total moved 1779 -> 1912, the same +133 - it gained invariant **4b** (ink painted outside its own box and onto a sibling), the 375x568 column and the lesson PRACTICE screen |
 | `27-scan-fen.js` | build session (board-scan spec, Part 6.1) | **27** | #405. The spec pencilled in **50**; 50-69 is the challenger range. See below |
 | `28-scan-client.js` | build session (board-scan spec, Parts 4 and 6.3) | **28** | #408. The browser half of board scanning: R-BS-1 and R-BS-2. Next free build-lane number after 27 |
