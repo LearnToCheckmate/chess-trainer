@@ -33,22 +33,43 @@
 #    be the frozen denominator again - true the day it was written and wrong as the suite grows or shrinks.
 #    Asking the log to agree with ITSELF ages perfectly and catches more: a truncated log, a hand-edited one,
 #    and a stdout capture all fail it, at any suite size.
-#  - (7) --on-main, added #417 for flag class-gate-verifies-a-bundle-never-a-ref-2026-09-18. It is OPT-IN, and
-#    that is a correction to the flag's own proposal rather than an oversight. The flag asks for this script to
-#    "REFUSE a log whose footer claims a green for a build whose SHA is on no ref of origin". Checked against the
-#    mechanism before implementing it, which is what CLAUDE.md now says to do with a flag's suggested fix: this
-#    script's DEFAULT job is to authorise a push, and at that moment the tree is by definition not yet on any
-#    ref of origin - so that refusal, in the default path, would block every push this project makes. The half
-#    that works is the half for LATER READERS: a dashboard, a supervisor or a run report asking "does this green
-#    describe the tree that ships?". That is --on-main. It reads the `ref:` line gates.sh now writes, takes the
-#    HEAD sha recorded THERE, and asks git whether that sha is an ancestor-or-equal of origin/main RIGHT NOW.
-#    NEGATIVE CONTROL, free and already on disk, no trial bundle (run at #417):
-#      gates/verify-log.sh claude/agents/gatelogs/416b-all.log '#416' --on-main  -> REFUSED (9154327 not on main)
-#      the same on a log whose ref line records a sha that IS on main            -> OK
+#  - (7) --on-main and (8) --this-bundle, added #417 for flag class-gate-verifies-a-bundle-never-a-ref-2026-09-18.
+#    Both are OPT-IN. Why, and what the flag actually asked for, QUOTED IN FULL because the first version of this
+#    note quoted half of it and the #417 antagonist caught that - which is the rule this project added at #416
+#    ("when a rule quotes a source, the next reader will trust the quotation: quote all of it, and say which part
+#    you acted on") failing one notch further in, inside the build that added it.
+#      THE FLAG'S FIRST ASK:  "At the end of a full green run, resolve `git rev-parse HEAD` and `git ls-remote
+#                              origin main`. If HEAD is not an ancestor-or-equal of origin/main, the log's footer
+#                              must SAY SO IN ONE LINE, naming the ref HEAD is actually on."
+#      THE FLAG'S SECOND ASK: "Then have verify-log.sh REFUSE a log whose footer claims a green for a build whose
+#                              SHA is on no ref of origin."
+#    I BUILT THE FIRST. The second is the weaker of the two and would not have caught the instance the flag was
+#    filed about: the flag's own measurement four paragraphs earlier reads "git branch -r --contains 9154327 ->
+#    origin/claude/nice-einstein-hnoipk, and no other ref" - so 9154327 WAS on a ref of origin. The flag is
+#    internally inconsistent and the ancestor-of-origin/main relationship is the half that works.
+#    AND IT IS OPT-IN because this script's DEFAULT job is to authorise a push, and at that moment the tree is not
+#    yet on any ref of origin - so any such refusal in the default path blocks every push this project makes.
+#    Measured on this build: gates.sh '#417' started 12:41:53Z against a tree that was not committed until
+#    12:43:38Z. --on-main is for LATER readers (a dashboard, a supervisor, a run report) asking "does this green
+#    describe the tree that ships?".
+#  - (8) --this-bundle is the PUSH-TIME half, and --on-main structurally cannot cover it. The antagonist found it:
+#    the log's own first line already records the md5 of the bundle it gated, and nothing compared it to anything.
+#      gates/verify-log.sh claude/agents/gatelogs/416b-all.log '#416'   -> OK, exit 0
+#      while md5sum app.js on disk was 91293f224fbc and that log gated 69b903f2b0ca.
+#    So the one tool that decides whether a log authorises a push said OK for a green over a different bundle. It
+#    needs no network, no git and no commit. It cannot be unconditional - it would refuse all 49 archived
+#    gatelogs, which gated bundles long replaced - so it is the flag you pass at the moment you are pushing.
+#    NEGATIVE CONTROLS, free and on disk, run at #417 and RECORDED AS THE COMMAND THAT PRODUCES THEM, because the
+#    first version of this note recorded an outcome the command does not produce (it refused for "no ref line",
+#    not for "not on main", so its two controls were one run wearing two labels - #411's count-with-no-scope):
+#      ref line recording d8ecd55 (4 ahead of main) -> REFUSED (--on-main): ... NOT on origin/main
+#      ref line recording 54eb7c6 (== origin/main)  -> ON-MAIN OK
+#      a pre-#417 log, no ref line at all           -> REFUSED (--on-main): carries no 'ref: HEAD <sha>' line
+#      --this-bundle with app.js != the logged md5  -> REFUSED (--this-bundle)
 set -uo pipefail
-LOG="${1:-}"; WANT=""; ONMAIN=0
-for a in "${@:2}"; do case "$a" in --on-main) ONMAIN=1;; *) WANT="$a";; esac; done
-[ -n "$LOG" ] || { echo "usage: gates/verify-log.sh <logfile> [#NNN] [--on-main]"; exit 1; }
+LOG="${1:-}"; WANT=""; ONMAIN=0; THISBUNDLE=0
+for a in "${@:2}"; do case "$a" in --on-main) ONMAIN=1;; --this-bundle) THISBUNDLE=1;; *) WANT="$a";; esac; done
+[ -n "$LOG" ] || { echo "usage: gates/verify-log.sh <logfile> [#NNN] [--on-main] [--this-bundle]"; exit 1; }
 [ -s "$LOG" ] || { echo "REFUSED: $LOG is missing or empty"; exit 1; }
 if grep -q '^SUBSET RUN:' "$LOG"; then
   echo "REFUSED: $LOG is a SUBSET run and cannot authorise a push"; sed -n '2,3p' "$LOG"; exit 1
@@ -90,10 +111,15 @@ if [ "$ONMAIN" -eq 1 ]; then
     echo "  Logs from before #417 have none - re-gate, or check the ref by hand and say so where you cite this log."
     exit 1
   fi
-  MAIN="$(git ls-remote origin main 2>/dev/null | cut -f1)"
+  MAIN="$(git ls-remote origin refs/heads/main 2>/dev/null | head -1 | cut -f1)"
   if [ -z "$MAIN" ]; then
-    echo "REFUSED (--on-main): could not read origin/main (offline or refused). UNKNOWN is not a pass."; exit 1
+    echo "REFUSED (--on-main): could not read refs/heads/main on origin (offline, refused, or no such branch)."
+    echo "  UNKNOWN is not a pass."; exit 1
   fi
+  # FETCH FIRST. The ancestor test needs the remote object locally, and nothing else here fetches, so on a stale
+  # clone - exactly the dashboard or supervisor this flag is for - a tree that genuinely shipped was being called
+  # unshipped, confidently enough to be quoted. Found by the #417 antagonist.
+  git fetch -q origin main 2>/dev/null || true
   if [ "$REF" != "$MAIN" ] && ! git merge-base --is-ancestor "$REF" "$MAIN" 2>/dev/null; then
     echo "REFUSED (--on-main): $LOG gated $REF, which is NOT on origin/main ($MAIN)."
     echo "  on: $(git branch -a --contains "$REF" 2>/dev/null | sed 's/^[* ] *//' | paste -sd, - || echo 'no local ref')"
@@ -101,5 +127,22 @@ if [ "$ONMAIN" -eq 1 ]; then
     exit 1
   fi
   echo "ON-MAIN OK: $REF is an ancestor-or-equal of origin/main ($MAIN)"
+fi
+# (8) --this-bundle: does this green describe the bundle that is on disk RIGHT NOW? The push-time half.
+if [ "$THISBUNDLE" -eq 1 ]; then
+  LOGMD5="$(head -1 "$LOG" | grep -o 'md5 [0-9a-f]\{12,32\}' | head -1 | awk '{print $2}' || true)"
+  if [ -z "$LOGMD5" ]; then
+    echo "REFUSED (--this-bundle): $LOG has no 'md5 <hex>' on its header line, so the bundle it gated is unknown."; exit 1
+  fi
+  ROOTDIR="$(cd "$(dirname "$0")/.." && pwd)"
+  DISKMD5="$(md5sum "$ROOTDIR/app.js" 2>/dev/null | cut -c1-${#LOGMD5})"
+  if [ -z "$DISKMD5" ]; then
+    echo "REFUSED (--this-bundle): could not read $ROOTDIR/app.js"; exit 1
+  fi
+  if [ "$LOGMD5" != "$DISKMD5" ]; then
+    echo "REFUSED (--this-bundle): $LOG gated bundle md5 $LOGMD5, but app.js on disk is $DISKMD5."
+    echo "  The log is honest about what it measured; it just did not measure what you are about to push."; exit 1
+  fi
+  echo "THIS-BUNDLE OK: the log gated md5 $LOGMD5, which is app.js on disk"
 fi
 echo "OK: $LOG is a full-suite green for $FOOT ($(grep -c '^=== ' "$LOG") suites, $ACTUAL PASS, footer agrees)"
