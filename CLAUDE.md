@@ -387,6 +387,53 @@ wider one.
   gate passed on a bundle built to fail it. Both times the fix was to assert the thing itself, in the
   BUNDLE UNDER TEST, rather than only its downstream symptom - a symptom that a fast machine may not
   be able to produce at all.
+- **THE IMPRESSIVE ARGUMENT IS NOT THE SOUND ONE, AND THE CONTROL THAT TELLS YOU WHICH IS CHEAPER THAN THE
+  ARGUMENT.** #418 left three full-suite logs and the question was whether any authorised a push. I proved two of
+  them came from overlapping runs by hashing all 36 gate sections in each and finding **26 byte-identical**,
+  including `49-home` at 53,951 bytes, and wrote up "two independent browser runs cannot emit 53KB of identical
+  measured rects and timings". It reads like measurement. It is worthless: the control - `416-all` against
+  `416b-all`, two runs I KNEW were sequential - shares **29 of 36**, MORE than the pair I was calling proof,
+  because most gates in this suite print fixed assertion text and rects that do not vary between runs. The
+  comparison has no discriminating power at all, and I had already committed and filed two flags on it before
+  running the one command that checks. **The sound proof was two lines the tool already prints**: `gates.sh`
+  stamps its header at run START, `418b-all.log` says 15:27:20Z and `418c-all.log` says 15:27:30Z, both are
+  complete 36-section runs, and no full suite finishes in ten seconds - so the second began inside the first. One
+  sentence, no script. So: when an argument needs a program to make it, ask what that program would print on a
+  case you already know is FINE before believing what it printed on the case in question - and look first for the
+  argument you can state from data already on the page. Same family as #416's "print the before and after of the
+  MEASURED value", one step earlier: there the control did not move the number, here the control was never run.
+- **AND THE SAME PASS PUBLISHED A SECOND UNMEASURED NUMBER FOR THE SAME REASON.** Having withdrawn the above, I
+  wrote that a clean suite takes "~25 min" against #418's ~44, so the 44 "was inflated by the contention" -
+  extrapolated from the first attempt's 11 gates in 7.5 minutes. Measured, #419's clean single run took
+  **43m 44s** (17:01:15Z to 17:44:59Z), which is #418's figure to the minute. The gates are nowhere near uniform:
+  the cheap ones come first and `45`, `47`, `48`, `49` dominate the tail, so a linear extrapolation from the head
+  of the run is not an estimate of the run. Two consequences. The wall clock is set by the app's own holds and
+  not by CPU, so two overlapping suites did NOT measurably slow each other - and therefore **the lock is not
+  justified by a demonstrated timing perturbation, which I never measured.** It is justified by what WAS proved:
+  a shared per-gate log path plus two runs inside one window, and one corrupt log out of it.
+- **A GATE LOG'S FOOTER CANNOT VOUCH FOR THE FILE IT WAS DERIVED FROM.** `PASSN=$(grep -c '^PASS' "$ALL")`
+  computes the total FROM the log, so #405's self-consistency check - footer equals actual PASS count - holds for
+  any assembly of that file, however it was assembled. It is the fifth costume of the trap that also excused the
+  real 38.9px overflow by clip-intersection, hid the defect it was written for at #393 with "the covering element
+  is big", let the bubble satisfy `grid.contains()` at #394 and let flex-shrink absorb the overrun at #398: *the
+  check and the thing being checked were the same object.* What protects a log's provenance is the LOCK (#419) -
+  one suite at a time - not anything `verify-log.sh` can read afterwards. And note how the corrupt one was
+  caught: refused for "carries no footer", which is FALSE (the footer is there and reads 1855) - grep goes binary
+  on a NUL and prints "binary file matches" instead of the match. **A wrong reason that reaches the right verdict
+  is a trap, not a check.** (Self-consistency would have refused it too, had the footer been readable: its actual
+  `^PASS` count is 1851, not 1855. Partial protection, by luck again, and naming neither cause.)
+- **LONG BACKGROUND WORK DOES NOT SURVIVE AN IDLE TURN IN THIS CONTAINER, so a 44-minute suite cannot be
+  launched and left.** #419 was killed TWICE mid-suite - at 11 of 36 gates and again at 7 of 36 - with no error
+  in either log, every node process gone, and the lock left behind un-trapped, so SIGKILL rather than an exit.
+  `nohup` did not help and neither did `setsid` with PPID 1. What the two gaps have in common is an IDLE session:
+  both kills landed while this session sat between turns waiting on a scheduled wake ~20 minutes out, and in both
+  cases the suite advanced normally while tool calls were being made. Launch detached AND arm a `Monitor` whose
+  events keep arriving - progress every couple of minutes plus every terminal state - or the run dies unwatched.
+  Cover death explicitly: a watch that greps only for `GATES GREEN` is silent on a kill, and silence is
+  indistinguishable from "still running". Two corollaries that each cost a run to learn: a stale-lock takeover is
+  not optional, because the FIRST accident after shipping the lock was a SIGKILL that left one behind and would
+  otherwise have jammed every later suite; and the per-run log stem is what preserved the two killed runs'
+  per-gate logs instead of letting the relaunch overwrite them.
 
 ## Temporary code, with an expiry
 
