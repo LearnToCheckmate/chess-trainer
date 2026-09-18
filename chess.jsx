@@ -3265,7 +3265,7 @@ export default function App(){
           if((cls.label==='Best'||cls.label==='Excellent')&&_h2&&(_bm-_s2)>=160)cls={label:'Great',c:'#5d93e8',i:'!'};
           else if((cls.label==='Mistake'||cls.label==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130)cls={label:'Miss',c:'#f08a5d',i:'×'};}
         let altSan='',altDrop=null;
-        try{const au=aU[i];if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));}}
+        try{const au=aU[i];if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)&&!(am.fr===pl.fr&&am.fc===pl.fc&&am.tr===pl.tr&&am.tc===pl.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));}}
           if(ev2W[i]!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2W[i]:-ev2W[i];altDrop=Math.max(0,Math.round(_b-_s2));}}catch(e){}
         out.push({loss:Math.round(loss),cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null});
       }

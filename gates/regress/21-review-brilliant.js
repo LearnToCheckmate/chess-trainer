@@ -118,6 +118,62 @@ L.run(async()=>{
   const s0=await gridSig(b);await b.tapCt('rev-playout',400);let moved=false;for(let i=0;i<12;i++){await b.settle(350);if((await gridSig(b))!==s0){moved=true;break;}}
   L.say(moved,'TC-R10 the play-out moves a piece within ~4 s');
   await b.settle(3000);await b.shot('review-brilliant-playout');
+
+  /* ── 4. THE COMPARISON CLAUSE MUST NEVER NAME THE MOVE YOU PLAYED - ON EVERY PLY, NOT ONE ──────────
+     #420, flag kunal-review-alt-names-the-played-move. Kunal found the review telling him
+     "Bxh3 was as good on paper, but nothing like as forcing" about the move he had just played. Cause:
+     chess.jsx:3268 compared the engine's runner-up against `bestMv` and never against `pl`, so whenever
+     the player plays the engine's SECOND choice the runner-up IS the played move and it is rendered as
+     its own alternative.
+
+     THE ASSERTION FOR THIS WAS ALREADY HERE AND IT WAS GREEN OVER THE LIVE BUG. Line 73 reads
+     `altSan!=='Nxb5'` - correct, in the suite for builds, and it only ever ran on ply 19, where the
+     played move is the engine's FIRST choice, so altSan was the genuine runner-up Bxf6 and it passed.
+     The defect lives in the other configuration and no gate visited it. That is the antagonist's
+     "measured in one configuration only" category showing up in a GATE rather than in a build note,
+     which is why the procedure now rotates an audit over the suite's own assertions.
+     So the check stops being about one hardcoded move and becomes an INVARIANT over the whole game:
+     on every ply, if a dropTxt clause is present, the move it names is not the move that was played.
+
+     Navigation is deterministic WITHOUT depending on where the play-out left the board: saturate
+     forward (clicks past the end are no-ops) to anchor at the last ply, then step back one ply at a
+     time. Reading backwards collects the same per-ply pairs as reading forwards. */
+  const NAV_FWD=40, PLIES=34;
+  for(let i=0;i<NAV_FWD;i++){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000}).catch(()=>{});}
+  await b.settle(700);
+  const sweep=[];
+  for(let k=0;k<PLIES;k++){
+    const ml=await b.rect('[data-ct="rev-move-line"]');
+    const why=(await b.text('[data-ct="rev-why-txt"]'))||(await b.text('[data-ct="rev-why"]'))||'';
+    // first line of the move line is "10. Nxb5" / "15... Nxd7"; the SAN is its last whitespace token
+    const head=String((ml&&ml.text)||'').split('\n')[0].trim();
+    const played=head.split(/\s+/).pop()||'';
+    let form=null,alt=null;
+    for(const f of FORMS){const m=f.re.exec(why); if(m){form=f.k;alt=m[1];break;}}
+    if(played) sweep.push({played,form,alt,head});
+    await b.page.locator('[aria-label="Previous move"], [title="Previous move"]').first().click({timeout:5000}).catch(()=>{});
+    await b.page.waitForTimeout(120);
+    await b.settle(260);
+  }
+  const bare=(x)=>String(x||'').replace(/[+#]$/,'');
+  const withClause=sweep.filter(r=>r.form&&r.alt);
+  L.note('    sweep: '+sweep.length+' plies read, '+withClause.length+' carrying a comparison clause -> '+withClause.map(r=>r.played+'/'+r.alt).join(', '));
+  L.say(sweep.length>=PLIES-2,'TC-R10 the ply sweep actually walked the game rather than reading one screen '+sweep.length+' times',{pliesRead:sweep.length,want:PLIES});
+  /* NON-VACUITY, and deliberately NOT a pinned count: which plies carry a clause is the engine's answer,
+     and pinning it would be #391's coin flip with extra steps. What must never be zero is the population,
+     because a sweep over no clauses cannot fail. */
+  L.say(withClause.length>=1,'TC-R10 the sweep found at least one comparison clause to test, so the per-ply checks below are not vacuous',{clauses:withClause.length});
+  /* THE PER-PLY RESULTS ARE NOTES, NOT ASSERTIONS, AND THAT IS DELIBERATE. One L.say per clause would
+     make this gate's assertion count depend on how many comparison clauses the engine happens to print,
+     so the SUITE TOTAL would drift with the engine's answers - and #419 had just finished recording that
+     1940 is a recurrence nothing asserts rather than an invariant. Adding a new source of that drift to
+     fix a different problem is not a trade worth making. The count added here is FIXED at three
+     regardless of what the engine returns; the offending plies travel in the failing assertion's own
+     payload, so a red still names them. */
+  const offenders=withClause.filter(r=>bare(r.alt)===bare(r.played));
+  for(const r of withClause) L.note('      '+r.head.replace(/\s+/g,' ').slice(0,20).padEnd(20)+' played '+String(r.played).padEnd(7)+' alt '+String(r.alt).padEnd(7)+(bare(r.alt)===bare(r.played)?'  <- NAMES THE PLAYED MOVE':''));
+  L.say(offenders.length===0,'TC-R10 NO ply in the whole game offers the played move as its own alternative (kunal-review-alt-names-the-played-move)',{selfNamed:offenders.length,ofClauses:withClause.length,plies:offenders.map(r=>r.head.replace(/\s+/g,' ').slice(0,14)+' ('+r.played+')')});
+
   const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
   L.say(bad.length===0,'TC-R10 no app error beyond the one allowed engine trap',{allowed:b.errs.length-bad.length,other:bad.slice(0,2)});
   await b.close();
