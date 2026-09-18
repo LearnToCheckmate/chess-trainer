@@ -57,7 +57,20 @@ fi
 : > "$ALL"
 export CT_EXPECT="${CT_EXPECT:-$N}"; export CT_SHOTS="${CT_SHOTS:-$G/shots/gates-$TAG}"
 APP="${CT_APP:-$ROOT/app.js}"; export CT_APP="$APP"   # CT_APP=/path/bundle.js gates a trial bundle; the default is the repo's app.js, named explicitly so a gates/.pin-app.js cannot divert the gate
-echo "gates.sh $N  bundle $APP  md5 $(md5sum "$APP" | cut -c1-12)  $(date '+%Y-%m-%d %H:%M:%S %Z')" | tee -a "$ALL"
+BUNDLE_MD5="$(md5sum "$APP" | cut -c1-12)"
+echo "gates.sh $N  bundle $APP  md5 $BUNDLE_MD5  $(date '+%Y-%m-%d %H:%M:%S %Z')" | tee -a "$ALL"
+# WHICH TREE IS THIS, SAMPLED NOW AND NOT AT THE END. The #417 antagonist broke the first version of the ref
+# line below by pointing out that it read `git rev-parse HEAD` when the run FINISHED: this very build's suite
+# started at 12:41:53Z against an uncommitted tree and HEAD moved at 12:43:38Z, 105 seconds in, so the log would
+# have named a commit that did not exist when two of its thirty-six gates ran. It also noted the deeper half -
+# the thing gated is the WORKING TREE and a commit is a different object, so a dirty tree read as ON-MAIN while
+# the bundle on disk was not in any commit at all. Both are fixed by sampling here, and by recording the dirty
+# count and the bundle md5 alongside the sha so the commit is bound to the artefact.
+# `--git-dir` is explicit because `cd "$ROOT" && git ...` does NOT override an inherited GIT_DIR/GIT_WORK_TREE,
+# and a gate run launched from a hook or a wrapper that exports them reported another repository's HEAD.
+GIT="git -C $ROOT --git-dir=$ROOT/.git --work-tree=$ROOT"
+HEADSHA="$($GIT rev-parse HEAD 2>/dev/null || echo unknown)"
+DIRTYN="$($GIT status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
 
 # build the gate list: mountcheck always, then either everything or just the named ones
 ALLREG=(); for f in "$G"/regress/*.js; do [ -e "$f" ] && ALLREG+=("$f"); done
@@ -122,23 +135,23 @@ PASSN=$(grep -c '^PASS' "$ALL" || true)
 echo "regression assertions (PASS lines): $PASSN" | tee -a "$ALL"
 # ── WHICH TREE DID THIS GATE? (#417, flag class-gate-verifies-a-bundle-never-a-ref-2026-09-18) ──────────────
 # Every one of this suite's assertions answers "is the tree in this working directory correct?" and NOT ONE
-# answers "is this the tree that ships". That is not hypothetical: #416 went green at 1940 PASS, verify-log.sh
-# passed it, and the dashboard published it - for a commit that was on refs/heads/claude/nice-einstein-hnoipk
-# and on no other ref, while origin/main was still #415. Two lanes each spent a run re-deriving that.
-# So the log now STATES the ref rather than leaving it to be discovered. It never fails the run: a gate
-# legitimately runs before its push, and a gate that reddens on a pre-push tree blocks every build.
-HEADSHA="$(cd "$ROOT" && git rev-parse HEAD 2>/dev/null || echo unknown)"
-MAINSHA="$(cd "$ROOT" && git ls-remote origin main 2>/dev/null | cut -f1)"
+# answers "is this the tree that ships". #416 went green at 1940 PASS, verify-log.sh passed it and the dashboard
+# published it - for a commit on refs/heads/claude/nice-einstein-hnoipk and no other ref, while origin/main was
+# still #415. Three lanes each spent a run re-deriving that. So the log STATES it. It never fails the run: a
+# gate legitimately runs before its push, and one that reddens on a pre-push tree blocks every build.
+# The sha, the dirty count and the bundle md5 were all sampled at run START (see the header above).
+MAINSHA="$($GIT ls-remote origin refs/heads/main 2>/dev/null | head -1 | cut -f1)"
+DIRTYTXT=""; [ "${DIRTYN:-0}" != "0" ] && DIRTYTXT=" | WORKING TREE DIRTY: $DIRTYN path(s) - the gated bundle is not this commit's"
 if [ -z "$MAINSHA" ]; then
-  REFLINE="ref: HEAD $HEADSHA | origin/main UNKNOWN (ls-remote failed - offline or refused; NOT a pass)"
+  REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main UNKNOWN (refs/heads/main unreadable: offline, refused, or no such branch - NOT a pass)$DIRTYTXT"
 elif [ "$HEADSHA" = "$MAINSHA" ]; then
-  REFLINE="ref: HEAD $HEADSHA | origin/main $MAINSHA | HEAD IS origin/main"
-elif (cd "$ROOT" && git merge-base --is-ancestor "$HEADSHA" "$MAINSHA" 2>/dev/null); then
-  REFLINE="ref: HEAD $HEADSHA | origin/main $MAINSHA | HEAD is an ancestor of origin/main (already shipped)"
+  REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main $MAINSHA | HEAD IS origin/main$DIRTYTXT"
+elif ($GIT merge-base --is-ancestor "$HEADSHA" "$MAINSHA" 2>/dev/null); then
+  REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main $MAINSHA | HEAD is an ancestor of origin/main (already shipped)$DIRTYTXT"
 else
-  AHEAD="$(cd "$ROOT" && git rev-list --count "$MAINSHA..$HEADSHA" 2>/dev/null || echo '?')"
-  ONREFS="$(cd "$ROOT" && git branch -a --contains "$HEADSHA" 2>/dev/null | sed 's/^[* ] *//' | paste -sd, - )"
-  REFLINE="ref: HEAD $HEADSHA | origin/main $MAINSHA | NOT ON MAIN - $AHEAD commit(s) ahead, on: ${ONREFS:-no ref}"
+  AHEAD="$($GIT rev-list --count "$MAINSHA..$HEADSHA" 2>/dev/null || echo '?')"
+  ONREFS="$($GIT branch -a --contains "$HEADSHA" 2>/dev/null | sed 's/^[* ] *//' | paste -sd, - )"
+  REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main $MAINSHA | NOT ON MAIN - $AHEAD commit(s) ahead, on: ${ONREFS:-no ref}$DIRTYTXT"
 fi
 echo "$REFLINE" | tee -a "$ALL"
 if [ -n "$SUBSET" ]; then
