@@ -357,14 +357,18 @@ wider one.
   trusts it. Same family as the thin gatelog whose footer was right and whose body had no PASS lines (#405)
   and gate 47's control recipe naming line numbers that had moved 36 down (#399). #411, #412.
 - **THE FIX A FLAG PROPOSES IS A HYPOTHESIS, NOT A PRESCRIPTION - CHECK IT AGAINST THE MECHANISM BEFORE
-  IMPLEMENTING IT.** `gate15-baseline-is-the-unsettled-frame` named its own remedy: "require the shrink to
-  persist across two consecutive samples the way 26-invariants.js's 4b does". Written by the session that had
-  just measured the defect, citing a real precedent, and it **does not work**: 4b's two-sample filter drops a
-  transient ROW, but here the transient is the **BASELINE**, and the shrink from it to the settled value
-  persists for ever - so a persistence filter keeps the false red to the pixel. The proposal was wrong for the
-  same reason the defect existed, and implementing it on the flag's authority would have shipped a fix, a
-  control, a log line and a closing note for a red that still fired. A flag's measurement is evidence; its
-  suggested fix is one more claim to break. #416.
+  IMPLEMENTING IT - AND QUOTE IT PROPERLY, BECAUSE THE FIRST VERSION OF THIS RULE DID NOT.**
+  `gate15-baseline-is-the-unsettled-frame` offered **two** remedies: "take the baseline after the card has
+  settled (one extra settle before the first sample of a caption), **or** require a shrink to persist across two
+  consecutive samples the way `26-invariants.js`'s 4b does since #413. Either is a few lines." The first is
+  essentially what #416 shipped. The second **does not work at all**: 4b's two-sample filter drops a transient
+  ROW, but here the transient is the **BASELINE**, and the shrink from it to the settled value persists for ever,
+  so a persistence filter keeps the false red to the pixel - and "either is a few lines" invites picking the
+  cheaper-looking one. So the rule is: a flag's measurement is evidence; each fix it suggests is one more claim
+  to break, and where it offers alternatives they are not interchangeable. This bullet first went in quoting
+  only the second option, which made a half-right flag look simply wrong - the #416 antagonist read the flag
+  live and caught it. **When a rule in this file quotes a source, the next reader will trust the quotation:
+  quote all of it, and say which part you acted on.** #416.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never

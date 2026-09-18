@@ -58,16 +58,38 @@
 // non-decreasing, and every card 1..N to appear; WFIX unit-tests it against five lists it must REJECT, one of
 // which (W4) is exactly the nine-caption list that satisfied the old bar.
 //
-// WHAT THIS GATE STILL CANNOT SEE, stated rather than left to be discovered as a fresh defect. (i) A shrink that
-// happens INSIDE the 900ms entry window is invisible: brief, and the tail absorbs it; sustained for 250ms at the
-// end of the window, and it BECOMES the baseline. That is the unavoidable price of not reading the expected value
-// out of an unsettled frame, and it is bounded - 900ms of a card that runs 5 to 52s. (ii) A board that is simply
-// the WRONG SIZE for its whole card passes everything here, because every assertion is relative to the card's own
-// settled width. That is deliberate: absolute board size per geometry is pinned in 35-width-containment, 46-play
-// and 48-lesson-flow, and duplicating those pins here would add a second place to update for every legitimate
-// layout change while catching nothing they do not. A per-card PINNED width table would close both, and was
-// considered and rejected for that reason - if the next session disagrees, the numbers to pin are in the header
-// above (375x679: card 1/8 351.03, cards 3-5 375.03, cards 6-8 349.03; 375x812: 375.03 then 349.03).
+// WHAT THIS GATE STILL CANNOT SEE, stated rather than left to be discovered as a fresh defect - and the first
+// version of this paragraph got its own coverage claim wrong, which the #416 antagonist measured.
+// (i) A shrink INSIDE the 900ms entry window is invisible: brief, and the tail absorbs it; sustained for 250ms at
+// the end of the window, and it BECOMES the baseline. That is the unavoidable price of not reading the expected
+// value out of an unsettled frame, and it is bounded - 900ms of a card that runs 5 to 52s.
+// (ii) A board that is the WRONG SIZE for its whole card passes everything here, because every assertion is
+// relative to the card's own settled width. This paragraph used to say that absolute board size "is pinned in
+// 35-width-containment, 46-play and 48-lesson-flow" - and NONE OF THOSE THREE GATES RUNS AT EITHER OF THIS
+// GATE'S GEOMETRIES: 35 runs se/short375/kunal730, 46 se/kunal730/390, 48 se/kunal730/390 plus four short
+// columns, and `812` appears in gate 35 only inside a comment. That is the "it is covered elsewhere" excuse
+// CLAUDE.md warns about, written by the session that had just added the rule about it. What DOES pin an absolute
+// board width at 375x679, checked file by file: 10-gameover.js:25 `WANT={kunal:351}` (card 1/8's state),
+// 13-play-after-moves.js:27 `PIN={kunal:{card:{w:351}}}` (card 2/8), 11-lesson.js:13 demo end 375 wide (cards
+// 3/8 and 4/8), 12-hint.js:16 `WANT={kunal:375}` (card 5/8), and 20-review.js:80 with 14-uat-review-card.js:21
+// both at 349 (card 6/8). AT 375x812 NOTHING IN THE SUITE PINS AN ABSOLUTE BOARD WIDTH - this gate is the only
+// file under gates/regress/ that visits that viewport at all. So (ii) is genuinely uncovered there, and saying
+// so is the point. The numbers to pin if the next session wants to close it are in the header above (375x679:
+// card 1/8 351.03, cards 3-5 375.03, cards 6-8 349.03; 375x812: 375.03 then 349.03).
+// (iii) What (ii) does NOT excuse, and what the population assertion below now catches: a board that is ABSENT.
+// Every board check here is conditioned on `m.board` existing, so `display:none` on the grid used to give
+// 24 pass / 0 fail with the log printing "2 of 15 captions had a board" and nothing reading that number -
+// the count-with-no-assertion fault, measured by the #416 antagonist with a control it wrote itself.
+// `CT_G15_NC=hide` and `=hideEntry` are that control, kept. The assertion is pinned to the MECHANISM (the only
+// boardless caption is the one whose text is "Starting...") rather than to a count with slack, because "at
+// least 13 of 15" was the first draft and one caption of slack is how a frozen denominator starts.
+// (iv) The shrink check is ONE-SIDED (`w < base - TOL`), so a board that GROWS mid-card and returns is
+// invisible, and CLAUDE.md's rule is that the board must never JUMP. A running max over each card's settled
+// samples would catch it; nothing in this walk grows (one width per caption, measured over 32,000+ samples at
+// 1x/4x/6x throttling across both geometries), so it is a gap in the argument rather than a missed defect.
+// (v) Latent: `tailStable` reports `why:'no board'` when the LAST read is null even if the board was present
+// for the rest of the window, and such a card lands in `noBase` and reds with a misleading reason. Not
+// reachable here - no caption group in five 40ms sweeps has a board present early and null later.
 //
 // THE CONTROLS, each with the command that reproduces its count (#412: publish the command with the number).
 // Measured on the shipped #415 bundle (app.js md5 6f42b141eac4), 2026-09-18, all at 375x679:
@@ -81,12 +103,39 @@
 //        and so does the baseline-population one, because a card whose width never settles gets no baseline while
 //        its board plainly WAS on screen. The two are coupled on purpose - that is the pairing that stops an
 //        unsettled card from being quietly dropped from the shrink check instead of reported.
-//   With no CT_G15_GEOS the gate runs both geometries: 34 pass, 0 fail (14 unit + 10 per geometry).
-// Each NC injects a REAL layout change into card CT_G15_NC_CARD (default 2) through a !important rule on the board
-// grid, so the quantity under assertion actually crosses the line rather than the mechanism merely being disturbed
-// (#384). `shrink` takes 24px off the board's width, height and squares and LEAVES them there, which is the
-// persistent shrink this gate exists to catch; `over` appends a laid-out 14px child to #root; `unsettled` flips the
-// board's width every 60ms so the 900ms read window never has a settled tail. The first draft of `shrink`
+//   CT_G15_GEOS=kunal CT_G15_NC=hide       ... -> the population assertion reds ("2 of 15 captions had a board")
+//   CT_G15_GEOS=kunal CT_G15_NC=hideEntry  ... -> the same, "1 of 15"
+//   CT_G15_GEOS=kunal CT_G15_NC=pagescroll ... -> the page-scroll assertion reds (body position:static)
+//   With no CT_G15_GEOS the gate runs both geometries.
+//
+// INDEPENDENTLY REPRODUCED by the #416 antagonist on its own instrument (an in-page 40ms sampler recording
+// [performance.now(), width, caption] in one synchronous callback, 32,000+ samples over five sweeps): the
+// transient's end at 89ms against the 88ms in this header; 113ms under 4x CPU throttling and 134ms under 6x, so
+// the worst transient anywhere in the walk is 134ms against this window's 650ms limit; card 6/8's board first
+// appearing at 13.1s (1x), 22.6s (4x), 14.4s (6x) of its 51.9s, which is what the late baseline exists for; and
+// every other caption holding exactly one width at every geometry and every throttle rate. Runtime, back to
+// back on the same machine: this gate 294s against the old one's 296s for the same walk, because the wall clock
+// is set by the app's own 5-88s holds and the read windows happen inside them.
+// THE MARGIN ON reads[0] IS ABOUT 60ms and that is worth knowing: detection is within one 60ms TICK of the
+// caption change and the transient runs to 89-134ms, so the note is not guaranteed for ever - but the failure
+// mode is a missing LOG NOTE, never a red, and it held on 5 of 5 runs plus the suite's own.
+//
+// WHY ct_pool IS FORCED TO 3 HERE (asked and answered at #416, not left for the next reader to re-derive):
+// determinism on card 6/8, which is a 52-second engine-bound review. The branch it skips is covered where it
+// matters - 33-reproducible-review.js run C forces ct_pool=1 and asserts the single-worker review returns the
+// same verdicts, and 23-full-walk.js drives this same gallery with NO override, so the device-chosen branch
+// runs there. Measured at #416: forcing ct_pool=1 here gives 24 pass / 0 fail with the transient still caught,
+// because pool size changes analysis speed, not geometry.
+// Each NC injects a REAL layout change AT card CT_G15_NC_CARD (default 2) and then LEAVES IT IN PLACE for the rest
+// of the run - the injected `<style id="ct-nc">` is never removed - so these are global from that card on, not
+// per-card. That wording matters, because it is why only card 2/8 ever reds for `shrink` and `over`: every later
+// card takes its baseline AFTER the injection and so measures the broken board as its own settled width. That is
+// blind spot (ii) above, demonstrated by the controls themselves rather than argued.
+// `shrink` takes 24px off the board's width, height and squares, which is the persistent shrink this gate exists
+// to catch; `over` appends a laid-out 14px child to #root; `unsettled` flips the board's width every 60ms so the
+// 900ms read window never has a settled tail; `hide` and `hideEntry` remove the board entirely, after and before
+// the entry window, which is the control for the population assertion; `pagescroll` forces `body` out of
+// `position:fixed` and appends 3000px to it, which is the control for the page-scroll mechanism. The first draft of `shrink`
 // overrode only `grid-template-columns` and the board's rect did not move at all - the box is fixed by an inline
 // `width:boardPx` on the same element - so the control injected something real and measured nothing, which is
 // #384's rule ("the numbers moved" is not enough) failing one step earlier still: the numbers had not moved.
@@ -94,6 +143,7 @@
 const L=require('../lib');
 
 const TOL=0.6, HOLD=250, WIN=900, STEP=50, TICK=60;
+const PINNED_IDS='1 k10|2 k8|3 k11|4 k11|5 A-06|6 US-R|7 y3|8 y3';
 
 // tailStable(reads,hold,tol): reads are [{w,ms}] in poll order. The baseline is the value at the END of the read
 // window, and it counts as settled only if the run of reads agreeing with it within tol spans >= hold ms.
@@ -157,6 +207,15 @@ const WFIX=[
   ['W5 a caption whose total disagrees with the gallery count is rejected',CAPS8.map(c=>c.replace('/8 ·','/9 ·')),8,false],
   ['W6 no n/N token anywhere is rejected rather than passing vacuously',[CAPS8[0],CAPS8[0]],8,false],
 ];
+// the page CANNOT scroll, and the reason is not the one this gate used to give. index.html sets
+// `body{position:fixed;inset:0}`, so documentElement has no scrollable content whatever anyone adds to it -
+// measured by the #416 antagonist: 3000px injected into #root gives over=3000 and docScroll STILL 0, and
+// docScroll only moves once `body{position:static}` is forced. So asserting docScroll===0 is inert by
+// construction and cannot be controlled; assert the MECHANISM instead, which is a positive claim and flips
+// under CT_G15_NC=pagescroll.
+const PAGEFIX=(b)=>b.page.evaluate(()=>{const r=document.getElementById('root');
+  return {bodyPos:getComputedStyle(document.body).position,rootOv:r?getComputedStyle(r).overflowY:null,
+    docScroll:Math.round(document.documentElement.scrollHeight-document.documentElement.clientHeight)};});
 const CAP=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rec-cap"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
 // read the board every STEP ms for exactly WIN ms, then take the tail. Uses b.board() so the width is measured by
 // the one harness library and cannot drift from what the assertions compare against.
@@ -177,6 +236,13 @@ async function inject(b,kind){
     const els=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));
     let best=null;for(const e of els){const r=e.getBoundingClientRect();if(r.width<40)continue;if(!best||r.width>best.getBoundingClientRect().width)best=e;}
     if(k==='over'){const d=document.createElement('div');d.style.height='14px';d.textContent='.';document.getElementById('root').appendChild(d);return 'appended a laid-out 14px child to #root';}
+    if(k==='pagescroll'){const st2=document.createElement('style');st2.id='ct-nc';
+      st2.textContent='body{position:static!important;height:auto!important}html,body{overflow:auto!important}';document.head.appendChild(st2);
+      const d=document.createElement('div');d.style.height='3000px';d.textContent='.';document.body.appendChild(d);
+      return 'body forced out of position:fixed and 3000px appended to it - the page really can scroll now';}
+    if(k==='hide'||k==='hideEntry'){const st3=document.createElement('style');st3.id='ct-nc';
+      st3.textContent='div[style*="repeat(8"]{display:none!important}';document.head.appendChild(st3);
+      return 'the board grid is display:none from here on - no board at all, not merely a smaller one';}
     if(!best)return 'NO BOARD TO INJECT INTO';
     const w0=best.getBoundingClientRect().width, sq=w0/8;
     // the board carries BOTH `grid-template-columns:repeat(8,SQpx)` AND an inline `width:boardPx` (chess.jsx:6537),
@@ -209,7 +275,15 @@ L.run(async()=>{
   for(const [lab,geo] of GEOS){
     const b=await L.launch({geo,name:'playall-'+lab,store:{ct_pool:'3'}});await b.open();
     const titles=await b.cardTitles();const N=titles.length;
-    L.say(N>=6,lab+': the gallery holds '+N+' cards',titles.map(t=>t.split(' · ').slice(0,2).join(' ')));
+    // PINNED, not a floor. `N>=6` was two cards of slack, and since walkOk takes N from this same call both
+    // sides moved together: delete two cards from SC and N would be 6, every caption would read /6, and the
+    // gate would go green having walked six. A deliberate change to the gallery updates this line on purpose.
+    // measured off b.cardTitles(), not guessed: card 6's own id is `US-R`, while its seven mid-walk steps
+    // re-caption as US-R01, US-R03 and so on. My first draft of this pin wrote US-R01 from the walk's
+    // captions and would have gone red on a healthy build.
+    const ids=titles.map(t=>t.split(' · ').slice(0,2).join(' '));
+    L.say(N===8&&ids.join('|')===PINNED_IDS,
+      lab+': the gallery holds its pinned eight cards in order ('+N+')',ids);
     await b.home();const gb=b.page.locator('button[title="Preview gallery (dev)"]');await gb.click();await b.settle(400);
     await b.page.locator('button',{hasText:/^▶ Play/}).first().click();
     const seen=[];let done=false;const scrolled=[],shrunk=[],pageScroll=[],unsettled=[],cards=[];
@@ -220,7 +294,7 @@ L.run(async()=>{
       if(cap&&cap!==cur){
         cur=cap;seen.push(cap);
         if(/RECORDING COMPLETE/i.test(cap)){done=true;break;}
-        if(NC&&new RegExp('·\\s*'+NC_CARD+'/').test(cap)&&NC==='unsettled')L.note('NC '+NC+': '+await inject(b,NC));
+        if(NC&&new RegExp('·\\s*'+NC_CARD+'/').test(cap)&&(NC==='unsettled'||NC==='hideEntry'))L.note('NC '+NC+': '+await inject(b,NC));
         const s=await settleBoard(b);base=s.st.ok?s.st.w:null;
         const first=s.reads[0].w;
         // what the OLD baseline (the first post-caption frame) would have been, from the same series
@@ -231,7 +305,7 @@ L.run(async()=>{
           (s.st.ok?' (held from '+s.st.fromMs+'ms of the 900ms window)':' NOT SETTLED: '+s.st.why)+
           (oldWouldRed?'   <- the OLD first-frame baseline would have reported a shrink of '+(oldBase-base).toFixed(2)+'px here':''));
         if(!s.st.ok&&s.st.why!=='no board')unsettled.push({cap:cap.slice(0,34),why:s.st.why,reads:s.reads.map(r=>r.w).slice(0,20)});
-        if(NC&&new RegExp('·\\s*'+NC_CARD+'/').test(cap)&&NC!=='unsettled')L.note('NC '+NC+': '+await inject(b,NC));
+        if(NC&&new RegExp('·\\s*'+NC_CARD+'/').test(cap)&&NC!=='unsettled'&&NC!=='hideEntry')L.note('NC '+NC+': '+await inject(b,NC));
         lastSample=Date.now();continue;
       }
       if(cap&&/RECORDING COMPLETE/i.test(cap)){done=true;break;}
@@ -242,7 +316,9 @@ L.run(async()=>{
       if(!cur)continue;
       sampled++;
       if(m.over.over>0.5)scrolled.push({cap:cur.slice(0,34),over:m.over.over});
-      if(m.over.docScroll>0)pageScroll.push({cap:cur.slice(0,34),doc:m.over.docScroll});
+      const pf=await PAGEFIX(b);
+      if(pf.bodyPos!=='fixed'||!/^(auto|scroll)$/.test(String(pf.rootOv))||pf.docScroll>0)
+        pageScroll.push(Object.assign({cap:cur.slice(0,34)},pf));
       const rec=cards[cards.length-1];
       if(m.board&&rec)rec.sawBoard=true;
       if(m.board&&base===null&&rec&&(rec.lateTried||0)<2){    // the board arrived after the entry window
@@ -264,7 +340,7 @@ L.run(async()=>{
     L.say(scrolled.length===0,lab+': no card leaves the page scrolling',scrolled.slice(0,3));
     // expected vacuous by design and kept as a tripwire for the design changing: index.html says #root is the
     // app's scroller and "the page never does", so docScroll is 0 on every screen (CLAUDE.md, two false P0s).
-    L.say(pageScroll.length===0,lab+': the page itself never scrolls (tripwire; #root is the app scroller by design)',pageScroll.slice(0,3));
+    L.say(pageScroll.length===0,lab+': the page itself cannot scroll - body is out of flow and #root is the scroller',pageScroll.slice(0,3));
     L.say(shrunk.length===0,lab+': no board shrinks inside a card, against a SETTLED baseline',shrunk.slice(0,3));
     L.say(unsettled.length===0,lab+': every card whose board is measurable settles inside the 900ms window',unsettled.slice(0,2));
     L.say(sampled>=8,lab+': the walk actually took samples to assert over ('+sampled+' attributed, '+raced+' discarded across a caption change)');
@@ -273,6 +349,20 @@ L.run(async()=>{
     // baseline (the Starting frame), but one whose board WAS on screen must never be left unbaselined - which is
     // what the old lazy `if(curBoard===null)curBoard=m.board.w` did cover and a fixed entry window alone does not
     // (measured: card 6/8 US-R01 shows no board for the first 11.5s of its 52s).
+    // AND THE POPULATION ITSELF MUST BE ASSERTED, not merely printed. Every board check here is conditioned on
+    // the board existing, so a bundle whose board is display:none passes ALL of them - measured by the #416
+    // antagonist at 24 pass / 0 fail with this line printing "2 of 15" and nothing reading it. That is the
+    // count-with-no-assertion fault (#405, #413's invariant 4b), and the number was already on the page.
+    // PINNED TO THE MECHANISM, NOT TO A COUNT WITH SLACK. The first draft of this line asserted
+    // "at least 13 of 15", and a bar with one caption of slack is how a frozen denominator starts - a gallery
+    // that legitimately gains one boardless caption would spend the slack silently. Measured at both
+    // geometries over five runs, the captions WITHOUT a board are exactly one, and it is the frame whose own
+    // text is "Starting...". So assert that: any other boardless caption is a finding, and a deliberate
+    // change to the gallery has to come through here on purpose.
+    const withBoard=cards.filter(c=>c.sawBoard).length;
+    const boardless=cards.filter(c=>!c.sawBoard&&!/Starting/.test(c.cap));
+    L.say(boardless.length===0,lab+': every caption except the Starting frame showed a board ('+withBoard+
+      ' of '+cards.length+' had one)',boardless.map(c=>c.cap));
     const noBase=cards.filter(c=>c.sawBoard&&c.base===null);
     L.say(noBase.length===0,lab+': every caption whose board was on screen got a settled baseline ('+
       cards.filter(c=>c.sawBoard).length+' of '+cards.length+' captions had a board, '+lateBase+' baselined late)',
