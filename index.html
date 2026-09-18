@@ -162,7 +162,19 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
         if(g.w&&g.w.uid===u.uid){ await remember(); return {id:code,color:'w'}; }
         if(g.b&&g.b.uid===u.uid){ await remember(); return {id:code,color:'b'}; }
         const free=g.w?(g.b?null:'b'):'w'; if(!free) throw new Error('full');
-        const upd={status:'active',updatedAt:Date.now()}; upd[free]=me; await updateDoc(ref,upd);
+        /* #416: THE CLOCK MUST START WHEN THE GAME STARTS, NOT WHEN THE INVITE WAS WRITTEN.
+           _gameCreate (above) seeds clk AND writes moveAt while status is still 'waiting'. This update flipped
+           status to 'active' and never touched moveAt, so the entire time an invite sat unaccepted was charged
+           to White: chess.jsx debits _used=_now-(og.moveAt||_now) on the first move and writes
+           result/status:'over'/endBy:'time' the moment the remainder hits zero, and onlineClaimFlag offers the
+           opponent a "Claim win" button on the same arithmetic. On a 1 min game a friend who took a minute to
+           tap Join had ALREADY WON IT before either player moved; on 3+1 the window is three minutes.
+           Harmless for as long as no online game could carry a live clock - and the minute-clock pills shipped
+           at #399, which turned this into the feature's primary path. Re-seed clk as well, so nothing stale
+           from the waiting period survives into the live game. */
+        const _jtc=g.tc, _jlive=_jtc&&_jtc.kind!=='corr'&&_jtc.init;
+        const upd={status:'active',updatedAt:Date.now(),moveAt:Date.now()}; if(_jlive)upd.clk={w:_jtc.init*1000,b:_jtc.init*1000};
+        upd[free]=me; await updateDoc(ref,upd);
         await remember(); return {id:code,color:free}; };
       C._gameList = async function(){ const u=auth.currentUser; if(!u) return [];
         let codes=[]; try{ const snap=await getDoc(doc(db,'users',u.uid)); const d=snap.exists()?snap.data():null; codes=(d&&Array.isArray(d.games))?d.games.slice(-40):[]; }catch(e){ return []; }

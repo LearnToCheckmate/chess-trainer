@@ -344,6 +344,21 @@ wider one.
   the geometry, the block filter, the assertion ids - or the next person re-derives it from scratch or, worse,
   trusts it. Same family as the thin gatelog whose footer was right and whose body had no PASS lines (#405)
   and gate 47's control recipe naming line numbers that had moved 36 down (#399). #411, #412.
+- **FETCH BEFORE YOU BUILD, NOT BEFORE YOU PUSH.** The rule above says fetch before any push, and that is correct
+  and fires far too late. On 2026-09-18 a session resumed on a container pinned at `fdb8c0b` (#398), read the
+  procedure fresh, read every flag, read the decisions and the Decision Desk, picked the top feature spec,
+  measured the app, wrote an amber record, built it, wrote a 40-assertion gate, proved it against a negative
+  control, took an antagonist pass, fixed a veto, and reached `GATES GREEN #399` with 1096 PASS — and only THEN
+  ran `git fetch`, which said `origin/main` was at #415, forty-three commits ahead, and that the online-clock
+  pills had shipped as the real #399 three days earlier with their own amber record and their own gate. Every
+  line of the app change was already on main. **The build number is the tell, it is available first, and it is
+  free:** this file already says numbers are one sequence and that two trees carrying the same number cost a
+  rebase at #375. So the first action of any pass that intends to change code is
+  `git fetch && git log -1 --oneline origin/main`, and if local HEAD is not `origin/main`, rebase or reset
+  BEFORE choosing what to build — because **the queue you are about to read may describe work that is already
+  done, and a spec marked build-ready is a statement about the spec, not about the repo.** What saved that run
+  was the antagonist pass on the duplicate build, which found a live defect the real #399 had shipped without:
+  see `online-clock-starts-at-invite-not-at-game`. #416.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never

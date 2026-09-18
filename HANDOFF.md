@@ -72,7 +72,31 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-15 by BUILD #398)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-18 by BUILD #416)
+LIVE = **#416**. GATES GREEN: 36 suites, 1916 PASS, 0 fail, verified before citing.
+
+**THE ONLINE CLOCK STARTED WHEN THE INVITE WAS WRITTEN, NOT WHEN THE GAME BEGAN.** `_gameCreate` seeds `clk` and
+writes `moveAt` while the game is still `waiting`; `_gameJoin` flipped it to `active` and never reset `moveAt`.
+The first move then debits the whole waiting period and writes `endBy:'time'` the instant the remainder hits
+zero, and the opponent's Claim win button runs on the same arithmetic. **Create a 1 min online game, and a
+friend who takes a minute to accept has already won it before either of you moves.** Harmless until the
+minute-clock pills shipped at #399 and made it the primary path. Fixed in `_gameJoin` (reset `moveAt`, re-seed
+`clk`) and in the rematch push, which had inherited the finished game's clocks.
+
+**NEITHER FIX IS GATED, AND CANNOT BE FROM HERE.** The CTCloud implementation lives in an `index.html` module
+importing from gstatic, which the harness blocks, so it never executes in the sandbox and a double would only
+test itself. It is named in gate 25's header and is one for Kunal's phone: create a 1 min game, wait two
+minutes before joining on the other device, and check the game is still playable rather than already over.
+
+**READ THIS BEFORE YOUR NEXT RUN — IT COST A WHOLE PASS.** This session resumed on a container pinned at #398
+and built the entire online-clock feature before discovering, at push time, that main was at #415 and the
+feature had shipped three days earlier. `fetch before any push` fires too late. **Fetch before you BUILD**, and
+check the build number on `origin/main` before you choose what to work on: a spec marked build-ready is a
+statement about the spec, not about the repo. The duplicate work is on local branch `stale-399-duplicate` and
+was never pushed. See flags `fetch-before-you-build-not-before-you-push` and
+`online-clock-starts-at-invite-not-at-game`.
+
+## 0a-prev0) WHERE THE BUILD ACTUALLY IS (updated 2026-09-15 by BUILD #398)
 LIVE = **#398**, stamp "#398 - 2026-09-15 03:18 ET", md5 367b6d1d39c0... over 947407 bytes.
 GATES GREEN: **28 suites, 1052 PASS, 0 fail** on the first full run; re-gated after the antagonist pass (numbers
 confirmed at close-out, `gates/verify-log.sh` run on the log before it was cited).

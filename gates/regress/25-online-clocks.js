@@ -39,6 +39,20 @@
 //   (4) L.launch prints the bundle and stamp it measured. If a run's output does not say what it measured, it is
 //       not evidence.
 //
+// #416, AND IT IS THE ONE THIS FILE MOST NEEDS SOMEBODY TO READ: THE CLOCK USED TO START WHEN THE INVITE WAS
+// WRITTEN, NOT WHEN THE GAME BEGAN. _gameCreate seeds clk and writes moveAt while status is still 'waiting';
+// _gameJoin flipped status to 'active' and never touched moveAt. So the whole time an invite sat unaccepted
+// was charged to White - the first move debits _now-(og.moveAt||_now) and writes endBy:'time' the moment the
+// remainder hits zero, and onlineClaimFlag offers the opponent a Claim win button on the same arithmetic.
+// On a 1 min game a friend who took a minute to tap Join had already won it before either player moved.
+// It was harmless until the minute-clock pills shipped, which made it the feature's primary path, and it was
+// live on main from then until #416. FIXED in index.html (_gameJoin re-seeds moveAt and clk) and in the
+// rematch push, which had inherited the finished game's clocks. NEITHER FIX IS GATED, and cannot be from
+// here: the whole CTCloud implementation lives in an index.html module importing from gstatic.com, which
+// gates/lib.js BLOCKS, so _gameCreate/_gameJoin/_gamePush never execute in the sandbox and a double would
+// only be this file's own code proving things about itself. It is a NAMED residual for the two-context
+// harness and for Kunal's live two-phone test, which decision cov-online already anticipates.
+//
 // NOT COVERED, NAMED SO NOBODY READS THIS GREEN AS MORE THAN IT IS: R-OC-4 (the moveAt skew fix), R-OC-5 (losing
 // on time), R-OC-6 (data-ct on the clocks) and R-OC-7 (the flag row must not move the board) are all about a
 // LIVE online game, which needs sign-in and Firestore and, per the spec's own notChecked, a two-context relay

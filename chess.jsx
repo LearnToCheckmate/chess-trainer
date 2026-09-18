@@ -3768,7 +3768,12 @@ export default function App(){
   const onlineResign=()=>{const og=onlineGameRef.current,C=window.CTCloud;if(!og||og.result||!C)return;const result=myColorRef.current==='w'?'0-1':'1-0';C.gamePush(og.id,{result,status:'over',endBy:'resign',resignedBy:myColorRef.current,drawBy:null});};
   const onlineOfferRematch=()=>{const og=onlineGameRef.current,C=window.CTCloud;if(!og||!og.result||!C)return;C.gamePush(og.id,{rematchBy:myColorRef.current,notice:null});setOnlineInfo('');};
   const onlineCancelRematch=()=>{const og=onlineGameRef.current,C=window.CTCloud;if(!og||!C)return;C.gamePush(og.id,{rematchBy:null});};
-  const onlineAcceptRematch=()=>{const og=onlineGameRef.current,C=window.CTCloud;if(!og||!C)return;C.gamePush(og.id,{moves:[],result:null,status:'active',drawBy:null,rematchBy:null,notice:null,endBy:null,resignedBy:null,moveAt:Date.now()});setOnlineInfo('');setConfirmResign(false);};
+  const onlineAcceptRematch=()=>{const og=onlineGameRef.current,C=window.CTCloud;if(!og||!C)return;/* #416: reset clk too. This pushed moveAt but not clk, so a rematch after a LIVE game began with the
+       finished game's remaining times - typically 0:00 for whoever had just flagged, which puts the opponent's
+       "Claim win" control live on move zero of the new game. Same cause as the join defect in index.html and
+       newly reachable for the same reason: the minute-clock pills shipped at #399. */
+    const _rtc=og.tc, _rlive=_rtc&&_rtc.kind!=='corr'&&_rtc.init;
+    C.gamePush(og.id,Object.assign({moves:[],result:null,status:'active',drawBy:null,rematchBy:null,notice:null,endBy:null,resignedBy:null,moveAt:Date.now()},_rlive?{clk:{w:_rtc.init*1000,b:_rtc.init*1000}}:{}));setOnlineInfo('');setConfirmResign(false);};
   const onlineDeclineRematch=()=>{const og=onlineGameRef.current,C=window.CTCloud;if(!og||!C)return;C.gamePush(og.id,{rematchBy:null,notice:{for:og.rematchBy,msg:'Rematch declined',t:Date.now()}});};
   const onlineOfferDraw=()=>{const og=onlineGameRef.current,C=window.CTCloud;if(!og||og.result||!C)return;C.gamePush(og.id,{drawBy:myColorRef.current,notice:null});};
   const onlineAcceptDraw=()=>{const og=onlineGameRef.current,C=window.CTCloud;if(!og||!C)return;C.gamePush(og.id,{result:'1/2-1/2',status:'over',drawBy:null,endBy:'draw',notice:null});};
