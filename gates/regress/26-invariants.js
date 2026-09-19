@@ -649,6 +649,55 @@ L.run(async()=>{
       if(!reached) continue;
       await b.settle(450);
       res=await b.page.evaluate(SCAN);
+
+      /* ── THE GRADE LADDER MUST ACCOUNT FOR EVERY MOVE (#421) ────────────────────────────────────────
+         jobs/split-excellent-out-of-best. `classify()` (chess.jsx:347) produces SIX grades including
+         Excellent, and `_sideStats` (chess.jsx:3339) used to fold it away with
+         `else if(L==='Best'||L==='Excellent')c.Best++;` - so every Excellent move in every game was
+         counted as Best, the summary showed NINE grades where US-R03 (chess.jsx:4425) and chess.com both
+         say ten, and the Best column the user read was not a Best count. Measured on the Opera Game: White
+         Best was 6 and is now Best 5 + Excellent 1; Black was 9 and is now 7 + 2.
+
+         THIS IS THE INVARIANT THAT WOULD HAVE CAUGHT IT THE DAY THE BRANCH WAS WRITTEN, and it is worth
+         more than another hand-written expectation because it needs no known-good answer - only internal
+         consistency. Every ply lands in exactly ONE bucket: `_sideStats` counts Book with an early return,
+         and `Miss` RELABELS Mistake or Blunder (chess.jsx:3266) rather than sitting on top of one, so the
+         buckets PARTITION. That was measured by the orchestrator across seven real games before this gate
+         was written (the brief's warning that Miss might overlay was withdrawn), which is why the form
+         here is the simple sum and not sum-minus-Miss. Getting that backwards would have produced a gate
+         that fails on correct output, which is worse than no gate.
+
+         The per-side ply counts are the FIXTURE's: R.states['summary'] imports the Opera Game, 17 white
+         moves and 16 black. If that fixture ever changes these two numbers go red, and that is correct -
+         they are not a property of the app, they are a property of the game being graded, and the gate
+         says so rather than deriving them from the thing under test. */
+      if(name==='rev-summary'){
+        const LADDER=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'];
+        const grades=await b.page.evaluate((LAD)=>{
+          const panel=document.querySelector('[data-ct="rev-summary"]');
+          if(!panel)return null;
+          const rows=[...panel.querySelectorAll('div')]
+            .filter(d=>/1fr 56px 56px/.test(d.style.gridTemplateColumns||''))
+            .map(d=>(d.innerText||'').split('\n').map(x=>x.trim()).filter(Boolean))
+            .filter(c=>c.length>=3&&LAD.indexOf(c[0])>=0);
+          const out={};
+          for(const c of rows){const w=parseInt(c[c.length-2],10),bk=parseInt(c[c.length-1],10);
+            if(Number.isFinite(w)&&Number.isFinite(bk))out[c[0]]={w,b:bk};}
+          return out;
+        },LADDER);
+        L.say(!!grades,g+' rev-summary: the grade table was found and read, so the ladder assertions below are not vacuous',grades&&Object.keys(grades).length);
+        if(grades){
+          const got=Object.keys(grades);
+          L.say(got.length===10,g+' rev-summary: the summary shows all TEN grades US-R03 specifies - Excellent is its own row and is not folded into Best (#421)',{rows:got.length,got});
+          L.say(got.indexOf('Excellent')>=0,g+' rev-summary: Excellent has its own bucket',got.join(','));
+          L.say(JSON.stringify(got)===JSON.stringify(LADDER),g+' rev-summary: the ten rows are in LADDER order, best to worst',got.join(','));
+          const sum=(sd)=>LADDER.reduce((a,k)=>a+((grades[k]&&grades[k][sd])||0),0);
+          const W=sum('w'), B=sum('b');
+          L.note('      grade ladder: '+LADDER.map(k=>k+' '+(grades[k]?grades[k].w+'/'+grades[k].b:'-')).join(', '));
+          L.say(W===17,g+' rev-summary: WHITE grade counts sum to the 17 moves White played - every ply is in exactly one bucket, so no category is silently dropped (#421)',{sum:W,movesPlayed:17});
+          L.say(B===16,g+' rev-summary: BLACK grade counts sum to the 16 moves Black played (#421)',{sum:B,movesPlayed:16});
+        }
+      }
       seenAny+=res.seen.inked;
       totalRows+=res.rows.length; totalSkipped+=res.skipped.length;
       // PRESENCE FIRST: an empty screen scans clean, so a zero-ink screen is not evidence of anything (#385).
