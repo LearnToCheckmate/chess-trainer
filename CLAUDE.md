@@ -44,9 +44,22 @@ records it here and in a flag, and says so in its run report before doing anythi
 | `claude/ecstatic-tesla-m9updx` | **NOT YOURS.** #376-#379 era, 539 ahead and 46 behind, deliberately divergent; its own commit messages say so. A separate question, never merged on a whim. |
 | `claude/pen-probe-1790081923991` | a leftover pen probe from 2026-09-22. Harmless, points at `13a4ba2`. The git proxy refuses branch deletes, so it stays until Kunal removes it on GitHub. |
 
-Both #416 gate logs are kept, under `claude/agents/gatelogs/416-main-all.log` (md5 `b2ab30ff6784`,
-1916 PASS) and `416-branch-all.log` (md5 `69b903f2b0ca`, 1938 PASS). There are genuinely two #416s;
-merging those logs into one file would have destroyed the only evidence that found the second line.
+Both #416 gate logs are kept, under `claude/agents/gatelogs/416-main-all.log` and
+`416-branch-all.log`. There are genuinely two #416s; merging those logs into one file would have
+destroyed the only evidence that found the second line. What proves they are two different runs is
+the **bundle each one measured**, not the log files' own hashes:
+
+| log | bundle md5 it records | bundle stamp | PASS |
+|---|---|---|---|
+| `416-main-all.log` | `b2ab30ff6784` (= `git show 13a4ba2:app.js \| md5sum`) | `#416 - 2026-09-18 14:32 ET` | 1916 |
+| `416-branch-all.log` | `69b903f2b0ca` | `#416 - 2026-09-18 00:18 ET` | 1938 |
+
+**Those two hashes are BUNDLE md5s, not the md5s of the log files** (those are `dc58b5e1ea45` and
+`7c6dea501577`). The #422 antagonist caught this table's first draft labelling them as the logs'
+own hashes, which would have sent the next person who ran `md5sum` on the files to the reasonable
+conclusion that the logs had been tampered with in the merge. Two distinct *bundles* under two
+distinct *stamps* is in any case the stronger evidence: it shows two real runs over different code,
+where two different file hashes would only show two different files.
 
 ## Where the truth lives
 
