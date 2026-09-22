@@ -12,13 +12,18 @@ condensed to what changes what you build.
 
 ## Who builds
 
-Only `session_01Ar5fWLg9DZuPaRDBfKnXvs`, the Claude Code chat with this repo attached, builds,
-gates, commits or pushes. Kunal's decision, 2026-09-13. Every other chat may read, measure, test,
-and write docs and flags. The live rule is tracker flag `pen-lock-one-writer`.
+Only runs of the routine **"Chess Trainer: build run (daily 3am and 1pm ET)"** build, gates, commits
+or pushes. Kunal's decision, 2026-09-22, retiring the two sessions named here previously
+(`session_01Ar5fWLg9DZuPaRDBfKnXvs` and `session_01BgrYKpJzzQM4QSmQtnMPAb`) — the pen has moved from
+a fixed session to that routine. Every other chat may read, measure, test, and write docs and flags.
+The live rule is tracker flag `pen-lock-one-writer`.
+
+The full build procedure lives in the tracker, not in this file: artifact `5326ERvZCZ5tEYRkPavPTF`,
+collection `prompts`, doc `build-run`. Where that doc and this file differ, the tracker doc wins.
 
 - **Never use GitHub's upload page.** It strips the `Claude-Session` trailer, which is why `14f06ac`
   is the one commit here whose author cannot be traced.
-- **Build numbers are issued by this session only**, one sequence. Two trees must never carry the
+- **Build numbers are issued by the routine only**, one sequence. Two trees must never carry the
   same number; that happened once with #375 and cost a rebase.
 - **Before any push:** `git fetch && git log -1 origin/main`. If main moved, rebase onto it. Never
   push over it.
