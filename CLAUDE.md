@@ -30,6 +30,24 @@ collection `prompts`, doc `build-run`. Where that doc and this file differ, the 
 - Work from another session arrives as a **patch committed here** with the trailer intact, never as
   a parallel upload.
 
+### The branch record. A ref not named here does not exist as far as any lane is concerned.
+
+There were two build lines, and the record of the second one did not exist for a day, which cost two
+passes. It was found only because two different #416 gate runs collided on one filename — luck, not
+process. So every ref is named here, and any run that finds one this table does not name stops,
+records it here and in a flag, and says so in its run report before doing anything else with it.
+
+| ref | what it is |
+|---|---|
+| `main` | the only live line. Everything lands here; GitHub Pages deploys the app from it. |
+| `claude/nice-einstein-hnoipk` | **DEAD, merged into main at #422.** It carried #417 to #421, including the Bxh3 alt-move fix Kunal found by hand (#420) and the Excellent split (#421). Both are on main now. Do not build on it and do not resurrect it. |
+| `claude/ecstatic-tesla-m9updx` | **NOT YOURS.** #376-#379 era, 539 ahead and 46 behind, deliberately divergent; its own commit messages say so. A separate question, never merged on a whim. |
+| `claude/pen-probe-1790081923991` | a leftover pen probe from 2026-09-22. Harmless, points at `13a4ba2`. The git proxy refuses branch deletes, so it stays until Kunal removes it on GitHub. |
+
+Both #416 gate logs are kept, under `claude/agents/gatelogs/416-main-all.log` (md5 `b2ab30ff6784`,
+1916 PASS) and `416-branch-all.log` (md5 `69b903f2b0ca`, 1938 PASS). There are genuinely two #416s;
+merging those logs into one file would have destroyed the only evidence that found the second line.
+
 ## Where the truth lives
 
 | file or artifact | what it holds |
@@ -124,6 +142,14 @@ wider one.
   and it pins the exclusion to its MECHANISM - every excused box must be a div or img exactly 1.06x the square it
   sits in - because the first draft asserted a bare count and a count loose enough to pass is loose enough to hide
   a real defect appearing beside the pieces.
+- **AND BEFORE THAT: CHECK THE CONTROL MOVED THE QUANTITY THE ASSERTION READS AT ALL.** #416's first shrink
+  control injected `grid-template-columns:repeat(8,...)!important` on the board and the board's rect did not
+  move one pixel, because the same element carries an inline `width:boardPx` (chess.jsx:6537) and it is the
+  width that fixes the box. The injection was real, the log said what it had done, three cards later everything
+  still measured 375.03 - a control that disturbs something genuine and leaves the measured number untouched
+  reads exactly like a gate that cannot fail. Print the before and after of the MEASURED value, not of the
+  thing you changed. This is the rule below failing one step earlier: not "the numbers moved but not past the
+  line", but the numbers had not moved.
 - **A negative control must cross the threshold, not just disturb the mechanism.** Reverting half of #384's fix
   left the row still overflowing its box, by 19px instead of 48 - but the trailing button landed at 294 on a 320
   screen and stayed on it, so the gate was right to stay green. "The numbers moved" is necessary and not
@@ -336,7 +362,11 @@ wider one.
   expected value is read from the thing that selects the case; a cross-check fed by the thing under test): *the
   check and the thing being checked were the same object.* Exclude yourself (`| grep -v $$`), or match the
   `node` process, or wait on the PID you started - and do not let one watcher be the ONLY way a finished step
-  gets noticed.
+  gets noticed. **#416 broke this twice in one hour, in the hour it spent writing about self-reference.** First
+  the same waiter (`until pgrep -f "15-gallery-playall.js"`, which waits on itself), then the sibling that is
+  worse: `pkill -f "<pattern>"` at the head of a compound command **kills its own shell**, because the shell's
+  command line contains the pattern - so the edit behind it never ran and three control runs were lost. `pgrep`
+  hangs; `pkill` terminates the thing that called it. Wait on a FILE the job writes, or on a PID you captured.
 - **A COUNT WITH NO SCOPE CANNOT BE CHECKED, AND TWO OF SIX PUBLISHED CONTROL RESULTS TURNED OUT TO BE SUBSET
   RUNS.** `gates/regress/49-home.js` arrived with six negative controls recorded in its lane document as bare
   numbers ("NC2: 15 red", "NC5: 12 red"). Re-run here, the full gate gives **27** and **14**; measured,
@@ -349,6 +379,19 @@ wider one.
   the geometry, the block filter, the assertion ids - or the next person re-derives it from scratch or, worse,
   trusts it. Same family as the thin gatelog whose footer was right and whose body had no PASS lines (#405)
   and gate 47's control recipe naming line numbers that had moved 36 down (#399). #411, #412.
+- **THE FIX A FLAG PROPOSES IS A HYPOTHESIS, NOT A PRESCRIPTION - CHECK IT AGAINST THE MECHANISM BEFORE
+  IMPLEMENTING IT - AND QUOTE IT PROPERLY, BECAUSE THE FIRST VERSION OF THIS RULE DID NOT.**
+  `gate15-baseline-is-the-unsettled-frame` offered **two** remedies: "take the baseline after the card has
+  settled (one extra settle before the first sample of a caption), **or** require a shrink to persist across two
+  consecutive samples the way `26-invariants.js`'s 4b does since #413. Either is a few lines." The first is
+  essentially what #416 shipped. The second **does not work at all**: 4b's two-sample filter drops a transient
+  ROW, but here the transient is the **BASELINE**, and the shrink from it to the settled value persists for ever,
+  so a persistence filter keeps the false red to the pixel - and "either is a few lines" invites picking the
+  cheaper-looking one. So the rule is: a flag's measurement is evidence; each fix it suggests is one more claim
+  to break, and where it offers alternatives they are not interchangeable. This bullet first went in quoting
+  only the second option, which made a half-right flag look simply wrong - the #416 antagonist read the flag
+  live and caught it. **When a rule in this file quotes a source, the next reader will trust the quotation:
+  quote all of it, and say which part you acted on.** #416.
 - **FETCH BEFORE YOU BUILD, NOT BEFORE YOU PUSH.** The rule above says fetch before any push, and that is correct
   and fires far too late. On 2026-09-18 a session resumed on a container pinned at `fdb8c0b` (#398), read the
   procedure fresh, read every flag, read the decisions and the Decision Desk, picked the top feature spec,
@@ -382,6 +425,53 @@ wider one.
   gate passed on a bundle built to fail it. Both times the fix was to assert the thing itself, in the
   BUNDLE UNDER TEST, rather than only its downstream symptom - a symptom that a fast machine may not
   be able to produce at all.
+- **THE IMPRESSIVE ARGUMENT IS NOT THE SOUND ONE, AND THE CONTROL THAT TELLS YOU WHICH IS CHEAPER THAN THE
+  ARGUMENT.** #418 left three full-suite logs and the question was whether any authorised a push. I proved two of
+  them came from overlapping runs by hashing all 36 gate sections in each and finding **26 byte-identical**,
+  including `49-home` at 53,951 bytes, and wrote up "two independent browser runs cannot emit 53KB of identical
+  measured rects and timings". It reads like measurement. It is worthless: the control - `416-all` against
+  `416b-all`, two runs I KNEW were sequential - shares **29 of 36**, MORE than the pair I was calling proof,
+  because most gates in this suite print fixed assertion text and rects that do not vary between runs. The
+  comparison has no discriminating power at all, and I had already committed and filed two flags on it before
+  running the one command that checks. **The sound proof was two lines the tool already prints**: `gates.sh`
+  stamps its header at run START, `418b-all.log` says 15:27:20Z and `418c-all.log` says 15:27:30Z, both are
+  complete 36-section runs, and no full suite finishes in ten seconds - so the second began inside the first. One
+  sentence, no script. So: when an argument needs a program to make it, ask what that program would print on a
+  case you already know is FINE before believing what it printed on the case in question - and look first for the
+  argument you can state from data already on the page. Same family as #416's "print the before and after of the
+  MEASURED value", one step earlier: there the control did not move the number, here the control was never run.
+- **AND THE SAME PASS PUBLISHED A SECOND UNMEASURED NUMBER FOR THE SAME REASON.** Having withdrawn the above, I
+  wrote that a clean suite takes "~25 min" against #418's ~44, so the 44 "was inflated by the contention" -
+  extrapolated from the first attempt's 11 gates in 7.5 minutes. Measured, #419's clean single run took
+  **43m 44s** (17:01:15Z to 17:44:59Z), which is #418's figure to the minute. The gates are nowhere near uniform:
+  the cheap ones come first and `45`, `47`, `48`, `49` dominate the tail, so a linear extrapolation from the head
+  of the run is not an estimate of the run. Two consequences. The wall clock is set by the app's own holds and
+  not by CPU, so two overlapping suites did NOT measurably slow each other - and therefore **the lock is not
+  justified by a demonstrated timing perturbation, which I never measured.** It is justified by what WAS proved:
+  a shared per-gate log path plus two runs inside one window, and one corrupt log out of it.
+- **A GATE LOG'S FOOTER CANNOT VOUCH FOR THE FILE IT WAS DERIVED FROM.** `PASSN=$(grep -c '^PASS' "$ALL")`
+  computes the total FROM the log, so #405's self-consistency check - footer equals actual PASS count - holds for
+  any assembly of that file, however it was assembled. It is the fifth costume of the trap that also excused the
+  real 38.9px overflow by clip-intersection, hid the defect it was written for at #393 with "the covering element
+  is big", let the bubble satisfy `grid.contains()` at #394 and let flex-shrink absorb the overrun at #398: *the
+  check and the thing being checked were the same object.* What protects a log's provenance is the LOCK (#419) -
+  one suite at a time - not anything `verify-log.sh` can read afterwards. And note how the corrupt one was
+  caught: refused for "carries no footer", which is FALSE (the footer is there and reads 1855) - grep goes binary
+  on a NUL and prints "binary file matches" instead of the match. **A wrong reason that reaches the right verdict
+  is a trap, not a check.** (Self-consistency would have refused it too, had the footer been readable: its actual
+  `^PASS` count is 1851, not 1855. Partial protection, by luck again, and naming neither cause.)
+- **LONG BACKGROUND WORK DOES NOT SURVIVE AN IDLE TURN IN THIS CONTAINER, so a 44-minute suite cannot be
+  launched and left.** #419 was killed TWICE mid-suite - at 11 of 36 gates and again at 7 of 36 - with no error
+  in either log, every node process gone, and the lock left behind un-trapped, so SIGKILL rather than an exit.
+  `nohup` did not help and neither did `setsid` with PPID 1. What the two gaps have in common is an IDLE session:
+  both kills landed while this session sat between turns waiting on a scheduled wake ~20 minutes out, and in both
+  cases the suite advanced normally while tool calls were being made. Launch detached AND arm a `Monitor` whose
+  events keep arriving - progress every couple of minutes plus every terminal state - or the run dies unwatched.
+  Cover death explicitly: a watch that greps only for `GATES GREEN` is silent on a kill, and silence is
+  indistinguishable from "still running". Two corollaries that each cost a run to learn: a stale-lock takeover is
+  not optional, because the FIRST accident after shipping the lock was a SIGKILL that left one behind and would
+  otherwise have jammed every later suite; and the per-run log stem is what preserved the two killed runs'
+  per-gate logs instead of letting the relaunch overwrite them.
 
 ## Temporary code, with an expiry
 

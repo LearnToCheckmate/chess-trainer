@@ -3265,7 +3265,7 @@ export default function App(){
           if((cls.label==='Best'||cls.label==='Excellent')&&_h2&&(_bm-_s2)>=160)cls={label:'Great',c:'#5d93e8',i:'!'};
           else if((cls.label==='Mistake'||cls.label==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130)cls={label:'Miss',c:'#f08a5d',i:'×'};}
         let altSan='',altDrop=null;
-        try{const au=aU[i];if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));}}
+        try{const au=aU[i];if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)&&!(am.fr===pl.fr&&am.fc===pl.fc&&am.tr===pl.tr&&am.tc===pl.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));}}
           if(ev2W[i]!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2W[i]:-ev2W[i];altDrop=Math.max(0,Math.round(_b-_s2));}}catch(e){}
         out.push({loss:Math.round(loss),cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null});
       }
@@ -3336,7 +3336,7 @@ export default function App(){
       }
     }catch(e){}
     const bookN=openingBookPlies(playedSans);
-    const _sideStats=(side)=>{const c={Brilliant:0,Great:0,Best:0,Good:0,Book:0,Inaccuracy:0,Miss:0,Mistake:0,Blunder:0};let sl=0,n=0;out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(mc!==side)return;const L=o.cls&&o.cls.label;if(i<bookN&&L!=='Brilliant'&&L!=='Great'){c.Book++;return;}if(L==='Brilliant')c.Brilliant++;else if(L==='Great')c.Great++;else if(L==='Best'||L==='Excellent')c.Best++;else if(L==='Good')c.Good++;else if(L==='Inaccuracy')c.Inaccuracy++;else if(L==='Miss')c.Miss++;else if(L==='Mistake')c.Mistake++;else if(L==='Blunder')c.Blunder++;sl+=Math.max(0,o.loss||0);n++;});const acpl=n?sl/n:0;const acc=Math.max(15,Math.min(99.5,100*Math.exp(-acpl/300)));const rating=Math.max(450,Math.min(2500,Math.round(600+(acc-50)*28)));return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10,rating};};
+    const _sideStats=(side)=>{const c={Brilliant:0,Great:0,Best:0,Excellent:0,Good:0,Book:0,Inaccuracy:0,Miss:0,Mistake:0,Blunder:0};let sl=0,n=0;out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(mc!==side)return;const L=o.cls&&o.cls.label;if(i<bookN&&L!=='Brilliant'&&L!=='Great'){c.Book++;return;}if(L==='Brilliant')c.Brilliant++;else if(L==='Great')c.Great++;else if(L==='Best')c.Best++;else if(L==='Excellent')c.Excellent++;else if(L==='Good')c.Good++;else if(L==='Inaccuracy')c.Inaccuracy++;else if(L==='Miss')c.Miss++;else if(L==='Mistake')c.Mistake++;else if(L==='Blunder')c.Blunder++;sl+=Math.max(0,o.loss||0);n++;});const acpl=n?sl/n:0;const acc=Math.max(15,Math.min(99.5,100*Math.exp(-acpl/300)));const rating=Math.max(450,Math.min(2500,Math.round(600+(acc-50)*28)));return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10,rating};};
     const summary={w:_sideStats('w'),b:_sideStats('b'),userColor:(meta&&meta.userColor)||null,book:bookN};
     let skills=null;try{skills=gameSkills(res.positions,res.plies,out,bookN);}catch(e){skills=null;} /* #368 y17b */
     const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,skills,pgn:text};
@@ -5348,7 +5348,7 @@ export default function App(){
       {railed&&learnPlansBox}
       {null}
       {railed&&learnVideoBox}{railed&&learnBranchesBox}
-      {inReview&&reviewView==='summary'&&review.summary&&(()=>{const S=review.summary;const CATS=[['Brilliant','#22d3ee'],['Great','#5d93e8'],['Best','#7bd88f'],['Good','#9ccb8f'],['Book','#9aa6b2'],['Inaccuracy','#f0cf5e'],['Miss','#f08a5d'],['Mistake','#f0a24e'],['Blunder','#ec5c4e']];const sides=[['w','White'],['b','Black']];return(
+      {inReview&&reviewView==='summary'&&review.summary&&(()=>{const S=review.summary;const CATS=[['Brilliant','#22d3ee'],['Great','#5d93e8'],['Best','#7bd88f'],['Excellent','#8bd18f'],['Good','#9ccb8f'],['Book','#9aa6b2'],['Inaccuracy','#f0cf5e'],['Miss','#f08a5d'],['Mistake','#f0a24e'],['Blunder','#ec5c4e']];const sides=[['w','White'],['b','Black']];return(
         <div data-ct="rev-summary" style={{position:'fixed',inset:0,zIndex:500,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'stretch',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
           {/* #393 (uat390-review-summary-menu-covered): THE SUMMARY HAD NO WAY INTO THE MENU. This panel is
               position:fixed inset:0 zIndex:500 and opaque, so the shared header row - and the ☰ in it - is

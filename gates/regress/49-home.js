@@ -185,6 +185,17 @@
 // numbers for a restricted run, printed as bare counts that read as the whole gate. The gate is sound either
 // way - it goes red on all five breakages - and what was unfalsifiable was the RECORD, not the coverage.
 //
+// ── CONTROL-RECORD lines for gates/control-audit.js (#418). Converted from this gate's own control block
+// WITHOUT re-running anything, which is legitimate only because that block was itself re-run and corrected
+// at #412 - the pass that found two of its six published counts were SUBSET runs. Those two are recorded
+// here under their real scopes rather than as full-scope numbers, which is exactly what the field is for.
+// CONTROL-RECORD: 08d8cb0 2026-09-17 total=158 red=11 scope=full how=Home overlay overflowY auto->hidden, trial md5 d78e49194100
+// CONTROL-RECORD: 08d8cb0 2026-09-17 total=158 red=2 scope=full how=NEW HERE guard isNew forced true, trial md5 7fb8444a035e
+// CONTROL-RECORD: 08d8cb0 2026-09-17 total=158 red=2 scope=full how=goal bar _pct forced to 1, trial md5 9fe911030890
+// CONTROL-RECORD: 08d8cb0 2026-09-17 total=158 red=14 scope=full how=tiles array Review and Play swapped, trial md5 41fcb9bc4146
+// CONTROL-RECORD: 08d8cb0 2026-09-17 total=158 red=27 scope=full how=tile icon box 84->70, trial md5 cfe6b6e31f65
+// CONTROL-RECORD: 08d8cb0 2026-09-17 total=15 red=15 scope=blocks:A,B how=tile icon box 84->70 with CT_HM_BLOCKS=A,B - the published 15 that the full gate gives as 27
+// CONTROL-RECORD: 08d8cb0 2026-09-17 total=12 red=12 scope=blocks:B how=Review and Play swapped with CT_HM_BLOCKS=B - the published 12 that the full gate gives as 14
 'use strict';
 const L=require('../lib');
 const H=require('../drive/home');

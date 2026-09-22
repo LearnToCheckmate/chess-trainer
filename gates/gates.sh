@@ -41,6 +41,37 @@ mkdir -p "$G/logs"
 # same defect class as the frozen denominator and the three-places control record.
 # The repo's own committed names already show the convention this restores by hand: 381b, 381c, 381d, 382b, 383b.
 # Subset logs are deliberately still overwritten - they are the iteration loop and must never accumulate.
+# ── ONE SUITE AT A TIME (#419) ────────────────────────────────────────────────────────────────────────────
+# #418 ran TWO full suites ten seconds apart against the same bundle. The -all.log guard below did its job and
+# gave them separate names (418b, 418c), so BOTH looked like clean full-suite greens and one was accepted by
+# verify-log.sh at 1935 PASS. They were not two runs: 26 of their 36 gate sections are BYTE-IDENTICAL, including
+# 49-home at 53,951 bytes, because the per-gate log path had no run identity and both processes were reading and
+# writing the same 36 files. Each -all.log is a COLLAGE of two runs, and 418b carries an 18KB hole of NUL bytes
+# where it read a file the other process was mid-write. Nothing detected this: the footer total is computed FROM
+# the collage, so self-consistency holds by construction - the check and the thing checked were the same object,
+# which is this project's oldest trap wearing a new costume.
+# Two concurrent suites are also wrong for a reason that has nothing to do with log names: every settle-based
+# assertion in this suite measures a browser competing for CPU with a second full suite.
+# There is DELIBERATELY NO ENV OVERRIDE. An opt-out is a hole held by the party being audited (#418's free-form
+# scope). To run two on purpose, remove the lock directory by hand, where it is visible.
+LOCK="$G/logs/.suite.lock"
+if ! mkdir "$LOCK" 2>/dev/null; then
+  HOLDER="$(cat "$LOCK/pid" 2>/dev/null || echo '')"
+  # kill -0 asks about ONE pid. Never pgrep -f here: its pattern matches this script's own command line, which
+  # is how #407 waited on itself and how #416 killed its own shell.
+  if [ -n "$HOLDER" ] && kill -0 "$HOLDER" 2>/dev/null; then
+    echo "FAIL: another gate suite is already running (pid $HOLDER, started $(cat "$LOCK/started" 2>/dev/null), log $(cat "$LOCK/log" 2>/dev/null))."
+    echo "  Two concurrent suites share nothing safely: they contend for CPU, so every settle-based assertion"
+    echo "  becomes a coin flip, and at #418 they produced two green logs that were collages of each other."
+    echo "  Wait for it to finish, or kill pid $HOLDER and remove $LOCK."
+    exit 1
+  fi
+  echo "NOTE: stale lock $LOCK (pid '${HOLDER:-none}' is not running) - taking it over."
+  rm -rf "$LOCK"; mkdir "$LOCK" || { echo "FAIL: cannot create $LOCK"; exit 1; }
+fi
+echo "$$" > "$LOCK/pid"; date '+%Y-%m-%d %H:%M:%S %Z' > "$LOCK/started"
+trap 'rm -rf "$LOCK"' EXIT
+
 if [ -n "$SUBSET" ]; then
   ALL="$G/logs/$TAG-subset-all.log"
 else
@@ -55,9 +86,27 @@ else
   fi
 fi
 : > "$ALL"
+echo "$ALL" > "$LOCK/log"
+# EVERY file this run writes is named from the -all log it was given, so a second run cannot land on one of them.
+# Before #419 this was "$TAG-$name.log" for every run of a build: the b/c suffix protected the -all log and
+# nothing else, and a SUBSET run silently overwrote the full run's per-gate evidence for the same reason.
+STEM="$(basename "$ALL")"; STEM="${STEM%-all.log}"
 export CT_EXPECT="${CT_EXPECT:-$N}"; export CT_SHOTS="${CT_SHOTS:-$G/shots/gates-$TAG}"
 APP="${CT_APP:-$ROOT/app.js}"; export CT_APP="$APP"   # CT_APP=/path/bundle.js gates a trial bundle; the default is the repo's app.js, named explicitly so a gates/.pin-app.js cannot divert the gate
-echo "gates.sh $N  bundle $APP  md5 $(md5sum "$APP" | cut -c1-12)  $(date '+%Y-%m-%d %H:%M:%S %Z')" | tee -a "$ALL"
+BUNDLE_MD5="$(md5sum "$APP" | cut -c1-12)"
+echo "gates.sh $N  bundle $APP  md5 $BUNDLE_MD5  $(date '+%Y-%m-%d %H:%M:%S %Z')" | tee -a "$ALL"
+# WHICH TREE IS THIS, SAMPLED NOW AND NOT AT THE END. The #417 antagonist broke the first version of the ref
+# line below by pointing out that it read `git rev-parse HEAD` when the run FINISHED: this very build's suite
+# started at 12:41:53Z against an uncommitted tree and HEAD moved at 12:43:38Z, 105 seconds in, so the log would
+# have named a commit that did not exist when two of its thirty-six gates ran. It also noted the deeper half -
+# the thing gated is the WORKING TREE and a commit is a different object, so a dirty tree read as ON-MAIN while
+# the bundle on disk was not in any commit at all. Both are fixed by sampling here, and by recording the dirty
+# count and the bundle md5 alongside the sha so the commit is bound to the artefact.
+# `--git-dir` is explicit because `cd "$ROOT" && git ...` does NOT override an inherited GIT_DIR/GIT_WORK_TREE,
+# and a gate run launched from a hook or a wrapper that exports them reported another repository's HEAD.
+GIT="git -C $ROOT --git-dir=$ROOT/.git --work-tree=$ROOT"
+HEADSHA="$($GIT rev-parse HEAD 2>/dev/null || echo unknown)"
+DIRTYN="$($GIT status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
 
 # build the gate list: mountcheck always, then either everything or just the named ones
 ALLREG=(); for f in "$G"/regress/*.js; do [ -e "$f" ] && ALLREG+=("$f"); done
@@ -111,7 +160,7 @@ fi
 
 red=0
 for f in "${gates[@]}"; do
-  name="$(basename "$f" .js)"; log="$G/logs/$TAG-$name.log"
+  name="$(basename "$f" .js)"; log="$G/logs/$STEM-$name.log"
   echo "=== $name ===" | tee -a "$ALL"
   ( cd "$ROOT" && timeout 900 node "$f" ) > "$log" 2>&1; rc=$?
   cat "$log" >> "$ALL"
@@ -120,6 +169,27 @@ for f in "${gates[@]}"; do
 done
 PASSN=$(grep -c '^PASS' "$ALL" || true)
 echo "regression assertions (PASS lines): $PASSN" | tee -a "$ALL"
+# ── WHICH TREE DID THIS GATE? (#417, flag class-gate-verifies-a-bundle-never-a-ref-2026-09-18) ──────────────
+# Every one of this suite's assertions answers "is the tree in this working directory correct?" and NOT ONE
+# answers "is this the tree that ships". #416 went green at 1940 PASS, verify-log.sh passed it and the dashboard
+# published it - for a commit on refs/heads/claude/nice-einstein-hnoipk and no other ref, while origin/main was
+# still #415. Three lanes each spent a run re-deriving that. So the log STATES it. It never fails the run: a
+# gate legitimately runs before its push, and one that reddens on a pre-push tree blocks every build.
+# The sha, the dirty count and the bundle md5 were all sampled at run START (see the header above).
+MAINSHA="$($GIT ls-remote origin refs/heads/main 2>/dev/null | head -1 | cut -f1)"
+DIRTYTXT=""; [ "${DIRTYN:-0}" != "0" ] && DIRTYTXT=" | WORKING TREE DIRTY: $DIRTYN path(s) - the gated bundle is not this commit's"
+if [ -z "$MAINSHA" ]; then
+  REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main UNKNOWN (refs/heads/main unreadable: offline, refused, or no such branch - NOT a pass)$DIRTYTXT"
+elif [ "$HEADSHA" = "$MAINSHA" ]; then
+  REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main $MAINSHA | HEAD IS origin/main$DIRTYTXT"
+elif ($GIT merge-base --is-ancestor "$HEADSHA" "$MAINSHA" 2>/dev/null); then
+  REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main $MAINSHA | HEAD is an ancestor of origin/main (already shipped)$DIRTYTXT"
+else
+  AHEAD="$($GIT rev-list --count "$MAINSHA..$HEADSHA" 2>/dev/null || echo '?')"
+  ONREFS="$($GIT branch -a --contains "$HEADSHA" 2>/dev/null | sed 's/^[* ] *//' | paste -sd, - )"
+  REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main $MAINSHA | NOT ON MAIN - $AHEAD commit(s) ahead, on: ${ONREFS:-no ref}$DIRTYTXT"
+fi
+echo "$REFLINE" | tee -a "$ALL"
 if [ -n "$SUBSET" ]; then
   # DELIBERATELY NOT "GATES GREEN": every consumer greps for that string, so a subset must never produce it.
   if [ $red -eq 0 ]; then echo "SUBSET OK $N — NOT A PUSH GATE (${#gates[@]} gates ran: $SUBSET)" | tee -a "$ALL"; exit 0
