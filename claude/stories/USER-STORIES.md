@@ -159,3 +159,29 @@ whatever each screen happened to use.
 
 ### US-INV-04 Nothing on screen is cut without saying so
 Shipped #404 and #413; see 26-invariants.js invariants 4a and 4b and the flags they name.
+
+### US-INV-05 No part of a control is put where I cannot reach it
+As a player on a narrow or a short phone, no part of a button is painted outside the box that clips it, because a
+button whose edge is cut cannot be fully seen or confidently tapped and no gesture brings it back.
+
+WRITTEN AT #424, AND ITS ABSENCE IS PART OF THE FINDING. Flag `uat422-lesson-lines-overhang-320` said so in as
+many words - "STORY CLAUSE: none exists ... the nearest is the general fit-to-screen dimension in R14, which is a
+scoring dimension and not a story clause" - which is why this class could be fixed at #404, narrowed at #405 and
+re-keyed at #406 and still come back twice: there was nothing for a case to hang off, so each pass fixed an
+instance.
+
+- A control's box is at or inside the right edge of ITS OWN containing row, not merely inside the viewport. These
+  are two different boxes, and the whole reason this class survived three fixes with a green suite is that every
+  assertion checked the second one. Measured on #424 before the fix: the lesson demo row's "Other lines" button
+  ran 16.86px past its row at 320x568 and 375x568 while sitting 7.70px INSIDE the 320 viewport. (TC-INV-05a)
+- And it is inside because the row can HOLD it - the sum of the row children's min-content plus the gaps fits the
+  row - rather than because something was truncated to make it fit. A box-only clause is satisfied by an ellipsis,
+  and #415 built exactly that (minWidth:0 plus textOverflow), measured it squeezing the button to 26.83px at
+  320x520, and reverted it. Kunal's standing rule for this class is "shrink beats dropping content". (TC-INV-05b)
+- No control's box extends past the VIEWPORT's right edge at any supported geometry, because
+  `document.documentElement.scrollWidth` equals the viewport there, so nothing scrolls it back. CLAUDE.md calls
+  this the one unrecoverable kind of overflow. (TC-INV-05c)
+- Where a row genuinely cannot hold its content, the residual is PINNED at its own measured value per geometry and
+  printed every run, never excused - and a pin is retired by a deliberate edit when it is fixed, not left to decay
+  into a permanent exception. At #424 that is the lesson demo row at viewport height 520, where the board is 192px
+  and the row is short by nearly twice everything Kunal's three-rung shrink ladder can free. (TC-INV-05d)

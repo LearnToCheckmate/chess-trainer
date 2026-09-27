@@ -165,6 +165,37 @@ const row=(b)=>b.page.evaluate(()=>[...document.querySelectorAll('button')]
   .filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&/^(Flip board|Hints|Try again|More actions)$/.test(x.getAttribute('aria-label')||'');})
   .map(x=>{const r=x.getBoundingClientRect();return {a:x.getAttribute('aria-label'),t:(x.innerText||'').trim(),
     x:+r.left.toFixed(1),y:+r.top.toFixed(1),w:+r.width.toFixed(1),h:+r.height.toFixed(1),right:+r.right.toFixed(1),bottom:+r.bottom.toFixed(1)};}));
+// #424: THE DEMO ROW AS A TWO-ELEMENT COMPARISON - the button against ITS OWN ROW, and both children's
+// min-content against the row's width. This is the assertion docs/narrow-button-levers-measured-2026-09-19
+// asked for in theGateThisNeeds ("NO BUTTON'S RENDERED BOX MAY EXTEND BEYOND THE RIGHT EDGE OF ITS CONTAINING
+// ROW"), and the reason it is needed is that the defect survived #404, #405 and #406 with every gate green:
+// those three closed the VIEWPORT overhang, and the ROW overhang is a different box. Measured on the #424
+// bundle BEFORE this build's fix, at the demo end: 320x568 row 270.88 at 24.56..295.44 with the button at
+// 189.73..312.30, so 16.86px past its own row while sitting 7.70px INSIDE the 320 viewport - which is why
+// gate 35's containment sweep and this gate's own "inside the viewport" line were both correctly green over it.
+// WHY MIN-CONTENT AND NOT JUST THE RECT: the row is `gridTemplateColumns:'1.8fr 1fr'`, and an fr track cannot
+// resolve below its item's min-content while the item is `whiteSpace:nowrap`. So the row does not overflow
+// because a box is too wide; it overflows because the two min-contents plus the gap exceed the row, and the
+// grid then blows out. Reading min-content is reading the CAUSE, and it is what lets the assertion below decide
+// from the app's own arithmetic which geometries the row can hold rather than from a geometry list (#410).
+const demoRow=(b)=>b.page.evaluate(()=>{
+  const el=document.querySelector('[data-ct="lesson-lines"]');if(!el)return null;
+  const rowEl=el.parentElement,rr=rowEl.getBoundingClientRect(),er=el.getBoundingClientRect();
+  const r2=(n)=>Math.round(n*100)/100;
+  // max-content on a detached clone: the element is nowrap, so max-content IS its min-content, and cloning
+  // detaches it from the grid track that is currently squeezing or stretching it.
+  const minC=(e)=>{const c=e.cloneNode(true);c.style.position='absolute';c.style.left='-9999px';
+    c.style.width='max-content';c.style.maxWidth='none';document.body.appendChild(c);
+    const w=c.getBoundingClientRect().width;c.remove();return r2(w);};
+  const kids=[...rowEl.children].map(k=>({t:(k.innerText||'').replace(/\s+/g,' ').trim(),minC:minC(k),
+    w:r2(k.getBoundingClientRect().width)}));
+  const gap=parseFloat(getComputedStyle(rowEl).columnGap)||0;
+  return {rowX:r2(rr.left),rowR:r2(rr.right),rowW:r2(rr.width),gap,kids,
+    btnX:r2(er.left),btnR:r2(er.right),btnW:r2(er.width),text:(el.innerText||'').trim(),
+    needed:r2(kids.reduce((s,k)=>s+k.minC,0)+gap*(kids.length-1)),
+    fs:getComputedStyle(el).fontSize,ls:getComputedStyle(el).letterSpacing,
+    docSW:document.documentElement.scrollWidth,vw:window.innerWidth};
+});
 // #409: THE INK OF EACH CONTROL ON THAT ROW, AND WHETHER ANY TWO OF THEM OVERLAP. A Range over the button's
 // contents, because the defect this was written for is a label painting OUTSIDE its own button and over the next
 // one while every box stays inside the viewport - so neither a viewport-containment check (gate 35) nor an
@@ -332,9 +363,34 @@ L.run(async()=>{
     const lTxt=((lines&&lines.text)||'').trim();
     const dmBoard=(await b.metrics()).board;
     const wantCount=!!dmBoard&&dmBoard.w>=340;
-    L.say(!!lines&&(wantCount?/^♟ Other lines \(3\)$/.test(lTxt):/^♟ Other lines$/.test(lTxt)),
-      geo+': the demo board is '+(dmBoard&&dmBoard.w)+' wide, so the button reads '+(wantCount?'"♟ Other lines (3)" - the Italian Game\'s three variations, because the row can hold the count':'"♟ Other lines" with NO count, because it cannot')+'. Keyed to the BOARD, which is what decides it, and not to the geometry\'s name.',
+    /* #424 UPDATES THE NARROW BRANCH OF THIS EXPECTATION, because the label itself changed: Kunal's Desk answer
+       R2-NARROW-LEVERS (choice `icon-font-ls`, decisions/desk-answers-2026-09-22-1500) drops the PAWN GLYPH as
+       well as the count on a narrow board, so the narrow label is "Other lines" and no longer "♟ Other lines".
+       BOTH BRANCHES ARE STILL ASSERTED, which is the point: "it no longer hangs off" would also be satisfied by
+       the button disappearing, or by the glyph and the count dropping at EVERY width - and the second of those
+       breaks his Z-06 condition rather than meeting it. The wide branch pins the glyph AND the count. */
+    L.say(!!lines&&(wantCount?/^♟ Other lines \(3\)$/.test(lTxt):/^Other lines$/.test(lTxt)),
+      geo+': the demo board is '+(dmBoard&&dmBoard.w)+' wide, so the button reads '+(wantCount?'"♟ Other lines (3)" - the Italian Game\'s three variations, WITH the pawn glyph, because the row can hold them':'"Other lines" with NO glyph and NO count, because it cannot')+'. Keyed to the BOARD, which is what decides it, and not to the geometry\'s name.',
       {board:dmBoard&&dmBoard.w,wantCount,label:lTxt});
+    /* #424: THE TWO ASSERTIONS THE FIVE EARLIER PASSES AT THIS DEFECT DID NOT HAVE. See demoRow's header for why
+       the row is the box that matters. Measured before and after on the #424 bundle, at 320x568 and 375x568
+       alike (they are identical to the hundredth, because the row is the board and the board is fit to HEIGHT):
+       before 189.73..312.30 against a row ending at 295.44 = 16.86px past it; after 200.83..295.42 = 0.02px
+       INSIDE it, with the button's min-content 86.77 against a track of 94.59, so 7.82px of slack rather than
+       the 2.52px that rung 2 of his ladder alone would have left. That margin matters and is not padding for its
+       own sake: the levers doc's theCaveatThatMatters is that these widths come from headless Chromium on Linux,
+       where the font stack falls back instead of resolving to the SF Pro on his phone. */
+    const dr=await demoRow(b);
+    L.say(!!dr&&dr.btnR<=dr.rowR+0.5,
+      geo+': the "Other lines" button is inside ITS OWN ROW, not merely inside the viewport - the row ends at '+(dr&&dr.rowR)+' and the button at '+(dr&&dr.btnR)+'. This is the box that #404, #405 and #406 all left overflowing while every viewport-keyed check stayed green.',
+      dr&&{rowR:dr.rowR,btnR:dr.btnR,past:Math.round((dr.btnR-dr.rowR)*100)/100,text:dr.text});
+    /* AND THE CAUSE, not only the symptom, so a future change that makes the box fit by truncating the label
+       rather than by shrinking it cannot satisfy this: the two children's min-content plus the gap must fit the
+       row. #415 built exactly that wrong fix (minWidth:0 plus an ellipsis), measured it squeezing the button to
+       26.83px at 320x520, and reverted it. A box-only assertion would have called that a pass. */
+    L.say(!!dr&&dr.needed<=dr.rowW+0.5,
+      geo+': and it fits because the row can HOLD it - the two buttons need '+(dr&&dr.needed)+'px of min-content plus gap against a row of '+(dr&&dr.rowW)+'px - rather than because anything was truncated to make it fit',
+      dr&&{needed:dr.needed,rowW:dr.rowW,kids:dr.kids,fs:dr.fs,ls:dr.ls});
 
     // --- TC-LS-014: the ⋯ sheet's prev/next row. The Italian Game is the FIRST opening, so prev is the
     // boundary: disabled and saying so rather than silently dead.
@@ -552,7 +608,7 @@ L.run(async()=>{
    const dm=await b.metrics(), dl=await b.rect('[data-ct="lesson-lines"]');
    const dTxt=((dl&&dl.text)||'').trim();
    L.say(!!dm.board&&dm.board.w<340,geo+': the DEMO board is under 340 here too ('+(dm.board&&dm.board.w)+') while the viewport is '+vw,{board:dm.board&&dm.board.w,vw});
-   L.say(!!dl&&/^♟ Other lines$/.test(dTxt),geo+': so the demo end\'s button reads "♟ Other lines" with NO count - the assertion a viewport-keyed rule gets wrong, because 375 and 390 are above any threshold anyone would set while the row is 270.88 wide',dTxt);
+   L.say(!!dl&&/^Other lines$/.test(dTxt),geo+': so the demo end\'s button reads "Other lines" with NO glyph and NO count - the assertion a viewport-keyed rule gets wrong, because 375 and 390 are above any threshold anyone would set while the row is 270.88 wide. The glyph went at #424 on Kunal\'s Desk answer R2-NARROW-LEVERS; the count went at #404 on his earlier one.',dTxt);
    /* #415 PINS THIS AT 375x520 INSTEAD OF ASSERTING IT, because at that height the button really is off the
       screen and the fix is not this build's to make. MEASURED on the shipped #414 bundle at the demo end:
       320x520 puts it at 229.17..351.73, 31.73px past the right edge of a 320 viewport; 375x520 at
@@ -575,12 +631,37 @@ L.run(async()=>{
       pinned geometry now carries its OWN measured value. Off-screen heights the antagonist bisected and that
       are still NOT pinned, said out loud rather than implied: 375x525 (3.00px), 375x530 (1.31) and 375x531
       (1.00), inside from 375x533. */
+   /* ══ #424: BOTH PINS ARE GONE, BECAUSE THE DEFECT THEY PINNED IS FIXED - AND THE PIN'S OWN COMMENT SAID THIS
+      IS HOW IT ENDS ("red if it is fixed and the pin should come out"). It went red on this build exactly as
+      designed, which is what a pin is for.
+      WHAT CLOSED IT: Kunal's Desk answer R2-NARROW-LEVERS, choice `icon-font-ls` (decisions/desk-answers-
+      2026-09-22-1500), applied at chess.jsx's lesson-lines button under `rowNarrow` - drop the pawn glyph, font
+      floor 14->12px, letter-spacing 0.3->0. His rule for the whole class is "shrink beats dropping content",
+      which is why #415's minWidth:0-plus-ellipsis is still the wrong answer and is still not what shipped.
+      MEASURED BEFORE AND AFTER ON THE #424 BUNDLE, at the demo end, past the RIGHT EDGE OF THE VIEWPORT:
+        375x520   +4.23  ->  -29.56   (inside)
+        320x520  +31.73  ->   -2.06   (inside)
+      so the one kind of overflow CLAUDE.md calls unrecoverable is closed at every column this gate has, and the
+      assertion below is now a real containment check at all four rather than a pin at two of them.
+      WHAT IS NOT CLOSED, AND IS PINNED INSTEAD OF BEING DROPPED: at h=520 the board is 192 and the button is
+      still 39.55px past ITS OWN ROW (it was 95.73). the ladder applied to the WHOLE row took the two children's
+      min-content from 285.73px to 229.55px against a row of 192, so it is still short by 37.55px. Shrinking has
+      now been spent on every button in the row and cannot close it: it needs a wrap or a second row, which
+      spends board height and is therefore his decision and not this lane's. The row residual
+      is pinned per geometry at its OWN measured value - #415's antagonist lesson, that a pin at one point is a
+      frozen denominator - and reported every run rather than excused. */
    const _lnOff = dl ? Math.round((dl.x+dl.w-vw)*100)/100 : null;
-   const _lnPin = {'375x520':4.23,'320x520':31.73}[geo];
-   if(_lnPin!==undefined){
-     L.say(_lnOff!==null&&Math.abs(_lnOff-_lnPin)<=0.6,geo+': the PINNED residual is where it was left - "♟ Other lines" runs '+_lnOff+'px past the right edge here (pinned at '+_lnPin+') with nothing able to scroll it back. A live defect being REPORTED, not excused; on the Desk as Q-OTHERLINES-SHORT and filed as lesson-lines-off-screen-on-a-short-viewport-2026-09-18',{off:_lnOff,pinned:_lnPin,l:dl&&dl.x,w:dl&&dl.w,vw});
+   L.say(!!dl&&dl.x>=-0.6&&dl.x+dl.w<=vw+0.6,geo+': the "Other lines" button is inside the viewport - '+_lnOff+'px past its right edge, so at or inside it. This was +4.23 at 375x520 and +31.73 at 320x520 before #424 and was PINNED as a live unrecoverable defect at both; his icon-font-ls ladder closed it.',{l:dl&&dl.x,r:dl&&dl.w!=null?Math.round((dl.x+dl.w)*100)/100:null,vw,was:{'375x520':4.23,'320x520':31.73}[geo]});
+   const _dr=await demoRow(b);
+   const _rowPin={'375x520':39.55,'320x520':39.55}[geo];
+   if(_rowPin!==undefined){
+     L.say(!!_dr&&Math.abs(Math.round((_dr.btnR-_dr.rowR)*100)/100-_rowPin)<=0.6,
+       geo+': the ROW residual is where #424 left it - the button runs '+(_dr&&Math.round((_dr.btnR-_dr.rowR)*100)/100)+'px past its own row (pinned at '+_rowPin+', down from 95.73 before the ladder) because at board 192 the row cannot hold both buttons\' min-content ('+(_dr&&_dr.needed)+'px against '+(_dr&&_dr.rowW)+'px). REPORTED, not excused: it needs a wrap or a second row, which is a board-height cost and so Kunal\'s call.',
+       _dr&&{past:Math.round((_dr.btnR-_dr.rowR)*100)/100,pinned:_rowPin,needed:_dr.needed,rowW:_dr.rowW,kids:_dr.kids});
    } else {
-   L.say(!!dl&&dl.x>=-0.6&&dl.x+dl.w<=vw+0.6,geo+': and that button is inside the viewport, which is what the count being dropped buys',{l:dl&&dl.x,r:dl&&dl.w!=null?Math.round((dl.x+dl.w)*100)/100:null,vw});
+     L.say(!!_dr&&_dr.btnR<=_dr.rowR+0.5,
+       geo+': and it is inside ITS OWN ROW too ('+(_dr&&_dr.btnR)+' against a row ending at '+(_dr&&_dr.rowR)+') - the box that stayed overflowing through #404, #405 and #406 while every viewport check was green',
+       _dr&&{btnR:_dr.btnR,rowR:_dr.rowR,needed:_dr.needed,rowW:_dr.rowW});
    }
    await D.states['practice-m0'](b);
    const r0=await row(b), ri=await rowInk(b), m=await b.metrics();

@@ -27,7 +27,7 @@
 //   demo-m1               ... Forward a move once (1.e4)
 //   demo-m4               ... three more (2...Nc6)
 //   demo-end              ... Forward to the end of the line (the play button reads ↻)
-//   demo-end-lines        '♟ Other lines (n)' tapped at the demo end: the ⋯ sheet
+//   demo-end-lines        '♟ Other lines (n)' / 'Other lines' tapped at the demo end: the ⋯ sheet
 //   demo-more             the bottom bar's ⋯ tapped at the demo end (the same sheet)
 //   demo-copy             📋 Copy moves tapped at the demo end
 //   demo-analyze          🔍 Analyze tapped at the demo end (leaves the lesson for the analysis board)
@@ -128,7 +128,10 @@ S['demo-m0']=async(b)=>{await S['intro'](b);await startDemoPaused(b);};
 S['demo-m1']=async(b)=>{await S['demo-m0'](b);await fwd(b,1);};
 S['demo-m4']=async(b)=>{await S['demo-m1'](b);await fwd(b,3);};
 S['demo-end']=async(b)=>{await S['demo-m0'](b);await toEnd(b);};
-S['demo-end-lines']=async(b)=>{await S['demo-end'](b);await tapBtn(b,/^♟ Other lines/,500);};
+S['demo-end-lines']=async(b)=>{await S['demo-end'](b);await tapBtn(b,/^(?:♟ )?Other lines/,500);};  // #424: the glyph is OPTIONAL here. On a narrow board (boardPx<340) the label is now "Other lines"
+// with no pawn and no count - Kunal's Desk answer R2-NARROW-LEVERS - so a selector requiring the glyph
+// silently fails to find the button at every narrow geometry, which is the "a bad selector is a reading"
+// rule: it would report the sheet as missing rather than the label as changed.
 S['demo-more']=async(b)=>{await S['demo-end'](b);await tapBtn(b,/^More for this lesson$/,500);};
 S['demo-copy']=async(b)=>{await S['demo-end'](b);await tapBtn(b,/Copy moves$/,400);};
 S['demo-analyze']=async(b)=>{await S['demo-end'](b);await tapBtn(b,/Analyze$/,900);};

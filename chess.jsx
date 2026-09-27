@@ -6281,8 +6281,40 @@ export default function App(){
         {openIdx!==null&&(<>
           {learnPhase==='demo'&&(<>
             <div style={{alignSelf:'stretch',display:'grid',gridTemplateColumns:'1.8fr 1fr',gap:6}}>
-              <button onClick={()=>startPractice(learnLine,learnLabel)} style={btn('var(--ac)','none','#fff')}>✋ Now I'll try it</button>
-              {(!wide&&demoPly>=learnLine.length&&LIB[openIdx].vars&&LIB[openIdx].vars.length>0)?(<button data-ct="lesson-lines" onClick={()=>setLessonMore(true)} style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.4)','var(--ac2)'),...(rowNarrow?{padding:'9px 6px'}:null)}}>{/* #404, decision `lesson-lines-320-label`, Kunal 2026-09-15 02:08 UTC: "Other lines" - the COUNT DROPS on a narrow phone. Measured before: the button is 169.19px wide at EVERY viewport and never shrinks, so at 320 it ran 189.73..358.92 with documentElement.scrollWidth still 320 and 38.92px unreachable. HIS NOTE SAID "only below 340px wide, above 340 nothing changes by construction", and that clause was a wrong measurement rather than a preference: #405 widened it to a measured 360 and #406 replaced the viewport threshold altogether with `boardPx<340`, because this row is sized to the BOARD and the board is fit to HEIGHT. See the NARROW/rowNarrow block for the eleven measured geometries. */}{rowNarrow?'\u265f Other lines':'\u265f Other lines ('+LIB[openIdx].vars.length+')'}</button>):(<button onClick={()=>setFlip(f=>!f)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),...(rowNarrow?{padding:'9px 6px'}:null)}}>⟳ Flip</button>)}
+              <button onClick={()=>startPractice(learnLine,learnLabel)} style={{...btn('var(--ac)','none','#fff'),...(rowNarrow?{fontSize:'12px',letterSpacing:0}:null)}}>{/* #424: THE FONT FLOOR IS THE ROW'S, NOT ONE BUTTON'S, AND KUNAL'S OWN INVARIANT IS WHAT SAID SO.
+                  Dropping only the "Other lines" button to 12px left this one at 14px beside it, and
+                  gates/regress/26-invariants.js went RED at se/lesson-demo with a 2px glyph spread on the
+                  relationship he commissioned that gate for on 2026-09-15 ("the icons in a row are all one
+                  size"). Pinning that would have been pinning a spread this build had just created, so the row
+                  moves together instead. It also frees min-content in the FIRST track, which is the track that
+                  binds at board 192. Only under rowNarrow, so nothing changes on his phone. */}✋ Now I'll try it</button>
+              {(!wide&&demoPly>=learnLine.length&&LIB[openIdx].vars&&LIB[openIdx].vars.length>0)?(<button data-ct="lesson-lines" onClick={()=>setLessonMore(true)} style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.4)','var(--ac2)'),...(rowNarrow?{padding:'9px 6px',fontSize:'12px',letterSpacing:0}:null)}}>{/* #424 CLOSES THIS ROW'S OVERFLOW AGAINST ITS OWN ROW, which is a different box from the viewport and is
+                  why the defect survived #404, #405 and #406. Those three fixed the VIEWPORT overhang and the suite
+                  agreed; measured on #424 at the demo end, the button was still 16.86px past the right edge of ITS
+                  OWN ROW at every narrow-board geometry - 320x568 row 270.88 at 24.56..295.44 with the button
+                  189.73..312.30, and 375x568 identical to the hundredth - while sitting 7.70px INSIDE the 320
+                  viewport. So every containment assertion keyed to the viewport was correctly green over a button
+                  whose rounded right end, border and focus ring are cut by the row. The two-element comparison is
+                  the one docs/narrow-button-levers-measured-2026-09-19 asked the invariant gate for.
+                  THE LEVER IS KUNAL'S OWN, not a default: Desk R2-NARROW-LEVERS, choice `icon-font-ls`
+                  (decisions/desk-answers-2026-09-22-1500), his rule being "shrink beats dropping content" after he
+                  pointed out the lever nobody had counted - the icons. Rung 2 of his three-rung ladder: drop the
+                  pawn glyph (18.03px) and the font floor 14->12px (a further 14.95px) = 30.48px against the 16.86px
+                  owed, clearing by 13.62px. RUNG 1 ALONE WAS REJECTED ON ITS MARGIN, not on principle: the glyph's
+                  18.03px against 16.86px clears by 1.17px, and the levers doc's own caveat is that these widths come
+                  from headless Chromium on Linux where the font stack falls back rather than resolving to his SF
+                  Pro, so a 1.17px pass is inside the measurement error. Rung 3 (letter-spacing 0.3->0, 3.31px more)
+                  is left unspent and available. Amber record written BEFORE the change:
+                  `amber-424-other-lines-icon-and-font-floor`.
+                  WHAT THIS DOES NOT FIX, with the number rather than a hedge: at viewport height 520 the lesson
+                  board is 192 and this row needs 95.73px, against 33.79px for his whole ladder and 41.79px even
+                  with the padding rung. At board 192 the FIRST button's min-content alone (159.17px) plus the 6px
+                  gap leaves 26.83px for this one, which is the glyph-and-ellipsis #415 built and reverted. h=520
+                  needs a wrap or a second row - a board-height cost, so his call - and stays PINNED per geometry in
+                  gates/regress/48-lesson-flow.js rather than excused.
+                  NOTHING CHANGES AT boardPx>=340, measured and not promised: 375x730 and 390x844 both keep the
+                  169.17px box ending at exactly 375.00 and 390.00, so Kunal's Z-06 condition holds by construction.
+                  #404, decision `lesson-lines-320-label`, Kunal 2026-09-15 02:08 UTC: "Other lines" - the COUNT DROPS on a narrow phone. Measured before: the button is 169.19px wide at EVERY viewport and never shrinks, so at 320 it ran 189.73..358.92 with documentElement.scrollWidth still 320 and 38.92px unreachable. HIS NOTE SAID "only below 340px wide, above 340 nothing changes by construction", and that clause was a wrong measurement rather than a preference: #405 widened it to a measured 360 and #406 replaced the viewport threshold altogether with `boardPx<340`, because this row is sized to the BOARD and the board is fit to HEIGHT. See the NARROW/rowNarrow block for the eleven measured geometries. */}{rowNarrow?'Other lines':'\u265f Other lines ('+LIB[openIdx].vars.length+')'}</button>):(<button onClick={()=>setFlip(f=>!f)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),...(rowNarrow?{padding:'9px 6px',fontSize:'12px',letterSpacing:0}:null)}}>{/* #424: the SAME grid slot as "Other lines" - this is what renders when a lesson has no variations - so it takes the same font floor, or the row is mismatched again in a state gate 26's sweep does not currently visit (the Italian Game has three variations, so the sweep always sees the other branch). Named in the run report under what is NOT covered. */}⟳ Flip</button>)}
               {/* #404, AND THE HALF HIS ANSWER DID NOT REACH. Dropping the count took the overhang from 38.9px
                   to 10.3px and NOT to zero: measured at 320x568 after the label change, the button still ran
                   left 189.7 to right 330.3, w 140.6, 10.3px past a 320 screen with nothing able to scroll to

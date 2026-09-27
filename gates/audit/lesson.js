@@ -42,7 +42,7 @@ async function measure(b,geo,st){
   }
   // tap targets (A-11, A-25)
   const by=(re)=>btns.filter(x=>re.test(x.t));
-  for(const [k,re] of [['back',/^Back a move$/],['fwd',/^Forward a move$/],['play',/^(▶|⏸|↻|Play or pause)$/],['close',/^(✕|Close lesson)$/],['flip',/^(⟳ Flip|⟳|Flip the board)$/],['hint',/^(💡|Hints)$/],['tryagain',/^↻ Try again$/],['try',/^✋ Now I'll try it$/],['lines',/^♟ Other lines/],['analyze',/Analyze$/],['copy',/Copy moves$/]]){const r=by(re);if(r.length)M(geo,st,'tap.'+k,r.map(x=>x.w+'x'+x.h+'@'+x.x+','+x.y).join(' '));}
+  for(const [k,re] of [['back',/^Back a move$/],['fwd',/^Forward a move$/],['play',/^(▶|⏸|↻|Play or pause)$/],['close',/^(✕|Close lesson)$/],['flip',/^(⟳ Flip|⟳|Flip the board)$/],['hint',/^(💡|Hints)$/],['tryagain',/^↻ Try again$/],['try',/^✋ Now I'll try it$/],['lines',/^(?:♟ )?Other lines/],['analyze',/Analyze$/],['copy',/Copy moves$/]]){const r=by(re);if(r.length)M(geo,st,'tap.'+k,r.map(x=>x.w+'x'+x.h+'@'+x.x+','+x.y).join(' '));}
   const dots=by(/^(⋯|More actions|More for this lesson)$/);M(geo,st,'dots.count',dots.length);if(dots.length)M(geo,st,'dots.rects',dots.map(x=>x.t+' '+x.w+'x'+x.h+'@'+x.x+','+x.y).join(' | '));
   const small=btns.filter(x=>(x.w<40||x.h<40)&&!LIST.test(st));if(small.length)M(geo,st,'tap.under40',small.map(x=>x.t+' '+x.w+'x'+x.h).join('; '));
   // the moves panel: moves-head to the bottom bar
