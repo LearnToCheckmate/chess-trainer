@@ -189,10 +189,44 @@ const demoRow=(b)=>b.page.evaluate(()=>{
     const w=c.getBoundingClientRect().width;c.remove();return r2(w);};
   const kids=[...rowEl.children].map(k=>({t:(k.innerText||'').replace(/\s+/g,' ').trim(),minC:minC(k),
     w:r2(k.getBoundingClientRect().width)}));
-  const gap=parseFloat(getComputedStyle(rowEl).columnGap)||0;
-  return {rowX:r2(rr.left),rowR:r2(rr.right),rowW:r2(rr.width),gap,kids,
+  const cs=getComputedStyle(rowEl);
+  const gap=parseFloat(cs.columnGap)||0;
+  // #424, ANTAGONIST A: THE DETACHED CLONE IS 2.00px LOW AND THE FIRST VERSION OF THIS HELPER BELIEVED IT.
+  // `needed` used to be the sum of the kids' cloned min-content, and at 320x520 that printed 229.55 against a
+  // row of 192 - while the SAME log line printed the button 39.55px past that row, and 192 + 39.55 = 231.55.
+  // The log contradicted itself by exactly 2.00px and nothing compared the two, which is the cross-check this
+  // very assertion exists to make. The browser's own answer is the resolved track list: at that geometry
+  // gridTemplateColumns reads "136.781px 88.7656px", summing with the gap to 231.55, which agrees with the rect
+  // to the hundredth. The clone reads the lesson-lines button as 86.77 where its own resolved track floor is
+  // 88.7656. So TRACKS are the measurement and the clone is kept only as a cross-check that is PRINTED, because
+  // a 2.00px systematic understatement against a 0.5px tolerance is four times the tolerance - the assertion
+  // could have gone green on a row genuinely blown out by up to 2.5px.
+  const tracks=(cs.gridTemplateColumns||'').split(/\s+/).map(parseFloat).filter(x=>!isNaN(x));
+  // AND THE FIRST FIX FOR THAT WAS VACUOUS, CAUGHT HERE BEFORE IT SHIPPED. Reading the RESOLVED tracks is the
+  // browser's answer to "how wide are these tracks", which is NOT the question. An `fr` track expands to fill the
+  // row whenever the content fits, so at 320x568 the resolved tracks sum to 270.86 against a row of 270.88 and
+  // "needed <= rowW" becomes -0.02 BY CONSTRUCTION - an assertion that cannot fail wherever the row is fine,
+  // which is every geometry it runs at. It is only equal to min-content in the blown-out case, which is why it
+  // looked right at h=520 and was worthless at h=568. So ASK THE BROWSER THE ACTUAL QUESTION: set the row to
+  // `min-content min-content`, read the resolved tracks back, and restore. That is the browser computing each
+  // item's intrinsic minimum in its real context, which is the quantity the grid's automatic minimum size uses
+  // and the quantity a detached clone gets 2.00px wrong.
+  // THE RESTORE CHECK HAS TO SNAPSHOT THE STRING, and the first version of it did not - a third vacuous
+  // assertion caught in this one build. getComputedStyle returns a LIVE object, so comparing
+  // cs.gridTemplateColumns after the restore compares the current value with itself and is true whatever
+  // happened. The resolved value is copied into a plain string BEFORE the override instead.
+  const gtc0=String(cs.gridTemplateColumns||'');
+  const prev=rowEl.style.gridTemplateColumns;
+  rowEl.style.gridTemplateColumns='min-content min-content';
+  const mcTracks=(getComputedStyle(rowEl).gridTemplateColumns||'').split(/\s+/).map(parseFloat).filter(x=>!isNaN(x));
+  rowEl.style.gridTemplateColumns=prev;
+  const restored=String(getComputedStyle(rowEl).gridTemplateColumns||'')===gtc0&&gtc0!=='';
+  const needed=mcTracks.length?r2(mcTracks.reduce((a,b)=>a+b,0)+gap*(mcTracks.length-1)):null;
+  const neededClone=r2(kids.reduce((s,k)=>s+k.minC,0)+gap*(kids.length-1));
+  return {rowX:r2(rr.left),rowR:r2(rr.right),rowW:r2(rr.width),gap,kids,tracks,
     btnX:r2(er.left),btnR:r2(er.right),btnW:r2(er.width),text:(el.innerText||'').trim(),
-    needed:r2(kids.reduce((s,k)=>s+k.minC,0)+gap*(kids.length-1)),
+    needed,neededClone,mcTracks,restored,cloneShortfall:needed===null?null:r2(needed-neededClone),
+    gtc:gtc0,gtcNow:String(cs.gridTemplateColumns||''),isFrGrid:/^1\.8fr\s+1fr$/.test((rowEl.style.gridTemplateColumns||'').trim()),
     fs:getComputedStyle(el).fontSize,ls:getComputedStyle(el).letterSpacing,
     docSW:document.documentElement.scrollWidth,vw:window.innerWidth};
 });
@@ -381,6 +415,24 @@ L.run(async()=>{
        own sake: the levers doc's theCaveatThatMatters is that these widths come from headless Chromium on Linux,
        where the font stack falls back instead of resolving to the SF Pro on his phone. */
     const dr=await demoRow(b);
+    /* #424, ANTAGONIST A: ASSERT WHAT THE PARENT IS. `demoRow` takes el.parentElement as "its own row" and
+       never checked it, so wrapping this button in any span or flex shim would turn the headline assertion into
+       "the button is inside its own wrapper", which cannot fail - the same containment trap CLAUDE.md lists five
+       costumes of (clip-intersection, "the covering element is big", grid.contains(), flex-shrink absorbing the
+       overrun, a footer's own total). The row is the two-track 1.8fr/1fr grid the whole analysis is about, so
+       that is what gets named. */
+    L.say(!!dr&&dr.restored===true,
+      geo+': the min-content probe put the row\'s grid back exactly as it found it, so nothing measured after this line is reading a row this gate mutated',
+      dr&&{restored:dr.restored,gtc:dr.gtc});
+    L.say(!!dr&&dr.isFrGrid&&dr.tracks.length===2,
+      geo+': the element being called "its own row" IS the demo row - the inline two-track 1.8fr/1fr grid ('+(dr&&dr.gtc)+'), not whatever happens to be this button\'s parent. Without this, wrapping the button in a span would make the next assertion unable to fail.',
+      dr&&{inlineGtc:dr.isFrGrid,resolved:dr.gtc,tracks:dr.tracks});
+    /* #424, ANTAGONIST A: and print the clone-vs-tracks disagreement every run rather than letting it hide
+       inside `needed`. It is 2.00px at every rowNarrow geometry today; if it ever moves, the helper is measuring
+       something new and this line says so before any pass/fail does. */
+    L.say(!!dr&&dr.cloneShortfall!==null&&Math.abs(dr.cloneShortfall)<=2.5,
+      geo+': the detached-clone min-content and the browser\'s resolved tracks disagree by '+(dr&&dr.cloneShortfall)+'px (tracks '+(dr&&dr.needed)+', clone '+(dr&&dr.neededClone)+'). Printed, not buried: the clone was what the first version of this gate believed, and it is the low one.',
+      dr&&{tracks:dr.needed,clone:dr.neededClone,shortfall:dr.cloneShortfall});
     L.say(!!dr&&dr.btnR<=dr.rowR+0.5,
       geo+': the "Other lines" button is inside ITS OWN ROW, not merely inside the viewport - the row ends at '+(dr&&dr.rowR)+' and the button at '+(dr&&dr.btnR)+'. This is the box that #404, #405 and #406 all left overflowing while every viewport-keyed check stayed green.',
       dr&&{rowR:dr.rowR,btnR:dr.btnR,past:Math.round((dr.btnR-dr.rowR)*100)/100,text:dr.text});
@@ -389,8 +441,8 @@ L.run(async()=>{
        row. #415 built exactly that wrong fix (minWidth:0 plus an ellipsis), measured it squeezing the button to
        26.83px at 320x520, and reverted it. A box-only assertion would have called that a pass. */
     L.say(!!dr&&dr.needed<=dr.rowW+0.5,
-      geo+': and it fits because the row can HOLD it - the two buttons need '+(dr&&dr.needed)+'px of min-content plus gap against a row of '+(dr&&dr.rowW)+'px - rather than because anything was truncated to make it fit',
-      dr&&{needed:dr.needed,rowW:dr.rowW,kids:dr.kids,fs:dr.fs,ls:dr.ls});
+      geo+': and it fits because the row can HOLD it - its two children\'s MIN-CONTENT plus gap comes to '+(dr&&dr.needed)+'px against a row of '+(dr&&dr.rowW)+'px - rather than because anything was truncated to make it fit. Measured by asking the browser for min-content tracks and restoring, because a detached clone reads 2.00px low and the RESOLVED fr tracks are tautological (they expand to the row whenever it fits).',
+      dr&&{neededFromTracks:dr.needed,neededFromClone:dr.neededClone,rowW:dr.rowW,tracks:dr.tracks,kids:dr.kids,fs:dr.fs,ls:dr.ls});
 
     // --- TC-LS-014: the ⋯ sheet's prev/next row. The Italian Game is the FIRST opening, so prev is the
     // boundary: disabled and saying so rather than silently dead.
@@ -582,10 +634,20 @@ L.run(async()=>{
  // gate 26's. The headless UAT lane bisected the threshold and corrected the flag
  // (`uat413-practice-row-spill-is-a-height-threshold-not-375x568`); I re-measured it here before believing it.
  // 520 is not exotic: a phone with a 568 or 667 point screen loses 50 to 150 points to browser toolbars.
- for(const geo of ['short375','390x568','375x520','320x520']){
+ /* #424, ANTAGONIST B: THE RESIDUAL IS A BAND AND THE PIN WAS ONE HEIGHT WIDE - #415's own antagonist lesson
+    ("a pin at one point is a frozen denominator") arriving for the third time in this same block. Measured on the
+    shipped bundle, the lesson-lines button past its own row, by viewport height at BOTH widths:
+      h<=520  39.55     h=540  19.16     h=550  12.52     h=560  0.00 (fits)     h=568  -0.02 (fits)
+    so the overflow is a continuous band roughly 521..556 wide, and pinning only h=520 left every height inside it
+    able to get worse in silence. 320x540 is added as a second point IN the band. The arithmetic that predicts the
+    whole band from one number is worth stating, because it is what makes these pins checkable rather than
+    remembered: the two children's resolved tracks plus the gap come to 231.55px at every geometry under rowNarrow
+    (both labels are fixed strings there), so the residual at any height is simply 231.55 minus the board width. */
+ for(const geo of ['short375','390x568','375x520','320x520','320x540']){
    const g = geo==='390x568' ? {w:390,h:568,safe:'',label:'390x568 = the wide-and-short corner, one step up'}
            : geo==='375x520' ? {w:375,h:520,safe:'',label:'375x520 = short enough that the practice row starves'}
-           : geo==='320x520' ? {w:320,h:520,safe:'',label:'320x520 = narrow AND short: the worst case of both rows'} : geo;
+           : geo==='320x520' ? {w:320,h:520,safe:'',label:'320x520 = narrow AND short: the worst case of both rows'}
+           : geo==='320x540' ? {w:320,h:540,safe:'',label:'320x540 = inside the overflow band, not at its floor'} : geo;
    const vw = typeof g==='object' ? g.w : L.GEOS[g].w;
    const b=await L.launch({geo:g,name:'lesson-flow-wideshort-'+geo});await b.open();
    L.note(geo+': bundle stamp in the page = '+(await b.stamp()));
@@ -639,13 +701,19 @@ L.run(async()=>{
       floor 14->12px, letter-spacing 0.3->0. His rule for the whole class is "shrink beats dropping content",
       which is why #415's minWidth:0-plus-ellipsis is still the wrong answer and is still not what shipped.
       MEASURED BEFORE AND AFTER ON THE #424 BUNDLE, at the demo end, past the RIGHT EDGE OF THE VIEWPORT:
-        375x520   +4.23  ->  -29.56   (inside)
-        320x520  +31.73  ->   -2.06   (inside)
+        375x520   +4.23  ->  -51.95   (inside)
+        320x520  +31.73  ->  -24.45   (inside)
+      CORRECTED AT #424 BEFORE THE PUSH, AND BOTH BLIND ANTAGONISTS FOUND IT INDEPENDENTLY. The first draft of
+      this block recorded -29.56 and -2.06. Those are the SUPERSEDED 12:02 ET bundle's numbers, taken when only
+      the lesson-lines button had shrunk; the shipped bundle reads -51.95 and -24.45, and the 22.39px gap is
+      exactly the FIRST button's own shrink, which landed afterwards. The other numbers in this block were
+      re-measured and these two were not, so a reader had no way to tell which lines were current - which is
+      CLAUDE.md's "when a rule quotes a source, the next reader will trust the quotation" pointed at a gate file.
       so the one kind of overflow CLAUDE.md calls unrecoverable is closed at every column this gate has, and the
       assertion below is now a real containment check at all four rather than a pin at two of them.
       WHAT IS NOT CLOSED, AND IS PINNED INSTEAD OF BEING DROPPED: at h=520 the board is 192 and the button is
       still 39.55px past ITS OWN ROW (it was 95.73). the ladder applied to the WHOLE row took the two children's
-      min-content from 285.73px to 229.55px against a row of 192, so it is still short by 37.55px. Shrinking has
+      resolved tracks from 287.73px to 231.55px against a row of 192, so it is still short by 39.55px. Shrinking has
       now been spent on every button in the row and cannot close it: it needs a wrap or a second row, which
       spends board height and is therefore his decision and not this lane's. The row residual
       is pinned per geometry at its OWN measured value - #415's antagonist lesson, that a pin at one point is a
@@ -653,11 +721,22 @@ L.run(async()=>{
    const _lnOff = dl ? Math.round((dl.x+dl.w-vw)*100)/100 : null;
    L.say(!!dl&&dl.x>=-0.6&&dl.x+dl.w<=vw+0.6,geo+': the "Other lines" button is inside the viewport - '+_lnOff+'px past its right edge, so at or inside it. This was +4.23 at 375x520 and +31.73 at 320x520 before #424 and was PINNED as a live unrecoverable defect at both; his icon-font-ls ladder closed it.',{l:dl&&dl.x,r:dl&&dl.w!=null?Math.round((dl.x+dl.w)*100)/100:null,vw,was:{'375x520':4.23,'320x520':31.73}[geo]});
    const _dr=await demoRow(b);
-   const _rowPin={'375x520':39.55,'320x520':39.55}[geo];
+   const _rowPin={'375x520':39.55,'320x520':39.55,'320x540':19.16}[geo];
    if(_rowPin!==undefined){
      L.say(!!_dr&&Math.abs(Math.round((_dr.btnR-_dr.rowR)*100)/100-_rowPin)<=0.6,
        geo+': the ROW residual is where #424 left it - the button runs '+(_dr&&Math.round((_dr.btnR-_dr.rowR)*100)/100)+'px past its own row (pinned at '+_rowPin+', down from 95.73 before the ladder) because at board 192 the row cannot hold both buttons\' min-content ('+(_dr&&_dr.needed)+'px against '+(_dr&&_dr.rowW)+'px). REPORTED, not excused: it needs a wrap or a second row, which is a board-height cost and so Kunal\'s call.',
        _dr&&{past:Math.round((_dr.btnR-_dr.rowR)*100)/100,pinned:_rowPin,needed:_dr.needed,rowW:_dr.rowW,kids:_dr.kids});
+     /* #424, ANTAGONIST A (F4): THE CAUSE IS PINNED HERE TOO, not just the box. The main loop's "the row can HOLD
+        it" assertion runs only at se/kunal730/390, so it does NOT run at either geometry where the row
+        demonstrably cannot hold its children - which is exactly where #415 built and reverted the
+        minWidth:0-plus-ellipsis. A box-only pin is satisfied by an ellipsis: truncate the label and the button
+        fits its track, the residual changes, and nothing says the words were eaten. Pinning the SHORTFALL
+        (resolved tracks plus gap, minus the row) makes that visible, because truncation drops `needed`. It equals
+        the box residual here by construction - the overflowing button is the last track - and that agreement is
+        itself the cross-check. */
+     L.say(!!_dr&&_dr.needed!==null&&Math.abs(Math.round((_dr.needed-_dr.rowW)*100)/100-_rowPin)<=0.6,
+       geo+': and the CAUSE is where it was left - the row\'s two resolved tracks plus gap need '+(_dr&&_dr.needed)+'px against a row of '+(_dr&&_dr.rowW)+'px, a shortfall of '+(_dr&&Math.round((_dr.needed-_dr.rowW)*100)/100)+'px (pinned at '+_rowPin+'). Nothing was truncated to make the box fit: an ellipsis would drop this number and leave the box one happy.',
+       _dr&&{needed:_dr.needed,rowW:_dr.rowW,shortfall:Math.round((_dr.needed-_dr.rowW)*100)/100,pinned:_rowPin,clone:_dr.neededClone,tracks:_dr.tracks});
    } else {
      L.say(!!_dr&&_dr.btnR<=_dr.rowR+0.5,
        geo+': and it is inside ITS OWN ROW too ('+(_dr&&_dr.btnR)+' against a row ending at '+(_dr&&_dr.rowR)+') - the box that stayed overflowing through #404, #405 and #406 while every viewport check was green',

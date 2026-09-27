@@ -174,8 +174,10 @@ instance.
   are two different boxes, and the whole reason this class survived three fixes with a green suite is that every
   assertion checked the second one. Measured on #424 before the fix: the lesson demo row's "Other lines" button
   ran 16.86px past its row at 320x568 and 375x568 while sitting 7.70px INSIDE the 320 viewport. (TC-INV-05a)
-- And it is inside because the row can HOLD it - the sum of the row children's min-content plus the gaps fits the
-  row - rather than because something was truncated to make it fit. A box-only clause is satisfied by an ellipsis,
+- And it is inside because the row can HOLD it - the row's RESOLVED TRACK SIZES plus the gaps fit the
+  row - rather than because something was truncated to make it fit. Read from the browser's own
+  `gridTemplateColumns` and not from a detached clone: measured at #424, a clone reads this button 2.00px under
+  its own resolved track, which is four times the tolerance the assertion uses. A box-only clause is satisfied by an ellipsis,
   and #415 built exactly that (minWidth:0 plus textOverflow), measured it squeezing the button to 26.83px at
   320x520, and reverted it. Kunal's standing rule for this class is "shrink beats dropping content". (TC-INV-05b)
 - No control's box extends past the VIEWPORT's right edge at any supported geometry, because
