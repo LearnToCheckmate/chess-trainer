@@ -52,4 +52,5 @@ const box=(p,ms,label)=>Promise.race([p,new Promise((_,rj)=>setTimeout(()=>rj(ne
   if(b)await b.close();
  }
  console.log('PROBE COMPLETE');
+ process.exit(0);  // #424: L.launch's server keeps the event loop alive, so a probe that merely finishes never EXITS - seven of them accumulated over this run and competed for CPU with the suite.
 })();

@@ -25,4 +25,5 @@ const L=require('../lib');const D=require('../drive/lesson');
   await b.close();
  }
  console.log('MC PROBE COMPLETE');
+ process.exit(0);  // #424: L.launch's server keeps the event loop alive, so a probe that merely finishes never EXITS - seven of them accumulated over this run and competed for CPU with the suite.
 })();

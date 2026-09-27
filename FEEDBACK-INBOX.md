@@ -2059,3 +2059,39 @@ actually the smallest, and anyone fixing from my description would have made tho
 by the two challenger agents before the push, and both are corrected.
 
 **Nothing you use changed in this build.** No app code was touched at all — this is tests only.
+
+---
+
+## #424 — the "Other lines" button on a narrow phone, and why it took five goes
+
+**You asked, on 22 September: _"can't you reduce the font or the margins on the buttons? just for the narrower
+phones i mean"_ — and then picked the icon, font and letter-spacing option. That is what shipped.** On a narrow
+board the button now reads "Other lines" at a slightly smaller size with the little pawn removed, and it fits.
+**On your phone nothing at all has changed** — same size, same pawn, same "♟ Other lines (3)", measured before and
+after and identical to the hundredth of a pixel.
+
+**Why this button has been fixed four times before and kept coming back.** Every previous pass measured whether it
+ran off the SCREEN. It did, and each fix stopped that. But the button also sticks out of **the row it lives in**,
+which is a different box, and nobody was measuring that one — so every test stayed green while the button's rounded
+end and its border were being cut by the row. Measured this time: 16.86px outside its row on a 320-wide phone, and
+at the same moment 7.7px safely **inside** the screen. Both true at once. That is the whole story of why four fixes
+did not stick, and there is now a test for the row, not just for the screen.
+
+**I nearly shrank the buttons on 85% of your lessons, and one of the checking agents stopped me.** The first
+version of this change shrank that whole row on any narrow phone. But that row shows a different button —
+"⟳ Flip" — whenever a lesson has no alternative lines, and **145 of your 170 lessons are in that group**, including
+every endgame. Measured: in those lessons the row already fitted at the normal size, so the change would have made
+the text smaller for nothing. It now only shrinks when the long button is actually on screen. Your rule about
+icons in a row matching each other still holds either way.
+
+**Two things I want to flag honestly.** First, the report that started this said the button hung 8.77px off the
+screen edge on a 320 phone. I could not reproduce that — on the same screen, same lesson, same app, it sits inside
+the edge. What I could reproduce exactly is the row problem. Second, the number I first published for *why* the row
+was too small was wrong by 2px, and one of the checking agents caught it by spotting that my own test printed two
+numbers that could not both be true. Corrected, and the test now asks the browser directly instead of estimating.
+
+**Still not fixed, and it needs you.** On a phone where the browser's toolbars leave only about 520px of height,
+the lesson board shrinks and the row is simply too small for two buttons — short by about 40px, and shrinking is
+now spent. Closing it means letting the buttons wrap onto a second line, which costs board height. That is your
+call, so it is written down with the number rather than guessed at. The good news is that even there the button no
+longer runs off the **screen** — that part is fixed at every size I measured.
