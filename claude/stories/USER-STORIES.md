@@ -119,3 +119,43 @@ As a player re-opening a game I reviewed yesterday, the review opens in seconds 
 
 Not in scope for this screen: the analysis budget on a phone (wall-clock adaptive, #347) can only be timed on
 a phone; the country lookup and the own photo need a device (y13, n9).
+
+## Cross-app invariants - specced 2026-09-15 by Kunal · invariants 2 and 3 executed #423 (26-invariants.js)
+
+Every clause here is a RELATIONSHIP rather than a value, and that is the whole point of the section. The other
+1961 assertions in this suite each pin a number on one element; a property that ought to hold across the app had
+no home in it, which is why no test found the inconsistent Review icons and why Kunal found them by hand. Flag
+`build-the-invariant-gate` carries his commission and the reasoning.
+
+### US-INV-01 Every control I can tap is big enough to tap
+As a player using the app on my phone, every button is at least 44x44, because that is the size a finger needs.
+- REPORTED, NOT ASSERTED as of #423. Measured on 8cd81ec across twelve screens and three geometries: 90
+  distinct visible controls are under 44x44, against the six the commission named by hand. Part of that gap is
+  population rather than defect (tappable move-strip tokens, grade-table cells, divs that are headers), so it is
+  not pinned until the population is settled - a pin table over an unsettled population freezes the population
+  into the suite. `jobs/invariant-1-tap-targets` owns it; the gate prints the list every run.
+
+### US-INV-02 The icons in a row are all one size
+As a player looking at a row of controls, the icons in it are the same size as each other, because a row of
+mismatched glyphs looks broken whatever each individual size is.
+- In any container whose direct children include two or more controls laid out side by side, every glyph box is
+  the same height within 1px. Measured as 11-lesson.js measures a glyph: the SVG box where there is an SVG,
+  otherwise a Range over the control's own contents. (TC-INV-02a)
+- Six rows fail this today and each is pinned to its measured heights per geometry, so the suite is green now
+  and goes red the day any of them moves in EITHER direction - a fix included, so a pin must be retired on
+  purpose rather than decaying into a permanent excuse. (TC-INV-02b)
+- The pinned failures must be found in exactly the states they were measured in: one that disappears is red,
+  and one that appears on a new screen is red. (TC-INV-02c)
+
+### US-INV-03 The app uses a short, deliberate set of icon sizes
+As a player, the app looks like one app, because its icons come from a small set of sizes rather than from
+whatever each screen happened to use.
+- The commission's "at most four" is a PLACEHOLDER. Measured at #423: 11 distinct icon glyph heights at
+  375x730 and 375x568, 12 at 320x568, 13 across the union. The measured set is pinned per geometry as a DRIFT
+  GUARD, not a target - nothing here claims the current set is right, only that it cannot change without
+  someone noticing, and the log names any height that appears or vanishes. (TC-INV-03)
+- Which sizes survive is Kunal's choice, not a gate's: collapsing 11 into 4 moves ink on six screens.
+  `jobs/invariant-3-icon-size-target-set` carries the measured list to him.
+
+### US-INV-04 Nothing on screen is cut without saying so
+Shipped #404 and #413; see 26-invariants.js invariants 4a and 4b and the flags they name.

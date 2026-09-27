@@ -33,3 +33,32 @@ Columns: id · story · steps · expected (measured) · executed by · last resu
 | TC-R14 | US-R10 | import a PGN with WhiteElo/BlackElo and long names; and one without ratings | pbar-rating-w/-b present with the header values; absent without headers; each pbar's name span has scrollWidth ≤ clientWidth+1 (ellipsis, no overflow); pbar heights equal across plies | 20-review.js `players` | PASS #373: 6 PASS lines, 0 FAIL (kunal + 390; gates/logs/373-all.log) |
 
 Not executed (needs a device): flags (y13), own photo (n9), phone-side analysis budget.
+
+---
+
+## Cross-app invariants - executed against #423 (gates/regress/26-invariants.js; log gates/logs/423-all.log, copied to claude/agents/gatelogs/423-all.log)
+
+Population, stated once because every count below depends on it: a control is button, input, select, textarea,
+[role=button], a[href], [onclick], or an element whose computed `cursor` is `pointer` - and cursor is INHERITED,
+so an element in the SVG namespace and any control that has a control ancestor are both excluded and both
+counted. React attaches click handlers at the root, so a div with onClick and no cursor:pointer is NOT covered;
+that is a stated hole. The board is excluded by mechanism (the widest div whose inline gridTemplateColumns
+matches `repeat(8,`) because its squares take taps and its pieces are drawn inside transform:scale(1.06).
+Geometries: 320x568, 375x730, 375x568. Twelve screens, listed in the gate's SCREENS table.
+
+| id | story | steps (harness) | expected, measured | executed by | last result |
+|---|---|---|---|---|---|
+| TC-INV-02a | US-INV-02 | at each of 12 screens x 3 geometries, enumerate control rows and compare glyph heights within each row | every row whose members' glyph heights spread more than 1.05px is a pinned known failure; unpinned spread is a FAIL. Measured: 44 rows at 375x730, 36 at 320x568, 38 at 375x568; 6 spread classes, all pinned | 26-invariants.js `inv2` | PASS #423: 0 unpinned spreads, 3 geometries (gates/logs/423-all.log) |
+| TC-INV-02b | US-INV-02 | the same sweep, against the pin table | each pinned row's sorted glyph heights equal the #422 measurement within 0.6px. pbar-top [21,28]; lesson footer [22,22,22,27,27]; CHESS TRAINER+hamburger [17,21.6] at 375-wide and [17,20.7] at 320; pz-bottom [16,16,16,20,20]; home greeting [22,25]; lesson practice [16,18,18,18] | 26-invariants.js `inv2-pins` | PASS #423. NEGATIVE CONTROL NC-B (`rev-more` fontSize 19 -> 23, md5 cb195701c545): 6 red, 5 of them this assertion, one per review screen |
+| TC-INV-02c | US-INV-02 | compare the set of (geometry, screen) pairs where each pinned class was found against the set it was measured in | exactly equal; a vanished pin and a pin on a new screen are both FAIL | 26-invariants.js `inv2-pinset` | PASS #423. NEGATIVE CONTROL NC-A (`rev-back` fontSize 25 -> 19, making pbar-top uniform, md5 854e6d33b244): 1 red, this assertion, naming all 5 states the pin vanished from |
+| TC-INV-02d | US-INV-02 | assert the population, not only the result | rows >= 30 and controls >= 150 per geometry sweep; both exclusions must still have excluded something | 26-invariants.js `inv2-population` | PASS #423: 44/36/38 rows, 150+ controls per geometry; nested and svg-internal exclusions both non-zero |
+| TC-INV-03 | US-INV-03 | union the distinct ICON glyph heights (svg box, or a one-grapheme text node) over the 12 screens, per geometry | the set equals the #423 measurement exactly: 375x730 and 375x568 [17,18,19,20,21,21.6,22,24,25,27,28]; 320x568 [16,17,18,19,20,20.7,21,22,24,25,27,28] | 26-invariants.js `inv3` | PASS #423. NEGATIVE CONTROLS NC-B and NC-D (`rev-more` to 23 and to 31): red, naming the added height 26 and 35 respectively |
+| TC-INV-01 | US-INV-01 | the same sweep, reporting controls under 44x44 | REPORTED, NOT ASSERTED. 90 distinct undersized controls on 8cd81ec | 26-invariants.js, `invariant 1` notes | not a pass/fail case at #423; `jobs/invariant-1-tap-targets` |
+
+Negative-control scope, published with the counts because a count with no scope cannot be checked (#411/#412):
+every control above was run as
+`CT_INV_GEOS=kunal730 CT_APP=<trial bundle> node gates/regress/26-invariants.js`
+— ONE geometry of three, 88 assertions. The shipped bundle at that same scope is 88 pass / 0 fail, which is the
+baseline the control counts are differences from. At all three geometries the shipped bundle is 266 pass / 0 fail.
+NC-D is not an independent control: it triggers the same two assertions as NC-B, more strongly. So three distinct
+control outcomes, not four.

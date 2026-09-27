@@ -8,13 +8,17 @@
 //
 // THIS FILE IS THE HOME FOR ALL FOUR AND TODAY IT IMPLEMENTS ONE. Stated plainly so nobody reads the filename
 // as coverage it does not have:
-//   1. TAP TARGETS (every visible interactive element >= 44x44 at every width)     NOT YET IMPLEMENTED
-//   2. ONE ICON SIZE PER ROW (glyph heights equal within 1px in a control row)     NOT YET IMPLEMENTED
-//   3. A SHORT LIST OF ICON SIZES (report today's count first, then assert it)     NOT YET IMPLEMENTED
+//   1. TAP TARGETS (every visible interactive element >= 44x44 at every width)     REPORTED, NOT ASSERTED
+//      (#423 measures 90 distinct undersized controls against the six the commission named by hand, and a
+//       meaningful part of that is population rather than defect - see the invariant 1 note at the foot of
+//       the geometry loop. jobs/invariant-1-tap-targets owns settling the population and pinning the list.)
+//   2. ONE ICON SIZE PER ROW (glyph heights equal within 1px in a control row)     THIS FILE, #423
+//   3. A SHORT LIST OF ICON SIZES (report today's count first, then assert it)     THIS FILE, #423 (set pinned)
 //   4a. INK INSIDE ITS OWN CLIPPING BOX (text cut by the box that clips it)        THIS FILE, BELOW
 //   4b. INK INSIDE ITS OWN BOX (text painted outside itself, onto a sibling)       THIS FILE, #413
-// 1-3 are the #403-#404 backlog and each needs its known-failure list pinned before it can go green; 4 is here
-// first because its class is LIVE and was filed three times by three sessions while the other three were not.
+// 2 and 3 landed at #423 with their known failures pinned, which is how 4 landed; 1 is reported and not asserted
+// for the reason given above. 4 went first because its class was LIVE - filed three times by three sessions
+// while the other three were not.
 //
 // NUMBERED 26 AND NOT 47. Flag `class-ink-clipped-by-own-ancestor-2026-09-15` and `build-the-invariant-gate`
 // both name `gates/regress/47-invariants.js`; both were written on 2026-09-15 and 47 was taken by `47-menu.js`
@@ -170,6 +174,200 @@ const R=require('../drive/review');
 const P=require('../drive/play');
 const LS=require('../drive/lesson');
 const PZ=require('../drive/puzzles');
+
+// ── INVARIANT 2 AND 3's SCANNER: CONTROLS, THE ROWS THEY SIT IN, AND THEIR GLYPH HEIGHTS ──────────────────────
+// Invariant 2: "in any container whose direct children include two or more interactive controls laid out as a
+// row, every glyph box has the same height within 1px". Invariant 3: "across the whole app there are at most
+// N distinct glyph heights" - where the commission is explicit that the N it names (four) is a PLACEHOLDER and
+// the first job is to REPORT today's count.
+//
+// THE GLYPH IS MEASURED THE WAY 11-lesson.js ALREADY MEASURES IT - the SVG box where there is an SVG, else
+// Range.selectNodeContents(el).getBoundingClientRect(). The commission says so in terms, and for a reason: the
+// numbers already in the flags (a 9.2pt close x, 13.8x18.3 chevrons, pbar-top 28 against 21) come from that
+// method, and a second method would make this whole exercise incomparable with the record it is meant to close.
+//
+// ── WHAT THE CONTROL POPULATION IS, AND THE TWO EXCLUSIONS IT COST ME A PROBE TO FIND ─────────────────────────
+// A control is: button, input, select, textarea, [role=button], a[href], [onclick], or an element whose computed
+// `cursor` is `pointer`. That last one is a PROXY AND IT IS THE ONLY ONE AVAILABLE: React attaches click
+// handlers at the root, so the 354 onClick props in chess.jsx are INVISIBLE in the DOM. A div with onClick and
+// no cursor:pointer is therefore NOT covered by invariants 1-3, and that is a stated hole, not an oversight.
+//
+// AND `cursor` IS INHERITED, WHICH IS THE WHOLE TRAP. Every div, span, <path>, <circle> and <ellipse> inside a
+// pointer-cursored button reports cursor:pointer too. Measured on this bundle 2026-09-27, before the exclusions:
+// the naive population reported 263 distinct "undersized interactive elements", most of them SVG internals like
+// `svg>g>circle 1.6x1.6` and `div>svg>ellipse 1.3x2.1`, and it manufactured FALSE ROWS for invariant 2 - two
+// <div>s inside one button ("Daily 3 16 | keep the streak alive 12", spread 4) and two <span>s inside the
+// rev-best pill ("best 13 | › 15", spread 2) both read as two-control rows and would have been filed as real
+// inconsistencies. This is the project's own "a bad selector is a reading" rule, and it produced numbers that
+// looked exactly like measurements. Two exclusions, both COUNTED so they can never shrink the gate's reach in
+// silence:
+//   - an element in the SVG namespace is never a control (it is paint inside one);
+//   - only the OUTERMOST control counts: a control with a control ancestor is nested, not its own row member.
+// After both, the same sweep reports 90 undersized controls and SIX spread classes, every one of which survives
+// inspection - and both of the failures the commission named by hand are among them.
+//
+// THE BOARD IS EXCLUDED BY MECHANISM. Its 64 squares take taps and its pieces are drawn inside
+// transform:scale(1.06), so they would flood every board screen with eight-control rows of piece glyphs whose
+// heights are a paint effect. The board is found the way lib.js finds it - the widest div whose INLINE
+// gridTemplateColumns matches /repeat\(8,/ - and the count of what that dropped is returned, never assumed.
+//
+// A ROW REQUIRES CONTROLS SIDE BY SIDE, NOT MERELY TWO OF THEM. Two controls are a row when their vertical
+// bands overlap by more than half the shorter one AND their horizontal bands do not overlap. A vertical stack
+// of buttons is not a row; asserting one glyph size down a column is not what was commissioned, and a predicate
+// loose enough to call a column a row is loose enough to go red on a healthy screen.
+const ROWS = function(){
+  const vw=innerWidth, vh=innerHeight;
+
+  let board=null, bw=-1;
+  for(const d of document.querySelectorAll('div')){
+    if(!/repeat\(8,/.test(d.style.gridTemplateColumns||''))continue;
+    const r=d.getBoundingClientRect(); if(r.width<40)continue;
+    if(r.width>bw){bw=r.width;board=d;}
+  }
+
+  const why=(e)=>{
+    const t=e.tagName;
+    if(t==='BUTTON')return 'button';
+    if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA')return t.toLowerCase();
+    if(e.getAttribute&&e.getAttribute('role')==='button')return 'role';
+    if(t==='A'&&e.hasAttribute('href'))return 'a';
+    if(e.hasAttribute('onclick'))return 'onclick';
+    if(getComputedStyle(e).cursor==='pointer')return 'pointer';
+    return null;
+  };
+  const vis=(r)=>r.width>=1&&r.height>=1&&r.bottom>0&&r.top<vh&&r.right>0&&r.left<vw;
+
+  const glyph=(e)=>{
+    const svg=e.querySelector('svg');
+    if(svg){const g=svg.getBoundingClientRect();return {gh:+g.height.toFixed(1),gw:+g.width.toFixed(1),via:'svg'};}
+    const rg=document.createRange(); rg.selectNodeContents(e);
+    const g=rg.getBoundingClientRect();
+    if(g.height<0.5)return null;
+    return {gh:+g.height.toFixed(1),gw:+g.width.toFixed(1),via:'range'};
+  };
+  const label=(e)=>{
+    const a=e.getAttribute('aria-label')||e.getAttribute('data-ct')||'';
+    if(a)return a.slice(0,34);
+    return ((e.innerText||e.textContent||'').trim().replace(/\s+/g,' ')||'<no text>').slice(0,34);
+  };
+  const path=(e)=>{const b=[];for(let n=e;n&&n!==document.body&&b.length<3;n=n.parentElement){
+    b.unshift(n.getAttribute('data-ct')?('['+n.getAttribute('data-ct')+']'):n.tagName.toLowerCase());}return b.join('>');};
+
+  const ctls=[], byWhy={}; let inBoard=0, nested=0, svgKid=0;
+  const isCtl=(e)=>!!why(e);
+  for(const e of document.querySelectorAll('*')){
+    if(!why(e))continue;
+    if(board&&board.contains(e)){inBoard++;continue;}
+    if(e.namespaceURI&&e.namespaceURI.indexOf('svg')>=0){svgKid++;continue;}
+    let anc=false; for(let n=e.parentElement;n;n=n.parentElement){if(isCtl(n)){anc=true;break;}}
+    if(anc){nested++;continue;}
+    const r=e.getBoundingClientRect(); if(!vis(r))continue;
+    byWhy[why(e)]=(byWhy[why(e)]||0)+1;
+    ctls.push({e,w:+r.width.toFixed(1),h:+r.height.toFixed(1),x:+r.left.toFixed(1),y:+r.top.toFixed(1),
+               bot:+r.bottom.toFixed(1),rt:+r.right.toFixed(1),g:glyph(e),lab:label(e),p:path(e),
+               fs:parseFloat(getComputedStyle(e).fontSize)});
+  }
+
+  const kids=new Map();
+  for(const c of ctls){const par=c.e.parentElement; if(!par)continue;
+    if(!kids.has(par))kids.set(par,[]); kids.get(par).push(c);}
+  const rows=[];
+  for(const [par,cs] of kids){
+    if(cs.length<2)continue;
+    const wg=cs.filter(c=>c.g); if(wg.length<2)continue;
+    const sorted=wg.slice().sort((a,b)=>a.x-b.x);
+    let side=0;
+    for(let i=1;i<sorted.length;i++){
+      const a=sorted[i-1],b=sorted[i];
+      const vOv=Math.min(a.bot,b.bot)-Math.max(a.y,b.y);
+      if(vOv>Math.min(a.h,b.h)*0.5&&(b.x-a.rt)>-1)side++;
+    }
+    if(side<1)continue;
+    const hs=wg.map(c=>c.g.gh);
+    rows.push({par:path(par), n:wg.length,
+               spread:+(Math.max(...hs)-Math.min(...hs)).toFixed(1),
+               heights:hs.slice().sort((a,b)=>a-b),
+               sig:wg.map(c=>c.lab).sort().join('|'),
+               kids:wg.map(c=>({lab:c.lab,gh:c.g.gh,via:c.g.via,box:c.w+'x'+c.h,fs:c.fs}))});
+  }
+
+  // INVARIANT 3's POPULATION IS ICONS, NOT EVERY GLYPH, AND THE DIFFERENCE IS THE WHOLE NUMBER. Measured here:
+  // over every glyph the distinct-height count is 22 and includes 155px, 137.5px and 120.3px entries - those are
+  // whole Home CARDS measured through a Range over their multi-line contents. Publishing that as "the app has 22
+  // icon sizes" would be #395's container-is-not-its-contents trap with the labels swapped. An icon is an SVG
+  // box, or a text node that is ONE grapheme - which is this app's own idiom for an icon (the header hamburger,
+  // the wave, the chevron, the pawn). Both counts are reported; only the icon one is asserted.
+  const iconH={}, allH={};
+  for(const c of ctls){ if(!c.g)continue;
+    allH[String(c.g.gh)]=1;
+    const txt=(c.e.innerText||c.e.textContent||'').trim();
+    const one=[...txt].length<=2&&txt.length>0&&!/^[0-9A-Za-z]+$/.test(txt);
+    if(c.g.via==='svg'||one){ if(!iconH[String(c.g.gh)])iconH[String(c.g.gh)]=[];
+      if(iconH[String(c.g.gh)].length<3)iconH[String(c.g.gh)].push(c.lab); }
+  }
+
+  // INVARIANT 1 IS REPORTED HERE AND NOT ASSERTED - see the header. The list is what makes the deferral a
+  // measurement rather than an estimate.
+  const small=ctls.filter(c=>c.w<43.95||c.h<43.95).map(c=>({lab:c.lab,box:c.w+'x'+c.h,p:c.p}));
+
+  return {ctls:ctls.length, byWhy, inBoard, nested, svgKid, boardFound:!!board,
+          withGlyph:ctls.filter(c=>c.g).length,
+          rows:rows.sort((a,b)=>b.spread-a.spread), iconH, allH:Object.keys(allH).map(Number), small};
+};
+
+// ── INVARIANT 2's PINS. NOTHING RED GOES ON MAIN, AND EVERY KNOWN FAILURE IS PINNED TO ITS MEASURED VALUE ─────
+// The commission is explicit: "EXPECT THIS GATE TO GO RED IMMEDIATELY, ON THINGS NOBODY HAS LOOKED AT... Pin
+// every known failure to its CURRENT MEASURED VALUE, exactly as 35-width-containment pins lesson-lines at
+// over:38.9 with tol:0.6. The suite stays green today, and goes RED THE DAY A PINNED VALUE MOVES IN EITHER
+// DIRECTION - including the day someone fixes it, which is correct, because a fix should have to update the pin
+// deliberately."
+//
+// SIX CLASSES, MEASURED 2026-09-27 ON 8cd81ec (#422) AT ALL THREE GEOMETRIES. Two of them are the two the
+// commission named by hand a fortnight ago and nothing had measured since; four are new.
+//   pbar-top        Back 28 / More 21          spread 7    <- named in the flag: "Review pbar-top, 28 against 21"
+//   lesson footer   27 / 22 / 27 / 22 / 22     spread 5    <- named in the flag: "Lesson footer, 27 / 22 / 22"
+//   CHESS TRAINER   21.6 svg / 17 hamburger    spread 4.6  (20.7 / 17 at 320x568: the wordmark is font-sized)
+//   pz-bottom       20 / 16 / 16 / 16 / 20     spread 4
+//   home greeting   22 / 25 wave               spread 3
+//   lesson practice 18 / 18 / 16 / 18          spread 2
+//
+// KEYED BY THE ROW'S MEMBER LABELS, NOT BY ITS DOM PATH. Five of these six rows sit at a path of `div>div>div`,
+// so a path key would not tell them apart, and a gate that cannot tell two rows apart cannot pin one of them.
+// The sorted label list is stable, unique and diagnostic - the log prints it, so a red says which row moved.
+//
+// AND THE PIN ASSERTS THE SET OF PLACES THE CLASS OCCURS, not merely that it is excused where it is found. A
+// bare exclusion list would let pbar-top's 7px spread APPEAR ON A SIXTH SCREEN in silence, which is the
+// frozen-denominator failure (#395) in miniature. `at` is the exact set of (geometry, screen) pairs where the
+// class was measured; a new occurrence and a disappeared one both go red, and the log names which.
+const PIN_ROWS=[
+  {sig:'Back|More', h:{'*':[21,28]}, spread:7,
+   at:['kunal730/rev-ply31','kunal730/rev-last-engine','kunal730/rev-why-open','kunal730/rev-more-sheet','kunal730/rev-best-ply30',
+       'se/rev-ply31','se/rev-last-engine','se/rev-why-open','se/rev-more-sheet','se/rev-best-ply30',
+       'short375/rev-ply31','short375/rev-last-engine','short375/rev-why-open','short375/rev-more-sheet','short375/rev-best-ply30'],
+   why:'Review pbar-top: the Back chevron is 28px of ink and the More dots are 21. Named by hand in flag build-the-invariant-gate a fortnight before any test could see it; job lesson-footer-icons-consistent owns the fix.'},
+  {sig:'Back a move|Close lesson|Forward a move|More for this lesson|Play or pause', h:{'*':[22,22,22,27,27]}, spread:5,
+   at:['kunal730/lesson-demo','se/lesson-demo','short375/lesson-demo'],
+   why:'Lesson footer: two 27px SVG arrows beside three 22px glyphs, all on one shared font size. The flag names this row too ("27 / 22 / 22 against one shared 20.25px font"), and 11-lesson.js asserts all five are >=20 and share a font size - which they do - so it is green over exactly this spread.'},
+  {sig:'CHESS TRAINER|☰', h:{kunal730:[17,21.6],short375:[17,21.6],se:[17,20.7]}, spread:null,
+   at:['kunal730/home','se/home','short375/home'],
+   why:'Home header: the wordmark SVG against the hamburger. Its spread is geometry-dependent (4.6 at 375-wide, 3.7 at 320) because the wordmark is font-sized and the hamburger is not, which is itself the finding - one of the two scales with the screen and the other does not.'},
+  {sig:'Next puzzle|Previous puzzle|↺ Reset|👁 Show|💡 Hint', h:{'*':[16,16,16,20,20]}, spread:4,
+   at:['kunal730/puzzles','se/puzzles','short375/puzzles'],
+   why:'Puzzle bottom row: the two SVG arrows are 20px and the three emoji-plus-word buttons are 16px.'},
+  {sig:'Menu and settings|👋', h:{'*':[22,25]}, spread:3,
+   at:['kunal730/home','se/home','short375/home'],
+   why:'Home greeting row: the waving hand is 25px against the 22px menu glyph, and its font size is 13.33 against 20 - the same shape as #347, a bare glyph left at a size chosen for something else.'},
+  {sig:'Flip board|Hints|More actions|Try again', h:{'*':[16,18,18,18]}, spread:2,
+   at:['kunal730/lesson-practice','se/lesson-practice','short375/lesson-practice'],
+   why:'Lesson practice row: "Try again" is 16px where its three neighbours are 18px.'}
+];
+const pinRow=(sig)=>PIN_ROWS.find(p=>p.sig===sig)||null;
+
+// INVARIANT 3's PINNED SETS, one per geometry, measured on #422/8cd81ec by this gate's own first run. They
+// differ between geometries only in the wordmark, which is font-sized (21.6 at 375 wide, 20.7 at 320).
+const ICON_PIN={kunal730:[17,18,19,20,21,21.6,22,24,25,27,28],
+                short375:[17,18,19,20,21,21.6,22,24,25,27,28],
+                se:[16,17,18,19,20,20.7,21,22,24,25,27,28]};
 
 // ── THE SCANNER ───────────────────────────────────────────────────────────────────────────────────────────────
 // Returns one row per TEXT NODE whose painted ink crosses the content box of the nearest ancestor that clips it
@@ -635,20 +833,58 @@ const pinFor=(g,name)=>PINNED.find(p=>p.geo===g&&p.state===name)||null;
 // branch is chosen by the BOARD width (which is the same 230.88 at 375x568 and 320x568) while the row's own
 // width is not. `35-width-containment.js` gained this column at #406 for the same corner. It is the only
 // size in lib.js GEOS with width >= 360 AND height <= 600.
-const GEOS=['se','kunal730','short375'];
+// CT_INV_GEOS narrows the geometry loop for the negative-control loop ONLY. It is opt-in, it is printed
+// loudly when set, and gates.sh never sets it - a filter that could reduce coverage in silence is the
+// stale-bundle trap wearing another costume. Any control result taken with it set MUST publish the command
+// alongside its count: two of six control results published for gate 49 turned out to be subset runs with
+// bare numbers (#411, #412), which nobody could reproduce.
+const ALL_GEOS=['se','kunal730','short375'];
+const GEOS=process.env.CT_INV_GEOS?process.env.CT_INV_GEOS.split(','):ALL_GEOS;
 
 L.run(async()=>{
+  if(process.env.CT_INV_GEOS) L.note('!! CT_INV_GEOS='+process.env.CT_INV_GEOS+' - GEOMETRY-NARROWED RUN, NOT full coverage. '+GEOS.length+' of '+ALL_GEOS.length+' geometries.');
   for(const g of GEOS){
     const b=await L.launch({geo:g,store:R.SEED,name:'inv-'+g});
     await b.open();
     L.note(g+' ('+L.GEOS[g].label+')  stamp '+(await b.stamp()));
     let totalRows=0, totalSkipped=0, seenAny=0, totalSpill=0, nowrapSeen=0, totalTransient=0, measuredScreens=0;
+    let ivRows=0, ivCtls=0, ivNested=0, ivSvgKid=0, ivSeenPins=new Set(), ivIcon={}, ivAllH=new Set(), ivSmall=new Map();
     for(const [name,go] of SCREENS){
       let reached=true, res=null;
       try{ await go(b); }catch(e){ reached=false; L.say(false,g+' '+name+': the state could not be reached at all - every ink assertion on this screen is UNRUN, not green',String(e).slice(0,140)); }
       if(!reached) continue;
       await b.settle(450);
       res=await b.page.evaluate(SCAN);
+
+      /* ── INVARIANT 2: ONE ICON SIZE PER CONTROL ROW ──────────────────────────────────────────────────
+         Every control row's glyph heights must agree within 1px. Unpinned spread is a FAIL; the six
+         classes measured on #422 are pinned to their exact heights per geometry, so this goes red the
+         day one of them moves in EITHER direction - a fix included, deliberately, so the pin has to be
+         retired by hand rather than decaying into an excuse. */
+      const iv=await b.page.evaluate(ROWS);
+      ivRows+=iv.rows.length; ivCtls+=iv.ctls; ivNested+=iv.nested; ivSvgKid+=iv.svgKid; for(const h of iv.allH) ivAllH.add(h);
+      for(const k of Object.keys(iv.iconH)){ if(!ivIcon[k])ivIcon[k]=new Set(); iv.iconH[k].forEach(x=>ivIcon[k].add(x)); }
+      for(const sm of iv.small) ivSmall.set(sm.lab+' '+sm.box, sm.p);
+      L.note('    inv2 population: '+iv.ctls+' outermost controls '+JSON.stringify(iv.byWhy)+', '+iv.withGlyph+' with a glyph, '+iv.rows.length+' side-by-side rows; excluded '+iv.nested+' nested, '+iv.svgKid+' svg-internal, '+iv.inBoard+' in the board (board found: '+iv.boardFound+')');
+
+      const spread=iv.rows.filter(r=>r.spread>1.05);
+      const unpinned=[], pinMoved=[];
+      for(const r of spread){
+        const pin=pinRow(r.sig);
+        if(!pin){ unpinned.push(r); continue; }
+        ivSeenPins.add(pin.sig+'@'+g+'/'+name);
+        const want=pin.h[g]||pin.h['*'];
+        const got=r.heights;
+        const same=want&&want.length===got.length&&want.every((v,i)=>Math.abs(v-got[i])<=0.6);
+        if(!same) pinMoved.push({sig:r.sig,want,got});
+      }
+      L.say(unpinned.length===0, g+' '+name+': every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)',
+        unpinned.length? {rows:unpinned.map(r=>({row:r.par,spread:r.spread,kids:r.kids}))}
+                        : {rowsChecked:iv.rows.length, pinnedHere:spread.length, worstAllowed:spread.length?Math.max(...spread.map(r=>r.spread)):0});
+      L.say(pinMoved.length===0, g+' '+name+': every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose',
+        pinMoved.length? pinMoved : {pinsHere:spread.map(r=>r.sig)});
+      for(const r of spread) L.note('    INV2 PINNED spread '+r.spread+'px  '+r.par+'  '+r.kids.map(k=>k.lab+' '+k.gh+'('+k.via+',fs'+k.fs+')').join(' | '));
+      for(const r of unpinned) L.note('    INV2 UNPINNED spread '+r.spread+'px  '+r.par+'  '+r.kids.map(k=>k.lab+' '+k.gh+'('+k.via+',fs'+k.fs+')').join(' | '));
 
       /* ── THE GRADE LADDER MUST ACCOUNT FOR EVERY MOVE (#421) ────────────────────────────────────────
          jobs/split-excellent-out-of-best. `classify()` (chess.jsx:347) produces SIX grades including
@@ -833,6 +1069,51 @@ L.run(async()=>{
     // (its two nowrap boxes both clip), and that is named in the header rather than hidden in a green. A floor
     // of 10 leaves room for one more screen to legitimately stop qualifying and still goes red if 4b quietly
     // stops reaching the screens it is supposed to cover - which is the failure `nowrapBoxes>=1` could not see.
+    /* ── INVARIANT 2's ANTI-VACUITY, AND IT IS THE ASSERTION THAT MATTERS MOST HERE ─────────────────────
+       "Zero unpinned spreads" is satisfied perfectly by a scanner that finds no rows at all, which is how
+       this project's worst greens have always been produced. So the population is asserted too:
+         - a floor on rows and controls actually measured, so a broken selector cannot read as a clean app;
+         - the two exclusions must each have EXCLUDED something, because an exclusion that stops firing means
+           the DOM moved under the predicate and the reach shrank in silence;
+         - and the pin set must be found EXACTLY where it was measured - a pinned class that vanishes
+           (fixed, or no longer reached) is red, and one that appears on a NEW screen is red. That last half
+           is what stops this pin table becoming a frozen denominator (#395). */
+    const wantPins=[]; for(const p of PIN_ROWS) for(const at of p.at) if(at.split('/')[0]===g) wantPins.push(p.sig+'@'+at);
+    const missing=wantPins.filter(x=>!ivSeenPins.has(x));
+    const extra=[...ivSeenPins].filter(x=>!wantPins.includes(x));
+    L.say(missing.length===0&&extra.length===0, g+': invariant 2 found its pinned failures in EXACTLY the states they were measured in - nothing fixed without retiring its pin, and no pinned spread has appeared on a new screen',
+      (missing.length||extra.length)? {missing, appearedSomewhereNew:extra} : {pinsFound:wantPins.length});
+    L.say(ivRows>=30&&ivCtls>=150, g+': invariant 2 measured a real population rather than an empty one - a scanner that finds no rows reports "no inconsistent rows" and would be believed',
+      {rowsMeasured:ivRows, controlsMeasured:ivCtls, screens:SCREENS.length});
+    L.say(ivNested>0&&ivSvgKid>0, g+': both control-population exclusions still fired, so the gate is measuring outermost controls only rather than having quietly lost the distinction (cursor:pointer is inherited - the naive population reported 263 undersized "controls" against 90)',
+      {nestedExcluded:ivNested, svgInternalsExcluded:ivSvgKid});
+
+    /* ── INVARIANT 3: REPORT THE COUNT, THEN PIN IT. The commission is explicit that the "at most four" it
+       names is a PLACEHOLDER and that the first job is to report today's count and let Kunal choose the
+       target set. So this asserts the SET, not a threshold: 13 distinct ICON glyph heights across the twelve
+       swept screens and three geometries, enumerated below. Asserting the set rather than the count is the
+       #388 lesson - a bare count loose enough to pass is loose enough to hide a swap - and it makes the log
+       say WHICH height appeared or vanished. It is a DRIFT GUARD and not a target: nothing here claims 13 is
+       right, only that it must not change without someone noticing. The target set is Kunal's
+       (jobs/invariant-3-icon-size-target-set). */
+    const iconKeys=Object.keys(ivIcon).map(Number).sort((a,b)=>a-b);
+    L.note('    invariant 3, '+g+': '+iconKeys.length+' distinct ICON glyph heights (svg box, or a one-grapheme text node): '+iconKeys.join(', '));
+    for(const k of iconKeys) L.note('        '+k+'px  '+[...ivIcon[String(k)]].slice(0,3).join(' ; '));
+    L.note('    invariant 3, '+g+': over ALL glyphs including multi-line labels and whole cards the count is '+ivAllH.size+', which is NOT an icon count and is reported only so the difference is on the record');
+    const wantIcons=(ICON_PIN[g]||[]);
+    L.say(JSON.stringify(iconKeys)===JSON.stringify(wantIcons), g+': the set of distinct ICON glyph heights is exactly what #423 measured - a drift guard, not a target (the app has '+wantIcons.length+' icon sizes where the commission\'s placeholder was four; the target set is Kunal\'s to choose)',
+      {want:wantIcons, got:iconKeys, added:iconKeys.filter(x=>!wantIcons.includes(x)), gone:wantIcons.filter(x=>!iconKeys.includes(x))});
+
+    /* ── INVARIANT 1 IS NOT ASSERTED, AND THIS IS THE MEASUREMENT THAT SIZES THE DEFERRAL ────────────────
+       "Before deferring something user-visible, open the code and look" (#392). Looked: this sweep finds the
+       undersized controls below at this geometry. The commission named SIX by hand and said "expect more";
+       the measured number is an order of magnitude larger, and a meaningful part of it is population rather
+       than defect - tappable move-strip tokens, grade-table cells, and divs that are headers rather than
+       buttons. Pinning ninety values over a population that has not been settled would bake the population
+       into the suite, which is the "frozen denominator" failure the same commission warns about. So the list
+       is REPORTED here and owned by a job, and invariant 1 stays honestly unbuilt in the header. */
+    L.note('    invariant 1 (REPORTED, NOT ASSERTED), '+g+': '+ivSmall.size+' distinct visible controls under 44x44');
+    for(const [k,v] of [...ivSmall.entries()].sort()) L.note('        '+k+'   '+v);
     L.say(measuredScreens>=10, g+': 4b actually measured ink against its own box on at least 10 of the 12 screens, so its zeros are measurements rather than an empty set (Home measures none: its two nowrap boxes both clip)', {screensMeasured:measuredScreens, nowrapBoxes:nowrapSeen, spills:totalSpill, transientsSeen:totalTransient});
     await b.close();
   }

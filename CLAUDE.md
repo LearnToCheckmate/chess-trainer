@@ -43,6 +43,8 @@ records it here and in a flag, and says so in its run report before doing anythi
 | `claude/nice-einstein-hnoipk` | **DEAD, merged into main at #422.** It carried #417 to #421, including the Bxh3 alt-move fix Kunal found by hand (#420) and the Excellent split (#421). Both are on main now. Do not build on it and do not resurrect it. |
 | `claude/ecstatic-tesla-m9updx` | **NOT YOURS.** #376-#379 era, 539 ahead and 46 behind, deliberately divergent; its own commit messages say so. A separate question, never merged on a whim. |
 | `claude/pen-probe-1790081923991` | a leftover pen probe from 2026-09-22. Harmless, points at `13a4ba2`. The git proxy refuses branch deletes, so it stays until Kunal removes it on GitHub. |
+| `claude/blissful-gates-f2jrqq` | #422's designated development branch, pushed per the routine's per-run instruction. Same tip as main (`8cd81ec`). Dead once its build landed; kept because the proxy refuses branch deletes. |
+| `claude/blissful-gates-bd4em0` | #423's designated development branch, same rule. Both of these were on origin and NOT IN THIS TABLE when #423 fetched, which is the omission the rule below exists to catch - recorded here and in flag `branch-record-missing-the-designated-dev-branches-2026-09-27`. The routine issues a fresh `claude/<name>` branch per run and the record must name each one, or the table drifts by one ref per build. |
 
 Both #416 gate logs are kept, under `claude/agents/gatelogs/416-main-all.log` and
 `416-branch-all.log`. There are genuinely two #416s; merging those logs into one file would have
