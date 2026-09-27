@@ -72,7 +72,97 @@ sandbox session still has the older suite at work/build/ (gates.sh, 26 gates) an
 gates375.log. If you are the pushed-line session, port repro373.js, mate373.js, k373.js and review373.js into
 `gates/` rather than re-writing them.
 
-## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-18 by BUILD #416)
+## 0a) WHERE THE BUILD ACTUALLY IS (updated 2026-09-27 by BUILD #425)
+
+**THE SECTION BELOW THIS ONE WAS THE "WHERE THE BUILD ACTUALLY IS" HEADER FOR NINE BUILDS.** It says #416.
+#417 to #421 were on the second build line, #422 merged them, and #423, #424 and #425 landed on main — and
+none of those eight updated this section. That is worth knowing before trusting anything in it, and it is the
+same shape as `jobs/spec-docs-frozen-at-373` and `jobs/story-and-case-register-frozen-at-380-2026-09-27`: a
+document whose job is to say where things are, frozen at the moment someone last remembered to write in it.
+
+**WHAT #425 CHANGED, IN ONE LINE.** `chess.jsx:4552`, the Home screen's NEW HERE card:
+`onClick={()=>selectOpening(start)}` became
+`onClick={()=>{setHomeScreen(false);setMode('learn');selectOpening(start);}}`.
+
+**WHY THAT WAS A P0.** Home is `position:fixed inset:0 zIndex:500` and opaque. `selectOpening`
+(`chess.jsx:2971`) sets `openIdx`, `lastLesson`, `learnPhase`, the board and the whole lesson state, and
+touches neither `homeScreen` nor `mode`. So the first card a brand-new player sees — the app's primary call
+to action — loaded its lesson *behind* the Home screen. Measured on the pre-fix bundle at 320x568 and
+375x730: `ct_lastlesson` goes `null` → `"0"`, `[data-ct="lesson-note"]` appears, an 8x8 board is painted,
+and three seconds later the zIndex-500 overlay is still mounted and still the element `elementFromPoint`
+returns at the centre of the viewport. The only visible change anywhere on screen is the Daily 3 line
+switching to "Continue: Italian Game". Before/after renders at 375x730 are in `claude/agents/renders/425-*`.
+
+**THE FIX IS TWO CALLS AND THE JOB ASKED FOR ONE.** `jobs/new-here-card-opens-lesson-behind-home` says
+"Put `setHomeScreen(false)` in the NEW HERE handler". That is sufficient *only* on a fresh boot, where `mode`
+is already `'learn'` by its `useState` default at `chess.jsx:1972`. Home is re-openable from inside Play,
+Puzzles and Review (`chess.jsx:5013`, `5014`, `6518`, and the play-setup back button at `4864`), and the card
+still renders there because `isNew` reads only `pzXP` and `trainMastery` — neither of which tapping a tile
+changes. From that route a `setHomeScreen`-only fix reveals whatever screen `mode` names. **Measured on the
+pre-fix bundle from a mode='play' Home: `{home:true, lesson:false, playSetup:true}` — the lesson does not even
+mount in that state.** So the flag's proposed fix was a hypothesis, and checking it against the mechanism is
+the rule `gate15-baseline-is-the-unsettled-frame` earned at #416.
+
+**THE CLASS SWEEP WAS PUBLISHED WRONG AND BOTH BLIND ANTAGONISTS CAUGHT IT. THE CORRECTED VERSION IS BELOW,
+AND THE MISTAKE IS WORTH MORE THAN THE COUNT.** I first swept the predicate *"fails to dismiss Home"* over the
+nine navigating controls in the Home layer (`chess.jsx:4540`-`4629`, extracted by balanced-brace parse rather
+than grep: four tiles, streak, Daily 3, coach line, Continue, NEW HERE). On that predicate eight were already
+correct and NEW HERE was a singleton — **measured correctly, and answering the wrong question.** My own fix
+asserts a stricter criterion: *reaches the lesson from a Home opened with `mode!=='learn'`*. On THAT criterion
+the class is the four controls that call `selectOpening`, and three of them were defective:
+
+| control | line | before #425 |
+|---|---|---|
+| NEW HERE | 4552 | dismissed nothing, set nothing — the reported P0 |
+| coach line | 4567 | dismissed Home, no `setMode` → **lands in a computer game** |
+| Daily 3 "Continue" | 4570 | dismissed Home, no `setMode` → **lands in a computer game** (its own `else if`, one clause away, sets the mode the branch forgets) |
+| `_continue` | 4599 | same shape, but **DEAD CODE** - `_continue` occurs exactly once in chess.jsx (its own definition) and neither Home render path names it, while every sibling local is referenced 3-6 times. Patched for consistency; **the patch is a no-op today** and is reported as one. Filed as `home-continue-card-is-dead-code-2026-09-27`, NOT switched on - that is Kunal's, the same call as OPEN-QUESTIONS Q5 |
+
+**found 4, fixed 4, left 0** — read as three live routes fixed and one dead one pre-emptively corrected. Antagonist A measured the two live ones on the SHIPPED bundle at both geometries
+by 050c's own route, and the coach line also silently rewrites `ct_lastlesson` `0 → 68`. **They are worse than
+the defect being fixed:** the old one looked like nothing happened, these put a new player into a game they did
+not ask for, and `selectOpening` calls `setGame()`, so doing it during a live game destroys it. Reached in
+**five taps from a cold start with nothing stored**: NEW HERE → Home tab → Play tile → `‹ Home` → coach line.
+
+**THE LESSON, STATED ONCE.** A count can be true and irrelevant, and that is harder to catch than a wrong
+number — nothing in the measurement itself flags it, because the arithmetic is sound. What catches it is
+checking that the predicate you swept is the predicate your fix asserts. Both antagonists went for this same
+soft spot from different doors, which is the strongest evidence the pairing has produced that the two doors
+are not redundant.
+
+**THE GATE ASSERTED THE DEFECT, AND THAT IS WHY THE SUITE WAS GREEN OVER A P0 ON THE FIRST SCREEN.**
+`gates/regress/49-home.js`'s TC-HM-050 measured the broken behaviour carefully and passed on it, with its own
+comment saying "THIS ASSERTION IS THE DEFECT'S TRIPWIRE — when the handler is fixed it goes RED, and that red
+is the confirmation the fix landed. Flip it then, not before." That is an honest way to record a known bug and
+it worked exactly as designed. It is now three assertions that assert the card WORKS:
+  - **TC-HM-050a** the lesson loads. **This was already GREEN on the pre-fix bundle** and is kept deliberately,
+    as the precondition that stops "Home came down" passing on a card that navigated nowhere.
+  - **TC-HM-050b** Home comes down — the overlay is absent AND is not the `elementFromPoint` at the centre.
+  - **TC-HM-050c** it lands on the LESSON even when `mode` was `'play'` when Home opened. This is the only
+    assertion that distinguishes the one-call fix from the two-call fix.
+
+**NEGATIVE CONTROL, SAME GATE, TWO BUNDLES, WITH THE COMMAND SO IT CAN BE REPRODUCED (#411/#412).**
+`gates/gates.sh '#425' '49-home'`, geometries `se` (320x568) and `kunal730` (375x730):
+  - shipped `app.js` md5 `f0a7eecc1d15` → **164 PASS / 0 FAIL**
+  - pre-fix bundle md5 `99513f35c8f3` → **161 PASS / 3 FAIL** — 050b red at BOTH geometries, 050c red at
+    375x730, and 050a **GREEN on both**. The difference is exactly the three assertions that flipped.
+
+**TWO THINGS I GOT WRONG AND CAUGHT MYSELF, BOTH BEFORE THE PUSH.**
+1. TC-HM-050c's route back to Home selected a button by `aria-label`/`title` matching `/back|home/` and hit a
+   "Back" control on another sheet, so the tap never reached Home. It went red rather than passing vacuously,
+   **because both of 050c's preconditions are asserted separately** — #385's rule doing its job. The real
+   control is `[data-ct="setup-sheet"] button` with the inner text `‹ Home` (`chess.jsx:4864`), which carries
+   no aria-label and no title, and is scoped to the sheet because a second `‹ Home` exists at `4639`.
+2. **Precondition 1 claimed more than it measured.** It asserted only that Home was down while its message said
+   "the app is genuinely in mode play". Home being down does not establish the mode — and this precondition is
+   the *only* thing keeping 050c non-vacuous, since in mode `'learn'` the card would land on the lesson for the
+   wrong reason. It now also requires `[data-ct="setup-sheet"]`, which renders only under
+   `mode==='play' && playSetup && !homeScreen` (`chess.jsx:4861`), so its presence entails the mode. Found by
+   re-reading my own diff, not by any gate. **Fixing it cost an abandoned full suite** (7 of 36 gates), because
+   editing a gate under a running suite is the #418 defect — a log that gates a tree no commit describes. The
+   partial logs were preserved rather than overwritten.
+
+## 0a-prev0) WHERE THE BUILD ACTUALLY IS (updated 2026-09-18 by BUILD #416 - SUPERSEDED, see 0a above)
 LIVE = **#416**. GATES GREEN: 36 suites, 1916 PASS, 0 fail, verified before citing.
 
 **THE ONLINE CLOCK STARTED WHEN THE INVITE WAS WRITTEN, NOT WHEN THE GAME BEGAN.** `_gameCreate` seeds `clk` and

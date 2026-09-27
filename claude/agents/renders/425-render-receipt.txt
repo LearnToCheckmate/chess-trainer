@@ -1,0 +1,4 @@
+BEFORE-prefix {"shot":"1-home-newhere-card","found":true,"rect":{"x":18,"y":174,"w":339,"h":100}}
+BEFORE-prefix {"shot":"2-after-tap","homeStillUp":true,"homeCoversMiddle":true,"lesson":true,"boxedOn":"the NEW HERE card, because Home is STILL UP","found":true,"rect":{"x":18,"y":174,"w":339,"h":100}}
+AFTER-425 {"shot":"1-home-newhere-card","found":true,"rect":{"x":18,"y":174,"w":339,"h":100}}
+AFTER-425 {"shot":"2-after-tap","homeStillUp":false,"homeCoversMiddle":false,"lesson":true,"boxedOn":"the lesson note that is now on screen","found":true,"rect":{"x":4,"y":5,"w":368,"h":75}}

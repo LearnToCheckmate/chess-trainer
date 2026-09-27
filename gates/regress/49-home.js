@@ -753,10 +753,18 @@ if(blk('F')){
   const b=await L.launch({geo:'kunal730',name:'home-f-coachtap'});await b.open();await H.states['home'](b);
   await TAP(b,/^🎓/,2200);
   L.say(!await homeUp(b)&&await b.page.evaluate(()=>!!document.querySelector('[data-ct="lesson-note"]')),
-    '375x730: TC-HM-049 the coach line opens the lesson it recommends and Home comes down with it - chess.jsx:4339 calls setHomeScreen(false) before selectOpening(). Compare TC-HM-050, two cards above it, which does not',(await rootText(b)).slice(0,80));
+    '375x730: TC-HM-049 the coach line opens the lesson it recommends and Home comes down with it - chess.jsx:4567 calls setHomeScreen(false) before selectOpening() - the cite read 4339 until #425 and had drifted, in the same block that corrected two other stale cites. Since #425 it also calls setMode(learn), which is what TC-HM-050c pins',(await rootText(b)).slice(0,80));
   await b.close();
 }
-// --- TC-HM-050: THE DEFECT. Measured at both geometries, twice, with a real mouse click at a rect taken first.
+// --- TC-HM-050: WAS THE DEFECT'S TRIPWIRE, NOW ASSERTS THE FIX. Measured at both geometries with a real mouse
+// click at a rect taken first. FLIPPED AT #425, which is what the previous version of this comment asked for:
+// "THIS ASSERTION IS THE DEFECT'S TRIPWIRE - when the handler is fixed it goes RED, and that red is the
+// confirmation the fix landed. Flip it then, not before." The handler is now
+// onClick={()=>{setHomeScreen(false);setMode('learn');selectOpening(start);}} at chess.jsx:4552.
+// TWO LINE NUMBERS IN THE OLD COMMENT HAD DRIFTED and are corrected here rather than repeated: it cited the
+// handler at chess.jsx:4324 and selectOpening at chess.jsx:2899; they are 4552 and 2971 on this tree. That is the
+// #399 / gate-47 class - a control recipe naming line numbers that have moved - and a comment is the one place
+// nothing re-derives the number, so it is the place it rots.
 if(blk('F'))for(const geo of ['se','kunal730']){
   const b=await L.launch({geo,name:'home-f-newhere-'+geo});await b.open();
   await H.states['home'](b);
@@ -776,12 +784,88 @@ if(blk('F'))for(const geo of ['se','kunal730']){
       board:[...document.querySelectorAll('div')].some(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')),
       homeCoversMiddle:!!(ov&&mid&&ov.contains(mid)),
       ll:(()=>{try{return localStorage.getItem('ct_lastlesson');}catch(e){return null;}})()};});
-  L.say(!!box&&before.ll===null&&!before.lesson&&after.ll==='0'&&after.lesson===true&&after.board===true
-      &&after.home===true&&after.homeCoversMiddle===true,
-    geo+': TC-HM-050 DEFECT, RECORDED NOT ENDORSED. Tapping "NEW HERE? START HERE - Learn your first opening" LOADS the lesson and then leaves Home on top of it. Measured: ct_lastlesson goes null -> "0", [data-ct="lesson-note"] and a painted 8x8 board both appear, and three seconds later the Home overlay is still mounted and still the element at the centre of the screen. The handler is onClick={()=>selectOpening(start)} (chess.jsx:4324) and selectOpening (chess.jsx:2899) sets openIdx, lastLesson and the whole lesson state but never touches homeScreen - unlike the coach line 15 lines below it, which calls setHomeScreen(false) first. So a brand-new user\'s one primary call to action appears to do nothing: the only visible change is the Daily 3 dot switching to "Continue: Italian Game". THIS ASSERTION IS THE DEFECT\'S TRIPWIRE - when the handler is fixed it goes RED, and that red is the confirmation the fix landed. Flip it then, not before. NEEDS-KUNAL HM-K4',
+  // The two halves are asserted SEPARATELY and deliberately. "The lesson loaded" was already true while the
+  // defect was live - that is exactly why the card looked dead - so a single combined assertion would not say
+  // which half regressed. The load half is the precondition for the dismissal half meaning anything at all.
+  L.say(!!box&&before.ll===null&&!before.lesson&&after.ll==='0'&&after.lesson===true&&after.board===true,
+    geo+': TC-HM-050a the NEW HERE card LOADS the lesson - ct_lastlesson null -> "0", [data-ct="lesson-note"] and a painted 8x8 board both appear. This half was ALREADY TRUE while the defect was live and is kept as the precondition for 050b: without it, "Home came down" could pass on a card that navigated nowhere',
     {before,after,box});
+  L.say(!!box&&after.home===false&&after.homeCoversMiddle===false,
+    geo+': TC-HM-050b FIXED AT #425 - and Home COMES DOWN with it, so a brand-new user\'s one primary call to action visibly does something. Until #425 the Home overlay stayed mounted and stayed the element at the centre of the screen three seconds after the tap, so the only visible change was the Daily 3 dot switching to "Continue: Italian Game". Measured here as the zIndex-500 overlay being absent AND not the elementFromPoint at the viewport centre - two readings, because "absent" and "not covering" fail differently',
+    {home:after.home,homeCoversMiddle:after.homeCoversMiddle});
   L.say(b.errs.length===0,geo+': zero app errors across the NEW HERE tap',b.errs.slice(0,3));
   await b.close();
+}
+
+// --- TC-HM-050c: THE UNTESTED HALF OF 050's INPUT SPACE, and the assertion that pins setMode rather than only
+// setHomeScreen. Everything above taps a card on a FRESH BOOT, where `mode` is already 'learn' by its own
+// useState default (chess.jsx:1972), so setHomeScreen(false) alone is sufficient there and the gate cannot tell
+// the two fixes apart. But Home is re-openable from inside Play, Puzzles and Review (chess.jsx:5013, 5014, 6518
+// and the play-setup back button at 4864), and the cards still render, so there is a reachable state where mode
+// is NOT 'learn' and a card that only dismisses Home reveals whatever screen `mode` names instead of the lesson.
+// This is #385's rule: a gate that enters a state by the shortest route often enters the wrong one.
+//
+// IT RUNS OVER ALL THREE LESSON-REACHING CARDS, AND THAT IS THE WHOLE POINT OF THE #425 ANTAGONIST VETO.
+// #425's first draft fixed NEW HERE alone and published classSwept {found:9, fixed:1, left:0}. Both blind
+// antagonists independently measured that as FALSE: under this assertion's own criterion the class has THREE
+// portrait members, and on the #425 pre-veto bundle the other two landed the player IN A COMPUTER GAME rather
+// than on a lesson - strictly worse than the P0 being fixed, because selectOpening calls setGame(), so a live
+// game would be destroyed. A brand-new user reaches it in five taps. Looping the assertion over the three cards
+// is what stops "the class was swept" from being a sentence rather than a measurement.
+if(blk('F'))for(const geo of ['se','kunal730']){
+  // {label, seed, match, why} - the seed is what makes each card RENDER, stated per card so a card that stops
+  // rendering fails its own precondition instead of silently dropping out of the loop.
+  const CARDS=[
+    {id:'NEW HERE',      seed:{},                  re:/^NEW HERE/,   src:'chess.jsx:4552'},
+    {id:'coach line',    seed:{},                  re:/^\u{1F393}\s/u, src:'chess.jsx:4567'},
+    {id:'Daily 3',       seed:{ct_lastlesson:'0'}, re:/^Daily 3\s/,  src:'chess.jsx:4570'},
+  ];
+  for(const card of CARDS){
+    const b=await L.launch({geo,name:'home-f-mode-'+geo+'-'+card.id.replace(/\s+/g,'')});await b.open();
+    await H.fresh(b,card.seed);
+    await b.tile('Play');await b.settle(900);
+    const inPlay=await b.page.evaluate(()=>({home:!![...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500'),
+      setupSheet:!!document.querySelector('[data-ct="setup-sheet"]')}));
+    // BOTH conditions, and the second carries the claim. The first draft asserted only that Home was down while
+    // its message said "the app is genuinely in mode play" - which Home being down does not establish. That is
+    // load-bearing: this precondition is the ONLY thing keeping the landing assertion non-vacuous, because in
+    // mode 'learn' every card lands on the lesson for the wrong reason. [data-ct="setup-sheet"] renders only
+    // under mode==='play' && playSetup && !homeScreen (chess.jsx:4861), so its presence entails the mode.
+    L.say(inPlay.home===false&&inPlay.setupSheet===true,
+      geo+' ['+card.id+']: TC-HM-050c precondition 1 - the Play tile took Home down AND the play setup sheet is mounted, which is what establishes mode==="play". Asserting Home is down alone would NOT establish the mode',inPlay);
+    // back to Home via the setup sheet's own '‹ Home' (chess.jsx:4864): no aria-label, no title, only that
+    // inner text, and scoped to [data-ct="setup-sheet"] because a second '‹ Home' exists at chess.jsx:4639.
+    // The first version matched aria-label/title =~ /back|home/ and hit another sheet's "Back", so the tap never
+    // reached Home - caught by this precondition going red rather than by the assertion below passing wrongly.
+    const back=await b.page.evaluate(()=>{const sheet=document.querySelector('[data-ct="setup-sheet"]');
+      const bs=[...(sheet||document).querySelectorAll('button')].filter(x=>/^‹\s*Home$/.test((x.innerText||'').trim()));
+      if(bs.length!==1)return {n:bs.length};bs[0].click();return {n:1};});
+    const reHome=await b.page.evaluate((rs)=>{const ov=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500');
+      if(!ov)return {home:false,card:false};
+      const r=new RegExp(rs,'u');
+      const el=[...ov.querySelectorAll('button'),...ov.querySelectorAll('div[onclick],div')].find(x=>r.test((x.innerText||'').replace(/\s+/g,' ').trim()));
+      if(!el)return {home:true,card:false};
+      el.scrollIntoView({block:'center'});const q=el.getBoundingClientRect();
+      return {home:true,card:true,x:q.left+q.width/2,y:q.top+q.height/2};},card.re.source);
+    L.say(back&&back.n===1&&reHome.home===true&&reHome.card===true,
+      geo+' ['+card.id+']: TC-HM-050c precondition 2 - Home re-opens from the play setup sheet with mode still "play", and this card is STILL on it. Both preconditions are asserted because if either fails the assertion below passes by never reaching the state it names',
+      {back,reHome});
+    if(reHome.card)await b.page.mouse.click(reHome.x,reHome.y);
+    await b.settle(3000);
+    const land=await b.page.evaluate(()=>{const ov=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500');
+      const t=((document.querySelector('#root')||document.body).innerText||'').replace(/\s+/g,' ');
+      return {home:!!ov,lesson:!!document.querySelector('[data-ct="lesson-note"]'),
+        inGame:!!document.querySelector('[data-ct="play-home"]')||/\u{1F916}\s*Computer\s*\d+/u.test(t),
+        txt:t.slice(0,110)};});
+    // THREE clauses, and inGame is the one the veto added. "lesson===true" alone would have caught the two
+    // broken cards here, but it would not have SAID what went wrong; inGame names the screen the player is
+    // actually dropped onto, which is the difference between "this did not work" and a defect report.
+    L.say(land.home===false&&land.lesson===true&&land.inGame===false,
+      geo+' ['+card.id+']: TC-HM-050c this card lands on the LESSON, not on whatever screen mode already named, when mode was "play" when Home opened ('+card.src+'). This is the assertion that pins setMode(\'learn\') specifically: a fix that added only setHomeScreen(false) passes TC-HM-050a and 050b and FAILS HERE, because selectOpening (chess.jsx:2971) sets openIdx, lastLesson and the whole lesson state but never touches mode. Proved non-vacuous at #425 against a bundle built by removing exactly the setMode token (md5 adb1bb5eceb7): 14 PASS / 1 FAIL, the one FAIL being this line',
+      land);
+    L.say(b.errs.length===0,geo+' ['+card.id+']: zero app errors across the mode-play tap',b.errs.slice(0,3));
+    await b.close();
+  }
 }
 
 },'HOME');

@@ -120,6 +120,44 @@ As a player re-opening a game I reviewed yesterday, the review opens in seconds 
 Not in scope for this screen: the analysis budget on a phone (wall-clock adaptive, #347) can only be timed on
 a phone; the country lookup and the own photo need a device (y13, n9).
 
+## Home - the overlay the app boots on · specced 2026-09-15 by the Home lane · US-HM-11 added #425 (49-home.js)
+
+ID SPACE, SAID PLAINLY SO THE NEXT WRITER DOES NOT REPEAT THE `TC-R05` COLLISION. The Home lane defined
+US-HM-01 … US-HM-10 and TC-HM-001 … TC-HM-046 in its own document (`claude/stories/HOME-LANE-2026-09-15.md`,
+cited in `gates/regress/49-home.js`'s header), and that document is NOT in this repository - so until #425 this
+register carried no `US-HM` or `TC-HM` id at all while gate 49 cited forty-six of them. This section does not
+transcribe those clauses: a hand-made second copy is what `R17` forbids and what made "TC-R05 passed" an unsafe
+sentence in two documents. It names the one that already covers this class, and adds the one new clause at the
+NEXT free number rather than re-using an existing one for a different meaning. The gap itself is
+`jobs/story-and-case-register-frozen-at-380-2026-09-27`, and this section does not close it.
+
+**The clause that already covers the class** is US-HM-05, "each tile opens ITS screen and Home comes down with
+it". It is written for the four tiles. The NEW HERE card is not a tile, which is exactly how the defect below
+survived: the clause was true of every control it named.
+
+### US-HM-11 Every card on Home that opens a screen brings Home down with it, and lands on the screen it named
+
+Written for the CLASS and not for the one card, because the Home overlay is `position:fixed inset:0 zIndex:500`
+and opaque, so ANY control under it that navigates without dismissing it appears to the player to do nothing at
+all. Measured at #425: of the nine navigating controls inside the Home layer (`chess.jsx:4540`-`4629` - the four
+tiles, the streak card, the Daily 3 card, the coach line, Continue, and NEW HERE), eight dismissed Home and one
+did not.
+
+- Tapping a Home card that opens a screen leaves the Home overlay unmounted: the `zIndex:500` layer is absent
+  AND it is not the element `elementFromPoint` returns at the centre of the viewport. Those are two readings
+  because they fail differently - a layer can be mounted but scrolled away, or present and transparent. (TC-HM-050b)
+- The card lands on the screen it named, not merely off Home. `selectOpening` (`chess.jsx:2971`) sets the whole
+  lesson state and never touches `mode`, so a card that dismisses Home without setting `mode` reveals whatever
+  screen `mode` already named. This is only observable when Home is opened from somewhere other than a fresh
+  boot - `mode` defaults to `'learn'` at `chess.jsx:1972`, so on a first boot the two fixes are
+  indistinguishable and a gate that only ever taps from a fresh store cannot tell them apart. (TC-HM-050c)
+- The card's own work still happens: the lesson loads. This half was ALREADY TRUE while the defect was live -
+  it is why the card looked dead rather than broken - and is kept as a separate assertion so that "Home came
+  down" can never pass on a card that navigated nowhere. (TC-HM-050a)
+
+Not in scope for this clause: whether the NEW HERE card should exist, what it should say, or which lesson it
+should choose. It picks the first `openings`/`gambits` entry and that is unchanged.
+
 ## Cross-app invariants - specced 2026-09-15 by Kunal · invariants 2 and 3 executed #423 (26-invariants.js)
 
 Every clause here is a RELATIONSHIP rather than a value, and that is the whole point of the section. The other

@@ -2095,3 +2095,73 @@ the lesson board shrinks and the row is simply too small for two buttons — sho
 now spent. Closing it means letting the buttons wrap onto a second line, which costs board height. That is your
 call, so it is written down with the number rather than guessed at. The good news is that even there the button no
 longer runs off the **screen** — that part is fixed at every size I measured.
+
+## #425 — the first card a new player sees did nothing when you tapped it (2026-09-27)
+
+**The one-sentence version.** On the Home screen, the blue "NEW HERE? START HERE — Learn your first
+opening" card — the first thing a brand-new player sees and the main thing we ask them to tap — loaded the
+lesson **behind** the Home screen. Home is a solid, full-screen layer, so nothing appeared to happen. It is
+fixed.
+
+**What it actually looked like.** You tap the card. The lesson loads: the board is built, the opening is
+chosen, it is written to storage. And then Home stays sitting on top of all of it. Three seconds later the
+only thing that has changed anywhere on the screen is the small grey line in the Daily 3 card at the top,
+which now reads "Continue: Italian Game". That is the entire feedback a new player gets for tapping the one
+button we point them at. I have put the before and after pictures in the repo
+(`claude/agents/renders/425-*.png`) with a red box on the card.
+
+**Why nothing caught it.** This is the part worth your attention. There *was* a test covering that card, and
+it passed on every build — because it was written to assert **the defect**. Someone measured the bug
+carefully, wrote it down as "this is what currently happens", and left a note saying "when the handler is
+fixed this goes red, and that red is the confirmation — flip it then, not before." That is an honest way to
+record a known bug, and it worked exactly as intended. But it does mean the suite was green over a P0 on the
+first screen of the app for as long as the note sat there. It is now three tests that assert the card
+**works**, and they go red on the old build.
+
+**The thing I nearly got wrong.** The obvious fix is one line: dismiss Home. That is enough if you tapped the
+card straight after opening the app. But you can get back to Home from inside Play or Puzzles, and the card is
+still there — and from *that* route, dismissing Home just reveals the Play screen instead, because loading a
+lesson does not by itself switch the app to the lesson screen. So the fix is two lines, not one, and there is
+now a test that takes the longer route specifically to tell those two fixes apart. A test that only ever taps
+the card from a cold start cannot see the difference.
+
+**I checked the rest of the screen rather than just this card.** There are nine things on Home that take you
+somewhere. Eight of them already dismissed Home correctly. This was the only one that did not — so this is a
+single missed case, not a pattern, and I would rather tell you the count than say "fixed it" and leave you
+wondering about the other eight.
+
+**Something you may want to decide.** The oldest job in the build queue is "commit the two Firebase config
+files so a deploy works from a fresh clone". There is a rule that one run a day goes to the oldest open item
+no matter what else turns up — your call, and you overruled a softer version of it. It keeps not happening, and
+I found out why: **those two files do not exist anywhere this build session can reach.** So the job cannot be
+done from here at all, by any run, and has not been since it was written on 19 September. It is not being
+skipped for being boring; it is unbuildable and nothing on it says so. Written up for the orchestrator.
+
+### #425, correction appended the same run — I was wrong about "a single missed case"
+
+The paragraph above says "There are nine things on Home that take you somewhere. Eight of them already
+dismissed Home correctly. This was the only one that did not — so this is a single missed case, not a
+pattern." **That was measured correctly and it answered the wrong question, and two checking agents caught it
+independently before this build was pushed.** Leaving it above rather than editing it, because this log is
+append-only and because the mistake is the useful part.
+
+**What was wrong.** I counted the cards that fail to *get Home out of the way*. On that count NEW HERE really
+was the only one. But the fix I had just written asserts something stricter — that the card takes you to the
+*lesson* — and on **that** count two more cards were broken, on the build I was about to ship: the coach line
+("New to chess? Lock in the endgame basics") and the Daily 3 card's "Continue: Italian Game".
+
+**And they were broken worse.** Measured on the shipped bundle, at both phone sizes: if you have been to Play
+and come back to Home, tapping either of those two **drops you into a game against the computer** rather than
+opening the lesson. The old NEW HERE bug looked like nothing happened; this one puts you somewhere you did not
+ask to go, and because loading a lesson resets the board, doing it during a real game would destroy that game.
+A brand-new player reaches it in five taps from a cold start, with nothing stored.
+
+**All four routes into a lesson from Home are fixed now** — the three above plus one that only appears in
+landscape — and the test now walks all three cards at both sizes instead of one card at one size. One of the
+checking agents also built the thing I had not: a copy of the app with *only* the one-word fix removed, to
+prove the test actually catches its absence rather than passing for some other reason. It does: that copy
+fails on exactly the one line, and nothing else.
+
+I would rather you saw this than a clean note. The count I published was true and irrelevant, which is a
+harder mistake to catch than a wrong number, and the only reason it was caught is that two agents were asked
+to attack the same build from different directions and both went for the same soft spot.

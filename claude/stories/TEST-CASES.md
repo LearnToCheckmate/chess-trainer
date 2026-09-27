@@ -36,6 +36,25 @@ Not executed (needs a device): flags (y13), own photo (n9), phone-side analysis 
 
 ---
 
+## Home - executed against #425 (gates/regress/49-home.js; log gates/logs/425-all.log, copied to claude/agents/gatelogs/425-all.log)
+
+ID SPACE: the Home lane's TC-HM-001 … TC-HM-046 are defined in `claude/stories/HOME-LANE-2026-09-15.md`, which is
+not in this repository; TC-HM-047 … TC-HM-050 were added by that lane inside `gates/regress/49-home.js`. Only the
+three rows below are recorded here, at the numbers the gate actually emits. They are NOT a transcription of the
+other forty-nine (`R17`, and the `TC-R05` collision is what happens when a second copy is hand-kept).
+
+| id | what it asserts | pass condition | selector | inputs | failed before the fix |
+|---|---|---|---|---|---|
+| TC-HM-050a | the NEW HERE card does its own work: the lesson loads | `ct_lastlesson` goes `null` → `"0"`, `[data-ct="lesson-note"]` appears, and a div with `grid-template-columns: repeat(8,…)` is painted | `[data-ct="lesson-note"]`; the `zIndex:500` overlay's own `<button>` whose text matches `/^NEW HERE/` | 2 geometries (320x568, 375x730) × 1 fresh-store state | **NO — and that is the point.** It passed on the pre-fix bundle too. The card always loaded the lesson; it loaded it *behind* Home. Kept as the precondition for 050b so "Home came down" can never pass on a card that navigated nowhere |
+| TC-HM-050b | …and Home comes down with it | the `zIndex:500` overlay is absent AND is not `document.elementFromPoint(innerWidth/2, innerHeight/2)` — two readings, because "unmounted" and "not covering" fail differently | same | 2 geometries × 1 fresh-store state | **YES.** On the pre-fix bundle the overlay was still mounted and still the element at the centre of the screen 3s after the tap, at both geometries. Measured as the negative control at #425 |
+| TC-HM-050c | …and it lands on the LESSON, not on whatever screen `mode` already named | after the tap: overlay absent, `[data-ct="lesson-note"]` present, and no play-setup text (`/Who do you want to play\|Pass & Play\|vs Computer/`) | route in via the Play tile, then the setup sheet's `[data-ct="setup-sheet"] button` with text `‹ Home` | 1 geometry (375x730) × 1 state reached by a 3-step route (Home → Play tile → ‹ Home → NEW HERE) | **YES**, and it is the only case that distinguishes the two candidate fixes: a `setHomeScreen(false)`-only fix passes 050a and 050b and fails this. It needs a route other than a fresh boot, because `mode` defaults to `'learn'` (`chess.jsx:1972`) and on a first boot the two fixes are indistinguishable |
+
+Both of 050c's preconditions are asserted separately and both earned it inside this build: the first version of its
+back-button selector matched an aria-label of `Back` belonging to a different sheet, the tap never reached Home, and
+**precondition 2 went red rather than letting 050c pass by never entering the state it names.** That is the
+`#385` rule working as designed — assert that the state was actually reached, and that the thing under test was
+present just before — and it cost one subset run of seven minutes instead of a false green.
+
 ## Cross-app invariants - executed against #423 (gates/regress/26-invariants.js; log gates/logs/423-all.log, copied to claude/agents/gatelogs/423-all.log)
 
 Population, stated once because every count below depends on it: a control is button, input, select, textarea,
