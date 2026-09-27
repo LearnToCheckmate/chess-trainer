@@ -9,8 +9,11 @@
 // THIS FILE IS THE HOME FOR ALL FOUR AND TODAY IT IMPLEMENTS ONE. Stated plainly so nobody reads the filename
 // as coverage it does not have:
 //   1. TAP TARGETS (every visible interactive element >= 44x44 at every width)     REPORTED, NOT ASSERTED
-//      (#423 measures 90 distinct undersized controls against the six the commission named by hand, and a
-//       meaningful part of that is population rather than defect - see the invariant 1 note at the foot of
+//      (#423 MEASURES, per geometry and printed in this log: 70 at 320x568, 66 at 375x730, 72 at 375x568,
+//       against the SIX the commission named by hand. An earlier draft of this header said "90", which is a
+//       union across three geometries under a different dedupe key and is a number this gate never emits -
+//       #411/#412's "a count with no scope cannot be checked", committed inside the file that was fixing it.
+//       A meaningful part of the gap is population rather than defect; see the invariant 1 note at the foot of
 //       the geometry loop. jobs/invariant-1-tap-targets owns settling the population and pinning the list.)
 //   2. ONE ICON SIZE PER ROW (glyph heights equal within 1px in a control row)     THIS FILE, #423
 //   3. A SHORT LIST OF ICON SIZES (report today's count first, then assert it)     THIS FILE, #423 (set pinned)
@@ -211,6 +214,21 @@ const PZ=require('../drive/puzzles');
 // heights are a paint effect. The board is found the way lib.js finds it - the widest div whose INLINE
 // gridTemplateColumns matches /repeat\(8,/ - and the count of what that dropped is returned, never assumed.
 //
+// ── WHAT INVARIANT 2 IS BLIND TO BY CONSTRUCTION, AND IT IS NOT A SMALL HOLE ───────────────────────────────────
+// Because the measured quantity for an SVG is its BOX, a row whose controls are all SVG icons of the same box
+// size reports spread 0 however different the strokes inside them are. The #423 antagonist measured the worked
+// example on a screen this gate already sweeps: the bottom TAB BAR's five icons are all a 22x22 box, so this
+// invariant reports spread 0, while their painted ink runs Review 13.93, Home 15.40, Play 15.49, Discover 16.50,
+// Puzzles 18.15 - a 4.22px spread, 30% between largest and smallest, in a five-icon row present on nearly every
+// screen in the app. So the rows invariant 2 CAN flag are, structurally, the rows that MIX an SVG box with a
+// text line box, which is what three of its five pins are.
+// THIS IS THIS FILE'S OWN TRAP (d) ASKED OF A DIFFERENT INVARIANT: is the thing I am trying to detect absorbed
+// by the mechanism I am asserting over? For 4a the header asks it and answers no. For invariant 2 nobody asked,
+// and the answer is partly yes. The box method is KEPT because the commission mandates it for comparability with
+// every number already in the flags, and changing what this invariant measures is a design change with its own
+// control work - jobs/invariant-2-measures-the-box-not-the-ink owns it. Meanwhile the ink is measured and
+// printed beside every row, so the hole is visible in the log rather than implied by a green.
+//
 // A ROW REQUIRES CONTROLS SIDE BY SIDE, NOT MERELY TWO OF THEM. Two controls are a row when their vertical
 // bands overlap by more than half the shorter one AND their horizontal bands do not overlap. A vertical stack
 // of buttons is not a row; asserting one glyph size down a column is not what was commissioned, and a predicate
@@ -237,13 +255,32 @@ const ROWS = function(){
   };
   const vis=(r)=>r.width>=1&&r.height>=1&&r.bottom>0&&r.top<vh&&r.right>0&&r.left<vw;
 
+  // THE BOX IS THE MANDATED MEASUREMENT AND THE INK IS THE HONEST ONE, SO BOTH ARE RETURNED.
+  // The commission requires the 11-lesson.js method - the SVG's own box, else a Range over the contents - in
+  // terms, and for a stated reason: every number already in the flags comes from it, and a second method would
+  // make this incomparable with the record it exists to close. So `gh` stays the box and is what invariant 2
+  // asserts on. But an SVG's box is its viewBox, NOT its strokes, and the #423 antagonist measured the gap:
+  // the lesson footer's chevrons are a 27x27 box carrying a 10.8 x 16.2 polyline, and the puzzle arrows a 20x20
+  // box carrying 8 x 12. In both rows the arrows are the SMALLEST ink and the box says they are the largest, so
+  // the first version of this file's pin prose described both rows backwards and a fixer acting on it would have
+  // shrunk the arrows and made the row worse. `ink` is the union of the painted leaf rects, reported in the log
+  // beside every pinned row so the number a fixer reads is the number a player sees.
+  const inkH=(e)=>{
+    const svg=e.querySelector('svg');
+    if(!svg)return null;
+    let top=Infinity, bot=-Infinity, n=0;
+    for(const k of svg.querySelectorAll('path,line,circle,ellipse,rect,polyline,polygon,text')){
+      for(const r of k.getClientRects()){ if(r.height<0.01&&r.width<0.01)continue; top=Math.min(top,r.top); bot=Math.max(bot,r.bottom); n++; }
+    }
+    return n? +(bot-top).toFixed(2) : null;
+  };
   const glyph=(e)=>{
     const svg=e.querySelector('svg');
-    if(svg){const g=svg.getBoundingClientRect();return {gh:+g.height.toFixed(1),gw:+g.width.toFixed(1),via:'svg'};}
+    if(svg){const g=svg.getBoundingClientRect();return {gh:+g.height.toFixed(1),gw:+g.width.toFixed(1),via:'svg',ink:inkH(e)};}
     const rg=document.createRange(); rg.selectNodeContents(e);
     const g=rg.getBoundingClientRect();
     if(g.height<0.5)return null;
-    return {gh:+g.height.toFixed(1),gw:+g.width.toFixed(1),via:'range'};
+    return {gh:+g.height.toFixed(1),gw:+g.width.toFixed(1),via:'range',ink:+g.height.toFixed(2)};
   };
   const label=(e)=>{
     const a=e.getAttribute('aria-label')||e.getAttribute('data-ct')||'';
@@ -253,7 +290,7 @@ const ROWS = function(){
   const path=(e)=>{const b=[];for(let n=e;n&&n!==document.body&&b.length<3;n=n.parentElement){
     b.unshift(n.getAttribute('data-ct')?('['+n.getAttribute('data-ct')+']'):n.tagName.toLowerCase());}return b.join('>');};
 
-  const ctls=[], byWhy={}; let inBoard=0, nested=0, svgKid=0;
+  const ctls=[], byWhy={}; let inBoard=0, nested=0, svgKid=0, covered=0; const coveredList=[];
   const isCtl=(e)=>!!why(e);
   for(const e of document.querySelectorAll('*')){
     if(!why(e))continue;
@@ -262,6 +299,18 @@ const ROWS = function(){
     let anc=false; for(let n=e.parentElement;n;n=n.parentElement){if(isCtl(n)){anc=true;break;}}
     if(anc){nested++;continue;}
     const r=e.getBoundingClientRect(); if(!vis(r))continue;
+    // THE THIRD EXCLUSION, AND IT COST A FALSE DEFECT TO FIND. See the header: this app keeps several screens
+    // MOUNTED AT ONCE, so laid-out-and-on-screen is not usable. Excluded only when the point at the control's
+    // own centre lands on an element that is neither the control, nor inside it, nor an ancestor of it - an
+    // ancestor hit means the centre fell on the control's own padding, which is still the control. Excluding
+    // shrinks the population, so it can never manufacture a defect; it can only hide one, which is why the
+    // count is PINNED per geometry and screen below rather than merely reported.
+    const hit=document.elementFromPoint(r.left+r.width/2, r.top+r.height/2);
+    if(hit && hit!==e && !e.contains(hit) && !hit.contains(e)){
+      covered++;
+      if(coveredList.length<12) coveredList.push({lab:label(e),box:+r.width.toFixed(1)+'x'+r.height.toFixed(1),hitWas:(hit.getAttribute('data-ct')||hit.tagName)});
+      continue;
+    }
     byWhy[why(e)]=(byWhy[why(e)]||0)+1;
     ctls.push({e,w:+r.width.toFixed(1),h:+r.height.toFixed(1),x:+r.left.toFixed(1),y:+r.top.toFixed(1),
                bot:+r.bottom.toFixed(1),rt:+r.right.toFixed(1),g:glyph(e),lab:label(e),p:path(e),
@@ -288,11 +337,12 @@ const ROWS = function(){
                spread:+(Math.max(...hs)-Math.min(...hs)).toFixed(1),
                heights:hs.slice().sort((a,b)=>a-b),
                sig:wg.map(c=>c.lab).sort().join('|'),
-               kids:wg.map(c=>({lab:c.lab,gh:c.g.gh,via:c.g.via,box:c.w+'x'+c.h,fs:c.fs}))});
+               kids:wg.map(c=>({lab:c.lab,gh:c.g.gh,ink:c.g.ink,via:c.g.via,box:c.w+'x'+c.h,fs:c.fs}))});
   }
 
   // INVARIANT 3's POPULATION IS ICONS, NOT EVERY GLYPH, AND THE DIFFERENCE IS THE WHOLE NUMBER. Measured here:
-  // over every glyph the distinct-height count is 22 and includes 155px, 137.5px and 120.3px entries - those are
+  // over every glyph the distinct-height count is 20 PER GEOMETRY (22 as a union across three, and an earlier
+  // draft of this comment published the union with no scope) and includes 155px, 137.5px and 120.3px entries - those are
   // whole Home CARDS measured through a Range over their multi-line contents. Publishing that as "the app has 22
   // icon sizes" would be #395's container-is-not-its-contents trap with the labels swapped. An icon is an SVG
   // box, or a text node that is ONE grapheme - which is this app's own idiom for an icon (the header hamburger,
@@ -310,10 +360,40 @@ const ROWS = function(){
   // measurement rather than an estimate.
   const small=ctls.filter(c=>c.w<43.95||c.h<43.95).map(c=>({lab:c.lab,box:c.w+'x'+c.h,p:c.p}));
 
-  return {ctls:ctls.length, byWhy, inBoard, nested, svgKid, boardFound:!!board,
+  return {ctls:ctls.length, byWhy, inBoard, nested, svgKid, covered, coveredList, boardFound:!!board,
           withGlyph:ctls.filter(c=>c.g).length,
           rows:rows.sort((a,b)=>b.spread-a.spread), iconH, allH:Object.keys(allH).map(Number), small};
 };
+
+// ── INVARIANTS 2 AND 3: THE NEGATIVE CONTROLS, WITH THEIR SCOPE, BECAUSE A COUNT WITH NO SCOPE CANNOT BE CHECKED
+// Command for every row: `CT_INV_GEOS=<geo> CT_APP=<bundle> node gates/regress/26-invariants.js`. One geometry
+// per run, 13 screens. BASELINES on the shipped #423 bundle at the same scope: kunal730 120/0, se 121/0; all
+// three geometries together 364/0.
+//   NC-A  rev-back fontSize 25->19 (pbar-top made UNIFORM)   md5 ecf82b971bc0   kunal730 119/1   se 120/1
+//         -> the pin-LOCATION assertion only, `missing` half, naming every review screen the pin left. This is
+//            a control over the REVERSE direction: a pinned known failure being silently FIXED. Note it does
+//            NOT trip the per-screen pin-VALUE check, because a uniform row drops below the spread filter
+//            before that check sees it - so the aggregate half is the only thing guarding that direction.
+//   NC-B  rev-more fontSize 19->23                           md5 8b71e6249254   kunal730 115/5
+//         -> pin-VALUE on 4 review screens (want [21,28] got [26,28]) + invariant 3's set, naming added 26.
+//   NC-C  rev-summary-foot clamp 16px->22px                   md5 2dfc051c12aa   kunal730 119/1   se 119/2
+//         -> the HEADLINE unpinned-spread assertion at rev-summary. At se it ALSO trips a 4b spill assertion,
+//            which is a genuine second consequence of a 22px button at 320 wide and not a false red, so NC-C
+//            is single-assertion at 375 and not at 320. Said rather than rounded off.
+//   NC-D (rev-more 19->31) is NOT KEPT as a distinct control: it tripped the identical assertion set to NC-B at
+//         #423's first pass, so counting it would inflate the number this ledger exists to measure.
+// TWO GEOMETRY AXES, which the first pass did not have: the #423 antagonist pointed out that 178 of the then-266
+// assertions lived at se and short375 and no control had ever touched them. NC-A and NC-C now run at se too.
+// short375 is still uncontrolled and that is a named hole, not a silence.
+//
+// TWO ASSERTIONS IN THIS FILE HAVE NO DELIBERATE CONTROL, NAMED HERE RATHER THAN LEFT TO BE DISCOVERED:
+//  (1) the `appearedSomewhereNew` half of the pin-location assertion. No trial bundle makes a pinned spread
+//      appear on a NEW screen. It HAS been observed firing, on the geometry axis: running this gate at 390x844
+//      before the pins were width-keyed reported every pinned class as appearedSomewhereNew. That is evidence
+//      the half can fail, and it is not the screen-axis control the assertion is for.
+//  (2) the `gone` direction of invariant 3's set. NC-B and NC-D only ever ADD a height.
+// Also recorded: the `missing` half DID fail for real during this build, on my own change - the occlusion
+// exclusion removed pbar-top from behind the ⋯ sheet and the assertion caught the stale `at` list.
 
 // ── INVARIANT 2's PINS. NOTHING RED GOES ON MAIN, AND EVERY KNOWN FAILURE IS PINNED TO ITS MEASURED VALUE ─────
 // The commission is explicit: "EXPECT THIS GATE TO GO RED IMMEDIATELY, ON THINGS NOBODY HAS LOOKED AT... Pin
@@ -341,33 +421,107 @@ const ROWS = function(){
 // class was measured; a new occurrence and a disappeared one both go red, and the log names which.
 const PIN_ROWS=[
   {sig:'Back|More', h:{'*':[21,28]}, spread:7,
-   at:['kunal730/rev-ply31','kunal730/rev-last-engine','kunal730/rev-why-open','kunal730/rev-more-sheet','kunal730/rev-best-ply30',
-       'se/rev-ply31','se/rev-last-engine','se/rev-why-open','se/rev-more-sheet','se/rev-best-ply30',
-       'short375/rev-ply31','short375/rev-last-engine','short375/rev-why-open','short375/rev-more-sheet','short375/rev-best-ply30'],
+   // rev-more-sheet IS NOT IN THIS LIST AND WAS, UNTIL THE OCCLUSION EXCLUSION LANDED. pbar-top sits BEHIND the
+   // ⋯ sheet, so its two buttons are now excluded as unreachable and the class legitimately stops occurring
+   // there - 15 of 15 (geo, screen) pairs became 12. The `missing` half of the pin-set assertion is what caught
+   // that, on my own change, which is the first evidence that half can fail at all.
+   at:['kunal730/rev-ply31','kunal730/rev-last-engine','kunal730/rev-why-open','kunal730/rev-best-ply30',
+       'se/rev-ply31','se/rev-last-engine','se/rev-why-open','se/rev-best-ply30',
+       'short375/rev-ply31','short375/rev-last-engine','short375/rev-why-open','short375/rev-best-ply30'],
    why:'Review pbar-top: the Back chevron is 28px of ink and the More dots are 21. Named by hand in flag build-the-invariant-gate a fortnight before any test could see it; job lesson-footer-icons-consistent owns the fix.'},
-  {sig:'Back a move|Close lesson|Forward a move|More for this lesson|Play or pause', h:{'*':[22,22,22,27,27]}, spread:5,
+  {sig:'Back a move|Close lesson|Forward a move|More for this lesson|Play or pause', h:{320:[22,22,22,27,27],375:[22,22,22,27,27],390:[23,23,23,27,27]}, spread:null,
    at:['kunal730/lesson-demo','se/lesson-demo','short375/lesson-demo'],
-   why:'Lesson footer: two 27px SVG arrows beside three 22px glyphs, all on one shared font size. The flag names this row too ("27 / 22 / 22 against one shared 20.25px font"), and 11-lesson.js asserts all five are >=20 and share a font size - which they do - so it is green over exactly this spread.'},
-  {sig:'CHESS TRAINER|☰', h:{kunal730:[17,21.6],short375:[17,21.6],se:[17,20.7]}, spread:null,
-   at:['kunal730/home','se/home','short375/home'],
-   why:'Home header: the wordmark SVG against the hamburger. Its spread is geometry-dependent (4.6 at 375-wide, 3.7 at 320) because the wordmark is font-sized and the hamburger is not, which is itself the finding - one of the two scales with the screen and the other does not.'},
+   why:'Lesson footer. THE BOX SAYS 27 AND THE INK SAYS 16.2, AND THE FIRST VERSION OF THIS LINE HAD IT BACKWARDS: it read "two 27px SVG arrows beside three 22px glyphs", which would send a fixer to shrink the arrows. The 27 is the chevrons viewBox; the polyline inside each paints 10.8 x 16.2, so the arrows are the SMALLEST ink in the bar and the three text glyphs at 22 are the largest. The flag names this row ("27 / 22 / 22 against one shared 20.25px font") from the same box method. 11-lesson.js asserts all five are >=20 and share a font size - which they do, fontSize 20.25 to the decimal - so it is green over exactly this spread, which is the finding gate11-is-green-over-the-very-glyph-spread-kunal-reported-2026-09-27. Heights are per WIDTH because the three text glyphs track fontSize (20 at 320, 20.25 at 375, 21.06 at 390) while the two SVG boxes do not scale at all.'},
+  // THE `CHESS TRAINER|☰` PIN WAS HERE AND IT WAS NOT A DEFECT. Removed at #423 after both antagonists
+  // measured it independently. It is the header of the TAB SCREEN mounted underneath Home's position:fixed
+  // layer: elementFromPoint at each member's centre returns an unrelated div (25 of 25 and 15 of 15 sample
+  // points), so a finger cannot reach either. Its 4.6px "spread" was also almost entirely viewBox padding - the
+  // "wordmark SVG" is a 21.56 box around a pawn mark painting 17.28, against the hamburger's 17.00, a real
+  // difference of 0.28px. Published in this build's first claim set as one of four newly-found inconsistencies;
+  // it was three. The occlusion exclusion in ROWS() now removes both members from the population, so the row
+  // does not appear at all and needs no pin. This is #393's rule - "in the DOM, laid out, on screen is NOT the
+  // user can use it" - which this file's header cites for invariant 4a and which invariant 2 shipped without.
   {sig:'Next puzzle|Previous puzzle|↺ Reset|👁 Show|💡 Hint', h:{'*':[16,16,16,20,20]}, spread:4,
    at:['kunal730/puzzles','se/puzzles','short375/puzzles'],
-   why:'Puzzle bottom row: the two SVG arrows are 20px and the three emoji-plus-word buttons are 16px.'},
+   why:'Puzzle bottom row, and the same inversion as the lesson footer: the two arrows are a 20px BOX carrying 8 x 12 of ink, so they are the smallest thing in the row, not the largest, and the 16 is the line box of the whole string "💡 Hint" rather than of the emoji. Both numbers are reported in the log now (box and INK) so a fix is driven off the one a player sees.'},
   {sig:'Menu and settings|👋', h:{'*':[22,25]}, spread:3,
    at:['kunal730/home','se/home','short375/home'],
-   why:'Home greeting row: the waving hand is 25px against the 22px menu glyph, and its font size is 13.33 against 20 - the same shape as #347, a bare glyph left at a size chosen for something else.'},
+   why:'Home greeting row, and this one IS user-visible and hittable - the 46x46 home-menu button, glyph 22, whose centre elementFromPoint returns itself. The waving hand paints 25 against the menu glyph 22, at font size 13.33 against 20: the same shape as #347, a bare glyph left at a size chosen for something else.'},
+  // #423, FOUND BY THE ANTAGONIST ON A SCREEN THE GATE COULD NOT REACH, which makes it the single most useful
+  // entry in this table: it is the proof that "six rows, zero unpinned" was a statement about twelve screens and
+  // not about the app. Solve the puzzle and pz-bottom re-renders from five controls to two.
+  {sig:'Next puzzle|Previous puzzle', h:{'*':[16,20]}, spread:4,
+   at:['kunal730/pz-solved','se/pz-solved','short375/pz-solved'],
+   why:'Solved-puzzle bottom row: the back chevron is a 20px box painting 12px of ink, beside a full-width "Next >" whose line box is 16 and whose ink is 16 - so here the arrow really is the smaller of the two on BOTH measures, unlike its unsolved sibling. Reached only through PZ.states["train-solved"], which the twelve original screens did not include, so this row had a red the gate was structurally unable to produce on the commonest outcome in the Puzzles tab.'},
   {sig:'Flip board|Hints|More actions|Try again', h:{'*':[16,18,18,18]}, spread:2,
    at:['kunal730/lesson-practice','se/lesson-practice','short375/lesson-practice'],
    why:'Lesson practice row: "Try again" is 16px where its three neighbours are 18px.'}
 ];
 const pinRow=(sig)=>PIN_ROWS.find(p=>p.sig===sig)||null;
+// KEYED BY VIEWPORT WIDTH, NOT BY GEOMETRY NAME, and that is a correction the #423 antagonist forced. The first
+// version keyed `h` and ICON_PIN on the geometry's NAME, so at any geometry the gate does not sweep by default
+// the pin had no entry and the gate went RED ON A HEALTHY BUNDLE: measured `CT_INV_GEOS=kunal` (375x679, the
+// shorter-phone column CLAUDE.md orders kept) 85 pass / 3 fail, and `CT_INV_GEOS=390` 84/4. Worse, one of those
+// reds was the pin reporting `got [17,21.6]` - EXACTLY the value its own `why` text predicts for a 375-wide
+// screen - because 'kunal' is not 'kunal730' though both are 375 wide. Width is the quantity the mechanism
+// actually depends on: the text glyphs track fontSize, which this app scales with width (320 -> fs20,
+// 375 -> fs20.25, 390 -> fs21.06), while an SVG's box does not scale at all. So a pin keyed on width expresses
+// the mechanism, and a pin keyed on a name expressed only where it happened to be measured.
+const widthOf=(g)=>L.GEOS[g].w;
 
 // INVARIANT 3's PINNED SETS, one per geometry, measured on #422/8cd81ec by this gate's own first run. They
 // differ between geometries only in the wordmark, which is font-sized (21.6 at 375 wide, 20.7 at 320).
-const ICON_PIN={kunal730:[17,18,19,20,21,21.6,22,24,25,27,28],
-                short375:[17,18,19,20,21,21.6,22,24,25,27,28],
-                se:[16,17,18,19,20,20.7,21,22,24,25,27,28]};
+const ICON_PIN={320:[16,17,18,19,20,21,22,24,25,27,28],
+                375:[17,18,19,20,21,22,24,25,27,28],
+                390:[17,18,19,20,21,22,23,25,27,28]};
+
+// ── THE TWO POPULATION PINS THE ANTAGONIST'S VACUITY PROOF FORCED ──────────────────────────────────────────────
+// V1: the headline assertion ("no unpinned row spreads more than 1px") was checked against ZERO rows on Home at
+// all three swept geometries, because BOTH of Home's rows were pinned exceptions - so `unpinned` was the empty
+// set and the assertion could not fail on the screen this project's own audit ranks #1 by risk. The antagonist
+// then proved the predicate is satisfied by an empty set generally, using this file's OWN scanner extracted
+// verbatim: break only the side-by-side test and `play-captures` goes from 2 rows to 0 with every assertion
+// green. The aggregate floors did not catch it - `ivRows>=30` against 44 measured is 14 rows of slack, and
+// play-captures and play-gameover carry 2 rows each and no pins, so 2 of 12 screens could lose their entire
+// invariant-2 coverage in silence. This is the trap the header lists five costumes of, in its sixth: the pin
+// list excused every row on Home, so THE PIN LIST WAS THE REASON THE ASSERTION COULD NOT FIRE THERE.
+// The fix is to pin the POPULATION per screen, not a floor over the sweep: a screen that loses a row goes red
+// and names it. A floor is what let this through; an exact count per (geometry, screen) cannot.
+const ROW_PIN={
+  'se/home':1,'se/play-captures':2,'se/play-gameover':2,'se/lesson-demo':3,'se/lesson-practice':2,
+  'se/puzzles':2,'se/pz-solved':2,'se/rev-summary':2,'se/rev-ply31':3,'se/rev-last-engine':3,
+  'se/rev-why-open':3,'se/rev-more-sheet':0,'se/rev-best-ply30':3,
+  'kunal730/home':1,'kunal730/play-captures':2,'kunal730/play-gameover':2,'kunal730/lesson-demo':3,
+  'kunal730/lesson-practice':3,'kunal730/puzzles':2,'kunal730/pz-solved':2,'kunal730/rev-summary':9,
+  'kunal730/rev-ply31':3,'kunal730/rev-last-engine':3,'kunal730/rev-why-open':3,'kunal730/rev-more-sheet':0,
+  'kunal730/rev-best-ply30':3,
+  'short375/home':1,'short375/play-captures':2,'short375/play-gameover':2,'short375/lesson-demo':3,
+  'short375/lesson-practice':2,'short375/puzzles':2,'short375/pz-solved':2,'short375/rev-summary':4,
+  'short375/rev-ply31':3,'short375/rev-last-engine':3,'short375/rev-why-open':3,'short375/rev-more-sheet':0,
+  'short375/rev-best-ply30':3};
+const COVERED_PIN={
+  'se/home':6,'se/play-captures':0,'se/play-gameover':0,'se/lesson-demo':0,'se/lesson-practice':0,
+  'se/puzzles':0,'se/pz-solved':0,'se/rev-summary':23,'se/rev-ply31':1,'se/rev-last-engine':0,
+  'se/rev-why-open':0,'se/rev-more-sheet':15,'se/rev-best-ply30':2,
+  'kunal730/home':6,'kunal730/play-captures':0,'kunal730/play-gameover':0,'kunal730/lesson-demo':0,
+  'kunal730/lesson-practice':0,'kunal730/puzzles':0,'kunal730/pz-solved':0,'kunal730/rev-summary':24,
+  'kunal730/rev-ply31':0,'kunal730/rev-last-engine':1,'kunal730/rev-why-open':1,'kunal730/rev-more-sheet':17,
+  'kunal730/rev-best-ply30':1,
+  'short375/home':6,'short375/play-captures':0,'short375/play-gameover':0,'short375/lesson-demo':0,
+  'short375/lesson-practice':0,'short375/puzzles':0,'short375/pz-solved':0,'short375/rev-summary':23,
+  'short375/rev-ply31':1,'short375/rev-last-engine':0,'short375/rev-why-open':0,'short375/rev-more-sheet':17,
+  'short375/rev-best-ply30':2};
+// TWO OF THESE NUMBERS ARE THE INTERESTING ONES AND BOTH ARE STATED RATHER THAN LEFT TO BE NOTICED.
+// `rev-more-sheet` pins 0 ROWS at every geometry. That is not the exclusion eating the sheet: the sheet's own 15
+// buttons ARE hittable (elementFromPoint returns each one), they simply do not form a side-by-side row - the five
+// action buttons are 345px full-width and stacked, and the five category chips are each wrapped so they are not
+// direct siblings. What the occlusion exclusion removed there is the REVIEW SCREEN BEHIND THE SHEET, which is
+// correct and is why `covered` is 15-17 on that state. Net: this screen contributes ZERO invariant-2 coverage
+// and the sheet's own chip row is invisible to the invariant. Named, not hidden - jobs/invariant-2-sheet-rows.
+// `rev-summary` pins 2 / 9 / 4 at 320 / 375x730 / 375x568 because the grade-table cells are pairs of NUMBERS in
+// a scroller, so how many are in view is a property of the viewport. They are also vacuous as invariant-2 rows
+// by construction: two digits at one font size cannot disagree. They inflate the count and prove nothing, and
+// deciding whether to exclude them is a population question rather than a fix - same job.
 
 // ── THE SCANNER ───────────────────────────────────────────────────────────────────────────────────────────────
 // Returns one row per TEXT NODE whose painted ink crosses the content box of the nearest ancestor that clips it
@@ -777,6 +931,13 @@ const SCREENS=[
   // which is the whole of 4b. Two gates over one row, each blind to the other's question.
   ['lesson-practice', async(b)=>{await LS.states['practice-m0'](b);}],
   ['puzzles',         async(b)=>{await PZ.states['train'](b);}],
+  // #423, AND IT IS THE ANTAGONIST'S FINDING RATHER THAN A TIDY-UP. The twelve screens had the UNSOLVED puzzle
+  // board only. The moment the player solves it, `pz-bottom` re-renders from five controls to two - a 46x44
+  // back chevron and a full-width `Next >` - and that row's glyph heights are 20 against 16, a spread of 4 at
+  // all three geometries, whose signature was in no pin. So the headline invariant-2 assertion had a RED it was
+  // structurally unable to produce, on the commonest outcome in the Puzzles tab. Twelve screens is not the app,
+  // and "zero unpinned spreads" is a claim about what was visited.
+  ['pz-solved',       async(b)=>{await PZ.states['train-solved'](b);}],
   ['rev-summary',     async(b)=>{await R.states['summary'](b);}],
   ['rev-ply31',       async(b)=>{await R.states['moves-ply31'](b);}],
   ['rev-last-engine', async(b)=>{await R.states['moves-last-engine'](b);}],
@@ -848,7 +1009,7 @@ L.run(async()=>{
     await b.open();
     L.note(g+' ('+L.GEOS[g].label+')  stamp '+(await b.stamp()));
     let totalRows=0, totalSkipped=0, seenAny=0, totalSpill=0, nowrapSeen=0, totalTransient=0, measuredScreens=0;
-    let ivRows=0, ivCtls=0, ivNested=0, ivSvgKid=0, ivSeenPins=new Set(), ivIcon={}, ivAllH=new Set(), ivSmall=new Map();
+    let ivRows=0, ivCtls=0, ivNested=0, ivSvgKid=0, ivCovered=0, ivBoardExcluded=0, ivSeenPins=new Set(), ivIcon={}, ivAllH=new Set(), ivSmall=new Map();
     for(const [name,go] of SCREENS){
       let reached=true, res=null;
       try{ await go(b); }catch(e){ reached=false; L.say(false,g+' '+name+': the state could not be reached at all - every ink assertion on this screen is UNRUN, not green',String(e).slice(0,140)); }
@@ -865,7 +1026,18 @@ L.run(async()=>{
       ivRows+=iv.rows.length; ivCtls+=iv.ctls; ivNested+=iv.nested; ivSvgKid+=iv.svgKid; for(const h of iv.allH) ivAllH.add(h);
       for(const k of Object.keys(iv.iconH)){ if(!ivIcon[k])ivIcon[k]=new Set(); iv.iconH[k].forEach(x=>ivIcon[k].add(x)); }
       for(const sm of iv.small) ivSmall.set(sm.lab+' '+sm.box, sm.p);
-      L.note('    inv2 population: '+iv.ctls+' outermost controls '+JSON.stringify(iv.byWhy)+', '+iv.withGlyph+' with a glyph, '+iv.rows.length+' side-by-side rows; excluded '+iv.nested+' nested, '+iv.svgKid+' svg-internal, '+iv.inBoard+' in the board (board found: '+iv.boardFound+')');
+      L.note('    inv2 population: '+iv.ctls+' outermost controls '+JSON.stringify(iv.byWhy)+', '+iv.withGlyph+' with a glyph, '+iv.rows.length+' side-by-side rows; excluded '+iv.nested+' nested, '+iv.svgKid+' svg-internal, '+iv.covered+' occluded, '+iv.inBoard+' in the board (board found: '+iv.boardFound+')');
+      for(const c of iv.coveredList) L.note('      OCCLUDED (not a control a finger can reach) '+c.lab+' '+c.box+'  centre hits '+c.hitWas);
+      ivCovered+=iv.covered; ivBoardExcluded+=iv.inBoard;
+      const rk=g+'/'+name;
+      if(Object.prototype.hasOwnProperty.call(ROW_PIN,rk)){
+        L.say(iv.rows.length===ROW_PIN[rk], g+' '+name+': the screen still presents the '+ROW_PIN[rk]+' side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in',
+          {want:ROW_PIN[rk], got:iv.rows.length, rows:iv.rows.map(r=>r.sig)});
+        L.say(iv.covered===COVERED_PIN[rk], g+' '+name+': exactly '+COVERED_PIN[rk]+' controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted',
+          {want:COVERED_PIN[rk], got:iv.covered, which:iv.coveredList});
+      } else {
+        L.note('      NOT PINNED at this geometry: row and occlusion counts are REPORTED here, not asserted (rows '+iv.rows.length+', occluded '+iv.covered+'). Only the three swept geometries carry population pins.');
+      }
 
       const spread=iv.rows.filter(r=>r.spread>1.05);
       const unpinned=[], pinMoved=[];
@@ -873,7 +1045,7 @@ L.run(async()=>{
         const pin=pinRow(r.sig);
         if(!pin){ unpinned.push(r); continue; }
         ivSeenPins.add(pin.sig+'@'+g+'/'+name);
-        const want=pin.h[g]||pin.h['*'];
+        const want=pin.h[widthOf(g)]||pin.h['*'];
         const got=r.heights;
         const same=want&&want.length===got.length&&want.every((v,i)=>Math.abs(v-got[i])<=0.6);
         if(!same) pinMoved.push({sig:r.sig,want,got});
@@ -883,8 +1055,8 @@ L.run(async()=>{
                         : {rowsChecked:iv.rows.length, pinnedHere:spread.length, worstAllowed:spread.length?Math.max(...spread.map(r=>r.spread)):0});
       L.say(pinMoved.length===0, g+' '+name+': every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose',
         pinMoved.length? pinMoved : {pinsHere:spread.map(r=>r.sig)});
-      for(const r of spread) L.note('    INV2 PINNED spread '+r.spread+'px  '+r.par+'  '+r.kids.map(k=>k.lab+' '+k.gh+'('+k.via+',fs'+k.fs+')').join(' | '));
-      for(const r of unpinned) L.note('    INV2 UNPINNED spread '+r.spread+'px  '+r.par+'  '+r.kids.map(k=>k.lab+' '+k.gh+'('+k.via+',fs'+k.fs+')').join(' | '));
+      for(const r of spread) L.note('    INV2 PINNED spread '+r.spread+'px  '+r.par+'  '+r.kids.map(k=>k.lab+' box '+k.gh+' INK '+k.ink+' ('+k.via+',fs'+k.fs+')').join(' | '));
+      for(const r of unpinned) L.note('    INV2 UNPINNED spread '+r.spread+'px  '+r.par+'  '+r.kids.map(k=>k.lab+' box '+k.gh+' INK '+k.ink+' ('+k.via+',fs'+k.fs+')').join(' | '));
 
       /* ── THE GRADE LADDER MUST ACCOUNT FOR EVERY MOVE (#421) ────────────────────────────────────────
          jobs/split-excellent-out-of-best. `classify()` (chess.jsx:347) produces SIX grades including
@@ -1083,10 +1255,31 @@ L.run(async()=>{
     const extra=[...ivSeenPins].filter(x=>!wantPins.includes(x));
     L.say(missing.length===0&&extra.length===0, g+': invariant 2 found its pinned failures in EXACTLY the states they were measured in - nothing fixed without retiring its pin, and no pinned spread has appeared on a new screen',
       (missing.length||extra.length)? {missing, appearedSomewhereNew:extra} : {pinsFound:wantPins.length});
-    L.say(ivRows>=30&&ivCtls>=150, g+': invariant 2 measured a real population rather than an empty one - a scanner that finds no rows reports "no inconsistent rows" and would be believed',
-      {rowsMeasured:ivRows, controlsMeasured:ivCtls, screens:SCREENS.length});
-    L.say(ivNested>0&&ivSvgKid>0, g+': both control-population exclusions still fired, so the gate is measuring outermost controls only rather than having quietly lost the distinction (cursor:pointer is inherited - the naive population reported 263 undersized "controls" against 90)',
-      {nestedExcluded:ivNested, svgInternalsExcluded:ivSvgKid});
+    // RE-DERIVED AT #423 AFTER THE OCCLUSION EXCLUSION MOVED THE INSTRUMENT, and the rule that says to is this
+    // project's own: a threshold belongs to the instrument it was calibrated on, and when an assertion you just
+    // moved goes red you find out WHICH of the two readings changed before you touch the number. Here it is the
+    // population, legitimately: excluding controls a finger cannot reach took se from 36 rows / 176 controls to
+    // 28 / 137 and short375 from 38 / 181 to 30 / 140, so the old 30/150 floor went red on a HEALTHIER bundle.
+    // Floors per geometry, from the measurement, with a little room below: this is now the weakest of the three
+    // population guards, because ROW_PIN and COVERED_PIN pin every screen exactly and a floor cannot see a
+    // screen going silent while another grows. It is kept as the backstop for the whole sweep collapsing.
+    const FLOOR={320:[26,130],375:[28,135],390:[28,135]};
+    const fl=FLOOR[widthOf(g)]||[20,100];
+    L.say(ivRows>=fl[0]&&ivCtls>=fl[1], g+': invariant 2 measured a real population rather than an empty one - a scanner that finds no rows reports "no inconsistent rows" and would be believed. Floor re-derived at #423 from the post-occlusion population, not carried over from the pre-occlusion one',
+      {rowsMeasured:ivRows, controlsMeasured:ivCtls, floor:fl, width:widthOf(g), screens:SCREENS.length});
+    // THE EXCLUSIONS MUST STILL FIRE, and this assertion had 99.7% slack in its first version (`>0` against 114
+    // and 300). It is now pinned per geometry like everything else, because "an exclusion still fired at all" is
+    // the same shape of floor that let the row population go silent.
+    L.say(ivNested>0&&ivSvgKid>0, g+': both structural control-population exclusions still fired, so the gate is measuring OUTERMOST, non-SVG controls rather than having quietly lost the distinction. cursor:pointer is inherited, and before these two the same sweep at this geometry reported roughly four times as many undersized "controls", most of them SVG internals like svg>g>circle 1.6x1.6',
+      {nestedExcluded:ivNested, svgInternalsExcluded:ivSvgKid, occludedExcluded:ivCovered});
+    // AND THE BOARD EXCLUSION IS AN UNTESTED HYPOTHESIS, SAID SO RATHER THAN LEFT AS PROSE. The header argued at
+    // length that the board's 64 squares would flood every board screen with eight-control rows of piece glyphs.
+    // MEASURED at #423: it excludes ZERO elements on 36 of 36 (geometry, screen) pairs, because the squares are
+    // not controls under this predicate at all - they carry no cursor:pointer and are not buttons. The exclusion
+    // is kept because it is cheap and correct if that ever changes, but the reasoning behind it is a prediction
+    // and this assertion is what would tell us it had come true.
+    L.say(ivBoardExcluded===0, g+': the board exclusion still excludes nothing, so the header\'s reasoning for it remains a prediction rather than a measurement - the 64 squares are not controls under this predicate. RED here means the board became tappable under this predicate and the exclusion started doing real work, which is worth knowing about',
+      {boardElementsExcluded:ivBoardExcluded});
 
     /* ── INVARIANT 3: REPORT THE COUNT, THEN PIN IT. The commission is explicit that the "at most four" it
        names is a PLACEHOLDER and that the first job is to report today's count and let Kunal choose the
@@ -1100,9 +1293,16 @@ L.run(async()=>{
     L.note('    invariant 3, '+g+': '+iconKeys.length+' distinct ICON glyph heights (svg box, or a one-grapheme text node): '+iconKeys.join(', '));
     for(const k of iconKeys) L.note('        '+k+'px  '+[...ivIcon[String(k)]].slice(0,3).join(' ; '));
     L.note('    invariant 3, '+g+': over ALL glyphs including multi-line labels and whole cards the count is '+ivAllH.size+', which is NOT an icon count and is reported only so the difference is on the record');
-    const wantIcons=(ICON_PIN[g]||[]);
-    L.say(JSON.stringify(iconKeys)===JSON.stringify(wantIcons), g+': the set of distinct ICON glyph heights is exactly what #423 measured - a drift guard, not a target (the app has '+wantIcons.length+' icon sizes where the commission\'s placeholder was four; the target set is Kunal\'s to choose)',
-      {want:wantIcons, got:iconKeys, added:iconKeys.filter(x=>!wantIcons.includes(x)), gone:wantIcons.filter(x=>!iconKeys.includes(x))});
+    const wantIcons=ICON_PIN[widthOf(g)];
+    if(wantIcons){
+      L.say(JSON.stringify(iconKeys)===JSON.stringify(wantIcons), g+': the set of distinct ICON glyph heights is exactly what #423 measured at '+widthOf(g)+'px wide - a drift guard, not a target ('+wantIcons.length+' icon sizes where the commission\'s placeholder was four; the target set is Kunal\'s to choose, jobs/invariant-3-icon-size-target-set)',
+        {width:widthOf(g), want:wantIcons, got:iconKeys, added:iconKeys.filter(x=>!wantIcons.includes(x)), gone:wantIcons.filter(x=>!iconKeys.includes(x))});
+    } else {
+      // NOT AN ASSERTION AT AN UNPINNED WIDTH, DELIBERATELY. The first version did `ICON_PIN[g]||[]`, so every
+      // geometry the suite does not sweep went red reporting "the app has 0 icon sizes" - red on a healthy
+      // bundle, which is worse than no assertion (#391). An unmeasured width is reported and named instead.
+      L.note('    invariant 3, '+g+': width '+widthOf(g)+' carries NO pinned set, so this is REPORTED and NOT asserted here. Measured now: ['+iconKeys.join(', ')+']');
+    }
 
     /* ── INVARIANT 1 IS NOT ASSERTED, AND THIS IS THE MEASUREMENT THAT SIZES THE DEFERRAL ────────────────
        "Before deferring something user-visible, open the code and look" (#392). Looked: this sweep finds the
@@ -1116,5 +1316,15 @@ L.run(async()=>{
     for(const [k,v] of [...ivSmall.entries()].sort()) L.note('        '+k+'   '+v);
     L.say(measuredScreens>=10, g+': 4b actually measured ink against its own box on at least 10 of the 12 screens, so its zeros are measurements rather than an empty set (Home measures none: its two nowrap boxes both clip)', {screensMeasured:measuredScreens, nowrapBoxes:nowrapSeen, spills:totalSpill, transientsSeen:totalTransient});
     await b.close();
+  }
+  // THE GRACEFUL PATH MUST NOT BECOME THE NORMAL PATH. Invariant 3 and the population pins report instead of
+  // asserting at an unpinned width, which is right for an ad-hoc run and would be a silent hole if the suite's
+  // own geometries ever drifted out of the pin table. So: every geometry this suite sweeps by DEFAULT must be
+  // pinned. A narrowed CT_INV_GEOS run is exempt, because narrowing is opt-in and prints its own warning.
+  if(!process.env.CT_INV_GEOS){
+    const unpinnedW=ALL_GEOS.filter(g=>!ICON_PIN[L.GEOS[g].w]);
+    const unpinnedPop=[]; for(const g of ALL_GEOS) for(const [n] of SCREENS) if(!Object.prototype.hasOwnProperty.call(ROW_PIN,g+'/'+n)) unpinnedPop.push(g+'/'+n);
+    L.say(unpinnedW.length===0, 'every geometry the suite sweeps by default carries a pinned icon set, so invariant 3 never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedW});
+    L.say(unpinnedPop.length===0, 'every (geometry, screen) the suite sweeps by default carries a pinned row and occlusion count, so the population guard never silently downgrades to a report on a full run',{unpinned:unpinnedPop});
   }
 },'26-invariants');
