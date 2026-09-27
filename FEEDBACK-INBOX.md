@@ -2018,3 +2018,44 @@ decides whether a gate run counts as evidence, was accepting logs with no test r
 accepted a four-line file with a made-up total. Counting the real logs afterwards also corrected this project's
 own induction document, which claimed every gate log before #391 was a worthless copy: measured, exactly three
 are, and fifteen perfectly good ones had been tarred with them.
+
+---
+
+## #423 — the invariant gate, invariants 2 and 3 (2026-09-27)
+
+**Two of the four invariants you commissioned on 15 September now ship, and the first thing they found was an
+existing green sitting over the very thing you had reported by hand.** When you asked whether a test had found
+the inconsistent Review icons, the answer was no, and none could — the suite pinned a value on one element
+nearly two thousand times and compared two elements to each other zero times. It now does.
+
+**What it found.** Six rows of controls whose icons are different sizes from each other. Two of them are the two
+you pointed at a fortnight ago and nothing had measured since: the Review back-arrow against the ⋯ button (28
+against 21), and the lesson footer (27 / 22 / 27 / 22 / 22). Four were not named anywhere: the puzzle buttons,
+the Home greeting, the lesson practice row, and the row on the solved-puzzle screen. **None of them is fixed
+yet** — they are all pinned at exactly what they measure today, so the suite goes red the day any of them moves,
+including the day someone fixes one, which forces the pin to come out deliberately.
+
+**And the lesson-footer one is worth knowing about**, because it is the shape of thing that keeps happening here.
+A test written for your complaint back in #395 asserts that all five footer icons share one font size — and they
+do, exactly. But two of the five are drawn as images, and an image's size is not set by the font. So the test was
+correctly green for 28 builds while the row it was written about stayed inconsistent.
+
+**On the count of icon sizes**, which was the other half of what you asked for: the app uses **11 distinct icon
+sizes** on your phone's width and 12 on the narrowest, against the "at most four" in the original brief. Nothing
+has been changed about that — the number is now pinned so it cannot creep up unnoticed, and **which sizes should
+survive is your call**, because collapsing 11 into 4 moves ink on six screens. That question is with the
+orchestrator for your desk.
+
+**The fourth invariant — every button at least 44 points — is measured but NOT yet enforced.** There are 90
+controls under that size, against the six the brief named. A real part of that is not a defect at all: tappable
+move tokens, table cells, headings that happen to respond to a tap. Pinning ninety numbers over a list that has
+not been sorted out would freeze the wrong list into the tests permanently, so it is measured, written down, and
+owned rather than rushed.
+
+**Two things went wrong in my own work and were caught before they shipped.** I published one of the six rows as
+a defect when it is actually painted underneath the Home screen where no finger can reach it — so it was three
+new ones, not four. And I described two of the rows backwards: the arrows I called the largest glyphs are
+actually the smallest, and anyone fixing from my description would have made those rows worse. Both were caught
+by the two challenger agents before the push, and both are corrected.
+
+**Nothing you use changed in this build.** No app code was touched at all — this is tests only.
