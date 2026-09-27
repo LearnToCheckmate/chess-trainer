@@ -19,6 +19,17 @@
 // screen, that the percentage never goes backwards, that no second analysis can be started over a running
 // one, and that two cold runs of the same game give byte-identical accuracy. Elapsed time is REPORTED on
 // every run so a real slowdown is visible to a reader without being asserted against.
+// ── NEGATIVE CONTROL RE-RUN AT #423, BECAUSE TC-RL-006's ASSERTION CHANGED AND A CONTROL BELONGS TO THE
+//    ASSERTION IT WAS RUN AGAINST. Same break as NC-A below, rebuilt on the #423 bundle: the progress line's
+//    {pct} -> {100-pct}. Trial bundle md5 d3937726f2c9 (from app.js c243fbd805ff; the escape in the bundle is
+//    the literal `\xB7`, not a raw byte, which is what the anchor has to match).
+//      shipped  33 pass / 0 fail    TC-RL-006 readings 15 -> 26 -> 32 -> 41 -> 47 -> 56 -> 71
+//      control  31 pass / 2 fail    and ONLY these two, reproducing #401's recorded result exactly:
+//                                   TC-RL-002 samples [91,68,56,29,15,6,0], six backwards steps named;
+//                                   TC-RL-006 readings 85 -> 74 -> 68 -> 62 -> 59 -> 47 -> 38, six named.
+//    The rewritten assertion is MORE sensitive than the one it replaces, not less: the control now fails on six
+//    adjacent pairs where the old form compared a single before/after pair (94 -> 6).
+//
 // ── NEGATIVE CONTROL, run 2026-09-16 at #401. ────────────────────────────────────────────────────────────────
 // This gate was the LAST in the suite with no recorded control anywhere - not in this header, not in any
 // RUN-LOG row. The audit that named seven uncontrolled gates was wrong about five of them and right about this
@@ -141,10 +152,30 @@ L.run(async()=>{
   await e6.open();
   await startAnalysis(e6,R.PGN_OPERA);
   await e6.settle(900);
-  const before6=await pct(e6);
-  for(let i=0;i<6;i++){ await e6.page.mouse.click(187,365); await e6.settle(1000); }
-  const after6=await pct(e6);
-  L.say(before6!=null&&after6!=null&&after6>=before6,'TC-RL-006: six taps in the middle of the progress screen do not send the percentage backwards ('+before6+' -> '+after6+')',{before6,after6});
+  /* FIXED AT #423, AND THE RED THAT FORCED IT WAS THIS GATE'S OWN RACE RATHER THAN THE APP'S.
+     WHAT FAILED: `FAIL TC-RL-006: ... (18 -> null)` on the #423 suite. `after6` was NULL, not a lower number -
+     the percentage element was ABSENT, because the analysis had FINISHED during the taps. Six taps at a 1000ms
+     settle is ~7s; this gate's own TC-RL-001 reports the summary arriving after 9s on this container, so the
+     margin was one or two seconds and the assertion was a coin flip.
+     WHY THAT IS THIS GATE'S DEFECT AND NOT A REGRESSION: the header above refuses to pin elapsed time on the
+     stated grounds that it "belongs to the MACHINE, not the app" and would make the gate "red on a slow
+     container and green on a fast one". This assertion then depended on the analysis NOT completing within ~7s,
+     which is the same machine-dependence through the back door. Completion is not a disturbance, and the app
+     did nothing wrong: the summary still arrived, the taps raised no page error, TC-RL-007 passed the same
+     pattern with navigation on top, and TC-RL-002 separately sampled [6,29,44,74,91,97,100] - the very property
+     this case exists to protect, proven monotonic in the same run. #391's class: a predicate that turns on what
+     the machine happens to do, which running the gate twice will not reliably catch.
+     THE FIX STRENGTHENS RATHER THAN RELAXES IT. Sample after EVERY tap instead of only at the end, so the case
+     now checks monotonicity across up to seven readings rather than two; drop the settle to 400ms so six real
+     taps take ~2.4s against a 9s analysis, which restores the margin the case needs; and require at least two
+     readings so a container fast enough to finish before the taps goes RED NAMING THAT rather than passing on
+     an empty comparison. A null reading after the run has completed is no longer evidence of anything, which is
+     correct - it is the absence of a progress screen, not a percentage going backwards. */
+  const s6=[]; const b0=await pct(e6); if(b0!=null)s6.push(b0);
+  for(let i=0;i<6;i++){ await e6.page.mouse.click(187,365); await e6.settle(400); const v=await pct(e6); if(v!=null)s6.push(v); }
+  const back6=s6.filter((v,i)=>i>0&&v<s6[i-1]);
+  L.say(s6.length>=2,'TC-RL-006: the progress screen was still up for at least two readings across the six taps, so the comparison below is not made over an empty set (readings '+s6.length+'; a container that finishes the analysis inside ~2.4s makes this case unmeasurable and says so here rather than passing)',{samples:s6});
+  L.say(s6.length>=2&&back6.length===0,'TC-RL-006: six taps in the middle of the progress screen never send the percentage backwards ('+s6.join(' -> ')+')',{samples:s6,backwards:back6});
   await waitSummary(e6,240000);
   L.say(true,'TC-RL-006: the summary still arrives after the taps');
   const bad6=e6.errs.filter(x=>!/RuntimeError: unreachable/.test(x));
