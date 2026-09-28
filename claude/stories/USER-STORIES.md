@@ -259,3 +259,27 @@ being cut off, and the board does not move underneath me while I read it.
   A2, F - and NC2 is the naive fix that moves the board 15px at 375x730 and 56.5px at 390x844)
 - The goal card ends up either gone or still showing its goal in full: giving its space away must not truncate
   it instead. (TC-R20 H, written so that either fix route passes)
+
+### US-R18 The rating on my review summary is the rating the game carries
+As a player reviewing a game whose PGN records what both players are rated, the summary shows me those ratings,
+because a four-digit number beside my accuracy reads as my rating whatever label sits next to it - and the one the
+app computes is wrong by hundreds of points in both directions on the same game. Kunal read it on 2026-09-23 and
+concluded the app could not identify blunders. (Kunal's answer on Desk item q-est-rating-shown-at-all, 2026-09-28:
+"show-header. Drop EST from the review summary and show the PGN header rating where the game carries one; show
+nothing where it does not.")
+
+- Where the PGN carries WhiteElo and BlackElo, the summary shows those values. Measured by THIS build on main at
+  890b8eb (#428) with headers 1523 and 1487: the panel showed ~1945 and ~948 instead, +422 and -539. (TC-R21a)
+- No computed rating is presented on the summary. The two errors have OPPOSITE SIGNS on one game, so this is not a
+  calibration constant away from being right - which is the measured evidence against recalibrating it. (TC-R21b)
+- Where the PGN carries no rating header, nothing is shown rather than a fallback. Measured on #428 with the headers
+  stripped from the same game: the panel printed the same ~1945 and ~948, so the number never depended on them.
+  (TC-R21c)
+- Whatever is shown fits inside its own accuracy column, measured on the rendered spans and not on the flex row
+  that clips them. This clause is why the label is `RATING` and not the `RATING (from PGN)` this job's own mockup
+  proposed: measured, that label puts the White rating's own span at left -51.8 on a 320-wide phone, 84.8px outside
+  its column and off the screen. (TC-R21d)
+
+NOTE ON THE ID: this clause was handed over as US-R17 by test-authoring at 21:24Z and renumbered here, because
+build #428 landed US-R17 (the puzzle explanation) at 22:53Z, 89 minutes later. The handover's id reasoning was
+sound when written; it expired before it was applied.
