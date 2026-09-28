@@ -2244,3 +2244,26 @@ missed this corner, and my own test disproved it — I had run the experiment th
 read it properly. The real reason was simpler and worse: the tests only ever open ONE lesson, and that lesson
 happens to be one of the 25 with variations, so they had never once seen what the other 145 show.
 
+
+
+--- #428, 2026-09-28 ---
+
+I did not ship tonight, and I want to be straight about why, because the fix itself works.
+
+The defect was real: on a narrow phone, in a lesson, tapping the "Analyze" chip could fire "Copy
+moves" instead. Two things that both look like they worked, no error between them, so you would
+conclude the Analyze button was broken. I fixed it with one line and proved it with a real click.
+
+Then the gate told me the fix costs 16 pixels of board at five screen sizes, and that those 16
+pixels are not spare. At 320-wide the board gets small enough that the ↻ button stops saying
+"↻ Again" and just says "↻" — a button quietly losing its word. And two problems we had already
+decided to leave alone, precisely because fixing them would cost board height, get nearly twice as
+bad.
+
+So the honest summary is: I can fix the wrong-tap today by making your board smaller and taking a
+word off a button, or I can leave the wrong tap there until there is a fix that costs no board. I
+did not think that was mine to choose, and none of it touches your own phone at 375x730, where the
+row does not wrap at all and nothing changes.
+
+The work is written down and gated, so whoever picks it up starts from a proven fix and a measured
+price rather than from scratch.

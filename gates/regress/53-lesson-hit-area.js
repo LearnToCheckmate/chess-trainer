@@ -13,7 +13,7 @@
 //     gate 53  ASSERTS the target, so a fix has a green to reach and a partial fix has a red to explain.
 //
 // WHAT THE DEFECT IS. The lesson's secondary action row (MOVES · 🔍 Analyze · 📋 Copy moves) is a
-// display:flex, flex-wrap:wrap row keyed to the BOARD's width. Its two buttons (chess.jsx:6604, :6605) are
+// display:flex, flex-wrap:wrap row keyed to the BOARD's width. Its two buttons (chess.jsx:6618, :6619 at #428 - LINE NUMBERS DRIFT, the data-ct marks do not) are
 // 43px tall and each carries margin:'-10px 0', so when the row WRAPS the two lines sit 29px apart while the
 // boxes are 43px tall: they overlap by 14.00px and 📋 Copy moves, later in the DOM and also zIndex 1, wins
 // the hit test over the overlap. A TAP ON THE PAINTED PILL OF "Analyze" FIRES "Copy moves" (the chip, not the letters - see #428 note below) - two legitimate
@@ -82,7 +82,7 @@
 const L=require('../lib');
 const D=require('../drive/lesson');
 
-// The two controls carry REAL data-ct marks (chess.jsx:6604, :6605) - nothing is invented and nothing is
+// The two controls carry REAL data-ct marks (chess.jsx:6618, :6619 at #428 - LINE NUMBERS DRIFT, the data-ct marks do not) - nothing is invented and nothing is
 // matched on a label, which matters here because 📋 Copy moves RENAMES ITSELF to the copied message the
 // moment it fires, and a label-matched probe would lose the element in exactly the state E1 creates.
 const AN='[data-ct="moves-analyze"]', CP='[data-ct="moves-copy"]';
