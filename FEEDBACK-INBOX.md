@@ -2244,3 +2244,32 @@ missed this corner, and my own test disproved it — I had run the experiment th
 read it properly. The real reason was simpler and worse: the tests only ever open ONE lesson, and that lesson
 happens to be one of the 25 with variations, so they had never once seen what the other 145 show.
 
+
+## #428 — 2026-09-28 — Puzzles: you can read the whole explanation now
+
+You asked for this one on the Decision Desk (bench-puzzles-solved-explanation) and said yes to it as
+proposed: once you solve a puzzle, the "🎯 goal" card has done its job, so it gives its space to the
+explanation, which wraps instead of being cut off mid-word — and the board does not move.
+
+That is what shipped. On your phone, before this build, the explanation of the back-rank mate read
+"🎉 Solved! Qd8# — the classic back-…" and stopped: 60 of its 149 characters were painted and the rest
+had nowhere to go. Now all 149 are on screen, on four lines, and the board is in exactly the same
+place it was — same square, same size, to the pixel, at all seven phone sizes I test.
+
+Two things I want to tell you rather than have you find them.
+
+The first is that the fix is not complete, and I know exactly where it runs out. The space the
+explanation gets is the space the goal card was using — that is what keeps the board still — so a
+puzzle with a SHORT goal and a LONG explanation still overruns it. On the longest explanation in the
+app (Légal's Mate, 237 characters) your phone shows 210 of 247 characters and the rest sits below
+the fold of a box that scrolls but does not look like it scrolls. Both of my two reviewers found
+this independently, from different directions, and one of them found it on an ordinary Apprentice
+puzzle — the second tier of eight — not an exotic one. It is strictly better than before, where the
+same sentence was one cut-off line, but it is not finished, and finishing it means choosing what
+gives: a visible "…" so the cut is honest, a scroll hint, or shorter explanations. That is a
+question for you and it is written up.
+
+The second is a correction. I published two numbers in this build's first commit message that were
+wrong — the before/after gate counts and how much of the sentence the old build showed — and one of
+my reviewers caught both. I re-measured and withdrew them in the same place they were made. The
+build itself was not affected; the numbers describing it were.
