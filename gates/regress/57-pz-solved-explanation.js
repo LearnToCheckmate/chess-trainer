@@ -121,6 +121,9 @@ const giveable=(b)=>b.page.evaluate(()=>{
 
 // CT_G57 scopes a run to a comma-separated subset of the seven labels (control runs use it; a suite run
 // must not set it). A scoped run says so in its own output, so a partial run can never be read as a full one.
+// The longest curated `explain:` string in the bundle, extracted from app.js at #428 and pinned here so the
+// capacity note below measures the real worst case rather than the fixture's 149.
+const LONGEST_CURATED="Nxe5!! ignores the pin. If Black grabs the queen with \u2026Bxd1??, then Bxf7+ Ke7 Nd5# \u2014 L\u00e9gal's Mate: three minor pieces deliver mate while the queen sits useless on d1. (If Black instead plays \u2026dxe5, then Bxf7+ and Qxg4 simply win a pawn.)";
 const ONLY=(process.env.CT_G57||'').split(',').map(x=>x.trim()).filter(Boolean);
 
 L.run(async()=>{
@@ -186,6 +189,30 @@ L.run(async()=>{
       const gv=await giveable(b);
       L.note(tag+'  GOAL CARD, what it has to give: '+JSON.stringify(gv));
 
+      // #428, MEASURED AND NOT ASSERTED - the CAPACITY of the new box against the LONGEST curated explanation
+      // in the bundle (Legal's Mate, 237 code points; the fixture this gate drives is 149). Antagonist B found
+      // the shape on PZ[218] at 223 cp and #428 generalised it to the worst string that exists. The new box is
+      // card + 8 + reserved, so its height is pinned to what THE GOAL CARD needed, and a short goal with a long
+      // explanation still overruns it - reachable, because the box is overflow-y:auto, but with no scrollbar,
+      // fade or affordance. NOT a pass condition, for the reason the rank-up note gives: its cause is the fixed
+      // reserve rather than the 71px this job gives back, so asserting it here would redden a CORRECT fix of
+      // THIS job. It is jobs/pz-solved-explanation-longest-curated-still-overruns-the-new-box-2026-09-28.
+      // It is also NOT a regression: on #427 this string was one nowrap line at these widths.
+      try{ const capNote=await b.page.evaluate((txt)=>{
+          const el=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];
+          if(!el)return null; const keep=el.textContent; el.textContent='\uD83C\uDF89 Solved! '+txt;
+          const box=el.parentElement, br=box.getBoundingClientRect();
+          let painted=0,total=0;
+          const walk=(n)=>{if(n.nodeType===3){const s=n.nodeValue;let off=0;
+            for(const cp of Array.from(s)){const len=cp.length;if(/\s/.test(cp)){off+=len;total++;painted++;continue;}
+              const rg=document.createRange();rg.setStart(n,off);rg.setEnd(n,off+len);const cr=rg.getBoundingClientRect();off+=len;total++;
+              if(cr.width>0&&cr.left>=br.left-0.5&&cr.right<=br.right+0.5&&cr.top>=br.top-0.5&&cr.bottom<=br.bottom+0.5)painted++;}
+            return;}for(const c of n.childNodes)walk(c);};walk(el);
+          const r={painted,total,boxCH:box.clientHeight,boxSH:box.scrollHeight,ovY:getComputedStyle(box).overflowY};
+          el.textContent=keep; return r;
+        }, LONGEST_CURATED);
+        L.note('CAPACITY vs the longest curated explanation (measured, NOT a pass condition): '+JSON.stringify(capNote));
+      }catch(e){L.note('CAPACITY: not measured ('+String(e.message).slice(0,70)+'); not a pass condition.');}
       if(/KUNAL/.test(label)&&state==='long-solved'){
         await b.shot('57-pz-solved-long-kunal730');
         // MEASURED, NOT ASSERTED: the rank-up concatenation, filed separately. See the header.
