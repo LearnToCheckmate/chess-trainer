@@ -31,8 +31,26 @@
 // shipped #416 tree, red at every pair; NC2 reserve 0 (height:0) - red; NC3 reserve only the tall branch
 // (height:(vp.h<820?0:74)) - red at the four short geometries only; NC4 the verdict never set on a wrong move -
 // red on the "verdict rendered" assertion.
-// ── WHAT ACTUALLY SHIPPED, ADDED BY #428 WHEN THIS GATE WAS LANDED. READ THIS BEFORE "CORRECTING" THE FIX. ──────
-// The fix on main is chess.jsx:6293  maxHeight:74 -> height:74.  A CONSTANT 74 AT EVERY GEOMETRY, and deliberately
+// ── #428 STOOD DOWN. NOTHING BELOW IS ON main, AND THIS GATE IS RED ON main BY DESIGN. DO NOT LAND IT ALONE. ────
+// #428 built the fix, proved this gate red on main (28 pass / 7 fail) and green on the fix (35/35 at seven
+// geometries), and then did NOT push, because the fix introduces a SECOND user-visible defect. Measured, with a
+// control across all three bundles: at 320x568 a constant 74px reserve moves the drill's Reset button to y 512..556,
+// exactly under the position:fixed tab bar, so elementFromPoint at its centre returns the tab bar and a TAP ON RESET
+// FIRES A TAB AND LEAVES THE DRILL. Live main: Reset at 438..482, hit-tests to itself, 6/6 green. And the board at
+// REST (not post-verdict, which is the comparison #428 first published) goes 276 -> 200 at 375x667 and 265 -> 192 at
+// 360x640 - onto the 192px floor, -27.5%.
+//
+// THE TRAP THIS GATE ITSELF SETS, and it is the reason to read this before trusting a green: ALL FOURTEEN of its
+// states put the SAME 36-character one-line verdict in the box, so once the message is up a reserved height and a
+// capped height are INDISTINGUISHABLE and the whole 35/35 comes from the REST state. Both candidate fixes scored
+// 35/35 here and only one of them was shippable. A green from this gate is necessary and nowhere near sufficient:
+// run gate 51 (truncation) and a Reset hit-test at 320x568 alongside it.
+//
+// The decision is routed as jobs/drill-verdict-reserve-costs-more-board-than-a-short-phone-has-2026-09-28. The fix
+// that costs no board is Kunal's own answer of 2026-09-22: once solved, the goal card yields its 71px.
+//
+// ── THE CANDIDATE THIS GATE WAS PROVEN AGAINST (on the branch, NOT on main) ────────────────────────────────────
+// chess.jsx:6293  maxHeight:74 -> height:74.  A CONSTANT 74 AT EVERY GEOMETRY, and deliberately
 // NOT the height:(vp.h<820?30:74) branch that the sibling renderer at :6221 uses and that this job's brief
 // prescribed. Both pass THIS gate at 35/35 - the board stops moving either way - so this gate alone cannot tell
 // you which fix is on the tree, and that is exactly why the note is here rather than in a commit message.
