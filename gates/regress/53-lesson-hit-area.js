@@ -16,7 +16,7 @@
 // display:flex, flex-wrap:wrap row keyed to the BOARD's width. Its two buttons (chess.jsx:6604, :6605) are
 // 43px tall and each carries margin:'-10px 0', so when the row WRAPS the two lines sit 29px apart while the
 // boxes are 43px tall: they overlap by 14.00px and 📋 Copy moves, later in the DOM and also zIndex 1, wins
-// the hit test over the overlap. A TAP ON THE PAINTED WORD "Analyze" FIRES "Copy moves" - two legitimate
+// the hit test over the overlap. A TAP ON THE PAINTED PILL OF "Analyze" FIRES "Copy moves" (the chip, not the letters - see #428 note below) - two legitimate
 // actions with no error between them, so a player concludes the Analyze button is broken.
 //
 // ── THE QUANTITY THIS GATE IS PINNED TO, AND WHY IT IS NOT THE 14.00px ──────────────────────────────────
@@ -56,7 +56,11 @@
 // z-order patch is not the fix.
 //
 // ── WHAT MAKES IT A P0 RATHER THAN A GEOMETRY RESIDUAL, ASSERTED AND NOT ARGUED ─────────────────────────
-// E1 is a REAL CLICK on the painted glyphs with a negative control click 9.5px higher at the button's own
+// #428, MEASURED: what this file calls INK is a Range over the button's contents, which returns the SPAN PILL
+// (349..372 at 375x520), NOT the letters. The text box is 353..368 and the glyphs paint 354..367 against Copy's
+// hit top at 368, so the letters are ~1px clear and a click at the glyph centre fires Analyze. The 4 lost rows are
+// the chip's bottom padding/border band. Still P0 - a real click 2px under the word, on the chip, raises "Copied!".
+// E1 is a REAL CLICK on the painted chip with a negative control click 9.5px higher at the button's own
 // centre. The two land in different worlds and the app tells them apart itself: the centre click leaves the
 // lesson for Game review (mode changes), the ink click raises the "Copied!" label on the OTHER button. That
 // is the whole defect in one assertion and it needs no pixel arithmetic to read.
@@ -244,7 +248,7 @@ L.run(async()=>{
       await b.page.mouse.click(cx2,cy); await b.settle(900);
       const after2=await appState(b);
       L.say(!/Copied/i.test(after2.copyLabel||''),
-        tag+' E1b (THE DEFECT, as a user meets it): a real click on the PAINTED GLYPHS of "🔍 Analyze" at ('+
+        tag+' E1b (THE DEFECT, as a user meets it): a real click on the lower PAINTED CHIP of "🔍 Analyze" at ('+
         cx2+','+cy+') must not fire 📋 Copy moves. The copy control reads "'+after2.copyLabel+'" after it. '+
         'This is the assertion that makes this a P0 rather than a geometry residual: two legitimate actions, '+
         'no error between them, and the wrong one fires 9.5px below a click that works',

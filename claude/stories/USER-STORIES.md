@@ -247,15 +247,15 @@ one I played, in a comparison, so I learn something from my own game rather than
 ### US-R15 A control's hit area is its own
 
 As a player tapping a button on a lesson, the action I get is the action I aimed at, because a button whose
-painted word answers for a DIFFERENT button gives me the wrong result with no error to tell me it happened -
+painted surface answers for a DIFFERENT button gives me the wrong result with no error to tell me it happened -
 and I conclude the button is broken rather than that I missed it.
 
 WRITTEN AT #428 FOR jobs/lesson-action-row-wraps-and-analyze-taps-fire-copy-moves-2026-09-28, AND ITS ABSENCE
 IS PART OF THE FINDING. US-INV-05 covers the ROW box: a control fully painted, fully on screen, 43px tall and
 unclipped satisfies every one of its bullets and every assertion in gate 48 - and on the shipped #427 a real
-click on the painted word "Analyze" at 320x520 raises "Copied!". The box was never the thing that was lost.
+click 2px below the word "Analyze", still on its painted chip, at 320x520 raises "Copied!" (#428 measured the letters themselves ~1px clear of the boundary; what is lost is the bottom 4.00px of the 23px chip). The box was never the thing that was lost.
 
-- Every painted pixel of a control answers for that control. Measured as a hit test down the control's own
+- Every painted pixel of a control - its chip, not only its letters - answers for that control. Measured as a hit test down the control's own
   centre line over its INK (a Range over its contents), not over its box, and run in BOTH directions over
   every pair of controls that can overlap - because a fix that raises one control's z-order moves the theft to
   the other and satisfies a one-way scan. (TC-R18 A2, A3)

@@ -270,7 +270,7 @@ const demoRow=(b)=>b.page.evaluate(()=>{
 // #427, FROM ANTAGONIST B: the lesson's secondary action row, measured by WHAT A FINGER WOULD HIT rather than
 // by any box. Every box on this row is 43px tall, on screen, unclipped and unellipsised - the row passes every
 // containment and ink check in this suite - and yet when it wraps, 14 of Analyze's own 43 pixel rows, and 4
-// rows of its painted glyphs, return "Copy moves" from elementFromPoint. The only instrument that sees it is a
+// rows of its painted chip (NOT its letters - #428), return "Copy moves" from elementFromPoint. The only instrument that sees it is a
 // per-pixel-row hit test down the button's own centre line.
 const actionRowHit=(b)=>b.page.evaluate(()=>{
   const r2=n=>Math.round(n*100)/100;
@@ -970,7 +970,7 @@ L.run(async()=>{
         the ⟳ Flip button this block was written for, the secondary action row (MOVES · 🔍 Analyze · 📋 Copy
         moves) WRAPS, and when it wraps its two lines sit 29px apart while the buttons are 43px tall - so the
         boxes overlap by exactly 14.00px (43 - 29) and "📋 Copy moves", later in the DOM, wins the hit test.
-        A TAP ON THE PAINTED WORD "Analyze" FIRES "Copy moves". B confirmed it with a real click at (209.9,
+        A TAP ON THE PAINTED PILL OF "Analyze" FIRES "Copy moves" (#428: the chip, not the letters - the letters are ~1px clear). B confirmed it with a real click at (209.9,
         370.0) raising the "Copied!" toast, against a control click at the button's centre that correctly
         leaves the lesson - two distinguishable actions, and the wrong one fires.
 
@@ -1028,7 +1028,7 @@ L.run(async()=>{
            {wrapped:_ar.wrapped,board:_fm.board&&_fm.board.w});
          L.note(geo+': DIAGNOSTIC overlap='+_ar.overlap+'px (was PINNED at '+_wrapPin+' through #427; DEMOTED at #428 - it is a SYMPTOM, and -8px margins take it to 10.00 with the defect still live)  lineAdvance='+_ar.lineAdvance+'  boxes '+_ar.anH+'px  whole-box rows lost '+_ar.hitC+' of '+_ar.total);
          L.say(_ar.found&&_ar.inkLost===0,
-           geo+': FIXED AT #428 - '+_ar.inkLost+' of '+_ar.inkRows+' pixel rows of the PAINTED WORD "Analyze" hit another control (TARGET 0, reached; it was 4 through #427). Sampled at integer y over the half-open interval [ceil(inkTop), floor(inkBot)) down the button\'s own centre line - an integer scan and a half-pixel-centre scan disagree by one row at this boundary, which is why #427 published 4 and antagonist B published 5, and why the convention travels with the number',
+           geo+': FIXED AT #428 - '+_ar.inkLost+' of '+_ar.inkRows+' pixel rows of the PAINTED PILL of "Analyze" (the chip; #428 measured the letters at 354..367 against Copy at 368, so they are ~1px clear and it is the chip\'s bottom band that was lost) hit another control (TARGET 0, reached; it was 4 through #427). Sampled at integer y over the half-open interval [ceil(inkTop), floor(inkBot)) down the button\'s own centre line - an integer scan and a half-pixel-centre scan disagree by one row at this boundary, which is why #427 published 4 and antagonist B published 5, and why the convention travels with the number',
            {inkLost:_ar.inkLost,inkRows:_ar.inkRows,target:0,interval:'[ceil(inkTop), floor(inkBot))',hitC:_ar.hitC,total:_ar.total});
          L.say(_ar.found&&_ar.flipY===null,
            geo+': and there is NO y inside "Analyze"\'s own box at which it stops answering for itself (stepped at 0.125px from its top; flipY='+_ar.flipY+', target null, box '+_ar.anTop+'..'+_ar.anBot+', Copy\'s top '+_ar.cpTop+'). THIS IS THE ASSERTION THAT CATCHES A PARTIAL FIX: at -8px margins the ink count above reaches 0 and this one stays red, because 10 of 43 box rows still fire the wrong button (NC2, md5 8ec730fd8697) - and at rowGap:20, which clears the ink, it stayed red too because the hit rect snaps 0.875px above the touching edge. That measurement is why the shipped gap is 22 and not 20',
