@@ -2165,3 +2165,37 @@ fails on exactly the one line, and nothing else.
 I would rather you saw this than a clean note. The count I published was true and irrelevant, which is a
 harder mistake to catch than a wrong number, and the only reason it was caught is that two agents were asked
 to attack the same build from different directions and both went for the same soft spot.
+
+## #426 - the mistake drill now says WHY the move you missed was better (2026-09-28)
+
+You asked for this twice, on the 19th and again on the 20th, with a screenshot each time: "it told me yes
+that's the move you missed, but it doesn't explain to me why that's better, which is what it should be doing."
+
+It does now. Where the card used to say only "That's the move you missed - well spotted.", it says things like
+"Qb4+ forks two pieces. cxb5 left you losing." and the Hint before you solve names the shape of what you are
+looking for instead of always telling you to look for the most forcing option - which was wrong on every quiet
+position, and fired on all 148 of your captured mistakes.
+
+Three things I want to flag, because two of them are mine and one is a limit you should know about.
+
+The obvious version of this fix would have lied to you. The evaluations are stored from White's point of view,
+so on a game you lost as Black it would have told you the position went "from winning to winning". It would
+also have credited the tactics of the move you REGRET to the move you missed, because that is which move the
+stored motifs describe. And a "fork" is a geometric fact that says nothing about whether the fork survives the
+reply - so the first version told you "Qxd7 wins material" about a move that drops a queen. All three are
+fixed, and each one is now pinned by a test that fails if it comes back.
+
+Two checking agents attacked the build independently and both vetoed it. They were right about four things I
+had got wrong, and the worst was invisible from the change itself: on a phone where the chess engine does not
+start, every explanation claimed the position had been "level" before your mistake, which is simply invented.
+The other one that matters to you: the fix reached none of the mistakes already saved on your phone, because
+re-reviewing a game skipped positions it already had. Both fixed. One of their findings was wrong and I
+checked it rather than taking it - it said the app was congratulating a queen give-away, and it is actually a
+queen trade, because the queen moving out of the way opens its own bishop's line.
+
+THE LIMIT, with the number rather than a hedge. The box the sentence sits in is 74px and it was already full at
+45 characters. So the sentence has to be short, and measured across 6400 combinations, 24 per cent lose the
+"why" clause and 92 per cent name only one evaluation band instead of the two the design we agreed on the 20th
+asks for. Everything you see is true and nothing is cut off - but it often says less than we planned. The fix
+is something you already told me on the 22nd, about the puzzle screen: once you have solved it, the goal card
+above has no job, so it can give its space to the sentence and the board does not move. That is queued.
