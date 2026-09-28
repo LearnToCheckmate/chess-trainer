@@ -280,6 +280,14 @@ nothing where it does not.")
   proposed: measured, that label puts the White rating's own span at left -51.8 on a 320-wide phone, 84.8px outside
   its column and off the screen. (TC-R21d)
 
+- The sentence under the panel never contradicts the number above it. Added on antagonist veto at #429: the
+  first cut of this fix showed a real PGN rating under the words "Accuracy and rating are rough estimates from
+  average centipawn loss, not official ratings" - the INVERSE of the defect being fixed, one string away from
+  the line it edits, and invisible to a sweep over `.rating` because that string holds the word with no dot.
+  (TC-R21e)
+- Where only ONE side carries a rating header, that side shows its rating and the other invents nothing.
+  (TC-R21f)
+
 NOTE ON THE ID: this clause was handed over as US-R17 by test-authoring at 21:24Z and renumbered here, because
 build #428 landed US-R17 (the puzzle explanation) at 22:53Z, 89 minutes later. The handover's id reasoning was
 sound when written; it expired before it was applied.

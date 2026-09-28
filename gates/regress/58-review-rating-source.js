@@ -7,7 +7,9 @@
 //
 // GUARDS: US-R18 "the rating on my review summary is the rating the game carries"
 // IMPLEMENTS: TC-R21a (the header rating is shown), TC-R21b (no invented EST rating), TC-R21c (no fallback
-//             number where the header is absent), TC-R21d (whatever is shown fits its own column).
+//             number where the header is absent), TC-R21d (whatever is shown fits its own column),
+//             TC-R21e (the sentence under the panel does not contradict the number above it - added on a veto),
+//             TC-R21f (one side rated: exactly one rating, the unrated side invents nothing).
 // FROM: jobs/bench-should-est-be-shown-at-all-2026-09-28, Desk item q-est-rating-shown-at-all, ANSWERED BY
 //       KUNAL 2026-09-28T18:13Z: "show-header. Drop EST from the review summary and show the PGN header rating
 //       where the game carries one; show nothing where it does not."
@@ -49,6 +51,13 @@ const HDR={w:'1523',b:'1487'};        // the Elo headers PGN_OPERA and PGN_CORNE
 // the same game with every rating header stripped: Kunal's "show nothing where it does not" branch.
 // Built here rather than found, because the repository has no headerless fixture - stated, not hidden.
 const PGN_NOELO=R.PGN_OPERA.replace(/\[(White|Black)Elo "[^"]*"\]\s*/g,'');
+// #429, FROM BOTH ANTAGONISTS: the MIXED case, which the gate did not enter and which is the common one -
+// [BlackElo "?"] is what Lichess and chess.com write for an unrated or bot opponent, and /^\\d{3,4}$/ rejects
+// "?" so it renders exactly as a missing header. Antagonist A measured the two column BOXES equal and called
+// it sound; antagonist B measured the INK and found 21px of dead space under the unrated side. Both numbers
+// are right - it is the container-is-not-its-contents split - so this fixture PINS THE BEHAVIOUR rather than
+// asserting either verdict: exactly one rating line, it carries the side that has a header, and it fits.
+const PGN_ONESIDE=R.PGN_OPERA.replace(/\[BlackElo "[^"]*"\]/,'[BlackElo "?"]');
 
 const summaryText=(b)=>b.page.evaluate(()=>{
   const s=document.querySelector('[data-ct="rev-summary"]');
@@ -120,13 +129,33 @@ L.run(async()=>{
 
       // TC-R21b NO INVENTED RATING, AND THE ERROR IS PRINTED RATHER THAN ASSERTED AWAY
       const est=/≈\s*\d{3,4}\s*EST/i.test(t);
+      // STRENGTHENED AFTER ANTAGONIST A's DISPUTE C, #429. This assertion's own clause is "no COMPUTED
+      // rating on the panel", and testing only for the literal string "≈NNNN EST" does not test that: it
+      // pins #428's defect SHAPE, so a build that kept the invented number and merely relabelled it
+      // "RATING" passed here. Measured on the NC-B bundle, which prints 1945 and 948 under a RATING
+      // label. So the property is asserted directly: every number rendered on a rating line must BE one
+      // of the two header values. Same family as "an alternation that matches every branch pins nothing".
+      const onlyHdr=shown.length>0&&shown.every(n=>n===+HDR.w||n===+HDR.b);
       // THE CLAUSE IS CONDITIONAL, and that is not pedantry. Printed unconditionally it read "White 0, Black 0 -
       // opposite signs on one game" on the FIXED bundle, which is a false sentence in a log this project cites.
       if(shown.length===2){const ew=shown[0]-(+HDR.w),eb=shown[1]-(+HDR.b);
         L.note(gl(g)+' error against the headers: White '+ew+', Black '+eb+
                ((ew>0&&eb<0)||(ew<0&&eb>0)?' - OPPOSITE SIGNS on one game, so no single constant recalibrates it':
                 (ew===0&&eb===0?' - both exact, the panel is showing the headers themselves':'')));}
-      L.say(!est,'21b '+gl(g)+': no "≈NNNN EST" rating on the summary',{estShown:est,shown});
+      L.say(!est&&onlyHdr,'21b '+gl(g)+': no computed rating on the summary - every number on a rating line is one of the headers '+HDR.w+'/'+HDR.b,
+            {estShown:est,shown,onlyHeaderValues:onlyHdr});
+
+      // TC-R21e THE SENTENCE UNDER THE PANEL MUST NOT CONTRADICT THE NUMBER ABOVE IT.
+      // ADDED AT #429 ON ANTAGONIST A's VETO, and it is the defect this gate could not see: the fix
+      // replaced an invented number with the PGN's own rating and left chess.jsx:5640 reading "Accuracy
+      // and rating are rough estimates from average centipawn loss, not official ratings" - so the panel
+      // showed a real, official rating and told the player it was neither. The INVERSE of the defect
+      // being fixed. No .rating grep could reach it: the string holds the word "rating" with no dot.
+      const note=await b.page.evaluate(()=>{const n=document.querySelector('[data-ct="rev-summary-note"]');
+        return n?(n.innerText||'').replace(/\s+/g,' ').trim():null;});
+      const claimsEstimatedRating=!!note&&/rating[s]?\b[^.]*\b(rough|estimate|not official)/i.test(note);
+      L.say(note!==null&&!claimsEstimatedRating,
+            '21e '+gl(g)+': the note does not call the shown rating an estimate',{note});
 
       // TC-R21d WHATEVER IS SHOWN FITS ITS OWN COLUMN (US-INV-05's rule, applied to this line)
       for(const it of rb.items)
@@ -146,7 +175,38 @@ L.run(async()=>{
       // TC-R21c NOTHING IS INVENTED WHERE THE GAME CARRIES NO RATING (Kunal, 18:13Z: "show nothing")
       L.say(rb.items.length===0&&!/≈\s*\d{3,4}/.test(t),'21c '+gl(g)+': a game with no Elo header shows no rating at all',
             {linesFound:rb.items.length,shown:rb.items.map(x=>x.n)});
+      // 21e in the OTHER branch: with no rating on screen the note must not mention one at all.
+      const note2=await c.page.evaluate(()=>{const n=document.querySelector('[data-ct="rev-summary-note"]');
+        return n?(n.innerText||'').replace(/\s+/g,' ').trim():null;});
+      L.say(note2!==null&&!/rating/i.test(note2),'21e '+gl(g)+': with no rating shown the note does not mention one',{note:note2});
     }
   }
   await c.close();
+
+  // ---- fixture 3: ONE side carries a rating, the other is [BlackElo "?"] ------------------------------
+  const d=await L.launch({geo:{w:375,h:730},name:'rating-oneside',store:{ct_pool:'3'}});await d.open();
+  if(await importFixture(d,PGN_ONESIDE,'one side rated')){
+    for(const g of [G[0],G[3]]){                             // 320x568, 375x730
+      await d.page.setViewportSize({width:g.w,height:g.h});await d.settle(500);
+      const t=await summaryText(d),rb=await ratingBoxes(d);
+      L.note(gl(g)+' one-sided rating lines: '+JSON.stringify(rb.items.map(x=>x.text+' [spill '+x.spill+']')));
+      // TC-R21f EXACTLY ONE RATING, AND IT IS THE RATED SIDE'S
+      L.say(rb.items.length===1&&rb.items[0].n===+HDR.w,
+            '21f '+gl(g)+': one side rated shows exactly one rating and it is White\'s '+HDR.w,
+            {linesFound:rb.items.length,shown:rb.items.map(x=>x.n)});
+      // the unrated side must not have acquired a number from anywhere
+      L.say(!t.includes(HDR.b)&&!/\u2248\s*\d{3,4}/.test(t),
+            '21f '+gl(g)+': the unrated side shows no rating and nothing invented one',{text:t.slice(0,160)});
+      // and the one that IS shown still fits
+      for(const it of rb.items)
+        L.say(it.spill!==null&&it.spill<=0.5,'21f '+gl(g)+': "'+it.text+'" is inside its accuracy column',
+              {worstChild:it.worstChild,col:[it.colLeft,it.colRight],spill:it.spill});
+      // the note must still be the rating-bearing wording, because a rating IS on screen
+      const n3=await d.page.evaluate(()=>{const n=document.querySelector('[data-ct="rev-summary-note"]');
+        return n?(n.innerText||'').replace(/\s+/g,' ').trim():null;});
+      L.say(n3!==null&&!/rating[s]?\b[^.]*\b(rough|estimate|not official)/i.test(n3),
+            '21f '+gl(g)+': with one side rated the note still does not call it an estimate',{note:n3});
+    }
+  }
+  await d.close();
 },'GATE 58 review-rating-source');

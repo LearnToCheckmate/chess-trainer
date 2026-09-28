@@ -285,6 +285,12 @@ function eloDelta(mine,theirs,score,games){
   return Math.max(RATING_FLOOR-mine,d);   // never push anyone below the floor
 }
 
+// #429: THE ONE PLACE THAT DECIDES WHETHER A PGN CARRIES A USABLE RATING FOR A SIDE.
+// It returns the header value or null, and both the summary's rating line and the sentence under the
+// summary ask it, so the number shown and the sentence describing it can never disagree - which is
+// exactly how #429's first cut shipped '1523 RATING' under 'rating ... not official ratings'.
+function hdrElo(h,col){const v=h&&(col==='w'?h.WhiteElo:h.BlackElo);return (v&&/^\d{3,4}$/.test(String(v).trim()))?String(v).trim():null;}
+
 function parsePGNHeaders(pgn){
   const h={};
   const re=/\[(\w+)\s+"([^"]*)"\]/g;let m;
@@ -5582,7 +5588,7 @@ export default function App(){
                   <button onClick={()=>{setMode('puzzle');}} style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.25)',borderRadius:9,color:'#ddd',fontSize:12,padding:'6px 11px',cursor:'pointer'}}>Sharpen with puzzles</button>
                 </div>
               </div>);})()}{(()=>{const uc=S.userColor;if(!uc)return null;const me=S[uc];const c=me.counts;const acc=me.accuracy;const R=review.headers.Result;const won=(R==='1-0'&&uc==='w')||(R==='0-1'&&uc==='b');const lost=(R==='1-0'&&uc==='b')||(R==='0-1'&&uc==='w');const bl=c.Blunder||0,mi=(c.Mistake||0)+(c.Miss||0),br=c.Brilliant||0;let m;if(br>0)m='Sharp eye. You found '+br+' brilliant move'+(br>1?'s':'')+'. '+(won?'A deserved win.':bl>0?('Now clean up the '+bl+' blunder'+(bl>1?'s':'')+' below.'):'Strong play.');else if(won&&bl===0&&acc>=85)m='Clean game. You stayed accurate and converted without slipping.';else if(won&&bl>0)m='You won, but '+bl+' blunder'+(bl>1?'s':'')+' made it closer than it needed to be. See them below.';else if(lost&&bl>0)m='Those '+bl+' blunder'+(bl>1?'s':'')+' cost you. Step through them below to see the better line.';else if(lost)m='A tough one. The key moments below show where it turned.';else m=(bl+mi>0)?('Solid overall. Tighten the '+(bl+mi)+' costly move'+((bl+mi)>1?'s':'')+' flagged below.'):'Solid, accurate game throughout.';return(<div style={{display:'flex',gap:9,alignItems:'flex-start',background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:14,padding:'10px 13px'}}><span style={{fontSize:18,lineHeight:1.2}}>💬</span><span style={{fontSize:'clamp(14px,3.1vw,15.5px)',color:'#fff',fontWeight:600,lineHeight:1.45}}>{m}</span></div>);})()}
-            {(()=>{const W=S.w,B=S.b,uc=S.userColor;const colHead=(sk,sl,d)=>{const me=uc===sk;const _H=(review&&review.headers)||{};const _hraw=sk==='w'?_H.WhiteElo:_H.BlackElo;const _hr=(_hraw&&/^\d{3,4}$/.test(String(_hraw).trim()))?String(_hraw).trim():null;return(<div style={{flex:1,minWidth:0,textAlign:'center',padding:'6px 2px',borderRadius:12,background:me?'rgba(var(--acr),.14)':'transparent',border:me?'1px solid var(--ac)':'1px solid transparent'}}>
+            {(()=>{const W=S.w,B=S.b,uc=S.userColor;const colHead=(sk,sl,d)=>{const me=uc===sk;const _hr=hdrElo((review&&review.headers)||{},sk);return(<div style={{flex:1,minWidth:0,textAlign:'center',padding:'6px 2px',borderRadius:12,background:me?'rgba(var(--acr),.14)':'transparent',border:me?'1px solid var(--ac)':'1px solid transparent'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,marginBottom:5}}><Piece t="k" color={sk} sz={20}/><span style={{fontSize:'clamp(14px,3.4vw,16px)',fontWeight:800,color:'#fff'}}>{sl}</span>{me&&<span style={{fontSize:8.5,fontWeight:800,color:'var(--ac2)',background:'rgba(var(--acr),.2)',borderRadius:6,padding:'1px 5px'}}>YOU</span>}</div>
                 <div style={{fontSize:'clamp(27px,8vw,38px)',fontWeight:900,color:'#fff',lineHeight:1}}>{d.accuracy}<span style={{fontSize:'.45em',fontWeight:700,color:'rgba(255,255,255,.55)'}}>%</span></div>
                 <div style={{fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:.5,textTransform:'uppercase',marginTop:1}}>Accuracy</div>
@@ -5637,7 +5643,8 @@ export default function App(){
                     <span style={{color:'var(--ac)',fontWeight:800,flexShrink:0}}>›</span>
                   </button>);})}
               </div>);})()}
-            <div style={{textAlign:'center',fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.4)',lineHeight:1.5}}>Accuracy and rating are rough estimates from average centipawn loss, not official ratings.</div>
+            {(()=>{const _H=(review&&review.headers)||{};const _anyR=!!(hdrElo(_H,'w')||hdrElo(_H,'b'));return(
+            <div data-ct="rev-summary-note" style={{textAlign:'center',fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.4)',lineHeight:1.5}}>{_anyR?'Accuracy is a rough estimate from average centipawn loss. The ratings are the ones recorded in the game\u2019s PGN.':'Accuracy is a rough estimate from average centipawn loss.'}</div>);})()}
           </div>
           </div>
           <div data-ct="rev-summary-foot" style={{flexShrink:0,display:'flex',gap:10,alignItems:'stretch',justifyContent:'center',padding:'10px 14px calc(10px + env(safe-area-inset-bottom,0px))',background:'rgba(13,16,21,.97)',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',borderTop:'1px solid rgba(255,255,255,.10)',boxShadow:'0 -6px 20px rgba(0,0,0,.45)'}}>
