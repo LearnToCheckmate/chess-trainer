@@ -702,37 +702,93 @@ function whyBand(v){
   return a<1.5?'slightly worse':a<3?'clearly worse':a<6?'losing':'completely losing';
 }
 /* the shape of the BETTER move, from its own motifs. '' when the data supports no shape: a short true
-   sentence beats a plausible invented one, so this never reaches for "keeps the initiative". */
-function whyShape(pos,mv){
+   sentence beats a plausible invented one, so this never reaches for "keeps the initiative".
+   #426 antagonist B, P0-2, AND IT IS THE HARDEST PART OF THIS FEATURE. A motif from moveMotifs is a
+   GEOMETRIC fact about the move and says nothing about whether it survives the opponent's reply. B measured
+   two sentences on the build's own reference game that were grammatical and false in chess terms:
+     "Qb4+ forks two pieces" - the fork is real (b5 knight, c4 bishop, with check) and Qb3xb4 simply takes
+       the queen, so the card hinted the player at it, demanded it, and then congratulated it.
+     "Qxd7 wins material"   - the played Nxd7 captured the SAME bishop on the SAME square, so nothing was
+       won that the player had not already won, and d7 is covered by the rook on d1.
+   So a motif is asserted only when it cannot be refuted by the cheapest possible reply: the destination must
+   not be capturable at all. sacTaker() is the existing machinery for that question (it finds the opponent's
+   cheapest capture of the piece that just moved there) and is reused rather than reimplemented.
+   THIS DELIBERATELY UNDER-CLAIMS. A defended piece is suppressed along with an undefended one, so some real
+   tactics lose their clause and read " was stronger" instead. That is the right direction: the job's hardest
+   rule is that every claim comes from the position, and "a plausible wrong explanation is far worse than a
+   short true one, because he will trust it and learn the wrong thing from his own game". Mate is exempt
+   because moveMotifs only reports it when getStatus is checkmate, and nothing follows a mate.
+   playedMv is passed so "wins material" cannot be claimed for a capture the player already made. */
+function whyShape(pos,mv,playedMv){
   if(!pos||!mv)return '';
   let mo=[];try{mo=moveMotifs(pos,mv)||[];}catch(e){mo=[];}
   const has=(m)=>mo.indexOf(m)>=0;
   if(has('mate'))return ' forces mate';
+  /* #426 antagonist A, 4c: the first version of this test asked only whether the destination square was
+     OCCUPIED (for material) or capturable at all (for a motif). Both are too crude, and A named the right
+     instrument sitting unused in this same file: seeSq, a static exchange evaluator, at the top of the file.
+     The question is not 'can they take it' but 'do they PROFIT from taking it'. Measured on the build's own
+     headline example, Qxd7 captures a bishop and Rxd7 then wins the queen, so the exchange is about -6 for
+     the mover and the old test called it ' wins material'. */
+  let unsafe=true;
+  try{const g2=makeMove(pos,mv),them=opp(pos.turn);
+      unsafe=seeSq({...g2,turn:them},mv.tr,mv.tc,them)>0;}catch(e){unsafe=true;}
+  if(unsafe)return '';
   if(has('fork'))return ' forks two pieces';
   if(has('discovered check'))return ' is a discovered check';
   if(has('promotion'))return ' promotes the pawn';
-  try{if(pos.board[mv.tr]&&pos.board[mv.tr][mv.tc])return ' wins material';}catch(e){}
+  try{
+    const cap=pos.board[mv.tr]&&pos.board[mv.tr][mv.tc];
+    const sameSquare=playedMv&&playedMv.tr===mv.tr&&playedMv.tc===mv.tc;
+    if(cap&&!sameSquare)return ' wins material';
+  }catch(e){}
   return '';
 }
-const WHY_DRILL_MAXW=70;
-function mistakeWhy(pos,bestMove,bestSan,playedSan,evalBeforeW,evalAfterW,userColor){
+/* #426 antagonist A, 3a. THIS NUMBER WAS 70 AND 70 WAS WRONG, for two reasons A measured:
+   (1) it bounded `why` while the box renders a prefix the budget did not know about, so a 70-character why
+       painted more than 70 characters; and (2) the measured capacity of the 74px box is far below it -
+       at 320x568 a rendered 61 fits (scrollHeight 70 of 70) and 63 clips (91 of 74); at 375x730, 69 fits and
+       71 clips. The prefix is now just the celebration glyph (the 'Yes -' lead-in is gone) and the alt-mate
+       state no longer carries the explanation at all, so rendered length is 2 + this budget.
+   AND THE HONEST CAVEAT, WHICH IS A's AND IS RIGHT: A CHARACTER BUDGET CANNOT BOUND A PIXEL BOX. A found two
+   strings of identical rendered length 63 where one fits and one clips, because the band words are the
+   longest words in the sentence and the wrap is set by the longest word. 52 leaves about seven characters of
+   margin against the 320 capacity rather than pretending to be exact, and gate 51's B6/B7 measure the real
+   box at all seven geometries, so a wrap this budget does not predict goes RED rather than shipping.
+   The real fix is to stop making the sentence fit a fixed box: Kunal has already answered that for this very
+   screen (Desk answers/bench-puzzles-solved-explanation, 2026-09-22 - once solved, the goal card gives its
+   space to the sentence and the board does not move), queued as build-puzzles-solved-explanation-wraps. */
+const WHY_DRILL_MAXW=52;
+function mistakeWhy(pos,bestMove,bestSan,playedSan,evalBeforeW,evalAfterW,userColor,playedMv){
   try{
     if(!bestSan||!playedSan)return '';
+    if(typeof evalAfterW!=='number')return '';   /* no after-eval, no honest sentence at all */
     const sgn=(userColor==='b')?-1:1;
-    const pB=sgn*((typeof evalBeforeW==='number')?evalBeforeW:0);
-    const pA=sgn*((typeof evalAfterW==='number')?evalAfterW:0);
-    const bB=whyBand(pB),bA=whyBand(pA);
-    const shape=whyShape(pos,bestMove)||' was stronger';
+    /* #426 antagonist B, P0-1: a MISSING evalBefore must not become a band. Treating it as 0 printed
+       "went from level" on every fallback-engine sentence, which is a fabricated starting position.
+       When it is absent the sentence names only the band it can stand behind - the one AFTER the move. */
+    const haveB=(typeof evalBeforeW==='number');
+    const pB=haveB?sgn*evalBeforeW:null;
+    const pA=sgn*evalAfterW;
+    const bB=haveB?whyBand(pB):null,bA=whyBand(pA);
+    const shape=whyShape(pos,bestMove,playedMv)||' was stronger';
     /* clause two is the comparison the card asked for. When the move did not cross a band boundary the
        band is named ONCE: naming it twice ("from losing to losing") is nonsense, and omitting clause two
        leaves the comparative question unanswered. That is Q4 in the lane record, unanswered by Kunal;
        the default and its two rejected alternatives are in flags/amber-426-drill-why-sentence-shape. */
-    const twoFull=(bB===bA)?(playedSan+' left you '+bA):(playedSan+' went from '+bB+' to '+bA);
+    const twoFull=(!haveB||bB===bA)?(playedSan+' left you '+bA):(playedSan+' went from '+bB+' to '+bA);
     const twoShort=playedSan+' left you '+bA;
     const mk=(sh,t)=>bestSan+sh+'. '+t+'.';
     /* packed against a budget rather than concatenated blind, and the COMPARISON is the last thing
        dropped, because it is the half Kunal asked for. */
-    const cands=[mk(shape,twoFull),mk('',twoFull),mk(shape,twoShort),mk('',twoShort)];
+    /* #426 antagonist A, 4b, AND IT WAS BACKWARDS. This list used to read
+         [shape+twoFull, ''+twoFull, shape+twoShort, ''+twoShort]
+       so the first thing the budget spent was the SHAPE - the clause that says why the move is better, which
+       is the half Kunal asked for - and what survived was a move name and two band words: "Qb4+. Qxc2+ went
+       from completely winning to completely losing." A enumerated 8100 realistic combinations through this
+       function and 2743 of them (33.9%) came out with no reason clause at all. The comparison is shortened
+       first now, so the reason survives: "Qb4+ forks two pieces. Qxc2+ left you completely losing." */
+    const cands=[mk(shape,twoFull),mk(shape,twoShort),mk('',twoFull),mk('',twoShort)];
     for(const c of cands)if(c.length<=WHY_DRILL_MAXW)return c;
     return cands[cands.length-1];
   }catch(e){return '';}
@@ -741,17 +797,21 @@ function mistakeWhy(pos,bestMove,bestSan,playedSan,evalBeforeW,evalAfterW,userCo
    sending the player hunting for a tactic that is not there. The string it replaces fired on all 148
    captured mistakes ("look for the most forcing or solid option"), which is escapes/generic-hint-on-every-
    mistake-2026-09-20 (-8); Kunal promoted this half from secondary to equal first on 2026-09-20. */
-function mistakeHint(pos,bestMove){
+function mistakeHint(pos,bestMove,playedMv){
   try{
     if(!bestMove)return '';
+    /* the hint is held to the SAME refutation test as the sentence (#426 antagonist B, P0-2): on the
+       reference game it said "One move can hit two things at once" and pointed at a queen give-away. */
+    const shape=whyShape(pos,bestMove,playedMv);
+    if(!shape)return 'No tactic to spot here \u2014 look for the move that improves your worst piece.';
     let mo=[];try{mo=moveMotifs(pos,bestMove)||[];}catch(e){mo=[];}
     const has=(m)=>mo.indexOf(m)>=0;
     if(has('mate'))return 'There is a forcing line here, and it ends the game.';
     if(has('fork'))return 'One move can hit two things at once.';
     if(has('discovered check'))return 'Moving one piece can uncover another.';
     if(has('promotion'))return 'A pawn is closer to the end than it looks.';
-    try{if(pos.board[bestMove.tr]&&pos.board[bestMove.tr][bestMove.tc])return 'There is material to be taken here.';}catch(e){}
-    return 'No tactic here - improve your worst-placed piece.';
+    if(shape===' wins material')return 'There is material to be taken here.';
+    return 'No tactic to spot here \u2014 look for the move that improves your worst piece.';
   }catch(e){return '';}
 }
 function explainAnno(a,ctx){
@@ -3370,9 +3430,16 @@ export default function App(){
         let bestSan=toSAN(res.positions[i],bestMv,applyMove(res.positions[i].board,bestMv));let _bMv2=bestMv;
         if(bestMv.fr===pl.fr&&bestMv.fc===pl.fc&&bestMv.tr===pl.tr&&bestMv.tc===pl.tc){bestSan='';_bMv2=null;}
         const _evA=evalPawns(res.positions[i+1]);
-        const _g=brilliantGate(res.positions[i],pl,Math.round(loss),_evA,evalPawns(res.positions[i]));
+        /* #426 antagonist B, P0-1: this push omitted evalBefore while the sf path at the top of this
+           function carried it, so mistakeWhy() saw undefined, fell back to 0 and printed "went from level"
+           on EVERY sentence built on the fallback engine - including one that told a player being mated in
+           six that his Mistake left him "slightly better". The value was already being computed on the very
+           next line for brilliantGate and thrown away. It is a device-chosen code path, which is the #375
+           rule: the gate covers every branch or it is not a gate. Gate 51 now runs a fallback column. */
+        const _evB=evalPawns(res.positions[i]);
+        const _g=brilliantGate(res.positions[i],pl,Math.round(loss),_evA,_evB);
         const _cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(loss);
-        out.push({loss:Math.round(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,gate:_g});
+        out.push({loss:Math.round(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,evalBefore:_evB,gate:_g});
         if(i%2===0){setProgress((i+1)/res.plies.length);await new Promise(r=>setTimeout(r,0));}
       }
     }
@@ -3405,8 +3472,8 @@ export default function App(){
             const m=out[i].bestMove,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
             let played='';try{played=toSAN(res.positions[i],res.plies[i].move,applyMove(res.positions[i].board,res.plies[i].move));}catch(e){}
             const _cpos=res.positions[i];
-            const _cwhy=mistakeWhy(_cpos,out[i].bestMove,out[i].bestSan,played,out[i].evalBefore,out[i].evalAfter,uc2);
-            const _chint=mistakeHint(_cpos,out[i].bestMove);
+            const _cwhy=mistakeWhy(_cpos,out[i].bestMove,out[i].bestSan,played,out[i].evalBefore,out[i].evalAfter,uc2,res.plies[i].move);
+            const _chint=mistakeHint(_cpos,out[i].bestMove,res.plies[i].move);
             caps.push({fen:toFEN(_cpos),uci:u,label:L,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint});
           } else if(L==='Brilliant'&&res.plies[i]&&res.positions[i]){
             const m=res.plies[i].move,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
@@ -3416,7 +3483,20 @@ export default function App(){
             bril.push({fen:toFEN(res.positions[i]),uci:u,label:'Brilliant',ts:Date.now(),last:lastOf(i),why:_why});
           }
         }
-        if(caps.length)setMyMistakes(prev=>{const seen=new Set(prev.map(x=>x.fen));const add=caps.filter(c=>!seen.has(c.fen));return add.length?[...add,...prev].slice(0,150):prev;});
+        /* #426 antagonist B, P0-3, MEASURED: this merge is fen-keyed and used to DROP every position it
+           already held, so re-reviewing the same game left an entry captured by an older build with no `why`
+           for ever - and the ~148 mistakes already in Kunal's store are exactly the ones that produced the
+           complaint, twice. A solved card is also deleted from the queue, so there is no second chance.
+           Existing entries are now UPGRADED in place when a fresh capture of the same position carries a
+           sentence they lack. Nothing else about them is touched, so ts, last and played stay as they were. */
+        if(caps.length)setMyMistakes(prev=>{
+          const fresh=new Map(caps.map(c=>[c.fen,c]));
+          const up=prev.map(x=>{const f=fresh.get(x.fen);if(!f)return x;
+            const patch={};if(!x.why&&f.why)patch.why=f.why;if(!x.hint&&f.hint)patch.hint=f.hint;
+            return Object.keys(patch).length?{...x,...patch}:x;});
+          const seen=new Set(prev.map(x=>x.fen));const add=caps.filter(c=>!seen.has(c.fen));
+          const changed=add.length||up.some((x,i)=>x!==prev[i]);
+          return changed?[...add,...up].slice(0,150):prev;});
         if(bril.length)setMyBrilliant(prev=>{const seen=new Set(prev.map(x=>x.fen));const add=bril.filter(c=>!seen.has(c.fen));return add.length?[...add,...prev].slice(0,80):prev;});
       }
     }catch(e){}
@@ -3591,7 +3671,15 @@ export default function App(){
         if(isMate||s>=p.sol.length){
           setPuzStep(p.sol.length);setPuzSolved(true);setPzBurst(Date.now());setTimeout(()=>setPzBurst(0),1200);
           const alt=isMate&&!matchesLine;
-          if(p.ext){onlineSolved(p);setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'')+p.explain);}
+          /* #426 antagonist A, finding 2: when the stored solution is a mate and the player finds a
+             DIFFERENT mate, this prepends 28 characters and the drill's new explanation then overflows the
+             74px verdict cap - measured scrollHeight 91 / clientHeight 74 at Kunal's own 375x730, where the
+             pre-#426 string measured 70/70. That is a regression this build introduced, in a state gate 51
+             never entered because drillSolve always plays the stored uci exactly. In the alt-mate state the
+             drill therefore keeps the SHORT pre-#426 praise: the player already knows what they found, and a
+             clipped explanation is worse than a short one. The normal solve - every other card - carries the
+             explanation. flags/amber-426-drill-why-sentence-shape call 5. */
+          if(p.ext){onlineSolved(p);setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":p.explain));}
           else{setPuzDone(d=>({...d,[puzIdxRef.current]:true}));const ru=recordSolve(p);if(ru)setPzCelebrate(ru);setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'Solved! ')+p.explain+(ru?'   ⬆ Rank up — you reached '+ru.icon+' '+ru.name+'!':''));}
           // #358 ONLY when the finish is a forced mate. The obvious-looking version, "play on after
           // any solve", is wrong: most tactics already carry their payoff in the solution itself -
@@ -4329,7 +4417,7 @@ export default function App(){
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, a '+String(m.label||'mistake').toLowerCase()+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why?('Yes — '+m.why):"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;return o;}catch(e){return null;}};
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, a '+String(m.label||'mistake').toLowerCase()+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;return o;}catch(e){return null;}};
   const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';mistakeQueueRef.current=qs;let i=0,o=null;while(i<qs.length){o=puzzleFromMistake(qs[i]);if(o)break;i++;}if(!o)return;mistakeIdxRef.current=i;setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(o);};
   const startBrilliant=()=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';mistakeQueueRef.current=qs;let i=0,o=null;while(i<qs.length){o=puzzleFromMistake(qs[i]);if(o)break;i++;}if(!o)return;mistakeIdxRef.current=i;setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(o);};
   const nextMistake=()=>{const q=mistakeQueueRef.current||[];let n=mistakeIdxRef.current+1;while(n<q.length){const o=puzzleFromMistake(q[n]);if(o){mistakeIdxRef.current=n;loadExternal(o);return;}n++;}exitMistakes();};
