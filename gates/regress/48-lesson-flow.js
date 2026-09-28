@@ -293,7 +293,16 @@ const actionRowHit=(b)=>b.page.evaluate(()=>{
     inkRows++; const el=document.elementFromPoint(cx,y);
     if(!(el===an||an.contains(el))) inkLost++;
   }
-  return {found:true,hasAnalyze:true,hasCopy:true,wrapped,
+  // #428 (patch-lesson-action-row-hit-area EDIT 1): the flip boundary - the first y INSIDE Analyze's own box
+  // at which it stops answering for itself. Stepped at 0.125px because Chromium snaps hit rects to LayoutUnits,
+  // so an integer scan and a half-pixel scan disagree by one row at this edge. null = the box answers for
+  // itself all the way down, which is the target.
+  let flipY=null;
+  {const cxF=ar.left+ar.width/2;
+   for(let y=Math.ceil(ar.top); y<ar.bottom; y+=0.125){
+     const e=document.elementFromPoint(cxF,y);
+     if(!(e===an||an.contains(e))){flipY=Math.round(y*1000)/1000;break;} }}
+  return {found:true,hasAnalyze:true,hasCopy:true,wrapped,flipY,
     anTop:r2(ar.top),anBot:r2(ar.bottom),anH:r2(ar.height),cpTop:r2(cr.top),
     lineAdvance:wrapped?r2(cr.top-ar.top):null,
     overlap:wrapped?r2(ar.bottom-cr.top):null,
@@ -998,12 +1007,32 @@ L.run(async()=>{
          {found:_ar.found,analyze:_ar.hasAnalyze,copy:_ar.hasCopy,wrapped:_ar.wrapped,board:_fm.board&&_fm.board.w});
        const _wrapPin={'375x520':14,'320x520':14,'320x540':14}[geo];
        if(_wrapPin!==undefined){
-         L.say(_ar.found&&_ar.wrapped===true&&Math.abs(_ar.overlap-_wrapPin)<=0.6,
-           geo+': PINNED LIVE DEFECT - the action row wraps at board '+(_fm.board&&_fm.board.w)+' and its two lines overlap by '+_ar.overlap+'px (pinned at '+_wrapPin+'; the buttons are '+_ar.anH+'px tall on a '+_ar.lineAdvance+'px line advance). NOT this build\'s doing and NOT excused: jobs/lesson-action-row-wraps-and-analyze-taps-fire-copy-moves-2026-09-28',
-           {overlap:_ar.overlap,pinned:_wrapPin,anH:_ar.anH,advance:_ar.lineAdvance});
-         L.say(_ar.found&&_ar.inkLost===4,
-           geo+': and '+_ar.inkLost+' pixel rows of the PAINTED WORD "Analyze" hit 📋 Copy moves instead (pinned at 4 of '+_ar.inkRows+' ink rows; '+_ar.hitC+' of '+_ar.total+' rows of its whole box). A TAP ON THE INK FIRES THE WRONG BUTTON - this is the assertion, and it is the reason this is a P0 and not a cosmetic residual',
-           {inkLost:_ar.inkLost,inkRows:_ar.inkRows,hitC:_ar.hitC,total:_ar.total});
+         /* #428 AMENDED, AND THE AMENDMENT ITSELF IS AMENDED because the fix landed in the SAME build.
+            docs/patch-lesson-action-row-hit-area-2026-09-28 wrote these two edits for a world where the
+            amendment landed BEFORE the fix, so they re-pin the defect at its measured value. #428 fixes the
+            row (chess.jsx:6602, rowGap:22), so a pin at 14.00px overlap and 4 lost ink rows would be a gate
+            asserting the bug is still there - red on a healthy build. The SUBSTANCE of both amendments is
+            adopted and only the direction changes:
+              (1) antagonist A - the 14.00px overlap is a SYMPTOM and is DEMOTED to a printed diagnostic. A
+                  -8px margin moves it to 10.00 with the defect standing (NC2, md5 8ec730fd8697).
+              (2) antagonist B - the ink count travels WITH its interval convention, and the flip boundary is
+                  asserted SEPARATELY, because a lost-ink count alone goes green on that same -8px bundle
+                  while 10 of 43 box rows still fire the wrong button.
+            AND THE PATCH'S OWN ABSOLUTE PIN IS NOT USED. It asked for Math.abs(flipY-367.125)<=0.4, and its
+            closing note says that number is a 320x520/375x520 number: at 320x540 the same boundary measures
+            387.500. This branch runs at all three columns, so that assertion would have been RED at 320x540
+            on any bundle. The patch names the better form itself - assert the relation, not the absolute -
+            and the fixed state's relation is simply that there is no flip inside the box at all. [R18] */
+         L.say(_ar.found&&_ar.wrapped===true,
+           geo+': (fixture) the action row WRAPS at board '+(_fm.board&&_fm.board.w)+', which is the state the hit assertions below are written for - they are about the wrapped side of the boundary and would be vacuous unwrapped',
+           {wrapped:_ar.wrapped,board:_fm.board&&_fm.board.w});
+         L.note(geo+': DIAGNOSTIC overlap='+_ar.overlap+'px (was PINNED at '+_wrapPin+' through #427; DEMOTED at #428 - it is a SYMPTOM, and -8px margins take it to 10.00 with the defect still live)  lineAdvance='+_ar.lineAdvance+'  boxes '+_ar.anH+'px  whole-box rows lost '+_ar.hitC+' of '+_ar.total);
+         L.say(_ar.found&&_ar.inkLost===0,
+           geo+': FIXED AT #428 - '+_ar.inkLost+' of '+_ar.inkRows+' pixel rows of the PAINTED WORD "Analyze" hit another control (TARGET 0, reached; it was 4 through #427). Sampled at integer y over the half-open interval [ceil(inkTop), floor(inkBot)) down the button\'s own centre line - an integer scan and a half-pixel-centre scan disagree by one row at this boundary, which is why #427 published 4 and antagonist B published 5, and why the convention travels with the number',
+           {inkLost:_ar.inkLost,inkRows:_ar.inkRows,target:0,interval:'[ceil(inkTop), floor(inkBot))',hitC:_ar.hitC,total:_ar.total});
+         L.say(_ar.found&&_ar.flipY===null,
+           geo+': and there is NO y inside "Analyze"\'s own box at which it stops answering for itself (stepped at 0.125px from its top; flipY='+_ar.flipY+', target null, box '+_ar.anTop+'..'+_ar.anBot+', Copy\'s top '+_ar.cpTop+'). THIS IS THE ASSERTION THAT CATCHES A PARTIAL FIX: at -8px margins the ink count above reaches 0 and this one stays red, because 10 of 43 box rows still fire the wrong button (NC2, md5 8ec730fd8697) - and at rowGap:20, which clears the ink, it stayed red too because the hit rect snaps 0.875px above the touching edge. That measurement is why the shipped gap is 22 and not 20',
+           {flipY:_ar.flipY,target:null,anTop:_ar.anTop,anBot:_ar.anBot,cpTop:_ar.cpTop,step:0.125});
        } else {
          L.say(_ar.found&&_ar.wrapped===false&&_ar.inkLost===0,
            geo+': the action row does NOT wrap at board '+(_fm.board&&_fm.board.w)+', so every pixel row of "Analyze" hits Analyze ('+_ar.hitA+' of '+_ar.total+') and none of its ink is lost. This is the healthy side of the boundary, and it is asserted so the pinned columns above are a contrast and not a lone number',

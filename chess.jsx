@@ -6599,8 +6599,22 @@ export default function App(){
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:4,minHeight:23}}>{/* #378: minHeight is the chips' own drawn height. fb-controls removes them on the play screen only, and without this the row shrinks there, the board grows into the slack (Pass & Play 351 -> 367) and then shrinks back at game over (375 -> 367) - the board jumping, which gate 15 caught inside the k10 card. A row that can appear reserves its space. */}
           <span data-ct="moves-head" style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.4)',letterSpacing:1.5,fontFamily:'monospace'}}>MOVES</span>
           {/* fb-controls (Kunal, "Just those two"): in a live game Analyze and Copy moves are rows in the More sheet, not chips in this row. They stay HERE on every screen that has no More sheet - a lesson, a puzzle, the analysis board, an online game - because there they are the only way to reach either control. The predicate is the sheet's own: chess.jsx line 4068 renders the sheet on mode==='play'&&opponent!=='online'. */}
-          {!(mode==='play'&&opponent!=='online')&&(<div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}>
+          {!(mode==='play'&&opponent!=='online')&&(<div style={{display:'flex',columnGap:6,rowGap:22,flexWrap:'wrap',justifyContent:'flex-end'}}>
             {/* #373 (audit A-11): these drew 23px tall. The visible chip keeps its size; the button around it carries 10px of padding cancelled by a negative margin, so the tap box is 43px without the row growing (a taller row would come out of the board). */}
+            {/* #428: and that is exactly why the row above needs rowGap:22 rather than gap:6. The negative margin
+                makes each button's MARGIN box 23px while its BORDER box - which is what takes the tap - is 43px.
+                On one line nothing notices. When the row WRAPS, the two flex lines sit 23+6=29px apart and the
+                43px boxes overlap by 14px, so 📋 Copy moves (later in the DOM, same zIndex) wins the hit test over
+                the bottom of 🔍 Analyze: measured on #427, 14 of Analyze's 43 box rows and 4 rows of its PAINTED
+                GLYPHS fired Copy moves, and a real click on the word raised "Copied!". rowGap:22 takes the line
+                advance to 23+22=45, clear of the 43px box. 20 was tried FIRST and is the number this comment
+                originally carried: it makes the advance exactly 43 and it is NOT enough - gate 53's D4 stayed red at
+                all five wrapping columns because Chromium snaps the hit rect 0.875px above the touching edge, so the
+                last fraction of Analyze's own box still answered for Copy. 22 is measured, not rounded. It is the fix
+                that costs NOTHING where the row does not wrap - row-gap applies only BETWEEN lines, so Kunal's
+                375x730 and every other non-wrapping width lay out byte-identically - and the alternative of
+                dropping the negative margins would have taken 20px of board at every geometry including his.
+                US-R15 / TC-R18, gate 53. Do NOT "simplify" this back to a single gap. */}
             <button data-ct="moves-analyze" onClick={analyzeLine} style={{padding:'10px 0',margin:'-10px 0',position:'relative',zIndex:1 /* #374: the moves panel's top margin used to cover the bottom 6px of this box (antagonist: 37 effective of 43) */,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap'}}><span style={{display:'inline-block',padding:'3px 11px',borderRadius:6,background:'rgba(var(--acr),.18)',border:'1px solid rgba(var(--acr),.4)',color:'var(--ac2)',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:600}}>🔍 Analyze</span></button>
             <button data-ct="moves-copy" onClick={copyMoves} style={{padding:'10px 0',margin:'-10px 0',position:'relative',zIndex:1,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap'}}><span style={{display:'inline-block',padding:'3px 11px',borderRadius:6,background:copyMsg?'rgba(var(--acr),.25)':'rgba(255,255,255,.08)',border:`1px solid ${copyMsg?'rgba(var(--acr),.5)':'rgba(255,255,255,.18)'}`,color:copyMsg?'var(--ac2)':'rgba(255,255,255,.72)',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:600}}>{copyMsg||'📋 Copy moves'}</span></button>
           </div>)}
