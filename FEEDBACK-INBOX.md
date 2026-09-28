@@ -2199,3 +2199,48 @@ THE LIMIT, with the number rather than a hedge. The box the sentence sits in is 
 asks for. Everything you see is true and nothing is cut off - but it often says less than we planned. The fix
 is something you already told me on the 22nd, about the puzzle screen: once you have solved it, the goal card
 above has no job, so it can give its space to the sentence and the board does not move. That is queued.
+
+---
+
+## #427 — 2026-09-28 — a test for a corner of the lesson screen nothing had ever looked at, and a real bug found
+## seven pixels away from it
+
+NOTHING YOU SEE CHANGED IN THIS BUILD. The app itself is byte-for-byte what #426 was. What changed is what the
+tests can see, and that matters because of what they found.
+
+THE CORNER. On a lesson, under the board, there is a row with two buttons. When a demo has finished AND that
+lesson has extra variations, the right-hand one says "Other lines" — and that button is the one we have been
+fixing since the 13th. But 145 of our 170 lessons have no variations, so what they actually show is "⟳ Flip",
+and every ply before a demo ends shows it too, on all 170. No test had ever measured that version of the row.
+It had been tapped, and it works; nobody had ever checked whether it FITS. It does not, on a short screen: it
+runs up to 34.8px past the edge of its own row. It stays on the screen — nothing is lost off the side, and
+nothing is cut — but the row is visibly no longer flush with the board.
+
+I did not fix it, and I want to be straight about why. Shrinking the text is the lever you chose for this kind
+of problem, and I measured what it buys: it takes the worst case from 34.8px to 4.0px and removes about thirty
+of the thirty-five screen heights where it happens, and it costs nothing at all on your own phone. But it does
+not close it. Closing it properly needs the row to wrap onto two lines, and that spends board height, which is
+yours to decide and not mine. So it is on your Decision Desk with three options and a recommendation, with all
+three measured rather than guessed.
+
+THE THING THAT MATTERS MORE, AND IT WAS FOUND BY ACCIDENT. I run two independent reviewers against every build.
+One of them, looking at the screen rather than at my changes, went seven pixels below that button and found
+that on a short screen the row underneath — MOVES / 🔍 Analyze / 📋 Copy moves — wraps onto two lines, and the
+two lines overlap by 14 pixels. The buttons are 43px tall but the lines are only 29px apart. So the bottom of
+"Analyze" is covered by "Copy moves", and IF YOU TAP THE WORD "ANALYZE" ITSELF, YOU GET "COPIED!" INSTEAD.
+It tested this with a real tap, not a calculation: tapping the letters copies the moves; tapping an inch higher
+correctly opens the analysis board.
+
+This is not new — it has been there as long as that row has — and it is not on your phone at the end of a demo.
+But it IS on your phone during practice, at 375 wide. Every automated check we have passed straight over it,
+because every one of them asks "is the button the right size, is it on screen, is its text cut off" and the
+answer to all three is yes, it is fine. What is wrong is invisible to all of those: the button is fine and the
+place you touch belongs to something else. We now measure that, on five screen sizes, every build — and it is
+first in the queue for the next one.
+
+I was wrong about three things in this build and caught all three before it shipped, two of them because the
+reviewers pushed back. The one worth telling you about: I wrote down an explanation for why the old tests had
+missed this corner, and my own test disproved it — I had run the experiment that showed I was wrong and had not
+read it properly. The real reason was simpler and worse: the tests only ever open ONE lesson, and that lesson
+happens to be one of the 25 with variations, so they had never once seen what the other 145 show.
+
