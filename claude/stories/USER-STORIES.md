@@ -226,6 +226,12 @@ instance.
   into a permanent exception. At #424 that is the lesson demo row at viewport height 520, where the board is 192px
   and the row is short by nearly twice everything Kunal's three-rung shrink ladder can free. (TC-INV-05d)
 
+### US-R12 The drill board stays still when the app answers my move
+As a player practising my own mistakes, when I play a move and the app tells me it is not the one, the board does not move or change size, so my eye stays on the position.
+- A wrong move in "Practice your mistakes" shows the ✗ line in space that was already reserved; the board's top edge, left edge and width are unchanged to within 0.6px at 320x568, 360x640, 375x667, 375x730, 390x844, 414x896 and 440x956. (TC-R15)
+- The ✗ line can be read: at least 18px of it is unclipped and it is the topmost element at its own centre. (TC-R15)
+- The same must hold when I find the move (the 🎉 line). Not yet true on any build measured; jobs/drill-solved-board-jumps-bottom-row-collapse carries the fix and the case.
+
 ### US-R13 The mistake drill says WHY the better move was better
 As a player replaying a mistake from my own game, the drill explains why the move I missed was better than the
 one I played, in a comparison, so I learn something from my own game rather than being congratulated.
