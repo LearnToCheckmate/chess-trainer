@@ -243,3 +243,19 @@ one I played, in a comparison, so I learn something from my own game rather than
   quiet one. (TC-R16 B5a, B5b, B10)
 - The whole explanation fits the verdict box on screen at every supported geometry, 320x568 through 440x956,
   without the box growing and without the board moving. (TC-R16 B6, B7, B8)
+
+### US-R17 Once I solve a puzzle I can read the whole explanation
+As a player who has just solved a puzzle, I can read the explanation of what I found in full, without any of it
+being cut off, and the board does not move underneath me while I read it.
+- The explanation WRAPS onto as many lines as it needs rather than being ellipsed on one line: on a phone the
+  box holding it is not `white-space: nowrap` and not `text-overflow: ellipsis`. (TC-R20 B, C)
+- Every character of the explanation is actually painted inside the box on screen. Not "the box is tall enough",
+  which is true of the broken build at every geometry: the characters themselves are counted, and a character
+  hidden behind an inner scroller counts as lost. (TC-R20 E - the only clause no partial fix satisfies)
+- Nothing hides the rest of it in a scroller I cannot see: the reserved box's own scrollHeight is inside its
+  clientHeight, so there is never more sentence below the fold of a 74px box on a tall phone. (TC-R20 D)
+- The room for it comes from the goal card, which has done its job by the time I have solved the puzzle - so the
+  BOARD DOES NOT MOVE when the verdict appears, and nothing is pushed off the bottom of the screen. (TC-R20 A,
+  A2, F - and NC2 is the naive fix that moves the board 15px at 375x730 and 56.5px at 390x844)
+- The goal card ends up either gone or still showing its goal in full: giving its space away must not truncate
+  it instead. (TC-R20 H, written so that either fix route passes)
