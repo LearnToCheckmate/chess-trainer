@@ -1,6 +1,9 @@
 // regress/57-pz-solved-explanation.js — TC-R20 / US-R17.
 //
-// WHY 56 AND NOT 55: this file was written as 55 and RENUMBERED at 21:13Z in the same run. A SECOND
+// WHY 57 AND NOT 55: this file was written as 55 and RENUMBERED TWICE in the same run - to 56, then to 57
+// when a THIRD run of that lane was found to have taken 56. The header below said 56 and the suite label, the
+// launch names and the shot name all still said 55; #428 corrected all four, because a gatelog filed under a
+// number that exists nowhere in gates/regress/ is unsearchable by the number every claim cites. A SECOND
 // test-authoring session fired 11 seconds before this one (runledger/test-authoring__1790627870413,
 // 20:37:50Z), took jobs/bench-inner-scrollers-invisible-to-the-overflow-rule-2026-09-28 and authored
 // gates/regress/55-inner-scroller-fold.js. R02's claim is per JOB, so it separated the two jobs and did
@@ -87,10 +90,18 @@ const solved=(b)=>b.page.evaluate(()=>{
 });
 
 // the goal card: its own 🎯 line, so the gate can say whether a fix that TAKES its space left it truncated.
+// #428, ON ANTAGONIST A'S VETO: this selected on innerText, and innerText is THE EMPTY STRING for a
+// visibility:hidden subtree. #428's fix hides the goal card rather than unmounting it, so `goal()` returned
+// null on the FIXED build and H's `(g1===null)` branch short-circuited to a vacuous pass at all 14 inputs -
+// the sixth costume of the trap CLAUDE.md names five times: the thing being detected was excused by the very
+// mechanism the assertion ran on. textContent sees a hidden subtree. It also matches ANCESTORS of the card
+// (the wrapper's textContent starts with the same glyph), so take the CHILDLESS goal LINE and step up once.
 const goal=(b)=>b.page.evaluate(()=>{
-  const e=[...document.querySelectorAll('div')].find(d=>/^\u{1F3AF} /u.test((d.innerText||'').trim()));
+  const e=[...document.querySelectorAll('div')].filter(d=>/^\u{1F3AF} /u.test((d.textContent||'').trim())&&d.children.length===0)[0];
   if(!e)return null; const card=e.parentElement, cr=card.getBoundingClientRect(), er=e.getBoundingClientRect();
-  return {t:(e.innerText||'').replace(/\s+/g,' ').trim().slice(0,40), cardH:+cr.height.toFixed(2),
+  const cs=getComputedStyle(card);
+  return {t:(e.textContent||'').replace(/\s+/g,' ').trim().slice(0,40), cardH:+cr.height.toFixed(2),
+    cardVis:cs.visibility, cardDisp:cs.display,
     lineCW:e.clientWidth, lineSW:e.scrollWidth, lineH:+er.height.toFixed(2), lineSH:e.scrollHeight};
 });
 const pzTopH=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pz-top"]');return e?+e.getBoundingClientRect().height.toFixed(2):null;});
@@ -98,9 +109,12 @@ const pzTopH=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct=
 // measures the collapsible part (the motif/level badge row and the gap above it) at each geometry, so the
 // build lane sizes the fix from a measurement rather than from the mockup's single number.
 const giveable=(b)=>b.page.evaluate(()=>{
-  const line=[...document.querySelectorAll('div')].find(d=>/^\u{1F3AF} /u.test((d.innerText||'').trim()));
+  // #428: textContent, not innerText - see goal() above. This note printed `null` on every solved state of the
+  // fixed build, so the diagnostic written to let the build lane size the fix from a measurement was dead in
+  // the exact state it was written for.
+  const line=[...document.querySelectorAll('div')].filter(d=>/^\u{1F3AF} /u.test((d.textContent||'').trim())&&d.children.length===0)[0];
   if(!line)return null; const card=line.parentElement, cr=card.getBoundingClientRect();
-  const rows=[...card.children].map(c=>({t:(c.innerText||'').replace(/\s+/g,' ').trim().slice(0,28),h:+c.getBoundingClientRect().height.toFixed(2)}));
+  const rows=[...card.children].map(c=>({t:(c.textContent||'').replace(/\s+/g,' ').trim().slice(0,28),h:+c.getBoundingClientRect().height.toFixed(2)}));
   const st=getComputedStyle(card);
   return {cardH:+cr.height.toFixed(2),rows,gap:st.gap,padT:st.paddingTop,padB:st.paddingBottom};
 });
@@ -115,7 +129,7 @@ L.run(async()=>{
     if(ONLY.length&&!ONLY.some(o=>label.indexOf(o)===0))continue;
     for(const [state,kind] of [['train-solved','short 35-char verdict'],['long-solved','long 150-char verdict']]){
       const tag=label+' / '+kind;
-      const b=await L.launch({geo,name:'pz55-'+geo.w+'x'+geo.h+'-'+state});await b.open();
+      const b=await L.launch({geo,name:'pz57-'+geo.w+'x'+geo.h+'-'+state});await b.open();
       const stamp=await b.stamp();
       L.note(tag+'  bundle on the page: '+stamp);
 
@@ -158,14 +172,22 @@ L.run(async()=>{
       L.say(v.hit===true, tag+' G: the verdict is the element at the centre of its own visible area, not something layered over it',{got:v.hitTag});
       // H — mechanism-neutral: the job gives the goal card's space away, so the card must end up either
       // intact or gone, never present-and-truncated. Written this way so EITHER fix route passes.
-      const hOK = (g1===null) || (g1.lineSW<=g1.lineCW+1 && g1.lineSH<=Math.ceil(g1.lineH)+1);
-      L.say(hOK, tag+' H: the goal card is either gone or still shows its goal in full — never present and truncated',{before:g0,after:g1});
+      // #428: a THIRD branch, because the route that shipped is neither of the first two and the two-branch
+      // form could not tell them apart once goal() could see a hidden card again. "Hidden but still holding its
+      // height" is the mechanism that keeps the board still, so assert it rather than excuse it: if a later
+      // change swaps visibility:hidden for display:none the card collapses, pz-top shrinks and the board moves,
+      // and THAT is what this branch goes red on. Still mechanism-neutral - all three fix routes pass.
+      const hGone   = (g1===null);
+      const hIntact = !!g1 && g1.cardVis!=='hidden' && g1.lineSW<=g1.lineCW+1 && g1.lineSH<=Math.ceil(g1.lineH)+1;
+      const hHeld   = !!g1 && g1.cardVis==='hidden' && g1.cardH>0;
+      L.say(hGone||hIntact||hHeld, tag+' H: the goal card is gone, or shows its goal in full, or is hidden with its height still held open — never present and truncated, and never collapsed',
+        {branch:hGone?'gone':(hHeld?'hidden, holding '+g1.cardH+'px':(hIntact?'present and intact':'NEITHER')),before:g0,after:g1});
       L.note(tag+'  pz-top height '+t0+' -> '+t1+'  (the space the explanation is given has to come from inside this column)');
       const gv=await giveable(b);
       L.note(tag+'  GOAL CARD, what it has to give: '+JSON.stringify(gv));
 
       if(/KUNAL/.test(label)&&state==='long-solved'){
-        await b.shot('55-pz-solved-long-kunal730');
+        await b.shot('57-pz-solved-long-kunal730');
         // MEASURED, NOT ASSERTED: the rank-up concatenation, filed separately. See the header.
         try{ await Z.states['rankup-continue'](b); await b.settle(600);
           const rv=await solved(b);
@@ -178,4 +200,4 @@ L.run(async()=>{
       await b.close();
     }
   }
-},'PZ55-SOLVED-EXPLANATION');
+},'PZ57-SOLVED-EXPLANATION');
