@@ -225,3 +225,21 @@ instance.
   printed every run, never excused - and a pin is retired by a deliberate edit when it is fixed, not left to decay
   into a permanent exception. At #424 that is the lesson demo row at viewport height 520, where the board is 192px
   and the row is short by nearly twice everything Kunal's three-rung shrink ladder can free. (TC-INV-05d)
+
+### US-R13 The mistake drill says WHY the better move was better
+As a player replaying a mistake from my own game, the drill explains why the move I missed was better than the
+one I played, in a comparison, so I learn something from my own game rather than being congratulated.
+- Every Mistake/Blunder/Miss captured from a reviewed game stores a `why` built from THAT position's own engine
+  data (`out[i]` at the capture site), exactly as the Brilliant branch already does three lines below, and no
+  two captured positions carry the same sentence. (TC-R16 A2, A7)
+- The sentence names the better move AND the move I actually played, and translates the evaluation into words
+  by naming the band, never centipawns and never a signed decimal. (TC-R16 A3, A4, A5, A6, B2, B3, B4)
+- The evaluation is in MY frame, not White's: when I am Black and losing, the sentence says I am losing.
+  (TC-R16 A8 - the assertion a White-frame implementation fails and nothing else in the gate catches)
+- Where the engine data does not support a shape, the sentence says less rather than guessing: a plausible
+  wrong explanation is worse than a short true one. The motif named is the BETTER move's own, never the one I
+  played. (#426; Q1 in the lane record is still open with Kunal)
+- The hint shown before I solve varies with the position, and never tells me to look for a forcing move in a
+  quiet one. (TC-R16 B5a, B5b, B10)
+- The whole explanation fits the verdict box on screen at every supported geometry, 320x568 through 440x956,
+  without the box growing and without the board moving. (TC-R16 B6, B7, B8)

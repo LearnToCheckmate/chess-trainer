@@ -672,6 +672,88 @@ function dropTxt(altSan,altDrop){
   if(d>=0.35)return altSan+' was the only other try, '+d.toFixed(1)+' worse.';
   return altSan+' was as good on paper, but nothing like as forcing.';
 }
+/* #426 jobs/drill-explain-why-it-was-better. Kunal, twice (2026-09-19 and 2026-09-20): "it told me yes
+   that's the move you missed, but it doesn't explain to me why that's better, which is what it should be
+   doing." The mistake drill stored NO `why` at all: out[i] is in scope at the capture site carrying loss,
+   evalBefore, evalAfter, bestMove, bestSan and motifs, and every one of them was discarded, while the
+   Brilliant branch three lines below built a real sentence out of the same object.
+   THREE THINGS THIS GETS RIGHT THAT THE OBVIOUS VERSION GETS WRONG. Each was MEASURED, not reasoned:
+   1. THE FRAME. evalBefore/evalAfter are in WHITE's frame - they come off the White-frame evW array as
+      after/100 and before/100 - so the naive version tells a losing Black player their game went "from
+      winning to winning". test-authoring's scratch bundle #9051 printed exactly that. userColor turns it.
+   2. THE MOTIFS BELONG TO THE WRONG MOVE. out[i].motifs is moveMotifs(pos, PLAYED move): it describes the
+      move the player REGRETS. Attributing it to the better move would tell them their blunder forked two
+      pieces. The best move's own motifs are recomputed here from the same pure function.
+   3. THE BOX. The drill verdict is maxHeight 74 with overflowY auto and the OLD 45-character string already
+      filled it (scrollHeight 70 of 70, six geometries). So this sentence REPLACES the verbose praise rather
+      than being appended to it, and carries its own character budget. Same discipline as WHY_MAXW above:
+      the box is two lines, so the chess goes in and the arithmetic stays out. No geometry changed, no board
+      height spent - see flags/amber-426-drill-why-sentence-shape call 2 for the three options and why.
+   BAND WORDS: Kunal's five from 2026-09-20 (level / slightly better / clearly better / winning / completely
+   winning), which map the ABSOLUTE eval and therefore only describe a player who is AHEAD, plus their four
+   mirror images for a player who is BEHIND. Every mistake in a lost game needs those and his table has none;
+   recorded as an amber call rather than taken silently.
+   Pure and module-level on purpose, like explainAnno above: this is wording users read, so the harness has
+   to exercise the real thing and not a copy that can drift. */
+function whyBand(v){
+  const a=Math.abs(v);
+  if(a<0.5)return 'level';
+  if(v>0)return a<1.5?'slightly better':a<3?'clearly better':a<6?'winning':'completely winning';
+  return a<1.5?'slightly worse':a<3?'clearly worse':a<6?'losing':'completely losing';
+}
+/* the shape of the BETTER move, from its own motifs. '' when the data supports no shape: a short true
+   sentence beats a plausible invented one, so this never reaches for "keeps the initiative". */
+function whyShape(pos,mv){
+  if(!pos||!mv)return '';
+  let mo=[];try{mo=moveMotifs(pos,mv)||[];}catch(e){mo=[];}
+  const has=(m)=>mo.indexOf(m)>=0;
+  if(has('mate'))return ' forces mate';
+  if(has('fork'))return ' forks two pieces';
+  if(has('discovered check'))return ' is a discovered check';
+  if(has('promotion'))return ' promotes the pawn';
+  try{if(pos.board[mv.tr]&&pos.board[mv.tr][mv.tc])return ' wins material';}catch(e){}
+  return '';
+}
+const WHY_DRILL_MAXW=70;
+function mistakeWhy(pos,bestMove,bestSan,playedSan,evalBeforeW,evalAfterW,userColor){
+  try{
+    if(!bestSan||!playedSan)return '';
+    const sgn=(userColor==='b')?-1:1;
+    const pB=sgn*((typeof evalBeforeW==='number')?evalBeforeW:0);
+    const pA=sgn*((typeof evalAfterW==='number')?evalAfterW:0);
+    const bB=whyBand(pB),bA=whyBand(pA);
+    const shape=whyShape(pos,bestMove)||' was stronger';
+    /* clause two is the comparison the card asked for. When the move did not cross a band boundary the
+       band is named ONCE: naming it twice ("from losing to losing") is nonsense, and omitting clause two
+       leaves the comparative question unanswered. That is Q4 in the lane record, unanswered by Kunal;
+       the default and its two rejected alternatives are in flags/amber-426-drill-why-sentence-shape. */
+    const twoFull=(bB===bA)?(playedSan+' left you '+bA):(playedSan+' went from '+bB+' to '+bA);
+    const twoShort=playedSan+' left you '+bA;
+    const mk=(sh,t)=>bestSan+sh+'. '+t+'.';
+    /* packed against a budget rather than concatenated blind, and the COMPARISON is the last thing
+       dropped, because it is the half Kunal asked for. */
+    const cands=[mk(shape,twoFull),mk('',twoFull),mk(shape,twoShort),mk('',twoShort)];
+    for(const c of cands)if(c.length<=WHY_DRILL_MAXW)return c;
+    return cands[cands.length-1];
+  }catch(e){return '';}
+}
+/* the hint names the SHAPE and never the move, and where there is no shape it says so plainly instead of
+   sending the player hunting for a tactic that is not there. The string it replaces fired on all 148
+   captured mistakes ("look for the most forcing or solid option"), which is escapes/generic-hint-on-every-
+   mistake-2026-09-20 (-8); Kunal promoted this half from secondary to equal first on 2026-09-20. */
+function mistakeHint(pos,bestMove){
+  try{
+    if(!bestMove)return '';
+    let mo=[];try{mo=moveMotifs(pos,bestMove)||[];}catch(e){mo=[];}
+    const has=(m)=>mo.indexOf(m)>=0;
+    if(has('mate'))return 'There is a forcing line here, and it ends the game.';
+    if(has('fork'))return 'One move can hit two things at once.';
+    if(has('discovered check'))return 'Moving one piece can uncover another.';
+    if(has('promotion'))return 'A pawn is closer to the end than it looks.';
+    try{if(pos.board[bestMove.tr]&&pos.board[bestMove.tr][bestMove.tc])return 'There is material to be taken here.';}catch(e){}
+    return 'No tactic here - improve your worst-placed piece.';
+  }catch(e){return '';}
+}
 function explainAnno(a,ctx){
   if(!a)return null;
   const L=a.cls&&a.cls.label; if(!L)return null;
@@ -3322,7 +3404,10 @@ export default function App(){
           if((L==='Mistake'||L==='Blunder'||L==='Miss')&&out[i].bestMove&&res.positions[i]){
             const m=out[i].bestMove,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
             let played='';try{played=toSAN(res.positions[i],res.plies[i].move,applyMove(res.positions[i].board,res.plies[i].move));}catch(e){}
-            caps.push({fen:toFEN(res.positions[i]),uci:u,label:L,ts:Date.now(),last:lastOf(i),played});
+            const _cpos=res.positions[i];
+            const _cwhy=mistakeWhy(_cpos,out[i].bestMove,out[i].bestSan,played,out[i].evalBefore,out[i].evalAfter,uc2);
+            const _chint=mistakeHint(_cpos,out[i].bestMove);
+            caps.push({fen:toFEN(_cpos),uci:u,label:L,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint});
           } else if(L==='Brilliant'&&res.plies[i]&&res.positions[i]){
             const m=res.plies[i].move,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
             const _g=out[i].gate||{};const _mo=out[i].motifs||[];
@@ -4244,7 +4329,7 @@ export default function App(){
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, a '+String(m.label||'mistake').toLowerCase()+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':'There was a better move than the one you chose. Look for the most forcing or solid option.';o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):"That's the move you missed — well spotted.";o.url=null;o.mine=true;o.last=m.last||null;return o;}catch(e){return null;}};
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, a '+String(m.label||'mistake').toLowerCase()+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why?('Yes — '+m.why):"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;return o;}catch(e){return null;}};
   const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';mistakeQueueRef.current=qs;let i=0,o=null;while(i<qs.length){o=puzzleFromMistake(qs[i]);if(o)break;i++;}if(!o)return;mistakeIdxRef.current=i;setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(o);};
   const startBrilliant=()=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';mistakeQueueRef.current=qs;let i=0,o=null;while(i<qs.length){o=puzzleFromMistake(qs[i]);if(o)break;i++;}if(!o)return;mistakeIdxRef.current=i;setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(o);};
   const nextMistake=()=>{const q=mistakeQueueRef.current||[];let n=mistakeIdxRef.current+1;while(n<q.length){const o=puzzleFromMistake(q[n]);if(o){mistakeIdxRef.current=n;loadExternal(o);return;}n++;}exitMistakes();};
