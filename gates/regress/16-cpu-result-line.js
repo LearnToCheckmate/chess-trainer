@@ -1,5 +1,9 @@
-// regress/16-cpu-result-line.js  #434.  THE ONE STATUS SLOT ABOVE THE BOARD STATES THE RESULT AFTER THE
-// RESULT CARD HAS GONE - vs the COMPUTER, where an adaptive-strength note used to hold that slot for ever.
+// regress/16-cpu-result-line.js  #434, extended by #435.  THE ONE STATUS SLOT ABOVE THE BOARD STATES THE
+// RESULT AFTER THE RESULT CARD HAS GONE, IN EVERY ORIENTATION, AND THE BOARD DOES NOT MOVE WHEN IT DOES.
+// #434 (blocks A-D, portrait): vs the COMPUTER an adaptive-strength note held that slot for ever.
+// #435 (blocks E-F, landscape 730x375): the row was not rendered AT ALL once the game was over and `wide`,
+//   so NEITHER opponent stated a result - and the bottom tab bar returning at game over put a 62px spacer
+//   into the flow, which the board-fit loop paid for by shrinking the board 224.00 -> 192.00.
 //
 // THE DEFECT THIS GUARDS (jobs/cpu-game-over-says-nothing-three-seconds-later-2026-09-29, the #433 auditor's
 // P1). chess.jsx:5616 is the only status line a phone has, and its done-branch read
@@ -13,7 +17,9 @@
 // THE CONTROL IS FREE AND IT IS THE REAL BROKEN BUILD, which is the strongest kind (#432's lesson: a control
 // that only exercises what the fix added cannot see the defect the fix removes):
 //   CT_APP=<the #433 bundle> gates/gates.sh '#433' '16-cpu-result-line'
-// MEASURED there, and the count below is the run's own, not an estimate: 6 RED of 27, and they are exactly
+// MEASURED there, and the count below is the run's own, not an estimate: 6 RED of 28 (this header said "of 27"
+// from #434 until antagonist A counted the A-D PASS/FAIL lines on a real run and got 28 - off by one, carried
+// forward unchanged into #435 and corrected here [R18]), and they are exactly
 // A2b, A3, A4 at 375x730 and B2b, B3, B4 at 320x568 - every vs-computer assertion about what the slot says
 // after the fade, at both geometries. C (the eloMsg-EMPTY branch) and D (Pass & Play) stay GREEN, which is
 // the point of carrying them: they are the two inputs #433 already got right, so the control localises the
@@ -74,6 +80,38 @@ async function resultHits(b){
     return out;
   },RES_RE.source);
 }
+// #435, ON ANTAGONIST A'S VETO. E3/F3 originally filtered resultHits() for /Strength (now|stays)/, and
+// resultHits() pre-filters every element by RES_RE - which does not contain the words "strength", "now" or
+// "Elo". So the string the assertion was hunting could never reach the filter, strengthUp was [] on EVERY
+// bundle, and [].length<=1 CANNOT FAIL. A measured it on the one build in existence where the duplicate chip
+// is actually painted (#434, 730x375, card up): resultHits() returned only [{"t":"Resigned"},{"t":"You lose"}],
+// the honest scan returned [{"t":"▼ Strength now ~450 Elo",x:373.3,y:47.5,w:207.4,h:23}], and
+// RES_RE.test("▼ Strength now ~450 Elo") is false. The assertion the amber record cited as "counts painted
+// elements rather than trusting the diff" counted nothing, on the build where the thing it counts was on
+// screen. Sixth costume of the trap CLAUDE.md records five times, in its narrowest form: THE FILTER THAT
+// SELECTS THE CASE WAS THE SAME OBJECT AS THE PROPERTY BEING ASSERTED. Its own scan now, keyed to its own
+// vocabulary. Verified after the repair: 1 hit at card-up on #434 and on #435, 0 from +2.6s on #435.
+async function strengthHits(b){
+  return b.page.evaluate(()=>{
+    // ANY wording of the adaptive strength, not one phrasing: the note above the board says
+    // "▼ Strength now ~450 Elo" and the landscape rail says "≈450 Elo", and the whole finding is that
+    // BOTH were on screen at once while the result was on screen not at all. A regex for the note alone
+    // returns 1 on the broken bundle and 1 on the fixed one and discriminates nothing - which is what the
+    // first repair of this assertion did, caught here by measuring it rather than by arguing about it.
+    const re=/(strength (now|stays))|([≈~]\s*\d{3,4}\s*Elo)|(\d{3,4}\s*Elo)/i,out=[];
+    for(const el of document.querySelectorAll('body *')){
+      if(el.tagName==='STYLE'||el.tagName==='SCRIPT')continue;
+      let t='';for(const n of el.childNodes)if(n.nodeType===3)t+=n.textContent;
+      t=t.replace(/\s+/g,' ').trim();
+      if(!t||t.length>44||!re.test(t))continue;
+      const r=el.getBoundingClientRect();if(r.width<1||r.height<1)continue;
+      const cs=getComputedStyle(el);
+      if(cs.visibility==='hidden'||cs.display==='none'||+cs.opacity===0)continue;
+      out.push({t,x:+r.x.toFixed(1),y:+r.y.toFixed(1),w:+r.width.toFixed(1),h:+r.height.toFixed(1)});
+    }
+    return out;
+  });
+}
 async function slot(b){
   return b.page.evaluate(()=>{
     const el=document.querySelector('[data-ct="play-opening"]');if(!el)return null;
@@ -108,7 +146,7 @@ L.run(async()=>{
     L.say(!!dn&&/You lose/.test(dn.t),tag+'3 '+geo+': and the outcome it names is the one the GAME had - this side resigned as White, so the player lost, which is a fact about the game and not a reading off a sibling element (#389)',{slot:dn&&dn.t});
     L.say(hits.length>=1&&hits.some(h=>h.t===want),tag+'4 '+geo+': a scan of every painted element under 44 chars matching the result vocabulary finds the result on screen - this returned ZERO hits on the shipped #433 bundle',{hits});
     L.say(!!dn&&dn.op===1,tag+'5 '+geo+': the slot is actually painted (opacity 1), not present-and-invisible',{opacity:dn&&dn.op});
-    L.say(!!dn&&dn.nowrap==='nowrap'&&dn.sw<=dn.cw+1,tag+'6 '+geo+': and nothing in that slot is silently cut - it is a nowrap ellipsis span whose scrollWidth fits its clientWidth. MEASURED in this span: the result is 143, the strength note 183, the two joined 340, and the slot is 96vw = 360 at 375 but 307.2 at 320 - so this assertion catches a concatenation at 320 and NOT at 375 (#387, #394)',{sw:dn&&dn.sw,cw:dn&&dn.cw,white:dn&&dn.nowrap,ell:dn&&dn.ell});
+    L.say(!!dn&&dn.nowrap==='nowrap'&&dn.sw<=dn.cw+1,tag+'6 '+geo+': and nothing in that slot is silently cut - it is a nowrap ellipsis span whose scrollWidth fits its clientWidth. MEASURED in this span: the result is 143, the strength note 183, the two joined 340, and the slot is 96vw = 360 at 375 but 307.2 at 320 - so this assertion catches a concatenation at 320 and NOT at 375 (#387, #394)',{sw:dn&&dn.sw,cw:dn&&dn.cw,white:dn&&dn.nowrap,ell:dn&&dn.ell}); /* #435 pays a debt #434 left on the pen deliberately, being antagonist A's closing refinement on the run that gated this file: THIS ASSERTION IS THINNEST EXACTLY WHERE NOTHING REACHES IT. The longest string the code can put in this slot is the DRAW strength note 'Draw - strength stays ~N Elo' at 235.7px against B's 307.19px cap at 320 - about nine characters of margin - and the draw branch is the one input neither antagonist could drive (see the eloMsg-branches note at the foot of this file). So a green B6 is evidence about the loss wording and near-silent about the draw wording. #434 left it out because editing a gate file AFTER the run that gated it is the discrepancy A's own F4 caught; it goes in here with the first change to this file, so the file is still byte-identical to the log that gates it. */
     L.say(!!upBd&&!!dnBd&&Math.abs(upBd.w-dnBd.w)<0.05&&Math.abs(upBd.y-dnBd.y)<0.05,tag+'7 '+geo+': and the board did not move across the card fade, to the hundredth of a pixel - the tolerance is 0.05 rather than 0.6 so that the gate asserts what the build CLAIMS (measured delta: exactly 0.0000) - the slot changing its text must never cost board geometry',{up:upBd&&{w:+upBd.w.toFixed(2),y:+upBd.y.toFixed(2)},down:dnBd&&{w:+dnBd.w.toFixed(2),y:+dnBd.y.toFixed(2)}});
     L.say(b.errs.length===0,tag+'8 '+geo+': zero app errors across the termination',b.errs.slice(0,3));
     await b.shot('cpu-result-'+geo);
@@ -147,13 +185,128 @@ L.run(async()=>{
     await b.close();
   }
 
+
+  // ══ E: LANDSCAPE, 730x375 - THE ROW THAT WAS NOT RENDERED AT ALL, AND THE BOARD JUMP BESIDE IT ══
+  // #435, jobs/landscape-drops-the-status-row-at-game-over-...-2026-09-29. This is a DIFFERENT mechanism from
+  // A-D and needs its own inputs: A-D fail when the slot says the wrong THING, E fails when the slot DOES NOT
+  // EXIST. On the shipped #434 bundle chess.jsx:5616's guard read (!(isOver||playEnd)||!wide), so at 730x375 -
+  // where `wide` (chess.jsx:2744) is true - the row was not rendered once the game was over and NEITHER
+  // opponent stated a result. MEASURED there, vs Pip and Pass & Play alike: scan returns [] at +4.4s and +6.8s.
+  //
+  // E5 IS THE ASSERTION THIS JOB EXISTS FOR AND IT IS NOT ABOUT TEXT. The job's own brief said to establish what
+  // moved the board BEFORE deciding where the result goes, and the answer, measured here and not read: at game
+  // over in landscape the bottom tab bar returned, its 62px in-flow spacer (chess.jsx:7175) entered the flow, the
+  // fit loop (chess.jsx:2763) read it as content and trimmed the board 224.00 -> 192.00 - 14%, for BOTH
+  // opponents, Pass & Play included, which is what ruled the adaptive-strength pill out as the cause. So E5
+  // spans LIVE -> OVER, not merely the card fade the way A7/B7 do, and THAT IS THE DIFFERENCE THAT MATTERS:
+  // A7/B7 could not have caught this, because on the old bundle the board had already finished shrinking before
+  // the card came up (measured: live 224.00 -> card-up 192.00 -> card-gone 192.00).
+  //
+  // THE CONTROL IS AGAIN THE REAL BROKEN BUILD, free and with no hook the fix invented (#432):
+  //   CT_APP=<the shipped #434 bundle, md5 f301b19b9727> gates/gates.sh '#434' '16-cpu-result-line'
+  // [data-ct="play-opening"] is #370's and predates every change here, so a red is a missing ROW or wrong TEXT,
+  // never a missing selector.
+  // MEASURED, AND THE SCOPE IS THE GATE'S OWN LOG (gates/logs/434-subset-16-cpu-result-line.log), NOT the
+  // -all.log, because the -all.log adds mountcheck's 16 and an earlier draft of this build quoted 56/14 from it
+  // - a count with no scope cannot be checked, which is this repo's own rule and was broken here first [R18]:
+  //   #434 control: 39 PASS / 15 FAIL of 54. The fifteen are E2,E3,E5,E6,E7,E9,E10,E11 and F2,F5,F6,F7,F9,F10,F11.
+  //   #435:         54 PASS / 0 FAIL.
+  //   Blocks A-D: 28 PASS / 0 FAIL on the control, which localises every failure to landscape and proves
+  //   #434's portrait fix is untouched. (28, not the 27 this header carried from #434 - see above.)
+  // THE HONEST DENOMINATOR OF THE NEW BLOCKS, because antagonist A asked for it and a count with no scope
+  // cannot be checked. E and F add 26 assertions. FIFTEEN go red on the real broken build. THREE of the
+  // remaining eleven cannot fail by construction and are named here rather than counted as evidence:
+  //   E0/F0 - "the viewport really is 730x375". A harness self-check, not a claim about the app. It is here
+  //           because every other assertion in the block is about the branch a computed flag selects, and a
+  //           silently-wrong viewport would make all of them green and meaningless.
+  //   F3    - "zero elements state an Elo in Pass & Play". 0 on both bundles, deliberately: see below.
+  // The other eight (E1/F1, E4/F4, E8/F8, E12/F12) are live but were already satisfied on #434 - the row did
+  // exist while the game was LIVE there, the card did fade, the board did not move across the fade alone
+  // (it had already finished shrinking), and neither build throws. They are preconditions and guards, and
+  // they are what stop the fifteen above being green for the wrong reason.
+  //
+  // F3 IS THE ONE NEW ASSERTION THAT DOES NOT MOVE BETWEEN THE BUNDLES, AND THAT IS ITS JOB: Pass & Play has
+  // no computer, so zero elements state an Elo on either build. It is a control, and it is named as one rather
+  // than counted as evidence.
+  for(const [tag,opp] of [['E','cpu'],['F','pp']]){
+    const geo={w:730,h:375,safe:''};
+    const b=await L.launch({geo,name:'result-land-'+opp,store:{ct_pool:'3'}});await b.open();
+    const vpw=await b.page.evaluate(()=>innerWidth+'x'+innerHeight);
+    L.say(vpw==='730x375',tag+'0 730x375: the viewport really is landscape - asserted because `wide` is a computed flag and every other assertion in this block is about the branch it selects',{viewport:vpw});
+    if(opp==='pp'){await P.states['pp-m0'](b);}
+    else{await P.states['setup'](b);await P.tapBtn(b,/^Pip\n/,200);await P.tapBtn(b,/^▶ Start game$/,900);}
+    await b.settle(400);
+    const liveBd=await b.board(),liveSlot=await slot(b);
+    L.say(!!liveSlot,tag+'1 730x375: the status row is rendered while the game is LIVE - the precondition, so a green below cannot come from a row that was never there in either state (#385)',{slot:liveSlot&&liveSlot.t});
+    await resign(b);
+    await b.settle(600);
+    const upSlot=await slot(b),upBd=await b.board();
+    // THE TWO STRENGTH ASSERTIONS ARE OPPONENT-SPECIFIC AND THE FIRST DRAFT APPLIED THEM TO BOTH BLOCKS,
+    // which went red on F for the right reason: Pass & Play has no computer, so eloMsg never exists and no
+    // Elo is stated anywhere at any time. Split, which makes F a genuine control rather than a copy of E -
+    // E proves the strength is stated once and no longer twice, F proves it is never stated at all.
+    if(opp==='cpu'){
+      L.say(!!upSlot&&/Strength now ~\d+ Elo/.test(upSlot.t),tag+'2 730x375: and while the card is up the row CARRIES the adaptive-strength note. Asserts the TEXT, not merely that the element exists: antagonist A pointed out that an existence-only check makes every green in this block compatible with a build where eloMsg is never set at all, so the block would never prove it entered the state it is about (the A1b analogue, #385). The number is not pinned, for the reason A1b gives',{slot:upSlot&&upSlot.t});
+    }else{
+      L.say(!!upSlot&&!/Elo/.test(upSlot.t),tag+'2 730x375: and while the card is up the row is rendered and carries NO Elo of any kind - Pass & Play has no computer, so the whole adaptive-strength mechanism is absent and this block is the control that proves the landscape fix is not about that mechanism',{slot:upSlot&&upSlot.t});
+    }
+        await b.settle(5000);
+    const dn=await slot(b),hits=await resultHits(b),dnBd=await b.board(),card=await b.text('[data-ct="result-card"]');
+    const want=opp==='cpu'?'Resigned · You lose':'Resigned · Black wins';
+    L.say(card===null,tag+'4 730x375: the result card has gone, so the slot is the only thing left that can state the result',{card});
+    L.say(!!dn&&dn.t===want,tag+'5 730x375: and it states it, as the app\'s own head + " · " + sub. On the shipped #434 bundle this element DID NOT EXIST at this moment, for either opponent',{slot:dn&&dn.t,want});
+    L.say(hits.some(h=>h.t===want),tag+'6 730x375: the painted-element scan finds it - this returned [] on #434 for BOTH opponents, which is the defect in one number',{hits});
+    const strengthDn=await strengthHits(b);
+    L.say(strengthDn.length===(opp==='cpu'?1:0),tag+'3 730x375: ONCE THE CARD HAS GONE exactly ONE painted element states the adaptive strength vs the computer, and ZERO in Pass & Play - the rail - where #434 had TWO and stated the result zero times. MEASURED on both bundles at this frame: #434 gives [{"▼ Strength now ~450 Elo",x:373.3,y:47.5,w:207.4},{"≈450 Elo",x:317.8,y:95}] and #435 gives [{"≈450 Elo",x:365.8,y:108}]. THREE THINGS ABOUT THIS ASSERTION WERE WRONG BEFORE THEY WERE MEASURED, and all three are the same mistake. (a) It first filtered resultHits(), whose vocabulary cannot match the word "strength", so it was [] on every bundle and COULD NOT FAIL - antagonist A vetoed the push on it. (b) The repair scanned for /strength (now|stays)/ alone, which returns 1 on the broken bundle AND 1 on the fixed one, so it still discriminated nothing. (c) It was taken while the card was UP, where both bundles legitimately show the note. It is now the widest wording, at the frame where the finding lives. The lesson is the file\'s own: an instrument has to be shown to move between the two cases, and neither draft was',{strengthHits:strengthDn});
+    L.say(!!liveBd&&!!dnBd&&Math.abs(liveBd.w-dnBd.w)<0.05&&Math.abs(liveBd.y-dnBd.y)<0.05,tag+'7 730x375: THE BOARD DOES NOT MOVE FROM LIVE TO OVER, to the hundredth. On #434 this read 224.00/75.50 live and 192.00/60.50 over - a 32px, 14% shrink at the instant the game ended, for both opponents. Spans the whole transition and not just the card fade, because the shrink had already happened by the time the card was up',{live:liveBd&&{w:+liveBd.w.toFixed(2),y:+liveBd.y.toFixed(2)},over:dnBd&&{w:+dnBd.w.toFixed(2),y:+dnBd.y.toFixed(2)}});
+    L.say(!!upBd&&!!dnBd&&Math.abs(upBd.w-dnBd.w)<0.05,tag+'8 730x375: and it does not move across the card fade either - the half A7/B7 cover at the portrait geometries',{up:upBd&&+upBd.w.toFixed(2),down:dnBd&&+dnBd.w.toFixed(2)});
+    L.say(!!dn&&dn.sw<=dn.cw+1,tag+'9 730x375: nothing in the slot is silently cut at this geometry. Landscape is the WIDEST viewport this gate visits, so this is the weakest of the three truncation checks and is here to catch a slot whose width is keyed to the board column rather than the viewport, which is the one way landscape could cut where 375 does not',{sw:dn&&dn.sw,cw:dn&&dn.cw});
+    const tabs=await b.tabBarVisible();
+    L.say(tabs===false,tag+'10 730x375: and the bottom tab bar is NOT back. This is the mechanism assertion for E7: the bar returning is what put the 62px spacer into the flow and paid for it out of the board. If a later change restores the bar here, this goes red beside E7 and names the cause rather than leaving a bare geometry failure',{tabBarVisible:tabs});
+    const homeBtn=await b.page.evaluate(()=>{const e=[...document.querySelectorAll('button')].find(x=>x.title==='Home'&&x.getBoundingClientRect().width>0);return !!e;});
+    L.say(homeBtn===true,tag+'11 730x375: and Home is still reachable. #435 hid the tab bar at game over in landscape, so this asserts the route that replaced it is actually there. MEASURED, one process per bundle, buttons on screen at this moment: #434 gave [menu,-,+,Moves,Back,Forward,Hint,Flip,More,Home,Discover,Puzzles,Review,Play] with tabBarVisible=true and board=192; #435 gives [HOME,menu,-,+,Moves,Back,Forward,Hint,Flip,More] with tabBarVisible=false and board=224. So this is a TRADE and not a free win - the four non-Home tab destinations go from one tap to two, via Home - and this assertion pins the half that must not silently become zero taps to anywhere. An earlier draft of this line said the amber record claimed NO capability was lost; that claim was too strong and was withdrawn in the record itself before the push (flags/amber-435-landscape-game-over-matches-portrait) [R18]',{homeButton:homeBtn});
+    L.say(b.errs.length===0,tag+'12 730x375: zero app errors across a landscape termination',b.errs.slice(0,3));
+    await b.shot('result-land-'+opp);
+    await b.close();
+  }
+
   // ══ NOT COVERED HERE, AND NAMED SO IT IS NOT MISTAKEN FOR COVERED ══
-  // LANDSCAPE. `wide` (chess.jsx:2744) is true at 730x375 and chess.jsx:5616 does not render this slot AT ALL
-  // when a game is over and wide, so at 730x375 NEITHER opponent shows a result after the card fades - MEASURED
-  // on this bundle, vs Pip and Pass & Play alike, scan returns []. That is a second instance of the same
-  // complaint through a different mechanism (the row is suppressed, not pre-empted) and it is filed as
-  // jobs/landscape-drops-the-status-row-at-game-over-so-no-result-survives-the-card-2026-09-29, with the
-  // board shrinking 224.00 -> 192.00 at the same moment, which is a board jump and a bigger question.
+  // A CHALLENGE TO THIS CONTROL THAT WAS MEASURED AND REFUTED, recorded because the claim is plausible and
+  // the next reader may well raise it again. Antagonist B reported that #434's missing line and its 224->192
+  // shrink are MOVE-0-ONLY - that on #434 with 4 plies played the result line WAS present at 730x375 and the
+  // board stayed 224.00 - which would make E5/F5 and E7/F7 describe a far narrower defect than their text
+  // claims. MEASURED HERE, vs Pip, P.states['cpu-4ply'] then resign, one process per bundle with the harness
+  // provenance line printed:
+  //     #434, 4 plies: LIVE 224.00/75.50 -> OVER 192.00/60.50, [data-ct="play-opening"] NULL, scan []
+  //     #435, 4 plies: LIVE 224.00/75.50 -> OVER 224.00/75.50, slot "Resigned - You lose"
+  // Identical to the move-0 readings, so the defect is NOT move-count dependent and the assertion text stands.
+  // The likely source of the challenge is worth keeping: B reported the line at y=27, and y=27 is exactly what
+  // the #435 slot reads when the column is left SCROLLED by the More-sheet taps (it is y=65 at scrollTop 0),
+  // which is the reading B's own P1-1 warns about. An antagonist's finding is evidence, not a verdict, and the
+  // cheapest response to one is the measurement, not the argument.
+  //
+  // AND B'S P1-1 IS REAL AND IS THIS BLOCK'S NEAREST WEAKNESS: the column carrying this row is a scroller
+  // (scrollHeight 410 against clientHeight 224 at game over in Pass & Play), and gates/drive/play.js tapBtn
+  // calls scrollIntoView, so the resign sequence leaves it scrolled by up to 38px. These assertions survive
+  // that because they pin TEXT and board geometry, never the row's y - but a future assertion here that pins
+  // y would be measuring the harness's scroll position and not the app. Filed as its own job.
+  //
+  // LANDSCAPE REACHED BY ROTATING. Blocks E and F `L.launch` DIRECTLY at 730x375, which is not a state an
+  // iPhone can be in - the app is opened in portrait and the phone is turned. Antagonist A measured the
+  // difference on #435 and on #434 alike, vs Pip, 2 plies, resigned:
+  //     730x375 launched          board 224.00 / 75.50
+  //     -> rotate to 375x730      board 353.03 / 93.75
+  //     -> back to 730x375        board 216.00 / 79.50   <- not 224.00, and stable, it does not oscillate
+  // So every landscape number in this file describes a viewport the user never actually enters, and the whole
+  // subject of this block is landscape. It reproduces identically on #434, so it is NOT a #435 regression and
+  // did not veto this push; it is filed as its own job (see the run report). Adding one setViewportSize round
+  // trip to E/F would close it and is deliberately NOT done in the build that found it, because the assertion
+  // would then be pinned to 216.00 - a number that is itself probably the defect.
+  //
+  // LANDSCAPE WAS THIS BLOCK'S FIRST ENTRY AND IS NOW BLOCK E ABOVE, which is what closes
+  // jobs/landscape-drops-the-status-row-at-game-over-so-no-result-survives-the-card-2026-09-29. Left here as a
+  // pointer rather than deleted, because the sentence it used to carry is the evidence that #434 named its own
+  // gap instead of letting a green suite imply coverage it did not have.
   // A TIME LOSS. The auditor measured one (a 1-minute clock flags at t+56s) and it is the same slot and the
   // same branch; it is not gated here because 56 seconds of wall clock per geometry is not a per-build cost.
   // Antagonist B DID drive one on this bundle and the slot read 'Time! - You lose' (116.5px) by t+4.24s.

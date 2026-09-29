@@ -345,6 +345,15 @@ The clauses, each one measurable:
 4. Nothing about the transition moves the board, and nothing in the line carrying it is cut without a signal.
 5. **It is stated for EVERY opponent.** The adaptive-strength note that only a vs-computer game produces is a
    nicety; it may share the slot but it may never be the reason the outcome goes unstated.
+6. **It is stated in EVERY ORIENTATION, and the board does not pay for it.** *(Added #435, from
+   jobs/landscape-drops-the-status-row-at-game-over-...-2026-09-29.)* Clauses 1-5 were written and gated at
+   375x730 and 320x568 only, and were all GREEN on a build where a phone held sideways stated no outcome at
+   all: chess.jsx:5616 did not render the carrier row when the game was over and `wide`, so at 730x375 the
+   scan returned [] for every opponent. A clause that is true at the geometries someone happened to test is
+   not the clause; holding the phone the other way is the same player in the same moment. And the board must
+   not move as the outcome arrives - measured on #434, the board shrank 224.00 -> 192.00 at the instant the
+   game ended in landscape, because the bottom tab bar returned and its 62px spacer was paid for out of the
+   board. A row that can appear must reserve its space, in both orientations.
 
 ID NOTE, because this project has already paid for one id collision (flags/suite-id-collision-tc-r). US-PL-01
 to US-PL-10 and TC-PL-001 to TC-PL-030 are cited by gates/regress/46-play.js as living in
