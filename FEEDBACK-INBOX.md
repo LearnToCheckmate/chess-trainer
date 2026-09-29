@@ -2312,3 +2312,43 @@ the choice with you rather than picking one at midnight.
 Also worth knowing: a game you play in the app carries no rating tags at all, so its review shows
 no rating. By the letter of your answer that's correct, but it's the route you use most, and for
 online games the app already knows both ratings and isn't using them. That's written up too.
+
+---
+
+## 2026-09-29 — build #430, the lesson MOVES row (Analyze / Copy)
+
+You asked, on 28 September: *"Why do the analyze and copy moves button have to be on separate rows? Why can't
+it be on the same row and take half the space? And if space is a constraint, I guess you can remove the text,
+right? You can just have the icons as long as they're consistent across the app."*
+
+That is what shipped. The two chips are smaller and their emoji are gone, so they read **Analyze** and
+**Copy** and sit on one line beside MOVES at every phone size we support. I kept the words rather than going
+to icons alone, because words carry less risk on a beginner's screen and they fit with room to spare — your
+answer allowed either, and this is the option that fits.
+
+The reason it mattered is that on a short phone the row used to wrap onto two lines that sat 29px apart while
+the buttons are 43px tall, so they overlapped by 14px and **a tap on the painted Analyze chip opened Copy
+instead**. Two reasonable things to do, no error between them, so the button looks broken rather than missed.
+
+**The board got bigger, not smaller.** The shorter row hands its space back to the board: 192 → 223px at one
+of the narrow sizes, and 231 → 255px at another. The earlier attempt at this fix spent 16px of board and was
+not shipped for that reason; this one gains it.
+
+Two things I want you to know rather than discover.
+
+The first is a wording change I made on my own. When copying the moves fails, the chip used to read
+"⚠ Long-press list", which told you what to do instead. That string is too wide now — it would have
+re-wrapped the row and brought the wrong-tap back — so it reads **"Copy failed"**. The instruction is
+genuinely lost, and the warning triangle came off too, because on your phone iOS may draw it as a colour
+emoji, which is wider than we can measure here and would have pushed it over the limit. It is one string:
+tell me any wording you prefer and it changes in one commit. It is on your Decision Desk with the numbers.
+
+The second is a smaller defect I have NOT fixed, because the obvious fix makes things worse. When you tap
+Copy, the chip grows to say so, and because the row is right-aligned that slides Analyze left — so for about
+1.8 seconds, the spot where Analyze was will trigger Copy. The clean answer is to reserve the wider space
+permanently, and I measured that before doing it: on the shortest phones it would push the row back into
+wrapping and recreate the original bug. So it is written up with the numbers instead of guessed at.
+
+Also fixed in the same pass, because they are the same mistake in two other places: a caption on the game
+setup screen was covering the bottom 6px of the Continue button, and one on the puzzle screen was covering
+2px of the Lock button. Neither is something you would have spotted, and both could have eaten a tap.
