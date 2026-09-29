@@ -2743,7 +2743,14 @@ export default function App(){
   const sideW=wide?Math.max(200,Math.min(vp.w-boardPx-20,520)):RAIL;
   // outerRowStyle / sideColStyle are defined after showBoard (they need railed = wide && showBoard)
   const analyzeLine=()=>{const h=boardGame.history;if(!h||!h.length)return;let s='';for(let i=0;i<h.length;i++){if(i%2===0)s+=(i/2+1)+'. ';s+=h[i].san+' ';}s=s.trim();setOpenIdx(null);setMenuOpen(false);setHomeScreen(false);setMode('analyze');importGame(s);};
-  const copyMoves=()=>{const h=boardGame.history;if(!h||!h.length)return;let s='';for(let i=0;i<h.length;i++){if(i%2===0)s+=(i/2+1)+'. ';s+=h[i].san+' ';}s=s.trim();const flash=(m)=>{setCopyMsg(m);if(copyTimerRef.current)clearTimeout(copyTimerRef.current);copyTimerRef.current=setTimeout(()=>setCopyMsg(''),1800);};const viaExec=()=>{try{const ta=document.createElement('textarea');ta.value=s;ta.style.position='fixed';ta.style.top='0';ta.style.left='0';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();try{ta.setSelectionRange(0,s.length);}catch(e){}const ok=document.execCommand('copy');document.body.removeChild(ta);flash(ok?'✓ Copied!':'⚠ Long-press list');}catch(e){flash('⚠ Long-press list');}};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(s).then(()=>flash('✓ Copied!')).catch(viaExec);}else viaExec();};
+  /* #430: THESE FLASH LABELS NOW HAVE A WIDTH BUDGET, which they did not before. The chip renames itself in
+     place, and since #430 the MOVES row fits on ONE line by fitting exactly - so a long flash label re-wraps the
+     row and brings back the hit-area P0 in a state the gate measures around. MEASURED at 600 12px Arial on the
+     lesson screen: 'Copy' 46.00px, '✓ Copied!' 74.00px (fits everywhere, 30.2px spare at the worst column),
+     '⚠ Long-press list' 116.34px - which did NOT fit at 375x520 (-12.14px) or 320x520 (-4.14px), hence
+     '⚠ Copy failed' at 95.02px. The ceiling is 96.2px at 375x520 (46.00 + 58.2px of row slack - the 8px floor).
+     Gate 53's N2c asserts it, over every label this function can print. Do not lengthen either string without it. */
+  const copyMoves=()=>{const h=boardGame.history;if(!h||!h.length)return;let s='';for(let i=0;i<h.length;i++){if(i%2===0)s+=(i/2+1)+'. ';s+=h[i].san+' ';}s=s.trim();const flash=(m)=>{setCopyMsg(m);if(copyTimerRef.current)clearTimeout(copyTimerRef.current);copyTimerRef.current=setTimeout(()=>setCopyMsg(''),1800);};const viaExec=()=>{try{const ta=document.createElement('textarea');ta.value=s;ta.style.position='fixed';ta.style.top='0';ta.style.left='0';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();try{ta.setSelectionRange(0,s.length);}catch(e){}const ok=document.execCommand('copy');document.body.removeChild(ta);flash(ok?'✓ Copied!':'⚠ Copy failed');}catch(e){flash('⚠ Copy failed');}};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(s).then(()=>flash('✓ Copied!')).catch(viaExec);}else viaExec();};
   useEffect(()=>{
     const measure=()=>{const w=Math.min(window.innerWidth||9999,(document.documentElement&&document.documentElement.clientWidth)||9999,(rootRef.current&&rootRef.current.clientWidth)||9999);if(w&&w>0&&w<9999)setVw(w);setVp({w:window.innerWidth||360,h:window.innerHeight||800});};
     measure();const t1=setTimeout(measure,120);const t2=setTimeout(measure,400);
@@ -5183,7 +5190,7 @@ export default function App(){
           </div>)}
 
           <button onClick={()=>{setPlaySetup(false);if(opponent!=='online')fullReset(setupFromFEN?fromFEN(setupFromFEN):undefined);setSetupFromFEN(null);}} style={{marginTop:4,padding:'15px',borderRadius:14,border:'none',background:'var(--ac)',color:'#191919',fontWeight:800,fontSize:'clamp(15px,3.6vw,17px)',cursor:'pointer',boxShadow:`0 8px 24px rgba(${TH.rgb},.35)`}}>{opponent==='online'?'Continue →':(setupFromFEN?'▶ Play this position':'▶ Start game')}</button>
-          <div style={{textAlign:'center',fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.4)',marginTop:-6}}>{opponent==='computer'?`vs ${selBot&&botById(selBot)?botById(selBot).name:'Computer'} · ${pColor==='w'?'White':'Black'} · ${timeCtrl?timeCtrl.label:'No clock'}`:opponent==='human'?`Pass & play on one device · ${timeCtrl?timeCtrl.label:'No clock'}`:'Online · play a friend by invite code'}</div>
+          <div style={{textAlign:'center',fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.4)',marginTop:-6,pointerEvents:'none'/* #430 class sweep [R06], same decision as the MOVES chips below: this caption is pulled 6px up over the bottom edge of the primary Continue button above it, at EVERY width and height, and is later in the DOM - so those 6px of the button answered for a div. pointerEvents:'none' rather than dropping the margin, because the caption is not interactive and this costs no vertical space, where removing the margin would take 6px off the board. */}}>{opponent==='computer'?`vs ${selBot&&botById(selBot)?botById(selBot).name:'Computer'} · ${pColor==='w'?'White':'Black'} · ${timeCtrl?timeCtrl.label:'No clock'}`:opponent==='human'?`Pass & play on one device · ${timeCtrl?timeCtrl.label:'No clock'}`:'Online · play a friend by invite code'}</div>
           {BUILD_INFO&&<div style={{textAlign:'center',fontSize:11,color:'rgba(255,255,255,.3)',letterSpacing:.5,fontFamily:'ui-monospace,Menlo,Consolas,monospace',marginTop:vp.h<720?2:12}}>Build {BUILD_INFO}</div>}
         </div>
       </div>)}
@@ -6194,7 +6201,7 @@ export default function App(){
             <button onClick={pzRelock} style={{background:'none',border:'none',color:'rgba(255,255,255,.55)',fontSize:'clamp(13px,2.2vw,13px)',cursor:'pointer',textDecoration:'underline',padding:0,flexShrink:0}}>Lock</button>
           </div>
         )}
-        {pzPinErr&&<div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'#f5a3a3',fontWeight:600,marginTop:-2}}>{pzPinErr}</div>}
+        {pzPinErr&&<div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'#f5a3a3',fontWeight:600,marginTop:-2,pointerEvents:'none'/* #430 class sweep [R06]: same decision again - 2px pulled up over the row that ends in the Lock button, whenever pzPinErr is set. Same reasoning as the caption at the play-setup screen. */}}>{pzPinErr}</div>}
       </div>);})()}
 
       {/* ── Puzzle: BROWSE / solving view ── */}
@@ -6630,8 +6637,25 @@ export default function App(){
           {/* fb-controls (Kunal, "Just those two"): in a live game Analyze and Copy moves are rows in the More sheet, not chips in this row. They stay HERE on every screen that has no More sheet - a lesson, a puzzle, the analysis board, an online game - because there they are the only way to reach either control. The predicate is the sheet's own: chess.jsx line 4068 renders the sheet on mode==='play'&&opponent!=='online'. */}
           {!(mode==='play'&&opponent!=='online')&&(<div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}>
             {/* #373 (audit A-11): these drew 23px tall. The visible chip keeps its size; the button around it carries 10px of padding cancelled by a negative margin, so the tap box is 43px without the row growing (a taller row would come out of the board). */}
-            <button data-ct="moves-analyze" onClick={analyzeLine} style={{padding:'10px 0',margin:'-10px 0',position:'relative',zIndex:1 /* #374: the moves panel's top margin used to cover the bottom 6px of this box (antagonist: 37 effective of 43) */,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap'}}><span style={{display:'inline-block',padding:'3px 11px',borderRadius:6,background:'rgba(var(--acr),.18)',border:'1px solid rgba(var(--acr),.4)',color:'var(--ac2)',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:600}}>🔍 Analyze</span></button>
-            <button data-ct="moves-copy" onClick={copyMoves} style={{padding:'10px 0',margin:'-10px 0',position:'relative',zIndex:1,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap'}}><span style={{display:'inline-block',padding:'3px 11px',borderRadius:6,background:copyMsg?'rgba(var(--acr),.25)':'rgba(255,255,255,.08)',border:`1px solid ${copyMsg?'rgba(var(--acr),.5)':'rgba(255,255,255,.18)'}`,color:copyMsg?'var(--ac2)':'rgba(255,255,255,.72)',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:600}}>{copyMsg||'📋 Copy moves'}</span></button>
+            {/* #430, AND IT IS A HIT-AREA FIX RATHER THAN A COSMETIC ONE. The negative margin above makes each
+                button's MARGIN box 23px while its BORDER box - the thing that takes the tap - is 43px. On ONE
+                line nothing notices. When this row WRAPPED, the two flex lines sat 23+6=29px apart while the
+                boxes were 43px, so they overlapped by 14.00px and Copy (later in the DOM, same zIndex) won the
+                hit test over the bottom of Analyze: measured on #427, 14 of Analyze's 43 box rows and 4 rows of
+                its PAINTED CHIP fired Copy, and a real click on the chip raised "Copied!". Kunal's own words,
+                2026-09-28: "Why can't it be on the same row and take half the space? And if space is a
+                constraint, I guess you can remove the text, right?" So the row is made to FIT rather than the
+                wrapped lines separated: padding 11px -> 7px, font 13 -> 12, and the two labels lose their emoji
+                ("Copy moves" -> "Copy"). The pair now fits beside MOVES at every supported width with 58.2px to
+                spare at the tightest column, against -78.81px before. It is NOT the rowGap:22 change built on
+                claude/cool-noether-han5cg at 23f0f86 and vetoed there on gate 48: that separated the lines
+                instead of removing the wrap and cost 16px of BOARD at three narrow geometries. This route GAINS
+                board, because the fit loop hands the shorter row's slack back: 192.00 -> 223.19 at 375x520.
+                US-R15 / US-R27, TC-R18 / TC-R37, gates 53 and 48. Do NOT lengthen either label without running
+                gate 53's N2b: the shipped build cleared the wrap boundary by 0.06px at 375x568, so one extra
+                character used to be enough to re-create the P0 with every old assertion green. */}
+            <button data-ct="moves-analyze" onClick={analyzeLine} style={{padding:'10px 0',margin:'-10px 0',position:'relative',zIndex:1 /* #374: the moves panel's top margin used to cover the bottom 6px of this box (antagonist: 37 effective of 43) */,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap'}}><span style={{display:'inline-block',padding:'3px 7px',borderRadius:6,background:'rgba(var(--acr),.18)',border:'1px solid rgba(var(--acr),.4)',color:'var(--ac2)',fontSize:'12px',fontWeight:600}}>Analyze</span></button>
+            <button data-ct="moves-copy" onClick={copyMoves} style={{padding:'10px 0',margin:'-10px 0',position:'relative',zIndex:1,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap'}}><span style={{display:'inline-block',padding:'3px 7px',borderRadius:6,background:copyMsg?'rgba(var(--acr),.25)':'rgba(255,255,255,.08)',border:`1px solid ${copyMsg?'rgba(var(--acr),.5)':'rgba(255,255,255,.18)'}`,color:copyMsg?'var(--ac2)':'rgba(255,255,255,.72)',fontSize:'12px',fontWeight:600}}>{copyMsg||'Copy'}</span></button>
           </div>)}
         </div>
         {/* #370: FOUND BY MEASURING AFTER THE FIRST MOVE, not at the start position. On Kunal's phone the Play board

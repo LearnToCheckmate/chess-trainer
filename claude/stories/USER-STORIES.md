@@ -291,3 +291,38 @@ nothing where it does not.")
 NOTE ON THE ID: this clause was handed over as US-R17 by test-authoring at 21:24Z and renumbered here, because
 build #428 landed US-R17 (the puzzle explanation) at 22:53Z, 89 minutes later. The handover's id reasoning was
 sound when written; it expired before it was applied.
+
+### US-R15 A control's hit area is its own
+
+As a player tapping a button on a lesson, the action I get is the action I aimed at, because a button whose
+painted surface answers for a DIFFERENT button gives me the wrong result with no error to tell me it happened -
+and I conclude the button is broken rather than that I missed it.
+
+WRITTEN AT #428 FOR jobs/lesson-action-row-wraps-and-analyze-taps-fire-copy-moves-2026-09-28, AND ITS ABSENCE
+IS PART OF THE FINDING. US-INV-05 covers the ROW box: a control fully painted, fully on screen, 43px tall and
+unclipped satisfies every one of its bullets and every assertion in gate 48 - and on the shipped #427 a real
+click 2px below the word "Analyze", still on its painted chip, at 320x520 raises "Copied!" (#428 measured the letters themselves ~1px clear of the boundary; what is lost is the bottom 4.00px of the 23px chip). The box was never the thing that was lost.
+
+- Every painted pixel of a control - its chip, not only its letters - answers for that control. Measured as a hit test down the control's own
+  centre line over its INK (a Range over its contents), not over its box, and run in BOTH directions over
+  every pair of controls that can overlap - because a fix that raises one control's z-order moves the theft to
+  the other and satisfies a one-way scan. (TC-R18 A2, A3)
+- And there is no y inside a control's own box at which it stops answering for itself. This is the half that a
+  lost-ink count alone does not carry: a partial fix can clear the ink and leave the invisible padding under
+  the word still firing the neighbour. Measured by stepping the boundary at 0.125px, because Chromium snaps
+  hit rects to LayoutUnits and an integer scan and a half-pixel scan disagree by one row at the edge.
+  (TC-R18 D4 - the assertion NC2 is the control for, and the one the job's own agreed amendment did not ask for)
+- Where a row of controls can wrap, the property holds on both sides of the wrap boundary, not only where the
+  suite's existing columns happen to land. The wrap state itself is NOT the clause: a correct fix may make a
+  row wrap at more geometries and is still correct if no control's ink is lost. (TC-R18 C2)
+
+### US-R27 The MOVES row's two chips stay on one line
+As a player in a lesson on a narrow phone, when I look at the MOVES row I want Analyze and Copy on the SAME line as the label, so that neither chip ever sits under the other and a tap lands on the control I aimed at. CHECKABLE: at every width the app supports, the two chips report the same top to within 1px (one line), the pair's width plus the row's gap plus the MOVES label is no wider than the row's content box, and the remaining slack is at least 8px - not merely non-negative, because the shipped build clears the boundary by 0.06px at 375x568 and a font fallback moves a label by more than that. Extends US-R15 (a control's hit area is its own): US-R15 says the hit areas must not overlap, this says the layout that creates the overlap must not occur.
+
+NOTE ON BOTH IDS [#430]. US-R15 and US-R27 are free in THIS register and were checked against it before they
+were written (grep of claude/stories/ and gates/ at 9087c28). They are NOT free in
+claude/stories/SUITE-AUDIT-2026-09-14.md, which carries its own unrelated "US-R15 no console errors" and
+"US-R27 play a position out and come back". That document is a separate, older id space and this register is
+the real one (prompts/build-run: "the real id space of claude/stories/TEST-CASES.md"); the collision is
+flags/suite-id-collision-tc-r, already open, and is not refiled here [R25]. Recorded so that the next reader
+who greps the whole tree and finds two US-R15s knows which is which.
