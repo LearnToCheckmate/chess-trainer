@@ -96,6 +96,10 @@ function stub(b,state){
     // `continue` swallows. state.fail is 'YYYY/MM'.
     if(state.fail&&state.fail===(y+'/'+String(mo).padStart(2,'0')))
       return route.fulfill({status:503,contentType:'application/json',body:'{}'});
+    // #433 the OTHER way a listed month yields nothing: 200 with an empty games array. Antagonist A found
+    // that the first #433 counted only !ok and a throw, so this path walked on in silence.
+    if(state.empty&&state.empty===(y+'/'+String(mo).padStart(2,'0')))
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({games:[]})});
     let n=0;
     if(state.mixed)n=(who===state.mixed.thin)?state.mixed.per:state.mixed.busyPer;   // #432 two accounts, two bounds
     else if(state.sparse)n=state.sparse.per;                          // #433 every listed month equally thin
@@ -179,7 +183,10 @@ async function READ(b){
           const l1=lum(c[0],c[1],c[2]), l2=lum(bg[0],bg[1],bg[2]);
           return {r:Math.round(((Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05))*100)/100,
                   alpha:a, effBg:bg.map(v=>Math.round(v*10)/10), opaqueBase:E.base, translucentLayers:E.layers};};
+        // #433 the LINE HEIGHT of the line, so "how many line boxes does this sentence occupy" is a
+        // measurement rather than a magic pixel number. h/lh is what A11g reads.
         return {present:!!el, text:el?(el.textContent||'').trim():null, h:el?Math.round(el.getBoundingClientRect().height*10)/10:0,
+                lh:el?Math.round((parseFloat(getComputedStyle(el).lineHeight)||0)*10)/10:0,
                 ratio:ratio(el), countRatio:ratio(cnt)};})()};
   },NEWEST.label);
 }
@@ -267,7 +274,10 @@ async function input(seed,n,geo,name,thin){
   // is what A11c asserts against the measured span; MONTH_RE is the union and is used only where the
   // assertion is "no month claim of any kind is on screen".
   const PLAY_RE=/(\d+)\s*most recent months of play/i;
-  const CAL_RE=/last\s*(\d+)\s*months/i;
+  // #433 widened after antagonist A broke the first version with "games from the past 6 months", a false
+  // calendar claim CAL_RE did not match while A11c stayed green. NO REGEX ENUMERATES EVERY FUTURE WORDING,
+  // and that is exactly why A11h below pins the NUMBER against a measured quantity instead of the words.
+  const CAL_RE=/(?:last|past|previous)\s*(\d+)\s*months/i;
   const MONTH_RE=/last\s*\d+\s*months|\d+\s*most recent months of play/i;
   const GAP_RE=/months couldn.t be loaded/i;
   for(const t of [{months:T1_MONTHS,n:1},{months:T1_MONTHS,n:3},{months:T2_MONTHS,n:1}]){
@@ -388,7 +398,15 @@ async function input(seed,n,geo,name,thin){
   //    A8's 200-row input is the one row-count no real upgrading user is in.
   {
     const PGN='[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2026.08.01"]\n[White "me"]\n[Black "opp"]\n[Result "1-0"]\n[TimeControl "180"]\n\n'+MOVES+'\n';
-    for(const t of [{n:40,expect:'games',why:'a full store at the LEGACY cap of 40 - what every pre-#431 account looks like'},
+    // #433 THE BAND origin/main ITSELF WRITES. A10 seeded only 40 and 9, both at or under the legacy cap,
+    // and antagonist A measured why that is the wrong population: ct_acctcap arrives in #432, which has
+    // never shipped, so the bound-less stores were written by builds up to and INCLUDING #431 - which is on
+    // main with ACCT_GMAX=200. 41..199 is the band the deployed app creates and no input reached it; the
+    // first #433 inferred the cap as the row count and printed 137 back at the player as a limit.
+    for(const t of [{n:40,expect:'games',why:'a full store at the LEGACY cap of 40 - the shape every pre-#431 account has'},
+                    {n:200,expect:'games',why:'a full store at the CURRENT cap, which #431 on main writes and records no bound for'},
+                    {n:137,expect:null,why:'THE BAND origin/main CREATES: above the legacy cap so it cannot be a legacy cut, below the current one so nothing cut it - and a number this app has never capped at'},
+                    {n:41,expect:null,why:'one row above the legacy cap: the cheapest case where a row count is not a cap'},
                     {n:9,expect:null,why:'below any cap this app has shipped, so nothing is known to have been cut'}]){
       const rows=[];for(let i=0;i<t.n;i++)rows.push({src:'cc',acct:'me',pgn:PGN,white:'me',black:'opp'+i,wr:'win',tc:'blitz',date:Date.UTC(2026,7,1+(i%28),12,0,0)});
       const b=await L.launch({geo:{w:375,h:730,safe:''},name:'legacy-'+t.n,store:{ct_accts:['cc:me'],ct_acctgames:{'cc:me':rows}}});
@@ -454,6 +472,22 @@ async function input(seed,n,geo,name,thin){
       const pl=(r.body||'').match(PLAY_RE);
       L.say(!!pl&&+pl[1]===GMONTHS,'A11d US-R25 '+tag+': the bound IS stated, in the units the walk counts - '+GMONTHS+' most recent months of play',{monthsOfPlay:pl?+pl[1]:null,expect:GMONTHS,line:r.cap&&r.cap.text});
       L.say(!CAP_RE.test(r.body||''),'A11e US-R25 '+tag+': no games cap is named as the bound, because '+(TAKEN*PER)+' rows never reached it',{matchedGamesCap:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no'});
+      // #433 A11g. THE FIX MUST NOT COST THE HEIGHT #432 SPENT AN ASSERTION BUYING BACK. Naming the bound in
+      // the units the app has is longer than naming it wrongly, and the first #433 wording ran to TWO line
+      // boxes at Kunal's own geometry - 33.6px against 16.8 - on the screen A7d exists to keep short. Dropping
+      // "per account" where there is only one account fixes it and is the more accurate sentence anyway.
+      // Pinned as line BOXES against the element's own lineHeight, not as a pixel count, so a font change
+      // moves both sides together.
+      // #433 A11h IS THE ASSERTION WITH DOMAIN CONTENT, AND IT EXISTS BECAUSE ANTAGONIST A SHOWED A11c AND
+      // A11d BETWEEN THEM HAVE NONE ON THE BUNDLE THAT SHIPS. A11c can only fire on a calendar claim, and the
+      // shipping bundle makes none, so its pass is vacuous here; A11d checks only that the number is 6, never
+      // that six months of play are on screen. A measured the consequence: a month that answers 200 with
+      // nothing usable leaves FIVE months of play under a six-months-of-play claim, and both assertions stay
+      // green. So: whatever number the line names as months of play must EQUAL the number of distinct
+      // calendar months actually in the store. Asserted only when no gap is claimed - a gap is precisely the
+      // disclosure that the window was not fully realised, and A12 is what covers that case.
+      L.say(GAP_RE.test(r.body||'')||(!!pl&&+pl[1]===r.storedMonths.length),'A11h US-R25 '+tag+': THE NUMBER IS THE MEASURED ONE - the months-of-play claim equals the distinct calendar months actually on screen',{claimed:pl?+pl[1]:null,monthsOnScreen:r.storedMonths.length,months:r.storedMonths,gapClaimed:GAP_RE.test(r.body||'')});
+      L.say(!!r.cap.lh&&r.cap.h<=r.cap.lh*1.6,'A11g '+tag+': with ONE account the limit line occupies ONE line box at 375x730 - the units fix costs no height on the screen with least room',{h:r.cap.h,lineHeight:r.cap.lh,lineBoxes:r.cap.lh?Math.round(r.cap.h/r.cap.lh*100)/100:null,max:1.6,text:r.cap.text});
       L.say(!GAP_RE.test(r.body||''),'A11f '+tag+': no gap is claimed when every requested month answered - the gap sentence must not fire on a clean walk',{body:(r.body||'').slice(0,160)});
     }
     await b.close();
@@ -482,6 +516,55 @@ async function input(seed,n,geo,name,thin){
       L.say(r.cap.present===true&&GAP_RE.test(r.body||''),'A12a US-R25 '+tag+': the screen SAYS a month could not be loaded, instead of rendering nothing and thereby claiming the whole history is here',{lineRendered:r.cap.present,line:r.cap.text,bodyHasGap:GAP_RE.test(r.body||'')});
       L.say(!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),'A12b US-R25 '+tag+': and it names NO limit as the bound, because neither bound was reached - the index ran out',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthClaimInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no'});
       L.say(!!r.cap.ratio&&r.cap.ratio.r>=4.5,'A12c '+tag+': the gap sentence meets WCAG AA (>= 4.5:1) like every other state of this line',r.cap.ratio?{...r.cap.ratio,min:4.5}:{ratio:null,min:4.5});
+    }
+    await b.close();
+  }
+
+  // ── A13 #433, THE MONTH THAT ANSWERED 200 AND GAVE NOTHING. Antagonist A's second veto ground, and the
+  //    reason it is a SEPARATE input from A12 rather than a second geometry of it: A12's 503 is the failure
+  //    the code was written against, and passing it proved nothing about the three failures it was not.
+  //    chess.com lists a month in /games/archives only when that month HAS games, so a listed month that
+  //    returns an empty array is information the app asked for and did not get - identical in consequence
+  //    to the 503 and, before this build, identical in silence.
+  {
+    const PER=5, MONTHS=3, EMPTYM=NEWEST.y+'/'+String(NEWEST.m-1).padStart(2,'0');
+    const state={seed:'b',hits:[],refuse:false,thin:{months:MONTHS,per:PER},empty:EMPTYM};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name:'gap-empty-month'});
+    await stub(b,state); await b.open(); await b.tile('Review'); await b.settle(2200);
+    const r=await READ(b); r.hitCount=state.hits.length;
+    const tag='GAP: '+MONTHS+' months x '+PER+' with '+EMPTYM+' answering 200 and an EMPTY games array';
+    L.note(tag+'  rows '+r.rows+'  requests '+r.hitCount+'  limit line '+JSON.stringify(r.cap&&r.cap.text));
+    if(L.say(r.rows===(MONTHS-1)*PER,'A13-0 vacuity '+tag+': a month really was lost - '+((MONTHS-1)*PER)+' rows where an unbroken walk gives '+(MONTHS*PER),{rows:r.rows,expect:(MONTHS-1)*PER,ifNoGap:MONTHS*PER,requests:r.hitCount})){
+      L.say(r.cap.present===true&&GAP_RE.test(r.body||''),'A13a US-R25 '+tag+': the screen SAYS so - a 200 with nothing in it is not a reason to claim the whole history is present',{lineRendered:r.cap.present,line:r.cap.text});
+      L.say(!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),'A13b US-R25 '+tag+': and names no limit, because the index ran out rather than either bound being reached',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthClaimInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no'});
+    }
+    await b.close();
+  }
+
+  // ── A14 #433, A LEGACY STORE BESIDE A MONTH-BOUND ACCOUNT. BOTH ANTAGONISTS REACHED THIS STATE FROM
+  //    DIFFERENT DOORS AND IT IS ONE FINDING WITH TWO FINDERS. A read it off the union expression in the
+  //    diff; B measured it on the screen - "70 loaded" nine pixels above a sentence reading 40, with a chip
+  //    reading 30 above that, so 70 > 40 and 30 < 40 are painted at once. No input in this file crossed the
+  //    two shapes: A9 gives both accounts a recorded bound, A10 runs the legacy store alone. The union was
+  //    therefore never asked to choose, and it chose wrong - a cap is a property of the ACCOUNT, not of
+  //    whether it happened to be the thing that stopped that account's walk.
+  {
+    const PGN='[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2026.08.01"]\n[White "me"]\n[Black "opp"]\n[Result "1-0"]\n[TimeControl "180"]\n\n'+MOVES+'\n';
+    const legacy=[];for(let i=0;i<40;i++)legacy.push({src:'cc',acct:'kunalold',pgn:PGN,white:'kunalold',black:'opp'+i,wr:'win',tc:'blitz',date:Date.UTC(2026,7,1+(i%28),12,0,0)});
+    const state={seed:'b',hits:[],refuse:false,thin:{months:T1_MONTHS,per:THIN_PER}};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},name:'legacy-plus-months',
+      store:{ct_ccuser:ACCTS[0],ct_accts:['cc:kunalold'],ct_acctgames:{'cc:kunalold':legacy}}});
+    await stub(b,state); await b.open(); await b.tile('Review'); await b.settle(2400);
+    const r=await READ(b); r.hitCount=state.hits.length;
+    const tag='LEGACY 40 (no ct_acctcap) BESIDE a fetched account the MONTH window bound';
+    L.note(tag+'  rows '+r.rows+'  limit line '+JSON.stringify(r.cap&&r.cap.text));
+    // the precondition, asserted rather than assumed: both shapes really are present at once.
+    if(L.say(r.rows===40+GMONTHS*THIN_PER,'A14-0 vacuity '+tag+': both accounts are on screen at once - 40 legacy rows plus the '+(GMONTHS*THIN_PER)+' the month window allowed',{rows:r.rows,expect:40+GMONTHS*THIN_PER})){
+      const gc=(r.body||'').match(CAP_RE);const stated=gc?+String(gc[1]).replace(/,/g,''):null;
+      L.say(stated===MIN_CAP,'A14a US-R25 '+tag+': the games cap stated is the CURRENT one, not the legacy cap of the one account it happened to stop - naming 40 over '+r.rows+' rows on screen is a limit that did not bind',{stated,expect:MIN_CAP,rowsOnScreen:r.rows,line:r.cap&&r.cap.text});
+      L.say(/\(\s*40\s*for accounts imported before/i.test(r.body||''),'A14b US-R25 '+tag+': and the legacy cap is still named, as the qualifier that makes the sentence true of the older account too',{line:r.cap&&r.cap.text});
+      const pl2=(r.body||'').match(PLAY_RE);
+      L.say(!!pl2&&+pl2[1]===GMONTHS,'A14c US-R25 '+tag+': the month bound is named as well, because it is what stopped the other account',{monthsOfPlay:pl2?+pl2[1]:null,expect:GMONTHS});
     }
     await b.close();
   }

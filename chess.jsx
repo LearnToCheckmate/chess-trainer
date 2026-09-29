@@ -244,6 +244,12 @@ function flagOf(cc){
 // did not. So the fetch RECORDS which bound stopped it and the screen states that one.
 // Kept in its own tiny key rather than on the rows or beside them in ACCT_G: one short string per
 // account cannot move the byte budget that TC-R35(iii) and gate 61's A4b measure over ACCT_G.
+// #433 CORRECTION: the paragraph below says "no pre-#431 store can ever reach 200" and infers from that
+// that the whole installed base sits at or under 40. THAT IS FALSE OF THE DEPLOYED APP. ct_acctcap arrives
+// in #432, which has never shipped, so the stores with no recorded bound were written by builds up to and
+// INCLUDING #431 - and #431 is on main with ACCT_GMAX=200. The no-bound population therefore spans 0..200
+// rows, not 0..40, and the two caps this app has ever shipped are the only numbers a bound-less store can
+// be evidence of. The reasoning below was true when it was written and #431 shipped underneath it.
 // #432 ACCT_GMAX_LEGACY is the cap this app shipped from #353 to #430. It is NOT dead history: it is the
 // only thing that lets a store written by an OLDER BUILD say whether it was cut. Every such store holds at
 // most 40 rows, so a legacy account sitting at 40 was cut by the cap of its day. Antagonist A caught the
@@ -3658,20 +3664,35 @@ export default function App(){
       // hole in the middle of it. Antagonist B measured 50 of 60 rows and no statement at all on one 503.
       // A retry is NOT what this fixes and is deliberately not added here: the games are still missing,
       // and what US-R25 requires is that the app STATE its bound, not that it always reach it.
-      const games=[];let i=archives.length-1,missed=0;
+      const games=[];let i=archives.length-1,missed=0,leftover=false;
       for(;i>=0&&games.length<ACCT_GMAX&&(archives.length-i)<=ACCT_GMONTHS;i--){
         let mj=null;
         try{const mr=await fetch(archives[i]);if(!mr.ok){missed++;continue;}mj=await mr.json();}catch(e){missed++;continue;}
         const mg=(mj.games||[]).filter(g=>g.pgn);
+        // #433 AND A MONTH THAT ANSWERS 200 WITH NOTHING USABLE IS A GAP TOO. The first version of this
+        // counted only !ok and a throw, which is two of the four ways a listed month can yield nothing:
+        // antagonist A measured `{"games":[]}`, a body with no games key, and a month of in-progress daily
+        // games that `filter(g=>g.pgn)` discards - all three walked on silently and let `bound` read 'all'.
+        // The INDEX is the evidence: chess.com lists a month only when it has games, so a listed month
+        // returning no usable row is information we asked for and did not get, whatever the status code.
+        if(!mg.length){missed++;continue;}
         mg.sort((x,y)=>(y.end_time||0)-(x.end_time||0));   // newest first WITHIN the month
+        const took=games.length;
         for(let k=0;k<mg.length&&games.length<ACCT_GMAX;k++)games.push(mg[k]);
+        if(mg.length>games.length-took)leftover=true;      // #433 this month had rows we did not take
       }
       // Order matters and is the honest order: the games cap is only the binding limit if it was
       // actually reached. i<0 means the index ran out, so nothing was cut at all.
       // #433 the gap rides as a SUFFIX rather than as a fourth bound, because it is orthogonal to all
       // three - a month can fail under any of them - and because a suffix keeps every value written by
       // #432 readable by the split below. 'months+gap', 'all+gap', 'games+gap'.
-      const bound=(games.length>=ACCT_GMAX?'games':(i<0?'all':'months'))+(missed?'+gap':'');
+      // #433 REACHING THE CAP IS NOT THE SAME AS BEING CUT BY IT, which antagonist B measured on this
+      // bundle: an account with EXACTLY ACCT_GMAX games in a 4-entry index had its whole history fetched,
+      // nothing left anywhere, and the screen charged it a line claiming a limit. The games cap bound only
+      // if something is actually behind it - rows we declined inside a month, or index entries we never
+      // reached. Otherwise an exhausted index means nothing was cut and there is no limit to state.
+      const cutByGames=games.length>=ACCT_GMAX&&(leftover||i>=0);
+      const bound=(cutByGames?'games':(i<0?'all':'months'))+(missed?'+gap':'');
       if(!games.length)throw new Error('no recent games found');
       const rows=games.map(g=>({src:'cc',acct:u,pgn:g.pgn,white:(g.white&&g.white.username)||'White',black:(g.black&&g.black.username)||'Black',wr:g.white&&g.white.result,tc:g.time_class,date:(g.end_time||0)*1000}));
       ccRawRef.current=null; acctStore('cc',u,rows,bound); mergeGames();
@@ -5881,17 +5902,33 @@ export default function App(){
                 // So the bound carries its own cap out of here rather than being looked up at render.
                 const _bound1=(id)=>{const v=_C[id];
                   if(v){const p=String(v).split('+');return {b:p[0],cap:ACCT_GMAX,gap:p.length>1};}
-                  // the cap a legacy store justifies is the number of rows IT ACTUALLY HOLDS, not a constant
-                  // read out of the build doing the reading. ACCT_GMAX_LEGACY is the THRESHOLD for deciding
-                  // it was cut at all (no pre-#431 build could write more than 40); the number STATED is
-                  // then that store's own row count, which is the only cap it can be evidence of.
+                  // THE STORE WITH NO RECORDED BOUND IS NOT "PRE-#431", IT IS PRE-#432, AND THAT IS A
+                  // DIFFERENT POPULATION. ct_acctcap arrives in #432 and #432 has never shipped; origin/main
+                  // is #431, which raised the cap to ACCT_GMAX and records nothing - so the deployed app
+                  // writes stores of up to ACCT_GMAX rows with no bound on them, and the installed base is
+                  // NOT capped at 40. Measured by antagonist A: `git show origin/main:app.js | grep -c
+                  // ct_acctcap` is 0 with ACCT_GMAX=200 in the same tree.
+                  // This app has shipped exactly TWO caps, ACCT_GMAX_LEGACY and ACCT_GMAX, so a store with
+                  // no recorded bound is evidence of a cut ONLY when it sits exactly at one of them. The
+                  // first version inferred the cap as the ROW COUNT, which printed 41, 137 and 199 back at
+                  // the player as limits this app has never had - 160 invented caps, and the #431 defect
+                  // (a limit stated that did not bind) with a worse number in it.
                   const _n=(_M[id]||[]).length;
-                  return _n>=ACCT_GMAX_LEGACY?{b:'games',cap:Math.min(_n,ACCT_GMAX),gap:false}:{b:'all',cap:0,gap:false};};
+                  if(_n>=ACCT_GMAX)return {b:'games',cap:ACCT_GMAX,gap:false};
+                  if(_n===ACCT_GMAX_LEGACY)return {b:'games',cap:ACCT_GMAX_LEGACY,gap:false};
+                  return {b:'all',cap:0,gap:false};};
                 const _b=ccAccts.map(_bound1);
                 const _months=_b.some(x=>x.b==='months');
-                const _caps=[...new Set(_b.filter(x=>x.b==='games').map(x=>x.cap))].sort((x,y)=>x-y);
+                const _gbound=_b.some(x=>x.b==='games');
+                // #433 THE CAP IS COLLECTED FROM EVERY ACCOUNT THAT HAS ONE, not only from the accounts the
+                // cap happened to STOP. Collecting from the games-bound ones alone was a regression against
+                // #432 that antagonist A measured: a legacy account cut at 40 beside a months-bound modern
+                // account holding 200 rows printed "up to 40 games" over 200 rows on screen, because the
+                // modern account contributed no cap at all. Whether the games CLAUSE renders is still
+                // decided by whether the games cap actually bound something (_gbound).
+                const _caps=[...new Set(_b.filter(x=>x.cap>0).map(x=>x.cap))].sort((x,y)=>x-y);
                 const _gap=_b.some(x=>x.gap);
-                if(!_months&&!_caps.length&&!_gap)return null;
+                if(!_months&&!_gbound&&!_gap)return null;
                 const _sty={fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.60)',marginTop:-1,lineHeight:1.4};
                 // #432 MIXED BOUNDS. The first version let 'months' win the union and printed it "per account".
                 // Antagonist A measured the consequence on this very bundle: one thin account (months) and one
@@ -5910,11 +5947,16 @@ export default function App(){
                 // months instead was measured and rejected: it shows a player who last played 8 months ago
                 // nothing at all, which removes a capability to correct a sentence (defaults/433-review-limit-
                 // sentence-units, jobs/acct-gmonths-counts-archive-entries-not-calendar-months-2026-09-29).
-                const _gtxt=_caps.length?('up to '+_caps[_caps.length-1]+' games'+(_caps.length>1?' ('+_caps[0]+' for accounts imported before this update)':'')):'';
+                const _gtxt=(_gbound&&_caps.length)?('up to '+_caps[_caps.length-1]+' games'+(_caps.length>1?' ('+_caps[0]+' for accounts imported before this update)':'')):'';
                 const _mtxt=_months?('your '+ACCT_GMONTHS+' most recent months of play'):'';
-                const _lim=_gtxt&&_mtxt?('Showing '+_gtxt+' or '+_mtxt+' per account.')
-                  :_gtxt?('Showing '+_gtxt+' per account.')
-                  :_mtxt?('Showing '+_mtxt+' per account.'):'';
+                // #433 "per account" is carried ONLY when there is more than one account, because with one
+                // it is noise that costs a line: MEASURED at 375x730, the months sentence with it runs 33.6px
+                // (two lines) and without it 16.8px (one), on the screen #432 spent a whole assertion buying
+                // 24.8px back on. It is also the more accurate sentence - there is no "per" with one account.
+                const _per=ccAccts.length>1?' per account':'';
+                const _lim=_gtxt&&_mtxt?('Showing '+_gtxt+' or '+_mtxt+_per+'.')
+                  :_gtxt?('Showing '+_gtxt+_per+'.')
+                  :_mtxt?('Showing '+_mtxt+_per+'.'):'';
                 // #433 a failed month is stated rather than swallowed, and it is a SEPARATE sentence because
                 // it is a different fact: the one above says what bound the list, this one says the list is
                 // short of that bound. Both can be true at once and either can be true alone.
