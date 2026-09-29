@@ -425,6 +425,32 @@ wider one.
   done, and a spec marked build-ready is a statement about the spec, not about the repo.** What saved that run
   was the antagonist pass on the duplicate build, which found a live defect the real #399 had shipped without:
   see `online-clock-starts-at-invite-not-at-game`. #416.
+- **AN ASSERTION KEYED TO A HOOK YOUR OWN BUILD ADDS CANNOT BE CONTROLLED, AND ITS CONTROL WILL LOOK LIKE IT WORKED.**
+  #432 added `[data-ct="games-cap"]` to the Review limit line and wrote three assertions that queried it. Run against
+  the shipped #431 bundle - the ideal control, free, and the actual broken build - the attribute does not exist, so
+  the reading came back `null` and two things happened that both look like success. A7b, "the screen states the month
+  window", went RED: the right verdict for the wrong reason, a MISSING SELECTOR rather than wrong wording, and it
+  would have gone red identically on a bundle that fixed the wording without adding the hook. Worse, A7c, "the screen
+  does NOT state a games cap as the bound", went **PASS on the one bundle in existence where the screen does exactly
+  that** - the defect itself, certified absent, because the assertion was looking through a hole the fix had drilled.
+  The sentence was on screen the whole time; only the hook was new. **A check that reads only what the fix added
+  cannot see the defect the fix removes.** The repair is to locate the element by WHAT IT SAYS and assert against the
+  rendered text, keeping the new hook for convenience only. This is the sixth costume of the trap this file already
+  records five times - clip-intersection excusing the real 38.9px overflow, "the covering element is big" at #393, the
+  bubble satisfying `grid.contains()` at #394, flex-shrink absorbing the overrun at #398, the log footer computed from
+  the log at #419: *the check and the thing being checked were the same object.* Here they were the same COMMIT. The
+  sweep for other instances - every data-ct-keyed assertion whose attribute and assertion arrived in one build, found
+  with `git log -S` and no browser - is `jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29`,
+  and it is UNCOUNTED, which is the honest state of it.
+- **AND A THRESHOLD NEEDS THE WHOLE STACK UNDER IT, NOT THE FIRST OPAQUE THING YOU FIND.** The same run's contrast
+  check composited white text against the nearest OPAQUE ancestor, `rgb(20,22,27)`, and returned **4.51:1** - just
+  above WCAG AA's 4.5, so the assertion could not fail - while the antagonist's report and a hand calculation both
+  said **4.37**. One translucent layer sits between the text and that ancestor; the effective background is
+  `rgb(25.7,32.6,41.9)`, and compositing every layer in order reproduces 4.37 and 3.75 to the hundredth. **The
+  threshold sat BETWEEN the two readings**, so the wrong instrument would have shipped a contrast fix with nothing
+  able to see it, and the disagreement with the antagonist's published number was the only tell. Make a ratio print
+  its own inputs - alpha, effective background, opaque base, how many layers were composited - so the next reader can
+  see which of two numbers to believe. Same family as "a threshold belongs to the instrument it was calibrated on".
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never
