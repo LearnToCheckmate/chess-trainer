@@ -2352,3 +2352,49 @@ wrapping and recreate the original bug. So it is written up with the numbers ins
 Also fixed in the same pass, because they are the same mistake in two other places: a caption on the game
 setup screen was covering the bottom 6px of the Continue button, and one on the puzzle screen was covering
 2px of the Lock button. Neither is something you would have spotted, and both could have eaten a tap.
+
+---
+
+## #431 — 2026-09-29 — "Why are there only 47 games in review. There should be thousands."
+
+You asked this twice, on 23 and 28 September. The answer was three limits stacked on top of each
+other, and the one that mattered was not the small number — it was that the app only ever asked
+Chess.com for the **current calendar month**. It never looked at any other month, ever. So the 47
+was not a cap anyone chose; it was however many games you happened to have played that month
+across three accounts, and if you had not played in September you would have opened Review and
+seen **nothing at all**.
+
+It now walks backwards through your archive — this month, then last month, and so on — until it
+has 200 games or has looked at six months, and it keeps 200 per account instead of 40. There is a
+before-and-after picture at your own screen size in `claude/agents/renders/431-*`: same account,
+300 games, none of them from this month. Before: an empty list. After: 200 games.
+
+**Three things I want you to know rather than discover.**
+
+The first is a number on screen I chose without asking, because it is one commit to change: under
+"Your games" it now says **"Showing up to 200 games per account."** There was no statement of any
+limit before, and there had to be one — you cannot tell whether you are seeing everything or a
+slice. If you would rather it said something else, or nothing, say so.
+
+The second is a real limit I have **not** solved and do not want you to find by accident. There are
+now *two* limits — 200 games, and six months — and the screen only tells you about the first. If
+you play a few games a month over several years, the six months is what stops it, and you could see
+30 games under a sentence that says 200. That is your original complaint wearing a different hat,
+and it is written up with numbers rather than guessed at.
+
+The third is a cost I measured and did not hide: opening Review now takes about **2.2 seconds** to
+show your first game instead of about 0.9, because it is fetching up to six months instead of one,
+and during that time the screen shows nothing at all — no list, no spinner, no message. That is
+worth fixing and it is filed.
+
+One more, on your phone specifically: the new sentence takes about 25px, and on your screen that
+means the games list arrives with **no row fully visible** until you scroll. It is filed too. I did
+not quietly leave it out, because the limit genuinely has to be stated somewhere.
+
+What I did **not** do, deliberately: store your games more compactly so thousands become possible.
+That is a real change to how the app saves things and it deserves its own build, not a corner of
+this one. Until it lands, 200 per account is the honest ceiling — and the reason there is a ceiling
+at all is that each game carries its full move list, and the browser gives the whole app about 5MB.
+I measured what happens at the edge: with eight accounts and your longest games, it runs out, and
+before this build it would have thrown away **the account you had just added** without saying so.
+That part is fixed.
