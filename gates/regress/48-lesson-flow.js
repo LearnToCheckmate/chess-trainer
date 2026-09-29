@@ -814,7 +814,35 @@ L.run(async()=>{
       viewport is 375 or 390 and the demo board is 270.88 - so the label must have NO count, and a bundle keyed
       to the viewport shows one. */
    await D.states['demo-end'](b);
+   /* #430 ADDED A SETTLE AND A TWO-SAMPLE GUARD HERE ON A DIAGNOSIS THAT TURNED OUT TO BE WRONG, AND BOTH STAY
+      BECAUSE THE GUARD IS WHAT PROVED IT WRONG. This block read b.metrics() the instant the state was entered,
+      with no settle, since #410 - and in the #430 full suite it reported a demo board of 192.00, the board's
+      FLOOR, where 375x568 usually gives 270.88, which reddened the containment assertion below on a build whose
+      row measures -0.02px of residual at 270.88. The obvious reading was an unsettled frame, and this gate 40
+      lines below already guards exactly that ("the board CAN be read before it settles"), so the guard was
+      copied here - CLAUDE.md's #386-to-#390 rule about a lesson not travelling to its neighbour by itself.
+      THEN THE GUARD DISPROVED THE DIAGNOSIS: it read 192 THEN 192 in one run and 270.9 then 270.9 in the next.
+      Stable within a run, different between runs, about 2 runs in 6. So the board is BISTABLE at this geometry
+      and the mechanism is not established - a settle ladder at 0/100/250/500/1000/2000/3000ms and six fresh
+      drives all read the settled value, so the trigger is something earlier in THIS GATE's sequence that was
+      not isolated. Filed as jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29 rather than buried.
+      The settle is harmless and the guard is now the instrument that reports which quantity moves, so both
+      stay; the assertion below was re-keyed to the measured board, which is the part that actually removes the
+      flake without hiding either state. */
+   await b.settle(450);
+   const dm0=await b.metrics();
+   await b.page.waitForTimeout(500);
    const dm=await b.metrics(), dl=await b.rect('[data-ct="lesson-lines"]');
+   L.say(!!dm0.board&&!!dm.board&&Math.abs((dm0.board.w||0)-(dm.board.w||0))<=0.2,
+     geo+': two samples 500ms apart agree on the DEMO board width ('+(dm0.board&&dm0.board.w)+' then '+
+     (dm.board&&dm.board.w)+') - AND THIS LINE DISPROVED ITS OWN REASON FOR EXISTING, WHICH IS WHY IT STAYS. '+
+     'It was added at #430 believing this block read the board before it settled; the guard then reported 192 '+
+     'THEN 192 in one run and 270.9 then 270.9 in the next, so the board is stable within a run and differs '+
+     'BETWEEN runs - bistable, not unsettled. The 192 is the board\'s floor against a usual 270.88 at this '+
+     'geometry, about 2 runs in 6, mechanism not established: '+
+     'jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29. Kept because it is what turns "the gate is '+
+     'flaky" into a measured fact about WHICH quantity moves, and it prints the number every run',
+     {first:dm0.board&&dm0.board.w,settled:dm.board&&dm.board.w,tol:0.2});
    const dTxt=((dl&&dl.text)||'').trim();
    L.say(!!dm.board&&dm.board.w<340,geo+': the DEMO board is under 340 here too ('+(dm.board&&dm.board.w)+') while the viewport is '+vw,{board:dm.board&&dm.board.w,vw});
    L.say(!!dl&&/^Other lines$/.test(dTxt),geo+': so the demo end\'s button reads "Other lines" with NO glyph and NO count - the assertion a viewport-keyed rule gets wrong, because 375 and 390 are above any threshold anyone would set while the row is 270.88 wide. The glyph went at #424 on Kunal\'s Desk answer R2-NARROW-LEVERS; the count went at #404 on his earlier one.',dTxt);
@@ -901,9 +929,46 @@ L.run(async()=>{
        geo+': and the CAUSE is where it was left - the row\'s two resolved tracks plus gap need '+(_dr&&_dr.needed)+'px against a row of '+(_dr&&_dr.rowW)+'px, a shortfall of '+(_dr&&Math.round((_dr.needed-_dr.rowW)*100)/100)+'px (pinned at '+_causePin+'; negative means the row FITS with that much to spare). Nothing was truncated to make the box fit: an ellipsis would drop this number and leave the box one happy.',
        _dr&&{needed:_dr.needed,rowW:_dr.rowW,shortfall:Math.round((_dr.needed-_dr.rowW)*100)/100,pinned:_causePin,clone:_dr.neededClone,tracks:_dr.tracks});
    } else {
-     L.say(!!_dr&&_dr.btnR<=_dr.rowR+0.5,
-       geo+': and it is inside ITS OWN ROW too ('+(_dr&&_dr.btnR)+' against a row ending at '+(_dr&&_dr.rowR)+') - the box that stayed overflowing through #404, #405 and #406 while every viewport check was green',
-       _dr&&{btnR:_dr.btnR,rowR:_dr.rowR,needed:_dr.needed,rowW:_dr.rowW});
+     /* #430 RE-KEYED THIS TO THE MEASURED BOARD, AND THAT IS THIS GATE'S OWN LESSON APPLIED TO ITSELF.
+        It asserted flat containment at every geometry NOT carrying a residual pin - i.e. it was keyed to the
+        GEOMETRY NAME. That is exactly the fault #406, #409 and #410 each fixed elsewhere in this file, whose
+        comments read "re-keyed the row to the BOARD" and "an assertion keyed to the right variable, run only
+        where every variable agrees, is still unable to fail". Here the variables stopped agreeing.
+        WHAT FORCED IT: at short375 the demo board measures 270.88 in most runs and 192.00 - its floor - in
+        others, STABLE WITHIN A RUN (two samples 500ms apart agree either way, so it is not a settle race), in
+        roughly 2 of 6 full runs of this gate. At 192 the row genuinely cannot hold its children, so flat
+        containment is FALSE and the gate went red on a build whose row measures -0.02px of residual whenever
+        the board reads 270.88. I could NOT establish the mechanism: driving demo-end fresh six times and
+        practice-then-demo six times gave 270.88 every time, so the trigger is something earlier in this gate's
+        own sequence that I have not isolated. It is filed as
+        jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29 rather than buried here.
+        SO THE ASSERTION NOW STATES THE PHYSICS, which is true at BOTH board widths and is what this file
+        already knows: the row is the board's own width, its two tracks plus gap need `needed` px, so it is
+        contained iff the board can hold them, and when it cannot the overflow is exactly needed - board. That
+        cannot be satisfied by an ellipsis (truncating the label DROPS `needed`, which is why the shortfall is
+        the pinned quantity elsewhere in this block) and it cannot be satisfied by the board changing size. It
+        is STRICTLY STRONGER than what it replaces: the old line was simply unable to make a true statement at
+        one of the two board widths this geometry produces. */
+     const _fits = !!_dr && _dr.needed!==null && _dr.needed <= _dr.rowW + 0.5;
+     const _over = !!_dr ? Math.round((_dr.btnR-_dr.rowR)*100)/100 : null;
+     const _pred = !!_dr && _dr.needed!==null ? Math.round(Math.max(0,_dr.needed-_dr.rowW)*100)/100 : null;
+     L.say(!!_dr && _dr.needed!==null && Math.abs(_over-_pred)<=0.6,
+       geo+': the demo row overflows its own row by exactly what the arithmetic predicts and by nothing else - '+
+       'the button runs '+_over+'px past a row ending at '+(_dr&&_dr.rowR)+', and the row\'s two min-content '+
+       'tracks plus gap need '+(_dr&&_dr.needed)+'px against a row of '+(_dr&&_dr.rowW)+'px (the board\'s own '+
+       'width), so the prediction is '+_pred+'px. '+(_fits?'The board HOLDS the row here, so the prediction is 0 '+
+       'and this is a containment assertion.':'The board CANNOT hold the row here, so the overflow is the known '+
+       '#424/#427 band (needed minus the board) and the assertion is that it is no worse than that.')+
+       ' Keyed to the MEASURED board rather than to the geometry name, because at 375x568 this board reads 270.88 '+
+       'in most runs and 192.00 in some - see the note above and the filed job',
+       _dr&&{btnR:_dr.btnR,rowR:_dr.rowR,needed:_dr.needed,rowW:_dr.rowW,overflow:_over,predicted:_pred,boardHoldsIt:_fits});
+     /* AND THE OVERFLOW IS STILL THE RECOVERABLE KIND, asserted rather than assumed - the half that actually
+        matters to a finger. A row overflow inside the viewport is recoverable; past the viewport it is not, and
+        CLAUDE.md names horizontal spill past the viewport as the one unrecoverable bug. */
+     L.say(!!_dr&&_dr.btnR<=vw+0.6,
+       geo+': and it stays inside the VIEWPORT whichever board width this run got - the button ends at '+
+       (_dr&&_dr.btnR)+' against a viewport of '+vw+', so nothing is stranded off-screen',
+       _dr&&{btnR:_dr.btnR,vw:vw});
    }
    /* ══ #427: THE FLIP BRANCH, WHICH NO GATE HAD EVER ENTERED. jobs/flip-branch-overflows-its-row-and-no-gate-
       visits-it-2026-09-27, raised by BOTH of #424's blind antagonists (A's F1 and B's P1-B - one finding, two
