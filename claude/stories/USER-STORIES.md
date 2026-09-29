@@ -375,6 +375,52 @@ The clauses, each one measurable:
    that the fresh render must agree with the fitted one - not that either takes a particular value - and
    antagonist B measured #436's one-shot size equal to #435's post-nudge size at all twelve heights it swept.
 
+### US-PL-12 A finished game stays finished, whatever ply I am looking at
+*Added #437, from jobs/the-control-row-is-keyed-to-the-ply-shown-not-to-whether-the-game-is-over-2026-09-29,
+found by #436's auditor pass at 375x730 after interaction. US-PL-11 is about the screen going on STATING the
+outcome; this is about the screen going on BEHAVING as though the game is over. They were one defect wearing
+two faces and are two clauses because the fixes are in different places.*
+
+As a player who has just been checkmated, I want to step back through the moves to see what happened, and I
+want the screen to keep treating the game as finished while I do it — so that the controls under my thumb are
+still the ones a finished game offers, and nothing invites me to act on a game that is already decided.
+
+The clauses, each one measurable:
+1. **The control row a finished game shows does not change when I step back through it.** Same controls, in the
+   same order, at the same positions. MEASURED on the shipped #436 bundle at 375x730, Pass & Play, 1.f3 e5
+   2.g4 Qh4# then Back twice: the row went from [Moves, Back, Forward, Review, Rematch, More] to
+   [Moves, Back, Forward, Hint, Flip, More]. Review and Rematch left x=191 and x=254 and did not come back
+   until the player stepped Forward to the end again — so the two things a player most wants after a loss, see
+   the game and play again, were the two things stepping back took away.
+2. **No control anywhere on a finished game is enabled and inert.** A control that cannot act is either absent
+   or visibly disabled — the app's own idiom, which it already uses at a 0-move resignation where Review is
+   disabled:true at opacity 0.6. That Hint had disabled:false and opacity 1 and did nothing at all: the
+   64-square signature was byte-identical across the tap. The instrument was shown able to move before its
+   stillness was believed, which is what this repository demands of an absence claim — and the ATTRIBUTION is
+   stated rather than blurred, because a clause that borrows another pass's coverage is claiming coverage this
+   suite does not have: the #436 AUDITOR measured the same tap moving that signature in THREE live states
+   (vs-computer at 4 plies, Pass & Play stepped back one ply, Pass & Play live at the same 2-ply position);
+   #437's own gate re-derives the instrument in ONE live state, at each of two geometries. Both are real, they
+   are different measurements, and only the second one runs on every build.
+3. **It holds in the bottom sheet too, not only in the row.** The More sheet offered **Resign** on a finished
+   game stepped back — [New game · Resign · Analyze · Copy moves] — and `resign()` returns immediately on
+   getStatus(game), so it was a second enabled-but-inert control of the same mechanism. Nobody had reported
+   this one; it was found by COUNTING the class rather than by reading a grep, which is the only reason it is
+   in the same build as the first.
+4. **The cause is that the question was asked of the wrong object, and the clause is written against the cause.**
+   `isOver` is getStatus(boardGame), and boardGame is playHist[pvIdx] while a preview is live, so it answers
+   "is the position on the board terminal" — right for the board, wrong for the chrome. The chrome asks
+   "is the GAME over", which is playEnd or getStatus(game). Note where this had already been discovered: the
+   takeback block at chess.jsx:3940 carries a comment saying exactly this ("isOver is NOT usable here ... on a
+   finished game it reads false as soon as he steps back a move") and worked around it for itself alone. A
+   lesson filed as a fact about one call site does not travel; this clause is what it should have become.
+5. **THE DEFECT WAS NARROWER THAN THE JOB THAT RAISED IT ASSUMED, and the clause records that rather than
+   quietly inheriting it [R18].** The old predicate was `(isOver||playEnd)`, so the playEnd term was already
+   independent of the previewed ply: a game ended by RESIGNATION or by a DRAW was never broken. Only the
+   getStatus half was, which means checkmate and stalemate. The case drives all three terminal kinds anyway,
+   and that is exactly what discriminated them — every red on the #436 control is in the checkmate block.
+   Anyone reading the job would have expected 3 of 3 to redden and 1 of 3 does.
+
 ID NOTE, because this project has already paid for one id collision (flags/suite-id-collision-tc-r). US-PL-01
 to US-PL-10 and TC-PL-001 to TC-PL-030 are cited by gates/regress/46-play.js as living in
 `claude/stories/PLAY-LANE-2026-09-14.md`, and THAT FILE IS NOT IN THIS REPOSITORY — measured, `ls
