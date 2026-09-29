@@ -235,7 +235,20 @@ function flagOf(cc){
 // the fix is a bigger cap and a fetch that does not let the calendar set the number, not an
 // unbounded list. ACCT_GMONTHS bounds the request count: at most one request per month walked.
 // US-R25 requires ACCT_GMAX to be STATED ON SCREEN, so it is rendered, never retyped.
-const ACCT_K='ct_accts', ACCT_G='ct_acctgames', ACCT_MAX=8, ACCT_GMAX=200, ACCT_GMONTHS=6;
+// #432 ACCT_GMAX IS NOT THE ONLY LIMIT AND #431 STATED IT AS IF IT WERE. The walk stops on
+// whichever of the two bounds it reaches first, and for a THIN BUT LONG history - a few games a
+// month for years, the ordinary shape - that is ACCT_GMONTHS, not ACCT_GMAX. Both antagonists
+// found it independently from different doors: 24 months x 5 games = 120 on the account, 30 rows
+// shown, under a sentence reading "Showing up to 200 games per account." US-R25 asks for a list
+// "bounded only by a limit the app STATES on screen", and in that state it was bounded by one it
+// did not. So the fetch RECORDS which bound stopped it and the screen states that one.
+// Kept in its own tiny key rather than on the rows or beside them in ACCT_G: one short string per
+// account cannot move the byte budget that TC-R35(iii) and gate 61's A4b measure over ACCT_G.
+const ACCT_K='ct_accts', ACCT_G='ct_acctgames', ACCT_C='ct_acctcap', ACCT_MAX=8, ACCT_GMAX=200, ACCT_GMONTHS=6;
+// 'games'  the games cap stopped the walk - more games exist in the months already read
+// 'months' the month window stopped it - older months hold games this list has not asked for
+// 'all'    the archive index ran out - nothing was cut, so there is no limit to state
+function acctCapLoad(){try{const o=JSON.parse(localStorage.getItem(ACCT_C)||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}}
 function acctGamesLoad(){try{const o=JSON.parse(localStorage.getItem(ACCT_G)||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}}
 // #431 THE CAP RAISE MADE THIS FUNCTION LOAD-BEARING, AND IT USED TO SWALLOW THE ONE ERROR THAT
 // MATTERS. At ACCT_GMAX=40 a full house was 8x40=320 rows and always fitted. At 200 it is 1600,
@@ -2459,6 +2472,7 @@ export default function App(){
   // localStorage, so they survive a reload as well as the next import.
   const [ccAccts,setCcAccts]=useState(()=>{try{return JSON.parse(localStorage.getItem(ACCT_K)||'[]')||[];}catch(e){return [];}});
   const acctGamesRef=useRef(acctGamesLoad());
+  const acctCapRef=useRef(acctCapLoad());   // #432 which bound stopped each account's walk
   const gameStatsRef=useRef((()=>{try{return JSON.parse(localStorage.getItem('ct_gamestats')||'{}')||{};}catch{return {};}})());  // gkey -> {bril,great,inacc,mist,blun}
   const [gsVer,setGsVer]=useState(0);   // bump to re-render game rows as background stats fill in
   const analyzingRef=useRef(false);
@@ -3582,7 +3596,7 @@ export default function App(){
     setCcGames(a.length?a:null);
   };
   // file one account's fetch, evicting the oldest account if we are at the cap
-  const acctStore=(src,user,rows)=>{
+  const acctStore=(src,user,rows,bound)=>{
     const id=acctId(src,user); if(!id.split(':')[1])return;
     const M={...(acctGamesRef.current||{})};
     M[id]=rows.slice(0,ACCT_GMAX);
@@ -3590,6 +3604,11 @@ export default function App(){
     const order=[...ccAccts.filter(x=>x!==id),id];
     while(ids.length>ACCT_MAX){const drop=order.shift()||ids[0];delete M[drop];ids=Object.keys(M);}
     acctGamesRef.current=M; acctGamesSave(M,order);   // #431 oldest account first: `order` is [...older, justFetched]
+    // #432 the bound rides the SAME eviction as the games it describes, in this one place, so a
+    // dropped account cannot leave a stale limit behind for the screen to state.
+    const C={};const _stored=acctGamesRef.current||{};const _prev={...(acctCapRef.current||{}),[id]:bound||'all'};
+    Object.keys(_prev).forEach(k=>{if(k in _stored)C[k]=_prev[k];});
+    acctCapRef.current=C; try{localStorage.setItem(ACCT_C,JSON.stringify(C));}catch(e){}
     const next=order.filter(x=>M[x]);
     setCcAccts(next);
     try{localStorage.setItem(ACCT_K,JSON.stringify(next));}catch(e){}
@@ -3597,6 +3616,8 @@ export default function App(){
   const acctForget=(id)=>{
     const M={...(acctGamesRef.current||{})}; delete M[id];
     acctGamesRef.current=M; acctGamesSave(M);
+    const C={...(acctCapRef.current||{})}; delete C[id];   // #432
+    acctCapRef.current=C; try{localStorage.setItem(ACCT_C,JSON.stringify(C));}catch(e){}
     const next=ccAccts.filter(x=>x!==id); setCcAccts(next);
     try{localStorage.setItem(ACCT_K,JSON.stringify(next));}catch(e){}
     mergeGames();
@@ -3616,17 +3637,22 @@ export default function App(){
       // request and nothing else. One request per month is the API's own shape, and both bounds
       // are needed - ACCT_GMAX so a heavy month cannot blow the storage budget, ACCT_GMONTHS so a
       // player with a thin history does not walk years of empty archives.
-      const games=[];
-      for(let i=archives.length-1;i>=0&&games.length<ACCT_GMAX&&(archives.length-i)<=ACCT_GMONTHS;i--){
+      // #432 `i` is declared OUTSIDE the loop so the exit reason survives it. Which of the three
+      // ended the walk is not derivable at render time and is the whole of what the screen states.
+      const games=[];let i=archives.length-1;
+      for(;i>=0&&games.length<ACCT_GMAX&&(archives.length-i)<=ACCT_GMONTHS;i--){
         let mj=null;
         try{const mr=await fetch(archives[i]);if(!mr.ok)continue;mj=await mr.json();}catch(e){continue;}
         const mg=(mj.games||[]).filter(g=>g.pgn);
         mg.sort((x,y)=>(y.end_time||0)-(x.end_time||0));   // newest first WITHIN the month
         for(let k=0;k<mg.length&&games.length<ACCT_GMAX;k++)games.push(mg[k]);
       }
+      // Order matters and is the honest order: the games cap is only the binding limit if it was
+      // actually reached. i<0 means the index ran out, so nothing was cut at all.
+      const bound=games.length>=ACCT_GMAX?'games':(i<0?'all':'months');
       if(!games.length)throw new Error('no recent games found');
       const rows=games.map(g=>({src:'cc',acct:u,pgn:g.pgn,white:(g.white&&g.white.username)||'White',black:(g.black&&g.black.username)||'Black',wr:g.white&&g.white.result,tc:g.time_class,date:(g.end_time||0)*1000}));
-      ccRawRef.current=null; acctStore('cc',u,rows); mergeGames();
+      ccRawRef.current=null; acctStore('cc',u,rows,bound); mergeGames();
     }catch(e){setCcErr('Couldn’t reach Chess.com ('+((e&&e.message)||'network blocked')+'). Fetching works once this app is on a real website — the preview sandbox blocks outside connections. You can still paste a PGN below.');}
     setCcLoading(false);
   };
@@ -3650,7 +3676,10 @@ export default function App(){
       const games=lines.map(l=>{try{return JSON.parse(l);}catch{return null;}}).filter(g=>g&&g.pgn);
       if(!games.length)throw new Error('no recent games found');
       const _rows=games.map(g=>{const wn=(g.players&&g.players.white&&g.players.white.user&&g.players.white.user.name)||'White';const bn=(g.players&&g.players.black&&g.players.black.user&&g.players.black.user.name)||'Black';return {src:'li',acct:u.toLowerCase(),pgn:g.pgn,white:wn,black:bn,wr:g.winner==='white'?'win':(g.winner==='black'?'resigned':'draw'),tc:g.speed||'game',date:g.lastMoveAt||g.createdAt||0};});
-      liRawRef.current=null; acctStore('li',u,_rows); mergeGames();
+      // #432 Lichess is ONE request with max=ACCT_GMAX, so the month window cannot bind here and
+      // 'months' is not reachable on this path. Fewer rows back than we asked for means the account
+      // had no more to give, so nothing was cut. Swept with chess.com rather than left [R06].
+      liRawRef.current=null; acctStore('li',u,_rows,_rows.length>=ACCT_GMAX?'games':'all'); mergeGames();
     }catch(e){setCcErr('Couldn’t reach Lichess ('+((e&&e.message)||'network blocked')+'). Fetching works once this app is on a real website; the preview sandbox blocks outside connections. You can still paste a PGN below.');}
     setCcLoading(false);
   };
@@ -5786,12 +5815,29 @@ export default function App(){
             {ccGames&&ccGames.length>0&&(()=>{const _gs=gameSearch.trim().toLowerCase();const _shown=ccGames.filter(g=>!_gs||((g.white+' '+g.black+' '+(g.src==='li'?'lichess':'chess.com')).toLowerCase().includes(_gs)));return(<>
               <div ref={gamesListRef} style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:8,marginTop:3}}>
                 <span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Your games <span style={{color:'rgba(255,255,255,.42)',fontWeight:600,fontSize:'.86em'}}>· latest first</span></span>
-                <span style={{flexShrink:0,fontSize:'clamp(14px,2.9vw,15px)',color:'rgba(255,255,255,.4)',fontWeight:600}}>{ccGames.length} loaded</span>
+                <span style={{flexShrink:0,fontSize:'clamp(14px,2.9vw,15px)',color:'rgba(255,255,255,.52)',fontWeight:600}}>{ccGames.length} loaded</span>
               </div>
               {/* #431 US-R25: the limit is one the app STATES. The count above is a count, not a
                   limit. ACCT_GMAX is rendered, never retyped, so the number on screen cannot drift
-                  from the number the store keeps. */}
-              <div style={{fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.45)',marginTop:-1,lineHeight:1.4}}>Showing up to {ACCT_GMAX} games per account.</div>
+                  from the number the store keeps.
+                  #432 AND IT MUST BE THE LIMIT THAT ACTUALLY BOUND. Two limits exist; #431 printed
+                  one of them unconditionally, so a thin-but-long history read a sentence about 200
+                  games while 6 months was what stopped it. `months` wins the union deliberately: it
+                  is the bound with games behind it that the player cannot reach by any interaction,
+                  so it is the one worth a line. When NO account was cut there is no limit to state
+                  and the line does not render - which is also what gives the shortest screens their
+                  24.8px back, on every history that fits.
+                  The job's draft wording was "Showing your last 6 months (30 games)."; the count is left OUT
+                  because "N loaded" sits one row above and already carries it. With more than one account that
+                  count is a TOTAL, so "per account (90 games)" would read as 90 each - and two readouts of one
+                  quantity that can disagree is the trap #385 shipped. State the bound here, the count there. */}
+              {(()=>{const _C=acctCapRef.current||{};const _b=ccAccts.map(id=>_C[id]).filter(Boolean);
+                const _bound=_b.includes('months')?'months':(_b.includes('games')?'games':null);
+                if(!_bound)return null;
+                const _sty={fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.52)',marginTop:-1,lineHeight:1.4};
+                return _bound==='months'
+                  ?<div data-ct="games-cap" style={_sty}>Showing your last {ACCT_GMONTHS} months per account.</div>
+                  :<div data-ct="games-cap" style={_sty}>Showing up to {ACCT_GMAX} games per account.</div>;})()}
               {ccGames.length>6&&(<input value={gameSearch} onChange={e=>setGameSearch(e.target.value)} placeholder="Filter by player name" style={{width:'100%',padding:'6px 10px',borderRadius:7,background:'rgba(0,0,0,.25)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.10)',fontSize:'clamp(14px,3.1vw,16px)'}}/>)}
               <div className="scroll" style={{display:'flex',flexDirection:'column',gap:6,maxHeight:'min(46vh,340px)',overflowY:'auto'}}>
               {_shown.map((g,i)=>{const info=gameInfo(g);const bd=outcomeBadge(info.code);const st=gameStatsRef.current[gkey(g)];return(
