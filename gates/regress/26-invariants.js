@@ -487,8 +487,17 @@ const ICON_PIN={320:[16,17,18,19,20,21,22,24,25,27,28],
 // list excused every row on Home, so THE PIN LIST WAS THE REASON THE ASSERTION COULD NOT FIRE THERE.
 // The fix is to pin the POPULATION per screen, not a floor over the sweep: a screen that loses a row goes red
 // and names it. A floor is what let this through; an exact count per (geometry, screen) cannot.
+/* #430 MOVED TWO OF THESE, AND THE CROSS-CHECK THAT SAYS THE MOVE IS RIGHT IS ALREADY IN THIS TABLE.
+   se/lesson-practice and short375/lesson-practice went 2 -> 3. The third row is the MOVES row's two chips:
+   until #430 they WRAPPED at those two geometries, so they sat on two lines and the scanner - which groups
+   controls that are side by side - saw no row there at all. #430 makes them fit on one line, so they now form
+   a row of two, exactly as they always have on Kunal's own phone. THAT IS THE CHECK: kunal730/lesson-practice
+   was ALREADY pinned at 3 in this same table, and 375x730 is the geometry where the row never wrapped. So the
+   two narrow columns have not acquired a new structure, they have converged on the structure his phone always
+   had - which is what a fix that removes a wrap should do, and it would not be true of a fix that merely
+   separated the wrapped lines. Both pins name their screens, so a screen going silent still goes red. */
 const ROW_PIN={
-  'se/home':1,'se/play-captures':2,'se/play-gameover':2,'se/lesson-demo':3,'se/lesson-practice':2,
+  'se/home':1,'se/play-captures':2,'se/play-gameover':2,'se/lesson-demo':3,'se/lesson-practice':3/* #430: was 2, see above */,
   'se/puzzles':2,'se/pz-solved':2,'se/rev-summary':2,'se/rev-ply31':3,'se/rev-last-engine':3,
   'se/rev-why-open':3,'se/rev-more-sheet':0,'se/rev-best-ply30':3,
   'kunal730/home':1,'kunal730/play-captures':2,'kunal730/play-gameover':2,'kunal730/lesson-demo':3,
@@ -496,7 +505,7 @@ const ROW_PIN={
   'kunal730/rev-ply31':3,'kunal730/rev-last-engine':3,'kunal730/rev-why-open':3,'kunal730/rev-more-sheet':0,
   'kunal730/rev-best-ply30':3,
   'short375/home':1,'short375/play-captures':2,'short375/play-gameover':2,'short375/lesson-demo':3,
-  'short375/lesson-practice':2,'short375/puzzles':2,'short375/pz-solved':2,'short375/rev-summary':4,
+  'short375/lesson-practice':3/* #430: was 2, see the note on ROW_PIN */,'short375/puzzles':2,'short375/pz-solved':2,'short375/rev-summary':4,
   'short375/rev-ply31':3,'short375/rev-last-engine':3,'short375/rev-why-open':3,'short375/rev-more-sheet':0,
   'short375/rev-best-ply30':3};
 const COVERED_PIN={
