@@ -19,11 +19,27 @@
 // WHAT MAKES IT ABLE TO FAIL, run against BOTH bundles rather than asserted (#435's own lesson, its note (3)):
 //   A1/A2/A3 fresh==rotated     -> #435: 224 vs 216 / 224 vs 232 / 224 vs 216 = 3 FAIL.  #436: 3 PASS.
 //   A4       the board RESPONDS -> #435 fresh: {224,224,224}, one distinct value = FAIL. #436: {216,232,216}.
-//   A5       portrait control   -> 353.03 on BOTH; it is here to prove the fix did not reach portrait, so a
-//                                 green on both bundles is exactly what it is for.
-// A4 is the assertion that does not depend on knowing the right number. It says only that three screens with
-// three different available heights must not all produce one board, which cannot be satisfied by an artifact
-// and is not pinned to 216 or 232, so it survives a later change to the chrome budget.
+//   A5       portrait control   -> green on BOTH bundles by design; see its own block for why the FIRST draft
+//                                 of it was vacuous and what makes this one able to fail.
+// A4 is the assertion that does not depend on knowing the right number. It says only that three screens must
+// not all produce one board, which cannot be satisfied by an artifact and is not pinned to 216 or 232, so it
+// survives a later change to the chrome budget.
+//   A4's RATIONALE IS NARROWER THAN ITS FIRST DRAFT SAID [R18]. That draft read "three geometries whose
+//   available heights are 221, 236 and 221" as though that were three inputs. TWO OF THE THREE ARE THE SAME
+//   HEIGHT (730x375 and 667x375 both give availH 221), and wcap never binds at any of the three, so 667x375 is
+//   NOT an independent input to A4 - it is an independent input to A1 (the route), which is what it is here for.
+//   A4 therefore rests on TWO distinct heights, not three. Caught by #436's antagonist A.
+//   A3 PASSES ON #435 TOO, and that is correct rather than a weakness: #435's ROTATED value was already each
+//   screen's analytic cap - the whole finding is that its FRESH value was not. So A3 is not part of the 4-red
+//   control and a reader should not count it as one.
+// AND THE HEADLINE NUMBER IS NOT A CONSTANT [R18]. An earlier draft of this header, of the commit message and of
+// the story clause said the #435 fresh board "is 224.00 at every width". That is true of the three geometries
+// here and FALSE as a general statement, and both of this build's antagonists broke it independently: swept by
+// viewport HEIGHT at a fixed width, #435's fresh board reads 192 at vh 360 where its cap is 200 (the loop SHRANK
+// by 8 there), 224 at vh 375 and vh 390, 248 at vh 414 and 264 at vh 430 - so the artifact is roughly +/-8
+// AROUND the cap and geometry-dependent, not one wrong number. The finding survives the correction intact,
+// because what identifies the artifact is that fresh DISAGREES WITH FITTED, not the particular value it takes:
+// antagonist B measured #436's one-shot size equal to #435's post-nudge size at ALL TWELVE heights it swept.
 // A1-A3 deliberately assert EQUALITY BETWEEN TWO MEASUREMENTS OF THE SAME BUNDLE rather than against a
 // literal, for the same reason: they cannot be made green by moving a constant.
 'use strict';
@@ -70,13 +86,30 @@ L.run(async()=>{
   L.say(distinct.length>=2,
     'A4 THE FRESH LANDSCAPE BOARD RESPONDS TO THE SCREEN IT IS ON. Three landscape geometries whose available heights are 221, 236 and 221 must not all produce ONE board width. On #435 this set was {224} - a single value across three different screens, which is what identified 224 as an artifact rather than an answer, because no derivation from the geometry can be constant when the geometry is not. This assertion is pinned to no number and survives any later change to the 130px chrome budget',
     {freshByWidth:fresh,distinct});
-  // A5: the portrait control. Green on BOTH bundles by design - it exists to prove the change did not reach portrait.
-  const b=await L.launch({geo:'kunal730',name:'land-stable-portrait',store:{ct_pool:'3'}});
-  await b.open();await liveGame(b);
-  const pw=await boardW(b);
-  L.say(pw!==null&&Math.abs(pw-353.03)<0.05,
-    'A5 PORTRAIT IS UNTOUCHED: the play board at 375x730 is still 353.03. This is GREEN ON BOTH BUNDLES on purpose - it is the control proving #436 confined itself to `wide`, and portrait play runs through the `_edge` path where the fit loop trim is real (#364 measured 56px of slack it reclaims there). If this ever reddens, the landscape fix has reached the screen Kunal actually uses',
-    {board:pw});
-  L.say(b.errs.length===0,'A6 zero app errors on the portrait control',b.errs.slice(0,3));
-  await b.close();
+  // ══ A5: THE PORTRAIT CONTROL, AND ITS FIRST DRAFT WAS VACUOUS - #436's ANTAGONIST A VETOED THE PUSH ON IT ══
+  // The draft asserted ONE geometry, 375x730, and said of itself: "if this ever reddens, the landscape fix has
+  // reached the screen Kunal actually uses". THAT SENTENCE WAS FALSE and the control that proves it costs nothing:
+  // take the #436 bundle and disable the fit loop in PORTRAIT TOO (`!Se&&` -> `!1&&!Se&&`, i.e. precisely "the fix
+  // reached portrait") and this file returned 24 pass / 0 FAIL. A5 passed on the one bundle it existed to reject.
+  // WHY, measured: at 375x730 SQ's cap is min(widthCap 353, min(heightCap 498, 900) - trim), so WIDTH BINDS and
+  // boardTrim changes nothing until it exceeds ~145px. The draft's supporting sentence - "portrait play runs
+  // through the `_edge` path where the trim is real (#364)" - is true of #364's geometry and NOT of this one, which
+  // is the "a threshold belongs to the instrument it was calibrated on" rule wearing a new coat: the citation was
+  // carried over to a geometry where the quantity it describes cannot move.
+  // THE REPAIR IS TO ASSERT WHERE THE TRIM ACTUALLY BINDS. 375x568 is this repo's own `short375` geo, added at #406
+  // for exactly this wide-and-short corner, and there HEIGHT binds: measured 280.00 with over 0 on #436, against
+  // 336.00 with over +42 on the loop-off control - 56px of board and a 42px overflow, so the control now reddens
+  // twice over. 375x730 is KEPT as a second row because it is Kunal's own phone and a change that reached it would
+  // be the worst case; it is simply not sufficient on its own.
+  for(const [geo,want,label] of [['short375',280.00,'375x568, where HEIGHT binds and the trim can actually move the board'],
+                                 ['kunal730',353.03,"375x730, Kunal's own phone, where WIDTH binds"]]){
+    const b=await L.launch({geo,name:'land-stable-portrait-'+geo,store:{ct_pool:'3'}});
+    await b.open();await liveGame(b);
+    const pw=await boardW(b),po=await b.over();
+    L.say(pw!==null&&Math.abs(pw-want)<0.05&&po.over<=0,
+      'A5@'+geo+' PORTRAIT IS UNTOUCHED at '+label+': board '+want+' and nothing overflowing. Green on #435 AND #436 by design - this is the control proving #436 confined itself to `wide`. It is NOT vacuous, and the proof is a third bundle: with the fit loop disabled in portrait too, this row reads 336.00 with over +42 at 375x568 and reddens on both halves',
+      {board:pw,over:po.over,want});
+    L.say(b.errs.length===0,'A6@'+geo+' zero app errors on the portrait control',b.errs.slice(0,3));
+    await b.close();
+  }
 },'62-landscape-board-stable');

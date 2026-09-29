@@ -363,9 +363,17 @@ The clauses, each one measurable:
    216.00 - each screen's own analytic cap. One value across three screens whose correct answers differ is
    not a derivation, and that is what identified 224.00 as an artifact: a boardTrim written by the board-fit
    loop (chess.jsx:2763) from an unsettled first-paint frame, which survived because `over` - the only
-   quantity that loop acts on - is exactly 0 in every settled landscape state, so nothing could correct it.
+   quantity that loop acts on - is exactly 0 in every SETTLED landscape state, so nothing could correct it.
    Note which way the harm ran: the NARROWER phone kept 8px it was not owed and the WIDER phone silently lost
    8px it was, so "the board is too small" and "the board is too big" were the same defect.
+   **"224.00 AT EVERY WIDTH" IS WITHDRAWN AS A GENERAL CLAIM [R18], in the clause that carried it.** It is
+   true of the three geometries above and false as a statement about landscape: swept by viewport HEIGHT,
+   #435's fresh board reads 192 at vh 360 where its cap is 200 - there the loop SHRANK by 8 rather than
+   growing - then 224 at vh 375 and 390, 248 at vh 414, 264 at vh 430. The artifact is roughly +/-8 AROUND
+   the cap and geometry-dependent, not one wrong number. Both of #436's antagonists broke the generalisation
+   independently, from different doors. The CLAUSE is unharmed by the correction, because what it asserts is
+   that the fresh render must agree with the fitted one - not that either takes a particular value - and
+   antagonist B measured #436's one-shot size equal to #435's post-nudge size at all twelve heights it swept.
 
 ID NOTE, because this project has already paid for one id collision (flags/suite-id-collision-tc-r). US-PL-01
 to US-PL-10 and TC-PL-001 to TC-PL-030 are cited by gates/regress/46-play.js as living in

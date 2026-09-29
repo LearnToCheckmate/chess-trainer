@@ -2769,11 +2769,30 @@ export default function App(){
     // A number that is identical across three screens whose correct answers differ is not a derivation, it is
     // an artifact: a boardTrim written by this loop from an UNSETTLED first-paint frame, which then survives
     // because nothing later can correct it. `over` - the ONLY quantity this loop acts on - measured exactly 0
-    // in every settled landscape state at all three widths, so the loop can neither grow (needs over<-24) nor
-    // shrink (needs over>0) there. Its entire contribution in landscape was that one transient.
+    // in every SETTLED landscape state (about fifty of them, five geometries, both bundles, checked by this
+    // build's antagonist A), so once landscape has settled the loop can neither grow (needs over<-24) nor
+    // shrink (needs over>0). The word SETTLED is load-bearing and an earlier draft of this comment dropped it:
+    // during the unsettled frames the loop is very active indeed, which is the whole point - sampled per frame
+    // on #435 at 730x375 the board went 280 -> 192 -> 200 -> 224 inside 215ms, a THREE-STEP visible jump, and
+    // on #436 it goes 280 -> 216 in one. Removing the loop here does not only make landscape deterministic
+    // between routes, it removes a jump against the project's first rule.
+    // AND `over` IS 0 STRUCTURALLY, NOT EMPIRICALLY: #root has exactly one in-flow child and its height equals
+    // the viewport, so the 0 is a property of the layout rather than a measurement that might read otherwise
+    // tomorrow. Stated because "over reads 0, therefore the loop is redundant" would OTHERWISE BE CIRCULAR -
+    // over reads 0 in portrait too, precisely BECAUSE the loop has driven it there, and a loop-off control
+    // measures over at +42 at 375x568. The landscape conclusion holds for the structural reason, not the
+    // measured one; that distinction is antagonist A's and it is the difference between the two screens.
     // So landscape uses SQ's own `wide` branch, which is analytic (availH and wcap are both hard budgets), and
     // the !_fitScreen path below forces boardTrim back to 0. Portrait is UNTOUCHED and must stay so: its play
-    // board runs through the `_edge` path where the trim is real (#364 measured 56px of slack it reclaims).
+    // board claims real slack through the trim at the geometries where HEIGHT binds - measured 280.00 here
+    // against 336.00 with the loop off at 375x568, which is 56px and a 42px overflow. (At 375x730 width binds
+    // instead and the trim cannot move the board at all until it exceeds ~145px; that is why gate 62's portrait
+    // control asserts BOTH geometries, its first draft having asserted only the one where it cannot fail.)
+    // ONE HONEST LIMIT ON THE SCOPE: `!wide` takes the REVIEW branch out of landscape as well as the play
+    // branch, and only the PLAY branch was ever measured misbehaving. Antagonist A drove landscape review on
+    // both bundles at three geometries, fresh and rotated, and got 216/232/216 with over 0 every time - so the
+    // review half is a no-change, kept for one predicate rather than two. It is a scope choice supported by a
+    // measurement that it changes nothing, NOT a defect this build fixed, and it should not be written up as one.
     const _fitScreen=!wide&&((inReview&&revCompact)||(mode==='play'&&!playSetup)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null));
     if(!_fitScreen){if(boardTrimRef.current!==0)setBoardTrim(0);fitGeoRef.current='';return;}
     // Reset ONLY on a geometry change (rotate, resize, different screen). A content change - a move played, a
