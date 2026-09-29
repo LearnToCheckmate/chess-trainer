@@ -237,7 +237,35 @@ function flagOf(cc){
 // US-R25 requires ACCT_GMAX to be STATED ON SCREEN, so it is rendered, never retyped.
 const ACCT_K='ct_accts', ACCT_G='ct_acctgames', ACCT_MAX=8, ACCT_GMAX=200, ACCT_GMONTHS=6;
 function acctGamesLoad(){try{const o=JSON.parse(localStorage.getItem(ACCT_G)||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}}
-function acctGamesSave(map){try{localStorage.setItem(ACCT_G,JSON.stringify(map));}catch(e){}}
+// #431 THE CAP RAISE MADE THIS FUNCTION LOAD-BEARING, AND IT USED TO SWALLOW THE ONE ERROR THAT
+// MATTERS. At ACCT_GMAX=40 a full house was 8x40=320 rows and always fitted. At 200 it is 1600,
+// and measured against the SEVEN REAL chess.com games in docs/benchmark-answerkey-7-pgn (median
+// 2612 PGN chars, mean 2831, max 4670 - the gate's own fixture row is 1248, less than half the
+// real median) a full house is about 4.9M chars, which is the whole origin's ~5MB localStorage.
+// setItem then throws QuotaExceeded and the old `catch(e){}` dropped it on the floor, so the
+// fetch looked right on screen and was simply GONE on the next launch, with no error - the exact
+// "a cap raised past the budget looks right and is gone on the next launch" failure TC-R35(iii)
+// was written to stop. Measured by this build's antagonist across four PGN sizes: at 3741 chars
+// the store silently kept 6 of 8 accounts and lost 400 games on reload, where the pre-fix bundle
+// kept 8 of 8.
+// So bound the store by BYTES, not by a guessed row count: try to write, and while it will not
+// fit drop the OLDEST ACCOUNT and try again - which is exactly what the ACCT_MAX comment above
+// has always claimed happens. A byte bound is right where a smaller constant is not, because the
+// per-row size is set by the player's own games and no ACCT_GMAX can be correct for every PGN.
+// The in-memory map is NOT trimmed: the games stay on screen for this session, and what survives
+// a reload is a predictable oldest-first subset instead of an arbitrary silent one.
+// Returns what was actually stored.
+function acctGamesSave(map,order){
+  const m={...(map||{})};
+  const queue=((order&&order.length)?order.slice():Object.keys(m)).filter(k=>k in m);
+  for(;;){
+    try{localStorage.setItem(ACCT_G,JSON.stringify(m));return m;}catch(e){}
+    if(!queue.length)break;
+    delete m[queue.shift()];
+  }
+  try{localStorage.removeItem(ACCT_G);}catch(e){}
+  return {};
+}
 const acctId=(src,user)=>src+':'+String(user||'').trim().toLowerCase().replace(/^@/,'');
 // Country lookup, cached in localStorage for good. A miss is remembered too, so a player with no country set
 // is not looked up again on every review. Never throws, never blocks anything.
@@ -3561,7 +3589,7 @@ export default function App(){
     let ids=Object.keys(M);
     const order=[...ccAccts.filter(x=>x!==id),id];
     while(ids.length>ACCT_MAX){const drop=order.shift()||ids[0];delete M[drop];ids=Object.keys(M);}
-    acctGamesRef.current=M; acctGamesSave(M);
+    acctGamesRef.current=M; acctGamesSave(M,order);   // #431 oldest account first: `order` is [...older, justFetched]
     const next=order.filter(x=>M[x]);
     setCcAccts(next);
     try{localStorage.setItem(ACCT_K,JSON.stringify(next));}catch(e){}
