@@ -77,6 +77,14 @@ function stub(b,state){
       // NEWEST, each holding `per` games. The concentrated fixture always stops the walk on GAMES, so it
       // cannot reach the state where ACCT_GMONTHS is what bound - which is exactly why this gate went 42/42
       // green over a build that printed the wrong limit in that state.
+      // #433 SPARSE: an index whose entries are NOT contiguous. This is the shape api.chess.com actually
+      // returns - it lists only months in which the player HAS games - and every fixture above builds a
+      // DENSE run of months, which is why no assertion in this file could see that ACCT_GMONTHS counts
+      // entries and not calendar months. The fixture encoded the same assumption as the code.
+      if(state.sparse){
+        const ar=state.sparse.list.map(([y,m])=>'https://api.chess.com/pub/player/'+who+'/games/'+y+'/'+String(m).padStart(2,'0'));
+        return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({archives:ar})});
+      }
       const NM=state.thin?state.thin.months:(state.mixed?state.mixed.months:24);
       const ar=[];for(let i=0;i<NM;i++){const t=new Date(Date.UTC(NEWEST.y,NEWEST.m-1-(NM-1-i),1));ar.push('https://api.chess.com/pub/player/'+who+'/games/'+t.getUTCFullYear()+'/'+String(t.getUTCMonth()+1).padStart(2,'0'));}
       return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({archives:ar})});
@@ -84,8 +92,13 @@ function stub(b,state){
     const m=u.match(/games\/(\d{4})\/(\d{2})$/);
     if(!m)return route.fulfill({status:404,contentType:'application/json',body:'{}'});
     const y=+m[1],mo=+m[2];
+    // #433 ONE month fails while the rest succeed - the 503 antagonist B measured, which the walk's
+    // `continue` swallows. state.fail is 'YYYY/MM'.
+    if(state.fail&&state.fail===(y+'/'+String(mo).padStart(2,'0')))
+      return route.fulfill({status:503,contentType:'application/json',body:'{}'});
     let n=0;
     if(state.mixed)n=(who===state.mixed.thin)?state.mixed.per:state.mixed.busyPer;   // #432 two accounts, two bounds
+    else if(state.sparse)n=state.sparse.per;                          // #433 every listed month equally thin
     else if(state.thin)n=state.thin.per;                             // #432 every month equally thin
     else if(y===NEWEST.y&&mo===NEWEST.m)n=SEEDN[state.seed];
     else if(y===2026&&OLDER_MONTHS.indexOf(mo)>=0)n=PER_OLDER;
@@ -126,7 +139,10 @@ async function READ(b){
         // bundle where the screen does exactly that. A check that reads only the thing the fix added cannot
         // see the defect the fix removes. So: the attribute if it is there, else the leaf element whose own
         // text is a limit sentence, so the same instrument measures both bundles.
-        const LIMIT=/(?:up to|at most|limit)\s+[\d][\d,]*\s+games|last\s*\d+\s*months/i;
+        // #433 the locator carries BOTH wordings - the calendar one #432 printed and the play-months one
+        // #433 prints - plus the gap sentence, so one instrument finds the line on either bundle. A locator
+        // that knows only the new wording is the "reads only what the fix added" trap of #432's A7b.
+        const LIMIT=/(?:up to|at most|limit)\s+[\d][\d,]*\s+games|last\s*\d+\s*months|months of play|couldn.t be loaded/i;
         const el=document.querySelector('[data-ct="games-cap"]')||
           [...document.querySelectorAll('div,span,p')].find(x=>x.children.length===0&&LIMIT.test((x.textContent||'').trim()));
         const cnt=[...document.querySelectorAll('span')].find(x=>/^\d+ loaded$/.test((x.textContent||'').trim()));
@@ -245,7 +261,15 @@ async function input(seed,n,geo,name,thin){
   //      (the games exit is A1..A5's six inputs above, unchanged)
   //    T1 runs at 1 and 3 accounts because the union across accounts is its own decision in the render.
   const THIN_PER=5, T1_MONTHS=24, T2_MONTHS=3, GMONTHS=6;
-  const MONTH_RE=/last\s*(\d+)\s*months/i;
+  // #433 THREE REGEXES WHERE THERE WAS ONE, because at this build "the screen names the month bound" and
+  // "the screen makes a CALENDAR claim" stopped being the same sentence. PLAY_RE pins the branch the app
+  // can actually support; CAL_RE is the wording #432 shipped and is now a DEFECT wherever it appears, which
+  // is what A11c asserts against the measured span; MONTH_RE is the union and is used only where the
+  // assertion is "no month claim of any kind is on screen".
+  const PLAY_RE=/(\d+)\s*most recent months of play/i;
+  const CAL_RE=/last\s*(\d+)\s*months/i;
+  const MONTH_RE=/last\s*\d+\s*months|\d+\s*most recent months of play/i;
+  const GAP_RE=/months couldn.t be loaded/i;
   for(const t of [{months:T1_MONTHS,n:1},{months:T1_MONTHS,n:3},{months:T2_MONTHS,n:1}]){
     const total=t.months*THIN_PER;
     const binds=total>GMONTHS*THIN_PER&&t.months>GMONTHS;          // months bind only if older months exist
@@ -262,8 +286,11 @@ async function input(seed,n,geo,name,thin){
       // A7b AND A7c READ THE WHOLE SCREEN (r.body), not the line element. The element is the fix's own
       // handiwork; the body is what the player sees on either bundle, and it is the only reading that makes
       // these two falsifiable against #431. r.cap is still printed beside them as the located line.
-      const mn=(r.body||'').match(MONTH_RE);
-      L.say(!!mn&&+mn[1]===GMONTHS,'A7b US-R25 '+tag+': the screen states the MONTH window, which is the limit that actually bound',{months:mn?+mn[1]:null,expect:GMONTHS,locatedLine:r.cap.text});
+      // #433 PLAY_RE, not MONTH_RE: the assertion is that the screen names the bound IN THE UNITS THE APP
+      // HAS. The old wording ("your last 6 months") satisfied the old regex and was false on a sparse index,
+      // so the regex moved with the string it pins and A11c below is what makes the distinction fail-able.
+      const mn=(r.body||'').match(PLAY_RE);
+      L.say(!!mn&&+mn[1]===GMONTHS,'A7b US-R25 '+tag+': the screen states the MONTH-OF-PLAY window, which is the limit that actually bound, in the units the walk actually counts',{monthsOfPlay:mn?+mn[1]:null,expect:GMONTHS,calendarClaim:(r.body||'').match(CAL_RE)?((r.body||'').match(CAL_RE))[0]:'none',locatedLine:r.cap.text});
       // A7c is the other half and is NOT a restatement of A7b: a screen could name both and still mislead.
       // On the #431 bundle this is the defect itself - "Showing up to 200 games per account." while 200
       // never bound - so this assertion is the one that had to be read off the body to be able to fail.
@@ -370,13 +397,93 @@ async function input(seed,n,geo,name,thin){
       const tag='LEGACY STORE, '+t.n+' rows written by a pre-#431 build (cap 40), no ct_acctcap';
       L.note(tag+'  rows '+r.rows+'  limit line '+JSON.stringify(r.cap&&r.cap.text));
       if(L.say(r.rows===t.n,'A10-0 vacuity '+tag+': the stored games render from localStorage with no fetch',{rows:r.rows,expect:t.n})){
-        if(t.expect==='games')
+        if(t.expect==='games'){
           L.say(CAP_RE.test(r.body||''),'A10a US-R25 '+tag+': a limit IS stated - a legacy account sitting at the cap of the build that wrote it was cut by that cap, and that is inferable without a re-fetch',{stated:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'NONE',note:t.why});
-        else
+          // #433 A10c. A10a ASKS ONLY WHETHER A SENTENCE IS THERE, AND THAT IS HOW THE WRONG NUMBER GOT
+          // THROUGH IT. #432 inferred 'games' from this exact store and then printed today's ACCT_GMAX, so
+          // 40 rows cut at 40 read "Showing up to 200 games per account." - A10a is green on that, because
+          // a limit is indeed stated. The number a legacy store can justify is the cap of the build that
+          // WROTE it, and the only one it can ever have been is 40. Asserted against the ROW COUNT on
+          // screen rather than against a constant this gate holds: whatever number the line names must be
+          // the number of rows the store was cut at, which is a fact about this input and not about the app.
+          {const gcm=(r.body||'').match(CAP_RE);const stated=gcm?+String(gcm[1]).replace(/,/g,''):null;
+           L.say(stated===t.n,'A10c US-R25 '+tag+': the number stated is the cap that ACTUALLY cut this account ('+t.n+'), not the cap of the build reading it',{stated,expect:t.n,rowsOnScreen:r.rows,line:r.cap&&r.cap.text});}
+        }else
           L.say(!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),'A10b US-R25 '+tag+': NO limit is stated below every cap this app has shipped, because nothing is known to have been cut',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',note:t.why});
       }
       await b.close();
     }
+  }
+
+  // ── A11 #433, THE SPARSE INDEX. THE INPUT THAT MAKES THE UNITS BUG VISIBLE, AND THE REASON NO EXISTING
+  //    ASSERTION COULD SEE IT IS THIS FILE'S OWN FIXTURE.
+  //    Every index this gate has ever built is a CONTIGUOUS run of months ending at NEWEST (the stub's own
+  //    `for(i<NM)` walk back from NEWEST). api.chess.com does not return that: /games/archives lists ONLY the
+  //    months in which the player HAS games. So the fixture encoded exactly the assumption the code made -
+  //    that an index entry is a calendar month - and every assertion reasoning from it inherited the error.
+  //    #432 gated GREEN at 89 assertions over a screen reading "Showing your last 6 months per account."
+  //    above 28 calendar months of games. Antagonist B found it from the shipped surface with no fixture at
+  //    all. BEFORE YOU PIN A FIXTURE'S SHAPE, CHECK WHAT THE REAL API RETURNS.
+  //    THE INPUT IS B'S MEASUREMENT REPRODUCED: 8 entries at 5 games each, spread over 28 calendar months.
+  //    ACCT_GMONTHS=6 takes the six newest ENTRIES -> 30 rows spanning 2024-06..2026-09.
+  //    A11c IS THE ASSERTION THE DEFECT IS ABOUT, and it is pinned to the DOMAIN rather than to a wording:
+  //    if the screen makes a CALENDAR claim of N months, the calendar span of the games actually stored must
+  //    be at most N. That is false by 4.7x on the #432 bundle whatever words it uses, and it stays true of
+  //    any future wording, including one this lane has not thought of.
+  {
+    const SPARSE=[[2023,11],[2024,1],[2024,6],[2025,2],[2025,9],[2026,3],[2026,8],[2026,9]];   // oldest first
+    const PER=5, TAKEN=Math.min(GMONTHS,SPARSE.length);
+    const state={seed:'b',hits:[],refuse:false,sparse:{list:SPARSE,per:PER}};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name:'sparse-8-over-28'});
+    await stub(b,state); await b.open(); await b.tile('Review'); await b.settle(2200);
+    const r=await READ(b); r.hitCount=state.hits.length;
+    const tag='SPARSE '+SPARSE.length+' archive entries over 28 calendar months, '+PER+' games each';
+    // the span the app is actually showing, from the store rather than from the fixture, so a walk that
+    // took different entries than expected is measured rather than assumed.
+    const span=(()=>{const ms=r.storedMonths;if(ms.length<2)return ms.length;
+      const p=(s)=>{const[y,m]=s.split('-').map(Number);return y*12+m;};
+      return p(ms[ms.length-1])-p(ms[0])+1;})();
+    L.note(tag+'  rows '+r.rows+'  requests '+r.hitCount+'  stored months '+JSON.stringify(r.storedMonths)+'  calendar span '+span+'  limit line '+JSON.stringify(r.cap&&r.cap.text));
+    if(L.say(r.hitCount>=2&&r.rows>0,'A11-0 vacuity '+tag+': the sparse index was requested and the Review list rendered',{requests:r.hitCount,rows:r.rows,err:r.err})){
+      // A11a is the precondition: without it a green A11b could mean "the month wording is there" on a
+      // screen where the month window never bound [#385's rule, and A7a's].
+      L.say(r.rows===TAKEN*PER,'A11a '+tag+': rows == the '+TAKEN+' newest INDEX ENTRIES x '+PER+' - the entry window is what bound, which is the precondition for everything below',{rows:r.rows,expect:TAKEN*PER,entriesAvailable:SPARSE.length});
+      L.say(span>GMONTHS,'A11b '+tag+': the fixture really does separate the two quantities - the span on screen ('+span+' calendar months) exceeds the '+GMONTHS+'-entry window, so a units error is REACHABLE here (it is not on any dense fixture)',{span,window:GMONTHS,storedMonths:r.storedMonths});
+      const cal=(r.body||'').match(CAL_RE);
+      L.say(!cal||+cal[1]>=span,'A11c US-R25 '+tag+': THE UNITS. Any CALENDAR claim on screen must cover the calendar span actually shown - the screen may not say "last N months" over more than N months of games',{calendarClaim:cal?cal[0]:'none',claimedMonths:cal?+cal[1]:null,measuredSpan:span,line:r.cap&&r.cap.text});
+      const pl=(r.body||'').match(PLAY_RE);
+      L.say(!!pl&&+pl[1]===GMONTHS,'A11d US-R25 '+tag+': the bound IS stated, in the units the walk counts - '+GMONTHS+' most recent months of play',{monthsOfPlay:pl?+pl[1]:null,expect:GMONTHS,line:r.cap&&r.cap.text});
+      L.say(!CAP_RE.test(r.body||''),'A11e US-R25 '+tag+': no games cap is named as the bound, because '+(TAKEN*PER)+' rows never reached it',{matchedGamesCap:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no'});
+      L.say(!GAP_RE.test(r.body||''),'A11f '+tag+': no gap is claimed when every requested month answered - the gap sentence must not fire on a clean walk',{body:(r.body||'').slice(0,160)});
+    }
+    await b.close();
+  }
+
+  // ── A12 #433, THE MONTH THAT FAILED. Antagonist B's second veto ground, measured on the #432 bundle:
+  //    a 503 on one month inside the window, the walk's `continue` swallows it, the index then runs out, and
+  //    `bound` is reconstructed as 'all' - which the screen renders as NO LINE AT ALL, i.e. "nothing was
+  //    cut", over a history with a hole in the middle of it. 50 of 60 rows and not a word.
+  //    THE FIX IS A STATEMENT, NOT A RETRY, and this gate asserts exactly that and nothing more: the games
+  //    are still missing. US-R25 requires the list to be bounded only by a limit the app STATES; an
+  //    unstated hole is the same defect as an unstated cap.
+  //    FIXTURE: 3 contiguous months x 5, so the index EXHAUSTS (nothing bounds the list) and the only reason
+  //    the count is short is the failed month. That is the state where the old code is most confidently
+  //    wrong, because 'all' is the one bound that asserts nothing was lost.
+  {
+    const PER=5, MONTHS=3, FAILM=NEWEST.y+'/'+String(NEWEST.m-1).padStart(2,'0');   // the middle month
+    const state={seed:'b',hits:[],refuse:false,thin:{months:MONTHS,per:PER},fail:FAILM};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name:'gap-503-midwalk'});
+    await stub(b,state); await b.open(); await b.tile('Review'); await b.settle(2200);
+    const r=await READ(b); r.hitCount=state.hits.length;
+    const tag='GAP: '+MONTHS+' months x '+PER+' with '+FAILM+' answering 503';
+    L.note(tag+'  rows '+r.rows+'  requests '+r.hitCount+'  months on screen '+JSON.stringify(r.distinct)+'  limit line '+JSON.stringify(r.cap&&r.cap.text));
+    // A12-0 is the vacuity guard AND the proof the hole is real: (MONTHS-1) x PER rows, not MONTHS x PER.
+    if(L.say(r.rows===(MONTHS-1)*PER,'A12-0 vacuity '+tag+': a month really was dropped - '+((MONTHS-1)*PER)+' rows where an unbroken walk gives '+(MONTHS*PER),{rows:r.rows,expect:(MONTHS-1)*PER,ifNoGap:MONTHS*PER,requests:r.hitCount})){
+      L.say(r.cap.present===true&&GAP_RE.test(r.body||''),'A12a US-R25 '+tag+': the screen SAYS a month could not be loaded, instead of rendering nothing and thereby claiming the whole history is here',{lineRendered:r.cap.present,line:r.cap.text,bodyHasGap:GAP_RE.test(r.body||'')});
+      L.say(!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),'A12b US-R25 '+tag+': and it names NO limit as the bound, because neither bound was reached - the index ran out',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthClaimInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no'});
+      L.say(!!r.cap.ratio&&r.cap.ratio.r>=4.5,'A12c '+tag+': the gap sentence meets WCAG AA (>= 4.5:1) like every other state of this line',r.cap.ratio?{...r.cap.ratio,min:4.5}:{ratio:null,min:4.5});
+    }
+    await b.close();
   }
 
   // ── A6, the geometry sweep. This gate's subject is data, not pixels, so the matrix above runs at Kunal's

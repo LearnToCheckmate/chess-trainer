@@ -250,6 +250,13 @@ function flagOf(cc){
 // first version inferring at ACCT_GMAX (200), which no pre-#431 store can ever reach - so the whole installed
 // base read as "nothing bound" and the app stated no limit at all on a list that HAD been cut. That is the
 // threshold-belongs-to-its-instrument trap, in the one configuration every real user is in.
+// #433 ACCT_GMONTHS IS COUNTED IN ARCHIVE INDEX ENTRIES AND THAT IS NOT A CALENDAR MONTH. api.chess.com's
+// /games/archives lists only the months in which the player HAS games, so 6 entries are 6 months OF PLAY and
+// span as much calendar time as the player's gaps make them - antagonist B measured 8 entries across 28
+// calendar months. The constant is unchanged and correct; what was wrong was the sentence naming it, which
+// claimed a quantity this code never computes. Anything printed about this bound says "months of play".
+// #433 ct_acctcap values may now carry a '+gap' suffix meaning a month inside the window was requested and
+// not read. Split on '+' before comparing; values written by #432 have no suffix and still read correctly.
 const ACCT_K='ct_accts', ACCT_G='ct_acctgames', ACCT_C='ct_acctcap', ACCT_MAX=8, ACCT_GMAX=200, ACCT_GMAX_LEGACY=40, ACCT_GMONTHS=6;
 // 'games'  the games cap stopped the walk - more games exist in the months already read
 // 'months' the month window stopped it - older months hold games this list has not asked for
@@ -3645,17 +3652,26 @@ export default function App(){
       // player with a thin history does not walk years of empty archives.
       // #432 `i` is declared OUTSIDE the loop so the exit reason survives it. Which of the three
       // ended the walk is not derivable at render time and is the whole of what the screen states.
-      const games=[];let i=archives.length-1;
+      // #433 `missed` counts months that were REQUESTED AND NOT READ. Without it the `continue` on a
+      // failed month is silent in the worst possible way: the walk carries on, the index runs out, and
+      // `bound` below reads 'all' - which the screen renders as "nothing was cut" over a history with a
+      // hole in the middle of it. Antagonist B measured 50 of 60 rows and no statement at all on one 503.
+      // A retry is NOT what this fixes and is deliberately not added here: the games are still missing,
+      // and what US-R25 requires is that the app STATE its bound, not that it always reach it.
+      const games=[];let i=archives.length-1,missed=0;
       for(;i>=0&&games.length<ACCT_GMAX&&(archives.length-i)<=ACCT_GMONTHS;i--){
         let mj=null;
-        try{const mr=await fetch(archives[i]);if(!mr.ok)continue;mj=await mr.json();}catch(e){continue;}
+        try{const mr=await fetch(archives[i]);if(!mr.ok){missed++;continue;}mj=await mr.json();}catch(e){missed++;continue;}
         const mg=(mj.games||[]).filter(g=>g.pgn);
         mg.sort((x,y)=>(y.end_time||0)-(x.end_time||0));   // newest first WITHIN the month
         for(let k=0;k<mg.length&&games.length<ACCT_GMAX;k++)games.push(mg[k]);
       }
       // Order matters and is the honest order: the games cap is only the binding limit if it was
       // actually reached. i<0 means the index ran out, so nothing was cut at all.
-      const bound=games.length>=ACCT_GMAX?'games':(i<0?'all':'months');
+      // #433 the gap rides as a SUFFIX rather than as a fourth bound, because it is orthogonal to all
+      // three - a month can fail under any of them - and because a suffix keeps every value written by
+      // #432 readable by the split below. 'months+gap', 'all+gap', 'games+gap'.
+      const bound=(games.length>=ACCT_GMAX?'games':(i<0?'all':'months'))+(missed?'+gap':'');
       if(!games.length)throw new Error('no recent games found');
       const rows=games.map(g=>({src:'cc',acct:u,pgn:g.pgn,white:(g.white&&g.white.username)||'White',black:(g.black&&g.black.username)||'Black',wr:g.white&&g.white.result,tc:g.time_class,date:(g.end_time||0)*1000}));
       ccRawRef.current=null; acctStore('cc',u,rows,bound); mergeGames();
@@ -5858,10 +5874,24 @@ export default function App(){
                 // A store with no recorded bound was written before #432. It can only have been capped at
                 // ACCT_GMAX_LEGACY, so THAT is the threshold to infer at - not today's ACCT_GMAX, which no
                 // such store can reach.
-                const _bound1=(id)=>_C[id]||((_M[id]||[]).length>=ACCT_GMAX_LEGACY?'games':'all');
-                const _b=ccAccts.map(_bound1).filter(Boolean);
-                const _months=_b.includes('months'), _games=_b.includes('games');
-                if(!_months&&!_games)return null;
+                // #433 THE NUMBER STATED MUST BE THE CAP THAT ACTUALLY CUT THAT ACCOUNT, and the first
+                // version of this fallback got that wrong in the other direction: it correctly inferred
+                // 'games' from a legacy store at 40 and then printed ACCT_GMAX, so a store cut at 40 read
+                // "Showing up to 200 games per account." - silence replaced by a different wrong number.
+                // So the bound carries its own cap out of here rather than being looked up at render.
+                const _bound1=(id)=>{const v=_C[id];
+                  if(v){const p=String(v).split('+');return {b:p[0],cap:ACCT_GMAX,gap:p.length>1};}
+                  // the cap a legacy store justifies is the number of rows IT ACTUALLY HOLDS, not a constant
+                  // read out of the build doing the reading. ACCT_GMAX_LEGACY is the THRESHOLD for deciding
+                  // it was cut at all (no pre-#431 build could write more than 40); the number STATED is
+                  // then that store's own row count, which is the only cap it can be evidence of.
+                  const _n=(_M[id]||[]).length;
+                  return _n>=ACCT_GMAX_LEGACY?{b:'games',cap:Math.min(_n,ACCT_GMAX),gap:false}:{b:'all',cap:0,gap:false};};
+                const _b=ccAccts.map(_bound1);
+                const _months=_b.some(x=>x.b==='months');
+                const _caps=[...new Set(_b.filter(x=>x.b==='games').map(x=>x.cap))].sort((x,y)=>x-y);
+                const _gap=_b.some(x=>x.gap);
+                if(!_months&&!_caps.length&&!_gap)return null;
                 const _sty={fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.60)',marginTop:-1,lineHeight:1.4};
                 // #432 MIXED BOUNDS. The first version let 'months' win the union and printed it "per account".
                 // Antagonist A measured the consequence on this very bundle: one thin account (months) and one
@@ -5870,10 +5900,26 @@ export default function App(){
                 // #431 defect verbatim - a limit stated that did not bind - so the union had to go.
                 // Both limits apply to every account and whichever comes first stops that account's walk, so
                 // when the accounts disagree the only sentence true of all of them names BOTH.
-                return <div data-ct="games-cap" style={_sty}>{
-                  _months&&_games ? 'Showing up to '+ACCT_GMAX+' games or your last '+ACCT_GMONTHS+' months per account.'
-                  : _months ? 'Showing your last '+ACCT_GMONTHS+' months per account.'
-                  : 'Showing up to '+ACCT_GMAX+' games per account.'}</div>;})()}
+                // #433 THE UNITS. "your last 6 months" is a CALENDAR claim and the app does not possess that
+                // quantity: ACCT_GMONTHS bounds ARCHIVE INDEX ENTRIES and api.chess.com lists only months in
+                // which the player HAS games, so for anyone who plays in bursts the two differ - antagonist B
+                // measured 8 entries spread over 28 calendar months under a six-month claim, wrong by 4.7x,
+                // on a screen whose row dates carry no year to contradict it. It cannot be fixed by rephrasing
+                // around the same number; what changes is WHICH quantity is named. The walk's own unit is
+                // "months you played in", so that is what the sentence says. Bounding the walk by calendar
+                // months instead was measured and rejected: it shows a player who last played 8 months ago
+                // nothing at all, which removes a capability to correct a sentence (defaults/433-review-limit-
+                // sentence-units, jobs/acct-gmonths-counts-archive-entries-not-calendar-months-2026-09-29).
+                const _gtxt=_caps.length?('up to '+_caps[_caps.length-1]+' games'+(_caps.length>1?' ('+_caps[0]+' for accounts imported before this update)':'')):'';
+                const _mtxt=_months?('your '+ACCT_GMONTHS+' most recent months of play'):'';
+                const _lim=_gtxt&&_mtxt?('Showing '+_gtxt+' or '+_mtxt+' per account.')
+                  :_gtxt?('Showing '+_gtxt+' per account.')
+                  :_mtxt?('Showing '+_mtxt+' per account.'):'';
+                // #433 a failed month is stated rather than swallowed, and it is a SEPARATE sentence because
+                // it is a different fact: the one above says what bound the list, this one says the list is
+                // short of that bound. Both can be true at once and either can be true alone.
+                const _gtxt2=_gap?'Some months couldn’t be loaded, so some games are missing.':'';
+                return <div data-ct="games-cap" style={_sty}>{[_lim,_gtxt2].filter(Boolean).join(' ')}</div>;})()}
               {ccGames.length>6&&(<input value={gameSearch} onChange={e=>setGameSearch(e.target.value)} placeholder="Filter by player name" style={{width:'100%',padding:'6px 10px',borderRadius:7,background:'rgba(0,0,0,.25)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.10)',fontSize:'clamp(14px,3.1vw,16px)'}}/>)}
               <div className="scroll" style={{display:'flex',flexDirection:'column',gap:6,maxHeight:'min(46vh,340px)',overflowY:'auto'}}>
               {_shown.map((g,i)=>{const info=gameInfo(g);const bd=outcomeBadge(info.code);const st=gameStatsRef.current[gkey(g)];return(
