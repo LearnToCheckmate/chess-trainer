@@ -4472,7 +4472,23 @@ export default function App(){
   const pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online');  // board sits below the goal/message text
   // #341: screens that own the whole phone - a live game, and the review move screen - hide the tab bar so the board gets that 62px.
   /* #371: on phones a FINISHED game keeps the live screen's chrome (tabs hidden, home and menu in the top bar). The audit and the antagonist both measured the board collapsing 357 -> 192 at game over because the title row, the tab bar, the Elo stepper, the slider and a full-width Review button all came back at once. */
-  const _hideTabs=(mode==='play'&&!playSetup&&opponent&&(!wide||(!isOver&&!playEnd)))||(inReview&&revCompact&&reviewView!=='summary');
+  /* #435: this expression used to read (!wide||(!isOver&&!playEnd)) and so held TWO decisions about the
+     same moment that disagreed with each other. Portrait hid the tab bar for the WHOLE play game; landscape
+     hid it only while the game was live and brought it back at game over. MEASURED at 730x375 on #435,
+     resigning at move 0, vs Pip AND Pass & Play alike: that return adds the 62px in-flow spacer at :7175,
+     the fit loop at :2763 reads it as content, and the board is trimmed 224.00 -> 192.00 at the instant the
+     game ends - a 14% jump, against this project's first rule. Landscape now matches portrait: hidden for
+     the whole game, so the spacer never appears and the board never moves. WHAT IT COSTS, measured rather
+     than asserted, because two drafts of this comment overstated it [R18]: the tab bar's Discover, Puzzles,
+     Review and Play go from one tap to two, reached via the Home button that :5330 restores in the same pass.
+     On #434 that Home button was NOT there and the bar was the only route off a finished landscape screen
+     (antagonist A built a bundle that hides the bar and restores nothing else, and measured homeBtn=false),
+     so the restore is necessary rather than decorative. This is NOT "the same affordance set as portrait":
+     portrait at game over gives Review and Rematch their own slots (:6226, !wide only) where landscape keeps
+     Hint and Flip, and that was already true before this build. It is the same COST portrait pays - the tab
+     bar absent for the whole game - which is the defensible claim and the weaker one.
+     Amber record: flags/amber-435-landscape-game-over-matches-portrait */
+  const _hideTabs=(mode==='play'&&!playSetup&&opponent)||(inReview&&revCompact&&reviewView!=='summary');
   // #338: keep pzStackH in step with the text above / controls below the puzzle board. Their widths do NOT depend on the board, so this cannot feed back into itself.
   useEffect(()=>{
     if(!pzLow){if(pzStackH!==0)setPzStackH(0);return;}
@@ -5327,7 +5343,14 @@ export default function App(){
         {!lessonFocus&&(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd)&&(<button onClick={()=>setHomeScreen(true)} title="Home" style={{position:'absolute',right:46,top:'50%',transform:'translateY(-50%)',flexShrink:0,minWidth:38,height:30,borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:15,lineHeight:1,padding:'0 9px'}}>🏠</button>)}
         {!lessonFocus&&(<button onClick={()=>setMenuOpen(true)} title="Menu &amp; settings" style={{position:'absolute',right:0,top:'50%',transform:'translateY(-50%)',flexShrink:0,minWidth:38,height:30,borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:16,lineHeight:1,padding:'0 9px'}}>☰</button>)}
       </div>)}
-      {!pzLow&&wide&&(homeScreen||(mode==='play'&&!playSetup&&opponent&&!isOver&&!playEnd)||lessonFocus)&&(<button onClick={()=>setHomeScreen(true)} title="Home" style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 6px)',right:'calc(env(safe-area-inset-right,0px) + 58px)',zIndex:60,minWidth:40,height:32,borderRadius:8,background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',cursor:'pointer',fontSize:16,lineHeight:1,padding:'0 10px'}}>🏠</button>)}
+      {/* #435: the play clause dropped !isOver&&!playEnd. Landscape used to SWAP this button for the tab bar at
+          game over - not show both - so with the bar now hidden for the whole game (see _hideTabs) this button is
+          the route off the screen and must stay. Measured on the shipped #434 at 730x375, +6.8s after a
+          resignation: buttons were [menu,-,+,Moves,Back,Forward,Hint,Flip,More,Home,Discover,Puzzles,Review,Play]
+          with no title="Home" button at all; on #435 they are [HOME,menu,-,+,Moves,Back,Forward,Hint,Flip,More].
+          Gate 16 E11/F11 assert this button is present; nothing asserts Review or Rematch here, and landscape
+          does not offer them at game over anyway (:6226 gives them slots only when !wide). */}
+      {!pzLow&&wide&&(homeScreen||(mode==='play'&&!playSetup&&opponent)||lessonFocus)&&(<button onClick={()=>setHomeScreen(true)} title="Home" style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 6px)',right:'calc(env(safe-area-inset-right,0px) + 58px)',zIndex:60,minWidth:40,height:32,borderRadius:8,background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',cursor:'pointer',fontSize:16,lineHeight:1,padding:'0 10px'}}>🏠</button>)}
       {!pzLow&&wide&&(<button onClick={()=>setMenuOpen(true)} title="Menu &amp; settings" style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 6px)',right:'calc(env(safe-area-inset-right,0px) + 10px)',zIndex:60,minWidth:40,height:32,borderRadius:8,background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',cursor:'pointer',fontSize:17,lineHeight:1,padding:'0 10px'}}>☰</button>)}
       {acctOpen&&(<div onClick={()=>setAcctOpen(false)} style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,.62)',display:'flex',alignItems:'center',justifyContent:'center',padding:16,overflowY:'auto'}}>
         <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:430,background:'#191622',borderRadius:18,border:'1px solid rgba(255,255,255,.12)',padding:'18px 18px 20px',boxShadow:SHADOW_CARD,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
@@ -5613,7 +5636,7 @@ export default function App(){
         </div>
       </div>)}
       {/* Context bars */}
-      {mode==='play'&&(!(isOver||playEnd)||!wide)&&(()=>{const _done=(isOver||playEnd);const _op=(!thinking&&status!=='check'&&_liveOpening)?_liveOpening.name:'';const _opAny=(_liveOpening&&_liveOpening.name)||'';const _res=(_done&&gameResult)?(gameResult.head+(gameResult.sub?(' \u00b7 '+gameResult.sub):'')):'';const _fin=(opponent==='computer'&&eloMsg)?eloMsg:_op;const _txt=_done?(resultCardGone?(_res||_fin):_fin):(thinking&&!playEnd?(_opAny?(_opAny+' \u00b7 thinking\u2026'):'Computer thinking\u2026'):(status==='check'?'Check!':_op)); /* #371 (X-10): the name stays put while the computer thinks */ /* #370 n3: the opening both sides are playing, named live in the status line that already exists above the board, so it costs no height; thinking and check still take precedence */ /* #434 (auditor P1): the result OWNS this slot once the result card has gone. It used to be pre-empted for ever by the adaptive-strength note, so a game lost to the computer stated its result for ~3s and then nothing: MEASURED at 375x730, vs Pip, resign at move 0 - at +6.8s a scan of every painted element under 44 chars matching the result vocabulary returned ZERO hits, while Pass & Play in the same slot read 'Resigned \u00b7 Black wins'. The two messages now split by TIME rather than one winning: the card carries the result for the 3s it is up, so the strength note is free to use the slot then, and the result takes it back afterwards. Concatenating them is NOT ruled out by fit at 375 and this comment said it was [R18, corrected before the push on antagonist A's veto]: measured in this span, the result is 142.6px, the strength note 183.4px and the two joined 340px, against a slot of 96vw - 360px at 375, so it FITS on his phone, and 307.2px at 320, where it is cut by 33px. It is ruled out by the 320 phone and by judgement: 340px of two messages at 13px buries the one fact the player needs. (159.2px was the Pass & Play string.) Amber record: flags/amber-434-result-takes-the-slot-back-from-the-strength-message */ return(
+      {mode==='play'&&(()=>{const _done=(isOver||playEnd);const _op=(!thinking&&status!=='check'&&_liveOpening)?_liveOpening.name:'';const _opAny=(_liveOpening&&_liveOpening.name)||'';const _res=(_done&&gameResult)?(gameResult.head+(gameResult.sub?(' \u00b7 '+gameResult.sub):'')):'';const _fin=(opponent==='computer'&&eloMsg)?eloMsg:_op;const _txt=_done?(resultCardGone?(_res||_fin):_fin):(thinking&&!playEnd?(_opAny?(_opAny+' \u00b7 thinking\u2026'):'Computer thinking\u2026'):(status==='check'?'Check!':_op)); /* #371 (X-10): the name stays put while the computer thinks */ /* #370 n3: the opening both sides are playing, named live in the status line that already exists above the board, so it costs no height; thinking and check still take precedence */ /* #434 (auditor P1): the result OWNS this slot once the result card has gone. It used to be pre-empted for ever by the adaptive-strength note, so a game lost to the computer stated its result for ~3s and then nothing: MEASURED at 375x730, vs Pip, resign at move 0 - at +6.8s a scan of every painted element under 44 chars matching the result vocabulary returned ZERO hits, while Pass & Play in the same slot read 'Resigned \u00b7 Black wins'. The two messages now split by TIME rather than one winning: the card carries the result for the 3s it is up, so the strength note is free to use the slot then, and the result takes it back afterwards. Concatenating them is NOT ruled out by fit at 375 and this comment said it was [R18, corrected before the push on antagonist A's veto]: measured in this span, the result is 142.6px, the strength note 183.4px and the two joined 340px, against a slot of 96vw - 360px at 375, so it FITS on his phone, and 307.2px at 320, where it is cut by 33px. It is ruled out by the 320 phone and by judgement: 340px of two messages at 13px buries the one fact the player needs. (159.2px was the Pass & Play string.) Amber record: flags/amber-434-result-takes-the-slot-back-from-the-strength-message */ /* #435: the guard on this row used to be (!(isOver||playEnd)||!wide), so in LANDSCAPE the row was not rendered AT ALL once the game was over and NO result was stated for any opponent - #434 fixed the portrait half and named this one as deliberately not swept. It is now rendered in every play state, which also means it RESERVES ITS OWN SPACE across the live->over transition instead of vanishing and paying 25px towards a board jump. The wide-only duplicate strength chip that used to sit below was removed in the same pass: it stated the adaptive strength a second time while the result was stated zero times, measured by antagonist B on #434 at x=373.3 y=42.5 w=207.4. Amber record: flags/amber-435-landscape-game-over-matches-portrait */ return(
         <div data-ct="play-context" aria-live="polite" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:7,height:18,flexShrink:0}}>
           <span data-ct="play-opening" style={{fontSize:'clamp(13px,2.4vw,13px)',color:status==='check'?'#ff6b6b':(_op&&_txt===_op?'rgba(255,255,255,.62)':'rgba(255,255,255,.8)'),fontWeight:600,opacity:_txt?1:0,transition:'opacity .12s',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'96vw'}}>{_txt||'\u00a0'}</span>
         </div>);})()}
@@ -5630,9 +5653,14 @@ export default function App(){
             <span style={{fontFamily:'monospace',fontSize:'clamp(14px,3.6vw,17px)',fontWeight:800,letterSpacing:.5,color:clock[side]<=0?'#ec9a90':(low?'#f0b429':'#fff')}}>{fmtClock(clock[side])}</span>
           </div>);})}
       </div>)}
-      {mode==='play'&&opponent==='computer'&&eloMsg&&(isOver||playEnd)&&wide&&(<div style={{textAlign:'center',marginBottom:8}}>
-        <span style={{fontSize:'clamp(13px,2.3vw,13px)',fontWeight:700,color:'var(--ac2)',background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'3px 11px'}}>{eloMsg}</span>
-      </div>)}
+      {/* #435: the wide-only adaptive-strength chip that stood here is GONE. It existed because the status row
+          above was suppressed at game over in landscape, so it was the only carrier left - but it carried the
+          WRONG message: measured on #434 at 730x375 it sat at x=373.3 y=47.5 w=207.4 h=23 permanently (the y was published as 42.5 by #434 and by
+          this comment's first draft; antagonist A re-measured it at 47.5 on the shipped bundle and the 42.5 is WITHDRAWN [R18]), so landscape
+          stated the adaptive strength TWICE (this chip and the rail) and the result ZERO times, which is the
+          inversion of what a player who has just lost needs. The status row now renders in every play state and
+          carries both messages split by TIME exactly as portrait does (#434): the strength while the result card
+          is up, the result once it has gone. Removing it also gives back the 29px it charged at game over. */}
       {mode==='learn'&&openIdx!==null&&(<div style={{textAlign:'center',marginBottom:8,maxWidth:boardPx+44,width:'98vw'}}>
         {!lessonFocus&&(<><div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>
           {(()=>{const _st=lessonStats(LIB[openIdx]);const n=_st.unionDays;const m=_st.mastered;return(<div style={{display:'flex',alignItems:'center',gap:4,marginTop:4}}>{Array.from({length:LEARN_GOAL}).map((_,i)=>(<span key={i} style={{width:9,height:9,borderRadius:'50%',background:i<n?(m?'#f0c24d':'#6cc78a'):'rgba(255,255,255,.10)',border:'1px solid '+(i<n?(m?'#f0c24d':'#6cc78a'):'rgba(255,255,255,.28)')}}/>))}<span style={{marginLeft:6,fontSize:'clamp(13px,2.3vw,13px)',fontWeight:800,color:m?'#f0c24d':(n>0?'#6cc78a':'rgba(255,255,255,.55)')}}>{m?'Mastered':(n+' of '+LEARN_GOAL+' flawless days'+(_st.lines>1?(' · '+_st.linesLearned+'/'+_st.lines+' lines'):''))}</span></div>);})()}
@@ -6973,6 +7001,15 @@ export default function App(){
           // They belong in the top player bar, which is already on screen and already has slack. That
           // deletes a 40px row outright and hands every pixel of it to the board.
           const _livePlay=(mode==='play'&&!playSetup&&opponent&&(!wide||(!isOver&&!playEnd))); /* #371: phones keep the live bar chrome after the game ends */
+          /* #435 CLASS SWEEP [R06]. This is the SECOND and last site carrying the same predicate that
+             _hideTabs (:4475) carried - `(!wide||(!isOver&&!playEnd))`, the one that disagreed with itself
+             about landscape. It is LEFT AS IS because it is provably inert, not because it was missed:
+             _livePlay has exactly one consumer, _hbPlay on the next line, and that consumer already requires
+             !wide - so the `!wide||` branch is true whenever it is read and the `(!isOver&&!playEnd)` half
+             can never be evaluated. _livePlay therefore reduces to (mode==='play'&&!playSetup&&opponent) at
+             its only use, which is exactly what _hideTabs was changed TO. Rewriting it would be a no-op with
+             a rebuild's risk attached. found 2, fixed 1, left 1 (inert, this one). If a second consumer is
+             ever added that does NOT require !wide, this predicate wakes up and must be changed with it. */
           const _hb=isTop&&inReview&&revCompact;
           const _hbPlay=isTop&&!wide&&_livePlay;
           const _hbSty={flex:'0 0 auto',display:'inline-flex',alignItems:'center',justifyContent:'center',width:34,height:30,borderRadius:9,background:_pillBg,border:'1px solid '+_pillBd,color:_fg,cursor:'pointer',fontWeight:800,lineHeight:1,padding:0};
