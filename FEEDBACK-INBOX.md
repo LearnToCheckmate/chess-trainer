@@ -2273,3 +2273,42 @@ The second is a correction. I published two numbers in this build's first commit
 wrong — the before/after gate counts and how much of the sentence the old build showed — and one of
 my reviewers caught both. I re-measured and withdrew them in the same place they were made. The
 build itself was not affected; the numbers describing it were.
+
+---
+
+## #429 — the rating on your review summary is now the one the game carries
+
+You asked on 23 September why a 2000-rated player was being told they'd blundered, and on
+Thursday you answered the question I put to you about it: show the rating from the PGN, and show
+nothing where there isn't one. That shipped tonight.
+
+What it was doing: on a game whose PGN said the players were rated 1523 and 1487, the summary told
+you they'd played like a 1945 and a 948. Not a small error, and not a consistent one — one side
+read 422 points high and the other 539 points low on the same game. That matters because it kills
+the obvious repair: there is no single number you could have added or subtracted to make it right.
+I also stripped the ratings out of the PGN and re-ran it, and the panel printed exactly the same
+1945 and 948 — so the number had never looked at the real ratings at all.
+
+Now it shows 1523 and 1487, and where a game carries no rating it shows nothing rather than
+guessing.
+
+Two things I want to flag rather than let you find.
+
+The first is a mistake I nearly shipped. Underneath that panel is a line reading "Accuracy and
+rating are rough estimates from average centipawn loss, not official ratings." That was true while
+the number was invented. The moment I made the panel show your real rating, it became false — the
+app would have shown you your actual chess.com rating and told you in the same card that it wasn't
+one. That is the exact opposite of the thing you complained about. Both of my reviewers caught it
+independently, and it is fixed: the line now says accuracy is the estimate, and that the ratings
+come from the game's own record.
+
+The second is a rough edge I chose not to smooth, because smoothing it would contradict what you
+told me. When only one player has a rating — which is what happens against a bot or an unrated
+opponent — that side shows a rating and the other shows nothing, which leaves about 21px of empty
+space under one column. Every way of levelling it either puts a dash where you said show nothing,
+or throws away a real rating you asked to see. So I've written it up with four options and left
+the choice with you rather than picking one at midnight.
+
+Also worth knowing: a game you play in the app carries no rating tags at all, so its review shows
+no rating. By the letter of your answer that's correct, but it's the route you use most, and for
+online games the app already knows both ratings and isn't using them. That's written up too.
