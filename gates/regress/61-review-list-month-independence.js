@@ -73,14 +73,20 @@ function stub(b,state){
     if(state.refuse)return route.fulfill({status:503,contentType:'application/json',body:'{}'});
     const who=(u.match(/player\/([^/]+)\//)||[])[1]||'';
     if(/\/games\/archives$/.test(u)){
-      const ar=[];for(let i=0;i<24;i++){const t=new Date(Date.UTC(2024,9+i,1));ar.push('https://api.chess.com/pub/player/'+who+'/games/'+t.getUTCFullYear()+'/'+String(t.getUTCMonth()+1).padStart(2,'0'));}
+      // #432 THIN: `state.thin` replaces the concentrated distribution with `months` archives ending at
+      // NEWEST, each holding `per` games. The concentrated fixture always stops the walk on GAMES, so it
+      // cannot reach the state where ACCT_GMONTHS is what bound - which is exactly why this gate went 42/42
+      // green over a build that printed the wrong limit in that state.
+      const NM=state.thin?state.thin.months:24;
+      const ar=[];for(let i=0;i<NM;i++){const t=new Date(Date.UTC(NEWEST.y,NEWEST.m-1-(NM-1-i),1));ar.push('https://api.chess.com/pub/player/'+who+'/games/'+t.getUTCFullYear()+'/'+String(t.getUTCMonth()+1).padStart(2,'0'));}
       return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({archives:ar})});
     }
     const m=u.match(/games\/(\d{4})\/(\d{2})$/);
     if(!m)return route.fulfill({status:404,contentType:'application/json',body:'{}'});
     const y=+m[1],mo=+m[2];
     let n=0;
-    if(y===NEWEST.y&&mo===NEWEST.m)n=SEEDN[state.seed];
+    if(state.thin)n=state.thin.per;                                  // #432 every month equally thin
+    else if(y===NEWEST.y&&mo===NEWEST.m)n=SEEDN[state.seed];
     else if(y===2026&&OLDER_MONTHS.indexOf(mo)>=0)n=PER_OLDER;
     const ai=Math.max(0,ACCTS.indexOf(who));
     const games=[];
@@ -105,15 +111,57 @@ async function READ(b){
     const sc=document.querySelector('[data-ct="game-row"]')?document.querySelector('[data-ct="game-row"]').parentElement:null;
     return {rows:rows.length, outside:labels.filter(x=>x&&x!==NEW_LABEL).length, inNewest:labels.filter(x=>x===NEW_LABEL).length,
       distinct:[...new Set(labels.filter(Boolean))].sort(), bytes, acctBytes:keys['ct_acctgames']||0, stored,
-      storedMonths:Object.keys(storedMonths).sort(), body:body.slice(0,900),
+      storedMonths:Object.keys(storedMonths).sort(), body:body.slice(0,2000),
       err:(()=>{const e=[...document.querySelectorAll('div')].find(d=>/Couldn.t reach Chess\.com/.test(d.innerText||'')&&d.children.length===0);return e?'yes':'no';})(),
-      scrollerH:sc?sc.scrollHeight:null, scrollerC:sc?sc.clientHeight:null};
+      scrollerH:sc?sc.scrollHeight:null, scrollerC:sc?sc.clientHeight:null,
+      // #432 the limit line as an ELEMENT, so "no line at all" is a measurement and not the absence of a
+      // substring, plus the contrast of it and of the count beside it. Ratio is computed from the COMPOSITED
+      // colour: these are white at an alpha over an opaque card, so the alpha is the whole of the defect.
+      cap:(()=>{
+        // #432 FIND THE LINE BY WHAT IT SAYS, NOT BY THE ATTRIBUTE THIS BUILD ADDED. First draft queried
+        // [data-ct="games-cap"] alone and its own negative control caught it: on the #431 bundle that
+        // attribute does not exist, so `text` came back null, A7b/A7e went red for a MISSING SELECTOR rather
+        // than for the wrong wording, and A7c - "the line does not state a games cap" - went PASS on the one
+        // bundle where the screen does exactly that. A check that reads only the thing the fix added cannot
+        // see the defect the fix removes. So: the attribute if it is there, else the leaf element whose own
+        // text is a limit sentence, so the same instrument measures both bundles.
+        const LIMIT=/(?:up to|at most|limit)\s+[\d][\d,]*\s+games|last\s*\d+\s*months/i;
+        const el=document.querySelector('[data-ct="games-cap"]')||
+          [...document.querySelectorAll('div,span,p')].find(x=>x.children.length===0&&LIMIT.test((x.textContent||'').trim()));
+        const cnt=[...document.querySelectorAll('span')].find(x=>/^\d+ loaded$/.test((x.textContent||'').trim()));
+        const lin=(c)=>{c/=255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);};
+        const lum=(r,g,b)=>0.2126*lin(r)+0.7152*lin(g)+0.0722*lin(b);
+        // #432 THE RATIO PRINTS ITS OWN INPUTS, because the first version returned 4.51 where both the
+        // antagonist's report and a hand calculation over rgb(26,33,42) said 4.37, and a threshold of 4.5
+        // sits between those two numbers. `bg` is the EFFECTIVE background: every translucent layer between
+        // the text and the first opaque ancestor is composited in order, which is what the browser paints
+        // and what the first draft skipped by taking the opaque ancestor alone.
+        const effBg=(node)=>{
+          const layers=[];let base=[0,0,0];
+          for(let n=node;n&&n!==document.documentElement;n=n.parentElement){
+            const m=getComputedStyle(n).backgroundColor.match(/[\d.]+/g);if(!m)continue;
+            const a=m.length>3?parseFloat(m[3]):1;
+            if(a===0)continue;
+            if(a===1){base=[+m[0],+m[1],+m[2]];break;}
+            layers.push([+m[0],+m[1],+m[2],a]);
+          }
+          let c=base;                                    // composite from the BOTTOM up
+          for(let i=layers.length-1;i>=0;i--){const l=layers[i];c=[0,1,2].map(k=>l[k]*l[3]+c[k]*(1-l[3]));}
+          return {c,base,layers:layers.length};};
+        const ratio=(node)=>{if(!node)return null;const f=getComputedStyle(node).color.match(/[\d.]+/g);if(!f)return null;
+          const a=f.length>3?parseFloat(f[3]):1, E=effBg(node), bg=E.c;
+          const c=[0,1,2].map(i=>+f[i]*a+bg[i]*(1-a));
+          const l1=lum(c[0],c[1],c[2]), l2=lum(bg[0],bg[1],bg[2]);
+          return {r:Math.round(((Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05))*100)/100,
+                  alpha:a, effBg:bg.map(v=>Math.round(v*10)/10), opaqueBase:E.base, translucentLayers:E.layers};};
+        return {present:!!el, text:el?(el.textContent||'').trim():null, h:el?Math.round(el.getBoundingClientRect().height*10)/10:0,
+                ratio:ratio(el), countRatio:ratio(cnt)};})()};
   },NEWEST.label);
 }
 
 // one input: seed s, n accounts. Returns the reading plus the post-reload reading (A5).
-async function input(seed,n,geo,name){
-  const state={seed,hits:[],refuse:false};
+async function input(seed,n,geo,name,thin){
+  const state={seed,hits:[],refuse:false,thin:thin||null};
   const b=await L.launch({geo,store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name});
   await stub(b,state);
   await b.open();
@@ -173,6 +221,59 @@ async function input(seed,n,geo,name){
     else L.note('       A5 NOT ASSERTED for this input: the list was empty before the reload, so there is nothing to persist. That is A1 failing, not a second finding.');
     await r.b.close();
   }
+  // ── A7 #432, THE THIN FIXTURE. THE SEVENTH INPUT THIS GATE WAS MISSING, AND WHY IT WAS MISSING MATTERS.
+  //    Every one of A1..A5's six inputs concentrates 300 games in the five months immediately before the
+  //    newest, so the backward walk ALWAYS reaches ACCT_GMAX and stops on GAMES. The gate therefore went
+  //    42/42 green over a bundle that prints "Showing up to 200 games per account." in a state where 200 was
+  //    not the limit at all - a whole branch of the app's own behaviour that its only gate could not enter.
+  //    That is the "measured in one configuration only" category pointed at a fixture rather than a claim.
+  //
+  //    US-R25 is the clause: the list is "bounded only by a limit the app STATES on screen". So the property
+  //    is not "a cap is stated", it is "the limit that BOUND is the limit stated", and it needs all three
+  //    exits to be reachable:
+  //      T1 thin-long   24 months x 5 games = 120/account -> the MONTH window binds at 6x5 = 30 rows
+  //      T2 short-whole  3 months x 5 games =  15/account -> NOTHING binds; the index ran out
+  //      (the games exit is A1..A5's six inputs above, unchanged)
+  //    T1 runs at 1 and 3 accounts because the union across accounts is its own decision in the render.
+  const THIN_PER=5, T1_MONTHS=24, T2_MONTHS=3, GMONTHS=6;
+  const MONTH_RE=/last\s*(\d+)\s*months/i;
+  for(const t of [{months:T1_MONTHS,n:1},{months:T1_MONTHS,n:3},{months:T2_MONTHS,n:1}]){
+    const total=t.months*THIN_PER;
+    const binds=total>GMONTHS*THIN_PER&&t.months>GMONTHS;          // months bind only if older months exist
+    const tag='THIN '+t.months+' months x '+THIN_PER+' ('+total+' per account) x '+t.n+' account'+(t.n>1?'s':'');
+    const r=await input('b',t.n,{w:375,h:730,safe:''},'thin-'+t.months+'-'+t.n,{months:t.months,per:THIN_PER});
+    const expect=t.n*(binds?GMONTHS*THIN_PER:total);
+    L.note(tag+'  rows '+r.rows+'  requests '+r.hitCount+'  months on screen '+JSON.stringify(r.distinct)+'  limit line '+JSON.stringify(r.cap));
+    const a0=L.say(r.hitCount>=t.n&&(r.rows>0||r.err==='yes'),'A7-0 vacuity '+tag+': the stubbed archives index was requested and the Review list rendered',{requests:r.hitCount,rows:r.rows,err:r.err});
+    if(!a0){L.note('     A7-0 failed - A7a..A7f SKIPPED for this input');await r.b.close();continue;}
+    // A7a IS THE PRECONDITION FOR EVERYTHING BELOW, and it is asserted rather than assumed: without it a
+    // green A7b could mean "the month wording is there" on a screen where months never bound [#385's rule].
+    L.say(r.rows===expect,'A7a '+tag+': rows == accounts x '+(binds?'(ACCT_GMONTHS x per month) - the MONTH window is what bound':'the whole account - NOTHING bound'),{rows:r.rows,expect,boundExpected:binds?'months':'all',perAccountTotal:total});
+    if(binds){
+      // A7b AND A7c READ THE WHOLE SCREEN (r.body), not the line element. The element is the fix's own
+      // handiwork; the body is what the player sees on either bundle, and it is the only reading that makes
+      // these two falsifiable against #431. r.cap is still printed beside them as the located line.
+      const mn=(r.body||'').match(MONTH_RE);
+      L.say(!!mn&&+mn[1]===GMONTHS,'A7b US-R25 '+tag+': the screen states the MONTH window, which is the limit that actually bound',{months:mn?+mn[1]:null,expect:GMONTHS,locatedLine:r.cap.text});
+      // A7c is the other half and is NOT a restatement of A7b: a screen could name both and still mislead.
+      // On the #431 bundle this is the defect itself - "Showing up to 200 games per account." while 200
+      // never bound - so this assertion is the one that had to be read off the body to be able to fail.
+      const gc=(r.body||'').match(CAP_RE);
+      L.say(!gc,'A7c US-R25 '+tag+': the screen does NOT state a games cap as the bound, because the games cap is not what stopped the walk',{matchedGamesCap:gc?gc[0]:'no',locatedLine:r.cap.text});
+      L.say(!!r.cap.ratio&&r.cap.ratio.r>=4.5,'A7e '+tag+': the limit line meets WCAG AA for normal text (>= 4.5:1) against everything painted behind it',r.cap.ratio?{...r.cap.ratio,min:4.5}:{ratio:null,min:4.5});
+    }else{
+      // A7d IS THE 24.8px, AS A PROPERTY RATHER THAN AS A PIXEL COUNT. Nothing was cut, so there is no limit
+      // to state, so the line must not be rendered at all - which is what gives the shortest screens their
+      // height back. Asserting "absent" is only safe because A7b above proves the same element IS rendered
+      // in the state that needs it; absence with no presence anywhere is the unfalsifiable shape [#385].
+      // Absence is asserted on BOTH the element and the body [R: absence must list what was checked]: a
+      // missing data-ct alone is satisfied by any bundle that never had the attribute, #431 included.
+      L.say(r.cap.present===false&&!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),'A7d '+tag+': NO limit line is rendered and NO limit sentence is anywhere on the screen when nothing bound the list, so it costs no height on a history that fits',{element:r.cap.present,heightPx:r.cap.h,gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthsInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no'});
+    }
+    L.say(!!r.cap.countRatio&&r.cap.countRatio.r>=4.5,'A7f '+tag+': the "N loaded" count beside it meets WCAG AA (>= 4.5:1) - PRE-EXISTING and swept with the line rather than left [R06]',r.cap.countRatio?{...r.cap.countRatio,min:4.5}:{ratio:null,min:4.5});
+    await r.b.close();
+  }
+
   // ── A6, the geometry sweep. This gate's subject is data, not pixels, so the matrix above runs at Kunal's
   //    375x730 and the WIDTH-sensitive part runs here: nothing on the list is cut off and the first row is
   //    hit-testable at its own centre after scrolling ITS OWN scroller (measurement rules 1, 3, 4).
