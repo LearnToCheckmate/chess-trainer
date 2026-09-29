@@ -451,6 +451,27 @@ wider one.
   able to see it, and the disagreement with the antagonist's published number was the only tell. Make a ratio print
   its own inputs - alpha, effective background, opaque base, how many layers were composited - so the next reader can
   see which of two numbers to believe. Same family as "a threshold belongs to the instrument it was calibrated on".
+- **A FIXTURE THAT ENCODES THE SAME ASSUMPTION AS THE CODE CANNOT SEE THAT ASSUMPTION, AND EVERYONE WHO REASONS FROM
+  THE FIXTURE INHERITS IT.** `gates/regress/61`'s archive-index fixtures were all CONTIGUOUS runs of months. The real
+  API is not: `api.chess.com/pub/player/<u>/games/archives` lists **only the months in which the player has games**. So
+  `ACCT_GMONTHS` bounds INDEX ENTRIES and the screen said "your last 6 months", and the gate went **89 of 89 green over
+  a sentence wrong by 4.7x** - 8 entries spread over **28 calendar months**, measured at #432. The gate could not fail,
+  because its fixture had quietly agreed with the bug. Note who was blind: the build AND antagonist A, both of whom
+  reason from the diff and the gate; it was found only from the SHIPPED-SURFACE door, by an antagonist with no fixture
+  to mislead it. **Before you pin a fixture's shape, check what the real thing returns** - one page of API docs, or one
+  recorded response. And when a gate has never gone red on an input class, ask whether the input class exists in it at
+  all. The repair is the input, not the assertion: #433's sparse index reddens the old bundle at claimed 6 / measured
+  28. Same family as #375's gate that forced a 3-worker pool and so exercised the fixed path twice. #432, #433.
+- **A PREMISE IN A COMMENT IS NOT A MEASUREMENT, AND THE BUILD THAT INVALIDATED IT MAY ALREADY HAVE SHIPPED.** #432's
+  returning-user fallback rested on a sentence in its own comment: "no pre-#431 store can ever reach 200, so the whole
+  installed base sits at or under 40." True the day it was written. #433 built an inference on top of it and printed
+  **41, 137 and 199 back at players as caps this app has never had** - 160 invented limits, which is the #431 defect
+  (a limit stated that did not bind) with a worse number in it. The antagonist settled it in ONE command:
+  `git show origin/main:app.js | grep -c ct_acctcap` is **0** while that same tree carries `ACCT_GMAX=200`, so the
+  store-with-no-recorded-bound population is pre-**#432**, not pre-#431, and spans 0..200 rows. This is #405's frozen
+  denominator pointed at a PREMISE rather than at a count: the comment did not go stale by being wrong, it went stale
+  because a later build shipped underneath it. **A comment that reasons about what earlier builds could produce is a
+  claim about `origin/main`, and `origin/main` is one grep away.** #433.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never
