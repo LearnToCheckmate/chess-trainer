@@ -16,7 +16,16 @@
 // The scan is the auditor's own: every painted element whose own text is under 44 chars and
 // matches the result vocabulary, head/style excluded, plus the status line read directly.
 const L=require('../../../gates/lib');const P=require('../../../gates/drive/play');
+// THE SCAN VOCABULARY, and the word that had to come out of the VERDICT. This is the auditor's own regex and
+// it is kept for the scan, because a result really can say 'draw'. But chess.jsx:3142's strength note on a draw
+// reads 'Draw — strength stays ~N Elo', which MATCHES it - measured by antagonist A at 235.7px, where the two
+// '▼'/'▲' wordings return []. So a bare hits.length>0 verdict is satisfied by the very message that hides the
+// result, and had the #433 auditor drawn instead of resigning this probe would have printed 'result on screen
+// = true' over a screen saying nothing about the result. The verdict below therefore excludes any hit that is
+// the strength note, and says so in its output. [#434, on A's finding.]
 const RE=/won|win|lose|lost|Time!|Resigned|Checkmate|Stalemate|draw/i;
+const STRENGTH=/strength (now|stays)/i;
+const realResult=(hits)=>hits.filter(h=>!STRENGTH.test(h.t));
 
 async function scan(b){
   return await b.page.evaluate((src)=>{
@@ -66,7 +75,8 @@ async function readAll(b,label,geoLabel){
     await b.settle(600);await readAll(b,c.id+' @+1.8s (card still up)',gl);
     await b.settle(5000);const r=await readAll(b,c.id+' @+6.8s (card gone)',gl);
     await b.shot('p434-'+c.id);
-    console.log('VERDICT '+c.id+': result on screen at +6.8s = '+(r.hits.length>0)+'  statusLine='+JSON.stringify(r.line));
+    const real=realResult(r.hits);
+    console.log('VERDICT '+c.id+': result on screen at +6.8s = '+(real.length>0)+'  (raw hits '+r.hits.length+', of which strength-note hits '+(r.hits.length-real.length)+')  statusLine='+JSON.stringify(r.line));
     await b.close();
   }
   process.exit(0);

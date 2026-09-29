@@ -40,8 +40,18 @@
 //    320 phone plus the fact that 340px of two joined messages at 13px buries the one fact the player needs,
 //    NOT that it overflows his phone. (The draft also carried 159.2px for the result, which is the Pass & Play
 //    string 'Resigned · Black wins'; the vs-computer string is 142.6.)
-//  * THE BOARD IS SACRED. A4 asserts the board's width and top are identical across the card fade, so a fix
-//    that bought the result by moving the board would go red here.
+//  * THE BOARD IS SACRED. A7/B7 assert the board's width and top are identical across the card fade, so a fix
+//    that bought the result by moving the board would go red here. THIS BULLET SAID "A4" UNTIL ANTAGONIST A
+//    CAUGHT IT [R18]: A4 is the painted-element scan and is one of the six published reds, so naming it here
+//    told a reader auditing the control that #433's board MOVED across the fade - which that same log disproves,
+//    its A7 PASS reading {"up":{"w":353.03,"y":93.75},"down":{"w":353.03,"y":93.75}}. One id, inverted meaning.
+//    AND WHAT A7 CAN ACTUALLY SEE IS NARROWER THAN IT LOOKS, also A's measurement: chess.jsx:5617 gives the
+//    status row height:18 with flexShrink:0 and the slot is one nowrap line inside it, so on the shipped bundle
+//    the board reads 353.03/93.75 with the real text, with 400 characters in the slot, with whiteSpace:normal
+//    wrapping to many lines, AND at fontSize:40px. No change confined to _txt or to this span's type can move
+//    the board, so A7 is NOT the evidence for "the fix costs no board height" - it is a guard against a future
+//    fix that ADDS A ROW. The evidence for the height claim is the 353.03/93.75 pair plus the fact that the
+//    diff adds no element.
 //  * FOUR INPUTS, NOT ONE (R18): two geometries, the eloMsg-empty branch at the Elo floor, and Pass & Play.
 'use strict';
 const L=require('../lib');const P=require('../drive/play');
@@ -89,17 +99,17 @@ L.run(async()=>{
     await b.settle(600);                                   // card still up (it fades at ~3s)
     const upCard=await b.text('[data-ct="result-card"]'),upSlot=await slot(b),upBd=await b.board();
     L.say(!!upCard&&/Resigned/.test(upCard),tag+'1a '+geo+': resigning as White at move 0 puts the result CARD up, reading Resigned',{card:upCard});
-    L.say(!!upSlot&&/Strength now ~450 Elo/.test(upSlot.t),tag+'1b '+geo+': and while the card is up the status slot carries the adaptive-strength note - asserted BEFORE the absence below, so a green here cannot come from eloMsg never being set (#385)',{slot:upSlot&&upSlot.t});
+    L.say(!!upSlot&&/Strength now ~\d+ Elo/.test(upSlot.t),tag+'1b '+geo+': and while the card is up the status slot carries the adaptive-strength note - asserted BEFORE the absence below, so a green here cannot come from eloMsg never being set (#385). The number is deliberately NOT pinned: a literal ~450 couples this gate to Pip being 500 and the step being 50, so changing either constant would redden an assertion that is about the slot and not about the ladder (antagonist A, F12)',{slot:upSlot&&upSlot.t});
     await b.settle(5000);                                  // card gone
     const goneCard=await b.text('[data-ct="result-card"]'),dn=await slot(b),hits=await resultHits(b),dnBd=await b.board();
-    L.say(goneCard===null,tag+'2a '+geo+': ~6.6s after the resignation the result card has gone',{card:goneCard});
+    L.say(goneCard===null,tag+'2a '+geo+': ~6.8s after the resignation (measured with Date.now() from the confirm tap to the read: 6.81s at both geometries) the result card has gone',{card:goneCard});
     const want='Resigned · You lose';
     L.say(!!dn&&dn.t===want,tag+'2b '+geo+': and the status slot now states the result, as the app\'s own two-part string head + " · " + sub - not a regex any wording would satisfy (#388)',{slot:dn&&dn.t,want});
     L.say(!!dn&&/You lose/.test(dn.t),tag+'3 '+geo+': and the outcome it names is the one the GAME had - this side resigned as White, so the player lost, which is a fact about the game and not a reading off a sibling element (#389)',{slot:dn&&dn.t});
     L.say(hits.length>=1&&hits.some(h=>h.t===want),tag+'4 '+geo+': a scan of every painted element under 44 chars matching the result vocabulary finds the result on screen - this returned ZERO hits on the shipped #433 bundle',{hits});
     L.say(!!dn&&dn.op===1,tag+'5 '+geo+': the slot is actually painted (opacity 1), not present-and-invisible',{opacity:dn&&dn.op});
     L.say(!!dn&&dn.nowrap==='nowrap'&&dn.sw<=dn.cw+1,tag+'6 '+geo+': and nothing in that slot is silently cut - it is a nowrap ellipsis span whose scrollWidth fits its clientWidth. MEASURED in this span: the result is 143, the strength note 183, the two joined 340, and the slot is 96vw = 360 at 375 but 307.2 at 320 - so this assertion catches a concatenation at 320 and NOT at 375 (#387, #394)',{sw:dn&&dn.sw,cw:dn&&dn.cw,white:dn&&dn.nowrap,ell:dn&&dn.ell});
-    L.say(!!upBd&&!!dnBd&&Math.abs(upBd.w-dnBd.w)<0.6&&Math.abs(upBd.y-dnBd.y)<0.6,tag+'7 '+geo+': and the board did not move one pixel across the card fade - the slot changing its text must never cost board geometry',{up:upBd&&{w:+upBd.w.toFixed(2),y:+upBd.y.toFixed(2)},down:dnBd&&{w:+dnBd.w.toFixed(2),y:+dnBd.y.toFixed(2)}});
+    L.say(!!upBd&&!!dnBd&&Math.abs(upBd.w-dnBd.w)<0.05&&Math.abs(upBd.y-dnBd.y)<0.05,tag+'7 '+geo+': and the board did not move across the card fade, to the hundredth of a pixel - the tolerance is 0.05 rather than 0.6 so that the gate asserts what the build CLAIMS (measured delta: exactly 0.0000) - the slot changing its text must never cost board geometry',{up:upBd&&{w:+upBd.w.toFixed(2),y:+upBd.y.toFixed(2)},down:dnBd&&{w:+dnBd.w.toFixed(2),y:+dnBd.y.toFixed(2)}});
     L.say(b.errs.length===0,tag+'8 '+geo+': zero app errors across the termination',b.errs.slice(0,3));
     await b.shot('cpu-result-'+geo);
     await b.close();
@@ -113,6 +123,8 @@ L.run(async()=>{
   {
     const b=await L.launch({geo:'kunal730',name:'cpu-result-elofloor',store:{ct_pool:'3',ct_elo:'400'}});await b.open();
     await P.states['setup'](b);await P.tapBtn(b,/^▶ Start game$/,900);await b.settle(250);
+    const elo=await b.page.evaluate(()=>{try{return localStorage.getItem('ct_elo');}catch(e){return null;}});
+    L.say(elo==='400','C0 375x730: the floor is READ BACK, not inferred - ct_elo is 400 going into the termination, so ne = max(400, 400-50) = 400 == cpuElo and chess.jsx:3144 cannot fire. Without this the whole C block explained an empty slot by a state it never checked (antagonist A, F10)',{ct_elo:elo});
     await resign(b);
     await b.settle(600);const upSlot=await slot(b);
     L.say(!!upSlot&&!/Strength/.test(upSlot.t),'C1 375x730: at the Elo floor a loss changes no strength, so the slot carries NO strength note while the card is up - the branch the job called unmeasured',{slot:upSlot&&upSlot.t});
@@ -144,4 +156,30 @@ L.run(async()=>{
   // board shrinking 224.00 -> 192.00 at the same moment, which is a board jump and a bigger question.
   // A TIME LOSS. The auditor measured one (a 1-minute clock flags at t+56s) and it is the same slot and the
   // same branch; it is not gated here because 56 seconds of wall clock per geometry is not a per-build cost.
+  // Antagonist B DID drive one on this bundle and the slot read 'Time! - You lose' (116.5px) by t+4.24s.
+  //
+  // THE OTHER TWO eloMsg BRANCHES, and this is the gap both antagonists landed on independently. chess.jsx:3142
+  // sets 'Draw - strength stays ~N Elo' on a DRAW, and 3144 sets the up-arrow wording on a WIN. Every input here
+  // terminates by resignation as White, so only the down-arrow loss branch is reached. Post-fade behaviour is safe
+  // by construction rather than by test - antagonist A enumerated all 96 rows of opponent x eloMsg x
+  // resultCardGone x _res x _op x _done, found 48 reachable (gameResult at chess.jsx:4308 is non-null exactly
+  // when the game is over, so _res is non-empty exactly when _done) and 0 of them fall through _res||_fin to
+  // _fin - so the result takes the slot on a draw too, and B confirmed it by driving real ones in Pass & Play:
+  // 'Draw - Threefold repetition' 199.9px and 'Stalemate - Draw' 127.0px. What is NOT covered is the CONTESTED
+  // slot on a vs-computer draw, where 3142 fires unconditionally: B tried 20 plies of knight shuffling against
+  // Pip and the engine never repeats, and the fifty-move branch needs 100 quiet plies, so it is expensive rather
+  // than skipped. jobs/two-elomsg-branches-are-unreachable-by-every-input-in-the-suite-2026-09-29.
+  //
+  // AND A TRAP IN THE PROBE THAT WROTE THIS GATE'S EVIDENCE, recorded where the next reader will hit it: the scan
+  // vocabulary contains 'draw', and the draw branch's strength note is 'Draw - strength stays ~500 Elo', so it
+  // MATCHES - measured by A at 235.7px where both arrow wordings return []. A hits.length>0 verdict is therefore
+  // satisfied by the very message that hides the result, and had the #433 auditor drawn instead of resigning, the
+  // probe would have printed 'result on screen = true' over a screen saying nothing about it. The assertions here
+  // are immune because A4/B4/C3/D2 test EXACT equality with the expected string;
+  // claude/agents/probes/434-cpu-result-line.js was not, and is fixed. 'A shape is not a value' reaches into the
+  // instrument, not only into the app.
+  //
+  // ROTATION. Antagonist B, on THIS bundle: resizing a finished game from 375x730 to 730x375 and back makes the
+  // result disappear and reappear, because landscape has no slot at all. On #433 both orientations agreed (neither
+  // showed it), so this build creates that disagreement. Recorded on the landscape job.
 }, 'CPU-RESULT-LINE');
