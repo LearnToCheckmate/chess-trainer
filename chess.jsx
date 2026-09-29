@@ -2761,7 +2761,20 @@ export default function App(){
   // Shrink fast (one pass clears the whole overflow), grow back slowly and only with 12px of proven slack, so it
   // settles instead of oscillating. Bounded passes per trigger; never runs outside the one-screen review.
   useLayoutEffect(()=>{
-    const _fitScreen=((inReview&&revCompact)||(mode==='play'&&!playSetup))||(!wide&&((mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null)));
+    // #436 THE LOOP DOES NOT RUN IN LANDSCAPE, because there it can only do harm. MEASURED on the shipped
+    // #435 bundle, live game vs Pip, at three landscape widths, comparing a fresh landscape launch against a
+    // portrait->landscape round trip: 730x375 gave 224 fresh and 216 rotated; 844x390 gave 224 fresh and 232
+    // rotated; 667x375 gave 224 fresh and 216 rotated. The analytic caps are 216, 232 and 216 - so the ROTATED
+    // value is the geometry's own answer every time, and the fresh-launch value is 224 at ALL THREE widths.
+    // A number that is identical across three screens whose correct answers differ is not a derivation, it is
+    // an artifact: a boardTrim written by this loop from an UNSETTLED first-paint frame, which then survives
+    // because nothing later can correct it. `over` - the ONLY quantity this loop acts on - measured exactly 0
+    // in every settled landscape state at all three widths, so the loop can neither grow (needs over<-24) nor
+    // shrink (needs over>0) there. Its entire contribution in landscape was that one transient.
+    // So landscape uses SQ's own `wide` branch, which is analytic (availH and wcap are both hard budgets), and
+    // the !_fitScreen path below forces boardTrim back to 0. Portrait is UNTOUCHED and must stay so: its play
+    // board runs through the `_edge` path where the trim is real (#364 measured 56px of slack it reclaims).
+    const _fitScreen=!wide&&((inReview&&revCompact)||(mode==='play'&&!playSetup)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null));
     if(!_fitScreen){if(boardTrimRef.current!==0)setBoardTrim(0);fitGeoRef.current='';return;}
     // Reset ONLY on a geometry change (rotate, resize, different screen). A content change - a move played, a
     // banner appearing - settles from the CURRENT trim, or the board visibly jumps to full size and back on

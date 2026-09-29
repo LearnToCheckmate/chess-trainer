@@ -354,6 +354,18 @@ The clauses, each one measurable:
    not move as the outcome arrives - measured on #434, the board shrank 224.00 -> 192.00 at the instant the
    game ended in landscape, because the bottom tab bar returned and its 62px spacer was paid for out of the
    board. A row that can appear must reserve its space, in both orientations.
+7. **The board's size in landscape is a property of the SCREEN, not of how the player got there.** *(Added
+   #436, from jobs/landscape-board-shrinks-8px-on-a-rotation-round-trip-2026-09-29, found by #435's
+   antagonist A.)* Clause 6 pinned the board across the game ENDING; this pins it across the player's ROUTE.
+   A phone opened sideways and a phone rotated into landscape are the same phone on the same screen and must
+   show the same board. MEASURED on the shipped #435 bundle, live game vs Pip: a fresh landscape launch gave
+   224.00 at 730x375, 844x390 AND 667x375, while rotating out to portrait and back gave 216.00, 232.00 and
+   216.00 - each screen's own analytic cap. One value across three screens whose correct answers differ is
+   not a derivation, and that is what identified 224.00 as an artifact: a boardTrim written by the board-fit
+   loop (chess.jsx:2763) from an unsettled first-paint frame, which survived because `over` - the only
+   quantity that loop acts on - is exactly 0 in every settled landscape state, so nothing could correct it.
+   Note which way the harm ran: the NARROWER phone kept 8px it was not owed and the WIDER phone silently lost
+   8px it was, so "the board is too small" and "the board is too big" were the same defect.
 
 ID NOTE, because this project has already paid for one id collision (flags/suite-id-collision-tc-r). US-PL-01
 to US-PL-10 and TC-PL-001 to TC-PL-030 are cited by gates/regress/46-play.js as living in
