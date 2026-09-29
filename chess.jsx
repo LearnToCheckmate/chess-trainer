@@ -225,9 +225,17 @@ function flagOf(cc){
   try{return String.fromCodePoint(...[...cc.toUpperCase()].map(ch=>0x1F1E6+ch.charCodeAt(0)-65));}catch(e){return '';}
 }
 // #353 Imported accounts and their games, kept for good and across reloads. Bounded so a long
-// history cannot fill the origin's storage: 8 accounts, 40 games each, oldest account dropped
-// first. A quota failure keeps the games in memory for this session rather than losing the fetch.
-const ACCT_K='ct_accts', ACCT_G='ct_acctgames', ACCT_MAX=8, ACCT_GMAX=40;
+// history cannot fill the origin's storage: 8 accounts, ACCT_GMAX games each, oldest account
+// dropped first. A quota failure keeps the games in memory for this session rather than losing
+// the fetch.
+// #431 ACCT_GMAX was 40 and the chess.com fetch asked for ONE month, so a player who had not
+// played this month saw an EMPTY Review list (Kunal, twice: "Why are there only 47 games in
+// review. There should be thousands."). A cap is still correct here - the public API serves one
+// month per request, the rows carry full PGNs and localStorage is ~5MB for the whole app - so
+// the fix is a bigger cap and a fetch that does not let the calendar set the number, not an
+// unbounded list. ACCT_GMONTHS bounds the request count: at most one request per month walked.
+// US-R25 requires ACCT_GMAX to be STATED ON SCREEN, so it is rendered, never retyped.
+const ACCT_K='ct_accts', ACCT_G='ct_acctgames', ACCT_MAX=8, ACCT_GMAX=200, ACCT_GMONTHS=6;
 function acctGamesLoad(){try{const o=JSON.parse(localStorage.getItem(ACCT_G)||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}}
 function acctGamesSave(map){try{localStorage.setItem(ACCT_G,JSON.stringify(map));}catch(e){}}
 const acctId=(src,user)=>src+':'+String(user||'').trim().toLowerCase().replace(/^@/,'');
@@ -3574,8 +3582,20 @@ export default function App(){
       if(!ar.ok)throw new Error(ar.status===404?'username not found':'server '+ar.status);
       const arj=await ar.json();const archives=arj.archives||[];
       if(!archives.length)throw new Error('no games on that account');
-      const gr=await fetch(archives[archives.length-1]);const grj=await gr.json();
-      const games=(grj.games||[]).filter(g=>g.pgn).slice(-20).reverse();
+      // #431 Walk the archives index BACKWARDS from the newest month until we have ACCT_GMAX games
+      // or have read ACCT_GMONTHS months, instead of asking for archives[last] alone. The newest
+      // month is no longer special: it is simply the first month walked, so an empty one costs a
+      // request and nothing else. One request per month is the API's own shape, and both bounds
+      // are needed - ACCT_GMAX so a heavy month cannot blow the storage budget, ACCT_GMONTHS so a
+      // player with a thin history does not walk years of empty archives.
+      const games=[];
+      for(let i=archives.length-1;i>=0&&games.length<ACCT_GMAX&&(archives.length-i)<=ACCT_GMONTHS;i--){
+        let mj=null;
+        try{const mr=await fetch(archives[i]);if(!mr.ok)continue;mj=await mr.json();}catch(e){continue;}
+        const mg=(mj.games||[]).filter(g=>g.pgn);
+        mg.sort((x,y)=>(y.end_time||0)-(x.end_time||0));   // newest first WITHIN the month
+        for(let k=0;k<mg.length&&games.length<ACCT_GMAX;k++)games.push(mg[k]);
+      }
       if(!games.length)throw new Error('no recent games found');
       const rows=games.map(g=>({src:'cc',acct:u,pgn:g.pgn,white:(g.white&&g.white.username)||'White',black:(g.black&&g.black.username)||'Black',wr:g.white&&g.white.result,tc:g.time_class,date:(g.end_time||0)*1000}));
       ccRawRef.current=null; acctStore('cc',u,rows); mergeGames();
@@ -3595,7 +3615,7 @@ export default function App(){
     if(!u){setCcErr('Enter your Lichess username first.');return;}
     setCcErr('');setCcLoading(true);
     try{
-      const r=await fetch(`https://lichess.org/api/games/user/${encodeURIComponent(u)}?max=20&pgnInJson=true&clocks=false&evals=false&sort=dateDesc`,{headers:{Accept:'application/x-ndjson'}});
+      const r=await fetch(`https://lichess.org/api/games/user/${encodeURIComponent(u)}?max=${ACCT_GMAX}&pgnInJson=true&clocks=false&evals=false&sort=dateDesc`,{headers:{Accept:'application/x-ndjson'}});
       if(!r.ok)throw new Error(r.status===404?'username not found':'server '+r.status);
       const txt=await r.text();const lines=txt.trim().split('\n').filter(Boolean);
       if(!lines.length)throw new Error('no games on that account');
@@ -5740,6 +5760,10 @@ export default function App(){
                 <span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Your games <span style={{color:'rgba(255,255,255,.42)',fontWeight:600,fontSize:'.86em'}}>· latest first</span></span>
                 <span style={{flexShrink:0,fontSize:'clamp(14px,2.9vw,15px)',color:'rgba(255,255,255,.4)',fontWeight:600}}>{ccGames.length} loaded</span>
               </div>
+              {/* #431 US-R25: the limit is one the app STATES. The count above is a count, not a
+                  limit. ACCT_GMAX is rendered, never retyped, so the number on screen cannot drift
+                  from the number the store keeps. */}
+              <div style={{fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.45)',marginTop:-1,lineHeight:1.4}}>Showing up to {ACCT_GMAX} games per account.</div>
               {ccGames.length>6&&(<input value={gameSearch} onChange={e=>setGameSearch(e.target.value)} placeholder="Filter by player name" style={{width:'100%',padding:'6px 10px',borderRadius:7,background:'rgba(0,0,0,.25)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.10)',fontSize:'clamp(14px,3.1vw,16px)'}}/>)}
               <div className="scroll" style={{display:'flex',flexDirection:'column',gap:6,maxHeight:'min(46vh,340px)',overflowY:'auto'}}>
               {_shown.map((g,i)=>{const info=gameInfo(g);const bd=outcomeBadge(info.code);const st=gameStatsRef.current[gkey(g)];return(

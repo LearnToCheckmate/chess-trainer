@@ -1,0 +1,31 @@
+#431 RENDER PAIR — jobs/review-list-caps-at-about-40-games-2026-09-23, phase one
+
+GEOMETRY   375x730, Kunal's real phone (lib.js GEOS.kunal730), no ct_safe.
+INPUT      IDENTICAL for both shots, and it is TC-R35's seed (a): a stubbed chess.com archives
+           index of 24 monthly archives in which the NEWEST month (2026-09) holds ZERO games and
+           2026-04..2026-08 hold 60 each, so the account holds 300 games and none of them are
+           from this month. One connected account, kunalschess.
+           api.chess.com is stubbed inside the render with ctx.route; nothing left the container.
+METHOD     Both shots taken by the same script with the same stub, differing ONLY in the bundle
+           under it. Red box drawn on the list block (header row + cap sentence + first game row),
+           or on the error message where no list exists.
+
+BEFORE  claude/agents/renders/431-before-review-list-EMPTY-FOR-AN-ACCOUNT-HOLDING-300-GAMES.png
+        bundle md5 d9ea5c4fd4d8 (chess.jsx at e53ff79, #430's app code)
+        MEASURED: rows 0, no cap stated, no "N loaded" header, error message shown.
+        The player holding 300 games sees NO list at all.
+
+AFTER   claude/agents/renders/431-after-review-list-200-GAMES-NONE-IN-THIS-MONTH.png
+        bundle md5 14610bc43ee9 (the phase-one fix)
+        MEASURED: rows 200, cap "200" stated on screen, header "200 loaded",
+        months on screen ["Aug","Jul","Jun","May"] — every one OUTSIDE the newest month,
+        first row "vs rosa_08_26".
+
+WHAT THE BEFORE SHOT ALSO SHOWS, AND IT IS NOT THE DEFECT THIS BUILD WAS SENT TO FIX.
+The empty state is not silent: it prints "Couldn't reach Chess.com (no recent games found).
+Fetching works once this app is on a real website — the preview sandbox blocks outside
+connections." Chess.com WAS reached; both requests returned 200. The app throws
+'no recent games found' and the single catch in fetchChessCom renders every throw, including
+its own, as a network failure. Phase one removes this for seed (a) by finding the games, but
+the message is still wrong for any player who genuinely has no games in the walked window.
+Filed separately rather than widened into this build: see the run report.
