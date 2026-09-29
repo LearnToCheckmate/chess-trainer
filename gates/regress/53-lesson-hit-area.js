@@ -364,6 +364,22 @@ L.run(async()=>{
    }
   }
 
+  // ── N4. THE TAP BOX MEETS THE 44pt FLOOR. Added at #430 on antagonist B's P0, which is a finding about the
+  //    FIX and not about the row's width: shrinking the chip's font from 13 to 12 took its drawn height from 23
+  //    to 22, and since the button's box is the chip plus 2 x its vertical padding, the BORDER BOX - the thing
+  //    that takes the tap - went from 43.00px to 42.00px. Both are under this project's own 44pt minimum, so the
+  //    floor was already missed before #430 and #430 made it 1px worse; nothing in the suite asserted it, and
+  //    gate 53's own diagnostics printed "boxes 42/42px" at all eight columns without comparing them to
+  //    anything. Fixed by taking the padding to 11px with the margin to -11px, which is free: the two cancel, so
+  //    the row's height and the board do not move. Asserted here rather than left as a diagnostic, because a
+  //    number that is printed and not compared is how this one survived.
+  L.say(h.found&&h.anH!=null&&h.cpH!=null&&h.anH>=44&&h.cpH>=44,
+    tag+': and both chips\' TAP BOXES clear the 44pt floor - Analyze '+h.anH+'px, Copy '+h.cpH+'px (>= 44). '+
+    'MEASURED at #430: 43.00px before this build and 42.00px after the font change, both under the floor and '+
+    'neither asserted anywhere. The padding that makes this box is cancelled by an equal negative margin, so '+
+    'raising it costs no row height and no board - keep them equal and opposite',
+    {analyzeH:h.anH,copyH:h.cpH,floor:44,chipDrawnH:h.chipH,note:'border box, not the painted chip'});
+
   // ── N3. AND THE OVERLAP ASSERTION IS KEPT, so it can still fail if anything ever wraps again (the
   //    decision's own words). Vacuously true while N1 is green - which is the point: it is the guard for the
   //    day N1 goes red, and it is the assertion that would have caught the -8px margin "fix".

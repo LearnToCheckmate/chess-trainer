@@ -30,9 +30,18 @@ L.run(async()=>{
   // MEASURED ON #382, and it is NOT a defect in the app: at every one of those geometries the column fills the
   // viewport EXACTLY - bottom equals innerHeight, zero slack - so the board is already as large as the height
   // allows. A square board cannot be as wide as the screen when the screen is shorter than it is wide plus the
-  // chrome. At 320x568 the demo board is 270.9 and practice 230.9, and the 40px difference is exactly the extra
-  // chrome practice carries: a 56px control row against demo's 44 (+12) and a 98.1px MOVES panel against demo's
-  // 70.1 (+28). 12 + 28 = 40. Nothing is stealing width; there is no width to steal.
+  // chrome. At 320x568 the demo board is 270.9 and practice 254.9, and the 16px difference is exactly the extra
+  // chrome practice carries: a 56px control row against demo's 44 (+12) and a 74.1px MOVES panel against demo's
+  // 70.1 (+4). 12 + 4 = 16. Nothing is stealing width; there is no width to steal.
+  //
+  // RE-PINNED AT #430, AND THE IDENTITY WAS RE-DERIVED RATHER THAN THE NUMBER SWAPPED. Practice was 230.9 with a
+  // 98.1px panel (+28) until #430, which stopped the MOVES row WRAPPING at this geometry by shrinking its two
+  // chips. Measured on both bundles at 320x568: the practice MOVES row was 52px tall on two lines and is 23px on
+  // one, so the panel falls 98.13 -> 74.13 and the board takes the 24px back, 230.9 -> 254.9. THE DEMO END IS
+  // UNCHANGED TO THE HUNDREDTH on both bundles (board 270.9, panel 70.13), which is the check that this pin moved
+  // because the chrome shrank and not because something started stealing width - the very distinction the
+  // assertion below is worded around. The gate was RIGHT to go red: it caught a real change in board geometry,
+  // which is what it is for, so the pin moves WITH the change rather than being deleted or widened.
   //
   // So "edge to edge" is an unachievable absolute at those sizes, and asserting it would be asserting geometry
   // away. What IS testable, and is the real invariant, is that the board is GIVEN EVERYTHING AVAILABLE: no slack
@@ -65,7 +74,7 @@ L.run(async()=>{
       L.say(Math.abs(m.bottom-m.vh)<2,tag+': the column fills the viewport (bottom '+m.bottom+' of '+m.vh+'). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.',{bottom:m.bottom,vh:m.vh});
       // THIS is the assertion that guards the board. Same fix 10-gameover and A-12 needed: a size compared only
       // to itself, or to an invariant that always holds, cannot see the board get smaller. Measured on #382.
-      const WANT={'320x568 demo-end':270.9,'320x568 practice-m0':230.9,'360x640 demo-end':342.4,'360x640 practice-m0':326.4,'375x667 demo-end':375,'375x667 practice-m0':352.2};
+      const WANT={'320x568 demo-end':270.9,'320x568 practice-m0':254.9/* #430: was 230.9; the MOVES row no longer wraps here, see the note above */,'360x640 demo-end':342.4,'360x640 practice-m0':326.4,'375x667 demo-end':375,'375x667 practice-m0':352.2};
       if(WANT[tag]!=null)L.say(!!m.board&&Math.abs(m.board.w-WANT[tag])<1.5,tag+': the board is '+WANT[tag]+' wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.',{measured:m.board&&m.board.w,want:WANT[tag]});
       L.say(!!m.board&&m.board.w<=m.vw+0.6,tag+': the board never exceeds the viewport width',m.board);
       L.say(!!m.board&&Math.abs(m.board.x-(m.vw-m.board.w)/2)<1.5,tag+': the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x '+(m.board&&m.board.x)+', expected '+(m.board?Math.round((m.vw-m.board.w)/2*10)/10:'-')+')',m.board);

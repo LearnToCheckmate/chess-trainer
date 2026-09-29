@@ -2747,10 +2747,17 @@ export default function App(){
      place, and since #430 the MOVES row fits on ONE line by fitting exactly - so a long flash label re-wraps the
      row and brings back the hit-area P0 in a state the gate measures around. MEASURED at 600 12px Arial on the
      lesson screen: 'Copy' 46.00px, '✓ Copied!' 74.00px (fits everywhere, 30.2px spare at the worst column),
-     '⚠ Long-press list' 116.34px - which did NOT fit at 375x520 (-12.14px) or 320x520 (-4.14px), hence
-     '⚠ Copy failed' at 95.02px. The ceiling is 96.2px at 375x520 (46.00 + 58.2px of row slack - the 8px floor).
-     Gate 53's N2c asserts it, over every label this function can print. Do not lengthen either string without it. */
-  const copyMoves=()=>{const h=boardGame.history;if(!h||!h.length)return;let s='';for(let i=0;i<h.length;i++){if(i%2===0)s+=(i/2+1)+'. ';s+=h[i].san+' ';}s=s.trim();const flash=(m)=>{setCopyMsg(m);if(copyTimerRef.current)clearTimeout(copyTimerRef.current);copyTimerRef.current=setTimeout(()=>setCopyMsg(''),1800);};const viaExec=()=>{try{const ta=document.createElement('textarea');ta.value=s;ta.style.position='fixed';ta.style.top='0';ta.style.left='0';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();try{ta.setSelectionRange(0,s.length);}catch(e){}const ok=document.execCommand('copy');document.body.removeChild(ta);flash(ok?'✓ Copied!':'⚠ Copy failed');}catch(e){flash('⚠ Copy failed');}};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(s).then(()=>flash('✓ Copied!')).catch(viaExec);}else viaExec();};
+     '⚠ Long-press list' 116.34px - which did NOT fit at 375x520 (-12.14px) or 320x520 (-4.14px). The ceiling is
+     96.2px at 375x520 (46.00 + 58.2px of row slack - the 8px floor), and gate 53's N2c asserts it by forcing this
+     very branch. Do not lengthen either string without running it.
+     AND THE WARNING GLYPH CAME OFF FOR A REASON THE SANDBOX CANNOT SEE. '⚠ Copy failed' measures 95.02px here,
+     which clears the ceiling by 1.19px - but U+26A0 is emoji-capable, and iOS routinely resolves it through Apple
+     Color Emoji: with emoji presentation the same string measures 99.02px, +4.00px, which puts it BELOW the 8px
+     floor on Kunal's own phone while every assertion in this sandbox stays green. CLAUDE.md is explicit that
+     Apple emoji ink is a device-only measurement, so the honest move is not to spend width on a glyph whose
+     advance we cannot measure: 'Copy failed' is 80.69px, 14.33px narrower, with nothing left to resolve
+     differently. Found by #430's antagonist A. */
+  const copyMoves=()=>{const h=boardGame.history;if(!h||!h.length)return;let s='';for(let i=0;i<h.length;i++){if(i%2===0)s+=(i/2+1)+'. ';s+=h[i].san+' ';}s=s.trim();const flash=(m)=>{setCopyMsg(m);if(copyTimerRef.current)clearTimeout(copyTimerRef.current);copyTimerRef.current=setTimeout(()=>setCopyMsg(''),1800);};const viaExec=()=>{try{const ta=document.createElement('textarea');ta.value=s;ta.style.position='fixed';ta.style.top='0';ta.style.left='0';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();try{ta.setSelectionRange(0,s.length);}catch(e){}const ok=document.execCommand('copy');document.body.removeChild(ta);flash(ok?'✓ Copied!':'Copy failed');}catch(e){flash('Copy failed');}};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(s).then(()=>flash('✓ Copied!')).catch(viaExec);}else viaExec();};
   useEffect(()=>{
     const measure=()=>{const w=Math.min(window.innerWidth||9999,(document.documentElement&&document.documentElement.clientWidth)||9999,(rootRef.current&&rootRef.current.clientWidth)||9999);if(w&&w>0&&w<9999)setVw(w);setVp({w:window.innerWidth||360,h:window.innerHeight||800});};
     measure();const t1=setTimeout(measure,120);const t2=setTimeout(measure,400);
@@ -6653,9 +6660,16 @@ export default function App(){
                 board, because the fit loop hands the shorter row's slack back: 192.00 -> 223.19 at 375x520.
                 US-R15 / US-R27, TC-R18 / TC-R37, gates 53 and 48. Do NOT lengthen either label without running
                 gate 53's N2b: the shipped build cleared the wrap boundary by 0.06px at 375x568, so one extra
-                character used to be enough to re-create the P0 with every old assertion green. */}
-            <button data-ct="moves-analyze" onClick={analyzeLine} style={{padding:'10px 0',margin:'-10px 0',position:'relative',zIndex:1 /* #374: the moves panel's top margin used to cover the bottom 6px of this box (antagonist: 37 effective of 43) */,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap'}}><span style={{display:'inline-block',padding:'3px 7px',borderRadius:6,background:'rgba(var(--acr),.18)',border:'1px solid rgba(var(--acr),.4)',color:'var(--ac2)',fontSize:'12px',fontWeight:600}}>Analyze</span></button>
-            <button data-ct="moves-copy" onClick={copyMoves} style={{padding:'10px 0',margin:'-10px 0',position:'relative',zIndex:1,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap'}}><span style={{display:'inline-block',padding:'3px 7px',borderRadius:6,background:copyMsg?'rgba(var(--acr),.25)':'rgba(255,255,255,.08)',border:`1px solid ${copyMsg?'rgba(var(--acr),.5)':'rgba(255,255,255,.18)'}`,color:copyMsg?'var(--ac2)':'rgba(255,255,255,.72)',fontSize:'12px',fontWeight:600}}>{copyMsg||'Copy'}</span></button>
+                character used to be enough to re-create the P0 with every old assertion green.
+                AND THE PADDING IS 11px, NOT 10px, WHICH IS THE TAP TARGET AND NOT THE LOOK. The chip draws 22px
+                tall at font 12; 2 x 10px of padding made the tap box 42.00px, under this project's 44pt floor -
+                and it was 43.00px before this build, so the floor was already missed and the font change made it
+                1px worse. 11px takes the border box to 44.00px and costs NOTHING vertically, because the
+                negative margin cancels the padding exactly, so the row's own height and the board are untouched.
+                Measured by #430's antagonist B (42.00 x 61.36 and 42.00 x 46.00 at five geometries) and pinned
+                by gate 53's N4. Keep padding and margin equal and opposite, or the row grows and the board pays. */}
+            <button data-ct="moves-analyze" onClick={analyzeLine} style={{padding:'11px 0',margin:'-11px 0',position:'relative',zIndex:1 /* #374: the moves panel's top margin used to cover the bottom 6px of this box (antagonist: 37 effective of 43) */,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap'}}><span style={{display:'inline-block',padding:'3px 7px',borderRadius:6,background:'rgba(var(--acr),.18)',border:'1px solid rgba(var(--acr),.4)',color:'var(--ac2)',fontSize:'12px',fontWeight:600}}>Analyze</span></button>
+            <button data-ct="moves-copy" onClick={copyMoves} style={{padding:'11px 0',margin:'-11px 0',position:'relative',zIndex:1,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap'}}><span style={{display:'inline-block',padding:'3px 7px',borderRadius:6,background:copyMsg?'rgba(var(--acr),.25)':'rgba(255,255,255,.08)',border:`1px solid ${copyMsg?'rgba(var(--acr),.5)':'rgba(255,255,255,.18)'}`,color:copyMsg?'var(--ac2)':'rgba(255,255,255,.72)',fontSize:'12px',fontWeight:600}}>{copyMsg||'Copy'}</span></button>
           </div>)}
         </div>
         {/* #370: FOUND BY MEASURING AFTER THE FIRST MOVE, not at the start position. On Kunal's phone the Play board

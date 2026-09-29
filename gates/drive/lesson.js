@@ -133,7 +133,11 @@ S['demo-end-lines']=async(b)=>{await S['demo-end'](b);await tapBtn(b,/^(?:♟ )?
 // silently fails to find the button at every narrow geometry, which is the "a bad selector is a reading"
 // rule: it would report the sheet as missing rather than the label as changed.
 S['demo-more']=async(b)=>{await S['demo-end'](b);await tapBtn(b,/^More for this lesson$/,500);};
-S['demo-copy']=async(b)=>{await S['demo-end'](b);await tapBtn(b,/Copy moves$/,400);};
+/* #430: was tapBtn(b,/Copy moves$/) - a LABEL match, and #430 renamed that label to "Copy", so this state
+   threw instead of driving. Tapped by its data-ct now, which survives both the rename and the copyMsg flash
+   (the chip renames itself the moment it fires, so a label match loses the element in exactly the state this
+   driver creates). Same class as the selector break antagonist A vetoed in gate 48. */
+S['demo-copy']=async(b)=>{await S['demo-end'](b);await b.page.click('[data-ct="moves-copy"]');await b.page.waitForTimeout(400);};
 S['demo-analyze']=async(b)=>{await S['demo-end'](b);await tapBtn(b,/Analyze$/,900);};
 S['practice-m0']=async(b)=>{await S['demo-end'](b);await tapBtn(b,/^✋ Now I'll try it$/,500);};
 S['practice-correct']=async(b)=>{await S['practice-m0'](b);await b.move('e2','e4',1200);};

@@ -275,7 +275,14 @@ const demoRow=(b)=>b.page.evaluate(()=>{
 const actionRowHit=(b)=>b.page.evaluate(()=>{
   const r2=n=>Math.round(n*100)/100;
   const find=(re)=>[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').replace(/\s+/g,' ').trim()));
-  const an=find(/Analyze/), cp=find(/Copy moves/);
+  /* #430: THESE WERE MATCHED ON THE LABEL AND #430 RENAMED IT, so this whole block reported found:false - which
+     is CLAUDE.md's "a bad selector is a reading" rule, and gate 53's own header had already written the reason
+     down ("never matched on a label, which matters here because Copy RENAMES ITSELF"). The build that wrote that
+     sentence shipped this break; #430's antagonist A measured it before the push (hasAnalyze:true, hasCopy:false
+     at all five columns) and vetoed. Matched on the data-ct marks now, which are stable across a rename AND
+     across the copyMsg flash. */
+  const byCt=(id)=>document.querySelector('[data-ct="'+id+'"]');
+  const an=byCt('moves-analyze'), cp=byCt('moves-copy');
   if(!an||!cp) return {found:false,hasAnalyze:!!an,hasCopy:!!cp};
   const ar=an.getBoundingClientRect(), cr=cp.getBoundingClientRect();
   const wrapped=cr.top>ar.top+1;
@@ -403,7 +410,14 @@ const near=(a,c,tol)=>a!=null&&c!=null&&Math.abs(a-c)<(tol==null?0.6:tol);
 // control row and demo carries the "✋ Now I'll try it" pair, so the square the height allows is not the same
 // one. left is the centring the leftover width buys. top is 92 in EVERY column - that is the invariant.
 const DEMO={se:{w:270.9,left:24.6},kunal730:{w:375,left:0},'390':{w:390,left:0}};
-const PRAC={se:{w:230.9,left:44.6},kunal730:{w:375,left:0},'390':{w:390,left:0}};
+/* #430 RE-PINNED se, AND THE IDENTITY WAS RE-DERIVED RATHER THAN THE NUMBER SWAPPED - same change as gate
+   11's WANT table, same cause. The practice board at 320x568 was 230.9 at left 44.6 because the MOVES row
+   WRAPPED there onto two lines. #430 stops it wrapping (the two chips shrink), so the MOVES panel falls from
+   98.13px to 74.13px and the board takes those 24px back: 254.9 at left 32.6. MEASURED on both bundles at
+   320x568, and the DEMO end is unchanged to the hundredth on each (board 270.9, panel 70.13), which is the
+   check that this moved because the chrome shrank rather than because something started stealing width.
+   kunal730 and 390 are width-bound at 375 and 390 and do not move. */
+const PRAC={se:{w:254.9,left:32.6},kunal730:{w:375,left:0},'390':{w:390,left:0}};
 const BOARD_TOP=92, NOTE_H=75, FOOT_H=61;
 const LINE=['1. e4','1… e5','2. Nf3','2… Nc6','3. Bc4','3… Bc5','4. c3','4… Nf6','5. d3','5… d6']; // LIB 0, the Italian Game
 const ROW=['Flip board','Hints','Try again','More actions'];
@@ -623,8 +637,31 @@ L.run(async()=>{
        row's width less the three 46px buttons and their three 6px gaps - and compares it with the long label's
        measured min-content width of 92.52px, so it follows the rule rather than the geometry table. #409. */
     const budget=Pr.w-(3*46)-(3*6);
-    const wantLabel=budget<92.52?'↻ Again':'↻ Try again';
-    L.say(r0.length===4&&r0[2].t===wantLabel,geo+': at '+vw+' wide the ↻ button reads "'+wantLabel+'" (#384: the full label needs 92.52px and the budget at 320 is 74.88, so it shortens at <=340 and only there)',r0[2]&&r0[2].t);
+    /* #430 MADE THIS ONE-DIRECTIONAL, AND THE REASON IS NOT "IT WENT RED". The rule above is right that the
+       BUDGET decides and not the viewport. But it was asserted as an equality in both directions, and #430's
+       board gain broke the other direction: at se the board goes 230.9 -> 254.9, so the budget goes 74.9 ->
+       98.9 and now EXCEEDS the long label's 92.52px - while the app still shortens, because its own predicate
+       is `rowNarrow = boardPx < 340` (chess.jsx:4255), a coarse proxy that no longer agrees with the budget at
+       this one column. TWO THINGS FOLLOW. (a) THE DEFECT THIS ASSERTION EXISTS FOR IS ONE-DIRECTIONAL: #384 was
+       the LONG label painting 8.83px outside its own button and 2.83px over the ⋯ beside it. A label that is
+       shorter than it needs to be cannot produce that; it is suboptimal, not broken, and the ink assertion
+       below still catches the real case. So the assertion kept is "never LONG when the budget cannot hold it",
+       which is exactly the failure mode, and the other direction is PRINTED. (b) I AM NOT ALLOWED TO FIX THE
+       APP SIDE HERE: re-keying rowNarrow from a board threshold to the budget is the narrow-phone font/padding
+       route, one of the NINE questions decisions/desk-round-1-2026-09-19 leaves unsettled and bars this lane
+       from. An assertion that can only be satisfied by touching a barred decision is not a gate, it is a block
+       - so the mismatch is filed and routed rather than silently satisfied either way. [R18, R33] */
+    const mustBeShort=budget<92.52;
+    L.say(r0.length===4&&!(mustBeShort&&r0[2].t==='↻ Try again'),
+      geo+': the ↻ button is never the LONG label when the budget cannot hold it - budget '+Math.round(budget*100)/100+
+      'px against the long label\'s 92.52px min-content, so short is '+(mustBeShort?'REQUIRED':'not required')+
+      ' and it reads "'+(r0[2]&&r0[2].t)+'" (#384: the long label painted 8.83px outside its own button and 2.83px '+
+      'over the ⋯ next to it, which is the one-directional defect this guards)',
+      {label:r0[2]&&r0[2].t,budget:Math.round(budget*100)/100,longNeeds:92.52,mustBeShort:mustBeShort});
+    if(!mustBeShort&&r0[2]&&r0[2].t!=='↻ Try again')
+      L.note(geo+': NOTE the budget ('+Math.round(budget*100)/100+'px) now HOLDS the long label and the app still '+
+        'shortens, because its predicate is boardPx<340 rather than the budget. Conservative, not broken; filed '+
+        'at #430 and not fixed here because re-keying rowNarrow is a barred decision.');
 
     /* #409: AND THE INK, not only the boxes. The defect that produced these two assertions painted the long
        label 8.83px past its own right edge and 2.83px OVER the ⋯ button beside it, at 375x568 and 390x568,
@@ -831,7 +868,15 @@ L.run(async()=>{
    const _lnOff = dl ? Math.round((dl.x+dl.w-vw)*100)/100 : null;
    L.say(!!dl&&dl.x>=-0.6&&dl.x+dl.w<=vw+0.6,geo+': the "Other lines" button is inside the viewport - '+_lnOff+'px past its right edge, so at or inside it. This was +4.23 at 375x520 and +31.73 at 320x520 before #424 and was PINNED as a live unrecoverable defect at both; his icon-font-ls ladder closed it.',{l:dl&&dl.x,r:dl&&dl.w!=null?Math.round((dl.x+dl.w)*100)/100:null,vw,was:{'375x520':4.23,'320x520':31.73}[geo]});
    const _dr=await demoRow(b);
-   const _rowPin={'375x520':39.55,'320x520':39.55,'320x540':19.16}[geo];
+   /* #430 RE-PINNED, AND EVERY ONE MOVED IN THE GOOD DIRECTION. These are pins, red in EITHER direction by
+      design, so they move with the measurement. #430 stopped the MOVES row wrapping, which shortened the MOVES
+      panel and handed the slack to the board (192.00 -> 223.19 at 375x520, 192.00 -> 231.19 at 320x520,
+      212.39 -> 236.39 at 320x540) - and this residual is simply the row's min-content (231.55px, unchanged and
+      geometry-independent) minus the board. So the #424 residual falls 39.55 -> 8.36 at 375x520, 39.55 -> 0.36
+      at 320x520, and 19.16 -> 0 at 320x540, where the row now FITS with 4.84px to spare. Two of the three
+      overflows this gate was written to pin are GONE, as a side effect of a hit-area fix, and the arithmetic
+      that predicts it was already written down here: the residual is 231.55 minus the board width. */
+   const _rowPin={'375x520':8.36,'320x520':0.36,'320x540':0}[geo];
    if(_rowPin!==undefined){
      L.say(!!_dr&&Math.abs(Math.round((_dr.btnR-_dr.rowR)*100)/100-_rowPin)<=0.6,
        geo+': the ROW residual is where #424 left it - the button runs '+(_dr&&Math.round((_dr.btnR-_dr.rowR)*100)/100)+'px past its own row (pinned at '+_rowPin+', down from 95.73 before the ladder) because at board 192 the row cannot hold both buttons\' min-content ('+(_dr&&_dr.needed)+'px against '+(_dr&&_dr.rowW)+'px). REPORTED, not excused: it needs a wrap or a second row, which is a board-height cost and so Kunal\'s call.',
@@ -844,9 +889,17 @@ L.run(async()=>{
         (resolved tracks plus gap, minus the row) makes that visible, because truncation drops `needed`. It equals
         the box residual here by construction - the overflowing button is the last track - and that agreement is
         itself the cross-check. */
-     L.say(!!_dr&&_dr.needed!==null&&Math.abs(Math.round((_dr.needed-_dr.rowW)*100)/100-_rowPin)<=0.6,
-       geo+': and the CAUSE is where it was left - the row\'s two resolved tracks plus gap need '+(_dr&&_dr.needed)+'px against a row of '+(_dr&&_dr.rowW)+'px, a shortfall of '+(_dr&&Math.round((_dr.needed-_dr.rowW)*100)/100)+'px (pinned at '+_rowPin+'). Nothing was truncated to make the box fit: an ellipsis would drop this number and leave the box one happy.',
-       _dr&&{needed:_dr.needed,rowW:_dr.rowW,shortfall:Math.round((_dr.needed-_dr.rowW)*100)/100,pinned:_rowPin,clone:_dr.neededClone,tracks:_dr.tracks});
+     /* #430: THE CAUSE NEEDS ITS OWN PIN, because it and the "past" assertion above measure DIFFERENT
+        quantities and shared one number for as long as every column overflowed. "past" is btnR - rowR, which
+        FLOORS AT 0 once the button is contained; the cause is needed - rowW, which keeps going NEGATIVE and
+        becomes the row's spare capacity. While all three columns overflowed the two happened to coincide, so one
+        pin served both and nothing noticed. #430's board gain made 320x540 fit, and there past is 0.00 while the
+        cause is -4.84 - so the shared pin went red on the healthy state. Pinned separately and SIGNED, which
+        also means this line now reports the margin at a column that fits instead of asserting it away. */
+     const _causePin={'375x520':8.36,'320x520':0.36,'320x540':-4.84}[geo];
+     L.say(!!_dr&&_dr.needed!==null&&Math.abs(Math.round((_dr.needed-_dr.rowW)*100)/100-_causePin)<=0.6,
+       geo+': and the CAUSE is where it was left - the row\'s two resolved tracks plus gap need '+(_dr&&_dr.needed)+'px against a row of '+(_dr&&_dr.rowW)+'px, a shortfall of '+(_dr&&Math.round((_dr.needed-_dr.rowW)*100)/100)+'px (pinned at '+_causePin+'; negative means the row FITS with that much to spare). Nothing was truncated to make the box fit: an ellipsis would drop this number and leave the box one happy.',
+       _dr&&{needed:_dr.needed,rowW:_dr.rowW,shortfall:Math.round((_dr.needed-_dr.rowW)*100)/100,pinned:_causePin,clone:_dr.neededClone,tracks:_dr.tracks});
    } else {
      L.say(!!_dr&&_dr.btnR<=_dr.rowR+0.5,
        geo+': and it is inside ITS OWN ROW too ('+(_dr&&_dr.btnR)+' against a row ending at '+(_dr&&_dr.rowR)+') - the box that stayed overflowing through #404, #405 and #406 while every viewport check was green',
@@ -940,7 +993,12 @@ L.run(async()=>{
      /* THE RESIDUAL, PER COLUMN, AT ITS OWN MEASURED VALUE - #415's antagonist lesson, that one pinned point is
         a frozen denominator and is usually the BEST case. Two columns are contained and are asserted as
         containment, not pinned; three carry a real number. */
-     const _fp={'375x520':34.77,'320x520':34.77,'320x540':14.38}[geo];
+     /* #430 RE-PINNED for the same reason and by the same arithmetic as the ROW residual above: this one is
+        the Flip pair's min-content (226.77px, unchanged) minus the board, so the board gain closes it. Measured
+        on the #430 bundle: 34.77 -> 3.58 at 375x520, 34.77 -> 0 at 320x520 (both demo-end and demo-m1), and
+        14.38 -> 0 at 320x540. The #427 band therefore collapses from "every height at or below 555" to
+        375x520 alone, and the residual there is 3.58px rather than 34.77. */
+     const _fp={'375x520':3.58,'320x520':0,'320x540':0}[geo];
      if(_fp!==undefined){
        L.say(Math.abs(_f.past-_fp)<=0.6,
          _tag+': ⟳ Flip runs '+_f.past+'px past its OWN row (pinned at '+_fp+'), because at board '+_fm.board.w+' the row cannot hold its two children\'s min-content ('+_f.needed+'px against '+_f.rowW+'px). REPORTED, not excused: shrinking is already spent here - #424 measured the font ladder taking this to 4.03 and not to zero - so closing it needs a wrap or a second row, which spends board height and is therefore Kunal\'s call.',
@@ -1005,8 +1063,21 @@ L.run(async()=>{
        L.say(_ar.found===true,
          geo+': the lesson\'s secondary action row is there with both 🔍 Analyze and 📋 Copy moves, so the hit assertions below are not vacuous',
          {found:_ar.found,analyze:_ar.hasAnalyze,copy:_ar.hasCopy,wrapped:_ar.wrapped,board:_fm.board&&_fm.board.w});
-       const _wrapPin={'375x520':14,'320x520':14,'320x540':14}[geo];
-       if(_wrapPin!==undefined){
+       /* #430 RESTRUCTURED THIS BRANCH, AND THE REASON IS THE SAME ONE AMENDMENT B GAVE FOR GATE 53's W1.
+          The block below was split on _wrapPin - three columns where the row WRAPPED got the hit assertions, and
+          the rest got a "does not wrap" assertion. #430 stops the row wrapping at ALL of them, so (a) the fixture
+          assertion "the action row WRAPS at board N" goes RED ON A CORRECT FIX at three of five columns, which is
+          precisely the failure the comment below congratulates itself on avoiding, and (b) the two assertions
+          that actually matter - zero lost ink, no flip boundary inside Analyze's own box - would have run at NO
+          column at all, because their branch's premise had disappeared. That is the vacuity-plus-false-red pair
+          amendment B measured on gate 53 and fixed there; the same fix is owed here and is applied now.
+          SO: the hit assertions run at EVERY column, the wrap state is PRINTED rather than asserted, and the
+          overlap stays a diagnostic. Nothing is weakened - inkLost===0 and flipY===null are the target-state
+          assertions and both can still fail (they redden on the pre-#430 bundle and on the -8px control). */
+       L.note(geo+': (fixture) the action row wrapped='+_ar.wrapped+' at board '+(_fm.board&&_fm.board.w)+
+         ' - PRINTED, not asserted, since #430: before it the row wrapped at 375x520, 320x520 and 320x540 and the '+
+         'hit assertions were confined to those three columns; now it wraps nowhere and they run everywhere.');
+       {
          /* #428 AMENDED, AND THE AMENDMENT ITSELF IS AMENDED because the fix landed in the SAME build.
             docs/patch-lesson-action-row-hit-area-2026-09-28 wrote these two edits for a world where the
             amendment landed BEFORE the fix, so they re-pin the defect at its measured value. #428 fixes the
@@ -1023,18 +1094,16 @@ L.run(async()=>{
             387.500. This branch runs at all three columns, so that assertion would have been RED at 320x540
             on any bundle. The patch names the better form itself - assert the relation, not the absolute -
             and the fixed state's relation is simply that there is no flip inside the box at all. [R18] */
-         L.say(_ar.found&&_ar.wrapped===true,
-           geo+': (fixture) the action row WRAPS at board '+(_fm.board&&_fm.board.w)+', which is the state the hit assertions below are written for - they are about the wrapped side of the boundary and would be vacuous unwrapped',
-           {wrapped:_ar.wrapped,board:_fm.board&&_fm.board.w});
-         L.note(geo+': DIAGNOSTIC overlap='+_ar.overlap+'px (was PINNED at '+_wrapPin+' through #427; DEMOTED at #428 - it is a SYMPTOM, and -8px margins take it to 10.00 with the defect still live)  lineAdvance='+_ar.lineAdvance+'  boxes '+_ar.anH+'px  whole-box rows lost '+_ar.hitC+' of '+_ar.total);
+         L.note(geo+': DIAGNOSTIC overlap='+_ar.overlap+'px (was PINNED at 14px through #427; DEMOTED at #428 - it is a SYMPTOM, and -8px margins take it to 10.00 with the defect still live)  lineAdvance='+_ar.lineAdvance+'  boxes '+_ar.anH+'px  whole-box rows lost '+_ar.hitC+' of '+_ar.total);
          L.say(_ar.found&&_ar.inkLost===0,
            geo+': FIXED AT #428 - '+_ar.inkLost+' of '+_ar.inkRows+' pixel rows of the PAINTED PILL of "Analyze" (the chip; #428 measured the letters at 354..367 against Copy at 368, so they are ~1px clear and it is the chip\'s bottom band that was lost) hit another control (TARGET 0, reached; it was 4 through #427). Sampled at integer y over the half-open interval [ceil(inkTop), floor(inkBot)) down the button\'s own centre line - an integer scan and a half-pixel-centre scan disagree by one row at this boundary, which is why #427 published 4 and antagonist B published 5, and why the convention travels with the number',
            {inkLost:_ar.inkLost,inkRows:_ar.inkRows,target:0,interval:'[ceil(inkTop), floor(inkBot))',hitC:_ar.hitC,total:_ar.total});
          L.say(_ar.found&&_ar.flipY===null,
            geo+': and there is NO y inside "Analyze"\'s own box at which it stops answering for itself (stepped at 0.125px from its top; flipY='+_ar.flipY+', target null, box '+_ar.anTop+'..'+_ar.anBot+', Copy\'s top '+_ar.cpTop+'). THIS IS THE ASSERTION THAT CATCHES A PARTIAL FIX: at -8px margins the ink count above reaches 0 and this one stays red, because 10 of 43 box rows still fire the wrong button (NC2, md5 8ec730fd8697) - and at rowGap:20, which clears the ink, it stayed red too because the hit rect snaps 0.875px above the touching edge. That measurement is why the shipped gap is 22 and not 20',
            {flipY:_ar.flipY,target:null,anTop:_ar.anTop,anBot:_ar.anBot,cpTop:_ar.cpTop,step:0.125});
-       } else {
-         L.say(_ar.found&&_ar.wrapped===false&&_ar.inkLost===0,
+       }
+       {
+         L.say(_ar.found&&_ar.inkLost===0,
            geo+': the action row does NOT wrap at board '+(_fm.board&&_fm.board.w)+', so every pixel row of "Analyze" hits Analyze ('+_ar.hitA+' of '+_ar.total+') and none of its ink is lost. This is the healthy side of the boundary, and it is asserted so the pinned columns above are a contrast and not a lone number',
            {wrapped:_ar.wrapped,inkLost:_ar.inkLost,hitA:_ar.hitA,total:_ar.total});
        }
