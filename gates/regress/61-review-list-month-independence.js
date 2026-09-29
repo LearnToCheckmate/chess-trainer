@@ -274,6 +274,42 @@ async function input(seed,n,geo,name,thin){
     await r.b.close();
   }
 
+  // ── A8 #432, THE RETURNING USER. The one input in this gate that does NOT fetch.
+  //    #432 records which bound stopped each walk in its own key (ct_acctcap). An account imported by an
+  //    EARLIER build has rows in ct_acctgames and no entry there, and that is the state every existing player
+  //    is in on the launch after they upgrade. The first version of #432's render filtered on the missing
+  //    entry and therefore drew NO limit line at all for them - dropping the statement US-R25 requires and
+  //    that #431 got right, for every player who had already imported, until they re-fetched. Caught by
+  //    asking what the fix does to a store it did not write, which no assertion in this gate could see
+  //    because all nine of the other inputs create their store by fetching inside the same session.
+  //    ct_ccuser is left UNSET so the auto-fetch at chess.jsx:3689 does not fire: this is the launch path.
+  {
+    // MIN_CAP, not the app's ACCT_GMAX - the gate has no access to the app's constants, and reaching for
+    // one is what threw here on the first run and took the A6 sweep down with it before it ran.
+    const ROWS=[{n:MIN_CAP,expect:'games',why:'at the cap, so the games cap is what cut it - inferable'},
+                {n:12,expect:null,why:'below the cap; months vs exhausted is NOT knowable from an old store, so state nothing'}];
+    const PGN='[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2026.08.01"]\n[White "me"]\n[Black "opp"]\n[Result "1-0"]\n[TimeControl "180"]\n\n'+MOVES+'\n';
+    for(const t of ROWS){
+      const rows=[];for(let i=0;i<t.n;i++)rows.push({src:'cc',acct:'me',pgn:PGN,white:'me',black:'opp'+i,wr:'win',tc:'blitz',date:Date.UTC(2026,7,1+(i%28),12,0,0)});
+      const b=await L.launch({geo:{w:375,h:730,safe:''},name:'returning-'+t.n,
+        store:{ct_accts:['cc:me'],ct_acctgames:{'cc:me':rows}}});
+      await b.open(); await b.tile('Review'); await b.settle(1200);
+      const r=await READ(b);
+      const tag='RETURNING USER, '+t.n+' rows stored by an earlier build, no ct_acctcap';
+      L.note(tag+'  rows '+r.rows+'  limit line '+JSON.stringify(r.cap));
+      const a0=L.say(r.rows===t.n,'A8-0 vacuity '+tag+': the stored games render from localStorage with no fetch',{rows:r.rows,expect:t.n});
+      if(a0){
+        if(t.expect==='games'){
+          const gc=(r.body||'').match(CAP_RE);
+          L.say(!!gc,'A8a US-R25 '+tag+': the games cap is STILL stated after an upgrade - an account at the cap was cut by the cap, and that is inferable from the old store alone',{stated:gc?gc[0]:'NONE',note:t.why});
+        }else{
+          L.say(!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),'A8b US-R25 '+tag+': NO limit is stated when the old store cannot say which bound applied - a limit the app cannot know bound is not one it may claim',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthsInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no',note:t.why});
+        }
+      }
+      await b.close();
+    }
+  }
+
   // ── A6, the geometry sweep. This gate's subject is data, not pixels, so the matrix above runs at Kunal's
   //    375x730 and the WIDTH-sensitive part runs here: nothing on the list is cut off and the first row is
   //    hit-testable at its own centre after scrolling ITS OWN scroller (measurement rules 1, 3, 4).

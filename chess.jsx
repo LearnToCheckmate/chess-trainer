@@ -5831,7 +5831,18 @@ export default function App(){
                   because "N loaded" sits one row above and already carries it. With more than one account that
                   count is a TOTAL, so "per account (90 games)" would read as 90 each - and two readouts of one
                   quantity that can disagree is the trap #385 shipped. State the bound here, the count there. */}
-              {(()=>{const _C=acctCapRef.current||{};const _b=ccAccts.map(id=>_C[id]).filter(Boolean);
+              {(()=>{const _C=acctCapRef.current||{};const _M=acctGamesRef.current||{};
+                // #432 THE RETURNING USER. An account imported before this build has rows in ACCT_G and no
+                // entry in ACCT_C, and with no entry there is nothing to filter on - so the first version of
+                // this block rendered NO limit line at all for every existing player until they re-fetched,
+                // silently dropping the statement US-R25 requires and that #431 got right. Measured on the
+                // launch-after-import path (ct_ccuser empty, so no auto-fetch: chess.jsx:3689). The bound is
+                // INFERRED instead, from the one thing the old store does tell us: a stored account sitting
+                // at ACCT_GMAX was cut by the games cap. Below it we cannot tell months from exhausted, and
+                // 'all' is the honest answer there - it says nothing rather than naming a limit we cannot
+                // know bound.
+                const _bound1=(id)=>_C[id]||((_M[id]||[]).length>=ACCT_GMAX?'games':'all');
+                const _b=ccAccts.map(_bound1).filter(Boolean);
                 const _bound=_b.includes('months')?'months':(_b.includes('games')?'games':null);
                 if(!_bound)return null;
                 const _sty={fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.52)',marginTop:-1,lineHeight:1.4};
