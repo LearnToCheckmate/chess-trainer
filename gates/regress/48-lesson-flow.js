@@ -1083,9 +1083,18 @@ L.run(async()=>{
           width and two min-content tracks plus gap need FLIP_NEEDED=226.77px. An assertion that cannot be true
           in a state the suite reaches is not a strong assertion, it is a broken one, and it stops any build
           from gating in ~2 of 6 runs.
-          SO IT STATES THE PHYSICS, true at BOTH board widths and STRICTLY STRONGER than flat containment:
-          the overflow is exactly max(0, needed - rowW) and nothing else. Truncating the label to fit a box
-          DROPS `needed` and goes red here; a row that stops being sized by the board goes red here; the board
+          SO IT STATES THE PHYSICS, true at BOTH board widths: the overflow is exactly max(0, needed - rowW)
+          and nothing else. TWO CLAIMS IN THIS PARAGRAPH WERE WRONG AS FIRST WRITTEN AND ARE WITHDRAWN HERE,
+          both caught by antagonist A on the diff [R18]. (1) "STRICTLY STRONGER than flat containment" is
+          false: in the _fits branch it is stronger, but in the !_fits branch it is WEAKER - it accepts an
+          unbounded overflow provided the overflow equals the prediction - which the next sentence but one
+          concedes in its own words. (2) "a row that stops being sized by the board goes red here" is false:
+          `rowW` appears on BOTH sides of the comparison (past = btnR - rowR, pred = needed - rowW), so a
+          change that narrows the row moves both together and this assertion tracks it rather than catching
+          it. What actually protects that is the SEPARATE needed-vs-FLIP_NEEDED pin above, where `needed` is
+          pinned to a constant and `rowW` is not. Writing a check's description as though it constrained
+          something it computes from is the same-object trap CLAUDE.md names five times, here in the prose
+          rather than in the code. Truncating the label DROPS `needed` and goes red at that pin; the board
           taking its floor does not, because that is the known #424/#427 band whose closure costs board height
           and is Kunal's call on desk-flip-branch-wrap-decision-2026-09-28. The band is REPORTED, not excused.
           NOT FIXED BY THIS BUILD, and named rather than absorbed: the bistability itself has no assertion. A

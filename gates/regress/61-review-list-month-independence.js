@@ -77,7 +77,7 @@ function stub(b,state){
       // NEWEST, each holding `per` games. The concentrated fixture always stops the walk on GAMES, so it
       // cannot reach the state where ACCT_GMONTHS is what bound - which is exactly why this gate went 42/42
       // green over a build that printed the wrong limit in that state.
-      const NM=state.thin?state.thin.months:24;
+      const NM=state.thin?state.thin.months:(state.mixed?state.mixed.months:24);
       const ar=[];for(let i=0;i<NM;i++){const t=new Date(Date.UTC(NEWEST.y,NEWEST.m-1-(NM-1-i),1));ar.push('https://api.chess.com/pub/player/'+who+'/games/'+t.getUTCFullYear()+'/'+String(t.getUTCMonth()+1).padStart(2,'0'));}
       return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({archives:ar})});
     }
@@ -85,7 +85,8 @@ function stub(b,state){
     if(!m)return route.fulfill({status:404,contentType:'application/json',body:'{}'});
     const y=+m[1],mo=+m[2];
     let n=0;
-    if(state.thin)n=state.thin.per;                                  // #432 every month equally thin
+    if(state.mixed)n=(who===state.mixed.thin)?state.mixed.per:state.mixed.busyPer;   // #432 two accounts, two bounds
+    else if(state.thin)n=state.thin.per;                             // #432 every month equally thin
     else if(y===NEWEST.y&&mo===NEWEST.m)n=SEEDN[state.seed];
     else if(y===2026&&OLDER_MONTHS.indexOf(mo)>=0)n=PER_OLDER;
     const ai=Math.max(0,ACCTS.indexOf(who));
@@ -133,9 +134,17 @@ async function READ(b){
         const lum=(r,g,b)=>0.2126*lin(r)+0.7152*lin(g)+0.0722*lin(b);
         // #432 THE RATIO PRINTS ITS OWN INPUTS, because the first version returned 4.51 where both the
         // antagonist's report and a hand calculation over rgb(26,33,42) said 4.37, and a threshold of 4.5
-        // sits between those two numbers. `bg` is the EFFECTIVE background: every translucent layer between
-        // the text and the first opaque ancestor is composited in order, which is what the browser paints
-        // and what the first draft skipped by taking the opaque ancestor alone.
+        // sits between those two numbers. `bg` composites every translucent background-COLOR between the
+        // text and the first opaque ancestor, which the first draft skipped by taking the opaque ancestor
+        // alone. IT IS A LOWER BOUND ON WHAT IS PAINTED, NOT WHAT IS PAINTED - said here because the first
+        // version of this comment claimed the latter and antagonist A disproved it: the first opaque
+        // ancestor also carries a backgroundIMAGE (chess.jsx, appBgImg: a skin texture plus a radial glow),
+        // and a background-image paints ABOVE the background-color of the same element, so those layers are
+        // invisible to this instrument. A computed the worst-case stack at rgb(45.2,57.5,70.6), where white
+        // at the old .52 alpha gives 4.44:1 - UNDER AA, while this instrument read 5.36 and passed. The app
+        // side is now .60, which clears AA at 5.35:1 even on that worst case, so the assertion is no longer
+        // load-bearing on the instrument's blind spot. Compositing background-image properly is
+        // jobs/the-contrast-instrument-cannot-see-background-image-2026-09-29.
         const effBg=(node)=>{
           const layers=[];let base=[0,0,0];
           for(let n=node;n&&n!==document.documentElement;n=n.parentElement){
@@ -305,6 +314,66 @@ async function input(seed,n,geo,name,thin){
         }else{
           L.say(!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),'A8b US-R25 '+tag+': NO limit is stated when the old store cannot say which bound applied - a limit the app cannot know bound is not one it may claim',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthsInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no',note:t.why});
         }
+      }
+      await b.close();
+    }
+  }
+
+  // ── A9 #432, MIXED BOUNDS. THE STATE ANTAGONIST A BROKE THIS BUILD IN, ON THIS BUNDLE.
+  //    A7's three-account input gives every account the SAME thin fixture, so the union across accounts is
+  //    homogeneous and the one new decision in the render is never made to choose. A seeded one thin account
+  //    (months-bound) beside one busy account (games-bound) and measured the screen saying "your last 6 months
+  //    per account" while the busy account was showing FOUR months and 200 games with unrequested archives
+  //    behind it - a limit stated that did not bind, which is the #431 defect this build exists to delete.
+  //    Both limits apply to every account and whichever comes first stops that account, so when the accounts
+  //    disagree the only sentence true of all of them names BOTH.
+  {
+    const state={seed:'b',hits:[],refuse:false,mixed:{thin:ACCTS[0],per:5,months:24,busyPer:60}};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name:'mixed-bounds'});
+    await stub(b,state); await b.open();
+    await b.tile('Review'); await b.settle(1800);                       // acct1 = thin, months-bound
+    await b.page.locator('input[placeholder="Chess.com username"]').fill(ACCTS[1]);
+    await b.settle(150); await b.tapText(/^Fetch$/,{wait:2600});        // acct2 = busy, games-bound
+    await b.settle(800);
+    const r=await READ(b);
+    const caps=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_acctcap')||'{}');}catch(e){return {};}});
+    const vals=Object.keys(caps).sort().map(k=>caps[k]);
+    L.note('MIXED BOUNDS  rows '+r.rows+'  ct_acctcap '+JSON.stringify(caps)+'  limit line '+JSON.stringify(r.cap&&r.cap.text));
+    // A9-0 IS THE PRECONDITION AND IT IS THE WHOLE POINT: without two DIFFERENT recorded bounds this input is
+    // just A7 again with more accounts, and a green below would mean nothing [#385's rule].
+    const a0=L.say(vals.includes('months')&&vals.includes('games'),
+      'A9-0 vacuity MIXED: the two accounts really were stopped by DIFFERENT bounds - one months, one games - so the union is actually made to choose',
+      {acctcap:caps,distinct:[...new Set(vals)].sort()});
+    if(a0){
+      const t=(r.cap&&r.cap.text)||'';
+      L.say(MONTH_RE.test(t)&&CAP_RE.test(t),
+        'A9a US-R25 MIXED: with accounts stopped by different bounds the line names BOTH limits, because that is the only statement true of every account - naming one of them "per account" is a limit stated that did not bind for the other',
+        {line:t,namesMonths:MONTH_RE.test(t),namesGames:CAP_RE.test(t)});
+      L.say(r.cap&&r.cap.ratio&&r.cap.ratio.r>=4.5,'A9b MIXED: the line still meets WCAG AA',r.cap&&r.cap.ratio?{...r.cap.ratio,min:4.5}:{ratio:null});
+    }
+    await b.close();
+  }
+
+  // ── A10 #432, THE LEGACY STORE. THE SECOND STATE ANTAGONIST A BROKE THIS BUILD IN.
+  //    A8 seeds 200 rows and 12. ACCT_GMAX was 40 from #353 to #430, so NO store written by any shipped build
+  //    before #431 can hold 200 rows - the entire installed base sits at or under 40, and inferring at today's
+  //    ACCT_GMAX read every one of them as "nothing bound" and stated no limit on a list that HAD been cut.
+  //    A8's 200-row input is the one row-count no real upgrading user is in.
+  {
+    const PGN='[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2026.08.01"]\n[White "me"]\n[Black "opp"]\n[Result "1-0"]\n[TimeControl "180"]\n\n'+MOVES+'\n';
+    for(const t of [{n:40,expect:'games',why:'a full store at the LEGACY cap of 40 - what every pre-#431 account looks like'},
+                    {n:9,expect:null,why:'below any cap this app has shipped, so nothing is known to have been cut'}]){
+      const rows=[];for(let i=0;i<t.n;i++)rows.push({src:'cc',acct:'me',pgn:PGN,white:'me',black:'opp'+i,wr:'win',tc:'blitz',date:Date.UTC(2026,7,1+(i%28),12,0,0)});
+      const b=await L.launch({geo:{w:375,h:730,safe:''},name:'legacy-'+t.n,store:{ct_accts:['cc:me'],ct_acctgames:{'cc:me':rows}}});
+      await b.open(); await b.tile('Review'); await b.settle(1200);
+      const r=await READ(b);
+      const tag='LEGACY STORE, '+t.n+' rows written by a pre-#431 build (cap 40), no ct_acctcap';
+      L.note(tag+'  rows '+r.rows+'  limit line '+JSON.stringify(r.cap&&r.cap.text));
+      if(L.say(r.rows===t.n,'A10-0 vacuity '+tag+': the stored games render from localStorage with no fetch',{rows:r.rows,expect:t.n})){
+        if(t.expect==='games')
+          L.say(CAP_RE.test(r.body||''),'A10a US-R25 '+tag+': a limit IS stated - a legacy account sitting at the cap of the build that wrote it was cut by that cap, and that is inferable without a re-fetch',{stated:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'NONE',note:t.why});
+        else
+          L.say(!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),'A10b US-R25 '+tag+': NO limit is stated below every cap this app has shipped, because nothing is known to have been cut',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',note:t.why});
       }
       await b.close();
     }

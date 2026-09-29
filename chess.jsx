@@ -244,7 +244,13 @@ function flagOf(cc){
 // did not. So the fetch RECORDS which bound stopped it and the screen states that one.
 // Kept in its own tiny key rather than on the rows or beside them in ACCT_G: one short string per
 // account cannot move the byte budget that TC-R35(iii) and gate 61's A4b measure over ACCT_G.
-const ACCT_K='ct_accts', ACCT_G='ct_acctgames', ACCT_C='ct_acctcap', ACCT_MAX=8, ACCT_GMAX=200, ACCT_GMONTHS=6;
+// #432 ACCT_GMAX_LEGACY is the cap this app shipped from #353 to #430. It is NOT dead history: it is the
+// only thing that lets a store written by an OLDER BUILD say whether it was cut. Every such store holds at
+// most 40 rows, so a legacy account sitting at 40 was cut by the cap of its day. Antagonist A caught the
+// first version inferring at ACCT_GMAX (200), which no pre-#431 store can ever reach - so the whole installed
+// base read as "nothing bound" and the app stated no limit at all on a list that HAD been cut. That is the
+// threshold-belongs-to-its-instrument trap, in the one configuration every real user is in.
+const ACCT_K='ct_accts', ACCT_G='ct_acctgames', ACCT_C='ct_acctcap', ACCT_MAX=8, ACCT_GMAX=200, ACCT_GMAX_LEGACY=40, ACCT_GMONTHS=6;
 // 'games'  the games cap stopped the walk - more games exist in the months already read
 // 'months' the month window stopped it - older months hold games this list has not asked for
 // 'all'    the archive index ran out - nothing was cut, so there is no limit to state
@@ -5815,7 +5821,7 @@ export default function App(){
             {ccGames&&ccGames.length>0&&(()=>{const _gs=gameSearch.trim().toLowerCase();const _shown=ccGames.filter(g=>!_gs||((g.white+' '+g.black+' '+(g.src==='li'?'lichess':'chess.com')).toLowerCase().includes(_gs)));return(<>
               <div ref={gamesListRef} style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:8,marginTop:3}}>
                 <span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Your games <span style={{color:'rgba(255,255,255,.42)',fontWeight:600,fontSize:'.86em'}}>· latest first</span></span>
-                <span style={{flexShrink:0,fontSize:'clamp(14px,2.9vw,15px)',color:'rgba(255,255,255,.52)',fontWeight:600}}>{ccGames.length} loaded</span>
+                <span style={{flexShrink:0,fontSize:'clamp(14px,2.9vw,15px)',color:'rgba(255,255,255,.60)',fontWeight:600}}>{ccGames.length} loaded</span>
               </div>
               {/* #431 US-R25: the limit is one the app STATES. The count above is a count, not a
                   limit. ACCT_GMAX is rendered, never retyped, so the number on screen cannot drift
@@ -5826,7 +5832,15 @@ export default function App(){
                   is the bound with games behind it that the player cannot reach by any interaction,
                   so it is the one worth a line. When NO account was cut there is no limit to state
                   and the line does not render - which is also what gives the shortest screens their
-                  24.8px back, on every history that fits.
+                  24.8px back. WITHDRAWN AS FIRST WRITTEN [R18]: that said "on every history that fits", and
+                  antagonist A disproved it by measuring a 7-month index of 5 games a month - 30 games, all 30
+                  on screen, nothing cut - where the line still renders. `bound` records HOW THE WALK EXITED,
+                  not whether anything was actually cut, so 'months' fires whenever the index is longer than
+                  ACCT_GMONTHS even if the older months are empty. The sentence is still TRUE there (the app
+                  really is showing the last 6 months); what was false was my claim about when it costs nothing.
+                  The accurate statement is: the height comes back on every history whose ARCHIVE INDEX is at
+                  most ACCT_GMONTHS months long. Deriving the bound from what was cut rather than from the exit
+                  is jobs/the-bound-records-how-the-walk-exited-not-whether-anything-was-cut-2026-09-29.
                   The job's draft wording was "Showing your last 6 months (30 games)."; the count is left OUT
                   because "N loaded" sits one row above and already carries it. With more than one account that
                   count is a TOTAL, so "per account (90 games)" would read as 90 each - and two readouts of one
@@ -5841,14 +5855,25 @@ export default function App(){
                 // at ACCT_GMAX was cut by the games cap. Below it we cannot tell months from exhausted, and
                 // 'all' is the honest answer there - it says nothing rather than naming a limit we cannot
                 // know bound.
-                const _bound1=(id)=>_C[id]||((_M[id]||[]).length>=ACCT_GMAX?'games':'all');
+                // A store with no recorded bound was written before #432. It can only have been capped at
+                // ACCT_GMAX_LEGACY, so THAT is the threshold to infer at - not today's ACCT_GMAX, which no
+                // such store can reach.
+                const _bound1=(id)=>_C[id]||((_M[id]||[]).length>=ACCT_GMAX_LEGACY?'games':'all');
                 const _b=ccAccts.map(_bound1).filter(Boolean);
-                const _bound=_b.includes('months')?'months':(_b.includes('games')?'games':null);
-                if(!_bound)return null;
-                const _sty={fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.52)',marginTop:-1,lineHeight:1.4};
-                return _bound==='months'
-                  ?<div data-ct="games-cap" style={_sty}>Showing your last {ACCT_GMONTHS} months per account.</div>
-                  :<div data-ct="games-cap" style={_sty}>Showing up to {ACCT_GMAX} games per account.</div>;})()}
+                const _months=_b.includes('months'), _games=_b.includes('games');
+                if(!_months&&!_games)return null;
+                const _sty={fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.60)',marginTop:-1,lineHeight:1.4};
+                // #432 MIXED BOUNDS. The first version let 'months' win the union and printed it "per account".
+                // Antagonist A measured the consequence on this very bundle: one thin account (months) and one
+                // busy account (games) together printed "your last 6 months per account" while the busy one was
+                // showing FOUR months and 200 games, with archives it never asked for behind it. That is the
+                // #431 defect verbatim - a limit stated that did not bind - so the union had to go.
+                // Both limits apply to every account and whichever comes first stops that account's walk, so
+                // when the accounts disagree the only sentence true of all of them names BOTH.
+                return <div data-ct="games-cap" style={_sty}>{
+                  _months&&_games ? 'Showing up to '+ACCT_GMAX+' games or your last '+ACCT_GMONTHS+' months per account.'
+                  : _months ? 'Showing your last '+ACCT_GMONTHS+' months per account.'
+                  : 'Showing up to '+ACCT_GMAX+' games per account.'}</div>;})()}
               {ccGames.length>6&&(<input value={gameSearch} onChange={e=>setGameSearch(e.target.value)} placeholder="Filter by player name" style={{width:'100%',padding:'6px 10px',borderRadius:7,background:'rgba(0,0,0,.25)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.10)',fontSize:'clamp(14px,3.1vw,16px)'}}/>)}
               <div className="scroll" style={{display:'flex',flexDirection:'column',gap:6,maxHeight:'min(46vh,340px)',overflowY:'auto'}}>
               {_shown.map((g,i)=>{const info=gameInfo(g);const bd=outcomeBadge(info.code);const st=gameStatsRef.current[gkey(g)];return(
