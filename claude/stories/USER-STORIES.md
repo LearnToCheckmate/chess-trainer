@@ -326,3 +326,5 @@ claude/stories/SUITE-AUDIT-2026-09-14.md, which carries its own unrelated "US-R1
 the real one (prompts/build-run: "the real id space of claude/stories/TEST-CASES.md"); the collision is
 flags/suite-id-collision-tc-r, already open, and is not refiled here [R25]. Recorded so that the next reader
 who greps the whole tree and finds two US-R15s knows which is which.
+
+US-R25  The Review list offers every game the connected account has, bounded only by a limit the app STATES ON SCREEN, and the number of games it can show NEVER depends on which month it is. A player who has not played this month still sees their history. (Kunal, 2026-09-23: "Why are there only 47 games in review. There should be thousands." A cap is correct here - the public API serves one month per request, rows carry full PGNs, localStorage is about 5MB for the whole app - so the clause names BOTH halves: state the limit, and do not let the calendar set it.) Checkable: with 300 games in the months before this one and none in this one, the list is non-empty and holds rows dated outside this month; the stated limit is readable on the list; and what was fetched is still there after a reload.
