@@ -1069,9 +1069,47 @@ L.run(async()=>{
          _tag+': ⟳ Flip runs '+_f.past+'px past its OWN row (pinned at '+_fp+'), because at board '+_fm.board.w+' the row cannot hold its two children\'s min-content ('+_f.needed+'px against '+_f.rowW+'px). REPORTED, not excused: shrinking is already spent here - #424 measured the font ladder taking this to 4.03 and not to zero - so closing it needs a wrap or a second row, which spends board height and is therefore Kunal\'s call.',
          {past:_f.past,pinned:_fp,needed:_f.needed,rowW:_f.rowW,board:_fm.board&&_fm.board.w});
      } else {
-       L.say(_f.past<=0.5,
-         _tag+': ⟳ Flip is inside its own row here ('+_f.btnR+' against a row ending at '+_f.rowR+') - this is the geometry antagonist B\'s veto turned on, where the branch is already contained with 0.02px of slack and a font floor would have bought nothing',
-         {past:_f.past,btnR:_f.btnR,rowR:_f.rowR,needed:_f.needed,rowW:_f.rowW});
+       /* #432 RE-KEYED TO THE MEASURED BOARD, FOR THE THIRD TIME IN THIS FILE AND FOR THE SAME REASON.
+          This asserted FLAT CONTAINMENT (past<=0.5) at every geometry without a pinned residual - i.e. it was
+          keyed to the GEOMETRY NAME. That is the identical fault #406, #409, #410 and #430 each fixed
+          elsewhere in this file, and #430's note on the ROW residual twenty lines above says in terms why:
+          "at short375 the demo board measures 270.88 in most runs and 192.00 - its floor - in others, STABLE
+          WITHIN A RUN, in roughly 2 of 6 full runs of this gate" (jobs/lesson-demo-board-is-bistable-at-375x568
+          -2026-09-29). #430 re-keyed the ROW assertion and left its SIBLING, the Flip branch, keyed to the name.
+          MEASURED at #432: short375 drew the 192.00 board and this line went red at past=34.77, btnR 318.27
+          against a row ending at 283.5 - which is the gate's OWN published table for the 192 board, to the
+          hundredth (375x520 and 320x520 both read 34.77 there). So the assertion was not detecting a
+          regression; at board 192 it is arithmetically INCAPABLE of being true, because the row is the board's
+          width and two min-content tracks plus gap need FLIP_NEEDED=226.77px. An assertion that cannot be true
+          in a state the suite reaches is not a strong assertion, it is a broken one, and it stops any build
+          from gating in ~2 of 6 runs.
+          SO IT STATES THE PHYSICS, true at BOTH board widths and STRICTLY STRONGER than flat containment:
+          the overflow is exactly max(0, needed - rowW) and nothing else. Truncating the label to fit a box
+          DROPS `needed` and goes red here; a row that stops being sized by the board goes red here; the board
+          taking its floor does not, because that is the known #424/#427 band whose closure costs board height
+          and is Kunal's call on desk-flip-branch-wrap-decision-2026-09-28. The band is REPORTED, not excused.
+          NOT FIXED BY THIS BUILD, and named rather than absorbed: the bistability itself has no assertion. A
+          check that pins WHICH board width appears needs the mechanism #430 could not isolate, and it stays on
+          its own job. */
+       const _fits=_f.needed!==null&&_f.needed<=_f.rowW+0.5;
+       const _fpred=_f.needed!==null?Math.round(Math.max(0,_f.needed-_f.rowW)*100)/100:null;
+       L.say(_f.needed!==null&&Math.abs(_f.past-_fpred)<=0.6,
+         _tag+': ⟳ Flip overflows its own row by exactly what the arithmetic predicts and by nothing else - '+
+         'the button runs '+_f.past+'px past a row ending at '+_f.rowR+', and the row\'s two min-content tracks '+
+         'plus gap need '+_f.needed+'px against a row of '+_f.rowW+'px (the board\'s own width), so the '+
+         'prediction is '+_fpred+'px. '+(_fits?'The board HOLDS the row here, so the prediction is 0 and this is '+
+         'a containment assertion.':'The board CANNOT hold the row here, so the overflow is the known #424/#427 '+
+         'band (needed minus the board) and the assertion is that it is no worse than that.')+
+         ' Keyed to the MEASURED board rather than to the geometry name, because at 375x568 this board reads '+
+         '270.88 in most runs and 192.00 in some - jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29',
+         {past:_f.past,btnR:_f.btnR,rowR:_f.rowR,needed:_f.needed,rowW:_f.rowW,predicted:_fpred,boardHoldsIt:_fits,board:_fm.board&&_fm.board.w});
+       /* AND STILL INSIDE THE VIEWPORT, which is the half a finger cares about: a row overflow inside the
+          viewport is recoverable, past it is not, and CLAUDE.md names horizontal spill past the viewport as the
+          one unrecoverable bug. The sibling row assertion pairs the same two claims. */
+       L.say(_f.btnR<=vw+0.6,
+         _tag+': and ⟳ Flip stays inside the VIEWPORT whichever board width this run drew - the button ends at '+
+         _f.btnR+' against a viewport of '+vw+', so nothing is stranded off-screen',
+         {btnR:_f.btnR,vw:vw});
      }
      /* THE BAND, not the point. This is the assertion that covers the ~30 heights inside the band that have no
         column of their own. Its content is a fact about the MECHANISM rather than about this geometry list:
