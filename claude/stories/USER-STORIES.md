@@ -494,6 +494,15 @@ The clauses, each one measurable:
    the rest of the game (because `playEnd` does not), so the defect was intermittent for one ending and permanent
    for the other. #437's handover note said stepping back un-clips; that is true of checkmate only, and the
    correction was found by driving both terms of `_gameOver` rather than one.
+5b. **"Landscape" here means the rail layout, and that is a WIDTH threshold, not an orientation.** Antagonist A
+   made this precise and it matters for reading every clause above: `wide` is
+   `vp.w>vp.h && (vp.w-RAIL-48)>=360` (chess.jsx:2761), so a 568x320 or 480x320 phone held sideways takes the
+   PORTRAIT layout, has no side rail at all, and was therefore already correct before this build - the swap
+   fired there on #437 through the `!wide` branch. The rail/stack breakpoint sits at or below 640px wide.
+   So this story fixes every geometry that HAS the defect, which is not the same sentence as every landscape
+   geometry, and the difference is worth keeping because a pass at 568x320 is not evidence for this fix and a
+   failure there is not evidence against it. (That screen has its own, worse trouble, and it is not this
+   build's: jobs/landscape-320-tall-is-unusable-and-a-mate-cannot-be-played-2026-09-30.)
 6. **A LIVE landscape game is untouched.** It still offers Hint and Flip and neither Review nor Rematch, and it
    still hides the Elo chrome. This clause exists so that "make the finished screen right" can never be satisfied
    by making every screen the finished one - the cheap fix that would satisfy clauses 1 to 5 and break every game
