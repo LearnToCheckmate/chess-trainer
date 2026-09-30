@@ -132,7 +132,14 @@ async function launch(opts={}){
       // element may still straddle an edge, and a finger would tap the part that IS on screen, so we clamp to
       // the viewport - but only when the clamped point is still INSIDE the element. If it is not, the element
       // is genuinely not tappable there and we throw rather than click whatever else happens to be underneath,
-      // which would be a false green. 105 call sites across 30 files shared this landmine at each edge.
+      // which would be a false green. MEASURED, not taken from the job that reported it: 157 method call
+      // sites across 48 files shared this landmine at each viewport edge (`grep -ron '\.tapText(' gates/`
+      // --include=*.js, 13:08Z on this tree). The job says 105 across 30 and that is corrected on the job.
+      // ONE BEHAVIOURAL CHANGE WORTH KNOWING, since it is not a pure bug fix: an element that STRADDLES an
+      // edge moves from the in-viewport pool to the off-screen pool, so where a gate has two matches - one
+      // fully visible and a smaller straddling one - the fully visible one now wins where the straddling
+      // one used to (and used to be clicked outside itself). The full suite over all 157 sites is the
+      // control for that, which is why this landed with a full run rather than a subset.
       const vp=page.viewportSize()||{width:geo.w,height:geo.h};
       const px=Math.min(Math.max(box.x+box.width/2,0.5),vp.width-0.5);
       const py=Math.min(Math.max(box.y+box.height/2,0.5),vp.height-0.5);
