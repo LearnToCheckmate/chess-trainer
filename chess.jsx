@@ -470,6 +470,11 @@ function winDrop(beforeW,afterW,mover){
 // The class sweep that missed it counted where the label is COMPUTED and not where it is CONSUMED.
 // These are the five cut-offs that shipped up to #439, unchanged, so every pool's population is reproduced
 // BY CONSTRUCTION rather than by a threshold I re-derived.
+/* #442: "a inaccuracy". The drill card interpolates a stored grade straight after a bare "a", and
+   `ct_mymistakes` SURVIVES A BUILD - a store written by any earlier build can hold a vowel-initial
+   grade (Inaccuracy) whatever this build now writes into it, so fixing the producer does not fix the
+   existing installed base. One helper, so the article is chosen from the word rather than assumed. */
+function artic(w){const t=String(w||'').trim();return (/^[aeiou]/i.test(t)?'an ':'a ')+t;}
 function classifyByLoss(loss){
   const l=Math.max(0,loss||0);
   if(l<15) return 'Best';
@@ -3682,13 +3687,28 @@ export default function App(){
          const _newMate=_isM(after)&&!_isM(before);
          const _againstMover=(mover==='w')?(after<0):(after>0);
          if(_newMate&&_againstMover&&cls.label!=='Brilliant')cls=classify(Infinity);}
+        /* #442: THESE TWO OVERLAYS ARE DECISIONS, NOT LABELS, so they read the SELECTION ladder.
+           They gated on `cls.label` and were calibrated when cls WAS classifyByLoss - Best/Excellent
+           then meant the player had played at or within 40cp of the engine's move, which is the whole
+           premise of "the only move that keeps it". #440 re-banded cls onto the win-percentage ladder
+           without moving these, so in a decided position a move losing 1.8 pawns still reads
+           Best/Excellent (it cost no winning chances that were left to lose) and GREAT FIRED ON A MOVE
+           THAT WAS NOT THE ENGINE'S: ply 19 of the Crusher9000 game rendered "! Great ... The only move
+           that keeps it." with the rev-best button 7px away offering a DIFFERENT move. False about
+           chess, on Kunal's own geometry. Miss failed the other way: it needs the old Mistake/Blunder
+           band and stopped firing once those moves softened. `_selL` is classifyByLoss(loss), i.e.
+           exactly the ladder both gates were written against, so this RESTORES the pre-#440 firing
+           condition rather than inventing one. ONE definition, read by the overlays AND by the row's
+           own `sel`, which is the hoist that #441's _cSel P0 taught. Instance 1 of
+           jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30. */
+        const _selL=classifyByLoss(loss);
         if(cls.label!=='Brilliant'){const _bm=mover==='w'?before:-before,_pm=mover==='w'?after:-after,_h2=ev2W[i]!=null,_s2=_h2?(mover==='w'?ev2W[i]:-ev2W[i]):null;
-          if((cls.label==='Best'||cls.label==='Excellent')&&_h2&&(_bm-_s2)>=160)cls={label:'Great',c:'#5d93e8',i:'!'};
-          else if((cls.label==='Mistake'||cls.label==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130)cls={label:'Miss',c:'#f08a5d',i:'×'};}
+          if((_selL==='Best'||_selL==='Excellent')&&_h2&&(_bm-_s2)>=160)cls={label:'Great',c:'#5d93e8',i:'!'};
+          else if((_selL==='Mistake'||_selL==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130)cls={label:'Miss',c:'#f08a5d',i:'×'};}
         let altSan='',altDrop=null;
         try{const au=aU[i];if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)&&!(am.fr===pl.fr&&am.fc===pl.fc&&am.tr===pl.tr&&am.tc===pl.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));}}
           if(ev2W[i]!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2W[i]:-ev2W[i];altDrop=Math.max(0,Math.round(_b-_s2));}}catch(e){}
-        out.push({loss:Math.round(loss),wdrop:_wd,macc:_ma,sel:classifyByLoss(loss),cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null});
+        out.push({loss:Math.round(loss),wdrop:_wd,macc:_ma,sel:_selL,cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null});
       }
       // #357 done in a second pass because the line reads FORWARD from each move, so the whole
       // array has to exist first. Only the classes that are worth a demonstration carry one.
@@ -3761,7 +3781,16 @@ export default function App(){
             const _cpos=res.positions[i];
             const _cwhy=mistakeWhy(_cpos,out[i].bestMove,out[i].bestSan,played,out[i].evalBefore,out[i].evalAfter,uc2,res.plies[i].move);
             const _chint=mistakeHint(_cpos,out[i].bestMove,res.plies[i].move);
-            caps.push({fen:toFEN(_cpos),uci:u,label:L,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint});
+            /* #442: THE STORED LABEL IS A SENTENCE, NOT A CHIP, so it names the grade the pool was
+               SELECTED by (`_S`) and not the one the review row DISPLAYS (`L`). It is interpolated
+               verbatim at puzzleFromMistake as "you played <san> here, a <label>." - so with the
+               display label it produced "you played Bg5 here, a great." and three cards reading
+               "a inaccuracy", inviting the player to improve on a move the same build had just
+               praised. Selection and sentence now come from one grade by construction: `_S` is the
+               very expression the `if` above filters on, so the card can only ever say "a mistake"
+               or "a blunder". Instance 2 of
+               jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30. */
+            caps.push({fen:toFEN(_cpos),uci:u,label:_S,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint});
           } else if(L==='Brilliant'&&res.plies[i]&&res.positions[i]){
             const m=res.plies[i].move,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
             const _g=out[i].gate||{};const _mo=out[i].motifs||[];
@@ -4810,7 +4839,7 @@ export default function App(){
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, a '+String(m.label||'mistake').toLowerCase()+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;return o;}catch(e){return null;}};
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, '+artic(String(m.label||'mistake').toLowerCase())+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;return o;}catch(e){return null;}};
   const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';mistakeQueueRef.current=qs;let i=0,o=null;while(i<qs.length){o=puzzleFromMistake(qs[i]);if(o)break;i++;}if(!o)return;mistakeIdxRef.current=i;setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(o);};
   const startBrilliant=()=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';mistakeQueueRef.current=qs;let i=0,o=null;while(i<qs.length){o=puzzleFromMistake(qs[i]);if(o)break;i++;}if(!o)return;mistakeIdxRef.current=i;setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(o);};
   const nextMistake=()=>{const q=mistakeQueueRef.current||[];let n=mistakeIdxRef.current+1;while(n<q.length){const o=puzzleFromMistake(q[n]);if(o){mistakeIdxRef.current=n;loadExternal(o);return;}n++;}exitMistakes();};
@@ -6316,7 +6345,12 @@ export default function App(){
         const _hasBetter=!!(curAnno&&(_curSel==='Inaccuracy'||_curSel==='Mistake'||_curSel==='Blunder')&&curAnno.bestSan);
         // #354 a move that WAS the best one has no "better" move to show, so it used to get no
         // demonstration at all. Play the move itself out instead, with what the engine says follows.
-        const _wasBest=!!(curAnno&&!_hasBetter&&['Brilliant','Great','Best','Excellent'].indexOf(curAnno.cls.label)>=0&&review.plies[ply-1]&&review.plies[ply-1].move);
+        /* #442 class sweep: this is the third DECISION taken from the display label. It answers "was the
+        // move the player made the engine's move", which #440's own comment two lines up says is not a
+        // question about how decided the position was - so it reads the selection ladder for the same
+        // reason `_hasBetter` does. Brilliant and Great stay on cls because both are overlays cls owns
+        // (and Great now only fires when _selL is Best/Excellent, so the two agree by construction). */
+        const _wasBest=!!(curAnno&&!_hasBetter&&(['Brilliant','Great'].indexOf(curAnno.cls.label)>=0||['Best','Excellent'].indexOf(_curSel)>=0)&&review.plies[ply-1]&&review.plies[ply-1].move);
         const cb=(lab,on,w,hot,title)=>(<button onClick={on} title={title} aria-label={title} style={{flex:w?('0 0 '+w+'px'):'1 1 0',minWidth:0,minHeight:(wide?48:42),borderRadius:12,cursor:'pointer',fontSize:(String(lab).length<=2?'clamp(21px,5.4vw,26px)':'clamp(14px,2.9vw,15px)'),fontWeight:800,background:hot?'rgba(var(--acr),.22)':'rgba(255,255,255,.08)',backgroundImage:'linear-gradient(rgba(255,255,255,.20),rgba(255,255,255,.04) 48%,rgba(0,0,0,.10))',border:hot?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',color:hot?'var(--ac2)':'#fff',letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif",display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap',boxShadow:SHADOW_BTN,padding:'0 6px'}}>{lab}</button>);
         return(<div data-ct="rev-compact" style={{width:boardPx+((hideEval||evalUnder)?0:22),maxWidth:_edge?'100vw':'98vw',marginTop:6,display:'flex',flexDirection:'column',alignItems:'stretch',gap:6}}>
           {/* #337: one line: move, verdict, best move (tap shows it on the board). No text box (Kunal). */}
