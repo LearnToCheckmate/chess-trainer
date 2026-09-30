@@ -198,6 +198,22 @@ whatever each screen happened to use.
 ### US-INV-04 Nothing on screen is cut without saying so
 Shipped #404 and #413; see 26-invariants.js invariants 4a and 4b and the flags they name.
 
+- WHEN A ROW CANNOT HOLD ITS CONTENT, WHAT GIVES WAY IS THE LEAST INFORMATIVE THING IN IT, NOT WHICHEVER CHILD
+  HAPPENS TO BE SHRINKABLE. Added #441. A nowrap flex row concentrates its whole deficit on its only
+  `flex:'0 1 auto'` child, so which ink is lost is decided by CSS rather than by what the player needs - and the
+  child that pays may be carrying the row's most important content. Measured on #441 before the fix: the review
+  move line is 286.00px at 320x568 AND at 375x568 (it follows the board, and the board is fit to HEIGHT, so this
+  is a short-screen fact and not a narrow one), the grade pill beside `rev-best` is `flex:'0 0 auto'` and grew
+  from 98.52 to 118.39px when a softened grade became a longer word ('?? Blunder' -> '?! Inaccuracy'), and
+  `rev-best` absorbed all of it: clientWidth 25 against scrollWidth 86, cutting THREE text nodes - the label
+  'best' by 6.83px, the move 'Qxd7' by 47.63px and the chevron by 55.99px. The move is the control's entire
+  purpose and the word 'best' is a 0.85em label at 60% white, so the label is what goes. AFTER: scrollWidth 56,
+  the move cut by 17.36px and the chevron by 25.72, two nodes rather than three. NOTE WHAT THIS CLAUSE DOES NOT
+  PROMISE, because #441's own fix cannot deliver it: the row still does not FIT, because the shrinkable child
+  absorbs a deficit that falls by exactly what is saved, so its clientWidth is 25 before and after. The clause is
+  about WHICH ink survives, not about ending truncation - that is US-INV-05's box question, and the residual is
+  pinned. (TC-INV-04a)
+
 ### US-INV-05 No part of a control is put where I cannot reach it
 As a player on a narrow or a short phone, no part of a button is painted outside the box that clips it, because a
 button whose edge is cut cannot be fully seen or confidently tapped and no gesture brings it back.
