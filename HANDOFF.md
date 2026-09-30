@@ -3,8 +3,17 @@
 Give this file to Claude in Cowork as the first thing in the session.
 
 > **SECTION 0a WAS LAST WRITTEN BY #398; THE LIVE LINE IS STILL #439 (`1f6939e` on main; the #439 bundle is sha
-> `dc5bacd`, md5 `0099cb784ca0`). #440, #441 and #442 are all BUILT AND UNPUSHED on
-> `claude/cool-noether-wn8auj` at `0463dce` — see the #442 section below for why, and do not assume main has them.** The "#419" this line carried from 2026-09-18 until now was itself twenty builds stale by the
+> `dc5bacd`, md5 `0099cb784ca0`). #440, #441 and #442 are all BUILT AND UNPUSHED. The newest branch carrying them
+> is `claude/cool-noether-r1k2ir` at `72f5d48` (24 build commits + one evidence commit, a clean fast-forward onto
+> main). Do not assume main has them.**
+>
+> **CORRECTED 2026-09-30T19:5xZ by `build__1790796015749` [R18].** This line read
+> "`claude/cool-noether-wn8auj` at `0463dce`" and BOTH halves were stale when I read them: `wn8auj`'s head was
+> `27fab23`, two commits past `0463dce`, and the work has since moved onto `r1k2ir`. That is the second time in
+> three builds that this pointer has named a sha the branch had already passed, which is the same defect the
+> paragraph below this one is about. **The mechanism, not another sha: run
+> `git ls-remote origin | grep cool-noether` and take the newest branch whose `git merge-base --is-ancestor
+> origin/main <head>` passes. Any sha written here is stale the moment the next run commits.** The "#419" this line carried from 2026-09-18 until now was itself twenty builds stale by the
 > time anyone read it again — which is the same defect this note exists to warn about, committed by the note. It is
 > corrected rather than removed, and the standing instruction is unchanged: **do not read this file for where the
 > build is.** Read `RUN-LOG.md` (one row per build, newest at the bottom), then `claude/BUILD-CONTEXT.md` and the
@@ -18,6 +27,56 @@ Give this file to Claude in Cowork as the first thing in the session.
 > for `#40x` that found nothing, without checking what the file's own headings say. It is off by twenty-three
 > builds and it is the project's own rule broken in the act of citing it: measure, do not read. Left visible
 > rather than quietly corrected, because a wrong number about the record is exactly what this note warns about.
+
+## 0a-443run) THE SIX RED ASSERTIONS BLOCKING THE PUSH ARE ONE 20-LINE BLOCK — MEASURED, NOT ARGUED
+
+Written by `build__1790796015749`, 2026-09-30, on `claude/cool-noether-r1k2ir` at `72f5d48`.
+**This run shipped no application code and pushed nothing to main. It spent itself on one control.**
+
+**THE ONE THING TO KNOW.** Four consecutive builds (#440, #441, #442 and this one) have stood down on the
+push, and 24 commits — including two P0 fixes — sit unpushed. Everyone assumed that was *two* problems: gate
+66's B1, which is Kunal's decision, plus gate 26's five reds, which nobody could place. **It is one problem.**
+
+Two bundles built from this tree by the same `build.sh` with the same `CT_STAMP_TIME`, differing by exactly
+the 20-line `#441` mate-floor block at `chess.jsx:3670-3689`:
+
+| bundle | md5 | gate 26 | gate 66 |
+|---|---|---|---|
+| floor **ON** (the tree as it stands) | `a37cb9f9550b` | 359 pass / **5 FAIL** | 36 pass / **1 FAIL** |
+| floor **OFF** (control) | `ab8a39564665` | **364 / 0** | **37 / 0** |
+
+`364 = 359 + 5`. Removing the floor clears all six and moves nothing else. Logs:
+`claude/agents/gatelogs/443run-control-gate{26,66}-mate-floor-{ON,OFF}.log`. Write-up:
+`claude/agents/443run-one-cause-six-assertions.md`.
+
+**SO THE ASK TO KUNAL IS ONE SENTENCE, AND IT IS WORTH 24 COMMITS.** Is the move that lets you get mated a
+Blunder, or not? A ready-to-paste Desk item is drafted on
+`jobs/gate-66-b1-and-the-mate-floor-disagree-about-what-the-app-should-print-2026-09-30` under
+`deskItemDraft_readyToPaste`. The Desk item has been OWED since 17:20Z and has now stopped a fourth build;
+`jobs/orchestrator-has-not-run-in-126-hours-2026-09-29` is open against the lane that owes it.
+
+**DO NOT RE-PIN GATE 26.** Its five pins cannot be *correctly* re-derived until he answers: if the floor stays
+they must move to 9 / 4 / 23; if the floor goes, 10 / 5 / 25 is already right. Re-pinning now is a coin flip
+that looks like diligence whichever way it lands.
+
+**DO NOT DROP THE FLOOR EITHER.** It was reverted only in a scratch bundle via `CT_OUT`; `chess.jsx` is
+byte-identical before and after (md5 `55288417624afe074bbacdefb2946dde`, `git diff` empty). Dropping it *is*
+outcome (ii) of the three Kunal has to choose between, so taking it out is settling his question, not avoiding it.
+
+**WHAT I DID NOT CHECK, plainly.** The other 46 gates were **not** re-run on the no-floor bundle, so "removing
+the floor makes the suite green" is **not established** — only that these six clear. #441's own pre-floor green
+suite is evidence for it and is a different tree.
+
+**A DEFECT IN MY OWN METHOD, caught and corrected.** My first read of the `jobs` collection used a
+where-clause that silently did not bind, and its cursor skipped **107 of 418** documents — so my first
+execution of STEP 1S ordered a partial queue. Re-run over all 418, the verdict was unchanged (same 17 jobs at
+priority 10, same pick). Filed as
+`jobs/a-where-clause-that-does-not-bind-makes-step-1s-read-a-partial-collection-2026-09-30`. **Read the jobs
+collection with a plain list paged to exhaustion, never a where-clause, and put the document count in your
+row** — a count is what caught this (my 311 against #442's 415, a hundred minutes apart).
+
+**#443 IS STILL FREE.** The control bundles are stamped `#443` only because `build.sh` demands a `#NNN`;
+neither was ever copied to `app.js`, committed or served. No build number was issued.
 
 ## 0a0) TWO SESSIONS BUILT THE SAME APP ON 2026-09-13 - READ THIS FIRST
 
