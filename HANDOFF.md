@@ -1753,3 +1753,46 @@ Only ONE environment may commit to LearnToCheckmate/chess-trainer at a time. Two
 
 ## 6) Files in this handoff
 This MD is self-sufficient; everything else refetches from the repo (section 1.2). The repo's own HANDOFF.md is June-era; this file supersedes it until committed.
+
+---
+# WHERE #437 LEFT OFF (2026-09-30 02:2xZ)
+
+**Shipped.** `origin/main` at `2e77597`, six commits, one clean fast-forward from `0447872` (#436). Bundle
+`app.js` md5 `5751da3ce0d9`, stamp `#437 - 2026-09-29 21:11 ET`. **GATES GREEN #437, 44 suites, 2915 PASS,
+0 fail** — `claude/agents/gatelogs/437d-all.log`, `verify-log.sh` OK including `--this-bundle`, and the md5
+re-read out of `origin/main` after the push matches the one the log gated.
+
+**What shipped.** The play chrome that asks "is the game over" is keyed to `_gameOver` (the real game plus
+`playEnd`) instead of `isOver` (which reads the ply being previewed). Four sites moved; eleven deliberately did
+not. A fifth site — the More sheet's Resign item — was found by counting the class rather than reading a grep.
+New gate `gates/regress/63-gameover-chrome-keying.js`, 84 assertions, 2 geometries x 3 terminal kinds.
+Story clause **US-PL-12**, case **TC-PL-034**.
+
+**THE THREE THINGS THE NEXT RUN SHOULD KNOW, in order of how much they would cost to rediscover.**
+
+1. **THE FULL SUITE STOPPED ME BREAKING A DECISION, AND A SUBSET WOULD NOT HAVE.** Antagonist B measured
+   correctly that fixing the row closed the last route to flipping a finished game. I restored Flip to the play
+   More sheet. The suite went red on `46-play.js:274`, and following that red led to `46-play.js:280`, labelled
+   **NEEDS-KUNAL K-PL-4** — a label stale by five builds, because `decisions/q-play-flip-gameover` (#390) reads
+   *"Flip a finished game in Review instead"* with no holding note. Reverted. **Gate 63 alone was 90/0 green at
+   that moment.** Before acting on any finding about what the product *should* do, search the decisions
+   collection for the question, not just the code for the fact.
+
+2. **LANDSCAPE IS THE OPEN HALF AND IT HAS NUMBERS NOW.** The row's swap is `(!wide&&_gameOver)`; only the second
+   operand is fixed. At 730x375 a finished game still shows the live row with a 27x51 enabled Hint whose tap
+   leaves the 64-square signature byte-identical, and the side rail clips the bottom 25px of all six controls —
+   their own centres included. Pre-existing on #436, so not a regression. `jobs/landscape-game-over-keeps-the-
+   live-row-and-the-rail-clips-half-of-it-2026-09-30`, P1, and it carries a trap: **keying the wide "Review this
+   game" button to `_gameOver` makes the clip PERMANENT** (I shipped that for thirty minutes and reverted it), so
+   fix the rail first or fix both together. Antagonist B also measured that real safe-area insets in landscape
+   give numbers identical to `safe:''` at every point, so **insets are not a second input and must not be banked
+   as landscape coverage.**
+
+3. **THE AUDITOR FOUND A P1 ON A SCREEN THE SUITE ALREADY VISITS.** In the Classic review layout the ply-control
+   row is a fixed 379.4px and never shrinks, so at 320 the auto-play and jump-to-last-move buttons are painted
+   entirely off opposite screen edges — and it is genuinely unrecoverable (a real drag and a wheel both leave
+   `scrollLeft` at 0; only script `scrollIntoView` moves it, which does not count). The choice persists in
+   `localStorage`. `jobs/classic-review-ply-row-is-a-fixed-379px-and-spills-both-ends-at-320-2026-09-30`. Two
+   sibling jobs from #428 may share its cause — check before building, per R09.
+
+**The pen note on `claims/repo-pen` carries the rest, including what I would want checked about my own build.**

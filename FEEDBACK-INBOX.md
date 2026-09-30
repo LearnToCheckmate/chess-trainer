@@ -2398,3 +2398,24 @@ at all is that each game carries its full move list, and the browser gives the w
 I measured what happens at the edge: with eight accounts and your longest games, it runs out, and
 before this build it would have thrown away **the account you had just added** without saying so.
 That part is fixed.
+
+---
+## #437 (2026-09-30) — a finished game now stays finished whatever ply you are looking at
+
+Nothing new from Kunal was raised or acted on this build; this entry is the record of what #437 changed that a
+player would notice, appended per the append-only rule.
+
+**Fixed.** On a finished game (checkmate or stalemate), stepping back through the moves used to rebuild the
+control row as a *live* row: a Hint button appeared that did nothing at all, and Review and Rematch disappeared
+until you stepped forward to the end again. The row now stays exactly as it was at the final position — same
+controls, same order, nothing moving by even a pixel. The More sheet also stopped offering **Resign** on a game
+that was already over, which was a second button that did nothing.
+
+**Not changed, and both are deliberate.** (1) Flipping the board after a game ends still happens in **Review**,
+per Kunal's own answer at #390 ("Flip a finished game in Review instead"). #437 briefly added a Flip to the play
+menu and reverted it when the gate suite caught that it contradicted that decision. (2) Holding the phone
+**sideways**, a finished game still shows the live row with the dead Hint, and the bottom half of that row is cut
+off by its own scroller. That is pre-existing, unchanged by this build, and filed as a P1 —
+`jobs/landscape-game-over-keeps-the-live-row-and-the-rail-clips-half-of-it-2026-09-30`. It is not fixed here
+because this build's gate only covers portrait, and a landscape change with no landscape assertion is how this
+project has been burned before.
