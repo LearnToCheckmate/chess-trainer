@@ -3662,6 +3662,26 @@ export default function App(){
         const _ma=moveAcc(_wd);
         const _g=brilliantGate(pos,pl,loss,evA,evB);
         let cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd);
+        /* #441: A MOVE THAT ALLOWS A FORCED MATE IS NEVER "A SMALL SLIP", and this floor restores a verdict
+           this file already declares. The win-percentage ladder is SATURATED at the extremes: before
+           15...Nxd7 in the Opera Game Black stands about -6.5 pawns, which is winPct ~8.4%, so the drop to 0%
+           is ~8.4 points - just over the 8.2096 Inaccuracy boundary. #441 therefore printed "?! Inaccuracy /
+           A small slip." with the eval bar reading "M2" eight pixels away, where #439 printed "?? Blunder".
+           Measured by the auditor on two independent games, run twice, byte-identical.
+           THIS IS NOT A NEW THRESHOLD, IT IS A RESTORATION. The #375 comment ~180 lines above says of this
+           very position: "the move that ALLOWS A MATE ... gets called Great instead of what it is ... 15...Nxd7
+           goes from Great to Blunder, best Qxd7, WHICH IS THE TRUTH." The project measured and shipped
+           "Blunder" for this move; the re-band silently undid it.
+           The predicate is the one the #375 re-search block already uses - a mate score is |v| >= 90000 - and
+           it fires ONLY when the mate is newly forced AND is against the mover, so a move that DELIVERS mate
+           is untouched and a player being mated in a long forced line is not charged a Blunder on every move
+           of it. The Blunder object comes from classify(Infinity) rather than re-typed literals so it cannot
+           drift from CLS_BANDS. Brilliant is left alone; brilliantGate needs a winning position and cannot
+           fire here. Amber record: flags/amber-441-a-move-that-allows-forced-mate-is-never-softer-than-blunder. */
+        {const _isM=(v)=>Math.abs(v)>=90000;
+         const _newMate=_isM(after)&&!_isM(before);
+         const _againstMover=(mover==='w')?(after<0):(after>0);
+         if(_newMate&&_againstMover&&cls.label!=='Brilliant')cls=classify(Infinity);}
         if(cls.label!=='Brilliant'){const _bm=mover==='w'?before:-before,_pm=mover==='w'?after:-after,_h2=ev2W[i]!=null,_s2=_h2?(mover==='w'?ev2W[i]:-ev2W[i]):null;
           if((cls.label==='Best'||cls.label==='Excellent')&&_h2&&(_bm-_s2)>=160)cls={label:'Great',c:'#5d93e8',i:'!'};
           else if((cls.label==='Mistake'||cls.label==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130)cls={label:'Miss',c:'#f08a5d',i:'×'};}
