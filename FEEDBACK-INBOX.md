@@ -2501,3 +2501,49 @@ anything in *landscape*, were not driven — the fix is in shared code so it app
 happening. (2) The same promotion panel has two other rough edges, both already on the list and neither touched
 here: it stays up if you step **Back** through the moves, and while it is open a tap on any button underneath is
 swallowed. (3) Online games were not testable here — signing in is blocked in this environment.
+
+## #441 — the new move grading is built and passing its tests, and I am still not shipping it yet
+
+**The thing you raised twice is built.** Your words, on the 23rd, with a screenshot: *"you're saying they
+committed like a bunch of blunders, especially at the end. I don't think we're identifying that correctly."* A
+move is now graded by **how much it cost your chances of winning**, not by a fixed pawn count, so losing three
+pawns when the game is already gone is no longer the same mistake as losing three pawns in a level position.
+
+**On a real game where Black is being mated**, Black goes from 62.4% to 88.9% accuracy, blunders 1 → 0, mistakes
+1 → 0. White, who won, keeps all ten of his grade counts unchanged. Level positions grade exactly as before — that
+is provable, not hoped for: the five new thresholds are the five old ones re-expressed.
+
+**But it is not on your phone, and here is the honest reason.** The full test suite passed — 47 suites, 3097
+checks, nothing failing. I then had two independent adversarial reviews go at it, and they found two things the
+tests could not see, both on your own screen size:
+
+1. **The review calls a bad move "! Great — the only move that keeps it", while offering you a different move in
+   the same row.** That is not just untidy, it is false: the app is simultaneously saying "this was the only move"
+   and "here is a better one".
+2. **The practice drill invites you to improve on a move it just praised** — a card literally reads *"you played
+   Bg5 here, a great. Find the stronger move."*
+
+Both come from **one cause**, and it is the same trap that bit the build yesterday: the new softer wording was
+correctly kept out of the places that *choose* which positions to show you, and was missed in the places that
+*decide* a move was great and that *write the sentence*. It is one fix, not three, and I have written it up as one
+item rather than three patches.
+
+**A third thing was caught and fixed on the way:** a move that walks into forced mate was being called *"a small
+slip"* — with "M2" printed on the same screen. That is now floored back to "blunder", which is what this project
+had already decided years-of-builds ago and what yesterday's change quietly undid. It is fixed on the main engine
+path; on the low-powered-device fallback path it is not, and that gap turns out to be older than this change.
+
+**And one crash, which never reached you.** If you had ever switched the review screen to its older "classic"
+layout, stepping to any move with a comment would have blanked the whole app. Yesterday's build refused to ship on
+a failing check, so it never got out. Worth saying who caught it: not the build and not its adversarial review —
+the **test suite** did, through the one test that happens to visit that layout.
+
+**What I would rather you knew than not.** The softening works in **both** directions: a player who is *winning*
+also stops being told they blundered — throwing away six pawns while winning now reads "a small slip". That may be
+exactly right, but it is a real product decision you have not seen, and every example anyone wrote down was about
+*losing* positions. It is going on your decision list rather than being quietly shipped.
+
+**Not fixed, and said plainly.** (1) On a 320-wide phone the best-move pill still trims — older than this change,
+on the list separately, and **nothing changes at all on your phone size**. (2) Whether we adopt chess.com's own
+thresholds instead of ours is still your call. (3) The lesson-content audit could not run in this container, so it
+is not part of this build's evidence; no lesson content was touched.

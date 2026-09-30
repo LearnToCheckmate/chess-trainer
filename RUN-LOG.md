@@ -413,3 +413,80 @@ every pre-existing gate held its count except the three reds).
 my own aggregation. (2) "32-plylog is not mine" — presence of a string in the bundle is not visibility on screen;
 the control passes 16/0 and it is mine. (3) The benchmark's 392/81/2.17x as descriptions of this build — they
 were computed with Lichess's published thresholds, which this build measured and rejected.
+
+## #441 — STOOD DOWN. The suite went green and the adversarial pass vetoed it anyway
+
+**NOTHING WAS PUSHED. origin/main is still `1f6939e` (#439).** The suite reached GATES GREEN at 47 suites / 3097
+PASS / 0 fail, and I did not push, because antagonist B found TWO P0s the green could not see and they share one
+cause with a third defect: the `sel`/`cls` split migrated the four SELECTION sites and left the Great/Miss
+OVERLAYS and the drill's STORED label reading the softened `cls.label`. The review row prints `! Great` with "The
+only move that keeps it" beside a button offering a different move, and the drill says "you played Bg5 here, a
+great". Both on Kunal's own geometry. One cause, `jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30`.
+
+**#440 built the win-percentage grade ladder and stood down on a red suite. #441 is that work, plus a P0 #440
+never saw, and it stood down too.** The feature is unchanged and its own section in #440's handover is still accurate; what follows is
+what it took to land, because that is the part with lessons in it.
+
+**THE P0.** `ReferenceError: _cSel is not defined`, and the whole app goes blank. #440's `sel`/`cls` split — a
+grade LABEL is what the player is told, a grade SELECTION is what the app chooses on — declared `_cSel` INSIDE the
+COMPACT review branch (`chess.jsx:6284`, the block returning `data-ct="rev-compact"`) and used that name in the
+CLASSIC branch at 6418. Two scopes. Measured by driving it at 375x730 with `ct_revCompact=0`: after tapping the
+forward-to-end chevron, `document.body.innerText` is the **empty string**, every element is gone, and the console
+carries `PAGEERROR ReferenceError: _cSel is not defined`. A white screen, two taps from opening a review, on every
+ply except the start position.
+
+**Who missed it: the build, its antagonist pass, and its own new 36-assertion gate, which was green at 36/0
+through all of it.** `ct_revCompact` defaults to compact, so every route a build normally drives is the other
+branch, and `37-strip-sync` is the only gate in 47 that enters the classic branch with an annotated ply — as one of
+three sessions. **That is coverage by luck, not coverage.** The fix is a HOIST rather than a patch: the selection
+label now lives at component scope beside `curAnno` and `_annoWhy`, so there is one definition and both layouts
+read it, which makes a scope mismatch impossible rather than merely fixed. Patching 6418 to recompute its own copy
+would have left two definitions of the same decision, which is how the class started. The class sweep is **not**
+done and is filed as its own job rather than claimed.
+
+**I BLAMED MY OWN HARNESS CHANGE FOR THAT RED AND WAS WRONG.** The exception surfaced at a line I had just edited
+in `gates/lib.js`, so I assumed my edit caused it, built a mechanism that explained it, noticed the mechanism
+rhymed with the very defect this build fixes — "a label is not a selection", one level up in the harness — and
+wrote it up as established. Two controls, each one command, settled it the other way: `origin/main`'s **original**
+`lib.js` fails identically on the #441 bundle, and that same original `lib.js` is **44/0** on the #439 bundle. The
+discriminator was the BUNDLE. Withdrawn in both documents that carried it. **Reproducible in your tree is not
+caused by your change, and an explanation that flatters the narrative deserves more scepticism, not less.**
+
+**The restructured `tapText` fix was kept anyway, because my first version was genuinely wrong in a different
+way.** `tapText`'s `off` test has two consumers: it decides whether to scroll, and it decides which candidate
+element WINS. Widening it to "the click point is outside the viewport" fixed the scroll half and silently made any
+element STRADDLING an edge ineligible to be `best` — re-pointing tapText's choice at **157 method call sites across
+48 files** (the job that reported the bug said 105 across 30; corrected on the job and in the source). Selection is
+now byte-identical to pre-#441 and the scroll-plus-clamp runs only on an already-chosen element. Gate 32 goes 16/0
+with **zero app change**, which is what the whole tapText change exists for.
+
+**THE ARITHMETIC WAS PREDICTED BEFORE THE RUN, NOT EXPLAINED AFTER IT.** At 13:19Z, with the suite on gate 15, I
+wrote that the footer should read **3097** — #439's 3060 plus gate 66's 37 — and that any other figure would itself
+be the finding, because a pre-existing gate whose count moved would mean the harness change had altered what some
+gate measures. The footer reads 3097. That is the control for 157 call sites, and stating it first is what makes
+the green evidence rather than relief.
+
+**The pill, and what the fix does not do.** `rev-best` was cutting a THIRD text node because a softened grade can
+be a LONGER word and the grade pill beside it cannot shrink. Under `rowNarrow` the decorative `best` prefix now
+goes, so the MOVE survives instead of the label. Measured: scroll 86 → 56, worst cut 47.63 → 17.36px, cut-node
+count 3 → 2, and **clientWidth 25 before AND after** — predicted before measuring, because `rev-best` is the only
+shrinkable child so the deficit falls by exactly what is saved. **It does not make the pill fit, and the source
+comment says so.** The remaining two-node cut is pre-existing and separately flagged. Nothing changes at
+`boardPx>=340`, so nothing changes on Kunal's phone. Amber record written before the change; US-INV-04, TC-INV-04a.
+
+**Gate 26's eight moved pins got the control they needed.** Against the #439 bundle the gate goes **356 pass / 8
+FAIL**, and the eight are exactly the eight pins I moved, each in the opposite direction — so none of them is loose
+enough to pass whatever renders. That control also caught a half-wrong claim of mine: I had named which row became
+newly detectable from the after-state alone, and at short375 the added pair is `0|6`, not the `1|1` I wrote. Right
+at one geometry, wrong at the other.
+
+**Three full-suite runs for one green, and only one was waste.** The first I discarded myself for editing
+`gates/lib.js` while it ran — comment-only, `app.js` untouched, but the log would have spanned two harness files
+and "only comments" is an argument rather than a measurement. The second went red and is the most valuable run of
+the day, because it is what found the P0. The third is the green.
+
+**Two hard gates named honestly.** `audit.py` could not run: `python-chess` will not build in this container. Its
+whole subject matter — lesson arrays, FENs, move legality — is untouched by this diff, which narrows the gap but
+does not close it, and I am not claiming it passed. `deploy.py` is not this lane's deploy path at all: it commits
+through the GitHub API from a sandbox layout that no longer exists, while this lane pushes with plain git and Pages
+deploys from main.

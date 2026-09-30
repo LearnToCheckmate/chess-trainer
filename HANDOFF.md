@@ -1804,6 +1804,102 @@ Story clause **US-PL-12**, case **TC-PL-034**.
 
 ---
 
+## #441 — STOOD DOWN ON THE PUSH. Nothing is on main; origin/main is still `1f6939e` (#439). 2026-09-30
+
+**The suite went GREEN at 47 suites / 3097 PASS / 0 fail and I still did not push, because the adversarial pass
+found two P0s the green could not see and they share one cause with a third defect.** Read this before re-doing
+any of it. The work is on `claude/cool-noether-0ya5ft`, head `1667853`, 17 commits ahead of main, tree clean.
+
+### WHAT TO DO FIRST, and it is not "re-gate"
+**Fix the ONE CAUSE on `jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30`.**
+#440 split the grade into `sel` (the old centipawn ladder, used to SELECT) and `cls` (the new win-percentage
+label, DISPLAYED), and migrated four selection sites. It did not migrate the label's other two kinds of
+consumer, and that is the whole of why #441 did not ship:
+
+- **code that makes a DECISION from the label** — the Great and Miss overlays (~`chess.jsx:3686`) still gate on
+  `cls.label`. So a 90–300cp error in a decided position is softened to Best/Excellent and then *promoted* to
+  `! Great` with the sentence **"The only move that keeps it."** — while `rev-best` 7px away offers a DIFFERENT
+  move. Measured at 375x730: row `10. Bg5 ! Great best Ng5+ › 19/30`, both elements fully painted
+  (`clientWidth == scrollWidth`); #439 grades that ply `? Mistake`. **The sentence is not merely inconsistent,
+  it is false about chess.**
+- **code that builds a SENTENCE from the label** — the drill capture stores `label:L` from `cls.label` and
+  interpolates `'a '+label.toLowerCase()`. So cards read **"you played Bg5 here, a great. Find the stronger
+  move."**, "a good.", and "a inaccuracy." `ct_mymistakes` stores `Blunder, Blunder, Good, Great, Inaccuracy x3`
+  where #439 stored `Blunder x2, Blunder, Mistake, Blunder x3`. **Two independent passes found this from two
+  different doors** (the Review tab and the stored-account route), so it is one finding with two finders.
+
+**Do not patch the three sites.** Enumerate every read of `cls.label`, decide per site whether it wants the
+selection ladder or the display label, and make the answer structural — the way #441's own `_cSel` P0 was fixed
+by hoisting one definition rather than patching the second consumer. The `'a '+label` article bug must be fixed
+whichever way that goes.
+
+### The P0 #441 DID fix, and it is worth not re-deriving
+`ReferenceError: _cSel is not defined` — the CLASSIC review layout (`ct_revCompact='0'`) white-screened the whole
+app on every annotated ply, because #440 declared `_cSel` inside the COMPACT branch (`chess.jsx:6284`) and used
+that name in the CLASSIC branch. Measured by driving it: after the forward-to-end chevron tap
+`document.body.innerText` is the EMPTY STRING and every element is gone. Fixed by **hoisting** the selection
+label to component scope beside `curAnno`. Control, free, the real broken build: gate 37 is **17/3** on the
+pre-fix bundle, **44/0** on #439, **44/0** after. `grep -c _cSel app.js` = 0.
+**Who missed it: #440's build, #440's antagonist pass, and #440's own new 36-assertion gate, green at 36/0
+throughout.** `ct_revCompact` defaults to compact, so every route normally driven is the other branch, and gate
+37 is the only gate in 47 that enters the classic branch with an annotated ply. Class sweep NOT done:
+`jobs/sweep-for-identifiers-declared-in-one-review-branch-and-used-in-the-other-2026-09-30`. The cheap sweep is
+to force the compact flag off for every review session in the suite.
+
+### The mate floor: shipped to the branch, PARTIAL, and its record is corrected
+The ladder graded a move that **allows forced mate in 2** as `?! Inaccuracy — A small slip.` with the eval bar
+reading `M2` eight pixels away (Opera ply 30; second instance, Blackburne trap ply 13, mate in one). #439 says
+`?? Blunder`. This is a **regression against a documented fix**: `chess.jsx:3630` says of this very position
+"15...Nxd7 goes from Great to Blunder, best Qxd7, **which is the truth**", and CLAUDE.md carries it as shipped at
+#375. So restoring it is a restoration, not a new threshold — which is why I took it as amber rather than routing
+it. Arithmetic: before that move Black is ~-6.5 pawns = winPct ~8.4%, so the drop to 0% is ~8.4 points, just over
+the 8.2096 Inaccuracy boundary. **BUT IT IS STOCKFISH-PATH ONLY** — one `_newMate` site, inside the Stockfish
+block; the fallback path's `classify(_wd2)` (`chess.jsx:3724`) has no floor, so with Stockfish blocked the same
+ply reads `★ Best` / "The position stays roughly level." That gap is **pre-existing** (#439 reads identically on
+the fallback path, and #375's own mate re-search at 3638 is also Stockfish-only), but CLAUDE.md's #375 rule says
+a device-chosen branch is covered or it is not. Amber record corrected accordingly.
+
+### THE THINGS I GOT WRONG, because they will save the next run time
+1. **I blamed my own harness change for a red that was an app P0.** The exception surfaced at a line I had just
+   edited in `gates/lib.js`, so I assumed my edit caused it, built a mechanism that explained it, noticed the
+   mechanism rhymed with the very defect this build fixes, and wrote it up as established. Two controls, each one
+   command, settled it the other way: `origin/main`'s ORIGINAL `lib.js` fails identically on the #441 bundle, and
+   that same original `lib.js` is 44/0 on #439. **The discriminator was the bundle.** Reproducible in your tree
+   is not caused by your change, and an explanation that flatters the narrative deserves MORE scepticism.
+2. **My first `tapText` patch widened a predicate that has two consumers.** `off` decides whether to scroll AND
+   which candidate WINS, so making it mean "the click point is outside the viewport" silently re-pointed
+   tapText's choice at **157 call sites across 48 files** (the job said 105 across 30; corrected). Selection is
+   now byte-identical to pre-#441 and the scroll-plus-clamp runs only on an already-chosen element.
+3. **I patched a finding in WHILE an adversarial pass was measuring**, so the green log gated `a4df39c38222` and
+   the branch head is `8b6643e7e419`, which **no full suite has run on**. Antagonist B led with that and was
+   right to. Re-gate from the top.
+4. **I asserted which gate-26 row was newly detectable from the after-state alone** and was right at one geometry
+   and wrong at the other (`0|6` at short375, not `1|1`). The control that settled it is also the control the
+   eight re-pins needed: gate 26 against #439 is **356/8**, all eight in the opposite direction.
+5. **Three self-reference traps in one run** — a `pgrep -f` waiter that would have waited on itself and two
+   `pkill -f` calls that killed their own shells. CLAUDE.md records both variants. Also: `pkill -x chromium`
+   matches nothing, because the browser process is named `headless_shell`.
+
+### What is measured and must NOT be re-derived
+- **The ladder inverts to our old cut-offs at eval 0**, so a LEVEL position grades exactly as on #439 — verified
+  independently this run, not taken from the handover: with k=0.00368208, inverting 15/40/90/160/320cp gives
+  1.380429 / 3.675438 / 8.209687 / 14.316615 / 26.463581, and the shipped table is those TRUNCATED to 4dp.
+  **Truncation is load-bearing**: 8.209687 ROUNDS to 8.2097, which is what #440 shipped first, and at that value
+  a loss of exactly 90cp grades Good where #439 said Inaccuracy. `8.2097` and `26.4636` appear nowhere.
+- **The accuracy formula** is Lichess's published per-move curve (`chess.jsx:436`), monotonic, 100% at drop 0,
+  with volatility weights from `winPct`. The end-to-end aggregation was NOT re-derived.
+- **`_hasBetter` keys on `sel`**, so the best-move pill appears on exactly the plies it always did; what changed
+  is its NEIGHBOUR, because the grade pill is `flex:'0 0 auto'` and `?? Blunder` → `?! Inaccuracy` grew it
+  98.52 → 118.39px.
+- **The pill class is TWO sites, not three** — a third grep hit for `flex:'0 1 auto'` is a COMMENT, and
+  `chess.jsx:6288` makes `_wasBest` require `!_hasBetter`, so `rev-playout` and `rev-best` are mutually exclusive
+  by construction and each is the sole shrinkable child when present.
+- **Gate 66 block A still cannot fail** (27 assertions that read five literals and redo the arithmetic in the
+  gate). Do not cite it as evidence the ladder works.
+- **`audit.py` cannot run in this container**: `python-chess` will not build. `deploy.py` is not this lane's
+  deploy path at all.
+- The clone arrives SHALLOW. Ninth consecutive run. `git fetch --unshallow` before any history claim.
+
 ## #440 — STOOD DOWN ON THE PUSH. Nothing is on main. 2026-09-30
 
 **The work is on `claude/cool-noether-2l1ypi` at `6eae944`, three commits, and it is worth having.** It is not on
