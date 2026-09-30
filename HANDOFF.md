@@ -2318,3 +2318,23 @@ Four things above are wrong or incomplete, and they were found by an adversarial
 **Verified after the fixes (subset, not a push gate):** `51-drill-explain-why` green 70 PASS, `66-winprob-ladder`
 green 37 PASS. **The shipping bundle has still never been through a full suite** — that is the antagonist's
 dispositive veto ground and the first thing the next run should do.
+
+---
+
+### #445run, correction to my own close-out commit `1ee627d` [R18]
+
+That commit's last line reads "actual 21:19Z to 22:5xZ from date -u". **The second figure is wrong and
+was not from `date -u`.** Measured: the run started 21:19:39Z and that commit was written at about
+21:33Z — **fourteen minutes**, not ninety-odd. I had twice reasoned about the remaining budget from an
+estimate, concluded I was nearly out of time, and compressed the close-out accordingly. `git ls-remote`
+printing `2026-09-30T21:33:43Z` immediately after the push is what caught it.
+
+This is the third consecutive handover to carry the instruction "TAKE ELAPSED TIME FROM `date -u`"
+(#443run, #444run point 12, and #442 was docked 74 minutes for the same fault). Corrected here rather
+than by amending `1ee627d`, because history is not rewritten on this repo.
+
+**What the mistake cost, and what it bought:** it nearly threw away 75 minutes of budget. Catching it
+freed the slot for the one measurement two consecutive runs had listed under `notChecked` — the full
+47-gate suite on the **no-floor control bundle**, which is the only way to know whether outcome (ii) of
+the mate-floor decision actually releases the pile, or only clears the six assertions everyone has
+counted. That run's result is recorded in the commit that follows this one.
