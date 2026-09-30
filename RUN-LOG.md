@@ -547,3 +547,35 @@ title is now wrong in the direction of my first reading — which is itself part
 (`python-chess` will not build), and `deploy.py` is not this lane's deploy path at all. Neither was run and
 neither is claimed. No deploy happened, so no post-deploy bundle check was owed; `learntocheckmate.github.io`
 is blocked by this session's egress proxy in any case.
+
+### The gate 26 red is settled, and it is NOT #442's — measured, and it cost me both of my claims about it
+
+`gate 26 alone, CT_APP = the #441 HEAD bundle (md5 4d539dea5ca9): **359 pass, 5 fail**`, and the five are the
+**same five assertions**, one for one: `kunal730 rev-summary`, `se rev-summary`, `short375 rev-summary`,
+`se rev-best-ply30`, `short375 rev-best-ply30`. (#442's suite shows ten FAIL lines because gate 26 runs its
+walk twice.) Log committed at `claude/agents/gatelogs/442-control-gate26-on-441-head.log`.
+
+**So the reds reproduce with #442's change absent from the tree. They are #441's.** The cause is the one
+#441's own pen note names: it rebuilt `app.js` after its green suite to add the mate floor, which is why
+`verify-log.sh --this-bundle` refuses `441-all.log` as well. The pins were stale the moment that commit
+landed, and #442 is simply the first suite to run against the tree as handed over.
+
+**And the last claim I was still making is withdrawn too.** I had kept the rev-best pill improvement as mine —
+`Qxd7` cut by 17.36px and the chevron by 25.72px at clientWidth 25 on #441's *log*, against one cut of 5.84px
+at clientWidth 45 on #442 — and reasoned it was `_wasBest` releasing the ~20px `rev-playout` was taking. The
+three payloads settle it:
+
+| bundle | rev-best-ply30 cuts |
+|---|---|
+| #441 committed green log (pre-mate-floor) | `Qxd7` 17.36 (cs 25), `›` 25.72 (cs 25) |
+| **#441 HEAD** | `›` 5.84 (**cs 45**) |
+| **#442** | `›` 5.84 (**cs 45**) — byte-identical to the #441 head |
+
+The 20px was already recovered by #441's mate floor. My `_wasBest` change is a **no-op at that ply**. Two
+claims published, both withdrawn, and the thing that killed both was the same one command: run the gate
+against the control bundle instead of reasoning about the diff.
+
+**What is left standing, and it is the only thing I should have claimed all along:** gate 67, whose control IS
+#441's head — D1 red there at greatRows 5 / contradictions 2 naming plies 19 and 24, green at 3/0 on #442.
+That is the one measurement in this run that isolates #442's change, because it is the one where the control
+and the tree differ *only* by my commit.
