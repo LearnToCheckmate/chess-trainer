@@ -1861,3 +1861,31 @@ to an adversarial pass rather than guess a fourth.
   formula gave 71.7%). Do not repeat the one-sided "accuracy goes up".
 - `US-R30` and `TC-R40` are landed in the registers; gate `66-winprob-ladder.js` is 36 assertions with the
   shipped #439 bundle as its negative control at **5 pass / 5 fail**.
+
+### #440 — how to rebuild the two bundles this run reasoned from
+
+Both lived in a scratchpad and died with the container. Neither needs guessing at.
+
+**The #439 control** (md5 `0099cb784ca0`) — the shipped bundle, and the best negative control for everything
+#440 does, because it is the real broken build rather than a trial:
+```
+git show 1f6939e:app.js > /tmp/app-439.js
+CT_APP=/tmp/app-439.js node gates/regress/66-winprob-ladder.js   # expect 5 pass / 5 fail
+CT_APP=/tmp/app-439.js node gates/regress/32-plylog.js           # expect 16 pass / 0 fail
+CT_APP=/tmp/app-439.js node gates/regress/51-drill-explain-why.js # expect 70 pass / 0 fail
+```
+
+**The old-grades trial** (md5 `356b26506864`) — everything from #440 except the grades. This is the bundle that
+isolated gate 32's cause, so rebuild it before spending any time on that red. Two edits to `chess.jsx`, then
+build to `CT_OUT` so the repo's `app.js` is never touched:
+1. In `CLS_BANDS`, replace the five win-percentage cut-offs `1.3804 / 3.6754 / 8.2097 / 14.3166 / 26.4636` with
+   the old centipawn ones `15 / 40 / 90 / 160 / 320`.
+2. At the three `classify(...)` call sites, pass the raw `loss` instead of the drop: `classify(loss).label`,
+   `classify(loss)` and `classify(loss)`.
+```
+CT_OUT=/tmp/app-trial-oldgrades.js gates/build.sh '#440'
+git checkout chess.jsx                       # put the real #440 back, and CHECK the md5 afterwards
+CT_APP=/tmp/app-trial-oldgrades.js node gates/regress/32-plylog.js   # 16 pass / 0 fail = grades are the cause
+```
+Everything else in #440 — the accuracy aggregation, the panel sentence, `classifyByLoss`, `sel`, the re-keyed
+pools — is still present in that trial, which is what makes it an isolating control rather than a revert.
