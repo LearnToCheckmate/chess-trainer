@@ -418,13 +418,72 @@ function rankMoves(game,depth){
   return scored;
 }
 
-function classify(loss){
-  if(loss<15) return{label:'Best',     c:'#6fd66f',i:'★'};
-  if(loss<40) return{label:'Excellent', c:'#9fcf6f',i:'✓'};
-  if(loss<90) return{label:'Good',      c:'#c9d06a',i:'·'};
-  if(loss<160)return{label:'Inaccuracy',c:'#f0cf5e',i:'?!'};
-  if(loss<320)return{label:'Mistake',   c:'#f0a24e',i:'?'};
-  return            {label:'Blunder',   c:'#ec5c4e',i:'??'};
+// ═══════════════════════════════════════════════════════════════
+// #440: A MOVE IS GRADED BY WHAT IT COST YOUR CHANCES, NOT BY A CENTIPAWN NUMBER.  (US-R30)
+// Kunal, 2026-09-23, on a game between 2000-strength players: "you're saying they committed like a
+// bunch of blunders, especially at the end." He was right, and "at the end" was the whole clue.
+// classify() saw ONLY the centipawn loss, so one identical 350cp slip was a Blunder at eval 0 - a
+// 28.4-point drop in winning chances, genuinely a blunder - and STILL a Blunder at -1000, where the
+// same slip costs 1.77 points and scores 92.4% move accuracy. Desk q-classify-on-winprob, answered
+// 2026-09-28: "labels-and-accuracy".
+// WHY LICHESS AND NOT CHESS.COM: chess.com's CAPS2 is not published, so there is nothing of theirs to
+// copy except their output, and that output was measured moving 6 accuracy points on the SAME game in
+// two hours (q-match-chesscom-moving-target). Lichess publishes the whole method with exact constants.
+function winPct(cp){ return 50 + 50*(2/(1+Math.exp(-0.00368208*cp)) - 1); }
+// Lichess's published per-move accuracy curve, clamped to a real percentage. It is a function of the
+// DROP alone - the two win percentages only ever enter as their difference - so it takes the drop, and
+// there is then no second place where a before/after pair could be assembled differently.
+function moveAcc(drop){ return Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*Math.max(0,drop||0)) - 3.1669)); }
+// THE ONE PLACE THE DROP IS DEFINED, and it takes the two EVALUATIONS rather than a loss on purpose.
+// Before #440 each of the three call sites computed its own `loss` and only ONE of them clamped at 1500.
+// Under a linear centipawn ladder that difference is invisible, because everything past 320 is a Blunder
+// either way; under a sigmoid it decides the answer. Keying the ladder on the two evaluations retires
+// the disagreement by construction instead of by three matching edits that a later grep has to re-find.
+function winDrop(beforeW,afterW,mover){
+  if(beforeW==null||afterW==null||!isFinite(beforeW)||!isFinite(afterW))return 0;
+  const b=mover==='w'?beforeW:-beforeW, a=mover==='w'?afterW:-afterW;
+  return Math.max(0,winPct(b)-winPct(a));
+}
+// THE FIVE CUT-OFFS ARE OURS, RE-EXPRESSED ON THE NEW SCALE. Amber call, recorded before the change at
+// flags/amber-440-win-percentage-ladder-keeps-our-cutoffs-not-lichess-three. Each number is the drop our
+// old centipawn cut-off equalled AT EVAL 0, where the old ladder was well calibrated - inverting them
+// returns 15.000, 40.000, 90.000, 160.000 and 320.000 centipawns, so a LEVEL position grades exactly as
+// it did before #440 and only a decided position moves. That is Kunal's complaint and nothing else.
+// Lichess's own published thresholds (>=10 Inaccuracy, >=20 Mistake, >=30 Blunder) were measured and
+// REJECTED: at eval 0 they sit at 110, 230 and 377 centipawns, so they would have softened the middlegame
+// nobody complained about, and a 350cp slip at eval 0 would have become a Mistake. Lichess publishes
+// nothing above Inaccuracy, so its thresholds cannot supply our Best/Excellent/Good split in any case.
+// THE BOUNDED CONSEQUENCE, stated because it is a product statement and not a bug: a drop is capped by
+// the winning chances you still had, so from about -1200 centipawns down every move grades Best. Once
+// you are two queens down you cannot make a mistake. Cap table, measured: -200 Blunder, -400 Mistake,
+// -600 Inaccuracy, -800 Good, -1000 Excellent, -1200 Best.
+const CLS_BANDS=[[1.3804,'Best','#6fd66f','★'],[3.6754,'Excellent','#9fcf6f','✓'],[8.2097,'Good','#c9d06a','·'],[14.3166,'Inaccuracy','#f0cf5e','?!'],[26.4636,'Mistake','#f0a24e','?']];
+function classify(drop){
+  const d=Math.max(0,drop||0);
+  for(let k=0;k<CLS_BANDS.length;k++){const b=CLS_BANDS[k];if(d<b[0])return{label:b[1],c:b[2],i:b[3]};}
+  return {label:'Blunder',c:'#ec5c4e',i:'??'};
+}
+// Lichess's published game aggregation: the mean of a volatility-weighted mean and a harmonic mean of
+// the per-move accuracies. `winsW` is the game's Win% series from WHITE's point of view at every
+// position (length = plies+1); `accs` and `idxs` are one side's per-move accuracies and their ply
+// indices. The volatility weight is the standard deviation of Win% inside a sliding window, so a move
+// played in a quiet position counts for less than one played in a sharp one.
+// NOT CHECKED, and it is the same gap the benchmark lane declared: Lichess's published description says
+// the window depends on game length without fixing the constant, so clamp(ceil(plies/10),2,8) is a
+// reading of it and it moves the weighted half of this number. lichess.org was not fetched [R21].
+function gameAcc(winsW,accs,idxs){
+  if(!accs||!accs.length)return null;
+  const n=winsW.length; if(n<2)return accs.reduce((a,b)=>a+b,0)/accs.length;
+  const ws=Math.max(2,Math.min(8,Math.ceil((n-1)/10)));
+  let sw=0;const wt=idxs.map(i=>{
+    const lo=Math.max(0,Math.min(i-ws+1,n-ws)),w=winsW.slice(lo,lo+ws);
+    if(w.length<2)return 0.5;
+    const m=w.reduce((a,b)=>a+b,0)/w.length;
+    const v=w.reduce((a,b)=>a+(b-m)*(b-m),0)/w.length;
+    const sd=Math.max(0.5,Math.min(12,Math.sqrt(v)));sw+=sd;return sd;});
+  const weighted=sw>0?accs.reduce((a,v,k)=>a+v*wt[k],0)/sw:accs.reduce((a,b)=>a+b,0)/accs.length;
+  const harmonic=accs.length/accs.reduce((a,v)=>a+1/Math.max(0.01,v),0);
+  return (weighted+harmonic)/2;
 }
 let SFX_ON=true; let _ctxSfx=null;
 function _sfxCtx(){try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;if(!_ctxSfx)_ctxSfx=new A();if(_ctxSfx.state==='suspended')_ctxSfx.resume();return _ctxSfx;}catch(e){return null;}}
@@ -1044,7 +1103,9 @@ async function analyzeGameCounts(pgn,userColor){
       const actualVal=actual?actual.v:(pos.turn==='w'?-9999:9999);
       const loss=Math.max(0,mc==='w'?bestVal-actualVal:actualVal-bestVal);
       // #331: evalBefore was missing here, so the gate ran with evB undefined in the background pass (it fell back to evalPawns(pos) inside brilliantGate, but only by accident of the null check). Pass it explicitly.
-      const L=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos))?'Brilliant':classify(loss).label;
+      // #440: classify() now takes the WIN-PERCENTAGE DROP. bestVal/actualVal are white-POV centipawns,
+      // so winDrop() is handed the two evaluations and converts to the mover's side itself.
+      const L=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos))?'Brilliant':classify(winDrop(bestVal,actualVal,mc)).label;
       if(L==='Brilliant')bril++;else if(L==='Best'||L==='Great')great++;else if(L==='Inaccuracy')inacc++;else if(L==='Mistake'||L==='Miss')mist++;else if(L==='Blunder')blun++;
       if((++proc)%2===0)await new Promise(r=>setTimeout(r,0));
     }
@@ -3562,16 +3623,23 @@ export default function App(){
         if(bu){bestMv=uciToMove(pos,bu);if(bestMv)bestSan=toSAN(pos,bestMv,applyMove(pos.board,bestMv));}
         const evA=Math.max(-99,Math.min(99,after/100)),evB=Math.max(-99,Math.min(99,before/100));
         const pl=res.plies[i].move;
-        if(bestMv&&bestMv.fr===pl.fr&&bestMv.fc===pl.fc&&bestMv.tr===pl.tr&&bestMv.tc===pl.tc){loss=0;bestSan='';bestMv=null;}
+        let _wasBest=false;
+        if(bestMv&&bestMv.fr===pl.fr&&bestMv.fc===pl.fc&&bestMv.tr===pl.tr&&bestMv.tc===pl.tc){loss=0;bestSan='';bestMv=null;_wasBest=true;}
+        // #440: computed AFTER the override above, and keyed on the explicit _wasBest flag rather than
+        // inferred from bestMv being null - bestMv is ALSO null when the engine returned no best move at
+        // all, and those two cases must not share a branch. A played move that IS the engine's best scores
+        // a zero drop instead of being charged for the sharpness of the position it was played in.
+        const _wd=_wasBest?0:winDrop(before,after,mover);
+        const _ma=moveAcc(_wd);
         const _g=brilliantGate(pos,pl,loss,evA,evB);
-        let cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(loss);
+        let cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd);
         if(cls.label!=='Brilliant'){const _bm=mover==='w'?before:-before,_pm=mover==='w'?after:-after,_h2=ev2W[i]!=null,_s2=_h2?(mover==='w'?ev2W[i]:-ev2W[i]):null;
           if((cls.label==='Best'||cls.label==='Excellent')&&_h2&&(_bm-_s2)>=160)cls={label:'Great',c:'#5d93e8',i:'!'};
           else if((cls.label==='Mistake'||cls.label==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130)cls={label:'Miss',c:'#f08a5d',i:'×'};}
         let altSan='',altDrop=null;
         try{const au=aU[i];if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)&&!(am.fr===pl.fr&&am.fc===pl.fc&&am.tr===pl.tr&&am.tc===pl.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));}}
           if(ev2W[i]!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2W[i]:-ev2W[i];altDrop=Math.max(0,Math.round(_b-_s2));}}catch(e){}
-        out.push({loss:Math.round(loss),cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null});
+        out.push({loss:Math.round(loss),wdrop:_wd,macc:_ma,cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null});
       }
       // #357 done in a second pass because the line reads FORWARD from each move, so the whole
       // array has to exist first. Only the classes that are worth a demonstration carry one.
@@ -3599,9 +3667,13 @@ export default function App(){
            next line for brilliantGate and thrown away. It is a device-chosen code path, which is the #375
            rule: the gate covers every branch or it is not a gate. Gate 51 now runs a fallback column. */
         const _evB=evalPawns(res.positions[i]);
+        // #440: same ladder on the fallback engine. This is the #375 rule - a code path the DEVICE
+        // chooses is covered or the gate is not a gate - so the drop is computed here too, not only above.
+        const _wd2=winDrop(bestVal,actualVal,mover);
+        const _ma2=moveAcc(_wd2);
         const _g=brilliantGate(res.positions[i],pl,Math.round(loss),_evA,_evB);
-        const _cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(loss);
-        out.push({loss:Math.round(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,evalBefore:_evB,gate:_g});
+        const _cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd2);
+        out.push({loss:Math.round(loss),wdrop:_wd2,macc:_ma2,cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,evalBefore:_evB,gate:_g});
         if(i%2===0){setProgress((i+1)/res.plies.length);await new Promise(r=>setTimeout(r,0));}
       }
     }
@@ -3663,7 +3735,22 @@ export default function App(){
       }
     }catch(e){}
     const bookN=openingBookPlies(playedSans);
-    const _sideStats=(side)=>{const c={Brilliant:0,Great:0,Best:0,Excellent:0,Good:0,Book:0,Inaccuracy:0,Miss:0,Mistake:0,Blunder:0};let sl=0,n=0;out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(mc!==side)return;const L=o.cls&&o.cls.label;if(i<bookN&&L!=='Brilliant'&&L!=='Great'){c.Book++;return;}if(L==='Brilliant')c.Brilliant++;else if(L==='Great')c.Great++;else if(L==='Best')c.Best++;else if(L==='Excellent')c.Excellent++;else if(L==='Good')c.Good++;else if(L==='Inaccuracy')c.Inaccuracy++;else if(L==='Miss')c.Miss++;else if(L==='Mistake')c.Mistake++;else if(L==='Blunder')c.Blunder++;sl+=Math.max(0,o.loss||0);n++;});const acpl=n?sl/n:0;const acc=Math.max(15,Math.min(99.5,100*Math.exp(-acpl/300)));const rating=Math.max(450,Math.min(2500,Math.round(600+(acc-50)*28)));return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10,rating};};
+    const _sideStats=(side)=>{const c={Brilliant:0,Great:0,Best:0,Excellent:0,Good:0,Book:0,Inaccuracy:0,Miss:0,Mistake:0,Blunder:0};let sl=0,n=0;const _accs=[],_idxs=[];/* #440: the game's Win% series from WHITE's point of view at every position, length plies+1. It is the
+   input to the volatility weighting, and it spans the WHOLE game rather than one side's moves, because a
+   move's weight comes from how sharp the position was, which both players share. */const _winsW=out.length?[winPct((out[0].evalBefore||0)*100)].concat(out.map(o=>winPct((o.evalAfter||0)*100))):[];out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(mc!==side)return;const L=o.cls&&o.cls.label;if(i<bookN&&L!=='Brilliant'&&L!=='Great'){c.Book++;return;}if(L==='Brilliant')c.Brilliant++;else if(L==='Great')c.Great++;else if(L==='Best')c.Best++;else if(L==='Excellent')c.Excellent++;else if(L==='Good')c.Good++;else if(L==='Inaccuracy')c.Inaccuracy++;else if(L==='Miss')c.Miss++;else if(L==='Mistake')c.Mistake++;else if(L==='Blunder')c.Blunder++;sl+=Math.max(0,o.loss||0);n++;_accs.push(typeof o.macc==='number'?o.macc:moveAcc(o.wdrop||0));_idxs.push(i);});const acpl=n?sl/n:0;
+    /* #440 piece 2, the half Kunal took over the recommendation: accuracy is no longer an exponential
+       decay on AVERAGE CENTIPAWN LOSS (100*exp(-acpl/300)). It is Lichess's published aggregation of the
+       per-move accuracies, which are themselves keyed to the win-percentage drop - so the same position
+       term that fixed the labels fixes this number too, and a long lost endgame stops being charged for
+       every move played after the game was already decided.
+       acpl IS STILL COMPUTED AND STILL RETURNED: it remains a true statement about the game and callers
+       read it. It is simply no longer what accuracy is derived from.
+       THE 15 AND 99.5 CLAMP IS DELIBERATELY KEPT. It is the existing display contract and the reason the
+       rating line has a structural ceiling of 1986 (measured by the benchmark lane); moving it would be a
+       second product change nobody asked for, so it stays and is named under notChecked instead. */
+    const _ga=gameAcc(_winsW,_accs,_idxs);
+    const acc=Math.max(15,Math.min(99.5,_ga==null?100:_ga));
+    const rating=Math.max(450,Math.min(2500,Math.round(600+(acc-50)*28)));return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10,rating};};
     const summary={w:_sideStats('w'),b:_sideStats('b'),userColor:(meta&&meta.userColor)||null,book:bookN};
     let skills=null;try{skills=gameSkills(res.positions,res.plies,out,bookN);}catch(e){skills=null;} /* #368 y17b */
     const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,skills,pgn:text};
@@ -5903,7 +5990,7 @@ export default function App(){
                   </button>);})}
               </div>);})()}
             {(()=>{const _H=(review&&review.headers)||{};const _anyR=!!(hdrElo(_H,'w')||hdrElo(_H,'b'));return(
-            <div data-ct="rev-summary-note" style={{textAlign:'center',fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.4)',lineHeight:1.5}}>{_anyR?'Accuracy is a rough estimate from average centipawn loss. The ratings are the ones recorded in the game\u2019s PGN.':'Accuracy is a rough estimate from average centipawn loss.'}</div>);})()}
+            <div data-ct="rev-summary-note" style={{textAlign:'center',fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.4)',lineHeight:1.5}}>{_anyR?'Accuracy is estimated from how much each move changed your chances of winning. The ratings are the ones recorded in the game\u2019s PGN.':'Accuracy is estimated from how much each move changed your chances of winning.'}</div>);})()}
           </div>
           </div>
           <div data-ct="rev-summary-foot" style={{flexShrink:0,display:'flex',gap:10,alignItems:'stretch',justifyContent:'center',padding:'10px 14px calc(10px + env(safe-area-inset-bottom,0px))',background:'rgba(13,16,21,.97)',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',borderTop:'1px solid rgba(255,255,255,.10)',boxShadow:'0 -6px 20px rgba(0,0,0,.45)'}}>
