@@ -6347,8 +6347,19 @@ export default function App(){
                   at 60% white carrying nothing the pill's accent colour, its position and its title do not; the SAN
                   is the control's whole purpose. So under rowNarrow the label gives way and the move survives.
                   IT DOES NOT MAKE THE PILL FIT, and the comment says so rather than letting a later reader assume
-                  it: this is the only shrinkable child, so the deficit it absorbs falls by exactly what is saved and
-                  client stays 25 - the same box with fewer nodes over its edge. The remaining two-node cut is
+                  it: this is the only child that ABSORBS the deficit, so what it absorbs falls by exactly what is
+                  saved and client stays 25 against the #440 intermediate - the same box with fewer nodes over its
+                  edge. THREE CORRECTIONS FROM ANTAGONIST A [R18]: (1) "the only shrinkable child" is literally
+                  false - rev-move-line also has a flex:'1 1 auto' spacer, which is right in effect only because its
+                  flex BASE is 0 so it absorbs nothing, and it renders only when !anaMode, so the child set differs
+                  in analysis mode. (2) "client 25 before and after" holds against the never-shipped #440; against
+                  the SHIPPED #439 it is 45 -> 25, so this does NOT recover the 20px of box #440 took and gate 26's
+                  "worse, and it needs looking at" still applies. (3) the worst cut is the CHEVRON, 55.99 -> 25.72;
+                  47.63 -> 17.36 is the SAN's row at both ends, which I had published as the worst.
+                  AND THE BOUND IS WRONG BY 76px OF BOARD: rowNarrow is boardPx<340 while the deficit only appears
+                  at boardPx 264, so at 360x640 - a mainstream Android layout viewport - the pill is cs 56 = ss 56,
+                  nothing is cut, and the word is dropped for nothing. In LANDSCAPE rev-best is a 10px box holding
+                  63px at 730x375, 844x390 and 667x375 alike, so "the move survives" is FALSE there. The remaining two-node cut is
                   PRE-EXISTING (flags/rev-best-reads-best-Q-at-320) and still silent, because text-overflow does not
                   apply to the flex items of an inline-flex box. Nothing changes at boardPx>=340: client 100 / scroll
                   100 / zero cut nodes at 375x679 and at Kunal's own 375x730. */}

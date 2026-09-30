@@ -125,9 +125,13 @@ async function launch(opts={}){
       // unconditionally, so any element with `top <= innerHeight < top+height/2` was never scrolled and the
       // click landed BELOW the viewport - silently. #440 hit it on gate 32: the review sheet's counts row sits
       // at top 711.41 in a 730-tall viewport, so its centre was unreachable while the row was plainly on
-      // screen and reachable by a finger. MEASURED: 157 method call sites across 48 files share this
-      // (`grep -ron '\.tapText(' gates/` --include=*.js); the job that reported it says 105 across 30 and
-      // that is corrected on the job.
+      // screen and reachable by a finger. BLAST RADIUS, and the number is fiddlier than it looks: the raw
+      // grep returns 158 occurrences across 48 files, of which TWO are comment lines - and ONE OF THOSE IS
+      // THIS COMMENT, because the recipe I published contains the pattern it counts. The check and the thing
+      // being checked were the same object, for the sixth time in this file's history, in the comment
+      // announcing the measurement. Real call sites are ~156 across 48 files (antagonist A, #441). The job
+      // that reported the bug says 105 across 30, which is low; my own first correction said 157, which
+      // counted this comment. Do not re-derive it with that one-liner without excluding comments.
       //
       // THE FIX IS DELIBERATELY *AFTER* SELECTION, AND THE FIRST VERSION OF IT WAS NOT - THAT COST A SUITE.
       // The `off` test above does TWO jobs: it decides which candidate WINS (an in-viewport match beats an
