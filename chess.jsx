@@ -457,6 +457,28 @@ function winDrop(beforeW,afterW,mover){
 // the winning chances you still had, so from about -1200 centipawns down every move grades Best. Once
 // you are two queens down you cannot make a mistake. Cap table, measured: -200 Blunder, -400 Mistake,
 // -600 Inaccuracy, -800 Good, -1000 Excellent, -1200 Best.
+// THE OLD CENTIPAWN LADDER, KEPT ON PURPOSE AND NOT AS DEAD CODE. #440.
+// A LABEL AND A SELECTION ARE TWO DIFFERENT QUESTIONS, and conflating them is what gate 51 caught:
+// "how much did this move cost your chances" is what the player is TOLD, and it is what #440 made honest.
+// "was there a materially better move here" is what the app SELECTS on - which moves to put in the mistake
+// drill, which to list as key moments, which to offer a best line for - and that question has no position
+// term in it at all. A move that gave away 350 centipawns in a lost game is still a move worth practising;
+// it simply did not cost you the game, so it is no longer CALLED a blunder.
+// WHY THIS EXISTS AT ALL: the first cut of #440 keyed the drill pool on the new label, and on a game the
+// player lost the pool went EMPTY - gate 51 went from 70 pass to `captured: 0, inputs: 0`. That is worse than
+// the defect #440 fixed, and it is the same shape as #439's picker guard silently breaking the analysis board.
+// The class sweep that missed it counted where the label is COMPUTED and not where it is CONSUMED.
+// These are the five cut-offs that shipped up to #439, unchanged, so every pool's population is reproduced
+// BY CONSTRUCTION rather than by a threshold I re-derived.
+function classifyByLoss(loss){
+  const l=Math.max(0,loss||0);
+  if(l<15) return 'Best';
+  if(l<40) return 'Excellent';
+  if(l<90) return 'Good';
+  if(l<160)return 'Inaccuracy';
+  if(l<320)return 'Mistake';
+  return           'Blunder';
+}
 const CLS_BANDS=[[1.3804,'Best','#6fd66f','★'],[3.6754,'Excellent','#9fcf6f','✓'],[8.2097,'Good','#c9d06a','·'],[14.3166,'Inaccuracy','#f0cf5e','?!'],[26.4636,'Mistake','#f0a24e','?']];
 function classify(drop){
   const d=Math.max(0,drop||0);
@@ -3639,7 +3661,7 @@ export default function App(){
         let altSan='',altDrop=null;
         try{const au=aU[i];if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)&&!(am.fr===pl.fr&&am.fc===pl.fc&&am.tr===pl.tr&&am.tc===pl.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));}}
           if(ev2W[i]!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2W[i]:-ev2W[i];altDrop=Math.max(0,Math.round(_b-_s2));}}catch(e){}
-        out.push({loss:Math.round(loss),wdrop:_wd,macc:_ma,cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null});
+        out.push({loss:Math.round(loss),wdrop:_wd,macc:_ma,sel:classifyByLoss(loss),cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null});
       }
       // #357 done in a second pass because the line reads FORWARD from each move, so the whole
       // array has to exist first. Only the classes that are worth a demonstration carry one.
@@ -3673,7 +3695,7 @@ export default function App(){
         const _ma2=moveAcc(_wd2);
         const _g=brilliantGate(res.positions[i],pl,Math.round(loss),_evA,_evB);
         const _cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd2);
-        out.push({loss:Math.round(loss),wdrop:_wd2,macc:_ma2,cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,evalBefore:_evB,gate:_g});
+        out.push({loss:Math.round(loss),wdrop:_wd2,macc:_ma2,sel:classifyByLoss(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,evalBefore:_evB,gate:_g});
         if(i%2===0){setProgress((i+1)/res.plies.length);await new Promise(r=>setTimeout(r,0));}
       }
     }
@@ -3702,7 +3724,11 @@ export default function App(){
         for(let i=0;i<out.length;i++){
           const mc=i%2===0?'w':'b'; if(mc!==uc2)continue;
           const L=out[i].cls&&out[i].cls.label;
-          if((L==='Mistake'||L==='Blunder'||L==='Miss')&&out[i].bestMove&&res.positions[i]){
+          // #440: SELECT on the old centipawn ladder, DISPLAY the honest label (stored as `label:L` below).
+          // old {Mistake,Blunder,Miss} == old {loss>=160} == sel in {Mistake,Blunder}, because Miss is an
+          // overlay drawn from those two - so this reproduces the pre-#440 pool EXACTLY, not approximately.
+          const _S=out[i].sel||classifyByLoss(out[i].loss||0);
+          if((_S==='Mistake'||_S==='Blunder')&&out[i].bestMove&&res.positions[i]){
             const m=out[i].bestMove,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
             let played='';try{played=toSAN(res.positions[i],res.plies[i].move,applyMove(res.positions[i].board,res.plies[i].move));}catch(e){}
             const _cpos=res.positions[i];
@@ -5979,7 +6005,9 @@ export default function App(){
                     {['w','b'].map(sd=>{const [val,idx,on]=fn(K[sd]);const can=idx!=null;return(<button key={sd} onClick={()=>go(idx)} disabled={!can} style={{textAlign:'center',background:on?'rgba(255,255,255,.06)':'none',border:on?'1px solid rgba(255,255,255,.18)':'none',borderRadius:9,padding:'4px 0',color:on?'#fff':'rgba(255,255,255,.3)',fontWeight:800,fontSize:val.length>4?'clamp(12px,2.8vw,13px)':'clamp(16px,3.8vw,18px)',cursor:can?'pointer':'default',lineHeight:1.2,whiteSpace:'nowrap'}}>{val}</button>);})}
                   </div>))}
               </div>);})()}
-            {(()=>{const moments=review.analysis.map((o,i)=>({o,i})).filter(({o,i})=>{const mc=i%2===0?'w':'b';if(S.userColor&&mc!==S.userColor)return false;const L=o.cls&&o.cls.label;return L==='Blunder'||L==='Mistake';}).sort((a,b)=>(b.o.loss||0)-(a.o.loss||0)).slice(0,3);if(!moments.length)return null;return(
+            {(()=>{const moments=review.analysis.map((o,i)=>({o,i})).filter(({o,i})=>{const mc=i%2===0?'w':'b';if(S.userColor&&mc!==S.userColor)return false;const L=o.cls&&o.cls.label;const _S=o.sel||classifyByLoss(o.loss||0);/* #440: selected on the old ladder for the same reason as the drill pool. This list was ALREADY sorted by
+   o.loss and only its filter was keyed to the label, which is the tell that loss is its natural key. It
+   still excludes a move the new ladder calls Miss, as it always did. */return (_S==='Blunder'||_S==='Mistake')&&L!=='Miss';}).sort((a,b)=>(b.o.loss||0)-(a.o.loss||0)).slice(0,3);if(!moments.length)return null;return(
               <div style={{display:'flex',flexDirection:'column',gap:7}}>
                 
                 {false&&moments.map(({o,i})=>{const L=o.cls.label;const col=L==='Blunder'?'#ec5c4e':'#f0a24e';return(
@@ -6237,7 +6265,11 @@ export default function App(){
       {/* ── Review controls, one-screen preview (#333) ── */}
       {inReview&&revCompact&&(()=>{
         const _mvTxt=curAnno?((Math.floor((ply-1)/2)+1)+((ply-1)%2===0?'.':'…')+' '+review.plies[ply-1].san):null;
-        const _hasBetter=!!(curAnno&&(curAnno.cls.label==='Inaccuracy'||curAnno.cls.label==='Mistake'||curAnno.cls.label==='Blunder')&&curAnno.bestSan);
+        // #440: whether a materially better move EXISTED is not a question about how decided the position
+        // was, so this offer is selected on the old ladder too. Without this a move softened out of
+        // Inaccuracy loses its best-line button while bestSan is still sitting on the row.
+        const _cSel=curAnno?(curAnno.sel||classifyByLoss(curAnno.loss||0)):null;
+        const _hasBetter=!!(curAnno&&(_cSel==='Inaccuracy'||_cSel==='Mistake'||_cSel==='Blunder')&&curAnno.bestSan);
         // #354 a move that WAS the best one has no "better" move to show, so it used to get no
         // demonstration at all. Play the move itself out instead, with what the engine says follows.
         const _wasBest=!!(curAnno&&!_hasBetter&&['Brilliant','Great','Best','Excellent'].indexOf(curAnno.cls.label)>=0&&review.plies[ply-1]&&review.plies[ply-1].move);
@@ -6354,7 +6386,7 @@ export default function App(){
                 <span style={{fontSize:'clamp(15px,3.7vw,19px)',fontWeight:700,color:'#fff'}}>{Math.floor((ply-1)/2)+1}{(ply-1)%2===0?'.':'…'} {review.plies[ply-1].san}</span>
                 <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:curAnno.cls.c,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'66',borderRadius:22,padding:'4px 12px'}}><span style={{fontSize:'clamp(15px,3.7vw,19px)',lineHeight:1}}>{curAnno.cls.i}</span>{curAnno.cls.label}</span>
               </div>
-              {(curAnno.cls.label==='Inaccuracy'||curAnno.cls.label==='Mistake'||curAnno.cls.label==='Blunder')&&<button onClick={()=>{setShowBest(true);playBestLine();}} title="Show the best move on the board" style={{background:'none',border:'none',cursor:'pointer',padding:'2px 4px',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(15px,3.6vw,17px)',fontWeight:600,color:'rgba(255,255,255,.82)',display:'inline-flex',alignItems:'center',gap:7,flexWrap:'wrap',justifyContent:'center'}}>Better was <b style={{color:'var(--ac2)',fontWeight:800}}>{curAnno.bestSan}</b> <span style={{color:'var(--ac)',fontWeight:700,textDecoration:'underline',textUnderlineOffset:3}}>{showBest?'shown below':'tap to see it'}</span></button>}
+              {(_cSel==='Inaccuracy'||_cSel==='Mistake'||_cSel==='Blunder')&&<button onClick={()=>{setShowBest(true);playBestLine();}} title="Show the best move on the board" style={{background:'none',border:'none',cursor:'pointer',padding:'2px 4px',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(15px,3.6vw,17px)',fontWeight:600,color:'rgba(255,255,255,.82)',display:'inline-flex',alignItems:'center',gap:7,flexWrap:'wrap',justifyContent:'center'}}>Better was <b style={{color:'var(--ac2)',fontWeight:800}}>{curAnno.bestSan}</b> <span style={{color:'var(--ac)',fontWeight:700,textDecoration:'underline',textUnderlineOffset:3}}>{showBest?'shown below':'tap to see it'}</span></button>}
               {_annoWhy&&<div style={{width:'100%',maxWidth:440,fontSize:'clamp(14px,2.8vw,14.5px)',color:'rgba(255,255,255,.84)',lineHeight:1.5,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:10,padding:'9px 12px',textAlign:'center'}}>{_annoWhy}</div>}
             </>):(<span style={{fontSize:'clamp(14px,2.8vw,14px)',color:'rgba(255,255,255,.5)'}}>Starting position — step forward to review →</span>)}
           </div>
