@@ -517,3 +517,49 @@ USER-STORIES.md and nothing else. So this id is allocated one past the highest n
 names, and it is recorded here, in a file that IS in the repository, rather than in a document no session can
 open. jobs/story-and-case-ids-have-no-claim-register-2026-09-28 is the open item that would make this safe
 rather than careful; this run did not fix it.
+
+### US-PL-14 Once a game is over, it is over: nothing I do on the board can add a move to it
+*Added #439, from jobs/a-pawn-can-be-promoted-into-a-game-that-already-ended-on-time-2026-09-30, found by #438's
+auditor pass and measured by #438 as pre-existing on the #437 bundle. US-PL-12 and US-PL-13 are the same
+predicate on two other axes - a finished game must keep behaving as finished across a STEP BACK, and across a
+ROTATION. This one is the axis underneath both: a finished game must keep behaving as finished when the player
+TOUCHES THE BOARD. The job that asked for it names only the promotion picker; the clauses below are wider than
+that because the measurement was.*
+
+As a player whose game has just ended - I resigned, or my clock ran out - I want the game to be finished, so that
+the move list I then review is the game I actually played and nothing else.
+
+The clauses, each one measurable:
+1. **After any ending, the board accepts no further move.** The guard was `getStatus(game)` for checkmate and
+   stalemate, which reads the BOARD and therefore misses every ending that is not on the board: resign, a clock
+   flag, and the #414 auto-draws. MEASURED on the shipped #438 bundle at 375x730 and 320x568: a RESIGNED game
+   accepted a legal move and wrote it into the move list, vs Computer (plies 4 -> 5, `3.Bc4`) and Pass & Play
+   (1 -> 2, `1...e5`); a game lost on TIME did the same (4 -> 5). A MATED game correctly refused (4 -> 4), which
+   is what locates the hole in `playEnd` rather than in the status check.
+2. **A choice the game was waiting on is dropped when the game ends, not left live.** MEASURED at 375x730 with a
+   1-minute clock: with the promotion picker open, White's clock flagged, the result card read `Time! Black wins`
+   and the control row had correctly swapped to the finished-game set - and the picker was still up with four
+   enabled 52x52 buttons. Tapping the queen appended `5.fxg8=Q` to a game that had already ended (8 plies -> 9)
+   and took the captured-material readout from +2 to +13. The picker's buttons call the move committer directly,
+   so clause 1's guard does not reach them: this is a second hole, not the same one twice.
+3. **Dropping it means clearing it, not hiding it.** `fullReset` - what Rematch and New game call - resets the
+   ending, the board, the clock and the move list, and never touched the pending promotion choice. So a fix that
+   only stopped PAINTING the picker would leave the choice set and raise it over the NEXT game, holding the dead
+   game's moves. MEASURED on a bundle built that way (md5 14905f6f0ce3): the reported defect is closed, every
+   other assertion in gate 65 goes green, and Rematch raises a stale picker.
+4. **And a live game is untouched.** A game in progress still accepts moves, still opens the picker on a
+   promotion, and still completes it: measured at both geometries, a white queen stands on a8 afterwards and the
+   move row reads `5.bxa8=Q`. Fixing clause 1 by refusing the board, or clause 2 by never painting the picker,
+   would satisfy every clause above and break the app; gate 65's E block is that pair of controls.
+
+5. **And "the board" means the board, not one way of touching it.** The first candidate for this story guarded
+   the tap path and left the DRAG path open: a piece picked up while the game was live and released after the
+   ending still committed. MEASURED at 375x730 with a 1-minute clock - the clock flagged with the piece held, the
+   result card read `Time! White wins`, and releasing it appended `3...Nf6` with no error. The guard therefore
+   sits on the move COMMITTER rather than on its callers, which is what makes clause 1 a property of the game
+   rather than a property of however many input routes someone has remembered to enumerate.
+
+Case: TC-PL-036. Gate: gates/regress/65-promotion-after-gameover.js.
+
+*Clause 5, and the mode term in clause 4, were both added after the #439 antagonist pass vetoed the first
+candidate. The story is stronger for them and neither was in the job that asked for this work.*

@@ -2458,3 +2458,46 @@ rather than patched into this one:
 `jobs/a-pawn-can-be-promoted-into-a-game-that-already-ended-on-time-2026-09-30`. (3) The classic Review ply row
 still spills both ends at 320px wide. #437 left that citing an unsettled decision; **that reason was false and
 is withdrawn** — the decision was answered on 2026-09-22 — so it is simply the next item, not a blocked one.
+
+## #439 (2026-09-30) — once a game is over, it is over: nothing you do on the board can add a move to it
+
+This is the P0 the #438 audit found and #438 said would get its own build. It turned out to be wider than
+reported, so this fixes the whole of it rather than the half that was written down.
+
+**What was wrong.** Promote a pawn, and a small "Promote to…" panel asks which piece you want. If your clock ran
+out while that panel was open, the game ended underneath it — the result card said **"Time! Black wins"** and the
+buttons underneath correctly changed to Review and Rematch — **and the panel stayed up with all four pieces still
+live**. Tapping one played the promotion into a game that had already finished: the move list grew from 8 moves
+to 9, gaining `5.fxg8=Q`, and the captured-material score jumped from +2 to +13.
+
+**And it was not only the promotion panel, which is the part nobody had measured.** On the shipped build, after
+*any* ending that is not checkmate, **the board itself still accepted moves**:
+
+- **Resign a game and you could keep playing it.** Against the computer the board took `3.Bc4`; in Pass & Play it
+  took `1…e5`. Resign is one tap from the ⋯ menu of every game, so this needed no clock at all — the report said
+  the clock was the only way in, and for the board it was not.
+- **Lose on time and the same thing happened** — the board took another move after the flag.
+- **A game ended by checkmate was always fine**, and that is what pinpointed the cause: the app was asking "is
+  this position checkmate or stalemate?" — a question about the *board* — when it needed to ask "is this *game*
+  over?", which also covers resigning, running out of time, and the automatic draws.
+
+**What it does now.** After any ending — resign, flag, checkmate or a draw — the board takes no further move, and
+a promotion panel that is open when the game ends simply goes away. Everything about a game in progress is
+unchanged: you can still play, still promote a pawn, still take a move back, still hit Rematch and get a fresh
+game that plays normally.
+
+**Two things nearly went wrong, and both were caught before this shipped.**
+
+1. The first version still let a move through **if you were already holding a piece when the clock fell** — press
+   down, clock runs out, release on a square, and the move landed on the finished game. That was caught by the
+   adversarial pass, not by the build. The guard now sits on the one piece of code every move has to go through,
+   so it no longer matters how many ways there are to make one.
+2. The first version also **broke promotion on the analysis board**. Because "this game is over" stayed true
+   after you left the game, pushing a pawn to the last rank while analysing did *nothing at all* — no panel, no
+   message. That would have been worse than the original bug. It is now limited to the Play screen only.
+
+**Not changed, and said plainly.** (1) Promotion during a game against the *computer* specifically, and
+anything in *landscape*, were not driven — the fix is in shared code so it applies, but it was not watched
+happening. (2) The same promotion panel has two other rough edges, both already on the list and neither touched
+here: it stays up if you step **Back** through the moves, and while it is open a tap on any button underneath is
+swallowed. (3) Online games were not testable here — signing in is blocked in this environment.

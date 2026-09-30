@@ -2748,6 +2748,30 @@ export default function App(){
      small fix becomes a big one. This adds a predicate beside it and moves the sites where the question is
      "is the game over"; the sites where the question really is "is the shown position terminal" keep `isOver`. */
   const _gameOver=useMemo(()=>{if(playEnd)return true;try{const st=getStatus(game);return st==='checkmate'||st==='stalemate';}catch(e){return false;}},[game,playEnd]);
+  /* #439: DROP A PENDING PROMOTION CHOICE WHEN THE GAME ENDS. The promotion picker is the one route into doMove that
+     does NOT go through humanCanMove - its buttons call doMove(promo.g, m) directly - so the guard added there does
+     not reach it and this is a second, independent hole rather than the same one twice. MEASURED on shipped #438 at
+     375x730: with the picker open, White's clock flagged, the result card read 'Time! Black wins' and the control row
+     had correctly swapped to the game-over set, and the picker was STILL UP with four enabled 52x52 buttons; tapping
+     the queen took the move row from 8 plies to 9, appending '5.fxg8=Q' to a game that had already ended, and the
+     captured-material readout went +2 to +13.
+     CLEARING THE STATE IS THE LOAD-BEARING HALF, not the render guard below, and this is why: fullReset (Rematch,
+     New game) resets playEnd, the board and the clock but NEVER touched `promo`, so a guard that only stopped the
+     PAINT would leave the choice set, and the next Rematch - where _gameOver is false again - would raise a picker
+     over the fresh game still holding the dead game's moves. So the state is cleared here and the paint is guarded
+     there; the render guard exists only to close the one-frame race between the flag and a finger already on its way
+     down. Dismissing rather than disabling is deliberate: the choice no longer means anything, and this project has
+     twice filed a control that is enabled but inert as a defect in its own right.
+     AND BOTH ARE SCOPED TO mode==='play', WHICH IS NOT TIDINESS - THE UNSCOPED VERSION WAS BUILT AND MEASURED
+     BREAKING SOMETHING WORSE. playEnd is cleared by exactly one function, fullReset, and NOTHING clears it on the
+     way into Review or Analyze; _gameOver short-circuits on it, so after a resign it stays true while the player
+     walks Review -> Start review -> the round Analyze button onto a live analysis board. An unscoped guard
+     therefore suppressed the picker THERE too, where the finished game is irrelevant: measured on
+     gates/.trial/app-nc3-broadguard.js, a promotion on the analysis board produced NO picker and 3 console errors,
+     so the pawn reached the last rank and nothing happened at all. A silently dropped move is worse for that
+     player than the defect this whole change exists to fix. Gate 65 block F is that state, and F1 is red on the
+     unscoped bundle and green here. */
+  useEffect(()=>{if(mode==='play'&&_gameOver&&promo)setPromo(null);},[mode,_gameOver,promo]);
   const [resultCardFade,setResultCardFade]=useState(false);const [resultCardGone,setResultCardGone]=useState(false); // #375 (audit A2-06): the result card sat on the final position until Rematch
   const _resultKey=(isOver||playEnd)?1:0;
   useEffect(()=>{setResultCardFade(false);setResultCardGone(false);if(!_resultKey)return;const a=setTimeout(()=>setResultCardFade(true),2600),b=setTimeout(()=>setResultCardGone(true),3300);return()=>{clearTimeout(a);clearTimeout(b);};},[_resultKey,mode]);
@@ -3847,6 +3871,20 @@ export default function App(){
   };
   const sfxMove=(gB,mv)=>{try{if(!gB||!mv)return;const ng=makeMove(gB,mv);let k='move';if(ng&&ng.board&&isInCheck(ng.board,ng.turn))k='check';else if(mv.castle)k='castle';else if(mv.promo)k='promote';else if((gB.board&&gB.board[mv.tr]&&gB.board[mv.tr][mv.tc])||mv.epCap)k='capture';playSfx(k);}catch(e){}};
   const doMove=(g,mv)=>{
+    /* #439, AND THIS IS THE GUARD THAT ACTUALLY CLOSES THE DEFECT - the one on humanCanMove below is the
+       interaction layer and this is the commit layer. Antagonist A broke the first version of this fix by
+       finding a THIRD route I had missed while enumerating call sites: onPtrUp reaches commitOrPromote WITHOUT
+       re-checking humanCanMove (only onPtrDown does), so a piece PICKED UP while the game was live and RELEASED
+       after the ending still committed. Measured by A on the candidate at 375x730, Pass & Play, 1 min: the clock
+       flagged with the piece still held, the result card read 'Time! White wins', the control row had already
+       swapped - and releasing the piece appended '3...Nf6' to the finished game.
+       THE LESSON IS THE SHAPE OF THE FIX, NOT THE COUNT. Guarding the CALLERS means the answer to 'how many
+       routes are there' has to be re-audited every build, and I got it wrong the first time by grepping doMove's
+       call sites and missing the one that reaches it through a helper. Every route lands HERE, so the question
+       stops being interesting: this one line closes the tap path, the drag-release path and the 40ms pre-move
+       setTimeout window together. humanCanMove keeps its own guard because stopping the interaction earlier is
+       better than letting a piece be lifted and silently refused. */
+    if(modeRef.current==='play'&&playEndRef.current)return;
     if(modeRef.current==='puzzle'){
       if(puzSolvedRef.current){UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}
       const p=curPuzRef.current;const step=puzStepRef.current;
@@ -4186,6 +4224,16 @@ export default function App(){
     if(modeRef.current==='analyze'){if(!anaModeRef.current)return false;const st=getStatus(gameRef.current);return st!=='checkmate'&&st!=='stalemate';}
     if(modeRef.current==='puzzle')return !puzSolvedRef.current&&gameRef.current.turn===puzSideRef.current;
     if(getStatus(gameRef.current)==='checkmate'||getStatus(gameRef.current)==='stalemate')return false;
+    /* #439: and the line above is only HALF the question. getStatus reads the BOARD, so it catches checkmate and
+       stalemate and misses every ending that is not on the board - resign, a clock flag, and the #414 auto-draws by
+       repetition and fifty-move. Those live in `playEnd`, which this predicate never consulted, so a finished game
+       stayed fully playable: MEASURED on the shipped #438 bundle at 375x730, a resigned game accepted a legal move
+       and appended it to the move list (vs Computer plies 4->5 '3.Bc4'; Pass & Play 1->2 '1...e5'), and so did a
+       game lost on time (4->5). A MATED game correctly refused (4->4), which is the counter-example that locates
+       the hole in playEnd rather than in the status check. This is the shared `_gameOver` predicate of #437 applied
+       to the site that actually admits the moves; see the comment at its definition. Play mode only, because
+       playEnd is play mode's own state and the branches above already own analyze, puzzle and learn. */
+    if(modeRef.current==='play'&&playEndRef.current)return false;
     if(modeRef.current==='play'&&opponentRef.current==='online'){const og=onlineGameRef.current;return !!og&&og.status==='active'&&!og.result&&myColorRef.current===gameRef.current.turn;}
     if(modeRef.current==='play'&&opponent==='computer'&&gameRef.current.turn!==pColor)return false;
     if(modeRef.current==='learn'){if(learnPhaseRef.current!=='practice')return false;const op=LIB[openIdxRef.current];const line=learnLineRef.current;if(!op||openStepRef.current>=line.length||gameRef.current.turn!==op.side)return false;}
@@ -6773,7 +6821,7 @@ export default function App(){
         </div>
       </div>)}
 
-      {promo&&(()=>{const col=promo.g.turn;const gl={w:{q:'♕',r:'♖',b:'♗',n:'♘'},b:{q:'♛',r:'♜',b:'♝',n:'♞'}}[col];return(
+      {promo&&!(mode==='play'&&_gameOver)&&(()=>{const col=promo.g.turn;const gl={w:{q:'♕',r:'♖',b:'♗',n:'♘'},b:{q:'♛',r:'♜',b:'♝',n:'♞'}}[col];return(   /* #439: closes the one-frame race between the ending and a finger already on its way down; the effect beside _gameOver clears the state. The mode term is load-bearing - without it this suppresses the picker on the ANALYSIS board too, because playEnd outlives the game into Review (gate 65 block F). */
       <div onClick={()=>setPromo(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.55)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60,padding:16}}>
         <div onClick={e=>e.stopPropagation()} style={{background:'#1f1f30',border:'1px solid rgba(255,255,255,.18)',borderRadius:16,padding:'16px 18px',textAlign:'center',boxShadow:'0 16px 50px rgba(0,0,0,.65)'}}>
           <div style={{fontSize:'clamp(14px,2.8vw,14.5px)',fontWeight:800,color:'var(--ac2)',marginBottom:12,letterSpacing:.3}}>Promote to…</div>
