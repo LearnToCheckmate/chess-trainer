@@ -27,6 +27,23 @@
 // Black is being MATED in that game, so his closing moves are played in a dead-lost position: that is
 // precisely the state Kunal screenshotted, and the winning side barely moving is the other half of the
 // claim.
+// WHICH ENGINE BRANCHES THIS GATE DRIVES, STATED IN THE HEADER BECAUSE THE GAP MUST BE A RECORD RATHER THAN A
+// SILENT DEFAULT. That wording is the doneWhen of
+// jobs/four-gates-force-a-three-worker-pool-and-never-test-the-fallback-2026-09-27, which names gates 34, 35, 36
+// and 37 for exactly this shape; this gate is a fifth instance and is declaring itself rather than waiting to be
+// found. #440 changed the ladder at THREE call sites and they are not all reachable from here:
+//   DRIVEN - the Stockfish path (chess.jsx, the `before`/`after` site), at a 3-worker pool and again at
+//            ct_pool=1, which is block B's two columns.
+//   NOT DRIVEN - the depth-2 minimax fallback, the `}else{` branch taken when Stockfish is unavailable
+//            ENTIRELY. #440 re-keyed its classify() call too, with the same winDrop() over the same
+//            white-POV centipawn operands, so the arithmetic is shared and unit-covered by block A - but the
+//            WIRING at that site is asserted by nothing here. THERE IS NO HARNESS ROUTE TO IT: ct_pool accepts
+//            only 1..6 (chess.jsx poolWanted), so it sizes the pool and cannot switch the engine off, and a
+//            grep of the whole gates/ tree for any mechanism that blocks the worker returns nothing. Building
+//            that route is test-authoring's job above, not something to fake here.
+//   NOT DRIVEN - the background summary pass (the third call site), which runs off the review screen.
+// This is CLAUDE.md's #375 rule and the reason it is written down: a gate that covers one branch of a
+// device-chosen path would have gone green on every broken build.
 'use strict';
 const fs=require('fs'),path=require('path');
 const L=require('../lib');
