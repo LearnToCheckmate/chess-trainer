@@ -28,6 +28,82 @@ Give this file to Claude in Cowork as the first thing in the session.
 > builds and it is the project's own rule broken in the act of citing it: measure, do not read. Left visible
 > rather than quietly corrected, because a wrong number about the record is exactly what this note warns about.
 
+## 0a-444run) STEP 1S's TOP PICK IS NOW EXECUTABLE, AND THE ASK THAT BLOCKS THE PUSH IS STILL UNWRITTEN
+
+Written by `build__1790799593000`, 2026-09-30T20:3xZ, on `claude/cool-noether-aqsc4k` (branched from
+`claude/cool-noether-r1k2ir` at `f0e9e7a`, so this branch carries the whole 27-commit pile plus this note).
+**This run shipped no application code and pushed nothing to main. It is the SIXTH consecutive build to stand
+down on the push, and the reason is unchanged and is not this lane's to remove.**
+
+**1. THE BLOCKER IS UNCHANGED AND THE DESK ITEM IS STILL OWED — MEASURED, NOT ASSUMED.** Gate 66's B1 versus
+#441's mate floor is a P0 decision for Kunal
+(`jobs/gate-66-b1-and-the-mate-floor-disagree-about-what-the-app-should-print-2026-09-30`, owningLane
+**orchestrator**). I listed the Decision Desk's whole `questions` collection — 72 documents — and **no item on
+the mate floor, the blunder boundary or gate 66 exists**, and no question document carries a date inside
+2026-09-29 or 2026-09-30 at all. I also read the Desk's `answers` collection (67 documents) and `verdicts`
+(empty): the newest answer of any kind is 2026-09-30T02:50Z on an unrelated item, so **he has not answered
+this**. R32 makes the orchestrator the only writer to the Desk, so this lane may not write it, and did not.
+**Do not settle it, do not re-pin gate 26, do not drop the floor** — all three are answering his question for
+him. #442's control stands: floor ON = gate 26 359/5 and gate 66 36/1; floor OFF = 364/0 and 37/0.
+
+**2. WITHDRAWN: "THE ORCHESTRATOR HAS NOT RUN IN 126 HOURS".** I nearly escalated on that number and measured it
+first. `jobs/orchestrator-has-not-run-in-126-hours-2026-09-29` says the newest orchestrator row is
+`orchestrator__1790199828213` (2026-09-23T21:43:48Z). **That is stale.** Querying `runledger` for lane
+`orchestrator` ordered by `startedAt` desc, the newest is `orchestrator__1790681400000`, started
+2026-09-28T20:30:00Z and **finished 2026-09-29T11:40:00Z** — a fifteen-hour session, written about eight hours
+*after* that job was filed, and it answers the job in its own words: *"the orchestrator is not ABSENT, it is
+UNLOGGED."* So the correct figure is **32.8 hours since it last finished**, not seven days. The number is
+withdrawn on the job itself [R18].
+**What IS still true, and is the sharper finding:** that same orchestrator row's own `notChecked` says
+`schedule/orchestrator` is *"still five daily slots overdue and I have not decided whether to re-enable it or
+retire it, which is a question for Kunal."* So the lane is alive but **off-schedule** — it runs only when Kunal
+opens the chat. The gate-66 ask was raised 2026-09-30T17:20Z, *after* the orchestrator last ran, so **no
+scheduled fire exists that will ever pick it up.** That is why five builds have each correctly declined to write
+the Desk item and the deadlock has not moved. Recorded on the job with the dated cost.
+
+**3. STEP 1S's TOP PICK IS NOW BUILD-READY — THIS IS THE RUN'S ONE PROCESS JOB.** STEP 1S was executed over the
+**whole** jobs collection with a plain paged list and no where-clause (419 documents, 291 + 128, cursor
+exhausted; 208 ready+build after dropping open claims; 17 at priority 10). It picks
+`preview-gallery-flush-and-load-current-asks` on tie-break (b). That job **could not be executed as written**,
+and its blocker said so. Both defects reproduced independently on `chess.jsx` md5
+`55288417624afe074bbacdefb2946dde`, then fixed:
+  - `SC` holds **eight** cards (`k10, k8, k11, k11, A-06, US-R01, y3, y3`), exactly **one** a US-R card. The five
+    US-R ids the job named are `steps` *inside* `US-R01`. `whereItLives` and `remove` are corrected and are now
+    named **by identifier** (`const SC=[`, `const WK=[`, `PINNED_IDS`, `CAPS8`) rather than by line number,
+    because line numbers are what went stale twice.
+  - Gate 15 pins the set by id (`:159`) and by verbatim caption (`:208`), asserted `N===8` at `:298`, so the
+    ordered removal reddens it by construction. **Answered** in a new `gate15Decision_2026_09_30` field: keep the
+    pin explicit and external, require the same commit to update it, parameterise `N===8` to
+    `N===EXPECTED.length`, leave `W1`–`W6` untouched. Deliberately **not** derived from `SC` at runtime — that
+    would make the gate assert `SC` against itself, the trap this repo has already recorded six times.
+
+**4. A THIRD DEFECT, AND IT WAS IN THE CORRECTION TOO: `WK` IS 13, NOT 15.** The job said "all 15 WK walk steps"
+and the correcting finding repeated "fifteen" while carefully re-deriving its other two numbers. Counted three
+ways — brace-matched top-level objects, `{id:'…'` matches, and the ids enumerated — **13**: `HOME, MENU, LOOK,
+PLAY-SETUP, PLAY-LIVE, PLAY-OVER, LESSON-LIST, LESSON-DEMO, LESSON-PRACTICE, PUZZLE, PUZZLE-HINT, REVIEW-ENTRY,
+REVIEW`. The trap: `SC` uses `{id:"…"` (double quotes) and `WK` uses `{id:'…'` (single), so a double-quoted scan
+over `WK` returns **0** — mine did, which is why I checked three ways.
+
+**5. THE PROVENANCE SEARCH THE JOB ORDERS HAD NEVER BEEN RUN, AND IT FOUND A CARD WE WOULD HAVE ASKED FOR
+TWICE.** Card 2 (chess.com's full review of Kunal2023 v Kevitsch) is **already provided**: Desk item
+`kevitsch-chesscom-review` reads status `done` with answer choice `sent` at 2026-09-22T21:30:50Z. Loading it
+would have asked Kunal to record something he sent eight days ago. Cards 1, 3 and 4 remain outstanding
+(`phone-recordings-after-build`, status open). **Not checked:** the provenance of the eight cards being removed
+— eight tracker searches this run did not run, named rather than implied as zero.
+
+**6. WHY NO APPLICATION CODE.** The only trees available are (a) the pile, which is **red on six assertions from
+a decision this lane may not settle** — so no suite on it can emit `GATES GREEN` and any commit added to it is
+ungatable, which is #441's sin; or (b) a fresh branch off `origin/main`, which would put a 27-commit pile
+including two P0 fixes into a rebase and needs a ~44-minute suite, in a container that has twice SIGKILLed
+background work across an idle turn. Neither is a good trade inside one slot. **When he answers, the work is
+exactly three things and no archaeology:** re-pin gate 26 in his direction, rewrite B1's rationale if the floor
+stays, run ONE full suite. The pile is sound — committed `app.js` reproduces byte-for-byte from committed
+`chess.jsx` (#442 measured it; I did not re-measure it and say so).
+
+**7. STILL OWED, third build running:** the rotating gate audit (resume at gate 11's SHORT AND NARROW block,
+then `12-hint.js`). No antagonist and no auditor ran this run: nothing reached a shipped bundle and there was no
+push to gate.
+
 ## 0a-443run) THE SIX RED ASSERTIONS BLOCKING THE PUSH ARE ONE 20-LINE BLOCK — MEASURED, NOT ARGUED
 
 Written by `build__1790796015749`, 2026-09-30, on `claude/cool-noether-r1k2ir` at `72f5d48`.
