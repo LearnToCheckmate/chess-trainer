@@ -2,8 +2,9 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
-> **SECTION 0a WAS LAST WRITTEN BY #398; THE LIVE LINE IS #439 (noted 2026-09-30, sha `dc5bacd`, bundle md5
-> `0099cb784ca0`).** The "#419" this line carried from 2026-09-18 until now was itself twenty builds stale by the
+> **SECTION 0a WAS LAST WRITTEN BY #398; THE LIVE LINE IS STILL #439 (`1f6939e` on main; the #439 bundle is sha
+> `dc5bacd`, md5 `0099cb784ca0`). #440, #441 and #442 are all BUILT AND UNPUSHED on
+> `claude/cool-noether-wn8auj` at `0463dce` — see the #442 section below for why, and do not assume main has them.** The "#419" this line carried from 2026-09-18 until now was itself twenty builds stale by the
 > time anyone read it again — which is the same defect this note exists to warn about, committed by the note. It is
 > corrected rather than removed, and the standing instruction is unchanged: **do not read this file for where the
 > build is.** Read `RUN-LOG.md` (one row per build, newest at the bottom), then `claude/BUILD-CONTEXT.md` and the
@@ -1801,6 +1802,98 @@ Story clause **US-PL-12**, case **TC-PL-034**.
    sibling jobs from #428 may share its cause — check before building, per R09.
 
 **The pen note on `claims/repo-pen` carries the rest, including what I would want checked about my own build.**
+
+---
+
+## #442 — THE sel/cls CAUSE IS FIXED. STILL NOTHING ON MAIN, AND THE REASON IS NOT MINE. 2026-09-30
+
+**origin/main is still `1f6939e` (#439). The work is on `claude/cool-noether-wn8auj`, head `0463dce`, 21 commits
+ahead, tree clean, pushed.** That branch carries #440's classifier work, #441's white-screen P0 fix, and this
+build. A per-run branch that main has not fast-forwarded to may be the only copy of real work — this one is.
+
+**WHY THIS RUN DID NOT PUSH EITHER, AND IT IS A DIFFERENT REASON FROM #441's.** #441 stood down because the
+adversarial pass found two P0s. Those are fixed here. What stops a push now is a single red assertion that
+neither the gate nor the build may settle: `gates/regress/66-winprob-ladder.js` B1, "Black, who is being mated,
+is charged with NO blunder". Measured on this head, unchanged by my fix: **36 pass / 1 FAIL, blackBlunder 1.**
+B1 encodes Kunal's answered Desk decision; #441's mate floor encodes #375's shipped verdict, which CLAUDE.md
+carries as fixed. Both are his. The job is
+`jobs/gate-66-b1-and-the-mate-floor-disagree-about-what-the-app-should-print-2026-09-30`, **owningLane
+orchestrator**, and its Desk item is owed. **Do not settle it, do not bump B1 to match the build, and do not
+drop the floor.** The moment he answers, a push is one full suite away.
+
+### What #442 fixed, and the one number that proves it
+
+#440 split the grade into `sel` (the old centipawn ladder, which SELECTS pools) and `cls` (the win-percentage
+label, which is DISPLAYED). It migrated the four selection sites. Two further kinds of consumer read the label:
+
+1. **DECISIONS taken from the label.** The Great and Miss overlays gated on `cls.label` and were calibrated when
+   cls WAS `classifyByLoss` — Best/Excellent then meant the player had played within 40cp of the engine's move,
+   which is the entire premise of the sentence Great prints, "The only move that keeps it." Under the new ladder
+   a move losing 1.8 pawns in a decided position still reads Best/Excellent, so **Great fired on a move that was
+   not the engine's**. Both overlays now read `_selL` = `classifyByLoss(loss)`, hoisted to ONE definition that
+   also supplies the row's own `sel`. This RESTORES the pre-#440 condition; it does not invent one.
+2. **SENTENCES built from the label.** The drill capture stored `cls.label` and interpolates it as
+   "you played <san> here, a <label>." — hence "a great." and "a inaccuracy". It now stores `_S`, the very
+   expression the pool filter above it selects on, so selection and sentence come from one grade by construction.
+
+**THE NUMBER. `gates/regress/67-sel-cls-consumers.js`, 17 assertions, run against its negative control — which
+is free and is the actual broken build, #441's own head (`git show origin/claude/cool-noether-0ya5ft:app.js`,
+md5 `4d539dea5ca9`):**
+
+| bundle | D1 greatRows | D1 contradictions | gate |
+|---|---|---|---|
+| #441 head (control) | 5 | **2** — ply 19 `10. Bg5 ! Great best Ng5+`, ply 24 `12… Bb4+ ! Great best Qxf3` | 16 pass, 1 fail |
+| #442 (this tree) | 3 | **0** | 17 pass, 0 fail |
+
+Those are the same two plies antagonist B found by hand on #441, reproduced from a different door — the gate
+walks all 30 plies through the DOM at 375x730 and asserts the CONTRADICTION (a Great row may not offer a
+different move as the better one) rather than the label, so it stays correct however the display ladder is later
+re-banded.
+
+### What #442 did NOT do — read this before assuming 17/0 covers the drill
+
+- **The drill's STORED LABEL has no assertion.** `label:_S` is the one-token change that stops the card saying
+  "a great", and nothing in the suite would go red if it were reverted. Block D3 — seed `ct_mymistakes` with all
+  ten grades, reload, open "Practice your mistakes", read the painted sentence — **went red on BOTH bundles**
+  (`locator.waitFor: Timeout 8000ms exceeded` on the Review tab after the reload), so its red carried no
+  information about either build and it is CUT, not weakened. The block is written and is three assertions:
+  `jobs/gate-67-has-no-assertion-over-the-stored-drill-label-2026-09-30`.
+- **The drill capture PRODUCER is unreachable from any gate.** Measured by reading every `importGame` call site:
+  only `pickCcGame` sets `meta.userColor`, from a stored account matched against the PGN headers; the textarea
+  path and both gallery routes pass `{}`. So every drill assertion this suite has ever made is over a seeded
+  store. `jobs/no-harness-route-to-the-drill-capture-producer-2026-09-30` (test-authoring).
+- **Instance 3 is NOT fixed.** The copy still prints "A small slip." beside "About 6.4 pawns of advantage gone."
+  — the adjective from `cls`, the figure from `loss`. Making them one ladder is a copy decision (move the cost
+  clause to win-percentage, which is new copy, or qualify it), so it is left with the reason rather than guessed.
+- **The row-count vs drill-count disagreement** (`7 star 0 ? 2 ??` beside "Practice your mistakes — 7 positions")
+  shares the cause and was not opened at all this run.
+
+### The class sweep, because the enumeration was the first work item and it is done
+
+**25 lines read `.cls`, 55 reads in all, every one classified. found 3 DECISION sites, fixed 3, left 0.** The
+third is `_wasBest` (~6319), which answers "was the move the player made the engine's move" and now reads the
+selection ladder for the same reason #440's own `_hasBetter` two lines above it does. The other 22 are counts,
+colours, chips, the move strip, the eval-bar marks and `explainAnno` — all correct on `cls`, which is what is
+displayed. **Two sites repair themselves rather than needing a patch, and that is the test that the fix is
+structural:** the hanging-piece detector (~1200) and the pv continuation (~3696) both gate on Great, and Great
+can now only fire when `_selL` is Best/Excellent, so they agree with the selection ladder by construction.
+
+### Two faults of my own, caught here rather than by someone else
+
+- **My U11 assertion was wrong, against correct code.** It read `artic('best').slice(0,3)==='a '`, and that
+  slice is `'a b'`, so the one assertion in block U whose job is to reject an over-eager helper went red on a
+  helper that is right. The *predicate*, not the code — and it is the shape this file already records twice.
+- **Block D3 took the whole gate down with "harness threw"**, because `b.tab('Review')` sat outside the try. That
+  is #393's rule — guard anything that taps or navigates, go red on its own assertion, then carry on — failing
+  one build after CLAUDE.md states it. Both are in the tracker `notes` collection as `self-caught`.
+
+### And a caution about the clock, since it nearly cost this run an hour of budget
+
+I paced the first two thirds of this run against a felt elapsed time and was **74 minutes out**: at the point I
+believed I was at 18:47 and closing out, `date -u` read **17:36**. Nothing published was affected because every
+timestamp on the ledger row comes from `date -u`, but I had already begun cutting scope. #441 recorded the same
+fault about itself ("elapsed times narrated from feel, off by an hour"). **Take the time from `date -u` before
+you decide what to drop.**
 
 ---
 

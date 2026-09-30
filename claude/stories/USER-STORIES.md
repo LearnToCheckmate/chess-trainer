@@ -389,6 +389,33 @@ carries its own unrelated "US-R30" and a "TC-R23 (US-R30) - autoplay". That is t
 named in the US-R27 note; the collision is flags/suite-id-collision-tc-r, already open, and is not refiled
 here [R25].
 
+### US-R31 The screen never contradicts itself about a move, whatever the grading ladder says
+
+As a player reading the review of a move I played, I want the label, the sentence and the button beside them to
+be about the SAME move, so that the screen never tells me in one breath that I found the only move that holds
+and offers me a different one as the better move. Whatever ladder the label is drawn from, the row is a single
+statement and has to be internally true.
+
+WHY A NEW CLAUSE RATHER THAN AN EXTENSION OF US-R30. US-R30 says how harshly a move should be graded and it was
+satisfied: every one of TC-R40's 37 assertions passed on the build that printed `10. Bg5 ! Great best Ng5+`.
+Nothing in this register said the row had to AGREE WITH ITSELF, so re-keying the label to a new ladder could
+falsify three consumers of that label — two decisions and one sentence — with the suite green. A clause that
+cannot be violated is not coverage; this is the same finding US-R30's own note makes, one level further in.
+
+CHECKABLE, per row rather than per game, because a count over a game is green when two rows cancel:
+- A row labelled Great never offers a different move as the better one. (TC-R41 D1, over every ply of a game)
+- A row labelled Miss always still has a better move to offer; the overlay never fires on a move that was fine.
+  (TC-R41 D2)
+- A decision taken FROM a grade reads the ladder that decision was calibrated on, not whichever ladder the
+  chip happens to display. Named here because it is the mechanism, and #442 found three such decisions.
+- A drill card never invites the player to improve on a move the same build praised, and never mis-articles the
+  grade it names. (TC-R41 block U for the article; the card itself is UNCOVERED — see TC-R41's own note.)
+
+WHERE IT CAME FROM. #442, from two independent adversarial passes on #441 (antagonist B from the shipped
+surface and the auditor from the Review tab) finding the same defect through different doors. Kunal has raised
+the surrounding complaint — the review calling good moves bad and bad moves good — twice.
+
+
 ### US-PL-11 When a game ends, the screen keeps saying how it ended
 *Added #434, from the #433 auditor's P1 (jobs/cpu-game-over-says-nothing-three-seconds-later-2026-09-29).*
 
