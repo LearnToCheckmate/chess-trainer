@@ -245,6 +245,7 @@ the end - but ONE session should hold the pen, and it should be the one with pus
 | #439 | **13** | **96** | 0 of 10 | **3060** (`439-all.log`, bundle md5 `0099cb784ca0`, `verify-log.sh` OK with `--this-bundle` AND `--on-main`) |
 | #440 | **13** | **97** | 0 of 10 | **NOT SHIPPED — stood down on a red suite; its own figure of 3004 came from a RED run and is not quoted as coverage. Last green on record at the time: #439's 3060.** |
 | #441 | **13** | **100** | 0 of 10 | **NOT SHIPPED — reached `GATES GREEN #441` at 3097 (`441-all.log`, bundle md5 `a4df39c38222`, `verify-log.sh` OK plain AND `--this-bundle`), then stood down on two P0s from the adversarial pass. The 3060 carried on the dashboard is #439's, deliberately: nothing shipped, and the branch head is md5 `4d539dea5ca9`, which no suite has run and which is RED on gate 66 B1.** |
+| #442 | **16** | **101** | 0 of 10 | **NOT SHIPPED — gates RED on two gates, neither of them this build's own new gate. Suite: 48 suites / 3108 PASS / 12 fail on bundle md5 `0bbc5c85b1df`; `verify-log.sh` REFUSES it, correctly, and the run says so. The single red is gate 66 B1, an INHERITED conflict routed to the orchestrator (`gate-66-b1-and-the-mate-floor-disagree-about-what-the-app-should-print-2026-09-30`) and re-measured independently this run at 36/1 — not caused by #442 and not settleable by this lane. **THE P0 AND P1 FIGURES ARE THE FOUR-READING UNION, counted after this run's own filings**: open = status not in {done, closed, rejected, withdrawn, parked, superseded} (374 of 415 documents); P<n> = title prefix OR numeric `priority` OR string `priority` OR `severity` prefix. P0 breaks down 15 by title + 1 by string; P1 79 + 9 + 13. My first reading used `severity` alone and gave 4 and 26 — both withdrawn on `runreports/noship-1790788781000`. The last green on record remains #439's 3060.** |
 
 
 **THE #440 ROW ABOVE WAS MALFORMED UNTIL #441 FIXED IT, and antagonist A found it.** It had NINE fields in a five-column table: the ETA prose had been appended into the row, so the `open P0` column read "NOT SHIPPED — stood down on the push. Grade a move by the Lichess win-percentage drop…" and the `open P1` column read "95 min". In the one table whose stated purpose is that the series stays comparable, two of #440's four numbers were unreadable and the real figures (13 / 97 / 0 of 10) existed only in prose 130 lines below. The malformed row is preserved verbatim at `claude/agents/runlog-440-malformed-row.txt` so nothing is silently rewritten.
@@ -494,3 +495,55 @@ whole subject matter — lesson arrays, FENs, move legality — is untouched by 
 does not close it, and I am not claiming it passed. `deploy.py` is not this lane's deploy path at all: it commits
 through the GitHub API from a sandbox layout that no longer exists, while this lane pushes with plain git and Pages
 deploys from main.
+
+## #442 — the sel/cls cause fixed; GATES RED #442, and only one of the two reds is a question
+
+**Suite:** 48 sections / **3108 PASS** / **12 FAIL**, bundle md5 `0bbc5c85b1df`, ref `0463dce`, one clean
+uncontended run (17:36:34Z to 18:43Z, ~67 min). `gates/verify-log.sh gates/logs/442-all.log '#442'`
+**REFUSES** it, plain and with `--this-bundle`, for the right reason — `last line: GATES RED #442`. So this
+log authorises nothing and is not quoted as coverage. The last green on record remains #439's 3060.
+
+**The 12 FAILs are 6 assertions in 2 gates. Forty-six gates are green, including every gate this change
+could plausibly reach:** `20-review` 97/0, `21-review-brilliant`, `37-strip-sync` (which is where #441's
+white-screen P0 was measured), `51-drill-explain-why`, `58-review-rating-source`, `35-width-containment`.
+
+| gate | FAILs | whose |
+|---|---|---|
+| `66-winprob-ladder` | 2 (B1 twice) | **INHERITED.** `blackBlunder 1`. Re-measured independently on this bundle before the suite and again inside it: 36/1 both times. The mate floor and B1 contradict each other and both positions are Kunal's — `jobs/gate-66-b1-and-the-mate-floor-disagree-about-what-the-app-should-print-2026-09-30`, owningLane **orchestrator**, Desk item owed. Not settled here, B1 not touched, floor not dropped. |
+| `26-invariants` | 10 (5 assertions, each in both of the gate's two passes) | **OPEN — and I got the diagnosis WRONG once, publicly, before measuring it.** See below. |
+
+### The gate 26 red, and the wrong turn I took on it
+
+Three rev-summary row-count pins moved down by exactly one (`kunal730` 10→9, `short375` 5→4, `se`
+occluded 25→23) and the `rev-best-ply30` residual moved. My first reading was that this is my own fix
+working: the pin history is **9 at #439 → 10 at #440/#441 → 9 at #442**, which reads like a restoration,
+and the pill cluster genuinely did improve — on #441 `rev-best` cuts `Qxd7` by 17.36px and the chevron by
+25.72px (clientWidth 25); on #442 it cuts **only** the chevron, by 5.84px, clientWidth **45**. The move's
+name is no longer cut at all, and that 20px is exactly what #441's own handover note said its pill fix had
+**not** recovered.
+
+**Then I measured it and the story collapsed.** Two probes at 375x730 on both bundles, reading the rendered
+panel: **all ten grade rows are identical** (Brilliant 1|0, Great 6|0, Best 5|7, Excellent 1|3, Good 1|1,
+Book 3|2, Inaccuracy 0|2, Miss 0|0, Mistake 0|0, Blunder 0|1, same disabled flags), **all nine skills rows
+are identical**, and **all six side-by-side control pairs are identical**. My probe cannot reproduce the
+difference at all. So the vanished row is not a grade row and not a skills row, and "my fix restored #439"
+is a story I had already written into a job document before checking it.
+
+The live hypothesis is now the opposite one and it has evidence behind it: **#441's committed green log does
+not describe #441's head** — its own pen note says so in terms, because it rebuilt `app.js` after the suite
+to add the mate floor, which is why `verify-log.sh --this-bundle` refuses *that* log too. The mate floor
+changes the Opera grade distribution (gate 66's Black vector went `[0,0,7,3,1,2,3,0,0,0]` → `[0,0,7,3,1,2,2,0,0,1]`),
+so the `want 10` pin was measured on a bundle that no longer exists. **That would make this red #441's, not
+#442's.** The test is running as this is written: gate 26 alone against the #441 **head** bundle. If it
+reddens the same five assertions, the pins were stale before I touched anything.
+
+**Nothing was re-pinned.** Not one of the five, and there was no pressure to — this suite ends red on gate 66
+regardless, so no push was available whatever I did to gate 26. A re-pin taken under no pressure, on a story
+I had already been wrong about once, would have been the worse act.
+`jobs/gate-26-pins-re-measured-on-441-carry-the-overlay-defect-2026-09-30` carries the measurements, and its
+title is now wrong in the direction of my first reading — which is itself part of the record.
+
+**Two hard gates named honestly, unchanged from #441's note:** `audit.py` cannot run in this container
+(`python-chess` will not build), and `deploy.py` is not this lane's deploy path at all. Neither was run and
+neither is claimed. No deploy happened, so no post-deploy bundle check was owed; `learntocheckmate.github.io`
+is blocked by this session's egress proxy in any case.
