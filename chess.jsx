@@ -6305,7 +6305,23 @@ export default function App(){
                   geometry where the row already fits. */}
               <span style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',gap:4,fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,color:curAnno.cls.c,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'66',borderRadius:22,padding:(rowNarrow?'3px 5px':'3px 10px')}}><span style={{fontSize:'clamp(13px,3.2vw,17px)',lineHeight:1}}>{curAnno.cls.i}</span>{curAnno.cls.label}</span>
               {_wasBest&&<button data-ct="rev-playout" onClick={()=>{setEngOn(true);playBestLine(review.plies[ply-1].move);}} title="Play this move out and see what it leads to" aria-label="Play this move out and see what it leads to" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(rowNarrow?3:5),padding:(rowNarrow?'3px 5px':'3px 11px'),borderRadius:22,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'88',color:curAnno.cls.c,cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden',whiteSpace:'nowrap'}}>{'\u25b6'} why</button>}
-              {_hasBetter&&<button data-ct="rev-best" onClick={()=>{setShowBest(true);setEngOn(true);playBestLine();}} title="Show the best move on the board" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(rowNarrow?3:5),padding:(rowNarrow?'3px 5px':'3px 10px'),borderRadius:22,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.45)',color:'var(--ac2)',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden'}}><span style={{fontWeight:600,color:'rgba(255,255,255,.6)',fontSize:'.85em'}}>best</span>{curAnno.bestSan}<span style={{opacity:.8}}>{showBest?'✓':'›'}</span></button>}
+              {_hasBetter&&<button data-ct="rev-best" onClick={()=>{setShowBest(true);setEngOn(true);playBestLine();}} title="Show the best move on the board" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(rowNarrow?3:5),padding:(rowNarrow?'3px 5px':'3px 10px'),borderRadius:22,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.45)',color:'var(--ac2)',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden'}}>{/* #441 (amber-441-rev-best-drops-the-decorative-best-word-under-rownarrow): THE PREFIX GOES
+                  BEFORE THE MOVE DOES. This build's win-percentage grades can make a grade label a LONGER WORD
+                  ('?? Blunder' -> '?! Inaccuracy'), the grade pill beside us is flex:'0 0 auto' and cannot shrink,
+                  and this button is the ONLY shrinkable child of a nowrap row - so every pixel of the row's deficit
+                  lands here. Measured on the #441 bundle by gate 26: client 25 against scroll 86, cutting THREE text
+                  nodes at 320x568 and 375x568 ('best' 6.83px, 'Qxd7' 47.63px, the chevron 55.99px), where #439 cut
+                  two at the same client 25. rev-move-line is 286.00px at BOTH, because it follows the board and the
+                  board is fit to HEIGHT - so this is a short-screen fact, not a narrow one. `best` is a 0.85em label
+                  at 60% white carrying nothing the pill's accent colour, its position and its title do not; the SAN
+                  is the control's whole purpose. So under rowNarrow the label gives way and the move survives.
+                  IT DOES NOT MAKE THE PILL FIT, and the comment says so rather than letting a later reader assume
+                  it: this is the only shrinkable child, so the deficit it absorbs falls by exactly what is saved and
+                  client stays 25 - the same box with fewer nodes over its edge. The remaining two-node cut is
+                  PRE-EXISTING (flags/rev-best-reads-best-Q-at-320) and still silent, because text-overflow does not
+                  apply to the flex items of an inline-flex box. Nothing changes at boardPx>=340: client 100 / scroll
+                  100 / zero cut nodes at 375x679 and at Kunal's own 375x730. */}
+                {!rowNarrow&&<span style={{fontWeight:600,color:'rgba(255,255,255,.6)',fontSize:'.85em'}}>best</span>}{curAnno.bestSan}<span style={{opacity:.8}}>{showBest?'✓':'›'}</span></button>}
             </>):(<span style={{fontSize:'clamp(14px,3vw,16px)',fontWeight:700,color:'rgba(255,255,255,.6)'}}>Start position</span>)}
             {!anaMode&&<span style={{flex:'1 1 auto'}}/>}
             {!anaMode&&<span style={{flex:'0 0 auto',fontSize:'clamp(12.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.55)',fontFamily:'monospace',fontWeight:700}}>{ply}/{review.plies.length}</span>}
