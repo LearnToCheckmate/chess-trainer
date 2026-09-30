@@ -243,7 +243,11 @@ the end - but ONE session should hold the pen, and it should be the one with pus
 |---|---|---|---|---|
 | #437 | **12** | **83** | 0 of 10 | **2915** (`437d-all.log`, bundle md5 `5751da3ce0d9`, `verify-log.sh` OK with `--this-bundle`) |
 | #439 | **13** | **96** | 0 of 10 | **3060** (`439-all.log`, bundle md5 `0099cb784ca0`, `verify-log.sh` OK with `--this-bundle` AND `--on-main`) |
-| #440 | **NOT SHIPPED — stood down on the push.** Grade a move by the Lichess win-percentage drop, not raw centipawn loss; accuracy by their published aggregation. Desk q-classify-on-winprob, `labels-and-accuracy` | 95 min (09:20Z, in the check-in row) | 09:20Z | not staged — nothing pushed to main | 3h20m to stand-down | +105 | **GATES RED #440**, 3004 PASS: 26-invariants 354/10, PLYLOG 1/1, 51-drill-explain-why 3/1 (the last FIXED and verified 70/0 by subset). New gate 66-winprob-ladder green 36/0, control 5/5 | — |
+| #440 | **13** | **97** | 0 of 10 | **NOT SHIPPED — stood down on a red suite; its own figure of 3004 came from a RED run and is not quoted as coverage. Last green on record at the time: #439's 3060.** |
+| #441 | **13** | **100** | 0 of 10 | **NOT SHIPPED — reached `GATES GREEN #441` at 3097 (`441-all.log`, bundle md5 `a4df39c38222`, `verify-log.sh` OK plain AND `--this-bundle`), then stood down on two P0s from the adversarial pass. The 3060 carried on the dashboard is #439's, deliberately: nothing shipped, and the branch head is md5 `4d539dea5ca9`, which no suite has run and which is RED on gate 66 B1.** |
+
+
+**THE #440 ROW ABOVE WAS MALFORMED UNTIL #441 FIXED IT, and antagonist A found it.** It had NINE fields in a five-column table: the ETA prose had been appended into the row, so the `open P0` column read "NOT SHIPPED — stood down on the push. Grade a move by the Lichess win-percentage drop…" and the `open P1` column read "95 min". In the one table whose stated purpose is that the series stays comparable, two of #440's four numbers were unreadable and the real figures (13 / 97 / 0 of 10) existed only in prose 130 lines below. The malformed row is preserved verbatim at `claude/agents/runlog-440-malformed-row.txt` so nothing is silently rewritten.
 
 **THE RULE, so the number can be re-derived rather than trusted.** Unchanged from #434, #435 and #436 so the
 series stays comparable: a job is OPEN when `status` is not in {done, closed, rejected, withdrawn, parked,

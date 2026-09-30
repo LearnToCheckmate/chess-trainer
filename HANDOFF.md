@@ -1810,6 +1810,21 @@ Story clause **US-PL-12**, case **TC-PL-034**.
 found two P0s the green could not see and they share one cause with a third defect.** Read this before re-doing
 any of it. The work is on `claude/cool-noether-0ya5ft`, head `1667853`, 17 commits ahead of main, tree clean.
 
+### THE TREE IS RED, AND ON THIS BUILD'S OWN NEW GATE. READ THIS BEFORE ANYTHING.
+`node gates/regress/66-winprob-ladder.js` on the branch head is **36 pass / 1 FAIL**, and the failure is **B1**,
+gate 66's HEADLINE assertion: *"Black, who is being mated, is charged with NO blunder (#439 charged 1)"*. The mate
+floor deliberately falsifies it. `verify-log.sh ... --this-bundle` also REFUSES, because the bundle was rebuilt
+after the suite. So the green log describes a tree that no longer exists, and the tree that does exist is red.
+
+**This is not a technicality, and it is not yours to settle.** Two positions are both written into this project
+and the build cannot satisfy both: gate 66's B1 encodes #440's rationale and Kunal's answered decision (a move
+with no winning chances left to lose cannot cost a game that was already gone → 0 blunders for a mated player),
+while `chess.jsx` says of that same move *"goes from Great to Blunder … WHICH IS THE TRUTH"* and CLAUDE.md carries
+it as shipped at #375. **Routed to Kunal:**
+`jobs/gate-66-b1-and-the-mate-floor-disagree-about-what-the-app-should-print-2026-09-30`, with the three outcomes
+and what each costs. Do not bump B1 to match the build and do not drop the floor to match the gate — either
+choice is his, and bumping the assertion is #405's frozen denominator in reverse.
+
 ### WHAT TO DO FIRST, and it is not "re-gate"
 **Fix the ONE CAUSE on `jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30`.**
 #440 split the grade into `sel` (the old centipawn ladder, used to SELECT) and `cls` (the new win-percentage
@@ -1876,7 +1891,26 @@ a device-chosen branch is covered or it is not. Amber record corrected according
 4. **I asserted which gate-26 row was newly detectable from the after-state alone** and was right at one geometry
    and wrong at the other (`0|6` at short375, not `1|1`). The control that settled it is also the control the
    eight re-pins needed: gate 26 against #439 is **356/8**, all eight in the opposite direction.
-5. **Three self-reference traps in one run** — a `pgrep -f` waiter that would have waited on itself and two
+5. **Antagonist A disproved four more of my published numbers** (all withdrawn in the files that carried them,
+   commit `89e6e83`): the worst cut is the **chevron, 55.99 → 25.72**, not the SAN's 47.63 → 17.36 which I called
+   the worst; the tapText count is ~**156** real sites and my published one-liner returns **158 because the comment
+   stating the count contains the pattern it counts** — the self-reference trap for the sixth time in that file,
+   inside the sentence announcing the measurement; **"the only shrinkable child" is literally false** (there is
+   also a `flex:'1 1 auto'` spacer, right only in effect because its base is 0, and absent in `anaMode`); and
+   **"clientWidth 25 before and after" is true only against the never-shipped #440** — against shipped #439 it is
+   **45 → 25**, so this does NOT recover the 20px of box #440 took. It also caught me citing `chess.jsx:6288` for
+   an exclusion that was at 6299 at its read and is **6319** now, which is #399's lesson one build later: don't
+   cite line numbers, or cite them with a sha.
+6. **The pill trade fires 76px of board width too early.** `rowNarrow` is `boardPx<340` but the deficit only
+   appears at `boardPx 264`, so at **360x640** — a mainstream Android layout viewport — nothing is cut and the word
+   is dropped for nothing. And in **landscape** `rev-best` is a 10px box holding 63px at three sizes, so the amber
+   record's "the move survives" is **false there**.
+7. **I published the unchanged per-suite arithmetic as the control for the tapText change, and it is not one.**
+   A's point, and it is right: the new path is a no-op for every element whose box centre is already inside the
+   viewport, so an unchanged count is equally consistent with "harmless" and "never executed", and nothing reports
+   how many of the ~156 sites entered the new branch. CLAUDE.md's own "a control that disturbs something genuine
+   and leaves the measured number untouched reads exactly like a gate that cannot fail", one step earlier.
+8. **Three self-reference traps in one run** — a `pgrep -f` waiter that would have waited on itself and two
    `pkill -f` calls that killed their own shells. CLAUDE.md records both variants. Also: `pkill -x chromium`
    matches nothing, because the browser process is named `headless_shell`.
 
