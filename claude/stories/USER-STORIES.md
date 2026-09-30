@@ -454,6 +454,52 @@ The clauses, each one measurable:
    is unpainted and not hit-testable, recoverable only by scrolling a rail that shows no affordance.
    `jobs/landscape-game-over-keeps-the-live-row-and-the-rail-clips-half-of-it-2026-09-30`.
 
+### US-PL-13 When I finish a game holding the phone sideways, I get the same screen as when I hold it upright
+*Added #438, from jobs/landscape-game-over-keeps-the-live-row-and-the-rail-clips-half-of-it-2026-09-30, which
+BOTH of #437's antagonists found independently from different doors and which #437 handed over on the pen.
+US-PL-12 is the same complaint one axis over: it made a finished game keep behaving as finished across a
+STEP BACK, and this one makes it behave as finished across a ROTATION. TC-PL-034's own "NOT COVERED" list names
+both gaps this closes - "vs-COMPUTER as the opponent" and "LANDSCAPE at any geometry" - so this is a named gap
+closed rather than a new discovery.*
+
+As a player who has just lost a game with the phone turned sideways, I want the controls a finished game offers
+- see the game, play again - to be the ones under my thumb, all of them tappable, so that turning the phone
+never costs me the two things I want most after a loss.
+
+The clauses, each one measurable:
+1. **A finished game offers Review and Rematch at every orientation.** The swap was written
+   `(!wide&&_gameOver)`, so it happened only in portrait. MEASURED on the shipped #437 bundle at 730x375, 844x390
+   and 667x375, by mating in portrait and rotating: the row read [Moves, Back, Forward, Hint, Flip, More] at all
+   three - no Review and no Rematch anywhere on the screen, at the moment the player most wants both.
+2. **Nothing a finished game offers is enabled and inert, at any orientation.** That landscape Hint had
+   disabled:false and did nothing: a mouse click AND element.click() both left the 64-square signature
+   byte-identical, against an instrument shown in the same session and the same geometry to MOVE it in a live
+   landscape game. This is US-PL-12 clause 2 extended to the axis it did not cover.
+3. **Every control in that row is tappable down its whole height, including its own centre.** MEASURED on the
+   shipped #437 bundle by sampling every 4px down each control's 51px box: Pass & Play gave 6 of 12 points with
+   the first dead point at dy=27, and **vs COMPUTER gave 0 of 12 on all six controls with every centre dead** -
+   the row ran to y305.5 against a rail that stops painting at 242. So in the mode most games are played in, the
+   entire control row was unreachable on a finished landscape game. A control that is painted but cannot be
+   touched is worse than one that is absent, because the player keeps aiming at it.
+4. **The finished-game chrome does not cost the player the controls.** The mechanism behind clause 3 is that the
+   side rail is exactly as tall as the board and its content at game over was taller: the wide-only "Review this
+   game" button (52px) and, vs the computer, the bot chip, the Elo pill and the Elo slider (39px together) are
+   laid out ABOVE the control row and pushed it out of the painted window. Chrome that states something a second
+   time must never displace a control that can only be in one place. The bot chip was a literal duplicate - the
+   same probe read two "Pip" chips, one in the player bar and one below it - which is the finding #435 acted on
+   when it removed a wide-only duplicate strength chip from this same screen.
+5. **It survives a step back.** Stepping back through a finished landscape game keeps all of the above. This is
+   not the same assertion as clause 1 in a second state: on the shipped bundle a MATED game un-clipped on a step
+   back (the button unmounted, because `isOver` reads the previewed ply) while a RESIGNED game stayed clipped for
+   the rest of the game (because `playEnd` does not), so the defect was intermittent for one ending and permanent
+   for the other. #437's handover note said stepping back un-clips; that is true of checkmate only, and the
+   correction was found by driving both terms of `_gameOver` rather than one.
+6. **A LIVE landscape game is untouched.** It still offers Hint and Flip and neither Review nor Rematch, and it
+   still hides the Elo chrome. This clause exists so that "make the finished screen right" can never be satisfied
+   by making every screen the finished one - the cheap fix that would satisfy clauses 1 to 5 and break every game
+   in progress.
+
+
 ID NOTE, because this project has already paid for one id collision (flags/suite-id-collision-tc-r). US-PL-01
 to US-PL-10 and TC-PL-001 to TC-PL-030 are cited by gates/regress/46-play.js as living in
 `claude/stories/PLAY-LANE-2026-09-14.md`, and THAT FILE IS NOT IN THIS REPOSITORY — measured, `ls

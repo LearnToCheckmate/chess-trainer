@@ -6266,28 +6266,56 @@ export default function App(){
 
       {/* ── Play controls ── */}
       {mode==='play'&&opponent!=='online'&&(<div style={{marginTop:5,display:'flex',flexDirection:'column',alignItems:'center',gap:7,width:boardPx,maxWidth:_edge?'100vw':'98vw'}}>
+        {/* #438: THE NEXT THREE SITES GAIN `&&!_gameOver`, AND THIS IS THE HALF OF THE FIX THAT PASS & PLAY
+            COULD NOT SEE. All three read `!(opponent&&!isOver&&!playEnd)&&wide`, which is true pre-game AND at
+            game over, so at game over in LANDSCAPE they mount the bot chip, the Elo pill and the Elo slider.
+            Pass & Play never mounts them (opponent==='human'), so the first version of gate 64 - six browser
+            sessions, all Pass & Play - measured the control row fully reachable and WAS WRONG ABOUT vs COMPUTER,
+            which is the mode most games are played in. That is #375's single-worker-fallback mistake exactly: a
+            gate that exercises one branch twice. MEASURED on the #438 tree before this edit, vs Pip, resigned,
+            730x375: the rail's child block is 148px against Pass & Play's 109, the control row runs to y253.5
+            against a clip bottom of 242, and 3 of 12 sample points down every control are dead - and unlike the
+            checkmate case it PERSISTS through a step-back, because playEnd is not ply-keyed.
+            WHY DROPPING THEM AT GAME OVER IS RIGHT AND NOT A LOSS: the bot chip is a DUPLICATE - the same probe
+            read TWO "Pip" chips, one at y33 in the player bar which is always there and one at y110 from this
+            site - which is precisely the finding #435 acted on when it removed a wide-only duplicate strength
+            chip from this screen. And PORTRAIT SHOWS NONE OF THE THREE AT GAME OVER AT ALL, because all three are
+            `wide`-gated, so this makes landscape agree with the layout that actually ships on Kunal's phone
+            rather than making it poorer. Strength is still set where it is set: the New Game sheet, which is one
+            tap away through Rematch. The pre-game half of the condition is untouched, which is deliberate - that
+            is where these controls do their job. Amber record: defaults/amber-438-landscape-gameover-matches-portrait. */}
         {opponent==='computer'?(<div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,flexWrap:'wrap'}}>
-          {!(opponent&&!isOver&&!playEnd)&&wide&&(selBot&&botById(selBot)?(<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:'clamp(12.5px,2.15vw,12.5px)',color:'rgba(255,255,255,.72)',fontWeight:700}}><BotFace id={selBot} size={20}/>{botById(selBot).name}</span>):(<span style={{fontSize:'clamp(12px,2.05vw,12px)',color:'rgba(255,255,255,.58)'}}>🤖 vs Computer</span>))}
-          {!(opponent&&!isOver&&!playEnd)&&wide&&(<div style={{display:'flex',alignItems:'center',gap:5,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 5px'}}>
+          {!(opponent&&!isOver&&!playEnd)&&!_gameOver&&wide&&(selBot&&botById(selBot)?(<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:'clamp(12.5px,2.15vw,12.5px)',color:'rgba(255,255,255,.72)',fontWeight:700}}><BotFace id={selBot} size={20}/>{botById(selBot).name}</span>):(<span style={{fontSize:'clamp(12px,2.05vw,12px)',color:'rgba(255,255,255,.58)'}}>🤖 vs Computer</span>))}
+          {!(opponent&&!isOver&&!playEnd)&&!_gameOver&&wide&&(<div style={{display:'flex',alignItems:'center',gap:5,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 5px'}}>
             <button onClick={()=>setCpuElo(e=>Math.max(ELO_MIN,e-100))} title="Weaker" style={{width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.12)',color:'#fff',fontSize:16,fontWeight:700,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>−</button>
             <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:700,color:'var(--ac2)',minWidth:58,textAlign:'center'}}>≈{cpuElo} Elo</span>
             <button onClick={()=>setCpuElo(e=>Math.min(ELO_MAX,e+100))} title="Stronger" style={{width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.12)',color:'#fff',fontSize:16,fontWeight:700,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
           </div>)}
         </div>):(<div style={{fontSize:'clamp(12px,2.05vw,12px)',color:'rgba(255,255,255,.58)'}}>{`👤 vs Human${timeCtrl?(' · '+timeCtrl.label):' · no clock'}`}</div>)}
-        {opponent==='computer'&&!(opponent&&!isOver&&!playEnd)&&wide&&(<input type="range" min={ELO_MIN} max={ELO_MAX} step={25} value={cpuElo} onChange={e=>setCpuElo(+e.target.value)} title="Fine-tune strength" style={{width:'100%',maxWidth:320,accentColor:TH.accent,cursor:'pointer',margin:'0 0 2px'}}/>)}
-        {/* #437: THIS SITE IS DELIBERATELY LEFT ON `isOver`, AND THAT IS A REVERSAL INSIDE THIS BUILD. It was moved
-            to _gameOver and both antagonists measured the cost independently, from different doors. The rail this
-            button sits in at 730x375 is [233,26,494,216], overflow-y:auto, clientHeight 216. At the TERMINAL PLY both
-            bundles overflow it by 25px - that clip is #435's and is pre-existing. What _gameOver changed is what
-            happens NEXT: on #436 stepping back unmounts this button, scrollHeight returns to 216 and the row
-            un-clips; with _gameOver the button stays, scrollHeight stays 241, and the bottom 25px of all six
-            controls - half of a 51px row, their own centres included - stays unpainted and not hit-testable for the
-            rest of the game, recoverable only by scrolling a 25px rail that shows no affordance. The move turned an
-            intermittent clip into a permanent one. Reverted rather than followed by a landscape fix because this
-            build's gate is portrait at both geometries, so `wide` is false in every one of its browser sessions, and
-            R35 says a fix is done only in the configuration it was measured in. The landscape half is filed with
-            these numbers as its own job. */}
-        {(isOver||playEnd)&&wide&&game.history&&game.history.length>=2&&<button onClick={reviewPlayedGame} style={{width:'100%',padding:'13px',borderRadius:13,border:'none',background:'linear-gradient(135deg,#6ea8fe,#3b76e8)',color:'#0a1020',fontWeight:800,fontSize:'clamp(14px,3.2vw,16px)',cursor:'pointer',boxShadow:'0 4px 14px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.35)',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>🔍 Review this game</button>}
+        {opponent==='computer'&&!(opponent&&!isOver&&!playEnd)&&!_gameOver&&wide&&(<input type="range" min={ELO_MIN} max={ELO_MAX} step={25} value={cpuElo} onChange={e=>setCpuElo(+e.target.value)} title="Fine-tune strength" style={{width:'100%',maxWidth:320,accentColor:TH.accent,cursor:'pointer',margin:'0 0 2px'}}/>)}
+        {/* #438: THE WIDE-ONLY "Review this game" BUTTON THAT USED TO SIT HERE IS REMOVED, AND IT IS THE OTHER
+            HALF OF ONE FIX RATHER THAN A SECOND CHANGE. #437 left it on `isOver` deliberately and wrote down why:
+            keying it to `_gameOver` keeps it mounted through a step-back, so the rail's clip stops being
+            intermittent and becomes PERMANENT. That warning was right and is why the button is not re-keyed here -
+            it is deleted, because the row below now carries Review in landscape too and the two called the same
+            handler, reviewPlayedGame.
+            WHAT IT COST, measured on the shipped #437 bundle (md5 5751da3ce0d9) at 730x375 at the terminal ply:
+            this button is 52px tall inside a rail that is [x233 y26 w494 h216] with clientHeight 216 against
+            scrollHeight 410, and it is laid out ABOVE the control row. So it pushed the row from y164 down to
+            y216-266.5 against a clip bottom of 242, and a hit test sampling every 4px down each control's own
+            height returned 6 of 12 points, with the first dead point at dy=27 of 51 - the bottom 24px of all six
+            controls unpainted and not hit-testable, recoverable only by scrolling a rail that shows no affordance.
+            Removing it returns the row to y164-214.5, inside the visible window, which is where the LIVE game and
+            every stepped-back state already put it.
+            THIS IS NOT A CAPABILITY REMOVAL AND THE ARITHMETIC IS THE ARGUMENT: landscape at game over went from
+            ONE affordance (a big Review button with its own bottom half reachable, and no Rematch anywhere) to TWO
+            fully reachable ones (Review and Rematch in the row). Portrait has never had this button - its rail kid
+            block measures 109px against landscape's 161px at the same ply - so this makes the two orientations
+            agree. #435 did exactly this, in this file, for exactly this reason: it removed a wide-only duplicate
+            strength chip that "stated the adaptive strength a second time while the result was stated zero times".
+            Amber record: defaults/amber-438-landscape-gameover-matches-portrait on the Decision Desk.
+            NOT TOUCHED: the ONLINE opponent renders its own Review/Rematch/Flip/Leave panel further down this file,
+            and it is a different block with a different layout. It stays in this job's notChecked. */}
           <>
           {(<div data-ct="play-moverow" style={{display:'flex',alignItems:'center',gap:8,width:'100%',height:30,flexShrink:0,padding:'0 10px',background:boardGame.history.length>0?'rgba(255,255,255,.035)':'transparent',border:'1px solid '+(boardGame.history.length>0?'rgba(255,255,255,.10)':'transparent'),borderRadius:9,overflow:'hidden'}}>{(()=>{const h=boardGame.history;const s=Math.max(0,h.length-3);return h.slice(s).map((m,i)=>{const gi=s+i;const cur=gi===h.length-1;return(<span key={gi} style={{fontSize:'clamp(11.5px,2.1vw,12px)',fontWeight:700,whiteSpace:'nowrap',fontVariantNumeric:'tabular-nums',color:cur?'var(--ac2)':'rgba(255,255,255,.55)'}}>{Math.floor(gi/2)+1}{gi%2===0?'.':'\u2026'}<b style={{marginLeft:3,color:cur?'var(--ac2)':'#fff'}}>{m.san}</b></span>);});})()}</div>)}
           <div style={{display:'flex',gap:6,width:'100%'}}>
@@ -6311,7 +6339,17 @@ export default function App(){
                 rebuilt the row as a live row and Flip came back with it. Removing that is consistent with his
                 answer, not a regression against it. (46-play.js:280 still labels this NEEDS-KUNAL K-PL-4; that
                 label is stale by five builds and is filed as its own finding.) */}
-            {(!wide&&_gameOver)?(<>
+            {/* #438: THE `!wide` OPERAND IS GONE, AND THAT IS THE LANDSCAPE HALF OF #437's FIX.
+                This read `(!wide&&_gameOver)`, so the swap happened ONLY in portrait and a finished game in
+                LANDSCAPE kept the live row: Moves, Back, Forward, Hint, Flip, More - no Review, no Rematch, and
+                a Hint that is enabled and does NOTHING (requestHint returns immediately on getStatus(game)).
+                MEASURED on the shipped #437 bundle (md5 5751da3ce0d9) at 730x375, Pass & Play, 1.f3 e5 2.g4 Qh4#,
+                reached by mating in PORTRAIT and rotating because that is the route a real phone takes (gate 62's
+                rule): tapping Hint by mouse AND by element.click() both left the 64-square signature BYTE-IDENTICAL,
+                against an instrument validated as moving it in a live landscape game in the same session. Both
+                antagonists of #437 found this independently from different doors. Portrait at the same ply is
+                correct, so this is one predicate disagreeing with itself across an orientation, not two defects. */}
+            {_gameOver?(<>
               <_CBtn icon="analyze" label="Review" accent dis={!(game.history&&game.history.length>=2)} on={reviewPlayedGame}/>
               <_CBtn icon="newgame" label="Rematch" on={()=>{fullReset();}}/>
             </>):(<>
