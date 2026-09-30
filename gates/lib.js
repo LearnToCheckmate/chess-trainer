@@ -117,9 +117,28 @@ async function launch(opts={}){
     async tapText(re,opts2={}){const r=re instanceof RegExp?re:new RegExp('^\\s*'+String(re).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*$');
       // choose the smallest visible element whose innerText matches, so a tile is not chosen over its label
       // in-viewport matches win; an off-screen match is scrolled into view first (a long roadmap, a menu sheet)
-      const h=await page.evaluateHandle((src)=>{const re=new RegExp(src[0],src[1]);const all=[...document.querySelectorAll('button,[role=button],a,div,span,label')];let best=null,ba=1e12,bestOff=null,baOff=1e12;for(const el of all){const t=(el.innerText||'').trim();if(!re.test(t))continue;const r=el.getBoundingClientRect();if(r.width<2||r.height<2)continue;const st=getComputedStyle(el);if(st.visibility==='hidden'||st.pointerEvents==='none')continue;const a=r.width*r.height;const off=(r.bottom<0||r.top>innerHeight||r.right<0||r.left>innerWidth);if(off){if(a<baOff){baOff=a;bestOff=el;}}else if(a<ba){ba=a;best=el;}}if(!best&&bestOff){bestOff.scrollIntoView({block:'center'});return bestOff;}return best;},[r.source,r.flags]);
+      const h=await page.evaluateHandle((src)=>{const re=new RegExp(src[0],src[1]);const all=[...document.querySelectorAll('button,[role=button],a,div,span,label')];let best=null,ba=1e12,bestOff=null,baOff=1e12;for(const el of all){const t=(el.innerText||'').trim();if(!re.test(t))continue;const r=el.getBoundingClientRect();if(r.width<2||r.height<2)continue;const st=getComputedStyle(el);if(st.visibility==='hidden'||st.pointerEvents==='none')continue;const a=r.width*r.height;const _cx=r.left+r.width/2,_cy=r.top+r.height/2;const off=(_cx<0||_cx>innerWidth||_cy<0||_cy>innerHeight);if(off){if(a<baOff){baOff=a;bestOff=el;}}else if(a<ba){ba=a;best=el;}}if(!best&&bestOff){bestOff.scrollIntoView({block:'center'});return bestOff;}return best;},[r.source,r.flags]);
       const el=h.asElement();if(!el)throw new Error('tapText: nothing visible matches '+r);
-      await page.waitForTimeout(120);const box=await el.boundingBox();await page.mouse.click(box.x+box.width/2,box.y+box.height/2);await page.waitForTimeout(opts2.wait==null?500:opts2.wait);return box;},
+      await page.waitForTimeout(120);const box=await el.boundingBox();
+      // #441 (job `taptext-clicks-outside-the-viewport-for-any-element-straddling-the-bottom-edge-2026-09-30`):
+      // this used to judge "off screen" as FULLY outside the viewport and then click the box CENTRE
+      // unconditionally, so any element with `top <= innerHeight < top+height/2` was never scrolled and the
+      // click landed BELOW the viewport - silently, as 'nothing visible matches' or as a tap that did nothing.
+      // #440 hit it on gate 32: the review sheet's counts row sat at top 711.41 in a 730-tall viewport, so the
+      // centre (over 730) was unreachable while the row itself was plainly on screen and finger-reachable. The
+      // `off` test above is now the CLICK POINT rather than the box, which is a strict superset of the old test
+      // (bottom<0 implies cy<0; top>innerHeight implies cy>innerHeight), so nothing that scrolled before stops.
+      // The clamp below is the second half and it is deliberately NOT a silent rescue: after the scroll an
+      // element may still straddle an edge, and a finger would tap the part that IS on screen, so we clamp to
+      // the viewport - but only when the clamped point is still INSIDE the element. If it is not, the element
+      // is genuinely not tappable there and we throw rather than click whatever else happens to be underneath,
+      // which would be a false green. 105 call sites across 30 files shared this landmine at each edge.
+      const vp=page.viewportSize()||{width:geo.w,height:geo.h};
+      const px=Math.min(Math.max(box.x+box.width/2,0.5),vp.width-0.5);
+      const py=Math.min(Math.max(box.y+box.height/2,0.5),vp.height-0.5);
+      if(px<box.x||px>box.x+box.width||py<box.y||py>box.y+box.height)
+        throw new Error('tapText: '+r+' is at '+JSON.stringify(box)+' and no point of it is inside the '+vp.width+'x'+vp.height+' viewport');
+      await page.mouse.click(px,py);await page.waitForTimeout(opts2.wait==null?500:opts2.wait);return box;},
     async allTexts(){return page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1;}).map(x=>(x.innerText||x.getAttribute('aria-label')||x.title||'').replace(/\s+/g,' ').trim()).filter(Boolean));},
     async tapCt(id,wait){const el=page.locator('[data-ct="'+id+'"]').last();await el.waitFor({state:'visible',timeout:8000});const box=await el.boundingBox();await page.mouse.click(box.x+box.width/2,box.y+box.height/2);await page.waitForTimeout(wait==null?500:wait);return box;},
     async tile(name){return b.tapText(new RegExp('^'+name+'\\n')).catch(()=>b.tapText(name));},
