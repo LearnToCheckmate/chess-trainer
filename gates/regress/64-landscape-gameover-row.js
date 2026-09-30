@@ -6,7 +6,8 @@
 // THE DEFECT, two halves with one cause. On the shipped #437 bundle (md5 5751da3ce0d9) at 730x375, a finished
 // game kept the LIVE control row - Moves, Back, Forward, Hint, Flip, More - because the swap at chess.jsx:6314
 // read `(!wide&&_gameOver)`. So there was no Rematch anywhere, and the Hint was ENABLED AND INERT (requestHint
-// returns immediately on getStatus(game)). Separately the wide-only "Review this game" button, 52px tall and laid
+// returns immediately on getStatus(game)). Separately the wide-only "Review this game" button, 45.0px tall (the 52 an
+// earlier draft gave is the row DISPLACEMENT including the parent's gap:7 - antagonist A) and laid
 // out ABOVE the row inside a rail of clientHeight 216, pushed the row from y164 down to y216-266.5 against a clip
 // bottom of 242 - so the bottom 24 of each control's 51px was unpainted and not hit-testable, its own centre in
 // the dead band. #438 drops the `!wide` and deletes the duplicate button; landscape is now portrait's row exactly.
@@ -231,7 +232,8 @@ L.run(async()=>{
  // Pass & Play sessions and it went 57/0 GREEN on a tree where vs COMPUTER in landscape was STILL CLIPPED - row
  // bottom 253.5 against a clip of 242, 9 of 12 points on every control, persisting through a step-back. Pass &
  // Play sets opponent==='human', so the three wide-only sites that mount the bot chip, the Elo pill and the Elo
- // slider at game over are never mounted in ANY of those six sessions, and they are worth 39px of rail. That is
+ // slider at game over are never mounted in ANY of those six sessions, and they are worth 53.0px of rail (an earlier
+// draft said 39, which differenced TWO OPPONENTS - antagonist A). That is
  // #375's single-worker-fallback mistake: a gate that exercises one branch twice. CLAUDE.md's rule is that when a
  // code path is chosen by configuration, the gate covers EVERY branch or it is not a gate.
  for(const g of [{w:730,h:375},{w:844,h:390}]){

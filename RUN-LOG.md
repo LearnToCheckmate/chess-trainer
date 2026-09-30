@@ -45,6 +45,7 @@ line names those parts separately.
 | #390 | procedure section 6d, raised to the TOP of the queue ahead of the tooling lane on Kunal's own words: "Did the recording get put into the preview gallery? Because I can do that now." He is holding the phone, and his phone is the only place real fonts, real Apple emoji ink, real safe-area insets and real iOS Safari behaviour exist | not estimated; his availability is the scarcest input in the system, so this outranked everything | 20:2x | BUNDLE CHANGED. app.js md5 5fc71d38a46857802a635fdaea902af2, stamp '#390 - 2026-09-14 16:23 ET' | a FULL WALK over 13 screens, about 2.6 minutes, as an ADDITION to the eight existing cards rather than a replacement - gate 15 asserts those and they are a different thing. Opening frame names the build; every caption carries the MEASURED viewport (`#390 · PLAY-LIVE · 375x730`) so one extracted frame is self-describing; no dev-only chrome in shot while recording | I DID NOT BAKE IN A SHA, though the brief asked for one: the bundle is built BEFORE the commit exists, so a compiled-in SHA would name the PREVIOUS commit, which is worse than none. The stamp is the identifier and RUN-LOG maps it to a SHA. AND A MEASURED CORRECTION TO THE BRIEF: it says the gallery holds six cards, all Review, and that five of the six screens have no card at all. SC holds EIGHT and they already cover Play, Lesson, Puzzles, Review, Home and Menu. The brief was right about what to build and wrong about why; nothing was removed on the strength of it | GREEN: 27 suites, 1029 PASS, 0 fail (claude/agents/gatelogs/390-all.log) - the rise from 1007 is ENTIRELY the new gate 23. NEW GATE gates/regress/23-full-walk.js, 22 assertions at 375x730 and 320x568. It DRIVES the walk and checks the caption ids arrive in the declared order, because a walk that stalls three screens in would cost him a wasted recording and he would not find out until after he sent it. Control: the !recCap guard removed, 2 of 22 red on its own line. AND THE GATE'S OWN FIRST RUN WENT 4 RED for a reason already written down - the dev row is below the fold and the tap landed on nothing, exactly what 42-home-devrow found at #386. A lesson filed as a fact about one gate does not travel; it is now a rule | |
 | #389 | `uat387-engine-wasm-trap-ply25` (headless UAT lane, P2, broken:true, so it outranked the new tooling lane): the single-file Stockfish traps on two positions of the reference game and the engine line for those positions NEVER arrives, for the rest of the session | not estimated; a broken:true flag outranks the queue | 20:0x | BUNDLE CHANGED - first since #387. app.js md5 ffdbfa5971d6a136a60540d6d98a7fae, stamp '#389 - 2026-09-14 15:40 ET' | measured BEFORE fixing, with two independently written probes: plies 19 AND 25 (the report said 25), TWO WASM traps per session (the report said one), and three revisits each never recovering. After the fix the same revisits return '+2.9 10... Qb4+ ...' and '+5.3 13... Nxd7 ...'. Ply 33 also shows no line and that is CORRECT by design (#374, a mated position gets no query) - a naive 'every ply has a line' gate would have filed a false defect on it | THE MECHANISM, found by reading sfBestLine rather than guessing: it RESOLVES NULL on every failure path and never rejects, so `line` was '' and engCacheRef stored {line:''} as the engine's reply. Cache HIT next visit, no re-query, bare ellipsis for ever. The trap is inside the WASM and is NOT ours; caching its wreckage was. AND THE NUMBER WAS WRONG TOO, which the report did not have: ply 19 read -2.8 where the coach chip says +3.0, because the trapped search delivers a partial score with the wrong sign - also cached permanently. RESIDUAL, said out loud: on the visit where the trap fires the number is still wrong and the line still absent; #389 makes it self-heal on the next visit rather than persist. Recovering the worker is a bigger change and is NOT in this build | GREEN: 26 suites, 1007 PASS, 0 fail (claude/agents/gatelogs/389-all.log) - the rise from 997 is ENTIRELY the new gate 22. NEW GATE gates/regress/22-engline-recovery.js, 10 assertions, AND ITS CONTROL IS THE SHIPPED RELEASE ITSELF - the live #387 bundle goes 4 of 10 red on it with no trial bundle needed. A cross-check I had to abandon on the way: the eval bar is CIRCULAR here (with engOn it renders engLine itself), and the independent coach chip reads empty in that state - two assertions built on it went red on the GOOD bundle before I caught it | |
 | #388 re-gated (chain link 2) | the THIRD finding of `uat-ext-2026-09-14`, which the first #388 pass deliberately did not claim: "five gates have no negative control at all", measured at #383 when the suite was 18 | not estimated; the tally was cheap, the control that came out of it was not | 18:4x | NO BUNDLE CHANGE - app.js untouched at md5 ae5ebbc4497645dd19a7215a0402010e | re-derived gate by gate against the current 25: 23 of 25 proved red HERE, 2 (45-play-setup, 46-play) resting on their authors' recorded evidence which I read but did not reproduce, and FOUR carrying a named internal gap. Then ran the first item off the list: 13-play-after-moves, the only suite never deliberately controlled | THE TALLY IS NOT THE FINDING. "Does this gate have a control" is the wrong question and #388 is the proof: 21-review-brilliant HAD one, red 2 of 7 at #381, recorded clean - and it was the gate that then passed 7 of 7 against a changed sentence, because the control broke the PLAY-OUT BUTTON and nothing had ever broken the SENTENCE. Each ASSERTION is proved able to fail or it is not, which means the assertion total is not a coverage figure and goes UP when someone adds a check that cannot fail. Full tally in claude/agents/CONTROL-COVERAGE-2026-09-14.md | GREEN: 25 suites, 997 PASS, 0 fail (claude/agents/gatelogs/388b-regate-of-the-387-bundle.log - it ran against the #387 BUNDLE and its footer says so) - the rise from 990 is ENTIRELY gate 13 going 11 -> 18. GATE 13's TWO CONTROLS: a constant 90% board went 3 of 11 red and only ONE of the three was the point - both headline assertions PASSED at both geometries on a board reading 338 instead of 351, because each compares the board to ITSELF; and the MOVES panel's reservation removed went 2 of 11 red on exactly the k8 lines (board 375->279, top 103->80.2), so the SUBJECT was guarded while the SIZE was not. Numbers now pinned per geometry AND per configuration; the same bundles fire 8 of 18 and 4 of 18, and control A now fires at 390 where nothing about the board fired before. Seventh gate fixed by the same rule: PIN THE NUMBER | no new commit of app.js; one gate, one new document and the evidence |
+| #438 | landscape game over: the row keeps the LIVE controls and the rail clips them | 150 min (02:20Z) | 02:19:40Z | n/a (pushed straight to main) | 130.9 min | -19 | GATES GREEN #438, 45 suites, 3002 PASS / 0 fail (438-all.log, md5 166a99dd02e5) | PENDING |
 
 ## The four numbers (charter), first measured at the #372 close-out, 2026-09-12 20:52 ET
 | close-out | open P0 | open P1 | coverage (screens fully specced AND tested, of 6) | regression assertions (PASS lines, gates.sh) |
@@ -261,3 +262,59 @@ exactly. **The honest part of the mid-run note was saying I could not reproduce 
 publishing my own number beside it instead of asking why a count of 267 was being compared with a count of 340+.**
 Same family as #405's frozen denominator and #411's subset-run counts: the arithmetic was fine and the population
 was not.
+
+
+## #438 — the gate went green on a broken tree, the suite caught a decision, and the antagonist found the hole
+
+**ETA 150 minutes, actual 130.9.** The ETA was stated at 02:20Z with its basis rather than as a round number, and it
+was wrong in the direction this lane is usually wrong in. What it did not price: that the fix would change shape
+TWICE after the first commit, each time because something other than my own judgement caught it.
+
+**The item.** jobs/landscape-game-over-keeps-the-live-row-and-the-rail-clips-half-of-it-2026-09-30, the P1 both of
+#437's antagonists found independently from different doors and #437 handed over on the pen. In LANDSCAPE a
+finished game kept the live control row — Hint and Flip, no Review, no Rematch — and that Hint was enabled and
+INERT. Separately the side rail is exactly as tall as the board, and the wide-only "Review this game" button was
+laid out ABOVE the control row, pushing it past the clip. **Worse than the job filed:** vs COMPUTER the row ran to
+y305.5 against a clip at 242 and the hit map was 0 of 12 on ALL SIX controls with every centre dead. The entire
+row was unreachable in the mode most games are played in.
+
+**Three things changed the code after the first commit, and none was me.**
+
+1. **My own gate went 57 PASS / 0 FAIL green on a tree that was still broken.** Six browser sessions, all Pass &
+   Play, which sets `opponent==='human'` and therefore never mounts the three wide-only sites that were still
+   clipping vs COMPUTER by 11.5px. That is #375's single-worker-fallback trap — a gate exercising one branch
+   twice. Found by following the job's own `notChecked` list, with the 44-minute suite already launched. Killed
+   at gate 10 rather than spend 44 minutes certifying a half-fix.
+
+2. **The full suite caught a product regression the new gate could not see.** Suppressing all three sites made
+   `16-cpu-result-line` E3 go red at `strengthHits:[]`: E3 pins EXACTLY ONE painted element stating the
+   computer's adaptive strength once the result card has gone, and #435 is the build that deliberately reduced
+   that from two to one. Zero is not an improvement on two. A subset run of my own gate was 85/0 green at that
+   moment. **Second build running where the full suite is what stopped a decision being broken.**
+
+3. **Antagonist A vetoed, and its second ground was real.** It swept landscape HEIGHTS — an axis nothing here had
+   touched — and the fix did not hold below 368: headroom -3 at 780x360 and -11 at 780x352, 730x350 and 711x320,
+   six controls at 83%. It also proved the `&&!_gameOver` guard made two sites UNREACHABLE rather than
+   conditional, because all three sit inside `opponent==='computer'` where the term collapses. My comment
+   claiming "the pre-game half is untouched" was false and is withdrawn in the file.
+
+**So the fix is: delete the bot chip and the slider, and MOVE the Elo pill below the control row.** That keeps E3
+green at exactly one strength statement while making the pill — not the six controls — the box that gets clipped.
+Re-swept: **+24px minimum headroom, 100% reachable, 0 dead controls at all nine geometries**, against -11 and six
+dead before. The residual is measured and filed: below ~352 the pill itself is cut 8px with its ink sliced.
+
+**Four numbers this build published were wrong and every one is withdrawn in the document that carried it [R18]:**
+the button is 45.0px tall not 52 (the 52 is the row's displacement including `gap:7`); the Elo chrome is 53.0px
+not 39 (39 differenced TWO OPPONENTS); "a half-clipped Review" was false (it was 100% inside — the row beneath it
+was clipped); and the control count is 41/46 of 87, not 39/46 of 85. Antagonist A caught all four.
+
+**And I nearly stood down on the other P1 for a reason that was false.** I left the classic-review 320px job
+citing d20 as an unsettled decision, having read `desk-round-1`'s roundTwo list as current. It is stale:
+`R2-NARROW-LEVERS` was answered 2026-09-22 with `icon-font-ls`, and its own `unlocks` field establishes the
+shrink-not-drop rule for narrow-phone fixes. There is an OPEN FLAG saying exactly that document is stale, and it
+was in the candidate list I had read four minutes earlier. Its `ifNotDone` predicted this precisely; this is the
+second recorded instance, and the first one caught itself.
+
+**The blind pair, second build running with two upheld vetoes and both doors changing shipped code.** Unique to A
+10, unique to B 7, common 2 — B's share 37% against a 20% floor. No Lincoln-Petersen point estimate published at
+an overlap of 2, for the second consecutive build.

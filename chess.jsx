@@ -6283,7 +6283,13 @@ export default function App(){
             from two to one. Removing the pill made it ZERO, so a player who looked at a lost landscape game
             after the card faded was told the result and nothing about the strength that had adapted. The
             assertion was right and my change was wrong: the pill KEEPS its game-over mounting. Only the bot
-            chip and the slider are dropped, which is 23px, and 23px is enough - the row needed 11.5.
+            chip and the slider are dropped. THE ARITHMETIC IN AN EARLIER DRAFT OF THIS LINE WAS WRONG TWICE AND IS
+            CORRECTED HERE [R18]. It said '23px, and 23px is enough - the row needed 11.5'. Measured: chip plus slider is
+            25px, the whole Elo chrome is 53.0px and the pill alone 28px, and the '+39px' this build first published for
+            the chrome was a CROSS-OPPONENT subtraction - Pass & Play renders a 14px 'vs Human' line where vs Computer
+            renders the chip row, so two opponents were being differenced. Antagonist A caught it. And 'enough' was only
+            true at 730x375: at landscape heights at or below 368 it was not, which is why the pill moved below the row
+            rather than staying above it.
             THE LESSON, and it is this file's own: the suite caught a product regression that my new gate could
             not, because gate 64 asserts reachability and says nothing about what the screen SAYS. A subset run
             of my own gate was 85/0 green at that moment.
@@ -6328,7 +6334,10 @@ export default function App(){
             it is deleted, because the row below now carries Review in landscape too and the two called the same
             handler, reviewPlayedGame.
             WHAT IT COST, measured on the shipped #437 bundle (md5 5751da3ce0d9) at 730x375 at the terminal ply:
-            this button is 52px tall inside a rail that is [x233 y26 w494 h216] with clientHeight 216 against
+            this button is 45.0px tall - NOT the 52 an earlier draft of this comment said [R18]. The 52.0 is the row's
+            DISPLACEMENT when the button goes, which includes the parent's gap:7; antagonist A measured the button's own
+            rect at y165.5 h45.0 w216 and caught the misattribution, and antagonist B measured 216x45 independently from
+            the shipped surface. It sits inside a rail that is [x233 y26 w494 h216] with clientHeight 216 against
             scrollHeight 410, and it is laid out ABOVE the control row. So it pushed the row from y164 down to
             y216-266.5 against a clip bottom of 242, and a hit test sampling every 4px down each control's own
             height returned 6 of 12 points, with the first dead point at dy=27 of 51 - the bottom 24px of all six
