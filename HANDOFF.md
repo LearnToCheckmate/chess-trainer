@@ -1889,3 +1889,39 @@ CT_APP=/tmp/app-trial-oldgrades.js node gates/regress/32-plylog.js   # 16 pass /
 ```
 Everything else in #440 — the accuracy aggregation, the panel sentence, `classifyByLoss`, `sel`, the re-keyed
 pools — is still present in that trial, which is what makes it an isolating control rather than a revert.
+
+### #440 — CORRECTIONS after the antagonist pass. Read these before the section above.
+
+Four things above are wrong or incomplete, and they were found by an adversarial pass rather than by me.
+
+1. **`32-plylog` IS NOT A PRODUCT DEFECT.** It is a bug in `gates/lib.js` `tapText`: it judges "off screen" as
+   *fully* outside the viewport and then clicks the box **centre** unconditionally, so any element with
+   `top <= innerHeight < centre` is never scrolled and the click lands outside the viewport **silently**. At
+   375x730 the row is `top 711.41` on #440 and `745.41` on #439 — and 730 sits **between top and centre**. I
+   measured the *centre* (below 730 on both) and concluded position didn't discriminate; `tapText` reads *top*.
+   And #440 made the target **more** visible, not less: removing the Blunder and Mistake chips un-wrapped the
+   sheet's counts row and shortened it by exactly 34.0px. A defect cannot be "the target got easier to reach".
+   Reachable by a finger two ways, including scrolling `rev-sheet` (`overflow-y:auto`, 101px of range) and
+   re-reading the rect. **Fix `lib.js`, one condition — it clears gate 32 without touching the app.** Do not
+   special-case gate 32: 105 call sites across 30 files share a `height/2`-wide landmine at each viewport edge.
+   Job: `taptext-clicks-outside-the-viewport-for-any-element-straddling-the-bottom-edge-2026-09-30`.
+2. **"At eval 0 nothing changes" was FALSE at two reachable inputs, and is now fixed.** `8.2097` and `26.4636`
+   inverted to 90.000150cp and 320.000286cp — just above their integers — so `loss=90` graded Good where #439
+   said Inaccuracy and `loss=320` graded Mistake where #439 said **Blunder**. `loss` is an integer in the
+   Stockfish path. Now `8.2096` / `26.4635`, agreeing with #439 at **every** integer loss 0..1500. Gate 66 gained
+   **A27** to assert that over the whole input space; it is controlled (2 mismatches old, 0 new).
+3. **Gate 26 is 8 moved pins + TWO real ones, not 9 + 1.** Both `rev-best-ply30` rows are invariant 4a going
+   from 2 cut text nodes to 3, and gate 26's own header records #400 cut three at clientWidth 35 — **#440 is at
+   25, worse than the state the pin was built to detect.** Flagged:
+   `440-rev-best-pill-loses-20px-and-cuts-a-third-node-at-568-tall`. Also: the ~20px is the **grade pill
+   growing** (98.52 → 118.39), while `rev-best` separately loses 20 of clientWidth — two different numbers.
+4. **GATE 66's BLOCK A CANNOT FAIL.** A sabotage bundle whose `winDrop` compares raw centipawns against
+   win-percentage cut-offs — charging the brilliancy winner with 2 blunders and 66.7% accuracy — passes
+   **A0..A26, 27 of 27**, because block A reads five literals with a regex and then does its arithmetic with the
+   *gate's own* copy of `winPct`/`winDrop`/`classify`. It never executes the bundle. A0 is itself the #432 trap.
+   **26 of 36 assertions have never been shown able to fail.** To control block A you need a bundle with a
+   *different* band table, not one with none. Job: `gate-66-block-a-is-27-assertions-that-cannot-fail-2026-09-30`.
+
+**Verified after the fixes (subset, not a push gate):** `51-drill-explain-why` green 70 PASS, `66-winprob-ladder`
+green 37 PASS. **The shipping bundle has still never been through a full suite** — that is the antagonist's
+dispositive veto ground and the first thing the next run should do.
