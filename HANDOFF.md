@@ -2,7 +2,12 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
-> **SECTION 0a WAS LAST WRITTEN BY #398; THE LIVE LINE IS #419 (noted 2026-09-18).** So the newest thing this
+> **SECTION 0a WAS LAST WRITTEN BY #398; THE LIVE LINE IS #439 (noted 2026-09-30, sha `dc5bacd`, bundle md5
+> `0099cb784ca0`).** The "#419" this line carried from 2026-09-18 until now was itself twenty builds stale by the
+> time anyone read it again — which is the same defect this note exists to warn about, committed by the note. It is
+> corrected rather than removed, and the standing instruction is unchanged: **do not read this file for where the
+> build is.** Read `RUN-LOG.md` (one row per build, newest at the bottom), then `claude/BUILD-CONTEXT.md` and the
+> tracker. So the newest thing this
 > file says about "where the build actually is" is twenty-one builds old, and section 0a's `LIVE = #398` is no longer
 > the live bundle. Read 0a and 0a-prev1 as the history of how the app got here; for where the last run left off
 > read `RUN-LOG.md` (one row per build, newest at the bottom), then `claude/BUILD-CONTEXT.md`, the tracker flags
