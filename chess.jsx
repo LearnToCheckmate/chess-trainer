@@ -4797,6 +4797,18 @@ export default function App(){
   const exitMistakes=()=>{setMistakeMode(false);setCurPuz(null);setPzView('roadmap');setMode('analyze');};
   useEffect(()=>{if(mistakeMode&&puzSolved&&drillKindRef.current==='mistake'){const q=mistakeQueueRef.current||[];const cur=q[mistakeIdxRef.current];if(cur)setMyMistakes(prev=>prev.filter(x=>x.fen!==cur.fen));}},[puzSolved,mistakeMode]);
   const curAnno=inReview&&ply>0?review.analysis[ply-1]:null;
+  // #441 P0 FIX: THE SELECTION LABEL LIVES BESIDE curAnno, IN THE SCOPE BOTH REVIEW LAYOUTS CAN SEE.
+  // #440 introduced the sel/cls split (a grade LABEL is what the player is told; a grade SELECTION is what the
+  // app chooses on) and declared it as `_cSel` INSIDE the compact branch, then used that name in the CLASSIC
+  // branch too - two different scopes. The classic layout therefore threw the exact string
+  // `ReferenceError: _cSel is not defined` (kept verbatim here because that is what a later reader will grep
+  // for) on the first
+  // annotated ply and took the whole app to a WHITE SCREEN: measured at 375x730 with ct_revCompact=0, tapping
+  // the forward-to-end chevron left document.body.innerText EMPTY and every element gone. It never shipped -
+  // #440 stood down on a red suite - and gate 37-strip-sync is what caught it, on the one branch the build's own
+  // new gate never entered. Declaring it here, once, beside curAnno and _annoWhy, is what makes a scope mismatch
+  // impossible rather than merely fixed: there is one definition and both layouts read it.
+  const _curSel=curAnno?(curAnno.sel||classifyByLoss(curAnno.loss||0)):null;
   useEffect(()=>{ if(inReview&&ply>0&&review&&review.analysis[ply-1]&&review.analysis[ply-1].cls&&review.analysis[ply-1].cls.label==='Brilliant')playBrilliantChime(); },[inReview,ply,review]);
   useEffect(()=>{ if(review&&review.plies&&gateDemoRef.current!=null){ const t=Math.min(gateDemoRef.current,review.plies.length); gateDemoRef.current=null; setReviewView('moves'); setShowGates(true); setRevAuto(false); setTimeout(()=>setPly(t),40); } if(review&&review.plies&&revDemoPlyRef.current!=null){ const t=Math.min(revDemoPlyRef.current,review.plies.length); revDemoPlyRef.current=null; setReviewView('moves'); setRevAuto(false); setTimeout(()=>setPly(t),40); } },[review]);
   useEffect(()=>{ if(!revAuto||!inReview||!review)return; if(ply>=review.plies.length){const t=setTimeout(()=>setRevAuto(false),1900);return ()=>clearTimeout(t);} const t=setTimeout(()=>{const np=ply+1;const san=(review.plies[np-1]&&review.plies[np-1].san)||'';try{playSfx(/x/.test(san)?'capture':(/[+#]/.test(san)?'check':'move'));}catch(e){} setPly(np);},1250); return ()=>clearTimeout(t); },[revAuto,inReview,ply,review]);
@@ -6281,8 +6293,7 @@ export default function App(){
         // #440: whether a materially better move EXISTED is not a question about how decided the position
         // was, so this offer is selected on the old ladder too. Without this a move softened out of
         // Inaccuracy loses its best-line button while bestSan is still sitting on the row.
-        const _cSel=curAnno?(curAnno.sel||classifyByLoss(curAnno.loss||0)):null;
-        const _hasBetter=!!(curAnno&&(_cSel==='Inaccuracy'||_cSel==='Mistake'||_cSel==='Blunder')&&curAnno.bestSan);
+        const _hasBetter=!!(curAnno&&(_curSel==='Inaccuracy'||_curSel==='Mistake'||_curSel==='Blunder')&&curAnno.bestSan);
         // #354 a move that WAS the best one has no "better" move to show, so it used to get no
         // demonstration at all. Play the move itself out instead, with what the engine says follows.
         const _wasBest=!!(curAnno&&!_hasBetter&&['Brilliant','Great','Best','Excellent'].indexOf(curAnno.cls.label)>=0&&review.plies[ply-1]&&review.plies[ply-1].move);
@@ -6415,7 +6426,7 @@ export default function App(){
                 <span style={{fontSize:'clamp(15px,3.7vw,19px)',fontWeight:700,color:'#fff'}}>{Math.floor((ply-1)/2)+1}{(ply-1)%2===0?'.':'…'} {review.plies[ply-1].san}</span>
                 <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:curAnno.cls.c,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'66',borderRadius:22,padding:'4px 12px'}}><span style={{fontSize:'clamp(15px,3.7vw,19px)',lineHeight:1}}>{curAnno.cls.i}</span>{curAnno.cls.label}</span>
               </div>
-              {(_cSel==='Inaccuracy'||_cSel==='Mistake'||_cSel==='Blunder')&&<button onClick={()=>{setShowBest(true);playBestLine();}} title="Show the best move on the board" style={{background:'none',border:'none',cursor:'pointer',padding:'2px 4px',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(15px,3.6vw,17px)',fontWeight:600,color:'rgba(255,255,255,.82)',display:'inline-flex',alignItems:'center',gap:7,flexWrap:'wrap',justifyContent:'center'}}>Better was <b style={{color:'var(--ac2)',fontWeight:800}}>{curAnno.bestSan}</b> <span style={{color:'var(--ac)',fontWeight:700,textDecoration:'underline',textUnderlineOffset:3}}>{showBest?'shown below':'tap to see it'}</span></button>}
+              {(_curSel==='Inaccuracy'||_curSel==='Mistake'||_curSel==='Blunder')&&<button onClick={()=>{setShowBest(true);playBestLine();}} title="Show the best move on the board" style={{background:'none',border:'none',cursor:'pointer',padding:'2px 4px',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(15px,3.6vw,17px)',fontWeight:600,color:'rgba(255,255,255,.82)',display:'inline-flex',alignItems:'center',gap:7,flexWrap:'wrap',justifyContent:'center'}}>Better was <b style={{color:'var(--ac2)',fontWeight:800}}>{curAnno.bestSan}</b> <span style={{color:'var(--ac)',fontWeight:700,textDecoration:'underline',textUnderlineOffset:3}}>{showBest?'shown below':'tap to see it'}</span></button>}
               {_annoWhy&&<div style={{width:'100%',maxWidth:440,fontSize:'clamp(14px,2.8vw,14.5px)',color:'rgba(255,255,255,.84)',lineHeight:1.5,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:10,padding:'9px 12px',textAlign:'center'}}>{_annoWhy}</div>}
             </>):(<span style={{fontSize:'clamp(14px,2.8vw,14px)',color:'rgba(255,255,255,.5)'}}>Starting position — step forward to review →</span>)}
           </div>
