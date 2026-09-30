@@ -6276,7 +6276,18 @@ export default function App(){
             730x375: the rail's child block is 148px against Pass & Play's 109, the control row runs to y253.5
             against a clip bottom of 242, and 3 of 12 sample points down every control are dead - and unlike the
             checkmate case it PERSISTS through a step-back, because playEnd is not ply-keyed.
-            WHY DROPPING THEM AT GAME OVER IS RIGHT AND NOT A LOSS: the bot chip is a DUPLICATE - the same probe
+            AMENDED BEFORE THE PUSH, BY THE FULL SUITE, AND THE ELO PILL IS BACK. The first version of this
+            change gated ALL THREE on !_gameOver and gates/regress/16-cpu-result-line.js went RED on E3 at
+            730x375 with strengthHits:[] - that assertion pins EXACTLY ONE painted element stating the computer's
+            adaptive strength once the result card has gone, and #435 is the build that deliberately reduced it
+            from two to one. Removing the pill made it ZERO, so a player who looked at a lost landscape game
+            after the card faded was told the result and nothing about the strength that had adapted. The
+            assertion was right and my change was wrong: the pill KEEPS its game-over mounting. Only the bot
+            chip and the slider are dropped, which is 23px, and 23px is enough - the row needed 11.5.
+            THE LESSON, and it is this file's own: the suite caught a product regression that my new gate could
+            not, because gate 64 asserts reachability and says nothing about what the screen SAYS. A subset run
+            of my own gate was 85/0 green at that moment.
+            WHY DROPPING THE OTHER TWO AT GAME OVER IS RIGHT AND NOT A LOSS: the bot chip is a DUPLICATE - the same probe
             read TWO "Pip" chips, one at y33 in the player bar which is always there and one at y110 from this
             site - which is precisely the finding #435 acted on when it removed a wide-only duplicate strength
             chip from this screen. And PORTRAIT SHOWS NONE OF THE THREE AT GAME OVER AT ALL, because all three are
@@ -6284,15 +6295,32 @@ export default function App(){
             rather than making it poorer. Strength is still set where it is set: the New Game sheet, which is one
             tap away through Rematch. The pre-game half of the condition is untouched, which is deliberate - that
             is where these controls do their job. Amber record: defaults/amber-438-landscape-gameover-matches-portrait. */}
-        {opponent==='computer'?(<div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,flexWrap:'wrap'}}>
-          {!(opponent&&!isOver&&!playEnd)&&!_gameOver&&wide&&(selBot&&botById(selBot)?(<span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:'clamp(12.5px,2.15vw,12.5px)',color:'rgba(255,255,255,.72)',fontWeight:700}}><BotFace id={selBot} size={20}/>{botById(selBot).name}</span>):(<span style={{fontSize:'clamp(12px,2.05vw,12px)',color:'rgba(255,255,255,.58)'}}>🤖 vs Computer</span>))}
-          {!(opponent&&!isOver&&!playEnd)&&!_gameOver&&wide&&(<div style={{display:'flex',alignItems:'center',gap:5,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 5px'}}>
-            <button onClick={()=>setCpuElo(e=>Math.max(ELO_MIN,e-100))} title="Weaker" style={{width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.12)',color:'#fff',fontSize:16,fontWeight:700,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>−</button>
-            <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:700,color:'var(--ac2)',minWidth:58,textAlign:'center'}}>≈{cpuElo} Elo</span>
-            <button onClick={()=>setCpuElo(e=>Math.min(ELO_MAX,e+100))} title="Stronger" style={{width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.12)',color:'#fff',fontSize:16,fontWeight:700,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
-          </div>)}
-        </div>):(<div style={{fontSize:'clamp(12px,2.05vw,12px)',color:'rgba(255,255,255,.58)'}}>{`👤 vs Human${timeCtrl?(' · '+timeCtrl.label):' · no clock'}`}</div>)}
-        {opponent==='computer'&&!(opponent&&!isOver&&!playEnd)&&!_gameOver&&wide&&(<input type="range" min={ELO_MIN} max={ELO_MAX} step={25} value={cpuElo} onChange={e=>setCpuElo(+e.target.value)} title="Fine-tune strength" style={{width:'100%',maxWidth:320,accentColor:TH.accent,cursor:'pointer',margin:'0 0 2px'}}/>)}
+        {/* #438: THE BOT CHIP AND THE ELO SLIDER THAT USED TO SIT HERE ARE DELETED, AND THE ELO PILL IS MOVED
+            BELOW THE CONTROL ROW. All three used to read `!(opponent&&!isOver&&!playEnd)&&wide`, and all three sat
+            ABOVE the control row inside a rail whose height is exactly the board's, so at game over they pushed the
+            row out of the painted window. This build first tried gating all three on `&&!_gameOver`. ANTAGONIST A
+            MEASURED THAT THE GUARD MAKES THEM UNREACHABLE RATHER THAN CONDITIONAL, and it was right: every one of
+            these sites is inside `opponent==='computer'`, so `opponent` is truthy and the term collapses to
+            `(isOver||playEnd)`; with `&&!_gameOver` the condition is `(isOver||playEnd)&&!_gameOver`, and playEnd
+            implies _gameOver while isOver on a play game implies getStatus(game) is terminal too - so NO play state
+            satisfies it. A measured 0 sliders and 0 pills in all five states it drove. An earlier version of this
+            comment claimed 'the pre-game half of the condition is untouched, which is where these controls do their
+            job'; THAT WAS FALSE [R18] - there is no pre-game half at these sites, and the guard left two render
+            sites that can never fire behind a comment saying they still worked. Dead code is how the last pile of
+            ghosts built up, so the chip and the slider are DELETED, the way the Review button was.
+            THE BOT CHIP IS NO LOSS: it was a literal duplicate, measured as two 'Pip' chips, one at y33 in the
+            player bar and one at y110 here - the finding #435 acted on. The SLIDER is a fine-tune of a strength the
+            pill's own Weaker/Stronger buttons still adjust in steps of 100, and it is set where games are set up.
+            THE PILL IS NOT DELETED AND IS NOT LEFT WHERE IT WAS. Deleting it made 16-cpu-result-line E3 go RED at
+            strengthHits:[] - E3 pins EXACTLY ONE painted element stating the adaptive strength once the result card
+            has gone, and #435 is the build that reduced that from two to one; zero is not an improvement on two.
+            But LEAVING it above the row re-clipped the row on short landscapes: measured on this tree, vs Pip,
+            resigned, the headroom between the row's bottom and the rail's clip runs +21 at 780x380, +5 at 780x368,
+            -3 at 780x360 and -11 at 780x352, 730x350 and 711x320, where six controls go to 83% reachable. The pill
+            costs 28px and those screens do not have 28px. So it renders AFTER the control row instead, which is
+            US-PL-13 clause 4 applied literally: chrome that states something must never displace a control that can
+            only be in one place. The strength is still stated exactly once, the row is never the box that gives. */}
+        {opponent!=='computer'&&((<div style={{fontSize:'clamp(12px,2.05vw,12px)',color:'rgba(255,255,255,.58)'}}>{`👤 vs Human${timeCtrl?(' · '+timeCtrl.label):' · no clock'}`}</div>))}
         {/* #438: THE WIDE-ONLY "Review this game" BUTTON THAT USED TO SIT HERE IS REMOVED, AND IT IS THE OTHER
             HALF OF ONE FIX RATHER THAN A SECOND CHANGE. #437 left it on `isOver` deliberately and wrote down why:
             keying it to `_gameOver` keeps it mounted through a step-back, so the rail's clip stops being
@@ -6358,6 +6386,15 @@ export default function App(){
             </>)}
             <_CBtn icon="more" label="More" on={()=>setMoreOpen(true)}/>
           </div>
+          {/* #438: the adaptive-strength pill, moved here from ABOVE the control row. Below it, it can be the box
+              that gets clipped on a short landscape instead of the six controls, which is the right way round. */}
+          {opponent==='computer'&&(<div style={{display:'flex',justifyContent:'center',width:'100%'}}>
+          {!(opponent&&!isOver&&!playEnd)&&wide&&(<div style={{display:'flex',alignItems:'center',gap:5,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 5px'}}>
+            <button onClick={()=>setCpuElo(e=>Math.max(ELO_MIN,e-100))} title="Weaker" style={{width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.12)',color:'#fff',fontSize:16,fontWeight:700,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>−</button>
+            <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:700,color:'var(--ac2)',minWidth:58,textAlign:'center'}}>≈{cpuElo} Elo</span>
+            <button onClick={()=>setCpuElo(e=>Math.min(ELO_MAX,e+100))} title="Stronger" style={{width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.12)',color:'#fff',fontSize:16,fontWeight:700,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
+          </div>)}
+          </div>)}
         </>
       </div>)}
 

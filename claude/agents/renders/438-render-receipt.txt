@@ -1,0 +1,25 @@
+#438 before/after renders — jobs/landscape-game-over-keeps-the-live-row-and-the-rail-clips-half-of-it-2026-09-30
+
+GEOMETRY: 730x375, which is Kunal's phone (375x730) TURNED. Stated because the definition of done asks for
+375x730 and that is the wrong geometry for THIS defect: portrait was already correct at #437 (it is what #437
+fixed), so a portrait render would show no change at all. The red box is the landscape control row.
+
+ROUTE: vs Computer (Pip), resigned at 2 plies, driven in PORTRAIT and then rotated — a real phone is opened
+upright and turned, and gate 62 established that launching straight into landscape describes a viewport no
+phone can be in. vs COMPUTER rather than Pass & Play deliberately: it is the worse case and the mode most
+games are played in.
+
+  RED BOX     = the six controls of the play control row.
+  YELLOW DASH = where the side rail stops painting (rect.top + clientHeight). Anything below it is neither
+                painted nor hit-testable, and the rail shows no scroll affordance.
+
+BEFORE — gates/.trial/app-437-shipped.js, md5 5751da3ce0d9, stamp "#437 - 2026-09-29 21:11 ET"
+  row     = [Moves, Back, Forward, Hint, Flip, More]     <- no Review, no Rematch; that Hint is enabled and inert
+  rowBottom 305.5   railClipBottom 241.5                 <- the ENTIRE 51px row is below the clip
+  hit map = 0 of 12 sample points on all six controls, every centre dead
+
+AFTER — app.js, md5 e0bdd750cfa1, stamp "#438 - 2026-09-29 23:17 ET"
+  row     = [Moves, Back, Forward, Review, Rematch, More] <- identical to portrait
+  rowBottom 228.5   railClipBottom 241.5                  <- 13px of headroom, inside the painted window
+  hit map = 12 of 12 on all six, every centre HIT
+  and the strength is still stated once ("≈450 Elo") with its Weaker/Stronger buttons working: + moves 450 -> 550.

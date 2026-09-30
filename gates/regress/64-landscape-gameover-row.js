@@ -83,11 +83,20 @@ const rowOf=(b,want)=>b.page.evaluate((want)=>{
 
 // Is the WHOLE height of every control in the row reachable by a finger? Sample every 4px down its own box.
 // elementFromPoint, not scrollIntoView: script can reach a clipped box and a thumb cannot (CLAUDE.md, #380/#382).
+// SCOPED TO THE ROW BAND, not to "every button that happens to carry a row title". Antagonist A measured that
+// the two are different sets and that the assertion text claimed the narrower one. Conservative either way, but an
+// assertion should measure what it says it measures.
 const hitMap=(b,want)=>b.page.evaluate((want)=>{
   const res=[];
-  for(const x of document.querySelectorAll('button')){
-    const t=(x.title||'').trim();if(want.indexOf(t)<0)continue;
-    const r=x.getBoundingClientRect();if(r.width<2||r.height<2)continue;
+  const cand=[...document.querySelectorAll('button')].filter(x=>{const t=(x.title||'').trim();const r=x.getBoundingClientRect();
+    return want.indexOf(t)>=0&&r.width>1&&r.height>1;});
+  if(!cand.length)return res;
+  const ys=cand.map(x=>x.getBoundingClientRect().top).sort((p,q)=>p-q);
+  let bandY=ys[0],bandN=0;
+  for(const y of ys){const n=cand.filter(x=>Math.abs(x.getBoundingClientRect().top-y)<=3).length;if(n>bandN){bandN=n;bandY=y;}}
+  for(const x of cand){
+    const t=(x.title||'').trim();
+    const r=x.getBoundingClientRect();if(Math.abs(r.top-bandY)>3)continue;
     const cx=r.left+r.width/2;const pts=[];
     for(let dy=3;dy<r.height;dy+=4){const el=document.elementFromPoint(cx,r.top+dy);pts.push(!!(el&&(el===x||x.contains(el))));}
     const c=document.elementFromPoint(cx,r.top+r.height/2);
@@ -253,10 +262,23 @@ L.run(async()=>{
      await rotate(b,g);
      await assertOver(b,G+'C1-C4 TERMINAL (vs Computer, resigned):',false);
      const ec=await eloChrome(b);
-     L.say(ec.sliders===0&&ec.eloPills.length===0,
-       G+'C4b THE MECHANISM: at game over the wide-only Elo slider and Elo pill are NOT mounted - the 39px that pushed the row past the rail clip',ec);
-     L.say(ec.botChips.length<=1,
-       G+'C4c and the bot name is stated ONCE, not twice - the y110 duplicate of the player-bar chip is gone (#435\'s class)',
+     // C4b WAS REWRITTEN BEFORE THE PUSH, BY THE FULL SUITE, AND IT IS NOT A WEAKENING. Its first version
+     // asserted the Elo slider AND the Elo pill are both gone. That shipped a real regression:
+     // gates/regress/16-cpu-result-line.js E3 went RED with strengthHits:[] at 730x375, because E3 pins EXACTLY
+     // ONE painted element stating the computer's adaptive strength once the result card has gone, and #435 is
+     // the build that deliberately reduced that from two to one. Zero is not an improvement on two. So the pill
+     // KEEPS its game-over mounting and only the slider is dropped - 23px with the duplicate bot chip, against
+     // the 11.5px the row needed. This assertion now pins the DECIDED behaviour rather than the behaviour my
+     // first draft happened to produce: the slider is gone AND the strength is still stated exactly once.
+     L.say(ec.sliders===0,
+       G+'C4b THE MECHANISM: at game over the wide-only Elo SLIDER is not mounted - part of the 23px that was pushing the row past the rail clip',ec);
+     L.say(ec.eloPills.length===1,
+       G+'C4d AND THE STRENGTH IS STILL STATED EXACTLY ONCE - not zero. Removing the pill too made 16-cpu-result-line E3 red (#435 reduced this from two to one, and zero is not an improvement on two)',ec);
+     // ===1 and not <=1. Antagonist A: <=1 is satisfied by ZERO, so it cannot tell "the duplicate is gone" from
+     // "both are gone" - which is exactly the distinction #435 acted on, and exactly the hole that made deleting
+     // the Elo pill look fine until 16-cpu-result-line E3 went red. Strengthened before the push.
+     L.say(ec.botChips.length===1,
+       G+'C4c and the bot name is stated EXACTLY ONCE - not twice (the y110 duplicate of the player-bar chip, #435\'s class) and not zero',
        {chips:ec.botChips.map(c=>c.t+'@'+c.y).join(' ')});
      await b.shot('g64-'+g.w+'x'+g.h+'-C-terminal');
      const b1=await tapTitle(b,'Back',700);
