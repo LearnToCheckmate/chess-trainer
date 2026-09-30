@@ -1,0 +1,43 @@
+PASS A0 INSTRUMENT: the bundle under test carries the band table, the win% constant and both accuracy constants  [{"bundle":"app.floor.js","bandsFound":true,"bandCount":5,"winConst":true,"acc1":true,"acc2":true}]
+PASS A1 the shipped Best cut-off is 1.3804 points of win chance  [{"shipped":1.3804,"want":1.3804}]
+PASS A2 the shipped Excellent cut-off is 3.6754 points of win chance  [{"shipped":3.6754,"want":3.6754}]
+PASS A3 the shipped Good cut-off is 8.2096 points of win chance  [{"shipped":8.2096,"want":8.2096}]
+PASS A4 the shipped Inaccuracy cut-off is 14.3166 points of win chance  [{"shipped":14.3166,"want":14.3166}]
+PASS A5 the shipped Mistake cut-off is 26.4635 points of win chance  [{"shipped":26.4635,"want":26.4635}]
+PASS A6 at eval 0 the Best cut-off is still 15cp (level positions unchanged)  [{"invertedTo":15,"oldCutoff":15}]
+PASS A7 at eval 0 the Excellent cut-off is still 40cp (level positions unchanged)  [{"invertedTo":40,"oldCutoff":40}]
+PASS A8 at eval 0 the Good cut-off is still 90cp (level positions unchanged)  [{"invertedTo":89.999,"oldCutoff":90}]
+PASS A9 at eval 0 the Inaccuracy cut-off is still 160cp (level positions unchanged)  [{"invertedTo":160,"oldCutoff":160}]
+PASS A10 at eval 0 the Mistake cut-off is still 320cp (level positions unchanged)  [{"invertedTo":319.999,"oldCutoff":320}]
+PASS A11 TC-R40 w at evalBefore 0cp: a 350cp slip drops 28.39 points -> Blunder  [{"mover":"w","evalBefore":0,"drop":28.39,"label":"Blunder","clause":"(i) must be Blunder"}]
+PASS A12 TC-R40 w at evalBefore -200cp: a 350cp slip drops 20.72 points -> Mistake  [{"mover":"w","evalBefore":-200,"drop":20.72,"label":"Mistake","clause":"unconstrained"}]
+PASS A13 TC-R40 w at evalBefore -400cp: a 350cp slip drops 12.71 points -> Inaccuracy  [{"mover":"w","evalBefore":-400,"drop":12.71,"label":"Inaccuracy","clause":"unconstrained"}]
+PASS A14 TC-R40 w at evalBefore -600cp: a 350cp slip drops 6.96 points -> Good  [{"mover":"w","evalBefore":-600,"drop":6.96,"label":"Good","clause":"(ii) must NOT be Blunder"}]
+PASS A15 TC-R40 w at evalBefore -800cp: a 350cp slip drops 3.57 points -> Excellent  [{"mover":"w","evalBefore":-800,"drop":3.57,"label":"Excellent","clause":"(ii) must NOT be Blunder"}]
+PASS A16 TC-R40 w at evalBefore -1000cp: a 350cp slip drops 1.77 points -> Excellent  [{"mover":"w","evalBefore":-1000,"drop":1.77,"label":"Excellent","clause":"(ii) must NOT be Blunder"}]
+PASS A17 TC-R40 w at evalBefore 1000cp: a 350cp slip drops 5.91 points -> Good  [{"mover":"w","evalBefore":1000,"drop":5.91,"label":"Good","clause":"(ii) must NOT be Blunder"}]
+PASS A18 TC-R40 b at evalBefore 0cp: a 350cp slip drops 28.39 points -> Blunder  [{"mover":"b","evalBefore":0,"drop":28.39,"label":"Blunder","clause":"(i) must be Blunder"}]
+PASS A19 TC-R40 b at evalBefore -200cp: a 350cp slip drops 20.72 points -> Mistake  [{"mover":"b","evalBefore":-200,"drop":20.72,"label":"Mistake","clause":"unconstrained"}]
+PASS A20 TC-R40 b at evalBefore -400cp: a 350cp slip drops 12.71 points -> Inaccuracy  [{"mover":"b","evalBefore":-400,"drop":12.71,"label":"Inaccuracy","clause":"unconstrained"}]
+PASS A21 TC-R40 b at evalBefore -600cp: a 350cp slip drops 6.96 points -> Good  [{"mover":"b","evalBefore":-600,"drop":6.96,"label":"Good","clause":"(ii) must NOT be Blunder"}]
+PASS A22 TC-R40 b at evalBefore -800cp: a 350cp slip drops 3.57 points -> Excellent  [{"mover":"b","evalBefore":-800,"drop":3.57,"label":"Excellent","clause":"(ii) must NOT be Blunder"}]
+PASS A23 TC-R40 b at evalBefore -1000cp: a 350cp slip drops 1.77 points -> Excellent  [{"mover":"b","evalBefore":-1000,"drop":1.77,"label":"Excellent","clause":"(ii) must NOT be Blunder"}]
+PASS A24 TC-R40 b at evalBefore 1000cp: a 350cp slip drops 5.91 points -> Good  [{"mover":"b","evalBefore":1000,"drop":5.91,"label":"Good","clause":"(ii) must NOT be Blunder"}]
+PASS A27 at eval 0 the shipped ladder agrees with the pre-#440 centipawn ladder at all 1501 integer losses - the claim that a LEVEL position is unchanged, asserted over its whole input space rather than at five boundaries  [{"inputs":1501,"mismatches":0,"first":[]}]
+PASS A25 at -1200cp every move grades Best - the cap is real and is the published behaviour  [{"worstReachableAtMinus1200":"Best"}]
+PASS A26 from +1000cp throwing the whole game away is still a Blunder (the ladder is not symmetric)  [{"worstReachableAtPlus1000":"Blunder"}]
+     bundle: ../../../tmp/claude-0/-home-user-chess-trainer/129dcdae-e6d3-5c8f-8645-ed2e93bf30ca/scratchpad/app.floor.js  stamp #443 - 2026-09-30 15:00 ET  (CT_APP)
+     bundle stamp on the page: #443 - 2026-09-30 15:00 ET
+     import + analysis took 10 s
+PASS B0 the Opera Game imported and the review summary rendered
+PASS B0b INSTRUMENT: both accuracies and all ten grade rows parsed off the panel  [{"accuracies":[97.6,88.9],"missingRows":[]}]
+     White grade vector [1,6,5,1,1,3,0,0,0,0]  accuracy 97.6%
+     Black grade vector [0,0,7,3,1,2,2,0,0,1]  accuracy 88.9%
+FAIL B1 Black, who is being mated, is charged with NO blunder (#439 charged 1)  [{"blackBlunder":1}]
+PASS B2 Black, who is being mated, is charged with NO mistake (#439 charged 1)  [{"blackMistake":0}]
+PASS B3 Black accuracy is at least 80% on a game he never had chances in (#439 read 62.4%)  [{"blackAccuracy":88.9}]
+PASS B4 White, who won, still has no inaccuracy, miss, mistake or blunder  [{"whiteBadRows":0}]
+PASS B5 White accuracy is still at least 90% (#439 read 98%)  [{"whiteAccuracy":97.6}]
+PASS B6 every graded move is still counted: White 17 and Black 16 rows, as on #439  [{"whiteTotal":17,"blackTotal":16}]
+PASS B7 the panel no longer explains accuracy as average centipawn loss  [{"saysCentipawn":false,"saysChances":true}]
+GATE: 36 pass, 1 fail

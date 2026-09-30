@@ -1,0 +1,825 @@
+     bundle: ../../../tmp/claude-0/-home-user-chess-trainer/129dcdae-e6d3-5c8f-8645-ed2e93bf30ca/scratchpad/app.nofloor.js  stamp #443 - 2026-09-30 15:00 ET  (CT_APP)
+     se (320x568)  stamp #443 - 2026-09-30 15:00 ET
+         inv2 population: 9 outermost controls {"button":8,"pointer":1}, 9 with a glyph, 1 side-by-side rows; excluded 62 nested, 126 svg-internal, 6 occluded, 0 in the board (board found: false)
+           OCCLUDED (not a control a finger can reach) CHESS TRAINER 187.8x21.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) ☰ 38x30.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) 🚀 Openings 97 lessons 151x143.3  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) ⚔️ Gambits 53 lessons 151x143.3  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) 👑 Endgames 20 lessons 151x143.3  centre hits tile-ic-learn
+           OCCLUDED (not a control a finger can reach) 💡 Tactics New 151x143.3  centre hits tile-ic-puzzle
+PASS se home: the screen still presents the 1 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":1,"got":1,"rows":["Menu and settings|👋"]}]
+PASS se home: exactly 6 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":6,"got":6,"which":[{"lab":"CHESS TRAINER","box":"187.8x21.0","hitWas":"DIV"},{"lab":"☰","box":"38x30.0","hitWas":"DIV"},{"lab":"🚀 Openings 97 lessons","box":"151x143.3","hitWas":"BUTTON"},{"lab":"⚔️ Gambits 53 lessons","box":"151x143.3","hitWas":"BUTTON"},{"lab":"👑 Endgames 20 lessons","box":"151x143.3","hitWas":"tile-ic-learn"},{"lab":"💡 Tactics New","box":"151x143.3","hitWas":"tile-ic-puzzle"}]}]
+PASS se home: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":1,"pinnedHere":1,"worstAllowed":3}]
+PASS se home: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Menu and settings|👋"]}]
+         INV2 PINNED spread 3px  div>div>div  Menu and settings box 22 INK 22 (range,fs20) | 👋 box 25 INK 25 (range,fs13.3333)
+PASS se home: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":56,"inked":52,"clipped":22,"scrollable":82}]
+PASS se home: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":52,"clippedChecks":22,"excused":1,"pinned":0}]
+         SIGNALLED 47.13px x  "New to chess? Lock in the en"  in span  client 193 scroll 240  text-overflow(clipper):ellipsis
+         4b population: 2 nowrap boxes, 0 of them eligible and measured  <- NOTHING MEASURED HERE, so this screen's 4b green is not coverage
+PASS se home: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":2,"measured":0,"near":0}]
+         inv2 population: 8 outermost controls {"button":8}, 8 with a glyph, 2 side-by-side rows; excluded 5 nested, 22 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS se play-captures: the screen still presents the 2 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":2,"got":2,"rows":["Home|Menu and settings","Back|Flip|Forward|Hint|More|Moves"]}]
+PASS se play-captures: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS se play-captures: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":2,"pinnedHere":0,"worstAllowed":0}]
+PASS se play-captures: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":[]}]
+PASS se play-captures: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":82,"inked":78,"clipped":110,"scrollable":46}]
+PASS se play-captures: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":78,"clippedChecks":110,"excused":2,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 12 nowrap boxes, 9 of them eligible and measured
+PASS se play-captures: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":12,"measured":9,"near":0}]
+         inv2 population: 8 outermost controls {"button":8}, 8 with a glyph, 2 side-by-side rows; excluded 5 nested, 20 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS se play-gameover: the screen still presents the 2 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":2,"got":2,"rows":["Home|Menu and settings","Back|Forward|More|Moves|Rematch|Review"]}]
+PASS se play-gameover: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS se play-gameover: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":2,"pinnedHere":0,"worstAllowed":0}]
+PASS se play-gameover: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":[]}]
+PASS se play-gameover: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":53,"inked":49,"clipped":80,"scrollable":18}]
+PASS se play-gameover: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":49,"clippedChecks":80,"excused":2,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 11 nowrap boxes, 9 of them eligible and measured
+PASS se play-gameover: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":11,"measured":9,"near":0}]
+         inv2 population: 9 outermost controls {"button":9}, 9 with a glyph, 3 side-by-side rows; excluded 2 nested, 4 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS se lesson-demo: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Back a move|Close lesson|Forward a move|More for this lesson|Play or pause","lesson-lines|✋ Now I'll try it","moves-analyze|moves-copy"]}]
+PASS se lesson-demo: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS se lesson-demo: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":5}]
+PASS se lesson-demo: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Back a move|Close lesson|Forward a move|More for this lesson|Play or pause"]}]
+         INV2 PINNED spread 5px  div>div>div  Back a move box 27 INK 16.2 (svg,fs20) | Play or pause box 22 INK 22 (range,fs20) | Forward a move box 27 INK 16.2 (svg,fs20) | Close lesson box 22 INK 22 (range,fs20) | More for this lesson box 22 INK 22 (range,fs20)
+PASS se lesson-demo: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":54,"inked":50,"clipped":67,"scrollable":33}]
+PASS se lesson-demo: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":50,"clippedChecks":67,"excused":1,"pinned":0}]
+         SIGNALLED 61.97px x  "Italian Game"  in div  client 18 scroll 80  text-overflow(clipper):ellipsis
+         4b population: 5 nowrap boxes, 4 of them eligible and measured
+PASS se lesson-demo: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":5,"measured":4,"near":0}]
+         inv2 population: 8 outermost controls {"button":8}, 8 with a glyph, 3 side-by-side rows; excluded 2 nested, 0 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS se lesson-practice: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Flip board|Hints|More actions|Try again","moves-analyze|moves-copy","Close lesson|More for this lesson"]}]
+PASS se lesson-practice: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS se lesson-practice: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":2}]
+PASS se lesson-practice: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Flip board|Hints|More actions|Try again"]}]
+         INV2 PINNED spread 2px  div>div>div  Flip board box 18 INK 18 (range,fs15) | Hints box 18 INK 18 (range,fs15) | Try again box 16 INK 16 (range,fs14) | More actions box 18 INK 18 (range,fs15)
+PASS se lesson-practice: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":32,"inked":28,"clipped":45,"scrollable":11}]
+PASS se lesson-practice: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":28,"clippedChecks":45,"excused":0,"pinned":0}]
+         4b population: 7 nowrap boxes, 6 of them eligible and measured
+PASS se lesson-practice: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":7,"measured":6,"near":0}]
+         inv2 population: 11 outermost controls {"button":11}, 11 with a glyph, 2 side-by-side rows; excluded 10 nested, 17 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS se puzzles: the screen still presents the 2 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":2,"got":2,"rows":["Next puzzle|Previous puzzle|↺ Reset|👁 Show|💡 Hint","Discover|Home|Play|Puzzles|Review"]}]
+PASS se puzzles: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS se puzzles: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":2,"pinnedHere":1,"worstAllowed":4}]
+PASS se puzzles: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Next puzzle|Previous puzzle|↺ Reset|👁 Show|💡 Hint"]}]
+         INV2 PINNED spread 4px  div>[pz-bottom]>div  Previous puzzle box 20 INK 12 (svg,fs14) | 💡 Hint box 16 INK 16 (range,fs14) | 👁 Show box 16 INK 16 (range,fs14) | ↺ Reset box 16 INK 16 (range,fs14) | Next puzzle box 20 INK 12 (svg,fs14)
+PASS se puzzles: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":41,"inked":37,"clipped":66,"scrollable":8}]
+PASS se puzzles: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":37,"clippedChecks":66,"excused":0,"pinned":0}]
+         4b population: 17 nowrap boxes, 4 of them eligible and measured
+PASS se puzzles: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":17,"measured":4,"near":0}]
+         inv2 population: 8 outermost controls {"button":8}, 8 with a glyph, 2 side-by-side rows; excluded 10 nested, 15 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS se pz-solved: the screen still presents the 2 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":2,"got":2,"rows":["Next puzzle|Previous puzzle","Discover|Home|Play|Puzzles|Review"]}]
+PASS se pz-solved: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS se pz-solved: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":2,"pinnedHere":1,"worstAllowed":4}]
+PASS se pz-solved: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Next puzzle|Previous puzzle"]}]
+         INV2 PINNED spread 4px  div>[pz-bottom]>div  Previous puzzle box 20 INK 12 (svg,fs14) | Next puzzle box 16 INK 16 (range,fs14)
+PASS se pz-solved: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":40,"inked":32,"clipped":60,"scrollable":4}]
+PASS se pz-solved: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":32,"clippedChecks":60,"excused":0,"pinned":0}]
+         4b population: 15 nowrap boxes, 2 of them eligible and measured
+PASS se pz-solved: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":15,"measured":2,"near":0}]
+         inv2 population: 7 outermost controls {"button":7}, 7 with a glyph, 2 side-by-side rows; excluded 11 nested, 17 svg-internal, 25 occluded, 0 in the board (board found: true)
+           OCCLUDED (not a control a finger can reach) Game review 86.5x17.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) ☰ 38x30.0  centre hits rev-summary-menu
+           OCCLUDED (not a control a finger can reach) 6 56x28.0  centre hits rev-summary-foot
+           OCCLUDED (not a control a finger can reach) 0 56x26.0  centre hits rev-summary-foot
+           OCCLUDED (not a control a finger can reach) 5 56x28.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) 7 56x28.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) 1 56x28.0  centre hits rev-summary-foot
+           OCCLUDED (not a control a finger can reach) 3 56x28.0  centre hits rev-summary-foot
+           OCCLUDED (not a control a finger can reach) First move 67x42.0  centre hits SPAN
+           OCCLUDED (not a control a finger can reach) Auto-play 67x42.0  centre hits SPAN
+           OCCLUDED (not a control a finger can reach) Last move 67x42.0  centre hits SPAN
+           OCCLUDED (not a control a finger can reach) Next key moment (10) 67x42.0  centre hits SPAN
+PASS se rev-summary: the screen still presents the 2 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":2,"got":2,"rows":["0|1","Start review ›|‹ Back to games"]}]
+PASS se rev-summary: exactly 25 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":25,"got":25,"which":[{"lab":"Game review","box":"86.5x17.0","hitWas":"DIV"},{"lab":"☰","box":"38x30.0","hitWas":"rev-summary-menu"},{"lab":"6","box":"56x28.0","hitWas":"rev-summary-foot"},{"lab":"0","box":"56x26.0","hitWas":"rev-summary-foot"},{"lab":"5","box":"56x28.0","hitWas":"BUTTON"},{"lab":"7","box":"56x28.0","hitWas":"BUTTON"},{"lab":"1","box":"56x28.0","hitWas":"rev-summary-foot"},{"lab":"3","box":"56x28.0","hitWas":"rev-summary-foot"},{"lab":"First move","box":"67x42.0","hitWas":"SPAN"},{"lab":"Auto-play","box":"67x42.0","hitWas":"SPAN"},{"lab":"Last move","box":"67x42.0","hitWas":"SPAN"},{"lab":"Next key moment (10)","box":"67x42.0","hitWas":"SPAN"}]}]
+PASS se rev-summary: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":2,"pinnedHere":0,"worstAllowed":0}]
+PASS se rev-summary: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":[]}]
+PASS se rev-summary: the grade table was found and read, so the ladder assertions below are not vacuous  [10]
+PASS se rev-summary: the summary shows all TEN grades US-R03 specifies - Excellent is its own row and is not folded into Best (#421)  [{"rows":10,"got":["Brilliant","Great","Best","Excellent","Good","Book","Inaccuracy","Miss","Mistake","Blunder"]}]
+PASS se rev-summary: Excellent has its own bucket  [Brilliant,Great,Best,Excellent,Good,Book,Inaccuracy,Miss,Mistake,Blunder]
+PASS se rev-summary: the ten rows are in LADDER order, best to worst  [Brilliant,Great,Best,Excellent,Good,Book,Inaccuracy,Miss,Mistake,Blunder]
+           grade ladder: Brilliant 1/0, Great 6/0, Best 5/7, Excellent 1/3, Good 1/1, Book 3/2, Inaccuracy 0/3, Miss 0/0, Mistake 0/0, Blunder 0/0
+PASS se rev-summary: WHITE grade counts sum to the 17 moves White played - every ply is in exactly one bucket, so no category is silently dropped (#421)  [{"sum":17,"movesPlayed":17}]
+PASS se rev-summary: BLACK grade counts sum to the 16 moves Black played (#421)  [{"sum":16,"movesPlayed":16}]
+PASS se rev-summary: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":215,"inked":211,"clipped":135,"scrollable":287}]
+PASS se rev-summary: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":211,"clippedChecks":135,"excused":0,"pinned":0}]
+         4b population: 111 nowrap boxes, 105 of them eligible and measured
+PASS se rev-summary: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":111,"measured":105,"near":0}]
+         inv2 population: 14 outermost controls {"button":10,"pointer":4}, 14 with a glyph, 3 side-by-side rows; excluded 0 nested, 7 svg-internal, 1 occluded, 0 in the board (board found: true)
+           OCCLUDED (not a control a finger can reach) Rd8#! 54.2x22.0  centre hits svg
+PASS se rev-ply31: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Back|More","Auto-play|First move|Last move|Next key moment (10)","Next move|Previous move"]}]
+PASS se rev-ply31: exactly 1 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":1,"got":1,"which":[{"lab":"Rd8#!","box":"54.2x22.0","hitWas":"svg"}]}]
+PASS se rev-ply31: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":7}]
+PASS se rev-ply31: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Back|More"]}]
+         INV2 PINNED spread 7px  div>div>[pbar-top]  Back box 28 INK 28 (range,fs25) | More box 21 INK 21 (range,fs19)
+PASS se rev-ply31: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":122,"inked":118,"clipped":145,"scrollable":91}]
+PASS se rev-ply31: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":118,"clippedChecks":145,"excused":3,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         SIGNALLED 115.23px x  "DukeKarlCountIsouard99"  in span  client 82 scroll 198  text-overflow(clipper):ellipsis
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 91 nowrap boxes, 87 of them eligible and measured
+PASS se rev-ply31: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":91,"measured":87,"near":0}]
+         inv2 population: 14 outermost controls {"button":10,"pointer":4}, 14 with a glyph, 3 side-by-side rows; excluded 0 nested, 7 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS se rev-last-engine: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Back|More","Auto-play|First move|Last move|Next key moment (10)","Next move|Previous move"]}]
+PASS se rev-last-engine: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS se rev-last-engine: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":7}]
+PASS se rev-last-engine: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Back|More"]}]
+         INV2 PINNED spread 7px  div>div>[pbar-top]  Back box 28 INK 28 (range,fs25) | More box 21 INK 21 (range,fs19)
+PASS se rev-last-engine: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":126,"inked":122,"clipped":151,"scrollable":93}]
+PASS se rev-last-engine: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":122,"clippedChecks":151,"excused":3,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         SIGNALLED 115.23px x  "DukeKarlCountIsouard99"  in span  client 82 scroll 198  text-overflow(clipper):ellipsis
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 93 nowrap boxes, 89 of them eligible and measured
+PASS se rev-last-engine: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":93,"measured":89,"near":0}]
+         inv2 population: 16 outermost controls {"button":10,"pointer":6}, 16 with a glyph, 3 side-by-side rows; excluded 0 nested, 7 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS se rev-why-open: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Back|More","Auto-play|First move|Last move|Next key moment (10)","Next move|Previous move"]}]
+PASS se rev-why-open: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS se rev-why-open: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":7}]
+PASS se rev-why-open: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Back|More"]}]
+         INV2 PINNED spread 7px  div>div>[pbar-top]  Back box 28 INK 28 (range,fs25) | More box 21 INK 21 (range,fs19)
+PASS se rev-why-open: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":123,"inked":119,"clipped":145,"scrollable":93}]
+PASS se rev-why-open: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":119,"clippedChecks":145,"excused":3,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         SIGNALLED 115.23px x  "DukeKarlCountIsouard99"  in span  client 82 scroll 198  text-overflow(clipper):ellipsis
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 94 nowrap boxes, 90 of them eligible and measured
+PASS se rev-why-open: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":94,"measured":90,"near":0}]
+         inv2 population: 10 outermost controls {"button":9,"pointer":1}, 10 with a glyph, 0 side-by-side rows; excluded 13 nested, 66 svg-internal, 15 occluded, 0 in the board (board found: true)
+           OCCLUDED (not a control a finger can reach) Back 34x30.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) More 34x30.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) Analyze this position 40x40.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Play this move out and see what it 56.3x23.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) First move 67x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Auto-play 67x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Last move 67x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Next key moment (10) 67x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Previous move 26x36.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Bxf3 45.7x22.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Qxf3 45.7x22.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) dxe5 45.7x22.0  centre hits BUTTON
+PASS se rev-more-sheet: the screen still presents the 0 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":0,"got":0,"rows":[]}]
+PASS se rev-more-sheet: exactly 15 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":15,"got":15,"which":[{"lab":"Back","box":"34x30.0","hitWas":"DIV"},{"lab":"More","box":"34x30.0","hitWas":"DIV"},{"lab":"Analyze this position","box":"40x40.0","hitWas":"BUTTON"},{"lab":"Play this move out and see what it","box":"56.3x23.0","hitWas":"BUTTON"},{"lab":"First move","box":"67x42.0","hitWas":"BUTTON"},{"lab":"Auto-play","box":"67x42.0","hitWas":"BUTTON"},{"lab":"Last move","box":"67x42.0","hitWas":"BUTTON"},{"lab":"Next key moment (10)","box":"67x42.0","hitWas":"BUTTON"},{"lab":"Previous move","box":"26x36.0","hitWas":"BUTTON"},{"lab":"Bxf3","box":"45.7x22.0","hitWas":"BUTTON"},{"lab":"Qxf3","box":"45.7x22.0","hitWas":"BUTTON"},{"lab":"dxe5","box":"45.7x22.0","hitWas":"BUTTON"}]}]
+PASS se rev-more-sheet: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":0,"pinnedHere":0,"worstAllowed":0}]
+PASS se rev-more-sheet: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":[]}]
+PASS se rev-more-sheet: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":143,"inked":139,"clipped":143,"scrollable":135}]
+PASS se rev-more-sheet: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":139,"clippedChecks":143,"excused":3,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         SIGNALLED 115.23px x  "DukeKarlCountIsouard99"  in span  client 82 scroll 198  text-overflow(clipper):ellipsis
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 93 nowrap boxes, 89 of them eligible and measured
+PASS se rev-more-sheet: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":93,"measured":89,"near":0}]
+         inv2 population: 15 outermost controls {"button":10,"pointer":5}, 15 with a glyph, 3 side-by-side rows; excluded 1 nested, 7 svg-internal, 1 occluded, 0 in the board (board found: true)
+           OCCLUDED (not a control a finger can reach) Qe6 37.3x22.0  centre hits BUTTON
+PASS se rev-best-ply30: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Back|More","Auto-play|First move|Last move|Next key moment (10)","Next move|Previous move"]}]
+PASS se rev-best-ply30: exactly 1 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":1,"got":1,"which":[{"lab":"Qe6","box":"37.3x22.0","hitWas":"BUTTON"}]}]
+PASS se rev-best-ply30: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":7}]
+PASS se rev-best-ply30: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Back|More"]}]
+         INV2 PINNED spread 7px  div>div>[pbar-top]  Back box 28 INK 28 (range,fs25) | More box 21 INK 21 (range,fs19)
+PASS se rev-best-ply30: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":124,"inked":120,"clipped":147,"scrollable":93}]
+PASS se rev-best-ply30: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":120,"clippedChecks":147,"excused":3,"pinned":2}]
+PASS se rev-best-ply30: the pinned residual is exactly where it was left - "rev-best" still cuts 2 text nodes at 320x568 (the best-move pill reads "best Qx"). The SAME two cuts to the hundredth at 320x568 and 375x568, because [data-ct="rev-move-line"] measures 286.00px at both - it follows the board and the board is fit to HEIGHT - against 371.03px at 375x679 and 375x730, where the pill is client 100 / scroll 100 and nothing is cut. So this is not a narrow-phone defect. RED here means it MOVED: fixed, and this pin comes out, or worse, and it needs looking at  [[{"text":"Qxd7","cut":17.36,"cs":25,"ss":56},{"text":"›","cut":25.72,"cs":25,"ss":56}]]
+         CUT 17.36px x  "Qxd7"  in rev-best  ([rev-best]<[rev-move-line]<[rev-compact]<div)  ink 229.89..267.69 vs box 224.91..250.33  client 25 scroll 56  text-overflow(clipper):clip
+         CUT 25.72px x  "›"  in rev-best  (span<[rev-best]<[rev-move-line]<[rev-compact])  ink 270.69..276.05 vs box 224.91..250.33  client 25 scroll 56  text-overflow(clipper):clip
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         SIGNALLED 115.23px x  "DukeKarlCountIsouard99"  in span  client 82 scroll 198  text-overflow(clipper):ellipsis
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 93 nowrap boxes, 90 of them eligible and measured
+PASS se rev-best-ply30: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":93,"measured":90,"near":0}]
+PASS se fixture: an ellipsis on an INNER span does not excuse the OUTER box that clips - #396, two different boxes  [{"want":"cut","got":"cut","rows":[{"kind":"cut","axis":"x","cut":124.75,"anc":"div"}]}]
+PASS se fixture: an ellipsis ON the clipping box is a visible truncation  [{"want":"signalled","got":"signalled","rows":[{"kind":"signalled","axis":"x","cut":118.38,"anc":"div"}]}]
+PASS se fixture: a 38x38 box is not a licence: a WORD cut in one is a defect, not avatar overshoot  [{"want":"cut","got":"cut","rows":[{"kind":"cut","axis":"x","cut":46.14,"anc":"div"}]}]
+PASS se fixture: a scrollable ancestor is never reported - a finger can bring that content back  [{"want":"none","got":"none","rows":[]}]
+PASS se fixture: text-overflow:ellipsis does nothing on the BLOCK axis, so it must not excuse a vertical cut  [{"want":"cut","got":"cut","rows":[{"kind":"cut","axis":"y","cut":7,"anc":"div"}]}]
+PASS se fixture: a king glyph too big for its 38x38 box really is cut, and is not excused as overshoot  [{"kind":"cut","axis":"x","cut":15.8,"text":"♔","el":"div<div","anc":"div","ancSame":true,"ink":[0,53.8],"box":[0,38],"cs":38,"ss":54,"clampN":null,"lhN":60,"cw":38,"ch":38,"sym":[5,27],"teAnc":"clip","teEl":"clip","ov":"hidden"}]
+PASS se fixture: the real _avBox shape - 38x38, one king at font-size 35 - is the named cosmetic residual  [{"kind":"avatar","axis":"y","cut":1.5,"text":"♔","el":"div<div","anc":"div","ancSame":true,"ink":[108.28,148.28],"box":[109.78,147.78],"cs":38,"ss":39,"clampN":null,"lhN":35,"cw":38,"ch":38,"sym":[1.5,0.5],"teAnc":"clip","teEl":"clip","ov":"hidden"}]
+PASS se fixture: a clamp whose container is exactly the clamped lines draws an ellipsis and loses nothing  [{"kind":"clamped","axis":"y","cut":31,"text":"one two three four five six ","el":"div<div","anc":"div","ancSame":true,"ink":[147.78,226.78],"box":[147.78,195.78],"cs":48,"ss":80,"clampN":3,"lhN":16,"cw":120,"ch":48,"sym":[0,31],"teAnc":"clip","teEl":"clip","ov":"hidden"}]
+PASS se fixture: #396 EXACTLY: clamp 3 in a 58px box paints a fourth line into the slack and cuts it silently  [{"kind":"cut","axis":"y","cut":21,"text":"one two three four five six ","el":"div<div","anc":"div","ancSame":true,"ink":[195.78,274.78],"box":[195.78,253.78],"cs":58,"ss":80,"clampN":3,"lhN":16,"cw":120,"ch":58,"sym":[0,21],"teAnc":"clip","teEl":"clip","ov":"hidden"}]
+PASS se spill fixture: the #407 shape: nowrap, does not fit, does not clip, a sibling under the spill - THE defect 4b exists for  [{"want":"spill","got":"spill","rows":[{"over":22.13,"cs":40,"ss":62,"onSib":{"sib":"button","ox":22.13,"oy":15}}]}]
+PASS se spill fixture: a spill into a GAP is not a collision - "Italian Game" does this on the shipped bundle at every geometry  [{"want":"near","got":"near","rows":[{"over":23.66,"cs":40,"ss":64,"onSib":null}]}]
+PASS se spill fixture: a holder that clips its own text is 4a's row, not 4b's, and paints nothing outside itself (Range ink lies here)  [{"want":"none","got":"none","rows":[]}]
+PASS se spill fixture: text that WRAPS does not spill - the box grows instead  [{"want":"none","got":"none","rows":[]}]
+PASS se spill fixture: nowrap with a sibling but the text FITS: no layout overflow, no spill  [{"want":"none","got":"none","rows":[]}]
+PASS se spill fixture: the spill is clipped away by an ancestor before it reaches the sibling - this is what the paint clamp is for  [{"want":"none","got":"none","rows":[]}]
+PASS se: no clipping ancestor was skipped for a rotated/skewed transform (a skip is coverage silently lost, not a pass)  [{"skipped":0}]
+PASS se: the sweep as a whole measured a real quantity of ink across the screens  [{"inkedTextNodes":1155}]
+PASS se: invariant 2 found its pinned failures in EXACTLY the states they were measured in - nothing fixed without retiring its pin, and no pinned spread has appeared on a new screen  [{"pinsFound":9}]
+PASS se: invariant 2 measured a real population rather than an empty one - a scanner that finds no rows reports "no inconsistent rows" and would be believed. Floor re-derived at #423 from the post-occlusion population, not carried over from the pre-occlusion one  [{"rowsMeasured":29,"controlsMeasured":137,"floor":[26,130],"width":320,"screens":13}]
+PASS se: both structural control-population exclusions still fired, so the gate is measuring OUTERMOST, non-SVG controls rather than having quietly lost the distinction. cursor:pointer is inherited, and before these two the same sweep at this geometry reported roughly four times as many undersized "controls", most of them SVG internals like svg>g>circle 1.6x1.6  [{"nestedExcluded":121,"svgInternalsExcluded":315,"occludedExcluded":48}]
+PASS se: the board exclusion still excludes nothing, so the header's reasoning for it remains a prediction rather than a measurement - the 64 squares are not controls under this predicate. RED here means the board became tappable under this predicate and the exclusion started doing real work, which is worth knowing about  [{"boardElementsExcluded":0}]
+         invariant 3, se: 11 distinct ICON glyph heights (svg box, or a one-grapheme text node): 16, 17, 18, 19, 20, 21, 22, 24, 25, 27, 28
+             16px  Roadmap
+             17px  Menu and settings ; Previous move ; Next move
+             18px  Flip board ; Hints ; More actions
+             19px  Menu and settings ; Show best move ; Engine line: on
+             20px  Home ; Previous puzzle ; Next puzzle
+             21px  Moves ; Back ; Forward
+             22px  Menu and settings ; Play or pause ; Close lesson
+             24px  First move ; Auto-play ; Last move
+             25px  👋
+             27px  Back a move ; Forward a move
+             28px  <no text> ; Back
+         invariant 3, se: over ALL glyphs including multi-line labels and whole cards the count is 17, which is NOT an icon count and is reported only so the difference is on the record
+PASS se: the set of distinct ICON glyph heights is exactly what #423 measured at 320px wide - a drift guard, not a target (11 icon sizes where the commission's placeholder was four; the target set is Kunal's to choose, jobs/invariant-3-icon-size-target-set)  [{"width":320,"want":[16,17,18,19,20,21,22,24,25,27,28],"got":[16,17,18,19,20,21,22,24,25,27,28],"added":[],"gone":[]}]
+         invariant 1 (REPORTED, NOT ASSERTED), se: 49 distinct visible controls under 44x44
+             0 56x26   div>div>button
+             1 56x28   div>div>button
+             1 brilliant › 96.5x27   [rev-sheet]>div>button
+             3 inaccuracies › 129.6x27   [rev-sheet]>div>button
+             6 great › 80.8x27   [rev-sheet]>div>button
+             Analyze this position 40x40   div>[pbar-bottom]>[rev-fab]
+             Auto-play 67x42   [rev-compact]>[rev-row1]>button
+             Back 34x30   div>[pbar-top]>[rev-back]
+             Back 36.5x51   div>div>button
+             Back 39.4x51   div>div>button
+             Bg5 37.3x22   div>span>span
+             Bxb5+! 62.6x22   div>span>span
+             Bxd7+ 54.2x22   div>span>span
+             Discover 63.2x43   div>div>button
+             First move 67x42   [rev-compact]>[rev-row1]>button
+             Flip 39.4x51   div>div>button
+             Hint 39.4x51   div>div>button
+             Home 34x30   div>[pbar-top]>[play-home]
+             Home 63.2x43   div>div>button
+             Last move 67x42   [rev-compact]>[rev-row1]>button
+             Menu and settings 34x30   div>[pbar-top]>[play-menu]
+             Menu and settings 38x30   div>[rev-summary]>[rev-summary-menu]
+             More 34x30   div>[pbar-top]>[rev-more]
+             More 36.5x51   div>div>button
+             More 39.4x51   div>div>button
+             Moves 36.6x51   div>div>button
+             Moves 39.4x51   div>div>button
+             Next key moment (10) 67x42   [rev-compact]>[rev-row1]>button
+             Next move 26x36   div>[strip-row]>button
+             Nxb5!! 62.6x22   div>span>span
+             Nxb8 45.7x22   div>span>span
+             Nxd7?! 62.6x22   div>span>span
+             Play 63.2x43   div>div>button
+             Play this move out and see what it 56.3x23   [rev-compact]>[rev-move-line]>[rev-playout]
+             Previous move 26x36   div>[strip-row]>button
+             Puzzles 63.2x43   div>div>button
+             Qb8+! 54.2x22   div>span>span
+             Rd1! 45.7x22   div>span>span
+             Rd8#! 54.2x22   div>span>span
+             Review 40x51   div>div>button
+             Review 63.2x43   div>div>button
+             Roadmap 38.1x44   [pz-top]>div>button
+             Sharpen with puzzles 138.1x28   div>div>button
+             Train this opening 119x28   div>div>button
+             b5 28.9x22   div>span>span
+             c6 28.9x22   div>span>span
+             cxb5?! 62.6x22   div>span>span
+             dxe5 45.7x22   div>span>span
+             rev-best 27.5x23   [rev-compact]>[rev-move-line]>[rev-best]
+PASS se: 4b actually measured ink against its own box on at least 10 of the 12 screens, so its zeros are measurements rather than an empty set (Home measures none: its two nowrap boxes both clip)  [{"screensMeasured":12,"nowrapBoxes":644,"spills":0,"transientsSeen":0}]
+     kunal730 (375x730 = Kunal's real phone)  stamp #443 - 2026-09-30 15:00 ET
+         inv2 population: 11 outermost controls {"button":10,"pointer":1}, 11 with a glyph, 1 side-by-side rows; excluded 62 nested, 126 svg-internal, 6 occluded, 0 in the board (board found: false)
+           OCCLUDED (not a control a finger can reach) CHESS TRAINER 194.5x22.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) ☰ 38x30.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) 🚀 Openings 97 lessons 178.8x144.3  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) ⚔️ Gambits 53 lessons 178.8x144.3  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) 👑 Endgames 20 lessons 178.8x144.3  centre hits tile-ic-learn
+           OCCLUDED (not a control a finger can reach) 💡 Tactics New 178.8x144.3  centre hits tile-ic-puzzle
+PASS kunal730 home: the screen still presents the 1 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":1,"got":1,"rows":["Menu and settings|👋"]}]
+PASS kunal730 home: exactly 6 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":6,"got":6,"which":[{"lab":"CHESS TRAINER","box":"194.5x22.0","hitWas":"DIV"},{"lab":"☰","box":"38x30.0","hitWas":"DIV"},{"lab":"🚀 Openings 97 lessons","box":"178.8x144.3","hitWas":"BUTTON"},{"lab":"⚔️ Gambits 53 lessons","box":"178.8x144.3","hitWas":"BUTTON"},{"lab":"👑 Endgames 20 lessons","box":"178.8x144.3","hitWas":"tile-ic-learn"},{"lab":"💡 Tactics New","box":"178.8x144.3","hitWas":"tile-ic-puzzle"}]}]
+PASS kunal730 home: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":1,"pinnedHere":1,"worstAllowed":3}]
+PASS kunal730 home: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Menu and settings|👋"]}]
+         INV2 PINNED spread 3px  div>div>div  Menu and settings box 22 INK 22 (range,fs20) | 👋 box 25 INK 25 (range,fs13.3333)
+PASS kunal730 home: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":56,"inked":52,"clipped":22,"scrollable":82}]
+PASS kunal730 home: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":52,"clippedChecks":22,"excused":0,"pinned":0}]
+         4b population: 2 nowrap boxes, 0 of them eligible and measured  <- NOTHING MEASURED HERE, so this screen's 4b green is not coverage
+PASS kunal730 home: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":2,"measured":0,"near":0}]
+         inv2 population: 8 outermost controls {"button":8}, 8 with a glyph, 2 side-by-side rows; excluded 5 nested, 22 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS kunal730 play-captures: the screen still presents the 2 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":2,"got":2,"rows":["Home|Menu and settings","Back|Flip|Forward|Hint|More|Moves"]}]
+PASS kunal730 play-captures: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS kunal730 play-captures: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":2,"pinnedHere":0,"worstAllowed":0}]
+PASS kunal730 play-captures: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":[]}]
+PASS kunal730 play-captures: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":82,"inked":78,"clipped":110,"scrollable":46}]
+PASS kunal730 play-captures: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":78,"clippedChecks":110,"excused":2,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 12 nowrap boxes, 9 of them eligible and measured
+PASS kunal730 play-captures: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":12,"measured":9,"near":0}]
+         inv2 population: 8 outermost controls {"button":8}, 8 with a glyph, 2 side-by-side rows; excluded 5 nested, 20 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS kunal730 play-gameover: the screen still presents the 2 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":2,"got":2,"rows":["Home|Menu and settings","Back|Forward|More|Moves|Rematch|Review"]}]
+PASS kunal730 play-gameover: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS kunal730 play-gameover: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":2,"pinnedHere":0,"worstAllowed":0}]
+PASS kunal730 play-gameover: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":[]}]
+PASS kunal730 play-gameover: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":53,"inked":49,"clipped":80,"scrollable":18}]
+PASS kunal730 play-gameover: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":49,"clippedChecks":80,"excused":2,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 11 nowrap boxes, 9 of them eligible and measured
+PASS kunal730 play-gameover: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":11,"measured":9,"near":0}]
+         inv2 population: 9 outermost controls {"button":9}, 9 with a glyph, 3 side-by-side rows; excluded 2 nested, 4 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS kunal730 lesson-demo: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Back a move|Close lesson|Forward a move|More for this lesson|Play or pause","lesson-lines|✋ Now I'll try it","moves-analyze|moves-copy"]}]
+PASS kunal730 lesson-demo: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS kunal730 lesson-demo: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":5}]
+PASS kunal730 lesson-demo: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Back a move|Close lesson|Forward a move|More for this lesson|Play or pause"]}]
+         INV2 PINNED spread 5px  div>div>div  Back a move box 27 INK 16.2 (svg,fs20.25) | Play or pause box 22 INK 22 (range,fs20.25) | Forward a move box 27 INK 16.2 (svg,fs20.25) | Close lesson box 22 INK 22 (range,fs20.25) | More for this lesson box 22 INK 22 (range,fs20.25)
+PASS kunal730 lesson-demo: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":54,"inked":50,"clipped":67,"scrollable":33}]
+PASS kunal730 lesson-demo: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":50,"clippedChecks":67,"excused":1,"pinned":0}]
+         SIGNALLED 6.97px x  "Italian Game"  in div  client 73 scroll 80  text-overflow(clipper):ellipsis
+         4b population: 5 nowrap boxes, 4 of them eligible and measured
+PASS kunal730 lesson-demo: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":5,"measured":4,"near":0}]
+         inv2 population: 8 outermost controls {"button":8}, 8 with a glyph, 3 side-by-side rows; excluded 2 nested, 0 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS kunal730 lesson-practice: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Flip board|Hints|More actions|Try again","moves-analyze|moves-copy","Close lesson|More for this lesson"]}]
+PASS kunal730 lesson-practice: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS kunal730 lesson-practice: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":2}]
+PASS kunal730 lesson-practice: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Flip board|Hints|More actions|Try again"]}]
+         INV2 PINNED spread 2px  div>div>div  Flip board box 18 INK 18 (range,fs15) | Hints box 18 INK 18 (range,fs15) | Try again box 16 INK 16 (range,fs14) | More actions box 18 INK 18 (range,fs15)
+PASS kunal730 lesson-practice: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":32,"inked":28,"clipped":45,"scrollable":11}]
+PASS kunal730 lesson-practice: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":28,"clippedChecks":45,"excused":0,"pinned":0}]
+         4b population: 7 nowrap boxes, 6 of them eligible and measured
+PASS kunal730 lesson-practice: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":7,"measured":6,"near":0}]
+         inv2 population: 11 outermost controls {"button":11}, 11 with a glyph, 2 side-by-side rows; excluded 10 nested, 17 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS kunal730 puzzles: the screen still presents the 2 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":2,"got":2,"rows":["Next puzzle|Previous puzzle|↺ Reset|👁 Show|💡 Hint","Discover|Home|Play|Puzzles|Review"]}]
+PASS kunal730 puzzles: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS kunal730 puzzles: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":2,"pinnedHere":1,"worstAllowed":4}]
+PASS kunal730 puzzles: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Next puzzle|Previous puzzle|↺ Reset|👁 Show|💡 Hint"]}]
+         INV2 PINNED spread 4px  div>[pz-bottom]>div  Previous puzzle box 20 INK 12 (svg,fs14) | 💡 Hint box 16 INK 16 (range,fs14) | 👁 Show box 16 INK 16 (range,fs14) | ↺ Reset box 16 INK 16 (range,fs14) | Next puzzle box 20 INK 12 (svg,fs14)
+PASS kunal730 puzzles: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":41,"inked":37,"clipped":66,"scrollable":8}]
+PASS kunal730 puzzles: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":37,"clippedChecks":66,"excused":0,"pinned":0}]
+         4b population: 17 nowrap boxes, 4 of them eligible and measured
+PASS kunal730 puzzles: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":17,"measured":4,"near":0}]
+         inv2 population: 8 outermost controls {"button":8}, 8 with a glyph, 2 side-by-side rows; excluded 10 nested, 15 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS kunal730 pz-solved: the screen still presents the 2 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":2,"got":2,"rows":["Next puzzle|Previous puzzle","Discover|Home|Play|Puzzles|Review"]}]
+PASS kunal730 pz-solved: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS kunal730 pz-solved: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":2,"pinnedHere":1,"worstAllowed":4}]
+PASS kunal730 pz-solved: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Next puzzle|Previous puzzle"]}]
+         INV2 PINNED spread 4px  div>[pz-bottom]>div  Previous puzzle box 20 INK 12 (svg,fs14) | Next puzzle box 16 INK 16 (range,fs14)
+PASS kunal730 pz-solved: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":40,"inked":32,"clipped":60,"scrollable":4}]
+PASS kunal730 pz-solved: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":32,"clippedChecks":60,"excused":2,"pinned":0}]
+         SIGNALLED 1.36px x  "✓ solved"  in span  client 128 scroll 129  text-overflow(clipper):ellipsis
+         SIGNALLED 1.11px x  "1"  in span  client 104 scroll 105  text-overflow(clipper):ellipsis
+         4b population: 15 nowrap boxes, 2 of them eligible and measured
+PASS kunal730 pz-solved: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":15,"measured":2,"near":0}]
+         inv2 population: 21 outermost controls {"button":21}, 21 with a glyph, 10 side-by-side rows; excluded 11 nested, 17 svg-internal, 24 occluded, 0 in the board (board found: true)
+           OCCLUDED (not a control a finger can reach) Game review 88.5x18.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) ☰ 38x30.0  centre hits rev-summary-menu
+           OCCLUDED (not a control a finger can reach) 0 56x26.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) 0 56x26.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) 0 56x26.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) 0 56x26.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) First move 88.3x42.0  centre hits SPAN
+           OCCLUDED (not a control a finger can reach) Auto-play 88.3x42.0  centre hits SPAN
+           OCCLUDED (not a control a finger can reach) Last move 88.3x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Next key moment (10) 88.3x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Previous move 26x36.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) e4 28.9x22.0  centre hits SPAN
+PASS kunal730 rev-summary: the screen still presents the 10 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":10,"got":10,"rows":["Sharpen with puzzles|Train this opening","0|1","0|6","5|7","1|3","1|1","2|3","0|3","0|0","Start review ›|‹ Back to games"]}]
+PASS kunal730 rev-summary: exactly 24 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":24,"got":24,"which":[{"lab":"Game review","box":"88.5x18.0","hitWas":"DIV"},{"lab":"☰","box":"38x30.0","hitWas":"rev-summary-menu"},{"lab":"0","box":"56x26.0","hitWas":"BUTTON"},{"lab":"0","box":"56x26.0","hitWas":"BUTTON"},{"lab":"0","box":"56x26.0","hitWas":"BUTTON"},{"lab":"0","box":"56x26.0","hitWas":"BUTTON"},{"lab":"First move","box":"88.3x42.0","hitWas":"SPAN"},{"lab":"Auto-play","box":"88.3x42.0","hitWas":"SPAN"},{"lab":"Last move","box":"88.3x42.0","hitWas":"BUTTON"},{"lab":"Next key moment (10)","box":"88.3x42.0","hitWas":"BUTTON"},{"lab":"Previous move","box":"26x36.0","hitWas":"DIV"},{"lab":"e4","box":"28.9x22.0","hitWas":"SPAN"}]}]
+PASS kunal730 rev-summary: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":10,"pinnedHere":0,"worstAllowed":0}]
+PASS kunal730 rev-summary: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":[]}]
+PASS kunal730 rev-summary: the grade table was found and read, so the ladder assertions below are not vacuous  [10]
+PASS kunal730 rev-summary: the summary shows all TEN grades US-R03 specifies - Excellent is its own row and is not folded into Best (#421)  [{"rows":10,"got":["Brilliant","Great","Best","Excellent","Good","Book","Inaccuracy","Miss","Mistake","Blunder"]}]
+PASS kunal730 rev-summary: Excellent has its own bucket  [Brilliant,Great,Best,Excellent,Good,Book,Inaccuracy,Miss,Mistake,Blunder]
+PASS kunal730 rev-summary: the ten rows are in LADDER order, best to worst  [Brilliant,Great,Best,Excellent,Good,Book,Inaccuracy,Miss,Mistake,Blunder]
+           grade ladder: Brilliant 1/0, Great 6/0, Best 5/7, Excellent 1/3, Good 1/1, Book 3/2, Inaccuracy 0/3, Miss 0/0, Mistake 0/0, Blunder 0/0
+PASS kunal730 rev-summary: WHITE grade counts sum to the 17 moves White played - every ply is in exactly one bucket, so no category is silently dropped (#421)  [{"sum":17,"movesPlayed":17}]
+PASS kunal730 rev-summary: BLACK grade counts sum to the 16 moves Black played (#421)  [{"sum":16,"movesPlayed":16}]
+PASS kunal730 rev-summary: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":215,"inked":211,"clipped":135,"scrollable":287}]
+PASS kunal730 rev-summary: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":211,"clippedChecks":135,"excused":0,"pinned":0}]
+         4b population: 111 nowrap boxes, 105 of them eligible and measured
+PASS kunal730 rev-summary: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":111,"measured":105,"near":0}]
+         inv2 population: 15 outermost controls {"button":10,"pointer":5}, 15 with a glyph, 3 side-by-side rows; excluded 0 nested, 7 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS kunal730 rev-ply31: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Back|More","Auto-play|First move|Last move|Next key moment (10)","Next move|Previous move"]}]
+PASS kunal730 rev-ply31: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS kunal730 rev-ply31: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":7}]
+PASS kunal730 rev-ply31: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Back|More"]}]
+         INV2 PINNED spread 7px  div>div>[pbar-top]  Back box 28 INK 28 (range,fs25) | More box 21 INK 21 (range,fs19)
+PASS kunal730 rev-ply31: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":122,"inked":118,"clipped":145,"scrollable":91}]
+PASS kunal730 rev-ply31: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":118,"clippedChecks":145,"excused":3,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         SIGNALLED 30.2px x  "DukeKarlCountIsouard99"  in span  client 167 scroll 198  text-overflow(clipper):ellipsis
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 91 nowrap boxes, 87 of them eligible and measured
+PASS kunal730 rev-ply31: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":91,"measured":87,"near":0}]
+         inv2 population: 14 outermost controls {"button":10,"pointer":4}, 14 with a glyph, 3 side-by-side rows; excluded 0 nested, 7 svg-internal, 1 occluded, 0 in the board (board found: true)
+           OCCLUDED (not a control a finger can reach) Bxd7+ 54.2x22.0  centre hits svg
+PASS kunal730 rev-last-engine: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Back|More","Auto-play|First move|Last move|Next key moment (10)","Next move|Previous move"]}]
+PASS kunal730 rev-last-engine: exactly 1 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":1,"got":1,"which":[{"lab":"Bxd7+","box":"54.2x22.0","hitWas":"svg"}]}]
+PASS kunal730 rev-last-engine: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":7}]
+PASS kunal730 rev-last-engine: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Back|More"]}]
+         INV2 PINNED spread 7px  div>div>[pbar-top]  Back box 28 INK 28 (range,fs25) | More box 21 INK 21 (range,fs19)
+PASS kunal730 rev-last-engine: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":126,"inked":122,"clipped":151,"scrollable":93}]
+PASS kunal730 rev-last-engine: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":122,"clippedChecks":151,"excused":3,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         SIGNALLED 30.2px x  "DukeKarlCountIsouard99"  in span  client 167 scroll 198  text-overflow(clipper):ellipsis
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 93 nowrap boxes, 89 of them eligible and measured
+PASS kunal730 rev-last-engine: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":93,"measured":89,"near":0}]
+         inv2 population: 14 outermost controls {"button":10,"pointer":4}, 14 with a glyph, 3 side-by-side rows; excluded 0 nested, 7 svg-internal, 2 occluded, 0 in the board (board found: true)
+           OCCLUDED (not a control a finger can reach) c6 28.9x22.0  centre hits svg
+           OCCLUDED (not a control a finger can reach) Bxb5+! 62.6x22.0  centre hits BUTTON
+PASS kunal730 rev-why-open: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Back|More","Auto-play|First move|Last move|Next key moment (10)","Next move|Previous move"]}]
+PASS kunal730 rev-why-open: exactly 2 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":2,"got":2,"which":[{"lab":"c6","box":"28.9x22.0","hitWas":"svg"},{"lab":"Bxb5+!","box":"62.6x22.0","hitWas":"BUTTON"}]}]
+PASS kunal730 rev-why-open: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":7}]
+PASS kunal730 rev-why-open: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Back|More"]}]
+         INV2 PINNED spread 7px  div>div>[pbar-top]  Back box 28 INK 28 (range,fs25) | More box 21 INK 21 (range,fs19)
+PASS kunal730 rev-why-open: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":125,"inked":121,"clipped":149,"scrollable":93}]
+PASS kunal730 rev-why-open: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":121,"clippedChecks":149,"excused":3,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         SIGNALLED 30.2px x  "DukeKarlCountIsouard99"  in span  client 167 scroll 198  text-overflow(clipper):ellipsis
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 94 nowrap boxes, 90 of them eligible and measured
+PASS kunal730 rev-why-open: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":94,"measured":90,"near":0}]
+         inv2 population: 12 outermost controls {"button":12}, 12 with a glyph, 1 side-by-side rows; excluded 13 nested, 66 svg-internal, 17 occluded, 0 in the board (board found: true)
+           OCCLUDED (not a control a finger can reach) Back 34x30.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) More 34x30.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) Analyze this position 40x40.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Play this move out and see what it 68.3x23.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) First move 88.3x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Auto-play 88.3x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Last move 88.3x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Next key moment (10) 88.3x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Previous move 26x36.0  centre hits rev-sheet
+           OCCLUDED (not a control a finger can reach) dxe5 45.7x22.0  centre hits rev-sheet
+           OCCLUDED (not a control a finger can reach) Bxf3 45.7x22.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Qxf3 45.7x22.0  centre hits BUTTON
+PASS kunal730 rev-more-sheet: the screen still presents the 1 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":1,"got":1,"rows":["1 brilliant ›|3 inaccuracies ›|6 great ›"]}]
+PASS kunal730 rev-more-sheet: exactly 17 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":17,"got":17,"which":[{"lab":"Back","box":"34x30.0","hitWas":"DIV"},{"lab":"More","box":"34x30.0","hitWas":"DIV"},{"lab":"Analyze this position","box":"40x40.0","hitWas":"BUTTON"},{"lab":"Play this move out and see what it","box":"68.3x23.0","hitWas":"BUTTON"},{"lab":"First move","box":"88.3x42.0","hitWas":"BUTTON"},{"lab":"Auto-play","box":"88.3x42.0","hitWas":"BUTTON"},{"lab":"Last move","box":"88.3x42.0","hitWas":"BUTTON"},{"lab":"Next key moment (10)","box":"88.3x42.0","hitWas":"BUTTON"},{"lab":"Previous move","box":"26x36.0","hitWas":"rev-sheet"},{"lab":"dxe5","box":"45.7x22.0","hitWas":"rev-sheet"},{"lab":"Bxf3","box":"45.7x22.0","hitWas":"BUTTON"},{"lab":"Qxf3","box":"45.7x22.0","hitWas":"BUTTON"}]}]
+PASS kunal730 rev-more-sheet: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":1,"pinnedHere":0,"worstAllowed":0}]
+PASS kunal730 rev-more-sheet: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":[]}]
+PASS kunal730 rev-more-sheet: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":143,"inked":139,"clipped":143,"scrollable":135}]
+PASS kunal730 rev-more-sheet: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":139,"clippedChecks":143,"excused":3,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         SIGNALLED 30.2px x  "DukeKarlCountIsouard99"  in span  client 167 scroll 198  text-overflow(clipper):ellipsis
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 93 nowrap boxes, 89 of them eligible and measured
+PASS kunal730 rev-more-sheet: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":93,"measured":89,"near":0}]
+         inv2 population: 15 outermost controls {"button":10,"pointer":5}, 15 with a glyph, 3 side-by-side rows; excluded 2 nested, 7 svg-internal, 1 occluded, 0 in the board (board found: true)
+           OCCLUDED (not a control a finger can reach) Rd1! 45.7x22.0  centre hits svg
+PASS kunal730 rev-best-ply30: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Back|More","Auto-play|First move|Last move|Next key moment (10)","Next move|Previous move"]}]
+PASS kunal730 rev-best-ply30: exactly 1 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":1,"got":1,"which":[{"lab":"Rd1!","box":"45.7x22.0","hitWas":"svg"}]}]
+PASS kunal730 rev-best-ply30: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":7}]
+PASS kunal730 rev-best-ply30: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Back|More"]}]
+         INV2 PINNED spread 7px  div>div>[pbar-top]  Back box 28 INK 28 (range,fs25) | More box 21 INK 21 (range,fs19)
+PASS kunal730 rev-best-ply30: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":125,"inked":121,"clipped":149,"scrollable":93}]
+PASS kunal730 rev-best-ply30: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":121,"clippedChecks":149,"excused":3,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         SIGNALLED 30.2px x  "DukeKarlCountIsouard99"  in span  client 167 scroll 198  text-overflow(clipper):ellipsis
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 94 nowrap boxes, 91 of them eligible and measured
+PASS kunal730 rev-best-ply30: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":94,"measured":91,"near":0}]
+PASS kunal730 fixture: an ellipsis on an INNER span does not excuse the OUTER box that clips - #396, two different boxes  [{"want":"cut","got":"cut","rows":[{"kind":"cut","axis":"x","cut":124.75,"anc":"div"}]}]
+PASS kunal730 fixture: an ellipsis ON the clipping box is a visible truncation  [{"want":"signalled","got":"signalled","rows":[{"kind":"signalled","axis":"x","cut":118.38,"anc":"div"}]}]
+PASS kunal730 fixture: a 38x38 box is not a licence: a WORD cut in one is a defect, not avatar overshoot  [{"want":"cut","got":"cut","rows":[{"kind":"cut","axis":"x","cut":46.14,"anc":"div"}]}]
+PASS kunal730 fixture: a scrollable ancestor is never reported - a finger can bring that content back  [{"want":"none","got":"none","rows":[]}]
+PASS kunal730 fixture: text-overflow:ellipsis does nothing on the BLOCK axis, so it must not excuse a vertical cut  [{"want":"cut","got":"cut","rows":[{"kind":"cut","axis":"y","cut":7,"anc":"div"}]}]
+PASS kunal730 fixture: a king glyph too big for its 38x38 box really is cut, and is not excused as overshoot  [{"kind":"cut","axis":"x","cut":15.8,"text":"♔","el":"div<div","anc":"div","ancSame":true,"ink":[0,53.8],"box":[0,38],"cs":38,"ss":54,"clampN":null,"lhN":60,"cw":38,"ch":38,"sym":[5,27],"teAnc":"clip","teEl":"clip","ov":"hidden"}]
+PASS kunal730 fixture: the real _avBox shape - 38x38, one king at font-size 35 - is the named cosmetic residual  [{"kind":"avatar","axis":"y","cut":1.5,"text":"♔","el":"div<div","anc":"div","ancSame":true,"ink":[108.28,148.28],"box":[109.78,147.78],"cs":38,"ss":39,"clampN":null,"lhN":35,"cw":38,"ch":38,"sym":[1.5,0.5],"teAnc":"clip","teEl":"clip","ov":"hidden"}]
+PASS kunal730 fixture: a clamp whose container is exactly the clamped lines draws an ellipsis and loses nothing  [{"kind":"clamped","axis":"y","cut":31,"text":"one two three four five six ","el":"div<div","anc":"div","ancSame":true,"ink":[147.78,226.78],"box":[147.78,195.78],"cs":48,"ss":80,"clampN":3,"lhN":16,"cw":120,"ch":48,"sym":[0,31],"teAnc":"clip","teEl":"clip","ov":"hidden"}]
+PASS kunal730 fixture: #396 EXACTLY: clamp 3 in a 58px box paints a fourth line into the slack and cuts it silently  [{"kind":"cut","axis":"y","cut":21,"text":"one two three four five six ","el":"div<div","anc":"div","ancSame":true,"ink":[195.78,274.78],"box":[195.78,253.78],"cs":58,"ss":80,"clampN":3,"lhN":16,"cw":120,"ch":58,"sym":[0,21],"teAnc":"clip","teEl":"clip","ov":"hidden"}]
+PASS kunal730 spill fixture: the #407 shape: nowrap, does not fit, does not clip, a sibling under the spill - THE defect 4b exists for  [{"want":"spill","got":"spill","rows":[{"over":22.13,"cs":40,"ss":62,"onSib":{"sib":"button","ox":22.13,"oy":15}}]}]
+PASS kunal730 spill fixture: a spill into a GAP is not a collision - "Italian Game" does this on the shipped bundle at every geometry  [{"want":"near","got":"near","rows":[{"over":23.66,"cs":40,"ss":64,"onSib":null}]}]
+PASS kunal730 spill fixture: a holder that clips its own text is 4a's row, not 4b's, and paints nothing outside itself (Range ink lies here)  [{"want":"none","got":"none","rows":[]}]
+PASS kunal730 spill fixture: text that WRAPS does not spill - the box grows instead  [{"want":"none","got":"none","rows":[]}]
+PASS kunal730 spill fixture: nowrap with a sibling but the text FITS: no layout overflow, no spill  [{"want":"none","got":"none","rows":[]}]
+PASS kunal730 spill fixture: the spill is clipped away by an ancestor before it reaches the sibling - this is what the paint clamp is for  [{"want":"none","got":"none","rows":[]}]
+PASS kunal730: no clipping ancestor was skipped for a rotated/skewed transform (a skip is coverage silently lost, not a pass)  [{"skipped":0}]
+PASS kunal730: the sweep as a whole measured a real quantity of ink across the screens  [{"inkedTextNodes":1158}]
+PASS kunal730: invariant 2 found its pinned failures in EXACTLY the states they were measured in - nothing fixed without retiring its pin, and no pinned spread has appeared on a new screen  [{"pinsFound":9}]
+PASS kunal730: invariant 2 measured a real population rather than an empty one - a scanner that finds no rows reports "no inconsistent rows" and would be believed. Floor re-derived at #423 from the post-occlusion population, not carried over from the pre-occlusion one  [{"rowsMeasured":38,"controlsMeasured":154,"floor":[28,135],"width":375,"screens":13}]
+PASS kunal730: both structural control-population exclusions still fired, so the gate is measuring OUTERMOST, non-SVG controls rather than having quietly lost the distinction. cursor:pointer is inherited, and before these two the same sweep at this geometry reported roughly four times as many undersized "controls", most of them SVG internals like svg>g>circle 1.6x1.6  [{"nestedExcluded":122,"svgInternalsExcluded":315,"occludedExcluded":51}]
+PASS kunal730: the board exclusion still excludes nothing, so the header's reasoning for it remains a prediction rather than a measurement - the 64 squares are not controls under this predicate. RED here means the board became tappable under this predicate and the exclusion started doing real work, which is worth knowing about  [{"boardElementsExcluded":0}]
+         invariant 3, kunal730: 10 distinct ICON glyph heights (svg box, or a one-grapheme text node): 17, 18, 19, 20, 21, 22, 24, 25, 27, 28
+             17px  Menu and settings ; Previous move ; Next move
+             18px  Flip board ; Hints ; More actions
+             19px  Menu and settings ; Show best move ; Engine line: on
+             20px  Home ; Previous puzzle ; Next puzzle
+             21px  Moves ; Back ; Forward
+             22px  Menu and settings ; Play or pause ; Close lesson
+             24px  First move ; Auto-play ; Last move
+             25px  👋
+             27px  Back a move ; Forward a move
+             28px  <no text> ; Back
+         invariant 3, kunal730: over ALL glyphs including multi-line labels and whole cards the count is 17, which is NOT an icon count and is reported only so the difference is on the record
+PASS kunal730: the set of distinct ICON glyph heights is exactly what #423 measured at 375px wide - a drift guard, not a target (10 icon sizes where the commission's placeholder was four; the target set is Kunal's to choose, jobs/invariant-3-icon-size-target-set)  [{"width":375,"want":[17,18,19,20,21,22,24,25,27,28],"got":[17,18,19,20,21,22,24,25,27,28],"added":[],"gone":[]}]
+         invariant 1 (REPORTED, NOT ASSERTED), kunal730: 43 distinct visible controls under 44x44
+             0 56x26   div>div>button
+             1 56x28   div>div>button
+             1 brilliant › 96.5x27   [rev-sheet]>div>button
+             2 56x28   div>div>button
+             3 56x28   div>div>button
+             3 inaccuracies › 129.6x27   [rev-sheet]>div>button
+             5 56x28   div>div>button
+             6 56x28   div>div>button
+             6 great › 80.8x27   [rev-sheet]>div>button
+             7 56x28   div>div>button
+             Analyze this position 40x40   div>[pbar-bottom]>[rev-fab]
+             Auto-play 88.3x42   [rev-compact]>[rev-row1]>button
+             Back 34x30   div>[pbar-top]>[rev-back]
+             Bg5 37.3x22   div>span>span
+             Bxd7+ 54.2x22   div>span>span
+             Discover 74.2x43   div>div>button
+             First move 88.3x42   [rev-compact]>[rev-row1]>button
+             Home 34x30   div>[pbar-top]>[play-home]
+             Home 74.2x43   div>div>button
+             Last move 88.3x42   [rev-compact]>[rev-row1]>button
+             Menu and settings 34x30   div>[pbar-top]>[play-menu]
+             Menu and settings 38x30   div>[rev-summary]>[rev-summary-menu]
+             More 34x30   div>[pbar-top]>[rev-more]
+             Next key moment (10) 88.3x42   [rev-compact]>[rev-row1]>button
+             Next move 26x36   div>[strip-row]>button
+             Nxb5!! 62.6x22   div>span>span
+             Nxb8 45.7x22   div>span>span
+             Nxd7?! 62.6x22   div>span>span
+             Play 74.2x43   div>div>button
+             Play this move out and see what it 68.3x23   [rev-compact]>[rev-move-line]>[rev-playout]
+             Previous move 26x36   div>[strip-row]>button
+             Puzzles 74.2x43   div>div>button
+             Qb8+! 54.2x22   div>span>span
+             Qe6 37.3x22   div>span>span
+             Rd8#! 54.2x22   div>span>span
+             Review 74.2x43   div>div>button
+             Sharpen with puzzles 138.1x28   div>div>button
+             Train this opening 119x28   div>div>button
+             b5 28.9x22   div>span>span
+             cxb5?! 62.6x22   div>span>span
+             home-look 199.9x30   div>div>[home-look]
+             rev-best 102.4x23   [rev-compact]>[rev-move-line]>[rev-best]
+             🎓 New to chess? Lock in the endga 339x39   div>div>button
+PASS kunal730: 4b actually measured ink against its own box on at least 10 of the 12 screens, so its zeros are measurements rather than an empty set (Home measures none: its two nowrap boxes both clip)  [{"screensMeasured":12,"nowrapBoxes":645,"spills":0,"transientsSeen":0}]
+     short375 (375x568 = the wide-and-short corner nothing used to cover)  stamp #443 - 2026-09-30 15:00 ET
+         inv2 population: 9 outermost controls {"button":8,"pointer":1}, 9 with a glyph, 1 side-by-side rows; excluded 62 nested, 126 svg-internal, 6 occluded, 0 in the board (board found: false)
+           OCCLUDED (not a control a finger can reach) CHESS TRAINER 194.5x22.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) ☰ 38x30.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) 🚀 Openings 97 lessons 171x144.3  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) ⚔️ Gambits 53 lessons 171x144.3  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) 👑 Endgames 20 lessons 171x144.3  centre hits tile-ic-learn
+           OCCLUDED (not a control a finger can reach) 💡 Tactics New 171x144.3  centre hits tile-ic-puzzle
+PASS short375 home: the screen still presents the 1 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":1,"got":1,"rows":["Menu and settings|👋"]}]
+PASS short375 home: exactly 6 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":6,"got":6,"which":[{"lab":"CHESS TRAINER","box":"194.5x22.0","hitWas":"DIV"},{"lab":"☰","box":"38x30.0","hitWas":"DIV"},{"lab":"🚀 Openings 97 lessons","box":"171x144.3","hitWas":"BUTTON"},{"lab":"⚔️ Gambits 53 lessons","box":"171x144.3","hitWas":"BUTTON"},{"lab":"👑 Endgames 20 lessons","box":"171x144.3","hitWas":"tile-ic-learn"},{"lab":"💡 Tactics New","box":"171x144.3","hitWas":"tile-ic-puzzle"}]}]
+PASS short375 home: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":1,"pinnedHere":1,"worstAllowed":3}]
+PASS short375 home: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Menu and settings|👋"]}]
+         INV2 PINNED spread 3px  div>div>div  Menu and settings box 22 INK 22 (range,fs20) | 👋 box 25 INK 25 (range,fs13.3333)
+PASS short375 home: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":56,"inked":52,"clipped":22,"scrollable":82}]
+PASS short375 home: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":52,"clippedChecks":22,"excused":0,"pinned":0}]
+         4b population: 2 nowrap boxes, 0 of them eligible and measured  <- NOTHING MEASURED HERE, so this screen's 4b green is not coverage
+PASS short375 home: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":2,"measured":0,"near":0}]
+         inv2 population: 8 outermost controls {"button":8}, 8 with a glyph, 2 side-by-side rows; excluded 5 nested, 22 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS short375 play-captures: the screen still presents the 2 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":2,"got":2,"rows":["Home|Menu and settings","Back|Flip|Forward|Hint|More|Moves"]}]
+PASS short375 play-captures: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS short375 play-captures: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":2,"pinnedHere":0,"worstAllowed":0}]
+PASS short375 play-captures: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":[]}]
+PASS short375 play-captures: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":82,"inked":78,"clipped":110,"scrollable":46}]
+PASS short375 play-captures: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":78,"clippedChecks":110,"excused":2,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 12 nowrap boxes, 9 of them eligible and measured
+PASS short375 play-captures: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":12,"measured":9,"near":0}]
+         inv2 population: 8 outermost controls {"button":8}, 8 with a glyph, 2 side-by-side rows; excluded 5 nested, 20 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS short375 play-gameover: the screen still presents the 2 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":2,"got":2,"rows":["Home|Menu and settings","Back|Forward|More|Moves|Rematch|Review"]}]
+PASS short375 play-gameover: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS short375 play-gameover: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":2,"pinnedHere":0,"worstAllowed":0}]
+PASS short375 play-gameover: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":[]}]
+PASS short375 play-gameover: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":53,"inked":49,"clipped":80,"scrollable":18}]
+PASS short375 play-gameover: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":49,"clippedChecks":80,"excused":2,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 11 nowrap boxes, 9 of them eligible and measured
+PASS short375 play-gameover: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":11,"measured":9,"near":0}]
+         inv2 population: 9 outermost controls {"button":9}, 9 with a glyph, 3 side-by-side rows; excluded 2 nested, 4 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS short375 lesson-demo: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Back a move|Close lesson|Forward a move|More for this lesson|Play or pause","lesson-lines|✋ Now I'll try it","moves-analyze|moves-copy"]}]
+PASS short375 lesson-demo: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS short375 lesson-demo: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":5}]
+PASS short375 lesson-demo: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Back a move|Close lesson|Forward a move|More for this lesson|Play or pause"]}]
+         INV2 PINNED spread 5px  div>div>div  Back a move box 27 INK 16.2 (svg,fs20.25) | Play or pause box 22 INK 22 (range,fs20.25) | Forward a move box 27 INK 16.2 (svg,fs20.25) | Close lesson box 22 INK 22 (range,fs20.25) | More for this lesson box 22 INK 22 (range,fs20.25)
+PASS short375 lesson-demo: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":54,"inked":50,"clipped":67,"scrollable":33}]
+PASS short375 lesson-demo: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":50,"clippedChecks":67,"excused":1,"pinned":0}]
+         SIGNALLED 6.97px x  "Italian Game"  in div  client 73 scroll 80  text-overflow(clipper):ellipsis
+         4b population: 5 nowrap boxes, 4 of them eligible and measured
+PASS short375 lesson-demo: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":5,"measured":4,"near":0}]
+         inv2 population: 8 outermost controls {"button":8}, 8 with a glyph, 3 side-by-side rows; excluded 2 nested, 0 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS short375 lesson-practice: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Flip board|Hints|More actions|Try again","moves-analyze|moves-copy","Close lesson|More for this lesson"]}]
+PASS short375 lesson-practice: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS short375 lesson-practice: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":2}]
+PASS short375 lesson-practice: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Flip board|Hints|More actions|Try again"]}]
+         INV2 PINNED spread 2px  div>div>div  Flip board box 18 INK 18 (range,fs15) | Hints box 18 INK 18 (range,fs15) | Try again box 16 INK 16 (range,fs14) | More actions box 18 INK 18 (range,fs15)
+PASS short375 lesson-practice: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":32,"inked":28,"clipped":45,"scrollable":11}]
+PASS short375 lesson-practice: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":28,"clippedChecks":45,"excused":0,"pinned":0}]
+         4b population: 7 nowrap boxes, 6 of them eligible and measured
+PASS short375 lesson-practice: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":7,"measured":6,"near":0}]
+         inv2 population: 11 outermost controls {"button":11}, 11 with a glyph, 2 side-by-side rows; excluded 10 nested, 17 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS short375 puzzles: the screen still presents the 2 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":2,"got":2,"rows":["Next puzzle|Previous puzzle|↺ Reset|👁 Show|💡 Hint","Discover|Home|Play|Puzzles|Review"]}]
+PASS short375 puzzles: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS short375 puzzles: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":2,"pinnedHere":1,"worstAllowed":4}]
+PASS short375 puzzles: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Next puzzle|Previous puzzle|↺ Reset|👁 Show|💡 Hint"]}]
+         INV2 PINNED spread 4px  div>[pz-bottom]>div  Previous puzzle box 20 INK 12 (svg,fs14) | 💡 Hint box 16 INK 16 (range,fs14) | 👁 Show box 16 INK 16 (range,fs14) | ↺ Reset box 16 INK 16 (range,fs14) | Next puzzle box 20 INK 12 (svg,fs14)
+PASS short375 puzzles: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":41,"inked":37,"clipped":66,"scrollable":8}]
+PASS short375 puzzles: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":37,"clippedChecks":66,"excused":0,"pinned":0}]
+         4b population: 17 nowrap boxes, 4 of them eligible and measured
+PASS short375 puzzles: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":17,"measured":4,"near":0}]
+         inv2 population: 8 outermost controls {"button":8}, 8 with a glyph, 2 side-by-side rows; excluded 10 nested, 15 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS short375 pz-solved: the screen still presents the 2 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":2,"got":2,"rows":["Next puzzle|Previous puzzle","Discover|Home|Play|Puzzles|Review"]}]
+PASS short375 pz-solved: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS short375 pz-solved: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":2,"pinnedHere":1,"worstAllowed":4}]
+PASS short375 pz-solved: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Next puzzle|Previous puzzle"]}]
+         INV2 PINNED spread 4px  div>[pz-bottom]>div  Previous puzzle box 20 INK 12 (svg,fs14) | Next puzzle box 16 INK 16 (range,fs14)
+PASS short375 pz-solved: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":40,"inked":32,"clipped":60,"scrollable":4}]
+PASS short375 pz-solved: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":32,"clippedChecks":60,"excused":2,"pinned":0}]
+         SIGNALLED 1.36px x  "✓ solved"  in span  client 128 scroll 129  text-overflow(clipper):ellipsis
+         SIGNALLED 1.11px x  "1"  in span  client 104 scroll 105  text-overflow(clipper):ellipsis
+         4b population: 15 nowrap boxes, 2 of them eligible and measured
+PASS short375 pz-solved: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":15,"measured":2,"near":0}]
+         inv2 population: 11 outermost controls {"button":11}, 11 with a glyph, 5 side-by-side rows; excluded 11 nested, 17 svg-internal, 23 occluded, 0 in the board (board found: true)
+           OCCLUDED (not a control a finger can reach) Game review 88.5x18.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) ☰ 38x30.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) 5 56x28.0  centre hits rev-summary-foot
+           OCCLUDED (not a control a finger can reach) 7 56x28.0  centre hits rev-summary-foot
+           OCCLUDED (not a control a finger can reach) 1 56x28.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) 3 56x28.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) First move 67x42.0  centre hits SPAN
+           OCCLUDED (not a control a finger can reach) Auto-play 67x42.0  centre hits SPAN
+           OCCLUDED (not a control a finger can reach) Last move 67x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Next key moment (10) 67x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Previous move 26x36.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) e4 28.9x22.0  centre hits DIV
+PASS short375 rev-summary: the screen still presents the 5 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":5,"got":5,"rows":["Sharpen with puzzles|Train this opening","0|1","0|6","1|1","Start review ›|‹ Back to games"]}]
+PASS short375 rev-summary: exactly 23 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":23,"got":23,"which":[{"lab":"Game review","box":"88.5x18.0","hitWas":"DIV"},{"lab":"☰","box":"38x30.0","hitWas":"DIV"},{"lab":"5","box":"56x28.0","hitWas":"rev-summary-foot"},{"lab":"7","box":"56x28.0","hitWas":"rev-summary-foot"},{"lab":"1","box":"56x28.0","hitWas":"BUTTON"},{"lab":"3","box":"56x28.0","hitWas":"BUTTON"},{"lab":"First move","box":"67x42.0","hitWas":"SPAN"},{"lab":"Auto-play","box":"67x42.0","hitWas":"SPAN"},{"lab":"Last move","box":"67x42.0","hitWas":"BUTTON"},{"lab":"Next key moment (10)","box":"67x42.0","hitWas":"BUTTON"},{"lab":"Previous move","box":"26x36.0","hitWas":"DIV"},{"lab":"e4","box":"28.9x22.0","hitWas":"DIV"}]}]
+PASS short375 rev-summary: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":5,"pinnedHere":0,"worstAllowed":0}]
+PASS short375 rev-summary: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":[]}]
+PASS short375 rev-summary: the grade table was found and read, so the ladder assertions below are not vacuous  [10]
+PASS short375 rev-summary: the summary shows all TEN grades US-R03 specifies - Excellent is its own row and is not folded into Best (#421)  [{"rows":10,"got":["Brilliant","Great","Best","Excellent","Good","Book","Inaccuracy","Miss","Mistake","Blunder"]}]
+PASS short375 rev-summary: Excellent has its own bucket  [Brilliant,Great,Best,Excellent,Good,Book,Inaccuracy,Miss,Mistake,Blunder]
+PASS short375 rev-summary: the ten rows are in LADDER order, best to worst  [Brilliant,Great,Best,Excellent,Good,Book,Inaccuracy,Miss,Mistake,Blunder]
+           grade ladder: Brilliant 1/0, Great 6/0, Best 5/7, Excellent 1/3, Good 1/1, Book 3/2, Inaccuracy 0/3, Miss 0/0, Mistake 0/0, Blunder 0/0
+PASS short375 rev-summary: WHITE grade counts sum to the 17 moves White played - every ply is in exactly one bucket, so no category is silently dropped (#421)  [{"sum":17,"movesPlayed":17}]
+PASS short375 rev-summary: BLACK grade counts sum to the 16 moves Black played (#421)  [{"sum":16,"movesPlayed":16}]
+PASS short375 rev-summary: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":215,"inked":211,"clipped":135,"scrollable":287}]
+PASS short375 rev-summary: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":211,"clippedChecks":135,"excused":0,"pinned":0}]
+         4b population: 111 nowrap boxes, 105 of them eligible and measured
+PASS short375 rev-summary: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":111,"measured":105,"near":0}]
+         inv2 population: 14 outermost controls {"button":10,"pointer":4}, 14 with a glyph, 3 side-by-side rows; excluded 0 nested, 7 svg-internal, 1 occluded, 0 in the board (board found: true)
+           OCCLUDED (not a control a finger can reach) Rd8#! 54.2x22.0  centre hits svg
+PASS short375 rev-ply31: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Back|More","Auto-play|First move|Last move|Next key moment (10)","Next move|Previous move"]}]
+PASS short375 rev-ply31: exactly 1 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":1,"got":1,"which":[{"lab":"Rd8#!","box":"54.2x22.0","hitWas":"svg"}]}]
+PASS short375 rev-ply31: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":7}]
+PASS short375 rev-ply31: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Back|More"]}]
+         INV2 PINNED spread 7px  div>div>[pbar-top]  Back box 28 INK 28 (range,fs25) | More box 21 INK 21 (range,fs19)
+PASS short375 rev-ply31: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":122,"inked":118,"clipped":145,"scrollable":91}]
+PASS short375 rev-ply31: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":118,"clippedChecks":145,"excused":3,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         SIGNALLED 115.23px x  "DukeKarlCountIsouard99"  in span  client 82 scroll 198  text-overflow(clipper):ellipsis
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 91 nowrap boxes, 87 of them eligible and measured
+PASS short375 rev-ply31: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":91,"measured":87,"near":0}]
+         inv2 population: 14 outermost controls {"button":10,"pointer":4}, 14 with a glyph, 3 side-by-side rows; excluded 0 nested, 7 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS short375 rev-last-engine: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Back|More","Auto-play|First move|Last move|Next key moment (10)","Next move|Previous move"]}]
+PASS short375 rev-last-engine: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS short375 rev-last-engine: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":7}]
+PASS short375 rev-last-engine: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Back|More"]}]
+         INV2 PINNED spread 7px  div>div>[pbar-top]  Back box 28 INK 28 (range,fs25) | More box 21 INK 21 (range,fs19)
+PASS short375 rev-last-engine: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":126,"inked":122,"clipped":151,"scrollable":93}]
+PASS short375 rev-last-engine: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":122,"clippedChecks":151,"excused":3,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         SIGNALLED 115.23px x  "DukeKarlCountIsouard99"  in span  client 82 scroll 198  text-overflow(clipper):ellipsis
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 93 nowrap boxes, 89 of them eligible and measured
+PASS short375 rev-last-engine: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":93,"measured":89,"near":0}]
+         inv2 population: 16 outermost controls {"button":10,"pointer":6}, 16 with a glyph, 3 side-by-side rows; excluded 0 nested, 7 svg-internal, 0 occluded, 0 in the board (board found: true)
+PASS short375 rev-why-open: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Back|More","Auto-play|First move|Last move|Next key moment (10)","Next move|Previous move"]}]
+PASS short375 rev-why-open: exactly 0 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":0,"got":0,"which":[]}]
+PASS short375 rev-why-open: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":7}]
+PASS short375 rev-why-open: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Back|More"]}]
+         INV2 PINNED spread 7px  div>div>[pbar-top]  Back box 28 INK 28 (range,fs25) | More box 21 INK 21 (range,fs19)
+PASS short375 rev-why-open: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":125,"inked":121,"clipped":149,"scrollable":93}]
+PASS short375 rev-why-open: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":121,"clippedChecks":149,"excused":4,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         SIGNALLED 115.23px x  "DukeKarlCountIsouard99"  in span  client 82 scroll 198  text-overflow(clipper):ellipsis
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         CLAMPED 14.67px y  "You give up a piece. If cxb5"  in rev-why-txt  client 51 scroll 68  text-overflow(clipper):clip
+         4b population: 94 nowrap boxes, 90 of them eligible and measured
+PASS short375 rev-why-open: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":94,"measured":90,"near":0}]
+         inv2 population: 9 outermost controls {"button":9}, 9 with a glyph, 1 side-by-side rows; excluded 13 nested, 66 svg-internal, 17 occluded, 0 in the board (board found: true)
+           OCCLUDED (not a control a finger can reach) Back 34x30.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) More 34x30.0  centre hits DIV
+           OCCLUDED (not a control a finger can reach) Analyze this position 40x40.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Play this move out and see what it 56.3x23.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) First move 67x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Auto-play 67x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Last move 67x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Next key moment (10) 67x42.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Previous move 26x36.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) dxe5 45.7x22.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Bxf3 45.7x22.0  centre hits BUTTON
+           OCCLUDED (not a control a finger can reach) Qxf3 45.7x22.0  centre hits BUTTON
+PASS short375 rev-more-sheet: the screen still presents the 1 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":1,"got":1,"rows":["1 brilliant ›|3 inaccuracies ›|6 great ›"]}]
+PASS short375 rev-more-sheet: exactly 17 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":17,"got":17,"which":[{"lab":"Back","box":"34x30.0","hitWas":"DIV"},{"lab":"More","box":"34x30.0","hitWas":"DIV"},{"lab":"Analyze this position","box":"40x40.0","hitWas":"BUTTON"},{"lab":"Play this move out and see what it","box":"56.3x23.0","hitWas":"BUTTON"},{"lab":"First move","box":"67x42.0","hitWas":"BUTTON"},{"lab":"Auto-play","box":"67x42.0","hitWas":"BUTTON"},{"lab":"Last move","box":"67x42.0","hitWas":"BUTTON"},{"lab":"Next key moment (10)","box":"67x42.0","hitWas":"BUTTON"},{"lab":"Previous move","box":"26x36.0","hitWas":"BUTTON"},{"lab":"dxe5","box":"45.7x22.0","hitWas":"BUTTON"},{"lab":"Bxf3","box":"45.7x22.0","hitWas":"BUTTON"},{"lab":"Qxf3","box":"45.7x22.0","hitWas":"BUTTON"}]}]
+PASS short375 rev-more-sheet: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":1,"pinnedHere":0,"worstAllowed":0}]
+PASS short375 rev-more-sheet: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":[]}]
+PASS short375 rev-more-sheet: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":143,"inked":139,"clipped":143,"scrollable":135}]
+PASS short375 rev-more-sheet: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":139,"clippedChecks":143,"excused":3,"pinned":0}]
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         SIGNALLED 115.23px x  "DukeKarlCountIsouard99"  in span  client 82 scroll 198  text-overflow(clipper):ellipsis
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 93 nowrap boxes, 89 of them eligible and measured
+PASS short375 rev-more-sheet: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":93,"measured":89,"near":0}]
+         inv2 population: 15 outermost controls {"button":10,"pointer":5}, 15 with a glyph, 3 side-by-side rows; excluded 1 nested, 7 svg-internal, 1 occluded, 0 in the board (board found: true)
+           OCCLUDED (not a control a finger can reach) Qe6 37.3x22.0  centre hits BUTTON
+PASS short375 rev-best-ply30: the screen still presents the 3 side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in  [{"want":3,"got":3,"rows":["Back|More","Auto-play|First move|Last move|Next key moment (10)","Next move|Previous move"]}]
+PASS short375 rev-best-ply30: exactly 1 controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted  [{"want":1,"got":1,"which":[{"lab":"Qe6","box":"37.3x22.0","hitWas":"BUTTON"}]}]
+PASS short375 rev-best-ply30: every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)  [{"rowsChecked":3,"pinnedHere":1,"worstAllowed":7}]
+PASS short375 rev-best-ply30: every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose  [{"pinsHere":["Back|More"]}]
+         INV2 PINNED spread 7px  div>div>[pbar-top]  Back box 28 INK 28 (range,fs25) | More box 21 INK 21 (range,fs19)
+PASS short375 rev-best-ply30: the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green  [{"nodes":124,"inked":120,"clipped":147,"scrollable":93}]
+PASS short375 rev-best-ply30: NO text node is cut by the box that clips it - ink measured against the nearest overflow:hidden/clip ancestor, not the viewport  [{"cuts":0,"inked":120,"clippedChecks":147,"excused":3,"pinned":2}]
+PASS short375 rev-best-ply30: the pinned residual is exactly where it was left - "rev-best" still cuts 2 text nodes at 375x568 = the wide-and-short corner nothing used to cover (the best-move pill reads "best Qx"). The SAME two cuts to the hundredth at 320x568 and 375x568, because [data-ct="rev-move-line"] measures 286.00px at both - it follows the board and the board is fit to HEIGHT - against 371.03px at 375x679 and 375x730, where the pill is client 100 / scroll 100 and nothing is cut. So this is not a narrow-phone defect. RED here means it MOVED: fixed, and this pin comes out, or worse, and it needs looking at  [[{"text":"Qxd7","cut":17.36,"cs":25,"ss":56},{"text":"›","cut":25.72,"cs":25,"ss":56}]]
+         CUT 17.36px x  "Qxd7"  in rev-best  ([rev-best]<[rev-move-line]<[rev-compact]<div)  ink 257.39..295.19 vs box 252.41..277.83  client 25 scroll 56  text-overflow(clipper):clip
+         CUT 25.72px x  "›"  in rev-best  (span<[rev-best]<[rev-move-line]<[rev-compact])  ink 298.19..303.55 vs box 252.41..277.83  client 25 scroll 56  text-overflow(clipper):clip
+         AVATAR 1.5px y  "♚"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         SIGNALLED 115.23px x  "DukeKarlCountIsouard99"  in span  client 82 scroll 198  text-overflow(clipper):ellipsis
+         AVATAR 1.5px y  "♔"  in div  client 38 scroll 39  text-overflow(clipper):clip
+         4b population: 93 nowrap boxes, 90 of them eligible and measured
+PASS short375 rev-best-ply30: NO text paints outside its own box and onto a sibling - measured as PAINTED ink (clamped by every ancestor that clips it) against the holder's own padding box, which is a frame no other gate in this suite uses  [{"spills":0,"nowrapBoxes":93,"measured":90,"near":0}]
+PASS short375 fixture: an ellipsis on an INNER span does not excuse the OUTER box that clips - #396, two different boxes  [{"want":"cut","got":"cut","rows":[{"kind":"cut","axis":"x","cut":124.75,"anc":"div"}]}]
+PASS short375 fixture: an ellipsis ON the clipping box is a visible truncation  [{"want":"signalled","got":"signalled","rows":[{"kind":"signalled","axis":"x","cut":118.38,"anc":"div"}]}]
+PASS short375 fixture: a 38x38 box is not a licence: a WORD cut in one is a defect, not avatar overshoot  [{"want":"cut","got":"cut","rows":[{"kind":"cut","axis":"x","cut":46.14,"anc":"div"}]}]
+PASS short375 fixture: a scrollable ancestor is never reported - a finger can bring that content back  [{"want":"none","got":"none","rows":[]}]
+PASS short375 fixture: text-overflow:ellipsis does nothing on the BLOCK axis, so it must not excuse a vertical cut  [{"want":"cut","got":"cut","rows":[{"kind":"cut","axis":"y","cut":7,"anc":"div"}]}]
+PASS short375 fixture: a king glyph too big for its 38x38 box really is cut, and is not excused as overshoot  [{"kind":"cut","axis":"x","cut":15.8,"text":"♔","el":"div<div","anc":"div","ancSame":true,"ink":[0,53.8],"box":[0,38],"cs":38,"ss":54,"clampN":null,"lhN":60,"cw":38,"ch":38,"sym":[5,27],"teAnc":"clip","teEl":"clip","ov":"hidden"}]
+PASS short375 fixture: the real _avBox shape - 38x38, one king at font-size 35 - is the named cosmetic residual  [{"kind":"avatar","axis":"y","cut":1.5,"text":"♔","el":"div<div","anc":"div","ancSame":true,"ink":[108.28,148.28],"box":[109.78,147.78],"cs":38,"ss":39,"clampN":null,"lhN":35,"cw":38,"ch":38,"sym":[1.5,0.5],"teAnc":"clip","teEl":"clip","ov":"hidden"}]
+PASS short375 fixture: a clamp whose container is exactly the clamped lines draws an ellipsis and loses nothing  [{"kind":"clamped","axis":"y","cut":31,"text":"one two three four five six ","el":"div<div","anc":"div","ancSame":true,"ink":[147.78,226.78],"box":[147.78,195.78],"cs":48,"ss":80,"clampN":3,"lhN":16,"cw":120,"ch":48,"sym":[0,31],"teAnc":"clip","teEl":"clip","ov":"hidden"}]
+PASS short375 fixture: #396 EXACTLY: clamp 3 in a 58px box paints a fourth line into the slack and cuts it silently  [{"kind":"cut","axis":"y","cut":21,"text":"one two three four five six ","el":"div<div","anc":"div","ancSame":true,"ink":[195.78,274.78],"box":[195.78,253.78],"cs":58,"ss":80,"clampN":3,"lhN":16,"cw":120,"ch":58,"sym":[0,21],"teAnc":"clip","teEl":"clip","ov":"hidden"}]
+PASS short375 spill fixture: the #407 shape: nowrap, does not fit, does not clip, a sibling under the spill - THE defect 4b exists for  [{"want":"spill","got":"spill","rows":[{"over":22.13,"cs":40,"ss":62,"onSib":{"sib":"button","ox":22.13,"oy":15}}]}]
+PASS short375 spill fixture: a spill into a GAP is not a collision - "Italian Game" does this on the shipped bundle at every geometry  [{"want":"near","got":"near","rows":[{"over":23.66,"cs":40,"ss":64,"onSib":null}]}]
+PASS short375 spill fixture: a holder that clips its own text is 4a's row, not 4b's, and paints nothing outside itself (Range ink lies here)  [{"want":"none","got":"none","rows":[]}]
+PASS short375 spill fixture: text that WRAPS does not spill - the box grows instead  [{"want":"none","got":"none","rows":[]}]
+PASS short375 spill fixture: nowrap with a sibling but the text FITS: no layout overflow, no spill  [{"want":"none","got":"none","rows":[]}]
+PASS short375 spill fixture: the spill is clipped away by an ancestor before it reaches the sibling - this is what the paint clamp is for  [{"want":"none","got":"none","rows":[]}]
+PASS short375: no clipping ancestor was skipped for a rotated/skewed transform (a skip is coverage silently lost, not a pass)  [{"skipped":0}]
+PASS short375: the sweep as a whole measured a real quantity of ink across the screens  [{"inkedTextNodes":1157}]
+PASS short375: invariant 2 found its pinned failures in EXACTLY the states they were measured in - nothing fixed without retiring its pin, and no pinned spread has appeared on a new screen  [{"pinsFound":9}]
+PASS short375: invariant 2 measured a real population rather than an empty one - a scanner that finds no rows reports "no inconsistent rows" and would be believed. Floor re-derived at #423 from the post-occlusion population, not carried over from the pre-occlusion one  [{"rowsMeasured":33,"controlsMeasured":140,"floor":[28,135],"width":375,"screens":13}]
+PASS short375: both structural control-population exclusions still fired, so the gate is measuring OUTERMOST, non-SVG controls rather than having quietly lost the distinction. cursor:pointer is inherited, and before these two the same sweep at this geometry reported roughly four times as many undersized "controls", most of them SVG internals like svg>g>circle 1.6x1.6  [{"nestedExcluded":121,"svgInternalsExcluded":315,"occludedExcluded":48}]
+PASS short375: the board exclusion still excludes nothing, so the header's reasoning for it remains a prediction rather than a measurement - the 64 squares are not controls under this predicate. RED here means the board became tappable under this predicate and the exclusion started doing real work, which is worth knowing about  [{"boardElementsExcluded":0}]
+         invariant 3, short375: 10 distinct ICON glyph heights (svg box, or a one-grapheme text node): 17, 18, 19, 20, 21, 22, 24, 25, 27, 28
+             17px  Menu and settings ; Previous move ; Next move
+             18px  Flip board ; Hints ; More actions
+             19px  Menu and settings ; Show best move ; Engine line: on
+             20px  Home ; Previous puzzle ; Next puzzle
+             21px  Moves ; Back ; Forward
+             22px  Menu and settings ; Play or pause ; Close lesson
+             24px  First move ; Auto-play ; Last move
+             25px  👋
+             27px  Back a move ; Forward a move
+             28px  <no text> ; Back
+         invariant 3, short375: over ALL glyphs including multi-line labels and whole cards the count is 17, which is NOT an icon count and is reported only so the difference is on the record
+PASS short375: the set of distinct ICON glyph heights is exactly what #423 measured at 375px wide - a drift guard, not a target (10 icon sizes where the commission's placeholder was four; the target set is Kunal's to choose, jobs/invariant-3-icon-size-target-set)  [{"width":375,"want":[17,18,19,20,21,22,24,25,27,28],"got":[17,18,19,20,21,22,24,25,27,28],"added":[],"gone":[]}]
+         invariant 1 (REPORTED, NOT ASSERTED), short375: 48 distinct visible controls under 44x44
+             0 56x26   div>div>button
+             1 56x28   div>div>button
+             1 brilliant › 96.5x27   [rev-sheet]>div>button
+             3 inaccuracies › 129.6x27   [rev-sheet]>div>button
+             6 56x28   div>div>button
+             6 great › 80.8x27   [rev-sheet]>div>button
+             Analyze this position 40x40   div>[pbar-bottom]>[rev-fab]
+             Auto-play 67x42   [rev-compact]>[rev-row1]>button
+             Back 34x30   div>[pbar-top]>[rev-back]
+             Back 36.5x51   div>div>button
+             Back 39.4x51   div>div>button
+             Bg5 37.3x22   div>span>span
+             Bxb5+! 62.6x22   div>span>span
+             Bxd7+ 54.2x22   div>span>span
+             Discover 74.2x43   div>div>button
+             First move 67x42   [rev-compact]>[rev-row1]>button
+             Flip 39.4x51   div>div>button
+             Hint 39.4x51   div>div>button
+             Home 34x30   div>[pbar-top]>[play-home]
+             Home 74.2x43   div>div>button
+             Last move 67x42   [rev-compact]>[rev-row1]>button
+             Menu and settings 34x30   div>[pbar-top]>[play-menu]
+             Menu and settings 38x30   div>[rev-summary]>[rev-summary-menu]
+             More 34x30   div>[pbar-top]>[rev-more]
+             More 36.5x51   div>div>button
+             More 39.4x51   div>div>button
+             Moves 36.6x51   div>div>button
+             Moves 39.4x51   div>div>button
+             Next key moment (10) 67x42   [rev-compact]>[rev-row1]>button
+             Next move 26x36   div>[strip-row]>button
+             Nxb5!! 62.6x22   div>span>span
+             Nxb8 45.7x22   div>span>span
+             Nxd7?! 62.6x22   div>span>span
+             Play 74.2x43   div>div>button
+             Play this move out and see what it 56.3x23   [rev-compact]>[rev-move-line]>[rev-playout]
+             Previous move 26x36   div>[strip-row]>button
+             Puzzles 74.2x43   div>div>button
+             Qb8+! 54.2x22   div>span>span
+             Rd1! 45.7x22   div>span>span
+             Rd8#! 54.2x22   div>span>span
+             Review 40x51   div>div>button
+             Review 74.2x43   div>div>button
+             Sharpen with puzzles 138.1x28   div>div>button
+             Train this opening 119x28   div>div>button
+             b5 28.9x22   div>span>span
+             c6 28.9x22   div>span>span
+             cxb5?! 62.6x22   div>span>span
+             rev-best 27.5x23   [rev-compact]>[rev-move-line]>[rev-best]
+PASS short375: 4b actually measured ink against its own box on at least 10 of the 12 screens, so its zeros are measurements rather than an empty set (Home measures none: its two nowrap boxes both clip)  [{"screensMeasured":12,"nowrapBoxes":644,"spills":0,"transientsSeen":0}]
+PASS every geometry the suite sweeps by default carries a pinned icon set, so invariant 3 never silently downgrades to a report on a full run  [{"unpinnedWidths":[]}]
+PASS every (geometry, screen) the suite sweeps by default carries a pinned row and occlusion count, so the population guard never silently downgrades to a report on a full run  [{"unpinned":[]}]
+26-invariants: 364 pass, 0 fail
