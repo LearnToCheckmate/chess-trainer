@@ -243,6 +243,7 @@ the end - but ONE session should hold the pen, and it should be the one with pus
 |---|---|---|---|---|
 | #437 | **12** | **83** | 0 of 10 | **2915** (`437d-all.log`, bundle md5 `5751da3ce0d9`, `verify-log.sh` OK with `--this-bundle`) |
 | #439 | **13** | **96** | 0 of 10 | **3060** (`439-all.log`, bundle md5 `0099cb784ca0`, `verify-log.sh` OK with `--this-bundle` AND `--on-main`) |
+| #440 | **NOT SHIPPED — stood down on the push.** Grade a move by the Lichess win-percentage drop, not raw centipawn loss; accuracy by their published aggregation. Desk q-classify-on-winprob, `labels-and-accuracy` | 95 min (09:20Z, in the check-in row) | 09:20Z | not staged — nothing pushed to main | 3h20m to stand-down | +105 | **GATES RED #440**, 3004 PASS: 26-invariants 354/10, PLYLOG 1/1, 51-drill-explain-why 3/1 (the last FIXED and verified 70/0 by subset). New gate 66-winprob-ladder green 36/0, control 5/5 | — |
 
 **THE RULE, so the number can be re-derived rather than trusted.** Unchanged from #434, #435 and #436 so the
 series stays comparable: a job is OPEN when `status` is not in {done, closed, rejected, withdrawn, parked,
@@ -378,3 +379,37 @@ any control (both pre-existing, same cause as the P0 — the picker's lifetime i
 opened against, now **four** known triggers); `playEndRef` lags `playEnd` by one effect flush; and `applyMv`, the
 engine's own reply path, appends a move **without** going through the guarded committer — doubly guarded, and the
 auditor measured the resign-mid-search half safe while the bot-flagging-mid-search half is still undriven.
+
+
+### #440 — why it stood down, and what is worth keeping
+
+**Nothing reached main.** Three commits sit on `claude/cool-noether-2l1ypi` at `6eae944`. The change itself is
+sound and is the thing Kunal asked for twice; two gates are red for reasons this run characterised and one it
+did not finish characterising.
+
+**The suite earned its cost twice over, and both catches were against me.**
+
+1. **It caught this build emptying the mistake drill.** `51-drill-explain-why` fell from 70 pass to 3 with
+   `{captured: 0, inputs: 0}` — the drill pool is keyed on `Mistake|Blunder|Miss`, exactly the labels a
+   win-percentage ladder makes rarer, and a decided position is precisely where a losing player's instructive
+   moments are. A player who lost badly would have had nothing to practise. Every assertion beneath the input
+   count then passed **vacuously** over the empty set — "the 0 whys are all DIFFERENT" reads like a green — so
+   one non-vacuity guard is the only thing standing between this build and a dead feature. Fixed by splitting
+   the two questions: `cls` (the win-percentage label) is what the player is TOLD; `sel` (the old centipawn
+   ladder, kept as `classifyByLoss()`) is what the app SELECTS on. Pools reproduced by construction, not by a
+   re-derived threshold. Verified: 70 PASS restored with gate 66 still green.
+
+2. **My class sweep was wrong in a way I have now repeated from #439.** I counted the six sites where the label
+   is COMPUTED and none of the ~20 where it is CONSUMED. #439 swept a committer by grepping its name and missed
+   a helper; I swept a predicate's producers and missed its consumers — the same error one level up. Three pools
+   across four sites were affected. The re-runnable pattern is in the commit and on the job.
+
+**Four numbers:** open P0 **13** (unchanged), open P1 **97** (#439's 96 plus this run's own filing), coverage
+**0 of 10**, regression assertions **3004 red** (3060 green on #439; this build's own gate contributes 36 and
+every pre-existing gate held its count except the three reds).
+
+**Three withdrawals, each in the document that carried the claim.** (1) "Accuracy goes up" — the benchmark's own
+94 readings have ours higher on 59, so the new method reads LOWER more often; found by adversarially simulating
+my own aggregation. (2) "32-plylog is not mine" — presence of a string in the bundle is not visibility on screen;
+the control passes 16/0 and it is mine. (3) The benchmark's 392/81/2.17x as descriptions of this build — they
+were computed with Lichess's published thresholds, which this build measured and rejected.

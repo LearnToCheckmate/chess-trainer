@@ -1801,3 +1801,63 @@ Story clause **US-PL-12**, case **TC-PL-034**.
    sibling jobs from #428 may share its cause — check before building, per R09.
 
 **The pen note on `claims/repo-pen` carries the rest, including what I would want checked about my own build.**
+
+---
+
+## #440 — STOOD DOWN ON THE PUSH. Nothing is on main. 2026-09-30
+
+**The work is on `claude/cool-noether-2l1ypi` at `6eae944`, three commits, and it is worth having.** It is not on
+main because the suite is RED and red does not push. Read this before re-doing any of it.
+
+### What it does, and it is the thing Kunal asked for twice
+Grades a move by the Lichess-published **win-percentage drop** instead of raw centipawn loss, and computes review
+accuracy with Lichess's published aggregation instead of `100*exp(-acpl/300)`. Desk `q-classify-on-winprob`,
+answered 2026-09-28 `labels-and-accuracy` — he overruled the recommendation and took the bigger option, so both
+halves are in scope and the EST rating deliberately is not.
+
+Measured on the Opera Game at 375x730, #439 against #440, reproduced across two consecutive runs to the digit:
+Black (being mated) accuracy **62.4% → 88.9%**, Blunder **1 → 0**, Mistake **1 → 0**, Inaccuracy 1 → 3; White,
+who won, keeps **all ten grade counts identical**. That is the shape of the whole change: decided positions move,
+level ones do not.
+
+### The three reds, and what is established about each
+| gate | #439 | #440 | mine? | mechanism |
+|---|---|---|---|---|
+| `51-drill-explain-why` | 70/0 | 3/1 | **yes, FIXED** | pool keyed on the softened labels; drill went EMPTY |
+| `26-invariants` | 364/0 | 354/10 | **yes** | review panel reflow, + one real pill squeeze |
+| `32-plylog` | 16/0 | 1/1 | **yes** | grade-dependent; mechanism NOT established |
+
+**Gate 51 is fixed and verified.** Its pool was `L==='Mistake'||L==='Blunder'||L==='Miss'` — exactly the labels
+this build makes rarer — so a player who lost badly had nothing left to practise. The fix keeps the old
+centipawn ladder as `classifyByLoss()`, carried as `sel`, used **only** for selection while `cls` stays the
+honest displayed label. Subset: gate 51 back to **70 PASS**, gate 66 still **36 PASS**. A label and a selection
+are different questions and this build conflated them.
+
+**Gate 26** is nine population counts moving by ±1 (the coach's take shortens, the panel reflows, and `rows` and
+`covered` are both layout-sensitive) plus **one genuine worsening**: the best-move pill loses 19.89px at 320x568
+and 375x568 (clientWidth 45 → 25, content unchanged at 86) and now silently cuts the word "best". `rev-move-line`
+is nowrap flex, the grade pill is `flex:'0 0 auto'`, and a softened grade can be a LONGER word
+(`Blunder`→`Inaccuracy`), so the whole 20px comes out of the one shrinkable child. Kunal's 375x730 is clean.
+**Do not bump that pin** — the gate's own text says "worse, and it needs looking at", and this build is what
+made it worse.
+
+**Gate 32** — I called it "not mine" and that was wrong; the string being in both bundles is not the control, and
+the control (`CT_APP=<439 bundle>`) passes 16/0. A trial bundle with everything from #440 **except** the grades
+(`md5 356b26506864`, band table back to 15/40/90/160/320) passes 16/0, so the cause is the grade distribution and
+not a coding fault — there is no page or console error on either bundle. The step from "grades changed" to "the
+menu sheet does not open from the review route" is **NOT established**; I got it wrong three times and handed it
+to an adversarial pass rather than guess a fourth.
+
+### What the next run should NOT re-derive
+- The ladder is **our own five cut-offs re-expressed at eval 0**, not Lichess's published 10/20/30. Those were
+  measured and rejected: at eval 0 they sit at 110/230/377cp, so they would have softened the middlegame nobody
+  complained about, and a 350cp slip at eval 0 would have stopped being a Blunder. Reasoning and the rejected
+  option: `flags/amber-440-win-percentage-ladder-keeps-our-cutoffs-not-lichess-three`.
+- The benchmark's **392 labels moved / 81 blunders / 2.17x are WITHDRAWN as descriptions of this build** — they
+  were computed with Lichess's thresholds. Derived bound for the shipped ladder: **[81, 112]** against 176 today.
+  Job: `the-corpus-measurement-used-thresholds-the-build-did-not-ship-2026-09-30`.
+- **Accuracy moves BOTH ways and more often down** — the benchmark's own 94 readings have ours higher on 59. A
+  long slow loss reads higher; a game thrown away in one move reads much lower (simulated: 17.7% where the old
+  formula gave 71.7%). Do not repeat the one-sided "accuracy goes up".
+- `US-R30` and `TC-R40` are landed in the registers; gate `66-winprob-ladder.js` is 36 assertions with the
+  shipped #439 bundle as its negative control at **5 pass / 5 fail**.
