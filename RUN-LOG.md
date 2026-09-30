@@ -46,6 +46,7 @@ line names those parts separately.
 | #389 | `uat387-engine-wasm-trap-ply25` (headless UAT lane, P2, broken:true, so it outranked the new tooling lane): the single-file Stockfish traps on two positions of the reference game and the engine line for those positions NEVER arrives, for the rest of the session | not estimated; a broken:true flag outranks the queue | 20:0x | BUNDLE CHANGED - first since #387. app.js md5 ffdbfa5971d6a136a60540d6d98a7fae, stamp '#389 - 2026-09-14 15:40 ET' | measured BEFORE fixing, with two independently written probes: plies 19 AND 25 (the report said 25), TWO WASM traps per session (the report said one), and three revisits each never recovering. After the fix the same revisits return '+2.9 10... Qb4+ ...' and '+5.3 13... Nxd7 ...'. Ply 33 also shows no line and that is CORRECT by design (#374, a mated position gets no query) - a naive 'every ply has a line' gate would have filed a false defect on it | THE MECHANISM, found by reading sfBestLine rather than guessing: it RESOLVES NULL on every failure path and never rejects, so `line` was '' and engCacheRef stored {line:''} as the engine's reply. Cache HIT next visit, no re-query, bare ellipsis for ever. The trap is inside the WASM and is NOT ours; caching its wreckage was. AND THE NUMBER WAS WRONG TOO, which the report did not have: ply 19 read -2.8 where the coach chip says +3.0, because the trapped search delivers a partial score with the wrong sign - also cached permanently. RESIDUAL, said out loud: on the visit where the trap fires the number is still wrong and the line still absent; #389 makes it self-heal on the next visit rather than persist. Recovering the worker is a bigger change and is NOT in this build | GREEN: 26 suites, 1007 PASS, 0 fail (claude/agents/gatelogs/389-all.log) - the rise from 997 is ENTIRELY the new gate 22. NEW GATE gates/regress/22-engline-recovery.js, 10 assertions, AND ITS CONTROL IS THE SHIPPED RELEASE ITSELF - the live #387 bundle goes 4 of 10 red on it with no trial bundle needed. A cross-check I had to abandon on the way: the eval bar is CIRCULAR here (with engOn it renders engLine itself), and the independent coach chip reads empty in that state - two assertions built on it went red on the GOOD bundle before I caught it | |
 | #388 re-gated (chain link 2) | the THIRD finding of `uat-ext-2026-09-14`, which the first #388 pass deliberately did not claim: "five gates have no negative control at all", measured at #383 when the suite was 18 | not estimated; the tally was cheap, the control that came out of it was not | 18:4x | NO BUNDLE CHANGE - app.js untouched at md5 ae5ebbc4497645dd19a7215a0402010e | re-derived gate by gate against the current 25: 23 of 25 proved red HERE, 2 (45-play-setup, 46-play) resting on their authors' recorded evidence which I read but did not reproduce, and FOUR carrying a named internal gap. Then ran the first item off the list: 13-play-after-moves, the only suite never deliberately controlled | THE TALLY IS NOT THE FINDING. "Does this gate have a control" is the wrong question and #388 is the proof: 21-review-brilliant HAD one, red 2 of 7 at #381, recorded clean - and it was the gate that then passed 7 of 7 against a changed sentence, because the control broke the PLAY-OUT BUTTON and nothing had ever broken the SENTENCE. Each ASSERTION is proved able to fail or it is not, which means the assertion total is not a coverage figure and goes UP when someone adds a check that cannot fail. Full tally in claude/agents/CONTROL-COVERAGE-2026-09-14.md | GREEN: 25 suites, 997 PASS, 0 fail (claude/agents/gatelogs/388b-regate-of-the-387-bundle.log - it ran against the #387 BUNDLE and its footer says so) - the rise from 990 is ENTIRELY gate 13 going 11 -> 18. GATE 13's TWO CONTROLS: a constant 90% board went 3 of 11 red and only ONE of the three was the point - both headline assertions PASSED at both geometries on a board reading 338 instead of 351, because each compares the board to ITSELF; and the MOVES panel's reservation removed went 2 of 11 red on exactly the k8 lines (board 375->279, top 103->80.2), so the SUBJECT was guarded while the SIZE was not. Numbers now pinned per geometry AND per configuration; the same bundles fire 8 of 18 and 4 of 18, and control A now fires at 390 where nothing about the board fired before. Seventh gate fixed by the same rule: PIN THE NUMBER | no new commit of app.js; one gate, one new document and the evidence |
 | #438 | landscape game over: the row keeps the LIVE controls and the rail clips them | 150 min (02:20Z) | 02:19:40Z | n/a (pushed straight to main) | 165.1 min | +15 | GATES GREEN #438, 45 suites, 3002 PASS / 0 fail (438-all.log, md5 166a99dd02e5) | 92ace82 (pushed 04:32Z) |
+| #439 | once a game is over, it is over: a pawn promoted into a game that had already ended on time — and the board itself still took moves after a resign | 175 min (05:20Z) | 05:19:49Z | n/a (pushed straight to main) | **191 min** (05:19:49Z → 08:30:36Z, both ends from `date -u`, never estimated) | +16 | GATES GREEN #439, 46 suites, 3060 PASS / 0 fail (`439-all.log`, md5 `0099cb784ca0`, `verify-log.sh` OK plain, `--this-bundle` and `--on-main`) | `dc5bacd` (pushed 08:29Z) |
 
 ## The four numbers (charter), first measured at the #372 close-out, 2026-09-12 20:52 ET
 | close-out | open P0 | open P1 | coverage (screens fully specced AND tested, of 6) | regression assertions (PASS lines, gates.sh) |
@@ -241,6 +242,7 @@ the end - but ONE session should hold the pen, and it should be the one with pus
 | close-out | open P0 | open P1 | coverage (screens fully specced AND tested, of 10) | regression assertions |
 |---|---|---|---|---|
 | #437 | **12** | **83** | 0 of 10 | **2915** (`437d-all.log`, bundle md5 `5751da3ce0d9`, `verify-log.sh` OK with `--this-bundle`) |
+| #439 | **13** | **96** | 0 of 10 | **3060** (`439-all.log`, bundle md5 `0099cb784ca0`, `verify-log.sh` OK with `--this-bundle` AND `--on-main`) |
 
 **THE RULE, so the number can be re-derived rather than trusted.** Unchanged from #434, #435 and #436 so the
 series stays comparable: a job is OPEN when `status` is not in {done, closed, rejected, withdrawn, parked,
@@ -322,3 +324,57 @@ second recorded instance, and the first one caught itself.
 **The blind pair, second build running with two upheld vetoes and both doors changing shipped code.** Unique to A
 10, unique to B 7, common 2 — B's share 37% against a 20% floor. No Lincoln-Petersen point estimate published at
 an overlap of 2, for the second consecutive build.
+
+## #439 — once a game is over, it is over
+
+**The job named the promotion picker and said the clock was the only way in. It was wider than that, and the
+widening is the whole build.** Measured on the real shipped #438 bundle at 375x730 and 320x568: after *any*
+ending that is not checkmate, **the board itself still accepted moves**. A **resigned** game took `3.Bc4` vs
+Computer (4→5) and `1…e5` in Pass & Play (1→2); a game lost on **time** did the same (4→5). Resign is one tap
+from the ⋯ sheet of every game and needs no clock at all. A **mated** game correctly refused (4→4), and that
+counter-example is what located the hole in `playEnd` rather than in the board-status check.
+
+**The fix changed shape twice, and neither time was my own judgement.** First I guarded the two callers I found
+by grepping the committer's call sites — an **absence claim**, and it was wrong: `onPtrUp` reaches the committer
+through a helper, so a piece **picked up while the game was live and released after the ending** still landed a
+move (`3...Nf6` into "Time! White wins"). My gate could not see it, because the harness drives every move as
+tap-then-tap and never holds the pointer across a state change. Antagonist A found it and proposed the better
+repair: **guard the committer, not its callers**, so "how many routes are there" stops being a claim that must be
+re-audited every build. Second, the picker guard had **no mode term** — `playEnd` is cleared only by `fullReset`,
+so it survives into Review, and the unscoped version **silently swallowed a promotion on the analysis board**, two
+taps from any finished game. I found that re-reading my own diff; antagonist A found it independently by driving
+it. That one would have been worse than the defect it fixed.
+
+**Four numbers I published were wrong or unscoped, each withdrawn where it was written [R18]:** the class sweep of
+"two sites" (an absence claim that missed a helper); a green of "47 PASS / 0 fail" that was **two subset runs
+added together** while the control it was compared against was one process; a negative-control count of "12 pass
+/ 1 FAIL" published without its `CT_B65=A` scope; and an open-P1 figure of 63 taken off **page one** of a paged
+collection, where the real figure on the lane's own rule is **96**.
+
+**THE SUITE WENT RED AND IT WAS MY OWN CONTENTION, NOT THE APP.** `26-invariants`' icon drift guard gained a 16px
+entry at 375x568 and read exactly like a product regression. It was the puzzle **retry** control: the gate's own
+control count went 51→52, *exactly one extra element*, so the puzzle walk had ended in a **failed** state because
+I was running the blind antagonist pair and the auditor — three more browsers — while a timing-sensitive suite
+ran. A clean uncontended re-run reproduces shipped #438 to the number (10 icon heights, 51 controls). The lock
+added at #419 only knows how to see a second `gates.sh`, while this procedure tells every build to run three
+subagents, so it is filed as a P1 rather than charged to me alone:
+`jobs/the-suite-lock-does-not-see-the-build-lanes-own-subagent-browsers-2026-09-30`. Cost ~45 minutes and a
+restarted suite.
+
+**Three passes, and the blind pair's overlap was ZERO.** Unique to A 8, unique to B 7, **common 0** — so no
+Lincoln-Petersen estimate is publishable, for the third consecutive build, and this time because the estimator is
+*undefined* rather than merely noisy. B's share is 47% against the 20% floor, so the pairing keeps earning its
+budget; but the zero overlap is worth the orchestrator's attention, because the pair's value and the estimate's
+availability are in direct tension and this run is the clean demonstration. The **auditor** then did what neither
+antagonist did: it drove puzzle, lesson practice, a new game, the analysis board and a Rematch **in one page with
+no reload** after a Play game ended — the exact state the mode scoping exists to survive — and everything still
+accepted moves. It also **measured** the threefold auto-draw closed (#438 accepts `5.e4` after `Draw Threefold
+repetition`, 8→9; #439 refuses, 8→8), which my own gate's NOT-CHECKED list had called "fixed by construction but
+unmeasured", and it **killed four of its own leads with controls** rather than filing them.
+
+**Filed, not fixed, and said plainly:** a stray board tap during promotion silently commits a **queen** the player
+never chose (pre-existing, measured identical on #438); the picker survives `Back` and swallows the first tap on
+any control (both pre-existing, same cause as the P0 — the picker's lifetime is not tied to the position it was
+opened against, now **four** known triggers); `playEndRef` lags `playEnd` by one effect flush; and `applyMv`, the
+engine's own reply path, appends a move **without** going through the guarded committer — doubly guarded, and the
+auditor measured the resign-mid-search half safe while the bot-flagging-mid-search half is still undriven.
