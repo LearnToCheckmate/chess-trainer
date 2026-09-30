@@ -184,12 +184,17 @@ L.run(async()=>{
           var gone=liveL.filter(function(t){return overL.indexOf(t)<0;});
           L.say(gone.length===1&&/resign/i.test(gone[0]),
             G+k.id+'10 THE DEFECT, as a SET DIFFERENCE so a rename cannot make it pass: the ONLY thing the finished sheet drops relative to the live sheet is the resign control. On the shipped #436 it drops NOTHING, because stepping back resurrected it, and resign() returns immediately on getStatus(game) - a second enabled-but-inert control',{live:liveL.join(' | '),over:overL.join(' | '),dropped:gone});
-          // 11 THE CAPABILITY, added after antagonist B measured that this build's first draft took away the LAST
-          // route to Flip on a finished game. The row gives Flip up at game over and #371's comment claimed the sheet
-          // carried it; measured, it did not, on any bundle. So Flip must be reachable somewhere in every finished state.
+          // 11 FLIP IS ABSENT AT GAME OVER, AND THAT IS KUNAL'S DECISION RATHER THAN THIS BUILD'S OPINION.
+          // #437 first ADDED Flip to this sheet, because antagonist B measured that fixing the row above removed
+          // the last route to it - and that was WRONG, caught by the suite going red on 46-play.js. The question
+          // was already answered: decisions/q-play-flip-gameover (Kunal, #390) says "Flip a finished game in
+          // Review instead", with no holding note. So the route is the Review screen BY DECISION, and what #437
+          // removed was an ACCIDENTAL route that existed only through the defect this gate covers - stepping back
+          // rebuilt the live row and Flip returned with it. This assertion pins the decided behaviour at the ply
+          // the other assertions reach, so the accidental route cannot come back unnoticed. 46-play.js:282 asserts
+          // the same property at the terminal ply; this is the stepped-back half, which that gate never visits.
           var flipInRow=backRow.labels.indexOf('Flip')>=0, flipInSheet=overL.some(function(t){return /flip/i.test(t);});
-          L.say(flipInRow||flipInSheet,G+k.id+'11 CAPABILITY: the board can still be flipped on a finished game - Flip reachable in the row or the sheet',{flipInRow:flipInRow,flipInSheet:flipInSheet,sheet:overL.join(' | ')});
-          L.say(!(flipInRow&&flipInSheet),G+k.id+'11b and it is offered ONCE, not twice',{flipInRow:flipInRow,flipInSheet:flipInSheet});
+          L.say(!flipInRow&&!flipInSheet,G+k.id+'11 per decisions/q-play-flip-gameover (Kunal, #390: "Flip a finished game in Review instead"), Flip is offered NEITHER in the row NOR in the sheet on a finished game stepped back - the accidental route the old keying opened has not come back',{flipInRow:flipInRow,flipInSheet:flipInSheet,sheet:overL.join(' | ')});
         }
       }
     }

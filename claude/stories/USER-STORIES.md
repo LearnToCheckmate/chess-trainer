@@ -424,18 +424,21 @@ The clauses, each one measurable:
    and that is exactly what discriminated them — every red on the #436 control is in the checkmate block.
    Anyone reading the job would have expected 3 of 3 to redden and 1 of 3 does.
 
-6. **Whatever the finished-game row gives up, the player can still reach.** *(Added #437 after antagonist B
-   measured that this clause's own first implementation broke it.)* The row drops Flip when the game ends, and
-   #371's comment claimed the More sheet carried it. MEASURED, on the shipped #436 and on #437's first
-   candidate: it did not, on any bundle. At 375x730 after 1.f3 e5 2.g4 Qh4# the play sheet reads
-   [New game, Analyze, Copy moves], and a sweep of every painted button and [role=button] for /flip/ returns
-   NOTHING — the only "Flip board" item in the file belongs to the REVIEW sheet. So Flip had no route at game
-   over, and the single way back was clause 1's own defect: step back, the row rebuilt itself live, and Flip
-   returned with it. Fixing clause 1 without this one therefore REMOVES a capability, which decision rights
-   call red rather than amber. The sheet now carries Flip under exactly the condition the row drops it, so it
-   is reachable once and never twice. And the gap was wider than the checkmate path: on #436, after a
-   RESIGNATION or a DRAW, Flip was unreachable at every ply, because `playEnd` already held the finished row
-   and the sheet had nothing — only checkmate restored it, by accident, through the bug.
+6. **What the finished-game row gives up must be given up BY DECISION, not by accident — and this clause is
+   written the way it is because #437 got it wrong in both directions before getting it right.** The row drops
+   Flip when the game ends. The source comment at chess.jsx:6273 claimed the More sheet carried it; MEASURED on
+   every bundle, it did not — the only "Flip board" item in the file belongs to the REVIEW sheet. So #437's
+   antagonist B was right that fixing clause 1 closed the last route to flipping a finished game, and #437 then
+   added Flip to the play sheet to restore it. **That was wrong, and the full suite caught it**: Kunal had
+   already answered the question at #390 — `decisions/q-play-flip-gameover`, choice *"Flip a finished game in
+   Review instead"*, with no holding note. So the route to flipping a finished game IS the Review screen, by his
+   decision; this row is right to drop Flip, the play sheet is right not to carry it, and
+   `gates/regress/46-play.js`'s assertion that Flip is nowhere after a game ends is ENDORSED rather than merely
+   recorded (its own "NEEDS-KUNAL K-PL-4" label is stale by five builds and is filed separately). What clause 1
+   removed was an ACCIDENTAL route that existed only through the defect — stepping back rebuilt the live row and
+   Flip came back with it — and removing that is consistent with his answer rather than a regression against it.
+   The measurable form: on a finished game, at the terminal ply and at every previewed ply, Flip is offered
+   neither in the row nor in the play sheet, and the wrong source comment does not come back.
 
 7. **The clause binds in every ORIENTATION, and #437 does NOT satisfy it — stated as a residual, with the
    number.** *(Added #437 from both its antagonists, who found this independently from different doors.)* The
