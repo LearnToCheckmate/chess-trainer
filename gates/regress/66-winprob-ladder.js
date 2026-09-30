@@ -51,7 +51,12 @@ const R=require('../drive/review');
 
 const BUNDLE=process.env.CT_APP||path.join(__dirname,'..','..','app.js');
 // The five cut-offs #440 ships, and the centipawn cut-off each one is the eval-0 equivalent of.
-const WANT=[[1.3804,15,'Best'],[3.6754,40,'Excellent'],[8.2097,90,'Good'],[14.3166,160,'Inaccuracy'],[26.4636,320,'Mistake']];
+const WANT=[[1.3804,15,'Best'],[3.6754,40,'Excellent'],[8.2096,90,'Good'],[14.3166,160,'Inaccuracy'],[26.4635,320,'Mistake']];
+// 8.2096 AND 26.4635, NOT ...97 AND ...36, AND THE LAST DIGIT IS THE WHOLE ASSERTION [antagonist, #440].
+// Rounded up, those two bands invert to 90.000150cp and 320.000286cp - just ABOVE their integers - so at
+// eval 0 a loss of exactly 90 graded Good where #439 said Inaccuracy, and 320 graded Mistake where #439
+// said Blunder. Both reachable: loss is an integer in the Stockfish path. A27 below is the assertion that
+// would have caught it and A6..A10 could not, because their tolerance is 0.01cp against a 1.5e-4cp error.
 
 L.run(async()=>{
   // ════════ BLOCK A - THE LADDER, AS SHIPPED, PER INPUT ════════
@@ -98,6 +103,19 @@ L.run(async()=>{
              clause:eb===0?'(i) must be Blunder':(d<10?'(ii) must NOT be Blunder':'unconstrained')});
       n++;
     }
+    // A27 THE SWEEP THAT ACTUALLY DISCRIMINATES, added after the antagonist broke the headline claim.
+    // A6..A10 invert each band and compare to 0.01cp, which cannot see an error of 1.5e-4cp - and an error
+    // that small still moves a LABEL, because loss is an integer and a band can land on the wrong side of
+    // one. So assert the thing the claim actually says: at eval 0 the shipped win-percentage ladder and the
+    // old centipawn ladder agree at EVERY integer loss. 1501 inputs, and it goes red on the ...97/...36
+    // constants at exactly two of them.
+    const oldLadder=(l)=>l<15?'Best':l<40?'Excellent':l<90?'Good':l<160?'Inaccuracy':l<320?'Mistake':'Blunder';
+    const mismatches=[];
+    for(let l=0;l<=1500;l++){const a=lab(drop(0,-l,'w')),b=oldLadder(l);if(a!==b)mismatches.push({loss:l,shipped:a,pre440:b});}
+    L.say(mismatches.length===0,
+      'A27 at eval 0 the shipped ladder agrees with the pre-#440 centipawn ladder at all 1501 integer losses - the claim that a LEVEL position is unchanged, asserted over its whole input space rather than at five boundaries',
+      {inputs:1501,mismatches:mismatches.length,first:mismatches.slice(0,4)});
+
     // A25 THE CAP, which is a product statement and not a bug: a drop is bounded by the chances you had.
     const capped=lab(drop(-1200,-100000,'w'));
     L.say(capped==='Best','A25 at -1200cp every move grades Best - the cap is real and is the published behaviour',

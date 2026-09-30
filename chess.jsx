@@ -479,7 +479,14 @@ function classifyByLoss(loss){
   if(l<320)return 'Mistake';
   return           'Blunder';
 }
-const CLS_BANDS=[[1.3804,'Best','#6fd66f','★'],[3.6754,'Excellent','#9fcf6f','✓'],[8.2097,'Good','#c9d06a','·'],[14.3166,'Inaccuracy','#f0cf5e','?!'],[26.4636,'Mistake','#f0a24e','?']];
+// THE LAST DIGIT OF TWO OF THESE IS NOT COSMETIC [antagonist, #440]. Rounded to 4dp, the Good and
+// Mistake bands inverted to 90.000150cp and 320.000286cp - just ABOVE their integers - so at eval 0 a
+// loss of exactly 90 graded Good where #439 said Inaccuracy, and a loss of exactly 320 graded Mistake
+// where #439 said Blunder. Both are reachable: evW is Math.round(evalPawns*100), so loss is an integer
+// in the Stockfish path. One of the two is the Blunder/Mistake boundary, at eval 0, which is the single
+// place this build claims nothing changes. 8.2096 and 26.4635 invert to 89.999034 and 319.998777, and
+// the corrected ladder now agrees with #439 at EVERY integer loss from 0 to 1500 - swept, not argued.
+const CLS_BANDS=[[1.3804,'Best','#6fd66f','★'],[3.6754,'Excellent','#9fcf6f','✓'],[8.2096,'Good','#c9d06a','·'],[14.3166,'Inaccuracy','#f0cf5e','?!'],[26.4635,'Mistake','#f0a24e','?']];
 function classify(drop){
   const d=Math.max(0,drop||0);
   for(let k=0;k<CLS_BANDS.length;k++){const b=CLS_BANDS[k];if(d<b[0])return{label:b[1],c:b[2],i:b[3]};}
@@ -6005,9 +6012,15 @@ export default function App(){
                     {['w','b'].map(sd=>{const [val,idx,on]=fn(K[sd]);const can=idx!=null;return(<button key={sd} onClick={()=>go(idx)} disabled={!can} style={{textAlign:'center',background:on?'rgba(255,255,255,.06)':'none',border:on?'1px solid rgba(255,255,255,.18)':'none',borderRadius:9,padding:'4px 0',color:on?'#fff':'rgba(255,255,255,.3)',fontWeight:800,fontSize:val.length>4?'clamp(12px,2.8vw,13px)':'clamp(16px,3.8vw,18px)',cursor:can?'pointer':'default',lineHeight:1.2,whiteSpace:'nowrap'}}>{val}</button>);})}
                   </div>))}
               </div>);})()}
-            {(()=>{const moments=review.analysis.map((o,i)=>({o,i})).filter(({o,i})=>{const mc=i%2===0?'w':'b';if(S.userColor&&mc!==S.userColor)return false;const L=o.cls&&o.cls.label;const _S=o.sel||classifyByLoss(o.loss||0);/* #440: selected on the old ladder for the same reason as the drill pool. This list was ALREADY sorted by
-   o.loss and only its filter was keyed to the label, which is the tell that loss is its natural key. It
-   still excludes a move the new ladder calls Miss, as it always did. */return (_S==='Blunder'||_S==='Mistake')&&L!=='Miss';}).sort((a,b)=>(b.o.loss||0)-(a.o.loss||0)).slice(0,3);if(!moments.length)return null;return(
+            {(()=>{const moments=review.analysis.map((o,i)=>({o,i})).filter(({o,i})=>{const mc=i%2===0?'w':'b';if(S.userColor&&mc!==S.userColor)return false;const _S=o.sel||classifyByLoss(o.loss||0);/* #440: selected on the old ladder for the same reason as the drill pool - this list was ALREADY sorted
+   by o.loss and only its filter was label-keyed, which is the tell that loss is its natural key.
+   THE MISS EXCLUSION IS REPRODUCED FROM THE OLD LADDER, NOT FROM THE NEW LABEL [antagonist, #440]. The
+   first cut of this filter excluded `o.cls.label==='Miss'`, i.e. what the NEW ladder calls Miss - a
+   strictly smaller set, because the Miss overlay only fires when the new base is already Mistake or
+   Blunder. So a move the OLD ladder called Miss but the new one softens to Inaccuracy was newly IN a
+   list it used to be out of: 125 integer (evalBefore, evalAfter) grid points, mover-POV evalBefore
+   +200..+310, a won position thrown back to roughly level. Miss's own operands are on the row, so the
+   old overlay is recomputed here and the set is identical to #439's by construction. */const _sgn=(i%2===0)?1:-1,_bm=_sgn*(o.evalBefore||0)*100,_pm=_sgn*(o.evalAfter||0)*100;const _oldMiss=(_S==='Mistake'||_S==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130;return (_S==='Blunder'||_S==='Mistake')&&!_oldMiss;}).sort((a,b)=>(b.o.loss||0)-(a.o.loss||0)).slice(0,3);if(!moments.length)return null;return(
               <div style={{display:'flex',flexDirection:'column',gap:7}}>
                 
                 {false&&moments.map(({o,i})=>{const L=o.cls.label;const col=L==='Blunder'?'#ec5c4e':'#f0a24e';return(
