@@ -2,6 +2,41 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#445run, 2026-09-30T22:4xZ (`build__1790803179000`).** SEVENTH consecutive build to stand down on the push,
+> same unchanged cause: the gate-66 B1 / mate-floor decision is still Kunal's and still unasked. Nothing pushed to
+> main; `origin/main` is still `1f6939e` (#439), re-read by `git ls-remote` this run. The pile is now
+> `claude/cool-noether-aqsc4k` at `e74c7b8` — **28 commits ahead and 0 BEHIND**, so still a clean fast-forward.
+> Per the mechanism above, do not trust that sha: re-derive it with `git ls-remote origin | grep cool-noether`.
+>
+> **WHAT THIS RUN SETTLED, so nobody re-measures it: the pile head IS fully gated, and its red set is exactly the
+> six assertions everyone has been citing.** `claude/agents/gatelogs/442-all.log` is a **47-gate full suite** on
+> bundle md5 `0bbc5c85b1df`, which is byte-identical to the pile head's committed `app.js` (`git diff 0463dce
+> e74c7b8 -- app.js chess.jsx` is empty). It reads `GATES RED #442`, 3108 PASS, and the only failures are gate
+> 26's five and gate 66's B1 — the twelve `^FAIL` grep hits are those six printed twice, once inline and once in
+> each gate's own summary recap, which the per-gate footers confirm (26: "5 FAIL lines", 66: "1 FAIL lines").
+> `verify-log.sh` correctly REFUSES it as a push gate. So "nothing else on the tree is red" is now MEASURED on the
+> actual bundle rather than inferred from two targeted gate runs, and the Desk draft's promise to Kunal is sound.
+> **The standing NOT-CHECKED item is narrower than three runs have written it:** what is unmeasured is the other 46
+> gates on the *no-floor control*, not on the tree.
+>
+> **WHAT THIS RUN DID INSTEAD:** the rotating audit, owed for a fourth build, at its documented resume point —
+> gate `11-lesson.js`'s SHORT AND NARROW block and `12-hint.js` from the top. Gate 11 is sound and its one real
+> weakness is already filed. On gate 12 I formed two hypotheses and **the control disproved both** (the 350ms
+> baseline is settled — one distinct board top, final by 50ms; and the container does grow to its 3-line clamp, so
+> #396's clamp-vs-clip rule is satisfied). The finding is what survived: `-webkit-line-clamp:3` caps
+> `scrollHeight`, so line 19's `scrollHeight <= clientHeight` holds BY CONSTRUCTION whenever the clamp is what
+> cuts. It goes red only above ~210 chars; the shipped corpus is 17 hints with a **max of 121**, and the gate loads
+> exactly ONE of them at 54 chars. Driven over all 17: **3 are clamped and lose text at `se`, and line 19 reads
+> PASS on every one.** Gate 12 visits `se` and passes there only because it loads the shortest hint in the set.
+> Filed as `jobs/gate-12-clipping-assertion-cannot-fail-while-the-clamp-is-what-cuts-2026-09-30`; write-up and
+> three reproducible probes at `claude/agents/445run-gate12-hint-clamp-audit.md` and
+> `claude/agents/probes/445run-probe12-*.js`.
+>
+> **NOT CHECKED by me:** the no-floor control over the other 46 gates (unchanged); the three geometries gate 12
+> does not run; whether any hint reaches the screen from outside that 17-string puzzle corpus. The rotating audit
+> now resumes at `13-*`. **#443, #444 and #445 are all still FREE build numbers** — I built no bundle and stamped
+> nothing; `#445run` is a run label following `#443run`/`#444run`, not a build stamp.
+
 > **SECTION 0a WAS LAST WRITTEN BY #398; THE LIVE LINE IS STILL #439 (`1f6939e` on main; the #439 bundle is sha
 > `dc5bacd`, md5 `0099cb784ca0`). #440, #441 and #442 are all BUILT AND UNPUSHED. The newest branch carrying them
 > is `claude/cool-noether-r1k2ir` at `72f5d48` (24 build commits + one evidence commit, a clean fast-forward onto
