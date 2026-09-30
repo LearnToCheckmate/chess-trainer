@@ -414,12 +414,42 @@ The clauses, each one measurable:
    takeback block at chess.jsx:3940 carries a comment saying exactly this ("isOver is NOT usable here ... on a
    finished game it reads false as soon as he steps back a move") and worked around it for itself alone. A
    lesson filed as a fact about one call site does not travel; this clause is what it should have become.
-5. **THE DEFECT WAS NARROWER THAN THE JOB THAT RAISED IT ASSUMED, and the clause records that rather than
-   quietly inheriting it [R18].** The old predicate was `(isOver||playEnd)`, so the playEnd term was already
+5. **THE DEFECT WAS NARROWER THAN THE JOB ASSUMED ON ONE AXIS AND WIDER ON ANOTHER, and saying only
+   "narrower" was itself a half-truth that #437's antagonist A corrected [R18].** Narrower in TERMINAL KINDS,
+   as set out below. WIDER in LAYOUT BRANCHES and in SURFACES: the swap is `(!wide&&_gameOver)`, so a whole
+   orientation was outside the diagnosis (clause 7), and the More sheet was outside it entirely until the
+   class was counted (clause 3). The terminal-kind half: The old predicate was `(isOver||playEnd)`, so the playEnd term was already
    independent of the previewed ply: a game ended by RESIGNATION or by a DRAW was never broken. Only the
    getStatus half was, which means checkmate and stalemate. The case drives all three terminal kinds anyway,
    and that is exactly what discriminated them — every red on the #436 control is in the checkmate block.
    Anyone reading the job would have expected 3 of 3 to redden and 1 of 3 does.
+
+6. **Whatever the finished-game row gives up, the player can still reach.** *(Added #437 after antagonist B
+   measured that this clause's own first implementation broke it.)* The row drops Flip when the game ends, and
+   #371's comment claimed the More sheet carried it. MEASURED, on the shipped #436 and on #437's first
+   candidate: it did not, on any bundle. At 375x730 after 1.f3 e5 2.g4 Qh4# the play sheet reads
+   [New game, Analyze, Copy moves], and a sweep of every painted button and [role=button] for /flip/ returns
+   NOTHING — the only "Flip board" item in the file belongs to the REVIEW sheet. So Flip had no route at game
+   over, and the single way back was clause 1's own defect: step back, the row rebuilt itself live, and Flip
+   returned with it. Fixing clause 1 without this one therefore REMOVES a capability, which decision rights
+   call red rather than amber. The sheet now carries Flip under exactly the condition the row drops it, so it
+   is reachable once and never twice. And the gap was wider than the checkmate path: on #436, after a
+   RESIGNATION or a DRAW, Flip was unreachable at every ply, because `playEnd` already held the finished row
+   and the sheet had nothing — only checkmate restored it, by accident, through the bug.
+
+7. **The clause binds in every ORIENTATION, and #437 does NOT satisfy it — stated as a residual, with the
+   number.** *(Added #437 from both its antagonists, who found this independently from different doors.)* The
+   row's swap is `(!wide&&_gameOver)`; #437 fixed the second operand and left the first, and its gate is
+   portrait at both geometries, so `wide` is false in every one of its browser sessions and this state is
+   unreachable by it. MEASURED at 730x375, Pass & Play, at the TERMINAL PLY with no Back tap: the row is
+   Moves · Back · Forward(disabled) · Hint · Flip · More — no Review, no Rematch — Hint is 27x51 at x=362
+   y=216 with disabled:false, and tapping it leaves the 64-square signature byte-identical, with the
+   instrument validated moving in the same session and geometry three taps earlier. Identical on #436, so it
+   is pre-existing and not a regression; it is the same defect, unfixed, in the orientation the clause also
+   covers. A second half comes with it: the side rail [233,26,494,216] has clientHeight 216 and scrollHeight
+   241 at game over, so the bottom 25px of all six controls — half of a 51px row, their own centres included —
+   is unpainted and not hit-testable, recoverable only by scrolling a rail that shows no affordance.
+   `jobs/landscape-game-over-keeps-the-live-row-and-the-rail-clips-half-of-it-2026-09-30`.
 
 ID NOTE, because this project has already paid for one id collision (flags/suite-id-collision-tc-r). US-PL-01
 to US-PL-10 and TC-PL-001 to TC-PL-030 are cited by gates/regress/46-play.js as living in
