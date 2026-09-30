@@ -2419,3 +2419,42 @@ off by its own scroller. That is pre-existing, unchanged by this build, and file
 `jobs/landscape-game-over-keeps-the-live-row-and-the-rail-clips-half-of-it-2026-09-30`. It is not fixed here
 because this build's gate only covers portrait, and a landscape change with no landscape assertion is how this
 project has been burned before.
+
+---
+## #438 (2026-09-30) — sideways, a finished game now offers Review and Rematch, and the whole row is tappable
+
+Nothing new from Kunal was raised or acted on this build; this entry is the record of what #438 changed that a
+player would notice, appended per the append-only rule and per the convention #437 set.
+
+**Fixed — and it was worse than #437 reported.** #437's entry above said that holding the phone **sideways**, a
+finished game still showed the live row with the dead Hint and "the bottom half of that row is cut off". That
+was right about portrait-versus-sideways and **understated what sideways actually did**, which this build
+measured rather than read. Two corrections to that sentence, both mine to own because I inherited it:
+
+- **Against the computer, the ENTIRE row was dead to a finger — not half of it.** 0 of 12 sampled points down
+  the row were reachable; every button's centre included. Two controls that only ever appeared sideways (a bot
+  chip and an Elo slider) were pushing the row past the end of its own scroller. Against a human opponent those
+  two never rendered, so the same screen lost only the bottom strip. One defect, two very different severities,
+  and the first gate I wrote could not see the worse one because all six of its sessions were Pass & Play.
+- **Review was never the button being cut.** It was 100% inside its box the whole time; what was clipped sat
+  *beneath* it. "Half of Review is clipped" was wrong and is withdrawn.
+
+What the screen does now: a finished game sideways shows the same controls in the same order as it does upright
+— **Review** and **Rematch** in place of the dead Hint — and every control is tappable down its full height, at
+every landscape size measured (730x375, 844x390, 780x360, 711x320 and 667x375). Stepping back through the moves
+does not rebuild it. The two sideways-only controls are gone, because once the row was fixed they were
+unreachable code; the `− ≈NNN Elo +` pill stays, and moved to sit **below** the row rather than above it.
+
+**Not changed, and said plainly.** (1) On a sideways screen shorter than about **352px** the Elo pill gets
+sliced. Your own phone is 375px tall held sideways, so it is clear of this by 23px, and so is every other
+geometry this project keeps as a column except one: the 320-wide narrow-phone column becomes **320px tall**
+sideways, and there the pill is cut. The pill moved below the row specifically to buy 24px of clearance at every
+height above 352, so this is the residual of the fix rather than something left untouched — before the fix that
+same short-landscape case had **six** controls unreachable, so it is better than it was and not yet right. (2) A defect
+this build's audit found on a **different** screen: a pawn can still be promoted into a game that has already
+ended on time, appending a move after the result. That is **pre-existing** — measured by running the same probe
+against the #437 bundle and getting byte-for-byte identical output — so it is filed as a P0 for its own build
+rather than patched into this one:
+`jobs/a-pawn-can-be-promoted-into-a-game-that-already-ended-on-time-2026-09-30`. (3) The classic Review ply row
+still spills both ends at 320px wide. #437 left that citing an unsettled decision; **that reason was false and
+is withdrawn** — the decision was answered on 2026-09-22 — so it is simply the next item, not a blocked one.
