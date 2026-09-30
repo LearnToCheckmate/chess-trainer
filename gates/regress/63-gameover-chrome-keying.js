@@ -109,6 +109,11 @@ L.run(async()=>{
   for(const k of kinds){
     const b=await L.launch({geo,name:'gk-'+k.name.replace(/ /g,'-')+'-'+geo});await b.open();
     await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^\u25b6 Start game$/,{wait:900});
+    // Read the LIVE sheet first, at ply 0 where the game is plainly playable. This is the positive control that
+    // assertion 10's set difference is taken against; without it the absence check is a search for a word.
+    await b.tapText(/^More$/).catch(function(){});await b.settle(700);
+    const liveSheet=(await sheetOf(b))||[];
+    await b.page.mouse.click(5,5);await b.settle(450);
     await k.drive(b);
 
     const res=await resultText(b);
@@ -164,14 +169,27 @@ L.run(async()=>{
         // finished game - and resign() returns immediately on getStatus(game), so it is inert exactly as the Hint
         // was. At the terminal ply isOver is already true and Resign is already hidden, so this changes no state
         // that was correct; it only stops the stepped-back state from resurrecting it.
-        await b.tapText(/^More$/).catch(()=>{});await b.settle(700);
-        const sheet=await sheetOf(b);
+        await b.tapText(/^More$/).catch(function(){});await b.settle(700);
+        const overSheet=(await sheetOf(b))||[];
         await b.shot('gk437-'+geo+'-'+k.name.replace(/ /g,'-')+'-backx2-moresheet');
-        L.say(!!sheet&&sheet.length>0,G+k.id+'9 ARRIVAL: the More sheet opened on the stepped-back finished game',{n:sheet?sheet.length:0});
-        if(sheet&&sheet.length){
-          const labels=sheet.map(i=>i.label);
-          L.say(!labels.some(t=>/^Resign$|^Tap again to resign$/.test(t)),
-            G+k.id+'10 the More sheet does NOT offer Resign on a finished game stepped back - resign() returns on getStatus(game), so it would be a second inert control',labels.join(' · '));
+        const liveL=liveSheet.map(function(i){return i.label;}), overL=overSheet.map(function(i){return i.label;});
+        L.say(overSheet.length>0,G+k.id+'9 ARRIVAL: the More sheet opened on the stepped-back finished game',{n:overSheet.length});
+        // 9b POSITIVE CONTROL, and it exists because antagonist A proved the absence check below was VACUOUS without
+        // one. A took the shipped #436, renamed the item Resign -> Forfeit and left the defect gating untouched, so
+        // the sheet still resurrected it - and the old assertion PASSED, because it searched for a fixed string that
+        // no longer existed. That is #432's trap in the opposite direction: the check and the thing checked were the
+        // same string. Now the LIVE sheet is read first, through the SAME selector, and the defect is a DIFFERENCE.
+        L.say(liveL.some(function(t){return /resign/i.test(t);}),G+k.id+'9b POSITIVE CONTROL: the LIVE game sheet offers a resign control, read with the same selector the absence check uses - so a rename or removal reddens HERE and names the cause',liveL.join(' | '));
+        if(overSheet.length&&liveL.length){
+          var gone=liveL.filter(function(t){return overL.indexOf(t)<0;});
+          L.say(gone.length===1&&/resign/i.test(gone[0]),
+            G+k.id+'10 THE DEFECT, as a SET DIFFERENCE so a rename cannot make it pass: the ONLY thing the finished sheet drops relative to the live sheet is the resign control. On the shipped #436 it drops NOTHING, because stepping back resurrected it, and resign() returns immediately on getStatus(game) - a second enabled-but-inert control',{live:liveL.join(' | '),over:overL.join(' | '),dropped:gone});
+          // 11 THE CAPABILITY, added after antagonist B measured that this build's first draft took away the LAST
+          // route to Flip on a finished game. The row gives Flip up at game over and #371's comment claimed the sheet
+          // carried it; measured, it did not, on any bundle. So Flip must be reachable somewhere in every finished state.
+          var flipInRow=backRow.labels.indexOf('Flip')>=0, flipInSheet=overL.some(function(t){return /flip/i.test(t);});
+          L.say(flipInRow||flipInSheet,G+k.id+'11 CAPABILITY: the board can still be flipped on a finished game - Flip reachable in the row or the sheet',{flipInRow:flipInRow,flipInSheet:flipInSheet,sheet:overL.join(' | ')});
+          L.say(!(flipInRow&&flipInSheet),G+k.id+'11b and it is offered ONCE, not twice',{flipInRow:flipInRow,flipInSheet:flipInSheet});
         }
       }
     }
