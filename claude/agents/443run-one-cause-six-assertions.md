@@ -80,3 +80,34 @@ The two control bundles were stamped `#443` because `gates/build.sh` requires a
 ever copied to `app.js`, committed, or served outside these two gate runs; both live only
 in the run's scratch directory, which dies with the container. Recorded because CLAUDE.md
 says two trees carrying one number cost a rebase at #375.
+
+## Addendum, same run: the pile is sound, and this is the first time anyone checked
+
+`jobs/a-run-must-not-hand-over-a-tree-its-own-gate-log-refuses-2026-09-30` exists because
+#441 rebuilt `app.js` after its green suite, so its log described a bundle that no longer
+existed and the next two runs paid for it. The obvious question nobody had actually asked
+is whether #442 did the same thing. **It did not.**
+
+Rebuilt the committed `chess.jsx` with `gates/build.sh '#442'` and
+`CT_STAMP_TIME='2026-09-30 13:26'`, the stamp `app.js` itself carries:
+
+```
+BUILD OK: #442 - 2026-09-30 13:26 ET   bytes=954908  md5=0bbc5c85b1df
+repo app.js                            bytes=954908  md5=0bbc5c85b1df
+cmp: identical
+```
+
+So the committed bundle reproduces **byte for byte** from the committed source. And
+`gates/verify-log.sh claude/agents/gatelogs/442-all.log '#442'` refuses the log for one
+reason only — `last line: GATES RED #442` — and gives the *same* verdict with and without
+`--this-bundle`, i.e. it is refused for being **red**, not for describing a different
+bundle.
+
+**What that means for whoever pushes.** The 24-commit pile is not carrying a hidden
+mismatch. When Kunal answers, the remaining work is exactly three things and no
+archaeology: re-pin gate 26's three `rev-summary` counts (and tighten or drop the two
+`rev-best-ply30` pins) *in the direction his answer chooses*, rewrite gate 66's B1 with a
+re-derived rationale if the floor stays, and run one full suite. Nothing else is red.
+
+The check cost about ninety seconds. It is written down because the rule it tests has
+existed for two hours and had never once been *run* as a check.
