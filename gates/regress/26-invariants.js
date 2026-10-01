@@ -496,78 +496,30 @@ const ICON_PIN={320:[16,17,18,19,20,21,22,24,25,27,28],
    two narrow columns have not acquired a new structure, they have converged on the structure his phone always
    had - which is what a fix that removes a wrap should do, and it would not be true of a fix that merely
    separated the wrapped lines. Both pins name their screens, so a screen going silent still goes red. */
-/* #441 RE-PINS EIGHT POPULATIONS, AND THE MEASUREMENT GOES IN BESIDE EACH ONE RATHER THAN THE NUMBER ALONE.
-   #440 re-banded the move grades onto the Lichess win-percentage drop, which is a CONTENT change to the review
-   panel, and every pin below counts a population that content decides. #405's frozen-denominator rule says a
-   pin must not simply be bumped to whatever today prints, so each of the eight is named with what moved and why.
-   MEASURED FIRST, on the #441 bundle, and separately confirmed against the SAME bundle before and after this
-   build's own rev-best change: all eight read identically in both runs, so the pill fix moved the two
-   invariant-4a ink-cut rows and NOTHING here.
-   AND THE PINS ARE PROVED SENSITIVE, which the paragraph above does not do on its own. Run against the shipped
-   #439 bundle (CT_APP, md5 0099cb784ca0) this gate goes 356 pass / 8 FAIL, and the eight failures are exactly
-   these eight pins, each in the OPPOSITE direction (se/rev-summary want 25 got 23; se/rev-best-ply30 want 1 got
-   2; kunal730/rev-summary want 10 got 9; kunal730/rev-why-open want 2 got 1; kunal730/rev-more-sheet want 1 got
-   0; short375/rev-summary want 5 got 4; short375/rev-more-sheet want 1 got 0; short375/rev-best-ply30 want 1 got
-   2). So none of these numbers is loose enough to pass whatever renders. Note what that control also shows: the
-   two invariant-4a CUT rows do NOT fire against #439, because #439 cut two nodes and the pin is two - 4a is not
-   a discriminator between #439 and the fixed #441, which is precisely what a restored pin should look like.
-
-   (a) rev-more-sheet, 0 -> 1 ROWS at kunal730 and short375. MEASURED BOTH WAYS against the #439 control bundle
-       (CT_APP=<#439 app.js>, md5 0099cb784ca0): #439 reports rows [] at BOTH geometries and #441 reports
-       ["1 brilliant | 3 inaccuracies | 6 great"] at both. This is the #430 lesson-practice case again, and that
-       note is twenty lines above: the sheet's counts chips WRAPPED onto two lines under #439, so the scanner -
-       which groups controls that sit side by side - saw no row at all. #441 grades this game 0 blunders and 0
-       mistakes, those two chips are not rendered and the row un-wraps onto ONE line. (#440's handover reports the
-       sheet shortening by 34.0px; that is ITS measurement, not one I re-derived, and nothing here depends on the
-       figure.) A fix that removes a wrap should do this; both pins name their screen, so a screen going silent
-       still goes red.
-   (b) rev-summary, 9 -> 10 ROWS at kunal730 and 4 -> 5 at short375. The grade-count table is ten White|Black
-       pairs and this build changes the counts in it, which is the entire point of the build. The scanner detects
-       a pair as a row only while both numbers sit side by side, so a changed count can make a pair detectable
-       that was not. MEASURED AGAINST THE #439 CONTROL rather than inferred from the after-state alone, and the
-       first version of this note DID infer it and was half wrong [R18]:
-         kunal730  #439 0|1 0|6 5|7 1|2 1|2 2|3 0|1   (7 numeric pairs)
-                   #441 0|1 0|6 5|7 1|3 1|1 2|3 0|3 0|0   (8) -> added pair "0|0"
-         short375  #439 0|1 1|2                        (2 numeric pairs)
-                   #441 0|1 0|6 1|1                    (3) -> added pair "0|6", NOT "1|1"
-       I had guessed "1|1" for short375 from the after-list alone; "1|1" is #439's "1|2" with a changed count, and
-       the genuinely new row is "0|6". Right at one geometry and wrong at the other, which is what picking the
-       new member of a set from one reading gets you.
-   (c) rev-best-ply30, 2 -> 1 OCCLUDED at se and short375. An exclusion that SHRANK, so this is coverage
-       GAINED: one control ("Qe6", 37.3x22.0) that was excluded is now hittable, and only "Qe6" remains.
-   (d) rev-summary 23 -> 25 OCCLUDED at se, and rev-why-open 1 -> 2 at kunal730. THESE TWO ARE COVERAGE LOST
-       AND ARE NOT BEING QUIETLY ABSORBED. Three controls in total are newly hidden from the scanner: two
-       grade-count buttons behind the pinned rev-summary-foot at 320x568, and "Bxb5+!" (62.6x22.0) on the
-       why-open screen at 375x730. The assertion's own text says a growing exclusion "can only ever hide a
-       defect rather than invent one", which is exactly why it is pinned - so the pin moves WITH the loss
-       recorded against it, and the loss is filed as
-       jobs/441-three-controls-left-the-scanners-reach-when-the-grade-counts-changed-2026-09-30 rather than
-       being spent here. If that job comes back saying those three are reachable, these two pins come down
-       again. */
 const ROW_PIN={
   'se/home':1,'se/play-captures':2,'se/play-gameover':2,'se/lesson-demo':3,'se/lesson-practice':3/* #430: was 2, see above */,
   'se/puzzles':2,'se/pz-solved':2,'se/rev-summary':2,'se/rev-ply31':3,'se/rev-last-engine':3,
   'se/rev-why-open':3,'se/rev-more-sheet':0,'se/rev-best-ply30':3,
   'kunal730/home':1,'kunal730/play-captures':2,'kunal730/play-gameover':2,'kunal730/lesson-demo':3,
-  'kunal730/lesson-practice':3,'kunal730/puzzles':2,'kunal730/pz-solved':2,'kunal730/rev-summary':10/* #441 (b): was 9 */,
-  'kunal730/rev-ply31':3,'kunal730/rev-last-engine':3,'kunal730/rev-why-open':3,'kunal730/rev-more-sheet':1/* #441 (a): was 0 */,
+  'kunal730/lesson-practice':3,'kunal730/puzzles':2,'kunal730/pz-solved':2,'kunal730/rev-summary':9,
+  'kunal730/rev-ply31':3,'kunal730/rev-last-engine':3,'kunal730/rev-why-open':3,'kunal730/rev-more-sheet':0,
   'kunal730/rev-best-ply30':3,
   'short375/home':1,'short375/play-captures':2,'short375/play-gameover':2,'short375/lesson-demo':3,
-  'short375/lesson-practice':3/* #430: was 2, see the note on ROW_PIN */,'short375/puzzles':2,'short375/pz-solved':2,'short375/rev-summary':5/* #441 (b): was 4 */,
-  'short375/rev-ply31':3,'short375/rev-last-engine':3,'short375/rev-why-open':3,'short375/rev-more-sheet':1/* #441 (a): was 0 */,
+  'short375/lesson-practice':3/* #430: was 2, see the note on ROW_PIN */,'short375/puzzles':2,'short375/pz-solved':2,'short375/rev-summary':4,
+  'short375/rev-ply31':3,'short375/rev-last-engine':3,'short375/rev-why-open':3,'short375/rev-more-sheet':0,
   'short375/rev-best-ply30':3};
 const COVERED_PIN={
   'se/home':6,'se/play-captures':0,'se/play-gameover':0,'se/lesson-demo':0,'se/lesson-practice':0,
-  'se/puzzles':0,'se/pz-solved':0,'se/rev-summary':25/* #441 (d): was 23, TWO CONTROLS LOST - see the note above */,'se/rev-ply31':1,'se/rev-last-engine':0,
-  'se/rev-why-open':0,'se/rev-more-sheet':15,'se/rev-best-ply30':1/* #441 (c): was 2, coverage GAINED */,
+  'se/puzzles':0,'se/pz-solved':0,'se/rev-summary':23,'se/rev-ply31':1,'se/rev-last-engine':0,
+  'se/rev-why-open':0,'se/rev-more-sheet':15,'se/rev-best-ply30':2,
   'kunal730/home':6,'kunal730/play-captures':0,'kunal730/play-gameover':0,'kunal730/lesson-demo':0,
   'kunal730/lesson-practice':0,'kunal730/puzzles':0,'kunal730/pz-solved':0,'kunal730/rev-summary':24,
-  'kunal730/rev-ply31':0,'kunal730/rev-last-engine':1,'kunal730/rev-why-open':2/* #441 (d): was 1, ONE CONTROL LOST ("Bxb5+!") */,'kunal730/rev-more-sheet':17,
+  'kunal730/rev-ply31':0,'kunal730/rev-last-engine':1,'kunal730/rev-why-open':1,'kunal730/rev-more-sheet':17,
   'kunal730/rev-best-ply30':1,
   'short375/home':6,'short375/play-captures':0,'short375/play-gameover':0,'short375/lesson-demo':0,
   'short375/lesson-practice':0,'short375/puzzles':0,'short375/pz-solved':0,'short375/rev-summary':23,
   'short375/rev-ply31':1,'short375/rev-last-engine':0,'short375/rev-why-open':0,'short375/rev-more-sheet':17,
-  'short375/rev-best-ply30':1/* #441 (c): was 2, coverage GAINED */};
+  'short375/rev-best-ply30':2};
 // TWO OF THESE NUMBERS ARE THE INTERESTING ONES AND BOTH ARE STATED RATHER THAN LEFT TO BE NOTICED.
 // `rev-more-sheet` pins 0 ROWS at every geometry. That is not the exclusion eating the sheet: the sheet's own 15
 // buttons ARE hittable (elementFromPoint returns each one), they simply do not form a side-by-side row - the five

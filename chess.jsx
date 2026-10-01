@@ -418,101 +418,13 @@ function rankMoves(game,depth){
   return scored;
 }
 
-// ═══════════════════════════════════════════════════════════════
-// #440: A MOVE IS GRADED BY WHAT IT COST YOUR CHANCES, NOT BY A CENTIPAWN NUMBER.  (US-R30)
-// Kunal, 2026-09-23, on a game between 2000-strength players: "you're saying they committed like a
-// bunch of blunders, especially at the end." He was right, and "at the end" was the whole clue.
-// classify() saw ONLY the centipawn loss, so one identical 350cp slip was a Blunder at eval 0 - a
-// 28.4-point drop in winning chances, genuinely a blunder - and STILL a Blunder at -1000, where the
-// same slip costs 1.77 points and scores 92.4% move accuracy. Desk q-classify-on-winprob, answered
-// 2026-09-28: "labels-and-accuracy".
-// WHY LICHESS AND NOT CHESS.COM: chess.com's CAPS2 is not published, so there is nothing of theirs to
-// copy except their output, and that output was measured moving 6 accuracy points on the SAME game in
-// two hours (q-match-chesscom-moving-target). Lichess publishes the whole method with exact constants.
-function winPct(cp){ return 50 + 50*(2/(1+Math.exp(-0.00368208*cp)) - 1); }
-// Lichess's published per-move accuracy curve, clamped to a real percentage. It is a function of the
-// DROP alone - the two win percentages only ever enter as their difference - so it takes the drop, and
-// there is then no second place where a before/after pair could be assembled differently.
-function moveAcc(drop){ return Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*Math.max(0,drop||0)) - 3.1669)); }
-// THE ONE PLACE THE DROP IS DEFINED, and it takes the two EVALUATIONS rather than a loss on purpose.
-// Before #440 each of the three call sites computed its own `loss` and only ONE of them clamped at 1500.
-// Under a linear centipawn ladder that difference is invisible, because everything past 320 is a Blunder
-// either way; under a sigmoid it decides the answer. Keying the ladder on the two evaluations retires
-// the disagreement by construction instead of by three matching edits that a later grep has to re-find.
-function winDrop(beforeW,afterW,mover){
-  if(beforeW==null||afterW==null||!isFinite(beforeW)||!isFinite(afterW))return 0;
-  const b=mover==='w'?beforeW:-beforeW, a=mover==='w'?afterW:-afterW;
-  return Math.max(0,winPct(b)-winPct(a));
-}
-// THE FIVE CUT-OFFS ARE OURS, RE-EXPRESSED ON THE NEW SCALE. Amber call, recorded before the change at
-// flags/amber-440-win-percentage-ladder-keeps-our-cutoffs-not-lichess-three. Each number is the drop our
-// old centipawn cut-off equalled AT EVAL 0, where the old ladder was well calibrated - inverting them
-// returns 15.000, 40.000, 90.000, 160.000 and 320.000 centipawns, so a LEVEL position grades exactly as
-// it did before #440 and only a decided position moves. That is Kunal's complaint and nothing else.
-// Lichess's own published thresholds (>=10 Inaccuracy, >=20 Mistake, >=30 Blunder) were measured and
-// REJECTED: at eval 0 they sit at 110, 230 and 377 centipawns, so they would have softened the middlegame
-// nobody complained about, and a 350cp slip at eval 0 would have become a Mistake. Lichess publishes
-// nothing above Inaccuracy, so its thresholds cannot supply our Best/Excellent/Good split in any case.
-// THE BOUNDED CONSEQUENCE, stated because it is a product statement and not a bug: a drop is capped by
-// the winning chances you still had, so from about -1200 centipawns down every move grades Best. Once
-// you are two queens down you cannot make a mistake. Cap table, measured: -200 Blunder, -400 Mistake,
-// -600 Inaccuracy, -800 Good, -1000 Excellent, -1200 Best.
-// THE OLD CENTIPAWN LADDER, KEPT ON PURPOSE AND NOT AS DEAD CODE. #440.
-// A LABEL AND A SELECTION ARE TWO DIFFERENT QUESTIONS, and conflating them is what gate 51 caught:
-// "how much did this move cost your chances" is what the player is TOLD, and it is what #440 made honest.
-// "was there a materially better move here" is what the app SELECTS on - which moves to put in the mistake
-// drill, which to list as key moments, which to offer a best line for - and that question has no position
-// term in it at all. A move that gave away 350 centipawns in a lost game is still a move worth practising;
-// it simply did not cost you the game, so it is no longer CALLED a blunder.
-// WHY THIS EXISTS AT ALL: the first cut of #440 keyed the drill pool on the new label, and on a game the
-// player lost the pool went EMPTY - gate 51 went from 70 pass to `captured: 0, inputs: 0`. That is worse than
-// the defect #440 fixed, and it is the same shape as #439's picker guard silently breaking the analysis board.
-// The class sweep that missed it counted where the label is COMPUTED and not where it is CONSUMED.
-// These are the five cut-offs that shipped up to #439, unchanged, so every pool's population is reproduced
-// BY CONSTRUCTION rather than by a threshold I re-derived.
-function classifyByLoss(loss){
-  const l=Math.max(0,loss||0);
-  if(l<15) return 'Best';
-  if(l<40) return 'Excellent';
-  if(l<90) return 'Good';
-  if(l<160)return 'Inaccuracy';
-  if(l<320)return 'Mistake';
-  return           'Blunder';
-}
-// THE LAST DIGIT OF TWO OF THESE IS NOT COSMETIC [antagonist, #440]. Rounded to 4dp, the Good and
-// Mistake bands inverted to 90.000150cp and 320.000286cp - just ABOVE their integers - so at eval 0 a
-// loss of exactly 90 graded Good where #439 said Inaccuracy, and a loss of exactly 320 graded Mistake
-// where #439 said Blunder. Both are reachable: evW is Math.round(evalPawns*100), so loss is an integer
-// in the Stockfish path. One of the two is the Blunder/Mistake boundary, at eval 0, which is the single
-// place this build claims nothing changes. 8.2096 and 26.4635 invert to 89.999034 and 319.998777, and
-// the corrected ladder now agrees with #439 at EVERY integer loss from 0 to 1500 - swept, not argued.
-const CLS_BANDS=[[1.3804,'Best','#6fd66f','★'],[3.6754,'Excellent','#9fcf6f','✓'],[8.2096,'Good','#c9d06a','·'],[14.3166,'Inaccuracy','#f0cf5e','?!'],[26.4635,'Mistake','#f0a24e','?']];
-function classify(drop){
-  const d=Math.max(0,drop||0);
-  for(let k=0;k<CLS_BANDS.length;k++){const b=CLS_BANDS[k];if(d<b[0])return{label:b[1],c:b[2],i:b[3]};}
-  return {label:'Blunder',c:'#ec5c4e',i:'??'};
-}
-// Lichess's published game aggregation: the mean of a volatility-weighted mean and a harmonic mean of
-// the per-move accuracies. `winsW` is the game's Win% series from WHITE's point of view at every
-// position (length = plies+1); `accs` and `idxs` are one side's per-move accuracies and their ply
-// indices. The volatility weight is the standard deviation of Win% inside a sliding window, so a move
-// played in a quiet position counts for less than one played in a sharp one.
-// NOT CHECKED, and it is the same gap the benchmark lane declared: Lichess's published description says
-// the window depends on game length without fixing the constant, so clamp(ceil(plies/10),2,8) is a
-// reading of it and it moves the weighted half of this number. lichess.org was not fetched [R21].
-function gameAcc(winsW,accs,idxs){
-  if(!accs||!accs.length)return null;
-  const n=winsW.length; if(n<2)return accs.reduce((a,b)=>a+b,0)/accs.length;
-  const ws=Math.max(2,Math.min(8,Math.ceil((n-1)/10)));
-  let sw=0;const wt=idxs.map(i=>{
-    const lo=Math.max(0,Math.min(i-ws+1,n-ws)),w=winsW.slice(lo,lo+ws);
-    if(w.length<2)return 0.5;
-    const m=w.reduce((a,b)=>a+b,0)/w.length;
-    const v=w.reduce((a,b)=>a+(b-m)*(b-m),0)/w.length;
-    const sd=Math.max(0.5,Math.min(12,Math.sqrt(v)));sw+=sd;return sd;});
-  const weighted=sw>0?accs.reduce((a,v,k)=>a+v*wt[k],0)/sw:accs.reduce((a,b)=>a+b,0)/accs.length;
-  const harmonic=accs.length/accs.reduce((a,v)=>a+1/Math.max(0.01,v),0);
-  return (weighted+harmonic)/2;
+function classify(loss){
+  if(loss<15) return{label:'Best',     c:'#6fd66f',i:'★'};
+  if(loss<40) return{label:'Excellent', c:'#9fcf6f',i:'✓'};
+  if(loss<90) return{label:'Good',      c:'#c9d06a',i:'·'};
+  if(loss<160)return{label:'Inaccuracy',c:'#f0cf5e',i:'?!'};
+  if(loss<320)return{label:'Mistake',   c:'#f0a24e',i:'?'};
+  return            {label:'Blunder',   c:'#ec5c4e',i:'??'};
 }
 let SFX_ON=true; let _ctxSfx=null;
 function _sfxCtx(){try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;if(!_ctxSfx)_ctxSfx=new A();if(_ctxSfx.state==='suspended')_ctxSfx.resume();return _ctxSfx;}catch(e){return null;}}
@@ -1132,9 +1044,7 @@ async function analyzeGameCounts(pgn,userColor){
       const actualVal=actual?actual.v:(pos.turn==='w'?-9999:9999);
       const loss=Math.max(0,mc==='w'?bestVal-actualVal:actualVal-bestVal);
       // #331: evalBefore was missing here, so the gate ran with evB undefined in the background pass (it fell back to evalPawns(pos) inside brilliantGate, but only by accident of the null check). Pass it explicitly.
-      // #440: classify() now takes the WIN-PERCENTAGE DROP. bestVal/actualVal are white-POV centipawns,
-      // so winDrop() is handed the two evaluations and converts to the mover's side itself.
-      const L=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos))?'Brilliant':classify(winDrop(bestVal,actualVal,mc)).label;
+      const L=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos))?'Brilliant':classify(loss).label;
       if(L==='Brilliant')bril++;else if(L==='Best'||L==='Great')great++;else if(L==='Inaccuracy')inacc++;else if(L==='Mistake'||L==='Miss')mist++;else if(L==='Blunder')blun++;
       if((++proc)%2===0)await new Promise(r=>setTimeout(r,0));
     }
@@ -3652,23 +3562,16 @@ export default function App(){
         if(bu){bestMv=uciToMove(pos,bu);if(bestMv)bestSan=toSAN(pos,bestMv,applyMove(pos.board,bestMv));}
         const evA=Math.max(-99,Math.min(99,after/100)),evB=Math.max(-99,Math.min(99,before/100));
         const pl=res.plies[i].move;
-        let _wasBest=false;
-        if(bestMv&&bestMv.fr===pl.fr&&bestMv.fc===pl.fc&&bestMv.tr===pl.tr&&bestMv.tc===pl.tc){loss=0;bestSan='';bestMv=null;_wasBest=true;}
-        // #440: computed AFTER the override above, and keyed on the explicit _wasBest flag rather than
-        // inferred from bestMv being null - bestMv is ALSO null when the engine returned no best move at
-        // all, and those two cases must not share a branch. A played move that IS the engine's best scores
-        // a zero drop instead of being charged for the sharpness of the position it was played in.
-        const _wd=_wasBest?0:winDrop(before,after,mover);
-        const _ma=moveAcc(_wd);
+        if(bestMv&&bestMv.fr===pl.fr&&bestMv.fc===pl.fc&&bestMv.tr===pl.tr&&bestMv.tc===pl.tc){loss=0;bestSan='';bestMv=null;}
         const _g=brilliantGate(pos,pl,loss,evA,evB);
-        let cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd);
+        let cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(loss);
         if(cls.label!=='Brilliant'){const _bm=mover==='w'?before:-before,_pm=mover==='w'?after:-after,_h2=ev2W[i]!=null,_s2=_h2?(mover==='w'?ev2W[i]:-ev2W[i]):null;
           if((cls.label==='Best'||cls.label==='Excellent')&&_h2&&(_bm-_s2)>=160)cls={label:'Great',c:'#5d93e8',i:'!'};
           else if((cls.label==='Mistake'||cls.label==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130)cls={label:'Miss',c:'#f08a5d',i:'×'};}
         let altSan='',altDrop=null;
         try{const au=aU[i];if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)&&!(am.fr===pl.fr&&am.fc===pl.fc&&am.tr===pl.tr&&am.tc===pl.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));}}
           if(ev2W[i]!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2W[i]:-ev2W[i];altDrop=Math.max(0,Math.round(_b-_s2));}}catch(e){}
-        out.push({loss:Math.round(loss),wdrop:_wd,macc:_ma,sel:classifyByLoss(loss),cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null});
+        out.push({loss:Math.round(loss),cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null});
       }
       // #357 done in a second pass because the line reads FORWARD from each move, so the whole
       // array has to exist first. Only the classes that are worth a demonstration carry one.
@@ -3696,13 +3599,9 @@ export default function App(){
            next line for brilliantGate and thrown away. It is a device-chosen code path, which is the #375
            rule: the gate covers every branch or it is not a gate. Gate 51 now runs a fallback column. */
         const _evB=evalPawns(res.positions[i]);
-        // #440: same ladder on the fallback engine. This is the #375 rule - a code path the DEVICE
-        // chooses is covered or the gate is not a gate - so the drop is computed here too, not only above.
-        const _wd2=winDrop(bestVal,actualVal,mover);
-        const _ma2=moveAcc(_wd2);
         const _g=brilliantGate(res.positions[i],pl,Math.round(loss),_evA,_evB);
-        const _cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd2);
-        out.push({loss:Math.round(loss),wdrop:_wd2,macc:_ma2,sel:classifyByLoss(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,evalBefore:_evB,gate:_g});
+        const _cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(loss);
+        out.push({loss:Math.round(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,evalBefore:_evB,gate:_g});
         if(i%2===0){setProgress((i+1)/res.plies.length);await new Promise(r=>setTimeout(r,0));}
       }
     }
@@ -3731,11 +3630,7 @@ export default function App(){
         for(let i=0;i<out.length;i++){
           const mc=i%2===0?'w':'b'; if(mc!==uc2)continue;
           const L=out[i].cls&&out[i].cls.label;
-          // #440: SELECT on the old centipawn ladder, DISPLAY the honest label (stored as `label:L` below).
-          // old {Mistake,Blunder,Miss} == old {loss>=160} == sel in {Mistake,Blunder}, because Miss is an
-          // overlay drawn from those two - so this reproduces the pre-#440 pool EXACTLY, not approximately.
-          const _S=out[i].sel||classifyByLoss(out[i].loss||0);
-          if((_S==='Mistake'||_S==='Blunder')&&out[i].bestMove&&res.positions[i]){
+          if((L==='Mistake'||L==='Blunder'||L==='Miss')&&out[i].bestMove&&res.positions[i]){
             const m=out[i].bestMove,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
             let played='';try{played=toSAN(res.positions[i],res.plies[i].move,applyMove(res.positions[i].board,res.plies[i].move));}catch(e){}
             const _cpos=res.positions[i];
@@ -3768,22 +3663,7 @@ export default function App(){
       }
     }catch(e){}
     const bookN=openingBookPlies(playedSans);
-    const _sideStats=(side)=>{const c={Brilliant:0,Great:0,Best:0,Excellent:0,Good:0,Book:0,Inaccuracy:0,Miss:0,Mistake:0,Blunder:0};let sl=0,n=0;const _accs=[],_idxs=[];/* #440: the game's Win% series from WHITE's point of view at every position, length plies+1. It is the
-   input to the volatility weighting, and it spans the WHOLE game rather than one side's moves, because a
-   move's weight comes from how sharp the position was, which both players share. */const _winsW=out.length?[winPct((out[0].evalBefore||0)*100)].concat(out.map(o=>winPct((o.evalAfter||0)*100))):[];out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(mc!==side)return;const L=o.cls&&o.cls.label;if(i<bookN&&L!=='Brilliant'&&L!=='Great'){c.Book++;return;}if(L==='Brilliant')c.Brilliant++;else if(L==='Great')c.Great++;else if(L==='Best')c.Best++;else if(L==='Excellent')c.Excellent++;else if(L==='Good')c.Good++;else if(L==='Inaccuracy')c.Inaccuracy++;else if(L==='Miss')c.Miss++;else if(L==='Mistake')c.Mistake++;else if(L==='Blunder')c.Blunder++;sl+=Math.max(0,o.loss||0);n++;_accs.push(typeof o.macc==='number'?o.macc:moveAcc(o.wdrop||0));_idxs.push(i);});const acpl=n?sl/n:0;
-    /* #440 piece 2, the half Kunal took over the recommendation: accuracy is no longer an exponential
-       decay on AVERAGE CENTIPAWN LOSS (100*exp(-acpl/300)). It is Lichess's published aggregation of the
-       per-move accuracies, which are themselves keyed to the win-percentage drop - so the same position
-       term that fixed the labels fixes this number too, and a long lost endgame stops being charged for
-       every move played after the game was already decided.
-       acpl IS STILL COMPUTED AND STILL RETURNED: it remains a true statement about the game and callers
-       read it. It is simply no longer what accuracy is derived from.
-       THE 15 AND 99.5 CLAMP IS DELIBERATELY KEPT. It is the existing display contract and the reason the
-       rating line has a structural ceiling of 1986 (measured by the benchmark lane); moving it would be a
-       second product change nobody asked for, so it stays and is named under notChecked instead. */
-    const _ga=gameAcc(_winsW,_accs,_idxs);
-    const acc=Math.max(15,Math.min(99.5,_ga==null?100:_ga));
-    const rating=Math.max(450,Math.min(2500,Math.round(600+(acc-50)*28)));return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10,rating};};
+    const _sideStats=(side)=>{const c={Brilliant:0,Great:0,Best:0,Excellent:0,Good:0,Book:0,Inaccuracy:0,Miss:0,Mistake:0,Blunder:0};let sl=0,n=0;out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(mc!==side)return;const L=o.cls&&o.cls.label;if(i<bookN&&L!=='Brilliant'&&L!=='Great'){c.Book++;return;}if(L==='Brilliant')c.Brilliant++;else if(L==='Great')c.Great++;else if(L==='Best')c.Best++;else if(L==='Excellent')c.Excellent++;else if(L==='Good')c.Good++;else if(L==='Inaccuracy')c.Inaccuracy++;else if(L==='Miss')c.Miss++;else if(L==='Mistake')c.Mistake++;else if(L==='Blunder')c.Blunder++;sl+=Math.max(0,o.loss||0);n++;});const acpl=n?sl/n:0;const acc=Math.max(15,Math.min(99.5,100*Math.exp(-acpl/300)));const rating=Math.max(450,Math.min(2500,Math.round(600+(acc-50)*28)));return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10,rating};};
     const summary={w:_sideStats('w'),b:_sideStats('b'),userColor:(meta&&meta.userColor)||null,book:bookN};
     let skills=null;try{skills=gameSkills(res.positions,res.plies,out,bookN);}catch(e){skills=null;} /* #368 y17b */
     const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,skills,pgn:text};
@@ -4797,18 +4677,6 @@ export default function App(){
   const exitMistakes=()=>{setMistakeMode(false);setCurPuz(null);setPzView('roadmap');setMode('analyze');};
   useEffect(()=>{if(mistakeMode&&puzSolved&&drillKindRef.current==='mistake'){const q=mistakeQueueRef.current||[];const cur=q[mistakeIdxRef.current];if(cur)setMyMistakes(prev=>prev.filter(x=>x.fen!==cur.fen));}},[puzSolved,mistakeMode]);
   const curAnno=inReview&&ply>0?review.analysis[ply-1]:null;
-  // #441 P0 FIX: THE SELECTION LABEL LIVES BESIDE curAnno, IN THE SCOPE BOTH REVIEW LAYOUTS CAN SEE.
-  // #440 introduced the sel/cls split (a grade LABEL is what the player is told; a grade SELECTION is what the
-  // app chooses on) and declared it as `_cSel` INSIDE the compact branch, then used that name in the CLASSIC
-  // branch too - two different scopes. The classic layout therefore threw the exact string
-  // `ReferenceError: _cSel is not defined` (kept verbatim here because that is what a later reader will grep
-  // for) on the first
-  // annotated ply and took the whole app to a WHITE SCREEN: measured at 375x730 with ct_revCompact=0, tapping
-  // the forward-to-end chevron left document.body.innerText EMPTY and every element gone. It never shipped -
-  // #440 stood down on a red suite - and gate 37-strip-sync is what caught it, on the one branch the build's own
-  // new gate never entered. Declaring it here, once, beside curAnno and _annoWhy, is what makes a scope mismatch
-  // impossible rather than merely fixed: there is one definition and both layouts read it.
-  const _curSel=curAnno?(curAnno.sel||classifyByLoss(curAnno.loss||0)):null;
   useEffect(()=>{ if(inReview&&ply>0&&review&&review.analysis[ply-1]&&review.analysis[ply-1].cls&&review.analysis[ply-1].cls.label==='Brilliant')playBrilliantChime(); },[inReview,ply,review]);
   useEffect(()=>{ if(review&&review.plies&&gateDemoRef.current!=null){ const t=Math.min(gateDemoRef.current,review.plies.length); gateDemoRef.current=null; setReviewView('moves'); setShowGates(true); setRevAuto(false); setTimeout(()=>setPly(t),40); } if(review&&review.plies&&revDemoPlyRef.current!=null){ const t=Math.min(revDemoPlyRef.current,review.plies.length); revDemoPlyRef.current=null; setReviewView('moves'); setRevAuto(false); setTimeout(()=>setPly(t),40); } },[review]);
   useEffect(()=>{ if(!revAuto||!inReview||!review)return; if(ply>=review.plies.length){const t=setTimeout(()=>setRevAuto(false),1900);return ()=>clearTimeout(t);} const t=setTimeout(()=>{const np=ply+1;const san=(review.plies[np-1]&&review.plies[np-1].san)||'';try{playSfx(/x/.test(san)?'capture':(/[+#]/.test(san)?'check':'move'));}catch(e){} setPly(np);},1250); return ()=>clearTimeout(t); },[revAuto,inReview,ply,review]);
@@ -6024,15 +5892,7 @@ export default function App(){
                     {['w','b'].map(sd=>{const [val,idx,on]=fn(K[sd]);const can=idx!=null;return(<button key={sd} onClick={()=>go(idx)} disabled={!can} style={{textAlign:'center',background:on?'rgba(255,255,255,.06)':'none',border:on?'1px solid rgba(255,255,255,.18)':'none',borderRadius:9,padding:'4px 0',color:on?'#fff':'rgba(255,255,255,.3)',fontWeight:800,fontSize:val.length>4?'clamp(12px,2.8vw,13px)':'clamp(16px,3.8vw,18px)',cursor:can?'pointer':'default',lineHeight:1.2,whiteSpace:'nowrap'}}>{val}</button>);})}
                   </div>))}
               </div>);})()}
-            {(()=>{const moments=review.analysis.map((o,i)=>({o,i})).filter(({o,i})=>{const mc=i%2===0?'w':'b';if(S.userColor&&mc!==S.userColor)return false;const _S=o.sel||classifyByLoss(o.loss||0);/* #440: selected on the old ladder for the same reason as the drill pool - this list was ALREADY sorted
-   by o.loss and only its filter was label-keyed, which is the tell that loss is its natural key.
-   THE MISS EXCLUSION IS REPRODUCED FROM THE OLD LADDER, NOT FROM THE NEW LABEL [antagonist, #440]. The
-   first cut of this filter excluded `o.cls.label==='Miss'`, i.e. what the NEW ladder calls Miss - a
-   strictly smaller set, because the Miss overlay only fires when the new base is already Mistake or
-   Blunder. So a move the OLD ladder called Miss but the new one softens to Inaccuracy was newly IN a
-   list it used to be out of: 125 integer (evalBefore, evalAfter) grid points, mover-POV evalBefore
-   +200..+310, a won position thrown back to roughly level. Miss's own operands are on the row, so the
-   old overlay is recomputed here and the set is identical to #439's by construction. */const _sgn=(i%2===0)?1:-1,_bm=_sgn*(o.evalBefore||0)*100,_pm=_sgn*(o.evalAfter||0)*100;const _oldMiss=(_S==='Mistake'||_S==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130;return (_S==='Blunder'||_S==='Mistake')&&!_oldMiss;}).sort((a,b)=>(b.o.loss||0)-(a.o.loss||0)).slice(0,3);if(!moments.length)return null;return(
+            {(()=>{const moments=review.analysis.map((o,i)=>({o,i})).filter(({o,i})=>{const mc=i%2===0?'w':'b';if(S.userColor&&mc!==S.userColor)return false;const L=o.cls&&o.cls.label;return L==='Blunder'||L==='Mistake';}).sort((a,b)=>(b.o.loss||0)-(a.o.loss||0)).slice(0,3);if(!moments.length)return null;return(
               <div style={{display:'flex',flexDirection:'column',gap:7}}>
                 
                 {false&&moments.map(({o,i})=>{const L=o.cls.label;const col=L==='Blunder'?'#ec5c4e':'#f0a24e';return(
@@ -6043,7 +5903,7 @@ export default function App(){
                   </button>);})}
               </div>);})()}
             {(()=>{const _H=(review&&review.headers)||{};const _anyR=!!(hdrElo(_H,'w')||hdrElo(_H,'b'));return(
-            <div data-ct="rev-summary-note" style={{textAlign:'center',fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.4)',lineHeight:1.5}}>{_anyR?'Accuracy is estimated from how much each move changed your chances of winning. The ratings are the ones recorded in the game\u2019s PGN.':'Accuracy is estimated from how much each move changed your chances of winning.'}</div>);})()}
+            <div data-ct="rev-summary-note" style={{textAlign:'center',fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.4)',lineHeight:1.5}}>{_anyR?'Accuracy is a rough estimate from average centipawn loss. The ratings are the ones recorded in the game\u2019s PGN.':'Accuracy is a rough estimate from average centipawn loss.'}</div>);})()}
           </div>
           </div>
           <div data-ct="rev-summary-foot" style={{flexShrink:0,display:'flex',gap:10,alignItems:'stretch',justifyContent:'center',padding:'10px 14px calc(10px + env(safe-area-inset-bottom,0px))',background:'rgba(13,16,21,.97)',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',borderTop:'1px solid rgba(255,255,255,.10)',boxShadow:'0 -6px 20px rgba(0,0,0,.45)'}}>
@@ -6290,10 +6150,7 @@ export default function App(){
       {/* ── Review controls, one-screen preview (#333) ── */}
       {inReview&&revCompact&&(()=>{
         const _mvTxt=curAnno?((Math.floor((ply-1)/2)+1)+((ply-1)%2===0?'.':'…')+' '+review.plies[ply-1].san):null;
-        // #440: whether a materially better move EXISTED is not a question about how decided the position
-        // was, so this offer is selected on the old ladder too. Without this a move softened out of
-        // Inaccuracy loses its best-line button while bestSan is still sitting on the row.
-        const _hasBetter=!!(curAnno&&(_curSel==='Inaccuracy'||_curSel==='Mistake'||_curSel==='Blunder')&&curAnno.bestSan);
+        const _hasBetter=!!(curAnno&&(curAnno.cls.label==='Inaccuracy'||curAnno.cls.label==='Mistake'||curAnno.cls.label==='Blunder')&&curAnno.bestSan);
         // #354 a move that WAS the best one has no "better" move to show, so it used to get no
         // demonstration at all. Play the move itself out instead, with what the engine says follows.
         const _wasBest=!!(curAnno&&!_hasBetter&&['Brilliant','Great','Best','Excellent'].indexOf(curAnno.cls.label)>=0&&review.plies[ply-1]&&review.plies[ply-1].move);
@@ -6316,23 +6173,7 @@ export default function App(){
                   geometry where the row already fits. */}
               <span style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',gap:4,fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,color:curAnno.cls.c,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'66',borderRadius:22,padding:(rowNarrow?'3px 5px':'3px 10px')}}><span style={{fontSize:'clamp(13px,3.2vw,17px)',lineHeight:1}}>{curAnno.cls.i}</span>{curAnno.cls.label}</span>
               {_wasBest&&<button data-ct="rev-playout" onClick={()=>{setEngOn(true);playBestLine(review.plies[ply-1].move);}} title="Play this move out and see what it leads to" aria-label="Play this move out and see what it leads to" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(rowNarrow?3:5),padding:(rowNarrow?'3px 5px':'3px 11px'),borderRadius:22,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'88',color:curAnno.cls.c,cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden',whiteSpace:'nowrap'}}>{'\u25b6'} why</button>}
-              {_hasBetter&&<button data-ct="rev-best" onClick={()=>{setShowBest(true);setEngOn(true);playBestLine();}} title="Show the best move on the board" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(rowNarrow?3:5),padding:(rowNarrow?'3px 5px':'3px 10px'),borderRadius:22,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.45)',color:'var(--ac2)',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden'}}>{/* #441 (amber-441-rev-best-drops-the-decorative-best-word-under-rownarrow): THE PREFIX GOES
-                  BEFORE THE MOVE DOES. This build's win-percentage grades can make a grade label a LONGER WORD
-                  ('?? Blunder' -> '?! Inaccuracy'), the grade pill beside us is flex:'0 0 auto' and cannot shrink,
-                  and this button is the ONLY shrinkable child of a nowrap row - so every pixel of the row's deficit
-                  lands here. Measured on the #441 bundle by gate 26: client 25 against scroll 86, cutting THREE text
-                  nodes at 320x568 and 375x568 ('best' 6.83px, 'Qxd7' 47.63px, the chevron 55.99px), where #439 cut
-                  two at the same client 25. rev-move-line is 286.00px at BOTH, because it follows the board and the
-                  board is fit to HEIGHT - so this is a short-screen fact, not a narrow one. `best` is a 0.85em label
-                  at 60% white carrying nothing the pill's accent colour, its position and its title do not; the SAN
-                  is the control's whole purpose. So under rowNarrow the label gives way and the move survives.
-                  IT DOES NOT MAKE THE PILL FIT, and the comment says so rather than letting a later reader assume
-                  it: this is the only shrinkable child, so the deficit it absorbs falls by exactly what is saved and
-                  client stays 25 - the same box with fewer nodes over its edge. The remaining two-node cut is
-                  PRE-EXISTING (flags/rev-best-reads-best-Q-at-320) and still silent, because text-overflow does not
-                  apply to the flex items of an inline-flex box. Nothing changes at boardPx>=340: client 100 / scroll
-                  100 / zero cut nodes at 375x679 and at Kunal's own 375x730. */}
-                {!rowNarrow&&<span style={{fontWeight:600,color:'rgba(255,255,255,.6)',fontSize:'.85em'}}>best</span>}{curAnno.bestSan}<span style={{opacity:.8}}>{showBest?'✓':'›'}</span></button>}
+              {_hasBetter&&<button data-ct="rev-best" onClick={()=>{setShowBest(true);setEngOn(true);playBestLine();}} title="Show the best move on the board" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(rowNarrow?3:5),padding:(rowNarrow?'3px 5px':'3px 10px'),borderRadius:22,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.45)',color:'var(--ac2)',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden'}}><span style={{fontWeight:600,color:'rgba(255,255,255,.6)',fontSize:'.85em'}}>best</span>{curAnno.bestSan}<span style={{opacity:.8}}>{showBest?'✓':'›'}</span></button>}
             </>):(<span style={{fontSize:'clamp(14px,3vw,16px)',fontWeight:700,color:'rgba(255,255,255,.6)'}}>Start position</span>)}
             {!anaMode&&<span style={{flex:'1 1 auto'}}/>}
             {!anaMode&&<span style={{flex:'0 0 auto',fontSize:'clamp(12.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.55)',fontFamily:'monospace',fontWeight:700}}>{ply}/{review.plies.length}</span>}
@@ -6426,7 +6267,7 @@ export default function App(){
                 <span style={{fontSize:'clamp(15px,3.7vw,19px)',fontWeight:700,color:'#fff'}}>{Math.floor((ply-1)/2)+1}{(ply-1)%2===0?'.':'…'} {review.plies[ply-1].san}</span>
                 <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:curAnno.cls.c,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'66',borderRadius:22,padding:'4px 12px'}}><span style={{fontSize:'clamp(15px,3.7vw,19px)',lineHeight:1}}>{curAnno.cls.i}</span>{curAnno.cls.label}</span>
               </div>
-              {(_curSel==='Inaccuracy'||_curSel==='Mistake'||_curSel==='Blunder')&&<button onClick={()=>{setShowBest(true);playBestLine();}} title="Show the best move on the board" style={{background:'none',border:'none',cursor:'pointer',padding:'2px 4px',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(15px,3.6vw,17px)',fontWeight:600,color:'rgba(255,255,255,.82)',display:'inline-flex',alignItems:'center',gap:7,flexWrap:'wrap',justifyContent:'center'}}>Better was <b style={{color:'var(--ac2)',fontWeight:800}}>{curAnno.bestSan}</b> <span style={{color:'var(--ac)',fontWeight:700,textDecoration:'underline',textUnderlineOffset:3}}>{showBest?'shown below':'tap to see it'}</span></button>}
+              {(curAnno.cls.label==='Inaccuracy'||curAnno.cls.label==='Mistake'||curAnno.cls.label==='Blunder')&&<button onClick={()=>{setShowBest(true);playBestLine();}} title="Show the best move on the board" style={{background:'none',border:'none',cursor:'pointer',padding:'2px 4px',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(15px,3.6vw,17px)',fontWeight:600,color:'rgba(255,255,255,.82)',display:'inline-flex',alignItems:'center',gap:7,flexWrap:'wrap',justifyContent:'center'}}>Better was <b style={{color:'var(--ac2)',fontWeight:800}}>{curAnno.bestSan}</b> <span style={{color:'var(--ac)',fontWeight:700,textDecoration:'underline',textUnderlineOffset:3}}>{showBest?'shown below':'tap to see it'}</span></button>}
               {_annoWhy&&<div style={{width:'100%',maxWidth:440,fontSize:'clamp(14px,2.8vw,14.5px)',color:'rgba(255,255,255,.84)',lineHeight:1.5,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:10,padding:'9px 12px',textAlign:'center'}}>{_annoWhy}</div>}
             </>):(<span style={{fontSize:'clamp(14px,2.8vw,14px)',color:'rgba(255,255,255,.5)'}}>Starting position — step forward to review →</span>)}
           </div>

@@ -198,22 +198,6 @@ whatever each screen happened to use.
 ### US-INV-04 Nothing on screen is cut without saying so
 Shipped #404 and #413; see 26-invariants.js invariants 4a and 4b and the flags they name.
 
-- WHEN A ROW CANNOT HOLD ITS CONTENT, WHAT GIVES WAY IS THE LEAST INFORMATIVE THING IN IT, NOT WHICHEVER CHILD
-  HAPPENS TO BE SHRINKABLE. Added #441. A nowrap flex row concentrates its whole deficit on its only
-  `flex:'0 1 auto'` child, so which ink is lost is decided by CSS rather than by what the player needs - and the
-  child that pays may be carrying the row's most important content. Measured on #441 before the fix: the review
-  move line is 286.00px at 320x568 AND at 375x568 (it follows the board, and the board is fit to HEIGHT, so this
-  is a short-screen fact and not a narrow one), the grade pill beside `rev-best` is `flex:'0 0 auto'` and grew
-  from 98.52 to 118.39px when a softened grade became a longer word ('?? Blunder' -> '?! Inaccuracy'), and
-  `rev-best` absorbed all of it: clientWidth 25 against scrollWidth 86, cutting THREE text nodes - the label
-  'best' by 6.83px, the move 'Qxd7' by 47.63px and the chevron by 55.99px. The move is the control's entire
-  purpose and the word 'best' is a 0.85em label at 60% white, so the label is what goes. AFTER: scrollWidth 56,
-  the move cut by 17.36px and the chevron by 25.72, two nodes rather than three. NOTE WHAT THIS CLAUSE DOES NOT
-  PROMISE, because #441's own fix cannot deliver it: the row still does not FIT, because the shrinkable child
-  absorbs a deficit that falls by exactly what is saved, so its clientWidth is 25 before and after. The clause is
-  about WHICH ink survives, not about ending truncation - that is US-INV-05's box question, and the residual is
-  pinned. (TC-INV-04a)
-
 ### US-INV-05 No part of a control is put where I cannot reach it
 As a player on a narrow or a short phone, no part of a button is painted outside the box that clips it, because a
 button whose edge is cut cannot be fully seen or confidently tapped and no gesture brings it back.
@@ -344,50 +328,6 @@ flags/suite-id-collision-tc-r, already open, and is not refiled here [R25]. Reco
 who greps the whole tree and finds two US-R15s knows which is which.
 
 US-R25  The Review list offers every game the connected account has, bounded only by a limit the app STATES ON SCREEN, and the number of games it can show NEVER depends on which month it is. A player who has not played this month still sees their history. (Kunal, 2026-09-23: "Why are there only 47 games in review. There should be thousands." A cap is correct here - the public API serves one month per request, rows carry full PGNs, localStorage is about 5MB for the whole app - so the clause names BOTH halves: state the limit, and do not let the calendar set it.) Checkable: with 300 games in the months before this one and none in this one, the list is non-empty and holds rows dated outside this month; the stated limit is readable on the list; and what was fetched is still there after a reload.  #432 AND THE LIMIT IT STATES MUST BE THE LIMIT THAT ACTUALLY BOUND, which is the half of this clause #431 satisfied only by accident. There are TWO bounds in the code (ACCT_GMAX games, ACCT_GMONTHS months) and #431 printed the games one unconditionally, so a player with a THIN BUT LONG history - a few games a month for years, the ordinary shape - read "Showing up to 200 games per account." on a list that 6 months had stopped at 30 of their 120, with 90 unreachable by any interaction. "Bounded only by a limit the app STATES" is then false: it was bounded by one the app did not state. Also checkable: with 5 games in each of 24 months the list holds 30 rows and the screen names the SIX-MONTH window and does NOT name a games cap; and with 3 months of 5 nothing bounds the list, so NO limit sentence is on screen at all. And the clause binds ON THE LAUNCH AFTER AN UPGRADE, not only after a fetch: an account imported by an earlier build records no bound, so the app states the games cap when that account sits AT the cap (which is inferable) and states nothing when it sits below it (which is not) - it never names a limit it cannot know bound. #433 AND THE UNITS OF THAT LIMIT MUST BE UNITS THE APP POSSESSES. ACCT_GMONTHS bounds ARCHIVE INDEX ENTRIES and api.chess.com's index lists only the months in which the player HAS games, so "your last 6 months" is a CALENDAR claim the code never computes: antagonist B measured 8 entries spread over 28 calendar months - 4.7x - under that sentence, on rows whose dates carry no year to contradict it. The clause is not satisfied by a limit stated in the wrong unit any more than by the wrong limit. Also checkable: with archive entries at 2023-11, 2024-01, 2024-06, 2025-02, 2025-09, 2026-03, 2026-08 and 2026-09 the screen states a bound in MONTHS OF PLAY and makes no calendar claim smaller than the span of the games it is showing. AND A MONTH THE APP ASKED FOR AND DID NOT GET IS PART OF THE BOUND: if a month request fails mid-walk the games are missing, so the screen says so - rendering nothing there claims the whole history is present, which is the same defect as an unstated cap. Checkable: with three months of 5 games and the middle month answering 503, 10 rows are shown and the screen states that some months could not be loaded. AND A LIMIT THE APP CANNOT KNOW BOUND IS STILL NOT ONE IT MAY CLAIM, WHICH #433's OWN FIRST ATTEMPT BROKE: a store with no recorded bound was written by a build whose cap was one of the two this app has ever shipped, so it is evidence of a cut only when it sits exactly at one of them - a store of 137 rows is not a 137-game cap. Checkable: with 137 or 41 stored rows and no recorded bound, NO limit is on screen. And where accounts were stopped by different bounds, the cap named is the one that applies to the account with the largest cap, qualified for the older ones - naming the legacy cap of 40 over 70 rows on screen is the same defect as naming a cap that did not bind. And reaching the cap is not being cut by it: with exactly the cap's worth of games and the index exhausted, nothing was cut and no limit is stated.
-
-### US-R30 A move is graded against what it cost YOUR CHANCES, not against a fixed centipawn number
-As a player reviewing a game I lost, when I look at the moves I played after the game was already decided, I
-want them graded against how much they actually cost me, so that the screen stops calling a forced sequence in
-a dead-lost position a blunder. The same centipawn loss is NOT given the same label in a dead-lost position as
-in a level one. (Kunal, 2026-09-23, with a screenshot of Peter-Patzer vs Billitony: "These are 2000+ players and
-you're saying they committed like a bunch of blunders, especially at the end. I don't think we're identifying
-blunders correctly." And separately: "since we're trying to replicate the way chess.com does this, shouldn't we
-just be replicating their process?" Desk q-classify-on-winprob, answered 2026-09-28 "labels-and-accuracy",
-which took the bigger of the two options and so binds the accuracy number as well as the labels.)
-
-WHY A NEW CLAUSE RATHER THAN AN EXTENSION. The word "blunder" appears in no clause written before #440 that
-constrains WHEN the label may be used, so the classifier's fixed centipawn thresholds satisfied every story in
-this register - which is exactly how a defect Kunal named on 2026-09-23 survived to 2026-09-30 with a green
-suite. A clause that cannot be violated is not coverage.
-
-CHECKABLE, and each part is its own assertion because a mean or a total is green on the broken build and on the
-fix alike (measured: over 2715 real plies the two methods differ by a MEAN of 0.66 accuracy points with a
-standard deviation of 12.52):
-- One identical centipawn loss, evaluated at different standing evaluations, does not get one label. Pinned per
-  input at seven evaluations and both movers, never aggregated. (TC-R40 A11..A24)
-- A move costing under 10 points of winning chance is never called a Blunder, at any evaluation. (TC-R40, clause ii)
-- And the ladder is not merely softened: at a LEVEL position it grades exactly as it did before #440. Proved by
-  inverting each shipped cut-off back to centipawns at eval 0 and getting 15, 40, 90, 160 and 320 - today's
-  five cut-offs - so the middlegame calibration nobody complained about is untouched. (TC-R40 A6..A10)
-- The accuracy number the panel shows is derived the same way, so a long lost endgame is not charged twice, and
-  the sentence under the panel says what accuracy is actually computed from. (TC-R40 B3, B7)
-- The side that was WINNING is not softened by the change: a real game's winner keeps every grade it had.
-  (TC-R40 B4, B5, B6)
-
-THE BOUNDED CONSEQUENCE, recorded as part of the clause because it is a product statement and not a defect: a
-drop in winning chances is capped by the chances you still had, so from about -1200 centipawns down every move
-grades Best. Once you are two queens down you cannot make a mistake. That is the correct behaviour of the
-published method, it is visible on the review of any badly lost game, and it should reach Kunal as a sentence
-before it reaches him as a screen. The ladder is deliberately NOT symmetric: from +1000 throwing the whole game
-away is still a Blunder. (TC-R40 A25, A26)
-
-NOTE ON BOTH IDS [#440], the same shape as the US-R27 note above. US-R30 and TC-R40 are free in THIS register
-and were checked against it before they were written (grep of claude/stories/USER-STORIES.md and
-claude/stories/TEST-CASES.md at 1f6939e: 0 hits each), and they sit inside the US-R30..US-R39 / TC-R40..TC-R49
-block spec-b reserved on 2026-09-28. They are NOT free in claude/stories/SUITE-AUDIT-2026-09-14.md, which
-carries its own unrelated "US-R30" and a "TC-R23 (US-R30) - autoplay". That is the separate, older id space
-named in the US-R27 note; the collision is flags/suite-id-collision-tc-r, already open, and is not refiled
-here [R25].
 
 ### US-PL-11 When a game ends, the screen keeps saying how it ended
 *Added #434, from the #433 auditor's P1 (jobs/cpu-game-over-says-nothing-three-seconds-later-2026-09-29).*
