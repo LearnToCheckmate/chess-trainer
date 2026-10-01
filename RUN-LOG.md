@@ -378,3 +378,126 @@ any control (both pre-existing, same cause as the P0 — the picker's lifetime i
 opened against, now **four** known triggers); `playEndRef` lags `playEnd` by one effect flush; and `applyMv`, the
 engine's own reply path, appends a move **without** going through the guarded committer — doubly guarded, and the
 auditor measured the resign-mid-search half safe while the bot-flagging-mid-search half is still undriven.
+
+## no-ship, 2026-10-01 — the brilliancy measurement ran, and the measurement is the product
+
+`build__1790821185953`. **No build number issued, no bundle built, nothing shipped to the app.**
+`origin/main` stays at `364f700` (#439), `app.js` md5 `0099cb784ca0`, `chess.jsx` md5 `6329bd09816b`
+— both re-read out of `origin/main` and compared to the working tree after the commit. **#443–#447
+remain free build numbers.** Item:
+`jobs/brilliant-gate-cannot-fire-on-a-non-sacrifice-only-move-2026-09-30`, taken under its
+`KUNAL_NAMED_THIS_AS_THE_NEXT_BUILD_2026-10-01` field rather than under the priority sort.
+
+**THE DEFECT IS REAL, KUNAL'S CORRECTION OF OUR OWN DIAGNOSIS IS CONFIRMED, AND THE FIX STILL DOES NOT
+SHIP — ON THE JOB'S OWN RULE.** That rule: ship in the same build iff the candidate agrees with
+chess.com on *materially more* of the harvested Brilliants AND the negative control stays red.
+Measured over 9 PGNs and 697 plies: the candidate agrees on **the same 2 of 4**, not more, and adds
+**5** false positives. 0 extra true positives against 5 extra false ones, so nothing shipped.
+
+**Work item 1.** The PGN of `Kunal2023 vs abdallah050195` **is not in this project** — not in
+`answerkey` (16 rows, no such opponent), not in `docs/benchmark-answerkey-7-pgn` (7 games, all other
+opponents) — so "replay to ply 44" could not be done and is not reported as done. What does not need
+it: the sacrifice term depends only on the after-position and on what the move captured, and 22...Qh3
+captured nothing. Measured with the **shipped** `seeSq` on the job's own transcribed position,
+`8/pppQ3p/6pk/2b1Rp2/5P2/5bPq/PPP2P1P/R5K1 w - -`: **`seeSq(c5, White) = 3`** and
+**`seeSq(h3, White) = 0`**. The bishop is winnable, the queen that moved is not, so `brilliantGate`
+scores `sac=0`, `isSac=false` and exits on its first condition with the other four never evaluated.
+And because the queen's origin is unknown, **every origin was enumerated rather than one assumed**:
+shipped `sac=0` and whole-board `sac=3` on **every one**, so the finding does not depend on the thing
+that could not be determined. **Three origins, not the five first published** — Qg2 and Qf1 put the
+WHITE king in check with Black to move, which cannot arise in a game, and `getLegal()` cannot catch it
+because it only checks the *mover's* king. The surviving claim is stronger: C2 is 0 on **three of
+three** legal origins rather than four of five, and the one non-zero cell was an impossible position.
+Reproduce with `node gates/measure-kunal-qh3.js`.
+
+**THE FINDING UNDER THE FINDING, AND IT REDIRECTS THE WHOLE FAMILY.** Of the four named chess.com
+Brilliants with a replayable PGN we agree on 19...Bxh3 and 22...Qxc3 and miss 17.Bxh7+ and 25.Bxg6 —
+and **on both misses `isSac` is already TRUE**, so the sacrifice test is not what rejects them. **Each
+fails THREE of the five conditions**: `loss<cap` (230 against a cap of **90**, and 110 against 90),
+`evAfter>=0.8` (−0.30 and −1.75) and `evBefore>-1.0` (−1.15 and −2.70). **No change to the sacrifice
+measure can reach either**, so anyone reading `jobs/brilliant-miss-174386847848` as a sacrifice
+problem is looking at the wrong condition. Filed as its own job.
+
+> **CORRECTED AFTER THE ANTAGONIST PASS [R18].** This paragraph first read "230 against a cap of 220,
+> ten centipawns" and named `loss<cap` as the single failing condition. Both are wrong. The cap is
+> `(isSac && evAfter>=1.2) ? 220 : 90`; `evAfter` is **−0.30**, so the cap is **90** and the miss is by
+> **140**, not 10 — across the corpus the cap is 220 on only 7 of 697 plies and neither of these is
+> one. The 220 was read off the formula taking only the `isSac` half, on a run whose own first
+> sentence is "measured, not read off a screenshot". The error came from printing only the *first*
+> failing condition; the runner now prints `cap`, `evAfter`, `evBefore` and **every** failing
+> condition, which is #432's rule that a threshold must publish its own inputs. The derived job has
+> been re-scoped: a reader trusting "ten centipawns" would have sized it as a constant to nudge, when
+> what has to move is three conditions at once.
+
+**AND THE REASON THE MEASUREMENT CANNOT SETTLE THE QUESTION IS THE DATA, NOT THE MEASURES.** All four
+named Brilliants are **captures** — Bxh3, Qxc3, Bxh7+, Bxg6 — so all four are landing-square
+sacrifices the shipped measure already sees. **Zero are abandoned-piece sacrifices.** Work item 3
+asked how many are "like this one"; the answer is **none**. A population with no instances of a class
+cannot tell a measure that sees the class from one that does not, which is exactly why the two columns
+come out identical. Shipping the candidate on this evidence would be accepting 5 measured false
+positives — one of them **castling**, scored as a 3-pawn sacrifice because a knight sat loose on e4 —
+to fix a class with 0 measured instances, on one position read off a screenshot.
+
+**TWO PREMISES WITHDRAWN [R18], AND THE SECOND IS THE JOB'S OWN PROPOSED FIX.** First, the job states
+the answer key holds *"12 chess.com Brilliants across 7 of them"*; summing `brilliantWhite +
+brilliantBlack` over all sixteen rows gives **7**, and only **4** have both a PGN and a named ply — so
+the decision rests on a third of the stated population. Second, the candidate the job itself proposed
+("the material the opponent can win by force that they could NOT have won before it") **scores 0 on
+22...Qh3, the move it was proposed for**, on four of five legal origins including both plausible ones,
+because the bishop was *already* attacked before the move — which is precisely what makes ignoring the
+threat a sacrifice. **The rest of what this run first said about C2 is WITHDRAWN [R18] and the
+withdrawal matters more than the claim.** It published "C2 adds 14 false positives, every one an
+ordinary recapture" and hung `gate15-baseline-is-the-unsettled-frame` on it. Measured again after the
+veto: the 14 was produced by a **missing trade-guard term in this lane's own arithmetic** — C2 alone
+failed to subtract what the move captured, while this file's own comment said it did. With the guard
+restored, **C2 adds ZERO** false positives under both faithful readings of the job's wording. The
+"all ordinary recaptures" story was wrong too: only **2 of the 14** were recaptures and **none of the
+six named** was one. So the run blamed Kunal's proposed measure for a defect in its own code, with a
+mechanism it had not checked. The #416 rule it cited is sound and is better illustrated by this
+lane's arithmetic than by the job's idea.
+
+**THE HARNESS, AND THE CROSS-CHECK THAT MAKES IT EVIDENCE.** `gates/engine-extract.js` reads the real
+declarations out of `chess.jsx` by balanced braces, as `gates/unit-drill-why.js` already does, so
+`brilliantGate` in the harness **is** the shipped function rather than a copy. The proof: the shipped
+measure, *re-derived independently* in the harness, reproduces the real `brilliantGate(...).sac` on
+**697 of 697** plies of the corpus — and, the honest denominator, on **29 of 29** of the plies where
+`sac` is nonzero, the rest being `0 == 0`. Every run prints the `chess.jsx` path and md5 it read.
+**One self-caught error worth keeping:** the candidate's first draft scored off `seeSq`'s **net** gain
+rather than the piece's **value**, and read **1** on 10.Nxb5 where the shipped gate reads **2** — a
+candidate that scores the project's own reference brilliancy lower than the measure it generalises is
+not a generalisation. Caught by that same cross-check before anything was published.
+
+**WHICH BRANCH, SAID ONCE AND PLAINLY.** The harness reproduces the **fallback** review path
+(`chess.jsx:3602`), not the Stockfish path (`:3566`). The **sacrifice term is byte-identical on both**,
+so every `sac` number above holds on both; the four eval conditions are not, so the *Brilliant/not*
+verdicts are the fallback branch only. The Stockfish branch is **NOT CHECKED** and is work item 1 of
+the job this run filed.
+
+**AND THE ANTAGONIST PAIR FOUND A LIVE DEFECT ON MAIN THAT NEITHER THE JOB NOR THIS RUN WAS LOOKING
+FOR.** `brilliantGate` counts the full value of whatever stands on the landing square whenever that
+square was **empty**, because then `capVal` is 0 and the subtraction does nothing. So an ordinary pawn
+promotion scores `sac=9` and the shipped gate returns **ok=TRUE**: a beginner who queens a pawn and
+loses it is told he played a brilliant nine-pawn sacrifice. It is not hypothetical — the corpus
+carries one instance, `174540842570 37.Qf6+`, a queen trade offered with check, `sac=9`,
+`capturedValue=0`, in a game chess.com gives zero Brilliants. **That was in this run's own TOTALS line
+the whole time** (shipped labels 3, agreement is 2) and the first write-up never reconciled the two.
+It is the exact MIRROR of the job's defect — the same expression looking only at the landing square,
+failing in the other direction — and it is `jobs/a-non-sacrifice-on-an-empty-landing-square-scores-full-value-2026-10-01`.
+Found by antagonist B from the shipped-surface door; A found the promotion half as a measure error
+but could not drive `ok=true`. The corpus has **0 promotions and 0 en-passant captures in 697 plies**,
+which is why nothing saw it: the fixture quietly agreed with the bug, the same shape as #432.
+
+**NO GATE SUITE RAN, AND THE REASON IS MECHANICAL RATHER THAN A JUDGEMENT ABOUT RISK.** This run
+changed no application code, so there is no bundle to gate — `mountcheck` would reject a `#443` stamp
+this run never wrote. `gates.sh` globs `mountcheck.js` plus `regress/*.js` only (`gates.sh:112`), so
+the three new files in `gates/` root cannot enter the suite. What authorises the push is not a gate log
+but an **identity**: `app.js` and `chess.jsx` byte-identical to `origin/main`. Recorded as a departure
+rather than assumed obvious, because "gates decide before any push" is categorical in CLAUDE.md.
+
+**The four numbers are CARRIED, not re-derived, and that is stated rather than hidden.** `origin/main`
+is still #439, so its published figures stand unchanged: **open P0 13, open P1 96, coverage 0 of 10,
+regression assertions 3060** (`439-all.log`, bundle md5 `0099cb784ca0`, `verify-log.sh` OK with
+`--this-bundle` and `--on-main`). This run filed two new P1 jobs, which raise the P1 figure by 2 if
+counted the same way; it did not re-derive the count, because
+`jobs/four-numbers-are-a-three-build-carry-not-a-count-2026-09-27` is open on exactly that and
+inventing a fresh method here would add a third number to a register that already has two.

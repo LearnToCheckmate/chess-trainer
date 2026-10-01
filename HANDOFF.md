@@ -18,6 +18,52 @@ Give this file to Claude in Cowork as the first thing in the session.
 > builds and it is the project's own rule broken in the act of citing it: measure, do not read. Left visible
 > rather than quietly corrected, because a wrong number about the record is exactly what this note warns about.
 
+## 0-NOW) WHERE THE LAST RUN LEFT OFF — 2026-10-01, `build__1790821185953`
+
+**`origin/main` is `364f700` (#439), `app.js` md5 `0099cb784ca0`. #443–#447 are free build numbers.**
+This run shipped no application code: it ran the brilliancy sacrifice measurement Kunal's
+`q-brilliant-widen` answer ("measure", 2026-09-19) had been waiting eleven days for, and the
+measurement said ship nothing. Full write-up `claude/agents/bench/443-brilliant-sac-measurement.md`,
+log beside it, reproduce with `node gates/run-brilliant-measurement.js`. The RUN-LOG entry at the
+bottom of `RUN-LOG.md` is the long version. **Five** jobs came out of it. The one that matters most is a LIVE DEFECT ON MAIN the antagonist pair
+found and nobody was looking for: `brilliantGate` counts the full value of whatever stands on the
+landing square when that square was **empty**, so **an ordinary pawn promotion is labelled "!! Brilliant"
+as a nine-pawn queen sacrifice** (`ok=TRUE` on the shipped gate), and `174540842570 37.Qf6+` — a queen
+trade offered with check — is its one instance in the answer-key corpus. It is the exact mirror of the
+defect the job was about. `jobs/a-non-sacrifice-on-an-empty-landing-square-scores-full-value-2026-10-01`.
+The one that redirects the rest of the brilliancy family is
+`jobs/the-two-brilliants-we-can-measure-are-missed-by-the-loss-cap-not-the-sacrifice-test-2026-10-01`:
+the two chess.com Brilliants we can measure are missed on the EVAL conditions, three of them at once,
+not on the sacrifice test.
+
+**Both antagonists vetoed this run's documents and both were right.** Three published numbers were
+withdrawn and re-measured before the push — a cap of 220 that is 90, "C2 adds 14 false positives" that
+is 0 once this lane's own missing trade guard is restored, and five legal queen origins of which two
+cannot arise in a game. The ship decision survived all of it unchanged.
+
+**A WARNING ABOUT THIS FILE THAT THIS FILE CAUSED, AND IT IS THE SAME SHAPE AS THE NOTE ABOVE.**
+The previous holder's pen note says it failed to read a paragraph here beginning
+**"DO NOT DROP THE FLOOR EITHER"**, "in a file CLAUDE.md names as read-before-building", and charged
+itself for it. **Measured 2026-10-01T03:2xZ: that paragraph is not in this file on `main` and never
+has been.** `grep -c "DROP THE FLOOR" HANDOFF.md` on `origin/main` returns **0**; the paragraph is at
+line 218 of `HANDOFF.md` on the branch `claude/cool-noether-gccllp`, where the un-shipped #440/#441
+pile lives. A routine run is cloned onto `main`, so **no run reading this file as instructed could
+ever have seen it** — the previous holder charged itself for missing something that was not there to
+miss, which is a wrong lesson as well as an unfair one.
+
+**The general rule, because this will recur while work sits on a branch:** an instruction written into
+a repository file on an unmerged branch is invisible to the next run by construction, and
+*believing* it was readable is worse than losing it, because the next run inherits a false account of
+why something went wrong. Guidance that must survive goes in the tracker (`claims/repo-pen`,
+the job, a flag) or on `main`. Filed as
+`jobs/handoff-guidance-written-on-an-unmerged-branch-is-invisible-to-every-later-run-2026-10-01`.
+
+**STILL TRUE AND STILL BLOCKED:** the two P0 fixes, gate 67 and the mate floor are on
+`claude/cool-noether-gccllp` (34 ahead of main) and must not be pushed, because every tree that ships
+the #440/#441 grading work also answers a question Kunal has not been asked. The Desk item still does
+not exist; `jobs/nothing-escalates-a-desk-item-that-was-routed-and-never-written-2026-10-01` owns it,
+owningLane orchestrator. **Do not write it yourself [R32] and do not drop the floor.**
+
 ## 0a0) TWO SESSIONS BUILT THE SAME APP ON 2026-09-13 - READ THIS FIRST
 
 Kunal ran two build sessions against this repo at once. The session with push access built #373 and #374 and
