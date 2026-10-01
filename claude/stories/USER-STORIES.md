@@ -649,3 +649,26 @@ The clauses, each one measurable:
    manual card's instruction now persists until he hides it, and the bar stays `pointerEvents:none` so it cannot eat
    the very taps it is asking for. A self-driving card still expires on its own hold, which is asserted separately
    so that "make it persist" cannot quietly become "make everything persist".
+
+
+### US-R14 The mistake drill grades the move I actually played
+As a player replaying a mistake from my own game, I may play any legal move and the drill tells me which
+grade band it falls in and responds to that band, rather than accepting one stored string and calling every
+other move wrong, so a second move that is just as good is not marked wrong in my own game.
+- The drill compares the move PLAYED against the engine, not against the stored SAN: where two moves win the
+  same material the same way, both are accepted. (Kunal, 2026-09-20, from a screenshot: "why are there two
+  different suggestions, there can only be one best move".)
+- The response names the band from the app's own ladder (classify() at chess.jsx:347 - Brilliant, Best,
+  Excellent, Good, Inaccuracy, Mistake, Blunder), and the five bands get five different responses, not one
+  interchangeable sentence.
+- At Good the solution is NOT revealed: "playable, and better than what you played - but there is more here.
+  Can you find it?" (Kunal, 2026-09-20.) Revealing there wastes the position.
+- The `lichess:` path is unchanged: those puzzles have one intended line and rejecting everything else is
+  correct there.
+- NOT SHIPPED AT #456, AND KEPT HERE RATHER THAN DELETED BECAUSE IT IS HIS OWN ASK: the drill board carries
+  the review screen's own eval bar, not a second copy of it. (Kunal, 2026-09-20: "this thing also needs a
+  review bar on the side.") #456 shipped every clause above and deferred this one as an AMBER board-width
+  decision - the drill board already sits ON the 192px floor at 360x640 and 375x667, so the bar's evalW would
+  come out of a board that has nothing left to give. Owner:
+  jobs/drill-eval-bar-is-an-amber-board-width-decision-2026-10-01. Gate 52's C8 measures it and prints the
+  result as a note rather than asserting it; re-arm that line when the bar ships.

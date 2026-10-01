@@ -867,6 +867,110 @@ function mistakeWhy(pos,bestMove,bestSan,playedSan,evalBeforeW,evalAfterW,userCo
     return cands[cands.length-1];
   }catch(e){return '';}
 }
+
+/* ── #456: GRADE THE MOVE THE PLAYER MADE, DO NOT STRING-MATCH IT ──────────────────────────────────────
+   jobs/drill-accepts-one-move-only, P0, Kunal 2026-09-20 with a screenshot:
+     "This is the second time that I solve this position, but last time it told me the solution that was
+      correct was moving rook to d8 from f8. Now it's telling me to move the queen in the exact same
+      position. Why are there two different suggestions, there can only be one best move."
+   and his design the same day: "when somebody plays a better move, maybe we should tell them what category
+   it is in ... a good move, an excellent move, a brilliant move ... and we should explain why."
+
+   THE DEFECT WAS ONE LINE. The mistakes drill asked IS THIS THE STRING WE STORED, not IS THIS MOVE AS GOOD,
+   so the second of two equally winning moves was told "isn't it. Try again." A drill built from your own
+   mistakes asks you to find a BETTER move, and marking one of two equal best moves wrong teaches the player
+   something false about their own game.
+
+   WHICH INSTRUMENT, AND THIS IS THE DECISION WORTH READING. The obvious fix is an engine call on the played
+   move, and it is NOT what this does, for two reasons measured before writing a line. (1) sfEval1 is async
+   and the board must not commit until the verdict is known, so an engine route either freezes the drill on a
+   worker that resolves null on five separate failure paths (#389's trap) or commits the move and then takes
+   it back, which is the board jumping - the one thing this project does not do. (2) An engine route is chosen
+   BY THE DEVICE: sfAnaReadyRef is false until the 7MB worker is up, so the fix would be live on a fast phone
+   and absent on a slow one out of one bundle, which is #375's trap exactly ("a gate must exercise the
+   configuration the USER has"). So this grades with the SYNCHRONOUS local search the review already falls
+   back to at chess.jsx:3637 - one code path, no device branch, no await, deterministic.
+   WHAT THAT COSTS, SAID PLAINLY RATHER THAN LEFT TO BE FOUND: the local search is shallow, so this compares
+   two CONCRETE positions rather than ranking all legal moves, and the baseline it compares against is the
+   STORED engine move (depth 16, computed when the card was captured) and not a depth-2 guess at the best
+   move. That is the whole reason it is accurate enough to ship: the only thing asked of the shallow search is
+   "are these two positions worth the same", which is what it is good at. Deepening it, or moving to the
+   engine with an honest async UX, is jobs/drill-grading-uses-a-shallow-local-search-2026-10-01.
+
+   THE FRAME TRAP, WHICH #426's OWN REPORT RECORDS COSTING IT A WRONG SENTENCE. minimax returns WHITE-POV
+   centipawns. The loss must be taken in the MOVER's frame or a losing Black player is told their position
+   went "from winning to winning". The sign is taken from pos.turn here, exactly as the review does. */
+const DRILL_ACCEPT_LOSS=40;   /* Excellent or better, the same ladder classify() uses at the top of this file.
+                                 Kunal's design accepts and reveals at Best AND Excellent ("Strong, and very
+                                 close") and deliberately does NOT reveal at Good. */
+function gradeDrillMove(pos,playedMv,bestSan){
+  try{
+    if(!pos||!playedMv||!bestSan)return null;
+    const bestMv=findMoveBySAN(pos,bestSan);
+    if(!bestMv)return null;                       /* stale card: no baseline, so no grade and no claim */
+    const maxing=(pos.turn==='w');
+    const _q=QDEPTH;let vBest,vPlay;
+    try{QDEPTH=2;
+      vBest=minimax(makeFast(pos,bestMv),2,-Infinity,Infinity,!maxing);
+      vPlay=minimax(makeFast(pos,playedMv),2,-Infinity,Infinity,!maxing);
+    }finally{QDEPTH=_q;}   /* QDEPTH is module-level and the CPU opponent reads it; never leave it moved */
+    if(typeof vBest!=='number'||typeof vPlay!=='number'||!isFinite(vBest)||!isFinite(vPlay))return null;
+    const loss=Math.min(1500,Math.max(0,maxing?(vBest-vPlay):(vPlay-vBest)));
+    const ng=makeMove(pos,playedMv);
+    const evA=evalPawns(ng),evB=evalPawns(pos);
+    const _g=brilliantGate(pos,playedMv,Math.round(loss),evA,evB);
+    const label=(_g&&_g.ok)?'Brilliant':classify(loss).label;
+    /* THE CONSEQUENCE CLAUSE COMES FROM THE SEARCHED VALUE, NOT FROM THE STATIC EVAL, and the difference is
+       the whole honesty of the sentence. evA above is evalPawns of the position the move LANDS in, before the
+       opponent has replied - so for a rook that hangs itself on h7 the static eval reads "slightly better",
+       because the capture has happened and the recapture has not. vPlay is the same position SEARCHED, so it
+       already contains Kxh7, and it reads "losing", which is what the player needs to be told. This is the
+       "a SHAPE is not a VALUE" family and #426's antagonist B flagged the static-eval version of it on the
+       review's own fallback column. evA is still passed to brilliantGate because that is the argument that
+       function is specified in terms of. */
+    /* AND ONE MORE THING THE SENTENCE MUST BE ABLE TO SAY, because gate 52's C4 found that the band and the
+       consequence TOGETHER still could not tell two of its four inputs apart. In this fixture's position
+       every White move that does not take the queen loses a rook, so a quiet pawn push and a rook thrown
+       away on h7 are the SAME band AND the same consequence band - measured, both "Blunder: leaves you
+       completely losing" - and two completely different mistakes got one interchangeable sentence [R10
+       item 5]. What genuinely separates them is whether the piece just moved is taken straight back, and
+       the instrument for that was already in this file and unused here: seeSq, the static exchange
+       evaluator, asked about the LANDING SQUARE from the opponent's side. This is the same instrument
+       #426's antagonist A pointed whyShape at, for the same reason - "can they take it" is the wrong
+       question and "do they PROFIT from taking it" is the right one. */
+    let takenBack=false;
+    try{takenBack=seeSq(ng,playedMv.tr,playedMv.tc,ng.turn)>0;}catch(e){takenBack=false;}
+    return {loss:Math.round(loss),label:label,
+            accept:!!(_g&&_g.ok)||loss<DRILL_ACCEPT_LOSS,
+            takenBack:takenBack,
+            bandAfter:whyBand((maxing?1:-1)*vPlay/100)};
+  }catch(e){return null;}
+}
+/* The five responses are module-level and pure so the harness can exercise the WORDING without driving a
+   browser, which is what this file already does for explainAnno and mistakeWhy.
+   WHY NEITHER REJECT STRING NAMES THE STORED MOVE. Revealing the answer on a wrong attempt destroys the
+   drill, and Kunal's Good band is explicitly "there is more here, can you find it?" - so the sentence names
+   the BAND and the cost of what they played, never the move they have not found yet. The pawn figure is
+   what makes a Mistake and a Blunder read differently from each other rather than one interchangeable
+   sentence [R10 item 5]. */
+/* WHAT MAKES TWO WRONG MOVES READ DIFFERENTLY IS THE CONSEQUENCE, NOT THE DROP, AND GATE 52 PROVED IT.
+   The first version of this ended both reject strings with the pawn drop, and `loss` is clamped at 1500 - so
+   a quiet pawn push that keeps the game level and a rook thrown away both came out "Blunder, 15.0 pawns
+   short of the best move", two identical sentences for two completely different positions, and C4 went red
+   on exactly the generic-string rule it exists to enforce [R10 item 5]. The clamp also made the figure a
+   FALSE PRECISION: "15.0" was the ceiling, not a measurement. Naming where the move LEAVES you is both the
+   honest half and the half Kunal asked for ("we should explain why for all of those"). */
+function drillGradeMsg(played,gr){
+  if(gr.label==='Good')return '✓ '+played+' — Good, but there is more here. Can you find it?';
+  if(gr.takenBack)return '✗ '+played+' — '+gr.label+': that piece is taken straight back.';
+  return '✗ '+played+' — '+gr.label+': leaves you '+gr.bandAfter+'. Try again.';
+}
+function drillAcceptMsg(played,gr,p){
+  if(gr.label==='Brilliant')return played+' — Brilliant! '+((p&&p.explain)||'A real sacrifice, and it works.');
+  if(gr.label==='Best')return played+' — Best move. Nothing in the position beats it.';
+  const sol=(p&&p.sol&&p.sol[0])||'';
+  return played+' — Excellent, all but the best.'+(sol?(' '+sol+' is a shade sharper.'):'');
+}
 /* the hint names the SHAPE and never the move, and where there is no shape it says so plainly instead of
    sending the player hunting for a tactic that is not there. The string it replaces fired on all 148
    captured mistakes ("look for the most forcing or solid option"), which is escapes/generic-hint-on-every-
@@ -3938,7 +4042,15 @@ export default function App(){
       const nb=applyMove(g.board,mv);const played=toSAN(g,mv,nb);
       const ng=makeMove(g,mv);const isMate=getStatus(ng)==='checkmate';
       const matchesLine=cleanSAN(played)===cleanSAN(p.sol[step]);
-      if(isMate||matchesLine){
+      /* #456 jobs/drill-accepts-one-move-only. SCOPED DELIBERATELY NARROW, and the scope IS the leak guard
+         the job asks for: `mine:` drills only (p.mine), single-move solutions only, first step only. A
+         Lichess puzzle has ONE intended line and rejecting everything else is correct there, so the grading
+         must not reach it - p.mine is set only by puzzleFromMistake, and the local PZ pack and every
+         lichess: puzzle leave it undefined. The learn-practice comparison 40 lines below is the other
+         caller of this string match and is LEFT ALONE on purpose: an opening line has one correct move by
+         definition and grading it would teach the wrong thing [classSwept 2 found / 1 fixed / 1 left]. */
+      const grade=(!matchesLine&&!isMate&&p.mine&&p.sol.length===1&&step===0)?gradeDrillMove(g,mv,p.sol[0]):null;
+      if(isMate||matchesLine||(grade&&grade.accept)){
         setGame(ng);setLastMv(mv);setPuzReveal(false);UI.current={sel:null,tgts:[],drag:null,dragging:false};
         const s=step+1;
         if(isMate||s>=p.sol.length){
@@ -3952,7 +4064,10 @@ export default function App(){
              drill therefore keeps the SHORT pre-#426 praise: the player already knows what they found, and a
              clipped explanation is worse than a short one. The normal solve - every other card - carries the
              explanation. flags/amber-426-drill-why-sentence-shape call 5. */
-          if(p.ext){onlineSolved(p);setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":p.explain));}
+          /* #456: when the player got here by playing a DIFFERENT move that graded Excellent or better,
+             the response names the band and reveals, per Kunal's design. The stored-move and alt-mate
+             paths are untouched. */
+          if(p.ext){onlineSolved(p);setPuzMsg('🎉 '+(grade?drillAcceptMsg(played,grade,p):((alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":p.explain))));}
           else{setPuzDone(d=>({...d,[puzIdxRef.current]:true}));const ru=recordSolve(p);if(ru)setPzCelebrate(ru);setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'Solved! ')+p.explain+(ru?'   ⬆ Rank up — you reached '+ru.icon+' '+ru.name+'!':''));}
           // #358 ONLY when the finish is a forced mate. The obvious-looking version, "play on after
           // any solve", is wrong: most tactics already carry their payoff in the solution itself -
@@ -3963,7 +4078,7 @@ export default function App(){
             if(_fl.length&&getStatus(_fl[_fl.length-1].g)==='checkmate')playFinish(_fl);}
         }else{setPuzMsg('✓ '+played+' — good! Now finish it.');const rep=p.reply&&p.reply[step];if(rep){setTimeout(()=>{const omv=findMoveBySAN(ng,rep);if(omv){setGame(g2=>makeMove(g2,omv));setLastMv(omv);}setPuzStep(s);},450);}else setPuzStep(s);}
         repaint();
-      }else{pzBreakStreak();setPuzMsg('✗ '+played+(vp.h<820?" isn't it. Try again, or tap 💡.":" isn't it — try again. (Tap 💡 for a hint.)")); /* #373 (antagonist X-07): the one-line box on phones clipped the long form mid-sentence */ UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
+      }else{pzBreakStreak();setPuzMsg(grade?drillGradeMsg(played,grade):('✗ '+played+(vp.h<820?" isn't it. Try again, or tap 💡.":" isn't it — try again. (Tap 💡 for a hint.)"))); /* #373 (antagonist X-07): the one-line box on phones clipped the long form mid-sentence */ UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
       return;
     }
     if(modeRef.current==='learn'&&learnPhaseRef.current==='practice'){
