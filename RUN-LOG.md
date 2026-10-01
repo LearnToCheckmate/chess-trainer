@@ -1237,3 +1237,29 @@ is egress-blocked and was not fetched. The other 36 branches were not re-tested 
 (2) calls for. #432's separate pile was not touched (the job forbids it). Whether the 16px `added:[16]` gate-26 red
 is floor-caused or walk variance is still open, and is still the thing that would tell Kunal whether outcome (ii)
 is free.
+
+| #454 | the build-number register: `gates/build-numbers.tsv` (101 rows, 93 numbers, #347-#455), `gates/buildnum.sh` (check / stampable / next / mint / add / record / list), `gates/buildnum-selftest.sh` (47 controls), and `gates/build.sh` refusing a number that is not this run's. jobs/mint-build-numbers-from-one-place point 1, in both halves - the repo register plus tracker `docs/buildnumber`, pinned with `if_version`, because the repo cannot see another container's unpushed mint. Point 2 delivered as the recorded (number, bundleMd5, sourceMd5) triple rather than in the stamp, because the stamp cannot carry its own md5 (a fixed point) or a commit sha that does not yet exist. | ETA 60 min stated at 20:25Z (register + tool + wiring + controls, no application change) | 20:20:22Z | n/a - NOTHING STAGED FOR HIS CLICK, no application change | **38.3 min to the first commit** (20:20:22Z to 20:58:3xZ, both ends from `date -u`, computed from epoch ms 1790886022489 and the commit's own committer date, never typed) | +0 on the tooling; the overrun is the two antagonist vetoes, which were worth the whole run | **NOT A GATED BUILD AND NO BUNDLE SHIPPED.** The full suite ran against a #454 bundle and went RED at `26-invariants` short375 (`added:[16]`), a KNOWN non-deterministic assertion owned by jobs/gate-26-invariant-3-short375-returns-two-values-for-one-bundle-2026-09-30. The red is not this build's and that is MEASURED, not argued: this tree's `chess.jsx` is byte-identical to `origin/main`'s (both `256a1b41daab`), so the bundle differed from #452's shipped one by nine bytes, all inside the stamp string literal (verified byte-by-byte with `cmp -l` by antagonist B). Under step 3 a red suite does not push, so `app.js` was restored to `origin/main`'s #452 bundle (`4dd3b4aa09ed`) and only `gates/` tooling and records were committed. Log committed at `claude/agents/gatelogs/454-all.log`. | nothing live - `app.js` on main is untouched at `4dd3b4aa09ed`, stamp `#452 - 2026-10-01 13:31 ET`, so GitHub Pages serves exactly what it served before this run |
+
+**#454's own red is the answer to a question four builds left open, and it is the most useful thing this run
+produced.** #453's handover and the mate-floor job both said: *"Whether gate 26's `added:[16]` at short375 is
+floor-caused or walk variance is STILL open and is still the thing that would tell Kunal whether outcome (ii)
+is free."* This run answers the floor half by accident, which is why the evidence is clean: the bundle that
+reddened carries **no mate floor and none of the win-probability work at all** - measured one grep per marker
+over the compiled source, `_newMate` 0, `classify(Infinity)` 0, `>=9e4` 0, `0.00368208` 0, `winPct` 0,
+`CLS_BANDS` 0 - and its source is `origin/main`'s to the byte. The same source read GREEN twice, at
+`452-all.log` and `452b-all.log`, both `26-invariants: green (364 PASS)`. **So `added:[16]` occurs without the
+floor, and the floor cannot be its cause.** It does not settle every gate-26 red on the pile, whose bundle
+carries other changes; it removes the floor as the explanation for this one.
+
+**BOTH ANTAGONISTS VETOED THIS BUILD AND BOTH VETOES WERE UPHELD AND FIXED BEFORE THE PUSH.** The pair ran
+blind: launched in one message, and B spawned with an agent type carrying no database tool, so neither could
+see the other's findings or the tracker. A (the diff door) measured a concurrent-mint defect - four runs
+minting at once got four #455s and four exit 0s, because the read-back counted rows attributed to ME rather
+than rows for the NUMBER, which is the #416 defect reproduced inside the guard written to prevent it - and a
+`record` onto a register whose last line had lost its trailing newline, which merged the row, reported success,
+and left the next `check` answering "free". B (the shipped-surface door) found the worse one: **the documented
+happy path was a hard deadlock.** `build.sh` asked `check`, which is true of any row including the `minted` row
+`mint` had just written, so the build refused the number it had just been issued and the remedy it printed was
+to mint another. B's tell is the reusable part: the register shipped with **zero `minted` rows**, so the happy
+path had never been run once. Fixed with a separate `stampable` predicate; controls at cases 17-26 of the
+self-test, and the pre-fix control reproduces both defects exactly.

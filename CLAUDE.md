@@ -79,6 +79,7 @@ where two different file hashes would only show two different files.
 | `FEEDBACK-INBOX.md` | everything Kunal has raised. Append-only; never reword an entry. |
 | `DECISIONS-LOG.md` | what he decided and why. **Search it before asking him anything.** |
 | `RUN-LOG.md` | ETA against actual per build, and the four numbers per close-out. |
+| `gates/build-numbers.tsv` | every build number ever issued, and which artefacts each one names. `gates/buildnum.sh` reads it; `gates/build.sh` refuses a number that is not this run's. Mint before you build. |
 | `claude/stories/`, `claude/agents/` | stories, test cases, and the agent reports this repo owns. |
 | tracker flags `20acb6cb-42bf-44a3-b2fe-5a8223cca1e2` | live instructions, both directions. The only two-way channel between the sessions. |
 | metrics dashboard `3478220d-8023-43ba-b08a-4397eb054cc3` | the open decisions and the scope baseline. Read `decisions`; WRITE a `snapshots` row at close-out so the numbers move when a build lands (Kunal, 2026-09-14 - it used to be read-only from here). Never set `certified` anywhere: that is his alone. |
@@ -94,9 +95,13 @@ layout viewport. It is not 375x679; that number came from subtracting the status
 sessions made the mistake independently. Keep 375x679 as a shorter-phone column and 390x844 as the
 wider one.
 
-- `cd gates && npm ci` once, then `gates/build.sh '#NNN'` to bundle and stamp, and
-  `gates/gates.sh '#NNN'` from the top before any push. A build is gated only when the log ends
-  `GATES GREEN`.
+- `cd gates && npm ci` once. **Then TAKE A NUMBER BEFORE YOU STAMP ONE** (#454):
+  `CT_RUNID=<your runId> gates/buildnum.sh mint '<what this build is for>'` prints it, and
+  `gates/build.sh '#NNN'` refuses a number that is not this run's. Set `CT_RUNID` on the build too, or
+  the register row reads `unknown-run`. Then `gates/gates.sh '#NNN'` from the top before any push. A
+  build is gated only when the log ends `GATES GREEN`. **A number that was never minted still builds,
+  with a warning** - the bundler enforces non-reuse, not mintedness - so this is a habit the tool only
+  half-polices, which is why it is written here.
 - **`gates/gates.sh '#NNN' '20-review 21-*'` runs a SUBSET, and a subset NEVER authorises a push.** Measured at
   #391: three gates in **2m27s** against about **60 minutes** for the full suite, so the diagnose-fix-recheck
   loop costs two and a half minutes instead of an hour. The guard is mechanical, not a comment: a subset run
@@ -518,6 +523,52 @@ wider one.
   were the same QUESTION: every tool asked about the log, and the thing that mattered was not in the log. Which is
   also why a `shippable` field written by the pushing run is not the fix and would have been the eighth costume:
   the register row is written by the run that HELD the tree and read by a different run later.
+- **A BUILD NUMBER IS CHECKED FOR REUSE AT THE BUNDLER NOW, AND THE TWO-LINE COLLISION WAS NEVER THE COMMON CASE.**
+  This file already says numbers are one sequence, that two trees carrying one number cost a rebase at #375, and
+  that `#416` names two trees. All true, and all about an accident between two build LINES. **MEASURED at #454,
+  one `git show <sha>:app.js | md5sum` per app.js commit on origin/main: of the EIGHT numbers with an app.js
+  commit in a routine (shallow, 50-commit) clone, FOUR name more than one distinct bundle** - #440 three, #441
+  two, #451 three, #452 two. A number is ambiguous about as often as not, with no second line in existence,
+  because any run that fixes something mid-pass rebuilds. #439's "three bundles under one stamp" was filed as an
+  anomaly and is the median. A LOWER BOUND twice over: committed bundles only (#439 reads 1 by this method and
+  three existed), and only back to #439. **So "measured on #NNN" is not a reference. Cite the bundle md5.**
+  The guard: `gates/build-numbers.tsv` is the register of issued numbers, `gates/buildnum.sh`
+  (`check|stampable|next|mint|add|record|list`) reads and writes it, `gates/buildnum-selftest.sh` is its **47
+  controls as a command rather than a paragraph**, and `gates/build.sh` refuses a number that is not this run's
+  before esbuild runs. Take one with `CT_RUNID=<runId> gates/buildnum.sh mint '<what for>'`, then build it.
+  **BE PRECISE ABOUT WHAT IT ENFORCES: NON-REUSE, NOT MINTEDNESS.** `gates/build.sh '#300'` still succeeds,
+  because #300 is absent from the register; the run therefore still CHOOSES its number and what it can no longer
+  do is take one that is somebody else's. Stamping a number with no `minted` row is WARNED, not refused.
+  Holes, both loud: `CT_OUT` (a trial bundle) reports the verdict without enforcing it, because every negative
+  control in this suite builds under an existing number and enforcing there would stop the project proving its
+  own gates; `CT_RENUM=1` overrides for a deliberate rebuild and prints the rows it overrides.
+  **AND THE CROSS-SESSION HALF IS A SEPARATE DOCUMENT, BECAUSE THE REPOSITORY CANNOT SEE AN UNPUSHED NUMBER.**
+  The register knows only what has been committed and pushed, so two live containers that have each built and
+  not yet pushed are invisible to each other in it - precisely the #416 case. Tracker `docs/buildnumber` is
+  minted with `if_version` PINNED so the second writer BOUNCES. Use both; **if they disagree the HIGHER number
+  is safe and the disagreement is itself a finding.**
+- **"IS IT RECORDED" AND "IS IT MINE" ARE TWO QUESTIONS, AND ASKING THE FIRST ONE DEADLOCKED THE SECOND.** #454
+  shipped its guard as `build.sh` calling `buildnum.sh check`, which is true of ANY row - including the `minted`
+  row `mint` had just written for that very run. So the documented sequence, mint then build, **refused the
+  number it had just been issued, and the remedy it printed was "mint a fresh one", which loops for ever.** The
+  only escape that wrote a bundle was the override its own header forbids. The same conflation refused the
+  mid-run rebuild, because `build.sh` wrote a `built` row and then read it back as a reason to refuse itself -
+  *the check and the thing being checked were the same object*, for the ninth time in this file. The fix is a
+  separate predicate, `stampable`, which asks whether every row claiming the number is THIS RUN'S.
+  **THE TELL, AND IT IS THE REUSABLE PART: the register shipped with ZERO `minted` rows**, so the happy path had
+  never been executed once - the only route that worked was the one the tool told you not to use. An untested
+  path is not a passing path, and a count of zero in the one column the happy path must write is how you see it
+  from the outside. Found by antagonist B from the shipped-surface door; the diff-side antagonist, which had the
+  same files, did not see it, because reading a diff tells you what changed and not what the thing is like to
+  use. Both vetoed; both vetoes were upheld and fixed before the push.
+- **AN ALARM THAT IS WRONG FOUR TIMES IN FIVE DESTROYS THE SIGNAL IT WAS BUILT FOR.** The same build had
+  `check` print "that is a COLLISION ... Do not reuse it" for any number with more than one row. Of the five it
+  fired on, **four are not collisions** - #440, #441, #451 and #452 each name several artefacts because their
+  run rebuilt mid-pass, which the same tool's `record` calls legal eight lines away. It fired hardest on **#452,
+  which is what origin/main actually serves**, telling any auditing run that the live build names two trees. One
+  number in this project is a genuine two-tree collision and it is #416, whose own rows say so. Reserve the loud
+  word for the real case and say "names N artefacts, cite the md5" for the ordinary one, or the second day of
+  the alarm is the day it gets ignored.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never
