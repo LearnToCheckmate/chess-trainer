@@ -944,7 +944,10 @@ function explainAnno(a,ctx){
   // #357 The verdict chip already says "Brilliant", so saying it again is a wasted clause. What it
   // does NOT say is what the sacrifice buys, and that is the only thing worth reading here.
   if(L==='Brilliant'){const g=a.gate||{};
-    const what=g.sac>=9?'the queen':g.sac>=5?'a rook':g.sac>=2?'a piece':g.sac>=1?'a pawn':'material';
+    // #448: `given` (material handed over) not `sac` (net cost after the exchange). A stored gate
+    // from before #448 carries no `given`, so fall back to `sac` rather than printing 'material'.
+    const _gv=(g.given!=null?g.given:g.sac);
+    const what=_gv>=9?'the queen':_gv>=5?'a rook':_gv>=2?'a piece':_gv>=1?'a pawn':'material';
     const R=ctx&&ctx.refute;
     const _l=(R&&R.capSan&&R.replySan)?'':pvShow(pvTakes);   // the refutation says it better than the bare line
     const _give='You give up '+what+(_l?(', and '+_l):'.');
@@ -1004,7 +1007,7 @@ function brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
   // Sacrifice size = (value of the piece we just placed) minus (value of what this move captured),
   // but ONLY if the opponent can actually win that piece (SEE on the landing square > 0). A trade
   // (capture of equal/greater value) and a safely-defended move both score 0, so neither can be a !!.
-  let sac=0;
+  let sac=0,given=0;
   try{
     const g2=makeMove(pos,pl);
     if(g2){
@@ -1028,13 +1031,36 @@ function brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
         // What is actually at risk on an empty square is the NET of the exchange, which seeSq
         // computed above, less any value the move CREATED by promoting (a pawn that becomes a queen
         // and is then taken has given up a pawn, not a queen).
-        // NOT TAKEN, and recorded so the next reader does not re-derive it: using seeOpp on EVERY
-        // path is more principled and measures 19...Bxh3 at 1, which fails isSac>=2 and loses the
-        // reference brilliancy. That needs the threshold moved, and a classification threshold is
-        // Kunal's. See flags/amber-448-brilliant-sac-on-an-empty-landing-square.
-        if(before) sac=Math.max(0,movedVal-(SEEVAL[before.t]||0));
-        else if(pl.epCap) sac=Math.max(0,movedVal-(SEEVAL.p||0));   // en passant IS a capture
-        else sac=Math.max(0,seeOpp-Math.max(0,movedVal-moverVal));
+        // NOT TAKEN, recorded so the next reader does not re-derive it - AND THE FIRST VERSION OF
+        // THIS COMMENT NAMED A NUMBER WITHOUT NAMING THE FORMULA IT BELONGED TO, which sent #448's
+        // antagonist A off to measure a different candidate and dispute it. Corrected [R18]:
+        //   * RAW seeOpp for 19...Bxh3 is 2, not 1. A measured that and A is right.
+        //   * The candidate I rejected was sac = max(0, seeOpp - capVal - promoGain) on EVERY path,
+        //     which gives Bxh3 2-1-0 = 1 and so fails isSac>=2. THAT is where the 1 comes from.
+        //   * The BARE seeOpp candidate A measured instead keeps Bxh3 at 2 and does NOT lose the
+        //     reference brilliancy - but it is worse for two reasons A measured and I had not: it
+        //     leaves b8=Q at sac=9 ok=true, so it does not fix this defect at all, and it fires on
+        //     23 of the 697 corpus plies, nearly every recapturable capture.
+        // So neither uniform candidate is right, and the honest residual is narrower than the first
+        // version of this comment claimed: adopting the net measure on the CAPTURE arm too would
+        // need isSac re-fitted, and a classification threshold is Kunal's.
+        // See flags/amber-448-brilliant-sac-on-an-empty-landing-square and
+        // jobs/the-principled-sacrifice-measure-needs-the-issac-threshold-moved-and-that-is-kunals-2026-10-01.
+        // #448 (antagonist B, upheld): the promotion credit belongs on BOTH arms. Without it on the
+        // capture arm, bxc8=Q on 2rr3k/1P6/8/8/8/8/8/K7 w - a move that WINS A ROOK FOR A PAWN -
+        // scored sac=4 isSac=true ok=TRUE, and fxg1=Q in this file's own Lasker Trap lesson (:1207,
+        // the move that lesson calls the MISTAKE) scored sac=6 isSac=true, held off only by evBefore
+        // missing its window by 0.85. Same defect as the empty square, one arm over.
+        const promoGain=Math.max(0,movedVal-moverVal);
+        const capVal=before?(SEEVAL[before.t]||0):(pl.epCap?(SEEVAL.p||0):0);   // en passant IS a capture
+        // `given` is material HANDED OVER, gross of any recapture - what a player would say they
+        // gave up. `sac` is the NET cost after the exchange, which is what decides whether the move
+        // was a sacrifice at all. They are different questions and #448's first candidate answered
+        // only the second, which silently re-worded the sentence below: on this file's own canonical
+        // queen sacrifice (:1181, Qg8+, whose lesson text reads "a stunning sacrifice") the net is 7,
+        // so a ladder keyed on it printed "You give up a rook" for a queen. The ladder reads `given`.
+        given=Math.max(0,movedVal-capVal-promoGain);
+        sac=(before||pl.epCap)?given:Math.max(0,seeOpp-promoGain);
       }
     }
   }catch(e){}
@@ -1043,7 +1069,7 @@ function brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
   // A clearly-winning sacrifice may be up to ~2 pawns off the engine's top move; anything else must be essentially best.
   const cap=(isSac&&evAfter>=1.2)?220:90;
   const ok=loss<cap && isSac && evAfter>=0.8 && evBefore>-1.0 && evBefore<4.5;
-  return {ok, loss:Math.round(loss), sac:Math.round(sac*10)/10, evAfter:Math.round(evAfter*100)/100, evBefore:Math.round(evBefore*100)/100, cap, isSac};
+  return {ok, loss:Math.round(loss), sac:Math.round(sac*10)/10, given:Math.round(given*10)/10, evAfter:Math.round(evAfter*100)/100, evBefore:Math.round(evBefore*100)/100, cap, isSac};
 }
 function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
   if(loss>=250)return false;
@@ -3660,7 +3686,7 @@ export default function App(){
           } else if(L==='Brilliant'&&res.plies[i]&&res.positions[i]){
             const m=res.plies[i].move,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
             const _g=out[i].gate||{};const _mo=out[i].motifs||[];
-            const _why='You gave up '+(_g.sac>=5?'a rook or more':_g.sac>=3?'a piece':'material')+' and the position still read '+((out[i].evalAfter>0?'+':'')+(out[i].evalAfter||0).toFixed(1))+'. '+
+            const _gv2=(_g.given!=null?_g.given:_g.sac);const _why='You gave up '+(_gv2>=5?'a rook or more':_gv2>=3?'a piece':'material')+' and the position still read '+((out[i].evalAfter>0?'+':'')+(out[i].evalAfter||0).toFixed(1))+'. '+
               (_mo.indexOf('mate')>=0?'It forces mate.':_mo.indexOf('fork')>=0?'It forks two pieces at once.':_mo.indexOf('discovered check')>=0?'A discovered check, which is why it lands so hard.':_mo.indexOf('promotion')>=0?'The pawn promotes.':'Hard to see, and it holds.');
             bril.push({fen:toFEN(res.positions[i]),uci:u,label:'Brilliant',ts:Date.now(),last:lastOf(i),why:_why});
           }

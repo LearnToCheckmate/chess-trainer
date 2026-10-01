@@ -34,9 +34,12 @@
 // this gate, because this gate never looks at that file. This gate's negative control is therefore CT_SRC,
 // not CT_APP, and it is a real one that was actually run:
 //     CT_SRC=<pre-fix chess.jsx> node gates/regress/68-brilliant-sac-empty-square.js
-// against `git show origin/main:chess.jsx` (the shipped #439 source) goes RED on A1-A4, A6 and B3 and GREEN
-// on every assertion in blocks B1/B2 and C - which is the shape that proves the gate is reading the measure
-// and not its own wiring. Both md5s are printed below on every run so a reader can always tell what was
+// against `git show df79fb7:chess.jsx` (the shipped #439 source) goes RED on EXACTLY these eleven assertions:
+// A1i A1ii A2i A2ii A3i A3ii A4i A4ii A6d B3c B3f - 30 pass / 11 fail. NOTE THE PRECISION, because an earlier
+// version of this line read "A1-A4, A6 and B3", which is wrong at block granularity and would send anyone
+// reproducing the control straight to a mismatch: A6a/A6b/A6c and B3a/B3b/B3d/B3e all stay GREEN. Measured by
+// #448's antagonist A and corrected here [R18]. Blocks B1/B2 and C stay green on BOTH sources, which is the
+// shape that proves the gate is reading the measure and not its own wiring. Both md5s are printed below on every run so a reader can always tell what was
 // measured [CLAUDE.md: "if a run's output does not say what it measured, it is not evidence"].
 'use strict';
 const path=require('path'), fs=require('fs'), crypto=require('crypto');
@@ -91,7 +94,13 @@ console.log('\n-- C8. en passant: landing square empty, but it IS a capture');
   if(m){
     ok('C8b', !pos.board[2][3], 'the e.p. landing square d6 is empty before the move');
     const g=E.brilliantGate(pos,m,0,3.0,3.0);
-    ok('C8c', g.sac<2 && g.isSac===false, `a pawn-for-pawn e.p. capture is not a sacrifice: sac=${g.sac} isSac=${g.isSac}`);
+    // HONEST LABEL, because antagonist A PROVED this cannot fail: delete the e.p. term from chess.jsx
+    // outright and this gate still reads 41/0. The reason is arithmetic rather than luck - the moving
+    // piece in an e.p. capture is a pawn, so movedVal is 1, and BOTH routings yield at most 1, which is
+    // under isSac>=2 either way. The e.p. term can therefore change no verdict this app can reach: it is
+    // correct, it documents intent, and it is INERT. C8c is a companion proving the input class is
+    // reachable, NOT a test of that branch. Stated here rather than left for the next reader to discover.
+    ok('C8c', g.sac<2 && g.isSac===false, `COMPANION, cannot fail by construction (see comment): e.p. sac=${g.sac} isSac=${g.isSac}`);
   }
 }
 
@@ -106,8 +115,73 @@ console.log('\n-- A. the empty landing square (RED on the shipped #439 source)')
     eq(id+'i', g.sac, 1, `${label}: material given up is ONE PAWN (shipped #439 read ${p==='q'?9:p==='r'?5:3})`);
     ok(id+'ii', g.isSac===false && g.ok===false, `${label}: not a sacrifice and not Brilliant (isSac=${g.isSac} ok=${g.ok})`);
   }
+  // A5 USED TO LIVE HERE AND COULD NOT FAIL, and BOTH of #448's antagonists proved it independently
+  // from different doors. On THIS FEN seeSq after bxc8=Q returns 0, so the `if(seeOpp>0)` guard skips
+  // the entire block and sac is 0 for ANY formula whatsoever - including every formula in which the
+  // defect is live. Its old message asserted in prose that the capture arm "was already correct and
+  // must not move", which was both unmeasured and FALSE. Kept only as the guard-path companion it
+  // really is; the capture arm is actually tested in A5b/A5c below.
   const gc=E.brilliantGate(pos,move(pos,'b7','c8','q'),0,3.0,3.0);
-  ok('A5', gc.sac===0 && gc.ok===false, `bxc8=Q stays 0 and not Brilliant (sac=${gc.sac} ok=${gc.ok}) - it was already correct and must not move`);
+  ok('A5a', gc.sac===0 && gc.ok===false, `COMPANION: bxc8=Q here is 0 via the seeOpp>0 GUARD, not via the capture arm (sac=${gc.sac})`);
+}
+
+// ── A5b/A5c. THE CAPTURE ARM, ACTUALLY EVALUATED. THIS IS THE VETO THAT CHANGED THE SHIPPED CODE. ──────
+// Both antagonists found the same defect from different doors: #448's first candidate applied the promotion
+// credit ONLY to the empty-square arm, so a CAPTURE-promotion still charged the promoted piece's full value
+// as material given up. Measured on that candidate: bxc8=Q on 2rr3k/1P6/8/8/8/8/8/K7 w - a move that WINS A
+// ROOK FOR A PAWN - read sac=4 isSac=true ok=TRUE. Antagonist A then drove 479 generated promotion-captures
+// through the real fallback pipeline and found 57 scoring isSac=true, 6 of them reaching ok=true, and found
+// the same shape one eval-tenth from live in this repo's own Lasker Trap lesson. Every FEN below is one of
+// theirs, and each is chosen so seeOpp>0, which is precisely what A5 never had.
+console.log('\n-- A5b/A5c. the CAPTURE arm, where seeOpp>0 so the arm is really reached');
+{
+  const CAPS=[
+    ['A5b1','2rr3k/1P6/8/8/8/8/8/K7 w - - 0 1','b7','c8','q',0,3.0,3.0,'bxc8=Q wins a rook for a pawn (first candidate: sac=4 ok=TRUE)'],
+    ['A5b2','2n4k/1P6/8/8/8/K7/2r5/8 w - - 0 1','b7','c8','q',0,3.0,3.0,'bxc8=Q wins a knight (antagonist A: sac=6 ok=TRUE)'],
+    ['A5b3','2n4k/1P6/8/8/8/K7/2r5/8 w - - 0 1','b7','c8','r',0,3.0,3.0,'bxc8=R wins a knight (antagonist A: sac=2 ok=TRUE)'],
+    ['A5c1','5r2/4Pk2/1p2R1p1/2P5/7K/8/5P2/8 w - - 0 1','e7','f8','q',0,14.00,1.60,'exf8=Q+ real pipeline (antagonist A: sac=4 ok=true)'],
+    ['A5c2','3b4/4P3/8/b5K1/2p5/4k3/1B4B1/8 w - - 0 1','e7','d8','q',0,11.45,0.80,'exd8=Q real pipeline (antagonist A: sac=6 ok=true)'],
+    ['A5c3','3kr3/5P2/1p4n1/5Q2/6K1/8/2p5/8 w - - 0 1','f7','e8','q',0,12.00,-0.50,'fxe8=Q+ real pipeline (antagonist A: sac=4 ok=true)'],
+    ['A5c4','4n3/3P1Q2/7K/6N1/8/3k4/4rb2/8 w - - 0 1','d7','e8','q',105,13.00,2.65,'dxe8=Q real pipeline (antagonist A: sac=6 ok=true)'],
+  ];
+  for(const [id,fen,f,t,p,loss,evA,evB,why] of CAPS){
+    const pos=E.fromFEN(fen); const pl=move(pos,f,t,p);
+    ok(id+'-legal', !!pl && pl.promo===p, `${why}: legal and promotes`);
+    if(!pl) continue;
+    const seeOpp=E.seeSq(E.makeMove(pos,pl),pl.tr,pl.tc,E.makeMove(pos,pl).turn);
+    ok(id+'-reach', seeOpp>0, `seeOpp=${seeOpp}>0 so the capture arm is REACHED - the thing A5 never managed`);
+    ok(id+'-cap', !!pos.board[pl.tr][pl.tc], 'the landing square is OCCUPIED, so this is the capture arm');
+    const g=E.brilliantGate(pos,pl,loss,evA,evB);
+    ok(id, g.isSac===false && g.ok===false,
+       `a promotion that WINS material is not a sacrifice and not Brilliant: sac=${g.sac} given=${g.given} isSac=${g.isSac} ok=${g.ok}`);
+  }
+}
+
+// ── D. THE MISSING QUADRANT: A GENUINE SACRIFICE ONTO AN EMPTY SQUARE MUST STILL FIRE. ─────────────────
+// Antagonist B's P1-1: block A says an empty square must NOT fire and block B says a real sacrifice MUST
+// fire - but every assertion in block B is a CAPTURE, i.e. the arm this fix leaves alone. So there was no
+// assertion anywhere that a genuine sacrifice on an EMPTY square still fires, which is exactly the quadrant
+// the new net-SEE measure could damage. This block is that quadrant, and its input is this repo's own
+// canonical queen sacrifice (chess.jsx:1181, whose lesson text reads "Qg8+!! is a stunning sacrifice").
+// IT ALSO PINS THE SENTENCE, which is the other half of B's finding: the ladders at chess.jsx:947 and :3663
+// are keyed on gross piece value, so feeding them the NET cost made this very move print "You give up a
+// rook" for a queen. brilliantGate now returns `given` (material handed over) alongside `sac` (net cost),
+// and the ladders read `given`.
+console.log('\n-- D. a genuine sacrifice on an EMPTY square still fires, and still names the right piece');
+{
+  const rung=v=>v>=9?'the queen':v>=5?'a rook':v>=2?'a piece':v>=1?'a pawn':'material';
+  const pos=E.fromFEN('5r1k/6pp/7N/3Q4/8/8/8/6K1 w - - 0 1');
+  const pl=move(pos,'d5','g8');
+  ok('D1', !!pl, 'Qg8+ is legal in the lesson position');
+  if(pl){
+    ok('D2', !pos.board[pl.tr][pl.tc], 'g8 is EMPTY before the move, so this is the arm #448 changed');
+    const g=E.brilliantGate(pos,pl,0,3.0,3.0);
+    ok('D3', g.isSac===true, `a real queen sacrifice onto an empty square IS still a sacrifice (sac=${g.sac} isSac=${g.isSac})`);
+    ok('D4', g.ok===true, `and it is still Brilliant (ok=${g.ok}) - the quadrant block B never covered`);
+    eq('D5', g.given, 9, 'the material HANDED OVER is a queen, which is what the sentence ladder reads');
+    eq('D6', rung(g.given), 'the queen', 'so the review still says "You give up the queen" and not "a rook"');
+    ok('D7', g.sac < g.given, `and the two quantities are genuinely different here (net ${g.sac} < handed over ${g.given}) - which is why one expression could not serve both`);
+  }
 }
 
 // ── A6. THE SAME MECHANISM WITH NO PROMOTION ANYWHERE, FROM THE LIVE CORPUS ────────────────────────────
@@ -135,6 +209,11 @@ console.log('\n-- A6. 174540842570 37.Qf6+, a queen trade offered with check (no
       const loss=Math.round(Math.max(0,scored[0].v-av));
       const g=E.brilliantGate(pos,pl,loss,E.evalPawns(res.positions[found+1]),E.evalPawns(pos));
       ok('A6d', g.ok===false, `37.Qf6+ is NOT Brilliant (sac=${g.sac} ok=${g.ok}; shipped #439 read sac=9 ok=true)`);
+      // A6d on its own is a five-term conjunction, so a build whose sac fix regressed but whose evAfter
+      // happened to land below 0.8 would pass it green. Antagonist B caught that this one corpus-sourced
+      // case was the only A assertion not pinning its value, while the header demands exactly that.
+      eq('A6e', g.sac, 1, '37.Qf6+ net material given up is ONE PAWN (shipped #439 read 9)');
+      ok('A6f', g.isSac===false, `37.Qf6+ is not a sacrifice at all (isSac=${g.isSac})`);
     }
   }
 }
@@ -163,12 +242,10 @@ console.log('\n-- B. real sacrifices still fire (GREEN on the shipped source too
     const scored=E.rankMoves(pos,2);
     const actual=scored.find(s=>s.m.fr===pl.fr&&s.m.fc===pl.fc&&s.m.tr===pl.tr&&s.m.tc===pl.tc);
     const av=actual?actual.v:(pos.turn==='w'?-9999:9999);
-    const loss=Math.round(Math.max(0,av-scored[0].v<0?scored[0].v-av:av-scored[0].v));
     const lossB=Math.round(Math.max(0, side==='w'?scored[0].v-av:av-scored[0].v));
     const g=E.brilliantGate(pos,pl,lossB,E.evalPawns(res.positions[idx+1]),E.evalPawns(pos));
     eq(id+'c', g.sac, wantSac, `${want}: sac is UNCHANGED from the shipped measure`);
     ok(id+'d', g.ok===true, `${want} is still Brilliant (ok=${g.ok}) - a fix that bought the false positive back by killing this is not a fix`);
-    void loss;
   }
 }
 
