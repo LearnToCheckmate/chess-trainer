@@ -711,3 +711,118 @@ origin/main`, and #441 as `held: ...`.
 
 **Rotating audit: started at `14-uat-review-card.js`, ended at `16-cpu-result-line.js`. Next pass starts at
 `23-full-walk.js`; 17, 18 and 19 are the gap this run's briefing error left.**
+
+## #451 — the preview gallery holds what is still outstanding (2026-10-01)
+
+| build | what | ETA stated (at) | started | actual | delta | gates |
+|---|---|---|---|---|---|---|
+| #451 | `jobs/preview-gallery-flush-and-load-current-asks` (P10, Kunal 2026-09-22) | 160 min (08:04Z, mid-run — see below) | 07:20:54Z | 268.9 min | +108.9 vs a 160-min ETA | **GATES RED** 46 green / 1 red, 3189 PASS |
+
+**THE ETA IS A MISS AND IS RECORDED AS ONE.** R30 wants an ETA in the check-in row, before the work. I wrote none at
+07:20:54Z and only added one at 08:04Z, labelled in the ledger as written mid-run. Not backdated.
+
+**ITEM CHOSEN BY STEP 1S, WITH ONE DOCUMENTED SKIP.** Priority 11 (`a-gated-green-log-is-not-a-shippable-tree`) was
+skipped: its fix shipped as #450 and R05 reserves closing to the finder. That is exactly the trap the outgoing pen
+note warned about — the queue's `ready` flag has no term for "the fix already shipped". At priority 10 (21 ready
+build jobs) this was the tie-break (b) winner: the only one whose `askedBy` names Kunal.
+
+**THE FIRST MEASUREMENT CHANGED THE PLAN, AND IT IS THE MOST REUSABLE THING IN THIS RUN.** The handover ranks the
+sel/cls consumer P0 as live on main. It is not. `origin/main` has NO sel/cls split: `classifyByLoss`, `CLS_BANDS`,
+`winDrop` and `winPct` are each **0** occurrences in main's `chess.jsx` against 8/3/5/4 on the branch, and main's
+`classify()` is still the old centipawn ladder — so the Great/Miss overlay already reads the ladder it was calibrated
+against and the defect's precondition is absent. Porting the #442 fix to main would have been a fix with nothing to
+fix. **A false positive is corrected too:** #450 offered "main does carry sel/cls usage (`sel:` 30, `cls:` 1)" as its
+counter-measurement; main's 38 `sel:` hits are every one of them `UI.current={sel:null,tgts:...}`, the board's
+piece-selection state — the same loose-grep error it was in the act of correcting. Verified independently by this
+run's antagonist A.
+
+**WHAT SHIPPED.** The gallery holds the two asks that are DUE (his phone's exact screen size; our review of
+Kunal2023 v Kevitsch) instead of eight cards pinned to builds #366–#373. Card 2 of the four is not loaded because it
+was provided (Desk `kevitsch-chesscom-review`, choice "sent", 2026-09-22T21:30:50Z, read from the Desk this run);
+card 4 is not loaded because its three drill jobs all still read `ready`. The Layout readout gained the one line card
+1 exists to capture: `inner WxH  vv WxH  app installed app|browser tab`. Story `US-GL-01`, case `TC-GL-001`, amber
+record `flags/amber-451-preview-gallery-flush-and-reload`.
+
+**THE MISTAKE THIS RUN MADE, AND THE SUITE CAUGHT IT.** Deleting the eight cards took `10-gameover`, `11-lesson`,
+`12-hint`, `13-play-after-moves` and `14-uat-review-card` RED inside six minutes of a full suite, every one on
+`locator.waitFor: Timeout 8000ms exceeded` for a card that no longer existed: those gates REACH the states they
+assert over by tapping these cards via `b.card()`. Gate 15's own comment had asserted "the states are still pinned;
+what changed is which gate drives them" — the states are pinned, but the cards are the ROUTE IN, and that is what I
+had removed. **Withdrawn in place.** Resolved by SEPARATING the lists, not restoring the cards to the queue: `SC` is
+Kunal's queue, `TS` the eight fixtures with byte-identical labels, so all consumers work unchanged. Gate 15 gained
+the two assertions that would have caught it, controlled against a bundle built with `const TS=[]` (48 pass / 6 fail).
+
+**ANTAGONIST A: NO VETO, two upheld P1s that changed shipped gate code, five numbers of mine corrected.** Its best
+act was reading my own control's result against my own argument: I claimed the `data-ct` scoping was safe "because
+assertion (3) pins the TOTAL card count". True of the walk, FALSE of block F, which read `fit.states` from the new
+attribute — so a bundle dropping only that attribute would report **74 PASS / 0 fail while measuring 2 of 10 card
+boxes**, and my own TS-empty control had already demonstrated it. Closed by one assertion. It also measured that
+`grep -ln 812 gates/regress/*.js` returns gate 15 and 35-width-containment, **and in 35 the only hit is a comment** —
+so the flush would have taken the suite's dense board-jump coverage at 375x812 from one instrument to ZERO, with the
+proof in the file I was editing. New **block S** moves the sampler onto the five board-owning fixture cards at both
+geometries, controlled two ways. Numbers corrected: "five gates" (the population is 9 regress files / 24 call sites
+in 14 live files — a count from a suite I had killed), "122 s / ~62 s" for the 2026-09-14 recording (**143 s / 88 s**
+measured off the array; I had quoted a flag that disagrees with the code, and it was the load-bearing half of the
+obsolescence argument, now demoted to a possibility), "78 builds old" (**85**), `STATE_IDS` missing `y3`, and a
+control comment crediting `cardwide` with coverage only `cardclip` has.
+
+**THE ROTATING AUDIT'S RESUME POINT WAS WRONG IN THIS FILE AND IS CORRECTED HERE [R18].** #450's section above says
+"Next pass starts at `23-full-walk.js`; 17, 18 and 19 are the gap this run's briefing error left." **Gates 17, 18 and
+19 DO NOT EXIST** — `gates/regress/` goes 14, 15, 16, 20, and `git log --diff-filter=D -- 'gates/regress/1[789]*'`
+finds no deletion, in `pending/` or `audit/` either. The "gap" is an artefact of NUMBERING, and #449's own close-out
+line already named the correct frontier. That is four consecutive wrong statements about this resume point, three of
+them in #450's pen note, and I briefed A from the pen note and inherited the fourth. **The mechanical fix: brief the
+audit from RUN-LOG's close-out line, never from a pen note.** A audited `23-full-walk` instead, all 11 assertions at
+both geometries. **Next pass starts at `24-opponent-handshake.js`.**
+
+**FOUR NUMBERS.** open P0 **5**, open P1 **45**, coverage/assertions in the gates column. The rule, so it is
+reproducible: `severity` exactly P0/P1 AND `status` not done/closed/parked/superseded, over the whole `jobs`
+collection. The denominator caveat carried from #449 still holds — most ready jobs carry no severity field, so this
+counts what is TAGGED. **And the count is real but misleading as risk: NONE of the five open P0s is a defect live on
+main that this lane may fix today** — two are the sel/cls pair measured absent from main above, one shipped at #439
+(gate 65 present, `_gameOver` 17 occurrences), one shipped at #450, and the fifth is the mate-floor question, which
+is Kunal's decision. The first four stay open only because the finder closes.
+
+**NOT CHECKED.** Nothing rendered on a real iPhone — that is what card 1 is for. The readout's `installed app` branch
+is unreachable in headless Chromium, so that branch is unexercised and named (#375's device-branch rule). The live
+site is egress-blocked, so the SERVED bundle was never compared — only the committed one, read back out of
+`origin/main`. `deploy.py` was not run and is not the push path. Blocked jobs were not re-tested [R23] — sixth run
+running, and two of the three are over 48 hours, which is itself a finding.
+
+**THE OUTCOME: STOOD DOWN ON THE PUSH WITH A RED SUITE. Nothing reached main; main is unchanged at `1e4b797`.**
+The tree is committed and pushed to `claude/cool-noether-izjtlu` at `8585bef`, so nothing is lost. The single red is
+gate 26's invariant 3 at `short375`, `added:[16]` — a KNOWN, FILED, PRE-EXISTING non-determinism
+(`jobs/gate-26-invariant-3-short375-returns-two-values-for-one-bundle-2026-09-30`) whose fix is the one thing that
+job tells this lane not to make, because adding a `short375` key IS re-pinning. Measured four ways before accepting
+it as not mine: the identical `added:[16]` is what that job was filed on, against a 2026-09-30 tree; this run's own
+suite 3 had the assertion GREEN at 364 PASS over byte-identical app source (`chess.jsx` last changed at `b9465d2`,
+before both suites); standalone at `short375` on this bundle it is green, 121/0; and the change adds no icon.
+
+**AND A STRUCTURAL DIAGNOSIS OF IT, WHICH IS THE MOST REUSABLE THING THIS RUN PRODUCED AFTER THE MAIN MEASUREMENT.**
+`26-invariants.js:474` keys `ICON_PIN` by VIEWPORT WIDTH, and the 320 set CONTAINS 16 while the 375 set does not.
+`short375` is 375 wide and 568 TALL — it shares its WIDTH with `kunal730` and its HEIGHT with 320x568 — so it is
+checked against a pin calibrated on a TALL 375 screen, and a height-keyed 16px icon would red it legitimately. The
+file's own comment claims the sets "differ between geometries only in the wordmark", which is false as written: 320
+has eleven entries and 375 has ten, differing by exactly the value that reds. This is the direct descendant of the
+#423 antagonist's own repair — keying by WIDTH fixed one false red and created this one, because width is not what
+the quantity depends on. Stated as PARTIAL: a purely structural mis-keying would red every time and it does not, so
+the honest reading is two factors, a probably mis-keyed pin AND an unstable reach.
+
+**TWO OTHER REDS THE SUITE FOUND WERE FIXED AND CONTROLLED.** `47-menu` TC-MN-018 was MINE: the assertion read a
+200-character SLICE of the very block it asserts over, so this build's added readout line pushed `build #NNN` out of
+its window and the FAIL text printed the truncation as though the app had stopped naming the build. It asserts the
+full text now and truncates only the log detail — proved not to be a weakening against a trial bundle with the build
+token removed (85 pass / 1 fail, printing `NOBUILDTOKEN`). `65-promotion-after-gameover` block F was PRE-EXISTING and
+is the more serious of the two: a fixed 3000ms wait in front of an ENGINE-BOUND arrival, which means **#450's own
+committed GREEN log is not reproducible on this machine** — 49 pass / 2 fail, twice, byte-identical, on the very
+bundle that log calls green at 58 PASS. Probed: `[data-ct="rev-summary"]` is ABSENT at +0ms after that wait and
+PRESENT ~2000ms later. Now polled with a guard, and green at exactly 58 in suite context, so the fix restores the
+intended behaviour rather than changing what is asserted.
+
+**ANTAGONIST: ONE, NOT THE BLIND PAIR, AND THE COVERAGE ESTIMATE IS THEREFORE NOT PUBLISHED** — the procedure's own
+instruction, since a rushed pair's overlap number is worse than none. Antagonist A ran on the DIFF door
+(`general-purpose`, tracker tools, no browser, launched during the suite so it could not perturb timings). B was to
+enter through the shipped surface once a green log existed; no green log exists, and there was no push for it to
+gate. **AUDITOR: SKIPPED**, reason stated — it audits the live bundle and nothing shipped.
+
+**FOUR NUMBERS.** open P0 **5**, open P1 **45**, 47 suites / 3189 regression assertions, coverage unchanged.

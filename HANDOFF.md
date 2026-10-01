@@ -1927,3 +1927,39 @@ Story clause **US-PL-12**, case **TC-PL-034**.
    sibling jobs from #428 may share its cause — check before building, per R09.
 
 **The pen note on `claims/repo-pen` carries the rest, including what I would want checked about my own build.**
+
+---
+
+## #451 (2026-10-01) — the preview gallery flush, and a stand-down on a red this lane may not fix
+
+**WHERE THE BUILD IS: main is UNCHANGED at `1e4b797` (#450).** #451 is committed and pushed to
+`claude/cool-noether-izjtlu` at `8585bef` and is NOT on main. Read `RUN-LOG.md`'s #451 section for the full
+account; this is the short form.
+
+**WHAT IT IS.** `jobs/preview-gallery-flush-and-load-current-asks` (priority 10, Kunal 2026-09-22, the only ready
+priority-10 build job whose `askedBy` names him). The Preview gallery now holds the TWO asks that are actually due
+instead of eight cards pinned to builds #366–#373; the eight are kept as a SEPARATE harness-fixture list, not
+deleted, because five gates reach the states they assert over by tapping them. Story `US-GL-01`, case `TC-GL-001`,
+amber record `flags/amber-451-preview-gallery-flush-and-reload`, renders in `claude/agents/renders/451-*`.
+
+**THE ONE THING TO READ BEFORE TOUCHING THE QUEUE AGAIN:** `PINNED_IDS` and `EXPECTED_N` in
+`gates/regress/15-gallery-playall.js` must change in the SAME COMMIT as `SC`. That is the deal, and it is what stops
+the empty-queue state — which is this feature's designed success condition and has no coverage — arriving silently.
+
+**WHY IT DID NOT SHIP.** `GATES RED #451`, 46 green / 1 red, 3189 PASS. The red is gate 26's invariant 3 at
+`short375` (`added:[16]`), a known, filed, pre-existing non-determinism. Measured as not this build's four ways,
+including: this run's own earlier suite had that assertion GREEN over byte-identical app source. Its fix would be a
+re-pin, which `jobs/gate-26-invariant-3-short375-returns-two-values-for-one-bundle-2026-09-30` tells this lane not
+to make. A STRUCTURAL DIAGNOSIS was added to that job: `ICON_PIN` is keyed by viewport WIDTH, the 320 set contains
+16 and the 375 set does not, and `short375` is 375-wide but SHORT — so it is checked against a pin calibrated on a
+tall 375 screen.
+
+**TWO OTHER REDS WERE FIXED ON THE WAY, AND ONE OF THEM MATTERS BEYOND THIS BUILD.**
+`65-promotion-after-gameover` block F waited a fixed 3000ms for an ENGINE-BOUND arrival, which means **#450's own
+committed GREEN log is not reproducible on this machine** (49/2 twice on the bundle that log calls green at 58).
+Now polled, and green at exactly 58 in suite context. `47-menu` TC-MN-018 was mine — it asserted over a 200-character
+SLICE of the block it checks — and now reads the full text, proved still able to red.
+
+**IF YOU PICK THIS UP:** the tree needs only a green suite. Either the gate-26 owner fixes the pin, or a run gets a
+green pass on it (it is roughly a coin flip in suite context and stable standalone). Do NOT re-pin it to get green,
+and do NOT read this file for where the build is — read `RUN-LOG.md`.
