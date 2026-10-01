@@ -826,3 +826,109 @@ enter through the shipped surface once a green log existed; no green log exists,
 gate. **AUDITOR: SKIPPED**, reason stated — it audits the live bundle and nothing shipped.
 
 **FOUR NUMBERS.** open P0 **5**, open P1 **45**, 47 suites / 3189 regression assertions, coverage unchanged.
+
+
+---
+
+## #451 SHIPPED (2026-10-01) — the same tree, landed on a green suite by the next run
+
+| build | item | ETA | start | actual | vs ETA | gates |
+|---|---|---|---|---|---|---|
+| #451 (shipped) | `jobs/preview-gallery-flush-and-load-current-asks` (P10, Kunal 2026-09-22) — **landing the tree #451 built and could not push** | 75 min, in the check-in row before the work | 12:20:51Z | **138 min** | **+63 min on a 75-minute ETA** | **GATES GREEN #451** — 47 sections / 3190 PASS / 0 fail |
+
+**THE SECTION ABOVE IS #451's OWN ACCOUNT AND IT STANDS AS HISTORY.** It is right about its own run: that suite
+was RED and it was right not to push. This records what the next run did with the same tree. **No application
+source was rebuilt or changed** — `chess.jsx` and `app.js` are byte-identical to `6956527`, and the suite gated the
+EXACT artefact #451 stamped (md5 `aba551f896c7`, stamp `#451 - 2026-10-01 06:30 ET`) rather than a rebuild, which
+would have minted a new md5 and broken the link between the green and the shipped bytes. **The number was not
+re-minted**: #451 was stamped and never shipped, so it stays #451.
+
+**THE ETA IS A MISS AND IS RECORDED AS ONE.** 138 against 75. Two causes, both named: the adversarial pass ran
+58 minutes against the ~15 I had allowed (antagonist A drove four browser launches to disprove one of my numbers,
+and that was worth every minute), and discharging its corrections meant rewriting a mechanism I had already
+written into three places. The suite itself was 44 minutes, exactly as estimated.
+
+**WHY RE-GATING WAS THE RIGHT MOVE AND NOT "RUNNING UNTIL GREEN".** The one red was gate 26 invariant 3 at
+`short375`, which `jobs/gate-26-invariant-3-short375-...` had already measured across eight readings as a
+pre-existing instrument fault, and whose own `theFix` forbids re-pinning to 10 or to 11. **I touched no pin and
+weakened no assertion.** Step 3 says diagnose whether a red is the app's or the gate's and re-gate from the top;
+#451 had done the diagnosis four ways. My reading is the **tenth** of that cell: `short375` = 10 heights,
+`added:[] gone:[]`, gate 26 green at 364 PASS. It is recorded on the job as one datum and **not** as evidence the
+pin is sound. The arithmetic is exact: the red run was 3189 with that assertion at 363; green gives 364 → 3190,
+and no other gate's count moved.
+
+**BOTH ANTAGONISTS GAVE NO VETO, AND ANTAGONIST A DISPROVED FIVE OF MY NUMBERS.** That is the most valuable thing
+in this run and it is recorded in full on `flags/antagonist-a-451shipped`. The short version, because the long
+version is a correction to a mechanism I had already published:
+
+- **I claimed `boardPx` at 375x568 "lands near 229". A measured 254.90, four times out of four**, 25.90px clear,
+  driving the exact state gate 26 uses. My phrasing implied sub-pixel jitter around a threshold, so a reader would
+  have nudged the threshold — **and that would have done nothing.**
+- **The real shape is BISTABILITY and this repo already held the measurement**, in a file #451 never touched:
+  `48-lesson-flow.js:937`, "270.88 in most runs and 192.00 — its floor — in others, STABLE WITHIN A RUN … roughly
+  2 of 6 full runs". 192.00 < 229. The threshold sits **between two stable modes ~63–79px apart** — #432's
+  "the threshold sat BETWEEN the two readings", not a race.
+- **My #436 settle-race attribution is wrong** and must not be repeated: gate 48's own control says two samples
+  500ms apart agree either way.
+- **"Contributing 16.0" is wrong, and the fix strengthens my own point:** the glyph is 16px in *both* label
+  branches and `allH` is 17 in all three logs, so `added:[16]` is a **reclassification, not a resize**. The
+  predicate is `[...txt].length<=2` — two code points, not "one grapheme" (the gate's own log line is wrong about
+  that too, pre-existing).
+- **And my second refutation was weaker than I phrased it.** I offered the identical rows/controls/occluded triple
+  as proof the walk did not change; A reproduced all nine byte-identically and then pointed out **the triple is the
+  same in a RED run and a GREEN run**, so it has no discriminating power on the outcome. #418's trap: ask what your
+  instrument prints on a case you already know is fine.
+
+**THE CORRECTED CHAIN**, for the next reader: bistable lesson board → the floor mode crosses `rowTiny`'s 229 → the
+Try again label collapses to a bare `↻` → gate 26's predicate reclassifies an always-16px element as an icon →
+`added:[16]`. **Inferred, not closed** — nobody has forced the 192.00 mode and watched the chain end to end.
+**And `added:[16]` is a MISLEADING red:** it sends a diagnoser to `ICON_PIN`, when the cause is a lesson board
+collapsing ~63px on a real phone shape, which is a defect a user would feel and which no assertion names.
+
+**WHAT THE PAIR FOUND, by door, and the split is the argument for the pair.** A (diff) found instrument and record
+faults and nothing a player sees; B (shipped surface, agent type with no database tool, so blind by construction)
+found only things a player sees and nothing about my claims. **Neither could have found the other's set.** Six new
+owned jobs: card 2's instruction vanishing after 8.9s while its own task needs 20–60s (P1); three different
+deliverables stated for one situation (P1); the `b.card()` ordinal collision **this build created** (P1, one line,
+filed before the push at A's request); the engine-line toggle moving the board 9.5px at both 568-tall geometries
+while gate 22 runs only where the shift is zero (P2); the 320x568 header taking 69% of the screen (P2); and four
+PASS lines in 3190 covering this build's headline change, with nothing visiting the gallery at 375x568 (P2).
+**uniqueToA 11, uniqueToB 6, common 1 — and I am NOT publishing a coverage number**: `a*b/c` gives 84 and at
+`c=1` that estimator is degenerate, so the three raw numbers go on the record and the number does not.
+
+**ONE FINDING I DELIBERATELY DID NOT FIX, and the reason is the rule.** A found three wrong numbers in a committed
+comment (`15-gallery-playall.js:542-544` says one exclusion, seven cards, 55s; the file measures three, five, 44s).
+Fixing a comment is safe — but editing a gate file after `GATES GREEN` means the pushed gate file is not the one
+that was gated, which is #441's own complaint about itself. **The tree I pushed is the tree the suite gated.** A
+agreed: "fix the comment, don't hold the tree." It is `jobs/gate-15-block-s-header-contradicts-its-own-file-...`.
+
+**FOUR NUMBERS.** open P0 **5**, open P1 **47**, 47 sections / **3190** regression assertions, coverage unchanged
+(no coverage item moved; this build shipped no new screen). The P1 figure is **47 against #451's 45** and that is a
+moving denominator, not a correction — same method, and #451 itself filed P1s dated 2026-10-01 after writing its
+row. **Four of the five open P0s are not defects a build can fix** and I re-derived that rather than inheriting it:
+`a-gated-green-log` shipped at #450 (verified on main), `a-pawn-can-be-promoted` at #439, the two `sel/cls` P0s are
+regressions inside the unshipped pile and cannot occur on main, and `gate-66-b1-and-the-mate-floor` is Kunal's
+decision.
+
+**A NUMBER I ALMOST PUBLISHED AND DID NOT [R18].** I had written "this ends eight consecutive builds that pushed
+nothing to main", which `scores/build`'s own "eighth consecutive stand-down" invites. **It is false** — `git log`
+on main shows #448, #449 and #450 all landed earlier the same day. The true, narrower claim: #450 shipped no
+application change, so the app had not moved since **#449 at 04:00:56Z**, about nine and a half hours.
+
+**R23, BLOCKED JOBS, RE-TESTED THIS RUN** rather than carried for a seventh time. Three blocked: `legal-pages-fill-placeholders`
+— Desk answer `legal-pages-approve-draft-2026-09-22` still reads `choice: "later"` with an empty comment, **nine
+days old**, and "later" is not an answer, so still blocked (at least eight runs have now re-tested the same
+"later"; it needs re-raising or parking, which is the orchestrator's call and is routed);
+`widen-the-input-space` — still no `window.*analysis` hook, measured by three greps (0 in `chess.jsx`, 0 in
+`gates/lib.js`), so unchanged; `practice-row-label-keyed-to-a-board-threshold` — not mine, and it got the more
+useful thing: its sibling `rowTiny` is the switch in the chain above, so its own "nothing a player suffers today"
+understates the cost, and that is now on the job.
+
+**NOT CHECKED.** Nothing rendered on a real iPhone — which is exactly what gallery card 1 now exists to capture.
+The readout's `installed app` branch is unreachable in headless Chromium and stays UNEXERCISED. The live site is
+egress-blocked, so the SERVED bundle was never compared — only the committed one, read back out of `origin/main`.
+`deploy.py` was not run and is not the push path. **No `fire_trigger` tool exists in this session**, so the headless
+UAT sweep was not kicked and will pick this build up on its own schedule. The `rowTiny → added:[16]` chain is
+inferred end to end, not closed. Gate 15's two-sided `EXPECT_BOARD` is unexercised (`capWants` is `.some()` over an
+empty array) and **its control record was NOT cited here**, because that record says in terms to re-run it before
+citing and I did not. Gate 47's repaired control was not reproduced. Landscape was not driven this run.

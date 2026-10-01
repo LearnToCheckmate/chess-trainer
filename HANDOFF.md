@@ -1959,11 +1959,41 @@ The 320 set's 16 is a DIFFERENT ELEMENT ("Roadmap", `451-all-RED.log:842`) from 
 ("Try again", `:1395`), so re-keying the pin by height would excuse one element with a pin justified by another.
 What actually happens: the Try again button's label is responsive (`chess.jsx:7213`,
 `{rowTiny?'↻':rowNarrow?'↻ Again':'↻ Try again'}`) and gate 26 admits an element to its icon population only if it
-is an svg or a ONE-GRAPHEME text node (`26-invariants.js:353-355`) — so the button **joins the population only when
-`rowTiny` is true**, contributing 16.0, which is exactly the `added:[16] gone:[]` signature. `rowTiny` is
-`boardPx<229` (`chess.jsx:4543`) and `boardPx` comes from the fit loop, the quantity #436 measured reading an
-unsettled frame. The walk did not change: rows/controls/occluded are identical in the green `450-all.log` and the
-red `451-all-RED.log` at all three geometries, and both are pinned per screen.
+is an svg or a short non-alphanumeric text node (`26-invariants.js:354`) — so the button is **CLASSIFIED as an icon
+only when `rowTiny` is true**, which is exactly the `added:[16] gone:[]` signature. `rowTiny` is `boardPx<229`
+(`chess.jsx:4543`).
+
+> **FOUR CLAIMS IN THE PARAGRAPH ABOVE WERE WRONG IN THE VERSION COMMITTED AT `be147ab`, AND ARE WITHDRAWN HERE
+> [R18].** My antagonist A disproved them and I verified every correction at source before accepting it. The
+> *switch* is right; the *cause*, the *number* and the *shape* were not.
+> 1. **"`boardPx` lands near 229" is DISPROVED: it measures 254.90, four times out of four**, 25.90px clear, driving
+>    `gates/drive/lesson.js` `states['practice-m0']` at `short375` — the exact state gate 26 uses
+>    (`26-invariants.js:941`). My phrasing implied sub-pixel jitter, and a reader would have "fixed" it by nudging
+>    the threshold, **which would have done nothing.**
+> 2. **The real shape is BISTABILITY, and this repo had already measured it** in a file #451 never touched:
+>    `48-lesson-flow.js:937` — "the demo board measures 270.88 in most runs and 192.00 — its floor — in others,
+>    STABLE WITHIN A RUN … in roughly 2 of 6 full runs". 192.00 < 229. The threshold sits **between two stable modes
+>    ~63–79px apart**, which is #432's "the threshold sat BETWEEN the two readings".
+>    Owner: `jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29`.
+> 3. **The #436 attribution is wrong and must not be repeated** — gate 48's own control says two samples 500ms
+>    apart agree *either way*, so it is **not** a settle race.
+> 4. **"contributing 16.0" is wrong, and the correction strengthens the point:** the glyph box is 16px in *both*
+>    branches, and `allH` is 17 at all three geometries in the green, the red AND `450-all.log`. The element is
+>    always there and always 16px; `added:[16]` is a **reclassification, not a resize**. (Also: the predicate is
+>    `[...txt].length<=2` — two code points, not "one grapheme"; the gate's own log line at `:1302` is wrong about
+>    this too, pre-existing.)
+>
+> The walk did not change — rows/controls/occluded are identical in `450-all.log` and `451-all-RED.log` at all three
+> geometries, and both are pinned per screen — **but that triple is identical in a RED run and a GREEN run, so it
+> has no discriminating power on the outcome** (#418's trap). It rules out a gross screen swap and no more.
+>
+> **THE CORRECTED CHAIN:** bistable lesson board (270.88 / 192.00 floor, ~2 of 6) → the floor mode crosses 229 →
+> the label collapses to a bare `↻` → the predicate reclassifies an always-16px element as an icon → `added:[16]`.
+> **Still inferred, not closed:** nobody has forced the 192.00 mode and watched the whole chain in one run.
+>
+> **AND THE RED IS MISLEADING, which is the part that matters most.** Anyone diagnosing `added:[16]` from the log
+> goes to `ICON_PIN` and icon sizes. The cause is a lesson board collapsing ~63px on a real phone shape — a defect
+> a user would feel — and the only assertion that ever fires on it is about icon heights.
 
 **TWO OTHER REDS WERE FIXED ON THE WAY, AND ONE OF THEM MATTERS BEYOND THIS BUILD.**
 `65-promotion-after-gameover` block F waited a fixed 3000ms for an ENGINE-BOUND arrival, which means **#450's own
