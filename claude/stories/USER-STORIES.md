@@ -596,3 +596,38 @@ measurement that had ever been taken of this gate. Clause 4 exists because the f
 clause 1 - net the exchange on EVERY path, which is more principled - measured 19...Bxh3 at 1 and so lost the
 reference brilliancy. Making that candidate work needs the sacrifice threshold moved from 2 to about 1, which
 is Kunal's decision and not this lane's; it is routed with its numbers rather than taken.*
+
+### US-GL-01 The gallery asks me only for what is still outstanding, and asks for it so I can act without a reply
+*Added #451, from jobs/preview-gallery-flush-and-load-current-asks (priority 10). Kunal, 2026-09-22: "whatever you
+need from me have it saved in the preview gallery first make sure that the preview gallery is flushed of everything
+that you don't need anymore or that's already been provided just put the items that you need in there and exactly
+how you need it so all I have to do is essentially record it and upload it to you". The gallery had no story clause
+at all before this, which is part of why eight cards pinned to builds #366-#373 survived eleven builds: nothing said
+what the list was FOR, so nothing said when an entry should leave it.*
+
+As the person the fleet depends on for everything a sandbox cannot see - Apple emoji ink, iOS Safari, real touch,
+real safe-area insets, signed-in state, engine timing on my own phone - I want the Preview gallery to hold exactly
+the things still waiting on me, each written so I can record it and upload it without asking what was meant, so
+that opening it costs me no triage.
+
+The clauses, each one measurable:
+1. **The list holds only outstanding asks.** An ask leaves the list when it has been provided, when it is no longer
+   needed, or when it is not yet due. MEASURED at #451: of the four asks the job carries, one was already provided
+   (Desk item kevitsch-chesscom-review, choice "sent", 2026-09-22T21:30:50Z) and one is not due (it is added by the
+   build that closes the last of three named drill jobs, all three still status "ready"), so the list holds two.
+2. **A card states what to capture, the exact taps, and where to put it, and nothing else.** No card explains a
+   build number or justifies itself to him; the reason a card exists belongs in the tracker, not on his screen.
+3. **Nothing in the list is there for the test harness's benefit.** This is the clause the #451 flush exists for.
+   The eight cards it removed were simultaneously Kunal's ask list AND the only route five gates had into the states
+   they assert over, so the list could not shrink without taking the suite down with it - MEASURED, by doing it:
+   deleting them took gates 10, 11, 12, 13 and 14 RED in one suite, every one on a `locator.waitFor` timeout for a
+   card that no longer existed. Fixtures the harness drives are a separate list, under their own heading, labelled
+   on screen as not an ask. A queue that cannot be emptied is not a queue.
+4. **Every card fits the phone it is read on.** No card's box paints past the viewport and no card's ink is cut
+   horizontally, at 320 wide and at 375 wide. Vertical scrolling of the list is correct and is not a cut: the list
+   is its own scroller, and this project has filed two false P0s by reading a scroller's range as spill.
+5. **A card that reports a measurement reports what the browser actually says.** Where a card exists so that one
+   screenshot settles a number - card 1 exists because the record carries two different heights for his phone and
+   names this card as the thing that decides - the figures it shows are asserted against the live browser values,
+   not merely rendered. A readout that can be stale is worse than no readout, because a screenshot of it looks like
+   evidence.

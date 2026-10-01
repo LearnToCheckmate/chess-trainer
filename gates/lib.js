@@ -156,6 +156,13 @@ async function launch(opts={}){
       const re=id instanceof RegExp?id:(typeof id==='number'?new RegExp('^'+id+' · '):new RegExp('^\\d+ · '+String(id).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+' · '));
       const c=page.locator('button',{hasText:re}).first();await c.waitFor({state:'visible',timeout:8000});await c.click();await page.waitForTimeout(hold==null?1500:hold);},
     async cardTitles(){await b.home();const gb=page.locator('button[title="Preview gallery (dev)"]');await gb.click();await page.waitForTimeout(400);const t=await page.evaluate(()=>[...document.querySelectorAll('button')].map(x=>(x.innerText||'').split('\n')[0]).filter(x=>/^\d+ · /.test(x)));await page.locator('button',{hasText:/^✕$/}).last().click();return t;},
+    /* #451: cardTitles() returns EVERY card in the gallery, which since #451 is Kunal's ask queue PLUS the eight
+       fixed states the harness drives (chess.jsx, const TS). Gate 14 wants the whole list - it checks the US-R
+       journey card exists - so cardTitles() is unchanged. askTitles() is the QUEUE only, for the gate that pins
+       what Kunal is actually being asked for. Scoped by data-ct because the two lists are deliberately
+       indistinguishable by title: five gates locate the state cards by their original labels and relabelling them
+       would break those gates silently. */
+    async askTitles(){await b.home();const gb=page.locator('button[title="Preview gallery (dev)"]');await gb.click();await page.waitForTimeout(400);const t=await page.evaluate(()=>[...document.querySelectorAll('button[data-ct="ask-card"]')].map(x=>(x.innerText||'').split('\n')[0]));await page.locator('button',{hasText:/^\u2715$/}).last().click();return t;},
     async close(){try{await browser.close();}catch(e){}}
   };
   return b;

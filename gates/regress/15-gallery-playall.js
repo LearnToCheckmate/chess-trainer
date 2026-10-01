@@ -156,7 +156,58 @@
 const L=require('../lib');
 
 const TOL=0.6, HOLD=250, WIN=900, STEP=50, TICK=60;
-const PINNED_IDS='1 k10|2 k8|3 k11|4 k11|5 A-06|6 US-R|7 y3|8 y3';
+/* #451: THE PIN MOVES WITH THE CARDS, IN THE SAME COMMIT, AND IT STAYS EXTERNAL.
+   jobs/preview-gallery-flush-and-load-current-asks flushed the eight obsolete cards and loaded the two that are
+   due, so this pin changes with them. THREE THINGS DELIBERATELY NOT DONE, because each is a trap this repo has
+   already paid for:
+   (1) NOT DERIVED FROM SC AT RUNTIME. That is the obvious fix and it is the one costume this file must not wear -
+       the check and the thing checked become the same object (CLAUDE.md records it six times: clip-intersection,
+       #393's "the covering element is big", #394's grid.contains, #398's flex-shrink, #419's log footer, #432's
+       own-build selector). A gate that reads SC to check SC cannot see a card silently removed.
+   (2) THE COUNT IS PARAMETERISED, NOT DROPPED. `N===8` becomes `N===EXPECTED_N`, and EXPECTED_N is asserted to be
+       what this commit says it is, so a drift of one card is still RED. A bare count with no scope is what
+       #411/#412 charged.
+   (3) W1 TO W6 AND CAPS8 ARE UNTOUCHED. CAPS8 is a pure FIXTURE for unit-testing walkOk() against caption shapes
+       it must accept and reject; it is not an assertion about the live card set, and it carries gate 15's real
+       invariant - that every card actually played, in order, with a coherent n/N token. Nothing here weakens it. */
+const PINNED_IDS='1 PHONE|2 KEV';
+const EXPECTED_N=2;
+/* #451: WHICH PINNED CARDS SHOW A BOARD, AS AN EXPLICIT TWO-SIDED PIN - and this is the assertion that would
+   otherwise have gone quietly vacuous when the card set changed, which is the fault this file is full of warnings
+   about. Until #451 every SC card drove a board screen, so "every caption except Starting showed a board" was a
+   real assertion. The flush replaced them with two cards that legitimately have NO board: PHONE is the menu sheet
+   over home, KEV is the Review ENTRY screen before a game is imported. Three ways to get this wrong and the one
+   that is right:
+     - leaving the old assertion: RED on a healthy build, a false defect on two cards that correctly have no board.
+     - deleting it: the board invariants vanish silently the moment the queue changes again.
+     - a count with slack ("at least N boardless are allowed"): the frozen denominator this file already rejects
+       for exactly this line, in the comment below.
+   So the expectation is NAMED per card id and asserted IN BOTH DIRECTIONS: a card in this set must show a board,
+   and a card NOT in it must NOT. That is strictly stronger than what it replaces - it reds if a board stops
+   appearing where one is expected AND if one starts appearing where none is, so a card whose state silently
+   changes cannot pass either way. Empty today, and the empty case is asserted rather than skipped.
+   WHERE THE REMOVED CARDS' BOARD COVERAGE LIVES, so this is a relocation and not a loss [R06, and build-run's
+   "if you move a UI element the assertion moves WITH it"]: the comment at the head of this file already measured
+   it file by file, and all six gates are present on main - 10-gameover.js (the old card 1/8 k10 state),
+   13-play-after-moves.js (2/8 k8), 11-lesson.js (3/8 and 4/8 k11), 12-hint.js (5/8 A-06), and 20-review.js with
+   14-uat-review-card.js (6/8 US-R01).
+   **AND THE SENTENCE THAT STOOD HERE IS WITHDRAWN [R18], BY THE SUITE, BEFORE IT COULD REACH MAIN.** It read "The
+   states are still pinned; what changed is which gate drives them." The first half is true and the second is false
+   in the way that matters: those six gates do not merely pin those states, they REACH them by tapping these very
+   gallery cards through gates/lib.js b.card(). Deleting the cards therefore took 10, 11, 12, 13 and 14 RED inside
+   six minutes of the full suite, every one on `locator.waitFor: Timeout 8000ms exceeded`. What I had removed was
+   the ROUTE IN, not a duplicate assertion. The cards are consequently kept as a SEPARATE fixture list (chess.jsx,
+   const TS) with byte-identical labels, so EXPECT_BOARD being empty is a statement about Kunal's ask queue only,
+   and the board states above are still both pinned AND reachable. The assertions that would have caught this -
+   the total card population and STATE_IDS - are below, and their control is a bundle built with TS empty. */
+const EXPECTED_STATES=8;      /* the fixed states the harness drives (chess.jsx const TS), NOT asks */
+/* the ids five gates and two drivers reach their states through, via b.card() - 10-gameover and 35-width-containment
+   and drive/play.js tap k10, 13-play-after-moves taps k8, 12-hint and drive/puzzles.js tap A-06, 11-lesson taps
+   cards 3 and 4 (both k11) by NUMBER, 14-uat-review-card taps the US-R journey. Pinned here BY NAME because
+   deleting these cards took 10, 11, 12, 13 and 14 red in one suite this run, and nothing in gate 15 could see it
+   coming - this is the assertion that would have. */
+const STATE_IDS=['k10','k8','k11','A-06','US-R'];
+const EXPECT_BOARD=[];   /* card ids (as PINNED_IDS spells them) expected to paint a board during the walk */
 
 // tailStable(reads,hold,tol): reads are [{w,ms}] in poll order. The baseline is the value at the END of the read
 // window, and it counts as settled only if the run of reads agreeing with it within tol spans >= hold ms.
@@ -287,7 +338,12 @@ L.run(async()=>{
   L.note('geometries: '+GEOS.map(g=>g[0]).join(' ')+(pick.length?'  (CT_G15_GEOS subset)':'')+(NC?'   NEGATIVE CONTROL '+NC+' at card '+NC_CARD:''));
   for(const [lab,geo] of GEOS){
     const b=await L.launch({geo,name:'playall-'+lab,store:{ct_pool:'3'}});await b.open();
-    const titles=await b.cardTitles();const N=titles.length;
+    /* #451: the pin reads the ASK QUEUE, not every card in the gallery. The gallery also renders the eight fixed
+       states the harness drives, and those are NOT asks - see chess.jsx const TS. BOTH populations are asserted
+       below, so this pin does not rest solely on the data-ct scoping that one commit introduced (#432: a check that
+       reads only what the fix added cannot see what the fix removed). */
+    const titles=await b.askTitles();const N=titles.length;
+    const allTitles=await b.cardTitles();
     // PINNED, not a floor. `N>=6` was two cards of slack, and since walkOk takes N from this same call both
     // sides moved together: delete two cards from SC and N would be 6, every caption would read /6, and the
     // gate would go green having walked six. A deliberate change to the gallery updates this line on purpose.
@@ -295,8 +351,19 @@ L.run(async()=>{
     // re-caption as US-R01, US-R03 and so on. My first draft of this pin wrote US-R01 from the walk's
     // captions and would have gone red on a healthy build.
     const ids=titles.map(t=>t.split(' · ').slice(0,2).join(' '));
-    L.say(N===8&&ids.join('|')===PINNED_IDS,
-      lab+': the gallery holds its pinned eight cards in order ('+N+')',ids);
+    L.say(EXPECTED_N===PINNED_IDS.split('|').length,
+      lab+': the pin is self-consistent - EXPECTED_N agrees with the id list this commit declares',{EXPECTED_N,pinned:PINNED_IDS.split('|').length});
+    L.say(N===EXPECTED_N&&ids.join('|')===PINNED_IDS,
+      lab+': the ask queue holds the '+EXPECTED_N+' cards this commit pins, in order ('+N+')',ids);
+    // the fixture list, asserted as a population so it cannot quietly vanish and take five gates' route in with it
+    L.say(allTitles.length===EXPECTED_N+EXPECTED_STATES,
+      lab+': the gallery renders the '+EXPECTED_N+' asks AND the '+EXPECTED_STATES+' harness states that five gates tap ('+allTitles.length+')',
+      {asks:N,all:allTitles.length,want:EXPECTED_N+EXPECTED_STATES});
+    for(const need of STATE_IDS){
+      L.say(allTitles.some(t=>new RegExp('^\\d+ \u00b7 '+need.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+' \u00b7 ').test(t)),
+        lab+': the harness state card "'+need+'" is still reachable by the label gates/lib.js b.card() locates it by',
+        allTitles.filter(t=>t.indexOf(need)>=0));
+    }
     await b.home();const gb=b.page.locator('button[title="Preview gallery (dev)"]');await gb.click();await b.settle(400);
     await b.page.locator('button',{hasText:/^▶ Play/}).first().click();
     const seen=[];let done=false;const scrolled=[],shrunk=[],pageScroll=[],unsettled=[],cards=[];
@@ -373,15 +440,134 @@ L.run(async()=>{
     // text is "Starting...". So assert that: any other boardless caption is a finding, and a deliberate
     // change to the gallery has to come through here on purpose.
     const withBoard=cards.filter(c=>c.sawBoard).length;
-    const boardless=cards.filter(c=>!c.sawBoard&&!/Starting/.test(c.cap));
-    L.say(boardless.length===0,lab+': every caption except the Starting frame showed a board ('+withBoard+
-      ' of '+cards.length+' had one)',boardless.map(c=>c.cap));
-    const noBase=cards.filter(c=>c.sawBoard&&c.base===null);
+    // #451: two-sided against EXPECT_BOARD. `capWants` reads the card id out of the caption itself rather than
+    // out of SC, so the expectation stays external to the thing it checks.
+    const capWants=(cap)=>EXPECT_BOARD.some(id=>new RegExp('\\s'+id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s').test(cap));
+    const missingBoard=cards.filter(c=>!/Starting/.test(c.cap)&&capWants(c.cap)&&!c.sawBoard);
+    const unexpectedBoard=cards.filter(c=>!/Starting/.test(c.cap)&&!capWants(c.cap)&&c.sawBoard);
+    L.say(missingBoard.length===0,lab+': every caption whose card is pinned to show a board showed one ('+
+      withBoard+' of '+cards.length+' captions had a board; '+EXPECT_BOARD.length+' card ids pinned)',
+      missingBoard.map(c=>c.cap));
+    L.say(unexpectedBoard.length===0,lab+': no caption painted a board where this commit pins none - so a card '+
+      'whose state changes under us cannot pass by being boardless',unexpectedBoard.map(c=>c.cap));
+    // AND THE VACUOUS CASE IS STATED, NOT SKIPPED. With EXPECT_BOARD empty every board-conditioned check in this
+    // gate (shrunk, unsettled, noBase, and the two above) is trivially satisfied, which is precisely how an
+    // assertion dies without anybody noticing (#405's frozen denominator; the #416 antagonist's 24 pass / 0 fail
+    // over a display:none board). So assert the condition itself: if nothing is pinned, nothing may have painted
+    // a board, and the log says in one line that the board invariants are carried elsewhere this run.
+    if(EXPECT_BOARD.length===0){
+      L.say(withBoard===0,lab+': EXPECT_BOARD is empty and NO caption painted a board - the board-shrink, settle '+
+        'and baseline checks in this gate are inert this run BY DECLARATION, and the states they covered are '+
+        'pinned in 10-gameover, 13-play-after-moves, 11-lesson, 12-hint, 20-review and 14-uat-review-card',
+        {withBoard,captions:cards.length});
+    }
+    const noBase=cards.filter(c=>c.sawBoard&&c.base===null);   // #451: inert while EXPECT_BOARD is empty, asserted as such above
     L.say(noBase.length===0,lab+': every caption whose board was on screen got a settled baseline ('+
       cards.filter(c=>c.sawBoard).length+' of '+cards.length+' captions had a board, '+lateBase+' baselined late)',
       noBase.map(c=>c.cap));
     const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
     L.say(bad.length===0,lab+': no app error beyond the allowed engine trap',{allowed:b.errs.length-bad.length,other:bad.slice(0,2)});
+    await b.close();
+  }
+
+  /* #451 BLOCK F: THE TWO ACCEPTANCE CONDITIONS THE FLUSHED GALLERY OWES, and neither is checked anywhere else.
+     jobs/preview-gallery-flush-and-load-current-asks lists four; two are properties of the tracker record (which
+     cards are due, what each removed card's verdict was) and two are properties of the running app:
+       "Every card fits at 320 and 375 with nothing cut off."
+       "Card 1's numbers match what the browser reports on the same device."
+     F1/F2 run at 320x568 and at 375x730 - Kunal's real phone, which the walk above does NOT visit (it runs 375x679
+     and 375x812), so this block is also the only place in this gate that measures his own geometry.
+     HORIZONTAL, NOT VERTICAL, DELIBERATELY: the card list is an overflowY:auto scroller, so a long queue scrolling
+     is correct and is not a cut (CLAUDE.md: "below the fold is not unreachable", two false P0s). What must never
+     happen is a card's ink running past the viewport, which nothing can recover. */
+  for(const [glab,ggeo] of [['320x568','se'],['375x730 (Kunal)','kunal730']]){
+    const b=await L.launch({geo:ggeo,name:'cards-'+ggeo,store:{ct_pool:'3'}});await b.open();
+    await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+    /* #451: F1's negative control, because two of its four assertions went GREEN against the #450 bundle and an
+       assertion not yet shown able to fail is not evidence. CT_G15_NC=cardwide forces a card box wider than the
+       viewport, which is the defect F1 exists to catch; measured below, it reds "past the viewport" and "cut
+       horizontally" and leaves the other two alone. It must CROSS the threshold, not merely disturb the mechanism
+       (CLAUDE.md, #384), so the width is set well past the widest geometry here rather than by a pixel. */
+    if(NC==='cardwide'){
+      const what=await b.page.evaluate(()=>{const st=document.createElement('style');st.id='ct-nc-cw';
+        st.textContent='button{min-width:520px!important}';document.head.appendChild(st);
+        return 'every button forced to min-width 520px - wider than 375 and than 320';});
+      L.note('NC cardwide: '+what);await b.settle(400);
+    }
+    if(NC==='cardclip'){
+      const what=await b.page.evaluate(()=>{const st=document.createElement('style');st.id='ct-nc-cc';
+        st.textContent='button{white-space:nowrap!important;overflow:hidden!important}';document.head.appendChild(st);
+        return 'card text forced to one nowrap line inside an overflow:hidden box - the card ink really is cut now';});
+      L.note('NC cardwide: '+what);await b.settle(400);
+    }
+    const fit=await b.page.evaluate(()=>{
+      const vw=window.innerWidth;
+      const cards=[...document.querySelectorAll('button[data-ct="ask-card"]')];
+      const states=[...document.querySelectorAll('button[data-ct="state-card"]')];
+      const rd=(el)=>{const r=el.getBoundingClientRect();return {l:+r.left.toFixed(2),r:+r.right.toFixed(2),w:+r.width.toFixed(2)};};
+      return {vw,n:cards.length,
+        // a card's own box must sit inside the viewport, and its text must not be cut by its own box horizontally
+        boxes:cards.map(c=>Object.assign({id:(c.innerText||'').split('\n')[0].slice(0,24),sw:c.scrollWidth,cw:c.clientWidth},rd(c))),
+        states:states.map(c=>Object.assign({id:(c.innerText||'').split('\n')[0].slice(0,24),sw:c.scrollWidth,cw:c.clientWidth},rd(c))),
+        docW:document.documentElement.scrollWidth};
+    });
+    L.note(glab+' gallery: vw '+fit.vw+', '+fit.n+' cards, doc scrollWidth '+fit.docW);
+    L.say(fit.n===EXPECTED_N,'F1 '+glab+': the gallery renders the '+EXPECTED_N+' pinned cards at this width ('+fit.n+')',{n:fit.n});
+    // the acceptance condition is about the cards Kunal is asked to record, but a fixture card painting off screen
+    // is a real defect too, so both populations go through the same two checks rather than only the asks.
+    const past=fit.boxes.concat(fit.states).filter(x=>x.l<-0.5||x.r>fit.vw+0.5);
+    L.say(past.length===0,'F1 '+glab+': no card box paints past the viewport',past);
+    const cut=fit.boxes.concat(fit.states).filter(x=>x.sw>x.cw+1);
+    L.say(cut.length===0,'F1 '+glab+': no card is cut horizontally by its own box (scrollWidth vs clientWidth)',cut);
+    /* EXPECTED VACUOUS BY DESIGN, AND SAID SO RATHER THAN COUNTED AS A LIVE CHECK - the same treatment this gate
+       already gives the page-scroll line. Measured, not assumed: NEITHER of F1's two negative controls could red
+       this one. CT_G15_NC=cardwide pushes both card boxes to 536 against a 320 viewport and docW stays 320;
+       cardclip gives them a 2529px scrollWidth and docW stays 320. #root is the app's scroller and clips, so the
+       document cannot grow horizontally whatever the gallery does. It is kept as a TRIPWIRE for that design
+       changing, and it is NOT the assertion that protects the acceptance condition - the two above are, and both
+       are controlled. Claiming this one as coverage would be the frozen-denominator shape (#405). */
+    L.say(fit.docW<=fit.vw+0.5,'F1 '+glab+': TRIPWIRE (cannot fail while #root clips, proved against both NCs) - the gallery adds no horizontal page overflow',{docW:fit.docW,vw:fit.vw});
+
+    /* F2: card 1 exists so ONE screenshot settles the height question, which makes the readout's own numbers
+       load-bearing. Asserted against what the browser reports in the same evaluate, so a readout that printed a
+       stale or wrong viewport goes red. LOCATED BY WHAT IT SAYS, not by a hook this commit added: the line is found
+       by matching /^inner \d+x\d+/ over the rendered text. #432 - an assertion keyed only to a selector its own
+       build adds cannot see the defect that build removes, and would have reported PASS against the old bundle by
+       reading null. This way it goes red on any bundle whose readout lacks the line, including #450's. */
+    await b.page.locator('button',{hasText:/^\u2715$/}).last().click().catch(()=>{});
+    await b.settle(300);await b.home();
+    await b.page.locator('button[data-ct="home-menu"]').click();await b.settle(500);
+    const tog=b.page.locator('button',{hasText:/^Layout readout/}).first();
+    const togSeen=await tog.count();
+    L.say(togSeen>0,'F2 '+glab+': the menu offers the Layout readout toggle card 1 drives');
+    if(togSeen>0){await tog.click();await b.settle(600);}
+    const ro=await b.page.evaluate(()=>{
+      const want=/^inner\s+(\d+)x(\d+)\s+vv\s+(\S+)\s+app\s+(.+)$/;
+      let hit=null;
+      for(const d of document.querySelectorAll('div')){
+        if(d.children.length)continue;
+        const t=(d.textContent||'').trim().replace(/\s+/g,' ').replace(/(\d)x(\d)/,'$1x$2');
+        const m=t.match(/^inner\s+(\d+)x(\d+)\s+vv\s+(\S+)\s+app\s+(.+)$/);
+        if(m){hit={text:t,innerW:+m[1],innerH:+m[2],vv:m[3],app:m[4].trim()};break;}
+      }
+      let vvReal=null;try{const q=window.visualViewport;if(q)vvReal=Math.round(q.width)+'x'+Math.round(q.height);}catch(e){}
+      return {hit,real:{innerW:window.innerWidth,innerH:window.innerHeight,vv:vvReal}};
+    });
+    L.say(!!ro.hit,'F2 '+glab+': the readout prints the inner/vv/app line card 1 tells him to screenshot',
+      ro.hit?ro.hit.text:'NO LINE MATCHING /^inner NxN vv .. app ../ IN THE READOUT');
+    if(ro.hit){
+      L.note('F2 '+glab+' readout says "'+ro.hit.text+'"; browser reports inner '+ro.real.innerW+'x'+ro.real.innerH+' vv '+ro.real.vv);
+      L.say(ro.hit.innerW===ro.real.innerW&&ro.hit.innerH===ro.real.innerH,
+        'F2 '+glab+": the readout's inner WxH equals what the browser reports",
+        {readout:ro.hit.innerW+'x'+ro.hit.innerH,browser:ro.real.innerW+'x'+ro.real.innerH});
+      L.say(ro.hit.vv===ro.real.vv,'F2 '+glab+": the readout's visual viewport equals window.visualViewport",
+        {readout:ro.hit.vv,browser:ro.real.vv});
+      // headless Chromium is a browser tab, never an installed app, so the branch is pinned rather than accepted loosely
+      L.say(ro.hit.app==='browser tab','F2 '+glab+": the readout names the display mode, and in headless Chromium it is the browser branch",{app:ro.hit.app});
+    }
+    await b.shot('cards-'+ggeo+'-readout');
+    const bad2=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
+    L.say(bad2.length===0,'F '+glab+': no app error in the gallery or the readout',{other:bad2.slice(0,2)});
     await b.close();
   }
 },'GALLERY-PLAYALL');

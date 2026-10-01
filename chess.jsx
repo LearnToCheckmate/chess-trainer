@@ -4910,7 +4910,61 @@ export default function App(){
            state a build claims to have fixed, so Run all + one screen recording is the whole test. The old cards are gone. */
         const _kg=Math.max(0,LIB.findIndex(o=>o.name&&/King's Gambit/.test(o.name)&&o.vars&&o.vars.length));
         const _OPERA='[White "Morphy"] [Black "Duke Karl / Count Isouard"] 1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0';
+        /* #451 THE FLUSH AND THE RELOAD (jobs/preview-gallery-flush-and-load-current-asks, priority 10, Kunal
+           2026-09-22: "make sure that the preview gallery is flushed of everything that you don't need anymore or
+           that's already been provided just put the items that you need in there and exactly how you need it so all
+           I have to do is essentially record it and upload it to you").
+
+           WHAT WAS HERE AND WHY IT WENT. Eight cards, ids k10, k8, k11, k11, A-06, US-R01, y3, y3, each one a state
+           a build between #366 and #373 claimed to have fixed. All eight are OBSOLETE rather than provided, and the
+           reason is mechanical rather than a judgement about their age: the WALK below (WK, added at #390) visits
+           every screen those eight sampled - k10 and k8 are PLAY-OVER and PLAY-LIVE, both k11 cards are LESSON-DEMO
+           and LESSON-PRACTICE, A-06 is PUZZLE-HINT, US-R01 and its six steps are REVIEW-ENTRY/REVIEW and its five
+           steps, and the two y3 cards are HOME and MENU - in one ordered pass, with the viewport in the caption and
+           the build stamp in the opening frame, which is what none of the eight carried. So WK STAYS and the eight
+           are what it replaced. The one card whose recording was genuinely PROVIDED is not among them: it is the
+           chess.com review of Kunal2023 v Kevitsch, answered "sent" on the Decision Desk at 2026-09-22T21:30:50Z
+           with answerkey rows written from it, so it is deliberately NOT reloaded below.
+           MEASURED, and it is why these were not simply re-asked: the 2026-09-14 gallery recording was STOPPED
+           EARLY (flags/handover-from-brilliant-chat - all eight cards run to RECORDING COMPLETE at 122 s and card 6
+           alone holds ~62 s), and which phone it was made on was never established. So a re-record of the eight
+           would not have been a duplicate - it would have been a fresh ask for builds that are now 78 numbers old.
+
+           WHAT IS LOADED is exactly what is DUE, and nothing else. The gallery is a queue, not an inventory: of the
+           four asks the job carries, card 2 is provided (above) and card 4 is not due - it is added by the build
+           that closes the LAST of board-jumps-on-drill-verdict, drill-explain-why-it-was-better and
+           drill-accepts-one-move-only, and all three are still status "ready" on the tracker, measured this run.
+           Card 1's own skipIf does NOT fire: it skips if flags/kunal-phone-may-not-be-375 records an exact
+           innerWidth AND innerHeight, and that flag's latest field (2026-09-22) says in terms "HEIGHT STILL OPEN"
+           and names this card as the thing that measures it.
+           gate 15 pins this list by id; its PINNED_IDS and its EXPECTED count are changed in THIS commit, which is
+           the deal in the job's gate15Decision - an explicit external expectation a human edits, never derived from
+           SC at runtime, because a gate that reads SC to check SC cannot see a card go missing. */
         const SC=[
+  {id:"PHONE",c:"Layout readout: the line beginning inner",l:"1 \u00b7 PHONE \u00b7 Your phone's exact screen size", n:"One screenshot, then upload it in the Claude chat. This card opens Menu and turns Layout readout on for you: screenshot the whole black box. The line beginning 'inner' is the one I need - it reports innerWidth \u00d7 innerHeight, the visual viewport, the pixel ratio and whether you opened Chess Trainer from its Home Screen icon or in Safari. Your width is settled at 375; the height is not, the record holds both 730 and 761, and every height-keyed layout in the app turns on which one is true on the phone you actually use.", r:()=>{setHomeScreen(true);setMenuOpen(true);setLayoutInfo(true);}, h:10000},
+  {id:"KEV",c:"Review: the grade rows for Kunal2023 v Kevitsch",l:"2 \u00b7 KEV \u00b7 Our review of Kunal2023 v Kevitsch", n:"One screenshot, then upload it in the Claude chat. This card opens the Review tab for you; the game is in your own list, so these taps are yours: open Kunal2023 v Kevitsch, Analyze, open the summary, and screenshot the grade rows so Brilliant down to Blunder shows for BOTH players along with both accuracies (two screenshots if it does not fit). This is the one game chess.com's own review is already recorded for, so it is the only place we can compare our ten grades against theirs on a game you played.", r:()=>{setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setMode('analyze');setReview(null);}, h:9000},
+        ];
+        /* #451: THE EIGHT STATES THE TEST HARNESS DRIVES. SEPARATED FROM KUNAL'S QUEUE, NOT DELETED, AND THE
+           DISTINCTION IS THE WHOLE FIX. These eight entries were serving two masters at once: they were Kunal's
+           "what I still need" list AND they were the ONLY way five gates reach the states they assert over, through
+           `b.card(...)` in gates/lib.js - 10-gameover taps k10, 13-play-after-moves taps k8, 11-lesson taps cards 3
+           and 4, 12-hint taps A-06, 14-uat-review-card taps the US-R journey, and 35-width-containment and
+           gates/drive/{play,puzzles}.js tap k10 and A-06 again. MEASURED THE HARD WAY THIS RUN: deleting them took
+           10, 11, 12, 13 and 14 RED inside six minutes of the full suite, every one on `locator.waitFor: Timeout
+           8000ms exceeded` for a card that no longer existed. My first version of this change asserted in gate 15's
+           own comment that "the states are still pinned; what changed is which gate drives them" - that was FALSE
+           and the suite said so before any of it could reach main. The states ARE pinned in those gates; what the
+           cards provide is the ROUTE IN, which is a different thing and is what I had removed.
+           SO: the labels below are byte-identical to what they were, deliberately, because five gates and two
+           drivers locate by them (`^N · ` and `^\d+ · <id> · `) and a relabelling here is a silent breakage there.
+           What changed is only WHERE THEY LIVE and WHAT THEY CLAIM TO BE: they are fixtures for the harness, under
+           their own heading and their own button, and they are NOT asks. Kunal's queue is SC above, and it holds
+           only what is actually outstanding - which is what jobs/preview-gallery-flush-and-load-current-asks asked
+           for and what this separation is what finally delivers.
+           THE RESIDUAL, NAMED: five gates still reach their states through a dev UI list rather than driving the app
+           directly, so this coupling survives in a tidier form. Decoupling them is
+           jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-2026-10-01 and is NOT done here. */
+        const TS=[
   {id:"k10",c:"game over: the board is the size it was mid-game, no scroll, row Review · Rematch",l:"1 · k10 · Game over: the board must not shrink (#371)", n:"Scholar's mate plays itself in seven moves. When the mate lands the game is over: the board should stay exactly the size it was during the game, nothing should scroll, and the button row should read Moves · Back · Forward · Review · Rematch · More. Before #371 this screen was a 192px board with black bands and a page that scrolled.", r:()=>_autogame(['e4','e5','Bc4','Nc6','Qh5','Nf6','Qxf7']), h:13000},
   {id:"k8",c:"four plies in: the board is the size it was at move 0",l:"2 · k8 · Play after the first moves (#370)", n:"Two moves in against a scripted opponent. The board should be the same size as at move 0 (357 with the eval bar on the left), and the move list should sit under the buttons without pushing anything. Before #370 the board lost 62px the moment a move was played.", r:()=>_autogame(['e4','e5','Nf3','Nc6']), h:8000},
   {id:"k11",c:"demo end: board edge to edge, Other lines where Flip was",l:"3 · k11 · Lesson at the end of the demo (#371)", n:"The King's Gambit demo jumped to its last move. The board should be edge to edge with the note box above it, and the Flip button should now read Other lines. Before #371 a box of variation chips appeared here and the board dropped to 272.", r:()=>_picker(_kg), h:7000},
@@ -4930,8 +4984,10 @@ export default function App(){
   {id:"y3",c:"Home: four emoji, one visual size",l:"8 · y3 · Home: the four icons (#366)", n:"The home screen as it is. The four tiles should read as one set of emoji, the same visual size. Compare with the tile ink line from the previous card.", r:()=>{setMenuOpen(false);setLayoutInfo(false);setHomeScreen(true);}, h:5000},
         ];
         /* #390 (procedure 6d, Kunal 2026-09-14: "Did the recording get put into the preview gallery? Because I can
-           do that now."). THE FULL WALK. The eight cards above are a "what I still need" list - each one is a state a
-           BUILD claims to have fixed, and they are kept exactly as they are because gate 15 asserts them. This is a
+           do that now."). THE FULL WALK. The cards above are a "what I still need" queue - each one is something only
+           his phone can answer, and the list is flushed as each is provided (#451; it is NOT held fixed for gate 15's
+           benefit, which is what this sentence used to say and was the reason eight obsolete cards survived eleven
+           builds - gate 15's pin is now an explicit list changed in the same commit as the cards). This is a
            different thing: every SCREEN in the app, in a fixed order, each held long enough for frame extraction, so
            one recording on his real phone shows the whole app rather than eight specific fixes. Real fonts, real
            Apple emoji ink, real safe-area insets and real iOS Safari behaviour are the things no headless Chromium
@@ -4994,7 +5050,11 @@ export default function App(){
           {SC.length>=1&&<button onClick={_runAll} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,width:'100%',padding:'13px 15px',borderRadius:12,marginBottom:10,background:'linear-gradient(135deg,#6ea8fe,#3b76e8)',border:'none',color:'#0a1020',fontSize:14,fontWeight:800,cursor:'pointer'}}>▶ Play {SC.length>1?('all '+SC.length+' '):''}(screen-record this)</button>}
           {WK.length>=1&&<button data-ct="preview-walk" onClick={_runWalk} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,width:'100%',padding:'13px 15px',borderRadius:12,marginBottom:10,background:'linear-gradient(135deg,#7bd88f,#39a35d)',border:'none',color:'#06180c',fontSize:14,fontWeight:800,cursor:'pointer'}}>🎬 Walk every screen ({WK.length}, about {Math.round(WK.reduce((a,x)=>a+Math.max(2500,x.h||2500),0)/60000*10)/10} min)</button>}
           <button onClick={()=>{const j=collectDiagnostics();let ok=false;try{navigator.clipboard.writeText(j);ok=true;}catch(e){}if(!ok){try{const ta=document.createElement('textarea');ta.value=j;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();document.execCommand('copy');document.body.removeChild(ta);ok=true;}catch(_){}}try{postReport('diag',JSON.parse(j));}catch(_){}setPreview(false);setDiagMsg(LOG_ENDPOINT?('Sent to Claude'+(ok?' and copied':'')):(ok?'Copied. Paste it to Claude here.':'Could not copy. Screenshot this instead.'));setTimeout(()=>setDiagMsg(''),5000);}} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,width:'100%',padding:'12px 15px',borderRadius:12,marginBottom:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'#cfe0ff',fontSize:13,fontWeight:700,cursor:'pointer'}}>🩺 Send Claude a diagnostics report</button>
-          <div style={{display:'flex',flexDirection:'column',gap:8,overflowY:'auto'}}>{SC.map((x,i)=>(<button key={i} onClick={()=>{setPreview(false);setDemoBest(null);setRecCap({i:0,n:0,id:x.id||'',l:x.c||x.l});x.r();_steps(x);setTimeout(()=>setRecCap(null),Math.max(5000,x.h||5000));}} style={{textAlign:'left',padding:'13px 15px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',cursor:'pointer'}}><div style={{fontSize:14,fontWeight:700,color:'#fff'}}>{x.l}</div><div style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:2}}>{x.n}</div></button>))}{SC.length===0&&<div style={{padding:'18px 4px',color:'rgba(255,255,255,.5)',fontSize:13,lineHeight:1.5}}>Nothing needed right now. I will add screens here whenever I need a fresh recording, and remove them once you send them.</div>}</div>
+          <div style={{display:'flex',flexDirection:'column',gap:8,overflowY:'auto'}}>{SC.map((x,i)=>(<button key={i} data-ct="ask-card" onClick={()=>{setPreview(false);setDemoBest(null);setRecCap({i:0,n:0,id:x.id||'',l:x.c||x.l});x.r();_steps(x);setTimeout(()=>setRecCap(null),Math.max(5000,x.h||5000));}} style={{textAlign:'left',padding:'13px 15px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',cursor:'pointer'}}><div style={{fontSize:14,fontWeight:700,color:'#fff'}}>{x.l}</div><div style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:2}}>{x.n}</div></button>))}{SC.length===0&&<div style={{padding:'18px 4px',color:'rgba(255,255,255,.5)',fontSize:13,lineHeight:1.5}}>Nothing needed right now. I will add screens here whenever I need a fresh recording, and remove them once you send them.</div>}
+            {/* #451: the harness fixtures, below Kunal's queue and labelled as not an ask. Same cards, same labels,
+                different meaning - see the TS comment above for why they cannot simply be deleted. */}
+            <div style={{marginTop:14,paddingTop:10,borderTop:'1px solid rgba(255,255,255,.12)',fontSize:11,color:'rgba(255,255,255,.42)',lineHeight:1.45}}>Below: fixed states the test harness drives. <b>Not things I need from you</b> — they are how the gates reach a screen. Tap one to see that state on its own.</div>
+            {TS.map((x,i)=>(<button key={'ts'+i} data-ct="state-card" onClick={()=>{setPreview(false);setDemoBest(null);setRecCap({i:0,n:0,id:x.id||'',l:x.c||x.l});x.r();_steps(x);setTimeout(()=>setRecCap(null),Math.max(5000,x.h||5000));}} style={{textAlign:'left',padding:'11px 15px',borderRadius:12,background:'rgba(255,255,255,.035)',border:'1px solid rgba(255,255,255,.09)',cursor:'pointer',opacity:.82}}><div style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,.8)'}}>{x.l}</div><div style={{fontSize:10.5,color:'rgba(255,255,255,.4)',marginTop:2}}>{x.n}</div></button>))}</div>
         </div>);})()}
       {celebrate&&(celebrate.kind==='bank'
         ?<div onClick={()=>setCelebrate(null)} style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:'50%',transform:'translateX(-50%)',zIndex:9999,display:'flex',alignItems:'center',gap:10,background:'linear-gradient(135deg,rgba(62,207,122,.96),rgba(40,160,90,.96))',borderRadius:14,padding:'11px 16px',boxShadow:'0 8px 24px rgba(0,0,0,.5)',color:'#06180c',maxWidth:'92vw',animation:'ctDrop .5s cubic-bezier(.2,1.4,.4,1)'}}><span style={{fontSize:20,lineHeight:1}}>✅</span><span style={{minWidth:0}}><b style={{display:'block',fontSize:14,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{celebrate.title}</b><span style={{fontSize:11.5,opacity:.85}}>{celebrate.sub}</span></span><style>{'@media (prefers-reduced-motion: no-preference){@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}@keyframes ctStamp{0%{transform:scale(2.6);opacity:0}70%{transform:scale(.94)}100%{transform:scale(1);opacity:1}}@keyframes ctFall{to{transform:translateY(70vh) rotate(540deg);opacity:0}}}'}</style></div>
@@ -5727,6 +5787,18 @@ export default function App(){
             {layoutInfo&&(<div style={{marginTop:6,padding:'9px 11px',borderRadius:12,background:'rgba(0,0,0,.42)',border:'1px solid rgba(255,255,255,.16)',fontFamily:'monospace',fontSize:11.5,lineHeight:1.55,color:'rgba(255,255,255,.86)',WebkitUserSelect:'text',userSelect:'text'}}>
               <div style={{color:'var(--ac2)',fontWeight:700,marginBottom:3}}>what THIS device computes</div>
               <div>{'screen '+vp.w+'x'+vp.h+'  vw '+vw+'  dpr '+((typeof devicePixelRatio!=='undefined')?devicePixelRatio:'?')}</div>
+              {/* #451: THE LINE GALLERY CARD 1 EXISTS TO CAPTURE. flags/kunal-phone-may-not-be-375 settled the WIDTH
+                   (375 CSS px) and left the HEIGHT open - the record carries both 730 and 761 and its own arithmetic
+                   shows the 761 reading came off a 1125-physical-pixel panel, which is not the 15 Pro Max. The row
+                   above already prints innerWidth x innerHeight as 'screen', but a screenshot of it cannot say so,
+                   and it omits the two things that decide whether the number is the one the app actually lays out
+                   in: the VISUAL viewport (what is left once the iOS toolbars are drawn) and whether this is the
+                   installed standalone app or a Safari tab. Named rather than inferred, so one screenshot settles
+                   it. Every read is guarded: visualViewport is absent on older WebKit and navigator.standalone
+                   exists only on iOS. */}
+              <div>{(()=>{let vv='n/a',st='?';try{const q=(typeof window!=='undefined')&&window.visualViewport;if(q)vv=Math.round(q.width)+'x'+Math.round(q.height);}catch(e){}
+                try{const mm=(typeof window!=='undefined'&&window.matchMedia)?window.matchMedia('(display-mode: standalone)'):null;st=((mm&&mm.matches)||(typeof navigator!=='undefined'&&navigator.standalone===true))?'installed app':'browser tab';}catch(e){}
+                return 'inner '+vp.w+'x'+vp.h+'  vv '+vv+'  app '+st;})()}</div>
               <div>{'safe top '+safeTop+'  bottom '+safeBot+'  trim '+boardTrim}</div>
               <div>{'board '+Math.round(boardPx)+'  square '+SQ+'  gap '+Math.round((vw-boardPx)/2)+' each side'+(gridRect?('  painted '+Math.round(gridRect.w)+'x'+Math.round(gridRect.h)):'') /* #374: the painted height beside the computed width - Kunal's #372 recording showed rank 1 at 60% height at game over, which no width can show */}</div>
               {plyLogRef.current.length>0&&<div style={{opacity:.85}}>{'ply log '+plyLogRef.current.slice(-3).map(x=>x.to+(x.sinceInput>=0?('@'+(x.sinceInput>1500?'NO-INPUT-':'')+Math.round(x.sinceInput/100)/10+'s'):'')).join('  ')}</div>}{/* #375: the last three ply changes and how long after the last touch each one happened - k12 */}

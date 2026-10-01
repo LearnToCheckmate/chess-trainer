@@ -127,3 +127,85 @@ TC-PL-036  US-PL-14, once a game has ended no touch on the board or on a pending
 | It failed before the fix | **YES, against the REAL shipped #439 source rather than a hand-broken one.** `CT_SRC=$(git show df79fb7:chess.jsx)` gives **30 pass / 11 fail**: red on A1i-A4ii (all four promotions, `sac` 9/5/3/3 against a wanted 1, and `ok=true`), A6d (`37.Qf6+ sac=9 ok=true`), B3c (fires on 3, wanted 2) and B3f (`37.Qf6+` is among them). GREEN on the same bundle: every assertion in blocks B1, B2, C and C8, and A5. That split is the evidence the case reads the measure and not its own wiring - the arm that must not move does not move, on either bundle. |
 | What it cannot see | **It measures `chess.jsx`, not the bundle named by `CT_APP`.** `gates/build.sh` runs esbuild `--minify`, so the engine cannot be extracted from `app.js`; `gates/unit-drill-why.js` and the #443 measurement harness read the source for the same reason. The consequence is specific: a trial-bundle negative control (`CT_APP=/path/broken.js gates/gates.sh`) CANNOT redden this case, because it never opens that file. Its control is `CT_SRC`. Both md5s print on every run, and the gate says this in a `NOTE` line rather than leaving a reader to find out. |
 | Block C is not decoration | C1-C7 assert the INPUT CLASS IS PRESENT - that the FEN parses, that 8 promotions are legal, that each constructed move is found AND carries the expected `.promo`, that b8 is empty and c8 holds a rook - before any verdict is read off it. The corpus contains 0 promotions and 0 en-passant captures in 697 plies, so this case's whole input class was missing from everything that had measured this gate, and without block C the A assertions would pass just as happily on a bundle where the move was never found at all. Same family as #432's contiguous-archive fixture and #433's sparse index. |
+
+## Preview gallery - the flush and the reload, executed against #451 (gates/regress/15-gallery-playall.js)
+
+**TC-GL-001 - the gallery holds exactly the asks that are due, the harness fixtures are a separate list, every card
+fits at 320 and 375, and card 1's readout agrees with the browser.** US-GL-01.
+
+*(Added #451, from jobs/preview-gallery-flush-and-load-current-asks, priority 10, Kunal's own ask of 2026-09-22 and
+the only ready priority-10 build job whose askedBy names him. The gallery had no case before this.)*
+
+**INPUTS, 4 browser sessions.** The walk runs at 375x679 and 375x812, which is what gate 15 already did. Block F
+adds 320x568 and **375x730 - Kunal's real phone, which this gate did not previously visit at all**, so F is also the
+only part of gate 15 that measures his own geometry. Plus 2 pure-function fixture sets (tailStable, walkOk) that
+predate this build and are untouched.
+
+**PASS CONDITIONS, each its own assertion.**
+*The pin, and why it is shaped this way:* PINNED_IDS and EXPECTED_N are an EXPLICIT EXTERNAL list that a human edits
+in the same commit as the cards. They are NOT derived from SC at runtime, which is the obvious fix and the wrong
+one - CLAUDE.md records that trap six times (clip-intersection, #393, #394, #398, #419, #432): the check and the
+thing checked become one object and the gate cannot see a card go missing. The count is parameterised
+(`N===EXPECTED_N`) rather than dropped, and `EXPECTED_N` is itself asserted against the id list's length, so a drift
+of one card is still red - a bare count with no scope is what #411/#412 charged.
+(1) the ask queue holds the 2 pinned cards, in order; (2) the pin is self-consistent; (3) the gallery renders the 2
+asks AND the 8 harness states, so the fixture list cannot quietly vanish; (4) each of the 5 ids five gates locate by
+(`k10`, `k8`, `k11`, `A-06`, `US-R`) is still present under the label `gates/lib.js b.card()` matches.
+*Block F, the acceptance conditions:* (F1) the gallery renders the pinned asks at this width; no card box paints
+past the viewport; no card is cut horizontally by its own box; (F2) the menu offers the Layout readout toggle card 1
+drives; the readout prints an `inner NxN  vv NxN  app ...` line; its inner WxH **equals `window.innerWidth` and
+`window.innerHeight` read in the same evaluate**; its vv equals `window.visualViewport`; and it names the display
+mode, pinned to `browser tab` because headless Chromium can never be an installed app.
+*The two-sided board pin:* a card id in `EXPECT_BOARD` must paint a board, and a card NOT in it must not. Both
+directions, deliberately - this is strictly stronger than the one-sided assertion it replaces, which would have gone
+RED on a healthy build the moment the queue stopped being all board screens.
+
+**SELECTORS.** The readout line is found by MATCHING ITS RENDERED TEXT (`/^inner \d+x\d+ vv \S+ app .+$/`) over
+leaf divs, not by a hook this commit added. That is deliberate and it is #432's lesson: an assertion keyed only to
+what the fix adds reads `null` against the old bundle and can report PASS on the very bundle carrying the defect.
+Proved below - against #450 F2 fails with "NO LINE MATCHING", i.e. it looked and did not find, which is the right
+verdict for the right reason. The ask and fixture populations ARE scoped by `data-ct` attributes this commit adds,
+because the two lists are deliberately indistinguishable by title (five gates locate the fixtures by their original
+labels, so relabelling them would break those gates silently); that scoping is not load-bearing on its own, because
+assertion (3) also pins the TOTAL card count, which is readable on any bundle.
+
+**FAILED BEFORE THE FIX, against the REAL SHIPPED #450 BUILD rather than a hand-broken one** - free, and it cannot
+be accused of being built to fail: `CT_APP=<app.js read out of origin/main at 1e4b797, md5 ce2d8b7896c3, stamp
+"#450 - 2026-10-01 01:29 ET">` gives **39 PASS / 9 FAIL**. The 9: the ask-queue pin (0 asks against 2), the total
+population (8 against 10), the two-sided board pin (14 captions painted a board where none is pinned), the vacuity
+declaration, F1's card count at both geometries, and F2's readout line at both geometries. On the shipping #451
+bundle the gate is **74 PASS / 0 fail**.
+
+**THREE ASSERTIONS WERE NOT REDDENED BY THAT CONTROL, SO EACH GOT ITS OWN, rather than being claimed as coverage.**
+(a) `no card box paints past the viewport` - `CT_G15_NC=cardwide` forces every card to min-width 520px; both cards
+read left 16 / right 536 against a 320 viewport and the assertion reds at both geometries. It CROSSES the threshold
+rather than merely disturbing the mechanism (#384). (b) `no card is cut horizontally` - `CT_G15_NC=cardclip` forces
+the card text to one nowrap line inside `overflow:hidden`; scrollWidth 2529 against clientWidth 341, red at both.
+(c) the fixture-population assertions - a third bundle built for it, chess.jsx with `const TS=[]` (md5
+548b4a913652): **48 pass / 6 fail**, the total-count assertion and all five STATE_IDS red. That control is the one
+that matters most, because it is the assertion that would have caught this build's own worst mistake before the
+suite did.
+
+**ONE ASSERTION IS A TRIPWIRE AND IS LABELLED AS ONE IN THE LOG, NOT COUNTED AS COVERAGE.** `the gallery adds no
+horizontal page overflow` could not be reddened by EITHER negative control: cardwide puts the boxes at 536 and
+cardclip gives them a 2529px scrollWidth, and `document.documentElement.scrollWidth` stays 320 both times, because
+`#root` is the app's scroller and clips. It is kept as a tripwire for that design changing and its assertion text
+says so. Claiming it as coverage would be the frozen-denominator shape (#405).
+
+**WHAT THIS BUILD GOT WRONG AND THE SUITE CAUGHT [R18].** The first version of this change deleted the eight cards
+outright, and gate 15's own comment asserted "the states are still pinned; what changed is which gate drives them".
+That sentence was FALSE in the way that matters: the states are indeed pinned in gates 10, 11, 12, 13, 14 and 20,
+but those gates REACH them by tapping the gallery cards through `b.card()`, so the route was what had been removed.
+Five gates went RED inside six minutes of the full suite on `locator.waitFor: Timeout 8000ms exceeded`. Nothing in
+gate 15 could see it coming; assertions (3) and (4) above are that hole closed, and they are controlled by (c).
+
+**NOT COVERED AND NAMED SO.** Nothing was rendered on a real iPhone - that is what card 1 exists to obtain and it is
+Kunal's to answer, so every claim here about his phone is a claim about 375x730 in headless Chromium. The readout's
+`installed app` branch is UNREACHABLE in this harness by construction, so F2 pins the `browser tab` branch and the
+standalone branch is unexercised - a device-chosen branch left uncovered, which is #375's rule, and it is named
+rather than implied. The eight removed cards' provenance is established from the tracker and from the WK-supersession
+argument, NOT from a recording of each one. Card 2 of the walk (KEV) opens the Review tab but cannot be driven
+further here: the game is in Kunal's own stored account, so the taps the card describes are his and this gate
+asserts only that the card exists, fits and navigates. The five gates still entering their states through a dev UI
+list is a surviving coupling, filed as
+jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-2026-10-01 and NOT fixed here.
