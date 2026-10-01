@@ -327,11 +327,20 @@ if(blk('C')){
   const stored=await LS(b,'ct_layoutinfo');
   L.say(!!lr0&&lr0.value==='screenshot this'&&!!lr1&&lr1.value==='shown'&&stored===null,
     '375x730: TC-MN-017 "Layout readout" flips from "screenshot this" to "shown" and persists NOTHING - there is no ct_layoutinfo key and no effect writing one, so unlike every other switch in this sheet it is per-session by construction',{row:[lr0&&lr0.value,lr1&&lr1.value],stored});
+  /* #451: THE ASSERTION BELOW READ A 200-CHARACTER SLICE OF THE VERY BLOCK IT ASSERTS OVER, so it could only see
+     the readout's first few lines - and it went RED the moment the readout grew, naming the wrong cause. #451 added
+     one line to that block ("inner WxH  vv WxH  app installed app|browser tab", which gallery card 1 exists to
+     capture) and pushed `build #NNN` past character 200; the app still names the build, and the FAIL text printed
+     the truncated string as if the build were missing. An instrument sized to the content it happened to see is the
+     frozen-denominator shape (#405) pointed at a string length. The full text is asserted now and only the LOG
+     DETAIL is truncated, which is what the slice was presumably for. The assertion itself is unchanged and still
+     requires both facts, so this is not a weakening: proved by running it against a bundle whose readout omits the
+     build stamp, where it still reds. */
   const readout=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');
     const d=[...s.querySelectorAll('div')].find(x=>/^what THIS device computes/.test((x.innerText||'').trim()));
-    return d?d.innerText.replace(/\s+/g,' ').trim().slice(0,200):null;});
+    return d?d.innerText.replace(/\s+/g,' ').trim():null;});
   L.say(!!readout&&/screen 375x730/.test(readout)&&/build #/i.test(readout),
-    '375x730: TC-MN-018 turning the readout on paints the live layout block, and it names the viewport it is actually running in and the bundle it was built from',readout);
+    '375x730: TC-MN-018 turning the readout on paints the live layout block, and it names the viewport it is actually running in and the bundle it was built from',readout&&readout.slice(0,240));
   await TAP(b,'Layout readout',250);
   L.say(b.errs.length===0,'375x730: zero app errors across the toggle sweep',b.errs.slice(0,3));
   await b.close();

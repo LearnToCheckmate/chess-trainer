@@ -309,9 +309,29 @@ async function blockF(){
   await P.states['cpu-resigned'](b);
   const cd=await card(b);
   L.say(/Resign/i.test(cd||''),'F0 the play game is over by resignation, so playEnd is set',{card:cd});
-  await b.tapText(/^Review$/,{wait:3000});
-  const onSummary=await b.page.evaluate(()=>!!document.querySelector('[data-ct="rev-summary"]'));
-  L.say(onSummary,'F0a the review summary of the played game opened',{});
+  /* #451: THIS ARRIVAL WAS UNDER-SETTLED AND IT MADE THIS GATE NON-DETERMINISTIC ACROSS MACHINES, not across runs -
+     which is why "run it twice" never caught it. The review of a PLAYED game is engine-bound: it analyses the game
+     before the summary mounts. The fixed 3000ms wait below was enough on the machine #450 ran on (its committed log
+     has this gate green at 58 pass / 0 fail on bundle ce2d8b7896c3) and is NOT enough here: measured on that SAME
+     bundle, `[data-ct="rev-summary"]` is ABSENT at +0ms after the 3000ms wait and PRESENT ~2000ms later, so the real
+     arrival is around 5s. The gate then went 49 pass / 2 fail, reproducibly, twice, on the bundle its own log calls
+     green - two readings of one bundle, which is the instrument fault this project has now hit twice (gate 26's
+     short375 row is the other). F0a and F0b are ARRIVAL CHECKS whose whole job is to stop the assertions after them
+     being vacuous, so a race in them is strictly worse than useless: it reds a healthy bundle and names the wrong
+     cause. POLLED, not lengthened: a fixed 8000ms would be the same bug with a bigger number and would also spend
+     5s on every run that does not need it. The ASSERTION IS UNCHANGED - the summary must open - and the bound is
+     generous enough to be about the app rather than about the machine.
+     Pre-existing: block F arrived at #439. Not caused by #451, measured on #450's own bundle before being touched.
+     jobs/gate-65-block-f-arrival-is-engine-bound-and-was-fixed-wait-2026-10-01. */
+  await b.tapText(/^Review$/,{wait:600});
+  let onSummary=false;
+  for(let i=0;i<30;i++){                                  // up to ~15s, polled; exits the moment it mounts
+    onSummary=await b.page.evaluate(()=>!!document.querySelector('[data-ct="rev-summary"]'));
+    if(onSummary)break;
+    await b.settle(500);
+  }
+  L.say(onSummary,'F0a the review summary of the played game opened (polled - it is engine-bound, see the note above)',{onSummary});
+  if(!onSummary){L.say(false,'F0a-guard block F cannot continue without the summary, so the rest of F is NOT reported as passing [#393]');return b.close();}
   await b.tapText(/^Start review ›$/,{wait:1500});
   await b.tapCt('rev-fab',900);
   const inAna=await b.page.evaluate(()=>[...document.querySelectorAll('button')].some(x=>/Exit analysis/.test((x.innerText||''))));
