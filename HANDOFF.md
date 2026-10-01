@@ -2,6 +2,51 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#446run, 2026-09-30T23:5xZ (`build__1790810415632`).** EIGHTH consecutive build to stand down on the push,
+> same unchanged cause: the gate-66 B1 / mate-floor decision is Kunal's, is still unasked, and I did not settle it.
+> Nothing to main; `origin/main` is still `1f6939e` (#439). The pile is 32 commits on
+> `claude/cool-noether-gccllp` at `379857b` — **32 ahead, 0 BEHIND**, still a clean fast-forward. Re-derive that
+> sha with `git ls-remote origin | grep cool-noether`; do not trust it from here.
+>
+> **WHAT THIS RUN SETTLED, and it reverses the thing the last run handed over.** #445run measured the no-floor
+> control RED on gate 26 with a new assertion (invariant 3's icon drift at `short375`, `added:[16]`) and filed
+> `jobs/the-no-floor-control-is-not-green-...` saying the Desk item's "nothing else is red" was FALSE for
+> outcome (ii). I ran that job's own `theTestThatSettlesIt` — gate 26 alone, sequentially, three runs per bundle,
+> six runs, all 364 assertions each. **`added:[16]` appeared on NONE of the six.** The control is
+> **364 pass / 0 fail, three times**, which is #443run's original figure.
+>
+> So the disagreement is not between two bundles. It is between two readings of ONE bundle by md5
+> (`c31a7ee506c9`, rebuilt this run and matching #445run's recorded md5 exactly):
+> gate 26 **standalone** reads 10 icon heights at `short375` and passes; gate 26 as the **26th gate of a 47-gate
+> suite** read 11 including 16 and failed. **And it is not a plain suite-vs-standalone effect, because the TREE
+> reads 10 under both methods** (`442-all.log:1347` is a full suite of the floor-ON bundle, also 10). It is an
+> interaction that has appeared only on the no-floor bundle inside a full suite, **n=1 on that cell**, and I am
+> not claiming a mechanism for it.
+>
+> **CONSEQUENCE, and it is the one that matters: gate 26's `short375` drift guard cannot certify EITHER side of
+> the mate-floor decision.** Filed as `jobs/gate-26-invariant-3-short375-returns-two-values-for-one-bundle-2026-09-30`.
+> **Do NOT re-pin it to 11 and do not re-pin it to 10** — a context-sensitive pin bumped to match whichever run
+> you happened to make is #405's frozen denominator with an extra step.
+>
+> **THE DESK WORDING NEEDS A THIRD VERSION, and it is drafted ready to paste on the gate-66 job's
+> `deskWording_thirdVersion_446run` field.** Neither "nothing else is red" (#443run) nor "gate 26 goes red"
+> (#445run) is right; the true statement is that on one bundle it has been seen both ways and the instrument is
+> what is in doubt, not the outcome.
+>
+> **ALSO THIS RUN:** the rotating audit, resumed at its documented `13-*` point, produced a real finding the build
+> lane then confirmed from source — `gates/regress/13-play-after-moves.js:31` takes the k8 card's "move 0"
+> baseline at 900ms while `chess.jsx:5040` schedules that card's first ply at **750ms**, so the one assertion
+> stating the card's whole subject ("the board is the size it was at move 0") compares two samples both already
+> one ply in, and a reintroduction of the 62px first-move shrink it guards would leave it GREEN. The absolute pins
+> at `:42`/`:43` would still catch it, so the gate is not blind — its headline assertion is.
+> `jobs/gate-13-k8-takes-its-move-0-baseline-one-ply-late-2026-09-30`. Rotation resumes at
+> **`14-uat-review-card.js:12`**.
+>
+> **NOT CHECKED by me:** a full 47-gate suite on the no-floor control (STILL never completed — #445run's was
+> killed at 38/47, and I did not attempt it); whether the full-suite control reproduces `added:[16]` a second time
+> (n=1, costs a ~44-minute suite); the other 46 gates on the control. **#443, #444, #445 and #446 are all still
+> FREE build numbers** — I built no bundle for the repo's `app.js` and stamped nothing; `#446run` is a run label.
+
 > **#445run, 2026-09-30T22:4xZ (`build__1790803179000`).** SEVENTH consecutive build to stand down on the push,
 > same unchanged cause: the gate-66 B1 / mate-floor decision is still Kunal's and still unasked. Nothing pushed to
 > main; `origin/main` is still `1f6939e` (#439), re-read by `git ls-remote` this run. The pile is now

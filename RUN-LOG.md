@@ -579,3 +579,40 @@ against the control bundle instead of reasoning about the diff.
 #441's head — D1 red there at greatRows 5 / contradictions 2 naming plies 19 and 24, green at 3/0 on #442.
 That is the one measurement in this run that isolates #442's change, because it is the one where the control
 and the tree differ *only* by my commit.
+
+---
+
+## #446run — `build__1790810415632`, 2026-09-30T23:20:15Z → 2026-10-01T00:0xZ. NO BUILD NUMBER ISSUED, NOTHING TO MAIN.
+
+**ETA before the run: 70 minutes to a terminal verdict on the 3+3 gate-26 test, findings filed, close-out, nothing
+to main. Actual: ~45 minutes to the verdict (23:26:00Z first run start → 23:58:18Z last run done), close-out after.**
+Both ends from `date -u`, never estimated — the third handover running to insist on this, and this time it held.
+
+Eighth consecutive stand-down on the push, unchanged cause: the gate-66 B1 / mate-floor decision is Kunal's and
+still unasked. `origin/main` stayed `1f6939e` (#439) throughout, re-read at the start and confirmed at the end.
+
+**The experiment.** `jobs/the-no-floor-control-is-not-green-...`'s own `theTestThatSettlesIt`: gate 26 alone,
+strictly sequential, three runs per bundle. Both bundles rebuilt this run and both md5s reproduce the previous
+run's figures exactly — tree `0bbc5c85b1df` (byte-identical to the committed `app.js`, so the tree is sound),
+control `c31a7ee506c9` (only `chess.jsx:3686-3689` deleted, working tree restored to 0 modified before any run).
+
+| bundle | runs | pass/fail | `short375` icon heights |
+|---|---|---|---|
+| tree, floor ON `0bbc5c85b1df` | 3 | 359 / 5, all three | 10, `[17..28]`, PASS all three |
+| control, floor OFF `c31a7ee506c9` | 3 | **364 / 0, all three** | 10, `[17..28]`, PASS all three |
+
+364 assertions in every one of the six runs, so nothing was skipped and the denominator never moved.
+
+**`added:[16]` appeared on none of the six.** Neither branch of the previous run's decision rule fires. The two
+readings that disagree are on ONE bundle by md5: standalone gives 10 and passes, while gate 26 as the 26th gate of
+a 47-gate suite gave 11 and failed (`445run-control-PARTIAL-38of47-mate-floor-OFF.log:1348`). It is not a plain
+suite-vs-standalone effect either, because the tree reads 10 under both methods (`442-all.log:1347`). n=1 on the
+one cell that differs, and no mechanism claimed.
+
+**So gate 26's `short375` drift guard cannot certify either side of the mate-floor decision** — filed, with an
+explicit "do not re-pin it to 10 and do not re-pin it to 11". The Desk wording needs a third version and it is
+drafted on the gate-66 job rather than written to the Desk, which is not this lane's to write.
+
+**Also:** the rotating audit resumed at `13-*` and produced a finding the build lane then confirmed from source —
+gate 13's headline k8 assertion baselines "move 0" 150ms after that card's first ply. Rotation resumes at
+`14-uat-review-card.js:12`.
