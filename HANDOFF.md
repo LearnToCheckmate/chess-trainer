@@ -18,7 +18,90 @@ Give this file to Claude in Cowork as the first thing in the session.
 > builds and it is the project's own rule broken in the act of citing it: measure, do not read. Left visible
 > rather than quietly corrected, because a wrong number about the record is exactly what this note warns about.
 
-## 0-NOW) WHERE THE LAST RUN LEFT OFF — 2026-10-01, `build__1790832010925` (#450)
+## 0-NOW) WHERE THE LAST RUN LEFT OFF — 2026-10-01, `build__1790882420811` (#453)
+
+**`origin/main` is #452 plus this run's records. #453 SHIPPED NO APPLICATION CHANGE and the only commit is this
+one.** Next free build number is **#454**. The gate suite was NOT run and `deploy.py` was NOT run, because no
+bundle was produced to gate [R34].
+
+**I TOOK THE PRIORITY-11 JOB AND IT TURNED OUT TO BE BLOCKED ON ONE SENTENCE FROM KUNAL, NOT ON A REBASE.**
+`jobs/land-the-442-to-447-pile-it-carries-kunals-winprob-ruling-2026-10-01` says to rebase the pile onto main and
+ship it if green. **It cannot be green, and it cannot be made green without settling a question of his.** The
+contradiction — **and the first draft of this very block claimed no document in the project had written it down,
+which is false and is withdrawn here [R18]. `jobs/gate-66-b1-and-the-mate-floor-disagree-about-what-the-app-should-print-2026-09-30`
+has had it since 2026-09-30T17:20Z, at priority 10, with all three outcomes and their costs, and
+`jobs/the-no-floor-control-is-not-green-and-the-desk-item-promises-kunal-that-it-is-2026-09-30` amends it.** I
+found those by listing the `jobs` collection AFTER writing the block, which is the wrong order and is the whole
+reason R25 says fingerprint first. What is mine here is the re-derivation at one sha, nothing more:
+
+| | what it says | consequence |
+|---|---|---|
+| `gates/regress/66-winprob-ladder.js:164` (B1) | `grade.Blunder.b===0` — "Black, who is being mated, is charged with NO blunder" | needs the floor **out** |
+| `chess.jsx` at `004cb86`, the #441 floor | a move that newly forces mate against the mover → `classify(Infinity)` = Blunder | needs B1 **changed** |
+
+In `PGN_OPERA`, Black's **15...Nxd7** allows 16.Qb8+ Nxb8 17.Rd8#, so the floor fires on **exactly the move B1
+asserts is not a blunder**. Floor in → B1 red. Floor out → option (ii) of the three options Kunal must choose
+between, which is **the change #450 pushed as `e765135` and had reverted twelve hours ago at `364f700`**. So both
+doors are shut until he answers.
+
+**STATE THE INSTRUMENT, because this project keeps publishing figures without their grain.** The above is derived
+from the TEXT of those two files at the single sha `004cb86` — **not from a browser run.** It is corroborated by two
+commit subjects on the pile itself: `c9db4cd` "#441: the tree is RED on gate 66" and `379857b` "#445run close-out:
+the no-floor control is NOT green". **The empirical check was NOT run and is the next concrete step**, written out
+on the job: extract `git show 004cb86:app.js`, take that sha's `gates/lib.js` and gate 66 too (both differ from
+main's), and run that one gate with `CT_APP` at the bundle. A subset cannot authorise a push and is not meant to.
+
+**AND THE REBASE EVERYONE WOULD WRITE IS A SILENT TRAP — measured, because it looks easy.** A three-way merge of
+`chess.jsx` (base `e765135`, ours `origin/main`, theirs `004cb86`) yields only **four** conflict regions. But in the
+region main **reverted**, the merge is **CLEAN**, and it resolves to main's deletion, because the pile never
+re-touched those lines. The result keeps the pile's new code and drops what it depends on: **zero definitions of
+`_wd` and zero of `_ma`, with live call sites at merged `chess.jsx:3719` (`classify(_wd)`) and `:3765`
+(`wdrop:_wd,macc:_ma`).** A bundle built from that would throw on every review. **So build it the other way round:
+start from the pile's classifier regions and re-apply main's post-revert work (#448, #449, #452) onto them.**
+
+**THE QUESTION STILL HAS NOT ACTUALLY BEEN ASKED, AND THAT IS THE ONE NUMBER HERE WORTH ACTING ON.** The job above
+carries `desk: "OWED - this is the Desk item this job exists to create"`, written 2026-09-30T17:20Z. I listed **all
+73 documents** in the Decision Desk's `questions` collection at 19:5xZ: **not one is about the mate floor.**
+`q-classify-on-winprob` exists and is ANSWERED — that is the *ladder*, not the *floor*. So the Desk item has been
+owed for **27 hours** across #450, #451, #452 and this run, and R32 is explicit that an ask anywhere else does not
+count as asked. That is not a new class either —
+`jobs/nothing-escalates-a-desk-item-that-was-routed-and-never-written-2026-10-01` already exists — so I added the
+measurement to the existing jobs rather than filing a fifth document about one question. **#453 is the FIFTH
+consecutive build this has stopped**; the existing job says "FOURTH" and names #440, #441, #442 and
+`build__1790796015749`.
+
+**"0 AHEAD OF MAIN" DOES NOT MEAN "CARRIES NOTHING" ONCE SOMETHING HAS BEEN REVERTED.** Measured at 20:19Z:
+`git merge-base --is-ancestor eabf18b origin/main` is **TRUE** for #440's branch `claude/cool-noether-2l1ypi`, so
+every shorthand test calls it empty — yet `git show origin/main:chess.jsx | grep -cE 'winPct|0.00368208'` is **0**
+against **3** at `eabf18b`, and gate 66 is absent from main and present there. `364f700` reverted the **tree** and
+kept the **ancestry**. CLAUDE.md's branch-record row states the rule the wrong way round; the fix is a CONTENT test
+(`git diff origin/main..<branch> -- chess.jsx gates/ claude/stories/`), filed as
+`jobs/the-ancestor-test-says-carries-nothing-for-a-branch-whose-content-was-reverted-off-main-2026-10-01`.
+**NOT SWEPT:** the other 36 branches were not re-tested under the content test.
+
+**TWO DOCUMENTS NAME THE WRONG PILE HEAD.** This file and `gates/held-trees.tsv` both call
+`claude/cool-noether-gccllp` the pile head. Measured: `gccllp` is **18** ahead of main, `claude/cool-noether-4vmw7f`
+is **19** and contains it. **`4vmw7f` at `004cb86` is the head.** The job document had it right; the two repo
+documents did not.
+
+**WHAT I WROTE INSTEAD OF SHIPPING.** `builds` records for **#440 and #442-#447** (work item 4 of the job, which
+was not blocked), three fingerprinted findings, the hand-off job, the Desk routing, and a `gates/held-trees.tsv`
+row for bundle `0bbc5c85b1df` with `sourceMd5 55288417624a` — so the next run that reaches for this pile is refused
+by a tool instead of by a paragraph. `held.sh check 0bbc5c85b1df` now exits 1. **That row is a third kind of hold**
+and says so: not a red gate and not a veto, but an unanswered question, and **no gate log has ever run against that
+bundle**, so there is no green being withheld.
+
+**WHAT I DID NOT DO.** No bundle, no suite, no render, no browser measurement of any kind; `gates.sh`, `deploy.py`
+and the auditor all skipped with the reason above. The antagonist pass was NOT run — budget went on the
+diagnosis and the records, and a run that stands down has less to adversarially check, but it is still a gap [R26].
+I did not take #432 (the job forbids it). I did not touch the pile branches.
+
+**ONE CONDITION WORTH REPORTING: `mcp__*` TOOLS ARE PRESENT IN THIS SESSION.** `prompts/build-run` step 0a states
+flatly "You have NO `mcp__*` tools" and tells the run not to rediscover it. This session has the full
+`mcp__github__*` set plus `mcp__claude-code-remote__*`. That document asks the run to say so if they ever reappear,
+because it means the binding changed. I used plain `git` for everything regardless.
+
+## 0-prev1) WHERE THE LAST RUN LEFT OFF — 2026-10-01, `build__1790832010925` (#450)
 
 **`origin/main` is #450, gated `GATES GREEN #450`.** This build shipped NO application change: `chess.jsx`
 is byte-identical to #449 and the only difference in `app.js` is the build stamp. What changed is the PUSH BAR.

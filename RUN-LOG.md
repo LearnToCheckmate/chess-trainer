@@ -1138,3 +1138,66 @@ schedule. **The auditor was skipped** with a stated reason, so nothing went anyw
 about 9.63px of the footer, and whether a footer button's hit area is actually there is the next measurement. The
 pre-existing `\\u00b7` in the puzzle counter is named and not fixed. Landscape coverage of the held bar is unmeasured
 (the control itself B measured at 730×375).
+
+---
+
+| build | what | ETA stated (at) | started | actual | delta | gates |
+|---|---|---|---|---|---|---|
+| #453 | `jobs/land-the-442-to-447-pile-it-carries-kunals-winprob-ruling-2026-10-01` (P11, Kunal's delegated direction) — **no application change; records only** | none stated before the work, which is a miss against R30 and is recorded as one | 19:20:20Z | **~105 min** | n/a, no ETA to measure against | **NOT RUN** — no bundle was produced to gate |
+
+**WHAT THIS RUN DID AND DID NOT DO.** It took the top of the queue — priority 11, one clear of the twenty jobs at
+10, and also named by Kunal's delegated direction field, so both routes selected it. It established that the pile
+**cannot be landed by a build at all right now**, wrote that down in six places, and shipped no application change.
+`gates/gates.sh` and `deploy.py` were both **skipped**, and the reason is that there was no bundle to gate [R34].
+
+**THE BLOCKER, AND IT IS NOT MECHANICAL.** `gates/regress/66-winprob-ladder.js:164` (B1) asserts
+`grade.Blunder.b===0` — "Black, who is being mated, is charged with NO blunder". `chess.jsx` at the pile head
+`004cb86` floors any move that newly forces mate against the mover at `classify(Infinity)` = Blunder. In
+`PGN_OPERA`, Black's **15...Nxd7** allows 16.Qb8+ Nxb8 17.Rd8#, so the floor fires on exactly the move B1 says is
+not a blunder. **Floor in → B1 red. Floor out → outcome (ii), which is what #450 pushed as `e765135` and had
+reverted twelve hours ago at `364f700`.** Both doors shut until Kunal answers.
+
+**INSTRUMENT, AND ITS GRAIN.** Derived from the TEXT of those two files at the single sha `004cb86` — **not a
+browser run**, and I am saying so because the last four pen notes each recorded a figure published without its
+grain. Corroborated by two commit subjects on the pile itself (`c9db4cd`, `379857b`). **The empirical single-gate
+run was NOT done** and the command for it is written on the job.
+
+**THE MISTAKE I MADE AND CAUGHT, AND IT IS THE MOST USEFUL THING IN THIS ROW.** I wrote the diagnosis up as a new
+finding — in HANDOFF, in `builds/447`, in a fingerprint, in a new priority-11 job and in the held row — and **then**
+listed the `jobs` collection, where `jobs/gate-66-b1-and-the-mate-floor-disagree-about-what-the-app-should-print-2026-09-30`
+has carried the same contradiction since **2026-09-30T17:20Z** at priority 10, with all three outcomes and their
+costs, plus `jobs/the-no-floor-control-is-not-green-...` amending it. **R25 says fingerprint FIRST and I did it in
+the wrong order.** All five places are corrected rather than quietly edited, the duplicate job is deleted, and the
+surviving job is dropped from 11 to 9 and retitled to the one thing in it that is new. Worth noting about the
+instrument: my normalised text described the contradiction as *unrecorded*, so its hash could never have collided
+with the document that records it — **a fingerprint over a claim containing "this is nowhere" cannot match the
+thing that proves it wrong.**
+
+**WHAT IS ACTUALLY NEW, after that subtraction.** (1) **The rebase is a silent trap.** A three-way merge of
+`chess.jsx` (base `e765135`, ours `origin/main`, theirs `004cb86`) gives only **four** conflict regions, but in the
+region main **reverted** the merge is **CLEAN** and resolves to main's deletion, because the pile never re-touched
+those lines — leaving **zero definitions of `_wd` and zero of `_ma`** against live call sites at merged
+`chess.jsx:3719` and `:3765`. A bundle built from that throws on every review. Build it the other way round.
+(2) **"0 ahead of main" ≠ "carries nothing" after a revert:** `git merge-base --is-ancestor eabf18b origin/main` is
+**TRUE** for #440's branch, yet main has **0** `winPct` occurrences against **3** there and no gate 66. CLAUDE.md's
+branch-record row states this the wrong way round. (3) **Two documents name the wrong pile head** — HANDOFF and
+`held-trees.tsv` say `gccllp` (18 ahead); the head is `4vmw7f` (19 ahead, and contains it). (4) The Desk item that
+job calls OWED is still **absent from all 73** Desk questions, **27 hours** on — so under R32 the question has never
+been asked, and #453 is the **fifth** consecutive build it has stopped.
+
+**FOUR NUMBERS [R30], WITH THE METHOD, BECAUSE MINE DISAGREE WITH #452's AND I WILL NOT PAPER OVER IT.** Regression
+assertions **3211** (read from `claude/agents/gatelogs/452b-all.log`'s own footer, the shipping log, not from
+`452-all.log`'s 3208, which is the bundle antagonist B vetoed). Coverage **unchanged** — no screen or feature moved,
+because nothing shipped. Open **P0 15** and open **P1 100**, counted as `status: "ready"` jobs whose `title` begins
+`P0`/`P1`, over **379** documents returned by one page of the collection — **and a `next_cursor` came back, so even
+that is a floor, not a count.** #452 published **5** and **47**. I did not reconcile the two and I am not asserting
+mine are better: they are a different method over a larger page, and the gap is big enough that one of the two is
+measuring something other than what it says. That reconciliation is what
+`jobs/four-numbers-are-a-three-build-carry-not-a-count-2026-09-27` already exists for.
+
+**NOT CHECKED.** No bundle, no suite, no render, no browser measurement of any kind; no antagonist and no auditor
+pass, which leaves R26's two lines unwritten and is a real gap in this row rather than a waived one. The live site
+is egress-blocked and was not fetched. The other 36 branches were not re-tested under the content test that finding
+(2) calls for. #432's separate pile was not touched (the job forbids it). Whether the 16px `added:[16]` gate-26 red
+is floor-caused or walk variance is still open, and is still the thing that would tell Kunal whether outcome (ii)
+is free.
