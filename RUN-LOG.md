@@ -1263,3 +1263,69 @@ happy path was a hard deadlock.** `build.sh` asked `check`, which is true of any
 to mint another. B's tell is the reusable part: the register shipped with **zero `minted` rows**, so the happy
 path had never been run once. Fixed with a separate `stampable` predicate; controls at cases 17-26 of the
 self-test, and the pre-fix control reproduces both defects exactly.
+
+| (no build number issued; #456 is still the next free) | **SELECTION ONLY, NO BUNDLE AND NO APPLICATION CHANGE.** Ran step 1S over the ready/build queue and established, by measurement, that the sort's top FIVE candidates are all unactionable today; sized the sixth (`jobs/drill-accepts-one-move-only`, which is live on main and unblocked) and handed it over rather than half-building it. Four measured reports written onto jobs, two new fingerprints, one R23 blocker re-test. | none stated before the work — a miss against R30, recorded as one | 22:20:00Z | n/a — nothing staged for his click, no application change | see the close-out row in the tracker (`runledger/build__1790893200524`); COMPUTED from epoch ms at both ends, never typed | n/a, no ETA to measure against | suite **NOT RUN** — no bundle was built, so there was nothing to gate. `gates/held.sh check` not run for the same reason. | nothing live — `app.js` on main is untouched at `4dd3b4aa09ed`, stamp `#452 - 2026-10-01 13:31 ET` |
+
+**THE QUEUE'S TOP FIVE ARE EACH UNACTIONABLE FOR A DIFFERENT REASON, AND THAT IS THE FINDING.** Step 1S says
+read `jobs`, keep `status: ready` and `owningLane: build`, order by `priority`, take the top. Applied exactly as
+written at 22:3xZ this is what it returns, in order: (1) `land-the-442-to-447-pile` (P11, Kunal direction field)
+— its head `004cb86` is on `gates/held-trees.tsv` held on an unanswered question of Kunal's, **re-tested here
+rather than inherited**: all 16 open Desk questions listed and every one grepped for `mate ?floor|mateFloor|blackBlunder|_newMate`,
+**zero matches**, so the ask has now been owed about 30 hours and this is the **seventh consecutive build to
+decline that item**; (2) `mint-build-numbers-from-one-place` (P10, oldest at 2026-09-19) — point 1 shipped at
+#454 and point 2 was measured impossible-as-written by #454 and deferred to its own run; (3) `board-jumps-on-drill-verdict`
+— titled `P0 DECISION NEEDED`, three candidates measured and none shippable; (4) `a-pawn-can-be-promoted-into-a-game-that-already-ended-on-time`
+— **both halves are already on main**, the committer guard at `doMove` (`chess.jsx:3919`) and the dialog
+dismissal at `chess.jsx:2820`; (5) `the-sel-cls-split-migrated-selectors-but-not-every-label-consumer` — its
+three P0s **cannot occur on main**, because main never received #440's split (`winPct` 0, `CLS_BANDS` 0,
+`const cls` 0, `_selL` 0 in `chess.jsx` at `12a7d9b`).
+
+**THE CAUSE, STATED ONCE RATHER THAN FIVE TIMES [R09]: the sort reads `priority` and `status` and nothing that
+records whether an item can be acted on today.** `status: "ready"` is doing five incompatible jobs at once —
+unblocked work, work held on a human decision, work whose remainder was deferred, work already on main, and work
+measured in a configuration that never shipped. All five correctly stay `ready`, because R05 reserves closing to
+the finder, so this is **not** a stale-status problem and must not be fixed by changing statuses. Appended to
+`jobs/step-1s-can-hand-the-next-build-a-job-whose-fix-already-shipped-2026-10-01`, whose title names only the
+fourth of the five. The cheapest fix it suggests — one queryable `blockedBy`/`actionable` field written by
+whichever run establishes the block — is offered as a hypothesis, not a prescription, and `gates/held-trees.tsv`
+is the proof the shape works: keyed on what a later run can compute, and read by default.
+
+**WHAT I DECLINED AND WHY, SAID PLAINLY.** `jobs/drill-accepts-one-move-only` (P10, Kunal's own words from a
+screenshot) **is live on main** — the string match is at `chess.jsx:3940`, `cleanSAN(played)===cleanSAN(p.sol[step])`,
+and `gates/regress/52-drill-grades-the-move.js` is absent from main's 46 gate files. Its authored gate and cases
+have been waiting in `docs/patch-drill-accepts-one-move-only-2026-09-28` since 2026-09-28, R36-admitted and red
+on #426 at C2/C3/C4/C4b/C8. **One thing nobody had recorded: its own `shipsWith` blocker is gone.** That field
+says it must ship with `jobs/drill-explain-why-it-was-better` because they share the explanation generator — and
+that companion shipped at #426 (`gates/regress/51-drill-explain-why.js` is on main; the job was cut to priority 4
+on 2026-10-01T18:30Z). So it can now ship alone, and the field still says otherwise. I did not build it because
+it is a full build: C2–C4b need the played move evaluated and five band responses, and **C8 requires an eval bar
+on the drill board**, which costs `evalW` of board width on a screen where `drill-verdict-reserve-costs-more-board-than-a-short-phone-has`
+already measured the board landing **on the 192px floor** at 360x640 and 375x667 — an amber product call that
+needs a `defaults` record and a render before it is written, not after. **And the authored gate must land WITH
+the fix**: landing it red puts a permanent red in the suite and stops every later run emitting `GATES GREEN`,
+which the patch's own `applyNote` leaves to the build lane without flagging. #428 stood down in this exact screen
+family saying doing it badly is worse than another day of the defect; that judgement still holds, and a 38th
+branch carrying half of it is the thing Kunal complained about today.
+
+**ONE CORRECTION TO A JOB, BECAUSE IT WOULD HAVE SENT THE NEXT BUILD AT A DEFECT IT CANNOT REACH [R35].** The
+sel/cls job says "The article bug (`a inaccuracy`) must be fixed whichever way that goes". On main it **cannot
+fire from a main-written store**: the capture at `chess.jsx:3681` admits a ply only when
+`L==='Mistake'||L==='Blunder'||L==='Miss'`, and the sentence at `chess.jsx:4719` is
+`'a '+String(m.label||'mistake').toLowerCase()` — so the three reachable labels are *mistake*, *blunder* and
+*miss*, all consonant-initial and all grammatical. The `a inaccuracy` and `a great` cards two independent passes
+saw are real **on the #440–#447 bundles**, where `cls.label` was stored while the pool was selected on `sel`.
+The fix belongs with whatever lands that split — it is leakage of the blocked pile, not independent work.
+
+**ONE SELF-CATCH, RECORDED BECAUSE IT NEARLY DECIDED THE RUN ON A WRONG NUMBER.** Partway through selection I
+was tracking elapsed time by narrating it rather than measuring it, and believed the run was at ~23:40Z with ten
+minutes of budget left. Measured from epoch ms it was **22:33Z, with about 75 minutes left** — I had overstated
+elapsed time by roughly 65 minutes. This is the project's own "elapsed narrated from feel" defect, which #453
+published twice and #454 fixed by computing the figure. **The decision did not change, and the reason it did not
+is the part worth keeping:** having corrected the clock I re-opened the drill job, found `sfEval1(fen,movetime,depth)`
+at `chess.jsx:3398` (so the engine half is reachable), and still declined — because the remaining risk is a
+**wrong-framed grade**. `sfEval1` returns White-frame centipawns, the loss must be taken in the mover's frame, and
+#426's own report records the naive version telling a losing Black player the position went "from winning to
+winning". A mis-framed grade tells a player a losing move was good; that is the #385 (÷100) and #389 (wrong sign)
+family, and 24 minutes with no render is how it ships. So the operative reason for the hand-over is the frame risk
+plus the unmade C8 amber call, **not** a shortage of time, and the earlier reasoning that leaned on the clock is
+withdrawn here [R18].
