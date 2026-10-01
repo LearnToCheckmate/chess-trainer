@@ -97,7 +97,16 @@
 // assertions, and a count without its scope is not evidence (#411, where two of six published control counts
 // turned out to be subset runs nobody could reproduce).
 // CONTROL-RECORD: 955501e 2026-09-18 total=25 red=0 scope=env:CT_G15_GEOS=kunal how=shipped bundle, no injection - the baseline the other six are read against
-// ── #451's controls. SIX runs, every count MEASURED at one walk geometry and the scope published with it
+// ── A KNOWN DISAGREEMENT WITH gates/control-audit.js, RECORDED RATHER THAN WORKED AROUND (#451). That tool
+//    requires `total` to lie inside 1..<number of L.say SITES in the file> and reports FAULT otherwise. No gate that
+//    LOOPS can satisfy it: gate 15 has always run its sites over two geometries, so its runtime total exceeds its
+//    site count, and the EIGHT PRE-EXISTING records below violate the bound too (total=25 against 13 sites at the
+//    time) - they were only ever reported FAULT for the earlier reason, so nobody noticed. The totals in the rows
+//    below are the MEASURED runtime counts, which is what a reader needs to reproduce them; publishing a smaller
+//    number to satisfy the bound would be inventing a figure. So gate 15 reads ASSERTIONS-MOVED until the tool's
+//    bound is fixed, and that is the honest state:
+//    jobs/control-audit-bounds-total-by-the-L-say-SITE-count-so-no-looping-gate-can-be-covered-2026-10-01.
+// ── #451's controls. SEVEN runs, every count MEASURED at one walk geometry and the scope published with it
 //    [#411/#412: publish the command with the count]. Block F is NOT governed by CT_G15_GEOS - its two widths are
 //    the acceptance condition - so every row below includes both F geometries. Totals differ between rows because
 //    F2's three readout assertions are CONDITIONAL on the readout line existing, so they do not run on a bundle
@@ -109,7 +118,7 @@
 // CONTROL-RECORD: b9465d2 2026-10-01 total=62 red=1 scope=env:CT_G15_GEOS=kunal,CT_G15_NC=statesshrink how=the board cut 24px AFTER the baseline settles, inside a fixture card. Reds block S's S2 (k10, base 351.03 -> 327 at 375x679; 375.03 -> 351 at 375x812) - the board-jump instrument, including at 375x812 where no other gate in gates/regress/ visits at all
 // CONTROL-RECORD: b9465d2 2026-10-01 total=62 red=2 scope=env:CT_G15_GEOS=kunal,CT_G15_NC=stateshide how=the board grid display:none from the first fixture card on. Reds S0 (the instrument) and S0a (reachability), leaving S2 vacuous-but-declared. THIS CONTROL IMPROVED THE GATE: its first run threw on the harness's own navigation at the second card and took S0 to S3 with it (35 pass, one "harness threw", S0 never asserted) - the #393 fault in a block I had just written. The tap is guarded now and an unreachable card is its own red
 // A TRIAL-BUNDLE CONTROL IS RECORDED SEPARATELY BELOW because its scope is a bundle rather than an env var:
-// CONTROL-RECORD: b9465d2 2026-10-01 total=54 red=6 scope=trial:548b4a913652 how=a trial bundle from chess.jsx with `const TS=[]` (md5 548b4a913652) - the fixture list deleted while the two asks stay. Reds the total-population assertion and all five STATE_IDS as they then were - the assertion that would have caught this build's own worst mistake before the suite did. NOTE: measured BEFORE block S and the y3 id were added, so re-run it when that row is next cited
+// CONTROL-RECORD: b9465d2 2026-10-01 total=54 red=6 scope=env:CT_APP=548b4a913652 how=a trial bundle from chess.jsx with `const TS=[]` (md5 548b4a913652) - the fixture list deleted while the two asks stay. Reds the total-population assertion and all five STATE_IDS as they then were - the assertion that would have caught this build's own worst mistake before the suite did. NOTE: measured BEFORE block S and the y3 id were added, so re-run it when that row is next cited
 // CONTROL-RECORD: 955501e 2026-09-18 total=25 red=1 scope=env:CT_G15_GEOS=kunal how=board width+height+squares cut 24px from card 2 on, persistent
 // CONTROL-RECORD: 955501e 2026-09-18 total=25 red=1 scope=env:CT_G15_GEOS=kunal how=a laid-out 14px child appended to #root
 // CONTROL-RECORD: 955501e 2026-09-18 total=25 red=2 scope=env:CT_G15_GEOS=kunal how=board width flipped every 60ms so no 900ms window has a settled tail
