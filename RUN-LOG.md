@@ -501,3 +501,113 @@ regression assertions 3060** (`439-all.log`, bundle md5 `0099cb784ca0`, `verify-
 counted the same way; it did not re-derive the count, because
 `jobs/four-numbers-are-a-three-build-carry-not-a-count-2026-09-27` is open on exactly that and
 inventing a fresh method here would add a third number to a register that already has two.
+
+---
+
+## #449 — 2026-10-01, `build__1790824800183` — SHIPPED, after both antagonists vetoed #448
+
+**ETA 85 min (close out by 04:45Z); ACTUAL 110 min to the push** (03:20:00Z to ~05:10Z, both ends from
+`date -u`). Over by 25 minutes, and the overrun is entirely the veto: the first tree was built, gated
+and ready at 03:35Z, and rebuilding after two upheld vetoes cost a second full suite.
+
+**Item:** `jobs/a-non-sacrifice-on-an-empty-landing-square-scores-full-value-2026-10-01` (priority 10,
+live P1 on main). Chosen under STEP 1S plus rule 1b; the sort's priority-11 top
+(`a-gated-green-log-is-not-a-shippable-tree`) was a process job and this was a wrong answer painted on a
+player's screen. Departure recorded as `notes/build__1790824800183__1`.
+
+**Shipped:** `GATES GREEN #449`, 47 suites / 3138 PASS / 0 fail, bundle md5 `381a0ec8b79c`, one clean
+uncontended run (03:59:45Z to 05:07Z, 67 min). `verify-log.sh` OK on the run log and on the committed
+copy (4168 lines, 3138 `^PASS` lines equal to the footer).
+
+**#448 IS A BURNT NUMBER.** It names the candidate both antagonists vetoed. It never reached main. #449
+is the tree that ships, so one number names one bundle — which is what
+`jobs/mint-build-numbers-from-one-place` asks for, and the opposite of #439, where three different
+bundles all carried one stamp.
+
+**THE DEFECT.** `brilliantGate`'s sacrifice term was `SEEVAL[piece now on the landing square]` minus
+`SEEVAL[what it captured there]`. On an EMPTY square `capVal` is 0, so the full value of the piece
+standing there was charged as material given up: `b8=Q` read `sac=9 isSac=true ok=TRUE` on
+`2r4k/1P6/8/8/8/8/8/K7 w`. A player who queened a pawn and lost it was congratulated for a brilliant
+nine-pawn queen sacrifice. Not about promotions: `174540842570 37.Qf6+`, a queen trade offered with
+check and no promotion anywhere, scored 9 by the identical mechanism in a game chess.com records zero
+Brilliants in. Fixing it also reconciles #443's unexplained `SHIPPED: 3` against its own published
+agreement of 2 — the third was `37.Qf6+`.
+
+**BOTH ANTAGONISTS VETOED AND BOTH WERE RIGHT, AND THEY CONVERGED.** A read the diff, B read the shipped
+surface, neither could see the other, and both landed on the same cell: the promotion credit had been
+applied to the empty arm ONLY, so a capture-promotion still charged the promoted piece's full value.
+`bxc8=Q` on `2rr3k/1P6/8/8/8/8/8/K7 w` — winning a rook for a pawn — read `sac=4 isSac=true ok=TRUE`. A
+drove 479 generated promotion-captures through the real fallback pipeline: 57 `isSac=true`, 6 reaching
+`ok=true`, and the same shape one eval-tenth from live in this repo's own Lasker Trap lesson
+(`fxg1=Q`, the move that lesson calls the MISTAKE, `sac=6`, held off only by `evBefore` missing its
+window by 0.85). I verified all six of A's FENs before acting on them.
+
+**AND A SECOND DEFECT I HAD SHIPPED WITHOUT NOTICING,** from B: `sac` has THREE consumers and I reasoned
+about one. The two sentence ladders (`chess.jsx:947`, `:3663`) are keyed on GROSS piece value, so
+changing what `sac` means made this repo's own canonical queen sacrifice print **"You give up a rook"**
+for a queen. `brilliantGate` now returns `given` (handed over) and `sac` (net) separately. This is the
+project's own "a threshold belongs to the instrument it was calibrated on" rule, aimed at a sentence.
+
+**THREE OF MY GATE'S ASSERTIONS COULD NOT FAIL, PROVED BY MUTATION, NOT BY ARGUMENT.** `A5` was the bad
+one: on its FEN `seeSq` returns 0, so the `seeOpp>0` guard skipped the block and `sac` was 0 for ANY
+formula — and its message asserted in prose that the capture arm "was already correct and must not
+move", which was unmeasured and false. The assertion was satisfied by the thing it was trying to
+exclude: the sixth costume of the trap CLAUDE.md already records six times, committed by me inside the
+gate written to catch it. Replaced by `A5b`/`A5c`, seven capture-promotions on positions where
+`seeOpp>0`, each asserting the arm is REACHED before reading a verdict off it. `C8c` likewise cannot
+fail (delete the e.p. term and the gate still reads 41/0, because an e.p. capture's mover is a pawn so
+both routings yield at most 1) and is now RELABELLED as the companion it is rather than dressed up.
+`A6` now pins its value. **NEW BLOCK D is the quadrant that did not exist:** every block-B assertion is
+a CAPTURE, i.e. the arm the fix leaves alone, so nothing anywhere asserted that a genuine sacrifice onto
+an EMPTY square still fires — the one cell the change could damage. Gate 68 goes 41 → 78 assertions.
+
+**CONTROLS: two real trees, not hand-broken bundles.** The shipped #439 source 55 pass / 23 fail; #448's
+own vetoed candidate 68 pass / 10 fail, reddening EXACTLY the new capture-arm and sentence assertions
+and nothing else — which is what proves the new assertions can fail, on the precise tree the veto was
+about. Reproduce: `CT_SRC=<path> node gates/regress/68-brilliant-sac-empty-square.js`.
+
+**A NUMBER OF MINE WITHDRAWN [R18].** #448's source comment said the rejected uniform candidate
+"measures 19...Bxh3 at 1" without naming the formula. RAW `seeOpp` for that move is **2** — A measured
+it, I re-measured it, A is right. The 1 belongs only to `max(0, seeOpp-capVal-promoGain)`; bare `seeOpp`
+gives 2 and does NOT lose the reference brilliancy. A also measured the far better reason to reject it,
+which I never had: bare `seeOpp` leaves `b8=Q` at `sac=9 ok=true` so it fixes nothing, and fires on 23
+of 697 corpus plies. Corrected in `chess.jsx`, in `flags/amber-448-…` and on the job that carried it.
+
+**THE LOG NAMES `6355348` AND THE SHIPPING COMMIT IS `8f4cb19`, which is explained rather than left to
+be noticed.** `gates.sh` samples HEAD and the dirty count at START, and the suite launched before the
+fix was committed, so its ref line says "WORKING TREE DIRTY: 3 path(s) — the gated bundle is not this
+commit's". That is accurate about 03:59:45Z and it does not cost the log its authority, for a reason
+that is an identity rather than an argument: the gated bundle md5 `381a0ec8b79c` **is**
+`git show 8f4cb19:app.js` byte-for-byte, the three dirty paths were exactly `app.js`, `chess.jsx` and
+the gate file now in that commit, and the tree is clean at the push. A run that changes `app.js`
+mid-suite has invalidated its log and must re-gate; this one did not.
+
+**THE #448 SUITE WAS NEVER KILLED AND ITS LOG IS DISCARDED.** `pkill -f` did not stop it and I reported
+it killed on the strength of an echo that printed regardless. It ran 24 more minutes while I rebuilt
+`app.js` twice underneath it, so its header named `ec94ee11d489` against a file that had become
+`381a0ec8b79c`. Caught only by the suite LOCK refusing the #449 launch and naming pid 1249. All 20
+`448-*.log` files were moved out of `gates/logs/` and **none is committed or citable**. Then the
+replacement monitor's death branch grepped for `gates.sh` and so matched ITSELF, making two 30-minute
+silences indistinguishable from a dead suite. Both forms are in CLAUDE.md; I hit both.
+
+**The four numbers:** open P0 **3**, open P1 **29**, coverage **0 of 10**, regression assertions
+**3138**. RULE, stated so it is checkable: the `jobs` collection, `status=ready` AND
+`owningLane=build` (218 documents), bucketed by the `severity` field with a string `priority` of the
+form P0/P1 as fallback. **A limit of that instrument, which bears on this build:** #449 closes a job
+whose severity lives in its TITLE and not in a `severity` field, so shipping it moves NEITHER number —
+read the P0 drop from the previous snapshot's 4 as one other job reclassified, not as this build.
+`jobs/four-numbers-are-a-three-build-carry-not-a-count-2026-09-27` is still open on exactly this.
+
+**Also measured, arguing another job DOWN:** the three malformed rows in the dashboard's `snapshots`
+collection cannot blank it. I read the page (`index.html:1887-1916`) rather than repeating the
+hypothesis: it defines `complete(v)` and merges the newest COMPLETE tree forward when the newest
+document fails it, a guard written for the 2026-09-13 blanking. That job's P1 is too high; the real
+residuals are a misattributed "partial" caption and an undefined sort, since the fragments carry
+ISO-string `at` where every real snapshot carries epoch-ms and `b.at - a.at` is therefore NaN.
+
+**Six jobs filed.** The stale-verdict migration (B's P0-1, upheld as real and deliberately not fixed —
+shipping beats holding because main had both the generator and the stale store), the narrowed
+threshold question, two from A's rotating audit (gate 20 and gate 21 **never visit Kunal's 375x730**,
+and gate 20's `docScroll===0` conjunct is true by construction), plus the two corrections above.
+**Rotating audit: started at `20-review.js`, ended at `22-engline-recovery.js`; next pass starts at
+`23-full-walk.js`.**

@@ -18,51 +18,71 @@ Give this file to Claude in Cowork as the first thing in the session.
 > builds and it is the project's own rule broken in the act of citing it: measure, do not read. Left visible
 > rather than quietly corrected, because a wrong number about the record is exactly what this note warns about.
 
-## 0-NOW) WHERE THE LAST RUN LEFT OFF — 2026-10-01, `build__1790821185953`
+## 0-NOW) WHERE THE LAST RUN LEFT OFF — 2026-10-01, `build__1790824800183` (#449)
 
-**`origin/main` is `364f700` (#439), `app.js` md5 `0099cb784ca0`. #443–#447 are free build numbers.**
-This run shipped no application code: it ran the brilliancy sacrifice measurement Kunal's
-`q-brilliant-widen` answer ("measure", 2026-09-19) had been waiting eleven days for, and the
-measurement said ship nothing. Full write-up `claude/agents/bench/443-brilliant-sac-measurement.md`,
-log beside it, reproduce with `node gates/run-brilliant-measurement.js`. The RUN-LOG entry at the
-bottom of `RUN-LOG.md` is the long version. **Five** jobs came out of it. The one that matters most is a LIVE DEFECT ON MAIN the antagonist pair
-found and nobody was looking for: `brilliantGate` counts the full value of whatever stands on the
-landing square when that square was **empty**, so **an ordinary pawn promotion is labelled "!! Brilliant"
-as a nine-pawn queen sacrifice** (`ok=TRUE` on the shipped gate), and `174540842570 37.Qf6+` — a queen
-trade offered with check — is its one instance in the answer-key corpus. It is the exact mirror of the
-defect the job was about. `jobs/a-non-sacrifice-on-an-empty-landing-square-scores-full-value-2026-10-01`.
-The one that redirects the rest of the brilliancy family is
-`jobs/the-two-brilliants-we-can-measure-are-missed-by-the-loss-cap-not-the-sacrifice-test-2026-10-01`:
-the two chess.com Brilliants we can measure are missed on the EVAL conditions, three of them at once,
-not on the sacrifice test.
+**`origin/main` is #449, `app.js` md5 `381a0ec8b79c`, gated `GATES GREEN #449` at 47 suites /
+3138 PASS / 0 fail.** #448 is a BURNT NUMBER: it names the candidate both of this run's antagonists
+vetoed, it never reached main, and #449 is the tree that ships — so one build number names one bundle.
+Next free build number is **#450**.
 
-**Both antagonists vetoed this run's documents and both were right.** Three published numbers were
-withdrawn and re-measured before the push — a cap of 220 that is 90, "C2 adds 14 false positives" that
-is 0 once this lane's own missing trade guard is restored, and five legal queen origins of which two
-cannot arise in a game. The ship decision survived all of it unchanged.
+**WHAT SHIPPED.** `brilliantGate`'s sacrifice term charged the full value of whatever landed on an
+**empty** square as material given up, so an ordinary pawn promotion was labelled `!! Brilliant` as a
+nine-pawn queen sacrifice (`b8=Q` read `sac=9 ok=true` on `2r4k/1P6/8/8/8/8/8/K7 w`), and the same
+expression with no promotion in it scored `174540842570 37.Qf6+` — a queen trade offered with check —
+at `sac=9` too. Both fixed. Gate `gates/regress/68-brilliant-sac-empty-square.js`, 78 assertions.
 
-**A WARNING ABOUT THIS FILE THAT THIS FILE CAUSED, AND IT IS THE SAME SHAPE AS THE NOTE ABOVE.**
-The previous holder's pen note says it failed to read a paragraph here beginning
-**"DO NOT DROP THE FLOOR EITHER"**, "in a file CLAUDE.md names as read-before-building", and charged
-itself for it. **Measured 2026-10-01T03:2xZ: that paragraph is not in this file on `main` and never
-has been.** `grep -c "DROP THE FLOOR" HANDOFF.md` on `origin/main` returns **0**; the paragraph is at
-line 218 of `HANDOFF.md` on the branch `claude/cool-noether-gccllp`, where the un-shipped #440/#441
-pile lives. A routine run is cloned onto `main`, so **no run reading this file as instructed could
-ever have seen it** — the previous holder charged itself for missing something that was not there to
-miss, which is a wrong lesson as well as an unfair one.
+**READ THIS BEFORE YOU TOUCH `brilliantGate`, because it is the whole lesson of the run.** `sac` has
+THREE consumers and only one of them is the verdict: `isSac>=2`, plus two player-facing sentence
+ladders (`chess.jsx:947` the review reason, `chess.jsx:3663` the drill's stored `_why`) that are keyed
+on GROSS piece value. The first candidate changed what `sac` MEANS on one arm — from "value of the
+piece put at risk" to "net cost after the exchange" — and reasoned about the threshold only. It
+therefore silently re-worded the sentence: on this repo's own canonical queen sacrifice
+(`chess.jsx:1181`, whose lesson text reads "Qg8+!! is a stunning sacrifice") it printed **"You give up
+a rook" for a queen**. The function now returns BOTH `given` (handed over, gross — the ladders read it)
+and `sac` (net — the verdict reads it). **If you collapse them back into one number you will reintroduce
+that, and gate 68 block D is what goes red.**
 
-**The general rule, because this will recur while work sits on a branch:** an instruction written into
-a repository file on an unmerged branch is invisible to the next run by construction, and
-*believing* it was readable is worse than losing it, because the next run inherits a false account of
-why something went wrong. Guidance that must survive goes in the tracker (`claims/repo-pen`,
-the job, a flag) or on `main`. Filed as
-`jobs/handoff-guidance-written-on-an-unmerged-branch-is-invisible-to-every-later-run-2026-10-01`.
+**THE BLIND PAIR EARNED ITS BUDGET AND BOTH VETOES WERE UPHELD.** A (diff door) and B (shipped-surface
+door) ran blind and CONVERGED on the same cell: the promotion credit had been applied to the empty arm
+only, so a capture-promotion still charged the promoted piece's full value — `bxc8=Q` on
+`2rr3k/1P6/8/8/8/8/8/K7 w`, a move that WINS A ROOK FOR A PAWN, read `sac=4 isSac=true ok=TRUE`. A drove
+479 generated promotion-captures through the real pipeline (57 `isSac`, 6 `ok=true`) and found the shape
+one eval-tenth from live in this repo's own Lasker Trap lesson. A also proved THREE of the gate's own
+assertions vacuous **by mutation**, including `A5`, whose message asserted in prose that the capture arm
+"was already correct" — unmeasured and false. All closed.
 
-**STILL TRUE AND STILL BLOCKED:** the two P0 fixes, gate 67 and the mate floor are on
-`claude/cool-noether-gccllp` (34 ahead of main) and must not be pushed, because every tree that ships
-the #440/#441 grading work also answers a question Kunal has not been asked. The Desk item still does
-not exist; `jobs/nothing-escalates-a-desk-item-that-was-routed-and-never-written-2026-10-01` owns it,
-owningLane orchestrator. **Do not write it yourself [R32] and do not drop the floor.**
+**THE ONE VETO ITEM UPHELD AS REAL AND DELIBERATELY NOT FIXED**, so you do not re-litigate it:
+`jobs/a-brilliant-verdict-recorded-by-an-older-build-survives-a-grading-change-2026-10-01` (P1, priority
+9). `ct_gamestats` and `ct_mybrilliancies` keep a Brilliant verdict from an older build with NO
+migration, both are in `SYNC_KEYS` so clearing localStorage does not help, and the drill's only eviction
+path is gated to mistake drills so a false brilliancy is effectively permanent. Shipping was still
+strictly better than not: main already had both the bad generator AND the stale store, so holding the
+push would have left the generator live and the store growing. **Do not fix it by deleting a player's
+recorded brilliancies on your own initiative** — it is a product decision, `ct_achv`'s `br1` is derived
+from it, and the job names a third option (re-score in place from the stored FEN and uci) that nobody
+has priced and that loses nothing.
+
+**STILL OPEN AND STILL NOT THIS LANE'S:** the mate floor. Unchanged, still on
+`claude/cool-noether-gccllp`, still waiting on a Desk item that
+`jobs/nothing-escalates-a-desk-item-that-was-routed-and-never-written-2026-10-01` says has never been
+written. I did not touch the pile and did not drop the floor.
+
+**TWO OPERATIONAL WARNINGS FROM THIS RUN, both of which cost real time.** (1) `pkill -f` DID NOT KILL
+THE SUITE and I reported it killed on the strength of an echo that printed regardless; it ran on for 24
+minutes against an `app.js` I rebuilt twice underneath it. Only the suite LOCK caught it. Kill by the
+PID you captured and verify with `kill -0`. (2) A monitor whose death branch greps for `gates.sh`
+matches ITSELF, so the branch can never fire and two 30-minute silences were indistinguishable from a
+dead suite. Both forms of this trap are already in CLAUDE.md; I hit both anyway.
+
+**ALSO MEASURED, AND IT ARGUES A JOB'S SEVERITY DOWN:** the three malformed run-record rows in the
+dashboard's `snapshots` collection CANNOT blank the dashboard. I read the page
+(`index.html:1887-1916`): it defines `complete(v)` and, when the newest document fails it, merges the
+newest COMPLETE tree forward and overlays only the fragment's non-null keys. That guard was written for
+the 2026-09-13 blanking. The hypothesis on
+`jobs/three-run-record-rows-in-the-snapshots-collection-outrank-every-real-snapshot-2026-10-01` is
+FALSIFIED and its P1 is too high; the real residuals are a misattributed "partial" caption and an
+undefined sort (`b.at - a.at` returns NaN, because the fragments carry ISO-string `at` where every real
+snapshot carries epoch-ms).
 
 ## 0a0) TWO SESSIONS BUILT THE SAME APP ON 2026-09-13 - READ THIS FIRST
 
