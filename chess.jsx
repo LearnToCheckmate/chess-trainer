@@ -1012,9 +1012,29 @@ function brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
       if(seeOpp>0){
         const before=pos.board[pl.tr]&&pos.board[pl.tr][pl.tc];
         const cell=g2.board[pl.tr]&&g2.board[pl.tr][pl.tc];
+        const mover=pos.board[pl.fr]&&pos.board[pl.fr][pl.fc];
         const movedVal=cell?(SEEVAL[cell.t]||0):0;
-        const capVal=before?(SEEVAL[before.t]||0):0;
-        sac=Math.max(0,movedVal-capVal);
+        const moverVal=mover?(SEEVAL[mover.t]||0):0;
+        // #448: WHAT THIS MOVE GAVE UP IS NOT ONE SUBTRACTION, IT IS THREE CASES.
+        // A CAPTURE pays for the piece it puts on the square with the piece it took, and that is
+        // the measure the isSac>=2 threshold was calibrated on - left byte-identical here, so
+        // 19...Bxh3 still reads sac 2 and 22...Qxc3 still reads sac 8.
+        // AN EMPTY LANDING SQUARE has nothing to subtract, and the one expression this replaces
+        // therefore charged the FULL value of whatever now stands there as material given up. So a
+        // pawn that queened onto a contested square was called a nine-pawn queen sacrifice
+        // (b8=Q: sac 9, ok TRUE on FEN 2r4k/1P6/8/8/8/8/8/K7 w), and 174540842570 37.Qf6+ - a queen
+        // trade offered with check, NOT a promotion - scored nine the same way. Both are the one
+        // mechanism, which is why this is keyed on the empty square and not on promotions.
+        // What is actually at risk on an empty square is the NET of the exchange, which seeSq
+        // computed above, less any value the move CREATED by promoting (a pawn that becomes a queen
+        // and is then taken has given up a pawn, not a queen).
+        // NOT TAKEN, and recorded so the next reader does not re-derive it: using seeOpp on EVERY
+        // path is more principled and measures 19...Bxh3 at 1, which fails isSac>=2 and loses the
+        // reference brilliancy. That needs the threshold moved, and a classification threshold is
+        // Kunal's. See flags/amber-448-brilliant-sac-on-an-empty-landing-square.
+        if(before) sac=Math.max(0,movedVal-(SEEVAL[before.t]||0));
+        else if(pl.epCap) sac=Math.max(0,movedVal-(SEEVAL.p||0));   // en passant IS a capture
+        else sac=Math.max(0,seeOpp-Math.max(0,movedVal-moverVal));
       }
     }
   }catch(e){}
