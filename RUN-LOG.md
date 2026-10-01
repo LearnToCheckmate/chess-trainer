@@ -932,3 +932,209 @@ UAT sweep was not kicked and will pick this build up on its own schedule. The `r
 inferred end to end, not closed. Gate 15's two-sided `EXPECT_BOARD` is unexercised (`capWants` is `.some()` over an
 empty array) and **its control record was NOT cited here**, because that record says in terms to re-run it before
 citing and I did not. Gate 47's repaired control was not reproduced. Landscape was not driven this run.
+
+## #452 — the gallery says which of its two modes each card is, and a manual card's instruction outlives its own task (2026-10-01, `build__1790868011880`)
+
+**WHAT SHIPPED, AND WHOSE FINDING IT WAS.** The two P1s #451's own antagonist B raised from the shipped-surface
+door, 95 minutes before this run opened, on the one screen whose entire purpose is to tell Kunal what the fleet
+still needs from him — `jobs/gallery-card-2-instruction-vanishes-before-its-task-can-start-2026-10-01` and
+`jobs/the-gallery-ask-queue-states-three-different-deliverables-for-one-situation-2026-10-01`. They are one commit
+because they are **one cause**: the ask queue had ONE mode baked into the header and the Play-all button while the
+CARDS had two.
+
+**MEASURED FIRST, ON THE SHIPPED #451 BUNDLE, BEFORE ANY CODE CHANGED.** A standalone probe at 375x730 against
+`app.js` read out of `origin/main` (md5 `aba551f896c7`, stamp `#451 - 2026-10-01 06:30 ET`): the manual card's
+instruction is up at the first sample and **gone at 9154 ms**, with **no mode badge and no Hide control**. That
+agrees with B's two trials (9229, 9203) and with `h:9000` in the source.
+
+**THE FIX puts the mode on the card as DATA and derives everything else from it.** `m:true` on the manual card; a
+manual card's instruction persists until hidden while a self-driving card still expires on its own hold; the held
+bar stays `pointerEvents:'none'` so a 92vw bar across the bottom strip cannot eat the taps the card is asking for,
+with only a 44px Hide target taking events; each card renders its mode on its face; and the header states both
+modes and devolves the deliverable to the card that knows it, replacing the three claims B measured as
+contradictory. **AMBER, recorded BEFORE the change**, on
+`flags/amber-452-gallery-ask-card-modes-and-persistent-manual-instruction`, with the rejected options and the
+one-commit reversal written out.
+
+**STORY** US-GL-01 clauses 6 and 7. **CASE** TC-GL-002. **GATE** `gates/regress/15-gallery-playall.js` block M,
+**21 assertions over 5 browser sessions** at 375x730 (x3), 320x568 and 375x568 — 18 of them written before the
+antagonist pass and 3 added to pin the class the veto exposed.
+
+**FOUR CONTROLS, AND THE TWO BEST WERE FREE.** (1) The **REAL SHIPPED #451 BUNDLE** — the actual broken build:
+block M goes **6 PASS / 9 FAIL** against the 18-assertion version of the block, and *all nine failures are in block M* while every other block of gate 15 stays
+green, which is the right answer for coverage that is new. (2) `CT_G15_NC=holdoff` removes the banner at 9 s on a
+fixed bundle: **3 FAIL**. (3) `CT_G15_NC=persistall` pins a banner that never expires, which is what over-applying
+this fix would look like: M8 red, **exactly 1 FAIL**, so it discriminates. M8 needed its own control because it
+**PASSES on #451** — it agrees with the broken build by design, and an assertion that agrees with the broken build
+is the uncontrolled-assertion charge this project keeps paying.
+
+**KEYED TO WHAT THE SCREEN SAYS, NOT TO WHAT THIS BUILD ADDED.** M1–M4 read rendered text and locate the manual
+card by the label the pin already spells (`2 · KEV`), which #451 renders too — so the control reds *for the right
+reason* rather than through a missing hook, which is the #432 trap. Named exception, not smoothed: M5b/M6/M7 read
+`[data-ct="rec-cap-done"]`, which this build introduces, so they are positive claims about a new mechanism and
+cannot be controlled against #451.
+
+**WHAT I DELIBERATELY DID NOT DO.** Play-all's membership is unchanged. Gate 15 drives it by `/^▶ Play/` and
+`walkOk(seen,N)` requires *every* ask card to appear as `· n/N ·`, so making Play-all skip manual cards reddens the
+gate that guards this screen — **I verified this at the call site rather than asserting it**: both plausible
+implementations redden it, one on the `N` token check and one on "card 2 never appeared". Filed as a residual
+rather than done half-way.
+
+**ANTAGONIST B VETOED THE PUSH AND WAS RIGHT, AND THE DEFECT WAS IN THE ONE CONTROL THIS BUILD ADDED.** Measured on
+the shipped surface, on the bundle I was about to push: the 44px Hide control's rendered `innerText` was the SIX
+characters `✕`, not a glyph, and the header sentence teaching it said the same. Label ink **46.7px wide through
+a 44px circle**, +9.7px past its own box, and **1.7px past the right edge of the screen at 375 wide and 3.9px at
+320** — cut by the screen, no ellipsis. 2 occurrences in my bundle, **0 in #451's**. And that string is FIRST in the
+banner, so it would have been burned into every screenshot Kunal sent back.
+
+**THE MECHANISM IS WORTH MORE THAN THE FIX.** Both sites sat in **JSX TEXT position**, where `\uXXXX` is six literal
+characters. The repo's own two uses are inside **JS STRING literals** — `chess.jsx:6382` `'✕ Exit analysis'`
+and `:7575` `{'✕'}` — where it is a real escape. That is why 17 other `✕` in the same bundle are right and these
+two were wrong: a position error, not a typo. And nine lines from the break, `chess.jsx:5068`, this same build got
+`'☞ …'` right, because that one is in a string literal.
+
+**WHY MY OWN GATE COULD NOT SEE IT.** M5b/M6/M7 asserted the control EXISTS, is 44×44, has `pointerEvents:auto`,
+sits inside the viewport, and that tapping it clears the banner. All five green over a button labelled with its own
+escape sequence, because **not one of them read its text**. That is #395's "a container is not its contents" with the
+polarity reversed. Three assertions now pin the class — M9 (no painted string on the gallery is an escape sequence),
+M9b (the same for the held bar), M10 (the control is exactly one code point) — and the **control is the vetoed bundle
+itself**: exactly those three go red, `label "✕", codePoints 6`, and nothing else does.
+
+**CLASS SWEPT ON THE ARTEFACT, NOT INFERRED FROM SOURCE** [R06]. My first attempt counted 114 `\uXXXX` in `chess.jsx`
+and flagged 23 as "outside a quoted string", which was a **bad instrument** — most of those 23 are inside regex
+literals, where the escape is valid. Counting double-escaped `\\uXXXX` in the BUNDLE instead: fixed **1**, vetoed
+bundle **3**, #451's shipped bundle **1**. So `classSwept {found 3, fixed 2, left 1}`, and the one left is
+pre-existing — a `\\u00b7` in a puzzle counter's JSX children that #451 ships too. Named, not swept, and it is the
+first thing the bundle-wide sweep should catch.
+
+**SIX OF MY OWN PUBLISHED NUMBERS ARE WITHDRAWN [R18], ALL SIX FOUND BY ANTAGONIST A AND NOT BY ME.**
+`17 assertions over 4 browser sessions` → **18 over 5** (one `L.say` and one `L.launch` sit inside a two-geometry
+loop; the clean suite's +18 confirms it arithmetically). `reproduces B's trials to within 75ms` → **withdrawn**, the
+probe samples at 500ms. `first seen at 76ms` → **withdrawn**, that is Playwright's first sample, not the app; the bar
+is set synchronously in the click handler. `holdoff gives M4 red` → **3 FAIL** (M4, M5, M5b). `gone by 16308ms` →
+that is M8's single sample time; the bound is `h:10000`. `the task takes 20–60s` → that is a **floor**, from a
+comment, covering the Analyze step only, where the card's task has more steps.
+
+**AND THE ASSERTION THAT REASSURES MOST IS THE ONE THAT CANNOT FAIL FOR ITS OWN REASON.** M5 — "the held bar passes
+taps through", the guard against the regression *this fix could introduce* — is `L.say(st.up&&st.barPe==='none',…)`.
+When the bar is absent `st={up:false}`, so every red so far is M4 wearing M5's label, with an empty payload on both
+controls. **So M5 is downgraded here from controlled to measured-on-one-bundle.** B went further than A: splitting
+the conjunct still asserts the *proxy*, and B had already proved the behaviour by raw-coordinate taps on two tab
+buttons, so M5 should assert that a tap at a control under the bar still reaches it.
+
+**THE CROSS-READ EARNED ITS BUDGET, AND PRODUCED A FIX NEITHER PASS HAD.** A conceded it held the veto and explained
+it away — its own report quoted `txt:"\\u2715 🎬 …"` and read the doubled backslash as "the glyph is the first text
+node". B struck a sentence of its own ("re-reading costs Home → gallery → re-tap") because `chess.jsx:5170` removes
+the only route back while the bar is held, which makes A's dev-row P2 **not independent** but the closing half of B's
+own finding 2; and B disclosed that its persist probe clicked with `.catch(()=>{})` and printed success without
+checking the click landed, so its own instrument would have swallowed it. A's disagreement with B is a finding
+neither had: B proved the **bar** passes taps through, but the Hide control the same line adds is
+`pointerEvents:'auto'` at x 323–367, **y 633.63–677.63**, which lands inside the pinned footer B measured at
+**y 668–720** — so the one region that genuinely eats a tap sits in the 96.2% B called unrecoverable. And both
+converged on the right fix for the label-not-steps defect: **put the route back on the bar**, not by widening it
+(which lands in the screenshot) and not by relaxing the 5170 guard (which 6d forbids and which would make A's own
+locator finding live).
+
+**OVERLAP: uniqueToA 6, uniqueToB 6, common 1. NO COVERAGE ESTIMATE IS PUBLISHED.** Both blindness conditions held —
+one message so A's findings did not exist while B worked, and B on an agent type carrying no database tool — so the
+three numbers are honest. The estimate is not: `a*b/c` at c=1 is 36 and swings to 18 or 49 on one shared finding,
+which is degenerate rather than imprecise. Same call #451 made.
+
+**TWO OF A'S CLAIMS WERE WRONG AND I MEASURED BOTH.** Landscape is **not** untestable — `gates/lib.js`'s header
+documents `{w,h,safe}`, three gates already drive it, and B measured 730×375 this run. And A's locator-collision
+finding was wrong *for the bundle A audited*, which A caught itself: a button reading the escape sequence can never
+match `/^✕$/`, so that collision begins only now. B then rebutted it properly — 5170 makes gallery-open and bar-held
+mutually exclusive, so the helpers can never see two matches.
+
+**ONE OF B'S WAS WRONG.** It read "Walk every screen (13…)" against 8 fixture cards as a count mismatch. Two
+different lists: `WK` holds 13 SCREENS the walk visits; the 8 are fixture cards in a separate array. The button is
+correct, and B flagged it without claiming it as new.
+
+**THE AUDITOR WAS SKIPPED**, with a reason: the change is confined to a dev screen, the budget went to the blind pair
+(which produced a veto and a fix neither half had), and a third browser-driving subagent during a timing-sensitive
+suite is the contention that cost #439 ~45 minutes. So nothing went anywhere unscripted this run.
+
+**ROTATING AUDIT, AND THE RESUME POINT IS SETTLED BY COUNTING RATHER THAN BY CITING.** The pen note said #451's
+antagonist "completed 10 of 10 from gate 24"; `RUN-LOG.md:776` and `flags/antagonist-a-451` both say the next pass
+starts AT gate 24. **Measured: gate 24 has 7 `L.say` sites and gate 23 has 11** — the flag's own figure — and the
+findings the flag lists exist only in `23-full-walk.js`. You cannot do 10 of 10 on a 7-assertion gate, so the pen
+note is wrong and that is the **fifth** consecutive wrong statement about this one resume point. A audited gate 24's
+7 plus gate 25's first 3. One PROSE: `24-opponent-handshake.js:76` is true by construction — `lastIndexOf` with a
+`fromIndex` cannot exceed it and `V.uci[iElo]` is a setoption line — so it cannot fail independently of `:73`, which
+I verified from the source myself. **Next pass starts at `25-online-clocks.js:119` (TC-OC-003).**
+
+**R23, BLOCKED JOBS, RE-TESTED THIS RUN** rather than carried. `legal-pages-fill-placeholders`: the Desk answer
+`legal-pages-approve-draft-2026-09-22` still reads `choice:"later"` with an empty comment, written
+2026-09-22T21:26:16Z — **nine days old** — and "later" is not an answer, so still blocked; it needs re-raising or
+parking, which is the orchestrator's. `widen-the-input-space`: still no `window.*analysis` hook, measured by three
+greps (0 in `chess.jsx`, 0 in `gates/lib.js`, 0 in `app.js`), so unchanged. `practice-row-label-keyed-to-a-board-threshold`:
+`owningLane` is orchestrator, not mine.
+
+**R37, THE FEEDBACK DRAIN, IN A LOOP.** Read, acted, read again: 61 rows status open, of which **33 are `kind:
+"record"`, so the open PRODUCT count is 28** — the bare 61 would overstate the queue by more than double, which is
+the rule's whole point. The newest open row is dated 2026-09-14, so nothing new arrived during this run and the
+second read came back with nothing new rather than being carried forward from the first.
+
+**MY OWN COMMIT MESSAGE HAS A DEFECT OF EXACTLY THE CLASS THIS BUILD IS ABOUT, AND I AM NOT REWRITING HISTORY TO HIDE
+IT.** In the veto-fix commit, eight lines where I meant to write the literal escape sequence render as the glyph
+instead, including the subject, which therefore reads "said ✕ instead of ✕" and says nothing. The code, the fix and
+the controls are unaffected; the prose is wrong. The branch is pushed, and this project does not rewrite pushed
+history to repair prose.
+
+**AND A FOURTH CONTROL, ALSO FREE AND ALSO THE REAL BROKEN BUILD: the bundle I was about to push.** Against
+`81dc0469862c`, M9, M9b and M10 go red and **nothing else does** — `label "✕", codePoints 6` — so the three
+assertions added after the veto discriminate exactly.
+
+**THE HELD ROW, WRITTEN IN THE SAME STEP AND NOT AS A SENTENCE IN THIS FILE.** I stood down on a GREEN suite over
+`81dc0469862c`, which is precisely what `gates/held-trees.tsv` exists for, and I nearly recorded it only in a commit
+message — the #441 failure exactly. `gates/held.sh add` with the reason in full, plus the `sourceMd5` seventh field
+by hand (`a39dedce240b`; my fixed tree's `chess.jsx` is `256a1b41daab`, so it correctly does not match).
+**THE REGISTER'S FIRST LIVE EXERCISE, and it works:** `claude/agents/gatelogs/452-all.log` is committed, is a genuine
+full-suite green, and its footer agrees with its own 3208 PASS lines — every mechanical check this project had before
+#450 would have waved it through. Measured now: `verify-log.sh` on it returns **REFUSED (held tree)** with the reason
+printed. So no later run can cite that green as #452's.
+
+**TWO FULL SUITES, AND THE SECOND WAS NOT OPTIONAL.** `452-all.log` gated `81dc0469862c` (3208 PASS) and is held.
+`452b-all.log` gated `4dd3b4aa09ed` (**3211 PASS, 47 sections, 0 fail**) and is the one that authorises this push:
+`verify-log.sh … --this-bundle` → **THIS-BUNDLE OK**, register not held. The veto changed `chess.jsx`, so reusing the
+first green would have been gating bytes other than the ones that ship. The per-run log stem kept both, which is what
+makes the held row auditable. **The arithmetic closes exactly:** 3190 → 3208 is block M's first 18, 3208 → 3211 is
+M9/M9b/M10, 3190 → 3211 is 21, and no pre-existing gate's count moved in either run.
+
+**THE LOG'S GATED SHA IS `6d117d4` AND THE SHIPPING SHA IS LATER, SO I PROVED THE DIFFERENCE IS INERT.**
+`git diff --name-only 6d117d4..HEAD` returns `gates/held-trees.tsv` and nothing else; `app.js` and `chess.jsx` are
+byte-identical, checked with `git diff --quiet`. The only file committed while the suite ran was that register, which
+does not enter the bundle. **No file under `gates/regress/` was touched after the suite started** — that is #441's
+complaint about itself and it is the rule I was most at risk of breaking, having added M9/M9b/M10 minutes earlier.
+
+**WHERE MY "SHORTER BLURB" CLAIM ACTUALLY LANDED, because A was right that I had asserted it and not measured it.**
+Measured on the source strings at three refs: **#451 390 chars, my vetoed version 583, the shipping version 428.** So
+the claim is true against the version it replaced and **FALSE against #451** — about four fifths of the growth B
+measured is undone and roughly a fifth remains. The RENDERED height is **not re-measured**: my probe hung twice (as
+the dwell probe had) and I killed it rather than delay the push, so B's 50.39px / 21.77px / 168-against-144.23 figures
+are stale in my favour by an unmeasured amount and I am not claiming otherwise. A also noted that **no assertion
+anywhere requires an ask card to be wholly inside the gallery's clip**, so this is uncontrolled in both directions.
+That is the first thing to measure next and it is on the job.
+
+**FOUR NUMBERS.** open P0 **5**, open P1 **50**, 47 sections / **3211** assertions, coverage **0 of 10** unchanged.
+The rule, so it is reproducible: `severity` exactly P0/P1 AND `status` not in done/closed/parked/superseded, over the
+whole `jobs` collection (55 severity-tagged documents read). **P1 rose from 47 to 50 while this build FIXED two P1s**,
+and that is the instrument, not the app: R05 reserves closing to the finder, so a fixed job goes to `verified`, which
+the rule does not exclude, and this run filed 8 new jobs. The denominator caveat carried from #449 still holds — most
+ready jobs carry no `severity` at all, so this counts what is TAGGED.
+
+**ETA 150 MINUTES, ACTUAL ABOUT 230.** The overrun is one thing and I would spend it again: the veto arrived after a
+71-minute green suite and forced a second one. What was wrong was the ETA, which budgeted an adversarial pass that
+could find things but not one that could change the bundle. The 90-minute budget was never reachable for application
+code with two full suites in it, and I said 150 before the run rather than after.
+
+**NOT CHECKED.** The blurb's rendered height and whether an ask card fits the clip at any geometry (above). Nothing on
+a real iPhone — which is what gallery card 1 exists to capture, and the `installed app` branch of the readout stays
+unexercised in headless Chromium. The live site is egress-blocked, so the SERVED bundle was never compared; only the
+committed one, read back out of `origin/main`. `deploy.py` was not run and is not the push path. **No `fire_trigger`
+tool exists in this session**, so the headless UAT sweep was not kicked and will pick this build up on its own
+schedule. **The auditor was skipped** with a stated reason, so nothing went anywhere unscripted. What is under the
+44×44 Hide control on the Review summary is unmeasured — A's overlap arithmetic (y 668 against y 633.63–677.63) says
+about 9.63px of the footer, and whether a footer button's hit area is actually there is the next measurement. The
+pre-existing `\\u00b7` in the puzzle counter is named and not fixed. Landscape coverage of the held bar is unmeasured
+(the control itself B measured at 730×375).

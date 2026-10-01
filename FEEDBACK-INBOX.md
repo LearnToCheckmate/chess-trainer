@@ -2501,3 +2501,57 @@ anything in *landscape*, were not driven — the fix is in shared code so it app
 happening. (2) The same promotion panel has two other rough edges, both already on the list and neither touched
 here: it stays up if you step **Back** through the moves, and while it is open a tap on any button underneath is
 swallowed. (3) Online games were not testable here — signing in is blocked in this environment.
+
+---
+
+## #452 — the Preview gallery now says which cards it can drive and which need your hands, and the instructions stop disappearing (2026-10-01)
+
+**What was wrong, and it was wrong in the one place that costs your time.** The Preview gallery is where we put the
+things only you can do. It had two cards. Tapping the second one — "our review of Kunal2023 v Kevitsch" — put the
+instruction on screen and then **took it away after about nine seconds**. The job it was asking for (open the game,
+hit Analyze, open the summary, screenshot the grade rows for both players) takes **twenty to sixty seconds**. So the
+instructions were gone two to seven times over before you could finish the first step, leaving you on the Review
+list with nothing on screen telling you what you had come to do, and the gallery closed behind you. Measured on the
+build that was live before this one: up at the first reading, gone at 9.2 seconds.
+
+**And the screen asked for three different things at once.** The blurb at the top said "One recording is the whole
+test … Upload the clip". The big button said "screen-record this". Both cards said "One screenshot". And card 2 said
+"these taps are yours" while the blurb said "Each card drives itself". A person reading that screen could not tell
+whether to send a video or two stills.
+
+**What it does now.** There are two kinds of card and each one says which it is on its own face:
+**DRIVES ITSELF** (the app sets the screen up for you) or **YOUR TAPS** (a job on your own account that no recording
+can do for you). The blurb explains both and no longer claims one deliverable for everything — each card names what
+to send. And a YOUR TAPS card's instruction **stays on screen until you tap the ✕** on it. The bar deliberately
+still lets taps pass straight through it, so it cannot swallow the taps it is asking you to make.
+
+**One thing to know before you use it.** While an instruction is held on screen, the little developer row at the
+bottom of Home — the Preview gallery button and the Send-feedback button — is hidden. That is on purpose, so it
+cannot appear in a recording. Tapping the ✕ brings it back. It used to come back by itself after a few seconds;
+now it waits for you, which is the point, but it does mean the ✕ is the way out.
+
+**Three things you will meet, found by the adversarial pass and NOT fixed here.** I would rather you heard them
+from me than hit them.
+
+1. **What stays on screen is the card's title, not its steps.** The bar keeps "Review: the grade rows for Kunal2023
+   v Kevitsch" — 46 characters. The card itself carries 608, including "Analyze", "BOTH players", "both accuracies"
+   and "two screenshots if it does not fit". None of those four survive the tap. The obvious fix is wrong: the bar
+   already covers the bottom of the screen, and the grade rows are the thing you are photographing, so a bar big
+   enough to hold all the steps would be *in* your screenshot. The right fix is a second button on the bar that
+   reopens the card, and that is the next job on this screen.
+2. **The bar sits on top of what you are being asked to photograph.** Measured on your phone's size: it covers the
+   tab bar's icons by 86%, the first game row's grade chips completely, the summary's "Good" row completely, and the
+   "Start review" footer by 96% at every scroll position. The grade table itself you can scroll clear of; the footer
+   you cannot. Tapping the ✕ clears all of it, which is what it is for.
+3. **"Play all" still runs both cards**, so on that path the YOUR TAPS card's instruction still disappears after
+   nine seconds — the badge is only true when you tap that card on its own. Fixing it means changing what Play all
+   does, which the test guarding this screen is built around, so it is on the list rather than half-done here.
+
+**Also not checked.** The phone sideways, beyond the ✕ itself. And nothing here was seen on a real iPhone — which is
+exactly what card 1 exists to capture.
+
+**One process note, because it is the kind of thing you have asked to hear.** The first version of this build
+shipped the ✕ as the literal text `\u2715` — the computer's code for the character instead of the character — in
+both the button and the sentence explaining it, with the text running off the right edge of the screen. The
+adversarial pass caught it and refused the build; it never reached you. The gate that checked that control had been
+measuring its size, its position and whether tapping it worked, and never what it *said*. It now checks that too.
