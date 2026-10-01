@@ -954,16 +954,54 @@ function gradeDrillMove(pos,playedMv,bestSan){
    what makes a Mistake and a Blunder read differently from each other rather than one interchangeable
    sentence [R10 item 5]. */
 /* WHAT MAKES TWO WRONG MOVES READ DIFFERENTLY IS THE CONSEQUENCE, NOT THE DROP, AND GATE 52 PROVED IT.
-   The first version of this ended both reject strings with the pawn drop, and `loss` is clamped at 1500 - so
-   a quiet pawn push that keeps the game level and a rook thrown away both came out "Blunder, 15.0 pawns
-   short of the best move", two identical sentences for two completely different positions, and C4 went red
-   on exactly the generic-string rule it exists to enforce [R10 item 5]. The clamp also made the figure a
-   FALSE PRECISION: "15.0" was the ceiling, not a measurement. Naming where the move LEAVES you is both the
-   honest half and the half Kunal asked for ("we should explain why for all of those"). */
+   The first version of this ended both reject strings with the pawn drop, and `loss` is clamped at 1500 - so a
+   quiet pawn push that keeps the game level and a rook thrown away both came out "Blunder, 15.0 pawns short of
+   the best move", two identical sentences for two completely different positions, and C4 went red on exactly
+   the generic-string rule it exists to enforce [R10 item 5]. The clamp also made the figure a FALSE PRECISION:
+   "15.0" was the ceiling, not a measurement. Naming where the move LEAVES you is both the honest half and the
+   half Kunal asked for ("we should explain why for all of those").
+
+   AND THE SENTENCE IS PACKED AGAINST A BUDGET RATHER THAN CONCATENATED BLIND, WHICH IS THE SECOND THING THE
+   GATE TAUGHT ME AND THE ONE I NEARLY SHIPPED WITHOUT. The verdict box has two shapes in the source - a 74px
+   wrapping cap, and a single 30px nowrap line with an ellipsis when vp.h<820, which is Kunal's own phone.
+   MEASURED, THE 30px BRANCH IS NOT THE ONE THE HARNESS REACHES: C7b reads max-height 74px with clientHeight
+   70 at ALL SEVEN geometries, 320x568 included. So the 30px nowrap branch is real in the source and is
+   UNMEASURED by anything, which is stated here rather than papered over and is this build's largest
+   notChecked. The string this replaced was shortened BY GEOMETRY
+   for exactly that reason (`vp.h<820` chose a 32-char tail over a 49-char one) and my first version dropped
+   that shortening while making the sentence LONGER, so the longest branch would have been cut on Kunal's own
+   phone and clipped at 390x844. WORSE, I would not have seen it: C7 drives the EQUAL ALTERNATIVE, which this
+   build now ACCEPTS, so C7 moved off the reject box altogether and the only assertion over the box stopped
+   covering the strings I was adding. That is "a threshold belongs to the instrument it was calibrated on" one
+   step earlier - not an assertion that went red when moved, but an assertion that went QUIET when the
+   behaviour under it changed. Gate 52 gains C7b, which drives a REJECTED move at all seven geometries.
+   THE 48 IS CALIBRATED AGAINST A MEASUREMENT, NOT CHOSEN: the string this replaces is 49 characters and
+   measured scrollHeight/clientHeight 70/70 against the 74px cap at 390x844, the tightest of the wrapping
+   geometries - measured this build on the shipped #452 bundle. 48 therefore sits one character inside a known
+   ceiling. It is still a CHARACTER budget standing in for a PIXEL one, which is a heuristic and not a
+   measurement; C7b is the measurement, and the last candidate in every list below is short enough that the
+   loop cannot fall through. */
+const DRILL_MSG_MAXW=48;
 function drillGradeMsg(played,gr){
-  if(gr.label==='Good')return '✓ '+played+' — Good, but there is more here. Can you find it?';
-  if(gr.takenBack)return '✗ '+played+' — '+gr.label+': that piece is taken straight back.';
-  return '✗ '+played+' — '+gr.label+': leaves you '+gr.bandAfter+'. Try again.';
+  const pre=(gr.label==='Good')?'✓ ':'✗ ';
+  const head=played+' — '+gr.label;
+  let cands;
+  if(gr.label==='Good')cands=[
+    head+', but there is more here. Can you find it?',
+    head+' — but there is more. Can you find it?',
+    head+', but there is more here.',
+    head+'.'];
+  else if(gr.takenBack)cands=[
+    head+': that piece is taken straight back.',
+    head+': taken straight back.',
+    head+'.'];
+  else cands=[
+    head+': leaves you '+gr.bandAfter+'. Try again.',
+    head+': leaves you '+gr.bandAfter+'.',
+    head+': now '+gr.bandAfter+'.',
+    head+'.'];
+  for(const c of cands)if((pre+c).length<=DRILL_MSG_MAXW)return pre+c;
+  return pre+cands[cands.length-1];
 }
 function drillAcceptMsg(played,gr,p){
   if(gr.label==='Brilliant')return played+' — Brilliant! '+((p&&p.explain)||'A real sacrifice, and it works.');

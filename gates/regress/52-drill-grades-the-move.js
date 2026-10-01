@@ -192,12 +192,33 @@ L.run(async()=>{
   // there. Filed as jobs/drill-grading-leak-guard-has-no-harness-route-2026-09-28.
   L.note('C6 NOT ASSERTED: the lichess: leak guard needs a fetchable pack URL and the harness blocks egress. See the header and jobs/drill-grading-leak-guard-has-no-harness-route-2026-09-28.');
 
-  // ===== C7 FIT, the only sweep =========================================================================
+  // ===== C7 and C7b FIT, the only sweeps =================================================================
+  // C7b ADDED AT #456 AND IT IS THE REASON C7 ALONE IS NO LONGER ENOUGH. C7 drives h5d5, the EQUAL
+  // ALTERNATIVE - which before #456 was REJECTED and after #456 is ACCEPTED. The accepted path renders the
+  // verdict in the SOLVED box, which is `position:absolute inset:0 overflowY:auto` and so has the whole
+  // remaining column; the rejected path renders in the RESERVED box, which is a hard 74px cap that wraps at
+  // vp.h>=820 and a single 30px nowrap line with an ellipsis below it. So the fix silently moved C7 off the
+  // tighter of the two boxes, and the only assertion over that box stopped covering it on the very build that
+  // rewrote every string it holds. Nothing went red; the coverage just went quiet. That is the trap this repo
+  // records as "a threshold belongs to the instrument it was calibrated on", one step earlier - not an
+  // assertion that goes red when you move it, but one that keeps passing about something else.
+  // C7b therefore drives g2g3, which is REJECTED at every band the grader can return, and asserts the
+  // reserved box does not clip. It is also the only thing that MEASURES the character budget
+  // DRILL_MSG_MAXW: 48 was calibrated against the 49-character string #452 shipped, which measures 70/74 at
+  // 390x844, and a character count is a heuristic standing in for a pixel one. This is the pixel one.
   for(const g of GEOS){
     const b=await L.launch({geo:{w:g.w,h:g.h,safe:''},name:'drill52-fit-'+g.n,store:STORE});await b.open();
     const r=await drillPlay(b,'h5d5');
     const box=r.box;
-    L.say(!!box&&box.clipped===0,'C7 '+g.n+' the verdict box does not clip its own text (scrollHeight vs clientHeight)',box?(box.psh+'/'+box.pch+' max '+box.pmax+' overflow '+box.povf):'NO BOX');
+    L.say(!!box&&box.clipped===0,'C7 '+g.n+' the ACCEPTED verdict box does not clip its own text (scrollHeight vs clientHeight)',box?(box.psh+'/'+box.pch+' max '+box.pmax+' overflow '+box.povf):'NO BOX');
+    await b.close();
+  }
+  for(const g of GEOS){
+    const b=await L.launch({geo:{w:g.w,h:g.h,safe:''},name:'drill52-rfit-'+g.n,store:STORE});await b.open();
+    const r=await drillPlay(b,'g2g3');
+    const box=r.box;
+    const ok=!!box&&box.clipped===0;
+    L.say(ok,'C7b '+g.n+' the REJECTED verdict box does not clip its own text',box?(box.psh+'/'+box.pch+' max '+box.pmax+' overflow '+box.povf+' len '+box.text.length+' '+JSON.stringify(box.text)):'NO BOX');
     await b.close();
   }
 },'GATE52-drill-grades-the-move');
