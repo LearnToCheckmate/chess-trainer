@@ -209,3 +209,90 @@ further here: the game is in Kunal's own stored account, so the taps the card de
 asserts only that the card exists, fits and navigates. The five gates still entering their states through a dev UI
 list is a surviving coupling, filed as
 jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-2026-10-01 and NOT fixed here.
+
+**TC-GL-001 IS AMENDED AFTER THE ANTAGONIST PASS, WHICH GAVE NO VETO AND DISPUTED SEVEN NUMBERS, FIVE OF THEM
+CORRECTLY [R18].** The text above is left as written rather than edited, because what it got wrong is the useful
+part. Every correction below was verified by me from the repository before it was accepted.
+
+(1) **"the six gates ... 10-gameover, 11-lesson, 12-hint, 13-play-after-moves, 14-uat-review-card and 20-review"
+names six and the population is nine, and 20-review is not one of them.** `grep -c 'b\.card(' gates/regress/20-review.js`
+is **0** - it imports the PGN directly and never touches the gallery. Measured:
+`grep -rn 'b\.card(' gates/regress/ gates/drive/ gates/vocab.js` gives **24 call sites in 14 files**, with NINE
+inside gates/regress/ (the five that went red, plus 30-p1-fixes, 31-antagonist373, 35-width-containment and gate 15
+itself). "Five gates went red" is what I OBSERVED before killing the suite, not the population; eight would have.
+
+(2) **`STATE_IDS` omitted `y3`.** `gates/drive/menu.js:104` taps card **7**, which is `7 · y3 · Layout readout`. The
+assertion written precisely to name the ids the harness reaches its states through did not name one a committed
+driver reaches by number. Now `['k10','k8','k11','A-06','US-R','y3']`.
+
+(3) **The nine reds against #450 were enumerated as eight, and the missing one is the headline assertion.** The
+ninth is **`walkOk`**: `askTitles()` returns `[]` on that bundle, so N=0 and the walk's "every card was reached, in
+order" assertion reds on the first caption. RUN-LOG records this exact fault at #399 - explaining one red and
+silently dropping the other.
+
+(4) **The in-file comment on the `cardwide` control claimed it reds both containment assertions. It reds one.**
+cardwide WIDENS the box, so the text wraps inside 536px, `scrollWidth === clientWidth`, and `cut` stays green. Each
+control reddens exactly one: cardwide reds "past the viewport", cardclip reds "cut horizontally". Crediting one
+control with the other's coverage is how an uncontrolled assertion comes to look controlled. Also fixed: the
+`cardclip` branch was printing `L.note('NC cardwide: ...')`.
+
+(5) **AND THE ONE THAT MATTERED MOST - A BROKE THE ARGUMENT I HAD WRITTEN AGAINST ITS OWN HAZARD, USING MY OWN
+CONTROL AS THE PROOF.** I claimed the `data-ct` scoping was not load-bearing "because assertion (3) also pins the
+TOTAL card count, which is readable on any bundle". True of the walk loop, **false of block F**: the walk reads
+`allTitles` from the unscoped `cardTitles()`, while block F reads `fit.states` from
+`button[data-ct="state-card"]`. So a bundle dropping only that attribute, with all eight cards still rendering,
+keeps assertion (3) and all six STATE_IDS green while `past` and `cut` silently measure **2 of 10 boxes** and pass -
+74 PASS / 0 FAIL over 20% of the population they claim. Nothing in block F read `fit.states.length` at all. And my
+own TS-empty control had already demonstrated it: in that 48/6 run `past` and `cut` went green having lost eight of
+their ten boxes, and I read the result only for what it proved about (3) and (4). That is the seventh costume of the
+trap this repo records six times. **Closed by one assertion**: `fit.states.length===EXPECTED_STATES`, so the two
+containment checks now assert their own population.
+
+**AND THE COVERAGE THIS BUILD WAS ABOUT TO DELETE WITHOUT NOTICING - NEW BLOCK S.** A measured what moving the board
+screens out of the walk actually cost, and it is more than the case above claimed. Two findings, both verified by me:
+(a) the six gates I said the coverage "lives in" take **two to six discrete snapshots** per state, while gate 15
+sampled every ~700ms against a 900ms settled baseline - so none of them can see the board **JUMP** rather than
+differ between two stills, which is what gate 15 was rebuilt at #416 to catch (a ~130ms, ~24px painted transient).
+(b) Geometry, and this is decisive: `grep -ln 812 gates/regress/*.js` returns exactly **two** files, gate 15 and
+35-width-containment - **and in 35 the only occurrence is a comment on line 10.** All six gates I named read 0
+occurrences of 812. This file's own header already said so: "AT 375x812 NOTHING IN THE SUITE PINS AN ABSOLUTE BOARD
+WIDTH." So the flush would have taken the suite's board coverage at 375x812 from one dense instrument to **zero**,
+and the proof was in the file I was editing. **So the sampler MOVED WITH THE CARDS rather than being deleted**, which
+is this project's own rule. Block S taps the five board-owning fixture cards (k10, k8, both k11, A-06) at 375x679 and
+375x812, settles a baseline with the same `settleBoard`/TOL machinery, and samples densely for each card's own hold.
+PASS CONDITIONS: (S0a) every fixture card was REACHABLE by the route `b.card()` uses; (S0) THE INSTRUMENT - a board
+was on screen on all five, so S2 is not vacuous; (S1) each got a settled baseline inside the 900ms window; (S2) no
+board shrinks past TOL; (S3) no app error.
+**THREE EXCLUSIONS, each with its reason**: US-R (hold 88000ms, driven directly by 14-uat-review-card and 20-review);
+and cards 7 and 8, which **have no board of their own** - 7 is the menu over home, 8 is home. I caught that writing
+block S, and it corrects my reading of the assertion I replaced: the old walk DID count a board on those two, at
+349.03, and this file's header says why - "the review board still mounted UNDER" the home overlay, because cards 7
+and 8 follow card 6's Review journey. For two of its fifteen captions the inherited assertion was measuring a board
+belonging to the previous card's screen, which is #394's bubble-satisfying-`grid.contains()` one costume over.
+**BLOCK S's CONTROLS, and the second one improved the gate**: `CT_G15_NC=statesshrink` cuts the board 24px after the
+baseline settles and reds S2 at BOTH geometries (k10, base 351.03 -> 327 at 375x679; 375.03 -> 351 at 375x812) -
+including at 375x812, where the suite had nothing. `CT_G15_NC=stateshide` removes the board: the FIRST attempt threw
+on the harness's own navigation at the second card and took S0 to S3 down with it (35 pass, one "harness threw", S0
+never asserted) - the #393 fault, in my own new block. The tap is now guarded, an unreachable card is its own red
+(S0a), and the same control gives **63 pass / 4 fail** with S0 and S0a red at both geometries and S2 correctly
+vacuous-but-declared. Controlling my own block is what found that, not reading it.
+
+**A SECOND ASSERTION CANNOT BE REDDENED AND IS NOT LABELLED, WHICH THE CASE ABOVE DENIED.** The text above says
+exactly one assertion could not be reddened by either control (the TRIPWIRE). A found a second: F2's "the readout's
+inner WxH equals what the browser reports". `vp` is seeded from `window.innerWidth/innerHeight` at mount and block F
+never resizes the window, so on any bundle that renders the line at all it passes by construction; the only state
+that could fail it is a viewport that changed after mount, which nothing exercises. It is kept - it is the
+acceptance condition's literal wording and it would catch a readout wired to the wrong variable - but it is a
+weaker assertion than the case claimed and the untested half is a resized viewport.
+
+**WHAT A FOUND THAT IS FILED RATHER THAN FIXED**, because each needs its own pass: the **empty or single-card ask
+queue**, which is this feature's designed success condition and has zero coverage - at one card the Play button text
+loses the word "all" (fixed here in 23-full-walk, which would otherwise have gone red the day Kunal sent one
+screenshot), and at zero cards the button is not rendered at all and gate 15's walk would throw. It cannot arrive
+silently, because PINNED_IDS and EXPECTED_N must change in the same commit as SC, so a human edits this gate first -
+that is the deal the pin exists for and it is why this is a job and not a blocker. Filed as
+jobs/the-gallery-ask-queue-has-no-coverage-for-being-empty-which-is-its-success-condition-2026-10-01. Also filed:
+the rotating audit's resume point, which A corrected - **gates 17, 18 and 19 DO NOT EXIST** (gates/regress/ goes 14,
+15, 16, 20, and `git log --diff-filter=D` finds no deletion), so the "unswept gap at 17-19" that the #450 pen note
+handed me is an artefact of NUMBERING, and RUN-LOG's own #449 close-out line already gave the correct frontier. A
+audited **23-full-walk** instead, all 11 of its assertions, and the next pass starts at **24-opponent-handshake**.

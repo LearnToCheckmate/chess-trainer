@@ -4925,10 +4925,19 @@ export default function App(){
            are what it replaced. The one card whose recording was genuinely PROVIDED is not among them: it is the
            chess.com review of Kunal2023 v Kevitsch, answered "sent" on the Decision Desk at 2026-09-22T21:30:50Z
            with answerkey rows written from it, so it is deliberately NOT reloaded below.
-           MEASURED, and it is why these were not simply re-asked: the 2026-09-14 gallery recording was STOPPED
-           EARLY (flags/handover-from-brilliant-chat - all eight cards run to RECORDING COMPLETE at 122 s and card 6
-           alone holds ~62 s), and which phone it was made on was never established. So a re-record of the eight
-           would not have been a duplicate - it would have been a fresh ask for builds that are now 78 numbers old.
+           TWO NUMBERS IN THE FIRST VERSION OF THIS PARAGRAPH WERE WRONG AND ARE CORRECTED HERE [R18], and the
+           correction matters because they were the load-bearing half of the argument. It read: "the 2026-09-14
+           gallery recording was STOPPED EARLY (flags/handover-from-brilliant-chat - all eight cards run to RECORDING
+           COMPLETE at 122 s and card 6 alone holds ~62 s)". I was quoting that flag; the flag does not match the
+           code. MEASURED off the TS array below rather than off a flag: the eight holds sum to 143 000 ms and card 6
+           is 88 000, not 122 s and 62 s - and 14-uat-review-card.js:34 carries a committed, passing assertion that
+           says 88 s in terms. So the "stopped early" claim is DEMOTED from evidence to a possibility: the walk is
+           143 s long and his recording may or may not have outlasted it, and nothing in the repo records the
+           recording's own length. THE ARGUMENT FOR REMOVING THE EIGHT DOES NOT NEED IT and stands on the paragraph
+           above instead - WK visits the same screens on the current build, with the viewport and the build stamp that
+           none of these eight carry. Also corrected: the eight are tagged #366 to #373, so the oldest is 85 build
+           numbers old, not the 78 this comment first published (451 - 373 = 78 names the YOUNGEST member of a range).
+           Found by antagonist A, which disputed both and was right about both.
 
            WHAT IS LOADED is exactly what is DUE, and nothing else. The gallery is a queue, not an inventory: of the
            four asks the job carries, card 2 is provided (above) and card 4 is not due - it is added by the build
@@ -4947,11 +4956,17 @@ export default function App(){
         /* #451: THE EIGHT STATES THE TEST HARNESS DRIVES. SEPARATED FROM KUNAL'S QUEUE, NOT DELETED, AND THE
            DISTINCTION IS THE WHOLE FIX. These eight entries were serving two masters at once: they were Kunal's
            "what I still need" list AND they were the ONLY way five gates reach the states they assert over, through
-           `b.card(...)` in gates/lib.js - 10-gameover taps k10, 13-play-after-moves taps k8, 11-lesson taps cards 3
-           and 4, 12-hint taps A-06, 14-uat-review-card taps the US-R journey, and 35-width-containment and
-           gates/drive/{play,puzzles}.js tap k10 and A-06 again. MEASURED THE HARD WAY THIS RUN: deleting them took
-           10, 11, 12, 13 and 14 RED inside six minutes of the full suite, every one on `locator.waitFor: Timeout
-           8000ms exceeded` for a card that no longer existed. My first version of this change asserted in gate 15's
+           `b.card(...)` in gates/lib.js. MEASURED THE HARD WAY THIS RUN: deleting them took 10-gameover, 11-lesson,
+           12-hint, 13-play-after-moves and 14-uat-review-card RED inside six minutes of the full suite, every one on
+           `locator.waitFor: Timeout 8000ms exceeded` for a card that no longer existed.
+           **AND "FIVE GATES" IS THE WRONG COUNT, CORRECTED HERE [R07, R18].** Five is what I SAW, because I killed
+           the suite at that point; it is not the population. MEASURED with
+           `grep -rn 'b\.card(' gates/regress/ gates/drive/ gates/vocab.js`: **24 call sites in 14 files**, and
+           inside gates/regress/ alone NINE files - the five above plus 30-p1-fixes.js, 31-antagonist373.js,
+           35-width-containment.js and 15-gallery-playall.js itself. Outside it: drive/play.js (k10),
+           drive/puzzles.js (A-06), drive/lesson.js (cards 3 and 4), drive/menu.js (card 7 = y3) and vocab.js (four
+           states). A count taken from a truncated window and published as the complete set is #405's lesson running
+           backwards, and antagonist A caught it. My first version of this change asserted in gate 15's
            own comment that "the states are still pinned; what changed is which gate drives them" - that was FALSE
            and the suite said so before any of it could reach main. The states ARE pinned in those gates; what the
            cards provide is the ROUTE IN, which is a different thing and is what I had removed.

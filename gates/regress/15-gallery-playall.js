@@ -201,12 +201,37 @@ const EXPECTED_N=2;
    and the board states above are still both pinned AND reachable. The assertions that would have caught this -
    the total card population and STATE_IDS - are below, and their control is a bundle built with TS empty. */
 const EXPECTED_STATES=8;      /* the fixed states the harness drives (chess.jsx const TS), NOT asks */
-/* the ids five gates and two drivers reach their states through, via b.card() - 10-gameover and 35-width-containment
-   and drive/play.js tap k10, 13-play-after-moves taps k8, 12-hint and drive/puzzles.js tap A-06, 11-lesson taps
-   cards 3 and 4 (both k11) by NUMBER, 14-uat-review-card taps the US-R journey. Pinned here BY NAME because
-   deleting these cards took 10, 11, 12, 13 and 14 red in one suite this run, and nothing in gate 15 could see it
-   coming - this is the assertion that would have. */
-const STATE_IDS=['k10','k8','k11','A-06','US-R'];
+/* THE IDS THE HARNESS REACHES ITS STATES THROUGH, via b.card(). RE-MEASURED AFTER ANTAGONIST A DISPUTED THE FIRST
+   VERSION OF THIS COMMENT, AND IT WAS RIGHT ON BOTH COUNTS [R18]. The first version said "five gates and two
+   drivers" and listed five ids. MEASURED with `grep -rn 'b\.card(' gates/regress/ gates/drive/ gates/vocab.js`:
+   **24 call sites in 14 files**, and inside gates/regress/ alone NINE files - the five this build discovered by
+   breaking them (10-gameover, 11-lesson, 12-hint, 13-play-after-moves, 14-uat-review-card) PLUS 30-p1-fixes.js,
+   31-antagonist373.js, 35-width-containment.js and this file. The "five" was a count taken from the first six
+   minutes of a suite that was still running, published as the complete set - #405's lesson running backwards.
+   Outside gates/regress/: drive/play.js (k10), drive/puzzles.js (A-06), drive/lesson.js (cards 3 and 4),
+   drive/menu.js (card 7) and vocab.js (k8, k10, k11, A-06).
+   **y3 IS IN THIS LIST BECAUSE OF drive/menu.js:104**, which taps card 7 - `7 · y3 · Layout readout`. The first
+   version of STATE_IDS omitted it, so the assertion written precisely to name "the ids the harness reaches its
+   states through" did not name one a committed driver reaches by number. Found by antagonist A.
+   Pinned BY NAME because deleting these cards took five gates red in one suite this run and nothing in gate 15
+   could see it coming - this is the assertion that would have, and it would have named the card rather than
+   leaving the next reader with eight `locator.waitFor` timeouts to diagnose. */
+const STATE_IDS=['k10','k8','k11','A-06','US-R','y3'];
+/* #451: the fixture cards block S samples, with the hold each one declares in chess.jsx's TS array, re-read from
+   source rather than remembered. THREE OF THE EIGHT ARE EXCLUDED AND EACH FOR ITS OWN MEASURED REASON:
+     - US-R: hold 88000ms, and 14-uat-review-card and 20-review drive that state directly. Cost, not coverage.
+     - CARDS 7 AND 8 (both y3): THEY HAVE NO BOARD OF THEIR OWN - 7 is the menu sheet over home, 8 is home. I caught
+       this writing block S, and it corrects my reading of the assertion I was replacing. The old walk's
+       "every caption except Starting showed a board (14 of 15)" DID count these two, at 349.03 - and this file's own
+       header says why: "cards 7/8 and 8/8 report 349.03 - the review board still mounted UNDER the [home overlay]".
+       That reading was an artefact of WALK ORDER: cards 7 and 8 follow card 6's Review journey, so what they
+       reported was the PREVIOUS card's board, still mounted beneath a fixed overlay. Block S taps each card from a
+       fresh gallery, so no stale board exists and these two are honestly boardless. Worth stating plainly: for two
+       of its fifteen captions, the assertion I inherited was measuring a board that did not belong to the screen
+       under test - which is the same family as #394's bubble satisfying grid.contains(), one costume over.
+   So block S drives the five cards that own a board: 44s per geometry, 88s for both. */
+const STATE_CARDS=[{id:'k10',hold:13000},{id:'k8',hold:8000},{id:3,hold:7000},{id:4,hold:9000},
+  {id:'A-06',hold:7000}];
 const EXPECT_BOARD=[];   /* card ids (as PINNED_IDS spells them) expected to paint a board during the walk */
 
 // tailStable(reads,hold,tol): reads are [{w,ms}] in poll order. The baseline is the value at the END of the read
@@ -470,6 +495,88 @@ L.run(async()=>{
     await b.close();
   }
 
+  /* #451 BLOCK S: THE DENSE BOARD SAMPLER, MOVED ONTO THE FIXTURE CARDS RATHER THAN DELETED WITH THE QUEUE.
+     THIS EXISTS BECAUSE ANTAGONIST A MEASURED WHAT MY CHANGE COST AND IT WAS MORE THAN I HAD NOTICED.
+     Before #451 the walk above drove eight board screens, and the loop sampled the board every ~700ms against a
+     baseline settled over a 900ms window - that is the only instrument in this repository that can see the board
+     JUMP rather than merely differ between two stills, and gate 15 was rebuilt at #416 to see exactly that (a
+     ~130ms, ~24px painted jump on card entry). #451 replaced those eight cards with two that correctly have no
+     board, so every board assertion above went inert. I had argued the coverage "lives in" 10-gameover,
+     13-play-after-moves, 11-lesson, 12-hint, 20-review and 14-uat-review-card. TWO MEASUREMENTS SAY THAT IS
+     ADJACENT AND NOT EQUIVALENT:
+       (a) THOSE GATES TAKE DISCRETE SNAPSHOTS, two to six per state. None of them samples densely enough to see a
+           transient, so a jump would read as "both stills agree" and pass.
+       (b) GEOMETRY, and this is the one that settles it: `grep -ln 812 gates/regress/*.js` returns exactly TWO
+           files, this one and 35-width-containment - and in 35 the only occurrence is a COMMENT on line 10. All six
+           gates I named read 0 occurrences of 812. This file's own header already said so in terms: "AT 375x812
+           NOTHING IN THE SUITE PINS AN ABSOLUTE BOARD WIDTH - this gate is the only file under gates/regress/ that
+           visits that viewport at all." So deleting the sampler would have taken the suite's board coverage at
+           375x812 from one dense instrument to ZERO, and the proof was in the file I was editing.
+     SO THE SAMPLER MOVES WITH THE CARDS, which is this project's own rule: if you move a UI element, the assertion
+     that pins it moves WITH it rather than being deleted. The fixtures still drive the same eight states; block S
+     taps them one at a time and samples each for its own hold. The machinery is reused unchanged - b.board() via
+     settleBoard() for the baseline, b.metrics() for the samples, the same TOL - so nothing here is a new instrument
+     that would itself need validating.
+     US-R IS EXCLUDED AND IT IS THE ONLY EXCLUSION: its hold is 88000ms (measured off the TS array, not read off a
+     flag), which would add ~3 minutes per geometry for a state that 14-uat-review-card and 20-review both drive
+     directly. The other seven cost 55s per geometry. Stated rather than left as a silent gap.
+     THE INSTRUMENT IS ASSERTED FIRST, because every claim below is "the board did not shrink" and that is vacuous
+     if no board was ever on screen - the #416 antagonist got 24 pass / 0 fail over a display:none board. */
+  /* block S honours CT_G15_GEOS like the walk does, so a control run can be scoped to one geometry and the scope
+     published with its count [#411/#412]. Block F deliberately does NOT: its two widths ARE the acceptance
+     condition ("every card fits at 320 and 375"), so narrowing them would narrow the thing being asserted. */
+  const SALL=[['kunal','kunal'],['375x812',{w:375,h:812,safe:'',label:'375x812'}]];
+  const SGEOS=pick.length?SALL.filter(a=>pick.includes(a[0])):SALL;
+  for(const [slab,sgeo] of SGEOS){
+    if(process.env.CT_G15_NOBOARD==='1'){L.note('block S skipped by CT_G15_NOBOARD=1');break;}
+    const b=await L.launch({geo:sgeo,name:'states-'+slab,store:{ct_pool:'3'}});await b.open();
+    let sawAny=0,settledAny=0;const shrunkS=[],noBaseS=[],boardlessS=[],unreachedS=[];
+    for(const sc of STATE_CARDS){
+      /* #451: THE TAP IS GUARDED, per this project's #393 rule - b.card() throws when its target is absent, and an
+         unguarded throw here would take every assertion after it down with it ("a gate that halts on the first
+         missing element hides every regression after it"). Found by running block S's OWN stateshide control, which
+         broke the harness's navigation on the second card and took S0 to S3 with it: 35 pass, one "harness threw",
+         and S0 never asserted at all. So an unreachable card is now its own red and the loop carries on. */
+      let reached=true;
+      try{await b.card(sc.id,300);}catch(e){reached=false;unreachedS.push({id:sc.id,err:String((e&&e.message)||e).slice(0,90)});}
+      if(!reached){L.note('block S '+slab+' '+sc.id+': COULD NOT REACH THE CARD - its own red, loop continues');continue;}
+      /* #451: block S's own negative controls, reusing the inject() this file already has rather than writing a new
+         breaker. `statesshrink` shrinks the board 24px AFTER the baseline has settled, which is exactly the shape S2
+         exists to catch and it crosses the TOL of 0.6 by a factor of 40. `stateshide` removes the board entirely,
+         which must red S0 - the instrument - and NOT be allowed to pass S2 by making the shrink check vacuous. */
+      if(NC==='stateshide')L.note('NC stateshide ['+sc.id+']: '+await inject(b,'hide'));
+      const st=await settleBoard(b);
+      const base=st.st.ok?st.st.w:null;
+      if(NC==='statesshrink'&&base!==null)L.note('NC statesshrink ['+sc.id+']: '+await inject(b,'shrink'));
+      const had=st.reads.some(r=>r.w!==null&&isFinite(r.w));
+      if(had)sawAny++;if(base!==null)settledAny++;
+      if(!had){boardlessS.push(sc.id);L.note('block S '+slab+' '+sc.id+': NO BOARD in the settle window');continue;}
+      if(base===null){noBaseS.push({id:sc.id,why:st.st.why,reads:st.reads.map(r=>r.w).slice(0,12)});continue;}
+      // sample for the rest of the card's own hold, densely, the way the walk used to
+      const until=Date.now()+Math.max(1200,(sc.hold||5000)-1200);let n=0,lo=base;
+      while(Date.now()<until){
+        const m=await b.metrics();n++;
+        if(m.board){if(m.board.w<lo)lo=m.board.w;
+          if(m.board.w<base-TOL)shrunkS.push({id:sc.id,base,to:m.board.w});}
+        await b.settle(TICK*4);
+      }
+      L.note('block S '+slab+' '+sc.id+': baseline '+base+', '+n+' samples, lowest '+lo+
+        (st.st.ok?' (settled from '+st.st.fromMs+'ms)':''));
+    }
+    L.say(unreachedS.length===0,'S0a '+slab+': every one of the '+STATE_CARDS.length+
+      ' fixture cards could be REACHED by the route gates/lib.js b.card() uses',unreachedS);
+    L.say(sawAny===STATE_CARDS.length,'S0 '+slab+': THE INSTRUMENT - a board was on screen on every one of the '+
+      STATE_CARDS.length+' fixture cards sampled ('+sawAny+'), so the shrink assertion below is not vacuous',
+      {sawAny,boardless:boardlessS});
+    L.say(noBaseS.length===0,'S1 '+slab+': every fixture card that showed a board got a SETTLED baseline inside the '+
+      WIN+'ms window ('+settledAny+' of '+STATE_CARDS.length+')',noBaseS.slice(0,3));
+    L.say(shrunkS.length===0,'S2 '+slab+': NO BOARD SHRINKS inside a fixture card, sampled densely against a '+
+      'settled baseline - the board-jump instrument the ask queue no longer carries',shrunkS.slice(0,4));
+    const badS=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
+    L.say(badS.length===0,'S3 '+slab+': no app error while driving the fixture cards',{other:badS.slice(0,2)});
+    await b.close();
+  }
+
   /* #451 BLOCK F: THE TWO ACCEPTANCE CONDITIONS THE FLUSHED GALLERY OWES, and neither is checked anywhere else.
      jobs/preview-gallery-flush-and-load-current-asks lists four; two are properties of the tracker record (which
      cards are due, what each removed card's verdict was) and two are properties of the running app:
@@ -485,9 +592,13 @@ L.run(async()=>{
     await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
     /* #451: F1's negative control, because two of its four assertions went GREEN against the #450 bundle and an
        assertion not yet shown able to fail is not evidence. CT_G15_NC=cardwide forces a card box wider than the
-       viewport, which is the defect F1 exists to catch; measured below, it reds "past the viewport" and "cut
-       horizontally" and leaves the other two alone. It must CROSS the threshold, not merely disturb the mechanism
-       (CLAUDE.md, #384), so the width is set well past the widest geometry here rather than by a pixel. */
+       viewport, which is the defect F1 exists to catch. **THE SECOND HALF OF THIS SENTENCE IS WITHDRAWN [R18]: it
+       claimed cardwide also reds "cut horizontally", and it does not.** Antagonist A caught it and the mechanism is
+       plain once stated - cardwide WIDENS the box, so the text wraps inside 536px and scrollWidth === clientWidth,
+       leaving `cut` green. Each of the two controls reddens exactly ONE assertion: cardwide reds "past the
+       viewport", cardclip reds "cut horizontally". Crediting one control with the other's coverage is how an
+       uncontrolled assertion comes to look controlled. It must CROSS the threshold, not merely disturb the
+       mechanism (CLAUDE.md, #384), so the width is set well past the widest geometry here rather than by a pixel. */
     if(NC==='cardwide'){
       const what=await b.page.evaluate(()=>{const st=document.createElement('style');st.id='ct-nc-cw';
         st.textContent='button{min-width:520px!important}';document.head.appendChild(st);
@@ -498,7 +609,7 @@ L.run(async()=>{
       const what=await b.page.evaluate(()=>{const st=document.createElement('style');st.id='ct-nc-cc';
         st.textContent='button{white-space:nowrap!important;overflow:hidden!important}';document.head.appendChild(st);
         return 'card text forced to one nowrap line inside an overflow:hidden box - the card ink really is cut now';});
-      L.note('NC cardwide: '+what);await b.settle(400);
+      L.note('NC cardclip: '+what);await b.settle(400);
     }
     const fit=await b.page.evaluate(()=>{
       const vw=window.innerWidth;
@@ -513,6 +624,20 @@ L.run(async()=>{
     });
     L.note(glab+' gallery: vw '+fit.vw+', '+fit.n+' cards, doc scrollWidth '+fit.docW);
     L.say(fit.n===EXPECTED_N,'F1 '+glab+': the gallery renders the '+EXPECTED_N+' pinned cards at this width ('+fit.n+')',{n:fit.n});
+    /* #451, AND THIS ONE EXISTS BECAUSE ANTAGONIST A BROKE THE ARGUMENT I HAD WRITTEN AGAINST IT. I claimed the
+       data-ct scoping was not load-bearing "because assertion (3) also pins the TOTAL card count, which is readable
+       on any bundle". That is true of the WALK loop and FALSE HERE, and the asymmetry is in the selectors: the walk
+       reads `allTitles` from cardTitles(), which is unscoped text matching, while block F reads `fit.states` from
+       `button[data-ct="state-card"]`. So a bundle that dropped ONLY that attribute while still rendering all eight
+       cards would keep assertion (3) and all six STATE_IDS green, and `past`/`cut` below would silently measure 2
+       of 10 boxes and pass - 74 PASS / 0 FAIL over 20% of the population they claim. Nothing in block F read
+       fit.states.length at all. A also pointed out that MY OWN TS-EMPTY CONTROL had already demonstrated it: in
+       that 48/6 run, `past` and `cut` went green having lost eight of their ten boxes, and I read the result only
+       for what it proved about (3) and (4). That is the seventh costume of the trap this file is full of warnings
+       about, in the half of the gate nobody cross-wired. One line closes it. */
+    L.say(fit.states.length===EXPECTED_STATES,'F1 '+glab+': the '+EXPECTED_STATES+
+      ' fixture card boxes are IN the population the two containment checks below measure ('+fit.states.length+')',
+      {states:fit.states.length,want:EXPECTED_STATES});
     // the acceptance condition is about the cards Kunal is asked to record, but a fixture card painting off screen
     // is a real defect too, so both populations go through the same two checks rather than only the asks.
     const past=fit.boxes.concat(fit.states).filter(x=>x.l<-0.5||x.r>fit.vw+0.5);
@@ -542,11 +667,10 @@ L.run(async()=>{
     L.say(togSeen>0,'F2 '+glab+': the menu offers the Layout readout toggle card 1 drives');
     if(togSeen>0){await tog.click();await b.settle(600);}
     const ro=await b.page.evaluate(()=>{
-      const want=/^inner\s+(\d+)x(\d+)\s+vv\s+(\S+)\s+app\s+(.+)$/;
       let hit=null;
       for(const d of document.querySelectorAll('div')){
         if(d.children.length)continue;
-        const t=(d.textContent||'').trim().replace(/\s+/g,' ').replace(/(\d)x(\d)/,'$1x$2');
+        const t=(d.textContent||'').trim().replace(/\s+/g,' ');
         const m=t.match(/^inner\s+(\d+)x(\d+)\s+vv\s+(\S+)\s+app\s+(.+)$/);
         if(m){hit={text:t,innerW:+m[1],innerH:+m[2],vv:m[3],app:m[4].trim()};break;}
       }

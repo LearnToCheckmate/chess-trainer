@@ -3,7 +3,7 @@
 // fonts, real Apple emoji ink, real safe-area insets and real iOS Safari behaviour exist.
 //
 // WHAT THIS GUARDS, and why each assertion is here rather than a screenshot review:
-//   1. The walk button EXISTS and is distinct from "Play all". The eight existing cards are a "what I still
+//   1. The walk button EXISTS and is distinct from "Play". (#451: the ask cards are a "what I still
 //      need" list that gate 15 asserts; the walk is an ordered pass over every SCREEN. Both must survive.
 //   2. The walk REACHES ITS SCREENS. A recording aid that silently stops three screens in is worse than none,
 //      because he will not know until he has recorded it and sent it. So this drives the real walk and checks
@@ -62,8 +62,17 @@ L.run(async()=>{
     await b.tapCt('home-preview',900);
     const walk=await b.rect('[data-ct="preview-walk"]');
     L.say(!!walk,geo+': the gallery offers a "Walk every screen" button distinct from "Play all"',walk&&walk.text);
-    const playAll=await b.page.evaluate(()=>{const els=[...document.querySelectorAll('button')];const x=els.find(e=>/Play all/.test(e.innerText||''));return x?(x.innerText||'').trim():null;});
-    L.say(!!playAll,geo+': "Play all" still exists - the walk is an ADDITION, not a replacement (gate 15 asserts those cards)',playAll);
+    /* #451: THE PATTERN IS `/^\u25b6 Play/`, NOT `/Play all/`, AND THE OLD ONE WAS A FALSE RED WAITING ON KUNAL.
+       chess.jsx renders this button as `\u25b6 Play {SC.length>1?('all '+SC.length+' '):''}(screen-record this)`, so the
+       word "all" is present only while the ask queue holds MORE THAN ONE card. That was safe for as long as SC was
+       pinned at eight; #451 made the queue a real queue of two, and the DESIGNED SUCCESS CONDITION of that queue is
+       that Kunal empties it. At one card the text is "\u25b6 Play (screen-record this)" and this assertion would have
+       gone RED on a perfectly healthy build the day he sent one of the two screenshots - a gate reddening because
+       the feature worked. Found by antagonist A on #451; gate 15 has always located the same button with
+       `/^\u25b6 Play/`, so this is the two files agreeing rather than a new invention. The ASSERTION is unchanged -
+       the button must still exist, because the walk is an ADDITION and not a replacement. */
+    const playAll=await b.page.evaluate(()=>{const els=[...document.querySelectorAll('button')];const x=els.find(e=>/^\u25b6 Play/.test((e.innerText||'').trim()));return x?(x.innerText||'').trim():null;});
+    L.say(!!playAll,geo+': the "Play" button still exists - the walk is an ADDITION, not a replacement (gate 15 pins the cards themselves)',playAll);
     L.say(!!walk&&/\d+, about [\d.]+ min/.test(walk.text),geo+': the button says how many screens and roughly how long, because he has to hold the phone for it',walk&&walk.text);
     await b.tapCt('preview-walk',1500);
     // the opening frame names the build
