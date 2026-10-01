@@ -17,6 +17,14 @@ because #387 is what was running — but the NAME asserted something the CONTENT
 - A re-gate that does not: `NNN-regate-of-the-MMM-bundle.log`, where MMM is the bundle actually gated and the
   footer will read `GATES GREEN #MMM`. The filename then says exactly what the footer says.
 
+- A run whose bundle is **gated and then DISCARDED**: say so in the name. `#454` ran `gates.sh '#454'` against
+  its own #454 bundle, so the footer and the name agree about what was measured - but the suite went red on a
+  known non-deterministic assertion, no bundle was pushed, and `app.js` on main stayed at the #452 bundle. A
+  plain `454-all.log` would have been self-consistent and still misleading, because every reader of this
+  directory assumes a `NNN-all.log` measured something that shipped. Hence
+  `454-all-RED-bundle-not-shipped.log`. The #388 lesson generalises: a name must assert only what its content
+  supports, and "this gated the tree you are running" is an assertion a discarded bundle cannot support.
+
 Never edit a log. Rename it if the name is wrong, and say so here.
 
 ## A green log in here is not a permission, and since #450 there is a place that says so
