@@ -563,3 +563,36 @@ Case: TC-PL-036. Gate: gates/regress/65-promotion-after-gameover.js.
 
 *Clause 5, and the mode term in clause 4, were both added after the #439 antagonist pass vetoed the first
 candidate. The story is stronger for them and neither was in the job that asked for this work.*
+
+## US-R31 - a move is only called a sacrifice when it actually gave something up
+
+*As a player who also reviews on chess.com, I want "!! Brilliant" to mean I gave up real material and it
+worked, so that the one grade the app gives out most sparingly still means something when I see it.*
+
+1. **Material given up is net, and it is not "what is standing on the square now."** A move that lands a piece
+   on a square the opponent can win is a sacrifice only to the extent of what the exchange actually costs,
+   after every recapture. MEASURED on the shipped #439: a pawn promoting onto a contested empty square scored
+   the FULL value of the piece it became - `b8=Q` read `sac=9 isSac=true ok=true` on
+   `2r4k/1P6/8/8/8/8/8/K7 w` - so a beginner who queened a pawn and lost it was congratulated for a brilliant
+   nine-pawn queen sacrifice. Queening a pawn and losing it gives up A PAWN; the app now reads `sac=1`.
+2. **And it is not a rule about promotions.** The same expression, with no promotion anywhere, scored
+   `174540842570 37.Qf6+` at `sac=9 ok=true` - a queen trade offered with check, in a game chess.com records
+   zero Brilliants in. Promotions and that queen check are ONE defect, so the app decides this by asking
+   whether the landing square was empty, not by asking whether a pawn was promoted. A fix that special-cased
+   promotions would have left the queen check exactly as it was.
+3. **And en passant is a capture.** Its landing square is empty, so a rule written only around "was the square
+   empty" routes it to the wrong arm. A pawn taking a pawn en passant gives up nothing and must read `sac=0`.
+4. **And a real sacrifice is still a real sacrifice.** The two moves this project agrees with chess.com about
+   must be untouched: `184024052818 19...Bxh3` (the one Kunal found by hand at #420) still reads `sac=2` and
+   `184222697658 22...Qxc3` still reads `sac=8`, both still Brilliant. Clause 1 could be satisfied by a measure
+   that returned 0 for everything, and clause 4 is what stops that: over all 697 plies of the nine-game answer
+   key corpus the gate fires on EXACTLY those two, where #439 fired on three.
+
+Case: TC-R41. Gate: gates/regress/68-brilliant-sac-empty-square.js.
+
+*Clause 3 is in this story because nothing in the corpus could have found it: there are 0 promotions and 0
+en-passant captures in all 697 plies, so the input class this whole story is about was absent from every
+measurement that had ever been taken of this gate. Clause 4 exists because the first candidate built for
+clause 1 - net the exchange on EVERY path, which is more principled - measured 19...Bxh3 at 1 and so lost the
+reference brilliancy. Making that candidate work needs the sacrifice threshold moved from 2 to about 1, which
+is Kunal's decision and not this lane's; it is routed with its numbers rather than taken.*
