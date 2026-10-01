@@ -1,0 +1,92 @@
+# BRILLIANCY SACRIFICE MEASUREMENT  —  build #443
+# chess.jsx /home/user/chess-trainer/chess.jsx md5 6329bd09816b
+# branch measured: FALLBACK (chess.jsx:3602). Sac term identical on both branches; eval terms are not.
+# games: 9 from /home/user/chess-trainer/claude/agents/bench/pgn 
+
+=== 174331795882   plies=97   chess.com Brilliants: W0 B0
+    ours: SHIPPED 0   C1 0   C2 0
+
+=== 174386847848   plies=73   chess.com Brilliants: W1 B0  (Bxh7+)
+    ours: SHIPPED 0   C1 0   C2 0
+    NAMED  17.Bxh7+  loss=230 ourLabel=Mistake
+           gate inputs: cap=90 evAfter=-0.3 evBefore=-1.15
+           SHIPPED sac=2 isSac=true -> no; FAILS: loss<cap (230 vs 90); evAfter>=0.8 (-0.3); evBefore>-1.0 (-1.15)
+           C1      sac=2 (b@h7) -> no; FAILS: loss<cap (230 vs 90); evAfter>=0.8 (-0.3); evBefore>-1.0 (-1.15)
+           C2      sac=1 (maxima 2 / maximaCap 1 / perSq 3 / perSqCap 2) -> no; FAILS: isSac; loss<cap (230 vs 90); evAfter>=0.8 (-0.3); evBefore>-1.0 (-1.15)
+
+=== 174431023868   plies=44   chess.com Brilliants: W0 B0
+    ours: SHIPPED 0   C1 0   C2 0
+
+=== 174433078044   plies=65   chess.com Brilliants: W0 B0
+    ours: SHIPPED 0   C1 1   C2 0
+
+=== 174540842570   plies=147   chess.com Brilliants: W0 B0
+    ours: SHIPPED 1   C1 1   C2 1
+
+=== 180000436342   plies=59   chess.com Brilliants: W0 B0
+    ours: SHIPPED 0   C1 2   C2 0
+
+=== 184024052818   plies=85   chess.com Brilliants: W0 B1  (Bxh3)
+    ours: SHIPPED 1   C1 1   C2 1
+    NAMED  19...Bxh3  loss=0 ourLabel=Best
+           gate inputs: cap=90 evAfter=1.1 evBefore=0.15
+           SHIPPED sac=2 isSac=true -> BRILLIANT
+           C1      sac=2 (b@h3) -> BRILLIANT
+           C2      sac=2 (maxima 3 / maximaCap 2 / perSq 3 / perSqCap 2) -> BRILLIANT
+
+=== 184222697658   plies=76   chess.com Brilliants: W0 B1  (Qxc3)
+    ours: SHIPPED 1   C1 3   C2 1
+    NAMED  22...Qxc3  loss=15 ourLabel=Excellent
+           gate inputs: cap=90 evAfter=1.15 evBefore=0.2
+           SHIPPED sac=8 isSac=true -> BRILLIANT
+           C1      sac=8 (q@c3) -> BRILLIANT
+           C2      sac=3 (maxima 4 / maximaCap 3 / perSq 9 / perSqCap 8) -> BRILLIANT
+
+=== 184267782076   plies=51   chess.com Brilliants: W1 B0  (Bxg6)
+    ours: SHIPPED 0   C1 0   C2 0
+    NAMED  25.Bxg6  loss=110 ourLabel=Inaccuracy
+           gate inputs: cap=90 evAfter=-1.75 evBefore=-2.7
+           SHIPPED sac=2 isSac=true -> no; FAILS: loss<cap (110 vs 90); evAfter>=0.8 (-1.75); evBefore>-1.0 (-2.7)
+           C1      sac=2 (b@g6) -> no; FAILS: loss<cap (110 vs 90); evAfter>=0.8 (-1.75); evBefore>-1.0 (-2.7)
+           C2      sac=2 (maxima 3 / maximaCap 2 / perSq 3 / perSqCap 2) -> no; FAILS: loss<cap (110 vs 90); evAfter>=0.8 (-1.75); evBefore>-1.0 (-2.7)
+
+=========== HARNESS SELF-CHECK ===========
+re-derived M0 == real brilliantGate.sac : 697/697 plies, and 29/29 of the plies where sac is NONZERO
+re-derived verdict == real brilliantGate.ok : 697/697
+(the nonzero denominator is the honest one: most plies agree at 0==0)
+
+================ TOTALS ================
+plies scored (both sides): 697
+chess.com Brilliants in these games: 4
+labelled Brilliant by SHIPPED: 3   by C1: 8   by C2: 3
+
+EVERY MOVE THE SHIPPED GATE CALLS BRILLIANT (3), against chess.com's 4:
+  * 174540842570 37.Qf6+ sac=9 capturedValue=0
+  * 184024052818 19...Bxh3 sac=2 capturedValue=1
+  * 184222697658 22...Qxc3 sac=8 capturedValue=1
+  -> the SHIPPED gate's own false positives on this corpus: 1. Agreement is 2 of 4 either way,
+     so the absolute baseline is 2 true / 1 false, not 3 true. Stated because the write-up`s
+     incremental comparison otherwise hides the baseline [#443 antagonist B].
+
+MOVES C1 CALLS BRILLIANT AND THE SHIPPED GATE DOES NOT (5):
+  + 174433078044 21...Bxf3 loss=95 evA=2.75 sacC1=6(q@d5)
+  + 180000436342 8...O-O loss=175 evA=1.8 sacC1=3(n@e4)
+  + 180000436342 9...Ng3+ loss=0 evA=1.6 sacC1=3(b@f2)
+  + 184222697658 15...exd4 loss=0 evA=1.15 sacC1=2(n@f6)
+  + 184222697658 18...dxc3 loss=0 evA=0.95 sacC1=4(r@d8)
+
+MOVES C2 CALLS BRILLIANT AND THE SHIPPED GATE DOES NOT (0):
+
+THE FOUR READINGS OF C2, because the job's wording admits all four and they disagree.
+The trade guard (subtracting what the move captured) is the whole difference, and leaving
+it out is what produced #443's withdrawn "C2 adds 14 false positives" [antagonist A veto]:
+  c2maxima      ->  17 Brilliant, +14 against the shipped 3
+  c2maximaCap   ->   3 Brilliant, +0 against the shipped 3
+  c2square      ->  24 Brilliant, +21 against the shipped 3
+  c2squareCap   ->   3 Brilliant, +0 against the shipped 3
+
+INPUT CLASSES ABSENT FROM THIS CORPUS, so the measures were never observed on them:
+  promotions 0 of 697 plies, en-passant captures 0 of 697.
+  This matters for the SACRIFICE term, which the write-up says transfers to both review
+  branches: M0 counts the value of the piece NOW on the landing square, which after a
+  promotion is the new QUEEN - 9 - for a one-pawn investment. C1 inherits it. NOT CHECKED.

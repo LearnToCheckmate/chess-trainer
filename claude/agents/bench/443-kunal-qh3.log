@@ -1,0 +1,27 @@
+# KUNAL 22...Qh3 — the board claim, measured
+# chess.jsx /home/user/chess-trainer/chess.jsx md5 6329bd09816b
+# position after the move, from the job's own piece list: 8/pppQ3p/6pk/2b1Rp2/5P2/5bPq/PPP2P1P/R5K1 w - - 0 23 
+
+A. WHAT THE SHIPPED seeSq SAYS ABOUT EACH BLACK PIECE
+   a7: black p   seeSq(after, White to win) = 0
+   b7: black p   seeSq(after, White to win) = 0
+   c7: black p   seeSq(after, White to win) = 1
+   h7: black p   seeSq(after, White to win) = 0
+   g6: black p   seeSq(after, White to win) = 0
+   h6: black k   seeSq(after, White to win) = 0
+   c5: black b   seeSq(after, White to win) = 3
+   f5: black p   seeSq(after, White to win) = 0
+   f3: black b   seeSq(after, White to win) = 0
+   h3: black q   seeSq(after, White to win) = 0
+   -> most White can win anywhere: 3 (b on c5)
+
+B. EVERY LEGAL ORIGIN FOR THE BLACK QUEEN, so the result does not rest on the unknown one
+   Qh5-h3 : shipped sac=0 isSac=false  |  C1=3 (b@c5)  |  C2 maximaCap=0 perSqCap=0  (White could already win 3 on c5)
+   Qg4-h3 : shipped sac=0 isSac=false  |  C1=3 (b@c5)  |  C2 maximaCap=0 perSqCap=0  (White could already win 3 on c5)
+   Qh4-h3 : shipped sac=0 isSac=false  |  C1=3 (b@c5)  |  C2 maximaCap=0 perSqCap=0  (White could already win 9 on h4)
+   Qg2-h3 : REJECTED - White, who is not to move, would be in check. Cannot arise.
+   Qf1-h3 : REJECTED - White, who is not to move, would be in check. Cannot arise.
+
+   3 legal origins, 2 geometrically possible but unreachable.
+   The shipped measure scores 0 and the whole-board measure 3 on EVERY legal origin, so
+   the finding does not depend on the square that could not be determined.
