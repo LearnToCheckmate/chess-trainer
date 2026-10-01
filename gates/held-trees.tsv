@@ -1,0 +1,69 @@
+# gates/held-trees.tsv - THE REGISTER OF GATED-GREEN TREES THAT MUST NOT SHIP.
+#
+# WHY THIS FILE EXISTS. A "GATES GREEN" log says the gate suite passed over a bundle. It does NOT say that the
+# tree shipped, or that it may. At 2026-10-01T00:31Z a run looking for a way out of a deadlock found a
+# gated-green ancestor, ran every mechanical check this project provides, got four greens, and pushed a tree
+# that #441 had deliberately held. All four checks were correct and none of them could see the hold:
+#   git merge-base --is-ancestor origin/main e765135          -> true
+#   gates/verify-log.sh .../441-all.log '#441'                -> OK (47 suites, 3097 PASS, footer agrees)
+#   git show e765135:app.js | md5sum                          -> a4df39c38222, the md5 that log's footer names
+#   git show e765135 --stat                                   -> adds only the log file
+# The only warning in existence was one sentence in a prose table cell on an unmerged branch: RUN-LOG.md:247 ON
+# origin/claude/cool-noether-gccllp, reading "then stood down on two P0s from the adversarial pass" - which no
+# tool reads and which main does not even carry. NAME THE TREE WHEN YOU CITE THAT LINE: both of #450's
+# antagonists independently called this citation dangling, because line 247 OF MAIN is #437's job-counting rule,
+# and the citation is exactly right on the tree where the sentence lives. One line number meaning two different
+# things on two trees is not a footnote, it IS the defect.
+# The push was reverted 17 minutes later by its own antagonist pass.
+# Filed as jobs/a-gated-green-log-is-not-a-shippable-tree-2026-10-01 (P0, priority 11). This file is its fix.
+#
+# WHAT MAKES THIS A GUARD AND NOT A NOTE. It is keyed on things a LATER run can compute from the artefact it is
+# holding, with no network and no tracker: the BUNDLE MD5 and the GATED SHA. gates.sh writes both into every log
+# IT WRITES (the header line carries "md5 <hex>", the ref line carries "ref: HEAD <sha> | bundle md5 <hex>"), and
+# `md5sum app.js` recovers the first from any tree on disk.
+# BUT NOT INTO EVERY LOG THAT EXISTS, and the first draft of this paragraph said "every log", which antagonist B
+# measured and disproved: the ref line arrived at #417, and 52 OF THE 81 COMMITTED GATELOGS (64%) carry no
+# `ref: HEAD` line at all. verify-log.sh skips the sha comparison when it is absent, so ON MOST OF THIS
+# PROJECT'S LOG CORPUS ONLY THE MD5 ARM FIRES. Said plainly because a guard's coverage is not a detail.
+#
+# gates/verify-log.sh reads this file BY DEFAULT and
+# REFUSES a log naming a held bundle or a held sha. Nothing here is self-reported by the run that wants to push:
+# the row is written by the run that HELD the tree, and read by a different run later. This project has recorded
+# six separate defects whose single cause was that the check and the thing being checked were the same object;
+# a `shippable` field written by the pushing run would have been the seventh.
+#
+# HOW TO WRITE A ROW. `gates/held.sh add <bundleMd5> <gatedSha> <#NNN> <reason...>` - or append by hand. Do it in
+# THE SAME step as the stand-down, before the run ends, and commit it to MAIN rather than to the per-run branch:
+# #441's own warning was lost precisely because it lived only on a branch that never merged, and a reverted
+# commit takes its log with it. A row costs one line and survives a container being reclaimed.
+#
+# HOW TO CLEAR A ROW. Do NOT delete it. A tree does not become shippable by being forgotten. Change the first
+# field to a `-` prefix (e.g. `-a4df39c38222`), which stops it matching, and append to the reason why it was
+# cleared, with the sha that superseded it. The history is the useful part.
+#
+# A LIMIT OF THE FIRST TWO KEYS, MEASURED AT #450 RATHER THAN LEFT FOR SOMEONE TO FIND. `gates/build.sh:14`
+# builds the stamp as `$N - $(TZ=America/New_York date '+%Y-%m-%d %H:%M') ET` and embeds it with
+# `--define:__BUILD__`, so THE BUNDLE MD5 CHANGES ON EVERY REBUILD IN A NEW MINUTE even from byte-identical
+# source. Both bundleMd5 and gatedSha therefore identify an ARTEFACT, not a source tree: a run that REBUILDS a
+# held source tree and commits it gets a fresh md5 and a fresh sha and matches neither. That is not the failure
+# this register was written for - the 00:31Z push took an EXISTING gated-green tree, where both keys match - and
+# a rebuild has to earn its own green suite anyway. But it is a real hole, so there is a seventh field:
+# sourceMd5, `git show <sha>:chess.jsx | md5sum | cut -c1-12`, which is stamp-independent and survives a
+# rebuild. `gates/held.sh check` compares it against the working tree's chess.jsx, and SO DOES `verify-log.sh`,
+# via the sha on the log's own ref line. THIS PARAGRAPH FIRST SAID verify-log.sh "CANNOT use it and does not
+# try", which antagonist A disproved in the same build: that script already reads the working tree for
+# --this-bundle, and `git show <ref sha>:chess.jsx | md5sum` is reachable from the log alone. The false version
+# is recorded because A's point was that a wrong sentence here is worse than the gap - it tells the next run not
+# to bother. ITS OWN LIMIT, also A's: this is an EXACT-BLOB key, so it catches a straight carry-forward of the
+# held source (four commits carry #441's chess.jsx byte-identical) and dies the moment one unrelated character
+# changes. No key in this register tracks the DEFECT itself; that needs a predicate, and it is filed as
+# jobs/a-held-row-should-carry-a-predicate-not-only-a-hash-2026-10-01.
+# sourceMd5 is OPTIONAL - older rows and rows whose sha is unreachable may leave it `-`.
+#
+# FORMAT: tab-separated. bundleMd5 (first 12 hex, as gates.sh writes it) | gatedSha, COMMA-SEPARATED - every
+# sha that names this tree, not only the gated one | build | heldAt
+# (ISO-8601 UTC) | heldBy (runId) | reason (one sentence, the specific thing the suite could not see) |
+# sourceMd5 (first 12 hex of chess.jsx at that sha, or `-`).
+#
+# bundleMd5	gatedSha	build	heldAt	heldBy	reason	sourceMd5
+a4df39c38222	409b897528516c7652ad5832c90abf2ff9ae083e,e765135a778724a9fac3bfb4b8d796e648a2b7a4	#441	2026-09-30T17:08Z	build__1790770888628	HELD ON TWO P0s THE SUITE CANNOT SEE. The sel/cls split migrated its selectors but not its DECISION and SENTENCE consumers; measured at this exact sha, chess.jsx carries 0 occurrences of the _selL fix (6 at the pile head origin/claude/cool-noether-gccllp) and gates/regress/67-sel-cls-consumers.js - the only gate that reddens on them, 17 assertions - is ABSENT from this tree, so the 3097-PASS green is honest and blind. Pushed anyway at 2026-10-01T00:31Z as e765135, vetoed by that run's own antagonist, reverted at 2026-10-01T00:48:31Z as 364f700. heldAt above is the committer date of 45a055e '#441 close-out: stood down on the push', which is when the stand-down was recorded; the gated commit 409b897 is 14:59:01Z and the gate-log commit e765135 is 16:07:21Z. TWO FIELDS OF THIS ROW WERE FABRICATED IN ITS FIRST DRAFT AND ARE CORRECTED HERE, because this register's whole thesis is that a later run trusts a row it did not write: heldBy read build__1790770888628 only after #450's antagonist A proved the first value, build__1790730000000, appears in no commit, no RUN-LOG row and no HANDOFF and decodes to 2026-09-30T01:00:00Z, fourteen hours before #441's first commit - and the real runId was in a tracker document #450 had already read; and heldAt read 2026-09-30T16:05Z, which matches no commit in the window. Both are now read from git log --format=%cI and from the #441 runledger row. Backfilled by build__1790832010925 (#450) from tracker artifact 5326ERvZCZ5tEYRkPavPTF collection builds doc 441, and re-measured against the sha itself rather than copied; `builds/441` is a TRACKER document, not a path in this repository. THE FIX EXISTS ON origin/claude/cool-noether-gccllp AND THAT BRANCH IS NOT A REMEDY YOU CAN JUST TAKE: measured 2026-10-01, it is DIVERGED from main, 18 ahead AND 7 BEHIND, so it is not a fast-forward and taking it loses or re-merges seven of main's commits including #449's gate 68; and NO gate log in this repository has ever run against the pile head (grep of claude/agents/gatelogs/ for its sha 4307c97 and its bundle md5 0bbc5c85b1df returns nothing). See jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30 and jobs/a-red-pile-head-is-not-a-red-pile-2026-10-01. The second sha is the commit actually PUSHED and reverted; keying only on the gated sha made `held.sh check e765135` answer 'not held'.	f99f9f855336

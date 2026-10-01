@@ -27,6 +27,10 @@ collection `prompts`, doc `build-run`. Where that doc and this file differ, the 
   same number; that happened once with #375 and cost a rebase.
 - **Before any push:** `git fetch && git log -1 origin/main`. If main moved, rebase onto it. Never
   push over it.
+- **AND ASK WHETHER ANYONE ALREADY REFUSED THIS TREE: `gates/held.sh check`** (no argument reads `app.js` on
+  disk). A `GATES GREEN` log says the SUITE passed over a bundle; it does not say the tree shipped or may ship,
+  and the four mechanical checks this project provides CANNOT TELL THE DIFFERENCE. #450's row below is the
+  proof, and `gates/held-trees.tsv` is where the answer now lives.
 - Work from another session arrives as a **patch committed here** with the trailer intact, never as
   a parallel upload.
 
@@ -103,6 +107,22 @@ wider one.
   before citing any log. It refuses a subset, refuses anything not ending in a clean `GATES GREEN #NNN`, and
   refuses a log whose header and footer name different builds - which is the #388 mistake an external challenger
   caught and this lane did not.
+  **AND SINCE #450 IT ALSO REFUSES A LOG WHOSE TREE IS ON `gates/held-trees.tsv`, BY DEFAULT.** Every other check
+  in that script asks a question about the LOG - is it a full run, does it end green, does it agree with itself,
+  did it gate this bundle - and every one of them can answer YES for a tree a previous run deliberately refused
+  to ship. The register is keyed on things a later run can compute with no network and no tracker: the bundle
+  md5 and the gated sha, both of which `gates.sh` already writes into every log's header and ref line, plus an
+  optional `sourceMd5` (chess.jsx at that sha). `--ignore-held` overrides it and prints the row and the override
+  loudly; the first draft of that flag skipped the lookup entirely and overrode SILENTLY, which this build
+  caught with its own control and fixed.
+  **AND KNOW WHAT THE FIRST TWO KEYS CANNOT SEE, measured at #450:** `gates/build.sh:14` embeds
+  `$(TZ=America/New_York date '+%Y-%m-%d %H:%M')` in the stamp via `--define:__BUILD__`, so **the bundle md5
+  changes on every rebuild in a new minute even from byte-identical source** - which is also why #439 has three
+  bundles under one stamp. Both the md5 and the sha therefore identify an ARTEFACT, not a source tree, and a run
+  that REBUILDS a held source tree and commits it matches neither. That is why `sourceMd5` exists and why
+  `gates/held.sh check` compares it against the working tree's `chess.jsx`: it is the only one of the three that
+  survives a rebuild, and `verify-log.sh` cannot use it because a log carries no source hash. Controlled: with
+  the bundle key deliberately missed, `held.sh check` still refuses on the source key alone.
 - **COPY `gates/logs/<N>-all.log` INTO `claude/agents/gatelogs/`, NOT the terminal output.** They are different
   files: gates.sh `tee`s only the summary lines to stdout and writes every PASS line to the log. A thin log's
   footer total is right and nothing else in it can be audited.
@@ -472,6 +492,32 @@ wider one.
   denominator pointed at a PREMISE rather than at a count: the comment did not go stale by being wrong, it went stale
   because a later build shipped underneath it. **A comment that reasons about what earlier builds could produce is a
   claim about `origin/main`, and `origin/main` is one grep away.** #433.
+- **A GREEN LOG IS A STATEMENT ABOUT THE SUITE, NOT A PERMISSION, AND THE ADVERSARIAL HALF OF THIS PROJECT'S PUSH
+  BAR IS RECORDED NOWHERE A TOOL CAN READ.** At 2026-10-01T00:31Z a run looking for a way out of a deadlock found
+  a gated-green ancestor and pushed it on FOUR green checks, every one of which was correct and which I re-ran:
+  `merge-base --is-ancestor origin/main e765135` true; `verify-log.sh 441-all.log '#441'` OK at 47 suites and
+  3097 PASS with the footer agreeing; `git show e765135:app.js | md5sum` equal to the md5 that log's own footer
+  names; `git show e765135 --stat` adding only the log file. **NONE OF THEM CAN SEE THAT #441 REFUSED TO PUSH
+  THAT EXACT TREE**, because what stopped #441 was two P0s in code the suite had no gate for - measured at the
+  gated sha 409b897, `chess.jsx` carries 0 occurrences of the `_selL` fix and `gates/regress/67-sel-cls-consumers.js`
+  is ABSENT, so the 3097-PASS green is honest and blind. The only warning in existence was one sentence in a prose
+  table cell: `RUN-LOG.md:247` **on `origin/claude/cool-noether-gccllp`**, reading "then stood down on two P0s
+  from the adversarial pass" - a branch that never merged, so main did not even carry it. **Name the tree when
+  you cite that line.** BOTH of #450's antagonists independently reported the citation as dangling, because line
+  247 *of main* is #437's job-counting rule, and I was one command away from "correcting" a citation that is
+  exactly right on the tree where the sentence lives. One line number meaning two different things on two trees
+  is not a footnote, it is the defect - which is why a prose cell is not a carrier and why `gates/held-trees.tsv`
+  goes to main. Reverted 17 minutes later by the run's own antagonist. `GATES GREEN` is checkable by grep; "antagonist B found two P0s" was a
+  sentence in a table. **So when you stand down on something the suite cannot see, write the row in the same step
+  (`gates/held.sh add`) and commit it to MAIN** - #441's warning was lost precisely because it lived only on a
+  branch, and a reverted commit takes its log with it. #450.
+  And note the shape: this is the trap this file already records six times - clip-intersection excusing the real
+  38.9px overflow, "the covering element is big" at #393, the bubble satisfying `grid.contains()` at #394,
+  flex-shrink absorbing the overrun at #398, the log footer computed from the log at #419, the assertion keyed to
+  a selector its own build added at #432 - *the check and the thing being checked were the same object.* Here they
+  were the same QUESTION: every tool asked about the log, and the thing that mattered was not in the log. Which is
+  also why a `shippable` field written by the pushing run is not the fix and would have been the eighth costume:
+  the register row is written by the run that HELD the tree and read by a different run later.
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never

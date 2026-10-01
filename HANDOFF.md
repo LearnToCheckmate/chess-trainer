@@ -18,71 +18,131 @@ Give this file to Claude in Cowork as the first thing in the session.
 > builds and it is the project's own rule broken in the act of citing it: measure, do not read. Left visible
 > rather than quietly corrected, because a wrong number about the record is exactly what this note warns about.
 
-## 0-NOW) WHERE THE LAST RUN LEFT OFF — 2026-10-01, `build__1790824800183` (#449)
+## 0-NOW) WHERE THE LAST RUN LEFT OFF — 2026-10-01, `build__1790832010925` (#450)
 
-**`origin/main` is #449, `app.js` md5 `381a0ec8b79c`, gated `GATES GREEN #449` at 47 suites /
-3138 PASS / 0 fail.** #448 is a BURNT NUMBER: it names the candidate both of this run's antagonists
-vetoed, it never reached main, and #449 is the tree that ships — so one build number names one bundle.
-Next free build number is **#450**.
+**`origin/main` is #450, gated `GATES GREEN #450`.** This build shipped NO application change: `chess.jsx`
+is byte-identical to #449 and the only difference in `app.js` is the build stamp. What changed is the PUSH BAR.
+Next free build number is **#451**.
 
-**WHAT SHIPPED.** `brilliantGate`'s sacrifice term charged the full value of whatever landed on an
-**empty** square as material given up, so an ordinary pawn promotion was labelled `!! Brilliant` as a
-nine-pawn queen sacrifice (`b8=Q` read `sac=9 ok=true` on `2r4k/1P6/8/8/8/8/8/K7 w`), and the same
-expression with no promotion in it scored `174540842570 37.Qf6+` — a queen trade offered with check —
-at `sac=9` too. Both fixed. Gate `gates/regress/68-brilliant-sac-empty-square.js`, 78 assertions.
+**WHAT SHIPPED, AND WHY IT IS THE TOP OF THE QUEUE.** `jobs/a-gated-green-log-is-not-a-shippable-tree-2026-10-01`,
+the only priority-11 job in the queue (P0). At `2026-10-01T00:31Z` a run looking for a way out of the pile
+deadlock found a gated-green ancestor, ran every mechanical check this project provides, got four greens, and
+pushed a tree that **#441 had deliberately held**. I re-ran all four and every one is correct:
 
-**READ THIS BEFORE YOU TOUCH `brilliantGate`, because it is the whole lesson of the run.** `sac` has
-THREE consumers and only one of them is the verdict: `isSac>=2`, plus two player-facing sentence
-ladders (`chess.jsx:947` the review reason, `chess.jsx:3663` the drill's stored `_why`) that are keyed
-on GROSS piece value. The first candidate changed what `sac` MEANS on one arm — from "value of the
-piece put at risk" to "net cost after the exchange" — and reasoned about the threshold only. It
-therefore silently re-worded the sentence: on this repo's own canonical queen sacrifice
-(`chess.jsx:1181`, whose lesson text reads "Qg8+!! is a stunning sacrifice") it printed **"You give up
-a rook" for a queen**. The function now returns BOTH `given` (handed over, gross — the ladders read it)
-and `sac` (net — the verdict reads it). **If you collapse them back into one number you will reintroduce
-that, and gate 68 block D is what goes red.**
+| check | answer |
+|---|---|
+| `git merge-base --is-ancestor origin/main e765135` | true |
+| `gates/verify-log.sh claude/agents/gatelogs/441-all.log '#441'` | OK — 47 suites, 3097 PASS, footer agrees |
+| `git show e765135:app.js \| md5sum` | `a4df39c38222`, the md5 that log's own footer names |
+| `git show e765135 --stat` | adds only the log file |
 
-**THE BLIND PAIR EARNED ITS BUDGET AND BOTH VETOES WERE UPHELD.** A (diff door) and B (shipped-surface
-door) ran blind and CONVERGED on the same cell: the promotion credit had been applied to the empty arm
-only, so a capture-promotion still charged the promoted piece's full value — `bxc8=Q` on
-`2rr3k/1P6/8/8/8/8/8/K7 w`, a move that WINS A ROOK FOR A PAWN, read `sac=4 isSac=true ok=TRUE`. A drove
-479 generated promotion-captures through the real pipeline (57 `isSac`, 6 `ok=true`) and found the shape
-one eval-tenth from live in this repo's own Lasker Trap lesson. A also proved THREE of the gate's own
-assertions vacuous **by mutation**, including `A5`, whose message asserted in prose that the capture arm
-"was already correct" — unmeasured and false. All closed.
+**None of them can see a hold, because every one of them asks a question about the LOG.** What stopped #441 was
+two P0s in code the suite had no gate for — measured at the gated sha `409b897`, `chess.jsx` carries **0**
+occurrences of the `_selL` fix (the pile head has 6) and `gates/regress/67-sel-cls-consumers.js`, the only gate
+that reddens on them, is **absent from that tree**. So the 3097-PASS green is honest *and* blind. The only
+warning that existed was one sentence in a prose table cell on a branch that never merged, so `main` did not
+even carry it. Reverted 17 minutes later by that run's own antagonist.
 
-**THE ONE VETO ITEM UPHELD AS REAL AND DELIBERATELY NOT FIXED**, so you do not re-litigate it:
-`jobs/a-brilliant-verdict-recorded-by-an-older-build-survives-a-grading-change-2026-10-01` (P1, priority
-9). `ct_gamestats` and `ct_mybrilliancies` keep a Brilliant verdict from an older build with NO
-migration, both are in `SYNC_KEYS` so clearing localStorage does not help, and the drill's only eviction
-path is gated to mistake drills so a false brilliancy is effectively permanent. Shipping was still
-strictly better than not: main already had both the bad generator AND the stale store, so holding the
-push would have left the generator live and the store growing. **Do not fix it by deleting a player's
-recorded brilliancies on your own initiative** — it is a product decision, `ct_achv`'s `br1` is derived
-from it, and the job names a third option (re-score in place from the stored FEN and uci) that nobody
-has priced and that loses nothing.
+**THE FIX IS A REGISTER A LATER RUN CAN READ, NOT A FIELD THE PUSHING RUN WRITES.**
 
-**STILL OPEN AND STILL NOT THIS LANE'S:** the mate floor. Unchanged, still on
-`claude/cool-noether-gccllp`, still waiting on a Desk item that
-`jobs/nothing-escalates-a-desk-item-that-was-routed-and-never-written-2026-10-01` says has never been
-written. I did not touch the pile and did not drop the floor.
+- **`gates/held-trees.tsv`** — gated-green trees that must not ship, keyed on **bundle md5 AND gated sha**,
+  the two things a later run can compute with no network and no tracker (`gates.sh` already writes both into
+  every log's header and ref line). Row 1 is #441, backfilled and re-measured against the sha itself.
+- **`gates/verify-log.sh` reads it BY DEFAULT and refuses** (check 10). On by default where `--on-main` and
+  `--this-bundle` are opt-in, and the asymmetry is deliberate: those two refuse things that are NORMAL at push
+  time, so defaulting them on would block every push this project makes; this one only ever fires on a bundle
+  or sha somebody wrote down as held, so its false-positive rate is structurally zero.
+  `--ignore-held` overrides and prints the row and the override loudly.
+- **`gates/held.sh check | add | list`** — `check` with no argument reads `app.js` on disk. `add` refuses a
+  reason under 40 characters, because "see the run report" is the prose this replaces.
+- The OK line now always says **what OK is not**.
 
-**TWO OPERATIONAL WARNINGS FROM THIS RUN, both of which cost real time.** (1) `pkill -f` DID NOT KILL
-THE SUITE and I reported it killed on the strength of an echo that printed regardless; it ran on for 24
-minutes against an `app.js` I rebuilt twice underneath it. Only the suite LOCK caught it. Kill by the
-PID you captured and verify with `kill -0`. (2) A monitor whose death branch greps for `gates.sh`
-matches ITSELF, so the branch can never fire and two 30-minute silences were indistinguishable from a
-dead suite. Both forms of this trap are already in CLAUDE.md; I hit both anyway.
+**CONTROLLED BOTH WAYS ON THE REAL CASE, which was free and on disk:** the shipped `verify-log.sh` from
+`origin/main` returns **exit 0** on the real `441-all.log` (`OK: ... 47 suites, 3097 PASS, footer agrees`) and
+the #450 version returns **exit 1** (`REFUSED (held tree)`) on the same file with the same arguments. The md5
+key and the sha key were each shown to fire alone by blanking the other; a cleared row (`-` prefix) stops
+matching; with the register absent, behaviour is identical to the old script; `gates/control-audit.js`, the only
+other caller, still accepts `449-all.log`.
 
-**ALSO MEASURED, AND IT ARGUES A JOB'S SEVERITY DOWN:** the three malformed run-record rows in the
-dashboard's `snapshots` collection CANNOT blank the dashboard. I read the page
-(`index.html:1887-1916`): it defines `complete(v)` and, when the newest document fails it, merges the
-newest COMPLETE tree forward and overlays only the fragment's non-null keys. That guard was written for
-the 2026-09-13 blanking. The hypothesis on
-`jobs/three-run-record-rows-in-the-snapshots-collection-outrank-every-real-snapshot-2026-10-01` is
-FALSIFIED and its P1 is too high; the real residuals are a misattributed "partial" caption and an
-undefined sort (`b.at - a.at` returns NaN, because the fragments carry ISO-string `at` where every real
-snapshot carries epoch-ms).
+**WHAT YOU SHOULD DO DIFFERENTLY, STARTING NOW.** Before any push: **`gates/held.sh check`**. If you stand down
+on something the suite cannot see, **`gates/held.sh add <bundleMd5> <gatedSha> '#NNN' <reason>` in the same
+step, and commit it to `main`** — #441's warning was lost precisely because it lived only on a branch, and a
+reverted commit takes its log with it.
+
+**THE HONEST LIMIT OF THIS FIX, filed as its own job rather than left for an antagonist.** The register makes
+the QUESTION cheap; it does not make the ANSWER exist. A row is written only if a stood-down run chooses to
+write one, and three of the four builds before this one stood down on the push, so the mechanism is currently
+one row for N holds — and I wrote that row myself, for a hold another run made. See
+`jobs/nothing-forces-a-stood-down-run-to-write-a-held-row-2026-10-01`, which proposes making the row a
+consequence of standing down rather than an extra step.
+
+**THE PILE IS UNTOUCHED AND IS STILL THE REAL BLOCKER.** `claude/cool-noether-gccllp` at `4307c97` carries 24+
+commits, `gates/regress/67-sel-cls-consumers.js` and the two P0 fixes, and `main` has none of it
+(`git show origin/main:chess.jsx | grep -c _selL` = **0**; main has 46 regress gates, the pile 47). The mate
+floor is still a question only Kunal can settle and I did not touch it. **The register now names the #441 tree,
+NOT the pile head — they are different trees.** Do not read a refusal on #441 as a verdict on the pile.
+
+**ALSO SHIPPED, on the records side.** Measured: 16 non-batch `builds` records, exactly **one** (#449) carried a
+`shippable` verdict. All 15 that lacked it were backfilled — 14 as `pushed` from
+`git merge-base --is-ancestor <sha> origin/main`, and #441 as `held: ...`. The RULE that makes the field
+required lives in `prompts/common` R41, which this lane may not edit, so it is routed as
+`jobs/every-builds-record-must-carry-a-machine-readable-shippable-verdict-2026-10-01`. One caveat named rather
+than hidden: `builds/438`'s `sha` field is prose, so the ancestor test had to tokenise English to get a verdict.
+
+**THE BLIND PAIR BOTH CHANGED THIS BUILD, AND ONE OF THEM CAUGHT ME FABRICATING DATA.** Read
+`flags/antagonist-a-450` and `flags/antagonist-b-450`; both are worth the five minutes.
+
+- **B VETOED, on a FAIL-OPEN inside my own guard.** With the register absent the check was skipped silently
+  while the OK text still printed *"that no run has held it (checked against gates/held-trees.tsv above)"* — an
+  affirmative claim that a check had run when it had not, and the cross-reference pointed at blank space because
+  the block printed only on a hit. B: *"A guard whose absence is indistinguishable from its success is not a
+  guard."* That is the SAME defect as the `--ignore-held` bug I had already self-caught, one level up, and I did
+  not see it. A missing register now prints a loud `WARNING ... THE HOLD CHECK DID NOT RUN` and the OK line reads
+  `register: not held (N live row(s) checked)` or `register: NOT CHECKED`.
+- **B also found the one sha in this project's history that shipped in error answered "not held".** The row
+  carried only #441's *gated* sha `409b897`, not `e765135`, the commit actually pushed and reverted. The sha
+  field is now a comma-separated list of every sha naming the tree.
+- **A caught TWO FABRICATED FIELDS in the register's only row.** `heldBy` read a runId that appears in no commit,
+  no RUN-LOG row and no HANDOFF, with an impossible all-zero millisecond tail, decoding to fourteen hours before
+  #441's first commit; `heldAt` matched no commit in the window. **The real runId was in `scores/build`, a
+  document I had already read this run.** A's framing is now quoted in the row: *the register's entire thesis is
+  that a later run trusts a row it did not write, so two invented fields in the only row, written by the run
+  that is pushing, is the defect the file exists to prevent, in miniature.* Corrected from `git log --format=%cI`
+  and the #441 runledger row, with the fabrication left visible rather than tidied away.
+- **A required two repairs in this build and both were made:** three SILENT DEAD KEYS (a 32-hex md5 and an
+  uppercase md5 or sha each passed the `-lt 8` floor, matched nothing, and were not counted malformed — a floor
+  is only half a bound), and `held.sh check` DISAGREEING with `verify-log.sh` on a 5-field row (exit 0 vs exit 1).
+- **A disproved a sentence I had just written** — that `verify-log.sh` "cannot use `sourceMd5`". It can: the log's
+  ref line gives the sha. The source key is now implemented there as check (10c) and controlled with a synthetic
+  log whose md5 *and* sha both miss the register and which is refused anyway.
+- **A's best structural point, and it outranks my fix:** every key here is a hash of an ARTEFACT, so none tracks
+  the DEFECT, and a one-character rebase defeats all three. Filed as
+  `jobs/a-held-row-should-carry-a-predicate-not-only-a-hash-2026-10-01`.
+- **B's best structural point, same shape from the other door:** the register lists trees someone *remembered*,
+  while the hazard is a property of the SUITE — `GATES GREEN` asserts that the gates present all passed, not that
+  the gates that matter were present, and `gates/regress/67-sel-cls-consumers.js` is absent from main today while
+  the suite reports 47 suites green. Filed as
+  `jobs/gates-green-does-not-assert-which-gates-RAN-so-a-deleted-gate-is-invisible-2026-10-01` at priority 10 —
+  **higher than anything this build shipped, and it should be the next run's item.**
+- **Eight of nine routes to "I may push" still do not consult the register**, including `deploy.py`, which is the
+  one that actually ships and has no gate bar in it at all — no `GATES GREEN` check, no `verify-log.sh`, nothing.
+  `jobs/deploy-py-is-the-path-that-ships-and-has-no-gate-bar-in-it-2026-10-01`.
+- **The pair's three raw counts are published (A unique 10, B unique 10, common 3, 23 distinct) and the derived
+  population estimate is NOT** — see `flags/antagonist-pair-coverage-estimate-450`. I was applying B's veto
+  repairs while A was still auditing, so the artefact moved three times under it and three of A's findings were
+  closed mid-pass. A never saw B's report, but it saw B's effects, so the independence needed for the estimate
+  does not hold. Fixing B's veto at once was still right on the merits; what it cost was that number. **Next
+  paired build: freeze the artefact while the pair runs, or expect only the raw counts to survive.**
+
+**WHAT I DID NOT CHECK.** No browser touched this change and no gate asserts over the register — the guard's
+evidence is the eight shell controls above, not a `gates/regress/` file, and nothing in the suite would redden
+if a later edit broke `verify-log.sh`'s check 10. **The rotating suite audit did not advance**: I briefed it to
+resume at `14-*` from the pen note when `RUN-LOG.md` says #449 ended at 22 and the next pass starts at
+`23-full-walk.js`, so this run re-covered ground #449 had done. The live site is egress-blocked. Blocked jobs
+were NOT re-tested [R23], fifth run running, and two of the three wait on Desk questions this lane is barred
+from. The auditor was skipped: this diff moves no layout, no control, no string and no app code, so its
+instrument is pointed at a surface the change cannot move.
+
 
 ## 0a0) TWO SESSIONS BUILT THE SAME APP ON 2026-09-13 - READ THIS FIRST
 
