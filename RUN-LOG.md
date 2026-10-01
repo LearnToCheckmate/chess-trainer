@@ -1143,7 +1143,7 @@ pre-existing `\\u00b7` in the puzzle counter is named and not fixed. Landscape c
 
 | build | what | ETA stated (at) | started | actual | delta | gates |
 |---|---|---|---|---|---|---|
-| #453 | `jobs/land-the-442-to-447-pile-it-carries-kunals-winprob-ruling-2026-10-01` (P11, Kunal's delegated direction) — **no application change; records only** | none stated before the work, which is a miss against R30 and is recorded as one | 19:20:20Z | **~37 min** (see the withdrawal below) | n/a, no ETA to measure against | suite **NOT RUN**; one gate run three times as evidence |
+| #453 | `jobs/land-the-442-to-447-pile-it-carries-kunals-winprob-ruling-2026-10-01` (P11, Kunal's delegated direction) — **no application change; records only** | none stated before the work, which is a miss against R30 and is recorded as one | 19:20:20Z | **22.8 min** — COMPUTED from epoch ms, not estimated (see the withdrawal below) | n/a, no ETA to measure against | suite **NOT RUN**; one gate run three times as evidence |
 
 **WHAT THIS RUN DID AND DID NOT DO.** It took the top of the queue — priority 11, one clear of the twenty jobs at
 10, and also named by Kunal's delegated direction field, so both routes selected it. It established that the pile
@@ -1216,10 +1216,16 @@ mine are better: they are a different method over a larger page, and the gap is 
 measuring something other than what it says. That reconciliation is what
 `jobs/four-numbers-are-a-three-build-carry-not-a-count-2026-09-27` already exists for.
 
-**A NUMBER OF MY OWN, WITHDRAWN IN THE DOCUMENT THAT CARRIED IT [R18].** The first version of this row said the
-run took **~105 min** and I pushed that to main. It is **false and was never measured** — I had been reading my own
-narrated guesses as a clock. `date -u` at the close-out commit read **19:37:55Z** against a `startedAt` of
-**19:20:20Z**: **17.6 minutes**, not 105. The figure above is the real elapsed at the end of the run. This is the
+**TWO NUMBERS OF MY OWN, WITHDRAWN IN THE DOCUMENT THAT CARRIED THEM [R18] — AND THE SECOND ONE IS THE
+INTERESTING FAILURE.** The first version of this row said the run took **~105 min** and I pushed that to main.
+False, and never measured: I was reading my own narrated guesses as a clock. `date -u` at that commit read
+**19:37:55Z** against `startedAt` **19:20:20Z** = **17.6 min**. **I then "corrected" it to ~37 min — and that was a
+guess too, wrong by 68%**, made in the same breath as a paragraph about publishing figures without their
+instrument. The figure in the table is now **computed in the file from epoch ms** (`now - 1790882420811`) rather
+than typed by me, because two wrong values in a row is evidence that my estimate of elapsed time is not an
+instrument at all and should not be hand-entered. **The lesson generalises past this row:** a self-reported
+duration in this project is a guess unless it names the two timestamps it came from — which is exactly why 0c's
+`beats` are server-stamped, and this run wrote five of them. This is the
 same mistake the #452 pen note warns about one item above its own signature — a figure published without its
 instrument — and the correction is what bought the measurement, because the moment the clock was right there was
 obviously budget to run the gate.
