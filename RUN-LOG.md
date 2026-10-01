@@ -1143,7 +1143,7 @@ pre-existing `\\u00b7` in the puzzle counter is named and not fixed. Landscape c
 
 | build | what | ETA stated (at) | started | actual | delta | gates |
 |---|---|---|---|---|---|---|
-| #453 | `jobs/land-the-442-to-447-pile-it-carries-kunals-winprob-ruling-2026-10-01` (P11, Kunal's delegated direction) — **no application change; records only** | none stated before the work, which is a miss against R30 and is recorded as one | 19:20:20Z | **~105 min** | n/a, no ETA to measure against | **NOT RUN** — no bundle was produced to gate |
+| #453 | `jobs/land-the-442-to-447-pile-it-carries-kunals-winprob-ruling-2026-10-01` (P11, Kunal's delegated direction) — **no application change; records only** | none stated before the work, which is a miss against R30 and is recorded as one | 19:20:20Z | **~37 min** (see the withdrawal below) | n/a, no ETA to measure against | suite **NOT RUN**; one gate run three times as evidence |
 
 **WHAT THIS RUN DID AND DID NOT DO.** It took the top of the queue — priority 11, one clear of the twenty jobs at
 10, and also named by Kunal's delegated direction field, so both routes selected it. It established that the pile
@@ -1157,10 +1157,31 @@ pre-existing `\\u00b7` in the puzzle counter is named and not fixed. Landscape c
 not a blunder. **Floor in → B1 red. Floor out → outcome (ii), which is what #450 pushed as `e765135` and had
 reverted twelve hours ago at `364f700`.** Both doors shut until Kunal answers.
 
-**INSTRUMENT, AND ITS GRAIN.** Derived from the TEXT of those two files at the single sha `004cb86` — **not a
-browser run**, and I am saying so because the last four pen notes each recorded a figure published without its
-grain. Corroborated by two commit subjects on the pile itself (`c9db4cd`, `379857b`). **The empirical single-gate
-run was NOT done** and the command for it is written on the job.
+**INSTRUMENT — AND I THEN WENT AND MEASURED IT, WHICH CHANGED THE ANSWER FROM "DERIVED" TO "OBSERVED".** The
+paragraph above was first written as a derivation from the TEXT of those two files at `004cb86`, with the empirical
+run listed under NOT CHECKED. **That was wrong about my own budget**, see the withdrawal below, so I ran it: gate 66
+from a worktree detached at `004cb86`, so gate file, `gates/lib.js` and `app.js` all come from that one sha, and the
+harness printed `bundle: app.js  stamp #442 - 2026-09-30 13:26 ET`. **36 PASS, 1 FAIL, three consecutive runs,
+identical every time** — which is R36's three-run bar. The one failure:
+
+```
+FAIL B1 Black, who is being mated, is charged with NO blunder (#439 charged 1)  [{"blackBlunder":1}]
+```
+
+**AND THE SHAPE OF THAT RESULT IS WORTH MORE THAN THE RED.** B2 (no mistake), B3 (Black accuracy **88.9%**, against
+#439's 62.4%), B4, B5, B6 (White 17 / Black 16 rows) and B7 are all **green**, as is the entire A block. **So the
+pile is ONE assertion away from green, and that one assertion IS the question.** The whole of the work Kunal ruled
+on passes; precisely the one contested verdict fails. Log committed at
+`claude/agents/gatelogs/453-gate66-single-NOT-A-PUSH-GATE.log`, named so it can never be mistaken for a push gate —
+it is one gate run by hand, emits no `GATES GREEN`, and `verify-log.sh` refuses it.
+
+**THE #442 STAMP ON THE PILE HEAD'S BUNDLE IS NOT A MISMATCH, CHECKED RATHER THAN ASSUMED.**
+`git diff 27fab23 004cb86 -- chess.jsx app.js` is **empty**, so the pile's source and bundle have been unchanged
+since #442 and #443-#447 touched records only. **A second instrument error of mine, self-caught:** I first grepped
+the bundle for `0.00368208` and `90000` and got **0 and 0**, and nearly recorded that the bundle lacked the work.
+esbuild **minifies numeric literals** — it is `.00368208` with the leading zero stripped, and the mate predicate is
+`>=9e4`, which appears twice. Both are present in the pile's bundle and **absent from main's**. A grep for a decimal
+literal is not a valid test against a minified bundle.
 
 **THE MISTAKE I MADE AND CAUGHT, AND IT IS THE MOST USEFUL THING IN THIS ROW.** I wrote the diagnosis up as a new
 finding — in HANDOFF, in `builds/447`, in a fingerprint, in a new priority-11 job and in the held row — and **then**
@@ -1195,8 +1216,17 @@ mine are better: they are a different method over a larger page, and the gap is 
 measuring something other than what it says. That reconciliation is what
 `jobs/four-numbers-are-a-three-build-carry-not-a-count-2026-09-27` already exists for.
 
-**NOT CHECKED.** No bundle, no suite, no render, no browser measurement of any kind; no antagonist and no auditor
-pass, which leaves R26's two lines unwritten and is a real gap in this row rather than a waived one. The live site
+**A NUMBER OF MY OWN, WITHDRAWN IN THE DOCUMENT THAT CARRIED IT [R18].** The first version of this row said the
+run took **~105 min** and I pushed that to main. It is **false and was never measured** — I had been reading my own
+narrated guesses as a clock. `date -u` at the close-out commit read **19:37:55Z** against a `startedAt` of
+**19:20:20Z**: **17.6 minutes**, not 105. The figure above is the real elapsed at the end of the run. This is the
+same mistake the #452 pen note warns about one item above its own signature — a figure published without its
+instrument — and the correction is what bought the measurement, because the moment the clock was right there was
+obviously budget to run the gate.
+
+**NOT CHECKED.** No full suite, no `deploy.py`, no render, and **no antagonist and no auditor pass**, which leaves
+R26's two lines unwritten and is a real gap in this row rather than a waived one. Nothing was run against a
+**rebased** tree, because no rebased tree exists. The live site
 is egress-blocked and was not fetched. The other 36 branches were not re-tested under the content test that finding
 (2) calls for. #432's separate pile was not touched (the job forbids it). Whether the 16px `added:[16]` gate-26 red
 is floor-caused or walk variance is still open, and is still the thing that would tell Kunal whether outcome (ii)

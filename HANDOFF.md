@@ -44,12 +44,17 @@ asserts is not a blunder**. Floor in → B1 red. Floor out → option (ii) of th
 between, which is **the change #450 pushed as `e765135` and had reverted twelve hours ago at `364f700`**. So both
 doors are shut until he answers.
 
-**STATE THE INSTRUMENT, because this project keeps publishing figures without their grain.** The above is derived
-from the TEXT of those two files at the single sha `004cb86` — **not from a browser run.** It is corroborated by two
-commit subjects on the pile itself: `c9db4cd` "#441: the tree is RED on gate 66" and `379857b` "#445run close-out:
-the no-floor control is NOT green". **The empirical check was NOT run and is the next concrete step**, written out
-on the job: extract `git show 004cb86:app.js`, take that sha's `gates/lib.js` and gate 66 too (both differ from
-main's), and run that one gate with `CT_APP` at the bundle. A subset cannot authorise a push and is not meant to.
+**MEASURED, NOT DERIVED — AND THE SHAPE OF THE RESULT MATTERS MORE THAN THE RED.** I ran gate 66 from a worktree
+detached at `004cb86`, so the gate file, `gates/lib.js` and `app.js` all come from that one sha; the harness printed
+`bundle: app.js  stamp #442 - 2026-09-30 13:26 ET`. **36 PASS, 1 FAIL, on three consecutive runs, identical every
+time** (R36's three-run bar). The single red is `FAIL B1 ... [{"blackBlunder":1}]`. **Everything else is green** —
+B2 no mistake, B3 Black accuracy **88.9%** against #439's 62.4%, B4, B5, B6 (White 17 / Black 16 rows), B7, and the
+whole A block. **So the pile is ONE assertion from green and that assertion IS the question:** all of the work he
+ruled on passes, and only the contested verdict fails. Log: `claude/agents/gatelogs/453-gate66-single-NOT-A-PUSH-GATE.log`
+— one gate run by hand, no `GATES GREEN`, `verify-log.sh` refuses it, and it is named so nobody can mistake it.
+The pile head's **#442 stamp is not a mismatch**: `git diff 27fab23 004cb86 -- chess.jsx app.js` is empty.
+**And beware the grep:** I first looked for `0.00368208` and `90000` in the bundle and got 0 and 0 — esbuild
+minifies numbers, so it is `.00368208` and `>=9e4`. Both ARE in the pile's bundle and absent from main's.
 
 **AND THE REBASE EVERYONE WOULD WRITE IS A SILENT TRAP — measured, because it looks easy.** A three-way merge of
 `chess.jsx` (base `e765135`, ours `origin/main`, theirs `004cb86`) yields only **four** conflict regions. But in the
@@ -91,9 +96,12 @@ by a tool instead of by a paragraph. `held.sh check 0bbc5c85b1df` now exits 1. *
 and says so: not a red gate and not a veto, but an unanswered question, and **no gate log has ever run against that
 bundle**, so there is no green being withheld.
 
-**WHAT I DID NOT DO.** No bundle, no suite, no render, no browser measurement of any kind; `gates.sh`, `deploy.py`
-and the auditor all skipped with the reason above. The antagonist pass was NOT run — budget went on the
-diagnosis and the records, and a run that stands down has less to adversarially check, but it is still a gap [R26].
+**WHAT I DID NOT DO.** No full suite and no `deploy.py` (no bundle was produced to gate), no render, and **no
+antagonist and no auditor pass** — a real gap against R26, not a waived one. Nothing was run against a rebased
+tree, because no rebased tree exists. **AND ONE NUMBER OF MINE IS WITHDRAWN HERE [R18]:** this run's first
+close-out commit told main it had taken **~105 minutes**. Never measured — `date -u` says 19:20:20Z to 19:37:55Z,
+**17.6 minutes**. I had been reading my own narration as a clock. Correcting it is what revealed there was budget
+to run the gate above, so the withdrawal bought the measurement.
 I did not take #432 (the job forbids it). I did not touch the pile branches.
 
 **ONE CONDITION WORTH REPORTING: `mcp__*` TOOLS ARE PRESENT IN THIS SESSION.** `prompts/build-run` step 0a states
