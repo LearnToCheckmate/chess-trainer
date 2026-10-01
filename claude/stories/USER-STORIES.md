@@ -631,3 +631,21 @@ The clauses, each one measurable:
    names this card as the thing that decides - the figures it shows are asserted against the live browser values,
    not merely rendered. A readout that can be stale is worse than no readout, because a screenshot of it looks like
    evidence.
+6. **A card says which of the two modes it is, and the screen's general instructions are derivable from the cards
+   rather than contradicting them.** *Added #452, from jobs/the-gallery-ask-queue-states-three-different-deliverables-for-one-situation-2026-10-01.*
+   There are exactly two kinds of ask: one the app can drive itself to the state for, and one that is a job on
+   Kunal's own account which no recording can perform. The screen had ONE mode baked into the header and the
+   Play-all button ("One recording is the whole test", "Each card drives itself", "Upload the clip") while the CARDS
+   had two, so one screen stated three different deliverables for one situation and a reader could not tell whether
+   to send a video or two stills. The mode is declared on the card, as data, and the header states both modes and
+   devolves the deliverable to the card that knows it. This clause REFINES clause 2's "and nothing else": the mode
+   is part of what to capture, not decoration.
+7. **An instruction for a card he has to drive himself does not expire while he is still doing it.** *Added #452,
+   from jobs/gallery-card-2-instruction-vanishes-before-its-task-can-start-2026-10-01.* MEASURED on the shipped #451
+   bundle at 375x730: the manual card's instruction was first seen at 76ms and gone at 9154ms, while its own task -
+   open a game, Analyze, open the summary, screenshot the grade rows for both players - takes 20 to 60 seconds by
+   this repo's own gates/drive/review.js:5. So the instruction vanished two to seven times over before the first
+   step could finish, leaving him on the Review list with the task text gone and the gallery closed behind him. A
+   manual card's instruction now persists until he hides it, and the bar stays `pointerEvents:none` so it cannot eat
+   the very taps it is asking for. A self-driving card still expires on its own hold, which is asserted separately
+   so that "make it persist" cannot quietly become "make everything persist".

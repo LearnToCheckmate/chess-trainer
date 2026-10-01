@@ -296,3 +296,54 @@ the rotating audit's resume point, which A corrected - **gates 17, 18 and 19 DO 
 15, 16, 20, and `git log --diff-filter=D` finds no deletion), so the "unswept gap at 17-19" that the #450 pen note
 handed me is an artefact of NUMBERING, and RUN-LOG's own #449 close-out line already gave the correct frontier. A
 audited **23-full-walk** instead, all 11 of its assertions, and the next pass starts at **24-opponent-handshake**.
+
+---
+
+**TC-GL-002 - the gallery declares which of its two modes each card is, and a card the player has to drive himself
+keeps its instruction on screen until he hides it.** US-GL-01, clauses 6 and 7.
+
+*(Added #452, from the two P1 jobs #451's antagonist B raised from the shipped-surface door:
+`gallery-card-2-instruction-vanishes-before-its-task-can-start-2026-10-01` and
+`the-gallery-ask-queue-states-three-different-deliverables-for-one-situation-2026-10-01`. They are one case because
+they are one cause: the screen had ONE mode baked into the header and the Play-all button while the CARDS had two.)*
+
+**INPUTS, 4 browser sessions.** 375x730 (Kunal's real phone) twice - once for the text assertions, once for the 30s
+hold - plus 320x568 and 375x568 for the Hide control's rect. The two short geometries are there because the job's own
+`notChecked` named them: B measured 375x730 only, twice.
+
+**WHY 30 SECONDS, AND IT IS NOT A ROUND NUMBER SOMEBODY LIKED.** The manual card's own text asks him to open a game,
+hit Analyze, open the summary and screenshot the grade rows for both players. This repo's own
+`gates/drive/review.js:5` puts a first analysis at **~20-60 s**. So 30 s sits INSIDE the task's own measured range:
+an instruction gone at 30 s is gone before the median run of the task it is giving. The assertion is "it outlives its
+own task", not "it lasts a number I chose".
+
+**PASS CONDITIONS, each its own assertion (block M of `gates/regress/15-gallery-playall.js`).**
+- **M1** every ask card declares exactly one mode on its face, read off the card's own rendered text.
+- **M2** the mix is the one this commit declares (`EXPECTED_MANUAL` 1, `EXPECTED_AUTO` 1), and that pin is asserted
+  self-consistent with `EXPECTED_N` - parameterised like the card pin, never read back off the cards.
+- **M3** the header names BOTH modes in the same words the cards use, and no longer carries the measured falsehood
+  "Each card drives itself" while a card says the taps are his.
+- **M4** tap the manual card: the instruction is present just after the tap (so the state the hold is about was
+  actually reached - #385's rule) AND still present at 30 000 ms.
+- **M5** the held bar is still `pointerEvents:none`, so it cannot eat the taps the card is asking for. **This guards
+  the regression THIS fix could have introduced**: the bar is 92vw across the bottom strip, and the whole point of a
+  manual card is that he taps things.
+- **M5b/M6/M7** a Hide control exists while held, is a >=44px target (invariant 1), sits fully inside the viewport at
+  all three geometries - no horizontal spill, the unrecoverable one - and tapping it clears the instruction.
+- **M8** a SELF-DRIVING card still expires on its own 10s hold. Without this, "make it persist" could have become
+  "make everything persist" and nothing would have noticed.
+
+**KEYED TO WHAT THE SCREEN SAYS, NOT TO WHAT THIS BUILD ADDED [#432].** M1/M2/M3/M4 read rendered text and locate the
+manual card by the label the pin already spells (`2 · KEV`), which the #451 bundle renders too. That is what makes the
+control meaningful: against the real shipped #451 bundle these go red because the screen genuinely declares no mode
+and its instruction genuinely expires, **not because a hook is missing** - which is the trap #432 wrote up, where an
+assertion keyed to its own build's new attribute returned PASS on the one bundle where the defect was present. The ONE
+exception is named rather than smoothed: M5b/M6/M7 read `[data-ct="rec-cap-done"]`, a control this build introduces,
+so they cannot be controlled against #451 and are positive claims about a new mechanism only.
+
+**NEGATIVE CONTROL: the real shipped #451 bundle** (`CT_APP`, md5 `aba551f896c7`) - free, and the actual broken
+build. Measured independently before the gate was written, by a standalone probe at 375x730: the manual card's
+instruction is first seen at **76 ms** and gone at **9154 ms**, with no mode badge and no Hide control. That
+reproduces antagonist B's two trials (9229 ms, 9203 ms) to within 75 ms and matches `h:9000` in the source.
+`CT_G15_NC=holdoff` additionally controls M4 against the ASSERTION rather than the app, by removing the banner at
+9 s on a fixed bundle.

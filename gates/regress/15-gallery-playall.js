@@ -716,4 +716,149 @@ L.run(async()=>{
     L.say(bad2.length===0,'F '+glab+': no app error in the gallery or the readout',{other:bad2.slice(0,2)});
     await b.close();
   }
+
+  /* #452 BLOCK M: THE TWO MODES, AND THE INSTRUCTION THAT MUST OUTLIVE ITS OWN TASK.
+     Two P1 jobs from #451's antagonist B, and they share one cause: the screen had ONE mode baked into the header
+     and the Play-all button while the CARDS had two.
+       jobs/gallery-card-2-instruction-vanishes-before-its-task-can-start-2026-10-01
+       jobs/the-gallery-ask-queue-states-three-different-deliverables-for-one-situation-2026-10-01
+
+     WHY 30 SECONDS AND NOT A ROUND NUMBER I LIKED. The manual card's own text asks Kunal to open a game, hit
+     Analyze, open the summary and screenshot the grade rows for both players. This repo's own
+     gates/drive/review.js:5 puts a first analysis at "~20-60 s". So 30 s is INSIDE the task's measured range: an
+     instruction that is gone at 30 s is gone before the median run of the task it is giving. The assertion is
+     "it survives its own task", not "it lasts a number".
+
+     KEYED TO WHAT THE SCREEN SAYS, NOT TO WHAT THIS BUILD ADDED [#432]. M1/M2/M3 read RENDERED TEXT and locate the
+     manual card by the label the pin already spells ('2 - KEV'), which the #451 bundle renders too. That is what
+     makes the control below meaningful: against the real shipped #451 app.js these assertions go red because the
+     screen genuinely does not declare a mode and its instruction genuinely expires, NOT because a hook is missing.
+     The ONE exception is named rather than smoothed: M5b/M6/M7 read [data-ct="rec-cap-done"], a control this build
+     introduces, so they cannot be controlled against #451 and are positive claims about a new mechanism only.
+
+     CONTROL, RUN AND RECORDED: CT_APP=<the shipped #451 app.js, md5 aba551f896c7> - the ideal control, free, and
+     the actual broken build. Result in the run report and in the control-record line below. */
+  const MODE_AUTO='DRIVES ITSELF', MODE_MANUAL='YOUR TAPS';
+  const MANUAL_CARD='2 · KEV';     // as PINNED_IDS spells it; present on #451 and on #452
+  const EXPECTED_MANUAL=1, EXPECTED_AUTO=1, HOLD_MS=30000;
+  {
+    const b=await L.launch({geo:'kunal730',name:'modes-kunal730',store:{ct_pool:'3'}});await b.open();
+    await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+    const screen=await b.page.evaluate(({A,M})=>{
+      const cards=[...document.querySelectorAll('button[data-ct="ask-card"]')];
+      // the header blurb, located by a sentence BOTH bundles carry, so this read is portable
+      const blurb=[...document.querySelectorAll('div')].filter(d=>(d.innerText||'').indexOf('This list holds only what I still need')>=0)
+        .sort((x,y)=>(x.innerText||'').length-(y.innerText||'').length)[0];
+      const bt=blurb?(blurb.innerText||'').replace(/\s+/g,' ').trim():null;
+      return {n:cards.length, blurb:bt,
+        cards:cards.map(c=>{const t=(c.innerText||'').replace(/\s+/g,' ').trim();
+          return {head:t.split(' · ').slice(0,2).join(' · ').slice(0,20), auto:t.indexOf(A)>=0, manual:t.indexOf(M)>=0};}),
+        headerNamesAuto:bt?bt.indexOf(A)>=0:false, headerNamesManual:bt?bt.indexOf(M)>=0:false,
+        headerStillClaimsAllDrive:bt?bt.indexOf('Each card drives itself')>=0:false};
+    },{A:MODE_AUTO,M:MODE_MANUAL});
+    L.note('M gallery header: '+String(screen.blurb).slice(0,150));
+    L.note('M cards: '+JSON.stringify(screen.cards));
+    // M1: every card declares exactly one mode, in the words the header uses. Read off the card's own text.
+    const declared=screen.cards.filter(c=>c.auto!==c.manual).length;
+    L.say(screen.n===EXPECTED_N&&declared===EXPECTED_N,
+      'M1: every one of the '+EXPECTED_N+' ask cards declares exactly one mode on its face ('+declared+' of '+screen.n+')',screen.cards);
+    // M2: and the mix is the one THIS COMMIT declares - parameterised, like EXPECTED_N, never read back off the cards
+    const nMan=screen.cards.filter(c=>c.manual&&!c.auto).length, nAuto=screen.cards.filter(c=>c.auto&&!c.manual).length;
+    L.say(EXPECTED_MANUAL+EXPECTED_AUTO===EXPECTED_N,'M2: the mode pin is self-consistent with EXPECTED_N',{EXPECTED_MANUAL,EXPECTED_AUTO,EXPECTED_N});
+    L.say(nMan===EXPECTED_MANUAL&&nAuto===EXPECTED_AUTO,
+      'M2: the queue holds the '+EXPECTED_MANUAL+' manual and '+EXPECTED_AUTO+' self-driving card this commit declares',{nMan,nAuto});
+    // M3: the header states both modes and no longer asserts that every card drives itself (the measured falsehood)
+    L.say(screen.headerNamesAuto&&screen.headerNamesManual,
+      'M3: the header names BOTH modes in the same words the cards use',{auto:screen.headerNamesAuto,manual:screen.headerNamesManual});
+    L.say(screen.headerStillClaimsAllDrive===false,
+      'M3: the header no longer claims "Each card drives itself" while a card says the taps are his');
+    await b.close();
+  }
+  {
+    /* M4, THE HEADLINE. Tap the card the pin marks manual and hold the clock on it. Assert the banner was UP
+       first (#385: when an assertion says X is present in state S, prove S was reached and X was there to begin
+       with), then that it is STILL up at 30 s. On the #451 bundle it is gone at ~9 s. */
+    const b=await L.launch({geo:'kunal730',name:'hold-kunal730',store:{ct_pool:'3'}});await b.open();
+    await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+    const card=b.page.locator('button[data-ct="ask-card"]',{hasText:MANUAL_CARD}).first();
+    const found=await card.count();
+    L.say(found>0,'M4: the manual card "'+MANUAL_CARD+'" is on the gallery to tap',{found});
+    if(found>0){
+      const t0=Date.now();await card.click();await b.settle(1200);
+      const up0=await b.page.evaluate(()=>!!document.querySelector('[data-ct="rec-cap"]'));
+      L.say(up0,'M4: the instruction IS on screen just after the tap (the state the hold is about was reached)',{atMs:Date.now()-t0});
+      /* NC holdoff controls THIS assertion rather than the app: it removes the banner at 9 s, which is what the
+         #451 bundle does by itself. It proves M4 can SEE a vanishing instruction. */
+      if(NC==='holdoff'){await b.page.evaluate(()=>{setTimeout(()=>{const e=document.querySelector('[data-ct="rec-cap"]');if(e)e.remove();},9000);});
+        L.note('NC holdoff: the banner is removed at 9000ms, reproducing the #451 dwell');}
+      while(Date.now()-t0<HOLD_MS)await b.settle(1000);
+      const st=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rec-cap"]');if(!e)return {up:false};
+        const d=document.querySelector('[data-ct="rec-cap-done"]');const r=d?d.getBoundingClientRect():null;
+        return {up:true,barPe:getComputedStyle(e).pointerEvents,txt:(e.innerText||'').replace(/\s+/g,' ').trim().slice(0,90),
+          done:!!d,donePe:d?getComputedStyle(d).pointerEvents:null,
+          doneRect:r?{w:+r.width.toFixed(2),h:+r.height.toFixed(2),right:+r.right.toFixed(2),top:+r.top.toFixed(2)}:null,vw:innerWidth};});
+      L.note('M4 at '+(Date.now()-t0)+'ms: '+JSON.stringify(st));
+      L.say(st.up===true,'M4: the manual card\'s instruction is STILL on screen at '+HOLD_MS+'ms - longer than the 20-60s its own task takes (gates/drive/review.js:5)',st);
+      /* M5: and it must not have bought that by eating his taps. The bar is 92vw over the bottom strip; the whole
+         point of the card is that HE taps things, so the bar stays pointerEvents:none and only the Hide target
+         takes events. This guards the regression THIS fix could have introduced. */
+      L.say(st.up&&st.barPe==='none','M5: the held instruction bar still passes taps through (pointerEvents none), so it cannot eat the taps the card asks for',{barPe:st.barPe});
+      L.say(st.done===true&&st.donePe==='auto','M5b: a tappable Hide control exists while the instruction is held',{done:st.done,pe:st.donePe});
+      if(st.doneRect){
+        L.say(st.doneRect.w>=44&&st.doneRect.h>=44,'M6: the Hide control meets the 44px tap-target minimum ('+st.doneRect.w+'x'+st.doneRect.h+')',st.doneRect);
+        L.say(st.doneRect.right<=st.vw,'M6: the Hide control sits inside the viewport - no horizontal spill, which is the unrecoverable one',{right:st.doneRect.right,vw:st.vw});
+      }
+      // M7: the control does what it says
+      if(st.done){await b.page.locator('[data-ct="rec-cap-done"]').click();await b.settle(500);
+        const gone=await b.page.evaluate(()=>!!document.querySelector('[data-ct="rec-cap"]'));
+        L.say(gone===false,'M7: tapping Hide clears the instruction',{stillUp:gone});}
+    }
+    const badM=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
+    L.say(badM.length===0,'M: no app error while holding and hiding the instruction',{other:badM.slice(0,2)});
+    await b.close();
+  }
+  {
+    /* M8: THE FIX MUST NOT HAVE WIDENED. A self-driving card still expires on its own hold - card 1 carries
+       h:10000, so it must be gone well before the 30 s the manual card now holds for. Without this, "make it
+       persist" could have been implemented for every card and nothing would have noticed. */
+    const b=await L.launch({geo:'kunal730',name:'autoexpire',store:{ct_pool:'3'}});await b.open();
+    await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+    const auto=b.page.locator('button[data-ct="ask-card"]',{hasText:'1 · PHONE'}).first();
+    if(await auto.count()>0){
+      const t0=Date.now();await auto.click();await b.settle(1200);
+      const up0=await b.page.evaluate(()=>!!document.querySelector('[data-ct="rec-cap"]'));
+      L.say(up0,'M8: the self-driving card\'s caption appears when tapped (the state is reached)');
+      /* M8 IS THE ONE ASSERTION IN THIS BLOCK THE #451 BUNDLE CANNOT CONTROL, because it PASSES there too - #451
+         expires every card, measured at 16308ms, so M8 is green on the broken build by agreeing with it. That is
+         what M8 is for (it guards against "make it persist" becoming "make EVERYTHING persist") and it is also
+         exactly the uncontrolled-assertion charge this project keeps paying, so it gets its own control at the
+         ASSERTION rather than the app: CT_G15_NC=persistall pins a banner node that never goes away, which is what
+         a bundle that over-applied the fix would look like from here. M8 must go red under it. */
+      if(NC==='persistall'){await b.page.evaluate(()=>{const d=document.createElement('div');
+        d.setAttribute('data-ct','rec-cap');d.textContent='NC persistall: a banner that never expires';
+        d.style.cssText='position:fixed;bottom:0;left:0;opacity:0.01';document.body.appendChild(d);});
+        L.note('NC persistall: a rec-cap node is pinned so it cannot expire - what over-applying the fix would look like');}
+      while(Date.now()-t0<16000)await b.settle(1000);
+      const still=await b.page.evaluate(()=>!!document.querySelector('[data-ct="rec-cap"]'));
+      L.say(still===false,'M8: a SELF-DRIVING card still expires on its own 10s hold - the persistence is scoped to manual cards only',{atMs:Date.now()-t0,still});
+    }
+    await b.close();
+  }
+  /* M6 at the two narrow/short geometries the job named under notChecked: the dwell is a timeout and is not
+     geometry-dependent, but the Hide control's RECT is. Checked without the 30s wait - the banner is held, so the
+     control is there the moment the card is tapped. */
+  for(const [glab,ggeo] of [['320x568','se'],['375x568','short375']]){
+    const b=await L.launch({geo:ggeo,name:'hide-'+ggeo,store:{ct_pool:'3'}});await b.open();
+    await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+    const card=b.page.locator('button[data-ct="ask-card"]',{hasText:MANUAL_CARD}).first();
+    if(await card.count()>0){
+      await card.click();await b.settle(1500);
+      const r=await b.page.evaluate(()=>{const d=document.querySelector('[data-ct="rec-cap-done"]');if(!d)return null;
+        const q=d.getBoundingClientRect();return {w:+q.width.toFixed(2),h:+q.height.toFixed(2),left:+q.left.toFixed(2),right:+q.right.toFixed(2),top:+q.top.toFixed(2),vw:innerWidth,vh:innerHeight};});
+      L.note('M6 '+glab+': hide control '+JSON.stringify(r));
+      L.say(!!r&&r.w>=44&&r.h>=44&&r.right<=r.vw&&r.left>=0&&r.top>=0,
+        'M6 '+glab+': the Hide control is a 44px target, fully inside the viewport',r);
+    }
+    await b.close();
+  }
 },'GALLERY-PLAYALL');
