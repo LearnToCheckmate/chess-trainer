@@ -611,3 +611,103 @@ threshold question, two from A's rotating audit (gate 20 and gate 21 **never vis
 and gate 20's `docScroll===0` conjunct is true by construction), plus the two corrections above.
 **Rotating audit: started at `20-review.js`, ended at `22-engline-recovery.js`; next pass starts at
 `23-full-walk.js`.**
+
+## #450 — 2026-10-01, `build__1790832010925` — a GATES GREEN log is not a permission, and now something mechanical says so
+
+**ETA 90 min, stated LATE (05:53Z, with the suite already running) and that is a lapse — R30 wants it in the
+check-in row. Actual 78.5 min. Four numbers: open P0 **3**, open P1 **36**, coverage
+**0 of 10**, regression assertions **3138**. Instrument unchanged from #449 so the series stays
+comparable (`jobs`, status=ready AND owningLane=build, bucketed on `severity` with a P0/P1 string `priority` as
+fallback), RE-READ at close-out rather than adjusted — my first draft of this line adjusted it arithmetically
+and got it wrong in both directions at once, adding "the 6 P1s this run filed" to 31 when the run filed SEVEN
+and two of them are the orchestrator's and outside the instrument. **And the P0 figure has NOT dropped: I do
+not close my own work [R05], so the job this build shipped still reads `ready` and is still counted.** What
+shipped is on `builds/450`, not in a queue number.** NO APPLICATION CHANGE: `chess.jsx` is byte-identical to `origin/main`
+and the only difference in `app.js` is the build stamp — proved by substituting the stamp, which makes #450's
+bundle byte-identical to #449's at md5 `381a0ec8b79c`. What changed is the push bar.
+
+**THE ITEM.** `jobs/a-gated-green-log-is-not-a-shippable-tree-2026-10-01`, the only priority-11 job in the queue
+and a P0, taken under STEP 1S's sort over 222 ready build jobs (next band is thirteen at 10, so the top was
+unambiguous). At 2026-10-01T00:31Z a run pushed the #441 tree on four green checks, every one correct and every
+one re-run here: `merge-base --is-ancestor` true, `verify-log.sh 441-all.log '#441'` OK at 47 suites / 3097 PASS
+with the footer agreeing, `git show e765135:app.js | md5sum` equal to the md5 that log's own footer names, and
+`git show e765135 --stat` adding only the log file (1 file, 4100 insertions). **None of them can see a hold,
+because every one asks a question about the LOG.** What stopped #441 was two P0s the suite had no gate for:
+measured at the gated sha `409b897`, `chess.jsx` has **0** occurrences of the `_selL` fix and
+`gates/regress/67-sel-cls-consumers.js` is **absent from that tree**, so the 3097-PASS green is honest *and*
+blind. Reverted 17 minutes later by that run's own antagonist.
+
+**WHAT SHIPPED.** `gates/held-trees.tsv`, a register of gated-green trees that must not ship, keyed on three
+things a later run can compute with no network and no tracker: the bundle md5, **every** sha that names the tree,
+and the stamp-independent md5 of `chess.jsx` at that sha. `gates/verify-log.sh` reads it **by default** and
+refuses (check 10), with `--ignore-held` as an override that prints the row and the override loudly. `gates/held.sh
+check | add | list` to ask and to record. The OK line now always reports what the register said and what OK is not.
+`CLAUDE.md` carries the rule in the two places a run actually looks — the before-any-push list and the
+`verify-log.sh` enumeration — and `prompts/build-run` step 3 now tells a run that stands down WITH A GREEN SUITE to
+write the row in the same step and commit it to `main`.
+
+**EIGHTEEN CONTROLS, AND THE STRONGEST WAS FREE AND ON DISK.** The shipped `verify-log.sh` from `origin/main`
+returns **exit 0** on the real `441-all.log`; the #450 version returns **exit 1** on the same file with the same
+arguments. Each of the three keys fires alone (blank the others and it still refuses). A cleared `-` row stops
+matching. A missing register reports `NOT CHECKED`, never a pass. A 5-field row makes both tools agree. A final
+row with no trailing newline still fires. A short or over-long key is counted malformed instead of silently
+matching nothing. And antagonist A's sweep — **both scripts over all 81 archived gatelogs, zero divergences** —
+turns "structurally zero false-positive rate" from an argument in a comment into a measurement over the corpus.
+
+**THE BLIND PAIR BOTH CHANGED THE BUILD, AND ONE CAUGHT ME FABRICATING DATA.**
+- **B VETOED on a FAIL-OPEN inside my own guard**: with the register absent the check was skipped silently while
+  the OK text still claimed *"that no run has held it (checked against gates/held-trees.tsv above)"*, and the
+  cross-reference pointed at blank space because the block only printed on a hit. B: *a guard whose absence is
+  indistinguishable from its success is not a guard.* **The same defect as the `--ignore-held` bug I had already
+  self-caught, one level up, and I did not see it.** B also found that the one sha in this project's history that
+  shipped in error, `e765135`, answered "not held".
+- **A caught two FABRICATED FIELDS in the register's only row.** `heldBy` named a runId that exists in no commit,
+  no RUN-LOG row and no HANDOFF, with an impossible all-zero millisecond tail, decoding to fourteen hours before
+  #441's first commit; `heldAt` matched no commit in the window. **The real runId was in `scores/build`, which I
+  had already read this run.** A's framing, now quoted in the row: *the register's entire thesis is that a later
+  run trusts a row it did not write.* A also required two repairs, both made: three silent dead keys (a 32-hex or
+  uppercase key passed the floor, matched nothing, and was not counted malformed — a floor is only half a bound)
+  and `held.sh check` disagreeing with `verify-log.sh` on a 5-field row. And it disproved a sentence I had just
+  written, that `verify-log.sh` "cannot use `sourceMd5`" — it can, from the log's own ref line, and it now does.
+- **BOTH got one thing wrong, the same way.** Both reported the `RUN-LOG.md:247` citation as dangling, measuring
+  line 247 on **main** (where it is #437's job-counting rule). On `origin/claude/cool-noether-gccllp` it is the
+  #441 row and reads *"then stood down on two P0s from the adversarial pass"*. I was one command from
+  "correcting" a correct citation on the strength of two independent agents agreeing. One line number meaning two
+  things on two trees is not a footnote — it is the defect.
+- **Raw counts published, derived estimate NOT**: A unique 10, B unique 10, common 3, 23 distinct. I was applying
+  B's repairs while A was still auditing, so the artefact moved three times under it and three of A's findings
+  closed mid-pass. A never saw B's report but it saw B's effects, so independence does not hold and
+  (10+3)(10+3)/3 is not published. Fixing B's veto at once was right on the merits; what it cost was that number.
+  **Next paired build: freeze the artefact while the pair runs.**
+
+**THE AUDITOR WAS SKIPPED**, with the reason stated as the procedure requires: this diff moves no layout, no
+control, no string and no application code, so its instrument — interaction at 375x730 with a rect and a PNG per
+finding — is pointed at a surface the change cannot move.
+
+**WHAT I GOT WRONG BEYOND THE ABOVE.** My suite watchdog reported SUITE DIED at 3 of 47 while the suite was fine,
+because I captured the PID by `pgrep -f` and matched a transient shell; `gates.sh` writes its own pid to
+`gates/logs/.suite.lock/pid` and that is what a watcher should read. I briefed the rotating audit to resume at
+`14-*` from the pen note when `RUN-LOG.md` says #449 ended at 22 — then wrote a self-caught note claiming that
+wasted a slot on a re-audit, which was **also wrong**: A covered 14→16 and never reached 20, so the ranges do not
+overlap and the real cost is a GAP at **17, 18 and 19**. Withdrawn in the note that carried it.
+
+**NINE JOBS FILED.** Two the queue needs most, both from the pair and both ranked above what I shipped:
+`jobs/gates-green-does-not-assert-which-gates-RAN-so-a-deleted-gate-is-invisible-2026-10-01` (priority 10 — the
+register lists trees someone *remembered*, while the hazard is that no gate can see a class, and gate 67 is absent
+from main today while the suite reports 47 suites green) and
+`jobs/step-1s-can-hand-the-next-build-a-job-whose-fix-already-shipped-2026-10-01` (priority 10, found in this
+run's own R15 lookback — all 9 jobs the last three builds raised are still `ready` because R05 reserves closing to
+the finder, and one of them at priority 10 had its fix shipped by #449, which is #416's duplicate build wired into
+the sort). Plus `deploy.py` has no gate bar in it (though I then measured that it is a LEGACY path and not how anything
+ships today — its own defaults point at `/home/claude/work/repo`, which does not exist here — so B's "it is the
+one that actually ships" is wrong and I dropped that job from priority 9 to 6 and said why on it), a held row
+should carry a predicate rather than a hash,
+`R41` does not require the `shippable` field, nothing forces a stood-down run to write a row, and this guard's 18
+controls are in no suite.
+
+**THE RECORDS SIDE.** Measured: 16 non-batch `builds` records, exactly **one** (#449) carried a `shippable`
+verdict. All 15 that lacked it were backfilled — 14 as `pushed` from `git merge-base --is-ancestor <sha>
+origin/main`, and #441 as `held: ...`.
+
+**Rotating audit: started at `14-uat-review-card.js`, ended at `16-cpu-result-line.js`. Next pass starts at
+`23-full-walk.js`; 17, 18 and 19 are the gap this run's briefing error left.**
