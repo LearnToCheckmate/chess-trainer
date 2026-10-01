@@ -1930,11 +1930,13 @@ Story clause **US-PL-12**, case **TC-PL-034**.
 
 ---
 
-## #451 (2026-10-01) — the preview gallery flush, and a stand-down on a red this lane may not fix
+## #451 (2026-10-01) — the preview gallery flush. BUILT and stood down by one run, SHIPPED by the next
 
-**WHERE THE BUILD IS: main is UNCHANGED at `1e4b797` (#450).** #451 is committed and pushed to
-`claude/cool-noether-izjtlu` at `8585bef` and is NOT on main. Read `RUN-LOG.md`'s #451 section for the full
-account; this is the short form.
+**WHERE THE BUILD IS: #451 IS ON MAIN.** This paragraph said "main is UNCHANGED at `1e4b797` (#450)" and that
+was true for the run that wrote it; it is now false, and it is corrected rather than deleted so the episode stays
+readable. `build__1790857251814` re-gated the SAME tree to `GATES GREEN #451` (47 suites / 3190 PASS / 0 fail) and
+pushed it. **Do not read this file for where the build is — read `RUN-LOG.md`, newest row at the bottom.**
+Everything below about WHAT #451 is remains accurate; only the "did not ship" verdict changed.
 
 **WHAT IT IS.** `jobs/preview-gallery-flush-and-load-current-asks` (priority 10, Kunal 2026-09-22, the only ready
 priority-10 build job whose `askedBy` names him). The Preview gallery now holds the TWO asks that are actually due
@@ -1946,13 +1948,22 @@ amber record `flags/amber-451-preview-gallery-flush-and-reload`, renders in `cla
 `gates/regress/15-gallery-playall.js` must change in the SAME COMMIT as `SC`. That is the deal, and it is what stops
 the empty-queue state — which is this feature's designed success condition and has no coverage — arriving silently.
 
-**WHY IT DID NOT SHIP.** `GATES RED #451`, 46 green / 1 red, 3189 PASS. The red is gate 26's invariant 3 at
+**WHY IT DID NOT SHIP ON ITS OWN RUN — and why re-gating, not re-pinning, was what landed it.** `GATES RED #451`, 46 green / 1 red, 3189 PASS. The red is gate 26's invariant 3 at
 `short375` (`added:[16]`), a known, filed, pre-existing non-determinism. Measured as not this build's four ways,
 including: this run's own earlier suite had that assertion GREEN over byte-identical app source. Its fix would be a
 re-pin, which `jobs/gate-26-invariant-3-short375-returns-two-values-for-one-bundle-2026-09-30` tells this lane not
 to make. A STRUCTURAL DIAGNOSIS was added to that job: `ICON_PIN` is keyed by viewport WIDTH, the 320 set contains
 16 and the 375 set does not, and `short375` is 375-wide but SHORT — so it is checked against a pin calibrated on a
-tall 375 screen.
+tall 375 screen. **THAT DIAGNOSIS IS WITHDRAWN AS A MECHANISM, by measurement, and the real one is now on the job.**
+The 320 set's 16 is a DIFFERENT ELEMENT ("Roadmap", `451-all-RED.log:842`) from the 16 that appears at `short375`
+("Try again", `:1395`), so re-keying the pin by height would excuse one element with a pin justified by another.
+What actually happens: the Try again button's label is responsive (`chess.jsx:7213`,
+`{rowTiny?'↻':rowNarrow?'↻ Again':'↻ Try again'}`) and gate 26 admits an element to its icon population only if it
+is an svg or a ONE-GRAPHEME text node (`26-invariants.js:353-355`) — so the button **joins the population only when
+`rowTiny` is true**, contributing 16.0, which is exactly the `added:[16] gone:[]` signature. `rowTiny` is
+`boardPx<229` (`chess.jsx:4543`) and `boardPx` comes from the fit loop, the quantity #436 measured reading an
+unsettled frame. The walk did not change: rows/controls/occluded are identical in the green `450-all.log` and the
+red `451-all-RED.log` at all three geometries, and both are pinned per screen.
 
 **TWO OTHER REDS WERE FIXED ON THE WAY, AND ONE OF THEM MATTERS BEYOND THIS BUILD.**
 `65-promotion-after-gameover` block F waited a fixed 3000ms for an ENGINE-BOUND arrival, which means **#450's own
@@ -1960,6 +1971,8 @@ committed GREEN log is not reproducible on this machine** (49/2 twice on the bun
 Now polled, and green at exactly 58 in suite context. `47-menu` TC-MN-018 was mine — it asserted over a 200-character
 SLICE of the block it checks — and now reads the full text, proved still able to red.
 
-**IF YOU PICK THIS UP:** the tree needs only a green suite. Either the gate-26 owner fixes the pin, or a run gets a
-green pass on it (it is roughly a coin flip in suite context and stable standalone). Do NOT re-pin it to get green,
-and do NOT read this file for where the build is — read `RUN-LOG.md`.
+**WHAT THE NEXT RUN SHOULD KNOW.** The tree shipped, so this item is closed as work; the gate-26 instrument fault
+is NOT, and it is still a P1 that can red any run at `short375`. It now has a mechanism and a cheap remaining step
+(read `boardPx` at 375x568 in a browser and confirm it lands near 229). **Do NOT re-pin it to get green.** The real
+blocker in this project is unchanged and untouched by #451: the unshipped pile on `claude/cool-noether-gccllp`,
+which is 18 ahead and 9 behind main and hostage to an open Kunal decision about the mate floor.
