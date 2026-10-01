@@ -772,6 +772,23 @@ L.run(async()=>{
       'M3: the header names BOTH modes in the same words the cards use',{auto:screen.headerNamesAuto,manual:screen.headerNamesManual});
     L.say(screen.headerStillClaimsAllDrive===false,
       'M3: the header no longer claims "Each card drives itself" while a card says the taps are his');
+    /* M9, AND IT IS HERE BECAUSE THE GATE COULD NOT SEE THE ONE DEFECT THAT VETOED THIS BUILD. #452's first
+       bundle rendered its new Hide control as the literal six characters \u2715 and said the same thing in the
+       header sentence that teaches it, because both sat in JSX TEXT position where that is not an escape - while
+       the repo's own two uses (chess.jsx:6382, :7575) are inside JS STRING literals where it is. M5b/M6/M7
+       asserted the control's existence, its 44px box, its pointerEvents and that tapping it works, and every one
+       was green over a button labelled with its own escape sequence: #395's "a container is not its contents",
+       pointed the other way round - there the box was fine and the ink was wrong, here too. Assert the CLASS
+       (no painted string anywhere on this screen is an escape sequence) rather than the instance. */
+    const esc=await b.page.evaluate(()=>{
+      const bad=[];const re=/\\[ux]\{?[0-9a-fA-F]{2,6}/;
+      for(const el of document.querySelectorAll('div,button,span')){
+        if(el.children.length)continue;                       // leaf text only, so a parent is not blamed twice
+        const t=(el.innerText||'').trim(); if(t&&re.test(t))bad.push(t.slice(0,60));
+      }
+      return bad;
+    });
+    L.say(esc.length===0,'M9: no string painted on the gallery is a literal escape sequence rather than the character it names',esc);
     await b.close();
   }
   {
@@ -795,7 +812,7 @@ L.run(async()=>{
       const st=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rec-cap"]');if(!e)return {up:false};
         const d=document.querySelector('[data-ct="rec-cap-done"]');const r=d?d.getBoundingClientRect():null;
         return {up:true,barPe:getComputedStyle(e).pointerEvents,txt:(e.innerText||'').replace(/\s+/g,' ').trim().slice(0,90),
-          done:!!d,donePe:d?getComputedStyle(d).pointerEvents:null,
+          done:!!d,donePe:d?getComputedStyle(d).pointerEvents:null,doneTxt:d?(d.innerText||'').trim():null,
           doneRect:r?{w:+r.width.toFixed(2),h:+r.height.toFixed(2),right:+r.right.toFixed(2),top:+r.top.toFixed(2)}:null,vw:innerWidth};});
       L.note('M4 at '+(Date.now()-t0)+'ms: '+JSON.stringify(st));
       L.say(st.up===true,'M4: the manual card\'s instruction is STILL on screen at '+HOLD_MS+'ms - longer than the 20-60s its own task takes (gates/drive/review.js:5)',st);
@@ -807,6 +824,17 @@ L.run(async()=>{
       if(st.doneRect){
         L.say(st.doneRect.w>=44&&st.doneRect.h>=44,'M6: the Hide control meets the 44px tap-target minimum ('+st.doneRect.w+'x'+st.doneRect.h+')',st.doneRect);
         L.say(st.doneRect.right<=st.vw,'M6: the Hide control sits inside the viewport - no horizontal spill, which is the unrecoverable one',{right:st.doneRect.right,vw:st.vw});
+      }
+      /* M9b/M10: the same class, on the banner and on the control's own label. The banner text is the first
+         thing in every screenshot Kunal sends back, so an escape sequence there is burned into the evidence. */
+      if(st.up){
+        const re=/\\[ux]\{?[0-9a-fA-F]{2,6}/;
+        L.say(!re.test(st.txt||''),'M9b: the held instruction bar paints no literal escape sequence',{txt:(st.txt||'').slice(0,70)});
+      }
+      if(st.doneTxt!==undefined&&st.doneTxt!==null){
+        L.say([...String(st.doneTxt)].length===1,
+          'M10: the Hide control is labelled with ONE character, not with the escape sequence that names it',
+          {label:st.doneTxt,codePoints:[...String(st.doneTxt)].length});
       }
       // M7: the control does what it says
       if(st.done){await b.page.locator('[data-ct="rec-cap-done"]').click();await b.settle(500);
