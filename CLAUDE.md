@@ -425,6 +425,40 @@ wider one.
   done, and a spec marked build-ready is a statement about the spec, not about the repo.** What saved that run
   was the antagonist pass on the duplicate build, which found a live defect the real #399 had shipped without:
   see `online-clock-starts-at-invite-not-at-game`. #416.
+- **`GATES GREEN` MEANS THE SUITE PASSED. IT DOES NOT MEAN THE TREE MAY SHIP, AND I LEARNED THAT BY PUSHING ONE
+  THAT MAY NOT.** At 00:31Z on 2026-10-01 I pushed `e765135` to main and reverted it 17 minutes later. The reasoning
+  that got me there was half right and is worth keeping: nine runs had stood down on the push reading RED off a
+  34-commit pile's HEAD, and **the red was not distributed — it lived entirely in one commit**, `1667853`, #441's
+  ungated mate floor, sitting ON TOP of a tree #441 itself had gated at 47 suites / 3097 PASS / 0 fail. Four commands
+  confirmed that tree: `git merge-base --is-ancestor origin/main <sha>` (true), `gates/verify-log.sh <its log> '#NNN'`
+  (OK), `git show <sha>:app.js | md5sum` (matched the md5 the log's own footer names), `git show <sha> --stat` (adds
+  only the log). All four were correct. **I still should not have pushed, and no mechanical check in this project
+  would have stopped me.**
+  **WHAT THE FOUR GREENS CANNOT SEE: why that tree was held back at the time.** `RUN-LOG.md:247` says it in one
+  prose sentence — "reached `GATES GREEN #441` at 3097 …, **then stood down on two P0s from the adversarial pass**."
+  The gate suite was green and the adversarial pass was not. Measured after the fact: the fix `_selL` is **0**
+  occurrences in `chess.jsx` at that sha and **6** at the pile head, and `gates/regress/67-sel-cls-consumers.js` — the
+  only gate that reddens on those two P0s — is **absent from main and present on the branch**. So main served two P0s
+  with no gate able to see them. **And one of them is why this is a "revert now" rather than a "fix forward":** it
+  writes a wrong grade label into `ct_mymistakes`, which goes through to `localStorage` (`chess.jsx:2771`, and
+  `SYNC_KEYS` at `:2354`), so it **survives a build** and a later fix cannot clean the installed base. Standing down
+  on a push costs a slot; that push was creating state no later push can undo, and that asymmetry is the whole
+  argument. **So the separability check needs a FIFTH step, and it is the one that matters: read why the candidate
+  tree did not ship at the time — its close-out commit, its RUN-LOG row, its pen note — and push only if the reason is
+  exactly the thing you are leaving behind.** A green suite is necessary and the adversarial pass is part of the bar.
+  **THE SECOND HALF, AND IT IS THE PLAINER FAILURE: NOT SHIPPING A COMMIT IS NOT NEUTRALITY.** I argued that because
+  the mate floor was not in the pushed tree, nothing awaiting an answer shipped. That reads the decision as being
+  about a commit; it is about a sentence on a screen. The three options Kunal has to choose between are (i) a
+  mate-allowing move is always at least a Blunder, (ii) keep the pure chances rule so it grades softly, (iii) its own
+  category — and **a bundle without the floor prints (ii)**. Main went from `?? Blunder` to `?! Inaccuracy / A small
+  slip` on Opera Game ply 30, with the eval bar reading `M2` eight pixels away. `HANDOFF.md` said this in one sentence
+  I had not read before acting: "**DO NOT DROP THE FLOOR EITHER. … Dropping it *is* outcome (ii) of the three Kunal
+  has to choose between, so taking it out is settling his question, not avoiding it.**" This file names `HANDOFF.md`
+  as *read before building*; I read its top block for the branch sha and went to work. **When a deadlock has lasted
+  nine runs, the reason is usually written down by one of the nine — and a way out that nobody took is more likely to
+  be a trap than an oversight.** Found by this run's own antagonist pass, 15 minutes after the push, which is the
+  single clearest case in this project's history for why that pass may veto. `jobs/a-gated-green-log-is-not-a-shippable-tree-2026-10-01`,
+  `jobs/a-red-pile-head-is-not-a-red-pile-2026-10-01`, `flags/antagonist-a-447run`; the revert is `364f700`.
 - **AN ASSERTION KEYED TO A HOOK YOUR OWN BUILD ADDS CANNOT BE CONTROLLED, AND ITS CONTROL WILL LOOK LIKE IT WORKED.**
   #432 added `[data-ct="games-cap"]` to the Review limit line and wrote three assertions that queried it. Run against
   the shipped #431 bundle - the ideal control, free, and the actual broken build - the attribute does not exist, so
