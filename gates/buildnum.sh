@@ -40,6 +40,13 @@
 #                                    append a `built` row. gates/build.sh calls this itself after a successful
 #                                    bundle, so every number RESOLVES to the artefacts stamped with it.
 #   gates/buildnum.sh list           every row, newest number last, notes in full.
+#   gates/buildnum.sh sweep [--add]  AUDIT THE REGISTER AGAINST THE COMMIT HISTORY: every #NNN named by a
+#                                    commit subject on any ref that is NOT on the register. --report (the
+#                                    default) prints and exits 3 if any are absent; --add records them as
+#                                    `issued`. Needs CT_RUNID to write, and REFUSES to write from a
+#                                    shallow clone. Always prints the commit and ref count it measured
+#                                    over, because a shallow clone finds fewer missing and so reports a
+#                                    falsely clean sweep - the backfill was a snapshot, this keeps it true.
 #
 # POINT 2 OF THE JOB BRIEF IS DELIVERED HERE AND NOT IN THE STAMP, AND THAT IS A CORRECTION TO THE BRIEF RATHER
 # THAN A SHORTCUT. The brief asks that "the stamp carries the REF, not just the number", offering `#422
@@ -393,6 +400,76 @@ case "${1:-}" in
       echo "  mid-run rebuilds) but it means 'measured on #$N' is AMBIGUOUS from here on: cite the md5 too."
     fi
     echo "buildnum.sh: recorded #$N bundle $MD5 source $SRC." ;;
+
+  sweep)
+    # THE REGISTER'S DENOMINATOR WAS FROZEN THE DAY IT WAS BACKFILLED, AND NOTHING NOTICED IT THAWING.
+    # #454 backfilled this file from RUN-LOG.md and the committed gate-log filenames. Both sources only carry a
+    # number once a run has written its records, so a run that used a number and did NOT ship is invisible to
+    # them - and three of the four builds on 2026-10-02 stood down on the push. MEASURED HERE at #465, on an
+    # UNSHALLOWED clone of 857 commits: 312 distinct numbers are named in commit subjects across all refs, 226
+    # are on the register, and 88 are named by a commit and absent from it. The one that matters is #463, whose
+    # own close-out commit edb4496 says "NOT SHIPPED": `check '#463'` answered `free`, and `free` is the one
+    # answer this register must never give wrongly, because gates/build.sh refuses only numbers it can SEE.
+    # So the backfill was not the fix; a backfill is a snapshot, and this is the sweep that keeps it true.
+    # WHAT THIS CAN AND CANNOT CLAIM. It claims "this number was NAMED by a commit subject", which is exactly
+    # the register's `issued` semantics - the number was used, final disposition not established. It does NOT
+    # claim a bundle was stamped with it: 126 of the mentions are non-leading ("Revert main to #439", "docs
+    # after #374"), which name a number without being its build, and that is still evidence the number is
+    # spent. Checked before trusting the regex: this repository puts no issue or PR references in commit
+    # subjects, so every #NNN in one is a build number.
+    MODE="${2:---report}"
+    case "$MODE" in --report|--add) ;; *)
+      echo "usage: gates/buildnum.sh sweep [--report|--add]"; exit 2;; esac
+    # RUN GIT IN THE REGISTER'S OWN REPOSITORY, NOT IN $PWD. The register is resolved from $HERE and the
+    # history must come from the same place, or the sweep compares one repo's commits against another repo's
+    # register and both halves look fine. gates/buildnum-selftest.sh runs this tool from a temp directory
+    # while the caller sits inside the real checkout, which is exactly that mismatch.
+    if ! git -C "$HERE" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      echo "buildnum.sh sweep: not inside a git work tree, so there is no history to sweep. Nothing measured."
+      exit 2; fi
+    # PRINT THE DENOMINATOR, AND REFUSE TO CALL A SHALLOW SWEEP CLEAN. A shallow clone sees fewer commits, so it
+    # names fewer numbers, so it finds fewer missing and reports success - the frozen denominator wearing the
+    # sweep's own clothes. #405 closed a ledger at the number that happened to be true that day and it answered
+    # "none" to the question it existed for. This one says what it measured over, every time.
+    NREFS="$(git -C "$HERE" for-each-ref --format='%(refname)' 2>/dev/null | wc -l | tr -d ' ')"
+    NCOMMITS="$(git -C "$HERE" log --all --format='%H' 2>/dev/null | wc -l | tr -d ' ')"
+    SHALLOW=no; [ -f "$(git -C "$HERE" rev-parse --absolute-git-dir 2>/dev/null)/shallow" ] && SHALLOW=yes
+    NAMED="$(git -C "$HERE" log --all --format='%s' 2>/dev/null | grep -oE '#[0-9]{3,4}' | tr -d '#' | sort -un)"
+    NNAMED="$(printf '%s\n' "$NAMED" | grep -c '[0-9]' || true)"
+    ONREG="$(rows | cut -f1 | sort -un)"
+    NONREG="$(printf '%s\n' "$ONREG" | grep -c '[0-9]' || true)"
+    ABSENT="$(comm -23 <(printf '%s\n' "$NAMED" | grep '[0-9]') <(printf '%s\n' "$ONREG" | grep '[0-9]'))"
+    NABSENT="$(printf '%s\n' "$ABSENT" | grep -c '[0-9]' || true)"
+    printf 'buildnum.sh sweep: measured over %s commits on %s refs (shallow: %s)\n' "$NCOMMITS" "$NREFS" "$SHALLOW"
+    printf '  %s distinct number(s) named in a commit subject; %s on %s; %s NAMED AND ABSENT.\n' \
+      "$NNAMED" "$NONREG" "$(basename "$REG")" "$NABSENT"
+    if [ "$SHALLOW" = yes ]; then
+      echo "  WARNING - THIS CLONE IS SHALLOW, so the count above is a LOWER BOUND and a clean result proves"
+      echo "  nothing. Run \`git fetch --unshallow\` first, or treat this sweep as unmeasured."; fi
+    if [ "$NABSENT" = "0" ]; then
+      [ "$SHALLOW" = yes ] && { echo "  no absent numbers found, but see the shallow warning above"; exit 3; }
+      echo "  the register names every number any commit does."; exit 0; fi
+    echo "  absent: $(printf '%s\n' "$ABSENT" | grep '[0-9]' | tr '\n' ' ')"
+    if [ "$MODE" != "--add" ]; then
+      echo "  These answer \`free\` to check and to gates/build.sh, which is the answer that creates a second"
+      echo "  tree under one number. Re-run as \`gates/buildnum.sh sweep --add\` to record them, then commit."
+      exit 3; fi
+    if ! need_runid; then
+      echo "buildnum.sh sweep --add: CT_RUNID is not set. Rows whose author cannot be traced are half a record."
+      exit 2; fi
+    [ "$SHALLOW" = no ] || { echo "buildnum.sh sweep --add: refusing to write from a SHALLOW clone - the rows"
+      echo "  would be a partial backfill presented as a complete one. Unshallow first."; exit 2; }
+    AT="$(date -u +%Y-%m-%dT%H:%MZ)"
+    lock_take || exit 1
+    N_WROTE=0
+    for n in $(printf '%s\n' "$ABSENT" | grep '[0-9]'); do
+      in_range "$n" || continue
+      append_row "$(printf '%s\tissued\t-\t-\t-\t%s\t%s\tgit-log\t%s' "$n" "$AT" "$CT_RUNID" \
+        "Swept in: a commit subject on some ref names #$n, so the number was used and must never be reused. State issued, not shipped - a commit subject does not prove a bundle. Found by buildnum.sh sweep over $NCOMMITS commits on $NREFS refs.")"
+      N_WROTE=$(( N_WROTE + 1 ))
+    done
+    lock_free
+    printf 'buildnum.sh sweep: recorded %s number(s) as issued. Commit %s to main.\n' "$N_WROTE" "$(basename "$REG")" ;;
 
   list)
     # LINT FOR THE INVERSE OF held.sh's LESSON (#454, antagonist B). held.sh guarded against a row that LOOKS

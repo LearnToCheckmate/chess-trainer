@@ -207,6 +207,55 @@ ck "a sha that names no object is refused"  2 env CT_RUNID=selftest "$BN" add "#
 ck "a real short sha is accepted"           0 env CT_RUNID=selftest "$BN" add "#997" held 004cb86 - "a note long enough to pass the floor here"
 ck "a sha of a single comma is refused"     2 env CT_RUNID=selftest "$BN" add "#995" held , - "a note long enough to pass the floor here"
 
+# 27. SWEEP: THE REGISTER'S DENOMINATOR, AND THE SHALLOW CLONE THAT MAKES A CLEAN SWEEP MEANINGLESS.
+# #465 measured 88 numbers named by a commit subject and absent from the register, #463 among them - a number
+# whose own close-out commit says NOT SHIPPED, reading `free` to check and therefore to gates/build.sh. The
+# backfill came from RUN-LOG.md and the gatelog filenames, which only carry a number once a run writes records,
+# so every run that stood down was invisible to it. These cases pin the sweep AND its two refusals; the shallow
+# ones matter most, because a shallow clone names fewer numbers, finds fewer missing and reports success.
+ck "sweep outside a work tree measures nothing and says so" 2 "$BN" sweep
+ck "sweep rejects an unknown mode"                          2 "$BN" sweep --wat
+
+# A GIT FIXTURE WHOSE HISTORY AND REGISTER ARE THE SAME REPOSITORY, which is what the sweep requires and what
+# the first version of it got wrong: it read `git log` from $PWD and the register from $HERE, so running the
+# tool from a temp directory while sitting inside the real checkout compared one repo against another's register.
+GD="$TD/fix"; mkdir -p "$GD"
+cp "$HERE/buildnum.sh" "$GD/buildnum.sh"; chmod +x "$GD/buildnum.sh"
+printf '%s\n' '# fixture register' '900	issued	-	-	-	2026-01-01T00:00Z	fixture	fixture	a note long enough to pass the floor' > "$GD/build-numbers.tsv"
+git -C "$GD" init -q 2>/dev/null
+git -C "$GD" config user.email selftest@example.com; git -C "$GD" config user.name selftest
+git -C "$GD" add -A >/dev/null 2>&1
+git -C "$GD" commit -q -m "#900: the number already on the fixture register" >/dev/null 2>&1
+git -C "$GD" commit -q --allow-empty -m "#901: a number used by a run that never shipped" >/dev/null 2>&1
+git -C "$GD" commit -q --allow-empty -m "docs after #902: a non-leading mention still spends the number" >/dev/null 2>&1
+BG="$GD/buildnum.sh"
+ck "sweep finds the numbers a commit names and the register does not" 3 "$BG" sweep
+eq "and it names both of them"            "901 902 " "$("$BG" sweep 2>/dev/null | sed -n 's/^  absent: //p')"
+eq "it publishes the denominator it measured" "1" "$("$BG" sweep 2>/dev/null | grep -c 'measured over 3 commits')"
+MG="$(md5sum "$GD/build-numbers.tsv" | cut -d' ' -f1)"
+ck "sweep --add refuses with no CT_RUNID" 2 "$BG" sweep --add
+eq "and that refusal wrote nothing"       "$MG" "$(md5sum "$GD/build-numbers.tsv" | cut -d' ' -f1)"
+ck "sweep --add records them with CT_RUNID" 0 env CT_RUNID=selftest "$BG" sweep --add
+ck "and the sweep is then clean"            0 "$BG" sweep
+eq "the rows are issued, not shipped"       "2" "$(awk -F'\t' '$2=="issued" && $8=="git-log"' "$GD/build-numbers.tsv" | wc -l | tr -d ' ')"
+eq "#901 now answers ISSUED rather than free" "1" "$("$BG" check '#901' 2>/dev/null | grep -c 'already on the register')"
+
+# 27b. THE SHALLOW CLONE. Both refusals, and the register md5 either side of the one that writes, because a
+# written warning is not a guard - this project shipped `--ignore-held` whose first draft overrode SILENTLY.
+SD="$TD/shal"
+git clone -q --depth 1 --no-local "file://$GD" "$SD" 2>/dev/null
+if [ -f "$SD/.git/shallow" ]; then
+  cp "$HERE/buildnum.sh" "$SD/buildnum.sh"; chmod +x "$SD/buildnum.sh"
+  grep -v '^901' "$SD/build-numbers.tsv" > "$SD/r.tsv" && mv "$SD/r.tsv" "$SD/build-numbers.tsv"
+  BS="$SD/buildnum.sh"; MB="$(md5sum "$SD/build-numbers.tsv" | cut -d' ' -f1)"
+  ck "a shallow sweep never reports clean"      3 "$BS" sweep
+  eq "and it says the clone is shallow"         "1" "$("$BS" sweep 2>/dev/null | grep -c 'THIS CLONE IS SHALLOW')"
+  ck "sweep --add refuses on a shallow clone"   2 env CT_RUNID=selftest "$BS" sweep --add
+  eq "and wrote nothing when it refused"        "$MB" "$(md5sum "$SD/build-numbers.tsv" | cut -d' ' -f1)"
+else
+  eq "SKIPPED: could not build a shallow fixture" "skip" "skip"
+fi
+
 echo "---"
 echo "buildnum self-test: $P pass, $F fail"
 [ "$F" = "0" ]
