@@ -95,7 +95,20 @@ L.run(async()=>{
   // timeout or the depth moves, the verdicts rot and this line goes red.
   const bundle=process.env.CT_APP||path.join(L.ROOT,'app.js');
   const src=fs.readFileSync(bundle,'utf8');
-  const m=src.match(/Math\.max\((\d+(?:e\d+)?)\s*,\s*\w+\*8\)\)\s*,\s*\w+\s*=\s*(\d+)\s*[,;]/);
+  // THE IDENTIFIER CLASS MUST INCLUDE `$`, AND #457 IS THE BUILD THAT PROVED IT. This regex read `\w+` for
+  // both minified identifiers, and `\w` is [A-Za-z0-9_] - it does NOT match `$`, which is a perfectly legal
+  // JavaScript identifier character that esbuild uses freely. Measured at #457: origin/main's bundle minified
+  // the depth variable to `X` and matched, while the SAME SOURCE VALUES in #457's bundle minified it to `$`
+  // (`Math.max(2e4,p*8)),$=16;` against main's `Math.max(2e4,p*8)),X=16;`) and the match returned null - so all
+  // THREE assertions below went red, reporting `null ms` and `depth null`, on a bundle whose timeout and depth
+  // are byte-identical to main's. A null match is not a measurement: it reported a healthy bundle as broken,
+  // which is this project's "a bad selector is a reading, not a measurement" rule, and it is a landmine that
+  // fires on whichever future build esbuild happens to hand a `$` to. Widened to [\w$]+ - which STRENGTHENS the
+  // locator and leaves both value assertions exactly as they were. Controlled both ways at #457: the widened
+  // pattern matches main's bundle at guard 2e4 / depth 16 AND #457's at guard 2e4 / depth 16, and the OLD
+  // pattern still matches main while failing #457, which is what pins the cause to the identifier class and
+  // not to the values.
+  const m=src.match(/Math\.max\((\d+(?:e\d+)?)\s*,\s*[\w$]+\*8\)\)\s*,\s*[\w$]+\s*=\s*(\d+)\s*[,;]/);
   const guard=m?Number(m[1]):null, depth=m?Number(m[2]):null;
   L.say(!!m,'the review pool\'s search is identifiable in the bundle under test (its guard followed by its depth)',m&&m[0]);
   L.say(guard!==null&&guard>=20000,'the pool\'s stuck-worker timeout is at least 20 s ('+guard+' ms). At 4 s it cut real searches short and stored a shallow opinion as the answer, which is what made a move that walks into mate read as Great.',bundle);

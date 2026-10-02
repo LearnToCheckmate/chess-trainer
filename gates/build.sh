@@ -146,7 +146,17 @@ if [ -z "${CT_OUT:-}" ] && [ -x "$G/buildnum.sh" ]; then
   # MINTEDNESS IS WARNED, NOT ENFORCED - see the header. A number with no `minted` row was chosen by this run
   # rather than issued to it, which is the thing the register exists to end; it is surfaced here so the choice
   # is visible in the build output rather than only discoverable by reading the register later.
-  if ! grep -qE "^$N"$'\t'"minted"$'\t' "$G/build-numbers.tsv" 2>/dev/null; then
+  # #456: THIS GREP CARRIED THE '#' AND THE REGISTER NEVER DOES, so it matched nothing and the NOTE below
+  # fired on EVERY build - including the first correctly minted one, which was this one. Measured at
+  # 2026-10-01T23:33Z on a register holding 2 `minted` rows: `grep -cE "^#456\tminted\t"` is 0 and the same
+  # grep with the '#' stripped is 1, and `grep -c '^#[0-9]'` over the whole file is 0, so no row has ever
+  # carried it. Every other consumer (`stampable`, `record`) normalises the number; this one did not.
+  # IT IS THE ALARM-THAT-IS-ALWAYS-WRONG FAILURE CLAUDE.md RECORDS AT #454, one turn worse: that one was
+  # wrong 4 times in 5, this one was wrong 5 times in 5, and it told the run that had just followed the
+  # documented mint-then-build sequence that it had chosen its own number. The one column that proves the
+  # happy path ran was therefore unreadable by the only thing that reads it.
+  NBARE="${N#\#}"
+  if ! grep -qE "^$NBARE"$'\t'"minted"$'\t' "$G/build-numbers.tsv" 2>/dev/null; then
     echo "build.sh: NOTE - $N has no \`minted\` row, so it was CHOSEN by this run, not issued to it."
     echo "  Not an error and not refused. Next time: CT_RUNID=<runId> gates/buildnum.sh mint '<what for>'."
   fi

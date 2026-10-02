@@ -292,3 +292,5 @@
 456	built	-	1a73a8fa25e0	a66c2ace0422	2026-10-01T23:40Z	build__1790896804500	build.sh	Bundle built and stamped #456. Recorded by gates/build.sh so the number resolves to an artefact.
 456	built	-	04c6f10c3097	66b4e7ec3201	2026-10-01T23:56Z	build__1790896804500	build.sh	Bundle built and stamped #456. Recorded by gates/build.sh so the number resolves to an artefact.
 456	built	-	e7d0499e886b	61ae7f027bec	2026-10-01T23:59Z	build__1790896804500	build.sh	Bundle built and stamped #456. Recorded by gates/build.sh so the number resolves to an artefact.
+457	minted	-	-	-	2026-10-02T00:34Z	build__1790900432948	minted	fix the drill grading baseline to one instrument (cached rankMoves), guard the irreversible mistake-card delete, keep grading out of the brilliant drill, budget the accept sentence
+457	built	-	523fe82fa6bf	932a9738f18f	2026-10-02T00:49Z	build__1790900432948	build.sh	Bundle built and stamped #457. Recorded by gates/build.sh so the number resolves to an artefact.

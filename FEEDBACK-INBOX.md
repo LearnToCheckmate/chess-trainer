@@ -2596,3 +2596,41 @@ feature.
 review bar on the side."* On the drill screen that bar takes width out of a board that is already at its minimum
 on two common phone sizes — so it trades directly against your other complaint, that the board is too small. That
 is your call and not mine, and a Desk item with pictures at your own screen size is being written for it.
+
+---
+
+## #457 — 2026-10-02. Your drill complaint: the arithmetic is fixed, the sentences are not, so nothing shipped.
+
+**Your words, 2026-09-20:** *"why are there two different suggestions, there can only be one best move"* — and your
+design the same day, *"when somebody plays a better move, maybe we should tell them what category it is in ... a
+good move, an excellent move, a brilliant move ... and we should explain why."*
+
+**What was wrong with last night's attempt, and it is now fixed.** #456 graded your move by comparing two numbers
+that were measured with two different instruments, then clamping the difference so it could never go below zero.
+The effect was the opposite of what you asked for: ordinary moves were told **"Best move. Nothing in the position
+beats it."** Measured over 482 moves in 14 positions, 27 of them got that sentence falsely — and in the worst
+position, **15 of the 26 legal moves** all claimed to be the best one. A position cannot have fifteen best moves.
+Both sides of the comparison now come from a single ranking of the position, so that answer is impossible by
+construction rather than clamped away. Three other things were repaired at the same time: finding an equally good
+move no longer **deletes that card from your saved mistakes** (it did, irreversibly, on a shallow verdict); the
+brilliancy drill is no longer graded this way, because there the move being looked for is your own; and where the
+move you missed was a forced mate, the app now says so instead of printing a grade and a contradiction.
+
+**Why you are not getting it tonight.** The adversarial pass found that your own words still cannot reach the
+screen. The sentence the whole feature is named after — *"Best move. Nothing in the position beats it."* — is two
+characters too long for the box, so the app silently falls back to a shorter one and **that sentence can never
+appear at all**. Worse, the "Good" band — the one you asked to say *"there is more here, can you find it?"* —
+prints the **same single sentence for every situation**: a quiet move that leaves you better and a piece thrown
+away that is taken straight back get identical words. That is the "different situations, same words" problem you
+have raised before, in the one band you wrote the wording for. Ironically this build's own new test caught that
+exact fault on the *other* sentence — your "can you find it?" had been appearing **zero times out of 180** — and
+then recreated it one function over. So the arithmetic is right and the writing is not, and shipping half of it
+would have put your own sentences in front of you wrong again.
+
+**What is on main:** a note saying this bundle must not ship and why, plus a fix to one test whose own search
+pattern was broken. **The app on your phone is byte-for-byte the one you had this morning.** The repaired grading
+is saved on a branch with a written hand-over and a new 20-assertion test that carries its own control, so the
+next run picks up the sentences and not the arithmetic.
+
+**Nothing new is waiting on you from this build.** The one question still open from last night is unchanged and is
+on your Decision Desk: *is the move that lets you get mated a Blunder?* Nine builds have now stopped at it.
