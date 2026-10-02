@@ -10,8 +10,20 @@
 #   gates/held.sh check [<bundleMd5-or-sha>]   is this tree held? With no argument, md5sum app.js on disk.
 #                                              exit 0 = not held, exit 1 = HELD (prints the row), 2 = usage.
 #   gates/held.sh add <bundleMd5> <gatedSha> <#NNN> <reason...>    append a row. Refuses a duplicate.
-#                                              Then add the sourceMd5 7th field by hand:
-#                                              git show <gatedSha>:chess.jsx | md5sum | cut -c1-12
+#                                              The sourceMd5 7th field is COMPUTED from the working tree's
+#                                              chess.jsx - the file the run just built from. Override it with
+#                                              CT_SRCMD5=<12 hex> when the held source is not the working tree
+#                                              (git show <gatedSha>:chess.jsx | md5sum | cut -c1-12).
+#
+# WHY `add` COMPUTES THE 7TH FIELD INSTEAD OF ASKING. It used to write '-' and tell the run to fill it in by
+# hand, which made the STRONGEST key opt-in. Measured 2026-10-02 over the register's live rows: one of eight
+# read '-' (#456's). That matters because of what the other two keys cannot survive: gates/build.sh:14 embeds
+# $(TZ=America/New_York date '+%Y-%m-%d %H:%M') in the stamp via --define:__BUILD__, so ANY rebuild of a held
+# source tree in a new minute produces a fresh bundle md5 AND a fresh sha and matches neither of the first two
+# keys. sourceMd5 is the only one of the three that survives a rebuild, and it is the arm `check` uses against
+# the working tree. A row written with it empty looks complete - all seven fields present - and silently has no
+# rebuild protection at all, which is the exact evasion the field was added at #450 to close.
+# jobs/held-sh-add-leaves-the-only-rebuild-proof-key-empty-2026-10-02.
 #   gates/held.sh list                         every live row, reason IN FULL. Cleared rows (the '-' prefix)
 #                                              are listed separately below them, not mixed in.
 #
@@ -105,7 +117,30 @@ case "${1:-}" in
       echo "  author cannot be traced is half a record. Re-run as: CT_RUNID=<your runId> gates/held.sh add ..."
       exit 2
     fi
-    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$MD5" "$SHA" "$BUILD" "$(date -u +%Y-%m-%dT%H:%MZ)" "$CT_RUNID" "$REASON" "${CT_SRCMD5:--}" >> "$REG"
+    # THE 7TH FIELD IS COMPUTED, NOT ASKED FOR. See the header: it is the only key that survives a rebuild, and
+    # leaving it to the operator made it opt-in on the one row that most needed it. An explicit CT_SRCMD5 still
+    # wins, for the case where the held source is not the working tree - validated the same way MD5 is, because
+    # an unvalidated override is just a slower way of writing a row that matches nothing.
+    if [ -n "${CT_SRCMD5:-}" ]; then
+      SRCMD5="$(printf '%s' "$CT_SRCMD5" | tr 'A-F' 'a-f')"
+      case "$SRCMD5" in *[!0-9a-f]*) echo "held.sh add: CT_SRCMD5 '$SRCMD5' is not hex"; exit 2;; esac
+      if [ "${#SRCMD5}" -lt 8 ] || [ "${#SRCMD5}" -gt 12 ]; then
+        echo "held.sh add: CT_SRCMD5 '$SRCMD5' is ${#SRCMD5} chars; it must be 8-12 to match what \`check\`"
+        echo "  computes (\`md5sum chess.jsx | cut -c1-12\`), or the row can never match anything."; exit 2; fi
+      SRCWHY="from CT_SRCMD5"
+    elif [ -r "$ROOT/chess.jsx" ]; then
+      SRCMD5="$(md5sum "$ROOT/chess.jsx" | cut -c1-12)"; SRCWHY="computed from $ROOT/chess.jsx"
+    else
+      SRCMD5="-"; SRCWHY="UNAVAILABLE"
+    fi
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$MD5" "$SHA" "$BUILD" "$(date -u +%Y-%m-%dT%H:%MZ)" "$CT_RUNID" "$REASON" "$SRCMD5" >> "$REG"
+    if [ "$SRCMD5" = "-" ]; then
+      echo "held.sh add: WARNING - chess.jsx is not readable at $ROOT, so the sourceMd5 field is '-' and this"
+      echo "  row has NO rebuild protection: a later run that rebuilds this source tree gets a fresh bundle md5"
+      echo "  and a fresh sha and will match neither key. Fill field 7 in, or re-run with CT_SRCMD5=<12 hex>."
+    else
+      echo "held.sh add: sourceMd5 $SRCMD5 ($SRCWHY)."
+    fi
     echo "held.sh: recorded $BUILD bundle $MD5 sha $SHA. COMMIT THIS TO MAIN, not to the per-run branch -"
     echo "  a row on a branch that never merges is the failure this register was written for." ;;
   list)
