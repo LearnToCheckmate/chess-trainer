@@ -214,7 +214,12 @@ ck "a sha of a single comma is refused"     2 env CT_RUNID=selftest "$BN" add "#
 # so every run that stood down was invisible to it. These cases pin the sweep AND its two refusals; the shallow
 # ones matter most, because a shallow clone names fewer numbers, finds fewer missing and reports success.
 ck "sweep outside a work tree measures nothing and says so" 2 "$BN" sweep
-ck "sweep rejects an unknown mode"                          2 "$BN" sweep --wat
+# THE UNKNOWN-MODE CASE IS ASSERTED AGAINST THE GIT FIXTURE FURTHER DOWN, NOT HERE, AND THAT IS THE WHOLE
+# POINT. #465's antagonist A proved the obvious version vacuous: `$BN` lives in a temp dir that is not a work
+# tree, so `$BN sweep --wat` exits 2 at the work-tree check and NEVER REACHES the mode guard - A deleted the
+# mode guard outright and the control still passed. An exit code shared by two guards cannot tell them apart,
+# so the real case is `ck ... 2 "$BG" sweep --wat` below, where the work-tree check passes and a missing mode
+# guard would exit 3 instead. Same family as the two gates that both asserted exit 2 and read no message.
 
 # A GIT FIXTURE WHOSE HISTORY AND REGISTER ARE THE SAME REPOSITORY, which is what the sweep requires and what
 # the first version of it got wrong: it read `git log` from $PWD and the register from $HERE, so running the
@@ -228,33 +233,114 @@ git -C "$GD" add -A >/dev/null 2>&1
 git -C "$GD" commit -q -m "#900: the number already on the fixture register" >/dev/null 2>&1
 git -C "$GD" commit -q --allow-empty -m "#901: a number used by a run that never shipped" >/dev/null 2>&1
 git -C "$GD" commit -q --allow-empty -m "docs after #902: a non-leading mention still spends the number" >/dev/null 2>&1
+# THE HASHLESS FORM, which the first version of `sweep` could not see. #465's antagonist B measured 27 real
+# subjects reading "Build NNN" with no '#', naming 16 spent numbers that all answered `free`. A fixture that
+# only ever writes '#' agrees with that bug exactly as #432's archive fixtures agreed with theirs.
+git -C "$GD" commit -q --allow-empty -m "Build 903: the hashless form this project's early history actually used" >/dev/null 2>&1
+# AND THE FORMS THAT MUST NOT MATCH, all of them real strings from this repository's own subjects. If the
+# extractor is ever loosened to a bare [0-9]{3,4} these become build numbers and the register fills with
+# assertion totals and geometries.
+git -C "$GD" commit -q --allow-empty -m "GATES GREEN at 3320 assertions, 49 suites / 3320, at 375x730, TC-PL-034, sha 97b1234" >/dev/null 2>&1
 BG="$GD/buildnum.sh"
 ck "sweep finds the numbers a commit names and the register does not" 3 "$BG" sweep
-eq "and it names both of them"            "901 902 " "$("$BG" sweep 2>/dev/null | sed -n 's/^  absent: //p')"
-eq "it publishes the denominator it measured" "1" "$("$BG" sweep 2>/dev/null | grep -c 'measured over 3 commits')"
+eq "it names all three, the hashless Build 903 included" "901 902 903 " "$("$BG" sweep 2>/dev/null | sed -n 's/^  absent: //p')"
+eq "and it takes NOTHING from counts, geometries, case ids or shas" "1" "$("$BG" sweep 2>/dev/null | grep -c 'absent: 901 902 903 $')"
+# THE DENOMINATOR, CROSS-CHECKED AGAINST GIT RATHER THAN HARDCODED. The first version asserted the literal
+# "measured over 3 commits" and went red the moment the fixture gained a commit - a control that breaks when
+# its fixture grows is a control nobody will keep. `git rev-list --count --all` is an INDEPENDENT reading of
+# the same quantity (git, not the tool under test), so this stays a real cross-check rather than reading the
+# expectation off the thing it is checking.
+eq "it publishes the denominator it measured, and the number is right" "1" \
+   "$("$BG" sweep 2>/dev/null | grep -c "measured over $(git -C "$GD" rev-list --count --all) commits")"
 MG="$(md5sum "$GD/build-numbers.tsv" | cut -d' ' -f1)"
-ck "sweep --add refuses with no CT_RUNID" 2 "$BG" sweep --add
+# env -u, NOT a bare call. Antagonist A ran this file with CT_RUNID EXPORTED - which every CLAUDE.md recipe
+# invites, and which a run that exports it once gets for free - and got "60 pass, 2 FAIL" on two cases that
+# have nothing to do with the tool. Case 7 above already knew to scrub; this one did not.
+ck "sweep --add refuses with no CT_RUNID" 2 env -u CT_RUNID "$BG" sweep --add
 eq "and that refusal wrote nothing"       "$MG" "$(md5sum "$GD/build-numbers.tsv" | cut -d' ' -f1)"
+ck "sweep rejects an unknown mode, where the work-tree check PASSES" 2 "$BG" sweep --wat
 ck "sweep --add records them with CT_RUNID" 0 env CT_RUNID=selftest "$BG" sweep --add
 ck "and the sweep is then clean"            0 "$BG" sweep
-eq "the rows are issued, not shipped"       "2" "$(awk -F'\t' '$2=="issued" && $8=="git-log"' "$GD/build-numbers.tsv" | wc -l | tr -d ' ')"
+eq "the rows are issued, not shipped"       "3" "$(awk -F'\t' '$2=="issued" && $8=="git-log"' "$GD/build-numbers.tsv" | wc -l | tr -d ' ')"
+eq "every written row has exactly 9 fields" "1" "$(awk -F'\t' '!/^#/ && NF {print NF}' "$GD/build-numbers.tsv" | sort -u | wc -l | tr -d ' ')"
 eq "#901 now answers ISSUED rather than free" "1" "$("$BG" check '#901' 2>/dev/null | grep -c 'already on the register')"
 
-# 27b. THE SHALLOW CLONE. Both refusals, and the register md5 either side of the one that writes, because a
-# written warning is not a guard - this project shipped `--ignore-held` whose first draft overrode SILENTLY.
+# 27b. THE SHALLOW CLONE, AND BOTH BRANCHES, AND THE FIXTURE REBUILT BECAUSE THE FIRST ONE WAS A NO-OP.
+# BOTH of #465's antagonists, independently and from different doors, measured that the first version of this
+# block could not see the guard it was named for. `grep -v '^901'` was meant to manufacture an absent number
+# on the shallow clone; it did nothing, because `sweep --add` had written 901/902 to the fixture's WORKING TREE
+# and never committed them, so a `file://` clone copied a register holding #900 alone. The shallow clone then
+# had 1 absent (#902, absent for the unrelated reason that its register predated the --add) and exited 3
+# through the ORDINARY absent path. Antagonist A proved the vacuity the right way round: it replaced the
+# shallow-and-clean branch with `:` and the control still passed. So the branch that is the entire point of
+# the feature - a shallow clone names fewer numbers, finds fewer missing, and reports SUCCESS - was asserted
+# in the case record and exercised by nothing. That is this project's "an untested path is not a passing
+# path" one level up: an untested path with a control pointing at it.
+# AND IT IS THE PRODUCTION STATE, which is why it is worth this much text: the routine's clone IS shallow, so
+# a sweep in a routine container reaches this branch first, not the absent path.
+# THE FIXTURE NOW COMMITS ITS REGISTER before cloning, so the shallow clone carries 900/901/902/903, and the
+# two cases are built from it deliberately.
+git -C "$GD" add -A >/dev/null 2>&1
+git -C "$GD" commit -q -m "#900 records: commit the swept register so a clone of this fixture carries it" >/dev/null 2>&1
 SD="$TD/shal"
 git clone -q --depth 1 --no-local "file://$GD" "$SD" 2>/dev/null
-if [ -f "$SD/.git/shallow" ]; then
-  cp "$HERE/buildnum.sh" "$SD/buildnum.sh"; chmod +x "$SD/buildnum.sh"
-  grep -v '^901' "$SD/build-numbers.tsv" > "$SD/r.tsv" && mv "$SD/r.tsv" "$SD/build-numbers.tsv"
-  BS="$SD/buildnum.sh"; MB="$(md5sum "$SD/build-numbers.tsv" | cut -d' ' -f1)"
-  ck "a shallow sweep never reports clean"      3 "$BS" sweep
+if [ -f "$SD/.git/shallow" ] && [ -f "$SD/build-numbers.tsv" ]; then
+  cp "$HERE/buildnum.sh" "$SD/buildnum.sh"; chmod +x "$SD/buildnum.sh"; BS="$SD/buildnum.sh"
+  # CASE 1: SHALLOW AND GENUINELY CLEAN. The clone's one commit names #900, which its register holds, so
+  # NABSENT really is 0 - and the sweep must STILL exit 3 rather than report a clean register.
+  eq "the shallow clone really has zero absent" "0 NAMED AND ABSENT" \
+     "$("$BS" sweep 2>/dev/null | grep -o '[0-9]* NAMED AND ABSENT' | head -1)"
+  ck "a shallow sweep with ZERO absent still refuses to report clean" 3 "$BS" sweep
   eq "and it says the clone is shallow"         "1" "$("$BS" sweep 2>/dev/null | grep -c 'THIS CLONE IS SHALLOW')"
-  ck "sweep --add refuses on a shallow clone"   2 env CT_RUNID=selftest "$BS" sweep --add
-  eq "and wrote nothing when it refused"        "$MB" "$(md5sum "$SD/build-numbers.tsv" | cut -d' ' -f1)"
+  eq "it does NOT print the all-clear sentence" "0" "$("$BS" sweep 2>/dev/null | grep -c 'names every number')"
+  MS="$(md5sum "$SD/build-numbers.tsv" | cut -d' ' -f1)"
+  # EXIT 3, NOT 2, AND THE DIFFERENCE IS THE REASON CASE 2 EXISTS. With zero absent the command stops at the
+  # clean-but-shallow branch and never evaluates the --add refusal, so the exit code here is the "I could not
+  # measure this" 3 rather than the "I refuse to write" 2. It writes nothing either way, which is the property
+  # that matters and is asserted on the register's md5. Expecting 2 here was MY error, caught by this control
+  # on its first run; the --add refusal proper is reached only in case 2 below.
+  ck "sweep --add on a shallow CLEAN clone stops at the unmeasured branch" 3 env CT_RUNID=selftest "$BS" sweep --add
+  eq "and wrote nothing"                        "$MS" "$(md5sum "$SD/build-numbers.tsv" | cut -d' ' -f1)"
+  # CASE 2: SHALLOW AND GENUINELY DIRTY, which is the only way to reach the --add refusal itself - with zero
+  # absent the command exits at the clean branch above before that refusal is ever evaluated.
+  grep -v '^900' "$SD/build-numbers.tsv" > "$SD/r.tsv" && mv "$SD/r.tsv" "$SD/build-numbers.tsv"
+  eq "now the shallow clone has one absent"     "1 NAMED AND ABSENT" \
+     "$("$BS" sweep 2>/dev/null | grep -o '[0-9]* NAMED AND ABSENT' | head -1)"
+  MS2="$(md5sum "$SD/build-numbers.tsv" | cut -d' ' -f1)"
+  ck "sweep --add refuses on a shallow clone with one absent" 2 env CT_RUNID=selftest "$BS" sweep --add
+  eq "and wrote nothing then either"            "$MS2" "$(md5sum "$SD/build-numbers.tsv" | cut -d' ' -f1)"
 else
-  eq "SKIPPED: could not build a shallow fixture" "skip" "skip"
+  # A VACUOUS SKIP IS A GREEN FOOTER OVER A DEGRADED CONTROL SET, which antagonist A measured: the first
+  # version emitted one passing `eq "skip" "skip"` and the footer read 59 pass / 0 fail. It FAILS now.
+  F=$((F+1)); printf 'FAIL the shallow fixture could not be built, so 9 shallow controls did NOT run\n'
 fi
+
+# 27c. FOUR DIGITS, BECAUSE comm MERGES LEXICALLY AND BOTH SETS ARE SORTED NUMERICALLY.
+# Found by both antagonists. Latent today (no 4-digit number exists in this history or on the register) and
+# `in_range` already permits four, so it is reachable without any other change. Reproduced end to end before
+# it was fixed: with the register holding 1000 and the subjects naming #999/#1000/#1001, the sweep reported
+# ALL THREE absent - #1000 included, which IS on the register - and `sweep --add` then appended a DUPLICATE
+# row to a file whose own header says a row is never removed. comm's "file 1 is not in sorted order" warning
+# goes to stderr inside a command substitution, so it was discarded and its exit 1 never seen.
+QD="$TD/four"; mkdir -p "$QD"
+cp "$HERE/buildnum.sh" "$QD/buildnum.sh"; chmod +x "$QD/buildnum.sh"
+printf '%s\n' '# four-digit fixture' '1000	issued	-	-	-	2026-01-01T00:00Z	fixture	fixture	a note long enough to pass the floor' > "$QD/build-numbers.tsv"
+git -C "$QD" init -q 2>/dev/null
+git -C "$QD" config user.email selftest@example.com; git -C "$QD" config user.name selftest
+git -C "$QD" add -A >/dev/null 2>&1
+git -C "$QD" commit -q -m "#1000: the number this fixture's register already holds" >/dev/null 2>&1
+git -C "$QD" commit -q --allow-empty -m "#999: three digits, genuinely absent" >/dev/null 2>&1
+git -C "$QD" commit -q --allow-empty -m "#1001: four digits, genuinely absent" >/dev/null 2>&1
+BQ="$QD/buildnum.sh"
+eq "with 4-digit numbers the absent set is exactly the two that are absent" "999 1001 " \
+   "$("$BQ" sweep 2>/dev/null | sed -n 's/^  absent: //p')"
+eq "and #1000, which IS on the register, is NOT called absent" "0" \
+   "$("$BQ" sweep 2>/dev/null | sed -n 's/^  absent: //p' | grep -c '1000')"
+ck "the 4-digit sweep still exits 3 on a real divergence" 3 "$BQ" sweep
+ck "and --add records only the two"  0 env CT_RUNID=selftest "$BQ" sweep --add
+eq "so #1000 still has exactly ONE row, not a duplicate" "1" \
+   "$(awk -F'\t' '$1=="1000"' "$QD/build-numbers.tsv" | wc -l | tr -d ' ')"
+ck "and the 4-digit sweep is then clean" 0 "$BQ" sweep
 
 echo "---"
 echo "buildnum self-test: $P pass, $F fail"

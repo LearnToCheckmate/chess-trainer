@@ -160,4 +160,37 @@ if [ -z "${CT_OUT:-}" ] && [ -x "$G/buildnum.sh" ]; then
     echo "build.sh: NOTE - $N has no \`minted\` row, so it was CHOSEN by this run, not issued to it."
     echo "  Not an error and not refused. Next time: CT_RUNID=<runId> gates/buildnum.sh mint '<what for>'."
   fi
+  # ── AND RUN THE SWEEP, BECAUSE A COMMAND NOTHING CALLS IS NOT A GUARD (#465, antagonist A) ───────────────
+  # A measured that `gates/buildnum.sh sweep` had NO CALLER anywhere: not gates.sh, not build.sh, not
+  # deploy.py, and its selftest is deliberately outside gates/regress so no gate runs it either. So the thing
+  # built to stop the register's denominator freezing again was a manual command, and this file already
+  # records what that costs - both roles in section 2b of the build procedure were "chartered 2026-09-12 and
+  # ran twice", because nothing told anything to run them. Here is the one place that is already reading and
+  # writing this register on every build, so here is where it goes.
+  # IT WARNS, IT NEVER REFUSES, and that is deliberate on two counts. A divergence between the register and
+  # the commit history is not a property of the bundle being built, so failing the build for it would stop
+  # work for a bookkeeping fact; and every negative control in this suite builds under an existing number, so
+  # a refusal here would break the workflow that proves this project's own gates - the same reasoning that
+  # left mintedness a warning three lines above, and the same reasoning that makes `--this-bundle` opt-in.
+  # ON A SHALLOW CLONE IT SAYS SO AND CLAIMS NOTHING. The routine's container starts shallow, which A named
+  # as the reason the sweep "can only ever warn" there; `sweep` exits 3 on a shallow clone whatever it finds,
+  # so what prints is the unmeasured warning rather than a false all-clear. That is the honest output for
+  # that container, and it is also a standing nudge to unshallow, which this build's own run had to do.
+  if [ -z "${CT_SKIP_SWEEP:-}" ]; then
+    # `|| SWRC=$?` AND NOT `; SWRC=$?`, AND THE FIRST VERSION OF THIS GOT IT WRONG IN THE WORST WAY.
+    # This script runs under `set -euo pipefail`, so a bare assignment from a failing command substitution
+    # ABORTS THE SCRIPT. Measured with the positive control for this very block: with #276's row removed so
+    # the sweep exits 3, `gates/build.sh '#465'` wrote the bundle, recorded the register row, and then exited
+    # 3 WITHOUT EVER PRINTING THE WARNING. So the guard was invisible and the build looked failed to any
+    # caller reading the exit code - a bookkeeping warning turned into a build failure, which is precisely
+    # what the comment above promises it is not. Putting the substitution in a compound keeps set -e out.
+    SWRC=0
+    SWOUT="$("$G/buildnum.sh" sweep 2>&1)" || SWRC=$?
+    if [ "$SWRC" != "0" ]; then
+      echo "build.sh: NOTE - the build-number register and the commit history DISAGREE (sweep exit $SWRC):"
+      printf '%s\n' "$SWOUT" | sed 's/^/    /'
+      echo "  Not an error and not refused: this is bookkeeping, not a property of the bundle."
+      echo "  To record them: CT_RUNID=<runId> gates/buildnum.sh sweep --add   (then commit the register)"
+    fi
+  fi
 fi

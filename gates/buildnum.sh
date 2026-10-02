@@ -405,9 +405,31 @@ case "${1:-}" in
     # THE REGISTER'S DENOMINATOR WAS FROZEN THE DAY IT WAS BACKFILLED, AND NOTHING NOTICED IT THAWING.
     # #454 backfilled this file from RUN-LOG.md and the committed gate-log filenames. Both sources only carry a
     # number once a run has written its records, so a run that used a number and did NOT ship is invisible to
-    # them - and three of the four builds on 2026-10-02 stood down on the push. MEASURED HERE at #465, on an
-    # UNSHALLOWED clone of 857 commits: 312 distinct numbers are named in commit subjects across all refs, 226
-    # are on the register, and 88 are named by a commit and absent from it. The one that matters is #463, whose
+    # them. THE FIRST VERSION OF THIS COMMENT THEN SAID "nothing compared it to the commit history", AND THAT
+    # IS FALSE AND IS WITHDRAWN HERE [R18] - #465's antagonist A refused it with one command. #454 DID sweep
+    # the commit history, in a documented second pass: 123 rows on origin/main carry provenance `git-log`
+    # (`git show origin/main:gates/build-numbers.tsv | grep -cP '\tgit-log\t'` is 123) and their own note
+    # states the method, `git log --all --format=%s | grep -oE '^#[0-9]{3,4}'`. So the cause is not an absent
+    # sweep, it is ONE CHARACTER in that one: the LEADING ANCHOR. 89 numbers are named only away from the
+    # start of a subject ("Revert main to #439", "docs after #374"), and 87 of the 88 this build swept in are
+    # in exactly that class. Naming the wrong cause would have sent the next reader to the wrong file.
+    # AND #454 CHOSE THAT ANCHOR DELIBERATELY, so dropping it is a POLICY CHANGE and is argued, not assumed.
+    # Its row says a plain scan "also returns cross-references like '#125' in 'Friends: cloud functions
+    # (request/accept/list/remove) for #125', which was never a build number" - and that is true, and this
+    # build records #125 anyway. THE REASON IS US-BN-01's ASYMMETRY: `issued` for a number nobody used costs
+    # a GAP, and the register's own header says a gap costs nothing and must never be tidied up; `free` for a
+    # number somebody used costs a SECOND TREE under one name. So the two error directions are not comparable
+    # and the cheap one is the one to take. What must NOT be claimed, and was in the first version of this
+    # build's own note, is that every number swept in is a genuine build number: some are cross-references,
+    # #125 among them, and recording them is a deliberate over-approximation of "spent".
+    # Three of the four builds on 2026-10-02 stood down on the push. MEASURED HERE at #465, on an
+    # UNSHALLOWED clone of 857 commits: 312 distinct numbers were named in commit subjects across all refs,
+    # 224 OF THOSE were on the register, and 88 were named by a commit and absent from it. The register's own
+    # total was 226 distinct, which is a DIFFERENT number and is not the subtrahend: 226 - 224 = 2 numbers
+    # (#369 and #455) are on the register and named by no subject at all. The first version of this comment
+    # spliced those two denominators into one sentence and read "312 named, 226 on the register, 88 absent",
+    # which does not subtract - caught by #465's antagonist B, in the file whose own header lectures about a
+    # count with no scope. The one that matters is #463, whose
     # own close-out commit edb4496 says "NOT SHIPPED": `check '#463'` answered `free`, and `free` is the one
     # answer this register must never give wrongly, because gates/build.sh refuses only numbers it can SEE.
     # So the backfill was not the fix; a backfill is a snapshot, and this is the sweep that keeps it true.
@@ -434,21 +456,61 @@ case "${1:-}" in
     NREFS="$(git -C "$HERE" for-each-ref --format='%(refname)' 2>/dev/null | wc -l | tr -d ' ')"
     NCOMMITS="$(git -C "$HERE" log --all --format='%H' 2>/dev/null | wc -l | tr -d ' ')"
     SHALLOW=no; [ -f "$(git -C "$HERE" rev-parse --absolute-git-dir 2>/dev/null)/shallow" ] && SHALLOW=yes
-    NAMED="$(git -C "$HERE" log --all --format='%s' 2>/dev/null | grep -oE '#[0-9]{3,4}' | tr -d '#' | sort -un)"
+    # THE EXTRACTOR MATCHES TWO FORMS, AND THE SECOND ONE WAS MISSED ON THE FIRST VERSION OF THIS
+    # SUBCOMMAND - found by #465's antagonist B at the shipped-surface door, upheld, and it is the whole
+    # reason this comment enumerates rather than asserts. The first version required the '#', and this
+    # project's early history does not use it: 27 subjects read "Build NNN:" with no hash, naming 16
+    # distinct numbers (#238-#246, #265, #271-#276), every one of which answered `free` while the sweep
+    # printed "the register names every number any commit does". "Build 276: hide in-game Hint in online
+    # human games" is unmistakably a build number in this series, and "Build #276" (78 subjects) was being
+    # swept while "Build 276" (27) was not - the only difference being whether that run typed a '#'.
+    # I HAD CHECKED THE REGEX IN ONE DIRECTION ONLY. I enumerated what could wrongly MATCH (issue refs,
+    # PR numbers) and found none, and never enumerated what could wrongly MISS. Both directions now:
+    #   MUST match   #NNN (463 subjects), Build #NNN (78), build #NNN (3), Build NNN (27)
+    #   MUST NOT match, all real strings in this history and all meaning something else entirely:
+    #     "GATES GREEN at 3320" and "49 suites / 3320" (assertion totals), "375x730" (a geometry),
+    #     "TC-PL-034" (a case id), "97b1234" (a sha fragment), "-> 730", "Kunal's 375".
+    # So the pattern stays ANCHORED to '#' or to the literal word "build". It is deliberately not
+    # loosened to a bare [0-9]{3,4}, which would swallow every count and geometry above.
+    # SUBJECTS AND BODIES BOTH (--format='%s%n%b'). Antagonist A asked for the body door too. MEASURED at
+    # 0ed7f05, before this build's own commits existed: bodies name exactly ONE number no subject names,
+    # #455, and it was already on the register - so the body scan closes a door that is currently empty, and
+    # it is in for the next time it is not, not because it found anything. A's accompanying claim that a body
+    # scan "would have found #342 mechanically" is WRONG and is recorded as wrong: `git log 0ed7f05
+    # --format='%b' | grep -c '#342'` is 0. #342 reaches a body only in THIS build's own commit messages.
+    NAMED="$(git -C "$HERE" log --all --format='%s%n%b' 2>/dev/null \
+      | grep -oiE '(#|\bbuild +)[0-9]{3,4}' | grep -oE '[0-9]{3,4}' | sed 's/^0*//' | sort -un)"
     NNAMED="$(printf '%s\n' "$NAMED" | grep -c '[0-9]' || true)"
     ONREG="$(rows | cut -f1 | sort -un)"
     NONREG="$(printf '%s\n' "$ONREG" | grep -c '[0-9]' || true)"
-    ABSENT="$(comm -23 <(printf '%s\n' "$NAMED" | grep '[0-9]') <(printf '%s\n' "$ONREG" | grep '[0-9]'))"
+    # comm REQUIRES LEXICOGRAPHIC ORDER AND BOTH SETS ABOVE ARE SORTED NUMERICALLY, which agree only
+    # while every number has the same number of digits. #465's antagonist B found this; it is latent today
+    # (zero 4-digit numbers exist in subjects or on the register, measured) and it bites at #1000, which
+    # `in_range` already permits. Demonstrated rather than reasoned: with NAMED={999,1000,1001} and
+    # ONREG={1000}, numerically-sorted input makes comm report ALL THREE absent - including #1000, which
+    # IS on the register - and the "not in sorted order" warning goes to stderr inside a command
+    # substitution, so it is discarded and comm's exit 1 is never seen. `sweep --add` would then append a
+    # duplicate row to a file whose header says a number is never removed. So: compare under LC_ALL=C and
+    # sort only the DISPLAY numerically.
+    ABSENT="$(comm -23 <(printf '%s\n' "$NAMED" | grep '[0-9]' | LC_ALL=C sort -u) \
+                       <(printf '%s\n' "$ONREG" | grep '[0-9]' | LC_ALL=C sort -u) | sort -n)"
     NABSENT="$(printf '%s\n' "$ABSENT" | grep -c '[0-9]' || true)"
     printf 'buildnum.sh sweep: measured over %s commits on %s refs (shallow: %s)\n' "$NCOMMITS" "$NREFS" "$SHALLOW"
-    printf '  %s distinct number(s) named in a commit subject; %s on %s; %s NAMED AND ABSENT.\n' \
-      "$NNAMED" "$NONREG" "$(basename "$REG")" "$NABSENT"
+    # LABEL THE UNITS. #465's antagonist B measured that this line said "316 on build-numbers.tsv" while
+    # `check` and `list` both say "340 row(s)" of the same file, with nothing saying one counts DISTINCT
+    # NUMBERS and the other counts ROWS - so a later run comparing the two sees an unexplained 24 and no
+    # way to tell which is wrong. A number legitimately has several rows (minted, built, shipped), which is
+    # the whole reason the two differ.
+    printf '  %s distinct number(s) named in a commit subject or body; %s distinct on %s (%s row(s)); %s NAMED AND ABSENT.\n' \
+      "$NNAMED" "$NONREG" "$(basename "$REG")" "$(rows | wc -l | tr -d ' ')" "$NABSENT"
     if [ "$SHALLOW" = yes ]; then
       echo "  WARNING - THIS CLONE IS SHALLOW, so the count above is a LOWER BOUND and a clean result proves"
       echo "  nothing. Run \`git fetch --unshallow\` first, or treat this sweep as unmeasured."; fi
     if [ "$NABSENT" = "0" ]; then
       [ "$SHALLOW" = yes ] && { echo "  no absent numbers found, but see the shallow warning above"; exit 3; }
-      echo "  the register names every number any commit does."; exit 0; fi
+      echo "  the register names every number any commit subject or body names, in either the #NNN or the"
+      echo "  'Build NNN' form. NOT CHECKED, and shut today rather than covered: git tags (there are none)."
+      exit 0; fi
     echo "  absent: $(printf '%s\n' "$ABSENT" | grep '[0-9]' | tr '\n' ' ')"
     if [ "$MODE" != "--add" ]; then
       echo "  These answer \`free\` to check and to gates/build.sh, which is the answer that creates a second"
@@ -463,7 +525,13 @@ case "${1:-}" in
     lock_take || exit 1
     N_WROTE=0
     for n in $(printf '%s\n' "$ABSENT" | grep '[0-9]'); do
-      in_range "$n" || continue
+      # DEAD TODAY AND LOUD IF IT EVER FIRES. Antagonist A measured that `in_range` can never reject here,
+      # because every element came from a {3,4}-digit match - and that a silent `continue` would have let
+      # --add exit 0 having written nothing while the sweep stayed dirty, which is the worst shape a guard
+      # can have. So it reports and fails instead of skipping quietly.
+      in_range "$n" || { echo "buildnum.sh sweep --add: refusing to write '$n', which is not 3-4 digits."
+        echo "  This is unreachable by construction; if you are reading it, the extractor changed."
+        lock_free; exit 2; }
       append_row "$(printf '%s\tissued\t-\t-\t-\t%s\t%s\tgit-log\t%s' "$n" "$AT" "$CT_RUNID" \
         "Swept in: a commit subject on some ref names #$n, so the number was used and must never be reused. State issued, not shipped - a commit subject does not prove a bundle. Found by buildnum.sh sweep over $NCOMMITS commits on $NREFS refs.")"
       N_WROTE=$(( N_WROTE + 1 ))
