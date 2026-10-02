@@ -2,6 +2,58 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#465 MADE THE BUILD-NUMBER REGISTER ANSWER `free` ONLY FOR A NUMBER NOTHING HAS USED (2026-10-02).**
+> `gates/buildnum.sh check '#463'` answered `free` one build back from the tip, while #463's own close-out commit
+> `edb4496` says "NOT SHIPPED". `gates/build.sh` refuses to stamp only a number it can SEE on the register, so
+> `free` for a spent number is how a second tree gets stamped with one name - the #416 defect the register exists
+> to end. 104 numbers answered that way. The shipped thing is `gates/buildnum.sh sweep`, which compares the
+> register against every number any commit text names and exits 3 when they diverge; the rows are the by-product.
+>
+> **FIVE THINGS THE NEXT RUN SHOULD NOT REDISCOVER, and the first two cost this build its first gate run:**
+> 1. **A REGEX CHECKED IN ONE DIRECTION IS NOT CHECKED.** My extractor required a literal `#`. I enumerated what
+>    could wrongly MATCH (issue refs, PR numbers, `GATES GREEN at 3320`, `375x730`, `TC-PL-034`, a sha fragment)
+>    and found none, wrote "every one of the 312 matched numbers is a genuine build number", and NEVER enumerated
+>    what could wrongly MISS. This project writes build numbers as `Build NNN` without a hash in 27 commit
+>    subjects, naming 16 numbers that all still read `free` while the sweep printed its all-clear. **BOTH
+>    antagonists found it independently, from different doors.** Before trusting any pattern that decides a
+>    verdict, diff its matched set against the real corpus, not against your idea of the corpus. Filed as a class
+>    to sweep: `jobs/sweep-for-regexes-checked-in-one-direction-only-2026-10-02`, and it is UNCOUNTED.
+> 2. **`comm` MERGES LEXICALLY. `sort -un` SORTS NUMERICALLY. THEY AGREE ONLY WHILE EVERY NUMBER HAS THE SAME
+>    NUMBER OF DIGITS.** Reproduced rather than reasoned about: register holds 1000, subjects name #999/#1000/
+>    #1001, and the sweep called all three absent - including the one that IS registered - then `--add` appended a
+>    DUPLICATE row to a file whose header says a row is never removed. `comm`'s own "not in sorted order" warning
+>    goes to stderr inside a command substitution, so it is discarded and its exit 1 never seen. Latent until
+>    #1000, which `in_range` already permits. Use `LC_ALL=C sort -u` on both sides and sort numerically only for
+>    display.
+> 3. **A COMMAND NOTHING CALLS IS NOT A GUARD, AND THIS FILE ALREADY KNEW THAT.** `sweep` shipped with NO CALLER:
+>    not `gates.sh`, not `build.sh`, not `deploy.py`, and its selftest sits outside `gates/regress` so no gate
+>    runs it either. That is section 2b's own story about two roles "chartered 2026-09-12 and ran twice". It is now
+>    called by `gates/build.sh` as a warning that never refuses. **AND THAT WIRING SHIPPED BROKEN FOR ONE REVISION
+>    AND ITS OWN POSITIVE CONTROL CAUGHT IT:** `build.sh` runs under `set -euo pipefail`, so
+>    `SWOUT="$(sweep)"; SWRC=$?` ABORTED THE SCRIPT - bundle written, row recorded, exit 3, warning never printed.
+>    A bookkeeping note had become a build failure. `|| SWRC=$?` keeps `set -e` out. **Never assign from a
+>    failing command substitution in these scripts.**
+> 4. **NAMING THE WRONG CAUSE SENDS THE NEXT READER TO THE WRONG FILE.** I published "nothing ever compared the
+>    register to the commit history". False: 123 rows on `origin/main` carry provenance `git-log` and their own
+>    note states the method. #454 DID sweep it; the cause is ONE CHARACTER in that scan - a leading `^` - and 87
+>    of the 88 I first swept in are reachable only by dropping it. #454 chose that anchor deliberately to exclude
+>    cross-references like `#125` in "Friends: cloud functions ... for #125", **which was never a build number and
+>    which this build records anyway.** Dropping the anchor is a policy change, and the policy is US-BN-01's
+>    asymmetry: a recorded number nobody used costs a gap the register forbids tidying away; a used number left
+>    `free` costs a second tree. Do not "correct" that over-approximation back.
+> 5. **A SHALLOW CLONE IS THE PRODUCTION STATE AND IT MAKES A CLEAN SWEEP MEANINGLESS.** The routine's container
+>    starts shallow (measured, and the #464 pen note says so too), and a shallow clone names fewer numbers, finds
+>    fewer missing and reports SUCCESS. So `sweep` exits 3 on a shallow clone whatever it finds, and `--add`
+>    refuses to write. **The control for that branch was vacuous for the obvious reason and both antagonists
+>    caught it:** the fixture's `grep -v '^901'` ran against a register the clone never had, because `--add` had
+>    written to the working tree and nothing committed it - so the shallow case exited 3 through the ORDINARY
+>    absent path and the shallow branch was asserted in the case record and exercised by nothing. The fixture now
+>    commits before cloning. **And a clean shallow clone exits 3, not 2, because the clean branch returns before
+>    the `--add` refusal is evaluated** - expecting 2 was my error and my own control found it.
+>
+> **UNSHALLOW FIRST.** `git fetch --unshallow` before any `merge-base --is-ancestor` guard and before any sweep,
+> or both measure a history you do not have.
+
 > **#464 MADE THE REVIEW GRADE COUNTS, THE MOVES THEY NAME AND THE PER-PLY BADGE READ ONE RULE (9d41bae, 2026-10-02).**
 > The opening-book reassignment lived only in the grade counter. The summary row's jump handler and both verdict
 > chips presented the same ply without it, so on any game with a book prefix - 5 of 7 real games, per the
