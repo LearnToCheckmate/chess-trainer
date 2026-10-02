@@ -2670,3 +2670,43 @@ it is worth you looking at all three together. It is on your Decision Desk.
 
 **Still waiting on you, unchanged:** *is the move that lets you get mated a Blunder?* — eleven builds have now
 stopped at that one.
+
+---
+
+## #460 — 2026-10-02 03:1x ET — solving your own mistakes was counting as solving Lichess puzzles
+
+**Shipped, and it is the first application change on main in six builds.** #455 through #459 all held their work
+on branches, so `app.js` on main had been byte-identical since #452.
+
+**What was wrong.** When you solve a card in "Practice your mistakes" or "Your brilliant moves", the app was
+counting it as a Lichess puzzle solved. Those positions come out of your own games and you reach them from
+Review, so the Puzzles screen was telling you "Online puzzles (Lichess) — N solved" about puzzles you had never
+opened. On the **brilliancies** drill it was worse and unbounded, because that drill never deletes its card:
+measured on the build you are running, re-finding the same brilliant move three times banked streak 1, 2, 3,
+XP 120, 123, 126 and ticked your daily puzzle goal three times, while the "solved" count stuck at 1. One solve
+shown, three banked.
+
+**What it now does.** A drill is simply outside the puzzle-progress system: solving one no longer counts as a
+Lichess puzzle, and — because the same hole existed in the other direction — **a wrong move in a drill no
+longer breaks a puzzle streak you earned on real puzzles either.** A real Lichess puzzle still counts exactly
+as before; that is asserted on both the old and the new build, so the fix cannot have quietly removed it.
+
+**THE PART THAT NEEDS YOUR WORD, and it is bigger than it first looked.** Drilling now earns *nothing*: no XP,
+no puzzle streak, no daily-goal tick, and no progress on 4 of the 10 achievements. Measured consequence: if you
+keep a daily streak alive by drilling your own mistakes, **that streak will end** — we measured a seven-day
+streak reading "🔥 7 DAYS / 🎯 0/5 TODAY" after a drill solve where the old build read "🔥 8 DAYS / 🎯 1/5".
+Home's Daily 3 needs two puzzle ticks and drills now supply none, so the Daily 3 can no longer be completed by
+drilling at all.
+
+All four of those came out of one function call, so there was no one-line way to keep the daily goal and drop
+the false count. **The question on your Decision Desk:** should drilling count towards your daily goal and XP —
+bounded to once per card — while still not counting as a Lichess puzzle solved? Our recommendation is yes for
+the daily goal (practising your own mistakes is the habit that goal exists to encourage) and no for the Lichess
+count, which was simply false. That is a separate build, not this one.
+
+**One thing we deliberately did not do:** if you have drilled before today, your stored count is still inflated
+and still shows — on the Puzzles screen and as "Puzzles solved" on the Review screen. Cleaning that up means
+deleting numbers you have already been shown, which is your call, not ours.
+
+**Still waiting on you, unchanged:** *is the move that lets you get mated a Blunder?* — twelve builds have now
+stopped at that one. And the drill verdict's board jump, which is three builds deep on a branch.
