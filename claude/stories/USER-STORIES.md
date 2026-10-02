@@ -704,3 +704,33 @@ sites and not one: the credit at the solve branch and the debit at the miss bran
 `classSwept` of 1 found / 1 fixed is **withdrawn**; the sweep was counted over "call sites of `onlineSolved`",
 which is the wrong predicate, rather than over "a place that decides whether a drill card moves Lichess
 progress", which is the right one. Found by this build's antagonist A at the diff door.
+
+## US-R20 - a grade count names a set of moves the player can reach, and the number equals that set
+As a player reading my game review, when I look at the grade table and then at the moves themselves, I want
+every number to name exactly the moves it counts, so that tapping a number takes me to one of them and counting
+them by hand gives me back the number I tapped. CHECKABLE, two clauses with zero tolerance: (1) for every
+rendered grade row, the displayed count equals the number of plies the MOVE SCREEN badges with that same grade
+for that side, counted from the painted badges and never from a fixture constant; (2) for every rendered row
+whose count is above zero and which is not disabled, a real click changes the view away from the summary AND
+lands on a ply whose painted badge equals that row's label. A count that names no reachable move is not rendered
+as an enabled control.
+
+WHY A NEW CLAUSE AND NOT AN EXISTING ONE. The two visible consequences are different failures of one rule - a
+count that disagrees with its moves, and a count that navigates nowhere - and no clause in this register ties a
+NUMBER to the SET OF MOVES IT NAMES. Written for the class: it binds every grade row, not the Best row and not
+the Book row. Measured on origin/main's shipped bundle c299c6a093cf at #464: on the Opera Game the Best row
+reads 5 for White while the move screen badges 8 white moves Best, and the Book row's click leaves the view on
+the summary every time, because 'Book' is never a cls.label while the counter reassigns book plies to it.
+
+A CONSEQUENCE OF CLAUSE (1) WORTH STATING, because it is what the fix actually does: the grade a ply is
+PRESENTED as has to be one rule, read by every element that presents it. #464 made that rule `effCls` and
+pointed the counter, the summary jump, both verdict chips, the board square tint, the board badge and its label,
+and the grade-coloured play-it-out button at it. What this clause does NOT require is that the same rule govern
+BEHAVIOUR: a book ply that was objectively an inaccuracy may still offer the better move, and four call sites
+are deliberately left reading the raw class for that reason.
+
+NOTE ON THE ID [#464]. US-R20 is free in THIS register, checked by grep of claude/stories/ before it was
+written. But the block the spec run reserved on 2026-09-28, "US-R20..US-R29", is NOT free: US-R27 is already
+taken in this file (#430) and US-R31 and US-R32 are taken above it. So the reservation was made against a
+register that had already moved past parts of it. Only US-R20 itself was verified free and used. Same shape as
+the note under US-R27 and as flags/suite-id-collision-tc-r, which is already open and is not refiled here [R25].
