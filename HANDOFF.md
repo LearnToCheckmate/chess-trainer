@@ -2,7 +2,7 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
-> **#464 MADE THE REVIEW GRADE COUNTS, THE MOVES THEY NAME AND THE PER-PLY BADGE READ ONE RULE (SHA, 2026-10-02).**
+> **#464 MADE THE REVIEW GRADE COUNTS, THE MOVES THEY NAME AND THE PER-PLY BADGE READ ONE RULE (9d41bae, 2026-10-02).**
 > The opening-book reassignment lived only in the grade counter. The summary row's jump handler and both verdict
 > chips presented the same ply without it, so on any game with a book prefix - 5 of 7 real games, per the
 > benchmark - tapping `Best 5` navigated to a move the same table counted under Book, and walking the moves
