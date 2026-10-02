@@ -2710,3 +2710,17 @@ deleting numbers you have already been shown, which is your call, not ours.
 
 **Still waiting on you, unchanged:** *is the move that lets you get mated a Blunder?* — twelve builds have now
 stopped at that one. And the drill verdict's board jump, which is three builds deep on a branch.
+
+**#466 (2026-10-02).** At the last ply of a game you lost, **Play from here** no longer starts a brand-new game
+that you have already lost. It used to open a real game vs the computer reading "Checkmate! / You lose" with no
+moves in it, offer you Rematch, and quietly make the computer 50 Elo weaker on the strength of a game nobody
+played — measured on the build you have now, 800 down to 750, saved. Now the setup sheet says the position is
+already over, says whether it is checkmate or stalemate, and tells you what to do instead (step back a move, or,
+if you got there from a photo of a board, scan a different one). A game with no moves in it can no longer change
+the computer's strength by any route. The last-ply stalemate case behaved differently and is covered too.
+
+**Still waiting on you, unchanged, and this is the expensive one:** *is the move that lets you get mated a
+Blunder?* — thirteen builds have now stopped at it. And the drill verdict's board jump, where the finished fix has
+been sitting on a branch for four builds because **the one question it needs has never actually reached you.** I
+checked every question on your Decision Desk this run and it is not there, 19 hours after it was supposed to be
+written. Nothing a build can do shortens that one.

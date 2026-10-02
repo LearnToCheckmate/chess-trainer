@@ -2,6 +2,60 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#466 MADE "PLAY FROM HERE" REFUSE AT A FINISHED POSITION INSTEAD OF STARTING A GAME YOU HAD ALREADY LOST (2026-10-02).**
+> From the last ply of a decisive game - one tap from where every review of a decisive game ENDS - the review's ⋯ →
+> Play from here → ▶ Play this position opened a REAL vs-Computer game reading "Checkmate! / You lose" with zero
+> plies and Rematch already offered, and wrote `ct_elo` DOWN from 800 to 750 in localStorage. The setup sheet's
+> banner was BYTE-IDENTICAL to a non-terminal ply's, so nothing on screen distinguished "continue this position"
+> from "start a position with no legal move". Measured on the shipped #465 bundle `89bfb96fb381`, not inherited.
+> The guard is on the COMMITTER - the setup sheet's confirm button, the only place a `setupFromFEN` becomes a game,
+> and the funnel for all three setters - plus a second guard so a board ending with no moves played cannot move the
+> adaptive strength. Gate `55-play-from-here-terminal.js` is the SIT lane's, written 2026-09-28 and unlanded for
+> four days because only this lane holds the pen.
+>
+> **SIX THINGS THE NEXT RUN SHOULD NOT REDISCOVER. The first cost this build a whole suite and the second falsified
+> its own class sweep.**
+> 1. **`grep -rn "ct===null" gates/regress/` BEFORE YOU ADD ANY `data-ct`.** I gave the ordinary setup-sheet banner
+>    a hook for my own selector convenience. `gates/regress/45-play-setup.js:431` (TC-PS-038) asserts that exact div
+>    carries NO data-ct, at both its geometries, so the suite could not have ended green - and I only learned it
+>    from an antagonist, 26 of 49 sections in, after which I killed the run. The repair was NOT to change the
+>    assertion: it was to delete my hook and locate the element by its TEXT, which is #432's rule and which I had
+>    cited in my own case row while breaking it. There are exactly TWO such assertions in the suite.
+> 2. **`game.history` IS THE POSITION'S HISTORY AND IT TRAVELS WITH AN INHERITED BOARD; `playHist` IS THIS GAME'S.**
+>    My first Elo guard read `game.history.length` and an antagonist broke it with a route the class sweep had not
+>    found: Discover → an endgame lesson that ends in mate (11 of 16 ENDGAMES and 4 of MORE do) → practice → play
+>    the mate → close the lesson → the Play tab. The practice branch never writes `playHist` and the Play tab sets
+>    mode with no `fullReset`, so the effect woke with a mated `game`, history length 1 and `playHist` EMPTY, and
+>    moved `ct_elo` SILENTLY because the setup sheet is up so `eloMsg` is never seen. Six taps from a cold load, and
+>    pre-existing. The invariant `game.history.length === playHist.length` holds by construction for every game
+>    started through `fullReset` and is violated ONLY by an inherited board. The draw detector eight lines above was
+>    already using `playHist` for exactly this reason.
+> 3. **RUN THE BLIND PAIR BEFORE THE CONTROLS AND BEFORE THE SUITE.** This is the ordering error that cost this run
+>    most - about 45 minutes. I ran controls, then launched the suite, then launched the pair alongside it. Both
+>    vetoes changed the tree, which invalidated the controls AND the suite at once. The pair's whole job is to
+>    change the tree; controls and a push gate are claims ABOUT a tree. Cheap order: build → pair → fix → controls
+>    → suite.
+> 4. **A CONTROL THAT DELETES THE ELEMENT PROVES PRESENCE, NOT WORDING.** My fourth control removed the note's whole
+>    branch, so the assertions over its text went red because `lib.rect()` returns null for an absent element - the
+>    #432 failure again. A fifth control that KEEPS the hook and corrupts only the text is what proves the wording
+>    assertions can fail, and a sixth was needed because the first control cannot reach the coherence block at all
+>    (once the refusal is gone the run leaves the sheet).
+> 5. **CHECK WHICH ARM A GATE DRIVES BEFORE CITING IT AS COVERAGE.** I claimed `16-cpu-result-line.js` covered the
+>    risk that my new Elo guard suppresses legitimate scoring. It drives a RESIGN, so `playEnd` is set and the
+>    `!playEnd` short-circuit means the new term is never evaluated in it. Nothing in the suite can distinguish the
+>    expression I shipped from the one it replaced; `nc2` reverts the guard entirely and the gate still reads 61/0.
+> 6. **`#root` IS THE SCROLLER, NOT THE NEAREST BOX.** My first reachability assertion read the setup sheet's own
+>    `overflowY` ('visible') and reported the confirm button unreachable at all three geometries - a false red at
+>    every one. `gates/regress/40-reachability.js` is the reference, and `45-play-setup.js` TC-PS-006 already
+>    measures this same button below the fold at five of six geometries BY DESIGN. Scrolling the real ancestor moves
+>    it 1039→648, 1083→508, 997→619.
+>
+> **AND THE THING THAT IS STILL BLOCKED AND IS NOT A BUILD PROBLEM.** The whole priority-11 tier - a FINISHED, gated
+> drill-grading feature on a branch, closing a complaint Kunal raised on 2026-09-20 and repeated - waits on ONE
+> question that has never been written to the Decision Desk at all. I re-measured it over all 74 questions this run,
+> 19+ hours after `jobs/route-to-kunal-the-drill-verdicts-third-line-costs-22px-of-board-2026-10-02` routed it. An
+> unasked question cannot be answered late, and no build can unblock it: the build lane may not write the Desk.
+>
 > **#465 MADE THE BUILD-NUMBER REGISTER ANSWER `free` ONLY FOR A NUMBER NOTHING HAS USED (2026-10-02).**
 > `gates/buildnum.sh check '#463'` answered `free` one build back from the tip, while #463's own close-out commit
 > `edb4496` says "NOT SHIPPED". `gates/build.sh` refuses to stamp only a number it can SEE on the register, so
