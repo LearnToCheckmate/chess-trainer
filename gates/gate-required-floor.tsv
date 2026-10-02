@@ -1,0 +1,44 @@
+# gates/gate-required-floor.tsv — THE MONOTONIC FLOOR UNDER THE GATE MANIFEST'S `required` COUNT.
+# Seeded #467, 2026-10-02, for
+# jobs/nothing-ratchets-the-manifests-required-count-so-the-denominator-is-editable-downward-2026-10-02
+# (found by antagonist A on #462 at the diff door, reached independently by antagonist B at the shipped-surface
+# door, so it is one of that pair's common grounds).
+#
+# THE DEFECT IT CLOSES. #461 gave the suite a manifest, so a deleted gate became a RED instead of a silence. But
+# the manifest's own `required` count is the denominator, and nothing bounded it from BELOW: delete a gate, flip
+# its row's state to `absent`, type any single character into field 7, and `gatemanifest.sh check` reports one
+# fewer required gate and EXITS 0 — the suite runs, emits GATES GREEN, and gates/verify-log.sh says OK.
+# REPRODUCED at #467 before this file existed, on a throwaway copy of the real manifest with 49 stub gates:
+# removing gates/regress/21-review-brilliant.js and editing two fields of its row took the line from
+# "49 required, 49 present, 0 missing" to "48 required, 48 present, 0 missing" at exit 0. That gate is the one
+# CLAUDE.md names as the only cover for brilliancy explanations — the item Kunal raised five times before it
+# landed. So the frozen denominator CLAUDE.md records at #405 was not merely frozen here, it was EDITABLE
+# DOWNWARD, which is worse, because the push gate reads the manifest's own self-report.
+#
+# THE MECHANISM, and it is borrowed rather than invented. gates/build-numbers.tsv's discipline is append-only and
+# a row is never deleted; gates/held-trees.tsv proved a committed register keyed on things a later run can
+# compute with no network and no tracker. This file is the same shape with ONE addition those two do not have:
+# a CHAIN FIELD. Every row carries the floor value that stood BEFORE it, so row i's `prev` must equal row i-1's
+# `floor`. Deleting or editing an INTERIOR row therefore breaks the chain and is a hard failure, with no git and
+# no network needed.
+#
+# WHAT THIS CANNOT DO, SAID HERE RATHER THAN DISCOVERED LATER. An append-only register cannot detect its own
+# TRAILING TRUNCATION: delete the LAST row and what remains is a perfectly consistent chain ending one step
+# earlier, so the floor falls and nothing local can object. That is not a hole I can close from inside this file
+# — the anchor has to be outside it — and the anchor is git. It is the subject of
+# jobs/the-gate-manifest-can-be-weakened-by-hand-and-only-git-can-object-2026-10-02, which #467 leaves open
+# DELIBERATELY with its baseline question answered on the job (see that job's field answeredBy_467). Do not read
+# this file as closing that one. What it does close is the two-field edit above, which needed no file deletion at
+# all and was therefore much the cheaper attack.
+#
+# HOW THE CURRENT FLOOR IS COMPUTED: replay the rows in file order; the floor is the LAST row's value. A `raise`
+# must increase it, a `lower` must decrease it and must carry a real reason, and the chain must be intact.
+#
+# WHO WRITES IT: `gatemanifest.sh sync` raises it when it adds required rows; `gatemanifest.sh retire` lowers it
+# when it retires one. `check` only ever COMPARES — it never writes. That separation is #454's lesson ("is it
+# recorded" and "is it mine" are two questions, and conflating them deadlocked the build): a tool that writes its
+# own floor and then reads it back as authority is the check and the thing being checked being the same object,
+# which is the trap CLAUDE.md now records ten times.
+#
+# floor  prev  kind   at          build  runId                   why
+49	-	seed	2026-10-02	467	build__1790976005325	seeded at the measured required count of the tree that introduced the floor. MEASURED by gates/gatemanifest.sh check on 8de6233: 49 required, 49 present, 0 missing, 0 unlisted, 5 known-absent. Not chosen - read off the tool.

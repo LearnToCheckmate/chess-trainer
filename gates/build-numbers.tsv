@@ -421,3 +421,5 @@
 466	minted	-	-	-	2026-10-02T18:31Z	build__1790965191673	minted	play-from-here at a terminal ply: guard the committer so an already-over position cannot start a recorded game or move adaptive strength, warn on the setup sheet, and land the SIT gate
 466	built	-	3d25b48048c8	9cbb3e19773d	2026-10-02T18:39Z	build__1790965191673	build.sh	Bundle built and stamped #466. Recorded by gates/build.sh so the number resolves to an artefact.
 466	built	-	0f3c9817d413	55e5f711c221	2026-10-02T19:24Z	build__1790965191673	build.sh	Bundle built and stamped #466. Recorded by gates/build.sh so the number resolves to an artefact.
+467	minted	-	-	-	2026-10-02T21:29Z	build__1790976005325	minted	ratchet the gate manifest required count: a monotonic floor register so the frozen denominator cannot be edited downward, and the push gate can see it
+467	built	-	9e926eb3f2e0	55e5f711c221	2026-10-02T21:38Z	build__1790976005325	build.sh	Bundle built and stamped #467. Recorded by gates/build.sh so the number resolves to an artefact.

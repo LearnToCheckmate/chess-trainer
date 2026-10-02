@@ -298,6 +298,16 @@ MANIFOOT="$(grep -m1 '^gate manifest:' "$LOG" || true)"
 # FOOT is parsed at line 102 from the footer regex, ~180 lines above here, so this costs nothing.
 MANIERA=0
 case "${FOOT#\#}" in ''|*[!0-9]*) MANIERA=0;; *) [ "${FOOT#\#}" -ge 461 ] && MANIERA=1;; esac
+# #467. A SECOND ERA, FOR THE SAME REASON THE FIRST ONE EXISTS. From #467 the manifest line carries a ninth field,
+# the gate-required FLOOR, and a log footed #467 or later that does NOT carry it has either been edited or came
+# from an older harness - so the era is gated on the log's own build number exactly as MANIERA is, and for the
+# measured reason recorded there: it refuses zero archived logs, because the highest build any of them foots is
+# below 467. THE FIELD IS WHY THE ERA IS NEEDED AT ALL: without an era test, stripping ", N floor" from the line
+# would fall back to the #461 regex, match cleanly, and turn the floor check off - which is the shape of the exact
+# defect antagonist B found at F1 on #461 (one `rm` turning the whole guard off at the push gate).
+FLOORERA=0
+case "${FOOT#\#}" in ''|*[!0-9]*) FLOORERA=0;; *) [ "${FOOT#\#}" -ge 467 ] && FLOORERA=1;; esac
+MANIFLOOR=""; FLOORNOTE=""
 if [ -n "$MANIFOOT" ]; then
   # HERESTRING, NOT A PIPE [antagonist A's veto 1 on #461]: `printf | grep -q` under `set -o pipefail` reports
   # failure when grep short-circuits and SIGPIPEs the printf, measured as PIPESTATUS=[141 0]. Harmless at this
@@ -329,10 +339,28 @@ if [ -n "$MANIFOOT" ]; then
     # gates.sh emits, field for field, or it is not a verdict and is not treated as one. An unparseable line in a
     # current log means the line was edited or produced by something else, and either way nothing here can read it.
     MANIRE='^gate manifest: ([0-9]+) required, ([0-9]+) present, ([0-9]+) missing, ([0-9]+) unlisted, ([0-9]+) known-absent, ([0-9]+) retired, ([0-9]+) unjustified, ([0-9]+) unreadable$'
-    if [[ "$MANIFOOT" =~ $MANIRE ]]; then
+    # #467. The ninth field. `NOT-CHECKED` is accepted as a TOKEN here and refused below, deliberately: the
+    # alternative is to let it fail the parse, which refuses it with a message about the line's SHAPE when the
+    # real problem is a missing floor register, and a wrong reason that reaches the right verdict is a trap this
+    # project already paid for once (#419's "carries no footer", which was false - grep had gone binary on a NUL).
+    MANIRE467='^gate manifest: ([0-9]+) required, ([0-9]+) present, ([0-9]+) missing, ([0-9]+) unlisted, ([0-9]+) known-absent, ([0-9]+) retired, ([0-9]+) unjustified, ([0-9]+) unreadable, ([0-9]+|NOT-CHECKED) floor$'
+    if [[ "$MANIFOOT" =~ $MANIRE467 ]]; then
+      MANIREQ="${BASH_REMATCH[1]}"; MANIPRES="${BASH_REMATCH[2]}"; MANIMISS="${BASH_REMATCH[3]}"
+      MANIUNL="${BASH_REMATCH[4]}"; MANIABS="${BASH_REMATCH[5]}"; MANIRET="${BASH_REMATCH[6]}"
+      MANIUNJ="${BASH_REMATCH[7]}"; MANIUNREAD="${BASH_REMATCH[8]}"; MANIFLOOR="${BASH_REMATCH[9]}"
+    elif [[ "$MANIFOOT" =~ $MANIRE ]]; then
       MANIREQ="${BASH_REMATCH[1]}"; MANIPRES="${BASH_REMATCH[2]}"; MANIMISS="${BASH_REMATCH[3]}"
       MANIUNL="${BASH_REMATCH[4]}"; MANIABS="${BASH_REMATCH[5]}"; MANIRET="${BASH_REMATCH[6]}"
       MANIUNJ="${BASH_REMATCH[7]}"; MANIUNREAD="${BASH_REMATCH[8]}"
+      if [ "$FLOORERA" -eq 1 ]; then
+        echo "REFUSED (gate-required floor): $LOG is footed $FOOT and its manifest line carries no 'N floor' field."
+        echo "  line: $MANIFOOT"
+        echo "  Every gates.sh from #467 emits the floor as the ninth field, because it is the ONE field in that"
+        echo "  line not computed from the tree - and therefore the only one a log can still be checked against"
+        echo "  after the tree has moved on. A #467-era line without it has been edited or trimmed, and the"
+        echo "  pre-#467 regex would otherwise have matched it and turned the floor check off silently."
+        exit 1
+      fi
     elif [ "$MANIERA" -eq 1 ]; then
       echo "REFUSED (gate manifest): $LOG is footed $FOOT and its manifest line does not parse."
       echo "  line:     $MANIFOOT"
@@ -383,6 +411,60 @@ if [ -n "$MANIFOOT" ]; then
     # required rows whose file is present, plus required rows whose file is absent, must account for every listed
     # present file: NREQ == NPRES - NUNL + NMISS, once the stale-row cases are zero. A line that fails this is
     # internally inconsistent, which is the one thing a reader of the LOG can detect without the tree.
+    # ── #467. THE FLOOR, IN TWO ARMS, AND ONLY THE SECOND ONE IS INDEPENDENT ──────────────────────────────────
+    # jobs/nothing-ratchets-the-manifests-required-count-so-the-denominator-is-editable-downward-2026-10-02.
+    # ARM 1 is self-consistency: the log's own required count against the log's own floor. It costs nothing and it
+    # catches a trimmed or clumsily edited footer. IT IS NOT EVIDENCE ON ITS OWN AND I AM NOT GOING TO LET THE NEXT
+    # READER THINK IT IS: both numbers come out of the same line, so this is the log vouching for the log - the
+    # #419 limit this file already records about the PASS count, at a new field. Written as arm 1 of two precisely
+    # so that nobody reads the pair as one strong check.
+    # ARM 2 is the independent one: the floor the log reports must be a value the floor register has actually
+    # STOOD AT. The register is append-only and chain-checked, so every floor this project has ever had is a row in
+    # it; a log reporting a floor that is in no row is reporting a number nobody recorded. That is a test of the
+    # LOG against something OUTSIDE the log, which is the property arm 1 lacks and the reason this arm exists.
+    # IT DOES NOT COMPARE MAGNITUDES, deliberately: a legitimate `retire` lowers the floor, so demanding
+    # logFloor >= treeFloor would refuse every log written before any legitimate retirement, for ever - the frozen
+    # denominator again, pointed the other way. Membership is the right relation and it needs no ordering.
+    if [ -n "$MANIFLOOR" ]; then
+      if [ "$MANIFLOOR" = "NOT-CHECKED" ]; then
+        echo "REFUSED (gate-required floor): $LOG's run could not read gates/gate-required-floor.tsv."
+        echo "  $MANIFOOT"
+        echo "  The floor is what stops the manifest's \`required\` count being edited DOWNWARD. A suite that could"
+        echo "  not read it ran without knowing whether this tree requires fewer gates than an accepted tree did,"
+        echo "  so its green cannot speak to that. Restore the register from main and re-gate."
+        exit 1
+      fi
+      # ARM 1
+      if [ "$MANIREQ" -lt "$MANIFLOOR" ] 2>/dev/null; then
+        echo "REFUSED (gate-required floor): $LOG reports $MANIREQ required gate(s) against a floor of $MANIFLOOR."
+        echo "  $MANIFOOT"
+        echo "  A previously accepted tree required $MANIFLOOR gates, so some gate has left the required set. The"
+        echo "  two-field edit that does this - delete the gate, flip its row to absent, type any reason - reported"
+        echo "  one fewer required gate and exit 0 before #467, and the suite ran and went green over it."
+        echo "  gatemanifest.sh check should have stopped the suite; a log in this state was assembled some other way."
+        exit 1
+      fi
+      # ARM 2
+      FLOORREG="$(cd "$(dirname "$0")" && pwd)/gate-required-floor.tsv"
+      if [ ! -f "$FLOORREG" ]; then
+        FLOORNOTE="floor $MANIFLOOR (register NOT CHECKED - $FLOORREG absent)"
+        echo "NOTE (gate-required floor): the floor register is not on this tree, so the log's floor of $MANIFLOOR"
+        echo "  could not be checked against the values the project has actually stood at. Arm 1 passed; arm 2 was"
+        echo "  NOT CHECKED, which is not the same as passing. This is the only floor arm that is independent of"
+        echo "  the log, so on a tree without the register the floor is self-reported only."
+      elif grep -v '^[[:space:]]*#' "$FLOORREG" | cut -f1 | tr -d ' \r' | grep -qx "$MANIFLOOR"; then
+        FLOORNOTE="floor $MANIFLOOR (a recorded value in the register)"
+      else
+        echo "REFUSED (gate-required floor): $LOG reports a floor of $MANIFLOOR, which is not a value"
+        echo "  gates/gate-required-floor.tsv has ever recorded."
+        echo "  $MANIFOOT"
+        echo "  recorded floors: $(grep -v '^[[:space:]]*#' "$FLOORREG" | cut -f1 | tr -d ' \r' | paste -sd, -)"
+        echo "  The register is append-only and every floor the suite has run under is a row in it, so a log naming"
+        echo "  a floor that is in no row was not produced by a tree carrying this register. That is the one floor"
+        echo "  check here that does not read its answer out of the log it is judging."
+        exit 1
+      fi
+    fi
     if [ $(( MANIPRES - MANIUNL + MANIMISS )) -ne "$MANIREQ" ] 2>/dev/null; then
       echo "REFUSED (gate manifest): $LOG's manifest line does not add up."
       echo "  line: $MANIFOOT"
@@ -526,6 +608,9 @@ if [ "$THISBUNDLE" -eq 1 ]; then
   echo "THIS-BUNDLE OK: the log gated md5 $LOGMD5, which is app.js on disk"
 fi
 echo "OK: $LOG is a full-suite green for $FOOT ($(grep -c '^=== ' "$LOG") suites, $ACTUAL PASS, footer agrees)"
+# #467. SAY WHICH FLOOR ARM ACTUALLY RAN. A check that was NOT CHECKED must not be invisible in the OK line, or the
+# reader takes the OK as covering it - which is the whole reason this project writes "not checked" lists at all.
+[ -n "$FLOORNOTE" ] && echo "    gate-required $FLOORNOTE"
 # AND SAY WHAT THAT OK IS NOT, EVERY TIME. Added #450. "OK" above is a statement about the SUITE: these
 # assertions ran over that bundle and none failed. It is NOT an authorisation to push, and it was read as one -
 # see (10) and gates/held-trees.tsv. The adversarial pass is part of this project's push bar and NOTHING
