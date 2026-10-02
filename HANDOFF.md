@@ -23,7 +23,26 @@ Give this file to Claude in Cowork as the first thing in the session.
 >   into it. A row is never deleted, and an `absent`/`retired` row with no reason counts as MISSING.
 > - three rows read `absent`: gates 50, 66 and 67, which exist on branches and not here. Read their note column
 >   before promoting one - at least one is red on main by design.
-> `gates/gatemanifest.sh selftest` is its 14 controls. Full reasoning in CLAUDE.md.
+> `gates/gatemanifest.sh selftest` is its 19 controls. Full reasoning in CLAUDE.md.
+
+> **AND #461 DID NOT SHIP IT. READ THIS BEFORE YOU TOUCH THE GATE HARNESS.** The manifest above is BUILT, controlled
+> 19/19, and GREEN on all 48 sections in one full run — on `origin/claude/cool-noether-y56pth` @ `1a54418`, 6 commits,
+> **6 ahead / 0 behind main, a clean fast-forward**, with NO application code in it (`chess.jsx` byte-identical to
+> main; `app.js` differs only in the stamp, proved by substituting it). Two things stopped it, and the second is
+> somebody's to fix:
+> 1. **I edited `gates/gates.sh` twice while the 71-minute suite was running.** Bash reads a script by byte offset as
+>    it executes, so all 48 sections passed and then the suite died before its footer. No footer, no `GATES GREEN`,
+>    no push. **Freeze the harness before you launch** — record `md5sum gates/*.sh` and check it after; #461's second
+>    run did and the check passes, which is the only reason that log can be cited at all.
+> 2. **The re-gate went red on ONE assertion that is not #461's:** `gates/regress/11-lesson.js:77` holds a hard-coded
+>    `WANT={'320x568 demo-end':270.9,…}` and that board is **bistable** — 270.9 in run 1 and in `460-all.log`, 262.9
+>    in run 2, exactly 8.0px apart, one step of the board's floor-to-8. It is the frozen-literal pattern **#430
+>    removed from the sibling gate 48** for this same bistability and never applied to gate 11.
+> **THE NEXT RUN'S JOB:** `jobs/461-the-gate-manifest-is-built-and-controlled-and-held-on-a-bistable-literal-in-gate-11-2026-10-02`.
+> Re-key gate 11's table the #430 way **and build the control first** — a bundle with a genuinely wrong board, proving
+> the re-keyed form still reddens. #461 deliberately did not do it: re-keying a currently-failing literal inside the
+> run that needs it to pass is weakening an assertion to get green, sanctioned pattern or not. Landing both together
+> is the recommendation, because landing #461 alone needs the flake not to fire, which is roughly a coin flip.
 
 > **SECTION 0a WAS LAST WRITTEN BY #398; THE LIVE LINE IS #439 (noted 2026-09-30, sha `dc5bacd`, bundle md5
 > `0099cb784ca0`).** The "#419" this line carried from 2026-09-18 until now was itself twenty builds stale by the
