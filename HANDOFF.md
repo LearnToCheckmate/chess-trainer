@@ -2,6 +2,47 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#463 DID NOT SHIP. IT BUILT THE RUN-FROM-A-COPY FIX FOR #461'S LOST SUITE AND BOTH ANTAGONISTS VETOED IT,
+> BECAUSE THE FIX RECREATES #461 (branch `claude/cool-noether-pyghag` @ `653ad66`, 2026-10-02).**
+> `jobs/463-the-suite-copy-fix-is-right-and-its-copy-path-recreates-461-2026-10-02` has the three named fixes
+> and both antagonists' sandbox evidence. `builds/463` has what is proven and what is not. DO NOT REBUILD IT.
+>
+> **FOUR THINGS THE NEXT RUN SHOULD NOT REDISCOVER:**
+> 1. **`cp` OVER A RUNNING SCRIPT KILLS IT; `rm` DOES NOT.** Measured both ways in one run: `cp` truncates in
+>    place, same inode, so the live interpreter reads a shifted file - `line 4: extra: command not found`, then it
+>    executes the NEW file's body. `rm -f` is harmless, because unlink keeps the inode alive for the open fd. So
+>    `gates/run-suite.sh`'s `COPY="$G/.run-$TAG.sh"` means a SECOND run of the same build number destroys the
+>    first one's suite, and the #419 lock cannot stop it: `gates.sh` takes the lock at `gates.sh:58`, after
+>    `run-suite.sh` has already done the `cp` at `:76`. The trigger is this project's own fix-recheck loop, which
+>    re-runs the same number. Fix: per-process `COPY` and `FREEZE`, plus a refusal if the copy exists.
+> 2. **DELETE YOUR FIX AND RE-RUN YOUR OWN CONTROLS BEFORE YOU TRUST THEM.** #463 wrote 14 controls, checked
+>    their determinism three times, and antagonist A then scored them **14/14 with the copy mechanism ENTIRELY
+>    DELETED**. One was satisfied by the absence it existed to detect; one was a tautology over two `/tmp` files;
+>    one passes either way by construction. R36's three admission tests do not include this one. Two minutes.
+>    `jobs/a-control-set-can-score-full-marks-with-its-own-subject-deleted-2026-10-02`.
+> 3. **`held.sh add`'s SOURCE KEY MUST COME FROM THE GATED SHA, NOT THE WORKING TREE.** #463 changed it to
+>    compute from the working tree and antagonist A measured BOTH POLARITIES INVERTED: after the normal
+>    stand-down sequence (build, gate, veto, **edit**, stand down, add) the tree that was actually refused
+>    rebuilds and `check` says *not held*, while the never-gated post-veto tree gets a false hold. And
+>    `verify-log.sh:227` computes the key as `git show <sha>:chess.jsx`, so such a row can never match it - the
+>    change would silently disarm the push gate's own refusal. 7 of 8 live rows already follow the gated-sha
+>    semantics. **AND ON A HARNESS-ONLY BUILD THE COMPUTED DEFAULT WRITES A ROW THAT HOLDS MAIN**, because
+>    `chess.jsx` is then byte-identical to main's - after which `check` refuses every later harness-only build.
+> 4. **NOTHING TELLS ANYONE TO USE THE LAUNCHER.** `grep -c run-suite CLAUDE.md` and `HANDOFF.md` both return 0
+>    and CLAUDE.md:101 still says to run `gates.sh` directly, so the next run launches `gates.sh` and #461
+>    happens again. Whoever lands the branch must change CLAUDE.md's gating line too, and should consider having
+>    `gates.sh` itself warn when it is not running from a `.run-*.sh` copy - the only version that does not
+>    depend on a human reading a document.
+>
+> **AND TWO ASKS KUNAL HAS NEVER BEEN SHOWN ARE WHY EIGHT BUILDS HAVE DECLINED A PRIORITY-11 JOB.** Measured by
+> listing ALL 74 Desk questions, not the status-open subset: the drill verdict's board-cost question - the only
+> thing blocking the FINISHED, gated `#459` drill tree - **does not exist on the Desk at all**, though a job
+> exists whose whole title is a request to route it. The mate-floor question does exist and has been open 30+
+> hours. `jobs/the-459-blocker-was-never-written-to-the-desk-so-a-p0-waits-on-an-ask-that-does-not-exist-2026-10-02`.
+> Both are the orchestrator's; no lane writes the Desk. **Do not spend another build's selection window
+> rediscovering this.**
+
+
 > **#462 SHIPPED THE EXPECTED-GATES MANIFEST AND FOUR HOLES IN ITS OWN PUSH GATE (cf39d40, 2026-10-02).**
 > `gates/verify-log.sh` now reads the `gates ran (N):` roster and cross-checks it against the `=== ` section count
 > and against the manifest's `required`, so a trimmed, truncated or hand-made log is REFUSED. Before #462 a
