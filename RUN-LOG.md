@@ -1477,3 +1477,23 @@ twice: it is that **I twice inferred a process was dead from a watcher going qui
 watcher I had myself killed cannot report anything. Verify a kill by looking for the thing, not by noticing
 silence. The stale `gates/logs/.suite.lock` directory the second kill left behind is removed; a stale-lock
 takeover is not optional and this is the second time that lock has been orphaned by a SIGKILL.
+
+| #457 | repair of the drill grading #456 built and held: one instrument on both sides of the loss, the irreversible card-delete guard, grading kept out of the brilliant drill, the mate-baseline sentence, and the accept sentence budgeted | 90 min (00:20Z, the budget) | 00:20Z | NOT STAGED — stood down | 72 min to the stand-down | on budget | **RED and VETOED, and they are unrelated.** Suite stopped by me at 29 of 49 sections / 1393 PASS with ONE red (gate 33), once the veto was upheld and no green could authorise a push. Gate 33's red is NOT this tree's defect and is proven two-sidedly: its locator uses `\w+`, which cannot match the legal minified identifier `$`; main's bundle minifies that slot to `X` and matches, this one minifies it to `$` and returns null, so all three assertions reported `null` on a bundle whose guard (2e4) and depth (16) are byte-identical to main's. Fixed in the gate and pushed to main separately. | **NOTHING SHIPPED.** app.js on main is unchanged; Pages serves exactly what it served before. |
+
+Lesson from #457, and it is the one the build found against itself. The run fixed #456's held arithmetic and
+proved it: both sides of the subtraction now come out of ONE `rankMoves` call, measured 27 of 482 graded moves
+had been MANUFACTURED "Best move, nothing beats it" by the old clamp (worst position 15 of 26) and 0 are now,
+by construction rather than by clamping. It also caught, with its own new assertion A6d, that Kunal's own
+Good-band words "Can you find it?" had been selected **0 of 180 times** because #456 put his question only in
+candidates that never fit the 48-character budget. **And then shipped the identical defect one ladder over.**
+Antagonist A measured that the LEAD candidate of all three branches of `drillAcceptMsg` is unreachable for every
+legal SAN — 50, 52 and 62 characters against 48 — so "Best move. Nothing in the position beats it.", the string
+named in `chess.jsx`, in gate 17's own header, in US-R14 and in this build's commit message, **can never reach
+the screen**; and that the Good branch reads only the SAN, never `bandAfter` and never `takenBack`, so 18
+different inputs produce ONE sentence. Both re-measured here before the veto was upheld. The shape is exact:
+**A6a and A6b are green BECAUSE those candidates are dead**, so they cannot tell "the budget works" from "the
+budget eats the top of every ladder" — which is the wrong-shaped control the #456 row was held for, re-created
+by the build that fixed it, in the same file, an hour later. A lesson recorded in one gate does not travel to
+the next one by itself, and this file has said so since #390. The honest reading of my own A6d is also withdrawn:
+"180 of 180" counts two loop variables the Good branch cannot read, and the real scope is one template over ten
+SANs — the same unscoped-count error the repaired denominator had been written to fix, one step over.
