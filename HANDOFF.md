@@ -10,6 +10,21 @@ Give this file to Claude in Cowork as the first thing in the session.
 > this repository cannot see a number another live container has minted and not yet pushed - which is the
 > #416 case. Full reasoning in CLAUDE.md.
 
+> **#461 MADE A MISSING GATE A RED, AND IT CHANGES WHAT ADDING OR REMOVING A GATE COSTS YOU.** `gates.sh` built its
+> gate list by globbing `gates/regress/*.js`, so it asserted that the gates PRESENT all passed and never that the
+> gates that MATTER were present - a gate deleted, renamed or never merged was indistinguishable from one that was
+> never needed. Measured at `fabcfc2`: main reported **47 suites green** with `67-sel-cls-consumers.js` and
+> `50-drill-verdict-no-jump.js` both absent from the tree. Now `gates/gate-manifest.tsv` lists what the suite
+> requires and `gates/gatemanifest.sh check` runs BEFORE any gate, so:
+> - **adding a gate takes TWO rows, not one:** the number register in `claude/stories/README.md` *and*
+>   `gates/gatemanifest.sh sync '<what it covers>'`. The suite still runs an unlisted gate, but
+>   `gates/verify-log.sh` REFUSES the log, so it cannot reach main unlisted.
+> - **removing one takes `gates/gatemanifest.sh retire <gate> '<why>'`**, which keeps the row and writes the reason
+>   into it. A row is never deleted, and an `absent`/`retired` row with no reason counts as MISSING.
+> - three rows read `absent`: gates 50, 66 and 67, which exist on branches and not here. Read their note column
+>   before promoting one - at least one is red on main by design.
+> `gates/gatemanifest.sh selftest` is its 14 controls. Full reasoning in CLAUDE.md.
+
 > **SECTION 0a WAS LAST WRITTEN BY #398; THE LIVE LINE IS #439 (noted 2026-09-30, sha `dc5bacd`, bundle md5
 > `0099cb784ca0`).** The "#419" this line carried from 2026-09-18 until now was itself twenty builds stale by the
 > time anyone read it again — which is the same defect this note exists to warn about, committed by the note. It is
