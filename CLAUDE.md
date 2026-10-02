@@ -169,12 +169,19 @@ wider one.
   not - so "a gate leaves only in a commit that says why" is true of the DIFF and not of any check, and deleting the row instead would make the manifest agree with the deletion silently. KNOW ITS
   LIMIT, because it is the #419 limit again: the footer is a claim this harness computes, so `verify-log.sh`
   reading it back is not an independent measurement, and it cannot be - that script runs on archived logs with no
-  tree on disk. **NINETEEN controls as a command, not a paragraph: `gates/gatemanifest.sh selftest`
-  (TC-SUITE-001..019).** It started at twelve, reached fourteen when my own adversarial pass found that an
-  `absent` row with no reason was accepted, and reached nineteen on the two antagonist vetoes - and the count
-  DRIFTED ACROSS THREE DOCUMENTS IN ONE BUILD while the file that records it said "the register and the
-  executable cannot drift", which antagonist A caught and which is why the number is written once here and the
-  authority is the command's own output. A gate that is PRESENT but empty is no longer a hole: `gates.sh` now
+  tree on disk. **ITS CONTROLS ARE A COMMAND, NOT A PARAGRAPH: `gates/gatemanifest.sh selftest`. THE AUTHORITY IS THAT
+  COMMAND'S OWN LAST LINE, AND EVERY NUMBER WRITTEN BESIDE IT HAS GONE STALE, INCLUDING THIS ONE'S FIRST TWO
+  DRAFTS [R18].** This sentence read "NINETEEN controls ... (TC-SUITE-001..019)". MEASURED at #467: `grep -c
+  'TC-SUITE' gates/gatemanifest.sh` is **0** - the ids never lived in the script, they live in
+  `claude/stories/TEST-CASES.md`, which is their correct home under R17 - and that register held **FOURTEEN** case
+  rows while this file and the register's own header both advertised nineteen, with 015 to 018 simply absent and
+  `TC-SUITE-019` appearing nowhere except inside the range notation itself. The 19 was real but it was a DIFFERENT
+  DENOMINATOR: the command emitted 19 PASS lines over 14 cases, re-measured at #467 by running the pre-#467 script
+  in place. **Fourteen cases, nineteen assertions, one range notation - that is the whole cause of the drift this
+  sentence was written to warn about, and the sentence was carrying it.** The register's table is now GENERATED
+  from the command's output, one row per PASS line, which is the only version of "the register and the executable
+  cannot drift" that is a mechanism rather than an intention. At #467 the command says 55; do not copy that number
+  anywhere, run it. A gate that is PRESENT but empty is no longer a hole: `gates.sh` now
   treats a section that exits clean and asserts nothing as red (#405's "0 PASS is the tell").
 - The harness library is `gates/lib.js`; read its header before writing a gate.
 - Serve locally. `learntocheckmate.github.io` is blocked by the egress proxy; `github.com` is not.
@@ -461,6 +468,42 @@ wider one.
   AND NOTE WHICH FAMILY THIS IS IN: it is the self-reference trap this file already records at #407 (a watcher
   whose `pgrep -f` matched itself) and #416 (a `pkill -f` that killed its own shell) - *the tool and the thing it
   was operating on were the same object*. Here they were the same FILE, and the window was 71 minutes wide.
+- **A BOUND ON A COUNT IS NOT A BOUND ON THE SET, AND THE CARRIER LINE CAME OUT BYTE-IDENTICAL. #467, AND IT IS THE
+  ELEVENTH COSTUME OF THE TRAP THIS FILE ALREADY RECORDS TEN TIMES.** #461 gave the suite a manifest, so a deleted
+  gate became a RED instead of a silence. Nothing bounded the manifest's own `required` count from BELOW, and the
+  whole bar for shrinking the suite was: delete the gate file, change one word in its row, type one character as a
+  reason. MEASURED at #467 on a copy of the real manifest: that took the line from `49 required, 49 present, 0
+  missing` to `48 required, 48 present, 0 missing` at **exit 0**, so the suite ran, emitted `GATES GREEN`, and
+  `verify-log.sh` said OK - over a suite missing `gates/regress/21-review-brilliant.js`, the gate this file names as
+  the only cover for brilliancy explanations, the item Kunal raised five times before it landed.
+  **THE FIX THE JOB PROPOSED WAS A MONOTONIC FLOOR ON THE COUNT, AND BOTH ANTAGONISTS BROKE IT.** `gates/gate-required-floor.tsv`
+  is append-only and chain-checked, `check` compares and never writes, `sync` raises and `retire` lowers. Antagonist
+  B then measured that `retire` lowered the floor to *whatever the tree happened to require*, so deleting twenty
+  gates and retiring ONE took the floor 49 -> 29 at exit 0 - **by following the instruction the breach message
+  itself printed.** A ratchet whose pawl releases on one legitimate step is a one-shot valve, and it is WORSE than
+  the plain two-field diff it replaced, because the shrunk denominator now arrives laundered through the project's
+  own audit anchor carrying a row that looks like due process. Antagonist A then measured the deeper one: promote
+  one of the `known-absent` rows to `required`, `touch` a stub for it, and de-require the real gate - the count does
+  not move, so **the manifest line that reaches the push gate is BYTE-IDENTICAL to an honest tree's**, and in the
+  `retired` variant the departing gate's name appears NOWHERE in the tool's output at all.
+  **SO THE QUESTION THAT CATCHES THIS WHOLE FAMILY, ASKED ONE LEVEL UP FROM WHERE #461 ASKED IT:** a bound on a
+  number DERIVED FROM THE FILE AN ATTACKER IS EDITING is the check and the thing being checked being the same
+  object. #461 moved the check from the gate directory to the manifest; #467's first draft moved it from the
+  manifest to a count of the manifest, and the count is still the manifest's own arithmetic. What shipped pins the
+  SET: a digest of the sorted required gate names, in the register, in the carrier line, and membership-tested at
+  the push gate. The two lines then differ (`9f80bba52ba6` honest, `7606f011ac5c` swapped), which is the whole
+  point - **before the digest the push gate had nothing to read even in principle.**
+  **AND ONE LEADING SPACE DEFEATED ALL OF IT.** `floorread`'s first case arm was `""|[[:space:]]*) continue;;`, so a
+  row beginning with a single space was treated as a blank line and skipped with no error: floor 51 -> 49, then
+  eleven required gates de-required, exit 0, and **every structural guard bypassed rather than defeated - never
+  consulted.** The `#`-prefixed form of exactly that attack was already caught, with its own control, from #461.
+  A guard that handles one invisible character and not its neighbour is a guard against the example it was written
+  for. And my first repair of it broke genuinely blank lines, which is the other half of the same lesson: the three
+  cases (blank, commented, indented) have to be separated explicitly or fixing one re-breaks another.
+  **WHAT IS STILL OPEN AND IS NAMED RATHER THAN HIDDEN:** an append-only register cannot witness its own TRAILING
+  TRUNCATION - delete the last row and the remaining chain is consistent one step earlier. The anchor has to be
+  outside the file, and it is git: `jobs/the-gate-manifest-can-be-weakened-by-hand-and-only-git-can-object-2026-10-02`,
+  left open on purpose with its blocking baseline question answered on the job.
 - **A COUNT WITH NO SCOPE CANNOT BE CHECKED, AND TWO OF SIX PUBLISHED CONTROL RESULTS TURNED OUT TO BE SUBSET
   RUNS.** `gates/regress/49-home.js` arrived with six negative controls recorded in its lane document as bare
   numbers ("NC2: 15 red", "NC5: 12 red"). Re-run here, the full gate gives **27** and **14**; measured,

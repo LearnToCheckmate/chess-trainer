@@ -2,6 +2,64 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#467 MADE THE GATE SUITE'S REQUIRED SET UN-SHRINKABLE, AND BOTH ANTAGONISTS PROVED MY FIRST VERSION WAS NOT
+> (2026-10-02).** Nothing a player sees changed: `chess.jsx` is BYTE-IDENTICAL to #466 (`55e5f711c221` both sides)
+> and the bundle differs only in its stamp. The subject is the push bar.
+>
+> #461 gave the suite a manifest, so a deleted gate became a RED instead of a silence. Nothing bounded the
+> manifest's own `required` count from BELOW, and the whole bar for shrinking the suite was: delete the gate file,
+> change one word in its row, type one character as a reason. MEASURED before writing anything: that took
+> `gatemanifest.sh check` from `49 required, 49 present, 0 missing` to `48 required, 48 present, 0 missing` at
+> **exit 0**, so the suite ran, emitted `GATES GREEN` and `verify-log.sh` said OK - over a suite missing
+> `gates/regress/21-review-brilliant.js`, the gate CLAUDE.md names as the only cover for brilliancy explanations.
+> What shipped is `gates/gate-required-floor.tsv`: append-only, chain-checked, one row per change, `check`
+> compares and never writes.
+>
+> **FIVE THINGS THE NEXT RUN SHOULD NOT REDISCOVER. The first two are the vetoes, and the last one cost this run a
+> whole suite for a reason no previous build has hit.**
+> 1. **A BOUND ON A COUNT IS NOT A BOUND ON A SET, and the carrier line came out BYTE-IDENTICAL.** Antagonist A:
+>    promote one of the `known-absent` rows to `required`, `touch` a stub for it, de-require the real gate. The
+>    count does not move, so the floor never fires, `check` exits 0, and the manifest line that reaches the push
+>    gate is byte-for-byte an honest tree's - `verify-log.sh` returns OK. In the `retired` variant the departing
+>    gate's name appears NOWHERE in the tool's output. **The floor bounded a number derived from the file an
+>    attacker is editing**, which is the eleventh costume of "the check and the thing being checked were the same
+>    object". The fix pins the SET: a digest of the sorted required gate names, in the register, in the carrier
+>    line, and membership-tested at the push gate as arm 3. If you add a guard over this mechanism, ask what it
+>    reads its expected value FROM.
+> 2. **`retire` MUST LOWER BY EXACTLY ONE, AND MY FIRST VERSION LOWERED TO WHATEVER THE TREE REQUIRED.** Antagonist
+>    B: delete twenty gates, hand-flip their rows, retire ONE properly, and the floor went 49 -> 29 at exit 0 -
+>    **by following the instruction my own breach message printed.** One gate leaves per row, so the register's row
+>    count IS the number of retirements. A ratchet whose pawl releases on one legitimate step is a one-shot valve,
+>    and it is worse than no ratchet, because the shrunk denominator then arrives laundered through the project's
+>    own audit anchor carrying a row that looks like due process.
+> 3. **ONE LEADING SPACE WALKED PAST EVERY STRUCTURAL GUARD.** `floorread`'s first case arm was
+>    `""|[[:space:]]*) continue;;`, so an indented row was treated as blank and skipped with no error: floor
+>    51 -> 49, then eleven required gates de-required, exit 0, and B's exactly-one rule, named-gate rule, reason
+>    check and chain check were never consulted. The `#`-prefixed form of the same attack was already caught, with
+>    its own control, from #461. **My first repair then broke genuinely blank lines**, so the three cases (blank,
+>    commented, indented) are separated explicitly now. If you touch that loop, control all three.
+> 4. **DECLARE EVERY LOOP VARIABLE `local`, and this one neither antagonist found.** `floorread` assigned `gate`
+>    and `mstate` without `local`; `floorwrite` calls `floorread` and has its own `gate` local, so the callee
+>    clobbered it with the LAST ROW's field 8. Every row written carried an empty gate field and the next `check`
+>    refused the file the tool had just written - a legitimate retire reddening the suite. Two functions sharing
+>    one name.
+> 5. **A CONTAINER RESTART KILLED THE SUITE AT SECTION 14 OF 50, AND THE RECOVERY IS AUTOMATIC IF YOU LET IT BE.**
+>    No node processes, no error in the log, a stale `gates/logs/.suite.lock` left behind - the #419 shape. Two
+>    mechanisms this project already shipped did the work: `gates.sh` took the stale lock over by itself (`pid
+>    '3057' is not running`) and gave the relaunch the `467b-` stem of its own accord, so the killed run's ten
+>    per-gate logs survived. **DO NOT hand-clear the lock or hand-rename the log.** What I did add: I recorded
+>    `md5sum gates/*.sh gates/*.tsv` BEFORE the launch and verified it after the kill, which is what establishes
+>    that the killed run's 13 green sections were honest and merely incomplete rather than corrupted the way #461's
+>    were. Freeze the harness, keep the digest, and run the suite from a COPY **inside `gates/`** - not in a
+>    `mktemp` dir, because these scripts resolve their registers from `dirname $0` and a copy outside that
+>    directory silently loses them.
+>
+> **AND ONE TRAP THAT COST ME A WRONG CONCLUSION BEFORE A CONTROL CAUGHT IT:** my first regression check said #467
+> had broken two archived gatelogs. It had not. I had run the comparison copy of `verify-log.sh` from a `mktemp`
+> dir, so ITS held-tree register was missing and it accepted two logs that are legitimately held. Re-run in place,
+> both scripts refuse exactly the same 3 of 78. **The tell was that the refusal reason it printed had nothing to do
+> with the field I had added.**
+
 > **#466 MADE "PLAY FROM HERE" REFUSE AT A FINISHED POSITION INSTEAD OF STARTING A GAME YOU HAD ALREADY LOST (2026-10-02).**
 > From the last ply of a decisive game - one tap from where every review of a decisive game ENDS - the review's ⋯ →
 > Play from here → ▶ Play this position opened a REAL vs-Computer game reading "Checkmate! / You lose" with zero

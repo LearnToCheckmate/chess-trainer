@@ -440,13 +440,31 @@ that raised it (`jobs/gates-green-does-not-assert-which-gates-RAN-so-a-deleted-g
 states it in its own `storyClause` field as "None - a property of the gate suite [R08]". Recorded here because
 the definition of done asks for a clause id *or one line naming why there is none*, and this is that line.
 
-**ID SPACE: `TC-SUITE-001` … `TC-SUITE-019`, a new space opened by this build.** The existing spaces are all
+**ID SPACE: `TC-SUITE-001` … `TC-SUITE-055`, opened at #461 and extended at #467.** The existing spaces are all
 keyed to app areas (`TC-R*` review, `TC-HM-*` home, `TC-PL-*` play, `TC-INV-*` invariants), and filing a harness
-property under any of them would have mislabelled it. The nineteen ids are the nineteen cases in
-`gates/gatemanifest.sh selftest`, in the order that command runs them, so the register and the executable cannot
+property under any of them would have mislabelled it. **The ids are the PASS lines of
+`gates/gatemanifest.sh selftest`, in the order that command runs them**, so the register and the executable cannot
 drift: if somebody adds a case there, the count here is wrong and visibly so. **IT ALREADY CAUGHT ME ONCE:** this
-section was written at twelve, and this build's own antagonist pass then added 013 and 014, so the paragraph you
-are reading is the second version of it.
+section was written at twelve, and #461's own antagonist pass then added 013 and 014.
+
+**AND AT #467 IT CAUGHT THE PARAGRAPH ITSELF, TWICE OVER [R18].** The sentence above read "`TC-SUITE-001` …
+`TC-SUITE-019`" and "The nineteen ids are the nineteen cases", and CLAUDE.md repeated it as "NINETEEN controls as
+a command ... (TC-SUITE-001..019)". Measured at #467:
+
+- **The range was a claim about contiguity that the table did not keep.** `grep -o 'TC-SUITE-[0-9]*'` over this
+  file returned **015 distinct ids**, and the only occurrence of `TC-SUITE-019` was *inside the range notation
+  above* — there was never a case 019, and 015 to 018 did not exist either. So the table held **fourteen** rows
+  while two documents advertised nineteen.
+- **The 19 was real but it was a DIFFERENT DENOMINATOR.** `gates/gatemanifest.sh selftest` at #461 emitted exactly
+  **19 PASS lines**, re-measured at #467 by running the pre-#467 script in place. Fourteen cases, nineteen
+  assertions, one range notation: that is the whole cause of the drift CLAUDE.md records as having "DRIFTED ACROSS
+  THREE DOCUMENTS IN ONE BUILD", and the fix is not a better number but **saying which denominator** — which this
+  paragraph now does, and which #467's commit message and source comment also had to be reconciled against each
+  other after antagonist A found them counting by different schemes 300 lines apart.
+- **The table below is now GENERATED from the command's own output**, one row per PASS line, rather than
+  maintained beside it. That is the only version of "the register and the executable cannot drift" that is true of
+  a mechanism rather than of an intention. The authority for the total remains the command's own last line:
+  `selftest: 55 passed, 0 failed` at #467, against 19 at #461.
 
 **THE DEFECT, MEASURED.** `gates.sh` built its gate list by globbing `gates/regress/*.js`, so it asserted that
 the gates PRESENT all passed and never that the gates that MATTER were present. Measured on `origin/main` at
@@ -475,20 +493,71 @@ authority is `gates/gatemanifest.sh selftest`'s own last line, not any number wr
 
 | id | case | measured |
 |---|---|---|
-| TC-SUITE-001 | a complete tree checks clean | exit 0 — the control that stops the eleven below being vacuous |
-| TC-SUITE-002 | a **deleted** required gate is a hard failure | exit 1. **This is the defect the job was filed for**; without the manifest the suite goes green |
-| TC-SUITE-003 | restoring it clears the failure | exit 0 — so 002 is keyed to the absence and not to something sticky |
-| TC-SUITE-004 | a **renamed** required gate is a hard failure | exit 1 — a rename is a deletion plus an unlisted arrival, and the deletion is what matters |
-| TC-SUITE-005 | an **unlisted** new gate is soft | exit **2**, not 1: a build that adds a gate must still be able to run it |
-| TC-SUITE-006 | MISSING outranks UNLISTED when both hold | exit 1 — the hard case must win, or 004 would report the wrong thing |
-| TC-SUITE-007 | a **missing manifest** is NOT CHECKED | exit 3, never 0. Antagonist B's rule from #450: a guard whose absence is indistinguishable from its success is not a guard |
-| TC-SUITE-008 | a malformed row is reported, not skipped | the words "malformed manifest row" appear — somebody wrote that row meaning to require a gate |
-| TC-SUITE-009 | `retire` refuses while the gate is still on disk | exit 1 — a row cannot be softened ahead of the deletion |
-| TC-SUITE-010 | `retire` works once the gate is gone | exit 0 |
-| TC-SUITE-011 | the retired row **stays** in the file carrying its reason | the string `RETIRED at … <reason>` is present. This is the whole mechanism: a gate leaves only in a commit that says why |
+| TC-SUITE-001 | a complete tree checks clean | exit 0 |
+| TC-SUITE-002 | a DELETED required gate is a hard failure | exit 1 |
+| TC-SUITE-003 | restoring it clears the failure | exit 0 |
+| TC-SUITE-004 | a RENAMED required gate is a hard failure | exit 1 |
+| TC-SUITE-005 | an UNLISTED new gate is soft (exit 2), so the suite can still run | exit 2 |
+| TC-SUITE-006 | MISSING outranks UNLISTED when both hold | exit 1 |
+| TC-SUITE-007 | a MISSING manifest is NOT CHECKED, not a pass | exit 3 |
+| TC-SUITE-008 | an unreadable row is reported, counted in the summary line, and exits 1 | the named string is present in the output |
+| TC-SUITE-009 | retire refuses while the gate is still on disk | exit 1 |
+| TC-SUITE-010 | retire works once the gate is gone | exit 0 |
+| TC-SUITE-011 | the retired row stays in the file, carrying its reason | the named string is present in the output |
 | TC-SUITE-012 | a retired gate no longer reddens the check | exit 0 |
-| TC-SUITE-013 | flipping a row to `absent` **with no reason** is still a hard failure | exit 1 — **the hole this build's own antagonist pass found**, see below |
-| TC-SUITE-014 | the same flip **with** a reason is accepted | exit 0 — so 013 is keyed to the missing reason and not merely to the state |
+| TC-SUITE-013 | flipping a row to absent WITH NO REASON is still a hard failure | exit 1 |
+| TC-SUITE-014 | the same flip WITH a reason is NOW hard too - the floor catches it [#467, was exit 0 at #461] | exit 1 |
+| TC-SUITE-015 | a well-formed de-requiring flip is caught by the FLOOR, not by the reason check | the named string is present in the output |
+| TC-SUITE-016 | a MALFORMED row whose gate is deleted is a hard failure, not a warning | exit 1 |
+| TC-SUITE-017 | the summary line reports the unreadable row rather than claiming 0 missing | the named string is present in the output |
+| TC-SUITE-018 | an unknown subcommand exits 2, not the MISSING code 1 | exit 2 |
+| TC-SUITE-019 | a COMMENTED-OUT row whose gate is deleted is a hard failure | exit 1 |
+| TC-SUITE-020 | the commented-out row is named, not silently uncounted | the named string is present in the output |
+| TC-SUITE-021 | a tree whose required count equals the floor checks clean | exit 0 |
+| TC-SUITE-022 | required DE-REQUIRED one gate below the floor is a hard failure | exit 1 |
+| TC-SUITE-023 | the breach is named with both numbers, not merely exited on | the named string is present in the output |
+| TC-SUITE-024 | a tree requiring MORE than the floor is accepted, and sync raised the floor | exit 0 |
+| TC-SUITE-025 | sync raised the floor 49 -> 50 | the named string is present in the output |
+| TC-SUITE-026 | a LEGITIMATE retire lowers the floor and leaves the tree clean | exit 0 |
+| TC-SUITE-027 | an ABSENT floor register is NOT CHECKED (exit 3), not a pass | exit 3 |
+| TC-SUITE-028 | the summary line carries the NOT-CHECKED token the push gate refuses | the named string is present in the output |
+| TC-SUITE-029 | a DELETED INTERIOR floor row breaks the chain and is HARD | exit 1 |
+| TC-SUITE-030 | the broken chain is named | the named string is present in the output |
+| TC-SUITE-031 | a COMMENTED-OUT floor row is a hidden lowering, and is HARD | exit 1 |
+| TC-SUITE-032 | a 'lower' row naming no gate in field 8 is refused (hard) | exit 1 |
+| TC-SUITE-033 | a hand-appended 'lower' whose gate is 'absent' and not 'retired' in the manifest is refused (hard) | exit 1 |
+| TC-SUITE-034 | the refusal names the manifest state it found instead | the named string is present in the output |
+| TC-SUITE-035 | three gates de-required is a breach before any retire | exit 1 |
+| TC-SUITE-036 | retire REFUSES to account for three removals with one row, and names the others | exit 1 |
+| TC-SUITE-037 | and the tree is STILL a breach afterwards, so no green is reachable | exit 1 |
+| TC-SUITE-038 | the refused retire wrote NO floor row (still 49) | the named string is present in the output |
+| TC-SUITE-039 | ONE removal plus ONE retire is clean, and the floor is 48 | exit 0 |
+| TC-SUITE-040 | the legitimate retire lowered the floor by exactly one | the named string is present in the output |
+| TC-SUITE-041 | a DUPLICATE row padding  over a deleted gate is a hard failure | exit 1 |
+| TC-SUITE-042 | the arithmetic failure is named AND the duplicate-row remedy is printed | the named string is present in the output |
+| TC-SUITE-043 | sync REFUSES before touching either file when CT_BUILD/CT_RUNID are unset | the named string is present in the output |
+| TC-SUITE-044 | and no 'unknown-run' row reached the register | the named string is present in the output |
+| TC-SUITE-045 | a 'raise' row that lowers the floor is refused (hard) | exit 1 |
+| TC-SUITE-046 | a 'lower' row dropping more than one is refused even with a named retired gate (hard) | exit 1 |
+| TC-SUITE-047 | a final row with no trailing newline is still read | the named string is present in the output |
+| TC-SUITE-048 | appending after a newline-less row does not join two rows | exit 0 |
+| TC-SUITE-049 | an INDENTED floor row is HARD, not silently skipped [A's 5.2] | exit 1 |
+| TC-SUITE-050 | the indented row is named | the named string is present in the output |
+| TC-SUITE-051 | blank and whitespace-only lines are still ignored | exit 0 |
+| TC-SUITE-052 | a SWAP at constant count and constant floor is a hard failure [A's 5.1] | exit 1 |
+| TC-SUITE-053 | the swap is caught by the SET digest, which the count cannot see | the named string is present in the output |
+| TC-SUITE-054 | the carrier line DIFFERS on a swapped set (it was byte-identical before #467's digest) | the named string is present in the output |
+| TC-SUITE-055 | sync REFUSES a swap and sends you to the leaving door | exit 1 |
+
+**TC-SUITE-014's VERDICT IS REVERSED AT #467, DELIBERATELY, AND THE REASONING IS AT THE CASE IN
+`gates/gatemanifest.sh`.** At #461 it asserted that flipping a manifest row from `required` to `absent` WITH a
+reason is accepted (exit 0), which proved 013 was keyed to the reason rather than to the state. **That contract was
+the defect** `jobs/nothing-ratchets-the-manifests-required-count-so-the-denominator-is-editable-downward-2026-10-02`
+was filed for: the same two-field edit de-required `gates/regress/21-review-brilliant.js` — the gate CLAUDE.md
+names as the only cover for brilliancy explanations — and took the line from "49 required" to "48 required" at exit
+0, so the suite ran and emitted GATES GREEN over a smaller suite. It is now exit 1. **The discrimination 013 was
+built for is kept and moved to the MESSAGE**: a reasonless row reports `unjustified`, a well-formed one reports
+`FLOOR BREACHED`. The assertion was not deleted or weakened; its subject changed, and the change is the build.
 
 **IT FAILED BEFORE THE FIX, and the control is the real suite rather than a hand-made file.** With
 `gates/regress/26-invariants.js` moved aside, `gates/gates.sh '#461' '29-draws'` **exits 1** with

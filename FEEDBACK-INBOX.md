@@ -2724,3 +2724,24 @@ Blunder?* — thirteen builds have now stopped at it. And the drill verdict's bo
 been sitting on a branch for four builds because **the one question it needs has never actually reached you.** I
 checked every question on your Decision Desk this run and it is not there, 19 hours after it was supposed to be
 written. Nothing a build can do shortens that one.
+
+**#467 (2026-10-02). Nothing on your screen changed, and that is the honest summary.** `chess.jsx` is
+byte-for-byte identical to the build you have now; only the gate suite's own guard rails moved. If you are reading
+this for product news, skip to the paragraph below.
+
+What it fixed is a hole in the thing that is supposed to stop a bad build reaching you. Since #461 the suite has
+had a list of the gates it must run, so a deleted gate shows up as a failure instead of as silence. Nothing stopped
+that list being made **shorter**: delete a gate, change one word in the list, type one character as the reason, and
+the suite would run the smaller set, report GREEN, and pass every check we have. Measured before fixing: it quietly
+dropped `21-review-brilliant.js`, which is the only gate covering the brilliancy explanations you raised five
+times. There is now a recorded floor under that list that only moves one gate at a time and only through a command
+that writes down which gate and why, plus a fingerprint of the whole list so the two cannot be swapped around each
+other. Both reviewers of this build broke the first version of that fix and both were right; the shipped version is
+mostly theirs.
+
+**Still waiting on you, unchanged, and both are now costing builds rather than minutes:** *is the move that lets
+you get mated a Blunder?* — I checked all 67 answers on your Decision Desk this run and it is still unanswered,
+so the win-probability work is declined for an eleventh build. And **the drill verdict's board jump question has
+still never reached your Desk at all** — I checked all 74 questions myself rather than take the last build's word
+for it. The finished, gated fix for that is on a branch for a seventh build. Nothing a build can do shortens
+either one.
