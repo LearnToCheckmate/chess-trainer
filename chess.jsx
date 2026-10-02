@@ -426,6 +426,30 @@ function classify(loss){
   if(loss<320)return{label:'Mistake',   c:'#f0a24e',i:'?'};
   return            {label:'Blunder',   c:'#ec5c4e',i:'??'};
 }
+
+/* #464, jobs/review-grade-counts-vs-the-moves-they-name. THE BOOK REASSIGNMENT LIVED IN ONE PLACE AND HAD THREE
+   CONSUMERS, SO THE NUMBER ON THE SUMMARY AND THE MOVES IT NAMED WERE COMPUTED BY DIFFERENT RULES.
+   The grade counter reassigned any ply below the opening-book prefix to Book; the summary's jump handler and the
+   per-ply verdict chip both matched on cls.label and knew nothing about it. Two player-visible consequences, both
+   measured at #422 on the shipped bundle and both still live on main at 3171f3a: tapping 'Best 5' navigated to
+   1.e4 - a move the same table counts under Book - while walking the moves showed 8 white moves badged Best; and
+   because 'Book' is never a cls.label, the Book row's loop could never match, so the Book number was a dead
+   control rendering identically to the nine that work.
+   THE FIX IS NOT A SPECIAL CASE PER CONSUMER, it is the rule in one function that all of them read. effCls is the
+   single definition of "the grade this ply is presented as"; the counter, the jump and the chip now agree by
+   construction rather than by three authors remembering the same condition. classify() is untouched: grading,
+   ACPL, the Brilliant chime, keyPlies and the mistake capture all go on reading cls, because what changed is what
+   the player is SHOWN, not how a move is judged. Book plies stay out of the ACPL sum exactly as before - that was
+   the early return in the counter and effCls preserves it to the ply.
+   Brilliant and Great are exempt, as they were in the counter's own condition: a brilliancy inside the book is
+   still a brilliancy. */
+const BOOK_CLS={label:'Book',c:'#9aa6b2',i:'≡'};
+function effCls(cls,i,bookN){
+  const L=cls&&cls.label;
+  if(i<bookN&&L!=='Brilliant'&&L!=='Great')return BOOK_CLS;
+  return cls;
+}
+function effLabel(cls,i,bookN){const c=effCls(cls,i,bookN);return c&&c.label;}
 let SFX_ON=true; let _ctxSfx=null;
 function _sfxCtx(){try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;if(!_ctxSfx)_ctxSfx=new A();if(_ctxSfx.state==='suspended')_ctxSfx.resume();return _ctxSfx;}catch(e){return null;}}
 function _sfxTone(ctx,type,f,t0,dur,vol,f2){try{const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.setValueAtTime(f,t0);if(f2!=null)o.frequency.exponentialRampToValueAtTime(Math.max(1,f2),t0+dur);g.gain.setValueAtTime(0.0001,t0);g.gain.linearRampToValueAtTime(vol,t0+0.008);g.gain.exponentialRampToValueAtTime(0.0006,t0+dur);o.connect(g);g.connect(ctx.destination);o.start(t0);o.stop(t0+dur+0.03);}catch(e){}}
@@ -3709,7 +3733,7 @@ export default function App(){
       }
     }catch(e){}
     const bookN=openingBookPlies(playedSans);
-    const _sideStats=(side)=>{const c={Brilliant:0,Great:0,Best:0,Excellent:0,Good:0,Book:0,Inaccuracy:0,Miss:0,Mistake:0,Blunder:0};let sl=0,n=0;out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(mc!==side)return;const L=o.cls&&o.cls.label;if(i<bookN&&L!=='Brilliant'&&L!=='Great'){c.Book++;return;}if(L==='Brilliant')c.Brilliant++;else if(L==='Great')c.Great++;else if(L==='Best')c.Best++;else if(L==='Excellent')c.Excellent++;else if(L==='Good')c.Good++;else if(L==='Inaccuracy')c.Inaccuracy++;else if(L==='Miss')c.Miss++;else if(L==='Mistake')c.Mistake++;else if(L==='Blunder')c.Blunder++;sl+=Math.max(0,o.loss||0);n++;});const acpl=n?sl/n:0;const acc=Math.max(15,Math.min(99.5,100*Math.exp(-acpl/300)));const rating=Math.max(450,Math.min(2500,Math.round(600+(acc-50)*28)));return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10,rating};};
+    const _sideStats=(side)=>{const c={Brilliant:0,Great:0,Best:0,Excellent:0,Good:0,Book:0,Inaccuracy:0,Miss:0,Mistake:0,Blunder:0};let sl=0,n=0;out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(mc!==side)return;const L=effLabel(o.cls,i,bookN);if(L==='Book'){c.Book++;return;}if(L==='Brilliant')c.Brilliant++;else if(L==='Great')c.Great++;else if(L==='Best')c.Best++;else if(L==='Excellent')c.Excellent++;else if(L==='Good')c.Good++;else if(L==='Inaccuracy')c.Inaccuracy++;else if(L==='Miss')c.Miss++;else if(L==='Mistake')c.Mistake++;else if(L==='Blunder')c.Blunder++;sl+=Math.max(0,o.loss||0);n++;});const acpl=n?sl/n:0;const acc=Math.max(15,Math.min(99.5,100*Math.exp(-acpl/300)));const rating=Math.max(450,Math.min(2500,Math.round(600+(acc-50)*28)));return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10,rating};};
     const summary={w:_sideStats('w'),b:_sideStats('b'),userColor:(meta&&meta.userColor)||null,book:bookN};
     let skills=null;try{skills=gameSkills(res.positions,res.plies,out,bookN);}catch(e){skills=null;} /* #368 y17b */
     const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,skills,pgn:text};
@@ -4748,6 +4772,8 @@ export default function App(){
   const exitMistakes=()=>{setMistakeMode(false);setCurPuz(null);setPzView('roadmap');setMode('analyze');};
   useEffect(()=>{if(mistakeMode&&puzSolved&&drillKindRef.current==='mistake'){const q=mistakeQueueRef.current||[];const cur=q[mistakeIdxRef.current];if(cur)setMyMistakes(prev=>prev.filter(x=>x.fen!==cur.fen));}},[puzSolved,mistakeMode]);
   const curAnno=inReview&&ply>0?review.analysis[ply-1]:null;
+  /* #464: what the current ply is PRESENTED as, by the same rule the summary counts with. */
+  const curCls=curAnno?effCls(curAnno.cls,ply-1,(review&&review.summary&&review.summary.book)||0):null;
   useEffect(()=>{ if(inReview&&ply>0&&review&&review.analysis[ply-1]&&review.analysis[ply-1].cls&&review.analysis[ply-1].cls.label==='Brilliant')playBrilliantChime(); },[inReview,ply,review]);
   useEffect(()=>{ if(review&&review.plies&&gateDemoRef.current!=null){ const t=Math.min(gateDemoRef.current,review.plies.length); gateDemoRef.current=null; setReviewView('moves'); setShowGates(true); setRevAuto(false); setTimeout(()=>setPly(t),40); } if(review&&review.plies&&revDemoPlyRef.current!=null){ const t=Math.min(revDemoPlyRef.current,review.plies.length); revDemoPlyRef.current=null; setReviewView('moves'); setRevAuto(false); setTimeout(()=>setPly(t),40); } },[review]);
   useEffect(()=>{ if(!revAuto||!inReview||!review)return; if(ply>=review.plies.length){const t=setTimeout(()=>setRevAuto(false),1900);return ()=>clearTimeout(t);} const t=setTimeout(()=>{const np=ply+1;const san=(review.plies[np-1]&&review.plies[np-1].san)||'';try{playSfx(/x/.test(san)?'capture':(/[+#]/.test(san)?'check':'move'));}catch(e){} setPly(np);},1250); return ()=>clearTimeout(t); },[revAuto,inReview,ply,review]);
@@ -6017,7 +6043,7 @@ export default function App(){
                 <div style={{display:'grid',gridTemplateColumns:'1fr 48px 48px',gap:8,fontSize:'clamp(13.5px,2.3vw,13.5px)',color:'rgba(255,255,255,.6)',fontWeight:800}}><span></span><span style={{textAlign:'center'}}>White</span><span style={{textAlign:'center'}}>Black</span></div>
                 {CATS.map(([lbl,col])=>(<div key={lbl} style={{display:'grid',gridTemplateColumns:'1fr 56px 56px',alignItems:'center',fontSize:'clamp(15.5px,3.5vw,17px)',gap:8}}>
                   <span style={{display:'flex',alignItems:'center',gap:7,color:'rgba(255,255,255,.8)'}}><span style={{width:9,height:9,borderRadius:'50%',background:col,flexShrink:0}}/>{lbl}</span>
-                  {['w','b'].map(sd=>{const C=sd==='w'?W:B;const n=C.counts[lbl];const jump=()=>{if(!n)return;const an=review.analysis||[];for(let i=0;i<an.length;i++){const mc=i%2===0?'w':'b';if(mc===sd&&an[i].cls&&an[i].cls.label===lbl){setRevAuto(false);setReviewView('moves');setPly(i+1);return;}}};
+                  {['w','b'].map(sd=>{const C=sd==='w'?W:B;const n=C.counts[lbl];const jump=()=>{if(!n)return;const an=review.analysis||[];for(let i=0;i<an.length;i++){const mc=i%2===0?'w':'b';if(mc===sd&&effLabel(an[i].cls,i,S.book||0)===lbl){setRevAuto(false);setReviewView('moves');setPly(i+1);return;}}};
                   return(<button key={sd} onClick={jump} disabled={!n} style={{textAlign:'center',background:n?'rgba(255,255,255,.06)':'none',border:n?'1px solid rgba(255,255,255,.18)':'none',borderRadius:9,padding:'3px 0',color:n?'#fff':'rgba(255,255,255,.3)',fontWeight:800,fontSize:'clamp(17px,4vw,19px)',cursor:n?'pointer':'default'}}>{n}</button>);})}
                 </div>))}
               </div>
@@ -6329,7 +6355,7 @@ export default function App(){
                   SIT run 5 measured it at 238px inside a 730px viewport in landscape, where a viewport-width
                   threshold does nothing at all. Kunal's Z-06 condition still holds - nothing changes on any
                   geometry where the row already fits. */}
-              <span style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',gap:4,fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,color:curAnno.cls.c,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'66',borderRadius:22,padding:(rowNarrow?'3px 5px':'3px 10px')}}><span style={{fontSize:'clamp(13px,3.2vw,17px)',lineHeight:1}}>{curAnno.cls.i}</span>{curAnno.cls.label}</span>
+              <span style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',gap:4,fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,color:curCls.c,background:curCls.c+'22',border:'1px solid '+curCls.c+'66',borderRadius:22,padding:(rowNarrow?'3px 5px':'3px 10px')}}><span style={{fontSize:'clamp(13px,3.2vw,17px)',lineHeight:1}}>{curCls.i}</span>{curCls.label}</span>
               {_wasBest&&<button data-ct="rev-playout" onClick={()=>{setEngOn(true);playBestLine(review.plies[ply-1].move);}} title="Play this move out and see what it leads to" aria-label="Play this move out and see what it leads to" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(rowNarrow?3:5),padding:(rowNarrow?'3px 5px':'3px 11px'),borderRadius:22,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'88',color:curAnno.cls.c,cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden',whiteSpace:'nowrap'}}>{'\u25b6'} why</button>}
               {_hasBetter&&<button data-ct="rev-best" onClick={()=>{setShowBest(true);setEngOn(true);playBestLine();}} title="Show the best move on the board" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(rowNarrow?3:5),padding:(rowNarrow?'3px 5px':'3px 10px'),borderRadius:22,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.45)',color:'var(--ac2)',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden'}}><span style={{fontWeight:600,color:'rgba(255,255,255,.6)',fontSize:'.85em'}}>best</span>{curAnno.bestSan}<span style={{opacity:.8}}>{showBest?'✓':'›'}</span></button>}
             </>):(<span style={{fontSize:'clamp(14px,3vw,16px)',fontWeight:700,color:'rgba(255,255,255,.6)'}}>Start position</span>)}
@@ -6423,7 +6449,7 @@ export default function App(){
             {curAnno?(<>
               <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:9,flexWrap:'wrap'}}>
                 <span style={{fontSize:'clamp(15px,3.7vw,19px)',fontWeight:700,color:'#fff'}}>{Math.floor((ply-1)/2)+1}{(ply-1)%2===0?'.':'…'} {review.plies[ply-1].san}</span>
-                <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:curAnno.cls.c,background:curAnno.cls.c+'22',border:'1px solid '+curAnno.cls.c+'66',borderRadius:22,padding:'4px 12px'}}><span style={{fontSize:'clamp(15px,3.7vw,19px)',lineHeight:1}}>{curAnno.cls.i}</span>{curAnno.cls.label}</span>
+                <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:curCls.c,background:curCls.c+'22',border:'1px solid '+curCls.c+'66',borderRadius:22,padding:'4px 12px'}}><span style={{fontSize:'clamp(15px,3.7vw,19px)',lineHeight:1}}>{curCls.i}</span>{curCls.label}</span>
               </div>
               {(curAnno.cls.label==='Inaccuracy'||curAnno.cls.label==='Mistake'||curAnno.cls.label==='Blunder')&&<button onClick={()=>{setShowBest(true);playBestLine();}} title="Show the best move on the board" style={{background:'none',border:'none',cursor:'pointer',padding:'2px 4px',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(15px,3.6vw,17px)',fontWeight:600,color:'rgba(255,255,255,.82)',display:'inline-flex',alignItems:'center',gap:7,flexWrap:'wrap',justifyContent:'center'}}>Better was <b style={{color:'var(--ac2)',fontWeight:800}}>{curAnno.bestSan}</b> <span style={{color:'var(--ac)',fontWeight:700,textDecoration:'underline',textUnderlineOffset:3}}>{showBest?'shown below':'tap to see it'}</span></button>}
               {_annoWhy&&<div style={{width:'100%',maxWidth:440,fontSize:'clamp(14px,2.8vw,14.5px)',color:'rgba(255,255,255,.84)',lineHeight:1.5,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:10,padding:'9px 12px',textAlign:'center'}}>{_annoWhy}</div>}
@@ -7469,7 +7495,7 @@ export default function App(){
               const isDragSrc=drag&&drag.from[0]===ar&&drag.from[1]===ac&&dragging;
               const isPre=mode==='play'&&!_pvLive&&preMv&&((preMv.fr===ar&&preMv.fc===ac)||(preMv.tr===ar&&preMv.tc===ac));const isBox=sqShow&&kpInfo&&kpInfo.cells.has(ar+'-'+ac);
               return(<div key={sq} style={{width:SQ,height:SQ,background:isLight?TH.light:TH.dark,position:'relative',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',boxShadow:boardDepth?'inset 0 0 0 0.5px rgba(0,0,0,.13), inset 0 2px 3px rgba(255,255,255,.13), inset 0 -3px 6px rgba(0,0,0,.2)':'none',touchAction:'none'}}>
-                {(isSel||isLast)&&<div style={{position:'absolute',inset:0,background:isSel?HL_SEL:((inReview&&curAnno&&curAnno.cls)?curAnno.cls.c+'4d':HL_LAST),pointerEvents:'none',zIndex:1}}/>}
+                {(isSel||isLast)&&<div style={{position:'absolute',inset:0,background:isSel?HL_SEL:((inReview&&curCls)?curCls.c+'4d':HL_LAST),pointerEvents:'none',zIndex:1}}/>}
                 {isBox&&<div style={{position:'absolute',inset:0,background:kpInfo.catches?'rgba(110,214,110,.26)':'rgba(255,170,60,.26)',boxShadow:'inset 0 0 0 1px '+(kpInfo.catches?'rgba(110,214,110,.55)':'rgba(255,170,60,.55)'),pointerEvents:'none',zIndex:0}}/>}
                  {isPre&&<div style={{position:'absolute',inset:0,background:HL_PRE,pointerEvents:'none',zIndex:1}}/>}
                 {isHint&&<div style={{position:'absolute',inset:0,background:HL_HINT,pointerEvents:'none',zIndex:1}}/>}
