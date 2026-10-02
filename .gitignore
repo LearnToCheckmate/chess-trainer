@@ -1,3 +1,11 @@
 .run/
 gates/.trial/
-gates/.gates-run-*.sh
+# THE SUITE RUNS FROM A FROZEN COPY OF ITS OWN SCRIPT, so that copy must never be committed: it is
+# byte-identical to the tracked gates/gates.sh, and a second copy of the harness in the tree is exactly what
+# R17 ("one home per document") forbids - the one thing worse than a stale copy is two files that are the
+# harness. The pattern was gates/.gates-run-*.sh, which only matched one naming habit; #467 named its copy
+# gates/.gates-467-frozen.sh and left an untracked file behind. Widened to cover any frozen copy, because the
+# NAME is the next run's choice and the RULE is not. See CLAUDE.md on #461: never edit a shell script while it
+# is running, and run the suite from a copy - that copy has to live INSIDE gates/, because these scripts
+# resolve gate-manifest.tsv, held-trees.tsv and gate-required-floor.tsv from `dirname $0`.
+gates/.gates-*.sh
