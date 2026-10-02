@@ -2555,3 +2555,44 @@ shipped the ✕ as the literal text `\u2715` — the computer's code for the cha
 both the button and the sentence explaining it, with the text running off the right edge of the screen. The
 adversarial pass caught it and refused the build; it never reached you. The gate that checked that control had been
 measuring its size, its position and whether tapping it worked, and never what it *said*. It now checks that too.
+
+---
+
+## #456 — the mistakes drill, 2026-10-02. **Nothing shipped, and that was the right call.**
+
+**What you asked for, on 2026-09-20 with a screenshot:** *"This is the second time that I solve this position,
+but last time it told me the solution that was correct was moving rook to d8 from f8. Now it's telling me to move
+the queen in the exact same position. Why are there two different suggestions, there can only be one best move."*
+
+**What was wrong, and it was one line.** The drill was not asking *is this move as good* — it was asking *is this
+move the exact one we stored*. So a second move that wins the same material the same way was told "isn't it. Try
+again." That part is real, it is still live on your phone, and the fix for it is written.
+
+**Why it is not on your phone tonight.** The adversarial pass refused it — two separate reviewers, working without
+seeing each other's findings, both said no, and they were right. The grading I built compared a *shallow* look at
+the move you played against a *deep* look at the stored one. Those are two different instruments, and subtracting
+one from the other goes wrong at both ends. In one ordinary middlegame it would have accepted **twenty-five
+different moves** and told you each one was *"the best move — nothing in the position beats it"*. That is your own
+complaint back again, worse: you asked why it gave two answers, and this would have given twenty-five. And when
+the stored move is a checkmate — which is the commonest kind of mistake it saves — it would have called **41 of 42
+legal moves a Blunder**, most of them in the same words.
+
+**The one that would have cost you something you cannot get back.** When the drill accepts a move it marks the card
+solved and **deletes it from your saved mistakes**. Until now the only way to reach that was to find the engine's
+own move. With this change, a shallow misjudgement would have quietly thrown away a card you had not actually
+solved. One of the reviewers found that; I had not.
+
+**Two small things worth telling you because they are the same kind of mistake.** A sentence I wrote using your own
+words — *"there is more here. Can you find it?"* — turned out to be one character too long for the box it goes in,
+so it could never have appeared on screen at all. And the wrong-move message quietly lost *"try again"* and the
+pointer to the hint button, which you had already settled once.
+
+**What is on main:** a one-line record saying this exact build must not ship, and why. Nothing else — the app you
+have is byte-for-byte the one you had this morning. The work itself is saved on a branch with a written hand-over,
+and the test that catches the original defect is good and stays. What needs replacing is the arithmetic, not the
+feature.
+
+**Still waiting on you, and this is the second half of the same ask:** you also said *"this thing also needs a
+review bar on the side."* On the drill screen that bar takes width out of a board that is already at its minimum
+on two common phone sizes — so it trades directly against your other complaint, that the board is too small. That
+is your call and not mine, and a Desk item with pictures at your own screen size is being written for it.

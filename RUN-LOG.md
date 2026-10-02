@@ -1329,3 +1329,140 @@ winning". A mis-framed grade tells a player a losing move was good; that is the 
 family, and 24 minutes with no render is how it ships. So the operative reason for the hand-over is the frame risk
 plus the unmade C8 amber call, **not** a shortage of time, and the earlier reasoning that leaned on the clock is
 withdrawn here [R18].
+
+| #456 | `jobs/drill-accepts-one-move-only` (P0, priority 10, Kunal 2026-09-20 with a screenshot) — **the GRADING half only.** The mistakes drill now grades the move the player actually made instead of string-matching it against the one move it stored, so a second equally winning move is accepted rather than told "isn't it. Try again." The eval bar he asked for in the same breath is NOT shipped and is recorded as an amber board-width decision. | 75 min (23:34Z, stated in the check-in row before any code) | 23:20:04Z | n/a — **HELD, not pushed** | **51.4 min** | **−23.6 — and this is NOT a credit: the build came in under its ETA because it STOPPED, not because it was quick. Elapsed computed from epoch ms at both ends (1790896804500 → 1790899889408), never narrated; my own running estimate had drifted nineteen minutes ahead of the clock, which is the #454 handover warning landing on the run that was told about it.** | **NO GATES GREEN — two suites stopped at 8 of 48; gate 52 alone green at 20 PASS on the held bundle** | **nothing shipped; main at dee1b4f carries the held row and the register only, app.js UNCHANGED at `4dd3b4aa09ed`** |
+
+**#456 answered the two questions #455's handover said had to be answered first, and the gate answered a third nobody had asked.**
+The handover note sized this job as a full build and named two traps. Both were real and both are closed here.
+*The frame.* `sfEval1` returns White-frame centipawns and #426's own report records the naive version telling a
+losing Black player the position went "from winning to winning". `gradeDrillMove` takes the sign from `pos.turn`
+and computes the loss in the mover's frame, exactly as the review does at `chess.jsx:3637`. *The C8 amber call.*
+Taken, recorded, and routed: the bar is deferred, the assertion is demoted to a printed note that still measures
+it, and the ask is on `jobs/write-the-drill-eval-bar-desk-item-2026-10-01` for the orchestrator, because the build
+lane may not write the Desk. Landing C8 red was the other option and would have stopped **every** later run in
+this project emitting `GATES GREEN` over one deferred product decision.
+
+**THE INSTRUMENT DECISION, BECAUSE IT IS THE PART A LATER RUN WILL WANT TO RE-LITIGATE.** The job says "the engine
+is already running in the drill, so the data is reachable". Measured before writing a line, it is not reachable
+*usefully*: `sfEval1` is async, so an engine route must either hold the drill on a worker that resolves `null` on
+five separate failure paths (#389's cached-failure trap) or commit the move and take it back, which is the board
+jumping; and `sfAnaReadyRef` makes it **device-chosen**, live on a fast phone and absent on a slow one out of one
+bundle, which is #375's trap and the thing this file says makes a gate not a gate. So the grading uses the
+synchronous local search the review already falls back to — one code path, no device branch, no await. The cost is
+stated rather than hidden and is filed as `jobs/drill-grading-uses-a-shallow-local-search-2026-10-01`, **with the
+measurement that should come first written into it**: nobody has measured how often the drill's band and the
+review's band disagree, and every captured card already carries the review's own label, so the disagreement rate
+is computable with no new code.
+
+**THE GATE WENT RED TWICE AFTER THE FIX WAS WORKING, AND BOTH REDS WERE RIGHT.** C4 says three non-stored moves
+must get three different responses [R10 item 5]. (1) The first reject string ended in the pawn drop, and `loss` is
+clamped at 1500, so a quiet pawn push and a rook thrown away both printed "Blunder, 15.0 pawns short" — one
+interchangeable sentence, and "15.0" was the **ceiling, not a measurement**, which is a false precision I had
+already written down as a number. (2) Replacing it with the consequence band still matched, because in that
+fixture's position *every* white move that does not capture the queen loses a rook, so the two inputs the gate's
+own header calls "deliberately NOT equal" are the same band **and** the same consequence band. **The fixture
+supports two quality levels, not three** — a measured fact about the input, filed as
+`jobs/gate-52-fixture-supports-only-two-quality-bands-2026-10-01`. C4 was **not** touched: what earned the third
+sentence is `seeSq` on the landing square, already in this file and unused here, which separates a piece taken
+straight back from a quiet move that is not. That is also the more useful thing to tell a player.
+
+**AND THE CONSEQUENCE CLAUSE IS READ FROM THE SEARCHED VALUE, NOT THE STATIC EVAL.** `evalPawns` of the position a
+move lands in is taken *before the recapture*, so a rook thrown away on h7 reads "slightly better". The searched
+value already contains `Kxh7` and reads "losing". Same family as #426 antagonist B's finding on the review's own
+fallback column.
+
+**THE CONTROL IS THE REAL BROKEN BUILD, which is the best one available and was free.** Gate 52 against the bundle
+`origin/main` is serving today — md5 `4dd3b4aa09ed`, stamp `#452 - 2026-10-01 13:31 ET` — gives **9 PASS / 4 FAIL**,
+red at exactly C2, C3, C4 and C4b, green at C1, C5 and C7 × 7. Against the shipped fix: **13 PASS / 0 FAIL**. The
+gate locates the verdict box structurally and keys on no attribute this build adds, which is why the control works
+at all — the #432 trap ("a check that reads only what the fix added cannot see the defect the fix removes").
+
+**ONE PROCESS JOB [1a], AND IT WAS FOUND BY USING #454's OWN HAPPY PATH FOR THE FIRST TIME.** `gates/build.sh`'s
+mintedness NOTE grepped `^#456<TAB>minted<TAB>` against a register that has **never** carried the `#`, so it fired
+on 100% of builds — telling the first run ever to follow the documented mint-then-build sequence that it had
+chosen its own number. Measured: 0 matches with the `#`, 1 without, and `grep -c '^#[0-9]'` over the whole
+register is 0. This file already records the class at #454 ("an alarm that is wrong four times in five destroys
+the signal it was built for"); this one was wrong **five times in five**, and it made the `minted` column — the one
+column whose non-zero count is #454's own stated tell that the happy path has ever run — unreadable by the only
+thing that reads it. **My first two controls for the fix were VACUOUS and I caught it before publishing them:**
+`CT_OUT` skips the whole record-and-note block, so a minted number and an unminted one both came back silent and
+the control could not have failed. Re-controlled on the predicate itself, which is the quantity the NOTE reads:
+the 2 minted numbers go WARNS→silent, the 3 unminted ones stay WARNS.
+
+**THE TWO BUILD-NUMBER REGISTERS DISAGREED ON THE FIRST RUN AFTER THEY WERE BUILT, AND THE RULE WORKED.**
+`docs/buildnumber` read `next=455`; `gates/buildnum.sh next` returned `#456`. I took the higher per that document's
+own instruction and recorded the disagreement as it asks. The cause is measured, not guessed: #454's run minted
+#455 at 20:57Z as an end-to-end check, wrote it to the **repository** register only, and nothing advanced the
+tracker. Nothing collided and no bundle was ever stamped #455. **The gap is structural**: `howToMint` tells a
+reader to write the tracker and `gates/buildnum.sh mint` does not, so a run following the procedure leaves that
+half stale by construction — and that half is the *only* one that can see another live container's unpushed
+number, which is the #416 case the whole mechanism exists for.
+
+
+**AND THEN BOTH ANTAGONISTS VETOED IT, INDEPENDENTLY, AND BOTH VETOES ARE UPHELD. NOTHING SHIPPED.**
+The suite never finished and it does not matter, because what stopped this build is in code the suite has no
+gate for. `gradeDrillMove` subtracts a **depth-2** score of the played move from a baseline that is the
+**depth-16** stored engine move, and then clamps to `[0,1500]`. Both ends of that clamp reach the player.
+**At zero:** any move the shallow search happens to rate above the deep baseline gives a negative difference,
+`Math.max(0,…)` turns it into 0, `classify(0)` calls it **Best**, and the screen says *"Nothing in the position
+beats it."* Antagonist B measured **26 of 33 legal moves accepted in one quiet middlegame, 19 of them only
+because of that clamp** — while the drill is simultaneously holding a different move as the better one. So the
+build written to close *"why are there two different suggestions, there can only be one best move"* would have
+told him **twenty-five moves are the best move**, fired the confetti, and deleted the card. **At the ceiling:**
+when the stored move is a mate, `vBest` is a mate score, so every non-mating move reads 1500 and **Blunder** —
+41 of 42 legal moves, 26 of them sharing one sentence — and cards are captured **only** for Mistake, Blunder and
+Miss, so a decisive best move is this feature's *normal* case.
+
+**THE REASONING THAT FAILED WAS MINE, AND IT IS WORTH NAMING EXACTLY.** I wrote that the shallow search "is only
+ever asked whether two positions are worth the same, which is what it is good at". That is true of the
+*comparison* and false of the *baseline*: the baseline came from a different and far deeper instrument, so the
+subtraction spans two instruments. This file records that trap as *"two readouts of the same quantity"*. I had
+even **filed a job about the drill's band disagreeing with the review's band** and still did not see that the
+subtraction itself was the crossing.
+
+**ANTAGONIST A FOUND THE GROUND WITH THE WORST CONSEQUENCE AND I HAD NOT SEEN IT.** An accept sets `puzSolved`,
+and the `useEffect` keyed on it filters the card out of `ct_mymistakes` **irreversibly**. Before #456 the only
+route there was playing the engine's own move. Now a depth-2 verdict destroys the player's captured data — and A
+measured 7 moves in one Sicilian middlegame accepted as "Excellent" at shallow loss 20–35 that a depth-4 ranking
+puts at 95–135cp. The old failure mode was *"try again"*: annoying and recoverable. This one is not.
+
+**TWO MORE, BOTH ALSO INVISIBLE TO THE SUITE.** `drillAcceptMsg` is **unbudgeted in the same 74px box this file
+budgets twice** — Brilliant overflows Kunal's own 375x730 by up to 6 characters and prefixes a string
+`mistakeWhy` has *already* packed to 52 for that box. And **C4, the gate's own anti-generic-string assertion, is
+FALSE on a mate-baseline card**: 1 distinct sentence of 3 after its own mask, and the sentence contradicts
+itself — *"Blunder: leaves you winning."*
+
+**AND MY OWN CONTROL WAS GREEN OVER A STRING NO PLAYER CAN EVER SEE.** Two of the three sentences the feature is
+built around are unreachable by arithmetic against `DRILL_MSG_MAXW=48`. Kunal's own *"Can you find it?"* is
+selected **0 times out of 5 SANs**. *"Try again."* survives in **53 of 150** rejects. I unit-tested 756 inputs and
+got "0 over budget" — because I tested whether any candidate **exceeded** the budget and never which candidate was
+**selected**. The wrong property, tested confidently, on 756 inputs.
+
+**THE BLIND PAIR EARNED ITS BUDGET OUTRIGHT, AND THE NUMBERS SAY WHY.** Unique to A **6**, unique to B **6**,
+common **5**; `a·b/c` with a=b=11 estimates about **24 findings in existence, so both passes missed about 13**.
+Blindness genuinely held — launched in one message, and B was spawned with an agent type carrying no database
+tool. **A single pass would have shipped this.** I had already decided to push on a green suite; the defect with
+the worst consequence came *only* from the diff door, and the one that is most measurable came *only* from the
+shipped-surface door. Neither alone is the veto.
+
+**WHAT I DID TO BOTH OF THEM, WHICH IS THE #441 MISTAKE REPEATED.** I rebuilt `app.js` four times under #456 and
+twice *while both antagonists were measuring*. Both reports open by saying the tree moved under them. A also
+found the mechanism: `gates.sh` hashes `app.js` once at start into the log header while `lib.js` resolves the
+bundle **per launch**, so a mid-suite rebuild makes the header name one artefact and later gates measure another,
+and nothing `verify-log.sh` checks can tell. Its proposed fix — re-hash at the end and fail if it moved — is
+worth taking.
+
+**AND I HIT THE `pkill` SELF-REFERENCE TRAP THIS FILE WARNS OF TWICE.** `pkill -f "bash gates/gates.sh"` matched
+my own shell's command line, killing the shell, all three watchers and the waiter, and leaving one orphaned node
+process re-parented to init — a half-run that still looked alive. I established the real state from `ps` rather
+than from the watcher's silence. I had recorded the driver's PID earlier in the same run and reached for a
+pattern anyway.
+
+**WHAT LANDED, AND IT IS DELIBERATELY SMALL.** `main` is at `dee1b4f`: the `gates/held-trees.tsv` row and the
+number register, nothing else. `app.js` on main is **unchanged at `4dd3b4aa09ed`**, verified after the push, so
+Pages serves exactly what it served before. The held row goes to **main** and not to the branch, because that is
+the one lesson #441 paid for in full. The work is on `origin/claude/cool-noether-ehs80p` at `831d857`, recorded
+in `builds/456`, and handed over at priority 10 as
+`jobs/456-drill-grading-held-on-a-clamped-cross-instrument-loss-2026-10-02` with the six changes needed and the
+gate inputs A wrote out. **The gate, the story clause and the case are good and should be kept. The arithmetic
+should not.**
