@@ -410,7 +410,10 @@ case "${1:-}" in
     # the commit history, in a documented second pass: 123 rows on origin/main carry provenance `git-log`
     # (`git show origin/main:gates/build-numbers.tsv | grep -cP '\tgit-log\t'` is 123) and their own note
     # states the method, `git log --all --format=%s | grep -oE '^#[0-9]{3,4}'`. So the cause is not an absent
-    # sweep, it is ONE CHARACTER in that one: the LEADING ANCHOR. 89 numbers are named only away from the
+    # sweep, it is the SCAN'S SHAPE - and "one character" is TOO NARROW, which is antagonist B's correction to
+    # antagonist A in the cross-read and is measured: dropping the leading anchor reaches 87 of the 88 and ZERO
+    # of the 16 hashless `Build NNN` numbers, because those are missed by the anchored and unanchored `#` forms
+    # alike. There were always TWO INDEPENDENT GAPS and the fix needed both. The anchor is the larger one: 89 numbers are named only away from the
     # start of a subject ("Revert main to #439", "docs after #374"), and 87 of the 88 this build swept in are
     # in exactly that class. Naming the wrong cause would have sent the next reader to the wrong file.
     # AND #454 CHOSE THAT ANCHOR DELIBERATELY, so dropping it is a POLICY CHANGE and is argued, not assumed.
@@ -472,13 +475,28 @@ case "${1:-}" in
     #     "TC-PL-034" (a case id), "97b1234" (a sha fragment), "-> 730", "Kunal's 375".
     # So the pattern stays ANCHORED to '#' or to the literal word "build". It is deliberately not
     # loosened to a bare [0-9]{3,4}, which would swallow every count and geometry above.
-    # SUBJECTS AND BODIES BOTH (--format='%s%n%b'). Antagonist A asked for the body door too. MEASURED at
-    # 0ed7f05, before this build's own commits existed: bodies name exactly ONE number no subject names,
-    # #455, and it was already on the register - so the body scan closes a door that is currently empty, and
-    # it is in for the next time it is not, not because it found anything. A's accompanying claim that a body
-    # scan "would have found #342 mechanically" is WRONG and is recorded as wrong: `git log 0ed7f05
-    # --format='%b' | grep -c '#342'` is 0. #342 reaches a body only in THIS build's own commit messages.
-    NAMED="$(git -C "$HERE" log --all --format='%s%n%b' 2>/dev/null \
+    # SUBJECTS ONLY (--format='%s'), AND THE BODY SCAN THAT WAS HERE FOR ONE REVISION IS REMOVED BECAUSE IT
+    # CREATED A FEEDBACK LOOP: WRITING ABOUT A BUILD NUMBER SPENT IT. Antagonist A asked for bodies; antagonist
+    # B refuted it in the cross-read, measured at HEAD rather than argued. This build's own commit message and
+    # HANDOFF.md document the 4-digit `comm` demonstration, whose text contains #999, #1000 and #1001. With
+    # bodies in scope the sweep reported exactly those three as spent-and-absent, exit 3 - so with the new
+    # gates/build.sh wiring EVERY later build would have printed "the register and the commit history DISAGREE"
+    # and offered `sweep --add` as the remedy, which would have written three permanent rows for numbers nothing
+    # ever built, TWO OF THEM IN THE FUTURE, moving `next` from #466 to #1002 and skipping 535 numbers. A
+    # warning that is always wrong plus a one-command remedy that is destructive is strictly worse than the gap
+    # it closed. It is also the self-reference trap this project records ten times, in a new costume: the
+    # DOCUMENTATION of a defect became an INPUT to the scanner that defect was in.
+    # AND THE DOOR IT CLOSED WAS EMPTY ANYWAY, which is what settles it. Measured at 0ed7f05, before this
+    # build's commits existed: bodies name exactly ONE number no subject names, #455, and it was already on the
+    # register. So the body scan never found anything and cost a live feedback loop. (A's supporting claim, that
+    # a body scan "would have found #342 mechanically", was already measured WRONG - `git log 0ed7f05
+    # --format='%b' | grep -c '#342'` is 0, and A conceded it in the cross-read.)
+    # THE RESIDUAL, NAMED RATHER THAN ENGINEERED AWAY: a commit SUBJECT that mentions a number in prose still
+    # spends it, and this history has such subjects ("Revert main to #439", "docs after #374") - but every one
+    # of those names a real build, subjects here are short and claim-shaped by convention, and the sweep only
+    # WARNS while `--add` stays manual. Bounding the subject form to a claim marker is the next step if a
+    # subject ever spends a number nothing built; it is not needed today and guessing at it is not free.
+    NAMED="$(git -C "$HERE" log --all --format='%s' 2>/dev/null \
       | grep -oiE '(#|\bbuild +)[0-9]{3,4}' | grep -oE '[0-9]{3,4}' | sed 's/^0*//' | sort -un)"
     NNAMED="$(printf '%s\n' "$NAMED" | grep -c '[0-9]' || true)"
     ONREG="$(rows | cut -f1 | sort -un)"
@@ -501,15 +519,16 @@ case "${1:-}" in
     # NUMBERS and the other counts ROWS - so a later run comparing the two sees an unexplained 24 and no
     # way to tell which is wrong. A number legitimately has several rows (minted, built, shipped), which is
     # the whole reason the two differ.
-    printf '  %s distinct number(s) named in a commit subject or body; %s distinct on %s (%s row(s)); %s NAMED AND ABSENT.\n' \
+    printf '  %s distinct number(s) named in a commit subject; %s distinct on %s (%s row(s)); %s NAMED AND ABSENT.\n' \
       "$NNAMED" "$NONREG" "$(basename "$REG")" "$(rows | wc -l | tr -d ' ')" "$NABSENT"
     if [ "$SHALLOW" = yes ]; then
       echo "  WARNING - THIS CLONE IS SHALLOW, so the count above is a LOWER BOUND and a clean result proves"
       echo "  nothing. Run \`git fetch --unshallow\` first, or treat this sweep as unmeasured."; fi
     if [ "$NABSENT" = "0" ]; then
       [ "$SHALLOW" = yes ] && { echo "  no absent numbers found, but see the shallow warning above"; exit 3; }
-      echo "  the register names every number any commit subject or body names, in either the #NNN or the"
-      echo "  'Build NNN' form. NOT CHECKED, and shut today rather than covered: git tags (there are none)."
+      echo "  the register names every number any commit SUBJECT names, in either the #NNN or the 'Build NNN'"
+      echo "  form. NOT CHECKED: commit BODIES (deliberately - scanning them made writing about a number spend"
+      echo "  it) and git tags (there are none today, so that door is shut rather than covered)."
       exit 0; fi
     echo "  absent: $(printf '%s\n' "$ABSENT" | grep '[0-9]' | tr '\n' ' ')"
     if [ "$MODE" != "--add" ]; then

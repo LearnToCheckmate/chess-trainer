@@ -241,9 +241,21 @@ git -C "$GD" commit -q --allow-empty -m "Build 903: the hashless form this proje
 # extractor is ever loosened to a bare [0-9]{3,4} these become build numbers and the register fills with
 # assertion totals and geometries.
 git -C "$GD" commit -q --allow-empty -m "GATES GREEN at 3320 assertions, 49 suites / 3320, at 375x730, TC-PL-034, sha 97b1234" >/dev/null 2>&1
+# AND A NUMBER NAMED ONLY IN A COMMIT **BODY** MUST NOT BE SWEPT. This is the regression test for the veto
+# antagonist B raised in #465's cross-read, and it is the sharpest control in this file because the defect was
+# live at HEAD and self-inflicted. For one revision the extractor read `%s%n%b`, so the commit message and
+# HANDOFF.md text DOCUMENTING the 4-digit comm demonstration - which contains #999, #1000 and #1001 - made the
+# sweep report those three as spent, exit 3. With the gates/build.sh wiring that meant every later build would
+# print "the register and the commit history DISAGREE" and offer `sweep --add`, which would have written three
+# permanent rows for numbers nothing ever built, two of them in the FUTURE, moving `next` from #466 to #1002.
+# WRITING ABOUT A BUILD NUMBER SPENT IT: the documentation of a defect became an input to the scanner that
+# defect was in, which is the self-reference trap this project records ten times, in a new costume.
+git -C "$GD" commit -q --allow-empty -m "#900 note: a body that MENTIONS numbers must not spend them" -m "This body names #991 and Build 992 while documenting something. Neither may be swept." >/dev/null 2>&1
 BG="$GD/buildnum.sh"
 ck "sweep finds the numbers a commit names and the register does not" 3 "$BG" sweep
 eq "it names all three, the hashless Build 903 included" "901 902 903 " "$("$BG" sweep 2>/dev/null | sed -n 's/^  absent: //p')"
+eq "a number named ONLY in a commit BODY is NOT swept (the #465 feedback loop)" "0" \
+   "$("$BG" sweep 2>/dev/null | sed -n 's/^  absent: //p' | grep -cE '99[12]')"
 eq "and it takes NOTHING from counts, geometries, case ids or shas" "1" "$("$BG" sweep 2>/dev/null | grep -c 'absent: 901 902 903 $')"
 # THE DENOMINATOR, CROSS-CHECKED AGAINST GIT RATHER THAN HARDCODED. The first version asserted the literal
 # "measured over 3 commits" and went red the moment the fixture gained a commit - a control that breaks when
