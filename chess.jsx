@@ -6173,7 +6173,35 @@ export default function App(){
                   // (a limit stated that did not bind) with a worse number in it.
                   const _n=(_M[id]||[]).length;
                   if(_n>=ACCT_GMAX)return {b:'games',cap:ACCT_GMAX,gap:false};
-                  if(_n===ACCT_GMAX_LEGACY)return {b:'games',cap:ACCT_GMAX_LEGACY,gap:false};
+                  // #458 THE 40-ROW INFERENCE IS GONE, AND THE PARAGRAPH ABOVE IS WHY IT HAD TO GO.
+                  // It read `if(_n===ACCT_GMAX_LEGACY)return {b:'games',cap:ACCT_GMAX_LEGACY,...}` and it is
+                  // the last survivor of the reasoning the comment above already withdrew. 40 is only
+                  // evidence of a cut for a store written by #353 to #430.
+                  // #458 CORRECTING THE PREMISE THIS COMMENT INHERITED, BECAUSE IT IS NOW FALSE AND THE
+                  // PARAGRAPH ABOVE STILL ASSERTS IT. The comment above says ct_acctcap "arrives in #432 and
+                  // #432 has never shipped" and cites `git show origin/main:app.js | grep -c ct_acctcap` as
+                  // 0. MEASURED at origin/main dcc5422: that grep is 1, NOT 0; chess.jsx writes the key at
+                  // :3749 and :3758; and main's bundle is stamped #452, not #431. So #432 HAS shipped and a
+                  // store written by any build from #432 on DOES record its bound. That is this file's own
+                  // #433 rule - a premise in a comment is not a measurement, and the build that invalidated
+                  // it may already have shipped - re-broken in the same code block, and it was one grep away.
+                  // THE CONCLUSION SURVIVES THE CORRECTION, which is why the line still goes: a store with no
+                  // recorded bound was written at or before #431, #431 caps at ACCT_GMAX and records nothing,
+                  // so that population still spans 0..200 rows and 40 is still not special
+                  // in it: a #431-written store holding exactly 40 rows is a player who OWNS 40 games and
+                  // was not cut at all, and the screen told them "Showing up to 40 games." over all 40 of
+                  // them, nine pixels from "40 loaded" - two readouts of one quantity contradicting each
+                  // other, which is the #385 shape this block's own comments cite.
+                  // WHY NOT REWORD IT INSTEAD (option (b) on the job): the sentence exists to answer "is
+                  // anything missing". A wording that neither asserts nor denies a cut does not answer it.
+                  // THE COST, AND IT IS REAL: a genuine pre-#431 account that WAS cut at 40 now states
+                  // nothing. The two populations are INDISTINGUISHABLE FROM THE STORE, so the app must pick
+                  // which way to be wrong. Silence is recoverable - the player scrolls, or re-imports, and
+                  // 39/41/137/199 rows are already silent for exactly this reason. A stated bound that did
+                  // not bind is NOT recoverable, because the player believes it and stops looking.
+                  // ACCT_GMAX_LEGACY is deliberately kept: it is still the cap those builds shipped and the
+                  // comments above are about it. It is simply no longer used to infer anything.
+                  // Amber default recorded BEFORE the change at flags/amber-458-drop-the-40-row-cut-inference.
                   return {b:'all',cap:0,gap:false};};
                 const _b=ccAccts.map(_bound1);
                 const _months=_b.some(x=>x.b==='months');

@@ -294,3 +294,5 @@
 456	built	-	e7d0499e886b	61ae7f027bec	2026-10-01T23:59Z	build__1790896804500	build.sh	Bundle built and stamped #456. Recorded by gates/build.sh so the number resolves to an artefact.
 457	minted	-	-	-	2026-10-02T00:34Z	build__1790900432948	minted	fix the drill grading baseline to one instrument (cached rankMoves), guard the irreversible mistake-card delete, keep grading out of the brilliant drill, budget the accept sentence
 457	built	-	523fe82fa6bf	932a9738f18f	2026-10-02T00:49Z	build__1790900432948	build.sh	Bundle built and stamped #457. Recorded by gates/build.sh so the number resolves to an artefact.
+458	minted	-	-	-	2026-10-02T02:24Z	build__1790907591420	minted	port #57 goal-card-yields-its-space mechanism from the puzzle browse view to the mistakes drill, so the SOLVED verdict no longer moves the board (the larger of the two jumps, +69.75px at 375x730)
+458	built	-	31f55c68d7a7	075c38d643fb	2026-10-02T02:27Z	build__1790907591420	build.sh	Bundle built and stamped #458. Recorded by gates/build.sh so the number resolves to an artefact.

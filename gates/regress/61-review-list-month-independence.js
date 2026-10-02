@@ -403,8 +403,20 @@ async function input(seed,n,geo,name,thin){
     // never shipped, so the bound-less stores were written by builds up to and INCLUDING #431 - which is on
     // main with ACCT_GMAX=200. 41..199 is the band the deployed app creates and no input reached it; the
     // first #433 inferred the cap as the row count and printed 137 back at the player as a limit.
-    for(const t of [{n:40,expect:'games',why:'a full store at the LEGACY cap of 40 - the shape every pre-#431 account has'},
-                    {n:200,expect:'games',why:'a full store at the CURRENT cap, which #431 on main writes and records no bound for'},
+    // #458 THE n=40 ROW FLIPS FROM 'games' TO null, AND THIS ASSERTION WAS PREVIOUSLY CERTIFYING THE DEFECT.
+    // A10c asked whether the number stated is the cap that actually cut the account, and answered YES for a
+    // bound-less store at 40 - so the gate was green over "Showing up to 40 games." printed to a player who
+    // owns exactly 40 games and was never cut. The inference it rested on is removed at chess.jsx:_bound1
+    // (#458); see flags/amber-458-drop-the-40-row-cut-inference for the trade and its cost.
+    // THE CONTROL IS THE SHIPPED BUNDLE AND IT IS FREE: run this file with CT_APP set to origin/main's
+    // app.js and A10b at n=40 goes RED (main states a limit there), while every other row of this table
+    // stays green. That is the whole point of the neighbours below and of 39 being added: an assertion that
+    // is satisfied by "no line ever" or by "a line always" cannot fail, and 39/40/41 in ONE loop means
+    // neither shape passes. 39 is new here - it is the nearest row count on the other side of the removed
+    // threshold, so with 41 it brackets the exact value the defect turned on.
+    for(const t of [{n:40,expect:null,why:'#458 THE DEFECT THIS ROW USED TO ASSERT: 40 rows with NO recorded bound. ct_acctcap arrives in #432 which never shipped, so this store was written by a build up to #431 (cap ACCT_GMAX) and 40 is NOT evidence of a cut - the player owns 40 games. Nothing may be stated.'},
+                    {n:39,expect:null,why:'#458 one row BELOW the removed threshold: with 41 it brackets 40, so an assertion satisfied by "a line always" or "no line ever" cannot survive this loop'},
+                    {n:200,expect:'games',why:'a full store at the CURRENT cap, which #431 on main writes and records no bound for. THIS MUST STAY GREEN: #458 removed the 40-row inference only, and a bound-less store AT ACCT_GMAX is still real evidence of a cut'},
                     {n:137,expect:null,why:'THE BAND origin/main CREATES: above the legacy cap so it cannot be a legacy cut, below the current one so nothing cut it - and a number this app has never capped at'},
                     {n:41,expect:null,why:'one row above the legacy cap: the cheapest case where a row count is not a cap'},
                     {n:9,expect:null,why:'below any cap this app has shipped, so nothing is known to have been cut'}]){
@@ -560,9 +572,40 @@ async function input(seed,n,geo,name,thin){
     L.note(tag+'  rows '+r.rows+'  limit line '+JSON.stringify(r.cap&&r.cap.text));
     // the precondition, asserted rather than assumed: both shapes really are present at once.
     if(L.say(r.rows===40+GMONTHS*THIN_PER,'A14-0 vacuity '+tag+': both accounts are on screen at once - 40 legacy rows plus the '+(GMONTHS*THIN_PER)+' the month window allowed',{rows:r.rows,expect:40+GMONTHS*THIN_PER})){
+      // #458 A14a AND A14b BOTH MOVED, AND THE JOB THAT ASKED FOR THIS FIX ONLY NAMED A10c - so the gate-side
+      // class was 3 assertions, not 1, and the extra two were found by running the gate rather than by reading
+      // the job. Both rested on the SAME removed inference: that a bound-less 40-row account is games-bound.
+      // #433's remedy here was to state the CURRENT cap (200) and name 40 as a qualifier. Once nothing infers
+      // a bound from 40 rows, NEITHER account in this state has a known games bound - the legacy one is merely
+      // bound-less and the fetched one was stopped by the month window, which A14c still asserts. And note
+      // that #433's own remedy was the same defect one number along: naming 200 over 70 rows on screen is
+      // also a limit that did not bind. So the honest statement is the month window alone.
+      // #458 A14a IS REWRITTEN AND IT IS RED ON THIS TREE ON PURPOSE. DO NOT LAND THIS FILE ON MAIN UNTIL
+      // THE UNION IS FIXED - a red assertion on main stops every later run emitting GATES GREEN.
+      // MY FIRST ATTEMPT AT THIS ASSERTION CERTIFIED THE DEFECT, which is the exact mistake #458 was written
+      // to undo one block above. Having removed the 40-row inference, I flipped A14a to expect `stated===null`
+      // and A14b to expect the qualifier absent - i.e. I moved the assertion to AGREE with whatever the new
+      // code did, without asking whether what it did was right. That is A10c's fault reproduced by the build
+      // that was fixing A10c, in the same file, and antagonist A caught it from the diff door.
+      // WHAT IS ACTUALLY WRONG, measured on bundle 31f55c68d7a7: with the inference gone the legacy account
+      // returns {b:'all'}, so _gbound is false, so 'months' wins the union alone and the screen reads
+      // "Showing your 6 most recent months of play per account." over 70 rows - asserting the MONTH bound of
+      // an account that was never month-walked and whose bound is unknown. That is "a limit stated that did
+      // not bind", the #431/#432 class this whole block exists to remove, in the state the A10 table does not
+      // cover. The removal fixes the single-account case and regresses the mixed one.
+      // SO THE ASSERTION NOW STATES THE REQUIREMENT RATHER THAN THE BEHAVIOUR: no limit sentence may be
+      // asserted of EVERY account shown when any account's bound is unknown. This is the generalisation of
+      // the rule the comment at the union already gives - "the only sentence true of all of them names BOTH"
+      // - to the case where no limit is true of all of them, in which case there is nothing to name.
+      // WHY IT IS NOT FIXED IN THIS BUILD: the honest alternatives are to say nothing (which suppresses a
+      // TRUE warning for a player with one cut account and one small one) or to scope the sentence per
+      // account (new copy). That is a product decision in #432's and #433's own family, both of which were
+      // settled with measurements and a recorded default, and it is routed rather than guessed.
       const gc=(r.body||'').match(CAP_RE);const stated=gc?+String(gc[1]).replace(/,/g,''):null;
-      L.say(stated===MIN_CAP,'A14a US-R25 '+tag+': the games cap stated is the CURRENT one, not the legacy cap of the one account it happened to stop - naming 40 over '+r.rows+' rows on screen is a limit that did not bind',{stated,expect:MIN_CAP,rowsOnScreen:r.rows,line:r.cap&&r.cap.text});
-      L.say(/\(\s*40\s*for accounts imported before/i.test(r.body||''),'A14b US-R25 '+tag+': and the legacy cap is still named, as the qualifier that makes the sentence true of the older account too',{line:r.cap&&r.cap.text});
+      const _perAcct=/per account/i.test(r.body||'');
+      const _anyUnbounded=true; // this fixture's legacy account is bound-less by construction (no ct_acctcap)
+      L.say(!(_perAcct&&_anyUnbounded),'A14a US-R25 '+tag+': NO limit is asserted of every account while one account has an UNKNOWN bound. RED ON #458 BY DESIGN: the screen reads "'+String((r.cap&&r.cap.text)||'')+'", which claims the month bound "per account" over a legacy account that was never month-walked',{stated,perAccount:_perAcct,rowsOnScreen:r.rows,line:r.cap&&r.cap.text});
+      L.say(!/for accounts imported before/i.test(r.body||''),'A14b US-R25 '+tag+': the legacy-cap qualifier is NOT named, because after #458 no input can produce two distinct caps - _caps is a subset of {ACCT_GMAX} so _caps.length>1 is unreachable and that render branch is now DEAD. Asserted so the dead branch cannot quietly come back without someone re-reading it',{line:r.cap&&r.cap.text});
       const pl2=(r.body||'').match(PLAY_RE);
       L.say(!!pl2&&+pl2[1]===GMONTHS,'A14c US-R25 '+tag+': the month bound is named as well, because it is what stopped the other account',{monthsOfPlay:pl2?+pl2[1]:null,expect:GMONTHS});
     }
