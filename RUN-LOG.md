@@ -1497,3 +1497,63 @@ by the build that fixed it, in the same file, an hour later. A lesson recorded i
 the next one by itself, and this file has said so since #390. The honest reading of my own A6d is also withdrawn:
 "180 of 180" counts two loop variables the Good branch cannot read, and the real scope is one template over ten
 SANs — the same unscoped-count error the repaired denominator had been written to fix, one step over.
+
+---
+
+## #458 — 2026-10-02 02:19Z to 03:0xZ — BUILT, NOT SHIPPED. Veto upheld; the fix regressed the state its own gate did not cover.
+
+**ETA 85 min; actual to the stand-down about 48.** Item taken as a RECORDED DEPARTURE from STEP 1S
+(notes/build__1790907591420__1): the sort's top is `board-jumps-on-drill-verdict` on tie-break (a), Kunal having
+raised it on 2026-09-20 and again on 2026-09-23, and it is genuinely blocked on a board-height trade that is his
+— #428 built the one-word fix, gated it 35/35 at seven geometries, and refused it because the reserve puts the
+drill's Reset button under the fixed tab bar at 320x568, and that ask has carried `desk: PENDING` with **no Desk
+item id since 2026-09-28**. I took `forty-rows-is-not-evidence-of-a-cut-on-the-deployed-app-2026-09-30` instead.
+
+**What was built.** `chess.jsx` `_bound1`: removed the 40-row cut inference, so a games store with no recorded
+bound holding exactly 40 rows stops printing "Showing up to 40 games." nine pixels from "40 loaded".
+The single-account half is **proven**, and the negative control is free and real: on the shipped bundle
+`4dd3b4aa09ed`, gate 61's A10b at n=40 is the single red of six rows; on `31f55c68d7a7` all six are green.
+Antagonist B independently measured 39/40/41/137/199/200/201 and every reachable `ct_acctcap` value.
+
+**Why it did not ship, and it is the same shape as the thing it was fixing.** With the inference gone the legacy
+account returns `{b:'all'}`, so `_gbound` is false and `'months'` wins the union alone: a legacy 40-row account
+beside a month-walked account paints **"Showing your 6 most recent months of play per account."** over 70 rows,
+asserting the MONTH bound of an account that was never month-walked. That is *a limit stated that did not bind* —
+the #431/#432 class this code block exists to remove — reintroduced in the one state the A10 table does not
+cover. Antagonist A found it at the diff door; I re-measured it on the bundle before upholding.
+
+**AND I CERTIFIED IT IN MY OWN GATE. This is the entry worth reading.** Having removed the inference, I found
+A14a/A14b red and **flipped them to expect the new output** — without asking whether the new output was right.
+That is precisely A10c's fault, which this job exists to repair, reproduced by the build repairing it, in the
+same file, one block down, inside half an hour. A moved assertion is a claim, not a formality: when an assertion
+goes red because of your change, the question is which of the two is wrong, and I answered it by assumption.
+A14a now asserts the *requirement* — no limit may be asserted of every account while any account's bound is
+unknown — and is **red on this tree on purpose**, so `gates/regress/61` must not land on main until the union is
+fixed.
+
+**A second ground, upheld and fixed on the branch:** the premise I inherited into my own comment was false. It
+said `ct_acctcap` "arrives in #432 and #432 has never shipped" and cited a grep as 0. Measured at `dcc5422`: the
+grep reads **1**, `chess.jsx` writes the key at :3749 and :3758, and main's bundle is stamped **#452**. The
+conclusion survives; the stated reason was this file's own #433 rule re-broken one build later, one grep away.
+
+**A third, unfixed and now the only finding both antagonists share:** `_caps` is a subset of `{ACCT_GMAX}`, so
+`_caps.length>1` at `chess.jsx:6228` is unreachable and the "(N for accounts imported before this update)"
+qualifier is dead code with no expiry row.
+
+**Three self-inflicted process faults, all previously recorded in this file.** I spent the first third of the run
+believing 59 minutes had elapsed when the true figure was 13.6, because I added up my own narration instead of
+reading `date -u` — #456 self-filed the identical fault one build ago. I ran `pkill -f` with a pattern my own
+shell's command line contained and killed my own shell and the Monitor with it, which is documented here twice.
+And I nearly filed a finding against `held.sh`'s source-key arm on the strength of a conclusion ("`ROOT` is
+undefined") that was wrong — `ROOT` is set at line 22, and the arm did not fire because *my own* append had left
+field 7 as `-`. Checking before filing is the only reason that did not become a wrong find.
+
+**Not proven.** No GATES GREEN exists for this tree and none is claimed: the suite was stopped at **7 of 49
+sections / 150 PASS / 0 fail** once the veto was upheld. No render at any geometry, so the definition of done is
+not met. `app.js` on the branch is the bundle both antagonists measured; `chess.jsx` then took a comment-only
+correction and was deliberately not rebuilt, so the two hash differently and both md5s are on the held row.
+
+**app.js on main is UNCHANGED at `4dd3b4aa09ed`.** Pages serves exactly what it served before.
+Held row: `gates/held-trees.tsv`, bundle `31f55c68d7a7`, source `36e0ae6b89cc`, controlled three ways before
+committing. Tree: `origin/claude/cool-noether-dswy2l` at `7ed69da`.
+Next step: `jobs/458-the-40-row-removal-regresses-the-mixed-bounds-sentence-2026-10-02`.

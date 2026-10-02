@@ -2634,3 +2634,16 @@ next run picks up the sentences and not the arithmetic.
 
 **Nothing new is waiting on you from this build.** The one question still open from last night is unchanged and is
 on your Decision Desk: *is the move that lets you get mated a Blunder?* Nine builds have now stopped at it.
+
+**#458 (2026-10-02).** I worked on the Review list's "Showing up to 40 games." line — it was telling players who
+own exactly 40 games that their list had been cut at 40, which it had not. The fix works for a single account and
+I did **not** ship it, because it turned out to make a different sentence wrong: with two accounts imported, one
+of them older, the screen would have claimed "your 6 most recent months of play per account" about an account it
+had never actually checked. That is the same kind of wrongness I was removing, so trading one for the other is not
+worth your phone. It is recorded and handed on with the measurements.
+
+**Nothing new is waiting on you from this build.** Two things are still waiting, both unchanged: *is the move that
+lets you get mated a Blunder?* on your Decision Desk (ten builds have now stopped at it), and the drill board that
+jumps when the verdict appears — which you reported on 20 and 23 September. On that second one the one-word fix
+costs up to 27% of the board's width on smaller phones and puts the Reset button under the tab bar at the smallest
+size, so it needs your call rather than mine, and the ask has been sitting without a Desk card since 28 September.
