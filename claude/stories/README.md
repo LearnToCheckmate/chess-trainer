@@ -28,6 +28,7 @@ The audit of 2026-09-14 asked for one of the two to be renamed, and asked for it
 | `US-Rnn` / `TC-Rnn` | the **gate-executed** Review suite — every case names the gate that runs it | `claude/stories/USER-STORIES.md`, `claude/stories/TEST-CASES.md` | this repo |
 | `US-RFnn` / `TC-RFnn` | the **full** Review suite, 30 stories and 31 cases — a specification, broader than what the gates execute | `claude/stories/REVIEW-SUITE-FULL.md` (reserved; the document is still in the claude.ai project) | the test-lane sessions |
 | `TC-RL-nnn` | the Review test lane: the 94 measured cases from `TEST-CASES-REVIEW.md`, 92 of them automatable | `gates/regress/*.js` as they are coded | the test-lane sessions, coded here by the build session |
+| `US-BN-nn` / `TC-BN-nnn` | the **build-number register** — tooling and records, nothing a player sees. Its case register is the command `gates/buildnum-selftest.sh`, not a file in `gates/regress/`, so it never blocks a `GATES GREEN` | `claude/stories/USER-STORIES.md`, `claude/stories/TEST-CASES.md`, executed by `gates/buildnum-selftest.sh` | this repo (build lane). **Claimed at #465**; 0 hits repo-wide before that commit |
 
 ### The gate-number register — read before adding a gate file
 
