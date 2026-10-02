@@ -404,7 +404,13 @@ if [ -n "$MANIFOOT" ]; then
     # same object", in the file written to retire the ninth - both halves of the cross-check were in the log, free.
     # THE FIX USES FOUR RECORDS THE LOG ALREADY CARRIES, written by different code at different moments:
     #   (1) the roster's own declared N, (2) the names it actually lists, (3) the `=== ` section headers echoed as
-    #   each gate STARTED, and (4) MANIREQ from the manifest line. A trimmed roster fails (1) vs (2); a truncated
+    #   each gate STARTED, and (4) MANIREQ from the manifest line. MEASURED AGAINST THE REAL #462 LOG, NOT A
+    #   FIXTURE I WROTE: the roster INCLUDES mountcheck as its first name, so sections == roster and roster ==
+    #   MANIREQ + 1. MY FIRST VERSION ASSERTED roster+1 == sections AND roster == MANIREQ, and it REFUSED THE
+    #   GENUINE GREEN LOG - because the synthetic control I validated against was built from my own belief about
+    #   the roster rather than from the artefact, so it agreed with the bug. That is CLAUDE.md's #432/#433 rule
+    #   (a fixture that encodes the same assumption as the code cannot see that assumption) committed by the very
+    #   check written to stop a log overstating itself. A trimmed roster fails (1) vs (2); a truncated
     #   or hand-made log fails (3); a shrunken required set fails (4).
     # GATED ON MANIERA, exactly as the manifest line is, and that is not a detail: MEASURED, not one of the 93
     # archived logs carries a roster line, because gates.sh:232 is #461 code and #461 never shipped. An ungated
@@ -429,15 +435,17 @@ if [ -n "$MANIFOOT" ]; then
       echo "  A roster that disagrees with itself has been trimmed or rewritten."
       exit 1
     fi
-    if [ "$SECN" -ne $(( RN + 1 )) ]; then
+    if [ "$SECN" -ne "$RN" ]; then
       echo "REFUSED (gates ran): $LOG claims $RN gates ran but carries $SECN '=== ' section(s)."
-      echo "  A full run echoes one section per gate PLUS one for mountcheck, so sections should be $(( RN + 1 ))."
+      echo "  A full run echoes exactly one section per entry in the roster, so sections should be $RN."
       echo "  These two are written by different code at different moments, which is why they catch a log that"
       echo "  was truncated, trimmed, reconstructed or hand-made. THIS IS THE CHECK THAT REFUSES B'S FORGERY."
       exit 1
     fi
-    if [ "$RN" -ne "$MANIREQ" ]; then
-      echo "REFUSED (gates ran): $LOG's manifest requires $MANIREQ gates but only $RN ran."
+    # mountcheck IS in the roster (it is the first name) and is NOT a gates/regress file, so it has no manifest
+    # row: a full run's roster is therefore MANIREQ + 1. I had this as RN == MANIREQ and the REAL LOG DISPROVED IT.
+    if [ "$RN" -ne $(( MANIREQ + 1 )) ]; then
+      echo "REFUSED (gates ran): $LOG's manifest requires $MANIREQ gates, so the roster should be $(( MANIREQ + 1 )) with mountcheck, but it is $RN."
       echo "  line: $ROSTER"
       echo "  manifest: $MANIFOOT"
       echo "  The manifest says which gates must EXIST; the roster says which ones RAN. A green that covers fewer"
