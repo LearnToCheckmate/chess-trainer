@@ -2,6 +2,28 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#462 SHIPPED THE EXPECTED-GATES MANIFEST AND FOUR HOLES IN ITS OWN PUSH GATE (cf39d40, 2026-10-02).**
+> `gates/verify-log.sh` now reads the `gates ran (N):` roster and cross-checks it against the `=== ` section count
+> and against the manifest's `required`, so a trimmed, truncated or hand-made log is REFUSED. Before #462 a
+> 25-line 4-section forgery was accepted as "a full-suite green (4 suites, 12 PASS)" beside "47 required, 47
+> present". It also refuses `unjustified > 0`, and the manifest now carries rows for gates 17 and 52, so
+> known-absent reads **5, not 3**.
+>
+> **THREE THINGS THE NEXT RUN SHOULD NOT REDISCOVER:**
+> 1. **`gates.sh` DOES NOT RUN `verify-log.sh`.** All six `verify-log` hits in it are comments, so nothing
+>    verifies a log automatically and nothing exercises the push gate at all. R34 and CLAUDE.md both say it does;
+>    the mountcheck half is true and this half is not. `jobs/r34-names-a-guard-gates-sh-does-not-run-2026-10-02`.
+>    This bit #462 directly: my first roster check was wrong and REFUSED the genuine green log, and the suite still
+>    went green, because nothing ran the script I had broken. **Verify your own log by hand before believing it.**
+> 2. **`required` is NOT ratcheted.** A log reading `0 required, 47 known-absent` is still accepted at exit 0, and
+>    a gate leaves the required set by a two-field hand edit (`state` -> `absent` plus any non-`-` note) with
+>    `check` exiting 0 - `retire` is bypassed by deleting the file first. Only the commit diff objects.
+>    `jobs/the-gate-manifest-can-be-weakened-by-hand-and-only-git-can-object-2026-10-02` is the cause.
+> 3. **A FIXTURE YOU WROTE CANNOT CONTROL AN ASSUMPTION YOU HOLD.** #462's four REFUSAL controls all passed while
+>    the check was broken on the ACCEPT path, because the "good" log was generated from my own belief about the
+>    roster. The only control that could see it was the genuine artefact. If you add a check to `verify-log.sh`,
+>    run it against a real full-suite log before you trust it.
+
 > **#454 ADDED A BUILD-NUMBER REGISTER, AND IT CHANGES THE FIRST COMMAND OF A BUILD.** Do not pick a number:
 > `CT_RUNID=<your runId> gates/buildnum.sh mint '<what this build is for>'` issues one and records it in
 > `gates/build-numbers.tsv`, and `gates/build.sh` now refuses a number that is not this run's. It enforces
