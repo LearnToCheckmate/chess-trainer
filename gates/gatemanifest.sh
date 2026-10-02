@@ -88,7 +88,12 @@ check)
   # prose, followed by spaces and commas, so no real comment matches. Counted into the same `unreadable` field
   # rather than a ninth column, because it is the same thing from a reader's point of view - a row the tool
   # cannot use - and because a stable 8-field line is what gates/verify-log.sh parses strictly.
-  while IFS= read -r line; do
+  # THE `|| [ -n "$line" ]` IS NOT DECORATION. Without it, a row appended with NO TRAILING NEWLINE makes `read`
+  # return non-zero and the loop body never runs for it - so a commented-out row added by hand, which is exactly
+  # what this loop exists to catch, would be INVISIBLE to it. gates/verify-log.sh learned this on held-trees.tsv
+  # and records it as guard (i) on the same file shape; measured here before fixing: a `#`-prefixed row with no
+  # final newline gave "46 required ... 0 unreadable" and exit 0.
+  while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in \#*|[[:space:]]*\#*) ;; *) continue;; esac
     cand="$(printf '%s' "$line" | sed 's/^[[:space:]]*#[[:space:]]*//')"
     case "$cand" in *.js"	"*) DISABLED="$DISABLED$(printf '%s' "$cand" | cut -f1)"$'\n'; MALFORMED=$((MALFORMED+1));; esac
@@ -257,7 +262,7 @@ PY
   ;;
 list)
   printf '%-40s %-9s %-6s %s\n' GATE STATE BUILD NOTE
-  rows | while IFS= read -r line; do
+  rows | while IFS= read -r line || [ -n "$line" ]; do
     printf '%-40s %-9s %-6s %s\n' "$(printf '%s' "$line" | cut -f1)" "$(printf '%s' "$line" | cut -f2)" "$(printf '%s' "$line" | cut -f3)" "$(printf '%s' "$line" | cut -f7 | cut -c1-70)"
   done
   exit 0
