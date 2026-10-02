@@ -303,3 +303,5 @@
 460	minted	-	-	-	2026-10-02T05:24Z	build__1790918417263	minted	close the brilliant-drill online-puzzle credit bank: guard onlineSolved on card provenance (p.mine), plus its gate
 460	built	-	18601556b6f0	a99fd6020164	2026-10-02T05:32Z	build__1790918417263	build.sh	Bundle built and stamped #460. Recorded by gates/build.sh so the number resolves to an artefact.
 460	built	-	aa4b800c83a6	81f5eeab7d27	2026-10-02T06:03Z	build__1790918417263	build.sh	Bundle built and stamped #460. Recorded by gates/build.sh so the number resolves to an artefact.
+461	minted	-	-	-	2026-10-02T07:27Z	build__1790925639766	minted	the expected-gates manifest: gates.sh refuses GATES GREEN when a manifest gate is missing, and verify-log.sh refuses a log with unlisted gates
+461	built	-	8e9576046468	81f5eeab7d27	2026-10-02T07:36Z	build__1790925639766	build.sh	Bundle built and stamped #461. Recorded by gates/build.sh so the number resolves to an artefact.

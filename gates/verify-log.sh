@@ -11,6 +11,9 @@
 #   5. if a second argument is given, the footer names that build
 #   6. the log's OWN footer total ("regression assertions (PASS lines): N") exists, is above zero, and EQUALS
 #      the number of ^PASS lines actually in the file
+#   6b. if the log carries a "gate manifest:" footer (#461 and later), it reports 0 missing and 0 unlisted
+#      gates - so a suite that ran with a required gate deleted, renamed or never merged cannot authorise a
+#      push. A log with no such footer is reported NOT CHECKED, never passed silently.
 #   7. the tree it gated is NOT on the held register, gates/held-trees.tsv (ON BY DEFAULT, added #450),
 #      by bundle md5, by any sha on the row, or by the stamp-independent md5 of chess.jsx at the gated sha.
 #      A MISSING register is reported as 'NOT CHECKED', never as a pass - see the note at check (10).
@@ -120,6 +123,45 @@ if [ "$CLAIMED" != "$ACTUAL" ]; then
     echo "  stdout and writes every PASS line to gates/logs/<N>-all.log. Copy the LOG, not the terminal output."
   fi
   exit 1
+fi
+# (11) THE EXPECTED-GATES MANIFEST LINE, added #461 for
+# jobs/gates-green-does-not-assert-which-gates-RAN-so-a-deleted-gate-is-invisible-2026-10-01.
+# Checks (1) to (6) all ask whether the log is a well-formed full-suite green. EVERY ONE OF THEM RETURNS YES FOR A
+# SUITE THAT RAN WITH A GATE DELETED, because gates.sh globbed the directory and the deleted gate simply was not
+# counted. gates.sh now writes its manifest verdict into the footer, so this reads it.
+#
+# IT IS CONDITIONAL ON THE LINE BEING THERE, AND THAT IS NOT A LOOPHOLE - it is the same decision the header
+# records for --this-bundle ("it cannot be unconditional - it would refuse all 49 archived gatelogs"). Every log
+# committed before #461 has no manifest line, and refusing them all would make this script useless for exactly
+# the audits it exists to serve. SO: line present -> enforced. Line absent -> reported as NOT CHECKED in the OK
+# output, never silently passed, which is antagonist B's rule from #450 ("a guard whose absence is
+# indistinguishable from its success is not a guard") applied to this check rather than re-learned on it.
+MANICHECK="absent"; MANIMISS=""; MANIUNL=""
+MANIFOOT="$(grep -m1 '^gate manifest:' "$LOG" || true)"
+if [ -n "$MANIFOOT" ]; then
+  if printf '%s' "$MANIFOOT" | grep -q 'NOT CHECKED'; then
+    MANICHECK="notchecked"
+  else
+    MANICHECK="ran"
+    MANIMISS="$(printf '%s' "$MANIFOOT" | grep -o '[0-9]\{1,\} missing' | grep -o '^[0-9]\{1,\}' || true)"
+    MANIUNL="$(printf '%s' "$MANIFOOT" | grep -o '[0-9]\{1,\} unlisted' | grep -o '^[0-9]\{1,\}' || true)"
+    if [ -n "$MANIMISS" ] && [ "$MANIMISS" -gt 0 ] 2>/dev/null; then
+      echo "REFUSED (gate manifest): $LOG reports $MANIMISS required gate(s) MISSING from gates/regress/."
+      echo "  $MANIFOOT"
+      echo "  A suite that ran without a gate the manifest requires cannot speak for that gate's defect class."
+      echo "  gates.sh should have stopped before running; a log in this state was assembled some other way."
+      exit 1
+    fi
+    if [ -n "$MANIUNL" ] && [ "$MANIUNL" -gt 0 ] 2>/dev/null; then
+      echo "REFUSED (gate manifest): $LOG reports $MANIUNL gate(s) on disk with no row in gates/gate-manifest.tsv."
+      echo "  $MANIFOOT"
+      echo "  The suite ran them, so nothing is unproven - but an unlisted gate is one nobody has to keep. Add"
+      echo "  the row and re-gate:  gates/gatemanifest.sh sync 'what it covers'"
+      echo "  This is the one check here that refuses a log for something the NEXT build does wrong rather than"
+      echo "  this one; it is the only moment at which an unlisted gate is cheap to catch."
+      exit 1
+    fi
+  fi
 fi
 # (10) THE HELD-TREE REGISTER, AND IT IS ON BY DEFAULT. Added #450 for
 # jobs/a-gated-green-log-is-not-a-shippable-tree-2026-10-01.
@@ -314,6 +356,12 @@ if [ "$HELDCHECK" = "ran" ]; then
 else
   echo "    register: NOT CHECKED - gates/held-trees.tsv is missing (see the warning above)"
 fi
+case "$MANICHECK" in
+  ran) echo "    manifest: $MANIFOOT" ;;
+  notchecked) echo "    manifest: NOT CHECKED - the run could not read gates/gate-manifest.tsv ($MANIFOOT)" ;;
+  *) echo "    manifest: NOT CHECKED - this log carries no 'gate manifest:' footer, so it predates #461 and"
+     echo "              says nothing about whether every expected gate was present when it ran." ;;
+esac
 echo "    NOTE: that is a statement about the SUITE, not permission to push. It says these assertions ran over"
 echo "    that bundle and none failed. It does not say the adversarial pass cleared the tree, and it does not"
 echo "    say this is the tree you are pushing (pass --this-bundle and --on-main to ask those two)."

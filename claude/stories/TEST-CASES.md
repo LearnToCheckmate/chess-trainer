@@ -431,3 +431,91 @@ without checking it. Both now assert the total is zero as well as the prefix arm
 `/(^|:)mine:/` regex against eleven strings per the #391 rule and found it matches what it claims and rejects
 everything a real producer emits; the one false positive needs a hand-authored pack row whose id begins
 `mine:`, which the Lichess API cannot emit.
+
+## The gate suite itself - which gates RAN, executed against #461 (`gates/gatemanifest.sh selftest`)
+
+**NO STORY CLAUSE, AND THAT IS NOT AN OMISSION.** Every other section here records app behaviour and cites a
+`US-*` clause. This one records a property of the HARNESS, so there is nothing for a user story to say; the job
+that raised it (`jobs/gates-green-does-not-assert-which-gates-RAN-so-a-deleted-gate-is-invisible-2026-10-01`)
+states it in its own `storyClause` field as "None - a property of the gate suite [R08]". Recorded here because
+the definition of done asks for a clause id *or one line naming why there is none*, and this is that line.
+
+**ID SPACE: `TC-SUITE-001` … `TC-SUITE-014`, a new space opened by this build.** The existing spaces are all
+keyed to app areas (`TC-R*` review, `TC-HM-*` home, `TC-PL-*` play, `TC-INV-*` invariants), and filing a harness
+property under any of them would have mislabelled it. The fourteen ids are the fourteen cases in
+`gates/gatemanifest.sh selftest`, in the order that command runs them, so the register and the executable cannot
+drift: if somebody adds a case there, the count here is wrong and visibly so. **IT ALREADY CAUGHT ME ONCE:** this
+section was written at twelve, and this build's own antagonist pass then added 013 and 014, so the paragraph you
+are reading is the second version of it.
+
+**THE DEFECT, MEASURED.** `gates.sh` built its gate list by globbing `gates/regress/*.js`, so it asserted that
+the gates PRESENT all passed and never that the gates that MATTER were present. Measured on `origin/main` at
+`fabcfc2`: 47 gate files, and the suite reports "47 suites green" with
+`gates/regress/67-sel-cls-consumers.js` (the only gate that reddens on the sel/cls consumer P0s) and
+`gates/regress/50-drill-verdict-no-jump.js` (the only gate over the drill board jump, authored 2026-09-22 and
+committed by nobody) both absent from it. A deleted, renamed or never-merged gate was indistinguishable from a
+gate that was never needed, and no tool in the project said so.
+
+**THE INSTRUMENT.** `gates/gate-manifest.tsv`, 47 `required` rows seeded from the committed suite plus 3
+`absent` rows for the gates named above, and `gates/gatemanifest.sh check`, which `gates.sh` now runs BEFORE any
+gate and whose verdict goes in the log footer. `gates/verify-log.sh` reads that footer and refuses the log.
+
+**PASS CONDITIONS, one per case, all run against a throwaway copy of the manifest and the regress directory so
+no case can touch the real ones. INPUTS: 12 cases over 1 tree shape; each case is a distinct mutation of that
+tree, and the exit code is the measured value.**
+
+| id | case | measured |
+|---|---|---|
+| TC-SUITE-001 | a complete tree checks clean | exit 0 — the control that stops the eleven below being vacuous |
+| TC-SUITE-002 | a **deleted** required gate is a hard failure | exit 1. **This is the defect the job was filed for**; without the manifest the suite goes green |
+| TC-SUITE-003 | restoring it clears the failure | exit 0 — so 002 is keyed to the absence and not to something sticky |
+| TC-SUITE-004 | a **renamed** required gate is a hard failure | exit 1 — a rename is a deletion plus an unlisted arrival, and the deletion is what matters |
+| TC-SUITE-005 | an **unlisted** new gate is soft | exit **2**, not 1: a build that adds a gate must still be able to run it |
+| TC-SUITE-006 | MISSING outranks UNLISTED when both hold | exit 1 — the hard case must win, or 004 would report the wrong thing |
+| TC-SUITE-007 | a **missing manifest** is NOT CHECKED | exit 3, never 0. Antagonist B's rule from #450: a guard whose absence is indistinguishable from its success is not a guard |
+| TC-SUITE-008 | a malformed row is reported, not skipped | the words "malformed manifest row" appear — somebody wrote that row meaning to require a gate |
+| TC-SUITE-009 | `retire` refuses while the gate is still on disk | exit 1 — a row cannot be softened ahead of the deletion |
+| TC-SUITE-010 | `retire` works once the gate is gone | exit 0 |
+| TC-SUITE-011 | the retired row **stays** in the file carrying its reason | the string `RETIRED at … <reason>` is present. This is the whole mechanism: a gate leaves only in a commit that says why |
+| TC-SUITE-012 | a retired gate no longer reddens the check | exit 0 |
+| TC-SUITE-013 | flipping a row to `absent` **with no reason** is still a hard failure | exit 1 — **the hole this build's own antagonist pass found**, see below |
+| TC-SUITE-014 | the same flip **with** a reason is accepted | exit 0 — so 013 is keyed to the missing reason and not merely to the state |
+
+**IT FAILED BEFORE THE FIX, and the control is the real suite rather than a hand-made file.** With
+`gates/regress/26-invariants.js` moved aside, `gates/gates.sh '#461' '29-draws'` **exits 1** with
+`gate manifest: 47 required, 46 present, 1 missing, …` and `GATES RED #461 — stopped before running any gate`;
+`=== 29-draws ===` never appears in the log and the string `GATES GREEN` appears nowhere in it. With the file
+restored the identical command proceeds past the manifest and runs the gate. On `origin/main`'s `gates.sh` the
+same deletion produces a suite that runs to completion and reports green on 46 gates.
+
+**AND THE THREE CASES verify-log.sh OWNS**, measured against `claude/agents/gatelogs/460-all.log`, a real
+committed full-suite green, with its footer doctored one field at a time: footer reading `0 missing, 0 unlisted`
+→ **OK**; `1 unlisted` → **REFUSED (gate manifest)**; `2 missing` → **REFUSED (gate manifest)**; and the log
+**as committed**, with no manifest line at all → **OK** with `manifest: NOT CHECKED … predates #461`. That last
+one is the case that matters for the 49 archived logs: making the check unconditional would have refused every
+one of them, which is the decision `verify-log.sh`'s own header already records for `--this-bundle`.
+
+**THE HOLE THIS BUILD'S OWN ADVERSARIAL PASS FOUND IN IT, AND IT WAS LOAD-BEARING.** The mechanism above is
+"a gate can only leave the manifest in a commit that says why", enforced by `retire`, which refuses while the file
+is still on disk and requires a reason. MEASURED on the first version: delete `gates/regress/26-invariants.js`,
+hand-edit its row's state from `required` to `absent`, and `check` reported
+`46 required, 46 present, 0 missing, 4 known-absent` and **exit 0**. So there was a second, unguarded door into
+exactly the state the file exists to prevent, and it needed no reason at all — which makes the guarded door
+decorative, the same shape as `--ignore-held` printing nothing at #450. FIXED rather than documented, because it
+is three lines: a row whose state is `absent` or `retired` must carry a reason in field 7, and one that does not
+is counted as **MISSING** — hard, exit 1 — rather than warned about, since a row that says a gate is gone without
+saying why does not get the benefit of the doubt. Re-measured after the fix: the identical attack now gives
+`0 missing … 1 unjustified` and **exit 1**, and the untouched tree still gives
+`47 required, 47 present, 0 missing, 0 unlisted, 3 known-absent, 0 retired, 0 unjustified` and exit 0. The commit
+diff is still the real protection; this is what makes the diff say something.
+
+**NOT COVERED, AND NAMED.** The footer line `gates.sh` writes is computed by `gatemanifest.sh`, so
+`verify-log.sh` reading it back is reading a CLAIM and not an independent measurement — the same honest limit
+the PASS-count footer has carried since #419, and it cannot be otherwise, because `verify-log.sh` is routinely
+run on archived logs with no matching tree on disk. Nothing here checks that a gate which is PRESENT actually
+asserts anything (a gate emptied to `process.exit(0)` satisfies the manifest and the suite); that is a strictly
+larger problem and is not claimed. `sync`'s promotion path (a row reading `absent` whose file reappears) is
+exercised by no case — only `retire`'s is. No case drives `gates.sh` with a *required* gate missing AND the
+manifest absent at once. And the reason field is checked for PRESENCE, not for content: "x" satisfies TC-SUITE-014
+exactly as well as a real explanation does, so what this buys is that the removal is visible and attributable in
+the diff, not that it is justified. No mechanical check can do the second thing and this one does not pretend to.

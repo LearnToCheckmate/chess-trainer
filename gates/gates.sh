@@ -144,6 +144,32 @@ if [ -n "$dupes" ]; then
   exit 1
 fi
 
+# ── #461. THE EXPECTED-GATES MANIFEST: WHICH GATES RAN, NOT JUST THAT THE ONES PRESENT PASSED ────────────────
+# jobs/gates-green-does-not-assert-which-gates-RAN-so-a-deleted-gate-is-invisible-2026-10-01, from antagonist B
+# on #450. Everything below this line asks "did the gates in this directory pass". NOTHING asked whether the
+# directory holds the gates it is supposed to, so a gate deleted, renamed or never merged was indistinguishable
+# from a gate that was never needed - and the suite still ended GATES GREEN. Measured: main reported 47 suites
+# green while gates/regress/67-sel-cls-consumers.js (the only gate that reddens on the sel/cls consumer P0s) and
+# gates/regress/50-drill-verdict-no-jump.js (the only gate over the drill board jump) were both absent from it.
+#
+# IT RUNS BEFORE ANY GATE, like the duplicate-number guard above and for the same reason: a suite that cannot be
+# trusted should not spend forty minutes proving it. And it runs ON A SUBSET TOO - the question is about the
+# DIRECTORY, not about which gates this invocation executes.
+#
+# TWO OUTCOMES, DELIBERATELY NOT ONE [see the header of gates/gatemanifest.sh]:
+#   exit 1  a required gate is MISSING -> this suite stops here and cannot emit GATES GREEN.
+#   exit 2  a gate on disk is UNLISTED -> the suite RUNS (a build that adds a gate must be able to run it), the
+#           count goes in the footer, and gates/verify-log.sh refuses the log, so it cannot reach main unlisted.
+#   exit 3  the manifest itself is missing -> NOT CHECKED, reported, and the suite runs. A stale checkout must
+#           not be able to wedge the lane, but it must not read as a pass either.
+MANI_OUT="$("$G/gatemanifest.sh" check 2>&1)"; MANI_RC=$?
+printf '%s\n' "$MANI_OUT" | tee -a "$ALL"
+MANI_LINE="$(printf '%s\n' "$MANI_OUT" | grep -m1 '^gate manifest:' || echo 'gate manifest: NOT CHECKED')"
+if [ "$MANI_RC" -eq 1 ]; then
+  echo "GATES RED $N — stopped before running any gate: the expected-gates manifest is not satisfied." | tee -a "$ALL"
+  exit 1
+fi
+
 gates=("$G/mountcheck.js")
 if [ -n "$SUBSET" ]; then
   for pat in $SUBSET; do
@@ -169,6 +195,15 @@ for f in "${gates[@]}"; do
 done
 PASSN=$(grep -c '^PASS' "$ALL" || true)
 echo "regression assertions (PASS lines): $PASSN" | tee -a "$ALL"
+# ── #461. THE FOOTER NAMES THE GATES THAT RAN, AND RESTATES THE MANIFEST VERDICT. ────────────────────────────
+# The job's title is the point: "GATES GREEN asserts that the gates present all passed, not that the gates that
+# MATTER were present". A reader of an archived log could count "=== name ===" headers by hand; now the log says
+# it in one greppable line, and carries the manifest's own verdict next to the PASS total that is already there.
+# BOTH LINES ARE CLAIMS THIS SCRIPT COMPUTES, not independent measurements, and gates/verify-log.sh reading them
+# back is reading a claim - the same honest limit the PASS-count footer has had since #419. Stated so the next
+# reader does not take the line for more than it is.
+echo "$MANI_LINE" | tee -a "$ALL"
+echo "gates ran ($(( ${#gates[@]} ))): $(for f in "${gates[@]}"; do printf '%s ' "$(basename "$f" .js)"; done)" | tee -a "$ALL"
 # ── WHICH TREE DID THIS GATE? (#417, flag class-gate-verifies-a-bundle-never-a-ref-2026-09-18) ──────────────
 # Every one of this suite's assertions answers "is the tree in this working directory correct?" and NOT ONE
 # answers "is this the tree that ships". #416 went green at 1940 PASS, verify-log.sh passed it and the dashboard

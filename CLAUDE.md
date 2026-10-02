@@ -147,6 +147,26 @@ wider one.
   in the file. Self-consistency rather than a threshold, deliberately: a floor like "at least 1000 PASS" would
   be the frozen denominator again. It rejects the two controls, the three thin logs above and a truncated log,
   and accepts all 29 real ones.
+- **`gates/gatemanifest.sh check` IS WHAT MAKES A MISSING GATE A RED RATHER THAN A SILENCE (#461), AND IT IS THE
+  TENTH COSTUME OF THE TRAP THIS FILE ALREADY RECORDS NINE TIMES.** Every entry above asks whether the gates in
+  `gates/regress/` passed. NOTHING asked whether that directory holds the gates it is supposed to, because
+  `gates.sh` built its list by globbing it - so *the check and the thing being checked were the same set*, and a
+  gate deleted, renamed or never merged was indistinguishable from a gate that was never needed. MEASURED at
+  `fabcfc2`: main reports **47 suites green** while `gates/regress/67-sel-cls-consumers.js`, the only gate that
+  reddens on the sel/cls consumer P0s, and `gates/regress/50-drill-verdict-no-jump.js`, authored 2026-09-22 for
+  the drill board jump and committed by nobody, are BOTH absent from it. Two known P0 classes with no gate on
+  main, and no tool in this project could say so. Now: `gates/gate-manifest.tsv` lists what the suite requires,
+  `gates.sh` runs the check BEFORE any gate and **exits without emitting `GATES GREEN`** if a required gate is
+  missing, the verdict goes in the log footer beside the PASS total, and `verify-log.sh` refuses a log reporting
+  a missing or unlisted gate. **THE TWO OUTCOMES ARE DELIBERATELY NOT ONE:** missing is HARD (nothing legitimate
+  produces it), unlisted is SOFT and exit 2, because a build that adds a gate must be able to run it - a guard
+  that fires on the normal case gets switched off, which is why `--this-bundle` is opt-in one rule above. A row
+  is NEVER deleted: `gatemanifest.sh retire` flips it and writes the reason in, so a gate leaves only in a commit
+  that says why, and deleting the row instead would make the manifest agree with the deletion silently. KNOW ITS
+  LIMIT, because it is the #419 limit again: the footer is a claim this harness computes, so `verify-log.sh`
+  reading it back is not an independent measurement, and it cannot be - that script runs on archived logs with no
+  tree on disk. It also says nothing about whether a gate that IS present asserts anything. Twelve controls as a
+  command, not a paragraph: `gates/gatemanifest.sh selftest` (TC-SUITE-001..012).
 - The harness library is `gates/lib.js`; read its header before writing a gate.
 - Serve locally. `learntocheckmate.github.io` is blocked by the egress proxy; `github.com` is not.
   Chromium is at `/opt/pw-browsers/chromium`; never run `playwright install`.

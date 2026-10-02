@@ -35,6 +35,18 @@ Three lanes published a gate on the afternoon of 2026-09-14 and two of them chos
 nobody could see what the others had just taken. The collision cost nothing only because it was caught before
 any of them landed. **Claim a number here in the same commit that adds the file.**
 
+**AND SINCE #461 THERE IS A SECOND REGISTER, `gates/gate-manifest.tsv`, WHICH ANSWERS A DIFFERENT QUESTION.**
+This table owns which NUMBER a gate has, and `gates.sh`'s duplicate-number guard (#399) makes that mechanical.
+Nothing owned whether a gate still EXISTS. Measured on `origin/main` at `fabcfc2`: the suite reported 47 suites
+green with `67-sel-cls-consumers.js` and `50-drill-verdict-no-jump.js` absent from the tree, so a gate deleted,
+renamed or never merged read exactly like a gate that was never needed. The manifest lists every gate the suite
+requires; `gates.sh` now refuses to run at all if one is missing, and `gates/verify-log.sh` refuses a log whose
+footer reports a gate on disk with no row. **So adding a gate now takes TWO rows, not one:** this table for the
+number, and `gates/gatemanifest.sh sync '<what it covers>'` for the manifest. Removing one takes
+`gates/gatemanifest.sh retire <gate> '<why>'`, which keeps the row and writes the reason into it, so a gate can
+only leave in a commit that says why. The three `absent` rows are the gates that exist on a branch and not here;
+read their note column before flipping one to `required`, because at least one of them is red on main by design.
+
 | file | lane | authored as | notes |
 |---|---|---|---|
 | `23-full-walk.js` | build session | 23 | #390. Build-lane range |
