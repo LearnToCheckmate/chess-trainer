@@ -13,7 +13,7 @@
 #      the number of ^PASS lines actually in the file
 #   6b. for a log footed #461 or later, it MUST carry a "gate manifest:" footer with an "N unreadable" field, and
 #      that footer must report 0 missing, 0 unlisted and 0 unreadable. A log footed #460 or earlier carries no such
-#      line and is reported NOT CHECKED, never passed silently - measured, that exempts all 91 archived logs and
+#      line and is reported NOT CHECKED, never passed silently - measured, that exempts every archived log (count it: ls claude/agents/gatelogs/*.log | wc -l) and
 #      nothing newer, because the highest build any of them foots is #460.
 #   6c. (superseded wording of 6b, kept so the change is visible) it reports 0 missing and 0 unlisted
 #      gates - so a suite that ran with a required gate deleted, renamed or never merged cannot authorise a
@@ -70,7 +70,7 @@
 #    needs no network, no git and no commit. It cannot be unconditional - it would refuse every archived gatelog,
 #    which gated bundles long replaced - so it is the flag you pass at the moment you are pushing.
 #    THE "49" THAT STOOD HERE IS WITHDRAWN [#461, antagonist A]: `ls claude/agents/gatelogs/*.log | wc -l` is
-#    NINETY-ONE. 49 was true when it was written and has been re-quoted since, including by #461's own first
+#    WHATEVER `ls claude/agents/gatelogs/*.log | wc -l` SAYS TODAY (93 at #462, 91 when this was written - #461's own close-out added the two that made it stale). 49 was true when it was written and has been re-quoted since, including by #461's own first
 #    draft of check (11) below - #405's frozen denominator, inside a quotation, in a build that cites #405.
 #    NEGATIVE CONTROLS, free and on disk, run at #417 and RECORDED AS THE COMMAND THAT PRODUCES THEM, because the
 #    first version of this note recorded an outcome the command does not produce (it refused for "no ref line",
@@ -281,7 +281,7 @@ fi
 # IT IS NO LONGER CONDITIONAL ON THE LINE BEING THERE, AND THE PARAGRAPH THAT STOOD HERE WAS WRONG.
 # It said this check could not be unconditional because "it would refuse all 49 archived gatelogs", borrowing the
 # reasoning the header records for --this-bundle without re-deriving it. Antagonist B re-derived it in one command
-# and I reproduced it: there are NINETY-ONE archived logs and the highest build any of them foots is #460, so
+# and I reproduced it: there are WHATEVER `ls claude/agents/gatelogs/*.log | wc -l` SAYS TODAY (93 at #462, 91 when this was written - #461's own close-out added the two that made it stale) archived logs and the highest build any of them foots is #460, so
 # gating the STRICT verdict on the log's OWN BUILD NUMBER refuses zero of the 91 and every log from #461 onward.
 # The exemption was free to close and the number justifying it was stale. See MANIERA below.
 MANICHECK="absent"; MANIMISS=""; MANIUNL=""; MANIUNREAD=""
@@ -289,7 +289,7 @@ MANIFOOT="$(grep -m1 '^gate manifest:' "$LOG" || true)"
 # ANTAGONIST B's VETO F1 ON #461, UPHELD, AND THE REASON I HAD WRITTEN FOR THE EXEMPTION WAS NEVER RE-DERIVED.
 # This check was conditional on the line being PRESENT, justified by "making it unconditional would refuse all 49
 # archived gatelogs" - borrowed from --this-bundle's note without measuring whether it applied. B measured that it
-# does not, and I reproduced it: `ls claude/agents/gatelogs/*.log | wc -l` is NINETY-ONE (the 49 in the header is
+# does not, and I reproduced it: `ls claude/agents/gatelogs/*.log | wc -l` is WHATEVER `ls claude/agents/gatelogs/*.log | wc -l` SAYS TODAY (93 at #462, 91 when this was written - #461's own close-out added the two that made it stale) (the 49 in the header is
 # itself stale), and the highest build number any of them foots is 460. So gating the STRICT verdict on the log's
 # own build number refuses exactly ZERO archived logs, and the exemption was free to close all along.
 # WHAT IT CLOSED: `rm gates/gate-manifest.tsv`, delete three gates, and gates.sh printed "NOT CHECKED", ran 45 of
@@ -388,6 +388,75 @@ if [ -n "$MANIFOOT" ]; then
       echo "  line: $MANIFOOT"
       echo "  required($MANIREQ) should equal present($MANIPRES) - unlisted($MANIUNL) + missing($MANIMISS) = $(( MANIPRES - MANIUNL + MANIMISS ))."
       echo "  A mismatch means rows were skipped or counted twice, so 'missing' does not mean what it says."
+      exit 1
+    fi
+    # ── #462. ANTAGONIST B'S GROUND 1: THE ROSTER LINE WAS NEVER READ, SO THIS SCRIPT ACCEPTED A FORGERY. ──────
+    # gates.sh:232 writes `gates ran (N): <names>` - the ONLY record in a log of WHICH gates actually ran, and the
+    # entire subject of the job the manifest was built for. Nothing here read it. Worse, the section count WAS
+    # computed, inside the final OK echo, and compared to nothing - so the message printed "4 suites" and
+    # "47 required, 47 present" on adjacent lines and did not notice.
+    # MEASURED by antagonist B from the shipped-surface door and REPRODUCED by this build before accepting it: a
+    # 25-line file with 4 sections, 12 PASS and an honest-looking manifest line was accepted as
+    # "OK: ... is a full-suite green for #462 (4 suites, 12 PASS, footer agrees)", exit 0.
+    # WHY THE MANIFEST COULD NEVER HAVE COVERED THIS: the manifest proves what is ON DISK. `required` subset of
+    # `present` subset of `ran` holds only INSIDE a live gates.sh; verify-log.sh is by definition the tool that
+    # runs on a log with no tree. So this is the tenth costume of "the check and the thing being checked were the
+    # same object", in the file written to retire the ninth - both halves of the cross-check were in the log, free.
+    # THE FIX USES FOUR RECORDS THE LOG ALREADY CARRIES, written by different code at different moments:
+    #   (1) the roster's own declared N, (2) the names it actually lists, (3) the `=== ` section headers echoed as
+    #   each gate STARTED, and (4) MANIREQ from the manifest line. A trimmed roster fails (1) vs (2); a truncated
+    #   or hand-made log fails (3); a shrunken required set fails (4).
+    # GATED ON MANIERA, exactly as the manifest line is, and that is not a detail: MEASURED, not one of the 93
+    # archived logs carries a roster line, because gates.sh:232 is #461 code and #461 never shipped. An ungated
+    # version of this check would refuse all 93 and I nearly wrote one.
+    ROSTER="$(grep -m1 '^gates ran (' "$LOG" || true)"
+    if [ -z "$ROSTER" ]; then
+      echo "REFUSED (gates ran): $LOG is footed $FOOT and carries no 'gates ran (N):' line."
+      echo "  Every gates.sh from #461 writes one. Without it the log cannot say WHICH gates ran, and a log that"
+      echo "  cannot say that is exactly what this script used to accept as a full-suite green."
+      exit 1
+    fi
+    RN="$(sed -E 's/^gates ran \(([0-9]+)\):.*$/\1/' <<<"$ROSTER")"
+    case "$RN" in ''|*[!0-9]*)
+      echo "REFUSED (gates ran): $LOG's roster line does not carry a numeric count."
+      echo "  line: $ROSTER"
+      exit 1;; esac
+    RNAMES="$(sed -E 's/^gates ran \([0-9]+\): *//' <<<"$ROSTER" | wc -w)"
+    SECN="$(grep -c '^=== ' "$LOG" || true)"
+    if [ "$RN" -ne "$RNAMES" ]; then
+      echo "REFUSED (gates ran): $LOG's roster says $RN gates ran but lists $RNAMES names."
+      echo "  line: $ROSTER"
+      echo "  A roster that disagrees with itself has been trimmed or rewritten."
+      exit 1
+    fi
+    if [ "$SECN" -ne $(( RN + 1 )) ]; then
+      echo "REFUSED (gates ran): $LOG claims $RN gates ran but carries $SECN '=== ' section(s)."
+      echo "  A full run echoes one section per gate PLUS one for mountcheck, so sections should be $(( RN + 1 ))."
+      echo "  These two are written by different code at different moments, which is why they catch a log that"
+      echo "  was truncated, trimmed, reconstructed or hand-made. THIS IS THE CHECK THAT REFUSES B'S FORGERY."
+      exit 1
+    fi
+    if [ "$RN" -ne "$MANIREQ" ]; then
+      echo "REFUSED (gates ran): $LOG's manifest requires $MANIREQ gates but only $RN ran."
+      echo "  line: $ROSTER"
+      echo "  manifest: $MANIFOOT"
+      echo "  The manifest says which gates must EXIST; the roster says which ones RAN. A green that covers fewer"
+      echo "  gates than the manifest requires is the defect this whole mechanism was built to make visible."
+      exit 1
+    fi
+    # ── #462. ANTAGONIST A'S G1: EIGHT FIELDS PARSED, FOUR ACTED ON. `unjustified` EXISTS SO THAT A REASONLESS
+    # `absent`/`retired` row is treated as MISSING-hard - it is one of the three conditions in gatemanifest.sh's
+    # own exit-1 triple (MISSING || UNJUSTIFIED || MALFORMED). This script refused on the other two and PRINTED
+    # THIS ONE BACK AS PART OF ITS OK. Measured by A: a self-consistent full-suite green log carrying
+    # "3 unjustified" returned OK exit 0, and so did "99 known-absent" and "99 retired".
+    # That is verbatim the defect this same file condemns 40 lines above, where #461's antagonist A made the
+    # parser demand a well-formed line - and then three of the eight fields it extracts were dropped.
+    if [ "$MANIUNJ" -gt 0 ] 2>/dev/null; then
+      echo "REFUSED (gate manifest): $LOG reports $MANIUNJ gate(s) de-required with NO REASON."
+      echo "  line: $MANIFOOT"
+      echo "  gatemanifest.sh treats unjustified as hard (its exit-1 triple is MISSING || UNJUSTIFIED || MALFORMED),"
+      echo "  so gates.sh should have stopped before running a gate. A log in this state was assembled some other"
+      echo "  way. This is the only forensic signal separating a hand-edited manifest line from a real one."
       exit 1
     fi
     fi

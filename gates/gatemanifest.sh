@@ -21,8 +21,15 @@
 # THE SHAPE, AND WHY IT IS NOT ONE SINGLE VERDICT. Two different failures need two different answers, and giving
 # them the same answer is what makes a guard unusable:
 #   MISSING  (state=required, file not on disk) -> HARD. Exit 1, and gates.sh refuses to run a single gate.
-#            Nothing legitimate produces this: a gate only leaves the required set through `retire`, which writes
-#            the reason into the manifest so the removal lands in a commit diff with its justification attached.
+#            THIS SENTENCE READ "Nothing legitimate produces this: a gate only leaves the required set through
+#            `retire`" AND IT IS FALSE. WITHDRAWN AT #462 [R18], measured by both antagonists independently.
+#            A gate ALSO leaves the required set by a hand edit of two fields - state -> `absent` plus any
+#            non-`-` note - and `retire`'s own refusal is bypassed by deleting the file first, because it only
+#            refuses while [ -f "$REG/$g" ]. Antagonist A measured the whole bar for de-requiring the gate
+#            CLAUDE.md calls the only cover for brilliancy explanations: delete the file, change one word, type
+#            one character; check then exits 0 and the suite runs. So what protects the required set is the
+#            COMMIT DIFF and a reviewer, NOT this tool, and the two must not be confused. The missing/absent
+#            asymmetry is still worth having; what is withdrawn is the claim that it is mechanical.
 #   UNLISTED (file on disk, no row at all)      -> SOFT. Exit 2. The suite still RUNS, because a build that adds
 #            a gate must be able to run it, and a hard failure here would mean every new gate reddens its own
 #            first suite. But it is NOT a silence either: the count goes in the log footer and

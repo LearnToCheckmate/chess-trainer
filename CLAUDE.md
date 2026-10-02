@@ -159,11 +159,14 @@ wider one.
   main, and no tool in this project could say so. Now: `gates/gate-manifest.tsv` lists what the suite requires,
   `gates.sh` runs the check BEFORE any gate and **exits without emitting `GATES GREEN`** if a required gate is
   missing, the verdict goes in the log footer beside the PASS total, and `verify-log.sh` refuses a log reporting
-  a missing or unlisted gate. **THE TWO OUTCOMES ARE DELIBERATELY NOT ONE:** missing is HARD (nothing legitimate
-  produces it), unlisted is SOFT and exit 2, because a build that adds a gate must be able to run it - a guard
+  a missing or unlisted gate. **THE TWO OUTCOMES ARE DELIBERATELY NOT ONE:** missing is HARD (**NOT because "nothing legitimate produces it" - that
+  clause is WITHDRAWN at #462 [R18]**: a two-field hand edit, state `absent` plus any non-`-` note, de-requires a
+  gate with `check` exiting 0, and `retire`'s refusal is bypassed by deleting the file first. The commit diff is
+  what protects the required set, not the tool), unlisted is SOFT and exit 2, because a build that adds a gate must be able to run it - a guard
   that fires on the normal case gets switched off, which is why `--this-bundle` is opt-in one rule above. A row
-  is NEVER deleted: `gatemanifest.sh retire` flips it and writes the reason in, so a gate leaves only in a commit
-  that says why, and deleting the row instead would make the manifest agree with the deletion silently. KNOW ITS
+  is NEVER deleted by the tool: `gatemanifest.sh retire` flips it and writes the reason in. **But a gate can leave
+  the required set WITHOUT `retire`** (see above), and the reason string is unvalidated - `-` is refused and `x` is
+  not - so "a gate leaves only in a commit that says why" is true of the DIFF and not of any check, and deleting the row instead would make the manifest agree with the deletion silently. KNOW ITS
   LIMIT, because it is the #419 limit again: the footer is a claim this harness computes, so `verify-log.sh`
   reading it back is not an independent measurement, and it cannot be - that script runs on archived logs with no
   tree on disk. **NINETEEN controls as a command, not a paragraph: `gates/gatemanifest.sh selftest`
