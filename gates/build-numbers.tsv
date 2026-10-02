@@ -309,3 +309,4 @@
 462	built	-	c299c6a093cf	81f5eeab7d27	2026-10-02T10:27Z	build__1790936423110	build.sh	Bundle built and stamped #462. Recorded by gates/build.sh so the number resolves to an artefact.
 464	minted	-	-	-	2026-10-02T13:29Z	build__1790947298456	measured	review grade counts vs the moves they name: ONE effective-label rule shared by the counter, the summary jump and the verdict chip. Number taken as the HIGHER of the two halves (tracker docs/buildnumber next=464 vs register next=463, the register stale because #463 stood down on the push).
 464	built	-	d0037ada3a6b	c3b3f1506274	2026-10-02T13:30Z	build__1790947298456	build.sh	Bundle built and stamped #464. Recorded by gates/build.sh so the number resolves to an artefact.
+464	built	-	8d02382c0046	728bd1ccbe03	2026-10-02T14:21Z	build__1790947298456	build.sh	Bundle built and stamped #464. Recorded by gates/build.sh so the number resolves to an artefact.
