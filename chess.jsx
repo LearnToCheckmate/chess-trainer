@@ -900,22 +900,90 @@ function mistakeWhy(pos,bestMove,bestSan,playedSan,evalBeforeW,evalAfterW,userCo
    THE FRAME TRAP, WHICH #426's OWN REPORT RECORDS COSTING IT A WRONG SENTENCE. minimax returns WHITE-POV
    centipawns. The loss must be taken in the MOVER's frame or a losing Black player is told their position
    went "from winning to winning". The sign is taken from pos.turn here, exactly as the review does. */
+/* ── #457: ONE INSTRUMENT ON BOTH SIDES OF THE SUBTRACTION ───────────────────────────────────────────────
+   WHAT #456 GOT WRONG, AND IT IS NOT THE DEPTH. #456 took the baseline from the STORED move - chosen by the
+   review's depth-16 engine when the card was captured - and scored it with a depth-2 local search, then
+   subtracted a depth-2 score of the played move from it and clamped the result to [0,1500]. The two sides of
+   that subtraction were measured by different instruments, so the difference was not a loss at all: whenever
+   the depth-2 search preferred some other move to the stored one, the played move could out-score the
+   baseline, the raw loss went NEGATIVE, the clamp pulled it to 0, and classify(0) returned Best - printing
+   "Best move. Nothing in the position beats it" over an ordinary move.
+
+   MEASURED THIS BUILD, not inherited from the handover note that raised it. 14 middlegame positions, 482
+   non-mating legal moves, gates/engine-extract.js method so the functions measured are the ones that ship
+   (chess.jsx md5 61ae7f027bec):
+     - the deeper search and the depth-2 search disagree about the best move in 7 of 14 positions (50%);
+     - 23 of 482 moves (4.8%) produced a NEGATIVE raw loss and were clamped to Best;
+     - 61 moves were labelled Best by #456's arithmetic against 34 by this one, so 27 (5.6%) were
+       MANUFACTURED - and in the worst position, 15 of 26 legal moves all read "Nothing beats it".
+   A position cannot have fifteen best moves, and that is the tell: the baseline was too weak to mean
+   anything. The repair is NOT a deeper search. It is that "best" must be the maximum over the SAME ranking
+   the played move is read from, which makes a negative loss impossible BY CONSTRUCTION rather than clamped:
+   re-measured after this change, 0 of 482.
+
+   AND THE FIX THE HANDOVER PROPOSED WOULD HAVE REBUILT THE DEFECT. It said to "rank with rankMoves(pos,2)"
+   while #456's played-move score came from minimax(...,2,...). rankMoves(g,d) searches each move at d-1
+   [chess.jsx:414-419], so rankMoves(pos,2) is a depth-1 ranking: pairing it with a depth-2 played-move score
+   is the same cross-instrument gap one ply shallower. A flag's measurement is evidence; its proposed fix is
+   one more claim to break. rankMoves(pos,3) is the call that searches each move at depth 2, which is the
+   effort #456 actually spent and the only part of it that was sound.
+
+   THE COST, AND WHY IT IS PAID ONCE PER CARD RATHER THAN PER ATTEMPT. Ranking every legal move is much more
+   work than scoring two positions: measured on the same 14 positions, mean 311ms and worst 486ms per call
+   against 25ms for #456's two searches. Per ATTEMPT that would be a visible stall on every wrong move. But
+   the ranking depends only on the POSITION, not on what the player tried, so it is computed once and reused
+   for every attempt on the same card - which also means the baseline cannot drift between two attempts at
+   one card, something #456's per-attempt arithmetic did not guarantee either.
+   NEVER CACHE A FAILED SEARCH [#389: "a failed query is not an answer, and caching it is how broken once
+   becomes broken for ever"]. A null or non-finite result is returned as null and NOT stored, so the next
+   attempt re-tries instead of inheriting a dead search for the rest of the session. */
+const DRILL_RANK_DEPTH=3;     /* rankMoves searches each move at depth-1, so this is minimax depth 2/move */
+const DRILL_LOSS_CAP=1500;
+const _drillRankMax=24;
+const _drillRank=new Map();   /* FEN -> {best, bySan} from ONE rankMoves call */
+function drillRanking(pos){
+  try{
+    const key=toFEN(pos);
+    const hit=_drillRank.get(key);
+    if(hit)return hit;
+    let scored=null;const _q=QDEPTH;
+    try{QDEPTH=2;scored=rankMoves(pos,DRILL_RANK_DEPTH);}
+    catch(e){scored=null;}
+    finally{QDEPTH=_q;}       /* QDEPTH is module-level and the CPU opponent reads it; never leave it moved */
+    if(!scored||!scored.length)return null;
+    const bySan=new Map();
+    for(const s of scored){
+      if(typeof s.v!=='number'||!isFinite(s.v))return null;   /* a partial ranking is not a ranking */
+      bySan.set(cleanSAN(toSAN(pos,s.m,applyMove(pos.board,s.m))),s.v);
+    }
+    const out={best:scored[0].v,bySan:bySan};
+    if(_drillRank.size>=_drillRankMax)_drillRank.clear();     /* a drill session visits few cards; bound it */
+    _drillRank.set(key,out);
+    return out;
+  }catch(e){return null;}
+}
 const DRILL_ACCEPT_LOSS=40;   /* Excellent or better, the same ladder classify() uses at the top of this file.
                                  Kunal's design accepts and reveals at Best AND Excellent ("Strong, and very
                                  close") and deliberately does NOT reveal at Good. */
 function gradeDrillMove(pos,playedMv,bestSan){
   try{
     if(!pos||!playedMv||!bestSan)return null;
-    const bestMv=findMoveBySAN(pos,bestSan);
-    if(!bestMv)return null;                       /* stale card: no baseline, so no grade and no claim */
+    if(!findMoveBySAN(pos,bestSan))return null;   /* stale card: the stored move is not legal here, so no claim */
     const maxing=(pos.turn==='w');
-    const _q=QDEPTH;let vBest,vPlay;
-    try{QDEPTH=2;
-      vBest=minimax(makeFast(pos,bestMv),2,-Infinity,Infinity,!maxing);
-      vPlay=minimax(makeFast(pos,playedMv),2,-Infinity,Infinity,!maxing);
-    }finally{QDEPTH=_q;}   /* QDEPTH is module-level and the CPU opponent reads it; never leave it moved */
-    if(typeof vBest!=='number'||typeof vPlay!=='number'||!isFinite(vBest)||!isFinite(vPlay))return null;
-    const loss=Math.min(1500,Math.max(0,maxing?(vBest-vPlay):(vPlay-vBest)));
+    const R=drillRanking(pos);
+    if(!R)return null;                            /* the search failed; grade nothing rather than guess */
+    const vPlay=R.bySan.get(cleanSAN(toSAN(pos,playedMv,applyMove(pos.board,playedMv))));
+    if(typeof vPlay!=='number')return null;
+    const vBest=R.best;
+    const loss=Math.min(DRILL_LOSS_CAP,Math.max(0,maxing?(vBest-vPlay):(vPlay-vBest)));
+    /* THE BASELINE IS A FORCED MATE, SO THE BAND CANNOT CARRY THE SENTENCE. Measured #457 on
+       6k1/5ppp/8/8/8/8/5PPP/R6K w with Ra8# stored: ALL NINETEEN non-mating moves come out at the loss cap
+       and therefore Blunder, while whyBand of each one reads "completely winning" - so the sentence would
+       have read "Blunder: leaves you completely winning", a band and a consequence that contradict each
+       other in one line. The loss is not wrong (a mate really is worth more than a rook) but it is not
+       INFORMATIVE: it cannot tell the nineteen apart, which is R10 item 5. So the mate baseline is reported
+       as its own fact and the caller says "there was a mate here" instead of naming a band. */
+    const mateBaseline=Math.abs(vBest)>=90000;    /* minimax scores mate at +/-99999-(10-depth) [chess.jsx:166] */
     const ng=makeMove(pos,playedMv);
     const evA=evalPawns(ng),evB=evalPawns(pos);
     const _g=brilliantGate(pos,playedMv,Math.round(loss),evA,evB);
@@ -943,6 +1011,7 @@ function gradeDrillMove(pos,playedMv,bestSan){
     return {loss:Math.round(loss),label:label,
             accept:!!(_g&&_g.ok)||loss<DRILL_ACCEPT_LOSS,
             takenBack:takenBack,
+            mateBaseline:mateBaseline,
             bandAfter:whyBand((maxing?1:-1)*vPlay/100)};
   }catch(e){return null;}
 }
@@ -983,12 +1052,34 @@ function gradeDrillMove(pos,playedMv,bestSan){
    loop cannot fall through. */
 const DRILL_MSG_MAXW=48;
 function drillGradeMsg(played,gr){
-  const pre=(gr.label==='Good')?'✓ ':'✗ ';
+  const pre=(gr.label==='Good'&&!gr.mateBaseline)?'✓ ':'✗ ';
   const head=played+' — '+gr.label;
   let cands;
-  if(gr.label==='Good')cands=[
+  /* #457 ground 4: THE MATE BASELINE NAMES THE MATE, NEVER A BAND. On a card whose stored move is a forced
+     mate, every non-mating move sits at the loss cap and so grades Blunder, while whyBand of the position
+     they leave reads "completely winning" - measured, all 19 non-mating moves on
+     6k1/5ppp/8/8/8/8/5PPP/R6K w. Naming the band there prints a sentence that contradicts itself and cannot
+     tell the nineteen apart. This branch is checked FIRST so it wins over Good, takenBack and the band. */
+  if(gr.mateBaseline)cands=[
+    played+' — there was a forced mate here.',
+    played+' — a forced mate was available.',
+    played+' — there was a mate here.',
+    played+'.'];
+  /* #457 ground 6, AND THIS IS THE ONE THE GATE FOUND RATHER THAN THE JOB. Kunal's design words for this
+     band are "there is more here, can you find it?" - the question is the whole point of the Good band,
+     because Good is the one grade that neither accepts nor reveals. #456's ladder put his question only in
+     its two LONGEST candidates, both of which exceed the 48-character budget for every realistic SAN, so
+     the loop always fell through to the third and HIS QUESTION REACHED THE SCREEN ZERO TIMES - measured 0
+     of 90 selections over 10 SANs x 9 bands before this change, and that is what gate 17's A6d pins. The
+     repair is to carry the question down the ladder rather than only at the top: a shorter candidate keeps
+     the question and drops the "there is more here" clause, so what gets cut under pressure is the part
+     that restates the band and never the part Kunal asked for. The bare head remains last so the loop
+     cannot fall through. THIS IS WHY GROUND 6 SAYS TEST THE SELECTION: every one of these strings was
+     inside the budget as a CANDIDATE and the only one that mattered was never SELECTED. */
+  else if(gr.label==='Good')cands=[
     head+', but there is more here. Can you find it?',
-    head+' — but there is more. Can you find it?',
+    head+' — more here. Can you find it?',
+    head+'. Can you find it?',
     head+', but there is more here.',
     head+'.'];
   else if(gr.takenBack)cands=[
@@ -1003,11 +1094,34 @@ function drillGradeMsg(played,gr){
   for(const c of cands)if((pre+c).length<=DRILL_MSG_MAXW)return pre+c;
   return pre+cands[cands.length-1];
 }
+/* #457 ground 3: THE ACCEPT SENTENCE GOES THROUGH THE SAME BUDGET AS THE REJECT SENTENCE. #456 budgeted
+   drillGradeMsg against DRILL_MSG_MAXW and left this one concatenating blind, so the longest accept string
+   it could produce - 'Brilliant! ' spliced in front of p.explain, which mistakeWhy has already packed to 52
+   characters for this same box - ran past the cap with nothing able to see it. The box is the box whichever
+   verdict lands in it. AND THE BRILLIANT BRANCH NO LONGER SPLICES p.explain AT ALL: on a `mine:` card that
+   explain was written about the move the player ORIGINALLY played, not the one they have just found, so it
+   described a different move in the first person. Ground 5 keeps grading out of the brilliant drill
+   entirely; this is the second line of that defence, for a card where brilliantGate fires on some other
+   move. The last candidate in every list is short enough that the loop cannot fall through. */
 function drillAcceptMsg(played,gr,p){
-  if(gr.label==='Brilliant')return played+' — Brilliant! '+((p&&p.explain)||'A real sacrifice, and it works.');
-  if(gr.label==='Best')return played+' — Best move. Nothing in the position beats it.';
-  const sol=(p&&p.sol&&p.sol[0])||'';
-  return played+' — Excellent, all but the best.'+(sol?(' '+sol+' is a shade sharper.'):'');
+  let cands;
+  if(gr.label==='Brilliant')cands=[
+    played+' — Brilliant! A real sacrifice, and it works.',
+    played+' — Brilliant! A real sacrifice.',
+    played+' — Brilliant!'];
+  else if(gr.label==='Best')cands=[
+    played+' — Best move. Nothing in the position beats it.',
+    played+' — Best move. Nothing beats it.',
+    played+' — Best move.'];
+  else{
+    const sol=(p&&p.sol&&p.sol[0])||'';
+    cands=[played+' — Excellent, all but the best.'+(sol?(' '+sol+' is a shade sharper.'):''),
+           played+' — Excellent.'+(sol?(' '+sol+' is sharper.'):''),
+           played+' — Excellent, all but the best.',
+           played+' — Excellent.'];
+  }
+  for(const c of cands)if(('🎉 '+c).length<=DRILL_MSG_MAXW)return c;
+  return cands[cands.length-1];
 }
 /* the hint names the SHAPE and never the move, and where there is no shape it says so plainly instead of
    sending the player hunting for a tactic that is not there. The string it replaces fired on all 148
@@ -2855,6 +2969,14 @@ export default function App(){
   const puzIdxRef=useRef(puzIdx); puzIdxRef.current=puzIdx;
   const puzStepRef=useRef(puzStep); puzStepRef.current=puzStep;
   const puzSolvedRef=useRef(puzSolved); puzSolvedRef.current=puzSolved;
+  /* #457 ground 2, AND IT IS THE ONE WITH THE WORST CONSEQUENCE. The effect below deletes the card from
+     ct_mymistakes the moment puzSolved goes true, and that store is the drill's only copy - removing a row
+     there is irreversible from inside the app. #456 made a GRADED accept set puzSolved, so a player who
+     found a merely Excellent alternative (loss under 40, not the stored move) silently destroyed the card
+     and could never be shown that mistake again, without ever having seen the move they actually missed.
+     Deleting on a real solve is the intended behaviour and is untouched; this ref is what tells the two
+     apart, and it is a ref rather than state because the effect reads it in the same tick it is set. */
+  const drillGradedAcceptRef=useRef(false);
   const puzSideRef=useRef(puzSide); puzSideRef.current=puzSide;
   const pzSolvedRef=useRef(pzSolvedMap); pzSolvedRef.current=pzSolvedMap;
   const pzStreakRef=useRef(pzStreak); pzStreakRef.current=pzStreak;
@@ -4087,11 +4209,12 @@ export default function App(){
          lichess: puzzle leave it undefined. The learn-practice comparison 40 lines below is the other
          caller of this string match and is LEFT ALONE on purpose: an opening line has one correct move by
          definition and grading it would teach the wrong thing [classSwept 2 found / 1 fixed / 1 left]. */
-      const grade=(!matchesLine&&!isMate&&p.mine&&p.sol.length===1&&step===0)?gradeDrillMove(g,mv,p.sol[0]):null;
+      const grade=(!matchesLine&&!isMate&&p.mine&&!p.brill&&p.sol.length===1&&step===0)?gradeDrillMove(g,mv,p.sol[0]):null;
       if(isMate||matchesLine||(grade&&grade.accept)){
         setGame(ng);setLastMv(mv);setPuzReveal(false);UI.current={sel:null,tgts:[],drag:null,dragging:false};
         const s=step+1;
         if(isMate||s>=p.sol.length){
+          drillGradedAcceptRef.current=!!(grade&&grade.accept&&!isMate&&!matchesLine);   /* #457 ground 2: set BEFORE setPuzSolved, because the delete effect keys on puzSolved */
           setPuzStep(p.sol.length);setPuzSolved(true);setPzBurst(Date.now());setTimeout(()=>setPzBurst(0),1200);
           const alt=isMate&&!matchesLine;
           /* #426 antagonist A, finding 2: when the stored solution is a mate and the player finds a
@@ -4869,12 +4992,12 @@ export default function App(){
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, a '+String(m.label||'mistake').toLowerCase()+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;return o;}catch(e){return null;}};
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, a '+String(m.label||'mistake').toLowerCase()+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.brill=isB;/* #457 ground 5: the ONLY flag that tells a brilliant re-find card from an ordinary mistake card downstream. The drill grader must not touch it: there the stored move is the player's OWN brilliancy and 'find a move as good' is not the exercise. */o.last=m.last||null;return o;}catch(e){return null;}};
   const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';mistakeQueueRef.current=qs;let i=0,o=null;while(i<qs.length){o=puzzleFromMistake(qs[i]);if(o)break;i++;}if(!o)return;mistakeIdxRef.current=i;setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(o);};
   const startBrilliant=()=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';mistakeQueueRef.current=qs;let i=0,o=null;while(i<qs.length){o=puzzleFromMistake(qs[i]);if(o)break;i++;}if(!o)return;mistakeIdxRef.current=i;setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(o);};
   const nextMistake=()=>{const q=mistakeQueueRef.current||[];let n=mistakeIdxRef.current+1;while(n<q.length){const o=puzzleFromMistake(q[n]);if(o){mistakeIdxRef.current=n;loadExternal(o);return;}n++;}exitMistakes();};
   const exitMistakes=()=>{setMistakeMode(false);setCurPuz(null);setPzView('roadmap');setMode('analyze');};
-  useEffect(()=>{if(mistakeMode&&puzSolved&&drillKindRef.current==='mistake'){const q=mistakeQueueRef.current||[];const cur=q[mistakeIdxRef.current];if(cur)setMyMistakes(prev=>prev.filter(x=>x.fen!==cur.fen));}},[puzSolved,mistakeMode]);
+  useEffect(()=>{if(mistakeMode&&puzSolved&&!drillGradedAcceptRef.current&&drillKindRef.current==='mistake'){const q=mistakeQueueRef.current||[];const cur=q[mistakeIdxRef.current];if(cur)setMyMistakes(prev=>prev.filter(x=>x.fen!==cur.fen));}},[puzSolved,mistakeMode]);
   const curAnno=inReview&&ply>0?review.analysis[ply-1]:null;
   useEffect(()=>{ if(inReview&&ply>0&&review&&review.analysis[ply-1]&&review.analysis[ply-1].cls&&review.analysis[ply-1].cls.label==='Brilliant')playBrilliantChime(); },[inReview,ply,review]);
   useEffect(()=>{ if(review&&review.plies&&gateDemoRef.current!=null){ const t=Math.min(gateDemoRef.current,review.plies.length); gateDemoRef.current=null; setReviewView('moves'); setShowGates(true); setRevAuto(false); setTimeout(()=>setPly(t),40); } if(review&&review.plies&&revDemoPlyRef.current!=null){ const t=Math.min(revDemoPlyRef.current,review.plies.length); revDemoPlyRef.current=null; setReviewView('moves'); setRevAuto(false); setTimeout(()=>setPly(t),40); } },[review]);

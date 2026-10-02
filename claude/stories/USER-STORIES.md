@@ -665,6 +665,19 @@ other move wrong, so a second move that is just as good is not marked wrong in m
   Can you find it?" (Kunal, 2026-09-20.) Revealing there wastes the position.
 - The `lichess:` path is unchanged: those puzzles have one intended line and rejecting everything else is
   correct there.
+- The grade is a comparison against the BEST move available, measured by one instrument. Both sides of the
+  comparison come from a single ranking of the position, so "Best move, nothing in the position beats it" is
+  said only of a move that really is at the top of that ranking - never manufactured by a clamp. #456 took
+  the two sides from two different searches and printed that sentence over 27 of 482 ordinary moves,
+  including 15 of 26 legal moves in one position. (#457, gate 17 A2b/A3/A4.)
+- Where the stored move is a FORCED MATE, the response says there was a mate here instead of naming a band:
+  at a mate baseline every other move sits at the loss cap, so the band can no longer tell them apart and
+  pairing it with the position's own consequence printed "Blunder: leaves you completely winning". (#457.)
+- Finding a merely equal-or-better move does NOT delete the card from my saved mistakes. The drill's store is
+  the only copy, so a graded accept demotes nothing irreversibly; only a real solve of the stored line
+  clears the card. (#457, the ground with the worst consequence.)
+- The brilliancy re-find drill is NOT graded this way: there the stored move is my own brilliancy and
+  "find a move as good" is not the exercise. (#457.)
 - NOT SHIPPED AT #456, AND KEPT HERE RATHER THAN DELETED BECAUSE IT IS HIS OWN ASK: the drill board carries
   the review screen's own eval bar, not a second copy of it. (Kunal, 2026-09-20: "this thing also needs a
   review bar on the side.") #456 shipped every clause above and deferred this one as an AMBER board-width
