@@ -436,6 +436,28 @@ wider one.
   worse: `pkill -f "<pattern>"` at the head of a compound command **kills its own shell**, because the shell's
   command line contains the pattern - so the edit behind it never ran and three control runs were lost. `pgrep`
   hangs; `pkill` terminates the thing that called it. Wait on a FILE the job writes, or on a PID you captured.
+- **NEVER EDIT A SHELL SCRIPT WHILE IT IS RUNNING. BASH READS A SCRIPT BY BYTE OFFSET AS IT GOES, SO AN EDIT
+  MID-RUN MAKES THE INTERPRETER READ GARBAGE FROM A SHIFTED FILE - AND IT FAILS AT THE END, AFTER THE WORK.**
+  #461 launched the 71-minute suite at 07:36:29Z and then patched `gates/gates.sh` twice on two upheld antagonist
+  vetoes, at 08:19:59Z and 08:36:15Z, both inside the run. All 48 sections ran and ALL 48 WERE GREEN - those are
+  node subprocesses and their results were real - and then the suite died before writing its footer with
+  `gates/gates.sh: line 196: hit: unbound variable`. There is no `hit` at line 196; line 196 is a `fi`, and `hit`
+  is a variable 7 lines earlier inside a branch that never executed. **The error message is a fragment of a file
+  that no longer exists at that offset**, which is why it cannot be found by reading the script, and why NONE of
+  the four committed versions reproduces it: `bash -n` passes on every one of them and the full-suite footer path
+  runs clean on every one of them. REPRODUCED in ten seconds rather than argued: a three-line script that sleeps,
+  edited mid-sleep to insert padding above the sleep, prints `line 5: g: command not found` - the same shape, a
+  fragment of a word - while the unedited run is clean.
+  WHAT IT COST: the whole suite. 48 green sections with no footer and no `GATES GREEN`, so by this project's own
+  bar the log authorises nothing and the run has to re-gate from the top. The results were not wrong; they were
+  unusable, which is the same thing at the push gate.
+  THE HABIT: freeze the harness before you launch. Record `md5sum gates/*.sh` before the run and check it after -
+  if it changed, the log is suspect whatever it says. THE MECHANICAL FIX, one line at the launch and not in any
+  script: run the suite from a COPY (`cp gates/gates.sh "$T"/ && ...`), so a later edit to the repo copy cannot
+  reach the running interpreter. Filed as `jobs/the-suite-must-run-from-a-copy-of-its-own-script-2026-10-02`.
+  AND NOTE WHICH FAMILY THIS IS IN: it is the self-reference trap this file already records at #407 (a watcher
+  whose `pgrep -f` matched itself) and #416 (a `pkill -f` that killed its own shell) - *the tool and the thing it
+  was operating on were the same object*. Here they were the same FILE, and the window was 71 minutes wide.
 - **A COUNT WITH NO SCOPE CANNOT BE CHECKED, AND TWO OF SIX PUBLISHED CONTROL RESULTS TURNED OUT TO BE SUBSET
   RUNS.** `gates/regress/49-home.js` arrived with six negative controls recorded in its lane document as bare
   numbers ("NC2: 15 red", "NC5: 12 red"). Re-run here, the full gate gives **27** and **14**; measured,
