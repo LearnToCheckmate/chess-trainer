@@ -1557,3 +1557,80 @@ correction and was deliberately not rebuilt, so the two hash differently and bot
 Held row: `gates/held-trees.tsv`, bundle `31f55c68d7a7`, source `36e0ae6b89cc`, controlled three ways before
 committing. Tree: `origin/claude/cool-noether-dswy2l` at `7ed69da`.
 Next step: `jobs/458-the-40-row-removal-regresses-the-mixed-bounds-sentence-2026-10-02`.
+
+| #459 | `jobs/457-drill-sentence-ladders-eat-their-own-lead-candidate-2026-10-02` (P0, priority 11) — **the two drill sentence ladders, the XP farm, and 26 gate assertions with four controls. BUILT, GATED, AND NOT SHIPPED: both antagonists vetoed and one veto is not mine to lift.** | 75 min, stated 03:45 ET before the suite finished | 03:20 | not staged — held | see below | — | `459b-all.log`, bundle `fb009ca7734a` — **AND IT DOES NOT COVER THE BRANCH HEAD, see the warning below** | **nothing shipped; `app.js` on main unchanged at `4dd3b4aa09ed`** |
+
+**#459 fixed every ground #457 was held for, and was then held itself on a ground #457's antagonist had already
+named and I reproduced independently before either antagonist reported.**
+
+WHAT WAS BUILT. #457's tree carried the drill grading (from #456) plus its own repairs, and was held on two
+upheld vetoes. This run took that tree — rebuilt onto `origin/main` rather than merged from
+`claude/cool-noether-3pl534`, because that branch is now BEHIND main on records and a reset would have deleted
+60 lines of this file, 13 of `FEEDBACK-INBOX.md`, a `held-trees.tsv` row and two `build-numbers.tsv` rows — and
+fixed the three things owed:
+
+1. **No accept-ladder rung is dead.** Measured over 12 real SANs with the caller's own 3-char `🎉 ` prefix
+   charged: #457's lead candidates cost 50, 52 and 59–69 characters against a 48 budget, so the selection was
+   ALWAYS candidate 2 and `"Best move. Nothing in the position beats it."` — the string named in `chess.jsx`,
+   in gate 17's header and in US-R14 — **could not reach the screen for any input at all.** Dead rungs deleted,
+   reachable forms promoted, and the four documents quoting the unreachable string corrected.
+2. **The Good band discriminates.** `drillGradeMsg`'s Good branch read only the SAN — never `bandAfter`, and
+   `takenBack` was tested BELOW Good — so 9 consequence bands × 2 take-back states collapsed to **ONE**
+   sentence, at every SAN, against 10 for Mistake, Blunder and Inaccuracy. Now 10 distinct at every one of 14
+   SANs, with Kunal's "Can you find it?" in 216 of 216 selections and the discriminating clause in 216 of 216.
+   Antagonist A re-measured it over the **entire syntactically possible SAN universe — 164,166 strings × 9
+   bands × 2 states = 2,954,988 selections** — and found 0 missing the question, 0 missing the discriminator,
+   0 falling through. That is A's number and it is far stronger than the 216 I claimed.
+3. **The XP farm.** `onlineSolved` fired on a graded accept while #457's own fix RETAINS the card, so streak,
+   `pzBest`, +3 XP and `bumpDaily` banked on every revisit, unbounded. One-line guard.
+
+**THE VETO THAT HELD IT, measured three times independently.** At Kunal's own 375×730 the board goes
+**339.03 → 269.03 px, a 70.00px loss, top +69.75** the moment the first attempt is judged — against main's
+**48.00px** — because the graded sentence needs a third line. The verdict element is 367px wide with a 21.8px
+line-height and its height is **quantised at 47.8px (two lines) and 69.5px (three)**; `DRILL_MSG_MAXW=48` was
+calibrated against the box's **74px cap**, which permits three lines, rather than against the board, so nobody
+had priced it. Antagonist B then measured two things I had not: the board jumps **again, 21.87px, between two
+attempts on one card**, so its size is a function of how long the last verdict happened to be; and **the local
+puzzle screen in the same bundle at the same geometry reserves 30px and measures Δy = 0, Δw = 0.** The app
+already does this correctly one screen away.
+
+That makes it a decision rather than a defect to fix here, and the decision is Kunal's: full wording at 70px,
+a two-line cap at 48px that costs most of his question (measured: it survives 37 of 216 selections), or the
+reservation #428 built, gated 35/35 and refused for costing 27.5% of board width at rest. Routed as
+`jobs/route-to-kunal-the-drill-verdicts-third-line-costs-22px-of-board-2026-10-02`; the tree is
+`jobs/459-drill-grading-is-finished-and-held-on-the-board-cost-2026-10-02`.
+
+**ANTAGONIST A'S TWO VETOES WERE UPHELD AND FIXED IN THE SAME RUN, and one of them lands on my own fix.**
+`A7c` asserted "distinct moves do not share one sentence" over strings that all begin with the move's own
+name, so distinctness was guaranteed by the prefix: A proved it reads **25 of 25 on a good tree AND 25 of 25
+on the broken control**. It now masks the SAN the way gate 52's C4 already did in the file next door, and the
+bar is 3 rather than 1 because a one-string reject ladder still yields 2 masked shapes. And the Brilliant lead
+I had just "promoted" was reachable **only for a SAN of 3 characters or fewer**, because a brilliancy is a
+sacrifice and therefore a capture or a check: against this project's own answer key, `Bxh3`, `Qxc3`, `Bxg6`
+and `Bxh7+` all cost 49 or 50 against the 48 budget. **I moved that rung from unreachable-for-0%-of-inputs to
+unreachable-for-99.7%**, and A6e could not see it because 5 of its 10 SANs were 3-character quiet moves — a
+fixture agreeing with the ladder by construction. Fixed by dropping one word; A6e's SAN list now leads with
+the capture and check shapes.
+
+**THE GATE LOG DOES NOT COVER THE BRANCH HEAD, and antagonist B caught the tree moving under it.**
+`459b-all.log` gates bundle `fb009ca7734a`. A's vetoes arrived after the suite had passed section 17, so the
+final source is LATER than the bundle the log describes. The log is honest about what it measured and **must
+not be cited as gating the branch head** — re-gate from the top. 20 of 49 sections never ran against the final
+tree and nothing is claimed about them. The four `459-*-ABORTED-SOURCE-CHANGED-AFTER-BUILD-NOT-A-PUSH-GATE.log`
+files are a FIRST suite I stopped five minutes in, for the same reason caught earlier: I had edited a comment
+after building, so source and bundle no longer corresponded. Stopping was cheap then and the rename is so that
+no later run mistakes a partial log for a push gate.
+
+**FOUR FINDINGS ROUTED THAT ARE NOT THIS BUILD'S WORK.** The XP farm's mechanism is `onlineSolved` + a retained
+card and there are **two** instances; this closes one. The other is **live on main today**: the delete effect
+at `chess.jsx:4724` requires `drillKindRef.current==='mistake'`, so a BRILLIANT drill card is never deleted and
+every re-solve banks credit without bound. Also routed: the found-mate verdict is **cut 17px at 320×568 with no
+ellipsis** (ink-scanned, 3 bands with the third sliced at the container edge — #426's defect alive one column
+narrower, because the measurement that retired it was taken at 375×730 only); gate 17's **A2b asserts a clamped
+value** and so cannot fail on any build; and a rejected Good attempt still **zeroes the streak** that an
+accepted one is now forbidden to feed.
+
+Render pair (the definition-of-done item the last two builds both owed): `claude/agents/shots/459-BEFORE-main-*`
+and `459-AFTER-459-*` at 375×730, **two moves on one card**, red box on the verdict. Both images were opened and
+read, not only measured: BEFORE shows main answering `✗ Qe7 isn't it` to a move the engine rates Good; AFTER
+shows the two moves receiving two different sentences, and a visibly smaller board.

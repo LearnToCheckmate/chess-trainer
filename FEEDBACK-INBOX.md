@@ -2647,3 +2647,26 @@ lets you get mated a Blunder?* on your Decision Desk (ten builds have now stoppe
 jumps when the verdict appears — which you reported on 20 and 23 September. On that second one the one-word fix
 costs up to 27% of the board's width on smaller phones and puts the Reset button under the tab bar at the smallest
 size, so it needs your call rather than mine, and the ask has been sitting without a Desk card since 28 September.
+
+**#459 (2026-10-02).** I finished the mistakes-drill grading — the one you raised on 20 September with a
+screenshot, *"why are there two different suggestions, there can only be one best move"*. It now grades the move
+you actually played instead of string-matching one stored answer, it tells two different mistakes apart instead
+of giving every one the same words, and your own sentence *"there is more here, can you find it?"* reaches the
+screen. Three builds have worked on it and the hard parts are all done and proven.
+
+**I did not ship it, and the reason is your board.** When the verdict appears, the board shrinks from 339 to 269
+pixels wide on your phone — the squares go from 42 to 34 — and it shrinks again, by a different amount, between
+two attempts on the same card. On the version that is live today the same thing costs 48 pixels instead of 70.
+The extra 22 is the third line of text: the sentence can say the grade, what your move did to your position, and
+your question, but all three together need one more line than the box can show without taking it from the board.
+
+**So there is a choice and it is yours, not mine.** Keep the full sentence and the board moves 70 pixels; cap it
+at two lines and the board moves exactly what it moves today, but your *"can you find it?"* survives in about one
+verdict in six instead of all of them. There is a third way that is better than both and costs more to build:
+give that row a permanent reserved height so nothing moves at all — which is what the puzzle screen already does,
+one tab over, where the board measures zero movement. We built that fix at #428 and refused it because reserving
+the space costs up to 27% of the board's width *all the time* on a small phone. With a real measurement in hand
+it is worth you looking at all three together. It is on your Decision Desk.
+
+**Still waiting on you, unchanged:** *is the move that lets you get mated a Blunder?* — eleven builds have now
+stopped at that one.
