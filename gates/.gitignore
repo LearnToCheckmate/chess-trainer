@@ -5,3 +5,4 @@ node_modules/
 shots/
 logs/
 *.png
+.run-*.sh
