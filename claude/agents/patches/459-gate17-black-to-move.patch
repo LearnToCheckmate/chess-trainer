@@ -1,0 +1,61 @@
+--- gates/regress/17-drill-grade-arithmetic.js	2026-10-02 03:36:59.630514417 +0000
++++ /tmp/claude-0/-home-user-chess-trainer/b13d8981-c779-5ec5-b341-7cda4cbb5759/scratchpad/g17-trial.js	2026-10-02 03:44:35.251617435 +0000
+@@ -150,6 +150,58 @@
+ ok(bestOld>bestNew,'A4b','CONTROL: #456 grades '+bestOld+' moves Best where the repair grades '+bestNew
+   +', so a revert of the repair reddens A3 rather than passing it');
+ 
++/* ── A2c/A2d/A3b/A3c, ADDED #459. BLACK TO MOVE, which nothing in this gate reached. The fixture loop above
++   keeps a position only when ply%2===0, so every one of its 8 fixtures is WHITE to move and the mover's-frame
++   arm of the subtraction - the `maxing ? (vBest-vPlay) : (vPlay-vBest)` ternary in gradeDrillMove, the arm
++   this file's own header says cost #426 a wrong sentence - executed ZERO times. Job 457 item 8.
++   A SEPARATE fixture set rather than a widened POS, deliberately: widening POS would move every count in
++   A0..A4, and a coverage gap must be closable without disturbing assertions that already hold. If the sign of
++   that ternary is ever flipped, A3b goes red here and nowhere else in the suite. */
++E.__setQ(2);
++let gb=E.initGame();const BPOS=[];
++for(let ply=0;ply<27&&BPOS.length<6;ply++){
++  const sc=E.rankMoves(gb,3);if(!sc.length)break;
++  if(ply>=7&&ply%2===1)BPOS.push(E.fromFEN(E.toFEN(gb)));   // ODD ply = Black to move
++  gb=E.makeMove(gb,sc[0].m);
++  if(E.getStatus(gb)!=='playing')break;
++}
++ok(BPOS.length>=4&&BPOS.every(p=>p.turn==='b'),'A2c','derived '+BPOS.length+' BLACK-to-move fixtures '
++  +'(turns: '+BPOS.map(p=>p.turn).join('')+') - this gate had 0 before #459');
++let bTot=0,bNeg=0,bBest=0,bAtMax=0;
++for(const bp of BPOS){
++  const sc=E.rankMoves(bp,3);if(sc.length<2)continue;
++  const top=sc[0].v;const pick=sc.find(x=>(x.v-top)>=15);if(!pick)continue;   // Black minimises
++  const stored=sanOf(bp,pick.m);const R=E.drillRanking(bp);if(!R)continue;
++  for(const mv of E.getLegal(bp)){
++    if(E.getStatus(E.makeMove(bp,mv))==='checkmate')continue;
++    const gr=E.gradeDrillMove(bp,mv,stored);if(!gr)continue;
++    bTot++;if(gr.label==='Best')bBest++;
++    const v=R.bySan.get(sanOf(bp,mv));
++    const raw=v-R.best;                        // mover's frame: Black's loss is vPlay-vBest
++    if(raw<15)bAtMax++;
++    /* THE RAW VALUE, NOT gr.loss. gradeDrillMove clamps with Math.max(0,...), so `gr.loss<0` is
++       UNSATISFIABLE in every build and an assertion over it cannot fail - see A3b's own note. */
++    if(raw<-1)bNeg++;
++  }
++}
++ok(bTot>0,'A2d','graded '+bTot+' Black-to-move non-mating moves, so the mover\'s-frame arm of the loss '
++  +'subtraction is executed at all');
++/* THERE IS NO A3b, AND ITS ABSENCE IS THE FINDING. I wrote one - "no Black-to-move move has a negative
++   loss" - and two controls killed it. Version 1 read gr.loss, and gradeDrillMove clamps with
++   Math.max(0,...), so the predicate is UNSATISFIABLE in every build: with the non-maximising arm of the
++   ternary deliberately flipped, it stayed green at 0 of 182. Version 2 read a raw gap the gate computes
++   itself out of the ranking - which never consults the app's ternary at all, so it stayed green on the same
++   control for the opposite reason. THE CLAMP DESTROYS THE EVIDENCE: a wrong sign cannot be observed through
++   the loss, only through its consequence, and that consequence is A3c below - with the arm flipped, all 182
++   Black moves read Best against 10 at the optimum. So the sign is guarded by A3c and by nothing else, which
++   is worth knowing when A3c is next edited.
++   AND THE SAME SHAPE IS ALREADY IN THIS FILE, NOT MINE AND PREDATING #459: A2b asserts "no graded move has a
++   negative loss" over the same clamped value for White. It cannot fail either. Filed as a finding rather
++   than quietly rewritten here, because its author should see it and because A4a - which recomputes #456's
++   RAW arithmetic - is the assertion that actually carries that load. */
++ok(bBest===bAtMax,'A3c','every Black Best comes from the ranking optimum, not the clamp: '+bBest+' labelled '
++  +'Best against '+bAtMax+' within 15cp of Black\'s own minimum');
++
+ // ── A5: the mate baseline names the mate and never a self-contradicting band ──────────────────────────
+ const MATE=E.fromFEN('6k1/5ppp/8/8/8/8/5PPP/R6K w - - 0 1');
+ let mFlag=0,mLeak=0,mNamesMate=0,mTot=0;const mSent=new Set();

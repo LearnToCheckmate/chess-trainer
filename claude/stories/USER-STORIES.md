@@ -649,3 +649,58 @@ The clauses, each one measurable:
    manual card's instruction now persists until he hides it, and the bar stays `pointerEvents:none` so it cannot eat
    the very taps it is asking for. A self-driving card still expires on its own hold, which is asserted separately
    so that "make it persist" cannot quietly become "make everything persist".
+
+
+### US-R14 The mistake drill grades the move I actually played
+As a player replaying a mistake from my own game, I may play any legal move and the drill tells me which
+grade band it falls in and responds to that band, rather than accepting one stored string and calling every
+other move wrong, so a second move that is just as good is not marked wrong in my own game.
+- The drill compares the move PLAYED against the engine, not against the stored SAN: where two moves win the
+  same material the same way, both are accepted. (Kunal, 2026-09-20, from a screenshot: "why are there two
+  different suggestions, there can only be one best move".)
+- The response names the band from the app's own ladder (classify() at chess.jsx:347 - Brilliant, Best,
+  Excellent, Good, Inaccuracy, Mistake, Blunder), and the five bands get five different responses, not one
+  interchangeable sentence.
+- AND WITHIN A BAND THE RESPONSE STILL TELLS TWO MISTAKES APART. Naming the band is necessary and not
+  sufficient: #457 satisfied the clause above and still printed ONE sentence for every move in the Good band,
+  because that branch read only the SAN - never where the move left the game, never whether the piece was
+  taken straight back. Measured at #459 over 9 consequence bands x 2 takenBack x 12 real SANs: 1 distinct
+  sentence, against 10 for Mistake, Blunder and Inaccuracy. So each band's response carries a clause that
+  varies with the position, and at Good that clause is the piece coming straight back where that applies and
+  the consequence otherwise. (#459, gate 17 A6g/A6h, with A6i as the control.)
+- At Good the solution is NOT revealed: "playable, and better than what you played - but there is more here.
+  Can you find it?" (Kunal, 2026-09-20.) Revealing there wastes the position.
+- The `lichess:` path is unchanged: those puzzles have one intended line and rejecting everything else is
+  correct there.
+- The grade is a comparison against the BEST move available, measured by one instrument. Both sides of the
+  comparison come from a single ranking of the position, so "Best move. Nothing beats it." is said only of a
+  move that really is at the top of that ranking - never manufactured by a clamp. #456 took the two sides
+  from two different searches and printed that sentence over 27 of 482 ordinary moves, including 15 of 26
+  legal moves in one position. (#457, gate 17 A2b/A3/A4.)
+  THE WORDING IN THIS CLAUSE WAS CORRECTED AT #459 AND THE CORRECTION IS THE POINT. It read "Best move,
+  nothing in the position beats it", which is what chess.jsx, this story and gate 17's header all promised
+  and what the app COULD NOT PRINT: measured at #459, that candidate costs 52 characters against a 48-char
+  budget once the caller's own emoji prefix is counted, so it was unreachable for every input and the
+  screen always showed the shorter rung. A story clause is a promise about what the player sees, so it now
+  quotes the string the player actually gets. (#459, gate 17 A6e with A6f as the control.)
+- Where the stored move is a FORCED MATE, the response says there was a mate here instead of naming a band:
+  at a mate baseline every other move sits at the loss cap, so the band can no longer tell them apart and
+  pairing it with the position's own consequence printed "Blunder: leaves you completely winning". (#457.)
+- Nor does it bank credit for an online puzzle I have never opened. Keeping the card (the clause below) and
+  crediting the Lichess counters on a graded accept are safe apart and unbounded together: #457 shipped both,
+  so one card could be replayed to farm streak, best, XP and the daily bump without limit, and the Puzzles
+  screen read "Online puzzles (Lichess) - 1 solved" for a player who had opened none. A graded accept is a
+  move of my own found in my own game; it is not a Lichess solve. The stored-move solve and a found mate
+  still credit normally. (#459, antagonist A's D4 and antagonist B's P1-3 on #457.)
+- Finding a merely equal-or-better move does NOT delete the card from my saved mistakes. The drill's store is
+  the only copy, so a graded accept demotes nothing irreversibly; only a real solve of the stored line
+  clears the card. (#457, the ground with the worst consequence.)
+- The brilliancy re-find drill is NOT graded this way: there the stored move is my own brilliancy and
+  "find a move as good" is not the exercise. (#457.)
+- NOT SHIPPED AT #456, AND KEPT HERE RATHER THAN DELETED BECAUSE IT IS HIS OWN ASK: the drill board carries
+  the review screen's own eval bar, not a second copy of it. (Kunal, 2026-09-20: "this thing also needs a
+  review bar on the side.") #456 shipped every clause above and deferred this one as an AMBER board-width
+  decision - the drill board already sits ON the 192px floor at 360x640 and 375x667, so the bar's evalW would
+  come out of a board that has nothing left to give. Owner:
+  jobs/drill-eval-bar-is-an-amber-board-width-decision-2026-10-01. Gate 52's C8 measures it and prints the
+  result as a note rather than asserting it; re-arm that line when the bar ships.

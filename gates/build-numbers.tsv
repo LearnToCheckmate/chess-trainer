@@ -296,3 +296,7 @@
 457	built	-	523fe82fa6bf	932a9738f18f	2026-10-02T00:49Z	build__1790900432948	build.sh	Bundle built and stamped #457. Recorded by gates/build.sh so the number resolves to an artefact.
 458	minted	-	-	-	2026-10-02T02:24Z	build__1790907591420	minted	port #57 goal-card-yields-its-space mechanism from the puzzle browse view to the mistakes drill, so the SOLVED verdict no longer moves the board (the larger of the two jumps, +69.75px at 375x730)
 458	built	-	31f55c68d7a7	075c38d643fb	2026-10-02T02:27Z	build__1790907591420	build.sh	Bundle built and stamped #458. Recorded by gates/build.sh so the number resolves to an artefact.
+459	minted	-	-	-	2026-10-02T03:28Z	build__1790911213997	minted	the drill sentence ladders: no dead candidate in the accept ladder, and the Good band discriminates on consequence and takenBack; plus the onlineSolved XP farm #457 created
+459	built	-	5481854a318d	b800a021ea34	2026-10-02T03:32Z	build__1790911213997	build.sh	Bundle built and stamped #459. Recorded by gates/build.sh so the number resolves to an artefact.
+459	built	-	fb009ca7734a	f54e39ea571d	2026-10-02T03:37Z	build__1790911213997	build.sh	Bundle built and stamped #459. Recorded by gates/build.sh so the number resolves to an artefact.
+459	built	-	33efeb9709df	4b634cf2c1ce	2026-10-02T04:47Z	build__1790911213997	build.sh	Bundle built and stamped #459. Recorded by gates/build.sh so the number resolves to an artefact.
