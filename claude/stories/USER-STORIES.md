@@ -649,3 +649,41 @@ The clauses, each one measurable:
    manual card's instruction now persists until he hides it, and the bar stays `pointerEvents:none` so it cannot eat
    the very taps it is asking for. A self-driving card still expires on its own hold, which is asserted separately
    so that "make it persist" cannot quietly become "make everything persist".
+
+## US-R32 - what the Puzzles screen counts as a Lichess puzzle is a Lichess puzzle
+
+*Added #460, from jobs/the-brilliant-drill-banks-online-puzzle-credit-without-bound-on-main-2026-10-02, which
+antagonist A raised at #459's diff door as the generalisation of the defect it had been sent to audit.*
+
+1. **A drill solve is not a Lichess solve.** The two drills built out of my own games - "Practice your
+   mistakes" and "Your brilliant moves" - are positions from games I played, reached from Review. Solving one
+   does not add to "Online puzzles (Lichess) - N solved", and does not put the card into the store that
+   counter is computed from. MEASURED on the shipped #459 bundle at 375x730: solving one seeded brilliancy
+   card took that counter to 1 and banked the id `lichess:mine:<fen>` beside real Lichess puzzles, for a
+   player who had opened none. The cause is that `puzzleFromMistake` hands `_lichessObj` the id `'mine:'+fen`
+   and `_lichessObj` prepends its own `'lichess:'`, so a drill card arrives downstream looking like one.
+
+2. **Nothing I can repeat without limit may bank progress without limit.** The brilliancies drill never
+   deletes its card - the delete effect keys on the drill being the MISTAKES one - so the same position can be
+   solved again for as long as I like. MEASURED on #459, three solves of ONE retained card: streak 1, 2, 3;
+   pzBest 1, 2, 3; XP 120, 123, 126; the daily puzzle goal bumped three times; and the online count stuck at 1
+   the whole way, because the one guard that existed bounded the COUNT and nothing bounded the rest. A screen
+   that says I have solved one puzzle while my streak says three is two readouts of one quantity disagreeing,
+   which is the shape this project has shipped before.
+
+3. **The credit is decided by what the card IS, not by how I answered it.** #459 closed the same leak on the
+   mistakes drill by keying on how the accept was reached, and that could not reach the brilliancies drill at
+   all, because on a brilliant card there is no grade to key off. The question "may this solve bank Lichess
+   credit" is a question about the card's provenance, and it is asked in one place.
+
+4. **And a real Lichess puzzle still counts.** This clause is a bound on what may be taken away as well as on
+   what may be given: the daily puzzle and a pack puzzle still advance the count, the streak and the XP, and
+   are still recorded so they are not counted twice. A change that stopped crediting everything would satisfy
+   clauses 1 to 3 and break the feature, so TC-R42 asserts this on BOTH bundles.
+
+*WHAT THIS CLAUSE DOES NOT SETTLE, and it is Kunal's:* whether drill work should earn puzzle XP and the daily
+bump at all, bounded to once per card. #460 removed that credit along with the false attribution, because the
+two came out of one call, and recorded the cost as an amber default on
+flags/amber-460-drill-solves-stop-earning-puzzle-xp-and-the-daily-bump rather than deciding it. Stores written
+before #460 keep their inflated numbers; no migration was shipped, on the #449 precedent that deleting a
+player's recorded achievements is not a build default.

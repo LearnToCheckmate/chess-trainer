@@ -347,3 +347,59 @@ instruction is first seen at **76 ms** and gone at **9154 ms**, with no mode bad
 reproduces antagonist B's two trials (9229 ms, 9203 ms) to within 75 ms and matches `h:9000` in the source.
 `CT_G15_NC=holdoff` additionally controls M4 against the ASSERTION rather than the app, by removing the banner at
 9 s on a fixed bundle.
+
+## Puzzles - what counts as a Lichess solve, executed against #460 (gates/regress/18-drill-credit-provenance.js)
+
+**TC-R42 (US-R32)** - a drill solve must not be credited as a Lichess puzzle, and a Lichess solve must still be
+credited. 43 assertions, one geometry, two browser launches, no engine.
+
+**INPUTS, counted rather than implied [R07/correction 014]: 5.** Three solves of ONE retained brilliancies card
+(the farm), one solve of a mistakes card at a DIFFERENT position, and one solve of a real Lichess daily puzzle.
+Blocks A (3 inputs) and B (1) assert the credit is withheld; block C (1) asserts it is still given.
+
+**GEOMETRY: 375x730 only**, and the gate prints that every run. Said rather than implied: the decision under
+test is one condition over one field of the card object, with no viewport term anywhere in its expression, so a
+seven-width sweep would buy repetition and not coverage. The paint questions on this screen - the board jumping
+when the verdict lands - are jobs/board-jumps-on-drill-verdict's and are not touched here.
+
+**PASS CONDITION.** Per solve, read `localStorage['chesstrainer.progress.v1']` and require: for a drill card,
+`online`, `streak`, `best` and `xp` are all unchanged from the zeroed baseline and no key matching
+`/(^|:)mine:/` appears in `onlineIds`; for the Lichess card, `online` is 1, `streak` is 1, `xp` is above zero
+and the puzzle's own id `lichess:ctgate18` IS recorded. SELECTORS: the store itself, plus the verdict box,
+located structurally as the childless descendant of `[data-ct="pz-top"]` whose own text is the verdict, because
+that box still carries no `data-ct` (jobs/pz-verdict-box-has-no-data-ct) and the charter forbids inventing one.
+
+**WHY EVERY ABSENCE ASSERTION PROVES ITSELF FIRST.** A, B and D are assertions that a counter did NOT move, and
+a drive where the solve silently never happened satisfies all of them. So each solve asserts its own arrival and
+its own completion before the credit is read: the drill screen was reached (A0, B1), the board exists (A1), and
+the app painted its OWN "celebration" verdict (A2, B2, C2). That is CLAUDE.md's #385 rule applied in advance
+rather than after a vacuous green.
+
+**NEGATIVE CONTROL: the real shipped #459 bundle** (`CT_APP`, md5 `4dd3b4aa09ed`) - free, and the actual broken
+build, so no bundle had to be built to fail. **24 pass / 19 fail**, against 43 pass / 0 fail on #460
+(md5 `18601556b6f0`). The 19 reds are exactly the credit assertions and nothing else: A3-A7 at all three
+solves, A8, and B3-B5. Measured on that control, the farm in full: streak **1, 2, 3**; pzBest **1, 2, 3**; xp
+**120, 123, 126**; `ct_daily` count **3**; `online` stuck at **1**; and `onlineIds` holding
+`lichess:mine:4k3/8/8/3r4/8/8/3Q4/4K3 w - - 0 1` and then the mistakes card's id as well.
+
+**AND THE CONTROL THAT POINTS THE OTHER WAY, which is the one that makes this a gate rather than a ratchet.**
+Block C is GREEN ON BOTH BUNDLES. A "fix" that deleted the `onlineSolved` call, or guarded it on `p.ext`, would
+turn every A and B assertion green and C3-C6 red. The gate can therefore fail in both directions, and the
+asymmetry is deliberate: CLAUDE.md records six occasions where the check and the thing checked were the same
+object, and an absence-only gate here would have been the seventh.
+
+**ONE CORRECTION TO THE JOB'S OWN ARITHMETIC, measured [R18].** The job predicted "streak reads 3 and XP has
+risen by 9" over three solves. Streak 3 is exact. XP is **+126, not +9**: the first solve of a card banks the
+full rating-scaled award (`max(8, rating/10)`, and a drill card carries no rating so it defaults to 1200 and
+pays 120), and only the re-solves pay +3. The job's +9 describes three re-solves after an initial solve rather
+than three solves from zero. The mechanism it named is exactly right; the number understated it by an order of
+magnitude.
+
+**R36 ADMISSION.** Deterministic across three consecutive runs with identical numbers, and it drives no engine
+and no review, so it is fast enough for every build. It reaches the drills through the Review TILE
+(mode `analyze`), which needs no analysis at all - the first draft reviewed a real game and then searched for
+the drill buttons underneath `rev-summary`, which is an opaque fixed overlay that covers them, and found
+nothing. Two traps are written into the gate because both cost this build a red run: the app wipes
+`ct_mybrilliancies` once per install unless `ct_bril_reset_v1` is seeded, and the "Online puzzles" control is
+BELOW THE FOLD on the roadmap, so `tapText` clicked a visible ancestor, the fetch never happened, and the
+"tap" reported success - the gate now scrolls it in and asserts it is on screen before tapping (C0b).

@@ -3952,7 +3952,23 @@ export default function App(){
              drill therefore keeps the SHORT pre-#426 praise: the player already knows what they found, and a
              clipped explanation is worse than a short one. The normal solve - every other card - carries the
              explanation. flags/amber-426-drill-why-sentence-shape call 5. */
-          if(p.ext){onlineSolved(p);setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":p.explain));}
+          /* #460: A DRILL CARD IS NOT A LICHESS SOLVE, and the guard is on the card's PROVENANCE rather
+             than on how the accept was reached. puzzleFromMistake builds BOTH drills - mistakes and
+             brilliancies - and sets o.mine=true, while _lichessObj prepends its own 'lichess:' to whatever id
+             it is handed, so a drill card's id is literally 'lichess:mine:<fen>'. onlineSolved was banking
+             that into onlineIds beside real Lichess puzzles and incrementing pzOSolved, so the Puzzles screen
+             printed "Online puzzles (Lichess) · N solved" to a player who has opened none.
+             ON THE BRILLIANCIES DRILL IT IS ALSO UNBOUNDED: the delete effect further down keys on
+             drillKindRef.current==='mistake', so a brilliant card is RETAINED and every re-solve banks
+             another streak, a new pzBest, +3 XP and another bumpDaily('puz'). Keying on p.mine is what closes
+             both drills in ONE condition; #459's drillGradedAcceptRef could not reach this one, because on a
+             brilliant card there is no grade to key off and the ref is false.
+             THE COST IS REAL AND IS RECORDED, NOT HIDDEN: a drill solve now earns no XP, no streak and no
+             daily bump at all. Whether it should, bounded to once per card, is Kunal's call and is routed -
+             flags/amber-460-drill-solves-stop-earning-puzzle-xp-and-the-daily-bump. Stores written before
+             #460 keep their polluted onlineIds rows and their inflated count; deleting a player's recorded
+             numbers is not a build default, so there is deliberately no migration here. */
+          if(p.ext){if(!p.mine)onlineSolved(p);setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":p.explain));}
           else{setPuzDone(d=>({...d,[puzIdxRef.current]:true}));const ru=recordSolve(p);if(ru)setPzCelebrate(ru);setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'Solved! ')+p.explain+(ru?'   ⬆ Rank up — you reached '+ru.icon+' '+ru.name+'!':''));}
           // #358 ONLY when the finish is a forced mate. The obvious-looking version, "play on after
           // any solve", is wrong: most tactics already carry their payoff in the solution itself -
