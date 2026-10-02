@@ -1,0 +1,29 @@
+# gates/logs/463-harness.md5 - the harness digest around the #463 suite run.
+# Written by gates/run-suite.sh. If the AFTER block differs from the BEFORE block, the harness was
+# edited while the suite was running and the log is suspect whatever its footer says.
+run     #463   runId build__1790943686331   subset ''
+started 2026-10-02T12:33:51Z
+--- BEFORE
+3c2c33e8a64ef10c981002c2e36d144f  build.sh
+5b587356142bf35751c979f3d38d3084  buildnum-selftest.sh
+9fecba332175f26a1c5b754a4a6d05a8  buildnum.sh
+5a8d772284f281cff989a0b8ed9aa06e  gate-manifest.tsv
+32b5fa25e1a27a82dc545c3626363a66  gatemanifest.sh
+591704492fddf9ba2e98a191176371d9  gates.sh
+d2f50a0b3b9f9488cbce87f24c97cc01  held.sh
+ce305928b1900c14d95a123de22a7868  run-suite-selftest.sh
+fe97db2de16f2f47504eea1a4db0db7a  run-suite.sh
+a2586c11a8839a084e000c5ab48436ff  verify-log.sh
+finished 2026-10-02T12:50:52Z   suite exit 143
+--- AFTER
+3c2c33e8a64ef10c981002c2e36d144f  build.sh
+5b587356142bf35751c979f3d38d3084  buildnum-selftest.sh
+9fecba332175f26a1c5b754a4a6d05a8  buildnum.sh
+5a8d772284f281cff989a0b8ed9aa06e  gate-manifest.tsv
+32b5fa25e1a27a82dc545c3626363a66  gatemanifest.sh
+591704492fddf9ba2e98a191176371d9  gates.sh
+d2f50a0b3b9f9488cbce87f24c97cc01  held.sh
+ce305928b1900c14d95a123de22a7868  run-suite-selftest.sh
+fe97db2de16f2f47504eea1a4db0db7a  run-suite.sh
+a2586c11a8839a084e000c5ab48436ff  verify-log.sh
+harness: UNCHANGED
