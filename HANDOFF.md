@@ -36,7 +36,15 @@ Give this file to Claude in Cowork as the first thing in the session.
 >    run did and the check passes, which is the only reason that log can be cited at all.
 > 2. **The re-gate went red on ONE assertion that is not #461's:** `gates/regress/11-lesson.js:77` holds a hard-coded
 >    `WANT={'320x568 demo-end':270.9,…}` and that board is **bistable** — 270.9 in run 1 and in `460-all.log`, 262.9
->    in run 2, exactly 8.0px apart, one step of the board's floor-to-8. It is the frozen-literal pattern **#430
+>    in run 2, exactly 8.0px apart. **THE "one step of the board's floor-to-8" IN THIS SENTENCE IS WITHDRAWN AT #462
+>    [R18].** Measured: `chess.jsx:2838` makes `_edge` true for a lesson, so SQ returns the UN-floored
+>    `Math.round(_cap/8*100)/100` and there is no floor-to-8 on this screen at all. The two states are `boardTrim`
+>    88 and 96 (heightCap 358.88 - 88 = 270.88, - 96 = 262.88). And 8 is that loop's **modulus, not its step** -
+>    its shrink branch moves >=16 and its growth branch >=24 - so the adjacency is one bucket of `ceil(over/8)` on
+>    the measured overflow. **AND IT IS AN APP DEFECT, NOT A GATE FLAKE:** growth is gated on `over < -24` while
+>    the slack at trim 96 is only ~8px, so the smaller board NEVER COMES BACK. Calling it "a bistable literal in
+>    gate 11" relocated a board defect into the harness. Found by antagonist A; full record on
+>    `jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29`. It is the frozen-literal pattern **#430
 >    removed from the sibling gate 48** for this same bistability and never applied to gate 11.
 > **THE NEXT RUN'S JOB:** `jobs/461-the-gate-manifest-is-built-and-controlled-and-held-on-a-bistable-literal-in-gate-11-2026-10-02`.
 > Re-key gate 11's table the #430 way **and build the control first** — a bundle with a genuinely wrong board, proving
