@@ -190,8 +190,23 @@ for f in "${gates[@]}"; do
   echo "=== $name ===" | tee -a "$ALL"
   ( cd "$ROOT" && timeout 900 node "$f" ) > "$log" 2>&1; rc=$?
   cat "$log" >> "$ALL"
-  fails=$(grep -c '^FAIL' "$log" || true); marks=$(grep -c '<<<' "$log" || true)
-  if [ $rc -ne 0 ] || [ "$fails" -gt 0 ] || [ "$marks" -gt 0 ]; then red=1; echo "    $name: RED (exit $rc, $fails FAIL lines, $marks <<<)" | tee -a "$ALL"; grep '^FAIL' "$log" | head -5 | tee -a "$ALL"; else echo "    $name: green ($(grep -c '^PASS' "$log") PASS)" | tee -a "$ALL"; fi
+  fails=$(grep -c '^FAIL' "$log" || true); marks=$(grep -c '<<<' "$log" || true); passn=$(grep -c '^PASS' "$log" || true)
+  # ── #461, ANTAGONIST B's F4. "PRESENT" WAS A FILENAME, NOT A GATE. ──────────────────────────────────────────
+  # The manifest check above asks whether each required gate EXISTS. B measured the obvious next step: `: >
+  # gates/regress/26-invariants.js` leaves the file present, the manifest reads "47 required, 47 present, 0
+  # missing", the section reports "green (0 PASS)", and the suite ends GATES GREEN. So the strongest remaining
+  # route to a green suite with a defect class uncovered was to EMPTY a gate rather than delete it. This script
+  # already computed that PASS count purely in order to print it; asserting it is above zero is one condition and
+  # is genuinely independent of the manifest, because it reads what the gate DID rather than that it is on disk.
+  # It is also the project's own oldest tell, from #405: "a full suite reporting 0 PASS is the tell".
+  # MEASURED BEFORE ASSERTING, which is the point: across the 22 sections of this build's first full run the
+  # LOWEST PASS count in any green section is 7, so no gate in the suite legitimately asserts nothing.
+  if [ $rc -eq 0 ] && [ "$fails" -eq 0 ] && [ "$marks" -eq 0 ] && [ "$passn" -eq 0 ]; then
+    red=1; echo "    $name: RED (exited clean and asserted NOTHING - 0 PASS lines)" | tee -a "$ALL"
+    echo "        A gate that is present and asserts nothing is indistinguishable from a gate that is absent," | tee -a "$ALL"
+    echo "        and the manifest cannot see the difference: the file exists. Either it is broken, or it was" | tee -a "$ALL"
+    echo "        emptied. If a gate ever legitimately asserts nothing, it should not be in the suite." | tee -a "$ALL"
+  elif [ $rc -ne 0 ] || [ "$fails" -gt 0 ] || [ "$marks" -gt 0 ]; then red=1; echo "    $name: RED (exit $rc, $fails FAIL lines, $marks <<<)" | tee -a "$ALL"; grep '^FAIL' "$log" | head -5 | tee -a "$ALL"; else echo "    $name: green ($passn PASS)" | tee -a "$ALL"; fi
 done
 PASSN=$(grep -c '^PASS' "$ALL" || true)
 echo "regression assertions (PASS lines): $PASSN" | tee -a "$ALL"

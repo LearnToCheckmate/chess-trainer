@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
 # gates/gatemanifest.sh check | sync '<why>' | retire <gate> '<why>' | list | selftest
+#   CT_BUILD=#NNN CT_RUNID=<your runId> gates/gatemanifest.sh sync 'what it covers'
+#
+# SET CT_BUILD AND CT_RUNID ON `sync` AND `retire`, OR THE ROW YOU WRITE IS UNATTRIBUTED [antagonist B's F8 on
+# #461]. Both are read and neither was documented anywhere, so the DOCUMENTED happy path - following the usage
+# line above - writes `unknown` into the build column and `unknown-run` into the who column. That is #454's own
+# tell wearing different clothes: there, the register shipped with zero `minted` rows because the happy path had
+# never been executed once; here the happy path executes and silently produces a worse row than the tool can
+# write. The 47 seeded rows carry real values (461 / build__1790925639766) because they were written by a script
+# that set them, not by following these instructions.
 #
 # THE EXPECTED-GATES CHECK. Shipped #461 for
 # jobs/gates-green-does-not-assert-which-gates-RAN-so-a-deleted-gate-is-invisible-2026-10-01, found by
@@ -109,6 +118,8 @@ check)
     printf '%s' "$UNLISTED" | sed 's/^/    /'
     echo "  The suite still runs these. But verify-log.sh REFUSES a log that reports unlisted gates, so this"
     echo "  must be resolved before a push:  gates/gatemanifest.sh sync 'what they cover'"
+    echo "  >> DO IT NOW, BEFORE THE SUITE RUNS. This is known at second two and the refusal lands at the PUSH,"
+    echo "  >> so carrying on costs you the whole suite and then sends you back here [antagonist B's F9, #461]."
   fi
   if [ -n "$ABSENT" ]; then
     echo "KNOWN-ABSENT GATE(S) - recorded as not on this tree, NOT a failure, reported every run on purpose:"
@@ -121,12 +132,27 @@ check)
     echo "  Promote it:  gates/gatemanifest.sh sync 'now on this tree'"
   fi
   if [ "$MALFORMED" -gt 0 ]; then
-    echo "WARNING: $MALFORMED malformed manifest row(s) skipped (no tab, no .js in field 1, or an unknown state)."
-    echo "  Somebody wrote those rows meaning to require a gate. Fix them before trusting this check's silence."
+    # ANTAGONIST B's VETO F2 ON #461, UPHELD, AND IT IS THE WORST SHAPE A GUARD CAN HAVE. This was a WARNING and
+    # nothing else: the count was NOT in the summary line, so it never reached the log footer and verify-log.sh
+    # could not see it, and `check` exited 0. MEASURED by B and reproduced here: mangle the tabs on ONE required
+    # row (or capitalise its state to `Required`) AND delete that gate, and the line that travels into the push
+    # gate read "46 required, 46 present, 0 MISSING" and exit 0 - an AFFIRMATIVE statement that nothing was
+    # missing, for a tree with a required gate gone. Not a silence: a false assurance, which is worse.
+    # IT IS NOW HARD, not soft, and the reasoning is the asymmetry this file already draws. An UNLISTED gate is
+    # soft because it happens every time a build legitimately adds a gate. A malformed row happens only when
+    # somebody typed into this file wrongly: it is not a normal occurrence, it cannot block normal work, it is one
+    # edit to fix, and while it stands the tool CANNOT KNOW what the suite requires. A row that says a gate is
+    # gone without saying why gets no benefit of the doubt (above); a row that cannot be read at all gets less.
+    echo "MANIFEST ROW(S) UNREADABLE - $MALFORMED row(s) could not be parsed, so what the suite requires is UNKNOWN:"
+    echo "    (no tab separator, no .js in field 1, or a state that is not required/absent/retired)"
+    echo "  Somebody wrote those rows meaning to require a gate. Until they are fixed this check cannot tell you"
+    echo "  whether a gate is missing - and the count below EXCLUDES them, so it would understate `required`."
   fi
   NUNJ=$(printf '%s' "$UNJUSTIFIED" | grep -c . || true)
-  echo "gate manifest: $NREQ required, $NPRES present, $NMISS missing, $NUNL unlisted, $NABS known-absent, $NRET retired, $NUNJ unjustified"
-  { [ -n "$MISSING" ] || [ -n "$UNJUSTIFIED" ]; } && exit 1
+  # MALFORMED IS IN THIS LINE BECAUSE THIS LINE IS THE CARRIER. gates.sh copies it into the log footer and
+  # gates/verify-log.sh reads it back; a count that is not here is invisible to the push gate [B's F2].
+  echo "gate manifest: $NREQ required, $NPRES present, $NMISS missing, $NUNL unlisted, $NABS known-absent, $NRET retired, $NUNJ unjustified, $MALFORMED unreadable"
+  { [ -n "$MISSING" ] || [ -n "$UNJUSTIFIED" ] || [ "$MALFORMED" -gt 0 ]; } && exit 1
   [ -n "$UNLISTED" ] && exit 2
   exit 0
   ;;
@@ -226,9 +252,13 @@ selftest)
   mv "$T/kept.tsv" "$T/gate-manifest.tsv"
   # 7. a malformed row is counted and reported, not skipped in silence.
   printf 'junkrow-no-tab\n' >> "$T/gate-manifest.tsv"
-  out="$("$T/gatemanifest.sh" check 2>&1)"
-  if printf '%s' "$out" | grep -q 'malformed manifest row'; then echo "PASS selftest: a malformed row is reported, not ignored"; pass=$((pass+1));
-  else echo "FAIL selftest: a malformed row was skipped in silence"; fail=$((fail+1)); fi
+  out="$("$T/gatemanifest.sh" check 2>&1)"; rc=$?
+  # STRENGTHENED AFTER B's F2: the first version of this case asserted only that a WARNING printed, which is
+  # what let the de-requirement through. It now checks all three things that have to be true - the row is
+  # named, the count REACHES THE SUMMARY LINE (the carrier verify-log.sh reads), and the exit code is hard.
+  if printf '%s' "$out" | grep -q 'UNREADABLE' && printf '%s' "$out" | grep -q '1 unreadable' && [ "$rc" = 1 ]; then
+    echo "PASS selftest: an unreadable row is reported, counted in the summary line, and exits 1"; pass=$((pass+1));
+  else echo "FAIL selftest: an unreadable row did not reach the summary line or did not exit 1 (rc=$rc)"; fail=$((fail+1)); fi
   python3 - "$T/gate-manifest.tsv" <<'PY'
 import sys
 p=sys.argv[1]; t=open(p).read().replace("junkrow-no-tab\n","")
@@ -269,9 +299,35 @@ for i,l in enumerate(ls):
 open(p,'w').write("\n".join(ls))
 PY3
   ck 0 "the same flip WITH a reason is accepted" "$T/gatemanifest.sh" check
+  # 15/16. ANTAGONIST B's F2, AND NOTE WHY CASE 7 COULD NOT SEE IT. Case 7 appends a BRAND-NEW junk row and
+  #     asserts only that the WARNING prints - it never checks that the gate stopped being required, so it
+  #     "disturbed the mechanism without crossing the threshold" (CLAUDE.md), in the one case where the EXIT CODE
+  #     is the defect. These two malform an EXISTING required row whose gate is GONE, which is the real shape.
+  rm -f "$T/regress/35-width-containment.js"
+  python3 - "$T/gate-manifest.tsv" <<'PY4'
+import sys
+p=sys.argv[1]; ls=open(p).read().split("\n")
+for i,l in enumerate(ls):
+    if l.startswith("35-width-containment.js\t"): ls[i]=l.replace("\t","    ")
+open(p,'w').write("\n".join(ls))
+PY4
+  ck 1 "a MALFORMED row whose gate is deleted is a hard failure, not a warning" "$T/gatemanifest.sh" check
+  out="$("$T/gatemanifest.sh" check 2>&1)"
+  if printf '%s' "$out" | grep -q '0 missing' && ! printf '%s' "$out" | grep -q 'unreadable'; then
+    echo "FAIL selftest: the summary line still claims 0 missing with no unreadable count"; fail=$((fail+1))
+  else echo "PASS selftest: the summary line reports the unreadable row rather than claiming 0 missing"; pass=$((pass+1)); fi
+  # 17. an unknown subcommand exits 2, so it can never be mistaken for the MISSING code gates.sh branches on.
+  ck 2 "an unknown subcommand exits 2, not the MISSING code 1" "$T/gatemanifest.sh" frobnicate
   echo "selftest: $pass passed, $fail failed"
   [ "$fail" -eq 0 ] || exit 1
   exit 0
   ;;
-*) echo "usage: gates/gatemanifest.sh check | sync '<why>' | retire <gate> '<why>' | list | selftest"; exit 1;;
+*)
+  echo "  (on sync and retire, set CT_BUILD=#NNN and CT_RUNID=<your runId> or the row records 'unknown')"
+  # EXIT 2, NOT 1, and the number matters [antagonist B's F3 on #461, corrected]. B reported this as exit 0 and
+  # MEASURED it is exit 1, so it never was a false-pass route - it fails CLOSED. But 1 is the code gates.sh keys
+  # on for "a required gate is MISSING", so a mistyped subcommand made the suite stop and blame the manifest,
+  # which is a wrong reason reaching a right verdict - the thing this project calls a trap rather than a check.
+  # gates/buildnum.sh and gates/held.sh both exit 2 on an unknown subcommand; this now matches them.
+  echo "usage: gates/gatemanifest.sh check | sync '<why>' | retire <gate> '<why>' | list | selftest"; exit 2;;
 esac

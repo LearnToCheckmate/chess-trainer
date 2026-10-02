@@ -11,7 +11,11 @@
 #   5. if a second argument is given, the footer names that build
 #   6. the log's OWN footer total ("regression assertions (PASS lines): N") exists, is above zero, and EQUALS
 #      the number of ^PASS lines actually in the file
-#   6b. if the log carries a "gate manifest:" footer (#461 and later), it reports 0 missing and 0 unlisted
+#   6b. for a log footed #461 or later, it MUST carry a "gate manifest:" footer with an "N unreadable" field, and
+#      that footer must report 0 missing, 0 unlisted and 0 unreadable. A log footed #460 or earlier carries no such
+#      line and is reported NOT CHECKED, never passed silently - measured, that exempts all 91 archived logs and
+#      nothing newer, because the highest build any of them foots is #460.
+#   6c. (superseded wording of 6b, kept so the change is visible) it reports 0 missing and 0 unlisted
 #      gates - so a suite that ran with a required gate deleted, renamed or never merged cannot authorise a
 #      push. A log with no such footer is reported NOT CHECKED, never passed silently.
 #   7. the tree it gated is NOT on the held register, gates/held-trees.tsv (ON BY DEFAULT, added #450),
@@ -277,15 +281,53 @@ fi
 # the audits it exists to serve. SO: line present -> enforced. Line absent -> reported as NOT CHECKED in the OK
 # output, never silently passed, which is antagonist B's rule from #450 ("a guard whose absence is
 # indistinguishable from its success is not a guard") applied to this check rather than re-learned on it.
-MANICHECK="absent"; MANIMISS=""; MANIUNL=""
+MANICHECK="absent"; MANIMISS=""; MANIUNL=""; MANIUNREAD=""
 MANIFOOT="$(grep -m1 '^gate manifest:' "$LOG" || true)"
+# ANTAGONIST B's VETO F1 ON #461, UPHELD, AND THE REASON I HAD WRITTEN FOR THE EXEMPTION WAS NEVER RE-DERIVED.
+# This check was conditional on the line being PRESENT, justified by "making it unconditional would refuse all 49
+# archived gatelogs" - borrowed from --this-bundle's note without measuring whether it applied. B measured that it
+# does not, and I reproduced it: `ls claude/agents/gatelogs/*.log | wc -l` is NINETY-ONE (the 49 in the header is
+# itself stale), and the highest build number any of them foots is 460. So gating the STRICT verdict on the log's
+# own build number refuses exactly ZERO archived logs, and the exemption was free to close all along.
+# WHAT IT CLOSED: `rm gates/gate-manifest.tsv`, delete three gates, and gates.sh printed "NOT CHECKED", ran 45 of
+# 48, emitted GATES GREEN, and this script returned OK exit 0 - one `rm` turned the whole guard off at the push
+# gate. Stripping the footer line did the same, and the OK text then said of a #461 log that it "predates #461".
+# FOOT is parsed at line 102 from the footer regex, ~180 lines above here, so this costs nothing.
+MANIERA=0
+case "${FOOT#\#}" in ''|*[!0-9]*) MANIERA=0;; *) [ "${FOOT#\#}" -ge 461 ] && MANIERA=1;; esac
 if [ -n "$MANIFOOT" ]; then
   if printf '%s' "$MANIFOOT" | grep -q 'NOT CHECKED'; then
     MANICHECK="notchecked"
+    if [ "$MANIERA" -eq 1 ]; then
+      echo "REFUSED (gate manifest): $LOG is a $FOOT log and its run could NOT read gates/gate-manifest.tsv."
+      echo "  $MANIFOOT"
+      echo "  From #461 the manifest is tracked on main, so a run that cannot read it has a stale or damaged"
+      echo "  checkout - and a suite that could not check its own gate set says NOTHING about whether every"
+      echo "  expected gate was present. One deleted manifest would otherwise turn the whole guard off."
+      exit 1
+    fi
   else
     MANICHECK="ran"
     MANIMISS="$(printf '%s' "$MANIFOOT" | grep -o '[0-9]\{1,\} missing' | grep -o '^[0-9]\{1,\}' || true)"
     MANIUNL="$(printf '%s' "$MANIFOOT" | grep -o '[0-9]\{1,\} unlisted' | grep -o '^[0-9]\{1,\}' || true)"
+    MANIUNREAD="$(printf '%s' "$MANIFOOT" | grep -o '[0-9]\{1,\} unreadable' | grep -o '^[0-9]\{1,\}' || true)"
+    # B's F2: a row the tool could not parse silently DE-REQUIRES its gate, and the old summary line said
+    # "0 missing" for a tree with that gate deleted. The count now exists and is refused here. A #461-or-later
+    # log that carries NO unreadable field at all is itself suspect, because gates.sh from #461 always writes it.
+    if [ "$MANIERA" -eq 1 ] && [ -z "$MANIUNREAD" ]; then
+      echo "REFUSED (gate manifest): $LOG is a $FOOT log whose manifest line carries no 'N unreadable' count."
+      echo "  $MANIFOOT"
+      echo "  Every gates.sh from #461 writes that field. Its absence means the line was produced by an older"
+      echo "  harness or edited by hand, and an unreadable manifest row silently de-requires its gate."
+      exit 1
+    fi
+    if [ -n "$MANIUNREAD" ] && [ "$MANIUNREAD" -gt 0 ] 2>/dev/null; then
+      echo "REFUSED (gate manifest): $LOG reports $MANIUNREAD unreadable row(s) in gates/gate-manifest.tsv."
+      echo "  $MANIFOOT"
+      echo "  A row the tool cannot parse is a gate whose requirement is UNKNOWN, so 'missing' is uncomputable"
+      echo "  for it and the counts above understate what the suite requires. Fix the row and re-gate."
+      exit 1
+    fi
     if [ -n "$MANIMISS" ] && [ "$MANIMISS" -gt 0 ] 2>/dev/null; then
       echo "REFUSED (gate manifest): $LOG reports $MANIMISS required gate(s) MISSING from gates/regress/."
       echo "  $MANIFOOT"
@@ -303,6 +345,18 @@ if [ -n "$MANIFOOT" ]; then
       exit 1
     fi
   fi
+elif [ "$MANIERA" -eq 1 ]; then
+  # B's F1, SECOND HALF, AND MY FIRST FIX MISSED IT - caught by running B's own second command rather than
+  # assuming the first fix covered both. Refusing a #461 log whose run said "NOT CHECKED" does nothing about a
+  # #461 log with the manifest line DELETED, which is the cheaper attack and reached OK exit 0. The old OK text
+  # then said of a #461 log that it "predates #461", which was the tell: that branch exists for ARCHIVED logs and
+  # a current log was falling into it. Both halves now key on the SAME era test, so there is one rule, not two.
+  echo "REFUSED (gate manifest): $LOG is footed $FOOT but carries NO 'gate manifest:' line at all."
+  echo "  Every gates.sh from #461 writes one, before any gate runs. Its absence in a $FOOT log means the line"
+  echo "  was removed, or the log was assembled by something other than gates.sh - and either way nothing here"
+  echo "  can tell you whether the suite ran with every expected gate present."
+  echo "  (Logs footed #460 and earlier legitimately have none and are reported NOT CHECKED, not refused.)"
+  exit 1
 fi
 
 # (7) --on-main: does this green describe the tree that SHIPS? Opt-in; see the note in the header.
@@ -366,8 +420,9 @@ fi
 case "$MANICHECK" in
   ran) echo "    manifest: $MANIFOOT" ;;
   notchecked) echo "    manifest: NOT CHECKED - the run could not read gates/gate-manifest.tsv ($MANIFOOT)" ;;
-  *) echo "    manifest: NOT CHECKED - this log carries no 'gate manifest:' footer, so it predates #461 and"
-     echo "              says nothing about whether every expected gate was present when it ran." ;;
+  *) echo "    manifest: NOT CHECKED - this log carries no 'gate manifest:' footer. Builds up to #460 wrote none,"
+     echo "              so it says nothing about whether every expected gate was present when it ran. A $FOOT log"
+     echo "              reaching this branch would have been REFUSED above, not reported here." ;;
 esac
 echo "    NOTE: that is a statement about the SUITE, not permission to push. It says these assertions ran over"
 echo "    that bundle and none failed. It does not say the adversarial pass cleared the tree, and it does not"
