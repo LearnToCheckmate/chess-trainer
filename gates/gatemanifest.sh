@@ -50,12 +50,49 @@ if [ ! -f "$M" ]; then
   exit 3
 fi
 
+# ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+# WHY THERE IS NOT ONE PIPE INTO `grep -q` IN THIS FILE, and it is the most expensive thing #461's antagonist
+# pass found. ANTAGONIST A, VETO 1, UPHELD AND REPRODUCED.
+#
+# `printf '%s\n' "$listed" | grep -qx "$g"` looks exact and is FLAKY under `set -o pipefail` (line 30).
+# `grep -q` exits the instant it matches; `printf` is then killed by SIGPIPE and exits 141; `pipefail` returns
+# the RIGHTMOST NON-ZERO status, which is printf's 141 - so the pipeline reports failure WHILE GREP ITSELF
+# RETURNED 0, i.e. while the row was found. MEASURED HERE, not inferred: an instrumented loop over the real
+# manifest prints `PIPESTATUS=[141 0]` - printf 141, grep 0 - and A measured the end-to-end rate at about 2.4%
+# of `check` runs under the load a gate suite itself creates, 0 when idle, which is exactly why no control saw
+# it. A different random gate each time.
+# WHAT IT COST, had it shipped: `check` marks a PRESENT, LISTED gate as UNLISTED, which is exit 2, which lets
+# the suite run and then has gates/verify-log.sh REFUSE the log - so roughly one full 44-minute suite in forty
+# would be refused by this project's own push gate, naming a gate that is demonstrably there. CLAUDE.md's rule
+# is that a flaky assertion is worse than no assertion, and this one is worse again: the `sync` site appended a
+# DUPLICATE `required` row on a false miss (A measured 8 spurious rows in 140 runs), corrupting the one file the
+# whole mechanism rests on, via the command this tool tells you to run.
+# THE FIX IS A HERESTRING, which has no pipe and therefore no SIGPIPE. Every site below uses one. If you add a
+# membership test to this file, use `grep -qx "$x" <<<"$list"` and never `printf ... | grep -q`.
+# ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 rows(){ grep -v '^[[:space:]]*#' "$M" | grep -v '^[[:space:]]*$'; }
 diskgates(){ for f in "$REG"/*.js; do [ -e "$f" ] && basename "$f"; done | sort; }
 
 case "$CMD" in
 check)
-  MISSING=""; UNLISTED=""; ABSENT=""; BACK=""; UNJUSTIFIED=""; MALFORMED=0
+  MISSING=""; UNLISTED=""; ABSENT=""; BACK=""; UNJUSTIFIED=""; MALFORMED=0; DISABLED=""
+  # ANTAGONIST A's VETO 2, DOOR 6, AND IT IS THE ONLY ONE OF HIS SIX THE #461 FIX DID NOT CLOSE. A row prefixed
+  # with `#` is not a malformed row - it is NOT A ROW AT ALL, because rows() strips comments - so `required` fell
+  # 47 -> 46 with NO warning, "0 missing", "0 unreadable" and exit 0. A proved it end to end through the real
+  # gates.sh: GATES GREEN #461 with 29-draws appearing zero times in the log. A's own proposed invariant
+  # (NREQ == NPRES - NUNL + NMISS) does NOT catch it, which I checked before relying on it: with both the row and
+  # the file gone, 46 == 46 - 0 + 0 holds.
+  # SO IT IS CAUGHT BY SHAPE INSTEAD: a comment line whose text, with the # and any spaces stripped, would parse
+  # as a gate row - a filename ending .js followed by a TAB - is a DISABLED ROW, not documentation. The TAB is
+  # what makes this safe: this file's header names 67-sel-cls-consumers.js and 50-drill-verdict-no-jump.js in
+  # prose, followed by spaces and commas, so no real comment matches. Counted into the same `unreadable` field
+  # rather than a ninth column, because it is the same thing from a reader's point of view - a row the tool
+  # cannot use - and because a stable 8-field line is what gates/verify-log.sh parses strictly.
+  while IFS= read -r line; do
+    case "$line" in \#*|[[:space:]]*\#*) ;; *) continue;; esac
+    cand="$(printf '%s' "$line" | sed 's/^[[:space:]]*#[[:space:]]*//')"
+    case "$cand" in *.js"	"*) DISABLED="$DISABLED$(printf '%s' "$cand" | cut -f1)"$'\n'; MALFORMED=$((MALFORMED+1));; esac
+  done < "$M"
   NREQ=0; NABS=0; NRET=0
   # Bound the row shape the way verify-log.sh bounds held-trees.tsv: a row somebody wrote meaning to require a
   # gate must never be skipped in silence, so a malformed one is counted and reported rather than ignored.
@@ -92,7 +129,7 @@ check)
   done < <(rows)
   listed="$(rows | cut -f1 | tr -d ' \r' | sort -u)"
   for g in $(diskgates); do
-    printf '%s\n' "$listed" | grep -qx "$g" || UNLISTED="$UNLISTED$g"$'\n'
+    grep -qx "$g" <<<"$listed" || UNLISTED="$UNLISTED$g"$'\n'   # herestring, NOT a pipe - see the SIGPIPE note above
   done
   NMISS=$(printf '%s' "$MISSING" | grep -c . || true)
   NUNL=$(printf '%s' "$UNLISTED" | grep -c . || true)
@@ -131,6 +168,14 @@ check)
     printf '%s' "$BACK" | sed 's/^/    /'
     echo "  Promote it:  gates/gatemanifest.sh sync 'now on this tree'"
   fi
+  if [ -n "$DISABLED" ]; then
+    echo "MANIFEST ROW(S) COMMENTED OUT - a disabled row is not a removed gate, it is a hidden one:"
+    printf '%s' "$DISABLED" | sed 's/^/    /'
+    echo "  Prefixing a row with # does not make the gate optional, it makes the requirement INVISIBLE: the row"
+    echo "  stops being counted and nothing says so. To remove a gate, use:"
+    echo "      gates/gatemanifest.sh retire <gate> 'the reason'"
+    echo "  which keeps the row and writes the reason into it, so the removal appears in a commit diff."
+  fi
   if [ "$MALFORMED" -gt 0 ]; then
     # ANTAGONIST B's VETO F2 ON #461, UPHELD, AND IT IS THE WORST SHAPE A GUARD CAN HAVE. This was a WARNING and
     # nothing else: the count was NOT in the summary line, so it never reached the log footer and verify-log.sh
@@ -161,7 +206,7 @@ sync)
   B="${CT_BUILD:-unknown}"; WHO="${CT_RUNID:-unknown-run}"; AT="$(date -u +%Y-%m-%d)"
   listed="$(rows | cut -f1 | tr -d ' \r' | sort -u)"; n=0
   for g in $(diskgates); do
-    if ! printf '%s\n' "$listed" | grep -qx "$g"; then
+    if ! grep -qx "$g" <<<"$listed"; then   # herestring, NOT a pipe - a false miss here APPENDED A DUPLICATE ROW
       d="$(sed -n '2,6p' "$REG/$g" | grep -m1 '^//' | sed 's|^//[ ]*||' | tr '\t' ' ' | cut -c1-88)"
       [ -z "$d" ] && d="(no header comment)"
       printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$g" "required" "${B#\#}" "$AT" "$WHO" "$d" "$WHY" >> "$M"
@@ -190,14 +235,15 @@ PY
 retire)
   g="${2:-}"; WHY="${3:-}"
   [ -n "$g" ] && [ -n "$WHY" ] || { echo "usage: gates/gatemanifest.sh retire <gate.js> 'why it is going'"; exit 1; }
-  rows | cut -f1 | tr -d ' \r' | grep -qx "$g" || { echo "no row for $g in $M"; exit 1; }
+  ALLROWS="$(rows | cut -f1 | tr -d ' \r')"
+  grep -qx "$g" <<<"$ALLROWS" || { echo "no row for $g in $M"; exit 1; }   # herestring; the pipe form made a legitimate retire fail
   if [ -f "$REG/$g" ]; then
     echo "REFUSED: $REG/$g is still on disk. Retire the ROW only when the gate is actually going, and in the"
     echo "  same commit, so the diff shows the file leaving and the reason arriving together."
     exit 1
   fi
   B="${CT_BUILD:-unknown}"; WHO="${CT_RUNID:-unknown-run}"; AT="$(date -u +%Y-%m-%d)"
-  line="$(rows | grep -P "^\Q$g\E\t" | head -1)"
+  line="$(rows | grep -P "^\Q$g\E\t" | sed -n '1p')"   # sed -n 1p reads the whole stream; head -1 would SIGPIPE the grep
   new="$(printf '%s' "$line" | awk -F'\t' -v OFS='\t' -v w="RETIRED at ${B#\#} ($AT, $WHO): $WHY" '{$2="retired";$7=w;print}')"
   python3 - "$M" "$line" "$new" <<'PY'
 import sys
@@ -220,7 +266,7 @@ selftest)
   # ITS CONTROLS AS A COMMAND RATHER THAN A PARAGRAPH, following gates/buildnum-selftest.sh (#454). Every case
   # runs against a THROWAWAY COPY of the manifest and regress dir, so it can never touch the real ones.
   T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
-  mkdir -p "$T/regress"; cp "$M" "$T/gate-manifest.tsv"; cp "$0" "$T/gatemanifest.sh"; chmod +x "$T/gatemanifest.sh"
+  mkdir -p "$T/regress"; cp "$M" "$T/gate-manifest.tsv"; cp "$0" "$T/gatemanifest.sh"; chmod +x "$T/gatemanifest.sh"; cp "$M" "$T/kept2.tsv"
   for f in "$REG"/*.js; do [ -e "$f" ] && : > "$T/regress/$(basename "$f")"; done
   pass=0; fail=0
   ck(){ local want="$1" desc="$2"; shift 2; local out rc
@@ -256,7 +302,7 @@ selftest)
   # STRENGTHENED AFTER B's F2: the first version of this case asserted only that a WARNING printed, which is
   # what let the de-requirement through. It now checks all three things that have to be true - the row is
   # named, the count REACHES THE SUMMARY LINE (the carrier verify-log.sh reads), and the exit code is hard.
-  if printf '%s' "$out" | grep -q 'UNREADABLE' && printf '%s' "$out" | grep -q '1 unreadable' && [ "$rc" = 1 ]; then
+  if grep -q 'UNREADABLE' <<<"$out" && grep -q '1 unreadable' <<<"$out" && [ "$rc" = 1 ]; then
     echo "PASS selftest: an unreadable row is reported, counted in the summary line, and exits 1"; pass=$((pass+1));
   else echo "FAIL selftest: an unreadable row did not reach the summary line or did not exit 1 (rc=$rc)"; fail=$((fail+1)); fi
   python3 - "$T/gate-manifest.tsv" <<'PY'
@@ -313,11 +359,26 @@ open(p,'w').write("\n".join(ls))
 PY4
   ck 1 "a MALFORMED row whose gate is deleted is a hard failure, not a warning" "$T/gatemanifest.sh" check
   out="$("$T/gatemanifest.sh" check 2>&1)"
-  if printf '%s' "$out" | grep -q '0 missing' && ! printf '%s' "$out" | grep -q 'unreadable'; then
+  if grep -q '0 missing' <<<"$out" && ! grep -q 'unreadable' <<<"$out"; then
     echo "FAIL selftest: the summary line still claims 0 missing with no unreadable count"; fail=$((fail+1))
   else echo "PASS selftest: the summary line reports the unreadable row rather than claiming 0 missing"; pass=$((pass+1)); fi
   # 17. an unknown subcommand exits 2, so it can never be mistaken for the MISSING code gates.sh branches on.
   ck 2 "an unknown subcommand exits 2, not the MISSING code 1" "$T/gatemanifest.sh" frobnicate
+  # 18/19. ANTAGONIST A's DOOR 6: commenting a row out, with the gate deleted. Exit 0 before this was written.
+  cp "$T/kept2.tsv" "$T/gate-manifest.tsv" 2>/dev/null || true
+  rm -f "$T/regress/41-coach-bubble.js"
+  python3 - "$T/gate-manifest.tsv" <<'PY5'
+import sys
+p=sys.argv[1]; ls=open(p).read().split("\n")
+for i,l in enumerate(ls):
+    if l.startswith("41-coach-bubble.js\t"): ls[i]="#"+l
+open(p,'w').write("\n".join(ls))
+PY5
+  ck 1 "a COMMENTED-OUT row whose gate is deleted is a hard failure" "$T/gatemanifest.sh" check
+  out="$("$T/gatemanifest.sh" check 2>&1)"
+  if grep -q 'COMMENTED OUT' <<<"$out" && grep -q '41-coach-bubble' <<<"$out"; then
+    echo "PASS selftest: the commented-out row is named, not silently uncounted"; pass=$((pass+1))
+  else echo "FAIL selftest: a commented-out row was not reported"; fail=$((fail+1)); fi
   echo "selftest: $pass passed, $fail failed"
   [ "$fail" -eq 0 ] || exit 1
   exit 0

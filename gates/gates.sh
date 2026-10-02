@@ -169,6 +169,17 @@ if [ "$MANI_RC" -eq 1 ]; then
   echo "GATES RED $N — stopped before running any gate: the expected-gates manifest is not satisfied." | tee -a "$ALL"
   exit 1
 fi
+# ANTAGONIST A ON #461: THIS BRANCHED ONLY ON RC 1, SO THE WHOLE GUARD WAS BYPASSED WITH NO MANIFEST DIFF AT ALL.
+# A missing gatemanifest.sh gives 127 and a non-executable one 126; both fell through, the suite ran for 44
+# minutes, and MANI_LINE fell back to the literal "gate manifest: NOT CHECKED". verify-log.sh now refuses that for
+# a #461-era log, so the push was already blocked - but blocking it after the suite rather than before it is
+# exactly A's and B's F9 point: this is knowable at second two. Deleting one script is not a legitimate state.
+if [ "$MANI_RC" -ge 126 ]; then
+  echo "GATES RED $N — stopped before running any gate: could not EXECUTE $G/gatemanifest.sh (exit $MANI_RC)." | tee -a "$ALL"
+  echo "  127 means the script is missing, 126 means it is not executable. Both are a damaged checkout, not a" | tee -a "$ALL"
+  echo "  tree to gate: the suite cannot tell you which gates it was supposed to run. Restore it and re-gate." | tee -a "$ALL"
+  exit 1
+fi
 
 gates=("$G/mountcheck.js")
 if [ -n "$SUBSET" ]; then

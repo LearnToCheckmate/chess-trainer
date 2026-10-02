@@ -67,8 +67,11 @@
 #      gates/verify-log.sh claude/agents/gatelogs/416b-all.log '#416'   -> OK, exit 0
 #      while md5sum app.js on disk was 91293f224fbc and that log gated 69b903f2b0ca.
 #    So the one tool that decides whether a log authorises a push said OK for a green over a different bundle. It
-#    needs no network, no git and no commit. It cannot be unconditional - it would refuse all 49 archived
-#    gatelogs, which gated bundles long replaced - so it is the flag you pass at the moment you are pushing.
+#    needs no network, no git and no commit. It cannot be unconditional - it would refuse every archived gatelog,
+#    which gated bundles long replaced - so it is the flag you pass at the moment you are pushing.
+#    THE "49" THAT STOOD HERE IS WITHDRAWN [#461, antagonist A]: `ls claude/agents/gatelogs/*.log | wc -l` is
+#    NINETY-ONE. 49 was true when it was written and has been re-quoted since, including by #461's own first
+#    draft of check (11) below - #405's frozen denominator, inside a quotation, in a build that cites #405.
 #    NEGATIVE CONTROLS, free and on disk, run at #417 and RECORDED AS THE COMMAND THAT PRODUCES THEM, because the
 #    first version of this note recorded an outcome the command does not produce (it refused for "no ref line",
 #    not for "not on main", so its two controls were one run wearing two labels - #411's count-with-no-scope):
@@ -275,12 +278,12 @@ fi
 # SUITE THAT RAN WITH A GATE DELETED, because gates.sh globbed the directory and the deleted gate simply was not
 # counted. gates.sh now writes its manifest verdict into the footer, so this reads it.
 #
-# IT IS CONDITIONAL ON THE LINE BEING THERE, AND THAT IS NOT A LOOPHOLE - it is the same decision the header
-# records for --this-bundle ("it cannot be unconditional - it would refuse all 49 archived gatelogs"). Every log
-# committed before #461 has no manifest line, and refusing them all would make this script useless for exactly
-# the audits it exists to serve. SO: line present -> enforced. Line absent -> reported as NOT CHECKED in the OK
-# output, never silently passed, which is antagonist B's rule from #450 ("a guard whose absence is
-# indistinguishable from its success is not a guard") applied to this check rather than re-learned on it.
+# IT IS NO LONGER CONDITIONAL ON THE LINE BEING THERE, AND THE PARAGRAPH THAT STOOD HERE WAS WRONG.
+# It said this check could not be unconditional because "it would refuse all 49 archived gatelogs", borrowing the
+# reasoning the header records for --this-bundle without re-deriving it. Antagonist B re-derived it in one command
+# and I reproduced it: there are NINETY-ONE archived logs and the highest build any of them foots is #460, so
+# gating the STRICT verdict on the log's OWN BUILD NUMBER refuses zero of the 91 and every log from #461 onward.
+# The exemption was free to close and the number justifying it was stale. See MANIERA below.
 MANICHECK="absent"; MANIMISS=""; MANIUNL=""; MANIUNREAD=""
 MANIFOOT="$(grep -m1 '^gate manifest:' "$LOG" || true)"
 # ANTAGONIST B's VETO F1 ON #461, UPHELD, AND THE REASON I HAD WRITTEN FOR THE EXEMPTION WAS NEVER RE-DERIVED.
@@ -296,7 +299,11 @@ MANIFOOT="$(grep -m1 '^gate manifest:' "$LOG" || true)"
 MANIERA=0
 case "${FOOT#\#}" in ''|*[!0-9]*) MANIERA=0;; *) [ "${FOOT#\#}" -ge 461 ] && MANIERA=1;; esac
 if [ -n "$MANIFOOT" ]; then
-  if printf '%s' "$MANIFOOT" | grep -q 'NOT CHECKED'; then
+  # HERESTRING, NOT A PIPE [antagonist A's veto 1 on #461]: `printf | grep -q` under `set -o pipefail` reports
+  # failure when grep short-circuits and SIGPIPEs the printf, measured as PIPESTATUS=[141 0]. Harmless at this
+  # one site because a false miss only sends us down the stricter branch - but it is the same class, and the
+  # class is now zero occurrences in this directory rather than one that happens not to bite.
+  if grep -q 'NOT CHECKED' <<<"$MANIFOOT"; then
     MANICHECK="notchecked"
     if [ "$MANIERA" -eq 1 ]; then
       echo "REFUSED (gate manifest): $LOG is a $FOOT log and its run could NOT read gates/gate-manifest.tsv."
@@ -308,9 +315,37 @@ if [ -n "$MANIFOOT" ]; then
     fi
   else
     MANICHECK="ran"
-    MANIMISS="$(printf '%s' "$MANIFOOT" | grep -o '[0-9]\{1,\} missing' | grep -o '^[0-9]\{1,\}' || true)"
-    MANIUNL="$(printf '%s' "$MANIFOOT" | grep -o '[0-9]\{1,\} unlisted' | grep -o '^[0-9]\{1,\}' || true)"
-    MANIUNREAD="$(printf '%s' "$MANIFOOT" | grep -o '[0-9]\{1,\} unreadable' | grep -o '^[0-9]\{1,\}' || true)"
+    # ANTAGONIST A's VETO 3 ON #461, UPHELD: THIS PARSED ONE WORDING AND PRINTED ANYTHING ELSE AS A VERDICT.
+    # The old parse grepped for the substrings "N missing" and "N unlisted" and treated absence as "nothing to
+    # refuse". A measured what that accepts, against a real archived log with one line inserted:
+    #   "gate manifest: all good"                      -> OK, and printed as `manifest: gate manifest: all good`
+    #   "gate manifest: ... one missing ..."            -> OK   (a word, not a digit, so no match)
+    #   a line carrying BOTH "0 missing" AND "3 missing" -> OK   (two grep matches make `[ "$X" -gt 0 ]` throw,
+    #                                                            and the `2>/dev/null` on it swallowed the error)
+    # That is "a guard whose absence is indistinguishable from its success", inside the check written to apply
+    # that rule - the trap this project records nine times, now at the tenth site, found by the pass that was
+    # reading the diff for exactly this.
+    # THE FIX IS TO PARSE THE WHOLE LINE OR REFUSE IT. A #461-era log's manifest line must match the shape
+    # gates.sh emits, field for field, or it is not a verdict and is not treated as one. An unparseable line in a
+    # current log means the line was edited or produced by something else, and either way nothing here can read it.
+    MANIRE='^gate manifest: ([0-9]+) required, ([0-9]+) present, ([0-9]+) missing, ([0-9]+) unlisted, ([0-9]+) known-absent, ([0-9]+) retired, ([0-9]+) unjustified, ([0-9]+) unreadable$'
+    if [[ "$MANIFOOT" =~ $MANIRE ]]; then
+      MANIREQ="${BASH_REMATCH[1]}"; MANIPRES="${BASH_REMATCH[2]}"; MANIMISS="${BASH_REMATCH[3]}"
+      MANIUNL="${BASH_REMATCH[4]}"; MANIABS="${BASH_REMATCH[5]}"; MANIRET="${BASH_REMATCH[6]}"
+      MANIUNJ="${BASH_REMATCH[7]}"; MANIUNREAD="${BASH_REMATCH[8]}"
+    elif [ "$MANIERA" -eq 1 ]; then
+      echo "REFUSED (gate manifest): $LOG is footed $FOOT and its manifest line does not parse."
+      echo "  line:     $MANIFOOT"
+      echo "  expected: gate manifest: N required, N present, N missing, N unlisted, N known-absent, N retired, N unjustified, N unreadable"
+      echo "  Every gates.sh from #461 emits exactly that shape. A line that does not match it was edited or came"
+      echo "  from something else, so no count in it can be trusted - and the old parser would have printed it"
+      echo "  back to you as though it were a verdict."
+      exit 1
+    else
+      # A pre-#461 log cannot carry this shape. Treat it as the NOT CHECKED case rather than inventing counts.
+      MANICHECK="notchecked"
+    fi
+    if [ "$MANICHECK" = "ran" ]; then
     # B's F2: a row the tool could not parse silently DE-REQUIRES its gate, and the old summary line said
     # "0 missing" for a tree with that gate deleted. The count now exists and is refused here. A #461-or-later
     # log that carries NO unreadable field at all is itself suspect, because gates.sh from #461 always writes it.
@@ -343,6 +378,18 @@ if [ -n "$MANIFOOT" ]; then
       echo "  This is the one check here that refuses a log for something the NEXT build does wrong rather than"
       echo "  this one; it is the only moment at which an unlisted gate is cheap to catch."
       exit 1
+    fi
+    # THE ARITHMETIC NOBODY WAS CHECKING [antagonist A's veto 2, the part that is checkable from a log alone].
+    # required rows whose file is present, plus required rows whose file is absent, must account for every listed
+    # present file: NREQ == NPRES - NUNL + NMISS, once the stale-row cases are zero. A line that fails this is
+    # internally inconsistent, which is the one thing a reader of the LOG can detect without the tree.
+    if [ $(( MANIPRES - MANIUNL + MANIMISS )) -ne "$MANIREQ" ] 2>/dev/null; then
+      echo "REFUSED (gate manifest): $LOG's manifest line does not add up."
+      echo "  line: $MANIFOOT"
+      echo "  required($MANIREQ) should equal present($MANIPRES) - unlisted($MANIUNL) + missing($MANIMISS) = $(( MANIPRES - MANIUNL + MANIMISS ))."
+      echo "  A mismatch means rows were skipped or counted twice, so 'missing' does not mean what it says."
+      exit 1
+    fi
     fi
   fi
 elif [ "$MANIERA" -eq 1 ]; then

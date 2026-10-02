@@ -440,9 +440,9 @@ that raised it (`jobs/gates-green-does-not-assert-which-gates-RAN-so-a-deleted-g
 states it in its own `storyClause` field as "None - a property of the gate suite [R08]". Recorded here because
 the definition of done asks for a clause id *or one line naming why there is none*, and this is that line.
 
-**ID SPACE: `TC-SUITE-001` … `TC-SUITE-014`, a new space opened by this build.** The existing spaces are all
+**ID SPACE: `TC-SUITE-001` … `TC-SUITE-019`, a new space opened by this build.** The existing spaces are all
 keyed to app areas (`TC-R*` review, `TC-HM-*` home, `TC-PL-*` play, `TC-INV-*` invariants), and filing a harness
-property under any of them would have mislabelled it. The fourteen ids are the fourteen cases in
+property under any of them would have mislabelled it. The nineteen ids are the nineteen cases in
 `gates/gatemanifest.sh selftest`, in the order that command runs them, so the register and the executable cannot
 drift: if somebody adds a case there, the count here is wrong and visibly so. **IT ALREADY CAUGHT ME ONCE:** this
 section was written at twelve, and this build's own antagonist pass then added 013 and 014, so the paragraph you
@@ -450,7 +450,8 @@ are reading is the second version of it.
 
 **THE DEFECT, MEASURED.** `gates.sh` built its gate list by globbing `gates/regress/*.js`, so it asserted that
 the gates PRESENT all passed and never that the gates that MATTER were present. Measured on `origin/main` at
-`fabcfc2`: 47 gate files, and the suite reports "47 suites green" with
+`fabcfc2`: **47 gate files**, whose log reports **48 sections** - those 47 plus `mountcheck`, which is not in
+`gates/regress` and so has no manifest row, which is why those two counts differ by one for ever - and it was GREEN with
 `gates/regress/67-sel-cls-consumers.js` (the only gate that reddens on the sel/cls consumer P0s) and
 `gates/regress/50-drill-verdict-no-jump.js` (the only gate over the drill board jump, authored 2026-09-22 and
 committed by nobody) both absent from it. A deleted, renamed or never-merged gate was indistinguishable from a
@@ -461,8 +462,16 @@ gate that was never needed, and no tool in the project said so.
 gate and whose verdict goes in the log footer. `gates/verify-log.sh` reads that footer and refuses the log.
 
 **PASS CONDITIONS, one per case, all run against a throwaway copy of the manifest and the regress directory so
-no case can touch the real ones. INPUTS: 12 cases over 1 tree shape; each case is a distinct mutation of that
+no case can touch the real ones. INPUTS: 19 cases over 1 tree shape; each case is a distinct mutation of that
 tree, and the exit code is the measured value.**
+
+**THIS COUNT HAS BEEN WRONG IN THREE DOCUMENTS AT ONCE AND THAT IS THE USEFUL PART.** It was 12 when this section
+was written, 14 after my own adversarial pass, and 19 after the two antagonist vetoes - and at the moment
+antagonist A read it, CLAUDE.md said twelve, the paragraph above said fourteen and the line you are reading said
+twelve, while the executable printed fourteen. Three documented figures, two real ones, none agreeing, in a
+section whose own text says "the register and the executable cannot drift: if somebody adds a case there, the
+count here is wrong and visibly so". It was visibly wrong and nobody looked until an antagonist did. **The
+authority is `gates/gatemanifest.sh selftest`'s own last line, not any number written down here.**
 
 | id | case | measured |
 |---|---|---|
@@ -492,8 +501,12 @@ same deletion produces a suite that runs to completion and reports green on 46 g
 committed full-suite green, with its footer doctored one field at a time: footer reading `0 missing, 0 unlisted`
 → **OK**; `1 unlisted` → **REFUSED (gate manifest)**; `2 missing` → **REFUSED (gate manifest)**; and the log
 **as committed**, with no manifest line at all → **OK** with `manifest: NOT CHECKED … predates #461`. That last
-one is the case that matters for the 49 archived logs: making the check unconditional would have refused every
-one of them, which is the decision `verify-log.sh`'s own header already records for `--this-bundle`.
+one is the case that matters for the archived logs - **91 of them, measured; the "49" this project has been
+re-quoting since #417 is withdrawn** - and making the check unconditional would have refused every one, which is
+the decision `verify-log.sh`'s own header already records for `--this-bundle`. **AND THE EXEMPTION ITSELF WAS
+THEN MEASURED AND CLOSED**: the highest build any archived log foots is #460, so gating the strict verdict on the
+log's own build number refuses zero of the 91 and every log from #461 on. I had borrowed the exemption's
+reasoning without re-deriving it; antagonist B re-derived it in one command.
 
 **THE HOLE THIS BUILD'S OWN ADVERSARIAL PASS FOUND IN IT, AND IT WAS LOAD-BEARING.** The mechanism above is
 "a gate can only leave the manifest in a commit that says why", enforced by `retire`, which refuses while the file

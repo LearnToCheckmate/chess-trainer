@@ -152,7 +152,8 @@ wider one.
   `gates/regress/` passed. NOTHING asked whether that directory holds the gates it is supposed to, because
   `gates.sh` built its list by globbing it - so *the check and the thing being checked were the same set*, and a
   gate deleted, renamed or never merged was indistinguishable from a gate that was never needed. MEASURED at
-  `fabcfc2`: main reports **47 suites green** while `gates/regress/67-sel-cls-consumers.js`, the only gate that
+  `fabcfc2`: main's `gates/regress` holds **47 gate files** and its log reports **48 sections** (those 47 plus
+  `mountcheck`), and it reported GREEN while `gates/regress/67-sel-cls-consumers.js`, the only gate that
   reddens on the sel/cls consumer P0s, and `gates/regress/50-drill-verdict-no-jump.js`, authored 2026-09-22 for
   the drill board jump and committed by nobody, are BOTH absent from it. Two known P0 classes with no gate on
   main, and no tool in this project could say so. Now: `gates/gate-manifest.tsv` lists what the suite requires,
@@ -165,8 +166,13 @@ wider one.
   that says why, and deleting the row instead would make the manifest agree with the deletion silently. KNOW ITS
   LIMIT, because it is the #419 limit again: the footer is a claim this harness computes, so `verify-log.sh`
   reading it back is not an independent measurement, and it cannot be - that script runs on archived logs with no
-  tree on disk. It also says nothing about whether a gate that IS present asserts anything. Twelve controls as a
-  command, not a paragraph: `gates/gatemanifest.sh selftest` (TC-SUITE-001..012).
+  tree on disk. **NINETEEN controls as a command, not a paragraph: `gates/gatemanifest.sh selftest`
+  (TC-SUITE-001..019).** It started at twelve, reached fourteen when my own adversarial pass found that an
+  `absent` row with no reason was accepted, and reached nineteen on the two antagonist vetoes - and the count
+  DRIFTED ACROSS THREE DOCUMENTS IN ONE BUILD while the file that records it said "the register and the
+  executable cannot drift", which antagonist A caught and which is why the number is written once here and the
+  authority is the command's own output. A gate that is PRESENT but empty is no longer a hole: `gates.sh` now
+  treats a section that exits clean and asserts nothing as red (#405's "0 PASS is the tell").
 - The harness library is `gates/lib.js`; read its header before writing a gate.
 - Serve locally. `learntocheckmate.github.io` is blocked by the egress proxy; `github.com` is not.
   Chromium is at `/opt/pw-browsers/chromium`; never run `playwright install`.
