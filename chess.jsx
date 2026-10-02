@@ -3979,7 +3979,16 @@ export default function App(){
             if(_fl.length&&getStatus(_fl[_fl.length-1].g)==='checkmate')playFinish(_fl);}
         }else{setPuzMsg('✓ '+played+' — good! Now finish it.');const rep=p.reply&&p.reply[step];if(rep){setTimeout(()=>{const omv=findMoveBySAN(ng,rep);if(omv){setGame(g2=>makeMove(g2,omv));setLastMv(omv);}setPuzStep(s);},450);}else setPuzStep(s);}
         repaint();
-      }else{pzBreakStreak();setPuzMsg('✗ '+played+(vp.h<820?" isn't it. Try again, or tap 💡.":" isn't it — try again. (Tap 💡 for a hint.)")); /* #373 (antagonist X-07): the one-line box on phones clipped the long form mid-sentence */ UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
+      /* #460, THE SECOND HALF OF THE SAME CLASS, and it was my own class sweep that was wrong rather than
+         this site that was hidden. I first counted the class as "call sites of onlineSolved" and got 1 of 1.
+         The class is actually "a place that decides whether a DRILL card moves LICHESS puzzle progress", and
+         pzBreakStreak is that decision pointed the other way: it had no p.mine term either, so a drill card
+         could DESTROY a streak built on real Lichess puzzles. Guarding only the credit would have left the
+         drill a pure streak SINK - it breaks the streak on a fumble and, after the guard above, can no longer
+         rebuild it - which is strictly worse for that player than the defect being fixed. Same predicate,
+         sibling site, one pass [R06]. Found by #460's antagonist A at the diff door (its F1). classSwept is
+         therefore 2 found / 2 fixed / 0 left, and the earlier figure of 1/1/0 is WITHDRAWN. */
+      }else{if(!p.mine)pzBreakStreak();setPuzMsg('✗ '+played+(vp.h<820?" isn't it. Try again, or tap 💡.":" isn't it — try again. (Tap 💡 for a hint.)")); /* #373 (antagonist X-07): the one-line box on phones clipped the long form mid-sentence */ UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
       return;
     }
     if(modeRef.current==='learn'&&learnPhaseRef.current==='practice'){

@@ -148,21 +148,42 @@ L.run(async()=>{
     L.say(!!v&&/^🎉/.test(v),'TC-R42 A2['+i+'/3] THE SOLVE REGISTERED: the app painted its own 🎉 verdict, so the absence assertions below are about the credit and not about a failed drive',{verdict:v});
     const s=await store(b);seen.push(s);
     L.say(!!s&&s.online===0,'TC-R42 A3['+i+'/3] a brilliancies-drill solve does NOT count as a Lichess puzzle solved',{online:s&&s.online,expected:0});
-    L.say(mineIds(s).length===0,'TC-R42 A4['+i+'/3] no drill card id is banked into onlineIds (ids are "lichess:mine:<fen>" and the Puzzles screen reads this store)',{mineIds:mineIds(s),all:Object.keys((s&&s.onlineIds)||{})});
+    // F3, from antagonist A: mineIds() is a REGEX-FILTERED SUBSET, so a future change that banked a drill
+    // card under a different prefix ('lichess:drill:<fen>') would leave this green. Launch 1 starts from a
+    // zeroed store and never loads a real Lichess card, so the available invariant is the TOTAL key count,
+    // which this assertion already PRINTED in its detail and did not check. Both are asserted now: the
+    // prefix arm names the defect, the total arm cannot be dodged by renaming it.
+    const allIds=Object.keys((s&&s.onlineIds)||{});
+    L.say(mineIds(s).length===0&&allIds.length===0,'TC-R42 A4['+i+'/3] NO id of any shape is banked into onlineIds by a drill solve - asserted as the TOTAL and not only as the "lichess:mine:" prefix, so renaming the prefix cannot satisfy it',{mineIds:mineIds(s),allIds:allIds,totalExpected:0});
     L.say(!!s&&s.streak===0,'TC-R42 A5['+i+'/3] the puzzle streak does not advance on a drill solve',{streak:s&&s.streak,expected:0});
     L.say(!!s&&s.xp===0,'TC-R42 A6['+i+'/3] no puzzle XP is banked on a drill solve',{xp:s&&s.xp,expected:0});
     L.say(!!s&&s.best===0,'TC-R42 A7['+i+'/3] pzBest is not raised by a drill solve',{best:s&&s.best,expected:0});
   }
   // THE UNBOUNDEDNESS ITSELF, as one assertion over the series rather than three readings that each look
-  // fine alone. On the shipped bundle this series reads streak 1,2,3 and xp 150,153,156 while online sticks
-  // at 1 - the `already` guard bounds the COUNT and nothing bounds the rest. That is the shape of the farm.
+  // fine alone. On the bundle main carries (md5 4dd3b4aa09ed) this series reads streak 1,2,3 and xp
+  // 120,123,126 while online sticks at 1 - the `already` guard bounds the COUNT and nothing bounds the rest.
+  // That is the shape of the farm.
+  //   THE xp FIGURES WERE WRONG IN THIS COMMENT UNTIL #460's ANTAGONIST A VETOED THEM, AND THE SLIP IS
+  //   WORTH LEAVING ON THE RECORD. It read "xp 150,153,156". 150 is BLOCK C's number: the daily fixture
+  //   below carries rating:1500 and onlineSolved banks max(8, rating/10), so a real Lichess card pays 150.
+  //   A DRILL CARD CARRIES NO RATING - puzzleFromMistake passes null - so it falls back to 1200 and pays
+  //   120, then +3 on each `already` re-solve. I had written the Lichess paragraph's figure into the drill
+  //   paragraph, in the same file whose own control log prints 120/123/126 fourteen lines down. A reader
+  //   taking the 150 at face value would have concluded a drill card is rated 1500.
+  //   AND CITE THE md5, NOT THE BUILD NUMBER. This comment and A8 below both said "shipped #459". The
+  //   bundle on main is md5 4dd3b4aa09ed and its embedded stamp reads #452, because #453 to #459 all shipped
+  //   records only and never rebuilt app.js. Four build numbers in this project already name more than one
+  //   artefact (#440, #441, #451, #452), which is why the md5 is the reference and the number is not.
   if(seen.length===3){
     const mono=seen.map(s=>(s&&s.streak)||0);
     L.say(mono[0]===0&&mono[1]===0&&mono[2]===0,
-      'TC-R42 A8 THE FARM IS CLOSED: three solves of the SAME retained brilliant card bank nothing cumulatively (shipped #459 and earlier read a rising streak here while the online count stayed at 1)',{streakAfterEachSolve:mono,xp:seen.map(s=>(s&&s.xp)||0)});
+      'TC-R42 A8 THE FARM IS CLOSED: three solves of the SAME retained brilliant card bank nothing cumulatively (the bundle on main, md5 4dd3b4aa09ed, reads a rising streak 1,2,3 and xp 120,123,126 here while the online count stays at 1)',{streakAfterEachSolve:mono,xp:seen.map(s=>(s&&s.xp)||0)});
   }
   const dailyAfterA=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_daily')||'null');}catch(e){return null;}});
-  L.note('ct_daily after block A (bumpDaily(\'puz\') is the fourth thing onlineSolved does): '+JSON.stringify(dailyAfterA));
+  // NOTE WHAT null MEANS HERE, because "the counters stay 0" is not quite true and A disputed it correctly:
+  // under the fix bumpDaily is never called, so ct_daily is never CREATED and reads null rather than 0.
+  // On the bundle main carries it reads {date,count:3,streak:1} after these three solves.
+  L.note('ct_daily after block A (bumpDaily(\'puz\') is the fourth thing onlineSolved does; null = never written): '+JSON.stringify(dailyAfterA));
 
   // ---------- BLOCK B: the MISTAKES drill, on the app's OWN captured card ------------------------------
   // The SECOND instance of the class. #459 closed the graded-accept path on this drill; the credit itself
@@ -183,7 +204,7 @@ L.run(async()=>{
     L.say(!!v&&/^🎉/.test(v),'TC-R42 B2 THE SOLVE REGISTERED on the mistakes drill',{verdict:v,uci:u});
     const after=await store(b);
     L.say(!!after&&after.online===((before&&before.online)||0),'TC-R42 B3 a MISTAKES-drill solve does NOT count as a Lichess puzzle solved either - the guard is on the card, not on the drill kind',{before:before&&before.online,after:after&&after.online});
-    L.say(mineIds(after).length===0,'TC-R42 B4 the mistakes card is not banked into onlineIds',{mineIds:mineIds(after)});
+    L.say(mineIds(after).length===0&&Object.keys((after&&after.onlineIds)||{}).length===0,'TC-R42 B4 the mistakes card is not banked into onlineIds, asserted as the TOTAL key count (F3)',{mineIds:mineIds(after),allIds:Object.keys((after&&after.onlineIds)||{}),totalExpected:0});
     L.say(!!after&&after.xp===((before&&before.xp)||0),'TC-R42 B5 no puzzle XP from a mistakes-drill solve',{before:before&&before.xp,after:after&&after.xp});
   }
   L.note('console errors in launch 1: '+b.errs.length+(b.errs.length?('  '+JSON.stringify(b.errs.slice(0,3))):''));
@@ -228,4 +249,51 @@ L.run(async()=>{
   }
   L.note('console errors in launch 2: '+c.errs.length);
   await c.close();
+
+  /* ================= LAUNCH 3: BLOCK E, THE STREAK SINK. =================================================
+     THIS BLOCK EXISTS BECAUSE ANTAGONIST A NAMED THE STATE AS THE ONE THE GATE COULD NOT REACH, AND IT WAS
+     RIGHT: every other launch here seeds streak 0, so `pzBreakStreak`'s own guard `if(pzStreakRef.current>0)`
+     could never be entered, and no block ever played a WRONG move - so the miss branch of the solve handler
+     (chess.jsx:3991), which writes to the very store blocks A and B read, was never executed on any bundle.
+     WHAT IT CAUGHT, which is why it is worth more than the assertions it adds: guarding only the CREDIT left
+     the drill a pure streak SINK. A drill fumble broke a streak built on real Lichess puzzles, and after the
+     credit guard it could no longer be rebuilt by drilling - so the first version of this build made that one
+     state WORSE than the defect it was fixing. The repair is the same provenance predicate at the sibling
+     site, and this block is its control. Measured by A on the first candidate at 375x730: streak 5 -> 0 on
+     one fumble, then 0 after solving. ================================================================== */
+  const e=await L.launch({geo:'kunal730',name:'drill-credit-sink',store:{
+    ct_mybrilliancies:[bcard()],
+    ct_bril_reset_v1:'1',
+    // FOUR REAL LICHESS ROWS AND A LIVE STREAK. The rows matter: they are what makes the streak this block
+    // protects a record of real Lichess work rather than an empty number.
+    [PZKEY]:{solved:{},streak:5,best:5,xp:500,online:4,onlineIds:{'lichess:aaaa1':1,'lichess:bbbb2':1,'lichess:cccc3':1,'lichess:dddd4':1}}}});
+  await e.open();
+  const e0=await store(e);
+  L.say(!!e0&&e0.streak===5&&e0.online===4&&e0.xp===500,'TC-R42 E0 INSTRUMENT: launch 3 starts from a store with a LIVE streak of 5 built on 4 real Lichess puzzles, which is the precondition pzBreakStreak needs and which every other launch here lacks',e0);
+  await e.tile('Review');await e.settle(900);
+  await e.tapText(/^Your brilliant moves$/,{wait:1800}).catch(async()=>{await e.tapText(/Your brilliant moves/,{wait:1800});});
+  await e.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});
+  const ebd=await e.board();
+  L.say(!!ebd,'TC-R42 E1 ARRIVAL: the brilliancies drill opened with a board',ebd?{w:Math.round(ebd.w*100)/100}:null);
+  if(ebd){
+    // A WRONG MOVE, not the solution and not a mate: Ke1-e2 is legal here and e2 is attacked by nothing.
+    await e.move('e1','e2',900);await e.settle(1100);
+    const ev=await verdict(e);
+    // THE INSTRUMENT, and it is the whole reason this block is not vacuous: the MISS branch must actually
+    // have run. Without this, "the streak survived" is satisfied by a drive whose move was never rejected.
+    L.say(!!ev&&/^\u2717/.test(ev),'TC-R42 E2 THE MISS REGISTERED: the app painted its own rejection, so the miss branch at chess.jsx:3991 really executed and E3 is about provenance rather than about a move that quietly succeeded',{verdict:ev});
+    const e1=await store(e);
+    L.say(!!e1&&e1.streak===5,'TC-R42 E3 A DRILL FUMBLE DOES NOT BREAK A LICHESS STREAK: the drill neither builds nor breaks puzzle progress, which is the whole point of keying on the card and not on the outcome (the bundle on main, md5 4dd3b4aa09ed, reads 0 here)',{streak:e1&&e1.streak,expected:5});
+    L.say(!!e1&&e1.best===5&&e1.online===4&&e1.xp===500,'TC-R42 E4 and the fumble moves nothing else either',{best:e1&&e1.best,online:e1&&e1.online,xp:e1&&e1.xp,expected:{best:5,online:4,xp:500}});
+    // then SOLVE it, which is the asymmetry the sink was made of: break on a miss, no rebuild on a solve.
+    await e.move('d2','d5',900);await e.settle(1200);
+    const ev2=await verdict(e);
+    L.say(!!ev2&&/^\ud83c\udf89/.test(ev2),'TC-R42 E5 THE SOLVE REGISTERED after the fumble',{verdict:ev2});
+    const e2=await store(e);
+    L.say(!!e2&&e2.streak===5&&e2.online===4&&e2.xp===500,'TC-R42 E6 THE SINK IS CLOSED IN BOTH DIRECTIONS: after a fumble AND a solve on a drill card the Lichess streak, count and XP are exactly what the player earned on real puzzles (main reads streak 1, online 5, xp 620 - it destroys 5 and hands back 1)',{streak:e2&&e2.streak,online:e2&&e2.online,xp:e2&&e2.xp,expected:{streak:5,online:4,xp:500}});
+    L.say(Object.keys((e2&&e2.onlineIds)||{}).length===4&&mineIds(e2).length===0,'TC-R42 E7 the four real Lichess rows are untouched and no drill row joined them',{ids:Object.keys((e2&&e2.onlineIds)||{})});
+  }
+  L.note('console errors in launch 3: '+e.errs.length);
+  L.say(e.errs.length===0,'TC-R42 E8 no console errors in the streak-sink walk',{errs:e.errs.slice(0,3)});
+  await e.close();
 },'18-drill-credit-provenance');

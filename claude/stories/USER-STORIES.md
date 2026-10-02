@@ -687,3 +687,20 @@ two came out of one call, and recorded the cost as an amber default on
 flags/amber-460-drill-solves-stop-earning-puzzle-xp-and-the-daily-bump rather than deciding it. Stores written
 before #460 keep their inflated numbers; no migration was shipped, on the #449 precedent that deleting a
 player's recorded achievements is not a build default.
+
+### US-R32 clause 5, ADDED IN THE SAME BUILD AFTER THE ANTAGONIST PASS - and it is a correction to clause 1 as much as an addition
+
+**A drill neither builds nor breaks my Lichess puzzle progress.** Clauses 1 to 3 above say a drill solve must
+not CREDIT the puzzle counters. They are silent on the other direction, and #460's first candidate shipped
+that silence: `pzBreakStreak` (chess.jsx:3888, called from the miss branch of the solve handler) had no
+provenance term either, so a wrong move in a drill still destroyed a streak built on real Lichess puzzles -
+while clause 1's guard had just removed the only way drilling could rebuild it. MEASURED on that candidate at
+375x730 with a live streak of 5: one fumble took it to 0 and solving the card left it at 0, where the shipped
+bundle on main reads 5 -> 0 -> 1. So a fix written to stop a drill inflating my progress had made a drill able
+to destroy it and nothing else, which is worse for that player than the defect being fixed.
+
+The predicate is the same one, at the sibling site, and it is asserted as TC-R42 block E. The class is two
+sites and not one: the credit at the solve branch and the debit at the miss branch. #460's own first published
+`classSwept` of 1 found / 1 fixed is **withdrawn**; the sweep was counted over "call sites of `onlineSolved`",
+which is the wrong predicate, rather than over "a place that decides whether a drill card moves Lichess
+progress", which is the right one. Found by this build's antagonist A at the diff door.

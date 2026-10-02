@@ -403,3 +403,31 @@ nothing. Two traps are written into the gate because both cost this build a red 
 `ct_mybrilliancies` once per install unless `ct_bril_reset_v1` is seeded, and the "Online puzzles" control is
 BELOW THE FOLD on the roadmap, so `tapText` clicked a visible ancestor, the fetch never happened, and the
 "tap" reported success - the gate now scrolls it in and asserts it is on screen before tapping (C0b).
+
+**TC-R42, BLOCK E, ADDED AFTER THE ANTAGONIST PASS IN THE SAME BUILD.** Antagonist A was asked for the one
+state the gate did not cover and named it exactly: a player with a non-zero streak who enters a drill and
+plays ONE WRONG MOVE. It was **structurally** excluded rather than merely skipped - every launch seeded
+`streak:0`, so `pzBreakStreak`'s own `if(pzStreakRef.current>0)` could never be entered, and no block played a
+wrong move, so the entire MISS branch of the solve handler was unexecuted on every bundle while blocks A and B
+asserted over the store that branch writes to.
+
+Block E seeds four real Lichess rows and a live streak of 5, fumbles (`Ke1-e2`, legal, not the solution, not
+mate), then solves. 9 assertions. On the final bundle **aa4b800c83a6** it is green. On the bundle main carries
+(**4dd3b4aa09ed**) it goes red at **E3** (streak 0 against 5), **E6** (streak 1 / online 5 / xp 620 against
+5 / 4 / 500 - main destroys five and hands back one) and **E7** (a drill row joins the four real ones), while
+E0, E1, E2, E4, E5 and E8 pass on both, which is correct: those are the arrival and instrument assertions and
+they are not meant to discriminate. E2 is the one that stops the block being vacuous - it requires the app to
+have painted its own rejection, so "the streak survived" cannot be satisfied by a drive whose move was never
+rejected.
+
+**WHOLE-GATE FIGURES, both re-run after the veto fixes: 52 pass / 0 fail on `aa4b800c83a6`, and 30 pass /
+22 fail on `4dd3b4aa09ed`.** The 22 reds are A3-A7 at all three solves, A8, B3-B5 and E3/E6/E7. Block C stays
+green on both, as it must.
+
+**AND A4/B4 WERE STRENGTHENED IN THE SAME PASS (antagonist A's F3).** They asserted `mineIds(s).length===0`, a
+regex-filtered SUBSET, so a later change banking a drill card under a different prefix (`lichess:drill:<fen>`)
+would have left them green - and the assertion was already PRINTING the total key count in its own detail
+without checking it. Both now assert the total is zero as well as the prefix arm. A separately unit-tested the
+`/(^|:)mine:/` regex against eleven strings per the #391 rule and found it matches what it claims and rejects
+everything a real producer emits; the one false positive needs a hand-authored pack row whose id begins
+`mine:`, which the Lichess API cannot emit.
