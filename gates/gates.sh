@@ -157,11 +157,20 @@ fi
 # DIRECTORY, not about which gates this invocation executes.
 #
 # TWO OUTCOMES, DELIBERATELY NOT ONE [see the header of gates/gatemanifest.sh]:
-#   exit 1  a required gate is MISSING -> this suite stops here and cannot emit GATES GREEN.
+#   exit 1  a required gate is MISSING, a manifest row is unreadable, the manifest line does not add up, the
+#           GATE-REQUIRED FLOOR is breached, the REQUIRED-SET DIGEST has changed with no row, or the floor
+#           register is CORRUPT -> this suite stops here and cannot emit GATES GREEN. [#467 added the last four.]
 #   exit 2  a gate on disk is UNLISTED -> the suite RUNS (a build that adds a gate must be able to run it), the
 #           count goes in the footer, and gates/verify-log.sh refuses the log, so it cannot reach main unlisted.
-#   exit 3  the manifest itself is missing -> NOT CHECKED, reported, and the suite runs. A stale checkout must
-#           not be able to wedge the lane, but it must not read as a pass either.
+#   exit 3  the manifest OR the floor register is ABSENT (or has no rows) -> NOT CHECKED, reported, and the suite
+#           runs. A stale checkout must not be able to wedge the lane, but it must not read as a pass either: the
+#           footer then carries a NOT-CHECKED token and gates/verify-log.sh refuses the log.
+#           THE LINE ABOVE SAID ONLY "the manifest itself is missing" AND THAT WAS STALE AT #467 [antagonist A].
+#           The split that matters is ABSENT (ambiguous - could be a stale checkout) versus CORRUPT (positive
+#           evidence somebody wrote into the file wrongly), and #467 moved corrupt from 3 to 1 for exactly the
+#           reason this comment gives for MISSING: it cannot block normal work, it is one edit to fix, and while
+#           it stands nothing can say what the suite requires. Letting it run would be #461's F9 again - knowable
+#           at second two, refused seventy minutes later at the push gate.
 MANI_OUT="$("$G/gatemanifest.sh" check 2>&1)"; MANI_RC=$?
 printf '%s\n' "$MANI_OUT" | tee -a "$ALL"
 MANI_LINE="$(printf '%s\n' "$MANI_OUT" | grep -m1 '^gate manifest:' || echo 'gate manifest: NOT CHECKED')"

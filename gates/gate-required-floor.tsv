@@ -32,13 +32,35 @@
 # all and was therefore much the cheaper attack.
 #
 # HOW THE CURRENT FLOOR IS COMPUTED: replay the rows in file order; the floor is the LAST row's value. A `raise`
-# must increase it, a `lower` must decrease it and must carry a real reason, and the chain must be intact.
+# must increase it; a `lower` must decrease it by EXACTLY ONE, carry a reason in field 7, and name in field 8 a
+# gate whose state in gate-manifest.tsv is `retired`; and the chain must be intact.
+#
+# THE "EXACTLY ONE" AND THE GATE FIELD BOTH COME FROM ANTAGONIST B's VETO ON THE FIRST VERSION OF THIS FILE, and
+# they are the difference between a ratchet and a one-shot release valve. As first written, `retire` lowered the
+# floor to whatever the tree happened to require, so a run could delete twenty gates, hand-flip their rows to
+# `absent`, retire ONE of them properly, and take the floor 49 -> 29 AT EXIT 0 - by following the instruction the
+# breach message itself printed. B measured it end to end, including a verify-log.sh OK over the resulting log,
+# and I reproduced it before changing anything. The register would then have carried, permanently, one row naming
+# one gate and accounting for twenty: worse than the plain two-field diff #461 left behind, because it arrives
+# laundered through this project's own audit anchor looking like due process.
+# ONE GATE LEAVES PER ROW. So the register's row count IS the number of retirements and cannot be made to stand
+# for more, and `retire` REFUSES when the tree is more than one gate below the floor, listing the others by name.
+# The gate field closes the other half B found: a hand-APPENDED `lower` row, which is neither an edit nor a
+# deletion and which the chain field therefore had nothing to say about. A hand-appended row must now also name a
+# gate the MANIFEST records as retired, so the two files have to agree and the reason lands in the commit diff.
+# AND THE REASON FIELD IS NO LONGER LENGTH-TESTED. The first version required 12 characters, which B showed wrong
+# in both directions: twelve junk characters passed, while the genuine reason "slow gate" was REFUSED because the
+# length was measured after spaces were stripped - and the error quoted `slowgate` back at the user. A length test
+# on free text is not a check. It was replaced by the structural test above, not tuned.
 #
 # WHO WRITES IT: `gatemanifest.sh sync` raises it when it adds required rows; `gatemanifest.sh retire` lowers it
-# when it retires one. `check` only ever COMPARES — it never writes. That separation is #454's lesson ("is it
-# recorded" and "is it mine" are two questions, and conflating them deadlocked the build): a tool that writes its
-# own floor and then reads it back as authority is the check and the thing being checked being the same object,
-# which is the trap CLAUDE.md now records ten times.
+# when it retires one. BOTH REFUSE unless CT_BUILD and CT_RUNID are set (B's F4: the first version inherited
+# gatemanifest.sh's `unknown` / `unknown-run` fallback and wrote it into THIS file, where a row is never deleted -
+# so the documented happy path would have left a permanently unattributable row in the project's new audit
+# anchor). `check` only ever COMPARES - it never writes. That separation is #454's lesson ("is it recorded" and
+# "is it mine" are two questions, and conflating them deadlocked the build): a tool that writes its own floor and
+# then reads it back as authority is the check and the thing being checked being the same object, which is the
+# trap CLAUDE.md now records ten times.
 #
-# floor  prev  kind   at          build  runId                   why
-49	-	seed	2026-10-02	467	build__1790976005325	seeded at the measured required count of the tree that introduced the floor. MEASURED by gates/gatemanifest.sh check on 8de6233: 49 required, 49 present, 0 missing, 0 unlisted, 5 known-absent. Not chosen - read off the tool.
+# floor  prev  kind   at          build  runId                   why                                   gate
+49	-	seed	2026-10-02	467	build__1790976005325	seeded at the measured required count of the tree that introduced the floor. MEASURED by gates/gatemanifest.sh check on 8de6233: 49 required, 49 present, 0 missing, 0 unlisted, 5 known-absent. Not chosen - read off the tool.	-	9f80bba52ba6

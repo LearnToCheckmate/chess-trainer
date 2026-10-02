@@ -20,12 +20,20 @@
 # INTO THIS FILE, so the removal appears in a commit diff with its justification attached. Deleting the row
 # instead would make the manifest agree with the deletion silently, which is the defect this file exists to stop.
 #
-# WHY required IS NOT "EVERY GATE THAT HAS EVER EXISTED" [CLAUDE.md, #405, the frozen denominator]. The 47
-# required rows below are seeded from the committed suite at #461 and nothing else. THEIR PROVENANCE, STATED
-# HONESTLY RATHER THAN INVENTED: the build and date columns read 461 / 2026-10-02 for all 47 because that is when
-# the ROW was written, NOT when the gate was introduced - those build numbers are recoverable from git log and are
+# WHY required IS NOT "EVERY GATE THAT HAS EVER EXISTED" [CLAUDE.md, #405, the frozen denominator]. The required
+# rows below were seeded from the committed suite at #461 and nothing else. THEIR PROVENANCE, STATED HONESTLY
+# RATHER THAN INVENTED: the build and date columns read 461 / 2026-10-02 for most of them because that is when the
+# ROW was written, NOT when the gate was introduced - those build numbers are recoverable from git log and are
 # deliberately not guessed here. The `covers` column is each gate's own header comment, truncated, not a fresh
 # judgement of what it covers.
+# THIS PARAGRAPH SAID "47" THREE TIMES AND THE COUNT IS 49, measured at #467 by
+# `awk -F'\t' '$2=="required"' gates/gate-manifest.tsv | wc -l` [antagonist B's F11]. 47 was true when the file
+# was seeded and two gates have been added since. The number is REMOVED from the prose rather than corrected to
+# 49, because a hardcoded count in a header is a frozen denominator by construction and this file's whole subject
+# is frozen denominators - the same mistake #462 had to fix twice in gates/verify-log.sh's header, where "49
+# archived gatelogs" became a self-counting `wc -l` and a hardcoded "#460" survived six more builds. If you want
+# the count, run the command: `gates/gatemanifest.sh check` prints it, and `gates/gatemanifest.sh floor` prints
+# the floor it must not fall below.
 #
 # fields: gate <TAB> state <TAB> build <TAB> at <TAB> who <TAB> covers <TAB> note
 10-gameover.js	required	461	2026-10-02	build__1790925639766	Gallery card 1 plays Scholar's mate in seven moves. The board's width and top mid-game m	-

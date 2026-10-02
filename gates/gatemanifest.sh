@@ -77,6 +77,23 @@ fi
 # THE FIX IS A HERESTRING, which has no pipe and therefore no SIGPIPE. Every site below uses one. If you add a
 # membership test to this file, use `grep -qx "$x" <<<"$list"` and never `printf ... | grep -q`.
 # ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+# #467, AFTER ANTAGONIST B's F4 AND THEN AFTER MY OWN FIX FOR IT WAS WORSE THAN THE DEFECT. B's finding was that
+# `sync` and `retire` fall back to `unknown` / `unknown-run` - documented in this file's header since #461 as F8 and
+# never closed - and that #467 propagated it into the append-only floor register, where a row is never deleted.
+# MY FIRST FIX REFUSED INSIDE floorwrite, which runs AFTER the manifest row has already been written, so `retire`
+# edited gate-manifest.tsv, then refused, then exited 1 - leaving the manifest saying a gate is retired and the
+# floor still high, i.e. a tree that reads as a BREACH because of a command that declined to finish. A half-applied
+# write is worse than either outcome. The guard therefore runs BEFORE anything is touched, so both doors are
+# atomic: they do both files or neither.
+needids(){
+  [ -n "${CT_RUNID:-}" ] && [ -n "${CT_BUILD:-}" ] && return 0
+  echo "REFUSED: set CT_BUILD and CT_RUNID before writing either register."
+  echo "    CT_BUILD=#NNN CT_RUNID=<your runId> gates/gatemanifest.sh $CMD ..."
+  echo "  Both are read by this command and neither has a safe default. gates/gate-required-floor.tsv is"
+  echo "  append-only and a row is never deleted, so an 'unknown-run' row in it is permanent and permanently"
+  echo "  unattributable - which is why this is a refusal rather than the warning #461 left behind [B's F8/F4]."
+  exit 1
+}
 rows(){ grep -v '^[[:space:]]*#' "$M" | grep -v '^[[:space:]]*$'; }
 diskgates(){ for f in "$REG"/*.js; do [ -e "$f" ] && basename "$f"; done | sort; }
 
@@ -94,28 +111,78 @@ diskgates(){ for f in "$REG"/*.js; do [ -e "$f" ] && basename "$f"; done | sort;
 # gatemanifest.sh's own disabled-row loop records it on the manifest. Measured here before it was fixed: a raise
 # row written without a final newline left the floor reading its PREVIOUS value, which silently un-does a raise.
 FLOORF="$G/gate-required-floor.tsv"
+
+# ── #467, AFTER ANTAGONIST A's 5.1. THE FLOOR GUARDED A CARDINALITY; THE THING WORTH GUARDING IS THE SET. ──────
+# A's attack, measured by A and reproduced by me before this existed: promote one of the five `known-absent` rows to
+# `required`, `touch` a stub so it counts as present, and de-require the real gate with a reason. The count does not
+# move, so the floor does not fire, and the manifest line that reaches the push gate is BYTE-IDENTICAL to the honest
+# tree's - while gates/regress/21-review-brilliant.js, the gate CLAUDE.md names as the only cover for brilliancy
+# explanations, is gone. verify-log.sh then returns OK with "floor 49 (a recorded value in the register)".
+# A quieter variant: flip the row to `retired` rather than `absent` and the departing gate's name appears NOWHERE in
+# check's output, because the ABSENT list is only populated for state=absent.
+# THIS IS THE ELEVENTH COSTUME OF THE TRAP CLAUDE.md RECORDS TEN TIMES, and A named it as such: the floor bounds a
+# number DERIVED FROM THE FILE AN ATTACKER IS EDITING, so compensating edits are invisible to it - the check and the
+# thing being checked are the same object, one level up from where #467 first moved the check.
+# SO THE REGISTER NOW PINS THE SET, by a digest of the sorted required gate NAMES. A swap at constant count changes
+# the digest; nothing a manifest edit can do keeps it fixed, because it is a function of exactly the names.
+# WHY IT DOES NOT FIRE ON THE NORMAL CASE, which is the test every guard in this project has to pass: a build that
+# ADDS a gate file leaves it UNLISTED (soft, exit 2) and does not change the required set, so the digest is
+# unchanged until `sync` writes its row. The legitimate swap is two rows - retire the one leaving, sync the one
+# arriving - and each door records its own.
+reqdigest(){
+  rows | awk -F'\t' '{gsub(/[ \r]/,"",$1); gsub(/[ \r]/,"",$2); if($2=="required") print $1}' | LC_ALL=C sort | sha256sum | cut -c1-12
+}
+
 # Sets FLOOR, FLOORWHY, FLOORBAD. FLOORBAD non-empty means NOT CHECKED or corrupt - never treated as a pass.
 floorread(){
-  FLOOR=""; FLOORWHY=""; FLOORBAD=""
+  FLOOR=""; FLOORWHY=""; FLOORBAD=""; FLOORDIG=""; FLOORABSENT=""
   if [ ! -f "$FLOORF" ]; then
-    FLOORBAD="no floor register at $FLOORF"
+    FLOORBAD="no floor register at $FLOORF"; FLOORABSENT=1
     return 0
   fi
-  local n=0 line cand f pv k why last=""
+  # EVERY LOOP VARIABLE IS `local`, AND LEAVING TWO OF THEM OUT COST THIS BUILD A GREEN. floorwrite calls
+  # floorread to get the current floor before appending, and floorread was assigning `gate` and `mstate` WITHOUT
+  # local - so it overwrote floorwrite's own `gate` local with the LAST ROW's field 8, and every row written
+  # carried an empty gate field. The next `check` then refused the file the tool had just written, with
+  # "row 3 lowers the floor but names no gate in field 8" - a legitimate retire reddening the suite. The two
+  # functions shared one name, which is the same shape as every entry CLAUDE.md records under "the check and the
+  # thing being checked were the same object", here at the level of a shell variable.
+  local n=0 line cand trimmed stripped f pv k why gate mstate dig last="" lastdig=""
   while IFS= read -r line || [ -n "$line" ]; do
-    case "$line" in
-      ""|[[:space:]]*) continue;;
-      \#*|[[:space:]]*\#*)
-        # a disabled floor row is a hidden lowering, not documentation - same shape test as the manifest's door 6
-        cand="$(printf '%s' "$line" | sed 's/^[[:space:]]*#[[:space:]]*//')"
-        case "$cand" in [0-9]*"	"*) FLOORBAD="a floor row is COMMENTED OUT: $(printf '%s' "$cand" | cut -c1-60)";; esac
+    # ── ANTAGONIST A's 5.2, UPHELD, AND IT MADE THE WHOLE RATCHET A DECORATION ────────────────────────────────
+    # This block read `case "$line" in ""|[[:space:]]*) continue;; \#*|...` - so a row beginning with ONE SPACE was
+    # treated as a blank line and skipped with NO FLOORBAD. A measured it and I reproduced it: sync to 51, prefix
+    # that raise row with a single space, and `floor` reads 49 again while still reporting "2 row(s), append-only,
+    # chain-checked"; then de-require the gates the raise paid for and `check` exits 0. Every structural test
+    # antagonist B had just added was BYPASSED rather than defeated - with no `lower` row, the exactly-one rule, the
+    # named-retired-gate rule, the reason check and the chain check were never consulted. And the `#` form of the
+    # identical attack IS caught and has its own control, which this file's header calls "antagonist A's door 6, at
+    # the second file" - so the guard existed and one invisible character walked past it.
+    # THE THREE CASES ARE NOW SEPARATED, because conflating two of them is what made the hole:
+    #   a line that is EMPTY OR ONLY WHITESPACE  -> genuinely blank, ignored (and MY FIRST FIX BROKE THIS, turning
+    #                                               a blank line into "unreadable floor row (no tab)" and exit 3)
+    #   a line whose first non-space char is `#` -> comment: tested for row shape (the #461 disabled-row rule)
+    #   anything else that is INDENTED           -> a row made invisible to the replay. HARD.
+    stripped="$(printf '%s' "$line" | tr -d '[:space:]')"
+    [ -z "$stripped" ] && continue
+    trimmed="$(printf '%s' "$line" | sed 's/^[[:space:]]*//')"
+    case "$trimmed" in
+      \#*)
+        cand="$(printf '%s' "$trimmed" | sed 's/^#[[:space:]]*//')"
+        case "$cand" in [0-9]*"	"*) FLOORBAD="a floor row is COMMENTED OUT: $(printf '%s' "$cand" | cut -c1-48)"; return 0;; esac
         continue;;
     esac
+    if [ "$trimmed" != "$line" ]; then
+      case "$trimmed" in [0-9]*"	"*) FLOORBAD="a floor row is INDENTED, which makes it invisible to the replay: $(printf '%s' "$trimmed" | cut -c1-48)"; return 0;; esac
+      continue
+    fi
     case "$line" in *"	"*) ;; *) FLOORBAD="unreadable floor row (no tab): $(printf '%s' "$line" | cut -c1-60)"; return 0;; esac
     f="$(printf '%s' "$line"  | cut -f1 | tr -d ' \r')"
     pv="$(printf '%s' "$line" | cut -f2 | tr -d ' \r')"
     k="$(printf '%s' "$line"  | cut -f3 | tr -d ' \r')"
     why="$(printf '%s' "$line" | cut -f7 | tr -d ' \r')"
+    gate="$(printf '%s' "$line" | cut -f8 | tr -d ' \r')"
+    dig="$(printf '%s' "$line" | cut -f9 | tr -d ' \r')"
     case "$f" in ''|*[!0-9]*) FLOORBAD="floor value is not a number: '$f'"; return 0;; esac
     n=$((n+1))
     if [ "$n" -eq 1 ]; then
@@ -126,34 +193,71 @@ floorread(){
       case "$k" in
         raise) [ "$f" -gt "$last" ] || { FLOORBAD="row $n is a 'raise' from $last to $f, which does not raise"; return 0; };;
         lower)
-          [ "$f" -lt "$last" ] || { FLOORBAD="row $n is a 'lower' from $last to $f, which does not lower"; return 0; }
-          # A lowering is the one legitimate way down, so it is the one that must say something. `-` and a single
-          # character are refused: #461 made a MISSING reason hard and antagonist A measured that the bar then
-          # became "say something", which `x` satisfies. Here the bar is 12 characters, which is still not a
-          # judgement of CONTENT and is stated as such rather than dressed up as one.
-          if [ -z "$why" ] || [ "$why" = "-" ] || [ "${#why}" -lt 12 ]; then
-            FLOORBAD="row $n lowers the floor $last -> $f with no real reason in field 7 (got '${why}')"; return 0
+          # ── #467, SECOND VERSION, AFTER ANTAGONIST B's VETO. THE FIRST VERSION OF THIS ARM WAS THE WHOLE HOLE.
+          # It accepted any lowering to any value with a reason of 12 or more characters, and B measured both
+          # halves of that being wrong: `xxxxxxxxxxxx` cleared the bar while the genuine reason "slow gate" was
+          # REFUSED, because the length was measured after `tr -d ' '` stripped the spaces - so the message quoted
+          # 'slowgate' back at the user and read as a bug in the tool. A LENGTH TEST ON A FREE-TEXT FIELD IS NOT A
+          # CHECK, and tuning the number would have kept the instrument. It is replaced, not adjusted.
+          # THE TEST IS NOW STRUCTURAL AND IT IS TWO THINGS:
+          #   (1) A LOWERING IS BY EXACTLY ONE. B's F1: the first version lowered the floor to whatever the tree
+          #       happened to require, so removing twenty gates and retiring ONE took the floor 49 -> 29 at exit 0,
+          #       with a register row naming one gate and accounting for twenty. The route was the one the breach
+          #       message itself printed. One gate leaves per row, so the register's row count is the number of
+          #       retirements and cannot be anything else.
+          #   (2) THE ROW MUST NAME A GATE THE MANIFEST RECORDS AS `retired` (field 8). This is what closes B's F2,
+          #       the hand-appended `lower` row: appending is neither editing nor deleting, so the chain field had
+          #       nothing to say about it, and my own breach message claimed otherwise. Now a hand-appended row
+          #       must ALSO name a gate whose manifest row reads `retired` - which is the manifest edit `retire`
+          #       makes and which carries the reason into the diff. The two files have to agree.
+          [ "$f" -eq $((last-1)) ] || { FLOORBAD="row $n lowers the floor $last -> $f; a lowering is by EXACTLY ONE (one gate leaves per row), so this row should read $((last-1))"; return 0; }
+          if [ -z "$why" ] || [ "$why" = "-" ]; then
+            FLOORBAD="row $n lowers the floor $last -> $f with no reason in field 7"; return 0
+          fi
+          case "$gate" in
+            ''|'-') FLOORBAD="row $n lowers the floor but names no gate in field 8; a lowering must say WHICH gate left"; return 0;;
+            *.js) ;;
+            *) FLOORBAD="row $n names '$gate' in field 8, which is not a .js gate file"; return 0;;
+          esac
+          # The manifest is the other half of the agreement. A row claiming a gate was retired, whose manifest row
+          # does not say `retired`, is a lowering nobody recorded where it has to be recorded.
+          mstate="$(grep -v '^[[:space:]]*#' "$M" 2>/dev/null | awk -F'\t' -v g="$gate" '{gsub(/[ \r]/,"",$1); gsub(/[ \r]/,"",$2); if($1==g) print $2}' | sed -n '1p')"
+          if [ "${mstate:-}" != "retired" ]; then
+            FLOORBAD="row $n lowers the floor for $gate, but that gate's state in $(basename "$M") is '${mstate:-NO ROW AT ALL}', not 'retired'. Use: gates/gatemanifest.sh retire $gate 'why'"; return 0
           fi;;
         *) FLOORBAD="row $n has kind '$k', which is not seed/raise/lower"; return 0;;
       esac
     fi
     if [ "$k" = seed ]; then FLOORWHY="seeded at $f by build $(printf '%s' "$line" | cut -f5 | tr -d ' \r')"
     else FLOORWHY="$k $pv -> $f at build $(printf '%s' "$line" | cut -f5 | tr -d ' \r')"; fi
-    last="$f"
+    last="$f"; lastdig="$dig"
   done < "$FLOORF"
-  [ "$n" -eq 0 ] && { FLOORBAD="the floor register has no rows at all"; return 0; }
-  FLOOR="$last"
+  [ "$n" -eq 0 ] && { FLOORBAD="the floor register has no rows at all"; FLOORABSENT=1; return 0; }
+  FLOOR="$last"; FLOORDIG="$lastdig"
 }
-# Appends a row, keeping the chain. floorwrite <newfloor> <kind> <why>
+# Appends a row, keeping the chain. floorwrite <newfloor> <kind> <why> [gate]
 floorwrite(){
-  local nf="$1" k="$2" why="$3" B WHO AT
+  local nf="$1" k="$2" why="$3" gate="${4:--}" B WHO AT DIG
   floorread
   [ -n "$FLOORBAD" ] && { echo "  REFUSING to write the floor register: $FLOORBAD"; return 1; }
-  B="${CT_BUILD:-unknown}"; WHO="${CT_RUNID:-unknown-run}"; AT="$(date -u +%Y-%m-%d)"
+  # ANTAGONIST B's F4, UPHELD. `sync` and `retire` read CT_BUILD and CT_RUNID and fell back to `unknown` /
+  # `unknown-run`, and #467's first version PROPAGATED that into the new register - a file whose own header has a
+  # section titled WHO WRITES IT and whose discipline is that a row is never deleted. So an unattributable row
+  # would have been permanent, in the project's new audit anchor, written by the documented happy path. The
+  # manifest has precedent for junk rows; this file must not. It REFUSES instead, which is the #454 lesson
+  # (a happy path that silently produces a worse row than the tool can write is not a happy path).
+  if [ -z "${CT_RUNID:-}" ] || [ -z "${CT_BUILD:-}" ]; then
+    echo "  REFUSING to write the floor register: CT_BUILD and CT_RUNID must both be set."
+    echo "    CT_BUILD=#NNN CT_RUNID=<your runId> gates/gatemanifest.sh $CMD ..."
+    echo "  This register is append-only and a row is never deleted, so an 'unknown-run' row here is permanent."
+    return 1
+  fi
+  B="${CT_BUILD}"; WHO="${CT_RUNID}"; AT="$(date -u +%Y-%m-%d)"
   # A trailing newline is written UNCONDITIONALLY first if the file lacks one, or this row joins the previous one.
   [ -n "$(tail -c1 "$FLOORF")" ] && printf '\n' >> "$FLOORF"
-  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$nf" "$FLOOR" "$k" "$AT" "${B#\#}" "$WHO" "$why" >> "$FLOORF"
-  echo "  floor register: $k $FLOOR -> $nf (build ${B#\#}, $WHO)"
+  DIG="$(reqdigest)"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$nf" "$FLOOR" "$k" "$AT" "${B#\#}" "$WHO" "$why" "$gate" "$DIG" >> "$FLOORF"
+  echo "  floor register: $k $FLOOR -> $nf, required-set digest $DIG (build ${B#\#}, $WHO)"
 }
 # ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -286,17 +390,55 @@ check)
 
   # ── #467. THE FLOOR, COMPARED AND NEVER WRITTEN HERE ──────────────────────────────────────────────────────────
   floorread
-  FLOORTXT="NOT-CHECKED"; FLOORSUNK=""
+  FLOORTXT="NOT-CHECKED"; FLOORSUNK=""; NOWDIG="$(reqdigest)"
   if [ -n "$FLOORBAD" ]; then
-    echo "GATE-REQUIRED FLOOR: NOT CHECKED - $FLOORBAD"
+    if [ -n "$FLOORABSENT" ]; then echo "GATE-REQUIRED FLOOR: NOT CHECKED - $FLOORBAD"
+    else echo "GATE-REQUIRED FLOOR REGISTER IS CORRUPT - $FLOORBAD"; fi
     echo "  The floor register bounds \`required\` from BELOW. Without it this check cannot tell a tree that needs"
     echo "  49 gates from one that has been edited down to 40, which is the whole defect #467 closed. It is NOT"
-    echo "  treated as a pass: the count below reads NOT-CHECKED, which gates/verify-log.sh cannot parse, so the"
-    echo "  log is refused at the push gate [antagonist B's rule on #450's register: a guard whose absence is"
-    echo "  indistinguishable from its success is not a guard]."
+    echo "  treated as a pass: the count below reads NOT-CHECKED, and gates/verify-log.sh REFUSES a log carrying"
+    echo "  that token, naming the floor register as the reason [antagonist B's rule on #450's register: a guard"
+    echo "  whose absence is indistinguishable from its success is not a guard]."
+    # B's F6: this said verify-log.sh "cannot parse" the token. It parses it DELIBERATELY - its MANIRE467 accepts
+    # NOT-CHECKED as a token precisely so it can refuse with the right reason - and its own comment says why,
+    # citing #419: a wrong reason that reaches the right verdict is a trap. So a user debugging a refusal was being
+    # sent to look for a parse failure that does not exist, by the other half of the same mechanism.
     echo "  Restore gates/gate-required-floor.tsv from main, or if a row is corrupt, fix the row - do NOT delete it."
   else
     FLOORTXT="$FLOOR"
+    # ── THE SET CHECK, ANTAGONIST A's 5.1. It runs BEFORE the count check because it is the stronger of the two:
+    # every breach of the count is also a change of the set, but not every change of the set moves the count, and
+    # A's attack is exactly the case where the count does not move. The count check is kept because it produces the
+    # readable message and the actionable remedy; this one produces the strength.
+    if [ -n "$FLOORDIG" ] && [ "$FLOORDIG" != "-" ] && [ "$NOWDIG" != "$FLOORDIG" ]; then
+      FLOORSUNK=1
+      echo "REQUIRED-SET DIGEST CHANGED WITH NO ROW IN THE FLOOR REGISTER:"
+      echo "    register's last row: $FLOORDIG   this tree: $NOWDIG   ($NREQ required here, floor $FLOOR)"
+      # NAME THE GATES, because antagonist A's second observation on 5.1 was that in the `retired` variant the
+      # departing gate's name appears NOWHERE in this command's output - the ABSENT list is only populated for
+      # state=absent - so the operator was told a set had changed and not which member. A digest that says "something
+      # moved" and will not say what is the "absence is the hardest thing to measure" rule failing at the message.
+      # The register's own rows carry the gate names for every recorded change, so the comparison is against the
+      # names the LAST ROW's digest was computed from - which this tool cannot reconstruct from a hash. What it CAN
+      # do is name every gate whose state is not `required` but which the suite has a row for, and say plainly that
+      # the list is the candidates rather than the diff.
+      LEFTC="$(rows | awk -F'\t' '{gsub(/[ \r]/,"",$1); gsub(/[ \r]/,"",$2); if($2!="required") print "      "$1" (now "$2")"}')"
+      if [ -n "$LEFTC" ]; then
+        echo "    gates NOT in the required set on this tree - the departing gate is one of these:"
+        printf '%s\n' "$LEFTC"
+        echo "    (this is the candidate list, not the diff: a digest cannot be run backwards to the names it came"
+        echo "     from. Compare it against the register's own rows, which name a gate per recorded change.)"
+      fi
+      echo "  The SET of gates this suite requires is not the set the register last recorded, and no row says why."
+      echo "  THE COUNT ALONE WOULD NOT HAVE CAUGHT THIS. A row promoted from absent to required, with a stub"
+      echo "  touched for it, pays for a real gate being de-required: the count is unchanged and the manifest line"
+      echo "  comes out byte-identical to an honest tree's [antagonist A's 5.1 on #467]. The digest is a function of"
+      echo "  the sorted required gate NAMES, so a swap cannot hide in it."
+      echo "  EVERY change to the required set goes through a door that records it:"
+      echo "      CT_BUILD=#NNN CT_RUNID=<runId> gates/gatemanifest.sh sync '<what it covers>'      # a gate arrives"
+      echo "      CT_BUILD=#NNN CT_RUNID=<runId> gates/gatemanifest.sh retire <gate.js> '<why>'     # a gate leaves"
+      echo "  A swap is BOTH, one row each. Adding a gate FILE changes nothing here until sync lists it."
+    fi
     if [ "$NREQ" -lt "$FLOOR" ]; then
       FLOORSUNK=1
       echo "GATE-REQUIRED FLOOR BREACHED - this tree requires FEWER gates than an accepted tree already did:"
@@ -306,8 +448,16 @@ check)
       echo "  fewer required gate and exit 0, so the suite ran and GATES GREEN was emitted over a smaller suite."
       echo "  If the removal is DELIBERATE, it goes through the door that records it, which also lowers the floor:"
       echo "      CT_BUILD=#NNN CT_RUNID=<runId> gates/gatemanifest.sh retire <gate.js> 'why it is going'"
-      echo "  If it is not deliberate, restore the gate. Lowering the floor by hand is not the route: the register"
-      echo "  is append-only and its chain field makes an edited or deleted row a hard failure."
+      echo "  If it is not deliberate, restore the gate - that is the likelier case."
+      # THIS SENTENCE WAS FALSE AND ANTAGONIST B CAUGHT IT. It read: "Lowering the floor by hand is not the route:
+      # the register is append-only and its chain field makes an edited or deleted row a hard failure." APPENDING
+      # is neither editing nor deleting, so the chain had nothing to say, and B hand-appended a `lower` row and got
+      # exit 0. The message asserted a guard that did not exist. What is true is stated instead, and it is true
+      # because the `lower` arm of floorread now enforces both halves of it.
+      echo "  Appending a 'lower' row by hand will not work either, and the reason is specific rather than a claim"
+      echo "  about append-only files: a lowering must be by EXACTLY ONE and must name in field 8 a gate whose"
+      echo "  state in the manifest is 'retired'. So the two files have to agree, and the manifest is where the"
+      echo "  reason lands in the commit diff. One gate leaves per row."
     fi
   fi
 
@@ -316,14 +466,48 @@ check)
   # IS NOW TRUE OF THE FLOOR [#467]: the floor is the one field in this line that is not computed from the tree,
   # so it is the only one a log can be checked against after the fact, which is why it had to go HERE and not
   # into a line of prose above. A log with no floor field is a pre-#467 log and verify-log.sh gates on the era.
-  echo "gate manifest: $NREQ required, $NPRES present, $NMISS missing, $NUNL unlisted, $NABS known-absent, $NRET retired, $NUNJ unjustified, $MALFORMED unreadable, $FLOORTXT floor"
-  { [ -n "$MISSING" ] || [ -n "$UNJUSTIFIED" ] || [ "$MALFORMED" -gt 0 ] || [ -n "$FLOORSUNK" ]; } && exit 1
-  # A floor that cannot be READ is exit 3, not exit 1, and the asymmetry is deliberate and matches how this file
-  # already treats its own missing manifest. A BREACHED floor is positive evidence that the required set shrank:
-  # hard, the suite does not run. An UNREADABLE or ABSENT register is indistinguishable from a stale checkout, so
-  # it does not block a diagnostic run - but it cannot reach main either, because the NOT-CHECKED token above
-  # makes the footer unparseable and verify-log.sh refuses it. Neither route is a pass.
-  [ -n "$FLOORBAD" ] && exit 3
+  # ── ANTAGONIST B's F3, UPHELD. THE ARITHMETIC INVARIANT EXISTED ONLY AT THE PUSH GATE, 44 MINUTES TOO LATE.
+  # gates/verify-log.sh has checked `required == present - unlisted + missing` since #461 and this file never did,
+  # so B got `check` to exit 0 over a tree with a required gate DELETED: remove 26-invariants.js, flip its row to
+  # absent, and append ONE duplicate row for a gate that IS on disk. The line then reads "49 required, 48 present,
+  # 0 missing" - it contradicts itself - and the suite runs its full 44 minutes and emits GATES GREEN before
+  # anything objects. Reproduced by me before fixing. That is exactly the asymmetry gates.sh states three lines
+  # above its call to this script: a suite that cannot be trusted should not spend forty minutes proving it.
+  # HARD, because a line that does not add up means `missing` does not mean what it says, and `missing` is the
+  # whole verdict. Same reasoning as MALFORMED: while it stands, the tool CANNOT KNOW what the suite requires.
+  ARITHBAD=""
+  if [ $(( NPRES - NUNL + NMISS )) -ne "$NREQ" ]; then
+    ARITHBAD=1
+    echo "MANIFEST LINE DOES NOT ADD UP - so 'missing' does not mean what it says:"
+    echo "    required($NREQ) should equal present($NPRES) - unlisted($NUNL) + missing($NMISS) = $(( NPRES - NUNL + NMISS ))"
+    echo "  The usual cause is a DUPLICATE row: two rows naming one gate count twice toward required, which pads"
+    echo "  the count back up over a gate that has actually gone. Check for repeated names:"
+    echo "      gates/gatemanifest.sh list | awk '{print \$1}' | sort | uniq -d"
+    echo "  gates/verify-log.sh has refused logs on this invariant since #461; it is checked HERE now so the"
+    echo "  failure costs you a second rather than a whole suite [antagonist B's F3 on #467]."
+  fi
+  # THE DIGEST GOES IN THE CARRIER LINE TOO, and antagonist A's 5.1 is the reason it has to. A's attack produced
+  # a manifest line BYTE-IDENTICAL to an honest tree's, so the push gate had nothing to read even in principle. With
+  # the digest here, a log records WHICH SET its suite ran over, not just how many - and gates/verify-log.sh can hold
+  # it to a value the register has actually stood at, the same membership test it applies to the floor.
+  REQSETTXT="$NOWDIG"; [ -n "$FLOORBAD" ] && REQSETTXT="NOT-CHECKED"
+  echo "gate manifest: $NREQ required, $NPRES present, $NMISS missing, $NUNL unlisted, $NABS known-absent, $NRET retired, $NUNJ unjustified, $MALFORMED unreadable, $FLOORTXT floor, $REQSETTXT reqset"
+  { [ -n "$MISSING" ] || [ -n "$UNJUSTIFIED" ] || [ "$MALFORMED" -gt 0 ] || [ -n "$FLOORSUNK" ] || [ -n "$ARITHBAD" ]; } && exit 1
+  # THE THREE-WAY SPLIT, AND ANTAGONIST A MOVED THE MIDDLE CASE. A BREACHED floor or a CHANGED required set is
+  # positive evidence that the suite shrank: hard, exit 1, the suite does not run. An ABSENT register (or one with
+  # no rows) is indistinguishable from a stale checkout, so it is exit 3 - it does not block a diagnostic run, and
+  # it cannot reach main either, because the NOT-CHECKED token above makes verify-log.sh refuse the log.
+  # A CORRUPT REGISTER IS NOW HARD TOO, which is A's point and it is right: a BROKEN CHAIN, an indented or
+  # commented-out row, a bad kind or a lowering that does not name a retired gate are none of them "maybe a stale
+  # checkout" - they are a file somebody has written into wrongly, and while one stands this tool CANNOT KNOW what
+  # the suite requires. Exit 3 would have let a ~70-minute suite run and then be refused at the push gate, which is
+  # antagonist B's F9 on #461 (knowable at second two, refused at the push) wearing a new hat, and it contradicts
+  # this file's own argument for making a malformed MANIFEST row hard: it is not a normal occurrence, it cannot
+  # block normal work, and it is one edit to fix.
+  if [ -n "$FLOORBAD" ]; then
+    [ -n "$FLOORABSENT" ] && exit 3
+    exit 1
+  fi
   [ -n "$UNLISTED" ] && exit 2
   exit 0
   ;;
@@ -336,6 +520,7 @@ floor)
   ;;
 sync)
   WHY="${2:-}"; [ -n "$WHY" ] || { echo "usage: gates/gatemanifest.sh sync 'what these gates cover / why they arrived'"; exit 1; }
+  needids
   B="${CT_BUILD:-unknown}"; WHO="${CT_RUNID:-unknown-run}"; AT="$(date -u +%Y-%m-%d)"
   listed="$(rows | cut -f1 | tr -d ' \r' | sort -u)"; n=0
   for g in $(diskgates); do
@@ -373,7 +558,16 @@ PY
     echo "  floor register NOT UPDATED: $FLOORBAD"
     echo "  Fix the register and re-run sync, or the next check will read a floor below what this tree requires."
   elif [ "$NREQNOW" -gt "$FLOOR" ]; then
-    floorwrite "$NREQNOW" raise "${WHY}"
+    floorwrite "$NREQNOW" raise "${WHY}" "-" || exit 1
+  elif [ -n "$FLOORDIG" ] && [ "$FLOORDIG" != "-" ] && [ "$(reqdigest)" != "$FLOORDIG" ]; then
+    # The required SET moved without the count moving, which is antagonist A's 5.1 shape. sync is the arriving
+    # door only; something also LEFT, and that has to go through the leaving door so the register says which gate.
+    echo "  floor register NOT UPDATED, and this tree will not check clean."
+    echo "    the required SET has changed but the COUNT has not ($NREQNOW, floor $FLOOR), so a gate left as this"
+    echo "    one arrived. Retire the one that left, by name, so the register records both halves:"
+    echo "        CT_BUILD=#NNN CT_RUNID=<runId> gates/gatemanifest.sh retire <gate.js> 'why it is going'"
+    echo "    A swap is two rows, one per door. That is what makes the register a record rather than a tally."
+    exit 1
   else
     echo "  floor register unchanged at $FLOOR (this tree requires $NREQNOW)"
   fi
@@ -382,6 +576,7 @@ PY
 retire)
   g="${2:-}"; WHY="${3:-}"
   [ -n "$g" ] && [ -n "$WHY" ] || { echo "usage: gates/gatemanifest.sh retire <gate.js> 'why it is going'"; exit 1; }
+  needids
   ALLROWS="$(rows | cut -f1 | tr -d ' \r')"
   grep -qx "$g" <<<"$ALLROWS" || { echo "no row for $g in $M"; exit 1; }   # herestring; the pipe form made a legitimate retire fail
   if [ -f "$REG/$g" ]; then
@@ -411,8 +606,26 @@ PY
   if [ -n "$FLOORBAD" ]; then
     echo "  floor register NOT UPDATED: $FLOORBAD"
     echo "  The row above IS written. Fix the register before the next suite, or check will read a stale floor."
-  elif [ "$NREQNOW" -lt "$FLOOR" ]; then
-    floorwrite "$NREQNOW" lower "retire $g at ${B#\#} ($WHO): $WHY"
+  elif [ "$NREQNOW" -eq $((FLOOR-1)) ]; then
+    floorwrite "$NREQNOW" lower "retire $g at ${B#\#} ($WHO): $WHY" "$g" || exit 1
+  elif [ "$NREQNOW" -lt $((FLOOR-1)) ]; then
+    # ANTAGONIST B's F1, UPHELD, AND IT IS THE HOLE THAT NEARLY SHIPPED. The first version wrote
+    # `floorwrite "$NREQNOW" lower`, i.e. it dropped the floor to whatever the tree happened to require. So a run
+    # that deleted twenty gates and hand-flipped their rows, then retired ONE of them properly, took the floor
+    # 49 -> 29 at exit 0 - and the route was the one the BREACH MESSAGE ITSELF PRINTS. Measured by B and
+    # reproduced by me before fixing: three gates removed, one retired, floor 49 -> 46, check exit 0, and a
+    # verify-log.sh OK over a 47-section log. The register then permanently carried one row naming one gate and
+    # accounting for three, which is worse than the plain two-field diff #461 left, because it arrives laundered
+    # through this project's own audit anchor looking like due process.
+    # ONE GATE LEAVES PER ROW. Retire each one, so the register's row count IS the number of retirements.
+    echo "  FLOOR NOT LOWERED, and this retirement is not finished."
+    echo "    floor $FLOOR, this tree requires $NREQNOW, so $((FLOOR-NREQNOW)) gate(s) have left the required set"
+    echo "    and you have retired ONE. A lowering is by exactly one, so the register's row count is the number"
+    echo "    of retirements and cannot be made to stand for more."
+    echo "  The manifest row for $g IS written. Retire the other $((FLOOR-NREQNOW-1)) by name as well:"
+    rows | awk -F'\t' -v reg="$REG" '{gsub(/[ \r]/,"",$1); gsub(/[ \r]/,"",$2); if(($2=="absent"||$2=="retired") && system("[ -f \""reg"/"$1"\" ]")!=0) print "      gates/gatemanifest.sh retire "$1" '"'"'why it is going'"'"'"}' | sed -n '1,8p'
+    echo "  If those gates should NOT be leaving, restore them instead - that is the likelier case."
+    exit 1
   else
     echo "  floor register unchanged at $FLOOR (this tree requires $NREQNOW)"
   fi
@@ -494,7 +707,12 @@ PY
   ck 1 "retire refuses while the gate is still on disk" "$T/gatemanifest.sh" retire 26-invariants.js "testing"
   # 9. retire works once the file is gone, and the row SURVIVES carrying the reason.
   rm -f "$T/regress/26-invariants.js"
-  ck 0 "retire works once the gate is gone" "$T/gatemanifest.sh" retire 26-invariants.js "selftest reason"
+  # CT_BUILD AND CT_RUNID ADDED AT #467. This case called retire bare, which is exactly what this file's header
+  # has said since #461 (antagonist B's F8) produces an UNATTRIBUTED row - the documented happy path writing a
+  # worse row than the tool can write, which is #454's own tell. #467 makes both writing doors REFUSE without them
+  # rather than warn, because the floor register is append-only and an 'unknown-run' row in it is permanent. So the
+  # case now exercises the path a run is actually told to use. The assertion is unchanged; only the invocation is.
+  ck 0 "retire works once the gate is gone" env CT_BUILD=#467 CT_RUNID=selftest "$T/gatemanifest.sh" retire 26-invariants.js "selftest reason"
   if grep -q 'RETIRED at .*selftest reason' "$T/gate-manifest.tsv" && grep -qc '26-invariants' "$T/gate-manifest.tsv"; then
     echo "PASS selftest: the retired row stays in the file, carrying its reason"; pass=$((pass+1))
   else echo "FAIL selftest: the retired row did not keep its reason"; fail=$((fail+1)); fi
@@ -577,8 +795,15 @@ PY5
   else echo "FAIL selftest: a commented-out row was not reported"; fail=$((fail+1)); fi
 
   # ── #467. THE FLOOR CASES. jobs/nothing-ratchets-the-manifests-required-count... ────────────────────────────
-  # The filed case names THREE inputs and they are 20, 21 and 22 below. The rest are the holes I went looking for
-  # once the first three passed, which is the part the job could not specify in advance.
+  # THE FILED CASE NAMES THREE INPUTS. They are the cases labelled `# 20.`, `# 21.` and `# 22.` BELOW - SOURCE
+  # LABELS, not PASS-line ordinals, and saying which scheme is the whole point of this sentence. Antagonist A
+  # measured that #467's commit message called them 21/22/24 (correct by PASS-line ordinal, because three cases
+  # emit two PASS lines each) while this comment called them 20/21/22 (correct by source label): both right under
+  # their own scheme, neither saying which, 300 lines apart in one build. That is CLAUDE.md's "a count with no
+  # scope cannot be checked", and the #461 note about a control count that "DRIFTED ACROSS THREE DOCUMENTS IN ONE
+  # BUILD". Every case reference in this file is a SOURCE LABEL. The authority for the TOTAL remains the command's
+  # own last line. The rest below are holes found after the filed three passed, which is the part the job could
+  # not specify in advance.
   resetT
   # 20. INPUT 1 of the filed case: a tree at the recorded floor is accepted.
   ck 0 "a tree whose required count equals the floor checks clean" "$T/gatemanifest.sh" check
@@ -618,18 +843,37 @@ PYF1
   else echo "FAIL selftest: an absent register did not reach the summary line"; fail=$((fail+1)); fi
   mv "$T/floor.hidden" "$T/gate-required-floor.tsv"
   # 25. THE CHAIN. Deleting an INTERIOR row is the attack the chain field exists for, and it needs no git.
+  # THE FIXTURE BUILDS ITS OWN THREE ROWS, and antagonist A's non-veto note is why. It used to carry
+  # `assert len(rows)>=3` and rely on earlier cases having left three rows behind: when that precondition tripped,
+  # python died, the case reported "a broken chain was not reported", and the REAL cause - the fixture could not be
+  # built - appeared nowhere. A measured exactly that on a weakened tree: 31/4, with two of the four failing for
+  # reasons other than their subject. This file's own resetT comment says a control that fails for a reason other
+  # than its subject is not a failing control but an unreadable one, so the fixture no longer depends on history:
+  # it syncs twice to make three rows, which also exercises the writer rather than hand-forging the chain.
+  resetT
+  : > "$T/regress/98-x1.js"; CT_BUILD=#467 CT_RUNID=selftest "$T/gatemanifest.sh" sync 'first extra' >/dev/null 2>&1
+  : > "$T/regress/98-x2.js"; CT_BUILD=#467 CT_RUNID=selftest "$T/gatemanifest.sh" sync 'second extra' >/dev/null 2>&1
+  nrows=$(grep -vc '^[[:space:]]*#' "$T/gate-required-floor.tsv" || true)
+  if [ "${nrows:-0}" -lt 3 ]; then
+    echo "FAIL selftest: FIXTURE could not be built - wanted 3 floor rows, got ${nrows:-0}. The interior-deletion"
+    echo "      case did not run, and that is a fixture failure, NOT a verdict about the chain check."
+    fail=$((fail+1))
+  else
   python3 - "$T/gate-required-floor.tsv" <<'PYF2'
 import sys
 p=sys.argv[1]; ls=open(p).read().split("\n")
 rows=[i for i,l in enumerate(ls) if l and not l.lstrip().startswith("#")]
-assert len(rows)>=3, "need >=3 rows for the interior-deletion case"
 del ls[rows[1]]
 open(p,'w').write("\n".join(ls))
 PYF2
-  ck 3 "a DELETED INTERIOR floor row breaks the chain and is NOT CHECKED, not a pass" "$T/gatemanifest.sh" check
+  # EXIT 1, NOT 3, FROM #467's SECOND PASS [antagonist A]. A corrupt register is positive evidence somebody wrote
+  # into the file wrongly, not a maybe-stale checkout, so it is HARD and the suite does not run. Only an ABSENT
+  # register (or one with no rows) stays at 3. The verdict changed deliberately; the assertion is not weakened.
+  ck 1 "a DELETED INTERIOR floor row breaks the chain and is HARD" "$T/gatemanifest.sh" check
   out="$("$T/gatemanifest.sh" check 2>&1)"
   if grep -q 'BROKEN CHAIN' <<<"$out"; then echo "PASS selftest: the broken chain is named"; pass=$((pass+1))
   else echo "FAIL selftest: a broken chain was not reported"; fail=$((fail+1)); fi
+  fi
   # 26. A COMMENTED-OUT floor row is a hidden lowering - antagonist A's door 6, at the second file.
   resetT; : > "$T/regress/98-extra-gate.js"
   CT_BUILD=#467 CT_RUNID=selftest "$T/gatemanifest.sh" sync 'selftest extra gate again' >/dev/null 2>&1
@@ -640,30 +884,195 @@ rows=[i for i,l in enumerate(ls) if l and not l.lstrip().startswith("#")]
 ls[rows[-1]]="#"+ls[rows[-1]]
 open(p,'w').write("\n".join(ls))
 PYF3
-  ck 3 "a COMMENTED-OUT floor row is a hidden lowering, reported not ignored" "$T/gatemanifest.sh" check
-  # 27. A `lower` row with a one-character reason is refused. #461 made a MISSING reason hard and antagonist A
-  #     measured that the bar then became "say something", which `x` satisfies. Here it does not.
+  ck 1 "a COMMENTED-OUT floor row is a hidden lowering, and is HARD" "$T/gatemanifest.sh" check
+  # 27. A `lower` row that names NO GATE in field 8 is refused. This replaces #467's first-version case, which
+  #     tested a 12-character length bar on the reason - an instrument antagonist B showed was wrong in both
+  #     directions, so it was removed rather than tuned. The structural test is what stands.
   resetT
-  printf '48\t49\tlower\t2026-10-02\t467\tselftest\tx\n' >> "$T/gate-required-floor.tsv"
-  ck 3 "a 'lower' row with a one-character reason is refused" "$T/gatemanifest.sh" check
-  # 28. A `raise` row that does not raise is refused - the arithmetic must mean what the kind says.
+  printf '48\t49\tlower\t2026-10-02\t467\tselftest\tdropping the brilliancy gate\n' >> "$T/gate-required-floor.tsv"
+  ck 1 "a 'lower' row naming no gate in field 8 is refused (hard)" "$T/gatemanifest.sh" check
+  # 28. ANTAGONIST B's F2, THE HAND-APPENDED `lower` ROW. Appending is neither editing nor deleting, so the chain
+  #     field had nothing to say about it and the first version accepted it at exit 0 - while the breach message
+  #     claimed hand-lowering would not work. Now the row must name a gate the MANIFEST records as `retired`.
+  resetT; rm -f "$T/regress/21-review-brilliant.js"
+  python3 - "$T/gate-manifest.tsv" <<'PYF4'
+import sys
+p=sys.argv[1]; ls=open(p).read().split("\n")
+for i,l in enumerate(ls):
+    if l.startswith("21-review-brilliant.js\t"):
+        f=l.split("\t"); f[1]="absent"; f[6]="not on this tree"; ls[i]="\t".join(f)
+open(p,'w').write("\n".join(ls))
+PYF4
+  printf '48\t49\tlower\t2026-10-02\t467\tselftest\tdropping the brilliancy gate\t21-review-brilliant.js\n' >> "$T/gate-required-floor.tsv"
+  ck 1 "a hand-appended 'lower' whose gate is 'absent' and not 'retired' in the manifest is refused (hard)" "$T/gatemanifest.sh" check
+  out="$("$T/gatemanifest.sh" check 2>&1)"
+  if grep -q "not 'retired'" <<<"$out"; then echo "PASS selftest: the refusal names the manifest state it found instead"; pass=$((pass+1))
+  else echo "FAIL selftest: the two-file disagreement was not named"; fail=$((fail+1)); fi
+  # 29. ANTAGONIST B's F1, THE VETO. `retire` must lower by EXACTLY ONE and REFUSE when more than one gate has
+  #     left, naming the others. The first version lowered the floor to whatever the tree required, so three
+  #     removals plus one retire took the floor 49 -> 46 at exit 0, and twenty removals took it to 29.
   resetT
-  printf '40\t49\traise\t2026-10-02\t467\tselftest\tthis does not raise anything at all\n' >> "$T/gate-required-floor.tsv"
-  ck 3 "a 'raise' row that lowers the floor is refused" "$T/gatemanifest.sh" check
-  # 29. A row appended with NO TRAILING NEWLINE must still be read. This file shape has eaten this bug twice
-  #     before (verify-log.sh guard (i) on held-trees.tsv, the disabled-row loop above), and a raise that is
-  #     invisible silently UN-DOES itself.
+  for g in 21-review-brilliant.js 26-invariants.js 47-menu.js; do
+    rm -f "$T/regress/$g"
+    python3 - "$T/gate-manifest.tsv" "$g" <<'PYF5'
+import sys
+p,g=sys.argv[1],sys.argv[2]; ls=open(p).read().split("\n")
+for i,l in enumerate(ls):
+    if l.startswith(g+"\t"):
+        f=l.split("\t"); f[1]="absent"; f[6]="not on this tree"; ls[i]="\t".join(f)
+open(p,'w').write("\n".join(ls))
+PYF5
+  done
+  ck 1 "three gates de-required is a breach before any retire" "$T/gatemanifest.sh" check
+  out="$(CT_BUILD=#467 CT_RUNID=selftest "$T/gatemanifest.sh" retire 21-review-brilliant.js 'superseded, see the job' 2>&1)"; rc=$?
+  if [ "$rc" -ne 0 ] && grep -q 'FLOOR NOT LOWERED' <<<"$out" && grep -q '26-invariants' <<<"$out"; then
+    echo "PASS selftest: retire REFUSES to account for three removals with one row, and names the others (exit $rc)"; pass=$((pass+1))
+  else echo "FAIL selftest: one retire still absorbed three removals (exit $rc)"; echo "$out" | sed 's/^/      /' | tail -6; fail=$((fail+1)); fi
+  ck 1 "and the tree is STILL a breach afterwards, so no green is reachable" "$T/gatemanifest.sh" check
+  # 30. THE FLOOR STILL READS 49 AFTER THAT ATTEMPT - the register was not written at all.
+  out="$("$T/gatemanifest.sh" floor 2>&1)"
+  if grep -q 'floor: 49' <<<"$out"; then echo "PASS selftest: the refused retire wrote NO floor row (still 49)"; pass=$((pass+1))
+  else echo "FAIL selftest: the refused retire wrote a row anyway ($out)"; fail=$((fail+1)); fi
+  # 31. AND THE LEGITIMATE ROUTE STILL WORKS, one gate at a time. If this is red the guard deadlocks and gets
+  #     switched off, which is the failure mode that matters more than any attack.
+  resetT; rm -f "$T/regress/21-review-brilliant.js"
+  CT_BUILD=#467 CT_RUNID=selftest "$T/gatemanifest.sh" retire 21-review-brilliant.js 'superseded, see the job' >/dev/null 2>&1
+  ck 0 "ONE removal plus ONE retire is clean, and the floor is 48" "$T/gatemanifest.sh" check
+  out="$("$T/gatemanifest.sh" floor 2>&1)"
+  if grep -q 'floor: 48' <<<"$out"; then echo "PASS selftest: the legitimate retire lowered the floor by exactly one"; pass=$((pass+1))
+  else echo "FAIL selftest: the legitimate retire did not lower the floor ($out)"; fail=$((fail+1)); fi
+  # 32. ANTAGONIST B's F3, THE ARITHMETIC INVARIANT. A DUPLICATE row pads `required` back up over a deleted gate,
+  #     so the line reads "49 required, 48 present, 0 missing" - contradicting itself - and the first version
+  #     exited 0, letting the suite spend 44 minutes and emit GATES GREEN. verify-log.sh had this since #461;
+  #     this file did not.
+  resetT; rm -f "$T/regress/26-invariants.js"
+  python3 - "$T/gate-manifest.tsv" <<'PYF6'
+import sys
+p=sys.argv[1]; ls=open(p).read().split("\n")
+for i,l in enumerate(ls):
+    if l.startswith("26-invariants.js\t"):
+        f=l.split("\t"); f[1]="absent"; f[6]="not on this tree"; ls[i]="\t".join(f)
+open(p,'w').write("\n".join(ls))
+open(p,'a').write("10-gameover.js\trequired\t467\t2026-10-02\tselftest\tpadding\t-\n")
+PYF6
+  ck 1 "a DUPLICATE row padding `required` over a deleted gate is a hard failure" "$T/gatemanifest.sh" check
+  out="$("$T/gatemanifest.sh" check 2>&1)"
+  if grep -q 'DOES NOT ADD UP' <<<"$out" && grep -q 'uniq -d' <<<"$out"; then
+    echo "PASS selftest: the arithmetic failure is named AND the duplicate-row remedy is printed"; pass=$((pass+1))
+  else echo "FAIL selftest: the arithmetic contradiction was not reported"; fail=$((fail+1)); fi
+  # 33. ANTAGONIST B's F4. The append-only register must never carry `unknown-run`. Both writing doors refuse.
+  resetT; : > "$T/regress/98-extra-gate.js"
+  out="$(env -u CT_RUNID -u CT_BUILD "$T/gatemanifest.sh" sync 'covers the new thing' 2>&1)"
+  # The expected string changed with the fix and this control caught the drift rather than hiding it: the refusal
+  # moved from inside floorwrite (after the manifest was already written) to a guard at the top of the command, so
+  # the wording moved with it. Asserting the BEHAVIOUR - a non-zero exit and nothing written - rather than only the
+  # old sentence, so the next person to move the message does not have to find this line.
+  if [ -n "$out" ] && grep -q 'CT_BUILD and CT_RUNID' <<<"$out" && ! grep -q '98-extra-gate.js' "$T/gate-manifest.tsv"; then
+    echo "PASS selftest: sync REFUSES before touching either file when CT_BUILD/CT_RUNID are unset"; pass=$((pass+1))
+  else echo "FAIL selftest: sync wrote something with no CT_RUNID"; echo "$out" | sed 's/^/      /'; fail=$((fail+1)); fi
+  # SCOPED TO ROWS, NOT TO THE FILE. The first version grepped the whole file and went red against a clean
+  # register, because this file's own HEADER now contains the words "unknown / unknown-run fallback" while
+  # describing the defect. A control that reads documentation and reports it as data is CLAUDE.md's "a bad
+  # selector is a reading" at the cheapest possible scale, and it went red the one time it ran.
+  if ! grep -v '^[[:space:]]*#' "$T/gate-required-floor.tsv" | grep -qE 'unknown-run'; then
+    echo "PASS selftest: and no 'unknown-run' row reached the register"; pass=$((pass+1))
+  else echo "FAIL selftest: an 'unknown-run' row is in the append-only register"; fail=$((fail+1)); fi
+  # 34. A `raise` row that does not raise is refused - the arithmetic must mean what the kind says.
+  resetT
+  printf '40\t49\traise\t2026-10-02\t467\tselftest\tthis does not raise anything at all\t-\n' >> "$T/gate-required-floor.tsv"
+  ck 1 "a 'raise' row that lowers the floor is refused (hard)" "$T/gatemanifest.sh" check
+  # 35. A `lower` row that drops by MORE than one is refused even when it names a retired gate - the "exactly one"
+  #     rule is what makes the register's row count the number of retirements.
+  resetT; rm -f "$T/regress/21-review-brilliant.js"
+  CT_BUILD=#467 CT_RUNID=selftest "$T/gatemanifest.sh" retire 21-review-brilliant.js 'superseded, see the job' >/dev/null 2>&1
+  printf '45\t48\tlower\t2026-10-02\t467\tselftest\tdropping several at once\t21-review-brilliant.js\n' >> "$T/gate-required-floor.tsv"
+  ck 1 "a 'lower' row dropping more than one is refused even with a named retired gate (hard)" "$T/gatemanifest.sh" check
+  # 36. A row appended with NO TRAILING NEWLINE must still be read. This file shape has eaten this bug three times
+  #     in this project; a raise that is invisible silently UN-DOES itself.
   resetT; : > "$T/regress/98-extra-gate.js"
   CT_BUILD=#467 CT_RUNID=selftest "$T/gatemanifest.sh" sync 'selftest no-newline case' >/dev/null 2>&1
   printf '%s' "$(cat "$T/gate-required-floor.tsv")" > "$T/floor.nonl" && mv "$T/floor.nonl" "$T/gate-required-floor.tsv"
   out="$("$T/gatemanifest.sh" floor 2>&1)"
   if grep -q 'floor: 50' <<<"$out"; then echo "PASS selftest: a final row with no trailing newline is still read"; pass=$((pass+1))
   else echo "FAIL selftest: the last floor row was lost without a trailing newline (got: $out)"; fail=$((fail+1)); fi
-  # 30. AND THE WRITER MUST NOT CORRUPT SUCH A FILE: appending to a file with no trailing newline must not join
-  #     two rows into one. This is the mirror of 29 and it is the bug 29's guard would otherwise create.
+  # 37. AND THE WRITER MUST NOT CORRUPT SUCH A FILE: appending must not join two rows into one.
   rm -f "$T/regress/98-extra-gate.js"
-  CT_BUILD=#467 CT_RUNID=selftest "$T/gatemanifest.sh" retire 98-extra-gate.js 'selftest: appending to a file with no final newline' >/dev/null 2>&1
+  CT_BUILD=#467 CT_RUNID=selftest "$T/gatemanifest.sh" retire 98-extra-gate.js 'appending after a newline-less row' >/dev/null 2>&1
   ck 0 "appending after a newline-less row does not join two rows" "$T/gatemanifest.sh" check
+
+  # ── ANTAGONIST A's VETO CASES, #467. Both reproduce A's measurement and both were live before these fixes.
+  # 38. A's 5.2: ONE LEADING SPACE made a row invisible to the replay, with no FLOORBAD - so a raise could be
+  #     un-done and the gates it paid for de-required, at exit 0, bypassing every structural test rather than
+  #     defeating one. The `#` form of the same attack was already caught, which is what made this worth a veto.
+  resetT; : > "$T/regress/98-extra-gate.js"
+  CT_BUILD=#467 CT_RUNID=selftest "$T/gatemanifest.sh" sync 'selftest indent case' >/dev/null 2>&1
+  python3 - "$T/gate-required-floor.tsv" <<'PYF7'
+import sys
+p=sys.argv[1]; ls=open(p).read().split("\n")
+rows=[i for i,l in enumerate(ls) if l and not l.lstrip().startswith("#")]
+ls[rows[-1]]=" "+ls[rows[-1]]
+open(p,'w').write("\n".join(ls))
+PYF7
+  ck 1 "an INDENTED floor row is HARD, not silently skipped [A's 5.2]" "$T/gatemanifest.sh" check
+  out="$("$T/gatemanifest.sh" check 2>&1)"
+  if grep -q 'INDENTED' <<<"$out"; then echo "PASS selftest: the indented row is named"; pass=$((pass+1))
+  else echo "FAIL selftest: an indented row was not reported"; fail=$((fail+1)); fi
+  # 39. AND A GENUINELY BLANK LINE MUST STILL BE IGNORED. My first fix for 38 broke this, turning a line of spaces
+  #     into "unreadable floor row (no tab)" and exit 3 - a guard that fires on the normal case gets switched off.
+  resetT; printf '\n   \n\t\n  \t \n' >> "$T/gate-required-floor.tsv"
+  ck 0 "blank and whitespace-only lines are still ignored" "$T/gatemanifest.sh" check
+  # 40. A's 5.1, THE DEEPEST ONE: the floor guarded the COUNT, so promoting a known-absent row and touching a stub
+  #     paid for a real gate being de-required. The count, the floor and EVERY OTHER FIELD of the carrier line came
+  #     out byte-identical to an honest tree's, and verify-log.sh returned OK. The required-SET digest closes it.
+  resetT
+  : > "$T/regress/50-drill-verdict-no-jump.js"; rm -f "$T/regress/21-review-brilliant.js"
+  python3 - "$T/gate-manifest.tsv" <<'PYF8'
+import sys
+p=sys.argv[1]; ls=open(p).read().split("\n")
+for i,l in enumerate(ls):
+    if l.startswith("50-drill-verdict-no-jump.js\t"):
+        f=l.split("\t"); f[1]="required"; ls[i]="\t".join(f)
+    if l.startswith("21-review-brilliant.js\t"):
+        f=l.split("\t"); f[1]="absent"; f[6]="moved to the drill suite, see job Y"; ls[i]="\t".join(f)
+open(p,'w').write("\n".join(ls))
+PYF8
+  ck 1 "a SWAP at constant count and constant floor is a hard failure [A's 5.1]" "$T/gatemanifest.sh" check
+  out="$("$T/gatemanifest.sh" check 2>&1)"
+  if grep -q 'REQUIRED-SET DIGEST CHANGED' <<<"$out"; then echo "PASS selftest: the swap is caught by the SET digest, which the count cannot see"; pass=$((pass+1))
+  else echo "FAIL selftest: the swap was not caught"; fail=$((fail+1)); fi
+  # 41. AND THE CARRIER LINE MUST DIFFER, or the push gate has nothing to read even in principle - which was the
+  #     whole force of A's finding. Measured as a string comparison against the honest tree's line.
+  honest="$(resetT; "$T/gatemanifest.sh" check 2>/dev/null | grep -m1 '^gate manifest:')"
+  resetT; : > "$T/regress/50-drill-verdict-no-jump.js"; rm -f "$T/regress/21-review-brilliant.js"
+  python3 - "$T/gate-manifest.tsv" <<'PYF9'
+import sys
+p=sys.argv[1]; ls=open(p).read().split("\n")
+for i,l in enumerate(ls):
+    if l.startswith("50-drill-verdict-no-jump.js\t"):
+        f=l.split("\t"); f[1]="required"; ls[i]="\t".join(f)
+    if l.startswith("21-review-brilliant.js\t"):
+        f=l.split("\t"); f[1]="absent"; f[6]="moved to the drill suite, see job Y"; ls[i]="\t".join(f)
+open(p,'w').write("\n".join(ls))
+PYF9
+  attacked="$("$T/gatemanifest.sh" check 2>/dev/null | grep -m1 '^gate manifest:')"
+  if [ -n "$honest" ] && [ "$honest" != "$attacked" ]; then
+    echo "PASS selftest: the carrier line DIFFERS on a swapped set (it was byte-identical before #467's digest)"; pass=$((pass+1))
+  else echo "FAIL selftest: the carrier line is still byte-identical on a swapped set"; fail=$((fail+1)); fi
+  # 42. A SWAP THROUGH sync ALONE IS REFUSED, so the legitimate route for a swap is both doors, one row each.
+  resetT
+  : > "$T/regress/50-drill-verdict-no-jump.js"; rm -f "$T/regress/21-review-brilliant.js"
+  python3 - "$T/gate-manifest.tsv" <<'PYFA'
+import sys
+p=sys.argv[1]; ls=open(p).read().split("\n")
+for i,l in enumerate(ls):
+    if l.startswith("21-review-brilliant.js\t"):
+        f=l.split("\t"); f[1]="absent"; f[6]="moved to the drill suite, see job Y"; ls[i]="\t".join(f)
+open(p,'w').write("\n".join(ls))
+PYFA
+  out="$(CT_BUILD=#467 CT_RUNID=selftest "$T/gatemanifest.sh" sync 'the drill gate arrives' 2>&1)"; rc=$?
+  if [ "$rc" -ne 0 ] && grep -q 'required SET has changed but the COUNT has not' <<<"$out"; then
+    echo "PASS selftest: sync REFUSES a swap and sends you to the leaving door (exit $rc)"; pass=$((pass+1))
+  else echo "FAIL selftest: sync accepted a swap at constant count (exit $rc)"; echo "$out" | sed 's/^/      /' | tail -5; fail=$((fail+1)); fi
   resetT
 
   echo "selftest: $pass passed, $fail failed"
