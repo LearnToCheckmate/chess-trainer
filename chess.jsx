@@ -2435,6 +2435,13 @@ export default function App(){
   const [timeCtrl,setTimeCtrl]=useState(null);      // null | {label,init,inc}
   const [playSetup,setPlaySetup]=useState(false);   // pre-game setup screen shown when entering Play
   const [soonMsg,setSoonMsg]=useState('');   // 'coming soon' note for Play-with-friends / Tournaments tiles
+  /* #466, ON ANTAGONIST B'S VETO: WHERE THE POSITION CAME FROM, because the remedy sentence is only true for
+     one of the two sources. The terminal note used to tell EVERY blocked player to "step back a move in your
+     review"; a player who photographed a finished board has no review and never had one, so the one
+     instruction on screen named a screen they were never on and an action they could not perform. The scan's
+     only upstream validation is one K and one k (see the scan handler), so a photo of a mated board reaches
+     here. 'review' is the default because two of the three setters are review routes. */
+  const [setupSrc,setSetupSrc]=useState('review');
   const [setupFromFEN,setSetupFromFEN]=useState(null); // when set, the next game starts from this position (e.g. "Play from here" in Review)
   const [scanBusy,setScanBusy]=useState(false);
   const [scanMsg,setScanMsg]=useState('');
@@ -2799,6 +2806,42 @@ export default function App(){
   useEffect(()=>{const el=noteInnerRef.current;if(!el){setNoteOver(false);return;}try{el.scrollTop=0;}catch(e){}const over=el.scrollHeight>el.clientHeight+1;setNoteOver(over);if(!over)setNoteOpen(false);},[demoPly,openMsg,curNote,learnPhase,openIdx,mode,vw]); /* #375: the note box scrolls, and a tap opens the whole note - it used to drop its last line for good */
   useEffect(()=>{setNoteOpen(false);},[openIdx,learnPhase]);
 
+  /* #466 (jobs/play-from-here-at-a-terminal-ply-starts-a-lost-game-2026-09-27): A GAME MUST NEVER START IN A
+     POSITION THAT IS ALREADY OVER. MEASURED on the shipped #465 bundle (89bfb96fb381) at 375x730: from the last
+     ply of 1.f3 e5 2.g4 Qh4#, the review's "⋯ -> Play from here -> ▶ Play this position" route opened a REAL
+     game reading "Checkmate! / You lose" with 0 plies and Rematch already offered, and wrote ct_elo down from
+     800 to 750 - so an instant loss the player never played moved the computer's adaptive strength permanently,
+     in localStorage, not just on screen. The setup sheet's banner was BYTE-IDENTICAL to a non-terminal ply's, so
+     nothing on screen distinguished "continue this position" from "start a position with no legal move".
+     WHY THE GUARD IS HERE AND NOT AT THE BUTTONS, with the count rather than an impression [R06/R07]: six call
+     sites touch setupFromFEN - THREE set it from a position (the board scan, the review ⋯ sheet, the review
+     summary's row button) and THREE clear it (the Home Play tile, the committer below, the tab bar) - and all
+     three setters funnel through the setup sheet's confirm button below, which is the only place a setupFromFEN
+     becomes a game. That is #439's lesson, where guarding the call sites missed the one that reached the
+     committer through a helper.
+     THE WHOLE CLASS IS WIDER THAN setupFromFEN AND WAS COUNTED: the predicate is "a place that starts a game
+     from a position that is not the initial one", i.e. fullReset(<a position>). There are THREE - this
+     committer, the lesson practice sheet, and a `_play(fen,col)` helper in the preview-gallery block. The third
+     is UNREACHABLE: the identifier `_play` occurs exactly once in this file, its own definition, and is called
+     zero times, so it is dead code and is left rather than guarded (filed, not deleted here, to keep this diff
+     to the defect). Said as a measurement because a count that excuses a site has to name why.
+     The lesson practice sheet is the single route that bypasses this sheet (it calls fullReset directly) and is
+     guarded at its own button, on `isOver`, which asks this same question of the board. */
+  const terminalFEN=(fen)=>{if(!fen)return null;try{const g=fromFEN(fen);const st=getStatus(g);return (st==='checkmate'||st==='stalemate')?st:null;}catch(e){return null;}};
+  const setupTerminal=useMemo(()=>terminalFEN(setupFromFEN),[setupFromFEN]);
+  /* #466, ON ANTAGONIST B'S VETO: THE NOTE AND THE BUTTON MUST READ ONE EXPRESSION, NOT TWO. The first version
+     gated the warning on `setupTerminal` alone and the button on `setupTerminal && opponent!=='online'`, so
+     tapping the Online pill on the opponent row - one tap from the screen the gate ends on, and it does NOT
+     clear setupFromFEN - put the amber "there is no move to play from it" directly above a full-brightness
+     ENABLED primary button reading "Continue -> ". Nothing started a phantom game there (the online arm never
+     calls fullReset and clears setupFromFEN in the same handler) so it was incoherence rather than a
+     recurrence, which is exactly why one expression is the fix and a second condition is not.
+     AND THE COMMENT I HAD WRITTEN TO JUSTIFY THE EXEMPTION WAS FALSE, which is worse than the gap [R18]: it
+     read "the online arm is exempt because it never carries a setupFromFEN", and the review route is the ONLY
+     thing that produces a non-null setupFromFEN, so the online arm carries one whenever the player switches to
+     it from there. Withdrawn here. The exemption survives on its real reason - the online arm does not play the
+     FEN - and it is now in one place where the note cannot disagree with the button. */
+  const setupBlocked=!!setupTerminal&&opponent!=='online';
   const status=useMemo(()=>getStatus(boardGame),[boardGame]);
   const isOver=status==='checkmate'||status==='stalemate';
   /* #437: `isOver` answers "is the position ON THE BOARD a terminal one", because `status` reads boardGame,
@@ -3276,6 +3319,26 @@ export default function App(){
   // Adaptive Elo — adjust once when a vs-Computer game ends
   useEffect(()=>{
     if(mode!=='play'||opponent!=='computer')return;
+    /* #466: A BOARD ENDING THE PLAYER DID NOT PLAY WAS NOT EARNED, and the instrument matters more than the
+       test. Measured on #465: starting from a mated FEN took cpuElo 800 -> 750 and PERSISTED it to ct_elo.
+       A resign or a flag at move 0 IS a real player action and still scores, because those endings arrive
+       through `playEnd` rather than through the board's own status - #434 measured that very case (vs Pip,
+       resign at move 0), which is why this is not a blanket "0 plies".
+       MY FIRST VERSION READ `(game.history||[]).length` AND ANTAGONIST A BROKE IT, with a route I had not
+       counted and the class sweep had not found: Discover -> an endgame lesson that ends in mate (11 of 16
+       ENDGAMES and 4 of MORE do; "Back-Rank Mate" is a single move Ra8#) -> practice -> play the mate -> the
+       lesson's own close button -> the Play tab. The practice branch of doMove never writes playHist, and the
+       Play tab sets mode without a fullReset, so this effect woke with `game` mated, game.history.length 1 and
+       playHist EMPTY, and moved the strength SILENTLY - the setup sheet is up, so eloMsg is never seen. Six
+       taps from a cold load, pre-existing, and my first guard sailed straight past it.
+       THE INSTRUMENT: `game.history` is the history of the POSITION and travels with any board handed in;
+       `playHist` is the history of THIS game, which fullReset clears and which learn mode never writes. The
+       file's own draw detector already uses playHist for exactly this reason, eight lines above. The invariant
+       `game.history.length === playHist.length` holds BY CONSTRUCTION for every game started through
+       fullReset - initGame and fromFEN both return history [] against a cleared playHist, and the takeback at
+       truncates both to the same index - and is violated ONLY by an inherited board. Verified against all five
+       setPlayHist sites before being trusted, not taken from the report. */
+    if(!playEnd&&!(playHist.length&&(game.history||[]).length===playHist.length))return;
     const st=getStatus(game);let winner=null,draw=false;
     if(playEnd){if(playEnd.reason==='draw')draw=true;else winner=playEnd.winner;}
     else if(st==='checkmate')winner=opp(game.turn);
@@ -3285,7 +3348,7 @@ export default function App(){
     if(draw){setEloMsg('Draw — strength stays ~'+cpuElo+' Elo');return;}
     const ne=Math.max(ELO_MIN,Math.min(ELO_MAX,cpuElo+(winner===pColor?50:-50)));
     if(ne!==cpuElo){setCpuElo(ne);setEloMsg((winner===pColor?'▲ ':'▼ ')+'Strength now ~'+ne+' Elo');}
-  },[game,playEnd,mode,opponent,pColor,cpuElo]);
+  },[game,playEnd,mode,opponent,pColor,cpuElo,playHist]);
 
   useEffect(()=>{if(mode==='play'&&opponent==='computer')setFlip(pColor==='b');},[pColor,opponent,mode]);
   useEffect(()=>{if(mode==='play'&&opponent==='human'&&!playEnd)setFlip(game.turn==='b');},[game.turn,opponent,mode,playEnd]);
@@ -4171,7 +4234,7 @@ export default function App(){
         let g=null; try{ g=fromFEN(fen); }catch(e){ g=null; }
         if(!g){ setScanBusy(false); setScanMsg('The scan came back unreadable. Try another photo.'); return; }
         setScanBusy(false); setScanMsg('');
-        setSetupFromFEN(fen); setOpponent('computer'); setPColor(g.turn); setTimeCtrl(null); timeCtrlRef.current=null; setOpenIdx(null); setMode('play'); setHomeScreen(false); setPlaySetup(true);
+        setSetupFromFEN(fen); setSetupSrc('scan'); setOpponent('computer'); setPColor(g.turn); setTimeCtrl(null); timeCtrlRef.current=null; setOpenIdx(null); setMode('play'); setHomeScreen(false); setPlaySetup(true);
       }catch(e){
         setScanBusy(false);
         /* #392 (scan-board-cloud-function-never-deployed): DO NOT TELL SOMEONE TO TRY AGAIN AT SOMETHING THAT
@@ -4925,7 +4988,7 @@ export default function App(){
         <div style={{display:'flex',justifyContent:'center',marginBottom:10}}><EvalGraph analysis={review.analysis} plies={review.plies} ply={ply} onJump={(p)=>{setPly(Math.max(0,Math.min(review.plies.length,p)));setRevMore(false);}} width={Math.min(boardPx,400)} height={62}/></div>
         <_SheetItem icon="hint" label={showBest?'Hide best move':'Show best move'} on={()=>{setShowBest(b=>!b);setRevMore(false);}}/>
         <_SheetItem icon="draw" label={engOn?'Engine line: on':'Analyze with the engine'} on={()=>{setEngOn(o=>!o);setRevMore(false);}}/>
-        <_SheetItem icon="forward" label="Play from here" on={()=>{setRevMore(false);setSetupFromFEN(toFEN(boardGame));setOpponent('computer');setPColor(boardGame.turn);setTimeCtrl(null);timeCtrlRef.current=null;setOpenIdx(null);setMode('play');setPlaySetup(true);}}/>
+        <_SheetItem icon="forward" label="Play from here" on={()=>{setRevMore(false);setSetupSrc('review');setSetupFromFEN(toFEN(boardGame));setOpponent('computer');setPColor(boardGame.turn);setTimeCtrl(null);timeCtrlRef.current=null;setOpenIdx(null);setMode('play');setPlaySetup(true);}}/>
         <_SheetItem icon="flip" label="Flip board" on={()=>{setFlip(f=>!f);setRevMore(false);}}/>
         <_SheetItem icon="moves" label={pgnCopied?'Copied':'Copy PGN'} on={()=>{let _p=(review.pgn&&review.pgn.trim())?review.pgn.trim():'';if(!_p){const _h=review.headers||{};const _t=['Event','Site','Date','White','Black','Result'].map(k=>'['+k+' "'+(_h[k]||(k==='Result'?'*':'?'))+'"]').join('\n');let _m='';for(let i=0;i<review.plies.length;i++){if(i%2===0)_m+=(i/2+1)+'. ';_m+=review.plies[i].san+' ';}_p=_t+'\n\n'+_m.trim()+' '+(_h.Result||'*');}try{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(_p);}catch(e){}try{const _ta=document.createElement('textarea');_ta.value=_p;_ta.style.position='fixed';_ta.style.opacity='0';document.body.appendChild(_ta);_ta.focus();_ta.select();document.execCommand('copy');document.body.removeChild(_ta);}catch(e){}setPgnCopied(true);setTimeout(()=>setPgnCopied(false),1800);}}/>
         <_SheetItem icon="more" label={hideEval?'Eval bar: off':(evalUnder?'Eval bar: above the board':'Eval bar: beside the board')} on={()=>{if(hideEval){setHideEval(false);setEvalUnder(true);}else if(evalUnder){setEvalUnder(false);}else{setHideEval(true);}setRevMore(false);}}/>
@@ -5463,7 +5526,21 @@ export default function App(){
             <div style={{fontFamily:"var(--head)",fontSize:'clamp(18px,5vw,24px)',color:'var(--ac)',letterSpacing:1}}>New Game</div>
             <div style={{minWidth:36}}/>
           </div>
-          {setupFromFEN&&(<div style={{padding:'10px 13px',borderRadius:12,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',fontSize:'clamp(14px,2.6vw,14px)',color:'var(--ac2)',lineHeight:1.45}}>♟ Continuing from your reviewed position. You'll play <b>{pColor==='w'?'White':'Black'}</b> (the side to move) — switch the color below if you'd rather take the other side.</div>)}
+          {/* #466: the terminal branch is a DIFFERENT SENTENCE, not a suffix on this one. On #465 both arms of
+              this banner read identically at a finished ply, which is the half of the defect a player could
+              actually have caught. It names the remedy (step back a move) because a refusal with no way forward
+              is a dead end. */}
+          {/* #466, ON ANTAGONIST A'S VETO: THE ORDINARY BANNER GETS NO data-ct. The first version gave it
+              `data-ct="setup-fen-note"` for my own convenience, and gates/regress/45-play-setup.js:431
+              (TC-PS-038) asserts that this exact div - found by its own text, with children.length<=2 - carries
+              NO data-ct, at BOTH geometries. So a hook added for convenience would have reddened a required
+              gate twice and no log from this tree could have ended GATES GREEN. Verified by the one command A
+              named for this class: `grep -rn "ct===null" gates/regress/`. My own assertions over this element
+              now locate it by WHAT IT SAYS, which is #432's rule and what I should have done first: a check
+              keyed to a hook its own build adds cannot be controlled. */}
+          {setupFromFEN&&(setupBlocked
+            ?(<div data-ct="setup-terminal-note" style={{padding:'10px 13px',borderRadius:12,background:'rgba(224,168,58,.12)',border:'1px solid rgba(224,168,58,.4)',fontSize:'clamp(14px,2.6vw,14px)',color:'#e0a83a',lineHeight:1.45}}>⚠ That position is already over — {setupTerminal==='checkmate'?'it is checkmate':'it is a stalemate'}, so there is no move to play from it. {setupSrc==='scan'?<>Scan or upload a board where it is still someone's turn.</>:<>Step back a move in your review and use <b>Play from here</b> there instead.</>}</div>)
+            :(<div style={{padding:'10px 13px',borderRadius:12,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',fontSize:'clamp(14px,2.6vw,14px)',color:'var(--ac2)',lineHeight:1.45}}>♟ Continuing from your reviewed position. You'll play <b>{pColor==='w'?'White':'Black'}</b> (the side to move) — switch the color below if you'd rather take the other side.</div>))}
           <div>
             <div style={{display:'flex',gap:10}}>
               <button data-ct="scan-camera" onClick={()=>{ setScanMsg(''); if(!cloudUser){ setUpgradeMsg('Sign in to scan a board.'); setAcctOpen(true); return; } if(scanInputRef.current) scanInputRef.current.click(); }} disabled={scanBusy} style={{flex:1,minWidth:0,padding:'13px 10px',borderRadius:13,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:scanBusy?'default':'pointer',opacity:scanBusy?.6:1,display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>📷 Scan with camera</button>
@@ -5601,7 +5678,10 @@ export default function App(){
             <div style={{marginTop:9,padding:'12px 14px',borderRadius:12,background:'rgba(110,168,254,.1)',border:'1px solid rgba(110,168,254,.3)',fontSize:'clamp(13.5px,2.6vw,13.5px)',color:'#cfe0ff',lineHeight:1.5}}>You'll create a game or join a friend's code on the next screen. Sign in with Google is required.</div>
           </div>)}
 
-          <button onClick={()=>{setPlaySetup(false);if(opponent!=='online')fullReset(setupFromFEN?fromFEN(setupFromFEN):undefined);setSetupFromFEN(null);}} style={{marginTop:4,padding:'15px',borderRadius:14,border:'none',background:'var(--ac)',color:'#191919',fontWeight:800,fontSize:'clamp(15px,3.6vw,17px)',cursor:'pointer',boxShadow:`0 8px 24px rgba(${TH.rgb},.35)`}}>{opponent==='online'?'Continue →':(setupFromFEN?'▶ Play this position':'▶ Start game')}</button>
+          {/* #466: THE COMMITTER. `setupFromFEN` becomes a game here and nowhere else, so this is the one place
+              that has to refuse. It reads `setupBlocked`, the SAME expression the note above reads, so the two
+              can never disagree - see that expression for why a second condition here was the defect. */}
+          <button data-ct="setup-start" disabled={setupBlocked} onClick={()=>{if(setupBlocked)return;setPlaySetup(false);if(opponent!=='online')fullReset(setupFromFEN?fromFEN(setupFromFEN):undefined);setSetupFromFEN(null);}} style={{marginTop:4,padding:'15px',borderRadius:14,border:'none',background:'var(--ac)',color:'#191919',fontWeight:800,fontSize:'clamp(15px,3.6vw,17px)',cursor:setupBlocked?'not-allowed':'pointer',opacity:setupBlocked?.5:1,boxShadow:`0 8px 24px rgba(${TH.rgb},.35)`}}>{opponent==='online'?'Continue →':(setupBlocked?'That position is already over':(setupFromFEN?'▶ Play this position':'▶ Start game'))}</button>
           <div style={{textAlign:'center',fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.4)',marginTop:-6,pointerEvents:'none'/* #430 class sweep [R06], same decision as the MOVES chips below: this caption is pulled 6px up over the bottom edge of the primary Continue button above it, at EVERY width and height, and is later in the DOM - so those 6px of the button answered for a div. pointerEvents:'none' rather than dropping the margin, because the caption is not interactive and this costs no vertical space, where removing the margin would take 6px off the board. */}}>{opponent==='computer'?`vs ${selBot&&botById(selBot)?botById(selBot).name:'Computer'} · ${pColor==='w'?'White':'Black'} · ${timeCtrl?timeCtrl.label:'No clock'}`:opponent==='human'?`Pass & play on one device · ${timeCtrl?timeCtrl.label:'No clock'}`:'Online · play a friend by invite code'}</div>
           {BUILD_INFO&&<div style={{textAlign:'center',fontSize:11,color:'rgba(255,255,255,.3)',letterSpacing:.5,fontFamily:'ui-monospace,Menlo,Consolas,monospace',marginTop:vp.h<720?2:12}}>Build {BUILD_INFO}</div>}
         </div>
@@ -6487,7 +6567,7 @@ export default function App(){
           <EvalGraph analysis={review.analysis} plies={review.plies} ply={ply} onJump={(p)=>setPly(Math.max(0,Math.min(review.plies.length,p)))} width={wide?Math.max(160,sideW-12):boardPx} height={wide?86:62}/>
           {review.openingName&&(<div style={{width:'100%',textAlign:'center',fontSize:'clamp(14px,2.5vw,14px)',color:'rgba(255,255,255,.8)'}}>📖 Opening: <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>)}
           <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'center'}}>
-            <button onClick={()=>{setSetupFromFEN(toFEN(boardGame));setOpponent('computer');setPColor(boardGame.turn);setTimeCtrl(null);timeCtrlRef.current=null;setOpenIdx(null);setMode('play');setPlaySetup(true);}} style={btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)')}>▶ Play from here</button>
+            <button onClick={()=>{setSetupSrc('review');setSetupFromFEN(toFEN(boardGame));setOpponent('computer');setPColor(boardGame.turn);setTimeCtrl(null);timeCtrlRef.current=null;setOpenIdx(null);setMode('play');setPlaySetup(true);}} style={btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)')}>▶ Play from here</button>
             <button onClick={()=>setShowBest(b=>!b)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)',showBest?'var(--ac)':'rgba(255,255,255,.7)')}>{showBest?'✓ Showing best':'💡 Show best move'}</button>
             <button onClick={()=>{let _p=(review.pgn&&review.pgn.trim())?review.pgn.trim():'';if(!_p){const _h=review.headers||{};const _t=['Event','Site','Date','White','Black','Result'].map(k=>'['+k+' "'+(_h[k]||(k==='Result'?'*':'?'))+'"]').join('\n');let _m='';for(let i=0;i<review.plies.length;i++){if(i%2===0)_m+=(i/2+1)+'. ';_m+=review.plies[i].san+' ';}_p=_t+'\n\n'+_m.trim()+' '+(_h.Result||'*');}try{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(_p);}catch(e){}try{const _ta=document.createElement('textarea');_ta.value=_p;_ta.style.position='fixed';_ta.style.opacity='0';document.body.appendChild(_ta);_ta.focus();_ta.select();document.execCommand('copy');document.body.removeChild(_ta);}catch(e){}setPgnCopied(true);setTimeout(()=>setPgnCopied(false),1800);}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>{pgnCopied?'✓ Copied':'Copy game'}</button>
             <button onClick={()=>setFlip(f=>!f)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⟳ Flip</button>
@@ -7268,7 +7348,12 @@ export default function App(){
                 <div onClick={e=>e.stopPropagation()} style={{width:'100%',background:'#1c2027',borderRadius:'16px 16px 0 0',padding:'13px 14px calc(env(safe-area-inset-bottom,0px) + 14px)',display:'flex',flexDirection:'column',gap:8,boxShadow:'0 -8px 30px rgba(0,0,0,.5)'}}>
                   <div style={{width:38,height:4,borderRadius:2,background:'rgba(255,255,255,.25)',margin:'0 auto 4px'}}/>
                   <button onClick={()=>{setLearnSheet(false);setLearnPhase('demo');setDemoPly(0);setDemoPlaying(true);setOpenMsg('');setFlip(LIB[openIdx].side==='b');setGame(LIB[openIdx].fen?fromFEN(LIB[openIdx].fen):initGame());setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%'}}>▶ Watch the demo again</button>
-                  <button onClick={()=>{setLearnSheet(false);const pos=fromFEN(toFEN(boardGame));setMode('play');setOpponent('computer');setPColor(LIB[openIdx].side);setOpenIdx(null);timeCtrlRef.current=null;setTimeCtrl(null);setPlaySetup(false);fullReset(pos);setMenuOpen(false);}} style={{...btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)'),width:'100%'}}>▶ Play this position vs Computer</button>
+                  {/* #466: route (c) of the three the job counts, and the only one that does NOT go through the
+                      setup sheet - it calls fullReset directly, so the committer's guard cannot see it. Endgame
+                      lessons end in checkmate by construction, so this branch is REACHABLE rather than inert.
+                      `isOver` is the right question here: it reads boardGame, which is the position this button
+                      would play from. */}
+                  <button data-ct="learn-play-position" disabled={isOver} onClick={()=>{if(isOver)return;setLearnSheet(false);const pos=fromFEN(toFEN(boardGame));setMode('play');setOpponent('computer');setPColor(LIB[openIdx].side);setOpenIdx(null);timeCtrlRef.current=null;setTimeCtrl(null);setPlaySetup(false);fullReset(pos);setMenuOpen(false);}} style={{...btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)'),width:'100%',opacity:isOver?.5:1,cursor:isOver?'not-allowed':'pointer'}}>{isOver?'That position is already over':'▶ Play this position vs Computer'}</button>
                   <button onClick={()=>setLearnSheet(false)} style={{...btn('transparent','1px solid rgba(255,255,255,.22)','rgba(255,255,255,.7)'),width:'100%'}}>Close</button>
                 </div>
               </div>)}
