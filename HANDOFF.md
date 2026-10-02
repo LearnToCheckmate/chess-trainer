@@ -2,6 +2,49 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#464 MADE THE REVIEW GRADE COUNTS, THE MOVES THEY NAME AND THE PER-PLY BADGE READ ONE RULE (SHA, 2026-10-02).**
+> The opening-book reassignment lived only in the grade counter. The summary row's jump handler and both verdict
+> chips presented the same ply without it, so on any game with a book prefix - 5 of 7 real games, per the
+> benchmark - tapping `Best 5` navigated to a move the same table counted under Book, and walking the moves
+> showed 8 white moves badged Best against the 5 on screen. The Book row was a dead control: enabled, styled
+> exactly like the nine that work, and its click left the view on the summary every time. `effCls` is now the one
+> definition of "the grade this ply is presented as"; `classify()` is untouched, because what changed is what the
+> player is SHOWN and not how a move is judged.
+>
+> **FOUR THINGS THE NEXT RUN SHOULD NOT REDISCOVER:**
+> 1. **A PGN FIXTURE THAT TRUNCATES IS SILENT, AND IT LOOKS EXACTLY LIKE THE DEFECT UNDER TEST.** Two of gate
+>    19's three original fixtures contained illegal moves (`6.f3` as a pawn then `11.Nf3`; castling through f8
+>    under a bishop on a3). `loadSANs` truncates at the first illegal move, so the gate's walk ran out of plies
+>    early and the gate ACCOMMODATED it - reporting "Excellent/w summary 2, moves badge 6" on the ZERO-BOOK
+>    fixture, where the code under test can have no effect. Real numbers, four apart, entirely the gate's own
+>    stepping. **Gate 19's A0 now asserts the PGN loaded WHOLE**; any new fixture in this repo should carry the
+>    same assertion, because nothing else in the suite will tell you.
+> 2. **`ct_revCompact='0'` DOES NOT PUT YOU IN THE CLASSIC REVIEW SCREEN.** chess.jsx's #339 one-time migration
+>    overwrites it to `'1'` on any profile that has not seen it, so you must seed `ct_revmig339:'1'` too. Gate
+>    19's C1 caught this: its classic-mode chip assertions were green while re-measuring the COMPACT chip.
+>    Assert the state was reached, or the assertion is about nothing.
+> 3. **THERE ARE STILL THREE UNSWEPT GRADE SURFACES, and they share ONE reachability condition.** The move strip
+>    (`data-ct="strip-row"`, 5 raw `a.cls` reads), the eval-graph dots, and the key-moments chips
+>    (`review.counts` + `jumpToIssue`) all read the RAW class. All three mark only
+>    `['Brilliant','Great','Miss','Inaccuracy','Mistake','Blunder']`, and Brilliant/Great are exempt from the
+>    reassignment - so they disagree with the badge and chip ONLY on a book ply graded Miss, Inaccuracy, Mistake
+>    or Blunder. Measured: ZERO such plies in any of gate 19's three fixtures, so all three are LATENT and #464
+>    introduces nothing a player can see. **One new fixture unblocks all three.**
+>    `jobs/the-key-moments-chips-are-a-second-grade-count-system-with-no-book-reassignment-2026-10-02`.
+> 4. **GREPPING SOURCE TEXT IS NOT MEASURING THE RENDERED DOM, and it bit this run twice in one hour.** A grep
+>    for the literal `aria-label="Next move"` returns ZERO hits in chess.jsx and the selector is perfectly
+>    valid - `cb()` sets `aria-label={title}` from a variable. I concluded my gate's walk was riding the app's
+>    autoplay and was wrong. The same habit then told me the move strip paints Best, which it does not. Both
+>    caught by reading the guard instead of the grep; neither published.
+> 5. **TWO `L.launch` CALLS WITH DIFFERENT BUNDLES IN ONE PROCESS SERVE THE FIRST ONE TWICE.**
+>    `gates/lib.js:57` keys the served site dir on `process.pid` alone while `opts.app` is per call, and the
+>    provenance line still prints the file you ASKED for - so the log looks right while the browser has the
+>    wrong bundle. Measured three ways at #464 while rendering its own before/after pair. The SUITE is
+>    unaffected (no committed gate passes `app` to `L.launch`), but every ad-hoc negative control this project
+>    publishes is only safe if each bundle got its own process. **Run before/after shots as separate processes.**
+>    `jobs/two-launches-with-different-bundles-in-one-process-serve-the-first-one-twice-2026-10-02`.
+
+>
 > **#462 SHIPPED THE EXPECTED-GATES MANIFEST AND FOUR HOLES IN ITS OWN PUSH GATE (cf39d40, 2026-10-02).**
 > `gates/verify-log.sh` now reads the `gates ran (N):` roster and cross-checks it against the `=== ` section count
 > and against the manifest's `required`, so a trimmed, truncated or hand-made log is REFUSED. Before #462 a
