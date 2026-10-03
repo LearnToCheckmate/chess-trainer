@@ -42,7 +42,14 @@
 //   NOT covered by this gate and phase one would NOT satisfy US-R25 on it - see the notChecked list on the
 //   handoff document; that residual is on the job, not in this file.
 //   One fixture row is 1209 bytes of PGN. Real chess.com PGNs of a 40-move game run larger, so A4's measured
-//   footprint is a LOWER bound on the real one and A4b is the assertion that carries the budget.
+//   footprint is a LOWER bound on the real one - AND SO IS A4b's PROJECTION, WHICH IS THE CORRECTION THIS
+//   HEADER OWED. Until #474 this file said A4b 'is the assertion that carries the budget'; it is not, and it
+//   never was: A4b takes bytesPerRow from the run's own fixture and multiplies it by the cap and the slot
+//   count, so its expected value and its measured value come from the SAME under-sized row and it is
+//   arithmetically obliged to pass [jobs/a4b-bytes-per-row-is-a-fixture-number-2026-09-29,
+//   jobs/gate-61-storage-and-cap-assertions-cannot-fail-as-written-2026-09-29]. The budget is carried by
+//   A4c, which projects from the pinned CORPUS row sizes below, and the withdrawal of the old claim is
+//   stated here rather than quietly dropped [R18].
 //
 // ── NEGATIVE CONTROLS - see the run record docs/review-list-caps-at-about-40-games-2026-09-23-lane for the
 //    bundles, the md5s and the observed pass/fail of each. Summary of what each one proves:
@@ -58,6 +65,15 @@
 const L=require('../lib');
 
 const MIN_CAP=200, ACCT_SLOTS=8, BUDGET=4000000;
+// #474 THE CORPUS ROW SIZES, PINNED SO THE PROJECTION STOPS BEING A FIXTURE NUMBER. Provenance, because a
+// number with no provenance is the defect this replaces: the seven real chess.com games in
+// docs/benchmark-answerkey-7-pgn measure median 2612 chars, mean 2831, max 4670 (measured on #431 by the
+// antagonist and re-stated on jobs/gate-61-storage-and-cap-assertions-cannot-fail-as-written-2026-09-29);
+// a 40-move (66-ply) blitz game carrying chess.com's real 21-tag header and [%clk] on every move stores at
+// 2472.8-2478.8 chars/row (measured on the #433 bundle, jobs/a4b-bytes-per-row-is-a-fixture-number-2026-09-29).
+// BREAKEVEN is the arithmetic nobody in this file had done: the budget divided by what it is a budget FOR.
+const REAL_ROW_MEDIAN=2612, REAL_ROW_MAX=4670, REAL_ROW_BLITZ=2475;
+const BREAKEVEN=Math.floor(BUDGET/(MIN_CAP*ACCT_SLOTS));   // 2500 chars per row at the pinned cap x slots
 const CAP_RE=/(?:up to|at most|limit)\s+([\d][\d,]*)\s+games/i;
 const NEWEST={y:2026,m:9,label:'Sep'};
 const ACCTS=['gateacct1','gateacct2','gateacct3'];
@@ -198,19 +214,43 @@ async function input(seed,n,geo,name,thin){
   await stub(b,state);
   await b.open();
   await b.tile('Review'); await b.settle(1800);                 // account 1 arrives on the auto-fetch
+  // #474 THE ADD-ACCOUNT STEP WAITS FOR ITS OWN CONTROL AND NEVER THROWS, and this is a defect fix rather
+  // than a tidy-up: measured TWICE on the #473 bundle (origin/main f3ae36a), this loop threw
+  // "tapText: nothing visible matches /^Fetch$/" on the FIRST three-account input, and because a throw ends
+  // the file, A7, A9, A10, A11, A12, A13 and A14 - every assertion #432 and #433 added - were never reached
+  // at all. The cause is in chess.jsx:6525: the button's label is the string 'Fetch' only while ccLoading is
+  // false and '…' while it is true, so a run that types into the row before account 1's fetch has settled
+  // asks for a label that is not painted. 1800ms of settle after tile('Review') is not a guarantee; the
+  // button's own text is. So: poll for the control, and if it never comes back, record it as an ASSERTION
+  // (A0b below) instead of crashing - an instrument that cannot reach its state must fail loudly on that one
+  // state, not take 100 assertions down with it [R18, and the vacuity rule A0 already states].
+  let added=1;
   for(let i=1;i<n;i++){
-    await b.page.locator('input[placeholder="Chess.com username"]').fill(ACCTS[i]);
-    await b.settle(150);
-    await b.tapText(/^Fetch$/,{wait:1800});
+    let ready=false;
+    for(let w=0;w<60&&!ready;w++){
+      ready=await b.page.evaluate(()=>[...document.querySelectorAll('button')].some(x=>(x.textContent||'').trim()==='Fetch'&&x.offsetParent!==null&&!x.disabled));
+      if(!ready)await b.settle(250);
+    }
+    if(!ready){L.note('       ADD-ACCOUNT BLOCKED after '+added+' of '+n+' accounts: no visible, enabled button reading exactly "Fetch" within 15s. A0b asserts this.');break;}
+    try{
+      await b.page.locator('input[placeholder="Chess.com username"]').fill(ACCTS[i]);
+      await b.settle(150);
+      await b.tapText(/^Fetch$/,{wait:1800});
+      added++;
+    }catch(e){L.note('       ADD-ACCOUNT THREW on account '+(i+1)+': '+String(e.message).slice(0,120)+'. A0b asserts this.');break;}
   }
   await b.settle(700);
   const r=await READ(b);
   r.hits=state.hits.slice(0,4); r.hitCount=state.hits.length;
+  r.accountsAdded=added; r.accountsWanted=n;
   // A5: the same context, the stub now refusing, reloaded. Whatever is on screen came out of localStorage.
   state.refuse=true;
   await b.open(); await b.tile('Review'); await b.settle(1200);
   const after=await READ(b);
   r.afterReload=after.rows; r.afterErr=after.err;
+  // #474 the limit LINE after the same reload, for A7g. input() already pays for this reading; nothing read
+  // it [jobs/gate-61-a7-does-not-assert-the-bound-survives-a-reload-2026-09-29].
+  r.afterCap=after.cap; r.afterBody=after.body;
   r.b=b;
   return r;
 }
@@ -232,6 +272,10 @@ async function input(seed,n,geo,name,thin){
     // A0 vacuity guard: the stub was used and the screen is the games list, not an error card.
     const a0=L.say(r.hitCount>=n&&(r.rows>0||r.err==='yes'),'A0 vacuity: the stubbed archives index was requested and the Review list rendered a list or its error',{requests:r.hitCount,rows:r.rows,err:r.err,tag});
     if(!a0){L.note('     A0 failed - A1..A5 SKIPPED for this input rather than measured on a screen that never fetched');await r.b.close();continue;}
+    // #474 A0b: the input the gate CLAIMS to be measuring is the input it reached. Added because the throw
+    // this replaces was silent about how much of the file it cost.
+    const a0b=L.say(r.accountsAdded===r.accountsWanted,'A0b vacuity '+tag+': every account this input names was actually connected, so an assertion over N accounts is measured over N accounts',{added:r.accountsAdded,wanted:r.accountsWanted});
+    if(!a0b){L.note('     A0b failed - A1..A5 SKIPPED for this input: the screen holds fewer accounts than the input names, so every count below would be measuring a different input [R18]');await r.b.close();continue;}
     L.say(r.rows>0,'A1 TC-R35(i) '+tag+': the list is NON-EMPTY',{rows:r.rows});
     L.say(r.outside>0,'A2 TC-R35(i) '+tag+': the list holds rows dated OUTSIDE the newest month - the month rule',{outsideNewest:r.outside,inNewest:r.inNewest,months:r.distinct});
     L.note('       WEAK FORM, printed not asserted: "rows > 40" would say '+(r.rows>40?'PASS':'FAIL')+' here. A2 says '+(r.outside>0?'PASS':'FAIL')+'.');
@@ -242,8 +286,27 @@ async function input(seed,n,geo,name,thin){
     // so they are NOT asserted there - a cascade is not a second finding [R07]. The skip is printed, not silent.
     const per=r.stored?Math.round(r.acctBytes/r.stored):0;
     const proj=per*capUsed*ACCT_SLOTS;
-    if(r.stored>0)L.say(proj>0&&proj<BUDGET,'A4b TC-R35(iii) '+tag+': projected footprint at the cap x '+ACCT_SLOTS+' account slots stays under the budget',{bytesPerRow:per,cap:capUsed,slots:ACCT_SLOTS,projected:proj,budget:BUDGET});
-    else L.note('       A4b NOT ASSERTED for this input: nothing is in ct_acctgames, so there is no per-row size to project from. A5 below is what reports that.');
+    if(r.stored>0){
+      // #474 A4b IS RE-LABELLED, NOT DELETED, and its payload now carries the two numbers that make it
+      // readable: the break-even row size and how far the fixture sits below the corpus. It is a FIXTURE-SCALE
+      // check - it fails only if the app stores something far larger than the fixture it was given - and it is
+      // A4c that carries the budget.
+      L.say(proj>0&&proj<BUDGET,'A4b TC-R35(iii) '+tag+': projected footprint AT THE FIXTURE ROW SIZE stays under the budget (a fixture-scale check, NOT the budget: see A4c)',{bytesPerRow:per,cap:capUsed,slots:ACCT_SLOTS,projected:proj,budget:BUDGET,breakEven:BREAKEVEN,corpusMedian:REAL_ROW_MEDIAN,fixtureIsThisFractionOfCorpus:Math.round(per/REAL_ROW_MEDIAN*100)/100});
+      // #474 A4c, THE ASSERTION A4b WAS MISTAKEN FOR. The expected value no longer comes from the fixture:
+      // it comes from the pinned corpus above, so the projection can go red on a real row size while the
+      // miniature stays green. PRINTED ON EVERY RUN, ASSERTED UNDER CT_A4C=1, and the reason it is not
+      // admitted to the default suite is recorded rather than left to be guessed [R36, R45]: at the corpus
+      // median the projection is OVER the budget on the bundle on main, and that is an APP-side finding
+      // (jobs/store-eviction-drops-accounts-while-the-screen-keeps-counting-2026-09-29 and the cap decision
+      // behind it), not an instrument one. Admitting it here would turn every build red on somebody else's
+      // open job, which is how a correct assertion gets reverted under time pressure. The number is in the
+      // log of every run either way, which is the half that was missing.
+      const projMed=REAL_ROW_MEDIAN*capUsed*ACCT_SLOTS, projMax=REAL_ROW_MAX*capUsed*ACCT_SLOTS;
+      L.note('       A4c CORPUS PROJECTION '+tag+': fixture row '+per+' chars = '+(Math.round(per/REAL_ROW_MEDIAN*100)/100)+'x the corpus median '+REAL_ROW_MEDIAN+'; break-even at '+capUsed+' x '+ACCT_SLOTS+' is '+BREAKEVEN+' chars/row. Projected at the median '+projMed+' = '+(projMed<BUDGET?'UNDER':'OVER')+' the '+BUDGET+' budget; at the corpus max '+projMax+' = '+(projMax<BUDGET?'UNDER':'OVER')+'; at the measured blitz row '+REAL_ROW_BLITZ+' '+(REAL_ROW_BLITZ*capUsed*ACCT_SLOTS)+'. CT_A4C=1 asserts it.');
+      if(process.env.CT_A4C==='1')
+        L.say(projMed<BUDGET,'A4c TC-R35(iii) '+tag+': projected footprint at the cap x '+ACCT_SLOTS+' slots stays under the budget WHEN THE ROW IS CORPUS-SIZED rather than fixture-sized',{bytesPerRow:REAL_ROW_MEDIAN,fixtureRow:per,breakEven:BREAKEVEN,cap:capUsed,slots:ACCT_SLOTS,projected:projMed,projectedAtCorpusMax:projMax,budget:BUDGET,corpus:'docs/benchmark-answerkey-7-pgn, 7 real chess.com games: median 2612, mean 2831, max 4670'});
+    }
+    else L.note('       A4b AND A4c NOT ASSERTED for this input: nothing is in ct_acctgames, so there is no per-row size to project from. A5 below is what reports that.');
     // A5 COMPARES SCREEN TO SCREEN, NOT SCREEN TO STORAGE, AND THE DIFFERENCE IS THE WHOLE ASSERTION.
     // Written first as afterReload === storedRows, it was UNFALSIFIABLE by its own control: NC4 makes the
     // acctGames write throw, the quota catch at chess.jsx:232 swallows it, storedRows reads 0 - and a guard
@@ -287,7 +350,9 @@ async function input(seed,n,geo,name,thin){
     const r=await input('b',t.n,{w:375,h:730,safe:''},'thin-'+t.months+'-'+t.n,{months:t.months,per:THIN_PER});
     const expect=t.n*(binds?GMONTHS*THIN_PER:total);
     L.note(tag+'  rows '+r.rows+'  requests '+r.hitCount+'  months on screen '+JSON.stringify(r.distinct)+'  limit line '+JSON.stringify(r.cap));
-    const a0=L.say(r.hitCount>=t.n&&(r.rows>0||r.err==='yes'),'A7-0 vacuity '+tag+': the stubbed archives index was requested and the Review list rendered',{requests:r.hitCount,rows:r.rows,err:r.err});
+    // #474 the account count joins A7-0's conjunction for the same reason A0b exists: a three-account input
+    // that connected one account is a different input, and before #474 it was a throw that ended the file.
+    const a0=L.say(r.hitCount>=t.n&&(r.rows>0||r.err==='yes')&&r.accountsAdded===r.accountsWanted,'A7-0 vacuity '+tag+': the stubbed archives index was requested, the Review list rendered, and every account this input names was connected',{requests:r.hitCount,rows:r.rows,err:r.err,accountsAdded:r.accountsAdded,accountsWanted:r.accountsWanted});
     if(!a0){L.note('     A7-0 failed - A7a..A7f SKIPPED for this input');await r.b.close();continue;}
     // A7a IS THE PRECONDITION FOR EVERYTHING BELOW, and it is asserted rather than assumed: without it a
     // green A7b could mean "the month wording is there" on a screen where months never bound [#385's rule].
@@ -305,6 +370,15 @@ async function input(seed,n,geo,name,thin){
       // On the #431 bundle this is the defect itself - "Showing up to 200 games per account." while 200
       // never bound - so this assertion is the one that had to be read off the body to be able to fail.
       const gc=(r.body||'').match(CAP_RE);
+      // #474 A7g, jobs/gate-61-a7-does-not-assert-the-bound-survives-a-reload-2026-09-29, filed by #432
+      // against its own work. The recorded walk bound is persisted (ct_acctcap, loaded at mount), so the
+      // limit sentence is rendered from storage on every launch after the first and NOTHING asserted that
+      // the same limit is still named afterwards. input() already performs the reload with the network
+      // refusing - that is how A5 works - so this reading costs nothing. A5's shape is the precedent:
+      // SCREEN TO SCREEN, not screen to storage, because a store that is right and a render that drops it
+      // look identical from the storage side.
+      L.say(!!r.afterCap&&r.afterCap.text===r.cap.text,'A7g US-R25 '+tag+': the limit the screen names SURVIVES a reload with the network refusing - the bound is read back from storage and still names the limit that actually bound',{before:r.cap&&r.cap.text,afterReload:r.afterCap&&r.afterCap.text,rowsBefore:r.rows,rowsAfterReload:r.afterReload});
+      L.say(!!r.afterBody&&PLAY_RE.test(r.afterBody)&&!(/(?:up to|at most|limit)\s+[\d][\d,]*\s+games/i).test(r.afterBody),'A7h US-R25 '+tag+': after the reload the screen STILL states the month-of-play window and still does NOT state a games cap - the wording does not degrade to the games wording on the persisted path',{afterReloadMonths:(r.afterBody||'').match(PLAY_RE)?((r.afterBody||'').match(PLAY_RE))[0]:'none',afterReloadGamesCap:(r.afterBody||'').match(/(?:up to|at most|limit)\s+[\d][\d,]*\s+games/i)?((r.afterBody||'').match(/(?:up to|at most|limit)\s+[\d][\d,]*\s+games/i))[0]:'no'});
       L.say(!gc,'A7c US-R25 '+tag+': the screen does NOT state a games cap as the bound, because the games cap is not what stopped the walk',{matchedGamesCap:gc?gc[0]:'no',locatedLine:r.cap.text});
       L.say(!!r.cap.ratio&&r.cap.ratio.r>=4.5,'A7e '+tag+': the limit line meets WCAG AA for normal text (>= 4.5:1) against everything painted behind it',r.cap.ratio?{...r.cap.ratio,min:4.5}:{ratio:null,min:4.5});
     }else{
@@ -403,7 +477,12 @@ async function input(seed,n,geo,name,thin){
     // never shipped, so the bound-less stores were written by builds up to and INCLUDING #431 - which is on
     // main with ACCT_GMAX=200. 41..199 is the band the deployed app creates and no input reached it; the
     // first #433 inferred the cap as the row count and printed 137 back at the player as a limit.
-    for(const t of [{n:40,expect:'games',why:'a full store at the LEGACY cap of 40 - the shape every pre-#431 account has'},
+    // #474 THE 39 FIXTURE, jobs/gate-61-a10c-asserts-the-forty-row-inference-2026-09-30: 39 and 41 now sit
+    // either side of 40, so A10a/A10b/A10c cannot be satisfied by 'a line always' or by 'no line ever' -
+    // each verdict has to turn on the row count rather than on a constant policy. 41 arrived at #433; 39 is
+    // the other side of the same boundary and is the cheapest input that discriminates a cap from a count.
+    for(const t of [{n:39,expect:null,why:'ONE ROW BELOW the legacy cap of 40: a store that stopped before any cap could have cut it, so nothing is known to have been cut'},
+                    {n:40,expect:'games',why:'a full store at the LEGACY cap of 40 - the shape a pre-#432 account that was cut by the 40 cap has'},
                     {n:200,expect:'games',why:'a full store at the CURRENT cap, which #431 on main writes and records no bound for'},
                     {n:137,expect:null,why:'THE BAND origin/main CREATES: above the legacy cap so it cannot be a legacy cut, below the current one so nothing cut it - and a number this app has never capped at'},
                     {n:41,expect:null,why:'one row above the legacy cap: the cheapest case where a row count is not a cap'},
@@ -412,7 +491,15 @@ async function input(seed,n,geo,name,thin){
       const b=await L.launch({geo:{w:375,h:730,safe:''},name:'legacy-'+t.n,store:{ct_accts:['cc:me'],ct_acctgames:{'cc:me':rows}}});
       await b.open(); await b.tile('Review'); await b.settle(1200);
       const r=await READ(b);
-      const tag='LEGACY STORE, '+t.n+' rows written by a pre-#431 build (cap 40), no ct_acctcap';
+      // #474 THE TAG IS BUILT FROM THE FIXTURE'S OWN FACTS AND NEVER FROM A CONSTANT SENTENCE.
+      // jobs/gate-61-a10c-asserts-the-forty-row-inference-2026-09-30: the old tag printed 'written by a
+      // pre-#431 build (cap 40)' verbatim for EVERY fixture in this loop, including n=200 and n=137, which
+      // a cap-40 build cannot write - and the block's own preamble three lines above says so. Prose that
+      // contradicts the number beside it, inside the instrument, invisible to every value-shaped check
+      // because nothing asserts a log string. The population is pre-#432, not pre-#431; `why` is already
+      // correct per row, so the tag now carries it and the log cannot print a provenance its own fixture
+      // disproves.
+      const tag='LEGACY STORE, '+t.n+' rows, no ct_acctcap (written by a build up to and including #431, so pre-#432, NOT pre-#431): '+t.why;
       L.note(tag+'  rows '+r.rows+'  limit line '+JSON.stringify(r.cap&&r.cap.text));
       if(L.say(r.rows===t.n,'A10-0 vacuity '+tag+': the stored games render from localStorage with no fetch',{rows:r.rows,expect:t.n})){
         if(t.expect==='games'){
