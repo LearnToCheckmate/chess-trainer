@@ -257,6 +257,18 @@ playing, and nothing takes it away from me without asking.
 - A difference the player cannot read is not a way back: a sheet that merely LOOKS different over a live game,
   with no control that offers the game and no words that name it, does not satisfy this story. (TC-R19 A vs B/C;
   this clause exists because negative control NC2 passes A alone.)
+- **AND THE RULE IS ABOUT EVERY CONTROL THAT REPLACES THE GAME, NOT ABOUT ONE BUTTON. (TC-R45, added #471.)**
+  Wherever I can reach it - the More sheet's 'New game', or any Game-setup choice in the hamburger menu (who I
+  am playing, the clock, my colour) - a control that would replace the game I am in asks me first, in the same
+  way, and the thing I must tap twice is the same thing both times. A game that has just FINISHED counts: it is
+  still mine to review, and Review is only offered from the result screen, so discarding it discards the only
+  route to it. Two things this clause deliberately does NOT ask for: a control that destroys nothing because
+  there is no game yet still works on one tap, and Rematch still works on one tap, because the game is over and
+  replacing it is what that button is for.
+  WHY THE CLAUSE IS WRITTEN AT THE CLASS AND NOT AT THE BUTTON: the bullet above was satisfied by #469, which
+  guarded 'Start game' and published the class as "2 found / 1 fixed / 1 left". One grep found at least eleven,
+  two of them measured discarding a live game at 3 plies -> 0. A clause written about one control is a clause a
+  fix to one control can close.
 
 NOTE ON THE ID [#469]. US-R16 was reserved by the test-authoring lane on 2026-09-28, when the highest story
 ON MAIN was US-R13; main has since reached US-R33, and US-R16 is still free there, so the reservation was
