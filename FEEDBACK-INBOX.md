@@ -2736,3 +2736,55 @@ Now the sheet offers it back - **'Resume your game in progress (2 moves played)'
 **What I did NOT do:** a game in progress still does not survive CLOSING the app, only leaving the Play screen. That needs storage the app does not have and I did not start it while you were asleep.
 
 **Still waiting on you, unchanged:** *is the move that lets you get mated a Blunder?* - fourteen builds have now stopped at it. And the drill verdict's board jump, whose finished fix has been on a branch for five builds. I checked all 67 answers on your Decision Desk again this run and neither question is there.
+
+## #470 — 2026-10-03 — nothing on the New Game setup screen may act on the game behind it
+
+**THE DEFECT, reproduced on main's own bundle before a line was changed.** Live Pass & Play, house, Play tile,
+then the `Computer` tile and nothing else: play-moverow went `1.f3 1...e5 2.g4` (3 plies) to
+`1...e5 2.g4 2...Qh4#` (4). The player chose an opponent on a setup sheet and was mated in the game behind it.
+
+**THE CLASS WAS THREE, NOT ONE, AND I PUBLISHED TWO OF THEM WRONG BEFORE THE ANTAGONISTS CORRECTED ME.**
+The setup screen renders over a game that is still mounted, and its tiles write the SHARED `opponent` state with
+no draft copy. Effects gated on `opponent` therefore wake with the player still choosing:
+  1. the AI auto-move effect — the job's own defect;
+  2. the adaptive-Elo effect — found by sweeping the predicate; ct_elo 800 -> 750 on a Pass & Play game the
+     computer never played, silently, because the message paints behind the sheet. #466 guarded this effect
+     against an INHERITED board; a Pass & Play game satisfies its invariant and walks past it;
+  3. the live eval-bar search — found by **antagonist A**, and it was in the output of the very grep my own
+     class sweep used. I had published the count as two.
+
+**BOTH ANTAGONISTS EARNED THEIR BUDGET, THROUGH THREE DIFFERENT DOORS, AND NO DOOR WAS SHARED.**
+A, at the diff door, **VETOED** the first candidate: the sheet's own `‹ Home` button closes it with no restore
+and is a term in no guard, so the first fix still reproduced the defect verbatim — 3 plies to 4, and the resume
+row then gone because the game was over, making it unrecoverable. B, at the shipped-surface door, found the
+**colour chip**: Computer plus one colour chip and the engine plays for the colour the human owned, after which
+Resume hands back a vs-Computer game with the player reassigned to Black. Neither could have found the other's
+route from its own door.
+
+**TWO CORRECTIONS THIS BUILD MADE TO ITSELF, both caught by measurement and both recorded rather than amended.**
+  - I claimed keying the restore to the sheet's CLOSE TRANSITION was "strictly stronger" than A's prescription of
+    a helper called from each door. It is not. A restore inside an effect is a setState and lands one render
+    late, while every other effect in that same commit still reads the stale `opponent` — gate 69's B6 read
+    ct_elo 750 on the supposedly fixed bundle. The helper is now called synchronously from both doors and the
+    effect is kept only as a backstop.
+  - D3, the assertion added to close the veto, **could not fail**. On the exact bundle A had broken it went
+    green, because the AI effect returns early when `game.turn===pColor` and at a 2-ply fixture the engine could
+    not move whatever the guard said. The fixture is now chosen per block by whether the engine is ABLE to move,
+    with the reasoning in the file.
+
+**CONTROLS, all run as separate processes, one per bundle.** Final tree 45/0 at 375x730 and 73 PASS in the suite
+across three geometries. NC4, the pre-veto candidate: 38/7 — D3, D3b, D5a, D5b, D6, E3, B6 red. NC1, main's
+shipped bundle: 34/11 — including F4b reading a two-human game's player bar as `Computer 800` and F4c reading
+board flip true against false, which is B's hand measurement reproduced by machine.
+
+**NO COVERAGE ESTIMATE IS PUBLISHED.** I stopped B at 77 minutes because the run's budget was spent, so its pass
+is truncated by my instruction and the overlap arithmetic would be a number that looks measured and is not.
+B's own 13-item not-checked list is carried verbatim into the run report: no clock game, no play-from-here, no
+lesson-vs-computer, no bots beyond Pip, no game-over flows, and no geometry but 375x730.
+
+**LEFT, COUNTED, WITH REASONS** — four jobs filed with fingerprints: the player bars behind the sheet describing
+pending selections (pre-existing, and nobody has measured whether any of it is visible past the overlay); an
+87.6px overflow under the overlay filed as an observation with a number and no verdict; the board resized behind
+the sheet (resolved by the restore before the board is visible again); and B's measurement that the armed
+discard survives leaving the sheet, which #469's disarm effect says is impossible — filed as a contradiction to
+be DRIVEN, not closed by reading the dep array.
