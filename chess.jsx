@@ -2450,6 +2450,18 @@ export default function App(){
   const timeCtrlRef=useRef(null);
   const [clock,setClock]=useState({w:0,b:0,run:false}); // ms remaining; run starts after move 1
   const [playHist,setPlayHist]=useState([]);
+  // #469: the confirm state for "Start game" when a game is already running. `playHist.length` is the
+  // only thing in this file that knows a game is in progress - fullReset clears it and learn mode never
+  // writes it (see the eloMsg guard at the draw detector for why that matters) - so it is also the test
+  // for whether Start is about to destroy something. One tap armed, second tap starts, exactly as Resign
+  // has worked since #375. Recorded as an amber default BEFORE the change:
+  // flags/amber-469-start-game-arms-over-a-live-game-rather-than-being-relabelled.
+  const [startArm,setStartArm]=useState(false);
+  // Disarm on every way out of the sheet and on any change to what Start would DO. Without this the arm
+  // survives closing and reopening the sheet, so a player who backed out once would find the second tap
+  // of an abandoned confirmation starting a game - a confirm state that outlives its question is worse
+  // than no confirm state, because the destructive tap becomes the FIRST one again without saying so.
+  useEffect(()=>{setStartArm(false);},[playSetup,opponent,setupFromFEN,playHist.length]);
   // #359 open by default. A square board on a tall phone leaves roughly 200px that the board
   // cannot use, and #344 spent it inflating the two player bars to three times their content -
   // 124px tall holding 38px of ink, twice, which is what Kunal kept seeing as "empty space along
@@ -5538,6 +5550,21 @@ export default function App(){
               named for this class: `grep -rn "ct===null" gates/regress/`. My own assertions over this element
               now locate it by WHAT IT SAYS, which is #432's rule and what I should have done first: a check
               keyed to a hook its own build adds cannot be controlled. */}
+          {/* #469: THE WAY BACK. Before this, a game left by the house button was still mounted behind Home
+              (gate 54's E1 premise, and NC3 is the control that proves E1 is a claim about the app) but the
+              ONLY door back - Home, or Discover, then the Play tile - opened this sheet, whose ten buttons
+              said nothing about it and whose Start button replaced the game on one tap. Measured at 375x730 on
+              #424, #427 and #429: the live sheet and a no-game control were byte-identical once the remembered
+              opponent tile was controlled for, md5(innerText) 5f441135da94 both sides.
+              THE APP ALREADY HAD THE PATTERN ONE SCREEN OVER: leaving a Review and reselecting Review offers
+              "< Back to your analysis" (TC-R24). This is that affordance, not a new idiom.
+              IT CARRIES ITS OWN WORDS ON PURPOSE. Gate 54 asserts the button (B) and the SENTENCE (C)
+              separately because NC2 - one character of decoration on the "New Game" heading - satisfies the
+              job's own doneWhen on its own. A control the player cannot interpret is not an affordance, so the
+              move count is in the label rather than in a tooltip.
+              NOT in the no-game case by construction: playHist is empty there, which is what keeps gate 54's
+              E4 control at exactly its ten buttons. */}
+          {playHist.length>0&&!setupFromFEN&&(<button data-ct="setup-resume" onClick={()=>{setStartArm(false);setPlaySetup(false);}} style={{padding:'13px 14px',borderRadius:12,border:'1px solid rgba(var(--acr),.45)',background:'rgba(var(--acr),.14)',color:'var(--ac2)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer',textAlign:'left',lineHeight:1.4}}>{'▶'} Resume your game in progress <span style={{fontWeight:500,opacity:.85}}>({playHist.length} {playHist.length===1?'move':'moves'} played)</span></button>)}
           {setupFromFEN&&(setupBlocked
             ?(<div data-ct="setup-terminal-note" style={{padding:'10px 13px',borderRadius:12,background:'rgba(224,168,58,.12)',border:'1px solid rgba(224,168,58,.4)',fontSize:'clamp(14px,2.6vw,14px)',color:'#e0a83a',lineHeight:1.45}}>⚠ That position is already over — {setupTerminal==='checkmate'?'it is checkmate':'it is a stalemate'}, so there is no move to play from it. {setupSrc==='scan'?<>Scan or upload a board where it is still someone's turn.</>:<>Step back a move in your review and use <b>Play from here</b> there instead.</>}</div>)
             :(<div style={{padding:'10px 13px',borderRadius:12,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',fontSize:'clamp(14px,2.6vw,14px)',color:'var(--ac2)',lineHeight:1.45}}>♟ Continuing from your reviewed position. You'll play <b>{pColor==='w'?'White':'Black'}</b> (the side to move) — switch the color below if you'd rather take the other side.</div>))}
@@ -5681,7 +5708,23 @@ export default function App(){
           {/* #466: THE COMMITTER. `setupFromFEN` becomes a game here and nowhere else, so this is the one place
               that has to refuse. It reads `setupBlocked`, the SAME expression the note above reads, so the two
               can never disagree - see that expression for why a second condition here was the defect. */}
-          <button data-ct="setup-start" disabled={setupBlocked} onClick={()=>{if(setupBlocked)return;setPlaySetup(false);if(opponent!=='online')fullReset(setupFromFEN?fromFEN(setupFromFEN):undefined);setSetupFromFEN(null);}} style={{marginTop:4,padding:'15px',borderRadius:14,border:'none',background:'var(--ac)',color:'#191919',fontWeight:800,fontSize:'clamp(15px,3.6vw,17px)',cursor:setupBlocked?'not-allowed':'pointer',opacity:setupBlocked?.5:1,boxShadow:`0 8px 24px rgba(${TH.rgb},.35)`}}>{opponent==='online'?'Continue →':(setupBlocked?'That position is already over':(setupFromFEN?'▶ Play this position':'▶ Start game'))}</button>
+          {/* #469: AND IT ARMS OVER A LIVE GAME. The guard sits HERE, in the same handler as the setupFromFEN
+              refusal above, because this is the one place a new game is committed - so a second condition
+              anywhere else could disagree with this one, which is the defect #466's comment above was written
+              about. `startArm` is cleared by the effect at :2466 on every exit from this sheet.
+              CLASS SWEPT, 2 FOUND / 1 FIXED / 1 LEFT [R06]. The predicate is "a tap that replaces a running
+              game with a new one without saying so", and both instances are this one button: (a) the ordinary
+              Start, fixed here; (b) the setupFromFEN arm, '▶ Play this position', which destroys a live game
+              just as silently when a player opens a Review mid-game and plays from a position. (b) is LEFT
+              deliberately and not from oversight: gates 45 and 55 both tap this button through the review
+              route with a position loaded, gate 55 twice in one run, so arming that arm needs its own negative
+              control to show it has not broken the "Play from here" flow - and this run has one proven control
+              set, for (a). Filed with its count rather than folded in silently.
+              THE LABEL IS THE CONFIRMATION, which is why it is not a modal: a modal here is a second overlay
+              over a sheet over a mounted game, and this screen already has the resume row saying what is at
+              stake. Gate 54's assertion D accepts EITHER this arm OR the game surviving, so it does not
+              certify my choice of the two - see the amber record. */}
+          <button data-ct="setup-start" disabled={setupBlocked} onClick={()=>{if(setupBlocked)return;if(playHist.length>0&&!setupFromFEN&&opponent!=='online'&&!startArm){setStartArm(true);return;}setStartArm(false);setPlaySetup(false);if(opponent!=='online')fullReset(setupFromFEN?fromFEN(setupFromFEN):undefined);setSetupFromFEN(null);}} style={{marginTop:4,padding:'15px',borderRadius:14,border:'none',background:startArm?'#e0a83a':'var(--ac)',color:'#191919',fontWeight:800,fontSize:'clamp(15px,3.6vw,17px)',cursor:setupBlocked?'not-allowed':'pointer',opacity:setupBlocked?.5:1,boxShadow:startArm?'0 8px 24px rgba(224,168,58,.35)':`0 8px 24px rgba(${TH.rgb},.35)`}}>{opponent==='online'?'Continue →':(setupBlocked?'That position is already over':(setupFromFEN?'▶ Play this position':(startArm?'Tap again to discard your game and start':'▶ Start game')))}</button>
           <div style={{textAlign:'center',fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.4)',marginTop:-6,pointerEvents:'none'/* #430 class sweep [R06], same decision as the MOVES chips below: this caption is pulled 6px up over the bottom edge of the primary Continue button above it, at EVERY width and height, and is later in the DOM - so those 6px of the button answered for a div. pointerEvents:'none' rather than dropping the margin, because the caption is not interactive and this costs no vertical space, where removing the margin would take 6px off the board. */}}>{opponent==='computer'?`vs ${selBot&&botById(selBot)?botById(selBot).name:'Computer'} · ${pColor==='w'?'White':'Black'} · ${timeCtrl?timeCtrl.label:'No clock'}`:opponent==='human'?`Pass & play on one device · ${timeCtrl?timeCtrl.label:'No clock'}`:'Online · play a friend by invite code'}</div>
           {BUILD_INFO&&<div style={{textAlign:'center',fontSize:11,color:'rgba(255,255,255,.3)',letterSpacing:.5,fontFamily:'ui-monospace,Menlo,Consolas,monospace',marginTop:vp.h<720?2:12}}>Build {BUILD_INFO}</div>}
         </div>

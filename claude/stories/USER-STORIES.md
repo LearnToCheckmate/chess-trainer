@@ -244,6 +244,29 @@ one I played, in a comparison, so I learn something from my own game rather than
 - The whole explanation fits the verdict box on screen at every supported geometry, 320x568 through 440x956,
   without the box growing and without the board moving. (TC-R16 B6, B7, B8)
 
+### US-R16 A game I am in the middle of is not thrown away when I look at something else
+As a player who taps the house mid-game to check the Daily 3 or a lesson, I can get back to the game I was
+playing, and nothing takes it away from me without asking.
+- Leaving the Play screen by the house (⌂) does not end the game: the position, the move list and whose turn
+  it is are all still there when I come back. (TC-R19 E1)
+- The screen I come back through SAYS a game is in progress and OFFERS me the way back into it. The app already
+  does exactly this on the other side of the product - leaving a review and reselecting Review offers
+  '‹ Back to your analysis' (TC-R24) - so this is the same rule applied to Play. (TC-R19 A, B, C)
+- 'Start game' over a game I have not finished either keeps that game or asks me first, the way Resign asks me
+  first (#375). One tap must not be able to destroy a game I am winning. (TC-R19 D)
+- A difference the player cannot read is not a way back: a sheet that merely LOOKS different over a live game,
+  with no control that offers the game and no words that name it, does not satisfy this story. (TC-R19 A vs B/C;
+  this clause exists because negative control NC2 passes A alone.)
+
+NOTE ON THE ID [#469]. US-R16 was reserved by the test-authoring lane on 2026-09-28, when the highest story
+ON MAIN was US-R13; main has since reached US-R33, and US-R16 is still free there, so the reservation was
+honoured rather than renumbered. `claude/stories/SUITE-AUDIT-2026-09-14.md` uses the id US-R16 for
+something else entirely (the mate move line, against its own TC-R13). That is the two-id-space collision
+this project already records as item 5 of the test-lane queue, not a duplicate introduced here: that file
+is a frozen 2026-09-14 audit in the claude.ai project's id space, and no sentence of the form "US-R16
+passed" is safe across the two until it is unwound. Said here so the next reader does not resolve it the
+wrong way.
+
 ### US-R17 Once I solve a puzzle I can read the whole explanation
 As a player who has just solved a puzzle, I can read the explanation of what I found in full, without any of it
 being cut off, and the board does not move underneath me while I read it.
