@@ -386,12 +386,26 @@ const ROWS = function(){
 // assertions lived at se and short375 and no control had ever touched them. NC-A and NC-C now run at se too.
 // short375 is still uncontrolled and that is a named hole, not a silence.
 //
-// TWO ASSERTIONS IN THIS FILE HAVE NO DELIBERATE CONTROL, NAMED HERE RATHER THAN LEFT TO BE DISCOVERED:
+// TWO ASSERTIONS IN THIS FILE HAVE NO DELIBERATE CONTROL, NAMED HERE RATHER THAN LEFT TO BE DISCOVERED.
+// UPDATED 2026-10-03 AT THE PROCESS BURST, because the previous wording stated in the PAST TENSE a behaviour
+// that was still present, and jobs/gate26-pin-locations-still-keyed-on-geometry-name-2026-09-27 is the job
+// that measured it: the pin LOCATIONS were still keyed on the geometry NAME until this change, so the
+// 390x844 firing the old text described as historical was reproducible at four of gates/lib.js's seven
+// geometry names (kunal, kunal761, 390, 430) on an unchanged bundle, at origin/main 4793758.
 //  (1) the `appearedSomewhereNew` half of the pin-location assertion. No trial bundle makes a pinned spread
-//      appear on a NEW screen. It HAS been observed firing, on the geometry axis: running this gate at 390x844
-//      before the pins were width-keyed reported every pinned class as appearedSomewhereNew. That is evidence
-//      the half can fail, and it is not the screen-axis control the assertion is for.
+//      appear on a NEW screen, so the SCREEN-axis control the assertion exists for is still missing. The
+//      GEOMETRY-axis firing that used to be offered as evidence the code path works is NO LONGER REACHABLE
+//      and was never that evidence anyway: it fired because wantPins was empty at an unpinned name, which is
+//      a false red rather than a control, and the width-keying plus the report-not-assert path now remove it.
+//      So this half is MORE uncontrolled after that fix, not less, and saying so is the point of this block.
 //  (2) the `gone` direction of invariant 3's set. NC-B and NC-D only ever ADD a height.
+// A THIRD HOLE, (3) short375 having no control at all, is still open and is named lower down. All three are
+// jobs/invariant-gate-two-uncontrolled-assertions, which this burst did NOT close - a control needs a trial
+// bundle and a burst agent holds one gate file and may not touch chess.jsx.
+// WHAT THIS BURST DID ADD IS A FOURTH CONTROL WHERE THERE WAS NONE: the screen-walk coverage ledger has a
+// deliberate negative control (CT_INV_NC_SKIP / CT_INV_NC_DUP), from jobs/gate26-negative-control. It is the
+// first assertion in this file whose control needs no trial bundle, because the thing it guards is a property
+// of the GATE's walk and not of the app.
 // Also recorded: the `missing` half DID fail for real during this build, on my own change - the occlusion
 // exclusion removed pbar-top from behind the ⋯ sheet and the assertion caught the stale `at` list.
 
@@ -1013,17 +1027,50 @@ const GEOS=process.env.CT_INV_GEOS?process.env.CT_INV_GEOS.split(','):ALL_GEOS;
 
 L.run(async()=>{
   if(process.env.CT_INV_GEOS) L.note('!! CT_INV_GEOS='+process.env.CT_INV_GEOS+' - GEOMETRY-NARROWED RUN, NOT full coverage. '+GEOS.length+' of '+ALL_GEOS.length+' geometries.');
+  /* THE SCREEN-WALK COVERAGE LEDGER AND ITS NEGATIVE CONTROL.
+     Landed at the 2026-10-03 process burst from jobs/gate26-negative-control, which routes
+     flags/gate26-screen-walk-can-revisit-and-skip-and-stays-green-2026-09-18. THE HOLE: every assertion in
+     this file is scoped to the screen it is standing on, so a walk that SKIPS a screen simply asserts
+     nothing about it and the gate stays GREEN, and a walk that REVISITS one counts it twice into the
+     population floors. The gate reported how many screens it measured (`screens:SCREENS.length`, a constant,
+     and `measuredScreens>=10`, a floor) and never once asserted WHICH screens it had stood on. That is the
+     same shape as #395's frozen denominator: a number that cannot move reporting on a population that can.
+     THE LEDGER: one entry per screen actually reached and scanned, asserted per geometry to be EXACTLY the
+     declared SCREENS list, each name exactly once. A skip is red, a revisit is red, and the log names which.
+     THE DELIBERATE CONTROL, which is the half the job asked for and the half the gates-without-a-negative-
+     control ledger says is always the missing one: CT_INV_NC_SKIP=<screen>[,<screen>] drops those screens
+     from the walk and CT_INV_NC_DUP=<screen> walks one twice. Either MUST turn this gate RED on the ledger
+     assertion below. Input count 12 - one skip per declared screen - which is the case's stated count and is
+     a property run rather than a demonstration at one input [R18]. The controls are env-gated, so a normal
+     suite run is unchanged and the control cannot be left switched on by accident: a control run prints a
+     loud note, is red by design, and the default-run guard at the foot of this file asserts both are off. */
+  const NC_SKIP=(process.env.CT_INV_NC_SKIP||'').split(',').map(x=>x.trim()).filter(Boolean);
+  const NC_DUP=(process.env.CT_INV_NC_DUP||'').split(',').map(x=>x.trim()).filter(Boolean);
+  const DECLARED=SCREENS.map(([n])=>n);
+  if(NC_SKIP.length||NC_DUP.length){
+    L.note('!! NEGATIVE CONTROL RUN, NOT A COVERAGE RUN. CT_INV_NC_SKIP='+(NC_SKIP.join(',')||'-')+'  CT_INV_NC_DUP='+(NC_DUP.join(',')||'-')+' - the screen-walk ledger assertion MUST go red. A red here under these variables is the control passing; a GREEN here is the finding.');
+    const unknown=[...NC_SKIP,...NC_DUP].filter(n=>!DECLARED.includes(n));
+    L.say(unknown.length===0,'the negative control names screens that exist in SCREENS, so a typo cannot read as a passing control',{unknown,declared:DECLARED});
+  }
+  const WALK=[];
+  for(const [name,go] of SCREENS){
+    if(NC_SKIP.includes(name)) continue;
+    WALK.push([name,go]);
+    if(NC_DUP.includes(name)) WALK.push([name,go]);
+  }
   for(const g of GEOS){
+    const visits=new Map();
     const b=await L.launch({geo:g,store:R.SEED,name:'inv-'+g});
     await b.open();
     L.note(g+' ('+L.GEOS[g].label+')  stamp '+(await b.stamp()));
     let totalRows=0, totalSkipped=0, seenAny=0, totalSpill=0, nowrapSeen=0, totalTransient=0, measuredScreens=0;
     let ivRows=0, ivCtls=0, ivNested=0, ivSvgKid=0, ivCovered=0, ivBoardExcluded=0, ivSeenPins=new Set(), ivIcon={}, ivAllH=new Set(), ivSmall=new Map();
-    for(const [name,go] of SCREENS){
+    for(const [name,go] of WALK){
       let reached=true, res=null;
       try{ await go(b); }catch(e){ reached=false; L.say(false,g+' '+name+': the state could not be reached at all - every ink assertion on this screen is UNRUN, not green',String(e).slice(0,140)); }
       if(!reached) continue;
       await b.settle(450);
+      visits.set(name,(visits.get(name)||0)+1);
       res=await b.page.evaluate(SCAN);
 
       /* ── INVARIANT 2: ONE ICON SIZE PER CONTROL ROW ──────────────────────────────────────────────────
@@ -1075,9 +1122,19 @@ L.run(async()=>{
          say ten, and the Best column the user read was not a Best count. Measured on the Opera Game: White
          Best was 6 and is now Best 5 + Excellent 1; Black was 9 and is now 7 + 2.
 
-         THIS IS THE INVARIANT THAT WOULD HAVE CAUGHT IT THE DAY THE BRANCH WAS WRITTEN, and it is worth
-         more than another hand-written expectation because it needs no known-good answer - only internal
-         consistency. Every ply lands in exactly ONE bucket: `_sideStats` counts Book with an early return,
+         THE PARTITION SUM IS NOT THE ASSERTION THAT WOULD HAVE CAUGHT IT, AND THIS COMMENT USED TO SAY IT
+         WAS. Corrected at the 2026-10-03 process burst from jobs/fix-two-gate-comments-that-mislead, whose
+         measurement is the reason: folding Excellent into Best PRESERVES the partition, so the sum is blind
+         to the exact #421 defect it was credited with. Control NC-A (all three #421 sites reverted, md5
+         d5246437df65), full gate 26 at three geometries: 173 pass / 9 fail, and the three reds per geometry
+         were the LADDER-MEMBERSHIP assertions (ten grades reporting rows:9, Excellent has its own bucket,
+         LADDER order) while BOTH SUM assertions stayed GREEN at 17 and 16. #421's own run report recorded
+         this and the comment was never corrected, so every reader since has been told the wrong thing.
+         DO NOT TRIM THE THREE LADDER-MEMBERSHIP ASSERTIONS AS REDUNDANT: they are the only assertions in
+         this file that catch a grade fold, and the sum does not cover them.
+         WHAT THE SUM IS STILL WORTH, stated so the correction does not overshoot: it needs no known-good
+         answer, only internal consistency, so it catches a ply counted twice or lost entirely - a different
+         class from a fold. Every ply lands in exactly ONE bucket: `_sideStats` counts Book with an early return,
          and `Miss` RELABELS Mistake or Blunder (chess.jsx:3266) rather than sitting on top of one, so the
          buckets PARTITION. That was measured by the orchestrator across seven real games before this gate
          was written (the brief's warning that Miss might overlay was withdrawn), which is why the form
@@ -1259,11 +1316,41 @@ L.run(async()=>{
          - and the pin set must be found EXACTLY where it was measured - a pinned class that vanishes
            (fixed, or no longer reached) is red, and one that appears on a NEW screen is red. That last half
            is what stops this pin table becoming a frozen denominator (#395). */
-    const wantPins=[]; for(const p of PIN_ROWS) for(const at of p.at) if(at.split('/')[0]===g) wantPins.push(p.sig+'@'+at);
-    const missing=wantPins.filter(x=>!ivSeenPins.has(x));
-    const extra=[...ivSeenPins].filter(x=>!wantPins.includes(x));
-    L.say(missing.length===0&&extra.length===0, g+': invariant 2 found its pinned failures in EXACTLY the states they were measured in - nothing fixed without retiring its pin, and no pinned spread has appeared on a new screen',
-      (missing.length||extra.length)? {missing, appearedSomewhereNew:extra} : {pinsFound:wantPins.length});
+    /* KEYED ON WIDTH, NOT ON THE GEOMETRY NAME. Landed at the 2026-10-03 process burst from
+       jobs/gate26-pin-locations-still-keyed-on-geometry-name-2026-09-27, which is the UNSWEPT HALF of the
+       #423 fix: that pass keyed the HEIGHT table on width (line ~1049, pin.h[widthOf(g)]||pin.h['*']) and
+       left this LOCATION filter on `at.split('/')[0]===g`. At any geometry name outside
+       {se,kunal730,short375} that filter yields an EMPTY wantPins, every pinned class the sweep observes
+       lands in `appearedSomewhereNew`, and the assertion below goes RED ON AN UNCHANGED BUNDLE. Measured by
+       build-external-challenger at origin/main 4793758 with this gate's own predicate lifted verbatim:
+       g='kunal' (375x679 - the shorter-phone column CLAUDE.md orders kept, same width and same app as
+       kunal730) gave wantPins 0, appearedSomewhereNew 9, missing 0. Four of gates/lib.js's seven geometries
+       were affected: kunal, kunal761, 390, 430 [R07 - counted, not estimated].
+       THE PIN KEY IS NOW (width, screen) AND NOT (name, screen), which is the same correction and the same
+       reason as the height table: the spread a pin records is a property of the WIDTH the row was laid out
+       at, not of the label of the run that measured it. The three swept geometries are unaffected by
+       construction - every class in PIN_ROWS lists the identical screen set at kunal730 and at short375, so
+       the 375 union is the same set either name resolved to before. What changes is that 375x679 and 375x761
+       now resolve to the 375 pins instead of to nothing.
+       AND AN UNPINNED WIDTH REPORTS RATHER THAN ASSERTS, which is this file's own existing rule for
+       invariant 3 and for the row/occlusion population, applied here for the first time. 390 and 430 carry
+       no location pins at ANY name, so width-keying alone still leaves them with an empty wantPins against a
+       non-empty observation - a structural red on a healthy bundle, which #391 records as worse than no
+       assertion. The guard against that becoming a silent hole is in the !CT_INV_GEOS block at the foot of
+       this file: every geometry the suite sweeps BY DEFAULT must carry location pins, so this can only ever
+       downgrade on an opt-in narrowed or ad-hoc run. */
+    const atWidth=(at)=>{const n=at.split('/')[0];return L.GEOS[n]?L.GEOS[n].w:null;};
+    const pinnedWidths=new Set(); for(const p of PIN_ROWS) for(const at of p.at){const w=atWidth(at); if(w!==null)pinnedWidths.add(w);}
+    const wantPins=[]; for(const p of PIN_ROWS) for(const at of p.at) if(atWidth(at)===widthOf(g)) wantPins.push(p.sig+'@'+g+'/'+at.split('/').slice(1).join('/'));
+    const wantPinSet=[...new Set(wantPins)];
+    if(pinnedWidths.has(widthOf(g))){
+      const missing=wantPinSet.filter(x=>!ivSeenPins.has(x));
+      const extra=[...ivSeenPins].filter(x=>!wantPinSet.includes(x));
+      L.say(missing.length===0&&extra.length===0, g+': invariant 2 found its pinned failures in EXACTLY the states they were measured in - nothing fixed without retiring its pin, and no pinned spread has appeared on a new screen (pins resolved by WIDTH '+widthOf(g)+', not by the geometry name)',
+        (missing.length||extra.length)? {missing, appearedSomewhereNew:extra, width:widthOf(g)} : {pinsFound:wantPinSet.length, width:widthOf(g)});
+    } else {
+      L.note('    invariant 2 pin LOCATIONS, '+g+': width '+widthOf(g)+' carries NO pinned locations, so this is REPORTED and NOT asserted here (pinned widths: '+[...pinnedWidths].sort((a,b)=>a-b).join(', ')+'). Observed now: '+([...ivSeenPins].join(' ; ')||'none'));
+    }
     // RE-DERIVED AT #423 AFTER THE OCCLUSION EXCLUSION MOVED THE INSTRUMENT, and the rule that says to is this
     // project's own: a threshold belongs to the instrument it was calibrated on, and when an assertion you just
     // moved goes red you find out WHICH of the two readings changed before you touch the number. Here it is the
@@ -1323,6 +1410,18 @@ L.run(async()=>{
        is REPORTED here and owned by a job, and invariant 1 stays honestly unbuilt in the header. */
     L.note('    invariant 1 (REPORTED, NOT ASSERTED), '+g+': '+ivSmall.size+' distinct visible controls under 44x44');
     for(const [k,v] of [...ivSmall.entries()].sort()) L.note('        '+k+'   '+v);
+    /* THE LEDGER ASSERTION. Not a count and not a floor: the SET, each name exactly once, which is the
+       #388 lesson applied to coverage rather than to icon heights. `measuredScreens>=10` below is KEPT - it
+       answers a different question (how many screens 4b found eligible ink on) and it cannot see a skipped
+       screen, because a skipped screen contributes nothing to either side of a floor. */
+    const walked=[...visits.keys()];
+    const notWalked=DECLARED.filter(n=>!visits.has(n));
+    const walkedTwice=[...visits.entries()].filter(([,c])=>c>1).map(([n,c])=>n+' x'+c);
+    const undeclared=walked.filter(n=>!DECLARED.includes(n));
+    L.say(notWalked.length===0&&walkedTwice.length===0&&undeclared.length===0,
+      g+': the screen walk stood on EXACTLY the '+DECLARED.length+' declared screens, each once - a skipped screen asserts nothing and used to stay green, and a revisited one counts twice into the population floors (flags/gate26-screen-walk-can-revisit-and-skip-and-stays-green-2026-09-18; negative control CT_INV_NC_SKIP / CT_INV_NC_DUP)',
+      (notWalked.length||walkedTwice.length||undeclared.length)? {neverReached:notWalked, reachedTwice:walkedTwice, notDeclared:undeclared, declared:DECLARED.length}
+                                                               : {screensWalked:walked.length, declared:DECLARED.length});
     L.say(measuredScreens>=10, g+': 4b actually measured ink against its own box on at least 10 of the 12 screens, so its zeros are measurements rather than an empty set (Home measures none: its two nowrap boxes both clip)', {screensMeasured:measuredScreens, nowrapBoxes:nowrapSeen, spills:totalSpill, transientsSeen:totalTransient});
     await b.close();
   }
@@ -1335,5 +1434,15 @@ L.run(async()=>{
     const unpinnedPop=[]; for(const g of ALL_GEOS) for(const [n] of SCREENS) if(!Object.prototype.hasOwnProperty.call(ROW_PIN,g+'/'+n)) unpinnedPop.push(g+'/'+n);
     L.say(unpinnedW.length===0, 'every geometry the suite sweeps by default carries a pinned icon set, so invariant 3 never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedW});
     L.say(unpinnedPop.length===0, 'every (geometry, screen) the suite sweeps by default carries a pinned row and occlusion count, so the population guard never silently downgrades to a report on a full run',{unpinned:unpinnedPop});
+    // AND THE SAME GUARD FOR THE PIN-LOCATION ASSERTION, added with the width-keying above: that assertion
+    // now REPORTS at a width carrying no location pins, so without this it could go quiet on a full suite
+    // the day ALL_GEOS gains a width PIN_ROWS does not cover. Keyed on width for the same reason the
+    // assertion itself now is.
+    const pinnedLocW=new Set(); for(const p of PIN_ROWS) for(const at of p.at){const nm=at.split('/')[0]; if(L.GEOS[nm])pinnedLocW.add(L.GEOS[nm].w);}
+    const unpinnedLoc=ALL_GEOS.filter(g=>!pinnedLocW.has(L.GEOS[g].w));
+    L.say(unpinnedLoc.length===0, 'every geometry the suite sweeps by default carries pinned invariant-2 LOCATIONS at its width, so the pin-location assertion never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedLoc.map(g=>g+'='+L.GEOS[g].w)});
+    // THE WALK IS DECLARED, NOT NARROWED, ON A DEFAULT RUN. The negative-control variables must be off, or
+    // the run is a control run and its green means nothing.
+    L.say(NC_SKIP.length===0&&NC_DUP.length===0, 'no screen-walk negative control was left switched on, so this run walked the full declared screen list rather than a narrowed one',{CT_INV_NC_SKIP:NC_SKIP,CT_INV_NC_DUP:NC_DUP});
   }
 },'26-invariants');
