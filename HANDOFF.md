@@ -2,6 +2,56 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#472 TOOK THE ONE READING THAT DECIDES THE DRILL BOARD-JUMP P0, AND IT STRIKES THE JOB'S OWN PRESCRIBED FIX (2026-10-03).**
+> `jobs/board-jumps-on-drill-verdict` is the only item Kunal has reported BY HAND TWICE. Four candidate fixes have been
+> costed across #428 and a worker pre-measure, and all four were a guess, because nobody had measured the ONE number
+> that chooses between them: the height the verdict sentence actually NEEDS. Measured on live main (`6eca956`, app.js
+> `40c8cdb1bcff`), **22 non-rest readings at all seven geometries, worst needed height 68px**.
+>
+> **WHAT THE NEXT RUN GETS FOR FREE, so it does not re-derive any of it:**
+> 1. **74 HOLDS THE CONTENT EVERYWHERE.** So the constant-reserve approach is NOT wrong, and candidate B's NUMBER is
+>    right. What is left against candidate B is only its BOARD COST and its Reset overlap at 320x568, and both of those
+>    are Kunal's to weigh, not the build lane's. Do not re-measure this; read
+>    `claude/agents/controls/472-drill-verdict-reserve-7-geometries.log`.
+> 2. **CANDIDATE A IS STRUCK, AND IT IS THE JOB'S OWN `theFix`.** "Give the drill the same `height:(vp.h<820?30:74)` the
+>    sibling has" reserves **30px at five of the seven geometries, including both of Kunal's**, and the content needs 46
+>    to 68. The worker struck it from the correct sibling's side on 2026-09-28; this run strikes it from the defective
+>    side as well. **The job document still prescribes it. Do not implement what it says.**
+> 3. **THE JUMP IS NOW MEASURED AT SEVEN GEOMETRIES, not three, and it is present at every one.** dTop +23.88 to +71.27,
+>    never zero. It independently reproduces #428's "+47.8 to +52.4, width -48 to -57" eleven builds later.
+> 4. **THE BOARD TAKES THREE OR FOUR SIZES INSIDE ONE CARD.** 375x730: 339.03 at rest, 291.03 on a wrong answer, 321.03
+>    when solved. 360x640: 265.03 / 208 / 192 / 247.03 across rest / wrong / hint / solved. Its size is a function of how
+>    long the last verdict happened to be. **Any assertion written for this must compare THREE states, not a settled
+>    pair** - which is also what this job's SIT run 17 said.
+> 5. **AT 360x640 THE HINT STATE PUTS THE BOARD ON ITS 192px FLOOR - -73.03px, -27.6% - ON LIVE MAIN, AND IT IS NOT
+>    INTERMITTENT.** Same magnitude as the pre-existing 29% lesson-board latch that #468 was held on, different place,
+>    different mechanism, and reproducible on demand. Nothing on main can see it.
+> 6. **THE WRONG-ANSWER WORDING HAS A VIEWPORT TERM** - 37 chars at 320x568/360x640/375x667/375x730, 48 chars at
+>    390x844/414x896/440x956. A reserve sized from one geometry's wording is sized from one branch.
+>
+> **AND ONE NUMBER IS NOT REPRODUCED, FLAGGED RATHER THAN SMOOTHED OVER [R18].** #457's antagonist B published 375x730
+> board width 339.03 -> 269.03 (-70.00). Here the TOP delta agrees to the hundredth (+69.75) and the WIDTH delta reads
+> -48 on a wrong answer and -18 when solved. Two candidate causes, neither tested: B measured #457's bundle, whose
+> verdict string was two lines where main's is one; and SIT run 17 records the board moving TWICE, "pushed down at full
+> size first and only refitted on the next frame", so -70 may be the transient. This probe settles 1000-1100ms.
+>
+> **THE PROBE IS COMMITTED AND IS DELIBERATELY NOT A GATE.** `gates/measure-drill-verdict-reserve.js` emits 0 PASS
+> lines, lives outside `gates/regress/` and is absent from `gates/gate-manifest.tsv`, so it cannot be mistaken for a push
+> gate and it cannot redden the suite. It takes `CT_GEOMDV` and `CT_MDV_ITEMS` and **prints the geometries and items it
+> covered on every run**, so a narrowed run can never be read as a full one. It reaches the drill by gate 51's route
+> (PHASE 1 reviews a real game through the stored-account path so the APP does the capturing).
+> **TWO TRAPS INSIDE IT, both recorded in the file:** `m.last` is the OPPONENT's previous move stored as `{fr,fc,tr,tc}`
+> row/col with row 0 = rank 8 - it decodes to Nxb5 and Bxd7, White's moves - so it cannot be replayed as the player's
+> wrong answer, and `played` is a SAN string with no from-square; the wrong branch is therefore reached by moving the
+> solution's own piece elsewhere. And **item 2's wrong state was NOT reached over 11 candidate moves, and the probe says
+> so rather than printing a zero.**
+>
+> **NOTHING SHIPPED, AND THE REASON IS A MEASUREMENT, NOT A MOOD.** Every job at the head of the build queue is either
+> already on main and correctly left `ready` for its finder [R05] - 11 of the 25 at priority 10 - or waiting on Kunal.
+> **THREE DESK ITEMS ARE OWED AND ONE WAS NEVER WRITTEN AT ALL:** `q-mate-floor-is-allowing-mate-a-blunder` has been open
+> and unanswered since 2026-09-30 and this was the NINTH consecutive build to reach it; #459's third-line question has no
+> Desk item among the 74 that exist; and this job's own ask has read `desk: PENDING - no Desk item id` for five days.
+
 > **#466 MADE "PLAY FROM HERE" REFUSE AT A FINISHED POSITION INSTEAD OF STARTING A GAME YOU HAD ALREADY LOST (2026-10-02).**
 > From the last ply of a decisive game - one tap from where every review of a decisive game ENDS - the review's ⋯ →
 > Play from here → ▶ Play this position opened a REAL vs-Computer game reading "Checkmate! / You lose" with zero
