@@ -2490,26 +2490,26 @@ export default function App(){
      lesson's ✕ -> the Play tile gives [data-ct="setup-resume"] reading "Resume your game in progress
      (2 moves played)" while [data-ct="play-moverow"] ALREADY READS EMPTY, and tapping Resume lands on the
      starting position. The row promised a game that was already gone, which is worse than saying nothing.
-     THE CAUSE: `playHist` is a SEPARATE piece of state from the board. selectOpening (:3667) calls
+     THE CAUSE: `playHist` is a SEPARATE piece of state from the board. selectOpening (the lesson loader) calls
      setGame(...) directly and never touches playHist, so the row was computed from one quantity and the
      board from another. SIXTEEN of this file's 21 `setGame(` call sites replace the board without setting
      playHist, so CLEARING playHist at each of them would make that count load-bearing and it would rot as
      the app grows - #439's lesson, where guarding the single committer beat guarding its callers.
      THAT COUNT READ 17 IN THIS BUILD'S FIRST DRAFT AND IS CORRECTED HERE [R18]. I scoped it to sites with
-     no setPlayHist IN THE SAME STATEMENT, which double-counts doMove: its setPlayHist is at :4379 and its
-     setGame two lines later at :4381, the same play-mode handler. `grep -o 'setGame('` is 23, less the two
+     no setPlayHist IN THE SAME STATEMENT, which double-counts doMove: its setPlayHist and its setGame are two lines
+     apart in the same play-mode handler. `grep -o 'setGame('` is 23, less the two
      inside this comment is 21 sites, less the five that pair with a setPlayHist is 16. Antagonist A caught
      it, and the tell was that my own text listed doMove in BOTH the five that preserve the invariant and
      the seventeen that break it - one code path cannot be in both.
      SO THE ROW ASKS THE BOARD, which is the thing the player can see and the quantity play-moverow
-     (:7005) renders. The invariant is the one this file's own practice guard already relies on at :3600:
+     (the play control row) renders. The invariant is the one this file's own practice guard already relies on:
      `game.history.length === playHist.length` holds BY CONSTRUCTION for every game started through
-     fullReset, and all FIVE setPlayHist sites preserve it (fullReset :3217 clears both, the human commit
-     :3403 and doMove :4379 push one entry per ply, the online rebuild :3620 builds hist and g from the
-     same move list, and the takeback :4425 slices both to the same index). A violation therefore means the
+     fullReset, and all FIVE setPlayHist sites preserve it (fullReset clears both, the human commit and doMove
+     push one entry per ply, the online rebuild builds hist and g from the same move list, and the takeback
+     slices both to the same index). A violation therefore means the
      board is no longer the game playHist describes - but the CONVERSE DOES NOT FOLLOW, which is the whole
      subject of the paragraph below.
-     IT IS NOT THE PLACEMENT TEST `somethingToLose` USES AT :3251, and the two are not interchangeable: a
+     IT IS NOT THE PLACEMENT TEST `somethingToLose` USES, and the two are not interchangeable: a
      0-ply position loaded through "Play this position" is something to LOSE but is not a game with a move
      count to RESUME, and this row already stays away from that case via !setupFromFEN. */
   /* AN IDENTITY TEST, NOT A COINCIDENCE TEST, AND THE FIRST VERSION OF THIS LINE WAS THE SECOND.
@@ -2527,6 +2527,11 @@ export default function App(){
      SO THE BOARD MUST CONTINUE THE GAME playHist RECORDS, not merely match its length. playHist[k] is the game
      BEFORE ply k, so playHist[n-1] holds the first n-1 SANs and `game` must replay them exactly. Length alone
      is kept as the cheap reject so the SAN walk runs only when it can matter.
+     AND THE CITATIONS ABOVE NAME SYMBOLS RATHER THAN LINE NUMBERS ON PURPOSE. My first draft cited eleven
+     line numbers and EVERY ONE WAS ALREADY WRONG by the time it was committed - the comment block itself had
+     pushed them down, so it cited its own pre-edit file. That is #399's trap (a control recipe naming lines
+     that had moved 36 down), and the repair is not to re-pin the numbers, which rot on the next edit, but to
+     name the things, which do not.
      ITS OWN LIMIT, NAMED RATHER THAN LEFT TO BE FOUND: if an inherited board replays the live game's moves
      move-for-move it is accepted - but then the position on screen IS the position the row promises, so there
      is nothing left to lie about. */
