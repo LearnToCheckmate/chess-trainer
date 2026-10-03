@@ -2457,11 +2457,27 @@ export default function App(){
   // has worked since #375. Recorded as an amber default BEFORE the change:
   // flags/amber-469-start-game-arms-over-a-live-game-rather-than-being-relabelled.
   const [startArm,setStartArm]=useState(false);
-  // Disarm on every way out of the sheet and on any change to what Start would DO. Without this the arm
-  // survives closing and reopening the sheet, so a player who backed out once would find the second tap
-  // of an abandoned confirmation starting a game - a confirm state that outlives its question is worse
-  // than no confirm state, because the destructive tap becomes the FIRST one again without saying so.
+  // Disarm on leaving or reopening the sheet, on the opponent changing, on setupFromFEN arriving, and on the
+  // game's own length changing. Without this the arm survives closing and reopening the sheet, so a player
+  // who backed out once would find the second tap of an abandoned confirmation starting a game - a confirm
+  // state that outlives its question is worse than no confirm state, because the destructive tap becomes the
+  // FIRST one again without saying so.
+  // THE SCOPE OF THIS LIST, STATED EXACTLY, BECAUSE THE FIRST VERSION OF THIS COMMENT OVERSTATED IT AND
+  // ANTAGONIST A MEASURED THE OVERSTATEMENT. It read "on any change to what Start would DO", which is false:
+  // the time control and the colour are not in the dep list, and A drove it - arm Start, tap the sheet's
+  // `1 min` chip, and the label stays "Tap again to discard your game and start". That is not a defect (the
+  // next tap is still the second tap and the player has already read the warning, and the chip does not
+  // reset the game from this sheet) but the claim was wrong, and #433's rule is that a premise in a comment
+  // is not a measurement. These four deps, and no more.
   useEffect(()=>{setStartArm(false);},[playSetup,opponent,setupFromFEN,playHist.length]);
+  // MOVES, NOT PLIES, AND THE DISTINCTION IS A SHIPPED DEFECT THIS BUILD ALMOST MADE. The resume row below
+  // first printed `playHist.length` and called it "moves": antagonist B drove three positions and read
+  // "2 moves played" against a move row showing `1.e4 1...d5` (one move), "3 moves played" against
+  // `1.f3 1...e5 2.g4` (two), and "4 moves played" against a two-move mate. A factor of about two, against
+  // the app's OWN readout of the same quantity eight pixels behind the sheet - #385's shape-is-not-a-value,
+  // where the string satisfies any regex for a move count perfectly. playHist holds one entry per PLY, so a
+  // full move is two of them and the player's count is the move number they can see in the row.
+  const _playMoves=Math.ceil(playHist.length/2);
   // #359 open by default. A square board on a tall phone leaves roughly 200px that the board
   // cannot use, and #344 spent it inflating the two player bars to three times their content -
   // 124px tall holding 38px of ink, twice, which is what Kunal kept seeing as "empty space along
@@ -5564,7 +5580,31 @@ export default function App(){
               move count is in the label rather than in a tooltip.
               NOT in the no-game case by construction: playHist is empty there, which is what keeps gate 54's
               E4 control at exactly its ten buttons. */}
-          {playHist.length>0&&!setupFromFEN&&(<button data-ct="setup-resume" onClick={()=>{setStartArm(false);setPlaySetup(false);}} style={{padding:'13px 14px',borderRadius:12,border:'1px solid rgba(var(--acr),.45)',background:'rgba(var(--acr),.14)',color:'var(--ac2)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer',textAlign:'left',lineHeight:1.4}}>{'▶'} Resume your game in progress <span style={{fontWeight:500,opacity:.85}}>({playHist.length} {playHist.length===1?'move':'moves'} played)</span></button>)}
+          {/* THREE CONDITIONS BEYOND "a game exists", AND ALL THREE WERE VETOES ON THIS BUILD'S FIRST BUNDLE
+              (9d92f4f5e2c6). The row first rendered on `playHist.length>0&&!setupFromFEN` alone, which is "a
+              game exists" and not "a game can be continued" - and the two antagonists found three separate
+              ways that gap lies to the player.
+                * `opponent!=='online'` - FOUND FROM BOTH DOORS, the pair's one common finding. Selecting
+                  Online UNMOUNTS the live Play screen (antagonist B measured play-moverow going null the
+                  moment the tile is tapped, before any Continue), so the row was offering a game that is no
+                  longer on screen and delivering a Google sign-in wall instead: two taps from Home, and it
+                  failed SILENTLY, 0 console errors. Worse than the pre-#469 state in that one state, because
+                  before it the sheet merely said nothing and now it made a false promise. It also makes this
+                  line agree with the committer below, which is the whole point of the #466 comment there -
+                  the first version of this row added exactly the second disagreeing condition that comment
+                  warns about, nine lines above it.
+                * `!_gameOver` - a CHECKMATED game is not in progress. Driven on fool's mate: the game-over
+                  chrome is up (Review and Rematch have replaced Hint and Flip), and the row still read
+                  "Resume your game in progress (4 moves played)" and did NOTHING when tapped. `_gameOver` is
+                  the predicate at :2875 deliberately, not `isOver`: isOver derives from boardGame, which is
+                  playHist[pvIdx] during a Back/Forward preview, so it reads false on a finished game the
+                  moment the player steps back a move - this file's own comment at :4165 says so.
+              THE ARM BELOW DELIBERATELY DOES *NOT* TAKE `!_gameOver`, and the asymmetry is the point: a
+              finished game cannot be RESUMED but it can still be DESTROYED, and destroying it is a real loss
+              because Review is reachable only from the game-over screen that one tap replaces. That is
+              already a filed finding (fingerprint 8c887399f3704a18, 2026-09-28), so the arm closes it while
+              this row correctly stays away. */}
+          {playHist.length>0&&!setupFromFEN&&opponent!=='online'&&!_gameOver&&(<button data-ct="setup-resume" onClick={()=>{setStartArm(false);setPlaySetup(false);}} style={{padding:'13px 14px',borderRadius:12,border:'1px solid rgba(var(--acr),.45)',background:'rgba(var(--acr),.14)',color:'var(--ac2)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer',textAlign:'left',lineHeight:1.4}}>{'▶'} Resume your game in progress <span style={{fontWeight:500,opacity:.85}}>({_playMoves} {_playMoves===1?'move':'moves'} played)</span></button>)}
           {setupFromFEN&&(setupBlocked
             ?(<div data-ct="setup-terminal-note" style={{padding:'10px 13px',borderRadius:12,background:'rgba(224,168,58,.12)',border:'1px solid rgba(224,168,58,.4)',fontSize:'clamp(14px,2.6vw,14px)',color:'#e0a83a',lineHeight:1.45}}>⚠ That position is already over — {setupTerminal==='checkmate'?'it is checkmate':'it is a stalemate'}, so there is no move to play from it. {setupSrc==='scan'?<>Scan or upload a board where it is still someone's turn.</>:<>Step back a move in your review and use <b>Play from here</b> there instead.</>}</div>)
             :(<div style={{padding:'10px 13px',borderRadius:12,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',fontSize:'clamp(14px,2.6vw,14px)',color:'var(--ac2)',lineHeight:1.45}}>♟ Continuing from your reviewed position. You'll play <b>{pColor==='w'?'White':'Black'}</b> (the side to move) — switch the color below if you'd rather take the other side.</div>))}

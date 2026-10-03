@@ -176,8 +176,125 @@ L.run(async()=>{
       g.k+': D ONE TAP ON START DOES NOT THROW THE GAME AWAY - either the 3 plies survive, or the button arms first (the #375 Resign pattern)',
       {pliesAfter,armed,btnsBefore:btnsBefore.length,sheetStillUp:sheetAfter.present});
 
+    // ── D2. AND THE ARM MUST STILL LET THE PLAYER THROUGH. Added at #469 on antagonist A's finding that
+    //    this was the one state the gate could not see. D above is `pliesAfter===3||armed===true`, which the
+    //    ARM ALONE satisfies - so a build whose disarm effect fired on the arm itself would make
+    //    "Start game" a PERMANENT NO-OP for every player with a live game, and this gate would go green on
+    //    it. The gate asked whether the destructive tap was prevented and never whether the intended action
+    //    was still possible. One tap more answers it.
+    if(armed===true){
+      await P.tapBtn(b,/tap again|discard/i,1300);
+      const pliesAfter2=await P.plies(b);
+      const sheetAfter2=await sheetSig(b);
+      L.say(pliesAfter2===0&&sheetAfter2.present===false,
+        g.k+': D2 THE SECOND TAP STARTS THE NEW GAME - the arm is a confirmation, not a dead end',
+        {pliesAfter2,sheetStillUp:sheetAfter2.present});
+    }else{
+      // NOT ARMED. Then Start must have STARTED - and this is the branch that catches the no-op, which the
+      // first version of D2 got wrong and which is the whole reason A's finding mattered. That version
+      // asserted `pliesAfter===3` here, i.e. "the game survived", which is exactly what a PERMANENTLY DEAD
+      // Start button also produces: no arm, no new game, 3 plies intact, D green on its first disjunct and
+      // D2 green here. The hole A named would have survived the assertion written to close it. A Start that
+      // neither arms nor starts is broken, so the only acceptable unarmed outcome is that a game began.
+      L.say(pliesAfter===0,
+        g.k+': D2 START IS NOT A NO-OP - with no arm, one tap must actually have started a game',
+        {pliesAfter,armed});
+    }
+
     L.say(b.errs.length===0,g.k+': E5 zero app errors across leave-and-return',b.errs.slice(0,3));
     if(g.k===KUNAL)await b.shot('54-resume-sheet-kunal730');
+    await b.close();
+  }
+
+  // ══ THE THREE STATES THE ROW MUST STAY OUT OF, all added at #469 and every one of them a VETO on this
+  //    build's first bundle 9d92f4f5e2c6. The row first rendered on "a game exists" and the assertions above
+  //    cannot tell that from "a game can be continued" - B's closing point, and it is the same shape as the
+  //    #432 trap: an assertion that pins the row's PRESENCE goes green on all three of these.
+  //    Run at Kunal's geometry only, deliberately: every predicate here is a condition on game state with no
+  //    viewport term in its expression, so the other six columns would buy repetition. Said rather than
+  //    implied, per #411 - publish the scope with the count.
+  {
+    // G1/G2 - THE COUNT IS A MOVE COUNT, CHECKED AGAINST THE APP'S OWN MOVE ROW ON THE SAME SCREEN.
+    // B measured "2 moves played" over `1.e4 1...d5`, "3" over `1.f3 1...e5 2.g4` and "4" over a two-move
+    // mate - a factor of about two. The move row is NOT a readout fed by the thing under test (#389): it is
+    // the live game's own move list, rendered from playHist, and it is readable behind the sheet.
+    const b=await L.launch({geo:{w:375,h:730,safe:'',label:KUNAL},name:'resume-count-375x730'});
+    await b.open();
+    await P.states['pp-m0'](b);
+    await b.move('e2','e4'); await b.move('d7','d5'); await b.settle(350);
+    await b.tapCt('play-home',650); await b.tile('Play'); await b.settle(650);
+    const s=await sheetSig(b);
+    const rowTxt=(s.btns||[]).find(t=>RESUME.test(t))||'';
+    const printed=(rowTxt.match(/\((\d+)\s+moves?\s+played\)/)||[])[1];
+    const movesOnRow=await b.page.evaluate(()=>{
+      const e=document.querySelector('[data-ct="play-moverow"]');
+      if(!e)return null;
+      const ns=[...(e.innerText||'').matchAll(/(\d+)\s*\./g)].map(m=>+m[1]);
+      return ns.length?Math.max(...ns):null;
+    });
+    L.say(printed!==undefined&&movesOnRow!==null,
+      KUNAL+': G1 both readouts are present - the row prints a count and the move row shows move numbers (non-vacuity)',
+      {rowTxt,printed,movesOnRow});
+    L.say(String(printed)===String(movesOnRow),
+      KUNAL+': G2 THE ROW\'S COUNT AGREES WITH THE MOVE ROW behind it - 2 plies of 1.e4 d5 is ONE move, not two',
+      {printed,movesOnRow,rowTxt});
+    await b.close();
+  }
+  {
+    // G3 - A FINISHED GAME IS NOT "in progress". Driven through fool's mate, with the game-over chrome
+    // asserted FIRST so the state is proved reached rather than assumed (#385: when asserting X is absent in
+    // state S, prove S was reached).
+    const b=await L.launch({geo:{w:375,h:730,safe:'',label:KUNAL},name:'resume-mate-375x730'});
+    await b.open();
+    await P.states['pp-m0'](b);
+    await b.move('f2','f3'); await b.move('e7','e5'); await b.move('g2','g4'); await b.move('d8','h4');
+    await b.settle(550);
+    const over=await b.page.evaluate(()=>[...document.querySelectorAll('button')]
+      .filter(x=>{const q=x.getBoundingClientRect();return q.width>1&&q.height>1;})
+      .map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()));
+    L.say(over.some(t=>/^Review$/i.test(t))&&over.some(t=>/^Rematch$/i.test(t)),
+      KUNAL+': G3a PRECONDITION the game really is over - Review and Rematch have replaced Hint and Flip',
+      {buttons:over.slice(0,12)});
+    await b.tapCt('play-home',650); await b.tile('Play'); await b.settle(650);
+    const s=await sheetSig(b);
+    L.say(s.present===true&&!(s.btns||[]).some(t=>RESUME.test(t)),
+      KUNAL+': G3 NO RESUME ROW OVER A FINISHED GAME - a checkmated game cannot be resumed, and offering it was a no-op that lied',
+      {btns:s.btns});
+    L.say(s.present===true&&!/in progress/i.test(s.txt),
+      KUNAL+': G3b and the sheet does not claim a game is IN PROGRESS when it is over',{txt:(s.txt||'').slice(0,160)});
+    // AND THE ARM MUST STILL FIRE HERE - the asymmetry is deliberate. A finished game cannot be resumed but
+    // it can still be DESTROYED, and Review is only reachable from the game-over screen one tap replaces
+    // (fingerprint 8c887399f3704a18, filed 2026-09-28). So this is the one place the two conditions differ.
+    const pliesBeforeTap=await P.plies(b);
+    await P.tapBtn(b,/^▶ Start game$/,1100);
+    const pliesAfterTap=await P.plies(b);
+    const armedOver=(await sheetSig(b));
+    L.say(pliesAfterTap===pliesBeforeTap||(armedOver.btns||[]).some(t=>/tap again|discard/i.test(t)),
+      KUNAL+': G3c THE ARM STILL PROTECTS A FINISHED GAME - one tap does not throw away the game you were about to review',
+      {pliesBeforeTap,pliesAfterTap,btns:armedOver.btns});
+    await b.close();
+  }
+  {
+    // G4 - WITH Online SELECTED THE ROW MUST BE GONE. The pair's one COMMON finding, reached from both doors:
+    // A from the diff (the row's condition and the committer's disagreed on opponent==='online', which is the
+    // exact second-disagreeing-condition the #466 comment beside the committer warns about), B from the
+    // surface (play-moverow goes null the moment the tile is tapped, so the row was offering a screen that is
+    // no longer mounted and delivering a Google sign-in wall, silently, two taps from Home).
+    const b=await L.launch({geo:{w:375,h:730,safe:'',label:KUNAL},name:'resume-online-375x730'});
+    await b.open();
+    await P.states['pp-m0'](b);
+    await b.move('e2','e4'); await b.move('d7','d5'); await b.settle(350);
+    await b.tapCt('play-home',650); await b.tile('Play'); await b.settle(650);
+    const before=await sheetSig(b);
+    L.say((before.btns||[]).some(t=>RESUME.test(t)),
+      KUNAL+': G4a PRECONDITION the row IS there with Pass & Play selected, so G4 is a claim about Online and not about the fixture',
+      {btns:before.btns});
+    await P.tapBtn(b,/^Online$/,650);
+    const s=await sheetSig(b);
+    L.say(s.present===true&&!(s.btns||[]).some(t=>RESUME.test(t)),
+      KUNAL+': G4 NO RESUME ROW WITH Online SELECTED - the live Play screen is unmounted there, so the row promised a game and delivered a sign-in wall',
+      {btns:s.btns});
+    L.say(b.errs.length===0,KUNAL+': G4b zero app errors across the opponent switch',b.errs.slice(0,3));
     await b.close();
   }
 
