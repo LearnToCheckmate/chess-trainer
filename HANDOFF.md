@@ -2,6 +2,64 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#468 LANDED #467'S GATE-MANIFEST FLOOR — AND ITS OWN ANTAGONIST FOUND A P0 IN THAT REGISTER BEFORE IT
+> SHIPPED (2026-10-03).** Nothing a player sees changed: `chess.jsx` is BYTE-IDENTICAL to #466 (`55e5f711c221`
+> both sides) and the two bundles differ on exactly three lines, all of them the build stamp, verified by
+> byte-level reconstruction. The subject is the push bar.
+>
+> **THE P0, AND IT IS THE THIRD TIME THIS REGISTER HAS FALLEN TO ONE CHARACTER.** #461 fell to a `#` prefix,
+> #467 to a single leading space, and #468 to the `-` SENTINEL THE TOOL DEFINES ITSELF. `floorread` validated
+> field 1, field 3, the chain and the `lower` arm — and not field 9, the required-set digest. Change
+> `9f80bba52ba6` to `-` on the one seed row, same row count, chain untouched: the set check became UNREACHABLE
+> WITH NO MESSAGE OF ANY KIND. Then edit field 1 of that same row 49 → 29 — unbounded, because the chain starts
+> at row 2 — and twenty required gates can be deleted and flipped to `absent` with a one-character reason:
+> **"29 required, 29 present, 0 missing" at exit 0 from `check`, 55/0 from `selftest`, and OK from
+> `verify-log.sh`**, with `21-review-brilliant.js` gone and the word DIGEST appearing nowhere in the output.
+>
+> **FIVE THINGS THE NEXT RUN SHOULD NOT REDISCOVER.**
+> 1. **AN ERA GATE FOR AN ERA THAT NEVER HAPPENED IS AN OFF SWITCH.** The `-` meant "this register predates the
+>    digest" and no such register can exist. It is REMOVED, not special-cased: field 9 must be exactly 12 hex or
+>    the row is `FLOORBAD`, which exits 1 (measured over five malformed values — `-`, `zzzz`, uppercase, 11 hex,
+>    13 characters — every one exits 1). If you add a sentinel to a register, ask what reads it and what that
+>    reader does when it fires.
+> 2. **ABSENCE OF A COMPLAINT IS NOT EVIDENCE OF EXECUTION.** The attack worked because the check was skipped
+>    *silently*, and three new refusal controls prove the bad inputs are caught while none of them can prove the
+>    check RAN. `check` now emits `required-set digest VERIFIED against the register (<12hex>)` only on the
+>    executing path and `verify-log.sh` REQUIRES it, so a skipped check reads as a MISSING TOKEN. This is #419's
+>    footer wearing field 9. Its limit is in the code: the token is still computed by the harness being judged.
+> 3. **THE RESIDUAL IS REAL AND IT IS NAMED.** The repair validates the ALPHABET of field 9, not its BINDING: an
+>    attacker who edits field 1 and writes the correctly RECOMPUTED digest passes everything. Closing it needs row
+>    1 anchored and a file cannot anchor itself — `jobs/the-gate-manifest-can-be-weakened-by-hand-and-only-git-
+>    can-object-2026-10-02`, which now carries the row-1 instance it did not name.
+> 4. **DO NOT RE-KEY `_legalBoard` OR `DEMO_SETTLED` IN GATE 48.** They pin the lesson demo board to its settled
+>    width per geometry and they are EXPECTED TO FIRE: a red means the board latched, not that the pin is stale.
+>    #468 re-keyed `_fp` for exactly that reason and these are the identically shaped target for the next run
+>    under time pressure. The latch states are an OPEN LADDER — `chess.jsx:2991-2992` adds `ceil(over/8)*8+8` per
+>    pass — so there is no finite set to add them to. Mechanism and app fix:
+>    `jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29`.
+> 5. **THE MULTISTABILITY IS SOLVED AFTER FOUR BUILDS COULD NOT.** `over` is STRUCTURALLY 0 on the lesson screen
+>    (`#root` has one in-flow child whose height equals the viewport), so the trim is FROZEN for the visit —
+>    shrink needs `over>0`, growth needs `over<-24`, neither reachable from 0. Inject 16px of transient in-flow
+>    content across one dependency change outside `_geoKey` and **0.39px of measured overflow spends 24.00px of
+>    board, ~60×**, because the #364 centring spacers swallow the signal while the hysteresis spends the board.
+>    Two more passes hit the `SQ>=24` clamp, **which is why the third observed width is exactly 192.00.** At
+>    375×730 — Kunal's phone — width binds and the trim cannot move the board at all, which is why the field
+>    reports were asymmetric. And the 192 latch loses NO INK: 26.50px past the row edge, nothing clips it, the
+>    button is inside the viewport and hit-testable. #398's shape.
+>
+> **AND TWO THINGS #468 DID TO ITSELF, BOTH CAUGHT BEFORE THE PUSH AND BOTH WORTH THE NEXT RUN'S ATTENTION.**
+> First, my gate-48 control passed 33 of 33 with **18 of those vacuous**: it forced `width` on the board grid and
+> `rowW` came back 236.39 at every forced width, so the discrimination table compared two instruments in a state
+> where nothing had moved — CLAUDE.md's #416 trap verbatim. Every forced step now carries a **did-it-move
+> assertion** printing the asked-for value, the before and the delta. Second, and worse: repairing `_rowPin`
+> changed `if(_rowPin!==undefined)` to `if(_dr)`, which is true everywhere, so the `else` branch became
+> unreachable and **the demo block's viewport-containment assertion stopped running at short375 and 390×568**.
+> Nothing failed; the count went down by two in a build whose subject is counting. It surfaced only from diffing
+> the PER-GEOMETRY TAGS of that assertion between the gate's own logs — a bare count of the string is ambiguous
+> because it matches two different assertions, which is also why my own "4 → 8" figure for it is withdrawn.
+> **A GREEN SUITE WAS DISCARDED TO FIX IT** (run 4: `GATES GREEN #468`, 50 sections, 3396 PASS, harness
+> md5-verified unchanged, archived as `468d-GREEN-SUPERSEDED-two-orphaned-assertions.log`).
+
 > **#467 MADE THE GATE SUITE'S REQUIRED SET UN-SHRINKABLE, AND BOTH ANTAGONISTS PROVED MY FIRST VERSION WAS NOT
 > (2026-10-02).** Nothing a player sees changed: `chess.jsx` is BYTE-IDENTICAL to #466 (`55e5f711c221` both sides)
 > and the bundle differs only in its stamp. The subject is the push bar.
