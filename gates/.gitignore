@@ -6,3 +6,4 @@ shots/
 logs/
 *.png
 .run-*.sh
+gates-run-*.sh
