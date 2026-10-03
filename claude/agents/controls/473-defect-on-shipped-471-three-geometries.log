@@ -1,0 +1,86 @@
+     bundle: app.js  stamp #471 - 2026-10-03 08:33 ET  (default app.js)
+
+### kunal730 / mate  BEFORE Back
+   card: null
+   slot: {"t":"Checkmate! · Black wins","y":3.5,"w":178.72}
+   resultHits(1): [{"t":"Checkmate! · Black wins","y":3.5}]
+   board: 375.03x375.03 @y84.75
+### kunal730 / mate  AFTER one Back tap (tapped=true)
+   card: null
+   slot: {"t":"","y":3.5,"w":4.53}
+   resultHits(0): []
+   board: 375.03x375.03 @y84.75
+   >>> VERDICT: result vocabulary 1 -> 0 hits; slot "Checkmate! · Black wins" -> ""
+   after Forward: card="Checkmate!Black wins" slot=""
+   errs: []
+
+### kunal730 / resign  BEFORE Back
+   card: null
+   slot: {"t":"Resigned · Black wins","y":3.5,"w":159.17}
+   resultHits(1): [{"t":"Resigned · Black wins","y":3.5}]
+   board: 375.03x375.03 @y84.75
+### kunal730 / resign  AFTER one Back tap (tapped=true)
+   card: null
+   slot: {"t":"Resigned · Black wins","y":3.5,"w":159.17}
+   resultHits(1): [{"t":"Resigned · Black wins","y":3.5}]
+   board: 375.03x375.03 @y84.75
+   >>> VERDICT: result vocabulary 1 -> 1 hits; slot "Resigned · Black wins" -> "Resigned · Black wins"
+   after Forward: card=null slot="Resigned · Black wins"
+   errs: []
+
+### short375 / mate  BEFORE Back
+   card: null
+   slot: {"t":"Checkmate! · Black wins","y":3.5,"w":178.72}
+   resultHits(1): [{"t":"Checkmate! · Black wins","y":3.5}]
+   board: 272.00x272.00 @y63.00
+### short375 / mate  AFTER one Back tap (tapped=true)
+   card: null
+   slot: {"t":"","y":3.5,"w":4.53}
+   resultHits(0): []
+   board: 272.00x272.00 @y63.00
+   >>> VERDICT: result vocabulary 1 -> 0 hits; slot "Checkmate! · Black wins" -> ""
+   after Forward: card="Checkmate!Black wins" slot=""
+   errs: []
+
+### short375 / resign  BEFORE Back
+   card: null
+   slot: {"t":"Resigned · Black wins","y":3.5,"w":159.17}
+   resultHits(1): [{"t":"Resigned · Black wins","y":3.5}]
+   board: 272.00x272.00 @y63.00
+### short375 / resign  AFTER one Back tap (tapped=true)
+   card: null
+   slot: {"t":"Resigned · Black wins","y":3.5,"w":159.17}
+   resultHits(1): [{"t":"Resigned · Black wins","y":3.5}]
+   board: 272.00x272.00 @y63.00
+   >>> VERDICT: result vocabulary 1 -> 1 hits; slot "Resigned · Black wins" -> "Resigned · Black wins"
+   after Forward: card=null slot="Resigned · Black wins"
+   errs: []
+
+### se / mate  BEFORE Back
+   card: null
+   slot: {"t":"Checkmate! · Black wins","y":3.5,"w":178.72}
+   resultHits(1): [{"t":"Checkmate! · Black wins","y":3.5}]
+   board: 272.00x272.00 @y63.00
+### se / mate  AFTER one Back tap (tapped=true)
+   card: null
+   slot: {"t":"","y":3.5,"w":4.53}
+   resultHits(0): []
+   board: 272.00x272.00 @y63.00
+   >>> VERDICT: result vocabulary 1 -> 0 hits; slot "Checkmate! · Black wins" -> ""
+   after Forward: card="Checkmate!Black wins" slot=""
+   errs: []
+
+### se / resign  BEFORE Back
+   card: null
+   slot: {"t":"Resigned · Black wins","y":3.5,"w":159.17}
+   resultHits(1): [{"t":"Resigned · Black wins","y":3.5}]
+   board: 272.00x272.00 @y63.00
+### se / resign  AFTER one Back tap (tapped=true)
+   card: null
+   slot: {"t":"Resigned · Black wins","y":3.5,"w":159.17}
+   resultHits(1): [{"t":"Resigned · Black wins","y":3.5}]
+   board: 272.00x272.00 @y63.00
+   >>> VERDICT: result vocabulary 1 -> 1 hits; slot "Resigned · Black wins" -> "Resigned · Black wins"
+   after Forward: card=null slot="Resigned · Black wins"
+   errs: []
+EXIT=124
