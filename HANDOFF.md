@@ -2340,3 +2340,42 @@ which is 18 ahead and 9 behind main and hostage to an open Kunal decision about 
 > read its fixture note first. The ply count is chosen PER BLOCK by whether the engine is able to move at all -
 > the AI effect returns early when `game.turn===pColor` - and at the wrong fixture the gate's own headline
 > assertion goes green on a bundle that is broken.
+
+> **#471 GAVE EVERY CONTROL THAT REPLACES A RUNNING GAME ONE SHARED CONFIRM (2026-10-03).**
+> #469 guarded the Play setup sheet's Start button and published its class sweep as "2 found / 1 fixed / 1 left
+> ... both instances are this one button". Its own antagonist falsified that in one grep. MEASURED on main
+> before any change: SIXTEEN `fullReset(` call sites, of which the More sheet's "New game" row and every
+> Game-setup chip in the hamburger (opponent, clock, colour) replaced a live game with no prompt at all; two
+> were driven at 3 plies -> 0.
+> WHAT SHIPS IS ONE POLICY, NOT A CONFIRM PER SITE: `resetArm` holds the KEY of the armed control (a boolean
+> would let a tap on "vs Computer" be confirmed by a tap on "No clock", which is a different destructive
+> action), `guardReset(key,apply)` is the single decision point, an armed control changes COLOUR ONLY, and the
+> warning sentence lives in a row RESERVED at a fixed height above the pills - because a row that appears
+> there would push the chip the second tap has to land on, which is the wrong-action shape this repo has filed
+> at #393, #427 and #428.
+> **THE THING TO CARRY FORWARD IS THE PREDICATE, AND BOTH ANTAGONISTS FOUND IT FROM DIFFERENT DOORS.** It was
+> `playHist.length>0`. That is "a move has been played", NOT "there is something to lose", and it is wrong in
+> both directions. TOO NARROW: a position LOADED through "Play this position" - from Review's "Play from here",
+> from a lesson's practice sheet, or from a BOARD SCAN - sits at ZERO plies with the position on the board, so
+> one tap destroyed it AND the new warning row rendered EMPTY, the app positively asserting there was nothing
+> to lose. Those are the games you cannot get back: a move-list game replays from Review, a photographed board
+> does not. TOO WIDE: `playHist` is not cleared when another mode replaces the board, so it goes stale and the
+> guard armed over a game that no longer existed - the one behaviour regression this build introduced, caught
+> before it shipped. It now asks the BOARD: `game.history.length>0 || toFEN(game) placement !== START_PLACEMENT`,
+> which is also the quantity the move row eight pixels away renders.
+> **A COMMENT IN chess.jsx CLAIMED THE LESSON ROUTE WAS GUARDED AND IT WAS NOT.** It said the practice sheet
+> "is guarded at its own button, on `isOver`". `isOver` asks whether the LESSON position is terminal and says
+> nothing about the live Play game; antagonist A drove it and took a 3-ply game to zero on one tap. The
+> sentence is WITHDRAWN where it was written rather than quietly deleted, and the site now goes through
+> `guardReset`. If you are about to trust a comment that says a site is guarded, drive it.
+> **AND A COUNT SCOPED TO A SPELLING IS NOT A COUNT.** This build's own gate header first said "12
+> `fullReset()` call sites". That is the no-argument form; `grep -o 'fullReset('` is 16, and the four the
+> spelling dropped included the one site still unguarded. Corrected in the header.
+> IF YOU TOUCH THIS AREA: `gates/regress/70-live-game-reset-guard.js`, 43 assertions, with EIGHT control
+> bundles - each block names the control that can actually redden it, because several are green on the real
+> shipped #470 BY CONSTRUCTION (nothing ever arms there, so no control can move and nothing can be armed).
+> Read that list before trusting a green.
+> **STILL OPEN AND NOT THIS BUILD'S:** `playHist` goes stale when a lesson replaces the board, so #469's resume
+> row offers "Resume your game in progress (2 moves played)" over a game that is already gone, with the move
+> row nine pixels away already empty - pre-existing on #470, filed, and the sibling class (20 `setGame(` sites
+> outside `fullReset`) is uncounted.
