@@ -39,7 +39,9 @@
 //     (#385's shape-is-not-a-value). A3 parses the highest move NUMBER out of play-moverow and requires the
 //     row's own figure to equal it. This is a legitimate cross-check and not a circular one: after this build the
 //     two are derived from the same board, so a disagreement means the derivation broke, which is the thing worth
-//     catching.
+//     catching. BUT ITS LIMIT IS NAMED, because antagonist A measured it: in the coincidence state of block C
+//     both readouts derived from the same WRONG board and agreed (1 = 1), so A3 passed over a phantom game. A3
+//     is a check on the derivation, not a detector of the phantom; C1 is what detects that.
 //
 //  5. THE ARM IS THE SAME LIE IN THE SAME SHEET. setup-start armed off raw `playHist.length` too, so after a
 //     lesson it demanded "Tap again to discard your game and start" about a game that no longer existed - a
@@ -48,9 +50,13 @@
 //
 // NEGATIVE CONTROL. The real shipped #473 bundle, which is the actual broken build and costs nothing to keep:
 //   CT_APP=gates/.trial/app-473-shipped.js node gates/regress/71-resume-row-agrees-with-the-board.js
-// Measured there: B1 and B1b RED (row present at "(2 moves played)" over an empty move row) and B4 RED (the
-// start button arms over the gone game). Block A is GREEN on both bundles and must be - the affordance works on
-// #473 for a game that really is live; it is block B that separates them.
+// Measured there: 30 PASS / 4 FAIL - B1 and B4 RED at BOTH geometries (the row present at "(2 moves played)"
+// over an empty move row, and the start button arming over the gone game). THIS LINE FIRST SAID "B1 and B1b RED"
+// AND THAT IS WRONG [R18]: B1b asserts the MOVE ROW IS EMPTY, which is true on #473 too - that is the defect, not
+// the fix - so B1b PASSES on the control, as claude/agents/controls/474-NC-473-shipped.log records. Antagonist A
+// caught it; a control result written from memory rather than read back is exactly what this file will be cited
+// for later. Block A is GREEN on both bundles and must be - the affordance works on #473 for a game that really
+// is live; it is blocks B and C that separate them.
 //
 // NOT COVERED, STATED RATHER THAN IMPLIED. The PUZZLE and REVIEW doors, which also call setGame and are the
 // job's own open notChecked items: driving the Puzzles tile reached the roadmap WITHOUT replacing the board (the
@@ -119,6 +125,51 @@ for(const g of GEOS){
     const back=await b.text('[data-ct="play-moverow"]');
     L.say(rowMoves(back)===2,G+' A5 tapping resume returns the game WITH its moves, not a fresh board',{back});
     L.say(b.errs.length===0,G+' A9z zero app console errors',b.errs.slice(0,3));
+    await b.close();
+  }
+
+  /* ── BLOCK C: THE COINCIDENCE. THIS BLOCK EXISTS BECAUSE BLOCK B COULD NOT FAIL ON IT. ──
+     Block B pairs a 3-ply live game with a 0-ply lesson board, so the two lengths can never collide and a
+     LENGTH-ONLY predicate passes it. Antagonist A broke this build's first candidate by changing one number:
+     a 2-ply live game and a lesson PRACTICE played out to 2 plies. Measured on that candidate (44ad5b485e57)
+     at both geometries: the row came back reading "Resume your game in progress (1 move played)" over the
+     lesson's board and Start armed again. The fixture had encoded the same assumption as the code, which is
+     the trap CLAUDE.md records at #432/#433. The predicate is now an identity test and this block is what
+     holds it to that - C1 is RED on a length-only predicate and GREEN on the shipped one. ── */
+  {
+    const b=await L.launch({geo:{w:g.w,h:g.h},name:'b71-coin-'+G}); await b.open();
+    await P.states['pp-m0'](b);
+    await b.move('f2','f3'); await b.move('e7','e5');          // TWO plies, not three: that is the whole point
+    await b.page.evaluate(()=>{window.__ctLive=1;});
+    const livePlies=await P.plies(b);
+    await openSheet(b);
+    const pre=await b.text('[data-ct="setup-resume"]');
+    L.say(livePlies===2&&pre!==null,G+' C0 ARRIVAL: a TWO-ply live game exists and its resume row is up',{livePlies,pre});
+    await b.tapCt('setup-resume',800).catch(()=>{});
+
+    let at=false; try{ await LE.states['practice-correct'](b); at=true; }catch(e){}
+    // the lesson board must itself be at TWO plies, or the collision never happens and C1 proves nothing
+    const lessonPlies=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="moves-panel"]');return e?(e.innerText||'').trim():null;});
+    L.say(at,G+' C0b ARRIVAL: the lesson practice was reached, so the board was replaced by a PLAYED line rather than a reset',{at,lessonPlies});
+    await b.tapText(/^✕$/).catch(()=>{}); await b.settle(600);
+    await b.tile('Play').catch(()=>{}); await b.settle(800);
+
+    const sheet=await onSheet(b), live=await alive(b);
+    L.say(live&&sheet,G+' C0c ARRIVAL: back on the setup sheet with no reload',{live,sheet});
+    if(sheet&&live&&at){
+      const resume=await b.text('[data-ct="setup-resume"]');
+      const row=await b.text('[data-ct="play-moverow"]');
+      L.say(resume===null,G+' C1 THE COINCIDENCE: no resume row, even though the inherited board carries the SAME ply count as the dead playHist',{resume,row});
+      const s0=await b.text('[data-ct="setup-start"]');
+      const t=await tapStartOnce(b,g.h);
+      L.say(t.onScreen,G+' C2a ARRIVAL: Start was on screen when tapped',{rect:t.rect});
+      L.say(t.onScreen&&!/Tap again/.test(String(s0))&&!/Tap again/.test(String(t.after)),G+' C2 Start does not arm over the phantom game in the coincidence state',{before:s0,after:t.after});
+    }else{
+      L.say(false,G+' C1 NOT RUN: preconditions failed',{sheet,live,at});
+      L.say(false,G+' C2a NOT RUN',{sheet,live,at});
+      L.say(false,G+' C2 NOT RUN',{sheet,live,at});
+    }
+    L.say(b.errs.length===0,G+' C9z zero app console errors',b.errs.slice(0,3));
     await b.close();
   }
 

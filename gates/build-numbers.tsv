@@ -444,3 +444,4 @@
 474	minted	-	-	-	2026-10-03T19:22Z	build__1791055209050	minted	P1 fix: a lesson/puzzle/review setGame replaces the board but never clears playHist, so the Play setup resume row offers a game that is already gone; plus the setGame sibling-class count
 474	built	-	1afe02ee263e	f534e44e26be	2026-10-03T19:34Z	build__1791055209050	build.sh	Bundle built and stamped #474. Recorded by gates/build.sh so the number resolves to an artefact.
 474	built	-	44ad5b485e57	90a5f77d1c6b	2026-10-03T19:34Z	build__1791055209050	build.sh	Bundle built and stamped #474. Recorded by gates/build.sh so the number resolves to an artefact.
+474	built	-	03471840b8e4	8c779526e6c9	2026-10-03T19:56Z	build__1791055209050	build.sh	Bundle built and stamped #474. Recorded by gates/build.sh so the number resolves to an artefact.

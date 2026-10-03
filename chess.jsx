@@ -2480,28 +2480,63 @@ export default function App(){
   // the app's OWN readout of the same quantity eight pixels behind the sheet - #385's shape-is-not-a-value,
   // where the string satisfies any regex for a move count perfectly. playHist holds one entry per PLY, so a
   // full move is two of them and the player's count is the move number they can see in the row.
-  /* #474: THE RESUME ROW AND THE MOVE ROW NOW READ ONE QUANTITY, because they disagreed on screen nine
-     pixels apart. MEASURED on the shipped #473 bundle (96c21b94df25) at 375x730, with an arrival assertion
+  /* #474: THE RESUME ROW READS THE BOARD, because it and the move row disagreed on screen nine pixels
+     apart. THE HEADING FIRST READ "NOW READ ONE QUANTITY" AND THAT IS WITHDRAWN [R18]: antagonist A
+     measured that during a Back/Forward preview the move row renders boardGame.history (= playHist[pvIdx])
+     while this row reads `game`, so with the sheet opened over a 2-move game stepped back once they read 2
+     and 1. That disagreement is HONEST - the game really does have 2 moves and the row is right - but they
+     are two objects, not one quantity, and the sentence claimed more than the code does. MEASURED on the shipped #473 bundle (96c21b94df25) at 375x730, with an arrival assertion
      at BOTH ends: a live Pass & Play at 3 plies, Home -> Discover -> Openings -> Italian Game -> the
      lesson's ✕ -> the Play tile gives [data-ct="setup-resume"] reading "Resume your game in progress
      (2 moves played)" while [data-ct="play-moverow"] ALREADY READS EMPTY, and tapping Resume lands on the
      starting position. The row promised a game that was already gone, which is worse than saying nothing.
-     THE CAUSE: `playHist` is a SEPARATE piece of state from the board. selectOpening (:3627) calls
+     THE CAUSE: `playHist` is a SEPARATE piece of state from the board. selectOpening (:3667) calls
      setGame(...) directly and never touches playHist, so the row was computed from one quantity and the
-     board from another. 17 of this file's 21 `setGame(` call sites replace the board without setting
+     board from another. SIXTEEN of this file's 21 `setGame(` call sites replace the board without setting
      playHist, so CLEARING playHist at each of them would make that count load-bearing and it would rot as
      the app grows - #439's lesson, where guarding the single committer beat guarding its callers.
+     THAT COUNT READ 17 IN THIS BUILD'S FIRST DRAFT AND IS CORRECTED HERE [R18]. I scoped it to sites with
+     no setPlayHist IN THE SAME STATEMENT, which double-counts doMove: its setPlayHist is at :4379 and its
+     setGame two lines later at :4381, the same play-mode handler. `grep -o 'setGame('` is 23, less the two
+     inside this comment is 21 sites, less the five that pair with a setPlayHist is 16. Antagonist A caught
+     it, and the tell was that my own text listed doMove in BOTH the five that preserve the invariant and
+     the seventeen that break it - one code path cannot be in both.
      SO THE ROW ASKS THE BOARD, which is the thing the player can see and the quantity play-moverow
-     (:6958) renders. The invariant is the one this file's own draw detector already relies on at :3553 and
-     explains at :3548: `game.history.length === playHist.length` holds BY CONSTRUCTION for every game
-     started through fullReset, and all FIVE setPlayHist sites preserve it (fullReset :3170 clears both,
-     the human commit :3356 and doMove :4332 push one entry per ply, the online rebuild :3573 builds hist
-     and g from the same move list, and the takeback :4378 slices both to the same index). A violation
-     therefore means the board is no longer the game playHist describes.
-     IT IS NOT THE PLACEMENT TEST `somethingToLose` USES AT :3204, and the two are not interchangeable: a
+     (:7004) renders. The invariant is the one this file's own practice guard already relies on at :3600:
+     `game.history.length === playHist.length` holds BY CONSTRUCTION for every game started through
+     fullReset, and all FIVE setPlayHist sites preserve it (fullReset :3217 clears both, the human commit
+     :3403 and doMove :4379 push one entry per ply, the online rebuild :3620 builds hist and g from the
+     same move list, and the takeback :4425 slices both to the same index). A violation therefore means the
+     board is no longer the game playHist describes - but the CONVERSE DOES NOT FOLLOW, which is the whole
+     subject of the paragraph below.
+     IT IS NOT THE PLACEMENT TEST `somethingToLose` USES AT :3251, and the two are not interchangeable: a
      0-ply position loaded through "Play this position" is something to LOSE but is not a game with a move
      count to RESUME, and this row already stays away from that case via !setupFromFEN. */
-  const _boardIsPlayGame=(game.history||[]).length===playHist.length;
+  /* AN IDENTITY TEST, NOT A COINCIDENCE TEST, AND THE FIRST VERSION OF THIS LINE WAS THE SECOND.
+     This build's first candidate was `(game.history||[]).length===playHist.length` alone. That is true of ANY
+     inherited board that happens to carry as many plies as the dead playHist, and antagonist A broke it by
+     changing ONE number in my own fixture: a live Pass & Play of 2 plies, then a lesson PRACTICE played out to
+     2 plies, and the row came back reading "Resume your game in progress (1 move played)" over the lesson's
+     board, with Start arming again - measured on bundle 44ad5b485e57 at BOTH 375x730 and 320x568, three
+     deterministic runs, 0 console errors. Worse, tapping it and then Back previewed the destroyed Pass & Play
+     game from the stale playHist, so the player is handed two different games on one board.
+     MY GATE COULD NOT SEE IT because its fixture pairs a 3-ply game with a 0-ply lesson board, so the lengths
+     can never collide - the fixture encoded the same assumption as the code [CLAUDE.md #432/#433]. And the
+     mechanism was already written down in this file: the comment at the practice-guard below says exactly this
+     of the identical predicate, one grep away from the line I wrote.
+     SO THE BOARD MUST CONTINUE THE GAME playHist RECORDS, not merely match its length. playHist[k] is the game
+     BEFORE ply k, so playHist[n-1] holds the first n-1 SANs and `game` must replay them exactly. Length alone
+     is kept as the cheap reject so the SAN walk runs only when it can matter.
+     ITS OWN LIMIT, NAMED RATHER THAN LEFT TO BE FOUND: if an inherited board replays the live game's moves
+     move-for-move it is accepted - but then the position on screen IS the position the row promises, so there
+     is nothing left to lie about. */
+  const _sanOf=(h)=>((h||[]).map(x=>(x&&x.san)||'').join(' '));
+  const _boardIsPlayGame=(()=>{
+    const n=playHist.length, gh=(game.history||[]);
+    if(gh.length!==n)return false;
+    if(n===0)return true;
+    return _sanOf(playHist[n-1].history)===_sanOf(gh.slice(0,n-1));
+  })();
   const _livePlies=_boardIsPlayGame?playHist.length:0;
   const _playMoves=Math.ceil(_livePlies/2);
   // #359 open by default. A square board on a tall phone leaves roughly 200px that the board
