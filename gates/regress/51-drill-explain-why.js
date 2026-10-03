@@ -46,6 +46,41 @@
 // Kunal's 375x730 and the gate says so in its output. What IS geometry-dependent is whether the sentence
 // FITS: the verdict box is maxHeight 74 with overflowY auto, so a longer explanation is CLIPPED rather than
 // wrapped. B6/B7/B8 therefore run at all seven widths.
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED (jobs/four-gates-force-a-three-worker-pool-and-never-
+// test-the-fallback-2026-09-27, doneWhen route 2; gate 51 is a member of that class and was not listed in it).
+// Every launch below passes ct_pool:'3', so this gate runs the POOLED Stockfish review and nothing else.
+// WHICH BRANCH IS NOT COVERED, AND WHY IT CANNOT BE FROM HERE, read off the tree rather than assumed:
+//   chess.jsx:3799  const useSF = sfReadyRef.current ? await ensureAna() : false;   and 3801 `if(useSF){`
+//   The minimax fallback is the `else` at 3927. useSF is gated on sfReadyRef/ensureAna and there is NO ct_*
+//   override that reaches it, so no store value this harness can set selects that branch. ct_pool is NOT
+//   that switch: poolWanted() at 3726 accepts 1..6 and only SIZES the pool, so ct_pool=1 is still a
+//   one-worker STOCKFISH review and never the fallback engine. So this gate cannot run a fallback column,
+//   and the gap is recorded here instead of being left as a silent default.
+// WHAT IS DONE ABOUT IT INSTEAD: the fallback path is INSTRUMENTED rather than driven. chess.jsx:3965
+// writes engine:'sf'|'fallback' into ct_gamestats for the reviewed game, so A0e below READS which branch
+// actually produced this run's capture and fails if it is not the one this header claims. A run on a
+// machine where Stockfish never readies therefore goes red and says so, instead of silently measuring the
+// uncovered branch and reporting it as the covered one. The route itself is jobs/no-harness-route-to-the-
+// drill-capture-producer-2026-09-30 and belongs to test-authoring, not here.
+//
+// A CONTRADICTION, RECORDED AND NOT RESOLVED [R45]. chess.jsx:3944, in the #426 P0-1 comment, states
+// "Gate 51 now runs a fallback column." It does not and, per the paragraph above, cannot: there is no
+// column and no reachable branch. Both sides are on record - the bundle comment claims coverage this file
+// does not provide - and the sweeper does not pick a side. Filed as a job; do not silently delete either
+// sentence.
+//
+// THE ALT-MATE SOLVE STATE, AND WHY THIS GATE DOES NOT REACH IT (jobs/veto-fixes-land-with-no-assertion-
+// because-the-gate-is-frozen-pre-veto-2026-09-28, fix part 1, third item, which allows "or a written
+// statement of why it cannot be reached" - this is that statement). The alt-mate verdict is the branch
+// where the drill accepts a DIFFERENT mating move from the one stored in `uci`. drillSolve() below plays
+// exactly m.uci, which is the stored best move, so the solve always takes the primary branch. Reaching the
+// alt branch needs a captured position with a second, equally-mating move AND the drill accepting it; the
+// reference game (the Opera Game as Black) provides neither at its two captured plies - both are quiet
+// Mistake positions, not mates. So the state is not reachable from this fixture, and seeding one by hand
+// would be the vacuity shape PHASE 1 exists to design out (the fixture would be asserting against itself).
+// It stays uncovered here, on purpose and in writing. The clip antagonist A measured in that state is
+// jobs/the-alt-mate-verdict-is-cut-17px-at-320x568-with-no-ellipsis-2026-10-02.
+
 'use strict';
 const L=require('../lib');
 // the stored-account path is the ONLY one that captures: the bare textarea import leaves meta null, so the
@@ -64,6 +99,23 @@ const PGN=`[Event "Live Chess"]
 
 1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0`;
 const ACCT={ct_accts:['cc:dukekarlcountisouard99'],ct_acctgames:{'cc:dukekarlcountisouard99':[{src:'cc',acct:'dukekarlcountisouard99',pgn:PGN,white:'Jsmiller1112',black:'DukeKarlCountIsouard99',wr:'win',tc:'blitz',date:Date.now()-86400000}]},ct_pool:'3'};
+// THE CANONICAL GEOMETRY SET, AND IT HAS A NAMED HOME (jobs/supported-geometry-names-two-different-sets-
+// 2026-09-28, whose fix asks for the set to be "named once, in one place, with its members listed" and for
+// every gate header to cite that one name - this paragraph is gate 51's half of that, and it is the half
+// that needed no change).
+//   THE NAME: TA-7, the seven geometries prompts/test-authoring (tracker, version 7) names in its gate-
+//   writing step, verbatim: 320x568, 360x640, 375x667, 375x730 (Kunal's phone), 390x844, 414x896, 440x956,
+//   and "the harness geometry 375x679 is never used".
+//   VERIFIED 2026-10-03 by reading that lane document rather than by reading another gate: ALLGEOS below is
+//   TA-7 member for member, in that order. So this file's attribution is CORRECT.
+//   AND THAT REVERSES THE JOB'S PREMISE, which is why it is written down here. The job reads this file's
+//   attribution as the overreach ("51-drill-explain-why.js:67 goes further and attributes its list to
+//   prompts/test-authoring"). Measured against the governing lane document, gate 51 is the only one of the
+//   three sources that MATCHES it. The divergent set is gate 48's - 320x568, 375x568, 375x730, 390x844,
+//   375x520, 320x520, 320x540 - which shares 3 of 7 with TA-7 and contains the short-corner band (520/540)
+//   that TA-7 does not name at all. So the fix is not to re-name this list; it is to decide whether the
+//   short-corner band is a SECOND named set and to say which set each story clause means. That belongs to
+//   test-authoring and to the two files it owns, not here, and the finding is reported on the job.
 // the seven geometries prompts/test-authoring names. 375x679 (the harness default 'kunal') is NOT one of them.
 // CT_GEO51='375x730' narrows the sweep for a control run. The gate PRINTS the list it ran, every time, so a
 // narrowed run can never be read as a full one - the #388 lesson is that a green whose scope is not stated is
@@ -124,6 +176,13 @@ L.run(async()=>{
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(1200);
   const mis=await b.page.evaluate(()=>JSON.parse(localStorage.getItem('ct_mymistakes')||'[]'));
   L.note('ct_mymistakes captured by the app: '+mis.length+'  '+JSON.stringify(mis.map(m=>({uci:m.uci,played:m.played,label:m.label,why:m.why===undefined?'<ABSENT>':String(m.why),hint:m.hint===undefined?'<ABSENT>':String(m.hint)}))));
+  // WHICH ENGINE BRANCH ACTUALLY PRODUCED THIS CAPTURE. chess.jsx:3965 stamps the reviewed game with
+  // engine:'sf' or engine:'fallback'. This gate's whole sentence contract is measured on the sf branch
+  // only (see "THE ENGINE BRANCH" in the header), so the branch is READ and asserted rather than assumed.
+  const _eng=await b.page.evaluate(()=>{try{const g=JSON.parse(localStorage.getItem('ct_gamestats')||'{}');
+    const r=Object.values(g).filter(x=>x&&x.src==='review');return r.length?{n:r.length,engine:String(r[r.length-1].engine)}:{n:0,engine:'<NO REVIEW ROW>'};}catch(e){return {n:-1,engine:'<UNREADABLE: '+e.message.slice(0,40)+'>'};}});
+  L.note('engine branch that produced this capture: '+_eng.engine+'  (review rows in ct_gamestats: '+_eng.n+')');
+  L.say(_eng.engine==='sf','TC-R16 A0e the capture was produced by the POOLED STOCKFISH branch, which is the only branch this gate covers - if this is "fallback" the run measured the branch the header says it cannot reach, and its sentence assertions below are reporting on uncovered code',{engine:_eng.engine,reviewRows:_eng.n,ct_pool:'3'});
   L.say(mis.length>=2,'TC-R16 A1 the app captured at least 2 of the user\'s own mistakes from a REAL review - this is the gate\'s input count, and every A-assertion below runs over all of them',{captured:mis.length,inputs:mis.length});
   const N=mis.length;
   for(let i=0;i<N;i++){const m=mis[i],w=m.why;
@@ -162,10 +221,83 @@ L.run(async()=>{
     // band in either sentence may be a winning-side word. This assertion is the whole point of reviewing
     // the game as the LOSING side, and it cannot pass by accident.
     L.say(bs.length>0&&bs.every(x=>x==='level'||/worse|losing/.test(x)),'TC-R16 A8['+(i+1)+'/'+N+'] THE FRAME: the user is BLACK and losing at this ply, so every band named is a losing-side word - a White-frame eval prints "winning" here and is the defect the scratch fix shipped',{bands:bs,why:w});
+    // ================= A9: THE FALLBACK-ENGINE PIN (#426 antagonist B, P0-1). =========================
+    // This is the assertion jobs/veto-fixes-land-with-no-assertion-because-the-gate-is-frozen-pre-veto-
+    // 2026-09-28 asked for as part 1, first item, and its absence is why that veto round added 0 assertions
+    // to this suite. The defect: the fallback engine's out.push omitted evalBefore (chess.jsx:3940-3949),
+    // mistakeWhy() saw undefined, treated it as 0 and printed a FABRICATED starting band - "went from
+    // level" - on every fallback sentence, including one that told a player being mated in six that he was
+    // "slightly better". A8 above cannot catch it, because A8's own predicate ALLOWS 'level'.
+    // THE TWO PROPERTIES, both read off the shipped builder rather than guessed:
+    //  (a) 'level' is whyBand() |v|<0.5 (chess.jsx:796-801). The user here is BLACK and materially lost at
+    //      both captured plies - the same premise A8 rests on and which A8's own pass re-establishes every
+    //      run - so NO honest band in either sentence is 'level'. A 'level' here is either the fabricated
+    //      evalBefore above or a White-frame read, and both are defects.
+    //  (b) THE SHAPE FOLLOWS THE DATA. chess.jsx:877 emits 'went from <bB> to <bA>' only when evalBefore is
+    //      a real number AND the two bands DIFFER, and 'left you <bA>' otherwise. So 'went from' must be
+    //      followed by two DISTINCT bands, and a sentence naming one band must not say 'went from'. This
+    //      pins the haveB branch itself, so putting evalBefore back out of that push is visible here even
+    //      where the fabricated band would have been a losing-side word and slipped past (a).
+    // Neither property is a restatement of A5/A8: NC3 (engine units) yields zero bands and fails A5 before
+    // reaching here, and a correct sentence on a band-crossing mistake satisfies both.
+    L.say(bs.indexOf('level')<0,'TC-R16 A9a['+(i+1)+'/'+N+'] no band is "level": the user is Black and materially lost at this ply, so a "level" band is a fabricated evalBefore (the fallback-engine P0-1) or a White-frame eval, never an honest read',{bands:bs,why:w});
+    const _wf=/\bwent from\b/.test(w);
+    L.say(_wf?(bs.length>=2&&new Set(bs).size>=2):!_wf||bs.length>=2,'TC-R16 A9b['+(i+1)+'/'+N+'] the sentence SHAPE follows the data: "went from X to Y" is emitted only when evalBefore is a real number and the two bands differ (chess.jsx:877), so a "went from" sentence names two DISTINCT bands',{saysWentFrom:_wf,bands:bs,distinct:new Set(bs).size,why:w});
+    L.say(_wf||/\bleft you\b/.test(w),'TC-R16 A9c['+(i+1)+'/'+N+'] a sentence that does NOT say "went from" uses the one-band form "left you <band>" - the only other branch the builder has',{saysWentFrom:_wf,why:w});
   }
   const whys=mis.map(m=>String(m.why||''));
   L.say(new Set(whys).size===N,'TC-R16 A7 the '+N+' whys are all DIFFERENT - one sentence reused on every mistake is the generic-hint defect again (escapes/generic-hint-on-every-mistake-2026-09-20, -8)',{distinct:new Set(whys).size,of:N});
   await b.close();
+
+  // ===== PHASE 1B: THE FEN-KEYED STORE MERGE. ============================================================
+  // SUITE ADMISSION, DECLARED AGAINST THIS BLOCK BY THE RUN THAT WROTE IT [R36]. PHASE 1B IS A CANDIDATE,
+  // NOT AN ADMITTED ASSERTION, and the reason is measured rather than suspected. Two runs on the same tree
+  // (f3ae36a, #473) disagreed about A11: the narrowed run at CT_GEO51=375x730 read why '<FIELD ABSENT>'
+  // and went RED; the full seven-geometry run two minutes later read the upgraded sentence and went GREEN,
+  // with A10 and A12 green in both. Nothing about the tree or this block changed between them. The cause
+  // is upstream and A1 shows it: the capture set itself varies on the minimax fallback branch (1 mistake
+  // where this gate's header claims a measured 2), so whether a fresh capture lands on the seeded fen -
+  // which is the precondition for the merge to have anything to upgrade - is not determined. R36 requires
+  // determinism across three runs before admission, and this has 1 red and 1 green across two.
+  // SO IT IS NOT YET A GATE, AND IT IS LEFT IN RATHER THAN DELETED on purpose: it is the only assertion in
+  // the suite that touches the #426 P0-3 merge at all, and a candidate that says so is worth more than a
+  // silent gap. WHAT WOULD ADMIT IT: run it three times on a tree where A0e is GREEN (the pooled Stockfish
+  // branch), where the capture set is the stable 2 the header names. Do not stabilise it by hand-seeding
+  // the fresh capture - that re-creates the vacuity shape PHASE 1 exists to design out, because the sentence
+  // the merge is asked to copy would then be the fixture's own.
+  // A FIRST READING OF THE RED WAS WRONG AND IS WITHDRAWN HERE RATHER THAN QUIETLY DROPPED [R18]: it was
+  // filed as "the #426 P0-3 merge may not work". The second run refutes that - the merge upgrades in place
+  // and preserves ts, played and last exactly as designed. The defect is this block's determinism, not the
+  // app's merge.
+  // jobs/veto-fixes-land-with-no-assertion-because-the-gate-is-frozen-pre-veto-2026-09-28, fix part 1,
+  // SECOND item, and the build's own RUN-LOG calls this antagonist B's most valuable finding of #426:
+  // "without it this build would have shipped and changed nothing he could see." The merge at chess.jsx:
+  // 3996-4005 is fen-keyed and USED TO DROP every position it already held, so an entry captured by a
+  // pre-#426 build stayed without a `why` for ever - and the ~148 mistakes already in Kunal's store were
+  // exactly the ones that produced his complaint, twice. A solved card is also deleted from the queue, so
+  // there is no second chance. The fix UPGRADES an existing entry in place when a fresh capture of the same
+  // position carries a sentence it lacks, and touches nothing else about it.
+  // WHY THIS IS NOT THE VACUITY SHAPE THE HEADER DESIGNS OUT: the legacy row is built by STRIPPING `why`
+  // and `hint` off what PHASE 1 harvested, so the fen is the app's own and the `why` that must appear is
+  // the app's own too. Nothing is hand-written except the absence being tested for, and the sentinel ts/
+  // last/played values that prove the row was upgraded rather than replaced.
+  if(N>0){
+    const legacy={...mis[0]};delete legacy.why;delete legacy.hint;
+    legacy.ts=1600000000000;legacy.played=String(mis[0].played||'');legacy.last=mis[0].last||null;
+    const b2=await L.launch({geo:{w:375,h:730,safe:''},name:'drill-explain-merge',store:{...ACCT,ct_mymistakes:[legacy]}});await b2.open();
+    L.note('PHASE 1B seeded a legacy row: fen='+String(legacy.fen).slice(0,40)+'...  why=<STRIPPED>  hint=<STRIPPED>  ts='+legacy.ts);
+    await b2.tile('Review');await b2.settle(700);
+    await b2.page.locator('button',{hasText:/Review ›/}).first().click();
+    await b2.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b2.settle(1200);
+    const after=await b2.page.evaluate(()=>JSON.parse(localStorage.getItem('ct_mymistakes')||'[]'));
+    const row=after.filter(x=>x&&x.fen===legacy.fen);
+    L.note('PHASE 1B store after re-review: '+after.length+' rows, '+row.length+' at the seeded fen  '+JSON.stringify(row.map(x=>({why:x.why===undefined?'<ABSENT>':String(x.why).slice(0,60),hint:x.hint===undefined?'<ABSENT>':'<present>',ts:x.ts,played:x.played}))));
+    L.say(row.length===1,'TC-R16 A10 re-reviewing the same game leaves exactly ONE row at the seeded position - the merge upgrades in place and does not duplicate the entry',{rowsAtFen:row.length,totalRows:after.length});
+    const r0=row[0]||{};
+    L.say(typeof r0.why==='string'&&r0.why.trim().length>0,'TC-R16 A11 THE MERGE: a pre-#426 entry that was stored WITHOUT a `why` carries one after a re-review of the same game - the fen-keyed merge used to drop every position it already held, which left the ~148 mistakes already in the store permanently unexplained and is the defect Kunal reported twice',{why:r0.why===undefined?'<FIELD ABSENT>':r0.why});
+    L.say(r0.ts===legacy.ts&&String(r0.played)===String(legacy.played),'TC-R16 A12 the upgrade is IN PLACE and not a replacement: ts, played and last are the legacy row\'s own values, so a solved-before card is not silently re-dated or re-queued by the merge',{ts:r0.ts,expectedTs:legacy.ts,played:r0.played,expectedPlayed:legacy.played});
+    await b2.close();
+  } else { L.say(false,'TC-R16 A10/A11/A12 PHASE 1B did not run: phase 1 harvested no mistake to build a legacy row from'); }
 
   // ===== PHASE 2: THE RENDER. Content at one geometry, the FIT at all of them. ===========================
   for(const g of GEOS){
