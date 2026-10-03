@@ -2318,3 +2318,25 @@ is NOT, and it is still a P1 that can red any run at `short375`. It now has a me
 (read `boardPx` at 375x568 in a browser and confirm it lands near 229). **Do NOT re-pin it to get green.** The real
 blocker in this project is unchanged and untouched by #451: the unshipped pile on `claude/cool-noether-gccllp`,
 which is 18 ahead and 9 behind main and hostage to an open Kunal decision about the mate floor.
+
+> **#470 STOPPED THE NEW GAME SETUP SCREEN ACTING ON THE GAME BEHIND IT (2026-10-03).**
+> A player mid-game who opened the New Game sheet and tapped the **Computer** tile had the ENGINE play into the
+> game behind it. Measured on origin/main's own shipped bundle `af44e6a3b231` at 375x730, by driving it: a live
+> Pass & Play `1.f3 e5 2.g4` went 3 plies to 4 and the move was `2...Qh4#` - checkmate. The player chose an
+> opponent on a setup sheet and lost the game they were playing. Antagonist B found a second route in on main,
+> the COLOUR CHIP, where the engine plays for the colour the human owned and Resume then hands back a
+> vs-Computer game with the player reassigned to Black.
+> THE CAUSE IS SHARED STATE: the setup screen renders over a game that is still mounted, and its tiles write
+> `opponent` directly with no draft copy, so every effect gated on `opponent` wakes while the player is still
+> choosing. THREE did: the AI auto-move, the adaptive-Elo effect (ct_elo 800 -> 750 on a game the computer was
+> never in), and the live eval-bar search.
+> THE FIX IS NOT A PER-BUTTON GUARD, and the first attempt proved why. Guarding the effects on `playSetup`
+> stops the move while the sheet is up and hands it straight back on the way out: the sheet's own `‹ Home`
+> button closes it with no restore, and that candidate still reproduced the defect verbatim. What ships is a
+> snapshot of the live game's opponent, colour and clock, taken once per live game and restored SYNCHRONOUSLY
+> by every door that closes the screen without starting a game. Start keeps the player's choices because it
+> nulls the snapshot in its own handler.
+> IF YOU TOUCH THIS AREA: `gates/regress/69-setup-sheet-live-game.js`, 61 assertion sites over six blocks, and
+> read its fixture note first. The ply count is chosen PER BLOCK by whether the engine is able to move at all -
+> the AI effect returns early when `game.turn===pColor` - and at the wrong fixture the gate's own headline
+> assertion goes green on a bundle that is broken.
