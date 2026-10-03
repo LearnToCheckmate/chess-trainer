@@ -2724,3 +2724,15 @@ Blunder?* — thirteen builds have now stopped at it. And the drill verdict's bo
 been sitting on a branch for four builds because **the one question it needs has never actually reached you.** I
 checked every question on your Decision Desk this run and it is not there, 19 hours after it was supposed to be
 written. Nothing a build can do shortens that one.
+
+### #469 - the game you were playing is no longer thrown away when you go and look at something else
+
+You tap the house mid-game to check the Daily 3 or a lesson. The game is still there behind Home - it always was - but the only way back was the Play tile, which opened the New Game sheet, and that sheet said nothing at all about the game you were in the middle of. Measured on the build you have now: that sheet is **character-for-character identical** whether you have a game running or have never started one. And one tap on **Start game** replaced your game with a fresh board, no prompt, no undo.
+
+Now the sheet offers it back - **'Resume your game in progress (2 moves played)'** - and **Start game asks twice** before it throws a game away, the same way Resign has asked twice since #375. The app already did this on the other side of the product: leaving a review and reselecting Review offers 'Back to your analysis'. This is that, for Play.
+
+**A judgement call I made for you, and one commit undoes it:** Start could instead have been *relabelled* so it reads as not-the-way-back. I chose the second tap, because the app already asks twice for destructive things and a relabel alone still loses the game to one mistaken tap. It is written down at `flags/amber-469-start-game-arms-over-a-live-game-rather-than-being-relabelled` and the gate accepts either, so say the word and it changes.
+
+**What I did NOT do:** a game in progress still does not survive CLOSING the app, only leaving the Play screen. That needs storage the app does not have and I did not start it while you were asleep.
+
+**Still waiting on you, unchanged:** *is the move that lets you get mated a Blunder?* - fourteen builds have now stopped at it. And the drill verdict's board jump, whose finished fix has been on a branch for five builds. I checked all 67 answers on your Decision Desk again this run and neither question is there.
