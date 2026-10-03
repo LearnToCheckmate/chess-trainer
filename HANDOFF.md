@@ -2,6 +2,21 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#474 SHIPPED THE RESUME-ROW FIX, AND ITS LESSON IS ABOUT THE GATE RATHER THAN THE CODE (2026-10-03).**
+> The Play setup sheet offered "Resume your game in progress (2 moves played)" over a move row that already read
+> EMPTY, because the row was computed from `playHist` and the board from `game` - two pieces of state that a lesson's
+> `setGame` can separate. The row now asks the board. **The part to carry: my first predicate tested that the board had
+> the SAME NUMBER OF PLIES as the dead `playHist`, and my own gate's fixture (a 3-ply game against a 0-ply lesson board)
+> made that unfalsifiable.** Antagonist A changed one number - a 2-ply game against a 2-ply lesson practice - and the
+> defect came back in full. A fixture that cannot produce the colliding case certifies the assumption it shares with the
+> code [#432/#433]. The repair is an identity test plus a gate block whose negative control is the broken candidate
+> itself, kept at `gates/.trial/app-474-lengthonly.js`: it reddens the new block ONLY, which is what isolates the change.
+> Shipped at ba739af, bundle 8b958354102b read back out of origin/main, GATES GREEN 54 suites / 3784 PASS.
+> **Owed next, and NOT built here:** `jobs/play-this-position-discards-a-live-game-on-one-tap-and-the-staged-sheet-never-offers-resume-2026-10-03`
+> (priority 10, pre-existing, measured by antagonist B on both bundles) - the staged "Play from here" sheet never offers
+> the resume row over a live game and its primary button destroys that game on ONE tap with no arm, plies 2 -> 0. It is
+> the #375/#469 invariant still open on the very sheet #469 and #474 hardened.
+
 > **#473 FIXED THE PLAY STATUS ROW, AND THE MOST USEFUL THING IT LEARNED IS THAT THE JOB'S OWN `theFix` WAS WRONG (2026-10-03).**
 > `jobs/play-status-slot-loses-the-result-on-one-back-tap-2026-09-30` prescribed one line: move the status row's
 > `_done` onto #437's `_gameOver`. **DO NOT IMPLEMENT WHAT A JOB SAYS WITHOUT BUILDING IT AND MEASURING IT.** I built
