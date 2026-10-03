@@ -514,15 +514,34 @@ if [ -n "$MANIFOOT" ]; then
           echo "  $MANIFOOT"
           exit 1
         fi
-        REQSETVALS="$(grep -v '^[[:space:]]*#' "$FLOORREG" | cut -f9 | tr -d ' \r' | grep -v '^$' | grep -v '^-$' || true)"
+        # #468, ANTAGONIST B's F1 AND F2, TWO CHANGES IN ONE BLOCK.
+        # (1) THE `-` SENTINEL IS GONE AND AN EMPTY DIGEST SET NOW REFUSES. This used to strip `-` rows with
+        #     `grep -v '^-$'` and then, on an empty result, print a NOTE and FALL THROUGH TO OK, calling the
+        #     register "a pre-#467 register". B measured the consequence end to end: one character in field 9 of
+        #     the single seed row turned the set check off in gatemanifest.sh with NO MESSAGE AT ALL and reduced
+        #     this arm to a NOTE; with the seed row's floor edited too, twenty gates could be deleted - the suite
+        #     49 -> 29, `21-review-brilliant.js` gone - at exit 0 from `check`, 55/0 from `selftest`, and OK from
+        #     here. NO PRE-#467 REGISTER EXISTS: the file was born at #467 and its seed row names 467 in field 5,
+        #     so the era gate guarded an era that never happened. gatemanifest.sh's `floorread` now refuses a
+        #     non-digest field 9 outright, and this arm refuses an empty set rather than noting it - the identical
+        #     reasoning as this script's own #467 F10 fix, where an ABSENT register was a loud NOTE returning 0 and
+        #     became a refusal. A guard whose absence is indistinguishable from its success is not a guard.
+        # (2) THE ARMS ARE JOINED ON A ROW, NOT TESTED AS TWO COLUMNS. B's F2: arms 2 and 3 were independent
+        #     membership tests, so a (floor, digest) PAIR THAT NEVER CO-OCCURRED IN ANY ROW was accepted. Latent
+        #     today because the register has one row, LIVE ON THE NEXT BUILD THAT ADDS A GATE - B measured it on a
+        #     2-row register from the documented add-a-gate path: a log reporting `49 floor` with the 50-member
+        #     set's digest `3dd888b56622` returned OK, a 49-member count carrying a 50-member set's digest. The
+        #     register records STATES, so the PAIR has to be a recorded state, not each half of it.
+        REQSETVALS="$(grep -v '^[[:space:]]*#' "$FLOORREG" | cut -f9 | tr -d ' \r' | grep -v '^$' || true)"
         if [ -z "$REQSETVALS" ]; then
-          echo "NOTE (required-set digest): the floor register records no digests, so $LOG's reqset $MANIREQSET could"
-          echo "  not be checked for membership. That is a pre-#467 register, and this arm is NOT CHECKED - which is"
-          echo "  not the same as passing. Arms 1 and 2 ran."
-          FLOORNOTE="$FLOORNOTE; reqset $MANIREQSET NOT CHECKED (register records no digests)"
-        elif grep -qx "$MANIREQSET" <<<"$REQSETVALS"; then
-          FLOORNOTE="$FLOORNOTE, reqset $MANIREQSET (a recorded set)"
-        else
+          echo "REFUSED (required-set digest): gates/gate-required-floor.tsv records NO required-set digests, so"
+          echo "  $LOG's reqset $MANIREQSET cannot be checked for membership."
+          echo "  $MANIFOOT"
+          echo "  This is NOT a pre-#467 register and there is no such thing: the register was created at #467 and"
+          echo "  its own seed row names that build. An empty digest column means field 9 has been emptied or dashed"
+          echo "  out, which is exactly how the set check is switched off [#468, antagonist B's F1]."
+          exit 1
+        elif ! grep -qx "$MANIREQSET" <<<"$REQSETVALS"; then
           echo "REFUSED (required-set digest): $LOG reports a required-set digest of $MANIREQSET, which"
           echo "  gates/gate-required-floor.tsv has never recorded."
           echo "  $MANIFOOT"
@@ -531,7 +550,21 @@ if [ -n "$MANIFOOT" ]; then
           echo "  arm that catches a SWAP - a gate promoted to pay for a real gate being de-required, which leaves"
           echo "  the count, and therefore arms 1 and 2, completely unmoved [antagonist A's 5.1 on #467]."
           exit 1
-        fi
+        elif ! awk -F'\t' -v fl="$MANIFLOOR" -v dg="$MANIREQSET" '
+                /^[[:space:]]*#/ {next} NF<9 {next}
+                { f=$1; d=$9; gsub(/[ \r]/,"",f); gsub(/[ \r]/,"",d);
+                  if (f==fl && d==dg) found=1 }
+                END { exit(found?0:1) }' "$FLOORREG"; then
+          echo "REFUSED (floor/digest pair): $LOG reports floor $MANIFLOOR with required-set digest $MANIREQSET,"
+          echo "  and gates/gate-required-floor.tsv has no single row carrying BOTH."
+          echo "  $MANIFOOT"
+          echo "  Each value does appear on its own in some row - that is exactly what arms 2 and 3 tested until"
+          echo "  #468, and antagonist B measured that it accepts a (count, floor, digest) triple that never"
+          echo "  co-occurred. The register records STATES, so the pair is what has to be recorded."
+          exit 1
+        else
+          FLOORNOTE="$FLOORNOTE, reqset $MANIREQSET (a recorded set, paired with floor $MANIFLOOR in one row)"
+                fi
       fi
     elif [ "$FLOORERA" -eq 1 ]; then
       # ANTAGONIST B's F9, UPHELD, AND THE COMMENT IT CONTRADICTS IS MINE. The OK line's floor note was set only

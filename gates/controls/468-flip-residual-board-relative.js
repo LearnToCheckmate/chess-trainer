@@ -155,13 +155,18 @@ L.run(async()=>{
   const b=await L.launch({geo:spec.geo,name:'ctl468-board-'+spec.name});
   await b.open(); await D.states['endgame-demo-end'](b); await b.settle(500);
   const healthy=LEGAL[spec.name];
-  const pin=(bw)=>Math.abs(bw-healthy)<=0.6||Math.abs(bw-192.0)<=0.6;
+   /* #468, SECOND VERSION, AFTER ANTAGONIST B's VETO (F3). The first version of this control treated 192.00 as a
+     LEGAL state, because antagonist A's veto asked for a bound that tolerates the multistability. B then measured
+     that the three deleted pins were RIGHT in the latch the suite actually reaches and that their red was the only
+     detector in existence of a 44.4px, 19% smaller board. So 192 must now FAIL, and A's requirement is still met:
+     a bound that reddens on a 19% loss also reddens on the 31% one A measured. */
+  const pin=(bw)=>Math.abs(bw-healthy)<=0.6;
   const nat=await boardW(b);
   say(nat!==null&&Math.abs(nat-healthy)<=0.6,
       spec.name+' boardpin: the natural board is this column\'s healthy width, so the pin is calibrated to a measured value and not a chosen one',
       {measured:nat,healthy});
-  for(const t of [{bw:healthy,want:true,why:'the healthy width must PASS'},
-                  {bw:192,want:true,why:'the documented 192.00 floor must PASS - the point pin could NOT do this, which is why it reddened #467'},
+  for(const t of [{bw:healthy,want:true,why:'the SETTLED width must PASS'},
+                  {bw:192,want:false,why:'THE 192.00 LATCH MUST FAIL - this is the detector antagonist B proved the suite had lost, a 19% smaller board on the screen whose first rule is that the board is sacred'},
                   {bw:200,want:false,why:'an intermediate width must FAIL - nothing else in the suite catches this'},
                   {bw:160,want:false,why:'a 31% board loss must FAIL - A measured all four other assertions GREEN here'}]){
     const f=await forceBoth(b,t.bw); await b.settle(250);

@@ -55,27 +55,27 @@ PASS ctl468: 375x520 NEGATIVE CONTROL: shifting ⟳ Flip 10px right turns the NE
 PASS ctl468: 375x520 NC: and the prediction did NOT move with it, so the two sides are genuinely independent here  {"predictedBefore":34.77,"predictedAfter":34.77}
 PASS ctl468: 320x520 boardpin: the natural board is this column's healthy width, so the pin is calibrated to a measured value and not a chosen one  {"measured":231.2,"healthy":231.2}
 PASS ctl468: 320x520 boardpin @231.2: THE CONTROL MOVED THE BOARD to where it was asked  {"askedFor":231.2,"boardNow":231.2,"from":231.19}
-PASS ctl468: 320x520 boardpin @231.2: the pin reads PASS and must read PASS - the healthy width must PASS  {"board":231.2,"healthy":231.2,"floor":192,"pinVerdict":"green","required":"green"}
+PASS ctl468: 320x520 boardpin @231.2: the pin reads PASS and must read PASS - the SETTLED width must PASS  {"board":231.2,"healthy":231.2,"floor":192,"pinVerdict":"green","required":"green"}
 PASS ctl468: 320x520 boardpin @192: THE CONTROL MOVED THE BOARD to where it was asked  {"askedFor":192,"boardNow":192,"from":231.19}
-PASS ctl468: 320x520 boardpin @192: the pin reads PASS and must read PASS - the documented 192.00 floor must PASS - the point pin could NOT do this, which is why it reddened #467  {"board":192,"healthy":231.2,"floor":192,"pinVerdict":"green","required":"green"}
+PASS ctl468: 320x520 boardpin @192: the pin reads FAIL and must read FAIL - THE 192.00 LATCH MUST FAIL - this is the detector antagonist B proved the suite had lost, a 19% smaller board on the screen whose first rule is that the board is sacred  {"board":192,"healthy":231.2,"floor":192,"pinVerdict":"RED","required":"RED"}
 PASS ctl468: 320x520 boardpin @200: THE CONTROL MOVED THE BOARD to where it was asked  {"askedFor":200,"boardNow":200,"from":192}
 PASS ctl468: 320x520 boardpin @200: the pin reads FAIL and must read FAIL - an intermediate width must FAIL - nothing else in the suite catches this  {"board":200,"healthy":231.2,"floor":192,"pinVerdict":"RED","required":"RED"}
 PASS ctl468: 320x520 boardpin @160: THE CONTROL MOVED THE BOARD to where it was asked  {"askedFor":160,"boardNow":160,"from":200}
 PASS ctl468: 320x520 boardpin @160: the pin reads FAIL and must read FAIL - a 31% board loss must FAIL - A measured all four other assertions GREEN here  {"board":160,"healthy":231.2,"floor":192,"pinVerdict":"RED","required":"RED"}
 PASS ctl468: 320x540 boardpin: the natural board is this column's healthy width, so the pin is calibrated to a measured value and not a chosen one  {"measured":236.4,"healthy":236.4}
 PASS ctl468: 320x540 boardpin @236.4: THE CONTROL MOVED THE BOARD to where it was asked  {"askedFor":236.4,"boardNow":236.4,"from":236.39}
-PASS ctl468: 320x540 boardpin @236.4: the pin reads PASS and must read PASS - the healthy width must PASS  {"board":236.4,"healthy":236.4,"floor":192,"pinVerdict":"green","required":"green"}
+PASS ctl468: 320x540 boardpin @236.4: the pin reads PASS and must read PASS - the SETTLED width must PASS  {"board":236.4,"healthy":236.4,"floor":192,"pinVerdict":"green","required":"green"}
 PASS ctl468: 320x540 boardpin @192: THE CONTROL MOVED THE BOARD to where it was asked  {"askedFor":192,"boardNow":192,"from":236.39}
-PASS ctl468: 320x540 boardpin @192: the pin reads PASS and must read PASS - the documented 192.00 floor must PASS - the point pin could NOT do this, which is why it reddened #467  {"board":192,"healthy":236.4,"floor":192,"pinVerdict":"green","required":"green"}
+PASS ctl468: 320x540 boardpin @192: the pin reads FAIL and must read FAIL - THE 192.00 LATCH MUST FAIL - this is the detector antagonist B proved the suite had lost, a 19% smaller board on the screen whose first rule is that the board is sacred  {"board":192,"healthy":236.4,"floor":192,"pinVerdict":"RED","required":"RED"}
 PASS ctl468: 320x540 boardpin @200: THE CONTROL MOVED THE BOARD to where it was asked  {"askedFor":200,"boardNow":200,"from":192}
 PASS ctl468: 320x540 boardpin @200: the pin reads FAIL and must read FAIL - an intermediate width must FAIL - nothing else in the suite catches this  {"board":200,"healthy":236.4,"floor":192,"pinVerdict":"RED","required":"RED"}
 PASS ctl468: 320x540 boardpin @160: THE CONTROL MOVED THE BOARD to where it was asked  {"askedFor":160,"boardNow":160,"from":200}
 PASS ctl468: 320x540 boardpin @160: the pin reads FAIL and must read FAIL - a 31% board loss must FAIL - A measured all four other assertions GREEN here  {"board":160,"healthy":236.4,"floor":192,"pinVerdict":"RED","required":"RED"}
 PASS ctl468: 375x520 boardpin: the natural board is this column's healthy width, so the pin is calibrated to a measured value and not a chosen one  {"measured":223.2,"healthy":223.2}
 PASS ctl468: 375x520 boardpin @223.2: THE CONTROL MOVED THE BOARD to where it was asked  {"askedFor":223.2,"boardNow":223.2,"from":223.19}
-PASS ctl468: 375x520 boardpin @223.2: the pin reads PASS and must read PASS - the healthy width must PASS  {"board":223.2,"healthy":223.2,"floor":192,"pinVerdict":"green","required":"green"}
+PASS ctl468: 375x520 boardpin @223.2: the pin reads PASS and must read PASS - the SETTLED width must PASS  {"board":223.2,"healthy":223.2,"floor":192,"pinVerdict":"green","required":"green"}
 PASS ctl468: 375x520 boardpin @192: THE CONTROL MOVED THE BOARD to where it was asked  {"askedFor":192,"boardNow":192,"from":223.19}
-PASS ctl468: 375x520 boardpin @192: the pin reads PASS and must read PASS - the documented 192.00 floor must PASS - the point pin could NOT do this, which is why it reddened #467  {"board":192,"healthy":223.2,"floor":192,"pinVerdict":"green","required":"green"}
+PASS ctl468: 375x520 boardpin @192: the pin reads FAIL and must read FAIL - THE 192.00 LATCH MUST FAIL - this is the detector antagonist B proved the suite had lost, a 19% smaller board on the screen whose first rule is that the board is sacred  {"board":192,"healthy":223.2,"floor":192,"pinVerdict":"RED","required":"RED"}
 PASS ctl468: 375x520 boardpin @200: THE CONTROL MOVED THE BOARD to where it was asked  {"askedFor":200,"boardNow":200,"from":192}
 PASS ctl468: 375x520 boardpin @200: the pin reads FAIL and must read FAIL - an intermediate width must FAIL - nothing else in the suite catches this  {"board":200,"healthy":223.2,"floor":192,"pinVerdict":"RED","required":"RED"}
 PASS ctl468: 375x520 boardpin @160: THE CONTROL MOVED THE BOARD to where it was asked  {"askedFor":160,"boardNow":160,"from":200}

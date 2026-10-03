@@ -440,7 +440,7 @@ that raised it (`jobs/gates-green-does-not-assert-which-gates-RAN-so-a-deleted-g
 states it in its own `storyClause` field as "None - a property of the gate suite [R08]". Recorded here because
 the definition of done asks for a clause id *or one line naming why there is none*, and this is that line.
 
-**ID SPACE: `TC-SUITE-001` … `TC-SUITE-055`, opened at #461 and extended at #467.** The existing spaces are all
+**ID SPACE: `TC-SUITE-001` … `TC-SUITE-058`, opened at #461, extended at #467 and at #468.** The existing spaces are all
 keyed to app areas (`TC-R*` review, `TC-HM-*` home, `TC-PL-*` play, `TC-INV-*` invariants), and filing a harness
 property under any of them would have mislabelled it. **The ids are the PASS lines of
 `gates/gatemanifest.sh selftest`, in the order that command runs them**, so the register and the executable cannot
@@ -533,7 +533,7 @@ authority is `gates/gatemanifest.sh selftest`'s own last line, not any number wr
 | TC-SUITE-038 | the refused retire wrote NO floor row (still 49) | the named string is present in the output |
 | TC-SUITE-039 | ONE removal plus ONE retire is clean, and the floor is 48 | exit 0 |
 | TC-SUITE-040 | the legitimate retire lowered the floor by exactly one | the named string is present in the output |
-| TC-SUITE-041 | a DUPLICATE row padding  over a deleted gate is a hard failure | exit 1 |
+| TC-SUITE-041 | a DUPLICATE row padding `required` over a deleted gate is a hard failure | exit 1 |
 | TC-SUITE-042 | the arithmetic failure is named AND the duplicate-row remedy is printed | the named string is present in the output |
 | TC-SUITE-043 | sync REFUSES before touching either file when CT_BUILD/CT_RUNID are unset | the named string is present in the output |
 | TC-SUITE-044 | and no 'unknown-run' row reached the register | the named string is present in the output |
@@ -548,6 +548,9 @@ authority is `gates/gatemanifest.sh selftest`'s own last line, not any number wr
 | TC-SUITE-053 | the swap is caught by the SET digest, which the count cannot see | the named string is present in the output |
 | TC-SUITE-054 | the carrier line DIFFERS on a swapped set (it was byte-identical before #467's digest) | the named string is present in the output |
 | TC-SUITE-055 | sync REFUSES a swap and sends you to the leaving door | exit 1 |
+| TC-SUITE-056 | a floor row whose required-set digest (field 9) is the `-` sentinel is a HARD failure, not a silently skipped set check [antagonist B's F1 on #468] | exit 1 |
+| TC-SUITE-057 | a floor row whose field 9 is not 12 hex characters is a HARD failure — the repair is a FORMAT test, not a special case for one sentinel | exit 1 |
+| TC-SUITE-058 | and with field 9 a real digest again, the same tree is clean, so 056 and 057 pin the FIELD and not something the reset changed | exit 0 |
 
 **TC-SUITE-014's VERDICT IS REVERSED AT #467, DELIBERATELY, AND THE REASONING IS AT THE CASE IN
 `gates/gatemanifest.sh`.** At #461 it asserted that flipping a manifest row from `required` to `absent` WITH a
@@ -646,7 +649,18 @@ this repair, not run every build.
 | TC-FLIP-001 | the board-relative instrument predicts the ⟳ Flip row's overflow exactly, at every width the demo board is known to take | `\|past − max(0, needed − rowW)\| ≤ 0.6` at boards 236.4 / 212.39 / 192.00, measured 0 / 14.39 / 34.77 against predictions 0 / 14.39 / 34.77 | 9 (3 geometries × 3 widths) |
 | TC-FLIP-002 | the DELETED per-geometry-NAME pin could not survive the multistability — red in 7 of the 9 legal states | the old literal `{'375x520':3.58,'320x520':0,'320x540':0}[geo]` is outside 0.6 of the measured residual in 7 of 9 states; the new instrument is inside 0.6 in 9 of 9 | 9 |
 | TC-FLIP-003 | the residual assertion CAN STILL FAIL — the negative control crosses the threshold rather than merely disturbing the mechanism | shifting ⟳ Flip 10px right moves `past` 34.77 → 44.77 (16× the 0.6 tolerance) and it goes RED, while `needed` and `rowW` are untouched so the prediction does not move | 3 |
-| **TC-FLIP-004** | **the `_legalBoard` SET pin is the absolute board bound the deleted pin was carrying in disguise** — it tolerates the floor the point pin could not, and still catches a board that is neither legal state | with the board AND its row forced together: PASS at the column's healthy width, PASS at the documented floor 192.00, **FAIL at 200 and FAIL at 160** | 12 (3 geometries × 4 widths) |
+| **TC-FLIP-004** | **the `_legalBoard` pin is the absolute board bound the deleted pin was carrying in disguise, AND it is the suite's only detector of the 192.00 latch** | with the board AND its row forced together: PASS at the column's settled width, and **FAIL at 192.00, at 200 and at 160** | 12 (3 geometries × 4 widths) |
+
+**TC-FLIP-004 CHANGED SHAPE BETWEEN THE TWO ANTAGONISTS, AND THE DISAGREEMENT IS WORTH RECORDING.** Its first
+version passed at 192.00, because antagonist A's veto asked for a bound that *tolerates* the multistability the old
+point pin could not. Antagonist B then vetoed that: the three deleted pins were **right** in the latch the suite
+actually reaches — B measured `past` = 3.58 / 0.00 / 0.00 on this bundle, the deleted pins to the hundredth — and
+their red was **the only detector in the whole suite** of a 44.4px, 19% smaller board, on the screen whose first
+rule is that the board is sacred. B won. A's requirement is satisfied anyway: a bound that reddens on a 19% loss
+also reddens on the 31% one A measured, so what A needed was a *numeric* bound, not a *permissive* one. The
+residual assertion stays board-relative, so the two failures are now **separable** — which the old pin could never
+do: a red on TC-FLIP-004 means the board latched, a red on TC-FLIP-001 means the Flip row's own geometry moved, and
+a red on the `needed`-vs-`FLIP_NEEDED` pin means a label or its padding changed.
 
 **WHY TC-FLIP-004 EXISTS, AND IT IS THE CASE THIS BUILD DID NOT KNOW IT NEEDED.** Antagonist A's veto, reproduced
 independently before it was accepted: the deleted `_fp` map was arithmetically a **board-width pin in disguise** —

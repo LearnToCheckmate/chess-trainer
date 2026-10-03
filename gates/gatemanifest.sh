@@ -184,6 +184,27 @@ floorread(){
     gate="$(printf '%s' "$line" | cut -f8 | tr -d ' \r')"
     dig="$(printf '%s' "$line" | cut -f9 | tr -d ' \r')"
     case "$f" in ''|*[!0-9]*) FLOORBAD="floor value is not a number: '$f'"; return 0;; esac
+    # ── #468, ANTAGONIST B's VETO (F1), AND IT IS THE THIRD TIME THIS REGISTER HAS BEEN DEFEATED BY ONE
+    # CHARACTER. #461 fell to a `#` prefix, #467 to a single leading space, and this one to the `-` SENTINEL THE
+    # TOOL ITSELF DEFINES. Field 9 was the one field nothing validated. B measured the whole attack end to end on
+    # a copy of the real files: change `9f80bba52ba6` to `-` on the single seed row - same row count, chain
+    # untouched - and the required-SET digest check at the call site below was SKIPPED WITH NO MESSAGE OF ANY
+    # KIND, `check` exited 0, `selftest` still said 55/0, and `verify-log.sh` printed a NOTE and returned OK.
+    # Then edit field 1 of the same row from 49 to 29 (which nothing bounds on row 1, because the chain starts at
+    # row 2) and twenty required gates can be deleted and flipped to `absent` with a one-character reason:
+    # "29 required, 29 present, 0 missing" at exit 0, with `21-review-brilliant.js` - the gate CLAUDE.md names as
+    # the only cover for brilliancy explanations, the item Kunal raised five times - gone, and the word DIGEST
+    # appearing NOWHERE in the output. REPRODUCED BY THIS BUILD before the fix was written: with field 9 intact
+    # A's swap is exit 1 and names the digest change; with field 9 = `-` it is exit 0 and says nothing.
+    # THE SENTINEL IS REMOVED RATHER THAN ERA-GATED, which is the point. `-` meant "this register predates the
+    # digest", and NO SUCH REGISTER CAN EXIST: this file was born at #467 and its own seed row says 467 in field
+    # 5, while verify-log.sh was calling it "a pre-#467 register" to the operator's face. An era gate for an era
+    # that never existed is an off switch. Same shape as CLAUDE.md's "a guard whose absence is indistinguishable
+    # from its success is not a guard".
+    case "$dig" in
+      *[!0-9a-f]*|'') FLOORBAD="row $n's required-set digest (field 9) is not 12 hex characters: '$dig'. There is no legitimate value other than a digest - the '-' sentinel was removed at #468 because it silently disabled the set check, and no pre-#467 register exists."; return 0;;
+    esac
+    [ "${#dig}" -eq 12 ] || { FLOORBAD="row $n's required-set digest (field 9) is ${#dig} characters, not 12: '$dig'"; return 0; }
     n=$((n+1))
     if [ "$n" -eq 1 ]; then
       [ "$k" = seed ] || { FLOORBAD="the first floor row must be kind 'seed', not '$k'"; return 0; }
@@ -410,7 +431,10 @@ check)
     # every breach of the count is also a change of the set, but not every change of the set moves the count, and
     # A's attack is exactly the case where the count does not move. The count check is kept because it produces the
     # readable message and the actionable remedy; this one produces the strength.
-    if [ -n "$FLOORDIG" ] && [ "$FLOORDIG" != "-" ] && [ "$NOWDIG" != "$FLOORDIG" ]; then
+    # #468: the `[ "$FLOORDIG" != "-" ]` clause that used to sit here is GONE. It was the off switch B's F1
+    # found: a `-` in field 9 made this whole block unreachable with no message. floorread now refuses such a
+    # row outright, so `-` can no longer reach this point at all.
+    if [ -n "$FLOORDIG" ] && [ "$NOWDIG" != "$FLOORDIG" ]; then
       FLOORSUNK=1
       echo "REQUIRED-SET DIGEST CHANGED WITH NO ROW IN THE FLOOR REGISTER:"
       echo "    register's last row: $FLOORDIG   this tree: $NOWDIG   ($NREQ required here, floor $FLOOR)"
@@ -904,7 +928,12 @@ PYF3
   #     tested a 12-character length bar on the reason - an instrument antagonist B showed was wrong in both
   #     directions, so it was removed rather than tuned. The structural test is what stands.
   resetT
-  printf '48\t49\tlower\t2026-10-02\t467\tselftest\tdropping the brilliancy gate\n' >> "$T/gate-required-floor.tsv"
+  # #468: field 9 (the required-set digest) appended to this fixture row. It had 7-8 fields, and #468's
+  # floorread now refuses a row whose field 9 is not 12 hex - so WITHOUT this the row is refused for its FORMAT
+  # before the arm under test ever runs. The `ck 1` still passed (exit 1 either way) and the MESSAGE assertion is
+  # what caught it: 'the two-file disagreement was not named'. A wrong reason reaching the right verdict is a
+  # trap, not a check (CLAUDE.md, #419), and here the selftest caught it on its author.
+  printf '48\t49\tlower\t2026-10-02\t467\tselftest\tdropping the brilliancy gate\t-\taaaaaaaaaaaa\n' >> "$T/gate-required-floor.tsv"
   ck 1 "a 'lower' row naming no gate in field 8 is refused (hard)" "$T/gatemanifest.sh" check
   # 28. ANTAGONIST B's F2, THE HAND-APPENDED `lower` ROW. Appending is neither editing nor deleting, so the chain
   #     field had nothing to say about it and the first version accepted it at exit 0 - while the breach message
@@ -918,7 +947,12 @@ for i,l in enumerate(ls):
         f=l.split("\t"); f[1]="absent"; f[6]="not on this tree"; ls[i]="\t".join(f)
 open(p,'w').write("\n".join(ls))
 PYF4
-  printf '48\t49\tlower\t2026-10-02\t467\tselftest\tdropping the brilliancy gate\t21-review-brilliant.js\n' >> "$T/gate-required-floor.tsv"
+  # #468: field 9 (the required-set digest) appended to this fixture row. It had 7-8 fields, and #468's
+  # floorread now refuses a row whose field 9 is not 12 hex - so WITHOUT this the row is refused for its FORMAT
+  # before the arm under test ever runs. The `ck 1` still passed (exit 1 either way) and the MESSAGE assertion is
+  # what caught it: 'the two-file disagreement was not named'. A wrong reason reaching the right verdict is a
+  # trap, not a check (CLAUDE.md, #419), and here the selftest caught it on its author.
+  printf '48\t49\tlower\t2026-10-02\t467\tselftest\tdropping the brilliancy gate\t21-review-brilliant.js\taaaaaaaaaaaa\n' >> "$T/gate-required-floor.tsv"
   ck 1 "a hand-appended 'lower' whose gate is 'absent' and not 'retired' in the manifest is refused (hard)" "$T/gatemanifest.sh" check
   out="$("$T/gatemanifest.sh" check 2>&1)"
   if grep -q "not 'retired'" <<<"$out"; then echo "PASS selftest: the refusal names the manifest state it found instead"; pass=$((pass+1))
@@ -970,7 +1004,13 @@ for i,l in enumerate(ls):
 open(p,'w').write("\n".join(ls))
 open(p,'a').write("10-gameover.js\trequired\t467\t2026-10-02\tselftest\tpadding\t-\n")
 PYF6
-  ck 1 "a DUPLICATE row padding `required` over a deleted gate is a hard failure" "$T/gatemanifest.sh" check
+  # #468, ANTAGONIST B's F4: the backticks here were COMMAND SUBSTITUTION inside a double-quoted string, so
+  # `selftest` printed 'gates/gatemanifest.sh: line NNN: required: command not found' between two PASS lines,
+  # the case label lost the word the case is about, and it was NOT counted as a failure. Worse, CLAUDE.md records
+  # that the case register is GENERATED from this command's output, so the corruption had already been committed:
+  # claude/stories/TEST-CASES.md carried 'a DUPLICATE row padding  over a deleted gate' with the double space.
+  # Pre-existing at #467; #468 is the commit that would have landed it on main. Single-quoted now.
+  ck 1 'a DUPLICATE row padding `required` over a deleted gate is a hard failure' "$T/gatemanifest.sh" check
   out="$("$T/gatemanifest.sh" check 2>&1)"
   if grep -q 'DOES NOT ADD UP' <<<"$out" && grep -q 'uniq -d' <<<"$out"; then
     echo "PASS selftest: the arithmetic failure is named AND the duplicate-row remedy is printed"; pass=$((pass+1))
@@ -998,13 +1038,23 @@ PYF6
   else echo "FAIL selftest: an 'unknown-run' row is in the append-only register"; fail=$((fail+1)); fi
   # 34. A `raise` row that does not raise is refused - the arithmetic must mean what the kind says.
   resetT
-  printf '40\t49\traise\t2026-10-02\t467\tselftest\tthis does not raise anything at all\t-\n' >> "$T/gate-required-floor.tsv"
+  # #468: field 9 (the required-set digest) appended to this fixture row. It had 7-8 fields, and #468's
+  # floorread now refuses a row whose field 9 is not 12 hex - so WITHOUT this the row is refused for its FORMAT
+  # before the arm under test ever runs. The `ck 1` still passed (exit 1 either way) and the MESSAGE assertion is
+  # what caught it: 'the two-file disagreement was not named'. A wrong reason reaching the right verdict is a
+  # trap, not a check (CLAUDE.md, #419), and here the selftest caught it on its author.
+  printf '40\t49\traise\t2026-10-02\t467\tselftest\tthis does not raise anything at all\t-\taaaaaaaaaaaa\n' >> "$T/gate-required-floor.tsv"
   ck 1 "a 'raise' row that lowers the floor is refused (hard)" "$T/gatemanifest.sh" check
   # 35. A `lower` row that drops by MORE than one is refused even when it names a retired gate - the "exactly one"
   #     rule is what makes the register's row count the number of retirements.
   resetT; rm -f "$T/regress/21-review-brilliant.js"
   CT_BUILD=#467 CT_RUNID=selftest "$T/gatemanifest.sh" retire 21-review-brilliant.js 'superseded, see the job' >/dev/null 2>&1
-  printf '45\t48\tlower\t2026-10-02\t467\tselftest\tdropping several at once\t21-review-brilliant.js\n' >> "$T/gate-required-floor.tsv"
+  # #468: field 9 (the required-set digest) appended to this fixture row. It had 7-8 fields, and #468's
+  # floorread now refuses a row whose field 9 is not 12 hex - so WITHOUT this the row is refused for its FORMAT
+  # before the arm under test ever runs. The `ck 1` still passed (exit 1 either way) and the MESSAGE assertion is
+  # what caught it: 'the two-file disagreement was not named'. A wrong reason reaching the right verdict is a
+  # trap, not a check (CLAUDE.md, #419), and here the selftest caught it on its author.
+  printf '45\t48\tlower\t2026-10-02\t467\tselftest\tdropping several at once\t21-review-brilliant.js\taaaaaaaaaaaa\n' >> "$T/gate-required-floor.tsv"
   ck 1 "a 'lower' row dropping more than one is refused even with a named retired gate (hard)" "$T/gatemanifest.sh" check
   # 36. A row appended with NO TRAILING NEWLINE must still be read. This file shape has eaten this bug three times
   #     in this project; a raise that is invisible silently UN-DOES itself.
@@ -1100,6 +1150,40 @@ PYFA
   if [ "$rc" -ne 0 ] && grep -q 'required SET has changed but the COUNT has not' <<<"$out"; then
     echo "PASS selftest: sync REFUSES a swap and sends you to the leaving door (exit $rc)"; pass=$((pass+1))
   else echo "FAIL selftest: sync accepted a swap at constant count (exit $rc)"; echo "$out" | sed 's/^/      /' | tail -5; fail=$((fail+1)); fi
+  resetT
+
+  # ── #468, ANTAGONIST B's VETO (F1), ITEM 3. TWO CASES OVER THE FIELD NOTHING VALIDATED. ───────────────────────
+  # B's whole attack was one character in field 9 of the single seed row, and the tell that it was reachable is
+  # that `selftest` said 55/0 straight through it. These two are why it now says 57 and why it would have gone red.
+  # 56. THE `-` SENTINEL IS NOT A LEGITIMATE VALUE. It used to mean "this register predates the digest"; no such
+  #     register exists (the file was created at #467 and its seed row names 467 in field 5), so the sentinel was
+  #     an off switch for the strongest arm the push gate has.
+  python3 - "$T/gate-required-floor.tsv" <<'PYFB'
+import sys
+p=sys.argv[1]; ls=open(p).read().split("\n")
+for i,l in enumerate(ls):
+    if l and not l.startswith("#") and "\t" in l:
+        f=l.split("\t")
+        if len(f)>=9: f[8]="-"; ls[i]="\t".join(f)
+open(p,'w').write("\n".join(ls))
+PYFB
+  ck 1 "a floor row whose required-set digest (field 9) is the '-' sentinel is a HARD failure, not a silently skipped set check [B's F1 on #468]" "$T/gatemanifest.sh" check
+  # 57. AND THE SAME ROW WITH JUNK IN FIELD 9, because the repair must be a format test and not a special case
+  #     for one character. `floorread` requires exactly 12 hex.
+  python3 - "$T/gate-required-floor.tsv" <<'PYFC'
+import sys
+p=sys.argv[1]; ls=open(p).read().split("\n")
+for i,l in enumerate(ls):
+    if l and not l.startswith("#") and "\t" in l:
+        f=l.split("\t")
+        if len(f)>=9: f[8]="zzzz"; ls[i]="\t".join(f)
+open(p,'w').write("\n".join(ls))
+PYFC
+  ck 1 "a floor row whose field 9 is not 12 hex characters is a HARD failure (the repair is a FORMAT test, not a special case for one sentinel)" "$T/gatemanifest.sh" check
+  resetT
+  # 58. THE CONTROL ON THE CONTROLS: with field 9 restored to a real digest, the identical tree is clean again, so
+  #     cases 56 and 57 are about the field and not about something else the reset happened to change.
+  ck 0 "and with field 9 a real digest again, the same tree is clean - so 56 and 57 pin the FIELD" "$T/gatemanifest.sh" check
   resetT
 
   echo "selftest: $pass passed, $fail failed"

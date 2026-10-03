@@ -1152,15 +1152,52 @@ L.run(async()=>{
         healthy value and at 192. */
      const _legalBoard={'375x520':223.2,'320x520':231.2,'320x540':236.4,'short375':270.9,'390x568':270.9}[geo];
      if(_legalBoard!==undefined && _fm.board){
-       const _bw=_fm.board.w, _onHealthy=Math.abs(_bw-_legalBoard)<=0.6, _onFloor=Math.abs(_bw-192.0)<=0.6;
-       L.say(_onHealthy||_onFloor,
-         _tag+': the demo BOARD is one of this column\'s two known widths - '+_bw+'px against a healthy '+
-         _legalBoard+' or the documented floor 192.00. THIS IS THE NUMERIC BOUND THE DELETED PER-COLUMN RESIDUAL '+
-         'PIN WAS CARRYING IN DISGUISE, restored as a SET so it tolerates the multistability the point pin could '+
-         'not. Every other assertion in this block is board-relative and passes at ANY width - measured, a 31% '+
-         'board loss to 160px leaves all four green - so without this line nothing in the suite constrains this '+
-         'number at all.',
-         {board:_bw,healthy:_legalBoard,floor:192.0,onHealthy:_onHealthy,onFloor:_onFloor});
+       /* #468, AND THE TWO ANTAGONISTS PULLED THIS IN OPPOSITE DIRECTIONS, SO SAY WHICH WON AND WHY.
+          A's veto said: the deleted per-column residual pin was a BOARD-WIDTH pin in disguise, deleting it left
+          the suite with no numeric bound on this board at all, and the bound should come back as a SET so it
+          tolerates the multistability the point pin could not. I built that, and it passed at 192.
+          B's veto said: that is the wrong half of the trade. The three deleted pins were RIGHT in the latch the
+          suite actually reaches - B measured past = 3.58 / 0.00 / 0.00 on this very bundle, the pins to the
+          hundredth - and their red was THE ONLY DETECTOR IN EXISTENCE of the 192.00 latch, a 44.4px, 19% smaller
+          board on the screen whose first rule is that the board is sacred. Making 192 legal keeps the suite green
+          over exactly the state a player would notice.
+          B WINS, and A's bound is kept: the assertion below pins the SETTLED width ALONE, so the latch is a RED.
+          A's objection is satisfied anyway, because a bound that reddens on a 31% loss also reddens on a 19% one;
+          what A actually needed was a numeric bound, not a permissive one. The residual assertion above stays
+          board-relative, so the two failures are now SEPARABLE, which is what the old pin could never do: a red
+          HERE means the board latched, a red THERE means the Flip row's own geometry moved, and a red on the
+          needed-vs-FLIP_NEEDED pin means a label or its padding changed.
+          THE MECHANISM IS NO LONGER A MYSTERY, which is what makes this a defensible red rather than a nuisance.
+          Antagonist B established it at #468 and reproduced the published 212.39 to the hundredth: `over` is
+          STRUCTURALLY 0 on this screen (#root has one in-flow child whose height equals the viewport, measured in
+          ~45 observations across six geometries and CPU throttling x1..x20), so the fit loop's trim is FROZEN for
+          the rest of the visit - shrink needs over>0 and growth needs over<-24, and neither is reachable from 0.
+          Inject 16px of transient in-flow content, trigger one dependency change that is not in _geoKey, and
+          0.39px of measured overflow spends 24.00px of board - about 60x - because the #364 centring spacers
+          swallow the signal while the ceil(over/8)*8+8 hysteresis spends the board. Two more such passes hit the
+          SQ>=24 clamp, which is exactly why the third observed value is 192.00 and not an arbitrary number. So
+          236.39 / 212.39 / 192.00 are three LATCH STATES OF ONE LOOP, not three builds. At 375x730 - Kunal's own
+          phone - width binds and the trim cannot move the board at all, which is why the field reports are
+          asymmetric. Full write-up on jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29.
+          SO IF THIS GOES RED, DO NOT RE-KEY IT AND DO NOT WIDEN THE SET. It is reporting the latch. The app fix
+          is on that job and it is one of: exclude the spacers from the shrink input as well as the grow input,
+          make the deadband symmetric so the board can recover, or latch the trim once per _geoKey.
+          ITS LIMIT, NAMED: four of the five columns have only ever been observed at ONE width (375x520 -> 223.2 in
+          56 observations, 320x520 -> 231.2 in 84, short375 and 390x568 -> 270.9 in 28 and 56; 320x540 -> 236.4 in
+          54 and 192.00 in 3). For those four the value is an observation, not a proof that no second state exists.
+          If a LEGITIMATE board change reddens this, re-measure and move the number - do not delete the line. */
+       const _bw=_fm.board.w, _settled=Math.abs(_bw-_legalBoard)<=0.6;
+       const _latched=Math.abs(_bw-192.0)<=0.6;
+       L.say(_settled,
+         _tag+': the demo BOARD is at its settled width - '+_bw+'px against '+_legalBoard+
+         (_latched?'. THIS IS THE KNOWN 192.00 LATCH, which is a 19% smaller board and is the state this assertion exists to catch'
+                  :(_bw<_legalBoard?'. The board is SMALLER than its settled width and this is not the known 192.00 latch, so it is a new state'
+                                   :'. The board is LARGER than its settled width, which no observation has produced'))+
+         '. THIS IS THE NUMERIC BOUND THE DELETED PER-COLUMN RESIDUAL PIN WAS CARRYING IN DISGUISE, and it is the '+
+         'ONLY detector of the latch in the whole suite: every other assertion in this block is board-relative and '+
+         'passes at ANY width - measured, a 31% loss to 160px leaves all four green. Mechanism and the app fix are '+
+         'on jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29; do NOT re-key this to make a build pass.',
+         {board:_bw,settled:_legalBoard,atSettled:_settled,isKnown192Latch:_latched});
      }
      {
        /* #432 RE-KEYED TO THE MEASURED BOARD, FOR THE THIRD TIME IN THIS FILE AND FOR THE SAME REASON.
