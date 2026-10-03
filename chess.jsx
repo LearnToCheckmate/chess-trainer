@@ -3139,11 +3139,12 @@ export default function App(){
   const fullReset=(g=initGame())=>{liveSettingsRef.current=null;/* #470 */setGame(g);setLastMv(null);setPlayHist([]);setPlayHintMv(null);setPlayEnd(null);playEndRef.current=null;setPreMv(null);eloDoneRef.current=false;setEloMsg('');const tc=timeCtrlRef.current;const live=!!tc&&tc.kind!=='corr';setClock({w:live?tc.init*1000:0,b:live?tc.init*1000:0,run:false});UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
 
   /* #471: the one place that decides whether a control may replace the running game.
-     THE PREDICATE IS `playHist.length>0` AND DELIBERATELY NOT `!_gameOver`. A finished game is still worth a
-     confirm - SIT run 12 measured the worse case, where discarding a just-mated game also discards the only
-     route to its Review - so "is there something to lose" is the question, not "can play continue". That is a
-     different predicate from #469's Start-button guard, which asks whether a game can be CONTINUED, and the two
-     are not interchangeable: #469's own three P0s came from using one where the other was meant.
+     IT IS DELIBERATELY NOT KEYED ON `!_gameOver`. A finished game is still worth a confirm - SIT run 12
+     measured the worse case, where discarding a just-mated game also discards the only route to its Review -
+     so "is there something to lose" is the question, not "can play continue". That is a different question
+     from #469's Start-button guard, which asks whether a game can be CONTINUED, and the two are not
+     interchangeable: #469's own three P0s came from using one where the other was meant. What the predicate
+     actually reads is defined below; this paragraph says only what it must NOT be.
      Rematch is NOT routed through this (the game is over and replacing it is the button's whole purpose), and
      neither are the three online paths, where leaving or matchmaking is itself the deliberate act. */
   /* THE PREDICATE IS NOT `playHist.length>0`, AND BOTH ANTAGONISTS REACHED THAT FROM DIFFERENT DOORS.
