@@ -16,6 +16,29 @@ dated note. Acceptance criteria are things a harness can measure or a recording 
 
 Status line per screen: `specced <date> · executed <build> · coverage counted: yes/no`.
 
+### THE GEOMETRY SETS, NAMED ONCE
+*Added 2026-10-03 from jobs/supported-geometry-names-two-different-sets-2026-09-28. The phrase "supported
+geometry" occurred twice in this file and resolved to two different sets that share three members, so no clause
+using it could be decided. Both sets are named here and every clause below says which one it means. Re-measured
+from the gate sources at main f3ae36a, not read from prose [R18].*
+
+- **THE DRILL SEVEN** - `gates/regress/51-drill-explain-why.js:71` (`ALLGEOS`), and the same seven in
+  `gates/measure-drill-verdict-reserve.js:51` and `gates/regress/57-pz-solved-explanation.js:55` (`G7`):
+  **320x568, 360x640, 375x667, 375x730, 390x844, 414x896, 440x956.** This is the set `prompts/test-authoring`
+  names. The harness default 375x679 (`kunal`) is NOT one of them.
+- **THE LESSON THREE** - `gates/regress/48-lesson-flow.js:424` (`GEOS`), resolved through `gates/lib.js:34`:
+  **320x568 (`se`), 375x730 (`kunal730`), 390x844 (`390`)**, with a separate short-and-wide column in that
+  gate's block D (320x520, 375x520, 320x540, 390x568) that is NOT part of the three and is pinned per point.
+
+**Intersection: 3 members (320x568, 375x730, 390x844).** A clause that names neither set names nothing.
+
+**A NUMBER THE RAISING JOB CARRIED IS WITHDRAWN HERE [R18], in the clause that inherits it.** The job measured
+gate 48 as a SEVEN-member set at 2026-09-28 ("320x568, 375x568, 375x730, 390x844, 375x520, 320x520, 320x540",
+cited to :647-650). At f3ae36a that gate's `GEOS` is a THREE-member list at :424, and the short points live in
+block D as pins rather than in the sweep. So the shape of the defect - two sets, one undefined term - holds and
+is fixed here; the "two disjoint seven-member sets" figure does not, and the intersection is 3 of 7 against the
+drill seven rather than 3 of 7 against another seven.
+
 ---
 
 ## Review (game review) - specced 2026-09-12 · executed #373 (see TEST-CASES.md for the run) · coverage counted: see the #373 close-out
@@ -218,7 +241,9 @@ instance.
   its own resolved track, which is four times the tolerance the assertion uses. A box-only clause is satisfied by an ellipsis,
   and #415 built exactly that (minWidth:0 plus textOverflow), measured it squeezing the button to 26.83px at
   320x520, and reverted it. Kunal's standing rule for this class is "shrink beats dropping content". (TC-INV-05b)
-- No control's box extends past the VIEWPORT's right edge at any supported geometry, because
+- No control's box extends past the VIEWPORT's right edge at any geometry in THE LESSON THREE (see THE
+  GEOMETRY SETS, NAMED ONCE, above; this clause said "any supported geometry" until 2026-10-03 and that phrase
+  named two different sets), because
   `document.documentElement.scrollWidth` equals the viewport there, so nothing scrolls it back. CLAUDE.md calls
   this the one unrecoverable kind of overflow. (TC-INV-05c)
 - Where a row genuinely cannot hold its content, the residual is PINNED at its own measured value per geometry and
@@ -236,13 +261,33 @@ one I played, in a comparison, so I learn something from my own game rather than
   by naming the band, never centipawns and never a signed decimal. (TC-R16 A3, A4, A5, A6, B2, B3, B4)
 - The evaluation is in MY frame, not White's: when I am Black and losing, the sentence says I am losing.
   (TC-R16 A8 - the assertion a White-frame implementation fails and nothing else in the gate catches)
-- Where the engine data does not support a shape, the sentence says less rather than guessing: a plausible
-  wrong explanation is worse than a short true one. The motif named is the BETTER move's own, never the one I
-  played. (#426; Q1 in the lane record is still open with Kunal)
-- The hint shown before I solve varies with the position, and never tells me to look for a forcing move in a
-  quiet one. (TC-R16 B5a, B5b, B10)
-- The whole explanation fits the verdict box on screen at every supported geometry, 320x568 through 440x956,
-  without the box growing and without the board moving. (TC-R16 B6, B7, B8)
+- The hint shown before I solve VARIES WITH THE POSITION. (TC-R16 B5a, B10 - B10 asserts the N hints are all
+  distinct and all real, which is the weaker proxy the gate's own note at :201 concedes it to be.)
+- And the hint never tells me to look for a forcing move in a quiet position. (TC-R16 B5b - asserted today only
+  as "the hint is not the fixed generic directive string", `51-drill-explain-why.js:188`. **"QUIET" IS NOT YET A
+  NUMBER**: until it is defined as a threshold the gate can read from the position's own engine data, a
+  position-specific hint that still misdirects on a quiet position passes this clause. That definition is the
+  remaining work and it is gate-side, not story-side.)
+- The whole explanation fits the verdict box HORIZONTALLY at every geometry in THE DRILL SEVEN, 320x568 through
+  440x956 (see THE GEOMETRY SETS, NAMED ONCE, above). (TC-R16 B6 - verdict `scrollWidth <= clientWidth`)
+- And the box does not grow to make it fit: the reserved parent's `scrollHeight` stays inside its `clientHeight`,
+  the 74px cap. (TC-R16 B7)
+- And the box's bottom stays on screen. (TC-R16 B8)
+- **And the board does not move while the explanation lands. THIS CLAUSE IS ASSERTED BY NOTHING TODAY** and is
+  kept rather than deleted because it is a real requirement. Measured 2026-10-03 at main f3ae36a: `grep -i board`
+  over `gates/regress/51-drill-explain-why.js` returns one comment at :100 and no assertion, and TC-R16 B6/B7/B8
+  are the three fit assertions above, none of which reads the board. What would decide it: the board's `top` and
+  `width` before and after the verdict lands, at each of THE DRILL SEVEN, equal within the 0.05px tolerance gate
+  16 already uses. That is gate-side work and is why this reads as a named gap rather than as a covered clause.
+  (jobs/clauses-cite-assertions-that-do-not-assert-them-2026-09-28)
+
+**NOT YET A CLAUSE, moved out of the acceptance list on 2026-10-03.** *Where the engine data does not support a
+shape, the sentence says less rather than guessing: a plausible wrong explanation is worse than a short true one,
+and the motif named is the BETTER move's own, never the one I played.* This was written as an acceptance bullet at
+#426 and cited no case id - its only parenthesis was "(#426; Q1 in the lane record is still open with Kunal)". A
+clause whose citation is an open question is not a pass condition, so it sits here, named and unenforced, until
+Q1 is answered and a case id is allocated for it in `claude/stories/TEST-CASES.md`. It is NOT deleted: the
+requirement is wanted. (jobs/clauses-cite-assertions-that-do-not-assert-them-2026-09-28)
 
 ### US-R16 A game I am in the middle of is not thrown away when I look at something else
 As a player who taps the house mid-game to check the Daily 3 or a lesson, I can get back to the game I was
@@ -305,11 +350,29 @@ being cut off, and the board does not move underneath me while I read it.
   hidden behind an inner scroller counts as lost. (TC-R20 E - the only clause no partial fix satisfies)
 - Nothing hides the rest of it in a scroller I cannot see: the reserved box's own scrollHeight is inside its
   clientHeight, so there is never more sentence below the fold of a 74px box on a tall phone. (TC-R20 D)
-- The room for it comes from the goal card, which has done its job by the time I have solved the puzzle - so the
-  BOARD DOES NOT MOVE when the verdict appears, and nothing is pushed off the bottom of the screen. (TC-R20 A,
-  A2, F - and NC2 is the naive fix that moves the board 15px at 375x730 and 56.5px at 390x844)
-- The goal card ends up either gone or still showing its goal in full: giving its space away must not truncate
-  it instead. (TC-R20 H, written so that either fix route passes)
+- The BOARD DOES NOT MOVE when the verdict appears. (TC-R20 A "board top and width unchanged across the solve",
+  A2 "board width equals the value measured on #427 per geometry" - and NC2 is the naive fix that moves the board
+  15px at 375x730 and 56.5px at 390x844)
+- And nothing is pushed off the bottom of the screen. (TC-R20 F, `L.over() <= 0`)
+- **And the room for it comes FROM THE GOAL CARD, which has done its job by the time I have solved the puzzle.
+  THIS CLAUSE IS ASSERTED BY NOTHING TODAY.** Split out of the bullet above on 2026-10-03 because it was the LEAD
+  claim of a three-claim bullet and the only one no cited assertion reads: TC-R20 A, A2 and F cannot tell room
+  taken from the goal card from room taken from the board's container or from the verdict's own font, so a build
+  that finds the space the wrong way goes green against the clause written to stop it. What would decide it, and
+  it costs no new run time because it rides the 14 states TC-R20 already drives (7 geometries x 2 verdict
+  lengths): across the solve, the goal card's own height DECREASES by at least the reserved verdict parent's
+  height increase, within 1px - and it must go red on NC2 (reserved height removed, md5 94a389d21fb6), which
+  #427 already built, so the negative control exists. That is a TC-R20 amendment and a gate line, both outside
+  this file. (jobs/two-of-us-r17s-clauses-are-decided-by-something-other-than-what-they-say-2026-09-29)
+- **IF the goal card is still present**, its goal line fits in full: giving its space away must not truncate it
+  instead. (TC-R20 H.) Stated as the conditional it actually is, 2026-10-03. It read "the goal card ends up
+  either gone or still showing its goal in full", and TC-R20 H is "the goal card is absent OR its goal-line has
+  `scrollWidth <= clientWidth+1` and fits its own height" - a disjunction BOTH fix routes satisfy, so a build
+  that DELETES the goal card outright passed at every geometry and so did one that kept it intact. Whether the
+  goal card goes or stays is Kunal's decision and is not settled here; writing the clause as a conditional means
+  deleting the card is a SPEC CHANGE rather than a silent pass. The `OR` comes out of TC-R20 H once the route is
+  chosen - that half is in `claude/stories/TEST-CASES.md`, not here.
+  (jobs/two-of-us-r17s-clauses-are-decided-by-something-other-than-what-they-say-2026-09-29)
 
 ### US-R18 The rating on my review summary is the rating the game carries
 As a player reviewing a game whose PGN records what both players are rated, the summary shows me those ratings,
@@ -416,10 +479,31 @@ The clauses, each one measurable:
 2. Once the card has faded, the outcome is still stated somewhere painted on screen.
 3. What it says names the termination AND the outcome, in the terms the game had — not "you" in a two-player
    game, and not an outcome contradicting who actually won.
-4. Nothing about the transition moves the board, and nothing in the line carrying it is cut without a signal.
+4. *Split into 4a and 4b on 2026-10-03
+   (jobs/us-pl-11-clauses-4-and-6-bundle-two-claims-each-2026-09-30). The two halves are decided by two separate
+   assertions in `gates/regress/16-cpu-result-line.js` and a build can satisfy either without the other, so
+   "clause 4 passed" was not a statement anyone could make. The NUMBER is kept and the halves are lettered,
+   because other documents cite clause numbers in this register and renumbering is not free.*
+   - **4a.** Nothing about the transition moves the board. (A7/B7 at `16-cpu-result-line.js:150` - board geometry
+     across the fade, tolerance 0.05px)
+   - **4b.** Nothing in the line carrying it is cut without a signal. (A6/B6 at `16-cpu-result-line.js:149` -
+     `nowrap` and `scrollWidth <= clientWidth + 1`. Asserted MORE STRICTLY than written: the gate requires the
+     slot not to be cut at all, which satisfies "not cut without a signal" a fortiori. A build that dropped the
+     ellipsis while still fitting the width would stay green - the predicate captures `textOverflow` in its
+     evidence without asserting on it. Named here and deliberately NOT filed as a job, because no shipped
+     behaviour depends on it today.)
 5. **It is stated for EVERY opponent.** The adaptive-strength note that only a vs-computer game produces is a
    nicety; it may share the slot but it may never be the reason the outcome goes unstated.
-6. **It is stated in EVERY ORIENTATION, and the board does not pay for it.** *(Added #435, from
+6. *Split into 6a and 6b on 2026-10-03, same job and same shape as clause 4: the presence half and the geometry
+   half are decided by different assertion blocks, and clause 7 - added one build later for the board alone - is
+   the standing evidence that the geometry half was always a separate requirement. The number is kept and the
+   halves are lettered.*
+   - **6a. The outcome is stated in EVERY ORIENTATION.** (E1-E6 / F1-F6 - the presence half, and the half Kunal
+     would actually notice, because a phone held sideways stating no outcome at all is the defect the clause was
+     written for.)
+   - **6b. And the board does not pay for it.** (E7/E8 / F7/F8 - board geometry.)
+
+   *(Added #435, from
    jobs/landscape-drops-the-status-row-at-game-over-...-2026-09-29.)* Clauses 1-5 were written and gated at
    375x730 and 320x568 only, and were all GREEN on a build where a phone held sideways stated no outcome at
    all: chess.jsx:5616 did not render the carrier row when the game was over and `wide`, so at 730x375 the
