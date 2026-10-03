@@ -1,4 +1,4 @@
-     bundle: gates/.trial/app-nc-noreserve.js  stamp #471 - 2026-10-03 08:18 ET  (CT_APP)
+     bundle: gates/.trial/app-nc-noreserve.js  stamp #471 - 2026-10-03 08:31 ET  (CT_APP)
 PASS kunal A0 ARRIVAL: Pass & Play reaches 3 plies, so every "nothing changed" below is a measurement and not a tap that missed  [{"plies":3,"row":"1.f3 1…e5 2.g4"}]
 PASS kunal B0 ARRIVAL: the More sheet is open and carries a "New game" row  [{"rows":["New game","Resign","Analyze","Copy moves"]}]
 PASS kunal B1 ONE TAP ON "New game" DOES NOT DISCARD THE GAME: plies still 3  [{"plies":3,"row":"1.f3 1…e5 2.g4"}]
@@ -42,4 +42,7 @@ PASS kunal K0 ARRIVAL: a 3-ply Pass & Play game is running AND the lesson practi
 PASS kunal K1 ONE TAP ARMS INSTEAD OF STARTING: the lesson sheet is still up and its button now asks for a second tap  [{"t":"Tap again to discard your game and play this","dis":false}]
 PASS kunal K2 and the second tap DOES start the LESSON position - the board occupancy differs from this session's own opening array, at 0 plies - so the arm is not a dead end  [{"differs":true,"plies":0}]
 PASS kunal K9 zero app console errors over the lesson block  [[]]
-70-live-game-reset-guard: 38 pass, 5 fail
+PASS kunal K3a ARRIVAL: the lesson practice sheet is open with NO Play game in existence  [{"at":true,"label":"▶ Play this position vs Computer"}]
+PASS kunal K3b ONE TAP COMMITS WHEN THERE IS NOTHING TO LOSE: the lesson sheet is gone and the Play screen is up, rather than a second tap being demanded and a sentence about discarding a game the player does not have  [{"labelAfter":null,"inPlay":true}]
+PASS kunal K3z zero app console errors  [[]]
+70-live-game-reset-guard: 41 pass, 5 fail
