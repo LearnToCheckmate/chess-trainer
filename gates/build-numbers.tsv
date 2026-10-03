@@ -423,3 +423,5 @@
 466	built	-	0f3c9817d413	55e5f711c221	2026-10-02T19:24Z	build__1790965191673	build.sh	Bundle built and stamped #466. Recorded by gates/build.sh so the number resolves to an artefact.
 467	minted	-	-	-	2026-10-02T21:29Z	build__1790976005325	minted	ratchet the gate manifest required count: a monotonic floor register so the frozen denominator cannot be edited downward, and the push gate can see it
 467	built	-	9e926eb3f2e0	55e5f711c221	2026-10-02T21:38Z	build__1790976005325	build.sh	Bundle built and stamped #467. Recorded by gates/build.sh so the number resolves to an artefact.
+468	minted	-	-	-	2026-10-03T00:31Z	build__1790986809000	minted	land #467 gate-manifest floor + required-set digest by replacing gate 48 last geometry-name-keyed residual pin with the board-relative instrument #432 already wrote, plus the five pipefail SIGPIPE repairs
+468	built	-	8b7be083349c	55e5f711c221	2026-10-03T00:31Z	build__1790986809000	build.sh	Bundle built and stamped #468. Recorded by gates/build.sh so the number resolves to an artefact.

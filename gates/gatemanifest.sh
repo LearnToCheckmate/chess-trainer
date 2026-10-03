@@ -525,6 +525,12 @@ sync)
   listed="$(rows | cut -f1 | tr -d ' \r' | sort -u)"; n=0
   for g in $(diskgates); do
     if ! grep -qx "$g" <<<"$listed"; then   # herestring, NOT a pipe - a false miss here APPENDED A DUPLICATE ROW
+      # #468 LEFT AS A PIPE, DELIBERATELY, and this is the fifth SIGPIPE site rather than an oversight. A
+      # SIGPIPE here cannot corrupt anything: the pipeline's VALUE is still correct (the last stage, `cut`,
+      # reads all of its input), pipefail's 141 lands on an assignment whose status nothing reads, and the very
+      # next line supplies a fallback for an empty `d`. `sed -n '2,6p'` also emits at most five lines, so it has
+      # usually exited before `grep -m1` can signal it. Rewriting it would be churn in the one place the pattern
+      # is safe. Counted on the same job as the four repaired above so the total stays five, not four.
       d="$(sed -n '2,6p' "$REG/$g" | grep -m1 '^//' | sed 's|^//[ ]*||' | tr '\t' ' ' | cut -c1-88)"
       [ -z "$d" ] && d="(no header comment)"
       printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$g" "required" "${B#\#}" "$AT" "$WHO" "$d" "$WHY" >> "$M"
@@ -974,7 +980,11 @@ PYF6
   # register, because this file's own HEADER now contains the words "unknown / unknown-run fallback" while
   # describing the defect. A control that reads documentation and reports it as data is CLAUDE.md's "a bad
   # selector is a reading" at the cheapest possible scale, and it went red the one time it ran.
-  if ! grep -v '^[[:space:]]*#' "$T/gate-required-floor.tsv" | grep -qE 'unknown-run'; then
+  # #468: herestring, not a pipe - `grep -qE` exits on first match and SIGPIPEs the upstream `grep -v` under
+  # `set -o pipefail` (line 46), so the `!` can report PASS over the very row it looks for. LATENT, not observed:
+  # it needs the upstream to BLOCK on a full ~64KB pipe buffer, and this register is far smaller - see the
+  # measurement in gates/gates.sh above (race, 5 of 30 trials at 64KB; 502 bytes in practice today).
+  if ! grep -qE 'unknown-run' <<<"$(grep -v '^[[:space:]]*#' "$T/gate-required-floor.tsv")"; then
     echo "PASS selftest: and no 'unknown-run' row reached the register"; pass=$((pass+1))
   else echo "FAIL selftest: an 'unknown-run' row is in the append-only register"; fail=$((fail+1)); fi
   # 34. A `raise` row that does not raise is refused - the arithmetic must mean what the kind says.
@@ -1042,7 +1052,8 @@ PYF8
   else echo "FAIL selftest: the swap was not caught"; fail=$((fail+1)); fi
   # 41. AND THE CARRIER LINE MUST DIFFER, or the push gate has nothing to read even in principle - which was the
   #     whole force of A's finding. Measured as a string comparison against the honest tree's line.
-  honest="$(resetT; "$T/gatemanifest.sh" check 2>/dev/null | grep -m1 '^gate manifest:')"
+  # #468: herestring, not a pipe (one of #467's own three, added in the same build that filed the finding).
+  honest="$(resetT; _o="$("$T/gatemanifest.sh" check 2>/dev/null || true)"; grep -m1 '^gate manifest:' <<<"$_o" || true)"
   resetT; : > "$T/regress/50-drill-verdict-no-jump.js"; rm -f "$T/regress/21-review-brilliant.js"
   python3 - "$T/gate-manifest.tsv" <<'PYF9'
 import sys
@@ -1054,7 +1065,8 @@ for i,l in enumerate(ls):
         f=l.split("\t"); f[1]="absent"; f[6]="moved to the drill suite, see job Y"; ls[i]="\t".join(f)
 open(p,'w').write("\n".join(ls))
 PYF9
-  attacked="$("$T/gatemanifest.sh" check 2>/dev/null | grep -m1 '^gate manifest:')"
+  # #468: herestring, not a pipe (#467's own).
+  attacked="$(_o="$("$T/gatemanifest.sh" check 2>/dev/null || true)"; grep -m1 '^gate manifest:' <<<"$_o" || true)"
   if [ -n "$honest" ] && [ "$honest" != "$attacked" ]; then
     echo "PASS selftest: the carrier line DIFFERS on a swapped set (it was byte-identical before #467's digest)"; pass=$((pass+1))
   else echo "FAIL selftest: the carrier line is still byte-identical on a swapped set"; fail=$((fail+1)); fi

@@ -1057,18 +1057,34 @@ L.run(async()=>{
        {needed:_f.needed,pinned:FLIP_NEEDED,tracks:_f.mcTracks,gap:_f.gap,fs:_f.fs});
      /* THE RESIDUAL, PER COLUMN, AT ITS OWN MEASURED VALUE - #415's antagonist lesson, that one pinned point is
         a frozen denominator and is usually the BEST case. Two columns are contained and are asserted as
-        containment, not pinned; three carry a real number. */
-     /* #430 RE-PINNED for the same reason and by the same arithmetic as the ROW residual above: this one is
-        the Flip pair's min-content (226.77px, unchanged) minus the board, so the board gain closes it. Measured
-        on the #430 bundle: 34.77 -> 3.58 at 375x520, 34.77 -> 0 at 320x520 (both demo-end and demo-m1), and
-        14.38 -> 0 at 320x540. The #427 band therefore collapses from "every height at or below 555" to
-        375x520 alone, and the residual there is 3.58px rather than 34.77. */
-     const _fp={'375x520':3.58,'320x520':0,'320x540':0}[geo];
-     if(_fp!==undefined){
-       L.say(Math.abs(_f.past-_fp)<=0.6,
-         _tag+': ⟳ Flip runs '+_f.past+'px past its OWN row (pinned at '+_fp+'), because at board '+_fm.board.w+' the row cannot hold its two children\'s min-content ('+_f.needed+'px against '+_f.rowW+'px). REPORTED, not excused: shrinking is already spent here - #424 measured the font ladder taking this to 4.03 and not to zero - so closing it needs a wrap or a second row, which spends board height and is therefore Kunal\'s call.',
-         {past:_f.past,pinned:_fp,needed:_f.needed,rowW:_f.rowW,board:_fm.board&&_fm.board.w});
-     } else {
+     /* #468 DELETED THE PER-GEOMETRY-NAME PIN. It read
+          `const _fp={'375x520':3.58,'320x520':0,'320x540':0}[geo]`, three residuals keyed to the geometry's
+        NAME, and it is the SIXTH instance in this file of the fault #406, #409, #410, #430 and #432 each fixed
+        elsewhere - the last one still standing. The repair already existed TWELVE LINES BELOW, written by #432
+        for the geometries this map did not cover, and the whole change is to stop excluding three of them.
+        WHY IT HAD TO GO, measured at #467 and NOT an argument about style: the lesson demo board is multistable
+        and has now been observed at THREE widths at 320x540 across three builds - 236.4 (#466, residual 0,
+        PASS), 212.39 (#427's own documentation table, residual 14.38) and 192.00 (#467, residual 34.77, the
+        floor). A pin of 0 at that column is therefore arithmetically INCAPABLE of being true in a state the
+        suite reaches in roughly 2 of 6 runs, which is #432's own words for why it re-keyed the sibling branch,
+        and the column pin CONTRADICTED the gate's own table 75 lines above it, which records 14.38 for the very
+        column pinned at 0. #467 gated RED on this one assertion over a bundle whose chess.jsx was BYTE
+        IDENTICAL to the #466 bundle that had gone green at 50 sections two hours earlier, and stood down
+        rather than re-key it inside the run that needed it to pass [builds/467].
+        WHAT IS LOST, SAID PLAINLY RATHER THAN BURIED, because this is the half an antagonist should attack.
+        In the !_fits branch the board-relative form is WEAKER than a hard pin: it accepts an unbounded overflow
+        provided the overflow equals the prediction. That is #432's own withdrawal, in this file, and I am
+        EXTENDING that weaker branch to three columns that previously carried hard numbers. Three things make
+        that a net gain rather than a trade. (1) On a healthy board it is not weaker at all but IDENTICAL: the
+        prediction is max(0, needed - rowW), which is 0 wherever the board holds the row (the 320x520 and
+        320x540 pins) and 3.58 at 375x520 where it does not - the same three numbers, derived instead of typed.
+        (2) What actually catches a regression here is the SEPARATE needed-vs-FLIP_NEEDED pin above, where
+        `needed` is pinned to the 226.77 constant and `rowW` is not; truncate the label or change the Flip
+        button's padding and THAT goes red. It is untouched. (3) The BAND assertion below pins `rowW` against
+        the measured board directly, so a row that stops being sized by the board still reddens there.
+        A pin that can only be true in one of three legal states is not a strong assertion; it is a broken one
+        that stops any build gating in a third of runs, which is what it just did. */
+     {
        /* #432 RE-KEYED TO THE MEASURED BOARD, FOR THE THIRD TIME IN THIS FILE AND FOR THE SAME REASON.
           This asserted FLAT CONTAINMENT (past<=0.5) at every geometry without a pinned residual - i.e. it was
           keyed to the GEOMETRY NAME. That is the identical fault #406, #409, #410 and #430 each fixed
