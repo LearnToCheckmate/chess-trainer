@@ -2495,6 +2495,27 @@ export default function App(){
   const lpvRef=useRef(null);
   const [playHintMv,setPlayHintMv]=useState(null);
   const [pColor,setPColor]=useState('w');
+  /* #470: WHAT THE GAME BEHIND THE SHEET WAS BEING PLAYED WITH, so that Resume gives the player back the game
+     they left rather than a game with a new opponent in it.
+     WHY THIS EXISTS AND WHY THE TWO `playSetup` GUARDS BELOW ARE NOT A FIX WITHOUT IT. The Opponent tiles on
+     this sheet write the SHARED `opponent` state directly (chess.jsx:5657) - there is no draft copy - and the
+     resume row #469 added is `setPlaySetup(false)` and nothing else (chess.jsx:5639). So guarding the engine on
+     `playSetup` alone stops the move WHILE THE SHEET IS UP and hands it straight back the instant Resume is
+     tapped: the sheet closes, the guard lifts, `opponent` is still 'computer', and the engine plays into the
+     Pass & Play game the player just asked to return to. That is CLAUDE.md's flex-shrink trap - the damage
+     moves to the thing nobody is asserting over - so it is MEASURED rather than reasoned about: gate 69's
+     control bundle carries the two guards WITHOUT this snapshot and goes red on exactly that tap.
+     THE SNAPSHOT IS TAKEN ON THE TRANSITION, not on every render, which is why the dep list is `[playSetup]`
+     alone and why the ref is the right carrier: the values read here are the live game's own, because the
+     effect runs after the render in which the sheet appeared and before any tile on it can have been tapped.
+     A later tile tap does not re-run it, so it cannot overwrite itself with the player's new choice.
+     IT IS DELIBERATELY NOT A GENERAL "UNDO THE SHEET". Start must keep the player's choices, so this restores
+     only on the Resume path, and only the three settings the live game is actually played with. */
+  const liveSettingsRef=useRef(null);
+  useEffect(()=>{
+    if(!playSetup){liveSettingsRef.current=null;return;}
+    if(liveSettingsRef.current===null&&playHist.length>0&&!setupFromFEN)liveSettingsRef.current={opponent,pColor,timeCtrl:timeCtrlRef.current};
+  },[playSetup]);
   const [thinking,setThinking]=useState(false);
   const [demoBest,setDemoBest]=useState(null);
 
@@ -3180,7 +3201,23 @@ export default function App(){
 
   // AI auto-move (Play) — uses Stockfish WASM if available, falls back to built-in engine
   useEffect(()=>{
-    if(mode!=='play'||opponent!=='computer'||playEnd||getStatus(game)==='checkmate'||getStatus(game)==='stalemate')return;
+    /* #470: THE PRE-GAME SETUP SCREEN IS NOT A GAME, SO NOTHING ON IT MAY MOVE A PIECE. `playSetup` renders a
+       position:fixed overlay OVER a game that is still mounted (that is the whole premise of #469's resume
+       row), and the Opponent tiles on it write the SHARED `opponent` state directly - chess.jsx:5657, no
+       staging and no fullReset. So selecting "Computer" while a Pass & Play game was on the board flipped this
+       effect's own guard true and the engine played into a game the player had not started.
+       MEASURED on origin/main's shipped bundle af44e6a3b231 at 375x730, by driving it: a live 1.f3 e5 2.g4,
+       house, Play tile, then the Computer tile AND NOTHING ELSE - play-moverow went 3 plies -> 4 and the move
+       was Qh4#. The player picked an opponent on a setup sheet and was mated in the game behind it.
+       Found by antagonist B at #469's shipped-surface door; jobs/tapping-computer-on-the-new-game-sheet-plays-
+       a-move-into-the-live-game-behind-it-2026-10-03. That job named chess.jsx:3167 as a HYPOTHESIS and said
+       in terms that whoever took it should establish the cause rather than inherit it [R18]; established here
+       by driving the guard rather than by reading it, with the control below.
+       WHY `playSetup` AND NOT A FLAG OF THIS FIX'S OWN: the condition already exists, it is what the setup
+       overlay renders on (chess.jsx:5550), and an assertion can read the screen the player sees instead of a
+       hook this build drilled - which is the #432 trap. The cleanup at the foot of this effect already cancels
+       a search in flight, so a sheet opened mid-think stops the engine rather than racing it. */
+    if(mode!=='play'||opponent!=='computer'||playEnd||playSetup||getStatus(game)==='checkmate'||getStatus(game)==='stalemate')return;
     if(game.turn===pColor)return;
     setThinking(true);
     const mover=game.turn;
@@ -3262,7 +3299,7 @@ export default function App(){
       const id=setTimeout(()=>applyMv(bestMove(game,depth,rnd,bs)),300);
       return()=>clearTimeout(id);
     }
-  },[game,mode,opponent,pColor,cpuElo,playEnd]);
+  },[game,mode,opponent,pColor,cpuElo,playEnd,playSetup]);
 
   // Clock tick — decrement the side to move once the clock is running
   useEffect(()=>{
@@ -3346,7 +3383,24 @@ export default function App(){
 
   // Adaptive Elo — adjust once when a vs-Computer game ends
   useEffect(()=>{
-    if(mode!=='play'||opponent!=='computer')return;
+    if(mode!=='play'||opponent!=='computer'||playSetup)return;
+    /* #470, AND THIS ONE IS THE SECOND INSTANCE OF THE CLASS RATHER THAN THE JOB'S OWN - found by sweeping the
+       predicate instead of the call site [R06, R09], and then DRIVEN. The predicate is "an effect gated on
+       `opponent` that ACTS on the live game, which a New Game sheet tile can wake before the player has pressed
+       Start". The AI auto-move effect above is the instance the job named; this is the other one that acts.
+       MEASURED on origin/main's shipped bundle af44e6a3b231 at 375x730: seed ct_elo 800, play the Pass & Play
+       fool's mate 1.f3 e5 2.g4 Qh4# (the COMPUTER never played a move in it), house, Play tile, then the
+       Computer tile AND NOTHING ELSE -> ct_elo 800 -> 750, persisted to localStorage by the effect at
+       chess.jsx:3073. The player's adaptive opponent strength was moved by a game it was not in.
+       WHY #466's GUARD DOES NOT CATCH IT, which is the part worth reading. #466 fixed the INHERITED-BOARD route
+       (a lesson ending in mate, then the Play tab) by requiring `playHist.length && game.history.length ===
+       playHist.length`, on the reasoning that an inherited board violates that invariant. It is exactly right
+       about an inherited board and silent about this: a Pass & Play game is played THROUGH doMove, which writes
+       playHist on every ply, so the invariant HOLDS at 4 and 4 and the guard passes. The route in is not a
+       board arriving from elsewhere, it is `opponent` changing underneath a board that was honestly played by
+       two humans. #466's own comment even names the symptom - "the setup sheet is up, so eloMsg is never seen" -
+       and this run measured eloMsg null on both sides of the tap, so the adjustment is silent here too.
+       That is a frozen denominator of one route (CLAUDE.md #405): the fix enumerated the route it was handed. */
     /* #466: A BOARD ENDING THE PLAYER DID NOT PLAY WAS NOT EARNED, and the instrument matters more than the
        test. Measured on #465: starting from a mated FEN took cpuElo 800 -> 750 and PERSISTED it to ct_elo.
        A resign or a flag at move 0 IS a real player action and still scores, because those endings arrive
@@ -3376,7 +3430,7 @@ export default function App(){
     if(draw){setEloMsg('Draw — strength stays ~'+cpuElo+' Elo');return;}
     const ne=Math.max(ELO_MIN,Math.min(ELO_MAX,cpuElo+(winner===pColor?50:-50)));
     if(ne!==cpuElo){setCpuElo(ne);setEloMsg((winner===pColor?'▲ ':'▼ ')+'Strength now ~'+ne+' Elo');}
-  },[game,playEnd,mode,opponent,pColor,cpuElo,playHist]);
+  },[game,playEnd,mode,opponent,pColor,cpuElo,playHist,playSetup]);
 
   useEffect(()=>{if(mode==='play'&&opponent==='computer')setFlip(pColor==='b');},[pColor,opponent,mode]);
   useEffect(()=>{if(mode==='play'&&opponent==='human'&&!playEnd)setFlip(game.turn==='b');},[game.turn,opponent,mode,playEnd]);
@@ -5604,7 +5658,11 @@ export default function App(){
               because Review is reachable only from the game-over screen that one tap replaces. That is
               already a filed finding (fingerprint 8c887399f3704a18, 2026-09-28), so the arm closes it while
               this row correctly stays away. */}
-          {playHist.length>0&&!setupFromFEN&&opponent!=='online'&&!_gameOver&&(<button data-ct="setup-resume" onClick={()=>{setStartArm(false);setPlaySetup(false);}} style={{padding:'13px 14px',borderRadius:12,border:'1px solid rgba(var(--acr),.45)',background:'rgba(var(--acr),.14)',color:'var(--ac2)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer',textAlign:'left',lineHeight:1.4}}>{'▶'} Resume your game in progress <span style={{fontWeight:500,opacity:.85}}>({_playMoves} {_playMoves===1?'move':'moves'} played)</span></button>)}
+          {/* #470: RESUME GIVES BACK THE GAME THE PLAYER LEFT, not a game with whatever they tapped on the way past.
+              Before this, resume was setPlaySetup(false) alone, so a player who opened this sheet over a live
+              Pass & Play game, tapped Computer to look at the bot list, and then tapped THIS row went back to
+              their own game with opponent='computer' - and the engine moved in it. See liveSettingsRef. */}
+          {playHist.length>0&&!setupFromFEN&&opponent!=='online'&&!_gameOver&&(<button data-ct="setup-resume" onClick={()=>{setStartArm(false);const _ls=liveSettingsRef.current;if(_ls){setOpponent(_ls.opponent);setPColor(_ls.pColor);timeCtrlRef.current=_ls.timeCtrl;setTimeCtrl(_ls.timeCtrl);}setPlaySetup(false);}} style={{padding:'13px 14px',borderRadius:12,border:'1px solid rgba(var(--acr),.45)',background:'rgba(var(--acr),.14)',color:'var(--ac2)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer',textAlign:'left',lineHeight:1.4}}>{'▶'} Resume your game in progress <span style={{fontWeight:500,opacity:.85}}>({_playMoves} {_playMoves===1?'move':'moves'} played)</span></button>)}
           {setupFromFEN&&(setupBlocked
             ?(<div data-ct="setup-terminal-note" style={{padding:'10px 13px',borderRadius:12,background:'rgba(224,168,58,.12)',border:'1px solid rgba(224,168,58,.4)',fontSize:'clamp(14px,2.6vw,14px)',color:'#e0a83a',lineHeight:1.45}}>⚠ That position is already over — {setupTerminal==='checkmate'?'it is checkmate':'it is a stalemate'}, so there is no move to play from it. {setupSrc==='scan'?<>Scan or upload a board where it is still someone's turn.</>:<>Step back a move in your review and use <b>Play from here</b> there instead.</>}</div>)
             :(<div style={{padding:'10px 13px',borderRadius:12,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',fontSize:'clamp(14px,2.6vw,14px)',color:'var(--ac2)',lineHeight:1.45}}>♟ Continuing from your reviewed position. You'll play <b>{pColor==='w'?'White':'Black'}</b> (the side to move) — switch the color below if you'd rather take the other side.</div>))}

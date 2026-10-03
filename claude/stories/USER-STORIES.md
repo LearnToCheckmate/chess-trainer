@@ -315,6 +315,29 @@ NOTE ON THE ID: this clause was handed over as US-R17 by test-authoring at 21:24
 build #428 landed US-R17 (the puzzle explanation) at 22:53Z, 89 minutes later. The handover's id reasoning was
 sound when written; it expired before it was applied.
 
+### US-R34 Choosing an opponent on the New Game screen does not play a move in the game I am already in
+As a player who is mid-game and opens the New Game screen to look at my options, nothing I touch there changes
+the game behind it. The New Game screen is where I DECIDE; the game only changes when I say Start.
+- Tapping an opponent tile (Online / Computer / Pass & Play) while a game is in progress plays NO move in that
+  game. MEASURED on the build this clause was written against: a Pass & Play game of 1.f3 e5 2.g4, then the
+  Computer tile and nothing else, moved the game from 3 plies to 4 and the move the engine played was Qh4# -
+  checkmate. The player chose an opponent and lost the game they were playing. (TC-R44 A4)
+- Nor does it score that game against anything. The same tap over a FINISHED Pass & Play game moved the
+  computer's adaptive strength from 800 to 750 - a game the computer was never in - and said nothing, because
+  the message that announces a strength change is painted behind the sheet. (TC-R44 B5)
+- '▶ Resume your game in progress' gives me back the game I LEFT, not the game with whatever I tapped on the
+  way past. If I tap Computer and then Resume, I am in my Pass & Play game again, with my opponent, my colour
+  and my clock. (TC-R44 A6, A7)
+- AND THIS CLAUSE EXISTS BECAUSE THE OBVIOUS FIX SATISFIES EVERY CLAUSE ABOVE AND STILL FAILS THIS STORY:
+  blocking the move only WHILE the New Game screen is up hands it straight back on the Resume tap. Negative
+  control NC2 of 69-setup-sheet-live-game.js is that build; it is green on clause 1 and red here. A guard that
+  moves the moment to a different tap has not kept the game. (TC-R44 A6b vs A4a)
+- The rule is about the DECISION, not about one tile: nothing on the New Game screen may act on the live game
+  before Start. Clauses 1 and 2 are the two effects that were measured doing it; the story is the class.
+- What this story does NOT say, named rather than left silent: it does not say the clock behind the screen must
+  pause, and it does not say Start must stop asking. '▶ Start game' still arms over a live game (US-R16), and
+  starting a new game still discards the old one once the player has confirmed - that is what Start is for.
+
 ### US-R15 A control's hit area is its own
 
 As a player tapping a button on a lesson, the action I get is the action I aimed at, because a button whose
