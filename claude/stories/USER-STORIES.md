@@ -463,6 +463,27 @@ The clauses, each one measurable:
    (vs-computer at 4 plies, Pass & Play stepped back one ply, Pass & Play live at the same 2-ply position);
    #437's own gate re-derives the instrument in ONE live state, at each of two geometries. Both are real, they
    are different measurements, and only the second one runs on every build.
+3b. **AND THE SCREEN GOES ON STATING THE RESULT WHILE I STEP BACK, NOT ONLY OFFERING THE RIGHT CONTROLS.**
+   *Added #473, from jobs/play-status-slot-loses-the-result-on-one-back-tap-2026-09-30, the
+   uat-internal-challenger's P1. Case TC-PL-037.* The one status line a phone has
+   (`[data-ct="play-opening"]`) is where the result lives once the result card has faded — #434 bought that
+   slot for the result and #435 made the row render in every play state — and it was keyed to the previewed
+   ply exactly as the control row was. MEASURED on the shipped #471 bundle (md5 40c8cdb1bcff) at 375x730,
+   375x568 and 320x568, Pass & Play, 1.f3 e5 2.g4 Qh4#, +4.4s so the card has gone: the slot reads
+   "Checkmate! · Black wins" and ONE tap on Back empties it, painted result-vocabulary hits 1 → 0. A player
+   who has just been mated and taps Back once — the ordinary thing to do after a mate — is on a screen that
+   states no result at all, which is #434's own zero-hit state restored on Kunal's geometry.
+   **AND THE DISMISSED RESULT CARD MUST NOT COME BACK.** `_resultKey` was ply-keyed too, so Back reset the
+   fade timers and Forward restarted them: measured on #471, the card re-opened over the board reading
+   "Checkmate!Black wins" on every Back/Forward round trip, for ever. Neither half was in the job; the second
+   was found by sweeping the class rather than by driving it.
+   **WHY THIS CLAUSE EXISTS SEPARATELY FROM CLAUSE 1.** #437 wrote this story from the CONTROL ROW it had
+   measured, and clause 4 names the cause correctly and in full — but the slot was not in view, so the sweep
+   that closed the row left the row's own status line behind. Three builds and 2831 green assertions passed
+   over it, because every input in the suite reached game over by RESIGNING, and `playEnd` is not ply-keyed,
+   so the one arm that could never fail was the only arm anyone drove. A clause is only swept as wide as the
+   surfaces its author had on screen.
+
 3. **It holds in the bottom sheet too, not only in the row.** The More sheet offered **Resign** on a finished
    game stepped back — [New game · Resign · Analyze · Copy moves] — and `resign()` returns immediately on
    getStatus(game), so it was a second enabled-but-inert control of the same mechanism. Nobody had reported

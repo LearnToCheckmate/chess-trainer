@@ -134,6 +134,8 @@ async function fwdState(b){
     return {found:false,dis:null};
   });
 }
+async function cardBox(b){return b.page.evaluate(()=>{const e=document.querySelector('[data-ct="result-card"]');if(!e)return null;const r=e.getBoundingClientRect();if(r.width<1||r.height<1)return null;return {t:(e.textContent||'').replace(/\s+/g,' ').trim(),x:+r.x.toFixed(1),y:+r.y.toFixed(1),w:+r.width.toFixed(1),h:+r.height.toFixed(1)};});}
+async function moveRow(b){return b.page.evaluate(()=>{const e=document.querySelector('[data-ct="play-moverow"]');return e?(e.textContent||'').replace(/\s+/g,' ').trim():null;});}
 async function tapBack(b){try{const r=await P.tapBtn(b,/^Back$/,500);return {ok:true,box:r&&r.x!=null?{x:+r.x.toFixed(2),y:+r.y.toFixed(2)}:null};}catch(e){return {ok:false,err:e.message};}}
 async function tapFwd(b){try{await P.tapBtn(b,/^Forward$/,500);return {ok:true};}catch(e){return {ok:false,err:e.message};}}
 async function resign(b){
@@ -201,8 +203,12 @@ L.run(async()=>{
   }
 
 
-  // ══ G: ONE BACK TAP MUST NOT TAKE THE RESULT AWAY (TC-PL-035) ══════════════════════════════════════
+  // ══ G: ONE BACK TAP MUST NOT TAKE THE RESULT AWAY (TC-PL-037) ══════════════════════════════════════
   // jobs/play-status-slot-loses-the-result-on-one-back-tap-2026-09-30, the uat-internal-challenger's P1.
+  // THE CASE ID IS TC-PL-037 AND NOT THE TC-PL-035 THE JOB PROPOSES: that id was taken by #438's landscape
+  // case six days before this job was written. This project has already paid for one id collision it has not
+  // fully unwound (TC-R05 names two different cases in two documents), so the id was checked against BOTH
+  // homes - claude/stories/TEST-CASES.md and a grep of gates/regress - before being used. 037 is free in both.
   // #473. THE DEFECT: chess.jsx's status row opened with `_done=(isOver||playEnd)`, and `isOver` reads
   // `boardGame` = playHist[pvIdx], which is the ply being PREVIEWED. So the row's question was "is the
   // position on the board terminal" when the answer it needed was "is the GAME finished", and one tap on
@@ -255,8 +261,18 @@ L.run(async()=>{
   // NOT COVERED, said rather than implied [R18]: the vs-COMPUTER mate (the job proposed 12 inputs over two
   // opponents; this is 6 over one). Driving Pip into a real mate is not deterministic at a per-build cost,
   // and the ply-keyed mechanism is opponent-independent - `isOver`, `gameResult` and `_resultKey` never read
-  // `opponent`. Blocks A-C already carry the vs-computer arm of this slot at two geometries. Also not
-  // covered: a time loss stepped back, and landscape (blocks E/F own that viewport).
+  // `opponent`. Blocks A-C already carry the vs-computer arm of this slot at two geometries. AND THAT
+  // OPPONENT-INDEPENDENCE IS NO LONGER AN ARGUMENT: antagonist A drove the vs-computer mate in BOTH
+  // directions (I mate Pip, and Pip mates me, via Play-from-here) at 375x730 and at 730x375, and the slot
+  // held 'Checkmate! · You win! 🎉' and 'Checkmate! · You lose' across the Back tap with the board
+  // unchanged at 353.03 and 216 - while #471 read "" on the same input. So the generalisation this paragraph
+  // makes is now a measurement. It is still not a per-build assertion, which is why it stays listed here.
+  // A STALEMATE STEPPED BACK IS NOW COVERED, in block L below - it was named here as uncovered until
+  // antagonist A pointed out it is the ONLY input that evaluates `_gameTermStatus==='stalemate'` and the
+  // `_winSide===null` fall-through, i.e. half of the new gameResult expression. STILL not covered: a TIME
+  // loss stepped back, a DRAW BY AGREEMENT or threefold stepped back (A drove threefold by hand and the slot
+  // held 'Draw · Threefold repetition', so it is measured once but not gated), stepping back MORE than one
+  // ply (A drove 25 taps to ply 0 and the slot held), and landscape (blocks E/F own that viewport).
   for(const [tag,geo] of [['G','kunal730'],['H','short375'],['I','se']]){
     for(const ending of ['mate','resign']){
       const t=tag+(ending==='mate'?'m':'r');
@@ -294,6 +310,105 @@ L.run(async()=>{
       L.say(b.errs.length===0,t+'7 '+geo+' '+ending+': zero app errors across the whole round trip',b.errs.slice(0,3));
       await b.close();
     }
+  }
+
+  // ══ L: A STALEMATE STEPPED BACK - the ONE input class antagonist A found block G could not reach ══
+  // #473, on antagonist A's finding at the diff door. Every input in G-K is a CHECKMATE or a RESIGNATION, so
+  // nothing exercised `_gameTermStatus==='stalemate'` or the `_winSide===null` fall-through to `_winTxt='Draw'`
+  // - which is to say half of the new `gameResult` expression was never evaluated by any assertion on any
+  // bundle. A drove it and measured the fix GREEN and the three broken bundles RED (#471 and NC1 both
+  // 'Stalemate · Draw' -> '' after one Back; NC2 '' with the card re-opening), so it is a real input class
+  // and not a hypothetical. It is added here rather than merely named in NOT COVERED because this build was
+  // re-gating anyway for antagonist B's veto, so the input cost nothing extra.
+  // AND NOTE WHERE THE DRIVE CAME FROM: `gates/regress/55-play-from-here-terminal.js:34` has carried this
+  // exact Sam Loyd line since it was written, as a PGN. A found it there. That is CLAUDE.md's #386/#390 rule
+  // paying off - "before tapping anything in a new gate, ask whether an existing gate already had to fight
+  // that control" - and it is the second time in this one build that an existing artefact saved a rediscovery.
+  // ONE GEOMETRY, deliberately: its value is the different TERMINAL KIND, not a third width, which is the
+  // same reasoning gate 55 states for its own stalemate input.
+  {
+    const b=await L.launch({geo:'kunal730',name:'stalemate-stepped-back',store:{ct_pool:'3'}});await b.open();
+    await P.states['setup-passplay'](b);await P.tapStart(b,900);await P.ensureMovesShown(b);
+    // 1.e3 a5 2.Qh5 Ra6 3.Qxa5 h5 4.Qxc7 Rah6 5.h4 f6 6.Qxd7+ Kf7 7.Qxb7 Qd3 8.Qxb8 Qh7 9.Qxc8 Kg6 10.Qe6
+    const MV=[['e2','e3'],['a7','a5'],['d1','h5'],['a8','a6'],['h5','a5'],['h7','h5'],['a5','c7'],['a6','h6'],
+              ['h2','h4'],['f7','f6'],['c7','d7'],['e8','f7'],['d7','b7'],['d8','d3'],['b7','b8'],['d3','h7'],
+              ['b8','c8'],['f7','g6'],['c8','e6']];
+    for(const [f,t] of MV) await b.move(f,t,170);
+    await b.settle(4400);
+    const want='Stalemate \u00b7 Draw';
+    const pre=await slot(b),preFwd=await fwdState(b);
+    L.say(!!pre&&pre.t===want,'L1 375x730 stalemate: the slot states the result BEFORE any tap, as the app\'s own two-part string. Black is not in check and has no legal move, so it is a STALEMATE and therefore a DRAW - a fact about the position, not about any readout',{slot:pre&&pre.t,want});
+    L.say(preFwd.found&&preFwd.dis===true,'L2a 375x730 stalemate: and we are at the last ply - Forward present and disabled',{forward:preFwd});
+    const tap=await tapBack(b);
+    L.say(tap.ok,'L2b 375x730 stalemate: the Back control takes the tap',tap);
+    await b.settle(900);
+    const postFwd=await fwdState(b),post=await slot(b),hits=await resultHits(b);
+    L.say(tap.ok&&postFwd.found&&postFwd.dis===false,'L2c 375x730 stalemate: THE WITNESS - Forward is now enabled, so the ply moved',{before:preFwd,after:postFwd});
+    L.say(!!post&&post.t===want,'L3 375x730 stalemate: AND THE RESULT IS STILL THERE after one Back tap. This is the branch no other input in this file evaluates - `_gameTermStatus` returns \'stalemate\' and `_winSide` is null, so the sub comes from `_winTxt`\'s Draw fall-through. On #471 and on NC1 this read ""',{slot:post&&post.t,want});
+    L.say(hits.some(h=>h.t===want),'L4 375x730 stalemate: and an independent painted-element scan finds that exact string',{hits,want});
+    L.say(b.errs.length===0,'L5 375x730 stalemate: zero app errors across a 19-ply stalemate and a step back',b.errs.slice(0,3));
+    await b.close();
+  }
+
+  // ══ J: THE CARD IS PLY-KEYED EVEN THOUGH THE STATUS LINE IS NOT (antagonist B's upheld veto, #473) ══
+  // THE SPLIT THIS BLOCK EXISTS TO PIN: the status row answers "is the GAME finished" (blocks G-I above, and
+  // US-PL-12), and the result CARD answers "am I LOOKING at the result position". #473's first bundle got that
+  // split wrong in one direction: making `gameResult` game-keyed - which the status row needs and which is the
+  // whole point of that build - also handed the CARD a non-null result at every previewed ply, so inside the
+  // ~3s before the fade one Back tap left the card PAINTED OVER THE BOARD on a position that is not the
+  // result position.
+  //
+  // THE CONTROL IS THIS BUILD'S OWN FIRST BUNDLE, which is the strongest kind available here: 
+  //   CT_APP=gates/.trial/app-473-v1-cardleak.js gates/gates.sh '#473' '16-cpu-result-line'
+  // MEASURED on acaa5090955e at 375x730, Scholar's mate 1.e4 e5 2.Bc4 Nc6 3.Qh5 Nf6 4.Qxf7#, one Back tap at
+  // t+836ms: card still at x=95.9 y=237.8 w=183.2 h=69 while the move row read "2...Nc6 3.Qh5 3...Nf6" - two
+  // readouts of the same quantity 150px apart disagreeing. The shipped #471 bundle reads card=null at that
+  // instant, so it was a REGRESSION and not a pre-existing leak. Antagonist B found it at the shipped-surface
+  // door with a pixel diff (>=83% of the pixels of EIGHT squares replaced, three of them holding pieces), and
+  // this build RE-MEASURED it independently before upholding the veto. Fixed by `&&!_pvLive` on the card.
+  //
+  // WHY THE WINDOW IS THE WHOLE POINT, and why this is a separate block from G. Blocks G-I settle 4400ms
+  // first, PAST the 3300ms fade, where `resultCardGone` is true and the card is absent on every bundle - so
+  // no assertion in G-I can see this defect, and none of them went red on it. The defect lives only in the
+  // ~3 seconds a player is most likely to be looking at the screen. A gate that samples the settled state
+  // cannot see a transient one, which is this file's own "measure after interaction" rule pointed at TIME.
+  //
+  // THREE OF ANTAGONIST B'S FOUR REQUESTED ASSERTIONS ARE DELIBERATELY NOT HERE, and the reasons are on the
+  // run report rather than hidden: B asked that the status line NOT state the result at ply 0, that the
+  // opening name still be present at a middle ply, and that the card RETURN at the final ply after a Back and
+  // Forward round trip. All three contradict US-PL-12 and the job this build closes - the first two ask for
+  // exactly the defect #473 was written to remove, and the third asks for the card resurrection G5 pins as a
+  // defect. B came at the bundle blind, by design, and so could not know the clause; that is the cost of the
+  // blind door and not a fault in the pass. Its FOURTH point was right and is this block.
+  for(const [tag,geo] of [['J','kunal730'],['K','se']]){
+    const b=await L.launch({geo,name:'card-is-ply-keyed-'+geo,store:{ct_pool:'3'}});await b.open();
+    await P.states['setup-passplay'](b);await P.tapStart(b,900);await P.ensureMovesShown(b);
+    for(const [f,t] of [['e2','e4'],['e7','e5'],['f1','c4'],['b8','c6'],['d1','h5'],['g8','f6'],['h5','f7']]) await b.move(f,t,200);
+    await b.settle(400);                                   // INSIDE the ~3s window, deliberately
+    const upCard=await cardBox(b);
+    // PRESENCE BEFORE ABSENCE (#385): without this, J2's null could mean the card never appeared at all.
+    L.say(!!upCard&&/Checkmate/.test(upCard.t),tag+'1 '+geo+': the result card IS up at the mate, inside the ~3s window before the fade - asserted before the absence below, so a green on J2 cannot come from a build where the card never renders',{card:upCard});
+    const tap=await tapBack(b);
+    L.say(tap.ok,tag+'2a '+geo+': the painted Back control takes the tap inside the window',tap);
+    await b.settle(150);
+    const row=await moveRow(b),dnCard=await cardBox(b);
+    L.say(tap.ok&&!!row&&!/#/.test(row),tag+'2b '+geo+': and the position shown is NOT the mate - the move row carries no "#", which is what makes the next assertion about a non-result position rather than about the result position',{moveRow:row});
+    L.say(tap.ok&&dnCard===null,tag+'3 '+geo+': THE CARD IS GONE. It answers "am I looking at the result position", so it must not paint over a board showing some other ply. The measured rect of whatever IS there is in the payload and NO coordinate is hardcoded in this message, because it runs at two geometries: the leaked card sits at x=95.9 y=237.8 at 375x730 and x=68.4 y=164.5 at 320x568, so one pair of numbers in the text would be wrong at one of them. Antagonist B pixel-diffed it at 375x730: >=83%% of the pixels of EIGHT squares replaced, three of them holding pieces',{card:dnCard});
+    // and the build's actual fix must still hold at the same instant - the two are not in tension
+    // J4 WAS WRONG AND THIS BLOCK'S OWN CONTROL RUN CAUGHT IT BEFORE THE PUSH. It first asserted the slot
+    // states the RESULT at this instant. It does not, on any bundle, and it should not: #434 split the card
+    // and the slot BY TIME - the card carries the result for the ~3s it is up, so the slot is free to show the
+    // opening name then, and the result takes the slot back after the fade. So the first draft was red on the
+    // control AND would have been red on the shipped fix, which is the one kind of gate this project treats as
+    // worse than no gate. What is asserted instead is the time-split itself, which is a real property and
+    // reddens if anyone makes the slot game-keyed DURING the window as well.
+    const slIn=await slot(b);
+    L.say(!!slIn&&slIn.t==="Scholar's Mate",tag+'4a '+geo+': WHILE THE CARD IS UP the slot carries the OPENING NAME, not the result - #434\'s time-split, measured at this frame on both bundles',{slot:slIn&&slIn.t});
+    await b.settle(4200);                                  // past the 3300ms fade, same previewed ply
+    const slOut=await slot(b);
+    L.say(!!slOut&&slOut.t==="Checkmate! \u00b7 White wins",tag+'4b '+geo+': AND AFTER THE FADE, STILL AT THAT PREVIEWED PLY, the result takes the slot back - which is this build\'s actual fix holding at a non-final ply. White mates with Qxf7#, so WHITE wins',{slot:slOut&&slOut.t});
+    L.say(b.errs.length===0,tag+'5 '+geo+': zero app errors',b.errs.slice(0,3));
+    await b.close();
   }
 
   // ══ E: LANDSCAPE, 730x375 - THE ROW THAT WAS NOT RENDERED AT ALL, AND THE BOARD JUMP BESIDE IT ══
