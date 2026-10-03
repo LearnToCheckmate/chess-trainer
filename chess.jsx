@@ -1295,6 +1295,9 @@ function fmtLeft(ms){if(ms<=0)return 'time up';const m=Math.floor(ms/60000);cons
 function clockFmt(ms){ms=Math.max(0,ms|0);const s=Math.ceil(ms/1000);const m=Math.floor(s/60);const ss=s%60;return m+':'+(ss<10?'0':'')+ss;}
 function corrDeadline(g){if(!g||!g.tc||g.tc.kind!=='corr')return 0;return (g.moveAt||g.createdAt||Date.now())+g.tc.days*86400000;}
 const CORRESPONDENCE=[{label:'1 day',days:1},{label:'3 day',days:3},{label:'5 day',days:5},{label:'30 day',days:30}];
+/* #471: the placement field of the standard opening array, derived from the app's own initGame() rather than
+   typed out, so it cannot drift from initBoard(). Used by the one predicate in guardReset. */
+const START_PLACEMENT=toFEN(initGame()).split(' ')[0];
 function gameAfterLine(line){let g=initGame();for(const s of line){const mv=findMoveBySAN(g,s);if(!mv)break;g=makeMove(g,mv);}return g;}
 // Position + last move after the first `ply` moves of a line (drives the auto-demo)
 function demoState(line,ply,startFEN){let g=startFEN?fromFEN(startFEN):initGame(),last=null;for(let i=0;i<ply&&i<line.length;i++){const mv=findMoveBySAN(g,line[i]);if(!mv)break;last=mv;g=makeMove(g,mv);}return{game:g,last};}
@@ -2921,8 +2924,14 @@ export default function App(){
      is UNREACHABLE: the identifier `_play` occurs exactly once in this file, its own definition, and is called
      zero times, so it is dead code and is left rather than guarded (filed, not deleted here, to keep this diff
      to the defect). Said as a measurement because a count that excuses a site has to name why.
-     The lesson practice sheet is the single route that bypasses this sheet (it calls fullReset directly) and is
-     guarded at its own button, on `isOver`, which asks this same question of the board. */
+     THE SENTENCE THAT WAS HERE IS WITHDRAWN [R18]. It read: "The lesson practice sheet is the single route
+     that bypasses this sheet (it calls fullReset directly) and is guarded at its own button, on `isOver`, which
+     asks this same question of the board." THAT IS FALSE AND #471's antagonist A DROVE IT: `isOver` asks
+     whether the LESSON position is terminal and says nothing whatever about the live Play game, so with a
+     3-ply Pass & Play game running the button reported disabled=null and one tap took the move row from
+     "1.f3 1...e5 2.g4" to empty. It is #469's "a game EXISTS vs a game can be CONTINUED" conflation wearing a
+     third costume, and the comment would have stopped the next run re-checking it. Since #471 that site
+     (chess.jsx, data-ct="learn-play-position") goes through guardReset like every other one. */
   const terminalFEN=(fen)=>{if(!fen)return null;try{const g=fromFEN(fen);const st=getStatus(g);return (st==='checkmate'||st==='stalemate')?st:null;}catch(e){return null;}};
   const setupTerminal=useMemo(()=>terminalFEN(setupFromFEN),[setupFromFEN]);
   /* #466, ON ANTAGONIST B'S VETO: THE NOTE AND THE BUTTON MUST READ ONE EXPRESSION, NOT TWO. The first version
@@ -3137,13 +3146,28 @@ export default function App(){
      are not interchangeable: #469's own three P0s came from using one where the other was meant.
      Rematch is NOT routed through this (the game is over and replacing it is the button's whole purpose), and
      neither are the three online paths, where leaving or matchmaking is itself the deliberate act. */
+  /* THE PREDICATE IS NOT `playHist.length>0`, AND BOTH ANTAGONISTS REACHED THAT FROM DIFFERENT DOORS.
+     `playHist` is "a move has been played in a Play game"; the question is "is there something to lose", and
+     the two differ in BOTH directions:
+       TOO NARROW - a position LOADED through "Play this position" (from Review's "Play from here", from a
+       lesson's practice sheet, or from a BOARD SCAN, which costs a photograph of a real board) sits at ZERO
+       plies with the position on the board. B drove the Review route and measured 10 of 64 squares changing on
+       one tap; A drove the LESSON route and measured the board signature becoming byte-identical to a fresh
+       game. And these are the games that CANNOT be recovered: a move-list game can be replayed from Review, a
+       scanned position cannot.
+       TOO WIDE - `playHist` is not cleared when another mode replaces the board (a lesson calls setGame
+       directly), so it goes stale, and A measured #471 ARMING over a game that no longer exists where #470
+       applied on one tap. That was a real regression of this build and this predicate removes it.
+     So it asks the question of the BOARD, which is also the quantity the move row eight pixels away renders:
+     has a move been made in the game now on the board, or is the board not the standard opening array. */
+  const somethingToLose=game.history.length>0||toFEN(game).split(' ')[0]!==START_PLACEMENT;
   const guardReset=(key,apply)=>{
-    if(playHist.length>0&&resetArm!==key){setResetArm(key);if(resetArmT.current)clearTimeout(resetArmT.current);resetArmT.current=setTimeout(()=>setResetArm(null),4000);return;}
+    if(somethingToLose&&resetArm!==key){setResetArm(key);if(resetArmT.current)clearTimeout(resetArmT.current);resetArmT.current=setTimeout(()=>setResetArm(null),4000);return;}
     if(resetArmT.current){clearTimeout(resetArmT.current);resetArmT.current=null;}
     setResetArm(null);apply();
   };
   /* Leaving either sheet disarms, so an arm can never be confirmed by a tap taken in a later visit. */
-  useEffect(()=>{if(!menuOpen&&!moreOpen&&resetArm!==null){if(resetArmT.current){clearTimeout(resetArmT.current);resetArmT.current=null;}setResetArm(null);}},[menuOpen,moreOpen,resetArm]);
+  useEffect(()=>{if(!menuOpen&&!moreOpen&&!learnSheet&&resetArm!==null){if(resetArmT.current){clearTimeout(resetArmT.current);resetArmT.current=null;}setResetArm(null);}},[menuOpen,moreOpen,learnSheet,resetArm]);
   useEffect(()=>()=>{if(resetArmT.current)clearTimeout(resetArmT.current);},[]);
   useEffect(()=>{timeCtrlRef.current=timeCtrl;},[timeCtrl]);
   useEffect(()=>{pvIdxRef.current=pvIdx;},[pvIdx]);
@@ -6071,7 +6095,7 @@ export default function App(){
                 changes, so nothing below it ever moves. It also warns before the first tap rather than only after,
                 which is the cheaper place to say it. The two sentences are deliberately different situations and not
                 one generic string [R10 item 5]. */}
-            <div data-ct="setup-reset-warn" style={{width:'100%',boxSizing:'border-box',height:34,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center',padding:'0 6px',margin:'0 0 4px',overflow:'hidden',fontSize:'clamp(11.5px,2vw,11.5px)',lineHeight:1.35,fontWeight:700,color:resetArm?'#ffd98a':'rgba(255,255,255,.42)'}}>{playHist.length>0?(resetArm?'⚠ Tap the same choice again to discard your game.':'Changing any of these starts a new game.'):''}</div>
+            {somethingToLose&&<div data-ct="setup-reset-warn" style={{width:'100%',boxSizing:'border-box',height:34,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center',padding:'0 6px',margin:'0 0 4px',overflow:'hidden',fontSize:'clamp(11.5px,2vw,11.5px)',lineHeight:1.35,fontWeight:700,color:resetArm?'#ffd98a':'rgba(255,255,255,.42)'}}>{resetArm?'⚠ Tap the same choice again to discard your game.':'Changing any of these starts a new game.'}</div>}
             <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'center',marginBottom:8}}>
               <span data-ct="setup-opp-human" style={armPill('opp-human',opponent==='human')} onClick={()=>guardReset('opp-human',()=>{setOpponent('human');/* #400 R-OC-2 says clear the clock only when it is MEANINGLESS for the new opponent. A day-per-move limit is exactly that in an offline game, and it was reachable before #400 (Online -> 3 days / move -> Computer) and is more reachable now, so drop it here and keep everything else. */if(timeCtrlRef.current&&timeCtrlRef.current.kind==='corr'){timeCtrlRef.current=null;setTimeCtrl(null);}fullReset();})}>👤 vs Human</span>
               <span data-ct="setup-opp-computer" style={armPill('opp-computer',opponent==='computer')} onClick={()=>guardReset('opp-computer',()=>{setOpponent('computer');/* #400 R-OC-2 says clear the clock only when it is MEANINGLESS for the new opponent. A day-per-move limit is exactly that in an offline game, and it was reachable before #400 (Online -> 3 days / move -> Computer) and is more reachable now, so drop it here and keep everything else. */if(timeCtrlRef.current&&timeCtrlRef.current.kind==='corr'){timeCtrlRef.current=null;setTimeCtrl(null);}fullReset();})}>🤖 vs Computer</span>
@@ -7575,7 +7599,7 @@ export default function App(){
                       lessons end in checkmate by construction, so this branch is REACHABLE rather than inert.
                       `isOver` is the right question here: it reads boardGame, which is the position this button
                       would play from. */}
-                  <button data-ct="learn-play-position" disabled={isOver} onClick={()=>{if(isOver)return;setLearnSheet(false);const pos=fromFEN(toFEN(boardGame));setMode('play');setOpponent('computer');setPColor(LIB[openIdx].side);setOpenIdx(null);timeCtrlRef.current=null;setTimeCtrl(null);setPlaySetup(false);fullReset(pos);setMenuOpen(false);}} style={{...btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)'),width:'100%',opacity:isOver?.5:1,cursor:isOver?'not-allowed':'pointer'}}>{isOver?'That position is already over':'▶ Play this position vs Computer'}</button>
+                  <button data-ct="learn-play-position" disabled={isOver} onClick={()=>{if(isOver)return;guardReset('learn-play-position',()=>{setLearnSheet(false);const pos=fromFEN(toFEN(boardGame));setMode('play');setOpponent('computer');setPColor(LIB[openIdx].side);setOpenIdx(null);timeCtrlRef.current=null;setTimeCtrl(null);setPlaySetup(false);fullReset(pos);setMenuOpen(false);});}} style={{...btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)'),width:'100%',opacity:isOver?.5:1,cursor:isOver?'not-allowed':'pointer'}}>{isOver?'That position is already over':(resetArm==='learn-play-position'?'Tap again to discard your game and play this':'▶ Play this position vs Computer')}</button>
                   <button onClick={()=>setLearnSheet(false)} style={{...btn('transparent','1px solid rgba(255,255,255,.22)','rgba(255,255,255,.7)'),width:'100%'}}>Close</button>
                 </div>
               </div>)}

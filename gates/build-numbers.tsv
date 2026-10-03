@@ -433,3 +433,4 @@
 470	built	-	ec59168f03a7	61557d80455e	2026-10-03T09:23Z	build__1791012024000	build.sh	Bundle built and stamped #470. Recorded by gates/build.sh so the number resolves to an artefact.
 471	minted	-	-	-	2026-10-03T11:26Z	build__1791026416000	minted	guard every fullReset call site that can discard a live game: one shared arm policy, not a confirm per site (jobs/at-least-eleven-fullreset-call-sites-2026-10-03)
 471	built	-	fdbdaa5c5507	e1fce6d93de6	2026-10-03T11:29Z	build__1791026416000	build.sh	Bundle built and stamped #471. Recorded by gates/build.sh so the number resolves to an artefact.
+471	built	-	f2815af67d3a	0b55aa03d833	2026-10-03T12:14Z	build__1791026416000	build.sh	Bundle built and stamped #471. Recorded by gates/build.sh so the number resolves to an artefact.
