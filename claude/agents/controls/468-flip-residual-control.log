@@ -1,0 +1,58 @@
+     bundle: app.js  stamp #468 - 2026-10-02 20:31 ET  (default app.js)
+PASS ctl468: 320x540 natural: state reached and the Flip row was located  {"rowAndBoardWidth":236.39,"rowW":236.39,"past":0,"needed":226.77}
+PASS ctl468: 320x540 natural: the NEW board-relative instrument holds at the board this run drew  {"rowW":236.39,"past":0,"predicted":0}
+      NOTE 320x540 natural: the DELETED pin (0) would have PASSED here (past=0, rowW=236.39)
+PASS ctl468: 320x540 @board 236.4: THE CONTROL ACTUALLY MOVED rowW, the quantity the assertion reads - this is the guard my first version lacked  {"askedFor":236.4,"rowWNow":236.39,"movedBy":0}
+PASS ctl468: 320x540 @board 236.4: the NEW instrument predicts the residual exactly (needed 226.77 - rowW 236.39)  {"forcedFrom":236.39,"forcedTo":236.39,"actuallyMoved":0,"rowW":236.39,"past":0,"predicted":0}
+PASS ctl468: 320x540 @board 236.4: and the SURVIVING needed-vs-FLIP_NEEDED pin is untouched and still holds at 226.77  {"needed":226.77,"pinned":226.77}
+      DISCRIMINATION 320x540 @board 236.4: oldPin(0)=green  newInstrument=green   past=0 predicted=0
+PASS ctl468: 320x540 @board 212.39: THE CONTROL ACTUALLY MOVED rowW, the quantity the assertion reads - this is the guard my first version lacked  {"askedFor":212.39,"rowWNow":212.38,"movedBy":-24.01}
+PASS ctl468: 320x540 @board 212.39: the NEW instrument predicts the residual exactly (needed 226.77 - rowW 212.38)  {"forcedFrom":236.39,"forcedTo":212.38,"actuallyMoved":-24.01,"rowW":212.38,"past":14.39,"predicted":14.39}
+PASS ctl468: 320x540 @board 212.39: and the SURVIVING needed-vs-FLIP_NEEDED pin is untouched and still holds at 226.77  {"needed":226.77,"pinned":226.77}
+      DISCRIMINATION 320x540 @board 212.39: oldPin(0)=RED  newInstrument=green   past=14.39 predicted=14.39
+PASS ctl468: 320x540 @board 192: THE CONTROL ACTUALLY MOVED rowW, the quantity the assertion reads - this is the guard my first version lacked  {"askedFor":192,"rowWNow":192,"movedBy":-20.38}
+PASS ctl468: 320x540 @board 192: the NEW instrument predicts the residual exactly (needed 226.77 - rowW 192)  {"forcedFrom":212.38,"forcedTo":192,"actuallyMoved":-20.38,"rowW":192,"past":34.77,"predicted":34.77}
+PASS ctl468: 320x540 @board 192: and the SURVIVING needed-vs-FLIP_NEEDED pin is untouched and still holds at 226.77  {"needed":226.77,"pinned":226.77}
+      DISCRIMINATION 320x540 @board 192: oldPin(0)=RED  newInstrument=green   past=34.77 predicted=34.77
+PASS ctl468: 320x540 NC baseline: green BEFORE the perturbation  {"past":34.77,"predicted":34.77}
+PASS ctl468: 320x540 NEGATIVE CONTROL: shifting ⟳ Flip 10px right turns the NEW instrument RED - it CAN fail  {"pastBefore":34.77,"pastAfter":44.77,"predictedBefore":34.77,"predictedAfter":34.77,"moved":10}
+PASS ctl468: 320x540 NC: and the prediction did NOT move with it, so the two sides are genuinely independent here  {"predictedBefore":34.77,"predictedAfter":34.77}
+PASS ctl468: 320x520 natural: state reached and the Flip row was located  {"rowAndBoardWidth":231.19,"rowW":231.19,"past":0,"needed":226.77}
+PASS ctl468: 320x520 natural: the NEW board-relative instrument holds at the board this run drew  {"rowW":231.19,"past":0,"predicted":0}
+      NOTE 320x520 natural: the DELETED pin (0) would have PASSED here (past=0, rowW=231.19)
+PASS ctl468: 320x520 @board 236.4: THE CONTROL ACTUALLY MOVED rowW, the quantity the assertion reads - this is the guard my first version lacked  {"askedFor":236.4,"rowWNow":236.39,"movedBy":5.2}
+PASS ctl468: 320x520 @board 236.4: the NEW instrument predicts the residual exactly (needed 226.77 - rowW 236.39)  {"forcedFrom":231.19,"forcedTo":236.39,"actuallyMoved":5.2,"rowW":236.39,"past":0,"predicted":0}
+PASS ctl468: 320x520 @board 236.4: and the SURVIVING needed-vs-FLIP_NEEDED pin is untouched and still holds at 226.77  {"needed":226.77,"pinned":226.77}
+      DISCRIMINATION 320x520 @board 236.4: oldPin(0)=green  newInstrument=green   past=0 predicted=0
+PASS ctl468: 320x520 @board 212.39: THE CONTROL ACTUALLY MOVED rowW, the quantity the assertion reads - this is the guard my first version lacked  {"askedFor":212.39,"rowWNow":212.38,"movedBy":-24.01}
+PASS ctl468: 320x520 @board 212.39: the NEW instrument predicts the residual exactly (needed 226.77 - rowW 212.38)  {"forcedFrom":236.39,"forcedTo":212.38,"actuallyMoved":-24.01,"rowW":212.38,"past":14.39,"predicted":14.39}
+PASS ctl468: 320x520 @board 212.39: and the SURVIVING needed-vs-FLIP_NEEDED pin is untouched and still holds at 226.77  {"needed":226.77,"pinned":226.77}
+      DISCRIMINATION 320x520 @board 212.39: oldPin(0)=RED  newInstrument=green   past=14.39 predicted=14.39
+PASS ctl468: 320x520 @board 192: THE CONTROL ACTUALLY MOVED rowW, the quantity the assertion reads - this is the guard my first version lacked  {"askedFor":192,"rowWNow":192,"movedBy":-20.38}
+PASS ctl468: 320x520 @board 192: the NEW instrument predicts the residual exactly (needed 226.77 - rowW 192)  {"forcedFrom":212.38,"forcedTo":192,"actuallyMoved":-20.38,"rowW":192,"past":34.77,"predicted":34.77}
+PASS ctl468: 320x520 @board 192: and the SURVIVING needed-vs-FLIP_NEEDED pin is untouched and still holds at 226.77  {"needed":226.77,"pinned":226.77}
+      DISCRIMINATION 320x520 @board 192: oldPin(0)=RED  newInstrument=green   past=34.77 predicted=34.77
+PASS ctl468: 320x520 NC baseline: green BEFORE the perturbation  {"past":34.77,"predicted":34.77}
+PASS ctl468: 320x520 NEGATIVE CONTROL: shifting ⟳ Flip 10px right turns the NEW instrument RED - it CAN fail  {"pastBefore":34.77,"pastAfter":44.77,"predictedBefore":34.77,"predictedAfter":34.77,"moved":10}
+PASS ctl468: 320x520 NC: and the prediction did NOT move with it, so the two sides are genuinely independent here  {"predictedBefore":34.77,"predictedAfter":34.77}
+PASS ctl468: 375x520 natural: state reached and the Flip row was located  {"rowAndBoardWidth":223.19,"rowW":223.19,"past":3.58,"needed":226.77}
+PASS ctl468: 375x520 natural: the NEW board-relative instrument holds at the board this run drew  {"rowW":223.19,"past":3.58,"predicted":3.58}
+      NOTE 375x520 natural: the DELETED pin (3.58) would have PASSED here (past=3.58, rowW=223.19)
+PASS ctl468: 375x520 @board 236.4: THE CONTROL ACTUALLY MOVED rowW, the quantity the assertion reads - this is the guard my first version lacked  {"askedFor":236.4,"rowWNow":236.39,"movedBy":13.2}
+PASS ctl468: 375x520 @board 236.4: the NEW instrument predicts the residual exactly (needed 226.77 - rowW 236.39)  {"forcedFrom":223.19,"forcedTo":236.39,"actuallyMoved":13.2,"rowW":236.39,"past":0,"predicted":0}
+PASS ctl468: 375x520 @board 236.4: and the SURVIVING needed-vs-FLIP_NEEDED pin is untouched and still holds at 226.77  {"needed":226.77,"pinned":226.77}
+      DISCRIMINATION 375x520 @board 236.4: oldPin(3.58)=RED  newInstrument=green   past=0 predicted=0
+PASS ctl468: 375x520 @board 212.39: THE CONTROL ACTUALLY MOVED rowW, the quantity the assertion reads - this is the guard my first version lacked  {"askedFor":212.39,"rowWNow":212.38,"movedBy":-24.01}
+PASS ctl468: 375x520 @board 212.39: the NEW instrument predicts the residual exactly (needed 226.77 - rowW 212.38)  {"forcedFrom":236.39,"forcedTo":212.38,"actuallyMoved":-24.01,"rowW":212.38,"past":14.39,"predicted":14.39}
+PASS ctl468: 375x520 @board 212.39: and the SURVIVING needed-vs-FLIP_NEEDED pin is untouched and still holds at 226.77  {"needed":226.77,"pinned":226.77}
+      DISCRIMINATION 375x520 @board 212.39: oldPin(3.58)=RED  newInstrument=green   past=14.39 predicted=14.39
+PASS ctl468: 375x520 @board 192: THE CONTROL ACTUALLY MOVED rowW, the quantity the assertion reads - this is the guard my first version lacked  {"askedFor":192,"rowWNow":192,"movedBy":-20.38}
+PASS ctl468: 375x520 @board 192: the NEW instrument predicts the residual exactly (needed 226.77 - rowW 192)  {"forcedFrom":212.38,"forcedTo":192,"actuallyMoved":-20.38,"rowW":192,"past":34.77,"predicted":34.77}
+PASS ctl468: 375x520 @board 192: and the SURVIVING needed-vs-FLIP_NEEDED pin is untouched and still holds at 226.77  {"needed":226.77,"pinned":226.77}
+      DISCRIMINATION 375x520 @board 192: oldPin(3.58)=RED  newInstrument=green   past=34.77 predicted=34.77
+PASS ctl468: 375x520 NC baseline: green BEFORE the perturbation  {"past":34.77,"predicted":34.77}
+PASS ctl468: 375x520 NEGATIVE CONTROL: shifting ⟳ Flip 10px right turns the NEW instrument RED - it CAN fail  {"pastBefore":34.77,"pastAfter":44.77,"predictedBefore":34.77,"predictedAfter":34.77,"moved":10}
+PASS ctl468: 375x520 NC: and the prediction did NOT move with it, so the two sides are genuinely independent here  {"predictedBefore":34.77,"predictedAfter":34.77}
+
+ctl468: 42 passed, 0 failed
+GATE: 0 pass, 0 fail
