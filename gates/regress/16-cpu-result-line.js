@@ -121,6 +121,21 @@ async function slot(b){
             sw:el.scrollWidth,cw:el.clientWidth,nowrap:cs.whiteSpace,ell:cs.textOverflow,op:+cs.opacity};
   });
 }
+// #473: the three helpers block G needs. fwdState is its WITNESS - see the block header for why the 64
+// squares were rejected as one. tapBack/tapFwd are GUARDED because P.tapBtn throws on a missing target and
+// #393 measured that taking a whole gate down hides every assertion after it.
+async function fwdState(b){
+  return b.page.evaluate(()=>{
+    for(const x of document.querySelectorAll('button')){
+      if((x.textContent||'').replace(/\s+/g,' ').trim()!=='Forward')continue;
+      const r=x.getBoundingClientRect();if(r.width<1||r.height<1)continue;
+      return {found:true,dis:!!x.disabled,x:+r.x.toFixed(1),y:+r.y.toFixed(1)};
+    }
+    return {found:false,dis:null};
+  });
+}
+async function tapBack(b){try{const r=await P.tapBtn(b,/^Back$/,500);return {ok:true,box:r&&r.x!=null?{x:+r.x.toFixed(2),y:+r.y.toFixed(2)}:null};}catch(e){return {ok:false,err:e.message};}}
+async function tapFwd(b){try{await P.tapBtn(b,/^Forward$/,500);return {ok:true};}catch(e){return {ok:false,err:e.message};}}
 async function resign(b){
   await P.tapBtn(b,/^More$/,700);await P.tapBtn(b,/^Resign$/,600);await P.tapBtn(b,/^Tap again to resign$/,1200);
 }
@@ -185,6 +200,101 @@ L.run(async()=>{
     await b.close();
   }
 
+
+  // ══ G: ONE BACK TAP MUST NOT TAKE THE RESULT AWAY (TC-PL-035) ══════════════════════════════════════
+  // jobs/play-status-slot-loses-the-result-on-one-back-tap-2026-09-30, the uat-internal-challenger's P1.
+  // #473. THE DEFECT: chess.jsx's status row opened with `_done=(isOver||playEnd)`, and `isOver` reads
+  // `boardGame` = playHist[pvIdx], which is the ply being PREVIEWED. So the row's question was "is the
+  // position on the board terminal" when the answer it needed was "is the GAME finished", and one tap on
+  // Back emptied the slot the result owns. MEASURED on the shipped #471 bundle (40c8cdb1bcff) at three
+  // geometries: slot "Checkmate! · Black wins" -> "", result-vocabulary hits 1 -> 0, at 375x730, 375x568
+  // and 320x568 alike. #434 bought this slot and #435 extended it; one Back tap restored #434's own
+  // zero-hit state on Kunal's geometry.
+  //
+  // WHY THE MATE ARM AND THE RESIGN ARM ARE BOTH HERE, AND WHICH ONE IS THE CONTROL. `playEnd` is set by a
+  // resignation and is NOT ply-keyed, so the resign arm was always green and STAYS green on every bundle in
+  // this episode - it is the negative control that localises the defect to the ply-keyed half and proves a
+  // red in the mate arm is not this block's own wiring. Every input in blocks A-D resigns, which is exactly
+  // why 2831 assertions could read green over this: no input in the suite had ever reached a real checkmate
+  // and then stepped back.
+  //
+  // THE JOB'S PRESCRIBED FIX WAS INSUFFICIENT AND THE CONTROL IS WHAT SHOWED IT, which is the reason this
+  // header carries three bundle hashes instead of one. The job says "move :5671's _done to _gameOver" and
+  // stop. Built as NC1 (71b9a016cc61) and measured: slot "Checkmate! · Black wins" -> "", hits 1 -> 0,
+  // BYTE-FOR-BYTE the shipped defect - because `_res` reads `(_done&&gameResult)` and `gameResult` is
+  // ITSELF gated on `(isOver||playEnd)`, so the repaired `_done` had nothing to render. NC2 (8a462df91126)
+  // additionally gated gameResult on `_gameOver` but left `head` and `_winSide` reading the previewed ply:
+  // hits 1 -> 2, painting "Stalemate" at y251.8 and "Draw" at y276.8 over a game Black had won by
+  // checkmate - a WRONG result, which is worse than an absent one. The shipped fix (acaa5090955e) reads
+  // 1 -> 1 at every input. CLAUDE.md: "the fix a flag proposes is a hypothesis, not a prescription."
+  //
+  // G2 IS THE ASSERTION THAT STOPS G3 BEING VACUOUS, and it is here because of #416's lesson - a control
+  // that disturbs something real and leaves the MEASURED quantity untouched reads exactly like a gate that
+  // cannot fail. "The result is still on screen after a tap" passes trivially if the tap did nothing. So the
+  // tap is WITNESSED independently of the slot: at the terminal ply `Forward` is disabled (nothing ahead of
+  // it) and after one Back tap it is ENABLED. Measured on the fixed bundle, both endings, all three
+  // geometries: dis true -> false. If that ever reads false->false the ply never moved and G3 is withdrawn.
+  // The 64 squares were tried first as the witness and REJECTED by measurement, not by argument: the pieces
+  // are images, so the grid's text is 16 characters of rank and file labels and is byte-identical before and
+  // after the tap - a witness that cannot witness.
+  // AND G2c EARNED ITS KEEP ON ITS VERY FIRST RUN, AGAINST THIS BLOCK'S OWN CONTROL. The resign arm first
+  // resigned at move 0, copying blocks A-D. At move 0 there is no earlier ply, so Back has nowhere to go:
+  // measured dis true -> TRUE at all three geometries, 3 red. The slot assertion G3 was GREEN in all three,
+  // because an unchanged slot across a tap that did nothing is indistinguishable from a working fix. Had the
+  // witness not been there the resign arm would have been three vacuous passes presenting themselves as a
+  // negative control. The arm now plays 1.f3 e5 2.g4 before resigning. This is #416's rule catching the
+  // author of the gate that cites it, which is the most useful thing in this block.
+  //
+  // G5 IS A SECOND INSTANCE OF THE SAME CLASS, FOUND BY SWEEPING `isOver` RATHER THAN BY DRIVING IT [R06].
+  // `_resultKey` was also `(isOver||playEnd)`, so Back flipped it 1->0 (whose effect RESETS resultCardFade
+  // and resultCardGone and returns early) and Forward flipped it back to 1, RESTARTING both timers - so the
+  // dismissed result card re-opened over the board on every Back/Forward round trip, for ever. Measured on
+  // #471: cardAfterForward "Checkmate!Black wins" on the mate arm at all three geometries, null on the
+  // resign arm. The job does not mention it.
+  //
+  // NOT COVERED, said rather than implied [R18]: the vs-COMPUTER mate (the job proposed 12 inputs over two
+  // opponents; this is 6 over one). Driving Pip into a real mate is not deterministic at a per-build cost,
+  // and the ply-keyed mechanism is opponent-independent - `isOver`, `gameResult` and `_resultKey` never read
+  // `opponent`. Blocks A-C already carry the vs-computer arm of this slot at two geometries. Also not
+  // covered: a time loss stepped back, and landscape (blocks E/F own that viewport).
+  for(const [tag,geo] of [['G','kunal730'],['H','short375'],['I','se']]){
+    for(const ending of ['mate','resign']){
+      const t=tag+(ending==='mate'?'m':'r');
+      const b=await L.launch({geo,name:'back-keeps-result-'+geo+'-'+ending,store:{ct_pool:'3'}});await b.open();
+      if(ending==='mate')await P.states['pp-mate'](b);       // 1.f3 e5 2.g4 Qh4# in Pass & Play
+      else{await P.states['pp-m0'](b);                      // TWO PLIES FIRST, and that is not decoration:
+        await b.move('f2','f3');await b.settle(250);        // resigning at move 0 leaves NOWHERE for Back to
+        await b.move('e7','e5');await b.settle(250);        // go, so G2c read dis true->true and G3 passed on
+        await resign(b);}                                   // a tap that did nothing - see the header. TWO and
+                                                            // not three because resign() resigns the SIDE TO
+                                                            // MOVE: after 1.f3 e5 that is White, so Black wins
+                                                            // and both arms of this block end "Black wins".
+
+      await b.settle(4400);                                  // past resultCardGone (3300ms)
+      const want=ending==='mate'?'Checkmate! · Black wins':'Resigned · Black wins';
+      const pre=await slot(b),preHits=await resultHits(b),preFwd=await fwdState(b);
+      // PRESENCE BEFORE ABSENCE (#385): without this a build whose slot never states a result at all would
+      // satisfy the "unchanged across the tap" assertion below with two empty strings.
+      L.say(!!pre&&pre.t===want,t+'1 '+geo+' '+ending+': the slot states the result BEFORE any tap, as the app\'s own two-part string head + " · " + sub, not a regex any wording would satisfy (#388). BLACK wins at both endings - by Qh4# on the mate arm, and because resign() resigns the side to move and after 1.f3 e5 that is White - which is a fact about the game, true whatever any readout says (#389)',{slot:pre&&pre.t,want});
+      L.say(preFwd.found&&preFwd.dis===true,t+'2a '+geo+' '+ending+': and we are genuinely AT the last ply - Forward is present and DISABLED, so the Back tap below has somewhere to go and this block is not measuring a mid-game position',{forward:preFwd});
+      const tap=await tapBack(b);                            // guarded: a missing control goes red HERE and
+      L.say(tap.ok,t+'2b '+geo+' '+ending+': the painted Back control exists and takes the tap',tap);
+      await b.settle(900);                                   // does not take the rest of the block down (#393)
+      const post=await slot(b),postHits=await resultHits(b),postFwd=await fwdState(b);
+      L.say(tap.ok&&postFwd.found&&postFwd.dis===false,t+'2c '+geo+' '+ending+': THE WITNESS - Forward is now ENABLED, so the tap really moved the previewed ply. Without this, G3 passes on a tap that did nothing, which is #416 exactly',{before:preFwd,after:postFwd});
+      // THE DEFECT ITSELF, asserted on the slot ELEMENT rather than on a substring of body text, so "no slot
+      // at all" is a measurement and not a silence (#393/#394).
+      L.say(!!post&&post.t===want,t+'3 '+geo+' '+ending+': AND THE RESULT IS STILL THERE after one Back tap - the row answers whether the GAME is finished, not whether the previewed position is terminal. On #471 the mate arm read "" here',{slot:post&&post.t,want,wasBefore:pre&&pre.t});
+      L.say(postHits.some(h=>h.t===want),t+'4 '+geo+' '+ending+': and an independent painted-element scan still finds that exact string somewhere on screen, so G3 cannot be satisfied by a hidden or zero-area node',{hits:postHits,want});
+      // G5: the second instance of the class - the dismissed card must not re-open on the way back.
+      const fwd=await tapFwd(b);await b.settle(800);
+      const card=await b.text('[data-ct="result-card"]'),back=await slot(b);
+      L.say(fwd.ok&&card===null,t+'5 '+geo+' '+ending+': stepping Forward again does NOT re-open the dismissed result card. `_resultKey` was ply-keyed too, so on #471 this read "Checkmate!Black wins" on the mate arm - the card the player had already watched fade came back over the board, and would on every round trip',{card,fwd});
+      L.say(!!back&&back.t===want,t+'6 '+geo+' '+ending+': and the slot still states the result at the terminal ply after the round trip',{slot:back&&back.t,want});
+      L.say(b.errs.length===0,t+'7 '+geo+' '+ending+': zero app errors across the whole round trip',b.errs.slice(0,3));
+      await b.close();
+    }
+  }
 
   // ══ E: LANDSCAPE, 730x375 - THE ROW THAT WAS NOT RENDERED AT ALL, AND THE BOARD JUMP BESIDE IT ══
   // #435, jobs/landscape-drops-the-status-row-at-game-over-...-2026-09-29. This is a DIFFERENT mechanism from

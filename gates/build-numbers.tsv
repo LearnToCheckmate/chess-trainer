@@ -437,3 +437,5 @@
 471	built	-	854d7cb93925	bc23afbb5f38	2026-10-03T12:28Z	build__1791026416000	build.sh	Bundle built and stamped #471. Recorded by gates/build.sh so the number resolves to an artefact.
 471	built	-	40c8cdb1bcff	b3469ce53aa0	2026-10-03T12:33Z	build__1791026416000	build.sh	Bundle built and stamped #471. Recorded by gates/build.sh so the number resolves to an artefact.
 472	minted	-	-	-	2026-10-03T14:36Z	build__1791037226217	minted	records only: the candidate-C reading for the drill board-jump P0, measured at all seven geometries, plus the committed probe. No application change and no bundle.
+473	minted	-	-	-	2026-10-03T15:25Z	build__1791040803762	minted	P1 fix: the play status slot loses the game result on one Back tap at 375x730 (ply-keyed _done -> game-keyed _gameOver), plus the isOver class sweep and gate 16 block G
+473	built	-	acaa5090955e	1b9c80967b06	2026-10-03T15:40Z	build__1791040803762	build.sh	Bundle built and stamped #473. Recorded by gates/build.sh so the number resolves to an artefact.

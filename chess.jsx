@@ -2966,6 +2966,28 @@ export default function App(){
      small fix becomes a big one. This adds a predicate beside it and moves the sites where the question is
      "is the game over"; the sites where the question really is "is the shown position terminal" keep `isOver`. */
   const _gameOver=useMemo(()=>{if(playEnd)return true;try{const st=getStatus(game);return st==='checkmate'||st==='stalemate';}catch(e){return false;}},[game,playEnd]);
+  /* #473: THE SAME QUESTION AS `_gameOver`, BUT IT HAS TO CARRY THE TERMINAL KIND AND NOT JUST A BOOLEAN,
+     and that is why the one-line fix jobs/play-status-slot-loses-the-result-on-one-back-tap-2026-09-30
+     PRESCRIBES DOES NOT WORK. That job says to move the status row's `_done` onto `_gameOver` and stop. I
+     implemented exactly that first and MEASURED IT: the slot stayed empty on a mate, because `_res` reads
+     `(_done&&gameResult)` and `gameResult` (:4744) is ITSELF gated on `(isOver||playEnd)` - so one Back tap
+     made gameResult null and the repaired `_done` had nothing to render. Fixing only `_done` changes the
+     RESIGN arm, which already worked and is the gate's own green control, and leaves the mate arm - the whole
+     defect - untouched. CLAUDE.md: "the fix a flag proposes is a hypothesis, not a prescription."
+     AND THE GATE HAD TO BE READ TOO, NOT JUST THE GATE'S SUBJECT: `gameResult.head` and `_winSide` both read
+     `status` and `boardGame.turn`, which are the PREVIEWED ply. So gating gameResult on `_gameOver` while
+     leaving those alone prints a result that is WRONG rather than absent: with `status` no longer 'checkmate'
+     the head falls to 'Stalemate' and `_winSide` falls through to null, so the sub reads 'Draw' over a game
+     Black won by checkmate. A wrong result is worse than none, so the kind and the winner are read from the
+     LIVE game here. BOTH HALVES ARE MEASURED ON PURPOSE-BUILT TRIAL BUNDLES, not argued, at
+     375x730 off 1.f3 e5 2.g4 Qh4# then ONE Back tap. NC1 (bundle 71b9a016cc61, the job's prescription and
+     nothing else): slot "Checkmate! · Black wins" -> "", result-vocabulary hits 1 -> 0, which is BYTE-FOR-BYTE
+     THE SHIPPED DEFECT - so the prescribed fix changes nothing a player sees. NC2 (bundle 8a462df91126,
+     gameResult gated on _gameOver but head/_winSide still reading the previewed ply): hits 1 -> 2, the two
+     painted elements being "Stalemate" at y251.8 and "Draw" at y276.8 - a WRONG result card re-opened over a
+     game Black had won by checkmate. The shipped fix (bundle acaa5090955e) reads 1 -> 1, the slot holding
+     "Checkmate! · Black wins" across Back AND Forward, and no card. */
+  const _gameTermStatus=useMemo(()=>{try{const st=getStatus(game);return (st==='checkmate'||st==='stalemate')?st:null;}catch(e){return null;}},[game]);
   /* #439: DROP A PENDING PROMOTION CHOICE WHEN THE GAME ENDS. The promotion picker is the one route into doMove that
      does NOT go through humanCanMove - its buttons call doMove(promo.g, m) directly - so the guard added there does
      not reach it and this is a second, independent hole rather than the same one twice. MEASURED on shipped #438 at
@@ -2991,7 +3013,14 @@ export default function App(){
      unscoped bundle and green here. */
   useEffect(()=>{if(mode==='play'&&_gameOver&&promo)setPromo(null);},[mode,_gameOver,promo]);
   const [resultCardFade,setResultCardFade]=useState(false);const [resultCardGone,setResultCardGone]=useState(false); // #375 (audit A2-06): the result card sat on the final position until Rematch
-  const _resultKey=(isOver||playEnd)?1:0;
+  /* #473: WAS `(isOver||playEnd)`, WHICH IS THE SAME PLY-KEYED DEFECT ONE EXPRESSION EARLIER AND IS WHY THE
+     RESULT CARD CAME BACK. Measured at 375x730 on the shipped #471 bundle, Pass & Play, 1.f3 e5 2.g4 Qh4#:
+     Back flips this key 1 -> 0, whose effect RESETS resultCardFade and resultCardGone to false and returns
+     early, and Forward flips it back to 1 and RESTARTS both timers - so the dismissed result card re-opened
+     over the board on every Back/Forward round trip, for ever. Keyed to the GAME, the card is shown once and
+     stays gone. This is a second instance of the class the status row below is being fixed for, found by
+     sweeping `isOver` rather than by driving it [R06]. */
+  const _resultKey=_gameOver?1:0;
   useEffect(()=>{setResultCardFade(false);setResultCardGone(false);if(!_resultKey)return;const a=setTimeout(()=>setResultCardFade(true),2600),b=setTimeout(()=>setResultCardGone(true),3300);return()=>{clearTimeout(a);clearTimeout(b);};},[_resultKey,mode]);
   const chkSq=useMemo(()=>{
     const st=getStatus(boardGame);
@@ -4736,12 +4765,12 @@ export default function App(){
      from `gameResult` below. The dead variable itself is filed as `dead-turntxt-2026-09-17` rather than
      removed here, because deleting an unrelated variable is not this build's job. */
   const turnTxt=playEnd?(playEnd.reason==='time'?`${playEnd.winner==='w'?'White':'Black'} wins on time`:`${opp(playEnd.winner)==='w'?'White':'Black'} resigned — ${playEnd.winner==='w'?'White':'Black'} wins`):isOver?(status==='checkmate'?`Checkmate — ${boardGame.turn==='w'?'Black':'White'} wins!`:'Stalemate — draw'):status==='check'?`${boardGame.turn==='w'?'White':'Black'} in check`:`${boardGame.turn==='w'?'White':'Black'} to move`;
-  const _winSide=playEnd?playEnd.winner:(status==='checkmate'?(boardGame.turn==='w'?'b':'w'):null);
+  const _winSide=playEnd?playEnd.winner:(_gameTermStatus==='checkmate'?(game.turn==='w'?'b':'w'):null); /* #473: was status/boardGame, the previewed ply - see _gameTermStatus at :2969. The checkmated side is the one to move, so the winner is the other. */
   const _winTxt=_winSide==null?'Draw':((mode==='play'&&opponent==='computer')?(_winSide===pColor?'You win! 🎉':'You lose'):(_winSide==='w'?'White wins':'Black wins'));
   // #414: a draw by repetition or the fifty-move rule names the RULE in the sub-line, because "Draw" alone
   // does not tell the player why a game they were still playing has just ended. `_winTxt` already reads
   // 'Draw' here, since `playEnd.winner` is undefined for a draw and `_winSide==null` is a loose comparison.
-  const gameResult=(isOver||playEnd)?{head:(playEnd?(playEnd.reason==='draw'?'Draw':playEnd.reason==='time'?'Time!':'Resigned'):(status==='checkmate'?'Checkmate!':'Stalemate')),sub:(playEnd&&playEnd.reason==='draw')?(playEnd.by==='fifty'?'Fifty-move rule':'Threefold repetition'):_winTxt}:null;
+  const gameResult=_gameOver?{head:(playEnd?(playEnd.reason==='draw'?'Draw':playEnd.reason==='time'?'Time!':'Resigned'):(_gameTermStatus==='checkmate'?'Checkmate!':'Stalemate')),sub:(playEnd&&playEnd.reason==='draw')?(playEnd.by==='fifty'?'Fifty-move rule':'Threefold repetition'):_winTxt}:null;
   const evalFallback=inReview?(anaMode?((engLine&&engLine.cp!=null)?Math.max(-99,Math.min(99,engLine.cp)):evalPawns(boardGame)):(ply>0?review.analysis[ply-1].evalAfter:0)):((mode==='play'&&opponent==='computer')?evalPawns(game):0);
   const dispFen=toFEN(boardGame);
   const sfHit=(sfEval&&sfEval.fen===dispFen)?sfEval:null;
@@ -6255,7 +6284,7 @@ export default function App(){
         </div>
       </div>)}
       {/* Context bars */}
-      {mode==='play'&&(()=>{const _done=(isOver||playEnd);const _op=(!thinking&&status!=='check'&&_liveOpening)?_liveOpening.name:'';const _opAny=(_liveOpening&&_liveOpening.name)||'';const _res=(_done&&gameResult)?(gameResult.head+(gameResult.sub?(' \u00b7 '+gameResult.sub):'')):'';const _fin=(opponent==='computer'&&eloMsg)?eloMsg:_op;const _txt=_done?(resultCardGone?(_res||_fin):_fin):(thinking&&!playEnd?(_opAny?(_opAny+' \u00b7 thinking\u2026'):'Computer thinking\u2026'):(status==='check'?'Check!':_op)); /* #371 (X-10): the name stays put while the computer thinks */ /* #370 n3: the opening both sides are playing, named live in the status line that already exists above the board, so it costs no height; thinking and check still take precedence */ /* #434 (auditor P1): the result OWNS this slot once the result card has gone. It used to be pre-empted for ever by the adaptive-strength note, so a game lost to the computer stated its result for ~3s and then nothing: MEASURED at 375x730, vs Pip, resign at move 0 - at +6.8s a scan of every painted element under 44 chars matching the result vocabulary returned ZERO hits, while Pass & Play in the same slot read 'Resigned \u00b7 Black wins'. The two messages now split by TIME rather than one winning: the card carries the result for the 3s it is up, so the strength note is free to use the slot then, and the result takes it back afterwards. Concatenating them is NOT ruled out by fit at 375 and this comment said it was [R18, corrected before the push on antagonist A's veto]: measured in this span, the result is 142.6px, the strength note 183.4px and the two joined 340px, against a slot of 96vw - 360px at 375, so it FITS on his phone, and 307.2px at 320, where it is cut by 33px. It is ruled out by the 320 phone and by judgement: 340px of two messages at 13px buries the one fact the player needs. (159.2px was the Pass & Play string.) Amber record: flags/amber-434-result-takes-the-slot-back-from-the-strength-message */ /* #435: the guard on this row used to be (!(isOver||playEnd)||!wide), so in LANDSCAPE the row was not rendered AT ALL once the game was over and NO result was stated for any opponent - #434 fixed the portrait half and named this one as deliberately not swept. It is now rendered in every play state, which also means it RESERVES ITS OWN SPACE across the live->over transition instead of vanishing and paying 25px towards a board jump. The wide-only duplicate strength chip that used to sit below was removed in the same pass: it stated the adaptive strength a second time while the result was stated zero times, measured by antagonist B on #434 at x=373.3 y=42.5 w=207.4. Amber record: flags/amber-435-landscape-game-over-matches-portrait */ return(
+      {mode==='play'&&(()=>{const _done=_gameOver; /* #473: was (isOver||playEnd). THE SITE THE JOB WAS FILED ABOUT - see _gameTermStatus at :2969 for why this line alone was not the fix. */const _op=(!thinking&&status!=='check'&&_liveOpening)?_liveOpening.name:'';const _opAny=(_liveOpening&&_liveOpening.name)||'';const _res=(_done&&gameResult)?(gameResult.head+(gameResult.sub?(' \u00b7 '+gameResult.sub):'')):'';const _fin=(opponent==='computer'&&eloMsg)?eloMsg:_op;const _txt=_done?(resultCardGone?(_res||_fin):_fin):(thinking&&!playEnd?(_opAny?(_opAny+' \u00b7 thinking\u2026'):'Computer thinking\u2026'):(status==='check'?'Check!':_op)); /* #371 (X-10): the name stays put while the computer thinks */ /* #370 n3: the opening both sides are playing, named live in the status line that already exists above the board, so it costs no height; thinking and check still take precedence */ /* #434 (auditor P1): the result OWNS this slot once the result card has gone. It used to be pre-empted for ever by the adaptive-strength note, so a game lost to the computer stated its result for ~3s and then nothing: MEASURED at 375x730, vs Pip, resign at move 0 - at +6.8s a scan of every painted element under 44 chars matching the result vocabulary returned ZERO hits, while Pass & Play in the same slot read 'Resigned \u00b7 Black wins'. The two messages now split by TIME rather than one winning: the card carries the result for the 3s it is up, so the strength note is free to use the slot then, and the result takes it back afterwards. Concatenating them is NOT ruled out by fit at 375 and this comment said it was [R18, corrected before the push on antagonist A's veto]: measured in this span, the result is 142.6px, the strength note 183.4px and the two joined 340px, against a slot of 96vw - 360px at 375, so it FITS on his phone, and 307.2px at 320, where it is cut by 33px. It is ruled out by the 320 phone and by judgement: 340px of two messages at 13px buries the one fact the player needs. (159.2px was the Pass & Play string.) Amber record: flags/amber-434-result-takes-the-slot-back-from-the-strength-message */ /* #435: the guard on this row used to be (!(isOver||playEnd)||!wide), so in LANDSCAPE the row was not rendered AT ALL once the game was over and NO result was stated for any opponent - #434 fixed the portrait half and named this one as deliberately not swept. It is now rendered in every play state, which also means it RESERVES ITS OWN SPACE across the live->over transition instead of vanishing and paying 25px towards a board jump. The wide-only duplicate strength chip that used to sit below was removed in the same pass: it stated the adaptive strength a second time while the result was stated zero times, measured by antagonist B on #434 at x=373.3 y=42.5 w=207.4. Amber record: flags/amber-435-landscape-game-over-matches-portrait */ return(
         <div data-ct="play-context" aria-live="polite" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:7,height:18,flexShrink:0}}>
           <span data-ct="play-opening" style={{fontSize:'clamp(13px,2.4vw,13px)',color:status==='check'?'#ff6b6b':(_op&&_txt===_op?'rgba(255,255,255,.62)':'rgba(255,255,255,.8)'),fontWeight:600,opacity:_txt?1:0,transition:'opacity .12s',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'96vw'}}>{_txt||'\u00a0'}</span>
         </div>);})()}
