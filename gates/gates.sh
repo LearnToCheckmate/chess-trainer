@@ -164,7 +164,25 @@ fi
 #           not be able to wedge the lane, but it must not read as a pass either.
 MANI_OUT="$("$G/gatemanifest.sh" check 2>&1)"; MANI_RC=$?
 printf '%s\n' "$MANI_OUT" | tee -a "$ALL"
-MANI_LINE="$(printf '%s\n' "$MANI_OUT" | grep -m1 '^gate manifest:' || echo 'gate manifest: NOT CHECKED')"
+# ── jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02 ───────────────
+# WAS: printf '%s\n' "$MANI_OUT" | grep -m1 '^gate manifest:' || echo 'gate manifest: NOT CHECKED'
+# Under `set -uo pipefail` (line 30) a SHORT-CIRCUITING grep kills the producer with SIGPIPE once MANI_OUT
+# exceeds the pipe buffer: grep SUCCEEDS, printf exits 141, pipefail reports 141 for the pipeline, so the `||`
+# fallback ALSO runs and appends its echo to the output grep already produced. MANI_LINE then holds BOTH lines,
+# the footer carries the literal 'gate manifest: NOT CHECKED' next to a perfectly read manifest, and
+# gates/verify-log.sh refuses a complete green ~70-minute suite for a reason that is FALSE.
+# REPRODUCED before fixing, 2 inputs: MANI_OUT at 10 filler bytes -> 1 line both ways (positive control);
+# MANI_OUT at 200,000 filler bytes -> 2 lines with the pipe and 1 line with the herestring. A HERESTRING HAS NO
+# PIPE AND THEREFORE NO SIGPIPE. MANI_OUT is ~1KB today and the buffer is ~64KB, so this is LATENT - but `check`
+# prints one permanent line per known-absent gate and rows are never deleted, so it grows monotonically.
+# gates/gatemanifest.sh's own header already states this rule ("use grep -qx \"$x\" <<<\"$list\" and never
+# printf ... | grep -q"); the rule was written in that file and the surviving instance was in this one.
+# THE CLASS IS NOT FULLY SWEPT HERE AND THAT IS DELIBERATE: the other four sites the job names are in
+# gates/gatemanifest.sh (1045, 1057, 977 - all live, same repair) and one at gatemanifest.sh:528 which is safe
+# (producer is `sed -n '2,6p'`, at most five lines). A burst agent holds ONE artefact lock [R44] and this one is
+# gates/gates.sh, so gatemanifest.sh's three are left for the agent that holds that file. classSwept {found 5,
+# fixed 1, left 4} - 3 live and 1 judged safe.
+MANI_LINE="$(grep -m1 '^gate manifest:' <<<"$MANI_OUT" || echo 'gate manifest: NOT CHECKED')"
 if [ "$MANI_RC" -eq 1 ]; then
   echo "GATES RED $N — stopped before running any gate: the expected-gates manifest is not satisfied." | tee -a "$ALL"
   exit 1
@@ -196,6 +214,58 @@ else
 fi
 
 red=0
+
+# ── THE UNIT LAYER: gates/unit-drill-why.js RUNS, AND ITS RED IS THE SUITE'S RED ──────────────────────────────
+# Closes jobs/a-unit-test-written-for-the-p0-is-not-in-the-suite-2026-09-28 (P1-shaped, priority 8) and
+# jobs/a-test-in-the-repo-that-no-suite-runs-2026-09-28 (priority 7), which are one defect filed twice: the
+# 40-check unit test written to protect Kunal's drill WHY sentence sits at gates/ root, and line 112's
+# `for f in "$G"/regress/*.js` is the whole enumeration, so NO suite run has ever reached it. #426 hand-ran it
+# once and RUN-LOG.md cites "40 checks, exit 0" as evidence for a build; nothing has checked it since.
+#
+# WHICH OPTION AND WHY. a-test-in-the-repo offered "move it under gates/regress/ with a claimed number" or
+# "call it explicitly from gates.sh before the regress loop and fail the run on a non-zero exit". THIS IS THE
+# SECOND, for three measured reasons: (1) a burst agent holds ONE artefact lock [R44] and this one is
+# gates/gates.sh, so it may not create gates/regress/NN-*.js nor claim a number in claude/stories/README.md;
+# (2) a move triggers the duplicate-number guard above and the gate-manifest's required set, neither of which
+# this agent may edit; (3) the unit layer is genuinely NOT a browser gate and keeping it out of regress/ keeps
+# the manifest's required count meaning what it says.
+#
+# THE TRAP THE JOB NAMES, AND IT IS REAL: unit-drill-why.js prints "  ok  <name>" and "  FAIL <name>", not the
+# suite's "^PASS". Dropped in as-is it would add 0 to the footer total while still being able to redden - "a
+# gate that can go red but can never be seen to be green", the same shape as the frozen-denominator traps in
+# this repo's history. So its 40 oks are TRANSLATED into ^PASS lines here. The footer total therefore RISES by
+# 40 on the first full run after this lands; that is a one-time step and the build that ships it says so in its
+# close-out, per the "the total must only rise" rule.
+#
+# THE SECOND TRAP, WHICH IS NOT IN EITHER JOB AND WOULD HAVE BROKEN THE PUSH GATE. The obvious shape is to echo
+# "=== unit-drill-why ===" like a gate section. DO NOT: gates/verify-log.sh:431-440 refuses any full log whose
+# count of '^=== ' lines differs from the roster count in "gates ran (N): ...", and :446 requires that roster to
+# be MANIREQ + 1 (mountcheck). An extra section header would refuse EVERY green log from here on, and the
+# roster cannot absorb this file because it is not a manifest row. So the marker is '--- ' and the roster is
+# left exactly as it was. MEASURED, not reasoned: with this block in, '^=== ' count and the roster both read 1
+# on a one-gate subset run and verify-log's roster arm is unchanged.
+#
+# IT RUNS ON FULL RUNS ONLY. A subset run already states it cannot authorise a push, and the 40 extra PASS
+# lines would make a subset log's total incomparable with the gate it names. Stated rather than silent.
+UNITJS="$G/unit-drill-why.js"
+if [ -z "$SUBSET" ] && [ -f "$UNITJS" ]; then
+  ulog="$G/logs/$STEM-unit-drill-why.log"
+  echo "--- unit-drill-why (unit layer, not a regress gate, not in the roster) ---" | tee -a "$ALL"
+  ( cd "$ROOT" && timeout 300 node "$UNITJS" ) > "$ulog" 2>&1; urc=$?
+  uok=$(grep -c '^  ok' "$ulog" || true); ufail=$(grep -c '^  FAIL' "$ulog" || true)
+  sed -n 's/^  ok  *\(.*\)$/PASS unit-drill-why \1/p' "$ulog" >> "$ALL"
+  if [ "$urc" -ne 0 ] || [ "$ufail" -gt 0 ] || [ "$uok" -eq 0 ]; then
+    red=1
+    echo "    unit-drill-why: RED (exit $urc, $ufail FAIL, $uok ok)" | tee -a "$ALL"
+    sed -n 's/^  FAIL /FAIL unit-drill-why /p' "$ulog" | head -5 | tee -a "$ALL"
+    echo "        0 ok is as red as a FAIL here: this test source-slices whyBand, whyShape, mistakeWhy and" | tee -a "$ALL"
+    echo "        mistakeHint out of chess.jsx by name, so a rename or a signature change makes it assert" | tee -a "$ALL"
+    echo "        nothing rather than fail. Full output: $ulog" | tee -a "$ALL"
+  else
+    echo "    unit-drill-why: green ($uok ok -> $uok PASS lines)" | tee -a "$ALL"
+  fi
+fi
+
 for f in "${gates[@]}"; do
   name="$(basename "$f" .js)"; log="$G/logs/$STEM-$name.log"
   echo "=== $name ===" | tee -a "$ALL"
