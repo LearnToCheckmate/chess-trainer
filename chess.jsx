@@ -2480,7 +2480,30 @@ export default function App(){
   // the app's OWN readout of the same quantity eight pixels behind the sheet - #385's shape-is-not-a-value,
   // where the string satisfies any regex for a move count perfectly. playHist holds one entry per PLY, so a
   // full move is two of them and the player's count is the move number they can see in the row.
-  const _playMoves=Math.ceil(playHist.length/2);
+  /* #474: THE RESUME ROW AND THE MOVE ROW NOW READ ONE QUANTITY, because they disagreed on screen nine
+     pixels apart. MEASURED on the shipped #473 bundle (96c21b94df25) at 375x730, with an arrival assertion
+     at BOTH ends: a live Pass & Play at 3 plies, Home -> Discover -> Openings -> Italian Game -> the
+     lesson's ✕ -> the Play tile gives [data-ct="setup-resume"] reading "Resume your game in progress
+     (2 moves played)" while [data-ct="play-moverow"] ALREADY READS EMPTY, and tapping Resume lands on the
+     starting position. The row promised a game that was already gone, which is worse than saying nothing.
+     THE CAUSE: `playHist` is a SEPARATE piece of state from the board. selectOpening (:3627) calls
+     setGame(...) directly and never touches playHist, so the row was computed from one quantity and the
+     board from another. 17 of this file's 21 `setGame(` call sites replace the board without setting
+     playHist, so CLEARING playHist at each of them would make that count load-bearing and it would rot as
+     the app grows - #439's lesson, where guarding the single committer beat guarding its callers.
+     SO THE ROW ASKS THE BOARD, which is the thing the player can see and the quantity play-moverow
+     (:6958) renders. The invariant is the one this file's own draw detector already relies on at :3553 and
+     explains at :3548: `game.history.length === playHist.length` holds BY CONSTRUCTION for every game
+     started through fullReset, and all FIVE setPlayHist sites preserve it (fullReset :3170 clears both,
+     the human commit :3356 and doMove :4332 push one entry per ply, the online rebuild :3573 builds hist
+     and g from the same move list, and the takeback :4378 slices both to the same index). A violation
+     therefore means the board is no longer the game playHist describes.
+     IT IS NOT THE PLACEMENT TEST `somethingToLose` USES AT :3204, and the two are not interchangeable: a
+     0-ply position loaded through "Play this position" is something to LOSE but is not a game with a move
+     count to RESUME, and this row already stays away from that case via !setupFromFEN. */
+  const _boardIsPlayGame=(game.history||[]).length===playHist.length;
+  const _livePlies=_boardIsPlayGame?playHist.length:0;
+  const _playMoves=Math.ceil(_livePlies/2);
   // #359 open by default. A square board on a tall phone leaves roughly 200px that the board
   // cannot use, and #344 spent it inflating the two player bars to three times their content -
   // 124px tall holding 38px of ink, twice, which is what Kunal kept seeing as "empty space along
@@ -5802,7 +5825,7 @@ export default function App(){
               Before this, resume was setPlaySetup(false) alone, so a player who opened this sheet over a live
               Pass & Play game, tapped Computer to look at the bot list, and then tapped THIS row went back to
               their own game with opponent='computer' - and the engine moved in it. See liveSettingsRef. */}
-          {playHist.length>0&&!setupFromFEN&&opponent!=='online'&&!_gameOver&&(<button data-ct="setup-resume" onClick={()=>{setStartArm(false);_restoreLiveSettings();setPlaySetup(false);}} style={{padding:'13px 14px',borderRadius:12,border:'1px solid rgba(var(--acr),.45)',background:'rgba(var(--acr),.14)',color:'var(--ac2)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer',textAlign:'left',lineHeight:1.4}}>{'▶'} Resume your game in progress <span style={{fontWeight:500,opacity:.85}}>({_playMoves} {_playMoves===1?'move':'moves'} played)</span></button>)}
+          {_livePlies>0&&!setupFromFEN&&opponent!=='online'&&!_gameOver&&(<button data-ct="setup-resume" onClick={()=>{setStartArm(false);_restoreLiveSettings();setPlaySetup(false);}} style={{padding:'13px 14px',borderRadius:12,border:'1px solid rgba(var(--acr),.45)',background:'rgba(var(--acr),.14)',color:'var(--ac2)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer',textAlign:'left',lineHeight:1.4}}>{'▶'} Resume your game in progress <span style={{fontWeight:500,opacity:.85}}>({_playMoves} {_playMoves===1?'move':'moves'} played)</span></button>)}
           {setupFromFEN&&(setupBlocked
             ?(<div data-ct="setup-terminal-note" style={{padding:'10px 13px',borderRadius:12,background:'rgba(224,168,58,.12)',border:'1px solid rgba(224,168,58,.4)',fontSize:'clamp(14px,2.6vw,14px)',color:'#e0a83a',lineHeight:1.45}}>⚠ That position is already over — {setupTerminal==='checkmate'?'it is checkmate':'it is a stalemate'}, so there is no move to play from it. {setupSrc==='scan'?<>Scan or upload a board where it is still someone's turn.</>:<>Step back a move in your review and use <b>Play from here</b> there instead.</>}</div>)
             :(<div style={{padding:'10px 13px',borderRadius:12,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',fontSize:'clamp(14px,2.6vw,14px)',color:'var(--ac2)',lineHeight:1.45}}>♟ Continuing from your reviewed position. You'll play <b>{pColor==='w'?'White':'Black'}</b> (the side to move) — switch the color below if you'd rather take the other side.</div>))}
@@ -5962,7 +5985,7 @@ export default function App(){
               over a sheet over a mounted game, and this screen already has the resume row saying what is at
               stake. Gate 54's assertion D accepts EITHER this arm OR the game surviving, so it does not
               certify my choice of the two - see the amber record. */}
-          <button data-ct="setup-start" disabled={setupBlocked} onClick={()=>{if(setupBlocked)return;if(playHist.length>0&&!setupFromFEN&&opponent!=='online'&&!startArm){setStartArm(true);return;}setStartArm(false);/* #470: a game is actually starting, so the live game's old settings die with it - this is what keeps the close-effect's restore off the Start path */liveSettingsRef.current=null;setPlaySetup(false);if(opponent!=='online')fullReset(setupFromFEN?fromFEN(setupFromFEN):undefined);setSetupFromFEN(null);}} style={{marginTop:4,padding:'15px',borderRadius:14,border:'none',background:startArm?'#e0a83a':'var(--ac)',color:'#191919',fontWeight:800,fontSize:'clamp(15px,3.6vw,17px)',cursor:setupBlocked?'not-allowed':'pointer',opacity:setupBlocked?.5:1,boxShadow:startArm?'0 8px 24px rgba(224,168,58,.35)':`0 8px 24px rgba(${TH.rgb},.35)`}}>{opponent==='online'?'Continue →':(setupBlocked?'That position is already over':(setupFromFEN?'▶ Play this position':(startArm?'Tap again to discard your game and start':'▶ Start game')))}</button>
+          <button data-ct="setup-start" disabled={setupBlocked} onClick={()=>{if(setupBlocked)return;if(_livePlies>0&&!setupFromFEN&&opponent!=='online'&&!startArm){setStartArm(true);return;}/* #474: _livePlies, not playHist.length - after a lesson replaced the board this armed over a game that no longer existed and printed "Tap again to discard your game and start" about it */setStartArm(false);/* #470: a game is actually starting, so the live game's old settings die with it - this is what keeps the close-effect's restore off the Start path */liveSettingsRef.current=null;setPlaySetup(false);if(opponent!=='online')fullReset(setupFromFEN?fromFEN(setupFromFEN):undefined);setSetupFromFEN(null);}} style={{marginTop:4,padding:'15px',borderRadius:14,border:'none',background:startArm?'#e0a83a':'var(--ac)',color:'#191919',fontWeight:800,fontSize:'clamp(15px,3.6vw,17px)',cursor:setupBlocked?'not-allowed':'pointer',opacity:setupBlocked?.5:1,boxShadow:startArm?'0 8px 24px rgba(224,168,58,.35)':`0 8px 24px rgba(${TH.rgb},.35)`}}>{opponent==='online'?'Continue →':(setupBlocked?'That position is already over':(setupFromFEN?'▶ Play this position':(startArm?'Tap again to discard your game and start':'▶ Start game')))}</button>
           <div style={{textAlign:'center',fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.4)',marginTop:-6,pointerEvents:'none'/* #430 class sweep [R06], same decision as the MOVES chips below: this caption is pulled 6px up over the bottom edge of the primary Continue button above it, at EVERY width and height, and is later in the DOM - so those 6px of the button answered for a div. pointerEvents:'none' rather than dropping the margin, because the caption is not interactive and this costs no vertical space, where removing the margin would take 6px off the board. */}}>{opponent==='computer'?`vs ${selBot&&botById(selBot)?botById(selBot).name:'Computer'} · ${pColor==='w'?'White':'Black'} · ${timeCtrl?timeCtrl.label:'No clock'}`:opponent==='human'?`Pass & play on one device · ${timeCtrl?timeCtrl.label:'No clock'}`:'Online · play a friend by invite code'}</div>
           {BUILD_INFO&&<div style={{textAlign:'center',fontSize:11,color:'rgba(255,255,255,.3)',letterSpacing:.5,fontFamily:'ui-monospace,Menlo,Consolas,monospace',marginTop:vp.h<720?2:12}}>Build {BUILD_INFO}</div>}
         </div>

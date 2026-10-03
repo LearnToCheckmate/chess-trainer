@@ -272,6 +272,19 @@ playing, and nothing takes it away from me without asking.
   guarded 'Start game' and published the class as "2 found / 1 fixed / 1 left". One grep found at least eleven,
   two of them measured discarding a live game at 3 plies -> 0. A clause written about one control is a clause a
   fix to one control can close.
+- **AND THE SCREEN MUST NOT OFFER ME A GAME THAT IS ALREADY GONE. (TC-R46, added #474.)**
+  The way back into my game, and any warning about discarding it, are only honest if the game is still there.
+  When something else has already replaced the board - a lesson I opened, a puzzle I started - the way back is
+  not offered at all, and nothing warns me about discarding a game I no longer have. Measured on the shipped
+  #473 build at 375x730: three moves into Pass & Play, then a lesson and back, the sheet read 'Resume your
+  game in progress (2 moves played)' while the move row behind it was ALREADY EMPTY, and tapping the row gave
+  me the starting position. A promise the app cannot keep is worse than the silence it replaced, because I act
+  on it.
+  WHY THIS CLAUSE IS ABOUT ONE QUANTITY AND NOT ABOUT ONE DOOR: the row was computed from `playHist` and the
+  board from `game`, two different pieces of state, so they could disagree on screen nine pixels apart. 17 of
+  this app's 21 board-replacing call sites leave the first untouched, so a clause written door-by-door would
+  need re-auditing every build. What this story asks is that the screen read THE BOARD - the thing I can
+  actually see.
 
 NOTE ON THE ID [#469]. US-R16 was reserved by the test-authoring lane on 2026-09-28, when the highest story
 ON MAIN was US-R13; main has since reached US-R33, and US-R16 is still free there, so the reservation was
