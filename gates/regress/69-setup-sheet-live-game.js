@@ -90,15 +90,22 @@ const evalBar=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct
 const elo=(b)=>b.page.evaluate(()=>{try{return localStorage.getItem('ct_elo');}catch(e){return 'ERR';}});
 const hasBtn=(b,re)=>b.page.evaluate((src)=>{const r=new RegExp(src[0],src[1]);return [...document.querySelectorAll('button')].some(x=>{const q=x.getBoundingClientRect();return q.width>1&&q.height>1&&r.test((x.innerText||'').trim());});},[re.source,re.flags]);
 
-// a live 3-ply Pass & Play game, left by the house, with the Play setup sheet open over it
+// A LIVE 2-PLY Pass & Play game (1.f3 e5), left by the house, with the Play setup sheet open over it.
+// TWO PLIES AND NOT THREE, and the number is the single most important line in this file. At 3 plies it is
+// Black to move and the engine's reply IS 2...Qh4# - so on any bundle where the engine gets a move, the game
+// ends, `_gameOver` goes true, #469's resume row CORRECTLY disappears, and every assertion about the resume
+// path reports SKIPPED instead of measuring anything. That is exactly why this gate's first version could not
+// see the `‹ Home` defect and why NC3 had an unreachable control cell. At 2 plies it is WHITE to move, the
+// engine's move is an ordinary one, the game stays live, and the resume row stays on screen - so the resume
+// assertions are evaluated on every bundle rather than being skipped on the broken ones.
 async function liveGameThenSheet(b){
   await P.states['pp-m0'](b);
-  await b.move('f2','f3'); await b.move('e7','e5'); await b.move('g2','g4');
+  await b.move('f2','f3'); await b.move('e7','e5');
   await b.settle(400);
-  const plies=await P.plies(b), row=await moverow(b);
+  const plies=await P.plies(b), row=await moverow(b), board=await b.board();
   await b.tapCt('play-home',650);
   await b.tile('Play'); await b.settle(700);
-  return {plies,row};
+  return {plies,row,boardW:board?Math.round(board.w*100)/100:null};
 }
 
 L.run(async()=>{
@@ -110,18 +117,18 @@ L.run(async()=>{
 
     const live=await liveGameThenSheet(b);
     // A1/A2/A3 are PREMISES. Without them every "nothing moved" below is satisfied by never reaching the state.
-    L.say(live.plies===3,'A1 ['+g.k+'] the live Pass & Play game is 3 plies before the house tap (got '+live.plies+', row '+JSON.stringify(live.row)+')');
+    L.say(live.plies===2,'A1 ['+g.k+'] the live Pass & Play game is 2 plies before the house tap (got '+live.plies+', row '+JSON.stringify(live.row)+')');
     const up=await sheetUp(b);
     L.say(up===true,'A2a ['+g.k+'] the Play setup sheet is open over the live game');
     L.say(await hasBtn(b,/^Computer$/)===true,'A2b ['+g.k+'] the sheet carries a Computer opponent tile to tap');
     const pOpen=await P.plies(b);
-    L.say(pOpen===3,'A3 ['+g.k+'] opening the sheet over the live game loses nothing (plies '+pOpen+')');
+    L.say(pOpen===2,'A3 ['+g.k+'] opening the sheet over the live game loses nothing (plies '+pOpen+')');
 
     // ── THE DEFECT: one tap on the opponent tile, and nothing else ────────────────────────────────
     await P.tapBtn(b,/^Computer$/,900);
     await b.settle(SETTLE_NOMOVE);
     const pTap=await P.plies(b), rTap=await moverow(b);
-    L.say(pTap===3,'A4a ['+g.k+'] tapping Computer on the sheet plays NO move in the game behind it (plies '+pTap+', expected 3)');
+    L.say(pTap===2,'A4a ['+g.k+'] tapping Computer on the sheet plays NO move in the game behind it (plies '+pTap+', expected 2)');
     L.say(rTap===live.row,'A4b ['+g.k+'] the move row behind the sheet is byte-identical after the tap (got '+JSON.stringify(rTap)+')');
     L.say(await sheetUp(b)===true,'A5 ['+g.k+'] the sheet is still up after the tap, so A4 read the game and not a new one');
 
@@ -133,15 +140,28 @@ L.run(async()=>{
       await b.settle(SETTLE_NOMOVE);
       const pRes=await P.plies(b), rRes=await moverow(b);
       L.say(await sheetUp(b)===false,'A6a ['+g.k+'] resume closed the sheet, so what follows is measured on the live board');
-      L.say(pRes===3,'A6b ['+g.k+'] after resume the game is still 3 plies - the engine did not move into it (got '+pRes+')');
+      L.say(pRes===2,'A6b ['+g.k+'] after resume the game is still 2 plies - the engine did not move into it (got '+pRes+')');
       L.say(rRes===live.row,'A6c ['+g.k+'] after resume the move row is byte-identical to the game that was left (got '+JSON.stringify(rRes)+')');
       const bar=await evalBar(b);
       L.say(bar===null,'A7 ['+g.k+'] the resumed game is still Pass & Play: the vs-Computer eval bar is absent (got '+JSON.stringify(bar)+')');
+      // A8 IS THE ONE THAT CATCHES A POISONED RESTORE, and it is antagonist A's V6 turned into an assertion.
+      // A7 reads the bar at the instant of the resume; if `opponent` came back as 'computer' the player's own
+      // NEXT move wakes the engine and the game is lost one tap later. So play a legitimate move and require
+      // that nothing answers it.
+      const pBefore=await P.plies(b);
+      await b.move('g2','g4'); await b.settle(SETTLE_NOMOVE);
+      const pAfter=await P.plies(b);
+      L.say(pAfter===pBefore+1,'A8 ['+g.k+'] after resume the player\'s own move is answered by NOBODY: plies '+pBefore+' -> '+pAfter+' (expected '+(pBefore+1)+', an engine reply would make it '+(pBefore+2)+')');
+      const bd=await b.board();
+      const bw=bd?Math.round(bd.w*100)/100:null;
+      L.say(bw!==null&&live.boardW!==null&&Math.abs(bw-live.boardW)<0.6,'A9 ['+g.k+'] the board is the width it was before the sheet was opened (before '+live.boardW+', after '+bw+') - the vs-Computer eval bar takes board width, so a restore that leaves opponent=computer shrinks it');
     }else{
       L.say(false,'A6a ['+g.k+'] SKIPPED - no resume row to tap (A6p red)');
       L.say(false,'A6b ['+g.k+'] SKIPPED');
       L.say(false,'A6c ['+g.k+'] SKIPPED');
       L.say(false,'A7 ['+g.k+'] SKIPPED');
+      L.say(false,'A8 ['+g.k+'] SKIPPED');
+      L.say(false,'A9 ['+g.k+'] SKIPPED');
     }
     await b.shot('69-resumed-'+g.k);
     await b.close();
@@ -181,8 +201,83 @@ L.run(async()=>{
     await b.settle(2500);
     const eTap=await elo(b);
     L.say(eTap==='800','B5 tapping Computer does NOT score a game the computer never played against its strength (ct_elo '+eTap+', expected 800)');
+    // B6 IS B5's SECOND DOOR, and on the first #470 candidate B5 passed while B6 failed - the guard held the
+    // strength only while the sheet was up and handed it over the moment the sheet closed by ‹ Home.
+    // Antagonist A's Y4: ct_elo 800 -> 750, persisted, with eloMsg never shown.
+    await P.tapBtn(b,/^‹ Home$/,900);
+    await b.settle(2500);
+    const eHome=await elo(b);
+    L.say(eHome==='800','B6 closing the sheet by its own ‹ Home button does not score it either (ct_elo '+eHome+', expected 800)');
     await b.close();
   }catch(e){L.say(false,'B-THREW the adaptive-strength scenario threw: '+(e&&e.message||e));}
+
+
+  // ── D: THE SECOND DOOR OFF THE SHEET. This block is antagonist A's veto on #470's FIRST candidate. ──────
+  // The sheet has its own `‹ Home` button (chess.jsx:5607, `setPlaySetup(false);setHomeScreen(true);`). The
+  // first fix restored inside the setup-resume onClick only, so this door closed the sheet with `opponent`
+  // still 'computer' and the guard lifted: measured on bundle db62f6bd58ce at 375x730, plies 3 -> 4 and
+  // "1...e5 2.g4 2...Qh4#", with the resume row then gone because the game was over. NOTE WHO ELSE PREFERS
+  // THIS DOOR: gates/lib.js's own b.home() tries /^‹ Home$/ first when the sheet is up, so the harness takes
+  // the unguarded exit by default - which is part of why nothing had noticed it.
+  for(const g of (ONLY?GEOS.filter(x=>x.k===ONLY):GEOS.filter(x=>x.k===KUNAL))){
+   try{
+    const b=await L.launch({geo:{w:g.w,h:g.h,safe:'',label:g.k},name:'setupsheet-homedoor-'+g.k});
+    await b.open();
+    const live=await liveGameThenSheet(b);
+    L.say(live.plies===2,'D1p ['+g.k+'] premise: a live 2-ply game with the sheet open (got '+live.plies+')');
+    L.say(await hasBtn(b,/^‹ Home$/)===true,'D1q ['+g.k+'] premise: the sheet carries its own ‹ Home button, which is the door D tests');
+    await P.tapBtn(b,/^Computer$/,900);
+    await b.settle(SETTLE_NOMOVE);
+    L.say(await P.plies(b)===2,'D2 ['+g.k+'] still 2 plies with the sheet up (the A4 state, re-established inside D)');
+    await P.tapBtn(b,/^‹ Home$/,900);
+    await b.settle(SETTLE_NOMOVE);
+    L.say(await sheetUp(b)===false,'D3p ['+g.k+'] the sheet\'s ‹ Home button closed the sheet');
+    const pHome=await P.plies(b), rHome=await moverow(b);
+    L.say(pHome===2,'D3 ['+g.k+'] THE VETO ASSERTION: closing the sheet by its own ‹ Home button plays NO move in the live game (plies '+pHome+', expected 2; the first #470 candidate read 4 here with the move 2...Qh4#)');
+    L.say(rHome===live.row||rHome===null,'D3b ['+g.k+'] the move row is unchanged or off screen behind Home (got '+JSON.stringify(rHome)+')');
+    await b.tile('Play'); await b.settle(700);
+    const hasR=await b.page.evaluate(()=>!!document.querySelector('[data-ct="setup-resume"]'));
+    L.say(hasR===true,'D4 ['+g.k+'] the game is still RESUMABLE after the ‹ Home round trip - the resume row is offered (on the broken bundle the engine\'s move ended the game and this row was gone, making it unrecoverable)');
+    if(hasR){
+      await b.tapCt('setup-resume',800); await b.settle(SETTLE_NOMOVE);
+      L.say(await P.plies(b)===2,'D5a ['+g.k+'] resumed at 2 plies after the ‹ Home round trip');
+      L.say(await evalBar(b)===null,'D5b ['+g.k+'] and it is still Pass & Play - no vs-Computer eval bar (this is the SECOND-OPENING case: the snapshot must not have been re-taken while opponent was already computer)');
+      const p0=await P.plies(b);
+      await b.move('g2','g4'); await b.settle(SETTLE_NOMOVE);
+      const p1=await P.plies(b);
+      L.say(p1===p0+1,'D6 ['+g.k+'] and the player\'s own next move is answered by nobody: plies '+p0+' -> '+p1+' (expected '+(p0+1)+')');
+    }else{
+      L.say(false,'D5a ['+g.k+'] SKIPPED - no resume row');L.say(false,'D5b ['+g.k+'] SKIPPED');L.say(false,'D6 ['+g.k+'] SKIPPED');
+    }
+    await b.shot('69-homedoor-'+g.k);
+    await b.close();
+   }catch(e){L.say(false,'D-THREW ['+g.k+'] the ‹ Home door scenario threw: '+(e&&e.message||e));}
+  }
+
+  // ── E: THE ONLINE TILE, which replaces the live game with a sign-in screen on a poisoned restore ────────
+  // Antagonist A's Z-series: Online tile -> the resume row DISAPPEARS (its own condition is opponent!=='online')
+  // -> ‹ Home -> back -> Pass & Play tile -> the row returns -> Resume restored opponent='online', and the
+  // board was replaced by "Play a friend online / Sign in with Google" with only ‹ Back out of it.
+  try{
+    const b=await L.launch({geo:{w:375,h:730,safe:'',label:KUNAL},name:'setupsheet-onlinedoor'});
+    await b.open();
+    const live=await liveGameThenSheet(b);
+    L.say(live.plies===2,'E1p premise: a live 2-ply game with the sheet open (got '+live.plies+')');
+    await P.tapBtn(b,/^Online$/,900); await b.settle(1200);
+    const rowGone=await b.page.evaluate(()=>!!document.querySelector('[data-ct="setup-resume"]'));
+    L.say(rowGone===false,'E1 selecting Online hides the resume row, which is the app\'s own existing rule (opponent!==online) and is asserted so E2 is known to be a RE-appearance rather than a row that never left');
+    await P.tapBtn(b,/^‹ Home$/,900); await b.settle(600);
+    await b.tile('Play'); await b.settle(700);
+    await P.tapBtn(b,/^Pass & Play$/,700);
+    const rowBack=await b.page.evaluate(()=>!!document.querySelector('[data-ct="setup-resume"]'));
+    L.say(rowBack===true,'E2 the resume row is back once a non-online opponent is selected');
+    if(rowBack){
+      await b.tapCt('setup-resume',900); await b.settle(SETTLE_NOMOVE);
+      const mr=await moverow(b), pl=await P.plies(b);
+      L.say(mr!==null&&pl===2,'E3 THE LIVE GAME COMES BACK, not the online sign-in screen: play-moverow present and 2 plies (got '+JSON.stringify(mr)+', plies '+pl+'). On the first #470 candidate the snapshot had been re-taken while opponent was online, so Resume restored online and the board was replaced by the sign-in screen.');
+    }else{L.say(false,'E3 SKIPPED - no resume row to tap');}
+    await b.close();
+  }catch(e){L.say(false,'E-THREW the Online door scenario threw: '+(e&&e.message||e));}
 
   // ── C: POSITIVE CONTROL. The guard must not stop the engine on the legitimate path. ──────────────
   try{

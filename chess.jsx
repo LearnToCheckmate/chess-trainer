@@ -2513,8 +2513,32 @@ export default function App(){
      only on the Resume path, and only the three settings the live game is actually played with. */
   const liveSettingsRef=useRef(null);
   useEffect(()=>{
-    if(!playSetup){liveSettingsRef.current=null;return;}
-    if(liveSettingsRef.current===null&&playHist.length>0&&!setupFromFEN)liveSettingsRef.current={opponent,pColor,timeCtrl:timeCtrlRef.current};
+    if(playSetup){
+      /* TAKEN ONCE PER LIVE GAME, NOT ONCE PER OPENING, and that distinction is the whole of antagonist A's
+         second finding. The first version of this cleared the ref on every close and re-took it on every open,
+         so the SECOND opening snapshotted `opponent` as the player had just set it: A drove a 2-ply game
+         (White to move, so no mate and `_gameOver` stays false) through Computer -> Home -> Play tile ->
+         Resume and the game came back as a vs-COMPUTER game, eval bar {"w":14,"h":353.03}, one legitimate
+         move later "2...Qh4#". The ref is now cleared only where the live game genuinely ends or is replaced:
+         fullReset, and the Start button. */
+      if(liveSettingsRef.current===null&&playHist.length>0&&!setupFromFEN)liveSettingsRef.current={opponent,pColor,timeCtrl:timeCtrlRef.current};
+      return;
+    }
+    /* RESTORE ON THE CLOSE, NOT ON ONE BUTTON. This is antagonist A's first finding and it was a VETO: the
+       first version restored inside the `setup-resume` onClick, and the sheet has a SECOND door - its own
+       `‹ Home` button at chess.jsx:5607, `setPlaySetup(false);setHomeScreen(true);` - which is not a term in
+       any guard this build added. Measured on this build's own first candidate bundle db62f6bd58ce at
+       375x730: live Pass & Play 3 plies, Computer tile (A4a green, sheet still up), then that Home button ->
+       plies 4, "1...e5 2.g4 2...Qh4#", and the resume row then GONE because the game is over, so it is
+       unrecoverable. The job's defect reproduced ON THE FIX, through a door the fix never looked at - and
+       `gates/lib.js`'s own b.home() PREFERS that button when the sheet is up, so the harness takes the
+       unguarded door by default.
+       Keying the restore to the TRANSITION rather than to a button covers every path that closes this sheet,
+       including ones nobody has enumerated. Start is excluded without needing a term here: it clears the ref
+       synchronously in its own handler before React runs this effect, so a started game keeps the player's
+       choices. That is why this is an effect and not three copies of a helper. */
+    const _ls=liveSettingsRef.current; if(!_ls)return; liveSettingsRef.current=null;
+    setOpponent(_ls.opponent); setPColor(_ls.pColor); timeCtrlRef.current=_ls.timeCtrl; setTimeCtrl(_ls.timeCtrl);
   },[playSetup]);
   const [thinking,setThinking]=useState(false);
   const [demoBest,setDemoBest]=useState(null);
@@ -3080,7 +3104,7 @@ export default function App(){
     return()=>{window.removeEventListener('touchmove',block,{passive:false});document.removeEventListener('touchmove',block,{passive:false});};
   },[]);
 
-  const fullReset=(g=initGame())=>{setGame(g);setLastMv(null);setPlayHist([]);setPlayHintMv(null);setPlayEnd(null);playEndRef.current=null;setPreMv(null);eloDoneRef.current=false;setEloMsg('');const tc=timeCtrlRef.current;const live=!!tc&&tc.kind!=='corr';setClock({w:live?tc.init*1000:0,b:live?tc.init*1000:0,run:false});UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
+  const fullReset=(g=initGame())=>{liveSettingsRef.current=null;/* #470 */setGame(g);setLastMv(null);setPlayHist([]);setPlayHintMv(null);setPlayEnd(null);playEndRef.current=null;setPreMv(null);eloDoneRef.current=false;setEloMsg('');const tc=timeCtrlRef.current;const live=!!tc&&tc.kind!=='corr';setClock({w:live?tc.init*1000:0,b:live?tc.init*1000:0,run:false});UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
 
   useEffect(()=>{timeCtrlRef.current=timeCtrl;},[timeCtrl]);
   useEffect(()=>{pvIdxRef.current=pvIdx;},[pvIdx]);
@@ -4653,7 +4677,13 @@ export default function App(){
   const evalTxt=_engBar?_engBar.txt:(sfHit?(sfHit.mate!=null?mateLbl(sfHit.mate):((sfHit.cp>0?'+':'')+(sfHit.cp/100).toFixed(1))):((evalFallback>0?'+':'')+Math.max(-9.9,Math.min(9.9,evalFallback)).toFixed(1)));
   // Live eval bar — full-strength Stockfish on the displayed position (separate from the strength-limited opponent search).
   useEffect(()=>{
-    const showEval=inReview?(ply>0):(mode==='play'&&opponent==='computer');
+    /* #470: `!playSetup` added after antagonist A found this effect was a THIRD site gated on `opponent`
+       with no setup-screen term - it was in the output of my own class-sweep grep and I did not account for it.
+       A full-strength depth-12 search has no business running for a board the player cannot see, and the
+       setup screen is an opaque full-viewport overlay. A measured 0 worker postMessages while the sheet was
+       up, so the SEARCH half of this was never proven to fire; the guard goes in anyway because the missing
+       term is the defect, not the symptom. */
+    const showEval=inReview?(ply>0):(mode==='play'&&opponent==='computer'&&!playSetup);
     if(!showEval)return;
     const w=sfRef.current; if(!w||!sfReady)return;
     if(!inReview&&mode==='play'&&opponent==='computer'&&game.turn!==pColor)return; // opponent is thinking on the single worker
@@ -4663,7 +4693,7 @@ export default function App(){
       try{ w.postMessage('setoption name UCI_LimitStrength value false'); w.postMessage('setoption name MultiPV value 1'); w.postMessage('position fen '+dispFen); w.postMessage('go depth 12'); }catch(e){}
     });
     return()=>{cancel();try{w.postMessage('stop');}catch(e){}};
-  },[dispFen,inReview,ply,mode,opponent,sfReady,pColor,game.turn]);
+  },[dispFen,inReview,ply,mode,opponent,sfReady,pColor,game.turn,playSetup]);
 
   const SHADOW_BTN=boardDepth?'0 4px 0 rgba(0,0,0,.45),0 7px 14px rgba(0,0,0,.36),inset 0 1.5px 0 rgba(255,255,255,.30),inset 0 -3px 6px rgba(0,0,0,.22)':'0 3px 0 rgba(0,0,0,.40),0 5px 11px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.22)';
   const SHADOW_BOX=boardDepth?'0 3px 0 rgba(0,0,0,.28),0 9px 22px rgba(0,0,0,.34),inset 0 1.5px 0 rgba(255,255,255,.16),inset 0 -4px 10px rgba(0,0,0,.24)':'0 2px 0 rgba(0,0,0,.20),0 6px 15px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.08)';
@@ -5662,7 +5692,7 @@ export default function App(){
               Before this, resume was setPlaySetup(false) alone, so a player who opened this sheet over a live
               Pass & Play game, tapped Computer to look at the bot list, and then tapped THIS row went back to
               their own game with opponent='computer' - and the engine moved in it. See liveSettingsRef. */}
-          {playHist.length>0&&!setupFromFEN&&opponent!=='online'&&!_gameOver&&(<button data-ct="setup-resume" onClick={()=>{setStartArm(false);const _ls=liveSettingsRef.current;if(_ls){setOpponent(_ls.opponent);setPColor(_ls.pColor);timeCtrlRef.current=_ls.timeCtrl;setTimeCtrl(_ls.timeCtrl);}setPlaySetup(false);}} style={{padding:'13px 14px',borderRadius:12,border:'1px solid rgba(var(--acr),.45)',background:'rgba(var(--acr),.14)',color:'var(--ac2)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer',textAlign:'left',lineHeight:1.4}}>{'▶'} Resume your game in progress <span style={{fontWeight:500,opacity:.85}}>({_playMoves} {_playMoves===1?'move':'moves'} played)</span></button>)}
+          {playHist.length>0&&!setupFromFEN&&opponent!=='online'&&!_gameOver&&(<button data-ct="setup-resume" onClick={()=>{setStartArm(false);setPlaySetup(false);}} style={{padding:'13px 14px',borderRadius:12,border:'1px solid rgba(var(--acr),.45)',background:'rgba(var(--acr),.14)',color:'var(--ac2)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer',textAlign:'left',lineHeight:1.4}}>{'▶'} Resume your game in progress <span style={{fontWeight:500,opacity:.85}}>({_playMoves} {_playMoves===1?'move':'moves'} played)</span></button>)}
           {setupFromFEN&&(setupBlocked
             ?(<div data-ct="setup-terminal-note" style={{padding:'10px 13px',borderRadius:12,background:'rgba(224,168,58,.12)',border:'1px solid rgba(224,168,58,.4)',fontSize:'clamp(14px,2.6vw,14px)',color:'#e0a83a',lineHeight:1.45}}>⚠ That position is already over — {setupTerminal==='checkmate'?'it is checkmate':'it is a stalemate'}, so there is no move to play from it. {setupSrc==='scan'?<>Scan or upload a board where it is still someone's turn.</>:<>Step back a move in your review and use <b>Play from here</b> there instead.</>}</div>)
             :(<div style={{padding:'10px 13px',borderRadius:12,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',fontSize:'clamp(14px,2.6vw,14px)',color:'var(--ac2)',lineHeight:1.45}}>♟ Continuing from your reviewed position. You'll play <b>{pColor==='w'?'White':'Black'}</b> (the side to move) — switch the color below if you'd rather take the other side.</div>))}
@@ -5822,7 +5852,7 @@ export default function App(){
               over a sheet over a mounted game, and this screen already has the resume row saying what is at
               stake. Gate 54's assertion D accepts EITHER this arm OR the game surviving, so it does not
               certify my choice of the two - see the amber record. */}
-          <button data-ct="setup-start" disabled={setupBlocked} onClick={()=>{if(setupBlocked)return;if(playHist.length>0&&!setupFromFEN&&opponent!=='online'&&!startArm){setStartArm(true);return;}setStartArm(false);setPlaySetup(false);if(opponent!=='online')fullReset(setupFromFEN?fromFEN(setupFromFEN):undefined);setSetupFromFEN(null);}} style={{marginTop:4,padding:'15px',borderRadius:14,border:'none',background:startArm?'#e0a83a':'var(--ac)',color:'#191919',fontWeight:800,fontSize:'clamp(15px,3.6vw,17px)',cursor:setupBlocked?'not-allowed':'pointer',opacity:setupBlocked?.5:1,boxShadow:startArm?'0 8px 24px rgba(224,168,58,.35)':`0 8px 24px rgba(${TH.rgb},.35)`}}>{opponent==='online'?'Continue →':(setupBlocked?'That position is already over':(setupFromFEN?'▶ Play this position':(startArm?'Tap again to discard your game and start':'▶ Start game')))}</button>
+          <button data-ct="setup-start" disabled={setupBlocked} onClick={()=>{if(setupBlocked)return;if(playHist.length>0&&!setupFromFEN&&opponent!=='online'&&!startArm){setStartArm(true);return;}setStartArm(false);/* #470: a game is actually starting, so the live game's old settings die with it - this is what keeps the close-effect's restore off the Start path */liveSettingsRef.current=null;setPlaySetup(false);if(opponent!=='online')fullReset(setupFromFEN?fromFEN(setupFromFEN):undefined);setSetupFromFEN(null);}} style={{marginTop:4,padding:'15px',borderRadius:14,border:'none',background:startArm?'#e0a83a':'var(--ac)',color:'#191919',fontWeight:800,fontSize:'clamp(15px,3.6vw,17px)',cursor:setupBlocked?'not-allowed':'pointer',opacity:setupBlocked?.5:1,boxShadow:startArm?'0 8px 24px rgba(224,168,58,.35)':`0 8px 24px rgba(${TH.rgb},.35)`}}>{opponent==='online'?'Continue →':(setupBlocked?'That position is already over':(setupFromFEN?'▶ Play this position':(startArm?'Tap again to discard your game and start':'▶ Start game')))}</button>
           <div style={{textAlign:'center',fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.4)',marginTop:-6,pointerEvents:'none'/* #430 class sweep [R06], same decision as the MOVES chips below: this caption is pulled 6px up over the bottom edge of the primary Continue button above it, at EVERY width and height, and is later in the DOM - so those 6px of the button answered for a div. pointerEvents:'none' rather than dropping the margin, because the caption is not interactive and this costs no vertical space, where removing the margin would take 6px off the board. */}}>{opponent==='computer'?`vs ${selBot&&botById(selBot)?botById(selBot).name:'Computer'} · ${pColor==='w'?'White':'Black'} · ${timeCtrl?timeCtrl.label:'No clock'}`:opponent==='human'?`Pass & play on one device · ${timeCtrl?timeCtrl.label:'No clock'}`:'Online · play a friend by invite code'}</div>
           {BUILD_INFO&&<div style={{textAlign:'center',fontSize:11,color:'rgba(255,255,255,.3)',letterSpacing:.5,fontFamily:'ui-monospace,Menlo,Consolas,monospace',marginTop:vp.h<720?2:12}}>Build {BUILD_INFO}</div>}
         </div>
