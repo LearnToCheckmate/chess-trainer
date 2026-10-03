@@ -2502,7 +2502,7 @@ export default function App(){
      it, and the tell was that my own text listed doMove in BOTH the five that preserve the invariant and
      the seventeen that break it - one code path cannot be in both.
      SO THE ROW ASKS THE BOARD, which is the thing the player can see and the quantity play-moverow
-     (:7004) renders. The invariant is the one this file's own practice guard already relies on at :3600:
+     (:7005) renders. The invariant is the one this file's own practice guard already relies on at :3600:
      `game.history.length === playHist.length` holds BY CONSTRUCTION for every game started through
      fullReset, and all FIVE setPlayHist sites preserve it (fullReset :3217 clears both, the human commit
      :3403 and doMove :4379 push one entry per ply, the online rebuild :3620 builds hist and g from the

@@ -1,4 +1,4 @@
-     bundle: gates/.trial/app-473-shipped.js  stamp #473 - 2026-10-03 12:55 ET  (CT_APP)
+     bundle: gates/.trial/app-474-lengthonly.js  stamp #474 - 2026-10-03 15:56 ET  (CT_APP)
 PASS kunal730 A1 ARRIVAL: a live Pass & Play game of 3 plies is on the board  [{"plies":3,"row":"1.f3 1…e5 2.g4"}]
 PASS kunal730 A2a ARRIVAL: the Play setup sheet is up, so what follows is read about the right screen  [{"sheet":true}]
 PASS kunal730 A2 the resume row IS offered over a game that really is live  [{"resume":"▶ Resume your game in progress (2 moves played)"}]
@@ -19,9 +19,9 @@ PASS kunal730 B1a ARRIVAL: the lesson opened, so selectOpening ran and the board
 PASS kunal730 B2z NOT VACUOUS: the page did not reload, so playHist was not cleared by a remount  [{"live":true}]
 PASS kunal730 B2a ARRIVAL: the Play setup sheet was reached after the lesson  [{"sheet":true}]
 PASS kunal730 B1b the board is genuinely no longer that game: the move row is empty  [{"row":""}]
-FAIL kunal730 B1 THE DEFECT: no resume row is offered once the board is no longer that game  [{"resume":"▶ Resume your game in progress (2 moves played)","row":""}]
-PASS kunal730 B4a ARRIVAL: the Start button was on screen when tapped - without this B4 passes on the BROKEN bundle at 320x568, because a tap that misses produces no arm either  [{"rect":{"x":16,"y":600.1875,"w":343,"h":48,"text":"▶ Start game"}}]
-FAIL kunal730 B4 Start does not demand a second tap to "discard your game" when the game is already gone  [{"before":"▶ Start game","after":"Tap again to discard your game and start","onScreen":true}]
+PASS kunal730 B1 THE DEFECT: no resume row is offered once the board is no longer that game  [{"resume":null,"row":""}]
+PASS kunal730 B4a ARRIVAL: the Start button was on screen when tapped - without this B4 passes on the BROKEN bundle at 320x568, because a tap that misses produces no arm either  [{"rect":{"x":16,"y":555,"w":343,"h":48,"text":"▶ Start game"}}]
+PASS kunal730 B4 Start does not demand a second tap to "discard your game" when the game is already gone  [{"before":"▶ Start game","after":null,"onScreen":true}]
 PASS kunal730 B9z zero app console errors  [[]]
 PASS se A1 ARRIVAL: a live Pass & Play game of 3 plies is on the board  [{"plies":3,"row":"1.f3 1…e5 2.g4"}]
 PASS se A2a ARRIVAL: the Play setup sheet is up, so what follows is read about the right screen  [{"sheet":true}]
@@ -43,9 +43,9 @@ PASS se B1a ARRIVAL: the lesson opened, so selectOpening ran and the board was r
 PASS se B2z NOT VACUOUS: the page did not reload, so playHist was not cleared by a remount  [{"live":true}]
 PASS se B2a ARRIVAL: the Play setup sheet was reached after the lesson  [{"sheet":true}]
 PASS se B1b the board is genuinely no longer that game: the move row is empty  [{"row":""}]
-FAIL se B1 THE DEFECT: no resume row is offered once the board is no longer that game  [{"resume":"▶ Resume your game in progress (2 moves played)","row":""}]
-PASS se B4a ARRIVAL: the Start button was on screen when tapped - without this B4 passes on the BROKEN bundle at 320x568, because a tap that misses produces no arm either  [{"rect":{"x":16,"y":460.1875,"w":288,"h":48,"text":"▶ Start game"}}]
-FAIL se B4 Start does not demand a second tap to "discard your game" when the game is already gone  [{"before":"▶ Start game","after":"Tap again to discard your game and start","onScreen":true}]
+PASS se B1 THE DEFECT: no resume row is offered once the board is no longer that game  [{"resume":null,"row":""}]
+PASS se B4a ARRIVAL: the Start button was on screen when tapped - without this B4 passes on the BROKEN bundle at 320x568, because a tap that misses produces no arm either  [{"rect":{"x":16,"y":460,"w":288,"h":48,"text":"▶ Start game"}}]
+PASS se B4 Start does not demand a second tap to "discard your game" when the game is already gone  [{"before":"▶ Start game","after":null,"onScreen":true}]
 PASS se B9z zero app console errors  [[]]
-71-resume-row-agrees-with-the-board: 40 pass, 8 fail
+71-resume-row-agrees-with-the-board: 44 pass, 4 fail
 EXIT=1
