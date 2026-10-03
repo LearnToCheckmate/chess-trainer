@@ -412,7 +412,22 @@ L.run(async()=>{
         allTitles.filter(t=>t.indexOf(need)>=0));
     }
     await b.home();const gb=b.page.locator('button[title="Preview gallery (dev)"]');await gb.click();await b.settle(400);
-    await b.page.locator('button',{hasText:/^▶ Play/}).first().click();
+    /* THE PLAY-ALL BUTTON IS GUARDED, AND ITS ABSENCE IS DECLARED RATHER THAN THROWN. chess.jsx renders no
+       Play button at all when the ask queue is EMPTY - which is this feature's SUCCESS condition, the state it
+       exists to reach the day Kunal clears the list. Unguarded, this `.click()` then times out and the gate THROWS,
+       taking every walk assertion after it down with it - the #393 fault this file already fixed once in block S
+       ("a gate that halts on the first missing element hides every regression after it"). So: count first, and if
+       the button is not there, say so as a red on a named assertion and a declared skip rather than as a throw.
+       WHAT IS STILL OWED, AND IT IS NOT IN THIS FILE: the other half of
+       jobs/the-gallery-ask-queue-has-no-coverage-for-being-empty-which-is-its-success-condition-2026-10-01 is a
+       CT_* override that truncates or empties SC at launch, in the shape of CT_HM_BLOCKS. That lives in chess.jsx,
+       which this run may not touch, so the empty and one-card states still have no POSITIVE coverage - this guard
+       only stops the gate from throwing when they arrive. Recorded on that job as a skip, not as done. */
+    const pab=b.page.locator('button',{hasText:/^▶ Play/});
+    const pabN=await pab.count();
+    L.say(pabN>0,lab+': the gallery offers a Play-all button to walk ('+pabN+' found) - if the ask queue is EMPTY this is the expected red and the walk below is skipped BY DECLARATION, not by a harness throw',{pabN,asks:N});
+    if(pabN===0){L.note(lab+': walk skipped - no Play-all button, which is what an empty ask queue renders. The queue pin above still ran, so this run is not vacuous about the queue itself.');await b.close();continue;}
+    await pab.first().click();
     const seen=[];let done=false;const scrolled=[],shrunk=[],pageScroll=[],unsettled=[],cards=[];
     let cur=null,base=null,raced=0,sampled=0,lateBase=0;
     let lastSample=Date.now();
@@ -470,7 +485,16 @@ L.run(async()=>{
     L.say(pageScroll.length===0,lab+': the page itself cannot scroll - body is out of flow and #root is the scroller',pageScroll.slice(0,3));
     L.say(shrunk.length===0,lab+': no board shrinks inside a card, against a SETTLED baseline',shrunk.slice(0,3));
     L.say(unsettled.length===0,lab+': every card whose board is measurable settles inside the 900ms window',unsettled.slice(0,2));
-    L.say(sampled>=8,lab+': the walk actually took samples to assert over ('+sampled+' attributed, '+raced+' discarded across a caption change)');
+    /* THE SAMPLE FLOOR IS SCOPED TO THE QUEUE, NOT A CONSTANT 8 [R18]. It read `sampled>=8`, a bare literal from a
+       time when the ask list was pinned at eight cards. #451 turned that list into a real QUEUE whose length is the
+       thing that varies, and the walk's wall clock is now the queue's total hold: two cards give roughly 24 samples
+       while ONE SHORT CARD can fall through 8 on a perfectly healthy build. A floor that reds because Kunal did
+       what the feature asked him to do is worse than no floor - and a floor of 8 against a two-card queue is also
+       three times slacker than it looks. One sample per queued card is the honest floor: being non-vacuous is the
+       only thing this line was ever for. So it is derived from N, the count the pin above already established, and
+       the scope is published with the number rather than left in the literal. */
+    const SAMPLE_FLOOR=Math.max(1,N);
+    L.say(sampled>=SAMPLE_FLOOR,lab+': the walk actually took samples to assert over - at least one per queued card ('+sampled+' attributed against a floor of '+SAMPLE_FLOOR+' for '+N+' cards, '+raced+' discarded across a caption change)',{sampled,floor:SAMPLE_FLOOR,N,raced});
     // the population this gate's board assertion actually covers, pinned to the MECHANISM rather than to a card
     // count that the gallery can change under it: a caption whose board was never on screen has nothing to
     // baseline (the Starting frame), but one whose board WAS on screen must never be left unbaselined - which is
@@ -539,9 +563,17 @@ L.run(async()=>{
      taps them one at a time and samples each for its own hold. The machinery is reused unchanged - b.board() via
      settleBoard() for the baseline, b.metrics() for the samples, the same TOL - so nothing here is a new instrument
      that would itself need validating.
-     US-R IS EXCLUDED AND IT IS THE ONLY EXCLUSION: its hold is 88000ms (measured off the TS array, not read off a
-     flag), which would add ~3 minutes per geometry for a state that 14-uat-review-card and 20-review both drive
-     directly. The other seven cost 55s per geometry. Stated rather than left as a silent gap.
+     THREE OF THE EIGHT ARE EXCLUDED, NOT ONE, and the five that remain cost 44s per geometry, not 55s.
+     **THE THREE NUMBERS THAT STOOD HERE UNTIL NOW ARE WITHDRAWN [R18]**: this header read "US-R IS EXCLUDED AND IT
+     IS THE ONLY EXCLUSION ... The other seven cost 55s per geometry", and all three figures disagreed with the same
+     file. RE-DERIVED FROM STATE_CARDS, WHICH IS THE AUTHORITY (:255-256), BY PARSING IT RATHER THAN READING IT:
+     five entries - k10 13000, k8 8000, card 3 7000, card 4 9000, A-06 7000 - summing to 44000ms = 44s per geometry,
+     88s for both. The exclusions, each for its own measured reason and all three stated at :243-254: US-R (hold
+     88000ms, ~3 minutes per geometry for a state 14-uat-review-card and 20-review both drive directly - cost, not
+     coverage) AND CARDS 7 AND 8, both y3, which have no board of their own. WHY THE CORRECTION IS THE SAME FINDING
+     THE BLOCK IS ABOUT: block S exists because a published count had no scope, and this header published three
+     unscoped numbers of its own. A reader who trusted the nearer comment would re-derive a wrong exclusion set and
+     either widen block S to the two boardless cards or mis-budget the suite by 11s a geometry.
      THE INSTRUMENT IS ASSERTED FIRST, because every claim below is "the board did not shrink" and that is vacuous
      if no board was ever on screen - the #416 antagonist got 24 pass / 0 fail over a display:none board. */
   /* block S honours CT_G15_GEOS like the walk does, so a control run can be scoped to one geometry and the scope
@@ -604,12 +636,28 @@ L.run(async()=>{
      cards are due, what each removed card's verdict was) and two are properties of the running app:
        "Every card fits at 320 and 375 with nothing cut off."
        "Card 1's numbers match what the browser reports on the same device."
-     F1/F2 run at 320x568 and at 375x730 - Kunal's real phone, which the walk above does NOT visit (it runs 375x679
-     and 375x812), so this block is also the only place in this gate that measures his own geometry.
+     F1/F2 run at 320x568, at 375x730 - Kunal's real phone, which the walk above does NOT visit (it runs 375x679
+     and 375x812), so this block is also the only place in this gate that measures his own geometry - AND, added
+     here, at 375x568.
+     WHY 375x568 IS ADDED TO THIS BLOCK AND NOT TO THE WALK ABOVE, because the choice is the finding. Counted across
+     all 47 sections of gates/logs/451-all.log, exactly FOUR PASS lines asserted the #451 ask queue - log lines 206,
+     207, 230 and 231 - at geo kunal (375x679) and 375x812, and they asserted only the two titles and the count. So
+     NO ASSERTION OVER THE ASK QUEUE ITSELF ran at 375x568. **ONE NUMBER IN THAT JOB IS QUALIFIED HERE [R18]**: it
+     says "nothing visits the gallery at 375x568", and this file's own M6 geometry loop at :925 already launched at
+     `short375`, opened the gallery and tapped the manual ask card - so the gallery WAS visited there; what had no
+     coverage was the queue's count, population and containment. The gap is real and the sentence was too wide.
+     375x568 is the wide-and-short corner gates/lib.js GEOS calls
+     `short375` and documents as "a real phone shape: a 375-wide device in a browser with a large toolbar, or any
+     16:9 Android at 375dp" - the same corner the other 568-tall defects in that run were found in. The geometry
+     goes HERE because this block is the one that measures the queue's containment and population for about one
+     browser launch, where the walk above costs 44s a geometry in block S's holds alone; adding it to the walk would
+     have bought the same four pins at roughly three minutes. SO THE SCOPE IS DECLARED RATHER THAN IMPLIED [R12]:
+     375x568 now has the card count, the fixture-card population, both containment checks and the readout - it does
+     NOT have the ordered play-all walk, and that remains a named gap rather than a silent one.
      HORIZONTAL, NOT VERTICAL, DELIBERATELY: the card list is an overflowY:auto scroller, so a long queue scrolling
      is correct and is not a cut (CLAUDE.md: "below the fold is not unreachable", two false P0s). What must never
      happen is a card's ink running past the viewport, which nothing can recover. */
-  for(const [glab,ggeo] of [['320x568','se'],['375x730 (Kunal)','kunal730']]){
+  for(const [glab,ggeo] of [['320x568','se'],['375x730 (Kunal)','kunal730'],['375x568 (wide-and-short)','short375']]){
     const b=await L.launch({geo:ggeo,name:'cards-'+ggeo,store:{ct_pool:'3'}});await b.open();
     await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
     /* #451: F1's negative control, because two of its four assertions went GREEN against the #450 bundle and an
@@ -808,6 +856,19 @@ L.run(async()=>{
          #451 bundle does by itself. It proves M4 can SEE a vanishing instruction. */
       if(NC==='holdoff'){await b.page.evaluate(()=>{setTimeout(()=>{const e=document.querySelector('[data-ct="rec-cap"]');if(e)e.remove();},9000);});
         L.note('NC holdoff: the banner is removed at 9000ms, reproducing the #451 dwell');}
+      /* NC eatTaps IS M5'S OWN CONTROL, and M5 had none until now - holdoff reddened it by REMOVING the bar, which
+         is M4's threshold, not M5's. This one LEAVES THE BAR IN PLACE and sets its pointerEvents to 'auto', which
+         is exactly the regression M5 exists to catch: a 92vw bar pinned across the bottom strip, still up, now
+         swallowing the taps the card is asking Kunal to make. It must cross M5's OWN threshold and disturb no
+         neighbour (CLAUDE.md #384, and this file's own cardwide/cardclip lesson at :616 - crediting one control
+         with another's coverage is how an uncontrolled assertion comes to look controlled). The style rule is
+         !important and keyed on the data-ct hook rather than set on the node, so it survives any re-render of the
+         bar during the hold. EXPECTED: 1 FAIL, M5 alone - M4 stays green because the bar is present, and M5b stays
+         green because the Hide control's own pointerEvents are untouched. */
+      if(NC==='eatTaps'){const what=await b.page.evaluate(()=>{const st4=document.createElement('style');st4.id='ct-nc-et';
+        st4.textContent='[data-ct="rec-cap"]{pointer-events:auto!important}';document.head.appendChild(st4);
+        return 'the held instruction bar is pointer-events:auto - it is up AND it eats taps';});
+        L.note('NC eatTaps: '+what);}
       while(Date.now()-t0<HOLD_MS)await b.settle(1000);
       const st=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rec-cap"]');if(!e)return {up:false};
         const d=document.querySelector('[data-ct="rec-cap-done"]');const r=d?d.getBoundingClientRect():null;
@@ -818,9 +879,23 @@ L.run(async()=>{
       L.say(st.up===true,'M4: the manual card\'s instruction is STILL on screen at '+HOLD_MS+'ms - longer than the 20-60s its own task takes (gates/drive/review.js:5)',st);
       /* M5: and it must not have bought that by eating his taps. The bar is 92vw over the bottom strip; the whole
          point of the card is that HE taps things, so the bar stays pointerEvents:none and only the Hide target
-         takes events. This guards the regression THIS fix could have introduced. */
-      L.say(st.up&&st.barPe==='none','M5: the held instruction bar still passes taps through (pointerEvents none), so it cannot eat the taps the card asks for',{barPe:st.barPe});
-      L.say(st.done===true&&st.donePe==='auto','M5b: a tappable Hide control exists while the instruction is held',{done:st.done,pe:st.donePe});
+         takes events. This guards the regression THIS fix could have introduced.
+         THE CONJUNCT IS SPLIT, AND THAT IS THE WHOLE POINT OF THIS EDIT. M5 was written
+         `L.say(st.up&&st.barPe==='none', ...)` and M5b `L.say(st.done===true&&st.donePe==='auto', ...)`. When the
+         bar is absent `st` is `{up:false}`, so BOTH lines went red on the PRESENCE conjunct and neither ever went
+         red on the pointer-events one: on the shipped #451 bundle the payloads read `FAIL M5 ... [{}]` with no
+         barPe value in them at all, and CT_G15_NC=holdoff gave 3 FAIL (M4, M5, M5b) for the same reason. So there
+         was NO control in which the bar EXISTED and M5 failed - every red so far was M4 wearing M5's label, which
+         is CLAUDE.md's "a wrong reason that reaches the right verdict is a trap, not a check" (#419) and the
+         uncontrolled-assertion charge of #395 in one line. M4 above already owns the presence claim, so presence is
+         now a GUARD rather than a conjunct and the pointer-events claim stands alone and can cross its own
+         threshold. Absence is declared rather than silently skipped, so a vanished bar cannot make M5 vacuous. */
+      if(st.up!==true){
+        L.note('M5/M5b not asserted: the bar is absent at '+HOLD_MS+'ms, which is M4\'s red above, not a pointer-events result');
+      }else{
+        L.say(st.barPe==='none','M5: the held instruction bar still passes taps through (pointerEvents none), so it cannot eat the taps the card asks for',{barPe:st.barPe});
+        L.say(st.done===true&&st.donePe==='auto','M5b: a tappable Hide control exists while the instruction is held',{done:st.done,pe:st.donePe});
+      }
       if(st.doneRect){
         L.say(st.doneRect.w>=44&&st.doneRect.h>=44,'M6: the Hide control meets the 44px tap-target minimum ('+st.doneRect.w+'x'+st.doneRect.h+')',st.doneRect);
         L.say(st.doneRect.right<=st.vw,'M6: the Hide control sits inside the viewport - no horizontal spill, which is the unrecoverable one',{right:st.doneRect.right,vw:st.vw});
