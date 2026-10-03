@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# gates/verify-log.sh <logfile> [expected-build]
+# gates/verify-log.sh <logfile> [expected-build] [--on-main] [--this-bundle] [--ignore-held]
+# gates/verify-log.sh --citations     <- reads the TREE, not a log: do the registers' citations resolve? (12)
 #
 # THE ONE PLACE THAT DECIDES WHETHER A GATE LOG AUTHORISES A PUSH. Run it on any log before citing one.
 # Exit 0 only if ALL of these hold; exit 1 with the reason otherwise.
@@ -80,9 +81,145 @@
 #      a pre-#417 log, no ref line at all           -> REFUSED (--on-main): carries no 'ref: HEAD <sha>' line
 #      --this-bundle with app.js != the logged md5  -> REFUSED (--this-bundle)
 set -uo pipefail
+# ── (12) THE CITATIONS MODE, added by the 2026-10-03 process burst for
+# jobs/nothing-checks-that-the-registers-citations-resolve-2026-09-30 (p9, test-authoring).
+# THE FINDING IT ANSWERS: nothing mechanical checks that the registers' own citations resolve - the job
+# measured 8 of 13 named story files and 25 of 47 written case ids pointing at nothing. Every check above
+# this line reads ONE LOG; this one reads the TREE, so it is a separate entry point rather than another
+# check in the log path:  gates/verify-log.sh --citations
+# WHAT IT ASSERTS, and each of the three is the job's own numbering:
+#   (1) every claude/stories/*.md, gates/logs/* and claude/agents/gatelogs/* path NAMED anywhere in
+#       claude/stories/*.md, gates/**/*.js, HANDOFF.md or CLAUDE.md resolves in the tree, or is on the
+#       allowlist below and carries its reason there.
+#   (2) every case id in claude/stories/TEST-CASES.md whose row publishes a result occurs at least once,
+#       by id, in the -all.log that row's section cites.
+#   (3) every bundle md5 such a row cites occurs in that same log - REPORTED, NOT REFUSED. See A3 below.
+# gates/logs/ IS NOT TRACKED AND THAT IS WHY (1) IS NOT VACUOUS: `git ls-files gates/logs` is empty, so a
+# literal existence test on a gates/logs/<N>-all.log citation would fail for every row in the register and
+# prove nothing. The archived copy under claude/agents/gatelogs/ is the artefact a later reader can actually
+# open, so a gates/logs/<N>-all.log citation is resolved to claude/agents/gatelogs/<N>-all.log. A row citing
+# a log that exists in NEITHER place is a dead citation, which is the thing the job is about.
+# IT IS NOT WIRED INTO gates/gates.sh, AND THE OMISSION IS DELIBERATE AND RECORDED [R18, R45]. The job asks
+# for it to run inside gates.sh on every build. Two reasons it does not yet: this burst agent holds the
+# artefact lock on THIS FILE ONLY [R44] and may not write gates.sh; and measured on main today this mode is
+# RED, so wiring it in unchanged would refuse every build until the register is repaired. Wire it in only
+# after the red is cleared, or wire it in as a reported count first.
+if [ "${1:-}" = "--citations" ] || [ "${1:-}" = "citations" ]; then
+  ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+  cd "$ROOT" || { echo "REFUSED (--citations): cannot cd to $ROOT"; exit 1; }
+  # THE ALLOWLIST IS THE POINT, NOT A LOOPHOLE (the job's words). A reserved name belongs here WITH ITS
+  # REASON; a name that is merely broken does not. One entry per line: <path><TAB><reason>.
+  ALLOW="claude/stories/REVIEW-SUITE-FULL.md	reserved, not written: claude/stories/README.md says the full review suite keeps this name"
+  SRC=""
+  for f in claude/stories/*.md gates/*.js gates/*/*.js HANDOFF.md CLAUDE.md; do
+    [ -f "$f" ] && SRC="$SRC $f"
+  done
+  A1BAD=0; A1OK=0; A1ALLOW=0
+  echo "=== citations (1): do the named paths resolve?"
+  # grep -o over the source set, keeping file:line so a dead citation can be fixed where it is written.
+  CITES="$(grep -onE '(claude/stories/[A-Za-z0-9_.-]+\.md|claude/agents/gatelogs/[A-Za-z0-9_.-]+\.log|gates/logs/[A-Za-z0-9_.-]+\.log)' $SRC 2>/dev/null | sort -u || true)"
+  while IFS= read -r c; do
+    [ -n "$c" ] || continue
+    WHERE="${c%:*}"; P="${c##*:}"
+    # a gates/logs citation resolves to its archived copy, per the note above
+    TEST="$P"
+    case "$P" in gates/logs/*) TEST="claude/agents/gatelogs/${P#gates/logs/}";; esac
+    if [ -e "$TEST" ]; then A1OK=$((A1OK+1)); continue; fi
+    if printf '%s\n' "$ALLOW" | cut -f1 | grep -qxF "$P"; then
+      A1ALLOW=$((A1ALLOW+1)); continue
+    fi
+    A1BAD=$((A1BAD+1))
+    echo "  DEAD CITATION: $P (named at $WHERE; looked for $TEST)"
+  done <<EOF
+$CITES
+EOF
+  echo "  (1) $A1OK resolved, $A1ALLOW allowlisted, $A1BAD dead"
+  # (2) and (3) read the case register only. No register, no claim: NOT CHECKED, never a pass.
+  TC="claude/stories/TEST-CASES.md"
+  A2BAD=0; A2OK=0; A2NC=0; A2MIS=0; A3BAD=0; A3OK=0; A3NC=0
+  echo "=== citations (2): does every published case id occur in the log its section cites?"
+  if [ ! -f "$TC" ]; then
+    echo "  NOT CHECKED: $TC is absent, so no case id can be resolved. That is not a pass."
+    A2NC=1; A3NC=1
+  else
+    SECLOG=""
+    while IFS= read -r line; do
+      case "$line" in
+        '## '*)
+          SECLOG="$(printf '%s' "$line" | grep -oE 'gates/logs/[A-Za-z0-9_.-]+\.log' | head -1 || true)"
+          [ -n "$SECLOG" ] && SECLOG="claude/agents/gatelogs/${SECLOG#gates/logs/}"
+          continue;;
+        '| TC-'*) ;;
+        *) continue;;
+      esac
+      ID="$(printf '%s' "$line" | cut -d'|' -f2 | tr -d ' ')"
+      [ -n "$ID" ] || continue
+      RESULT="$(printf '%s' "$line" | awk -F'|' '{print $(NF-1)}')"
+      # "publishes a result" = the last cell carries a PASS/FAIL figure, not a plan or a dash.
+      case "$RESULT" in *PASS*|*FAIL*|*pass*|*fail*) ;; *) continue;; esac
+      # a row may cite its own log, which wins over the section's
+      ROWLOG="$(printf '%s' "$line" | grep -oE 'gates/logs/[A-Za-z0-9_.-]+\.log' | head -1 || true)"
+      [ -n "$ROWLOG" ] && ROWLOG="claude/agents/gatelogs/${ROWLOG#gates/logs/}"
+      # THE ROW'S OWN BUILD NUMBER OUTRANKS ITS SECTION HEADING, and that is not a nicety: MEASURED on main
+      # today, 14 rows between TC-R20 and TC-R44 sit physically under the "Cross-app invariants - executed
+      # against #423" heading while their published cells name #427, #428, #448 and #469. Reading the section
+      # heading alone reported every one of them as UNSUPPORTED against 423-all.log, which is a true statement
+      # about the wrong log and would have sent a reader to repair rows that are merely MISFILED. So: if the
+      # published cell names #NNN and claude/agents/gatelogs/NNN-all.log exists, that log is the one the row is
+      # checked against, and the disagreement with the section is counted and reported in its own right.
+      ROWB="$(printf '%s' "$RESULT" | grep -oE '#[0-9]{3,4}' | head -1 | tr -d '#' || true)"
+      ROWBLOG=""
+      if [ -n "$ROWB" ] && [ -f "claude/agents/gatelogs/$ROWB-all.log" ]; then
+        ROWBLOG="claude/agents/gatelogs/$ROWB-all.log"
+      fi
+      USELOG="${ROWLOG:-${ROWBLOG:-$SECLOG}}"
+      if [ -n "$ROWBLOG" ] && [ -n "$SECLOG" ] && [ "$ROWBLOG" != "$SECLOG" ] && [ -z "$ROWLOG" ]; then
+        A2MIS=$((A2MIS+1))
+        echo "  MISFILED: $ID publishes a result from $ROWB but sits under a section citing $SECLOG"
+      fi
+      if [ -z "$USELOG" ]; then
+        A2NC=$((A2NC+1)); echo "  NOT CHECKED: $ID publishes a result and neither it nor its section names a log"
+        continue
+      fi
+      if [ ! -f "$USELOG" ]; then
+        A2NC=$((A2NC+1)); echo "  NOT CHECKED: $ID cites $USELOG, which is not in the tree (that is (1)'s red, not this one's)"
+        continue
+      fi
+      if grep -qF "$ID" "$USELOG"; then A2OK=$((A2OK+1)); else
+        A2BAD=$((A2BAD+1)); echo "  UNSUPPORTED: $ID publishes a result but its id occurs nowhere in $USELOG"
+      fi
+      # (3) the bundle md5 the row cites must occur in that log.
+      for M in $(printf '%s' "$line" | grep -oiE 'md5[ ]+[0-9a-f]{12,32}' | awk '{print $2}' | tr 'A-F' 'a-f' | sort -u); do
+        if grep -qiF "$M" "$USELOG"; then A3OK=$((A3OK+1)); else
+          A3BAD=$((A3BAD+1)); echo "  REPORTED (3): $ID cites bundle md5 $M, which does not occur in $USELOG"
+        fi
+      done
+    done < "$TC"
+  fi
+  echo "  (2) $A2OK supported, $A2BAD unsupported, $A2MIS misfiled under a section citing another log, $A2NC not checked"
+  echo "=== citations (3): bundle md5s cited by a row - REPORTED, NOT REFUSED"
+  echo "  (3) $A3OK found in the cited log, $A3BAD not found"
+  # A3 IS REPORTED RATHER THAN REFUSED, AND THE REASON IS A REAL GAP, NOT CAUTION. A case row legitimately
+  # cites TWO kinds of bundle: the one its published result was measured on, which must be in the log, and the
+  # NEGATIVE-CONTROL bundles built inside the gate, which never reach a committed log and must not be. Nothing
+  # in the row's syntax separates them, so a refusal here would redden correct rows. Separating them needs a
+  # row-level convention that does not exist yet; that remainder is named on
+  # jobs/case-rows-publish-a-figure-from-a-bundle-that-did-not-ship-2026-09-30, not left for a reader to infer.
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ]; then
+    echo "CITATIONS RED: $A1BAD dead path(s), $A2BAD unsupported case id(s), $A2MIS misfiled row(s). $A2NC row(s) NOT CHECKED."
+    exit 1
+  fi
+  if [ "$A2NC" -gt 0 ]; then
+    echo "CITATIONS OK with $A2NC row(s) NOT CHECKED - which is not a pass for those rows."
+    exit 0
+  fi
+  echo "CITATIONS OK: every named path resolves and every published case id occurs in the log it cites."
+  exit 0
+fi
 LOG="${1:-}"; WANT=""; ONMAIN=0; THISBUNDLE=0; IGNOREHELD=0
 for a in "${@:2}"; do case "$a" in --on-main) ONMAIN=1;; --this-bundle) THISBUNDLE=1;; --ignore-held) IGNOREHELD=1;; *) WANT="$a";; esac; done
-[ -n "$LOG" ] || { echo "usage: gates/verify-log.sh <logfile> [#NNN] [--on-main] [--this-bundle] [--ignore-held]"; exit 1; }
+[ -n "$LOG" ] || { echo "usage: gates/verify-log.sh <logfile> [#NNN] [--on-main] [--this-bundle] [--ignore-held]"
+  echo "       gates/verify-log.sh --citations    (checks the registers' citations against the tree, see (12))"; exit 1; }
 [ -s "$LOG" ] || { echo "REFUSED: $LOG is missing or empty"; exit 1; }
 # (9) NUL bytes mean the file was read while something else was writing it, so no part of it can be trusted
 # to be what that run measured. #418 produced exactly this: two full suites ran ten seconds apart, the per-gate
@@ -117,6 +254,20 @@ fi
 # (6) the log must agree with itself about how many assertions it ran.
 CLAIMED="$(grep -o 'regression assertions (PASS lines): [0-9]\{1,\}' "$LOG" | tail -1 | grep -o '[0-9]\{1,\}$' || true)"
 ACTUAL="$(grep -c '^PASS' "$LOG" || true)"
+# A LINE COUNT IS THE RIGHT INSTRUMENT HERE AND THE WRONG ONE FOR REDS. Noted beside the PASS check by the
+# 2026-10-03 process burst, which is where
+# jobs/a-fail-line-count-on-a-gatelog-over-reports-by-up-to-five-2026-10-03 (p8) asks for the recipe to live.
+# THE ASYMMETRY: check (6) above is a SELF-CONSISTENCY test - the footer counts ^PASS lines and so does this,
+# so the two agree by construction whatever gates.sh does with duplicates. A RED COUNT is not that: gates.sh
+# replays failed assertions, so one failing assertion can produce several ^FAIL lines and a line count
+# over-reports the number of distinct reds (measured at up to five on one gatelog). Wherever a red count is
+# PUBLISHED - a run report, a RUN-LOG row, a ledger row - count distinct assertion ids, not lines:
+#     grep -o '^FAIL [A-Za-z0-9]*' <log> | sort -u | wc -l
+# That is correct on both log shapes and costs nothing. The rejected alternative was changing gates.sh's FAIL
+# prefix so a line count would be right by construction; it would break every existing reader that greps the
+# log, so it needs its own control and is not done here. This script publishes no red count of its own - it
+# refuses or it does not - so nothing above changes; the recipe is here because this is the file a reader opens
+# when asking what a gatelog's numbers mean.
 if [ -z "$CLAIMED" ]; then
   echo "REFUSED: $LOG carries no 'regression assertions (PASS lines): N' footer, so it cannot be checked against itself"; exit 1
 fi
@@ -500,6 +651,41 @@ if [ "$ONMAIN" -eq 1 ]; then
   # clone - exactly the dashboard or supervisor this flag is for - a tree that genuinely shipped was being called
   # unshipped, confidently enough to be quoted. Found by the #417 antagonist.
   git fetch -q origin main 2>/dev/null || true
+  # SHALLOW CLONES MAKE THIS INSTRUMENT LIE, AND NOTHING IN THIS FILE SAID SO UNTIL NOW.
+  # Added by the 2026-10-03 process burst for
+  # jobs/the-is-ancestor-instrument-returns-false-negatives-in-a-shallow-clone-2026-10-01 (p8), whose own
+  # measurement names this file: `grep -n 'shallow|unshallow|--depth'` over CLAUDE.md, HANDOFF.md, RUN-LOG.md,
+  # gates/held.sh and gates/verify-log.sh returned NO mention of the effect. That job's control is three shas
+  # and one command: at depth 50, 9087c28 and 8cd81ec both read `not-ancestor`; after
+  # `git fetch --deepen=400 origin main` both read ANCESTOR, with no commit created and no ref moved. TWO OF
+  # THREE FLIPPED ON CLONE DEPTH ALONE. `git merge-base --is-ancestor` cannot see past a graft, so in a shallow
+  # clone every sha older than the graft reads not-ancestor and this check REFUSES A TREE THAT GENUINELY SHIPPED
+  # - which is the shape of refusal a reader quotes, because the message is specific and confident.
+  # SO: DEEPEN FIRST, AND IF IT IS STILL SHALLOW, REFUSE WITH THE TRUE CAUSE RATHER THAN THE FALSE ONE.
+  # Not a pass: UNKNOWN is not a pass here [the --on-main note above], and a cheap deepen usually removes the
+  # question entirely. What changes is that the output can no longer blame the tree for the clone.
+  # WHY 400, MEASURED RATHER THAN CHOSEN: origin/main is 860 commits and the DEEPEST 'ref: HEAD' line in any
+  # archived gatelog is 238 commits behind HEAD (417b-all.log 6eeca3e; 419c-all.log is 234), so 400 covers every
+  # log in the register with room to spare and is not the whole history. THE LIMIT OF THAT, NAMED: because every
+  # real ref line is inside 400, the still-shallow-after-deepen branch below CANNOT be exercised by any log in
+  # this repository today, so it is reasoned, not measured. The branch that IS measured is the one that pays:
+  # in a `--depth 2` clone, the shipped script REFUSES 419c-all.log as 'NOT on origin/main' and this one reports
+  # ON-MAIN OK, on the same log, the same sha and the same origin/main.
+  SHALLOW=0
+  if [ "$(git rev-parse --is-shallow-repository 2>/dev/null || echo unknown)" = "true" ]; then
+    SHALLOW=1
+    git fetch -q --deepen=400 origin main 2>/dev/null || true
+    [ "$(git rev-parse --is-shallow-repository 2>/dev/null || echo unknown)" = "true" ] || SHALLOW=0
+  fi
+  if [ "$REF" != "$MAIN" ] && ! git merge-base --is-ancestor "$REF" "$MAIN" 2>/dev/null && [ "$SHALLOW" -eq 1 ]; then
+    echo "REFUSED (--on-main): NOT CHECKED, not 'not on main'. This clone is SHALLOW even after"
+    echo "  'git fetch --deepen=400 origin main', so 'git merge-base --is-ancestor $REF $MAIN' cannot see past"
+    echo "  the graft and returns false for every sha older than it. The ancestry of $REF is UNKNOWN here, which"
+    echo "  is not a pass and is also NOT evidence that the tree did not ship."
+    echo "  grafts: $(git rev-parse --git-dir >/dev/null 2>&1 && wc -l < "$(git rev-parse --git-dir)/shallow" 2>/dev/null || echo '?')"
+    echo "  Fix the instrument, not the log:  git fetch --unshallow origin   (or --deepen= a larger number)"
+    exit 1
+  fi
   if [ "$REF" != "$MAIN" ] && ! git merge-base --is-ancestor "$REF" "$MAIN" 2>/dev/null; then
     echo "REFUSED (--on-main): $LOG gated $REF, which is NOT on origin/main ($MAIN)."
     echo "  on: $(git branch -a --contains "$REF" 2>/dev/null | sed 's/^[* ] *//' | paste -sd, - || echo 'no local ref')"
