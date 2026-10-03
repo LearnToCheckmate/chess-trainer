@@ -909,91 +909,92 @@ L.run(async()=>{
       at 320x520, and 19.16 -> 0 at 320x540, where the row now FITS with 4.84px to spare. Two of the three
       overflows this gate was written to pin are GONE, as a side effect of a hit-area fix, and the arithmetic
       that predicts it was already written down here: the residual is 231.55 minus the board width. */
-   /* #468 REPLACED A GEOMETRY-NAME-KEYED PIN HERE, ON ANTAGONIST A's VETO (F2). It read
-      `const _rowPin={'375x520':8.36,'320x520':0.36,'320x540':0}[geo]`. It is the SAME fault as the `_fp` map the
-      flip block below was repaired for, in the same file and the same loop, and #468's first version claimed that
-      map was "the last one still standing" while THIS one sat 150 lines above it, asserted, unmentioned.
-      WHY IT WAS A LANDMINE, by this block's own arithmetic rather than by inspection: the residual is
-      DEMO_NEEDED minus the board (the comment above says so, and :196 derives it - 192 + 39.55 = 231.55), so at
-      the documented 192.00 floor it reads 39.55 against pins of 8.36, 0.36 and 0. It would have gone RED exactly
-      as `_fp` did, and it survived #467 only by luck: that run's log records the DEMO row at rowW 236.39 (PASS)
-      and the FLIP row at rowW 192 six log lines later (FAIL), so the 192 state reached one block and not the
-      other IN THE SAME RUN - which also means "stable within a run" is not quite the right description of the
-      multistability, and that observation belongs to jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29.
-      NOT DEMONSTRATED LIVE: antagonist A established the arithmetic and so did I, but neither of us forced the
-      demo block into the 192 state, so this is a latent failure repaired on arithmetic, not a reproduced one. */
-   const _rowPred=_dr&&_dr.needed!==null?Math.round(Math.max(0,_dr.needed-_dr.rowW)*100)/100:null;
+   /* #468 REPLACED TWO GEOMETRY-NAME-KEYED PINS HERE, ON ANTAGONIST A's VETO (F2), AND THEN HAD TO MERGE THE
+      BRANCH THEY LIVED IN - WHICH IS THE PART WORTH READING, BECAUSE THE FIRST ATTEMPT SILENTLY DROPPED TWO
+      ASSERTIONS AND THE SUITE'S OWN LOG IS WHAT CAUGHT IT.
+      WHAT WAS HERE: `_rowPin={'375x520':8.36,'320x520':0.36,'320x540':0}[geo]` and
+      `_causePin={'375x520':8.36,'320x520':0.36,'320x540':-4.84}[geo]`, both asserted, both keyed to the geometry
+      NAME - the same fault as the `_fp` map in the flip block below, in the same file and the same loop, and
+      #468's first version claimed that map was "the last one still standing" while these two sat 150 lines above
+      it. They are landmines by this block's own arithmetic: the residual is DEMO_NEEDED minus the board (:196
+      derives it, 192 + 39.55 = 231.55), so at the documented 192.00 floor they read 39.55 against pins of 8.36,
+      0.36 and 0, and they would have reddened exactly as `_fp` did.
+      HOW I BROKE IT AND HOW IT WAS FOUND [R18]. The original was `if(_rowPin!==undefined){ pinned version } else
+      { #430's BOARD-RELATIVE version + a VIEWPORT assertion }` - the same two-branch shape as the flip block, one
+      branch pinned and one already repaired. I replaced the `if` branch's body with a board-relative version and
+      changed its condition to `if(_dr)`, which is true at every geometry - so the `else` became unreachable and
+      THE VIEWPORT ASSERTION IT CARRIED STOPPED RUNNING AT short375 AND 390x568. Nothing failed; the count simply
+      went down by two in a build whose whole subject is counting. It was caught by diffing the per-geometry tags
+      of 'stays inside the VIEWPORT' between this gate's own logs - 2 demo-block instances in the pre-fix log, 0
+      after - and NOT by any assertion, which is the honest version of how it surfaced. The two branches are now
+      ONE unconditional block, so every assertion runs at every geometry.
+      AND THE BOARD PIN IS GROUNDED IN THE GATE'S OWN MEASUREMENT, NOT IN AN EXTERNAL PROBE. Antagonist B's
+      cross-read asked for a latch detector here, warning that the demo and flip blocks are different VISITS and
+      can hold different boards, so a shared pin would be calibrated in one and asserted in the other. My first
+      attempt to ground it used an external probe after `D.states['practice-m0']` and measured 254.9 / 254.9 /
+      207.2 / 207.2 / 236.4 - and I did NOT use those numbers, because 207.2 does not reconcile with the pin it
+      was supposed to replace (231.55 - 8.36 = 223.19). The probe was reading a different moment of the visit.
+      The gate's OWN log, at the point `demoRow()` is called, gives 270.88 / 270.88 / 223.19 / 231.19 / 236.39,
+      and 231.55 - 223.19 = 8.36 reproduces the old pin to the hundredth - so the arithmetic closes and these are
+      the right numbers. They happen to equal the flip block's settled widths, but they are kept as a SEPARATE
+      constant and measured from `_dr.rowW` in this block's own visit, which is exactly B's point: the agreement
+      is an observation about this run, not a property to rely on. */
+   const DEMO_SETTLED={'short375':270.88,'390x568':270.88,'375x520':223.19,'320x520':231.19,'320x540':236.39}[geo];
    if(_dr){
-     L.say(_dr.needed!==null&&Math.abs(Math.round((_dr.btnR-_dr.rowR)*100)/100-_rowPred)<=0.6,
-       geo+': the ROW residual is exactly what the arithmetic predicts and nothing else - the button runs '+(Math.round((_dr.btnR-_dr.rowR)*100)/100)+'px past its own row, and the row\'s two resolved tracks plus gap need '+_dr.needed+'px against a row of '+_dr.rowW+'px (the board\'s own width), so the prediction is '+_rowPred+'px. Keyed to the MEASURED row rather than to the geometry NAME, because this board is multistable - at the 192.00 floor this residual is 39.55 and the pins this replaced read 8.36/0.36/0. REPORTED, not excused: closing it needs a wrap or a second row, which is a board-height cost and so Kunal\'s call.',
-       {past:Math.round((_dr.btnR-_dr.rowR)*100)/100,predicted:_rowPred,needed:_dr.needed,rowW:_dr.rowW,kids:_dr.kids});
-     L.say(_dr.needed!==null&&Math.abs(_dr.needed-DEMO_NEEDED)<=0.6,
-       geo+': and the TERM is pinned to a constant, which is what actually catches a regression here - the two resolved tracks plus gap need '+_dr.needed+'px against DEMO_NEEDED '+DEMO_NEEDED+'px. This is the assertion the board-relative form above CANNOT make, because `rowW` appears on both sides of it; truncate a label or change the padding and THIS goes red.',
-       {needed:_dr.needed,pinned:DEMO_NEEDED,rowW:_dr.rowW});
-     /* #424, ANTAGONIST A (F4): THE CAUSE IS PINNED HERE TOO, not just the box. The main loop's "the row can HOLD
-        it" assertion runs only at se/kunal730/390, so it does NOT run at either geometry where the row
-        demonstrably cannot hold its children - which is exactly where #415 built and reverted the
-        minWidth:0-plus-ellipsis. A box-only pin is satisfied by an ellipsis: truncate the label and the button
-        fits its track, the residual changes, and nothing says the words were eaten. Pinning the SHORTFALL
-        (resolved tracks plus gap, minus the row) makes that visible, because truncation drops `needed`. It equals
-        the box residual here by construction - the overflowing button is the last track - and that agreement is
-        itself the cross-check. */
-     /* #430: THE CAUSE NEEDS ITS OWN PIN, because it and the "past" assertion above measure DIFFERENT
-        quantities and shared one number for as long as every column overflowed. "past" is btnR - rowR, which
-        FLOORS AT 0 once the button is contained; the cause is needed - rowW, which keeps going NEGATIVE and
-        becomes the row's spare capacity. While all three columns overflowed the two happened to coincide, so one
-        pin served both and nothing noticed. #430's board gain made 320x540 fit, and there past is 0.00 while the
-        cause is -4.84 - so the shared pin went red on the healthy state. Pinned separately and SIGNED, which
-        also means this line now reports the margin at a column that fits instead of asserting it away. */
-     /* #468: WAS `const _causePin={'375x520':8.36,'320x520':0.36,'320x540':-4.84}[geo]` - the second landmine A
-        found, same fault, same block. Its -4.84 at 320x540 decodes to a board of 236.39 (231.55 + 4.84), i.e. it
-        was calibrated to the HEALTHY board at each column and would read 39.55 at the floor. Re-keyed to the
-        constant term minus the MEASURED board, so it states the mechanism instead of one of its outcomes. */
-     const _causePin=_dr&&_dr.rowW!=null?Math.round((DEMO_NEEDED-_dr.rowW)*100)/100:undefined;
-     L.say(!!_dr&&_dr.needed!==null&&Math.abs(Math.round((_dr.needed-_dr.rowW)*100)/100-_causePin)<=0.6,
-       geo+': and the CAUSE is where it was left - the row\'s two resolved tracks plus gap need '+(_dr&&_dr.needed)+'px against a row of '+(_dr&&_dr.rowW)+'px, a shortfall of '+(_dr&&Math.round((_dr.needed-_dr.rowW)*100)/100)+'px (pinned at '+_causePin+'; negative means the row FITS with that much to spare). Nothing was truncated to make the box fit: an ellipsis would drop this number and leave the box one happy.',
-       _dr&&{needed:_dr.needed,rowW:_dr.rowW,shortfall:Math.round((_dr.needed-_dr.rowW)*100)/100,pinned:_causePin,clone:_dr.neededClone,tracks:_dr.tracks});
-   } else {
-     /* #430 RE-KEYED THIS TO THE MEASURED BOARD, AND THAT IS THIS GATE'S OWN LESSON APPLIED TO ITSELF.
-        It asserted flat containment at every geometry NOT carrying a residual pin - i.e. it was keyed to the
-        GEOMETRY NAME. That is exactly the fault #406, #409 and #410 each fixed elsewhere in this file, whose
-        comments read "re-keyed the row to the BOARD" and "an assertion keyed to the right variable, run only
-        where every variable agrees, is still unable to fail". Here the variables stopped agreeing.
-        WHAT FORCED IT: at short375 the demo board measures 270.88 in most runs and 192.00 - its floor - in
-        others, STABLE WITHIN A RUN (two samples 500ms apart agree either way, so it is not a settle race), in
-        roughly 2 of 6 full runs of this gate. At 192 the row genuinely cannot hold its children, so flat
-        containment is FALSE and the gate went red on a build whose row measures -0.02px of residual whenever
-        the board reads 270.88. I could NOT establish the mechanism: driving demo-end fresh six times and
-        practice-then-demo six times gave 270.88 every time, so the trigger is something earlier in this gate's
-        own sequence that I have not isolated. It is filed as
-        jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29 rather than buried here.
-        SO THE ASSERTION NOW STATES THE PHYSICS, which is true at BOTH board widths and is what this file
-        already knows: the row is the board's own width, its two tracks plus gap need `needed` px, so it is
-        contained iff the board can hold them, and when it cannot the overflow is exactly needed - board. That
-        cannot be satisfied by an ellipsis (truncating the label DROPS `needed`, which is why the shortfall is
-        the pinned quantity elsewhere in this block) and it cannot be satisfied by the board changing size. It
-        is STRICTLY STRONGER than what it replaces: the old line was simply unable to make a true statement at
-        one of the two board widths this geometry produces. */
-     const _fits = !!_dr && _dr.needed!==null && _dr.needed <= _dr.rowW + 0.5;
-     const _over = !!_dr ? Math.round((_dr.btnR-_dr.rowR)*100)/100 : null;
-     const _pred = !!_dr && _dr.needed!==null ? Math.round(Math.max(0,_dr.needed-_dr.rowW)*100)/100 : null;
-     L.say(!!_dr && _dr.needed!==null && Math.abs(_over-_pred)<=0.6,
+     /* (1) THE RESIDUAL, BOARD-RELATIVE. #430 wrote this form for the geometries the pins did not cover and its
+        reasoning is unchanged: the row is the board's own width, its two tracks plus gap need `needed` px, so it
+        is contained iff the board can hold them and otherwise the overflow is exactly needed - rowW. It cannot be
+        satisfied by an ellipsis (truncating the label DROPS `needed`) and it passes at ANY board, which is why it
+        is NOT the latch detector - that is (3). */
+     const _fits = _dr.needed!==null && _dr.needed <= _dr.rowW + 0.5;
+     const _over = Math.round((_dr.btnR-_dr.rowR)*100)/100;
+     const _pred = _dr.needed!==null ? Math.round(Math.max(0,_dr.needed-_dr.rowW)*100)/100 : null;
+     L.say(_dr.needed!==null && Math.abs(_over-_pred)<=0.6,
        geo+': the demo row overflows its own row by exactly what the arithmetic predicts and by nothing else - '+
-       'the button runs '+_over+'px past a row ending at '+(_dr&&_dr.rowR)+', and the row\'s two min-content '+
-       'tracks plus gap need '+(_dr&&_dr.needed)+'px against a row of '+(_dr&&_dr.rowW)+'px (the board\'s own '+
-       'width), so the prediction is '+_pred+'px. '+(_fits?'The board HOLDS the row here, so the prediction is 0 '+
-       'and this is a containment assertion.':'The board CANNOT hold the row here, so the overflow is the known '+
-       '#424/#427 band (needed minus the board) and the assertion is that it is no worse than that.')+
-       ' Keyed to the MEASURED board rather than to the geometry name, because at 375x568 this board reads 270.88 '+
-       'in most runs and 192.00 in some - see the note above and the filed job',
-       _dr&&{btnR:_dr.btnR,rowR:_dr.rowR,needed:_dr.needed,rowW:_dr.rowW,overflow:_over,predicted:_pred,boardHoldsIt:_fits});
-     /* AND THE OVERFLOW IS STILL THE RECOVERABLE KIND, asserted rather than assumed - the half that actually
-        matters to a finger. A row overflow inside the viewport is recoverable; past the viewport it is not, and
-        CLAUDE.md names horizontal spill past the viewport as the one unrecoverable bug. */
-     L.say(!!_dr&&_dr.btnR<=vw+0.6,
+       'the button runs '+_over+'px past a row ending at '+_dr.rowR+', and the row\'s two min-content tracks plus '+
+       'gap need '+_dr.needed+'px against a row of '+_dr.rowW+'px (the board\'s own width), so the prediction is '+
+       _pred+'px. '+(_fits?'The board HOLDS the row here, so the prediction is 0 and this is a containment '+
+       'assertion.':'The board CANNOT hold the row here, so the overflow is the known #424/#427 band (needed '+
+       'minus the board) and the assertion is that it is no worse than that.')+
+       ' Keyed to the MEASURED row rather than to the geometry NAME, because this board is multistable - at the '+
+       '192.00 floor this residual is 39.55 and the two pins this replaced read 8.36/0.36/0 and 8.36/0.36/-4.84.',
+       {btnR:_dr.btnR,rowR:_dr.rowR,needed:_dr.needed,rowW:_dr.rowW,overflow:_over,predicted:_pred,boardHoldsIt:_fits});
+     /* (2) THE TERM, PINNED TO A CONSTANT. This is what actually catches a regression in this block, and it is the
+        assertion (1) cannot make, because `rowW` appears on both sides of (1). Truncate a label or change the
+        Flip/Other-lines padding and THIS goes red while (1) stays green. It replaces `_causePin`, which asserted
+        `needed - rowW == DEMO_NEEDED - rowW` - algebraically this same claim, reached the long way round. */
+     L.say(_dr.needed!==null && Math.abs(_dr.needed-DEMO_NEEDED)<=0.6,
+       geo+': and the TERM is pinned to a constant - the row\'s two resolved tracks plus gap need '+_dr.needed+
+       'px against DEMO_NEEDED '+DEMO_NEEDED+'px, geometry-independent under rowNarrow. Nothing was truncated to '+
+       'make the box fit: an ellipsis would DROP this number, which is why the term and not its consequence is '+
+       'the pinned quantity.',
+       {needed:_dr.needed,pinned:DEMO_NEEDED,rowW:_dr.rowW,tracks:_dr.tracks});
+     /* (3) THE LATCH DETECTOR, antagonist B's cross-read item 1. Without this the demo block has NO assertion
+        that can see the board shrink, because (1) is board-relative and (2) is blind to the board - which is the
+        exact trade B vetoed in the flip block and which repairing the two pins re-created here. EXPECTED TO FIRE:
+        a red means the board latched, NOT that the pin is stale. Do not re-key it and do not add latch values to
+        a legal set - the latch states are an open ladder (chess.jsx:2991-2992 adds ceil(over/8)*8+8 per pass), so
+        there is no finite set to enumerate. Mechanism and app fix:
+        jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29. */
+     if(DEMO_SETTLED!==undefined){
+       L.say(Math.abs(_dr.rowW-DEMO_SETTLED)<=0.6,
+         geo+': and the demo BOARD is at its settled width - '+_dr.rowW+'px against '+DEMO_SETTLED+
+         '. This is the DEMO block\'s own latch detector, measured in its own visit: the two pins #468 replaced '+
+         'here were carrying this bound in disguise, exactly as `_fp` was in the flip block, and repairing them '+
+         'board-relative would otherwise have left this block unable to see a 19% smaller board.',
+         {rowW:_dr.rowW,settled:DEMO_SETTLED,needed:_dr.needed});
+     }
+     /* (4) AND THE OVERFLOW IS STILL THE RECOVERABLE KIND, asserted rather than assumed - the half that matters
+        to a finger. A row overflow inside the viewport is recoverable; past the viewport it is not, and CLAUDE.md
+        names horizontal spill past the viewport as the one unrecoverable bug. THIS IS THE ASSERTION #468's FIRST
+        VERSION ORPHANED at short375 and 390x568; it now runs at all five. */
+     L.say(_dr.btnR<=vw+0.6,
        geo+': and it stays inside the VIEWPORT whichever board width this run got - the button ends at '+
-       (_dr&&_dr.btnR)+' against a viewport of '+vw+', so nothing is stranded off-screen',
-       _dr&&{btnR:_dr.btnR,vw:vw});
+       _dr.btnR+' against a viewport of '+vw+', so nothing is stranded off-screen',
+       {btnR:_dr.btnR,vw:vw});
+   } else {
+     L.say(false, geo+': the DEMO ROW WAS NOT FOUND, which is a failure and not a quiet skip (#385/#393: guard '+
+       'anything that measures a thing that might not be there, go red on its own assertion, and carry on)', {});
    }
    /* ══ #427: THE FLIP BRANCH, WHICH NO GATE HAD EVER ENTERED. jobs/flip-branch-overflows-its-row-and-no-gate-
       visits-it-2026-09-27, raised by BOTH of #424's blind antagonists (A's F1 and B's P1-B - one finding, two
