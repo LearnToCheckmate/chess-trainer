@@ -1,19 +1,47 @@
 // regress/20-review.js  The Review screen's regression suite: TC-R01..TC-R09 and TC-R11..TC-R14 of
-// claude/stories/TEST-CASES.md, executed on the bundle under test at Kunal's geometry (375x679, insets 51/31)
-// and at 390x844. The Opera Game (33 plies, 10.Nxb5!! at ply 19, 14.Rd1 at ply 27, 17.Rd8# at ply 33) is the
+// claude/stories/TEST-CASES.md, executed on the bundle under test at THREE geometries: 375x730, which is
+// Kunal's actual phone (lib.js GEOS.kunal730, and R19); 375x679, which is NOT his phone and is kept only as a
+// shorter-phone column (the 679 came from subtracting the 51pt status bar twice - CLAUDE.md corrects it by name,
+// and the header of this file asserted the wrong one from #348 to 2026-10-03); and 390x844. The Opera Game (33 plies, 10.Nxb5!! at ply 19, 14.Rd1 at ply 27, 17.Rd8# at ply 33) is the
 // fixture; its PGN carries WhiteElo/BlackElo so the rating pills render (#348). Every line is a measured claim.
 'use strict';
 const L=require('../lib');
 const PGN='[Event "Opera Game"] [Site "Paris"] [Date "1858.11.02"] [White "Morphy"] [Black "Duke Karl / Count Isouard"] [WhiteElo "2600"] [BlackElo "1800"] [Result "1-0"] 1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0';
-const CATS=['Brilliant','Great','Best','Good','Inaccuracy','Mistake','Miss','Blunder']; // the summary folds Excellent into Best (analyzeGameCounts)
+// THE TEN-GRADE LADDER, in the order the summary prints it. #421 un-folded Excellent; Book has always been a
+// row of its own. This file carried EIGHT names and a comment saying Excellent was folded into Best, which went
+// false at #421 and stayed in the file until 2026-10-03 (jobs/20-review-cats-frozen-at-eight).
+// IT IS RESTATED HERE ON PURPOSE AND MUST NOT BE DERIVED FROM THE APP'S OWN CATS ARRAY: test-authoring measured
+// that deriving it makes the assertion vacuous - it then agrees with any ladder the bundle happens to render,
+// which is the defect, not the check. The literal is the expectation; the count below is what stops it freezing.
+const LADDER=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'];
+// The Opera Game is 33 plies: White played 17, Black 16, and every ply gets exactly one grade, so each side's
+// ten counts must sum to its own ply count. That is a VALUE assertion over the counters and it is what tells a
+// broken counter from a correct one - the old assertion could not (it only looked for the words on the panel).
+const PLIES_W=17, PLIES_B=16;
 const step=async(b,n)=>{for(let i=0;i<n;i++){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});await b.page.waitForTimeout(140);}await b.settle(400);};
 const gridSig=(b)=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));if(!g)return '';return [...g.children].slice(0,64).map(c=>{const im=c.querySelector('img');return im?im.getAttribute('src').slice(-12):(c.innerText||'').trim().slice(0,2);}).join('|');});
 const badgesOutside=(b)=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));if(!g)return null;const R=g.getBoundingClientRect();const out=[];for(const e of g.querySelectorAll('div,span')){if(e.getAttribute('data-ct')==='rev-fab')continue;const st=getComputedStyle(e);if(st.borderRadius!=='50%'&&!/50%/.test(e.style.borderRadius||''))continue;const r=e.getBoundingClientRect();if(r.width<8||r.width>R.width/3)continue;const dx=Math.max(0,R.left-r.left,r.right-R.right),dy=Math.max(0,R.top-r.top,r.bottom-R.bottom);out.push({t:(e.innerText||'').trim().slice(0,3),dx:Math.round(dx*10)/10,dy:Math.round(dy*10)/10,top:Math.round(r.top*10)/10,left:Math.round(r.left*10)/10,w:Math.round(r.width)});}return {board:{top:R.top,left:R.left,w:R.width},badges:out};});
 const barInfo=(b)=>b.page.evaluate(()=>['pbar-top','pbar-bottom'].map(k=>{const e=document.querySelector('[data-ct="'+k+'"]');if(!e)return null;const r=e.getBoundingClientRect();let spill=0;for(const c of e.querySelectorAll('*')){const q=c.getBoundingClientRect();if(q.width===0)continue;spill=Math.max(spill,q.right-r.right,r.left-q.left,q.bottom-r.bottom,r.top-q.top);}return {h:Math.round(r.height*10)/10,spill:Math.round(spill*10)/10,text:(e.innerText||'').replace(/\s+/g,' ').slice(0,60)};}));
+// One row per grade in the summary's count table: the label span plus the two per-side count buttons. Read
+// PER ROW rather than as substring containment over the panel's concatenated innerText, because 'Book' appears
+// twice on the panel (the ladder row and the 'Book moves' skills row) and containment is satisfied by either.
+const ladderRows=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');if(!s)return null;
+  // The Skills panel below uses the SAME '1fr 56px 56px' grid, so the grid alone picks up twenty rows, not ten
+  // (measured 2026-10-03: 20 rows, the last ten being Skills). A ladder row - and only a ladder row - leads with
+  // the 9px round colour dot for its grade, so that is the discriminator.
+  const isLadder=(d)=>{const f=d.firstElementChild;if(!f)return false;const dot=f.firstElementChild;if(!dot)return false;
+    const st=getComputedStyle(dot);return /50%/.test(st.borderRadius||'')&&Math.round(parseFloat(st.width))<=12;};
+  return [...s.querySelectorAll('div')].filter(d=>/^1fr\s+56px\s+56px$/.test((d.style.gridTemplateColumns||'').trim())&&isLadder(d))
+    .map(d=>{const lab=((d.firstElementChild&&d.firstElementChild.innerText)||'').replace(/\s+/g,' ').trim();
+      const n=[...d.querySelectorAll('button')].map(x=>{const t=(x.innerText||'').trim();return /^\d+$/.test(t)?Number(t):null;});
+      return {label:lab,w:n[0],b:n[1]};});});
 const summaryCounts=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');return s?(s.innerText||'').replace(/\s+/g,' ').slice(0,8000):'';});
 
 L.run(async()=>{
-  for(const geo of ['kunal','390']){
+  // kunal730 ADDED 2026-10-03: this suite had never once run at Kunal's real 375x730. 679 stays as the
+  // shorter-phone column [CLAUDE.md], and the one literal pin in this file (the 349 board width) stays bound to
+  // 679 by its own geo check below rather than being moved - which reading changed has not been established.
+  for(const geo of ['kunal','kunal730','390']){
     const b=await L.launch({geo,name:'review-'+geo,store:{ct_pool:'3'}});await b.open();
     // TC-R01 import
     await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);
@@ -37,24 +65,55 @@ L.run(async()=>{
       return {x:Math.round(q.left),y:Math.round(q.top),w:Math.round(q.width),h:Math.round(q.height),
               press:!!h&&(h===e||e.contains(h))};});
     L.say(!!revMenu,geo+': the review summary has its own menu button (rev-summary-menu)',revMenu);
-    L.say(!!revMenu&&revMenu.y>=0&&revMenu.w>=30&&revMenu.h>=28,geo+': it is fully on screen and a real tap target',revMenu);
+    // 'fully on screen' used to be y>=0 alone, so an element at y=5000 or x=-40 passed under that label
+    // (jobs/fix-two-gate-comments-that-mislead part 2). All four edges are bounded now, against the geometry.
+    L.say(!!revMenu&&revMenu.y>=0&&revMenu.x>=0&&revMenu.y+revMenu.h<=b.geo.h+0.5&&revMenu.x+revMenu.w<=b.geo.w+0.5&&revMenu.w>=30&&revMenu.h>=28,
+      geo+': it is fully on screen - all four edges inside '+b.geo.w+'x'+b.geo.h+' - and a real tap target',revMenu);
     L.say(!!revMenu&&revMenu.press,geo+': elementFromPoint at its centre returns the button - nothing covers it',revMenu);
     /* GUARDED so a MISSING button goes red HERE and does not abort the other ninety assertions below.
        The first version of this block threw on the control bundle, which is red either way - but a gate that
        stops at the first absence hides every regression after it, and this gate is the Review screen's only
        coverage. Red, then carry on. */
-    let menuOpened=false;
+    let menuOpened=false,menuBox=null;
     if(revMenu){
       try{await b.tapCt('rev-summary-menu',700);
         menuOpened=await b.page.evaluate(()=>!!document.querySelector('[data-ct="menu-sheet"]'));
+        // Remember a point the OPEN menu covered, so closing it can be asserted at that point rather than by
+        // asking whether the summary still exists - which it always does (see the assertion below).
+        menuBox=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="menu-sheet"]');if(!e)return null;
+          const r=e.getBoundingClientRect();if(r.width<2||r.height<2)return null;
+          return {x:Math.round(r.left+r.width/2),y:Math.round(r.top+r.height/2)};});
         await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>(e.innerText||'').trim()==='✕');if(x)x.click();});
         await b.settle(500);
       }catch(e){L.note(geo+': tapping rev-summary-menu threw: '+((e&&e.message)||e));}
     }
     L.say(menuOpened,geo+': and TAPPING IT OPENS THE MENU - behaviour, not position',menuOpened);
-    L.say(!!(await b.rect('[data-ct="rev-summary"]')),geo+': and closing the menu returns to the summary (state restored for the assertions below)');
+    // WAS: `!!(await b.rect('[data-ct="rev-summary"]'))`. rect() does no visibility or coverage test and
+    // rev-summary is position:fixed inset:0 zIndex:500 mounted on inReview && reviewView==='summary', which
+    // opening the menu does not change - so the old line returned a full-viewport rect WITH THE MENU STILL OPEN,
+    // and passed trivially when no menu was ever opened. It restated a precondition
+    // (jobs/gate-20-review-two-assertions-that-cannot-fail-2026-09-29). Now: the sheet must be GONE, and the
+    // summary must be what a tap lands on at a point the menu was covering.
+    const closed=await b.page.evaluate((pt)=>{const m=document.querySelector('[data-ct="menu-sheet"]');
+      const gone=!m||getComputedStyle(m).display==='none'||m.getBoundingClientRect().width<2;
+      let back=null;if(pt){const h=document.elementFromPoint(pt.x,pt.y);const s=document.querySelector('[data-ct="rev-summary"]');
+        back=!!(h&&s&&(h===s||s.contains(h)));}
+      return {gone,back,hadPoint:!!pt};},menuBox);
+    L.say(!!closed&&closed.gone&&(!closed.hadPoint||closed.back===true),
+      geo+': and closing the menu returns to the summary - the sheet is gone and the summary is what a tap at the menu\'s old centre reaches',closed);
     const sumText=await summaryCounts(b);const foot=await b.rect('[data-ct="rev-summary-foot"]');
-    L.say(/Accuracy/i.test(sumText)&&CATS.every(c=>sumText.includes(c)),geo+': TC-R04 accuracy and the eight verdict categories are on the summary',CATS.filter(c=>!sumText.includes(c)));
+    const rows=await ladderRows(b);const labels=(rows||[]).map(r=>r.label);
+    L.say(/Accuracy/i.test(sumText),geo+': TC-R04 the summary names Accuracy');
+    // (a) the COUNT, which is what stops the expectation freezing while the summary grows: ten rows, not eight.
+    L.say(!!rows&&rows.length===LADDER.length,geo+': TC-R04 the summary prints all '+LADDER.length+' grade rows ('+((rows&&rows.length)||0)+')',labels);
+    // (b) per row, in order, so a label that only appears elsewhere on the panel (Book, twice) cannot satisfy it.
+    L.say(!!rows&&labels.join('|')===LADDER.join('|'),geo+': TC-R04 the grade rows are the ten-grade ladder, in order',{got:labels,want:LADDER});
+    // (c) a VALUE: every ply carries exactly one grade, so each side's row counts sum to its own ply count. The
+    // old assertion was label containment and could not tell a correct counter from a broken one.
+    const sumW=(rows||[]).reduce((a,r)=>a+(r.w||0),0),sumB=(rows||[]).reduce((a,r)=>a+(r.b||0),0);
+    L.say(!!rows&&rows.length>0&&sumW===PLIES_W&&sumB===PLIES_B,
+      geo+': TC-R04 the grade counts account for every ply of the Opera Game (white '+sumW+'/'+PLIES_W+', black '+sumB+'/'+PLIES_B+')',
+      {rows:(rows||[]).map(r=>r.label+':'+r.w+'/'+r.b)});
     L.say(!!foot&&foot.y+foot.h<=b.geo.h+0.5&&foot.y>b.geo.h*0.5,geo+': TC-R04 summary footer pinned inside the viewport (bottom '+(foot&&Math.round(foot.y+foot.h))+' of '+b.geo.h+')');
     const skills=await b.rect('[data-ct="rev-skills"]');L.say(!!skills,geo+': TC-R05 Skills panel present');
     // TC-R05 skills jump: Morphy's rook to an open file, 14.Rd1 = ply 27
@@ -78,7 +137,13 @@ L.run(async()=>{
     const ws=new Set(Object.values(at).map(x=>x.board&&x.board.w)),tops=new Set(Object.values(at).map(x=>x.board&&x.board.top));
     L.say(ws.size===1&&tops.size===1&&!ws.has(null),geo+': TC-R06 one board width and one top across plies 0/10/19/33',{ws:[...ws],tops:[...tops]});
     if(geo==='kunal')L.say(at.p0.board&&Math.abs(at.p0.board.w-349)<0.6,'kunal: TC-R06 review board is 349 wide ('+(at.p0.board&&at.p0.board.w)+')');
-    L.say(Object.values(at).every(x=>x.over.over<=0&&x.over.docScroll===0),geo+': TC-R06 nothing scrolls at any ply',Object.values(at).map(x=>x.over.over));
+    // The docScroll===0 conjunct that used to sit beside this one is GONE. index.html:39 sets body{overflow:hidden}
+    // and makes #root the scroller, so documentElement scrollHeight minus clientHeight is 0 on every screen in
+    // every state BY DESIGN and that half could never redden - while reading as though it covered reachability.
+    // The remaining half is the real measurement: the bottom-most laid-out child of #root against the viewport.
+    // Reachability on this screen is gate 40's job (gates/regress/40-reachability.js), which scrolls the ancestor
+    // and re-reads the rect. Filed as jobs/gate-20-docscroll-conjunct-is-true-by-construction-2026-10-01.
+    L.say(Object.values(at).every(x=>x.over.over<=0),geo+': TC-R06 no laid-out content overflows the viewport at any ply (bottom-most child vs viewport)',Object.values(at).map(x=>x.over.over));
     L.say(Object.values(at).every(x=>x.bars&&x.bars[0]&&x.bars[1])&&new Set(Object.values(at).map(x=>x.bars[0].h+'/'+x.bars[1].h)).size===1,geo+': TC-R14 player bars keep one height across plies',Object.values(at).map(x=>x.bars&&x.bars.map(y=>y.h)));
     L.say(Object.values(at).every(x=>x.bars.every(y=>y.spill<=0.5)),geo+': TC-R14 nothing spills out of a player bar',Object.values(at).map(x=>x.bars.map(y=>y.spill)));
     const rat=await b.page.evaluate(()=>['w','b'].map(c=>{const e=document.querySelector('[data-ct="pbar-rating-'+c+'"]');return e?(e.innerText||'').trim():null;}));
