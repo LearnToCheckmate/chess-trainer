@@ -37,6 +37,58 @@
 # That asymmetry is the same one gates/verify-log.sh already draws between its default checks and --this-bundle,
 # and for the same reason: a guard that fires on the normal case gets switched off.
 #
+#
+# THE COMMITTED-SELF ANCHOR, ADDED HERE FOR
+# jobs/the-gate-manifest-can-be-weakened-by-hand-and-only-git-can-object-2026-10-02 (antagonist B on #461,
+# grounds F5 and F6; its baseline question was answered on the job by #467). Everything above this block
+# compares the manifest against the TREE or against ITSELF, and B's point is that both of those are editable in
+# the same breath as the edit: `grep -n git gates/gatemanifest.sh` returned one comment and no invocation, so
+# deleting a row, commenting it out, or flipping `required` -> `absent` with the single character `x` as the
+# reason all reached exit 0. The only baseline a hand edit cannot satisfy is the manifest's own committed copy.
+#
+# (1) WHICH BASELINE: origin/main, FALLING BACK TO HEAD, AND NOT CHECKED WHEN NEITHER RESOLVES. The job
+#     recorded this as a dilemma - "every build that legitimately adds a gate reports a diff against main until
+#     it pushes, which is the normal case, and a guard that fires on the normal case gets switched off" - and
+#     that clause is false, which is why the choice is free. This is NOT A DIFF. It reports only rows that
+#     VANISHED and rows whose state WEAKENED. Adding a gate ADDS a row: nothing vanishes and nothing weakens,
+#     so the normal case is invisible to it. origin/main is therefore the baseline, because it also catches
+#     weakening that already LANDED, which is the case HEAD is blind to and the case that matters. HEAD is the
+#     fallback for a clone with no remote ref (a routine clone is shallow at --depth 50 and the remote-tracking
+#     ref may not resolve) and the baseline that resolved is NAMED in the output, so a reader knows which
+#     question was answered.
+#
+# (2) WHAT COUNTS AS WEAKENING, AND THE ONE EXEMPTION. required -> absent or required -> retired is weakening.
+#     absent -> retired is not: the gate had already left. The exemption is keyed to the TOOL'S OWN TOKEN and
+#     to the state, not to the presence of a reason, because "say something" is the bar #461 already set and
+#     the single character `x` cleared it:
+#       required -> retired  is exempt WHEN field 7 begins `RETIRED at `, which is the exact prefix the
+#                            `retire` subcommand below writes and nothing else does. That keeps the legitimate
+#                            door open - a real retire stays clean before it is committed.
+#       required -> absent   has NO exemption, because no subcommand in this file ever writes `absent`. A row
+#                            in that state is either seeded that way or was typed by hand, and the typed case
+#                            is exactly #461's and #462's measured hole.
+#     SAID PLAINLY, BECAUSE THE JOB'S OWN STANDARD IS THAT A GUARD MUST NOT BE TAKEN FOR MORE THAN IT IS: an
+#     attacker who writes `RETIRED at 999 (2026-10-03, x): x` into field 7 of a retired row still passes. What
+#     this closes is the cheap edit; what it raises the bar to is forging the tool's own token into a row that
+#     then names a build and a runId a reader can check against the commit. It is a narrowing, not a closure,
+#     and A's "fix the anchor, not the alphabet" still applies to field 7's CONTENT.
+#
+# (3) IT DEGRADES TO NOT CHECKED, NEVER TO A PASS, and never to a hard failure either. No git on PATH, the
+#     script outside a work tree, or the manifest untracked at both refs prints `gate anchor: NOT CHECKED -
+#     <why>` and leaves the exit code to the checks above. That is deliberate and it is the asymmetry this file
+#     already draws twice: a run from a copied directory or a tree with no git is not a weakened manifest, and
+#     a guard that reddens it gets switched off. NOT CHECKED is not a silence - it is a token in the output,
+#     with no counts in it, so a consumer can refuse it.
+#
+# (4) WHAT IS NOT DONE HERE, AND IT IS THE HALF THAT REACHES THE PUSH GATE. The job's work item 5 says to put
+#     the count in the `gate manifest:` summary line. THAT WOULD BREAK THE PUSH GATE: gates/verify-log.sh's
+#     MANIRE is anchored at both ends over exactly eight fields, so a ninth field makes every log fail to parse
+#     and be REFUSED. Measured on this tree, not inferred - the regex is at gates/verify-log.sh:331 and ends
+#     `([0-9]+) unreadable$`. The anchor counts therefore go in a SEPARATE `gate anchor:` line, which gates.sh
+#     already tees into the log because it prints this script's whole output, and which verify-log.sh ignores
+#     because it greps `^gate manifest:`. So the count reaches the LOG but not the push GATE, and closing that
+#     needs an arm in gates/verify-log.sh - a second file this run did not hold.
+#
 # WHAT THIS CANNOT DO, SAID HERE RATHER THAN DISCOVERED LATER [#419, "a gate log's footer cannot vouch for the
 # file it was derived from"]. The summary line this script writes into the log is computed by this script, so
 # verify-log.sh reading it back is reading a CLAIM, not an independent measurement - exactly as the PASS-count
@@ -79,6 +131,11 @@ fi
 # ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 rows(){ grep -v '^[[:space:]]*#' "$M" | grep -v '^[[:space:]]*$'; }
 diskgates(){ for f in "$REG"/*.js; do [ -e "$f" ] && basename "$f"; done | sort; }
+
+# THE RANK IS A FUNCTION SO THE TWO CALLERS CANNOT DRIFT, and it takes its value as $1 and returns it on stdout
+# rather than writing a shared name: #467's own build report records a defect in this very file caused by two
+# functions sharing an unlocalised `gate`, so nothing here assigns to a caller's variable.
+mstate_rank(){ case "$1" in required) echo 2;; absent|retired) echo 1;; *) echo 0;; esac; }
 
 case "$CMD" in
 check)
@@ -205,11 +262,85 @@ check)
     echo "  Somebody wrote those rows meaning to require a gate. Until they are fixed this check cannot tell you"
     echo "  whether a gate is missing - and the count below EXCLUDES them, so it would understate `required`."
   fi
+  # ── THE COMMITTED-SELF ANCHOR. See the block at the head of this file for the baseline decision, the one
+  # exemption, and what this deliberately does NOT reach. Nothing below pipes into `grep -q`: every membership
+  # test is a herestring or an awk pass, for the SIGPIPE reason recorded at the top of this file.
+  ANCHOR_BASE=""; ANCHOR_WHY=""; VANISHED=""; WEAKENED=""; NVAN=0; NWEAK=0
+  GITROOT=""
+  if ! command -v git >/dev/null 2>&1; then
+    ANCHOR_WHY="git is not on PATH"
+  else
+    GITROOT="$(git -C "$G" rev-parse --show-toplevel 2>/dev/null || true)"
+    if [ -z "$GITROOT" ]; then
+      ANCHOR_WHY="$G is not inside a git work tree (a script run from a copied directory is the common case)"
+    else
+      MANIREL="${M#"$GITROOT"/}"
+      if git -C "$GITROOT" cat-file -e "origin/main:$MANIREL" 2>/dev/null; then
+        ANCHOR_BASE="origin/main"
+      elif git -C "$GITROOT" cat-file -e "HEAD:$MANIREL" 2>/dev/null; then
+        ANCHOR_BASE="HEAD"
+      else
+        ANCHOR_WHY="$MANIREL is tracked at neither origin/main nor HEAD"
+      fi
+    fi
+  fi
+  if [ -n "$ANCHOR_BASE" ]; then
+    # Field 1 and field 2 of the baseline's rows, and field 7 of the WORKING row for the retire exemption.
+    BASEPAIRS="$(git -C "$GITROOT" show "$ANCHOR_BASE:$MANIREL" 2>/dev/null \
+      | grep -v '^[[:space:]]*#' | grep -v '^[[:space:]]*$' \
+      | awk -F'\t' -v OFS='\t' 'NF>1{gsub(/[ \r]/,"",$1); gsub(/[ \r]/,"",$2); print $1,$2}' || true)"
+    if [ -z "$BASEPAIRS" ]; then
+      ANCHOR_BASE=""; ANCHOR_WHY="the baseline copy of $MANIREL read back with no rows in it"
+    else
+      NOWPAIRS="$(rows | awk -F'\t' -v OFS='\t' 'NF>1{gsub(/[ \r]/,"",$1); gsub(/[ \r]/,"",$2); print $1,$2,$7}')"
+      while IFS="$(printf '\t')" read -r bg bs; do
+        [ -n "$bg" ] || continue
+        cur="$(awk -F'\t' -v g="$bg" '$1==g{print $2; exit}' <<<"$NOWPAIRS")"
+        if [ -z "$cur" ]; then
+          VANISHED="$VANISHED$bg (row was $bs at $ANCHOR_BASE; no row here at all)"$'\n'
+          continue
+        fi
+        br="$(mstate_rank "$bs")"; cr="$(mstate_rank "$cur")"
+        [ "$br" -gt 0 ] && [ "$cr" -gt 0 ] || continue
+        [ "$cr" -lt "$br" ] || continue
+        cnote="$(awk -F'\t' -v g="$bg" '$1==g{print $3; exit}' <<<"$NOWPAIRS")"
+        case "$cur" in
+          retired) case "$cnote" in "RETIRED at "*) continue;; esac;;
+        esac
+        WEAKENED="$WEAKENED$bg ($bs at $ANCHOR_BASE -> $cur here)"$'\n'
+      done <<<"$BASEPAIRS"
+      NVAN=$(printf '%s' "$VANISHED" | grep -c . || true)
+      NWEAK=$(printf '%s' "$WEAKENED" | grep -c . || true)
+    fi
+  fi
+  if [ -n "$VANISHED" ]; then
+    echo "MANIFEST ROW(S) VANISHED SINCE $ANCHOR_BASE - the committed manifest has a row this tree does not:"
+    printf '%s' "$VANISHED" | sed 's/^/    /'
+    echo "  \"A ROW IS NEVER DELETED, which is the whole mechanism\" - gates/gate-manifest.tsv's own header. A"
+    echo "  deleted row and a row commented out with a leading # are the same thing to every check in this file"
+    echo "  except this one, because both stop being rows. To remove a gate, keep the row:"
+    echo "      gates/gatemanifest.sh retire <gate> 'the reason'"
+  fi
+  if [ -n "$WEAKENED" ]; then
+    echo "MANIFEST ROW(S) WEAKENED SINCE $ANCHOR_BASE - a gate this tree's own history requires is no longer required:"
+    printf '%s' "$WEAKENED" | sed 's/^/    /'
+    echo "  required -> absent is never written by this tool, so a row in that state was typed by hand, and a"
+    echo "  reason in field 7 is not a substitute for the one door that records the removal:"
+    echo "      gates/gatemanifest.sh retire <gate> 'the reason'    (which writes 'RETIRED at ...' and is exempt)"
+  fi
+  if [ -n "$ANCHOR_BASE" ]; then
+    echo "gate anchor: $ANCHOR_BASE, $NVAN vanished, $NWEAK weakened"
+  else
+    echo "gate anchor: NOT CHECKED - $ANCHOR_WHY"
+  fi
   NUNJ=$(printf '%s' "$UNJUSTIFIED" | grep -c . || true)
   # MALFORMED IS IN THIS LINE BECAUSE THIS LINE IS THE CARRIER. gates.sh copies it into the log footer and
   # gates/verify-log.sh reads it back; a count that is not here is invisible to the push gate [B's F2].
   echo "gate manifest: $NREQ required, $NPRES present, $NMISS missing, $NUNL unlisted, $NABS known-absent, $NRET retired, $NUNJ unjustified, $MALFORMED unreadable"
-  { [ -n "$MISSING" ] || [ -n "$UNJUSTIFIED" ] || [ "$MALFORMED" -gt 0 ]; } && exit 1
+  # VANISHED AND WEAKENED ARE HARD, for the reason the UNLISTED/MISSING asymmetry above already gives: neither
+  # happens when a build legitimately adds a gate, so neither can fire on the normal case, and while one stands
+  # the suite is covering less than this tree's own history says it must.
+  { [ -n "$MISSING" ] || [ -n "$UNJUSTIFIED" ] || [ "$MALFORMED" -gt 0 ] || [ -n "$VANISHED" ] || [ -n "$WEAKENED" ]; } && exit 1
   [ -n "$UNLISTED" ] && exit 2
   exit 0
   ;;
@@ -391,6 +522,124 @@ PY5
   if grep -q 'COMMENTED OUT' <<<"$out" && grep -q '41-coach-bubble' <<<"$out"; then
     echo "PASS selftest: the commented-out row is named, not silently uncounted"; pass=$((pass+1))
   else echo "FAIL selftest: a commented-out row was not reported"; fail=$((fail+1)); fi
+  # ── 20 to 27: THE COMMITTED-SELF ANCHOR. These cannot run against $T, because $T is a mktemp directory and
+  # therefore not a git work tree - which is itself case 27. So they build a THROWAWAY REPOSITORY, commit the
+  # real manifest and a stub regress/ into it, and attack the working copy. Every case crosses the threshold -
+  # the verdict changes - rather than disturbing the mechanism: #467's own report records that a control which
+  # only perturbs is what let a de-requirement through, and case 7 in this very file is the example.
+  # AND THE SCRIPT IS RUN IN PLACE, under $GT/gates/, never from the temp root: these scripts resolve their
+  # registers from `dirname $0`, so a copy outside gates/ loses the manifest and reports NOT CHECKED, which
+  # reads as a pass or a failure depending on which way you hold it [#467, notes/build__1790976005325__1].
+  if command -v git >/dev/null 2>&1; then
+    GT="$(mktemp -d)"; trap 'rm -rf "$T" "$GT"' EXIT
+    mkdir -p "$GT/gates/regress"
+    cp "$M" "$GT/gates/gate-manifest.tsv"; cp "$0" "$GT/gates/gatemanifest.sh"; chmod +x "$GT/gates/gatemanifest.sh"
+    for f in "$REG"/*.js; do [ -e "$f" ] && : > "$GT/gates/regress/$(basename "$f")"; done
+    GM="$GT/gates/gatemanifest.sh"; GMF="$GT/gates/gate-manifest.tsv"
+    ( cd "$GT" && git init -q -b main . \
+        && git -c user.email=selftest@local -c user.name=selftest add -A \
+        && git -c user.email=selftest@local -c user.name=selftest commit -qm "selftest seed" ) >/dev/null 2>&1
+    reset_gt(){ ( cd "$GT" && git checkout -q -- . && git clean -qfd ) >/dev/null 2>&1; }
+    # 20. the control that proves the rest: a tree identical to its committed manifest is clean, and the
+    #     baseline that resolved is NAMED. There is no remote in this repo, so this is the HEAD fallback.
+    ck 0 "ANCHOR: a tree identical to its committed manifest is clean" "$GM" check
+    out="$("$GM" check 2>&1)" || true
+    if grep -q '^gate anchor: HEAD, 0 vanished, 0 weakened$' <<<"$out"; then
+      echo "PASS selftest: ANCHOR names the baseline that resolved and reports 0 and 0"; pass=$((pass+1))
+    else echo "FAIL selftest: ANCHOR did not print the HEAD-fallback carrier line"; echo "$out" | sed 's/^/      /'; fail=$((fail+1)); fi
+    # 21. ROUTE 2 OF B's THREE: delete the row outright, with the gate gone too so nothing else objects.
+    #     Every other check in this file reads the manifest, so a row that is not there is not a complaint.
+    rm -f "$GT/gates/regress/29-draws.js"
+    python3 - "$GMF" <<'PY6'
+import sys
+p=sys.argv[1]; ls=open(p).read().split("\n")
+open(p,'w').write("\n".join(l for l in ls if not l.startswith("29-draws.js\t")))
+PY6
+    ck 1 "ANCHOR: a row DELETED outright is a hard failure" "$GM" check
+    out="$("$GM" check 2>&1)" || true
+    if grep -q 'VANISHED' <<<"$out" && grep -q '29-draws.js' <<<"$out" && grep -q '1 vanished' <<<"$out"; then
+      echo "PASS selftest: ANCHOR names the vanished row and counts it in the carrier line"; pass=$((pass+1))
+    else echo "FAIL selftest: ANCHOR did not name or count the deleted row"; fail=$((fail+1)); fi
+    reset_gt
+    # 22. ROUTE 1, AND THIS IS THE DEFECT THE JOB WAS FILED FOR. required -> absent with the single character
+    #     `x` as the reason, gate deleted. #461 made a MISSING reason hard, so this cleared the bar and exited 0.
+    rm -f "$GT/gates/regress/21-review-brilliant.js"
+    python3 - "$GMF" <<'PY7'
+import sys
+p=sys.argv[1]; ls=open(p).read().split("\n")
+for i,l in enumerate(ls):
+    if l.startswith("21-review-brilliant.js\t"):
+        f=l.split("\t"); f[1]="absent"; f[6]="x"; ls[i]="\t".join(f)
+open(p,'w').write("\n".join(ls))
+PY7
+    ck 1 "ANCHOR: required -> absent with the reason 'x' is a hard failure (exit 0 before this)" "$GM" check
+    out="$("$GM" check 2>&1)" || true
+    if grep -q 'WEAKENED' <<<"$out" && grep -q '1 weakened' <<<"$out"; then
+      echo "PASS selftest: ANCHOR names the weakening and counts it in the carrier line"; pass=$((pass+1))
+    else echo "FAIL selftest: ANCHOR did not report the required->absent flip"; fail=$((fail+1)); fi
+    reset_gt
+    # 23. THE EXEMPTION IS KEYED TO THE STATE AS WELL AS THE TOKEN. The same flip to `absent` carrying a
+    #     forged `RETIRED at ...` reason is STILL hard, because no subcommand here ever writes `absent`.
+    rm -f "$GT/gates/regress/21-review-brilliant.js"
+    python3 - "$GMF" <<'PY8'
+import sys
+p=sys.argv[1]; ls=open(p).read().split("\n")
+for i,l in enumerate(ls):
+    if l.startswith("21-review-brilliant.js\t"):
+        f=l.split("\t"); f[1]="absent"; f[6]="RETIRED at 999 (2026-10-03, x): x"; ls[i]="\t".join(f)
+open(p,'w').write("\n".join(ls))
+PY8
+    ck 1 "ANCHOR: required -> absent is hard even with a retire-shaped reason" "$GM" check
+    reset_gt
+    # 24. THE LEGITIMATE DOOR MUST STAY OPEN, and this is the case that decided the exemption's shape: a real
+    #     retire weakens a row in the working tree, so an anchor with no exemption would redden it.
+    rm -f "$GT/gates/regress/41-coach-bubble.js"
+    ck 0 "ANCHOR: a LEGITIMATE retire runs" "$GM" retire 41-coach-bubble.js "selftest: the legitimate door"
+    ck 0 "ANCHOR: and the tree it leaves behind is clean" "$GM" check
+    reset_gt
+    # 25. ROUTE 3: commented out with a leading #. The DISABLED detector already makes this hard, so the
+    #     threshold this case crosses is the anchor's own: the row must be named as VANISHED as well, because
+    #     to the anchor a commented row and a deleted row are the same event and only one of them has a detector.
+    rm -f "$GT/gates/regress/34-takeback.js"
+    python3 - "$GMF" <<'PY9'
+import sys
+p=sys.argv[1]; ls=open(p).read().split("\n")
+for i,l in enumerate(ls):
+    if l.startswith("34-takeback.js\t"): ls[i]="#"+l
+open(p,'w').write("\n".join(ls))
+PY9
+    out="$("$GM" check 2>&1)"; rc=$?
+    if [ "$rc" = 1 ] && grep -q 'VANISHED' <<<"$out" && grep -q '34-takeback.js (row was required' <<<"$out"; then
+      echo "PASS selftest: ANCHOR reports a COMMENTED-OUT row as vanished, not only as disabled"; pass=$((pass+1))
+    else echo "FAIL selftest: ANCHOR did not report the commented-out row (rc=$rc)"; fail=$((fail+1)); fi
+    reset_gt
+    # 26. THE NORMAL CASE MUST NOT FIRE, which is the whole reason origin/main was affordable as a baseline.
+    #     A build that legitimately ADDS a gate adds a row: nothing vanishes and nothing weakens.
+    : > "$GT/gates/regress/98-selftest-new-gate.js"
+    printf '// a stub a build added\n' > "$GT/gates/regress/98-selftest-new-gate.js"
+    ck 0 "ANCHOR: a legitimate sync adding a gate runs" "$GM" sync "selftest: a build adding a gate"
+    out="$("$GM" check 2>&1)"; rc=$?
+    if [ "$rc" = 0 ] && grep -q '0 vanished, 0 weakened' <<<"$out"; then
+      echo "PASS selftest: ANCHOR is silent on an ADDED gate - the normal case does not fire it"; pass=$((pass+1))
+    else echo "FAIL selftest: ANCHOR fired on a legitimately added gate (rc=$rc)"; fail=$((fail+1)); fi
+    reset_gt
+    # 27. NOT CHECKED, NEVER A PASS AND NEVER A HARD FAILURE. $T is a mktemp copy and not a work tree, so this
+    #     is the real degradation path and not a simulation of one. The exit code must be the one the checks
+    #     above would have given on their own - here 0 - and the token must say so.
+    # $T IS RESTORED FIRST, AND THE FIRST VERSION OF THIS CASE DID NOT DO IT AND FAILED FOR THE WRONG REASON:
+    # cases 2 to 19 leave $T carrying a commented-out row and three deleted stubs, so `check` there exits 1 on
+    # the DISABLED detector and the case read as "the anchor changed the exit code" when the anchor had not been
+    # consulted at all. A control whose setup is not reset measures the previous control.
+    cp "$T/kept2.tsv" "$T/gate-manifest.tsv"
+    for f in "$REG"/*.js; do [ -e "$f" ] && : > "$T/regress/$(basename "$f")"; done
+    rm -f "$T/regress/99-brand-new.js" "$T/regress/29-draws-renamed.js"
+    out="$("$T/gatemanifest.sh" check 2>&1)"; rc=$?
+    if grep -q '^gate anchor: NOT CHECKED - ' <<<"$out" && ! grep -q 'gate anchor:.*vanished' <<<"$out" && [ "$rc" = 0 ]; then
+      echo "PASS selftest: outside a git work tree the anchor reads NOT CHECKED, carries no counts, and reddens nothing"; pass=$((pass+1))
+    else echo "FAIL selftest: the no-git path did not read NOT CHECKED or changed the exit code (rc=$rc)"; fail=$((fail+1)); fi
+  else
+    echo "SKIP selftest: cases 20-27 need git on PATH and it is not here - the anchor itself reads NOT CHECKED"
+  fi
   echo "selftest: $pass passed, $fail failed"
   [ "$fail" -eq 0 ] || exit 1
   exit 0
