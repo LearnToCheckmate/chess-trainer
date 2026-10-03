@@ -53,6 +53,35 @@ async function tapBtn(b,re,wait){
   await b.page.waitForTimeout(150);const box=await el.boundingBox();
   await b.page.mouse.click(box.x+box.width/2,box.y+box.height/2);await b.page.waitForTimeout(wait==null?500:wait);return box;
 }
+// START A GAME FROM THE SETUP SHEET, HANDLING THE #469 CONFIRM. Use this and never tapBtn(/^▶ Start game$/)
+// directly from a state that may already have a game on the board.
+//
+// WHY IT EXISTS, measured rather than reasoned. #469 made the primary button ARM when a game is already in
+// progress - one tap sets a confirm state and relabels to "Tap again to discard your game and start", a second
+// tap starts the new game - which is the #375 Resign pattern and the whole point of that build: one tap must
+// not be able to destroy a game you are playing. Every start state here tapped the button ONCE, so after that
+// change any state that follows a live game left the sheet UP with the label changed, and the walk carried on
+// measuring the setup sheet while believing it was on the next screen.
+//
+// WHAT THAT COST, so the next person does not re-derive it: gate 26's walk runs many states in ONE browser and
+// `play-captures` (18 plies, game still live) runs immediately before `play-gameover`. Measured at #469 over
+// three complete runs of gates/regress/26-invariants.js - origin/main's source scores 364 PASS / 0 FAIL, and
+// #469's bundle af44e6a3b231 scores 357 PASS / 7 FAIL TWICE, the same seven, six of them on play-gameover and
+// one of them listing `setup-resume` among 36 controls "excluded as occluded". 364 = 357 + 7 exactly. The gate
+// was right and the DRIVER was wrong: it modelled a one-tap interaction the app no longer has.
+//
+// THE FIRST TAP IS UNCONDITIONAL because the label is still "▶ Start game" before it arms; only the second is
+// conditional. The check reads the button's own TEXT rather than a flag the fix added, so it works on a bundle
+// that does not arm at all - which is what keeps this helper usable against older bundles as a control.
+async function tapStart(b,wait){
+  const box=await tapBtn(b,/^▶ Start game$/,wait);
+  const armed=await b.page.evaluate(()=>{
+    const e=document.querySelector('[data-ct="setup-start"]');
+    return !!e&&/tap again/i.test((e.innerText||'').trim());
+  });
+  if(armed)await tapBtn(b,/^Tap again to discard your game and start$/,wait);
+  return box;
+}
 // plies on the board, read from the live move row ("1. e4 1… e5 2. Nf3" -> 3)
 async function plies(b){return b.page.evaluate(()=>{const e=document.querySelector('[data-ct="play-moverow"]');if(!e)return -1;const t=(e.innerText||'').trim();const m=[...t.matchAll(/(\d+)(\.|…)\s*(\S+)/g)];if(!m.length)return 0;const last=m[m.length-1];return last[2]==='.'?2*(+last[1])-1:2*(+last[1]);});}
 async function waitPlies(b,n,ms){const t0=Date.now();while(Date.now()-t0<(ms||20000)){if((await plies(b))>=n)return Date.now()-t0;await b.page.waitForTimeout(50);}throw new Error('waitPlies('+n+') timed out, have '+(await plies(b)));}
@@ -85,7 +114,7 @@ S['setup-passplay']=async(b)=>{await b.home();await b.tile('Play');await b.settl
 S['setup-online']=async(b)=>{await b.home();await b.tile('Play');await b.settle(500);await tapBtn(b,/^Online$/,500);await scrollSheetTop(b);};
 S['online-continue']=async(b)=>{await S['setup-online'](b);await tapBtn(b,/^Continue/,1200);};
 // vs Computer (Pip, White)
-S['cpu-m0']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Pip\n/,200);await tapBtn(b,/^▶ Start game$/,900);await ensureMovesShown(b);};
+S['cpu-m0']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Pip\n/,200);await tapStart(b,900);await ensureMovesShown(b);};
 S['cpu-1e4']=async(b)=>{await S['cpu-m0'](b);await b.move('e2','e4',0);await b.settle(120);};
 S['cpu-reply']=async(b)=>{await S['cpu-1e4'](b);await waitPlies(b,2);await b.settle(500);};
 S['cpu-4ply']=async(b)=>{await S['cpu-reply'](b);await b.move('g1','f3',0);await waitPlies(b,4);await b.settle(500);};
@@ -104,11 +133,11 @@ S['cpu-more']=async(b)=>{await S['cpu-4ply'](b);await tapBtn(b,/^More$/,500);};
 S['cpu-resigned']=async(b)=>{await S['cpu-more'](b);await tapBtn(b,/^Resign$/,600);await tapBtn(b,/^Tap again to resign$/,1100);};
 S['cpu-resigned-more']=async(b)=>{await S['cpu-resigned'](b);await tapBtn(b,/^More$/,500);};
 S['cpu-rematch']=async(b)=>{await S['cpu-resigned'](b);await tapBtn(b,/^Rematch$/,900);};
-S['cpu-black']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Pip\n/,200);await tapBtn(b,/^Black$/,200);await tapBtn(b,/^▶ Start game$/,600);await ensureMovesShown(b);await waitPlies(b,1);await b.settle(500);};
-S['cpu-clock-m0']=async(b)=>{await S['setup-clock'](b);await tapBtn(b,/^Pip\n/,200);await tapBtn(b,/^▶ Start game$/,900);await ensureMovesShown(b);};
-S['cpu-viktor-1e4']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Viktor\n/,200);await tapBtn(b,/^▶ Start game$/,900);await ensureMovesShown(b);await b.move('e2','e4',0);};
+S['cpu-black']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Pip\n/,200);await tapBtn(b,/^Black$/,200);await tapStart(b,600);await ensureMovesShown(b);await waitPlies(b,1);await b.settle(500);};
+S['cpu-clock-m0']=async(b)=>{await S['setup-clock'](b);await tapBtn(b,/^Pip\n/,200);await tapStart(b,900);await ensureMovesShown(b);};
+S['cpu-viktor-1e4']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Viktor\n/,200);await tapStart(b,900);await ensureMovesShown(b);await b.move('e2','e4',0);};
 // Pass & Play
-S['pp-m0']=async(b)=>{await S['setup-passplay'](b);await tapBtn(b,/^▶ Start game$/,900);await ensureMovesShown(b);};
+S['pp-m0']=async(b)=>{await S['setup-passplay'](b);await tapStart(b,900);await ensureMovesShown(b);};
 S['pp-1']=async(b)=>{await S['pp-m0'](b);await b.move('f2','f3');await b.settle(300);};
 S['pp-mate']=async(b)=>{await S['pp-1'](b);await b.move('e7','e5');await b.move('g2','g4');await b.move('d8','h4');await b.settle(1000);};
 S['pp-mate-more']=async(b)=>{await S['pp-mate'](b);await tapBtn(b,/^More$/,500);};
@@ -119,5 +148,5 @@ const CAPTURES=[['e2','e4'],['d7','d5'],['e4','d5'],['d8','d5'],['b1','c3'],['d5
 S['pp-captures']=async(b)=>{await S['pp-m0'](b);for(const [f,t] of CAPTURES)await b.move(f,t,220);await b.settle(500);};
 S['k10']=async(b)=>{await b.card('k10',12000);await ensureMovesShown(b);};
 
-module.exports={states:S,tapBtn,plies,waitPlies,status,movesShown,ensureMovesShown,scrollers,scrollSheetTop,textRect,btnRects,closeSheet,CAPTURES,
-  notes:'Home -> Play tile opens the New Game sheet (a fixed overlay that scrolls; it remembers the last opponent, colour and clock, so every setup state taps them). Bots are buttons "Pip\\n≈ 500 Elo" in a sideways-scrolling row; ▶ Start game sits below the fold on a 679px-tall phone with Computer selected (tapBtn scrolls it into view). In a live game: moves are piece-tap then target-tap (b.move); the engine reply is awaited by counting plies in data-ct play-moverow (waitPlies); Pass & Play flips the board to the side to move after every ply. The Moves button HIDES the move list (shown on a fresh load) and the hidden state persists across games, so the start states call ensureMovesShown. More opens a bottom sheet (New game, Resign while live); Resign ends the game at once (no confirm). Game over keeps the live chrome, Hint/Flip become Review/Rematch. Online -> Continue lands on a sign-in screen with no way back except a reload (b.home() handles it).'};
+module.exports={states:S,tapBtn,tapStart,plies,waitPlies,status,movesShown,ensureMovesShown,scrollers,scrollSheetTop,textRect,btnRects,closeSheet,CAPTURES,
+  notes:'Home -> Play tile opens the New Game sheet (a fixed overlay that scrolls; it remembers the last opponent, colour and clock, so every setup state taps them). Bots are buttons "Pip\\n≈ 500 Elo" in a sideways-scrolling row; ▶ Start game sits below the fold on a 679px-tall phone with Computer selected (tapBtn scrolls it into view). In a live game: moves are piece-tap then target-tap (b.move); the engine reply is awaited by counting plies in data-ct play-moverow (waitPlies); Pass & Play flips the board to the side to move after every ply. The Moves button HIDES the move list (shown on a fresh load) and the hidden state persists across games, so the start states call ensureMovesShown. More opens a bottom sheet (New game, Resign while live); Resign ends the game at once (no confirm) - but the More sheet's New game does NOT confirm either, which is a filed defect and not a licence to copy it. SINCE #469 THE SETUP SHEET'S PRIMARY BUTTON ARMS WHEN A GAME IS ALREADY ON THE BOARD: the first tap relabels it "Tap again to discard your game and start" and a second tap starts the new game, so USE tapStart() AND NEVER tapBtn(/^\u25b6 Start game$/) FROM A STATE THAT MAY FOLLOW A LIVE GAME. A one-tap driver leaves the sheet UP with the label changed and the next screen never reached - that is what took gate 26 from 364 PASS to 357 PASS / 7 FAIL at #469. The sheet also carries a "Resume your game in progress (N moves played)" row whenever a game is live, Pass & Play or Computer is selected and the game is not over, so the sheet's button SET differs between those states by design. Game over keeps the live chrome, Hint/Flip become Review/Rematch. Online -> Continue lands on a sign-in screen with no way back except a reload (b.home() handles it).'};
