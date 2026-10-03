@@ -264,7 +264,7 @@ one I played, in a comparison, so I learn something from my own game rather than
 - The hint shown before I solve VARIES WITH THE POSITION. (TC-R16 B5a, B10 - B10 asserts the N hints are all
   distinct and all real, which is the weaker proxy the gate's own note at :201 concedes it to be.)
 - And the hint never tells me to look for a forcing move in a quiet position. (TC-R16 B5b - asserted today only
-  as "the hint is not the fixed generic directive string", `51-drill-explain-why.js:188`. **"QUIET" IS NOT YET A
+  as "the hint is not the fixed generic directive string", `51-drill-explain-why.js`'s `TC-R16 B5b` assertion. **"QUIET" IS NOT YET A
   NUMBER**: until it is defined as a threshold the gate can read from the position's own engine data, a
   position-specific hint that still misdirects on a quiet position passes this clause. That definition is the
   remaining work and it is gate-side, not story-side.)
@@ -275,7 +275,7 @@ one I played, in a comparison, so I learn something from my own game rather than
 - And the box's bottom stays on screen. (TC-R16 B8)
 - **And the board does not move while the explanation lands. THIS CLAUSE IS ASSERTED BY NOTHING TODAY** and is
   kept rather than deleted because it is a real requirement. Measured 2026-10-03 at main f3ae36a: `grep -i board`
-  over `gates/regress/51-drill-explain-why.js` returns one comment at :100 and no assertion, and TC-R16 B6/B7/B8
+  over `gates/regress/51-drill-explain-why.js` returns exactly one comment (the 'no board on screen' note) and no assertion, and TC-R16 B6/B7/B8
   are the three fit assertions above, none of which reads the board. What would decide it: the board's `top` and
   `width` before and after the verdict lands, at each of THE DRILL SEVEN, equal within the 0.05px tolerance gate
   16 already uses. That is gate-side work and is why this reads as a named gap rather than as a covered clause.
@@ -484,9 +484,9 @@ The clauses, each one measurable:
    assertions in `gates/regress/16-cpu-result-line.js` and a build can satisfy either without the other, so
    "clause 4 passed" was not a statement anyone could make. The NUMBER is kept and the halves are lettered,
    because other documents cite clause numbers in this register and renumbering is not free.*
-   - **4a.** Nothing about the transition moves the board. (A7/B7 at `16-cpu-result-line.js:150` - board geometry
+   - **4a.** Nothing about the transition moves the board. (A7/B7 in `16-cpu-result-line.js` - board geometry
      across the fade, tolerance 0.05px)
-   - **4b.** Nothing in the line carrying it is cut without a signal. (A6/B6 at `16-cpu-result-line.js:149` -
+   - **4b.** Nothing in the line carrying it is cut without a signal. (A6/B6 in `16-cpu-result-line.js` -
      `nowrap` and `scrollWidth <= clientWidth + 1`. Asserted MORE STRICTLY than written: the gate requires the
      slot not to be cut at all, which satisfies "not cut without a signal" a fortiori. A build that dropped the
      ellipsis while still fitting the width would stay green - the predicate captures `textOverflow` in its
