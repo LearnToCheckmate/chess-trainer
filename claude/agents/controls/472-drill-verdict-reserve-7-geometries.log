@@ -1,0 +1,233 @@
+#472 - THE CANDIDATE-C READING FOR jobs/board-jumps-on-drill-verdict, AT ALL SEVEN GEOMETRIES.
+#
+# WHAT THIS IS. gates/measure-drill-verdict-reserve.js, run against LIVE MAIN - app.js at origin/main
+# 6eca956, md5 40c8cdb1bcff, embedded stamp "#471 - 2026-10-03 08:33 ET". It is a MEASUREMENT SCRIPT and
+# not a gate: it emits no PASS lines and ends "GATE: 0 pass, 0 fail", so it can never be read as a push
+# gate and it is not in gates/regress/ and not in gates/gate-manifest.tsv.
+#
+# WHY IT WAS TAKEN. The worker's pre-measure of 2026-09-28 (that job, preMeasuredByWorker_2026-09-28T21-16Z,
+# candidate C) named one reading and said in terms that "nobody has taken that reading, and every candidate
+# on this job is a guess until somebody does": the rendered height the verdict sentence actually NEEDS, at
+# each of the seven geometries, against the 74px cap. If <= 74 everywhere, candidate B's number is right and
+# only its board cost is the problem; if > 74 anywhere, every constant-reserve candidate is wrong.
+#
+# THE RUN WAS SPLIT INTO FOUR INVOCATIONS, each of which re-ran PHASE 1 (a real review through the
+# stored-account path, so the APP does the capturing) and printed the geometries it covered. They are
+# concatenated below in full, unedited, with the command that produced each. The per-invocation footer
+# "=== THE ANSWER TO CANDIDATE C ===" is therefore scoped to THAT invocation's readings, which is why the
+# whole-sweep answer is stated once, here, over all of them [#411: publish the command with the count]:
+#
+#   22 non-rest (geometry x state) readings over all seven geometries. WORST NEEDED HEIGHT 68px. 74 HOLDS.
+#
+# SO: candidate C's "> 74" branch DOES NOT FIRE. A constant reserve of 74 can hold the content at every
+# geometry and in every state reachable on main. Candidate A - this job's own prescribed fix,
+# height:(vp.h<820?30:74) - is STRUCK BY MEASUREMENT FROM THE DEFECTIVE SIDE TOO: the content needs 46 to
+# 68px and that branch reserves 30px at five of the seven geometries including both of Kunal's.
+#
+# AND THE JUMP IS RE-MEASURED AT SEVEN GEOMETRIES rather than the three the job had. It is present at every
+# one of them; dTop never reads zero. INDEPENDENT REPRODUCTION OF #428, eleven builds later: #428 published
+# "board top +47.8 to +52.4 and width -48 to -57" and the wrong-answer rows below read +47.75/+47.88/+52.40
+# and -48/-57.03. Also reproduced, from #457's antagonist B: 375x730 board top 197.98 -> 267.73 (+69.75),
+# to the hundredth.
+#
+# ONE PUBLISHED NUMBER IS NOT REPRODUCED AND IS FLAGGED RATHER THAN SMOOTHED OVER [R18]. #457's antagonist B
+# reported 375x730 board WIDTH 339.03 -> 269.03 (-70.00). Here the same geometry reads 339.03 -> 291.03
+# (-48) on a wrong answer and -> 321.03 (-18) when solved. The TOP delta agrees to the hundredth and the
+# WIDTH delta does not. Two candidate causes, neither tested: B measured #457's bundle, whose verdict string
+# was two lines where main's is one; and this job's own SIT run 17 records that the board "moves TWICE,
+# pushed down at full size first and only refitted on the next frame", so -70 may be the transient and -48
+# the settled value. This probe settles 1000-1100ms after the move.
+#
+# THREE THINGS NOT PREVIOUSLY ON THE RECORD, all measured below:
+#   1. THE BOARD TAKES THREE OR FOUR DIFFERENT SIZES WITHIN ONE CARD. At 375x730: 339.03 at rest, 291.03 on
+#      a wrong answer, 321.03 when solved. At 360x640: 265.03, 208, 192, 247.03 across rest/wrong/hint/solved.
+#      Its size is a function of how long the last verdict happened to be, which is the resize #457's
+#      antagonist B named and which no gate on main can see.
+#   2. AT 360x640 THE HINT STATE PUTS THE BOARD ON ITS 192px FLOOR - 265.03 -> 192, -73.03px, -27.6% - ON
+#      LIVE MAIN, in the drill. That is the same magnitude as the pre-existing 29% lesson-board latch that
+#      #468 was held on, in a different place and by a different mechanism, and it is not intermittent.
+#   3. THE WRONG-ANSWER WORDING HAS A VIEWPORT TERM. 375x730, 320x568, 360x640 and 375x667 print
+#      "Qe6 isn't it. Try again, or tap (bulb)." (37 chars); 390x844, 414x896 and 440x956 print
+#      "Qe6 isn't it - try again. (Tap (bulb) for a hint.)" (48 chars). So the sentence a reserve must hold
+#      is not one string, and a reserve sized from one geometry's wording is sized from one branch.
+#
+# RESET HIT TEST, on live main, at every geometry and in every state: hitsItself TRUE, 20 of 20. That
+# confirms #428's control - the Reset overlap at 320x568 is caused by candidate C and is not pre-existing -
+# and it closes the gap the worker's pre-measure recorded as "NOT MEASURED by me" for candidate A.
+#
+# WHAT IS NOT CHECKED:
+#   - Item 2's WRONG state. The probe reports "NO WRONG VERDICT REACHED over 11 candidate moves" rather than
+#     a zero: on that card every nearby move of the solution's own piece was either illegal or accepted, so
+#     the branch was not entered. Item 2 contributes its rest and solved rows only.
+#   - A real device and real iOS Safari. Seven headless geometries at dpr 1.
+#   - The brilliancies drill (drillKindRef 'brilliant'). This is the mistakes drill only.
+#   - The five other class members the worker enumerated from source (6190 pzPinErr, 6282 pzOErr, 6283
+#     pzOInfo, 6130 the voice-chat block, 6199 the hint-head swap). Still unmeasured; still a count of the
+#     mechanism and not a count of defects.
+#   - Whether a 74px reserve's board cost is acceptable. That is the whole remaining question and it is
+#     Kunal's: see the ask on jobs/drill-verdict-reserve-costs-more-board-than-a-short-phone-has-2026-09-28.
+#
+########## INVOCATION 1: CT_GEOMDV='375x730' node gates/measure-drill-verdict-reserve.js  (both captured items)
+     bundle: app.js  stamp #471 - 2026-10-03 08:33 ET  (default app.js)
+     bundle on the page: #471 - 2026-10-03 08:33 ET
+     GEOMETRIES THIS RUN: 375x730 KUNAL   *** NARROWED by CT_GEOMDV ***
+     ct_mymistakes captured by the app: 2
+       entry 1 keys=fen,uci,label,ts,last,played,why,hint  uci=e7b4  played=cxb5  last={"fr":5,"fc":2,"tr":3,"tc":1}  label=Mistake
+       entry 2 keys=fen,uci,label,ts,last,played,why,hint  uci=e6d7  played=Nxd7  last={"fr":3,"fc":1,"tr":1,"tc":3}  label=Blunder
+     ITEMS THIS RUN: 1,2 of 2   (all captured)
+     375x730 KUNAL item 1: wrong answer played as e7e6 (solution is e7b4)
+     375x730 KUNAL item 2: NO WRONG VERDICT REACHED over 11 candidate moves - the wrong-answer row below is ABSENT, not zero
+     
+     === NEED: the rendered height the verdict sentence ACTUALLY needs (inner scrollHeight), against the 74px cap ===
+     geo              item state   chars  needH   reserveCH reserveSH  cssH      cssMaxH   overflowY  >74?
+     375x730 KUNAL     1   rest        0      0          0         0  0px       74px      auto       no
+     375x730 KUNAL     1   wrong      37     46         48        48  47.75px   74px      auto       no
+     375x730 KUNAL     1   hint       39     46         48        48  47.75px   74px      auto       no
+     375x730 KUNAL     1   solved     47     68         70        70  69.5px    74px      auto       no
+     375x730 KUNAL     2   rest        0      0          0         0  0px       74px      auto       no
+     375x730 KUNAL     2   solved     54     68         70        70  69.5px    74px      auto       no
+     
+     === THE JUMP, re-measured at all SEVEN geometries (the job has it at three) ===
+     geo              item state   boardW   dW       boardTop  dTop     sq
+     375x730 KUNAL     1   rest      339.03        0    197.98        0   42.38
+     375x730 KUNAL     1   wrong     291.03      -48    245.86    47.88   36.38
+     375x730 KUNAL     1   hint      291.03      -48    245.86    47.88   36.38
+     375x730 KUNAL     1   solved    321.03      -18    267.73    69.75   40.13
+     375x730 KUNAL     2   rest      339.03        0    197.98        0   42.38
+     375x730 KUNAL     2   solved    321.03      -18    267.73    69.75   40.13
+     
+     === RESET, at rest and after the verdict: does it hit-test to itself on LIVE MAIN? ===
+     375x730 KUNAL     1   rest     y 545.02..589.02  vh 730  hitsItself true  hit=BUTTON "↺ Reset"
+     375x730 KUNAL     1   wrong    y 544.89..588.89  vh 730  hitsItself true  hit=BUTTON "↺ Reset"
+     375x730 KUNAL     2   rest     y 545.02..589.02  vh 730  hitsItself true  hit=BUTTON "↺ Reset"
+     
+     === VERDICT STRINGS SEEN (so the next reader knows which sentence these numbers are of) ===
+       [37 chars] ✗ Qe6 isn't it. Try again, or tap 💡.
+       [39 chars] 💡 One move can hit two things at once.
+       [47 chars] 🎉 Qb4+ forks two pieces. cxb5 left you losing.
+       [54 chars] 🎉 Qxd7 was stronger. Nxd7 left you completely losing.
+     
+     === THE ANSWER TO CANDIDATE C ===
+     WORST NEEDED HEIGHT over 4 (geometry x state) readings: 68px at 375x730 KUNAL solved (47 chars)
+     SO 74 HOLDS THE CONTENT at every geometry and state measured. Candidate B's NUMBER is right; what remains against it is its BOARD COST and the Reset overlap, and both of those are Kunal's to weigh.
+GATE: 0 pass, 0 fail
+
+########## INVOCATION 2: CT_GEOMDV='320x568,360x640,375x667' CT_MDV_ITEMS='1' node gates/measure-drill-verdict-reserve.js
+     bundle: app.js  stamp #471 - 2026-10-03 08:33 ET  (default app.js)
+     bundle on the page: #471 - 2026-10-03 08:33 ET
+     GEOMETRIES THIS RUN: 320x568, 360x640, 375x667   *** NARROWED by CT_GEOMDV ***
+     ct_mymistakes captured by the app: 2
+       entry 1 keys=fen,uci,label,ts,last,played,why,hint  uci=e7b4  played=cxb5  last={"fr":5,"fc":2,"tr":3,"tc":1}  label=Mistake
+       entry 2 keys=fen,uci,label,ts,last,played,why,hint  uci=e6d7  played=Nxd7  last={"fr":3,"fc":1,"tr":1,"tc":3}  label=Blunder
+     ITEMS THIS RUN: 1 of 2   *** NARROWED by CT_MDV_ITEMS ***
+     320x568 item 1: wrong answer played as e7e6 (solution is e7b4)
+     360x640 item 1: wrong answer played as e7e6 (solution is e7b4)
+     375x667 item 1: wrong answer played as e7e6 (solution is e7b4)
+     
+     === NEED: the rendered height the verdict sentence ACTUALLY needs (inner scrollHeight), against the 74px cap ===
+     geo              item state   chars  needH   reserveCH reserveSH  cssH      cssMaxH   overflowY  >74?
+     320x568           1   rest        0      0          0         0  0px       74px      auto       no
+     320x568           1   wrong      37     46         48        48  47.75px   74px      auto       no
+     320x568           1   hint       39     68         70        70  69.5px    74px      auto       no
+     320x568           1   solved     47     68         70        70  69.5px    74px      auto       no
+     360x640           1   rest        0      0          0         0  0px       74px      auto       no
+     360x640           1   wrong      37     46         48        48  47.75px   74px      auto       no
+     360x640           1   hint       39     68         70        70  69.5px    74px      auto       no
+     360x640           1   solved     47     68         70        70  69.5px    74px      auto       no
+     375x667           1   rest        0      0          0         0  0px       74px      auto       no
+     375x667           1   wrong      37     46         48        48  47.75px   74px      auto       no
+     375x667           1   hint       39     46         48        48  47.75px   74px      auto       no
+     375x667           1   solved     47     68         70        70  69.5px    74px      auto       no
+     
+     === THE JUMP, re-measured at all SEVEN geometries (the job has it at three) ===
+     geo              item state   boardW   dW       boardTop  dTop     sq
+     320x568           1   rest         192        0       187        0      24
+     320x568           1   wrong        192        0    234.75    47.75      24
+     320x568           1   hint         192        0     256.5     69.5      24
+     320x568           1   solved       192        0     256.5     69.5      24
+     360x640           1   rest      265.03        0    189.98        0   33.13
+     360x640           1   wrong        208   -57.03    242.38     52.4      26
+     360x640           1   hint         192   -73.03    261.25    71.27      24
+     360x640           1   solved    247.03      -18    259.73    69.75   30.88
+     375x667           1   rest         276        0       198        0    34.5
+     375x667           1   wrong        228      -48    245.88    47.88    28.5
+     375x667           1   hint         228      -48    245.88    47.88    28.5
+     375x667           1   solved       258      -18    267.75    69.75   32.25
+     
+     === RESET, at rest and after the verdict: does it hit-test to itself on LIVE MAIN? ===
+     320x568           1   rest     y 438..482  vh 568  hitsItself true  hit=BUTTON "↺ Reset"
+     320x568           1   wrong    y 485.75..529.75  vh 568  hitsItself true  hit=BUTTON "↺ Reset"
+     360x640           1   rest     y 463.02..507.02  vh 640  hitsItself true  hit=BUTTON "↺ Reset"
+     360x640           1   wrong    y 458.38..502.38  vh 640  hitsItself true  hit=BUTTON "↺ Reset"
+     375x667           1   rest     y 482..526  vh 667  hitsItself true  hit=BUTTON "↺ Reset"
+     375x667           1   wrong    y 481.88..525.88  vh 667  hitsItself true  hit=BUTTON "↺ Reset"
+     
+     === VERDICT STRINGS SEEN (so the next reader knows which sentence these numbers are of) ===
+       [37 chars] ✗ Qe6 isn't it. Try again, or tap 💡.
+       [39 chars] 💡 One move can hit two things at once.
+       [47 chars] 🎉 Qb4+ forks two pieces. cxb5 left you losing.
+     
+     === THE ANSWER TO CANDIDATE C ===
+     WORST NEEDED HEIGHT over 9 (geometry x state) readings: 68px at 320x568 hint (39 chars)
+     SO 74 HOLDS THE CONTENT at every geometry and state measured. Candidate B's NUMBER is right; what remains against it is its BOARD COST and the Reset overlap, and both of those are Kunal's to weigh.
+GATE: 0 pass, 0 fail
+
+########## INVOCATION 3: CT_GEOMDV='390x844,414x896,440x956' CT_MDV_ITEMS='1' node gates/measure-drill-verdict-reserve.js
+     bundle: app.js  stamp #471 - 2026-10-03 08:33 ET  (default app.js)
+     bundle on the page: #471 - 2026-10-03 08:33 ET
+     GEOMETRIES THIS RUN: 390x844, 414x896, 440x956   *** NARROWED by CT_GEOMDV ***
+     ct_mymistakes captured by the app: 2
+       entry 1 keys=fen,uci,label,ts,last,played,why,hint  uci=e7b4  played=cxb5  last={"fr":5,"fc":2,"tr":3,"tc":1}  label=Mistake
+       entry 2 keys=fen,uci,label,ts,last,played,why,hint  uci=e6d7  played=Nxd7  last={"fr":3,"fc":1,"tr":1,"tc":3}  label=Blunder
+     ITEMS THIS RUN: 1 of 2   *** NARROWED by CT_MDV_ITEMS ***
+     390x844 item 1: wrong answer played as e7e6 (solution is e7b4)
+     414x896 item 1: wrong answer played as e7e6 (solution is e7b4)
+     440x956 item 1: wrong answer played as e7e6 (solution is e7b4)
+     
+     === NEED: the rendered height the verdict sentence ACTUALLY needs (inner scrollHeight), against the 74px cap ===
+     geo              item state   chars  needH   reserveCH reserveSH  cssH      cssMaxH   overflowY  >74?
+     390x844           1   rest        0      0          0         0  0px       74px      auto       no
+     390x844           1   wrong      48     68         70        70  69.5px    74px      auto       no
+     390x844           1   hint       39     46         48        48  47.75px   74px      auto       no
+     390x844           1   solved     47     68         70        70  69.5px    74px      auto       no
+     414x896           1   rest        0      0          0         0  0px       74px      auto       no
+     414x896           1   wrong      48     46         48        48  47.75px   74px      auto       no
+     414x896           1   hint       39     46         48        48  47.75px   74px      auto       no
+     414x896           1   solved     47     68         70        70  69.5px    74px      auto       no
+     440x956           1   rest        0      0          0         0  0px       74px      auto       no
+     440x956           1   wrong      48     46         48        48  47.75px   74px      auto       no
+     440x956           1   hint       39     46         48        48  47.75px   74px      auto       no
+     440x956           1   solved     47     46         48        48  47.75px   74px      auto       no
+     
+     === THE JUMP, re-measured at all SEVEN geometries (the job has it at three) ===
+     geo              item state   boardW   dW       boardTop  dTop     sq
+     390x844           1   rest         390        0     220.5        0   48.75
+     390x844           1   wrong        390        0    255.25    34.75   48.75
+     390x844           1   hint         390        0    244.38    23.88   48.75
+     390x844           1   solved       390        0    281.25    60.75   48.75
+     414x896           1   rest         414        0     235.5        0   51.75
+     414x896           1   wrong        414        0    259.38    23.88   51.75
+     414x896           1   hint         414        0    259.38    23.88   51.75
+     414x896           1   solved       414        0    296.25    60.75   51.75
+     440x956           1   rest         440        0     253.5        0      55
+     440x956           1   wrong        440        0    277.38    23.88      55
+     440x956           1   hint         440        0    277.38    23.88      55
+     440x956           1   solved       440        0    303.38    49.88      55
+     
+     === RESET, at rest and after the verdict: does it hit-test to itself on LIVE MAIN? ===
+     390x844           1   rest     y 618.5..662.5  vh 844  hitsItself true  hit=BUTTON "↺ Reset"
+     390x844           1   wrong    y 653.25..697.25  vh 844  hitsItself true  hit=BUTTON "↺ Reset"
+     414x896           1   rest     y 657.5..701.5  vh 896  hitsItself true  hit=BUTTON "↺ Reset"
+     414x896           1   wrong    y 681.38..725.38  vh 896  hitsItself true  hit=BUTTON "↺ Reset"
+     440x956           1   rest     y 701.5..745.5  vh 956  hitsItself true  hit=BUTTON "↺ Reset"
+     440x956           1   wrong    y 725.38..769.38  vh 956  hitsItself true  hit=BUTTON "↺ Reset"
+     
+     === VERDICT STRINGS SEEN (so the next reader knows which sentence these numbers are of) ===
+       [48 chars] ✗ Qe6 isn't it — try again. (Tap 💡 for a hint.)
+       [39 chars] 💡 One move can hit two things at once.
+       [47 chars] 🎉 Qb4+ forks two pieces. cxb5 left you losing.
+     
+     === THE ANSWER TO CANDIDATE C ===
+     WORST NEEDED HEIGHT over 9 (geometry x state) readings: 68px at 390x844 wrong (48 chars)
+     SO 74 HOLDS THE CONTENT at every geometry and state measured. Candidate B's NUMBER is right; what remains against it is its BOARD COST and the Reset overlap, and both of those are Kunal's to weigh.
+GATE: 0 pass, 0 fail
