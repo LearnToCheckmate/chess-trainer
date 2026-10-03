@@ -1179,9 +1179,21 @@ L.run(async()=>{
           236.39 / 212.39 / 192.00 are three LATCH STATES OF ONE LOOP, not three builds. At 375x730 - Kunal's own
           phone - width binds and the trim cannot move the board at all, which is why the field reports are
           asymmetric. Full write-up on jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29.
-          SO IF THIS GOES RED, DO NOT RE-KEY IT AND DO NOT WIDEN THE SET. It is reporting the latch. The app fix
-          is on that job and it is one of: exclude the spacers from the shrink input as well as the grow input,
-          make the deadband symmetric so the board can recover, or latch the trim once per _geoKey.
+          ** THIS ASSERTION IS EXPECTED TO FIRE, AND FIRING MEANS THE BOARD SHRANK - NOT THAT THE PIN IS STALE. **
+          Antagonist A asked for this sentence in those words and the reason is this build's own history: #468
+          RE-KEYED `_fp` because it reddened on a healthy-looking build, and `_legalBoard` is now the identically
+          shaped target for the next run under time pressure. DO NOT RE-KEY IT. DO NOT ADD THE LATCH VALUES TO A
+          LEGAL SET. A measured the latch at roughly 1 run in 5, so a red here is the expected behaviour of a
+          working detector, and the only correct responses are to fix the app or to stand down and say the board
+          latched. The app fix is on jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29 and is one of:
+          exclude the spacers from the shrink input as well as the grow input, make the deadband symmetric so the
+          board can recover, or latch the trim once per _geoKey.
+          AND A SET WAS NEVER AVAILABLE ANYWAY, which antagonist B established after A proposed one: the loop at
+          chess.jsx:2991-2992 adds ceil(over/8)*8+8 per pass against a -24 growth threshold, so EVERY multiple-of-8
+          trim from 88 up to the Math.max(24,...) clamp is reachable. The latch states are not a finite set to
+          enumerate; 236.39, 212.39 and 192.00 are three members of an open ladder. A tolerance band over them
+          would have been unbounded, which is why pinning the settled width is the only form of this assertion
+          that means anything.
           ITS LIMIT, NAMED: four of the five columns have only ever been observed at ONE width (375x520 -> 223.2 in
           56 observations, 320x520 -> 231.2 in 84, short375 and 390x568 -> 270.9 in 28 and 56; 320x540 -> 236.4 in
           54 and 192.00 in 3). For those four the value is an observation, not a proof that no second state exists.

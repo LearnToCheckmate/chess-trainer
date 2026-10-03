@@ -197,10 +197,21 @@ floorread(){
     # appearing NOWHERE in the output. REPRODUCED BY THIS BUILD before the fix was written: with field 9 intact
     # A's swap is exit 1 and names the digest change; with field 9 = `-` it is exit 0 and says nothing.
     # THE SENTINEL IS REMOVED RATHER THAN ERA-GATED, which is the point. `-` meant "this register predates the
-    # digest", and NO SUCH REGISTER CAN EXIST: this file was born at #467 and its own seed row says 467 in field
-    # 5, while verify-log.sh was calling it "a pre-#467 register" to the operator's face. An era gate for an era
-    # that never existed is an off switch. Same shape as CLAUDE.md's "a guard whose absence is indistinguishable
-    # from its success is not a guard".
+    # digest", and NO SUCH REGISTER CAN EXIST. ANTAGONIST A's CROSS-READ MADE ME MEASURE THAT INSTEAD OF ASSERTING
+    # IT, and A was right to: my first version argued it from the seed row's own field 5, which is #433's trap (a
+    # premise in a comment reasoning about what earlier builds could produce) AND self-referential, since the seed
+    # row is the thing under attack. MEASURED: `git log --diff-filter=A -- gates/gate-required-floor.tsv` names
+    # 3498f7b, #467's close-out, committed 2026-10-02T23:51:35Z, and `git cat-file -e origin/main:...` says the
+    # file HAS NEVER BEEN ON MAIN. So the file's whole existence is one build old and the conclusion holds for a
+    # reason outside the file. An era gate for an era that never existed is an off switch. Same shape as
+    # CLAUDE.md's "a guard whose absence is indistinguishable from its success is not a guard".
+    # AND THE RESIDUAL, NAMED RATHER THAN PAPERED OVER [antagonist A's cross-read item (a)]: THIS CHECKS THE
+    # ALPHABET OF FIELD 9, NOT ITS BINDING. An attacker who edits field 1 of the seed row from 49 to 29, deletes
+    # twenty gates AND writes the correctly recomputed 12-hex digest into field 9 still passes everything here,
+    # because the recomputed digest matches the attacked tree by construction. Closing that needs row 1 anchored,
+    # and a file cannot anchor itself - which is exactly what jobs/the-gate-manifest-can-be-weakened-by-hand-and-
+    # only-git-can-object-2026-10-02 is about, and that job now carries the row-1 instance. What #468 closes is the
+    # SILENT bypass: before this, no edit to field 9 was needed beyond one character and nothing said a word.
     case "$dig" in
       *[!0-9a-f]*|'') FLOORBAD="row $n's required-set digest (field 9) is not 12 hex characters: '$dig'. There is no legitimate value other than a digest - the '-' sentinel was removed at #468 because it silently disabled the set check, and no pre-#467 register exists."; return 0;;
     esac
@@ -434,6 +445,18 @@ check)
     # #468: the `[ "$FLOORDIG" != "-" ]` clause that used to sit here is GONE. It was the off switch B's F1
     # found: a `-` in field 9 made this whole block unreachable with no message. floorread now refuses such a
     # row outright, so `-` can no longer reach this point at all.
+    # ── #468, ANTAGONIST A's CROSS-READ ITEM (c), AND IT IS THE GENERALISABLE HALF OF B's VETO. ────────────────
+    # B's attack worked because the check was UNREACHABLE WITH NO MESSAGE: `check` exited 0 and said nothing, so
+    # the only evidence the set was verified was the ABSENCE OF A COMPLAINT. A's point, which I accept and which
+    # neither of B's three remedies covers: three more refusal controls prove the bad inputs are caught and NONE
+    # of them can prove the check RAN. That is #419's footer wearing field 9 - absence of a complaint is not
+    # evidence of execution. So the comparison now leaves an AFFIRMATIVE TOKEN, and verify-log.sh REQUIRES it
+    # whenever a log carries a reqset value: a silently skipped check then reads as a MISSING TOKEN rather than
+    # as a pass. KNOW ITS LIMIT, because it is this project's oldest trap and A named it in the same breath: the
+    # token is still computed by the harness being judged, so verify-log.sh reading it back is not an independent
+    # measurement. What it buys is that the failure mode changes from silence to a visible absence, which is the
+    # difference between #419's unreadable footer and a footer that says 0 PASS.
+    SETVERIFIED=1
     if [ -n "$FLOORDIG" ] && [ "$NOWDIG" != "$FLOORDIG" ]; then
       FLOORSUNK=1
       echo "REQUIRED-SET DIGEST CHANGED WITH NO ROW IN THE FLOOR REGISTER:"
@@ -515,6 +538,12 @@ check)
   # the digest here, a log records WHICH SET its suite ran over, not just how many - and gates/verify-log.sh can hold
   # it to a value the register has actually stood at, the same membership test it applies to the floor.
   REQSETTXT="$NOWDIG"; [ -n "$FLOORBAD" ] && REQSETTXT="NOT-CHECKED"
+  # #468 (A's item c): the affirmative token, on its OWN LINE rather than appended to the carrier line - the
+  # carrier line is parsed by a 10-group regex in verify-log.sh and by every archived log's reader, so widening it
+  # would have been a format change with 100 logs behind it.
+  if [ "${SETVERIFIED:-0}" = 1 ] && [ -z "$FLOORBAD" ]; then
+    echo "gate manifest: required-set digest VERIFIED against the register ($NOWDIG)"
+  fi
   echo "gate manifest: $NREQ required, $NPRES present, $NMISS missing, $NUNL unlisted, $NABS known-absent, $NRET retired, $NUNJ unjustified, $MALFORMED unreadable, $FLOORTXT floor, $REQSETTXT reqset"
   { [ -n "$MISSING" ] || [ -n "$UNJUSTIFIED" ] || [ "$MALFORMED" -gt 0 ] || [ -n "$FLOORSUNK" ] || [ -n "$ARITHBAD" ]; } && exit 1
   # THE THREE-WAY SPLIT, AND ANTAGONIST A MOVED THE MIDDLE CASE. A BREACHED floor or a CHANGED required set is
@@ -1180,6 +1209,28 @@ for i,l in enumerate(ls):
 open(p,'w').write("\n".join(ls))
 PYFC
   ck 1 "a floor row whose field 9 is not 12 hex characters is a HARD failure (the repair is a FORMAT test, not a special case for one sentinel)" "$T/gatemanifest.sh" check
+  resetT
+  # 58b/58c. #468, ANTAGONIST A's CROSS-READ ITEM (c). THE TOKEN MUST BE PRESENT WHEN THE CHECK RUNS AND ABSENT
+  #     WHEN IT IS SKIPPED. Three refusal controls prove the bad inputs are caught; NONE of them can prove the
+  #     check ran, which is the hole A named on top of B's veto. These two are the only cases in this file that
+  #     assert on EXECUTION rather than on a verdict.
+  out="$("$T/gatemanifest.sh" check 2>&1)"
+  if grep -q 'required-set digest VERIFIED against the register' <<<"$out"; then
+    echo "PASS selftest: an honest tree logs the affirmative 'digest VERIFIED' token, so a later reader can tell the check RAN"; pass=$((pass+1))
+  else echo "FAIL selftest: the honest path printed no VERIFIED token, so a skipped check and a passed one look the same"; fail=$((fail+1)); fi
+  python3 - "$T/gate-required-floor.tsv" <<'PYFD'
+import sys
+p=sys.argv[1]; ls=open(p).read().split("\n")
+for i,l in enumerate(ls):
+    if l and not l.startswith("#") and "\t" in l:
+        f=l.split("\t")
+        if len(f)>=9: f[8]="-"; ls[i]="\t".join(f)
+open(p,'w').write("\n".join(ls))
+PYFD
+  out="$("$T/gatemanifest.sh" check 2>&1)"
+  if ! grep -q 'required-set digest VERIFIED against the register' <<<"$out"; then
+    echo "PASS selftest: and a tree whose field 9 is dashed prints NO token - a skipped check is now a visible absence rather than a silence"; pass=$((pass+1))
+  else echo "FAIL selftest: the token was printed on a tree where the comparison never ran"; fail=$((fail+1)); fi
   resetT
   # 58. THE CONTROL ON THE CONTROLS: with field 9 restored to a real digest, the identical tree is clean again, so
   #     cases 56 and 57 are about the field and not about something else the reset happened to change.

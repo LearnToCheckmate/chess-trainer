@@ -562,8 +562,22 @@ if [ -n "$MANIFOOT" ]; then
           echo "  #468, and antagonist B measured that it accepts a (count, floor, digest) triple that never"
           echo "  co-occurred. The register records STATES, so the pair is what has to be recorded."
           exit 1
+        elif ! grep -q 'required-set digest VERIFIED against the register' "$LOG"; then
+          # #468, ANTAGONIST A's CROSS-READ ITEM (c). The three arms above all ask whether the VALUES in the log
+          # are values the register recorded. None of them can tell a check that RAN AND PASSED from a check that
+          # was never reached - which is exactly how B's F1 worked, and why `selftest` said 55/0 straight through
+          # it. gatemanifest.sh now prints an affirmative line only on the path where the digest comparison
+          # actually executes, and this arm requires it. A skipped check is now a MISSING TOKEN, not a pass.
+          echo "REFUSED (required-set digest not verified): $LOG reports reqset $MANIREQSET but carries no"
+          echo "  'required-set digest VERIFIED against the register' line, so its run never reached the"
+          echo "  comparison - it only printed the digest it computed."
+          echo "  $MANIFOOT"
+          echo "  Absence of a complaint is not evidence of execution [#468, antagonist A's cross-read item c,"
+          echo "  on antagonist B's F1]. A log from a tree whose floor register had field 9 emptied looked exactly"
+          echo "  like a clean one until this arm existed."
+          exit 1
         else
-          FLOORNOTE="$FLOORNOTE, reqset $MANIREQSET (a recorded set, paired with floor $MANIFLOOR in one row)"
+          FLOORNOTE="$FLOORNOTE, reqset $MANIREQSET (a recorded set, paired with floor $MANIFLOOR in one row, and the comparison is affirmatively logged as VERIFIED)"
                 fi
       fi
     elif [ "$FLOORERA" -eq 1 ]; then

@@ -440,7 +440,7 @@ that raised it (`jobs/gates-green-does-not-assert-which-gates-RAN-so-a-deleted-g
 states it in its own `storyClause` field as "None - a property of the gate suite [R08]". Recorded here because
 the definition of done asks for a clause id *or one line naming why there is none*, and this is that line.
 
-**ID SPACE: `TC-SUITE-001` … `TC-SUITE-058`, opened at #461, extended at #467 and at #468.** The existing spaces are all
+**ID SPACE: `TC-SUITE-001` … `TC-SUITE-060`, opened at #461, extended at #467 and at #468.** The existing spaces are all
 keyed to app areas (`TC-R*` review, `TC-HM-*` home, `TC-PL-*` play, `TC-INV-*` invariants), and filing a harness
 property under any of them would have mislabelled it. **The ids are the PASS lines of
 `gates/gatemanifest.sh selftest`, in the order that command runs them**, so the register and the executable cannot
@@ -551,6 +551,8 @@ authority is `gates/gatemanifest.sh selftest`'s own last line, not any number wr
 | TC-SUITE-056 | a floor row whose required-set digest (field 9) is the `-` sentinel is a HARD failure, not a silently skipped set check [antagonist B's F1 on #468] | exit 1 |
 | TC-SUITE-057 | a floor row whose field 9 is not 12 hex characters is a HARD failure — the repair is a FORMAT test, not a special case for one sentinel | exit 1 |
 | TC-SUITE-058 | and with field 9 a real digest again, the same tree is clean, so 056 and 057 pin the FIELD and not something the reset changed | exit 0 |
+| TC-SUITE-059 | an honest tree logs the affirmative `required-set digest VERIFIED against the register` token, so a later reader can tell the comparison RAN | the named string is present in the output |
+| TC-SUITE-060 | and a tree whose field 9 is dashed prints NO token — a skipped check is a visible absence rather than a silence [antagonist A's cross-read item (c) on B's F1; the only two cases in this file that assert on EXECUTION rather than on a verdict] | the named string is absent from the output |
 
 **TC-SUITE-014's VERDICT IS REVERSED AT #467, DELIBERATELY, AND THE REASONING IS AT THE CASE IN
 `gates/gatemanifest.sh`.** At #461 it asserted that flipping a manifest row from `required` to `absent` WITH a
