@@ -50,6 +50,34 @@ const forceRow=(b,px)=>b.page.evaluate((px)=>{
   return {ok:true,before,after,moved:r2(after-before)};
 },px);
 
+/* #468, ADDED AFTER ANTAGONIST A's VETO (F1). forceRow above moves the ROW ONLY, which is a state the gate's
+   BAND assertion CATCHES (it asserts board.w == rowW). The real multistability moves the BOARD AND THE ROW
+   TOGETHER, and in that state A measured - and this control reproduces - that EVERY assertion in the flip block
+   passes at a 31% board loss. That is why the suite needs an absolute board bound and why `_legalBoard` exists.
+   The lesson is the one CLAUDE.md states about clip-intersection and about grid.contains(): my first control
+   disturbed the mechanism in the one way the surviving assertions could still see. */
+const forceBoth=(b,px)=>b.page.evaluate((px)=>{
+  const cand=[...document.querySelectorAll('button')].filter(x=>/^\u27f3\s*Flip$/.test((x.innerText||'').replace(/\s+/g,' ').trim()));
+  let el=null;
+  for(const c of cand){const p=c.parentElement;if(!p)continue;
+    if([...p.children].some(k=>/Now I'll try it/.test(k.innerText||''))){el=c;break;}}
+  /* lib.js finds the board by the INLINE style, not the computed one - getComputedStyle resolves
+     `repeat(8, ...)` to pixel values and never matches. My F1 probe got boardW:null for exactly this reason and
+     printed a column of NaN-driven FAILs that looked like measurements. */
+  const grids=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));
+  const g=grids.sort((a,b)=>b.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];
+  const r2=(n)=>Math.round(n*100)/100;
+  const before=g?r2(g.getBoundingClientRect().width):null;
+  for(const t of [g, el&&el.parentElement]) if(t){ t.style.width=px+'px'; t.style.minWidth=px+'px'; t.style.maxWidth=px+'px'; }
+  return {ok:!!g, before, after:g?r2(g.getBoundingClientRect().width):null};
+},px);
+
+const boardW=(b)=>b.page.evaluate(()=>{
+  const grids=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));
+  const g=grids.sort((a,b)=>b.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];
+  return g?Math.round(g.getBoundingClientRect().width*10)/10:null;
+});
+
 const shiftFlip=(b,px)=>b.page.evaluate((px)=>{
   const cand=[...document.querySelectorAll('button')].filter(x=>/^⟳\s*Flip$/.test((x.innerText||'').replace(/\s+/g,' ').trim()));
   for(const c of cand){const p=c.parentElement;if(!p)continue;
@@ -116,6 +144,37 @@ L.run(async()=>{
       {predictedBefore:prePred,predictedAfter:postPred});
   await b.close();
  }
+ /* ================= THE BOARD-SET PIN, A's REMEDY (a), CONTROLLED =================
+    `_legalBoard` asserts the demo board is within 0.6 of this column's healthy width OR of the documented 192.00
+    floor. It must PASS at the healthy width and at 192, and it must FAIL at 200 and at 160 - otherwise it is not
+    the bound A's table showed was missing. Measured by forcing the board AND the row together. */
+ const LEGAL={'320x520':231.2,'320x540':236.4,'375x520':223.2};
+ for(const spec of [{geo:{w:320,h:520,safe:'',label:'320x520'},name:'320x520'},
+                    {geo:{w:320,h:540,safe:'',label:'320x540'},name:'320x540'},
+                    {geo:{w:375,h:520,safe:'',label:'375x520'},name:'375x520'}]){
+  const b=await L.launch({geo:spec.geo,name:'ctl468-board-'+spec.name});
+  await b.open(); await D.states['endgame-demo-end'](b); await b.settle(500);
+  const healthy=LEGAL[spec.name];
+  const pin=(bw)=>Math.abs(bw-healthy)<=0.6||Math.abs(bw-192.0)<=0.6;
+  const nat=await boardW(b);
+  say(nat!==null&&Math.abs(nat-healthy)<=0.6,
+      spec.name+' boardpin: the natural board is this column\'s healthy width, so the pin is calibrated to a measured value and not a chosen one',
+      {measured:nat,healthy});
+  for(const t of [{bw:healthy,want:true,why:'the healthy width must PASS'},
+                  {bw:192,want:true,why:'the documented 192.00 floor must PASS - the point pin could NOT do this, which is why it reddened #467'},
+                  {bw:200,want:false,why:'an intermediate width must FAIL - nothing else in the suite catches this'},
+                  {bw:160,want:false,why:'a 31% board loss must FAIL - A measured all four other assertions GREEN here'}]){
+    const f=await forceBoth(b,t.bw); await b.settle(250);
+    const seen=await boardW(b);
+    const moved=seen!==null&&Math.abs(seen-t.bw)<=0.6;
+    say(moved, spec.name+' boardpin @'+t.bw+': THE CONTROL MOVED THE BOARD to where it was asked', {askedFor:t.bw,boardNow:seen,from:f.before});
+    const got=pin(seen);
+    say(got===t.want, spec.name+' boardpin @'+t.bw+': the pin reads '+(got?'PASS':'FAIL')+' and must read '+(t.want?'PASS':'FAIL')+' - '+t.why,
+        {board:seen,healthy,floor:192.0,pinVerdict:got?'green':'RED',required:t.want?'green':'RED'});
+  }
+  await b.close();
+ }
+
  console.log('\nctl468: '+pass+' passed, '+fail+' failed');
  if(fail) process.exitCode=1;
 });

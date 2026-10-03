@@ -525,12 +525,21 @@ sync)
   listed="$(rows | cut -f1 | tr -d ' \r' | sort -u)"; n=0
   for g in $(diskgates); do
     if ! grep -qx "$g" <<<"$listed"; then   # herestring, NOT a pipe - a false miss here APPENDED A DUPLICATE ROW
-      # #468 LEFT AS A PIPE, DELIBERATELY, and this is the fifth SIGPIPE site rather than an oversight. A
-      # SIGPIPE here cannot corrupt anything: the pipeline's VALUE is still correct (the last stage, `cut`,
-      # reads all of its input), pipefail's 141 lands on an assignment whose status nothing reads, and the very
-      # next line supplies a fallback for an empty `d`. `sed -n '2,6p'` also emits at most five lines, so it has
-      # usually exited before `grep -m1` can signal it. Rewriting it would be churn in the one place the pattern
-      # is safe. Counted on the same job as the four repaired above so the total stays five, not four.
+      # #468 LEFT AS A PIPE, DELIBERATELY, and this is the fifth SIGPIPE site rather than an oversight. Two
+      # reasons it cannot corrupt anything, both verified: the pipeline's VALUE is still correct (the last
+      # stage, `cut`, reads all of its input), and pipefail's 141 lands on an assignment whose status nothing
+      # reads (no `set -e` in this script).
+      # A THIRD REASON WAS OFFERED IN THE FIRST DRAFT AND IS WITHDRAWN HERE, on antagonist A's finding (F7):
+      # "the very next line supplies a fallback for an empty `d`" protects against NOTHING related to the
+      # SIGPIPE, because a SIGPIPE on the upstream `sed` cannot produce an empty `d` - `grep -m1` has already
+      # captured its line by then. `d` is empty only when lines 2-6 hold no `//`, a different cause entirely.
+      # A wrong reason reaching a right verdict is CLAUDE.md's #419 trap, so it is named rather than dropped.
+      # AND THE FOURTH REASON WAS AN ARGUMENT WHERE A MEASUREMENT WAS FREE. It read "`sed -n '2,6p'` also emits
+      # at most five lines, so it has usually exited before `grep -m1` can signal it". "Usually" bounds nothing.
+      # MEASURED, by A and independently by this build: the largest lines-2-6 block across all 49 gate files is
+      # 571 BYTES (gates/regress/15-gallery-playall.js), against a 65536 B pipe buffer - a 115x margin. THAT
+      # bounds the risk. Rewriting it would be churn in the one place the pattern is provably safe. Counted on
+      # the same job as the four repaired above so the total stays five, not four.
       d="$(sed -n '2,6p' "$REG/$g" | grep -m1 '^//' | sed 's|^//[ ]*||' | tr '\t' ' ' | cut -c1-88)"
       [ -z "$d" ] && d="(no header comment)"
       printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$g" "required" "${B#\#}" "$AT" "$WHO" "$d" "$WHY" >> "$M"
@@ -1067,7 +1076,13 @@ open(p,'w').write("\n".join(ls))
 PYF9
   # #468: herestring, not a pipe (#467's own).
   attacked="$(_o="$("$T/gatemanifest.sh" check 2>/dev/null || true)"; grep -m1 '^gate manifest:' <<<"$_o" || true)"
-  if [ -n "$honest" ] && [ "$honest" != "$attacked" ]; then
+  # #468 added the `-n "$attacked"` arm on antagonist A's F8. The `-n "$honest"` guard was already correct and
+  # already defeats the `|| true` this build added to both captures. But with no guard on the other side, a tree
+  # whose `check` emitted NO carrier line at all would satisfy `honest != ""` and print "PASS ... the carrier
+  # line DIFFERS" when there was no line to differ. Shielded in practice by TC-40 immediately above, which
+  # reddens first on a total crash - but a control that can pass on a condition it does not test is the thing
+  # this whole file exists to prevent.
+  if [ -n "$honest" ] && [ -n "$attacked" ] && [ "$honest" != "$attacked" ]; then
     echo "PASS selftest: the carrier line DIFFERS on a swapped set (it was byte-identical before #467's digest)"; pass=$((pass+1))
   else echo "FAIL selftest: the carrier line is still byte-identical on a swapped set"; fail=$((fail+1)); fi
   # 42. A SWAP THROUGH sync ALONE IS REFUSED, so the legitimate route for a swap is both doors, one row each.

@@ -319,6 +319,11 @@ const actionRowHit=(b)=>b.page.evaluate(()=>{
 // padding is 9px/6px under rowNarrow and 9px/15px above it: 2 x 9 = 18.00 = 244.77 - 226.77, measured.
 // Module scope so both the narrow loop and the wide block below read the same numbers.
 const FLIP_NEEDED=226.77;
+/* #468: the DEMO row's equivalent, stated as a constant rather than left in prose. This file says it in three
+   places (:196, :791, :891) - the two children's resolved tracks plus the gap come to 231.55px at EVERY geometry
+   under rowNarrow, so the demo residual is 231.55 minus the board width. It was a number in a comment and the two
+   assertions below pinned its CONSEQUENCE per geometry NAME instead, which is why they were landmines. */
+const DEMO_NEEDED=231.55;
 const flipRow=(b)=>b.page.evaluate(()=>{
   const r2=(n)=>Math.round(n*100)/100;
   const cand=[...document.querySelectorAll('button')].filter(x=>/^⟳\s*Flip$/.test((x.innerText||'').replace(/\s+/g,' ').trim()));
@@ -904,11 +909,27 @@ L.run(async()=>{
       at 320x520, and 19.16 -> 0 at 320x540, where the row now FITS with 4.84px to spare. Two of the three
       overflows this gate was written to pin are GONE, as a side effect of a hit-area fix, and the arithmetic
       that predicts it was already written down here: the residual is 231.55 minus the board width. */
-   const _rowPin={'375x520':8.36,'320x520':0.36,'320x540':0}[geo];
-   if(_rowPin!==undefined){
-     L.say(!!_dr&&Math.abs(Math.round((_dr.btnR-_dr.rowR)*100)/100-_rowPin)<=0.6,
-       geo+': the ROW residual is where #424 left it - the button runs '+(_dr&&Math.round((_dr.btnR-_dr.rowR)*100)/100)+'px past its own row (pinned at '+_rowPin+', down from 95.73 before the ladder) because at board 192 the row cannot hold both buttons\' min-content ('+(_dr&&_dr.needed)+'px against '+(_dr&&_dr.rowW)+'px). REPORTED, not excused: it needs a wrap or a second row, which is a board-height cost and so Kunal\'s call.',
-       _dr&&{past:Math.round((_dr.btnR-_dr.rowR)*100)/100,pinned:_rowPin,needed:_dr.needed,rowW:_dr.rowW,kids:_dr.kids});
+   /* #468 REPLACED A GEOMETRY-NAME-KEYED PIN HERE, ON ANTAGONIST A's VETO (F2). It read
+      `const _rowPin={'375x520':8.36,'320x520':0.36,'320x540':0}[geo]`. It is the SAME fault as the `_fp` map the
+      flip block below was repaired for, in the same file and the same loop, and #468's first version claimed that
+      map was "the last one still standing" while THIS one sat 150 lines above it, asserted, unmentioned.
+      WHY IT WAS A LANDMINE, by this block's own arithmetic rather than by inspection: the residual is
+      DEMO_NEEDED minus the board (the comment above says so, and :196 derives it - 192 + 39.55 = 231.55), so at
+      the documented 192.00 floor it reads 39.55 against pins of 8.36, 0.36 and 0. It would have gone RED exactly
+      as `_fp` did, and it survived #467 only by luck: that run's log records the DEMO row at rowW 236.39 (PASS)
+      and the FLIP row at rowW 192 six log lines later (FAIL), so the 192 state reached one block and not the
+      other IN THE SAME RUN - which also means "stable within a run" is not quite the right description of the
+      multistability, and that observation belongs to jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29.
+      NOT DEMONSTRATED LIVE: antagonist A established the arithmetic and so did I, but neither of us forced the
+      demo block into the 192 state, so this is a latent failure repaired on arithmetic, not a reproduced one. */
+   const _rowPred=_dr&&_dr.needed!==null?Math.round(Math.max(0,_dr.needed-_dr.rowW)*100)/100:null;
+   if(_dr){
+     L.say(_dr.needed!==null&&Math.abs(Math.round((_dr.btnR-_dr.rowR)*100)/100-_rowPred)<=0.6,
+       geo+': the ROW residual is exactly what the arithmetic predicts and nothing else - the button runs '+(Math.round((_dr.btnR-_dr.rowR)*100)/100)+'px past its own row, and the row\'s two resolved tracks plus gap need '+_dr.needed+'px against a row of '+_dr.rowW+'px (the board\'s own width), so the prediction is '+_rowPred+'px. Keyed to the MEASURED row rather than to the geometry NAME, because this board is multistable - at the 192.00 floor this residual is 39.55 and the pins this replaced read 8.36/0.36/0. REPORTED, not excused: closing it needs a wrap or a second row, which is a board-height cost and so Kunal\'s call.',
+       {past:Math.round((_dr.btnR-_dr.rowR)*100)/100,predicted:_rowPred,needed:_dr.needed,rowW:_dr.rowW,kids:_dr.kids});
+     L.say(_dr.needed!==null&&Math.abs(_dr.needed-DEMO_NEEDED)<=0.6,
+       geo+': and the TERM is pinned to a constant, which is what actually catches a regression here - the two resolved tracks plus gap need '+_dr.needed+'px against DEMO_NEEDED '+DEMO_NEEDED+'px. This is the assertion the board-relative form above CANNOT make, because `rowW` appears on both sides of it; truncate a label or change the padding and THIS goes red.',
+       {needed:_dr.needed,pinned:DEMO_NEEDED,rowW:_dr.rowW});
      /* #424, ANTAGONIST A (F4): THE CAUSE IS PINNED HERE TOO, not just the box. The main loop's "the row can HOLD
         it" assertion runs only at se/kunal730/390, so it does NOT run at either geometry where the row
         demonstrably cannot hold its children - which is exactly where #415 built and reverted the
@@ -924,7 +945,11 @@ L.run(async()=>{
         pin served both and nothing noticed. #430's board gain made 320x540 fit, and there past is 0.00 while the
         cause is -4.84 - so the shared pin went red on the healthy state. Pinned separately and SIGNED, which
         also means this line now reports the margin at a column that fits instead of asserting it away. */
-     const _causePin={'375x520':8.36,'320x520':0.36,'320x540':-4.84}[geo];
+     /* #468: WAS `const _causePin={'375x520':8.36,'320x520':0.36,'320x540':-4.84}[geo]` - the second landmine A
+        found, same fault, same block. Its -4.84 at 320x540 decodes to a board of 236.39 (231.55 + 4.84), i.e. it
+        was calibrated to the HEALTHY board at each column and would read 39.55 at the floor. Re-keyed to the
+        constant term minus the MEASURED board, so it states the mechanism instead of one of its outcomes. */
+     const _causePin=_dr&&_dr.rowW!=null?Math.round((DEMO_NEEDED-_dr.rowW)*100)/100:undefined;
      L.say(!!_dr&&_dr.needed!==null&&Math.abs(Math.round((_dr.needed-_dr.rowW)*100)/100-_causePin)<=0.6,
        geo+': and the CAUSE is where it was left - the row\'s two resolved tracks plus gap need '+(_dr&&_dr.needed)+'px against a row of '+(_dr&&_dr.rowW)+'px, a shortfall of '+(_dr&&Math.round((_dr.needed-_dr.rowW)*100)/100)+'px (pinned at '+_causePin+'; negative means the row FITS with that much to spare). Nothing was truncated to make the box fit: an ellipsis would drop this number and leave the box one happy.',
        _dr&&{needed:_dr.needed,rowW:_dr.rowW,shortfall:Math.round((_dr.needed-_dr.rowW)*100)/100,pinned:_causePin,clone:_dr.neededClone,tracks:_dr.tracks});
@@ -1055,35 +1080,88 @@ L.run(async()=>{
      L.say(_f.needed!==null&&Math.abs(_f.needed-FLIP_NEEDED)<=0.6,
        _tag+': the row\'s two min-content tracks plus gap need '+_f.needed+'px (pinned at '+FLIP_NEEDED+', which is a ROWNARROW-ONLY constant). THE TERM IS THE FLIP BUTTON\'S HORIZONTAL PADDING, NOT ITS FONT - 9px/6px under rowNarrow against 9px/15px above it, and 2 x 9 = 18.00 = 244.77 - 226.77 to the hundredth. This build first printed "because both labels are fixed strings at 14px" and its OWN negative control disproved it: NC1 changes only that padding and moves needed to 244.77 at all six column-states, while at 375x730 the same strings at the same 14px and the same 0.3px letter-spacing give 244.77. Nothing was truncated to make a box fit either: an ellipsis would drop this number and leave the box one happy.',
        {needed:_f.needed,pinned:FLIP_NEEDED,tracks:_f.mcTracks,gap:_f.gap,fs:_f.fs});
-     /* THE RESIDUAL, PER COLUMN, AT ITS OWN MEASURED VALUE - #415's antagonist lesson, that one pinned point is
-        a frozen denominator and is usually the BEST case. Two columns are contained and are asserted as
-     /* #468 DELETED THE PER-GEOMETRY-NAME PIN. It read
-          `const _fp={'375x520':3.58,'320x520':0,'320x540':0}[geo]`, three residuals keyed to the geometry's
-        NAME, and it is the SIXTH instance in this file of the fault #406, #409, #410, #430 and #432 each fixed
-        elsewhere - the last one still standing. The repair already existed TWELVE LINES BELOW, written by #432
-        for the geometries this map did not cover, and the whole change is to stop excluding three of them.
-        WHY IT HAD TO GO, measured at #467 and NOT an argument about style: the lesson demo board is multistable
-        and has now been observed at THREE widths at 320x540 across three builds - 236.4 (#466, residual 0,
-        PASS), 212.39 (#427's own documentation table, residual 14.38) and 192.00 (#467, residual 34.77, the
-        floor). A pin of 0 at that column is therefore arithmetically INCAPABLE of being true in a state the
-        suite reaches in roughly 2 of 6 runs, which is #432's own words for why it re-keyed the sibling branch,
-        and the column pin CONTRADICTED the gate's own table 75 lines above it, which records 14.38 for the very
-        column pinned at 0. #467 gated RED on this one assertion over a bundle whose chess.jsx was BYTE
-        IDENTICAL to the #466 bundle that had gone green at 50 sections two hours earlier, and stood down
-        rather than re-key it inside the run that needed it to pass [builds/467].
-        WHAT IS LOST, SAID PLAINLY RATHER THAN BURIED, because this is the half an antagonist should attack.
-        In the !_fits branch the board-relative form is WEAKER than a hard pin: it accepts an unbounded overflow
-        provided the overflow equals the prediction. That is #432's own withdrawal, in this file, and I am
-        EXTENDING that weaker branch to three columns that previously carried hard numbers. Three things make
-        that a net gain rather than a trade. (1) On a healthy board it is not weaker at all but IDENTICAL: the
-        prediction is max(0, needed - rowW), which is 0 wherever the board holds the row (the 320x520 and
-        320x540 pins) and 3.58 at 375x520 where it does not - the same three numbers, derived instead of typed.
-        (2) What actually catches a regression here is the SEPARATE needed-vs-FLIP_NEEDED pin above, where
-        `needed` is pinned to the 226.77 constant and `rowW` is not; truncate the label or change the Flip
-        button's padding and THAT goes red. It is untouched. (3) The BAND assertion below pins `rowW` against
-        the measured board directly, so a row that stops being sized by the board still reddens there.
-        A pin that can only be true in one of three legal states is not a strong assertion; it is a broken one
-        that stops any build gating in a third of runs, which is what it just did. */
+     /* #468 DELETED THE PER-GEOMETRY-NAME PIN AND REPLACED THE BOUND IT WAS SECRETLY CARRYING.
+        WHAT WAS HERE: `const _fp={'375x520':3.58,'320x520':0,'320x540':0}[geo]`, three Flip-row residuals keyed
+        to the geometry's NAME, each asserted to 0.6. It is one more instance of the fault #409, #410, #430 and
+        #432 each fixed elsewhere in this file, and the repair - the board-relative `_fits`/`_fpred` form below -
+        was already written by #432 for the geometries this map did not cover.
+        WHY IT HAD TO GO: the lesson demo board is multistable. Measured across the committed gatelogs, 320x540
+        draws 236.4 (54 observations) and 192.00 (3), so a pin of 0 at that column is arithmetically INCAPABLE of
+        being true in a state the suite actually reaches, and #467 gated RED on exactly this assertion over a
+        bundle whose chess.jsx was BYTE-IDENTICAL to the one #466 had gated GREEN two hours earlier.
+
+        THREE CLAIMS THE FIRST VERSION OF THIS COMMENT MADE ARE WITHDRAWN HERE, ALL THREE ON ANTAGONIST A's
+        VETO AND ALL THREE RE-MEASURED BY THIS BUILD BEFORE ACCEPTING THEM [R18].
+        (1) "THE LAST ONE STILL STANDING" IS FALSE. Two more geometry-name-keyed residual maps are live and
+            asserted in this same file, in the DEMO block: `_rowPin` and `_causePin`. Both are repaired in this
+            build, by this build, rather than merely named - see the comment above each.
+        (2) "THE SIXTH INSTANCE IN THIS FILE" WAS AN UNSCOPED COUNT. By this file's own accounting #406's
+            instance was in gate 35 and the app, not here, so the in-file predecessors are #409, #410, #430 and
+            #432. The ordinal is dropped rather than corrected, because #410 wrote "this was the last one the
+            suite had" and #432 wrote "FOR THE THIRD TIME IN THIS FILE" against its own list of four, and a
+            running count that three builds have got wrong is not worth keeping. THE HUNT IS NOT CLOSED.
+        (3) "THE PIN CONTRADICTED THE TABLE 75 LINES ABOVE" IS FALSE: IT IS SUPERSESSION, NOT CONTRADICTION.
+            The table is scoped to the #427 bundle (md5 95fa1c00fcc8) and records 14.38 at 320x540; the pin was
+            scoped to the #430 bundle, and the comment this build deleted said in terms "14.38 -> 0 at 320x540"
+            after #430's board gain. Two bundles, two readings, the transition named. Calling that a
+            contradiction is #454's own error - treating "measured on #NNN" as a cross-bundle reference - and it
+            was made while deleting the one line that reconciled the two. Also withdrawn: "observed at THREE
+            widths at 320x540" (212.39 is a PRE-#430 width this app can no longer draw; the current app draws
+            two), and "roughly 2 of 6 runs", which is #430's figure for short375 transplanted to a different
+            column, where the logs give 3 of 57.
+
+        AND HERE IS THE THING THE DELETION COST, WHICH IS WHY THE PIN BELOW EXISTS. Antagonist A's veto, and I
+        reproduced its table independently before accepting it: the deleted `_fp` was arithmetically a BOARD-WIDTH
+        pin in disguise, because the row is the board's own width, so `_fp['320x520']=0` implies board >= 226.17.
+        Deleting it removed THE SUITE'S ONLY NUMERIC CONSTRAINT ON THIS BOARD'S WIDTH - grep for 223.19, 231.19,
+        236.39 or 226.77 across gates/regress/ returns nothing outside this file. MEASURED on the #468 bundle,
+        forcing the board AND its row together (which is what the multistability does, and which my own first
+        control did NOT do - it forced the row only, a state the BAND below catches):
+
+          geo      board   rowW    past  | needed-pin | board-relative | BAND | viewport | the DELETED pin
+          320x520  231.19  231.19  0     | PASS       | PASS           | PASS | PASS     | PASS
+          320x520  200     200     26.77 | PASS       | PASS           | PASS | PASS     | FAIL
+          320x520  192     192     34.77 | PASS       | PASS           | PASS | PASS     | FAIL
+          320x520  160     160     66.77 | PASS       | PASS           | PASS | PASS     | FAIL
+          320x540  236.39  236.39  0     | PASS       | PASS           | PASS | PASS     | PASS
+          320x540  200     200     26.77 | PASS       | PASS           | PASS | PASS     | FAIL
+          320x540  192     192     34.77 | PASS       | PASS           | PASS | PASS     | FAIL
+          320x540  160     160     66.77 | PASS       | PASS           | PASS | PASS     | FAIL
+
+        A 31% board loss, 66.77px of overflow, and EVERY surviving assertion green. Each fails for its own
+        reason and the third is the one that matters: `needed` is label-plus-padding and structurally blind to
+        the board; the board-relative form has `rowW` on BOTH sides, which this file already says at the `else`
+        branch below ("a change that narrows the row moves both together and this assertion tracks it rather
+        than catching it"); and the BAND asserts `board.w == rowW` AND `past == 226.77 - board.w`, so when the
+        row tracks the board both sides are computed from the same number and it passes for every value of it.
+        That is the same-object trap this file records against four other assertions. The BAND does still catch
+        row-DECOUPLING, which is what its own prose claims and what my row-only control exercised; it cannot
+        catch the board and the row moving together.
+
+        SO THE BOUND IS RESTORED AS A SET RATHER THAN AS A POINT, which is the distinction #467's two
+        antagonists drew about the manifest floor, applied here. The legal widths are measured from the
+        committed gatelogs rather than chosen: 375x520 -> 223.2 (56 observations), 320x520 -> 231.2 (84),
+        320x540 -> 236.4 (54), short375 -> 270.9 (28), 390x568 -> 270.9 (56), plus the documented floor 192.00
+        at every column (#430 and #432 both record the floor at short375 as well, so it is tolerated
+        everywhere rather than only where this sample happened to catch it). A width that is neither the
+        column's healthy value nor the floor is a RED, which is what a pin is for - #424's pin went red exactly
+        when its defect was fixed. ITS LIMIT, NAMED: four of the five columns have only ever been observed at
+        ONE width, so for those the set is an observation and not a proof that a second state is impossible;
+        if a legitimate board change reddens this, re-measure and widen the set rather than deleting it.
+        Controlled in gates/controls/468-flip-residual-board-relative.js: red at 200 and 160, green at the
+        healthy value and at 192. */
+     const _legalBoard={'375x520':223.2,'320x520':231.2,'320x540':236.4,'short375':270.9,'390x568':270.9}[geo];
+     if(_legalBoard!==undefined && _fm.board){
+       const _bw=_fm.board.w, _onHealthy=Math.abs(_bw-_legalBoard)<=0.6, _onFloor=Math.abs(_bw-192.0)<=0.6;
+       L.say(_onHealthy||_onFloor,
+         _tag+': the demo BOARD is one of this column\'s two known widths - '+_bw+'px against a healthy '+
+         _legalBoard+' or the documented floor 192.00. THIS IS THE NUMERIC BOUND THE DELETED PER-COLUMN RESIDUAL '+
+         'PIN WAS CARRYING IN DISGUISE, restored as a SET so it tolerates the multistability the point pin could '+
+         'not. Every other assertion in this block is board-relative and passes at ANY width - measured, a 31% '+
+         'board loss to 160px leaves all four green - so without this line nothing in the suite constrains this '+
+         'number at all.',
+         {board:_bw,healthy:_legalBoard,floor:192.0,onHealthy:_onHealthy,onFloor:_onFloor});
+     }
      {
        /* #432 RE-KEYED TO THE MEASURED BOARD, FOR THE THIRD TIME IN THIS FILE AND FOR THE SAME REASON.
           This asserted FLAT CONTAINMENT (past<=0.5) at every geometry without a pinned residual - i.e. it was

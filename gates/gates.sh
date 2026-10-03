@@ -173,25 +173,35 @@ fi
 #           at second two, refused seventy minutes later at the push gate.
 MANI_OUT="$("$G/gatemanifest.sh" check 2>&1)"; MANI_RC=$?
 printf '%s\n' "$MANI_OUT" | tee -a "$ALL"
-# #468 HERESTRING, NOT A PIPE - AND THE HONEST STATUS IS *LATENT*, MEASURED, NOT "THIS WAS BREAKING".
-# The first draft of this comment said the fallback "fired too, so MANI_LINE became the real verdict AND the
-# words 'gate manifest: NOT CHECKED', both". I then ran the control and IT DID NOT REPRODUCE: at today's sizes
-# OLD and NEW return the identical single line. Written down rather than quietly corrected, because this is
-# CLAUDE.md's "a control must cross the threshold" and #416's "print the before and after of the MEASURED value"
-# - I had written a mechanism up as an event before measuring it.
-# WHAT IS ACTUALLY TRUE, measured here: `grep -m1` exits on first match and SIGPIPEs its upstream, and under
-# `set -o pipefail` (line 30) that 141 becomes the pipeline's status, so the `||` fires on the SUCCESS path. But
-# the upstream only survives long enough to be signalled if it BLOCKS, i.e. if it has more to write than the
-# ~64KB pipe buffer. Below that `printf` has already exited 0 and there is nothing to kill.
-# AND IT IS A RACE, NOT A SIZE THRESHOLD, which is the part worth knowing: fallback fired at 63KB and 128KB of
-# upstream and NOT at 64KB or 65KB on a single pass, and at a fixed 64KB it fired on 5 OF 30 TRIALS. So the
-# failure is intermittent by nature and would have presented as a footer that was occasionally wrong.
-# WHY IT CANNOT FIRE TODAY: `gatemanifest.sh check` emits 502 BYTES (measured 2026-10-03), three orders of
-# magnitude under the buffer. So this is a latent fault on the push path, repaired because the repair is one
-# line and the register only grows, NOT a bug anyone has been hit by. That settles #467's own open question -
-# builds/467 notChecked: "whether the three #467-authored `| grep` sites can actually misfire at today's
-# register sizes. Argued latent from the ~64KB pipe buffer, not measured at the real sizes." Now measured: the
-# mechanism is real, the race is real, and at 502 bytes none of the five can fire.
+# #468 HERESTRING, NOT A PIPE. THE STATUS IS *LATENT*, MEASURED THREE TIMES BY TWO PARTIES, AND NOT
+# "THIS WAS BREAKING". The first draft of this comment said the fallback "fired too, so MANI_LINE became the
+# real verdict AND the words 'gate manifest: NOT CHECKED', both". Written down rather than quietly corrected,
+# because it was a mechanism written up as an event before it was measured - CLAUDE.md's "print the before and
+# after of the MEASURED value".
+# THE MECHANISM, which is not in dispute: `grep -m1` exits on first match and SIGPIPEs its upstream, and under
+# `set -o pipefail` (line 30) that 141 becomes the pipeline's status, so the `||` fires on the SUCCESS path. The
+# upstream only survives long enough to be signalled if it BLOCKS, i.e. has more to write than the pipe buffer
+# (65536 B on Linux; `ulimit -p` x 512).
+# THE NUMBERS, all three draws published because they disagree and the disagreement IS the finding. Exact
+# `printf` byte counts, 30 trials per cell, `set -o pipefail`:
+#   bytes    this build (#468)   antagonist A
+#   32768    0/30                0/30
+#   65535    0/30                0/30
+#   65536    3/30                0/30      <- same byte count, two different answers
+#   65537    1/30                2/30
+#   66000    1/30                2-4/30
+#   131072   30/30               30/30
+# So: deterministically SAFE below the buffer, a RACE BAND at and just above it - which is why A and I get
+# different answers at exactly 65536 and why "a sharp threshold" overstates it - and DETERMINISTIC failure by
+# twice the buffer. My original "fired at 63KB" does not reproduce and A diagnosed the cause convincingly: a
+# "63KB"-labelled generator that actually emitted 65,185 bytes, which is how a label becomes a measurement. My
+# original "5 of 30 at 64KB" is close to this build's re-measured 3/30 and was reported by A as 0/30; both are
+# draws from the same race, and neither is "the" value.
+# WHY IT CANNOT FIRE TODAY: `gatemanifest.sh check` emits 502 BYTES (measured by this build and independently
+# confirmed at exactly 502 by A), 130x under the buffer. So this is a latent fault on the push path, repaired
+# because the repair is one line and the register only grows, NOT a bug anyone has been hit by. The NEW form
+# fires 0/30 at every size up to 512KB. That settles builds/467's own open question, which argued the five
+# sites latent from the buffer size without measuring them.
 # jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02.
 MANI_LINE="$(grep -m1 '^gate manifest:' <<<"$MANI_OUT" || echo 'gate manifest: NOT CHECKED')"
 if [ "$MANI_RC" -eq 1 ]; then
