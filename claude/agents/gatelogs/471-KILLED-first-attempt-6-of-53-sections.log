@@ -1,0 +1,174 @@
+gates.sh #471  bundle /home/user/chess-trainer/app.js  md5 fdbdaa5c5507  2026-10-03 11:53:20 UTC
+KNOWN-ABSENT GATE(S) - recorded as not on this tree, NOT a failure, reported every run on purpose:
+    50-drill-verdict-no-jump.js
+    67-sel-cls-consumers.js
+    66-winprob-ladder.js
+    17-drill-grade-arithmetic.js
+    52-drill-grades-the-move.js
+  A defect class with no gate on main is the thing that was previously invisible. Read the note column.
+gate manifest: 52 required, 52 present, 0 missing, 0 unlisted, 5 known-absent, 0 retired, 0 unjustified, 0 unreadable
+=== mountcheck ===
+     bundle: app.js  stamp #471 - 2026-10-03 07:29 ET  (CT_APP)
+PASS kunal: build stamp in the DOM  [#471 - 2026-10-03 07:29 ET]
+PASS kunal: stamp is #471  [#471 - 2026-10-03 07:29 ET]
+PASS kunal: four home tiles render (1237ms to mount)  [["Discover","Puzzles","Review","Play"]]
+PASS kunal: zero app console errors on Home  [[]]
+PASS kunal: Discover opens with zero errors  [[]]
+     Discover metrics {"board":null,"over":{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS kunal: Puzzles opens with zero errors  [[]]
+     Puzzles metrics {"board":null,"over":{"bottom":1787,"vh":679,"over":1108,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS kunal: Review opens with zero errors  [[]]
+     Review metrics {"board":null,"over":{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS kunal: Play opens with zero errors  [[]]
+     Play metrics {"board":{"w":344,"top":111,"left":24.5,"flip":false},"over":{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS 390: build stamp in the DOM  [#471 - 2026-10-03 07:29 ET]
+PASS 390: stamp is #471  [#471 - 2026-10-03 07:29 ET]
+PASS 390: four home tiles render (1138ms to mount)  [["Discover","Puzzles","Review","Play"]]
+PASS 390: zero app console errors on Home  [[]]
+PASS 390: Discover opens with zero errors  [[]]
+     Discover metrics {"board":null,"over":{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+PASS 390: Puzzles opens with zero errors  [[]]
+     Puzzles metrics {"board":null,"over":{"bottom":1787,"vh":844,"over":943,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+PASS 390: Review opens with zero errors  [[]]
+     Review metrics {"board":null,"over":{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+PASS 390: Play opens with zero errors  [[]]
+     Play metrics {"board":{"w":360,"top":111.4,"left":24,"flip":false},"over":{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+MOUNTCHECK: 16 pass, 0 fail
+    mountcheck: green (16 PASS)
+=== 10-gameover ===
+     bundle: app.js  stamp #471 - 2026-10-03 07:29 ET  (CT_APP)
+PASS kunal: board present mid-game and after the mate  [{"mid":{"w":351,"top":78,"left":12,"flip":false},"end":{"w":351,"top":78,"left":12,"flip":false}}]
+PASS kunal: board width unchanged at game over (351 -> 351)
+PASS kunal: board top unchanged at game over (78 -> 78)
+PASS kunal: the board at game over is 351 wide, the measured size for this geometry - not merely the same as it was a moment ago  [{"measured":351,"want":351}]
+PASS kunal: nothing scrolls at game over  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: row reads Review · Rematch, no Resign  [⌂ | ☰ | Moves | Back | Forward | Review | Rematch | More]
+PASS kunal: zero app errors  [[]]
+PASS 390: board present mid-game and after the mate  [{"mid":{"w":390,"top":103,"left":0,"flip":false},"end":{"w":390,"top":103,"left":0,"flip":false}}]
+PASS 390: board width unchanged at game over (390 -> 390)
+PASS 390: board top unchanged at game over (103 -> 103)
+PASS 390: the board at game over is 390 wide, the measured size for this geometry - not merely the same as it was a moment ago  [{"measured":390,"want":390}]
+PASS 390: nothing scrolls at game over  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: row reads Review · Rematch, no Resign  [⌂ | ☰ | Moves | Back | Forward | Review | Rematch | More]
+PASS 390: zero app errors  [[]]
+GAMEOVER: 14 pass, 0 fail
+    10-gameover: green (14 PASS)
+=== 11-lesson ===
+     bundle: app.js  stamp #471 - 2026-10-03 07:29 ET  (CT_APP)
+PASS kunal: demo end shows a board  [{"w":375,"top":92,"left":0,"flip":false}]
+PASS kunal: demo end board is 375 wide (375)
+PASS kunal: demo end board top is 92 (92)
+PASS kunal: note box is 75px  [75]
+PASS kunal: no scroll at the demo end  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: practice board = demo board (w 375 top 92)
+PASS kunal: board unchanged after one practice move (w 375 top 92)
+PASS kunal: no scroll after the move  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: zero app errors  [[]]
+PASS 390: demo end shows a board  [{"w":390,"top":92,"left":0,"flip":false}]
+PASS 390: note box is 75px  [75]
+PASS 390: no scroll at the demo end  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: practice board = demo board (w 390 top 92)
+PASS 390: board unchanged after one practice move (w 390 top 92)
+PASS 390: no scroll after the move  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: zero app errors  [[]]
+PASS 320x568 demo-end: the lesson board is on screen  [{"w":270.9,"x":24.6}]
+PASS 320x568 demo-end: the column fills the viewport (bottom 568 of 568). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":568,"vh":568}]
+PASS 320x568 demo-end: the board is 270.9 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":270.9,"want":270.9}]
+PASS 320x568 demo-end: the board never exceeds the viewport width  [{"w":270.9,"x":24.6}]
+PASS 320x568 demo-end: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 24.6, expected 24.6)  [{"w":270.9,"x":24.6}]
+PASS 320x568: the lesson footer shows its five buttons (precondition - without this the size checks below pass by measuring nothing)  [["Back a move","Play or pause","Forward a move","Close lesson","More for this lesson"]]
+PASS 320x568: every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent  [[44,44,44,44,44]]
+PASS 320x568: every footer GLYPH is at least 20px tall. The boxes were always big enough; the ink was not, and that is what he reported  [[{"a":"Back a move","gh":27},{"a":"Play or pause","gh":22},{"a":"Forward a move","gh":27},{"a":"Close lesson","gh":22},{"a":"More for this lesson","gh":22}]]
+PASS 320x568: and at least 16px wide  [[{"a":"Back a move","gw":27},{"a":"Play or pause","gw":17},{"a":"Forward a move","gw":27},{"a":"Close lesson","gw":17},{"a":"More for this lesson","gw":20}]]
+PASS 320x568: all five carry ONE font size, so "consistent" is a fact rather than a judgement. The play button shipped at 13px because it used to carry the word "Pause" - #347, icons still sized for the labels they stopped carrying  [[20]]
+PASS 320x568: and no glyph fills its box edge to edge - raising the ink must not make the button look like a solid block  [[{"a":"Back a move","gw":27,"w":44},{"a":"Play or pause","gw":17,"w":52},{"a":"Forward a move","gw":27,"w":44},{"a":"Close lesson","gw":17,"w":44},{"a":"More for this lesson","gw":20,"w":44}]]
+PASS 320x568 practice-m0: the lesson board is on screen  [{"w":254.9,"x":32.6}]
+PASS 320x568 practice-m0: the column fills the viewport (bottom 568 of 568). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":568,"vh":568}]
+PASS 320x568 practice-m0: the board is 254.9 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":254.9,"want":254.9}]
+PASS 320x568 practice-m0: the board never exceeds the viewport width  [{"w":254.9,"x":32.6}]
+PASS 320x568 practice-m0: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 32.6, expected 32.6)  [{"w":254.9,"x":32.6}]
+PASS 360x640 demo-end: the lesson board is on screen  [{"w":342.4,"x":8.8}]
+PASS 360x640 demo-end: the column fills the viewport (bottom 640 of 640). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":640,"vh":640}]
+PASS 360x640 demo-end: the board is 342.4 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":342.4,"want":342.4}]
+PASS 360x640 demo-end: the board never exceeds the viewport width  [{"w":342.4,"x":8.8}]
+PASS 360x640 demo-end: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 8.8, expected 8.8)  [{"w":342.4,"x":8.8}]
+PASS 360x640: the lesson footer shows its five buttons (precondition - without this the size checks below pass by measuring nothing)  [["Back a move","Play or pause","Forward a move","Close lesson","More for this lesson"]]
+PASS 360x640: every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent  [[44,44,44,44,44]]
+PASS 360x640: every footer GLYPH is at least 20px tall. The boxes were always big enough; the ink was not, and that is what he reported  [[{"a":"Back a move","gh":27},{"a":"Play or pause","gh":22},{"a":"Forward a move","gh":27},{"a":"Close lesson","gh":22},{"a":"More for this lesson","gh":22}]]
+PASS 360x640: and at least 16px wide  [[{"a":"Back a move","gw":27},{"a":"Play or pause","gw":17},{"a":"Forward a move","gw":27},{"a":"Close lesson","gw":17},{"a":"More for this lesson","gw":20}]]
+PASS 360x640: all five carry ONE font size, so "consistent" is a fact rather than a judgement. The play button shipped at 13px because it used to carry the word "Pause" - #347, icons still sized for the labels they stopped carrying  [[20]]
+PASS 360x640: and no glyph fills its box edge to edge - raising the ink must not make the button look like a solid block  [[{"a":"Back a move","gw":27,"w":44},{"a":"Play or pause","gw":17,"w":52},{"a":"Forward a move","gw":27,"w":44},{"a":"Close lesson","gw":17,"w":44},{"a":"More for this lesson","gw":20,"w":44}]]
+PASS 360x640 practice-m0: the lesson board is on screen  [{"w":326.4,"x":16.8}]
+PASS 360x640 practice-m0: the column fills the viewport (bottom 640 of 640). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":640,"vh":640}]
+PASS 360x640 practice-m0: the board is 326.4 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":326.4,"want":326.4}]
+PASS 360x640 practice-m0: the board never exceeds the viewport width  [{"w":326.4,"x":16.8}]
+PASS 360x640 practice-m0: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 16.8, expected 16.8)  [{"w":326.4,"x":16.8}]
+PASS 375x667 demo-end: the lesson board is on screen  [{"w":375,"x":0}]
+PASS 375x667 demo-end: the column fills the viewport (bottom 667 of 667). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":667,"vh":667}]
+PASS 375x667 demo-end: the board is 375 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":375,"want":375}]
+PASS 375x667 demo-end: the board never exceeds the viewport width  [{"w":375,"x":0}]
+PASS 375x667 demo-end: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 0, expected 0)  [{"w":375,"x":0}]
+PASS 375x667: the lesson footer shows its five buttons (precondition - without this the size checks below pass by measuring nothing)  [["Back a move","Play or pause","Forward a move","Close lesson","More for this lesson"]]
+PASS 375x667: every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent  [[44,44,44,44,44]]
+PASS 375x667: every footer GLYPH is at least 20px tall. The boxes were always big enough; the ink was not, and that is what he reported  [[{"a":"Back a move","gh":27},{"a":"Play or pause","gh":22},{"a":"Forward a move","gh":27},{"a":"Close lesson","gh":22},{"a":"More for this lesson","gh":22}]]
+PASS 375x667: and at least 16px wide  [[{"a":"Back a move","gw":27},{"a":"Play or pause","gw":17},{"a":"Forward a move","gw":27},{"a":"Close lesson","gw":17},{"a":"More for this lesson","gw":20}]]
+PASS 375x667: all five carry ONE font size, so "consistent" is a fact rather than a judgement. The play button shipped at 13px because it used to carry the word "Pause" - #347, icons still sized for the labels they stopped carrying  [[20.25]]
+PASS 375x667: and no glyph fills its box edge to edge - raising the ink must not make the button look like a solid block  [[{"a":"Back a move","gw":27,"w":44},{"a":"Play or pause","gw":17,"w":52},{"a":"Forward a move","gw":27,"w":44},{"a":"Close lesson","gw":17,"w":44},{"a":"More for this lesson","gw":20,"w":44}]]
+PASS 375x667 practice-m0: the lesson board is on screen  [{"w":352.2,"x":11.4}]
+PASS 375x667 practice-m0: the column fills the viewport (bottom 667 of 667). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":667,"vh":667}]
+PASS 375x667 practice-m0: the board is 352.2 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":352.2,"want":352.2}]
+PASS 375x667 practice-m0: the board never exceeds the viewport width  [{"w":352.2,"x":11.4}]
+PASS 375x667 practice-m0: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 11.4, expected 11.4)  [{"w":352.2,"x":11.4}]
+LESSON: 64 pass, 0 fail
+    11-lesson: green (64 PASS)
+=== 12-hint ===
+     bundle: app.js  stamp #471 - 2026-10-03 07:29 ET  (CT_APP)
+PASS kunal: puzzle board present before and with the hint
+PASS kunal: board unmoved by the hint (top 181.5 -> 181.5, w 375)
+PASS kunal: the puzzle board is 375 wide with the hint up - the measured size, not merely the same as a moment ago  [{"measured":375,"want":375}]
+PASS kunal: hint header shows the hint  [💡 It's mate in 2 — start with the most forcing check.]
+PASS kunal: hint text not clipped (scroll 27 vs 27)
+PASS kunal: hint header sits above the board, on screen
+PASS kunal: no scroll with the hint  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: zero app errors  [[]]
+PASS 390: puzzle board present before and with the hint
+PASS 390: board unmoved by the hint (top 278.5 -> 278.5, w 390)
+PASS 390: the puzzle board is 390 wide with the hint up - the measured size, not merely the same as a moment ago  [{"measured":390,"want":390}]
+PASS 390: hint header shows the hint  [💡 It's mate in 2 — start with the most forcing check.]
+PASS 390: hint text not clipped (scroll 27 vs 27)
+PASS 390: hint header sits above the board, on screen
+PASS 390: no scroll with the hint  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: zero app errors  [[]]
+PASS se: puzzle board present before and with the hint
+PASS se: board unmoved by the hint (top 184 -> 184, w 259)
+PASS se: the puzzle board is 259 wide with the hint up - the measured size, not merely the same as a moment ago  [{"measured":259,"want":259}]
+PASS se: hint header shows the hint  [💡 It's mate in 2 — start with the most forcing check.]
+PASS se: hint text not clipped (scroll 25 vs 25)
+PASS se: hint header sits above the board, on screen
+PASS se: no scroll with the hint  [{"bottom":568,"vh":568,"over":0,"scrollY":0,"docScroll":0}]
+PASS se: zero app errors  [[]]
+HINT: 24 pass, 0 fail
+    12-hint: green (24 PASS)
+=== 13-play-after-moves ===
+     bundle: app.js  stamp #471 - 2026-10-03 07:29 ET  (CT_APP)
+PASS kunal: card k8 board unchanged over four plies (w 351 -> 351, top 78 -> 78)
+PASS kunal: Pass & Play board has ONE width and ONE top across five plies  [{"ws":[351],"tops":[78]}]
+PASS kunal: card k8 board is PINNED at 351 after four plies  [351]
+PASS kunal: card k8 board top is PINNED at 78 after four plies  [78]
+PASS kunal: Pass & Play board is PINNED at 351 after five plies  [351]
+PASS kunal: Pass & Play board top is PINNED at 78 after five plies  [78]
+PASS kunal: the five plies registered (Bb5 in the move list)
+PASS kunal: no scroll after five plies  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: zero app errors  [[]]
+PASS 390: card k8 board unchanged over four plies (w 390 -> 390, top 103 -> 103)
+PASS 390: Pass & Play board has ONE width and ONE top across five plies  [{"ws":[390],"tops":[103]}]
+PASS 390: card k8 board is PINNED at 390 after four plies  [390]
+PASS 390: card k8 board top is PINNED at 103 after four plies  [103]
+PASS 390: Pass & Play board is PINNED at 390 after five plies  [390]
+PASS 390: Pass & Play board top is PINNED at 103 after five plies  [103]
+PASS 390: the five plies registered (Bb5 in the move list)
+PASS 390: no scroll after five plies  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: zero app errors  [[]]
+PLAY-AFTER-MOVES: 18 pass, 0 fail
+    13-play-after-moves: green (18 PASS)
+=== 14-uat-review-card ===
