@@ -88,6 +88,7 @@ const moverow=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct
 const sheetUp=(b)=>b.page.evaluate(()=>!!document.querySelector('[data-ct="setup-sheet"]'));
 const evalBar=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="eval-bar-v"]');if(!e)return null;const r=e.getBoundingClientRect();return {w:Math.round(r.width*100)/100,h:Math.round(r.height*100)/100};});
 const elo=(b)=>b.page.evaluate(()=>{try{return localStorage.getItem('ct_elo');}catch(e){return 'ERR';}});
+const bars=(b)=>b.page.evaluate(()=>{const g=(k)=>{const e=document.querySelector('[data-ct="pbar-'+k+'"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;};return {top:g('top'),bottom:g('bottom')};});
 const hasBtn=(b,re)=>b.page.evaluate((src)=>{const r=new RegExp(src[0],src[1]);return [...document.querySelectorAll('button')].some(x=>{const q=x.getBoundingClientRect();return q.width>1&&q.height>1&&r.test((x.innerText||'').trim());});},[re.source,re.flags]);
 
 // A LIVE 2-PLY Pass & Play game (1.f3 e5), left by the house, with the Play setup sheet open over it.
@@ -105,7 +106,7 @@ async function liveGameThenSheet(b){
   const plies=await P.plies(b), row=await moverow(b), board=await b.board();
   await b.tapCt('play-home',650);
   await b.tile('Play'); await b.settle(700);
-  return {plies,row,boardW:board?Math.round(board.w*100)/100:null};
+  return {plies,row,boardW:board?Math.round(board.w*100)/100:null,flip:board?board.flip:null};
 }
 
 L.run(async()=>{
@@ -278,6 +279,52 @@ L.run(async()=>{
     }else{L.say(false,'E3 SKIPPED - no resume row to tap');}
     await b.close();
   }catch(e){L.say(false,'E-THREW the Online door scenario threw: '+(e&&e.message||e));}
+
+
+  // -- F: THE COLOUR-CHIP DOOR. This block is ANTAGONIST B's, found independently at the shipped-surface --
+  // door while A was at the diff door, and it is a THIRD route distinct from A's 'Home' button and from the
+  // Resume row. B's measurement on origin/main's shipped bundle af44e6a3b231 at 375x730: live Pass & Play
+  // 1.f3 e5 (2 plies, bars "White" / "Black", White to move) -> house -> Play tile -> Computer tile ->
+  // ONE COLOUR CHIP, no Start and no confirm -> the game behind the sheet is already at 3 plies, move row
+  // "1.f3 1...e5 2.e4": THE ENGINE PLAYED FOR THE COLOUR THE HUMAN OWNED. Resume then returns a vs-Computer
+  // game with the player reassigned to Black, bars "Computer 800" / "You", flip true, permanently. With
+  // "White" chosen instead B measured TWO injected plies, "1...e5 2.d4 2...Qh4+".
+  // B ENDED ITS REPORT BY NAMING THIS AS THE REGRESSION TEST MAIN CURRENTLY FAILS, and this is that test.
+  //
+  // TWO HARNESS TRAPS B PAID FOR AND THIS BLOCK INHERITS RATHER THAN REDISCOVERS:
+  //  (1) after ANY colour-chip or bot tap the sheet is scrolled down and [data-ct="setup-resume"] sits at
+  //      y=-247, off the top of the sheet's own scroller. tapCt taps the rect CENTRE, so the tap lands off
+  //      screen and silently hits the sheet instead - which contaminated two of B's own probes. So this block
+  //      scrolls the sheet to the top and ASSERTS rect.y>0 before tapping, and F3p is that assertion.
+  //  (2) an unset CT_APP in a compound shell line expands to empty and lib.js falls back to the repo's own
+  //      app.js while the log tag still claims a control bundle. Not a gate problem, but it cost B nine
+  //      minutes and it is why every control result in this file names the md5 the launch banner printed.
+  try{
+    const b=await L.launch({geo:{w:375,h:730,safe:'',label:KUNAL},name:'setupsheet-colourchip'});
+    await b.open();
+    const live=await liveGameThenSheet(b);
+    L.say(live.plies===2,'F1p premise: a live 2-ply Pass & Play game with the sheet open (got '+live.plies+')');
+    const barsBefore=await bars(b);
+    L.say(/White/.test(String(barsBefore.top)+String(barsBefore.bottom))&&/Black/.test(String(barsBefore.top)+String(barsBefore.bottom)),'F1q premise: the live game\'s player bars name the two humans (top '+JSON.stringify(barsBefore.top)+', bottom '+JSON.stringify(barsBefore.bottom)+')');
+    await P.tapBtn(b,/^Computer$/,700);
+    await P.tapBtn(b,/^Black$/,700);
+    await b.settle(SETTLE_NOMOVE);
+    const pChip=await P.plies(b);
+    L.say(pChip===2,'F2 THE COLOUR CHIP PLAYS NO MOVE EITHER: after Computer + the Black chip the game behind the sheet is still 2 plies (got '+pChip+'; on origin/main B measured 3, the engine having played 2.e4 for the human who owned White)');
+    await P.scrollSheetTop(b);
+    const rr=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="setup-resume"]');if(!e)return null;const r=e.getBoundingClientRect();return {y:Math.round(r.y*10)/10,h:Math.round(r.height*10)/10};});
+    L.say(rr!==null&&rr.y>0,'F3p the resume row is ON SCREEN before it is tapped (rect '+JSON.stringify(rr)+') - B measured y=-247 after a chip tap, where tapCt silently hits the sheet instead and the measurement that follows is worthless');
+    if(rr&&rr.y>0){
+      await b.tapCt('setup-resume',900); await b.settle(SETTLE_NOMOVE);
+      const pRes=await P.plies(b), barsAfter=await bars(b), bd=await b.board();
+      L.say(pRes===2,'F4a after Resume the game is still 2 plies (got '+pRes+'; on origin/main B measured 3 with Black chosen and 4 with White)');
+      L.say(!/Computer/.test(String(barsAfter.top)+String(barsAfter.bottom)),'F4b and it is still the two-human game: neither player bar names the Computer (top '+JSON.stringify(barsAfter.top)+', bottom '+JSON.stringify(barsAfter.bottom)+')');
+      L.say(!!bd&&bd.flip===live.flip,'F4c and the player has not been reassigned a colour: board flip '+(bd?bd.flip:null)+' equals the flip before the sheet was opened ('+live.flip+')');
+    }else{
+      L.say(false,'F4a SKIPPED - resume row off screen');L.say(false,'F4b SKIPPED');L.say(false,'F4c SKIPPED');
+    }
+    await b.close();
+  }catch(e){L.say(false,'F-THREW the colour-chip scenario threw: '+(e&&e.message||e));}
 
   // ── C: POSITIVE CONTROL. The guard must not stop the engine on the legitimate path. ──────────────
   try{
