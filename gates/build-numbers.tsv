@@ -430,3 +430,4 @@
 470	minted	-	-	-	2026-10-03T07:24Z	build__1791012024000	minted	fix: the engine must not move in the live game behind the New Game setup screen (jobs/tapping-computer-on-the-new-game-sheet...-2026-10-03)
 470	built	-	db62f6bd58ce	841220b46da5	2026-10-03T07:36Z	build__1791012024000	build.sh	Bundle built and stamped #470. Recorded by gates/build.sh so the number resolves to an artefact.
 470	built	-	d04a33e09e3d	3ce5ea93fba7	2026-10-03T09:13Z	build__1791012024000	build.sh	Bundle built and stamped #470. Recorded by gates/build.sh so the number resolves to an artefact.
+470	built	-	ec59168f03a7	61557d80455e	2026-10-03T09:23Z	build__1791012024000	build.sh	Bundle built and stamped #470. Recorded by gates/build.sh so the number resolves to an artefact.

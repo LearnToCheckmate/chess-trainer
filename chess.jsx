@@ -2537,9 +2537,24 @@ export default function App(){
        including ones nobody has enumerated. Start is excluded without needing a term here: it clears the ref
        synchronously in its own handler before React runs this effect, so a started game keeps the player's
        choices. That is why this is an effect and not three copies of a helper. */
+    /* BACKSTOP ONLY, AND ONE RENDER LATE - which is why the helper below exists and why my first version of
+       this was WRONG. A restore done here is a setState, so it lands on the NEXT render; every other effect in
+       THIS commit still runs with the stale `opponent`. My own gate caught it: with the restore only here, B6
+       read ct_elo 750 on the fixed bundle, because the adaptive-Elo effect runs in the same commit as this
+       one with `playSetup` already false and `opponent` still 'computer'. I had claimed the transition was
+       "strictly stronger" than antagonist A's prescription of a helper called from every path. It is not, and
+       A was right: a helper batches the restore INTO the same event as setPlaySetup(false), so the commit
+       never exists in which the guard is down and the opponent is wrong. This stays as the net for doors that
+       do not call the helper - late is still better than never - and _restoreLiveSettings nulls the ref, so
+       when the helper has run this is a no-op. */
+    _restoreLiveSettings();
+  },[playSetup]);
+  /* THE SYNCHRONOUS RESTORE. Call it in the SAME handler as setPlaySetup(false) on every door that closes the
+     setup screen without starting a game, so React batches both into one render. */
+  const _restoreLiveSettings=()=>{
     const _ls=liveSettingsRef.current; if(!_ls)return; liveSettingsRef.current=null;
     setOpponent(_ls.opponent); setPColor(_ls.pColor); timeCtrlRef.current=_ls.timeCtrl; setTimeCtrl(_ls.timeCtrl);
-  },[playSetup]);
+  };
   const [thinking,setThinking]=useState(false);
   const [demoBest,setDemoBest]=useState(null);
 
@@ -5634,7 +5649,7 @@ export default function App(){
       {mode==='play'&&playSetup&&!homeScreen&&(<div style={{position:'fixed',inset:0,zIndex:520,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`max(20px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
         <div data-ct="setup-sheet" className="scroll" style={{width:'100%',maxWidth:420,display:'flex',flexDirection:'column',gap:vp.h<720?10:16 /* #373 (audit A-13): at 375x679 the Pass & Play variant overran the screen by 32px; a tighter rhythm on short screens keeps Start game and the build line on screen */}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-            <button onClick={()=>{setPlaySetup(false);setHomeScreen(true);}} style={{minWidth:36,height:32,borderRadius:12,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:15,padding:'0 11px'}}>‹ Home</button>
+            <button onClick={()=>{/* #470: the sheet's SECOND door, and antagonist A's veto. Restore synchronously here, in the same batch as setPlaySetup(false), or the adaptive-Elo effect fires in that commit with the stale opponent - measured at ct_elo 750. */_restoreLiveSettings();setPlaySetup(false);setHomeScreen(true);}} style={{minWidth:36,height:32,borderRadius:12,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:15,padding:'0 11px'}}>‹ Home</button>
             <div style={{fontFamily:"var(--head)",fontSize:'clamp(18px,5vw,24px)',color:'var(--ac)',letterSpacing:1}}>New Game</div>
             <div style={{minWidth:36}}/>
           </div>
@@ -5692,7 +5707,7 @@ export default function App(){
               Before this, resume was setPlaySetup(false) alone, so a player who opened this sheet over a live
               Pass & Play game, tapped Computer to look at the bot list, and then tapped THIS row went back to
               their own game with opponent='computer' - and the engine moved in it. See liveSettingsRef. */}
-          {playHist.length>0&&!setupFromFEN&&opponent!=='online'&&!_gameOver&&(<button data-ct="setup-resume" onClick={()=>{setStartArm(false);setPlaySetup(false);}} style={{padding:'13px 14px',borderRadius:12,border:'1px solid rgba(var(--acr),.45)',background:'rgba(var(--acr),.14)',color:'var(--ac2)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer',textAlign:'left',lineHeight:1.4}}>{'▶'} Resume your game in progress <span style={{fontWeight:500,opacity:.85}}>({_playMoves} {_playMoves===1?'move':'moves'} played)</span></button>)}
+          {playHist.length>0&&!setupFromFEN&&opponent!=='online'&&!_gameOver&&(<button data-ct="setup-resume" onClick={()=>{setStartArm(false);_restoreLiveSettings();setPlaySetup(false);}} style={{padding:'13px 14px',borderRadius:12,border:'1px solid rgba(var(--acr),.45)',background:'rgba(var(--acr),.14)',color:'var(--ac2)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer',textAlign:'left',lineHeight:1.4}}>{'▶'} Resume your game in progress <span style={{fontWeight:500,opacity:.85}}>({_playMoves} {_playMoves===1?'move':'moves'} played)</span></button>)}
           {setupFromFEN&&(setupBlocked
             ?(<div data-ct="setup-terminal-note" style={{padding:'10px 13px',borderRadius:12,background:'rgba(224,168,58,.12)',border:'1px solid rgba(224,168,58,.4)',fontSize:'clamp(14px,2.6vw,14px)',color:'#e0a83a',lineHeight:1.45}}>⚠ That position is already over — {setupTerminal==='checkmate'?'it is checkmate':'it is a stalemate'}, so there is no move to play from it. {setupSrc==='scan'?<>Scan or upload a board where it is still someone's turn.</>:<>Step back a move in your review and use <b>Play from here</b> there instead.</>}</div>)
             :(<div style={{padding:'10px 13px',borderRadius:12,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',fontSize:'clamp(14px,2.6vw,14px)',color:'var(--ac2)',lineHeight:1.45}}>♟ Continuing from your reviewed position. You'll play <b>{pColor==='w'?'White':'Black'}</b> (the side to move) — switch the color below if you'd rather take the other side.</div>))}
