@@ -22,7 +22,7 @@ geometry" occurred twice in this file and resolved to two different sets that sh
 using it could be decided. Both sets are named here and every clause below says which one it means. Re-measured
 from the gate sources at main f3ae36a, not read from prose [R18].*
 
-- **THE DRILL SEVEN** - `gates/regress/51-drill-explain-why.js:71` (`ALLGEOS`), and the same seven in
+- **THE DRILL SEVEN** - `gates/regress/51-drill-explain-why.js`'s `ALLGEOS`, and the same seven in
   `gates/measure-drill-verdict-reserve.js:51` and `gates/regress/57-pz-solved-explanation.js:55` (`G7`):
   **320x568, 360x640, 375x667, 375x730, 390x844, 414x896, 440x956.** This is the set `prompts/test-authoring`
   names. The harness default 375x679 (`kunal`) is NOT one of them.
