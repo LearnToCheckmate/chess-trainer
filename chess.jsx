@@ -3160,7 +3160,18 @@ export default function App(){
        applied on one tap. That was a real regression of this build and this predicate removes it.
      So it asks the question of the BOARD, which is also the quantity the move row eight pixels away renders:
      has a move been made in the game now on the board, or is the board not the standard opening array. */
-  const somethingToLose=game.history.length>0||toFEN(game).split(' ')[0]!==START_PLACEMENT;
+  /* AND IT IS SCOPED BY MODE, which I found by MEASURING my own fix for the veto above rather than by reasoning
+     about it. `game` is shared across modes: in learn mode it holds the LESSON's position, not the Play game. So
+     an unscoped board test made the lesson's "Play this position vs Computer" arm EVERY TIME - measured with no
+     Play game in existence at all, the button relabelled itself to "Tap again to discard your game and play this"
+     when there was no game to discard. That is friction added to the ordinary case AND a sentence that is simply
+     false, which is the shape of defect #439's broad-guard veto was about.
+     In PLAY mode the board IS the game, so the board is the right thing to ask. Outside it the board is something
+     else entirely and `playHist` is the only record of the Play game, stale or not - and where it IS stale, the
+     tap is in play mode anyway, which is the case antagonist A's F5 covers. */
+  const somethingToLose=mode==='play'
+    ? (game.history.length>0||toFEN(game).split(' ')[0]!==START_PLACEMENT)
+    : playHist.length>0;
   const guardReset=(key,apply)=>{
     if(somethingToLose&&resetArm!==key){setResetArm(key);if(resetArmT.current)clearTimeout(resetArmT.current);resetArmT.current=setTimeout(()=>setResetArm(null),4000);return;}
     if(resetArmT.current){clearTimeout(resetArmT.current);resetArmT.current=null;}

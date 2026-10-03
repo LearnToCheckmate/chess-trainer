@@ -1,4 +1,4 @@
-     bundle: gates/.trial/app-nc-plies.js  stamp #471 - 2026-10-03 08:18 ET  (CT_APP)
+     bundle: gates/.trial/app-nc-alwaysrow.js  stamp #471 - 2026-10-03 08:21 ET  (CT_APP)
 PASS kunal A0 ARRIVAL: Pass & Play reaches 3 plies, so every "nothing changed" below is a measurement and not a tap that missed  [{"plies":3,"row":"1.f3 1…e5 2.g4"}]
 PASS kunal B0 ARRIVAL: the More sheet is open and carries a "New game" row  [{"rows":["New game","Resign","Analyze","Copy moves"]}]
 PASS kunal B1 ONE TAP ON "New game" DOES NOT DISCARD THE GAME: plies still 3  [{"plies":3,"row":"1.f3 1…e5 2.g4"}]
@@ -23,7 +23,7 @@ PASS kunal C9 zero app console errors over the pills block  [[]]
 PASS kunal I1 THE ARM DOES NOT SURVIVE CLOSING THE MENU: the pill is unarmed on the next visit  [{"bg":"rgba(91, 155, 213, 0.25)"}]
 PASS kunal I2 so ONE tap in the new visit still does not discard the game: plies still 3. An arm that leaked across visits would let a tap taken minutes ago confirm this one  [{"tapped":true,"plies":3}]
 PASS kunal E0 ARRIVAL: a fresh Pass & Play game, 0 plies  [{"plies":0}]
-PASS kunal E2 WITH NOTHING TO LOSE THE ROW IS NOT THERE AT ALL: no warning, and no blank band reserving space for a warning that cannot be needed  [null]
+FAIL kunal E2 WITH NOTHING TO LOSE THE ROW IS NOT THERE AT ALL: no warning, and no blank band reserving space for a warning that cannot be needed  [{"t":"Changing any of these starts a new game.","h":34,"ch":34,"sh":34}]
 PASS kunal E1 ONE TAP APPLIES IMMEDIATELY when no game is in progress: the pill is not armed, it is selected. The guard must not add friction to the normal case  [{"tapped":true,"before":"rgba(0, 0, 0, 0)","after":"rgba(91, 155, 213, 0.25)"}]
 PASS kunal E9 zero app console errors over the no-friction block  [[]]
 PASS kunal F0 ARRIVAL: fool's mate reached, 4 plies, and the screen states a result  [{"plies":4,"result":["Checkmate!","Black wins"]}]
@@ -34,12 +34,12 @@ PASS kunal G0 ARRIVAL: a second mated game for the Rematch control  [{"plies":4}
 PASS kunal G1 CONTROL - REMATCH IS STILL ONE TAP: the game is over and replacing it is the button's whole purpose, so it is deliberately NOT routed through the guard. #439's broad-guard veto is why this is asserted rather than assumed  [{"tapped":true,"plies":0}]
 PASS kunal F9 zero app console errors over the mate and rematch blocks  [[]]
 PASS kunal J0 ARRIVAL: a position is LOADED on the board at ZERO plies - 28 pieces, so it is not the opening array, and the move list is empty so a ply count sees nothing to lose  [{"reached":true,"plies":0,"pieces":28}]
-FAIL kunal J2 the sheet SAYS these controls start a new game even though no move has been played - on a ply-count predicate it said nothing at all  [null]
-FAIL kunal J1 ONE TAP ON A SETUP PILL DOES NOT DESTROY THE LOADED POSITION: still 32 pieces (was 28)  [{"tapped":true,"before":28,"after":32}]
+PASS kunal J2 the sheet SAYS these controls start a new game even though no move has been played - on a ply-count predicate it said nothing at all  [{"t":"Changing any of these starts a new game.","h":34,"ch":34,"sh":34}]
+PASS kunal J1 ONE TAP ON A SETUP PILL DOES NOT DESTROY THE LOADED POSITION: still 28 pieces (was 28)  [{"tapped":true,"before":28,"after":28}]
 PASS kunal J3 and the second tap on the SAME pill does start the new game: 32 pieces, the full opening array  [{"tapped":true,"pieces":32}]
 PASS kunal J9 zero app console errors over the loaded-position block  [[]]
 PASS kunal K0 ARRIVAL: a 3-ply Pass & Play game is running AND the lesson practice sheet offers an enabled "Play this position vs Computer"  [{"plies":3,"at":true,"label":{"t":"▶ Play this position vs Computer","dis":false}}]
 PASS kunal K1 ONE TAP ARMS INSTEAD OF STARTING: the lesson sheet is still up and its button now asks for a second tap  [{"t":"Tap again to discard your game and play this","dis":false}]
 PASS kunal K2 and the second tap DOES start the LESSON position - the board occupancy differs from this session's own opening array, at 0 plies - so the arm is not a dead end  [{"differs":true,"plies":0}]
 PASS kunal K9 zero app console errors over the lesson block  [[]]
-70-live-game-reset-guard: 41 pass, 2 fail
+70-live-game-reset-guard: 42 pass, 1 fail

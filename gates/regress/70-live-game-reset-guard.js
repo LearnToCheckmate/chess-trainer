@@ -224,7 +224,13 @@ for(const g of (ONLY?GEOS.filter(x=>x.k===ONLY):GEOS)){
         const d=Math.max(Math.abs(armed[k].x-unarmed[k].x),Math.abs(armed[k].y-unarmed[k].y),Math.abs(armed[k].w-unarmed[k].w),Math.abs(armed[k].h-unarmed[k].h));
         if(d>worst){worst=d;worstK=k;}}
       L.say(worst<0.01,G+' C4 ARMING MOVES NO PILL BY ANY AMOUNT: worst CONTENT-ABSOLUTE delta '+worst+'px on '+worstK+' over '+keys.length+' pills (viewport y is reported too and moves with the harness\'s own scrollIntoView, which is why it is not the quantity asserted). This is the assertion that stops the fix becoming the wrong-action defect it is meant to prevent',{worst,worstK,n:keys.length,sampleBefore:unarmed[worstK||keys[0]],sampleAfter:armed[worstK||keys[0]]});
-      L.say(!!wAr&&Math.abs(wAr.h-wUn.h)<0.01,G+' H1 THE RESERVED ROW IS THE SAME HEIGHT ARMED AND UNARMED ('+(wUn&&wUn.h)+' -> '+(wAr&&wAr.h)+')',{un:wUn,ar:wAr});
+      /* BOTH SIDES GUARDED, AND MY OWN CONTROL IS WHY. This read `!!wAr&&Math.abs(wAr.h-wUn.h)` and THREW on
+         NC-NORESERVE - the one bundle where the row is ABSENT unarmed and PRESENT armed, so `!!wAr` short-circuits
+         TRUE and `wUn.h` dereferences null. The gate died at 15 of 43 assertions, which is #393's trap (a gate that
+         halts on the first missing element hides every regression after it) inside the gate that cites #393. It did
+         NOT show up on NC-MAIN, where the row is absent in BOTH states and `!!wAr` short-circuits false - so the
+         crash needed exactly the bundle built to redden this assertion. */
+      L.say(!!wAr&&!!wUn&&Math.abs(wAr.h-wUn.h)<0.01,G+' H1 THE RESERVED ROW IS THE SAME HEIGHT ARMED AND UNARMED ('+(wUn&&wUn.h)+' -> '+(wAr&&wAr.h)+')',{un:wUn,ar:wAr});
       L.say(!!wAr&&wAr.sh<=wAr.ch,G+' H2 the armed sentence is not cut: scrollHeight '+(wAr&&wAr.sh)+' <= clientHeight '+(wAr&&wAr.ch)+'. A reserved box that clips its own warning is #394 again',wAr);
       L.say(!!wAr&&/Tap the same choice again/i.test(wAr.t||''),G+' H4 the armed sentence names what the second tap must be - the SAME choice - because the arm is keyed',wAr&&wAr.t);
 
@@ -326,6 +332,13 @@ for(const g of (ONLY?GEOS.filter(x=>x.k===ONLY):GEOS)){
     await b.close(); await b2.close();
   }
 
+  /* BLOCKS J AND K RUN AT KUNAL'S GEOMETRY ONLY, and the reason is stated rather than left to be assumed.
+     Every assertion in them is a condition on GAME STATE - did the position survive a tap, did the control
+     arm - with no viewport term anywhere in the expression under test, so running them at 320x568 and 390x844
+     would buy repetition rather than discovery [#411]. They are also the two most expensive blocks in the
+     gate: each drives a full review or lesson entry. The LAYOUT assertions (B3, C4, H1) do run at all three,
+     because those are the ones a geometry can change. */
+  if(G==='kunal'){
   // ---------- J. A POSITION LOADED BUT NOT YET MOVED IN. Both antagonists, from different doors. ----------
   // B drove Review -> ⋯ -> "Play from here" -> "▶ Play this position" and measured 10 of 64 squares changing on
   // ONE tap; A drove the LESSON route (block K) and got a board signature byte-identical to a fresh game. The
@@ -386,5 +399,27 @@ for(const g of (ONLY?GEOS.filter(x=>x.k===ONLY):GEOS)){
     L.say(b.errs.length===0,G+' K9 zero app console errors over the lesson block',b.errs.slice(0,3));
     await b.close();
   }
+
+  /* K3. THE SAME BUTTON WITH NO GAME TO LOSE, AND IT IS HERE BECAUSE MY OWN FIX FOR THE ANTAGONISTS' VETO BROKE IT.
+     `game` is shared across modes and in learn mode it holds the LESSON's position, so a board-only predicate is
+     TRUE on every lesson screen. Measured on the candidate built to close the veto: with no Play game in existence
+     the button relabelled itself to "Tap again to discard your game and play this" - two taps demanded, and a
+     sentence that is false. Neither antagonist found it, because it was in the code I wrote in answer to them.
+     This is the assertion that would have. */
+  {
+    const b=await L.launch({geo:{w:g.w,h:g.h},name:'b70-lesson-nogame-'+G}); await b.open();
+    let at=false; try{ await LE.states['practice-more'](b); at=true; }catch(e){}
+    const lab=async()=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="learn-play-position"]');return e?(e.innerText||'').trim():null;});
+    const l0=at?await lab():null;
+    L.say(at&&!!l0&&/Play this position/.test(l0),G+' K3a ARRIVAL: the lesson practice sheet is open with NO Play game in existence',{at,label:l0});
+    if(at&&l0){
+      await b.tapCt('learn-play-position',900).catch(()=>{});
+      const l1=await lab(), inPlay=await b.page.evaluate(()=>!!document.querySelector('[data-ct="play-moverow"]'));
+      L.say(l1===null&&inPlay,G+' K3b ONE TAP COMMITS WHEN THERE IS NOTHING TO LOSE: the lesson sheet is gone and the Play screen is up, rather than a second tap being demanded and a sentence about discarding a game the player does not have',{labelAfter:l1,inPlay});
+    }else{L.say(false,G+' K3b NOT RUN: lesson practice sheet not reached',{at,label:l0});}
+    L.say(b.errs.length===0,G+' K3z zero app console errors',b.errs.slice(0,3));
+    await b.close();
+  }
+  } // end of the kunal-only J/K blocks
 }
 },'70-live-game-reset-guard');

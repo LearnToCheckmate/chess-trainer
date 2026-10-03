@@ -258,11 +258,14 @@ playing, and nothing takes it away from me without asking.
   with no control that offers the game and no words that name it, does not satisfy this story. (TC-R19 A vs B/C;
   this clause exists because negative control NC2 passes A alone.)
 - **AND THE RULE IS ABOUT EVERY CONTROL THAT REPLACES THE GAME, NOT ABOUT ONE BUTTON. (TC-R45, added #471.)**
-  Wherever I can reach it - the More sheet's 'New game', or any Game-setup choice in the hamburger menu (who I
-  am playing, the clock, my colour) - a control that would replace the game I am in asks me first, in the same
-  way, and the thing I must tap twice is the same thing both times. A game that has just FINISHED counts: it is
-  still mine to review, and Review is only offered from the result screen, so discarding it discards the only
-  route to it. Two things this clause deliberately does NOT ask for: a control that destroys nothing because
+  Wherever I can reach it - the More sheet's 'New game', any Game-setup choice in the hamburger menu (who I am
+  playing, the clock, my colour), or a lesson's 'Play this position vs Computer' - a control that would replace
+  the game I am in asks me first, in the same way, and the thing I must tap twice is the same thing both times.
+  A game that has just FINISHED counts: it is still mine to review, and Review is only offered from the result
+  screen, so discarding it discards the only route to it. AND A POSITION I HAVE LOADED BUT NOT YET MOVED IN
+  COUNTS - one I sent over from a review, opened from a lesson, or PHOTOGRAPHED off a real board. It has no
+  moves in it, so anything counting moves thinks there is nothing there; it is the one kind of game I cannot
+  get back by replaying, which makes it the one that most needs asking about. Two things this clause deliberately does NOT ask for: a control that destroys nothing because
   there is no game yet still works on one tap, and Rematch still works on one tap, because the game is over and
   replacing it is what that button is for.
   WHY THE CLAUSE IS WRITTEN AT THE CLASS AND NOT AT THE BUTTON: the bullet above was satisfied by #469, which
