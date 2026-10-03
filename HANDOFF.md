@@ -2,6 +2,44 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#473 FIXED THE PLAY STATUS ROW, AND THE MOST USEFUL THING IT LEARNED IS THAT THE JOB'S OWN `theFix` WAS WRONG (2026-10-03).**
+> `jobs/play-status-slot-loses-the-result-on-one-back-tap-2026-09-30` prescribed one line: move the status row's
+> `_done` onto #437's `_gameOver`. **DO NOT IMPLEMENT WHAT A JOB SAYS WITHOUT BUILDING IT AND MEASURING IT.** I built
+> exactly that prescription as a trial bundle and it measured BYTE-FOR-BYTE IDENTICAL TO THE SHIPPED DEFECT, because
+> `_res` reads `(_done&&gameResult)` and `gameResult` was itself ply-keyed one line below the site the job names. It
+> repairs only the resign arm, which already worked and is the gate's own green control. Had I trusted it, #473 would
+> have shipped a green suite, a closed job and a defect Kunal can still reproduce in two taps.
+>
+> **WHAT THE NEXT RUN GETS FOR FREE, so none of it is re-derived:**
+> 1. **THE SPLIT, which is the durable lesson.** The STATUS LINE answers "is the GAME finished" and the RESULT CARD
+>    answers "am I LOOKING at the result position". Those are two different questions and #473's first bundle got the
+>    second one wrong: making `gameResult` game-keyed handed the card a result at every previewed ply, so inside the
+>    ~3s before the fade a Back tap painted it over eight board squares and three pieces. Antagonist B caught it from
+>    the shipped surface, it was re-measured and upheld, and the fix is `&&!_pvLive` on the card alone.
+> 2. **THE PREDICATE NOW EXISTS AND CARRIES THE KIND.** `_gameTermStatus` (chess.jsx, beside `_gameOver`) returns
+>    'checkmate', 'stalemate' or null read from the LIVE game. #437's `_gameOver` is a boolean and cannot carry the
+>    kind, which is why the head and the winner had to move too. Five sites now use the game's own question.
+> 3. **TWO MORE SITES OF THE SAME CLASS ARE LIVE ON MAIN AND ARE ALREADY MEASURED** - by antagonist A, with numbers,
+>    so the expensive half is done: the eval pill (:7783) RELIGHTS on a Back tap reading `-M1`, 43.3x24 at (71.0,47.4)
+>    at 375x730 and (30.0,39.5) at 730x375, and it jogs the rating pill 51.3px; the strength chip and both its buttons
+>    (:7000) UN-PAINT, from (326.6,207.0)/(300,204)/(396,204) to gone. **Both PRE-EXISTING, identical on #471**, so
+>    residuals and not #473's regressions. `jobs/two-more-play-chrome-sites-are-ply-keyed-and-473-left-them-2026-10-03`.
+>    The gate input is the hard part: the eval pill needs `opponent==='computer'` AND a real mate, so every Pass & Play
+>    input in gate 16 is blind to it by construction, and the chip needs landscape 730x375 AND a 2-ply game.
+> 4. **THE CLASS SWEEP IS COMMITTED AT `claude/agents/sweeps/473-isover-class-sweep.md`** - 12 decision sites, 4 fixed,
+>    8 left with a reason each, and an honest note that 2 of the 6 I classified by READING were wrong. `isOver` occurs
+>    **39** times (16 in code across 12 lines, 23 in comments); the "32" published earlier was a line count.
+> 5. **THE QUEUE IS STILL BLOCKED AND IT IS NOT THE BUILD LANE'S TO UNBLOCK.** All four priority-11 jobs and most of
+>    the 25 at priority 10 wait on Kunal. Re-tested this run: all 67 Desk answers grepped for the mate-floor question,
+>    ZERO matches, and the newest Desk answer of ANY kind is 2026-09-30. `jobs/land-the-442-to-447-pile` has now been
+>    declined by EIGHT consecutive builds. One sentence from him on `q-mate-floor` unblocks a priority-11 item carrying
+>    his own ruling. And note the sort: **string priorities sort AHEAD of numeric ones**, so four jobs carrying
+>    `priority:"P1"`/`"P2"` sit above the 11s - see `jobs/step-1s-sorts-a-field-that-holds-two-types-...-2026-10-02`.
+> 6. **RUN THE ANTAGONIST PAIR BEFORE THE SUITE, NOT ALONGSIDE IT.** This run launched both together to parallelise,
+>    B's veto landed 28 minutes into an 81-minute suite, and the whole suite had to be thrown away and run again. The
+>    pair costs ~30 minutes and the suite ~81, so pairing first is strictly cheaper whenever a veto is upheld - and
+>    this project upholds them often.
+
 > **#472 TOOK THE ONE READING THAT DECIDES THE DRILL BOARD-JUMP P0, AND IT STRIKES THE JOB'S OWN PRESCRIBED FIX (2026-10-03).**
 > `jobs/board-jumps-on-drill-verdict` is the only item Kunal has reported BY HAND TWICE. Four candidate fixes have been
 > costed across #428 and a worker pre-measure, and all four were a guess, because nobody had measured the ONE number

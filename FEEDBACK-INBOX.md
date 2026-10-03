@@ -2788,3 +2788,10 @@ pending selections (pre-existing, and nobody has measured whether any of it is v
 the sheet (resolved by the restore before the board is visible again); and B's measurement that the armed
 discard survives leaving the sheet, which #469's disarm effect says is impossible — filed as a contradiction to
 be DRIVEN, not closed by reading the dep array.
+
+### #473 (2026-10-03) - the play status row keeps the game's result across a Back tap
+A player who is checkmated and taps Back once - the ordinary thing to do after a mate - was on a screen that stated
+no result at all. Measured on the shipped bundle at 375x730, 375x568 and 320x568: `Checkmate! - Black wins` became
+empty on one tap, and the dismissed result card re-opened over the board on every Back/Forward round trip. Both are
+fixed at `2076eea`. Nothing here was raised by Kunal directly; the finding is the uat-internal-challenger's, and it
+is recorded here because the defect was on his own geometry and he would have met it.
