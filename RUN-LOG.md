@@ -1668,6 +1668,7 @@ argued, and the defect A predicted was live on main in the direction A predicted
 | #473 ETA vs ACTUAL | **ETA 90 minutes, ACTUAL 193 to the verified push and 203 to close-out** - 15:20:03Z to 18:32:52Z (the gate-log commit, which is the push) and 18:43:30Z. **AND THE FIRST VERSION OF THIS ROW SAID 215, WHICH I WROTE FROM FEELING AND NOT FROM THE CLOCK - corrected here before the push, from `git log --format=%cI` on the four commits [R18].** That is precisely the lesson #472's own pen note left as its number one ("CHECK THE CLOCK BEFORE YOU WRITE A SINGLE DURATION"), repeated by the very next run, in a row whose subject is elapsed time. The phase figures below are from the commit timestamps and the server-stamped beats, which is why they survive and the 215 did not. **THE 90 WAS WRONG THE MOMENT A VETO WAS UPHELD, and the arithmetic says so: the full suite is 81 minutes and a build that takes an upheld veto pays it TWICE.** Decomposition, anchored on commits: 15:20:03 start -> 16:14:09 the first commit is **54 min** (procedure, pen, queue check, item selection, measuring the defect at three geometries, three trial bundles, the fix, block G and its proof against the real broken build); 16:14 -> 17:10:49 is **57 min** (suite run 1 launched and **deliberately abandoned at 25 of 53 sections** when B's veto was upheld, plus verifying that veto independently, fixing it, adding the stalemate block, rewriting the sweep onto a tracked path and re-committing); 17:10:49 -> 18:32:52 is **82 min**, almost all of it suite run 2 and the push gates; 18:32:52 -> 18:43:30 is **11 min** of records and close-out. An honest ETA for "application code plus a new gate" is **171 minutes minimum** (90 + one 82-minute suite), and 193 is that plus the veto round. Four earlier runs in this series read 161, 97, 165 and 107. |
 | #473 WHAT IT GOT WRONG | Recorded here because this project's own waste taxonomy says the two most valuable entries in its history are both `estimated-instead-of-measured` and both were found by the session admitting them. FOUR: (1) `isOver` "appears 32 times" was a LINE count published as an occurrence count - it occurs **39** times, and line 7614 alone carries five and was counted once; published in two documents before antagonist A measured it. (2) I classified the six left-alone `isOver` sites BY READING, labelled that honestly as a reading, and was **wrong 2 times in 6** - the header Home button (:5971) is dead code, not live, and the strength chip (:7000) is a live defect, not the deliberate #437 decision I took it for. A reading is a different instrument with its own error rate, and A drove all six in about the time I spent reading them. (3) I claimed string-priority jobs sort BELOW every numeric one so STEP 1S "can never hand them over". **BACKWARDS** - strings sort FIRST and the job I built was THIRD in the sort, handed to every run for three days; I had re-sorted the 40 returned documents locally in python with an `int()` cast and a `-1` fallback and then read my own artefact as the server's order. That also bought a duplicate job, because a fingerprint only dedupes a finding described correctly. (4) I ran `pkill -f` at the head of a compound command and killed my own shell - the trap CLAUDE.md records in capitals at #407 and #416, three hours after I read it. |
 | #474 | the Play resume row and the Start arm read THE BOARD, not the stale playHist (US-R16 c6, TC-R46, gate 71) | 150 min (15:25 ET) | 15:20 ET | — | 137 min | -13 | GREEN #474, 54 suites / 3784 PASS / 0 fail, bundle 8b958354102b, verify-log.sh OK, not held, manifest 53/53 | 17:24 ET (ba739af) |
+| process-integration | burst wave 1: 11 of 15 parked patches landed, 4 dropped with reasons | 150 min (22:20Z) | 22:20Z | - | 134 min | -16 | GREEN #474, 54 suites / 3921 PASS / 0 fail, bundle 8b958354102b (unchanged - no app code), verify-log.sh OK --this-bundle, not held, manifest 53/53 | 00:34Z (c4c45f1) |
 
 
 **#474, AND THE ENTRY WORTH READING IS THE VETO, NOT THE FIX (2026-10-03).** The shipped change is small: the Play setup sheet's resume row and its Start-button arm now ask whether the board is still the Play game instead of reading the separate `playHist` state. The useful part is that MY FIRST VERSION OF THAT TEST WAS A COINCIDENCE TEST - length equality - and MY OWN GATE WAS BUILT SO THAT IT COULD NOT FAIL: its fixture pairs a 3-ply live game with a 0-ply lesson board, so the two counts can never collide. Antagonist A changed ONE number, a 2-ply game against a lesson practice played out to 2 plies, and the defect returned verbatim at both geometries - the row reading '(1 move played)' over a move row showing the LESSON's moves, Start arming again over the phantom, and Back previewing the destroyed game. That is CLAUDE.md's #432/#433 trap, and the mechanism was ALREADY WRITTEN IN THE SAME FILE about the same predicate, one grep from the line I wrote. The fix is an identity test (the board must replay playHist's own SANs) and gate 71 gained a block for exactly that input, with the length-only candidate KEPT as its negative control: 44 PASS / 4 FAIL, red on the new block ONLY while the old block stays entirely green, which is what isolates the predicate change rather than merely reddening something.
@@ -1675,3 +1676,47 @@ argued, and the defect A predicted was live on main in the direction A predicted
 Three more of A's findings were upheld and fixed: the class count was 17 and is 16 (my own text had `doMove` in both the list that preserves the invariant and the list that breaks it - one code path cannot be in both); the gate misstated its own control, claiming B1b went red on #473 when the committed log says it passes; and the comment's 'ONE QUANTITY' heading is false during a Back/Forward preview, where the two readouts genuinely are two objects. Antagonist B returned NO VETO over six mode round trips, a rotation and a takeback, and charged this run with rebuilding `app.js` three times while it was measuring - the #456 mistake repeated, recorded against #474 rather than left out. B also found, on the same sheet, that the staged 'Play from here' route never offers the resume row over a live game AND discards that game on one tap with no arm; it reproduces on #473, so it is pre-existing and was FILED at priority 10 rather than built here.
 
 I also re-ran two traps this file already names: a `pkill -f` at the head of a compound command that killed its own shell (#416), and stale line-number citations that were wrong, re-pinned, and wrong again because the correction moved the code (#399). The citations now name symbols. The suite ran from a COPY of gates.sh with the harness digest frozen and verified byte-identical afterwards, so #461's mid-run-edit failure is ruled out by measurement.
+
+**INTEGRATION, 2026-10-03, AND THE ENTRY WORTH READING IS WHAT THE PARKED PATCHES CLAIMED ABOUT THEMSELVES.**
+The daily integration slot landed eleven of burst wave 1's fifteen parked patches. No application code: `app.js`
+and `chess.jsx` are byte-identical to the previous tip, so the gated bundle is #474's own, md5 `8b958354102b`,
+read back out of `origin/main` to prove it.
+
+**THREE OF THE WAVE'S PATCHES REPORTED REDS THAT DO NOT EXIST, AND THAT IS THE REUSABLE FINDING.** Gate 51's job
+title says "three of them are RED on main" and measured 41/3; under the real harness it is **80/0**. Gate 61's job
+says 117/4 and "aborted at input 2 of 6"; measured, **124/0**, all six inputs completing. Gate 40's says 20/1;
+measured, **21/0**. Every one of those reds was a property of a burst container - no Stockfish, no object store,
+a standalone driver - and not of the bundle. That also settles `contradictions/gate-61-required-and-red-against-473-gates-green`
+in favour of side A: #473's and #474's GREEN figures were honest. **A burst agent's red must be re-measured in the
+suite before it is believed**, and gate 26's patch is the other side of the same coin - its author could not run it
+at all ("no green claimed") and it is 369/0.
+
+**THE ONE RED THAT WAS REAL WAS DROPPED, AND BOTH ANTAGONISTS MADE ME PROVE IT.** Gate 16's patch is 137/1 against
+the shipped bundle; main's version is 129/0, so it adds eight assertions and exactly one fails. The failure is N3
+at 730x350 and it is a live defect: the CPU result line's Elo estimate is clipped. I published the ink loss as
+**4.5px** and the reasoning was backwards - I read the gate's `ink == box` identity as proof there was no slack,
+when `Range.getBoundingClientRect()` returns the font box and the identity means the instrument cannot tell them
+apart. Antagonist B measured the truth by pixels on the gate's own two screenshots: ink rows 209-218 unclipped
+against 209-216 clipped, max luminance collapsing 184.7 to 27.4 at the clip bottom, `measureText` ascent 10.00 -
+**2.0 device rows destroyed, not 4.5**. Antagonist A first called it undecided on #398 grounds, then withdrew with
+better arithmetic than either of us had, then B corrected A's remainder. The patch is dropped because a correct
+assertion that reddens the shipped bundle blocks every lane's push; the drop, its measurement and the owed fix are
+recorded in the repository at `claude/agents/INTEGRATION-2026-10-03-WHAT-WAS-DROPPED.md`, because B's veto was right
+that the tracker alone left `git log` silent.
+
+**ALSO DROPPED:** `buildnum.sh`'s patch, which is green on its own 12 controls and takes the 76-case selftest to
+75/1. My published cause was wrong and A refuted it: two consistently C-sorted inputs is correct `comm` usage and
+the patch fixed that. The real cause is **mawk's `match()` being leftmost-shortest on `{3,4}`** - `echo 1000 | awk
+'{match($0,/[0-9]{3,4}/)...}'` yields `100` - which I reproduced before accepting. I did **not** accept A's count
+(74/2) or its sha-validation regression: 75/1 reproduces twice here, and A then found its own copy had no git object
+store and that it had run control and subject in different configurations. **And agent 01's `held.sh` work is simply
+lost** - its parked patch carries `f3ae36a`, its own baseSha, diffing `RUN-LOG.md`, a commit already on main.
+
+**WHAT I GOT WRONG BEYOND THE INK FIGURE:** I stripped the signatures off all 13 commits by rebuilding them with
+`commit-tree`, then asserted signing was impossible here because `%G?` read `N` and the configured key is a 0-byte
+file - when `git cat-file` shows `gpgsig` on the originals and on main's own commits, and `%G?` reads `N` only
+because the *verification* config is absent. Wrong instrument, and a control I already had (main's known-good
+commits, reading the same `N`) should have told me so. I also used the three-dot diff form for the allow-list, which
+A showed can resolve against a stale merge base. And CLAUDE.md's own #461 remedy - run the suite from a temp copy of
+`gates.sh` - **cannot work**, because the script derives its paths from `dirname $0`; I found that by executing it,
+it failed in two seconds, and the frozen copy now lives inside `gates/` instead.

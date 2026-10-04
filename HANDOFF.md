@@ -2,6 +2,56 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **THE 2026-10-03 INTEGRATION SLOT LANDED ELEVEN PARKED PATCHES, AND ITS LESSON IS ABOUT BELIEVING A PATCH'S
+> OWN ACCOUNT OF ITSELF.** Burst wave 1 ran fifteen agents, could not push (the git proxy refuses write to this
+> repository for those sessions, so no `claude/burst-*` ref exists or ever will), and parked a `git format-patch`
+> each. Wave 2 read wave 1's result and correctly spawned nothing; wave 3 is recommended cancelled.
+>
+> **THE PART TO CARRY: THREE OF THE FIFTEEN PATCHES REPORTED REDS THAT ARE NOT THERE.** Gate 51's job title says
+> "three are RED on main" (41/3) and it measures **80/0**. Gate 61's says 117/4 "aborted at input 2 of 6" and it
+> measures **124/0**. Gate 40's says 20/1 and it measures **21/0**. All three reds were artefacts of a burst
+> container - no Stockfish, no git object store, a standalone driver instead of the suite's. Gate 26's author
+> could not run its patch at all and it is **369/0**. So: **re-measure a burst agent's red in the suite before you
+> believe it, and re-measure its green too.** That also settles `contradictions/gate-61-required-and-red-against-473-gates-green`
+> for side A - #473's GATES GREEN was honest - and it is why `jobs/gate-51-...` and `jobs/gate-61-...` now carry a
+> report contradicting their own titles. Neither is closed; the finder closes a finding [R05].
+>
+> **THE ONE REAL RED WAS DROPPED AND IS OWED:** `jobs/cpu-result-line-elo-is-clipped-45px-in-landscape-at-730x350-2026-10-03`
+> (priority 10). Gate 16's patch adds eight assertions, exactly one fails, and it is a live defect - at 730x350 the
+> CPU result line's Elo estimate loses **2.0 device rows of glyph ink** (both antagonists, starting on opposite
+> sides, ended up agreeing). It is dropped because a correct assertion that reddens the shipped bundle emits GATES
+> RED for every lane. **Land N3 WITH the `chess.jsx` fix, in one commit, and not as written** - `cutInk` is a box
+> number wearing an ink label and `unclipped` is `cutBox<=0.5` ANDed with itself, so it will false-red on the first
+> element with real line-height slack; use `actualBoundingBoxAscent/Descent`. Full record, with the numbers, at
+> `claude/agents/INTEGRATION-2026-10-03-WHAT-WAS-DROPPED.md`.
+>
+> **FOUR THINGS THIS RUN GOT WRONG, so you do not inherit them:**
+> 1. **I published a 4.5px ink loss and the reasoning was backwards.** `Range.getBoundingClientRect()` returns the
+>    FONT BOX, not glyph ink, so the gate's `ink == box` identity means the instrument cannot distinguish them -
+>    not that there is no slack. The truth is 2.0px, by pixel differential. Wrong instrument, right object.
+> 2. **I stripped the signatures off thirteen commits** by rebuilding them with `commit-tree`, then declared signing
+>    impossible here because `%G?` read `N` and the key file is 0 bytes. `git cat-file commit <sha> | grep gpgsig` is
+>    the direct question; main's own commits answer it. `%G?` reads `N` for want of `gpg.ssh.allowedSignersFile`.
+>    **Use `cherry-pick -S` or a rebase, never `commit-tree`, when the commits must stay signed.**
+> 3. **`git diff A...HEAD` (three dots) can resolve against a stale merge base after a rebase** and told me a dropped
+>    file was still present. Use two dots for "what am I shipping".
+> 4. **CLAUDE.md's #461 remedy does not work as written.** `cp gates/gates.sh "$T"/ && "$T"/gates.sh` dies in two
+>    seconds, because `gates.sh` derives `G` and `ROOT` from `dirname $0`, so it looks for `/tmp/app.js`. Keep the
+>    frozen copy INSIDE `gates/` under another name; `gates/.gates-frozen-run.sh` worked and is what gated this tree.
+>    Filed as `jobs/claude-mds-461-copy-remedy-is-not-executable-as-written-2026-10-03`.
+>
+> **THE BIGGEST THING NEITHER ANTAGONIST COULD SEE ALONE**, and it came out of the cross-read: `verify-log.sh
+> --citations` resolves cited PATHS and never cited LINE NUMBERS, so it is structurally blind to a stale line pin -
+> which is exactly the class this batch introduced twice. B measured that the register edits left every citation red
+> count byte-identical and concluded the edits were inert; A showed that is a fact about the instrument, not the
+> register. `jobs/citations-resolves-paths-but-never-line-numbers-2026-10-03`.
+>
+> **AND THE PUSH GATE ITSELF IS THE LEAST-TESTED SCRIPT IN THE PROJECT**, ranked as the cause of four separate holes:
+> `jobs/the-push-gate-is-the-least-adversarially-executed-script-in-the-project-2026-10-03`. The sharpest is that five
+> misspellings of `--this-bundle`, placed before the build argument, return `OK` at exit 0 over a bundle the log never
+> measured - the #416 defect reachable by a typo. The file grew 199 -> 739 lines this batch and nobody typed the flag
+> wrong once. Give it a selftest as a command, the way `gatemanifest.sh selftest` and `buildnum-selftest.sh` are.
+
 > **#474 SHIPPED THE RESUME-ROW FIX, AND ITS LESSON IS ABOUT THE GATE RATHER THAN THE CODE (2026-10-03).**
 > The Play setup sheet offered "Resume your game in progress (2 moves played)" over a move row that already read
 > EMPTY, because the row was computed from `playHist` and the board from `game` - two pieces of state that a lesson's
