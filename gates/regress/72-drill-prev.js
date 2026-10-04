@@ -86,6 +86,18 @@ const DRILLS=[
 ];
 const GS=[{n:'kunal761',g:L.GEOS.kunal761},{n:'320x568',g:L.GEOS.se}];
 
+// THE PAINTED POSITION, as a comparable signature. Pieces are <img> data-URI SVGs inside the 64 grid cells,
+// so this returns "index:last-10-chars-of-src" for every occupied square. IT EXISTS BECAUSE THE FIRST VERSION
+// OF THIS GATE ASSERTED THE CHROME AND NEVER THE BOARD: antagonist A built a bundle whose restore put the
+// WRONG POSITION on screen under a correct-looking verdict and it scored 100 pass / 0 fail here. "The card
+// comes back solved" is a claim about the BOARD; the Hint row and the verdict are only its chrome.
+async function placement(b){return b.page.evaluate(()=>{
+  const els=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));
+  let best=null,bw=0;for(const e of els){const q=e.getBoundingClientRect();if(q.width>bw){bw=q.width;best=e;}}
+  if(!best||best.children.length<64)return null;
+  return [...best.children].slice(0,64).map((c,i)=>{const im=c.querySelector('img');
+    return im?(i+':'+String(im.getAttribute('src')||'').slice(-10)):null;}).filter(Boolean).join('|');});}
+
 // the drill header counter, e.g. "Your mistakes - 2 of 5". Returns {i,n} or null.
 async function idx(b){return b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');if(!t)return null;
   const m=(t.innerText||'').match(/(\d+)\s+of\s+(\d+)/);return m?{i:+m[1],n:+m[2]}:null;});}
@@ -173,16 +185,21 @@ L.run(async()=>{
 
       // ---- walk forward to card 2, SOLVING it on the way, then on to card 3.
       L.say(s0.asking===true,'TC-R47 A5pre '+tag+' card 1 is being ASKED (the Hint row is on screen) before any solve',{asking:s0.asking});
+      const pl0=await placement(b);
+      L.say(!!pl0&&pl0.length>0,'TC-R47 A5plc '+tag+' the painted position can be read at all - every board assertion below is vacuous without this',{occupiedSquares:pl0?pl0.split('|').length:0});
       await tap(b,'drill-next',1000);
       let p2=await idx(b);
       L.say(!!p2&&p2.i===2,'TC-R47 A6 '+tag+' (b) Next moved the index to exactly 2',{counter:p2});
       const s2=await state(b);
       L.say(s2.prev&&s2.prev.dis===false,'TC-R47 A7 '+tag+' (a) Prev is ENABLED on card 2',{prev:s2.prev});
-      // solve card 2 by playing its stored move
+      // solve card 2 by playing its stored move, capturing the board BEFORE and AFTER the live solve
+      const askPlc=await placement(b);
       const u=UCIS[1];await b.move(u.slice(0,2),u.slice(2,4),900);await b.settle(1100);
+      const solvedPlc=await placement(b);
       const sv=await state(b);
       if(!L.say(sv.asking===false&&sv.verdict.length>0,'TC-R47 A8 '+tag+' card 2 was actually SOLVED - the verdict is on screen and the Hint row has gone. Every claim A10 makes about "comes back solved" is vacuous without this',{asking:sv.asking,verdict:sv.verdict.slice(0,70)})){
         await b.close();continue;}
+      L.say(!!askPlc&&!!solvedPlc&&askPlc!==solvedPlc,'TC-R47 A8b '+tag+' the live solve actually MOVED A PIECE - the asking and solved positions differ. This is the CONTROL for A10d: were these two equal, "the restored board matches the solved board" would be satisfied by a board that never moved at all',{changed:askPlc!==solvedPlc});
       await tap(b,'drill-next',1000);
       const p3=await idx(b),s3=await state(b);
       L.say(!!p3&&p3.i===3,'TC-R47 A9 '+tag+' (b) Next moved the index to exactly 3',{counter:p3});
@@ -194,6 +211,9 @@ L.run(async()=>{
       const pb=await idx(b),sb=await state(b);
       L.say(!!pb&&pb.i===2,'TC-R47 A10a '+tag+' (b) Prev decremented the index by exactly 1, from 3 to 2, and the counter READS the new index',{counter:pb});
       L.say(sb.asking===false,'TC-R47 A10b '+tag+' (c) the revisited card 2 is NOT asking again - the Hint row is still gone',{asking:sb.asking,buttons:sb.btns});
+      const backPlc=await placement(b);
+      L.say(backPlc===solvedPlc,'TC-R47 A10d '+tag+' (c) THE RESTORED BOARD IS THE POSITION THE PLAYER LEFT, piece for piece - not merely a card wearing a solved verdict. A bundle that restored the WRONG position scored 100/0 against the first version of this gate, which read only the chrome',{equal:backPlc===solvedPlc,restored:String(backPlc).slice(0,60),expected:String(solvedPlc).slice(0,60)});
+      L.say(backPlc!==askPlc,'TC-R47 A10e '+tag+' (c) and it is NOT the unsolved position - the card is not silently asking again behind a solved-looking header',{equalToAsking:backPlc===askPlc});
       L.say(sb.verdict.length>0,'TC-R47 A10c '+tag+' (c) the revisited card 2 still shows its verdict, so the work he went back to look at survived the round trip [US-R35 clause two]',{verdict:sb.verdict.slice(0,90)});
 
       // ---- A11 (b): and all the way back to card 1, where Prev goes inert again.
@@ -202,10 +222,72 @@ L.run(async()=>{
       L.say(!!p1&&p1.i===1,'TC-R47 A11a '+tag+' (b) Prev reached card 1 - the index decrements one at a time in the backward direction too',{counter:p1});
       L.say(s1.prev&&s1.prev.dis===true,'TC-R47 A11b '+tag+' (a) Prev is inert again at the front of the queue',{prev:s1.prev});
       L.say(s1.exits===1,'TC-R47 A11c '+tag+' (d) still exactly one exit after a full round trip',{exits:s1.exits,buttons:s1.btns});
-      L.say(p1&&p1.n===N,'TC-R47 A11d '+tag+' the queue LENGTH never changed across the walk - a solve must not shorten the queue under the player mid-drill',{counter:p1});
+      /* A11d IS A TRIPWIRE, NOT AN ASSERTION, AND IT NOW SAYS SO. Antagonist A measured that
+         mistakeQueueRef.current is assigned in exactly two places, both from a .slice(), and never mutated in
+         place - 0 hits for push/splice/pop/shift/length= - so "the length did not change" cannot go red for
+         any build that does not edit start*. It is kept because it is free and would catch such an edit, and
+         it is LABELLED so that nobody counts it as coverage. */
+      L.say(p1&&p1.n===N,'TC-R47 A11d[tripwire] '+tag+' the queue length never changed across the walk (true by construction on any build that does not edit startMistakes/startBrilliant - kept as a tripwire, NOT counted as coverage)',{counter:p1});
 
       L.say(b.errs.length===0,'TC-R47 A12 '+tag+' no console errors during the walk',{errs:b.errs.slice(0,2)});
       await b.close();
     }
+  }
+
+  /* ===== BLOCK B: THE INPUT CLASS THAT WAS MISSING, AND IT IS WHY BLOCK A COULD NOT SEE THE VETO =====
+     Block A seeds five rows that are ALL playable, so `the raw queue index` and `the position among the
+     playable rows` are the same number in every one of its 100 assertions, and a build that confused the two
+     scored 100 pass / 0 fail. BOTH ANTAGONISTS, working blind and from opposite doors, found the same thing:
+     puzzleFromMistake refuses a saved row whose position or stored move is illegal - which is the whole point
+     of that guard, and those rows are REAL, they are what a stale store holds - and with such a row at the
+     FRONT the drill opened on "2 of 5" with Prev enabled, full opacity, and completely dead. The build's own
+     comment claimed the opposite. So the fix was to hold the playable rows as the one source of truth, and
+     this block is the input that reddens the old arithmetic.
+     THE THREE UNPLAYABLE SHAPES ARE THE THREE THE GUARD ITSELF NAMES: a row with no stored move, a row whose
+     stored move is illegal in its own position, and a row whose position is illegal (the side NOT to move is
+     already in check). Rows 1, 3 and 5 are unplayable, so there are exactly TWO playable cards out of five. */
+  const BAD=[
+    {fen:'4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1', uci:undefined,  label:'Blunder', played:'Kd1', ts:9001, why:'row 1 has no stored move',        hint:'h'},
+    {fen:'4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1', uci:'c2c7',      label:'Blunder', played:'Kd1', ts:9002, why:'row 2 is playable',               hint:'h'},
+    {fen:'4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1', uci:'a1a8',      label:'Blunder', played:'Kd1', ts:9003, why:'row 3 stored move is illegal',    hint:'h'},
+    {fen:'4k3/8/8/8/8/8/5Q2/4K3 w - - 0 1', uci:'f2f7',      label:'Blunder', played:'Kd1', ts:9004, why:'row 4 is playable',               hint:'h'},
+    {fen:'4k3/8/8/8/8/4Q3/8/4K3 w - - 0 1', uci:'e3e7',      label:'Blunder', played:'Kd1', ts:9005, why:'row 5 position is illegal (black already in check)', hint:'h'},
+  ];
+  const PLAYABLE=2;
+  for(const G of GS){
+    const tag='unplayable-rows @ '+G.n;
+    const b=await L.launch({geo:{w:G.g.w,h:G.g.h,safe:G.g.safe},name:'drill-prev-bad-'+G.n,store:{ct_mymistakes:BAD,ct_pool:'3'}});
+    await b.open();await b.tile('Review');await b.settle(700);
+    try{await b.tapText(/find the move you missed/,{wait:1800});}catch(e){
+      L.say(false,'TC-R47 B0 '+tag+' the drill entry card was not reachable, so this block measured nothing',{err:e.message.slice(0,90)});
+      await b.close();continue;}
+    try{await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});}catch(e){}
+    const q0=await idx(b),t0=await state(b);
+    // B1 IS THE VETO. The old build opened here on "2 of 5"; the counter must count what can be SHOWN.
+    L.say(!!q0&&q0.i===1,'TC-R47 B1 '+tag+' (b) the drill opens on card 1 - NOT on the raw queue index of the first playable row. The pre-fix build opened on "2 of 5" because an unplayable row 1 advanced the index',{counter:q0});
+    L.say(!!q0&&q0.n===PLAYABLE,'TC-R47 B2 '+tag+' (b) the counter states the number of cards that can actually be SHOWN ('+PLAYABLE+' of 5 rows are playable) - the pre-fix build said 5 and then threw the player out part-way through',{counter:q0,playable:PLAYABLE,seeded:BAD.length});
+    if(!t0.prev){L.say(false,'TC-R47 B3 '+tag+' no Prev control on this input at all');await b.close();continue;}
+    // B4 IS THE OTHER HALF OF THE VETO: enabled-and-dead is worse than absent, because it invites the tap.
+    L.say(t0.prev.dis===true,'TC-R47 B4 '+tag+' (a) Prev is DISABLED on the opening card even though an unplayable row sits in front of it. BOTH antagonists measured this ENABLED at opacity 1 and completely dead on the pre-fix build, at both geometries and on both drills',{prev:t0.prev});
+    L.say(t0.prev.op<1,'TC-R47 B5 '+tag+' (a) and it is dimmed, so the player can SEE it is not available',{opacity:t0.prev.op});
+    await tap(b,'drill-prev',700);
+    const q1=await idx(b),t1=await state(b);
+    L.say(!!t1.inDrill&&!!q1&&q1.i===1,'TC-R47 B6 '+tag+' (a) tapping it changes nothing and does not eject the player',{counter:q1,inDrill:t1.inDrill});
+    // forward across the gap: row 3 is unplayable, so card 2 is queue row 4
+    await tap(b,'drill-next',1000);
+    const q2=await idx(b),t2=await state(b);
+    L.say(!!q2&&q2.i===2&&q2.n===PLAYABLE,'TC-R47 B7 '+tag+' (b) Next steps OVER the unplayable row to card 2 of '+PLAYABLE+', and the counter still agrees with itself',{counter:q2});
+    L.say(t2.prev&&t2.prev.dis===false,'TC-R47 B8 '+tag+' (a) Prev is enabled on card 2',{prev:t2.prev});
+    L.say(t2.asking===true,'TC-R47 B9 '+tag+' card 2 is a real, askable card and not a blank left by the skipped row',{asking:t2.asking,verdict:t2.verdict});
+    await tap(b,'drill-prev',1000);
+    const q3=await idx(b);
+    L.say(!!q3&&q3.i===1,'TC-R47 B10 '+tag+' (b) Prev comes back to card 1 across the same gap',{counter:q3});
+    // and the END: with row 5 unplayable, card 2 is the last one, so Next there is a COMPLETION
+    await tap(b,'drill-next',1000);
+    await tap(b,'drill-next',1200);
+    const t4=await state(b);
+    L.say(t4.inDrill===false,'TC-R47 B11 '+tag+' Next from the LAST playable card leaves the drill, which is a completion - and it did not leave early. The pre-fix build ejected the player at "3 of 5" while its own counter claimed two cards remained',{inDrill:t4.inDrill});
+    L.say(b.errs.length===0,'TC-R47 B12 '+tag+' no console errors over the unplayable-row walk',{errs:b.errs.slice(0,2)});
+    await b.close();
   }
 },'72-drill-prev');

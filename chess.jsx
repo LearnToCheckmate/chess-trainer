@@ -1328,6 +1328,11 @@ const pzTotalSolved=solved=>Object.keys(solved).length;
 function uciToMove(game,uci){const fc=FILES.indexOf(uci[0]),fr=8-(+uci[1]),tc=FILES.indexOf(uci[2]),tr=8-(+uci[3]),promo=uci[4];for(const m of getLegal(game)){if(m.fr===fr&&m.fc===fc&&m.tr===tr&&m.tc===tc){if(promo){if(m.promo&&m.promo.toLowerCase()===promo.toLowerCase())return m;}else if(!m.promo)return m;}}return null;}
 function lichessReplay(pgn,ply){let g=initGame();const toks=String(pgn||'').trim().split(/\s+/).filter(t=>t&&!/^\d+\.+$/.test(t)&&!/^(1-0|0-1|1\/2-1\/2|\*)$/.test(t));for(let i=0;i<ply&&i<toks.length;i++){const mv=findMoveBySAN(g,toks[i]);if(!mv)return null;g=makeMove(g,mv);}return g;}
 // position where solution[0] is legal (robust to Lichess initialPly off-by-one)
+/* #475 the inverse of uciToMove, which is what lets a drill record the move the PLAYER actually made
+   rather than the one that happened to be stored. Both antagonists found the same class of defect in the
+   first version, where the restore replayed the STORED uci: on an alt-mate solve the player came back to a
+   DIFFERENT move on the board than the one they had played, with a different sentence under it. */
+function _mvUci(m){if(!m)return null;return FILES[m.fc]+(8-m.fr)+FILES[m.tc]+(8-m.tr)+(m.promo?String(m.promo).toLowerCase():'');}
 function _lichessSolvePos(pgn,initialPly,sol0){for(const p of [initialPly,initialPly+1,initialPly-1]){if(p<0)continue;const g=lichessReplay(pgn,p);if(g&&uciToMove(g,sol0))return g;}return null;}
 function _walkUci(g0,uci,start){let g=g0;const sol=[],reply=[];for(let i=start;i<uci.length;i++){const mv=uciToMove(g,uci[i]);if(!mv)return null;const san=toSAN(g,mv,applyMove(g.board,mv));g=makeMove(g,mv);if((i-start)%2===0)sol.push(san);else reply.push(san);}return {sol,reply};}
 const _lvlR=r=>!r?'Medium':r<1000?'Easy':r<1500?'Medium':r<1900?'Hard':'Expert';
@@ -2857,6 +2862,20 @@ export default function App(){
      the exact defect gates/regress/18-drill-credit-provenance.js exists to hold. US-R27's second clause
      needs a record of 'solved' and nothing else, so this is the smallest thing that carries it. */
   const drillSolvedRef=useRef({});
+  /* #475 THE PLAYABLE ROWS OF THE QUEUE, COMPUTED ONCE PER DRILL, AND THE PLAYER'S POSITION WITHIN THEM.
+     THIS IS THE FIX FOR FOUR SEPARATE FINDINGS AND IT IS ONE MECHANISM, which is why it replaced the index
+     arithmetic rather than patching it [R09: when findings share a cause, the cause is the finding].
+     puzzleFromMistake REFUSES a saved row whose position or stored move is illegal, and such rows are real -
+     they are what that guard exists for. The first version of this build asked `mistakeIdxRef.current>0` for
+     "is there a card behind me", which is the RAW QUEUE index, and both antagonists independently measured
+     the same consequence: with an unplayable leading row the drill opens on "2 of 5" with Prev ENABLED, at
+     full opacity, and completely dead - while this file's own comment claimed it would be "disabled and
+     visibly inert". Measured on the opening card, at 375x761 and 320x568, on BOTH drills. The same raw-index
+     arithmetic also made the counter overstate the queue and made Next EJECT the player at "3 of 5" as though
+     the drill were finished. Holding the playable indices settles all three by construction: the counter
+     counts what can be shown, Prev is live exactly when an earlier card exists, and Next leaves at the true
+     end. */
+  const drillPlayRef=useRef([]); const drillPosRef=useRef(0);
   const [pzOSolved,setPzOSolved]=useState(0);        // count of Lichess puzzles solved
   const dstr=(dt)=>dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
   const DAILY_GOAL=5;
@@ -4336,7 +4355,16 @@ export default function App(){
              flags/amber-460-drill-solves-stop-earning-puzzle-xp-and-the-daily-bump. Stores written before
              #460 keep their polluted onlineIds rows and their inflated count; deleting a player's recorded
              numbers is not a build default, so there is deliberately no migration here. */
-          if(p.ext){if(!p.mine)onlineSolved(p);else drillSolvedRef.current[p.id]=1;setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":p.explain));}
+          if(p.ext){const _m='🎉 '+(alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":p.explain);
+            /* #475 KEYED ON THE QUEUE INDEX, NOT ON THE CARD ID. The id is 'lichess:mine:<fen>', so two queue
+               rows in the SAME position shared one key: antagonist B solved row A and row B then arrived
+               already solved, with row A's move on the board and row A's sentence under it. A review batch does
+               not dedupe its own captures, so one position blundered twice in a game produces exactly that.
+               Storing the PLAYER'S move and the message they actually saw also fixes the alt-mate case B
+               measured: play a different legal mate, come back, and the board used to show the STORED move
+               instead of yours, under a sentence you had never seen. */
+            if(!p.mine)onlineSolved(p);else drillSolvedRef.current[mistakeIdxRef.current]={uci:_mvUci(mv),msg:_m};
+            setPuzMsg(_m);}
           else{setPuzDone(d=>({...d,[puzIdxRef.current]:true}));const ru=recordSolve(p);if(ru)setPzCelebrate(ru);setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'Solved! ')+p.explain+(ru?'   ⬆ Rank up — you reached '+ru.icon+' '+ru.name+'!':''));}
           // #358 ONLY when the finish is a forced mate. The obvious-looking version, "play on after
           // any solve", is wrong: most tactics already carry their payoff in the solution itself -
@@ -5115,7 +5143,14 @@ export default function App(){
      away the work he went back to look at, which is the thing he actually asked for twice.
      It replays the STORED uci rather than the SAN in obj.sol, because obj.sol holds SAN (the solve handler
      compares cleanSAN against it) and re-parsing SAN here would be a second parser to keep in step. */
-  const loadExternalSolved=(obj)=>{if(!loadExternal(obj))return false;try{const mv=obj.mineUci?uciToMove(obj.pos,obj.mineUci):null;if(mv){setGame(makeMove(obj.pos,mv));setLastMv(mv);}}catch(e){}setPuzStep((obj.sol||[]).length);setPuzSolved(true);setPuzReveal(false);setPuzMsg('\ud83c\udf89 '+(obj.explain||''));repaint();return true;};
+  const loadExternalSolved=(obj,rec)=>{
+    if(!rec||!rec.uci)return false;
+    let mv=null,ng=null;
+    try{mv=uciToMove(obj.pos,rec.uci);if(mv)ng=makeMove(obj.pos,mv);}catch(e){mv=null;ng=null;}
+    if(!mv||!ng)return false;
+    if(!loadExternal(obj))return false;
+    setGame(ng);setLastMv(mv);setPuzStep((obj.sol||[]).length);setPuzSolved(true);setPuzReveal(false);
+    setPuzMsg(rec.msg||('🎉 '+(obj.explain||'')));repaint();return true;};
   const loadDaily=async()=>{setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/daily');const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('📅 Daily · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr("Couldn't reach Lichess. This works on the deployed site with internet — it may be blocked in this in-app preview.");}setPzOLoading(false);};
   const loadById=async(id)=>{const c=String(id||'').trim().replace(/[^A-Za-z0-9]/g,'');if(!c){setPzOErr('Enter a puzzle ID (the code from lichess.org/training/XXXXX).');return;}setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/'+c);const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('🎲 '+c+' · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr("Couldn't load puzzle '"+c+"'. Check the ID — or it may be blocked in this preview.");}setPzOLoading(false);};
   const _packBand=row=>{const r=row.rating||row.r||0;const d=pzDiffRef.current;if(d==='easy')return r<1300;if(d==='med')return r>=1300&&r<1700;if(d==='hard')return r>=1700;return true;};
@@ -5125,12 +5160,25 @@ export default function App(){
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, a '+String(m.label||'mistake').toLowerCase()+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;o.mineUci=m.uci;return o;}catch(e){return null;}};
-  const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';drillSolvedRef.current={};mistakeQueueRef.current=qs;let i=0,o=null;while(i<qs.length){o=puzzleFromMistake(qs[i]);if(o)break;i++;}if(!o)return;mistakeIdxRef.current=i;setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(o);};
-  const startBrilliant=()=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';drillSolvedRef.current={};mistakeQueueRef.current=qs;let i=0,o=null;while(i<qs.length){o=puzzleFromMistake(qs[i]);if(o)break;i++;}if(!o)return;mistakeIdxRef.current=i;setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(o);};
-  /* #475 ONE walker serves both directions so Prev cannot drift away from Next: step is +1 or -1, and the
-     skip over unplayable saved rows is the loop Next has always had rather than a second copy of it. */
-  const drillStep=(step)=>{const q=mistakeQueueRef.current||[];let n=mistakeIdxRef.current+step;while(n>=0&&n<q.length){const o=puzzleFromMistake(q[n]);if(o){mistakeIdxRef.current=n;if(drillSolvedRef.current[o.id])loadExternalSolved(o);else loadExternal(o);return true;}n+=step;}return false;};
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, a '+String(m.label||'mistake').toLowerCase()+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;return o;}catch(e){return null;}};
+  const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
+  const startBrilliant=()=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
+  /* #475 ONE walker serves both directions so Prev cannot drift away from Next. It steps through the
+     PLAYABLE list, so it can no longer walk into a row that cannot be rendered. */
+  const drillGo=(pos)=>{const pl=drillPlayRef.current||[],q=mistakeQueueRef.current||[];
+    if(pos<0||pos>=pl.length)return false;
+    const qi=pl[pos],o=puzzleFromMistake(q[qi]);
+    if(!o)return false;
+    drillPosRef.current=pos;mistakeIdxRef.current=qi;
+    const rec=drillSolvedRef.current[qi];
+    /* A FAILED REPLAY MUST NOT CLAIM THE CARD IS SOLVED. loadExternalSolved returns false rather than
+       swallowing the error, and the card is then ASKED, which is the honest degradation. The first version
+       wrapped the replay in try{}catch{} and called setPuzSolved(true) regardless, so a bundle that restored
+       the WRONG BOARD still read as solved - antagonist A measured exactly that, and the gate could not see
+       it because its assertions read the chrome and never the position. */
+    if(!(rec&&loadExternalSolved(o,rec)))loadExternal(o);
+    return true;};
+  const drillStep=(step)=>drillGo(drillPosRef.current+step);
   const nextMistake=()=>{if(!drillStep(1))exitMistakes();};
   /* PREV IS INERT AT THE FRONT, NOT AN EXIT, and the asymmetry with Next is deliberate: Next falling off
      the END of the queue is a completion, so leaving the drill is the right answer there. Falling off the
@@ -7390,7 +7438,7 @@ export default function App(){
       {/* #338: on the puzzle screens the board is capped by the screen WIDTH, so a tall phone leaves slack; these two flexible spacers centre the stack between the top of the screen and the tab bar instead of pooling it all at the bottom. They collapse to zero when there is no slack. */}
       {pzLow&&!wide&&(<div aria-hidden="true" style={{order:0,flex:'1 1 0',minHeight:0,width:'100%'}}/>)}
       {pzLow&&!wide&&(<div aria-hidden="true" style={{order:98,flex:'1 1 0',minHeight:0,width:'100%'}}/>)}
-      {mode==='puzzle'&&pzView==='online'&&(()=>{const p=(curPuz&&curPuz.ext)?curPuz:null;const bw=Math.min(vw-8,440);const _drill=mistakeMode;const _dn=(mistakeQueueRef.current||[]).length,_di=mistakeIdxRef.current+1;return(
+      {mode==='puzzle'&&pzView==='online'&&(()=>{const p=(curPuz&&curPuz.ext)?curPuz:null;const bw=Math.min(vw-8,440);const _drill=mistakeMode;const _dn=(drillPlayRef.current||[]).length,_di=drillPosRef.current+1;return(
       <div ref={pzTopRef} data-ct="pz-top" style={{order:1,marginTop:p?8:6,width:bw,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'stretch',gap:8}}>
         <div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
           <button onClick={()=>{if(_drill)exitMistakes();else setPzView('roadmap');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>{_drill?'‹ Review':'‹ Roadmap'}</button>
@@ -7448,7 +7496,7 @@ export default function App(){
               one must never become an exit again. hasPrev is the cheap index test rather than a scan of every
               earlier card: on card 1 it is false and the button is inert, and if some earlier row is unplayable
               drillStep simply finds nothing and does nothing, which is the same outcome the scan would reach. */}
-          {mistakeMode?(()=>{const _hp=mistakeIdxRef.current>0;return(<button onClick={()=>{if(_hp)prevMistake();}} disabled={!_hp} aria-disabled={!_hp} data-ct="drill-prev" style={{...navBtn(false),opacity:_hp?1:.42,cursor:_hp?'pointer':'default'}}>‹ Prev</button>);})():(p.url&&(<a href={p.url} target="_blank" rel="noopener noreferrer" style={{...navBtn(false),textDecoration:'none'}}>↗ Lichess</a>))}
+          {mistakeMode?(()=>{const _hp=drillPosRef.current>0;return(<button onClick={()=>{if(_hp)prevMistake();}} disabled={!_hp} aria-disabled={!_hp} data-ct="drill-prev" style={{...navBtn(false),opacity:_hp?1:.42,cursor:_hp?'pointer':'default'}}>‹ Prev</button>);})():(p.url&&(<a href={p.url} target="_blank" rel="noopener noreferrer" style={{...navBtn(false),textDecoration:'none'}}>↗ Lichess</a>))}
           <button onClick={nextOnline} data-ct={mistakeMode?'drill-next':undefined} style={navBtn(puzSolved)}>{mistakeMode?'Next ›':(pzPack?'Next ›':'New daily ›')}</button>
         </div>
       </div>));})()}

@@ -145,6 +145,36 @@ TC-R47  US-R35 (#475), a drill goes BACKWARDS as well as forwards and a card alr
   A9b IS THE POSITIVE CONTROL FOR (c)'s INSTRUMENT. 'Already solved' is read as 'the Hint row is gone and a verdict is on screen', both DOM facts rather than colours, because chess.jsx renders that row under `{!puzSolved&&...}`. A9b asserts that a card which was never solved reads as ASKING, so the instrument is shown able to return both answers before A10 is believed; without it, A10 passing would be consistent with a gate that simply cannot find a Hint button.
   A2e EXISTS BECAUSE THE FIRST RUN OF THIS GATE SCORED 66/6 ON ITS OWN TAP. At 320x568 the drill control row rests at y 490..542 while the FIXED tab bar occupies 512..568, so elementFromPoint at the row's centre returns the tab bar and a naive click never reaches Next. It is NOT unreachable: #root is the app's scroller (overflow-y auto, scrollHeight 612 vs clientHeight 568) and 44px of real finger scroll clears it, measured by actually scrolling and re-reading the rect. A2e now asserts that reachability and PRINTS the scroll it needed, so a build that makes the row genuinely unreachable reds here instead of being scrolled around. The row's resting position under the bar is pre-existing - the same row carried '< Review' + 'Next >' before #475 - and is filed separately rather than folded into this change.
 IT FAILED BEFORE THE FIX, against the REAL SHIPPED #473 BUNDLE (md5 96c21b94df25) rather than a hand-broken one: 40 PASS / 8 FAIL, red at B1, B4, C1 and C2 at BOTH geometries, every arrival assertion green so the reds are measurements and not missing selectors. The row read "▶ Resume your game in progress (2 moves played)" over a move row reading EMPTY, and Start armed with "Tap again to discard your game and start" about a game that no longer existed. After the fix: 48 PASS / 0 FAIL. Block A is GREEN ON BOTH BUNDLES AND MUST BE - the affordance works on #473 for a game that really is live; block B is what separates them, which is said rather than left to be inferred [#411].  NOT COVERED, stated as the gap it is: the PUZZLE and REVIEW doors, which also call setGame and are this job's own open notChecked items. Driving the Puzzles tile reached the roadmap WITHOUT replacing the board - the move row still read "1.f3 1…e5 2.g4", so the probe never exercised the class and its "no disagreement" says nothing - and the puzzles driver reloads. The fix is keyed on the board rather than on any one door so it covers them BY CONSTRUCTION, and a construction argument is not a measurement.  R36 ADMISSION: deterministic across the two runs taken at the time of writing (34/0 both, and 30/4 both on the control); the third is the full-suite run. Runtime ~110s for all four sessions.  Logs: gates/logs/474-all.log (suite section), plus the control run in the #474 run report.
+  BLOCK B IS THE INPUT CLASS BLOCK A COULD NOT SEE, AND IT WAS ADDED AFTER TWO BLIND ANTAGONISTS FOUND THE
+  SAME DEFECT FROM OPPOSITE DOORS. Block A seeds five rows that are ALL playable, so 'the raw queue index' and
+  'the position among the playable rows' are the same number in all 100 of its assertions - and the first #475
+  build confused the two. puzzleFromMistake refuses a saved row whose position or stored move is illegal (that
+  guard is why such rows exist), and with one at the FRONT the drill opened on '2 of 5' with Prev ENABLED at
+  opacity 1 and completely dead, while the build's own comment claimed 'disabled and visibly inert'. Block B
+  seeds the three unplayable shapes the guard itself names - no stored move, an illegal stored move, and an
+  illegal position - so 2 of 5 rows are playable, and asserts the counter counts what can be SHOWN, that Prev
+  is disabled and dimmed on the opening card, that Next steps over the gap, and that Next leaves only at the
+  true end. MEASURED: the pre-fix bundle (8abd4061b66a) scores 124 PASS / 14 FAIL, red on B1, B2, B4, B5, B6,
+  B7 and B10 at BOTH geometries, reading counter {i:2,n:5} and prev {dis:false,op:1}. The fixed bundle
+  (f53b69654395) scores 138 / 0. The fix was to hold the PLAYABLE ROW INDICES as the one source of truth,
+  which settles the dead Prev, the overstated counter and the premature exit together [R09].
+  A10d/A10e ASSERT THE BOARD AND NOT THE CHROME, and that gap was real: antagonist A built a bundle whose
+  restore painted the WRONG POSITION under a correct-looking verdict and it scored 100 PASS / 0 FAIL against
+  the first version of this case, because A10b/A10c read only 'is the Hint row gone' and 'is a verdict there'.
+  The restored position is now compared piece for piece against the position the live solve produced, with A8b
+  as its control (the live solve must actually move a piece, or 'restored == solved' would be satisfied by a
+  board that never moved). Control NC4, chrome restored and board not (8f8714019066): 130 PASS / 8 FAIL, red
+  on A10d and A10e ALONE in all four runs.
+  A11d IS LABELLED A TRIPWIRE rather than counted as coverage: mistakeQueueRef.current is assigned in exactly
+  two places, both from a .slice(), and never mutated in place, so 'the queue length did not change' cannot go
+  red for any build that does not edit startMistakes/startBrilliant.
+  THE 320x568 RESIDUE, STATED RATHER THAN HIDDEN: the drill's nav row rests at y 490..542 with the fixed tab
+  bar at 512, so the button's upper 22 of 52 px are tappable with no scrolling (a real click at top+6 moves the
+  counter) and its CENTRE returns the tab bar. Pre-existing and byte-identical on #474; #475 makes the slot
+  load-bearing, which is why it is filed at priority 9 as
+  jobs/the-drill-nav-row-rests-under-the-tab-bar-at-320x568-on-main-2026-10-04 rather than fixed here - the
+  fix reserves the bar's height and trades against board height on phones already at the 192px floor, which is
+  an open Kunal decision.
 
 ## Play - game over, executed against #434 (gates/regress/16-cpu-result-line.js; log gates/logs/434-all.log, copied to claude/agents/gatelogs/434-all.log)
 

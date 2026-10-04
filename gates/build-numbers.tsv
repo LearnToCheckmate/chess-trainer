@@ -448,3 +448,4 @@
 474	built	-	8b958354102b	653c8c81156b	2026-10-03T20:00Z	build__1791055209050	build.sh	Bundle built and stamped #474. Recorded by gates/build.sh so the number resolves to an artefact.
 475	minted	-	-	-	2026-10-04T01:30Z	build__1791076788000	minted	drill Prev control + session solved-state restore, jobs/drill-needs-a-previous-card-2026-09-23 (ship-list id 4)
 475	built	-	8abd4061b66a	2a4209d928f9	2026-10-04T01:31Z	build__1791076788000	build.sh	Bundle built and stamped #475. Recorded by gates/build.sh so the number resolves to an artefact.
+475	built	-	f53b69654395	179d627727a8	2026-10-04T02:01Z	build__1791076788000	build.sh	Bundle built and stamped #475. Recorded by gates/build.sh so the number resolves to an artefact.
