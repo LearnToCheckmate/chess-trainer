@@ -2,6 +2,12 @@
 // play-out button animates the line. Port of bril357gate's live half + why354. Opera Game, 10.Nxb5!! (ply 19).
 // The sentence must name the follow-up (a forcing move such as Bxb5+ / "If cxb5"); the play-out must move a piece.
 // #356: one engine trap is allowed BY EXACT TEXT ("RuntimeError: unreachable") and nothing else.
+// GEOMETRIES, added 2026-10-04 (process-build lane 1, jobs/gate-20-and-gate-21-never-visit-kunals-actual-
+// geometry-2026-10-01): TWO columns. 375x679, which is this gate's whole history and is NOT Kunal's phone -
+// it is the shorter-phone column, kept because every text pin below was measured there (#387) - and 375x761
+// with ct_safe 51,31, which is the geometry R19 settled on 2026-10-03 as his, superseding the 375x730 this
+// job's own text asks for. The 761 column is block 5 at the foot of the file and it deliberately does NOT
+// re-run the text assertions; block 5's header counts why. Before this change the gate ran at 375x679 only.
 //
 // #388, uat-ext-2026-09-14 - WHY THIS GATE NOW PINS THE WHOLE SENTENCE.
 // An external challenger applied the designed negative control to this gate and it stayed GREEN at 7 of 7
@@ -177,4 +183,118 @@ L.run(async()=>{
   const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
   L.say(bad.length===0,'TC-R10 no app error beyond the one allowed engine trap',{allowed:b.errs.length-bad.length,other:bad.slice(0,2)});
   await b.close();
+
+  /* ── 5. THE SECOND GEOMETRY COLUMN. This gate had never run at anything but 375x679 ────────────────
+     [jobs/gate-20-and-gate-21-never-visit-kunals-actual-geometry-2026-10-01, work item 2, the gate-21 half;
+      gate 20's half landed 2026-10-03 and this file was left untouched. R19 is the governing rule.]
+
+     WORK ITEM 1 FIRST, BECAUSE IT DECIDES THE SHAPE OF THIS BLOCK [R07]. Counted over this file at
+     origin/main 11abfaa: of its 28 assertions, ZERO pin an absolute position, width or fit. Twenty-three
+     are text or value assertions on engine and template output (the pinned sentence, the four clause
+     templates, the dropTxt branch and its band, the alt-move sweep) and five are presence or liveness
+     (the play-out exists, the play-out moves a piece, the engine line is OFF, the bar is readable, no
+     unexpected app error). There is not one px literal in the file. SO THE TRAP THE JOB WARNS ABOUT -
+     'gate 20 carries literal pins measured AT 679, so swapping the geometry will redden them and the red
+     will be the pin's, not the app's' - DOES NOT APPLY HERE, and that is a measured conclusion rather
+     than an assumption. It also means duplicating the 23 text assertions at a second height would be 60
+     more seconds of engine to re-measure quantities that cannot depend on viewport height. So this column
+     does not duplicate them. It asserts the two things a second geometry CAN tell you - that nothing the
+     679 column reads has become absent or clipped, and that the text is the SAME text - and it reads the
+     board width across the two columns as a note.
+
+     WHY kunal761 AND NOT kunal730, WHICH IS WHAT THE JOB'S OWN TEXT ASKS FOR. The job was filed
+     2026-10-01 and quotes CLAUDE.md's 375x730. R19 SETTLED THIS ON 2026-10-03, AFTER the job was
+     written, and settled it the other way: 'USE 375 x 761 ... The figure 730 is wrong and should be
+     corrected wherever it appears, including the GEOS entry labelled kunal730; GEOS already carries
+     kunal761 and that is the right one.' gates/regress/72-drill-prev.js:43 already reads R19 that way
+     and runs GEOS.kunal761, so this file follows the rule and the one precedent on main rather than the
+     older job text. 375x679 is KEPT as the shorter-phone column exactly as the job's trap demands:
+     nothing above this line changed.
+
+     AND THE DISAGREEMENT UNDER THAT CHOICE IS REPORTED, NOT RESOLVED HERE [R45]. gates/lib.js:24-26
+     records a measurement that 375x761 WITH ct_safe 51,31 renders the review board 293 wide where
+     Kunal's phone shows 349, because the app subtracts the insets a second time; R19 pins BOTH 375x761
+     AND boardPx 349.04 from his own diagnostics. Those cannot both describe one emulation. The board
+     width this column reads is printed as a note beside gate 20's 349-at-679 pin so the next reader has
+     the number, and the contradiction is filed for the orchestrator. A gate is not the place to decide
+     which of two of Kunal's own figures is the one to build against. */
+
+  /* ── 5a. THE FOUR PREDICATES OF THIS COLUMN, NAMED, AND THEIR CONTROLS ─────────────────────────────
+     THIS SUB-BLOCK EXISTS BECAUSE THE COLUMN BELOW FAILED ITS OWN FALSIFIABILITY TEST AND THE FAILURE IS
+     RECORDED RATHER THAN REPAIRED QUIETLY. The six live assertions were first run with block 5's launch
+     pointed at GEOS.short375 (375x568), the project's wide-and-short corner, as a negative control.
+     MEASURED 2026-10-04T06:45Z: ONE of the six flipped - the viewport identity - and the other FIVE
+     stayed green, because the Review screen scales down gracefully (board 264 wide at 568, nothing
+     clipped, nothing absent, the sentence unchanged). So a geometry change is NOT a mutation that can
+     exercise five of these six, and publishing them as six green geometry checks would have been the
+     exact defect jobs/a-control-set-can-score-full-marks-with-its-own-subject-deleted-2026-10-02
+     describes: a control set indistinguishable from one that constrains nothing.
+     The predicates are therefore lifted out by name and driven over fabricated readings in BOTH
+     directions, with no browser. The controls below cost no engine time and they are what makes the
+     greens above them mean something. Count fixed at 8 so the suite total cannot drift. */
+  const EL761=['rev-move-line','rev-why-txt','eval-bar-num','rev-playout'];
+  const absent761=(r)=>EL761.filter(k=>!r[k]);
+  const over761of=(r)=>EL761.filter(k=>r[k]&&(r[k].over>0.5||r[k].cut));
+  const samePin761=(a,z)=>typeof a==='string'&&a.length>20&&a===z;
+  const barOk761=(n)=>n!==null&&n>=2&&n<20;
+  const EL_OK={x:2,y:10,w:371,h:32,right:373,over:0,cut:false};
+  const mk=(o={})=>{const r={};for(const k of EL761)r[k]=Object.assign({},EL_OK);for(const k in o)r[k]=o[k];return r;};
+  L.say(absent761(mk()).length===0,'TC-R10 control: the absent-element detector is SILENT on a complete reading');
+  L.say(absent761(mk({'rev-playout':null})).length===1,'TC-R10 control: the absent-element detector FIRES when the play-out button is gone',absent761(mk({'rev-playout':null})));
+  L.say(over761of(mk()).length===0,'TC-R10 control: the overflow detector is SILENT on a reading that fits');
+  L.say(over761of(mk({'rev-why-txt':Object.assign({},EL_OK,{right:400,over:25})})).length===1,'TC-R10 control: the overflow detector FIRES on an element 25px past the viewport width');
+  L.say(over761of(mk({'rev-move-line':Object.assign({},EL_OK,{cut:true})})).length===1,'TC-R10 control: the overflow detector FIRES on an element clipping its own content (scrollWidth > clientWidth)');
+  L.say(samePin761('You give up a piece. If cxb5, Bxb5+ and White is winning here.','You give up a piece. If cxb5, Bxb5+ and White is winning here.')&&!samePin761('You give up a piece. If cxb5, Bxb5+ and White is winning here.','You give up a piece. If cxb5, Bxb5+ and White is clearly better.')&&!samePin761('','' ),'TC-R10 control: the cross-geometry sentence comparator is silent on two identical sentences, FIRES on two that differ by their last clause, and FIRES on an empty pair rather than calling two blanks equal');
+  L.say(barOk761(2.8)&&barOk761(2.0),'TC-R10 control: the eval-agreement predicate is SILENT on +2.8 and on the +2.0 boundary');
+  L.say(!barOk761(-2.8)&&!barOk761(0.1)&&!barOk761(99)&&!barOk761(null),'TC-R10 control: the eval-agreement predicate FIRES on a wrong sign (-2.8, the #389 shipped defect), on a near-zero (+0.1, the #385 defect), on a hundredfold error (99) and on an unreadable bar');
+  const c=await L.launch({geo:'kunal761',name:'review-brilliant-761',store:{ct_pool:'3'}});await c.open();
+  await c.tile('Review');await c.page.locator('textarea').first().fill(PGN);await c.tapText(/^⚡ Analyze Game$/,{wait:300});
+  await c.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});await c.settle(600);
+  await c.tapText(/^Start review/,{wait:900});
+  for(let i=0;i<19;i++){await c.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});await c.page.waitForTimeout(140);}await c.settle(1500);
+  const vp761=await c.page.evaluate(()=>({w:innerWidth,h:innerHeight,sh:document.documentElement.scrollHeight}));
+  L.say(vp761.w===375&&vp761.h===761,'TC-R10 geo 375x761: the column really ran at the geometry R19 names, read from the page rather than from the GEOS entry',vp761);
+  const txt761=(await c.text('[data-ct="rev-why-txt"]'))||(await c.text('[data-ct="rev-why"]'))||'';
+  const read761=await c.page.evaluate(()=>{
+    const out={};
+    for(const k of ['rev-move-line','rev-why-txt','eval-bar-num','rev-playout']){
+      const e=document.querySelector('[data-ct="'+k+'"]');
+      if(!e){out[k]=null;continue;}
+      const r=e.getBoundingClientRect();
+      out[k]={x:Math.round(r.left*10)/10,y:Math.round(r.top*10)/10,w:Math.round(r.width*10)/10,h:Math.round(r.height*10)/10,
+              right:Math.round(r.right*10)/10,over:Math.round(Math.max(0,r.right-innerWidth)*10)/10,
+              cut:e.scrollWidth-e.clientWidth>1};
+    }
+    const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));
+    out.board=g?{w:Math.round(g.getBoundingClientRect().width*100)/100,left:Math.round(g.getBoundingClientRect().left*100)/100}:null;
+    return out;
+  });
+  L.note('    375x761 column: '+JSON.stringify(read761));
+  /* THE BOARD WIDTH IS A NOTE AND NOT AN ASSERTION, ON PURPOSE. gate 20:80 pins the review board at 349
+     to within 0.6px and guards that pin with if(geo==='kunal'), so 349 is a 375x679 reading. Kunal's own
+     diagnostics report 349.04 on a device whose viewport reads 761. Until somebody decides which of those
+     two is the configuration to build against, a number pinned here would be pinning one side of an open
+     contradiction - which is the #395 shape the job itself warns about. The reading is published so the
+     decision can be made on a measurement. */
+  L.note('    board width: 375x761 reads '+(read761.board?read761.board.w:'ABSENT')+'  |  gate 20:80 pins 349 +/-0.6 at 375x679  |  gates/lib.js:25-26 predicts 293 at 761-with-ct_safe');
+  const missing761=absent761(read761);
+  L.say(missing761.length===0,'TC-R10 geo 375x761: every element the 375x679 column reads is still present - the move line, the why panel, the eval bar number and the play-out button',{missing:missing761});
+  /* THE SAME TEXT, BYTE FOR BYTE. The pinned sentence at line 58 was measured on #387 at 375x679 and
+     nothing has ever checked whether that pin is a claim about the app or a claim about a 679-high
+     viewport. If the brilliancy sentence ever differs between two heights, the pin is geometry-bound and
+     every reader of this gate has been misled about what it covers. This is the cross-geometry comparator
+     R47 asks for: a thing we already print, compared against another reading of itself. */
+  L.say(samePin761(txt761,txt),'TC-R10 geo 375x761: the brilliancy sentence is BYTE-IDENTICAL to the 375x679 reading, so the #387 pin is a claim about the app and not about a viewport height',{at679:txt.slice(0,60),at761:txt761.slice(0,60),same:txt761===txt});
+  const over761=over761of(read761);
+  L.say(over761.length===0,'TC-R10 geo 375x761: nothing the gate reads is cut off at 375 - no element runs past the viewport width and none is clipping its own content [R10 item 6]',{offenders:over761.map(k=>({el:k,over:read761[k].over,cut:read761[k].cut}))});
+  const bar761=await c.text('[data-ct="eval-bar-num"]');
+  const cN761=(bar761==='mate')?99:((bar761==='-mate')?-99:(/^[+-]?\d+\.\d$/.test(String(bar761))?parseFloat(bar761):null));
+  L.say(barOk761(cN761),'TC-R10 geo 375x761: the independent eval bar agrees in SIGN AND SCALE with the 375x679 column (both >= +2.0 and < 20 on a position White is winning) - two heights, one verdict',{at679:chip,at761:bar761});
+  const s761=await gridSig(c);await c.tapCt('rev-playout',400);let moved761=false;
+  for(let i=0;i<12;i++){await c.settle(350);if((await gridSig(c))!==s761){moved761=true;break;}}
+  L.say(moved761,'TC-R10 geo 375x761: the play-out still moves a piece within ~4 s at the taller viewport');
+  await c.settle(1200);await c.shot('review-brilliant-761');
+  const bad761=c.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
+  L.note('    375x761 app errors beyond the allowed engine trap: '+bad761.length+(bad761.length?' '+JSON.stringify(bad761.slice(0,2)):''));
+  await c.close();
 },'REVIEW-BRILLIANT');
