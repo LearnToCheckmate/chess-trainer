@@ -2851,6 +2851,12 @@ export default function App(){
   const [myMistakes,setMyMistakes]=useState(()=>{try{const v=localStorage.getItem('ct_mymistakes');return v?JSON.parse(v):[];}catch{return [];}});
   const [mistakeMode,setMistakeMode]=useState(false); // practicing your own mistakes (uses the puzzle player, bypasses the puzzle paywall)
   const myMistakesRef=useRef([]); const mistakeQueueRef=useRef([]); const mistakeIdxRef=useRef(0);
+  /* #475 WHICH DRILL CARDS THE PLAYER SOLVED IN **THIS** DRILL SESSION, keyed on the card id
+     ('lichess:mine:<fen>'). It is deliberately NOT pzOSolvedIds: #460 made a drill solve earn no online
+     credit on purpose, and writing a drill card there would bank XP, a streak and the daily bump again -
+     the exact defect gates/regress/18-drill-credit-provenance.js exists to hold. US-R27's second clause
+     needs a record of 'solved' and nothing else, so this is the smallest thing that carries it. */
+  const drillSolvedRef=useRef({});
   const [pzOSolved,setPzOSolved]=useState(0);        // count of Lichess puzzles solved
   const dstr=(dt)=>dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
   const DAILY_GOAL=5;
@@ -4330,7 +4336,7 @@ export default function App(){
              flags/amber-460-drill-solves-stop-earning-puzzle-xp-and-the-daily-bump. Stores written before
              #460 keep their polluted onlineIds rows and their inflated count; deleting a player's recorded
              numbers is not a build default, so there is deliberately no migration here. */
-          if(p.ext){if(!p.mine)onlineSolved(p);setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":p.explain));}
+          if(p.ext){if(!p.mine)onlineSolved(p);else drillSolvedRef.current[p.id]=1;setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":p.explain));}
           else{setPuzDone(d=>({...d,[puzIdxRef.current]:true}));const ru=recordSolve(p);if(ru)setPzCelebrate(ru);setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'Solved! ')+p.explain+(ru?'   ⬆ Rank up — you reached '+ru.icon+' '+ru.name+'!':''));}
           // #358 ONLY when the finish is a forced mate. The obvious-looking version, "play on after
           // any solve", is wrong: most tactics already carry their payoff in the solution itself -
@@ -5104,6 +5110,12 @@ export default function App(){
     if(keys.length>24){keys.sort((a,b)=>(all[a].at||0)-(all[b].at||0));for(let i=0;i<keys.length-24;i++)delete all[keys[i]];}
     localStorage.setItem('ct_evalcache',JSON.stringify(all));}catch(e){}};
   const loadExternal=(obj)=>{if(!obj){setPzOErr('That puzzle could not be read.');return false;}setGame(obj.pos);setLastMv(obj.last||null);setFlip(obj.pos.turn==='b');setPuzStep(0);setPuzMsg('');setPuzSolved(false);setPuzReveal(false);setPuzSide(obj.pos.turn);setCurPuz(obj);UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzView('online');repaint();return true;};
+  /* #475 US-R27 clause two: a card the player already solved this session comes back SOLVED instead of
+     asking again. Without it a Prev that re-asks satisfies the first half of the clause and still throws
+     away the work he went back to look at, which is the thing he actually asked for twice.
+     It replays the STORED uci rather than the SAN in obj.sol, because obj.sol holds SAN (the solve handler
+     compares cleanSAN against it) and re-parsing SAN here would be a second parser to keep in step. */
+  const loadExternalSolved=(obj)=>{if(!loadExternal(obj))return false;try{const mv=obj.mineUci?uciToMove(obj.pos,obj.mineUci):null;if(mv){setGame(makeMove(obj.pos,mv));setLastMv(mv);}}catch(e){}setPuzStep((obj.sol||[]).length);setPuzSolved(true);setPuzReveal(false);setPuzMsg('\ud83c\udf89 '+(obj.explain||''));repaint();return true;};
   const loadDaily=async()=>{setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/daily');const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('📅 Daily · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr("Couldn't reach Lichess. This works on the deployed site with internet — it may be blocked in this in-app preview.");}setPzOLoading(false);};
   const loadById=async(id)=>{const c=String(id||'').trim().replace(/[^A-Za-z0-9]/g,'');if(!c){setPzOErr('Enter a puzzle ID (the code from lichess.org/training/XXXXX).');return;}setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/'+c);const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('🎲 '+c+' · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr("Couldn't load puzzle '"+c+"'. Check the ID — or it may be blocked in this preview.");}setPzOLoading(false);};
   const _packBand=row=>{const r=row.rating||row.r||0;const d=pzDiffRef.current;if(d==='easy')return r<1300;if(d==='med')return r>=1300&&r<1700;if(d==='hard')return r>=1700;return true;};
@@ -5113,10 +5125,18 @@ export default function App(){
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, a '+String(m.label||'mistake').toLowerCase()+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;return o;}catch(e){return null;}};
-  const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';mistakeQueueRef.current=qs;let i=0,o=null;while(i<qs.length){o=puzzleFromMistake(qs[i]);if(o)break;i++;}if(!o)return;mistakeIdxRef.current=i;setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(o);};
-  const startBrilliant=()=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';mistakeQueueRef.current=qs;let i=0,o=null;while(i<qs.length){o=puzzleFromMistake(qs[i]);if(o)break;i++;}if(!o)return;mistakeIdxRef.current=i;setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(o);};
-  const nextMistake=()=>{const q=mistakeQueueRef.current||[];let n=mistakeIdxRef.current+1;while(n<q.length){const o=puzzleFromMistake(q[n]);if(o){mistakeIdxRef.current=n;loadExternal(o);return;}n++;}exitMistakes();};
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, a '+String(m.label||'mistake').toLowerCase()+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;o.mineUci=m.uci;return o;}catch(e){return null;}};
+  const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';drillSolvedRef.current={};mistakeQueueRef.current=qs;let i=0,o=null;while(i<qs.length){o=puzzleFromMistake(qs[i]);if(o)break;i++;}if(!o)return;mistakeIdxRef.current=i;setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(o);};
+  const startBrilliant=()=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';drillSolvedRef.current={};mistakeQueueRef.current=qs;let i=0,o=null;while(i<qs.length){o=puzzleFromMistake(qs[i]);if(o)break;i++;}if(!o)return;mistakeIdxRef.current=i;setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(o);};
+  /* #475 ONE walker serves both directions so Prev cannot drift away from Next: step is +1 or -1, and the
+     skip over unplayable saved rows is the loop Next has always had rather than a second copy of it. */
+  const drillStep=(step)=>{const q=mistakeQueueRef.current||[];let n=mistakeIdxRef.current+step;while(n>=0&&n<q.length){const o=puzzleFromMistake(q[n]);if(o){mistakeIdxRef.current=n;if(drillSolvedRef.current[o.id])loadExternalSolved(o);else loadExternal(o);return true;}n+=step;}return false;};
+  const nextMistake=()=>{if(!drillStep(1))exitMistakes();};
+  /* PREV IS INERT AT THE FRONT, NOT AN EXIT, and the asymmetry with Next is deliberate: Next falling off
+     the END of the queue is a completion, so leaving the drill is the right answer there. Falling off the
+     FRONT is not an event at all - he is on card 1 and asked to go back - so the control is disabled and
+     visibly inert [TC-R37 (a)] instead of throwing him out of the drill he is working. */
+  const prevMistake=()=>{drillStep(-1);};
   const exitMistakes=()=>{setMistakeMode(false);setCurPuz(null);setPzView('roadmap');setMode('analyze');};
   useEffect(()=>{if(mistakeMode&&puzSolved&&drillKindRef.current==='mistake'){const q=mistakeQueueRef.current||[];const cur=q[mistakeIdxRef.current];if(cur)setMyMistakes(prev=>prev.filter(x=>x.fen!==cur.fen));}},[puzSolved,mistakeMode]);
   const curAnno=inReview&&ply>0?review.analysis[ply-1]:null;
@@ -7419,8 +7439,17 @@ export default function App(){
           <button onClick={()=>loadExternal(curPuz)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>↺ Reset</button>
         </div>)}
         <div style={{display:'flex',gap:7,width:'100%',alignItems:'center'}}>
-          {mistakeMode?(<button onClick={exitMistakes} style={navBtn(false)}>‹ Review</button>):(p.url&&(<a href={p.url} target="_blank" rel="noopener noreferrer" style={{...navBtn(false),textDecoration:'none'}}>↗ Lichess</a>))}
-          <button onClick={nextOnline} style={navBtn(puzSolved)}>{mistakeMode?'Next ›':(pzPack?'Next ›':'New daily ›')}</button>
+          {/* #475 jobs/drill-needs-a-previous-card-2026-09-23. This slot used to be a SECOND '‹ Review',
+              doing exactly what the header control seven pixels up does, so Prev costs no height and removes a
+              duplicate - which is the fix the job itself identified from Kunal's screenshots and which sit run 19
+              measured on the shipped #437 bundle (button set ['‹ Review','💡 Hint','👁 Show move','↺ Reset','‹ Review','Next ›'],
+              two Reviews, no Prev in any spelling, at 375x812 and 320x568 alike).
+              THE DRILL MUST KEEP EXACTLY ONE CONTROL THAT LEAVES IT [TC-R37 (d)]: that is the header's, so this
+              one must never become an exit again. hasPrev is the cheap index test rather than a scan of every
+              earlier card: on card 1 it is false and the button is inert, and if some earlier row is unplayable
+              drillStep simply finds nothing and does nothing, which is the same outcome the scan would reach. */}
+          {mistakeMode?(()=>{const _hp=mistakeIdxRef.current>0;return(<button onClick={()=>{if(_hp)prevMistake();}} disabled={!_hp} aria-disabled={!_hp} data-ct="drill-prev" style={{...navBtn(false),opacity:_hp?1:.42,cursor:_hp?'pointer':'default'}}>‹ Prev</button>);})():(p.url&&(<a href={p.url} target="_blank" rel="noopener noreferrer" style={{...navBtn(false),textDecoration:'none'}}>↗ Lichess</a>))}
+          <button onClick={nextOnline} data-ct={mistakeMode?'drill-next':undefined} style={navBtn(puzSolved)}>{mistakeMode?'Next ›':(pzPack?'Next ›':'New daily ›')}</button>
         </div>
       </div>));})()}
 
