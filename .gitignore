@@ -1,3 +1,9 @@
 .run/
 gates/.trial/
 gates/.gates-run-*.sh
+# #475: the same thing under the name that run happened to use. A frozen copy of gates.sh is how a suite
+# survives a mid-run edit to the repo copy (CLAUDE.md #461, and HANDOFF point 4: the copy must stay INSIDE
+# gates/ because gates.sh derives ROOT from dirname $0). It must never be COMMITTED - a second copy of the
+# push-gate script is a copy that can silently drift from the one every consumer greps. The established
+# name is the pattern above and #475 should have used it.
+gates/gates.run.sh
