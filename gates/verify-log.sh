@@ -104,6 +104,107 @@ set -uo pipefail
 # artefact lock on THIS FILE ONLY [R44] and may not write gates.sh; and measured on main today this mode is
 # RED, so wiring it in unchanged would refuse every build until the register is repaired. Wire it in only
 # after the red is cleared, or wire it in as a reported count first.
+# === gates/verify-log.sh --citations-selftest : THE CONTROLS FOR ARM (4), IN BOTH DIRECTIONS.
+# Added 2026-10-04 by process-build lane 4 (runId process-build-4__1791085733081) with arm (4) itself, for
+# jobs/citations-resolves-paths-but-never-line-numbers-2026-10-03. It lives INSIDE this file deliberately:
+# this run holds the artefact lock on gates/verify-log.sh and on nothing else [R44, one agent one artefact],
+# and gates/verify-log-selftest.sh is a separate file another process lane has parked a patch for, so writing
+# the controls there would collide with work that is already finished and waiting on the integration slot.
+# WHY IT EXISTS AT ALL: arm (4) reads 0 dead and 0 past-EOF on a clean main, so its green proves nothing by
+# itself. A check that has never been seen to fire is a report, not an instrument. Each case below asserts a
+# detector FIRES on a planted defect and STAYS SILENT on the matching control, which is the standard set by
+# this lane's 2026-10-03 and 2026-10-04 runs. It builds a throwaway tree under mktemp -d because the
+# --citations block resolves its root as $(dirname $0)/.. and then cd's there, so the only way to drive it
+# over fabricated registers is to give it a fabricated root. Nothing under the real repository is touched.
+if [ "${1:-}" = "--citations-selftest" ]; then
+  SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+  SPASS=0; SFAIL=0
+  st_ck() { # st_ck <name> <expected> <actual>
+    if [ "$2" = "$3" ]; then SPASS=$((SPASS+1)); echo "  ok   $1"
+    else SFAIL=$((SFAIL+1)); echo "  FAIL $1: expected [$2] got [$3]"; fi
+  }
+  st_tree() { # st_tree -> prints a fresh root with this script in place and a minimal tree
+    T="$(mktemp -d)"
+    mkdir -p "$T/gates/regress" "$T/claude/stories"
+    cp "$SELF" "$T/gates/verify-log.sh"
+    printf 'line1\nline2\nline3\n' > "$T/gates/regress/10-real.js"
+    printf '%s\n' "$T"
+  }
+  st_arm4() { # st_arm4 <root> -> the one-line (4) summary
+    ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 | grep -E '^  \(4\) ' | head -1 )
+  }
+  st_verdict() { # st_verdict <root> -> CITATIONS verdict line plus exit code
+    ( cd "$1" && bash gates/verify-log.sh --citations >"$1/out.txt" 2>&1; echo "exit=$?"; grep -E '^CITATIONS ' "$1/out.txt" | head -1 )
+  }
+  echo "=== citations arm (4) selftest"
+
+  # C1 a clean line citation to a real file at a real line is counted and is not a defect.
+  R="$(st_tree)"; printf 'see `gates/regress/10-real.js:2` for the pin\n' > "$R/claude/stories/A.md"
+  st_ck "C1 clean citation counted, nothing flagged" \
+    "  (4) 1 line-number citation(s), ceiling 46, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R")"
+
+  # C2 DEAD detector fires on a path that is not in the tree, and C2b stays silent when the file exists.
+  R2="$(st_tree)"; printf 'see `gates/regress/99-gone.js:5`\n' > "$R2/claude/stories/A.md"
+  st_ck "C2 dead path fires" \
+    "  (4) 1 line-number citation(s), ceiling 46, 1 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R2")"
+  # C2b plants a file LONG ENOUGH for the cited line, because the first draft of this fixture copied the
+  # 3-line file and C2b then reported 1 past-EOF - the DEAD detector had gone silent exactly as asked and the
+  # STALE one had correctly fired on :5 of a 3-line file. The fixture was wrong, not the arm; recorded here
+  # rather than silently repaired, because a fixture that quietly agrees with a bug is this project's #432.
+  printf 'a\nb\nc\nd\ne\nf\n' > "$R2/gates/regress/99-gone.js"
+  st_ck "C2b dead detector silent once the file exists and is long enough" \
+    "  (4) 1 line-number citation(s), ceiling 46, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R2")"
+
+  # C3 STALE detector fires one line past the end and C3b is silent exactly AT the end - the boundary, so an
+  # off-by-one in the comparison cannot pass both halves.
+  R3="$(st_tree)"; printf 'see `gates/regress/10-real.js:4`\n' > "$R3/claude/stories/A.md"
+  st_ck "C3 past-EOF fires at last+1 (file has 3 lines)" \
+    "  (4) 1 line-number citation(s), ceiling 46, 0 dead, 1 past end of file, 0 over ceiling" "$(st_arm4 "$R3")"
+  printf 'see `gates/regress/10-real.js:3`\n' > "$R3/claude/stories/A.md"
+  st_ck "C3b past-EOF silent at the last line itself" \
+    "  (4) 1 line-number citation(s), ceiling 46, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R3")"
+
+  # C4 THE NEGATIVE CONTROL THE JOB'S OWN CASE ASKS FOR: a symbol citation must not be reported at all.
+  R4="$(st_tree)"; printf 'see `gates/regress/10-real.js` at selectOpening, and `chess.jsx` at fullReset\n' > "$R4/claude/stories/A.md"
+  st_ck "C4 symbol-form citations are not counted" \
+    "  (4) 0 line-number citation(s), ceiling 46, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R4")"
+
+  # C5 the CEILING. 46 is accepted, 47 is refused, and the message names the overage.
+  R5="$(st_tree)"; : > "$R5/claude/stories/A.md"
+  i=1; while [ "$i" -le 46 ]; do printf 'row %s `gates/regress/10-real.js:1`\n' "$i" >> "$R5/claude/stories/A.md"; i=$((i+1)); done
+  st_ck "C5 exactly at the ceiling is not over it" \
+    "  (4) 46 line-number citation(s), ceiling 46, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R5")"
+  printf 'row 47 `gates/regress/10-real.js:1`\n' >> "$R5/claude/stories/A.md"
+  st_ck "C5b one over the ceiling is refused" \
+    "  (4) 47 line-number citation(s), ceiling 46, 0 dead, 0 past end of file, 1 over ceiling" "$(st_arm4 "$R5")"
+
+  # C6 SCOPE. The arm is about the story registers, so an identical citation outside claude/stories/ must not
+  # be counted - otherwise this file's own comments would redden it, which is how a checker eats itself.
+  R6="$(st_tree)"; printf 'see `gates/regress/99-gone.js:5`\n' > "$R6/HANDOFF.md"
+  mkdir -p "$R6/gates/regress"; printf '// gates/regress/99-gone.js:5\n' > "$R6/gates/regress/11-other.js"
+  st_ck "C6 citations outside claude/stories/*.md are out of scope" \
+    "  (4) 0 line-number citation(s), ceiling 46, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R6")"
+
+  # C7 THE ONE THAT MATTERS: does arm (4) actually control the verdict, or only print? Arms (1) and (2) are
+  # clean in this tree by construction (no story file names a story path, and TEST-CASES.md is absent, which
+  # arm (2) reports as NOT CHECKED), so the verdict moves on arm (4) alone and on nothing else.
+  R7="$(st_tree)"; printf 'see `gates/regress/99-gone.js:5`\n' > "$R7/claude/stories/A.md"
+  st_ck "C7 a dead line citation turns the whole mode RED at exit 1" \
+    "exit=1
+CITATIONS RED: 0 dead path(s), 0 unsupported case id(s), 0 misfiled row(s), 1 dead line citation(s), 0 stale line citation(s), 0 over the line-citation ceiling. 1 row(s) NOT CHECKED." "$(st_verdict "$R7")"
+  printf 'see `gates/regress/99-gone.js` at someSymbol\n' > "$R7/claude/stories/A.md"
+  st_ck "C7b the same tree in symbol form is not red - so C7 was arm (4) and not a side effect" \
+    "exit=0
+CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$(st_verdict "$R7")"
+
+  # C8 DETERMINISM. Two runs over one tree must agree byte for byte [R36 admission test].
+  R8="$(st_tree)"; printf 'a `gates/regress/10-real.js:4`\nb `gates/regress/99-gone.js:1`\n' > "$R8/claude/stories/A.md"
+  st_ck "C8 two runs over one tree agree" "$(st_arm4 "$R8")" "$(st_arm4 "$R8")"
+
+  echo "  citations-selftest: $SPASS pass, $SFAIL fail"
+  [ "$SFAIL" -eq 0 ] || exit 1
+  exit 0
+fi
 if [ "${1:-}" = "--citations" ] || [ "${1:-}" = "citations" ]; then
   ROOT="$(cd "$(dirname "$0")/.." && pwd)"
   cd "$ROOT" || { echo "REFUSED (--citations): cannot cd to $ROOT"; exit 1; }
@@ -205,21 +306,81 @@ EOF
   # in the row's syntax separates them, so a refusal here would redden correct rows. Separating them needs a
   # row-level convention that does not exist yet; that remainder is named on
   # jobs/case-rows-publish-a-figure-from-a-bundle-that-did-not-ship-2026-09-30, not left for a reader to infer.
-  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ]; then
-    echo "CITATIONS RED: $A1BAD dead path(s), $A2BAD unsupported case id(s), $A2MIS misfiled row(s). $A2NC row(s) NOT CHECKED."
+  # === (4) LINE-NUMBER CITATIONS IN THE STORY REGISTERS. A COMPARATOR, AND A RATCHET RATHER THAN A BAN.
+  # jobs/citations-resolves-paths-but-never-line-numbers-2026-10-03 (P2, priority 9, build). Antagonist A,
+  # on the cross-read of #474's batch: arms (1), (2) and (3) above ask "does the named PATH resolve?", "does
+  # the case id occur in its log?" and "is the md5 in that log?" - and NONE of them reads a line number, so a
+  # citation whose path resolves and whose NNN points at the wrong code is invisible here. Re-derived on
+  # origin/main at 11abfaa before this arm was written [R18]: `grep -cE ':\$\{?LINE|lineno|:[0-9]+.*resolve'`
+  # over this file returned 0. The finding is real and it was still real.
+  #
+  # ITS theFix PREFERRED OPTION 2 - "REFUSE a path:NNN citation outright in claude/stories/*.md" - AND THAT
+  # OPTION IS NOT LANDABLE AS WRITTEN. MEASURED here before building, which the job did not do: there are
+  # 46 such citations in claude/stories/*.md on main today (MENU-LANE 8, SUITE-AUDIT 4, TEST-CASES 20,
+  # USER-STORIES 14, README 0), all 46 resolve to a file in the tree, and 0 of 46 point past that file's end.
+  # So an outright refusal is RED ON A CLEAN TREE from its first run, on 46 pre-existing rows in two
+  # historical lane documents nobody is editing - and gate 67's own note records the verdict on that shape:
+  # "a gate red on a good build is worse than no gate". a5313ab is also narrower than the job quotes it as:
+  # its subject is one comment block inside chess.jsx, not the registers, so a blanket ban on the registers
+  # would be a NEW rule invented by a checker rather than the enforcement of a decided one [R45 (4)].
+  #
+  # SO THIS ARM DOES THE THREE THINGS THAT CAN BE TRUE MECHANICALLY, and the ratchet is borrowed from
+  # gates/build-numbers.tsv the same way gate-manifest.tsv borrows it:
+  #   A4a DEAD   - the cited path does not exist at all. Unambiguous. REFUSES.
+  #   A4b STALE  - the path exists and NNN is past its last line. Provably wrong without knowing what SHOULD
+  #                be there, which is the objection the job itself raises against option 1. REFUSES.
+  #   A4c CEILING- the total count may never RISE above the committed ceiling below, so no new line-number
+  #                citation can be added to a register. Falling is encouraged and the arm prints the lower
+  #                number to commit. REFUSES on a rise only.
+  # WHAT THIS ARM STILL CANNOT DO, said plainly rather than left to be discovered: a citation that resolves
+  # and lands on the WRONG EXISTING LINE - TC-R16 B5b at :188 against its real site at :320, the instance A
+  # measured - passes A4a, A4b and A4c. No checker can catch that without knowing the intended target, which
+  # is the whole reason a5313ab chose symbol citations. A4c is the only defence against the class GROWING,
+  # and it is a ceiling, not a cure. That remainder stays on the job as whatIsLeft [R05].
+  A4CEIL=46
+  A4TOT=0; A4DEAD=0; A4EOF=0
+  echo "=== citations (4): line-number citations in claude/stories/*.md - dead, past-EOF, and the ceiling"
+  A4CITES="$(grep -onE '((gates/[A-Za-z0-9_./-]+\.(js|sh))|chess\.jsx|app\.js|lessons\.js|index\.html|sw\.js):[0-9]+' claude/stories/*.md 2>/dev/null || true)"
+  while IFS= read -r c; do
+    [ -n "$c" ] || continue
+    # c is <file>:<lineno>:<path>:<NNN>; take the citation off the right so a path with colons cannot shift it
+    CIT="${c##*:}"; REST="${c%:*}"; P="${REST##*:}"; WHERE="${REST%:*}"
+    A4TOT=$((A4TOT+1))
+    if [ ! -f "$P" ]; then
+      A4DEAD=$((A4DEAD+1)); echo "  DEAD LINE CITATION: $P:$CIT - $P is not in the tree (named at $WHERE)"
+      continue
+    fi
+    PLINES="$(wc -l < "$P" | tr -d ' ')"
+    if [ "$CIT" -gt "$PLINES" ]; then
+      A4EOF=$((A4EOF+1)); echo "  STALE LINE CITATION: $P:$CIT but $P has $PLINES lines (named at $WHERE)"
+    fi
+  done <<EOF
+$A4CITES
+EOF
+  A4RISE=0
+  if [ "$A4TOT" -gt "$A4CEIL" ]; then
+    A4RISE=$((A4TOT-A4CEIL))
+    echo "  NEW LINE CITATION(S): $A4TOT exceeds the committed ceiling of $A4CEIL by $A4RISE. Cite a symbol, not a line [a5313ab]."
+  elif [ "$A4TOT" -lt "$A4CEIL" ]; then
+    echo "  CEILING CAN BE LOWERED: $A4TOT of $A4CEIL in use. Commit A4CEIL=$A4TOT in this file so it cannot rise again."
+  fi
+  echo "  (4) $A4TOT line-number citation(s), ceiling $A4CEIL, $A4DEAD dead, $A4EOF past end of file, $A4RISE over ceiling"
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ]; then
+    echo "CITATIONS RED: $A1BAD dead path(s), $A2BAD unsupported case id(s), $A2MIS misfiled row(s), $A4DEAD dead line citation(s), $A4EOF stale line citation(s), $A4RISE over the line-citation ceiling. $A2NC row(s) NOT CHECKED."
     exit 1
   fi
   if [ "$A2NC" -gt 0 ]; then
     echo "CITATIONS OK with $A2NC row(s) NOT CHECKED - which is not a pass for those rows."
     exit 0
   fi
-  echo "CITATIONS OK: every named path resolves and every published case id occurs in the log it cites."
+  echo "CITATIONS OK: every named path resolves, every published case id occurs in the log it cites, and every line-number citation resolves within its file at or below the ceiling of $A4CEIL."
   exit 0
 fi
 LOG="${1:-}"; WANT=""; ONMAIN=0; THISBUNDLE=0; IGNOREHELD=0
 for a in "${@:2}"; do case "$a" in --on-main) ONMAIN=1;; --this-bundle) THISBUNDLE=1;; --ignore-held) IGNOREHELD=1;; *) WANT="$a";; esac; done
 [ -n "$LOG" ] || { echo "usage: gates/verify-log.sh <logfile> [#NNN] [--on-main] [--this-bundle] [--ignore-held]"
-  echo "       gates/verify-log.sh --citations    (checks the registers' citations against the tree, see (12))"; exit 1; }
+  echo "       gates/verify-log.sh --citations    (checks the registers' citations against the tree, see (12))"
+  echo "       gates/verify-log.sh --citations-selftest   (the both-direction controls for citation arm (4))"; exit 1; }
 [ -s "$LOG" ] || { echo "REFUSED: $LOG is missing or empty"; exit 1; }
 # (9) NUL bytes mean the file was read while something else was writing it, so no part of it can be trusted
 # to be what that run measured. #418 produced exactly this: two full suites ran ten seconds apart, the per-gate
