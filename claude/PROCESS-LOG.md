@@ -1197,3 +1197,117 @@ collapses runs of whitespace before this gate ever sees it.
 **Delivered to** patches/proc-lane1-art-gates-regress-21-review-brilliant-js-2026-10-04. Nothing is on
 main: the git proxy refused one push dry-run at 2026-10-04T06:38:53Z with HTTP 403, as the charter records
 it will.
+# PROCESS-LOG.md — the parallel process lanes' own record
+
+This file is written ONLY by the parallel lanes (`claude/process-lane-<N>` and `claude/burst-*`), per
+prompts/process-build step 6. The build lane's own records are RUN-LOG.md and HANDOFF.md and this file never
+touches them: a trial merge on 2026-10-03 put ten of fifteen conflict hunks in the files both sides append to,
+which is why this file exists separately.
+
+## TO THE INTEGRATOR, AND IT IS THE FIRST THING TO READ
+
+This file DOES NOT EXIST on origin/main. Every parallel lane's payload therefore creates it as a NEW file, and
+two payloads add/add-conflict under `git am --3way`. As of 2026-10-04T09:0xZ that is at least the sixth payload
+doing so. **Every lane's record is committed SEPARATELY from its artefact**, so the correct move on a conflict
+here is `git am --skip` of the RECORD commit only — never of the artefact commit, which is independent and
+carries the work. Each payload's `appliesClean` field names both shas explicitly.
+
+The cheapest permanent remedy is the one lane 3 recommended and lane 1 repeated: have one build create this
+file on main with this header alone, after which the whole add/add class disappears. That is
+jobs/every-parallel-lanes-first-patch-creates-process-log-md-so-the-integrator-must-drop-one-artefact-2026-10-04,
+owned by the orchestrator.
+
+---
+
+## 2026-10-04 08:13Z–09:0xZ — process-build lane 2 — run `process-build-2__1791101599763`
+
+**Item** jobs/gate40-headline-assertion-has-a-zero-denominator-at-kunals-geometry-2026-09-28, priority 14,
+finish-first band 14, taken FROM the finish-first queue (my own WIP was 0, so nothing of mine was owed; the
+priority-16 row above it is a chess.jsx product P0 and the three 15s are orchestrator Desk items, neither of
+which this lane may touch). Scope taken: `alsoFromTheSameAudit` **item 2 only**.
+
+**Artefact** `gates/regress/40-reachability.js` (lock `art-gates-regress-40-reachability-js`, held 08:15:57Z,
+released at check-out).
+
+### What changed
+
+1. **The puzzle-header right-edge walk is depth-general.** It read `kids:[...r.children]` — depth 1 — so only
+   the direct children of the first div inside `pz-top` were measured and a spilling descendant was invisible
+   to the one assertion in this file about the spill that *cannot* be recovered (overflow-x hidden ancestor,
+   `document.scrollWidth` pinned at the viewport). `kids` is left untouched at depth 1 because the Z-06
+   position pin is written against the three direct children; a new `all` carries every painted descendant
+   with its depth, and the right-edge assertion is made over `all`.
+2. **The predicate is a named function, `spillPast(boxes, vw)`, driven by 8 both-direction controls** over
+   fabricated readings with no browser and no bundle. The live assertions call the same function, so the
+   controls constrain the live check rather than a copy of it. C2 is the input the old walk could not even
+   represent: a depth-2 box ending at 391.2 on a 375 viewport. C4/C5 pin the existing 0.5px tolerance as a
+   threshold rather than a hole. C7/C8 cover the depth classifier in both directions and on an empty reading.
+3. **The gate opens `pzView==='online'` for the first time.** A grep for `online` over the file returned
+   nothing before this change; the audit's item 2 names it as the screen #426 changed. The online view renders
+   its own `pz-top` (chess.jsx:7554), so every selector this block uses resolved there and measured nothing
+   there. Both swept geometries now assert the view actually changed (the header names Lichess) before
+   measuring anything, then measure the same right-edge claim over its own descendants.
+4. **The depth guard is a DECLARED kind, not a requirement to be deep.** Written first as `deeper>0`, it went
+   RED on the online header on its first real run — correctly, because that header is genuinely flat. A
+   vacuity guard written that way is a layout pin wearing a coverage message, which is the error recorded on
+   jobs/a-control-set-can-score-full-marks-with-its-own-subject-deleted-2026-10-02. `HDR_DEPTH_KIND` declares
+   browse `deep` and online `flat` and asserts the measurement against the declaration, falsifiable in both
+   directions. That red is kept in the file's comments rather than quietly repaired.
+
+### Measured
+
+Against the bundle on origin/main `2e5f30bde801f4c8844fd415879f0bae0bbc83e6` (`app.js` stamp
+`#476 - 2026-10-04 01:16 ET`), real Chromium, no network:
+
+| | PASS | FAIL |
+|---|---|---|
+| gate 40, unmodified main | 20 | 1 |
+| gate 40, this change | 36 | 1 |
+
+Byte-identical `PASS`/`FAIL` lines over **three consecutive runs** (md5 `9cf14a0c52d7a4bf9f3ecd280686d473`) [R36].
+
+- Browse header: **4** painted descendants, max depth **2**, **1** below depth 1 — so the depth-1 walk was
+  missing a real box, not a hypothetical one.
+- Online header: **2** painted descendants, max depth **1**, **0** below depth 1 — flat, and declared flat.
+- The online view offline shows the app's own message: *"Couldn't reach Lichess. This works on the deployed
+  site with internet — it may be blocked in this in-app preview."* That is an honest message for the state
+  [R14], and it is the state this block now covers; nothing covered it before, at any depth.
+
+### THE ONE FAIL IS PRE-EXISTING AND IS NOT MINE
+
+`kunal730: the header is UNCHANGED at 375 by the 320 fix` at :248 pins three literal widths and offsets
+(119@4, 93@148, 105@266) and measures **108@4, 81@154, 94@277** on unmodified origin/main in this container —
+red before my change and red after it, identically. All three widths are short by **11, 12 and 11 px**, a
+uniform shortfall across three unrelated strings, which is the signature of a font fallback rather than of a
+layout change; the x offsets follow because the row is `justify-content: space-between`. That reproduces
+jobs/gate-40-reads-16-of-17-in-one-container-and-17-of-17-in-473s-suite-on-one-bundle-2026-10-03 on a second
+bundle seven builds later, and the measurement is reported onto that job. **It is not repaired here**: landing
+a repair to somebody else's red, inside a literal pin that encodes one of Kunal's own conditions, would be
+this lane deciding a question that is not its own.
+
+### Not checked
+
+- The full 56-suite GATES GREEN run. Nothing outside `gates/regress/40-reachability.js` changed, a subset log
+  authorises no push by design, and this lane never pushes to main in any case.
+- Whether the depth-2 box the old walk was missing has *ever* spilled on any shipped bundle. `git log -S` on
+  the header markup was not run [R35], so this change closes a hole rather than reporting a historical defect.
+- The **connected** online puzzle state (`curPuz.ext` set, board showing, chess.jsx:5037). Unreachable here:
+  it needs lichess.org and the egress proxy refuses it [R21, recorded rather than worked around]. A fixture
+  would need a `CT_*` override in chess.jsx, outside this lane's allow-list. Declared in an `L.note` in the
+  gate itself so the absence is never read as coverage.
+- Geometries other than `se` (320x568) and `kunal730` (375x730). In particular **not** 375x761, the geometry
+  R19 settles on as Kunal's: the three-way disagreement between R19's 761, `gates/lib.js`'s 679 and GEOS's
+  `kunal730` is live and unresolved today, and pointing a fourth file at a figure that may move is worse than
+  leaving it [R45]. Lane 1 measured at 06:5xZ that only 3 of 55 gates visit 761.
+- `alsoFromTheSameAudit` **item 4** (`41-coach-bubble.js:47` pinning the board width at 2 of 7 geometries) —
+  the other half of this job's remainder, and left for the same geometry reason, stated on the job.
+- The four jobs with status `blocked`: re-derived by query this run, same four, none re-tested, none reachable
+  from inside this lane's allow-list [R23]. The cause is already filed.
+
+### Delivery
+
+**NOTHING PUSHED.** One `git push --dry-run` at 08:14Z returned the agent proxy's refusal —
+*"LearnToCheckmate/chess-trainer is not in this session's authorized repository set"* — then HTTP 403, exactly
+as prompts/process-build records it will. One dry-run only, at the start of the run; not retried, no workaround
+attempted and none sought [R21]. Clone and fetch both succeed, so this session has read and not write.
+Parked at `patches/proc-lane2-art-gates-regress-40-reachability-js-2026-10-04`.
