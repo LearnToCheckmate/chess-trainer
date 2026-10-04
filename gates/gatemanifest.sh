@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gates/gatemanifest.sh check | sync '<why>' | retire <gate> '<why>' | list | selftest
+# gates/gatemanifest.sh check | sync '<why>' | retire <gate> '<why>' | list | sigpipe [dir] | selftest
 #   CT_BUILD=#NNN CT_RUNID=<your runId> gates/gatemanifest.sh sync 'what it covers'
 #
 # SET CT_BUILD AND CT_RUNID ON `sync` AND `retire`, OR THE ROW YOU WRITE IS UNATTRIBUTED [antagonist B's F8 on
@@ -126,8 +126,35 @@ fi
 # is that a flaky assertion is worse than no assertion, and this one is worse again: the `sync` site appended a
 # DUPLICATE `required` row on a false miss (A measured 8 spurious rows in 140 runs), corrupting the one file the
 # whole mechanism rests on, via the command this tool tells you to run.
-# THE FIX IS A HERESTRING, which has no pipe and therefore no SIGPIPE. Every site below uses one. If you add a
-# membership test to this file, use `grep -qx "$x" <<<"$list"` and never `printf ... | grep -q`.
+# THE FIX IS A HERESTRING, which has no pipe and therefore no SIGPIPE. If you add a membership test to this
+# file, use `grep -qx "$x" <<<"$list"` and never `printf ... | grep -q`.
+#
+# "EVERY SITE BELOW USES ONE" - WITHDRAWN 2026-10-04 BY process-build-4__1791107333380, IN THE DOCUMENT THAT
+# CARRIED IT [R18]. That sentence stood here for three days and was false: `sync` at the `d=` assignment piped
+# `sed -n '2,6p'` into `grep -m1`, which is the same mechanism with a different flag - grep -m1 leaves the
+# instant it matches, exactly as grep -q does. It is fixed in this commit. The claim is kept and marked rather
+# than deleted, because a note asserting a property the file does not have is worse than no note: the next
+# reader trusts it instead of looking, which is what happened here.
+#
+# AND THE CLASS IS NOW COUNTED RATHER THAN ASSERTED, which is the other half of
+# jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02's own theFIX:
+# "whoever fixes it should grep the WHOLE gates/ directory". `gatemanifest.sh sigpipe` does that, with a
+# committed ceiling, and `selftest` runs it. MEASURED 2026-10-04 over all seven gates/*.sh: 44 pipes into grep,
+# of which 10 have a reader that EXITS EARLY and so can orphan its writer. The classifier is the consequence
+# and not the shape, because that is what decides whether a site is live:
+#   TIER A  the pipeline's status DECIDES CONTROL FLOW (an `if`/`while` test). A false negative changes
+#           behaviour. 1 site: gates/verify-log.sh:128, in the push gate's citation allow-list test.
+#   TIER B  a `|| echo` fallback inside a command substitution, so the correct value AND the fallback are both
+#           captured. 0 sites - this is the shape this job was filed for, fixed at gates.sh:167 at #477.
+#   TIER C  masked by `|| true`. Benign for this class, and it also swallows a genuine error. 6 sites.
+#   TIER D  status discarded, so latent until somebody reads $? or adds `set -e`. 2 sites after this commit.
+# THE MECHANISM'S REAL DISCRIMINATOR IS INPUT SIZE, not load, and that is new: a writer whose output exceeds
+# the 64 KiB pipe buffer is still writing when the reader leaves, so the failure is CERTAIN - measured 20 of 20
+# at 200k lines, and 0 of 20 for the herestring form of the same test. Below the buffer it is a scheduling
+# race: the exact shape at verify-log.sh:128 carries 127 bytes and read 0 of 2000 idle here, which is the same
+# zero antagonist A measured before finding 2.4% under suite load. SO AN IDLE ZERO IS NOT EVIDENCE OF SAFETY -
+# it is the reading the original defect also gave. Size tells you which sites are certain; only load tells you
+# the rate for the rest.
 # ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 rows(){ grep -v '^[[:space:]]*#' "$M" | grep -v '^[[:space:]]*$'; }
 diskgates(){ for f in "$REG"/*.js; do [ -e "$f" ] && basename "$f"; done | sort; }
@@ -136,6 +163,112 @@ diskgates(){ for f in "$REG"/*.js; do [ -e "$f" ] && basename "$f"; done | sort;
 # rather than writing a shared name: #467's own build report records a defect in this very file caused by two
 # functions sharing an unlocalised `gate`, so nothing here assigns to a caller's variable.
 mstate_rank(){ case "$1" in required) echo 2;; absent|retired) echo 1;; *) echo 0;; esac; }
+
+# ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+# THE SIGPIPE AUDIT. ONE FUNCTION, TWO CALLERS - the `sigpipe` subcommand and `selftest` - for the same reason
+# mstate_rank is a function: two copies of a classifier drift, and this project has the measurement for it
+# (R43's 449 field names). It takes the directory to scan as $1 so the controls can point it at a fabricated
+# tree, which is what makes it falsifiable rather than merely green.
+#
+# IT PRINTS, ONE SITE PER LINE: tier TAB file TAB line number TAB the source line.
+# IT IS A DETECTOR AND NOT A FIX. It cannot see a pipe built across two lines with a backslash, it reads
+# `grep` and not `sed -n '1p'` or `awk 'NR==1{...;exit}'` which orphan a writer the same way, and it cannot
+# tell a 127-byte writer from a 70 KiB one - which is the difference between a race and a certainty. Those
+# three are its stated blind spots rather than discoveries waiting to be made.
+sigpipe_sites(){
+  local root="${1:-$G}" f n line s tier early
+  for f in "$root"/*.sh; do
+    [ -e "$f" ] || continue
+    n=0
+    while IFS= read -r line || [ -n "$line" ]; do
+      n=$((n+1))
+      s="${line#"${line%%[![:space:]]*}"}"
+      case "$s" in '#'*) continue;; esac
+      # THE EXEMPTION, AND IT EXISTS BECAUSE THE FIRST RUN OF THIS AUDIT CAUGHT ITS OWN CONTROLS. The controls
+      # below MUST contain live instances of every tier - that is what makes them controls - and they live in
+      # this file, so the detector read six of its own fixtures as real sites and refused the tree. That is
+      # the "the check and the thing being checked are the same set" trap claude/stories/TEST-CASES.md's
+      # TC-R50 names for the suite's own roster, reproduced here in one file. The red and the reason are kept
+      # rather than repaired quietly, because an audit that cannot be pointed at itself is not one.
+      # IT IS A LOUD TOKEN AND IT IS COUNTED. Anything could be silenced with a quiet exemption, so the token
+      # is one nobody types by accident, it shows up in any diff, and the number of lines carrying it is
+      # ratcheted against SP_FIXTURE_CEIL exactly as the sites are. A site hiding behind it is a site the
+      # audit still reports, in its own tier.
+      early=0
+      # a reader that LEAVES EARLY: grep -q (any flag cluster containing q), grep -m1, or a head downstream
+      # of the grep - in which case head is the one that leaves and grep is the writer that is killed.
+      if [[ $line =~ \|[[:space:]]*grep[[:space:]]+(-[A-Za-z]*q|-m[[:space:]]*1) ]]; then early=1; fi
+      if [[ $line =~ \|[[:space:]]*grep[^|]*\|[[:space:]]*head ]]; then early=1; fi
+      [ "$early" = 1 ] || continue
+      # THE EXEMPTION IS APPLIED HERE AND NOT EARLIER, and the first draft had it earlier, which is why the
+      # fixture count read 11 instead of 8: a line that merely NAMES the token - the three lines of this
+      # audit's own code and comment that have to spell it - was being reported as an exempt site. An
+      # exemption that fires on a mention rather than on a match inflates the very number it is ratcheted
+      # against, which would have let three real sites in behind it. Only a line that WOULD HAVE BEEN a site
+      # can be exempt.
+      case "$line" in *SIGPIPE-FIXTURE*) printf 'X\t%s\t%s\t%s\n' "${f##*/}" "$n" "$s"; continue;; esac
+      tier=D
+      case "$line" in *'|| true'*) tier=C;; esac
+      case "$line" in *'|| echo'*) tier=B;; esac
+      case "$s" in if\ *|while\ *|elif\ *|until\ *) tier=A;; esac
+      printf '%s\t%s\t%s\t%s\n' "$tier" "${f##*/}" "$n" "$s"
+    done < "$f"
+  done
+}
+
+# THE COMMITTED CEILINGS. A maximum, never an equality, so removing a site passes and only adding one fires -
+# the shape that worked for gates/verify-log.sh's A4CEIL. Lower them in the same commit that fixes a site; the
+# audit prints the number to commit, so it never has to be remembered.
+SP_A_CEIL=1      # gates/verify-log.sh:128. Target 0. Needs that file's own artefact lock [R44].
+SP_B_CEIL=0      # the shape that shipped a wrong push-gate verdict. There is no legitimate instance of it.
+SP_TOTAL_CEIL=9    # every early-exit site, whatever its tier.
+SP_FIXTURE_CEIL=9  # early-exit lines carrying SIGPIPE-FIXTURE. Eight are this file's own controls and the
+                   # ninth is a quoted specimen inside a refusal message - which the audit flagged on its
+                   # own next run, correctly, because a specimen and a site look identical to a text scan.
+                   # That is the third time in one run that this audit caught its own source; the exemption
+                   # covers a line that WOULD have been a site and is deliberately a specimen, and nothing
+                   # else. Controls,
+                   # which must hold live instances to be controls at all. Lines that merely NAME the token
+                   # are not counted; the first draft counted them and read 11, which is recorded below.
+                   # IF THIS NUMBER RISES, A REAL SITE IS HIDING.
+sigpipe_audit(){
+  local root="${1:-$G}" sites a b c d x tot
+  sites="$(sigpipe_sites "$root")"
+  a=$(grep -c '^A' <<<"$sites" || true); b=$(grep -c '^B' <<<"$sites" || true)
+  c=$(grep -c '^C' <<<"$sites" || true); d=$(grep -c '^D' <<<"$sites" || true)
+  x=$(grep -c '^X' <<<"$sites" || true)
+  [ -n "$sites" ] || { a=0; b=0; c=0; d=0; x=0; }
+  tot=$((a+b+c+d))
+  echo "sigpipe audit: $tot early-exit pipe(s) into grep under pipefail - A $a (ceiling $SP_A_CEIL), B $b (ceiling $SP_B_CEIL), C $c, D $d, total ceiling $SP_TOTAL_CEIL; $x fixture line(s) exempt (ceiling $SP_FIXTURE_CEIL)"
+  [ -n "$sites" ] && while IFS=$'\t' read -r t fl ln tx; do
+    [ -n "$t" ] || continue
+    echo "  TIER $t  $fl:$ln  $tx"
+  done <<<"$sites"
+  local rc=0
+  if [ "$b" -gt "$SP_B_CEIL" ]; then echo "  REFUSED: a TIER B site exists. The correct value and the fallback are both captured - this is the defect gates.sh:167 shipped."; rc=1; fi
+  if [ "$a" -gt "$SP_A_CEIL" ]; then echo "  REFUSED: TIER A count $a is above its ceiling $SP_A_CEIL. A pipeline whose status decides control flow may not orphan its writer."; rc=1; fi
+  if [ "$tot" -gt "$SP_TOTAL_CEIL" ]; then
+    echo "  REFUSED: total $tot is above the committed ceiling $SP_TOTAL_CEIL. Fix the new site, or raise SP_TOTAL_CEIL in this file WITH the reason."
+    echo "  ONE BREACH IS ALREADY KNOWN AND IT IS NOT A SURPRISE [R45]: patches/proc-lane4-art-gates-verify-log-sh-2026-10-04,"
+    echo "  parked 2026-10-04T04:02Z and not yet integrated, adds a TIER D site in its own citations selftest -"
+    echo "    ( cd \"\$1\" && bash gates/verify-log.sh --citations 2>&1 | grep -E '^  \\(4\\) ' | head -1 )"   # SIGPIPE-FIXTURE: a QUOTED SPECIMEN inside a message, not code
+    echo "  so landing it takes the total from 9 to 10. MEASURED by applying both payloads to one worktree at"
+    echo "  842df1b, not predicted. Two patches from one lane, each correct alone and jointly over the ceiling,"
+    echo "  which is R45's definition exactly. The ceiling is deliberately left at 9 - tight against the tree it"
+    echo "  was measured on - rather than pre-raised to 10, because a ceiling set for a patch that may never"
+    echo "  land silently permits a site nobody has seen. Whoever integrates that patch does ONE of two things:"
+    echo "  make that line a herestring, or set SP_TOTAL_CEIL=10 naming this as the reason. Not both, and not"
+    echo "  neither."
+    rc=1
+  fi
+  if [ "$x" -gt "$SP_FIXTURE_CEIL" ]; then echo "  REFUSED: $x lines carry SIGPIPE-FIXTURE against a ceiling of $SP_FIXTURE_CEIL. The exemption is for this file's own controls and nothing else - a new one is a site in hiding."; rc=1; fi
+  if [ "$rc" = 0 ]; then
+    [ "$tot" -lt "$SP_TOTAL_CEIL" ] && echo "  CEILING CAN BE LOWERED: $tot of $SP_TOTAL_CEIL in use. Commit SP_TOTAL_CEIL=$tot so it cannot rise again."
+    [ "$a" -lt "$SP_A_CEIL" ] && echo "  CEILING CAN BE LOWERED: SP_A_CEIL=$a."
+  fi
+  return $rc
+}
+# ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 case "$CMD" in
 check)
@@ -350,7 +483,16 @@ sync)
   listed="$(rows | cut -f1 | tr -d ' \r' | sort -u)"; n=0
   for g in $(diskgates); do
     if ! grep -qx "$g" <<<"$listed"; then   # herestring, NOT a pipe - a false miss here APPENDED A DUPLICATE ROW
-      d="$(sed -n '2,6p' "$REG/$g" | grep -m1 '^//' | sed 's|^//[ ]*||' | tr '\t' ' ' | cut -c1-88)"
+      # HERESTRING, NOT A PIPE [the note at the top of this file, whose "every site below" claim this line
+      # falsified]. `grep -m1` leaves on its first match and `sed` is then killed by SIGPIPE, so under
+      # `set -o pipefail` (line 98) the substitution reports failure while grep returned 0 and $d is correct.
+      # Nothing reads $? here today and this file does not `set -e`, so it is latent rather than live - stated
+      # that way rather than dressed up as a shipped defect. What it is NOT is safe to leave: one `set -e`, or
+      # one caller that tests the status, turns it into a `sync` that stops mid-loop AFTER appending rows to
+      # the one file this whole mechanism rests on. The two downstream stages consume all of grep's single
+      # line, so they cannot orphan anything and stay as a pipe.
+      hdr="$(sed -n '2,6p' "$REG/$g")"
+      d="$(grep -m1 '^//' <<<"$hdr" | sed 's|^//[ ]*||' | tr '\t' ' ' | cut -c1-88 || true)"
       [ -z "$d" ] && d="(no header comment)"
       printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$g" "required" "${B#\#}" "$AT" "$WHO" "$d" "$WHY" >> "$M"
       echo "  added $g as required (build ${B#\#}, $WHO)"; n=$((n+1))
@@ -404,6 +546,18 @@ list)
     printf '%-40s %-9s %-6s %s\n' "$(printf '%s' "$line" | cut -f1)" "$(printf '%s' "$line" | cut -f2)" "$(printf '%s' "$line" | cut -f3)" "$(printf '%s' "$line" | cut -f7 | cut -c1-70)"
   done
   exit 0
+  ;;
+sigpipe)
+  # THE WHOLE-DIRECTORY AUDIT AS A COMMAND, which is the half of
+  # jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02's theFIX that
+  # was never done: "whoever fixes it should grep the WHOLE gates/ directory for `| grep -` under pipefail
+  # rather than only this line." Takes an optional directory so it can be pointed at a fabricated tree.
+  # EXIT 0 clean, 1 if a ceiling is breached. NOTHING INVOKES THIS YET and that is stated rather than hidden:
+  # gates/gates.sh runs `gatemanifest.sh check` and not this, so it is a check a reader must type. Wiring it
+  # in is a gates/gates.sh edit and that file was not this run's claimed artefact [R44]; the gap is routed on
+  # jobs/five-cited-harness-files-are-unreachable-by-every-suite-run-2026-10-04, which is the same class.
+  sigpipe_audit "${2:-$G}"
+  exit $?
   ;;
 selftest)
   # ITS CONTROLS AS A COMMAND RATHER THAN A PARAGRAPH, following gates/buildnum-selftest.sh (#454). Every case
@@ -640,6 +794,96 @@ PY9
   else
     echo "SKIP selftest: cases 20-27 need git on PATH and it is not here - the anchor itself reads NOT CHECKED"
   fi
+  # ── 28 to 40: THE SIGPIPE CLASS. Two halves, and the second is the one that makes the first worth having.
+  # FIRST the MECHANISM, deterministically, which no control in this project had: a writer whose output
+  # exceeds the 64 KiB pipe buffer is still writing when an early-exiting reader leaves, so the failure is
+  # certain rather than a 2.4% flake. That is why these cases use 200k lines - not to be dramatic, but because
+  # it is the only way to assert the mechanism without a flaky control, and CLAUDE.md says a flaky assertion
+  # is worse than none. SECOND the DETECTOR, over a fabricated tree, shown both firing and silent on every
+  # tier - because a control set that only runs against today's real directory scores full marks with its own
+  # subject deleted, which is this project's fingerprint 7f3c1a9e4b2d8065.
+  spck(){ local want="$1" got="$2" desc="$3"
+    if [ "$want" = "$got" ]; then echo "PASS selftest: $desc"; pass=$((pass+1));
+    else echo "FAIL selftest: $desc — wanted [$want], got [$got]"; fail=$((fail+1)); fi; }
+  # 28. THE MECHANISM FIRES. grep -m1 leaves on the first line; seq is killed; pipefail returns seq's 141.
+  spv="$(seq 1 200000 | grep -m1 '^1$')"; sprc=$?   # SIGPIPE-FIXTURE: this line IS the mechanism
+  spck "1 nonzero" "$spv $([ "$sprc" -ne 0 ] && echo nonzero || echo zero)" \
+    "a pipe into grep -m1 over 200k lines reports FAILURE while grep returned the right value"
+  # 29. AND IS SILENT IN THE HERESTRING FORM. Same reader, same match, no writer to kill.
+  spbig="$(seq 1 20000)"; spv="$(grep -m1 '^1$' <<<"$spbig")"; sprc=$?
+  spck "1 zero" "$spv $([ "$sprc" -ne 0 ] && echo nonzero || echo zero)" \
+    "the HERESTRING form of the same test reports success"
+  # 30. THE TIER B SHAPE, WHICH IS THE DEFECT THIS JOB WAS FILED FOR, reproduced deterministically for the
+  #     first time: the value AND the fallback are both captured, so a green suite is refused with a false cause.
+  spv="$(seq 1 200000 | grep -m1 '^1$' || echo 'NOT CHECKED')"   # SIGPIPE-FIXTURE: the tier B shape, on purpose
+  spck "2" "$(printf '%s\n' "$spv" | wc -l | tr -d ' ')" \
+    "a captured || echo fallback yields TWO lines - the gates.sh:167 defect, on demand rather than at 2.4%"
+  # 31. and one line once the pipe is gone, which is the fix gates.sh took at #477.
+  spv="$(grep -m1 '^1$' <<<"$spbig" || echo 'NOT CHECKED')"
+  spck "1" "$(printf '%s\n' "$spv" | wc -l | tr -d ' ')" "the herestring form of that shape yields ONE line"
+  # 32. a reader that CONSUMES ALL ITS INPUT cannot orphan anything - the negative that keeps the detector
+  #     from being a ban on pipes. grep -c reads to EOF.
+  spv="$(seq 1 200000 | grep -c '^1$')"; sprc=$?
+  spck "1 zero" "$spv $([ "$sprc" -ne 0 ] && echo nonzero || echo zero)" \
+    "a pipe into grep -c reports success, so the class is early EXIT and not pipes"
+  # ── THE DETECTOR, over a fabricated directory. Every tier is present once, and two lines that must NOT be
+  # flagged sit beside them, so the classifier is constrained in both directions.
+  SPD="$(mktemp -d)"
+  # THE FIXTURE IS WRITTEN THROUGH A FILTER THAT STRIPS THE EXEMPTION MARKER, and that is not a trick: these
+  # heredoc lines are PHYSICALLY IN gatemanifest.sh, so they must carry SIGPIPE-FIXTURE or the real-tree audit
+  # reads this file's own controls as sites - which it did, on this audit's first run. The fixture the detector
+  # is then pointed at must NOT carry it, or every control would assert the exemption instead of the tier.
+  # One source, two readings, with the difference stated rather than left to be noticed.
+  cat > "$SPD/fab.src" <<'FAB'
+#!/usr/bin/env bash
+set -uo pipefail
+if printf '%s\n' "$list" | cut -f1 | grep -qxF "$p"; then echo yes; fi   # SIGPIPE-FIXTURE
+V="$(printf '%s\n' "$o" | grep -m1 '^k:' || echo 'NOT CHECKED')"   # SIGPIPE-FIXTURE
+W="$(printf '%s' "$l" | grep -oE 'x+' | head -1 || true)"   # SIGPIPE-FIXTURE
+X="$(sed -n '2,6p' "$f" | grep -m1 '^//' | sed 's|^//||')"   # SIGPIPE-FIXTURE
+Y="$(printf '%s\n' "$o" | grep -c '^k:' || true)"
+Z="$(grep -qx "$g" <<<"$list" && echo in || echo out)"
+# if printf '%s\n' "$list" | grep -qxF "$p"; then echo commented; fi
+FAB
+  sed 's/[[:space:]]*# SIGPIPE-FIXTURE.*$//' "$SPD/fab.src" > "$SPD/fab.sh"; rm -f "$SPD/fab.src"
+  spsites="$(sigpipe_sites "$SPD")"
+  spck "A" "$(awk -F'\t' '$3==3{print $1}' <<<"$spsites")" "DETECTOR: an if-test pipe into grep -qxF is TIER A"
+  spck "B" "$(awk -F'\t' '$3==4{print $1}' <<<"$spsites")" "DETECTOR: a captured || echo fallback is TIER B"
+  spck "C" "$(awk -F'\t' '$3==5{print $1}' <<<"$spsites")" "DETECTOR: a grep | head masked by || true is TIER C"
+  spck "D" "$(awk -F'\t' '$3==6{print $1}' <<<"$spsites")" "DETECTOR: a bare grep -m1 with its status discarded is TIER D"
+  spck "" "$(awk -F'\t' '$3==7{print $1}' <<<"$spsites")" "DETECTOR: a pipe into grep -c is NOT flagged"
+  spck "" "$(awk -F'\t' '$3==8{print $1}' <<<"$spsites")" "DETECTOR: a herestring into grep -qx is NOT flagged"
+  spck "" "$(awk -F'\t' '$3==9{print $1}' <<<"$spsites")" "DETECTOR: a COMMENTED-OUT tier A line is NOT flagged"
+  # AND THE TOTAL, which is the case that keeps the six above from passing while the detector silently also
+  # flags something else. IT WAS WRITTEN AS 5 AND THE DETECTOR SAID 4, AND THE DETECTOR WAS RIGHT: the
+  # fixture holds seven candidate lines, four of which are sites (3, 4, 5, 6) and three of which must not be
+  # (7, 8, 9). The wrong number came from counting the lines rather than the expected verdicts. Kept as a
+  # note rather than silently corrected, because a number this file publishes and a number it measures
+  # disagreeing once is exactly the shape R18 is about.
+  spck "4" "$(printf '%s\n' "$spsites" | grep -c . || true)" "DETECTOR: exactly 4 of the fixture's 7 candidate lines are sites, and no others"
+  # 40. THE CEILING ITSELF FIRES. Two tier A lines against SP_A_CEIL=1 must be a refusal, otherwise the
+  #     ratchet is decoration. The vacuity guard is the pair: an EMPTY directory is clean and says 0.
+  cat > "$SPD/fab2.src" <<'FAB2'
+#!/usr/bin/env bash
+if printf '%s\n' "$a" | grep -qxF "$b"; then echo 1; fi   # SIGPIPE-FIXTURE
+while printf '%s\n' "$c" | grep -qxF "$d"; do echo 2; done   # SIGPIPE-FIXTURE
+FAB2
+  sed 's/[[:space:]]*# SIGPIPE-FIXTURE.*$//' "$SPD/fab2.src" > "$SPD/fab2.sh"; rm -f "$SPD/fab2.src"
+  out="$(sigpipe_audit "$SPD" 2>&1)"; rc=$?
+  if [ "$rc" = 1 ] && grep -q 'TIER A count 3 is above its ceiling 1' <<<"$out"; then
+    echo "PASS selftest: the TIER A ceiling REFUSES when it is exceeded"; pass=$((pass+1))
+  else echo "FAIL selftest: the tier A ceiling did not refuse (rc=$rc)"; echo "$out" | sed 's/^/      /'; fail=$((fail+1)); fi
+  rm -rf "$SPD"; SPE="$(mktemp -d)"
+  out="$(sigpipe_audit "$SPE" 2>&1)"; rc=$?
+  if [ "$rc" = 0 ] && grep -q 'sigpipe audit: 0 early-exit' <<<"$out"; then
+    echo "PASS selftest: an empty directory reports 0 and refuses nothing"; pass=$((pass+1))
+  else echo "FAIL selftest: the empty-directory reading was not a clean 0 (rc=$rc)"; echo "$out" | sed 's/^/      /'; fail=$((fail+1)); fi
+  rm -rf "$SPE"
+  # 41. AND THE LIVE RATCHET, against the REAL gates/ directory. This is the one case here that can go red on
+  #     somebody else's commit, and that is the point of it.
+  out="$(sigpipe_audit "$G" 2>&1)"; rc=$?
+  if [ "$rc" = 0 ]; then echo "PASS selftest: the real gates/ directory is inside every sigpipe ceiling"; pass=$((pass+1))
+  else echo "FAIL selftest: gates/ breached a sigpipe ceiling — fix the site or re-ratchet WITH the reason"; echo "$out" | sed 's/^/      /'; fail=$((fail+1)); fi
   echo "selftest: $pass passed, $fail failed"
   [ "$fail" -eq 0 ] || exit 1
   exit 0
@@ -651,5 +895,5 @@ PY9
   # on for "a required gate is MISSING", so a mistyped subcommand made the suite stop and blame the manifest,
   # which is a wrong reason reaching a right verdict - the thing this project calls a trap rather than a check.
   # gates/buildnum.sh and gates/held.sh both exit 2 on an unknown subcommand; this now matches them.
-  echo "usage: gates/gatemanifest.sh check | sync '<why>' | retire <gate> '<why>' | list | selftest"; exit 2;;
+  echo "usage: gates/gatemanifest.sh check | sync '<why>' | retire <gate> '<why>' | list | sigpipe [dir] | selftest"; exit 2;;
 esac
