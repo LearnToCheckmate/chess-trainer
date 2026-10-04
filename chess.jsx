@@ -2727,6 +2727,18 @@ export default function App(){
   const [lichessUser,setLichessUser]=useState(()=>{try{return localStorage.getItem('ct_liuser')||'';}catch{return '';}});
   const [importSrc,setImportSrc]=useState(()=>{try{if(!localStorage.getItem('ct_ccuser')&&localStorage.getItem('ct_liuser'))return 'li';}catch{}return 'cc';});
   const [gameSearch,setGameSearch]=useState('');
+  // #476 THE REVIEW LIST FILTER. jobs/review-list-filter-and-search-2026-09-23, Kunal 2026-09-23: "might be
+  // good to add the ability to filter, so if I want to filter for games where I have brilliancies, or if I
+  // want to filter for games that I have blunders, or by the usernames, because I was trying to see
+  // [peter-patzer's] games and I couldn't find any. It's a little hard to scroll through that list right now."
+  // Component state on purpose: no new persisted key, so the whole feature reverts in one commit and a filter
+  // never outlives the sitting that set it. `acct` is an acctId.
+  // SCOPE, STATED BECAUSE IT WAS TRIMMED MID-BUILD: he asked for brilliancies, blunders and accounts, and
+  // the job's work[2] adds a mistake filter "if it is free". A result and colour pair was drafted, measured
+  // at nine chips wrapping to three 44px rows on this screen, and REMOVED as scope he did not ask for -
+  // see flags/amber-476-review-list-filter-row, which records the change and the reason.
+  const [gFil,setGFil]=useState({bril:0,blun:0,mist:0,acct:''});
+  const gfTog=(k,v)=>setGFil(f=>({...f,[k]:(f[k]===v?(typeof v==='number'?0:''):v)}));
   const ccRawRef=useRef(null),liRawRef=useRef(null),gamesAutoRef=useRef(false);
   // #353 Kunal: "only one chess.com ID is kept at a time, so importing friends wiped my games.
   // Keep imported IDs and their games forever, for multiple accounts, don't replace on import."
@@ -6664,10 +6676,79 @@ export default function App(){
                 </span>);})}
             </div>)}
             {ccErr&&<div style={{fontSize:'clamp(14px,3.1vw,16px)',color:'#ffb86b',lineHeight:1.5}}>{ccErr}</div>}
-            {ccGames&&ccGames.length>0&&(()=>{const _gs=gameSearch.trim().toLowerCase();const _shown=ccGames.filter(g=>!_gs||((g.white+' '+g.black+' '+(g.src==='li'?'lichess':'chess.com')).toLowerCase().includes(_gs)));return(<>
+            {ccGames&&ccGames.length>0&&(()=>{const _gs=gameSearch.trim().toLowerCase();const _GS=gameStatsRef.current||{};
+              // #476 ONE PREDICATE, so the count, the rows, the empty state and the coverage line can never
+              // disagree about what is shown - they all read `_shown`.
+              const _F=gFil,_gradeOn=!!(_F.bril||_F.blun||_F.mist),_anyF=!!(_gradeOn||_F.acct||_gs);
+              // #476 CASE. acctId() lowercases and strips a leading @ (chess.jsx, acctId), but the chess.com
+              // fetch stores the row's `acct` as the RAW trimmed input while the Lichess one lowercases it, so
+              // a case-sensitive compare here silently returns ZERO rows for any account typed with a capital
+              // letter - the exact shape of the complaint that opened this job. Both sides are lowered.
+              const _aid=(g)=>((g.src||'')+':'+String(g.acct||'').trim().toLowerCase().replace(/^@/,''));
+              const _nameHit=(g)=>!_gs||((g.white+' '+g.black+' '+(g.src==='li'?'lichess':'chess.com')).toLowerCase().includes(_gs));
+              // #476 the non-grade half, kept separate because the coverage line's denominator is the set a
+              // grade filter is CHOOSING FROM, not the whole list.
+              const _preGrade=ccGames.filter(g=>_nameHit(g)&&(!_F.acct||_aid(g)===_F.acct));
+              const _gradeHit=(g)=>{const st=_GS[gkey(g)];if(!st)return false;
+                if(_F.bril&&!(st.bril>0))return false;if(_F.blun&&!(st.blun>0))return false;if(_F.mist&&!(st.mist>0))return false;return true;};
+              const _shown=_gradeOn?_preGrade.filter(_gradeHit):_preGrade;
+              // #476 THE GRADE FILTER IS A FILTER OVER A PARTIALLY POPULATED MAP, AND IT SAYS SO. The tally
+              // behind st comes from the BACKGROUND pass below (search gameStatsRef in the effect over
+              // ccGames): one game at a time, 60ms apart, only while this screen is open, pausing while a
+              // manual review computes. With ACCT_GMAX at 200 that map is incomplete for minutes after a
+              // fetch, so a grade filter answers from however far the pass has got. Left silent it would tell
+              // a player with brilliancies that they have none - which IS the complaint that opened this job,
+              // reproduced by its own fix. So when a grade chip is on and anything in the set it is choosing
+              // from has no tally yet, the screen states the coverage and an empty result is attributable.
+              // THE SENTENCE STATES ONLY THE DIRECTION THAT IS TRUE, and the first draft did not [antagonist A,
+              // F6]. It read "this filter can only see games already graded", which asserts graded => visible.
+              // That is false: the tally is a depth-2 estimate (rankMoves(pos,2)) and an estimate reading
+              // bril:0 on a game whose full review finds a brilliancy counts as GRADED and still will not
+              // match, with no coverage line to explain it - and this app already knows the two disagree,
+              // which is why the row keeps a `was` field for the opposite direction. The honest claim is the
+              // converse only: a game not yet graded cannot match. The estimate-under-counts case is named on
+              // US-R36's "what this clause does not claim" and is not fixed here.
+              const _ungr=_gradeOn?_preGrade.filter(g=>!_GS[gkey(g)]).length:0;
+              // #476 THE LABEL SAYS "all of" WHEN MORE THAN ONE GRADE IS ON, because the chips INTERSECT and
+              // the list read as a union [antagonist B, P2 5]: with a game that has a brilliancy and a
+              // different game that has a blunder, both chips on gave "No games match brilliancies,
+              // blunders", which a player reads as "you have neither" - and that is false of the archive.
+              const _gl=[_F.bril&&'brilliancies',_F.blun&&'blunders',_F.mist&&'mistakes'].filter(Boolean);
+              const _fLab=[(_gl.length>1?'all of '+_gl.join(', '):_gl[0]),
+                _F.acct&&('account '+_F.acct.slice(_F.acct.indexOf(':')+1)),_gs&&('\u201c'+gameSearch.trim()+'\u201d')].filter(Boolean).join(', ');
+              // #476 AND THE EMPTY STATE MUST NOT ASSERT WHAT THE APP CANNOT KNOW. ANTAGONIST B P1 VETO,
+              // and it is the sharpest finding of this build: clause (4) made the COVERAGE line honest and
+              // left the EMPTY state lying, 59px apart in the same block. Measured by B at 120 games: "No
+              // games match brilliancies." stood for 40.1 SECONDS directly under "Graded 2 of 120 so far",
+              // so the screen carried two sentences at one moment and the one a player reads as the answer
+              // to "why is my list blank" was the wrong one. That is #385's two-readouts-of-one-quantity
+              // with the honest readout and the dishonest one in the same box. So when a grade filter is on
+              // and anything is still ungraded, the empty state is SCOPED TO WHAT WAS ACTUALLY GRADED.
+              const _nG=_preGrade.length-_ungr;
+              const _emptyTxt=(_gradeOn&&_ungr>0)
+                ?(_nG===0
+                  ?('No games are graded yet, so this filter has nothing to match. '+_ungr+' still to grade.')
+                  :(_nG===1
+                    ?('The one game graded so far does not match '+_fLab+'. '+_ungr+' still to grade.')
+                    :('None of the '+_nG+' graded so far match '+_fLab+'. '+_ungr+' still to grade.')))
+                :('No games match '+_fLab+'.');
+              const _clearAll=()=>{setGFil({bril:0,blun:0,mist:0,acct:''});setGameSearch('');};
+              const _chip=(on,lab,ct,oc,col)=>(<button key={ct} data-ct={ct} aria-pressed={on?'true':'false'} onClick={oc}
+                style={{minHeight:44,display:'inline-flex',alignItems:'center',padding:'0 11px',borderRadius:9,cursor:'pointer',
+                  background:on?'rgba(255,255,255,.17)':'rgba(255,255,255,.05)',border:'1px solid '+(on?(col||'rgba(255,255,255,.55)'):'rgba(255,255,255,.14)'),
+                  // #476 THE PRESSED LABEL IS WHITE, NOT THE ACCENT. Antagonist B measured the accent used
+                  // as the text colour against the lit background two ways that AGREED - 2.80:1 composited
+                  // over five layers, 2.65:1 from the painted pixels - so '?? blunder' PRESSED was the worst
+                  // text in the feature at 1.7x under WCAG AA, and '? mistake' pressed landed on exactly
+                  // 4.50, where which side of the line it falls on is decided by the instrument and not the
+                  // design. The pressed state is the one that says which filter is active, so it was the
+                  // only state that failed. The accent still identifies the chip through its BORDER.
+                  color:on?'#fff':'rgba(255,255,255,.72)',fontWeight:on?800:700,fontSize:'clamp(13.5px,2.9vw,15px)',minWidth:44,justifyContent:'center',
+                  fontFamily:"'Segoe UI',system-ui,sans-serif",whiteSpace:'nowrap'}}>{lab}</button>);
+              return(<>
               <div ref={gamesListRef} style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:8,marginTop:3}}>
                 <span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Your games <span style={{color:'rgba(255,255,255,.42)',fontWeight:600,fontSize:'.86em'}}>· latest first</span></span>
-                <span style={{flexShrink:0,fontSize:'clamp(14px,2.9vw,15px)',color:'rgba(255,255,255,.60)',fontWeight:600}}>{ccGames.length} loaded</span>
+                <span data-ct="glist-count" style={{flexShrink:0,fontSize:'clamp(14px,2.9vw,15px)',color:'rgba(255,255,255,.60)',fontWeight:600}}>{_anyF?(_shown.length+' of '+ccGames.length):(ccGames.length+' loaded')}</span>
               </div>
               {/* #431 US-R25: the limit is one the app STATES. The count above is a count, not a
                   limit. ACCT_GMAX is rendered, never retyped, so the number on screen cannot drift
@@ -6771,6 +6852,32 @@ export default function App(){
                 // short of that bound. Both can be true at once and either can be true alone.
                 const _gtxt2=_gap?'Some months couldn’t be loaded, so some games are missing.':'';
                 return <div data-ct="games-cap" style={_sty}>{[_lim,_gtxt2].filter(Boolean).join(' ')}</div>;})()}
+              {/* #476 `||_anyF` IS LOAD-BEARING, NOT DEFENSIVE. The row renders above six games, but gFil
+                  is component state that nothing resets when the list SHRINKS - remove an account with the
+                  Imported row's x and rmAcct calls mergeGames() without touching the filter. So at 7+ games
+                  you can filter, drop to 4, and the chip row INCLUDING Clear disappears while the filter is
+                  still applied: a narrowed list with no control on screen that can widen it again. The empty
+                  state is not length-gated so a filter matching NOTHING still offers Clear, which is why this
+                  only strands a non-empty filtered list - found by reading the diff and by antagonist A's F9
+                  independently. The pre-existing gameSearch box has the identical shape and now inherits the
+                  fix, since _anyF includes it. */}
+              {(ccGames.length>6||_anyF)&&(<div data-ct="glist-filters" style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
+                {_chip(!!_F.bril,'!! brilliant','gf-bril',()=>gfTog('bril',1),'#7be9f7')}
+                {_chip(!!_F.blun,'?? blunder','gf-blun',()=>gfTog('blun',1),'#ec5c4e')}
+                {_chip(!!_F.mist,'? mistake','gf-mist',()=>gfTog('mist',1),'#f0a24e')}
+                {/* #476 THE ACCOUNT CHIPS LIVE HERE AND NOT ON THE 'Imported' ROW ABOVE, which is a CHANGE
+                    FROM THE DEFAULT RECORDED IN flags/amber-476-review-list-filter-row AND THE REASON IS A
+                    RULE THIS PROJECT ALREADY PAID FOR. That row's chips are about 26px tall (padding
+                    '4px 6px 4px 10px' at ~14px), so making them the filter control would have added a
+                    sub-44px tap target to a screen - the defect class of #395's lesson-footer icons and of
+                    jobs/gallery-sub-44px-controls. Invariant 1 in gates/regress/26-invariants.js REPORTS
+                    sub-44 controls and does not assert on them, so the suite would have stayed green over it;
+                    that is why this is written down rather than left to the gate. Only with more than one
+                    account, because filtering to the only account you have is a no-op that costs a row. */}
+                {ccAccts.length>1&&ccAccts.filter(id=>(((acctGamesRef.current||{})[id])||[]).length>0).map(id=>_chip(_F.acct===id,id.slice(id.indexOf(':')+1),'gf-acct-'+id.slice(id.indexOf(':')+1),()=>gfTog('acct',id),'#9bd6a0'))}
+                {_anyF&&_chip(false,'Clear','gf-clear',_clearAll)}
+              </div>)}
+              {_gradeOn&&_ungr>0&&(<div data-ct="glist-ungraded" style={{fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.60)',lineHeight:1.4}}>Graded {_preGrade.length-_ungr} of {_preGrade.length} so far — a game we haven’t graded yet can’t match this filter.</div>)}
               {ccGames.length>6&&(<input value={gameSearch} onChange={e=>setGameSearch(e.target.value)} placeholder="Filter by player name" style={{width:'100%',padding:'6px 10px',borderRadius:7,background:'rgba(0,0,0,.25)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.10)',fontSize:'clamp(14px,3.1vw,16px)'}}/>)}
               <div className="scroll" style={{display:'flex',flexDirection:'column',gap:6,maxHeight:'min(46vh,340px)',overflowY:'auto'}}>
               {_shown.map((g,i)=>{const info=gameInfo(g);const bd=outcomeBadge(info.code);const st=gameStatsRef.current[gkey(g)];return(
@@ -6790,7 +6897,12 @@ export default function App(){
                   </span>
                   <span style={{flexShrink:0,fontSize:'clamp(14.5px,3vw,15.5px)',color:'var(--ac2)',fontWeight:700}}>Review ›</span>
                 </button>);})}
-              </div></>);})()}
+              </div>
+              {/* #476 AN EMPTY RESULT NAMES THE FILTER. Without this the screen is a blank list under a
+                  header that still reads a count, which is how a filter gets read as an empty archive - the
+                  shape of the report that opened this job. */}
+              {_shown.length===0&&_anyF&&(<div data-ct="glist-empty" style={{padding:'10px 2px',fontSize:'clamp(14px,3.1vw,16px)',color:'rgba(255,255,255,.66)',lineHeight:1.5}}>{_emptyTxt} <button data-ct="glist-empty-clear" onClick={_clearAll} style={{minHeight:44,padding:'0 11px',marginLeft:2,borderRadius:9,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.22)',color:'#fff',fontWeight:700,cursor:'pointer',fontSize:'clamp(13.5px,2.9vw,15px)',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>Clear filters</button></div>)}
+              </>);})()}
           </div>
           <div style={{textAlign:'center',fontSize:'clamp(14px,3.1vw,16px)',color:'rgba(255,255,255,.4)',fontWeight:600,letterSpacing:.5}}>— OR PASTE A PGN —</div>
           <textarea value={pgnText} onChange={e=>setPgnText(e.target.value)} placeholder={'Paste your PGN here, e.g.\n\n1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 ...\n\nor the full Chess.com export with [Event ...] headers.'} 
