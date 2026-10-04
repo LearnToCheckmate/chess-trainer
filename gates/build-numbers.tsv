@@ -453,3 +453,5 @@
 476	built	-	a0e0cc64d69a	b5599fff6707	2026-10-04T04:29Z	build__1791087579245	build.sh	Bundle built and stamped #476. Recorded by gates/build.sh so the number resolves to an artefact.
 476	built	-	6ad268937e9a	86ecfaaf823f	2026-10-04T04:36Z	build__1791087579245	build.sh	Bundle built and stamped #476. Recorded by gates/build.sh so the number resolves to an artefact.
 476	built	-	aab15cd7920a	98edd2e02c51	2026-10-04T05:16Z	build__1791087579245	build.sh	Bundle built and stamped #476. Recorded by gates/build.sh so the number resolves to an artefact.
+477	minted	-	-	-	2026-10-04T07:27Z	build__1791098420495	minted	Band-14 closure batch of 4: the gates/regress/README.md FAIL-count recipe, gates/pending/README.md rows for 11 unlisted probes, TC-R22 in the case register, and the USER-STORIES.md setGame count corrected 17->16
+477	built	-	fb10dbef9591	7046859a655e	2026-10-04T07:34Z	build__1791098420495	build.sh	Bundle built and stamped #477. Recorded by gates/build.sh so the number resolves to an artefact.
