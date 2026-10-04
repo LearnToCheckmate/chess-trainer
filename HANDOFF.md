@@ -2,6 +2,60 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#475 SHIPPED THE DRILL PREV CONTROL, AND ITS LESSON IS THAT A GATE'S FIXTURE DECIDES WHAT ITS GREEN MEANS.**
+> The drills now go backwards (US-R35, TC-R47, `gates/regress/72-drill-prev.js`), and a card solved in the
+> session comes back solved. `GATES GREEN #475`, 55 suites / 4059 PASS / 0 fail, bundle `f53b69654395`.
+> Kunal asked for this twice, 2026-09-23 and 2026-09-30. The fix cost NO board height: the bottom-left slot
+> held a second `< Review` doing what the header control does, so the duplicate became Prev - board rect
+> byte-identical to #474 at both geometries, measured on both bundles.
+>
+> **THE PART TO CARRY: GATE 72 SCORED 100 PASS / 0 FAIL ON A BUILD WITH A REAL, USER-VISIBLE DEFECT IN IT, AND
+> THE REASON WAS ITS FIXTURE.** Its five seeded rows were all playable, so "the raw queue index" and "the
+> position among the playable rows" were the same number in every assertion. `puzzleFromMistake` refuses a
+> saved row whose position or stored move is illegal - that guard is why such rows exist in a real store - so
+> with one at the FRONT the drill opened on "2 of 5" with Prev **enabled, full opacity, and completely dead**,
+> while the code's own comment claimed "disabled and visibly inert". **Both antagonists found it independently,
+> from opposite doors, within one hour.** Seed the input class your guard exists for, or your green is a
+> statement about your fixture. The fix was to hold the PLAYABLE INDICES as the one source of truth, which
+> settled four findings at once (dead Prev, counter overstating the queue, Next ejecting the player at "3 of 5",
+> and the walker stepping into unrenderable rows). Block B now reddens the pre-fix bundle 124/14.
+>
+> **AND LIMB (c) WAS ASSERTING THE CHROME, NOT THE BOARD.** "The card comes back solved" was tested as "the
+> Hint row is gone" and "a verdict is present". Antagonist A built a bundle whose restore paints the WRONG
+> POSITION under a correct verdict and it scored 100/0. The restored position is now compared piece for piece
+> (A10d/A10e) with A8b as its control, and the chrome-only control bundle measures 130/8.
+>
+> **THE BEST FINDING OF THE RUN IS NOT IN THE DIFF AND IS NOT FIXED:** `jobs/the-lesson-cta-centre-hit-tests-to-the-lesson-footer-and-a-tap-closes-the-lesson-at-568-tall-2026-10-04`
+> (P0, priority 11, PRE-EXISTING on #474). At 320x568 and 375x568 the lesson's "Got it - play" CTA sits under
+> the lesson's own fixed footer: its centre hit-tests to "Forward a move", its lower band to "Close lesson",
+> and a REAL TAP there closes the lesson. **No scroll rescues it** - `#root` scrollHeight == clientHeight at
+> 568 - which makes it the one member of this class the "below the fold is not unreachable" rule does not
+> excuse. `gates/regress/53-lesson-hit-area.js` exists, is named for exactly this property, and is GREEN on
+> it; finding out why is that job's first work item. **THE CLASS IS NOW FOUR** and the cause is one sentence:
+> a `position:fixed` bottom bar over a scroller that does not reserve its height. One probe over every screen
+> x seven geometries settles all four.
+>
+> **FOUR THINGS THIS RUN GOT WRONG, so you do not inherit them** (full detail in RUN-LOG under #475):
+> 1. **CLAUDE.md's #461 freeze habit is wrong as written.** "Record `md5sum gates/*.sh` before the run and
+>    check it after" ALWAYS reports drift if the run creates its frozen copy after the baseline, because the
+>    glob widens. Replay the baseline's own file list. My first check returned a false DRIFT verdict.
+> 2. **I reported the suite stopped after checking the wrong pid.** `9147` was the nohup wrapper; the worker was
+>    `9158` and it ran 25 more minutes across a bundle rebuild, producing a two-bundle collage log. Wait on the
+>    pid that does the work, or on a file it writes. The suite lock then refused the relaunch, which is #419
+>    working as designed.
+> 3. **`pkill -f` killed my own shell** (exit 144) - the #407/#416 trap, third time in this project, three
+>    hours after reading it. Kill by captured pid.
+> 4. **`verify-log.sh --this-bundle` must come AFTER the logfile**; it parses flags from `${@:2}`, so a flag in
+>    position 1 is silently read as the log path and you get "missing or empty".
+>
+> **THE RESIDUE, NAMED:** at 320x568 the drill nav row rests at y 490..542 under the tab bar at 512. I
+> re-measured antagonist B's "cannot be tapped" and it is too strong - the upper 22 of 52 px ARE tappable with
+> no scrolling, and a real click at top+6 advances the counter - but 22px is under half the 44pt minimum and a
+> CENTRED tap fires a tab and leaves the drill. Pre-existing and byte-identical on #474; #475 makes the slot
+> load-bearing. NOT fixed, because the fix reserves the fixed bar's height and trades against board height on
+> phones already at the 192px floor, which is Kunal's open decision on the drill-verdict-reserve job. Filed at
+> priority 9; gate 72 A2e/A2f now measure it every run and print the scroll it needed.
+
 > **THE 2026-10-03 INTEGRATION SLOT LANDED ELEVEN PARKED PATCHES, AND ITS LESSON IS ABOUT BELIEVING A PATCH'S
 > OWN ACCOUNT OF ITSELF.** Burst wave 1 ran fifteen agents, could not push (the git proxy refuses write to this
 > repository for those sessions, so no `claude/burst-*` ref exists or ever will), and parked a `git format-patch`
