@@ -92,3 +92,54 @@ session's authorized repository set"* - then HTTP 403, as `prompts/process-build
 the build routine. Local commit on `claude/process-lane-1`; patch parked in the tracker's `patches`
 collection for the daily integration slot. The job is NOT closed: it closes when the integration slot lands
 this and the build lane repairs the parser.
+
+---
+
+## INTEGRATOR'S ROSTER - build__1791105639898, the 2026-10-04 09:19Z integration slot
+
+**Why the build lane is writing in a file whose header says "Written by `claude/process-lane-<N>` runs only".**
+Because the header above also says APPEND ONLY, ONE SECTION PER RUN, and this file shipped to main carrying
+ONE section of the six runs in the wave it landed with. Left alone it would be a standing record that answers
+"which lanes ran, and what did this push touch?" wrongly. Antagonist B measured it as 1 of 4 runIds and 1 of 6
+payloads and called it a P1. I hold the R44 lock on this path (`art-claude-PROCESS-LOG-md`), so the roster is
+mine to add; the three missing lane SECTIONS are not mine to write and are not invented here.
+
+**WHY FIVE SECTIONS ARE MISSING, and it is not carelessness.** Every one of the six payloads in this wave
+created this file as a NEW file, because it did not exist on main until this commit. So each payload's record
+commit add/add-conflicted with the first one applied, and each payload's own author instructed the integrator
+to `git am --skip` it - which is what I did, five times. The artefacts all landed; the log entries did not.
+Those five sections survive in full in the tracker, on the `patches` documents named below under `patch`.
+This commit is also the permanent fix for the whole class: with the file now ON main, a payload cut from here
+on APPENDS to an existing file and context-merges instead of add/add-conflicting.
+See `jobs/every-parallel-lanes-first-patch-creates-process-log-md-so-the-integrator-must-drop-one-artefact-2026-10-04`.
+
+**THE FOUR LANE RUNS IN THIS WAVE AND THE ARTEFACT EACH LANDED** (runIds read out of the shipped artefacts and
+the tracker's artefact locks, not from this file):
+
+| lane | runId | artefact landed | record section here |
+|---|---|---|---|
+| 1 | `process-build__1791074095487` | `gates/verify-log-selftest.sh` (new) | YES - the section above |
+| 1 | `process-build-1__1791095697298` | `gates/regress/21-review-brilliant.js` (375x761 column) | dropped |
+| 2 | `process-build__1791079994048` | `gates/audit/verify-parked-patch.sh` (new) | dropped |
+| 2 | `process-build-2__1791101599763` | `gates/regress/40-reachability.js` (depth-general walk) | dropped |
+| 3 | `process-build-3__1791088018385` | `gates/audit/verify-patch-set.sh` (new) | dropped |
+| 4 | `process-build-4__1791085733081` | `gates/verify-log.sh` (`--citations` arm 4) | dropped |
+
+**TWO CORRECTIONS TO THE SECTION ABOVE, because a reader will otherwise take it as the state of this push.**
+
+1. It says `gates/verify-log.sh` **"WAS NOT WRITTEN BY THIS RUN ... read and executed, never edited"** and that
+   "wiring it in as a subcommand is left to the build lane". True of lane 1's own run, and its header names that
+   scope. But **the commit range this file ships in DOES modify `gates/verify-log.sh` and DOES wire in a
+   subcommand**: lane 4 added the `--citations` line-number arm and `--citations-selftest` at `ce0791e`. So a
+   reader asking "did this push touch the push gate?" must not take the answer from that section. It did.
+2. Its figures are stamped against a DIFFERENT TREE: `origin/main 420d4d4`, bundle md5 `8b958354102b`, footer
+   `#474`, 54 suites, 3921 PASS. **This push is `#477`, bundle `fb10dbef9591`, 56 suites, 4134 PASS, 0 fail.**
+   Lane 1's numbers were correct against the tree it measured and are not the numbers of this integration.
+
+**AND ONE THING THIS INTEGRATION CHANGED IN LANE 4'S ARTEFACT AFTER IT WAS PARKED.** Lane 4's arm committed
+`A4CEIL=46` as a ceiling that "may never rise", measured on origin/main at `11abfaa`. Antagonist B measured it
+breached by 2 on the very commit it lands on (48, because two chess.jsx line citations entered the registers
+between `11abfaa` and `4db6036`), which would have made the arm's first real reading accuse the next run of
+adding two citations it did not add. Veto upheld: the ceiling is now 48, the prose breakdown is corrected
+20->21 and 14->15, and C5/C5b's fixtures moved with the constant so the control still controls. Re-derived
+independently before the change, and the selftest is 12/12 after it.

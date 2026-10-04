@@ -141,49 +141,49 @@ if [ "${1:-}" = "--citations-selftest" ]; then
   # C1 a clean line citation to a real file at a real line is counted and is not a defect.
   R="$(st_tree)"; printf 'see `gates/regress/10-real.js:2` for the pin\n' > "$R/claude/stories/A.md"
   st_ck "C1 clean citation counted, nothing flagged" \
-    "  (4) 1 line-number citation(s), ceiling 46, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R")"
+    "  (4) 1 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R")"
 
   # C2 DEAD detector fires on a path that is not in the tree, and C2b stays silent when the file exists.
   R2="$(st_tree)"; printf 'see `gates/regress/99-gone.js:5`\n' > "$R2/claude/stories/A.md"
   st_ck "C2 dead path fires" \
-    "  (4) 1 line-number citation(s), ceiling 46, 1 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R2")"
+    "  (4) 1 line-number citation(s), ceiling 48, 1 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R2")"
   # C2b plants a file LONG ENOUGH for the cited line, because the first draft of this fixture copied the
   # 3-line file and C2b then reported 1 past-EOF - the DEAD detector had gone silent exactly as asked and the
   # STALE one had correctly fired on :5 of a 3-line file. The fixture was wrong, not the arm; recorded here
   # rather than silently repaired, because a fixture that quietly agrees with a bug is this project's #432.
   printf 'a\nb\nc\nd\ne\nf\n' > "$R2/gates/regress/99-gone.js"
   st_ck "C2b dead detector silent once the file exists and is long enough" \
-    "  (4) 1 line-number citation(s), ceiling 46, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R2")"
+    "  (4) 1 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R2")"
 
   # C3 STALE detector fires one line past the end and C3b is silent exactly AT the end - the boundary, so an
   # off-by-one in the comparison cannot pass both halves.
   R3="$(st_tree)"; printf 'see `gates/regress/10-real.js:4`\n' > "$R3/claude/stories/A.md"
   st_ck "C3 past-EOF fires at last+1 (file has 3 lines)" \
-    "  (4) 1 line-number citation(s), ceiling 46, 0 dead, 1 past end of file, 0 over ceiling" "$(st_arm4 "$R3")"
+    "  (4) 1 line-number citation(s), ceiling 48, 0 dead, 1 past end of file, 0 over ceiling" "$(st_arm4 "$R3")"
   printf 'see `gates/regress/10-real.js:3`\n' > "$R3/claude/stories/A.md"
   st_ck "C3b past-EOF silent at the last line itself" \
-    "  (4) 1 line-number citation(s), ceiling 46, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R3")"
+    "  (4) 1 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R3")"
 
   # C4 THE NEGATIVE CONTROL THE JOB'S OWN CASE ASKS FOR: a symbol citation must not be reported at all.
   R4="$(st_tree)"; printf 'see `gates/regress/10-real.js` at selectOpening, and `chess.jsx` at fullReset\n' > "$R4/claude/stories/A.md"
   st_ck "C4 symbol-form citations are not counted" \
-    "  (4) 0 line-number citation(s), ceiling 46, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R4")"
+    "  (4) 0 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R4")"
 
-  # C5 the CEILING. 46 is accepted, 47 is refused, and the message names the overage.
+  # C5 the CEILING. 48 is accepted, 49 is refused, and the message names the overage.
   R5="$(st_tree)"; : > "$R5/claude/stories/A.md"
-  i=1; while [ "$i" -le 46 ]; do printf 'row %s `gates/regress/10-real.js:1`\n' "$i" >> "$R5/claude/stories/A.md"; i=$((i+1)); done
+  i=1; while [ "$i" -le 48 ]; do printf 'row %s `gates/regress/10-real.js:1`\n' "$i" >> "$R5/claude/stories/A.md"; i=$((i+1)); done
   st_ck "C5 exactly at the ceiling is not over it" \
-    "  (4) 46 line-number citation(s), ceiling 46, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R5")"
-  printf 'row 47 `gates/regress/10-real.js:1`\n' >> "$R5/claude/stories/A.md"
+    "  (4) 48 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R5")"
+  printf 'row 49 `gates/regress/10-real.js:1`\n' >> "$R5/claude/stories/A.md"
   st_ck "C5b one over the ceiling is refused" \
-    "  (4) 47 line-number citation(s), ceiling 46, 0 dead, 0 past end of file, 1 over ceiling" "$(st_arm4 "$R5")"
+    "  (4) 49 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 1 over ceiling" "$(st_arm4 "$R5")"
 
   # C6 SCOPE. The arm is about the story registers, so an identical citation outside claude/stories/ must not
   # be counted - otherwise this file's own comments would redden it, which is how a checker eats itself.
   R6="$(st_tree)"; printf 'see `gates/regress/99-gone.js:5`\n' > "$R6/HANDOFF.md"
   mkdir -p "$R6/gates/regress"; printf '// gates/regress/99-gone.js:5\n' > "$R6/gates/regress/11-other.js"
   st_ck "C6 citations outside claude/stories/*.md are out of scope" \
-    "  (4) 0 line-number citation(s), ceiling 46, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R6")"
+    "  (4) 0 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R6")"
 
   # C7 THE ONE THAT MATTERS: does arm (4) actually control the verdict, or only print? Arms (1) and (2) are
   # clean in this tree by construction (no story file names a story path, and TEST-CASES.md is absent, which
@@ -316,9 +316,20 @@ EOF
   #
   # ITS theFix PREFERRED OPTION 2 - "REFUSE a path:NNN citation outright in claude/stories/*.md" - AND THAT
   # OPTION IS NOT LANDABLE AS WRITTEN. MEASURED here before building, which the job did not do: there are
-  # 46 such citations in claude/stories/*.md on main today (MENU-LANE 8, SUITE-AUDIT 4, TEST-CASES 20,
-  # USER-STORIES 14, README 0), all 46 resolve to a file in the tree, and 0 of 46 point past that file's end.
-  # So an outright refusal is RED ON A CLEAN TREE from its first run, on 46 pre-existing rows in two
+  # 48 such citations in claude/stories/*.md on main today (MENU-LANE 8, SUITE-AUDIT 4, TEST-CASES 21,
+  # USER-STORIES 15, README 0), all 48 resolve to a file in the tree, and 0 of 48 point past that file's end.
+  # THE 46 THAT STOOD HERE IS WITHDRAWN [R18, antagonist B's veto F1 on the 2026-10-04 integration, upheld].
+  # It read 46 with TEST-CASES 20 and USER-STORIES 14, and it was CORRECT WHEN TAKEN on origin/main at
+  # 11abfaa and STALE BY TWO WHEN COMMITTED: two chess.jsx line citations were added to the registers
+  # between 11abfaa and 4db6036 (TEST-CASES 20->21, USER-STORIES 14->15), by six commits to claude/stories/
+  # that this arm's author never re-read. Re-derived with this arm's OWN pattern at the landing commit:
+  # MENU-LANE 8, SUITE-AUDIT 4, TEST-CASES 21, USER-STORIES 15 = 48, 0 dead, 0 past EOF. The integration that
+  # landed this payload touched NO file under claude/stories/, so the breach was never the landing run's.
+  # WHY THIS WAS NOT 'JUST SET IT TO 48': the nine expected strings in the selftest above hard-code the
+  # ceiling, and C5/C5b plant exactly 46 and 47 rows against it - so raising the constant alone takes the
+  # selftest RED and, worse, leaves C5b asserting that 47 is over a ceiling of 48, which it is not. The
+  # fixtures move with the constant or the control stops controlling.
+  # So an outright refusal is RED ON A CLEAN TREE from its first run, on 48 pre-existing rows in two
   # historical lane documents nobody is editing - and gate 67's own note records the verdict on that shape:
   # "a gate red on a good build is worse than no gate". a5313ab is also narrower than the job quotes it as:
   # its subject is one comment block inside chess.jsx, not the registers, so a blanket ban on the registers
@@ -337,7 +348,7 @@ EOF
   # measured - passes A4a, A4b and A4c. No checker can catch that without knowing the intended target, which
   # is the whole reason a5313ab chose symbol citations. A4c is the only defence against the class GROWING,
   # and it is a ceiling, not a cure. That remainder stays on the job as whatIsLeft [R05].
-  A4CEIL=46
+  A4CEIL=48
   A4TOT=0; A4DEAD=0; A4EOF=0
   echo "=== citations (4): line-number citations in claude/stories/*.md - dead, past-EOF, and the ceiling"
   A4CITES="$(grep -onE '((gates/[A-Za-z0-9_./-]+\.(js|sh))|chess\.jsx|app\.js|lessons\.js|index\.html|sw\.js):[0-9]+' claude/stories/*.md 2>/dev/null || true)"
