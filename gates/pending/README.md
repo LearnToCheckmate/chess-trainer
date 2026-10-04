@@ -1,7 +1,14 @@
 # gates/pending — gates that are written, proved, and deliberately NOT in the suite
 
-`gates/gates.sh` runs `gates/regress/*.js` and nothing else. A gate in here is finished work held out of
-the suite, with the reason written down.
+`gates/gates.sh` reaches `gates/regress/*.js` (globbed at `gates.sh:112`) plus exactly two files it invokes
+BY NAME — `gates/mountcheck.js` (`:202`) and `gates/unit-drill-why.js` (`:250`). Nothing in *this* directory
+is reached by any of the three. A gate in here is finished work held out of the suite, with the reason
+written down.
+
+*(This sentence read "runs `gates/regress/*.js` and nothing else" until #477. It was wrong on both named
+files, and it is the sentence a reader uses to decide whether a file must move into `regress/` to run at
+all — so it was worth correcting rather than inheriting. Antagonist B measured it against the live suite log
+of the run that fixed it.)*
 
 This is **not** a parking lot for gates that turned out to be inconvenient. The only thing that belongs
 here is a gate whose subject is **blocked on a decision Kunal has not made**, because putting it in
@@ -34,10 +41,21 @@ say what it measured is not evidence. Keep it that way.
 
 **THIS DIRECTORY HOLDS TWO KINDS OF FILE AND ONLY ONE OF THEM IS A HELD GATE.** The rule above — a gate
 blocked on a decision Kunal has not made — governs the first table. The second table is one-off **probes and
-renderers**: they print, they do not assert, they are run by hand against a named `CT_APP`, and they are not
-candidates for `regress/` at all. They were landing here unlisted, which is how this README came to have one
-row against a directory of thirteen files; the fix is a second table with its own rule, not a looser first
-one. See `jobs/a-unit-test-written-for-the-p0-is-not-in-the-suite-2026-09-28`.
+renderers**, run by hand against a named `CT_APP` and not candidates for `regress/`. They were landing here
+unlisted, which is how this README came to have one row against **twelve `.js` files**; the fix is a second
+table with its own rule, not a looser first one. See
+`jobs/a-unit-test-written-for-the-p0-is-not-in-the-suite-2026-09-28`.
+
+**AND FOUR OF THE ELEVEN DO ASSERT, SO "THEY PRINT, THEY DO NOT ASSERT" IS NOT THE RULE THAT HOLDS THEM OUT
+[R18].** #477 wrote that sentence and antagonist B measured it false the same hour: `grep -c 'L\.say('` gives
+`probe466-lessonelo.js` **7**, `probe466-rect.js` **6**, `probe466-pfh.js` **5** and `render469.js` **1**,
+while the other seven are genuinely 0. What actually holds all eleven out is narrower and is the honest
+statement: **each was written for ONE build against ONE bundle to take ONE measurement, so its selectors,
+its line references and its expected values are pinned to a tree that has moved.** Three of them carry real
+assertions and are therefore *candidates* in principle — admitting one needs R36's three-run determinism
+check and a re-pin, which is a build, not a file move. Said here because "it does not assert" would have
+parked three assertion-bearing tests outside the runner on a false premise, which is the exact class
+`TC-R50` exists to detect.
 
 | gate | why it is held | moves into `regress/` when |
 |---|---|---|
@@ -51,13 +69,15 @@ certainly leakage between states, which is a fault in the gate and not in the ap
 browser per state, or re-open between them — before this gate joins the suite. Until then its **green**
 would be no more trustworthy than its red.
 
-## Probes and renderers — they print, they do not assert, and they are not suite candidates
+## Probes and renderers — each pinned to one build's tree, and none of them reached by any suite
 
 Each was written for one build, against one bundle, to take one measurement that no gate could reach. They
 are kept because a probe that produced a published number is the only way a later reader can re-take that
 measurement, and deleting one silently turns its number into folklore. **A row here is not a promise that
 the probe still runs**: they slice the app by selector and by line, so a probe older than the screen it
-measures may be stale, and the honest test is to run it against a named bundle and see.
+measures may be stale, and the honest test is to run it against a named bundle and see. Four of them do
+carry `L.say` assertions (marked below); that makes them candidates in principle and not in practice, for
+the reason above.
 
 Run one the same way as a held gate, with the bundle named explicitly and never from a bare `node`:
 
@@ -72,7 +92,7 @@ Run one the same way as a held gate, with the bundle named explicitly and never 
 | `shot-otherlines-424.js` | #424 | The before-and-after rendering for definition-of-done (d), at TWO geometries deliberately: at 375x730 the honest rendering shows **nothing changed**, which is Kunal's Z-06 condition and is itself the claim, so the change is only visible where the board is narrow. `CT_APP` picks the bundle, so "before" is the shipped #423 bytes rather than a reconstruction. |
 | `probe438-cpu.js` | #438 | The configuration gate 64 structurally cannot enter: **vs Computer, landscape, at game over**. The bot chip, the Elo pill and the Elo slider mount only in wide and only once the game is over; Pass & Play never mounts them at all, so gate 64's six sessions cannot see them. The job's own `notChecked` names this gap. |
 | `probe438-landscape.js` | #438 | Both halves of the landscape game-over job — the live row surviving and the rail clipping it — measured against whatever bundle `CT_APP` names, **before** any fix. Its own header says it: not a gate, it prints. |
-| `probe466-lessonelo.js` | #466 | Antagonist A's six-tap reproduction, **driven rather than reasoned about**: an endgame lesson that ends in mate, played out in practice, closed, then the Play tab — where the adaptive-Elo effect wakes with a mated `game` whose history arrived with the board while `playHist` is empty, and moves `ct_elo` silently because the setup sheet is up and `eloMsg` is never seen. A found a fourth route the class sweep missed and that #466's first guard sailed past; neither A nor the build had driven it. |
-| `probe466-pfh.js` | #466 | The three harms of the "Play from here at a terminal ply" job, re-measured on the bundle under test, because that job's evidence was from #424/#427 while #434/#435 had since rewritten the status-line behaviour harm 3 is about [R35]. |
-| `probe466-rect.js` | #466 | The one measurement antagonist B asked for and could not take: the amber note is a longer string in the TOP slot of a sheet whose own source records a 32px overrun at 375x679. Gate 55 asserts the note's TEXT and the button's disabled state and **nothing about either rect**, so a clipped or off-screen note would pass all of it. Measures whether the refusal is READABLE and the exit REACHABLE. |
-| `render469.js` | #469 | The before-and-after at Kunal's 375x730 with a red box, for definition-of-done (d). **Run after the suite, never during it**: three subagent browsers inside a timing-sensitive suite nearly produced a false red at #419. |
+| `probe466-lessonelo.js` **(asserts: 7 × L.say)** | #466 | Antagonist A's six-tap reproduction, **driven rather than reasoned about**: an endgame lesson that ends in mate, played out in practice, closed, then the Play tab — where the adaptive-Elo effect wakes with a mated `game` whose history arrived with the board while `playHist` is empty, and moves `ct_elo` silently because the setup sheet is up and `eloMsg` is never seen. A found a fourth route the class sweep missed and that #466's first guard sailed past; neither A nor the build had driven it. |
+| `probe466-pfh.js` **(asserts: 5 × L.say)** | #466 | The three harms of the "Play from here at a terminal ply" job, re-measured on the bundle under test, because that job's evidence was from #424/#427 while #434/#435 had since rewritten the status-line behaviour harm 3 is about [R35]. |
+| `probe466-rect.js` **(asserts: 6 × L.say)** | #466 | The one measurement antagonist B asked for and could not take: the amber note is a longer string in the TOP slot of a sheet whose own source records a 32px overrun at 375x679. Gate 55 asserts the note's TEXT and the button's disabled state and **nothing about either rect**, so a clipped or off-screen note would pass all of it. Measures whether the refusal is READABLE and the exit REACHABLE. |
+| `render469.js` **(asserts: 1 × L.say)** | #469 | The before-and-after at Kunal's 375x730 with a red box, for definition-of-done (d). **Run after the suite, never during it**: three subagent browsers inside a timing-sensitive suite nearly produced a false red at #419. |

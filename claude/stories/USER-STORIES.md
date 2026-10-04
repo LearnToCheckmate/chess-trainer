@@ -331,28 +331,28 @@ playing, and nothing takes it away from me without asking.
   rather than a figure to rely on. What this story asks is that the screen read THE BOARD - the thing I can
   actually see.
 
-  THE COUNT, RE-DERIVED AT `2e5f30b` (#477) AND BOTH PREVIOUSLY PUBLISHED FIGURES WITHDRAWN [R18]. This
-  register said "17 of this app's 21"; `chess.jsx`'s own comment said "SIXTEEN of this file's 21". Measured
-  today: **17 of 22**. Method, so it can be re-taken rather than trusted - `grep -o 'setGame(' chess.jsx`
-  is 25; three of those are the self-references inside the explanatory comment at `chess.jsx:2490-2510`,
-  leaving **22 real call sites**; **5** of them pair with a `setPlayHist` in the same handler (`fullReset`,
-  the two load paths, `doMove` - whose `setPlayHist` sits two lines above its `setGame`, which is why
-  same-STATEMENT scoping double-counts it - and the takeback); 22 - 5 = **17** replace the board without
-  touching `playHist`.
+  THE CENSUS THIS CLAUSE USED TO CARRY IS WITHDRAWN, AND NOT REPLACED [R18]. This register published "17 of
+  this app's 21" and `chess.jsx` published "SIXTEEN of this file's 21"; #477 measured both wrong, published
+  "17 of 22" in their place, and withdrew that too when both of its antagonists independently broke it. The
+  figure has now been wrong three times in four builds, and the diagnosis is not carelessness.
 
-  WHICH MEANS NEITHER OLD NUMBER WAS A TYPO, AND THE DENOMINATOR IS THE INTERESTING HALF. "16 of 21" was
-  exactly right when it was written at #474, and this register's "17 of 21" had the numerator right only by
-  coincidence. Measured across the last twelve commits to `chess.jsx`: at `0362154` (#474) the file held 23
-  occurrences with 2 self-references, i.e. 21 sites, which reproduces that comment's own arithmetic to the
-  digit. **#475 added the 22nd** - `loadExternalSolved` at `15bb881`, which calls `setGame` and sets no
-  `playHist` - so the breaker count went 16 to 17 one build after the figure was corrected, and nothing
-  anywhere noticed.
+  **NO INTEGER IS THE ANSWER, BECAUSE "REPLACES THE BOARD WITHOUT SETTING `playHist`" IS NOT A PROPERTY OF A
+  CALL SITE.** `doMove` (`chess.jsx:4327-4453`) is one function body holding **seven** `setGame` sites
+  against **one** `setPlayHist`, and the fallthrough commit two lines below that guard is reached with mode
+  `learn` in demo and with analyze and `anaMode` off - paths on which the guard never fires. So one site
+  both pairs and does not pair, depending on a mode the question does not fix. Scoped per statement the
+  answer is 18; per enclosing function, which is what "in the same handler" literally says, 11; per
+  reachable path, 18; and over only the sites that REPLACE the board rather than ADVANCE it by a ply - which
+  is this clause's own wording - 11 of 14. Each is defensible, each is a different sentence, and a reader
+  told to trust the command over the figure gets a different number from the one printed beside it.
 
-  SO THE RULE THIS CLAUSE RESTS ON IS THE INVARIANT, NOT THE CENSUS. `chess.jsx`'s comment already gave the
-  right reason for not making the count load-bearing - "it would rot as the app grows" - and it rotted
-  within one build, which is the strongest available argument for the shape the fix actually took: the row
-  asks the board. The number is a dated snapshot of how much a door-by-door clause would have cost; the
-  authority is the command above, not the figure.
+  SO THE CLAUSE RESTS ON THE INVARIANT AND THE MECHANISM, WHICH NEED NO NUMBER: the row and the board were
+  two pieces of state that could disagree, and the fix is that the screen reads THE BOARD. `chess.jsx`'s own
+  comment gave the right reason not to make a census load-bearing - "it would rot as the app grows" - and
+  then three builds proved it by rotting. The useful fact for a future reader is the mechanism, not the
+  tally: **#475 added a board-replacing site (`loadExternalSolved`, `15bb881`) that sets no `playHist`, and
+  nothing in this project noticed**, which is exactly why a door-by-door clause would need re-auditing every
+  build and this one does not.
 
 NOTE ON THE ID [#469]. US-R16 was reserved by the test-authoring lane on 2026-09-28, when the highest story
 ON MAIN was US-R13; main has since reached US-R33, and US-R16 is still free there, so the reservation was

@@ -2497,24 +2497,22 @@ export default function App(){
      starting position. The row promised a game that was already gone, which is worse than saying nothing.
      THE CAUSE: `playHist` is a SEPARATE piece of state from the board. selectOpening (the lesson loader) calls
      setGame(...) directly and never touches playHist, so the row was computed from one quantity and the
-     board from another. SEVENTEEN of this file's 22 `setGame(` call sites replace the board without setting
-     playHist, so CLEARING playHist at each of them would make that count load-bearing and it would rot as
-     the app grows - #439's lesson, where guarding the single committer beat guarding its callers.
-     THIS COUNT HAS NOW BEEN WRONG TWICE, AND THE SECOND TIME PROVES THE SENTENCE ABOVE [R18]. #474's first
-     draft read 17 because it scoped the test to sites with no setPlayHist IN THE SAME STATEMENT, which
-     double-counts doMove: its setPlayHist sits two lines above its commit, in the same play-mode handler.
-     Antagonist A caught that, and the tell was that the text listed doMove in BOTH the five that preserve
-     the invariant and the seventeen that break it - one code path cannot be in both. #474 then published
-     16 of 21, and that was exactly right on the day it was written.
-     IT IS 17 OF 22 AS OF #477, AND THE DENOMINATOR IS WHAT MOVED. Re-derived: `grep -o 'setGame('` is 25,
-     less the THREE self-references in this comment is 22 sites, less the five pairing with a setPlayHist in
-     the same handler is 17. At 0362154 (#474) the file held 23 occurrences with 2 self-references, i.e. 21
-     sites, which reproduces that draft's arithmetic to the digit; #475 then added the 22nd at 15bb881 -
-     loadExternalSolved, which replaces the board and sets no playHist - so the breaker count went 16 to 17
-     ONE BUILD after it was corrected, and nothing in this project noticed. That is the rot this comment
-     predicted, arriving faster than the comment did, and it is the argument for the fix below rather than
-     for a door-by-door guard. IF YOU EDIT THIS BLOCK, KEEP THE SELF-REFERENCE COUNT AT THREE or re-take the
-     subtraction: the arithmetic above counts occurrences of a string this comment itself contains.
+     board from another. MANY of this file's board-replacing sites do that, so CLEARING playHist at each of
+     them would make a census load-bearing - and it would rot as the app grows, which is #439's lesson that
+     guarding the single committer beat guarding its callers.
+     THE CENSUS IS WITHDRAWN AND NOT REPLACED WITH A BETTER NUMBER [R18]. IT HAS BEEN WRONG THREE TIMES IN
+     FOUR BUILDS: #474's draft said 17 of 21, #474 corrected it to 16 of 21, and #477 published 17 of 22
+     and withdrew that too on an antagonist veto. THE REASON IS NOT CARELESSNESS, IT IS THAT NO INTEGER IS
+     THE ANSWER - "how many sites replace the board without setting playHist" IS NOT A PROPERTY OF A SITE.
+     doMove, at :4327 to :4453, is ONE function body holding SEVEN setGame sites against ONE setPlayHist at
+     :4450, and the fallthrough commit two lines below that guard is reached with mode 'learn' (demo) and
+     with analyze and anaMode off, on which the guard never fires. So the SAME site both pairs and does not
+     pair depending on a mode the question does not fix. Scope it per statement and you get 18; per
+     enclosing function, which is what "the same handler" literally says, 11; per reachable path, 18; over
+     only the sites that REPLACE rather than ADVANCE the board, 11 of 14. Each is defensible and each is a
+     different published sentence, which is what makes the number worthless rather than merely stale.
+     SO DO NOT RE-TAKE IT. If a later run wants the figure, it must publish the PREDICATE first and accept
+     that it is choosing one of several, and nothing downstream should depend on which.
      SO THE ROW ASKS THE BOARD, which is the thing the player can see and the quantity play-moverow
      (the play control row) renders. The invariant is the one this file's own practice guard already relies on:
      `game.history.length === playHist.length` holds BY CONSTRUCTION for every game started through
