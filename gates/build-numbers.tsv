@@ -455,3 +455,5 @@
 476	built	-	aab15cd7920a	98edd2e02c51	2026-10-04T05:16Z	build__1791087579245	build.sh	Bundle built and stamped #476. Recorded by gates/build.sh so the number resolves to an artefact.
 477	minted	-	-	-	2026-10-04T07:27Z	build__1791098420495	minted	Band-14 closure batch of 4: the gates/regress/README.md FAIL-count recipe, gates/pending/README.md rows for 11 unlisted probes, TC-R22 in the case register, and the USER-STORIES.md setGame count corrected 17->16
 477	built	-	fb10dbef9591	7046859a655e	2026-10-04T07:34Z	build__1791098420495	build.sh	Bundle built and stamped #477. Recorded by gates/build.sh so the number resolves to an artefact.
+478	minted	-	-	-	2026-10-04T11:45Z	build__1791112798569	minted	land #459 drill grading + sentence ladders from claude/cool-noether-iwxb0r, and stop the drill board jumping by reserving the verdict box and the hint row (Kunal q-drill-third-line: fixed-reserve-and-scroll)
+478	built	-	a3c38bc569b4	692eeb793a98	2026-10-04T11:48Z	build__1791112798569	build.sh	Bundle built and stamped #478. Recorded by gates/build.sh so the number resolves to an artefact.
