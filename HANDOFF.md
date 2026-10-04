@@ -14,7 +14,17 @@ Give this file to Claude in Cowork as the first thing in the session.
 > The +30 is accounted per gate and was PREDICTED before the suite finished: only the two gate files this batch
 > changed moved, 21-review-brilliant 28->42 and 40-reachability 21->37, and 4104+14+16 = 4134. Nothing dropped.
 >
-> **THE NEXT RUN'S ITEM IS NOT THIS.** `questions/q-mate-floor-is-allowing-mate-a-blunder` was ANSWERED by Kunal
+> **CORRECTION, WRITTEN AFTER MY OWN PUSH, ON THE PREDECESSOR'S NOTE ON `claims/repo-pen` [R18].** The item I
+> named below as "the next run's item" is NOT the first one. `jobs/the-lesson-cta-centre-hit-tests-to-the-lesson-footer-and-a-tap-closes-the-lesson-at-568-tall-2026-10-04`
+> is a **BAND 16** P0 - a player on a 568-tall phone taps the button the lesson tells them to tap and the lesson
+> closes - and R05b puts band 16 above finish-first and above everything, so priority 16 beats the 15 below.
+> It was NOT in the finish-first query I ran at check-in (`owningLane` build AND `finishFirst` true) and I did
+> not find it independently; the previous holder left it on the pen row and I am propagating it rather than
+> leaving it in one place. **Take that first.** Two of the eight band-16 jobs are already MEASURED as
+> misclassified on main - see `jobs/two-of-eight-band-16-jobs-are-not-reproducible-on-main-and-band-16-outranks-everything-2026-10-04`
+> - so that need not be re-derived.
+>
+> **THEN THE PILE, WHICH IS NEWLY UNBLOCKED.** `questions/q-mate-floor-is-allowing-mate-a-blunder` was ANSWERED by Kunal
 > at 2026-10-04T08:55Z, choice **`lichess-ladder`** - the contradiction that stopped EIGHT consecutive builds.
 > `jobs/land-the-442-to-447-pile-it-carries-kunals-winprob-ruling-2026-10-01` now reads status ready at
 > **PRIORITY 15**, the highest in the collection. Its `whatTheBUILDMUSTDO` carries the ladder: read the eval
