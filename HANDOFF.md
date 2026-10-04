@@ -2,6 +2,65 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **THE 2026-10-04 09:19Z INTEGRATION SLOT: SIX STRANDED PATCHES RECOVERED, NO APPLICATION CODE, GATES GREEN #477 AT 4134.**
+> The four `process-build` lanes and the burst cannot push - the git proxy refuses write to this repository for
+> every session except the build routine - so each parks a `git format-patch` in the tracker and THIS LANE is the
+> only thing that can land it. Six payloads landed: three files that did not exist on main at all
+> (`gates/verify-log-selftest.sh`, `gates/audit/verify-parked-patch.sh`, `gates/audit/verify-patch-set.sh`), the
+> `--citations` line-number arm on `gates/verify-log.sh`, gate 21's **375x761** column (R19's settled geometry,
+> which only 3 of 55 gates had ever visited), gate 40's depth-general puzzle-header walk, and
+> `claude/PROCESS-LOG.md` created on main for the first time. `app.js` and `chess.jsx` are BYTE-IDENTICAL to
+> `4db6036`, so the bundle is #477's own (`fb10dbef9591`) and **no build number was minted - #478 is free.**
+> The +30 is accounted per gate and was PREDICTED before the suite finished: only the two gate files this batch
+> changed moved, 21-review-brilliant 28->42 and 40-reachability 21->37, and 4104+14+16 = 4134. Nothing dropped.
+>
+> **THE NEXT RUN'S ITEM IS NOT THIS.** `questions/q-mate-floor-is-allowing-mate-a-blunder` was ANSWERED by Kunal
+> at 2026-10-04T08:55Z, choice **`lichess-ladder`** - the contradiction that stopped EIGHT consecutive builds.
+> `jobs/land-the-442-to-447-pile-it-carries-kunals-winprob-ruling-2026-10-01` now reads status ready at
+> **PRIORITY 15**, the highest in the collection. Its `whatTheBUILDMUSTDO` carries the ladder: read the eval
+> BEFORE the move from the mated side, 700cp down or better is a Blunder, 701-999 a Mistake, 1000+ an Inaccuracy.
+>
+> **BOTH ANTAGONISTS VETOED AND ALL THREE VETOES WERE UPHELD.** A (diff door) broke two of my own claims; B
+> (shipped surface, on an agent type with no database tool, so blind by construction) found the one defect in the
+> code. **B's veto is the reusable one: lane 4's new `--citations` arm committed `A4CEIL=46` as a ceiling that
+> "may never rise", and it was already breached by 2 on the commit it lands on** - 48, because two `chess.jsx`
+> line citations entered the registers between `11abfaa` (where the 46 was measured) and `4db6036`. Its first real
+> reading would have accused the next run of adding two citations it did not add. **AND B'S OWN PROPOSED FIX WAS
+> WRONG: "one token, A4CEIL=48" would have taken the selftest RED and left C5b asserting that 47 is over a
+> ceiling of 48, which it is not.** Nine expected strings hard-code the ceiling and C5/C5b plant exactly 46 and
+> 47 rows against it, so the fixtures had to move with the constant. Fixed, re-derived independently first,
+> selftest 12/12 after, and the push-gate verdict unchanged over 21 logs.
+>
+> **WHAT IS STILL STRANDED, WITH THE RECIPE MEASURED.** `docs/patch-process-lane-4-tc-r10-detector-control-2026-10-03`
+> has missed THREE slots. It needs **NO REBASE** - that was my wrong verdict, withdrawn. A measured it applying
+> CLEAN as the first payload, and measured that **one line, `claude/PROCESS-LOG.md merge=union` in
+> `.git/info/attributes`, lands all SEVEN payloads and all TWELVE commits at ZERO conflicts** with all six lane
+> records intact (then delete union's five duplicated preamble blocks - a record file, never an artefact). DO NOT
+> instead apply it first: it and lane 1's selftest payload are the only two single-commit payloads, so whichever
+> goes second loses its artefact. I did not land it because lane 1's and lane 4's edits to gate 21 auto-merge
+> TEXTUALLY but their combined behaviour inside that gate has never been run by anyone, and buying that answer
+> cost a healthy suite with no budget to recover.
+>
+> **FOUR THINGS I GOT WRONG, all withdrawn where they were written, and all the same shape - my instrument
+> answered a different question than the one I asked.** (1) I reported the first suite SIGKILLed at 10 of 56. It
+> was NEVER killed and ran 84 minutes to green: `grep -c` **exits 1 on zero matches**, so chaining a liveness
+> probe after a zero-reds grep printed DEAD without ever running `kill -0`. (2) A Monitor filter anchored at
+> `^[a-z0-9-]+:` was blind to `gates.sh`'s FOUR-SPACE-INDENTED verdicts, so its silence corroborated (1) - an
+> expiry with no events is a broken watch, not a calm one. (3) I printed "NUL bytes: 5247" on the green log; the
+> real count is **ZERO** and 5247 is the line count, because bash collapses `$'\0'` to an empty pattern that
+> matches every line. (4) "The only shared path is `claude/PROCESS-LOG.md`" - true of the six-patch manifest I
+> computed it over, FALSE once patch 16 turned up also touching gate 21, and I never went back to withdraw it.
+> Three of the four I caught; the fourth was A, running THIS BATCH'S OWN new `verify-patch-set.sh` over the real
+> payload set.
+>
+> **AND ONE THING THE RECONCILIATION CAUGHT THAT NOTHING ELSE WOULD HAVE.** STEP 1I's amendment says to count the
+> day's runs that finished with unpushed work against the manifest and report the gap as the headline. 17 runs
+> against a 7-patch manifest - and the difference found a genuinely missed payload parked in the `docs`
+> collection under field `patchBody` instead of `patches` under `patch`. Separately, one patch in the manifest
+> was ALREADY ON MAIN carrying no `integrationResult`, indistinguishable from unlanded work; I nearly re-landed
+> it, and all seven now carry the field.
+
+
 > **#477 WAS A CLOSURE BATCH, AND ITS LESSON IS THAT A RECORDS BUILD IS NOT A SAFE BUILD (2026-10-04).**
 > Four partly-done band-14 jobs closed by writing records: the red-counting recipe into a new
 > `gates/regress/README.md`, rows for eleven unlisted probes in `gates/pending/README.md`, a new case in

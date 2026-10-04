@@ -1811,3 +1811,64 @@ both open on exactly this, and this close-out adds the denominator to them rathe
 **COVERAGE IS CARRIED AT 0 OF 10 AND THAT IS STATED, NOT HIDDEN.** This build changed no screen and wrote
 no story or case coverage for one, so re-deriving it here would be inventing a number. The three new
 P0/P1 jobs this run filed are inside the 316 above, so the P1 figure already carries them.
+
+---
+
+### 2026-10-04 09:19Z - `build__1791105639898` - THE INTEGRATION SLOT, NO BUILD NUMBER MINTED
+
+**ETA vs ACTUAL [R30], both from `date -u`, never estimated.** ETA written at check-in, not back-filled: three
+estimates, (1) selection complete by 09:55Z, (2) if it builds and gates, GATES GREEN by 11:35Z and a push by
+11:55Z i.e. 155 minutes, (3) if it stands down, closed out by 10:20Z. **ACTUAL: selection complete 09:28Z
+(27 minutes early). GATES GREEN at ~10:52Z, 43 minutes inside estimate (2); suite wall clock 09:28:58Z to
+~10:52Z, about 84 minutes, at the top of the 71-84 band the last clean runs set.** Estimate (2) is the one that
+held, and it was deliberately written ABOVE the R22 budget of 90 rather than inside it.
+
+**THE FOUR NUMBERS [R30], and the two I could not derive are stated as such rather than carried.**
+- **Regression assertions: 4134** over 56 suites, 0 fail. Up 30 from #477's 4104, accounted PER GATE and
+  predicted before the suite finished: only the two gate files this batch changed moved (21-review-brilliant
+  28->42, 40-reachability 21->37), 4104+14+16 = 4134, every other gate byte-identical in count, none dropped.
+  Footer 4134 equals the actual `^PASS` count. Confirmed independently by antagonist B's own gate-by-gate join.
+- **Coverage (screens and features): 0 of 10, unchanged, and stated rather than hidden.** This run changed no
+  screen and no application code - `app.js` and `chess.jsx` are byte-identical to `4db6036` - so re-deriving a
+  coverage figure here would be inventing one.
+- **Open P0 / open P1: NOT RE-DERIVED, and I am not carrying a figure forward either.** The method I tried and
+  why it fails, so the next run does not repeat it: `jobs` where `p` in [P0,P1] returns FOUR documents, and all
+  four were filed by this run - so the `p` field is not how this collection records priority class, and a count
+  from it would be wrong by orders of magnitude. The real signal is the integer `priority` field plus free text,
+  which is exactly `jobs/a-job-whose-priority-is-a-string-is-invisible-to-step-1s-2026-10-03`. Publishing a
+  number I cannot derive is the frozen-denominator failure this file records repeatedly, so: not checked.
+
+**WHAT LANDED.** Six parked payloads recovered from the tracker, one commit each, five record-only commits
+skipped exactly as their own payloads instruct. Three files new to main (`gates/verify-log-selftest.sh`,
+`gates/audit/verify-parked-patch.sh`, `gates/audit/verify-patch-set.sh`), plus `gates/verify-log.sh`'s
+`--citations` line-number arm, gate 21's 375x761 column, gate 40's depth-general header walk, and
+`claude/PROCESS-LOG.md` created on main - which is the permanent fix for the add/add collision that forced
+every one of those five skips.
+
+**THE PUSH GATE WAS MODIFIED IN THIS BATCH, WHICH IS THE RISK THAT MATTERED, AND IT IS NOT REGRESSED.**
+Antagonist A ran the new `gates/verify-log.sh` against `git show 4db6036:gates/verify-log.sh` over **all 111
+committed gatelogs** comparing stdout, stderr and exit: **0 divergences**, plus a ten-form argument matrix
+identical everywhere. Antagonist B reproduced it independently, with `held-trees.tsv` symlinked in so the hold
+check actually fires, and ran a refusal battery - subset, thin footer, header/footer mismatch, held tree - all
+still refused with byte-identical text. After my own post-green edit to that file I re-ran 21 logs old-vs-new:
+0 differences.
+
+**THREE VETOES, ALL UPHELD.** B's is the one worth carrying: lane 4's new arm committed `A4CEIL=46` as a
+ceiling that "may never rise", measured on main at `11abfaa` - and it was **already breached by 2 on the commit
+it lands on**, because two `chess.jsx` line citations entered the registers between `11abfaa` and `4db6036`
+(TEST-CASES 20->21, USER-STORIES 14->15). Its first real reading would have told the next run it added two
+citations it did not add, which the arm's own header rejects by name: "a gate red on a good build is worse than
+no gate". **AND B'S PROPOSED FIX WAS ITSELF WRONG - "one token: A4CEIL=48" takes the selftest RED and leaves C5b
+asserting that 47 is over a ceiling of 48, which it is not.** Nine expected strings hard-code the ceiling and
+C5/C5b plant exactly 46 and 47 rows against it, so the fixtures moved with the constant. Re-derived
+independently before touching it; selftest 12/12 after; arm now reads 48/48, 0 over.
+
+**FOUR SELF-INFLICTED MISREADINGS, all withdrawn where they were written, all one shape: my instrument answered
+a question other than the one I asked.** (1) I reported the suite SIGKILLed at 10 of 56 - it was never killed
+and ran to green, because `grep -c` exits 1 on zero matches, so a liveness probe chained after a zero-reds grep
+printed DEAD without ever running `kill -0`. (2) A Monitor filter anchored at line start was blind to this
+file's own four-space-indented gate verdicts, and its silence corroborated (1): **an expiry with no events is a
+broken watch, not a quiet one.** (3) "NUL bytes: 5247" on the green log - the real count is zero; 5247 is the
+line count, because bash collapses `$'\0'` to an empty pattern matching every line. (4) The path-collision
+claim, true of the six-patch manifest and false of the seven, never withdrawn until A caught it with this
+batch's own new tool.
