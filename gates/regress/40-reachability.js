@@ -152,6 +152,58 @@ const hspill=(b)=>b.page.evaluate(()=>{
 //   - if se ever stops contributing, its kind flips to 'none' and this reds, which is the exact failure the
 //     job was filed about - the headline PASS going vacuous without anybody noticing.
 // EMPTY IS NOT A PASS, IT IS A DECLARED FACT, and a declared fact that changes is a finding either way.
+// ── ITEM 2 OF THIS GATE'S OWN AUDIT, AND THE PREDICATE IS LIFTED OUT SO A CONTROL CAN DRIVE IT ──────────────
+// jobs/gate40-headline-assertion-has-a-zero-denominator-at-kunals-geometry-2026-09-28, alsoFromTheSameAudit
+// item 2: the puzzle-header measurement below used `kids:[...r.children]`, which is DEPTH-1. Only the direct
+// children of the first div inside pz-top were measured, so a spilling DESCENDANT - a badge inside a wrapper,
+// a span inside a button - was invisible to the one assertion in this file about the spill that CANNOT be
+// recovered. The walk is now depth-general.
+//
+// THE PREDICATE IS A NAMED FUNCTION, NOT AN INLINE FILTER, for the reason this project has now paid for twice:
+// a control that re-implements the comparison proves that a COPY of the check can fire, which is not the same
+// claim. The live assertions and the controls below both call spillPast, so the controls constrain the live
+// check [jobs/a-control-set-can-score-full-marks-with-its-own-subject-deleted-2026-10-02].
+//
+// 0.5px is the existing tolerance and is kept deliberately: subpixel layout puts a box's right edge a fraction
+// past the viewport on screens where nothing is actually clipped, and this gate's sibling assertion at :190 uses
+// the same figure. Changing it is a separate decision from deepening the walk.
+const spillPast=(boxes,vw)=>(boxes||[]).filter(k=>k.right>vw+0.5);
+
+// AND THE DEPTH OF EACH HEADER IS DECLARED, NOT REQUIRED TO BE DEEP. This started life as `deeper>0` in both
+// views and the first real run RED-flagged the online header at 0 of 2 - correctly, because that header IS flat.
+// A vacuity guard written as "there must be deep boxes" is a layout pin wearing a coverage message, and pinning
+// today's layout as the requirement is the exact error recorded on
+// jobs/a-control-set-can-score-full-marks-with-its-own-subject-deleted-2026-10-02. So the shape borrowed is the
+// one burst 10 used for DENOM_KIND one block above: declare the kind per view and assert the measurement against
+// the declaration, which is falsifiable in BOTH directions. 'deep' flipping to 'flat' means the right-edge claim
+// has quietly become a depth-1 claim again; 'flat' flipping to 'deep' means a wrapper has appeared on a screen
+// whose spill was only ever measured at depth 1, which is the condition this whole item was filed about.
+const HDR_DEPTH_KIND={browse:'deep',online:'flat'};
+const hdrKind=(all)=>((all||[]).some(k=>k.depth>=2)?'deep':'flat');
+
+// THE CONTROL SET. No browser, no bundle: fabricated readings driven through the SAME function the live
+// assertions call, in BOTH directions. The count is fixed at 6 so the suite total cannot drift with the app's
+// answers, which is what block 4 required of the denominator assertion above. Eight after C7 and C8 were added.
+//
+// The case that matters is C2. Under the old depth-1 walk the spilling box was not in the array at all, so the
+// filter returned empty and the assertion read PASS - the detector could not fire on the only input it exists
+// to catch. C2 is that input, and it is the one line that would have gone red before this change and goes red
+// after it only if the walk is depth-general.
+{
+  const V=375;
+  const flat=[{t:'a',right:100,depth:1},{t:'b',right:200,depth:1}];
+  const deepSpill=[{t:'a',right:100,depth:1},{t:'wrapper',right:300,depth:1},{t:'badge',right:391.2,depth:2}];
+  const shallowSpill=[{t:'a',right:100,depth:1},{t:'b',right:380.4,depth:1}];
+  L.say(spillPast(flat,V).length===0,'CONTROL C1: nothing past the edge -> the predicate is SILENT. A detector that fires on a clean reading is useless.',spillPast(flat,V));
+  L.say(spillPast(deepSpill,V).length===1&&spillPast(deepSpill,V)[0].depth===2,'CONTROL C2 - THE WHOLE POINT OF THIS CHANGE: a box at depth 2 whose right edge is 391.2 on a 375 viewport IS caught, and the caught box is the depth-2 one. Under the depth-1 walk this reading could not exist, so the live assertion read PASS over a header that was clipping a grandchild.',spillPast(deepSpill,V));
+  L.say(spillPast(shallowSpill,V).length===1,'CONTROL C3: a depth-1 box past the edge is still caught, so deepening the walk did not lose the coverage it already had.',spillPast(shallowSpill,V));
+  L.say(spillPast([{t:'edge',right:V+0.5,depth:2}],V).length===0,'CONTROL C4: a box ending at EXACTLY vw+0.5 is within the existing subpixel tolerance and is not reported. The boundary is asserted rather than assumed.',V+0.5);
+  L.say(spillPast([{t:'edge',right:V+0.6,depth:2}],V).length===1,'CONTROL C5: and vw+0.6 IS reported, so the tolerance is a threshold rather than a hole. C4 and C5 together are what make the 0.5 a measured choice.',V+0.6);
+  L.say(hdrKind(deepSpill)==='deep'&&hdrKind(flat)==='flat','CONTROL C7: the depth classifier itself, both directions - a reading with a depth-2 box reads deep, a reading with only depth-1 boxes reads flat. Without this the two declared-kind assertions could be satisfied by a classifier that always returns one answer.',{deep:hdrKind(deepSpill),flat:hdrKind(flat)});
+  L.say(hdrKind([])==='flat'&&hdrKind(null)==='flat','CONTROL C8: and an EMPTY reading classifies as flat rather than throwing, so a view whose header failed to render reds on the declared-kind line of a \'deep\' view instead of crashing the gate. That is the difference between a measurement and an exception.',hdrKind(null));
+  L.say(spillPast([],V).length===0&&spillPast(null,V).length===0,'CONTROL C6: an EMPTY reading returns empty - which is a PASS the live assertion must never be allowed to earn on its own, which is why the live block asserts its own denominator below rather than only this filter.',0);
+}
+
 const DENOM_KIND={se:'some',kunal730:'none'};
 const DENOM={};           // geo -> {below, moved, stranded}
 const HELP_REST={};       // geo -> was the named help text already on screen at rest (so no scrolling exercised)
@@ -235,13 +287,27 @@ L.run(async()=>{
     const row=await b.page.evaluate(()=>{
       const top=document.querySelector('[data-ct="pz-top"]');const r=top&&top.querySelector('div');
       if(!r)return null;
+      const box=(c,depth)=>{const q=c.getBoundingClientRect();
+        return {t:(c.innerText||'').replace(/\s+/g,' ').trim().slice(0,24),x:Math.round(q.left),w:Math.round(q.width),
+                right:Math.round(q.right*100)/100,depth,tag:c.tagName.toLowerCase(),painted:q.width>0.5&&q.height>0.5};};
+      // DEPTH-GENERAL. `kids` stays depth-1 and unchanged, because the Z-06 position pin below is written
+      // against the three direct children and deepening THAT would be a different assertion. `all` is every
+      // painted descendant, which is what the right-edge claim is now made over.
+      const all=[];(function walk(el,d){for(const c of el.children){const bx=box(c,d);if(bx.painted)all.push(bx);walk(c,d+1);}})(r,1);
       return {vw:innerWidth,docScrollW:document.documentElement.scrollWidth,
               kids:[...r.children].map(c=>{const q=c.getBoundingClientRect();
-                return {t:(c.innerText||'').replace(/\s+/g,' ').trim().slice(0,24),x:Math.round(q.left),w:Math.round(q.width),right:Math.round(q.right*100)/100};})};
+                return {t:(c.innerText||'').replace(/\s+/g,' ').trim().slice(0,24),x:Math.round(q.left),w:Math.round(q.width),right:Math.round(q.right*100)/100};}),
+              all,maxDepth:all.reduce((m,k)=>Math.max(m,k.depth),0)};
     });
     L.say(!!row,geo+': the puzzle header row is on screen',row);
-    const past=(row&&row.kids||[]).filter(k=>k.right>row.vw+0.5);
-    L.say(past.length===0,geo+': NOTHING in the puzzle header runs off the right edge. This is the spill that cannot be recovered - the row sits inside an ancestor with overflow-x hidden and document.scrollWidth stays at the viewport width, so anything past the edge is gone rather than scrollable.',{past,docScrollW:row&&row.docScrollW});
+    // THE DENOMINATOR OF THE NEXT LINE, ASSERTED RATHER THAN PRINTED - the same failure this whole job is about,
+    // one block further down the file. The depth-general claim is only worth making if the walk actually went
+    // deeper than the old one did: if the header ever flattens to three leaf children, `deeper` falls to 0 and
+    // the deep half of the assertion below is measuring nothing. That must go red rather than stay quietly green.
+    const deeper=((row&&row.all)||[]).filter(k=>k.depth>=2);
+    L.say(hdrKind(row&&row.all)===HDR_DEPTH_KIND.browse,geo+': THE DENOMINATOR OF THE RIGHT-EDGE ASSERTION, asserted rather than printed. The browse puzzle-header walk is DEPTH-GENERAL and reached '+(((row&&row.all)||[]).length)+' painted descendant(s) to a maximum depth of '+(row&&row.maxDepth)+', of which '+deeper.length+' lie BELOW depth 1 and were INVISIBLE to this gate until now - so the depth-1 walk was missing a real box on this screen, not a hypothetical one. It is DECLARED \'deep\'; if it ever measures \'flat\' the line below has silently become a depth-1 claim again [jobs/gate40-headline-assertion-has-a-zero-denominator-at-kunals-geometry-2026-09-28 item 2].',{n:((row&&row.all)||[]).length,deeper:deeper.length,maxDepth:row&&row.maxDepth,kind:hdrKind(row&&row.all),declared:HDR_DEPTH_KIND.browse});
+    const past=spillPast(row&&row.all,row&&row.vw);
+    L.say(past.length===0,geo+': NOTHING in the puzzle header runs off the right edge - measured over all '+(((row&&row.all)||[]).length)+' painted descendant(s) rather than over the 3 direct children, which is the correction this line needed. This is the spill that cannot be recovered - the row sits inside an ancestor with overflow-x hidden and document.scrollWidth stays at the viewport width, so anything past the edge is gone rather than scrollable.',{past,docScrollW:row&&row.docScrollW,over:((row&&row.all)||[]).length});
     if(geo==='kunal730'){
       // Z-06's condition, asserted rather than promised: the 320 fix must not move 375.
       const want=[{w:119,x:4},{w:93,x:148},{w:105,x:266}];
@@ -256,4 +322,51 @@ L.run(async()=>{
     await b.shot('pzhdr-'+geo);
     await b.close();
   }
+
+  // ── THE SECOND HALF OF ITEM 2: THIS GATE NEVER VISITED pzView==='online', THE SCREEN #426 CHANGED ──────────
+  // The loop above drives Z.states['train'], which is pzView==='browse'. The audit's item 2 says the gate "only
+  // ever runs the local-puzzle state, never pzView==='online'", and a grep for 'online' over this file returned
+  // nothing before this block. The online view renders its OWN pz-top (chess.jsx:7554, a second element carrying
+  // the same data-ct), with its own header row - the ‹ Roadmap button and the '🌐 Lichess · ✓ N solved' span -
+  // so every selector the block above uses resolves there and measured nothing there.
+  //
+  // WHAT IS COVERED HERE AND WHAT IS NOT, said plainly so the absence is not read as coverage. The view is
+  // entered from the roadmap and its header is measured depth-general, at both swept geometries. The LOADED
+  // puzzle state is NOT measured, because reaching it needs lichess.org and this harness's egress proxy refuses
+  // it [R21: the network block is recorded, never worked around]. What the app shows instead is its own offline
+  // message - "Couldn't reach Lichess. This works on the deployed site with internet - it may be blocked in this
+  // in-app preview." - so this block measures the state a player with no connection actually sees, which had no
+  // coverage of any kind, and declares the connected state as owed rather than quietly skipping it.
+  const openOnline=async(b)=>{
+    await Z.states['roadmap-bottom'](b);
+    await Z.tapBtn(b,/^🌐 Online puzzles/,1500);
+    await b.settle(1200);
+  };
+  for(const geo of ['se','kunal730']){
+    const b=await L.launch({geo,name:'pzonline-'+geo,store:{}});
+    await b.open();
+    await openOnline(b);
+    const row=await b.page.evaluate(()=>{
+      const tops=[...document.querySelectorAll('[data-ct="pz-top"]')];
+      const top=tops[tops.length-1];const r=top&&top.querySelector('div');
+      if(!r)return null;
+      const box=(c,depth)=>{const q=c.getBoundingClientRect();
+        return {t:(c.innerText||'').replace(/\s+/g,' ').trim().slice(0,24),x:Math.round(q.left),w:Math.round(q.width),
+                right:Math.round(q.right*100)/100,depth,tag:c.tagName.toLowerCase(),painted:q.width>0.5&&q.height>0.5};};
+      const all=[];(function walk(el,d){for(const c of el.children){const bx=box(c,d);if(bx.painted)all.push(bx);walk(c,d+1);}})(r,1);
+      return {vw:innerWidth,docScrollW:document.documentElement.scrollWidth,tops:tops.length,
+              viewText:(top.innerText||'').replace(/\s+/g,' ').trim().slice(0,160),
+              all,maxDepth:all.reduce((m,k)=>Math.max(m,k.depth),0)};
+    });
+    // (a) THE STATE IS THE ONE CLAIMED. Without this the three lines below could all be measuring the browse
+    //     header again - which is exactly how this gate came to report on a screen it had never opened.
+    L.say(!!row&&/Lichess/.test(row.viewText||''),geo+': the ONLINE puzzle view is open and this is its own pz-top, not the browse one - the header names Lichess. Asserted first because every other line in this block is worthless if the view did not change.',row&&{tops:row.tops,viewText:row.viewText});
+    const deeper=((row&&row.all)||[]).filter(k=>k.depth>=2);
+    L.say(hdrKind(row&&row.all)===HDR_DEPTH_KIND.online,geo+' ONLINE: the denominator again, and this one is DECLARED \'flat\' because that is what it measures - '+(((row&&row.all)||[]).length)+' painted descendant(s), maximum depth '+(row&&row.maxDepth)+', '+deeper.length+' below depth 1. MEASURED FIRST AND DECLARED SECOND: this line was written as \'there must be deep boxes\' and went RED here on its first real run, which is a layout pin rather than a coverage guard. A flip to \'deep\' means a wrapper has appeared inside the online header, whose right-edge spill nothing measured at any depth before this block.',{n:((row&&row.all)||[]).length,deeper:deeper.length,maxDepth:row&&row.maxDepth,kind:hdrKind(row&&row.all),declared:HDR_DEPTH_KIND.online});
+    const past=spillPast(row&&row.all,row&&row.vw);
+    L.say(past.length===0,geo+' ONLINE: NOTHING in the online puzzle header runs off the right edge, over all '+(((row&&row.all)||[]).length)+' painted descendant(s). This screen had no right-edge coverage at any depth before this block; the browse header has had it since #382.',{past,docScrollW:row&&row.docScrollW});
+    await b.shot('pzonline-'+geo);
+    await b.close();
+  }
+  L.note('ONLINE VIEW, WHAT IS STILL OWED AND IT IS NOT IN THIS FILE: the LOADED online puzzle (curPuz.ext set, board showing, chess.jsx:5037) is unreachable from this harness because lichess.org is refused by the egress proxy, so a fixture would have to come from a CT_* override in chess.jsx - which this lane may not write. Until then the connected state of pzView===\'online\' has NO coverage and this note is the record of that, not a claim about it [R18, R21].');
 },'REACHABILITY');
