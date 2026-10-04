@@ -265,8 +265,17 @@ function mkTap(b,READ){
     // antagonist B measured the accent-as-text-colour at 2.80:1 composited and 2.65:1 from painted pixels,
     // two instruments agreeing, 1.7x under AA - while '? mistake' pressed sat on exactly 4.50, where the
     // verdict belongs to the instrument rather than the design. The ratio prints its own inputs [#432].
+    // #476 EVERY CHIP IS MEASURED IN ITS OWN PRESSED STATE, AND THE FIRST VERSION OF THIS WAS AN ASSERTION
+    // THAT COULD NOT FAIL - found by running NC-ACCENT, the control built for exactly this fix, which came
+    // back 44 PASS / 0 FAIL. The reason is the one this project keeps relearning: B1c read gf-bril and B3c
+    // gf-mist, and with the accent as the text colour those two are 6.69:1 (bright cyan) and EXACTLY 4.50
+    // (orange) - one comfortably passing and one passing on the nose - while the chip that actually failed,
+    // gf-blun at 2.80:1 composited and 2.65:1 painted, WAS NOT ASSERTED AT ALL. A contrast assertion that
+    // skips the failing colour is a statement about the other two. The `cr` map also reads whatever state
+    // each chip is in, so a chip measured while NOT pressed returns its unpressed 8.07:1 and passes
+    // trivially - hence one assertion per chip, each taken immediately after that chip is tapped.
     const cPress=r1.contrast&&r1.contrast['gf-bril'];
-    L.say(!!cPress&&cPress.ratio>=4.5,'B1c the PRESSED chip label clears WCAG AA against its own composited background',cPress);
+    L.say(!!cPress&&cPress.ratio>=4.5,'B1c the PRESSED brilliant chip label clears WCAG AA against its own composited background',cPress);
     L.say(r1.rows===2&&r1.opps.sort().join(',')==='opp1,opp4',
       'B1 "!! brilliant" shows exactly the two seeded games whose tally has bril>0',{rows:r1.rows,opps:r1.opps});
     L.say(r1.count==='2 of 7','B1b the count reads "2 of 7" while that filter is on',{count:r1.count});
@@ -274,10 +283,20 @@ function mkTap(b,READ){
     const r2=await tap('gf-blun');
     L.say(r2.rows===2&&r2.opps.sort().join(',')==='opp2,opp4',
       'B2 "?? blunder" shows exactly the two seeded games whose tally has blun>0',{rows:r2.rows,opps:r2.opps});
+    // THE ONE THAT WAS THE DEFECT. Antagonist B measured this label at 2.80:1 composited and 2.65:1 from the
+    // painted pixels when the accent was the text colour - 1.7x under AA, and the worst text in the feature.
+    const cBlun=r2.contrast&&r2.contrast['gf-blun'];
+    L.say(!!cBlun&&cBlun.ratio>=4.5,'B2c and so does the PRESSED blunder chip - the label that measured 2.65:1 painted before this build fixed it',cBlun);
     await tap('gf-blun');
     const r3=await tap('gf-mist');
     const cMist=r3.contrast&&r3.contrast['gf-mist'];
-    L.say(!!cMist&&cMist.ratio>=4.5,'B3c and so does the mistake chip pressed - the one that previously measured exactly 4.50',cMist);
+    // #476 B3c IS NOT CONTROLLED BY NC-ACCENT AND THIS SAYS SO RATHER THAN LEAVING IT TO BE DISCOVERED.
+    // With the accent restored this chip measures EXACTLY 4.50, which clears AA's 4.5 by 0.00, so the control
+    // cannot redden it and a reader must not count it as controlled. Inventing a stricter threshold than the
+    // standard to make a control fire would be calibrating the assertion to the control instead of to the
+    // requirement - the inverse of "a threshold belongs to the instrument it was calibrated on". B2c is what
+    // makes this trio falsifiable; B3c rides on it.
+    L.say(!!cMist&&cMist.ratio>=4.5,'B3c and so does the PRESSED mistake chip - which measured exactly 4.50 before this build, i.e. AA by nothing',cMist);
     L.say(r3.rows===2&&r3.opps.sort().join(',')==='opp2,opp3',
       'B3 "? mistake" shows exactly the two seeded games whose tally has mist>0',{rows:r3.rows,opps:r3.opps});
     await tap('gf-mist');
