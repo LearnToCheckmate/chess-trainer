@@ -2497,15 +2497,24 @@ export default function App(){
      starting position. The row promised a game that was already gone, which is worse than saying nothing.
      THE CAUSE: `playHist` is a SEPARATE piece of state from the board. selectOpening (the lesson loader) calls
      setGame(...) directly and never touches playHist, so the row was computed from one quantity and the
-     board from another. SIXTEEN of this file's 21 `setGame(` call sites replace the board without setting
+     board from another. SEVENTEEN of this file's 22 `setGame(` call sites replace the board without setting
      playHist, so CLEARING playHist at each of them would make that count load-bearing and it would rot as
      the app grows - #439's lesson, where guarding the single committer beat guarding its callers.
-     THAT COUNT READ 17 IN THIS BUILD'S FIRST DRAFT AND IS CORRECTED HERE [R18]. I scoped it to sites with
-     no setPlayHist IN THE SAME STATEMENT, which double-counts doMove: its setPlayHist and its setGame are two lines
-     apart in the same play-mode handler. `grep -o 'setGame('` is 23, less the two
-     inside this comment is 21 sites, less the five that pair with a setPlayHist is 16. Antagonist A caught
-     it, and the tell was that my own text listed doMove in BOTH the five that preserve the invariant and
-     the seventeen that break it - one code path cannot be in both.
+     THIS COUNT HAS NOW BEEN WRONG TWICE, AND THE SECOND TIME PROVES THE SENTENCE ABOVE [R18]. #474's first
+     draft read 17 because it scoped the test to sites with no setPlayHist IN THE SAME STATEMENT, which
+     double-counts doMove: its setPlayHist sits two lines above its commit, in the same play-mode handler.
+     Antagonist A caught that, and the tell was that the text listed doMove in BOTH the five that preserve
+     the invariant and the seventeen that break it - one code path cannot be in both. #474 then published
+     16 of 21, and that was exactly right on the day it was written.
+     IT IS 17 OF 22 AS OF #477, AND THE DENOMINATOR IS WHAT MOVED. Re-derived: `grep -o 'setGame('` is 25,
+     less the THREE self-references in this comment is 22 sites, less the five pairing with a setPlayHist in
+     the same handler is 17. At 0362154 (#474) the file held 23 occurrences with 2 self-references, i.e. 21
+     sites, which reproduces that draft's arithmetic to the digit; #475 then added the 22nd at 15bb881 -
+     loadExternalSolved, which replaces the board and sets no playHist - so the breaker count went 16 to 17
+     ONE BUILD after it was corrected, and nothing in this project noticed. That is the rot this comment
+     predicted, arriving faster than the comment did, and it is the argument for the fix below rather than
+     for a door-by-door guard. IF YOU EDIT THIS BLOCK, KEEP THE SELF-REFERENCE COUNT AT THREE or re-take the
+     subtraction: the arithmetic above counts occurrences of a string this comment itself contains.
      SO THE ROW ASKS THE BOARD, which is the thing the player can see and the quantity play-moverow
      (the play control row) renders. The invariant is the one this file's own practice guard already relies on:
      `game.history.length === playHist.length` holds BY CONSTRUCTION for every game started through
