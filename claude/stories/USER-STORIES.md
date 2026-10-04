@@ -466,6 +466,38 @@ who greps the whole tree and finds two US-R15s knows which is which.
 
 US-R25  The Review list offers every game the connected account has, bounded only by a limit the app STATES ON SCREEN, and the number of games it can show NEVER depends on which month it is. A player who has not played this month still sees their history. (Kunal, 2026-09-23: "Why are there only 47 games in review. There should be thousands." A cap is correct here - the public API serves one month per request, rows carry full PGNs, localStorage is about 5MB for the whole app - so the clause names BOTH halves: state the limit, and do not let the calendar set it.) Checkable: with 300 games in the months before this one and none in this one, the list is non-empty and holds rows dated outside this month; the stated limit is readable on the list; and what was fetched is still there after a reload.  #432 AND THE LIMIT IT STATES MUST BE THE LIMIT THAT ACTUALLY BOUND, which is the half of this clause #431 satisfied only by accident. There are TWO bounds in the code (ACCT_GMAX games, ACCT_GMONTHS months) and #431 printed the games one unconditionally, so a player with a THIN BUT LONG history - a few games a month for years, the ordinary shape - read "Showing up to 200 games per account." on a list that 6 months had stopped at 30 of their 120, with 90 unreachable by any interaction. "Bounded only by a limit the app STATES" is then false: it was bounded by one the app did not state. Also checkable: with 5 games in each of 24 months the list holds 30 rows and the screen names the SIX-MONTH window and does NOT name a games cap; and with 3 months of 5 nothing bounds the list, so NO limit sentence is on screen at all. And the clause binds ON THE LAUNCH AFTER AN UPGRADE, not only after a fetch: an account imported by an earlier build records no bound, so the app states the games cap when that account sits AT the cap (which is inferable) and states nothing when it sits below it (which is not) - it never names a limit it cannot know bound. #433 AND THE UNITS OF THAT LIMIT MUST BE UNITS THE APP POSSESSES. ACCT_GMONTHS bounds ARCHIVE INDEX ENTRIES and api.chess.com's index lists only the months in which the player HAS games, so "your last 6 months" is a CALENDAR claim the code never computes: antagonist B measured 8 entries spread over 28 calendar months - 4.7x - under that sentence, on rows whose dates carry no year to contradict it. The clause is not satisfied by a limit stated in the wrong unit any more than by the wrong limit. Also checkable: with archive entries at 2023-11, 2024-01, 2024-06, 2025-02, 2025-09, 2026-03, 2026-08 and 2026-09 the screen states a bound in MONTHS OF PLAY and makes no calendar claim smaller than the span of the games it is showing. AND A MONTH THE APP ASKED FOR AND DID NOT GET IS PART OF THE BOUND: if a month request fails mid-walk the games are missing, so the screen says so - rendering nothing there claims the whole history is present, which is the same defect as an unstated cap. Checkable: with three months of 5 games and the middle month answering 503, 10 rows are shown and the screen states that some months could not be loaded. AND A LIMIT THE APP CANNOT KNOW BOUND IS STILL NOT ONE IT MAY CLAIM, WHICH #433's OWN FIRST ATTEMPT BROKE: a store with no recorded bound was written by a build whose cap was one of the two this app has ever shipped, so it is evidence of a cut only when it sits exactly at one of them - a store of 137 rows is not a 137-game cap. Checkable: with 137 or 41 stored rows and no recorded bound, NO limit is on screen. And where accounts were stopped by different bounds, the cap named is the one that applies to the account with the largest cap, qualified for the older ones - naming the legacy cap of 40 over 70 rows on screen is the same defect as naming a cap that did not bind. And reaching the cap is not being cut by it: with exactly the cap's worth of games and the index exhausted, nothing was cut and no limit is stated.
 
+### US-R35 In a drill I can go back to a position I have already passed, and it is as I left it
+*Added #475, from jobs/drill-needs-a-previous-card-2026-09-23, which Kunal raised TWICE.*
+Kunal, 2026-09-23: "I also want the ability to go backwards, not just forward, because sometimes I see a
+position and I want to come back to it after four or five additional positions." Again on 2026-09-30: "if I
+wanna practice something I've already been to".
+- Any drill (Your mistakes and Your brilliant moves alike - they are two entry points over one renderer) offers
+  a way back to the card before the current one, not only a way forward. MEASURED ABSENT on the shipped #437
+  bundle by sit run 19 at 375x812 and 320x568: the complete button set was `['< Review','HINT','SHOW MOVE',
+  'RESET','< Review','Next >']` and a regex for previous|prev|back over every visible button returned EMPTY at
+  both geometries. Re-measured on #474 (md5 8b958354102b) by gate 72's negative control: still absent.
+  (TC-R47 A1)
+- Going back one card moves the counter by exactly one, in both directions, and the counter states the card the
+  player is on. (TC-R47 A6, A9, A10a, A11a)
+- **RETURNING TO A CARD SHOWS THE STATE IT WAS LEFT IN RATHER THAN ASKING IT AGAIN.** This half is not
+  decoration: without it a Prev that re-asks a solved card satisfies the clause above and still throws away the
+  work the player went back to look at. (TC-R47 A10b, A10c)
+- At the FRONT of the queue the control is present and visibly inert, not absent - a control that disappears
+  moves the row underneath the player's finger, and a row that can appear must reserve its space. Tapping it
+  there does nothing at all and in particular does NOT leave the drill: Next falling off the END of the queue
+  is a completion, so exiting is right there; falling off the front is not an event. (TC-R47 A2a-A2d, A4, A11b)
+- The drill keeps EXACTLY ONE control that leaves it. Before #475 there were two, both spelled "< Review" and
+  both doing the same thing - one in the header and one bottom-left - which is why this clause costs no board
+  height to satisfy: the duplicate became the way back. (TC-R47 A3, A11c)
+- The queue does not change length under the player mid-drill. (TC-R47 A11d)
+
+AN ID NOTE, BECAUSE THE JOB CARRIES THE WRONG ONES. jobs/drill-needs-a-previous-card-2026-09-23 names its
+clause "US-R27 (NEW)" and its case "TC-R37 (NEW)", written by spec-a__1790630194889 on 2026-09-28. BOTH WERE
+ALREADY TAKEN in this register when that was written - US-R27 and TC-R37 are the Lesson MOVES row pair - so a
+later run following the job verbatim would have created a second US-R27 and a second TC-R37, which is exactly
+the one-id-two-meanings shape R45 exists to catch. #475 allocated US-R35 and TC-R47 instead, both beyond the
+highest id in use, and filed the cause rather than only working around it.
+
 ### US-PL-11 When a game ends, the screen keeps saying how it ended
 *Added #434, from the #433 auditor's P1 (jobs/cpu-game-over-says-nothing-three-seconds-later-2026-09-29).*
 
