@@ -640,3 +640,28 @@ TC-R48  US-R36 (#476), the Review list can be narrowed and a narrowed list says 
   TWO DEFECTS IN THIS GATE WERE FOUND BY RUNNING ITS OWN CONTROL, AND BOTH ARE RECORDED BECAUSE NEITHER WAS FOUND BY READING IT. (i) B0d and B0e — no chip paints past the viewport, every chip is at least 44px tall — were written over `base.chips.filter(...)` and went PASS on a bundle with NO filter row, because `[].filter(...).length` is 0: two assertions that could not fail, and a geometry assertion over an empty set is a statement about nothing. Both now require `chips.length>0`. (ii) The gate died at its first `tapCt` on the control and BLOCK C NEVER RAN — the #393 failure exactly. Every tap now reddens its own assertion when its control is absent and carries on, so 33 reds are readable instead of a stack trace.
   AND ONE DEFECT IN THE BUILD WAS FOUND THE SAME WAY: against the fix, B6, B6b and B7b failed with the rows unchanged, because nine 44px chips wrapped to three rows at 375x730 and the LAST chips sat below the fold, where `tapCt`'s captured coordinate clicks nothing. That is the #386/#390 trap, rediscovered because the harness helper was reached for without asking whether an existing gate had already fought that control. The gate now scrolls each control into view and says so if it cannot; the build independently dropped four chips as uninvited scope, which takes the row to five chips and two rows.
   R36 ADMISSION: deterministic, and re-established at every gate size rather than carried forward — 30/0 three times at 30 assertions (md5 6ad268937e9a), 34/0 at 34, and 45/0 twice at 45 against the shipping bundle aab15cd7920a, with the suite run as the third. Runtime ~110s for the four browser sessions. Logs: gates/logs/476-all.log (suite section) and the control runs in the #476 run report.
+
+## The gate suite itself - is every CITED check reachable by the runner (TC-R22, no gate; run by hand)
+
+| id | story | steps (harness) | expected, measured | executed by | last result |
+|---|---|---|---|---|---|
+| TC-R22 | R36 (suite admission), not a US clause - see the note below | List every executable `.js` directly under `gates/` and every `.js` under `gates/pending/`, then subtract what `gates.sh` can reach: the `gates/regress/*.js` glob plus anything the script invokes BY NAME. Separately, collect every `gates/**/*.js` filename cited as evidence in the last five run reports and in `RUN-LOG.md`. The predicate is CITED-AS-EVIDENCE AND UNREACHABLE, not merely unreachable - a probe nobody cites is fine where it is, which is why the subtraction is two-sided | ZERO files that a run report cites as evidence are unreachable by `gates.sh`. INPUTS: the 12 `.js` files under `gates/pending/` plus the executable `.js` files directly under `gates/`, plus every gate filename cited in the last five run reports. MEASURED at `2e5f30b`: `gates/unit-drill-why.js` is the one file this check was written for and it is now REACHED - `gates.sh` invokes it by name before the regress loop, translates its 40 `ok` lines into `^PASS unit-drill-why <name>` so they join the footer total, and reddens the suite on a non-zero exit, a non-zero FAIL count or zero oks. It uses a `--- ` marker rather than a `=== ` section header, deliberately: `verify-log.sh` refuses any full log whose count of `^=== ` lines differs from its roster, so a section header here would have refused every green log from the moment it landed while looking like a tidy-up | no gate; `ls gates/*.js gates/pending/*.js` against the `gates.sh` glob and its by-name invocations | NOT EXECUTED BY ANY SUITE. There is deliberately no gate: a gate that asserted this would itself live under `gates/regress/`, so the check and the thing being checked would be the same set - the trap `gates/gate-manifest.tsv` exists to break for the suite's own roster. A result goes in this cell only when something other than this directory does the asserting |
+
+**WHY THIS CASE HAS NO STORY CLAUSE, AND WHY THAT IS CORRECT [R08].** No `USER-STORIES.md` clause governs the
+harness, and none should - a user story is about what a player can do. The governing rule is R36, suite
+admission: a test joins the permanent suite only if it is deterministic across three runs, fast enough to run
+on every build, and checks behaviour Kunal would notice. `gates/unit-drill-why.js` met all three - it is a
+pure unit test with no browser - so R36 said it should be admitted rather than left beside the suite, and for
+five weeks it was neither admitted nor rejected. Recorded here rather than inventing a US id.
+
+**THE FOOTER TOTAL ROSE BY 40 ON THE FIRST FULL RUN AFTER THAT LANDED, AND THAT IS A ONE-TIME STEP, NOT A
+REGRESSION.** The suite's assertion total is expected only to rise, so a step of this size needs its cause on
+record where a later reader compares two footers; this is that record. The 40 are the unit layer's own checks,
+which were running and being cited and counting for nothing.
+
+**WHAT THIS CASE CANNOT SEE, said plainly because an absence claim is the hardest kind [R18].** It reads
+filenames, not behaviour. A gate that `gates.sh` reaches, runs, and that asserts nothing is invisible to it -
+that is the empty-gate shape, and `gates.sh` covers it separately by treating a section which exits clean
+having asserted nothing as red. A gate that is MISSING from the directory altogether is also invisible to it,
+and that is `gates/gate-manifest.tsv`'s job. Three different holes, three different instruments, and this one
+is only the third.
