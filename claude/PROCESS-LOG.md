@@ -1112,3 +1112,88 @@ so the records tier of the **push path** runs this mode, HEAD against a BASE wor
 **Not checked, five things, named rather than swept.** (1) The whole `--citations` mode stays **RED at exit 1** on arms (1) and (2) — 17 dead paths, 20 unsupported case ids, 10 misfiled rows — none of which is this job's scope and none of which this payload touches. (2) TC-R19 at 15 columns and TC-R37 at 3: deliberately untouched, the baseline the ceiling was set for, owned by `jobs/two-case-rows-carry-unescaped-pipes`. (3) Arm (4)'s own finding, that the line-citation ceiling can be lowered from 48 to **46**, is read and reported here and NOT acted on — it is an edit to `gates/verify-log.sh`, an artefact this run does not hold. (4) No gate and no suite ran: nothing in this payload is reachable from the 59-section suite, so no PASS/FAIL figure is given and none is implied. (5) The apply against the other nine pending payloads in every order; what was measured is this payload alone onto `4c7e007`.
 
 **Delivery** parked at `patches/proc-lane1-art-claude-stories-TEST-CASES-md-arm5-2026-10-10`. NOT on main; this lane cannot push and did not try [R21].
+# PROCESS-LOG.md
+
+The parallel process lanes' own run record. The build lane writes claude/RUN-LOG.md and this file is
+deliberately NOT that file: prompts/process-build excludes RUN-LOG.md, HANDOFF.md, FEEDBACK-INBOX.md and
+DECISIONS-LOG.md from the parallel lanes' allow-list because a trial merge on 2026-10-03 produced fifteen
+conflict hunks and ten of them were in those append-style registers. One line per run, newest last.
+
+NOTE FOR WHOEVER LANDS THE FIRST OF THESE PATCHES: this file does not exist on origin/main, so every
+parallel lane's first payload creates it and two payloads add/add-conflict under `git am --3way`. That is
+jobs/every-parallel-lanes-first-patch-creates-process-log-md-so-the-integrator-must-drop-one-artefact-2026-10-04.
+Each lane therefore puts its record in its OWN commit, separate from its artefact: skip the record commit
+if it conflicts, never the artefact commit.
+
+---
+
+## 2026-10-04, process-build lane 1, run process-build-1__1791095697298
+
+**Item** jobs/gate-20-and-gate-21-never-visit-kunals-actual-geometry-2026-10-01 (P1, priority 14,
+finishFirst band 14 - the gate-21 remainder). **Artefact** gates/regress/21-review-brilliant.js,
+locked as claims/art-gates-regress-21-review-brilliant-js. **Base** origin/main 11abfaa.
+
+**What changed.** Gate 21 had run at 375x679 and nothing else since #356. It now has a second geometry
+column at 375x761 (block 5) plus eight no-browser controls on that column's four predicates (block 5a),
+and a header that names both columns and says which is Kunal's.
+
+**Work item 1, counted before anything was written [R07].** Of gate 21's 28 pre-existing assertions,
+**ZERO** pin an absolute position, width or fit: 23 are text or value assertions on engine and template
+output, 5 are presence or liveness, and the file contains no px literal at all. So the trap the job warns
+about - literal pins measured at 679 reddening when the geometry moves - does not apply to this file, and
+the 761 column deliberately does **not** re-run the 23 text assertions, because a quantity that cannot
+depend on viewport height does not need 60 seconds of engine to be re-measured at a second height.
+
+**Work item 2, and it uses 761 rather than the 730 the job asks for.** The job was filed 2026-10-01 citing
+CLAUDE.md's 375x730. R19 settled it the other way on 2026-10-03 - "USE 375 x 761 ... The figure 730 is
+wrong ... GEOS already carries kunal761 and that is the right one" - and gates/regress/72-drill-prev.js:43
+is the one precedent on main that already reads R19 that way. 375x679 is kept untouched as the
+shorter-phone column, exactly as the job's trap demands.
+
+**Work item 4, the fleet-wide sweep, now COUNTED (it was the job's uncounted half).** Over all 55 files in
+gates/regress at 11abfaa: **17 never visit any geometry but 375x679** - 10 that write `geo:'kunal'`
+(10, 11, 12, 13, 14, 21-before-this-change, 30, 31, 51, 70) and 7 that pass no geometry at all and so take
+gates/lib.js:95's default, which is `GEOS.kunal` = 375x679 (27, 53, 58, 61, 64, 68, 69). **37 visit
+kunal730.** **Only 3 of 55 ever visit kunal761** - 26-invariants, 45-play-setup and 72-drill-prev - which
+is the geometry R19 names as his. Gate 21 is the fourth.
+
+**Measured** against the bundle on main (origin/main 11abfaa, app.js unchanged by this patch).
+
+| run | assertions | result |
+|---|---|---|
+| gate 21 at 11abfaa, unmodified | 28 | 28 pass / 0 fail |
+| gate 21 with this change | 42 | 42 pass / 0 fail, twice, byte-identical on the new lines |
+| block 5 pointed at GEOS.short375 (375x568) as a negative control | 42 | 33 pass / **1 fail** |
+
+**THE NEGATIVE CONTROL FAILED AND THAT IS WHY BLOCK 5a EXISTS.** Pointing the new column at 375x568
+flipped exactly ONE of its six assertions, the viewport identity; the other five stayed green because the
+Review screen scales down gracefully (board 264 wide at 568, nothing clipped, nothing absent, the sentence
+unchanged). A geometry change cannot exercise five of six, so publishing them as six green geometry checks
+would have been precisely
+jobs/a-control-set-can-score-full-marks-with-its-own-subject-deleted-2026-10-02. The four predicates were
+therefore lifted out by name and driven over fabricated readings in both directions - absent element,
+25px overflow, self-clipping element, a sentence differing in its last clause, an empty pair, a wrong sign
+(-2.8, the #389 shipped defect), a near-zero (+0.1, the #385 defect), a hundredfold error and an
+unreadable bar. Eight controls, no browser, no engine time, count fixed at 8.
+
+**THE MEASUREMENT WORTH MORE THAN THE PATCH.** At 375x761 with ct_safe 51,31 the review board renders
+**349.03px** wide. Kunal's own 2026-09-14 diagnostics report `boardPx 349.04` [R19]. gates/lib.js:25-26
+records a 2026-09-12 measurement predicting **293** at that configuration and uses it as the reason the
+suite emulates him at 375x679 instead. **That prediction is false against today's bundle, by 56px.** The
+reading is published as a note in the gate and asserted nowhere, because which of Kunal's two figures the
+suite should build against is not a gate's decision [R45]; the contradiction is filed for the
+orchestrator.
+
+**Gates run.** gates/regress/21-review-brilliant.js only, three times plus one mutant. The 55-suite GATES
+GREEN run was not spent: this patch changes no bundle, no selector and no story clause, and a subset run
+cannot authorise a push in any case - this lane never pushes.
+
+**Not checked.** The review board width at kunal730, which would settle the three-way comparison rather
+than the two-way one (one command: run this file with block 5's geo set to 'kunal730'). Whether the 17
+679-only gates have assertions that would move at 761 - counted, not run. 390x844 and 430x932 on this
+gate. Whether `samePin761` would catch a sentence differing only in whitespace, since lib's `text()`
+collapses runs of whitespace before this gate ever sees it.
+
+**Delivered to** patches/proc-lane1-art-gates-regress-21-review-brilliant-js-2026-10-04. Nothing is on
+main: the git proxy refused one push dry-run at 2026-10-04T06:38:53Z with HTTP 403, as the charter records
+it will.
