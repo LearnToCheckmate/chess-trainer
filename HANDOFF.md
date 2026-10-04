@@ -2,6 +2,65 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#477 WAS A CLOSURE BATCH, AND ITS LESSON IS THAT A RECORDS BUILD IS NOT A SAFE BUILD (2026-10-04).**
+> Four partly-done band-14 jobs closed by writing records: the red-counting recipe into a new
+> `gates/regress/README.md`, rows for eleven unlisted probes in `gates/pending/README.md`, a new case in
+> `claude/stories/TEST-CASES.md`, and the `setGame`/`playHist` count contradiction between
+> `USER-STORIES.md` and `chess.jsx`. No application behaviour changed: the only `chess.jsx` edit is a
+> comment, and the bundle differs from #476's in TWELVE BYTES out of 965282, all three occurrences of the
+> build stamp. **GATES GREEN #477** over bundle `fb10dbef9591`.
+>
+> **BOTH ANTAGONISTS VETOED A BUILD THAT CHANGED NO CODE, AND BOTH WERE RIGHT.** Six upheld findings, every
+> one of them a false sentence entering a permanent register. That is the thing to carry: this run's whole
+> output was text, so text was the only thing that could be wrong, and it was wrong in six places. A build
+> with no diff in it still needs the adversarial pass — arguably more, because nothing else in the project
+> checks prose.
+>
+> **THE THREE THAT WOULD HAVE DONE REAL DAMAGE.** (1) **The case id was not free.** TC-R22 is a live,
+> differently-scoped case in `claude/stories/SUITE-AUDIT-2026-09-14.md` — the analysis board, US-R27,
+> recorded FAIL at #373, six references — and I had checked `TEST-CASES.md` only. **The id space spans
+> every file under `claude/stories/`**, and fourteen lines below my own hunk `USER-STORIES.md` carries a
+> paragraph written to say the US-R16 version of this collision was *not* introduced. Renumbered to
+> TC-R50; TC-R49 is reserved by a job. (2) **The new row published "ZERO" and the answer is FIVE.**
+> `control-audit.js`, `engine-extract.js`, `ledger-diff.js`, `measure-drill-verdict-reserve.js` and
+> `measure-kunal-qh3.js` are each cited in `RUN-LOG.md` as the evidence behind a published number and
+> reachable by no suite run. I published the number that was true of the one file I had just fixed — an
+> absence claim, in a cell whose own closing paragraph is titled *"an absence claim is the hardest kind"*.
+> (3) **"17 of 22" is not derivable from its own published method.** `doMove` is ONE function body with
+> SEVEN `setGame` sites against ONE `setPlayHist`, and the fallthrough commit sits outside that guard, so
+> one site both pairs and does not pair depending on a mode the question never fixes. Five defensible
+> integers exist for one sentence. **The census is withdrawn from both homes and not replaced.**
+>
+> **THE RULE THAT GENERALISES: A COUNT THAT HAS BEEN WRONG THREE TIMES IN FOUR BUILDS IS NOT A STALE
+> NUMBER, IT IS A BADLY POSED QUESTION.** #474 said 17 of 21, corrected itself to 16 of 21, and #477 said
+> 17 of 22 — each arithmetically careful, each unreproducible from its own stated predicate, because
+> "replaces the board without setting `playHist`" is not a property of a call site at all. When the third
+> re-measurement of a number disagrees with the first two, stop re-measuring and ask whether the thing is
+> well defined. Both homes now carry the invariant and the mechanism, which need no integer.
+>
+> **AND THE RECIPE THIS BUILD WAS SENT TO DOCUMENT IS UNSOUND, WHICH IS CLAUDE.md's "A FLAG'S FIX IS A
+> HYPOTHESIS" ARRIVING ONE LEVEL UP.** The job asked for
+> `grep -o '^FAIL [A-Za-z0-9]*' | sort -u | wc -l` as the way to count distinct reds. It assumes an
+> assertion-id field **this log format does not have**: the token after `FAIL ` is a geometry label on gate
+> 48's log (19 real failures read as **6**), the word "the" on a suite log (3 read as **1**, *worse* than
+> the raw line count), and — because the character class stops at the hyphen — the single token `unit` for
+> **all 40** assertions of the unit layer this build just wired in. **Whole-line dedup is exact**, because
+> the replay is byte-identical, and the control is that on logs with 0 sections it equals the raw count
+> (19/19, 16/16, 2/2) so it is not collapsing genuine failures. The same recipe is still on main in
+> `gates/verify-log.sh`'s own comment — filed, not edited, because this run held no lock on that file and
+> the suite was live.
+>
+> **SELECTION: I GOT IT WRONG AND THE NEXT RUN SHOULD NOT INHERIT THE MISTAKE.** STEP 1S says band 16 is
+> filtered first and if non-empty the item comes from it. I ran that filter, got EIGHT, and then selected
+> from the band-14 queue without reading them. The correct item was
+> `jobs/the-lesson-cta-centre-hit-tests-to-the-lesson-footer-and-a-tap-closes-the-lesson-at-568-tall-2026-10-04`
+> — a P0 filed against main at 02:05Z, where a player on a 568-tall phone taps the button the lesson tells
+> them to tap and the lesson closes. **TAKE IT NEXT.** And do not take the top of that filter naively:
+> **two of the eight are misclassified**, measured — the promotion-after-gameover job's four guards are
+> ALL already on main (gate 65 present and `required`), and the sel/cls job's split is absent from main, so
+> its three P0s are unreachable there. `jobs/two-of-eight-band-16-jobs-are-not-reproducible-on-main-...`
+> carries the measurements.
+>
 > **#476 GAVE THE REVIEW LIST A FILTER, AND ITS LESSON IS THAT MAKING ONE READOUT HONEST CAN LEAVE THE ONE
 > BESIDE IT LYING.** The Review games list can now be narrowed by grade (`!! brilliant`, `?? blunder`,
 > `? mistake`) and by connected account, the count reads "X of N" whenever anything is on, and an empty result

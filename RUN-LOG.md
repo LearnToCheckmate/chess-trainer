@@ -1724,3 +1724,88 @@ A showed can resolve against a stale merge base. And CLAUDE.md's own #461 remedy
 `gates.sh` - **cannot work**, because the script derives its paths from `dirname $0`; I found that by executing it,
 it failed in two seconds, and the frozen copy now lives inside `gates/` instead.
 | #476 | the Review list filter: grade + account chips, an attributable count, an empty state that admits what it cannot know | **NONE STATED, and that is an R30 breach I own rather than back-fill** (the check-in row carried an `intend` and no estimate; a forward estimate of GATES GREEN ~06:40Z / push ~07:00Z was stated at 05:20Z with the work mostly done, which is a measurement wearing an estimate's label) | 00:19 ET | n/a - pushed to main directly | **142 min to GATES GREEN** (04:19:39Z to 06:40:40Z) | the forward estimate landed to the minute: predicted 06:40Z, actual 06:40:40Z | `GATES GREEN #476`, 56 suites / **4104 PASS** / 0 fail, bundle `aab15cd7920a`, one uncontended run from a frozen copy of gates.sh, 05:16:36Z-06:40Z. verify-log.sh OK and OK with --this-bundle; held.sh not held; manifest 55/55/0/0. The assertion total rose 4059 -> 4104, exactly gate 73's own 45, so no pre-existing gate's total moved. | pending |
+| #477 | band-14 CLOSURE BATCH of four record remainders: the FAIL-count recipe into a new `gates/regress/README.md`, rows for 11 unlisted probes in `gates/pending/README.md`, a new case (TC-R50) in the case register, and the `setGame`/`playHist` census contradiction between `USER-STORIES.md` and `chess.jsx` — **withdrawn rather than re-measured a fourth time** | GATES GREEN ~09:40Z, push ~10:00Z (**stated 07:24Z, in the check-in row, before the work** — #476 owned an R30 breach here and this run did not repeat it) | 07:20Z | — | **GREEN at 09:05:50Z, 35 min AHEAD of the estimate**; suite 90.8 min (07:35:02 → 09:05:50) | 6 commits + the log; no behaviour change | **green — 56 sections / 4104 PASS / 0 fail**, bundle `fb10dbef9591`, verify-log OK with `--this-bundle` AND `--on-main`, register not held, manifest 55/55/0/0 | see close-out |
+
+**#477, AND THE ONE THING WORTH CARRYING IS THAT A BUILD WITH NO CODE IN IT STILL NEEDED BOTH ANTAGONISTS.**
+Four partly-done jobs closed by writing records. No application behaviour changed: the only `chess.jsx` edit is a
+comment, and `cmp -l` against `origin/main`'s `app.js` is **12 bytes out of 965282**, all three copies of the build
+stamp — antagonist A's measurement, which is better than the two forced-stamp trial bundles I had offered, and I
+took its version over mine. A rebuild from the committed source returns `fb10dbef9591` identically, so the gated
+artefact is what this tree produces.
+
+**BOTH ANTAGONISTS VETOED AND BOTH WERE RIGHT: SIX UPHELD FINDINGS, EVERY ONE A FALSE SENTENCE ENTERING A
+PERMANENT REGISTER.** The run's whole output was text, so text was the only thing that could be wrong — and it was
+wrong in six places. (1) **TC-R22 was not a free id**: it is a live case in `SUITE-AUDIT-2026-09-14.md`, recorded
+FAIL at #373, six references. I had checked `TEST-CASES.md` alone; the id space spans every file under
+`claude/stories/`. Renumbered TC-R50. Fourteen lines below my own hunk, `USER-STORIES.md` carries a paragraph
+written to say the US-R16 version of this collision was *not* introduced — and I was introducing it one id family
+over. (2) **The new row published "ZERO"** unreachable-but-cited harness files; the answer is **five**
+(`control-audit`, `engine-extract`, `ledger-diff`, `measure-drill-verdict-reserve`, `measure-kunal-qh3`). I had
+published the number that was true of the one file I had just fixed — an absence claim, in a cell whose own
+closing paragraph is titled *"an absence claim is the hardest kind"*. (3) **"17 of 22" is not derivable from its
+own published method**: `doMove` is one function body with **seven** `setGame` sites against **one**
+`setPlayHist`, and the fallthrough commit sits outside that guard, so one site both pairs and does not pair
+depending on a mode the question never fixes. Five defensible integers exist for one sentence.
+
+**SO THE CENSUS IS WITHDRAWN FROM BOTH HOMES AND NOT REPLACED, AND THAT IS THE DURABLE LESSON. A COUNT THAT HAS
+BEEN WRONG THREE TIMES IN FOUR BUILDS IS NOT A STALE NUMBER, IT IS A BADLY POSED QUESTION.** #474 said 17 of 21,
+corrected itself to 16 of 21, #477 said 17 of 22 — each arithmetically careful, each unreproducible from its own
+stated predicate. When the third re-measurement disagrees with the first two, stop re-measuring and ask whether
+the thing is well defined. Both homes now carry the invariant and the mechanism, which need no integer.
+
+**AND THE RECIPE THIS BUILD WAS SENT TO DOCUMENT IS ITSELF UNSOUND — CLAUDE.md's "a flag's fix is a hypothesis"
+one level up.** The prescribed `grep -o '^FAIL [A-Za-z0-9]*' | sort -u | wc -l` assumes an assertion-id field
+**this log format does not have**: the token is a geometry label on gate 48's log (**19 real failures read as
+6**), the word "the" on a suite log (**3 read as 1 — worse than the raw line count**), and, because the class
+stops at the hyphen, the single token `unit` for **all 40** unit-layer assertions. Whole-line dedup is exact
+because the replay is byte-identical, and the control is that on logs with 0 sections it equals the raw count
+(19/19, 16/16, 2/2). The same recipe is still on main in `verify-log.sh`'s own comment — **filed, not edited**,
+because this run held no lock on that file and the suite was live (#461's rule).
+
+**THE SELECTION WAS WRONG AND THE NEXT RUN SHOULD NOT INHERIT IT.** STEP 1S filters band 16 first and takes the
+item from it if non-empty. I ran that filter, got **eight**, and then selected from band 14 without reading them.
+The right item was the lesson-CTA P0 filed at 02:05Z, where a player on a 568-tall phone taps the button the
+lesson is telling them to tap and the lesson closes. I finished and pushed the batch rather than abandoning
+finished correct work, and handed band 16 forward **with measurements**: two of the eight are misclassified —
+the promotion-after-gameover job's four guards are all already on main with gate 65 `required`, and the sel/cls
+job's split is absent from main so its three P0s are unreachable there. I also answered the lesson-CTA job's own
+work item 1: **gate 53 is green because its assertions are about a different control**, not because of a geometry
+gap — it visits 568-tall columns and is green there anyway.
+
+**THE AUDITOR'S BEST FINDING WAS A REPEAT, AND THAT IS THE FINDING.** The analysis board's engine line keeps the
+review ply's move number — three full moves wrong after five, beside a header that counts correctly. Filed
+2026-09-30; **it has now lost to five consecutive builds at priority 6**. Fingerprint incremented, not refiled.
+A second repeat *answered its own job's open question* (the captured-piece clip is 17px at six captures, and the
+ink is now confirmed: six glyphs at 375, five at 320, the pawn entirely gone). Three genuinely new went in as
+scope **outside** the frozen 37, per STEP 1P.
+
+## The four numbers at the #477 close-out (2026-10-04 ~10:0xZ)
+
+| close-out | open P0 | open P1 | coverage (screens fully specced AND tested, of 10) | regression assertions |
+|---|---|---|---|---|
+| #477 | **6** (a floor, see below) | **62** | 0 of 10 — **carried, not re-derived** | **4104** (`477-all.log`, bundle md5 `fb10dbef9591`, `verify-log.sh` OK with `--this-bundle` AND `--on-main`, 56 sections, 0 fail) |
+
+**RE-MEASURED, NOT CARRIED, AND THE INSTRUMENT IS THE FINDING.** I used #449's published rule verbatim —
+the `jobs` collection, `status=ready` AND `owningLane=build`, bucketed by the `severity` field with a
+string `priority` of the form P0/P1 as fallback — because it is the only method in this register that
+states itself well enough to re-run. It returns **316 documents**, against the 218 that rule was written
+over, and **6 / 62**. #449 published **3 / 29** over its 218.
+
+**BUT 165 OF THOSE 316 ARE UNBUCKETABLE BY THAT RULE, AND 45 OF THE 165 NAME A P0 IN THEIR OWN TEXT.**
+Measured: 165 ready build-lane jobs carry a NUMERIC `priority` (36 at 9, 33 at 8, 26 at 7, 22 at 13, 18 at
+6, 8 at 14, 5 at 10, 5 at 5, 3 at 4, 2 at 11, 1 at 15) or nothing at all (6), and no `severity` field for
+the rule to read. A grep for `P0` across each of those 165 documents hits **45**. So **6 is a floor and not
+a count** — more than half the population this instrument is pointed at is invisible to it, which is
+#405's frozen denominator wearing the severity field as a costume. #449 already named one instance of this
+(a job whose severity lived in its title); the measurement here is that the instance is the majority case.
+
+**A SECOND INSTRUMENT, PUBLISHED SO THE DISAGREEMENT IS VISIBLE RATHER THAN AVERAGED.** Dropping the lane
+filter and reading the `severity` field alone — `status=ready` AND `severity in [P0,P1]` — returns
+**11 / 91** over 102 documents. Neither reading is wrong; they answer different questions, and the gap
+between 6 and 11 on P0 is entirely the `owningLane` filter. `jobs/four-numbers-are-a-three-build-carry-not-a-count-2026-09-27`
+(version 9) and `jobs/a-job-whose-priority-is-a-string-is-invisible-to-step-1s-2026-10-03` (version 5) are
+both open on exactly this, and this close-out adds the denominator to them rather than a third method.
+
+**COVERAGE IS CARRIED AT 0 OF 10 AND THAT IS STATED, NOT HIDDEN.** This build changed no screen and wrote
+no story or case coverage for one, so re-deriving it here would be inventing a number. The three new
+P0/P1 jobs this run filed are inside the 316 above, so the P1 figure already carries them.
