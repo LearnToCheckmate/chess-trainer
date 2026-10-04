@@ -682,10 +682,14 @@ on every build, and checks behaviour Kunal would notice. `gates/unit-drill-why.j
 pure unit test with no browser - so R36 said it should be admitted rather than left beside the suite, and for
 weeks it was neither admitted nor rejected. Recorded here rather than inventing a US id.
 
-**THE FOOTER TOTAL ROSE BY 40 ON THE FIRST FULL RUN AFTER THAT LANDED, AND THAT IS A ONE-TIME STEP, NOT A
-REGRESSION.** The suite's assertion total is expected only to rise, so a step of this size needs its cause on
-record where a later reader compares two footers; this is that record. The 40 are the unit layer's own checks,
-which were running and being cited and counting for nothing.
+**THE UNIT LAYER CONTRIBUTES EXACTLY 40 PASS LINES TO THE FOOTER, AND THAT IS A ONE-TIME STEP RATHER THAN A
+REGRESSION — BUT IT IS NOT THE WHOLE OF ANY FOOTER'S RISE, AND THE FIRST DRAFT OF THIS PARAGRAPH SAID IT WAS
+[R18].** Measured over the committed gatelogs: `grep -c '^PASS unit-drill-why'` is **0** in `474-all.log`
+and **40** in `475-all.log`, `476-all.log` and `477-all.log`, so #475 is the unit layer's first full run and
+40 is its exact contribution. **The footer that run went 3784 to 4059, a rise of 275**, because #475 also
+added a 55th section (gate 72). So the honest statement is "the unit layer accounts for 40 of it", not "the
+footer rose by 40" — a later reader comparing two footers needs the attribution, not the total. The 40 are
+checks that were running and being cited and counting for nothing.
 
 **WHAT THIS CASE CANNOT SEE, said plainly because an absence claim is the hardest kind [R18].** It reads
 filenames, not behaviour. A gate that `gates.sh` reaches, runs, and that asserts nothing is invisible to it -
