@@ -274,6 +274,9 @@ makes it benign: a shared edit of this path is EXPECTED only while every payload
 append (0 deletion lines, measured), and a destructive record commit is a FAIL that names the payload and its
 deletion count. The three real record hunks in `patches` all measure 0 deletions, so the normal case is
 unaffected — proved by a positive control, not assumed.
+
+---
+
 ## process lane 1 — run `process-build-1__1791268512757`, 2026-10-06T06:35Z
 
 **ITEM.** `jobs/the-bound-records-how-the-walk-exited-not-whether-anything-was-cut-2026-09-29` — P1 CAUSE,
@@ -378,6 +381,9 @@ a conflict costs only the log entry.
 2. **S1b over an ALREADY-LANDED payload fires by construction**, because the payload's own landing is what put the path on main. Over all 14 documents in `patches` it fired eleven times, every one arithmetically right and operationally meaningless. The integrator never has that set — STEP 1I selects `patch` with no `integrationResult` — and the header now says so, in case somebody runs it over everything and reads a storm.
 3. **Arm 2's real-world cost was not observed in the wild.** The job says so of itself: the add/modify shape was constructed. On the real 14 it fires twice, on `claude/PROCESS-LOG.md` and on `gates/audit/verify-patch-set.sh`, both pairs being an older adder and a newer modifier of a file that has since landed — the same construction artefact as (2).
 4. **This payload is not on main and this lane cannot put it there.** The git proxy refuses write to this repository for every session but the build routine; one `--dry-run` at the start of the run, no retry, no workaround [R21].
+
+---
+
 ## 2026-10-06, process-build lane 2, `process-build-2__1791274433682`
 
 **Artefact:** `gates/verify-log.sh` — `--citations` arm **(5)**, the register self-check, plus 22 new cases in

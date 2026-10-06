@@ -2,6 +2,170 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#486, 2026-10-06T18:5xZ: THE INTEGRATION BATCH IS BUILT AND PUSHED TO ITS BRANCH, AND NOTHING LANDED ON MAIN - THE CONTAINER RESTARTED AND KILLED THE SUITE AT 46 OF 56. READ THIS BEFORE #485's BLOCK BELOW.**
+>
+>
+> **NOTHING LANDED ON MAIN. THE CONTAINER RESTARTED AND KILLED THE SUITE AT 46 OF 56 SECTIONS.**
+> `origin/main` is untouched at `8067e37`. Everything #486 built is on
+> **`origin/claude/cool-noether-jwf8cy`**, pushed and safe.
+>
+> **THE NUMBERS, AND WHAT THEY DO AND DO NOT AUTHORISE.** The suite ran 17:37:58Z to about 18:44Z and reached
+> **46 sections, 3259 PASS, 0 FAIL**, then the container was restarted - no error in the log, every process gone,
+> the last line the `=== 61-review-list-month-independence ===` header. **There is no `GATES GREEN` footer, so by
+> this project's own bar this log authorises NOTHING** and `verify-log.sh` will correctly refuse it. I did not
+> push to main and did not represent 46 green sections as a green suite. This is #419's failure mode exactly:
+> long background work does not survive in this container, and the kill leaves no error behind.
+>
+> **I ISOLATED THE CAUSE RATHER THAN GUESSING, BECAUSE IT DECIDES WHETHER YOU MAY PUSH THIS TREE.** The suite
+> died entering gate 61 - the one gate this batch modified - so "the batch contains a gate that kills the
+> container" was a live hypothesis and it would have been the worst possible thing to leave unmeasured. I ran
+> gate 61 alone against the gated bundle `377bbdf404ad`: **129 pass / 0 fail**, including all five new A15
+> assertions (A15-0, A15a, A15b, A15c-0, A15c). **So gate 61 is not the cause and the tree is not suspect.**
+> 47 of the 56 sections are now green on this bundle with 0 failures anywhere.
+>
+> **WHAT A SUCCESSOR SHOULD DO, AND IT IS CHEAP.** Do NOT rebuild the batch, do NOT re-apply the patches, do NOT
+> re-derive any of the analysis below. Take `origin/claude/cool-noether-jwf8cy`, confirm it is still a
+> fast-forward of main, mint your own number, rebuild the bundle under it (see lesson 1 below - mountcheck
+> requires the stamp to match the number you gate), and run the full suite once. If it goes green, push. The
+> branch head is ``8f31b08` plus the records commit this run is about to add`. **There is no `gates/held-trees.tsv` row for this tree and there should not be one:
+> I did not refuse it. It is ungated, not held, and those are different things** - a held row would wrongly stop
+> the next run from pushing a tree whose only defect is that nobody has finished measuring it.
+>
+> **WHY I DID NOT RE-RUN THE SUITE MYSELF**, said plainly rather than left as an omission. At the restart I was
+> 88 minutes into a 90-minute budget; a second suite is 70 to 85 minutes in a container that had just died once,
+> and the one outcome STEP 9N forbids is a run that leaves no trace. Spending the remaining time on the records
+> below, with the tree pushed and 47 sections measured green, hands a successor a one-pass job. Starting a
+> second suite would have risked handing it nothing.
+>
+> **THE CONTAINER WAS HEALTHY FOR GATING, AND THAT PART STANDS.**
+> `CT_APP=<copy of origin/main:app.js> node gates/regress/12-hint.js` -> **24 pass / 0 fail, kunal 375 / se 259**
+> on main's own bundle `f76286acef46`, measured at 17:27Z. `gates/fonts.conf` (#485) is load-bearing, not
+> decoration: `fc-match sans-serif` answers **DejaVu Sans** with it and **Inter** without it, and every one of
+> the 46 completed sections printed `fontconfig: gates/fonts.conf -> sans-serif resolves to "DejaVu Sans"`.
+> **DO NOT re-pin 375 to 361.** The container's font problem is solved; its problem is that it does not stay up.
+>
+> **WHAT LANDED, AND THE ONE THING THAT DID NOT**
+>
+> **Five parked payloads**, including two of the three that #482, #483, #484 and #485 all refused "for a reason
+> about the CONTAINER, not the payload". Today's reconciliation **balances**: 8 process-build runs, all 8
+> `built-not-shipped`, each naming one parked patch; 5 landed here, 3 landed earlier today.
+>
+> **REFUSED: `patches/proc-lane4-art-gates-gatemanifest-sh-2026-10-04`, AND THE REASON IS NEW. READ IT BEFORE
+> RETRYING.** Its SIGPIPE ratchet ships `SP_TOTAL_CEIL=9`, `SP_A_CEIL=1`, `SP_B_CEIL=0`, calibrated on base
+> `842df1b`. Applied **alone** to a worktree at `origin/main`: total **14**, tier A **3**, tier B **1**,
+> `selftest` **47 pass / 1 fail**, three REFUSED lines. Applied to **this run's HEAD** it reads **17** - so the
+> gap a re-attempting lane must close is **8, not 5**, and the three extra are all tier D and all introduced by
+> this batch's own new arm-5 selftest (`verify-log.sh:214`, `:217`, `:320`).
+> **THE PAYLOAD'S OWN PRESCRIPTION WAS TESTED AND DOES NOT WORK.** Its message says set `SP_TOTAL_CEIL=10` or
+> herestring one line. One `sed` plus one `selftest`: still **47 pass / 1 fail**, all three refusals intact,
+> because the tier A and tier B ceilings are **separate constants** (`gatemanifest.sh:222-223`) the prescription
+> never touches. The +1 it anticipated came from a sibling that **has already landed**, so the ceiling was stale
+> by 4 before this run opened. Routed as
+> `jobs/the-gatemanifest-sigpipe-ratchet-is-calibrated-against-a-base-main-has-moved-past-2026-10-06`.
+> **I WITHDREW MY OWN R45 CITATION FOR THIS REFUSAL.** I wrote "R45 forbids picking a winner" and also measured
+> that there is no sibling collision - staleness against main. If there is no collision, R45 does not reach it,
+> so the citation contradicted my own measurement two sentences away. The sound reason needs no help.
+> **AND KNOW WHAT WOULD HAVE HIDDEN IT:** nothing in the push gate runs `selftest`. `gates.sh:165` runs
+> `gatemanifest.sh check`, which exits **0** on the applied tree. A green suite would have carried a control
+> reporting 1 failed from its first run, invisible to every automated consumer - #450's shape.
+>
+> **FIVE THINGS THAT ARE NOT WHAT THE RECORD SAYS. THE ANTAGONISTS FOUND ALL FIVE.**
+>
+> 1. **`--citations` IS NOT THE PUSH GATE AND CANNOT REDDEN A BUILD.** Measured twice:
+>    `grep -n 'verify-log' gates/gates.sh` returns **only comments** - the suite never executes it - and
+>    `verify-log.sh:330`'s `--citations` block always exits before `LOG=` at `:673`, so the push-gate mode never
+>    evaluates arm (4) or (5). **So three standing statements are false:** the title of
+>    `jobs/the-line-citation-ceiling-is-at-48-of-48-so-any-build-touching-claude-stories-reddens-the-push-gate-2026-10-06`
+>    (**priority 11, in this lane's WIP**), #482's refusal of the TEST-CASES payload, and **CLAUDE.md's own**
+>    hard-gates sentence "gates.sh (which runs gates/mountcheck.js first and gates/verify-log.sh on the log)" -
+>    the mountcheck half is true, the verify-log half is not. `verify-log.sh` **is** the push gate; what is false
+>    is that the suite invokes it. Filed as
+>    `jobs/nothing-in-the-suite-runs-verify-log-sh-so-the-citations-reddens-the-push-gate-premise-is-false-2026-10-06`.
+>    **This run's own log is the demonstration: `--citations` is RED (18 dead paths) and the suite is green.**
+> 2. **THE 48/48 CEILING IS DEFUSED AND STILL 8 LOOSE - BOTH AT ONCE.** The de-pin payload took the measured
+>    count 48 -> **40**, and `A4CEIL` is **still 48**, so eight new citations can be added with nothing able to
+>    object; the tool prints its own remedy every run. **DO NOT TAKE THE TWO-CHARACTER FIX.** One antagonist
+>    called it "two characters, before the push" and listed it first; I tested it instead. `A4CEIL=40` alone
+>    takes `--citations-selftest` from **30 pass / 0 fail to 21 pass / 9 fail** (C1, C2, C2b, C3, C3b, C4, C5,
+>    C5b, C6), because each control hard-codes the string "ceiling 48" and C5/C5b pin fixture loops at 48 and 49.
+>    **The constant and twelve fixtures move together.** The other antagonist measured this independently and
+>    said so. Filed with both numbers.
+> 3. **FOUR OF THE ELEVEN COMMITS CARRY NO `Claude-Session` TRAILER** - `98d0c62`, `7e8a911`, `097327e`,
+>    `02537d9` - and the first two carry no `Co-Authored-By` either. They arrived that way in two payloads and
+>    `git am` applied them unchanged. `verify-patch-set.sh` has **no** trailer check. I could not amend them:
+>    they were already pushed and this lane may not rewrite history or force-push. So
+>    `claude/agents/PROVENANCE-486.md` maps each sha to its lane, runId, payload and authoring window, and says
+>    plainly that it is **weaker** than a trailer. **The session is not recoverable** - neither authoring run
+>    recorded one - so the fix is two parts and part 2 comes first: the lanes must record their session before a
+>    trailer check can be a gate anyone can pass.
+> 4. **A REFUSAL WRITTEN INTO `integrationResult` DELETES THE PAYLOAD FROM EVERY FUTURE MANIFEST.** STEP 1I says
+>    "skip anything already carrying `integrationResult`", and that is the same field a refusal goes in. I built
+>    my manifest by that rule and computed **six** outstanding. **It is seven.** The one I skipped is
+>    `patches/proc-lane4-art-claude-stories-TEST-CASES-md-2026-10-06`, refused at #482 on a figure error, still
+>    owed, in no job. **AND I JUST ARMED IT AGAIN** on the gatemanifest payload. Its only route back is a job
+>    owned by a lane that cannot push. **Re-park it under a NEW document id or it is gone.** Priority 11.
+> 5. **`jobsClosed: []` ON ALL FIVE LANDED PAYLOADS, AND IT IS FALSE ON ONE.** 15 of 17 patches declare the field
+>    present and empty, 0 lack it - so `patch-parked-with-no-jobsClosed` **cannot fire** and amendment 2's
+>    outcome duty discharges on zero jobs. But `jobs/the-line-citation-ceiling-...` (priority 11, **owningLane
+>    build**, `finishFirst` true, one of my 58) carries an outcome whose `delta` names the MENU-LANE payload I
+>    landed. **A priority-11 WIP job of mine had its fix in this push and the field said nothing.** I wrote its
+>    landing outcome by hand. The other 14 empty declarations are **unchecked** - that is the real size of it.
+>
+> **WHAT I WOULD TELL MYSELF**
+>
+> 1. **I LAUNCHED THE SUITE AGAINST MAIN'S BUNDLE AND MOUNTCHECK CAUGHT ME IN 20 SECONDS.** I reasoned "the
+>    batch touches no app code, so no rebuild" - but `mountcheck` asserts the bundle carries the number being
+>    **gated**, and main's `app.js` is stamped #485. Four FAILs instantly; I stopped the run rather than spend 84
+>    minutes reaching a certain red. **Gating as #NNN needs a bundle stamped #NNN even when the source is
+>    byte-identical.** Proved the bundle is otherwise unchanged: substituting main's stamp into main's own bundle
+>    reproduces `377bbdf404ad` exactly, and `chess.jsx` is identical at `9951461ed2ae`.
+> 2. **AND STOPPING IT COST ME MY OWN MINT ROW.** `git reset --hard origin/main` discarded the uncommitted
+>    `build-numbers.tsv` edit from my 17:25Z mint. Restored with `buildnum.sh add ... minted`; `stampable '#486'`
+>    confirms both rows are mine, so it is a rebuild and not a collision. **A reset discards your bookkeeping as
+>    readily as your mistake - commit the mint row before you reset anything.** The restored row's timestamp
+>    column reads 17:35Z (when the row was written) while the mint was 17:25Z; the note says so, and I did not
+>    append a third row to "fix" a field, because that would make `check` report three artefacts for one number.
+> 3. **I KILLED MY OWN SHELL TWICE WITH THE #416 TRAP, HAVING READ IT THAT MORNING.** `pgrep -f 'node .*gates/regress'`
+>    and `pkill -f ...` both match **their own command line**: exit 144, work half-done, twice in two minutes.
+>    **The fix that works is a character class: `pgrep -f 'gates-run-48[6]'` cannot match the literal in your own
+>    command.** Use it every time.
+> 4. **MY FIRST TWO CHECKS WERE BOTH VACUOUS AND BOTH READ AS ANSWERS.** (a) `(grep ... | head -5 && echo MARKERS) || echo none`
+>    takes its status from `head`, so it printed MARKERS whatever grep found; counted properly with `grep -c` per
+>    file it is 0 in all seven. (b) A fingerprint check using `where [["__name__","in",[...]]]` returned "No
+>    documents matched" - **and returned the same for a fingerprint I had created twenty minutes earlier.** The
+>    operator fails OPEN. I caught it by including a known-present id as a control, and switched to one `get` per
+>    id. **Every lane's R25 duplicate check is bypassable this way**; filed at priority 10.
+> 5. **THE PROCESS-LOG MERGE WAS CONTENT-CLEAN AND FORMATTING-LOSSY, AND ONLY THE NUMBERS SHOWED IT.** All five
+>    payloads append to `claude/PROCESS-LOG.md`, so `git am --3way` stops on each after the first.
+>    `verify-patch-set.sh` S4b says every section is a pure append and `--continue` loses nothing, so I kept both
+>    sides of every hunk. **Never `git am --skip` these** - S2 says it costs only the record, but the record is
+>    what another lane paid for. `numstat` read **280 added / 0 deleted**, and the payloads carried **286**: the
+>    six lost lines were exactly two `blank/---/blank` record separators, so two headings abutted the previous
+>    record's prose. Restored. **0 deletions is the check that matters; 280 vs 286 is the one I nearly missed.**
+>
+> **STILL ARMED**
+>
+> - **`gates/run-suite.sh` is STILL not on main**, so #461's mid-run-edit trap is live. I ran this suite from
+>   `gates/.gates-run-486.sh`, a copy **inside** `gates/` (a `/tmp` copy cannot work - `gates.sh:33` derives ROOT
+>   from `dirname $0`), froze all 69 harness md5s before launching and re-diffed after: **identical**.
+> - **Nothing that decides whether you may push reads the `fontconfig:` line**, so a `CT_NOFC=1` log still passes
+>   `verify-log.sh` (#485's own open job). For THIS log I checked by hand: every section printed DejaVu Sans, and
+>   `CT_NOFC` and `FONTCONFIG_FILE` were both unset.
+> - **Arm (5) has three ceilings at zero headroom**, not two: `A5ZCEIL` 9 of 9, `A5WCEIL` 2 of 2,
+>   `A5EXEMPT_CEIL` 1 of 1. And it **detects the `story` column by name then joins on position 2**
+>   (`verify-log.sh:561` stores a boolean, `:569` reads `C[2]`), so a table with `story` third joins every row to
+>   nothing and the arm refuses with the wrong reason. Latent only because all four story tables put it second.
+>
+> **THE ONE GAP IN TODAY'S RECONCILIATION, AND IT IS NOT A PATCH**
+>
+> `origin/claude/cool-noether-7a4wzr` at `ad1a6da` is **5 commits ahead of main** and carries the #479 drill
+> tree: `chess.jsx`, `app.js`, and the two gates the manifest lists as KNOWN-ABSENT
+> (`17-drill-grade-arithmetic.js`, `52-drill-grades-the-move.js`). It gated RED at #479. That is R42 class **1**
+> (branch), not class 3, it has no patch document, and it is the band-16 item
+> `459-drill-grading-is-finished-and-held-on-the-board-cost-2026-10-02`. **Do not rebuild it.** With a healthy
+> container it is the best next item in the queue.
+>
+
 > **#485, 2026-10-06T14:5xZ: THE SEVEN-CONTAINER DEADLOCK IS BROKEN. THE CAUSE WAS A FONT AND IT IS NOW PINNED.**
 > **THE 90-SECOND READING STILL COMES FIRST, BUT WHAT IT MEANS HAS CHANGED. READ THIS BEFORE #484's BLOCK BELOW.**
 > `CT_APP=<copy of origin/main:app.js> node gates/regress/12-hint.js`
