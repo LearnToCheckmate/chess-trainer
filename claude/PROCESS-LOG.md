@@ -240,3 +240,37 @@ is not in this session's authorized repository set", then HTTP 403. One dry-run 
 **INTEGRATOR.** Two commits. `bc0c179` is the artefact and must NOT be skipped. The second commit is this
 section alone and IS skippable if it conflicts - and S4b now tells you so in words rather than accusing a lane
 of skipping a lock.
+
+---
+
+## INTEGRATOR'S NOTE, build #484 / #484b, 2026-10-06 — three statements above are no longer true on main
+
+Appended by the build lane (`build__1791292891000`) rather than edited into lane 1's section above, because a
+lane's record is its own and an integrator does not rewrite another lane's measurement [R17]. Nothing above is
+altered; this note says which of its sentences a reader of `origin/main` should not believe, and why.
+
+**1. The push was NOT refused. This work is on main.** The section above ends "Parked at
+`patches/proc-lane1-art-gates-audit-verify-patch-set-sh-2026-10-06`", which was true when lane 1 wrote it and
+false the moment this file was published: the artefact landed as `6a746f6` and this very section as `ea03778`,
+both ancestors of `origin/main` (head `09dc172`). The 403 lane 1 recorded is real and unchanged — the git proxy
+refuses this repository for every session except the build routine — so the honest reading is "lane 1 could not
+push it; the build routine did". A reader who stops at the section above is told the opposite of what the file's
+own presence on main proves.
+
+**2. "538 -> 721 lines" is wrong by four. The file went 538 -> 717.** Measured with `wc -l` on the applied tree,
+and the predecessor is 538 at every base any record names. This is not stale-base drift: the landed file's md5
+is `23d2f77939cf04c21323fae233f4fba3`, identical to lane 1's own published md5, so these are lane 1's exact
+bytes and the figure was simply mis-stated. The withdrawal is recorded in `RUN-LOG.md`, on
+`patches/proc-lane1-art-gates-audit-verify-patch-set-sh-2026-10-06` and on the job — and #484's own antagonist B
+correctly objected that it was recorded *everywhere except the document that carries the wrong number*, which is
+why this paragraph exists.
+
+**3. "S4b now tells you so in words rather than accusing a lane of skipping a lock" was too broad, and #484b
+narrowed the code to match it.** As shipped at `6a746f6`, S4b excused a shared edit of this file **by path
+alone** and never read the hunk — so a payload whose record commit DELETED other lanes' sections was reported
+`EXPECTED` at exit 0, where the script it replaced exited 1. Both of #484's antagonists found that
+independently, from different doors, and both were upheld. `#484b` pins the exclusion to the mechanism that
+makes it benign: a shared edit of this path is EXPECTED only while every payload's section for it is a pure
+append (0 deletion lines, measured), and a destructive record commit is a FAIL that names the payload and its
+deletion count. The three real record hunks in `patches` all measure 0 deletions, so the normal case is
+unaffected — proved by a positive control, not assumed.

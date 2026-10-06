@@ -141,10 +141,20 @@ say()  { printf '%-30s %-4s %s\n' "$1" "$2" "$3"; }
 fail() { say "$1" FAIL "$2"; FAILED=1; }
 
 # Paths the charter ORDERS every parallel lane to write, so a shared edit of one is
-# expected rather than a lock violation (S4b). Space-separated. This is deliberately
-# the SAME one-member set as gates/audit/verify-parked-patch.sh:33 rather than a
-# second, independently-drifting list: if the two ever disagree about what is
-# incidental, one of the two audits is wrong about every payload it reads.
+# expected rather than a lock violation (S4b). Space-separated.
+#
+# IT IS MEANT TO BE THE SAME ONE-MEMBER SET AS gates/audit/verify-parked-patch.sh:33,
+# AND UNTIL #484 THIS COMMENT CLAIMED IT WAS "rather than a second, independently-
+# drifting list" - WHICH NOTHING CHECKED. It is a copy-paste literal in two files with
+# no cross-read either way, so the claim was exactly the kind of assurance this project
+# calls a written warning rather than a guard. #484's antagonist A caught it one screen
+# below a citation of [R06] in the same diff. C56 now compares the two literals, so the
+# sentence above is a measurement instead of a hope. If they ever disagree, one of the
+# two audits is wrong about every payload it reads.
+#
+# QUOTE THE EXPANSION. `for q in $PERMITTED_INCIDENTAL` is a deliberate word split, but
+# an unquoted expansion also pathname-expands, so a glob character in a value would
+# match against the CWD instead of being compared. There are none today; C57 pins that.
 PERMITTED_INCIDENTAL='claude/PROCESS-LOG.md'
 is_permitted_incidental() {
   local q
@@ -158,6 +168,21 @@ is_permitted_incidental() {
 
 # Every path the payload touches, one per line.
 ps_paths() { sed -n 's|^diff --git a/.* b/||p' "$1"; }
+
+# Deletion lines inside ONE path's diff sections of ONE payload, summed over every
+# commit in that payload. THIS IS THE MECHANISM S4b EXCUSES, so it is measured rather
+# than assumed: prompts/process-build step 6 licenses an APPEND to the shared record,
+# and a section that removes existing lines is overwriting another lane's record, not
+# adding one. Excludes the "--- a/<path>" file header and git's "-- " signature, which
+# is the same set `grep -c '^-[^-]'` selects.
+ps_del_lines_in() {
+  awk -v want="$2" '
+    /^diff --git a\// { cur=$0; sub(/^diff --git a\/.* b\//,"",cur); inp=(cur==want); next }
+    inp && /^--/ { next }
+    inp && /^-/  { n++ }
+    END { print n+0 }
+  ' "$1"
+}
 
 # Every path the payload ADDS as a new file, one per line. git format-patch emits
 # "new file mode <mode>" on the line after the "diff --git" line of an addition.
@@ -320,7 +345,7 @@ verify_set() {
   done < <(printf '%s\n' ${collided[@]+"${collided[@]}"} ${sharedmod[@]+"${sharedmod[@]}"} | sed '/^$/d' | sort -u)
 
   if [ "${#colliding_all[@]}" -eq 0 ]; then
-    say S2-COLLISION-SKIPPABLE SKIP "no path is touched by two payloads, by addition or by modification"
+    say S2-COLLISION-SKIPPABLE SKIP "no path is added as a new file by two payloads (S1) and no existing path is modified by two payloads (S4). NOT the same as 'no collision is possible': a path ADDED by one payload and MODIFIED by another is in neither set and is reported by neither check - a pre-existing hole #484's antagonist A measured, unchanged by that build, and filed as its own job"
   else
     local unskippable=0
     for p in "${colliding_all[@]}"; do
@@ -391,8 +416,28 @@ verify_set() {
     for p in "${sharedmod[@]}"; do
       who=$(awk -F'\t' -v w="$p" '$1==w{printf "%s ", $2}' "$mtmp")
       if is_permitted_incidental "$p"; then
-        say S4b-EXPECTED-SHARED-EDIT PASS "$p modified by: ${who}- EXPECTED, not a lock violation: prompts/process-build step 6 requires every process lane to append to it, and R44's lock serialises writes within a run, not payloads across runs. CONSEQUENCE: git am --3way stops on the second payload with this the only unmerged path; S2 says whether --skip costs only the record."
-        expected=1
+        # THE EXCLUSION IS PINNED TO ITS MECHANISM, NOT TO THE PATH LIST. #484 shipped
+        # this keyed on the path alone and BOTH its antagonists broke it independently
+        # from different doors: a payload whose section for this path DELETES 140 lines
+        # of other lanes' records audited green at exit 0, where the script it replaced
+        # exited 1. The justification sentence said "step 6 requires every process lane
+        # to APPEND to it" and nothing ever compared that word to the diff. So the guard
+        # was strictly weaker than its predecessor on the one path it excuses, which is
+        # the 35-width-containment rule's own instruction: excuse a case by the
+        # MECHANISM that makes it benign, never by the list it appears on.
+        local destroyers="" d nd
+        for f in "${payloads[@]}"; do
+          ps_paths "$f" | sort -u | grep -qxF "$p" || continue
+          nd=$(ps_del_lines_in "$f" "$p")
+          [ "$nd" -gt 0 ] && destroyers="$destroyers$(basename "$f") removes $nd line(s); "
+        done
+        if [ -n "$destroyers" ]; then
+          fail S4-NO-SHARED-EDIT "$p modified by: ${who}- and NOT by appending: ${destroyers}which overwrites another lane's record rather than adding one. prompts/process-build step 6 licenses an APPEND to this file and licenses nothing else, so this is NOT an expected shared edit and NOT safe to git am --skip past (R44 lock skipped or expired, or a destructive record commit)."
+          shared=1
+        else
+          say S4b-EXPECTED-SHARED-EDIT PASS "$p modified by: ${who}- EXPECTED, not a lock violation: prompts/process-build step 6 requires every process lane to append to it, every one of these payloads APPENDS ONLY (0 deletion lines in its sections for this path, measured), and R44's lock serialises writes within a run, not payloads across runs. CONSEQUENCE: git am --3way stops on each payload after the first with this the only unmerged path; S2 says whether --skip costs only the record, and because every section here is a pure append the conflict is also resolvable with --continue at no loss."
+          expected=1
+        fi
       else
         fail S4-NO-SHARED-EDIT "$p modified by: ${who}(R44 lock skipped or expired)"
         shared=1
@@ -509,6 +554,16 @@ mk_new() {
 }
 mk_mod() {
   printf 'diff --git a/%s b/%s\nindex 1111111..2222222 100644\n--- a/%s\n+++ b/%s\n@@ -1 +1 @@\n-hello\n+world\n' "$1" "$1" "$1" "$1"
+}
+
+mk_append() {
+  printf 'diff --git a/%s b/%s\nindex 1111111..2222222 100644\n--- a/%s\n+++ b/%s\n@@ -40,3 +40,5 @@ ctx\n ctx1\n ctx2\n ctx3\n+appended line A\n+appended line B\n' "$1" "$1" "$1" "$1"
+}
+mk_rewrite() {
+  printf 'diff --git a/%s b/%s\nindex 1111111..3333333 100644\n--- a/%s\n+++ b/%s\n@@ -1,3 +1,1 @@\n-other lane line 1\n-other lane line 2\n-other lane line 3\n+ONLY MY RECORD SURVIVES\n' "$1" "$1" "$1" "$1"
+}
+mk_delfile() {
+  printf 'diff --git a/%s b/%s\ndeleted file mode 100644\nindex 1111111..0000000\n--- a/%s\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-other lane line 1\n-other lane line 2\n' "$1" "$1" "$1"
 }
 
 selftest() {
@@ -637,9 +692,9 @@ selftest() {
   # claims/art-claude-PROCESS-LOG-md cleanly, hours apart.
   mkdir -p "$T/L"
   { mk_commit_header 1aaaaaa "lane1 artefact"; mk_mod gates/regress/61-review-list-month-independence.js
-    mk_commit_header 1aaaaab "lane1 record";   mk_mod claude/PROCESS-LOG.md; } > "$T/L/lane1"
+    mk_commit_header 1aaaaab "lane1 record";   mk_append claude/PROCESS-LOG.md; } > "$T/L/lane1"
   { mk_commit_header 1bbbbbb "lane2 artefact"; mk_mod gates/verify-log.sh
-    mk_commit_header 1bbbbbc "lane2 record";   mk_mod claude/PROCESS-LOG.md; } > "$T/L/lane2"
+    mk_commit_header 1bbbbbc "lane2 record";   mk_append claude/PROCESS-LOG.md; } > "$T/L/lane2"
   out=$(verify_set "$T/L"); rc=$?
   expect_line     C33-S4b-reports-the-expected-shared-edit "$out" '^S4b-EXPECTED-SHARED-EDIT +PASS .*claude/PROCESS-LOG\.md.*EXPECTED'
   expect_line     C34-S4-passes-on-the-permitted-path      "$out" '^S4-NO-SHARED-EDIT +PASS'
@@ -652,7 +707,7 @@ selftest() {
   # This is the state the integrator must stop on, and before this amendment S2 did
   # not look at it at all.
   mkdir -p "$T/M"
-  { mk_commit_header 1ccccccc "lane1 bundled"; mk_mod gates/regress/61-review-list-month-independence.js; mk_mod claude/PROCESS-LOG.md; } > "$T/M/lane1"
+  { mk_commit_header 1ccccccc "lane1 bundled"; mk_mod gates/regress/61-review-list-month-independence.js; mk_append claude/PROCESS-LOG.md; } > "$T/M/lane1"
   cp "$T/L/lane2" "$T/M/lane2"
   out=$(verify_set "$T/M"); rc=$?
   expect_line  C38-S2-fires-on-a-bundled-record     "$out" '^S2-COLLISION-SKIPPABLE +FAIL .*lane1.*claude/PROCESS-LOG\.md is bundled'
@@ -663,9 +718,9 @@ selftest() {
   # split must not let the permitted path excuse the other.
   mkdir -p "$T/N"
   { mk_commit_header 1ddddddd "lane1 artefact"; mk_mod gates/verify-log.sh
-    mk_commit_header 1dddddde "lane1 record";   mk_mod claude/PROCESS-LOG.md; } > "$T/N/lane1"
+    mk_commit_header 1dddddde "lane1 record";   mk_append claude/PROCESS-LOG.md; } > "$T/N/lane1"
   { mk_commit_header 1eeeeeee "lane2 artefact"; mk_mod gates/verify-log.sh
-    mk_commit_header 1eeeeeef "lane2 record";   mk_mod claude/PROCESS-LOG.md; } > "$T/N/lane2"
+    mk_commit_header 1eeeeeef "lane2 record";   mk_append claude/PROCESS-LOG.md; } > "$T/N/lane2"
   out=$(verify_set "$T/N"); rc=$?
   expect_line  C41-S4-still-fires-on-the-real-one   "$out" '^S4-NO-SHARED-EDIT +FAIL .*gates/verify-log\.sh.*lock skipped or expired'
   expect_line  C42-S4b-fires-on-the-permitted-one   "$out" '^S4b-EXPECTED-SHARED-EDIT +PASS .*claude/PROCESS-LOG\.md'
@@ -675,7 +730,7 @@ selftest() {
   # permitted list is not a reason to print anything: S4b must SKIP, not PASS. A
   # check that cannot fail on this input is a SKIP [R18].
   mkdir -p "$T/O"
-  { mk_commit_header 1fffffff "lane1"; mk_mod claude/PROCESS-LOG.md; } > "$T/O/lane1"
+  { mk_commit_header 1fffffff "lane1"; mk_append claude/PROCESS-LOG.md; } > "$T/O/lane1"
   { mk_commit_header 10000001 "lane2"; mk_mod gates/gatemanifest.sh;  } > "$T/O/lane2"
   out=$(verify_set "$T/O"); rc=$?
   expect_line  C44-S4b-skips-on-a-single-toucher "$out" '^S4b-EXPECTED-SHARED-EDIT +SKIP'
@@ -703,6 +758,64 @@ selftest() {
   # because an ADDITION of the permitted path is S1's business and not S4b's.
   out=$(verify_set "$T/A")
   expect_line  C51-S4b-skips-on-an-add-add "$out" '^S4b-EXPECTED-SHARED-EDIT +SKIP'
+
+  # ---- fixture sets Q, R, S: THE SHAPE S4b EXCUSES. Added at #484b after BOTH
+  # antagonists independently broke the #484 split from different doors. Every
+  # permitted-path fixture above is now a REAL APPEND (mk_append), because until #484b
+  # they used mk_mod - a line-1 replacement with one deletion - which is a shape that
+  # occurs in NO payload in collection `patches`: all three real record hunks are
+  # "@@ -143,3 +143,N @@" with zero deletion lines. A fixture carrying a shape reality
+  # does not produce cannot reveal anything about reality, and these three sets are the
+  # controls that would have caught the hole on the day.
+  mkdir -p "$T/Q"
+  { mk_commit_header 1aaabbb1 "lane1 artefact"; mk_new gates/audit/zz-one.sh
+    mk_commit_header 1aaabbb2 "lane1 record";   mk_append claude/PROCESS-LOG.md; } > "$T/Q/lane1"
+  { mk_commit_header 1aaabbb3 "lane2 artefact"; mk_new gates/audit/zz-two.sh
+    mk_commit_header 1aaabbb4 "lane2 DESTRUCTIVE record"; mk_rewrite claude/PROCESS-LOG.md; } > "$T/Q/lane2"
+  out=$(verify_set "$T/Q"); rc=$?
+  expect_line    C52-a-destructive-record-is-NOT-an-expected-shared-edit "$out" '^S4-NO-SHARED-EDIT +FAIL .*claude/PROCESS-LOG\.md.*NOT by appending'
+  expect_line    C53-the-FAIL-names-the-destroying-payload               "$out" '^S4-NO-SHARED-EDIT +FAIL .*lane2 removes 3 line\(s\)'
+  expect_no_line C54-S4b-does-NOT-call-it-expected                       "$out" '^S4b-EXPECTED-SHARED-EDIT +PASS'
+  expect_rc      C55-set-Q-exit-1 "$rc" 1
+
+  # set R: the same path DELETED outright. ps_new_paths keys on "new file mode", so a
+  # deletion lands in the modification bucket and would have been excused by path too.
+  mkdir -p "$T/R"
+  { mk_commit_header 1cccddd1 "lane1 artefact"; mk_new gates/audit/zz-three.sh
+    mk_commit_header 1cccddd2 "lane1 record";   mk_append claude/PROCESS-LOG.md; } > "$T/R/lane1"
+  { mk_commit_header 1cccddd3 "lane2 artefact"; mk_new gates/audit/zz-four.sh
+    mk_commit_header 1cccddd4 "lane2 deletes the record file"; mk_delfile claude/PROCESS-LOG.md; } > "$T/R/lane2"
+  out=$(verify_set "$T/R"); rc=$?
+  expect_line C58-a-deletion-of-the-permitted-path-fails-S4 "$out" '^S4-NO-SHARED-EDIT +FAIL .*claude/PROCESS-LOG\.md.*NOT by appending'
+  expect_rc   C59-set-R-exit-1 "$rc" 1
+
+  # set S: THE POSITIVE CONTROL, and it is the one that stops this fix over-firing.
+  # Two pure appends must still be EXPECTED and must still exit 0, or the repair has
+  # simply reddened the normal case - which is how a guard gets switched off.
+  mkdir -p "$T/S"
+  { mk_commit_header 1eeefff1 "lane1 artefact"; mk_new gates/audit/zz-five.sh
+    mk_commit_header 1eeefff2 "lane1 record";   mk_append claude/PROCESS-LOG.md; } > "$T/S/lane1"
+  { mk_commit_header 1eeefff3 "lane2 artefact"; mk_new gates/audit/zz-six.sh
+    mk_commit_header 1eeefff4 "lane2 record";   mk_append claude/PROCESS-LOG.md; } > "$T/S/lane2"
+  out=$(verify_set "$T/S"); rc=$?
+  expect_line C60-two-pure-appends-are-still-EXPECTED "$out" '^S4b-EXPECTED-SHARED-EDIT +PASS .*claude/PROCESS-LOG\.md.*APPENDS ONLY'
+  expect_line C61-S4-passes-on-set-S                  "$out" '^S4-NO-SHARED-EDIT +PASS'
+  expect_rc   C62-set-S-exit-0 "$rc" 0
+
+  # ---- C56/C57: the PERMITTED_INCIDENTAL literal, which the comment above used to
+  # ASSERT agreed with its sibling audit while nothing compared them [R06].
+  local sib="$(dirname "$0")/verify-parked-patch.sh" lits
+  if [ -r "$sib" ]; then
+    lits=$(grep -h "^PERMITTED_INCIDENTAL=" "$sib" "$0" | sort -u | wc -l | tr -d ' ')
+    if [ "$lits" = "1" ]; then PASS=$((PASS+1)); echo "  ok   C56-permitted-set-agrees-with-verify-parked-patch"
+    else FAILN=$((FAILN+1)); echo "  FAIL C56-permitted-set-agrees-with-verify-parked-patch ($lits distinct literals, wanted 1)"; fi
+  else
+    FAILN=$((FAILN+1)); echo "  FAIL C56-permitted-set-agrees-with-verify-parked-patch (sibling not readable at $sib)"
+  fi
+  case "$PERMITTED_INCIDENTAL" in
+    *'*'*|*'?'*|*'['*) FAILN=$((FAILN+1)); echo "  FAIL C57-permitted-set-has-no-glob-characters ($PERMITTED_INCIDENTAL)";;
+    *) PASS=$((PASS+1)); echo "  ok   C57-permitted-set-has-no-glob-characters";;
+  esac
 
   printf '\nSELFTEST %s pass / %s fail\n' "$PASS" "$FAILN"
   rm -rf "$T"
