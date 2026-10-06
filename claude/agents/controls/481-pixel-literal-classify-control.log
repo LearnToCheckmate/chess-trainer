@@ -1,0 +1,96 @@
+#481 CONTROL RECORD - gates/audit/pixel-literal-classify.sh
+run 2026-10-06T10:39:43Z by build__1791282018634, tree f586fd2 (origin/main), app.js fb10dbef9591 UNCHANGED
+container: THE BROKEN KIND. gate 12 on main's OWN bundle reads kunal board 361 (want 375), se 258 (want 259),
+           so nothing here was gated and nothing here needed to be: this tool launches no browser.
+
+=== DETERMINISM: three --json runs, md5 of output ===
+  run 1  64821a74adf1e482fc035cdb607139e0
+  run 2  64821a74adf1e482fc035cdb607139e0
+  run 3  64821a74adf1e482fc035cdb607139e0
+
+=== FULL REPORT ===
+PINNED LAYOUT LITERALS IN THE GATE SUITE — provenance, not magnitude
+predicate: a numeric literal of ANY magnitude compared against a MEASURED quantity, directly or
+           through a named table an assertion consults. Comments stripped. Measured-vs-measured
+           comparisons are NOT members: both sides move together.
+tree     : (working tree)
+
+gate .js files                      : 55
+files carrying >=1 pinned literal   : 42
+files carrying none                 : 13
+pinned literal SITES                : 378
+  pinned-layout (container-SENSITIVE): 273
+  viewport-constant used as a bound : 105
+  NOT SPLIT BY THIS SCRIPT: which pinned-layout literals descend from a TEXT measurement.
+  That is the per-site reading the job asks for; this tool sizes the population, not the subset.
+literals BELOW 100 (invisible to the >=100 band): 180
+  of those, AT RISK                 : 180
+
+PER FILE  (red479 = FAIL count in #479's full run; * = #479 called it NOT a container artefact)
+  sites  pinned <100  red479  file
+     53    53    20       2  49-home.js
+     28    24    19      15  48-lesson-flow.js
+     23    17    15       -  70-live-game-reset-guard.js
+     21     2     1       -  61-review-list-month-independence.js
+     19    19    14       6  45-play-setup.js
+     18     1     0       -  53-lesson-hit-area.js
+     16     2     2       -  54-play-resume.js
+     16     7     7       -  64-landscape-gameover-row.js
+     15    13    11       3  46-play.js
+     13    12     6       -  11-lesson.js
+     13     0     0       -  58-review-rating-source.js
+     12    12    11       -  47-menu.js
+     11     9     4       -  15-gallery-playall.js
+     11    11     7       1  40-reachability.js
+     10    10     9       -  20-review.js
+     10    10    10      38  26-invariants.js
+      8     6     4       -  21-review-brilliant.js
+      7     7     4       -  36-evalbar.js
+      7     7     0       6  57-pz-solved-explanation.js
+      7     0     0       -  62-landscape-board-stable.js
+      7     1     1       -  69-setup-sheet-live-game.js
+      6     4     4       -  16-cpu-result-line.js
+      5     5     5       -  38-rev-sheet-reach.js
+      4     3     1       -  13-play-after-moves.js
+      4     4     2       -  30-p1-fixes.js
+      4     4     4       -  65-promotion-after-gameover.js
+      3     3     0       2  12-hint.js
+      3     3     0       1  39-pz-streak.js
+      3     3     3       -  63-gameover-chrome-keying.js
+      3     3     3       -  73-review-list-filter.js
+      2     2     0       -  10-gameover.js
+      2     2     2       -  31-antagonist373.js
+      2     2     2       -  35-width-containment.js
+      2     2     2       -  41-coach-bubble.js
+      2     2     2       -  42-home-devrow.js
+      2     2     2      2*  72-drill-prev.js
+      1     1     0       -  14-uat-review-card.js
+      1     1     1       -  25-online-clocks.js
+      1     1     0       -  34-takeback.js
+      1     1     1       -  37-strip-sync.js
+      1     1     0       -  55-play-from-here-terminal.js
+      1     1     1       -  71-resume-row-agrees-with-the-board.js
+
+CONTROL 1 - every #479 red that was a container artefact must be inside the class.
+  container-artefact reds : 9   caught 9   MISSED 0
+CONTROL 2 - the two #479 called NOT container artefacts should look different.
+  52-drill-grades-the-move.js   0 pinned sites - correctly outside the class
+  72-drill-prev.js              2 pinned sites
+CONTROL 3 - a measured-vs-measured assertion must NOT be counted (measured, not asserted).
+  measured-vs-measured lines found : 10
+  of those also reported as pins   : 0  (correct: none)
+exit=0
+
+=== CONTROL 4: a raw token grep against this tool, per file ===
+   (the point is method, NOT that #480 counted comments - see the script header's withdrawal)
+  48-lesson-flow.js: raw 3+digit tokens 751 | this tool 28 | #480 published 20
+  45-play-setup.js: raw 3+digit tokens 265 | this tool 19 | #480 published 7
+
+=== CONTROL 5: real #479 reds whose failing literal is BELOW 100 (invisible to the >=100 band) ===
+  49-home.js:670:    L.say(!!s&&s.present&&near(s.y,106)&&near(s.h,68)&&near(s.w,W.colW),
+  40-reachability.js:313:      const want=[{w:119,x:4},{w:93,x:148},{w:105,x:266}];
+  46-play.js:100:const PP ={se:{bw:272,bx:24,by:63,barW:272,barH:34},kunal730:{bw:375,bx:0,by:84.8,barW:375,barH:55.8},'390':{bw:390,bx:0,by:103,barW:390,barH:74}};
+
+=== WHAT IS NOT SETTLED ===
+  Which of the 273 pinned-layout sites descend from a TEXT measurement. That is the per-site reading
+  the job asks for; this tool sizes the population and names the empirical join, it does not split it.
