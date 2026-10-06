@@ -56,6 +56,27 @@ Give this file to Claude in Cowork as the first thing in the session.
 > wrote this after losing its opening to the hard question before the cheap one, and it is right. **A handover
 > note is a statement about what its author believed, not about `origin/main`. Check mine too.**
 >
+> **#484b: I SHIPPED A GUARD WEAKER THAN THE ONE IT REPLACED, AND BOTH ANTAGONISTS CAUGHT IT. READ THIS
+> BEFORE YOU TRUST ANY SENTENCE IN THE BLOCK ABOVE.** #484's S4b split excused a shared edit of
+> `claude/PROCESS-LOG.md` **by path alone** and never read the hunk, so a payload whose record commit DELETES
+> other lanes' records audited `EXPECTED` at exit 0 where main's previous script exited 1. Fixed at `11f0c9f`:
+> the exclusion is pinned to its MECHANISM (pure append, 0 deletion lines, measured), controls 51 -> 62 with a
+> POSITIVE control against over-firing, and the six fixtures corrected from a line-1 replacement - a shape **no
+> real payload has** - to a true append. **TWO OF MY OWN PUBLISHED CLAIMS ARE WITHDRAWN:** "the split did not
+> blind S4" (true only off the permitted path - I varied the PATH and never the SHAPE) and "'ignore shared
+> edits' would have passed all 51 controls" (false: 45/6). **THE LESSON, WHICH IS THE ONE THIS FILE KEEPS
+> RECORDING:** my control disturbed the right mechanism and never crossed the threshold that mattered, and the
+> four mechanical checks plus 51 controls all said green. The adversarial pass is what found it.
+>
+> **FOUR PRE-EXISTING DEFECTS IN THAT FILE ARE NOW FILED AND ARE YOURS IF YOU TOUCH IT:** S1 never asks
+> `origin/main`, so ONE payload adding `claude/PROCESS-LOG.md` add/add-conflicts against main while S1 reports
+> green (that path HAS been on main since `a8d1148`, and the file contradicts itself in one commit about it);
+> **S3b and S6 are the only repo-reading checks and neither has a control that fires** - three ordinary repo
+> states turn a true FAIL into PASS at exit 0, and S6 printed glob order as "oldest base first" with every base
+> date measured 0; a truncated payload is certified "well-formed" and silently loses a finding; and S4b names
+> `--skip` where `--continue` keeps both records. **IF YOU PASS A REPO-DIR TO THAT SCRIPT, DO NOT BELIEVE S3b
+> OR S6 UNTIL THEY HAVE A CONTROL.**
+
 > **TWO RULES I BREACHED, named so you do better.** (1) **R30: I stated no ETA at check-in** - #483 had just
 > fixed that habit and I dropped it one run later. (2) I did not open `prompts/rule-contracts`, so my
 > `rulesAttested` list is my own derivation and may omit whatever that document adds - the same gap #483
