@@ -75,15 +75,20 @@
 //        something coarser could not quietly pass.
 //
 // ── NOT CHECKED, said plainly ────────────────────────────────────────────────────────────────────────────────
-//   * The FLAG block (A0..A3, B1) runs at 375x730 only, because each flag costs a real 60-second clock and two
-//     geometries would put this gate past two minutes on its own. The picker is position:fixed inset:0 and
-//     centred, so it is geometry-independent by construction - but that is a reading, not a measurement, and no
-//     claim here is a claim at 320x568 for those assertions. The RESIGN, MATE and LIVE blocks run at both.
+//   * The FLAG block (A0..A3, B1) runs at 375x730 only, because each flag costs a real 60-second clock. The
+//     original reason given here - that "two geometries would put this gate past two minutes on its own" - is a
+//     COST argument and #488 decided against it for ONE more geometry, not for all: block H below pays a fourth
+//     real clock (~+75s measured) to drive the landscape cell. No claim in THIS block is a claim at 320x568, and
+//     320x568 is still not driven for the flag path. The RESIGN, MATE and LIVE blocks run at both.
 //   * An ONLINE game. Its own branch in humanCanMove already gates on og.status/og.result and the fix is a no-op
 //     there, but sign-in and egress are both blocked in this sandbox so it is untraced rather than passed.
 //   * Promotion in a vs-COMPUTER game - the job's own notChecked item. The picker is opened by the same single
 //     call site for every opponent, which is why it is not duplicated here, but it is not driven.
-//   * LANDSCAPE. Neither the auditor nor this gate drove 730x375.
+//   * LANDSCAPE: PARTLY DRIVEN SINCE #488, and this entry is rewritten rather than deleted so the remaining hole
+//     is visible. Block H drives 730x375 for the PASS & PLAY picker-at-a-clock-flag path (12 assertions). NOT
+//     driven at 730x375: the vs-Computer path, the RESIGN/MATE/LIVE blocks C/D/E, the drag block G, and A3's
+//     Rematch-resurrection assertion - so block H run ALONE would go green on the paint-only candidate bundle
+//     (gates/.trial/app-nc2-paintonly.js, md5 14905f6f0ce3) that only A3 can distinguish. Block A still carries that.
 //   * The #414 auto-draws by repetition and fifty-move. They set playEnd by the same path as resign, so the fix
 //     covers them, and this gate does not reach them.
 'use strict';
@@ -395,17 +400,82 @@ async function blockG(){
 // ── H: LANDSCAPE, 730x375. The axis the job's own `case` names and that nothing in this project has driven. ───
 // jobs/a-pawn-can-be-promoted-into-a-game-that-already-ended-on-time-2026-09-30 carries a FOUR-cell input spec -
 // {375x730, 730x375} x {Pass & Play, vs Computer} - and at #439 exactly ONE cell of the four was driven. The
-// gate said so itself under NOT CHECKED ("LANDSCAPE. Neither the auditor nor this gate drove 730x375") and gave
+// gate said so itself under NOT CHECKED (that entry is now rewritten above to name what is still undriven) and gave
 // its reason for the picker in the next bullet up: "The picker is position:fixed inset:0 and centred, so it is
 // geometry-independent by construction - but that is a READING, not a measurement."
-// THIS BLOCK TESTS THAT READING INSTEAD OF REPEATING IT, and 730x375 is the one shape in this project where it
-// is a live question: the picker's content is four 52px buttons plus a "Promote to" label, and in landscape the
+// THIS BLOCK TESTS THAT READING INSTEAD OF REPEATING IT. ONE SENTENCE OF THE FIRST DRAFT WAS FALSE AND IS
+// WITHDRAWN HERE [R18, #488 antagonist A veto 3]: it said 730x375 is an axis "nothing in this project has ever
+// visited" and "the one shape in this project where it is a live question". MEASURED, `grep -rn 'w:730' gates/regress/`:
+// THREE existing gates already launch at 730x375 - 62-landscape-board-stable.js:50, 64-landscape-gameover-row.js:56
+// and 16-cpu-result-line.js:457 - and gate 62:63 already carries H00's viewport self-check verbatim. The claim that
+// survives is the narrow one and it is the only one this block earns: NO GATE HAD DRIVEN THE PROMOTION PICKER, OR
+// ANY GAME-OVER INPUT PATH, AT 730x375. The geometry is well travelled; this corner of the input space was not.
+// What makes it worth driving here: the picker's content is four 52px buttons plus a "Promote to" label, and in landscape the
 // viewport is 375px TALL against 730 in every cell the gate already visits - the same wide-and-short corner
 // lib.js's own `short375` entry was added for at #406, turned on its side.
+// H0b IS AN INSTRUMENT AND A GEOMETRY MEASUREMENT, NOT A DEFECT ASSERTION, and the first draft of this comment
+// oversold it as "the assertion that reading could not make" [#488 antagonist A, concern 5]. IT IS READ BEFORE THE
+// CLOCK FLAG (:~449), so no bundle that reverts game-over logic can move it, and it was green on both sides of this
+// block's negative control by construction. It is also not a tight pin: the picker's card is ~271x115 centred in
+// 730x375, so there is roughly 130px of vertical slack and its threshold sits nowhere near its measured value. What
+// it DOES do is replace a reading with a number and print the four rects, so the next reader can see the slack
+// rather than infer it from `position:fixed inset:0`.
 // H0b IS DELIBERATELY A SEPARATE ASSERTION FROM H0, and that separation is the point: `picker()` finds the
 // overlay by its text and its position, so a picker clipped to half a button still satisfies H0. Without H0b a
 // picker whose fourth piece is painted off the bottom of a 375px screen - a player who cannot choose a knight -
 // reads as a clean pass. H0 asks whether it is THERE; H0b asks whether a finger can reach all four of it.
+// ── BLOCK H'S OWN CONTROL, recorded HERE and not only in a commit message [#488 antagonist B concern 5, A9] ──
+//   MEASURED on the shipped bundle c87a4050df97 (= origin/main's #487 app.js): block H 12 pass / 0 fail.
+//   MEASURED on a negative control built for it: 8 pass / 4 fail, md5 1dfde5cabcec.
+//   THE RECIPE, verbatim rather than described, because the control bundle is NOT on disk and gates/.trial does
+//   not exist on this tree - so the only reproducible artefact is the source edit. In a scratch copy of chess.jsx,
+//   revert these THREE #439 sites, then `CT_OUT=<path> gates/build.sh '#487'`:
+//     (1) chess.jsx:3123  delete  useEffect(()=>{if(mode==='play'&&_gameOver&&promo)setPromo(null);},[mode,_gameOver,promo]);
+//     (2) chess.jsx:7636  rewrite {promo&&!(mode==='play'&&_gameOver)&&(()=>{   to   {promo&&(()=>{
+//     (3) chess.jsx:4339  delete  if(modeRef.current==='play'&&playEndRef.current)return;   (inside doMove)
+//   RUN IT AS:  CT_APP=<bundle> CT_B65=H node gates/regress/65-promotion-after-gameover.js
+//   THE FOUR REDS ARE H1, H2, H2a, H2b; the seven instruments and H3 stay green, so the control CROSSES the
+//   threshold the assertions draw: picker still up with 4 enabled buttons, plies 8 -> 9, '5.fxg8=Q' appended
+//   after the result card, captured material +2 -> +13.
+//   TWO HONEST QUALIFICATIONS. (a) Of the three sites, only (1) and (3) can move block H's numbers: the picker's
+//   buttons call doMove() directly and never pass through humanCanMove, and every H assertion is read >250ms after
+//   the flag, long past the clearing effect, so the render guard (2) has NO negative control here and is not
+//   claimed to have one. (b) The 12/0 green was measured on c87a4050df97 and this gate ships on 8d8785ea40c4;
+//   chess.jsx is 9951461ed2ae on both, so they differ ONLY in the --define:__BUILD__ stamp - but an md5 names an
+//   ARTEFACT and not a source tree [#454], so the two numbers are stated against the two bundles rather than merged.
+//
+// ── THE GEOMETRY FIGURE IS DISPUTED AND THIS BLOCK CHOSE DELIBERATELY [#488 antagonist B concern 2] ──────────
+//   R19 (prompts/common, SETTLED 2026-10-03) says Kunal's phone is 375x761 and that "the figure 730 is wrong and
+//   should be corrected wherever it appears"; contradictions/r19-height-settled-against-the-phone-card-still-asking
+//   and the READY P1 jobs/the-priority-14-geometry-migration-is-pointed-at-the-figure-R19-corrects-2026-10-04
+//   exist to stop the fleet propagating 730. This block nevertheless uses 730x375, and the reasons are stated so
+//   the migration sweep can overrule them rather than re-derive them: it is the figure this job's own `case` field
+//   names; it is the figure the three existing landscape gates already use (62:50, 64:56, 16:457), so the sweep
+//   should move four instances together rather than leave this one inconsistent with its neighbours; and the
+//   choice is MEASURED not to change what is tested - chess.jsx:3140-3141 and :5048 take the same `wide` and
+//   `hLand` branches at 730x375, 761x375 and 730x350 alike. So this is a migration cost, not a measurement error,
+//   and it is 31px of width. It is a NEW instance of a disputed literal and that is named here rather than hidden.
+//
+// ── WHAT BLOCK H DOES NOT COVER, and it is more than the cell it adds [#488 antagonist B concern 3] ──────────
+//   EVERY ASSERTION IN THIS BLOCK READS TEXT OR A COUNT. None reads paint, width or position except H0b, which
+//   points at the picker. So block H is the first gate in this project to enter landscape GAME-OVER and it walks
+//   past four open READY P1s at or beside its own geometry without seeing them, and that is a property of this
+//   block rather than evidence those defects are absent:
+//     landscape-control-row-buttons-are-under-the-44px-minimum-width-2026-09-30 (four of six under 44px AT 730x375)
+//     landscape-game-over-banner-is-cut-mid-letter-2026-09-29
+//     the-landscape-result-line-lives-in-a-scroller-that-can-take-it-off-screen-2026-09-29
+//     review-screen-in-landscape-buries-its-own-tab-bar-and-transport-row-2026-09-30
+//   H0e IS THE SHARP CASE AND IT IS WORTH STATING AGAINST MYSELF: it asserts /Time/i over the result card's
+//   innerText, and innerText is COMPLETE on a visually clipped element - so H0e passes over a bundle on which the
+//   player reads 'Tim'. That is this project's own 'a container is not its contents' rule (#395) and 'assert WHICH
+//   THING DID THE CUTTING' (#387). H0e is an arrival check, not a rendering assertion, and must not be cited as one.
+//
+// ── WHAT IT COSTS, priced rather than left implicit [#488 antagonists A8 / B6] ───────────────────────────────
+//   Block H adds a FOURTH real 60-second clock flag to a gate that already pays three: ~+75s, about +18% on gate 65
+//   and about +1.5% on a 56-section suite. Three open jobs name the suite's 88-minute length as the binding
+//   constraint on this project (the-only-route-to-a-push-is-an-85-minute-suite-this-container-does-not-reliably-
+//   survive-2026-10-06 among them), so the cost is real and small and is recorded rather than absorbed silently.
+//
 // 730x375 IS NOT IN lib.js's GEOS AND IS PASSED AS A LITERAL {w,h}: L.launch already accepts an object
 // (lib.js:236, `typeof opts.geo==='object'`), so this block adds an input while touching ONE file and leaves the
 // shared geometry table alone [R44].
@@ -440,8 +510,15 @@ async function blockH(){
                   off:(r.top<0||r.bottom>innerHeight||r.left<0||r.right>innerWidth)};});
     });
   }
-  const offCount=offs?offs.filter(x=>x.off).length:-1;
-  L.say(offCount===0,'H0b every one of the four promotion buttons is fully inside the 730x375 viewport',{offCount,vp:v,boxes:offs});
+  // THE COUNT IS PART OF THE ASSERTION, and the first version of this line left it out [#488 antagonist A, veto 1].
+  // It read `offs?offs.filter(x=>x.off).length:-1`, which covers offs===null (no overlay) and NOT offs===[].
+  // An empty array filters to length 0, so offCount===0 and this PASSED - on a picker whose buttons had collapsed
+  // to zero size or gone display:none, i.e. THE PLAYER WHO CANNOT CHOOSE A KNIGHT, which is the exact failure the
+  // paragraph above says H0b exists for. The selector at :437 filters to width>1&&height>1, so the degenerate case
+  // the measurement is about is excluded from the set being measured: this project's standing trap, the eleventh
+  // costume - the check and the thing being checked were the same object.
+  const offCount=(offs&&offs.length===4)?offs.filter(x=>x.off).length:-1;
+  L.say(offCount===0,'H0b all FOUR promotion buttons exist and are fully inside the 730x375 viewport',{offCount,n:offs?offs.length:null,vp:v,boxes:offs});
   let LAND_CENTRES=up?up.centres:null;
   const pDuring=await plies(b);
   L.say(pDuring===8,'H0c opening the picker commits no move in landscape',{plies:pDuring});
@@ -455,9 +532,20 @@ async function blockH(){
   L.say(after===null,'H1 [730x375] the picker is GONE once the result card exists',after||'absent');
   await b.shot('488-65-H1-picker-at-flag-landscape');
   const pFlag=await plies(b);
-  if(LAND_CENTRES&&LAND_CENTRES.length){await b.page.mouse.click(LAND_CENTRES[0][0],LAND_CENTRES[0][1]);await b.page.waitForTimeout(700);}
+  // WHAT IS UNDER THAT COORDINATE IN LANDSCAPE IS NOT CHARACTERISED BY ANYONE [#488 antagonist A, concern 7].
+  // In portrait the queen button's centre sits over the board; at 730x375 the board caps near 216px wide (gate
+  // 62's own constant) and the picker card is centred, so ~(247,201) is chrome nobody has named. If a later layout
+  // change puts Rematch or More there, H2 reddens for a reason that has nothing to do with this defect - a false
+  // P0 of exactly the class this project keeps filing. So the payload records WHAT THE FINGER HIT rather than
+  // leaving the next reader to re-derive it. This is evidence, not an assertion: it cannot redden on its own.
+  let hitAt=null;
+  if(LAND_CENTRES&&LAND_CENTRES.length){
+    hitAt=await b.page.evaluate(([x,y])=>{const e=document.elementFromPoint(x,y);
+      return e?{tag:e.tagName,ct:e.getAttribute&&e.getAttribute('data-ct'),txt:(e.innerText||'').replace(/\s+/g,' ').trim().slice(0,40)}:null;},LAND_CENTRES[0]);
+    await b.page.mouse.click(LAND_CENTRES[0][0],LAND_CENTRES[0][1]);await b.page.waitForTimeout(700);
+  }
   const pTap=await plies(b),rTap=await row(b);
-  L.say(pTap===pFlag,'H2 [730x375] a tap where the queen button was appends no move',{before:pFlag,after:pTap,row:rTap});
+  L.say(pTap===pFlag,'H2 [730x375] a tap where the queen button was appends no move',{before:pFlag,after:pTap,row:rTap,tapLandedOn:hitAt,at:LAND_CENTRES&&LAND_CENTRES[0]});
   L.say(!/=Q/.test(rTap||''),'H2a [730x375] the move row carries no promotion played after the result',{row:rTap});
   const takenAfter=await taken(b);
   L.say(takenAfter===takenBefore,'H2b [730x375] the captured-material readout is unchanged by that tap',{before:takenBefore,after:takenAfter});
