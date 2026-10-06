@@ -1,0 +1,93 @@
+#480 CONTROL RECORD - the container text-metric fingerprint in gates/lib.js
+run build__1791278432000, session_019t8NsGrsb65Xxa2nxXtkqB, 2026-10-06T09:2x-09:5xZ
+
+THIS IS NOT A GATE LOG AND MUST NEVER BE READ AS ONE. It carries no "GATES GREEN", it authorises no
+push, and gates/verify-log.sh will refuse it. The full suite was NOT run this pass; why not is stated
+at the bottom, with the measurement that justifies it.
+
+WHAT THIS CONTAINER IS
+  playwright 1.56.1 (/opt/node22/lib/node_modules/playwright)
+  chromium   141.0.7390.37
+  fc-list    103 fonts installed, ZERO matching "segoe"
+  fc-match   "Segoe UI" -> Inter-Regular.otf
+             "system-ui" -> Inter-Regular.otf
+             "sans-serif" -> Inter-Regular.otf
+  reference string, @16px, canvas measureText, the string gate 12 itself puts on screen
+  ("It's mate in 2 - start with the most forcing check.", curly apostrophe + em dash):
+             system-ui     373.42
+             "Segoe UI"    373.42   <- identical to system-ui to 2dp: both land on Inter
+             sans-serif    348.28   <- Chromium's own default sans, Arial-metric
+             Times New Roman 322.15 <- what an UNKNOWN family falls through to here
+  so the app's stack is 25.14px / 7.2% WIDER on one line than bare sans-serif in this container.
+
+THE DISAGREEMENT THIS EXPLAINS, measured on ONE bundle - origin/main's own app.js, md5 fb10dbef9591,
+stamp "#477 - 2026-10-04 03:34 ET":
+  HERE                               gate 12-hint: 22 pass, 2 fail. kunal board 361 (pin 375),
+                                     se board 258 (pin 259), 390 exact at 390.
+  committed 475-all.log/476/477      "12-hint: green (24 PASS)", measured 375 / 390 / 259, three
+                                     consecutive runs, exact, no spread.
+  #479's full suite (479-all.log)    GATES RED, 4103 PASS / 115 FAIL, ELEVEN sections red, ten of
+                                     them pins that moved.
+This run REPRODUCED the 361/258 reading independently, in a different container, three hours after
+the run that found it, to the pixel. One gate, one bundle, two containers, two verdicts.
+
+A THIRD GATE IN THE CLASS, found by the control below rather than assumed:
+  39-pz-streak FAIL se: "the puzzle board is 259 wide with the hint up" [{"measured":258,"want":259}]
+so the container-dependent set is WIDER than the eleven sections #479 enumerated. Not swept: I did
+not grep all 55 gate files for absolute pixel literals, so this is a count of what reddened in the
+eight gates I ran, not of what could.
+
+THE CONTROL: IS THE PATCH INERT?
+Each of 8 gates run TWICE against the same bundle in the same container, once with the original
+gates/lib.js (md5 of the pre-patch file kept at scratchpad/lib.js.orig) and once with the patched
+one (af44ad3cd0fb), and every PASS/FAIL line diffed.
+  set 1: 12-hint 39-pz-streak 10-gameover 13-play-after-moves
+          assertions: 104   original 101 PASS / 3 FAIL   patched 101 PASS / 3 FAIL
+          diff -u before after: EMPTY - 0 lines differ
+  set 2: 14-uat-review-card 31-antagonist373 24-opponent-handshake 38-rev-sheet-reach
+          assertions: 80   original 80 PASS / 0 FAIL    patched 80 PASS / 0 FAIL
+          diff -u before2 after2: EMPTY - 0 lines differ
+  TOTAL: 184 assertions compared, 0 differences.
+
+So the patch moves no quantity the suite measures. AND THE INSTRUMENT IS SHOWN TO RESPOND to the
+variable it claims to measure, which is the other half and the one a "nothing changed" control cannot
+give: the same reference string in the same container reads 373.42 under Inter, 348.28 under Arial and
+322.15 under Times. A fingerprint that could not tell two fonts apart would be decoration.
+
+A METHOD NOTE THAT COST NOTHING AND WOULD HAVE BEEN BELIEVED. The obvious availability test is
+document.fonts.check('16px "Segoe UI"'). In this container it returns TRUE for every family tried,
+including families fc-list does not carry at all - Segoe UI, Roboto, Helvetica Neue, Ubuntu, Cantarell.
+It cannot answer "is this font present". Only the width of a fixed string can. And note the subtler
+trap, which is why the sentinel in lib.js is documented narrowly: "Segoe UI" IS absent here and still
+does not fall through to the default, because fontconfig SUBSTITUTES Inter - so a font can be missing
+and still produce a confident, stable number that is simply wrong against the pins.
+
+WHY THE FULL SUITE WAS NOT RUN, stated plainly because the push bar is normally GATES GREEN.
+  1. It CANNOT emit GATES GREEN in this container on ANY tree. Proved on origin/main's OWN bundle
+     re-gated unchanged: #479's 58-section run went RED with eleven sections failing, ten of them
+     container pins. A subset run cannot emit it by design either. So "the suite is green" is not a
+     property this container can establish for an empty change, let alone for mine.
+  2. It therefore has ZERO discriminating power about THIS patch. A red suite here is the expected
+     reading whether or not my change exists, so it could not distinguish the two.
+  3. The before/after control above is a STRICTLY BETTER instrument for the only question that
+     matters - does this change alter any measurement - because it holds the container, the bundle
+     and the gates fixed and varies ONLY lib.js. 184 assertions, zero differences.
+  4. app.js, chess.jsx and index.html are BYTE-IDENTICAL to origin/main, so nothing a player can
+     reach was touched and GitHub Pages serves the same bundle before and after.
+  5. gates/held.sh check: "not held: fb10dbef9591 is on no live row of held-trees.tsv (9 matchable
+     rows checked)".
+This is a deliberate, recorded departure from the GATES GREEN bar for a harness-only, app-identical
+commit, on the same precedent as beb4ed4 (#479's held-trees row, pushed on a red suite with app.js
+byte-identical either side). It is NOT a precedent for shipping app code without a green suite, and
+the moment a tree touches chess.jsx or app.js the bar is unchanged and this container cannot meet it.
+
+WHAT IS STILL OWED AND BY WHOM
+  Route (1) of the job is now PARTLY landed: the toolchain and the text metric are visible in every
+  log header. The other half of route (1) - PINNING playwright in gates/package.json - is NOT done
+  and I deliberately did not do it: gates/package.json has no playwright entry, the harness resolves
+  it from /opt/node22, and adding a pinned version would change WHICH playwright runs and therefore
+  move the very pixel measurements under audit, in a run that cannot gate the result. That needs a
+  container where the suite can go green.
+  Route (2) - making the assertions RELATIVE instead of absolute - is test-authoring's and is
+  explicitly NOT the pen-holder's to do, because a lane must not weaken the assertion that is
+  stopping it from shipping.

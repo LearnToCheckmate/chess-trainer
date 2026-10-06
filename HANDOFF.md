@@ -2,6 +2,66 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#480, 2026-10-06T09:57Z: THIS CONTAINER CANNOT GATE ANY TREE, IT IS NOW THE SECOND ONE THAT CANNOT, AND
+> EVERY GATE LOG FROM NOW ON SAYS WHICH KIND OF CONTAINER WROTE IT.**
+> READ THIS BEFORE YOU MINT A NUMBER OR LAUNCH THE SUITE. It will save you a build slot, and it has already
+> cost two.
+>
+> **THE ONE READING THAT DECIDES YOUR RUN, and it costs ~90 seconds:**
+> `CT_APP=<a copy of origin/main:app.js> node gates/regress/12-hint.js`
+> - **kunal board 375, se 259** -> healthy container. The suite can go green. Build normally.
+> - **kunal board 361, se 258** -> you are in the same container #479 and #480 were in. **NO tree can be
+>   gated green here, including origin/main's own bundle re-gated unchanged.** Do not mint, do not build,
+>   do not launch the 84-minute suite expecting a push out of it.
+>
+> **IT IS NOW REPRODUCED, NOT OBSERVED.** #479 found 361/258 at 06:5xZ; #480 measured the identical numbers
+> at 09:3xZ in a different container on the same bundle (`fb10dbef9591`, stamp `#477`), while the committed
+> `475-all.log`, `476-all.log` and `477-all.log` each record `12-hint: green (24 PASS)` at 375/390/259 on
+> that same bundle. One gate, one bundle, two containers, two verdicts, three green logs.
+>
+> **THE CAUSE IS MEASURED NOW, NOT HYPOTHESISED, and it was the cheap test two runs left unspent.**
+> `fc-list` has **103 fonts and NONE matching "segoe"**; `fc-match` resolves **both `Segoe UI` AND
+> `system-ui`** to **Inter**. The reference string measures **373.42px** under the app's stack against
+> **348.28px** under bare sans-serif - **25.14px / 7.2% on one line**. Gate 48's failure is a two-track
+> min-content row short by **23.82px**, the same quantity and order, and a min-content text track is a pure
+> font measurement. This also **refines** #479's hypothesis, which blamed `Segoe UI` alone: `index.html:59`
+> asks for `system-ui` FIRST, and system-ui lands on Inter too, so the variable is both families collapsing
+> onto one substituted font.
+>
+> **DO NOT USE `document.fonts.check` TO TEST THIS.** It returns TRUE here for every family tried, including
+> families `fc-list` does not carry at all. And the subtler trap: `Segoe UI` IS absent and still does not
+> fall through to the default, because fontconfig **substitutes** Inter - so a missing font can produce a
+> confident, stable number that is simply wrong against the pins. Width of a fixed string is the only test
+> that works.
+>
+> **WHAT #480 LANDED** (`dc0ece3`, app.js byte-identical to main, no bundle built or stamped):
+> `gates/lib.js` prints, once per process, into every gate log - the toolchain (playwright 1.56.1, chromium
+> 141.0.7390.37, and that **no browser is pinned in `gates/package.json`**), the four reference-string widths,
+> a NOTE when the app stack and sans-serif disagree, and the **bundle md5** beside the stamp. So from now on a
+> red tells you in one line whether it is yours. Controlled at **184 assertions across 8 gates, 0 differences**
+> (`claude/agents/gatelogs/480-container-fingerprint-control.log`).
+>
+> **A THIRD GATE IN THE CLASS**, found by that control: `39-pz-streak` fails the same 258-against-259 board
+> pin on main's own bundle. The container-dependent set is WIDER than #479's eleven sections. **NOT SWEPT:**
+> nobody has grepped all 55 gate files for absolute pixel literals, so no one knows the size of this class.
+>
+> **WHAT IS STILL OWED, so you do not re-derive it:**
+> 1. **Pinning playwright in `gates/package.json`** - the other half of route (1), deliberately NOT done,
+>    because adding a pinned version changes WHICH playwright runs and so moves the very measurements under
+>    audit. **It needs a container where the suite can go green.**
+> 2. **Making the pins RELATIVE** - route (2), `test-authoring`'s, and explicitly NOT the pen-holder's: a lane
+>    must not weaken the assertion that is stopping it from shipping. **Do not re-pin 375 to 361.**
+> 3. **`jobs/459`'s drill tree is BUILT, MEASURED AND SOUND** on `origin/claude/cool-noether-7a4wzr` at
+>    `ad1a6da` (bundle `29b415dd1fc6`). **Do not rebuild it.** It is held by `gates/held-trees.tsv` pending
+>    Kunal on the 34px board cost and the gate-52 C7b contradiction - both routed, neither yours to decide.
+>
+> **AND THE SHIP LIST'S id 1 IS STILL NOT WORKABLE ON MAIN** - third independent derivation, at `beb4ed4`:
+> `git show origin/main:chess.jsx | grep -c` returns **0** for `_selL`, `CLS_BANDS`, `winPct`,
+> `classifyByLoss`, `artic(` and `const cls`; `classify(loss)` at `chess.jsx:421` is still the single
+> pre-split ladder; no `67-*` among main's 55 gate files. #440's split never reached main, so
+> `the-sel-cls-split-...`'s three P0s are unreachable there and building its fix would be an R35 breach.
+> Two consecutive runs have now declined it. It waits on the #442-#447 pile.
+
 > **THE 2026-10-04 09:19Z INTEGRATION SLOT: SIX STRANDED PATCHES RECOVERED, NO APPLICATION CODE, GATES GREEN #477 AT 4134.**
 > The four `process-build` lanes and the burst cannot push - the git proxy refuses write to this repository for
 > every session except the build routine - so each parks a `git format-patch` in the tracker and THIS LANE is the
