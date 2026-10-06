@@ -2,6 +2,79 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#485, 2026-10-06T14:5xZ: THE SEVEN-CONTAINER DEADLOCK IS BROKEN. THE CAUSE WAS A FONT AND IT IS NOW PINNED.**
+> **THE 90-SECOND READING STILL COMES FIRST, BUT WHAT IT MEANS HAS CHANGED. READ THIS BEFORE #484's BLOCK BELOW.**
+> `CT_APP=<copy of origin/main:app.js> node gates/regress/12-hint.js`
+> **24 pass / 0 fail is now the expected, healthy reading, and it is what I measured** - kunal 375, 390 390,
+> se 259, on main's own bundle `fb10dbef9591`, in a container that read 361 / 258 one hour earlier.
+> **IF YOU READ 361 / 258 NOW, THE DIAGNOSIS IS NOT "a broken container" ANY MORE.** It means one of:
+> `CT_NOFC=1` is set in your environment; `gates/fonts.conf` is missing from your tree; an explicit
+> `FONTCONFIG_FILE` is overriding it; or your image has no DejaVu Sans. Every gate log now prints a
+> `fontconfig:` line saying which of those it used - read it before concluding anything.
+> **DO NOT re-pin 375 to 361. That is still forbidden and it was never the answer.**
+>
+> **WHAT IT ACTUALLY WAS, because six runs including mine looked at the wrong quantity.** The app asks for
+> `'Segoe UI', system-ui, sans-serif` as an INLINE style on its own root (`chess.jsx:5288`) - **not** in
+> index.html, whose only font declaration is inside the `#boot` splash rule, which is where #480's comment
+> sent five runs. None of those faces is installed in these images; this one carries 36 Inter faces, so
+> fontconfig answers the generic chain with Inter. **The driver is text HEIGHT, not text WIDTH.** Inter's line
+> boxes run 1-2px taller per text block, the puzzle column accumulates about 14px, and the board fit loop -
+> which measures real overflow after paint and shrinks the board to clear it - absorbs the whole of it:
+> 375 -> 361. **THE BOARD IS THE SHOCK ABSORBER**, which is exactly why gate 12's own `no scroll with the
+> hint` assertion PASSES on the broken reading. The overflow is gone *because the board paid for it*. That is
+> CLAUDE.md's "is the thing I am trying to detect absorbed by the mechanism I am asserting over?" in an
+> eleventh costume, and it is why measuring overflow found nothing for six runs.
+> Proof that width is not the driver: **DejaVu Sans is WIDER than Inter** (402.12 against 373.42 on the
+> reference string) and restores the pinned board exactly. The 25.14px width figure #479-#484 reasoned from
+> is a proxy, and it pointed at the wrong dimension. `pzStackH`, the obvious suspect and the term that feeds
+> the board's heightCap at `chess.jsx:3149`, moved 206 -> 205 -> 204 across three faces. Not it.
+>
+> **REMEDY (a) ON THE OWNING JOB IS WITHDRAWN AS MISDIRECTED.** Three runs deferred "pin the browser toolchain
+> in gates/package.json" as *the real unblock*. It would not have worked: the substituted face comes from
+> fontconfig and the system font set, not from the Chromium build. Pinning playwright pins the browser and
+> changes nothing about what `/usr/share/fonts` holds. **The thing that needed pinning was the FONT.**
+> Route (2) - making the pins RELATIVE - is still right, still test-authoring's, and is no longer urgent
+> because it is no longer the only route.
+>
+> **WHAT TO KNOW ABOUT THE FIX BEFORE YOU TOUCH IT.** `gates/fonts.conf` binds the generic chain to DejaVu
+> Sans; `gates/lib.js` applies it before any browser starts. It is opt-OUT (`CT_NOFC=1`) on purpose, because
+> CLAUDE.md asks what a default does when you forget and forgetting must give the deterministic fonts.
+> **The load-bearing clause is `sans-serif` and ONLY that one**, measured one clause at a time:
+> `system-ui` alone 22/2, `Segoe UI` alone 22/2, `sans-serif` alone 24/0. The tell is indirect - binding
+> `sans-serif` moves the log's *system-ui* reading 373.42 -> 402.12, because system-ui has no face of its own
+> and lands on fontconfig's sans-serif alias. The other three clauses are **measured inert here** and kept as
+> the guard for an image that installs one of those faces for real. My own first control was **VACUOUS** and
+> it is on the job: I overrode `html,body` across three families and the board did not move, which I nearly
+> published as refuting the whole font hypothesis - the app's inline root style means inheritance from body
+> never reaches the text. `*{...!important}` reaches it. **Vary the right thing and prove it moved.**
+>
+> **WHAT THIS DOES NOT CLAIM, and the next run should not overstate it.** DejaVu Sans is NOT the font on
+> Kunal's phone (iOS system-ui is SF Pro), so the suite is now SELF-CONSISTENT and REPRODUCIBLE, **not
+> device-accurate**. Every text-derived pin remains a statement about this harness. And the suite drives seven
+> geometries and exactly ONE text metric, so nothing covers a larger accessibility font - filed as
+> `jobs/the-suite-varies-seven-geometries-and-exactly-one-font-so-no-gate-covers-a-larger-accessibility-font-2026-10-06`,
+> owningLane test-authoring, with the 14px measured as an explicit LOWER bound rather than the answer.
+>
+> **THE THREE REFUSED PAYLOADS ARE NOW LANDABLE AND THEY ARE THE FIRST THING YOU SHOULD TAKE.** #482/#483/#484
+> each refused them "for a reason about the CONTAINER, not the payload". That reason is gone:
+> `patches/proc-lane1-art-gates-regress-61-review-list-month-independence-js-2026-10-06`,
+> `patches/proc-lane2-art-gates-verify-log-sh-2026-10-06`,
+> `patches/proc-lane4-art-gates-gatemanifest-sh-2026-10-04`. I did NOT land them - one run, one suite, and
+> the suite I paid for gated the fontconfig change. **Two band-16 live defects a player hits are also
+> unblocked for the first time in seven containers** and they outrank the payloads under STEP 1S.
+> **THE #479 DRILL TREE** is built and sound on `origin/claude/cool-noether-7a4wzr` at `ad1a6da` - do not rebuild it.
+>
+> **TRAP, STILL ARMED AND NOT MINE:** `gates/verify-log.sh:354` globs `claude/stories/*.md` against a hard
+> ceiling of **48 and reads 48/48 with ZERO headroom**. One added `path:NNN` citation there takes the
+> push-authority tool RED for every later build. I touched nothing in that directory and proved it rather
+> than assuming. **ALSO ARMED:** `gates/run-suite.sh` is still NOT on main, so #461's mid-run-edit trap is
+> live; I ran this suite from `gates/.gates-run-485.sh`, a copy inside `gates/` (a /tmp copy cannot work -
+> `gates.sh:33` derives ROOT from `dirname $0`), and froze every harness md5 before launching.
+
+> **#484's BLOCK FOLLOWS. ITS 90-SECOND READING IS SUPERSEDED BY MINE ABOVE** - the reading is still the right
+> first command, but "361 / 258 = the broken kind" now has the diagnosis above rather than "wait for a healthy
+> container". Everything else in it stands, including the empty integration manifest and the two-question rule.
+
 > **#484, 2026-10-06T13:4xZ: SIXTH BROKEN CONTAINER IN A ROW, AND THE INTEGRATION MANIFEST IS NOW EMPTY.**
 > Run the 90-second reading FIRST, before you choose anything:
 > `CT_APP=<copy of origin/main:app.js> node gates/regress/12-hint.js`.
