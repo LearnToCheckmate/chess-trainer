@@ -91,12 +91,18 @@ let _tcSaid=false,_fpSaid=false;
 
 // #485: PIN THE FONT THE PINS WERE CALIBRATED AGAINST, BEFORE ANY BROWSER STARTS.
 // The whole argument, the per-clause controls and what this does NOT claim are in gates/fonts.conf;
-// read that file before changing this. Short version: these images install no face the app asks for,
-// fontconfig answers the generic chain with Inter, Inter's taller line boxes make the puzzle column
-// overflow, and chess.jsx's board fit loop absorbs the overflow by shrinking the board 375 -> 361.
-// Seven containers in a row could not gate any tree because of it. Binding the generic chain to the
-// calibration face takes gate 12-hint from 22/2 to 24/0 on origin/main's own bundle with no assertion
-// touched.
+// read that file before changing this. Short version: these images install no face the app asks for;
+// /etc/fonts/conf.d/56-prefer-inter.conf - a regular file among symlinks - redirects nine families
+// including system-ui and sans-serif to Inter; Inter's taller line boxes make the puzzle column
+// overflow; and chess.jsx's board fit loop absorbs the overflow by shrinking the board 375 -> 361.
+// Seven containers in a row could not gate any tree because of it. Pinning the face takes gate 12-hint
+// from 22/2 to 24/0 on origin/main's own bundle with no assertion touched.
+//
+// TWO THINGS THIS BLOCK USED TO SAY THAT WERE WRONG, corrected on two upheld antagonist vetoes [R18]:
+// it blamed "36 Inter faces" for the redirect (installing a face does not redirect anything - the
+// config file does), and it said the fix "binds the generic chain", which it does not: fc-match Arial
+// is Liberation Sans with and without the pin, so Chromium's CSS sans-serif KEYWORD is untouched and
+// what is pinned is the system-ui/unknown-family chain.
 // IT IS A DEFAULT ON PURPOSE. CLAUDE.md: "ask of any harness default: what does it do when I forget?"
 // Forgetting here must give the DETERMINISTIC fonts, not the image's accident - a run that forgets is
 // exactly the run that spends its slot rediscovering this. So it is opt-OUT, never silent, and every
@@ -109,6 +115,20 @@ let _fcState='image default (no fontconfig pinned)';
   if(!fs.existsSync(FC_CONF)){_fcState='gates/fonts.conf MISSING - fonts come from the image';return;}
   process.env.FONTCONFIG_FILE=FC_CONF;_fcState='gates/fonts.conf';
 })();
+// AND ASSERT THE FACE, because naming the CONFIG asserts something nobody checked. Both antagonists of
+// #485 found this from different doors: the line used to print the config PATH, which says the pin is in
+// force and not that it WORKED. Measured failure modes it could not see - a container with no DejaVu
+// Sans; a malformed fonts.conf (a double hyphen in its comment is enough) which fontconfig refuses
+// SILENTLY and then falls back to the image default; and a missing include. In every one of those the
+// path is still printed and the numbers are Inter's. So resolve it and say the FACE.
+const FC_WANT='DejaVu Sans';
+let _fcFace='not resolved';
+(function resolveFace(){
+  try{
+    const out=cp.execSync('fc-match "sans-serif"',{encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim();
+    const m=out.match(/"([^"]+)"/);_fcFace=m?m[1]:(out||'UNRESOLVED');
+  }catch(e){_fcFace='UNRESOLVED ('+e.message+')';}
+})();
 function pwVersion(){
   for(const m of ['/opt/node22/lib/node_modules/playwright','playwright','playwright-core']){
     try{return require(m+'/package.json').version+' ('+m+')';}catch(e){}
@@ -119,7 +139,11 @@ async function sayToolchain(browser){
   if(_tcSaid)return;_tcSaid=true;
   let cv='?';try{cv=browser.version();}catch(e){cv='unavailable: '+e.message;}
   console.log('     toolchain: playwright '+pwVersion()+'  chromium '+cv+'  [no browser is pinned in gates/package.json]');
-  console.log('     fontconfig: '+_fcState+'   [#485 - every text-derived pin in this suite depends on this line]');
+  console.log('     fontconfig: '+_fcState+'  ->  sans-serif resolves to "'+_fcFace+'"'+
+              ((_fcState==='gates/fonts.conf'&&_fcFace!==FC_WANT)
+                ? '   *** MISMATCH: the pin is loaded but the face is not '+FC_WANT+'. Every text-derived pin in this suite is OFF CALIBRATION. Check gates/fonts.conf parses (xmllint) and that '+FC_WANT+' is installed. ***'
+                : '')+
+              '   [#485 - every text-derived pin in this suite depends on this line]');
 }
 // The one number that explains a moved pixel pin. Printed once per process, so every gate section carries it.
 async function sayTextMetrics(page){
@@ -137,10 +161,19 @@ async function sayTextMetrics(page){
     // 373.42 rather than 322.15, because FONTCONFIG SUBSTITUTES Inter instead of letting it fall through. So a
     // font can be missing and still produce a confident, stable, wrong-against-the-pins number. The comparable
     // artefact is the NUMBER, across containers; the sentinel only catches the fall-through case.
-    const fellThrough=Math.abs(r.app-r.bogus)<0.01;
+    // #485: THIS SENTINEL WAS POINTED AT THE WRONG SLOT AND SAID SO IN ITS OWN MESSAGE. It compared
+    // `app` (system-ui) against the sentinel and called system-ui "the app's first-choice family". The
+    // app's first family is 'Segoe UI' (chess.jsx:5288); system-ui is its SECOND. So it reported on the
+    // fallback while claiming to report on the first choice. Both families are now tested and NAMED, and
+    // a fall-through on the first family alone is NOT a fault - it is the normal, correct outcome for an
+    // uninstalled face, and the stack moves on to system-ui. Only ALL of them falling through is.
+    const ftSegoe=Math.abs(r.segoe-r.bogus)<0.01, ftSysui=Math.abs(r.app-r.bogus)<0.01;
     console.log('     text metrics @16px over the reference string: system-ui '+r.app+'  "Segoe UI" '+r.segoe+
                 '  sans-serif '+r.sans+'  (fall-through sentinel '+r.bogus+')'+
-                (fellThrough?'  -- the app\'s first-choice family fell ALL THE WAY THROUGH to the default':''));
+                (ftSegoe&&ftSysui?'  *** BOTH \'Segoe UI\' AND system-ui fell ALL THE WAY THROUGH: the app root has no face of its own ***'
+                 :ftSysui?'  -- system-ui (the app stack\'s SECOND family) fell all the way through'
+                 :ftSegoe?'  -- \'Segoe UI\' (the app stack\'s first family) is unresolvable, so the root renders system-ui; expected in these images'
+                 :''));
     if(Math.abs(r.app-r.sans)>0.5)
       console.log('     NOTE: the app\'s stack and bare sans-serif differ by '+(r.app-r.sans).toFixed(2)+
                   'px on one line here, so every absolute text-derived pin in this suite is container-dependent [#480].');

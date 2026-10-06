@@ -16,9 +16,16 @@ Give this file to Claude in Cowork as the first thing in the session.
 > **WHAT IT ACTUALLY WAS, because six runs including mine looked at the wrong quantity.** The app asks for
 > `'Segoe UI', system-ui, sans-serif` as an INLINE style on its own root (`chess.jsx:5288`) - **not** in
 > index.html, whose only font declaration is inside the `#boot` splash rule, which is where #480's comment
-> sent five runs. None of those faces is installed in these images; this one carries 36 Inter faces, so
-> fontconfig answers the generic chain with Inter. **The driver is text HEIGHT, not text WIDTH.** Inter's line
-> boxes run 1-2px taller per text block, the puzzle column accumulates about 14px, and the board fit loop -
+> sent five runs. None of those faces is installed in these images, and **the redirect to Inter is ONE FILE,
+> not the presence of the faces**: `/etc/fonts/conf.d/56-prefer-inter.conf`, a REGULAR file among symlinks,
+> aliasing nine families including `system-ui`, `Segoe UI` and `sans-serif` to Inter. `60-latin.conf`'s own
+> prefer list is Noto Sans, DejaVu Sans, Verdana, Arial - **Inter is not in it**. So the reusable diagnosis is
+> `ls -la /etc/fonts/conf.d` **and read the file dates**, which would have ended seven containers in thirty
+> seconds; `fc-list | grep -c inter` is what five runs ran and it cannot answer the question. Found by #485's
+> antagonist A, not by me. **ITS mtime (Oct 3 05:35) IS NOT AN ARRIVAL DATE** - it dates an image layer and is
+> EARLIER than #477's own green bundle, so the file's presence is proven and its arrival is inferred.
+> **The driver is text HEIGHT, not text WIDTH.** Inter's line
+> boxes run 1-2px taller per text block, and the board fit loop -
 > which measures real overflow after paint and shrinks the board to clear it - absorbs the whole of it:
 > 375 -> 361. **THE BOARD IS THE SHOCK ABSORBER**, which is exactly why gate 12's own `no scroll with the
 > hint` assertion PASSES on the broken reading. The overflow is gone *because the board paid for it*. That is
@@ -36,14 +43,33 @@ Give this file to Claude in Cowork as the first thing in the session.
 > Route (2) - making the pins RELATIVE - is still right, still test-authoring's, and is no longer urgent
 > because it is no longer the only route.
 >
-> **WHAT TO KNOW ABOUT THE FIX BEFORE YOU TOUCH IT.** `gates/fonts.conf` binds the generic chain to DejaVu
-> Sans; `gates/lib.js` applies it before any browser starts. It is opt-OUT (`CT_NOFC=1`) on purpose, because
+> **WHAT TO KNOW ABOUT THE FIX BEFORE YOU TOUCH IT.** `gates/fonts.conf` pins the face;
+> `gates/lib.js` applies it before any browser starts and now prints the RESOLVED FACE, not the config path.
+> It is opt-OUT (`CT_NOFC=1`) on purpose, because
 > CLAUDE.md asks what a default does when you forget and forgetting must give the deterministic fonts.
 > **The load-bearing clause is `sans-serif` and ONLY that one**, measured one clause at a time:
 > `system-ui` alone 22/2, `Segoe UI` alone 22/2, `sans-serif` alone 24/0. The tell is indirect - binding
 > `sans-serif` moves the log's *system-ui* reading 373.42 -> 402.12, because system-ui has no face of its own
-> and lands on fontconfig's sans-serif alias. The other three clauses are **measured inert here** and kept as
-> the guard for an image that installs one of those faces for real. My own first control was **VACUOUS** and
+> and lands on fontconfig's sans-serif alias.
+> **IT DOES NOT "BIND THE GENERIC CHAIN" AND THE OTHER THREE CLAUSES ARE NOT A GUARD - both sentences were in
+> my first draft and both are WITHDRAWN on two upheld vetoes [R18].** `fc-match Arial` is Liberation Sans with
+> AND without the pin, so Chromium's CSS `sans-serif` KEYWORD is untouched; what is pinned is the
+> system-ui/unknown-family chain. **SO THE SHIPPED INSTRUMENT IS TWO-FACED:** anything inheriting the app root
+> gets DejaVu Sans, but the heading custom property is `'Baloo 2','Segoe UI',sans-serif` (chess.jsx:1396, 25
+> sites), Baloo 2 is blocked by `gates/lib.js:23`'s own BLOCK regex by design, and Segoe UI is now
+> unresolvable - so **every heading renders Liberation Sans**. Gate 12 still reads se 259/259 PASS under that
+> mixed state, so this is not a defect; it is that the one-face table in `gates/fonts.conf` does not describe
+> what runs. And the three extra clauses are **measurably REDUNDANT** (a config of the include plus the
+> `sans-serif` clause alone gives byte-identical `fc-match` answers for all five families), not inert, and
+> they could never "hold" for a future image anyway: Chromium DISCARDS fontconfig's substitution for a named
+> non-generic family, so a strong prepend on `Segoe UI` can only make that family unresolvable.
+> **ALSO: 375 and 390 ARE WIDTH CLAMPS** (reserved==0 on this screen so widthCap==vw), so they pass for any
+> face with short enough chrome - Liberation Sans passes both. **`se:259` at vw 320 is the ONLY discriminating
+> pin in the whole calibration, tolerance <0.6, ZERO measured headroom.** And DejaVu is a **PIN, not a
+> derivation**: it is today's stock answer only because this image installs ZERO Noto Sans faces, and
+> `60-latin.conf` prefers Noto Sans *before* DejaVu, so installing `fonts-noto` would silently retire that
+> justification. **NEVER put a double hyphen in `gates/fonts.conf`'s comment** - XML forbids it, fontconfig
+> then refuses the whole file SILENTLY and reverts to Inter; it bit me twice while writing the corrections. My own first control was **VACUOUS** and
 > it is on the job: I overrode `html,body` across three families and the board did not move, which I nearly
 > published as refuting the whole font hypothesis - the app's inline root style means inheritance from body
 > never reaches the text. `*{...!important}` reaches it. **Vary the right thing and prove it moved.**
