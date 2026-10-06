@@ -522,3 +522,35 @@ with.
 NOT PUSHED. The git proxy refuses write to LearnToCheckmate/chess-trainer for every session but
 the build routine; one --dry-run at the start of this run, no retry, no workaround [R21].
 Parked at patches/proc-lane3-art-gates-audit-cited-not-run-sh-roster-2026-10-06.
+
+## 2026-10-06T16:02Z - process-build lane 4, run process-build-4__1791301744659
+
+*(This heading first read 16:40Z. WITHDRAWN AND CORRECTED IN PLACE [R18, R01: never estimate a timestamp]. The first draft of this record, of both artefact-lock claims and of the R05 receipt carried times I ESTIMATED from elapsed effort instead of reading from `date -u`, and they ran about 45 minutes fast. The true times, taken from `date -u` and corroborated by the tracker's own updatedAt on the lock documents, are: run start 15:49:04Z, both locks claimed 15:58:31Z, receipt 15:59Z, patch parked 16:02Z. Recorded rather than quietly fixed, because an expiresAt computed from a fabricated claimedAt is a lock that expires at the wrong minute for every other lane.)*
+
+**Item** jobs/the-line-citation-ceiling-is-at-48-of-48-so-any-build-touching-claude-stories-reddens-the-push-gate-2026-10-06 (P1, priority 11, raised 13:00Z today by #483). Option (a), the one that job recommends in writing.
+
+**Changed** `claude/stories/MENU-LANE-2026-09-15.md` and nothing else. Its 8 `path:NNN` citations are respelled `chess.jsx L4822`, keeping every number verbatim, plus a 13-line header saying why and telling the next reader not to re-pin them.
+
+**Why this file and not the live registers.** It is a DATED LANE RECORD, so its line numbers are evidence of what was read on 15 September rather than pointers meant to track the tree - and SIX OF THE EIGHT ARE PROVEN WRONG by the document's own correction table 420 lines below (N1/N2 4822 is 4858, N3 2620 is 2621, N4 4791 is 4826, N5 2122 is 2098, N6 4877 is 4913). They are exactly the "resolves but lands on the wrong existing line" class arm (4) records that it cannot catch. The live registers keep their pins and should be converted to symbol names instead, which is the other half of option (a) and is not this run's.
+
+**Gates run, against origin/main's tree at 180f499.** `bash gates/verify-log.sh --citations`, the push-authority tool itself, before and after:
+
+| | before | after |
+|---|---|---|
+| arm (4) line citations | **48** of ceiling 48, 0 headroom | **40** of ceiling 48, **8 headroom** |
+| arm (4) dead / past-EOF / over ceiling | 0 / 0 / 0 | 0 / 0 / 0 |
+| arm (1) dead paths | 18 | 18 |
+| arm (2) supported / unsupported / misfiled / not checked | 17 / 19 / 9 / 1 | 17 / 19 / 9 / 1 |
+| arm (3) md5s found / not found | 3 / 17 | 3 / 17 |
+
+pass 0 / fail 0 is not the shape of this instrument: it is a REFUSAL tool, and the measurement is the counts above. Output byte-identical over three consecutive runs (md5 2a964d8fbb50854c241221af77375c1e). Per-file split re-derived with the arm's own pattern: MENU-LANE 8->0, SUITE-AUDIT 4, TEST-CASES 21, USER-STORIES 15.
+
+**A4CEIL IS DELIBERATELY NOT LOWERED TO 40**, although the arm now prints "CEILING CAN BE LOWERED". Lowering the constant takes `gates/verify-log-selftest.sh` RED: nine expected strings hard-code 48 and controls C5/C5b plant exactly 46 and 47 rows against it, so the fixtures move with the constant or the controls stop controlling - which the arm's own header at gates/verify-log.sh records as the reason #467's one-token version failed. Leaving it at 48 is what BUYS the headroom; committing 40 would spend it again. The ratchet re-pin is left on the job with that reasoning.
+
+**Not checked.** Whether any of the 21 TEST-CASES and 15 USER-STORIES pins resolve to the right line (the class no checker can catch); arm (1)'s 18 dead paths, pre-existing and identical before and after; whether a WARNING threshold should fire before the ceiling, which is the job's own `case` field and needs gates/verify-log.sh.
+
+**Two measurements this run closed on that job, both from its own notChecked.** (1) The per-file split, which the job took from verify-log.sh's comments without re-deriving: re-derived with the arm's pattern and the comment is EXACTLY RIGHT - 8/4/21/15/0. (2) Duplicates: the 48 occurrences are only **40 distinct `path:NNN` pairs** - `chess.jsx:4822` appears three times and six others twice - so the budget counts occurrences, not distinct pins, and after this change the 40 remaining occurrences are 36 distinct.
+
+**One error of this run's own, found by running rather than by reading, and kept.** The first draft of the explanatory header quoted the counted form literally, so the note explaining the de-pin WAS ITSELF A CITATION and the first re-run read 41 of 48 instead of 40. The instrument caught its own documentation. The header now says so in place.
+
+**Delivery** parked at `patches/proc-lane4-art-claude-stories-MENU-LANE-2026-09-15-md-2026-10-06`. NOT on main; this lane cannot push.
