@@ -22,11 +22,21 @@
 #   gates/audit/cited-not-run.sh --selftest run the controls (no repository needed)
 #   CT_ROOT=<dir>                           audit a different tree (the selftest uses this)
 #   CT_RECORDS="a.md b.md"                  override the record document list
+#   CT_ROSTER=<file>                        override the roster of section 2b (the selftest uses this)
 #
-# EXIT CODES. 0 nothing cited-and-unreachable. 1 the set is non-empty, and every member is named
-# with the document and line that cites it. 2 the derivation itself is unsound - too few reachable
-# files or no citations found at all - which is the vacuous pass this script refuses to print green
-# over. A report that cannot see the suite must not read like a clean suite.
+# EXIT CODES. 0 nothing cited-and-unreachable, OR every member of the set is accounted for by name
+# in the roster of section 2b. 1 the set has a member nobody has accounted for, or a roster entry
+# whose reason its own writer does not believe beyond the ceiling, or a roster entry that no longer
+# names a member. 2 the derivation itself is unsound - too few reachable files or no citations found
+# at all - which is the vacuous pass this script refuses to print green over. A report that cannot
+# see the suite must not read like a clean suite.
+#
+# THE VERDICT MOVED FROM THE SIZE OF THE SET TO WHETHER ITS MEMBERS ARE EXPLAINED, 2026-10-06, and
+# the reason is measured rather than tasteful: the set was 5 hand-read, 17 derived on 2026-10-04 at
+# 842df1b, and 23 at 8067e37 two days later. Keyed on size this script is red for ever and therefore
+# unreadable; keyed on accounting it goes red on the DAY an unexplained file appears, while the
+# person who added it is still there to say why. The size is still printed on every run and is still
+# the headline number - it has not been hidden, it has been demoted.
 
 set -uo pipefail
 
@@ -120,6 +130,61 @@ default_records(){
   for f in "$ROOT"/claude/stories/*.md; do [ -e "$f" ] && printf '%s\n' "claude/stories/$(basename "$f")"; done
 }
 
+# ── 2b. THE ROSTER: WHY EACH CITED-AND-UNREACHABLE FILE IS NOT IN A SUITE ─────────────────────────
+# WHY THIS SECTION EXISTS, and it is the half of this class that the count alone cannot deliver.
+# jobs/a-test-in-the-repo-that-no-suite-runs-2026-09-28 step (2) of its own outcome.whatIsLeft says
+# "ADMIT the fifteen, or record per file why not". Section 2 above derives the set; nothing recorded
+# why. MEASURED, and this is the argument: that set was 5 (hand-read, one document), then 17 (derived,
+# 2026-10-04 at 842df1b), and it is 23 at 8067e37 on 2026-10-06. It grew by SIX in two days while a
+# red number sat in a report no suite runs. A number that only goes up is not a finding, it is a
+# weather report, and nobody reads the weather. So the verdict moves off the SIZE of the set and onto
+# whether every member is ACCOUNTED FOR BY NAME. An accounted file costs nothing; a new unaccounted
+# one turns this script red on the day it appears, which is the day somebody can still say why.
+#
+# FOUR COLUMNS, pipe-separated: path | class | strength | reason.
+#   OPERATOR  a tool a lane, a person or the deploy path invokes directly. A gate suite running it
+#             would be wrong, not right: several of them WRITE (held.sh, buildnum.sh) or need a
+#             credential dump the runner has not got (ledger-diff.js).
+#   SELFTEST  the companion selftest of a named script, run by whoever edits that script.
+#   ONEOFF    a one-shot probe or measurement whose number is already published. Re-running it on
+#             every build buys nothing; the published figure is the artefact.
+#   ADMIT     should run on every build and does not. CEILING, MAY ONLY FALL. Empty today, and that
+#             is a claim this script now makes checkable rather than a silence.
+# STRENGTH is `strong` or `weak`. WEAK IS THE POINT OF THE COLUMN: it means the reason is defensible
+# and I do not believe it, so the next reader gets a shortlist of 2 instead of a pile of 23. The weak
+# count has its own ceiling and may only fall. Writing `strong` over a reason you doubt is the only
+# way to cheat this file, and it costs the cheat a line with their name on it.
+roster_default(){ cat <<'EOF'
+gates/audit/cited-not-run.sh|OPERATOR|strong|This script. Run by a process lane or the orchestrator against a tree; it reports and admits nothing, so a suite running it could only redden itself on its own report.
+gates/audit/landed-on-main.sh|OPERATOR|strong|Post-integration audit of collection `patches` against origin/main. Needs the tracker dumped to disk first, which no gates.sh invocation does.
+gates/audit/verify-parked-patch.sh|OPERATOR|strong|Checks ONE parked payload at park time. Its input is a patch document, not the working tree, so it has nothing to say on a build with no payload.
+gates/audit/verify-patch-set.sh|OPERATOR|strong|Checks a SET of parked payloads against each other before an apply. Same input shape: a manifest of patch documents, produced by the integration slot and by nothing else.
+gates/audit/pixel-literal-classify.sh|OPERATOR|strong|Seeded #481 to classify the suite's pinned layout literals. Reports a census for an owner to act on; it asserts nothing about the bundle, so there is no build-time verdict to gate.
+gates/audit/lesson.js|OPERATOR|strong|Audit of the Lesson screen on the live bundle at four geometries, ~900s under timeout and one PNG per state. The suite's own lesson gates cover the invariants; this is the wide sweep a person reads.
+gates/drive/menu.js|OPERATOR|strong|A DRIVER LIBRARY, not a test: state functions for the Menu sheet, required by gates/audit/menu.js. It carries no assertion, so admitting it would run no check.
+gates/vocab.js|OPERATOR|strong|Writes the driving vocabulary (screenshots, labels, data-ct rects) for whoever must drive a screen they have not seen. Output is documentation for a reader, not a pass/fail.
+gates/control-audit.js|OPERATOR|strong|Audits which gates carry assertions their control never covered - a question about the SUITE, asked of the suite. Running it inside the suite it audits is the circularity its own header argues against, and jobs/control-audit-bounds-total-by-the-L-say-SITE-count-so-no-looping-gate-can-be-covered-2026-10-01 is open against its bound.
+gates/ledger-diff.js|OPERATOR|strong|Two-way diff between the flag register and this repository. Its own header states node cannot read the artifact database, so the caller must dump collection `flags` to a file first. A build runner has no such dump.
+gates/held.sh|OPERATOR|strong|WRITES gates/held-trees.tsv, the register of gated-green trees that must not ship. A suite that invoked it would append rows during a gate run.
+gates/buildnum.sh|OPERATOR|strong|WRITES gates/build-numbers.tsv and is reached from the deploy path (tier 2), not from the suite. Same reason as held.sh: a gate run must not allocate build numbers.
+gates/build.sh|OPERATOR|strong|The bundle builder itself, reached from the deploy path (tier 2). gates.sh runs AGAINST its output; running it from inside the suite would rebuild the thing under test mid-run.
+gates/verify-log.sh|OPERATOR|strong|THE PUSH GATE. It reads a finished gatelog and authorises the push, so by construction it runs after the suite, not inside it. Its ceiling arms are the project's push authority and are audited by their own selftest.
+gates/verify-log-selftest.sh|SELFTEST|weak|The companion selftest of the push gate, run by whoever edits gates/verify-log.sh. WEAK AND I DO NOT BELIEVE IT: this is the selftest of the one script that decides whether anything ships, and an editor-triggered selftest is exactly the shape that let A4CEIL go stale and get breached by 2 on the commit it landed on. It is the strongest ADMIT candidate in this roster and it is not mine to admit.
+gates/buildnum-selftest.sh|SELFTEST|weak|The companion selftest of gates/buildnum.sh, run by whoever edits it. WEAK for the same reason one notch down: buildnum.sh owns the build-number space, two concurrent runs have already collided in it (jobs/concurrent-runs-collide-on-the-gate-number-space-2026-09-28), and nothing re-runs this after an unrelated change.
+gates/measure-drill-verdict-reserve.js|ONEOFF|strong|Measured the drill verdict's board cost once; its figure is published in claude/stories/USER-STORIES.md:26 and in TEST-CASES.md. The recurring assertion lives in the drill gates.
+gates/measure-kunal-qh3.js|ONEOFF|strong|One-shot measurement of a single named position for a single published number. Nothing about it generalises to a build.
+gates/audit/antagonist373-label.js|ONEOFF|strong|Antagonist probe written for build #373 against that bundle's labels. Its finding is recorded; the gate that protects the behaviour is in gates/regress/.
+gates/audit/antagonist373-play.js|ONEOFF|strong|Antagonist probe for #373's Play screen, same shape and same reason.
+gates/audit/antagonist373-review.js|ONEOFF|strong|Antagonist probe for #373's Review screen, same shape and same reason.
+gates/audit/selfantagonist373.js|ONEOFF|strong|#373's self-antagonist pass, cited once in DECISIONS-LOG.md:299 as the evidence behind a decision already taken.
+gates/pending/probe466-pfh.js|ONEOFF|strong|In gates/pending/, which IS the declared parking directory for probes - gates/pending/README.md is its register, and jobs/a-unit-test-written-for-the-p0-is-not-in-the-suite-2026-09-28 owns the separate defect that the register lists 1 of 12 files.
+EOF
+}
+roster(){ if [ -n "${CT_ROSTER:-}" ] && [ -r "$CT_ROSTER" ]; then grep -v '^[[:space:]]*#' "$CT_ROSTER"; else roster_default; fi; }
+# CEILINGS. Both MAY ONLY FALL, and lowering one is the point of the next run that takes this class.
+A_UNACC_CEIL=0   # a cited-and-unreachable file in no roster class. Zero, and it is a hard zero.
+A_WEAK_CEIL=2    # roster entries whose reason I wrote and do not believe. Named above.
+
 main_report(){
   local -a RECS=()
   if [ -n "${CT_RECORDS:-}" ]; then read -r -a RECS <<<"$CT_RECORDS"; else
@@ -194,8 +259,66 @@ main_report(){
   local norph; norph="$(printf '%s\n' "$orphan" | grep -c . || true)"
   echo "ORPHAN          $norph of the $nleak are reachable from NO entry point ($ENTRIES2):"
   printf '%s\n' "$orphan" | grep . | sed 's/^/  ORPHAN /'
-  echo "RED at $nleak. Each file above is quoted as evidence for a published number and no gates.sh invocation can execute it."
-  return 1
+
+  # ── ROSTER RECONCILIATION. The verdict is here, not on $nleak ───────────────────────────────────
+  local RT; RT="$(mktemp)"; roster > "$RT"
+  local leakset; leakset="$(printf '%s\n' "$leak" | grep . | sort -u)"
+  local accounted=0 unacc=0 weak=0 retired=0 cOP=0 cST=0 cON=0 cAD=0
+  local -a UNACC=() WEAK=() RETIRE=() ADMITL=()
+  local f row cls str
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    row="$(awk -F'|' -v k="$f" '$1==k{print;exit}' "$RT")"
+    if [ -z "$row" ]; then unacc=$((unacc+1)); UNACC+=("$f"); continue; fi
+    accounted=$((accounted+1))
+    cls="$(printf '%s' "$row" | cut -d'|' -f2)"; str="$(printf '%s' "$row" | cut -d'|' -f3)"
+    case "$cls" in
+      OPERATOR) cOP=$((cOP+1));;
+      SELFTEST) cST=$((cST+1));;
+      ONEOFF)   cON=$((cON+1));;
+      ADMIT)    cAD=$((cAD+1)); ADMITL+=("$f");;
+      *) unacc=$((unacc+1)); accounted=$((accounted-1)); UNACC+=("$f (roster class \"$cls\" is not one of OPERATOR SELFTEST ONEOFF ADMIT)"); continue;;
+    esac
+    [ "$str" = "weak" ] && { weak=$((weak+1)); WEAK+=("$f"); }
+  done <<<"$leakset"
+  # A ROSTER ENTRY THAT NO LONGER NAMES A MEMBER IS A FAILURE, NOT A TIDY-UP. An exemption that
+  # outlives the file it exempts is how a roster becomes a list of names nobody has checked, which
+  # is the same failure as the hand-written reachable list this script exists to replace.
+  local rp rc rs rr
+  while IFS='|' read -r rp rc rs rr; do
+    [ -n "$rp" ] || continue
+    if ! grep -qxF "$rp" <<<"$leakset"; then
+      retired=$((retired+1))
+      if [ ! -r "$ROOT/$rp" ]; then RETIRE+=("$rp - GONE, no such file in this tree")
+      else RETIRE+=("$rp - RETIRE, it is now reachable or no longer cited"); fi
+    fi
+  done < "$RT"
+  rm -f "$RT"
+
+  echo "ACCOUNTED       $accounted of $nleak   (OPERATOR $cOP, SELFTEST $cST, ONEOFF $cON, ADMIT $cAD)"
+  echo "UNACCOUNTED     $unacc of ceiling $A_UNACC_CEIL"
+  local x
+  for x in "${UNACC[@]}"; do echo "  UNACCOUNTED $x"; done
+  echo "WEAK            $weak of ceiling $A_WEAK_CEIL (reason written and not believed by its writer)"
+  for x in "${WEAK[@]}"; do echo "  WEAK $x"; done
+  echo "STALE-ROSTER    $retired"
+  for x in "${RETIRE[@]}"; do echo "  STALE $x"; done
+  # ADMIT IS A WORKLIST AND DOES NOT DECIDE THE EXIT CODE, deliberately. A lane that declares a file
+  # admittable is doing the thing this roster is for; failing the audit on that declaration would
+  # make silence the cheaper answer, which is the behaviour that produced a set of 23.
+  echo "ADMIT-WORKLIST  $cAD (does not affect the exit code; see the roster header)"
+  for x in "${ADMITL[@]}"; do echo "  ADMIT $x"; done
+
+  local bad=0
+  [ "$unacc" -gt "$A_UNACC_CEIL" ] && bad=1
+  [ "$weak"  -gt "$A_WEAK_CEIL"  ] && bad=1
+  [ "$retired" -gt 0 ] && bad=1
+  if [ "$bad" -eq 1 ]; then
+    echo "RED. $nleak files are cited as evidence and unreachable by the suite; $unacc of them are accounted for by NOBODY, $weak carry a reason their writer does not believe (ceiling $A_WEAK_CEIL), and $retired roster entries no longer name a member."
+    return 1
+  fi
+  echo "ACCOUNTED-GREEN. All $nleak cited-and-unreachable files are accounted for by name, $weak weakly (ceiling $A_WEAK_CEIL), 0 unaccounted, 0 stale roster entries. THIS IS NOT A CLAIM THAT THE SET IS SMALL - it is $nleak - only that no member of it is unexplained."
+  return 0
 }
 
 # ── 3. THE CONTROLS. Every detector shown FIRING and SILENT, per R18, on a fixture tree ───────────
@@ -256,6 +379,73 @@ EOF
   ck "C17 and a file named on a CODE line is not"         "0" "$(grep -c 'LEAK gates/gatemanifest.sh' <<<"$out")"
   rm -f "$T/gates/mentioned-only.js"
   sed -i '$d' "$T/RUN-LOG.md"
+
+  # ── THE ROSTER ARM, C18-C29. Every detector FIRING and SILENT, on the same fixture tree ─────────
+  # The three leaks here are gates/orphan-cited.js, gates/bare-named.js and gates/measure-thing.sh.
+  # EVERY CASE BELOW PASSES CT_ROSTER, so these controls say nothing about the SHIPPED roster's
+  # contents - that is section 2b's own job and the real run's ACCOUNTED line. What they test is the
+  # mechanism: that an unexplained file cannot pass, that an explained one does, that an exemption
+  # outliving its member fails, and that the weak ceiling and the class vocabulary both bite.
+  local R="$T/roster.txt"
+  full_roster(){ cat > "$R" <<'EOF'
+# a comment line, which must be ignored rather than parsed as a path
+gates/orphan-cited.js|ONEOFF|strong|one-shot probe, number published
+gates/bare-named.js|OPERATOR|strong|run by hand
+gates/measure-thing.sh|OPERATOR|strong|run by hand
+EOF
+  }
+
+  full_roster
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
+  ck "C18 a fully accounted set exits 0 though non-empty"  "0" "$rc"
+  ck "C19 and says ACCOUNTED-GREEN"                        "1" "$(grep -c '^ACCOUNTED-GREEN' <<<"$out")"
+  ck "C20 the headline size is still printed when green"   "3" "$(sed -n 's/^CITED-NOT-RUN *//p' <<<"$out")"
+  ck "C21 the per-class tally sums to the set"             "3" "$(sed -n 's/^ACCOUNTED  *\([0-9]*\) of.*/\1/p' <<<"$out")"
+
+  # UNACCOUNTED, firing: drop one row and the same tree must refuse.
+  grep -v '^gates/bare-named.js|' "$R" > "$R.tmp" && mv "$R.tmp" "$R"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
+  ck "C22 one unexplained member refuses"                  "1" "$rc"
+  ck "C23 and names that file, not another"                "1" "$(grep -c '^  UNACCOUNTED gates/bare-named.js' <<<"$out")"
+  ck "C24 the unaccounted count is 1, not 3"               "1" "$(sed -n 's/^UNACCOUNTED  *\([0-9]*\) of.*/\1/p' <<<"$out")"
+
+  # STALE ROSTER, both arms: an entry for a file that is not a member, present and absent.
+  full_roster
+  echo 'gates/regress/1-fix.js|ONEOFF|strong|reachable, so not a member' >> "$R"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
+  ck "C25 an exemption for a REACHABLE file refuses"       "1" "$rc"
+  ck "C25b and is reported as RETIRE, not GONE"            "1" "$(grep -c 'STALE gates/regress/1-fix.js - RETIRE' <<<"$out")"
+  full_roster
+  echo 'gates/no-such-file.js|ONEOFF|strong|deleted two builds ago' >> "$R"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
+  ck "C26 an exemption for a DELETED file refuses"         "1" "$rc"
+  ck "C26b and is reported as GONE"                        "1" "$(grep -c 'STALE gates/no-such-file.js - GONE' <<<"$out")"
+
+  # THE WEAK CEILING. Two weak reasons is the shipped ceiling, so two must pass and three must not.
+  full_roster
+  sed -i 's/^gates\/orphan-cited.js|ONEOFF|strong|/gates\/orphan-cited.js|ONEOFF|weak|/; s/^gates\/bare-named.js|OPERATOR|strong|/gates\/bare-named.js|OPERATOR|weak|/' "$R"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
+  ck "C27 two weak reasons are at the ceiling and pass"    "0" "$rc"
+  ck "C27b and both are named"                             "2" "$(grep -c '^  WEAK ' <<<"$out")"
+  sed -i 's/^gates\/measure-thing.sh|OPERATOR|strong|/gates\/measure-thing.sh|OPERATOR|weak|/' "$R"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
+  ck "C28 a third weak reason breaches the ceiling"        "1" "$rc"
+
+  # THE CLASS VOCABULARY. A class outside the four is NOT a free pass - this is the field-name drift
+  # R43 was written about, one directory to the left: a roster whose class column accepts anything
+  # accounts for nothing.
+  full_roster
+  sed -i 's/^gates\/orphan-cited.js|ONEOFF|/gates\/orphan-cited.js|PROBABLY-FINE|/' "$R"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
+  ck "C29 an unknown class counts as UNACCOUNTED"          "1" "$rc"
+  ck "C29b and the message names the bad class"            "1" "$(grep -c 'PROBABLY-FINE' <<<"$out")"
+
+  # ADMIT is a worklist and must NOT decide the exit code. Both halves asserted.
+  full_roster
+  sed -i 's/^gates\/orphan-cited.js|ONEOFF|/gates\/orphan-cited.js|ADMIT|/' "$R"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
+  ck "C30 an ADMIT member does not redden the audit"       "0" "$rc"
+  ck "C30b and appears on the worklist"                    "1" "$(grep -c '^  ADMIT gates/orphan-cited.js' <<<"$out")"
 
   # the GREEN arm: delete the three leaks and the same tree must pass
   rm -f "$T/gates/orphan-cited.js" "$T/gates/bare-named.js" "$T/gates/measure-thing.sh"
