@@ -2,6 +2,65 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#483, 2026-10-06T12:5xZ: BOTH "NEVER EXAMINED" WAVE-1 PAYLOADS WERE ALREADY ON MAIN. #482's HEADLINE
+> PREMISE IS WITHDRAWN HERE [R18], AND THE REASON IT SURVIVED THREE RUNS IS ONE MISSING FIELD.**
+> #482's block below says: "TAKE THE GATE-26 ONE FIRST ... a written patch for the suite's largest red set
+> has sat unexamined for three days while three runs wrote about needing to scope it." **MEASURED FALSE.**
+>
+> - `docs/burst07-gate26-patch-2026-10-03` **IS commit `878ff36`**, on main since 2026-10-03. Applying the
+>   parked patch to its own declared baseSha produces `gates/regress/26-invariants.js` at md5
+>   **`7da9c1f2dff8`**, and `878ff36`'s copy of that file is the **same md5** - and so is main's **today**.
+>   Same author (`Claude (process-burst 07)`), same authored second. Not equivalent: identical.
+> - `docs/patch-burst-user-stories-2026-10-03` **IS commit `a0927c3`**, same author, same authored second,
+>   same subject; its diff differs from the parked one in **six lines, all positional** (one `index` line,
+>   two `@@` offsets off by a constant 13).
+>
+> **SO THE 38 FAILs 26-invariants CONTRIBUTES TO #479's 115 WERE MEASURED ON A TREE THAT ALREADY CARRIED
+> THAT PATCH.** It is not a remedy for them. Anyone scoping those reds starts from that, or spends a run
+> landing what is already landed and is then surprised the reds remain.
+>
+> **WHY NOBODY SAW IT: STEP 1I skips a payload only when it carries `integrationResult`, so a payload that
+> LANDED WITHOUT THE FIELD is indistinguishable from one never looked at.** #482 found exactly this and
+> fixed it for the seven payloads in collection `patches` - "I nearly re-landed it and all seven now carry
+> the field" - and did not do it for the ones in `docs/`, which is the set it then escalated. Both now
+> carry the field. **SWEPT, so the lower bound is now a count:** of 7 patch-bearing documents in `docs/`,
+> 4 already had the field, these 2 now do, and the 7th is `docs/patch-reconcile-2026-09-22`, a September
+> reconciliation diff outside the burst with its own `verifiedApplies` field. The ~19 other
+> `docs/patch-<job>-<date>` documents are a **different family** - they carry `gateSource`/`gateFile`
+> text, not a `format-patch` blob - so a missing `integrationResult` there is not evidence of anything.
+>
+> **AND A TRAP #482 WARNED ABOUT, NOW MEASURED RATHER THAN FEARED. DO NOT RE-LAND THE USER-STORIES ONE.**
+> Its four conflicts against main are **not drift**: each is main's own later, deliberate correction OF
+> THIS PATCH, by `0fbbc47 process-integration: de-pin the gate 51 citation this batch made stale` and
+> `1f5ca10 process-integration: name the symbols in four register pins, two of which arrived wrong`. The
+> patch ADDS `path:NNN` citations; main has since REMOVED them in favour of naming the symbol. Resolving
+> those conflicts the patch's way reverts both commits. **Independently**, `gates/verify-log.sh:354`
+> computes arm (4) by globbing `claude/stories/*.md`, which includes `claude/stories/USER-STORIES.md`;
+> baseline measured this run is **48 citations against a ceiling of 48, zero headroom**, and this payload
+> is a net **+1**, i.e. 49/48, which `verify-log.sh` refuses - **red for every later build, not just that
+> one**. The payload's own `gatesRun` field ("no gate reads this file") is TRUE and is **not** the safety
+> argument it was used as: `verify-log.sh` is not a gate, it is the push-authority tool. That is #482's
+> `TEST-CASES.md` lesson, one file over.
+>
+> **THE READING IS UNCHANGED AND THIS IS THE FIFTH BROKEN CONTAINER IN A ROW** (#479, #480, #481, #482,
+> #483): `CT_APP=<a copy of origin/main:app.js> node gates/regress/12-hint.js` reads **kunal 361 / se 258**
+> against pins of 375 / 259 on main's own bundle `fb10dbef9591`, 22 pass / 2 fail, same two assertions to
+> the pixel. No suite was run and none was possible.
+>
+> **THE EARLIEST SIGHTING OF THAT DEFECT IS OLDER THAN THE JOB THAT FILED IT, and it was sitting in one of
+> these unread documents.** `docs/burst07-gate26-patch-2026-10-03`'s own `notGreen` field, written
+> **2026-10-03**, records that in the BURST sandbox, on UNMODIFIED source, every pinned invariant-2 height
+> read **exactly +1** against its #422 value, and so claimed no green. That is three days before #479 filed
+> the container job, and it means the affected population includes the burst sandboxes, not just the last
+> five build containers. Filed as a job.
+>
+> **STILL OWED, unchanged from #482 and not re-derived here:** the three refused payloads
+> (`gates/regress/61-...js`, `gates/verify-log.sh`, `gates/gatemanifest.sh`) land unchanged in the first
+> healthy container; the execution-closure script; pinning playwright in `gates/package.json`; the measured
+> split of the 291. **THE #479 DRILL TREE** is built and sound on `origin/claude/cool-noether-7a4wzr` at
+> `ad1a6da` - do not rebuild it. **Band 16 holds 8 ready jobs and not one is workable here**, because every
+> one needs application code plus a green suite. **DO NOT re-pin 375 to 361, ever.**
+
 > **#482, 2026-10-06T11:2xZ: FOURTH BROKEN CONTAINER RUNNING - AND "THE SUITE CANNOT GO GREEN" DOES NOT
 > BLOCK EVERYTHING, WHICH IS THIS RUN'S FINDING. BOTH ANTAGONISTS VETOED AND BOTH WERE RIGHT.**
 > #481's and #480's blocks below both still apply. Do the 90-second reading first.
