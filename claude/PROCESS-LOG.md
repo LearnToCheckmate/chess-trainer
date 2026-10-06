@@ -378,3 +378,98 @@ a conflict costs only the log entry.
 2. **S1b over an ALREADY-LANDED payload fires by construction**, because the payload's own landing is what put the path on main. Over all 14 documents in `patches` it fired eleven times, every one arithmetically right and operationally meaningless. The integrator never has that set — STEP 1I selects `patch` with no `integrationResult` — and the header now says so, in case somebody runs it over everything and reads a storm.
 3. **Arm 2's real-world cost was not observed in the wild.** The job says so of itself: the add/modify shape was constructed. On the real 14 it fires twice, on `claude/PROCESS-LOG.md` and on `gates/audit/verify-patch-set.sh`, both pairs being an older adder and a newer modifier of a file that has since landed — the same construction artefact as (2).
 4. **This payload is not on main and this lane cannot put it there.** The git proxy refuses write to this repository for every session but the build routine; one `--dry-run` at the start of the run, no retry, no workaround [R21].
+## 2026-10-06, process-build lane 2, `process-build-2__1791274433682`
+
+**Artefact:** `gates/verify-log.sh` — `--citations` arm **(5)**, the register self-check, plus 22 new cases in
+`--citations-selftest`. **Item:** `jobs/register-join-and-input-count-wrong-2026-09-28` (priority 14,
+`finishFirst` band 14, raised 2026-09-28 by `standing-checks-a`), taken on the remainder its own
+`outcome.whatIsLeft` names: *"the only register-reading tool is `gates/verify-log.sh --citations`, whose three
+arms are path resolution, case-id-in-cited-log and bundle md5s — no story-column, story-join or
+inputs-vs-loop-bounds arm."* **Base:** `origin/main` at `97392e2`, a complete clone (`git fetch --unshallow`
+refused: *on a complete repository does not make sense*; `git rev-list --count HEAD` = 914). **Outcome:**
+`fixed-in-part` — the join half is built, the inputs half is declined with a measurement.
+
+**What it changed.** Three detectors, all three with something to say about `origin/main` today, which is why
+each is a ratchet and not a ban:
+
+| | detector | measured on main at `97392e2` | ceiling |
+|---|---|---|---|
+| A5a | a table holding `TC-` rows with no `story` column | 5 tables hold `TC-` rows; **1** has no story column (the 14-row `TC-SUITE` table at `:553`) | exempt by name with its reason, `A5EXEMPT_CEIL=1` |
+| A5b | a `### US-` heading no case row's **story cell** cites | 32 headings, 23 cited, **9 at zero** | `A5ZCEIL=9`, may only fall |
+| A5c | a `TC-` row whose column count differs from its header's | **exactly 2** — `TC-R19` at 15 against 6, `TC-R37` at 3 | `A5WCEIL=2`, may only fall |
+
+**The number worth more than the patch.** The job measured *3 of 18 stories at zero cases* in September and
+argued 2 of the 3 were false negatives created by the Home table's missing story column. That column landed
+(burst agent 13's half, on main at `f4fd7dc`). **The real gap is now 9 of 32.** It tripled while the false one
+was being closed, and nothing was counting. The nine: `US-INV-04`, `US-R35`, `US-PL-11`, `US-PL-12`,
+`US-PL-13`, `US-PL-14`, `US-GL-01`, `US-R32`, `US-R36`. Four of them are `US-PL-*`, which suggests one
+uncovered feature rather than nine scattered holes — **not** investigated by this run, and stated as a shape
+and not a finding [R07].
+
+**The two-way control on the real defect.** On a copy of today's register with the Home table's story column
+removed — the exact September defect, replanted, in a temp root, the repository untouched — arm (5) refuses at
+**exit 1**, names the table by its header text, and reports `US-HM-11` at zero cases. Before this commit
+nothing in the project objected to that, for the twelve days the defect was live.
+
+**What it deliberately does not do, and the measurement that decided it [R18, R07].** The job's `case` field
+also asks that *"every inputs cell's stated state count equals the product of the loop bounds in the gate file
+named on the same row"*. It is **not buildable as a text scan over these cells**: a product regex of the form
+`<n> … x <m> … = <k>` over all 56 `TC-` rows matches 8 rows and **six of the 8 matches are geometry pairs**
+(`320x568`, `320x844`, `375x730`) rather than state products — a 75% false-positive rate on the only mechanical
+form the cells offer. A detector that wrong is worse than none. Left on the job with what it would actually
+need: a declared machine-readable inputs count in the cell, or the gate printing its own input count.
+
+**Gates run.** `gates/verify-log.sh --citations-selftest`: **30 pass / 0 fail** (8 pre-existing + 22 new),
+byte-identical over three consecutive runs, md5 `d9e887bca5f75f819e6af09e76a4021f`. `--citations` on the real
+tree byte-identical over three runs, md5 `2ea137e9876e4416fc94ab315e770972`, with arm (5) green at its
+ceilings. **Push-gate mode compared against `origin/main`'s own copy of this script over all 112 committed
+logs in `claude/agents/gatelogs/`: 0 differ** in output or exit code — the check that matters most when
+editing the one script that authorises a push. `bash -n` clean after every edit.
+
+**Two of its own errors, found by running rather than by reading, and kept in the file.** (1) The first draft
+refused on **any** empty derivation, and `C7b` — a control arm (4) had already committed — went red, because
+the selftest builds fabricated roots with no registers in them, so arm (5) was reddening eleven unrelated
+controls. Fixed with arm (2)'s existing convention: a register that is **absent** is NOT CHECKED, a register
+that **exists** and yields nothing is a refusal. `C9b`/`C9c` now control that pair in both directions. (2) An
+awk total that was never incremented concatenates as the **empty string**, not as `0`, so on a tree with no
+story headings the vacuity guard read vacuously itself. `C9b` caught it on its first run; the totals are now
+`+0` and the bash side defaults to `:-0`.
+
+**Not checked.** The 56-suite GATES GREEN run was not spent and could not be: this change touches no bundle,
+no selector and no story clause, a subset log authorises no push by design, and this lane never pushes to
+main. Arm (5) is **not wired into `gates/gates.sh`** — this run holds the lock on this file only [R44], and
+`--citations` is already RED on arms (1) and (2) on main (18 dead paths, 19 unsupported case ids, 9 misfiled
+rows), so wiring it in unchanged would refuse every build; the omission is recorded in the file itself.
+**Neither register file was edited** — `art-claude-stories-TEST-CASES-md` and `art-claude-stories-USER-STORIES-md`
+are both held by the live build run `build__1791267799956` until 09:30Z, and the job's fix half had already
+landed in any case. Whether the four `US-PL-*` zeros are one feature or four was not investigated. Whether any
+*cited* story cell points at the **wrong** story is not checkable by this arm and is not claimed. No geometry
+was visited: nothing here renders. `shellcheck` is not installed in this sandbox; only `bash -n` was run.
+`chess.com`, `lichess` and `drive.google.com` are refused by the egress proxy — not attempted, not worked
+around [R21].
+
+**Pushed:** nothing. One `git push --dry-run` at 08:16:28Z returned the proxy refusal and HTTP 403, as
+`prompts/process-build` records it will; not retried, no workaround sought [R21]. Parked at
+`patches/proc-lane2-art-gates-verify-log-sh-2026-10-06`. **INTEGRATOR:** two commits. `d1f66c1` is the
+artefact and must **never** be skipped; the record commit that follows it is the skippable one.
+
+**One more thing this run measured, because it ran the cross-payload audit rather than only its own.**
+`gates/audit/verify-patch-set.sh` (lane 3's instrument, on main at `cf8fcf1`) over the four unintegrated
+payloads returns **S4-NO-SHARED-EDIT FAIL** on `claude/PROCESS-LOG.md`, naming lane 1's 07:00Z payload and
+this one, with the parenthesised cause *"(R44 lock skipped or expired)"*. **That cause is false** and the
+claims collection says so: `art-claude-PROCESS-LOG-md` was held by `process-build-1__1791268512757` and
+released at 07:04:00Z, and this run claimed it cleanly at 08:17:39Z. Two perfectly serialised writes still
+produce two payloads that modify one file, because a payload outlives the lock that guarded its write. Filed
+as `jobs/s4-reports-a-skipped-r44-lock-for-two-lanes-correct-sequential-appends-to-process-log-2026-10-06`.
+
+**And the collision itself is real, which corrects a sentence in the job that owns the class.**
+`jobs/every-parallel-lanes-first-patch-creates-process-log-md-…-2026-10-04` argued that creating this file on
+main would retire the add/add class because *"appends to disjoint regions of an existing file do merge"*. The
+premise landed (`a8d1148`) and the conclusion does not follow for **this** file: every lane's record goes at
+the **end**, so the regions are not disjoint. Measured in both orders on fresh clones at `97392e2`:
+lane1-then-lane2 → lane 2 conflicts; lane2-then-lane1 → lane 1 conflicts; in both directions the only
+unmerged path is `claude/PROCESS-LOG.md`. **The good news is measured too:** after `git am --skip`, *both*
+artefacts survive in *both* orders — arm (5) is in `gates/verify-log.sh` and the `A15` block is in
+`gates/regress/61-…`. That is the two-commit split working as specified, for the first time with two lanes'
+payloads in one batch rather than one lane reasoning about it. Nothing in the charter requires the split,
+which is why the class is still worth retiring rather than managing.
