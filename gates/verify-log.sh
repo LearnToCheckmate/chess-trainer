@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # gates/verify-log.sh <logfile> [expected-build] [--on-main] [--this-bundle] [--ignore-held]
 # gates/verify-log.sh --citations     <- reads the TREE, not a log: do the registers' citations resolve? (12)
+# gates/verify-log.sh --citations     <- and arm (5): does the register join to the story list at all? (13)
 #
 # THE ONE PLACE THAT DECIDES WHETHER A GATE LOG AUTHORISES A PUSH. Run it on any log before citing one.
 # Exit 0 only if ALL of these hold; exit 1 with the reason otherwise.
@@ -201,6 +202,127 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   R8="$(st_tree)"; printf 'a `gates/regress/10-real.js:4`\nb `gates/regress/99-gone.js:1`\n' > "$R8/claude/stories/A.md"
   st_ck "C8 two runs over one tree agree" "$(st_arm4 "$R8")" "$(st_arm4 "$R8")"
 
+
+  # === ARM (5) CONTROLS, C9 to C16. Added 2026-10-06 by process-build lane 2 with arm (5) itself, for the
+  # remainder of jobs/register-join-and-input-count-wrong-2026-09-28. Same rule as C1-C8: every detector is
+  # shown FIRING on a planted defect and SILENT on the matching control, over fabricated registers, with no
+  # browser and no bundle - so no live register state can make one of them vacuous. C16 is the exception and
+  # is deliberate: it reads the REAL register, because that is the remainder the #477 integration run
+  # recorded against this file ("the selftest still has no case that reads the REAL register, so the ceiling
+  # can go stale again invisibly"). It asserts only NON-VACUITY, never a live figure, so it cannot go stale.
+  st_arm5() { # st_arm5 <root> -> the one-line (5) summary
+    ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 | grep -E '^  \(5\) ' | head -1 )
+  }
+  st_arm5line() { # st_arm5line <root> <ERE> -> the first matching arm-5 detail line
+    ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 | grep -E "$2" | head -1 )
+  }
+  st_reg() { # st_reg <root> -> a MINIMAL VALID register: one table with a story column, one row, one story
+    printf '### US-X-01 a story\n\ntext\n' > "$1/claude/stories/USER-STORIES.md"
+    { printf '| id | story | steps (harness) | expected, measured | executed by | last result |\n'
+      printf '|---|---|---|---|---|---|\n'
+      printf '| TC-X-001 | US-X-01 | a step | an expectation | gate 10 | pass |\n'; } > "$1/claude/stories/TEST-CASES.md"
+  }
+  echo "=== citations arm (5) selftest"
+
+  # C9 the baseline: a minimal VALID register reads 1 row in 1 table against 1 story, nothing flagged. If this
+  # line is wrong every control below is measuring the wrong thing.
+  R9="$(st_tree)"; st_reg "$R9"
+  st_ck "C9 a minimal valid register is clean" \
+    "  (5) 1 case row(s) in 1 table(s), 1 story heading(s), 0 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R9")"
+
+  # C9b VACUITY. Both registers EXIST and yield nothing: that is a refusal, not a clean register. This is the
+  # guard that stops a ceiling going stale behind three zeros.
+  R9b="$(st_tree)"; : > "$R9b/claude/stories/USER-STORIES.md"; : > "$R9b/claude/stories/TEST-CASES.md"
+  st_ck "C9b present-but-empty registers REFUSE rather than pass" \
+    "  REFUSED (5): both registers EXIST and the derivation is EMPTY - 0 case row(s), 0 story heading(s), 0 table(s). Arm (5) cannot report a clean register it failed to read." \
+    "$(st_arm5line "$R9b" '^  REFUSED \(5\)')"
+
+  # C9c ABSENT is NOT CHECKED and not a refusal - the distinction C7b forced, see arm (5)'s own comment. The
+  # pair C9b/C9c is the whole point: one of them must refuse and the other must not.
+  R9c="$(st_tree)"
+  st_ck "C9c absent registers are NOT CHECKED, not refused" \
+    "  (5) NOT CHECKED: claude/stories/TEST-CASES.md and/or claude/stories/USER-STORIES.md is not in this tree, so there is no register to self-check. This is not a pass." \
+    "$(st_arm5line "$R9c" '^  \(5\) NOT CHECKED')"
+
+  # C10 STORY COLUMN fires on a second table that holds TC- rows with no story column, and C10b goes silent
+  # the moment that table gains one. This is the defect the job was filed for, planted.
+  R10="$(st_tree)"; st_reg "$R10"
+  { printf '\n| id | what | measured |\n|---|---|---|\n| TC-Y-001 | a thing | a reading |\n'; } >> "$R10/claude/stories/TEST-CASES.md"
+  st_ck "C10 a story-less table fires" \
+    "  (5) 2 case row(s) in 2 table(s), 1 story heading(s), 0 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 1 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R10")"
+  st_reg "$R10"
+  { printf '\n| id | story | what | measured |\n|---|---|---|---|\n| TC-Y-001 | US-X-01 | a thing | a reading |\n'; } >> "$R10/claude/stories/TEST-CASES.md"
+  st_ck "C10b silent once that table has a story column" \
+    "  (5) 2 case row(s) in 2 table(s), 1 story heading(s), 0 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R10")"
+
+  # C11 the EXEMPTION is keyed to the normalised header text, so the exempt table is counted as exempt and
+  # not as a defect; C11b proves the exemption is itself ratcheted, because an exemption with no ceiling is a
+  # hole rather than a decision.
+  R11="$(st_tree)"; st_reg "$R11"
+  { printf '\n| id | case | measured |\n|---|---|---|\n| TC-SUITE-001 | a case | exit 0 |\n'; } >> "$R11/claude/stories/TEST-CASES.md"
+  st_ck "C11 the exempt header text is exempt, not a defect" \
+    "  (5) 2 case row(s) in 2 table(s), 1 story heading(s), 0 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 1 exempt of 1" "$(st_arm5 "$R11")"
+  { printf '\n| id | case | measured |\n|---|---|---|\n| TC-SUITE-002 | another | exit 1 |\n'; } >> "$R11/claude/stories/TEST-CASES.md"
+  st_ck "C11b a SECOND exempt-shaped table breaches the exemption ceiling" \
+    "  EXEMPTION COUNT ROSE: 2 story-less table(s) matched the exemption against a ceiling of 1." \
+    "$(st_arm5line "$R11" '^  EXEMPTION COUNT ROSE')"
+
+  # C12 STORY JOIN fires on a heading nobody cites and C12b goes silent once a row cites it.
+  R12="$(st_tree)"; st_reg "$R12"; printf '\n### US-X-02 an uncovered story\n' >> "$R12/claude/stories/USER-STORIES.md"
+  st_ck "C12 an uncited story heading is at zero cases" \
+    "  (5) 1 case row(s) in 1 table(s), 2 story heading(s), 1 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R12")"
+  st_ck "C12 names the story it found, rather than only counting it" \
+    "  STORY AT ZERO CASES: US-X-02 is a '### US-' heading in USER-STORIES.md that no case row's story cell cites" \
+    "$(st_arm5line "$R12" '^  STORY AT ZERO CASES')"
+  printf '| TC-X-002 | US-X-02 | a step | an expectation | gate 10 | pass |\n' >> "$R12/claude/stories/TEST-CASES.md"
+  st_ck "C12b silent once a case row cites it" \
+    "  (5) 2 case row(s) in 1 table(s), 2 story heading(s), 0 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R12")"
+
+  # C12c THE NEGATIVE CONTROL THE JOB IS ACTUALLY ABOUT. The join is COLUMN-ANCHORED: a story id mentioned
+  # anywhere else on the row must NOT count as coverage. Without this control the arm could be satisfied by
+  # a grep over the row, which is exactly the unanchored join whose false negatives this job measured.
+  R12c="$(st_tree)"; st_reg "$R12c"; printf '\n### US-X-02 an uncovered story\n' >> "$R12c/claude/stories/USER-STORIES.md"
+  printf '| TC-X-003 | US-X-01 | a step that mentions US-X-02 in prose | an expectation | gate 10 | pass |\n' >> "$R12c/claude/stories/TEST-CASES.md"
+  st_ck "C12c a story named outside the story column is NOT coverage" \
+    "  (5) 2 case row(s) in 1 table(s), 2 story heading(s), 1 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R12c")"
+
+  # C13 ROW WIDTH fires on an UNESCAPED pipe and C13b is silent on the escaped form - the boundary, so the
+  # detector cannot pass both halves by ignoring escaping. This is the sibling job folded in here
+  # (jobs/two-case-rows-carry-unescaped-pipes).
+  R13="$(st_tree)"; st_reg "$R13"
+  printf '| TC-X-004 | US-X-01 | a /this|that/ regex | an expectation | gate 10 | pass |\n' >> "$R13/claude/stories/TEST-CASES.md"
+  st_ck "C13 an unescaped pipe shifts the row and is caught" \
+    "  (5) 2 case row(s) in 1 table(s), 1 story heading(s), 0 at zero cases (ceiling 9), 1 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R13")"
+  st_reg "$R13"
+  printf '| TC-X-004 | US-X-01 | a /this\\|that/ regex | an expectation | gate 10 | pass |\n' >> "$R13/claude/stories/TEST-CASES.md"
+  st_ck "C13b the escaped form is silent" \
+    "  (5) 2 case row(s) in 1 table(s), 1 story heading(s), 0 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R13")"
+
+  # C14 the WIDTH CEILING: 2 is accepted, 3 is refused, and the message names the overage. Both sides, so an
+  # off-by-one in the comparison cannot pass.
+  R14="$(st_tree)"; st_reg "$R14"
+  printf '| TC-X-005 | US-X-01 | a|b | an expectation | gate 10 | pass |\n' >> "$R14/claude/stories/TEST-CASES.md"
+  printf '| TC-X-006 | US-X-01 | c|d | an expectation | gate 10 | pass |\n' >> "$R14/claude/stories/TEST-CASES.md"
+  st_ck "C14 exactly at the width ceiling is not over it" \
+    "  (5) 3 case row(s) in 1 table(s), 1 story heading(s), 0 at zero cases (ceiling 9), 2 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R14")"
+  printf '| TC-X-007 | US-X-01 | e|f | an expectation | gate 10 | pass |\n' >> "$R14/claude/stories/TEST-CASES.md"
+  st_ck "C14b one over the width ceiling is refused" \
+    "  NEW WRONG-WIDTH ROW(S): 3 exceeds the committed ceiling of 2 by 1." \
+    "$(st_arm5line "$R14" '^  NEW WRONG-WIDTH')"
+
+  # C15 DETERMINISM over one tree [R36 admission test].
+  R15="$(st_tree)"; st_reg "$R15"; printf '\n### US-X-09 another\n' >> "$R15/claude/stories/USER-STORIES.md"
+  st_ck "C15 two runs over one register agree" "$(st_arm5 "$R15")" "$(st_arm5 "$R15")"
+
+  # C16 THE REAL REGISTER, and the ONLY control here that touches it. It asserts NON-VACUITY and nothing else
+  # - no row count, no story count, no ceiling - so it can never go stale, while still failing on the one
+  # thing a fabricated tree can never show: that this arm actually reads the register it was written for.
+  A5REAL="$(bash "$SELF" --citations 2>&1 | grep -E '^  \(5\) [0-9]' | head -1)"
+  A5RR="$(printf '%s' "$A5REAL" | sed -n 's/^  (5) \([0-9]*\) case row(s).*/\1/p')"
+  A5RS="$(printf '%s' "$A5REAL" | sed -n 's/.*table(s), \([0-9]*\) story heading(s).*/\1/p')"
+  st_ck "C16 the real register is read: case rows > 0" "yes" "$( [ "${A5RR:-0}" -gt 0 ] 2>/dev/null && echo yes || echo "no [$A5REAL]" )"
+  st_ck "C16b the real register is read: story headings > 0" "yes" "$( [ "${A5RS:-0}" -gt 0 ] 2>/dev/null && echo yes || echo "no [$A5REAL]" )"
+
   echo "  citations-selftest: $SPASS pass, $SFAIL fail"
   [ "$SFAIL" -eq 0 ] || exit 1
   exit 0
@@ -376,7 +498,168 @@ EOF
     echo "  CEILING CAN BE LOWERED: $A4TOT of $A4CEIL in use. Commit A4CEIL=$A4TOT in this file so it cannot rise again."
   fi
   echo "  (4) $A4TOT line-number citation(s), ceiling $A4CEIL, $A4DEAD dead, $A4EOF past end of file, $A4RISE over ceiling"
-  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ]; then
+  # ── (13) ARM (5), THE REGISTER SELF-CHECK. Added 2026-10-06 by process-build lane 2
+  # (runId process-build-2__1791274433682) for the remainder of
+  # jobs/register-join-and-input-count-wrong-2026-09-28 (P?, priority 14, finishFirst band 14), whose
+  # outcome.whatIsLeft names THIS FILE: "the only register-reading tool is gates/verify-log.sh --citations,
+  # whose three arms are path resolution, case-id-in-cited-log and bundle md5s - no story-column, story-join
+  # or inputs-vs-loop-bounds arm". So the arm goes here and not into a new script.
+  #
+  # WHAT IT CHECKS, and all three FIRE ON origin/main 97392e2 TODAY, which is why each is a ratchet and not
+  # a ban - gate 67's verdict is that a gate red on a good build is worse than no gate:
+  #   A5a STORY COLUMN. A table in claude/stories/TEST-CASES.md that holds TC- rows and whose header has no
+  #       `story` column cannot be joined to USER-STORIES.md at all, so every case in it reads as zero
+  #       coverage. MEASURED: 5 tables hold TC- rows; 4 have the column, 1 does not (the 14-row TC-SUITE
+  #       table). That one is EXEMPT BY NAME WITH ITS REASON and the exemption is itself counted, so a
+  #       SECOND story-less table refuses. This is the exact defect the job was filed for - it was the Home
+  #       table in September, it was fixed, and the class recurred in a different table.
+  #   A5b STORY JOIN. A `### US-` heading in USER-STORIES.md that no case row's story cell cites has no test.
+  #       MEASURED: 32 headings, 23 cited, 9 at zero - US-INV-04, US-R35, US-PL-11, US-PL-12, US-PL-13,
+  #       US-PL-14, US-GL-01, US-R32, US-R36. The job measured 3 of 18 in September and said 2 of the 3 were
+  #       false negatives from one table's schema. The schema is fixed and the number is now NINE of 32, so
+  #       the real gap TRIPLED while the false one was being closed. A5ZCEIL may only FALL.
+  #   A5c ROW WIDTH. A TC- row whose column count differs from its own table's header is misparsed by every
+  #       column-anchored join, including A5b's. Pipes inside a cell must be escaped as \| ; this arm counts
+  #       on UNESCAPED pipes only. MEASURED: exactly 2 - TC-R19 at 15 columns against a 6-column header, and
+  #       TC-R37 at 3 - which is the sibling the job's remainder says to fold in here
+  #       (jobs/two-case-rows-carry-unescaped-pipes). A5WCEIL may only FALL.
+  #
+  # WHAT THIS ARM DELIBERATELY DOES NOT DO, and the measurement that decided it [R18, R07]. The job's `case`
+  # field also asks that "every inputs cell's stated state count equals the product of the loop bounds in the
+  # gate file named on the same row". IT IS NOT BUILDABLE AS A TEXT SCAN OVER THESE CELLS AND I MEASURED THAT
+  # RATHER THAN ASSUMING IT: a product regex of the form <n> ... x <m> ... = <k> over all 56 TC- rows matches
+  # 8 rows, and SIX of the 8 matches are GEOMETRY PAIRS ("320x568", "320x844", "375x730") rather than state
+  # products - a 75% false-positive rate on the only mechanical form the cells offer. A detector that wrong
+  # would be worse than none, so the half is left on the job with what it would actually need: a declared
+  # machine-readable inputs count (a cell field like `N=2x3=6`), or the gate printing its own input count for
+  # this arm to read. That is a schema change to the register and to the gates, not a scan.
+  #
+  # IT IS NOT WIRED INTO gates/gates.sh, for the same two reasons arm (4) is not, and the omission is
+  # recorded rather than left to be found: this run holds the artefact lock on THIS FILE and may not write
+  # gates.sh [R44], and this mode is RED on main today on arms (1) and (2), so wiring it in unchanged would
+  # refuse every build.
+  A5ZCEIL=9
+  A5WCEIL=2
+  A5EXEMPT_CEIL=1
+  # One exemption, by its NORMALISED header text, with its reason. Normalised means "| a | b | c |" with
+  # single spaces, which is what the awk below prints, so a reflow of the table's whitespace cannot silently
+  # void the exemption or silently keep it.
+  A5EXKEY="| id | case | measured |"
+  A5EXWHY="the 14 TC-SUITE rows are about gates/gatemanifest.sh's own exit codes - suite machinery with no user story to join to, which is the same allowance R08 gives a storyClause of 'none - machinery, not product'"
+  echo "=== citations (5): the register self-check - story column, story join, row width"
+  A5OUT="$(awk '
+    function trim(s){ sub(/^[ \t]+/,"",s); sub(/[ \t]+$/,"",s); return s }
+    function ncell(l, arr,   t,k){ t=l; gsub(/\\\|/,"\001",t); t=trim(t); sub(/^\|/,"",t); sub(/\|$/,"",t); k=split(t,arr,"|"); return k }
+    FNR==1 { fn++ }
+    fn==1 { if ($0 ~ /^### US-/){ s=$0; sub(/^### /,"",s); split(s,A," "); story[A[1]]=1; so[++sn]=A[1] } next }
+    { L[++n]=$0 }
+    END {
+      hl=""
+      for(i=1;i<=n;i++){
+        if (substr(L[i],1,1)=="|" && L[i+1] ~ /^\|[ :|-]+$/) {
+          k=ncell(L[i],C); hl=i; hcols[hl]=k; hrows[hl]=0; hstory[hl]=0; h=""
+          for(j=1;j<=k;j++){ if (tolower(trim(C[j]))=="story") hstory[hl]=1; h=h "| " trim(C[j]) " " }
+          hdr[hl]=h "|"
+          continue
+        }
+        if (L[i] ~ /^\|[ \t]*TC-/) {
+          k=ncell(L[i],C); id=trim(C[1]); rows++
+          if (hl==""){ print "ORPHANROW\t" i "\t" id; continue }
+          hrows[hl]++
+          if (k != hcols[hl]) print "WIDTH\t" i "\t" id "\t" k "\t" hcols[hl] "\t" hl
+          if (hstory[hl]) { m = (k>=2 ? C[2] : "")
+            while (match(m, /US-[A-Za-z0-9-]+/)) { cited[substr(m,RSTART,RLENGTH)]=1; m=substr(m,RSTART+RLENGTH) } }
+        }
+      }
+      for(hl2 in hrows) if (hrows[hl2]>0) { tabs++; print "TABLE\t" hl2 "\t" (hstory[hl2]?"story":"nostory") "\t" hrows[hl2] "\t" hdr[hl2] }
+      z=0; for(i=1;i<=sn;i++) if (!(so[i] in cited)) { print "ZERO\t" so[i]; z++ }
+      print "TOTALS\t" rows+0 "\t" sn+0 "\t" z+0 "\t" tabs+0
+    }
+  ' claude/stories/USER-STORIES.md claude/stories/TEST-CASES.md 2>/dev/null || true)"
+  A5TBAD=0; A5EX=0; A5WIDE=0; A5ZERO=0; A5ROWS=0; A5STORIES=0; A5TABS=0; A5ORPH=0; A5ZLIST=""
+  while IFS="$(printf '\t')" read -r TAG F2 F3 F4 F5 F6; do
+    [ -n "$TAG" ] || continue
+    case "$TAG" in
+      TABLE)
+        A5TABS=$((A5TABS+1))
+        if [ "$F3" = "nostory" ]; then
+          if [ "$F5" = "$A5EXKEY" ]; then
+            A5EX=$((A5EX+1))
+            echo "  EXEMPT STORY-LESS TABLE: TEST-CASES.md:$F2 '$F5' with $F4 row(s) - $A5EXWHY"
+          else
+            A5TBAD=$((A5TBAD+1))
+            echo "  NO STORY COLUMN: TEST-CASES.md:$F2 '$F5' holds $F4 TC- row(s) and has no story column, so every one of them joins to zero stories. Add the column or exempt it by name with a reason in A5EXKEY."
+          fi
+        fi
+        ;;
+      WIDTH)
+        A5WIDE=$((A5WIDE+1))
+        echo "  WRONG ROW WIDTH: TEST-CASES.md:$F2 $F3 has $F4 column(s) against its table header's $F5 (header at :$F6). Escape literal pipes as \\| - an unescaped one shifts every cell after it, including the story cell this arm joins on."
+        ;;
+      ZERO)
+        A5ZERO=$((A5ZERO+1)); A5ZLIST="$A5ZLIST $F2"
+        echo "  STORY AT ZERO CASES: $F2 is a '### US-' heading in USER-STORIES.md that no case row's story cell cites"
+        ;;
+      ORPHANROW)
+        A5ORPH=$((A5ORPH+1))
+        echo "  ORPHAN CASE ROW: TEST-CASES.md:$F2 $F3 appears before any table header, so it belongs to no table"
+        ;;
+      # +0 ON EVERY TOTAL IN THE awk ABOVE IS NOT TIDINESS, IT IS C9b. An awk variable that was never
+      # incremented concatenates as the EMPTY STRING, not as 0, so on a tree with no story headings the
+      # TOTALS line arrived as a short record and $A5STORIES came through blank - which is a numeric test
+      # against an empty string in the vacuity guard, i.e. the guard against a vacuous reading was itself
+      # the thing that read vacuously. Caught by C9b on its first run, not by inspection; the :-0 defaults
+      # below are the belt to that braces.
+      TOTALS) A5ROWS="${F2:-0}"; A5STORIES="${F3:-0}" ;;
+    esac
+  done <<EOF
+$A5OUT
+EOF
+  # THE SOUNDNESS GUARD, and it is the remainder the #477 integration run recorded against this file:
+  # "the selftest still has no case that reads the REAL register, so the ceiling can go stale again
+  # invisibly". A derivation that reads nothing prints three zeros and looks perfect, so an empty reading is
+  # a REFUSAL and not a pass. Controlled in both directions in --citations-selftest (C9/C9b).
+  #
+  # ABSENT IS NOT EMPTY, AND THIS DISTINCTION WAS FORCED ON ME BY A CONTROL RATHER THAN FORESEEN. The first
+  # draft refused whenever the derivation was empty, including when the two register files do not exist at
+  # all - and C7b, a control arm (4) had already committed, went red: the selftest builds fabricated roots
+  # with no registers in them, so arm (5) was turning every one of those trees RED for a reason that has
+  # nothing to do with the tree under test. A guard that reddens eleven unrelated controls is the "check and
+  # the thing being checked are the same set" trap, and the fix is the convention arm (2) already uses:
+  # a register that is NOT THERE is NOT CHECKED and says so; a register that IS there and yields nothing is
+  # a refusal. The red is recorded here rather than quietly repaired.
+  A5VAC=0; A5NC=0
+  if [ ! -f claude/stories/TEST-CASES.md ] || [ ! -f claude/stories/USER-STORIES.md ]; then
+    A5NC=1
+    echo "  (5) NOT CHECKED: claude/stories/TEST-CASES.md and/or claude/stories/USER-STORIES.md is not in this tree, so there is no register to self-check. This is not a pass."
+  elif [ "$A5ROWS" -eq 0 ] || [ "$A5STORIES" -eq 0 ] || [ "$A5TABS" -eq 0 ]; then
+    A5VAC=1
+    echo "  REFUSED (5): both registers EXIST and the derivation is EMPTY - $A5ROWS case row(s), $A5STORIES story heading(s), $A5TABS table(s). Arm (5) cannot report a clean register it failed to read."
+  fi
+  A5ZRISE=0; A5WRISE=0; A5EXRISE=0
+  if [ "$A5ZERO" -gt "$A5ZCEIL" ]; then
+    A5ZRISE=$((A5ZERO-A5ZCEIL)); echo "  NEW STORY AT ZERO CASES: $A5ZERO exceeds the committed ceiling of $A5ZCEIL by $A5ZRISE. Write the case, or list the story with a reason."
+  elif [ "$A5ZERO" -lt "$A5ZCEIL" ]; then
+    echo "  CEILING CAN BE LOWERED: $A5ZERO of $A5ZCEIL stories at zero cases. Commit A5ZCEIL=$A5ZERO in this file so it cannot rise again."
+  fi
+  if [ "$A5WIDE" -gt "$A5WCEIL" ]; then
+    A5WRISE=$((A5WIDE-A5WCEIL)); echo "  NEW WRONG-WIDTH ROW(S): $A5WIDE exceeds the committed ceiling of $A5WCEIL by $A5WRISE."
+  elif [ "$A5WIDE" -lt "$A5WCEIL" ]; then
+    echo "  CEILING CAN BE LOWERED: $A5WIDE of $A5WCEIL wrong-width rows. Commit A5WCEIL=$A5WIDE in this file so it cannot rise again."
+  fi
+  if [ "$A5EX" -gt "$A5EXEMPT_CEIL" ]; then
+    A5EXRISE=$((A5EX-A5EXEMPT_CEIL)); echo "  EXEMPTION COUNT ROSE: $A5EX story-less table(s) matched the exemption against a ceiling of $A5EXEMPT_CEIL."
+  fi
+  echo "  (5) $A5ROWS case row(s) in $A5TABS table(s), $A5STORIES story heading(s), $A5ZERO at zero cases (ceiling $A5ZCEIL), $A5WIDE wrong-width row(s) (ceiling $A5WCEIL), $A5TBAD unexempted story-less table(s), $A5EX exempt of $A5EXEMPT_CEIL"
+  A5BAD=$((A5TBAD+A5ORPH+A5VAC+A5ZRISE+A5WRISE+A5EXRISE))
+  if [ "$A5BAD" -gt 0 ]; then
+    echo "REGISTER SELF-CHECK RED: $A5TBAD unexempted story-less table(s), $A5ORPH orphan row(s), $A5ZRISE new story(ies) at zero cases, $A5WRISE new wrong-width row(s), $A5EXRISE excess exemption(s), $A5VAC empty derivation(s)."
+  elif [ "$A5NC" -eq 1 ]; then
+    echo "REGISTER SELF-CHECK NOT CHECKED: no register in this tree."
+  else
+    echo "REGISTER SELF-CHECK OK: $A5ROWS rows in $A5TABS tables join to $A5STORIES stories; $A5ZERO at zero (<=$A5ZCEIL) and $A5WIDE wrong-width (<=$A5WCEIL) are both at or under their committed ceilings."
+  fi
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ]; then
     echo "CITATIONS RED: $A1BAD dead path(s), $A2BAD unsupported case id(s), $A2MIS misfiled row(s), $A4DEAD dead line citation(s), $A4EOF stale line citation(s), $A4RISE over the line-citation ceiling. $A2NC row(s) NOT CHECKED."
     exit 1
   fi
@@ -391,7 +674,7 @@ LOG="${1:-}"; WANT=""; ONMAIN=0; THISBUNDLE=0; IGNOREHELD=0
 for a in "${@:2}"; do case "$a" in --on-main) ONMAIN=1;; --this-bundle) THISBUNDLE=1;; --ignore-held) IGNOREHELD=1;; *) WANT="$a";; esac; done
 [ -n "$LOG" ] || { echo "usage: gates/verify-log.sh <logfile> [#NNN] [--on-main] [--this-bundle] [--ignore-held]"
   echo "       gates/verify-log.sh --citations    (checks the registers' citations against the tree, see (12))"
-  echo "       gates/verify-log.sh --citations-selftest   (the both-direction controls for citation arm (4))"; exit 1; }
+  echo "       gates/verify-log.sh --citations-selftest   (the both-direction controls for citation arms (4) and (5))"; exit 1; }
 [ -s "$LOG" ] || { echo "REFUSED: $LOG is missing or empty"; exit 1; }
 # (9) NUL bytes mean the file was read while something else was writing it, so no part of it can be trusted
 # to be what that run measured. #418 produced exactly this: two full suites ran ten seconds apart, the per-gate
