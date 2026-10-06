@@ -58,6 +58,48 @@
 # guessing at a paragraph. Until then the parser is deliberately generous and the
 # unmeasurable bucket carries the cost.
 #
+# ---------------------------------------------------------------------------
+# L7 AND L8 ADDED 2026-10-06 BY process-build LANE 1, run process-build-1__1791311700917,
+# for jobs/a-refusal-written-into-integrationresult-removes-the-payload-from-every-
+# future-manifest-2026-10-06 (P1, priority 11), raised by antagonist B of #486 at
+# 18:07Z - 28 minutes before this run.
+#
+# THE FINDING. integrationResult carries two incompatible meanings, "landed" and
+# "refused and still owed", and STEP 1I's selector skips anything carrying the
+# field. So a correct refusal removes finished work from every future manifest.
+# #486 computed six outstanding payloads against a true seven and found out only
+# because an antagonist counted the collection by hand.
+#
+# WHAT THIS FILE NOW DOES ABOUT IT, AND WHAT IT DELIBERATELY DOES NOT. The field's
+# SHAPE is not changed here: a typed `landed` discriminator and the selector
+# sentence live in prompts/*, which R17 gives to the orchestrator and which a
+# process lane cannot reach. What is buildable here is the MEASUREMENT that makes
+# the manifest a command instead of a handover note:
+#   L7-REFUSAL-NOT-OWED    names every document whose integrationResult records a
+#                          REFUSAL and whose work is not on main.
+#   L8-MANIFEST-BY-SELECTOR / L8-MANIFEST-TRUE / L8-SELECTOR-COMPLETE
+#                          the selector's manifest, the measured manifest, and the
+#                          documents the next integration run will be MISSING, by id.
+# MEMBERSHIP IS MEASURED AND THE PROSE ONLY LABELS. Whether a document is owed comes
+# from main. The marker regex decides only WHICH KIND of owed document it is, because
+# a refusal is owed to the lane that wrote it while an unconfirmed claim is a record
+# that is wrong. If the marker is missed the document is still reported, one line to
+# the left, as L4a or L4c - R38's test (c) is the standing lesson that a check resting
+# on a prose convention must not be the thing that decides.
+#
+# AND IT CORRECTED THE DELIVERY DECISION, WHICH IS THE PART WORTH READING. The first
+# run of L7 over the real 17 documents at origin/main 8067e37 found TWO refusals and a
+# true manifest of five - and BOTH payloads the job names by id were missing from it,
+# reading delivered=yes by ancestry. Cause: this file's parser takes every hex token
+# out of the free text, and a refusal sentence naturally quotes the commits that DID
+# land, so prose beat measurement. The two arms were not in an ambiguous state - the
+# payload reverse-apply FAILED and the forward-apply SUCCEEDED, which is positive
+# evidence of absence. Ancestry is now corroboration only where content is
+# INDETERMINATE, never an override, and C26 controls the direction that bug came from.
+# After the correction: selector 3, true manifest 7, hidden 4 - which is EXACTLY the
+# pass condition of the job's own TC-PROC-001, met by command rather than by hand.
+#
+# ---------------------------------------------------------------------------
 # WHAT THIS IS NOT. It is not a gate. It lives in gates/audit/, so gates.sh's
 # gates/regress/*.js glob cannot reach it and GATES GREEN is unaffected either way. It
 # applies nothing, pushes nothing, needs no network beyond the fetch the caller already
@@ -249,6 +291,9 @@ audit() {
   # L9: the new-file arm. nf_pop is the DENOMINATOR and is reported on its own
   # line; n9 is the breach count among payloads that claim integration.
   local L9_MISSING="" L9_OUTSTANDING="" n9=0 n9o=0 nf_pop=0 nf_sites=0 nf_readable=1
+  # L7 / L8: the refused-and-still-owed set, and the manifest the selector hides.
+  local L7_REFUSED="" L8_HIDDEN="" L8_SELECTOR="" L8_TRUE=""
+  local n7=0 n8=0
 
   for f in $(ls -1 "$docdir"/*.json 2>/dev/null | sort); do
     total=$((total+1))
@@ -338,8 +383,22 @@ audit() {
     local delivered=no evidence=none
     if [ "$content" = "ON-MAIN" ]; then
       delivered=yes; evidence=content
-    elif [ "$anc" = "ALL" ]; then
+    elif [ "$anc" = "ALL" ] && [ "$content" != "NOT-ON-MAIN" ]; then
       delivered=yes; evidence=ancestry
+    elif [ "$anc" = "ALL" ] && [ "$content" = "NOT-ON-MAIN" ]; then
+      # THE ANCESTRY ARM MAY DECIDE ONLY WHERE THE CONTENT ARM CANNOT, and this
+      # condition is why. MEASURED 2026-10-06T18:40Z at origin/main 8067e37 over
+      # the real 17 documents: proc-lane4-art-claude-stories-TEST-CASES-md-2026-10-06
+      # and proc-lane4-art-gates-gatemanifest-sh-2026-10-04 both read
+      # content=NOT-ON-MAIN - their payload APPLIES FORWARD against main's tree,
+      # which is positive evidence of ABSENCE - and both read ancestry=ALL, because
+      # this file's own parser takes every hex token out of the free-text
+      # integrationResult and a REFUSAL sentence naturally quotes the commits that
+      # DID land. So prose beat measurement and two payloads the refusal job names
+      # by id read as delivered. A reverse-apply failure plus a forward-apply
+      # success is not an ambiguous state: the work is not there. Ancestry is now
+      # corroboration where content is INDETERMINATE and never an override.
+      anc=QUOTES-LANDED-SHAS
     fi
     # L9 OVERRIDES BOTH ARMS, AND ONLY IN THE ONE DIRECTION IT CAN PROVE.
     # A path this payload creates is not in main's tree, so the payload did not
@@ -359,12 +418,46 @@ audit() {
       else                  n9o=$((n9o+1)); L9_OUTSTANDING="$L9_OUTSTANDING $id"; fi
     fi
 
+    # ---- L7  WHICH OF THE TWO THINGS DOES A PRESENT integrationResult MEAN. ----
+    # The field carries both "landed" and "refused and still owed" - that is
+    # jobs/a-refusal-written-into-integrationresult-removes-the-payload-from-every-
+    # future-manifest-2026-10-06, raised by antagonist B of #486 at 18:07Z after the
+    # integrator computed a manifest of SIX against a true SEVEN. STEP 1I's selector
+    # skips anything carrying the field, so a refusal removes a live payload from
+    # every future manifest.
+    #
+    # THE SPLIT IS MEASURED FIRST AND LABELLED SECOND, which is the whole design.
+    # Membership of the owed set comes from `delivered`, i.e. from main - never from
+    # the prose. The text is read ONLY to say WHICH KIND of owed document this is,
+    # because the two have different owners and different remedies: a refusal is
+    # owed to the lane that wrote it, with conditions to clear; an unconfirmed
+    # landing claim is a record that is wrong. R38's test (c) is the standing lesson
+    # that a check resting on a prose convention is fragile, so no verdict here
+    # depends on the marker: if the marker is missed the document is still reported,
+    # one line to the left, as L4a or L4c.
+    local kind=NONE
+    if [ -n "$ir" ] && [ "$delivered" = "no" ]; then
+      if printf '%s' "$ir" | grep -qiE 'not landed|not applied|refus|declin|dropped|veto|withheld|skipp|still owed|deferr|re-park|repark'; then
+        kind=REFUSAL-RECORDED
+      else
+        kind=CLAIM-UNCONFIRMED
+      fi
+    fi
+
     if [ -n "$ir" ]; then
-      if [ "$content" = "NOT-ON-MAIN" ] && [ "$delivered" = "no" ]; then n4a=$((n4a+1)); L4A="$L4A $id"; fi
-      if [ "$content" = "INDETERMINATE" ] && [ "$delivered" = "no" ]; then n4c=$((n4c+1)); L4C="$L4C $id"; fi
+      if [ "$kind" = "REFUSAL-RECORDED" ]; then
+        n7=$((n7+1)); L7_REFUSED="$L7_REFUSED $id"
+      else
+        if [ "$content" = "NOT-ON-MAIN" ] && [ "$delivered" = "no" ]; then n4a=$((n4a+1)); L4A="$L4A $id"; fi
+        if [ "$content" = "INDETERMINATE" ] && [ "$delivered" = "no" ]; then n4c=$((n4c+1)); L4C="$L4C $id"; fi
+      fi
+      if [ "$delivered" = "no" ]; then n8=$((n8+1)); L8_HIDDEN="$L8_HIDDEN $id"; fi
     else
       if [ "$delivered" = "yes" ]; then n4b=$((n4b+1)); L4B="$L4B $id"; fi
+      L8_SELECTOR="$L8_SELECTOR $id"
     fi
+    [ "$delivered" = "no" ] && L8_TRUE="$L8_TRUE $id"
+    [ "$kind" = "NONE" ] || info "KIND" "$id | owed, and its integrationResult reads as $kind"
   done
 
   # ---- L6  VACUOUS-PASS GUARD. Exit 2, never 0, on an empty population. ----
@@ -448,6 +541,27 @@ audit() {
     pass L5-PILE-DEPTHS-AGREE "both depths are $naive_pile, so the back-pressure number means what it says today"
   else
     fail L5-PILE-DEPTHS-AGREE "the guard reads $naive_pile and the truth is $true_undelivered - the back-pressure number is off by $((true_undelivered-naive_pile)) and lanes are halting, or not halting, on it"
+  fi
+
+  # ---- L7  THE REFUSED-AND-STILL-OWED SET, BY NAME. A count is not a manifest:
+  # ---- #486 skipped a payload for exactly this reason and only found out because
+  # ---- an antagonist counted the collection by hand.
+  if [ "$n7" -eq 0 ]; then
+    pass L7-REFUSAL-NOT-OWED "no document carries a recorded refusal while its work is still off main"
+  else
+    fail L7-REFUSAL-NOT-OWED "$n7 document(s) carry an integrationResult that RECORDS A REFUSAL and whose work is NOT on main - finished work that every STEP 1I selector keyed on field presence will skip for ever [R42 class 3]:$L7_REFUSED"
+  fi
+
+  # ---- L8  THE SELECTOR AGAINST THE TRUTH, at document level rather than as a
+  # ---- depth. L5 says the two NUMBERS disagree; this says WHICH DOCUMENTS the
+  # ---- next manifest will be missing, which is the output an integration run can
+  # ---- act on without re-deriving anything.
+  info L8-MANIFEST-BY-SELECTOR "$(echo $L8_SELECTOR | wc -w) document(s) - what STEP 1I's rule selects (a patch field and no integrationResult):${L8_SELECTOR:- none}"
+  info L8-MANIFEST-TRUE "$(echo $L8_TRUE | wc -w) document(s) - every payload whose work is NOT demonstrably on main, whatever any field says:${L8_TRUE:- none}"
+  if [ "$n8" -eq 0 ]; then
+    pass L8-SELECTOR-COMPLETE "the selector's manifest and the measured manifest hold the same documents"
+  else
+    fail L8-SELECTOR-COMPLETE "$n8 owed document(s) are INVISIBLE to the selector because they carry an integrationResult - add them to the manifest by id:$L8_HIDDEN"
   fi
 
   return $FAILED
@@ -664,6 +778,53 @@ json.dump(d,open(sys.argv[1],"w"))
   else
     printf '%-26s %-5s %s\n' C31-ADD-EXTRACTOR-WORKS FAIL "positive gave [$nf_pos], negative gave [$nf_neg]"
   fi
+  # ===================== C20 to C25  L7 AND L8, EVERY ARM TWO-WAY ==========
+  # The classifier splits OWED documents into two kinds and the split must be
+  # controlled in both directions, or a stuck classifier reads as a clean report.
+  # C20/C21 are the same payload - work genuinely off main - with the two kinds of
+  # prose over it, and each asserts BOTH that its own line fires AND that the other
+  # one does not.
+  fresh_docdir; mkdoc d-refused "$P_STRANDED" "NOT LANDED AT #482: refused on a veto, four conditions named, still owed"
+  out="$T/o20"; audit "$D" "$R" > "$out" 2>&1; rc=$?
+  check C20-REFUSAL-IS-CAUGHT     1 "L7-REFUSAL-NOT-OWED        FAIL" "$rc" "$out"
+  check C20b-REFUSAL-NOT-A-LIE    1 "L4a-NO-FALSE-DELIVERY      PASS" "$rc" "$out"
+  check C20c-REFUSAL-IS-HIDDEN    1 "L8-SELECTOR-COMPLETE       FAIL" "$rc" "$out"
+  fresh_docdir; mkdoc d-claimed "$P_STRANDED" "APPLIED, commit $STRANDED"
+  out="$T/o21"; audit "$D" "$R" > "$out" 2>&1; rc=$?
+  check C21-CLAIM-STILL-L4A       1 "L4a-NO-FALSE-DELIVERY      FAIL" "$rc" "$out"
+  check C21b-CLAIM-IS-NOT-REFUSAL 1 "L7-REFUSAL-NOT-OWED        PASS" "$rc" "$out"
+
+  # C22: a refusal that was later re-taken and LANDED is not owed, so the refusal
+  # words alone must not fire L7. This is the arm that fails if membership ever
+  # starts coming from the prose instead of from main.
+  fresh_docdir; mkdoc d-refused-then-landed "$P_LANDED" "REFUSED AT #482 and then re-taken and landed at #486, commit $LANDED"
+  out="$T/o22"; audit "$D" "$R" > "$out" 2>&1; rc=$?
+  check C22-LANDED-REFUSAL-PASSES 0 "L7-REFUSAL-NOT-OWED        PASS" "$rc" "$out"
+
+  # C23 / C24: L8 is about the SELECTOR, not about being owed. An owed payload with
+  # NO integrationResult is correctly selected, so the selector is complete and L8
+  # passes even though the document is outstanding.
+  fresh_docdir; mkdoc d-plain-owed "$P_STRANDED" ""
+  out="$T/o23"; audit "$D" "$R" > "$out" 2>&1; rc=$?
+  check C23-OWED-NO-FIELD-IS-SEEN 0 "L8-SELECTOR-COMPLETE       PASS" "$rc" "$out"
+  check C24-TRUE-MANIFEST-PRINTED 0 "L8-MANIFEST-TRUE" "$rc" "$out"
+
+  # C25: the manifest LINES are the deliverable, so assert the counts a reader
+  # acts on - one selected, two truly owed - on a mixed population.
+  fresh_docdir; mkdoc d-sel "$P_STRANDED" ""; mkdoc d-hid "$P_STRANDED" "NOT LANDED, still owed"; mkdoc d-done "$P_LANDED" "APPLIED, commit $LANDED"
+  out="$T/o25"; audit "$D" "$R" > "$out" 2>&1; rc=$?
+  check C25-SELECTOR-UNDERCOUNTS  1 "L8-MANIFEST-BY-SELECTOR    INFO  1 document(s)" "$rc" "$out"
+  check C25b-TRUE-MANIFEST-IS-2   1 "L8-MANIFEST-TRUE           INFO  2 document(s)" "$rc" "$out"
+
+  # ===================== C26  PROSE MAY NOT OVERRIDE MEASUREMENT ===========
+  # The other direction of C18. Content says NOT-ON-MAIN and the integrationResult
+  # quotes a sha that IS an ancestor of main - the real shape of a refusal sentence.
+  # It must stay owed, and it must appear in the hidden set rather than be waved
+  # through by the prose.
+  fresh_docdir; mkdoc d-quoting "$P_STRANDED" "NOT LANDED. The conflicting commit that did land is $LANDED, re-park required."
+  out="$T/o26"; audit "$D" "$R" > "$out" 2>&1; rc=$?
+  check C26-PROSE-NO-OVERRIDE     1 "ancestry=QUOTES-LANDED-SHAS" "$rc" "$out"
+  check C26b-QUOTER-STAYS-OWED    1 "L7-REFUSAL-NOT-OWED        FAIL" "$rc" "$out"
 
   # ===================== C16  determinism of the report ====================
   # Byte-identical output on repeated runs over one input [R36]. A report whose
