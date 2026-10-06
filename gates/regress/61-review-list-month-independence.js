@@ -656,6 +656,87 @@ async function input(seed,n,geo,name,thin){
     await b.close();
   }
 
+  // ── A15 #478, EXACTLY AT THE CAP WITH THE INDEX EXHAUSTED. TC-R35's FIRST INPUT, WHICH HAS NEVER BEEN
+  //    BUILT, and the only assertion in this file that can hold the #433 guard
+  //    `cutByGames = games.length>=ACCT_GMAX && (leftover||i>=0)` [chess.jsx:4219].
+  //    JOB: jobs/the-bound-records-how-the-walk-exited-not-whether-anything-was-cut-2026-09-29, whose
+  //    outcome.whatIsLeft names this input in exactly these words: "no fetched fixture reaches exactly
+  //    ACCT_GMAX with the index exhausted and asserts that NO limit is stated".
+  //
+  //    WHY NO EXISTING ASSERTION REACHES IT, counted rather than asserted [R07]: of the 51 assertion ids in
+  //    this file, THREE touch the no-limit-stated state and none of them is at the cap. A7d is an EXHAUSTED
+  //    index UNDER the cap (T2: 3 months x 5 = 15 rows, so games.length>=ACCT_GMAX is false and the guard is
+  //    never evaluated). A12b and A13b are exhausted indexes with a month that FAILED, so `missed` is
+  //    non-zero and the suffix, not the bound, is what those rows are about. The nine dense inputs all
+  //    concentrate 300+ games in the five months before the newest, so the walk always stops on GAMES with
+  //    rows left behind - `leftover` true - which is the arm that SHOULD state a cap. The one state where
+  //    the left operand is true and the right operand is false has no input in this file, so
+  //    `&&(leftover||i>=0)` can be deleted today and all 51 assertions stay green.
+  //
+  //    THE FIXTURE IS FOUR ENTRIES OF FIFTY, AND THE ARITHMETIC IS THE WHOLE DESIGN. 4 x 50 = 200 = the
+  //    pinned MIN_CAP, which equals ACCT_GMAX on main. Four entries is under ACCT_GMONTHS=6, so the month
+  //    window cannot bind and cannot be confused for the cap. Fifty divides the cap exactly, so the inner
+  //    `for(k=0;k<mg.length&&games.length<ACCT_GMAX;k++)` consumes the last month WHOLE and `leftover`
+  //    stays false - the single condition that distinguishes this input from every other one here. The
+  //    index then exhausts (i reaches -1) and `bound` must read 'all'.
+  //
+  //    THE CAP IS A PINNED NUMBER AND A15-0 IS WHAT MAKES THAT SAFE. This gate has no access to the app's
+  //    constants (see the note at A7a) and on this input the screen states NO cap by design, so there is
+  //    nothing on screen to read the cap off - the fixture has to pin it. If a build moves ACCT_GMAX, the
+  //    fixture no longer lands exactly on it, rows stop equalling MIN_CAP, and A15-0 goes red and skips the
+  //    rest rather than letting A15a pass for the wrong reason. A pinned number whose vacuity guard detects
+  //    its own staleness is not the same thing as a pinned number that is trusted [R18].
+  {
+    const EXACT_MONTHS=4, EXACT_PER=MIN_CAP/EXACT_MONTHS;          // 4 x 50 = 200, exactly the cap
+    const state={seed:'b',hits:[],refuse:false,thin:{months:EXACT_MONTHS,per:EXACT_PER}};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name:'exact-cap-exhausted'});
+    await stub(b,state); await b.open(); await b.tile('Review'); await b.settle(2600);
+    const r=await READ(b); r.hitCount=state.hits.length;
+    const tag='EXACT CAP: '+EXACT_MONTHS+' entries x '+EXACT_PER+' = '+MIN_CAP+' games, the index exhausted and nothing left behind';
+    L.note(tag+'  rows '+r.rows+'  requests '+r.hitCount+'  limit line '+JSON.stringify(r.cap&&r.cap.text)+'  months on screen '+JSON.stringify(r.distinct));
+    // A15-0 IS THE VACUITY GUARD AND THE PROOF THE STATE WAS REACHED, and it carries three facts rather
+    // than one, because each of the three is a different way this input could silently become a different
+    // input: the row count lands EXACTLY on the cap (not above, which would mean rows were left behind, and
+    // not below, which would mean the walk stopped early or ACCT_GMAX moved); every listed month was asked
+    // for, so the index really did exhaust rather than the walk stopping on the month window; and all four
+    // months are on screen, so nothing was dropped.
+    const reqd=1+EXACT_MONTHS;                                     // the archives index, then each month once
+    if(L.say(r.rows===MIN_CAP&&r.hitCount===reqd&&r.distinct.length===EXACT_MONTHS,
+       'A15-0 vacuity '+tag+': the walk landed EXACTLY on '+MIN_CAP+' rows with all '+EXACT_MONTHS+' listed months requested and on screen, which is the state the guard is about',
+       {rows:r.rows,expect:MIN_CAP,requests:r.hitCount,expectRequests:reqd,monthsOnScreen:r.distinct,hits:state.hits.slice(0,6)})){
+      // A15a IS THE ASSERTION THE JOB ASKS FOR. Reaching the cap is not being cut by it: the fourth entry
+      // was consumed whole and the index ran out, so nothing was withheld from this player and there is no
+      // limit to state. Read off the BODY as well as the element, because #432's own negative control
+      // proved that an assertion reading only the attribute the fix adds goes PASS on the bundle that
+      // states the cap wrongly.
+      L.say(r.cap.present===false&&!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),
+        'A15a US-R25 '+tag+': NO limit line is rendered and NO limit sentence is anywhere on screen - the whole history was fetched, so a cap that was reached but did not withhold anything may not be claimed as the bound',
+        {element:r.cap.present,line:r.cap.text,heightPx:r.cap.h,gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthClaimInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no'});
+      // A15b: and no GAP is claimed either, which is a separate arm of the same sentence. Every one of the
+      // four months answered 200 with 50 usable rows, so `missed` is 0 and the '+gap' suffix must be absent.
+      // Without this, a build that made `missed` count successful months would turn A15a's silence into a
+      // gap sentence and A15a alone would still be green on the line being absent.
+      L.say(!GAP_RE.test(r.body||''),'A15b US-R25 '+tag+': and NO gap is claimed - all four listed months answered with their full fifty rows, so there is nothing to disclose',{bodyHasGap:GAP_RE.test(r.body||''),line:r.cap.text});
+      // A15c THE SAME STATE AFTER A RELOAD WITH THE NETWORK REFUSING, which is where this input collides
+      // with A8a and why it is worth the extra reading. A8a requires that an account sitting at ACCT_GMAX
+      // rows in a LEGACY store (no ct_acctcap entry) still states the cap, because at the cap and with no
+      // recorded bound the cut IS inferable. This account also holds exactly ACCT_GMAX rows - and it was
+      // NOT cut. The two are only compatible because the recorded bound exists here and governs; if the
+      // row-count fallback were ever allowed to override a recorded 'all', A8a's rule would start printing
+      // a limit over a complete history. THAT IS THE CONTRADICTION THIS ASSERTION PINS [R45], and it is the
+      // one pair of rules in this file that can be jointly impossible.
+      state.refuse=true;
+      await b.open(); await b.tile('Review'); await b.settle(1600);
+      const after=await READ(b);
+      if(L.say(after.rows===MIN_CAP,'A15c-0 vacuity '+tag+': the reload re-rendered all '+MIN_CAP+' rows out of localStorage with the network refusing, so the reading below is of the stored state and not of a re-fetch',{rows:after.rows,expect:MIN_CAP,err:after.err})){
+        L.say(after.cap.present===false&&!CAP_RE.test(after.body||''),
+          'A15c US-R25 '+tag+': and STILL no limit after a reload from the store - the recorded bound governs, so the at-the-cap row-count fallback A8a relies on does not override a history that was complete',
+          {element:after.cap.present,line:after.cap.text,storedRows:after.stored,gamesCapInBody:(after.body||'').match(CAP_RE)?((after.body||'').match(CAP_RE))[0]:'no'});
+      }
+    }
+    await b.close();
+  }
+
   // ── A6, the geometry sweep. This gate's subject is data, not pixels, so the matrix above runs at Kunal's
   //    375x730 and the WIDTH-sensitive part runs here: nothing on the list is cut off and the first row is
   //    hit-testable at its own centre after scrolling ITS OWN scroller (measurement rules 1, 3, 4).
