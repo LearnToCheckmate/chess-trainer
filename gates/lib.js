@@ -58,10 +58,23 @@ short375:{w:375,h:568,safe:'',label:'375x568 = the wide-and-short corner nothing
 // measures 373.42px under the app's stack against 348.28px under bare sans-serif, a 25.14px spread on one line.
 // Gate 48's failure is a two-track min-content row short by 23.82px, which is the same quantity and order.
 //
-// AND IT REFINES THE HYPOTHESIS IT CAME FROM, which blamed `Segoe UI` alone. index.html asks for `system-ui`
-// FIRST, and `system-ui` resolves to Inter here too - identical to three decimals - so the variable is BOTH
-// families collapsing onto one substituted font, not one missing name. Naming only Segoe UI would send the next
-// reader looking for a font the app does not even ask for first on its primary surface.
+// AND IT REFINES THE HYPOTHESIS IT CAME FROM, which blamed `Segoe UI` alone: `system-ui` resolves to Inter here
+// too, identical to three decimals, so the variable is BOTH families collapsing onto one substituted font and
+// not one missing name. That much is measured and stands.
+//
+// *** #485 WITHDRAWS THE REST OF THIS PARAGRAPH [R18]. *** It read: "index.html asks for `system-ui` FIRST ...
+// Naming only Segoe UI would send the next reader looking for a font the app does not even ask for first on its
+// primary surface." BOTH CLAUSES ARE WRONG, and the second is backwards. MEASURED: index.html's ONLY font
+// declaration is at line 59, INSIDE THE `#boot` RULE - the boot splash, which is gone once the app mounts. The
+// app's primary surface sets its own stack as an INLINE style on its root, `'Segoe UI', system-ui, sans-serif`
+// at chess.jsx:5288, plus ~92 per-element declarations; `getComputedStyle(document.body).fontFamily` on the
+// puzzle screen reads "Times New Roman", because nothing in the app styles body at all. So the app DOES ask for
+// Segoe UI first, on the only surface that matters, and a reader sent to index.html lands on the splash screen.
+// Recorded rather than quietly deleted because this paragraph is why six runs looked at index.html.
+//
+// AND THE QUANTITY NAMED BELOW IS A PROXY, NOT THE DRIVER. The width figure this function prints is real and
+// comparable, but the board moves on text HEIGHT: DejaVu Sans is WIDER than Inter (402.12 against 373.42) and
+// restores the pinned board exactly. See gates/fonts.conf for the full measurement and the per-clause controls.
 //
 // NOTE THE METHOD, because the obvious one is wrong: document.fonts.check('16px "Segoe UI"') returns TRUE in
 // this container for every family tried, including families fc-list does not have at all, so it CANNOT answer
@@ -75,6 +88,27 @@ short375:{w:375,h:568,safe:'',label:'375x568 = the wide-and-short corner nothing
 // VISIBLE IN THE ARTEFACT so the next run knows in one line whether its red is its own.
 const FP_REF='It’s mate in 2 — start with the most forcing check.';  // fixed forever; the number is only comparable against itself
 let _tcSaid=false,_fpSaid=false;
+
+// #485: PIN THE FONT THE PINS WERE CALIBRATED AGAINST, BEFORE ANY BROWSER STARTS.
+// The whole argument, the per-clause controls and what this does NOT claim are in gates/fonts.conf;
+// read that file before changing this. Short version: these images install no face the app asks for,
+// fontconfig answers the generic chain with Inter, Inter's taller line boxes make the puzzle column
+// overflow, and chess.jsx's board fit loop absorbs the overflow by shrinking the board 375 -> 361.
+// Seven containers in a row could not gate any tree because of it. Binding the generic chain to the
+// calibration face takes gate 12-hint from 22/2 to 24/0 on origin/main's own bundle with no assertion
+// touched.
+// IT IS A DEFAULT ON PURPOSE. CLAUDE.md: "ask of any harness default: what does it do when I forget?"
+// Forgetting here must give the DETERMINISTIC fonts, not the image's accident - a run that forgets is
+// exactly the run that spends its slot rediscovering this. So it is opt-OUT, never silent, and every
+// gate log says which fontconfig produced its numbers.
+const FC_CONF=path.join(__dirname,'fonts.conf');
+let _fcState='image default (no fontconfig pinned)';
+(function pinFontconfig(){
+  if(process.env.CT_NOFC==='1'){_fcState='DISABLED by CT_NOFC=1 - fonts come from the image';return;}
+  if(process.env.FONTCONFIG_FILE){_fcState='caller-supplied FONTCONFIG_FILE='+process.env.FONTCONFIG_FILE;return;}
+  if(!fs.existsSync(FC_CONF)){_fcState='gates/fonts.conf MISSING - fonts come from the image';return;}
+  process.env.FONTCONFIG_FILE=FC_CONF;_fcState='gates/fonts.conf';
+})();
 function pwVersion(){
   for(const m of ['/opt/node22/lib/node_modules/playwright','playwright','playwright-core']){
     try{return require(m+'/package.json').version+' ('+m+')';}catch(e){}
@@ -85,6 +119,7 @@ async function sayToolchain(browser){
   if(_tcSaid)return;_tcSaid=true;
   let cv='?';try{cv=browser.version();}catch(e){cv='unavailable: '+e.message;}
   console.log('     toolchain: playwright '+pwVersion()+'  chromium '+cv+'  [no browser is pinned in gates/package.json]');
+  console.log('     fontconfig: '+_fcState+'   [#485 - every text-derived pin in this suite depends on this line]');
 }
 // The one number that explains a moved pixel pin. Printed once per process, so every gate section carries it.
 async function sayTextMetrics(page){
