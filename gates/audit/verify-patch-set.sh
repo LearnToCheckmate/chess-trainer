@@ -51,6 +51,66 @@
 #      all: both apply cleanly, the manifest gets two rows for one number, and the suite
 #      silently runs one gate where two were authored.
 #
+#  (3) AND THE TWO CLASSES NOTHING ABOVE CAN SEE, BOTH MEASURED BY #484'S
+#      ANTAGONISTS AND BOTH ADDED HERE ON 2026-10-06 BY process-build lane 2, run
+#      process-build-2__1791296057092, against
+#      jobs/the-payload-collision-checks-never-ask-origin-main-so-a-single-payload-
+#      can-add-add-conflict-while-the-audit-reports-green-2026-10-06.
+#
+#      THE CAUSE IS ONE SENTENCE: S1 AND S4 COMPARE PAYLOADS ONLY AGAINST EACH
+#      OTHER, AND NOTHING ASKED WHAT IS ALREADY ON MAIN. Everything above is a
+#      payload-against-payload question, so the whole family needs two adders or two
+#      modifiers before it can say anything at all.
+#
+#      S1b, ONE PAYLOAD AGAINST MAIN. The header above used to assert that
+#      claude/PROCESS-LOG.md "is not on origin/main, so EVERY lane's first payload
+#      adds it as a new file, and TWO such payloads add/add-conflict". THE PREMISE
+#      WAS FALSE WHEN IT WAS WRITTEN: a8d1148 put that file on main, and commit
+#      6a746f6 added a sentence saying so (the "or as a shared edit (after a8d1148
+#      put it there)" clause in S2's comment) while S1 went on implementing the
+#      false half. Measured consequence on the live set, which is why this is not a
+#      drill: of the payloads parked today, proc-lane4-art-gates-verify-log-sh-
+#      2026-10-04 ADDS claude/PROCESS-LOG.md as a new file. One adder, so S1 passes
+#      and prints "no path is added as a new file by two payloads". Applied alone to
+#      a clone, `git am --3way` returns CONFLICT (add/add) with that one path
+#      unmerged - against MAIN ALONE, no second payload anywhere in it. The script
+#      had the repo-dir in its hand and used it only for gate numbers.
+#
+#      S7, ADDED BY ONE AND MODIFIED BY ANOTHER. S1 needs two adders. S4 needs two
+#      modifiers. A path one payload ADDS and another MODIFIES is in neither set, so
+#      it was reported by neither check - and S2's own SKIP line said so in writing
+#      rather than closing it. It is also the asymmetric one: in the add/add case
+#      `git am --skip` costs the SKIPPED payload its record, while here it costs
+#      whatever the MODIFYING payload bundled, so the integrator's cheap move is a
+#      different move. S7 reports the pair and feeds S2, so the skippability
+#      question is now asked of all three collision classes and not two [R06].
+#
+#      AND BOTH REPO ARMS GET A CONTROL THAT FIRES, which the job required in
+#      writing and which this file could not previously supply: its only repo
+#      controls were C26 and C27, and BOTH ASSERT THE SKIP. SELFTEST_REPO below
+#      builds a real throwaway git repository with an origin/main ref inside the
+#      mktemp -d, so S1b is shown FIRING on a path that is on main and SILENT on one
+#      that is not. A detector only ever seen skipping has not been shown to work
+#      [R36]. S3b and S6 are NOT fixed here and are NOT claimed: their vacuity is
+#      the sibling job jobs/s3b-and-s6-are-the-only-repo-reading-checks-and-neither-
+#      has-a-control-that-fires-while-three-states-turn-a-fail-into-pass-2026-10-06,
+#      and S1b deliberately does not repeat their bug - see its origin/main
+#      resolution guard, which reports NOT CHECKED where S3b reports PASS.
+#
+#      ONE THING TO KNOW BEFORE READING AN S1b RUN, because it would otherwise look
+#      like a false-positive storm. S1b asks "would this payload add/add against
+#      main AT APPLY TIME". For a payload that HAS ALREADY BEEN APPLIED the answer
+#      is yes by construction - its own landing is what put the path on main. Run
+#      over all 14 documents in `patches` on 2026-10-06, including the landed ones,
+#      it fired ELEVEN times and every one of the eleven was arithmetically correct
+#      and operationally meaningless. The integrator never has that set: prompts/
+#      build-run STEP 1I selects documents with a `patch` field and NO
+#      `integrationResult`, which is the unlanded pile, and that is the only set
+#      this check is a question about. Measured on the single payload the job names,
+#      proc-lane4-art-gates-verify-log-sh-2026-10-04 alone against this clone:
+#      S1-NEWFILE-COLLISION SKIP (one payload, no pair) and S1b FAIL on
+#      claude/PROCESS-LOG.md, exit 1 - the job's headline reproduced exactly.
+#
 # AND ONE CLASS THE ARTEFACT LOCK IS SUPPOSED TO PREVENT, CHECKED ANYWAY (S4). R44
 # requires a lane to hold claims/art-<path> before it writes a file. If two payloads
 # modify one existing file, either a lock was skipped or one expired mid-run. That is
@@ -116,7 +176,8 @@
 #                  document's `patch` field verbatim. The FILENAME is used as the
 #                  payload's name in the report, so name them after the document id.
 #                  Files not beginning "From " are reported and skipped (S0).
-#   [repo-dir]     optional clone. Enables S3b (a gate number already on main) and S6
+#   [repo-dir]     optional clone. Enables S1b (a path already on main), S3b (a gate
+#                  number already on main) and S6
 #                  (the recommended apply order by base-commit date). Omitted = SKIP.
 #
 # A BUG THIS FILE'S OWN FIRST REAL RUN FOUND, recorded rather than quietly fixed.
@@ -278,6 +339,9 @@ verify_set() {
     say S4-NO-SHARED-EDIT       SKIP "one payload in the set; no pair to compare"
     say S4b-EXPECTED-SHARED-EDIT SKIP "one payload in the set; no pair to compare"
     say S5-NO-DUPLICATE-COMMIT  SKIP "one payload in the set; no pair to compare"
+    # S7 is cross-payload by construction. S1b is NOT, and is deliberately outside
+    # this branch: one payload adding a path main already has is the whole defect.
+    say S7-ADD-VERSUS-MODIFY    SKIP "one payload in the set; no pair to compare"
   else
 
   # ---- S1 NEW-FILE COLLISION ---------------------------------------------
@@ -326,6 +390,29 @@ verify_set() {
     [ "$cnt" -gt 1 ] && sharedmod+=("$p")
   done < <(cut -f1 "$mtmp" | sort | uniq -c | awk '{print $1, $2}')
 
+  # ---- S7 ADDED BY ONE PAYLOAD, MODIFIED BY ANOTHER ----------------------
+  # The third bucket. S1 keys on two adders and S4 on two modifiers, so this pair
+  # fell between them; S2's SKIP line named the hole and nothing closed it. The
+  # consequence is NOT the add/add consequence and that is why it is a separate
+  # check with its own sentence: `git am --skip` on an add/add discards the skipped
+  # payload's record, while here it discards whatever the MODIFYING payload bundled
+  # with the shared path, which may be an artefact.
+  local -a addmod=()
+  local pp adders modders crossmod
+  while read -r pp; do
+    [ -n "$pp" ] || continue
+    adders=$(awk -F'\t' -v w="$pp" '$1==w{print $2}' "$tmp" | sort -u)
+    modders=$(awk -F'\t' -v w="$pp" '$1==w{print $2}' "$mtmp" | sort -u)
+    # A payload that adds a path in one commit and modifies it in a later commit is
+    # NOT this class: it is one payload, internally consistent, and git applies it.
+    # The class is a MODIFIER THAT IS NOT ALSO AN ADDER.
+    crossmod=$(comm -23 <(printf '%s\n' "$modders") <(printf '%s\n' "$adders"))
+    [ -n "$crossmod" ] || continue
+    addmod+=("$pp")
+    fail S7-ADD-VERSUS-MODIFY "$pp is ADDED as a new file by: $(printf '%s ' $adders)and MODIFIED by: $(printf '%s ' $crossmod)- neither S1 (which needs two adders) nor S4 (which needs two modifiers) can see this pair. git am --3way stops on this path, and here --skip costs whatever the MODIFYING payload bundled, not the adder's record"
+  done < <(comm -12 <(cut -f1 "$tmp" | sort -u) <(cut -f1 "$mtmp" | sort -u))
+  [ "${#addmod[@]}" -eq 0 ] && say S7-ADD-VERSUS-MODIFY PASS "no path is added as a new file by one payload and modified by another"
+
   # ---- S2 IS THE COLLISION SKIPPABLE ------------------------------------
   # For every colliding path - added as a new file by two payloads (S1) OR
   # modified by two payloads (S4/S4b) - every payload that touches it must isolate
@@ -342,10 +429,10 @@ verify_set() {
   local -a colliding_all=()
   while read -r p; do
     [ -n "$p" ] && colliding_all+=("$p")
-  done < <(printf '%s\n' ${collided[@]+"${collided[@]}"} ${sharedmod[@]+"${sharedmod[@]}"} | sed '/^$/d' | sort -u)
+  done < <(printf '%s\n' ${collided[@]+"${collided[@]}"} ${sharedmod[@]+"${sharedmod[@]}"} ${addmod[@]+"${addmod[@]}"} | sed '/^$/d' | sort -u)
 
   if [ "${#colliding_all[@]}" -eq 0 ]; then
-    say S2-COLLISION-SKIPPABLE SKIP "no path is added as a new file by two payloads (S1) and no existing path is modified by two payloads (S4). NOT the same as 'no collision is possible': a path ADDED by one payload and MODIFIED by another is in neither set and is reported by neither check - a pre-existing hole #484's antagonist A measured, unchanged by that build, and filed as its own job"
+    say S2-COLLISION-SKIPPABLE SKIP "no path is added as a new file by two payloads (S1), no existing path is modified by two payloads (S4), and no path is added by one and modified by another (S7). The add-versus-modify hole #484's antagonist A measured is CLOSED as of 2026-10-06: S7 computes that pair and its paths are in this check's input, so all three collision classes are asked the skippability question. What this line still does NOT cover is a collision against MAIN rather than against another payload - that is S1b, which needs a [repo-dir] and says so itself when it has none"
   else
     local unskippable=0
     for p in "${colliding_all[@]}"; do
@@ -470,6 +557,36 @@ verify_set() {
   rm -f "$gtmp"
 
   fi  # end n>1
+
+  # ---- S1b A NEW PATH THAT ALREADY EXISTS ON MAIN ------------------------
+  # OUTSIDE the n>1 branch on purpose: this is the one check in the file that can
+  # fail on a set of ONE, because the second party to the conflict is main.
+  if [ -n "$repo" ] && [ -d "$repo/.git" ]; then
+    if ! git -C "$repo" rev-parse --verify --quiet origin/main >/dev/null 2>&1; then
+      # NOT CHECKED, NOT PASS, AND THIS IS THE POINT. A build-run clone sits on the
+      # per-run branch the routine mints at every wake, so origin/main may not exist
+      # as a ref at all; S3b below swallows exactly that state into a green line
+      # (jobs/s3b-and-s6-are-the-only-repo-reading-checks-and-neither-has-a-control-
+      # that-fires-while-three-states-turn-a-fail-into-pass-2026-10-06). A wrong
+      # reason that reaches the right verdict is a trap [#419]; a wrong reason that
+      # reaches the WRONG verdict is this file's whole subject.
+      say S1b-NEW-PATH-FREE-ON-MAIN SKIP "NOT CHECKED: origin/main does not resolve as a ref in $repo, so nothing here can be said about what main carries. Fetch origin/main in the clone and re-run; do NOT read this as a pass"
+    else
+      local onmain_hit=0 iso extra
+      for f in "${payloads[@]}"; do
+        while read -r p; do
+          [ -n "$p" ] || continue
+          git -C "$repo" cat-file -e "origin/main:$p" 2>/dev/null || continue
+          read -r iso extra < <(ps_isolation "$f" "$p")
+          fail S1b-NEW-PATH-FREE-ON-MAIN "$(basename "$f") adds $p as a NEW FILE and origin/main already carries it: git am --3way stops with CONFLICT (add/add) on this path with NO second payload involved, and --skip there discards ${extra:-0} other path-change(s) bundled in the same commit"
+          onmain_hit=1
+        done < <(ps_new_paths "$f" | sort -u)
+      done
+      [ "$onmain_hit" -eq 0 ] && say S1b-NEW-PATH-FREE-ON-MAIN PASS "no payload adds a path origin/main already carries"
+    fi
+  else
+    say S1b-NEW-PATH-FREE-ON-MAIN SKIP "no [repo-dir] given; cannot ask origin/main which paths already exist"
+  fi
 
   # ---- S3b A GATE NUMBER ALREADY ON MAIN ---------------------------------
   if [ -n "$repo" ] && [ -d "$repo/.git" ]; then
@@ -802,6 +919,101 @@ selftest() {
   expect_line C61-S4-passes-on-set-S                  "$out" '^S4-NO-SHARED-EDIT +PASS'
   expect_rc   C62-set-S-exit-0 "$rc" 0
 
+  # ---- fixture sets T and U: S7's class, ADDED BY ONE AND MODIFIED BY ANOTHER.
+  # Added 2026-10-06 by process-build lane 2, run process-build-2__1791296057092,
+  # against jobs/the-payload-collision-checks-never-ask-origin-main-so-a-single-
+  # payload-can-add-add-conflict-while-the-audit-reports-green-2026-10-06.
+  mkdir -p "$T/U7"
+  { mk_commit_header 7777771 "lane1 adds the shared helper"; mk_new gates/audit/shared-helper.sh; } > "$T/U7/lane1"
+  { mk_commit_header 7777772 "lane2 edits the shared helper"; mk_mod gates/audit/shared-helper.sh; } > "$T/U7/lane2"
+  out=$(verify_set "$T/U7"); rc=$?
+  expect_line     C63-S7-fires-on-add-versus-modify   "$out" '^S7-ADD-VERSUS-MODIFY +FAIL .*gates/audit/shared-helper\.sh.*ADDED .*MODIFIED'
+  expect_line     C64-S7-names-the-modifying-cost     "$out" '^S7-ADD-VERSUS-MODIFY +FAIL .*MODIFYING payload bundled'
+  expect_line     C65-S1-is-silent-on-S7s-class       "$out" '^S1-NEWFILE-COLLISION +PASS'
+  expect_line     C66-S4-is-silent-on-S7s-class       "$out" '^S4-NO-SHARED-EDIT +PASS'
+  # THE POINT OF THE WHOLE CHECK: before S7 existed this set printed S1 PASS, S4 PASS
+  # and S2 SKIP, which is three green lines over a path git stops on.
+  expect_no_line  C67-S2-no-longer-skips-on-S7s-class "$out" '^S2-COLLISION-SKIPPABLE +SKIP'
+  expect_rc       C68-set-U7-exit-1 "$rc" 1
+
+  # Silent arm: an addition and a modification on DIFFERENT paths is not the class.
+  mkdir -p "$T/V7"
+  { mk_commit_header 7777773 "lane1 adds"; mk_new gates/audit/one.sh; } > "$T/V7/lane1"
+  { mk_commit_header 7777774 "lane2 mods"; mk_mod gates/audit/two.sh; } > "$T/V7/lane2"
+  out=$(verify_set "$T/V7"); rc=$?
+  expect_line  C69-S7-silent-on-disjoint-paths "$out" '^S7-ADD-VERSUS-MODIFY +PASS'
+  expect_rc    C70-set-V7-exit-0 "$rc" 0
+
+  # ---- THE REPO ARM, AND IT IS THE REASON THIS BLOCK EXISTS. Before today the only
+  # controls in this file touching the repo arms were C26 and C27 and BOTH ASSERT THE
+  # SKIP, so no repo-reading check had ever been shown to fire. A throwaway git
+  # repository inside the same mktemp -d costs one init and three commits, needs no
+  # network and touches nothing in the real tree, which is the bar this file's header
+  # sets for a fixture [R36].
+  FIXREPO="$T/fixrepo"
+  mkdir -p "$FIXREPO"
+  (
+    cd "$FIXREPO" || exit 1
+    git init -q . >/dev/null 2>&1 || exit 1
+    git config user.email fixture@example.invalid
+    git config user.name  Fixture
+    mkdir -p claude gates/regress
+    printf 'the shared record\n' > claude/PROCESS-LOG.md
+    printf '// gate 61\n' > gates/regress/61-review-list-month-independence.js
+    git add -A >/dev/null 2>&1
+    git commit -q -m 'fixture main' >/dev/null 2>&1 || exit 1
+    # The ref name is what the checks read, so the fixture creates the real thing
+    # rather than a branch that happens to be called main.
+    git update-ref refs/remotes/origin/main HEAD
+  ) || true
+
+  if [ -d "$FIXREPO/.git" ] && git -C "$FIXREPO" rev-parse --verify --quiet origin/main >/dev/null 2>&1; then
+    # FIRING ARM, and it is the live defect reduced to one payload: a single payload
+    # adding claude/PROCESS-LOG.md, which main has carried since a8d1148.
+    mkdir -p "$T/W1"
+    { mk_commit_header 8888881 "lane4 artefact and record in one commit"
+      mk_new gates/verify-log.sh; mk_new claude/PROCESS-LOG.md; } > "$T/W1/lane4"
+    out=$(verify_set "$T/W1" "$FIXREPO"); rc=$?
+    expect_line  C71-S1b-fires-on-a-path-already-on-main "$out" '^S1b-NEW-PATH-FREE-ON-MAIN +FAIL .*claude/PROCESS-LOG\.md.*add/add'
+    expect_line  C72-S1b-names-what-skip-would-discard   "$out" '^S1b-NEW-PATH-FREE-ON-MAIN +FAIL .*discards 1 other path-change'
+    # S1 CANNOT see this: one payload, one adder. This control is the measurement in
+    # the job's title - the audit reporting green over a payload git will stop on.
+    expect_line  C73-S1-is-green-on-the-same-set         "$out" '^S1-NEWFILE-COLLISION +SKIP'
+    expect_rc    C74-set-W1-exit-1 "$rc" 1
+
+    # SILENT ARM on the same repo: a new path main does not carry.
+    mkdir -p "$T/W2"
+    { mk_commit_header 8888882 "lane4 new gate"; mk_new gates/regress/99-brand-new.js; } > "$T/W2/lane4"
+    out=$(verify_set "$T/W2" "$FIXREPO"); rc=$?
+    expect_line  C75-S1b-silent-on-a-genuinely-new-path "$out" '^S1b-NEW-PATH-FREE-ON-MAIN +PASS'
+    expect_rc    C76-set-W2-exit-0 "$rc" 0
+
+    # AND THE BYPRODUCT, STATED AS A BYPRODUCT AND NOT CLAIMED AS A FIX [R18]: the
+    # same fixture shows S3b firing for the first time. S3b's three silent-pass
+    # routes are NOT repaired here; they are the sibling job
+    # jobs/s3b-and-s6-are-the-only-repo-reading-checks-and-neither-has-a-control-
+    # that-fires-while-three-states-turn-a-fail-into-pass-2026-10-06. What this
+    # control establishes is only that the arm is capable of firing at all.
+    mkdir -p "$T/W3"
+    { mk_commit_header 8888883 "lane4 clashing number"; mk_new gates/regress/61-clash-with-main.js; } > "$T/W3/lane4"
+    out=$(verify_set "$T/W3" "$FIXREPO"); rc=$?
+    expect_line  C77-S3b-can-fire-at-all "$out" '^S3b-NUMBER-FREE-ON-MAIN +FAIL .*61'
+
+    # A REPO WITH NO origin/main REF: S1b must say NOT CHECKED and must NOT pass.
+    # This is the state of a build-run clone sitting on its per-run branch.
+    NOREF="$T/noref"; mkdir -p "$NOREF"
+    ( cd "$NOREF" && git init -q . >/dev/null 2>&1 && git config user.email f@e.invalid && git config user.name F       && printf 'x\n' > f.txt && git add -A >/dev/null 2>&1 && git commit -q -m base >/dev/null 2>&1 ) || true
+    out=$(verify_set "$T/W1" "$NOREF"); rc=$?
+    expect_line     C78-S1b-says-not-checked-without-the-ref "$out" '^S1b-NEW-PATH-FREE-ON-MAIN +SKIP .*NOT CHECKED: origin/main does not resolve'
+    expect_no_line  C79-S1b-never-passes-without-the-ref     "$out" '^S1b-NEW-PATH-FREE-ON-MAIN +PASS'
+  else
+    # git unavailable or init refused: SKIP LOUDLY rather than silently dropping six
+    # controls. A selftest that quietly shrinks is how C26 and C27 came to be the
+    # only repo controls in the file.
+    FAILN=$((FAILN+1))
+    echo "  FAIL C71-to-C79-repo-fixture-unavailable (could not build a git fixture with an origin/main ref at $FIXREPO; the S1b and S3b firing controls did not run)"
+  fi
+
   # ---- C56/C57: the PERMITTED_INCIDENTAL literal, which the comment above used to
   # ASSERT agreed with its sibling audit while nothing compared them [R06].
   local sib="$(dirname "$0")/verify-parked-patch.sh" lits
@@ -816,6 +1028,24 @@ selftest() {
     *'*'*|*'?'*|*'['*) FAILN=$((FAILN+1)); echo "  FAIL C57-permitted-set-has-no-glob-characters ($PERMITTED_INCIDENTAL)";;
     *) PASS=$((PASS+1)); echo "  ok   C57-permitted-set-has-no-glob-characters";;
   esac
+
+  # ---- C80: THE CONTROL IDS ARE UNIQUE, AND THIS RUN NEEDED IT. The S7 and S1b
+  # controls added on 2026-10-06 were first numbered from C62, which this file was
+  # already using for C62-set-S-exit-0, so two different controls answered to one id
+  # for as long as it took to read the output. A duplicate id is not cosmetic here:
+  # every one of these names is how a run report, a job and a build record refer to
+  # a control, and the project has already paid for one unspelled field (R43's
+  # measurement: 43 jobs worked, 24 nameable). Caught by reading, which is exactly
+  # the method this file exists to replace, so it is now a control [R06].
+  local ids dupids
+  ids=$(grep -hoE '^[[:space:]]*(expect_line|expect_no_line|expect_rc)[[:space:]]+C[0-9]+-' "$0" | grep -oE 'C[0-9]+' ; \
+        grep -hoE 'echo "  ok   C[0-9]+' "$0" | grep -oE 'C[0-9]+')
+  dupids=$(printf '%s\n' "$ids" | sed '/^$/d' | sort | uniq -d | tr '\n' ' ')
+  if [ -z "$dupids" ]; then
+    PASS=$((PASS+1)); echo "  ok   C80-control-ids-are-unique ($(printf '%s\n' "$ids" | sed '/^$/d' | sort -u | wc -l | tr -d ' ') distinct)"
+  else
+    FAILN=$((FAILN+1)); echo "  FAIL C80-control-ids-are-unique (duplicated: $dupids)"
+  fi
 
   printf '\nSELFTEST %s pass / %s fail\n' "$PASS" "$FAILN"
   rm -rf "$T"
