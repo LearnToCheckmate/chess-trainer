@@ -589,43 +589,110 @@ verify_set() {
   fi
 
   # ---- S3b A GATE NUMBER ALREADY ON MAIN ---------------------------------
-  if [ -n "$repo" ] && [ -d "$repo/.git" ]; then
-    local onmain clash=0
-    onmain=$(git -C "$repo" ls-tree --name-only origin/main gates/regress/ 2>/dev/null | sed -n 's|^gates/regress/\([0-9][0-9]*\)-.*\.js$|\1|p' | sort -u)
-    for f in "${payloads[@]}"; do
-      ps_new_paths "$f" | while read -r p; do
-        local num; num=$(gate_number "$p")
-        [ -n "$num" ] || continue
-        if printf '%s\n' "$onmain" | grep -qx "$num"; then
-          printf '%s\t%s\t%s\n' "$num" "$p" "$(basename "$f")"
-        fi
-      done
-    done > "$dir/../.s3b.$$" 2>/dev/null || true
-    if [ -s "$dir/../.s3b.$$" ]; then
-      while IFS=$'\t' read -r num p who; do
-        fail S3b-NUMBER-FREE-ON-MAIN "gate number $num is already taken on origin/main; $who adds $p"
-      done < "$dir/../.s3b.$$"
-      clash=1
-    fi
-    rm -f "$dir/../.s3b.$$"
-    [ "$clash" -eq 0 ] && say S3b-NUMBER-FREE-ON-MAIN PASS "no new gate number collides with origin/main"
-  else
+  # REWRITTEN 2026-10-06 by process-build lane 2 for
+  # jobs/s3b-and-s6-are-the-only-repo-reading-checks-and-neither-has-a-control-
+  # that-fires-while-three-states-turn-a-fail-into-pass-2026-10-06. FOUR ORDINARY
+  # STATES USED TO REACH "PASS no new gate number collides with origin/main" WITHOUT
+  # COMPARING ANYTHING, and the arm had no control showing it fire. Each is now a
+  # separate NOT CHECKED carrying its own reason, because the failure mode of this
+  # family is a green line with nothing behind it, not a wrong number:
+  #   (a) the clone has no origin/main ref - THE NORMAL STATE OF A BUILD-RUN CLONE,
+  #       which sits on the per-run branch the routine mints at every wake. ls-tree
+  #       wrote its fatal to the 2>/dev/null and $onmain was empty, so nothing could
+  #       match. S1b already guards this; S3b, one check below it, did not.
+  #   (b) the scratch file was unwritable. S3b was the ONLY check in this family to
+  #       write OUTSIDE the mktemp area - 4 occurrences of $dir/.. against 0 in all
+  #       three sibling audits - so a read-only parent put "Permission denied" on
+  #       STDERR, which this script's own selftest harness discards with out=$(...),
+  #       and then printed PASS over a real clash at exit 0. It now uses mktemp like
+  #       every one of its siblings and checks that the file it is about to read
+  #       actually exists.
+  #   (c) a MISTYPED repo-dir was reported as "no [repo-dir] given" - a false reason
+  #       for a real argument, so the one person who could fix it is told the
+  #       opposite of what happened.
+  #   (d) ls-tree succeeded and returned no numbered gate at all. That cannot be true
+  #       of this repository, so it is evidence the read did not mean what the check
+  #       thinks, not evidence of a free number space.
+  if [ -z "$repo" ]; then
     say S3b-NUMBER-FREE-ON-MAIN SKIP "no [repo-dir] given; cannot read origin/main's gate numbers"
+  elif [ ! -d "$repo/.git" ]; then
+    say S3b-NUMBER-FREE-ON-MAIN SKIP "NOT CHECKED: a [repo-dir] WAS given and it is not a git repository ($repo). Check the path; do NOT read this as 'no repo-dir given' and do NOT read it as a pass"
+  elif ! git -C "$repo" rev-parse --verify --quiet origin/main >/dev/null 2>&1; then
+    say S3b-NUMBER-FREE-ON-MAIN SKIP "NOT CHECKED: origin/main does not resolve as a ref in $repo, so main's gate numbers could not be read at all. Fetch origin/main in the clone and re-run; do NOT read this as a pass"
+  else
+    local onmain clash=0 s3btree s3berr s3bhits
+    s3btree=$(mktemp); s3berr=$(mktemp)
+    if ! git -C "$repo" ls-tree --name-only origin/main gates/regress/ >"$s3btree" 2>"$s3berr"; then
+      say S3b-NUMBER-FREE-ON-MAIN SKIP "NOT CHECKED: git ls-tree origin/main failed in $repo: $(tr '\n' ' ' < "$s3berr" | cut -c1-200). Nothing was compared; do NOT read this as a pass"
+      rm -f "$s3btree" "$s3berr"
+    else
+      onmain=$(sed -n 's|^gates/regress/\([0-9][0-9]*\)-.*\.js$|\1|p' "$s3btree" | sort -u)
+      rm -f "$s3btree" "$s3berr"
+      if [ -z "$onmain" ]; then
+        say S3b-NUMBER-FREE-ON-MAIN SKIP "NOT CHECKED: origin/main resolved and carries NO gates/regress/<number>-*.js file, which cannot be true of this repository - the read did not mean what this check assumes. Do NOT read this as a free number space"
+      else
+        s3bhits=$(mktemp)
+        for f in "${payloads[@]}"; do
+          ps_new_paths "$f" | while read -r p; do
+            local num; num=$(gate_number "$p")
+            [ -n "$num" ] || continue
+            if printf '%s\n' "$onmain" | grep -qx "$num"; then
+              printf '%s\t%s\t%s\n' "$num" "$p" "$(basename "$f")"
+            fi
+          done
+        done >> "$s3bhits"
+        if [ ! -e "$s3bhits" ]; then
+          say S3b-NUMBER-FREE-ON-MAIN SKIP "NOT CHECKED: the scratch file the comparison writes to disappeared under it, so an empty result cannot be distinguished from no result. Do NOT read this as a pass"
+        elif [ -s "$s3bhits" ]; then
+          while IFS=$'\t' read -r num p who; do
+            fail S3b-NUMBER-FREE-ON-MAIN "gate number $num is already taken on origin/main; $who adds $p"
+          done < "$s3bhits"
+          clash=1
+        fi
+        rm -f "$s3bhits"
+        [ "$clash" -eq 0 ] && say S3b-NUMBER-FREE-ON-MAIN PASS "no new gate number collides with origin/main ($(printf '%s\n' "$onmain" | wc -l | tr -d ' ') number(s) read from main)"
+      fi
+    fi
   fi
 
   # ---- S6 RECOMMENDED APPLY ORDER ---------------------------------------
   # prompts/build-run STEP 1I says oldest base first. Without a clone the base
   # dates are unknowable, so this is a SKIP and not a guess.
-  if [ -n "$repo" ] && [ -d "$repo/.git" ]; then
-    say S6-APPLY-ORDER PASS "oldest base first: $(
-      for f in "${payloads[@]}"; do
-        b=$(awk '$1 == "From" && $2 ~ /^[0-9a-f][0-9a-f]+$/ {print $2; exit}' "$f")
-        d=$(git -C "$repo" log -1 --format=%ct "$b^" 2>/dev/null || git -C "$repo" log -1 --format=%ct "$b" 2>/dev/null || echo 0)
-        printf '%s\t%s\n' "${d:-0}" "$(basename "$f")"
-      done | sort -n | cut -f2 | tr '\n' ' '
-    )"
-  else
+  # REWRITTEN 2026-10-06 by process-build lane 2, same job as S3b above. S6 WAS NOT
+  # VACUOUS, IT WAS CONFIDENTLY WRONG, and that is worse. Every base sha of a parked
+  # payload is cut in another container from a branch nobody fetches, so NONE of them
+  # resolves in the integration clone: `|| echo 0` gave every payload the key 0,
+  # `sort -n` over equal keys is a no-op, and the line printed GLOB ORDER under the
+  # words "oldest base first" at PASS. Measured over the real 6-payload set it put
+  # the 2026-10-04 payload - the oldest base in the set by two days, by its own
+  # filename - LAST. The design was also backwards: with NO repo it declined to guess
+  # and said so, and with a repo in which the dates were equally unknown it guessed,
+  # so handing it the repo-dir made the output worse. It now verifies its inputs
+  # before ordering them and prints NO ORDER unless every base resolved.
+  if [ -z "$repo" ]; then
     say S6-APPLY-ORDER SKIP "no [repo-dir] given; base-commit dates unknown, order not guessed"
+  elif [ ! -d "$repo/.git" ]; then
+    say S6-APPLY-ORDER SKIP "NOT CHECKED: a [repo-dir] WAS given and it is not a git repository ($repo). Check the path; do NOT read this as 'no repo-dir given'"
+  else
+    local s6keys s6unres s6tot=0 s6bad=0 b d
+    s6keys=$(mktemp); s6unres=$(mktemp)
+    for f in "${payloads[@]}"; do
+      s6tot=$((s6tot+1))
+      b=$(awk '$1 == "From" && $2 ~ /^[0-9a-f][0-9a-f]+$/ {print $2; exit}' "$f")
+      if [ -n "$b" ] && git -C "$repo" rev-parse --verify --quiet "${b}^{commit}" >/dev/null 2>&1; then
+        d=$(git -C "$repo" log -1 --format=%ct "$b^" 2>/dev/null || git -C "$repo" log -1 --format=%ct "$b" 2>/dev/null)
+        printf '%s\t%s\n' "${d:-0}" "$(basename "$f")" >> "$s6keys"
+      else
+        s6bad=$((s6bad+1))
+        printf '%s (base %s)\n' "$(basename "$f")" "${b:-<no From line>}" >> "$s6unres"
+      fi
+    done
+    if [ "$s6bad" -gt 0 ]; then
+      say S6-APPLY-ORDER SKIP "NOT CHECKED: $s6bad of $s6tot base commit(s) do not resolve in $repo - $(tr '\n' ';' < "$s6unres" | cut -c1-240). NO ORDER IS PRINTED: sort -n over keys that are all 0 returns the input order, so an order derived from unresolved bases is glob order wearing the words 'oldest base first'. Fetch the payloads' base commits into the clone, or apply oldest base first by the baseSha field on each patch document"
+    else
+      say S6-APPLY-ORDER PASS "oldest base first, all $s6tot base(s) resolved in the clone: $(sort -n "$s6keys" | cut -f2 | tr '\n' ' ')"
+    fi
+    rm -f "$s6keys" "$s6unres"
   fi
 
   return "$FAILED"
@@ -961,11 +1028,30 @@ selftest() {
     printf 'the shared record\n' > claude/PROCESS-LOG.md
     printf '// gate 61\n' > gates/regress/61-review-list-month-independence.js
     git add -A >/dev/null 2>&1
-    git commit -q -m 'fixture main' >/dev/null 2>&1 || exit 1
+    # AN EXPLICIT COMMITTER DATE ON THE FIRST COMMIT TOO, and the reason is a control
+    # that failed while this was being written rather than a precaution: without it
+    # the first commit is dated NOW, which makes it the NEWEST commit in the fixture,
+    # so the two S6 ordering controls below both read as glob order and C89 passed for
+    # the wrong reason. The ref still points here and the tree is unchanged, so C71
+    # through C79 are untouched; only the sha and the date move.
+    GIT_COMMITTER_DATE='@1500000000 +0000' GIT_AUTHOR_DATE='@1500000000 +0000' \
+      git commit -q -m 'fixture main' >/dev/null 2>&1 || exit 1
     # The ref name is what the checks read, so the fixture creates the real thing
     # rather than a branch that happens to be called main.
     git update-ref refs/remotes/origin/main HEAD
+    # TWO MORE COMMITS, ADDED 2026-10-06 FOR THE S6 CONTROLS, AND DELIBERATELY AFTER
+    # THE update-ref: origin/main keeps pointing at the first commit, so its TREE is
+    # byte-for-byte what C71 through C79 were written against and none of them is
+    # disturbed. What these two add is the only thing S6 needs and the fixture did not
+    # have - base shas that RESOLVE, each with a parent, with committer dates far
+    # enough apart that an ordering is unambiguous rather than a coin toss.
+    GIT_COMMITTER_DATE='@1600000000 +0000' GIT_AUTHOR_DATE='@1600000000 +0000' \
+      git commit -q --allow-empty -m 'fixture second' >/dev/null 2>&1 || exit 1
+    GIT_COMMITTER_DATE='@1700000000 +0000' GIT_AUTHOR_DATE='@1700000000 +0000' \
+      git commit -q --allow-empty -m 'fixture third' >/dev/null 2>&1 || exit 1
   ) || true
+  FIXC2=$(git -C "$FIXREPO" rev-parse --verify --quiet 'HEAD~1' 2>/dev/null || echo '')
+  FIXC3=$(git -C "$FIXREPO" rev-parse --verify --quiet 'HEAD'   2>/dev/null || echo '')
 
   if [ -d "$FIXREPO/.git" ] && git -C "$FIXREPO" rev-parse --verify --quiet origin/main >/dev/null 2>&1; then
     # FIRING ARM, and it is the live defect reduced to one payload: a single payload
@@ -1006,12 +1092,85 @@ selftest() {
     out=$(verify_set "$T/W1" "$NOREF"); rc=$?
     expect_line     C78-S1b-says-not-checked-without-the-ref "$out" '^S1b-NEW-PATH-FREE-ON-MAIN +SKIP .*NOT CHECKED: origin/main does not resolve'
     expect_no_line  C79-S1b-never-passes-without-the-ref     "$out" '^S1b-NEW-PATH-FREE-ON-MAIN +PASS'
+
+    # ===================================================================
+    # S3b AND S6: THE ARMS THIS FILE HAD NEVER SHOWN TO WORK.
+    # Added 2026-10-06 by process-build lane 2 for the S3b/S6 vacuity job. Before
+    # today the only controls touching these two were C26 and C27 and BOTH ASSERT
+    # THE SKIP, so the two checks that read the repository had never been shown to
+    # fire, to be silent correctly, or to decline. C77 above establishes only that
+    # S3b CAN fire. Every control below is paired: a firing arm and a silent arm, or
+    # a NOT-CHECKED arm and the negative control that the old green line is GONE -
+    # because the defect being fixed here IS a green line, so "it now says NOT
+    # CHECKED" is only half the assertion [the expect_no_line note above].
+    # ===================================================================
+
+    # S3b SILENT ARM. The same fixture, a number main does not carry. C77 fires on
+    # 61; this is the other half, and it also pins the new count in the PASS line,
+    # which is the evidence that something was actually read rather than defaulted.
+    out=$(verify_set "$T/W2" "$FIXREPO"); rc=$?
+    expect_line  C81-S3b-silent-on-a-free-number "$out" '^S3b-NUMBER-FREE-ON-MAIN +PASS .*1 number\(s\) read from main'
+    expect_rc    C82-set-W2-with-repo-exit-0 "$rc" 0
+
+    # S3b ROUTE (a): A CLONE WITH NO origin/main REF, which is the NORMAL state of a
+    # build-run clone. W3 carries a REAL clash on 61, so the old code printed
+    # "S3b PASS no new gate number collides with origin/main" over a true collision
+    # at exit 0, with the git fatal swallowed by 2>/dev/null and not one byte of
+    # warning. The negative control is the one that matters.
+    out=$(verify_set "$T/W3" "$NOREF"); rc=$?
+    expect_line     C83-S3b-says-not-checked-without-the-ref "$out" '^S3b-NUMBER-FREE-ON-MAIN +SKIP .*NOT CHECKED: origin/main does not resolve'
+    expect_no_line  C84-S3b-never-passes-without-the-ref     "$out" '^S3b-NUMBER-FREE-ON-MAIN +PASS'
+
+    # S3b ROUTE (c): A MISTYPED repo-dir. The old code reported it as "no [repo-dir]
+    # given", a false reason for a real argument, so the reader was told the opposite
+    # of what happened. Both arms are checked: the new reason is present AND the old
+    # false sentence is gone.
+    out=$(verify_set "$T/W3" "$T/no-such-clone-here")
+    expect_line     C85-S3b-names-a-bad-repo-dir-as-bad "$out" '^S3b-NUMBER-FREE-ON-MAIN +SKIP .*NOT CHECKED: a \[repo-dir\] WAS given'
+    expect_no_line  C86-S3b-does-not-call-a-typo-a-missing-arg "$out" '^S3b-NUMBER-FREE-ON-MAIN +SKIP no \[repo-dir\] given'
+
+    # S6 FIRING ARM, and "firing" for S6 means DECLINING. W3's base sha 8888883 is a
+    # fixture literal that resolves nowhere, which is exactly the real situation: every
+    # parked payload's base is cut in another container from a branch nobody fetches.
+    # The old code gave it the key 0 and printed glob order under the words "oldest
+    # base first" at PASS. C88 is the control that the old line is gone.
+    out=$(verify_set "$T/W3" "$FIXREPO")
+    expect_line     C87-S6-declines-when-a-base-does-not-resolve "$out" '^S6-APPLY-ORDER +SKIP .*NOT CHECKED: 1 of 1 base commit\(s\) do not resolve'
+    expect_no_line  C88-S6-never-passes-on-an-unresolved-base   "$out" '^S6-APPLY-ORDER +PASS'
+
+    # S6 SILENT ARM - the one state in which an order is a fact rather than a guess:
+    # every base resolves in the clone. Built from the fixture's own two later commits,
+    # so the shas are real. The payload based on the OLDER commit must come FIRST, and
+    # the assertion is on the ORDER and not merely on the word PASS, which is what the
+    # old control set never checked: it is the ordering that was wrong.
+    if [ -n "$FIXC2" ] && [ -n "$FIXC3" ]; then
+      mkdir -p "$T/W4"
+      { mk_commit_header "$FIXC3" "newer base"; mk_new gates/audit/newer.sh; } > "$T/W4/zz-newer"
+      { mk_commit_header "$FIXC2" "older base"; mk_new gates/audit/older.sh; } > "$T/W4/aa-older"
+      out=$(verify_set "$T/W4" "$FIXREPO"); rc=$?
+      expect_line  C89-S6-orders-by-base-date-when-every-base-resolves "$out" '^S6-APPLY-ORDER +PASS .*all 2 base\(s\) resolved.*aa-older zz-newer'
+      expect_rc    C90-set-W4-exit-0 "$rc" 0
+      # AND THE CONTROL THAT PROVES C89 IS NOT PASSING ON GLOB ORDER BY ACCIDENT. The
+      # filenames are deliberately named so that glob order (aa-older, zz-newer) and
+      # base-date order agree in W4; reverse the NAMES and keep the bases, and a check
+      # that is really sorting by date must STILL put the older base first - which the
+      # old implementation, sorting six equal zeros, could never do.
+      mkdir -p "$T/W5"
+      { mk_commit_header "$FIXC3" "newer base"; mk_new gates/audit/newer.sh; } > "$T/W5/aa-newer"
+      { mk_commit_header "$FIXC2" "older base"; mk_new gates/audit/older.sh; } > "$T/W5/zz-older"
+      out=$(verify_set "$T/W5" "$FIXREPO")
+      expect_line     C91-S6-order-is-not-glob-order "$out" '^S6-APPLY-ORDER +PASS .*zz-older aa-newer'
+      expect_no_line  C92-S6-did-not-print-glob-order "$out" '^S6-APPLY-ORDER +PASS .*aa-newer zz-older'
+    else
+      FAILN=$((FAILN+1))
+      echo "  FAIL C89-to-C92-s6-resolving-fixture-unavailable (could not read two parented commits from the fixture at $FIXREPO; the S6 ordering controls did not run)"
+    fi
   else
     # git unavailable or init refused: SKIP LOUDLY rather than silently dropping six
     # controls. A selftest that quietly shrinks is how C26 and C27 came to be the
     # only repo controls in the file.
     FAILN=$((FAILN+1))
-    echo "  FAIL C71-to-C79-repo-fixture-unavailable (could not build a git fixture with an origin/main ref at $FIXREPO; the S1b and S3b firing controls did not run)"
+    echo "  FAIL C71-to-C92-repo-fixture-unavailable (could not build a git fixture with an origin/main ref at $FIXREPO; the S1b, S3b and S6 firing, silent and not-checked controls did not run)"
   fi
 
   # ---- C56/C57: the PERMITTED_INCIDENTAL literal, which the comment above used to
