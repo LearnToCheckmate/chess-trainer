@@ -457,3 +457,5 @@
 477	built	-	fb10dbef9591	7046859a655e	2026-10-04T07:34Z	build__1791098420495	build.sh	Bundle built and stamped #477. Recorded by gates/build.sh so the number resolves to an artefact.
 478	minted	-	-	-	2026-10-04T11:45Z	build__1791112798569	minted	land #459 drill grading + sentence ladders from claude/cool-noether-iwxb0r, and stop the drill board jumping by reserving the verdict box and the hint row (Kunal q-drill-third-line: fixed-reserve-and-scroll)
 478	built	-	a3c38bc569b4	692eeb793a98	2026-10-04T11:48Z	build__1791112798569	build.sh	Bundle built and stamped #478. Recorded by gates/build.sh so the number resolves to an artefact.
+479	minted	-	-	-	2026-10-06T06:29Z	build__1791267799956	minted	land #459 drill grading + both sentence ladders from the dead #478 run's stranded commit a5ecb30, and stop the drill board jumping (Kunal q-drill-third-line: fixed-reserve-and-scroll). Re-gate from the top: #478 died mid-suite.
+479	built	-	29b415dd1fc6	692eeb793a98	2026-10-06T06:29Z	build__1791267799956	build.sh	Bundle built and stamped #479. Recorded by gates/build.sh so the number resolves to an artefact.
