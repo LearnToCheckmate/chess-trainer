@@ -2,6 +2,105 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#482, 2026-10-06T11:2xZ: FOURTH BROKEN CONTAINER RUNNING - AND "THE SUITE CANNOT GO GREEN" DOES NOT
+> BLOCK EVERYTHING, WHICH IS THIS RUN'S FINDING. BOTH ANTAGONISTS VETOED AND BOTH WERE RIGHT.**
+> #481's and #480's blocks below both still apply. Do the 90-second reading first.
+>
+> **THE READING, UNCHANGED:** `CT_APP=<a copy of origin/main:app.js> node gates/regress/12-hint.js`
+> - **kunal 375 / se 259** -> healthy, build normally.
+> - **kunal 361 / se 258** -> the broken kind. **FOUR IN A ROW** (#479, #480, #481, #482), re-measured on
+>   main's own bundle `fb10dbef9591`, same two assertions to the pixel, 22 pass / 2 fail.
+>
+> **CORRECT THE CLASS NAME BEFORE YOU REASON ABOUT IT [R18]. IT IS NOT "ABSOLUTE PIXEL PINS".**
+> I wrote that and antagonist A broke it with a counterexample I then reproduced: `gates/regress/62`
+> pins bare literals including **a WIDTH pin of 353.03 at 375, Kunal's own geometry**, and it is
+> **26 pass / 0 fail in this container**. So the container-dependent set is **pins downstream of TEXT
+> measurement**, not pins that happen to be absolute. This confirms #481's "carrying a pinned literal is
+> necessary and not sufficient" from the opposite side - a width pin that HOLDS - and it means the 291
+> population still has no measured split. Nobody has swept it.
+>
+> **WHAT LANDED AND THE TEST THAT AUTHORISED IT.** Of the six owed parked payloads, the ones the gate
+> suite cannot see are landable and a green was never their authorising condition. Landed:
+> `gates/audit/cited-not-run.sh`, `gates/audit/landed-on-main.sh`. **I never claimed `GATES GREEN`.**
+> **THE TEST, AND STATE IT AS INPUTS, NOT AS A FILE LIST - THAT IS THE MISTAKE I MADE:** I first wrote
+> "all 62 files the suite executes are byte-identical", and **that closure was wrong in BOTH directions**
+> - it included three files `gates.sh` never invokes (`verify-log.sh`, `build.sh`, `held.sh`, the first
+> two ORPHAN per this push's own new script) and omitted `unit-drill-why.js`, the five `drive/*.js`,
+> `engine-extract.js`, `functions/fen.js`, `lessons.js`, `chess.jsx` and `gate-manifest.tsv`. The sound
+> form: **the diff touches no file in the suite's execution closure (67 by my corrected count, 66 by the
+> landed script's own) and exactly one data file it reads** - `gates/build-numbers.tsv`, whose only
+> non-comment readers are `build.sh` and `buildnum.sh`, which no gate runs, ratchet clean at
+> **76 pass / 0 fail** (and note CLAUDE.md still calls that selftest "47 controls as a command": it is 76).
+>
+> **THE THIRD PAYLOAD WAS DROPPED ON A VETO BOTH ANTAGONISTS REACHED INDEPENDENTLY, AND IT IS THE MOST
+> USEFUL THING IN THIS RUN.** `patches/proc-lane4-art-claude-stories-TEST-CASES-md-2026-10-06` rewrites
+> TC-R50's figure "from five to fifteen". **ITS OWN PUBLISHED COMMAND PRODUCES ELEVEN.** I ran it:
+> 114 `.js` under gates/ (agrees), **65 reachable (row says 60)**, 46 cited (agrees), **11
+> cited-and-unreachable (row says 15)**. The row names ten new members incl.
+> `gates/drive/{home,lesson,menu,play,review}.js`; **four of those five are `require`d by gates the full
+> suite runs** (`49-home.js` -> `../drive/home`, `11-lesson.js` -> `../drive/lesson`, `16-cpu-result-line.js`
+> -> `../drive/play`, `26-invariants.js` -> `../drive/review`), so only `drive/menu.js` survives the row's
+> own closure arm - **the exact mistake the row withdraws `engine-extract.js` for two sentences earlier.**
+> A also found **six of the ten have zero occurrences in the `RUN-LOG.md` the row says cites them.** And
+> the other artefact in the same push already encodes the right answer (`LEAK gates/drive/` = 1, not 5),
+> so landing it would have shipped two artefacts contradicting each other. **I DID NOT HAND-EDIT ANOTHER
+> LANE'S MEASUREMENT** - the integrator does not pick a winner. Dropped, with my re-derivation written on
+> the payload. Lane 4 fixes the figure.
+>
+> **AND THE REASON THAT WOULD HAVE MADE DROPPING IT RIGHT EVEN IF THE FIGURE HELD:** `verify-log.sh:239`
+> does `TC="claude/stories/TEST-CASES.md"` and **reads it from disk**, so that file is an INPUT to the
+> push-authority tool. Its `--citations` arm (4) sits at **48 citations against a ceiling of 48, 0 over**.
+> **One added `path:NNN` citation in `claude/stories/*.md` takes the push gate RED for every future
+> build.** Run `gates/verify-log.sh --citations` and record arm (1)'s dead count and arm (4)'s `N/48`
+> before any push that touches `claude/stories/*.md`. My "no gate reads TEST-CASES.md" was true and was
+> not the safety argument I used it as.
+>
+> **THE HEADLINE IS A LEAKAGE FIND. THE MANIFEST FROM COLLECTION `patches` ALONE IS NOT THE DAY'S
+> MANIFEST.** STEP 1I says union FOUR sources; three runs read source (a) only.
+> `runledger/process-burst-wave1__1791059330197` field `branches` names **FIFTEEN** wave-1 payloads and
+> **only ONE is in collection `patches`**. The rest: 3 in `jobs/` already in this lane's finishFirst WIP,
+> 6 in `jobs/` untagged, **5 in `docs/` with no job at all**. Three of those five carry a correct
+> `integrationResult` from 2026-10-03; **TWO HAVE NEVER BEEN LOOKED AT BY ANY PASS**:
+> `docs/burst07-gate26-patch-2026-10-03` (`gates/regress/26-invariants.js`) and
+> `docs/patch-burst-user-stories-2026-10-03` (`claude/stories/USER-STORIES.md`). **The gate-26 one is the
+> expensive half**: 26-invariants is 38 of #479's 115 FAILs, a third of everything red, and the
+> pinned-literal class matches none of it - so a written patch for the suite's largest red set has sat
+> unexamined for three days while three runs wrote about needing to scope it. Filed as
+> `jobs/two-wave-1-parked-payloads-have-never-been-examined-because-they-live-in-docs-with-no-job-2026-10-06`.
+> Source (d) reconciled and **BALANCED**. Sources (c) and the non-burst `docs/patch-*` family NOT swept,
+> so **two is a lower bound exactly as five was.**
+>
+> **REFUSED, each with the reason written on the payload** - land unchanged in the first healthy
+> container: `gates/regress/61-...js` (a gate), `gates/gatemanifest.sh` (`gates.sh:165` runs `check`
+> before any gate), `gates/verify-log.sh`. **MY STATED REASON FOR THE THIRD WAS FALSE AND IS CORRECTED
+> [R18]:** I wrote "gates.sh runs it". It does not - `sed 's/#.*//' gates/gates.sh | grep verify-log`
+> returns **nothing**, and this push's own new script calls it ORPHAN. The sound reason is that it IS the
+> push-authority tool and reads the case register. **DO NOT re-pin 375 to 361, ever.**
+>
+> **ROUTED, NOT ACTED ON:** four containers in a row means both remedies on the container job were
+> deferred on a premise that may be false - remedy (a) cannot even start, its precondition being a green
+> container. Changing a deferral decision is not the pen-holder's call, so it went to the orchestrator for
+> the Desk: `jobs/four-consecutive-containers-cannot-gate-any-tree-...-2026-10-06`.
+> **NO APPLICATION CODE HAS SHIPPED IN FOUR RUNS** (#479 red, #480/#481/#482 harness or records only).
+>
+> **MY WIP ROSE 56 -> 57 AND I AM DECLARING IT, NOT HIDING IT** [R49]. The rise is the leakage job above,
+> filed `finishFirst` because I paid its investigation cost and left the two patch applications. I could
+> have argued the flag off (it means "whatLanded is on origin/main" and none of mine is) - that reading is
+> defensible and it also happens to benefit me, so I kept the flag and declared the breach.
+>
+> **ONE SMALL DEFECT IN WHAT I LANDED, from antagonist B, filed not fixed:** `cited-not-run.sh` validates
+> no arguments - `--selftests`, one letter off, prints `RED at 22` and exits 1, which reads as a failed
+> selftest. Its sibling `landed-on-main.sh` exits 2 with a usage line. Two conventions in one push.
+>
+> **STILL OWED:** the three refused payloads; the two never-examined wave-1 payloads; pinning playwright
+> in `gates/package.json`; route (2) (test-authoring's, NOT the pen-holder's); the measured split of the
+> 291, which now needs the TEXT-downstream predicate rather than the magnitude one. The **#479 DRILL TREE**
+> is built and sound on `origin/claude/cool-noether-7a4wzr` at `ad1a6da` - do not rebuild it, held pending
+> Kunal. **SHIP LIST id 1 still not workable on main; four runs have declined it and I am the fourth.**
+>
+> **AND THE HABIT #481 ASKED FOR, KEPT: never type a timestamp, substitute a command.** Every time in this
+> run's records came from `date -u` or a server stamp. #481 was the third consecutive run to invent one.
+>
 > **#481, 2026-10-06T11:0xZ: THE CONTAINER TEST STILL DECIDES YOUR RUN - AND THE SUITE'S PINS ARE NOW
 > COUNTED BY PROVENANCE, SO YOU CAN TELL WHICH REDS ARE THE CONTAINER'S WITHOUT RUNNING THE SUITE.**
 > #480's block below is still correct and is still the first thing to do. Everything here is additional.
