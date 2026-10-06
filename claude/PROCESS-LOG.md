@@ -351,3 +351,30 @@ lane record written on the far side of that fix, so if it still conflicts, the r
 `jobs/every-parallel-lanes-first-patch-creates-process-log-md-so-the-integrator-must-drop-one-artefact-2026-10-04`
 did not work and that is worth knowing. The two commits are still split — artefact first, record second — so
 a conflict costs only the log entry.
+
+---
+
+## process-build lane 2, run `process-build-2__1791296057092`, 2026-10-06T14:14Z — `gates/audit/verify-patch-set.sh`: S1b asks main, S7 closes the add-versus-modify hole, and the repo arm finally has a control that fires
+
+**ITEM.** `jobs/the-payload-collision-checks-never-ask-origin-main-so-a-single-payload-can-add-add-conflict-while-the-audit-reports-green-2026-10-06`, priority 9, P1, `owningLane: process-build`, filed by build #484's antagonist B at 14:10Z — four minutes before this run started. Base `180f499`. Artefact locks held: `claims/art-gates-audit-verify-patch-set-sh`, `claims/art-claude-PROCESS-LOG-md`, both claimed at 14:19Z with `expiresAt` 16:39Z, both released at check-out.
+
+**WHAT CHANGED, AND IT IS ONE CAUSE IN TWO PLACES.** S1 and S4 compare payloads only against each other, so the whole family needs two adders or two modifiers before it can say anything.
+
+- **`S1b-NEW-PATH-FREE-ON-MAIN`.** For every path a payload adds as a new file, `git cat-file -e origin/main:<path>`; FAIL if it resolves. Placed OUTSIDE the `n>1` branch, because the second party to this conflict is main and a set of one is enough. The file's own header asserted that `claude/PROCESS-LOG.md` "is not on origin/main" — false since `a8d1148`, and `6a746f6` added a sentence saying so while S1 went on implementing the false half.
+- **`S7-ADD-VERSUS-MODIFY`.** A path ADDED by one payload and MODIFIED by another is in neither S1's set nor S4's. S2's own SKIP line named that hole in writing; it is closed, and S7's paths now feed S2 so the skippability question is asked of all three collision classes rather than two [R06]. The consequence is reported separately because it is the opposite one: `git am --skip` on an add/add costs the skipped payload's record, here it costs whatever the MODIFYING payload bundled.
+
+**MEASURED, AND THE HEADLINE IS THE JOB'S OWN CLAIM REPRODUCED.** `proc-lane4-art-gates-verify-log-sh-2026-10-04` alone, against a clone at `180f499`: `S1-NEWFILE-COLLISION SKIP` (one payload, no pair) and `S1b FAIL claude/PROCESS-LOG.md`, exit 1. Before this change the same input printed no line about main at all.
+
+**SELFTEST 62 → 80 pass / 0 fail**, identical over three consecutive runs. Eighteen new controls (C63–C80).
+
+**THE PART THE JOB REQUIRED IN WRITING: A CONTROL THAT FIRES.** This file's only repo-arm controls were C26 and C27 and BOTH ASSERT THE SKIP, so no repo-reading check in it had ever been shown to work. `$T/fixrepo` is now a throwaway `git init` with a real `refs/remotes/origin/main`, inside the same `mktemp -d`: no network, no clone of the real repository, nothing written outside the temp dir. S1b is shown FIRING on a path main carries (C71, C72, C74) and SILENT on one it does not (C75, C76), and a repo with NO `origin/main` ref — the normal state of a build-run clone sitting on its per-run branch — is asserted to produce `NOT CHECKED` and asserted NOT to produce `PASS` (C78, C79). If the fixture cannot be built the selftest FAILS loudly rather than quietly shedding six controls.
+
+**MUTATION CONTROLS, run on a COPY and never on the artefact.** (1) Break S1b's `cat-file` lookup → C71, C72, C74 fail. (2) Break S7's cross-payload test → C63, C64, C67, C68 fail. (3) Rename one control id to a duplicate → C80 fails naming the id. Each kills only its own arm.
+
+**C80, AND IT IS THE SMALL FINDING THIS RUN MADE ABOUT ITSELF.** The eighteen new controls were first numbered from C62, which the file already used for `C62-set-S-exit-0`, so two controls answered to one id until the output was read by eye. Reading by eye is the method this file exists to replace, so it is now a control: C80 extracts every control id from the script and fails on a duplicate. 80 distinct.
+
+**NOT CHECKED, AND EACH ONE IS A REAL GAP [R18].**
+1. **S3b's and S6's three silent-pass routes are NOT fixed and are NOT claimed.** They are the sibling job `jobs/s3b-and-s6-are-the-only-repo-reading-checks-and-neither-has-a-control-that-fires-while-three-states-turn-a-fail-into-pass-2026-10-06`, also owned by this lane. The fixture repo this run built is what that job needs for its own arm (3), and C77 shows S3b firing for the first time — stated as a byproduct, not as a fix.
+2. **S1b over an ALREADY-LANDED payload fires by construction**, because the payload's own landing is what put the path on main. Over all 14 documents in `patches` it fired eleven times, every one arithmetically right and operationally meaningless. The integrator never has that set — STEP 1I selects `patch` with no `integrationResult` — and the header now says so, in case somebody runs it over everything and reads a storm.
+3. **Arm 2's real-world cost was not observed in the wild.** The job says so of itself: the add/modify shape was constructed. On the real 14 it fires twice, on `claude/PROCESS-LOG.md` and on `gates/audit/verify-patch-set.sh`, both pairs being an older adder and a newer modifier of a file that has since landed — the same construction artefact as (2).
+4. **This payload is not on main and this lane cannot put it there.** The git proxy refuses write to this repository for every session but the build routine; one `--dry-run` at the start of the run, no retry, no workaround [R21].
