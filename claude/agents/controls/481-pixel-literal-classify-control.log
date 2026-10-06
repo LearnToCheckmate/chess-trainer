@@ -1,14 +1,20 @@
 #481 CONTROL RECORD - gates/audit/pixel-literal-classify.sh
-run 2026-10-06T10:39:43Z by build__1791282018634, tree f586fd2 (origin/main), app.js fb10dbef9591 UNCHANGED
-container: THE BROKEN KIND. gate 12 on main's OWN bundle reads kunal board 361 (want 375), se 258 (want 259),
-           so nothing here was gated and nothing here needed to be: this tool launches no browser.
+written 2026-10-06T11:14:20Z by build__1791282018634
+tree    aeea247 on origin/main; app.js fb10dbef9591d258dc4ccd5b125ade9a UNCHANGED by this build
+container THE BROKEN KIND: gate 12 on origin/main's OWN bundle reads kunal board 361 (pinned 375), se 258 (259).
+          Third such container in a row (#479, #480, #481). The tool itself launches no browser.
 
-=== DETERMINISM: three --json runs, md5 of output ===
-  run 1  64821a74adf1e482fc035cdb607139e0
-  run 2  64821a74adf1e482fc035cdb607139e0
-  run 3  64821a74adf1e482fc035cdb607139e0
+SUPERSEDES the first version of this file, committed at 7037f1c, which reported 378 sites / 273
+container-sensitive / 180 below 100. Those figures came from a predicate with two holes (camelCase
+measured accessors, and board pins excused for equalling a viewport dimension) and are WITHDRAWN.
+The corrected figures are below. See aeea247's commit message for both holes and how each was found.
 
-=== FULL REPORT ===
+=== DETERMINISM: three --json runs ===
+  run 1  9076f9bfdf88b2d58cb198e32ffd9775
+  run 2  9076f9bfdf88b2d58cb198e32ffd9775
+  run 3  9076f9bfdf88b2d58cb198e32ffd9775
+
+=== FULL REPORT, with the per-assertion join against a font-substituted container ===
 PINNED LAYOUT LITERALS IN THE GATE SUITE — provenance, not magnitude
 predicate: a numeric literal of ANY magnitude compared against a MEASURED quantity, directly or
            through a named table an assertion consults. Comments stripped. Measured-vs-measured
@@ -18,21 +24,23 @@ tree     : (working tree)
 gate .js files                      : 55
 files carrying >=1 pinned literal   : 42
 files carrying none                 : 13
-pinned literal SITES                : 378
-  pinned-layout (container-SENSITIVE): 273
-  viewport-constant used as a bound : 105
+pinned literal SITES                : 396
+  pinned-layout (container-SENSITIVE): 291
+  viewport-VALUED, AMBIGUOUS        : 92  (a viewport declaration OR a pin that equals one - needs a reading, NOT netted out)
+  viewport-bound (a bare comparison): 13
   NOT SPLIT BY THIS SCRIPT: which pinned-layout literals descend from a TEXT measurement.
   That is the per-site reading the job asks for; this tool sizes the population, not the subset.
-literals BELOW 100 (invisible to the >=100 band): 180
-  of those, AT RISK                 : 180
+literals BELOW 100 (invisible to the >=100 band): 187
+  of those, AT RISK                 : 187
 
 PER FILE  (red479 = FAIL count in #479's full run; * = #479 called it NOT a container artefact)
   sites  pinned <100  red479  file
      53    53    20       2  49-home.js
-     28    24    19      15  48-lesson-flow.js
+     33    29    24      15  48-lesson-flow.js
+     25    25    16       6  45-play-setup.js
      23    17    15       -  70-live-game-reset-guard.js
      21     2     1       -  61-review-list-month-independence.js
-     19    19    14       6  45-play-setup.js
+     18    18     7       1  40-reachability.js
      18     1     0       -  53-lesson-hit-area.js
      16     2     2       -  54-play-resume.js
      16     7     7       -  64-landscape-gameover-row.js
@@ -41,7 +49,6 @@ PER FILE  (red479 = FAIL count in #479's full run; * = #479 called it NOT a cont
      13     0     0       -  58-review-rating-source.js
      12    12    11       -  47-menu.js
      11     9     4       -  15-gallery-playall.js
-     11    11     7       1  40-reachability.js
      10    10     9       -  20-review.js
      10    10    10      38  26-invariants.js
       8     6     4       -  21-review-brilliant.js
@@ -79,18 +86,100 @@ CONTROL 2 - the two #479 called NOT container artefacts should look different.
 CONTROL 3 - a measured-vs-measured assertion must NOT be counted (measured, not asserted).
   measured-vs-measured lines found : 10
   of those also reported as pins   : 0  (correct: none)
+
+CONTROL 4 - per-ASSERTION join against /tmp/claude-0/-home-user-chess-trainer/5636c853-aa0d-52ad-a657-2b43668b1c4e/scratchpad/ct/emp
+  Every FAIL below is a PROVEN container-dependent assertion: same bundle, only the container
+  differs. A gate that carries pins and does NOT fail is the other half of the evidence - it is
+  what shows that carrying a pinned literal is NECESSARY and not SUFFICIENT.
+  gate                           sites  <100 fails  literals the failures name
+  12-hint.js                         3     0     2  PINNED: 259,375  unmatched: 258,361
+  26-invariants.js                  10    10    38  unmatched: 24,28,35,422,423
+  39-pz-streak.js                    3     0     1  PINNED: 259  unmatched: 258
+  40-reachability.js                18     7     1  PINNED: 93,105,119,148  
+  45-play-setup.js                  25    16     6  PINNED: 837,856,873,903  unmatched: 30
+  46-play.js                        15    11     3  PINNED: 24,34,63,272  unmatched: 28,264
+  48-lesson-flow.js                 33    24    14  PINNED: 390  unmatched: 192,424
+  49-home.js                        53    20     2  PINNED: 68,106  unmatched: 038,40,69,120,245,284,339
+  57-pz-solved-explanation.js        7     0     6  PINNED: 259,331,342  unmatched: 35,150,258,330,341,427
+
+  gates RED on this bundle            : 9   of which the failing literal IS a known pin: 8
+  gates GREEN on this bundle          : 3   of which carry pinned literals anyway: 3
+  THE SECOND LINE IS THE IMPORTANT ONE. A gate that carries pins and stays green proves the
+  population is not the at-risk set, which is the whole reason the subset is still owed.
+  READ THE COLUMNS THIS WAY. PINNED = a literal the failure names that IS in the site list,
+  which is the predicate working. `unmatched` = a number the message printed that is not a
+  known pin, and it is USUALLY THE MEASURED VALUE sitting beside its pin (49-home prints the
+  pin 68 and the measured 69; 46-play prints 272 and 264). It is a LEAD for a human glance,
+  never a verdict about the predicate. The one time it WAS a real hole, it was decisive:
+  45-play-setup named 837/856/873/903 and none was in the list, because the measured-term
+  pattern knew .top and not .restTop. That is what this control is for.
 exit=0
 
-=== CONTROL 4: a raw token grep against this tool, per file ===
-   (the point is method, NOT that #480 counted comments - see the script header's withdrawal)
-  48-lesson-flow.js: raw 3+digit tokens 751 | this tool 28 | #480 published 20
-  45-play-setup.js: raw 3+digit tokens 265 | this tool 19 | #480 published 7
+=== THE EMPIRICAL RUN BEHIND CONTROL 4 ===
+Each gate run as: CT_APP=<origin/main's own app.js, md5 fb10dbef9591> node gates/regress/<gate>.js
+One bundle, one container. Every FAIL is therefore a PROVEN container-dependent assertion.
+START 49-home 10:43:32Z
+DONE 49-home exit=1 pass=182 fail=2 10:46:13Z
+START 45-play-setup 10:46:13Z
+DONE 45-play-setup exit=1 pass=162 fail=6 10:48:16Z
+START 46-play 10:48:16Z
+DONE 46-play exit=1 pass=125 fail=3 10:50:23Z
+START 47-menu 10:50:23Z
+DONE 47-menu exit=0 pass=86 fail=0 10:51:21Z
+START 20-review 10:51:21Z
+DONE 20-review exit=0 pass=150 fail=0 10:54:15Z
+START 40-reachability 10:54:15Z
+DONE 40-reachability exit=1 pass=36 fail=1 10:54:46Z
+START 64-landscape-gameover-row 10:54:46Z
+DONE 64-landscape-gameover-row exit=0 pass=87 fail=0 10:56:58Z
+START 26-invariants 10:56:58Z
+DONE 26-invariants exit=1 pass=331 fail=38 11:02:53Z
+ALLDONE 11:02:53Z
+START 39-pz-streak 11:02:56Z
+DONE 39-pz-streak exit=1 pass=47 fail=1 11:03:48Z
+START 57-pz-solved-explanation 11:03:48Z
+DONE 57-pz-solved-explanation exit=1 pass=134 fail=6 11:06:36Z
+START 48-lesson-flow 11:06:36Z
+DONE 48-lesson-flow exit=1 pass=339 fail=14 11:11:37Z
+BATCH2DONE 11:11:37Z
+NOTE 12-hint was run separately at ~10:22Z as the container health test, BEFORE this progress file
+NOTE existed; its log was copied in afterwards. The DONE line below is retrospective and its time is the
+NOTE log's, not a stamp taken at the moment it finished - said rather than implied.
+DONE 12-hint exit=1 pass=22 fail=2 10:22:00Z
 
-=== CONTROL 5: real #479 reds whose failing literal is BELOW 100 (invisible to the >=100 band) ===
-  49-home.js:670:    L.say(!!s&&s.present&&near(s.y,106)&&near(s.h,68)&&near(s.w,W.colW),
-  40-reachability.js:313:      const want=[{w:119,x:4},{w:93,x:148},{w:105,x:266}];
-  46-play.js:100:const PP ={se:{bw:272,bx:24,by:63,barW:272,barH:34},kunal730:{bw:375,bx:0,by:84.8,barW:375,barH:55.8},'390':{bw:390,bx:0,by:103,barW:390,barH:74}};
+=== PER-GATE FAIL COUNT vs #479's FULL-SUITE COUNT FOR THE SAME GATE ===
+(#479 ran the whole suite in a container of this kind; these are independent runs of single gates
+ against a DIFFERENT bundle - main's, not #479's tree - so agreement is a real cross-check.)
+  gate                             mine   #479 verdict
+  12-hint                             2      2 EQUAL
+  49-home                             2      2 EQUAL
+  45-play-setup                       6      6 EQUAL
+  46-play                             3      3 EQUAL
+  40-reachability                     1      1 EQUAL
+  26-invariants                      38     38 EQUAL
+  39-pz-streak                        1      1 EQUAL
+  57-pz-solved-explanation            6      6 EQUAL
+  48-lesson-flow                     14     15 DIFFERS - read the log
+
+=== THE GATES THAT CARRY PINS AND STAYED GREEN - the half that stops this becoming an at-risk claim ===
+  47-menu                          86 PASS  0 FAIL
+  20-review                       150 PASS  0 FAIL
+  64-landscape-gameover-row        87 PASS  0 FAIL
+
+=== THE LIMIT ON THE CLASS, AND IT IS THE BIGGEST FINDING HERE ===
+  26-invariants is 38 of #479's 115 FAILs - a THIRD of everything red - and the join matches NONE of
+  its failures to a pinned literal. Its own header says why: it is "THE INVARIANT GATE - INVARIANT 4:
+  NO TEXT IS CUT BY ITS OWN CLIPPING ANCESTOR". Its reds here are two shapes, neither a pin:
+    (a) 'NO text node is cut by the box that clips it' - wider substituted text overflows its clipping
+        box, so the assertion fails with NO LITERAL ANYWHERE IN IT.
+    (b) 'every pinned invariant-2 failure still measures EXACTLY what it measured on #422' - a
+        stability comparison against a table of known-failure values.
+  SO THE PINNED-LITERAL CLASS UNDERSTATES THE CONTAINER PROBLEM BY ABOUT A THIRD, and route (2)
+  ('make the pins relative') CANNOT FIX GATE 26 - you cannot make a pin relative when there is no pin.
+  Scope gate 26 separately. This is why the join exists: the static count alone would not have said so.
 
 === WHAT IS NOT SETTLED ===
-  Which of the 273 pinned-layout sites descend from a TEXT measurement. That is the per-site reading
-  the job asks for; this tool sizes the population and names the empirical join, it does not split it.
+  Which of the 291 pinned-layout sites descend from a TEXT measurement. The green gates above are why
+  that is still open: carrying a pin is NECESSARY AND NOT SUFFICIENT, now measured on both sides.
+  The 92 viewport-VALUED sites are a second, separate reading and are NOT netted out of the 291.
+  jobs/which-of-the-273-pinned-layout-literals-descend-from-a-text-measurement-2026-10-06

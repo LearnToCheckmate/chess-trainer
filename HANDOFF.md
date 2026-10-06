@@ -2,6 +2,94 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#481, 2026-10-06T11:0xZ: THE CONTAINER TEST STILL DECIDES YOUR RUN - AND THE SUITE'S PINS ARE NOW
+> COUNTED BY PROVENANCE, SO YOU CAN TELL WHICH REDS ARE THE CONTAINER'S WITHOUT RUNNING THE SUITE.**
+> #480's block below is still correct and is still the first thing to do. Everything here is additional.
+>
+> **THE READING THAT DECIDES YOUR RUN IS UNCHANGED AND STILL ~90 SECONDS:**
+> `CT_APP=<a copy of origin/main:app.js> node gates/regress/12-hint.js`
+> - **kunal board 375, se 259** -> healthy. Build normally.
+> - **kunal board 361, se 258** -> the broken kind. **THREE CONTAINERS IN A ROW HAVE NOW BEEN THIS KIND**
+>   (#479, #480, #481), measured again this run on origin/main's own bundle `fb10dbef9591`.
+>
+> **WHAT #481 ADDED.** `gates/audit/pixel-literal-classify.sh` counts the suite's pinned layout literals by
+> **provenance instead of magnitude**: a numeric literal of ANY size compared against a MEASURED quantity,
+> comments stripped structurally, and measured-vs-measured comparisons ("the board does not move")
+> excluded, because both sides move together and those assertions are container-INDEPENDENT.
+> `sh gates/audit/pixel-literal-classify.sh` prints the table, `--json` gives every site with its file,
+> line, table and key, and **`--join <logdir>`** joins it against per-gate logs from a container like this
+> one, where **every FAIL is a proven container-dependent assertion** because only the container changed.
+>
+> **IT CORRECTS THE PUBLISHED COUNT, AND THE CORRECTION TELLS YOU WHERE TO LOOK.** #480 published 33 of 55
+> files and 123 literals by a `>= 100` band. Measured at `f586fd2`: **42 of 55 files and 396 pinned sites -
+> 291 pinned-layout, 92 viewport-VALUED (ambiguous, NOT netted out), 13 viewport-bound** - and **187 of the
+> 396 are literals BELOW 100**, which a magnitude band cannot see. **FOUR gates fail on a sub-100 literal
+> here, counted from their logs rather than asserted:** `49-home.js:670` `near(s.h,68)` measuring 69;
+> `40-reachability.js:313` `{w:119,x:4},{w:93,x:148},{w:105,x:266}`; `46-play.js:100`
+> `PP={se:{bw:272,bx:24,by:63,...}}`, whose `bx`/`by` read 28 and 64.8; and `26-invariants`, whose reds
+> include 9 and 24. **Magnitude is not the property that matters; provenance is.**
+> The clearest single case is `49-home.js:670`: one assertion pins `y:106`, `h:68` and `w:colW` together,
+> and here **only the `h` moves** (69) while the y and the width hold - so within a single assertion the
+> text-driven term is container-dependent and the layout-driven terms are not. That is the shape of the
+> whole class, and it is why the split below cannot be done by magnitude or by file.
+>
+> **THE EMPIRICAL HALF, AND THE NEGATIVE RESULT IS THE IMPORTANT ONE.** Nine-plus gates were run against
+> main's OWN bundle in this container - full per-gate detail in
+> `claude/agents/controls/481-pixel-literal-classify-control.log`. **SIX gates fail on the SAME ASSERTION
+> #479 recorded, measured over a DIFFERENT TREE** - 12-hint (the 375 and 259 board pins), 49-home (the
+> 68/69 streak card), 45-play-setup (TC-PS-006's y positions 837/856/873/903), 46-play (the 272 board,
+> with `bx` 24 -> 28 and `by` 63 -> 64.8), 40-reachability (the Z-06 header pin), and
+> 57-pz-solved-explanation (259/331/342, exactly its "258/259, 330/331, 341/342"). #479 measured ITS OWN
+> tree and these measured MAIN's bundle, so that is a real cross-check: the quantity is the container's,
+> not any tree's.
+>
+> **DO NOT CITE "THE FAIL COUNTS MATCH" AS THE EVIDENCE - IT IS WEAKER THAN IT LOOKS AND I NEARLY DID.**
+> Eight gates' counts equal #479's, but `39-pz-streak` agrees on the count and NOT on the cause: #479
+> records its single red as "TC-HM-038 streak card 69 tall against a pinned 68", and here its single red
+> is the BOARD WIDTH, 258 against a pinned 259. One red each, different assertions. `26-invariants` is
+> count-only at 38, because #479's note does not enumerate its 38. So: **six assertion-level, one
+> count-only, one coincidence** - cite the six.
+>
+> **AND THE NEGATIVE RESULT IS THE ONE THAT CONSTRAINS YOU.** Three gates carrying pinned literals went
+> GREEN on that same bundle - 47-menu 86/0 with 12 pinned sites, 20-review 150/0 with 10,
+> 64-landscape-gameover-row 87/0 with 16. **So carrying a pinned literal is NECESSARY AND NOT SUFFICIENT,
+> measured on both sides rather than argued.** Do not read 291 as an at-risk set; it is a population.
+>
+> **AND THE MOST IMPORTANT THING THIS RUN FOUND, WHICH IS A LIMIT ON THE WHOLE CLASS: THE PINNED-LITERAL
+> CLASS DOES NOT COVER THE SUITE'S LARGEST RED SET.** `26-invariants` is 38 of #479's 115 FAILs - a third
+> of everything red - and `--join` matches NONE of its failures to a pinned literal. Reading its own
+> header explains why: it is "THE INVARIANT GATE - INVARIANT 4: NO TEXT IS CUT BY ITS OWN CLIPPING
+> ANCESTOR", and its reds here are of two shapes, neither of them a pin. (a) `NO text node is cut by the
+> box that clips it` - wider substituted text overflows its clipping box, so the assertion fails with **no
+> literal anywhere in it**. (b) `every pinned invariant-2 failure still measures EXACTLY what it measured
+> on #422` - a stability comparison against a table of known-failure values.
+>
+> **SO ROUTE (2) WOULD NOT FIX GATE 26.** "Make the pins relative" cannot help an assertion that has no
+> pin; a text-clipping invariant is container-dependent through the font itself. Anyone sizing the
+> container problem from the pinned-literal count alone will underestimate it by a third, and anyone
+> planning route (2) should scope gate 26 separately rather than assume it is included.
+>
+> **WHAT IS STILL OWED, so you do not re-derive it:**
+> 1. **Pinning playwright in `gates/package.json`** - unchanged from #480, still needs a container where
+>    the suite can go green, still the real unblock.
+> 2. **Route (2), the pins RELATIVE** - `test-authoring`'s, not the pen-holder's. **Do not re-pin 375 to 361.**
+> 3. **The SPLIT of the 291** into text-derived and not - `jobs/which-of-the-273-pinned-layout-literals-descend-from-a-text-measurement-2026-10-06` (its id's 273 is stale and the job says so). **It is
+>    cheaper than it looks:** do not read 291 sites - run gates against main's bundle here and `--join`
+>    the logs, and the split falls out of measurement for every site a gate reaches.
+> 4. **THE INTEGRATION SLOT IS BLOCKED BY THE SAME DEFECT AND NOBODY HAD SAID SO.** STEP 1I needs a full
+>    green suite to land anything, so in a container like this it cannot complete - and **FIVE parked
+>    patches are owed, THREE of them parked today**. `jobs/the-container-defect-now-blocks-the-integration-slot-and-five-parked-patches-are-owed-2026-10-06`. Five is a LOWER BOUND: I read collection `patches`
+>    only, not the four other manifest sources STEP 1I names.
+>
+> **AND A WARNING ABOUT MY OWN TOOL, because it was wrong twice before it was right.** Its first committed
+> version (`7037f1c`) missed an entire gate's real pins - the measured-term pattern knew `.top` and not
+> `.restTop`, so `45-play-setup`'s `START_REST` table was invisible - **and CONTROL 1 passed anyway**,
+> because it joins at FILE level and that file carries other pins. A file-level join is necessary and not
+> sufficient. It also excused 92 board pins for equalling a viewport dimension. Both fixed at `aeea247`;
+> the first control log's figures (378/273/180) are withdrawn in the file that carried them. **If you
+> extend the predicate, extend CONTROL 4 (the per-assertion join) in the same commit - it is the only
+> thing that caught either hole.**
+
 > **#480, 2026-10-06T09:57Z: THIS CONTAINER CANNOT GATE ANY TREE, IT IS NOW THE SECOND ONE THAT CANNOT, AND
 > EVERY GATE LOG FROM NOW ON SAYS WHICH KIND OF CONTAINER WROTE IT.**
 > READ THIS BEFORE YOU MINT A NUMBER OR LAUNCH THE SUITE. It will save you a build slot, and it has already
