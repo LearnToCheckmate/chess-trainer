@@ -274,3 +274,80 @@ makes it benign: a shared edit of this path is EXPECTED only while every payload
 append (0 deletion lines, measured), and a destructive record commit is a FAIL that names the payload and its
 deletion count. The three real record hunks in `patches` all measure 0 deletions, so the normal case is
 unaffected — proved by a positive control, not assumed.
+## process lane 1 — run `process-build-1__1791268512757`, 2026-10-06T06:35Z
+
+**ITEM.** `jobs/the-bound-records-how-the-walk-exited-not-whether-anything-was-cut-2026-09-29` — P1 CAUSE,
+priority 14, finish-first band 14, `owningLane` build. Taken **from the finish-first queue**, not fresh, and
+only the half of its `outcome.whatIsLeft` that is inside this lane's allow-list.
+
+**WHAT CHANGED.** `gates/regress/61-review-list-month-independence.js`, +81 lines, one new input and five new
+assertions (`A15-0`, `A15a`, `A15b`, `A15c-0`, `A15c`). TC-R35's first input, which the job has named as
+missing since 29 September and which had never been built: **an archive index of four entries holding fifty
+games each — exactly 200 = `ACCT_GMAX` — consumed whole, so the index exhausts with nothing left behind, and
+the screen must therefore state NO limit.** No new stub plumbing: the fixture is the existing `state.thin`
+path at `{months:4, per:50}`, so the input costs four lines and the assertions carry the rest.
+
+**WHY THAT INPUT AND NOT ANOTHER.** It is the only state in which the `#433` guard at `chess.jsx:4219` —
+`cutByGames = games.length>=ACCT_GMAX && (leftover||i>=0)` — has its left operand true and its right operand
+false. Counted over this file rather than asserted: of 51 pre-existing assertion ids, three touch the
+no-limit-stated state and **none is at the cap** — `A7d` is an exhausted index *under* the cap (15 rows),
+`A12b` and `A13b` are exhausted indexes with a *failed* month, so those are about the `+gap` suffix. The nine
+dense inputs all stop the walk on GAMES with rows left behind, which is the arm that *should* state a cap.
+
+**GATES RUN, AND THE FIGURES ARE A BEFORE, AN AFTER AND A TWO-WAY CONTROL.** All against the bundle actually
+on `origin/main` at `97392e2`, `app.js` md5 `fb10dbef9591d258dc4ccd5b125ade9a`, footer `#477 - 2026-10-04
+03:34 ET`. Configuration `CT_SEEDS=a CT_ACCTS=1` throughout, so the three figures are comparable.
+
+| run | bundle | result |
+|---|---|---|
+| BEFORE (gate at `97392e2`) | main `fb10dbef9591` | **79 pass / 0 fail** |
+| AFTER (this change) | main `fb10dbef9591` | **84 pass / 0 fail** — exactly +5, the five assertions added |
+| NEGATIVE CONTROL | main with `&&(leftover||i>=0)` deleted, md5 `4fe8a4b339b3d5906398c56572519f00` | **82 pass / 2 fail** |
+
+**THE CONTROL IS THE POINT AND IT IS WORTH THE TABLE.** On the reverted bundle the screen renders
+`"Showing up to 200 games."` at 16.8px over a history of 200 games that was fetched **complete** — and
+`A15a` and `A15c` are the **only** two assertions in the file that object. The other 49 stay green. That is
+the measured proof that the guard was unprotected: it could have been deleted today and this gate would have
+reported 79 pass / 0 fail. `A15-0`, `A15b` and `A15c-0` stay green on the control too, so the two reds are
+specific — they fail because the sentence appeared, not because the input broke.
+
+**DETERMINISM [R36].** Three consecutive runs of the AFTER configuration, PASS/FAIL lines compared
+byte-for-byte on the five new assertions.
+
+**NOT CHECKED, and the list is not short.**
+- **The other half of this job is untouched and stays open.** `chess.jsx:4220`'s `'months'` arm is still read
+  off the loop exit (`i<0?'all':'months'`), which is instance 1 of the job's four. It is application code and
+  this lane may never write it. It remains in `outcome.whatIsLeft` with the build lane.
+- **The full 56-suite green run was not spent.** This change touches no bundle, no selector and no story
+  clause, and this lane never pushes to main; the reduced configuration is what the three figures compare.
+- **The dense matrix (`CT_SEEDS=a,b,c` x `CT_ACCTS=1,3`) was not re-run with the change in**, so the +5 is
+  measured in the reduced configuration only. The new block is independent of the matrix — it launches its
+  own context — so the matrix's own count is arithmetically unaffected, but that is an argument and not a
+  measurement.
+- **`A15c` crosses `A8a` and the crossing is pinned, not resolved.** `A8a` requires that an account at
+  `ACCT_GMAX` rows in a *legacy* store still states the cap; this account is also at `ACCT_GMAX` and was not
+  cut. They are compatible only because the recorded bound exists here and governs. `A15c` asserts that it
+  keeps governing after a reload. If a build ever lets the row-count fallback override a recorded `'all'`,
+  these two become jointly impossible — which is why it is written down [R45].
+- **`ACCT_GMAX` is pinned in the fixture, not read from the app.** The gate has no access to the app's
+  constants and this input's screen states no cap by design, so there is nothing to read it off. `A15-0`
+  is what makes that safe: if a build moves `ACCT_GMAX` the fixture stops landing on it, the row count stops
+  equalling 200, and `A15-0` goes red and skips the rest rather than letting `A15a` pass for the wrong reason.
+
+**ALLOW-LIST CHECK RUN AND EVERY LINE READ.** `git diff --name-only origin/main...HEAD` returns
+`claude/PROCESS-LOG.md` and `gates/regress/61-review-list-month-independence.js`. Two lines, both inside the
+allow-list. No file at the repository root, no `.tsv` under `gates/`, no root markdown record.
+
+**PARKED, NOT PUSHED.** One `git push --dry-run` at 06:41Z returned the agent proxy's refusal —
+*"LearnToCheckmate/chess-trainer is not in this session's authorized repository set"* — then HTTP 403, exactly
+as `prompts/process-build` records. One dry-run only; no workaround attempted [R21]. The payload is
+`patches/proc-lane1-art-gates-regress-61-review-list-month-independence-js-2026-10-06`. **The job does not
+close**: the outcome is `fixed-in-part`, and under R05 only the finder closes.
+
+**ONE THING THAT IS EASIER TO FIX NOW THAN LATER, and it is about this file rather than about the app.**
+`claude/PROCESS-LOG.md` now exists on `origin/main`, so this record **appends and context-merges** instead of
+add/add-conflicting — which is what five dropped record commits cost the 2026-10-04 wave. This is the first
+lane record written on the far side of that fix, so if it still conflicts, the remedy on
+`jobs/every-parallel-lanes-first-patch-creates-process-log-md-so-the-integrator-must-drop-one-artefact-2026-10-04`
+did not work and that is worth knowing. The two commits are still split — artefact first, record second — so
+a conflict costs only the log entry.
