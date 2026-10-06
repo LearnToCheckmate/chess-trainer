@@ -463,3 +463,4 @@
 481	minted	-	-	-	2026-10-06T10:37Z	build__1791282018634	minted	the pinned-layout-literal classifier: gates/audit/pixel-literal-classify.sh, correcting the >=100 band. No bundle built or stamped - app.js, chess.jsx and index.html byte-identical to origin/main.
 482	minted	-	-	-	2026-10-06T11:29Z	build__1791285675953	minted	integration slot: land the 3 of 6 owed parked patches the gate suite does not execute; record the 4th container in a row that cannot gate any tree
 483	minted	-	-	-	2026-10-06T12:34Z	build__1791289288371	minted	records-only: integrationResult verdicts on the two wave-1 payloads that live in docs/ - both measured ALREADY ON MAIN - and the HANDOFF correction withdrawing the premise that the gate-26 patch was unlanded
+484	minted	-	-	-	2026-10-06T13:27Z	build__1791292891000	minted	integration: land lane 1 parked payload gates/audit/verify-patch-set.sh (S4 split + S2 extended), the one patch in todays manifest with no integrationResult
