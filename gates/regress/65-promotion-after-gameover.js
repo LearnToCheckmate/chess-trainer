@@ -392,6 +392,79 @@ async function blockG(){
   await b.close();
 }
 
+// ── H: LANDSCAPE, 730x375. The axis the job's own `case` names and that nothing in this project has driven. ───
+// jobs/a-pawn-can-be-promoted-into-a-game-that-already-ended-on-time-2026-09-30 carries a FOUR-cell input spec -
+// {375x730, 730x375} x {Pass & Play, vs Computer} - and at #439 exactly ONE cell of the four was driven. The
+// gate said so itself under NOT CHECKED ("LANDSCAPE. Neither the auditor nor this gate drove 730x375") and gave
+// its reason for the picker in the next bullet up: "The picker is position:fixed inset:0 and centred, so it is
+// geometry-independent by construction - but that is a READING, not a measurement."
+// THIS BLOCK TESTS THAT READING INSTEAD OF REPEATING IT, and 730x375 is the one shape in this project where it
+// is a live question: the picker's content is four 52px buttons plus a "Promote to" label, and in landscape the
+// viewport is 375px TALL against 730 in every cell the gate already visits - the same wide-and-short corner
+// lib.js's own `short375` entry was added for at #406, turned on its side.
+// H0b IS DELIBERATELY A SEPARATE ASSERTION FROM H0, and that separation is the point: `picker()` finds the
+// overlay by its text and its position, so a picker clipped to half a button still satisfies H0. Without H0b a
+// picker whose fourth piece is painted off the bottom of a 375px screen - a player who cannot choose a knight -
+// reads as a clean pass. H0 asks whether it is THERE; H0b asks whether a finger can reach all four of it.
+// 730x375 IS NOT IN lib.js's GEOS AND IS PASSED AS A LITERAL {w,h}: L.launch already accepts an object
+// (lib.js:236, `typeof opts.geo==='object'`), so this block adds an input while touching ONE file and leaves the
+// shared geometry table alone [R44].
+const LAND={w:730,h:375,safe:'',label:'730x375 = landscape'};
+const vp=(b)=>b.page.evaluate(()=>({w:innerWidth,h:innerHeight}));
+
+async function blockH(){
+  const b=await L.launch({geo:LAND,name:'65H'});await b.open();
+  const v=await vp(b);
+  L.say(v.w===730&&v.h===375,'H00 INSTRUMENT: the viewport really is 730x375 landscape',v);
+  await ppClock(b);
+  for(const [f,t] of [['d2','d4'],['e7','e5'],['d4','e5'],['a7','a6'],['e5','e6'],['b7','b6'],['e6','f7'],['e8','e7']]) await b.move(f,t,200);
+  const p0=await plies(b);
+  // THE INSTRUMENT COMES FIRST AND IT IS NOT A FORMALITY HERE. Every assertion below is about something being
+  // ABSENT or INERT, and #385's rule is that such a claim is vacuous unless presence was proved first. In
+  // landscape it is also the thing most likely to break: the New Game sheet, the clock chips and ▶ Start game
+  // all have to be reachable in a 375px-tall window before a promotion can be reached at all.
+  L.say(p0===8,'H0a the 8-ply promotion position was reached in landscape',{plies:p0,row:await row(b)});
+  await b.move('f7','g8',400);
+  const up=await picker(b);
+  L.say(!!up&&up.n===4&&up.enabled===4,'H0 INSTRUMENT: the picker is up with four enabled buttons on the LIVE landscape game',up);
+  // H0b: and every one of those four is actually ON the 375px-tall screen. This is the assertion the
+  // "geometry-independent by construction" reading cannot make for itself.
+  let offs=null;
+  if(up){
+    offs=await b.page.evaluate(()=>{
+      const ov=[...document.querySelectorAll('div')].find(d=>/^Promote to/.test((d.innerText||'').trim())&&getComputedStyle(d).position==='fixed');
+      if(!ov)return null;
+      return [...ov.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1;})
+        .map(x=>{const r=x.getBoundingClientRect();
+          return {glyph:(x.innerText||'').trim(),top:Math.round(r.top),bottom:Math.round(r.bottom),left:Math.round(r.left),right:Math.round(r.right),
+                  off:(r.top<0||r.bottom>innerHeight||r.left<0||r.right>innerWidth)};});
+    });
+  }
+  const offCount=offs?offs.filter(x=>x.off).length:-1;
+  L.say(offCount===0,'H0b every one of the four promotion buttons is fully inside the 730x375 viewport',{offCount,vp:v,boxes:offs});
+  let LAND_CENTRES=up?up.centres:null;
+  const pDuring=await plies(b);
+  L.say(pDuring===8,'H0c opening the picker commits no move in landscape',{plies:pDuring});
+  const takenBefore=await taken(b);
+  const ms=await waitFlag(b,140000);
+  L.say(ms!==null,'H0d White'+"'"+'s clock flagged with the picker open, in landscape',{ms});
+  const cd=await card(b);
+  L.say(/Time/i.test(cd||''),'H0e the landscape game ended on time',{card:cd});
+  // H1: THE HEADLINE, at the geometry the job named and #439 did not visit
+  const after=await picker(b);
+  L.say(after===null,'H1 [730x375] the picker is GONE once the result card exists',after||'absent');
+  await b.shot('488-65-H1-picker-at-flag-landscape');
+  const pFlag=await plies(b);
+  if(LAND_CENTRES&&LAND_CENTRES.length){await b.page.mouse.click(LAND_CENTRES[0][0],LAND_CENTRES[0][1]);await b.page.waitForTimeout(700);}
+  const pTap=await plies(b),rTap=await row(b);
+  L.say(pTap===pFlag,'H2 [730x375] a tap where the queen button was appends no move',{before:pFlag,after:pTap,row:rTap});
+  L.say(!/=Q/.test(rTap||''),'H2a [730x375] the move row carries no promotion played after the result',{row:rTap});
+  const takenAfter=await taken(b);
+  L.say(takenAfter===takenBefore,'H2b [730x375] the captured-material readout is unchanged by that tap',{before:takenBefore,after:takenAfter});
+  L.say(b.errs.length===0,'H3 no console errors in the landscape flag block',{errs:b.errs.length});
+  await b.close();
+}
+
 L.run(async()=>{
   const only=(process.env.CT_B65||'').split(',').filter(Boolean);
   const want=(x)=>!only.length||only.includes(x);
@@ -400,4 +473,5 @@ L.run(async()=>{
   if(want('CDE'))for(const g of GEOS)await blockCDE(g);
   if(want('F'))await blockF();
   if(want('G'))await blockG();
+  if(want('H'))await blockH();
 },'65-promotion-after-gameover');
