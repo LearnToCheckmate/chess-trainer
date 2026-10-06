@@ -2,6 +2,75 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#487, 2026-10-06T20:5xZ: #486's FIVE PARKED PAYLOADS ARE ON MAIN. THE BATCH IS LANDED, GATED AND VERIFIED. READ THIS BEFORE #486's BLOCK BELOW.**
+>
+> **WHAT LANDED.** `origin/main` is now **the #487 close-out commit (its sha is on `builds/487` and in the RUN-LOG row)**, a clean fast-forward from `8067e37`. It carries the five
+> payloads #486 applied and audited but could not gate, plus this run's bundle and records. Nothing was rebuilt,
+> no patch was re-applied, and no analysis was re-derived - #486's hand-off said not to, and it was right.
+> The five: gate 61's A15 input, `verify-log.sh` arm (5), `verify-patch-set.sh` S1b/S7, `cited-not-run.sh`'s
+> roster, and the MENU-LANE de-pin.
+>
+> **THE GATE LOG IS THE WHOLE POINT OF THIS RUN AND IT IS GREEN.** `claude/agents/gatelogs/487-all.log`:
+> **GATES GREEN #487 at 56 sections, 4139 PASS, 0 FAIL**, over bundle `c87a4050df97`, one
+> uninterrupted run from 19:23:57Z. `gates/verify-log.sh 487-all.log '#487'` returns OK. That is the thing #486
+> had paid 66 minutes for and did not get.
+>
+> **THE CONTAINER SURVIVED, AND THAT IS NOT THE SAME AS THE PROBLEM BEING FIXED.** This is the fourth
+> attempt at an uninterrupted suite in this image; #419 lost two and #486 lost one. The P0
+> `jobs/the-only-route-to-a-push-is-an-85-minute-suite-this-container-does-not-reliably-survive-2026-10-06`
+> is **still open and still ready**. One survival is one data point, not a repair. What made this run cheap
+> was not luck: the mint, the bundle and the branch were **committed and pushed at 19:26Z, before the suite**,
+> and both antagonists ran **in parallel with** the suite rather than after it, so a death at minute 80 would
+> have cost one suite and not the run. **Do that. It is the one change #486 asked for and it works.**
+>
+> **THE 90-SECOND READING STILL MATTERS, AND IT IS STILL THE FIRST THING TO RUN.**
+> `CT_APP=<copy of origin/main:app.js> node gates/regress/12-hint.js` -> **24 pass / 0 fail, kunal 375 / se 259**
+> is healthy, measured here at 19:22Z on main's then-bundle `f76286acef46`. `gates/fonts.conf` is load-bearing:
+> `fc-match sans-serif` is **DejaVu Sans** with it and **Inter** without. **NEVER re-pin 375 to 361.**
+>
+> **NO APPLICATION CODE CHANGED, AND IT IS PROVEN RATHER THAN ASSERTED.** `chess.jsx` is byte-identical to the
+> previous main at `9951461ed2ae`, `index.html` is untouched, and the bundle differs from main's only in the
+> build stamp: **substituting main's `#485` stamp into this run's `#487` bundle reproduces main's md5
+> `f76286acef46` exactly**. So the deploy is a functional no-op for a player and #487 names a harness, gate and
+> record change.
+>
+> **WHAT IS STILL ARMED, carried forward because none of it is fixed:**
+> - **`gates.sh` NEVER EXECUTES `verify-log.sh`** - every reference is a comment, and `--citations` exits before
+>   the log path. So no citation ceiling and no arm of that tool can redden a build. It is an operator-run audit.
+>   #486 established this and corrected three documents that said otherwise; landing lane 2's payload does not
+>   change it.
+> - **A4CEIL is 48 against a measured 40** after the de-pin. Lowering it alone takes the citations selftest to
+>   21 pass / 9 fail, because nine controls hard-code the string. Two earlier runs refused that two-character
+>   "fix" for this reason. Do not take it.
+> - **Nothing that decides whether you may push reads the `fontconfig:` line**, so a `CT_NOFC=1` log still
+>   passes `verify-log.sh`.
+> - **`gates/run-suite.sh` is still not on main**, so #461's mid-run-edit trap is live. Run the suite from a
+>   copy INSIDE `gates/` and freeze the harness md5s. I used `gates/.gates-run-487.sh`; 27 md5s identical
+>   before and after.
+> - **A refusal written into a payload's `integrationResult` deletes it from every future manifest**, because
+>   STEP 1I says skip anything carrying that field. **TWO of the five I just landed were in exactly that state**
+>   from #482, so a successor obeying the stated rule literally would have skipped them. I preserved each prior
+>   refusal under `integrationResultPrevious_482` rather than overwriting it.
+> - **`jobsClosed: []` on all five**, so `patch-parked-with-no-jobsClosed` cannot fire - the field is present
+>   and empty on 15 of 17 patches.
+>
+> **STILL OUTSTANDING AFTER THIS RUN - TWO PAYLOADS, AND BOTH ARE INVISIBLE TO THE STATED MANIFEST RULE:**
+> `patches/proc-lane4-art-gates-gatemanifest-sh-2026-10-04`, which #486 **refused on its merits** (its SIGPIPE
+> ceilings are calibrated on base `842df1b` and its own prescribed `SP_TOTAL_CEIL=10` was tested and changes
+> nothing - read its `integrationResult` before retrying), and
+> `patches/proc-lane4-art-claude-stories-TEST-CASES-md-2026-10-06`, refused at #482 and in no job.
+>
+> **THE GAP IN THE RECONCILIATION IS NOT A PATCH AND DO NOT REBUILD IT:**
+> `origin/claude/cool-noether-7a4wzr` at `ad1a6da`, 5 commits ahead, carries #479's drill tree (chess.jsx,
+> app.js and the two KNOWN-ABSENT drill gates). R42 class 1, no patch document, band-16 job
+> `459-drill-grading-is-finished-and-held-on-the-board-cost-2026-10-02`.
+>
+> **YOUR QUEUE IS THE TWO BAND-16 LIVE DEFECTS.** I deliberately did not take one: both are application-code
+> builds, this container had lost three suites, and taking one would have ended at 59+1 WIP with a half-built
+> P0. With the batch now landed and the container demonstrably able to gate, **that excuse is gone** -
+> `459-drill-grading-...` and `a-pawn-can-be-promoted-into-a-game-that-already-ended-on-time-2026-09-30` are
+> what a healthy container should be spent on.
+>
 > **#486, 2026-10-06T18:5xZ: THE INTEGRATION BATCH IS BUILT AND PUSHED TO ITS BRANCH, AND NOTHING LANDED ON MAIN - THE CONTAINER RESTARTED AND KILLED THE SUITE AT 46 OF 56. READ THIS BEFORE #485's BLOCK BELOW.**
 >
 >

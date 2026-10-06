@@ -150,10 +150,23 @@ default_records(){
 #             every build buys nothing; the published figure is the artefact.
 #   ADMIT     should run on every build and does not. CEILING, MAY ONLY FALL. Empty today, and that
 #             is a claim this script now makes checkable rather than a silence.
-# STRENGTH is `strong` or `weak`. WEAK IS THE POINT OF THE COLUMN: it means the reason is defensible
-# and I do not believe it, so the next reader gets a shortlist of 2 instead of a pile of 23. The weak
-# count has its own ceiling and may only fall. Writing `strong` over a reason you doubt is the only
-# way to cheat this file, and it costs the cheat a line with their name on it.
+# STRENGTH is EXACTLY `strong` or `weak`, lowercase, and a VALUE OUTSIDE THAT PAIR IS UNACCOUNTED.
+# WEAK IS THE POINT OF THE COLUMN: it means the reason is defensible and I do not believe it, so the
+# next reader gets a shortlist of 2 instead of a pile of 23. The weak count has its own ceiling and
+# may only fall.
+#   A SENTENCE THAT STOOD HERE UNTIL #487 IS WITHDRAWN, BECAUSE IT WAS FALSE IN THE DIRECTION THAT
+#   MATTERS [R18]. It read: "Writing `strong` over a reason you doubt is the only way to cheat this
+#   file, and it costs the cheat a line with their name on it." Measured by #487's antagonist A and
+#   reproduced by the build before the fix: `[ "$str" = "weak" ]` counted ANYTHING else as strong, so
+#   capitalising one letter - `weak` -> `Weak` - took the live roster from WEAK 2 of ceiling 2 to
+#   WEAK 0 and still printed ACCOUNTED-GREEN. The ceiling this header says MAY ONLY FALL had zero
+#   headroom, so that one letter was the whole guard, and it cost the cheat nothing and named nobody.
+#   The REASON column was worse: no line of this script ever read field 4, so a roster of 23 rows with
+#   every reason BLANK printed "no member of it is unexplained" at exit 0.
+#   Both columns are now validated the same way the CLASS column always was, by a `case` that names
+#   the bad value - which is where the control was pointed and where the sibling columns were not.
+#   It is CLAUDE.md's gatemanifest lesson one field to the right: "the reason string is unvalidated -
+#   `-` is refused and `x` is not." Here even empty passed.
 roster_default(){ cat <<'EOF'
 gates/audit/cited-not-run.sh|OPERATOR|strong|This script. Run by a process lane or the orchestrator against a tree; it reports and admits nothing, so a suite running it could only redden itself on its own report.
 gates/audit/landed-on-main.sh|OPERATOR|strong|Post-integration audit of collection `patches` against origin/main. Needs the tracker dumped to disk first, which no gates.sh invocation does.
@@ -265,13 +278,26 @@ main_report(){
   local leakset; leakset="$(printf '%s\n' "$leak" | grep . | sort -u)"
   local accounted=0 unacc=0 weak=0 retired=0 cOP=0 cST=0 cON=0 cAD=0
   local -a UNACC=() WEAK=() RETIRE=() ADMITL=()
-  local f row cls str
+  local f row cls str rsn
   while IFS= read -r f; do
     [ -n "$f" ] || continue
     row="$(awk -F'|' -v k="$f" '$1==k{print;exit}' "$RT")"
     if [ -z "$row" ]; then unacc=$((unacc+1)); UNACC+=("$f"); continue; fi
     accounted=$((accounted+1))
     cls="$(printf '%s' "$row" | cut -d'|' -f2)"; str="$(printf '%s' "$row" | cut -d'|' -f3)"
+    rsn="$(printf '%s' "$row" | cut -d'|' -f4)"
+    # STRENGTH AND REASON ARE VALIDATED *BEFORE* THE CLASS CASE, DELIBERATELY: the class case
+    # increments cOP/cST/cON/cAD, so rejecting a row after it had run would decrement `accounted`
+    # while leaving the class tally high, and the printed breakdown would no longer sum to it.
+    case "$str" in
+      weak)   weak=$((weak+1)); WEAK+=("$f");;
+      strong) ;;
+      *) unacc=$((unacc+1)); accounted=$((accounted-1)); UNACC+=("$f (roster strength \"$str\" is not one of strong weak)"); continue;;
+    esac
+    # A ROW WITH NO REASON ACCOUNTS FOR NOTHING, WHICH IS THIS FILE'S ENTIRE PURPOSE.
+    case "$rsn" in
+      ''|'-') unacc=$((unacc+1)); accounted=$((accounted-1)); [ "$str" = "weak" ] && { weak=$((weak-1)); unset 'WEAK[${#WEAK[@]}-1]'; }; UNACC+=("$f (roster reason is empty, so nothing accounts for this file)"); continue;;
+    esac
     case "$cls" in
       OPERATOR) cOP=$((cOP+1));;
       SELFTEST) cST=$((cST+1));;
@@ -279,7 +305,6 @@ main_report(){
       ADMIT)    cAD=$((cAD+1)); ADMITL+=("$f");;
       *) unacc=$((unacc+1)); accounted=$((accounted-1)); UNACC+=("$f (roster class \"$cls\" is not one of OPERATOR SELFTEST ONEOFF ADMIT)"); continue;;
     esac
-    [ "$str" = "weak" ] && { weak=$((weak+1)); WEAK+=("$f"); }
   done <<<"$leakset"
   # A ROSTER ENTRY THAT NO LONGER NAMES A MEMBER IS A FAILURE, NOT A TIDY-UP. An exemption that
   # outlives the file it exempts is how a roster becomes a list of names nobody has checked, which
@@ -439,6 +464,25 @@ EOF
   out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
   ck "C29 an unknown class counts as UNACCOUNTED"          "1" "$rc"
   ck "C29b and the message names the bad class"            "1" "$(grep -c 'PROBABLY-FINE' <<<"$out")"
+
+  # THE STRENGTH VOCABULARY, C31-C31e (#487). The sibling of C29, one column to the right, and it was
+  # unguarded until #487: `[ "$str" = "weak" ]` let any other spelling count as strong, so ONE CAPITAL
+  # LETTER emptied a ceiling that may only fall. C31c is the control that stops this over-firing.
+  full_roster
+  sed -i 's/^gates\/orphan-cited.js|ONEOFF|strong|/gates\/orphan-cited.js|ONEOFF|Weak|/' "$R"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
+  ck "C31 a mis-cased strength counts as UNACCOUNTED"      "1" "$rc"
+  ck "C31b and the message names the bad strength"         "1" "$(grep -c 'is not one of strong weak' <<<"$out")"
+  ck "C31b2 and it is NOT silently counted as weak"        "0" "$(grep -c '^  WEAK gates/orphan-cited.js' <<<"$out")"
+  full_roster
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
+  ck "C31c POSITIVE: the unmodified roster still passes"   "0" "$rc"
+  # AND THE REASON COLUMN, which no line of this script read before #487.
+  full_roster
+  sed -i 's/^gates\/orphan-cited.js|ONEOFF|strong|.*$/gates\/orphan-cited.js|ONEOFF|strong|/' "$R"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
+  ck "C31d an empty reason counts as UNACCOUNTED"          "1" "$rc"
+  ck "C31e and the message says nothing accounts for it"   "1" "$(grep -c 'roster reason is empty' <<<"$out")"
 
   # ADMIT is a worklist and must NOT decide the exit code. Both halves asserted.
   full_roster
