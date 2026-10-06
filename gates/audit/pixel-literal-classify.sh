@@ -55,18 +55,35 @@
 # CLAUDE.md; making the pins RELATIVE is test-authoring's and must not be done by a run holding the pen to
 # unblock itself. This script exists to SIZE the problem, not to solve it.
 #
-# USAGE:  sh gates/audit/pixel-literal-classify.sh [--json] [repo-root]
+# USAGE:  sh gates/audit/pixel-literal-classify.sh [--json] [--join <logdir>] [repo-root]
+#
+#   --join <logdir>  THE CONTROL THAT IS WORTH MORE THAN THE COUNT, and the one that found this script's
+#   worst bug. Point it at a directory of per-gate logs produced by running gates against ONE bundle in a
+#   container whose fonts differ (CT_APP=<that bundle> node gates/regress/<gate>.js > <logdir>/<gate>.log).
+#   Every FAIL in such a log is a PROVEN container-dependent pin - no reading required, because the bundle
+#   is identical and only the container changed. The join reports, per gate, whether the literals the
+#   failures NAME are in this script's site list. A failure whose literal is absent is a HOLE IN THE
+#   PREDICATE, and that is exactly how the camelCase gap below was found: CONTROL 1 joins at FILE level and
+#   passed, while 45-play-setup's six actually-failing y-positions were not in the list at all.
 # Reachable from no suite run by design: it is an audit tool, not a gate. Adding a "=== " section to the suite
 # would break the roster arm of gates/verify-log.sh - see jobs/a-test-in-the-repo-that-no-suite-runs-2026-09-28.
 set -eu
 JSON=0
-if [ "${1:-}" = "--json" ]; then JSON=1; shift; fi
+JOIN=""
+while :; do
+  case "${1:-}" in
+    --json) JSON=1; shift ;;
+    --join) JOIN="${2:-}"; [ -n "$JOIN" ] || { echo "--join needs a directory" >&2; exit 2; }; shift 2 ;;
+    *) break ;;
+  esac
+done
 ROOT="${1:-$(cd "$(dirname "$0")/../.." && pwd)}"
 [ -d "$ROOT/gates/regress" ] || { echo "no gates/regress under $ROOT" >&2; exit 2; }
 
-CLASSIFY_JSON="$JSON" CLASSIFY_ROOT="$ROOT" node - <<'JS'
+CLASSIFY_JSON="$JSON" CLASSIFY_ROOT="$ROOT" CLASSIFY_JOIN="$JOIN" node - <<'JS'
 const fs=require('fs'),path=require('path');
 const ROOT=process.env.CLASSIFY_ROOT, ASJSON=process.env.CLASSIFY_JSON==='1';
+const JOINDIR=process.env.CLASSIFY_JOIN||'';
 const DIR=path.join(ROOT,'gates','regress');
 const files=fs.readdirSync(DIR).filter(f=>f.endsWith('.js')).sort();
 
@@ -78,7 +95,16 @@ const RED_479={'12-hint.js':2,'26-invariants.js':38,'39-pz-streak.js':1,'40-reac
 // The two #479 itself identified as NOT container artefacts (its own arithmetic defect and the drill reserve).
 const NOT_CONTAINER=new Set(['52-drill-grades-the-move.js','72-drill-prev.js']);
 
-const MEAS=String.raw`(?:\.w\b|\.h\b|\.top\b|\.left\b|\.bottom\b|\.right\b|\.x\b|\.y\b|[Ww]idth|[Hh]eight|scrollW|scrollH|clientW|clientH|offsetW|offsetH|\.bw\b|\.bx\b|\.by\b)`;
+// CAMELCASE MEASURED ACCESSORS ARE PART OF THIS PATTERN AND LEAVING THEM OUT HID A WHOLE GATE'S PINS.
+// The first draft matched `.top` but not `.restTop`, so gates/regress/45-play-setup.js:247 -
+//   Math.abs(st.restTop - START_REST[geo]) < 2
+// - was invisible, and with it the START_REST table at :214 ({se:903,kunal:837,kunal730:873,...}) whose six
+// y-positions are the six assertions that ACTUALLY FAIL in a font-substituted container. CONTROL 1 passed
+// anyway, because it joins at FILE level and that file carries other pins - so the control was satisfied by
+// something other than the thing it was meant to find, which is the trap CLAUDE.md records seven times over.
+// Found by joining the empirical failures against the site list per gate and noticing the failing literals
+// were not in it. A file-level join is necessary and NOT sufficient; the per-assertion join is what caught it.
+const MEAS=String.raw`(?:\.w\b|\.h\b|\.x\b|\.y\b|[A-Za-z]?[Tt]op\b|[A-Za-z]?[Bb]ottom\b|[A-Za-z]?[Ll]eft\b|[A-Za-z]?[Rr]ight\b|[Ww]idth|[Hh]eight|scrollW|scrollH|clientW|clientH|offsetW|offsetH|\.bw\b|\.bx\b|\.by\b)`;
 const MEASRE=new RegExp(MEAS);
 // Keys that name a laid-out quantity. A literal written under one of these IS a layout pin.
 const LAYOUT_KEY=/^(w|h|x|y|top|left|bottom|right|bw|bx|by|barW|barH|colW|sh|travel|cw|ch|width|height)$/;
@@ -179,9 +205,21 @@ for(const f of files){
 // What IS decidable mechanically is whether the literal is a VIEWPORT CONSTANT used as a bound. Everything
 // else is a measured layout quantity pinned to a number, which is container-SENSITIVE until someone shows
 // otherwise - and showing otherwise is the per-site reading the job asks for and this script does not do.
+// THE THIRD BUCKET IS AMBIGUOUS AND SAYING SO IS THE POINT. A literal equal to a known viewport dimension
+// is sometimes a viewport DECLARATION the gate launches at ({w:375,h:812} in 15-gallery-playall.js:381,
+// {w:730,h:375} in 16-cpu-result-line.js:457) and sometimes a LAYOUT PIN that merely happens to equal one.
+// gates/regress/46-play.js:100 is the proof the bucket is mixed: PP={se:{bw:272,...},kunal730:{bw:375,...}}
+// is a BOARD-WIDTH pin throughout, and its se entry MOVES in this container (272 measured 264). So calling
+// the whole bucket safe would excuse a real pin for the arithmetic accident of matching the viewport - the
+// clip-intersection mistake CLAUDE.md records, which excuses the real 38.9px defect as readily as the false
+// 1.4px one. An earlier draft of this script did exactly that for 92 sites. They are reported as their own
+// bucket, NOT netted out of the at-risk count, and splitting them is a reading like the main residue.
 const VIEWPORT=new Set([320,360,375,390,414,430,440,520,568,640,667,679,730,761,812,844,896,932,956]);
 for(const r of rows){
-  r.prov = (VIEWPORT.has(Math.abs(r.lit)) && r.how!=='geo-tbl') ? 'viewport-constant' : 'pinned-layout';
+  if(!VIEWPORT.has(Math.abs(r.lit))) r.prov='pinned-layout';
+  else if(r.how==='geo-tbl')         r.prov='pinned-layout';      // the geometry is the KEY, so the value is the pin
+  else if(r.how==='tbl')             r.prov='viewport-valued';    // AMBIGUOUS - declaration or pin, needs a reading
+  else                               r.prov='viewport-bound';     // a bare comparison against a viewport dimension
 }
 const byFile={};
 for(const r of rows){ (byFile[r.file]=byFile[r.file]||[]).push(r); }
@@ -204,7 +242,9 @@ console.log('files carrying >=1 pinned literal   : '+Object.keys(byFile).length)
 console.log('files carrying none                 : '+(files.length-Object.keys(byFile).length));
 console.log('pinned literal SITES                : '+rows.length);
 console.log('  pinned-layout (container-SENSITIVE): '+rows.filter(atRisk).length);
-console.log('  viewport-constant used as a bound : '+rows.filter(r=>r.prov==='viewport-constant').length);
+console.log('  viewport-VALUED, AMBIGUOUS        : '+rows.filter(r=>r.prov==='viewport-valued').length
+            +'  (a viewport declaration OR a pin that equals one - needs a reading, NOT netted out)');
+console.log('  viewport-bound (a bare comparison): '+rows.filter(r=>r.prov==='viewport-bound').length);
 console.log('  NOT SPLIT BY THIS SCRIPT: which pinned-layout literals descend from a TEXT measurement.');
 console.log('  That is the per-site reading the job asks for; this tool sizes the population, not the subset.');
 console.log('literals BELOW 100 (invisible to the >=100 band): '+rows.filter(r=>Math.abs(r.lit)<100).length);
@@ -249,6 +289,60 @@ for(const f of [...NOT_CONTAINER]) console.log('  '+f.padEnd(30)+(byFile[f]?byFi
   console.log('  measured-vs-measured lines found : '+mm.length);
   console.log('  of those also reported as pins   : '+overlap.length+(overlap.length?'  FAIL -> '+overlap.slice(0,6).join(', '):'  (correct: none)'));
   if(overlap.length) process.exitCode=1;
+}
+// ---- CONTROL 4 (optional): per-ASSERTION join against logs from a font-substituted container.
+if(JOINDIR){
+  console.log('');
+  console.log('CONTROL 4 - per-ASSERTION join against '+JOINDIR);
+  console.log('  Every FAIL below is a PROVEN container-dependent assertion: same bundle, only the container');
+  console.log('  differs. A gate that carries pins and does NOT fail is the other half of the evidence - it is');
+  console.log('  what shows that carrying a pinned literal is NECESSARY and not SUFFICIENT.');
+  let holes=0, joined=0, provenFiles=0, greenGates=0, greenWithPins=0, pinnedNamed=0;
+  let logs=[];
+  try{ logs=fs.readdirSync(JOINDIR).filter(x=>x.endsWith('.log')).sort(); }
+  catch(e){ console.log('  cannot read '+JOINDIR+': '+e.message); process.exitCode=2; }
+  // node's console.log has no width specifiers - %6d prints literally. Pad by hand.
+  console.log('  '+'gate'.padEnd(30)+' '+'sites'.padStart(5)+' '+'<100'.padStart(5)+' '+'fails'.padStart(5)+'  literals the failures name');
+  for(const lg of logs){
+    const f=lg.replace(/\.log$/,'')+'.js';
+    let txt=''; try{ txt=fs.readFileSync(path.join(JOINDIR,lg),'utf8'); }catch(e){ continue; }
+    const fails=txt.split('\n').filter(l=>l.startsWith('FAIL'));
+    const sitesHere=rows.filter(r=>r.file===f);
+    if(!fails.length){ greenWithPins += sitesHere.length?1:0; greenGates++; continue; }
+    provenFiles++;
+    const sites=rows.filter(r=>r.file===f);
+    if(!sites.length && fails.length){ /* a red gate with no pins at all is itself worth seeing */ }
+    const lits=new Set(sites.map(r=>String(r.lit)));
+    const named=new Set();
+    for(const l of fails){
+      const head=l.slice(0,240);
+      for(const m of head.matchAll(/(?<![\w.])(\d{2,4})(?![\w.])/g)) named.add(m[1]);
+    }
+    const hit=[...named].filter(n=>lits.has(n));
+    // a literal the failure names that looks like a pin (>=20) and is NOT in the list
+    // The unmatched set is dominated by the MEASURED value the message prints beside its pin - 49-home
+    // names 68 (the pin) AND 69 (what it measured), 46-play names 272 and 264. Viewport constants the
+    // message quotes are dropped too. So this column is a LEAD, never a verdict, and the first draft of
+    // this control presented it as "NOT IN LIST", which reads like an accusation against the predicate.
+    const miss=[...named].filter(n=>!lits.has(n) && Number(n)>=20 && !VIEWPORT.has(Number(n)));
+    joined+=hit.length; holes+=miss.length?1:0; pinnedNamed+=hit.length?1:0;
+    console.log('  '+f.padEnd(30)+' '+String(sites.length).padStart(5)+' '
+      +String(sites.filter(r=>Math.abs(r.lit)<100).length).padStart(5)+' '+String(fails.length).padStart(5)+'  '
+      +(hit.length?'PINNED: '+hit.sort((a,b)=>a-b).join(',')+'  ':'')
+      +(miss.length?'unmatched: '+miss.sort((a,b)=>a-b).join(','):''));
+  }
+  console.log('');
+  console.log('  gates RED on this bundle            : '+provenFiles+'   of which the failing literal IS a known pin: '+pinnedNamed);
+  console.log('  gates GREEN on this bundle          : '+greenGates+'   of which carry pinned literals anyway: '+greenWithPins);
+  console.log('  THE SECOND LINE IS THE IMPORTANT ONE. A gate that carries pins and stays green proves the');
+  console.log('  population is not the at-risk set, which is the whole reason the subset is still owed.');
+  console.log('  READ THE COLUMNS THIS WAY. PINNED = a literal the failure names that IS in the site list,');
+  console.log('  which is the predicate working. `unmatched` = a number the message printed that is not a');
+  console.log('  known pin, and it is USUALLY THE MEASURED VALUE sitting beside its pin (49-home prints the');
+  console.log('  pin 68 and the measured 69; 46-play prints 272 and 264). It is a LEAD for a human glance,');
+  console.log('  never a verdict about the predicate. The one time it WAS a real hole, it was decisive:');
+  console.log('  45-play-setup named 837/856/873/903 and none was in the list, because the measured-term');
+  console.log('  pattern knew .top and not .restTop. That is what this control is for.');
 }
 process.exitCode = missed.length?1:0;
 }
