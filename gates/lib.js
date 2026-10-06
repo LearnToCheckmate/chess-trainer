@@ -16,7 +16,7 @@
 // scrollHeight (clamped, #354); a move is piece-tap then target-tap (#343 trap); measure AFTER interaction
 // (#370 k8 rule); Kunal's geometry is 375x679 with insets 51/31, height binds there (#364).
 'use strict';
-const fs=require('fs'),path=require('path'),cp=require('child_process'),net=require('net');
+const fs=require('fs'),path=require('path'),cp=require('child_process'),net=require('net'),crypto=require('crypto');
 const ROOT=path.resolve(__dirname,'..');
 const SHOTS=process.env.CT_SHOTS||path.join(__dirname,'shots');
 const NET_NOISE=/ERR_TUNNEL_CONNECTION_FAILED|ERR_CONNECTION_RESET|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION_REFUSED|ERR_FAILED|net::ERR|gstatic|googleapis|firebase|Failed to load resource/i;
@@ -42,6 +42,75 @@ const GEOS={kunal730:{w:375,h:730,safe:'',label:'375x730 = Kunal\'s real phone'}
 // phone shape: a 375-wide device in a browser with a large toolbar, or any 16:9 Android at 375dp.
 short375:{w:375,h:568,safe:'',label:'375x568 = the wide-and-short corner nothing used to cover'}};
 
+// #480. WHAT THIS CONTAINER IS, PRINTED INTO EVERY LOG, BECAUSE THE PINS DEPEND ON IT AND NOTHING RECORDED IT.
+// gates/package.json pins esbuild, react and react-dom and NO BROWSER. pw() below resolves whatever playwright
+// the image happens to carry, so every absolute pixel assertion in this suite is a function of an unrecorded
+// variable. MEASURED 2026-10-06 on ONE bundle (origin/main's own app.js, md5 fb10dbef9591): gate 12-hint reads
+// the puzzle board 361 wide at 375x679 in this container and 375 in the logs committed for #475, #476 and #477,
+// and the full suite reddened ELEVEN sections, ten of them pins that moved. Two containers, one bundle, two
+// verdicts, and no artefact in the repository could tell the two apart - so a run could not know whether its
+// red was its own change or its machine, and two consecutive runs spent a build slot finding that out.
+//
+// THE CAUSE, measured rather than hypothesised: the app asks for `system-ui, -apple-system, Segoe UI, Roboto,
+// sans-serif` (index.html:59) and `'Segoe UI',system-ui,sans-serif` (chess.jsx, many sites). In THIS container
+// fc-list carries 103 fonts and NONE matches "segoe", and fc-match resolves BOTH `Segoe UI` and `system-ui` to
+// Inter. Inter is about 7.2% wider than Chromium's own sans-serif default here: the reference string below
+// measures 373.42px under the app's stack against 348.28px under bare sans-serif, a 25.14px spread on one line.
+// Gate 48's failure is a two-track min-content row short by 23.82px, which is the same quantity and order.
+//
+// AND IT REFINES THE HYPOTHESIS IT CAME FROM, which blamed `Segoe UI` alone. index.html asks for `system-ui`
+// FIRST, and `system-ui` resolves to Inter here too - identical to three decimals - so the variable is BOTH
+// families collapsing onto one substituted font, not one missing name. Naming only Segoe UI would send the next
+// reader looking for a font the app does not even ask for first on its primary surface.
+//
+// NOTE THE METHOD, because the obvious one is wrong: document.fonts.check('16px "Segoe UI"') returns TRUE in
+// this container for every family tried, including families fc-list does not have at all, so it CANNOT answer
+// "is this font present". Width of a fixed string is the measurement that can; two families that resolve to one
+// font return the same number to three decimals. That is why this prints NUMBERS and not a boolean.
+//
+// THIS DOES NOT MAKE THE PINS RIGHT and it is deliberately not a fix for them. Re-pinning 375 to 361 is
+// forbidden for the reason gate 40's job already gives: it destroys the evidence that the quantity is
+// container-dependent, and afterwards a genuine board regression passes. Making the assertions RELATIVE is
+// test-authoring's, and must not be done by a run holding the pen to unblock itself. This makes the variable
+// VISIBLE IN THE ARTEFACT so the next run knows in one line whether its red is its own.
+const FP_REF='It’s mate in 2 — start with the most forcing check.';  // fixed forever; the number is only comparable against itself
+let _tcSaid=false,_fpSaid=false;
+function pwVersion(){
+  for(const m of ['/opt/node22/lib/node_modules/playwright','playwright','playwright-core']){
+    try{return require(m+'/package.json').version+' ('+m+')';}catch(e){}
+  }
+  return 'UNRESOLVED';
+}
+async function sayToolchain(browser){
+  if(_tcSaid)return;_tcSaid=true;
+  let cv='?';try{cv=browser.version();}catch(e){cv='unavailable: '+e.message;}
+  console.log('     toolchain: playwright '+pwVersion()+'  chromium '+cv+'  [no browser is pinned in gates/package.json]');
+}
+// The one number that explains a moved pixel pin. Printed once per process, so every gate section carries it.
+async function sayTextMetrics(page){
+  if(_fpSaid)return;_fpSaid=true;
+  try{
+    const r=await page.evaluate((ref)=>{
+      const cv=document.createElement('canvas').getContext('2d');
+      const w=(spec)=>{cv.font=spec;return +cv.measureText(ref).width.toFixed(2);};
+      return {app:w('16px system-ui'),segoe:w('16px "Segoe UI"'),sans:w('16px sans-serif'),
+              bogus:w('16px "CTNoSuchFamily-ZZ9"')};
+    },FP_REF);
+    // READ THE SENTINEL NARROWLY. An unknown family falls through to Chromium's DEFAULT (here 322.15, which is
+    // Times); so app===bogus means the app's first choice fell ALL THE WAY THROUGH. It does NOT detect absence,
+    // and this container is exactly why: "Segoe UI" is absent from all 103 installed fonts, yet it measures
+    // 373.42 rather than 322.15, because FONTCONFIG SUBSTITUTES Inter instead of letting it fall through. So a
+    // font can be missing and still produce a confident, stable, wrong-against-the-pins number. The comparable
+    // artefact is the NUMBER, across containers; the sentinel only catches the fall-through case.
+    const fellThrough=Math.abs(r.app-r.bogus)<0.01;
+    console.log('     text metrics @16px over the reference string: system-ui '+r.app+'  "Segoe UI" '+r.segoe+
+                '  sans-serif '+r.sans+'  (fall-through sentinel '+r.bogus+')'+
+                (fellThrough?'  -- the app\'s first-choice family fell ALL THE WAY THROUGH to the default':''));
+    if(Math.abs(r.app-r.sans)>0.5)
+      console.log('     NOTE: the app\'s stack and bare sans-serif differ by '+(r.app-r.sans).toFixed(2)+
+                  'px on one line here, so every absolute text-derived pin in this suite is container-dependent [#480].');
+  }catch(e){console.log('     text metrics: unavailable ('+e.message+')');}
+}
 function pw(){
   try{return require('/opt/node22/lib/node_modules/playwright');}catch(e){}
   try{return require('playwright');}catch(e){}
@@ -79,7 +148,11 @@ async function serve(opts={}){
     const head=fs.readFileSync(app,'utf8');
     const m=head.match(/#\d{3,4} - 20\d\d-\d\d-\d\d \d\d:\d\d ET/);
     const how=opts.app?'opts.app':(process.env.CT_APP?'CT_APP':(usePin?'CT_PIN=1 -> .pin-app.js':'default app.js'));
-    console.log('     bundle: '+path.relative(ROOT,app)+'  stamp '+(m?m[0]:'NONE')+'  ('+how+')');
+    // md5 BESIDE the stamp, because a stamp is not a bundle id: build.sh embeds the minute in the stamp via
+    // --define:__BUILD__, so one build number can name several bundles (#439 has three) and four of eight
+    // numbers on main name more than one. CLAUDE.md's rule is "cite the bundle md5"; this is where a log gets it.
+    let _md5='?';try{_md5=crypto.createHash('md5').update(fs.readFileSync(app)).digest('hex').slice(0,12);}catch(e){}
+    console.log('     bundle: '+path.relative(ROOT,app)+'  md5 '+_md5+'  stamp '+(m?m[0]:'NONE')+'  ('+how+')');
     if(!m)console.log('     WARNING: that bundle carries no build stamp at all.');
   }catch(e){console.log('     bundle: '+app+'  (could not be read: '+e.message+')');}
   const dir=siteDir(app);const port=await freePort();
@@ -97,6 +170,7 @@ async function launch(opts={}){
   const srv=await serve(opts);
   const P=pw();const launchOpts={headless:true};if(P._ctExec)launchOpts.executablePath=P._ctExec;
   const browser=await P.chromium.launch(launchOpts);
+  await sayToolchain(browser);
   const ctx=await browser.newContext({viewport:{width:geo.w,height:geo.h},deviceScaleFactor:opts.dpr||1,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1 CTGATE'});
   if(!opts.network)await ctx.route(u=>BLOCK.test(u.href),r=>r.abort());
   const store=Object.assign({},geo.safe?{ct_safe:geo.safe}:{},opts.store||{});
@@ -109,7 +183,7 @@ async function launch(opts={}){
   const b={browser,ctx,page,geo,errs,noise,url:srv.url,name:opts.name||'run',
     async open(p){await page.goto(srv.url+(p||'index.html'),{waitUntil:'domcontentloaded'});
       await page.waitForFunction(()=>{const r=document.getElementById('root');return r&&r.children.length&&!document.getElementById('boot');},null,{timeout:30000});
-      await page.waitForTimeout(opts.settle||900);return b;},
+      await page.waitForTimeout(opts.settle||900);await sayTextMetrics(page);return b;},
     async stamp(){return page.evaluate(()=>{const m=document.documentElement.innerHTML.match(/#\d{3,4} - 20\d\d-\d\d-\d\d \d\d:\d\d ET/);return m?m[0]:null;});},
     async settle(ms){await page.waitForTimeout(ms==null?600:ms);},
     // visible element whose own trimmed text matches; buttons first
