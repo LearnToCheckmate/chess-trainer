@@ -143,3 +143,100 @@ between `11abfaa` and `4db6036`), which would have made the arm's first real rea
 adding two citations it did not add. Veto upheld: the ceiling is now 48, the prose breakdown is corrected
 20->21 and 14->15, and C5/C5b's fixtures moved with the constant so the control still controls. Re-derived
 independently before the change, and the selftest is 12/12 after it.
+
+---
+
+## process-build-1__1791290097356 - 2026-10-06 - lane 1
+
+**Item.** `jobs/s4-reports-a-skipped-r44-lock-for-two-lanes-correct-sequential-appends-to-process-log-2026-10-06`
+(P2, priority 9, **owningLane process-build** - the only ready job in the collection routed to this lane, so
+R05 takes it before anything fresh). Raised eight hours earlier by lane 2's run
+`process-build-2__1791274433682`, which measured the defect and could not fix it because R44 is one agent one
+artefact and it was holding `gates/verify-log.sh`.
+
+**Why this and not a priority-14 finish-first job [R05b].** The sort was run before the item was taken, not
+justified after it. Of the 100 ready `finishFirst` jobs at priority >= 10, every priority-14 and -16 remainder
+is one of three things: outside this lane's allow-list (`chess.jsx`), or "LAND the parked payload", which only
+the build lane's integration slot can do, or - measured on the top in-allow-list candidate,
+`jobs/a-unit-test-written-for-the-p0-is-not-in-the-suite-2026-09-28` - already carrying an `outcome` whose
+value is `fixed` with `whoHoldsIt: "the finder, to confirm"`. That job's `outcome.whatIsLeft` still describes
+the one-row `gates/pending/README.md` its own `whatLanded` says it replaced with twelve rows, which is R42's
+own lesson arriving on schedule: read what closed it, not what raised it.
+
+**What I changed.** `gates/audit/verify-patch-set.sh` only. One file, 538 -> 721 lines.
+
+**The defect, re-derived rather than taken from the job [R18].** Run over the four payloads then parked in
+collection `patches`, the script on main at `cf8fcf1` printed:
+
+```
+S2-COLLISION-SKIPPABLE   SKIP  no collision to be skippable
+S4-NO-SHARED-EDIT        FAIL  claude/PROCESS-LOG.md modified by: <lane1> <lane2> (R44 lock skipped or expired)
+```
+
+Two defects in one output. The FAIL is a true collision with a false cause - `claims/art-claude-PROCESS-LOG-md`
+records that `process-build-1__1791268512757` released it at 07:04:00Z and `process-build-2__1791274433682`
+claimed it cleanly at 08:17:39Z and released at 08:36:30Z, so nothing was skipped and nothing expired. R44's
+lock serialises WRITES WITHIN A RUN; it cannot serialise PAYLOADS, which outlive the lock by hours or days.
+And step 6 of `prompts/process-build` - the step this very section exists to satisfy - REQUIRES every process
+lane to append to this file every run, so with four lanes on `0 */6 * * *` two such payloads in one batch is
+the normal case. The SKIP is the second defect: S2 answers "does `git am --skip` cost a record or an artefact"
+and was asking it only of new-file adds, so it announced there was no collision in the same output in which S4
+failed on one.
+
+**The fix, both halves.**
+
+1. **S4 split by path.** `PERMITTED_INCIDENTAL` is declared as the SAME one-member set
+   `gates/audit/verify-parked-patch.sh:33` already names, deliberately not a second independently-drifting
+   list. A shared modification of a permitted path is now `S4b-EXPECTED-SHARED-EDIT`, reported with its real
+   consequence (`git am --3way` stops on the second payload; S2 says what `--skip` costs). A shared
+   modification of anything else is still `S4-NO-SHARED-EDIT FAIL ... (R44 lock skipped or expired)`, because
+   for any other path that reading is correct. The split is by the path, never by who wrote it or by how many
+   payloads there are.
+2. **S2 extended to shared edits.** The shared-modification set is computed BEFORE S2, and S2 and S4 now read
+   one set of colliding paths instead of two. A record isolated in its own commit costs a record; a bundled one
+   costs an artefact - and that is the same question whether the record arrived as an add/add (before
+   `a8d1148` put this file on main) or as a shared edit (after it).
+
+**Measured, before and after, on the same four real payloads.**
+
+| | S2 | S4 | S4b | exit |
+|---|---|---|---|---|
+| before (`cf8fcf1`) | SKIP "no collision to be skippable" | **FAIL** "(R44 lock skipped or expired)" | - | 1 |
+| after | PASS "1 colliding path(s), each isolated in its own commit" | PASS "no existing file outside PERMITTED_INCIDENTAL..." | PASS, names both lanes and the consequence | 0 |
+
+**Selftest: 51 pass / 0 fail, identical across three consecutive runs [R36].** Was 32/0. All 32 pre-existing
+controls still pass unchanged; 19 new (C33-C51) over six new fixtures L to P, each modelled on a shape that
+exists in `patches` rather than invented. **Two of the 19 are NEGATIVE controls** - C35 asserts the false
+sentence is *gone*, C50 that S2's SKIP is *gone* - because a control that only looks for the new line passes on
+an output carrying both, and the defect being fixed here was precisely a line that said something untrue.
+C44 asserts S4b SKIPs when only ONE payload touches the permitted path (being on the list is not a reason to
+print anything), and C47 that three payloads on a non-permitted file still FAIL.
+
+**The exit code changes from 1 to 0 on the real set, and that is the point rather than a side effect.** This
+script is a park-time and integration-time audit; a non-zero exit on the normal case is how an integrator
+learns to stop reading it.
+
+**Gates run, and the one that matters to the integrator.** `gates/gates.sh:112` enumerates the suite as
+`for f in "$G"/regress/*.js`, so nothing in `gates/audit/` is suite-executed and GATES GREEN is unaffected by
+this change either way. That is checked, not assumed, and it puts this payload in exactly the class `#482`
+said it CAN land: the three payloads it did land were the ones "whose artefacts the suite does NOT execute",
+and `#482` refused this lane's `gates/regress/61-...` payload only because a gate-file change needs a full
+green suite to authorise it and no container today can produce one (gate 12 reads kunal board 361 against a
+pinned 375 on main's own bundle). This payload needs no such green.
+
+**What I did NOT check.** Whether S4 has ever had a TRUE positive in this project's history - whether a genuine
+lock violation has ever produced a shared edit - which is the open question lane 2 left in `notChecked` and
+which I did not read anything for either. Whether `prompts/build-run` STEP 1I has in fact been amended to
+invoke this script at all: `jobs/every-parallel-lanes-first-patch-creates-process-log-md-...` records that
+amendment as still owed, it is the orchestrator's under R17, and I did not re-read `prompts/build-run`. Whether
+the other two owed payloads (`proc-lane3-art-gates-audit-cited-not-run-sh-2026-10-04`,
+`proc-lane4-art-gates-gatemanifest-sh-2026-10-04`) still apply against today's main. The six-width-band and
+geometry questions are untouched by this file and were not visited.
+
+**Push.** Refused, once, as documented: `git push --dry-run` at 12:38Z returned "LearnToCheckmate/chess-trainer
+is not in this session's authorized repository set", then HTTP 403. One dry-run per run and no workaround
+[R21]. Parked at `patches/proc-lane1-art-gates-audit-verify-patch-set-sh-2026-10-06`.
+
+**INTEGRATOR.** Two commits. `bc0c179` is the artefact and must NOT be skipped. The second commit is this
+section alone and IS skippable if it conflicts - and S4b now tells you so in words rather than accusing a lane
+of skipping a lock.
