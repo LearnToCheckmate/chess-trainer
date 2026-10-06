@@ -56,6 +56,47 @@
 # modify one existing file, either a lock was skipped or one expired mid-run. That is
 # worth knowing BEFORE `git am` discovers it as a textual conflict.
 #
+# EXCEPT FOR THE ONE FILE THE CHARTER ORDERS EVERY LANE TO WRITE, AND THAT EXCEPTION
+# IS WHY S4 WAS SPLIT ON 2026-10-06 (process-build lane 1, run
+# process-build-1__1791290097356, closing jobs/s4-reports-a-skipped-r44-lock-for-two-
+# lanes-correct-sequential-appends-to-process-log-2026-10-06).
+#
+# THE LOCK SERIALISES WRITES WITHIN A RUN. IT CANNOT SERIALISE PAYLOADS. A payload
+# lives from the moment it is parked until the integration slot takes it, which is
+# hours or days after the lock is released, so two PERFECTLY serialised runs leave two
+# payloads that both modify one file. MEASURED, with the claims collection read rather
+# than inferred: claims/art-claude-PROCESS-LOG-md was held by run
+# process-build-1__1791268512757 and RELEASED at 2026-10-06T07:04:00Z; run
+# process-build-2__1791274433682 claimed it cleanly at 08:17:39Z with an expiresAt of
+# 10:37:39Z and released it at 08:36:30Z. Neither lane skipped a lock and neither lock
+# expired - and this script, over the four payloads then parked, printed
+#   S4-NO-SHARED-EDIT FAIL claude/PROCESS-LOG.md modified by: <lane1> <lane2>
+#                          (R44 lock skipped or expired)
+# which is a true collision reported with a FALSE CAUSE. prompts/process-build step 6
+# REQUIRES every process lane to append to claude/PROCESS-LOG.md on every run, so with
+# four lanes on 0 */6 * * * two such payloads in one batch is the NORMAL case, not the
+# exception. A detector that fires on the normal case with a cause the reader cannot
+# find is one the integrator learns to ignore, and S1 through S6 then lose the
+# credibility they were built for.
+#
+# SO THE SHARED EDIT IS SPLIT BY PATH, NOT SOFTENED:
+#   S4   a shared modification of any OTHER existing file. Unchanged, still a FAIL,
+#        still "(R44 lock skipped or expired)", because for any other path that
+#        reading is correct.
+#   S4b  a shared modification of a PERMITTED_INCIDENTAL path - today exactly
+#        claude/PROCESS-LOG.md, the same one-member set gates/audit/
+#        verify-parked-patch.sh:33 already names. Reported as EXPECTED with its real
+#        consequence (git am --3way stops on the second payload; see S2 for what
+#        --skip costs), not as a lock violation.
+#
+# AND S2 NOW COVERS SHARED EDITS, WHICH IS THE SECOND HALF OF THE SAME DEFECT. S2
+# answers "if this collides, does --skip cost a record or an artefact", and that
+# question is identical for a shared edit and for an add/add. It used to be asked only
+# of new-file adds, so on the four real payloads above it printed
+#   S2-COLLISION-SKIPPABLE SKIP no collision to be skippable
+# while S4 was failing on a collision in the same output. The shared-modification set
+# is therefore computed BEFORE S2 and both checks read one set of colliding paths.
+#
 # WHAT THIS SCRIPT IS NOT. It does not apply anything, does not need the network, does
 # not open a browser, and does not touch the real repository: with no [repo-dir] it reads
 # only the payload files handed to it. It is a park-time and integration-time audit, not
@@ -98,6 +139,18 @@ set -u
 FAILED=0
 say()  { printf '%-30s %-4s %s\n' "$1" "$2" "$3"; }
 fail() { say "$1" FAIL "$2"; FAILED=1; }
+
+# Paths the charter ORDERS every parallel lane to write, so a shared edit of one is
+# expected rather than a lock violation (S4b). Space-separated. This is deliberately
+# the SAME one-member set as gates/audit/verify-parked-patch.sh:33 rather than a
+# second, independently-drifting list: if the two ever disagree about what is
+# incidental, one of the two audits is wrong about every payload it reads.
+PERMITTED_INCIDENTAL='claude/PROCESS-LOG.md'
+is_permitted_incidental() {
+  local q
+  for q in $PERMITTED_INCIDENTAL; do [ "$1" = "$q" ] && return 0; done
+  return 1
+}
 
 # ---------------------------------------------------------------------------
 # Payload readers. Each answers one question about one payload file.
@@ -198,6 +251,7 @@ verify_set() {
     say S2-COLLISION-SKIPPABLE  SKIP "no collision to be skippable"
     say S3-GATE-NUMBER-UNIQUE   SKIP "one payload in the set; no pair to compare"
     say S4-NO-SHARED-EDIT       SKIP "one payload in the set; no pair to compare"
+    say S4b-EXPECTED-SHARED-EDIT SKIP "one payload in the set; no pair to compare"
     say S5-NO-DUPLICATE-COMMIT  SKIP "one payload in the set; no pair to compare"
   else
 
@@ -226,19 +280,52 @@ verify_set() {
     done
   fi
 
+  # ---- THE SHARED-MODIFICATION SET, COMPUTED BEFORE S2 -------------------
+  # Modifications, not additions: additions are S1. This used to live inside S4,
+  # AFTER S2 had already announced "no collision to be skippable", which is why S2
+  # printed a SKIP in the same output in which S4 printed a FAIL on a collision.
+  # Computed here so S2 and S4 read ONE set of colliding paths [R06: the same
+  # decision is made in two places, so it is fixed in both].
+  local mtmp; mtmp=$(mktemp)
+  for f in "${payloads[@]}"; do
+    local newp; newp=$(ps_new_paths "$f" | sort -u)
+    ps_paths "$f" | sort -u | while read -r p; do
+      [ -n "$p" ] || continue
+      printf '%s\n' "$newp" | grep -qxF "$p" && continue
+      printf '%s\t%s\n' "$p" "$(basename "$f")"
+    done
+  done > "$mtmp"
+  local -a sharedmod=()
+  while read -r cnt p; do
+    [ -n "$p" ] || continue
+    [ "$cnt" -gt 1 ] && sharedmod+=("$p")
+  done < <(cut -f1 "$mtmp" | sort | uniq -c | awk '{print $1, $2}')
+
   # ---- S2 IS THE COLLISION SKIPPABLE ------------------------------------
-  # For every colliding path, every payload that adds it must isolate it in a
-  # commit that touches NOTHING ELSE. Then `git am --skip` costs that payload its
-  # record and keeps its artefact. If any payload bundles the shared path with
-  # other work, skipping discards that work too: that is artefact loss, and it is
-  # the state the integrator must stop on rather than skip through.
-  if [ "${#collided[@]}" -eq 0 ]; then
-    say S2-COLLISION-SKIPPABLE SKIP "no collision to be skippable"
+  # For every colliding path - added as a new file by two payloads (S1) OR
+  # modified by two payloads (S4/S4b) - every payload that touches it must isolate
+  # it in a commit that touches NOTHING ELSE. Then `git am --skip` costs that
+  # payload its record and keeps its artefact. If any payload bundles the shared
+  # path with other work, skipping discards that work too: that is artefact loss,
+  # and it is the state the integrator must stop on rather than skip through.
+  #
+  # THE QUESTION IS THE SAME FOR BOTH CLASSES AND THAT IS THE POINT. A record
+  # isolated in its own commit costs a record; a bundled one costs an artefact.
+  # Whether the record arrived as an add/add (before claude/PROCESS-LOG.md existed
+  # on main) or as a shared edit (after a8d1148 put it there) changes nothing about
+  # what --skip discards.
+  local -a colliding_all=()
+  while read -r p; do
+    [ -n "$p" ] && colliding_all+=("$p")
+  done < <(printf '%s\n' ${collided[@]+"${collided[@]}"} ${sharedmod[@]+"${sharedmod[@]}"} | sed '/^$/d' | sort -u)
+
+  if [ "${#colliding_all[@]}" -eq 0 ]; then
+    say S2-COLLISION-SKIPPABLE SKIP "no path is touched by two payloads, by addition or by modification"
   else
     local unskippable=0
-    for p in "${collided[@]}"; do
+    for p in "${colliding_all[@]}"; do
       for f in "${payloads[@]}"; do
-        ps_new_paths "$f" | grep -qxF "$p" || continue
+        ps_paths "$f" | sort -u | grep -qxF "$p" || continue
         local iso extra
         read -r iso extra < <(ps_isolation "$f" "$p")
         if [ "${extra:-0}" -gt 0 ]; then
@@ -248,7 +335,7 @@ verify_set() {
       done
     done
     if [ "$unskippable" -eq 0 ]; then
-      say S2-COLLISION-SKIPPABLE PASS "every colliding path is isolated in its own commit; --skip costs only the record"
+      say S2-COLLISION-SKIPPABLE PASS "${#colliding_all[@]} colliding path(s), each isolated in its own commit; --skip costs only the record"
     fi
   fi
   rm -f "$tmp"
@@ -284,32 +371,35 @@ verify_set() {
     fi
   fi
 
-  # ---- S4 NO TWO PAYLOADS EDIT ONE EXISTING FILE -------------------------
-  # Modifications, not additions: additions are S1. A shared modification means an
-  # R44 artefact lock was skipped or expired.
-  local mtmp; mtmp=$(mktemp)
-  for f in "${payloads[@]}"; do
-    local newp; newp=$(ps_new_paths "$f" | sort -u)
-    ps_paths "$f" | sort -u | while read -r p; do
-      [ -n "$p" ] || continue
-      printf '%s\n' "$newp" | grep -qxF "$p" && continue
-      printf '%s\t%s\n' "$p" "$(basename "$f")"
-    done
-  done > "$mtmp"
-  local shared=0
-  while read -r cnt p; do
-    [ -n "$p" ] || continue
-    if [ "$cnt" -gt 1 ]; then
-      fail S4-NO-SHARED-EDIT "$p modified by: $(awk -F'\t' -v w="$p" '$1==w{printf "%s ", $2}' "$mtmp")(R44 lock skipped or expired)"
-      shared=1
-    fi
-  done < <(cut -f1 "$mtmp" | sort | uniq -c | awk '{print $1, $2}')
-  if [ "$shared" -eq 0 ]; then
+  # ---- S4 / S4b A SHARED EDIT OF AN EXISTING FILE ------------------------
+  # The set itself was computed above, before S2. Here it is SPLIT BY PATH:
+  #   S4b  a PERMITTED_INCIDENTAL path. EXPECTED, with its real consequence named.
+  #   S4   anything else. Still a FAIL and still "(R44 lock skipped or expired)".
+  # The split is by the path, never by who wrote it or by how many payloads there
+  # are, so no lane can turn a lock violation into an expected edit by filing more
+  # payloads.
+  local shared=0 expected=0
+  if [ "${#sharedmod[@]}" -eq 0 ]; then
     if [ ! -s "$mtmp" ]; then
       say S4-NO-SHARED-EDIT SKIP "every change in the set is a new file; no existing file is modified"
     else
       say S4-NO-SHARED-EDIT PASS "no existing file is modified by two payloads"
     fi
+    say S4b-EXPECTED-SHARED-EDIT SKIP "no existing file is modified by two payloads"
+  else
+    local who
+    for p in "${sharedmod[@]}"; do
+      who=$(awk -F'\t' -v w="$p" '$1==w{printf "%s ", $2}' "$mtmp")
+      if is_permitted_incidental "$p"; then
+        say S4b-EXPECTED-SHARED-EDIT PASS "$p modified by: ${who}- EXPECTED, not a lock violation: prompts/process-build step 6 requires every process lane to append to it, and R44's lock serialises writes within a run, not payloads across runs. CONSEQUENCE: git am --3way stops on the second payload with this the only unmerged path; S2 says whether --skip costs only the record."
+        expected=1
+      else
+        fail S4-NO-SHARED-EDIT "$p modified by: ${who}(R44 lock skipped or expired)"
+        shared=1
+      fi
+    done
+    [ "$shared" -eq 0 ] && say S4-NO-SHARED-EDIT PASS "no existing file outside PERMITTED_INCIDENTAL is modified by two payloads"
+    [ "$expected" -eq 0 ] && say S4b-EXPECTED-SHARED-EDIT SKIP "no PERMITTED_INCIDENTAL path is modified by two payloads"
   fi
   rm -f "$mtmp"
 
@@ -396,6 +486,15 @@ expect_line() { # <name> <output> <regex>
 }
 expect_rc() { # <name> <actual> <wanted>
   if [ "$2" = "$3" ]; then t_pass "$1 (exit $2)"; else t_fail "$1 (exit $2, wanted $3)"; fi
+}
+# A NEGATIVE CONTROL IS NOT A LUXURY HERE. The defect this file was amended for was a
+# line that printed a TRUE collision with a FALSE cause, so "S4b now says EXPECTED" is
+# only half the assertion: the other half is that the old sentence is GONE. A control
+# that only looks for the new line would pass on an output carrying both.
+expect_no_line() { # <name> <output> <regex>
+  if printf '%s\n' "$2" | grep -Eq "$3"; then
+    t_fail "$1 (unwanted line matching: $3)"; printf '%s\n' "$2" | sed 's/^/        /'
+  else t_pass "$1"; fi
 }
 
 # mkpayload <file> <sha> <subject> then path-spec args:
@@ -524,6 +623,86 @@ selftest() {
   { mk_commit_header 0aaaaae "lane2"; mk_new gates/regress/47-bar.js; } > "$T/K/lane2"
   out=$(verify_set "$T/K")
   expect_line  C32-S3-sees-a-bare-number "$out" '^S3-GATE-NUMBER-UNIQUE +FAIL .*47'
+
+  # =========================================================================
+  # SETS L TO P: THE SHARED-EDIT SPLIT. Added 2026-10-06 with the S4/S4b split,
+  # closing jobs/s4-reports-a-skipped-r44-lock-for-two-lanes-correct-sequential-
+  # appends-to-process-log-2026-10-06. Every one of these is modelled on a shape
+  # that EXISTS in collection `patches`, not on an invented one.
+  # =========================================================================
+
+  # ---- fixture set L: TODAY'S REAL SHAPE, and the input that produced the false
+  # diagnosis. Two lanes, each modifying its own artefact in commit 1 and
+  # claude/PROCESS-LOG.md in a SEPARATE commit 2, both having held and released
+  # claims/art-claude-PROCESS-LOG-md cleanly, hours apart.
+  mkdir -p "$T/L"
+  { mk_commit_header 1aaaaaa "lane1 artefact"; mk_mod gates/regress/61-review-list-month-independence.js
+    mk_commit_header 1aaaaab "lane1 record";   mk_mod claude/PROCESS-LOG.md; } > "$T/L/lane1"
+  { mk_commit_header 1bbbbbb "lane2 artefact"; mk_mod gates/verify-log.sh
+    mk_commit_header 1bbbbbc "lane2 record";   mk_mod claude/PROCESS-LOG.md; } > "$T/L/lane2"
+  out=$(verify_set "$T/L"); rc=$?
+  expect_line     C33-S4b-reports-the-expected-shared-edit "$out" '^S4b-EXPECTED-SHARED-EDIT +PASS .*claude/PROCESS-LOG\.md.*EXPECTED'
+  expect_line     C34-S4-passes-on-the-permitted-path      "$out" '^S4-NO-SHARED-EDIT +PASS'
+  expect_no_line  C35-the-false-cause-is-gone              "$out" 'lock skipped or expired'
+  expect_line     C36-S2-now-sees-the-shared-edit          "$out" '^S2-COLLISION-SKIPPABLE +PASS 1 colliding path'
+  expect_rc       C37-set-L-exit-0 "$rc" 0
+
+  # ---- fixture set M: the SAME expected shared edit, but lane1 bundled its record
+  # with its artefact. The collision is still expected; what --skip costs is not.
+  # This is the state the integrator must stop on, and before this amendment S2 did
+  # not look at it at all.
+  mkdir -p "$T/M"
+  { mk_commit_header 1ccccccc "lane1 bundled"; mk_mod gates/regress/61-review-list-month-independence.js; mk_mod claude/PROCESS-LOG.md; } > "$T/M/lane1"
+  cp "$T/L/lane2" "$T/M/lane2"
+  out=$(verify_set "$T/M"); rc=$?
+  expect_line  C38-S2-fires-on-a-bundled-record     "$out" '^S2-COLLISION-SKIPPABLE +FAIL .*lane1.*claude/PROCESS-LOG\.md is bundled'
+  expect_line  C39-S4b-still-calls-it-expected      "$out" '^S4b-EXPECTED-SHARED-EDIT +PASS'
+  expect_rc    C40-set-M-exit-1 "$rc" 1
+
+  # ---- fixture set N: a permitted shared edit AND a real one in the same set. The
+  # split must not let the permitted path excuse the other.
+  mkdir -p "$T/N"
+  { mk_commit_header 1ddddddd "lane1 artefact"; mk_mod gates/verify-log.sh
+    mk_commit_header 1dddddde "lane1 record";   mk_mod claude/PROCESS-LOG.md; } > "$T/N/lane1"
+  { mk_commit_header 1eeeeeee "lane2 artefact"; mk_mod gates/verify-log.sh
+    mk_commit_header 1eeeeeef "lane2 record";   mk_mod claude/PROCESS-LOG.md; } > "$T/N/lane2"
+  out=$(verify_set "$T/N"); rc=$?
+  expect_line  C41-S4-still-fires-on-the-real-one   "$out" '^S4-NO-SHARED-EDIT +FAIL .*gates/verify-log\.sh.*lock skipped or expired'
+  expect_line  C42-S4b-fires-on-the-permitted-one   "$out" '^S4b-EXPECTED-SHARED-EDIT +PASS .*claude/PROCESS-LOG\.md'
+  expect_rc    C43-set-N-exit-1 "$rc" 1
+
+  # ---- fixture set O: only ONE payload touches the permitted path. Being on the
+  # permitted list is not a reason to print anything: S4b must SKIP, not PASS. A
+  # check that cannot fail on this input is a SKIP [R18].
+  mkdir -p "$T/O"
+  { mk_commit_header 1fffffff "lane1"; mk_mod claude/PROCESS-LOG.md; } > "$T/O/lane1"
+  { mk_commit_header 10000001 "lane2"; mk_mod gates/gatemanifest.sh;  } > "$T/O/lane2"
+  out=$(verify_set "$T/O"); rc=$?
+  expect_line  C44-S4b-skips-on-a-single-toucher "$out" '^S4b-EXPECTED-SHARED-EDIT +SKIP'
+  expect_line  C45-S4-passes-on-set-O            "$out" '^S4-NO-SHARED-EDIT +PASS'
+  expect_rc    C46-set-O-exit-0 "$rc" 0
+
+  # ---- fixture set P: THREE payloads on one non-permitted file. The split is by
+  # path, never by how many payloads there are, so filing a third must not dilute
+  # the FAIL into an expectation.
+  mkdir -p "$T/P"
+  { mk_commit_header 10000002 "lane1"; mk_mod gates/verify-log.sh; } > "$T/P/lane1"
+  { mk_commit_header 10000003 "lane2"; mk_mod gates/verify-log.sh; } > "$T/P/lane2"
+  { mk_commit_header 10000004 "lane3"; mk_mod gates/verify-log.sh; } > "$T/P/lane3"
+  out=$(verify_set "$T/P"); rc=$?
+  expect_line  C47-three-payloads-still-fail-S4 "$out" '^S4-NO-SHARED-EDIT +FAIL .*lane1.*lane2.*lane3.*lock skipped or expired'
+  expect_rc    C48-set-P-exit-1 "$rc" 1
+
+  # ---- set E again: the second half of theFIX. S2 used to SKIP on a set whose only
+  # collision was a shared edit, in the same output in which S4 failed on it.
+  out=$(verify_set "$T/E")
+  expect_line     C49-S2-no-longer-skips-a-shared-edit "$out" '^S2-COLLISION-SKIPPABLE +PASS'
+  expect_no_line  C50-S2-skip-is-gone-on-set-E         "$out" '^S2-COLLISION-SKIPPABLE +SKIP'
+
+  # ---- set A again: the add/add path is untouched by the split. S4b must SKIP,
+  # because an ADDITION of the permitted path is S1's business and not S4b's.
+  out=$(verify_set "$T/A")
+  expect_line  C51-S4b-skips-on-an-add-add "$out" '^S4b-EXPECTED-SHARED-EDIT +SKIP'
 
   printf '\nSELFTEST %s pass / %s fail\n' "$PASS" "$FAILN"
   rm -rf "$T"
