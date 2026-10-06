@@ -473,3 +473,52 @@ artefacts survive in *both* orders — arm (5) is in `gates/verify-log.sh` and t
 `gates/regress/61-…`. That is the two-commit split working as specified, for the first time with two lanes'
 payloads in one batch rather than one lane reasoning about it. Nothing in the charter requires the split,
 which is why the class is still worth retiring rather than managing.
+
+## process-build lane 3, run process-build-3__1791304023193, 2026-10-06T16:27Z to 16:42Z
+
+ITEM: jobs/a-test-in-the-repo-that-no-suite-runs-2026-09-28 (priority 14, band 14, finishFirst,
+owningLane build), step (2) of its own outcome.whatIsLeft: "ADMIT the fifteen, or record per file
+why not ... HELD BY: the build lane, or a process lane on a run where neither file is locked."
+I took the RECORD branch and said so on the job. The ADMIT branch is not taken and not claimed.
+
+CHANGED: gates/audit/cited-not-run.sh only, at commit 6c2e693 over base 8067e377475ab0daad3c4d70b1d7c7c23b25470e.
+New section 2b, a roster of 23 rows, each a path / class / strength / reason, plus the verdict
+rewrite that keys the exit code on accounting instead of on set size, plus 18 new controls.
+
+MEASURED, in this order, before anything was written:
+  - the set is 23 at origin/main 8067e37, not the 17 published on 2026-10-04 at 842df1b. 23 leaks,
+    21 orphans (reachable from no entry point at all); the two leak-but-not-orphan files are
+    gates/build.sh and gates/buildnum.sh, both reached from the deploy path.
+  - after the roster: ACCOUNTED 23 of 23 - OPERATOR 14, SELFTEST 2, ONEOFF 7, ADMIT 0 -
+    UNACCOUNTED 0 of ceiling 0, WEAK 2 of ceiling 2, STALE-ROSTER 0, exit 0.
+  - the two WEAK rows are gates/verify-log-selftest.sh and gates/buildnum-selftest.sh. Both are
+    the companion selftest of a script that decides what ships, and "run by whoever edits it" is
+    the shape that already let verify-log.sh's A4CEIL go stale and get breached by 2 on the commit
+    it landed on. They are named weak because I do not believe my own exemption for them.
+
+GATES RUN, and the figures: gates/audit/cited-not-run.sh --selftest 19 pass / 0 fail before,
+37 pass / 0 fail after, byte-identical over three consecutive runs (md5 2b5b0e7c10f309901665d2e65ac56f38);
+the real run byte-identical over three consecutive runs (md5 b2b201a3b970657177a6a6d9ee53de0f);
+bash -n clean. FOUR MUTATION CONTROLS on copies, each killing only its own arm: a vacuously
+matching roster lookup kills 8 of the 18 new controls, disabling the stale-roster check kills
+C25 and C26, disabling the weak ceiling kills C28, silently accepting an unknown class kills C29
+and C29b.
+
+A MISTAKE OF MY OWN, KEPT RATHER THAN QUIETLY FIXED: the first mutation pass copied the four
+mutants to flat filenames in one directory, so the selftest's own re-invocation of
+"$SELF/cited-not-run.sh" resolved to nothing and all four mutants returned exit 127 with 30
+failures each. That reads as a strong mutation result and is worthless - the four runs had not
+executed a single mutated line. Re-run with each mutant in its own directory under its real
+basename, the numbers above are the real ones.
+
+NOT CHECKED: whether the suite is green on this tree (I ran no gate suite - this script is
+reachable from no entry point, so the suite cannot execute it and a suite run would prove nothing
+about this change); whether any of the 23 files still produces the number it is cited for;
+whether the ADMIT branch would redden gates/gates.sh, which is the question the branch I did not
+take exists to answer. The roster's reasons are MY judgement on each file read this run, not a
+measurement - the mechanism is tested, the 23 reasons are arguable and are written to be argued
+with.
+
+NOT PUSHED. The git proxy refuses write to LearnToCheckmate/chess-trainer for every session but
+the build routine; one --dry-run at the start of this run, no retry, no workaround [R21].
+Parked at patches/proc-lane3-art-gates-audit-cited-not-run-sh-roster-2026-10-06.
