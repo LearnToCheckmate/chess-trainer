@@ -323,6 +323,48 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   st_ck "C16 the real register is read: case rows > 0" "yes" "$( [ "${A5RR:-0}" -gt 0 ] 2>/dev/null && echo yes || echo "no [$A5REAL]" )"
   st_ck "C16b the real register is read: story headings > 0" "yes" "$( [ "${A5RS:-0}" -gt 0 ] 2>/dev/null && echo yes || echo "no [$A5REAL]" )"
 
+  # C17 THE SIGPIPE MEMBERSHIP TEST [jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02].
+  # C17 and C17b are a BOUNDARY, not an assertion about the repaired text: C17 proves the banned pipe form
+  # really does invert its answer, and C17b proves the herestring form does not, on the SAME input. One
+  # without the other would be satisfiable by a detector that tests nothing.
+  #
+  # THE FIRST DRAFT OF C17 WAS NON-DETERMINISTIC AND IS RECORDED HERE RATHER THAN QUIETLY REPLACED, because
+  # it is the more useful half of what this run learned. It built a 3000-row allowlist and asserted rc 141,
+  # on the strength of a measurement over $ALLOW sizes: rc 0 at 1..1000 rows, 141 at 1500, 0 AGAIN at
+  # 1800/2000/2200, 141 at 2500/3000/6000. Those numbers are real and they say the thing plainly - THE
+  # DEFECT IS A RACE, NOT A THRESHOLD, intermittent from about 1500 rows and reliable from about 2500
+  # (~65KB, one pipe buffer). A race is exactly what must not be asserted in a suite: the 3000-row form
+  # passed six times and FAILED ONCE IN SIX in a second tree built from a byte-identical file, which under
+  # R36 is inadmissible however green it looks on the run that wrote it.
+  #
+  # SO C17 TAKES THE RACE OUT OF IT BY OVERWHELMING THE PIPE, not by timing. A producer of 20,000 rows is
+  # about 520KB, eight pipe buffers, so it MUST block on a write that grep -q is no longer reading - the
+  # EPIPE is forced by the arithmetic rather than raced for. MEASURED 20 of 20 runs at rc 141 at this size,
+  # against 6 of 7 at 3000. Two shapes were rejected before this one and both are worth knowing about: a
+  # three-row producer with a `sleep` between its writes read rc 0 on every run here (the ordering alone is
+  # not enough - a short stream is flushed inside one buffer and the write never blocks), and building the
+  # rows in a bash loop took over 30 seconds, which fails R36's second admission test however green it is.
+  # awk writes the same 20,000 rows in milliseconds.
+  SPP="claude/stories/sp-0.md"
+  SPSRC() { awk 'BEGIN{for(i=0;i<20000;i++) printf "claude/stories/sp-%d.md\treserved for this control\n", i}'; }
+  SPPIPE=0; SPSRC | cut -f1 | grep -qxF "$SPP" || SPPIPE=$?   # SP-BANNED-FORM-ON-PURPOSE
+  st_ck "C17 the BANNED pipe form inverts its answer at 20000 rows (rc 141, not 0)" "141" "$SPPIPE"
+  SPHERE=0; grep -qxF "$SPP" <<<"$(cut -f1 <<<"$(SPSRC)")" || SPHERE=$?
+  st_ck "C17b the herestring form answers correctly on the same 20000 rows (rc 0)" "0" "$SPHERE"
+  # C17c COUNTS CODE, NOT PROSE, and the first draft of it got that wrong - it returned 2, one of which was
+  # the comment at the herestring site below that QUOTES the banned form while explaining it. A detector
+  # that reddens on its own documentation teaches the next holder to delete the documentation, so
+  # comment-only lines are stripped before matching. ONE code line then carries the banned form on purpose -
+  # C17's negative control above - marked SP-BANNED-FORM-ON-PURPOSE and excluded. THE EXEMPTION IS ITSELF
+  # RATCHETED at C17d, the shape C11b already uses in this file: an exemption with no ceiling is a hole
+  # rather than a decision, and without C17d this control could be satisfied by marking a real site.
+  SPCODE="$(sed 's/^[[:space:]]*#.*$//' "$SELF")"
+  SPALL="$(grep -cE '\|[[:space:]]*grep[[:space:]][^|]*-[a-zA-Z]*q' <<<"$SPCODE" || true)"
+  SPEX="$(grep -E '\|[[:space:]]*grep[[:space:]][^|]*-[a-zA-Z]*q' <<<"$SPCODE" | grep -cF 'SP-BANNED-FORM-ON-PURPOSE' || true)"
+  SPSITES=$(( SPALL - SPEX ))
+  st_ck "C17c no UNEXEMPTED membership test in this file's CODE is a pipe into grep -q (ceiling 0, of $SPALL)" "0" "$SPSITES"
+  st_ck "C17d the exemption is ratcheted: exactly 1 deliberate site, so marking a real one breaks this" "1" "$SPEX"
+
   echo "  citations-selftest: $SPASS pass, $SFAIL fail"
   [ "$SFAIL" -eq 0 ] || exit 1
   exit 0
@@ -348,7 +390,19 @@ if [ "${1:-}" = "--citations" ] || [ "${1:-}" = "citations" ]; then
     TEST="$P"
     case "$P" in gates/logs/*) TEST="claude/agents/gatelogs/${P#gates/logs/}";; esac
     if [ -e "$TEST" ]; then A1OK=$((A1OK+1)); continue; fi
-    if printf '%s\n' "$ALLOW" | cut -f1 | grep -qxF "$P"; then
+    # HERESTRING, NOT A PIPE [jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02].
+    # THE CLASS: under `set -o pipefail` (line 84) a membership test written as a pipe returns 141, not 0,
+    # whenever `grep -q` short-circuits on an early match and SIGPIPEs the producer still writing behind it.
+    # The rc of this pipeline lands in an `if`, so a 141 reads as NOT FOUND - an ALLOWLISTED path is then
+    # counted at A1BAD and line 662 turns the whole arm CITATIONS RED. That is a green suite refused at the
+    # push gate with a false cause, which is the class this job is named after.
+    # MEASURED THIS RUN on the pipe form, matching on row 1 of an $ALLOW of n rows: rc 0 at n=1..1000,
+    # rc 141 at n=1500, rc 0 again at n=1800/2000/2200, rc 141 at n=2500/3000/6000. IT IS A RACE, NOT A
+    # THRESHOLD - intermittent from about 1500 rows and reliable from about 2500 (~65KB, one pipe buffer).
+    # $ALLOW holds ONE row today, so the defect is LATENT; the trigger grows every time a reserved name is
+    # added here, and a flaky push gate is worse than a failing one. The herestring has no pipe and
+    # therefore no SIGPIPE: rc 0 at every n measured above. Controls C17/C17b/C17c pin both halves.
+    if grep -qxF "$P" <<<"$(cut -f1 <<<"$ALLOW")"; then
       A1ALLOW=$((A1ALLOW+1)); continue
     fi
     A1BAD=$((A1BAD+1))
