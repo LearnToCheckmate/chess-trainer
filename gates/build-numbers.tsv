@@ -481,3 +481,4 @@
 491	built	-	0856e46e7e73	8daadaca2cac	2026-10-07T06:34Z	build__1791354091000	build.sh	Bundle built and stamped #491. Recorded by gates/build.sh so the number resolves to an artefact.
 491	built	-	961c2596c011	598f850a695d	2026-10-07T07:08Z	build__1791354091000	build.sh	Bundle built and stamped #491. Recorded by gates/build.sh so the number resolves to an artefact.
 491	built	-	cc01e3664902	d474b2f50e6e	2026-10-07T07:26Z	build__1791354091000	build.sh	Bundle built and stamped #491. Recorded by gates/build.sh so the number resolves to an artefact.
+492	minted	-	-	-	2026-10-07T09:42Z	build__1791364824126	minted	retire the seven moved pins in gate 26 and land #491 held win-probability pile with Kunals lichess-ladder mate rule
