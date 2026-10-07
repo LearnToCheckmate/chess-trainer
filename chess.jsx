@@ -4910,13 +4910,28 @@ export default function App(){
      every path where sfBestLine resolves null, of which #389 names five (worker not ready, idle check
      failed, postMessage threw, aborted, WASM trapped). useMemo keyed on the displayed FEN because the M1
      test generates legal moves and this is render scope, not an effect. */
+  /* SCOPED TO inReview DELIBERATELY [#489 antagonist pass]. Outside review `evalFallback` is
+     `evalPawns(game)`, a LIVE material evaluation, which is a different quantity that reaches +-99 only by
+     evalPawns' own checkmate return (:194-199) - and chess.jsx:8065, the one site that renders evalTxt
+     outside review, is already guarded by `!isOver && !playEnd`, so that value cannot reach a screen. The
+     branch is restricted anyway so it says what it means rather than relying on a guard 3000 lines away.
+     THE DEPENDENCY LIST IS `dispFen` AND NOT `boardGame`, AND THAT IS CORRECT RATHER THAN SLOPPY: dispFen is
+     toFEN(boardGame), which carries board, turn, castling and en passant - every field getLegal and getStatus
+     read (:70-110) - so it changes whenever anything this memo depends on changes. Said here because the next
+     reader otherwise has to re-derive it. */
   const _fbMate=useMemo(()=>{
-    if(!(Math.abs(evalFallback)>=99))return null;
-    let st='';try{st=getStatus(boardGame);}catch(e){return null;}
+    if(!inReview||!(Math.abs(evalFallback)>=99))return null;
+    /* A THROW MUST NOT RESTORE THE DEFECT. The first draft returned null here, which falls through to the
+       +-9.9 clamp below - so the one branch that could hide the fix was the branch that printed the old
+       string. We are inside `|evalFallback| >= 99`, which the stored analysis produces only for a mate, so
+       the sign is known even when the position cannot be read: degrade to the bare mate label, never to a
+       number. Found by the #489 diff-door antagonist. */
+    const bare=((evalFallback>0)?'':'-')+'M';
+    let st='';try{st=getStatus(boardGame);}catch(e){return bare;}
     if(st==='checkmate')return boardGame.turn==='w'?'0-1':'1-0';
     let m1=false;try{m1=getLegal(boardGame).some(m=>getStatus(makeMove(boardGame,m))==='checkmate');}catch(e){}
-    return ((evalFallback>0)?'':'-')+(m1?'M1':'M');
-  },[dispFen,evalFallback]);
+    return m1?(bare+'1'):bare;
+  },[dispFen,evalFallback,inReview]);
   const evalTxt=_engBar?_engBar.txt:(sfHit?(sfHit.mate!=null?mateLbl(sfHit.mate):((sfHit.cp>0?'+':'')+(sfHit.cp/100).toFixed(1))):(_fbMate!=null?_fbMate:((evalFallback>0?'+':'')+Math.max(-9.9,Math.min(9.9,evalFallback)).toFixed(1))));
   // Live eval bar — full-strength Stockfish on the displayed position (separate from the strength-limited opponent search).
   useEffect(()=>{

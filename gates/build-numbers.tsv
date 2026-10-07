@@ -474,3 +474,4 @@
 488	built	-	8d8785ea40c4	9951461ed2ae	2026-10-06T21:33Z	build__1791321605451	build.sh	Bundle built and stamped #488. Recorded by gates/build.sh so the number resolves to an artefact.
 489	minted	-	-	-	2026-10-07T00:35Z	build__1791332402466	minted	review eval pill prints a mate label instead of the clamped +-9.9 on the stored-analysis path, plus the fastgate.sh landing
 489	built	-	81b4ad945f8e	a1aa53ba97f7	2026-10-07T00:35Z	build__1791332402466	build.sh	Bundle built and stamped #489. Recorded by gates/build.sh so the number resolves to an artefact.
+489	built	-	17c338a181d9	5fc2e1d1e4e4	2026-10-07T01:12Z	build__1791332402466	build.sh	Bundle built and stamped #489. Recorded by gates/build.sh so the number resolves to an artefact.

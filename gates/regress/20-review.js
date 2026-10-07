@@ -152,6 +152,23 @@ L.run(async()=>{
        deterministic, and what the player cares about, is that a forced mate is never reported as the number 9.9. */
     const MATEISH=/^(1-0|0-1|-?M\d*)$/;
     const mateTail={};
+    /* ───── HOW THIS SAMPLES, AND WHY THE FIRST VERSION'S GREEN WAS NOT EVIDENCE [#489 antagonist A] ─────
+       The first version took six back-to-back polled reads after each click and asserted over the SET. That
+       is still a race, and the antagonist MEASURED it losing: on one run of the FIXED bundle, ply 30 returned
+       `M2 M2 M2 M2 M2 M2` - and `M2` cannot come from the fallback, because _fbMate can only ever emit
+       M, -M, M1, -M1, 1-0 or 0-1. So that ply collected ZERO stored-analysis paints out of six. If all four
+       plies behaved that way on a run, every sample would be mateLbl output, mate-shaped and never +-9.9, and
+       BOTH ASSERTIONS WOULD HAVE GONE GREEN ON THE #488 CONTROL. The gate would have reproduced, in itself,
+       the exact vacuity it was written to end. That is CLAUDE.md's rule verbatim: when an assertion says
+       "X is absent in state S", assert FIRST that S was actually reached.
+       SO THE RACE IS REMOVED RATHER THAN SAMPLED AGAINST. A MutationObserver records EVERY value the element
+       takes, including one that exists for a single frame, which polling can miss and an observer cannot.
+       seq[0] is therefore the FIRST label painted on the new ply, and that is the stored-analysis fallback BY
+       CONSTRUCTION - sfHit is keyed on sfEval.fen === dispFen and the search is a worker round trip, so it
+       cannot resolve in the same commit as the ply change. Asserting on seq[0] rather than on the set also
+       disposes of a second trap the antagonist named: 4 of every 7 polled samples were post-search, so the
+       old assertion was pinning the KIND of the live search's answer too, and would have reddened on a
+       HEALTHY bundle had that 900 ms probe ever returned a cp instead of a mate [the #391 shape]. */
     /* The walk is at ply 19 here and the old single `step(b,14)` carried it to 33. Ten of those fourteen are
        still a bulk step; only the last four are walked singly so their first paint can be sampled. THE FIRST
        VERSION OF THIS BLOCK OMITTED THIS LINE and therefore sampled plies 20-23, where the stored eval is an
@@ -161,16 +178,37 @@ L.run(async()=>{
        ply 23. Both tells fired on the first run. */
     await step(b,10);
     for(const p of [30,31,32,33]){
+      await b.page.evaluate(()=>{
+        window.__ctSeq=[];
+        const read=()=>{const e=document.querySelector('[data-ct="eval-bar-num"]');
+          const t=e?(e.innerText||'').trim():null;const a=window.__ctSeq;
+          if(!a.length||a[a.length-1]!==t)a.push(t);};
+        window.__ctObs=new MutationObserver(read);
+        window.__ctObs.observe(document.body,{subtree:true,childList:true,characterData:true});
+      });
       await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});
-      const s=[];for(let k=0;k<6;k++)s.push(await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="eval-bar-num"]');return e?(e.innerText||'').trim():null;}));
-      await b.page.waitForTimeout(1200);
-      s.push(await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="eval-bar-num"]');return e?(e.innerText||'').trim():null;}));
-      mateTail[p]=s;
+      await b.page.waitForTimeout(1500);
+      mateTail[p]=await b.page.evaluate(()=>{try{window.__ctObs.disconnect();}catch(e){}
+        const e=document.querySelector('[data-ct="eval-bar-num"]');
+        return {seq:window.__ctSeq||[],settled:e?(e.innerText||'').trim():null};});
     }
-    const tailAll=[].concat(...Object.values(mateTail));
+    const firsts=[30,31,32,33].map(p=>(mateTail[p].seq||[])[0]);
+    const tailAll=[].concat(...[30,31,32,33].map(p=>(mateTail[p].seq||[]).concat([mateTail[p].settled])));
     const tailClamped=tailAll.filter(x=>/^[+-]?9\.9$/.test(String(x||'').trim()));
-    L.say(tailClamped.length===0,geo+': TC-R09c a forced mate is never painted as the clamped +-9.9, at ANY sample from the first paint onward across plies 30-33 (9 such paints on #488, 0 on #489)',{clamped:tailClamped.length,seen:mateTail});
-    L.say(tailAll.length===28&&tailAll.every(x=>x&&MATEISH.test(x)),geo+': TC-R09c and every one of those 28 samples IS a mate-shaped label, so the assertion above cannot be satisfied by an empty or missing readout',{n:tailAll.length,distinct:[...new Set(tailAll)]});
+    // (A) THE DEFECT. Deterministic: seq[0] is the stored-analysis paint on every one of the four plies.
+    L.say(tailClamped.length===0,geo+': TC-R09c a forced mate is never painted as the clamped +-9.9 - not as the FIRST label on the ply, which is the stored-analysis one by construction, and not at any later value the element took',{clamped:tailClamped.length,firsts,seen:mateTail});
+    // (B) NON-VACUITY, pinned to the first paint only so it cannot redden on what the live search happens to return.
+    L.say(firsts.length===4&&firsts.every(x=>x&&MATEISH.test(x)),geo+': TC-R09c the first label painted on each of the four plies IS mate-shaped, so (A) cannot be satisfied by an empty, missing or unpainted readout',{firsts});
+    // (C) THE STATE WAS REACHED. Without this, (A) and (B) are both satisfiable by mateLbl output alone and
+    // the whole block goes green on the broken bundle - which the antagonist measured happening at ply 30.
+    // A BARE M or -M identifies _fbMate UNIQUELY during this walk: mateLbl (chess.jsx:121) always appends a
+    // digit for |m|>=1 and otherwise returns 1-0/0-1, and the _engBar and _mateTxt producers are both gated
+    // on engOn, which is off until TC-R09b switches it on later in this gate. Plies 30 and 31 are the two
+    // where no mate-in-1 exists, so they are where the bare label can appear.
+    // IF A LATER BUILD CARRIES MATE DISTANCE THROUGH review.analysis - which is the remaining half of
+    // jobs/review-mate-label-not-plus9-9 - the fallback will legitimately start printing M2 here and this
+    // assertion must be REVISITED, not deleted: it would need a new signature for the same question.
+    L.say(firsts.some(x=>/^-?M$/.test(String(x||''))),geo+': TC-R09c and at least one of those first paints is a BARE M, which only the stored-analysis fallback can produce - so the three assertions are measuring that branch and not the live search that overwrites it',{firsts});
     await b.settle(400);await rec('p33');await b.shot('review-'+geo+'-ply33');
     const ws=new Set(Object.values(at).map(x=>x.board&&x.board.w)),tops=new Set(Object.values(at).map(x=>x.board&&x.board.top));
     L.say(ws.size===1&&tops.size===1&&!ws.has(null),geo+': TC-R06 one board width and one top across plies 0/10/19/33',{ws:[...ws],tops:[...tops]});
