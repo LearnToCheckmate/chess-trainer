@@ -1463,3 +1463,43 @@ jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30.
   This run therefore UPDATED the existing `patches/proc-lane1-art-gates-regress-46-play-js-2026-10-07`
   in place and the pile is still 20. Last integration on main: `7aaacb0` (#487), 2026-10-06T20:54Z —
   nine builds ago.
+## 2026-10-07 14:14Z — process-build lane 2 — the four-gate engine-branch class, closed by route 2
+
+**Item** `jobs/four-gates-force-a-three-worker-pool-and-never-test-the-fallback-2026-09-27` (priority 13, band 13 finish-first, raised 2026-09-27T17:12Z by #424's antagonist A, never picked up since). It was the OLDEST job at the highest priority available inside this lane's allow-list; the one job above it (priority 15, `the-suite-lock-was-never-justified-by-a-measured-timing-conflict-2026-10-04`) needs two concurrent 83-minute suites, which does not fit a 70-minute budget, and that is said here rather than left as an unexplained skip.
+
+**Changed** `gates/regress/34-takeback.js`, `35-width-containment.js`, `36-evalbar.js`, `37-strip-sync.js`. 139 comment lines inserted, 0 deleted, **0 executable bytes changed**. Commit `5c14fc5` on `claude/process-lane-2` over base `7353e67`.
+
+**Which route and why.** The job's `doneWhen` offers two: run both branches, or state in the header which branch is not covered and why. Route 1 is unavailable to any lane — the job's own `aFifthInstance_addedByBuild440` and `processBurstReport_2026-10-03_gate51` both established that there is no harness route to the no-Stockfish fallback at all — and gates 51 and 66 are the precedent for route 2. A harness route would be a `chess.jsx` change, outside this lane's allow-list.
+
+**Re-derived rather than copied [R18], and this is the part that earned the run.** Every line number the job and gate 51's header quote for these sites has MOVED, so a reader trusting them lands in the wrong function. Read off `origin/main 7353e67`:
+
+| fact | the job / gate 51 says | measured today |
+|---|---|---|
+| `const useSF=sfReadyRef.current?await ensureAna():false;` | chess.jsx:3799 | **chess.jsx:4080** |
+| `if(useSF){` | 3801 | **4082** |
+| the minimax fallback `}else{` | 3927 | **4245**, found by brace-matching from 4082, not by eye |
+| `poolWanted()` | 3726 | **4007**, with its `_f>=1&&_f<=6` test at **4009** |
+| `sfReadyRef.current=true` | not quoted | **3586**, the single assignment, on the worker's own `readyok` |
+
+All 47 distinct `ct_*` keys in `chess.jsx` were enumerated; none disables Stockfish. `ct_pool` only SIZES the pool, so `ct_pool=1` is a one-worker *Stockfish* review and never the fallback engine.
+
+**The premise re-counted before annotating it [R07].** Launches per file against launches carrying `ct_pool:'3'`: 34 → 2/2, 35 → 1/1, 36 → 2/2, 37 → 1/1. The job's claim holds at every launch site in all four files.
+
+**Gates run, against `app.js` as it stands on origin/main (this change does not touch the bundle).**
+
+| gate | result | exit |
+|---|---|---|
+| 34-takeback | **15 pass / 0 fail** | 0 |
+| 36-evalbar | **31 pass / 0 fail** | 0 |
+| 37-strip-sync | **44 pass / 0 fail** | 0 |
+| 35-width-containment | **76 pass / 0 fail** | 0 |
+
+All four green, 166 pass / 0 fail in total, each run alone against this container's own Chromium at `/opt/pw-browsers/chromium`. Gate 35 prints its own container warning (the app's font stack and bare sans-serif differ by 53.84px here, so its absolute text-derived pins are container-dependent [#480]); it went green anyway and that warning is recorded, not swallowed.
+
+**And the proof that matters more than those numbers**, because a comment cannot be gated: removing exactly the inserted block from each file restores it **byte-for-byte** to `origin/main`, checked per file; every changed line begins with `//`; all four pass `node --check`. md5s before → after: 34 `c5efb743d982`→`b131c074cc6c`, 35 `49ffd990737b`→`db6248093242`, 36 `4ec81963e307`→`6e531f153882`, 37 `530132ef6033`→`b0b1dfde9f3e`.
+
+**One thing found while annotating and NOT fixed here.** `36-evalbar.js:211` launches geometry `kunal730`. R19 was settled on 2026-10-03 at **375x761** and records 730 as wrong wherever it appears, with GEOS carrying `kunal761`. Changing it would alter an executable line, is outside this job's scope, and belongs to the open R19-correction job; it is named in the gate's own header so the next reader of that line does not take 730 as current.
+
+**Not checked.** Whether gate 51's header (not under this run's lock) should have its three stale line numbers corrected — stated on the job, not edited. Whether the three sibling `claude/agents` audits reference these gates. Whether any of the four gates would pass on a single-worker pool: that is the uncoverable branch itself and is the whole point of the note. And no claim is made that stating the gap improves coverage — it does not; it converts a silent default into a record, which is exactly what the job asked for and no more.
+
+**Delivery** parked at `patches/proc-lane2-art-gates-regress-34-35-36-37-engine-branch-2026-10-07`. NOT on main; this lane cannot push.
