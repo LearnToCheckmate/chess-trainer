@@ -82,13 +82,28 @@
 //     320x568 is still not driven for the flag path. The RESIGN, MATE and LIVE blocks run at both.
 //   * An ONLINE game. Its own branch in humanCanMove already gates on og.status/og.result and the fix is a no-op
 //     there, but sign-in and egress are both blocked in this sandbox so it is untraced rather than passed.
-//   * Promotion in a vs-COMPUTER game - the job's own notChecked item. The picker is opened by the same single
-//     call site for every opponent, which is why it is not duplicated here, but it is not driven.
+//   * vs-COMPUTER: THE FLAG PATH IS DRIVEN SINCE #495 AND THE PICKER PATH IS STILL NOT. Rewritten rather than
+//     deleted, because the two halves have different answers and the old single entry hid that. Block I drives
+//     the CLOCK-FLAG BOARD path against the engine at BOTH geometries (22 assertions) - the diagonal nothing
+//     covered, since B1 flags with no engine and C1 faces the engine with no clock. STILL NOT DRIVEN: the
+//     PICKER in a vs-Computer game, at either geometry, which is the job's own `case` and stays its remainder.
+//     THE REASON IS MEASURED, not a cost argument: a promotion cannot be reached against the bot from the start
+//     position by anything cheap enough to live in a gate. #495 drove 17 games across six probes - seeded and
+//     unseeded, greedy raid, single-file raid, queenside raid, and a sweep over 7 seeds x 2 file sets - and not
+//     one promoted; the bot's pawns block the raider (a2-a6 then stuck behind a7 for 18 plies is the rook-file
+//     block) or White is mated or stalemated first. Determinism is NOT the obstacle and #488's blocker is half
+//     solved: `b.ctx.addInitScript` replacing Math.random with a seeded LCG before load pins the built-in
+//     engine exactly (eloParams' randomness is 101 for Pip and never 0 below elo 1844), which makes the bot
+//     reproducible and still cannot make it COOPERATE. The route needs a position fixture play setup does not
+//     offer - there is no FEN entry, and `pp-mate` reaches its mate by playing fool's mate move by move.
 //   * LANDSCAPE: PARTLY DRIVEN SINCE #488, and this entry is rewritten rather than deleted so the remaining hole
 //     is visible. Block H drives 730x375 for the PASS & PLAY picker-at-a-clock-flag path (12 assertions). NOT
 //     driven at 730x375: the vs-Computer path, the RESIGN/MATE/LIVE blocks C/D/E, the drag block G, and A3's
 //     Rematch-resurrection assertion - so block H run ALONE would go green on the paint-only candidate bundle
 //     (gates/.trial/app-nc2-paintonly.js, md5 14905f6f0ce3) that only A3 can distinguish. Block A still carries that.
+//     UPDATED #495: the vs-Computer entry in that "NOT driven at 730x375" list is now PARTLY wrong and is
+//     corrected here rather than left to mislead - block I drives the vs-Computer CLOCK-FLAG path at 730x375.
+//     The rest of that list stands: C/D/E, G, A3 and the vs-Computer PICKER are still portrait-only or undriven.
 //   * The #414 auto-draws by repetition and fifty-move. They set playEnd by the same path as resign, so the fix
 //     covers them, and this gate does not reach them.
 'use strict';
@@ -553,6 +568,142 @@ async function blockH(){
   await b.close();
 }
 
+// ── I: vs COMPUTER AT A CLOCK FLAG, BOTH GEOMETRIES. The opponent axis of the job's own `case`. ───────────────
+// jobs/a-pawn-can-be-promoted-into-a-game-that-already-ended-on-time-2026-09-30 carries a FOUR-cell input spec,
+// {375x730, 730x375} x {Pass & Play, vs Computer}. Block A drove portrait/Pass&Play, block H drove
+// landscape/Pass&Play, and BOTH vs-Computer cells were open with a measured blocker recorded by #488.
+//
+// ── WHAT THIS BLOCK COVERS, STATED IN THE UNIT THE REMAINDER IS COUNTED IN, AND IT IS NOT THE PICKER ─────────
+// BE PRECISE, because #488's antagonist B had to correct that run for mixing up axes and cells, and the same
+// trap is wider here. The `case` field asks for TWO things: (i) the DIALOG is gone once the result card exists,
+// and (ii) a tap where its pieces were changes nothing. BOTH REQUIRE A PROMOTION, AND THIS BLOCK REACHES NO
+// PROMOTION. So this block does NOT close either vs-Computer cell of that spec, and nothing below should be
+// cited as having done so. What it DOES close is a different cell of the input space that no gate had entered:
+// THE CLOCK-FLAG BOARD PATH AGAINST THE ENGINE. The existing coverage either flags with no engine (B1 is
+// clock-flag x Pass & Play) or faces the engine with no clock (C1 is resign x vs Computer); the diagonal - the
+// engine present AND the ending produced by the clock - was driven by nothing, at either geometry.
+//
+// ── WHY THERE IS NO PROMOTION HERE, MEASURED OVER SIX PROBES RATHER THAN ASSERTED ────────────────────────────
+// #488 left this cell with a real blocker: chess.jsx:189 scores every candidate as
+// `v+(Math.random()-0.5)*randomness`, so the bot's replies are not reproducible and R36 forbids admitting a
+// non-deterministic test. It named two ways out, "a seeded engine or a fixture route".
+// THE SEEDED-ENGINE HALF IS SOLVED AND IT IS NOT THE BINDING CONSTRAINT. `eloParams` (chess.jsx:1490) is
+// `r=max(0,round((1850-elo)*0.075))`, which is 0 only above elo 1843 - and elo>=1500 takes the Stockfish branch,
+// so on the built-in-engine branch (elo<=1300) the randomness is never 0 and is 101 for Pip at 500. But the
+// harness can pin it from outside the bundle: `b.ctx.addInitScript` replacing Math.random with a seeded LCG
+// before the app loads makes the built-in engine fully deterministic, touching no app code. That works.
+// WHAT DOES NOT WORK IS REACHING A PROMOTION AT ALL, and determinism was never the obstacle: CONTROLLABILITY
+// was. MEASURED in this run across six discovery probes (scratchpad disc.js..disc6.js) over 17 games, seeded and
+// unseeded, driving White through the app's own taps and letting the app judge every move's legality:
+//   * a greedy "advance the most advanced pawn" raid    -> blocked, then White mated on ply 46
+//   * a single-file raid with a knight shuffle for tempo -> a2-a6 then STUCK for 18 plies: a7 held a black pawn
+//     and b7 was empty, which is the rook-file block, and no promotion is possible on that file ever again
+//   * a queenside raid keeping White's king shelter home -> stalemate on ply 58
+//   * a seed sweep over further seeds and file sets      -> same shape: the bot's pawns block mine
+// A pawn cannot be walked to the eighth rank against even a 500-Elo opponent by any heuristic cheap enough to
+// live in a gate, because the bot has to COOPERATE and it cannot be made to. Seeding fixes reproducibility and
+// does nothing about that. So the honest position is: the promotion route into a vs-Computer game needs a
+// position fixture the app does not offer (there is no FEN entry in play setup - `pp-mate` reaches its mate by
+// playing fool's mate move by move), and that is a feature-sized piece of work, not a line in this gate.
+// IT IS NAMED ON THE JOB rather than left here, and the NOT CHECKED list below carries it.
+//
+// ── WHAT MAKES I1 ABLE TO FAIL, and the control is the same two lines every other block here reverts ─────────
+// THE RECIPE, verbatim, against chess.jsx as this gate ships (the bundle is on no disk, so the source edit is
+// the reproducible artefact). In a scratch copy, revert BOTH guards, then `CT_OUT=<path> gates/build.sh '#NNN'`:
+//   (1) chess.jsx:4634  delete  if(modeRef.current==='play'&&playEndRef.current)return;        (inside doMove)
+//   (2) chess.jsx:5017  delete  if(modeRef.current==='play'&&playEndRef.current)return false;  (humanCanMove)
+// BOTH are required and that is the point of the pair: (2) alone stops the piece being lifted, so reverting only
+// (1) leaves the tap refused earlier and I1 stays green over a bundle whose committer is wide open. Run it as:
+//   CT_APP=<bundle> CT_B65=I node gates/regress/65-promotion-after-gameover.js
+// THE MEASURED RESULT, so the recipe carries its numbers rather than promising them [#411/#412]:
+//   SHIPPED  app.js md5 c84bfbeb53e2 (= origin/main's #494 bundle):  block I  22 pass /  0 fail
+//   CONTROL  md5 99034453392e (the two lines above reverted):        block I  16 pass /  6 fail
+//   THE SIX REDS ARE I1, I1b AND I1c AT BOTH GEOMETRIES, and every instrument - I00, I0a, I0b, I0c, I0d, I0e -
+//   plus I2 and I3 stays GREEN on both bundles. So the control crosses the threshold the assertions draw rather
+//   than merely disturbing the mechanism [CLAUDE.md, #384 and #416]: on the control the board ACCEPTED d2-d4
+//   after the flag and the row reads '1.e4 1...Nf6 2.d4' at 375x730 and '1.e4 1...Nc6 2.d4' at 730x375 - a move
+//   written into a game that had already ended on time. The instruments staying green is what says the reds are
+//   the defect and not a broken probe; the bot's reply differs between the two geometries (Nf6 and Nc6) and
+//   nothing asserts which, which is the invariance recorded at the head of this block.
+//
+// ── WHAT THIS BLOCK DOES NOT COVER, said against itself [#405, and the empty-denominator rule] ───────────────
+//   * THE PICKER, at either geometry, in vs Computer. See above; it is the job's remainder and stays open.
+//   * applyMv's OWN GUARD, chess.jsx:3662 `if(playEndRef.current){setThinking(false);return;}`, which is the one
+//     mechanism that is genuinely vs-Computer-only: the bot's queued reply landing after the game has ended.
+//     I1b DOES redden on this block's control, so it is a real assertion - but it CANNOT TELL THAT GUARD APART
+//     from the one I1 already covers, and the distinction is the whole point. At the flag it is WHITE's turn, so
+//     no search is in flight, and the effect at chess.jsx:3657 already carries `playEnd` in its own early
+//     return, so nothing is ever pending for :3662 to refuse in this state: reverting :3662 alone leaves every
+//     assertion in this block green. Driving it needs the game to END DURING a search - the bot's own clock
+//     expiring mid-think - which is a race, and a racy assertion is worse than no assertion [R36]. So I1b must
+//     not be cited as cover for :3662, which has NO control anywhere in this suite.
+//     THE FIRST DRAFT OF THIS BLOCK LABELLED I1b "OBSERVATION (no negative control)" IN ITS OWN ASSERTION TEXT.
+//     That was FALSE and the control is what caught it [R18]: I1b went red at BOTH geometries on bundle
+//     99034453392e, because the move the tap committed is still on the row 2.2s later. A label asserting an
+//     assertion cannot fail, printed on a line that then fails, is worse than no label - it would have taught
+//     the next reader to discount a real red. Withdrawn, and the honest limit is the paragraph above.
+//   * Every assertion here reads a COUNT or TEXT. Nothing reads paint, width or position, so this block says
+//     nothing about landscape rendering - the same limit block H recorded, and the four open landscape P1s it
+//     names are no more covered by this block than by that one.
+//
+// ── WHAT IT COSTS, priced rather than absorbed [#488 antagonists A8 / B6] ────────────────────────────────────
+//   Two more real 60-second clock flags, one per geometry: ~+125s, taking gate 65's four flags to six. That is
+//   about +2% on a 58-section suite whose length three open jobs name as the binding constraint on this project.
+//   Recorded rather than hidden. It buys the only cell of the geometry x opponent grid that had no coverage at
+//   either geometry, and the setup is deliberately 1.e4-and-wait so the cost is the clock and nothing else.
+//
+// NO PRNG IS SEEDED IN THIS BLOCK, DELIBERATELY, and this is the simplification worth keeping: not one assertion
+// below depends on WHICH move the bot chose, only that it moved. I0a asserts the reply arrived; everything after
+// the flag asserts that NOTHING moves. So the block is invariant to the bot's choice and is deterministic under
+// R36 without pinning the engine at all - which also means it cannot be broken by a future change to the
+// engine's eval, move ordering or styleBias. The seeded-LCG fixture is written up above because it is the part
+// of #488's blocker that IS solved and the next run should not re-derive it, not because this block needs it.
+async function blockI(geoKey){
+  const isLand=geoKey!=='kunal730';
+  const tag=isLand?'730x375':'375x730';
+  const b=await L.launch({geo:isLand?LAND:'kunal730',name:'65I-'+(isLand?'land':'port')});await b.open();
+  const v=await vp(b);
+  L.say(v.w===(isLand?730:375)&&v.h===(isLand?375:730),'I00 ['+tag+'] INSTRUMENT: the viewport really is '+tag,v);
+  await P.states['cpu-clock-m0'](b);
+  await b.settle(500);
+  // I0a IS THE INSTRUMENT AND THE OVER-APPLICATION CONTROL IN ONE, and without it everything below is vacuous
+  // [#385: assert X was PRESENT before asserting it absent]. It proves three things at once: the vs-Computer
+  // game actually started at this geometry (the New Game sheet, the 1 min chip and Start are all reachable in a
+  // 375px-tall window), the board accepts a human move, AND THE ENGINE IS RUNNING AND REPLIED. If the fix ever
+  // over-applied and froze the bot, this is the assertion that goes red.
+  const pStart=await plies(b);
+  await b.move('e2','e4',0);
+  let pReply=pStart;
+  for(let w=0;w<40;w++){await b.page.waitForTimeout(150);pReply=await plies(b);if(pReply>=2)break;}
+  L.say(pReply===2,'I0a ['+tag+'] INSTRUMENT: the game is LIVE, White moved and THE BOT REPLIED',{plies:pReply,row:await row(b)});
+  L.say((await card(b))===null,'I0b ['+tag+'] INSTRUMENT: no result card while the game is live',{card:await card(b)});
+  const rowBefore=await row(b);
+  const pBefore=await plies(b);
+  // Now simply wait. It is White's move and White never moves again, so White's clock runs out.
+  const ms=await waitFlag(b,140000);
+  L.say(ms!==null,'I0c ['+tag+'] White'+"'"+'s clock flagged with the engine as opponent',{ms});
+  const cd=await card(b);
+  L.say(/Time/i.test(cd||''),'I0d ['+tag+'] the vs-Computer game ended ON TIME',{card:cd});
+  L.say(/Rematch/.test(await ctrls(b)),'I0e ['+tag+'] the control row swapped to the game-over set',{});
+  // I1 THE HEADLINE: the diagonal nothing covered - the engine present AND the ending produced by the clock.
+  // d2-d4 is chosen because it is legal after 1.e4 and ANY single black reply: no black piece can reach d3 or
+  // d4 in one move, and black cannot give check in one move, so this does not depend on what the bot played.
+  await b.move('d2','d4',600);
+  const pAfter=await plies(b);
+  L.say(pAfter===pBefore,'I1 ['+tag+'] the board refuses a legal move after a clock flag, vs COMPUTER',{before:pBefore,after:pAfter,row:await row(b)});
+  // I1b: the ending must still hold 2.2s later. This DOES redden on the control (the committed move is still on
+  // the row), so it is a real assertion - but it cannot distinguish applyMv's :3662 guard from doMove's, and
+  // :3662 is uncontrolled everywhere in this suite. See the NOT COVERED note above; do not cite it for :3662.
+  await b.settle(2200);
+  const pSettled=await plies(b);
+  L.say(pSettled===pBefore,'I1b ['+tag+'] the ending still holds 2.2s later - no move has appeared',{before:pBefore,after:pSettled});
+  L.say((await row(b))===rowBefore,'I1c ['+tag+'] the move row is byte-identical to what it was before the flag',{before:rowBefore,after:await row(b)});
+  L.say((await picker(b))===null,'I2 ['+tag+'] no promotion picker is on screen in this state',await picker(b)||'absent');
+  L.say(b.errs.length===0,'I3 ['+tag+'] no console errors in the vs-Computer flag block',{errs:b.errs.length});
+  await b.shot('495-65-I1-cpu-flag-'+(isLand?'land':'port'));
+  await b.close();
+}
+
 L.run(async()=>{
   const only=(process.env.CT_B65||'').split(',').filter(Boolean);
   const want=(x)=>!only.length||only.includes(x);
@@ -562,4 +713,5 @@ L.run(async()=>{
   if(want('F'))await blockF();
   if(want('G'))await blockG();
   if(want('H'))await blockH();
+  if(want('I'))for(const g of ['kunal730','land'])await blockI(g);
 },'65-promotion-after-gameover');

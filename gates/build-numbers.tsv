@@ -489,3 +489,5 @@
 494	built	-	9017c9564676	090763a821fe	2026-10-07T16:39Z	build__1791390050348	build.sh	Bundle built and stamped #494. Recorded by gates/build.sh so the number resolves to an artefact.
 494	built	-	940564aa1cf6	2117ae5b4368	2026-10-07T16:49Z	build__1791390050348	build.sh	Bundle built and stamped #494. Recorded by gates/build.sh so the number resolves to an artefact.
 494	built	-	c84bfbeb53e2	c05de2dace42	2026-10-07T17:12Z	build__1791390050348	build.sh	Bundle built and stamped #494. Recorded by gates/build.sh so the number resolves to an artefact.
+495	minted	-	-	-	2026-10-07T19:30Z	build__1791400795863	minted	the vs-COMPUTER cell of the band-16 promotion-after-gameover case spec: gate 65 block I, driving a deterministic bot via a seeded PRNG fixture
+495	built	-	5a098cd24dae	c05de2dace42	2026-10-07T19:57Z	build__1791400795863	build.sh	Bundle built and stamped #495. Recorded by gates/build.sh so the number resolves to an artefact.
