@@ -475,3 +475,5 @@
 489	minted	-	-	-	2026-10-07T00:35Z	build__1791332402466	minted	review eval pill prints a mate label instead of the clamped +-9.9 on the stored-analysis path, plus the fastgate.sh landing
 489	built	-	81b4ad945f8e	a1aa53ba97f7	2026-10-07T00:35Z	build__1791332402466	build.sh	Bundle built and stamped #489. Recorded by gates/build.sh so the number resolves to an artefact.
 489	built	-	17c338a181d9	5fc2e1d1e4e4	2026-10-07T01:12Z	build__1791332402466	build.sh	Bundle built and stamped #489. Recorded by gates/build.sh so the number resolves to an artefact.
+490	minted	-	-	-	2026-10-07T03:32Z	build__1791343213282	minted	land gates/fastgate.sh v2 plus the #490 fix: a records commit could change gate 68 fixture and still take a fast green
+490	built	-	d0d4206809ae	5fc2e1d1e4e4	2026-10-07T03:33Z	build__1791343213282	build.sh	Bundle built and stamped #490. Recorded by gates/build.sh so the number resolves to an artefact.
