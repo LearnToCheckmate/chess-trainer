@@ -40,9 +40,17 @@
 //            reads the grade the capture stores out of the shipped bundle and reddens on the control.
 //            BE PRECISE ABOUT THE LIMIT: it is a structural assertion over source, NOT the rendered card
 //            that jobs/gate-67-has-no-assertion-over-the-stored-drill-label-2026-09-30 asks for in its
-//            `case` field, and it does not replace it. The rendered route needs a seeded chess.com
-//            account and does not exist; jobs/no-harness-route-to-the-drill-capture-producer-2026-09-30
-//            owns building one and is where the stronger instrument belongs.
+//            `case` field, and it does not replace it.
+//            >>> AND THE REASON THIS FILE USED TO GIVE FOR THAT WAS FALSE. #493's first draft said here
+//            >>> that "the rendered route needs a seeded chess.com account and does not exist". BOTH BLIND
+//            >>> ANTAGONISTS VETOED IT AND THE VETO WAS UPHELD [R18]. The route exists twice over, in this
+//            >>> same suite, today: 51-drill-explain-why.js:101 is a ONE-LINE localStorage fixture, 51:170
+//            >>> launches with it and 51:186 asserts the app captured two of the user's own mistakes from a
+//            >>> REAL review (the PRODUCER), while 51:307 and 72-drill-prev.js:84 drive the RENDERED card -
+//            >>> the latter with no account at all. The stronger instrument was two `store:` lines away.
+//            >>> WHAT IS ACTUALLY MISSING is narrower: no gate anywhere asserts the GOAL SENTENCE a drill
+//            >>> card paints. jobs/no-harness-route-to-the-drill-capture-producer-2026-09-30 is re-keyed to
+//            >>> that and is a far cheaper job than "no route exists".
 //   NOT DRIVEN - the depth-2 minimax fallback, for the same reason gate 66 states: ct_pool accepts only
 //            1..6 and cannot switch Stockfish off, so there is no route to that branch from a gate.
 //
@@ -137,85 +145,213 @@ L.run(async()=>{
   // function THE SITE NAMES, resolved out of the same bundle by that name - not any helper that happens
   // to be present somewhere in the file. Without this, adding a correct artic() and failing to wire it
   // would pass U3..U13, which is the #432 hole: a check that reads only what the fix added.
-  let shipped=null,shippedHow='none',shippedSrc=null;
+  //
+  // #493's FIRST VERSION OF THIS BLOCK WAS VETOED BY BOTH BLIND ANTAGONISTS AND THE VETO WAS UPHELD.
+  // It CONSTRUCTED the helper and never CALLED it inside the try. `new Function` evaluates no function
+  // body at construction, so U2's own text asserted the callee "resolves ... AND RUNS" while nothing had
+  // run it, and the first real call was U3 in the loop below, OUTSIDE any guard. gates/lib.js:316 wraps a
+  // whole gate in ONE try/catch whose handler calls done() -> process.exit, so a throw in that loop
+  // collapses this gate from 21 assertions to about three AND TAKES BLOCKS P AND D DOWN WITH IT -
+  // including D1, the only assertion in this project that reddens on instance 1 of the band-16 P0 this
+  // gate was promoted to `required` for. That is #393's halt-on-first-absence trap landing on exactly the
+  // gate that must not have it.
+  //   HOW IT IS REACHED: `new Function` gives the helper NONE of the bundle's closure, so a helper
+  //   referencing anything module-scope throws ReferenceError on first call.
+  //   AND IT IS LATENT, NOT LIVE - the distinction matters and it was measured rather than assumed. On
+  //   this bundle the helper is `function oS(e){let t=String(e||"").trim();return(/^[aeiou]/i.test(t)?
+  //   "an ":"a ")+t}`: the regex literal is INLINE and the only free name is the global `String`, so it
+  //   both instantiates and runs cleanly here and this gate's 21/0 figures are uncontaminated. It is
+  //   triggered by a future SOURCE change - hoisting the vowel test to a module constant beside artic()
+  //   at chess.jsx:498, a refactor this file has precedent for (EVAL_BAR_W, LESSON_FOOT_GLYPH). Antagonist
+  //   A found the mechanism from the diff door and rated it live; antagonist B measured that it is latent;
+  //   B is right and the remedy is mandatory either way.
+  // SO: the helper is INVOKED inside the try, every per-grade call below is guarded individually, and a
+  // failure to resolve or to run is a RED and never a note - the same rule this build applied to D2.
+  let shipped=null,shippedHow='none',shippedSrc=null,shippedWhy=null;
   if(callSite){
     const nm=callSite[1];
     const mFn=src.match(new RegExp('function '+nm.replace(/\$/g,'\\$')+'\\(\\w\\)\\{.*?\\}(?=[,;a-zA-Z])'));
     if(mFn){
-      try{ shipped=new Function('"use strict";return ('+mFn[0]+')')(); shippedHow='helper '+nm; shippedSrc=mFn[0]; }
-      catch(e){ L.note('U2 the helper '+nm+' was found in the bundle but would not instantiate: '+e.message); }
-    }else{ L.note('U2 the goal site calls '+nm+' and no `function '+nm+'(x){...}` could be resolved in this bundle'); }
+      try{
+        const fn=new Function('"use strict";return ('+mFn[0]+')')();
+        const probe=fn('best');                 // CALL it inside the guard: construction proves nothing
+        if(typeof probe!=='string')throw new Error('it returned '+typeof probe+', not a string');
+        shipped=fn; shippedHow='helper '+nm; shippedSrc=mFn[0];
+      }catch(e){ shippedWhy='resolved `function '+nm+'` out of the bundle but it would not instantiate or run: '+e.message+'  (if this is a ReferenceError the helper depends on the bundle closure, which new Function does not provide - see KNOWN LIMITS)'; }
+    }else{ shippedWhy='the goal site calls '+nm+' and no `function '+nm+'(x){...}` resolved in this bundle - see KNOWN LIMITS, this is a shape the resolver cannot read rather than proof the helper is absent'; }
   }else if(litSite){
     const lit=litSite[1]; shipped=(w)=>lit+String(w||'').trim(); shippedHow='baked literal "'+lit+'"';
   }
   L.say(shippedHow.indexOf('helper ')===0,
-    'U2 the callee named at the goal site resolves to a real function in the same bundle and runs',
-    {how:shippedHow,helperSrc:shippedSrc});
+    'U2 the callee named at the goal site resolves to a real function in the same bundle AND RUNS when it is called',
+    {how:shippedHow,helperSrc:shippedSrc,why:shippedWhy});
 
   // U3..U12 THE SHIPPED MECHANISM ITSELF, over every grade the producer can emit - enumerated from the
-  // two ladders rather than sampled [#391], and NOT a copy of the mechanism.
+  // two ladders rather than sampled [#391], and NOT a copy of the mechanism. Each call is guarded so one
+  // throw reddens ONE grade instead of ending the gate [#393].
   let n=3;
   for(const g of ALL_GRADES){
     const want=(VOWEL.indexOf(g)>=0?'an ':'a ')+g.toLowerCase();
-    const got=shipped?shipped(g.toLowerCase()):null;
+    let got=null,threw=null;
+    try{ got=shipped?shipped(g.toLowerCase()):null; }catch(e){ threw=e.message; }
     L.say(got===want,'U'+n+' this bundle writes "'+want+'" for the grade '+g,
-          {grade:g,got,want,via:shippedHow});
+          {grade:g,got,want,via:shippedHow,threw});
     n++;
   }
   // U13 AND THE ONE THAT REJECTS: the mechanism must NOT put "an" in front of a consonant. Without this
   // the block is satisfied by a helper that always says "an", which is the alternation trap (#388).
   const cons=ALL_GRADES.filter(g=>VOWEL.indexOf(g)<0);
-  L.say(!!shipped&&cons.every(g=>shipped(g.toLowerCase()).slice(0,2)==='a '),
+  let consOK=false,consOff=null,consThrew=null;
+  try{ consOff=cons.filter(g=>shipped(g.toLowerCase()).slice(0,2)!=='a '); consOK=consOff.length===0; }
+  catch(e){ consThrew=e.message; }
+  L.say(consOK,
         'U13 and it does NOT say "an" before any of the '+cons.length+' consonant-initial grades',
-        {consonantGrades:cons,via:shippedHow,
-         offenders:shipped?cons.filter(g=>shipped(g.toLowerCase()).slice(0,2)!=='a '):'mechanism not resolved'});
+        {consonantGrades:cons,via:shippedHow,offenders:consOff,threw:consThrew});
+
+  // KNOWN LIMITS OF BLOCKS U AND P, MEASURED BY THIS BUILD'S TWO ANTAGONISTS AND WRITTEN DOWN SO THE NEXT
+  // RUN DOES NOT REDISCOVER THEM. Both regexes read MINIFIED OUTPUT. Everything hard-coded in them is an
+  // object-literal key or a data property - `fen:`, `uci:`, `label:`, `ts:Date.now()`, `.sel` - which
+  // esbuild does not mangle, and every mangled identifier is CAPTURED. But they also encode EXPRESSION
+  // SHAPES, and those are the brittle part. Antagonist A measured, on correct bundles:
+  //   the helper resolver needs a `function NAME(x){...}` DECLARATION with a single-character parameter and
+  //   no nested `}`, so an arrow refactor, a two-parameter helper, or a braced `if` guard inside the body
+  //   each take U2 red and U3..U13 eleven red ON A GOOD BUNDLE;
+  //   the capture regex false-reds on a nested call in the fen argument, an inline-built uci, a plain
+  //   variable fen, any key added before fen, or label moved after ts.
+  // These fail in the SAFE direction - they false-RED, never false-pass - and U0/P0 anchor on the sentence
+  // and the capture object precisely so that a refactor reddens this gate instead of silently blinding it
+  // [#432]. They are NOT fixed here: making the regexes permissive is how a loose pattern stops
+  // discriminating, which is this project's #388 lesson. jobs/gate-67-block-u-is-circular-and-u0-is-an-
+  // unconditional-pass-2026-10-07 carries the list.
+  //   AND THE DENOMINATOR OF THIS GATE IS INPUT-DEPENDENT, which no close-out should report as a
+  //   regression: D2 emits an L.say only when a Miss row renders, so this gate is 23 assertions on a
+  //   bundle that renders one and 22 on a bundle that renders none. Say the Miss-row count with the total.
 
   // ════════ BLOCK P - THE PRODUCER: WHICH LADDER THE DRILL CAPTURE STORES ════════
   // NEW AT #493, and it is the assertion jobs/gate-67-has-no-assertion-over-the-stored-drill-label-
-  // 2026-09-30 says does not exist. That job's ifNotDone is precise about what it is afraid of: "a later
-  // build reverts `label:_S` to `label:L` - a one-token change in a line nothing asserts over - and the
-  // drill goes back to telling the player 'you played Bg5 here, a great.' with the full suite green."
-  // Blocks U and D cannot see that revert. U proves the ARTICLE is chosen from the word, D proves the
-  // review ROW does not contradict itself, and neither reads what the capture stored.
+  // 2026-09-30 says does not exist. That job's ifNotDone is precise about what it fears: "a later build
+  // reverts `label:_S` to `label:L` - a one-token change in a line nothing asserts over - and the drill
+  // goes back to telling the player 'you played Bg5 here, a great.' with the full suite green." Blocks U
+  // and D cannot see that revert. U proves the ARTICLE is chosen from the word, D proves the review ROW
+  // does not contradict itself, and neither reads what the capture stored.
   //
-  // THE INSTRUMENT, AND ITS HONEST LIMIT, STATED BEFORE ITS RESULT. This is SOURCE-LEVEL, not rendered.
-  // That job's own `case` field asks for the rendered route - seed ct_mymistakes with ten grades, reload,
-  // open "Practice your mistakes" and read the painted sentence - and that route STILL DOES NOT EXIST:
-  // it needs meta.userColor, which needs a stored chess.com account, and the D3 note at the foot of this
-  // file records the attempt timing out on BOTH bundles. So this is the weaker of the two instruments and
-  // it is not a substitute for the stronger one; jobs/no-harness-route-to-the-drill-capture-producer-
-  // 2026-09-30 still owns getting one. What it IS, is an assertion where there was none, over the exact
-  // token the job named. A gate that cannot see a one-token revert is the hole; a source assertion that
-  // can is strictly better than a prose warning, which is the carrier CLAUDE.md records failing at #441.
+  // THE INSTRUMENT IS SOURCE-LEVEL, NOT RENDERED, AND THAT IS A CHOICE THIS BUILD GOT WRONG FIRST TIME.
+  // #493 originally justified it with "the rendered route needs a seeded chess.com account and does not
+  // exist". THAT WAS FALSE, both antagonists caught it, and the veto was upheld. MEASURED: the route
+  // exists twice over, in this same suite, today.
+  //   gates/regress/51-drill-explain-why.js:101 is a ONE-LINE localStorage fixture,
+  //     `ACCT={ct_accts:['cc:dukekarlcountisouard99'],ct_acctgames:{...}}` - no network, no real account;
+  //   51:170 launches with `store:ACCT` and 51:186 then asserts the app CAPTURED AT LEAST 2 OF THE USER'S
+  //     OWN MISTAKES FROM A REAL REVIEW, which is the PRODUCER running with meta.userColor set - the exact
+  //     thing the old comment called unreachable;
+  //   51:307 launches `store:{ct_mymistakes:[mis[i]]}` and drillSolve at 51:156 taps
+  //     /find the move you missed/ across seven geometries - the rendered CONSUMER;
+  //   gates/regress/72-drill-prev.js:84 does the rendered drill with `store:{ct_mymistakes:rows('Blunder')}`
+  //     and NO ACCOUNT AT ALL.
+  // So the stronger instrument was two `store:` lines away, copied out of a sibling gate, and CLAUDE.md's
+  // #386/#390 rule said so in advance: before fighting a control in a new gate, ask whether an existing
+  // gate already had to fight it. WHAT IS ACTUALLY MISSING is narrower and is now stated correctly: no
+  // gate anywhere asserts the GOAL SENTENCE a drill card paints - `"Find the stronger move."` appears in
+  // gates/ only inside this file's own source-matching regexes. That is the re-keyed scope of
+  // jobs/no-harness-route-to-the-drill-capture-producer-2026-09-30, which was carried as "no route exists"
+  // and is a far cheaper job than that.
   //
-  // WHY IT IS KEYED THE WAY IT IS. Everything hard-coded here is an OBJECT LITERAL KEY or a DATA PROPERTY
-  // - `fen:`, `uci:`, `label:`, `ts:Date.now()`, `.sel` - none of which esbuild mangles. Every identifier
-  // that IS mangled is CAPTURED rather than written down: the stored-label variable comes out of the
-  // capture site and its assignment is then searched for by that captured name. The minified names differ
-  // between the two bundles measured below (`k` on main, `G` on the control) and between builds, which is
-  // exactly why none of them appears in this file.
+  // WHY IT IS KEYED THE WAY IT IS. See KNOWN LIMITS above. The minified names differ between the two
+  // bundles measured here (`k` on main, `G` on the control) and between builds, which is exactly why none
+  // of them appears in this file.
   const capSite=src.match(/\{fen:[\w$]+\([^()]*\),uci:[\w$]+,label:([\w$]+),ts:Date\.now\(\)/);
 
-  // P0 THE ANCHOR, same discipline as U0: if the capture object has moved, P1 is unanchored and that is a
-  // RED, never a quiet pass. This is the guard against the gate going blind on a refactor [#432].
-  L.say(!!capSite,'P0 the drill capture object is located in this bundle, so P1 is anchored to the shipped store',
+  // P0 THE ANCHOR, same discipline as U0: if the capture object has moved, P1..P3 are unanchored and that
+  // is a RED, never a quiet pass. This is the guard against the gate going blind on a refactor [#432].
+  L.say(!!capSite,'P0 the drill capture object is located in this bundle, so P1..P3 are anchored to the shipped store',
         {bundle:path.basename(BUNDLE),labelVar:capSite?capSite[1]:null});
 
-  // P1 THE ONE-TOKEN ASSERTION. The grade the capture STORES must be the grade the pool was SELECTED on
-  // (`sel`, the centipawn ladder) and not the grade the row DISPLAYS (`cls.label`, the win-percentage
-  // ladder). Read from the assignment of the variable the site actually stores, not from any `.sel` that
-  // happens to appear elsewhere in the bundle - there are three, and only one of them is this one.
-  let capFrom=null;
   if(capSite){
     const v=capSite[1].replace(/\$/g,'\\$');
-    const region=src.slice(Math.max(0,src.indexOf(capSite[0])-6000),src.indexOf(capSite[0]));
-    const re=new RegExp('[,;{(}]'+v+'=([^,;]{0,120})','g');
-    let x; while((x=re.exec(region))) if(/\.sel\s*\|\|/.test(x[1])) capFrom=x[1];
+    const at=src.indexOf(capSite[0]);
+    const region=src.slice(Math.max(0,at-6000),at);
+    // #493: the prefix class was `[,;{(}]`, which omits WHITESPACE - so two semantics-preserving
+    // reorderings of correct source turned P1 red, and it also matched an arrow parameter as an
+    // assignment. Antagonist A measured both. `(?:^|[^\w$])` is the correct left boundary.
+    const re=new RegExp('(?:^|[^\\w$])'+v+'=([^,;]{0,120})','g');
+    let x,capFrom=null; while((x=re.exec(region))) if(/\.sel\s*\|\|/.test(x[1])) capFrom=x[1];
+
+    // P1 THE ONE-TOKEN ASSERTION. The grade the capture STORES must be the grade the pool was SELECTED on
+    // (`sel`, the centipawn ladder) and not the grade the row DISPLAYS (`cls.label`, the win-percentage
+    // ladder). Read from the assignment of the variable the site actually stores.
+    //   WHY A 6000-CHARACTER WINDOW RATHER THAN THE WHOLE FILE, corrected [R18]: this comment used to say
+    //   "there are three `.sel` and only one of them is this one". MEASURED on this bundle, `.sel` occurs
+    //   ELEVEN times and only THREE are `.sel||`; the other EIGHT are `B.sel`/`h.sel`, the board's
+    //   drag-selection [row,col] - a homonym of an entirely different type. That makes the window more
+    //   load-bearing, not less. Of the three `.sel||`, the offsets from the capture site are -401 (this
+    //   one), +62156 and +236258, so exactly one falls inside the window, and THAT is the fact that
+    //   justifies it.
+    L.say(!!capFrom,
+      'P1 the drill capture stores the SELECTION grade (`sel`), not the displayed win-percentage label - the one-token revert that brings back "you played Bg5 here, a great." is now visible to this gate',
+      {labelVar:capSite[1],assignedFrom:capFrom,
+       note:capFrom?null:'no assignment of the stored-label variable in the 6000 chars before the capture site derives it from `.sel||`'});
+
+    // P2 TOKEN IDENTITY, AND IT IS THE ASSERTION P1 CANNOT MAKE. chess.jsx:4322 rests its whole structural
+    // guarantee on one sentence: "`_S` is the very expression the `if` above filters on, so the card can
+    // only ever say 'a mistake' or 'a blunder'." P1 reads the ASSIGNMENT and never the enclosing `if`, so
+    // antagonist B broke it and antagonist A reproduced the break: swap ONLY the filter's variable to the
+    // display label and leave `label:k` alone, and P0, P1, U and D ALL STAY GREEN while the decided-position
+    // drill pool empties - which is #440's own first-cut regression (gate 51 went to "captured: 0, inputs:
+    // 0", chess.jsx:489). Grade membership cannot catch it either, because the broken bundle still tests
+    // the literals "Mistake" and "Blunder"; only TOKEN IDENTITY can. Kept as its own L.say rather than a
+    // conjunct of P1 or P3, because a compound whose halves cannot fail independently is the tautology
+    // antagonist A filed this same run at 25-online-clocks.js:137.
+    // THE FILTER PATTERN PRESUPPOSES NO GRADE NAME, and that took two tries. The first version matched
+    // `if((X==="Mistake"||X==="Blunder")` literally, which would false-RED the moment the filter was
+    // legitimately widened, and made P3 below TAUTOLOGICAL - reading the two grade names out of a pattern
+    // that required them cannot fail. This matches the SHAPE instead: a disjunction of equality tests on
+    // one identifier. The grade set is then whatever the bundle's own filter contains.
+    const mFilt=region.match(/if\(\(([\w$]+)===("[A-Za-z]+"(?:\|\|\1==="[A-Za-z]+")*)\)/);
+    L.say(!!mFilt&&mFilt[1]===capSite[1],
+      'P2 the grade the capture FILTERS on is the SAME TOKEN it stores, so the card can only ever name a grade the filter admitted',
+      {filterVar:mFilt?mFilt[1]:null,storedVar:capSite[1],
+       note:mFilt?null:'no `if((X==="Mistake"||X==="Blunder")` found in the 6000 chars before the capture site'});
+
+    // P3 THE INVARIANT THIS FILE USED TO DECLARE AND NEVER ASSERT. `PRAISE` was defined at the top as
+    // "a drill card may never name one of these" and `grep -n PRAISE` returned that ONE line - the file
+    // stated the rule and then, ten lines later, U3/U4/U5/U9/U11 certified that the bundle correctly
+    // writes "a best", "an excellent", "a good", "a great" and "a brilliant". Antagonist B found it.
+    // Now the admissible set is read out of the bundle's own filter and checked against PRAISE.
+    //   WHAT THIS DOES NOT COVER, stated because it is the whole of B's §2 and it is a LIVE defect: this
+    //   asserts what the capture may WRITE from now on. It says nothing about the rows ALREADY IN THE
+    //   INSTALLED STORE, which a #441-era bundle wrote with the display label - so a real player can still
+    //   be shown "you played Bg5 here, an excellent." today. `puzzleFromMistake` (chess.jsx ~5480) has no
+    //   label guard, the merge at chess.jsx:4349 patches only `why`/`hint` and never `label`, and a row
+    //   leaves only by being solved or evicted off `.slice(0,150)`. That is
+    //   jobs/a-legacy-drill-row-still-praises-the-move-it-asks-you-to-improve-and-nothing-migrates-it-2026-10-07
+    //   and it needs a guard in the app, not an assertion here.
+    //   CONTROLLED BEFORE THE RE-GATE, four injections into the bundle text, so neither P2 nor P3 is
+    //   published as a green nobody has tried to break:
+    //     filter admits "Good" (a praise grade)      -> P3 FAIL, P2 pass      the defect P3 exists for
+    //     filter widened to "Inaccuracy" (legitimate) -> P3 pass, P2 pass      NOT a false red
+    //     filter variable swapped to the display label -> P2 FAIL, P3 pass     antagonist B's break
+    //     the #441 control bundle                      -> P2 FAIL, P3 pass     stored G vs filtered S
+    // READ THE GRADES OUT OF THE MATCHED FILTER, NOT OUT OF THE REGION. Scanning the 6000-char window for
+    // `<var>==="X"` was this assertion's first form and it was POLLUTED: minified names are reused across
+    // scopes, so on this bundle it returned ["w","Mistake","Blunder"] - `w` came from an unrelated
+    // `k==="w"` colour test sharing the identifier. Caught by this build's own pre-verification before the
+    // re-gate, and it is the same homonym disease antagonist A measured in the `.sel` count above.
+    const admits=mFilt?(mFilt[2].match(/"([A-Za-z]+)"/g)||[]).map(t=>t.replace(/"/g,'')):[];
+    const praised=admits.filter(g=>PRAISE.indexOf(g)>=0);
+    L.say(admits.length>0&&praised.length===0,
+      'P3 every grade the capture filter admits is OUTSIDE the PRAISE set, so no drill card written by this bundle can name a move the app praised',
+      {admits,praise:PRAISE,praised,
+       note:admits.length?null:'the filter admitted no grades this instrument could read - unanchored, so this is a red and not a pass'});
+  }else{
+    // The not-anchored case is a NOTE and is NOT credited as a pass, exactly as D2 does below. P0 above
+    // already carries the red; restating it as three more reds would report one fault four times, and
+    // asserting P1's sentence with no capture site would assert something false ABOUT THE BUNDLE when the
+    // only thing that happened is that the shape moved. Antagonist A caught that asymmetry: this build
+    // added the guard to D2 and not to P.
+    L.note('P1..P3 NOT RUN and NOT COUNTED AS PASSES: the capture object did not match, so there is no '+
+           'stored-label variable to trace. P0 is the red. This is a shape the regex cannot read, not '+
+           'proof the capture is wrong - see KNOWN LIMITS above.');
   }
-  L.say(!!capFrom,
-    'P1 the drill capture stores the SELECTION grade (`sel`), not the displayed win-percentage label - the one-token revert that brings back "you played Bg5 here, a great." is now visible to this gate',
-    {labelVar:capSite?capSite[1]:null,assignedFrom:capFrom,
-     note:capFrom?null:'no assignment of the stored-label variable in the 6000 chars before the capture site derives it from `.sel||`'});
 
   // ════════ BLOCK D - THE REVIEW ROW, EVERY PLY OF A DECIDED GAME, ON KUNAL'S PHONE ════════
   const b=await L.launch({geo:{w:375,h:730},name:'sel-cls-consumers',store:{ct_pool:'3',ct_revCompact:'1'}});
@@ -294,8 +430,28 @@ L.run(async()=>{
   // is red on a good build is worse than no gate. Cut rather than weakened, and cut rather than left
   // throwing: this gate now covers instance 1 END TO END and instance 2's ARTICLE only.
   //
-  // WHAT IS THEREFORE UNCOVERED, named so nobody reads U+D as covering the drill: the stored label itself.
-  // `label:_S` is the one-token change that stops the card saying "a great", and NOTHING HERE ASSERTS IT.
-  // Block U proves the article is chosen from the word; block D proves the row no longer contradicts
-  // itself; neither reads a drill card. jobs/gate-67-has-no-assertion-over-the-stored-drill-label-2026-09-30.
+  // WHAT IS THEREFORE UNCOVERED, named so nobody reads this gate as covering the drill end to end.
+  // THIS PARAGRAPH SAID "NOTHING HERE ASSERTS IT" ABOUT THE STORED LABEL AND #493 MADE THAT FALSE IN THE
+  // SAME COMMIT THAT WITHDREW TWO OTHER FALSE HEADER CLAIMS [R18]. Antagonist A caught it: block P, a
+  // hundred lines above, asserts exactly that token, so the file's footer had come to contradict its own
+  // header - the carrier problem CLAUDE.md records at #441, inverted, and installed by the build that was
+  // advertising its repair. Corrected here rather than anywhere else.
+  // WHAT IS COVERED NOW: P1 the stored grade derives from `sel`, P2 the stored token IS the filtered
+  // token, P3 no admitted grade is in PRAISE - all three SOURCE-LEVEL, over the producer.
+  // WHAT IS STILL NOT COVERED, and the first of these is a LIVE player-visible defect:
+  //   (1) THE INSTALLED STORE. Every assertion here is about rows this bundle WRITES. A #441-era bundle
+  //       wrote the DISPLAY label into ct_mymistakes, those rows are in real stores now, and nothing
+  //       migrates them - chess.jsx:4349 patches only `why`/`hint`, puzzleFromMistake (~5480) has no label
+  //       guard, and a row leaves only by being solved or evicted off `.slice(0,150)`. A player can read
+  //       "you played Bg5 here, an excellent. Find the stronger move." today. Found by antagonist B, filed
+  //       as jobs/a-legacy-drill-row-still-praises-the-move-it-asks-you-to-improve-and-nothing-migrates-
+  //       it-2026-10-07. It needs a guard in the APP; no assertion here can fix it.
+  //   (2) THE RENDERED GOAL SENTENCE. No gate in this project asserts the text a drill card paints, and
+  //       the route to do it exists (see the header). jobs/no-harness-route-to-the-drill-capture-producer-
+  //       2026-09-30, re-keyed.
+  //   (3) THE `||"mistake"` FALLBACK inside the goal site's own argument. Block U locates that expression
+  //       and never evaluates it, so deleting the fallback would paint "a undefined" with U0..U13 green.
+  //       Antagonist A found it; antagonist B measured that NO producer can write a label-less row
+  //       (`git log -S` shows every version of the capture carrying `label:`), so it is a gate blindness
+  //       rather than a reachable defect, and it is recorded on job (1) rather than asserted here.
 });
