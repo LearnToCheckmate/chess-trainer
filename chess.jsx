@@ -449,10 +449,31 @@ function winDrop(beforeW,afterW,mover){
 // old centipawn cut-off equalled AT EVAL 0, where the old ladder was well calibrated - inverting them
 // returns 15.000, 40.000, 90.000, 160.000 and 320.000 centipawns, so a LEVEL position grades exactly as
 // it did before #440 and only a decided position moves. That is Kunal's complaint and nothing else.
-// Lichess's own published thresholds (>=10 Inaccuracy, >=20 Mistake, >=30 Blunder) were measured and
-// REJECTED: at eval 0 they sit at 110, 230 and 377 centipawns, so they would have softened the middlegame
-// nobody complained about, and a 350cp slip at eval 0 would have become a Mistake. Lichess publishes
-// nothing above Inaccuracy, so its thresholds cannot supply our Best/Excellent/Good split in any case.
+// LICHESS'S OWN PUBLISHED THRESHOLDS, AND THIS WHOLE PARAGRAPH IS CORRECTED AT #491 [R18]. It read
+// ">=10 Inaccuracy, >=20 Mistake, >=30 Blunder ... at eval 0 they sit at 110, 230 and 377 centipawns, so
+// they would have softened the middlegame nobody complained about, and a 350cp slip at eval 0 would have
+// become a Mistake". EVERY CLAUSE OF THAT IS WRONG, and Kunal caught the first one himself on 2026-10-03
+// while researching the mate question: "Lichess's thresholds are 0.1, 0.2 and 0.3 on a scale that runs from
+// minus one to plus one - which is 5, 10 and 15 percentage points, not 10, 20 and 30 ... we are exactly
+// twice as lenient as Lichess everywhere, not just on mates. That is worth checking before the pile lands,
+// and it is a gate, not an opinion." Measured at #491 by inverting this file's own winPct:
+//   Lichess   5 / 10 / 15 win% points        =   54 / 110 / 168 centipawns at eval 0
+//   ours      8.2096 / 14.3166 / 26.4635     =   90 / 160 / 320 centipawns at eval 0
+// So (a) the thresholds were DOUBLED, and the quoted 110/230/377 are the inversions of 10/20/30 rather than
+// of anything Lichess publishes; (b) LICHESS IS STRICTER THAN US - by 1.65x, 1.45x and 1.90x - so adopting
+// their thresholds would make the middlegame HARSHER, not softer, and the inference ran backwards; and (c) a
+// 350cp slip at eval 0 costs 28.39 points, a Blunder under Lichess's 15 as well as under our 26.4635, so it
+// would NOT have become a Mistake.
+// WHAT SURVIVES AS A REASON, and it is narrower than the paragraph it replaces: Lichess publishes no
+// Best/Excellent/Good split at all - only the three cut-offs above - so its scale cannot supply our
+// six-grade ladder and cannot be adopted wholesale. THAT IS NOT A REASON FOR OUR THREE RUNGS TO BE 1.4x TO
+// 1.9x MORE LENIENT THAN THE THREE LICHESS DOES PUBLISH. That is a product decision Kunal has never been
+// shown, and it is routed, not decided here:
+// jobs/route-to-desk-the-two-product-questions-the-winprob-pile-has-owed-kunal-since-2026-09-30.
+// DO NOT CHANGE CLS_BANDS ON THE STRENGTH OF THIS COMMENT. The five cut-offs reproduce the pre-#440
+// centipawn ladder at eval 0 exactly - gate 66's A27 asserts agreement at all 1501 integer losses - which is
+// the amber decision at flags/amber-440-win-percentage-ladder-keeps-our-cutoffs-not-lichess-three. The
+// leniency is real and is now a recorded choice rather than an inherited accident; changing it is his call.
 // THE BOUNDED CONSEQUENCE, stated because it is a product statement and not a bug: a drop is capped by
 // the winning chances you still had, so from about -1200 centipawns down every move grades Best. Once
 // you are two queens down you cannot make a mistake. Cap table, measured: -200 Blunder, -400 Mistake,
