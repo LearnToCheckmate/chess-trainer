@@ -1353,3 +1353,35 @@ Parked at `patches/proc-lane2-art-gates-regress-40-reachability-js-2026-10-04`.
 **Not checked.** The 84-minute `gates.sh` suite (unreachable for `gates/audit` and `gates/*.sh`: the suite globs `gates/regress/*.js`). Whether the other three payloads interact in any instrument other than gatemanifest's selftest. Whether the five-payload order I used is the order STEP 1I will choose.
 
 **Delivery:** this record only, parked at `patches/proc-lane1-art-claude-PROCESS-LOG-md-2026-10-07`. It carries **no artefact commit** and is a pure append, so `git am --skip` costs this record and nothing else. NOT on main; this lane cannot push.
+## 2026-10-07T18:4xZ — process-build lane 1, run process-build-1__1791398097932
+
+**Item.** jobs/a-new-gates-regress-gate-cannot-be-delivered-by-a-process-lane-because-its-manifest-row-is-outside-the-allow-list-2026-10-07, filed by this run. It was found while choosing an item, not while hunting: the oldest priority-13 finish-first job whose remainder is inside this lane's allow-list is jobs/20-review-cats-frozen-at-eight (raised 2026-09-22), and its remainder is `gates/regress/56-review-ladder.js`, a NEW numbered gate. Checking whether that was deliverable is what produced the finding, so the job this run filed is the reason the job this run wanted to take cannot be taken by this lane at all.
+
+**Changed.** `gates/audit/verify-parked-patch.sh` only, one file, commit `cd8f457` over base `6fb630d`. New check **C5-NEW-GATE-MANIFEST-ROW**: a parked payload that ADDS a path matching `gates/regress/[0-9]*.js` is refused, with the gate named.
+
+**What was measured, and it is measured in both directions rather than read off the source.**
+
+| what | command | result |
+|---|---|---|
+| manifest baseline | `gatemanifest.sh check` on a throwaway copy of `gates/` | exit 0, `57 required, 57 present, 0 missing, 0 unlisted` |
+| manifest with one unlisted gate | same copy + `gates/regress/74-synthetic-measurement.js` | exit **2**, `57 required, 58 present, 0 missing, 1 unlisted` |
+| the file removed again | same copy | exit 0, `0 unlisted` — so the detector is silent as well as firing |
+| push gate, control | `verify-log.sh claude/agents/gatelogs/493b-all.log '#493'` | exit **0** |
+| push gate, 1 unlisted | the SAME log, three footer lines changed to `58 present, 1 unlisted` | exit **1**, `REFUSED (gate manifest)` |
+
+The arithmetic in the forged log was kept consistent (`58 present - 1 unlisted + 0 missing = 57 required`) so that `verify-log.sh`'s separate add-up refusal cannot be what fired. Four lines differ between the two logs.
+
+**Why the two checks together are a proof and not a precaution.** The row that makes a new gate pushable goes in `gates/gate-manifest.tsv`. That path is in this lane's forbidden list, and `verify-parked-patch.sh`'s own `forbidden()` already rejects `gates/*.tsv` — there is a committed control for it (`C4 fires on a .tsv under gates`). So C4 fails the payload if the row is included and C5 fails it if it is not. There is no third route. **And the refusal lands at the PUSH, so the cost is not the payload: it is every commit in the build that landed it.** A process lane's unlandable gate would stop the build lane pushing anything at all until someone added the row by hand.
+
+**Gates run, and their numbers.** `gates/audit/verify-parked-patch.sh --selftest`, **17 → 25 pass / 0 fail** with `SELFTEST_REPO` set; 15 → 23 without, which is this file's own already-filed C3 scope defect and not something this change introduced. Byte-identical over three consecutive runs with temp paths normalised, md5 `d984d0b35a518833` three times [R36]. Eight new controls, the firing arm written first: C5 fires on a new numbered gate; the **negative control** that `VERDICT SOUND` is genuinely replaced by `VERDICT REJECT`, not merely accompanied by a FAIL line; the message names the gate; **two silent arms** — a MODIFIED gate (its manifest row already exists) and a new `gates/audit/` script (the manifest's required set is `gates/regress/*.js` only); a **two-gate discriminator**, so a check that found the first and stopped reads differently from one that counts; and a **NOT CHECKED** arm for a `new file mode` line that no `diff --git` claims. **Mutation control on a copy**: replacing C5's gate-number match with a pattern that cannot match kills exactly the three C5 firing controls and leaves all 22 others green, so the mutation kills only its own arm.
+
+**Measured on the live pile, not only on fixtures [R18].** All **15** payloads in `patches` carrying a `patch` and no `integrationResult` read SKIP. Six add exactly one file each and **every one of those six is a `gates/audit/` script**. The parse's attributed count equals each payload's own `new file mode` count on all 15, so nothing read NOT CHECKED either. C5 therefore fires on nothing today and is prospective — stated that way rather than counted as a catch. The six adders being six more callerless `gates/audit/` scripts is the other half of the same hole: the manifest's required set is `gates/regress/*.js`, which is exactly why five such scripts have landed on main with nothing invoking them and nothing objecting.
+
+**An error of my own, found by running and not by reading.** The control block was first inserted after the selftest's `rm -rf "$T"`, so all eight new controls ran against a deleted temp directory and reported `C0-PAYLOAD-NON-EMPTY FAIL payload file is missing or empty` — 17 pass / 8 fail, with every failure message pointing at the payload rather than at the harness. Relocated above the cleanup. Kept here rather than quietly fixed, because the failure mode is the one worth knowing: a control that cannot reach its fixture fails in the vocabulary of the thing under test.
+
+**Not checked.**
+1. I did **not** re-run the 56-section suite. Nothing under `gates/audit/` is reachable from `gates.sh`, whose list is `gates/regress/*.js`, so this payload cannot move a suite number and running it would prove nothing.
+2. I did **not** verify that `gates/gatemanifest.sh sync` would in fact make a new gate pushable. The claim here is only that it is refused without the row.
+3. I did **not** sweep the three sibling audits (`verify-patch-set.sh`, `cited-not-run.sh`, `landed-on-main.sh`) for whether any of them already asks this question. `verify-patch-set.sh` is the cross-payload audit and S3b reads the gate NUMBER space on main, which is adjacent and not the same check; I did not read the other two.
+4. I did **not** test this payload's merge against the other five `claude/PROCESS-LOG.md` payloads parked today, in either order. The record is committed separately from the artefact (`cd8f457` artefact, the record alone) so an append conflict costs this record and not the check, but the split is **declared** safe rather than proved safe.
+5. I did **not** mutate the vacuity guard. Its NOT-CHECKED arm has a firing control and a forged input; it has no mutation.
