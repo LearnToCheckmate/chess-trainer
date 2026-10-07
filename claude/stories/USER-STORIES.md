@@ -310,6 +310,43 @@ one I played, in a comparison, so I learn something from my own game rather than
   `width` before and after the verdict lands, at each of THE DRILL SEVEN, equal within the 0.05px tolerance gate
   16 already uses. That is gate-side work and is why this reads as a named gap rather than as a covered clause.
   (jobs/clauses-cite-assertions-that-do-not-assert-them-2026-09-28)
+- **AND IT MUST BE RIGHT ON THE ENGINE BRANCH THE DEVICE CHOOSES, NOT ONLY ON THE ONE THE FIXTURE GETS.**
+  Every clause above is a promise about a sentence, and the sentence is built from the review's engine output, so
+  a clause satisfied on one engine branch is not satisfied on the other. The review takes one of two branches and
+  THE DEVICE PICKS, not the test: the review branches on `const useSF=sfReadyRef.current?await ensureAna():false`
+  in `chess.jsx` - quoted rather than cited by line on purpose, see THE ONE LINE CITATION below - and
+  there is no `ct_*` override that forces either side, so a phone whose Stockfish worker never answers `readyok`
+  gets the minimax fallback and the player still reads a sentence. Which branch ran is RECORDED - the review
+  writes `engine:useSF?'sf':'fallback'` into `ct_gamestats` (chess.jsx:4072, measured on main 97393a6; the figure
+  3965 carried by `jobs/gate-51-fallback-column-assertions-written-and-three-are-red-on-main-2026-10-03` was read
+  off #473 and is withdrawn in favour of 4072 [R18]) - so a run that cannot say which branch produced its capture
+  has not met this clause. (TC-R16 A0e - `51-drill-explain-why.js`, which asserts the capture came from the
+  pooled Stockfish branch - located by its assertion id, not by a line number.)
+  **WHAT A0e DOES AND DOES NOT GIVE US, because the difference is the whole clause.** A0e LABELS the branch; it
+  does not assert the sentence is correct on the fallback branch, and the gate's own header (:54-:67) says why it
+  cannot: the fallback is the `else` branch of that same `if(useSF)`, reachable only by a worker that fails to
+  ready, which no
+  `ct_*` can arrange, so the branch is INSTRUMENTED rather than driven. The consequence to hold on to is that a
+  green gate 51 on a tree where A0e is RED is a green on uncovered code. MEASURED, and this is why the clause is
+  written as a requirement rather than a note: on #473 (f3ae36a) at 375x730 with `engine='fallback'`, the drill
+  told a BLACK player whose Mistake lost the game that it 'left you slightly better' - TC-R16 A8 red,
+  `bands=['slightly better']` - which is the sentence class the #426 veto was raised over, live on the branch the
+  device may choose. **NOT YET MEASURED ON THE COVERED BRANCH**: whether that same sentence ships on `sf` is
+  unknown, because no run on a tree where A0e is green has been recorded. That run is the job's own next step and
+  it needs a machine where Stockfish readies; this clause does not pre-judge it.
+  **THE ONE LINE CITATION, AND WHY THERE IS ONLY ONE.** `gates/verify-log.sh --citations` arm (4) is a ratchet on
+  line-number citations in `claude/stories/*.md`, and MEASURED in one clone by stash and pop at main 97393a6 this
+  clause first took it from 44 of a ceiling of 48 to 47 - three quarters of the remaining headroom for one
+  clause. All three resolved (0 dead, 0 past end of file), so the numbers were right; they were still the wrong
+  instrument, because a line number in a story file is the thing that goes stale, and this job's own `3965` is
+  the proof - it was true at #473 and false by #490. So two of the three are now quoted expressions, which grep
+  finds wherever the code moves, and the count is 45. The one that remains is the `chess.jsx` line cited in the
+  clause above, kept because the
+  clause's whole weight rests on the branch being RECORDED and a reader must be able to go and look. THE COUNT WAS
+  BRIEFLY 46 AND NOT 45, and the cause is worth one sentence because the arm's matcher is `grep -onE` over the
+  whole file: naming the citation a second time HERE counted a second time, so this paragraph now points at the
+  citation above rather than repeating it. An arm that counts occurrences, not distinct targets, is the right
+  design for a ratchet and the wrong thing to be surprised by.
 
 **NOT YET A CLAUSE, moved out of the acceptance list on 2026-10-03.** *Where the engine data does not support a
 shape, the sentence says less rather than guessing: a plausible wrong explanation is worse than a short true one,
