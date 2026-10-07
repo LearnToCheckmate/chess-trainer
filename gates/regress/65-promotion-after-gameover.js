@@ -88,8 +88,8 @@
 //     covered, since B1 flags with no engine and C1 faces the engine with no clock. STILL NOT DRIVEN: the
 //     PICKER in a vs-Computer game, at either geometry, which is the job's own `case` and stays its remainder.
 //     THE REASON IS MEASURED, not a cost argument: a promotion cannot be reached against the bot from the start
-//     position by anything cheap enough to live in a gate. #495 drove 17 games across six probes - seeded and
-//     unseeded, greedy raid, single-file raid, queenside raid, and a sweep over 7 seeds x 2 file sets - and not
+//     position by anything cheap enough to live in a gate. #495 drove 17 games across six probes (5 single runs + a sweep of 6 seeds x 2 file sets = 12) - seeded and
+//     unseeded, greedy raid, single-file raid, queenside raid, and a sweep of 6 seeds x 2 file sets = 12 - and not
 //     one promoted; the bot's pawns block the raider (a2-a6 then stuck behind a7 for 18 plies is the rook-file
 //     block) or White is mated or stalemated first. Determinism is NOT the obstacle and #488's blocker is half
 //     solved: `b.ctx.addInitScript` replacing Math.random with a seeded LCG before load pins the built-in
@@ -588,8 +588,21 @@ async function blockH(){
 // `v+(Math.random()-0.5)*randomness`, so the bot's replies are not reproducible and R36 forbids admitting a
 // non-deterministic test. It named two ways out, "a seeded engine or a fixture route".
 // THE SEEDED-ENGINE HALF IS SOLVED AND IT IS NOT THE BINDING CONSTRAINT. `eloParams` (chess.jsx:1490) is
-// `r=max(0,round((1850-elo)*0.075))`, which is 0 only above elo 1843 - and elo>=1500 takes the Stockfish branch,
-// so on the built-in-engine branch (elo<=1300) the randomness is never 0 and is 101 for Pip at 500. But the
+// `r=max(0,round((1850-elo)*0.075))`, which is 0 only from elo 1844 up (integer elo: (1850-elo)*0.075 < 0.5
+// needs elo > 1843.33), and it is 101 for Pip at 500. TWO FIGURES IN THE FIRST DRAFT OF THIS PARAGRAPH WERE
+// WRONG AND ARE CORRECTED HERE ON ANTAGONIST A'S VETO [#495, R18], because this paragraph exists to be RELIED
+// ON by the next run and a wrong premise written for that purpose is CLAUDE.md's #433 exactly:
+//   (i) it said "elo>=1500 takes the Stockfish branch". THE THRESHOLD IS 1320, not 1500:
+//       chess.jsx:3670 is `if(sfRef.current&&sfReadyRef.current&&cpuElo>=1320){`. 1500 is a DIFFERENT number
+//       on a DIFFERENT line - the movetime cut at chess.jsx:3709,
+//       `const _mvTime=(cpuElo<1500?1100:cpuElo<2000?1900:2600);` - and the wrong one was copied in.
+//   (ii) it said the built-in engine's randomness "is never 0 on the built-in-engine branch (elo<=1300)".
+//       That is true of the elo RANGE but false of the BRANCH: the branch also requires the worker, and the
+//       handshake-failure path at chess.jsx:3705-3708 falls back to the built-in engine for ANY elo up to
+//       ELO_MAX=2400 (chess.jsx:1488), where r IS 0 from 1844 up. So a deterministic built-in engine is
+//       reachable with no worker, which the original sentence denied.
+// NONE OF THIS CHANGES THE CONCLUSION - Pip at 500 is r=101 and d=1, so the bot this block faces is random and
+// fast - but the premise is what a later run would build on, so it is corrected rather than left standing. But the
 // harness can pin it from outside the bundle: `b.ctx.addInitScript` replacing Math.random with a seeded LCG
 // before the app loads makes the built-in engine fully deterministic, touching no app code. That works.
 // WHAT DOES NOT WORK IS REACHING A PROMOTION AT ALL, and determinism was never the obstacle: CONTROLLABILITY
@@ -599,7 +612,7 @@ async function blockH(){
 //   * a single-file raid with a knight shuffle for tempo -> a2-a6 then STUCK for 18 plies: a7 held a black pawn
 //     and b7 was empty, which is the rook-file block, and no promotion is possible on that file ever again
 //   * a queenside raid keeping White's king shelter home -> stalemate on ply 58
-//   * a seed sweep over further seeds and file sets      -> same shape: the bot's pawns block mine
+//   * a seed sweep, 6 seeds x 2 file sets = 12 games      -> ZERO promoted (promotion-seed-sweep.log)
 // A pawn cannot be walked to the eighth rank against even a 500-Elo opponent by any heuristic cheap enough to
 // live in a gate, because the bot has to COOPERATE and it cannot be made to. Seeding fixes reproducibility and
 // does nothing about that. So the honest position is: the promotion route into a vs-Computer game needs a
@@ -607,17 +620,45 @@ async function blockH(){
 // playing fool's mate move by move), and that is a feature-sized piece of work, not a line in this gate.
 // IT IS NAMED ON THE JOB rather than left here, and the NOT CHECKED list below carries it.
 //
+// ── SAY THE UNIT, BECAUSE "22 ASSERTIONS" WAS NEVER ONE [#495, both antagonists, independently] ─────────────
+// This block emits TEN assertions at TWO geometries = 20 PASS lines (eleven and 22 before I2 was deleted above).
+// Of the ten, SIX are instruments or preconditions (I00, I0a, I0b, I0c, I0d, I0e) and one is a console-error
+// check, so the block carries THREE defect assertions - I1, I1b, I1c - and all three read the SAME DOM node,
+// [data-ct="play-moverow"], at two different times. So the reds on the control are ONE defect x TWO geometries
+// x THREE views of one scalar, not six independent findings. That is the 15-gallery-playall pattern CLAUDE.md
+// records as "two of which are the same measurement written twice", and it is stated here rather than left for
+// a reader to divide out. BLOCK I READS NO PAINT AND NO BOARD: `taken()`, the captured-material instrument
+// block A uses, is defined at the top of this file and is deliberately NOT used here.
+//
 // ── WHAT MAKES I1 ABLE TO FAIL, and the control is the same two lines every other block here reverts ─────────
 // THE RECIPE, verbatim, against chess.jsx as this gate ships (the bundle is on no disk, so the source edit is
 // the reproducible artefact). In a scratch copy, revert BOTH guards, then `CT_OUT=<path> gates/build.sh '#NNN'`:
 //   (1) chess.jsx:4634  delete  if(modeRef.current==='play'&&playEndRef.current)return;        (inside doMove)
 //   (2) chess.jsx:5017  delete  if(modeRef.current==='play'&&playEndRef.current)return false;  (humanCanMove)
+// AND THE MIRROR CASE, WHICH THE FIRST DRAFT DID NOT STATE AND WHICH IS THE WORSE OF THE TWO [#495,
+// antagonist B]. Reverting (2) chess.jsx:5017 ALONE leaves doMove's own guard in place, so the commit is still
+// refused, the ply count and the move row never move, and EVERY assertion in this block - and in blocks A, B,
+// C, D, E, G and H - STAYS GREEN. What the player gets is a dead board that still LIFTS the piece and PAINTS
+// its legal targets, because onPtrDown is humanCanMove's only caller (chess.jsx:5034) and it writes
+// UI.current={sel,tgts,...} before doMove is ever consulted. CONFIRMED BY GREP, not assumed: no file in
+// gates/regress reads selection or target highlighting, so chess.jsx:5017 has NO negative control anywhere in
+// this suite, this block included. It IS reachable - each square paints `isSel` and `tgt` as child divs at
+// chess.jsx:8517-8518 - so the assertion is possible, and it is filed as its own job rather than improvised
+// here, because a new assertion is worth nothing without its own single-revert control bundle.
+//
 // BOTH are required and that is the point of the pair: (2) alone stops the piece being lifted, so reverting only
 // (1) leaves the tap refused earlier and I1 stays green over a bundle whose committer is wide open. Run it as:
 //   CT_APP=<bundle> CT_B65=I node gates/regress/65-promotion-after-gameover.js
 // THE MEASURED RESULT, so the recipe carries its numbers rather than promising them [#411/#412]:
-//   SHIPPED  app.js md5 c84bfbeb53e2 (= origin/main's #494 bundle):  block I  22 pass /  0 fail
-//   CONTROL  md5 99034453392e (the two lines above reverted):        block I  16 pass /  6 fail
+//   SHIPPED  app.js md5 c84bfbeb53e2 (= origin/main's #494 bundle):  block I  22 pass /  0 fail  [11 assertions]
+//   CONTROL  md5 99034453392e (the two lines above reverted):        block I  16 pass /  6 fail  [11 assertions]
+//   THOSE TWO ROWS ARE THE ELEVEN-ASSERTION BLOCK AS IT WAS ACTUALLY RUN, md5-pinned, and they are kept rather
+//   than edited away. RE-MEASURED AFTER THE I2 DELETION, same two bundles, same command:
+//   SHIPPED  5a098cd24dae:  block I  20 pass /  0 fail  [10 assertions]  <- THE BUNDLE THAT SHIPS
+//   CONTROL  99034453392e:  block I  14 pass /  6 fail  [10 assertions]
+//   THE RE-MEASUREMENT IS ON 5a098cd24dae AND NOT ON #494's BUNDLE, DELIBERATELY [#495, antagonist B]: B noted
+//   that the 22/0 rows above were taken on c84bfbeb53e2 and that THE COMMITTED BYTES HAD NEVER BEEN BLOCK-I'd
+//   before the push. They have now. The six reds are I1/I1b/I1c at both geometries, every instrument green.
 //   THE SIX REDS ARE I1, I1b AND I1c AT BOTH GEOMETRIES, and every instrument - I00, I0a, I0b, I0c, I0d, I0e -
 //   plus I2 and I3 stays GREEN on both bundles. So the control crosses the threshold the assertions draw rather
 //   than merely disturbing the mechanism [CLAUDE.md, #384 and #416]: on the control the board ACCEPTED d2-d4
@@ -653,7 +694,14 @@ async function blockH(){
 //   either geometry, and the setup is deliberately 1.e4-and-wait so the cost is the clock and nothing else.
 //
 // NO PRNG IS SEEDED IN THIS BLOCK, DELIBERATELY, and this is the simplification worth keeping: not one assertion
-// below depends on WHICH move the bot chose, only that it moved. I0a asserts the reply arrived; everything after
+// below depends on WHICH move the bot chose, only that it moved.
+// AND THE EVIDENCE FOR THAT IS BETTER THAN "TWO IDENTICAL RUNS", WHICH IS WHAT THE FIRST DRAFT CLAIMED AND IS
+// BOTH WEAKER AND WRONG [#495, antagonist A]. Across the six block-I runs made while building and controlling
+// this block THE BOT PLAYED FIVE DIFFERENT REPLIES to 1.e4 - Nf6, d5, Nc6, e6 and h6 - and the verdict vector
+// was identical every time: 20/0 on the shipping bundle, 14/6 on the control, the same six reds. Two runs that
+// agree because the bot repeated itself would show nothing; five different replies with one verdict is the
+// invariance this paragraph asserts, measured. (It also means I1's d2-d4 was accepted as legal after five
+// distinct black first moves, which is the empirical half of the legality argument below.) I0a asserts the reply arrived; everything after
 // the flag asserts that NOTHING moves. So the block is invariant to the bot's choice and is deterministic under
 // R36 without pinning the engine at all - which also means it cannot be broken by a future change to the
 // engine's eval, move ordering or styleBias. The seeded-LCG fixture is written up above because it is the part
@@ -698,7 +746,22 @@ async function blockI(geoKey){
   const pSettled=await plies(b);
   L.say(pSettled===pBefore,'I1b ['+tag+'] the ending still holds 2.2s later - no move has appeared',{before:pBefore,after:pSettled});
   L.say((await row(b))===rowBefore,'I1c ['+tag+'] the move row is byte-identical to what it was before the flag',{before:rowBefore,after:await row(b)});
-  L.say((await picker(b))===null,'I2 ['+tag+'] no promotion picker is on screen in this state',await picker(b)||'absent');
+  // I2 WAS HERE AND IT HAS BEEN DELETED ON ANTAGONIST B'S VETO [#495]. It read
+  //   L.say((await picker(b))===null,'I2 no promotion picker is on screen in this state', ...)
+  // and IT COULD NOT FAIL. This block plays 1.e4, one bot reply, a 60-second flag and one tap on
+  // d2-d4: no pawn ever comes within six ranks of the eighth, so the `position:fixed` overlay whose
+  // text starts "Promote to" cannot exist in ANY state this input reaches, on ANY bundle. It logged
+  // [absent] on the shipped bundle AND on the control, and the first draft of this header presented
+  // that as a virtue. It is the fourth vacuity shape in CLAUDE.md's list - the thing it asserts
+  // absent was never present - and it is the rule A0, B0 and H0 enforce on themselves three times in
+  // this same file. Uniquely, it could not be given an instrument: a picker here is the very thing
+  // the block says is unreachable. THE HARM WAS CONCRETE AND IT IS WHY THIS IS A DELETION AND NOT A
+  // RE-WORDING: a line reading "no promotion picker is on screen" printed twice in a block headlined
+  // vs-COMPUTER, inside a gate whose own NOT CHECKED list says the vs-Computer PICKER CELL IS STILL
+  // OPEN, tells a reader scanning the log for "is the picker covered against the engine?" that it is.
+  // The prose said open; the log said PASS. That is the mirror image of the I1b label this same build
+  // withdrew, for the same reason. The picker's absence here is recorded in the NOT CHECKED list,
+  // which is where a thing nothing drove belongs.
   L.say(b.errs.length===0,'I3 ['+tag+'] no console errors in the vs-Computer flag block',{errs:b.errs.length});
   await b.shot('495-65-I1-cpu-flag-'+(isLand?'land':'port'));
   await b.close();
