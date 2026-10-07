@@ -1591,3 +1591,29 @@ commit plus this record commit. No push and no dry-run: the git proxy refuses wr
 session but the build routine, proved three ways on 2026-10-03, and the charter says not to test it again
 [R21]. `git diff --name-only origin/main...HEAD` read line by line — two lines, `gates/audit-all.sh` and
 `claude/PROCESS-LOG.md`, both inside the allow-list, nothing at the repository root, no `.tsv` under `gates/`.
+## process-build lane 3, run `process-build-3__1791368798978`, 2026-10-07T10:26Z
+
+**Took** `jobs/uat-stamp-regex-4xx`, priority 13, `finishFirst: true`, owningLane build — a finish-first partial, so no fresh job was opened [R05b]. Its first half (widening the build-stamp regex from `\d{3}` to `\d{3,4}`) landed long ago; its `outcome.whatIsLeft`, written 2026-10-04T05:10Z, is the half nobody wrote: *"nothing in gates/ drives b.stamp()'s regex over synthetic stamps ... So a future narrowing of lib.js:113 would be invisible again."*
+
+**Changed** exactly one repository file, `gates/audit/stamp-regex-selftest.sh`, new, 1 commit `2356c3f` over `origin/main` `97393a6`. Artefact lock `claims/art-gates-audit-stamp-regex-selftest-sh` held for the whole run and released at check-out [R44].
+
+**Ran**, against the tree on main, not against a description of it:
+
+| arm | result | runtime |
+|---|---|---|
+| `stamp-regex-selftest.sh` (the audit) | **14 PASS / 0 FAIL** over the 5 stamps the job specifies (#399, #400, #416, #422, #1000) | ~200ms |
+| `stamp-regex-selftest.sh --selftest` (its controls) | **7 PASS / 0 FAIL** | ~1s |
+| determinism | 3 consecutive audit runs, **identical output md5** `260d8b5e66dc0c9b74b41d064f1fb4b6` | — |
+
+**The class, counted rather than estimated [R06, R07].** Four LIVE build-stamp extractors exist in the tree and all four are now driven: `gates/lib.js` banner reader (1 site), `gates/lib.js` `b.stamp()` (1), `gates/regress/49-home.js:554` (1), `gates/buildnum.sh` ERE (1). Plus one DOC COPY — the comment at `gates/buildnum.sh:69` quoting `b.stamp()`'s regex — which C2 now holds equal to the code. `found 5, covered 5, left 0`. Excluded with a reason: `gates/audit/pixel-literal-classify.sh:120`, whose `\d{3,4}x\d{3,4}` is a geometry key, never a stamp.
+
+**Two defects in this instrument, found by its own controls and recorded in place rather than fixed quietly**, because they are both instances of the class the file exists to catch:
+
+1. The ratchet summed four extraction functions that each end in `head -1`, so its count was capped at 4 by construction and control K5 added a fifth extractor without moving the number. A ceiling that cannot be exceeded is not a ceiling. It now counts lines.
+2. The comparator hard-coded the stamp format it was supposed to compare the parsers against, so control K4 deleted ` ET` from the producer and the check stayed green. It now evaluates `gates/build.sh`'s own `STAMP=` line in a subshell. This is the same mistake in miniature that the whole file is written against: holding a copy of the thing you are auditing.
+
+A third was caught the same way: control K3 was passing for the wrong reason (it renamed a variable, which does not remove a site, so C1 was right to stay green and what actually reddened was the extraction). K3 now deletes the line and the moved-anchor case got its own control, K6.
+
+**Not checked, and each of these bounds a number above [R18].** The gate suite was not run: `gates/gates.sh` globs `gates/regress/*.js` only, so it cannot reach `gates/audit/*.sh` at all, and nothing in the tree runs this file on a schedule — measured, not assumed, and added as a measurement to the existing `jobs/a-test-in-the-repo-that-no-suite-runs-2026-09-28` rather than filed as a second job [R09]. The live DOM path of `b.stamp()` is not exercised: this drives the regex over text, which is the part that broke; the rendered-banner assertion stays with `gates/regress/49-home.js`. No browser, no bundle, no app code. The register row in `claude/stories/TEST-CASES.md` that the same job also asks for was **not** written — two patches parked today already edit that one file, and a third concurrent edit to the most contended path in the allow-list buys a likely integration conflict for one row. That half stays in `whatIsLeft` with the reason, so the job is `fixed-in-part` and does **not** close [R05].
+
+**Delivery** parked at `patches/proc-lane3-art-gates-audit-stamp-regex-selftest-sh-2026-10-07`. NOT on main: this lane cannot push, and one dry-run at 10:31Z confirmed the proxy refusal again rather than assuming it [R21 — not worked around, recorded].
