@@ -1503,3 +1503,91 @@ All four green, 166 pass / 0 fail in total, each run alone against this containe
 **Not checked.** Whether gate 51's header (not under this run's lock) should have its three stale line numbers corrected — stated on the job, not edited. Whether the three sibling `claude/agents` audits reference these gates. Whether any of the four gates would pass on a single-worker pool: that is the uncoverable branch itself and is the whole point of the note. And no claim is made that stating the gap improves coverage — it does not; it converts a silent default into a record, which is exactly what the job asked for and no more.
 
 **Delivery** parked at `patches/proc-lane2-art-gates-regress-34-35-36-37-engine-branch-2026-10-07`. NOT on main; this lane cannot push.
+## process-build lane 3, run process-build-3__1791412022916, 2026-10-07T22:27Z — gates/audit-all.sh, one caller for the five instruments nothing runs
+
+**ITEM** `jobs/a-test-in-the-repo-that-no-suite-runs-2026-09-28` (ready, priority 14, band 14, finishFirst, raised
+2026-09-28 by build-external-challenger). Its CLASS half, not the TC-R50 register row its `scopeReducedTo` names.
+It was chosen because it is the oldest job at the highest priority whose remainder sits wholly inside the
+process-build allow-list and whose artefact carries no unlanded patch — and the second clause was a selection
+criterion rather than luck: lane 4 measured at 22:12Z that two unlanded patches on one file refuse each other in
+both orders, so every artefact already carrying a pending payload was excluded before the item was chosen.
+
+**THE CLASS, MEASURED AT origin/main 65296e8 AND NOT READ.** `gates/audit/` holds **5 files with the executable
+bit set** — `cited-not-run.sh`, `landed-on-main.sh`, `pixel-literal-classify.sh`, `verify-parked-patch.sh`,
+`verify-patch-set.sh` — and `grep -rn "audit/" gates/*.sh deploy.py` returns **exactly one hit**,
+`gates/fastgate.sh:178`, which is a classification string inside a `case` arm and not a call. Four of the five
+carry a `--selftest` arm and **157 controls** between them (43 + 19 + 15 + 80), and every one of those controls
+has been executed by hand, once, by the run that wrote it. That is this job's own title, five times over.
+
+**WHY A NEW ENTRY POINT AND NOT EITHER REMEDY THE JOB'S `fix` FIELD OFFERS.** Both are closed to this lane,
+which is why the class half has sat since 28 September. (1) *Move it under `gates/regress/` with a claimed
+number* needs a row in `gates/gate-manifest.tsv`, outside the allow-list — and lane 1 measured the consequence
+at 18:34Z: `gates/verify-log.sh` exits 1 with `REFUSED (gate manifest)` on a log whose footer reports an
+unlisted gate, so the build that lands it loses the push for **all** of that build's commits. (2) *Call it from
+`gates/gates.sh`* is inside the allow-list by path and moves the suite's log section count, which
+`verify-log.sh` pins, refusing every green log from that point on. A caller **outside** the suite is the third
+route: no manifest row, no suite number moved, no headroom spent on the push gate's three zero-margin ceilings.
+**WHAT IT DOES NOT DO, said here and in the file's own header rather than left for a reader to find: it does not
+put these instruments in the push suite.** Whether an audit instrument belongs in an 84-minute push suite is a
+scheduling decision above this lane [R20]. This gives the five a caller, not a schedule, and the job stays open.
+
+**THE DESIGN CHOICES THAT ARE ARGUMENTS RATHER THAN TASTE.**
+- **The set is DISCOVERED, never listed.** A hard-coded five is the frozen denominator CLAUDE.md records at
+  #405, where a closed flag answered "none" to the question it existed for because its total could grow.
+- **An instrument with no `--selftest` arm is ACCOUNTED with a reason or it REFUSES the run.** `UNACCOUNTED` has
+  a ceiling of 0, the same shape as `cited-not-run.sh`'s own roster. A reason of `-` is refused, so an empty
+  excuse is not an excuse.
+- **An empty instrument set is exit 2 and never a green.** `every()` over nothing is true, which is the
+  eleventh trap CLAUDE.md records: assert the collection is non-empty, in its own assertion, not as a conjunct.
+- **The verdict is the instrument's EXIT STATUS and nothing else.** Grepping another tool's prose for a verdict
+  is how one rule produced two verdicts on one commit, which cost R38's test (c) two fires and a third an
+  inconsistent one. C13 is the control: an instrument that prints `FAIL` and exits 0 is counted OK.
+- **No early-exit pipe.** Every match is `grep -q` against a file, never `producer | grep -q`, because this
+  project carries 14 measured early-exit-pipe sites whose exit status decides something and whose status is lost
+  to SIGPIPE under `pipefail`.
+
+**FIGURES.** `--selftest` **30 pass / 0 fail**, byte-identical over three consecutive runs, md5
+`0636965cbf4143afc6a14fcabec0a666` [R36 criterion 1]. Against main at 65296e8: `INSTRUMENTS 5  RAN 4  OK 4
+FAIL 0  TIMEOUT 0  ACCOUNTED 1  UNACCOUNTED 0 of ceiling 0`, **exit 0**, `AUDIT-ALL OK`. `--list` over a
+deliberately failing fixture exits 0 and prints `AUDIT-ALL LISTED (nothing was run)`, never `OK`.
+
+**FIVE MUTATION CONTROLS, EACH KILLING NAMED CONTROLS AND NOTHING ELSE**, because 30 of 30 on the first run is
+the shape of a detector that cannot die: drop the `UNACCOUNTED` term from the refusal → C8 and C12 die; discover
+at depth 2 → C18; accept a `-` reason → C12; go green on zero instruments → C14, C15, C16, C18; count a timeout
+as a pass → C23.
+
+**AND THE MUTATION HARNESS FOUND A REAL DEFECT IN MY FIRST DRAFT THAT MY READING DID NOT.** The first three
+mutants, copied to a scratch directory, all reported **27 pass / 0 fail** — a mutation that kills nothing looks
+exactly like a detector that cannot die, and I nearly recorded it as one. The cause was mine and it was in the
+script, not the harness: the missing-directory check sat **above** the mode dispatch, so a copy placed anywhere
+without an `audit/` sibling exited 2 with `no such directory` and never reached its controls at all. The arm
+this file's own USAGE calls "No repository needed" was unreachable outside a tree. Fixed by moving the check
+into a `preflight` the run modes call; C28, C29 and C30 are the controls, and C30 is the one that matters — a
+**run** from that same directory still exits 2, so the check moved and did not go.
+
+**WHAT WAS NOT CHECKED, each as specific as what was.**
+1. **The 58-section suite was not run**, and it could not be informative: `gates.sh:112` globs
+   `gates/regress/*.js`, so this file is unreachable from it by construction. The 58-section / 4262-PASS log at
+   65296e8 is unmoved and the section count `verify-log.sh` pins is untouched. Checked, not assumed.
+2. **`pixel-literal-classify.sh` was not executed in any form.** It is ACCOUNTED on the roster with its reason
+   and that is a visible hole, not a pass: it has no `--selftest` arm (0 occurrences, measured with grep on the
+   file) and prints a census rather than a verdict, so this entry point has no expected value to compare it
+   against. The concrete next step is a `--selftest` arm over fabricated files with a known literal count.
+3. **Nothing schedules this file.** It has a caller and no cadence, which is R42 class 7 in miniature — a
+   cadence written in a document is not a cadence. Named, not solved.
+4. **`landed-on-main.sh` prints `scratch left at /tmp/tmp.XXXX (nothing in this file deletes a
+   variable-built path)` on every green run.** Observed, reported here, and NOT filed as a job: the same cause
+   is already open and a second id for one cause is not a second finding [R09, R25].
+5. **The merge against the three other `claude/PROCESS-LOG.md` payloads pending today was not tested in either
+   order.** The record below is a SEPARATE commit from the artefact, so `git am --skip` costs this record and
+   never the script — but the split is declared safe, not proved safe.
+6. **No geometry was visited and no product behaviour was touched** — out of this lane's coverage area, so
+   R19's 375x761 is irrelevant to this run rather than skipped. `chess.com`, `lichess` and `drive.google.com`
+   were not contacted and were not needed; the egress proxy refuses all three and that is recorded, not worked
+   around [R21].
+
+**DELIVERY.** Parked as `patches/proc-lane3-art-gates-audit-all-sh-2026-10-07`, base 65296e8, one artefact
+commit plus this record commit. No push and no dry-run: the git proxy refuses write to this repository for every
+session but the build routine, proved three ways on 2026-10-03, and the charter says not to test it again
+[R21]. `git diff --name-only origin/main...HEAD` read line by line — two lines, `gates/audit-all.sh` and
+`claude/PROCESS-LOG.md`, both inside the allow-list, nothing at the repository root, no `.tsv` under `gates/`.
