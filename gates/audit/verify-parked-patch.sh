@@ -203,6 +203,60 @@ verify() {
     say C4-ALLOW-LIST SKIP "no diff paths to check"
   fi
 
+  # ---- C5 A NEW NUMBERED GATE NEEDS A MANIFEST ROW THIS LANE MAY NOT WRITE ----
+  # MEASURED 2026-10-07 by process-build-1__1791398097932, both directions, in a
+  # throwaway copy of gates/ rather than read off the source:
+  #   gates/gatemanifest.sh check, baseline            -> exit 0, "0 unlisted"
+  #   the same copy plus one unlisted gates/regress/*.js -> exit 2, "1 unlisted"
+  #   remove the file again                            -> exit 0, "0 unlisted"
+  # Exit 2 is SOFT by design, so the suite still runs the new gate. The refusal
+  # lands one step later and it is hard: gates/verify-log.sh, the one tool that
+  # decides whether a log authorises a push, REFUSES at exit 1 on any log whose
+  # manifest footer reports unlisted > 0. Measured on the committed
+  # claude/agents/gatelogs/493b-all.log: unmodified -> exit 0; the SAME log with
+  # its three manifest footer lines changed from "57 present, 0 unlisted" to
+  # "58 present, 1 unlisted" (arithmetic kept consistent so the separate
+  # add-up check cannot be what fires) -> exit 1, "REFUSED (gate manifest)".
+  #
+  # SO THE PAYLOAD IS UNLANDABLE, AND IT DOES NOT FAIL ALONE. The row that would
+  # make it pushable goes in gates/gate-manifest.tsv, which `forbidden` above
+  # rejects, so C4 fails the payload if the row is included and C5 fails it if it
+  # is not. Those two together are a proof, not a precaution: this lane cannot
+  # deliver a new numbered gate by any route. And the refusal is at the PUSH, so
+  # the cost is not this payload - it is every commit in the build that landed it.
+  #
+  # WHAT THIS CHECK IS NOT. It does not fire on a MODIFIED gate (the manifest row
+  # already exists), nor on a new gates/audit/, gates/drive/, gates/pending/ or
+  # gates/*.sh file (the manifest's required set is gates/regress/*.js only -
+  # which is also why five gates/audit/ scripts could land callerless and nothing
+  # objected). Those are the C5-silent controls in the selftest.
+  local nfm_lines newgates ngates
+  nfm_lines=$(grep -c '^new file mode' "$payload" || true)
+  newgates=$(awk '
+    /^diff --git a\// { cur=$0; sub(/^diff --git a\/.* b\//,"",cur); next }
+    /^new file mode/  { if (cur!="") { print cur; cur="" } }
+  ' "$payload")
+  local nadded; nadded=$(printf '%s' "$newgates" | grep -c . || true)
+  if [ "$nadded" -ne "$nfm_lines" ]; then
+    # THE VACUITY GUARD, and it is required rather than tidy: every detector below
+    # reasons over a set this parse produced, and `every()` over nothing is true.
+    # If the payload holds more 'new file mode' lines than this parse attributed to
+    # a path, the parse did not read what the check assumes and the answer is NOT
+    # CHECKED, never PASS [CLAUDE.md, "assert the collection is non-empty - in its
+    # own say, not as a conjunct"].
+    say C5-NEW-GATE-MANIFEST-ROW "NOT" "CHECKED: $nfm_lines 'new file mode' line(s) but $nadded attributable to a path - the parse disagrees with the payload"
+  else
+    local gbad=""
+    for g in $newgates; do
+      case "$g" in gates/regress/[0-9]*.js) gbad="$gbad $g" ;; esac
+    done
+    if [ -n "$gbad" ]; then
+      fail C5-NEW-GATE-MANIFEST-ROW "adds new numbered gate(s):$gbad - unlandable from a parallel lane. gates/gatemanifest.sh check reports them as unlisted (exit 2, soft) and gates/verify-log.sh then REFUSES the whole build's log at exit 1; the gates/gate-manifest.tsv row that would fix it is forbidden here, so C4 rejects the payload if the row is included"
+    else
+      say C5-NEW-GATE-MANIFEST-ROW SKIP "$nadded new file(s), none a numbered gates/regress/*.js"
+    fi
+  fi
+
   if [ "$FAILED" -eq 0 ]; then echo "VERDICT SOUND"; return 0; fi
   echo "VERDICT REJECT"; return 1
 }
@@ -373,6 +427,66 @@ selftest() {
   else
     echo "SKIP  C3 repository-shape cases (set SELFTEST_REPO to a repository that RESOLVES origin/main and can host a worktree)"
   fi
+
+  # ---- C5's controls. Six, every detector shown FIRING and SILENT, plus the
+  # NOT-CHECKED arm and the negative control that the verdict is actually gone.
+  # A control set that only asserts the SKIP is the defect this file's own
+  # C3 already has [jobs/verify-parked-patch-c3-cases-skip-silently-...-2026-10-04],
+  # so the firing arm is written first and the discriminator is written last.
+  mknew() { # file fromsha subject paths...   -- same as mk but ADDS each path
+    local f="$1" sha="$2" subj="$3"; shift 3
+    { echo "From $sha Mon Sep 17 00:00:00 2001"
+      echo "From: fixture <noreply@anthropic.com>"
+      echo "Date: Wed, 7 Oct 2026 00:00:00 +0000"
+      echo "Subject: [PATCH] $subj"; echo
+      for p in "$@"; do
+        echo "diff --git a/$p b/$p"
+        echo "new file mode 100644"
+        echo "index 0000000..2222222"
+        echo "--- /dev/null"; echo "+++ b/$p"
+        echo "@@ -0,0 +1,1 @@"; echo "+y"
+      done
+      echo "-- "; echo "2.43.0"
+    } > "$f"
+  }
+
+  # C5a FIRES on the real blocked case: gates/regress/56-review-ladder.js is the
+  # gate jobs/20-review-cats-frozen-at-eight has been waiting for since
+  # 2026-09-22, 56 is free on main, and this lane cannot deliver it.
+  mknew "$T/c5a" 1111111 "process: gate 56" gates/regress/56-review-ladder.js
+  check "C5 fires on a new numbered gate" 1 'C5-NEW-GATE-MANIFEST-ROW *FAIL' \
+        "$T/c5a" f3ae36a gates/regress/56-review-ladder.js
+  # C5a-neg THE NEGATIVE CONTROL: the verdict must actually be gone, not merely
+  # accompanied by a FAIL line. "The numbers moved" is necessary and not sufficient.
+  check "C5 firing removes VERDICT SOUND" 1 'VERDICT REJECT' \
+        "$T/c5a" f3ae36a gates/regress/56-review-ladder.js
+  # C5b names the gate it refused, so the message is actionable without re-deriving.
+  check "C5 names the gate it refused" 1 '56-review-ladder.js' \
+        "$T/c5a" f3ae36a gates/regress/56-review-ladder.js
+  # C5c SILENT on a MODIFIED gate - the manifest row already exists. This is the
+  # ordinary case and a guard that fires on it would be switched off.
+  check "C5 silent on a modified gate" 0 'C5-NEW-GATE-MANIFEST-ROW *SKIP' \
+        "$T/sound1" f3ae36a gates/regress/20-review.js
+  # C5d SILENT on a new gates/audit/ script - not in the manifest's required set,
+  # which is gates/regress/*.js only. Five such scripts are on main already.
+  mknew "$T/c5d" 2222222 "process: a new audit" gates/audit/new-thing.sh
+  check "C5 silent on a new gates/audit script" 0 'C5-NEW-GATE-MANIFEST-ROW *SKIP' \
+        "$T/c5d" f3ae36a gates/audit/new-thing.sh
+  # C5e THE DISCRIMINATOR. Two new gates in one payload must be counted as two.
+  # Without this, a check that found the first and stopped reads identically.
+  mknew "$T/c5e" 3333333 "process: two gates" \
+        gates/regress/56-review-ladder.js gates/regress/59-x.js
+  check "C5 names BOTH gates when a payload adds two" 1 '59-x.js' \
+        "$T/c5e" f3ae36a gates/regress/56-review-ladder.js gates/regress/59-x.js
+  # C5f NOT CHECKED, never PASS, when the parse disagrees with the payload: a
+  # 'new file mode' line that no 'diff --git' claims. The forged payload below has
+  # two such lines and one attributable path.
+  mknew "$T/c5f" 4444444 "process: forged" gates/regress/56-review-ladder.js
+  sed -i 's/^index 0000000..2222222$/index 0000000..2222222\nnew file mode 100644/' "$T/c5f"
+  check "C5 reads NOT CHECKED on an unattributable new-file line" 0 'C5-NEW-GATE-MANIFEST-ROW *NOT' \
+        "$T/c5f" f3ae36a gates/regress/56-review-ladder.js
+  check "C5 does NOT print a SKIP or a FAIL when it is NOT CHECKED" 0 'CHECKED: 2 ' \
+        "$T/c5f" f3ae36a gates/regress/56-review-ladder.js
 
   rm -rf "$T"
   echo "-----"
