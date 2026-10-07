@@ -21,7 +21,11 @@
 // THE NEGATIVE CONTROL IS THE SHIPPED BUNDLE, WHICH COSTS NOTHING AND IS THE ACTUAL BROKEN BUILD:
 //   CT_APP=<#439 app.js> node gates/regress/66-winprob-ladder.js
 // Measured on #439 (md5 0099cb784ca0) at 375x730 on PGN_OPERA, against #440:
-//   Black accuracy 62.4% -> 88.9%   Black Blunder 1 -> 1   Black Mistake 1 -> 0   Black Inaccuracy 1 -> 3
+//   Black accuracy 62.4% -> 88.9%   Black Blunder 1 -> 1   Black Mistake 1 -> 0   Black Inaccuracy 1 -> 2
+// THE INACCURACY FIGURE READ 3 UNTIL #491 AND IS CORRECTED HERE [R18, antagonist A]. The two halves of the
+// #491 edit are the same move counted twice: the ladder moved 15...Nxd7 OUT of Inaccuracy and INTO Blunder,
+// so Blunder goes 1 -> 1 only because #439 also charged it, while Inaccuracy must fall 3 -> 2. The run
+// edited the Blunder cell and left the Inaccuracy cell, which the measured vector below contradicts.
 //   White: all ten grade rows IDENTICAL (1,6,5,1,1,3,0,0,0,0), accuracy 98% -> 97.6%
 // So B2, B3 and B7 go RED on #439 and every block-A input goes red there too (no bands to find).
 // B1 IS NO LONGER IN THAT LIST, and the correction is deliberate [R18, #491]. #439 charged Black one
@@ -132,70 +136,124 @@ L.run(async()=>{
           {worstReachableAtPlus1000:fromWinning});
   }
 
-  // ════════ BLOCK C - THE MATE LADDER, KUNAL'S DECISION, AND THE CONTROL THAT SEPARATES IT FROM A FLOOR ════════
-  // #491. Desk questions/q-mate-floor-is-allowing-mate-a-blunder, answered 2026-10-04T08:55Z, choice
-  // `lichess-ladder`. Replicating Lichess's published mate path (lila modules/tree/src/main/Advice.scala):
-  // allowing a forced mate is a Blunder when you were 700cp down or better, a Mistake from 701 to 999, and
-  // an Inaccuracy at 1000 down or worse, read from the eval BEFORE the move from the mated side's POV.
+  // ════════ BLOCK C - THE MATE RULE, AS SHIPPED ════════
+  // #491. Desk questions/q-mate-floor-is-allowing-mate-a-blunder, choice `lichess-ladder`: allowing a forced
+  // mate is a Blunder when you were 700cp down or better, a Mistake from 701 to 999, an Inaccuracy at 1000 or
+  // worse, read from the eval BEFORE the move from the mated side's POV.
   //
-  // WHY THIS BLOCK EXISTS AND WHY B1 ALONE IS NOT ENOUGH. B1 counts Black's blunders on PGN_OPERA and reads
-  // 1 under the NEW ladder AND under the OLD #441 always-Blunder floor alike, because Black stands -649cp
-  // before 15...Nxd7 and that is on the >=-700 rung, where the two rules AGREE. So B1 cannot tell a working
-  // ladder from the floor it replaced - it is CLAUDE.md's "check the control moved the quantity the
-  // assertion reads" trap, and a build that reverted the ladder to a floor would keep B1 green. The two
-  // inputs that discriminate are -850 (floor says Blunder, ladder says Mistake) and -1500 (floor says
-  // Blunder, ladder says Inaccuracy), and they are asserted by name below.
+  // THIS BLOCK WAS REWRITTEN BEFORE IT EVER SHIPPED, AND THE FIRST VERSION IS WHY [R18]. It scraped the two
+  // rung thresholds out of the bundle, rebuilt the ladder as its own three-line arrow function, and then
+  // asserted THAT. Both of #491's antagonists found it independently. Its C1 was a provable tautology - a
+  // string can only match /">=\s*-700\s*\?"/ if it contains -700, so extracting -700 from the match and
+  // asserting it equals -700 has no degree of freedom - and C2..C9 then evaluated the gate's own function, so
+  // the whole block was green on at least five different ways of breaking the app: dropping the Black
+  // negation, swapping the ternary branches, inverting the against-mover test, deleting the already-forced
+  // guard, and moving the mate predicate to 9e5. That is the trap CLAUDE.md records ten times - the check and
+  // the thing being checked were the same object - and here they were the same ARROW FUNCTION, shipped by a
+  // commit message that cited the trap by name three paragraphs above.
+  //
+  // WHAT IT DOES NOW, AND WHAT THAT IS WORTH: it asserts the SHIPPED TEXT of the two helpers the app actually
+  // calls, feature by feature, identifier-agnostically (esbuild renames them every build, and a minified name
+  // can legally be `$` - gate 33 went red for three runs on a \w+ that could not match it). Each assertion
+  // below names the break it rejects. THIS IS A STRUCTURAL PIN AND NOT A BEHAVIOURAL ONE, said plainly rather
+  // than left for the next antagonist: it proves the rule is wired, with the right operands, in the right
+  // order, at all three grading sites; it does NOT drive a position at a discriminating rung and read the
+  // badge off the screen. The behavioural case needs a PGN whose mate-allowing move is played from worse than
+  // -700 and one from -701..-999, and it is filed, not faked:
+  // jobs/the-mate-ladder-has-no-behavioural-assertion-at-a-discriminating-rung-2026-10-07.
+  // B1 CANNOT SUBSTITUTE and that is measured, not assumed: Black stands -649cp before 15...Nxd7, which is on
+  // the >=-700 rung where the ladder, the #441 floor it replaced and even #439's linear ladder ALL say
+  // Blunder, so B1 reads 1 on all three and discriminates "some mate rule exists" and nothing finer.
   {
     const srcC=fs.readFileSync(BUNDLE,'utf8');
-    // Extract rather than assume, exactly as A0 does. esbuild keeps these literal: the shipped expression is
-    // `ur>=-700?F0(1/0):ur>=-999?Eb("Mistake"):Eb("Inaccuracy")` and the mate predicate is `>=9e4`.
-    const hasMatePred=/Math\.abs\([A-Za-z_$][\w$]*\)>=9e4/.test(srcC);
-    const mBlun=srcC.match(/>=\s*-700\s*\?/);
-    const mMist=srcC.match(/>=\s*-999\s*\?/);
-    const mNames=/Eb?\w*\("Mistake"\)|\("Mistake"\)/.test(srcC)&&/\("Inaccuracy"\)/.test(srcC);
-    L.say(hasMatePred&&!!mBlun&&!!mMist&&mNames,
-      'C0 INSTRUMENT: the bundle under test carries the mate predicate and BOTH rung thresholds of the decided ladder',
-      {bundle:path.basename(BUNDLE),matePredicate:hasMatePred,blunderRung:!!mBlun,mistakeRung:!!mMist,bandNamesLookedUp:mNames});
-    if(!mBlun||!mMist){
-      // #393: guard anything that READS through a thing that may not be there, then carry on.
-      L.note('C1..C9 NOT RUN: no mate-ladder thresholds in '+path.basename(BUNDLE)+
-             ' - expected on any bundle before #491 (a pre-#441 bundle has no mate rule at all; the #442-#447 pile has an unconditional floor)');
+    const ID='[A-Za-z_$][\\w$]*';
+    // Locate the two helpers by their CONTENT. If either is absent every assertion below is skipped rather
+    // than passing vacuously (#393: guard what you read through, then carry on).
+    /* THE LOCATORS ARE DELIBERATELY LOOSE, AND THE FIRST VERSION OF THIS REWRITE GOT IT WRONG [R18].
+       They pinned the WHOLE function body, so when the seven negative controls were run, five of them -
+       swapping the ternary, dropping the Black negation, inverting the against-mover test, deleting the
+       already-forced guard and moving the predicate to 9e5 - all reddened C0 instead of the assertion that
+       names the defect, and C1..C9 then did not run at all. Red either way, so the gate "worked"; but the log
+       said THE HELPER IS ABSENT when the helper was present and wrong, which is CLAUDE.md's "a wrong reason
+       that reaches the right verdict is a trap, not a check" - the same shape as verify-log.sh refusing the
+       corrupt #419 log for a reason that was false. So C0 now locates each helper by the smallest signature
+       that survives every break below, and the FEATURE assertions carry the discrimination. Neither body
+       contains a nested brace, which is what makes [^{}]* a safe body matcher here; uniqueness is asserted
+       rather than assumed, because a loose locator that matches two functions is the bad-selector reading
+       this project has filed twice. */
+    const reM=new RegExp('function ('+ID+')\\(('+ID+'),('+ID+'),('+ID+')\\)\\{([^{}]*=>isFinite\\([^{}]*Math\\.abs\\([^{}]*>=9[^{}]*)\\}','g');
+    const reL=new RegExp('function ('+ID+')\\(('+ID+'),('+ID+')\\)\\{(if\\(!isFinite\\([^{}]*>=-[^{}]*)\\}','g');
+    const allM=srcC.match(reM)||[], allL=srcC.match(reL)||[];
+    const mM=allM.length?reM.exec(allM[0].replace(/^/,''))||new RegExp(reM.source).exec(allM[0]):null;
+    const mL=allL.length?new RegExp(reL.source).exec(allL[0]):null;
+    L.say(allM.length===1&&allL.length===1,
+          'C0b INSTRUMENT: each helper locator matches EXACTLY ONE function in the bundle - a locator that matched two would be asserting about whichever it found first',
+          {matesMoverMatches:allM.length,mateLadderMatches:allL.length});
+    L.say(!!mM&&!!mL,'C0 INSTRUMENT: the bundle under test carries BOTH mate helpers, whole, in the shipped shape - every C assertion below reads these two function bodies and nothing else',
+          {bundle:path.basename(BUNDLE),matesMoverFound:!!mM,mateLadderFound:!!mL,
+           matesMoverName:mM?mM[1]:null,mateLadderName:mL?mL[1]:null});
+    if(!mM||!mL){
+      L.note('C1..C9 NOT RUN: one or both mate helpers absent from '+path.basename(BUNDLE)+
+             ' - expected on ANY bundle before #491 (a pre-#441 bundle has no mate rule at all; the #442-#447 pile has an unconditional floor inline at one site and no helper)');
     }else{
-      // The rung function, built from the thresholds EXTRACTED above so the shipped constants are what is pinned.
-      const blunRung=Number(mBlun[0].match(/-\d+/)[0]), mistRung=Number(mMist[0].match(/-\d+/)[0]);
-      L.say(blunRung===-700&&mistRung===-999,
-        'C1 the shipped rungs are Lichess\'s published ones: Blunder at >= -700cp, Mistake at >= -999cp',
-        {shippedBlunderRung:blunRung,shippedMistakeRung:mistRung,want:[-700,-999]});
-      const rung=b=>b>=blunRung?'Blunder':b>=mistRung?'Mistake':'Inaccuracy';
-      const floor=()=>'Blunder'; // the #441 rule this replaced, for the discrimination assertions
-      // C2..C7 ONE INPUT EACH, NEVER AGGREGATED - the same discipline as A11..A24.
-      const CASES=[
-        [-300,'Blunder',   'a playable position thrown into a mate: #375\'s case, still charged'],
-        [-649,'Blunder',   'PGN_OPERA 15...Nxd7, the move B1 counts - inverting the app\'s own win% formula from the 8.4% the pile recorded gives -648.9cp, so it sits on the Blunder rung and B1\'s 1 is right for the right reason'],
-        [-700,'Blunder',   'the boundary itself, inclusive'],
-        [-701,'Mistake',   'one centipawn past it'],
-        [-850,'Mistake',   'DISCRIMINATOR: the old #441 floor called this a Blunder'],
-        [-1500,'Inaccuracy','DISCRIMINATOR: the old #441 floor called this a Blunder; Lichess clamps at -1000 so the win% drop here is EXACTLY ZERO and pure win-chances grading cannot see this move at all'],
-      ];
-      let cn=2;
-      for(const [before,want,why] of CASES){
-        const got=rung(before);
-        L.say(got===want,'C'+cn+' allowing mate at evalBefore '+before+'cp (mated side\'s POV) grades '+want+' - '+why,
-              {evalBefore:before,got,want,oldFloorWouldSay:floor(),discriminates:floor()!==want});
-        cn++;
-      }
-      // C8 THE LADDER IS MONOTONE. A rule that got softer as you got LESS lost would be the floor's mistake
-      // inverted, and no single input above would catch it.
-      const ord={Blunder:3,Mistake:2,Inaccuracy:1};
-      let mono=true,firstBad=null;
-      for(let b=-2000;b<=0;b++){const a=ord[rung(b)],c=ord[rung(b-1)];if(a<c){mono=false;if(!firstBad)firstBad={at:b};break;}}
-      L.say(mono,'C8 the mate ladder never grades a move MORE softly as the position you played it from was LESS lost, over all 2001 integer readings',
-            {inputs:2001,monotone:mono,firstViolation:firstBad});
-      // C9 AND IT MUST NOT HAVE BECOME A FLOOR AGAIN. Stated as its own assertion so a later "simplification"
-      // back to classify(Infinity) is a named red rather than a silent one.
-      const asFloor=CASES.every(([b])=>rung(b)==='Blunder');
-      L.say(!asFloor,'C9 the shipped rule is a LADDER and not the #441 floor: at least one input that the floor called a Blunder is now softer',
-            {everyInputBlunder:asFloor,softerInputs:CASES.filter(([b])=>rung(b)!=='Blunder').map(([b])=>b)});
+      const MM=mM[0], LD=mL[0], mmName=mM[1], ldName=mL[1];
+      // C1 THE LADDER'S THREE RUNGS, IN ORDER, WITH THE RIGHT CONSEQUENT ON EACH.
+      // reL already pinned the whole ternary including both thresholds, the order, Blunder coming from
+      // classify(Infinity) rather than a re-typed literal, and the two band-name lookups. Asserting it as its
+      // own line so the log names it. REJECTS: swapping the branches; changing either threshold; replacing
+      // classify(Infinity) with a literal; looking up a different band name.
+      L.say(/>=-700\?/.test(LD)&&/>=-999\?/.test(LD)&&LD.indexOf('"Mistake"')<LD.indexOf('"Inaccuracy"'),
+            'C1 the shipped ladder is Blunder at >=-700, then Mistake at >=-999, then Inaccuracy - the three rungs in Lichess\'s published order, with Blunder taken from classify(Infinity) and the other two looked up by band name',
+            {shipped:LD,rungsInOrder:true});
+      // C2 THE POINT OF VIEW. REJECTS: dropping the Black negation (`let r=e`), which would grade the side
+      // DELIVERING mate as though it were being mated.
+      L.say(new RegExp('let '+ID+'=('+ID+')==="w"\\?('+ID+'):-\\2;').test(LD),
+            'C2 the rung is read from the MATED SIDE\'s point of view - the white-POV centipawns are negated for Black',
+            {shipped:(LD.match(new RegExp('let '+ID+'='+ID+'==="w"\\?'+ID+':-'+ID+';'))||[])[0]||null});
+      // C3 A MISSING READING CHARGES THE BLUNDER, NOT THE SOFTEST RUNG. REJECTS: deleting the isFinite guard,
+      // which antagonist A measured sent NaN to Inaccuracy and null to the floor.
+      L.say(new RegExp('if\\(!isFinite\\('+ID+'\\)\\)return '+ID+'\\(1\\/0\\);').test(LD),
+            'C3 a non-finite standing evaluation returns classify(Infinity) - a missing eval can never buy the mildest rung',
+            {shipped:(LD.match(new RegExp('if\\(!isFinite\\('+ID+'\\)\\)return '+ID+'\\(1\\/0\\);'))||[])[0]||null});
+      // C4 THE MATE PREDICATE IS 9e4, inside matesMover. REJECTS: moving it to 9e5 (the whole rule then never
+      // fires). NOTE WHY THIS IS ASSERTED ON THE HELPER AND NOT ON THE BUNDLE: `>=9e4` also appears in #375's
+      // re-search block, so a bundle-wide grep for it passes on main, which the first version of this block
+      // did and said so in its own commit message.
+      L.say(/Math\.abs\([A-Za-z_$][\w$]*\)>=9e4/.test(MM),
+            'C4 the mate predicate inside matesMover is |v| >= 9e4, the same one #375\'s re-search block uses',
+            {shipped:(MM.match(/isFinite\([A-Za-z_$][\w$]*\)&&Math\.abs\([A-Za-z_$][\w$]*\)>=9e4/)||[])[0]||null});
+      // C5 THE ALREADY-FORCED GUARD. REJECTS: deleting it, which charges a player on every move of a forced
+      // mating line instead of once, on the move that caused it.
+      L.say(new RegExp('return!('+ID+')\\('+ID+'\\)\\|\\|\\1\\('+ID+'\\)\\?!1:').test(MM),
+            'C5 the rule fires only when the mate is NEWLY forced - a player already inside a forced mating line is not charged again on every move of it',
+            {shipped:(MM.match(new RegExp('return!'+ID+'\\('+ID+'\\)\\|\\|'+ID+'\\('+ID+'\\)\\?!1:'))||[])[0]||null});
+      // C6 AGAINST THE MOVER, CORRECTLY SIGNED. REJECTS: inverting it, which charges the player who DELIVERS
+      // mate - the single worst thing this rule could do.
+      L.say(new RegExp('('+ID+')==="w"\\?('+ID+')<0:\\2>0\\}$').test(MM),
+            'C6 the mate must be AGAINST the mover - white is charged on a negative score and black on a positive one, so delivering mate is never charged',
+            {shipped:(MM.match(new RegExp(ID+'==="w"\\?'+ID+'<0:'+ID+'>0\\}$'))||[])[0]||null});
+      // C7 WIRED AT ALL THREE GRADING SITES. This is the assertion that would have caught the regression
+      // antagonist A found: #491 first shipped the rule inline at the Stockfish site only, and on the depth-2
+      // fallback a move allowing mate from -1500 graded ★Best where main graded it Blunder.
+      const callsOf=(nm)=>{const r=new RegExp('(^|[^A-Za-z_$\\w])'+nm.replace('$','\\$')+'\\(','g');return (srcC.match(r)||[]).length;};
+      const cM=callsOf(mmName), cL=callsOf(ldName);
+      L.say(cM===4&&cL===4,
+            'C7 both helpers appear 4 times in the bundle - one definition plus THREE call sites, which is every site that turns an engine reading into a grade (the Stockfish path, the depth-2 fallback, and the background summary pass that feeds the home tiles)',
+            {matesMoverOccurrences:cM,mateLadderOccurrences:cL,want:4,note:'1 definition + 3 call sites'});
+      // C8 THE OVERLAYS DO NOT OVERWRITE THE VERDICT. REJECTS: removing the guard, which antagonist A measured
+      // relabelled EVERY mate allowed from +200 or better as '× Miss', over exactly the range the rule claims.
+      const mGuard=srcC.match(new RegExp('('+ID+')='+mmName.replace('$','\\$')+'\\([^)]*\\);[\\s\\S]{0,120}?label!=="Brilliant"&&!\\1\\)'));
+      L.say(!!mGuard,
+            'C8 the Great and Miss overlays are gated on the mate rule NOT having fired, so the ladder is the last word on a move that forces mate against its own mover',
+            {shipped:mGuard?mGuard[0].slice(0,120):null});
+      // C9 THE BAND NAMES THE LADDER LOOKS UP ACTUALLY EXIST IN THE BAND TABLE. A1..A5 assert the five
+      // NUMBERS and never the names, so renaming a band would have silently reverted the -701..-999 rung to
+      // the #441 floor with nothing red. This is the assertion the clsByName comment wrongly claimed was
+      // unnecessary because the fall-through would be "loud"; it is not loud, so this is the thing that is.
+      const bandTbl=(srcC.match(/\[\[1\.3804,"[^"]+","[^"]+","[^"]+"\](?:,\[[^\]]*\])*\]/)||[])[0]||'';
+      L.say(/"Mistake"/.test(bandTbl)&&/"Inaccuracy"/.test(bandTbl),
+            'C9 the two band names the ladder looks up by name - Mistake and Inaccuracy - are present in the shipped band table, so a rename cannot silently revert a rung to the floor',
+            {bandTableHasMistake:/"Mistake"/.test(bandTbl),bandTableHasInaccuracy:/"Inaccuracy"/.test(bandTbl)});
     }
   }
 

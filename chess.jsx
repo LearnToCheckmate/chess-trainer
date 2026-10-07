@@ -498,13 +498,55 @@ function classify(drop){
   return {label:'Blunder',c:'#ec5c4e',i:'??'};
 }
 /* #491: the mate ladder below needs the Mistake and Inaccuracy OBJECTS, not a drop that happens to land in
-   their bands. Looking them up by name out of CLS_BANDS is what stops this becoming the drift the pile's own
-   comment warned about when it said the Blunder object "comes from classify(Infinity) rather than re-typed
-   literals": a colour or a glyph edited in CLS_BANDS reaches here for free, and a band RENAMED makes this
-   return Blunder, which is loud rather than silently wrong. */
+   their bands. Looking them up by name out of CLS_BANDS means a colour or a glyph edited there reaches here
+   for free.
+   CORRECTING MY OWN FIRST VERSION OF THIS COMMENT, which antagonist A and antagonist B both caught [R18].
+   It said a renamed band "makes this return Blunder, which is loud rather than silently wrong". THAT IS
+   BACKWARDS AND IT IS THE OPPOSITE OF LOUD: renaming the 'Mistake' row would silently revert the -701..-999
+   rung to the #441 floor this build exists to replace - no throw, no log, nothing on screen. Nor is the
+   fall-through free of the thing it criticises: it re-types the Blunder literal, which is the second copy in
+   this file. What actually protects the lookup is an ASSERTION over the band names, and gate 66's block A
+   did not have one (A1..A5 assert the five NUMBERS and never the names), so block C now carries it. */
 function clsByName(name){
   for(let k=0;k<CLS_BANDS.length;k++){const b=CLS_BANDS[k];if(b[1]===name)return{label:b[1],c:b[2],i:b[3]};}
   return {label:'Blunder',c:'#ec5c4e',i:'??'};
+}
+/* ═══ #491 THE MATE RULE, ONE DEFINITION, THREE CALL SITES. ═══
+   KUNAL'S DECISION: Desk questions/q-mate-floor-is-allowing-mate-a-blunder, choice `lichess-ladder`,
+   answered 2026-10-04 (the answers document's own `at` reads 06:39:54Z; the Desk item's answeredAt field
+   says 08:55Z and the two disagree - see the job filed at #491 - so this comment cites the DAY, which is
+   all that is in dispute, and not the minute).
+   Replicating Lichess's published mate path (lila modules/tree/src/main/Advice.scala), reading how lost the
+   mated side already was, BEFORE the move, from their own point of view:
+       700 centipawns down or better  ->  Blunder      999..701 down  ->  Mistake      1000 or worse -> Inaccuracy
+   WHY A LADDER AND NOT A FLOOR. Lichess clamps centipawns to +/-1000 before its sigmoid, so for THEM a
+   forced mate maps to exactly -1000 and allowing mate from 1000 down costs exactly zero win percentage.
+   THIS APP DOES NOT CLAMP, and the first version of this comment said it did [R18, antagonist A]. Measured
+   against our own winPct: allowing mate costs 7.060 points from -700, 2.455 from -1000, 0.398 from -1500 and
+   0.063 from -2000. So pure win-chances grading here is not BLIND to the move, it is WORSE than blind - it
+   grades it Good, Excellent and then ★Best as the position gets more lost. Do NOT "fix" winPct to clamp:
+   the cap table in the CLS_BANDS comment above (-1000 Excellent, -1200 Best) is only consistent with NO
+   clamp, and adding one would silently move every grade in a decided position plus A25 and A26.
+   WHY THIS IS TWO FUNCTIONS AND NOT A BLOCK INLINE AT ONE SITE. #491 first shipped it inline in the
+   Stockfish path, and antagonist A measured the consequence: THREE sites turn an engine reading into a
+   grade, #440 re-keyed all three to the win-percentage drop, and the mate rule reached only one - so on the
+   depth-2 fallback engine a move that allows a forced mate from -1500 graded ★Best where main had graded it
+   Blunder. A REGRESSION against main on a device-chosen path, which is exactly the #375 rule the fallback
+   site's own comment invokes. One definition, called at all three, is the only shape that cannot drift. */
+function matesMover(afterCp,mover,forcedCp){
+  const isM=(v)=>isFinite(v)&&Math.abs(v)>=90000;      // the predicate #375's re-search block already uses
+  if(!isM(afterCp))return false;                        // the move did not produce a mate score
+  if(isM(forcedCp))return false;                        // mate was ALREADY forced, so this move did not do it
+  return (mover==='w')?(afterCp<0):(afterCp>0);         // and the mate is AGAINST the mover, not delivered by them
+}
+function mateLadder(standingCp,mover){
+  // standingCp is WHITE-POV centipawns for the position the move was played FROM. A missing or non-finite
+  // reading charges the Blunder rather than the softest rung: winDrop() twelve lines up guards its inputs
+  // and this did not, and antagonist A measured that `null` coerced to the floor while NaN fell through to
+  // Inaccuracy - a missing eval must never buy the mildest verdict.
+  if(!isFinite(standingCp))return classify(Infinity);
+  const mb=(mover==='w')?standingCp:-standingCp;
+  return (mb>=-700)?classify(Infinity):(mb>=-999)?clsByName('Mistake'):clsByName('Inaccuracy');
 }
 // Lichess's published game aggregation: the mean of a volatility-weighted mean and a harmonic mean of
 // the per-move accuracies. `winsW` is the game's Win% series from WHITE's point of view at every
@@ -1218,7 +1260,14 @@ async function analyzeGameCounts(pgn,userColor){
       // #331: evalBefore was missing here, so the gate ran with evB undefined in the background pass (it fell back to evalPawns(pos) inside brilliantGate, but only by accident of the null check). Pass it explicitly.
       // #440: classify() now takes the WIN-PERCENTAGE DROP. bestVal/actualVal are white-POV centipawns,
       // so winDrop() is handed the two evaluations and converts to the mover's side itself.
-      const L=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos))?'Brilliant':classify(winDrop(bestVal,actualVal,mc)).label;
+      /* #491: the mate rule reaches the background summary pass too. This is the third of the three
+         grading sites and it feeds blun++ -> recordGameStats -> the home tiles, so without it the blunder
+         COUNT a player sees disagrees with the verdict the review screen prints for the same move. Same
+         operands as the fallback site: the mate question is asked of actualVal against bestVal, the rung
+         comes from the position's own eval in pawns. */
+      let _c3=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos))?{label:'Brilliant'}:classify(winDrop(bestVal,actualVal,mc));
+      if(_c3.label!=='Brilliant'&&matesMover(actualVal,mc,bestVal))_c3=mateLadder(evalPawns(pos)*100,mc);
+      const L=_c3.label;
       if(L==='Brilliant')bril++;else if(L==='Best'||L==='Great')great++;else if(L==='Inaccuracy')inacc++;else if(L==='Mistake'||L==='Miss')mist++;else if(L==='Blunder')blun++;
       if((++proc)%2===0)await new Promise(r=>setTimeout(r,0));
     }
@@ -4128,39 +4177,11 @@ export default function App(){
         const _ma=moveAcc(_wd);
         const _g=brilliantGate(pos,pl,loss,evA,evB);
         let cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd);
-        /* #491 THE MATE LADDER. KUNAL'S OWN DECISION, and it replaces the #441 "always at least a Blunder"
-           floor this pile was carrying. Desk questions/q-mate-floor-is-allowing-mate-a-blunder, answered
-           2026-10-04T08:55Z, choice `lichess-ladder`, after he asked "what does chess.com do or lichess in
-           this situation. I'd rather replicate their process".
-           WHY A LADDER AND NOT A FLOOR. The win-percentage ladder is SATURATED at the extremes: Lichess
-           clamps centipawns to +/-1000 BEFORE the sigmoid, and a forced mate maps to exactly -1000 for the
-           mated side - the same as a plain ten-pawn deficit. So from 1000 down, allowing mate moves the win
-           percentage by EXACTLY ZERO and pure win-chances grading cannot see the move at all. That is the
-           blindness the floor was built to cover. But a floor overcorrects the other way: it charges a
-           Blunder in a position that was lost ten moves ago, which is the softening Kunal asked for in the
-           first place. Lichess resolved this with a hand-written mate path, published in lila at
-           modules/tree/src/main/Advice.scala, keyed to HOW LOST YOU ALREADY WERE:
-               700 centipawns down or better  ->  Blunder
-               999 to 701 down                ->  Mistake
-               1000 down or worse             ->  Inaccuracy
-           THE CONTRADICTION THIS DISSOLVES [R45]. #375's rule ("the move that ALLOWS A MATE gets called
-           what it is") was protecting the player who walks into a mate from a playable position - and the
-           ladder still calls that a Blunder at anything better than 700 down. Kunal's own win-chances
-           ruling was protecting the game that is already over - and the ladder calls that an Inaccuracy.
-           The two rules were never really in conflict; each described one end of a ladder neither wrote
-           down. This is why EIGHT consecutive builds stopped here and why gate 66's B1 changes with it.
-           THE POINT OF VIEW IS THE MOVER'S, which is the side being mated, and the reading is taken BEFORE
-           the move. `before` is white-POV centipawns (evB is before/100), so it is negated for Black.
-           The mate predicate is the one #375's re-search block already uses, |v| >= 90000, and the guard
-           is unchanged from the pile: it fires ONLY when the mate is NEWLY forced and is AGAINST the mover,
-           so delivering mate is untouched and a player already inside a forced mating line is not charged
-           on every move of it. Brilliant is left alone; brilliantGate needs a winning position. */
-        {const _isM=(v)=>Math.abs(v)>=90000;
-         const _newMate=_isM(after)&&!_isM(before);
-         const _againstMover=(mover==='w')?(after<0):(after>0);
-         if(_newMate&&_againstMover&&cls.label!=='Brilliant'){
-           const _mb=(mover==='w')?before:-before;
-           cls=(_mb>=-700)?classify(Infinity):(_mb>=-999)?clsByName('Mistake'):clsByName('Inaccuracy');}}
+        /* #491 THE MATE RULE at the Stockfish site. The rule itself, and why it replaced the #441
+           always-Blunder floor, is documented once on matesMover/mateLadder above. `before` and `after` are
+           evW[i] and evW[i+1], white-POV centipawns, which is why evB is before/100 two lines up. */
+        const _newMate=matesMover(after,mover,before);
+        if(_newMate&&cls.label!=='Brilliant')cls=mateLadder(before,mover);
         /* #442: THESE TWO OVERLAYS ARE DECISIONS, NOT LABELS, so they read the SELECTION ladder.
            They gated on `cls.label` and were calibrated when cls WAS classifyByLoss - Best/Excellent
            then meant the player had played at or within 40cp of the engine's move, which is the whole
@@ -4176,7 +4197,17 @@ export default function App(){
            own `sel`, which is the hoist that #441's _cSel P0 taught. Instance 1 of
            jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30. */
         const _selL=classifyByLoss(loss);
-        if(cls.label!=='Brilliant'){const _bm=mover==='w'?before:-before,_pm=mover==='w'?after:-after,_h2=ev2W[i]!=null,_s2=_h2?(mover==='w'?ev2W[i]:-ev2W[i]):null;
+        /* #491, antagonist A: `&&!_newMate` IS LOAD-BEARING AND WAS MISSING. For any mate-allowing move
+           `loss` clamps to 1500 so _selL is 'Blunder', and _pm is about -99900 so both of Miss's eval
+           conditions hold trivially - leaving `_bm>=200` as the only live term. So EVERY mate allowed from
+           +200 or better was relabelled '× Miss', discarding the ladder's verdict, over exactly the range
+           the rule claims to own: the comment on mateLadder says #375's case "is still called a Blunder at
+           anything better than 700 down", and without this guard it was called a Miss. The Great branch is
+           the same shape in the one case where _wasBest sets loss=0 so _selL is 'Best' - reachable when the
+           engine's own best move allows a mate straddling the search horizon - and it rendered
+           "! Great - The only move that keeps it." on a move that gets mated next. The ladder is the last
+           word on a move that forces mate against its own mover; these two overlays are not. */
+        if(cls.label!=='Brilliant'&&!_newMate){const _bm=mover==='w'?before:-before,_pm=mover==='w'?after:-after,_h2=ev2W[i]!=null,_s2=_h2?(mover==='w'?ev2W[i]:-ev2W[i]):null;
           if((_selL==='Best'||_selL==='Excellent')&&_h2&&(_bm-_s2)>=160)cls={label:'Great',c:'#5d93e8',i:'!'};
           else if((_selL==='Mistake'||_selL==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130)cls={label:'Miss',c:'#f08a5d',i:'×'};}
         let altSan='',altDrop=null;
@@ -4215,7 +4246,19 @@ export default function App(){
         const _wd2=winDrop(bestVal,actualVal,mover);
         const _ma2=moveAcc(_wd2);
         const _g=brilliantGate(res.positions[i],pl,Math.round(loss),_evA,_evB);
-        const _cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd2);
+        /* #491: THE MATE RULE REACHES THIS SITE TOO, and until antagonist A measured it, it did not.
+           The comment two lines up invokes the #375 rule for the DROP and #491 then left the mate rule at
+           the Stockfish site only, so on this engine a move allowing a forced mate graded, measured against
+           main: -300 Mistake, -649 Inaccuracy, -700 Good, -1500 ★Best - where main's linear classify(loss)
+           had charged Blunder at every one of them. A regression, on the branch a device chooses when the
+           Stockfish worker is unavailable.
+           THE OPERANDS ARE NOT THE SAME TWO AS THE SITE ABOVE and a copy-paste would have read the wrong
+           quantity: here winDrop is handed (bestVal, actualVal) - the BEST move's eval against the PLAYED
+           move's - not a before/after pair. So "did this move newly force mate" is asked of actualVal
+           against bestVal (if even the best move loses to mate, this move did not cause it), and "how lost
+           was the mover" comes from the position's own eval, _evB, in pawns, hence x100. */
+        let _cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd2);
+        if(_cls.label!=='Brilliant'&&matesMover(actualVal,mover,bestVal))_cls=mateLadder(_evB*100,mover);
         out.push({loss:Math.round(loss),wdrop:_wd2,macc:_ma2,sel:classifyByLoss(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,evalBefore:_evB,gate:_g});
         if(i%2===0){setProgress((i+1)/res.plies.length);await new Promise(r=>setTimeout(r,0));}
       }
