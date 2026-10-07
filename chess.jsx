@@ -496,6 +496,27 @@ function winDrop(beforeW,afterW,mover){
    grade (Inaccuracy) whatever this build now writes into it, so fixing the producer does not fix the
    existing installed base. One helper, so the article is chosen from the word rather than assumed. */
 function artic(w){const t=String(w||'').trim();return (/^[aeiou]/i.test(t)?'an ':'a ')+t;}
+/* #494: AND artic() MADE THAT SENTENCE GRAMMATICAL WITHOUT MAKING IT TRUE. The same installed base the
+   comment above describes can also hold a PRAISE grade, which is a different defect from the article and was
+   not addressed by fixing it: a #440/#441-era bundle filtered the drill pool on `sel` (the centipawn ladder)
+   while storing `cls.label` (the win-percentage DISPLAY label), and that label softens to Best/Excellent/Good
+   in a decided position and can be set to Great by the overlay. So the card read "you played Bg5 here, an
+   excellent. Find the stronger move." about the very move it was asking the player to improve on. #442 fixed
+   the PRODUCER and nothing migrates a row already written - the capture merge patches only `why` and `hint`,
+   and a row leaves the store only by being solved or by falling off the .slice(0,150) tail - so the admissible
+   set is enforced at the point of USE instead.
+   A label outside the set is treated as ABSENT, which falls through to the same 'mistake' default that
+   expression has always carried, so no new copy is invented and the position is STILL DRILLED: it was admitted
+   because `sel` graded it Mistake or Blunder, and that grading is still true of it. Only the stored word was
+   wrong. Refusing the row was the other option and is rejected on a measurement, not a preference: the card's
+   count renders the RAW store length and not the drillable subset, so refusing would print "7 positions from
+   your reviewed games" and then drill 2. Recorded as an amber call at
+   flags/amber-494-legacy-drill-praise-label-relabel-not-refuse.
+   THE SET IS THE POOL'S OWN, not a guess: the capture admits `_S` in {Mistake, Blunder}, and Miss is the
+   overlay historically drawn from those two, so these three are exactly the words a drill row can honestly
+   carry. Gate 67 block G renders the card from a seeded store and asserts no painted goal names a PRAISE grade. */
+const DRILL_GRADES=['Mistake','Blunder','Miss'];
+function drillGrade(lab){const t=String(lab||'').trim();return DRILL_GRADES.indexOf(t)>=0?t:'mistake';}
 function classifyByLoss(loss){
   const l=Math.max(0,loss||0);
   if(l<15) return 'Best';
@@ -4309,7 +4330,12 @@ export default function App(){
         for(let i=0;i<out.length;i++){
           const mc=i%2===0?'w':'b'; if(mc!==uc2)continue;
           const L=out[i].cls&&out[i].cls.label;
-          // #440: SELECT on the old centipawn ladder, DISPLAY the honest label (stored as `label:L` below).
+          // #440: SELECT on the old centipawn ladder. The second half of this line read "DISPLAY the honest
+          // label (stored as `label:L` below)" and HAS BEEN FALSE SINCE #442, which is the build that fixed
+          // the defect it describes: the push below stores `label:_S`, the SELECTION grade, precisely so the
+          // drill sentence names the pool it was selected into. Corrected at #494 [R18] rather than left to
+          // mislead the next reader of the one site this job's own theCause names. `L` is still live here and
+          // is used by the Brilliant branch further down, which is ladder-independent.
           // old {Mistake,Blunder,Miss} == old {loss>=160} == sel in {Mistake,Blunder}, because Miss is an
           // overlay drawn from those two - so this reproduces the pre-#440 pool EXACTLY, not approximately.
           const _S=out[i].sel||classifyByLoss(out[i].loss||0);
@@ -5479,7 +5505,7 @@ export default function App(){
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, '+artic(String(m.label||'mistake').toLowerCase())+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;return o;}catch(e){return null;}};
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, '+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;return o;}catch(e){return null;}};
   const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
   const startBrilliant=()=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
   /* #475 ONE walker serves both directions so Prev cannot drift away from Next. It steps through the
