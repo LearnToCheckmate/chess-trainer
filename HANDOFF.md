@@ -2,82 +2,48 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
-> **#488, 2026-10-06T23:2xZ: GATES GREEN #488 AT 56 SECTIONS / 4151 PASS / 0 FAIL, ON MAIN. WHAT SHIPPED IS A GATE, NOT APP CODE - READ THAT FIRST.**
+> **#489, 2026-10-07T02:4xZ: GATES GREEN #489 AT 56 SECTIONS / 4160 PASS / 0 FAIL, ON MAIN. THIS ONE IS APP CODE - the first in ten builds - and it is a wrong answer a player reads: a forced mate in the Review was painted as the number `+9.9`.**
 >
-> **WHAT LANDED.** Block H of `gates/regress/65-promotion-after-gameover.js`: 12 assertions driving the
-> promotion-picker-after-game-over path at a literal `{w:730,h:375}`. `chess.jsx` is byte-identical to the
-> previous main at `9951461ed2ae`, so the only `app.js` difference is the `--define:__BUILD__` stamp and the
-> deploy is a functional no-op for a player. **Ninth consecutive build with no application code.** Say that
-> plainly rather than letting a green suite imply otherwise.
+> NOTE FOR THE NEXT HOLDER
 >
-> **THE ARITHMETIC CLOSES AND WAS PREDICTED BEFORE THE SUITE:** gate 65 **58 -> 70 PASS** against #487's own
-> log, suite **4139 -> 4151**. +12 exactly, nothing else moved. If your suite does not read 4151 on this tree,
-> something changed and it is not block H.
+> **#489 IS THE FIRST APP-CODE BUILD IN TEN. chess.jsx differs from main for the first time since #479.**
 >
-> **DO THE 90-SECOND READING FIRST, as every recent note says:** `CT_APP=app.js node gates/regress/12-hint.js`
-> -> **24 pass / 0 fail, kunal 375 / se 259** is healthy (measured here at 21:48Z). `gates/fonts.conf` is
-> load-bearing. **NEVER re-pin 375 to 361.**
+> FINAL NUMBERS: bundle `17c338a181d9`, source chess.jsx `5fc2e1d1e4e4`, gate 20 150 -> 159, suite 4151 -> 4160 (+9, all of it gate 20, exactly as predicted before the run). verify-log.sh OK at real exit 0, --this-bundle OK at real exit 0, held.sh not held, manifest 55/55/0. The harness md5s were recorded before the suite and were IDENTICAL after [#461].
 >
-> **TWO TRAPS I WALKED INTO SO YOU DO NOT HAVE TO.**
-> **(1) `gates.sh` RE-STEMS ITS LOG PER RUN.** I killed a first suite and relaunched; `gates/logs/488-all.log`
-> is the KILLED run (558 lines, ends mid-section-8) and the real log is **`488b-all.log`** (5480 lines, 4151
-> PASS). I copied the wrong one into `claude/agents/gatelogs/` and **`verify-log.sh` caught it, not me** - the
-> trap #469 already recorded. Run `verify-log.sh` before citing ANY log, and capture its exit code **without a
-> pipe** (a pipeline's status is its last stage; #486 and #487 both recorded this and I still nearly did it).
-> **(2) I ESTIMATED MY OWN ELAPSED TIME AS ~90 MINUTES WHEN `date -u` READ 14.** Caught on reading the clock.
-> #481, #483 and #486 each recorded this against themselves. Substitute `date -u`; never type a time.
+> DO THE 90-SECOND READING FIRST: `CT_APP=app.js node gates/regress/12-hint.js` -> 24 pass / 0 fail,
+> kunal 375 / se 259 is healthy. This container gated cleanly; it is a working one.
 >
-> **ORDER THE RUN THIS WAY, and it is the one thing I would change:** run the antagonists BEFORE launching the
-> suite, not in parallel with it. Mine both vetoed, the fixes touched the gate the suite was certifying, and I
-> had to kill the suite at 8 of 56 to keep the pushed file equal to the gated file. That cost ~6 minutes
-> because it was early; at section 40 it would have cost the run. #487's advice to parallelise the antagonists
-> is right for *records*, and wrong for anything that can change a gate file.
+> **THE ONE THING YOU MUST NOT DO: DO NOT RE-LAND gates/fastgate.sh.**
+> STEP 0F(1) tests `test -f gates/fastgate.sh`, the file is ABSENT from main, so the procedure will tell
+> you to apply the parked patch. #489 did exactly that, passed STEP 0F's own mandated control, and then
+> reverted it. `git diff --name-only` reports only the DESTINATION of a rename, so
+> `git mv app.js claude/agents/app.js.md` returns exit 0 FAST GATE GREEN with the log stating
+> "bundle UNCHANGED" while the deployed page is blank. Reproduced twice. Two more holes beside it.
+> Read jobs/fastgate-gives-a-fast-green-to-a-rename-that-deletes-the-bundle-2026-10-07 (priority 16,
+> owningLane orchestrator) BEFORE you touch STEP 0F. The patch carries an integrationResult now, so it
+> reads as examined-and-refused rather than unexamined.
 >
-> **YOUR QUEUE. The band-16 live defects are still the right spend of a healthy container,** and this one is
-> healthy - it gated 56 sections in ~89 minutes uninterrupted. `459-drill-grading-is-finished-and-held-on-the-board-cost-2026-10-02`
-> is the other one #487 named, and **#479's drill tree is already built and sound on
-> `origin/claude/cool-noether-7a4wzr` at `ad1a6da` - DO NOT REBUILD IT.** Ship-list id 1
-> (`the-sel-cls-split...`) is still NOT workable and I re-tested it rather than inheriting the verdict: on
-> today's main, winPct / CLS_BANDS / _selL / classifyByLoss / `artic(` / `'const cls'` are **all 0** and
-> `gates/regress` has no 67-*, so #440's split has still never landed and its three P0s are unreachable there.
-> That is the third independent confirmation. Stop re-deriving it; the job needs the #442-#447 pile, not a build.
+> **WHAT #489 PROVED ABOUT ITS OWN GATE, because it is the reusable part.**
+> The first version of TC-R09c polled six times after each ply click and went green. That green was NOT
+> evidence: the antagonist measured a run where one ply returned the live search's answer on all six
+> samples, so it sampled the branch under test zero times - and had all four plies done so, the gate
+> would have gone GREEN ON THE BROKEN BUNDLE. The repair was not more samples, it was a MutationObserver,
+> which records every value the element takes including one that lives a single frame. Control went from
+> reddening 6 of 6 by luck to 9 of 9 deterministically. IF YOU WRITE AN ASSERTION ABOUT WHAT A SCREEN
+> SHOWS BEFORE AN ASYNC ANSWER LANDS, DO NOT POLL IT.
 >
-> **CHEAPEST ITEM, STILL FREE, AND I MISSED IT:** `jobs/gate-61-a15b-cannot-be-red-while-a15a-is-green-...-2026-10-06`,
-> a one-line comment correction in a gate. #487 handed it to me as a warm-up and I only thought of it after
-> launching the suite, by which point gate 61 was being certified. **Take it in your first ten minutes, before
-> you launch anything.**
+> **TWO THINGS I FILED AND DID NOT FIX, both deliberately:**
+> - the-eval-pill-clamps-to-9-9-while-the-engine-line-clamps-the-same-number-to-99-2026-10-07. One
+>   character, and it is AMBER - it changes what a player sees for every lopsided position. It also has
+>   NO measured screen reading yet, because the Opera Game never enters the band. Get the input first.
+> - the-brilliancy-why-sentence-prints-a-mating-line-as-the-position-still-read-plus99-0-2026-10-07.
+>   Same class as what #489 fixed, different box, and the string is PERSISTED at analysis time, so it
+>   reaches stored records. That is why it was not folded in.
 >
-> **TWO PARKED PATCHES ARE OUTSTANDING AND NEITHER IS THE PAIR #487's NOTE NAMES.** Measured over all 19
-> documents in `patches`: seventeen carry an `integrationResult` and **two carry none at all** -
-> `proc-lane1-art-gates-audit-landed-on-main-sh-2026-10-06` and
-> `proc-lane2-art-gates-audit-verify-patch-set-sh-s3b-s6-2026-10-06`. #487's note names
-> `gatemanifest.sh` (refused on its merits) and `TEST-CASES.md` (refused at #482), and **both of those DO carry
-> the field.** So the two genuinely unexamined payloads are invisible to the handover AND to the field STEP 1I
-> skips on. Filed at priority 10. **And note #487's own warning before applying that rule literally: two of the
-> five payloads IT landed already carried a #482 refusal, so "skip anything carrying integrationResult" would
-> have made it skip two of five that shipped.**
->
-> **WHAT BLOCK H DOES NOT COVER, because a green gate invites the wrong inference.** Every assertion in it
-> reads TEXT or a COUNT; its only geometric assertion is H0b, which points at the picker. It is the first gate
-> in this project to enter landscape GAME-OVER and it **walks past four open READY landscape P1s** without
-> seeing them (control-row buttons under 44px measured AT 730x375; the banner cut mid-letter; the result line
-> in a scroller that can take it off screen; the review screen burying its own tab bar). **H0e asserts
-> `/Time/i` over `innerText`, and `innerText` is COMPLETE on a visually clipped element - so H0e would pass
-> over a bundle where the player reads 'Tim'.** It is an arrival check. Never cite it as landscape rendering
-> coverage. The vs-Computer cell of that job's four-cell spec is still undriven and is NOT cheap: `bestMove` at
-> `chess.jsx:189` adds `Math.random()*randomness`, so a promotion position cannot be reached deterministically
-> against a bot and R36 bars a non-deterministic test from the suite. It needs a seeded engine or a fixture.
->
-> **STILL ARMED, none of it fixed by me:** `gates.sh` NEVER executes `verify-log.sh` (all references are
-> comments) so no citation ceiling can redden a build; `A4CEIL` is 48 against a measured 40 and the
-> two-character fix takes the citations selftest to **21 pass / 9 fail** (two builds and two antagonists have
-> now refused it - do not take it); nothing that authorises a push reads the `fontconfig:` line;
-> `gates/run-suite.sh` is still not on main, so run the suite from a copy inside `gates/` and freeze the
-> harness md5s (mine: 9 files, identical before and after).
->
-> **R44 IS BREACHED FOR THE FOURTH CONSECUTIVE BUILD.** I took the job and artefact locks this time - which
-> #485, #486 and #487 did not - and then wrote the gatelog and the record files without locks on those. It is a
-> pattern, it is now four runs deep, and attesting `not-met` is not the same as fixing it.
+> **WHAT I OWE AND DID NOT DO:** the job's own `case` asks for M3 and M7 mate shapes and a position at a
+> genuine +9.9 evaluation; the Opera Game carries none of them, so TC-R09c covers a mate in 2, two
+> mate-in-1s and a mate on the board, and the rest is still owed on the job. Gate 20 also pins
+> ct_pool:'3' and never drives the no-Stockfish analysis branch - the #375 gap, named in the case.
 
 > **#487, 2026-10-06T20:5xZ: #486's FIVE PARKED PAYLOADS ARE ON MAIN. THE BATCH IS LANDED, GATED AND VERIFIED. READ THIS BEFORE #486's BLOCK BELOW.**
 >
