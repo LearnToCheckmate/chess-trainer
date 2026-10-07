@@ -516,7 +516,12 @@ function artic(w){const t=String(w||'').trim();return (/^[aeiou]/i.test(t)?'an '
    overlay historically drawn from those two, so these three are exactly the words a drill row can honestly
    carry. Gate 67 block G renders the card from a seeded store and asserts no painted goal names a PRAISE grade. */
 const DRILL_GRADES=['Mistake','Blunder','Miss'];
-function drillGrade(lab){const t=String(lab||'').trim();return DRILL_GRADES.indexOf(t)>=0?t:'mistake';}
+function drillGrade(lab){const t=String(lab||'').trim();const i=DRILL_GRADES.findIndex(g=>g.toLowerCase()===t.toLowerCase());return i>=0?DRILL_GRADES[i]:'mistake';}
+/* #494 antagonist B, free fix rather than a residual: the first version matched the admissible set
+   CASE-SENSITIVELY while every other step in this expression lowercases, so a stored 'blunder' would
+   have been DOWNGRADED to 'a mistake' where main got it right - the one input class on which the fix
+   was worse than the code it replaced. B judged it unreachable (every producer writes a capitalised
+   literal) and declined to veto on it; it costs one line, so it is closed rather than recorded. */
 function classifyByLoss(loss){
   const l=Math.max(0,loss||0);
   if(l<15) return 'Best';
@@ -5502,10 +5507,31 @@ export default function App(){
   const showPackIdx=(rows,i)=>{if(!rows||!rows.length){setPzOErr('That pack is empty.');return;}const solved=pzOSolvedIdsRef.current;for(let k=0;k<rows.length;k++){const idx=(((i+k)%rows.length)+rows.length)%rows.length;const row=rows[idx];if(!_packBand(row))continue;const rid='lichess:'+(row.id||row.i||'');if(row.id&&solved[rid])continue;const o=lichessFromPack(row);if(o){setPzPackIdx(idx);setPzOErr('');setPzOInfo('📦 '+(idx+1)+'/'+rows.length+' · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);return;}}const d=pzDiffRef.current,lbl=d==='easy'?'easier ':d==='med'?'medium ':d==='hard'?'harder ':'';setPzOErr('No unsolved '+lbl+'puzzles left in this pack — switch difficulty or load another pack.');};
   const loadPack=async(url)=>{const u=String(url||'').trim();if(!u){setPzOErr('Paste a URL to a puzzle pack (.json).');return;}setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch(u);const arr=await r.json();const rows=Array.isArray(arr)?arr:(arr.puzzles||[]);if(!rows.length)throw 0;setPzPack(rows);showPackIdx(rows,0);}catch(e){setPzOErr("Couldn't load that pack. The URL must return a JSON array of puzzles.");}setPzOLoading(false);};
   const nextOnline=()=>{if(mistakeMode)return nextMistake();if(pzPack&&pzPack.length)showPackIdx(pzPack,pzPackIdx+1);else loadDaily();};
+  /* #494, BOTH BLIND ANTAGONISTS VETOED THE FIRST VERSION OF THE #494 GUARD ON THIS LINE AND BOTH VETOES
+     WERE UPHELD. `isB` is evaluated BEFORE the goal sentence exists and gates all three player-visible
+     strings - goal, hint and the solved explanation - so drillGrade(), which sits only on the `else` arm,
+     could not see a row whose stored label is 'Brilliant'. That row is in the MISTAKES pool, so the card
+     painted "you found a brilliant move here. Can you spot it again?" over `m.uci`, which for a mistakes
+     row is THE ENGINE'S MOVE AND NOT THE MOVE THE PLAYER PLAYED: the player replays their own move, is
+     told "isn't it - try again", and on finding the engine's move is congratulated for "your brilliant
+     move" beside this app's own text saying the move they actually played was worse. It is strictly worse
+     than the "an excellent" card #494 was written to fix, and it never cleared, because the solve effect
+     deletes a row only when the card is SOLVED and that card cannot be solved as described.
+     THE FIRST VERSION EXCLUDED THIS CASE ON A FALSE MEASUREMENT, WITHDRAWN HERE [R18]. It claimed a
+     Brilliant move's loss is "far too small" to be graded Mistake. MEASURED, and both antagonists found
+     it independently: brilliantGate's ceiling is `cap=(isSac&&evAfter>=1.2)?220:90` and classifyByLoss
+     puts 160 at 'Mistake', so every integer loss in 160..219 - SIXTY of them - is simultaneously
+     gate-ok Brilliant and sel Mistake. The capture's mistake branch is tested FIRST, so such a ply lands
+     in caps with label:cls.label on any tree that stored the display label. A flashy sacrifice that keeps
+     a 1.2+ pawn advantage while being 1.6-2.2 pawns short of best is an ordinary move, not an exotic one.
+     THE DISCRIMINATOR IS THE DRILL KIND, which already exists and needs no new field and no migration:
+     startMistakes sets drillKindRef to 'mistake' and startBrilliant to 'brilliant', each BEFORE its own
+     puzzleFromMistake loop, and the ref is already set on the mid-drill path. Testing for 'brilliant'
+     rather than against 'mistake' makes the mistake sentence the default, which is the safe direction. */
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, '+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;return o;}catch(e){return null;}};
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, '+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;return o;}catch(e){return null;}};
   const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
   const startBrilliant=()=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
   /* #475 ONE walker serves both directions so Prev cannot drift away from Next. It steps through the

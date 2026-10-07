@@ -97,10 +97,22 @@ L.run(async()=>{
   // checked were the same object.
   //
   // WHAT IT DRIVES NOW, AND WHY IT IS NOT THAT SHAPE ONE LEVEL UP. The article is not a property of a
-  // helper; it is a property of THE SENTENCE THE DRILL CARD PAINTS. That sentence is built at one site
-  // in the bundle and exists in exactly two shapes, both MEASURED rather than assumed:
-  //     fixed    "here, "   + oS(String(a.label||"mistake").toLowerCase()) + ". Find the stronger move."
-  //     broken   "here, a " +    String(a.label||"mistake").toLowerCase()  + ". Find the stronger move."
+  // helper; it is a property of the ARTICLE CHOSEN AT the site where the drill card's sentence is built.
+  // THAT WORDING IS NARROWED AT #494 AND THE OLD ONE IS WITHDRAWN [R18]: this header used to say block U is
+  // "a property of THE SENTENCE THE DRILL CARD PAINTS", and that is no longer true, because since #494 the
+  // label passes through a GUARD before it reaches the article helper. U3..U13 instantiate the helper and
+  // feed it each grade directly, so what they certify is that `artic` articles a WORD correctly - NOT what
+  // the card says about a stored label. READ THEM THAT WAY, because the two can now differ in the same log
+  // and did at #494: U4 reads "this bundle writes 'an excellent' for the grade Excellent" and is TRUE of
+  // the helper, while G1 Excellent reads "the card says a mistake" and is TRUE of the card. Neither is
+  // wrong; they measure different things, and BLOCK G is the one that speaks for the screen. #494's
+  // antagonist A caught the stale wording before it shipped.
+  // THAT SENTENCE EXISTS IN THREE MEASURED SHAPES, not two:
+  //     broken     "here, a " +    String(a.label||"mistake").toLowerCase()   + ". Find the stronger move."
+  //     #442..#493 "here, "   + oS(String(a.label||"mistake").toLowerCase())  + ". Find the stronger move."
+  //     #494 on    "here, "   + oS(String(sS(a.label)).toLowerCase())         + ". Find the stronger move."
+  // The anchor regexes are unaffected - `String(` is still the outer argument of the article call, which is
+  // why keeping it there was a deliberate constraint on the #494 edit and was verified in the built bundle.
   // So the mechanism is read OUT OF THE CALL SITE and then exercised, whichever shape it is in: a
   // helper is resolved from the bundle BY THE NAME THE SITE ACTUALLY CALLS and instantiated, and a
   // baked-in article becomes the constant function it is. Every U below is then a statement about the
@@ -218,6 +230,16 @@ L.run(async()=>{
   //   each take U2 red and U3..U13 eleven red ON A GOOD BUNDLE;
   //   the capture regex false-reds on a nested call in the fen argument, an inline-built uci, a plain
   //   variable fen, any key added before fen, or label moved after ts.
+  //   AND #494 PARKED A SECOND TRIGGER ONE LINE AWAY, named here in the commit that created it rather than
+  //   left for whoever trips it. The resolver evaluates the helper with `new Function`, so a helper that
+  //   references anything module-scope throws on first call. That was latent while the only free name in
+  //   `artic` was the global `String`. `drillGrade`, which #494 added IMMEDIATELY AFTER artic and in the
+  //   same expression, has a module-scope free name: it reads DRILL_GRADES (minified `lS`), and lifting it
+  //   out of the bundle and calling it gives "ReferenceError: lS is not defined". It is NOT reached today,
+  //   because the site names the article helper first and `function oS(` occurs exactly once - measured, not
+  //   assumed. But any later build that routes the article through the guard, or writes the site as
+  //   `"here, "+drillGrade(String(...))`, takes U2 plus eleven of U3..U13 RED ON A GOOD BUNDLE. Found by
+  //   #494's antagonist A.
   // These fail in the SAFE direction - they false-RED, never false-pass - and U0/P0 anchor on the sentence
   // and the capture object precisely so that a refactor reddens this gate instead of silently blinding it
   // [#432]. They are NOT fixed here: making the regexes permissive is how a loose pattern stops
@@ -393,14 +415,25 @@ L.run(async()=>{
   // "mistake" would satisfy G1 perfectly, and G2 is the only thing that rejects it. That is this project's
   // "a negative control must cross the threshold" rule applied to my own fix.
   //
-  // `Brilliant` IS DELIBERATELY NOT AN INPUT, AND THE REASON IS MEASURED RATHER THAN CONVENIENT. It is in
-  // PRAISE, but `puzzleFromMistake` branches on `isB=m.label==='Brilliant'` BEFORE the goal sentence is
-  // built, so a Brilliant row paints "you found a brilliant move here. Can you spot it again?" and matches
-  // G_GOAL_RE not at all - it would read as a null and redden this block on a GOOD bundle. It is also
-  // unreachable in this store by construction: the #441-era capture admitted a ply only when `sel` was
-  // Mistake or Blunder, and a Brilliant move's loss is far too small to be either. So excluding it is not a
-  // gap being papered over; asserting over it would be the false red. Said here rather than left as a silent
-  // omission, and the five-of-six denominator below is stated in every L.say.
+  // `Brilliant` IS NOT IN THIS SET EITHER, BUT IT NOW HAS ITS OWN SUB-BLOCK BELOW, AND THE PARAGRAPH THAT
+  // USED TO STAND HERE IS WITHDRAWN AS FALSE [R18]. It read: "It is also unreachable in this store by
+  // construction: the #441-era capture admitted a ply only when `sel` was Mistake or Blunder, and a
+  // Brilliant move's loss is far too small to be either. So excluding it is not a gap being papered over."
+  // BOTH BLIND ANTAGONISTS OF #494 BROKE THAT INDEPENDENTLY AND BOTH VETOES WERE UPHELD. MEASURED:
+  // brilliantGate's ceiling is `cap=(isSac&&evAfter>=1.2)?220:90` (chess.jsx:1280) and classifyByLoss puts
+  // 160 at 'Mistake', so every integer loss in 160..219 - SIXTY of them - is simultaneously gate-ok
+  // Brilliant and sel Mistake, and the capture tests its mistake branch FIRST. So the row is reachable, and
+  // "far too small" was wrong by 60 centipawns. WHAT IT PAINTED is worse than the defect this block was
+  // written for: `isB` gates the goal, the hint AND the solved explanation, so the card congratulated the
+  // player for "your brilliant move" over `m.uci`, which in a mistakes row is THE ENGINE'S MOVE, rejected
+  // the move they actually played, and never cleared, because a row leaves the store only when its card is
+  // SOLVED and that card cannot be. #494 fixed it in the app (`isB` now also requires drillKindRef to be
+  // 'brilliant') and the sub-block below is the assertion.
+  // IT IS A SEPARATE SUB-BLOCK RATHER THAN A SEVENTH G_INPUT, AND THE REASON IS A TRAP WORTH NAMING: on a
+  // bundle WITHOUT the app fix a Brilliant row paints the brilliancies sentence, which G_GOAL_RE does not
+  // match, so `painted` is null - and folding it into G_INPUTS would make G0's instrument RED on the
+  // control and send G1..G3 down the NOT-RUN path with it. The control would lose five reds to gain one.
+  // Keeping the denominators apart is what lets both halves fail independently.
   const G_INPUTS=[['Best','praise'],['Excellent','praise'],['Good','praise'],['Great','praise'],
                   ['Inaccuracy','inadmissible-vowel'],['Blunder','control-admissible']];
   const gRead=[];
@@ -440,9 +473,17 @@ L.run(async()=>{
     // returned that one line plus block P's source-level check over the PRODUCER. One assertion per input, so
     // a failure names the grade that did it rather than reporting four faults as one.
     for(const r of gRead.filter(r=>r.kind==='praise')){
-      L.say(PRAISE.indexOf(r.painted.word)<0&&PRAISE.map(p=>p.toLowerCase()).indexOf(String(r.painted.word).toLowerCase())<0,
-        'G1 '+r.label+': a stored legacy label of "'+r.label+'" does NOT reach the drill card as a praise word - the card says "'+r.painted.article+' '+r.painted.word+'"',
-        {seeded:r.label,paintedWord:r.painted.word,sentence:r.painted.all,praise:PRAISE});
+      // TWO REPAIRS FROM #494's ANTAGONIST A, both upheld. (i) The first version was a conjunct whose second
+      // clause strictly IMPLIES the first - if the word is in PRAISE exactly then its lower-case form is in
+      // the lower-cased PRAISE - so clause one could never be the sole failing half and, because the card
+      // always lower-cases, never fired at all. That is the shape 25-online-clocks.js:137 was faulted for
+      // one build earlier, so it is collapsed to the single test that can actually fail. (ii) The first
+      // version asserted only NOT-PRAISE, which a guard mapping Best -> "inaccuracy" would satisfy; it now
+      // pins the word the app's own fallback is supposed to produce.
+      const gWord=String(r.painted.word).toLowerCase();
+      L.say(PRAISE.map(p=>p.toLowerCase()).indexOf(gWord)<0&&gWord==='mistake',
+        'G1 '+r.label+': a stored legacy label of "'+r.label+'" reaches the drill card as the app\'s own fallback word and never as a praise word - the card says "'+r.painted.article+' '+r.painted.word+'"',
+        {seeded:r.label,paintedWord:r.painted.word,expectedWord:'mistake',sentence:r.painted.all,praise:PRAISE});
     }
     // G2 THE CONTROL. Without this, a guard that printed "a mistake" for every row in existence would be
     // indistinguishable from a correct one, and every G1 above would still be green.
@@ -461,6 +502,50 @@ L.run(async()=>{
     L.note('G1..G3 NOT RUN and NOT COUNTED AS PASSES: '+gMissing.length+' of '+G_INPUTS.length+' seeded stores '+
            'painted no goal sentence, so there is nothing to read. G0 is the red. This is the same guard D2 '+
            'and P1..P3 carry, and it exists because .every() and a negated .test() are both TRUE over nothing.');
+  }
+
+  // ──────── G4 - THE `Brilliant` ROW, THE CASE BOTH #494 ANTAGONISTS VETOED ON ────────
+  // Its own launch and its own denominator, for the reason given above the input list. THREE assertions,
+  // and the first is the instrument, because G4b asserts an ABSENCE and this project's own rule
+  // (flags/testlane-assert-absence-needs-two-checks) is that "X is absent" must be preceded by proof that
+  // the screen was there to read at all - otherwise a card that never opened reports the defect cured.
+  const gbRows=[{fen:G_FEN,uci:'b2b7',label:'Brilliant',played:'Kd1',ts:1791000000000,last:null,
+                 why:'the queen gets behind the pawn',hint:'look up the file'}];
+  const bgB=await L.launch({geo:L.GEOS.kunal761,name:'selcls-legacy-Brilliant',store:{ct_mymistakes:gbRows,ct_pool:'3'}});
+  let gbTxt='',gbErr=null;
+  try{
+    await bgB.open();
+    await bgB.tile('Review'); await bgB.settle(700);
+    await bgB.tapText(/find the move you missed/,{wait:1800});
+    try{await bgB.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});}catch(e){}
+    await bgB.settle(600);
+    gbTxt=await bgB.page.evaluate(()=>document.body.innerText||'');
+  }catch(e){gbErr=String(e.message||e).slice(0,160);}
+  try{await bgB.close();}catch(e){}
+
+  const BRIL_RE=/found a brilliant move here/i;
+  const gbGoal=G_GOAL_RE.exec(gbTxt);
+  // G4a THE INSTRUMENT. The mistakes drill opened on a store whose only row is Brilliant-labelled, and the
+  // card painted ONE of the two sentences this site can produce. Without this, G4b passes over a blank page.
+  const gbOpened=!!(gbGoal||BRIL_RE.test(gbTxt));
+  L.say(gbOpened,
+    'G4a INSTRUMENT: a store whose only row carries the legacy label "Brilliant" opened a drill card that painted one of the two sentences puzzleFromMistake can produce, so G4b and G4c have something to read',
+    {painted:gbGoal?('mistake-shape: '+gbGoal[0]):(BRIL_RE.test(gbTxt)?'brilliancies-shape':'NEITHER'),err:gbErr});
+  if(gbOpened){
+    // G4b THE DEFECT ITSELF. The mistakes drill may never tell the player they FOUND the move it is about
+    // to ask them for - `m.uci` on a mistakes row is the engine's move, not theirs.
+    L.say(!BRIL_RE.test(gbTxt),
+      'G4b the mistakes drill never congratulates the player for finding the move it is asking them to find - a legacy "Brilliant" row does NOT reach the brilliancies card, whose uci on a mistakes row is the ENGINE\'s move and not the one they played',
+      {brilliantSentencePresent:BRIL_RE.test(gbTxt),
+       note:'reddens on any bundle where isB does not also require the drill kind'});
+    // G4c AND IT TAKES THE ORDINARY PATH, so the row is drillable and self-clears on solve. Asserting only
+    // G4b would be satisfied by a card that painted nothing at all.
+    L.say(!!gbGoal&&String(gbGoal[3]).toLowerCase()==='mistake',
+      'G4c a legacy "Brilliant" row instead paints the ordinary mistake goal naming the app\'s own fallback word, so the card is solvable and the row leaves the store when solved',
+      {paintedWord:gbGoal?gbGoal[3]:null,sentence:gbGoal?gbGoal[0]:null,expectedWord:'mistake'});
+  }else{
+    L.note('G4b and G4c NOT RUN and NOT COUNTED AS PASSES: the Brilliant-row card painted neither sentence, '+
+           'so there is nothing to read and G4a is the red.'+(gbErr?(' err: '+gbErr):''));
   }
 
   // ════════ BLOCK D - THE REVIEW ROW, EVERY PLY OF A DECIDED GAME, ON KUNAL'S PHONE ════════
@@ -575,6 +660,16 @@ L.run(async()=>{
   //       No gate in this project asserted the text a drill card paints, and
   //       the route to do it exists (see the header). jobs/no-harness-route-to-the-drill-capture-producer-
   //       2026-09-30, re-keyed.
+  //   (4) THE DRILL'S OWN COUNT, and it is a LIVE pre-existing defect this gate does not touch. Found by
+  //       #494's antagonist B from the shipped-surface door. THREE sites state how many positions there
+  //       are and they do not agree: the home card and the coach plan both render the RAW store length,
+  //       while the in-drill header renders `drillPlayRef.current.length`, the PLAYABLE subset. And
+  //       `startMistakes` returns SILENTLY when nothing is playable - no toast, no screen change - while
+  //       the only shrink path deletes a row when its card is SOLVED, which an unplayable row never is, and
+  //       the app has no clear-or-reset path for ct_mymistakes at all. So the terminal state of a store
+  //       holding any unplayable row is two buttons that advertise positions and do nothing, for ever,
+  //       until 150 fresh captures evict them. Block G's stores are one row each, so nothing here can see
+  //       it. Routed, not fixed under this number: it is pre-existing on main, proven by a bundle diff.
   //   (3) THE FALLBACK WORD - NOW EXERCISED RATHER THAN ONLY LOCATED, by block G's G3, which seeds an
   //       inadmissible vowel-initial label and asserts the card paints "a mistake". So deleting the
   //       fallback would now show as "a undefined" and go red instead of passing. The original text
