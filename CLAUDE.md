@@ -456,8 +456,20 @@ wider one.
   unusable, which is the same thing at the push gate.
   THE HABIT: freeze the harness before you launch. Record `md5sum gates/*.sh` before the run and check it after -
   if it changed, the log is suspect whatever it says. THE MECHANICAL FIX, one line at the launch and not in any
-  script: run the suite from a COPY (`cp gates/gates.sh "$T"/ && ...`), so a later edit to the repo copy cannot
-  reach the running interpreter. Filed as `jobs/the-suite-must-run-from-a-copy-of-its-own-script-2026-10-02`.
+  script: run the suite from a COPY, so a later edit to the repo copy cannot reach the running interpreter.
+  Filed as `jobs/the-suite-must-run-from-a-copy-of-its-own-script-2026-10-02`.
+  **THE COPY MUST STAY INSIDE `gates/`, AND THE `cp gates/gates.sh "$T"/` THIS LINE USED TO PRESCRIBE IS WRONG
+  [#493, R18].** `gates.sh:33` is `G="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(dirname "$G")"`, so the script
+  derives the suite directory and the repository root FROM ITS OWN LOCATION. Copied to a scratch directory it
+  resolves `ROOT` to that directory's parent, finds no `app.js` and no `regress/`, and the run dies at once -
+  so the prescription as written does not merely fail to help, it cannot be followed. Use a sibling name inside
+  `gates/` instead: `cp gates/gates.sh gates/.gates-run-<N>.sh && bash gates/.gates-run-<N>.sh '#NNN'`, which
+  keeps `G` and `ROOT` correct while the interpreter reads a file no later edit touches. `.gitignore:3` already
+  carries `gates/.gates-run-*.sh` for exactly this, added by **#475**, whose own comment there states the
+  `dirname $0` reason - so the correct version has been in the repository since #475 and only this file still
+  carried the broken one. That is the R45 shape (a rule against a rule) and it is why a fix recorded in one home
+  does not travel: #493 rediscovered it from `gates.sh:33` before launching its suite, which cost two minutes
+  and would have cost a run to anyone who pasted the old line.
   AND NOTE WHICH FAMILY THIS IS IN: it is the self-reference trap this file already records at #407 (a watcher
   whose `pgrep -f` matched itself) and #416 (a `pkill -f` that killed its own shell) - *the tool and the thing it
   was operating on were the same object*. Here they were the same FILE, and the window was 71 minutes wide.
