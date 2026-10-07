@@ -472,3 +472,5 @@
 487	built	-	c87a4050df97	9951461ed2ae	2026-10-06T19:23Z	build__1791314445155	build.sh	Bundle built and stamped #487. Recorded by gates/build.sh so the number resolves to an artefact.
 488	minted	-	-	-	2026-10-06T21:32Z	build__1791321605451	minted	gate 65 block H: the landscape 730x375 axis of the promotion-after-game-over case, the finish-first remainder of jobs/a-pawn-can-be-promoted-into-a-game-that-already-ended-on-time-2026-09-30
 488	built	-	8d8785ea40c4	9951461ed2ae	2026-10-06T21:33Z	build__1791321605451	build.sh	Bundle built and stamped #488. Recorded by gates/build.sh so the number resolves to an artefact.
+489	minted	-	-	-	2026-10-07T00:35Z	build__1791332402466	minted	review eval pill prints a mate label instead of the clamped +-9.9 on the stored-analysis path, plus the fastgate.sh landing
+489	built	-	81b4ad945f8e	a1aa53ba97f7	2026-10-07T00:35Z	build__1791332402466	build.sh	Bundle built and stamped #489. Recorded by gates/build.sh so the number resolves to an artefact.

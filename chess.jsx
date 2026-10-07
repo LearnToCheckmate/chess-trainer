@@ -4896,7 +4896,28 @@ export default function App(){
   // They used to come from two different searches at two different depths and disagreed on screen.
   const _engBar=(inReview&&engOn&&engLine&&engLine.cp!=null&&engLine.txt)?engLine:null;
   const evalNow=_engBar?Math.max(-99,Math.min(99,_engBar.cp)):(sfHit?(sfHit.mate!=null?(sfHit.mate>0?10:-10):sfHit.cp/100):evalFallback);
-  const evalTxt=_engBar?_engBar.txt:(sfHit?(sfHit.mate!=null?mateLbl(sfHit.mate):((sfHit.cp>0?'+':'')+(sfHit.cp/100).toFixed(1))):((evalFallback>0?'+':'')+Math.max(-9.9,Math.min(9.9,evalFallback)).toFixed(1)));
+  /* #489 (jobs/review-mate-label-not-plus9-9, the remainder item (1) the job names): THE STORED-ANALYSIS
+     PATH CLAMPED A FORCED MATE TO "+9.9". review.analysis[].evalAfter is already clamped to +-99 pawns where
+     it is written (chess.jsx:4015, `Math.max(-99,Math.min(99,after/100))`), and a mated line scores +-99950
+     centipawns (:3918, :3943), so EVERY forced mate arrives at this line as exactly +-99 and the old
+     `Math.max(-9.9,Math.min(9.9,...))` turned it into the number 9.9. The engine-line path at :4757 has
+     printed a MATE label for the same quantity since #375, so the two readouts of one quantity disagreed -
+     the #385 class, and the reason this is derived the same way :4757 derives it rather than by a second
+     rule. MEASURED on the #488 bundle (md5 8d8785ea40c4) BEFORE this change, at 375x730, stepping to ply 30
+     of the Opera Game: the pill reads "+9.9" at t=0 and "M2" at t=60ms. So the live search MASKS it as soon
+     as it answers, which is why a settled gate never saw this and why the first probe written for it came
+     back green - the wrong label is what the player reads in the gap, and it is what they keep reading on
+     every path where sfBestLine resolves null, of which #389 names five (worker not ready, idle check
+     failed, postMessage threw, aborted, WASM trapped). useMemo keyed on the displayed FEN because the M1
+     test generates legal moves and this is render scope, not an effect. */
+  const _fbMate=useMemo(()=>{
+    if(!(Math.abs(evalFallback)>=99))return null;
+    let st='';try{st=getStatus(boardGame);}catch(e){return null;}
+    if(st==='checkmate')return boardGame.turn==='w'?'0-1':'1-0';
+    let m1=false;try{m1=getLegal(boardGame).some(m=>getStatus(makeMove(boardGame,m))==='checkmate');}catch(e){}
+    return ((evalFallback>0)?'':'-')+(m1?'M1':'M');
+  },[dispFen,evalFallback]);
+  const evalTxt=_engBar?_engBar.txt:(sfHit?(sfHit.mate!=null?mateLbl(sfHit.mate):((sfHit.cp>0?'+':'')+(sfHit.cp/100).toFixed(1))):(_fbMate!=null?_fbMate:((evalFallback>0?'+':'')+Math.max(-9.9,Math.min(9.9,evalFallback)).toFixed(1))));
   // Live eval bar — full-strength Stockfish on the displayed position (separate from the strength-limited opponent search).
   useEffect(()=>{
     /* #470: `!playSetup` added after antagonist A found this effect was a THIRD site gated on `opponent`

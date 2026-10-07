@@ -133,7 +133,45 @@ L.run(async()=>{
     const startAt=await b.text('[data-ct="rev-move-line"]');
     L.say(!!startAt&&/Start position/.test(startAt)&&/\b0\/33\b/.test(startAt),geo+': TC-RL-033 (R-03) "Start review" starts at the START, even though the Skills jump just left the review at ply 27. Asserted, not helped along by a click.',startAt);
     const at={};const rec=async(k)=>{const m=await b.metrics();const bars=await barInfo(b);const num=await b.rect('[data-ct="eval-bar-num"]');const ml=await b.rect('[data-ct="rev-move-line"]');at[k]={board:m.board,over:m.over,bars,num:num&&num.text,ml:ml&&ml.text,why:(await b.rect('[data-ct="rev-why"]'))};};
-    await rec('p0');await step(b,10);await rec('p10');await step(b,9);await rec('p19');await b.shot('review-'+geo+'-ply19');await step(b,14);await rec('p33');await b.shot('review-'+geo+'-ply33');
+    await rec('p0');await step(b,10);await rec('p10');await step(b,9);await rec('p19');await b.shot('review-'+geo+'-ply19');
+    /* #489 TC-R09c: THE FIRST LABEL PAINTED ON A NEW PLY IS THE STORED-ANALYSIS ONE, AND IT USED TO BE A NUMBER.
+       The walk to ply 33 used to be one `step(b,14)` and recorded only the SETTLED label, which is why this suite
+       never saw the defect: sfHit is null by construction for at least one render after every ply change (it is
+       keyed on sfEval.fen === dispFen), so the fallback at chess.jsx:4920 is ALWAYS what paints first, and the
+       live search then overwrites it within about 60 ms in this container. A settled read can only ever see the
+       winner of that race. So the last four plies are walked one at a time and the label is sampled back to back
+       from the first paint, and the assertion is over the SET of labels seen rather than over the final one.
+       MEASURED both ways before this was written: on the shipped #488 bundle (md5 8d8785ea40c4) this collects
+       NINE paints of "+9.9" across the four plies; on #489 (81b4ad945f8e) it collects none. That is the negative
+       control and it is a real one - the ideal control, the bundle actually on main, per #432.
+       WHY THE ASSERTION IS A PAIR AND NOT JUST THE ABSENCE. "never +-9.9" alone is satisfied by a bundle that
+       paints nothing at all, which is #394's trap; so the second half requires every sample to be a label the
+       app is allowed to print here, and the mate branch to actually be reached. The EXACT mate label is NOT
+       pinned, deliberately: which of "M", "M1", "M2" or the result appears at sample k depends on whether the
+       live search has landed, and pinning it would make this assertion a coin flip - the #391 trap. What is
+       deterministic, and what the player cares about, is that a forced mate is never reported as the number 9.9. */
+    const MATEISH=/^(1-0|0-1|-?M\d*)$/;
+    const mateTail={};
+    /* The walk is at ply 19 here and the old single `step(b,14)` carried it to 33. Ten of those fourteen are
+       still a bulk step; only the last four are walked singly so their first paint can be sampled. THE FIRST
+       VERSION OF THIS BLOCK OMITTED THIS LINE and therefore sampled plies 20-23, where the stored eval is an
+       ordinary +4.6 and "never +-9.9" is true for a reason that has nothing to do with the fix - a vacuous
+       green. It was caught by the paired mate-shaped assertion below going red, which is the whole reason that
+       assertion is a pair, and by the pre-existing TC-R09 at ply 33 going red because `rec('p33')` was recording
+       ply 23. Both tells fired on the first run. */
+    await step(b,10);
+    for(const p of [30,31,32,33]){
+      await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});
+      const s=[];for(let k=0;k<6;k++)s.push(await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="eval-bar-num"]');return e?(e.innerText||'').trim():null;}));
+      await b.page.waitForTimeout(1200);
+      s.push(await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="eval-bar-num"]');return e?(e.innerText||'').trim():null;}));
+      mateTail[p]=s;
+    }
+    const tailAll=[].concat(...Object.values(mateTail));
+    const tailClamped=tailAll.filter(x=>/^[+-]?9\.9$/.test(String(x||'').trim()));
+    L.say(tailClamped.length===0,geo+': TC-R09c a forced mate is never painted as the clamped +-9.9, at ANY sample from the first paint onward across plies 30-33 (9 such paints on #488, 0 on #489)',{clamped:tailClamped.length,seen:mateTail});
+    L.say(tailAll.length===28&&tailAll.every(x=>x&&MATEISH.test(x)),geo+': TC-R09c and every one of those 28 samples IS a mate-shaped label, so the assertion above cannot be satisfied by an empty or missing readout',{n:tailAll.length,distinct:[...new Set(tailAll)]});
+    await b.settle(400);await rec('p33');await b.shot('review-'+geo+'-ply33');
     const ws=new Set(Object.values(at).map(x=>x.board&&x.board.w)),tops=new Set(Object.values(at).map(x=>x.board&&x.board.top));
     L.say(ws.size===1&&tops.size===1&&!ws.has(null),geo+': TC-R06 one board width and one top across plies 0/10/19/33',{ws:[...ws],tops:[...tops]});
     if(geo==='kunal')L.say(at.p0.board&&Math.abs(at.p0.board.w-349)<0.6,'kunal: TC-R06 review board is 349 wide ('+(at.p0.board&&at.p0.board.w)+')');

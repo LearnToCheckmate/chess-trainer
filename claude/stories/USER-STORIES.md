@@ -1004,3 +1004,17 @@ WHAT THIS CLAUSE DELIBERATELY DOES NOT CLAIM. (a) It says nothing about the grad
 CASE: TC-R48, gate `gates/regress/73-review-list-filter.js`.
 
 NOTE ON THE ID [#476]. US-R36 was checked free by grep over `claude/` and `gates/` before use; the only hits were this build's own gate file and its manifest row. It follows US-R35 (#475) and continues above the "US-R20..US-R29" block for the reason recorded under US-R20 and restated at US-R33.
+
+US-R37  **As a player stepping through a review, when the position I land on is a forced mate, I need the evaluation readout to say so — never to report the mate as a number, and never to report one thing for the instant before the engine answers and another thing after.**  The review's eval readout has two sources for one quantity: the live full-strength search (`sfEval`), and the per-ply evaluation stored by the analysis pass (`review.analysis[].evalAfter`). The stored one is clamped to ±99 pawns where it is written (`chess.jsx:4015`), and a mated line scores ±99950 centipawns, so EVERY forced mate reaches the readout as exactly ±99. The live search is keyed on the displayed FEN, so it is unavailable by construction for at least one render after every ply change — which means the stored value is ALWAYS what paints first on a new ply, and is what keeps painting on every path where the search fails to answer at all (`sfBestLine` resolves null on five of them; see #389).
+
+Two clauses, separate because they failed separately:
+
+(1) A FORCED MATE IS NEVER PRINTED AS A NUMBER. Before #489 the stored path ran through `Math.max(-9.9,Math.min(9.9,…))`, so a position with mate on the board printed the string `+9.9` — a plausible-looking evaluation, in the same shape and the same monospace pill as a real one, with nothing distinguishing it from a genuine +9.9 advantage. MEASURED on the shipped #488 bundle at 375x730, 375x679 and 390x844: stepping through plies 30 to 33 of the Opera Game paints `+9.9` on all four, 9 to 14 times depending on geometry, before the live search overwrites it.
+
+(2) THE TWO SOURCES AGREE ABOUT WHAT KIND OF THING THEY ARE REPORTING. The engine-line path has printed a mate LABEL for the same quantity since #375 (`chess.jsx:4757`), so before #489 the same position reported a mate one way and a number the other, and which one the player saw depended on a race they cannot see. The clause is about the KIND, not the digits: `M`, `M1` and `M2` are all acceptable readings of one position depending on how much search has happened, and a number is not. Requiring the two to agree digit-for-digit would be the #391 trap — an assertion whose verdict depends on which answer an engine happened to return.
+
+WHAT THIS CLAUSE DOES NOT SAY: it does not promise the mate DISTANCE is exact before the search lands. The stored value carries no distance — the clamp destroyed it long before this readout — so the honest first paint is `M` where a mate exists and `M1` where one is available immediately, and the distance arrives with the search. Promising a distance would need the analysis pass to carry mate through, which is a larger change and is still open on `jobs/review-mate-label-not-plus9-9`.
+
+CASE: TC-R09c, gate `gates/regress/20-review.js`.
+
+NOTE ON THE ID [#489]. US-R37 was checked free by grep over `claude/` and `gates/` before use; there were no hits. It follows US-R36 (#476).
