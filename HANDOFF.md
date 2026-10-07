@@ -2,6 +2,54 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#490, 2026-10-07: THE TIERED GATE IS ON MAIN. A records-only commit now pays ~10 SECONDS instead of 84 MINUTES. IT TOOK THREE VERSIONS AND TEN DEFECTS TO GET THERE, SEVEN OF THEM FOUND IN THIS RUN.**
+>
+> NOTE FOR THE NEXT HOLDER
+>
+> **STEP 0F IS NOW IN ITS (1) BRANCH. `test -f gates/fastgate.sh` is TRUE on main. DO NOT APPLY THE PARKED PATCH.** Go straight to (3): `bash gates/fastgate.sh "$(git rev-parse origin/main)"` and read the exit code — 0 fast green, 2 go full, 1 refused. **Pass origin/main and nothing else: the script now REFUSES any other base**, which is one of the fixes below.
+>
+> FINAL NUMBERS: bundle `d0d4206809ae`, source chess.jsx `5fc2e1d1e4e4` — BYTE-IDENTICAL to #489's, so #490 names a HARNESS change and not an app change. Suite 56 sections / 4160 PASS / 0 FAIL.
+>
+> DO THE 90-SECOND READING FIRST: `CT_APP=app.js node gates/regress/12-hint.js` → 24 pass / 0 fail. I ran it on THIS container rather than trusting #489's note and you should too: six containers in a row before #486 could not gate any tree, all reading 22/2 with the kunal board at 361 against a pinned 375. A container verdict cannot be inherited.
+>
+> **WHAT ACTUALLY HAPPENED, BECAUSE THE SHAPE MATTERS MORE THAN THE FIX.** #489 applied v1 of fastgate.sh, found three holes and correctly reverted it. I applied v2, found a FOURTH myself, fixed it, and published the fix on the sentence *"ONE function, TWO callers, so the two lists cannot drift."* **That sentence was false, and my own antagonist proved it** — part one of the premise check still carried its own whitelist, with one unanchored pattern, and a records-only commit took a gate from PASS/exit 0 to FAIL/exit 1 at **EXIT 0 FAST GATE GREEN**. Three versions, three different vocabularies for "what does a gate read", three blind spots. **Expect a fourth.** The cause is filed as `jobs/the-premise-checks-read-the-gates-source-instead-of-asking-them-to-declare-their-inputs-2026-10-07` (priority 11), and the durable repair is in it: make the gates DECLARE their inputs, or shim `fs` in gates/lib.js and OBSERVE them. A parser has a grammar; anything outside it is silently "covered".
+>
+> **THE WORST DEFECT WAS NOT MINE AND NOT IN THE PREMISE CHECK.** Antagonist B, through the shipped-surface door with no database tools, found that **one character per row disarms `gates/held-trees.tsv`** — a leading `-` marks a row CLEARED (verify-log.sh:799, held.sh) and the shrink guard only compared `wc -l`. I reproduced the whole crossing: 77 lines → 77 lines, **FAST GATE GREEN**, `verify-log.sh` on a held tree's log went **REFUSED/exit 1 → OK/exit 0**, held.sh live rows **9 → 0**. That is the #450 incident re-enabled, with nine held trees — including #452 which main serves — each having a clean green log already on disk ready to cite. The same trick renumbered a `build-numbers.tsv` row and took `buildnum.sh check 490` from ISSUED to **free**. Both files are now **FORCE**.
+>
+> **FIFTEEN CONTROLS, each a real exit code on a tree where the defect previously got through:**
+>
+> | the attack | before | now |
+> |---|---|---|
+> | records-only commit (the authorising branch) | 0 | **0**, ~10s |
+> | a gate reading a module under `claude/` | 0 GREEN | **1** PREMISE BROKEN |
+> | `held-trees.tsv` row cleared in place | 0 GREEN | **2** |
+> | `build-numbers.tsv` row renumbered in place | 0 GREEN | **2** |
+> | base not an ancestor of HEAD (injected app.js) | 0 GREEN | **1** |
+> | base ≠ origin/main (`HEAD~1`) | 0 GREEN | **1** |
+> | gate log deleted (evidence) | 0 GREEN | **1** |
+> | `TEST-CASES.md` truncated 21% | 0 GREEN | **1** |
+> | root `index.md` (Jekyll serves it) | 0 GREEN | **2** |
+> | bench PGN deleted (my own hole) | 0 GREEN | **2** |
+> | `git mv app.js` into `claude/` | — | **2** |
+> | chess.jsx / gates/lib.js / gates/drive edited | — | **2** |
+>
+> **STILL OPEN, SO YOU DO NOT INHERIT IT BLIND:** part two parses `path.join` with a regex, so `path.join(D,'pgn')` with a variable `D` derives nothing — A measured 0 live victims today, and gate 68 is covered only because its `DIR` happens to be a complete literal run. Neither check models `fs.readFileSync` of a template literal, `__dirname` concatenation, or a `process.env` default. The records ratchet is still blind to deletion in general; it is now guarded only at the two places measured.
+>
+> **AND THE ANTAGONISTS HAVE NOT SEEN THE FIXED VERSION.** Seven defects were found in a script that already shipped with seven controls of its own. The honest base rate says there is an eighth.
+>
+> **THE COMPENSATING CONTROL HAD NEVER RUN.** B measured it and it is worth knowing: the nightly suite is **not in the repository** — no `.github/`, no cron, no timer, and `grep -rn nightly` matches exactly one file, `gates/fastgate.sh` itself, in the sentence promising the nightly exists. The scheduled task is real (`trig_016LpPTw4xy9FdK7PiyfpJQE`, first fire 2026-10-07T05:48Z) but had not fired once when this landed. B's sharper point: the nightly re-certifies the **bundle**, and the bundle is what fastgate already protects well — a nightly would not have caught either disarmed register on any night. **If `docs/fast-gate-state` goes stale by 36 hours, STEP 0F turns fast mode off by itself. Let it.**
+>
+> **THE BIGGEST THING IN THE QUEUE IS UNBLOCKED AND IT IS NOT MINE. TAKE IT.** Desk `q-mate-floor-is-allowing-mate-a-blunder` reads status **answered**, choice `lichess-ladder`, answered **2026-10-04T08:55Z** — three days before this run — in Kunal's words: *"replicate Lichess. Allowing a forced mate is a Blunder when you were 700 down or better, a Mistake from 701 to 999, an Inaccuracy at 1000 down or worse, read from the evaluation BEFORE the move."* Its `whatTheBUILDMUSTDO` spells out the implementation. This is the R45 contradiction this project's own documents say stopped **EIGHT consecutive builds**. It `unlocks` `jobs/land-the-442-to-447-pile-it-carries-kunals-winprob-ruling-2026-10-01`, priority 11, which Kunal directed by hand on 1 October.
+> **DO NOT TRUST the `desk` field on `jobs/gate-66-b1-and-the-mate-floor-disagree-…`** — it still reads "Owed for 30 hours and 25 minutes", which is why this has been invisible for three days. **READ THE DESK.** Re-derived at 03:56Z rather than quoted [R18]: `git grep -c winProb origin/main -- chess.jsx` = **0**, and gates 66 and 67 are **absent**, so the pile is still unlanded and still needs a **rebase**, exactly as the Desk recorded six days ago.
+>
+> **TWO BLOCKED JOBS RE-TESTED [R23], both 66 hours overdue when I found them.** `legal-pages-fill-placeholders`: Desk choice is "later", which is not an answer. `drill-eval-bar-is-an-amber-board-width-decision-2026-10-01`: **the Desk item does not exist** — I listed all 74 Desk answers; it was routed to the orchestrator on 2026-10-01 and has never been written, so the job reads "blocked on Kunal" when Kunal has never been shown the question. R42 leakage, and the orchestrator's.
+>
+> **ONE FLAG CLOSED:** `uat416-review-mate-label-falls-back-to-plus9-9`, handled at #489 `1e4b42a`, verified by reading the chess.jsx hunk and not the commit subject. #489 shipped that fix and never closed its flag — leakage class 5. 38 flags remain outstanding after the procedure's filter.
+>
+> **TWO OF MY OWN PUBLISHED NUMBERS WERE WRONG AND A CAUGHT BOTH [R18].** My control "a rename inside `claude/` exits 0" is only true for a record nothing CITES — rename a cited gatelog and the citations ratchet goes 18→19 and refuses, **exit 1**. Publish the path with the verdict. And I wrote "3 FAIL" for gate 68 while naming only two; the third is `FAIL A6`.
+>
+> **CLAUDE.md IS STALE ON ONE NUMBER [R18]:** it calls `gates/buildnum-selftest.sh` "47 controls". It runs **76**. Its one failure in a routine clone is container-dependent, not a defect — the control pins the literal sha `004cb86`, which a shallow 53-commit clone cannot resolve. Proved by changing only the container: one `git fetch --depth=1` took it 75/1 → **76/0** with nothing in gates/ edited.
+>
 > **#489, 2026-10-07T02:4xZ: GATES GREEN #489 AT 56 SECTIONS / 4160 PASS / 0 FAIL, ON MAIN. THIS ONE IS APP CODE - the first in ten builds - and it is a wrong answer a player reads: a forced mate in the Review was painted as the number `+9.9`.**
 >
 > NOTE FOR THE NEXT HOLDER
