@@ -347,6 +347,68 @@ L.run(async()=>{
       {afterCard:kidsAfter,afterRoundTrip:kidsUF});
     await b.shot('play-over-'+geo);
     L.say(b.errs.length===0,geo+': zero app errors across the game ending',b.errs.slice(0,3));
+
+    /* ══ THE BACK ARM. ADDED 2026-10-07 by process-build lane 1 for
+       jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30, piece (1) of its whatDidNot.
+       WHY IT EXISTS. The game-over chrome is decided by `(isOver||playEnd)` and until this block NO GATE IN
+       THE SUITE mated a game and then stepped the ply, so the PLY-KEYED half of that predicate had never been
+       the operative half of any assertion. Everything above mates and asserts at the TERMINAL ply, where
+       isOver alone carries the verdict and the ply term can be anything at all. The harness could already
+       reach this state - gates/drive/play.js has carried `pp-mate-back` since it was written - and nothing
+       ever asserted over it. That is the shape the job charges: not a missing input, an unvisited term.
+       WHERE THIS ARM SITS AND WHY IT IS LAST IN THE BLOCK: see the comment on the card reading below. It
+       costs one thing and that cost is recorded there and on the job rather than paid by loosening a line
+       that was already here.
+       MEASURED FIRST, THEN PINNED [R18, R35]. Read on origin/main's own bundle (app.js md5 431326911ca7,
+       stamp #492) at kunal730, before this code was written:
+         terminal ply 4: row Moves,Back,Forward,Review,Rematch,More   card "Checkmate! Black wins"
+         one ply back 3: row Moves,Back,Forward,Review,Rematch,More   card null
+         forward to 4  : row Moves,Back,Forward,Review,Rematch,More   card "Checkmate! Black wins"
+       So the two halves of the chrome behave DIFFERENTLY at one ply back, and the difference is the point:
+       the control row is NOT ply-keyed and the result card IS. Both are asserted below, two-sided, so either
+       one changing is red.
+       THE CARD ASSERTION IS RECORDED, NOT ENDORSED - the same stance this file already takes at TC-PL-026 on
+       Flip. Whether the result card SHOULD vanish when you step back into the game to look at it is a product
+       question that belongs to jobs/play-status-slot-loses-the-result-on-one-back-tap-2026-09-30 and
+       jobs/the-control-row-is-keyed-to-the-ply-shown-not-to-whether-the-game-is-over-2026-09-29, neither of
+       which is settled. Asserting the behaviour I would prefer would hand the build lane a red gate it did
+       not cause, which is how an assertion gets edited away under time pressure. Asserting what the build
+       does makes the term operative TODAY and puts the decision where it belongs.
+       SCOPE, STATED SO IT IS NOT READ AS MORE THAN IT IS: this is the mate arm only. The job also asks for
+       the same composition on a NON-BOARD ending (block 11's resign, which still asserts at its terminal ply
+       only) and for a HARNESS rule in gates/lib.js that runs any game-over assertion at both plies by
+       default. gates/lib.js is outside the process-build allow-list and block 11 is a second arm, so both are
+       left on the job with reasons rather than half-done here. */
+    const pTerm=await plyCount(b);
+    L.say(pTerm===4,geo+': the mate leaves the MOVES panel at the terminal ply of a four-ply game ('+pTerm+') - the baseline the Back arm below steps off, asserted so a drive-state change cannot make the step meaningless',{ply:pTerm});
+    await P.tapBtn(b,/^Back$/,500);
+    const pBack=await plyCount(b),rBack=await rowBtns(b),cardBack=await b.text('[data-ct="result-card"]'),mBack=await b.metrics();
+    L.say(pBack===pTerm-1,geo+': Back actually moves the previewed ply off the terminal one ('+pTerm+' -> '+pBack+') - without this the two assertions below are the terminal-ply assertions again under another name',{before:pTerm,after:pBack});
+    L.say(rBack.length===6&&rBack.map(x=>x.t).join(',')===ROW_OVER.join(','),
+      geo+': ONE PLY BACK FROM THE MATE the row is still '+ROW_OVER.join(' · ')+' - the game-over row is keyed to the GAME being over, not to the ply on screen. This is the first assertion in the suite where the ply-keyed half of (isOver||playEnd) is the operative half: if the row reverted to '+ROW_LIVE.join(' · ')+' here, this line and only this line would go red',rBack.map(x=>x.t).join(','));
+    L.say(rBack.every(x=>near(x.h,51))&&rBack.every(x=>x.bottom<=b.geo.h+0.5),
+      geo+': and that row is still 51 tall and still inside the viewport one ply back - the row does not change height or fall off the fold when the previewed position does',{heights:rBack.map(x=>x.t+':'+x.h).join(' '),bottom:rBack[0]&&rBack[0].bottom,vh:b.geo.h});
+    /* THE CARD'S PLY-KEYING IS MEASURED AND DELIBERATELY NOT ASSERTED HERE, AND THIS IS THE ONE THING THIS
+       ARM COSTS. It is real: read twice on #492, once by a standalone probe and once by this arm sitting
+       mid-block, stepping one ply back from the mate removes "Checkmate! Black wins" and stepping forward
+       restores it, at BOTH geometries. But the card only exists for 8s after the mate (TC-PL-027 below pins
+       exactly that), so an arm that spends ~3s on a Back/Forward round trip BEFORE that block pushes its
+       `kidsWithCard` read past the fade - MEASURED, not feared: with this arm placed mid-block the run was
+       142 pass / 2 FAIL and both fails were TC-PL-027's extra-child line reading 64 -> 64 at se and
+       kunal730, caused by this arm and nothing else. So the arm moved to the END of block 10, after the card
+       has gone, rather than TC-PL-027 being loosened to accommodate it - loosening the assertion that was
+       already there to make room for a new one is how a suite goes quietly slack, and this job exists
+       because of a term nobody was watching. WHAT IS THEREFORE STILL OWED, recorded on the job: a card arm
+       inside the 8s window needs its own browser (a second launch on `pp-mate-back`, which
+       gates/drive/play.js already provides) rather than a detour through this one. */
+    L.note(geo+': the result card is '+JSON.stringify(cardBack)+' one ply back, read AFTER the 8s fade above, so this reading is about the fade and NOT evidence either way about ply-keying - the ply-keyed reading is in the comment above and on jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30.');
+    L.say(!!mBack.board&&near(mBack.board.w,W.bw)&&near(mBack.board.top,W.by),geo+': and stepping back is not a layout event either - the board is still the pinned '+W.bw+' at y='+W.by+' one ply back',{measured:mBack.board,want:W});
+    await P.tapBtn(b,/^Forward$/,500);
+    const pFwd=await plyCount(b),rFwd=await rowBtns(b);
+    L.say(pFwd===pTerm&&rFwd.map(x=>x.t).join(',')===ROW_OVER.join(','),
+      geo+': the round trip restores the terminal ply and the row is unchanged by it ('+pFwd+') - the step back is not a one-way state change, which is what makes the row assertion above a statement about the PREVIEWED ply rather than about a game that has been disturbed',{ply:pFwd,row:rFwd.map(x=>x.t).join(',')});
+    L.say(b.errs.length===0,geo+': zero app errors across the Back/Forward round trip at game over',b.errs.slice(0,3));
+
     await b.close();
   }
 
