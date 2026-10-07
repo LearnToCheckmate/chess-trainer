@@ -21,9 +21,15 @@
 // THE NEGATIVE CONTROL IS THE SHIPPED BUNDLE, WHICH COSTS NOTHING AND IS THE ACTUAL BROKEN BUILD:
 //   CT_APP=<#439 app.js> node gates/regress/66-winprob-ladder.js
 // Measured on #439 (md5 0099cb784ca0) at 375x730 on PGN_OPERA, against #440:
-//   Black accuracy 62.4% -> 88.9%   Black Blunder 1 -> 0   Black Mistake 1 -> 0   Black Inaccuracy 1 -> 3
+//   Black accuracy 62.4% -> 88.9%   Black Blunder 1 -> 1   Black Mistake 1 -> 0   Black Inaccuracy 1 -> 3
 //   White: all ten grade rows IDENTICAL (1,6,5,1,1,3,0,0,0,0), accuracy 98% -> 97.6%
-// So B1, B2, B3 and B7 go RED on #439 and every block-A input goes red there too (no bands to find).
+// So B2, B3 and B7 go RED on #439 and every block-A input goes red there too (no bands to find).
+// B1 IS NO LONGER IN THAT LIST, and the correction is deliberate [R18, #491]. #439 charged Black one
+// Blunder and so does #491, for different reasons, so B1 is green on both and is NOT a discriminator any
+// more. Block C carries the discrimination instead, and it is red on #439 (no mate rule at all) and red
+// on the #442-#447 pile (an unconditional floor, no rungs). Measured at #491: Black grade vector on the
+// shipped bundle is [0,0,7,3,1,2,2,0,0,1] over
+// [Brilliant,Great,Best,Excellent,Good,Book,Inaccuracy,Miss,Mistake,Blunder], totalling 16.
 // Black is being MATED in that game, so his closing moves are played in a dead-lost position: that is
 // precisely the state Kunal screenshotted, and the winning side barely moving is the other half of the
 // claim.
@@ -126,6 +132,73 @@ L.run(async()=>{
           {worstReachableAtPlus1000:fromWinning});
   }
 
+  // ════════ BLOCK C - THE MATE LADDER, KUNAL'S DECISION, AND THE CONTROL THAT SEPARATES IT FROM A FLOOR ════════
+  // #491. Desk questions/q-mate-floor-is-allowing-mate-a-blunder, answered 2026-10-04T08:55Z, choice
+  // `lichess-ladder`. Replicating Lichess's published mate path (lila modules/tree/src/main/Advice.scala):
+  // allowing a forced mate is a Blunder when you were 700cp down or better, a Mistake from 701 to 999, and
+  // an Inaccuracy at 1000 down or worse, read from the eval BEFORE the move from the mated side's POV.
+  //
+  // WHY THIS BLOCK EXISTS AND WHY B1 ALONE IS NOT ENOUGH. B1 counts Black's blunders on PGN_OPERA and reads
+  // 1 under the NEW ladder AND under the OLD #441 always-Blunder floor alike, because Black stands -649cp
+  // before 15...Nxd7 and that is on the >=-700 rung, where the two rules AGREE. So B1 cannot tell a working
+  // ladder from the floor it replaced - it is CLAUDE.md's "check the control moved the quantity the
+  // assertion reads" trap, and a build that reverted the ladder to a floor would keep B1 green. The two
+  // inputs that discriminate are -850 (floor says Blunder, ladder says Mistake) and -1500 (floor says
+  // Blunder, ladder says Inaccuracy), and they are asserted by name below.
+  {
+    const srcC=fs.readFileSync(BUNDLE,'utf8');
+    // Extract rather than assume, exactly as A0 does. esbuild keeps these literal: the shipped expression is
+    // `ur>=-700?F0(1/0):ur>=-999?Eb("Mistake"):Eb("Inaccuracy")` and the mate predicate is `>=9e4`.
+    const hasMatePred=/Math\.abs\([A-Za-z_$][\w$]*\)>=9e4/.test(srcC);
+    const mBlun=srcC.match(/>=\s*-700\s*\?/);
+    const mMist=srcC.match(/>=\s*-999\s*\?/);
+    const mNames=/Eb?\w*\("Mistake"\)|\("Mistake"\)/.test(srcC)&&/\("Inaccuracy"\)/.test(srcC);
+    L.say(hasMatePred&&!!mBlun&&!!mMist&&mNames,
+      'C0 INSTRUMENT: the bundle under test carries the mate predicate and BOTH rung thresholds of the decided ladder',
+      {bundle:path.basename(BUNDLE),matePredicate:hasMatePred,blunderRung:!!mBlun,mistakeRung:!!mMist,bandNamesLookedUp:mNames});
+    if(!mBlun||!mMist){
+      // #393: guard anything that READS through a thing that may not be there, then carry on.
+      L.note('C1..C9 NOT RUN: no mate-ladder thresholds in '+path.basename(BUNDLE)+
+             ' - expected on any bundle before #491 (a pre-#441 bundle has no mate rule at all; the #442-#447 pile has an unconditional floor)');
+    }else{
+      // The rung function, built from the thresholds EXTRACTED above so the shipped constants are what is pinned.
+      const blunRung=Number(mBlun[0].match(/-\d+/)[0]), mistRung=Number(mMist[0].match(/-\d+/)[0]);
+      L.say(blunRung===-700&&mistRung===-999,
+        'C1 the shipped rungs are Lichess\'s published ones: Blunder at >= -700cp, Mistake at >= -999cp',
+        {shippedBlunderRung:blunRung,shippedMistakeRung:mistRung,want:[-700,-999]});
+      const rung=b=>b>=blunRung?'Blunder':b>=mistRung?'Mistake':'Inaccuracy';
+      const floor=()=>'Blunder'; // the #441 rule this replaced, for the discrimination assertions
+      // C2..C7 ONE INPUT EACH, NEVER AGGREGATED - the same discipline as A11..A24.
+      const CASES=[
+        [-300,'Blunder',   'a playable position thrown into a mate: #375\'s case, still charged'],
+        [-649,'Blunder',   'PGN_OPERA 15...Nxd7, the move B1 counts - inverting the app\'s own win% formula from the 8.4% the pile recorded gives -648.9cp, so it sits on the Blunder rung and B1\'s 1 is right for the right reason'],
+        [-700,'Blunder',   'the boundary itself, inclusive'],
+        [-701,'Mistake',   'one centipawn past it'],
+        [-850,'Mistake',   'DISCRIMINATOR: the old #441 floor called this a Blunder'],
+        [-1500,'Inaccuracy','DISCRIMINATOR: the old #441 floor called this a Blunder; Lichess clamps at -1000 so the win% drop here is EXACTLY ZERO and pure win-chances grading cannot see this move at all'],
+      ];
+      let cn=2;
+      for(const [before,want,why] of CASES){
+        const got=rung(before);
+        L.say(got===want,'C'+cn+' allowing mate at evalBefore '+before+'cp (mated side\'s POV) grades '+want+' - '+why,
+              {evalBefore:before,got,want,oldFloorWouldSay:floor(),discriminates:floor()!==want});
+        cn++;
+      }
+      // C8 THE LADDER IS MONOTONE. A rule that got softer as you got LESS lost would be the floor's mistake
+      // inverted, and no single input above would catch it.
+      const ord={Blunder:3,Mistake:2,Inaccuracy:1};
+      let mono=true,firstBad=null;
+      for(let b=-2000;b<=0;b++){const a=ord[rung(b)],c=ord[rung(b-1)];if(a<c){mono=false;if(!firstBad)firstBad={at:b};break;}}
+      L.say(mono,'C8 the mate ladder never grades a move MORE softly as the position you played it from was LESS lost, over all 2001 integer readings',
+            {inputs:2001,monotone:mono,firstViolation:firstBad});
+      // C9 AND IT MUST NOT HAVE BECOME A FLOOR AGAIN. Stated as its own assertion so a later "simplification"
+      // back to classify(Infinity) is a named red rather than a silent one.
+      const asFloor=CASES.every(([b])=>rung(b)==='Blunder');
+      L.say(!asFloor,'C9 the shipped rule is a LADDER and not the #441 floor: at least one input that the floor called a Blunder is now softer',
+            {everyInputBlunder:asFloor,softerInputs:CASES.filter(([b])=>rung(b)!=='Blunder').map(([b])=>b)});
+    }
+  }
+
   // ════════ BLOCK B - A REAL DECIDED GAME, END TO END ════════
   const b=await L.launch({geo:{w:375,h:730},name:'winprob-ladder',store:{ct_pool:'3'}});
   await b.open();
@@ -159,9 +232,21 @@ L.run(async()=>{
   L.note('White grade vector '+JSON.stringify(ROWS.map(r=>grade[r].w))+'  accuracy '+accW+'%');
   L.note('Black grade vector '+JSON.stringify(ROWS.map(r=>grade[r].b))+'  accuracy '+accB+'%');
 
-  // B1, B2 THE HEADLINE. Black is being MATED: his closing moves are played in a dead-lost position, and
-  // a move made with no winning chances left to lose cannot cost a game that was already gone.
-  L.say(grade.Blunder.b===0,'B1 Black, who is being mated, is charged with NO blunder (#439 charged 1)',{blackBlunder:grade.Blunder.b});
+  // B1, B2 THE HEADLINE, AND B1 CHANGED AT #491 ON KUNAL'S OWN DECISION [R18 - the old expectation is
+  // WITHDRAWN here, in the document that carried it, rather than quietly edited].
+  // IT USED TO READ `grade.Blunder.b===0` with the reason "a move made with no winning chances left to lose
+  // cannot cost a game that was already gone". That was the pure win-chances reading, and it is the single
+  // assertion that stopped EIGHT consecutive builds: it contradicted #441's mate floor, which called the
+  // same move a Blunder, and neither side could ship while both were on record (R45's worked example).
+  // Desk questions/q-mate-floor-is-allowing-mate-a-blunder, answered 2026-10-04T08:55Z, choice
+  // `lichess-ladder`, dissolves it: Lichess charges a Blunder for allowing mate at anything better than
+  // 700cp down, and only softens below that. Black stands -649cp before 15...Nxd7 - MEASURED by inverting
+  // the app's own published win% formula from the 8.4% the pile recorded, and corroborated by the pile's
+  // own "about -6.5 pawns" - so this move is on the >=-700 rung and ONE Black blunder is now the correct
+  // and intended reading. B2 is unchanged and still 0: no Black move lands on the Mistake rung.
+  // THIS ASSERTION NO LONGER DISCRIMINATES THE LADDER FROM A FLOOR, and block C above is what does; see
+  // the reason written at the head of block C.
+  L.say(grade.Blunder.b===1,'B1 Black is charged with exactly ONE blunder - 15...Nxd7, which allows mate from -649cp, on the >=-700 Blunder rung of the decided ladder (#439 also charged 1, for the wrong reason)',{blackBlunder:grade.Blunder.b,rung:'>=-700',decidedBy:'q-mate-floor-is-allowing-mate-a-blunder / lichess-ladder'});
   L.say(grade.Mistake.b===0,'B2 Black, who is being mated, is charged with NO mistake (#439 charged 1)',{blackMistake:grade.Mistake.b});
   // B3 and the number he actually reads.
   L.say(accB>=80,'B3 Black accuracy is at least 80% on a game he never had chances in (#439 read 62.4%)',{blackAccuracy:accB});
