@@ -465,14 +465,32 @@ wider one.
   so the prescription as written does not merely fail to help, it cannot be followed. Use a sibling name inside
   `gates/` instead: `cp gates/gates.sh gates/.gates-run-<N>.sh && bash gates/.gates-run-<N>.sh '#NNN'`, which
   keeps `G` and `ROOT` correct while the interpreter reads a file no later edit touches. `.gitignore:3` already
-  carries `gates/.gates-run-*.sh` for exactly this, added by **#475**, whose own comment there states the
-  `dirname $0` reason - so the correct version has been in the repository since #475 and only this file still
-  carried the broken one. That is the R45 shape (a rule against a rule) and it is why a fix recorded in one home
+  carries `gates/.gates-run-*.sh` for exactly this. **ATTRIBUTION CORRECTED BY #493's OWN ANTAGONIST A BEFORE
+  ANYONE READ IT [R18]:** #493 first wrote that the pattern was "added by #475". `git blame -L3,3 .gitignore`
+  reads **`c6ad8ba`, 2026-10-02, "#465: the register answered `free` for 88 numbers..."** - so the pattern has
+  been here since **#465**, two days and ten builds earlier than claimed. #475 (`a5d50b0`) added line 4 onward:
+  the explanatory comment, which is where the `dirname $0` reason is stated, and a second pattern. So the
+  correct version has been in the repository since #465, its REASON was written down at #475, and only this
+  file still carried the broken prescription. That is the R45 shape (a rule against a rule) and it is why a fix recorded in one home
   does not travel: #493 rediscovered it from `gates.sh:33` before launching its suite, which cost two minutes
   and would have cost a run to anyone who pasted the old line.
   AND NOTE WHICH FAMILY THIS IS IN: it is the self-reference trap this file already records at #407 (a watcher
   whose `pgrep -f` matched itself) and #416 (a `pkill -f` that killed its own shell) - *the tool and the thing it
   was operating on were the same object*. Here they were the same FILE, and the window was 71 minutes wide.
+- **BEFORE ASSERTING A PROPERTY OF A COLLECTION, ASSERT THE COLLECTION IS NON-EMPTY - IN ITS OWN `L.say`,
+  NOT AS A CONJUNCT.** `every()` and a negated `test()` both return TRUE over nothing, so an assertion whose
+  input set can be empty reports PASS loudest exactly when the thing it guards has disappeared. This is the
+  eleventh costume of the trap above and it is now measured as a CLASS rather than three accidents: #493's
+  two antagonists found **three live instances in one pass** - `gates/regress/67-sel-cls-consumers.js`'s D2
+  (`misses.every(...)` over a game that renders no Miss row, which is the state the Miss half of that defect
+  IS), `gates/regress/25-online-clocks.js:191` (`!/\/ move/.test(summ)` where `summ` is `''` whenever the
+  summary selector's middot or 90-character cap drops the line), and `gates/regress/15-gallery-playall.js:257`
+  (`const EXPECT_BOARD=[];` making SIX board-conditioned PASS lines unable to fail, two of which are the same
+  measurement written twice). THE REMEDY IS A SEPARATE ASSERTION, because a conjunct whose halves cannot fail
+  independently is itself the trap - `25-online-clocks.js:137` asserts `sheetScroll.sh>sheetScroll.ch` on an
+  object the selector at `:86-89` only produced BECAUSE `scrollHeight>clientHeight+1`, so that half is
+  guaranteed by construction and the compound reads as two checks while being one. **A missing denominator is
+  reported, never credited:** make it a red, or an explicit note that says it did not run, and never a PASS.
 - **A COUNT WITH NO SCOPE CANNOT BE CHECKED, AND TWO OF SIX PUBLISHED CONTROL RESULTS TURNED OUT TO BE SUBSET
   RUNS.** `gates/regress/49-home.js` arrived with six negative controls recorded in its lane document as bare
   numbers ("NC2: 15 red", "NC5: 12 red"). Re-run here, the full gate gives **27** and **14**; measured,
