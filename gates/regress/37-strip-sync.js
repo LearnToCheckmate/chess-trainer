@@ -40,6 +40,39 @@
 // too, because stepping to ply 1 makes chip 1 current and its own ref scrolls the strip to the left edge. It is
 // kept as a guard that the fix did not break the path that already worked, not as evidence of the defect.
 // See claude/agents/REGRESSION-LOG.md.
+//
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [jobs/four-gates-force-a-three-worker-pool-and-never-
+// test-the-fallback-2026-09-27, doneWhen route 2 - the same route gates 51 and 66 took]. The single launch below (line 100) passes store:{ct_pool:'3'} alongside
+// ct_revmig339 and ct_revCompact, so this gate runs the POOLED Stockfish path only.
+//
+// THIS IS THE BEST OF THE FOUR AND THE NOTE SAYS WHY, so the record is not flattened. This gate
+// already sweeps BOTH ct_revCompact branches, asserts its fixture is real before asserting against
+// it, asserts the state was reached, and pins the board per geometry AND per branch - which is the
+// discipline the other three are being asked for. The engine branch is the one axis it does not
+// sweep, and the reason is not a preference: it is unreachable from the harness, as below.
+//
+// WHICH BRANCH IS NOT COVERED, AND WHY IT CANNOT BE FROM HERE. Read off origin/main 7353e67 on
+// 2026-10-07 by process-build lane 2, re-derived rather than copied: every line number the job and
+// gate 51's header quote for these sites has MOVED, so a reader who trusts them lands in the wrong
+// function.
+//   chess.jsx:4080   const useSF=sfReadyRef.current?await ensureAna():false;
+//   chess.jsx:4082   if(useSF){                 ... and its matching close is
+//   chess.jsx:4245   }else{                     <- the minimax fallback, found by brace-matching from
+//                                                  4082, not by eye.
+//   chess.jsx:4007   poolWanted(), whose only override is ct_pool and whose test at 4009 is
+//                    `if(_f>=1&&_f<=6)return _f` - so ct_pool SIZES the pool and selects nothing.
+//                    ct_pool=1 is a ONE-WORKER STOCKFISH review, never the fallback engine.
+//   chess.jsx:3586   the single assignment `sfReadyRef.current=true`, on the worker's own 'readyok'.
+//                    Nothing a store value can reach sets it.
+//   And there is no other switch: all 47 distinct ct_* keys in chess.jsx were enumerated and none
+//   disables Stockfish. So no value this harness can put in localStorage selects the fallback, and
+//   the gap is RECORDED here instead of being left as a silent default.
+//
+// WHAT WOULD CLOSE IT, AND IT IS NOT A CHANGE TO THIS FILE: one harness route that makes the worker
+// fail so the app takes its own fallback - a chess.jsx change, outside the process-build allow-list,
+// owned by test-authoring as jobs/no-harness-route-to-the-drill-capture-producer-2026-09-30 and as
+// the wider ask on this job's own soTheAskIsNowWiderThanFourGates. One piece of harness would give
+// gates 34, 35, 36, 37, 51 and 66 somewhere to point a second column; five gate edits would not.
 'use strict';
 const L=require('../lib');
 

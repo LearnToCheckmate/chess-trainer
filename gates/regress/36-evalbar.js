@@ -129,6 +129,44 @@
 // pair, not four. The board is fit to HEIGHT at 375x568, so its width is NOT the 353 of the taller phone and
 // is pinned separately per geometry in BOARD_W below - a single pin across both would have been the #406
 // mistake again.
+//
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [jobs/four-gates-force-a-three-worker-pool-and-never-
+// test-the-fallback-2026-09-27, doneWhen route 2 - the same route gates 51 and 66 took]. Both launches below (lines 151 and 211) pass store:{ct_pool:'3'}, so this gate
+// runs the POOLED Stockfish path only; the single-worker fallback is never exercised.
+//
+// THE REVIEW HALF IS THE EXPOSED ONE. The Play-bar assertions are pure layout and do not care which
+// engine produced an eval, but the launch at 211 opens a REVIEW, where the bar is driven by eval
+// numbers the engine branch produces - and the fallback engine is the branch whose omitted evalBefore
+// was the #426 P0-1. So the bar's geometry is covered on one branch and its inputs on one branch only.
+//
+// AND A SECOND THING THIS HEADER WILL NOT LEAVE SILENT, because it is in the line being annotated:
+// the launch at 211 names geometry 'kunal730'. R19 was SETTLED on 2026-10-03 at 375x761 and records
+// 730 as wrong wherever it appears, with GEOS carrying kunal761. That correction is not mine to make
+// under this job's scope or this run's locks - it is its own job - and it is named here so the next
+// reader of this line does not take 730 as current.
+//
+// WHICH BRANCH IS NOT COVERED, AND WHY IT CANNOT BE FROM HERE. Read off origin/main 7353e67 on
+// 2026-10-07 by process-build lane 2, re-derived rather than copied: every line number the job and
+// gate 51's header quote for these sites has MOVED, so a reader who trusts them lands in the wrong
+// function.
+//   chess.jsx:4080   const useSF=sfReadyRef.current?await ensureAna():false;
+//   chess.jsx:4082   if(useSF){                 ... and its matching close is
+//   chess.jsx:4245   }else{                     <- the minimax fallback, found by brace-matching from
+//                                                  4082, not by eye.
+//   chess.jsx:4007   poolWanted(), whose only override is ct_pool and whose test at 4009 is
+//                    `if(_f>=1&&_f<=6)return _f` - so ct_pool SIZES the pool and selects nothing.
+//                    ct_pool=1 is a ONE-WORKER STOCKFISH review, never the fallback engine.
+//   chess.jsx:3586   the single assignment `sfReadyRef.current=true`, on the worker's own 'readyok'.
+//                    Nothing a store value can reach sets it.
+//   And there is no other switch: all 47 distinct ct_* keys in chess.jsx were enumerated and none
+//   disables Stockfish. So no value this harness can put in localStorage selects the fallback, and
+//   the gap is RECORDED here instead of being left as a silent default.
+//
+// WHAT WOULD CLOSE IT, AND IT IS NOT A CHANGE TO THIS FILE: one harness route that makes the worker
+// fail so the app takes its own fallback - a chess.jsx change, outside the process-build allow-list,
+// owned by test-authoring as jobs/no-harness-route-to-the-drill-capture-producer-2026-09-30 and as
+// the wider ask on this job's own soTheAskIsNowWiderThanFourGates. One piece of harness would give
+// gates 34, 35, 36, 37, 51 and 66 somewhere to point a second column; five gate edits would not.
 'use strict';
 const L=require('../lib');
 const P=require('../drive/play');
