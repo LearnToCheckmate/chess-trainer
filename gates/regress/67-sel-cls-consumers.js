@@ -353,6 +353,116 @@ L.run(async()=>{
            'proof the capture is wrong - see KNOWN LIMITS above.');
   }
 
+
+  // ════════ BLOCK G - THE INSTALLED STORE, RENDERED. THE DEFECT THIS FILE'S OWN FOOTER NAMED AND COULD NOT SEE ════════
+  // NEW AT #494, and it is the assertion the footer of this very file asked for one build ago. Block P above
+  // proves what THIS bundle writes into `ct_mymistakes`. It says nothing about rows already in a player's
+  // store, and the footer said so in terms: "(1) THE INSTALLED STORE. Every assertion here is about rows this
+  // bundle WRITES ... A player can read 'you played Bg5 here, an excellent. Find the stronger move.' today ...
+  // It needs a guard in the APP; no assertion here can fix it." #494 put that guard in chess.jsx (DRILL_GRADES
+  // / drillGrade, beside artic) and THIS BLOCK IS THE ASSERTION THAT IT HOLDS, driven through the RENDERED
+  // card rather than from source - which also closes footer item (2), "no gate in this project asserts the
+  // text a drill card paints", and exercises footer item (3), the `||'mistake'` fallback that block U locates
+  // and never evaluates.
+  //
+  // THE ROUTE EXISTS, AND THE CUT D3 BELOW LOOKED FOR IT IN THE WRONG PLACE. D3's note records the attempt
+  // going red on BOTH bundles with "locator.waitFor: Timeout 8000ms exceeded" on the Review tab AFTER A
+  // RELOAD. The working route does not reload and needs no chess.com account at all: seed `ct_mymistakes` AT
+  // LAUNCH, which L.launch's addInitScript already does, then navigate Review -> the drill card.
+  // gates/regress/72-drill-prev.js:141-149 has driven exactly this shape since #426, and the sequence is
+  // copied from it rather than re-derived - open(), tile('Review'), settle, tapText, wait for pz-top. The
+  // first draft of this block omitted open() and tile() and hung until its own timeout killed it, which is
+  // #386/#390's lesson again: before tapping anything in a new gate, ask which existing gate already had to
+  // fight that control.
+  //
+  // THE ELEMENT IS FOUND BY WHAT IT SAYS, NOT BY A HOOK THIS BUILD ADDED [#432]. There is no data-ct on the
+  // drill goal sentence, and adding one would make this block UNABLE TO FAIL on the bundle that carries the
+  // defect - the #432 trap exactly, where an assertion keyed to its own build's selector certified the defect
+  // absent on the one bundle in existence where the screen did the wrong thing. So the sentence is matched out
+  // of the painted innerText by its own wording, which is what a player reads.
+  const G_GOAL_RE=/you played\s+(\S+)\s+here,\s+(an?)\s+([A-Za-z]+)\.\s*Find the stronger move\./;
+  const G_FEN='4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1';
+  const gRows=(label)=>[{fen:G_FEN,uci:'b2b7',label,played:'Kd1',ts:1791000000000,last:null,
+    why:'the queen gets behind the pawn',hint:'look up the file'}];
+  //
+  // SIX INPUTS, AND EACH ONE ASKS A DIFFERENT QUESTION. FOUR praise grades are the defect itself: every one is
+  // a label a #440/#441-era bundle could and did store, because it filtered the pool on `sel` and stored
+  // `cls.label`. `Inaccuracy` is inadmissible too and is ALSO the vowel case, so it checks that the FALLBACK
+  // is articled from the word it actually prints rather than printing "a inaccuracy" by a second route.
+  // `Blunder` is THE CONTROL THAT MAKES THE OTHER FIVE MEAN ANYTHING: a guard that flattened every label to
+  // "mistake" would satisfy G1 perfectly, and G2 is the only thing that rejects it. That is this project's
+  // "a negative control must cross the threshold" rule applied to my own fix.
+  //
+  // `Brilliant` IS DELIBERATELY NOT AN INPUT, AND THE REASON IS MEASURED RATHER THAN CONVENIENT. It is in
+  // PRAISE, but `puzzleFromMistake` branches on `isB=m.label==='Brilliant'` BEFORE the goal sentence is
+  // built, so a Brilliant row paints "you found a brilliant move here. Can you spot it again?" and matches
+  // G_GOAL_RE not at all - it would read as a null and redden this block on a GOOD bundle. It is also
+  // unreachable in this store by construction: the #441-era capture admitted a ply only when `sel` was
+  // Mistake or Blunder, and a Brilliant move's loss is far too small to be either. So excluding it is not a
+  // gap being papered over; asserting over it would be the false red. Said here rather than left as a silent
+  // omission, and the five-of-six denominator below is stated in every L.say.
+  const G_INPUTS=[['Best','praise'],['Excellent','praise'],['Good','praise'],['Great','praise'],
+                  ['Inaccuracy','inadmissible-vowel'],['Blunder','control-admissible']];
+  const gRead=[];
+  for(const gi of G_INPUTS){
+    const lab=gi[0];
+    const bg=await L.launch({geo:L.GEOS.kunal761,name:'selcls-legacy-'+lab,store:{ct_mymistakes:gRows(lab),ct_pool:'3'}});
+    let painted=null,gerr=null;
+    try{
+      await bg.open();
+      await bg.tile('Review'); await bg.settle(700);
+      await bg.tapText(/find the move you missed/,{wait:1800});
+      try{await bg.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});}catch(e){}
+      await bg.settle(600);
+      const txt=await bg.page.evaluate(()=>document.body.innerText||'');
+      const m=G_GOAL_RE.exec(txt);
+      painted=m?{all:m[0],article:m[2].trim(),word:m[3]}:null;
+    }catch(e){gerr=String(e.message||e).slice(0,160);}
+    try{await bg.close();}catch(e){}
+    gRead.push({label:lab,kind:gi[1],painted:painted,err:gerr});
+  }
+  L.note('G READINGS, one rendered drill card per seeded store: '+
+         gRead.map(r=>r.label+' -> '+(r.painted?('"'+r.painted.article+' '+r.painted.word+'"'):('NO GOAL SENTENCE'+(r.err?' ('+r.err+')':'')))).join('; '));
+
+  // G0 THE INSTRUMENT, AND IT IS ITS OWN ASSERTION RATHER THAN A CONJUNCT. Every G below reads `painted`, and
+  // a `null` painted makes a "does not name a praise grade" test TRUE OVER NOTHING - the empty-denominator
+  // trap this project now records as a class. So the denominator is asserted first, separately, and a card
+  // that never opened is a RED here and is never credited as a pass anywhere below.
+  const gMissing=gRead.filter(r=>!r.painted);
+  L.say(gMissing.length===0,
+    'G0 INSTRUMENT: all '+G_INPUTS.length+' seeded stores opened a drill card that painted the goal sentence, so G1..G3 have a real denominator',
+    {inputs:G_INPUTS.length,painted:gRead.length-gMissing.length,
+     missing:gMissing.map(r=>({label:r.label,err:r.err}))});
+
+  if(gMissing.length===0){
+    // G1 THE DEFECT. The invariant this file has DECLARED since #493 and never asserted: `PRAISE` is defined
+    // at the top as "a drill card may never name one of these", and before this block `grep -n PRAISE`
+    // returned that one line plus block P's source-level check over the PRODUCER. One assertion per input, so
+    // a failure names the grade that did it rather than reporting four faults as one.
+    for(const r of gRead.filter(r=>r.kind==='praise')){
+      L.say(PRAISE.indexOf(r.painted.word)<0&&PRAISE.map(p=>p.toLowerCase()).indexOf(String(r.painted.word).toLowerCase())<0,
+        'G1 '+r.label+': a stored legacy label of "'+r.label+'" does NOT reach the drill card as a praise word - the card says "'+r.painted.article+' '+r.painted.word+'"',
+        {seeded:r.label,paintedWord:r.painted.word,sentence:r.painted.all,praise:PRAISE});
+    }
+    // G2 THE CONTROL. Without this, a guard that printed "a mistake" for every row in existence would be
+    // indistinguishable from a correct one, and every G1 above would still be green.
+    const gCtl=gRead.find(r=>r.kind==='control-admissible');
+    L.say(String(gCtl.painted.word).toLowerCase()==='blunder',
+      'G2 CONTROL: an ADMISSIBLE stored label still reaches the card unchanged - a Blunder row says "a blunder", so the guard is selective and has not flattened every grade to "mistake"',
+      {seeded:gCtl.label,paintedWord:gCtl.painted.word,sentence:gCtl.painted.all});
+    // G3 THE FALLBACK, ARTICLE AND ALL. `Inaccuracy` is the grade antagonist B and the auditor each read off
+    // a real screen as "a inaccuracy" on the #441 bundles. It is inadmissible, so it must fall back - and the
+    // article must then be chosen from the word that is actually printed, not from the word that was stored.
+    const gVow=gRead.find(r=>r.kind==='inadmissible-vowel');
+    L.say(String(gVow.painted.word).toLowerCase()==='mistake'&&gVow.painted.article==='a',
+      'G3 FALLBACK: an inadmissible vowel-initial label falls back to the app\'s own default word AND is articled from what it prints - "a mistake", never "an inaccuracy" and never "a undefined"',
+      {seeded:gVow.label,paintedArticle:gVow.painted.article,paintedWord:gVow.painted.word,sentence:gVow.painted.all});
+  }else{
+    L.note('G1..G3 NOT RUN and NOT COUNTED AS PASSES: '+gMissing.length+' of '+G_INPUTS.length+' seeded stores '+
+           'painted no goal sentence, so there is nothing to read. G0 is the red. This is the same guard D2 '+
+           'and P1..P3 carry, and it exists because .every() and a negated .test() are both TRUE over nothing.');
+  }
+
   // ════════ BLOCK D - THE REVIEW ROW, EVERY PLY OF A DECIDED GAME, ON KUNAL'S PHONE ════════
   const b=await L.launch({geo:{w:375,h:730},name:'sel-cls-consumers',store:{ct_pool:'3',ct_revCompact:'1'}});
   await b.open();
@@ -422,6 +532,14 @@ L.run(async()=>{
            'jobs/gate-67-block-u-is-circular-and-u0-is-an-unconditional-pass-2026-10-07 records it.');
   }
 
+  // D3's SUCCESSOR IS NOW BLOCK G ABOVE, AND D3's STATED REASON IS WITHDRAWN AS A CLAIM ABOUT THE ROUTE
+  // [R18, #494]. What follows is #493's note, kept verbatim because it records a real failed attempt and
+  // the shape of the mistake is the useful part - but its conclusion, that the rendered goal sentence
+  // cannot be reached from this harness, IS FALSE. The route it tried reloads and re-enters through the
+  // Review tab; the route that works seeds the store AT LAUNCH and never reloads, which is what
+  // gates/regress/72-drill-prev.js has done since #426. Block G drives six stores that way and reads the
+  // painted sentence. #493's own pen note names this as the habit that cost it 92 minutes: before writing
+  // "does not exist", "cannot be reached" or "no route", grep first.
   // D3 IS NOT IN THIS GATE, AND THE REASON IS A MEASUREMENT RATHER THAN A JUDGEMENT. I wrote it: seed
   // `ct_mymistakes` with all ten grades, reload, open "Practice your mistakes" and read the goal sentence
   // the app paints. It went RED ON BOTH BUNDLES - the shipped one and the control - with
@@ -439,17 +557,28 @@ L.run(async()=>{
   // WHAT IS COVERED NOW: P1 the stored grade derives from `sel`, P2 the stored token IS the filtered
   // token, P3 no admitted grade is in PRAISE - all three SOURCE-LEVEL, over the producer.
   // WHAT IS STILL NOT COVERED, and the first of these is a LIVE player-visible defect:
-  //   (1) THE INSTALLED STORE. Every assertion here is about rows this bundle WRITES. A #441-era bundle
+  //   (1) THE INSTALLED STORE - COVERED AT #494 BY BLOCK G, AND THE APP DEFECT IS FIXED. Left in place
+  //       rather than deleted, because the paragraph below is the diagnosis block G was built from and a
+  //       reader needs it to know what G is for. WHAT CHANGED: chess.jsx now carries DRILL_GRADES and
+  //       drillGrade beside artic, so a label outside {Mistake,Blunder,Miss} is treated as absent and falls
+  //       through to the existing 'mistake' default; block G seeds six stores and reads the PAINTED
+  //       sentence, and on main's own pre-fix bundle its G1 and G3 go red. The original text follows.
+  //       Every assertion ABOVE BLOCK G is about rows this bundle WRITES. A #441-era bundle
   //       wrote the DISPLAY label into ct_mymistakes, those rows are in real stores now, and nothing
   //       migrates them - chess.jsx:4349 patches only `why`/`hint`, puzzleFromMistake (~5480) has no label
   //       guard, and a row leaves only by being solved or evicted off `.slice(0,150)`. A player can read
   //       "you played Bg5 here, an excellent. Find the stronger move." today. Found by antagonist B, filed
   //       as jobs/a-legacy-drill-row-still-praises-the-move-it-asks-you-to-improve-and-nothing-migrates-
   //       it-2026-10-07. It needs a guard in the APP; no assertion here can fix it.
-  //   (2) THE RENDERED GOAL SENTENCE. No gate in this project asserts the text a drill card paints, and
+  //   (2) THE RENDERED GOAL SENTENCE - COVERED AT #494 BY BLOCK G. This claim is WITHDRAWN [R18]: block G
+  //       asserts the painted text over six seeded stores. The original text follows, with its pointer.
+  //       No gate in this project asserted the text a drill card paints, and
   //       the route to do it exists (see the header). jobs/no-harness-route-to-the-drill-capture-producer-
   //       2026-09-30, re-keyed.
-  //   (3) THE `||"mistake"` FALLBACK inside the goal site's own argument. Block U locates that expression
+  //   (3) THE FALLBACK WORD - NOW EXERCISED RATHER THAN ONLY LOCATED, by block G's G3, which seeds an
+  //       inadmissible vowel-initial label and asserts the card paints "a mistake". So deleting the
+  //       fallback would now show as "a undefined" and go red instead of passing. The original text
+  //       follows. Block U locates that expression
   //       and never evaluates it, so deleting the fallback would paint "a undefined" with U0..U13 green.
   //       Antagonist A found it; antagonist B measured that NO producer can write a label-less row
   //       (`git log -S` shows every version of the capture carrying `label:`), so it is a gate blindness
