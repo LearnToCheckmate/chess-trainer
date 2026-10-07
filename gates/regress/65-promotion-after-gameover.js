@@ -767,6 +767,161 @@ async function blockI(geoKey){
   await b.close();
 }
 
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+// BLOCK J - #496. WHICH SIDE'S PIECES THE PROMOTION PICKER DRAWS.
+// jobs/auditor-433-two-smaller-game-over-states-2026-09-29, finding 1, raised by the #433 auditor pass:
+// "Black's promotion picker is drawn in White's pieces."
+//
+// WHY IT LIVES IN THIS FILE AND NOT A NEW ONE, said plainly because the filename does not cover it.
+// This gate is named after the #439 after-game-over defect and this block is about a LIVE promotion, so
+// the name is a poor fit. It is here anyway for three reasons, in order of weight: this file already owns
+// the only `picker()` locator and the only `pieceAt()` sprite reader in the suite, and block E already
+// drives a live promotion end to end, so a new file would have copied all three; gate 65 is already
+// `required` in gates/gate-manifest.tsv, where a new file would need a manifest row and gates/verify-log.sh
+// REFUSES a log reporting an unlisted gate, so a new gate is not a free addition; and the subject of both
+// blocks is the same overlay. If this file is ever split, J goes with the picker and not with the clock.
+//
+// THE DEFECT, read off the source before it was touched and then measured on a control bundle rather than
+// argued. chess.jsx picked a glyph SET correctly by side -
+//     const col=promo.g.turn; const gl={w:{q:'♕',...},b:{q:'♛',...}}[col]
+// - and then painted it with a hard-coded `color:'#fff'`. So BOTH sets came out white: Black's solid
+// glyphs rendered as filled WHITE silhouettes next to a board drawing Black in dark sprites. The #433
+// auditor's own numbers are the tell that it is a COLOUR defect and not a shape one - bright(>170) 2.0%
+// for White against 3.6% for Black on the identical 273x114 crop - the two differed in FILL, not in hue.
+// The second half of that finding is that the picker used text glyphs at all, so it ignored whichever of
+// the four piece skins the player had chosen. One change closes both: render the board's own `Piece`.
+//
+// HOW THIS IS MEASURED, AND WHY NOT WITH PIXELS. A luminance scan is the obvious instrument and it is the
+// weaker one here. CLAUDE.md records a pixel scan on this app reading the BACKGROUND as the ink because the
+// threshold's polarity was wrong on a dark theme, and it tells you to derive the threshold from the crop's
+// own min and max. All true, and avoidable: the board already identifies a piece by its OWN SPRITE, which
+// is what `pieceAt` reads, so the question "is the picker showing Black's queen?" has an exact answer that
+// needs no threshold at all - compare the picker's <img> src against the sprite the BOARD uses for a black
+// queen, read off d8 at the start position. That is this project's own "cross-check against whatever else
+// on screen shows the same quantity" rule, with the second readout being the board itself, and it is not
+// circular: the board's sprite is not fed by the picker.
+//
+// THE TRAP I WROTE AND THEN DID NOT SHIP, recorded because it is the one this suite keeps paying for.
+// The natural third assertion is "the picker's queen is NOT the white queen sprite", which states the
+// defect in the words the job uses. It is VACUOUS ON THE BROKEN BUNDLE: there is no <img> there at all,
+// so `src !== whiteQueen` is satisfied by `null !== whiteQueen` and the assertion passes loudest on the
+// one bundle in existence where the screen does exactly what the job complains about. That is #432's
+// "a check that reads only what the fix added cannot see the defect the fix removes" and #398's
+// absorbed-overrun, in one line. So the colour claim is carried by the POSITIVE identity (J2) with the
+// two sprite sets proved DIFFERENT in their own assertion first (J0c), and the "draws text, not a piece"
+// half is a SEPARATE assertion (J3) rather than a conjunct, per the non-empty-denominator rule.
+//
+// NEGATIVE CONTROL, MEASURED BOTH DIRECTIONS at both geometries. Control bundle md5 4c7585a3697f, built
+// from this tree by reverting exactly the two edited regions of chess.jsx (the `gl` map and the button's
+// `fontSize/color/{gl[pt]}`), everything else identical:
+//     FIXED   bundle ba84f7327c5d :  22 pass / 0 fail.  J1 4/4 imgs, J2 set equal, J3 text '', J4 white set equal.
+//     CONTROL bundle 4c7585a3697f :  14 pass / 8 fail.  J1 0/4 imgs, J2 not equal, J3 text (the four black glyphs),
+//                                    J4 not equal - the control draws text glyphs for WHITE too.
+//   CORRECTED BY ITS OWN AUTHOR BEFORE THE PUSH [R18]: the first draft of this paragraph said the control
+//   reddens "J1, J2, J3" - THREE assertions. It is FOUR, and 8 reds over the two geometries, because J4
+//   reddens on the control as well: the broken bundle draws text glyphs for WHITE too, so "shows the board's
+//   four WHITE sprites" is false there. J4's job as an over-application control is to catch a DIFFERENT
+//   hypothetical - a fix hard-coded to black - and it happens to redden on this control too. Publishing 3
+//   where the command prints 4 is #411's defect (a count with no scope) in the one paragraph a reader uses
+//   to check the control, so it is corrected here rather than left to be rediscovered.
+// and on the control every INSTRUMENT stays green - the position is reached, the picker opens 4/4 enabled
+// at 52x52, the two queen sprites are readable and differ, 0 console errors - so the reds are the four
+// assertions about the thing under test and nothing else. That is the property #385 asks for: assert the
+// state was reached before asserting what is in it.
+//
+// J4 IS THE OVER-APPLICATION CONTROL AND IT IS NOT OPTIONAL. "Draw the black pieces" is satisfiable by
+// hard-coding black, which would break White's picker and leave every assertion above green. J4 drives a
+// WHITE promotion and requires the picker to show the board's four WHITE sprites, so the fix is pinned to
+// being KEYED ON THE SIDE rather than to a constant.
+//
+// RUN IT AS:  CT_APP=<bundle> CT_B65=J node gates/regress/65-promotion-after-gameover.js
+//
+// NOT CHECKED, and these are holes rather than passes:
+//   * THE SKIN HALF IS PROVED ONLY BY MECHANISM, NOT BY SWITCHING. J2 proves the picker reads the same
+//     sprite source the board reads, which IS how a skin reaches it, but no assertion here changes
+//     `ct_pieceSet` and re-reads the picker. A build that hard-coded PIECE_IMG would pass J1..J4 and still
+//     ignore a skin. Driving the skin picker needs the look sheet, which this block does not open.
+//   * THE `useFallback` BRANCH. With `ct_pieceSet='symbol'`, or after an image load failure, `Piece` draws
+//     a text glyph again - correctly coloured by side ('#fff' against '#1a1a1a' with an inverted
+//     text-shadow) - and NOTHING here enters that state, so J1 and J3 would both go red there by design.
+//     That is a real uncovered branch and it is this app's documented "a code path chosen by the device"
+//     shape, so it is named rather than implied.
+//   * LANDSCAPE. J runs portrait only, at 375x730 and 320x568. Block H covers the picker's LAYOUT at
+//     730x375 and says nothing about which side's pieces it draws.
+//   * The three other promoting piece types are covered as a SET by J2, but no assertion reads the knight
+//     or bishop individually, so a transposition inside the set that preserved the four members would pass.
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+async function blockJ(geo){
+  const g=L.GEOS[geo]?L.GEOS[geo].label:geo;
+  const b=await L.launch({geo,name:'65J-'+geo});await b.open();
+  await P.states['pp-m0'](b);
+
+  // BOTH queen sprites off the START position, before a move, so J2 and J4 have a basis and J0c can
+  // prove they are distinguishable at all. If these two were ever equal, J2 would be unfalsifiable.
+  const bq=await pieceAt(b,'d8'), br=await pieceAt(b,'a8'), bb=await pieceAt(b,'c8'), bn=await pieceAt(b,'b8');
+  const wq=await pieceAt(b,'d1');
+  L.say(!!bq&&!!wq&&bq!==wq,'J0c ['+g+'] INSTRUMENT: the board\'s black and white queen sprites are both readable and DIFFERENT',
+    {blackQueen:!!bq,whiteQueen:!!wq,differ:bq!==wq});
+
+  // BLACK promotes. 1.d4 e5 2.c3 exd4 3.h3 dxc3 4.h4 cxb2 5.h5, then b2xa1 opens the picker with Black
+  // to move. It is the mirror of block E's white line and White's h-pawn moves are the waiting moves.
+  for(const [f,t] of [['d2','d4'],['e7','e5'],['c2','c3'],['e5','d4'],['h2','h3'],['d4','c3'],['h3','h4'],['c3','b2'],['h4','h5']])
+    await b.move(f,t,220);
+  const rB=await row(b);
+  L.say(/cxb2/.test(rB||''),'J0a ['+g+'] the black pawn reached b2, so a black promotion is one move away',{row:rB});
+  await b.move('b2','a1',500);
+  const up=await picker(b);
+  L.say(!!up&&up.n===4&&up.enabled===4,'J0b ['+g+'] the picker is open with four enabled buttons',up||'ABSENT');
+
+  const imgs=up?await b.page.evaluate(()=>{
+    const ov=[...document.querySelectorAll('div')].find(d=>/^Promote to/.test((d.innerText||'').trim())&&getComputedStyle(d).position==='fixed');
+    if(!ov)return null;
+    const btns=[...ov.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1;});
+    return {srcs:btns.map(x=>{const i=x.querySelector('img');return i?i.src:null;}),
+            texts:btns.map(x=>(x.innerText||'').trim()).join('')};
+  }):null;
+
+  const nImg=imgs?imgs.srcs.filter(Boolean).length:0;
+  L.say(nImg===4,'J1 ['+g+'] all FOUR picker buttons draw a PIECE IMAGE rather than a text glyph',
+    {withImage:nImg,of:imgs?imgs.srcs.length:0});
+  L.say(!!imgs&&JSON.stringify(imgs.srcs)===JSON.stringify([bq,br,bb,bn]),
+    'J2 ['+g+'] the picker shows the BOARD\'S OWN four BLACK sprites, in order q r b n - so Black is offered Black\'s pieces',
+    {matches:!!imgs&&JSON.stringify(imgs.srcs)===JSON.stringify([bq,br,bb,bn]),
+     firstIsBlackQueen:!!imgs&&imgs.srcs[0]===bq, firstIsWhiteQueen:!!imgs&&imgs.srcs[0]===wq});
+  L.say(!!imgs&&imgs.texts==='','J3 ['+g+'] no picker button carries a text glyph',{texts:imgs?imgs.texts:null});
+  L.say(b.errs.length===0,'J5 ['+g+'] no console errors in the black-promotion block',{errs:b.errs.length});
+  await b.shot('496-65-J-black-picker-'+geo);
+  await b.close();
+
+  // J4 THE OVER-APPLICATION CONTROL, in its own browser: a WHITE promotion must still show WHITE's pieces.
+  {
+    const c=await L.launch({geo,name:'65J4-'+geo});await c.open();
+    await P.states['pp-m0'](c);
+    const wq2=await pieceAt(c,'d1'), wr=await pieceAt(c,'a1'), wb=await pieceAt(c,'c1'), wn=await pieceAt(c,'b1');
+    const bq2=await pieceAt(c,'d8');
+    L.say(!!wq2&&!!bq2&&wq2!==bq2,'J4a ['+g+'] INSTRUMENT: the white sprites are readable and differ from the black queen',
+      {whiteQueen:!!wq2,differ:wq2!==bq2});
+    // block E's own line: 1.e4 d5 2.exd5 c6 3.dxc6 a6 4.cxb7 a5, then b7-a8
+    for(const [f,t] of [['e2','e4'],['d7','d5'],['e4','d5'],['c7','c6'],['d5','c6'],['a7','a6'],['c6','b7'],['a6','a5']])
+      await c.move(f,t,220);
+    await c.move('b7','a8',500);
+    const upW=await picker(c);
+    L.say(!!upW&&upW.enabled===4,'J4b ['+g+'] the white promotion opens the picker',upW||'ABSENT');
+    const iw=upW?await c.page.evaluate(()=>{
+      const ov=[...document.querySelectorAll('div')].find(d=>/^Promote to/.test((d.innerText||'').trim())&&getComputedStyle(d).position==='fixed');
+      if(!ov)return null;
+      const btns=[...ov.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1;});
+      return btns.map(x=>{const i=x.querySelector('img');return i?i.src:null;});
+    }):null;
+    L.say(!!iw&&JSON.stringify(iw)===JSON.stringify([wq2,wr,wb,wn]),
+      'J4 ['+g+'] CONTROL: a WHITE promotion shows the board\'s four WHITE sprites, so the fix is keyed on the SIDE and not hard-coded to black',
+      {matches:!!iw&&JSON.stringify(iw)===JSON.stringify([wq2,wr,wb,wn]), firstIsWhiteQueen:!!iw&&iw[0]===wq2, firstIsBlackQueen:!!iw&&iw[0]===bq2});
+    L.say(c.errs.length===0,'J4c ['+g+'] no console errors in the white-promotion control',{errs:c.errs.length});
+    await c.shot('496-65-J4-white-picker-'+geo);
+    await c.close();
+  }
+}
+
 L.run(async()=>{
   const only=(process.env.CT_B65||'').split(',').filter(Boolean);
   const want=(x)=>!only.length||only.includes(x);
@@ -777,4 +932,5 @@ L.run(async()=>{
   if(want('G'))await blockG();
   if(want('H'))await blockH();
   if(want('I'))for(const g of ['kunal730','land'])await blockI(g);
+  if(want('J'))for(const g of GEOS)await blockJ(g);
 },'65-promotion-after-gameover');

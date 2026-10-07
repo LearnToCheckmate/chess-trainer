@@ -1018,3 +1018,23 @@ WHAT THIS CLAUSE DOES NOT SAY: it does not promise the mate DISTANCE is exact be
 CASE: TC-R09c, gate `gates/regress/20-review.js`.
 
 NOTE ON THE ID [#489]. US-R37 was checked free by grep over `claude/` and `gates/` before use; there were no hits. It follows US-R36 (#476).
+
+---
+
+US-R38  **As a player promoting a pawn, I need the promotion picker to offer MY pieces — the same pieces, in the same colour and the same set, that my side is already wearing on the board.**  The picker is the one place in the app where a player chooses a piece rather than moves one, and until #496 it drew the choice in a way that contradicted the board eight pixels above it.
+
+THE DEFECT THIS CLAUSE IS WRITTEN FROM, measured rather than described. `chess.jsx` chose the glyph SET correctly by side — `const col=promo.g.turn; const gl={w:{q:'♕',…},b:{q:'♛',…}}[col]` — and then painted whichever set it had chosen with a hard-coded `color:'#fff'`. The two Unicode sets differ in FILL and not in hue: `♕` is an outline and `♛` is a solid, so painting both white gave White a hollow white queen and Black a filled white one. A player promoting as Black was offered four white-coloured pieces while every black piece on the board beside them was a dark sprite. The #433 auditor measured it as bright(>170) 2.0% for White against 3.6% for Black over the identical 273x114 crop — the same ink, more of it — which is the number that says this is a colour defect and not a shape one.
+
+Two clauses, separate because they can fail separately:
+
+(1) THE PICKER SHOWS THE PROMOTING SIDE'S COLOUR. Black promotes, Black's pieces are offered. This is the half a player sees and the half the job was raised about.
+
+(2) THE PICKER SHOWS THE PLAYER'S CHOSEN PIECE SET. The picker used text glyphs, so it ignored whichever of the four skins (`classic`, `merida`, `chessnut`, `spatial`) the player had selected, while the board honoured it. A picker that got the colour right and the set wrong would satisfy (1) and still be a screen that does not match the board under it.
+
+WHY ONE CHANGE SATISFIES BOTH: the app already has a component whose whole job is "draw this piece, this colour, in the player's set" — `_Piece` at `chess.jsx:1621`, memoised as `Piece` at `:2446`, which the board itself uses at `:8532`. Rendering it in the picker takes `color` from the same `promo.g.turn` the old glyph map used, reads `_ACTIVE_PIECES` so the skin follows, and its own `useFallback` branch colours by side correctly (`#fff` against `#1a1a1a` with an inverted text-shadow) so even the symbol set comes out right.
+
+WHAT THIS CLAUSE DOES NOT SAY. It does not say the picker must use IMAGES: the `useFallback` branch legitimately draws text glyphs when the player has chosen the symbol set or when an image fails to load, and it is correct there because it colours them by side. The clause is about which side's pieces and which set, not about the drawing mechanism. It also says nothing about the picker's LAYOUT — the four 52x52 buttons and their placement are block H's subject, not this one's.
+
+CASE: TC-R51, gate `gates/regress/65-promotion-after-gameover.js` block J.
+
+NOTE ON THE ID [#496]. US-R38 was checked free with `grep -r 'US-R38' .` over the whole repository (0 hits) and against the id list under `claude/stories/`, not one file — which is the mistake TEST-CASES.md records at TC-R22. It follows US-R37 (#489). US-R47 was deliberately NOT taken: it is reserved, un-written, by `jobs/rank-up-verdict-line-is-cut-mid-word-2026-09-28`, and reserved ids are invisible to grep because they live on the tracker and not in the tree.
