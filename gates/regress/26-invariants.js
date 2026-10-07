@@ -522,6 +522,17 @@ const ROW_PIN={
   'short375/lesson-practice':3/* #430: was 2, see the note on ROW_PIN */,'short375/puzzles':2,'short375/pz-solved':2,'short375/rev-summary':4,
   'short375/rev-ply31':3,'short375/rev-last-engine':3,'short375/rev-why-open':3,'short375/rev-more-sheet':1/* #492: was 0, see MOVED PINS note B */,
   'short375/rev-best-ply30':3};
+// ── #492: THE IDENTITY PIN, AND IT IS THE ANSWER TO AN UPHELD VETO ────────────────────────────────────────────
+// COVERED_PIN pins a NUMBER. Antagonist A's veto at #492: a pin of 2 admits ANY second occluded control,
+// including a future one at 0% hittable, and stays green - so growing the number is a blank cheque, against an
+// assertion whose own text says "an exclusion that grows is coverage lost, and this one can only ever hide a
+// defect rather than invent one". The veto was upheld. The gate already computes `coveredList`, so the identity
+// is free: where COVERED_LABELS carries an entry, the sorted label set must match EXACTLY, and a DIFFERENT
+// second exclusion reddens even though the count is unchanged. That is strictly tighter than the count alone.
+// POPULATED ONLY WHERE THIS RUN MEASURED IT. The other 38 entries keep the count pin alone, and the log says so
+// rather than implying coverage that was never taken - a half-populated table that reads as complete is the
+// frozen-denominator failure (#405) in a new costume.
+const COVERED_LABELS={'kunal730/rev-why-open':['Bxb5+!','c6']};
 const COVERED_PIN={
   'se/home':6,'se/play-captures':0,'se/play-gameover':0,'se/lesson-demo':0,'se/lesson-practice':0,
   'se/puzzles':0,'se/pz-solved':0,'se/rev-summary':23,'se/rev-ply31':1,'se/rev-last-engine':0,
@@ -555,7 +566,10 @@ const COVERED_PIN={
 // #491 re-landed the #442-#447 win-probability pile with Kunal's lichess-ladder mate rule, reached
 // GATES RED #491 at 58 sections / 4218 PASS with this gate the only red (362 pass / 7 fail), and STOOD DOWN on
 // the push rather than touch a pin it had not measured. That was the right call and this block is the payment.
-// Every number below was measured on bundle cc01e3664902 (chess.jsx d474b2f50e6e), and the three notes are
+// Every number below was measured on bundle 431326911ca7 (chess.jsx d474b2f50e6e), the artefact this build
+// pushes. #491 measured the same SOURCE as bundle cc01e3664902; the two differ only by the --define:__BUILD__
+// stamp, and #454's rule is to cite the ARTEFACT rather than the number, so this file names the one shipped.
+// Antagonist A caught the first draft citing its predecessor's md5 throughout. The three notes are
 // separated because they are three different kinds of change, which a single "re-pinned, 7 moved" line hides.
 //
 // NOTE A - `rev-best-ply30` at `se` and `short375`: COVERED_PIN 2 -> 1 AND the PINNED cut count 2 -> 1.
@@ -578,36 +592,78 @@ const COVERED_PIN={
 //   which is the cross-check that this is a width-driven wrap and not a new structure, exactly as #430's
 //   lesson-practice note reasons about the same mechanism.
 //
-// NOTE C - `rev-why-open` at `kunal730`: COVERED_PIN 1 -> 2. THE SEVENTH, AND THE ONLY ONE THAT NEEDED A
-//   MEASUREMENT RATHER THAN A RE-READING. An exclusion that GROWS is coverage lost and can only ever hide a
-//   defect, so #491 refused to re-pin it and handed it on as "a possible reachability loss at Kunal's own
-//   geometry, undiagnosed". MEASURED HERE, and the answer is that it is NOT this build's defect and NOT a
-//   reachability loss, and the evidence is a control on main rather than an argument:
-//     THE NEW EXCLUSION is `Bxb5+!`, a cursor:pointer SPAN in [data-ct="strip-row"], x 316.88 w 62.59, whose
-//     centre at x 348.2 lands on the "Next move" BUTTON (x 347.02 w 26). So elementFromPoint at the CENTRE
-//     returns a different element and the exclusion fires.
-//     THE GATE ASKS ONE POINT AND A FINGER IS NOT A POINT. Sampling a 7x5 grid inside that span, 15 of 35
-//     points still land on the span itself - its whole left 38% - so 42.9% of the box is hittable and the chip
-//     is reachable. CLAUDE.md records that "does elementFromPoint at this button's centre return this button"
-//     produced three false P0s and that #393 tried three groundings and shipped none; this is that trap in its
-//     narrowest form, a control whose CENTRE moved under a neighbour while most of it stayed free.
-//     WHAT ACTUALLY MOVED is the chip's WIDTH: the pile's grade indicators add `!`, `!!` and `?!` to the strip
-//     chips, so each one widens and the last one slides under the Next-move button. The chip did not become
-//     less reachable than its neighbours; its midpoint crossed a boundary.
-//     AND THE UNDERLYING DEFECT IS PRE-EXISTING AND WORSE ON MAIN, which is the measurement that settles it.
-//     [data-ct="strip-row"] is overflowX:visible with clientWidth 371 == scrollWidth 371, so canScrollX is
-//     FALSE: chips that do not fit are not scrollable to, they simply spill. On the CANDIDATE the worst spill
-//     is `Bxb5+!` at 4.47px past the 375 viewport, 42.9% hittable. On MAIN's own bundle d0d4206809ae, same
-//     screen, same geometry, the same probe reads a chip `Nbd7` at x 371.05 w 45.72, spilling 41.77px past the
-//     viewport with 0 of 35 points hittable and elementFromPoint returning NOTHING - a move chip a player
-//     cannot reach at all, nine times the spill, live on main today. So this build does not cost a control; it
-//     changes WHICH chip lands in an overflow that main already has. Re-pinned at 2, and the strip overflow is
-//     filed as its own job rather than folded in here, because it is a chess.jsx defect and this is a gate file.
-//     THE CONFOUND, STATED RATHER THAN HIDDEN: `why-open` walks up to 14 key moments until a rev-playout
-//     appears, and the pile changes WHICH plies are key moments, so the two bundles do not land on the same ply
-//     and their chip LISTS differ (6 chips against 7). The per-chip numbers above are therefore NOT a matched
-//     before/after of one element. What IS matched, and what the conclusion rests on, is the MECHANISM and its
-//     worst case per bundle: the same container, the same overflow, no scroller, on both.
+// NOTE C - `rev-why-open` at `kunal730`: COVERED_PIN 1 -> 2, PLUS the identity pin above. The SEVENTH, and the
+//   only one that needed a measurement rather than a re-reading. #491 refused to re-pin it and handed it over as
+//   "a possible reachability loss at Kunal's own geometry, undiagnosed". #492's FIRST attempt at this note was
+//   WRONG IN EVERY NUMBER IT PUBLISHED and both blind antagonists vetoed it independently. Both vetoes were
+//   upheld. What follows is the third measurement, taken in the right frame, and the withdrawals are explicit
+//   because a comment that quietly improves is a comment the next reader cannot audit [R18].
+//
+//   WHAT IS ACTUALLY TRUE, measured on BOTH bundles at kunal730/rev-why-open, same ply, same probe:
+//     The chips live in [data-mstrip], a REAL horizontal scroller - overflowX auto, clientWidth 305,
+//     scrollWidth 2005, scrollLeft 838 of a 1700 range - whose clip edge is x 340.02. A chip's RECT routinely
+//     extends past that clip box BY DESIGN; the ink does not. Measured per chip as the intersection of the rect
+//     with the clip box: INK PAINTED PAST THE VIEWPORT IS 0.00px ON ALL 33 CHIPS ON BOTH BUNDLES, and every
+//     chip that has any painted region at all is hittable across ITS WHOLE PAINTED WIDTH - 31 of 31 pixels on
+//     main, 23 of 23 on the candidate. So nothing is stranded, nothing is dead-but-visible, and there is no
+//     wrong-action hazard on either bundle. 15 chips sit scrolled off the LEFT at painted width 0 and 12 off
+//     the RIGHT at painted width 0, which is the symmetry that proves it: a scrolled list, not a defect.
+//     THE MATCHED BEFORE/AFTER, which my first note wrongly said did not exist: [data-ct="rev-move-line"] reads
+//     "10. Nxb5 !! Brilliant ▶ why 19/33" BYTE-IDENTICALLY on both bundles, so both land on ply 19 and the
+//     comparison is exact. `cxb5?` (w 54.16) becomes `cxb5?!` (w 62.58), +8.42px from one grade glyph, and
+//     every chip after it shifts right by that 8.42px.
+//     WHY THE EXCLUSION FLIPPED, AND IT IS A QUARTER OF A PIXEL: on main `Bxb5+!`'s centre is x 339.75 against
+//     a clip edge of 340.02 - INSIDE by 0.27px - so elementFromPoint returns the chip. The 8.42px shift puts
+//     that centre at 348.18, 8.16px OUTSIDE the clip, where the chip is not painted, so the point lands on the
+//     Next-move button beyond it. The pin moved because a single sample point crossed a clip edge that had
+//     0.27px of pre-existing margin. CLAUDE.md records this exact instrument - "does elementFromPoint at this
+//     button's centre return this button" - as the cause of three false P0s, and #393 shipped none of its three
+//     attempts to ground it. This is the same trap, and #398's rule is the other half: "AN ELEMENT OVERFLOWING
+//     ITS CLIPPING PARENT IS NOT PROOF THAT ANY INK WAS LOST."
+//     WHAT THE BUILD DOES COST, stated rather than excused: the visible width of that one chip falls from
+//     31.56px (50.4% of it) to 23.14px (37.0%). Less of "Bxb5+!" is legible before you scroll. That is real and
+//     it is cosmetic - it is not reachability, and the chip is still 100% live across what is painted.
+//
+//   FIVE CLAIMS FROM #492's FIRST VERSION OF THIS NOTE ARE WITHDRAWN [R18]. Each was published, each was wrong,
+//   and the instrument that produced it is named so the next reader does not rebuild it:
+//     (a) "strip-row is overflowX:visible with clientWidth == scrollWidth so canScrollX is FALSE and chips that
+//         do not fit are not scrollable to." FALSE. strip-row is a three-child flex WRAPPER [prev | scroller |
+//         next]; the chips' containing block is its MIDDLE child, which scrolls. I asked the wrong ancestor and
+//         never scrolled it, which is CLAUDE.md's reachability rule inverted on the horizontal axis. And
+//         gates/regress/37-strip-sync.js already measured that scroller's scrollLeft and range - "ask whether an
+//         existing gate already had to fight that control" (#386/#390) - and I did not ask.
+//     (b) "main carries a chip Nbd7 spilling 41.77px past the viewport with 0 of 35 points hittable." The 41.77
+//         is rect overhang into the clip box with 0.00px of ink past the viewport, and the probe returned
+//         sampled: 0, NOT 35 - its grid incremented the denominator only AFTER a viewport guard, so a chip
+//         entirely outside the viewport scored 0 of 0 and printed as 0%. A vacuous reading published as a
+//         measurement. The "nine times worse on main" built on it is withdrawn whole.
+//     (c) "42.9% of the box is hittable, its whole left 38%." A 7-column grid can only return k/7, so 42.9% is
+//         3/7 and the resolution is 14.3 percentage points. The painted region is 23.14px of 62.59 = 37.0%, and
+//         the boundary is the clip edge at 340.02, not anything at 38%.
+//     (d) "most of it stayed free." 37.0% is not most.
+//     (e) THE CHIP LISTS DIFFER SO NO MATCHED COMPARISON EXISTS. False, and this is the one that mattered: my
+//         own probe's visibility filter required rect.left < viewport width, so it SILENTLY DROPPED `Nbd7` on
+//         the candidate - the very chip the 8.42px shift had pushed out - and I then used the resulting
+//         list-length difference (6 against 7) as the argument that no matched before/after was possible. The
+//         instrument hid the evidence and the missing evidence became the excuse. That is "the check and the
+//         thing being checked were the same object", and it is the eleventh costume CLAUDE.md records.
+//
+//   SO WHY RE-PIN AT ALL, RATHER THAN LEAVE IT RED. Because there is no defect to hold the tree for: no ink is
+//   lost, every painted pixel is live, and the app behaves identically to main except that one chip shows 8.42px
+//   less of itself. And the re-pin is NOT the bare count the veto objected to - COVERED_LABELS above pins the
+//   two members BY NAME, so a different second exclusion reddens at an unchanged count. That is tighter than
+//   what #423 left here, not looser.
+//   WHAT IS STILL NOT COVERED, and it is the honest residual: this gate's `covered` exclusion asks ONE point,
+//   the centre, against the VIEWPORT rather than against the clipping ancestor, so on any scroller it answers a
+//   question about geometry instead of about reachability. The assertion that would actually protect a player -
+//   every chip's PAINTED region is fully hittable - does not exist in this suite, and this run did not add it
+//   because a new assertion with no negative control is what this project forbids. Measured and filed, with the
+//   numbers above, at jobs/the-review-move-strip-overflows-with-no-scroller-so-a-move-chip-is-unreachable-on-
+//   main-2026-10-07, whose own title is wrong and is corrected on the job.
+//   AND THE EXCLUSION IS PINNED TO ONE SCROLL OFFSET, which antagonist A named: the walk reaches why-open by
+//   stepping key moments, which leaves scrollLeft at 838 of 1700 as a side effect, and every rect here is read
+//   at that one offset. A different offset occludes a different chip. The identity pin makes that visible
+//   instead of silent, which is the most this run can honestly do about it.
 
 // ── THE SCANNER ───────────────────────────────────────────────────────────────────────────────────────────────
 // Returns one row per TEXT NODE whose painted ink crosses the content box of the nearest ancestor that clips it
@@ -1073,7 +1129,7 @@ const SCREENS=[
 // direction at either size, which is what a pin is for; it is Kunal's to close (needsKunal, P1, on the Desk).
 // #492: THE COUNT IN THE PARAGRAPH ABOVE IS NOW HISTORY AND IS WITHDRAWN AS A STATEMENT ABOUT THE CURRENT
 // BUNDLE [R18]. Everything above describes TWO cut nodes - '"Qxd7" cut 27.74px and "" 36.1px' - measured on the
-// #400 era. On cc01e3664902 it is ONE: the move text is no longer cut and only the chevron is, at 5.84px of ink
+// #400 era. On 431326911ca7 it is ONE: the move text is no longer cut and only the chevron is, at 5.84px of ink
 // with client 45 against scroll 56. The ARITHMETIC and the thesis above are unaffected and still explain the
 // row; only the number of cut nodes changed, and it changed in the direction of a fix. MOVED PINS note A
 // carries the measurement and the cause. The pin moved from 2 to 1 and did not come out, because the chevron
@@ -1161,6 +1217,18 @@ L.run(async()=>{
           {want:ROW_PIN[rk], got:iv.rows.length, rows:iv.rows.map(r=>r.sig)});
         L.say(iv.covered===COVERED_PIN[rk], g+' '+name+': exactly '+COVERED_PIN[rk]+' controls are excluded as occluded, as on #423 - an exclusion that grows is coverage lost, and this one can only ever hide a defect rather than invent one, so it is pinned and not merely counted',
           {want:COVERED_PIN[rk], got:iv.covered, which:iv.coveredList});
+        // #492: THE IDENTITY, NOT ONLY THE COUNT. See the COVERED_LABELS note above - a count pin is a blank
+        // cheque for the NEXT exclusion, and this assertion is what closes it. Reddens on a different second
+        // exclusion at an unchanged count, which the count assertion above cannot see.
+        if(Object.prototype.hasOwnProperty.call(COVERED_LABELS,rk)){
+          const gotLabs=iv.coveredList.map(c=>c.lab).sort();
+          const wantLabs=COVERED_LABELS[rk].slice().sort();
+          L.say(gotLabs.length===wantLabs.length&&gotLabs.every((v,i)=>v===wantLabs[i]),
+            g+' '+name+': the occluded set is EXACTLY the controls it was pinned to by identity, not merely the same NUMBER of them - a count pin admits any replacement and this does not [#492, upheld antagonist veto]',
+            {want:wantLabs, got:gotLabs, which:iv.coveredList});
+        } else {
+          L.note('      occluded set NOT identity-pinned at this (geometry, screen) - count only. COVERED_LABELS carries '+Object.keys(COVERED_LABELS).length+' of '+Object.keys(COVERED_PIN).length+' entries and the rest are a count pin alone.');
+        }
       } else {
         L.note('      NOT PINNED at this geometry: row and occlusion counts are REPORTED here, not asserted (rows '+iv.rows.length+', occluded '+iv.covered+'). Only the three swept geometries carry population pins.');
       }
@@ -1256,7 +1324,7 @@ L.run(async()=>{
       if(pin){
         // The pinned residual, asserted on its own so it is in the log every run rather than implied by a
         // filter nobody reads. It is on Kunal's Decision Desk; see the PINNED comment above.
-        L.say(pinnedRows.length===pin.cuts, g+' '+name+': the pinned residual is exactly where it was left - "'+pin.anc+'" still cuts '+pin.cuts+' text node(s) at '+L.GEOS[g].label+'. #492 RE-PINNED THIS FROM 2 TO 1 AND THE MOVE IS A PARTIAL FIX, NOT A DRIFT: on bundle cc01e3664902 the cut move text is GONE and only the chevron is left (cut 5.84px of ink, client 45 against scroll 56), because the win-probability pile drops the decorative word under rowNarrow. The SAME count to the hundredth at 320x568 and 375x568, because [data-ct="rev-move-line"] measures 286.00px at both - it follows the board and the board is fit to HEIGHT - against 371.03px at 375x679 and 375x730, where the pill is client 100 / scroll 100 and nothing is cut. So this is not a narrow-phone defect. RED here means it MOVED AGAIN: fixed, and this pin comes out, or worse, and it needs looking at',
+        L.say(pinnedRows.length===pin.cuts, g+' '+name+': the pinned residual is exactly where it was left - "'+pin.anc+'" still cuts '+pin.cuts+' text node(s) at '+L.GEOS[g].label+'. #492 RE-PINNED THIS FROM 2 TO 1 AND THE MOVE IS CONTENT REMOVAL PLUS AN UNFIXED CLIP, WHICH IS NOT THE SAME AS A FIX: on bundle 431326911ca7 the cut MOVE TEXT is gone because the pile drops the decorative word under rowNarrow, and the CHEVRON IS STILL CUT, by the same 5.84px of ink it was cut by before (client 45 against scroll 56). So one of the two cut nodes went away by not being printed, and the other is untouched. Antagonist B asked for this to be re-read on its own terms rather than called a fix, and it was right to; the count is lower and nothing fits that did not fit before. The SAME count to the hundredth at 320x568 and 375x568, because [data-ct="rev-move-line"] measures 286.00px at both - it follows the board and the board is fit to HEIGHT - against 371.03px at 375x679 and 375x730, where the pill is client 100 / scroll 100 and nothing is cut. So this is not a narrow-phone defect. RED here means it MOVED AGAIN: fixed, and this pin comes out, or worse, and it needs looking at',
           pinnedRows.map(r=>({text:r.text,cut:r.cut,cs:r.cs,ss:r.ss})));
       }
       for(const r of res.rows) L.note('    CUT '+r.cut+'px '+r.axis+'  "'+r.text+'"  in '+r.anc+'  ('+r.el+')  ink '+r.ink.join('..')+' vs box '+r.box.join('..')+'  client '+r.cs+' scroll '+r.ss+'  text-overflow(clipper):'+r.teAnc);
