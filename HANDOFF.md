@@ -2,6 +2,27 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#491, 2026-10-07: THE WIN-PROBABILITY PILE IS RE-LANDED AND THE MATE LADDER IS WIRED AT ALL THREE GRADING SITES - AND IT DID NOT SHIP. ONE GATE IS RED AND SIX OF ITS SEVEN FAILURES ARE MY CHANGE MAKING THINGS BETTER.**
+>
+> NOTE FOR THE NEXT HOLDER - READ THESE SIX THINGS BEFORE YOU TOUCH ANYTHING
+>
+> **1. DO NOT REBUILD THIS TREE. It is on `origin/claude/cool-noether-epd81q`, 6 commits, and the re-land is the expensive part.** It is NOT a rebase: the pile branched from `e765135`, which main REVERTED at `364f700`, so every win-probability marker is absent from main while main's chess.jsx has moved 928 insertions on. Applying the pile's own delta to main yields a tree calling undefined names. What works is the pile's FULL intent against the reverted-to tree (`git diff 1f6939e..004cb86`, 249/25) applied with `git apply -3`, which gives exactly THREE conflicts. `af49ceb`'s commit message says how each was resolved and why - keep main's `effLabel`, main's drill walker, main's `curCls`.
+>
+> **2. YOUR WHOLE JOB IS SEVEN PINS IN `26-invariants`, AND SIX OF THEM ARE GOOD NEWS.** The gate pins known residuals so movement in either direction reddens; its own comment says the pin must be retired BY HAND. Measured at `cc01e3664902`:
+>   - `se`/`short375 rev-best-ply30`: exclusion 2 → **1**, and the pinned two-node cut is now **one** node (the chevron, cut 5.84, cs 45 / ss 56). That is conflict 3's `{!rowNarrow && best}` working. Re-pin at the new values.
+>   - `kunal730`/`short375 rev-more-sheet`: rows 0 → **1** (`1 blunders / 1 brilliant / 2 inaccuracies / 6 great`). The screen the pin guarded against going silent is no longer silent. Re-pin.
+>   - **`kunal730 rev-why-open`: exclusion 1 → 2, AND THIS ONE IS THE ACTUAL QUESTION.** The assertion says an exclusion that GROWS is coverage lost. The new exclusion is `Bxb5+!`, 62.6x22.0, centre hits BUTTON - a control whose label gained the `!` Great indicator from this build's grading change. **MEASURE WHETHER A FINGER CAN STILL REACH IT AT 375x730 BEFORE YOU TOUCH THE PIN.** CLAUDE.md records that this exact hit-test shape produced false P0s three times and that #393 shipped none of its three attempts to ground it. If it is reachable, retire the pin with the measurement; if it is not, it is a P0 this build caused and it must be fixed, not pinned.
+>
+> **3. DO NOT AMEND A COMMIT AFTER LAUNCHING THE SUITE.** `gates.sh` stamps HEAD at run START. I amended HEAD three minutes in to fix a typo, so the log's `ref:` line names `254d939`, which is on **no ref** - and `verify-log.sh` and `held.sh` both key on the gated sha. The log is unciteable even where it is green. This is #461's family (do not change what the running tooling has already read) in a new costume and it is filed.
+>
+> **4. AND DO NOT GREP A GATE LOG FOR `: red`.** The log writes `: RED`. My own monitor reported "0 red" for 93 minutes while `26-invariants` was red. Match case-insensitively, or match `RED (exit`.
+>
+> **5. WHAT IS ALREADY PROVEN, so you do not re-derive it:** gate 66 **48 pass / 0 fail** and gate 67 **17 pass / 0 fail** on `cc01e3664902`, both also green INSIDE the full suite; gate 66 on main's own `#490` bundle as the free control **6 pass / 5 fail**; gate 67 on the #441 pile bundle `4d539dea5ca9` **16 pass / 1 fail**, D1 red at greatRows 5 / contradictions 2; **seven negative controls** on the mate rule, each reddening the assertion that names its defect; `12-hint` **24/0**, so this container CAN gate. 57 required / 57 present / 0 missing / 0 unlisted.
+>
+> **6. TWO THINGS GO LIVE THE DAY THIS LANDS AND KUNAL HAS NEVER SEEN EITHER.** `instance3_P1` of the sel/cls job becomes reachable for the first time - `explainAnno` takes its adjective from `a.cls.label` (the win% ladder, chess.jsx:1162) and its pawn figure from `a.loss/100` (centipawns, :1086), which agree on main and diverge after this - so one sentence will read "A small slip. ... About 6.4 pawns of advantage gone." And the grading is **1.4x to 1.9x more lenient than Lichess at every rung**, which is the check Kunal asked for by name and which was never reported back to him. Both routed at `jobs/route-to-desk-the-two-product-questions-the-winprob-pile-has-owed-kunal-since-2026-09-30`.
+>
+> FINAL NUMBERS: branch head `65cf620` (+1 records commit), bundle `cc01e3664902`, source chess.jsx `d474b2f50e6e`. 58 sections, **4218 PASS**, `26-invariants` 362/7, `GATES RED #491`. #491 names THREE bundles because the run rebuilt twice on upheld findings - cite the md5, never the number.
+>
 > **#490, 2026-10-07: THE TIERED GATE IS ON MAIN. A records-only commit now pays ~10 SECONDS instead of 84 MINUTES. IT TOOK THREE VERSIONS AND TEN DEFECTS TO GET THERE, SEVEN OF THEM FOUND IN THIS RUN.**
 >
 > NOTE FOR THE NEXT HOLDER
