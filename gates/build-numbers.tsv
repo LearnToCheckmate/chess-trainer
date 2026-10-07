@@ -483,3 +483,5 @@
 491	built	-	cc01e3664902	d474b2f50e6e	2026-10-07T07:26Z	build__1791354091000	build.sh	Bundle built and stamped #491. Recorded by gates/build.sh so the number resolves to an artefact.
 492	minted	-	-	-	2026-10-07T09:42Z	build__1791364824126	minted	retire the seven moved pins in gate 26 and land #491 held win-probability pile with Kunals lichess-ladder mate rule
 492	built	-	431326911ca7	d474b2f50e6e	2026-10-07T09:46Z	build__1791364824126	build.sh	Bundle built and stamped #492. Recorded by gates/build.sh so the number resolves to an artefact.
+493	minted	-	-	-	2026-10-07T12:38Z	build__1791375646955	minted	rebuild gate 67 block U onto the bundle own shipped article mechanism and add block P over the stored drill label - the required gate for ship-list id 0 had 12 of 17 assertions that could not fail
+493	built	-	94f6de5051f0	d474b2f50e6e	2026-10-07T12:39Z	build__1791375646955	build.sh	Bundle built and stamped #493. Recorded by gates/build.sh so the number resolves to an artefact.
