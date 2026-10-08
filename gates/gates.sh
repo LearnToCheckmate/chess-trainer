@@ -28,6 +28,72 @@
 # failure with a far bigger blast radius, because a subset can be green while the gate that would have caught
 # the regression never ran at all.
 set -uo pipefail
+
+# ── gates/gates.sh --selftest ─────────────────────────────────────────────────────────────────────────────────
+# jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02, THE REMAINDER.
+# That job's headline repair LANDED (the herestring at the MANI_LINE assignment below, burst wave 1 patch 03,
+# integrated 2026-10-04T00:46Z). Its own scopeReducedTo then recorded what was still owed, in these words:
+# "the 2-input case is only recorded as prose in the gates.sh comment; no standing assertion exists
+# (gatemanifest.sh's selftest does not cover MANI_LINE)." The job's `case` field asks for exactly two inputs:
+# MANI_OUT under the pipe buffer -> one line; MANI_OUT over it -> still one line, where it used to be two.
+# This arm is that assertion, and it lives in this file because the expression it is about lives in this file -
+# the "a lesson recorded in one gate does not travel to the next one by itself" rule, applied to one script.
+#
+# IT READS THIS FILE'S OWN SOURCE RATHER THAN A COPY OF THE EXPRESSION, which is the whole point: C5 to C8 run
+# the assignment line extracted live from $0, so reverting that line to the pipe form makes the controls FAIL
+# instead of leaving them green against a copy that no longer matches the code. The defect form is likewise read
+# from the "# WAS:" comment rather than retyped, so the two forms this arm compares are both the file's own.
+#
+# AND IT CARRIES A CONTROL THAT FIRES, not only one that asserts the repaired text. C3 and C4 run the DEFECT form
+# over the same 200,000-byte input and require 2 lines with the false 'NOT CHECKED' fallback second. Without them
+# the pass on C6 would be unfalsifiable - a harness that cannot produce the bug cannot be said to have excluded
+# it, which is the vacuity class this project files repeatedly (gates/audit/verify-patch-set.sh C26/C27, and
+# jobs/s3b-and-s6-are-the-only-repo-reading-checks-and-neither-has-a-control-that-fires-2026-10-06).
+#
+# IT CANNOT RUN THE SUITE AND DOES NOT PRETEND TO. --selftest exits before the usage check, before mountcheck and
+# before any gate, touches no file under gates/logs, and can never emit the string "GATES GREEN". A normal
+# invocation is unaffected: this block is reachable only with the literal first argument --selftest, which the
+# usage check on the next line would otherwise reject outright.
+if [ "${1:-}" = "--selftest" ]; then
+  SG="$(cd "$(dirname "$0")" && pwd)"; SF="$SG/$(basename "$0")"
+  ST_T="$(mktemp -d)"; trap 'rm -rf "$ST_T"' EXIT
+  st_p=0; st_f=0
+  st(){ if [ "$2" = "$3" ]; then st_p=$((st_p+1)); echo "SELFTEST PASS $1"; else st_f=$((st_f+1)); echo "SELFTEST FAIL $1 — expected [$3] got [$2]"; fi; }
+  # The two forms, both READ FROM THIS FILE rather than retyped.
+  LIVE="$(grep -m1 '^MANI_LINE=' "$SF")"
+  WAS="$(grep -m1 '^# WAS: ' "$SF" | sed 's/^# WAS: //')"
+  if [ -z "$LIVE" ] || [ -z "$WAS" ]; then
+    echo "SELFTEST NOT CHECKED — could not read both forms from $SF (live=[${LIVE:-}] was=[${WAS:-}])."
+    echo "SELFTEST 0 pass / 1 fail"; exit 1
+  fi
+  # Two inputs, per the job's own case: one small, one unambiguously over the ~64KB pipe buffer.
+  SMALL='gate manifest: 59 required, 59 present, 0 missing'
+  BIG="$SMALL
+$(head -c 200000 /dev/zero | tr '\0' 'x')"
+  st_run(){ # $1 = form, $2 = MANI_OUT value; prints the captured value
+    # The value goes through a FILE and not through the environment: a 200,000-byte env var is the kind of thing
+    # that fails for a reason unrelated to the defect, and the first draft of this arm did exactly that - every
+    # large-input control returned empty and C3, the firing control, reported 0 lines instead of 2. Found by
+    # running it, not by reading it.
+    printf '%s' "$2" > "$ST_T/in"
+    printf '%s\n' 'set -uo pipefail' "MANI_OUT=\"\$(cat \"$ST_T/in\")\"" "$1" 'printf %s "$MANI_LINE"' > "$ST_T/f.sh"
+    bash "$ST_T/f.sh" 2>/dev/null
+  }
+  st_lines(){ printf '%s' "$1" | grep -c '' ; }
+  st C1-harness-can-exceed-the-pipe-buffer "$( [ "${#BIG}" -ge 200000 ] && echo yes || echo no )" yes
+  st C2-defect-form-is-silent-on-a-small-manifest "$(st_lines "$(st_run "MANI_LINE=\"\$($WAS)\"" "$SMALL")")" 1
+  st C3-defect-form-FIRES-on-a-large-manifest "$(st_lines "$(st_run "MANI_LINE=\"\$($WAS)\"" "$BIG")")" 2
+  st C4-and-its-second-line-is-the-FALSE-fallback "$(st_run "MANI_LINE=\"\$($WAS)\"" "$BIG" | sed -n '2p')" 'gate manifest: NOT CHECKED'
+  st C5-live-form-one-line-on-a-small-manifest "$(st_lines "$(st_run "$LIVE" "$SMALL")")" 1
+  st C6-live-form-one-line-on-a-large-manifest "$(st_lines "$(st_run "$LIVE" "$BIG")")" 1
+  st C7-live-form-returns-the-verdict-not-the-fallback "$(st_run "$LIVE" "$BIG")" "$SMALL"
+  st C8-live-form-pipes-nothing-into-grep "$(printf '%s' "$LIVE" | grep -cE '\|[[:space:]]*grep')" 0
+  st C9-this-file-sets-pipefail-so-the-class-applies "$(grep -c '^set -uo pipefail' "$SF")" 1
+  st C10-the-two-forms-were-extracted-and-differ "$( [ "$LIVE" != "MANI_LINE=\"\$($WAS)\"" ] && echo yes || echo no )" yes
+  echo "SELFTEST $st_p pass / $st_f fail"
+  [ "$st_f" -eq 0 ] || exit 1
+  exit 0
+fi
 N="${1:-}"; [[ "$N" =~ ^#[0-9]{3,4}$ ]] || { echo "usage: gates/gates.sh '#373' ['20-review 21-review-brilliant']"; exit 1; }
 SUBSET="${2:-}"
 G="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(dirname "$G")"; TAG="${N#\#}"
