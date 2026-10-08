@@ -12,3 +12,11 @@ gates/gates.run.sh
 # a script under gates/ that no suite runs is the thing jobs/a-test-in-the-repo-that-no-suite-runs-2026-09-28
 # exists about. The reproducible commands live in TC-R52 instead, where a reader will look for them.
 gates/.probe/
+
+# #502: an antagonist subagent wrote a scratch probe to gates/.anta502-probe.js, outside the two
+# patterns above, so it showed as untracked and a stop hook asked for it to be committed. A throwaway
+# script under gates/ must never enter the tree - that is what
+# jobs/a-test-in-the-repo-that-no-suite-runs-2026-09-28 exists about - so the pattern is widened here
+# rather than the file committed.
+gates/.anta*.js
+gates/.probe*.js
