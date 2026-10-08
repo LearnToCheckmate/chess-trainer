@@ -408,8 +408,69 @@ L.run(async()=>{
     L.say(pFwd===pTerm&&rFwd.map(x=>x.t).join(',')===ROW_OVER.join(','),
       geo+': the round trip restores the terminal ply and the row is unchanged by it ('+pFwd+') - the step back is not a one-way state change, which is what makes the row assertion above a statement about the PREVIEWED ply rather than about a game that has been disturbed',{ply:pFwd,row:rFwd.map(x=>x.t).join(',')});
     L.say(b.errs.length===0,geo+': zero app errors across the Back/Forward round trip at game over',b.errs.slice(0,3));
-
     await b.close();
+
+    /* ══ THE CARD ARM. ADDED 2026-10-08 by process-build lane 1, piece (2) of the whatDidNot on
+       jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30, and it closes a hole THIS GATE NAMES ITSELF.
+       WHAT WAS MISSING. The Back arm above steps the ply only AFTER `await b.settle(8000)`, because its first
+       placement pushed TC-PL-027's extra-child reading past the result card's 8s fade and took that assertion
+       red (recorded on the job and in the comment above). So the card is already gone when it steps, and the
+       arm says so in its own note line: the reading there "is about the fade and NOT evidence either way about
+       ply-keying". That left the suite with the two causes of an absent card INDISTINGUISHABLE - eight seconds
+       elapsed, or the previewed ply moved off the terminal one - and the second is the one the job asks about.
+       A NEW BROWSER RATHER THAN A LOOSENED LINE. This arm is a SECOND launch straight through `pp-mate-back`'s
+       own taps with no 8s settle anywhere in it, so every reading below is taken INSIDE the fade window and
+       TC-PL-027 above is untouched. The cost is one more launch per geometry; the alternative was moving a
+       reading that is already pinned, which is how an assertion gets edited away under time pressure.
+       MEASURED FIRST, THEN PINNED [R18, R35]. Probed on origin/main's own committed bundle (app.js md5
+       01387f706cea, stamp "#496 - 2026-10-07 20:07 ET") before this code was written, at BOTH geometries this
+       block visits, and the two agreed to the token:
+         se / kunal730   T+0ms      ply 4   card "Checkmate! Black wins"   board-grid children 65
+                         T+~570ms   ply 3   card null                      board-grid children 64
+                         T+~1140ms  ply 4   card "Checkmate! Black wins"   board-grid children 65
+       1.1 SECONDS, NOT 8. That is what makes this evidence: the card is absent at one ply back and BACK AGAIN
+       one ply forward, both inside the window, so the removal cannot be the fade and the card is keyed to the
+       PREVIEWED ply. The elapsed figure is carried in the payload of every assertion that depends on it and is
+       in the predicate too - a slow container that drifted past 8000 must go RED here rather than quietly
+       re-prove the fade and read as a pass. That is the frozen-denominator trap this repository records at
+       #405, pointed at a clock.
+       TWO INSTRUMENTS, AND THE SECOND IS NOT A SIBLING OF THE FIRST. `[data-ct="result-card"]`'s text is the
+       obvious reading and a selector that stopped matching would report the card absent in every state, which
+       is exactly the shape CLAUDE.md records at #432. So the board grid's own child COUNT is read beside it:
+       65 with the card up, 64 without, the same quantity TC-PL-027 above already pins across the fade, reached
+       through `b.board()` and not through the card's selector. Both must move together or this arm goes red.
+       RECORDED, NOT ENDORSED, the same stance as TC-PL-026 and the Back arm. Whether stepping back into a
+       finished game SHOULD take the result away is the product question on
+       jobs/play-status-slot-loses-the-result-on-one-back-tap-2026-09-30, which is not settled. This arm pins
+       what the build does so the term is operative today and the decision stays where it belongs.
+       WHAT IS STILL NOT DONE, named as specifically as what is: the non-board ending (block 11 resigns at
+       move 0, where Back and Forward are both disabled, so a resign-with-moves drive state is needed and
+       gates/drive/play.js has none), and the harness rule that would run every game-over assertion at both
+       plies by default, which lives in gates/lib.js and is outside the process-build allow-list. Both stay on
+       the job with reasons. */
+    const c=await L.launch({geo,name:'play-over-card-'+geo,store:{ct_pool:'3'}});await c.open();
+    await P.states['pp-mate'](c);
+    const t0=Date.now();
+    const pcTerm=await plyCount(c),cardTerm=await c.text('[data-ct="result-card"]'),kidsTerm=(await c.board()).kids;
+    const eTerm=Date.now()-t0;
+    L.say(pcTerm===4&&cardTerm==='Checkmate! Black wins'&&eTerm<8000,
+      geo+': CARD WINDOW OPEN - at the terminal ply the result card is up and only '+eTerm+'ms have passed, well inside the 8s fade. Every reading below is taken in this window; without this line the three that follow could all be re-readings of the fade',{ply:pcTerm,card:cardTerm,elapsedMs:eTerm,kids:kidsTerm});
+    await P.tapBtn(c,/^Back$/,400);
+    const wPlyBack=await plyCount(c),wCardBack=await c.text('[data-ct="result-card"]'),wKidsBack=(await c.board()).kids;
+    const wElapBack=Date.now()-t0;
+    L.say(wPlyBack===pcTerm-1,geo+': the step off the terminal ply is real inside the window too ('+pcTerm+' -> '+wPlyBack+')',{before:pcTerm,after:wPlyBack,elapsedMs:wElapBack});
+    L.say(wCardBack===null&&wElapBack<8000,
+      geo+': THE RESULT CARD IS GONE ONE PLY BACK AFTER ONLY '+wElapBack+'ms - so its absence is keyed to the PREVIEWED PLY and not to the 8s fade, which is the distinction the Back arm above could not draw and says so in its own note. If the card survived the step this line goes red; if this container ever drifts past 8000ms it goes red too rather than re-proving the fade',{card:wCardBack,elapsedMs:wElapBack});
+    L.say(wKidsBack===kidsTerm-1,
+      geo+': and the BOARD GRID agrees, read through b.board() and not through the card\'s own selector ('+kidsTerm+' -> '+wKidsBack+') - a result-card selector that stopped matching would report the card absent in every state, so the one quantity TC-PL-027 already pins across the fade is read here across the PLY instead',{withCard:kidsTerm,oneBack:wKidsBack});
+    await P.tapBtn(c,/^Forward$/,400);
+    const pcFwd=await plyCount(c),cardFwd=await c.text('[data-ct="result-card"]'),kidsFwd=(await c.board()).kids;
+    const eFwd=Date.now()-t0;
+    L.say(pcFwd===pcTerm&&cardFwd===cardTerm&&kidsFwd===kidsTerm&&eFwd<8000,
+      geo+': AND IT COMES BACK one ply forward, still inside the window at '+eFwd+'ms - card, ply and board-grid child count all restored. This is the two-sided half and the one the fade cannot imitate: eight elapsed seconds remove the card permanently, so a card that returns is a card the ply controls',{ply:pcFwd,card:cardFwd,kids:kidsFwd,elapsedMs:eFwd});
+    L.say(c.errs.length===0,geo+': zero app errors across the in-window Back/Forward round trip',c.errs.slice(0,3));
+    await c.shot('play-over-card-'+geo);
+    await c.close();
   }
 
   // ══ 11: resign - the two-tap arm, and the EMPTY STATE at game over (a finished game with no moves in it) ══
