@@ -619,14 +619,40 @@ for(const geo of GEOS){
   // 256-wide viewport. Asserted at every geometry because the defect is width-dependent and invisible at 320.
   L.say(pi.ovfX==='hidden','74 D3 ['+geo+'] the card panel\'s computed overflow-x is pinned to hidden ('+pi.ovfX+'), so making it a vertical scroller did not silently give it a horizontal axis. On main it read visible; with overflow-y:auto alone it computes to auto, and at a 256-wide viewport that clipped a Related-lessons chip by 33.5px',{overflowX:pi.ovfX,overflowY:pi.ovfY});
   if(pi.room>0){
-    const before=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));let q=g;while(q&&q.parentElement&&getComputedStyle(q.parentElement).position!=='fixed')q=q.parentElement;return q.scrollTop;});
-    await fingerDrag(b,pi.x,420,300);await b.settle(150);
-    await fingerDrag(b,pi.x,420,300);await b.settle(150);
+    // THE GESTURE IS ONE DRAG STARTED ON THE CARD'S OWN BODY TEXT, AND THAT CHANGE IS THE WHOLE POINT
+    // [antagonist C, objection 2]. D's first gesture was TWO drags of 120px from y=420. y=420 is inside the
+    // plans block, whose own scroll room (97) EXCEEDS the panel's (67), so 240px of travel exhausted the child
+    // and chained the remainder to the panel - and D2 went green on a tree where the defect it names is still
+    // reachable. MEASURED on the shipped bundle: ONE 80px drag at the plans block's centre gives panelScrollTop
+    // 0, panelScrollEvents 0, childScrollTop 72, the CTA unmoved at 595.55, the card GONE at +4600ms and the
+    // next tap toggling the lesson footer's play control. 3 of 3 trials. A gesture that only works when it is
+    // long enough to exhaust a child scroller is not the gesture a reader makes.
+    const sc=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));
+      let q=g;while(q&&q.parentElement&&getComputedStyle(q.parentElement).position!=='fixed')q=q.parentElement;
+      const kids=[...q.children].filter(c=>{const s2=getComputedStyle(c);return /auto|scroll/.test(s2.overflowY)&&c.scrollHeight>c.clientHeight+1;});
+      const ch=kids[kids.length-1]||null;const cr=ch?ch.getBoundingClientRect():null;const r2=n=>Math.round(n*100)/100;
+      return {panelScrollTop:q.scrollTop,childRoom:ch?ch.scrollHeight-ch.clientHeight:null,
+              startY:cr?r2(cr.top+cr.height/2):null,childBand:cr?[r2(cr.top),r2(cr.bottom)]:null};});
+    const before=sc.panelScrollTop;
+    // start on the inner scroller when there is one, which is the finger a reader uses; else mid-panel
+    const startY=sc.startY!=null?sc.startY:Math.round(b.geo.h*0.6);
+    L.note('74 D1a ['+geo+'] the drag starts at y='+startY+' on the card\'s body text'+(sc.childBand?(' (inner scroller '+JSON.stringify(sc.childBand)+', its own room '+sc.childRoom+' against the panel\'s '+pi.room+')'):' (no inner scroller found)'));
+    await fingerDrag(b,pi.x,startY,startY-80);await b.settle(200);
     const after=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));if(!g)return null;let q=g;while(q&&q.parentElement&&getComputedStyle(q.parentElement).position!=='fixed')q=q.parentElement;return q.scrollTop;});
     // D1 THE DENOMINATOR: if the drag did not move the panel there is no gesture under test and D2's green would
     // mean nothing. This is the #416 rule - check the control moved the quantity the assertion reads.
-    L.say(true,'74 D0c ['+geo+'] PRECONDITION: this block reached the card WITHOUT tapping its panel, so introHoldRef is false going in and the drag is the only thing that can hold it. Reaching the state through openHeld (which clicks the panel) made the first version of D2 pass on a bundle with the hook deleted',{route:'openPlain'});
-    L.say(after!==null&&after>before,'74 D1 ['+geo+'] THE DENOMINATOR: a real finger drag actually scrolled the card ('+before+' -> '+after+' of '+pi.room+'), so D2 below is asserting over a gesture that happened',{before,after,room:pi.room});
+    // D0c WAS AN UNCONDITIONAL L.say(true,...) CREDITED AS A PASS AND IS NOW A NOTE [antagonist C, objection 4].
+    // It asserted nothing - it restated which helper the block called - and it passed on the hook-deleted bundle
+    // too, so it was one of the 79. This file's own rule: "make it a red, or an explicit note that says it did
+    // not run, and never a PASS."
+    L.note('74 D0c ['+geo+'] ROUTE, not a verdict: the card was reached by openPlain, which taps no panel, so introHoldRef is false going in and the drag is the only thing that can hold it.');
+    // D1 IS NO LONGER A DENOMINATOR FOR D2 AND MUST NOT BE READ AS ONE. Whether the PANEL moved is now part of
+    // what is under test, not a precondition for it: the defect is precisely that a reader's drag moves a child
+    // and not the panel. So D1 asserts the thing the player needs - that one ordinary drag brings the CTA into
+    // the viewport - and D2 asserts the card survived it. Both must hold.
+    const ctaNow=await cta(b);
+    const ctaIn=!!(ctaNow&&ctaNow.y>=0&&ctaNow.y<b.geo.h);
+    L.say(ctaIn,'74 D1 ['+geo+'] ONE ordinary finger drag on the card\'s body text brings the CTA\'s centre inside the viewport (panel '+before+' -> '+after+' of '+pi.room+', CTA centre now '+(ctaNow&&ctaNow.y)+' in '+b.geo.h+'). On the shipped #498 tree this is RED: the drag scrolls the inner plans block, whose room (97) exceeds the panel\'s (67), the panel sees no scroll event at all and the CTA never moves from 595.55',{before,after,room:pi.room,ctaCentre:ctaNow&&ctaNow.y,vh:b.geo.h});
     await b.page.waitForTimeout(4600);
     const stillUp=await cardUp(b);
     L.say(stillUp,'74 D2 ['+geo+'] THE CARD SURVIVES THE GESTURE THAT REACHES ITS OWN BUTTON: after a real finger drag the card is still up at +4600ms, past the 4000ms auto-dismiss. A drag fires no click, so without onScroll setting introHoldRef the card dies under the finger and the next tap reaches the lesson footer and steps the demo - measured on this build\'s own first fix, and on a bundle with the onScroll hook deleted',{cardUp:stillUp,scrolledTo:after});
