@@ -153,6 +153,14 @@ const verdictText=(b,re)=>b.page.evaluate((src)=>{const r=new RegExp(src[0],src[
 // visible) must leave at least 18px of height (one 14px line at lineHeight 1.3), and elementFromPoint at the centre
 // of that visible area must land inside the verdict (measurement rule 1: hit-test, do not trust layout). Without this,
 // a reserve of 0px passes the no-jump assertion by hiding the verdict (negative control NC2, green before this line).
+// #500, AND KNOW THIS BEFORE YOU TRUST A GREEN FROM IT: this hit test asks whether elementFromPoint at the
+// verdict's centre lands inside the verdict, and AN ELEMENT GIVEN position:absolute OVER EVERYTHING ELSE PASSES
+// IT BY CONSTRUCTION. #500's fix did exactly that and this assertion stayed green while the verdict was being
+// painted on top of the goal sentence and neither was readable. It is the #394 trap in a new costume - the check
+// and the thing being checked were the same object - and it is the reason 98/0 coexisted with an unreadable
+// screen. The assertion that WOULD have caught it is an ink delta, not a hit test: make the goal title's text
+// colour transparent and require that no bright pixel in its own band changes. Antagonist A demonstrated it at
+// 26-74% of the title band's ink belonging to the goal card and showing through the message.
 const verdictSeen=(b)=>b.page.evaluate(()=>{
   const d=[...document.querySelectorAll('div')].filter(x=>/^✗/.test((x.innerText||'').trim())&&x.getBoundingClientRect().height>0);
   const el=d[d.length-1];if(!el)return {ok:false,why:'no ✗ element'};
@@ -197,7 +205,16 @@ const hintPainted=(b)=>b.page.evaluate(()=>{
 // possible?" It is - overflowY:auto was already on the box. CLAUDE.md's own rule says the same thing in general
 // terms: "below the fold is not unreachable ... measured by ACTUALLY SCROLLING that ancestor and re-reading the
 // rect", and "vertical spill inside a scroller is fine".
-// SO ONE ASSERTION BECOMES THREE, AND THE SET IS STRICTLY STRONGER THAN WHAT IT REPLACES:
+// SO ONE ASSERTION BECOMES THREE. THE WORD "STRICTLY" WAS IN THIS LINE AND IS WITHDRAWN [R18, #500's
+// antagonist A, which measured it rather than arguing it]. THE TWO SETS ARE INCOMPARABLE, and here are the
+// reds that show it, per bundle: main c37f70f2e989 - old 1 red (320x568), new 0; candidate a1815520dede -
+// old 4 red, new 0; a 30px reserve eab3bcbe0f0d - old 7 red, new 14. So the new set is STRONGER against an
+// undersized reserve and WEAKER against clipping-without-scrolling, and neither contains the other. The
+// honest statement is that the old assertion was retired on an explicit ruling of Kunal's and replaced with
+// three that do different work - not that nothing was given up. WHAT WAS GIVEN UP, with the number, because
+// a trade stated without its number is not stated: at Kunal's own 375x730 the whole 102-character hint is on
+// screen at rest on main (102 of 102 painted, and its 91-v-74 overflow removes no ink - checked) and 36 of
+// 102 on the reserved candidate, so he would see 35% of it and scroll for the rest. The three assertions are:
 //   (a) ONE FULL LINE WITHOUT SCROLLING. Computed from the box's OWN lineHeight, padding and borders rather than
 //       hard-coded, so it tracks the type. This is the assertion that rejects a 30px reserve, which paints ZERO
 //       characters here (measured: 30 - 24 padding - 2 border = 4px of content) and which this job's own theFix
@@ -287,7 +304,16 @@ L.run(async()=>{
           L.say(same(before,after),tag+': the board did not move when the hint appeared ('+fmt(before)+' -> '+fmt(after)+')',
                 before&&after?{dTop:Math.round((after.y-before.y)*10)/10,dW:Math.round((after.w-before.w)*10)/10}:null);
         }else{
-        if(path==='wrong')await b.move('a2','a3',900);else await b.move('f3','f7',900);
+        // #500 / antagonist A: THIS LINE USED TO READ `if(path==='wrong')...;else await b.move('f3','f7',900);`
+        // and that else was DEAD CODE - this block is already inside the `else` of `if(path==='hint')`, and
+        // GEOS x KINDS x path has only 'wrong' and 'hint', so `path` cannot be anything but 'wrong' here. The
+        // consequence is the headline limit of this gate and it is now stated where the code is rather than
+        // only in the header: THE SOLVE IS NEVER PLAYED, AT ANY GEOMETRY. That matters more since #500 than it
+        // did before, because the solved state is where the absolute-overlay half of the fix is the only thing
+        // running - and it is exactly where #500's two antagonists found the explanation painted on top of the
+        // goal sentence while this gate read 98 pass / 0 fail. A third path ('solve') belongs here and is on
+        // jobs/500-the-drill-reserve-is-measured-and-held-on-an-unreadable-solved-overlay-2026-10-08.
+        await b.move('a2','a3',900);
         await b.settle(700);
         const v=await verdictText(b,path==='wrong'?/^✗/:/^🎉/);
         const after=await b.board();
