@@ -3,7 +3,7 @@
 // (why playout, analysis board)". Metric: b.errs PAGEERROR count after D.states['why-open'] and after
 // D.states['analysis'] (the finder's repro), with the pageerror stack and a timestamp per error.
 // Geometries: argv[2] comma list, default se,430,kunal (the last is the finder's own geometry).
-//   cd /home/user/chess-trainer && timeout 600 node gates/audit/verify-N-review-1-geometry.js [se,430,kunal] [full]
+//   cd "$(git rev-parse --show-toplevel)" && timeout 600 node gates/audit/verify-N-review-1-geometry.js [se,430,kunal] [full]
 // 'full' as argv[3] mirrors the audit's ordering more closely: moves-last-engine before why-open.
 'use strict';
 const path=require('path');

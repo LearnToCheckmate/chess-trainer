@@ -3,7 +3,7 @@
 // at 320x568 and 430x932. One line per measurement:  MEASURE <geo> <state> <metric>=<value>
 // and one PNG per state in gates/shots/audit/play/<geo>-<state>.png. PASS/FAIL lines at the end assert the
 // board-screen invariants (one board top and width across a screen's states, over<=0, zero app errors).
-//   cd /home/user/chess-trainer && timeout 900 node gates/audit/play.js
+//   cd "$(git rev-parse --show-toplevel)" && timeout 900 node gates/audit/play.js
 'use strict';
 const path=require('path');
 process.env.CT_SHOTS=path.join(__dirname,'..','shots','audit','play');

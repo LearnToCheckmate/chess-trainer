@@ -3,7 +3,7 @@
 // 430x932. One line per measurement:  MEASURE <geo> <state> <metric>=<value>
 // and one PNG per state in gates/shots/audit/lesson/<geo>-<state>.png. PASS/FAIL lines at the end assert the
 // board-screen invariants (one board top and width across the lesson's states, over<=0, zero app errors).
-//   cd /home/user/chess-trainer && timeout 900 node gates/audit/lesson.js            (all geometries)
+//   cd "$(git rev-parse --show-toplevel)" && timeout 900 node gates/audit/lesson.js            (all geometries)
 //   node gates/audit/lesson.js kunal 390                                              (a subset, e.g. in parallel)
 'use strict';
 const path=require('path');

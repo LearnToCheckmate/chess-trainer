@@ -85,10 +85,21 @@ const FIX={
 // 0 - the broken oracle agreed with the right answer exactly once and then lied three times. Z2, the
 // anti-vacuity guard, is what went red and caught it, which is the only reason this is a comment and not a
 // shipped vacuous assertion.
+// WHY THE LESSON LIBRARY IS REACHED FROM __dirname AND NOT BY AN ABSOLUTE PATH. These two lines read
+// require('/home/user/chess-trainer/lessons.js') until 2026-10-08. That path exists in exactly ONE container -
+// the build lane's, where HOME is /home/user and prompts/build-run STEP 0d clones to ~/chess-trainer - so on
+// every other container node threw MODULE_NOT_FOUND at module scope, before one assertion ran, this section
+// exited 1 with ZERO FAIL lines, and gates.sh correctly refused to emit GATES GREEN for the whole 56-section
+// suite. The nightly fire of 2026-10-07T05:50Z burned 86 minutes to discover it (jobs/gate-19-requires-an-
+// absolute-path-that-exists-only-in-the-build-lanes-container-2026-10-07). __dirname is gates/regress, so
+// ../.. is the repository root on every container, which is how the other 53 gates already reach their
+// harness (require('../lib')). THIS CHANGES WHICH FILE PATH RESOLVES AND NOT WHAT IS ASSERTED: the fixtures,
+// the ten grade names, the two clauses and the anti-vacuity guard Z are untouched.
+const LESSONS_JS=require('path').join(__dirname,'..','..','lessons.js');
 const OPENING_LINES=(()=>{
   const g={};const prev=global.window;global.window=g;
-  try{ delete require.cache[require.resolve('/home/user/chess-trainer/lessons.js')]; }catch(e){}
-  try{ require('/home/user/chess-trainer/lessons.js'); } finally { global.window=prev; }
+  try{ delete require.cache[require.resolve(LESSONS_JS)]; }catch(e){}
+  try{ require(LESSONS_JS); } finally { global.window=prev; }
   const OP=(g.CTLESSONS&&g.CTLESSONS.OPENINGS)||[];
   const out=[];
   for(const o of OP){ if(o.line)out.push(o.line); if(o.vars)for(const v of o.vars)if(v.line)out.push(v.line); }

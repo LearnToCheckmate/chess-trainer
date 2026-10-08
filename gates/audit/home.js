@@ -7,7 +7,7 @@
 // text or control (A-05); the tab bar buttons are 44px tall; the Tactics trainer (a board screen) has over<=0;
 // and re-measure the known items A-04 (no ☰ on Home), A-11 (tile subtitle sizes), A-17..A-25 (text under 11px,
 // the empty band under the Discover cards, the header 3-4px from the edge), X-12 (the picker scrolls at 320).
-//   cd /home/user/chess-trainer && timeout 900 node gates/audit/home.js
+//   cd "$(git rev-parse --show-toplevel)" && timeout 900 node gates/audit/home.js
 'use strict';
 const path=require('path'),fs=require('fs');
 process.env.CT_SHOTS=path.join(__dirname,'..','shots','audit','home');

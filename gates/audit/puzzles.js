@@ -6,7 +6,7 @@
 // re-measure the known items: A-10 (Next inert before solving), X-07 (wrong-move line clipped), Z-04 (blank
 // verdict box while a hint shows), A-06/Z-01 (hint header unclipped at 320/375/390), A-11 (pz-bottom targets),
 // k9 (verdict text overflowing the one-line box).
-//   cd /home/user/chess-trainer && timeout 900 node gates/audit/puzzles.js
+//   cd "$(git rev-parse --show-toplevel)" && timeout 900 node gates/audit/puzzles.js
 'use strict';
 const path=require('path'),fs=require('fs');
 process.env.CT_SHOTS=path.join(__dirname,'..','shots','audit','puzzles');

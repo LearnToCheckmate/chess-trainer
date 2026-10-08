@@ -6,7 +6,7 @@
 // items (A-16 sheet ends above the screen bottom, A-04 no ☰ on Home, A-11 tap targets inside the menu, X-12 the Look
 // picker on small phones, A-2x the readout's 'board 368' with no board on screen) and assert the invariants (a board
 // under the sheet keeps its top and width when the sheet closes, over<=0 on board screens, zero app errors).
-//   cd /home/user/chess-trainer && timeout 900 node gates/audit/menu.js
+//   cd "$(git rev-parse --show-toplevel)" && timeout 900 node gates/audit/menu.js
 'use strict';
 const path=require('path'),fs=require('fs');
 process.env.CT_SHOTS=path.join(__dirname,'..','shots','audit','menu');

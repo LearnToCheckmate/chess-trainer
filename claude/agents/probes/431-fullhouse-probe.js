@@ -1,6 +1,9 @@
 // #431 THE FULL HOUSE AT REAL PGN SIZE: ACCT_MAX=8 accounts, each fetched to ACCT_GMAX.
 // Row size is the variable. Reports what reaches the store and what survives a reload.
-const L=require('/home/user/chess-trainer/gates/lib');
+// Reached from __dirname rather than from an absolute path, for the reason measured on 2026-10-08 in
+// gates/regress/19-review-grade-counts.js: /home/user/chess-trainer resolves in the build lane's container
+// only, so this probe could never run anywhere else. __dirname is claude/agents/probes.
+const L=require(require('path').join(__dirname,'..','..','..','gates','lib'));
 const ACCTS=['acct1','acct2','acct3','acct4','acct5','acct6','acct7','acct8'];
 const NEW={y:2026,m:9}, OLDER=[4,5,6,7,8], PER=60;
 const PAD=+(process.env.PGN_CHARS||2612);

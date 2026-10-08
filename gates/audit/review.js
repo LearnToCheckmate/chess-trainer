@@ -4,7 +4,7 @@
 // counted twice), '390' (390x844), and the width-dependent states at 'se' (320x568) and '430' (430x932).
 // One line per measurement:  MEASURE <geo> <state> <metric>=<value>   and a PNG per state in
 // gates/shots/audit/review/<geo>-<state>.png; a JSON of everything in measures.json next to them.
-//   cd /home/user/chess-trainer && timeout 900 node gates/audit/review.js
+//   cd "$(git rev-parse --show-toplevel)" && timeout 900 node gates/audit/review.js
 'use strict';
 const path=require('path'),fs=require('fs');
 process.env.CT_SHOTS=path.join(__dirname,'..','shots','audit','review');
