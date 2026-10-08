@@ -2,6 +2,20 @@
 **Written 2026-09-06, updated 2026-09-11. Live repo HEAD = build #334 (Cowork; #331 = 5f745f8, #332 = 7c3a8c5, #333 = ca44a61 review screen fixes plus the one-screen preview, #334 = summary footer pinned, #335 = eval number in the bar instead of a chip, #336 = that number flipped to read upward, #337 = one-screen review layout is the DEFAULT, #338 = puzzle screen spacer order fix, #339 = layout migration, eval bar off the side, blue Great; #340 = that bar sits above the board, #341 = review screen chess.com pass plus a Stockfish result cache).**
 Give this file to Claude in Cowork as the first thing in the session.
 
+> **#496, 2026-10-08: — BLACK'S PROMOTION PICKER NOW OFFERS BLACK'S PIECES, AND BOTH BLIND ANTAGONISTS VETOED MY FIX ON THE SAME GROUND**
+>
+> **Shipped:** bundle `01387f706cea` over `chess.jsx 67b69dedd77b`. App code changed; this is the first app-code build since #494.
+>
+> **What a player sees:** promoting a pawn as Black now offers Black's pieces, in whichever of the five piece sets they chose, on a square-coloured face. Before, both colours were painted white, so Black was offered White's pieces.
+>
+> **FIVE POINTERS FOR THE NEXT RUN**
+>
+> 1. **THE ANTAGONIST PAIR EARNED ITS KEEP AND BOTH VETOES WERE AGAINST MY OWN FIX, NOT MAIN.** Launched in one message, blind to each other; both independently found that the Symbol piece set made the picker's black glyph 1.33:1 — the fix had traded "legible but wrong colour" for "right colour and invisible". If you authorise a pair, launch them in ONE message or you lose the independence that makes agreement meaningful.
+> 2. **I ASSERTED AN UNMEASURED BRANCH AS CORRECT IN FOUR DOCUMENTS.** The sentence "its own useFallback branch colours by side correctly, so even the symbol set comes out right" went into the commit, the source comment, USER-STORIES.md and the gate header before anything drove that branch. "Correct by colour-assignment" is not "correct". If you write that a branch is fine, drive it or say you did not.
+> 3. **MEASURE ACROSS THE WHOLE CONFIGURATION SPACE, NOT THE DEFAULT.** My second fix used a flat `TH.dark` face and cleared 3:1 on nine themes while failing on three. The gate only ever drives the default theme, so it would have shipped green. Eleven of twelve themes are still unmeasured in a browser and that is written into TC-R51's NOT CHECKED.
+> 4. **A TEMPLATE LITERAL EATS `\(`.** The contrast helper handed to `page.evaluate` had `/rgba?\(([^)]+)\)/` collapse to a capture group, so `parseFloat("(219")` was NaN and every ratio was null. Use `String.raw`. It was caught in one run only because the assertion prints its own inputs.
+> 5. **BUDGET FOR PAYING THE SUITE TWICE — AGAIN.** This run lost its first suite to the vetoes and the container ALSO restarted at ~00:14Z (exit 137). Three consecutive runs have now lost a suite to three different causes. Push the branch EARLY: both commits were on origin before the restart, so nothing was lost.
+>
 > **#495, 2026-10-07: THE vs-COMPUTER CLOCK-FLAG PATH IS GATED AT BOTH GEOMETRIES - AND BOTH BLIND ANTAGONISTS VETOED, INDEPENDENTLY, THE SECOND DAY RUNNING THAT THEY HAVE.** Harness only. Bundle `5a098cd24dae` over source `c05de2dace42`, which is BYTE-IDENTICAL to #494's chess.jsx, so the app on Kunal's phone did not move. Gated sha `4735853`, `GATES GREEN #495 at 58 sections / 4262 PASS / 0 FAIL`, log `claude/agents/gatelogs/495b-all.log`.
 >
 > NOTE FOR THE NEXT HOLDER - FIVE THINGS, AND THE SECOND ONE WILL COST YOU A SUITE IF YOU SKIP IT
