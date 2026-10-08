@@ -295,6 +295,56 @@ L.run(async()=>{
     L.say(cardGone===null,'the result card fades off the board within 8s, so it never sits over the position for good',{card:cardGone});
     L.say(kidsWithCard===kidsAfter+1,geo+': the card is the board grid\'s one extra child while it is up ('+kidsWithCard+' -> '+kidsAfter+') - compare x/y/w/h, never the whole board object, or this legitimate change reads as a false difference',{withCard:kidsWithCard,after:kidsAfter});
     L.say(near(after.board.w,W.bw)&&near(after.board.top,W.by),geo+': and the board is untouched by the card leaving',{measured:after.board,want:W});
+
+    /* --- TC-PL-032: PAST THE UNMOUNT, ONE BACK AND ONE FORWARD, AND THE CARD MUST NOT COME BACK. ────────
+       THIS IS THE #473 GUARD, AND IT IS HERE RATHER THAN IN BLOCK 11b FOR A MEASURED REASON THAT COST
+       ANOTHER RUN ITS CONTROL. chess.jsx:3332-3333 reads
+
+           const _resultKey=_gameOver?1:0;
+           useEffect(()=>{setResultCardFade(false);setResultCardGone(false);if(!_resultKey)return;
+                          setTimeout(...2600); setTimeout(...3300);},[_resultKey,mode]);
+
+       so the key is keyed to the GAME and a previewed ply cannot flip it. The #473 comment immediately
+       above it records what the expression USED to be - `(isOver||playEnd)` - and what that cost: Back
+       flipped the key 1 -> 0, whose effect RESET resultCardFade and resultCardGone to false, and Forward
+       flipped it back to 1 and RESTARTED BOTH TIMERS, so a dismissed result card re-opened over the
+       position on every Back/Forward round trip, for ever.
+
+       WHY BLOCK 11b CANNOT GUARD IT AND THIS BLOCK CAN, measured by process-build-4__1791496112119 and
+       written onto jobs/tc-pl-030s-headline-assertions-...-2026-10-08 rather than reasoned here: block 11b
+       ends the game by RESIGNATION in a vs-Computer game, where the `playEnd` half of the pre-#473
+       expression is TRUE AT EVERY PREVIEWED PLY, so the key never flips and the defect is unreachable.
+       Both of its mutation controls - the pre-#473 expression at bundle md5 890f7a9b7b67 and a genuinely
+       ply-flipping `_gameOver?(1+ply):0` at md5 5388547cb472 - left its 146 PASS / 0 FAIL byte-identical.
+       #473 itself was measured on a MATE in Pass & Play, which is THIS block's ending, where the previewed
+       board's own over-ness is the operative half. So the arm moves to the ending the regression lives on.
+
+       IT IS POSITIONED AFTER TC-PL-027's settle ON PURPOSE. The state nothing covered is the one PAST the
+       3300ms unmount: inside the window the card is up because its timer has not fired, which says nothing
+       about the key. Here the card is already gone and `resultCardGone` is latched true, so a card that
+       comes back can only have come back because the effect re-ran - and that is exactly the regression.
+       A PRECONDITION GUARDS EACH HALF, because this arm's ancestor in block 11b passed vacuously when the
+       Back step had not happened and its own M1 control found that rather than its author [FIX 5]. */
+    const pliesU=await plyCount(b);
+    L.say(cardGone===null&&pliesU>=2,
+      geo+': PRECONDITION for TC-PL-032 - the card is already gone and this game has '+pliesU+' plies to step back through. IF THIS LINE IS THE RED ONE, the two verdicts below say nothing about the app',
+      {cardAtHead:cardGone,plies:pliesU});
+    await P.tapBtn(b,/^Back$/,400);
+    const cardUB=await b.text('[data-ct="result-card"]'),pliesUB=await plyCount(b);
+    L.say(pliesUB===pliesU-1,
+      geo+': PRECONDITION for the Forward arm - the Back tap really stepped the ply ('+pliesU+' -> '+pliesUB+'), so the round trip below is a round trip and not two taps on a dead button',
+      {before:pliesU,afterBack:pliesUB});
+    L.say(cardUB===null,
+      geo+': TC-PL-032 the dismissed card does not re-open while a ply is previewed',{card:cardUB});
+    await P.tapBtn(b,/^Forward$/,400);
+    await b.settle(600);
+    const cardUF=await b.text('[data-ct="result-card"]'),pliesUF=await plyCount(b),kidsUF=(await b.board()).kids;
+    L.say(cardUF===null&&pliesUF===pliesU,
+      geo+': TC-PL-032 and it is STILL GONE back at the live head after Forward - the result card is shown ONCE per game, so a ply-keyed _resultKey (the pre-#473 `(isOver||playEnd)`) reddens this line',
+      {card:cardUF,plies:pliesUF,headPlies:pliesU});
+    L.say(kidsUF===kidsAfter,
+      geo+': and the board grid still has its post-card child count ('+kidsAfter+' -> '+kidsUF+'). NOT AN INDEPENDENT INSTRUMENT and not offered as one: chess.jsx renders the card inside the one wrapper that IS the grid\'s extra child, which TC-PL-027 four lines above asserts as a fact, so this is a same-subtree consistency check and is worth exactly that much',
+      {afterCard:kidsAfter,afterRoundTrip:kidsUF});
     await b.shot('play-over-'+geo);
     L.say(b.errs.length===0,geo+': zero app errors across the game ending',b.errs.slice(0,3));
     await b.close();
