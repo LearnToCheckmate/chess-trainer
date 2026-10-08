@@ -251,6 +251,36 @@ instance.
   into a permanent exception. At #424 that is the lesson demo row at viewport height 520, where the board is 192px
   and the row is short by nearly twice everything Kunal's three-rung shrink ladder can free. (TC-INV-05d)
 
+### US-R12 The drill board stays still when the app answers me
+> **NOT TRUE ON main AS OF #500, AND THIS CLAUSE IS THE TARGET RATHER THAN THE RECORD.** The board still jumps:
+> measured at #500 on bundle c37f70f2e989, at 375x730 it goes 339 -> 291 when the red verdict lands and
+> 339 -> 265 on the hint. #500 built a fix that removes it (gates/pending/50-drill-verdict-no-jump.js, 98 pass /
+> 0 fail against 84/14 on main) and stood down because the same change made the SOLVED state unreadable. The
+> remainder is jobs/500-the-drill-reserve-is-measured-and-held-on-an-unreadable-solved-overlay-2026-10-08 and
+> the refused tree is on gates/held-trees.tsv. Do not read the bullets below as shipped behaviour.
+As a player practising my own mistakes or my own brilliancies, when the app tells me my move was not the one - or
+gives me a hint, or tells me I found it - the board does not move or change size, so my eye stays on the position.
+- Kunal reported this twice by hand: 2026-09-20 "Board jumps when the message in red comes up. Thought all of this
+  had been tested already." and 2026-09-23 "the chess board just jumped again, I thought we had fixed it across the
+  board." Both reports are this clause. (TC-R15)
+- The verdict box reserves a CONSISTENT height that does not change between states, so the board's top edge, left
+  edge and width are unchanged to within 0.6px when the red ✗ line appears and when the 💡 hint appears, at
+  320x568, 360x640, 375x667, 375x730, 390x844, 414x896 and 440x956. (TC-R15)
+- The red ✗ line is fully readable without scrolling at every one of those geometries: the box holds at least one
+  full line of its own type, and the ✗ message fits inside it. (TC-R15)
+- A message longer than the reserve is REACHED BY SCROLLING rather than lost: the box is a real scroller, not a
+  silent clip, and scrolling it to the bottom paints the end of the message. This is Kunal's own ruling of
+  2026-10-04 on this box - "Don't change the size just allow the player to scroll through the text" - and it is
+  what makes a consistent height affordable. (TC-R15)
+- Once the attempt is GRADED the goal card above the box has no job, so it yields its space to the explanation and
+  the box expands over it, which is Kunal's own answer of 2026-09-22 for this screen. The total reserved height is
+  identical in both states, so this costs the board nothing beyond the reserve itself. (TC-R15)
+- NOT YET TRUE, and this clause does not claim it: on a SOLVE the board still shifts a few px, because the
+  Hint/Show/Reset row collapses at the same moment (pz-bottom 104 -> 52). Measured at #500 as +4 / -4.5 / +5.5
+  against +66 / +78 / +74 before the fix. That residual is a different cause and is carried by
+  jobs/drill-solved-board-jumps-bottom-row-collapse.
+
+
 ### US-R13 The mistake drill says WHY the better move was better
 As a player replaying a mistake from my own game, the drill explains why the move I missed was better than the
 one I played, in a comparison, so I learn something from my own game rather than being congratulated.

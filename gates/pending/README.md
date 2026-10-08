@@ -96,3 +96,17 @@ Run one the same way as a held gate, with the bundle named explicitly and never 
 | `probe466-pfh.js` **(asserts: 5 × L.say)** | #466 | The three harms of the "Play from here at a terminal ply" job, re-measured on the bundle under test, because that job's evidence was from #424/#427 while #434/#435 had since rewritten the status-line behaviour harm 3 is about [R35]. |
 | `probe466-rect.js` **(asserts: 6 × L.say)** | #466 | The one measurement antagonist B asked for and could not take: the amber note is a longer string in the TOP slot of a sheet whose own source records a 32px overrun at 375x679. Gate 55 asserts the note's TEXT and the button's disabled state and **nothing about either rect**, so a clipped or off-screen note would pass all of it. Measures whether the refusal is READABLE and the exit REACHABLE. |
 | `render469.js` **(asserts: 1 × L.say)** | #469 | The before-and-after at Kunal's 375x730 with a red box, for definition-of-done (d). **Run after the suite, never during it**: three subagent browsers inside a timing-sensitive suite nearly produced a false red at #419. |
+
+## 50-drill-verdict-no-jump.js  (added #500, 2026-10-08)
+The executable reproduction of jobs/board-jumps-on-drill-verdict, the P0 Kunal reported by hand twice. It is HERE
+rather than in regress/ for one reason: it is RED ON main BY DESIGN - 84 pass / 14 fail against main's own bundle
+c37f70f2e989 - because main still carries the defect it asserts against. gates.sh globs regress/*.js, so nothing
+here runs and it cannot redden a suite.
+WHY IT IS COMMITTED AT ALL. It had been written THREE times and landed none: authored by the test-authoring lane
+2026-09-22 and never committed; carried to #428's branch claude/blissful-gates-0qg8q4 and left there when that run
+stood down; extended with a hint pair by burst agent 15 on 2026-10-03, which had no push credential and parked the
+whole file as a tracker field. Sixteen days as a single copy in a place no suite can reach is how a gate gets
+re-authored a fourth time. Run it by hand with CT_APP set:
+    CT_APP=/path/to/bundle.js node gates/pending/50-drill-verdict-no-jump.js
+WHEN THE FIX LANDS: git mv it into regress/ and flip gate-manifest.tsv row 78 to `required` in the SAME commit.
+
