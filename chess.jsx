@@ -7996,29 +7996,7 @@ export default function App(){
       {/* #338: on the puzzle screens the board is capped by the screen WIDTH, so a tall phone leaves slack; these two flexible spacers centre the stack between the top of the screen and the tab bar instead of pooling it all at the bottom. They collapse to zero when there is no slack. */}
       {pzLow&&!wide&&(<div aria-hidden="true" style={{order:0,flex:'1 1 0',minHeight:0,width:'100%'}}/>)}
       {pzLow&&!wide&&(<div aria-hidden="true" style={{order:98,flex:'1 1 0',minHeight:0,width:'100%'}}/>)}
-      {mode==='puzzle'&&pzView==='online'&&(()=>{const p=(curPuz&&curPuz.ext)?curPuz:null;const bw=Math.min(vw-8,440);const _dvRes=(vp.h<820?48:74);const _dvOverlay=(vp.h<600); /* #500 jobs/board-jumps-on-drill-verdict, the P0 Kunal reported by hand TWICE (2026-09-20 "Board jumps when the message in red comes up." and 2026-09-23). THE DEFECT: the verdict box below (search _dvRes) used maxHeight with no height, so it was 0 tall with no message and grew to its content when the verdict or the hint landed. pzStackH = pzTop.height + pzBot.height (search setPzStackH) and SQ's heightCap subtracts pzStackH, so the box growing SHRANK THE BOARD. Measured on #499 (bundle c37f70f2e989) by gates/regress/50-drill-verdict-no-jump.js, 62 pass / 15 fail: at 375x730 the board went 339 -> 291 on the verdict and 339 -> 265 on the hint. THE FIX IS KUNAL'S OWN DESIGN, not a trade-off this lane picked: a CONSISTENT height that never changes between states (his 2026-09-12 rule), fed by space reclaimed from a row that has no job once the attempt is graded (his 2026-09-22 answer for this exact screen), with the existing overflowY auto scrolling anything longer (his 2026-10-04 answer, "Don't change the size just allow the player to scroll through the text"). The sibling renderer (search 'reserves room for the puzzle verdict') has done this since #364. WHY NOT 74, which #428 built and refused: a constant 74 costs the board at REST at every short geometry and moved the drill's Reset under the fixed tab bar at 320x568. WHY NOT the sibling's (vp.h<820?30:74): that branch carries whiteSpace nowrap + ellipsis, so it CLIPS the two-clause explanation this renderer has carried since #426 - gate 51 B6 red at four geometries. 48 is one full line of this box's own type (clamp min 14.5px x 1.5 lineHeight + 12+12 padding + 2 border = 47.75) and it is also exactly today's post-verdict stack, so the board a player sees the moment they interact does not change at all. Longer text scrolls, and when SOLVED the box takes the goal card's space as well, which is where the long explanation goes.
-   WHY IT IS A BRANCH ON vp.h<820 AND NOT A CONSTANT, and the predicate is NOT arbitrary: the app already
-   switches the LENGTH OF THIS VERY MESSAGE on the same condition (search "isn't it"), short form on phones
-   under 820 tall and a longer one above. Measured: the short form is 36 characters and lays out in 48px; the
-   long form is 47 and needs 70. So a constant 48 clipped the long form to 41 of 47 at 390x844, 414x896 and
-   440x956 - caught by this build's own new gate-50 assertion, not by reading. 74 is free at those sizes
-   because the board there is WIDTH-limited, not height-limited (measured: dW 0 on every tall geometry when
-   the box grew on main), so the reserve costs no board at all above 820. The sibling renderer has branched
-   on this same predicate since #364; this copies the BRANCH, which is what the job's theFix asked for, with
-   numbers measured here rather than the sibling's 30/74.
-   AND _dvOverlay, WHICH IS THE SHORTEST PHONES, WHERE THERE IS NO SPACE TO RESERVE AT ALL. MEASURED on main at
-   320x568: #root already overflows BEFORE any reserve - scrollHeight 612 against clientHeight 568 - and the
-   drill's Prev/Next row already fails its own hit test there (bottom 542, elementFromPoint at its centre returns
-   the fixed tab bar), which is pre-existing and filed as jobs/the-drill-nav-row-rests-under-the-tab-bar-at-
-   320x568-on-main-2026-10-04. A 48px reserve there pushed Prev from 542 to 590, off the fold, and gate 72's A2d
-   caught it: 138 pass / 0 fail on main, 2 fail on the reserved candidate. SO AT vp.h<600 THE BOX OVERLAYS THE
-   GOAL CARD IN EVERY STATE instead of reserving space under it. The stack height is then identical to main's at
-   rest (pz-top 167), so the board does not move, nothing below it moves, AND the jump is still gone - because
-   an overlay cannot change the stack whatever it contains. The cost is that while a message is up at 320x568 it
-   covers the goal line, which is the same trade Kunal already chose for the solved state on 2026-09-22 (the row
-   whose job is finished yields its space), applied where space is scarcest. The goal card carries no
-   interactive element, so the overlay eats no taps. 600 is not a magic number: it is between 568, which
-   overflows on main before any reserve, and 640, which does not. */const _drill=mistakeMode;const _dn=(drillPlayRef.current||[]).length,_di=drillPosRef.current+1;return(
+      {mode==='puzzle'&&pzView==='online'&&(()=>{const p=(curPuz&&curPuz.ext)?curPuz:null;const bw=Math.min(vw-8,440);const _drill=mistakeMode;const _dn=(drillPlayRef.current||[]).length,_di=drillPosRef.current+1;return(
       <div ref={pzTopRef} data-ct="pz-top" style={{order:1,marginTop:p?8:6,width:bw,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'stretch',gap:8}}>
         <div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
           <button onClick={()=>{if(_drill)exitMistakes();else setPzView('roadmap');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>{_drill?'‹ Review':'‹ Roadmap'}</button>
@@ -8048,14 +8026,6 @@ export default function App(){
         {pzOErr&&(<div style={{width:'100%',fontSize:'clamp(13.5px,2.3vw,13.5px)',fontWeight:600,color:'#ec9a90',lineHeight:1.5,background:'rgba(236,154,144,.08)',border:'1px solid rgba(236,154,144,.25)',borderRadius:12,padding:'9px 11px'}}>{pzOErr}</div>)}
         {!pzOErr&&pzOInfo&&p&&(<div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.55)',fontWeight:600,textAlign:'center'}}>{pzOInfo}</div>)}
         {p&&(<>
-        {/* #500: ONE flex child instead of two, so the goal card and the verdict box share a box whose
-            height never changes. Not solved: the goal card is in flow and the verdict box sits under it at a
-            fixed _dvRes. Solved: the wrapper reserves the SAME total via paddingBottom and the verdict box
-            goes absolute over the whole wrapper, so the explanation gets the goal card's space - the goal
-            card has no job once the attempt is graded. Total height is identical in both states, which is
-            why this costs the board nothing ON TOP of the reserve itself. The 8 is the flex `gap` this
-            wrapper replaces between the two former siblings. */}
-        <div style={{width:'100%',position:'relative',boxSizing:'border-box',...((puzSolved&&!_dvOverlay)?{paddingBottom:8+_dvRes}:null)}}>
           <div style={{width:'100%',background:puzSolved?'rgba(123,216,143,.12)':'rgba(110,168,254,.1)',border:`1px solid ${puzSolved?'rgba(123,216,143,.4)':'rgba(110,168,254,.3)'}`,borderRadius:12,padding:'12px 14px'}}>
             <div style={{fontSize:'clamp(15px,3.8vw,17px)',fontWeight:800,color:'#fff',marginBottom:6}}>🎯 {p.goal}</div>
             <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
@@ -8064,8 +8034,7 @@ export default function App(){
               {pzOSolvedIds[p.id]&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'#86d99a',background:'rgba(123,216,143,.13)',border:'1px solid rgba(123,216,143,.35)',borderRadius:20,padding:'2px 9px'}}>✓ solved before</span>)}
             </div>
           </div>
-          <div className="scroll" style={(puzSolved||_dvOverlay)?{position:'absolute',left:0,right:0,top:0,bottom:0,overflowY:'auto'}:{width:'100%',height:_dvRes,marginTop:8,overflowY:'auto'}}>{puzMsg&&(<div key={puzMsg} style={{width:'100%',fontSize:'clamp(14.5px,3.2vw,16px)',fontWeight:700,color:puzSolved?'#aef0bd':(puzMsg[0]==='✗'?'#ffb3a8':'#cfe0ff'),lineHeight:1.5,background:puzSolved?'rgba(123,216,143,.16)':(puzMsg[0]==='✗'?'rgba(236,154,144,.16)':'rgba(110,168,254,.14)'),border:'1px solid '+(puzSolved?'rgba(123,216,143,.45)':(puzMsg[0]==='✗'?'rgba(236,154,144,.45)':'rgba(110,168,254,.4)')),borderLeft:'4px solid '+(puzSolved?'#7bd88f':(puzMsg[0]==='✗'?'#ec9a90':'#6ea8fe')),borderRadius:10,padding:'12px 13px',animation:'pzflash .3s ease-out'}}>{puzMsg}</div>)}</div>
-        </div>
+          <div style={{width:'100%',maxHeight:74,overflowY:'auto'}}>{puzMsg&&(<div key={puzMsg} style={{width:'100%',fontSize:'clamp(14.5px,3.2vw,16px)',fontWeight:700,color:puzSolved?'#aef0bd':(puzMsg[0]==='✗'?'#ffb3a8':'#cfe0ff'),lineHeight:1.5,background:puzSolved?'rgba(123,216,143,.16)':(puzMsg[0]==='✗'?'rgba(236,154,144,.16)':'rgba(110,168,254,.14)'),border:'1px solid '+(puzSolved?'rgba(123,216,143,.45)':(puzMsg[0]==='✗'?'rgba(236,154,144,.45)':'rgba(110,168,254,.4)')),borderLeft:'4px solid '+(puzSolved?'#7bd88f':(puzMsg[0]==='✗'?'#ec9a90':'#6ea8fe')),borderRadius:10,padding:'12px 13px',animation:'pzflash .3s ease-out'}}>{puzMsg}</div>)}</div>
         </>)}
       </div>);})()}
       {mode==='puzzle'&&pzView==='online'&&(()=>{const p=(curPuz&&curPuz.ext)?curPuz:null;const bw=Math.min(vw-8,440);return(p&&(

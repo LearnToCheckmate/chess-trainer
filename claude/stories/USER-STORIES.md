@@ -252,6 +252,12 @@ instance.
   and the row is short by nearly twice everything Kunal's three-rung shrink ladder can free. (TC-INV-05d)
 
 ### US-R12 The drill board stays still when the app answers me
+> **NOT TRUE ON main AS OF #500, AND THIS CLAUSE IS THE TARGET RATHER THAN THE RECORD.** The board still jumps:
+> measured at #500 on bundle c37f70f2e989, at 375x730 it goes 339 -> 291 when the red verdict lands and
+> 339 -> 265 on the hint. #500 built a fix that removes it (gates/pending/50-drill-verdict-no-jump.js, 98 pass /
+> 0 fail against 84/14 on main) and stood down because the same change made the SOLVED state unreadable. The
+> remainder is jobs/500-the-drill-reserve-is-measured-and-held-on-an-unreadable-solved-overlay-2026-10-08 and
+> the refused tree is on gates/held-trees.tsv. Do not read the bullets below as shipped behaviour.
 As a player practising my own mistakes or my own brilliancies, when the app tells me my move was not the one - or
 gives me a hint, or tells me I found it - the board does not move or change size, so my eye stays on the position.
 - Kunal reported this twice by hand: 2026-09-20 "Board jumps when the message in red comes up. Thought all of this
