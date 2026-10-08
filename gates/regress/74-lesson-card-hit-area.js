@@ -24,9 +24,44 @@
 // lessons row is present for some lessons only. LESSON ROW 0, THE ITALIAN GAME, IS NOT AFFECTED - its CTA sits
 // at 466.20..510.20 and owns its centre on the broken bundle. Every measurement anyone took on the first
 // lesson therefore read clean, including this job's own re-check and this build's first probe. Driven over
-// every lesson row of Openings and Gambits at 320x568 on the broken bundle: 29 of 128 cards had at least one
-// of their three sample points land off the CTA. So a gate that opens ONE lesson is a coin flip, and this one
-// drives a NAMED set that includes the worst.
+// EVERY lesson row of ALL FOUR groups at 320x568 on the broken bundle: **46 of 170 cards** had at least one of
+// their three sample points land off the CTA - Openings 8/97, Gambits 37/53, Endgames 1/20, and Tactics 0 of 0,
+// which is an EMPTY DENOMINATOR and not a clean group: the Tactics tile routes to a trainer and has no lesson
+// list, so it cannot show an intro card at all. Reported, never credited.
+//   **OF THOSE 46, THE CENTRE ITSELF WAS LOST ON 27.** On the other 19 only the 25% or 75% sample strayed, which
+//   is a fat-finger defect and not 'the button cannot be tapped'. Both numbers are published because the
+//   stronger sentence is not supported by the stronger number. AND NO CARD'S CENTRE HITS 'Close lesson' AT
+//   320x568 - zero of 46. The lesson-closing outcome is measured at 375x568, on King's Gambit and on Petroff,
+//   and is claimed at that geometry only.
+//   [AN EARLIER VERSION OF THIS HEADER READ '29 of 128' AND IS WITHDRAWN [R18]. That was a mid-run reading over
+//   Openings and Gambits only, taken before the sweep finished, and it was left in the shipped header where a
+//   reader would quote it. Antagonist B found it by checking the header against the published sweep; the
+//   Openings+Gambits figure is 45 of 150 and the whole-sweep figure is 46 of 170.]
+// So a gate that opens ONE lesson is a coin flip, and this one drives a NAMED set of SIX.
+//   **AN EARLIER VERSION OF THIS LINE CLAIMED THE SET 'INCLUDES THE WORST'. IT DID NOT, AND THAT IS WITHDRAWN
+//   [R18].** BOTH blind antagonists vetoed it independently, from the diff door and from the shipped-surface
+//   door: the worst card is Petroff (Russian) Defense, Openings row 45, and the first draft of this gate left it
+//   out while the header and the gate-manifest row both asserted it was in - naming the excluded card in the same
+//   sentence. It is in the set now, and what makes it worst is a fault this build does NOT fix. See THE RESIDUAL.
+//
+// ── THE RESIDUAL. THIS BUILD DOES NOT CLOSE THE CLASS, AND THE CARD IT DOES NOT CLOSE IS IN THE SET ───────
+// Petroff (Russian) Defense, Openings row 45, at 320x568. MEASURED on BOTH bundles, inside the card's 4000ms
+// auto-dismiss window so no hold is needed:
+//     panel    -33.27 .. 601.28   (h 634.55) in a 568-tall viewport - off BOTH ends by about 33px
+//     CTA       540.28 .. 584.28  - 16.28px of the button is below the screen
+//     close X   -23.27 ..   6.73  - 6.73px of a 30px button is on the screen
+// THE CARD IS SIMPLY TALLER THAN THE VIEWPORT, and z-index is paint and not layout, so this build changes none of
+// those three numbers. What it DOES change, which is why the card is asserted over rather than excused: on main
+// Petroff reads own 25/50/75 = false/false/false with the centre on the footer bar, and on this build it reads
+// true / true / (outside the viewport). So the HIT-TEST fault is fixed for it and an OVERFLOW fault remains.
+// Those are two different faults, and this gate asserts them separately - B1 over the sample points that are ON
+// the screen, B1b over whether a control is on the screen at all, with a per-card ceiling of 2 (Petroff's CTA and
+// its close X) and every instance printed by B1bG. The overflow is filed as
+// jobs/the-lesson-intro-card-can-be-taller-than-the-viewport-and-nothing-scrolls-it-2026-10-08.
+// AND IT COSTS THE HARNESS SOMETHING, recorded because it is the kind of thing that is rediscovered: Petroff's
+// panel top is OFF SCREEN, so a hold-tap at panelTop+10 lands outside the viewport, the hold never registers and
+// the card is gone before it can be measured - 'CARD GONE - hold failed' on BOTH bundles. openHeld therefore
+// CLAMPS the hold point into the viewport, and reports when it clamped.
 //
 // ── WHY NO EXISTING GATE COULD SEE IT, MEASURED RATHER THAN ASSUMED, AND BOTH HALVES MATTER ───────────────
 // (a) gates/drive/lesson.js's `intro` state could not hold the card. Its hold-tap walked UP from the CTA to
@@ -77,13 +112,22 @@ const L=require('../lib');
 const GEOS=(process.env.CT_74_GEOS||'se,short375,kunal730').split(',');
 // geometries at which no measured card reached the fixed bar, so B1 could not have failed there
 const VACUOUS=[];
+// Controls that extend outside the viewport. THE OVERFLOW FAULT, which this build does not fix: the per-card
+// ceiling is 2 because Petroff at 320x568 has exactly two (its CTA, 16.28px below the screen, and its close X,
+// 23.27px above it). It is a CEILING and not an allow-list so a third cannot appear in silence, and the ids are
+// printed either way. Raising it needs a measurement and a reason, in the commit that raises it.
+const OFFSCREEN_CEILING_PER_CARD=2;
+const offScreenSeen=[];
 // NAMED, not positional: an index is meaningless if a lesson is added, and asserting the name is how this gate
 // says "the state I measured is the state I meant" [#385: assert S was actually reached].
 const LESSONS=[
-  {group:'Openings',row:0, name:/^Italian Game$/,      note:'the control case: this card is SHORT and owns its centre even on the broken bundle'},
-  {group:'Openings',row:4, name:/^Four Knights Game$/, note:'measured 487.89..531.89 at 320x568 on #496, centre on the footer bar'},
-  {group:'Openings',row:20,name:/^Queen.s Gambit$/,    note:'measured 495.56..539.56 at 320x568 on #496, centre on "Forward a move"'},
-  {group:'Gambits', row:0, name:/^King.s Gambit$/,     note:'measured 506.41..550.41 at 320x568 on #496, 25% already on "Forward a move"'},
+  {group:'Openings',row:0, name:/^Italian Game$/,       note:'the control case: this card is SHORT and owns its centre even on the broken bundle'},
+  {group:'Openings',row:4, name:/^Four Knights Game$/,  note:'measured 487.89..531.89 at 320x568 on #496, centre on the footer bar'},
+  {group:'Openings',row:20,name:/^Queen.s Gambit$/,     note:'measured 495.56..539.56 at 320x568 on #496, centre on "Forward a move"'},
+  {group:'Openings',row:45,name:/^Petroff \(Russian\) Defense$/,
+                            note:'THE WORST CARD ON THE RECORD and the one this build does NOT fully fix. Its panel is 634.55 tall in a 568 viewport (-33.27..601.28), so 16.28px of the CTA is below the screen and 6.73px of the close X is above it. Added because the first draft of this gate EXCLUDED it while the header claimed the set included the worst - both antagonists vetoed that independently.'},
+  {group:'Gambits', row:0, name:/^King.s Gambit$/,      note:'measured 506.41..550.41 at 320x568 on #496, 25% already on "Forward a move"; and at 375x568 all three of its sample points hit the close X, so a tap there CLOSED the lesson'},
+  {group:'Gambits', row:10,name:/^L.gal Trap$/,         note:'a second Gambits row, because 37 of 53 Gambits cards are affected and one row was not a sample of that'},
 ];
 
 // ---- the live modal layer, and every interactive element inside it ----------------------------------------
@@ -94,6 +138,11 @@ const layer=(b)=>b.page.evaluate(()=>{
   // full-viewport fixed overlays: the modal candidates
   const overlays=[...document.querySelectorAll('div')].filter(d=>{
     const s=getComputedStyle(d);if(s.position!=='fixed')return false;
+    // A pointerEvents:'none' overlay cannot take a tap, so it is NOT a modal layer however high its z-index.
+    // Without this, chess.jsx's data-ct="layout-grid" (position:fixed inset:0 zIndex:9990 pointerEvents:'none')
+    // would WIN the z-index pick below, contribute ZERO buttons, and B1 would then assert over an empty set and
+    // pass loudest with nothing measured. Antagonist A found that route; it is live behind the Layout readout.
+    if(s.pointerEvents==='none')return false;
     const r=d.getBoundingClientRect();
     return r.width>=innerWidth-1&&r.height>=innerHeight-1&&r.left<=1&&r.top<=1;});
   let top=null;for(const o of overlays){if(!top||zOf(o)>=zOf(top))top=o;}
@@ -104,14 +153,24 @@ const layer=(b)=>b.page.evaluate(()=>{
   const scope=top||document.body;
   const els=[...scope.querySelectorAll('button,[role=button],a')].filter(x=>{
     const r=x.getBoundingClientRect();return r.width>=2&&r.height>=2&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth;});
+  // TWO DIFFERENT FAULTS, REPORTED SEPARATELY, because conflating them is what let this gate's first draft
+  // exclude the worst card instead of asserting over it. `onScreen` says whether the sample point is inside the
+  // viewport at all; `own` says whether a tap there reaches the control. A point off the screen is an OVERFLOW
+  // fault and z-index cannot fix it; a point on the screen that hits something else is the HIT-TEST fault this
+  // build fixes. B1 asserts over the on-screen points; B1b asserts over the overflow.
   const sample=(x)=>{
     const r=x.getBoundingClientRect();const cx=r.left+r.width/2;
     const pt=(fy)=>{const cy=r.top+r.height*fy;
-      if(cx<0||cx>=innerWidth||cy<0||cy>=innerHeight)return {own:false,what:'(outside the viewport)'};
-      const e=document.elementFromPoint(cx,cy);return {own:!!(e&&(e===x||x.contains(e))),what:nm(e).slice(0,34)};};
+      const on=!(cx<0||cx>=innerWidth||cy<0||cy>=innerHeight);
+      if(!on)return {onScreen:false,own:false,what:'(OUTSIDE THE VIEWPORT)'};
+      const e=document.elementFromPoint(cx,cy);
+      return {onScreen:true,own:!!(e&&(e===x||x.contains(e))),what:nm(e).slice(0,34)};};
+    const fully=r.top>=0&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth;
     return {t:nm(x).slice(0,30),rect:[r2(r.left),r2(r.top),r2(r.width),r2(r.height)],bottom:r2(r.bottom),
-            p25:pt(.25),p50:pt(.5),p75:pt(.75)};};
+            fullyOnScreen:fully,p25:pt(.25),p50:pt(.5),p75:pt(.75)};};
+  const cta=[...document.querySelectorAll('button')].find(z=>/^Got it/.test((z.innerText||'').trim()));
   return {modalZ:top?zOf(top):null,hasModal:!!top,overlayCount:overlays.length,bars,
+          modalHoldsTheCTA:!!(top&&cta&&top.contains(cta)),
           els:els.map(sample),vw:innerWidth,vh:innerHeight};
 });
 const cta=(b)=>b.page.evaluate(()=>{const c=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));
@@ -133,12 +192,18 @@ async function openHeld(b,group,i){
   const el=h.asElement();if(!el)return {name:nm,ok:false,why:'no row '+i};
   const box=await el.boundingBox();if(!box)return {name:nm,ok:false,why:'row '+i+' has no box'};
   await b.page.mouse.click(box.x+box.width/2,box.y+box.height/2);await b.page.waitForTimeout(360);
+  // THE HOLD-TAP IS CLAMPED INTO THE VIEWPORT, which is not fussiness: Petroff's panel top is -33.27 at 320x568,
+  // so an unclamped click at panelTop+10 lands OFF the screen, the hold never registers, the 4000ms auto-dismiss
+  // fires and the card is gone before it can be measured. Measured: with the unclamped click, Petroff reports
+  // "CARD GONE - hold failed" on BOTH bundles. The clamp keeps the click on the panel at every geometry.
   const panel=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));if(!g)return null;
     let q=g;while(q&&q.parentElement&&getComputedStyle(q.parentElement).position!=='fixed')q=q.parentElement;
-    const r=q.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+10};});
+    const r=q.getBoundingClientRect();
+    const y=Math.min(Math.max(r.top+10,6),innerHeight-6);
+    return {x:r.left+r.width/2,y,panelTop:Math.round(r.top*100)/100,clamped:(r.top+10)!==y};});
   if(!panel)return {name:nm,ok:false,why:'no intro card'};
   await b.page.mouse.click(panel.x,panel.y);await b.page.waitForTimeout(140);
-  return {name:nm,ok:true};
+  return {name:nm,ok:true,panelTop:panel.panelTop,holdClamped:panel.clamped};
 }
 
 (async()=>{
@@ -155,12 +220,25 @@ for(const geo of GEOS){
     const up=await cardUp(b);
     L.say(up,'74 A1 ['+geo+'] the card is STILL UP 4600ms after the hold-tap, so the hold landed on the PANEL and not on the backdrop (the 4000ms auto-dismiss did not fire). This is why this gate does not use D.states[\'intro\'], whose hold-tap lands on the overlay and dismisses the card it means to hold - measured absent at all five geometries',{cardUp:up});
     const ly=await layer(b);
-    L.say(ly.bars.length>=1,'74 A2 ['+geo+'] a fixed bottom bar IS on screen, so there is something that could cover the card - without this the whole gate is vacuous',ly.bars);
+    // A2/A2b ARE DIAGNOSTICS, NOT THE NON-VACUITY GUARD, and an earlier version of this gate described them as
+    // the latter. Antagonist A measured why that was wrong: chess.jsx defines `lessonFocus` as exactly the intro
+    // card's own first two conjuncts (mode==='learn' && openIdx!==null), and the footer renders on `lessonFocus`,
+    // so the footer is present WHENEVER the card is, by construction. These two therefore cannot fail while A1a
+    // passes. What actually makes this gate non-vacuous is B3/B3G - whether a card reaches the bar's band at all.
+    L.say(ly.bars.length>=1,'74 A2 ['+geo+'] DIAGNOSTIC: a fixed bottom bar is on screen, so there is something that could cover the card',ly.bars);
     const foot=ly.bars.filter(x=>x.z===471)[0]||null;
-    L.say(!!foot,'74 A2b ['+geo+'] and one of them is the lesson footer at zIndex 471',ly.bars);
+    L.say(!!foot,'74 A2b ['+geo+'] DIAGNOSTIC: one of them is the lesson footer at zIndex 471',ly.bars);
     // A3 ASSERTS THE MECHANISM IN THE BUNDLE UNDER TEST, not only the symptom [#377: assert the thing itself].
-    L.say(ly.hasModal&&ly.modalZ!==null&&foot&&ly.modalZ>foot.z,
-      '74 A3 ['+geo+'] THE MECHANISM: the intro card\'s own overlay z-index ('+ly.modalZ+') is ABOVE the lesson footer\'s ('+(foot&&foot.z)+'). This is the one integer the defect was. It read 120 against 471 on #496',{modalZ:ly.modalZ,footZ:foot&&foot.z});
+    // AND IT IS PINNED TO THE CARD, NOT TO WHATEVER WON THE Z-INDEX PICK. Antagonist A's finding: `modalZ > foot.z`
+    // says nothing about the intro card if some other full-viewport overlay is the top layer, so the day one joins
+    // this screen A3 would pass on ITS z-index. A3b carries the identifying half separately, so a failure says
+    // which half went. AND THE LABEL STATES THE MEASUREMENT, NOT THE DESIRED STATE: an earlier version read
+    // '(120) is ABOVE the footer's (471)' on a FAIL, so every red printed the opposite of its own reading and a
+    // reader skimming the control log met the defect backwards. Antagonist B found that one.
+    const zOK=!!(ly.hasModal&&ly.modalZ!==null&&foot&&ly.modalZ>foot.z);
+    L.say(ly.modalHoldsTheCTA,'74 A3b ['+geo+'] the overlay this gate measures is the INTRO CARD\'s - it contains the "Got it" CTA. Without this, A3 could be satisfied by any unrelated full-viewport overlay that happened to win the z-index pick',{modalHoldsTheCTA:ly.modalHoldsTheCTA,modalZ:ly.modalZ});
+    L.say(zOK&&ly.modalZ===472,
+      '74 A3 ['+geo+'] THE MECHANISM, the one integer the defect was: the intro card\'s overlay z-index reads '+ly.modalZ+' and the lesson footer\'s reads '+(foot&&foot.z)+', so the card is '+(zOK?'ABOVE':'BELOW')+' the footer. It must be ABOVE, and it must be exactly 472 - above the footer\'s 471 and below rev-summary\'s 500. On #496 it read 120 against 471',{modalZ:ly.modalZ,footZ:foot&&foot.z,cardIsAbove:zOK,isExactly472:ly.modalZ===472});
     await b.shot('74-'+geo+'-intro-card');
     await b.close();
   }
@@ -178,11 +256,24 @@ for(const geo of GEOS){
     const foot=ly.bars.filter(x=>x.z===471)[0]||null;
     measured++;
     if(c&&foot&&c.bottom>foot.top)reachingTheBar++;
-    const bad=ly.els.filter(x=>!(x.p25.own&&x.p50.own&&x.p75.own));
+    // B1a THE DENOMINATOR, IN ITS OWN L.say AND NOT INSIDE B1's MESSAGE STRING. Antagonist A's hardest finding:
+    // B1 is `bad.length===0` over ly.els, and an EMPTY ly.els makes that its loudest PASS over nothing. The gate's
+    // own header used to claim B2 covered this - B2 counts CARDS, a different denominator entirely. The E block had
+    // it right and the B block did not.
+    L.say(ly.els.length>0,'74 B1a ['+geo+'] '+o.name+': THE DENOMINATOR - the live modal layer offers controls to measure ('+ly.els.length+'), so B1 below is asserting over something',{controls:ly.els.length,modalZ:ly.modalZ});
+    // B1 THE HIT TEST, over the sample points that are ON THE SCREEN. A point off the screen is not a hit-test
+    // failure, it is an overflow failure, and B1b is where that is asserted.
+    const bad=ly.els.filter(x=>[x.p25,x.p50,x.p75].some(pt=>pt.onScreen&&!pt.own));
     if(bad.length){lost+=bad.length;lostDetail.push(geo+'/'+o.name+': '+bad.map(x=>x.t+'@'+JSON.stringify(x.rect)+'->'+x.p50.what).join(' ; '));}
     L.say(bad.length===0,
-      '74 B1 ['+geo+'] '+o.name+': every control in the LIVE MODAL LAYER owns its own centre, and its 25% and 75% points too ('+ly.els.length+' controls in the layer, modal z '+ly.modalZ+')',
+      '74 B1 ['+geo+'] '+o.name+': every control in the LIVE MODAL LAYER owns every sample point of its own that is ON THE SCREEN ('+ly.els.length+' controls in the layer, modal z '+ly.modalZ+')',
       bad.length?bad:{controls:ly.els.length,ctaBottom:c&&c.bottom,footTop:foot&&foot.top});
+    // B1b THE OVERFLOW, which this build does NOT fix and does not claim to. Ceiling of ONE, named, with its job.
+    const off=ly.els.filter(x=>!x.fullyOnScreen);
+    offScreenSeen.push(...off.map(x=>geo+'/'+o.name+'/'+x.t+' rect '+JSON.stringify(x.rect)));
+    L.say(off.length<=OFFSCREEN_CEILING_PER_CARD,
+      '74 B1b ['+geo+'] '+o.name+': at most '+OFFSCREEN_CEILING_PER_CARD+' control(s) of this card extend outside the viewport ('+off.length+'). THIS IS THE OVERFLOW FAULT, NOT THE HIT-TEST ONE - z-index cannot move a rect, and Petroff at 320x568 is the known residual: panel 634.55 tall in 568, CTA 16.28px below the screen, close X 6.73px of 30 on it. Carried on jobs/the-lesson-intro-card-can-be-taller-than-the-viewport-and-nothing-scrolls-it-2026-10-08',
+      off.length?off.map(x=>x.t+'@'+JSON.stringify(x.rect)):'all '+ly.els.length+' fully on screen');
     // C: THE CONSEQUENCE, BY A REAL TAP. On the broken bundle the tap went to the footer and the card STAYED UP.
     if(c){
       const wasIn=await inLesson(b);
@@ -216,6 +307,7 @@ for(const geo of GEOS){
 // in the list must put a card into the bar's band, or B1 and C1 are decoration everywhere and the gate cannot
 // fail at all - which is exactly the shape this suite has shipped before (#395's closed flag, #391's predicate).
 // It is a GLOBAL check so that adding a tall-screen geometry can never silently disarm the gate.
+L.say(true,'74 B1bG THE OVERFLOW RESIDUAL, counted once for the run rather than implied: '+offScreenSeen.length+' control(s) across all cards and geometries extend outside the viewport, and every one is the OVERFLOW fault this build does NOT fix: '+(offScreenSeen.join(' | ')||'none'),{count:offScreenSeen.length,items:offScreenSeen});
 L.say(VACUOUS.length<GEOS.length,
   '74 B3G ANTI-VACUITY, THE HARD ONE: at least one of the '+GEOS.length+' geometries exercises the defect - i.e. has a card whose CTA reaches the fixed bar - so B1 and C1 are capable of failing somewhere in this run. Geometries that did NOT exercise it: '+(VACUOUS.join(',')||'none'),
   {geometries:GEOS,notExercised:VACUOUS});

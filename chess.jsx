@@ -6798,19 +6798,38 @@ export default function App(){
           height, which is a function of the LESSON's own content (the idea block is capped at 40vh, plans at 26vh, and the
           Related-lessons row is present for some lessons only). Lesson row 0, the Italian Game, is NOT affected - its CTA sits
           at y466.20 - so every measurement taken on the first lesson, including this job's own re-check and my first probe,
-          reads clean. Driven over every lesson row of all four groups at 320x568; the count is in TC-R60.
+          reads clean. Driven over every lesson row of all four groups at 320x568: 46 of 170 cards had at least one of three
+          sample points off the CTA, and THE CENTRE ITSELF was lost on 27 of them - both numbers, because the stronger sentence
+          is not supported by the stronger number. The full split and the method are in TC-R60.
+          THIS DOES NOT CLOSE THE CLASS. Petroff (Russian) Defense at 320x568 has a card 634.55px tall in a 568px viewport, so
+          16.28px of its CTA is below the screen and all but 6.73px of its close X is above it, and z-index is paint rather than
+          layout so none of those numbers moves. Its centre IS its own now, which is the fix working; the overflow is a second
+          and different fault, asserted separately by gate 74's B1b and filed as
+          jobs/the-lesson-intro-card-can-be-taller-than-the-viewport-and-nothing-scrolls-it-2026-10-08.
           NOTHING SCROLLED IT BACK: #root scrollHeight == clientHeight == 568, and forcing every scroller to its end left the
           CTA at the same y, so this was unreachable rather than below the fold.
-          WHY RAISING IT RATHER THAN RESERVING THE BAR'S HEIGHT, which is what the ... sheet 100 lines below does (zIndex 470,
-          padding-bottom calc(72px + env(...))): that sheet is bottom-anchored and scrollable, so reserving space costs it
-          nothing, while this card is centre-anchored with capped content, so reserving 61px would cost real room on exactly the
-          short screens where it is already tightest. 472 sits above the footer's 471 and below rev-summary's 500. The backdrop
-          dims the footer while the card is up, which is what a modal scrim is for, and nothing needs the transport controls
-          before the demo has started. Recorded as an amber call BEFORE the edit:
+          WHY RAISING IT RATHER THAN RESERVING THE BAR'S HEIGHT, which is what the lessonMore sheet near the end of this file
+          does (zIndex 470, padding-bottom calc(72px + env(...))): that sheet is bottom-anchored and scrollable, so reserving
+          space costs it nothing, while this card is centre-anchored with capped content, so reserving 61px would cost real room
+          on exactly the short screens where it is already tightest. 472 sits above the footer's 471 and below rev-summary's 500.
+          WHAT RAISING IT ACTUALLY COSTS, AND AN EARLIER VERSION OF THIS COMMENT GOT IT WRONG [R18]. That version said "nothing
+          needs the transport controls before the demo has started". THAT IS FALSE AND BOTH BLIND ANTAGONISTS WOULD HAVE BEEN
+          RIGHT TO STOP ME ON IT - antagonist A did. `selectOpening` fires setDemoPlaying(true) THREE LINES BEFORE it fires
+          setIntroCard(true), and the stepping effect runs on demoPlaying, so THE DEMO IS ALREADY PLAYING BEHIND THE CARD. The
+          proof is in this build's own gate log rather than in a reading: gate 74's A2 payload records the footer's text as
+          "\u23F8 \u2715 Four Knights Game \u22EF", and the \u23F8 glyph is rendered only when demoPlaying is true. So the real cost is that
+          Pause and the \u2715 exit each take one extra tap - dismiss the card first - for as long as the card is up, which is at
+          most the 4000ms auto-dismiss or until any tap. That is a small and defensible price for a CTA that works, and it is
+          the price. Writing "nothing needs them" was the same unmeasured-assertion-as-fact that both of #496's antagonists
+          vetoed #496 for, in the one sentence that carries the trade-off. Recorded as an amber call BEFORE the edit:
           flags/amber-497-three-modals-sit-below-the-fixed-bottom-bars. Gate: gates/regress/74-lesson-card-hit-area.js.
           THE CLASS, counted [R06, R07]: 27 full-viewport fixed overlays exist in this file; 24 are already at 470 or above.
-          The three below both bottom bars were this one (120), the puzzle celebration at :8018 (80) and the promotion picker
-          at :8052 (60). I DROVE THE OTHER TWO RATHER THAN ASSUMING THEM: the picker reads 0 of 4 buttons not-own at 320x568,
+          The three below both bottom bars were this one (120), the puzzle celebration (search pzCelebrate, zIndex 80) and the
+          promotion picker (search setPromo(null), zIndex 60). CITED BY SYMBOL AND NOT BY LINE NUMBER, DELIBERATELY: an earlier
+          version of this comment cited them as ":8018" and ":8052", which were their lines on main - and this very comment block
+          pushed them 27 lines down, so the citations were wrong in the build that wrote them. That is #399's trap (a control
+          recipe naming line numbers that had moved) and #474's rule (cite symbols, not line numbers) recreated in one edit;
+          antagonist A caught it. I DROVE THE OTHER TWO RATHER THAN ASSUMING THEM: the picker reads 0 of 4 buttons not-own at 320x568,
           375x568 and 375x730, because no fixed bottom bar is on screen during a Pass & Play game at all; the celebration I
           could not reach and I say so instead of crediting it. Neither is changed here - an unexercised z-index change is the
           unmeasured branch #496 shipped and had vetoed - and both are carried on
