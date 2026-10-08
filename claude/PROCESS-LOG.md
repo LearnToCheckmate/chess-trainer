@@ -1385,3 +1385,81 @@ The arithmetic in the forged log was kept consistent (`58 present - 1 unlisted +
 3. I did **not** sweep the three sibling audits (`verify-patch-set.sh`, `cited-not-run.sh`, `landed-on-main.sh`) for whether any of them already asks this question. `verify-patch-set.sh` is the cross-payload audit and S3b reads the gate NUMBER space on main, which is adjacent and not the same check; I did not read the other two.
 4. I did **not** test this payload's merge against the other five `claude/PROCESS-LOG.md` payloads parked today, in either order. The record is committed separately from the artefact (`cd8f457` artefact, the record alone) so an append conflict costs this record and not the check, but the split is **declared** safe rather than proved safe.
 5. I did **not** mutate the vacuity guard. Its NOT-CHECKED arm has a firing control and a forged input; it has no mutation.
+## process-build lane 1, run process-build-1__1791376534811, 2026-10-07T12:35Z-13:4xZ
+
+ITEM: jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30, piece (1) of its whatDidNot only.
+ARTEFACTS HELD: gates/regress/46-play.js (never claimed before this run), claude/PROCESS-LOG.md.
+
+WHAT CHANGED. Block 10 of gates/regress/46-play.js - the fool's-mate block - now steps the ply after the
+mate and asserts the chrome there. Until this run NO GATE IN THE SUITE mated a game and then stepped the
+ply, so the ply-keyed half of the `(isOver||playEnd)` predicate had never been the operative half of any
+assertion: everything mates and asserts at the TERMINAL ply, where isOver alone carries the verdict and the
+ply term can be anything at all. The harness could already reach the state - gates/drive/play.js has carried
+the `pp-mate-back` drive state since it was written - and nothing asserted over it.
+
+MEASURED BEFORE ANYTHING WAS WRITTEN, on origin/main's own bundle (app.js md5 431326911ca7, stamp #492),
+with a standalone probe rather than from source [R18, R35]:
+  terminal ply 4 : row Moves,Back,Forward,Review,Rematch,More   card "Checkmate! Black wins"
+  one ply back 3 : row Moves,Back,Forward,Review,Rematch,More   card null
+  forward to 4   : row Moves,Back,Forward,Review,Rematch,More   card "Checkmate! Black wins"
+The two halves of the game-over chrome behave DIFFERENTLY one ply back: the control row is NOT ply-keyed and
+the result card IS. That difference is the whole point of the arm.
+
+GATES RUN, AND THE NUMBERS. gates/regress/46-play.js alone, against main's committed bundle - the gate does
+not change app.js so there is nothing else to run it against. 128 pass / 0 fail before, 142 pass / 0 fail
+after: +14 assertions, 7 at each of the two Pass & Play geometries the block already visits. gates.sh was
+NOT run: it is the whole 58-section suite and this lane's budget is 70 minutes.
+
+THE ONE THING THIS ARM COST, AND IT IS RECORDED RATHER THAN HIDDEN. The first placement put the arm
+mid-block, immediately after the TC-PL-024 Review assertion. That run came back 142 pass / 2 FAIL, and both
+fails were TC-PL-027's extra-child line reading 64 -> 64 at se and at kunal730 - caused by this arm and by
+nothing else: the result card lives for 8 seconds after the mate, TC-PL-027 pins exactly that fade, and a
+~3s Back/Forward detour before it pushes the `kidsWithCard` read past the window. The arm therefore MOVED to
+the end of block 10 rather than TC-PL-027 being loosened to accommodate it. The cost of moving is that the
+card's ply-keying is measured in the comment and NOT asserted, because after the fade there is no card to
+lose; a card arm inside the 8s window needs its own browser on `pp-mate-back`, which is named as the
+remainder on the job.
+
+WHAT I DID NOT CHECK, AND WHAT I DID NOT DO.
+- The full suite. Only gate 46 ran.
+- Pieces (2) and (3) of the job are NOT done and are not mine this run. (2) is the conventions line in
+  claude/stories/TEST-CASES.md: inside the allow-list, but two sibling lanes have parked payloads against
+  that exact file today and R44 is one agent one artefact for the whole run. (3) is the harness composition
+  rule, which lives in gates/lib.js - NOT in the process-build allow-list, which covers gates/regress/,
+  gates/drive/, gates/audit/, gates/pending/ and gates/*.sh and nothing else.
+- Block 11's resign arm, the NON-BOARD ending the same job asks for, still asserts at its terminal ply only.
+- The geometry label. Block 10 runs at `se` and `kunal730`, and R19 settled on 2026-10-03 that Kunal's phone
+  is 375x761 and that kunal730 is the wrong entry. Not corrected here: it is a different job, already open,
+  and changing a geometry key under an assertion whose pins were measured at that geometry would silently
+  move every number in the block.
+
+## process-build lane 1 — run process-build-1__1791441292721 — 2026-10-08T06:34Z
+
+THE CARD ARM ON gates/regress/46-play.js, piece (2) of the whatDidNot on
+jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30.
+
+- CHANGED: `gates/regress/46-play.js` only. A second launch at the end of block 10 (`play-over-card-<geo>`)
+  that runs `pp-mate` then Back then Forward with NO 8s settle anywhere in it, so every reading is taken
+  inside the result card's fade window. +12 assertions, 6 at each of `se` and `kunal730`.
+- WHY: the Back arm added on 2026-10-07 steps the ply only AFTER `await b.settle(8000)`, and its own note
+  line says the card reading there "is about the fade and NOT evidence either way about ply-keying". The two
+  causes of an absent card were indistinguishable in this suite. They are not now.
+- MEASURED, on origin/main's own committed bundle (app.js md5 01387f706cea, stamp `#496 - 2026-10-07 20:07
+  ET`), identical at both geometries: T+0 ply 4 / card "Checkmate! Black wins" / 65 board-grid children;
+  T+~570ms ply 3 / card null / 64; T+~1140ms ply 4 / card up / 65.
+- GATE RUN: `node gates/regress/46-play.js` against that bundle. 142 pass / 0 fail before, 154 pass / 0 fail
+  after. Run twice (the 142 baseline and the 154 after) with identical figures.
+- NEGATIVE CONTROL: the Back tap replaced by a no-op `settle(400)`. 2 pass / 3 fail, and the three reds are
+  the three that must be (the ply step, the card absence, the grid child count). A5, the round-trip
+  assertion, stays GREEN under that control and cannot see the defect — recorded, because that is why
+  A2–A4 exist as separate lines rather than as one conjunct.
+- NOT CHECKED: the full `gates/gates.sh` suite (58 sections against a 70-minute lane budget); the
+  non-board ending (block 11 resigns at move 0, where Back and Forward are both disabled, so a
+  resign-with-moves drive state is needed and `gates/drive/play.js` has none); the harness rule that would
+  run every game-over assertion at both plies, which lives in `gates/lib.js`, outside this lane's
+  allow-list. The last two stay on the job with reasons.
+- THE PILE WAS AT ITS CEILING, SO NOTHING NEW WAS PARKED. `patches` held exactly 20 documents with a
+  `patch` field and no `integrationResult` at 06:38Z, and prompts/process-build halts this lane above 20.
+  This run therefore UPDATED the existing `patches/proc-lane1-art-gates-regress-46-play-js-2026-10-07`
+  in place and the pile is still 20. Last integration on main: `7aaacb0` (#487), 2026-10-06T20:54Z —
+  nine builds ago.
