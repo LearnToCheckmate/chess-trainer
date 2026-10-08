@@ -814,9 +814,16 @@ async function blockI(geoKey){
 // NEGATIVE CONTROL, MEASURED BOTH DIRECTIONS at both geometries. Control bundle md5 4c7585a3697f, built
 // from this tree by reverting exactly the two edited regions of chess.jsx (the `gl` map and the button's
 // `fontSize/color/{gl[pt]}`), everything else identical:
-//     FIXED   bundle ba84f7327c5d :  22 pass / 0 fail.  J1 4/4 imgs, J2 set equal, J3 text '', J4 white set equal.
-//     CONTROL bundle 4c7585a3697f :  14 pass / 8 fail.  J1 0/4 imgs, J2 not equal, J3 text (the four black glyphs),
-//                                    J4 not equal - the control draws text glyphs for WHITE too.
+//     SHIPPED bundle 01387f706cea :  24 pass / 0 fail.
+//     CONTROL A, the ORIGINAL defect (main's chess.jsx, bundle 4c7585a3697f) : 16 pass / 8 fail - J1, J2, J3 and
+//                J4 at both geometries. J1b PASSES on it, CORRECTLY: the old build's text glyph WAS the button's
+//                accessible name, so that control cannot redden an assertion about a name it still had.
+//     CONTROL C, for J1b alone (the 48c5ffa tree: image drawn, no aria-label, bundle cba731dce809) : 22 pass /
+//                2 fail, the two reds being exactly J1b at both geometries with names ['','','',''].
+//     Block JS carries its own control; see its header. THREE controls, because the three things this build
+//     changed fail in three different places and one bundle cannot exercise all of them.
+//   THE FIGURES ABOVE REPLACE '22 pass / 0 fail' AND '14 pass / 8 fail', WHICH WERE TRUE OF AN EARLIER TREE
+//   [R18]. The count moved from 22 to 24 because J1b was added at both geometries on an upheld veto.
 //   CORRECTED BY ITS OWN AUTHOR BEFORE THE PUSH [R18]: the first draft of this paragraph said the control
 //   reddens "J1, J2, J3" - THREE assertions. It is FOUR, and 8 reds over the two geometries, because J4
 //   reddens on the control as well: the broken bundle draws text glyphs for WHITE too, so "shows the board's
@@ -848,8 +855,12 @@ async function blockI(geoKey){
 //     shape, so it is named rather than implied.
 //   * LANDSCAPE. J runs portrait only, at 375x730 and 320x568. Block H covers the picker's LAYOUT at
 //     730x375 and says nothing about which side's pieces it draws.
-//   * The three other promoting piece types are covered as a SET by J2, but no assertion reads the knight
-//     or bishop individually, so a transposition inside the set that preserved the four members would pass.
+//   * No assertion reads the knight or bishop's identity INDEPENDENTLY of the board's own read of that square:
+//     J2 compares against sprites `pieceAt` took off a8/c8/b8, so a build that corrupted BOTH the picker and the
+//     board identically would still pass. WITHDRAWN FROM THIS LIST BY ANTAGONIST B [R18]: the first draft said
+//     'a transposition inside the set that preserved the four members would pass'. FALSE - J2 is
+//     `JSON.stringify(imgs.srcs)===JSON.stringify([bq,br,bb,bn])`, an ORDERED array compare, so a picker drawing
+//     n,b,r,q reddens it. The gate was understating its own coverage and disagreeing with TC-R51, which had it right.
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 async function blockJ(geo){
   const g=L.GEOS[geo]?L.GEOS[geo].label:geo;
@@ -871,7 +882,11 @@ async function blockJ(geo){
   L.say(/cxb2/.test(rB||''),'J0a ['+g+'] the black pawn reached b2, so a black promotion is one move away',{row:rB});
   await b.move('b2','a1',500);
   const up=await picker(b);
-  L.say(!!up&&up.n===4&&up.enabled===4,'J0b ['+g+'] the picker is open with four enabled buttons',up||'ABSENT');
+  // #496 the SIZE is in the predicate and not merely in the payload. Both antagonists caught the prose
+  // ("the picker opens 4/4 enabled at 52x52") attributing a figure to an assertion that only PRINTED it -
+  // the register-against-executable drift this project keeps paying for. Now it is asserted or it is not said.
+  L.say(!!up&&up.n===4&&up.enabled===4&&up.boxes==='52x52 52x52 52x52 52x52',
+    'J0b ['+g+'] the picker is open with four enabled 52x52 buttons',up||'ABSENT');
 
   const imgs=up?await b.page.evaluate(()=>{
     const ov=[...document.querySelectorAll('div')].find(d=>/^Promote to/.test((d.innerText||'').trim())&&getComputedStyle(d).position==='fixed');
@@ -889,6 +904,20 @@ async function blockJ(geo){
     {matches:!!imgs&&JSON.stringify(imgs.srcs)===JSON.stringify([bq,br,bb,bn]),
      firstIsBlackQueen:!!imgs&&imgs.srcs[0]===bq, firstIsWhiteQueen:!!imgs&&imgs.srcs[0]===wq});
   L.say(!!imgs&&imgs.texts==='','J3 ['+g+'] no picker button carries a text glyph',{texts:imgs?imgs.texts:null});
+  // #496 J1b - UPHELD VETO FROM ANTAGONIST B. Drawing the piece as an <img alt=""> left the four buttons with NO
+  // ACCESSIBLE NAME AT ALL: before this build the text glyph WAS the button's name, so a screen-reader user went
+  // from "Queen, button" to "button, button, button, button". J3 above pins the empty-innerText state, so without
+  // this assertion the suite would have REQUIRED the unlabelled picker and reddened any later build that fixed it.
+  // aria-label is not innerText, so the two do not fight. The house style already labels every icon-only control
+  // in chess.jsx (:5938, :5959, :6020, :6591, :6798, :7053, :7357, :7661); the picker was the exception.
+  const names=await b.page.evaluate(()=>{
+    const ov=[...document.querySelectorAll('div')].find(d=>/^Promote to/.test((d.innerText||'').trim())&&getComputedStyle(d).position==='fixed');
+    if(!ov)return null;
+    return [...ov.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1;})
+      .map(x=>(x.getAttribute('aria-label')||x.getAttribute('title')||(x.innerText||'').trim()||''));
+  });
+  L.say(!!names&&names.length===4&&names.every(n=>n.length>0),
+    'J1b ['+g+'] every picker button has a non-empty accessible name',{names});
   L.say(b.errs.length===0,'J5 ['+g+'] no console errors in the black-promotion block',{errs:b.errs.length});
   await b.shot('496-65-J-black-picker-'+geo);
   await b.close();
@@ -922,6 +951,134 @@ async function blockJ(geo){
   }
 }
 
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+// BLOCK JS - #496. THE SYMBOL PIECE SET, which is the branch that caught this build out.
+//
+// WHY IT EXISTS. My first version of the #496 fix rendered `Piece` into the picker and left the button's
+// face as `rgba(var(--acr),.14)` over the #1f1f30 panel. With `ct_pieceSet='symbol'` - one of five chips in
+// the look sheet, so an ordinary player setting - `_Piece` takes its `useFallback` branch and draws Black's
+// glyph in #1a1a1a, a colour calibrated for a BOARD SQUARE. MEASURED in the browser on that face: ink
+// rgb(26,26,26) on a composited rgb(39,48,71), CONTRAST 1.33:1 against a 3:1 floor. Before the build the
+// same glyph was painted '#fff' there, about 12.5:1. So the fix traded "legible but the wrong colour" for
+// "the right colour and invisible", and the commit, the source comment and USER-STORIES.md all asserted the
+// opposite as fact - "so even the symbol set comes out right" - with nothing having measured it.
+//
+// BOTH BLIND ANTAGONISTS FOUND IT INDEPENDENTLY, from the diff door and from the shipped-surface door, in a
+// run where they could not see each other. That is what the pair is for, and it is why this block exists
+// rather than a line in a NOT CHECKED list: CLAUDE.md's #375 rule says that when a code path is chosen by a
+// `ct_*` override the gate covers EVERY branch or it is not a gate, and ct_pieceSet is exactly such an override.
+//
+// WHAT IT ASSERTS, and the instrument is the composited background rather than the nearest opaque ancestor -
+// the #432 error, where stopping at the first opaque layer returned 4.51 against a true 4.37 and put the
+// threshold between the two readings. This walks every ancestor, compositing each rgba layer in order.
+// It also prints the ink, the effective background and the layer list, so the next reader can see which
+// number to believe instead of taking the ratio on trust.
+//
+// MEASURED BOTH DIRECTIONS at kunal730, and both figures are this block's own output rather than arithmetic:
+//     SHIPPED bundle 01387f706cea (opposite-square face)     8 pass / 0 fail. black 13.84:1, white 4.24:1.
+//     CONTROL bundle e25df6971f4b (the VETOED first version,  7 pass / 1 fail. black 1.33:1 - the single red is
+//             built by reverting ONLY the button's face)      JS1 - while white reads 13.06:1 and JS2 stays GREEN.
+//   THAT ASYMMETRY IS THE DEFECT'S OWN SHAPE and is why JS2 is not redundant: on the accent-tinted face WHITE was
+//   always fine and only BLACK was lost, so a control that reddened both would have been measuring something else.
+//   The composite is visible in the payload - ['rgba(91,155,213,0.14)','rgb(31,31,48)'] -> rgb(39,48,71) - so a
+//   reader can re-derive 1.33 rather than trust it.
+//   AND LOOK AT THE TWO RENDERS, do not only read the ratios: claude/agents/shots/496-RENDER-SYMBOL-VETOED-
+//   firstversion-375x730.png and ...-SYMBOL-SHIPPED-375x730.png. On the vetoed one the glyph's FILL is invisible
+//   and only its 2px white halo is perceptible, so a black piece reads as a faint WHITE outline - wrong colour and
+//   barely there, which is worse than the defect this build set out to fix. On the shipped one it is a solid black
+//   piece on a light square, as in any printed diagram.
+// and the instruments - the symbol set is actually in effect, the picker opens 4/4, the glyphs are Black's -
+// stay green on BOTH, so the red is the contrast assertion and nothing else.
+//
+// ONE GEOMETRY ONLY, kunal730, and that is a deliberate cost decision rather than an oversight: the contrast
+// of an ink on a face has no viewport term - the same two colours composite to the same ratio at 320 as at
+// 375 - so a second geometry would buy repetition, not coverage, and block J already launches four browsers.
+// Stated because #411's rule is that a count with no scope cannot be checked.
+//
+// NOT CHECKED HERE: the other ELEVEN themes. This drives whatever theme the fresh store defaults to, and
+// TH.light/TH.dark differ per theme. The twelve-theme table is computed in the commit message from THEMES
+// (chess.jsx:1571) - black's worst case is 10.52:1 on Dragonstone and white's is 2.86:1 on Candy, the one
+// cell under the floor, where the glyph carries its own '0 0 2px #000' outline. No assertion here covers
+// a non-default theme, and switching themes needs the look sheet.
+//
+// RUN IT AS:  CT_APP=<bundle> CT_B65=JS node gates/regress/65-promotion-after-gameover.js
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+// #496 String.raw IS LOAD-BEARING, and my own first version got it wrong in a way worth recording.
+// This block is a TEMPLATE LITERAL handed to page.evaluate as a string, and in a template literal `\\(` is not
+// an escape - it collapses to a bare `(`. So /rgba?\\(([^)]+)\\)/ arrived in the page as /rgba?(([^)]+))/, where the
+// literal paren had become a CAPTURE GROUP: m[1] came back as '(219, 231, 240' and parseFloat('(219') is NaN,
+// so every ratio was null. It was caught in one run because the assertion PRINTS its own inputs - the payload
+// read effectiveBg 'rgb(NaN,231,240)' - which is this project's own rule from #432 ('make a ratio print its
+// inputs so the next reader can see which of two numbers to believe') earning its keep inside the gate that quotes it.
+const CONTRAST=String.raw`(()=>{
+  const parse=(s)=>{const m=(s||'').match(/rgba?\(([^)]+)\)/);if(!m)return null;const p=m[1].split(',').map(x=>parseFloat(x));return {r:p[0],g:p[1],b:p[2],a:p.length>3?p[3]:1};};
+  const over=(fg,bg)=>({r:fg.r*fg.a+bg.r*(1-fg.a),g:fg.g*fg.a+bg.g*(1-fg.a),b:fg.b*fg.a+bg.b*(1-fg.a),a:1});
+  const lin=(c)=>{c/=255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);};
+  const lum=(c)=>0.2126*lin(c.r)+0.7152*lin(c.g)+0.0722*lin(c.b);
+  const ov=[...document.querySelectorAll('div')].find(d=>/^Promote to/.test((d.innerText||'').trim())&&getComputedStyle(d).position==='fixed');
+  if(!ov)return null;
+  const btns=[...ov.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1;});
+  const b0=btns[0]; if(!b0)return null;
+  const inner=b0.firstElementChild;
+  const layers=[]; let el=b0, eff=null;
+  while(el){const c=parse(getComputedStyle(el).backgroundColor);
+    if(c&&c.a>0){layers.push(getComputedStyle(el).backgroundColor);
+      eff = (eff===null)? c : over(eff,c);
+      if(c.a===1)break;}
+    el=el.parentElement;}
+  if(eff&&eff.a<1)eff=over(eff,{r:255,g:255,b:255,a:1});
+  const ink=parse(getComputedStyle(inner||b0).color);
+  const L1=Math.max(lum(ink),lum(eff)), L2=Math.min(lum(ink),lum(eff));
+  return {n:btns.length, text:btns.map(x=>(x.innerText||'').trim()).join(''),
+          imgs:btns.filter(x=>x.querySelector('img')).length,
+          ink:getComputedStyle(inner||b0).color, effectiveBg:'rgb('+Math.round(eff.r)+','+Math.round(eff.g)+','+Math.round(eff.b)+')',
+          layers, ratio:+(((L1+0.05)/(L2+0.05)).toFixed(2))};
+})()`;
+
+async function blockJS(){
+  const geo='kunal730', g=L.GEOS[geo].label;
+  // BLACK promotes, with the symbol set selected before the app loads.
+  const b=await L.launch({geo,name:'65JS',store:{ct_pieceSet:'symbol'}});await b.open();
+  await P.states['pp-m0'](b);
+  const boardImgs=await b.page.evaluate(()=>{
+    const gg=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));
+    let best=null;for(const e of gg){const r=e.getBoundingClientRect();if(r.width<40)continue;if(!best||r.width>best.w)best={w:r.width,el:e};}
+    return best?best.el.querySelectorAll('img').length:-1;});
+  L.say(boardImgs===0,'JS0a ['+g+'] INSTRUMENT: the SYMBOL set is actually in effect - the board draws no piece images',{boardImgs});
+  for(const [f,t] of [['d2','d4'],['e7','e5'],['c2','c3'],['e5','d4'],['h2','h3'],['d4','c3'],['h3','h4'],['c3','b2'],['h4','h5']])
+    await b.move(f,t,220);
+  await b.move('b2','a1',500);
+  const m=await b.page.evaluate(CONTRAST);
+  L.say(!!m&&m.n===4,'JS0b ['+g+'] INSTRUMENT: the picker opened with four buttons in the symbol set',m||'ABSENT');
+  L.say(!!m&&m.imgs===0&&m.text==='♛♜♝♞',
+    'JS0c ['+g+'] INSTRUMENT: the fallback branch is the one under test - four BLACK glyphs, no images',
+    {imgs:m?m.imgs:null,text:m?m.text:null});
+  L.say(!!m&&m.ratio>=3.0,
+    'JS1 ['+g+'] BLACK\'s symbol glyph clears 3:1 against its own composited button face',
+    {ratio:m?m.ratio:null,ink:m?m.ink:null,effectiveBg:m?m.effectiveBg:null,layers:m?m.layers:null});
+  L.say(b.errs.length===0,'JS3 ['+g+'] no console errors in the symbol black block',{errs:b.errs.length});
+  await b.shot('496-65-JS-symbol-black');
+  await b.close();
+  // WHITE, the over-application control: fixing black must not cost white its legibility.
+  {
+    const c=await L.launch({geo,name:'65JSw',store:{ct_pieceSet:'symbol'}});await c.open();
+    await P.states['pp-m0'](c);
+    for(const [f,t] of [['e2','e4'],['d7','d5'],['e4','d5'],['c7','c6'],['d5','c6'],['a7','a6'],['c6','b7'],['a6','a5']])
+      await c.move(f,t,220);
+    await c.move('b7','a8',500);
+    const w=await c.page.evaluate(CONTRAST);
+    L.say(!!w&&w.n===4&&w.text==='♕♖♗♘',
+      'JS2a ['+g+'] INSTRUMENT: the white promotion opened the picker with four WHITE glyphs',
+      {n:w?w.n:null,text:w?w.text:null});
+    L.say(!!w&&w.ratio>=3.0,
+      'JS2 ['+g+'] CONTROL: WHITE\'s symbol glyph also clears 3:1, so black was not fixed at white\'s expense',
+      {ratio:w?w.ratio:null,ink:w?w.ink:null,effectiveBg:w?w.effectiveBg:null});
+    L.say(c.errs.length===0,'JS3w ['+g+'] no console errors in the symbol white block',{errs:c.errs.length});
+    await c.shot('496-65-JS-symbol-white');
+    await c.close();
+  }
+}
+
 L.run(async()=>{
   const only=(process.env.CT_B65||'').split(',').filter(Boolean);
   const want=(x)=>!only.length||only.includes(x);
@@ -933,4 +1090,5 @@ L.run(async()=>{
   if(want('H'))await blockH();
   if(want('I'))for(const g of ['kunal730','land'])await blockI(g);
   if(want('J'))for(const g of GEOS)await blockJ(g);
+  if(want('JS'))await blockJS();
 },'65-promotion-after-gameover');

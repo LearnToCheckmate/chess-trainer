@@ -493,3 +493,6 @@
 495	built	-	5a098cd24dae	c05de2dace42	2026-10-07T19:57Z	build__1791400795863	build.sh	Bundle built and stamped #495. Recorded by gates/build.sh so the number resolves to an artefact.
 496	minted	-	-	-	2026-10-07T23:33Z	build__1791415213000	minted	Black promotion picker is drawn in Whites pieces: render the board Piece component instead of a hard-coded #fff text glyph (jobs/auditor-433 finding 1)
 496	built	-	ba84f7327c5d	af0ba112dad5	2026-10-07T23:36Z	build__1791415213000	build.sh	Bundle built and stamped #496. Recorded by gates/build.sh so the number resolves to an artefact.
+496	built	-	f3367ba1d30a	775470a78eb5	2026-10-08T00:05Z	build__1791415213000	build.sh	Bundle built and stamped #496. Recorded by gates/build.sh so the number resolves to an artefact.
+496	built	-	26d793e37e27	775470a78eb5	2026-10-08T00:07Z	build__1791415213000	build.sh	Bundle built and stamped #496. Recorded by gates/build.sh so the number resolves to an artefact.
+496	built	-	01387f706cea	67b69dedd77b	2026-10-08T00:07Z	build__1791415213000	build.sh	Bundle built and stamped #496. Recorded by gates/build.sh so the number resolves to an artefact.
