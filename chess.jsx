@@ -6798,7 +6798,7 @@ export default function App(){
           height, which is a function of the LESSON's own content (the idea block is capped at 40vh, plans at 26vh, and the
           Related-lessons row is present for some lessons only). Lesson row 0, the Italian Game, is NOT affected - its CTA sits
           at y466.20 - so every measurement taken on the first lesson, including this job's own re-check and my first probe,
-          reads clean. Driven over every lesson row of all four groups at 320x568; the count is in TC-R52.
+          reads clean. Driven over every lesson row of all four groups at 320x568; the count is in TC-R60.
           NOTHING SCROLLED IT BACK: #root scrollHeight == clientHeight == 568, and forcing every scroller to its end left the
           CTA at the same y, so this was unreachable rather than below the fold.
           WHY RAISING IT RATHER THAN RESERVING THE BAR'S HEIGHT, which is what the ... sheet 100 lines below does (zIndex 470,

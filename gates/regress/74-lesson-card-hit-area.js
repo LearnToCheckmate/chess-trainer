@@ -1,5 +1,5 @@
 'use strict';
-// gates/regress/74-lesson-card-hit-area.js   TC-R52 (US-R39): a MODAL's own controls own their own centres.
+// gates/regress/74-lesson-card-hit-area.js   TC-R60 (US-R50): a MODAL's own controls own their own centres.
 //
 // ARRIVED AT #497 for jobs/the-lesson-cta-centre-hit-tests-to-the-lesson-footer-and-a-tap-closes-the-lesson-at-
 // 568-tall-2026-10-04 (band 16, P0). The job asked for exactly this and said so in its `case` field: "The case
