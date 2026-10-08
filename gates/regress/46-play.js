@@ -26,7 +26,8 @@
 //   7  Hint paints exactly two squares and clears on the next move, without moving the board
 //   8  Flip turns the board and swaps the bars, without moving the board
 //   9  a clock counts down the side to move only, and not before the first move
-//  10  at game over the row becomes Moves Back Forward Review Rematch More, the result card shows then fades,
+//  10  at game over the row becomes Moves Back Forward Review Rematch More, the result card shows, fades at
+//      2600ms and UNMOUNTS at 3300ms (chess.jsx:3333) - there is no "8s fade" and block 11b says why,
 //      Resign leaves the sheet, and the board is the same PINNED size it was mid-game
 //
 // PINNED, NOT SELF-COMPARED. Every size below is the number measured for that geometry, in the spirit of the
@@ -282,7 +283,12 @@ L.run(async()=>{
     L.say(anyFlip===false,geo+': RECORDED, NOT ENDORSED - after the game ends there is no Flip anywhere: not in the row, not in the More sheet. chess.jsx:5319 says "Flip is still in More"; it is not. K-PL-4',{flipAnywhere:anyFlip});
     await shutSheet(b);
 
-    // --- TC-PL-027: the result card fades off the board, and the board is unchanged when it goes.
+    // --- TC-PL-027: the result card leaves the board, and the board is unchanged when it goes. THE 8000 BELOW
+    // IS THIS ARM'S OWN SETTLE AND NOT A PROPERTY OF THE APP [R18]: the fade is 2600ms and the unmount is
+    // 3300ms (chess.jsx:3333), and b.text reads the UNMOUNT. Reading the 8000 as "the fade" is what put an
+    // unfailable 8000ms conjunct on two of block 11b's assertions and cost build #501 its payload. The
+    // assertion's own wording still says "within 8s", which is true, and is left alone on purpose - see the
+    // second L.note in block 11b.
     const kidsWithCard=(await b.board()).kids;
     await b.settle(8000);
     const cardGone=await b.text('[data-ct="result-card"]'),after=await b.metrics(),kidsAfter=(await b.board()).kids;
@@ -326,6 +332,13 @@ L.run(async()=>{
   }
 
   // ══ 11b: THE SAME TWO-PLY COMPOSITION ON A NON-BOARD ENDING. A SECOND LAUNCH, DELIBERATELY. ═════════
+  // RE-CUT 2026-10-08T22:xxZ AFTER BUILD #501's DOUBLE VETO WAS UPHELD IN FULL AND THIS BLOCK WAS REVERTED.
+  // The substance survived the veto - the driver alias is right and the three withdrawn premises are genuinely
+  // stale - and what did not was the part that matters most in a gate: the two headline assertions were
+  // guarded by conjuncts that CANNOT FAIL. Every repair below is one of the five items on
+  // jobs/tc-pl-030s-headline-assertions-are-guarded-by-conjuncts-that-time-the-harness-own-sleep-2026-10-08,
+  // which is antagonist A's own list, and each is marked [FIX n] where it lands.
+  //
   // WHAT THIS CLOSES. jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30 asks for a game-over
   // assertion that MATES (or ends) and then STEPS THE PLY, so that the ply-keyed half of (isOver||playEnd)
   // is the operative half. Block 10 now does that on the BOARD ending (fool's mate) and its own arm says in
@@ -334,42 +347,96 @@ L.run(async()=>{
   //
   // THE PREMISE THE JOB GAVE FOR WHY IT COULD NOT BE DONE IS FALSE AND IS WITHDRAWN HERE [R18]. It reads
   // "a resign-with-moves drive state is needed and gates/drive/play.js has none". MEASURED 2026-10-08T12:41Z
-  // against origin/main's own committed app.js (bundle md5 e60f12585339, stamp "#497 - 2026-10-08 00:32 ET"):
-  // drive/play.js's 'cpu-resigned' composes 'cpu-more' -> 'cpu-4ply', so it has always resigned a FOUR-PLY
-  // game, and it reaches the ending (card "Resigned You lose", row Moves·Back·Forward·Review·Rematch·More).
-  // The state existed; nothing asked for it by name. It is now named 'cpu-resigned-with-moves' there, and
+  // against origin/main's own committed app.js, and RE-MEASURED at 2026-10-08T21:57Z against main's bundle
+  // md5 bd8f31ddbc47 at cd15f28: drive/play.js's 'cpu-resigned' composes 'cpu-more' -> 'cpu-4ply', so it has
+  // always resigned a FOUR-PLY game, and it reaches the ending (card "Resigned You lose", row
+  // Moves·Back·Forward·Review·Rematch·More). The state existed; nothing asked for it by name. It is now named
+  // 'cpu-resigned-with-moves' there. #501's antagonist A went further and measured cpu-resigned-more and
+  // cpu-rematch too, so the withdrawal is correct for all THREE states and not only the one measured here.
   // THE COMMENT AT THE HEAD OF BLOCK 11 ABOVE IS STALE: it says 'cpu-resigned' taps Resign ONCE and so does
   // not reach the state its name claims. That was true when block 11 was authored and was fixed at #387 -
   // the driver plays both taps of the #375 arm today. Corrected by L.note below rather than by deleting the
   // paragraph, because the paragraph records a real failure and only its present tense is wrong.
   //
-  // WHY A SECOND LAUNCH AND NOT MORE ASSERTIONS INSIDE BLOCK 11: block 10's CARD arm was first placed
-  // mid-block and cost TC-PL-027 two FAILs at both geometries, because a ~3s Back/Forward round trip pushed
-  // that block's own card reading past the 8s fade. Measured then, not feared. Block 11 above has no 8s
-  // settle, but it does assert on a card that fades, so this arm gets its own browser and cannot reach it.
+  // [FIX 3] THE TIMER NUMBERS, STATED ONCE AND CORRECTLY, BECAUSE THE FIRST CUT OF THIS BLOCK HAD THEM WRONG.
+  // There is no "8s fade". The card's FADE is 2600ms and its UNMOUNT is 3300ms (chess.jsx:3333), and what
+  // b.text('[data-ct="result-card"]') reads is the UNMOUNT - a faded-but-mounted card still returns its text.
+  // The 8000 in block 10's TC-PL-027 is that arm's own generous SETTLE, not a property of the app, and reading
+  // it as "the fade" is what put an 8000ms conjunct on two assertions whose real round trip is 1.1 seconds.
+  // So every clock below is measured against CARD_UNMOUNT_MS and nothing below mentions 8s.
   //
-  // EVERY NUMBER BELOW WAS MEASURED BEFORE IT WAS PINNED, on main's bundle, at kunal730:
-  //   T+0      plies 4   card "Resigned You lose"   grid kids 65   board 353 @ y=93.8   Forward DEAD
-  //   +565ms   plies 3   card null                  grid kids 64                        Forward LIVE
-  //   +562ms   plies 4   card "Resigned You lose"   grid kids 65
-  // The elapsed figures are MEASURED per run and carried in the payload rather than pinned, and the only
-  // bound asserted on them is the one the app's own fade makes meaningful (< 8000ms). The GRID CHILD COUNT
-  // is a second instrument that is not the result-card selector, so a card reading and a DOM count have to
-  // agree before either is believed - the #389 rule about a cross-check fed by the thing under test.
+  // [FIX 1] AND THE CLOCK IS THE RESIGNATION'S, NOT THE TAP'S. The vetoed cut timed each tap (backMs, fwdMs)
+  // and bounded it under 8000. A tap cannot take 8000ms: tapBtn's own settle floor is 400-600ms, so those two
+  // conjuncts were satisfied by the harness's own sleep and could not fail on any bundle, healthy or broken.
+  // MEASURED on main at 21:57Z, exactly as the veto says: 561ms and 564ms against a budget of 8000.
+  // What ACTUALLY governs whether the card may be read is time since the GAME ENDED, because the unmount is
+  // keyed to that. tRet below is the moment the driver returned; the true ending is EARLIER than tRet by the
+  // driver's own trailing settle, which is the 1100 in gates/drive/play.js's S['cpu-resigned'], so
+  // sinceOver() = (now - tRet) + DRIVE_TAIL_MS is a CONSERVATIVE OVER-ESTIMATE of elapsed-since-ending and
+  // the bound it is tested against is therefore safe in the right direction. The job's fix list proposed a
+  // flat 2000ms; THAT FIGURE IS NOT USED AND THE DISAGREEMENT IS RECORDED RATHER THAN SPLIT [R18, R45]:
+  // 1100 of trailing settle plus a measured 1.13s round trip is already about 2.2s, so a 2000ms budget would
+  // redden this arm on a healthy bundle - the same defect as the 8000 pointed the other way. The budget is
+  // CARD_UNMOUNT_MS less CLOCK_MARGIN_MS, derived from the unmount rather than chosen, and the ACTUAL elapsed
+  // figure is printed on every reading so the next reader can see the headroom instead of trusting it.
+  //
+  // [FIX 4] THE GRID CHILD COUNT IS A CONSISTENCY CHECK, NOT AN INDEPENDENT WITNESS, and the vetoed cut
+  // claimed the #389 cross-check rule for it. It cannot have that rule: block 10's own assertion twenty lines
+  // above (TC-PL-027, "the card is the board grid's one extra child while it is up") establishes that the
+  // extra child IS the card, so the count and the card selector read the same React subtree and agree by
+  // construction. That is still worth asserting - it catches a card that is present in the DOM but detached
+  // from the grid, and a grid that loses a child for some OTHER reason - and it is worth exactly that much.
+  // The #389 citation is removed from here; it is honoured where it belongs, in the eval cross-checks.
+  //
+  // [FIX 5] AND THE FORWARD ARM GETS A PRECONDITION. The vetoed cut's own M1 control had already found that
+  // the Forward reading passes vacuously when the Back step did not happen - a card that never left is a card
+  // that is still there to be "brought back" - and it RECORDED that rather than fixing it. It is now a
+  // separate PASS line of its own, asserted before the Forward verdict is believed, per the project rule that
+  // a missing denominator is reported and never credited.
+  //
+  // [FIX 2] THE STATE NOTHING COVERED: PAST THE UNMOUNT. TC-PL-030 proves the card comes back when the ply
+  // comes back, INSIDE the unmount window. It says nothing about the other side of 3300ms, and that silence
+  // is what a ply-keyed _resultKey would walk through - the #473 regression. TC-PL-031 settles past the
+  // unmount at the live head, asserts the card has gone, then runs the SAME Back/Forward round trip and
+  // asserts it does NOT return. Every figure in it is measured below, not predicted here.
   {
     const geo='kunal730',W=CPU[geo];
+    const CARD_UNMOUNT_MS=3300;   // chess.jsx:3333 - the card UNMOUNTS here. The fade starts at 2600.
+    const DRIVE_TAIL_MS=1100;     // gates/drive/play.js S['cpu-resigned'], the settle after the second tap.
+    const CLOCK_MARGIN_MS=250;    // headroom, so a slow container reddens on the CLOCK line and says why.
+    const CARD_BUDGET_MS=CARD_UNMOUNT_MS-CLOCK_MARGIN_MS;
     const b=await L.launch({geo,name:'play-resign-card',store:{ct_pool:'3'}});await b.open();
     const t0=Date.now();
     await P.states['cpu-resigned-with-moves'](b);
-    const plies0=await plyCount(b),card0=await b.text('[data-ct="result-card"]'),row0=await rowBtns(b);
-    const kids0=(await b.board()).kids,m0=await b.metrics();
+    const tRet=Date.now(),driveMs=tRet-t0;
+    const sinceOver=()=>(Date.now()-tRet)+DRIVE_TAIL_MS;
+    // THE CHEAP READS FIRST AND THE HEAVY ONES AFTER THE ROUND TRIP, deliberately [FIX 1]. The vetoed cut read
+    // the row and the full metrics object BEFORE tapping Back, which put four page round trips inside the
+    // unmount window for no reason. The row and the board geometry are read at the RESTORED head below, which
+    // is the same state, and that is said in the assertions rather than left for a reader to notice.
+    const card0=await b.text('[data-ct="result-card"]'),since0=sinceOver();
+    const plies0=await plyCount(b),kids0=(await b.board()).kids;
+
+    // --- TC-PL-030: ONE PLY BACK AND THE RESULT CARD GOES. The ply-keyed half, on a non-board ending.
+    await P.tapBtn(b,/^Back$/,400);
+    const cardB=await b.text('[data-ct="result-card"]'),sinceB=sinceOver();
+    const pliesB=await plyCount(b),kidsB=(await b.board()).kids,rowB=await rowBtns(b);
+    const backHappened=(cardB===null&&pliesB===plies0-1);
+    // --- and ONE PLY FORWARD BRINGS IT BACK, which is the half a timer can never explain.
+    await P.tapBtn(b,/^Forward$/,400);
+    const cardF=await b.text('[data-ct="result-card"]'),sinceF=sinceOver();
+    const pliesF=await plyCount(b),kidsF=(await b.board()).kids;
+    // the head as restored: the row and the geometry, read after the round trip and asserted as the head.
+    const row0=await rowBtns(b),m0=await b.metrics();
 
     // --- TC-PL-028: the state is the state. A resigned game WITH MOVES, reached by name, not merely armed.
-    L.say(plies0===4&&card0==='Resigned You lose',
+    L.say(plies0===4,
       'the named drive state reaches a RESIGNED game with FOUR plies on the board - so there is a ply to step, which the move-0 ending above does not have',
-      {plies:plies0,card:card0,driveMs:Date.now()-t0});
+      {plies:plies0,driveMs});
+    L.say(card0==='Resigned You lose',
+      'and the ending is REACHED and not merely armed: the result card reads "Resigned You lose" at the live head',{card:card0,msSinceGameOver:since0});
     L.say(row0.length===6&&row0.map(x=>x.t).join(',')===ROW_OVER.join(','),
-      'and it is a real game-over row, the same one a mate gives: '+ROW_OVER.join(' · '),row0.map(x=>x.t).join(','));
+      'and it is a real game-over row, the same one a mate gives: '+ROW_OVER.join(' · ')+' (read at the head as restored by the Forward tap below, which is the same state)',row0.map(x=>x.t).join(','));
     // --- TC-PL-029: the discriminator. Review is LIVE here and DEAD in the move-0 ending asserted above, so
     // that block's empty-state assertion is falsifiable rather than merely true. One field, two endings.
     L.say(row0[3].t==='Review'&&row0[3].dis===false,
@@ -377,29 +444,54 @@ L.run(async()=>{
     L.say(row0[1].dis===false&&row0[2].dis===true,
       'Back is live and Forward is dead at the live head of a resigned game - the head is a head, not a preview',{back:row0[1].dis,forward:row0[2].dis});
 
-    // --- TC-PL-030: ONE PLY BACK AND THE RESULT CARD GOES. The ply-keyed half, on a non-board ending.
-    const tb=Date.now();await P.tapBtn(b,/^Back$/,400);const backMs=Date.now()-tb;
-    const cardB=await b.text('[data-ct="result-card"]'),pliesB=await plyCount(b),kidsB=(await b.board()).kids,rowB=await rowBtns(b);
-    L.say(cardB===null&&pliesB===plies0-1&&backMs<8000,
-      'ONE Back tap takes the resignation card off the board, at one ply back and well inside the 8s fade ('+backMs+'ms) - so the card is keyed to the PREVIEWED PLY and not only to its own timer',
-      {card:cardB,plies:pliesB,ms:backMs});
+    // [FIX 1] THE CLOCK LINE. Its own assertion, not a conjunct, so a slow container reddens HERE and the
+    // message says the reading was late rather than leaving a card verdict to be read as an app regression.
+    L.say(sinceB<CARD_BUDGET_MS&&sinceF<CARD_BUDGET_MS,
+      'BOTH card readings below were taken inside the card\'s own lifetime - '+sinceB+'ms and '+sinceF+'ms since the game ended, against the '+CARD_UNMOUNT_MS+'ms unmount at chess.jsx:3333 less a '+CLOCK_MARGIN_MS+'ms margin. IF THIS LINE IS THE RED ONE, the container was slow and the two card verdicts below say nothing about the app',
+      {msSinceGameOver:{atBack:sinceB,atForward:sinceF},budget:CARD_BUDGET_MS,unmount:CARD_UNMOUNT_MS,driveTail:DRIVE_TAIL_MS,method:'(now - driver return) + the driver\'s own 1100ms trailing settle, so an OVER-estimate'});
+    L.say(cardB===null&&pliesB===plies0-1,
+      'ONE Back tap takes the resignation card off the board, at one ply back - and the clock line above says the card was still inside its own lifetime, so this null is the PREVIEWED PLY and not the unmount timer',
+      {card:cardB,plies:pliesB,msSinceGameOver:sinceB});
     L.say(kidsB===kids0-1,
-      'and a second instrument that is not the card selector agrees: the board grid loses exactly one child ('+kids0+' -> '+kidsB+')',{withCard:kids0,back:kidsB});
+      'and the board grid loses exactly one child with it ('+kids0+' -> '+kidsB+') - a CONSISTENCY check and not an independent witness: TC-PL-027 above establishes that the extra child IS the card, so these two readings share a subtree. What it catches is a card detached from the grid, or a grid losing a child for another reason',{withCard:kids0,back:kidsB});
     L.say(rowB[2].dis===false,'Forward comes alive the moment there is something ahead of the previewed ply',{forward:rowB[2].dis});
 
-    // --- and ONE PLY FORWARD BRINGS IT BACK, which is the half a fade can never explain.
-    const tf=Date.now();await P.tapBtn(b,/^Forward$/,400);const fwdMs=Date.now()-tf;
-    const cardF=await b.text('[data-ct="result-card"]'),pliesF=await plyCount(b),kidsF=(await b.board()).kids,mF=await b.metrics();
-    L.say(cardF==='Resigned You lose'&&pliesF===plies0&&fwdMs<8000,
-      'ONE Forward tap brings the resignation card BACK ('+fwdMs+'ms) - a card that had faded on a timer could not return, so this is the assertion that separates the two explanations',
-      {card:cardF,plies:pliesF,ms:fwdMs});
+    // [FIX 5] the precondition, as its own PASS line, before the Forward verdict is believed.
+    L.say(backHappened,
+      'PRECONDITION for the Forward arm: the Back tap actually removed the card AND moved the ply ('+plies0+' -> '+pliesB+'). Without this, "the card came back" is satisfied by a card that never left - which this arm\'s own M1 control found and recorded rather than fixed',
+      {cardAfterBack:cardB,pliesAfterBack:pliesB,wantPlies:plies0-1});
+    L.say(backHappened&&cardF==='Resigned You lose'&&pliesF===plies0,
+      'ONE Forward tap brings the resignation card BACK at '+sinceF+'ms since the game ended - a card removed by its own timer could not return, so with the precondition and the clock line above this is the assertion that separates the two explanations',
+      {card:cardF,plies:pliesF,msSinceGameOver:sinceF,backHappened});
     L.say(kidsF===kids0,'the grid child count returns to '+kids0+' with it',{back:kidsB,forward:kidsF});
-    L.say(near(mF.board.w,m0.board.w)&&near(mF.board.top,m0.board.top)&&near(mF.board.w,W.bw)&&near(mF.board.top,W.by),
-      'and the board never moved across the whole round trip - still the pinned '+W.bw+' at y='+W.by+', so stepping the ply at game over is not a layout event',{before:m0.board,after:mF.board,want:W});
-    L.note('WITHDRAWN [R18]: the paragraph at the head of block 11 says drive/play.js\'s cpu-resigned "taps Resign ONCE, which only ARMS it on this build" and that cpu-resigned, cpu-resigned-more and cpu-rematch "do not reach the states their names claim". True when block 11 was authored; fixed at #387. Measured on this bundle: the state reaches a resigned four-ply game with the card up, which is what this arm asserts above. The paragraph is kept because the failure it records is real and recurring - only its tense is wrong.');
+    L.say(near(m0.board.w,W.bw)&&near(m0.board.top,W.by),
+      'and the board never moved across the whole round trip - still the pinned '+W.bw+' at y='+W.by+', so stepping the ply at game over is not a layout event',{after:m0.board,want:W});
+
+    // [FIX 2] TC-PL-031: PAST THE UNMOUNT. The state no assertion covered, and the one a ply-keyed
+    // _resultKey walks through. Settle past 3300ms at the LIVE HEAD, then the same round trip.
+    await b.settle((CARD_UNMOUNT_MS-sinceF)+900);
+    const cardU=await b.text('[data-ct="result-card"]'),sinceU=sinceOver(),kidsU=(await b.board()).kids;
+    L.say(sinceU>CARD_UNMOUNT_MS,
+      'PRECONDITION for TC-PL-031: this reading is past the unmount - '+sinceU+'ms since the game ended against '+CARD_UNMOUNT_MS+'ms. If this is the red line, the settle was short and the two verdicts below say nothing',
+      {msSinceGameOver:sinceU,unmount:CARD_UNMOUNT_MS});
+    L.say(cardU===null,
+      'the result card is GONE at the live head once the unmount at chess.jsx:3333 has fired ('+sinceU+'ms) - which is the other end of TC-PL-027\'s "it never sits over the position for good", measured against the real number instead of a generous settle',
+      {card:cardU,msSinceGameOver:sinceU,kids:kidsU});
+    await P.tapBtn(b,/^Back$/,400);
+    const cardUB=await b.text('[data-ct="result-card"]'),pliesUB=await plyCount(b);
+    await P.tapBtn(b,/^Forward$/,400);
+    const cardUF=await b.text('[data-ct="result-card"]'),pliesUF=await plyCount(b);
+    L.say(pliesUB===plies0-1&&pliesUF===plies0,
+      'PRECONDITION for the line below: the post-unmount round trip really stepped the ply and came back ('+plies0+' -> '+pliesUB+' -> '+pliesUF+'). An absent card proves nothing if the taps did nothing',
+      {pliesBack:pliesUB,pliesForward:pliesUF,want:plies0});
+    L.say(cardUB===null&&cardUF===null,
+      'and once it has unmounted, stepping the ply does NOT bring it back - so the card is keyed to the RESULT with a one-shot lifetime and not re-rendered from the previewed ply. THIS IS THE LINE THAT REDDENS IF _resultKey IS MADE PLY-KEYED AGAIN, which is the #473 regression, and it is the state TC-PL-030 alone cannot see',
+      {afterBack:cardUB,afterForward:cardUF,msSinceGameOver:sinceOver()});
+    L.note('WITHDRAWN [R18]: the paragraph at the head of block 11 says drive/play.js\'s cpu-resigned "taps Resign ONCE, which only ARMS it on this build" and that cpu-resigned, cpu-resigned-more and cpu-rematch "do not reach the states their names claim". True when block 11 was authored; fixed at #387. Measured on this bundle for cpu-resigned-with-moves, and by #501\'s antagonist A for cpu-resigned-more and cpu-rematch as well, so the withdrawal covers all three. The paragraph is kept because the failure it records is real and recurring - only its tense is wrong.');
+    L.note('ALSO WITHDRAWN [R18], and it was this block\'s own error rather than somebody else\'s: the first cut of these assertions bounded each TAP under 8000ms and called 8000 "the 8s fade". There is no 8s fade. The fade is 2600ms, the unmount is 3300ms (chess.jsx:3333), b.text reads the unmount, and the 8000 in TC-PL-027 above is that arm\'s own settle. Block 10\'s TC-PL-027 message still says "within 8s": that assertion is TRUE (a 3300ms unmount is within 8s) and is LEFT UNCHANGED on purpose, because re-wording a shipped green assertion is a different job from this one - named here with its line rather than left for the next reader to find.');
     L.note('STILL NOT COVERED, named rather than left to be rediscovered: there is no drive state for the MOVE-0 resignation (block 11 drives that arm by hand, on purpose), and the harness-level rule that would make "end the game, then step the ply" a composition every game-over gate inherits belongs in gates/lib.js, which is outside the process-build allow-list. Both are on jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30.');
     await b.shot('play-resign-card');
-    L.say(b.errs.length===0,'zero app errors across a resignation and a two-ply round trip',b.errs.slice(0,3));
+    L.say(b.errs.length===0,'zero app errors across a resignation and two two-ply round trips',b.errs.slice(0,3));
     await b.close();
   }
 },'PLAY');
