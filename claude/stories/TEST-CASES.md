@@ -737,7 +737,7 @@ Every instrument stays green on all three, so in each case the reds are the asse
 
 **GATE** `gates/regress/74-lesson-card-hit-area.js`. `CT_APP=<bundle> node gates/regress/74-lesson-card-hit-area.js`, and `CT_74_GEOS=se,short375` to restrict the geometry list.
 
-**INPUTS — 4 named lessons x 3 geometries = 12 driven intro cards, plus one demo state.** Geometries `se` (320x568), `short375` (375x568) and `kunal730` (375x730), portrait. Lessons: Openings row 0 (Italian Game), row 4 (Four Knights Game), row 20 (Queen's Gambit) and Gambits row 0 (King's Gambit). **They are driven by index and asserted by NAME** (B0b): if the lesson list is reordered the gate goes red rather than silently measuring another card. **Four and not one, because the defect is per-lesson** — the card is vertically centred so the CTA's y is set by the lesson's own content, and the Italian Game is *clean on the broken bundle*, so a gate that opened only the first lesson would be a coin flip. The four are chosen to include the clean case and the three worst measured.
+**INPUTS — 6 named lessons x 3 geometries = 18 driven intro cards, plus one demo state.** *(This line read "4 named lessons x 3 geometries = 12" until #498 and is WITHDRAWN [R18]: correction 7 below added Petroff (Russian) Defense and Gambits row 10 in the same build that wrote this line, and the INPUTS header was not updated with them. The lesson list in the gate is the authority — it is a named array — and it holds six.)* Geometries `se` (320x568), `short375` (375x568) and `kunal730` (375x730), portrait. Lessons: Openings row 0 (Italian Game), row 4 (Four Knights Game), row 20 (Queen's Gambit) and Gambits row 0 (King's Gambit). **They are driven by index and asserted by NAME** (B0b): if the lesson list is reordered the gate goes red rather than silently measuring another card. **Four and not one, because the defect is per-lesson** — the card is vertically centred so the CTA's y is set by the lesson's own content, and the Italian Game is *clean on the broken bundle*, so a gate that opened only the first lesson would be a coin flip. The four are chosen to include the clean case and the three worst measured.
 
 **REACHING THE STATE IS ITSELF AN ASSERTION (A1), and this is the part that did not exist before.** The intro card auto-dismisses 4000ms after it opens unless it is touched (`chess.jsx`, search `introHoldRef`). This gate opens the lesson, clicks the card's **PANEL** to hold it, waits **4600ms**, and asserts the card is STILL UP before measuring anything. **It does not use `D.states['intro']`**: that driver state's hold-tap walks up from the CTA to the first fixed-or-absolute ancestor and clicks *that* rect, which is the OVERLAY, whose own `onClick` is `setIntroCard(false)` — so the tap meant to hold the card dismisses it. Measured: after `D.states['intro']` the CTA is ABSENT at all five of 320x568, 375x568, 375x679, 375x730 and 390x844. That is why no existing gate could assert anything about this state, and A1 is the permanent control on it.
 
@@ -802,3 +802,52 @@ Every instrument stays green on all three, so in each case the reds are the asse
 11. **THE B3 NOTE CLAIMED CLEANLINESS AT 375x679, A GEOMETRY THE GATE DOES NOT RUN.** Struck.
 
 12. **THE HOLD-TAP IS CLAMPED INTO THE VIEWPORT.** Petroff's panel top is -33.27, so an unclamped hold at `panelTop+10` lands off the screen, the hold never registers, the 4000ms auto-dismiss fires and the card is gone: measured as `CARD GONE - hold failed` on **both** bundles. The clamp is why Petroff can be asserted over at all, and `openHeld` reports when it clamped.
+
+
+### TC-R62 (US-R50) — a modal dialog's controls are REACHABLE, not merely painted
+
+**ARRIVED AT #498** for the remainder of `jobs/the-lesson-cta-centre-hit-tests-to-the-lesson-footer-and-a-tap-closes-the-lesson-at-568-tall-2026-10-04` (band 16, P0), filed separately as `jobs/the-lesson-intro-card-can-be-taller-than-the-viewport-and-nothing-scrolls-it-2026-10-08`. US-R50 already carried the clause; this is its unmet half. The id was **reserved on the tracker** by that job, not cleared by grep — which is the trap TC-R51's and TC-R60's own notes warn about, because a reserved id lives on the tracker and is invisible to the tree.
+
+**GATE** `gates/regress/74-lesson-card-hit-area.js`, assertions **B1b, B1c (note), B1d, B5, B1bG, B1bG2, C0**. Same file as TC-R60 deliberately: it is the same element, the same six driven lessons and the same hold, and a second gate would re-pay the ~90 seconds of driving to assert a sibling property.
+
+**INPUTS.** Two tiers, and the second is what makes it a class rather than an instance.
+- **The gate: 6 named lessons x 3 geometries = 18 driven intro cards.** `se` (320x568), `short375` (375x568), `kunal730` (375x730).
+- **The class sweep: 170 lesson cards — every row of all four groups — at 320x568, one browser, about 7 minutes.** This is the tier that found the regression described below, and a three-card check would not have.
+
+**PASS CONDITION, and it is a REACHABILITY test and not an overflow test.** Every interactive control of the live modal layer must be **either** fully inside the viewport at rest, **or** brought fully inside it by scrolling an ancestor *a finger can scroll* — computed `overflow-y` of `auto` or `scroll` AND `scrollHeight > clientHeight + 1` — scrolled **for real**, with the control's rect **re-read afterwards** and every `scrollTop` restored. **Never `scrollIntoView`**, which happily scrolls an `overflow:hidden` box and so reports "reachable" on a build with the scroller removed; that is the exact false pass `gates/regress/40-reachability.js` records as its own first version's bug. A control taller than the viewport is reported and not counted as unreachable, so a larger accessibility font cannot manufacture a false red.
+
+**AND THE PASS CONDITION IS NOT `fullyOnScreen`, WHICH IS THE WHOLE REASON THIS CASE EXISTS SEPARATELY FROM TC-R60.** #497's B1b counted controls whose rect is not entirely inside the viewport, with a per-card ceiling of 2 — Petroff's CTA and its close ✕. **Measured on #498's bundle, Petroff STILL has exactly two such controls** (its CTA, and a Related-lessons chip). So that assertion reads `2 <= 2` on both the broken and the fixed bundle and is **incapable of distinguishing unreachable ink from below-the-fold ink**. It was watching the right card and measuring the wrong property. Below the fold inside a scroller is **correct** under US-R50's own words — *"a dialog whose content scrolls satisfies that by scrolling"* — so it is reported by B1c as a NOTE and never as a verdict; a red there would redden a correct tree the first time any lesson's text gains a line.
+
+**THE MECHANISM IS ASSERTED TOO (B1d), not only the symptom.** #498's fix is `maxHeight:'100vh'` + `overflowY:'auto'` on the card's panel, so B1d asserts the panel's own rect is entirely inside the viewport. On main it read **-33.27..601.28, height 634.55 in a 568 viewport**, off *both* ends, because the overlay is `alignItems:'center'`.
+
+**ANTI-VACUITY (B5 per geometry, B1bG2 globally).** B1b and B1d can only fail where a card's content exceeds the viewport. **No card does at 375x730** — the tallest of the six measures 607.5 in 730 — so their green there is a positive control and not evidence, and B5 says so as a NOTE with no PASS emitted. B1bG2 is the hard global guard: at least one card in the run must have its panel **at** the cap and scrolling, so adding a tall geometry can never silently disarm the pair. Measured on #498: `se/Petroff scrollRoom 67` and `short375/Petroff scrollRoom 5`.
+
+**EVIDENCE IT FAILED BEFORE THE FIX — the control is free, because it is the tree this build was cut from.**
+
+```
+git show <#497 sha>:app.js > gates/.trial/mainbundle.js      # md5 e60f12585339
+CT_APP=gates/.trial/mainbundle.js CT_74_GEOS=se node gates/regress/74-lesson-card-hit-area.js
+```
+
+| bundle | geometries | result |
+|---|---|---|
+| `8f25da67c4e3` (#498) | se, short375, kunal730 | **160 pass, 0 fail** |
+| `e60f12585339` (#497, shipped) | se | **53 pass, 4 FAIL** |
+
+All four reds are the overflow half — B1b (2 unreachable, both `scrollers=0`, both `movedBy=0`), B1d (panel does not fit), B1bG (2 over the run), B1bG2 (no card at a cap, because that bundle has no cap) — while **A3, B1, C0 and C1 stay GREEN**, because #497 fixed the hit test and not the overflow. Each control reddens only its own half, which is what says the two assertions measure two different faults rather than one.
+
+**THE CLASS SWEEP, and its numbers are the deliverable [R06].** Predicate per card: hold nothing (the measurement is inside the 4000ms auto-dismiss, so no hold is needed for a rect read), then for every control of the panel compute `restFullyOnScreen` and `REACHABLE` as defined above.
+
+| bundle | cards | unreachable-control cards | below-fold-but-reachable cards | tallest panel in a 568 viewport |
+|---|---|---|---|---|
+| `e60f12585339` (#497) | 170 | **1** — Openings/45 Petroff, 2 controls | 1 | 634.55 (overflows both ends) |
+| `0cc8d3dc196f` (#498, first attempt) | 170 | 0 | **2** — regressed Gambits/50 | 532 |
+| `8f25da67c4e3` (#498, shipped) | 170 | **0** | **1** — Petroff only, as main | 568 (exactly fills it) |
+
+**THE MIDDLE ROW IS THE POINT AND IT IS KEPT DELIBERATELY.** My first cap was `calc(100vh - 36px)`, respecting the overlay's own `padding:18`. It is tighter than the *viewport*, and the defect is about the viewport: it fixed Petroff and moved **Gambits row 50's CTA from 510.94..554.94, fully on screen on main, to 532.86..576.86, below the fold** — a card with nothing wrong with it made worse to fix a broken one, which is #398's rule exactly ("the damage moved to the row nobody was asserting over"). `100vh` binds only where the panel would otherwise leave the screen. **It was caught only by the 170-card tier**; the gate's six lessons do not include Gambits row 50 and went green on both caps.
+
+**C0/C1 CHANGED WITH THE FIX RATHER THAN BEING DELETED**, which is CLAUDE.md's rule for an assertion that pins a position. C1 taps the CTA's own centre for real. On #498 at 320x568 that centre is at y 595.55 in a 568 viewport — below the fold — so the unconditional click tapped nothing and C1 went red on a correct tree (measured: 141 pass / 1 fail). It now **scrolls what a finger can scroll first, re-reads the rect, and taps the new centre**, with C0 asserting separately that the centre is inside the viewport when the tap is made so that a failure says which half went. **C0 tests the CENTRE, not the full rect:** requiring the full rect reddened main, where the centre (562.28) is perfectly tappable while the bottom (584.28) is not, and that both produced a hit-test red from an overflow control and skipped C1 on the one bundle whose hit-test behaviour C1 exists to pin. On #498 Petroff reports `scrollNeeded:true, scrollers:1`, the centre moves to 537.55, and the real tap dismisses the card.
+
+**WHAT IS NOT COVERED, listed because absence is the hardest thing to measure.** The class sweep ran at **320x568 only**; 375x679, 390x844, 430x932 and landscape are not swept, and landscape is the likely worst case because the card is centre-anchored with vh-based inner caps. Larger accessibility font sizes are not measured and are the obvious route from a clean lesson into this population. The other two members of #497's modal class — the puzzle celebration and the promotion picker — are not swept for overflow.
+
+**THE SWEEP PROBE IS NOT COMMITTED, and that is deliberate rather than an omission.** It lived in `gates/.probe/`, which `.gitignore` carries for exactly this. A script under `gates/` that no suite runs is what `jobs/a-test-in-the-repo-that-no-suite-runs-2026-09-28` exists about, and #497 set the same precedent for the same reason. The predicate above is stated in full so the sweep can be re-derived; what is permanent is the gate.

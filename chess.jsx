@@ -6833,9 +6833,59 @@ export default function App(){
           375x568 and 375x730, because no fixed bottom bar is on screen during a Pass & Play game at all; the celebration I
           could not reach and I say so instead of crediting it. Neither is changed here - an unexercised z-index change is the
           unmeasured branch #496 shipped and had vetoed - and both are carried on
-          jobs/two-modals-of-the-497-class-cannot-be-driven-so-their-ordering-is-unexercised-2026-10-08. */}
+          jobs/two-modals-of-the-497-class-cannot-be-driven-so-their-ordering-is-unexercised-2026-10-08.
+          ---- #498. THE RESIDUAL #497 NAMED IS NOW FIXED, AND IT WAS A SECOND AND DIFFERENT FAULT. ----
+          #497 fixed the HIT TEST (z-index, paint). This fixes the OVERFLOW (layout), which z-index could not move and
+          which #497 asserted rather than hid. The panel carries no height cap, and the overlay is display:flex with
+          alignItems:'center' and padding:18, so a panel taller than the viewport overflows SYMMETRICALLY off BOTH ends.
+          MEASURED on #497's own shipped bundle e60f12585339 at 320x568, Openings row 45, Petroff (Russian) Defense,
+          inside the 4000ms auto-dismiss with the hold-tap on the panel - every figure equal to #497's published
+          residual to the hundredth: panel -33.27..601.28 (h 634.55) in a 568 viewport; CTA 540.28..584.28, 16.28px
+          below the screen; close X -23.27..6.73, 6.73px of a 30px button on it.
+          AND THE NUMBER THAT MAKES IT A DEFECT RATHER THAN A COMPLAINT, which #497 did not publish: the count of
+          USER-scrollable ancestors of each control was ZERO, and after actually scrolling every one of them and
+          re-reading the rect both controls moved by 0.00px and both stayed off screen. So this was UNREACHABLE ink,
+          not below-the-fold ink - the distinction CLAUDE.md insists on - measured by gate 40's treatment (computed
+          overflow-y auto|scroll AND room to scroll, scrolled for real, rect re-read, scrollTop restored) and never by
+          scrollIntoView, which says yes on an overflow:hidden box.
+          THE FIX IS TWO PROPERTIES ON THE PANEL: maxHeight:'100vh' and overflowY:'auto'. It is this file's established
+          idiom for a modal panel - the lessonMore sheet below carries maxHeight:'72vh',overflowY:'auto' in the same
+          shape - and `*{box-sizing:border-box}` at :5934 means the cap includes the panel's own padding and border.
+          THE CAP IS 100vh AND NOT calc(100vh - 36px), AND THE FIRST VERSION OF THIS FIX USED THE LATTER [R18,
+          self-caught before the gate ran]. Respecting the overlay's own padding:18 looks like the principled choice
+          and it caps at 532 on a 568 screen, which is TIGHTER THAN THE VIEWPORT. MEASURED over all 170 cards at
+          320x568: that version fixed Petroff and moved Gambits row 50's CTA from 510.94..554.94, fully on screen on
+          main, to 532.86..576.86, below the fold and needing a scroll - a card with nothing wrong with it made
+          worse to fix a card that was broken. That is #398's rule exactly, 'the damage moved to the row nobody was
+          asserting over', and the sweep caught it only because it measures every card rather than the one in the
+          job. 100vh binds only where the panel would otherwise leave the SCREEN, which is the actual defect: a
+          568-tall item in the overlay's 532 content box centres to top 0 / bottom 568, so the 18px padding is
+          cancelled symmetrically for exactly those cards that need the room and for no others.
+          WHAT 100vh COSTS, named: on the tallest cards the panel is flush to the top and bottom of the screen and
+          loses the overlay's 18px gutter. That is the price of not regressing a card that was fine, and it is the
+          cheaper of the two. A KNOWN LIMIT IT SHARES WITH EVERY OTHER vh IN THIS FILE (40vh, 26vh, 72vh): in
+          non-installed iOS Safari 100vh can exceed the visible viewport. R19 records that Kunal opens from the Home
+          Screen icon, where it does not. `dvh` would be exact and is deliberately NOT used: if it were ever
+          unsupported the declaration is dropped silently and the cap - and the defect's fix - goes with it.
+          THE CAP BINDS ONLY WHERE THE CARD WOULD OVERFLOW. At 375x730 - Kunal's phone - the panel measures 607.5 in a
+          730 viewport and is untouched by this change, and the same is true of 169 of the 170 cards. US-R50 sanctions
+          this remedy in terms: a dialog MAY be taller than the viewport provided its controls are reachable, and one
+          whose content scrolls satisfies that by scrolling.
+          THE TWO OPTIONS NOT TAKEN, REJECTED ON MEASUREMENT RATHER THAN ON TASTE, because the filed job offered three
+          and called them interchangeable [the #416 rule: a flag's proposed fix is a hypothesis, not a prescription].
+          (a) Make the OVERLAY the scroller: its measured scrollRoom is 33px, but the panel also overflows ~33px ABOVE
+          the origin and scrollHeight cannot express content above the top, so this reaches the CTA and can NEVER reach
+          the close X unless alignItems also flips to 'flex-start' - which re-positions all 170 cards on every screen to
+          fix one card at one geometry. (b) Tighten the inner 40vh/26vh caps: measured on Petroff the idea block is
+          216.88 against a 227.2 cap (NOT at its cap) and the plans block 147.67 against 147.68 (AT its cap, already
+          scrolling 97px), so the overflow is not one greedy block and tightening shrinks the reading space of all 170
+          cards to fix one. (c) Dropping the Related-lessons row removes a capability, which is RED and not this lane's.
+          WHAT IT COSTS, STATED: on Petroff at 320x568 the CTA is now BELOW the panel's visible bottom and is reached by
+          scrolling the card. That is reachable and it is not the same as on-screen-at-rest. A card whose CTA is pinned
+          always-visible below a scrolling content area would be better and is a structural DESIGN change to a shared
+          overlay, so it is nominated for Kunal and not taken here. Amber record: flags/amber-498-intro-card-panel-caps-and-scrolls. */}
       {mode==='learn'&&openIdx!==null&&introCard&&(<div onClick={()=>setIntroCard(false)} style={{position:'fixed',inset:0,zIndex:472,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',padding:18}}>
-        <div onClick={e=>{e.stopPropagation();introHoldRef.current=true;}} style={{maxWidth:380,width:'92%',background:'linear-gradient(150deg,#1b1d24,#101116)',border:'1px solid rgba(var(--acr),.5)',borderRadius:16,padding:'18px 18px 16px',boxShadow:'0 20px 60px rgba(0,0,0,.6)',position:'relative'}}>
+        <div onClick={e=>{e.stopPropagation();introHoldRef.current=true;}} style={{maxWidth:380,width:'92%',background:'linear-gradient(150deg,#1b1d24,#101116)',border:'1px solid rgba(var(--acr),.5)',borderRadius:16,padding:'18px 18px 16px',boxShadow:'0 20px 60px rgba(0,0,0,.6)',position:'relative',maxHeight:'100vh',overflowY:'auto'}}>
           {learnLabel&&<div style={{fontSize:'clamp(15px,4vw,20px)',fontWeight:800,color:'var(--ac2)',marginBottom:8,paddingRight:30}}>{learnLabel}</div>}
           <div style={{fontSize:'clamp(14px,3.2vw,16px)',color:'rgba(255,255,255,.9)',lineHeight:1.55,maxHeight:'40vh',overflowY:'auto'}}>{learnIdea||LIB[openIdx].idea}</div>
           {(learnPlans||LIB[openIdx].plans)&&(<div style={{fontSize:'clamp(14px,3vw,15px)',color:'rgba(255,255,255,.7)',lineHeight:1.5,marginTop:13,paddingTop:13,borderTop:'1px solid rgba(255,255,255,.13)',maxHeight:'26vh',overflowY:'auto'}}>{learnPlans||LIB[openIdx].plans}</div>)}

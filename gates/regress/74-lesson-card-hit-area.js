@@ -44,7 +44,7 @@
 //   out while the header and the gate-manifest row both asserted it was in - naming the excluded card in the same
 //   sentence. It is in the set now, and what makes it worst is a fault this build does NOT fix. See THE RESIDUAL.
 //
-// ── THE RESIDUAL. THIS BUILD DOES NOT CLOSE THE CLASS, AND THE CARD IT DOES NOT CLOSE IS IN THE SET ───────
+// ── THE RESIDUAL #497 NAMED. CLOSED AT #498 - READ THE #498 SECTION BELOW BEFORE THIS ONE ────────────────
 // Petroff (Russian) Defense, Openings row 45, at 320x568. MEASURED on BOTH bundles, inside the card's 4000ms
 // auto-dismiss window so no hold is needed:
 //     panel    -33.27 .. 601.28   (h 634.55) in a 568-tall viewport - off BOTH ends by about 33px
@@ -62,6 +62,38 @@
 // panel top is OFF SCREEN, so a hold-tap at panelTop+10 lands outside the viewport, the hold never registers and
 // the card is gone before it can be measured - 'CARD GONE - hold failed' on BOTH bundles. openHeld therefore
 // CLAMPS the hold point into the viewport, and reports when it clamped.
+//   [#498: ON THIS BUNDLE PETROFF NO LONGER CLAMPS - measured holdClamped=false where main reads true, because the
+//   panel top moved from -33.27 to 18. THE CLAMP STAYS ANYWAY. It is cheap, it is the only thing standing between
+//   this gate and a silent 'card gone' on any future card that overflows upward, and removing a guard because the
+//   one case that needed it was fixed is how a guard is lost.]
+//
+// ── #498. THE OVERFLOW HALF IS FIXED, AND THE ASSERTION THAT WAS WATCHING IT COULD NOT SEE ITS OWN FIX ────
+// chess.jsx's intro-card PANEL now carries maxHeight:'calc(100vh - 36px)' and overflowY:'auto'. The 36px is the
+// overlay's own padding:18 top and bottom and `*{box-sizing:border-box}` makes the cap include the panel's padding
+// and border, so at 320x568 the cap is 532 and the overlay's content box is 532 - exact, not approximate.
+// MEASURED, Petroff (Russian) Defense at 320x568, main's bundle e60f12585339 -> #498's 0cc8d3dc196f:
+//     panel     -33.27..601.28  h634.55  maxHeight none  ovf visible  scrollRoom 0
+//            ->      18..550    h532     maxHeight 532px ovf auto     scrollRoom 103      (fits at BOTH ends)
+//     close X   -23.27..  6.73  NOT fully on screen, 0 user-scrollers, moved 0.00  ->  UNREACHABLE
+//            ->      28..58     FULLY ON SCREEN AT REST - a complete 30px button where 6.73px used to show
+//     CTA       540.28..584.28  NOT fully on screen, 0 user-scrollers, moved 0.00  ->  UNREACHABLE
+//            ->  591.55..635.55 below the fold, 1 user-scroller (the panel, room 103), moves -94.00  ->  REACHABLE
+// THE CTA IS REACHED BY SCROLLING AND IS NOT ON SCREEN AT REST, which is stated rather than glossed: US-R50
+// sanctions exactly that ("a dialog whose content scrolls satisfies that by scrolling"), and it is not the same
+// claim as "the button is visible". A card whose CTA is pinned below a scrolling content area would be better and
+// is a structural design change to a shared overlay; it is nominated for Kunal, not taken.
+// CLASS SWEPT [R06], all 170 lesson cards of all four groups at 320x568, one browser:
+//     #498   : 170 measured, 0 with no card, tallest panel 532 (the cap, at Openings/20),
+//              CARDS WITH AN UNREACHABLE CONTROL = 0, below-the-fold-but-reachable = 2 (Openings/45, Gambits/50)
+//     main   : the same sweep over e60f12585339 is this gate's control and is published with its command below.
+// WHY THE OLD ASSERTION WENT: #497's B1b counted controls that are not `fullyOnScreen`, with a ceiling of 2.
+// Petroff still has exactly 2 of those on #498 - the CTA and a Related-lessons chip - so that assertion reads
+// 2 <= 2 on BOTH bundles and is INCAPABLE of distinguishing unreachable ink from below-the-fold ink. It was
+// watching the right card and measuring the wrong property. B1b is now reachability with a ceiling of ZERO, B1c
+// is the below-the-fold diagnostic as a NOTE (never a verdict, or the first lesson to gain a line reds a correct
+// tree), B1d asserts the panel fits, and B5/B1bG2 are the anti-vacuity guards: B1b and B1d can only fail where a
+// card's content exceeds the viewport, which is false at 375x730 for every card, so a run over tall geometries
+// alone must not be able to report them green as though they had been exercised.
 //
 // ── WHY NO EXISTING GATE COULD SEE IT, MEASURED RATHER THAN ASSUMED, AND BOTH HALVES MATTER ───────────────
 // (a) gates/drive/lesson.js's `intro` state could not hold the card. Its hold-tap walked UP from the CTA to
@@ -101,10 +133,27 @@
 // the denominator is non-empty in its own L.say, and B3 asserts the assertion is CAPABLE OF FAILING.
 //
 // ── CONTROL (every assertion below was run both ways) ─────────────────────────────────────────────────────
-// CT_APP=<origin/main's own app.js, md5 01387f706cea>  ->  B1 RED. That is the ideal control: free, and the
-// actual broken build. On it, A3 is red too (the mechanism), B3 stays GREEN (the cards still reach the bar,
+// CT_APP=<the #496 bundle, md5 01387f706cea>  ->  B1 RED. That is the ideal control for the HIT-TEST half: free,
+// and the actual broken build. On it, A3 is red too (the mechanism), B3 stays GREEN (the cards still reach the bar,
 // which is what makes B1 able to fail), and C1 is red on the lessons whose centre is lost.
-// Published with the command, per #411: `CT_APP=gates/.trial/mainbundle.js node gates/regress/74-lesson-card-hit-area.js`
+// AND FOR THE OVERFLOW HALF [#498], the control is #497's own shipped bundle e60f12585339, which is equally free
+// because it is the tree this build was cut from. MEASURED BOTH WAYS rather than asserted:
+//     #498's bundle 8f25da67c4e3, all three geometries : 160 pass, 0 fail
+//     e60f12585339 with CT_74_GEOS=se                  :  53 pass, 4 FAIL
+// and THE FOUR REDS ARE ALL IN THE OVERFLOW BLOCK: B1b (2 unreachable controls, both scrollers=0, both movedBy=0),
+// B1d (panel -33.27..601.28 h634.55 in 568, fits false, maxHeight none, isUserScroller false), B1bG (2 over the
+// run) and B1bG2 (no card at a cap, because on that bundle there is no cap - the anti-vacuity guard correctly
+// says this bundle cannot exercise the cap). A3, B1, C0 and C1 stay GREEN on it, because #497 fixed the hit test
+// and not the overflow. Two bundles, two halves, and each control reddens only its own half - which is what says
+// the two assertions measure two different faults rather than one.
+//   AND THAT SEPARATION COST ONE ITERATION, recorded because the first version did not have it: C0 as first
+//   written required the CTA's FULL RECT on screen, which is red on main (bottom 584.28) even though its CENTRE
+//   (562.28) is tappable - so the overflow control produced a red in the hit-test block AND skipped C1 on the one
+//   bundle whose hit-test behaviour C1 exists to pin. C0 now tests the centre, which is also what US-R50's clause
+//   actually says, and the control went from 5 reds to 4 with C1 restored.
+// Published with the commands, per #411:
+//   git show <sha>:app.js > gates/.trial/mainbundle.js
+//   CT_APP=gates/.trial/mainbundle.js CT_74_GEOS=se node gates/regress/74-lesson-card-hit-area.js
 //
 'use strict';
 const L=require('../lib');
@@ -112,12 +161,23 @@ const L=require('../lib');
 const GEOS=(process.env.CT_74_GEOS||'se,short375,kunal730').split(',');
 // geometries at which no measured card reached the fixed bar, so B1 could not have failed there
 const VACUOUS=[];
-// Controls that extend outside the viewport. THE OVERFLOW FAULT, which this build does not fix: the per-card
-// ceiling is 2 because Petroff at 320x568 has exactly two (its CTA, 16.28px below the screen, and its close X,
-// 23.27px above it). It is a CEILING and not an allow-list so a third cannot appear in silence, and the ids are
-// printed either way. Raising it needs a measurement and a reason, in the commit that raises it.
-const OFFSCREEN_CEILING_PER_CARD=2;
-const offScreenSeen=[];
+// #498 CHANGED WHAT THIS BLOCK ASSERTS, AND THE REASON IS THAT THE OLD TEST COULD NOT SEE ITS OWN FIX.
+// #497 asserted `fullyOnScreen` with a per-card ceiling of 2, Petroff's CTA and close X being the two. MEASURED on
+// #498's bundle 0cc8d3dc196f: Petroff STILL has exactly 2 controls not fully on screen at rest (the CTA, and a
+// Related-lessons chip) - so the old assertion passes at 2 on BOTH bundles and is blind to the difference between
+// ink drawn off the screen with nothing to scroll it and ink below the fold inside a scroller. That is CLAUDE.md's
+// "below the fold is not unreachable" rule, and the ceiling was measuring the wrong one of the two.
+// SO THE HARD ASSERTION IS NOW REACHABILITY, which is what TC-R62's pass condition asks for: a control passes if
+// its rect is fully inside the viewport, OR if scrolling a USER-scrollable ancestor brings it fully inside. The
+// ceiling is therefore ZERO and it is a real assertion rather than an allowance.
+const UNREACHABLE_CEILING_PER_CARD=0;
+const unreachableSeen=[];
+// cards whose panel is actually AT its cap and scrolling, i.e. where B1b and B1d are exercised at all
+const capBoundGlobal=[];
+// Kept as a DIAGNOSTIC and never as a pass/fail: below-the-fold-but-reachable is correct behaviour under US-R50
+// ("a dialog whose content scrolls satisfies that by scrolling"), so a red here would be a red on a correct tree.
+// It is printed every run so a change in the population is visible without being punished.
+const belowFoldSeen=[];
 // NAMED, not positional: an index is meaningless if a lesson is added, and asserting the name is how this gate
 // says "the state I measured is the state I meant" [#385: assert S was actually reached].
 const LESSONS=[
@@ -169,9 +229,51 @@ const layer=(b)=>b.page.evaluate(()=>{
     return {t:nm(x).slice(0,30),rect:[r2(r.left),r2(r.top),r2(r.width),r2(r.height)],bottom:r2(r.bottom),
             fullyOnScreen:fully,p25:pt(.25),p50:pt(.5),p75:pt(.75)};};
   const cta=[...document.querySelectorAll('button')].find(z=>/^Got it/.test((z.innerText||'').trim()));
+  // ---- REACHABILITY [#498]. gate 40 is the reference implementation and its two traps are both live here ----
+  // (a) a USER can only scroll a box whose COMPUTED overflow-y is auto|scroll AND which has room; script is not so
+  //     limited, and scrollIntoView() happily scrolls an overflow:hidden box, which is how gate 40's first version
+  //     reported "reachable" against a build with the scroller removed. So the scrollers are filtered, never asked.
+  // (b) finding SOME scrollable ancestor proves nothing: it must be one that, when scrolled, actually moves THIS
+  //     element on screen. So they are scrolled for real and the rect is RE-READ, then every scrollTop is restored.
+  // Measured at rest FIRST and reachability SECOND, in two passes, so one element's scroll test cannot contaminate
+  // another's resting rect.
+  const userScrollables=(el)=>{const out=[];let p=el.parentElement;
+    while(p&&p!==document.documentElement){const s=getComputedStyle(p);
+      if(/auto|scroll/.test(s.overflowY)&&p.scrollHeight>p.clientHeight+1)out.push(p);
+      p=p.parentElement;}
+    return out;};
+  const reach=(el,rest)=>{
+    if(rest.fullyOnScreen)return {reachable:true,byScrolling:false,scrollers:userScrollables(el).length,movedBy:0};
+    const r0=el.getBoundingClientRect();
+    // A control TALLER than the viewport can never be fully inside it; that is a different fault and is reported
+    // rather than counted as unreachable, so an accessibility font size cannot manufacture a false red here.
+    if(r0.height>innerHeight||r0.width>innerWidth)return {reachable:true,tallerThanScreen:true,scrollers:userScrollables(el).length,movedBy:0};
+    const scs=userScrollables(el);const saved=scs.map(q=>q.scrollTop);
+    for(let i=scs.length-1;i>=0;i--){const q=scs[i];
+      const qr=q.getBoundingClientRect(),er=el.getBoundingClientRect();
+      const d=(er.bottom>qr.bottom)?((er.bottom-qr.bottom)+8):((er.top<qr.top)?((er.top-qr.top)-8):0);
+      q.scrollTop=Math.max(0,Math.min(q.scrollHeight-q.clientHeight,q.scrollTop+d));}
+    const r1=el.getBoundingClientRect();
+    const ok=r1.top>=0&&r1.bottom<=innerHeight&&r1.left>=0&&r1.right<=innerWidth;
+    scs.forEach((q,i)=>{q.scrollTop=saved[i];});
+    return {reachable:ok,byScrolling:ok,scrollers:scs.length,movedBy:r2(r1.top-r0.top),
+            afterTop:r2(r1.top),afterBottom:r2(r1.bottom)};
+  };
+  const rested=els.map(sample);
+  els.forEach((el,i)=>{Object.assign(rested[i],reach(el,rested[i]));});
+  // THE PANEL, which is the element this build's fix is ON. Asserted directly rather than only through its
+  // children: the mechanism is a height cap, so the thing to measure is whether the panel fits [#377].
+  let panel=null;if(cta){panel=cta;while(panel&&panel.parentElement&&getComputedStyle(panel.parentElement).position!=='fixed')panel=panel.parentElement;}
+  const pr=panel?panel.getBoundingClientRect():null;
+  const ps=panel?getComputedStyle(panel):null;
   return {modalZ:top?zOf(top):null,hasModal:!!top,overlayCount:overlays.length,bars,
           modalHoldsTheCTA:!!(top&&cta&&top.contains(cta)),
-          els:els.map(sample),vw:innerWidth,vh:innerHeight};
+          panel:panel?{top:r2(pr.top),bottom:r2(pr.bottom),h:r2(pr.height),
+                       fits:pr.top>=-0.5&&pr.bottom<=innerHeight+0.5,
+                       maxHeight:ps.maxHeight,overflowY:ps.overflowY,
+                       scrollRoom:panel.scrollHeight-panel.clientHeight,
+                       isUserScroller:/auto|scroll/.test(ps.overflowY)}:null,
+          els:rested,vw:innerWidth,vh:innerHeight};
 });
 const cta=(b)=>b.page.evaluate(()=>{const c=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));
   if(!c)return null;const r=c.getBoundingClientRect();
@@ -243,7 +345,7 @@ for(const geo of GEOS){
     await b.close();
   }
   // ── B and C: the headline over a RANGE of lessons, and the consequence by a real tap ────────────────────
-  let measured=0,lost=0,reachingTheBar=0;const lostDetail=[];
+  let measured=0,lost=0,reachingTheBar=0,capBound=0;const lostDetail=[];
   for(const ls of LESSONS){
     const b=await L.launch({geo,name:'74B-'+geo+'-'+ls.group+ls.row});await b.open();
     const o=await openHeld(b,ls.group,ls.row);
@@ -268,20 +370,79 @@ for(const geo of GEOS){
     L.say(bad.length===0,
       '74 B1 ['+geo+'] '+o.name+': every control in the LIVE MODAL LAYER owns every sample point of its own that is ON THE SCREEN ('+ly.els.length+' controls in the layer, modal z '+ly.modalZ+')',
       bad.length?bad:{controls:ly.els.length,ctaBottom:c&&c.bottom,footTop:foot&&foot.top});
-    // B1b THE OVERFLOW, which this build does NOT fix and does not claim to. Ceiling of ONE, named, with its job.
-    const off=ly.els.filter(x=>!x.fullyOnScreen);
-    offScreenSeen.push(...off.map(x=>geo+'/'+o.name+'/'+x.t+' rect '+JSON.stringify(x.rect)));
-    L.say(off.length<=OFFSCREEN_CEILING_PER_CARD,
-      '74 B1b ['+geo+'] '+o.name+': at most '+OFFSCREEN_CEILING_PER_CARD+' control(s) of this card extend outside the viewport ('+off.length+'). THIS IS THE OVERFLOW FAULT, NOT THE HIT-TEST ONE - z-index cannot move a rect, and Petroff at 320x568 is the known residual: panel 634.55 tall in 568, CTA 16.28px below the screen, close X 6.73px of 30 on it. Carried on jobs/the-lesson-intro-card-can-be-taller-than-the-viewport-and-nothing-scrolls-it-2026-10-08',
-      off.length?off.map(x=>x.t+'@'+JSON.stringify(x.rect)):'all '+ly.els.length+' fully on screen');
+    // B1b THE OVERFLOW FAULT, WHICH #498 FIXES. The question is REACHABILITY, not whether a rect is fully inside
+    // the viewport: a control below the fold inside a scroller is correct under US-R50, a control that no
+    // user-scrollable ancestor can bring on screen is the defect. Ceiling ZERO, a real assertion.
+    const unreach=ly.els.filter(x=>!x.reachable);
+    const below=ly.els.filter(x=>!x.fullyOnScreen&&x.reachable);
+    unreachableSeen.push(...unreach.map(x=>geo+'/'+o.name+'/'+x.t+' rect '+JSON.stringify(x.rect)+' scrollers='+x.scrollers));
+    belowFoldSeen.push(...below.map(x=>geo+'/'+o.name+'/'+x.t+' rect '+JSON.stringify(x.rect)+' movedBy='+x.movedBy));
+    L.say(unreach.length<=UNREACHABLE_CEILING_PER_CARD,
+      '74 B1b ['+geo+'] '+o.name+': ZERO controls of this card are UNREACHABLE ('+unreach.length+') - every one is either fully inside the viewport or is brought fully inside by scrolling a USER-scrollable ancestor, measured by actually scrolling it and re-reading the rect, never by scrollIntoView. On main\'s bundle Petroff at 320x568 had TWO with scrollers=0 that moved 0.00px: CTA 540.28..584.28 and close X -23.27..6.73',
+      unreach.length?unreach.map(x=>x.t+'@'+JSON.stringify(x.rect)+' scrollers='+x.scrollers+' movedBy='+x.movedBy):'all '+ly.els.length+' reachable');
+    // B1c IS A NOTE AND NEVER A PASS OR A FAIL. Below-the-fold-but-reachable is the sanctioned outcome of this
+    // build's own fix, so asserting a count here would red a correct tree the first time a lesson gains a line.
+    if(below.length)L.note('74 B1c ['+geo+'] '+o.name+': DIAGNOSTIC, not a verdict - '+below.length+' control(s) sit below the fold and are reached by scrolling the card: '+below.map(x=>x.t+' rest '+JSON.stringify(x.rect)+' -> moved '+x.movedBy).join(' ; '));
+    // B1d THE MECHANISM ITSELF, in the bundle under test [#377: assert the thing, not only its symptom]. #498's fix
+    // is a height cap on the panel, so the measurement is whether the panel fits the viewport at BOTH ends. On
+    // main Petroff read -33.27..601.28 (h 634.55) in a 568 viewport - off both ends, because the overlay is
+    // alignItems:'center'. A1/B0c already prove the card is up, so ly.panel cannot be null here.
+    L.say(!!(ly.panel&&ly.panel.fits),
+      '74 B1d ['+geo+'] '+o.name+': the card PANEL is entirely inside the viewport ('+(ly.panel?ly.panel.top+'..'+ly.panel.bottom+' h'+ly.panel.h+' in '+ly.vh:'NO PANEL')+'). This is the overflow mechanism: on main the panel carried maxHeight none and overflowed symmetrically off both ends',ly.panel||{panel:null});
+    if(ly.panel&&ly.panel.scrollRoom>0){capBound++;capBoundGlobal.push(geo+'/'+o.name+' scrollRoom '+ly.panel.scrollRoom+' maxHeight '+ly.panel.maxHeight);}
     // C: THE CONSEQUENCE, BY A REAL TAP. On the broken bundle the tap went to the footer and the card STAYED UP.
+    // #498: THE TAP NOW SCROLLS FIRST WHERE A FINGER WOULD HAVE TO, AND THAT IS A STRENGTHENING RATHER THAN A
+    // WEAKENING. Why it had to change: #498 caps the panel at 100vh, so on Petroff at 320x568 the CTA sits at
+    // 573.55..617.55 - below the fold, inside the card's own scroller - and its centre y is 595.55, OUTSIDE a 568
+    // viewport. The old C1 clicked that coordinate unconditionally, so it tapped nothing and reported
+    // cardUpAfter:true: A RED ON A CORRECT TREE, measured here before the push (141 pass / 1 fail). The defect it
+    // was written for is "the tap reaches the wrong control"; it must not also fire on "the control is one scroll
+    // away", which US-R50 permits in terms. So the finger does what a finger does - scroll the card, then tap -
+    // and the assertion is unchanged: a real tap at the CTA's OWN CENTRE must dismiss the card.
+    // IT IS STILL A REAL ASSERTION ON BOTH BUNDLES, which is the thing to check before changing a control:
+    // on main there is NO user-scrollable ancestor, so scrollNeeded comes back false, the scroll is a no-op, the
+    // centre is at 562.28 (inside 568) and the tap lands exactly as it did before. Nothing about the old
+    // behaviour is excused - C1 went green on #497's bundle for Petroff and still does.
     if(c){
       const wasIn=await inLesson(b);
-      await b.page.mouse.click(c.x,c.y);await b.settle(900);
-      const stillCard=await cardUp(b), stillIn=await inLesson(b);
-      L.say(wasIn&&!stillCard&&stillIn,
-        '74 C1 ['+geo+'] '+o.name+': a REAL TAP at the CTA\'s own centre dismisses the card and leaves the player in the lesson. On #496 this tap reached the footer instead and the card STAYED UP',
-        {inLessonBefore:wasIn,cardUpAfter:stillCard,inLessonAfter:stillIn});
+      // bring the CTA fully on screen by scrolling only what a FINGER can scroll, then RE-READ the rect [gate 40]
+      const scrolled=await b.page.evaluate(()=>{
+        const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));
+        if(!g)return {found:false};
+        const r0=g.getBoundingClientRect();
+        // THE TEST IS THE CENTRE, NOT THE WHOLE RECT, and the difference decided an assertion. US-R50's clause is
+        // "reachable at its own centre", and a finger can tap a partly-cut button at its visible centre. An earlier
+        // version of this scroll required the FULL rect on screen; measured against main's bundle that made C0 red
+        // on Petroff (centre 562.28 IS on screen, bottom 584.28 is not), which SKIPPED C1 on the one bundle where
+        // C1's own defect lives and cost the control an assertion #497 had. It also broke this gate's claim that
+        // each half reddens only its own half: the overflow control was producing a red in the hit-test block.
+        const cy=r0.top+r0.height/2, cx=r0.left+r0.width/2;
+        if(cy>=0&&cy<innerHeight&&cx>=0&&cx<innerWidth)return {found:true,scrollNeeded:false,scrollers:0};
+        const scs=[];let q=g.parentElement;
+        while(q&&q!==document.documentElement){const st=getComputedStyle(q);
+          if(/auto|scroll/.test(st.overflowY)&&q.scrollHeight>q.clientHeight+1)scs.push(q);
+          q=q.parentElement;}
+        for(let i=scs.length-1;i>=0;i--){const z=scs[i];
+          const zr=z.getBoundingClientRect(),er=g.getBoundingClientRect();
+          const d=(er.bottom>zr.bottom)?((er.bottom-zr.bottom)+8):((er.top<zr.top)?((er.top-zr.top)-8):0);
+          z.scrollTop=Math.max(0,Math.min(z.scrollHeight-z.clientHeight,z.scrollTop+d));}
+        return {found:true,scrollNeeded:true,scrollers:scs.length};});
+      await b.settle(160);
+      const c2=await cta(b);                      // the tap point AFTER the scroll, never the stale one
+      // THE SCROLL MUST HAVE WORKED, asserted separately so a failure says which half went: if the CTA is still
+      // off screen after scrolling everything a finger can scroll, that IS the unreachability defect and C1's own
+      // red below would otherwise be blamed on the tap.
+      // The tap point must be INSIDE the viewport, or page.mouse.click sends the tap nowhere and C1's red would be
+      // an artefact of the harness rather than a fact about the app. Asserted on the CENTRE for the reason above.
+      const onScreen=!!(c2&&c2.y>=0&&c2.y<b.geo.h&&c2.x>=0);
+      L.say(onScreen,'74 C0 ['+geo+'] '+o.name+': the CTA\'s OWN CENTRE is inside the viewport when the tap is made - at rest, or after scrolling only what a finger can scroll ('+JSON.stringify(scrolled)+'). This is the tap point C1 uses; if it is red the centre is unreachable and C1 below says nothing. The rect may still be partly cut, which is B1b\'s and B1d\'s business and not this assertion\'s',{ctaCentreY:c2&&c2.y,ctaRect:c2,scrolled,vh:b.geo.h});
+      if(onScreen){
+        await b.page.mouse.click(c2.x,c2.y);await b.settle(900);
+        const stillCard=await cardUp(b), stillIn=await inLesson(b);
+        L.say(wasIn&&!stillCard&&stillIn,
+          '74 C1 ['+geo+'] '+o.name+': a REAL TAP at the CTA\'s own centre dismisses the card and leaves the player in the lesson. On #496 this tap reached the footer instead and the card STAYED UP'+(scrolled.scrollNeeded?' [the card was scrolled first, as a finger would have to: '+scrolled.scrollers+' finger-scrollable ancestor(s)]':' [no scroll needed]'),
+          {inLessonBefore:wasIn,cardUpAfter:stillCard,inLessonAfter:stillIn,scrolled});
+      }
     }
     await b.close();
   }
@@ -302,12 +463,31 @@ for(const geo of GEOS){
     L.note('74 B3 ['+geo+'] NOT EXERCISED HERE, reported rather than credited: 0 of '+measured+' measured cards reach the fixed bar\'s band at this geometry, so B1\'s green above is a POSITIVE CONTROL (nothing collides) and NOT evidence about the defect. This is expected at 375x730 and 375x679: the defect is a SHORT-SCREEN one and the job that raised it says so. No PASS is emitted for B3 at this geometry.');
   }
   L.say(lost===0,'74 B4 ['+geo+'] LOST-CONTROL COUNT over the whole named set is ZERO ('+lost+')',lostDetail.length?lostDetail:'none');
+  // B5: ANTI-VACUITY FOR THE OVERFLOW HALF, the same shape as B3 for the hit-test half and for the same reason.
+  // B1b and B1d can only fail where a card's content EXCEEDS the viewport; at 375x730 no card does, so their green
+  // there is a positive control and not evidence. Reported per geometry, never credited as a PASS, and the hard
+  // global assertion is B1bG2 below.
+  if(capBound>=1){
+    L.say(true,'74 B5 ['+geo+'] ANTI-VACUITY (overflow half): '+capBound+' of '+measured+' measured cards have a panel at its height cap and scrolling, so B1b and B1d are capable of failing at this geometry',{capBound,measured});
+  }else{
+    L.note('74 B5 ['+geo+'] NOT EXERCISED HERE, reported rather than credited: 0 of '+measured+' measured cards overflow the viewport at this geometry, so B1b\'s and B1d\'s green above is a POSITIVE CONTROL and NOT evidence about the overflow defect. Expected at 375x730 and 375x679 - the defect is a SHORT-SCREEN one. No PASS is emitted for B5 here.');
+  }
 }
 // B3G: THE ONE HARD ANTI-VACUITY ASSERTION, over the whole run rather than per geometry. At least one geometry
 // in the list must put a card into the bar's band, or B1 and C1 are decoration everywhere and the gate cannot
 // fail at all - which is exactly the shape this suite has shipped before (#395's closed flag, #391's predicate).
 // It is a GLOBAL check so that adding a tall-screen geometry can never silently disarm the gate.
-L.say(true,'74 B1bG THE OVERFLOW RESIDUAL, counted once for the run rather than implied: '+offScreenSeen.length+' control(s) across all cards and geometries extend outside the viewport, and every one is the OVERFLOW fault this build does NOT fix: '+(offScreenSeen.join(' | ')||'none'),{count:offScreenSeen.length,items:offScreenSeen});
+// B1bG IS NOW AN ASSERTION, NOT A TALLY. #497 printed the residual because it did not fix it; #498 fixes it, so the
+// count must be ZERO and a regression must be a red rather than a longer list in a passing line.
+L.say(unreachableSeen.length===0,
+  '74 B1bG THE OVERFLOW FAULT, counted once over the whole run: '+unreachableSeen.length+' control(s) across every card and geometry are UNREACHABLE. It must be zero. #497 shipped with 2 (Petroff\'s CTA and close X at 320x568) and named them as a residual; #498 caps the panel at 100vh with overflow-y:auto, which is what makes them reachable: '+(unreachableSeen.join(' | ')||'none'),
+  {count:unreachableSeen.length,items:unreachableSeen});
+L.note('74 B1bG-note BELOW THE FOLD BUT REACHABLE, the sanctioned outcome of the cap, printed so a change in the population is visible: '+belowFoldSeen.length+' control(s) - '+(belowFoldSeen.join(' | ')||'none'));
+// B1bG2: THE HARD ANTI-VACUITY FOR THE OVERFLOW HALF, global for the same reason B3G is global - adding a tall
+// geometry must never be able to silently disarm B1b and B1d.
+L.say(capBoundGlobal.length>=1,
+  '74 B1bG2 ANTI-VACUITY, THE HARD ONE FOR THE OVERFLOW HALF: at least one card in this run has its panel AT the height cap and scrolling, so B1b and B1d are capable of failing somewhere. Without this, a run over tall geometries only would report B1b/B1d green over cards that never overflow: '+(capBoundGlobal.join(' | ')||'NONE'),
+  {count:capBoundGlobal.length,items:capBoundGlobal});
 L.say(VACUOUS.length<GEOS.length,
   '74 B3G ANTI-VACUITY, THE HARD ONE: at least one of the '+GEOS.length+' geometries exercises the defect - i.e. has a card whose CTA reaches the fixed bar - so B1 and C1 are capable of failing somewhere in this run. Geometries that did NOT exercise it: '+(VACUOUS.join(',')||'none'),
   {geometries:GEOS,notExercised:VACUOUS});

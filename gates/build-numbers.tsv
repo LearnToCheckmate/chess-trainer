@@ -500,3 +500,6 @@
 497	built	-	1147cf982542	0be90832dad5	2026-10-08T03:49Z	build__1791429638000	build.sh	Bundle built and stamped #497. Recorded by gates/build.sh so the number resolves to an artefact.
 497	built	-	fd1011605685	9b1ac825df07	2026-10-08T04:15Z	build__1791429638000	build.sh	Bundle built and stamped #497. Recorded by gates/build.sh so the number resolves to an artefact.
 497	built	-	e60f12585339	be71ee34ee76	2026-10-08T04:32Z	build__1791429638000	build.sh	Bundle built and stamped #497. Recorded by gates/build.sh so the number resolves to an artefact.
+498	minted	-	-	-	2026-10-08T07:32Z	build__1791444090062	minted	the lesson intro card panel can be taller than the viewport with nothing to scroll it: cap the panel and let it scroll, closing the remainder of band-16 job the-lesson-cta-centre-hit-tests-...-2026-10-04
+498	built	-	0cc8d3dc196f	5d7ef1c9a51e	2026-10-08T07:34Z	build__1791444090062	build.sh	Bundle built and stamped #498. Recorded by gates/build.sh so the number resolves to an artefact.
+498	built	-	8f25da67c4e3	ebfacdeead69	2026-10-08T07:43Z	build__1791444090062	build.sh	Bundle built and stamped #498. Recorded by gates/build.sh so the number resolves to an artefact.
