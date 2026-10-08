@@ -30,6 +30,9 @@
 //   cpu-more              the More sheet open at 4 plies
 //   cpu-resigned          More -> Resign: game over by resignation
 //   cpu-resigned-more     the More sheet open after the resignation
+//   cpu-resigned-with-moves  the SAME ending, asked for by name: a FOUR-PLY game resigned (see the note at
+//                         the state - 'cpu-resigned' has always had moves on the board, and a gate that wants
+//                         a non-board ending with a ply to step should ask for this rather than compose it)
 //   cpu-rematch           Rematch from the resigned game (a fresh game, move 0)
 //   cpu-black             vs Pip as Black: the engine has moved first, board flipped
 //   cpu-clock-m0          vs Pip, 1 min clock, move 0 (the clock pills are in the bars)
@@ -133,6 +136,31 @@ S['cpu-more']=async(b)=>{await S['cpu-4ply'](b);await tapBtn(b,/^More$/,500);};
 S['cpu-resigned']=async(b)=>{await S['cpu-more'](b);await tapBtn(b,/^Resign$/,600);await tapBtn(b,/^Tap again to resign$/,1100);};
 S['cpu-resigned-more']=async(b)=>{await S['cpu-resigned'](b);await tapBtn(b,/^More$/,500);};
 S['cpu-rematch']=async(b)=>{await S['cpu-resigned'](b);await tapBtn(b,/^Rematch$/,900);};
+// RESIGN WITH MOVES ON THE BOARD - A NAME FOR THE ENDING, NOT A NEW COMPOSITION, AND THE REASON IS A
+// MEASUREMENT THAT CONTRADICTS TWO COMMENTS IN THIS PROJECT.
+//
+// jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30's remainder asked PROCESS-BUILD for "a
+// resign-with-moves state ... gates/drive/play.js has none", because gates/regress/46-play.js block 11
+// resigns at MOVE 0, where Back and Forward are both disabled and there is no ply to step. THAT PREMISE IS
+// FALSE AND IS WITHDRAWN HERE [R18]: 'cpu-resigned' composes 'cpu-more' -> 'cpu-4ply', so it has ALWAYS
+// resigned a FOUR-PLY game, and since #387 it plays BOTH taps of the #375 arm. The hole was never the
+// state; it was that no gate asked for this ending by name and block 11 drove the arm by hand.
+//
+// MEASURED 2026-10-08T12:41Z, geo kunal730, against origin/main's own committed app.js (bundle md5
+// e60f12585339, stamp "#497 - 2026-10-08 00:32 ET"), by driving this state and reading four instruments:
+//   plies 4 (moves panel) and 4 (the live move row)      - a game with moves in it, not an empty one
+//   result card  "Resigned You lose"                     - the ending is reached, not merely armed
+//   row  Moves Back(live) Forward(dead) Review(LIVE) Rematch More
+//   board 353 wide at y=93.8                             - the CPU pin for this geometry
+// REVIEW IS LIVE HERE AND DEAD IN BLOCK 11's MOVE-0 ENDING, which is what makes that block's empty-state
+// assertion falsifiable rather than merely true: the two endings are now distinguishable by one field.
+//
+// SO THIS IS AN ALIAS AND NOT A COPY, DELIBERATELY. Re-typing the same four taps would be two definitions
+// of one path that can drift apart, which is the fault this file's own 'cpu-resigned' comment records from
+// #387. What the alias buys is that a gate can ask for the ENDING and stop encoding the composition.
+// WHAT IS STILL MISSING, named rather than left to be rediscovered: there is no state for the MOVE-0
+// ending (resign with nothing played). Block 11 drives it by hand and says it does so on purpose.
+S['cpu-resigned-with-moves']=async(b)=>{await S['cpu-resigned'](b);};
 S['cpu-black']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Pip\n/,200);await tapBtn(b,/^Black$/,200);await tapStart(b,600);await ensureMovesShown(b);await waitPlies(b,1);await b.settle(500);};
 S['cpu-clock-m0']=async(b)=>{await S['setup-clock'](b);await tapBtn(b,/^Pip\n/,200);await tapStart(b,900);await ensureMovesShown(b);};
 S['cpu-viktor-1e4']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Viktor\n/,200);await tapStart(b,900);await ensureMovesShown(b);await b.move('e2','e4',0);};
@@ -149,4 +177,4 @@ S['pp-captures']=async(b)=>{await S['pp-m0'](b);for(const [f,t] of CAPTURES)awai
 S['k10']=async(b)=>{await b.card('k10',12000);await ensureMovesShown(b);};
 
 module.exports={states:S,tapBtn,tapStart,plies,waitPlies,status,movesShown,ensureMovesShown,scrollers,scrollSheetTop,textRect,btnRects,closeSheet,CAPTURES,
-  notes:'Home -> Play tile opens the New Game sheet (a fixed overlay that scrolls; it remembers the last opponent, colour and clock, so every setup state taps them). Bots are buttons "Pip\\n≈ 500 Elo" in a sideways-scrolling row; ▶ Start game sits below the fold on a 679px-tall phone with Computer selected (tapBtn scrolls it into view). In a live game: moves are piece-tap then target-tap (b.move); the engine reply is awaited by counting plies in data-ct play-moverow (waitPlies); Pass & Play flips the board to the side to move after every ply. The Moves button HIDES the move list (shown on a fresh load) and the hidden state persists across games, so the start states call ensureMovesShown. More opens a bottom sheet (New game, Resign while live); Resign ends the game at once (no confirm) - but the New game row in the More sheet does NOT confirm either, which is a filed defect and not a licence to copy it. SINCE #469 THE PRIMARY BUTTON ON THE SETUP SHEET ARMS WHEN A GAME IS ALREADY ON THE BOARD: the first tap relabels it "Tap again to discard your game and start" and a second tap starts the new game, so USE tapStart() AND NEVER tapBtn(/^\u25b6 Start game$/) FROM A STATE THAT MAY FOLLOW A LIVE GAME. A one-tap driver leaves the sheet UP with the label changed and the next screen never reached - that is what took gate 26 from 364 PASS to 357 PASS / 7 FAIL at #469. The sheet also carries a "Resume your game in progress (N moves played)" row whenever a game is live, Pass & Play or Computer is selected and the game is not over, so the button SET on that sheet differs between those states by design. Game over keeps the live chrome, Hint/Flip become Review/Rematch. Online -> Continue lands on a sign-in screen with no way back except a reload (b.home() handles it).'};
+  notes:'Home -> Play tile opens the New Game sheet (a fixed overlay that scrolls; it remembers the last opponent, colour and clock, so every setup state taps them). Bots are buttons "Pip\\n≈ 500 Elo" in a sideways-scrolling row; ▶ Start game sits below the fold on a 679px-tall phone with Computer selected (tapBtn scrolls it into view). In a live game: moves are piece-tap then target-tap (b.move); the engine reply is awaited by counting plies in data-ct play-moverow (waitPlies); Pass & Play flips the board to the side to move after every ply. The Moves button HIDES the move list (shown on a fresh load) and the hidden state persists across games, so the start states call ensureMovesShown. More opens a bottom sheet (New game, Resign while live). RESIGN IS A TWO-TAP ARM AND THIS SENTENCE USED TO SAY "Resign ends the game at once (no confirm)", which is WITHDRAWN [R18]: #375 made it arm on the first tap and relabel to "Tap again to resign", gates/regress/46-play.js block 11 asserts exactly that and is green on main, and the "cpu-resigned" state here plays both taps - so a reader who believed this line would write a one-tap driver and land on a LIVE game, which is the #387 failure this file already records one state above. The New game row in the More sheet does NOT confirm, which is a filed defect and not a licence to copy it. SINCE #469 THE PRIMARY BUTTON ON THE SETUP SHEET ARMS WHEN A GAME IS ALREADY ON THE BOARD: the first tap relabels it "Tap again to discard your game and start" and a second tap starts the new game, so USE tapStart() AND NEVER tapBtn(/^\u25b6 Start game$/) FROM A STATE THAT MAY FOLLOW A LIVE GAME. A one-tap driver leaves the sheet UP with the label changed and the next screen never reached - that is what took gate 26 from 364 PASS to 357 PASS / 7 FAIL at #469. The sheet also carries a "Resume your game in progress (N moves played)" row whenever a game is live, Pass & Play or Computer is selected and the game is not over, so the button SET on that sheet differs between those states by design. Game over keeps the live chrome, Hint/Flip become Review/Rematch. Online -> Continue lands on a sign-in screen with no way back except a reload (b.home() handles it).'};
