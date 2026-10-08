@@ -7,3 +7,8 @@ gates/.gates-run-*.sh
 # push-gate script is a copy that can silently drift from the one every consumer greps. The established
 # name is the pattern above and #475 should have used it.
 gates/gates.run.sh
+
+# #497: the measurement probes this build used to find a per-lesson defect. Scratch, never committed:
+# a script under gates/ that no suite runs is the thing jobs/a-test-in-the-repo-that-no-suite-runs-2026-09-28
+# exists about. The reproducible commands live in TC-R52 instead, where a reader will look for them.
+gates/.probe/

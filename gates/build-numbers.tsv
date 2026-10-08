@@ -496,3 +496,5 @@
 496	built	-	f3367ba1d30a	775470a78eb5	2026-10-08T00:05Z	build__1791415213000	build.sh	Bundle built and stamped #496. Recorded by gates/build.sh so the number resolves to an artefact.
 496	built	-	26d793e37e27	775470a78eb5	2026-10-08T00:07Z	build__1791415213000	build.sh	Bundle built and stamped #496. Recorded by gates/build.sh so the number resolves to an artefact.
 496	built	-	01387f706cea	67b69dedd77b	2026-10-08T00:07Z	build__1791415213000	build.sh	Bundle built and stamped #496. Recorded by gates/build.sh so the number resolves to an artefact.
+497	minted	-	-	-	2026-10-08T03:35Z	build__1791429638000	minted	the lesson intro cards CTA hit-test class: the cross-app clause and the gate that asserts every interactive elements own centre is its own, for jobs/the-lesson-cta-centre-hit-tests-to-the-lesson-footer-and-a-tap-closes-the-lesson-at-568-tall-2026-10-04
+497	built	-	1147cf982542	0be90832dad5	2026-10-08T03:49Z	build__1791429638000	build.sh	Bundle built and stamped #497. Recorded by gates/build.sh so the number resolves to an artefact.

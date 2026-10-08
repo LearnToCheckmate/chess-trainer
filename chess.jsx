@@ -6788,7 +6788,34 @@ export default function App(){
 
       {(()=>{
         const _blurbs=(<>
-      {mode==='learn'&&openIdx!==null&&introCard&&(<div onClick={()=>setIntroCard(false)} style={{position:'fixed',inset:0,zIndex:120,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',padding:18}}>
+      {/* #497 (jobs/the-lesson-cta-centre-hit-tests-to-the-lesson-footer-and-a-tap-closes-the-lesson-at-568-tall-2026-10-04):
+          zIndex WAS 120, BELOW the lesson footer's 471 (the fixed bar at the bottom of this file), so the footer painted over
+          this modal and won the hit test on whatever part of the card reached its band. MEASURED on the shipped #496 bundle
+          01387f706cea at 320x568: the Four Knights Game card put 'Got it - play' at y487.89..531.89 against a footer top of
+          507, and document.elementFromPoint at the CTA's OWN CENTRE returned the footer bar - at 75% of its height, 'Forward a
+          move'. Queen's Gambit read y495.56..539.56. A real tap at the centre stepped the demo instead of starting it.
+          IT IS PER-LESSON, WHICH IS WHY IT HID: this overlay is alignItems:'center', so the CTA's y is a function of the CARD's
+          height, which is a function of the LESSON's own content (the idea block is capped at 40vh, plans at 26vh, and the
+          Related-lessons row is present for some lessons only). Lesson row 0, the Italian Game, is NOT affected - its CTA sits
+          at y466.20 - so every measurement taken on the first lesson, including this job's own re-check and my first probe,
+          reads clean. Driven over every lesson row of all four groups at 320x568; the count is in TC-R52.
+          NOTHING SCROLLED IT BACK: #root scrollHeight == clientHeight == 568, and forcing every scroller to its end left the
+          CTA at the same y, so this was unreachable rather than below the fold.
+          WHY RAISING IT RATHER THAN RESERVING THE BAR'S HEIGHT, which is what the ... sheet 100 lines below does (zIndex 470,
+          padding-bottom calc(72px + env(...))): that sheet is bottom-anchored and scrollable, so reserving space costs it
+          nothing, while this card is centre-anchored with capped content, so reserving 61px would cost real room on exactly the
+          short screens where it is already tightest. 472 sits above the footer's 471 and below rev-summary's 500. The backdrop
+          dims the footer while the card is up, which is what a modal scrim is for, and nothing needs the transport controls
+          before the demo has started. Recorded as an amber call BEFORE the edit:
+          flags/amber-497-three-modals-sit-below-the-fixed-bottom-bars. Gate: gates/regress/74-lesson-card-hit-area.js.
+          THE CLASS, counted [R06, R07]: 27 full-viewport fixed overlays exist in this file; 24 are already at 470 or above.
+          The three below both bottom bars were this one (120), the puzzle celebration at :8018 (80) and the promotion picker
+          at :8052 (60). I DROVE THE OTHER TWO RATHER THAN ASSUMING THEM: the picker reads 0 of 4 buttons not-own at 320x568,
+          375x568 and 375x730, because no fixed bottom bar is on screen during a Pass & Play game at all; the celebration I
+          could not reach and I say so instead of crediting it. Neither is changed here - an unexercised z-index change is the
+          unmeasured branch #496 shipped and had vetoed - and both are carried on
+          jobs/two-modals-of-the-497-class-cannot-be-driven-so-their-ordering-is-unexercised-2026-10-08. */}
+      {mode==='learn'&&openIdx!==null&&introCard&&(<div onClick={()=>setIntroCard(false)} style={{position:'fixed',inset:0,zIndex:472,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',padding:18}}>
         <div onClick={e=>{e.stopPropagation();introHoldRef.current=true;}} style={{maxWidth:380,width:'92%',background:'linear-gradient(150deg,#1b1d24,#101116)',border:'1px solid rgba(var(--acr),.5)',borderRadius:16,padding:'18px 18px 16px',boxShadow:'0 20px 60px rgba(0,0,0,.6)',position:'relative'}}>
           {learnLabel&&<div style={{fontSize:'clamp(15px,4vw,20px)',fontWeight:800,color:'var(--ac2)',marginBottom:8,paddingRight:30}}>{learnLabel}</div>}
           <div style={{fontSize:'clamp(14px,3.2vw,16px)',color:'rgba(255,255,255,.9)',lineHeight:1.55,maxHeight:'40vh',overflowY:'auto'}}>{learnIdea||LIB[openIdx].idea}</div>
