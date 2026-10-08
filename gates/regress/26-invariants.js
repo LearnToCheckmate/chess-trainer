@@ -1,4 +1,24 @@
 // regress/26-invariants.js   THE INVARIANT GATE - INVARIANT 4: NO TEXT IS CUT BY ITS OWN CLIPPING ANCESTOR.
+// ── TC-INV CASE IDS ARE EMITTED BY THIS GATE, AND THIS COMMENT IS THE REASON ─────────────────────────
+//   TC-INV-01, TC-INV-02a, TC-INV-02b, TC-INV-02c, TC-INV-02d and TC-INV-03 of
+//   claude/stories/TEST-CASES.md are executed here, and until 2026-10-08 this file named NONE of them.
+//   claude/stories/TEST-CASES.md states the consequence at its own TC-INV note and MEASURED it:
+//   `grep -oE 'TC-INV-[0-9a-z]+' claude/agents/gatelogs/423-all.log | sort -u` returned NOTHING, so the
+//   six `PASS #423` cells on those rows cannot have been copied from the cited log by id - they were
+//   transcribed from this gate's narrative output, which the register's own header forbids.
+//   THE CORRELATION THE FIX RESTS ON, from that same note: of 47 case rows publishing a result, the 18
+//   traceable ones are almost exactly the families whose gate carries the id in the assertion text -
+//   gates/regress/20-review.js carries TC-R01..TC-R14 as literal prefixes in 70 places, which is why
+//   gates/verify-log.sh --citations arm (2) can support those rows and could not support these.
+//   THE CONVENTION IS 20-review.js's AND NOT A NEW ONE [R45]: the id sits immediately after the
+//   geometry/state prefix, `g+' '+name+': TC-INV-02a <text>'`, so one grep over an -all.log resolves it.
+//   WHAT THIS DOES NOT DO, said here so no reader over-reads a green: it CANNOT make those six rows
+//   supported against claude/agents/gatelogs/423-all.log, which is committed and will never contain
+//   these strings. It makes every FUTURE -all.log greppable by id, which is the mechanism the register
+//   says is missing; the cells must then be RE-MEASURED against a new build's log, never re-typed.
+//   NO ASSERTION WAS ADDED, REMOVED OR REWORDED IN SUBSTANCE: ten message strings gained an id prefix
+//   and the L.say count, the pass count and every pin are unchanged, which is checkable by diffstat.
+//   jobs/tc-inv-case-rows-cite-a-result-that-is-not-in-the-log-2026-09-27, part (a).
 //
 // Kunal commissioned the invariant gate on 2026-09-15 (~03:20 UTC), decision `invariant-gate`, choice
 // "Yes - all four invariants", after asking a question worth repeating: when a session reported that Review's
@@ -1244,10 +1264,10 @@ L.run(async()=>{
         const same=want&&want.length===got.length&&want.every((v,i)=>Math.abs(v-got[i])<=0.6);
         if(!same) pinMoved.push({sig:r.sig,want,got});
       }
-      L.say(unpinned.length===0, g+' '+name+': every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)',
+      L.say(unpinned.length===0, g+' '+name+': TC-INV-02a every control row that is not a pinned known failure has ONE glyph height across the row, within 1px - the relationship assertion this suite had none of (invariant 2, Kunal 2026-09-15)',
         unpinned.length? {rows:unpinned.map(r=>({row:r.par,spread:r.spread,kids:r.kids}))}
                         : {rowsChecked:iv.rows.length, pinnedHere:spread.length, worstAllowed:spread.length?Math.max(...spread.map(r=>r.spread)):0});
-      L.say(pinMoved.length===0, g+' '+name+': every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose',
+      L.say(pinMoved.length===0, g+' '+name+': TC-INV-02b every pinned invariant-2 failure still measures EXACTLY what it measured on #422 - a pin that moves is red whether it got better or worse, so a fix has to retire its pin on purpose',
         pinMoved.length? pinMoved : {pinsHere:spread.map(r=>r.sig)});
       for(const r of spread) L.note('    INV2 PINNED spread '+r.spread+'px  '+r.par+'  '+r.kids.map(k=>k.lab+' box '+k.gh+' INK '+k.ink+' ('+k.via+',fs'+k.fs+')').join(' | '));
       for(const r of unpinned) L.note('    INV2 UNPINNED spread '+r.spread+'px  '+r.par+'  '+r.kids.map(k=>k.lab+' box '+k.gh+' INK '+k.ink+' ('+k.via+',fs'+k.fs+')').join(' | '));
@@ -1484,7 +1504,7 @@ L.run(async()=>{
     if(pinnedWidths.has(widthOf(g))){
       const missing=wantPinSet.filter(x=>!ivSeenPins.has(x));
       const extra=[...ivSeenPins].filter(x=>!wantPinSet.includes(x));
-      L.say(missing.length===0&&extra.length===0, g+': invariant 2 found its pinned failures in EXACTLY the states they were measured in - nothing fixed without retiring its pin, and no pinned spread has appeared on a new screen (pins resolved by WIDTH '+widthOf(g)+', not by the geometry name)',
+      L.say(missing.length===0&&extra.length===0, g+': TC-INV-02c invariant 2 found its pinned failures in EXACTLY the states they were measured in - nothing fixed without retiring its pin, and no pinned spread has appeared on a new screen (pins resolved by WIDTH '+widthOf(g)+', not by the geometry name)',
         (missing.length||extra.length)? {missing, appearedSomewhereNew:extra, width:widthOf(g)} : {pinsFound:wantPinSet.length, width:widthOf(g)});
     } else {
       L.note('    invariant 2 pin LOCATIONS, '+g+': width '+widthOf(g)+' carries NO pinned locations, so this is REPORTED and NOT asserted here (pinned widths: '+[...pinnedWidths].sort((a,b)=>a-b).join(', ')+'). Observed now: '+([...ivSeenPins].join(' ; ')||'none'));
@@ -1499,12 +1519,12 @@ L.run(async()=>{
     // screen going silent while another grows. It is kept as the backstop for the whole sweep collapsing.
     const FLOOR={320:[26,130],375:[28,135],390:[28,135]};
     const fl=FLOOR[widthOf(g)]||[20,100];
-    L.say(ivRows>=fl[0]&&ivCtls>=fl[1], g+': invariant 2 measured a real population rather than an empty one - a scanner that finds no rows reports "no inconsistent rows" and would be believed. Floor re-derived at #423 from the post-occlusion population, not carried over from the pre-occlusion one',
+    L.say(ivRows>=fl[0]&&ivCtls>=fl[1], g+': TC-INV-02d invariant 2 measured a real population rather than an empty one - a scanner that finds no rows reports "no inconsistent rows" and would be believed. Floor re-derived at #423 from the post-occlusion population, not carried over from the pre-occlusion one',
       {rowsMeasured:ivRows, controlsMeasured:ivCtls, floor:fl, width:widthOf(g), screens:SCREENS.length});
     // THE EXCLUSIONS MUST STILL FIRE, and this assertion had 99.7% slack in its first version (`>0` against 114
     // and 300). It is now pinned per geometry like everything else, because "an exclusion still fired at all" is
     // the same shape of floor that let the row population go silent.
-    L.say(ivNested>0&&ivSvgKid>0, g+': both structural control-population exclusions still fired, so the gate is measuring OUTERMOST, non-SVG controls rather than having quietly lost the distinction. cursor:pointer is inherited, and before these two the same sweep at this geometry reported roughly four times as many undersized "controls", most of them SVG internals like svg>g>circle 1.6x1.6',
+    L.say(ivNested>0&&ivSvgKid>0, g+': TC-INV-02d both structural control-population exclusions still fired, so the gate is measuring OUTERMOST, non-SVG controls rather than having quietly lost the distinction. cursor:pointer is inherited, and before these two the same sweep at this geometry reported roughly four times as many undersized "controls", most of them SVG internals like svg>g>circle 1.6x1.6',
       {nestedExcluded:ivNested, svgInternalsExcluded:ivSvgKid, occludedExcluded:ivCovered});
     // AND THE BOARD EXCLUSION IS AN UNTESTED HYPOTHESIS, SAID SO RATHER THAN LEFT AS PROSE. The header argued at
     // length that the board's 64 squares would flood every board screen with eight-control rows of piece glyphs.
@@ -1529,7 +1549,7 @@ L.run(async()=>{
     L.note('    invariant 3, '+g+': over ALL glyphs including multi-line labels and whole cards the count is '+ivAllH.size+', which is NOT an icon count and is reported only so the difference is on the record');
     const wantIcons=ICON_PIN[widthOf(g)];
     if(wantIcons){
-      L.say(JSON.stringify(iconKeys)===JSON.stringify(wantIcons), g+': the set of distinct ICON glyph heights is exactly what #423 measured at '+widthOf(g)+'px wide - a drift guard, not a target ('+wantIcons.length+' icon sizes where the commission\'s placeholder was four; the target set is Kunal\'s to choose, jobs/invariant-3-icon-size-target-set)',
+      L.say(JSON.stringify(iconKeys)===JSON.stringify(wantIcons), g+': TC-INV-03 the set of distinct ICON glyph heights is exactly what #423 measured at '+widthOf(g)+'px wide - a drift guard, not a target ('+wantIcons.length+' icon sizes where the commission\'s placeholder was four; the target set is Kunal\'s to choose, jobs/invariant-3-icon-size-target-set)',
         {width:widthOf(g), want:wantIcons, got:iconKeys, added:iconKeys.filter(x=>!wantIcons.includes(x)), gone:wantIcons.filter(x=>!iconKeys.includes(x))});
     } else {
       // NOT AN ASSERTION AT AN UNPINNED WIDTH, DELIBERATELY. The first version did `ICON_PIN[g]||[]`, so every
@@ -1546,7 +1566,7 @@ L.run(async()=>{
        buttons. Pinning ninety values over a population that has not been settled would bake the population
        into the suite, which is the "frozen denominator" failure the same commission warns about. So the list
        is REPORTED here and owned by a job, and invariant 1 stays honestly unbuilt in the header. */
-    L.note('    invariant 1 (REPORTED, NOT ASSERTED), '+g+': '+ivSmall.size+' distinct visible controls under 44x44');
+    L.note('    TC-INV-01 invariant 1 (REPORTED, NOT ASSERTED), '+g+': '+ivSmall.size+' distinct visible controls under 44x44');
     for(const [k,v] of [...ivSmall.entries()].sort()) L.note('        '+k+'   '+v);
     /* THE LEDGER ASSERTION. Not a count and not a floor: the SET, each name exactly once, which is the
        #388 lesson applied to coverage rather than to icon heights. `measuredScreens>=10` below is KEPT - it
@@ -1570,15 +1590,15 @@ L.run(async()=>{
   if(!process.env.CT_INV_GEOS){
     const unpinnedW=ALL_GEOS.filter(g=>!ICON_PIN[L.GEOS[g].w]);
     const unpinnedPop=[]; for(const g of ALL_GEOS) for(const [n] of SCREENS) if(!Object.prototype.hasOwnProperty.call(ROW_PIN,g+'/'+n)) unpinnedPop.push(g+'/'+n);
-    L.say(unpinnedW.length===0, 'every geometry the suite sweeps by default carries a pinned icon set, so invariant 3 never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedW});
-    L.say(unpinnedPop.length===0, 'every (geometry, screen) the suite sweeps by default carries a pinned row and occlusion count, so the population guard never silently downgrades to a report on a full run',{unpinned:unpinnedPop});
+    L.say(unpinnedW.length===0, 'TC-INV-03 every geometry the suite sweeps by default carries a pinned icon set, so invariant 3 never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedW});
+    L.say(unpinnedPop.length===0, 'TC-INV-02d every (geometry, screen) the suite sweeps by default carries a pinned row and occlusion count, so the population guard never silently downgrades to a report on a full run',{unpinned:unpinnedPop});
     // AND THE SAME GUARD FOR THE PIN-LOCATION ASSERTION, added with the width-keying above: that assertion
     // now REPORTS at a width carrying no location pins, so without this it could go quiet on a full suite
     // the day ALL_GEOS gains a width PIN_ROWS does not cover. Keyed on width for the same reason the
     // assertion itself now is.
     const pinnedLocW=new Set(); for(const p of PIN_ROWS) for(const at of p.at){const nm=at.split('/')[0]; if(L.GEOS[nm])pinnedLocW.add(L.GEOS[nm].w);}
     const unpinnedLoc=ALL_GEOS.filter(g=>!pinnedLocW.has(L.GEOS[g].w));
-    L.say(unpinnedLoc.length===0, 'every geometry the suite sweeps by default carries pinned invariant-2 LOCATIONS at its width, so the pin-location assertion never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedLoc.map(g=>g+'='+L.GEOS[g].w)});
+    L.say(unpinnedLoc.length===0, 'TC-INV-02b every geometry the suite sweeps by default carries pinned invariant-2 LOCATIONS at its width, so the pin-location assertion never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedLoc.map(g=>g+'='+L.GEOS[g].w)});
     // THE WALK IS DECLARED, NOT NARROWED, ON A DEFAULT RUN. The negative-control variables must be off, or
     // the run is a control run and its green means nothing.
     L.say(NC_SKIP.length===0&&NC_DUP.length===0, 'no screen-walk negative control was left switched on, so this run walked the full declared screen list rather than a narrowed one',{CT_INV_NC_SKIP:NC_SKIP,CT_INV_NC_DUP:NC_DUP});
