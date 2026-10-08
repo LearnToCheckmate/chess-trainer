@@ -635,3 +635,80 @@ filed.
 **Delivery.** Parked at `patches/proc-lane4-art-gates-regress-46-play-js-and-drive-play-js-2026-10-08`.
 Nothing is on main and this lane cannot put it there. This record is an **isolated and final** commit, so
 `git am --skip` on an append collision costs this record and leaves all three work commits intact.
+
+---
+
+## process build lane 3, run `process-build-3__1791498394795`, 2026-10-08T22:26Z
+
+**Item.** `jobs/tc-pl-030s-headline-assertions-are-guarded-by-conjuncts-that-time-the-harness-own-sleep-2026-10-08`
+(P1, priority 12, finishFirst, owningLane process-build), step **(1)** of its `outcome.whatIsLeft`, which is
+addressed to **process-build, any lane**: move the post-unmount Back/Forward round trip into block 10's MATE
+ending and show it RED on a bundle where `_resultKey` is ply-keyed. Taken before any fresh work [R05b]; it is
+the ONE member of this lane's four-job R49 WIP whose remainder is held by this lane and is inside the
+allow-list. Base `origin/main` cd15f28 (#501 close-out), with
+`patches/proc-lane4-art-gates-regress-46-play-js-and-drive-play-js-2026-10-08` applied first as a declared
+prerequisite — all five of its commits at `git am --3way` exit 0, no conflict and no 3-way fallback, which is
+a measurement that payload's own document did not have against today's main.
+
+**Why block 10 and not block 11b, and it is a measurement rather than a preference.** Lane 4's
+`outcome.whatDidNot` records that its post-unmount arm (TC-PL-031) could not be shown RED on **any** bundle:
+on a RESIGNATION the `playEnd` half of the pre-#473 key is true at every previewed ply, so the key never
+flips and the defect is unreachable. #473 itself was measured on a **mate in Pass & Play** — block 10's
+ending, where the previewed board's own over-ness is the operative half. So the arm moved to the ending the
+regression lives on.
+
+**What landed (locally — nothing is on main and this lane cannot put it there).** `gates/regress/46-play.js`
+only, commit `b0b8d23`. **TC-PL-032**, one arm, five `L.say` lines, at both of block 10's geometries
+(`se` and `kunal730`), placed **after** TC-PL-027's settle so the card is already gone and `resultCardGone`
+is latched true — the state nothing covered. Two preconditions guard it: the card is gone and the game has
+plies to step back through; and the Back tap really moved the ply (4 → 3), which is the vacuity its ancestor
+in block 11b passed on and which that arm's own M1 control found rather than its author.
+
+**THE BUNDLE-LEVEL NEGATIVE CONTROL THIS JOB NAMES AS THE MOST SERIOUS THING ON IT NOW EXISTS, AND IT FIRES.**
+The job's own `theTHREETHINGSBOTHANTAGONISTSMISSED` item (i) reads: "THERE IS NO BUNDLE-LEVEL NEGATIVE CONTROL
+AT ALL … these ELEVEN assertions have never been shown able to fail FOR AN APP REASON, only for a harness
+one". Every figure below was read from this shell this run.
+
+| bundle | what it is | gate 46 |
+|---|---|---|
+| `bd8f31ddbc47` | `origin/main`'s own committed `app.js`, stamp #501 | **156 pass / 0 fail** |
+| `e4c53b18e52b` | healthy trial bundle, rebuilt from main's `chess.jsx` (`CT_OUT`, never touches the repo's app.js) | **156 pass / 0 fail** |
+| `219793e00933` | **the pre-#473 expression**, `const _resultKey=(isOver||playEnd)?1:0;` | **152 pass / 4 FAIL** |
+| `6ba01d7c47bb` | lane 4's second control, `_resultKey=_gameOver?(1+ply):0` | **156 pass / 0 fail** |
+
+The four failures on `219793e00933` are **exactly** this arm's Forward reading and its grid-child
+corroboration, at both geometries, and nothing else in the gate moved — 128 → 146 → 156 is the whole
+history of this file's assertion count today and the only line that changed verdict is the one this arm
+added. **Block 11b's TC-PL-031 stayed GREEN on that same bundle**, which independently reproduces lane 4's
+finding from the other side: the resignation ending cannot see this class, and the mate ending can.
+
+**A CORRECTION TO THE JOB'S OWN RECORD [R18].** Lane 4 describes its second control bundle as "a genuinely
+ply-flipping key `_gameOver?(1+ply):0`". Measured here, it is **dead in this ending too** (156 pass / 0 fail,
+md5 `6ba01d7c47bb`), so it is not a live control for this class in *either* block, and the pre-#473
+expression is the only one of the two that is. **NOT CHECKED:** which `ply` that expression binds to at
+`chess.jsx:3332` and therefore why it does not flip — the measurement is that it does not, not why.
+
+**Determinism and non-interference.** The arm's six verdict lines are byte-identical over **three**
+consecutive runs of the full gate, md5 `22b933df957256b8c9fbba58e5daa7d0` [R36]. `node --check` clean. The
+commit is **1 file, insertions only**; `chess.jsx` was mutated twice to build the two control bundles and
+**restored both times**, verified by `md5sum` reading `be71ee34ee7662ed0e83350bfe7e7694` — the same source
+md5 `gates/build.sh` prints for main — and by `git diff --stat chess.jsx` returning nothing. Both control
+bundles were built with `CT_OUT`, which is a trial bundle that never touches the repo's `app.js`.
+
+**Allow-list check run and read line by line.** `git diff --name-only origin/main...HEAD` returns exactly
+three lines — `claude/PROCESS-LOG.md`, `gates/drive/play.js`, `gates/regress/46-play.js` — two of them lane
+4's prerequisite. All three inside the allow-list; no file at the repository root, no `.tsv` under `gates/`,
+none of the five forbidden markdown records, no app code. No push and no dry-run attempted: the refusal is
+proved three ways on 2026-10-03 and re-testing it or seeking a workaround is forbidden [R21].
+
+**Not checked.** (1) The 59-section suite — it needs the build lane's container and about 84 minutes against
+a 70-minute budget; what ran instead is gate 46 alone, six times, which is the only gate that can move. (2)
+No gate-level mutation control: the bundle-level control is strictly stronger for this arm and the budget
+bought one, not both. (3) The grid-child line is **not** offered as an independent instrument and says so in
+the file — TC-PL-027 four lines above asserts that the card *is* the grid's extra child, so it is a
+same-subtree consistency check. (4) The Back-preview half of the arm stays PASS on the pre-#473 bundle,
+because `_pvLive` hides the card while a ply is previewed; that half cannot fail for this mutation and is
+kept only as the precondition's partner. (5) Whether any OTHER gate would redden on `219793e00933` — only
+gate 46 was run against it. (6) `gates/gatemanifest.sh check` was not run; this commit adds no gate file.
+
+**Delivery** parked at `patches/proc-lane3-art-gates-regress-46-play-js-tc-pl-032-2026-10-08`. NOT on main.
