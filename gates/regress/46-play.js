@@ -324,4 +324,82 @@ L.run(async()=>{
     L.say(b.errs.length===0,'zero app errors across a resignation',b.errs.slice(0,3));
     await b.close();
   }
+
+  // ══ 11b: THE SAME TWO-PLY COMPOSITION ON A NON-BOARD ENDING. A SECOND LAUNCH, DELIBERATELY. ═════════
+  // WHAT THIS CLOSES. jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30 asks for a game-over
+  // assertion that MATES (or ends) and then STEPS THE PLY, so that the ply-keyed half of (isOver||playEnd)
+  // is the operative half. Block 10 now does that on the BOARD ending (fool's mate) and its own arm says in
+  // terms that the non-board ending was still owed, because block 11 above resigns at MOVE 0 where Back and
+  // Forward are both dead and there is no ply to step. This is that arm.
+  //
+  // THE PREMISE THE JOB GAVE FOR WHY IT COULD NOT BE DONE IS FALSE AND IS WITHDRAWN HERE [R18]. It reads
+  // "a resign-with-moves drive state is needed and gates/drive/play.js has none". MEASURED 2026-10-08T12:41Z
+  // against origin/main's own committed app.js (bundle md5 e60f12585339, stamp "#497 - 2026-10-08 00:32 ET"):
+  // drive/play.js's 'cpu-resigned' composes 'cpu-more' -> 'cpu-4ply', so it has always resigned a FOUR-PLY
+  // game, and it reaches the ending (card "Resigned You lose", row Moves·Back·Forward·Review·Rematch·More).
+  // The state existed; nothing asked for it by name. It is now named 'cpu-resigned-with-moves' there, and
+  // THE COMMENT AT THE HEAD OF BLOCK 11 ABOVE IS STALE: it says 'cpu-resigned' taps Resign ONCE and so does
+  // not reach the state its name claims. That was true when block 11 was authored and was fixed at #387 -
+  // the driver plays both taps of the #375 arm today. Corrected by L.note below rather than by deleting the
+  // paragraph, because the paragraph records a real failure and only its present tense is wrong.
+  //
+  // WHY A SECOND LAUNCH AND NOT MORE ASSERTIONS INSIDE BLOCK 11: block 10's CARD arm was first placed
+  // mid-block and cost TC-PL-027 two FAILs at both geometries, because a ~3s Back/Forward round trip pushed
+  // that block's own card reading past the 8s fade. Measured then, not feared. Block 11 above has no 8s
+  // settle, but it does assert on a card that fades, so this arm gets its own browser and cannot reach it.
+  //
+  // EVERY NUMBER BELOW WAS MEASURED BEFORE IT WAS PINNED, on main's bundle, at kunal730:
+  //   T+0      plies 4   card "Resigned You lose"   grid kids 65   board 353 @ y=93.8   Forward DEAD
+  //   +565ms   plies 3   card null                  grid kids 64                        Forward LIVE
+  //   +562ms   plies 4   card "Resigned You lose"   grid kids 65
+  // The elapsed figures are MEASURED per run and carried in the payload rather than pinned, and the only
+  // bound asserted on them is the one the app's own fade makes meaningful (< 8000ms). The GRID CHILD COUNT
+  // is a second instrument that is not the result-card selector, so a card reading and a DOM count have to
+  // agree before either is believed - the #389 rule about a cross-check fed by the thing under test.
+  {
+    const geo='kunal730',W=CPU[geo];
+    const b=await L.launch({geo,name:'play-resign-card',store:{ct_pool:'3'}});await b.open();
+    const t0=Date.now();
+    await P.states['cpu-resigned-with-moves'](b);
+    const plies0=await plyCount(b),card0=await b.text('[data-ct="result-card"]'),row0=await rowBtns(b);
+    const kids0=(await b.board()).kids,m0=await b.metrics();
+
+    // --- TC-PL-028: the state is the state. A resigned game WITH MOVES, reached by name, not merely armed.
+    L.say(plies0===4&&card0==='Resigned You lose',
+      'the named drive state reaches a RESIGNED game with FOUR plies on the board - so there is a ply to step, which the move-0 ending above does not have',
+      {plies:plies0,card:card0,driveMs:Date.now()-t0});
+    L.say(row0.length===6&&row0.map(x=>x.t).join(',')===ROW_OVER.join(','),
+      'and it is a real game-over row, the same one a mate gives: '+ROW_OVER.join(' · '),row0.map(x=>x.t).join(','));
+    // --- TC-PL-029: the discriminator. Review is LIVE here and DEAD in the move-0 ending asserted above, so
+    // that block's empty-state assertion is falsifiable rather than merely true. One field, two endings.
+    L.say(row0[3].t==='Review'&&row0[3].dis===false,
+      'Review is LIVE on a resigned game that HAS moves - the mirror of "resigning at move 0 leaves Review DISABLED" twenty lines above, and what makes that assertion mean something',{review:row0[3]});
+    L.say(row0[1].dis===false&&row0[2].dis===true,
+      'Back is live and Forward is dead at the live head of a resigned game - the head is a head, not a preview',{back:row0[1].dis,forward:row0[2].dis});
+
+    // --- TC-PL-030: ONE PLY BACK AND THE RESULT CARD GOES. The ply-keyed half, on a non-board ending.
+    const tb=Date.now();await P.tapBtn(b,/^Back$/,400);const backMs=Date.now()-tb;
+    const cardB=await b.text('[data-ct="result-card"]'),pliesB=await plyCount(b),kidsB=(await b.board()).kids,rowB=await rowBtns(b);
+    L.say(cardB===null&&pliesB===plies0-1&&backMs<8000,
+      'ONE Back tap takes the resignation card off the board, at one ply back and well inside the 8s fade ('+backMs+'ms) - so the card is keyed to the PREVIEWED PLY and not only to its own timer',
+      {card:cardB,plies:pliesB,ms:backMs});
+    L.say(kidsB===kids0-1,
+      'and a second instrument that is not the card selector agrees: the board grid loses exactly one child ('+kids0+' -> '+kidsB+')',{withCard:kids0,back:kidsB});
+    L.say(rowB[2].dis===false,'Forward comes alive the moment there is something ahead of the previewed ply',{forward:rowB[2].dis});
+
+    // --- and ONE PLY FORWARD BRINGS IT BACK, which is the half a fade can never explain.
+    const tf=Date.now();await P.tapBtn(b,/^Forward$/,400);const fwdMs=Date.now()-tf;
+    const cardF=await b.text('[data-ct="result-card"]'),pliesF=await plyCount(b),kidsF=(await b.board()).kids,mF=await b.metrics();
+    L.say(cardF==='Resigned You lose'&&pliesF===plies0&&fwdMs<8000,
+      'ONE Forward tap brings the resignation card BACK ('+fwdMs+'ms) - a card that had faded on a timer could not return, so this is the assertion that separates the two explanations',
+      {card:cardF,plies:pliesF,ms:fwdMs});
+    L.say(kidsF===kids0,'the grid child count returns to '+kids0+' with it',{back:kidsB,forward:kidsF});
+    L.say(near(mF.board.w,m0.board.w)&&near(mF.board.top,m0.board.top)&&near(mF.board.w,W.bw)&&near(mF.board.top,W.by),
+      'and the board never moved across the whole round trip - still the pinned '+W.bw+' at y='+W.by+', so stepping the ply at game over is not a layout event',{before:m0.board,after:mF.board,want:W});
+    L.note('WITHDRAWN [R18]: the paragraph at the head of block 11 says drive/play.js\'s cpu-resigned "taps Resign ONCE, which only ARMS it on this build" and that cpu-resigned, cpu-resigned-more and cpu-rematch "do not reach the states their names claim". True when block 11 was authored; fixed at #387. Measured on this bundle: the state reaches a resigned four-ply game with the card up, which is what this arm asserts above. The paragraph is kept because the failure it records is real and recurring - only its tense is wrong.');
+    L.note('STILL NOT COVERED, named rather than left to be rediscovered: there is no drive state for the MOVE-0 resignation (block 11 drives that arm by hand, on purpose), and the harness-level rule that would make "end the game, then step the ply" a composition every game-over gate inherits belongs in gates/lib.js, which is outside the process-build allow-list. Both are on jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30.');
+    await b.shot('play-resign-card');
+    L.say(b.errs.length===0,'zero app errors across a resignation and a two-ply round trip',b.errs.slice(0,3));
+    await b.close();
+  }
 },'PLAY');
