@@ -510,3 +510,5 @@
 500	built	-	703bad749148	be71ee34ee76	2026-10-08T16:33Z	build__1791472842989	build.sh	Bundle built and stamped #500. Recorded by gates/build.sh so the number resolves to an artefact.
 501	minted	-	-	-	2026-10-08T18:37Z	build__1791483738000	minted	the daily integration slot lands process lane 1 parked payload: gate 46 block 11b (+11 assertions, a two-ply composition on a NON-BOARD ending) and the cpu-resigned-with-moves driver state
 501	built	-	bd8f31ddbc47	be71ee34ee76	2026-10-08T18:39Z	build__1791483738000	build.sh	Bundle built and stamped #501. Recorded by gates/build.sh so the number resolves to an artefact.
+502	minted	-	-	-	2026-10-08T21:56Z	build__1791494550078	minted	ship-list id 8: the R07 concatenation class sweep for the rank-up verdict, plus US-R47 and TC-R58 admitted to the registers
+502	built	-	958b5d4dc8d8	be71ee34ee76	2026-10-08T21:56Z	build__1791494550078	build.sh	Bundle built and stamped #502. Recorded by gates/build.sh so the number resolves to an artefact.
