@@ -560,3 +560,78 @@ pass 0 / fail 0 is not the shape of this instrument: it is a REFUSAL tool, and t
 **One error of this run's own, found by running rather than by reading, and kept.** The first draft of the explanatory header quoted the counted form literally, so the note explaining the de-pin WAS ITSELF A CITATION and the first re-run read 41 of 48 instead of 40. The instrument caught its own documentation. The header now says so in place.
 
 **Delivery** parked at `patches/proc-lane4-art-claude-stories-MENU-LANE-2026-09-15-md-2026-10-06`. NOT on main; this lane cannot push.
+
+---
+
+## process-build lane 4 — 2026-10-08T21:48Z–22:40Z — gate 46 block 11b, re-cut after build #501's upheld double veto
+
+**Item.** `jobs/tc-pl-030s-headline-assertions-are-guarded-by-conjuncts-that-time-the-harness-own-sleep-2026-10-08`,
+P12, the highest-priority ready job inside this lane's allow-list. The finish-first queue was read first and
+has no remainder this lane can build: all three arms of the P11 pipefail job are already parked by lanes 1, 2
+and 3, the s3b/s6 job's own outcome records `left: 0`, and the new-gate job's remainder is a charter change.
+
+**What was taken.** Build #501 applied process lane 1's payload cleanly at exit 0, both blind antagonists then
+examined it, antagonist A vetoed, the veto was upheld IN FULL and the whole payload was reverted before the
+push (`e4147d1`, `1dd4207`, `90214d2` on main). The substance was sound; what failed was the part that matters
+most in a gate. This run recovers the two reverted commits from main's own history rather than retyping them
+(`git show 3a6451f`, `git show fc06504`) and then applies A's five fixes as a separate commit, so the diff
+between the two IS the repair and can be read on its own.
+
+**The five fixes, each measured rather than reasoned.**
+
+| # | what | measured |
+|---|---|---|
+| 1 | the two `<8000` conjuncts out; both card readings bounded on elapsed-since-game-over on their own PASS line | the taps are **561ms** and **564ms** against a budget of 8000 — the conjuncts timed `tapBtn`'s own 400–600ms sleep floor and could not fail |
+| 2 | TC-PL-031, the post-unmount state nothing covered | card **GONE at 4214ms**, and the same Back/Forward round trip does not bring it back |
+| 3 | the "8s fade" language struck | `chess.jsx:3332-3333`: fade **2600ms**, unmount **3300ms**; `b.text` reads the unmount. The 8000 in TC-PL-027 is that arm's own settle |
+| 4 | the grid-child count stops claiming independence and stops citing #389 | TC-PL-027 twenty lines above asserts the extra child **IS** the card, so the two readings share a React subtree |
+| 5 | the Forward arm gets its own precondition PASS line | the author's own M1 control had already found the vacuity and recorded it rather than fixing it |
+
+**The one number A's fix list got wrong, and the disagreement is recorded rather than split [R18, R45].** A
+proposed a flat `msSinceGameOver < 2000`. Measured on main's own committed bundle: **1670ms** at the Back
+reading and **2246ms** at the Forward reading, so a 2000ms budget reddens a healthy bundle — the same defect as
+the 8000, pointed the other way. The budget is derived instead: `CARD_UNMOUNT_MS (3300) - CLOCK_MARGIN_MS (250)
+= 3050`, with 804ms of measured headroom, and the actual elapsed figure printed on every reading.
+
+**Figures.** `gates/regress/46-play.js` **139 → 146 PASS / 0 fail** against main's own committed bundle,
+md5 `bd8f31ddbc47`, at `cd15f28`. Subset run, `gates/logs/501-subset-46-play.log`; a subset authorises nothing
+and this log does not claim to.
+
+**THE HALF OF THIS RUN WORTH MORE THAN THE FIGURES: the new arm's headline claim is withdrawn by its own
+controls.** TC-PL-031's last line was written as "the line that reddens if `_resultKey` is made ply-keyed
+again", which is the #473 regression. Two mutation controls were built and run and **neither moved a single
+verdict** — 146 PASS / 0 FAIL, byte-identical:
+
+| control | bundle md5 | verdict |
+|---|---|---|
+| the exact pre-#473 expression, `_resultKey=(isOver\|\|playEnd)?1:0` | `890f7a9b7b67` | 146 / 0 — unchanged |
+| a genuinely ply-flipping key, `_resultKey=_gameOver?(1+ply):0` | `5388547cb472` | 146 / 0 — unchanged |
+| healthy main | `bd8f31ddbc47` | 146 / 0 |
+
+The cause is visible in the expression once the control has pointed at it: **on a resignation the non-ply half
+of the key (`playEnd`) is true at every previewed ply**, so the key never flips, the effect never re-runs, and
+a resignation cannot exercise the ply-keyed defect at all. #473 was measured on a MATE in Pass & Play, which is
+block 10's ending, not this one. So the arm keeps what it really pins — the one-shot lifetime on a NON-BOARD
+ending, where nothing asserted anything past 3300ms before — and loses a claim it cannot carry. A control that
+disturbs the mechanism and leaves the measured verdict untouched is this project's oldest trap (CLAUDE.md,
+#416), and it is reported here rather than credited.
+
+**Class swept [R06].** The class is "a site in `gates/regress/46-play.js` that calls the result card's
+behaviour an 8s fade". Counted by grep rather than sampled: **7 found, 6 fixed, 1 left.** The one left is
+TC-PL-027's own shipped assertion message at line 294 ("within 8s"), which is TRUE — a 3300ms unmount is within
+8s — and re-wording a shipped green assertion is a different job; it is named with its line in an `L.note`
+rather than left for the next reader. **Two corrections to the job's own fix list while sweeping [R18]:**
+`gates/drive/play.js` contains **no** 8s-fade language (0 grep hits), and the "PROCESS-LOG table" the job names
+has none either — the phrase lived only in `46-play.js`.
+
+**Not checked.** The three-run determinism re-run (the 146/0 figure is one run per bundle, three bundles); the
+59-section full suite, which this lane may not authorise and which costs ~44 minutes against a 70-minute
+budget; whether the post-unmount round trip reddens in block 10's MATE ending, which is the arm that could
+carry the #473 claim and is the named remainder; the 390 and 320 geometries, since this arm is `kunal730` only
+like the block it sits in; and whether `gates/audit/verify-parked-patch.sh` accepts a two-file payload — it
+takes one manifest path and lane 3 measured on 2026-10-08T16:45Z that it cannot express one, which is already
+filed.
+
+**Delivery.** Parked at `patches/proc-lane4-art-gates-regress-46-play-js-and-drive-play-js-2026-10-08`.
+Nothing is on main and this lane cannot put it there. This record is an **isolated and final** commit, so
+`git am --skip` on an append collision costs this record and leaves all three work commits intact.
