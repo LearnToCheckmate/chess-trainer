@@ -6883,9 +6883,45 @@ export default function App(){
           WHAT IT COSTS, STATED: on Petroff at 320x568 the CTA is now BELOW the panel's visible bottom and is reached by
           scrolling the card. That is reachable and it is not the same as on-screen-at-rest. A card whose CTA is pinned
           always-visible below a scrolling content area would be better and is a structural DESIGN change to a shared
-          overlay, so it is nominated for Kunal and not taken here. Amber record: flags/amber-498-intro-card-panel-caps-and-scrolls. */}
+          overlay, so it is nominated for Kunal and not taken here.
+          ---- AND THE CAP ALONE WAS A REGRESSION ON THE ONE CARD IT WAS BUILT FOR. BOTH BLIND ANTAGONISTS VETOED
+          THIS BUILD AND B's V1 IS WHY THERE ARE THREE PROPERTIES HERE AND NOT TWO. ----
+          `introHoldRef` is set ONLY by this panel's onClick (see the useEffect at :2850, which arms a 4000ms
+          auto-dismiss and checks the ref when it fires). A TOUCH DRAG THAT SCROLLS PRODUCES NO CLICK. So once the
+          cap put Petroff's CTA below the fold at 320x568, the only way to reach it became a gesture that does not
+          hold the card, and the card died under the finger.
+          MEASURED, 320x568, Openings row 45, with real CDP touch drags (NOT synthesizeScrollGesture, which
+          antagonist B established is inert in this container, and NOT scrollIntoView): two drags move the panel
+          scrollTop 0 -> 67 and the CTA's centre 595.55 -> 528.55, so the scroll itself works; the card is
+          nevertheless GONE at +4600ms; and a real tap at that same centre then lands on the lesson footer -
+          elementFromPoint returns a footer glyph - and STEPS THE DEMO. Confirmed twice here and 3 of 3 by
+          antagonist B. On main the CTA's centre was 562.28, ON SCREEN and tappable, so this was a genuine
+          regression and not a pre-existing cost: the fix had made the button harder to use than it found it.
+          THAT IS #497's OWN SYMPTOM REINTRODUCED BY TIMING INSTEAD OF BY PAINT ORDER, which is the sharpest thing
+          either antagonist found: #497 moved one integer so a tap meant for the card would stop reaching the
+          footer, and capping the card without holding it on scroll handed the same outcome back through a
+          different mechanism. A fix is not done when its own measurement is green; it is done when the player can
+          use the control.
+          SO `onScroll` SETS THE SAME REF THE onClick ALREADY SETS. One expression, the existing hold design
+          extended to the gesture the cap created. Not onTouchStart as well: the harmful gesture is the one that
+          SCROLLS, a finger resting on the card without scrolling leaves the 4000ms behaviour exactly as main has
+          it, and widening the hold to any touch is a behaviour change nobody measured.
+          `overflowX:'hidden'` CLOSES A SIDE EFFECT THIS BUILD INTRODUCED AND DID NOT NOTICE. Setting overflow-y to
+          auto makes the OTHER axis compute to auto as well: antagonist B measured the panel's computed overflow-x
+          going visible -> auto, and at a 256-wide viewport (125% zoom on a 320 phone) that gave the card 35px of
+          horizontal room with the long Related chip clipped by 33.5px where on main it painted outside the card.
+          Pinning it to hidden keeps the one axis the fix is about. It is invisible at 320x568, where horizontal
+          room is 0, which is why the build's own sweep could not have found it.
+          `className="scroll"` IS THE APP'S OWN SCROLLER IDIOM (eleven other sites) and paints a 5px thumb. BE
+          HONEST ABOUT WHAT IT DOES NOT DO: it is an overlay scrollbar, so it appears during the gesture and not at
+          rest, and B's measurement stands - at rest the card ends in 9.45px of blank padding and a rounded border
+          on the viewport's last row, with no clipped glyph, no fade and 67px hidden, so the card still READS as
+          finished. The affordance problem is real and only half-addressed here. Pinning the CTA below a scrolling
+          content area is the fix that dissolves it, it is a structural change to a shared overlay, and it is filed
+          with B's numbers as jobs/the-intro-cards-primary-button-should-not-be-below-its-own-fold-2026-10-08.
+          Amber record: flags/amber-498-intro-card-panel-caps-and-scrolls. */}
       {mode==='learn'&&openIdx!==null&&introCard&&(<div onClick={()=>setIntroCard(false)} style={{position:'fixed',inset:0,zIndex:472,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',padding:18}}>
-        <div onClick={e=>{e.stopPropagation();introHoldRef.current=true;}} style={{maxWidth:380,width:'92%',background:'linear-gradient(150deg,#1b1d24,#101116)',border:'1px solid rgba(var(--acr),.5)',borderRadius:16,padding:'18px 18px 16px',boxShadow:'0 20px 60px rgba(0,0,0,.6)',position:'relative',maxHeight:'100vh',overflowY:'auto'}}>
+        <div className="scroll" onClick={e=>{e.stopPropagation();introHoldRef.current=true;}} onScroll={()=>{introHoldRef.current=true;}} style={{maxWidth:380,width:'92%',background:'linear-gradient(150deg,#1b1d24,#101116)',border:'1px solid rgba(var(--acr),.5)',borderRadius:16,padding:'18px 18px 16px',boxShadow:'0 20px 60px rgba(0,0,0,.6)',position:'relative',maxHeight:'100vh',overflowY:'auto',overflowX:'hidden'}}>
           {learnLabel&&<div style={{fontSize:'clamp(15px,4vw,20px)',fontWeight:800,color:'var(--ac2)',marginBottom:8,paddingRight:30}}>{learnLabel}</div>}
           <div style={{fontSize:'clamp(14px,3.2vw,16px)',color:'rgba(255,255,255,.9)',lineHeight:1.55,maxHeight:'40vh',overflowY:'auto'}}>{learnIdea||LIB[openIdx].idea}</div>
           {(learnPlans||LIB[openIdx].plans)&&(<div style={{fontSize:'clamp(14px,3vw,15px)',color:'rgba(255,255,255,.7)',lineHeight:1.5,marginTop:13,paddingTop:13,borderTop:'1px solid rgba(255,255,255,.13)',maxHeight:'26vh',overflowY:'auto'}}>{learnPlans||LIB[openIdx].plans}</div>)}

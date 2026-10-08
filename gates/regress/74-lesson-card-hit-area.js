@@ -362,6 +362,38 @@ async function openHeld(b,group,i){
   return {name:nm,ok:true,panelTop:panel.panelTop,holdClamped:panel.clamped};
 }
 
+// OPEN THE CARD WITHOUT HOLDING IT. D CANNOT USE openHeld AND THE FIRST VERSION OF D DID, WHICH MADE D2 VACUOUS.
+// openHeld CLICKS THE PANEL, and the panel's onClick is one of the two things that sets introHoldRef - so the card
+// was already held before the drag and D2 passed on a control bundle with the onScroll hook DELETED (79 pass /
+// 0 fail, measured). THE GATE'S OWN SETUP WAS SATISFYING THE PROPERTY UNDER TEST. That is the third instance in
+// this one build of the trap CLAUDE.md records a dozen times, and the second in this gate: #385's rule is the
+// remedy - when an assertion says "X survives in state S", reach S by the route the PLAYER takes, not the route
+// the harness finds shortest.
+async function openPlain(b,group,i){
+  await b.home();await b.tile('Discover');await b.settle(350);
+  await b.tapText(new RegExp('^'+group+'$'),{wait:450});
+  await b.page.evaluate(()=>window.scrollTo(0,0));await b.settle(120);
+  const nm=await rowName(b,i);
+  const h=await b.page.evaluateHandle((i)=>{const bs=[...document.querySelectorAll('button')].filter(x=>/[♔♚]/.test((x.innerText||'').slice(0,3))&&x.getBoundingClientRect().width>200);
+    const el=bs[i];if(el)el.scrollIntoView({block:'center'});return el||null;},i);
+  const el=h.asElement();if(!el)return {name:nm,ok:false,why:'no row '+i};
+  const box=await el.boundingBox();if(!box)return {name:nm,ok:false,why:'row '+i+' has no box'};
+  await b.page.mouse.click(box.x+box.width/2,box.y+box.height/2);await b.page.waitForTimeout(400);
+  return {name:nm,ok:true};
+}
+
+// A REAL FINGER DRAG, via CDP touch events. NOT Input.synthesizeScrollGesture, which antagonist B established is
+// INERT in this container - it produced 0px on the Openings list against 6124px of available root scroll, three
+// times at three geometries - and NOT scrollIntoView or an assignment to scrollTop, because the whole question
+// block D asks is what a TOUCH does, and a touch that scrolls fires no click.
+async function fingerDrag(b,x,y0,y1){
+  const cdp=await b.page.context().newCDPSession(b.page);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y:y0}]});
+  for(let i=1;i<=12;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y0+(y1-y0)*(i/12)}]});await b.page.waitForTimeout(16);}
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await cdp.detach();
+}
+
 (async()=>{
 for(const geo of GEOS){
   // ── A: INSTRUMENT VALIDATION. Assert the state was reached and the mechanism is as claimed, BEFORE B. ───
@@ -560,6 +592,50 @@ for(const geo of GEOS){
 // in the list must put a card into the bar's band, or B1 and C1 are decoration everywhere and the gate cannot
 // fail at all - which is exactly the shape this suite has shipped before (#395's closed flag, #391's predicate).
 // It is a GLOBAL check so that adding a tall-screen geometry can never silently disarm the gate.
+// ── D: THE GESTURE THE CAP CREATED MUST NOT KILL THE CARD. ANTAGONIST B's V1, AS AN ASSERTION. ───────────
+// THE DEFECT THIS EXISTS FOR WAS INTRODUCED BY THIS BUILD'S OWN FIRST FIX AND CAUGHT BEFORE THE PUSH.
+// `introHoldRef` is set only by the panel's onClick, and a touch drag that scrolls produces NO CLICK. So capping
+// the card put Petroff's CTA below the fold and made the only route to it a gesture that did not hold the card:
+// MEASURED at 320x568 with real CDP touch drags - two drags move the panel scrollTop 0 -> 67 and the CTA centre
+// 595.55 -> 528.55, the card is GONE at +4600ms anyway, and a real tap at that centre then lands on a lesson
+// footer glyph and STEPS THE DEMO. That is #497's own player-visible symptom returned by timing instead of by
+// paint order. The remedy is onScroll setting the same ref the onClick already sets.
+// THE CONTROL IS FREE AND IS PUBLISHED WITH ITS COMMAND: delete the hook from the shipped bundle.
+//     sed 's/onScroll:()=>{pp.current=!0},//' app.js > gates/.probe/nohold.js
+//     CT_APP=gates/.probe/nohold.js CT_74_GEOS=se node gates/regress/74-lesson-card-hit-area.js
+// D RUNS ONLY WHERE THE PANEL ACTUALLY SCROLLS, because where it does not there is no gesture to hold and the
+// assertion would be a positive control. That is reported as a NOTE, never credited as a PASS.
+for(const geo of GEOS){
+  const b=await L.launch({geo,name:'74D-'+geo});await b.open();
+  const o=await openPlain(b,'Openings',45);   // NOT openHeld: its click would hold the card and void D2
+  if(!o.ok){L.say(false,'74 D0 ['+geo+'] could not reach Openings row 45 for the hold-on-scroll check',o);await b.close();continue;}
+  const pi=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));if(!g)return null;
+    let q=g;while(q&&q.parentElement&&getComputedStyle(q.parentElement).position!=='fixed')q=q.parentElement;
+    const r=q.getBoundingClientRect();const s2=getComputedStyle(q);
+    return {x:r.left+r.width/2,room:q.scrollHeight-q.clientHeight,ovfY:s2.overflowY,ovfX:s2.overflowX};});
+  if(!pi){L.say(false,'74 D0b ['+geo+'] the intro card was not up for the hold-on-scroll check',{});await b.close();continue;}
+  // D3 is independent of whether the panel scrolls: the horizontal axis must stay pinned. Setting overflow-y to
+  // auto makes the other axis compute to auto, which antagonist B measured clipping a Related chip by 33.5px at a
+  // 256-wide viewport. Asserted at every geometry because the defect is width-dependent and invisible at 320.
+  L.say(pi.ovfX==='hidden','74 D3 ['+geo+'] the card panel\'s computed overflow-x is pinned to hidden ('+pi.ovfX+'), so making it a vertical scroller did not silently give it a horizontal axis. On main it read visible; with overflow-y:auto alone it computes to auto, and at a 256-wide viewport that clipped a Related-lessons chip by 33.5px',{overflowX:pi.ovfX,overflowY:pi.ovfY});
+  if(pi.room>0){
+    const before=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));let q=g;while(q&&q.parentElement&&getComputedStyle(q.parentElement).position!=='fixed')q=q.parentElement;return q.scrollTop;});
+    await fingerDrag(b,pi.x,420,300);await b.settle(150);
+    await fingerDrag(b,pi.x,420,300);await b.settle(150);
+    const after=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));if(!g)return null;let q=g;while(q&&q.parentElement&&getComputedStyle(q.parentElement).position!=='fixed')q=q.parentElement;return q.scrollTop;});
+    // D1 THE DENOMINATOR: if the drag did not move the panel there is no gesture under test and D2's green would
+    // mean nothing. This is the #416 rule - check the control moved the quantity the assertion reads.
+    L.say(true,'74 D0c ['+geo+'] PRECONDITION: this block reached the card WITHOUT tapping its panel, so introHoldRef is false going in and the drag is the only thing that can hold it. Reaching the state through openHeld (which clicks the panel) made the first version of D2 pass on a bundle with the hook deleted',{route:'openPlain'});
+    L.say(after!==null&&after>before,'74 D1 ['+geo+'] THE DENOMINATOR: a real finger drag actually scrolled the card ('+before+' -> '+after+' of '+pi.room+'), so D2 below is asserting over a gesture that happened',{before,after,room:pi.room});
+    await b.page.waitForTimeout(4600);
+    const stillUp=await cardUp(b);
+    L.say(stillUp,'74 D2 ['+geo+'] THE CARD SURVIVES THE GESTURE THAT REACHES ITS OWN BUTTON: after a real finger drag the card is still up at +4600ms, past the 4000ms auto-dismiss. A drag fires no click, so without onScroll setting introHoldRef the card dies under the finger and the next tap reaches the lesson footer and steps the demo - measured on this build\'s own first fix, and on a bundle with the onScroll hook deleted',{cardUp:stillUp,scrolledTo:after});
+  }else{
+    L.note('74 D ['+geo+'] NOT EXERCISED HERE, reported rather than credited: the card\'s panel has no scroll room at this geometry ('+pi.room+'), so there is no scroll gesture to hold and D1/D2 would be positive controls. Expected wherever the cap does not bind. No PASS emitted.');
+  }
+  await b.close();
+}
+
 // B1bG IS NOW AN ASSERTION, NOT A TALLY. #497 printed the residual because it did not fix it; #498 fixes it, so the
 // count must be ZERO and a regression must be a red rather than a longer list in a passing line.
 L.say(unreachableSeen.length===0,
