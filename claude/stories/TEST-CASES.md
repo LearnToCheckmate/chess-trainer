@@ -829,12 +829,22 @@ git show <#497 sha>:app.js > gates/.trial/mainbundle.js      # md5 e60f12585339
 CT_APP=gates/.trial/mainbundle.js CT_74_GEOS=se node gates/regress/74-lesson-card-hit-area.js
 ```
 
-| bundle | geometries | result |
-|---|---|---|
-| `8f25da67c4e3` (#498) | se, short375, kunal730 | **160 pass, 0 fail** |
-| `e60f12585339` (#497, shipped) | se | **53 pass, 4 FAIL** |
+| bundle | what it is | geometries | result |
+|---|---|---|---|
+| `8f25da67c4e3` | the SHIPPED tree | se, short375, kunal730 | **214 pass, 0 fail** |
+| `e60f12585339` | #497's shipped bundle: no cap, no scroller | se | **70 pass, 5 FAIL** |
+| `598cbe4857d6` | the shipped bundle with **only `overflowY:'auto'` deleted** — capped but NOT scrolling | se | **70 pass, 4 FAIL** |
 
-All four reds are the overflow half — B1b (2 unreachable, both `scrollers=0`, both `movedBy=0`), B1d (panel does not fit), B1bG (2 over the run), B1bG2 (no card at a cap, because that bundle has no cap) — while **A3, B1, C0 and C1 stay GREEN**, because #497 fixed the hit test and not the overflow. Each control reddens only its own half, which is what says the two assertions measure two different faults rather than one.
+Main's five reds are B1b (2 unreachable, both `scrollers=0`, both `movedBy=0`), B1d (panel does not fit), B1e2 (the close ✕ unreachable), B1bG and B1bG2 — all five in the overflow block, while **A3, B1, C0 and C1 stay GREEN**, because #497 fixed the hit test and not the overflow.
+
+**THE THIRD CONTROL IS THE ONE THAT MATTERS, AND IT EXISTS BECAUSE THE FIRST VERSION OF THIS GATE SCORED 56 pass / 1 fail ON IT WITH EVERY NEW ASSERTION GREEN.** A 20-character deletion from the shipped bundle leaves the panel capped but not scrolling — the defect intact, CTA at 573.55 with zero user-scrollable ancestors — and B1b, B1d, B1bG, B5 and B1bG2 all passed. Two independent causes, both found by antagonist A and both fixed before the push:
+
+1. **The reachability assertion was reading the hit-test denominator**, which is filtered to controls *intersecting* the viewport. The fix moved the CTA from 540.28 (intersecting, counted) to 573.55 (entirely below, **dropped**), so B1b read "2 → 0" partly because the element under test left its own input set. B1b now reads a separate set — every interactive descendant of the panel, size-filtered only, never viewport-filtered — and **B1a2 asserts the CTA is IN that set by name**, which is the assertion that would have caught this where a non-emptiness guard would not.
+2. **`capBound` counted `scrollHeight > clientHeight` alone**, which is true of a capped panel whose `overflow-y` is `visible` and which scrolls nowhere, so B5 and B1bG2 asserted "at the cap **and scrolling**" about a panel that does not scroll. It now requires `isUserScroller` too.
+
+On `598cbe4857d6` **B1d PASSES** — the panel genuinely does fit — while B1b reddens. That is what says B1b and B1d are not two names for one measurement: one is about the box, the other about whether a finger can reach what is inside it.
+
+**A COST THIS FIX HAS AND THE BUILD DID NOT ORIGINALLY NAME, found by antagonist A.** The close ✕ is `position:absolute; top:9` *inside* the panel that is now the scroller, so it scrolls with the content. On the shipped bundle at 320x568: at rest the ✕ is `10..40`, fully on screen; scrolled to the end (67 of 67) it is `-57..-27`, 0.00px on screen, and `elementFromPoint` at its centre returns nothing. **There is no single scroll position showing both the ✕ and the CTA:** the ✕ needs `scrollTop ≤ 39`, the CTA needs `≥ 49.55`. That is a COST, not a defect, and the distinction is US-R50's own — the clause requires each control to BE REACHABLE, and the ✕ is reachable by scrolling back up, which B1e2 verifies on every card. What the clause does not ask for, and what is therefore not asserted, is one position serving both. Carried as `jobs/the-intro-cards-close-x-scrolls-out-of-the-card-it-closes-2026-10-08` with `position:sticky` as the candidate remedy.
 
 **THE CLASS SWEEP, and its numbers are the deliverable [R06].** Predicate per card: hold nothing (the measurement is inside the 4000ms auto-dismiss, so no hold is needed for a rect read), then for every control of the panel compute `restFullyOnScreen` and `REACHABLE` as defined above.
 

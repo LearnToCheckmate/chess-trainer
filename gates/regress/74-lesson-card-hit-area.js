@@ -68,27 +68,42 @@
 //   one case that needed it was fixed is how a guard is lost.]
 //
 // ── #498. THE OVERFLOW HALF IS FIXED, AND THE ASSERTION THAT WAS WATCHING IT COULD NOT SEE ITS OWN FIX ────
-// chess.jsx's intro-card PANEL now carries maxHeight:'calc(100vh - 36px)' and overflowY:'auto'. The 36px is the
-// overlay's own padding:18 top and bottom and `*{box-sizing:border-box}` makes the cap include the panel's padding
-// and border, so at 320x568 the cap is 532 and the overlay's content box is 532 - exact, not approximate.
-// MEASURED, Petroff (Russian) Defense at 320x568, main's bundle e60f12585339 -> #498's 0cc8d3dc196f:
-//     panel     -33.27..601.28  h634.55  maxHeight none  ovf visible  scrollRoom 0
-//            ->      18..550    h532     maxHeight 532px ovf auto     scrollRoom 103      (fits at BOTH ends)
+// chess.jsx's intro-card PANEL now carries maxHeight:'100vh' and overflowY:'auto', and `*{box-sizing:border-box}`
+// (chess.jsx:5934) makes the cap include the panel's own padding and border.
+// EVERY NUMBER IN THE FIRST VERSION OF THIS BLOCK WAS THE REJECTED BUNDLE'S AND IS WITHDRAWN [R18, antagonist A's
+// veto finding (b)]. It described `maxHeight:'calc(100vh - 36px)'` with a 532 cap and quoted 0cc8d3dc196f's rects -
+// a bundle this build BUILT AND THREW AWAY, cited as the md5 of record against this project's own #454 rule that
+// the md5 IS the reference. Five of its five figures were wrong for the tree being pushed. Re-measured:
+// MEASURED, Petroff (Russian) Defense at 320x568, main's bundle e60f12585339 -> the SHIPPED 8f25da67c4e3:
+//     panel     -33.27..601.28  h634.55  maxHeight none  ovf visible  scrollRoom 0   isUserScroller false
+//            ->       0..568    h568     maxHeight 568px ovf auto     scrollRoom 67  (fits at BOTH ends)
 //     close X   -23.27..  6.73  NOT fully on screen, 0 user-scrollers, moved 0.00  ->  UNREACHABLE
-//            ->      28..58     FULLY ON SCREEN AT REST - a complete 30px button where 6.73px used to show
+//            ->      10..40     FULLY ON SCREEN AT REST - a complete 30px button where 6.73px used to show
 //     CTA       540.28..584.28  NOT fully on screen, 0 user-scrollers, moved 0.00  ->  UNREACHABLE
-//            ->  591.55..635.55 below the fold, 1 user-scroller (the panel, room 103), moves -94.00  ->  REACHABLE
+//            ->  573.55..617.55 below the fold, 1 user-scroller (the panel, room 67)                ->  REACHABLE
+// ONE CARD, NOT TWO, HAS A CONTROL BELOW THE FOLD ON THE SHIPPED BUNDLE, and an earlier version of this header
+// said "Petroff STILL has exactly two of those" [R18, antagonist A's finding (a)]. Measured: 4 controls in
+// Petroff's panel at 320x568, exactly ONE not fully on screen - the CTA. The close X (10..40) and both Related
+// chips are fully on screen. The "two" belonged to the rejected 532-cap bundle, where more content was pushed
+// below the fold, and this build's OWN sweep log said 1 while four documents said 2. The CONCLUSION it was
+// offered for survives untouched and is the reason B1b was rewritten: #497's `fullyOnScreen` ceiling of 2 reads
+// 2<=2 on main and 1<=2 on the fix, so it never discriminates - it just does not do so for the reason first given.
 // THE CTA IS REACHED BY SCROLLING AND IS NOT ON SCREEN AT REST, which is stated rather than glossed: US-R50
 // sanctions exactly that ("a dialog whose content scrolls satisfies that by scrolling"), and it is not the same
 // claim as "the button is visible". A card whose CTA is pinned below a scrolling content area would be better and
 // is a structural design change to a shared overlay; it is nominated for Kunal, not taken.
-// CLASS SWEPT [R06], all 170 lesson cards of all four groups at 320x568, one browser:
-//     #498   : 170 measured, 0 with no card, tallest panel 532 (the cap, at Openings/20),
-//              CARDS WITH AN UNREACHABLE CONTROL = 0, below-the-fold-but-reachable = 2 (Openings/45, Gambits/50)
-//     main   : the same sweep over e60f12585339 is this gate's control and is published with its command below.
+// CLASS SWEPT [R06], all 170 lesson cards of all four groups at 320x568, one browser, THREE bundles:
+//     e60f12585339  main          170 measured, 1 card with an UNREACHABLE control (2 controls), tallest 634.55
+//     0cc8d3dc196f  REJECTED      170 measured, 0 unreachable, below-fold-but-reachable 2, tallest 532
+//     8f25da67c4e3  SHIPPED       170 measured, 0 unreachable, below-fold-but-reachable 1, tallest 568
+// The middle row is kept because it is WHY the cap is 100vh: calc(100vh-36px) is tighter than the VIEWPORT, and it
+// moved Gambits row 50's CTA from 510.94..554.94 (fully on screen on main) to 532.86..576.86 - a card with nothing
+// wrong with it made worse to fix a broken one [#398]. Only the 170-card tier caught it; the six lessons this gate
+// drives do not include Gambits row 50 and went green on both caps.
 // WHY THE OLD ASSERTION WENT: #497's B1b counted controls that are not `fullyOnScreen`, with a ceiling of 2.
-// Petroff still has exactly 2 of those on #498 - the CTA and a Related-lessons chip - so that assertion reads
-// 2 <= 2 on BOTH bundles and is INCAPABLE of distinguishing unreachable ink from below-the-fold ink. It was
+// It reads 2<=2 on main and 1<=2 on the shipped fix, so it NEVER discriminates. (An earlier version of this
+// paragraph said the fixed bundle "still has exactly 2 of those"; that was the REJECTED bundle's figure and is
+// withdrawn [R18].) It was
 // watching the right card and measuring the wrong property. B1b is now reachability with a ceiling of ZERO, B1c
 // is the below-the-fold diagnostic as a NOTE (never a verdict, or the first lesson to gain a line reds a correct
 // tree), B1d asserts the panel fits, and B5/B1bG2 are the anti-vacuity guards: B1b and B1d can only fail where a
@@ -136,10 +151,24 @@
 // CT_APP=<the #496 bundle, md5 01387f706cea>  ->  B1 RED. That is the ideal control for the HIT-TEST half: free,
 // and the actual broken build. On it, A3 is red too (the mechanism), B3 stays GREEN (the cards still reach the bar,
 // which is what makes B1 able to fail), and C1 is red on the lessons whose centre is lost.
-// AND FOR THE OVERFLOW HALF [#498], the control is #497's own shipped bundle e60f12585339, which is equally free
-// because it is the tree this build was cut from. MEASURED BOTH WAYS rather than asserted:
-//     #498's bundle 8f25da67c4e3, all three geometries : 160 pass, 0 fail
-//     e60f12585339 with CT_74_GEOS=se                  :  53 pass, 4 FAIL
+// AND FOR THE OVERFLOW HALF [#498], THERE ARE TWO CONTROLS AND THE SECOND ONE IS THE ONE THAT MATTERS.
+// The first is #497's own shipped bundle e60f12585339, free because it is the tree this build was cut from.
+// THE SECOND WAS BUILT BY ANTAGONIST A AND IS WHY ITS VETO WAS UPHELD: take the SHIPPED bundle and delete only
+// `overflowY:'auto'`, keeping `maxHeight:'100vh'`. That is a 20-character deletion which leaves the panel CAPPED
+// but NOT SCROLLING, i.e. the defect intact, and it is the only control that separates the two halves of this
+// build's own fix. ON THE FIRST VERSION OF THIS GATE IT SCORED 56 pass / 1 fail WITH B1b, B1d, B1bG, B5 AND
+// B1bG2 ALL GREEN - every assertion this build added, and both its anti-vacuity guards, passing on a bundle
+// built to fail them. CLAUDE.md: "Prove a gate against a deliberately broken build before trusting its green."
+//     sed 's/position:"relative",maxHeight:"100vh",overflowY:"auto"/position:"relative",maxHeight:"100vh"/' \
+//         app.js > gates/.probe/nocontrol.js        # md5 598cbe4857d6
+//     CT_APP=gates/.probe/nocontrol.js CT_74_GEOS=se node gates/regress/74-lesson-card-hit-area.js
+// MEASURED THREE WAYS rather than asserted:
+//     8f25da67c4e3  SHIPPED, all three geometries : 214 pass,  0 fail
+//     e60f12585339  main, CT_74_GEOS=se           :  70 pass,  5 FAIL  (B1b 2 unreachable, B1d, B1e2, B1bG, B1bG2)
+//     598cbe4857d6  capped but not scrolling, se  :  70 pass,  4 FAIL  (B1b 1 unreachable, C0, B1bG, B1bG2)
+// NOTE WHAT THE THIRD ROW PROVES THAT THE SECOND CANNOT: on 598cbe4857d6 **B1d PASSES** - the panel genuinely
+// does fit the viewport - while B1b reddens. So B1b and B1d are not two names for one measurement: one is about
+// the box and the other about whether a finger can reach what is inside it.
 // and THE FOUR REDS ARE ALL IN THE OVERFLOW BLOCK: B1b (2 unreachable controls, both scrollers=0, both movedBy=0),
 // B1d (panel -33.27..601.28 h634.55 in 568, fits false, maxHeight none, isUserScroller false), B1bG (2 over the
 // run) and B1bG2 (no card at a cap, because on that bundle there is no cap - the anti-vacuity guard correctly
@@ -150,7 +179,8 @@
 //   written required the CTA's FULL RECT on screen, which is red on main (bottom 584.28) even though its CENTRE
 //   (562.28) is tappable - so the overflow control produced a red in the hit-test block AND skipped C1 on the one
 //   bundle whose hit-test behaviour C1 exists to pin. C0 now tests the centre, which is also what US-R50's clause
-//   actually says, and the control went from 5 reds to 4 with C1 restored.
+//   actually says, and that restored C1 on main. Main's current reds are B1b, B1d, B1e2, B1bG and B1bG2 - all
+//   five in the overflow block, with A3, B1, C0 and C1 green.
 // Published with the commands, per #411:
 //   git show <sha>:app.js > gates/.trial/mainbundle.js
 //   CT_APP=gates/.trial/mainbundle.js CT_74_GEOS=se node gates/regress/74-lesson-card-hit-area.js
@@ -163,10 +193,14 @@ const GEOS=(process.env.CT_74_GEOS||'se,short375,kunal730').split(',');
 const VACUOUS=[];
 // #498 CHANGED WHAT THIS BLOCK ASSERTS, AND THE REASON IS THAT THE OLD TEST COULD NOT SEE ITS OWN FIX.
 // #497 asserted `fullyOnScreen` with a per-card ceiling of 2, Petroff's CTA and close X being the two. MEASURED on
-// #498's bundle 0cc8d3dc196f: Petroff STILL has exactly 2 controls not fully on screen at rest (the CTA, and a
-// Related-lessons chip) - so the old assertion passes at 2 on BOTH bundles and is blind to the difference between
-// ink drawn off the screen with nothing to scroll it and ink below the fold inside a scroller. That is CLAUDE.md's
-// "below the fold is not unreachable" rule, and the ceiling was measuring the wrong one of the two.
+// the SHIPPED bundle 8f25da67c4e3: Petroff has ONE control not fully on screen at rest - the CTA at 573.55..617.55;
+// the close X (10..40) and both Related chips are fully on screen. So the old assertion reads 2<=2 on main and
+// 1<=2 here and is blind IN BOTH DIRECTIONS to the difference between ink drawn off the screen with nothing to
+// scroll it and ink below the fold inside a scroller. That is CLAUDE.md's "below the fold is not unreachable"
+// rule, and the ceiling was measuring the wrong one of the two.
+// [AN EARLIER VERSION OF THIS PARAGRAPH PUT THE COUNT AT 2 AND NAMED 0cc8d3dc196f - A BUNDLE THIS BUILD BUILT AND
+// THREW AWAY - AS "#498's bundle". Both are withdrawn [R18]. Antagonist A found it, and noted that this build's
+// OWN sweep log already said 1 while four documents said 2.]
 // SO THE HARD ASSERTION IS NOW REACHABILITY, which is what TC-R62's pass condition asks for: a control passes if
 // its rect is fully inside the viewport, OR if scrolling a USER-scrollable ancestor brings it fully inside. The
 // ceiling is therefore ZERO and it is a real assertion rather than an allowance.
@@ -229,6 +263,10 @@ const layer=(b)=>b.page.evaluate(()=>{
     return {t:nm(x).slice(0,30),rect:[r2(r.left),r2(r.top),r2(r.width),r2(r.height)],bottom:r2(r.bottom),
             fullyOnScreen:fully,p25:pt(.25),p50:pt(.5),p75:pt(.75)};};
   const cta=[...document.querySelectorAll('button')].find(z=>/^Got it/.test((z.innerText||'').trim()));
+  // THE PANEL, which is the element this build's fix is ON, found BEFORE the reachability pass because that pass
+  // now needs it to build its own denominator. Asserted directly rather than only through its children: the
+  // mechanism is a height cap, so the thing to measure is whether the panel fits [#377].
+  let panelEl=null;if(cta){panelEl=cta;while(panelEl&&panelEl.parentElement&&getComputedStyle(panelEl.parentElement).position!=='fixed')panelEl=panelEl.parentElement;}
   // ---- REACHABILITY [#498]. gate 40 is the reference implementation and its two traps are both live here ----
   // (a) a USER can only scroll a box whose COMPUTED overflow-y is auto|scroll AND which has room; script is not so
   //     limited, and scrollIntoView() happily scrolls an overflow:hidden box, which is how gate 40's first version
@@ -261,18 +299,34 @@ const layer=(b)=>b.page.evaluate(()=>{
   };
   const rested=els.map(sample);
   els.forEach((el,i)=>{Object.assign(rested[i],reach(el,rested[i]));});
+  // ---- THE REACHABILITY DENOMINATOR, AND IT IS A SEPARATE SET ON PURPOSE [#498, antagonist A's veto] ----
+  // `els` above is filtered to controls that INTERSECT the viewport (r.bottom>0 && r.top<innerHeight), which is
+  // right for the hit test - a sample point off the screen is not a hit-test failure - and CATASTROPHIC for the
+  // reachability test, because the whole point of the overflow defect is a control that has left the viewport.
+  // MEASURED: #498's own fix moves Petroff's CTA from 540.28 (intersecting, counted) to 573.55 (entirely below,
+  // DROPPED), so B1b read "2 -> 0" partly because the element under test left its own input set. Proved on a
+  // bundle built to fail it - the shipped bundle with `overflowY:'auto'` deleted and the cap kept, md5
+  // 598cbe4857d6 - where the defect is intact (CTA 573.55, zero user-scrollable ancestors) and B1b, B1d, B1bG,
+  // B5 and B1bG2 ALL PASSED. That is the trap this file already records in another costume: the check and the
+  // thing being checked moved together. So the reachability set is every interactive descendant of the card
+  // PANEL, size-filtered only, never viewport-filtered.
+  const pcAll=panelEl?[...panelEl.querySelectorAll('button,[role=button],a')].filter(x=>{
+    const r=x.getBoundingClientRect();return r.width>=2&&r.height>=2;}):[];
+  const panelRested=pcAll.map(sample);
+  pcAll.forEach((el,i)=>{Object.assign(panelRested[i],reach(el,panelRested[i]));});
+  const ctaInSet=!!(cta&&pcAll.indexOf(cta)>=0);
   // THE PANEL, which is the element this build's fix is ON. Asserted directly rather than only through its
   // children: the mechanism is a height cap, so the thing to measure is whether the panel fits [#377].
-  let panel=null;if(cta){panel=cta;while(panel&&panel.parentElement&&getComputedStyle(panel.parentElement).position!=='fixed')panel=panel.parentElement;}
-  const pr=panel?panel.getBoundingClientRect():null;
-  const ps=panel?getComputedStyle(panel):null;
+  const pr=panelEl?panelEl.getBoundingClientRect():null;
+  const ps=panelEl?getComputedStyle(panelEl):null;
   return {modalZ:top?zOf(top):null,hasModal:!!top,overlayCount:overlays.length,bars,
           modalHoldsTheCTA:!!(top&&cta&&top.contains(cta)),
-          panel:panel?{top:r2(pr.top),bottom:r2(pr.bottom),h:r2(pr.height),
+          panelEls:panelRested,ctaInSet,
+          panel:panelEl?{top:r2(pr.top),bottom:r2(pr.bottom),h:r2(pr.height),
                        fits:pr.top>=-0.5&&pr.bottom<=innerHeight+0.5,
                        maxHeight:ps.maxHeight,overflowY:ps.overflowY,
-                       scrollRoom:panel.scrollHeight-panel.clientHeight,
-                       isUserScroller:/auto|scroll/.test(ps.overflowY)}:null,
+                       scrollRoom:panelEl.scrollHeight-panelEl.clientHeight,
+                       isUserScroller:/auto|scroll/.test(ps.overflowY)&&(panelEl.scrollHeight>panelEl.clientHeight+1)}:null,
           els:rested,vw:innerWidth,vh:innerHeight};
 });
 const cta=(b)=>b.page.evaluate(()=>{const c=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));
@@ -373,13 +427,21 @@ for(const geo of GEOS){
     // B1b THE OVERFLOW FAULT, WHICH #498 FIXES. The question is REACHABILITY, not whether a rect is fully inside
     // the viewport: a control below the fold inside a scroller is correct under US-R50, a control that no
     // user-scrollable ancestor can bring on screen is the defect. Ceiling ZERO, a real assertion.
-    const unreach=ly.els.filter(x=>!x.reachable);
-    const below=ly.els.filter(x=>!x.fullyOnScreen&&x.reachable);
+    // B1a2 IS THE ASSERTION THAT WOULD HAVE CAUGHT ANTAGONIST A's VETO, and non-emptiness would not have.
+    // B1a asserts the hit-test set is non-empty. That is not enough when the FILTER PRODUCING THE SET IS
+    // CORRELATED WITH THE DEFECT: the overflow fault moves a control out of the viewport, and a viewport filter
+    // then removes exactly the control under test while the set stays comfortably non-empty. So the subject is
+    // asserted BY NAME to be inside the set the verdict is computed over.
+    L.say(ly.ctaInSet&&ly.panelEls.length>0,
+      '74 B1a2 ['+geo+'] '+o.name+': THE REACHABILITY DENOMINATOR CONTAINS ITS OWN SUBJECT - the "Got it" CTA is one of the '+ly.panelEls.length+' panel controls this verdict is computed over. Without this, a control that leaves the viewport leaves the denominator and B1b reports ZERO UNREACHABLE because the thing it measures is gone',
+      {ctaInSet:ly.ctaInSet,panelControls:ly.panelEls.length,hitTestControls:ly.els.length});
+    const unreach=ly.panelEls.filter(x=>!x.reachable);
+    const below=ly.panelEls.filter(x=>!x.fullyOnScreen&&x.reachable);
     unreachableSeen.push(...unreach.map(x=>geo+'/'+o.name+'/'+x.t+' rect '+JSON.stringify(x.rect)+' scrollers='+x.scrollers));
     belowFoldSeen.push(...below.map(x=>geo+'/'+o.name+'/'+x.t+' rect '+JSON.stringify(x.rect)+' movedBy='+x.movedBy));
     L.say(unreach.length<=UNREACHABLE_CEILING_PER_CARD,
-      '74 B1b ['+geo+'] '+o.name+': ZERO controls of this card are UNREACHABLE ('+unreach.length+') - every one is either fully inside the viewport or is brought fully inside by scrolling a USER-scrollable ancestor, measured by actually scrolling it and re-reading the rect, never by scrollIntoView. On main\'s bundle Petroff at 320x568 had TWO with scrollers=0 that moved 0.00px: CTA 540.28..584.28 and close X -23.27..6.73',
-      unreach.length?unreach.map(x=>x.t+'@'+JSON.stringify(x.rect)+' scrollers='+x.scrollers+' movedBy='+x.movedBy):'all '+ly.els.length+' reachable');
+      '74 B1b ['+geo+'] '+o.name+': ZERO controls of this card are UNREACHABLE ('+unreach.length+') over '+ly.panelEls.length+' panel controls - every one is either fully inside the viewport or is brought fully inside by scrolling a USER-scrollable ancestor, measured by actually scrolling it and re-reading the rect, never by scrollIntoView. On main\'s bundle Petroff at 320x568 had TWO unreachable with scrollers=0 that moved 0.00px (CTA 540.28..584.28 and close X -23.27..6.73); on a bundle capped but NOT scrolling (598cbe4857d6) it has ONE, the CTA at 573.55..617.55',
+      unreach.length?unreach.map(x=>x.t+'@'+JSON.stringify(x.rect)+' scrollers='+x.scrollers+' movedBy='+x.movedBy):'all '+ly.panelEls.length+' panel controls reachable');
     // B1c IS A NOTE AND NEVER A PASS OR A FAIL. Below-the-fold-but-reachable is the sanctioned outcome of this
     // build's own fix, so asserting a count here would red a correct tree the first time a lesson gains a line.
     if(below.length)L.note('74 B1c ['+geo+'] '+o.name+': DIAGNOSTIC, not a verdict - '+below.length+' control(s) sit below the fold and are reached by scrolling the card: '+below.map(x=>x.t+' rest '+JSON.stringify(x.rect)+' -> moved '+x.movedBy).join(' ; '));
@@ -389,7 +451,28 @@ for(const geo of GEOS){
     // alignItems:'center'. A1/B0c already prove the card is up, so ly.panel cannot be null here.
     L.say(!!(ly.panel&&ly.panel.fits),
       '74 B1d ['+geo+'] '+o.name+': the card PANEL is entirely inside the viewport ('+(ly.panel?ly.panel.top+'..'+ly.panel.bottom+' h'+ly.panel.h+' in '+ly.vh:'NO PANEL')+'). This is the overflow mechanism: on main the panel carried maxHeight none and overflowed symmetrically off both ends',ly.panel||{panel:null});
-    if(ly.panel&&ly.panel.scrollRoom>0){capBound++;capBoundGlobal.push(geo+'/'+o.name+' scrollRoom '+ly.panel.scrollRoom+' maxHeight '+ly.panel.maxHeight);}
+    // AND THE ANTI-VACUITY COUNTER REQUIRES THE PANEL TO ACTUALLY SCROLL, NOT MERELY TO OVERFLOW [#498,
+    // antagonist A's veto, cause 2]. The first version counted `scrollRoom>0` alone - scrollHeight>clientHeight -
+    // which is TRUE of a capped panel whose overflow-y is `visible` and which therefore scrolls nowhere. Measured
+    // on 598cbe4857d6: B5 and B1bG2 both PASSED reporting "at the cap and scrolling" about a panel with
+    // overflow-y:visible and zero user-scrollable ancestors beneath it. isUserScroller now means auto|scroll AND
+    // room, so the guard asserts the property its own sentence claims.
+    if(ly.panel&&ly.panel.isUserScroller&&ly.panel.scrollRoom>0){capBound++;capBoundGlobal.push(geo+'/'+o.name+' scrollRoom '+ly.panel.scrollRoom+' maxHeight '+ly.panel.maxHeight+' ovf '+ly.panel.overflowY);}
+    // B1e THE COST ANTAGONIST A FOUND, ASSERTED SO IT CANNOT CHANGE IN SILENCE. The close X is
+    // position:absolute inside the panel that this build made the scroller, so it SCROLLS WITH THE CONTENT.
+    // MEASURED on 8f25da67c4e3 at 320x568 on Petroff: at rest the X is 10..40, fully on screen; scrolled to the
+    // end (67 of 67) it is -57..-27, 0.00px on screen and elementFromPoint at its centre returns nothing. There
+    // is NO single scroll position showing both the X and the CTA: the X needs scrollTop <= 39 and the CTA needs
+    // >= 49.55. THAT IS A COST AND NOT A DEFECT, and the distinction is US-R50's own: the clause requires each
+    // control to BE REACHABLE, and the X is reachable by scrolling back up, which reach() verifies. What is
+    // asserted here is the reachability of BOTH, independently - not that one position serves both, which the
+    // clause does not ask for. Carried as a named cost on
+    // jobs/the-intro-cards-close-x-scrolls-out-of-the-card-it-closes-2026-10-08.
+    {
+      const x=ly.panelEls.filter(e=>/^(✕|Close)/.test(e.t)||e.t==='Close');
+      L.say(x.length>=1,'74 B1e ['+geo+'] '+o.name+': THE DENOMINATOR for the close-X claim - the panel offers a close control to measure ('+x.length+')',{found:x.map(e=>e.t)});
+      L.say(x.every(e=>e.reachable),'74 B1e2 ['+geo+'] '+o.name+': the close X is REACHABLE ('+x.map(e=>e.t+' rest '+JSON.stringify(e.rect)+' fullyAtRest='+e.fullyOnScreen+' reachable='+e.reachable).join(' ; ')+'). On main at 320x568 it read -23.27..6.73 with zero user-scrollable ancestors, so 6.73px of a 30px button showed and nothing could bring the rest on',x.map(e=>({t:e.t,rect:e.rect,fullyOnScreen:e.fullyOnScreen,reachable:e.reachable,scrollers:e.scrollers})));
+    }
     // C: THE CONSEQUENCE, BY A REAL TAP. On the broken bundle the tap went to the footer and the card STAYED UP.
     // #498: THE TAP NOW SCROLLS FIRST WHERE A FINGER WOULD HAVE TO, AND THAT IS A STRENGTHENING RATHER THAN A
     // WEAKENING. Why it had to change: #498 caps the panel at 100vh, so on Petroff at 320x568 the CTA sits at
