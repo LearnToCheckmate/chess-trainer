@@ -970,15 +970,30 @@ function dropTxt(altSan,altDrop){
    ever have shown the recovery. sfBestLine, three lines below sfEval1 and already used by Review to play
    the better line out, resolves the WHOLE principal variation from the SAME single query, so the extra
    plies cost NO extra engine query - which is the only reason this part of the job is bounded.
-   THE TRIM RULE, AND IT ENDS ON THE RECOVERY RATHER THAN ON A NUMBER OF PLIES. A quiet tail adds noise
-   without showing anything ("Then e5 Nf3 d6 d4 follows" is the trap explainAnno's own pvShow comment
-   names), so the line is cut back to the last FORCING ply: a capture, a check or mate. In Kunal's
-   position that is exactly what puts the recapture on screen - after 9.hxg4 the pv is Bxg4, a white
-   move, then Black taking the f3 knight, and trimming to the last capture keeps all three. Where the
-   pv has no forcing continuation the line collapses to one ply, which is what shipped before, so this
-   change can only ever ADD the recovery and never shorten an existing line.
-   THE CAP IS SAC_LINE_MAX AND IT IS 3 ON PURPOSE: it is pvShow's own existing cap one function above,
-   so the two places that print a continuation agree rather than drifting. */
+   THE TRIM RULE: the line is cut back to the last ply that is BOTH forcing (a capture, a check or mate)
+   AND THE MOVER'S OWN. A quiet tail adds noise without showing anything ("Then e5 Nf3 d6 d4 follows" is
+   the trap explainAnno's own pvShow comment names), and a tail that ends on the OPPONENT shows the
+   punishment instead of the recovery - see the parity note on the loop itself, which is there because an
+   antagonist found that exact defect on Kunal's own game. Since out[0] is always the mover's, the
+   surviving line is always ODD in length. Where the pv has no forcing continuation of the mover's own the
+   line collapses to one ply, which is what shipped before, so this change can only ever ADD the recovery
+   and never shorten or re-point an existing line.
+   THE CAP IS SAC_LINE_MAX AND IT IS 3 BECAUSE pvShow BELOW CHOSE 3, AND THAT IS ALL IT IS [#504
+   antagonist A, veto upheld]. The first version of this comment said the two places "agree rather than
+   drifting" and that was FALSE TWICE OVER, measured: pvShow's slice is the bare literal 3 and does not
+   reference SAC_LINE_MAX, so nothing couples them and they can drift exactly as before - "a written
+   warning is not a guard"; and pvShow's cap is `pvMates?_pv.length:3`, i.e. UNCAPPED on a mating pv,
+   while sacLine caps at 3 unconditionally. So the two already disagree, today, on the mating case. The
+   number is COPIED, not shared, and pvShow is deliberately left alone: making it read SAC_LINE_MAX would
+   change a different sentence's output in a build that was not gated for it.
+   AND KNOW WHAT THE TRIM RULE DOES *NOT* DO, because the first version of this comment claimed it ends on
+   the recovery and that is false [#504 antagonist A, measured and reproduced]. Trimming happens INSIDE the
+   3-ply window, so where the recovery sits at ply 4, or at ply 3 behind a quiet ply 2, the quiet tail is
+   popped and the line falls back to ONE ply - byte-identical to what shipped before #504. Reproduced on
+   this file's own fixture FEN with the legal pv Bxe7 Rc8 Bd8 Rxc2+: sacLine returns ["Bxe7"] and the
+   sentence is the pre-#504 sentence. That is a SAFE fallback and not a regression - the line never shows
+   something false, and claim "it can only ever ADD plies" still holds - but the recovery is NOT shown in
+   that class, and TC-R10/S16 asserts exactly that so the limit is recorded rather than discovered. */
 const SAC_LINE_MAX=3;
 const SAC_DEAD_TRIES=3;
 function sacLine(gAfterCap,pvUci){
@@ -992,8 +1007,19 @@ function sacLine(gAfterCap,pvUci){
       out.push(toSAN(g,m,nb));
       g=makeMove(g,m);
     }
-    /* never END on a quiet move, and never trim below the one ply that shipped before */
-    while(out.length>1&&!/[x+#]/.test(out[out.length-1]))out.pop();
+    /* NEVER END ON A QUIET MOVE, NEVER END ON THE *OPPONENT'S* MOVE, AND NEVER TRIM BELOW THE ONE PLY
+       THAT SHIPPED BEFORE. The parity term is there because of an upheld veto and it is the whole point of
+       the rule [#504 antagonist B]. The position handed in is the one AFTER the opponent's capture, so the
+       MOVER is to play and out[i] belongs to the mover exactly when i is EVEN. The first version of this
+       loop tested only `x|+|#`, which is a property of the STRING and is as true of the opponent's check as
+       of the player's recapture - so every EVEN-length line ended on the opponent's move. Measured on
+       Kunal's own game (claude/agents/bench/pgn/184024052818.pgn, ply 74, 37...Rf7, Kunal2023 is Black):
+       the line came out "If Qxf7+, Kxf7 Rf1+ and Black is winning", where Rf1+ is WHITE checking Kunal's
+       king - the exact inverse of the feedback this build exists to answer, and on a ply the PREVIOUS
+       bundle already got right. With the parity term that ply returns ["Kxf7"] and is byte-identical to
+       pre-#504 again. "The recapture is on screen" means the MOVER's recapture; a line that stops on the
+       opponent's reply shows the sacrifice and the punishment. */
+    while(out.length>1&&!(/[x+#]/.test(out[out.length-1])&&(out.length-1)%2===0))out.pop();
   }catch(e){}
   return out;
 }
@@ -1001,8 +1027,35 @@ function sacLine(gAfterCap,pvUci){
    written out twice before, identically, which is the shape the _curSel comment below calls a scope
    mismatch waiting to happen - and it matters more now that the clause has a multi-ply form. Pure and
    module-level like dropTxt and explainAnno, so the harness exercises the real sentence rather than a
-   copy of it. replyLine is the #504 form; replySan is the single-ply fallback, so a record stored by an
-   older bundle still renders. */
+   copy of it. replyLine is the #504 form and replySan the single-ply fallback. THE FALLBACK IS DEFENSIVE
+   CODING AND NOT A COMPATIBILITY PATH, corrected on antagonist A's finding [#504]: sacRef is a useRef,
+   reset per game key and never persisted to storage, so NO pre-#504 record can exist to render. The first
+   version of this comment claimed it served one, which was a claim about a population that does not
+   exist. It is kept because a one-line fallback is cheaper than reasoning about every writer, and
+   TC-R10/S13 and S15 pin it - but they pin a defensive branch, not a live one. */
+/* #504 THE STORE DECISION, PURE AND MODULE-LEVEL *BECAUSE* OF AN UPHELD VETO. Antagonist A found that the
+   first version of this build cached a dead search FOR EVER in the common timing, which is the #389 defect
+   it was written to fix, reproduced by its own guard. The mechanism, confirmed by reading the effect below:
+   the effect's `if(sacRef.current.byPly[ai])return;` returns BEFORE its cleanup is registered, so when a
+   `retryable` entry is already present no cleanup exists to remove it; and sacRun's write was guarded only
+   by the GAME key, which stepping plies does not change. So a search that died AFTER the user stepped off
+   the ply - and sfBestLine's own timeouts are 2500ms for the idle check and 5600ms hard, against a 450ms
+   debounce, so that is roughly a 5.6-second window on every ply - wrote `retryable` onto a ply whose
+   cleanup had already run, and nothing could ever clear it. The clause then stayed absent for the session.
+   THE FIX IS AN IDENTITY CHECK, and it is here rather than inline so it can be ENUMERATED: a dead result is
+   recorded ONLY while this attempt's own pending marker is still the entry in place. If the user left, the
+   cleanup deleted that marker, `prev!==mark`, and this returns null meaning WRITE NOTHING - so the next
+   visit finds no entry and asks again, which is what the guard was supposed to do all along.
+   A REAL ANSWER IS CACHED EITHER WAY, deliberately: a completed search is correct whether or not the user
+   is still looking at the ply, and discarding it would cost a fresh 1150ms query on every revisit. Only the
+   FAILURE is identity-gated, because only a failure must not become permanent.
+   Returns null for "write nothing", else {entry, dead}. */
+function sacStore(prev,mark,rec,deadSoFar,maxTries){
+  if(rec&&rec.replyLine&&rec.replyLine.length)return {entry:rec,dead:deadSoFar||0};
+  if(prev!==mark)return null;
+  const n=(deadSoFar||0)+1;
+  return {entry:(n>=maxTries)?{none:true,deadTries:n}:{retryable:true,tries:n,capSan:mark&&mark.capSan},dead:n};
+}
 function refuteTxt(R){
   if(!R||!R.capSan)return '';
   const line=(R.replyLine&&R.replyLine.length)?R.replyLine:(R.replySan?[R.replySan]:[]);
@@ -5738,9 +5791,21 @@ export default function App(){
       /* #504 sfBestLine, NOT sfEval1, and the swap is the whole fix for part (b) of Kunal's report: one
          query, same 700ms, but its pv: handler carries the FULL principal variation where sfEval1 keeps
          only a bestmove. The score comes back through onScore, sign-converted to WHITE's frame exactly as
-         sfEval1 does it internally (mateW(raw,sign), cp*sign), because every consumer downstream - the
-         verdict clause here, cpW and mateW on the stored record - was already White-framed and silently
-         re-framing them would be #385's hundredfold error in a new place. */
+         sfEval1 does it internally (mateW(raw,sign), cp*sign), because the VERDICT CLAUSE below reads it
+         in that frame and silently re-framing it would be #385's hundredfold error in a new place.
+         TWO CORRECTIONS TO THE FIRST VERSION OF THIS COMMENT [#504 antagonist A, both upheld]: it named
+         "cpW and mateW on the stored record" as downstream consumers and NOTHING READS THEM - `grep -n
+         cpW chess.jsx` finds only evTxt's parameter and an unrelated review-build local - so they are
+         stored for inspection and are not a reason for the frame; and it said sfBestLine sits "three
+         lines below" sfEval1 while the commit said fifteen. Measured: sfEval1 is a const 13 lines above
+         sfBestLine. A line distance in a comment is the #504 instance of "do not put a line number in a
+         comment that lives in the file it cites".
+         ONE CHANNEL MEASURED AS OPEN AND NOT CLOSED HERE: sfBestLine keeps the LAST `pv` info line and
+         resolves `line||[bm]`, and the worker forwards every info line carrying a score - including
+         aspiration-window lowerbound/upperbound lines - so pv[0] is not GUARANTEED to equal bestmove,
+         which is the one way this change could rewrite rather than extend a line. Antagonist A could not
+         force that case in the sandbox and neither could I, so it is recorded as a residual on the job
+         rather than claimed closed. Note it is pre-existing for sfBestLine's other caller. */
       const _fen=toFEN(w.t.after);
       const _sgn=((_fen.split(' ')[1]||'w')==='w')?1:-1;
       let pv=null,_cpW=null,_mtW=null;
@@ -5767,16 +5832,16 @@ export default function App(){
          against sfBestLine BY NAME ("A FAILED QUERY IS NOT AN ANSWER, AND CACHING IT IS HOW BROKEN ONCE
          BECOMES BROKEN FOR EVER"), measured there on plies 19 and 25 over three revisits each, and moving
          to sfBestLine makes it strictly more likely to fire.
-         A RETRYABLE MARKER AND NOT A DELETE. Deleting the entry would re-arm the effect below on the very
-         next render and spin the worker while the engine stays dead; a `retryable` entry is TRUTHY, so the
-         effect's own `if(sacRef.current.byPly[ai])return;` holds the retry until the user LEAVES and
-         revisits the ply, which is the existing mechanism for `pending` and needs no new machinery. */
+         THE DECISION IS sacStore, MODULE-LEVEL AND PURE, AND IT IS THERE BECAUSE OF AN UPHELD VETO rather
+         than for tidiness: the first version of this guard wrote `retryable` whenever the game key matched,
+         which made a post-unmount failure PERMANENT and reproduced #389 exactly. Read sacStore's header for
+         the mechanism and the 5.6-second window. `w.mark` is the pending object this attempt created; the
+         identity check is what distinguishes "the user is still here" from "the cleanup already ran". */
       if(sacRef.current.key===w.key){
         if(!sacRef.current.dead)sacRef.current.dead={};
-        if(!sanLine.length){
-          const n=(sacRef.current.dead[w.ai]||0)+1; sacRef.current.dead[w.ai]=n;
-          sacRef.current.byPly[w.ai]=(n>=SAC_DEAD_TRIES)?{none:true,deadTries:n}:{retryable:true,tries:n,capSan:w.t.san};
-        } else sacRef.current.byPly[w.ai]={capSan:w.t.san,replySan,replyLine:sanLine,verdict,cpW:_cpW,mateW:_mtW};
+        const rec=sanLine.length?{capSan:w.t.san,replySan,replyLine:sanLine,verdict,cpW:_cpW,mateW:_mtW}:null;
+        const st=sacStore(sacRef.current.byPly[w.ai],w.mark,rec,sacRef.current.dead[w.ai],SAC_DEAD_TRIES);
+        if(st){sacRef.current.byPly[w.ai]=st.entry;sacRef.current.dead[w.ai]=st.dead;}
       }
       setSacTick(x=>x+1);
     }finally{
@@ -5794,10 +5859,14 @@ export default function App(){
     if(!pos||!pl||!pl.move){sacRef.current.byPly[ai]={none:true};return;}
     const t=sacTaker(pos,pl.move);
     if(!t){sacRef.current.byPly[ai]={none:true};return;}
-    sacRef.current.byPly[ai]={pending:true,capSan:t.san};
-    const timer=setTimeout(()=>{sacWantRef.current={key,ai,t,pos};sacRun();},450);
-    /* #504 a `retryable` entry is dropped on the way out exactly as a `pending` one is, which is what
-       turns the dead-search marker above into a real retry on the next visit rather than a cache. */
+    /* #504 `mark` is handed to sacRun so it can tell whether this ply is still the one being looked at.
+       The cleanup below deletes it on the way out, so a search that dies AFTER that sees prev!==mark and
+       writes nothing - see sacStore. Without the identity the write landed on a ply whose cleanup had
+       already run, and because THIS EFFECT RETURNS EARLY ON A TRUTHY byPly[ai] (five lines above) no
+       cleanup is ever registered again for that ply, so the entry was permanent. */
+    const mark={pending:true,capSan:t.san};
+    sacRef.current.byPly[ai]=mark;
+    const timer=setTimeout(()=>{sacWantRef.current={key,ai,t,pos,mark};sacRun();},450);
     return()=>{clearTimeout(timer);const _e=sacRef.current.byPly[ai];if(_e&&(_e.pending||_e.retryable))delete sacRef.current.byPly[ai];};
   },[inReview,review,ply,curAnno,sacRun]);
   const _annoWhy=useMemo(()=>{

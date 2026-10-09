@@ -104,6 +104,20 @@ work, and I can watch that line on the board.
   Bxb5+ ...") and the next-best comparison (#357, #365). (TC-R10)
 - The "why" / play-out button (rev-playout) exists on Brilliant, Great, Best and Excellent moves and animates
   the line on the board without a console error (#354, #356). (TC-R10)
+- THE LINE RUNS TO THE PLAYER'S OWN RECOVERY, NOT TO THE SACRIFICE AND NOT TO THE PUNISHMENT. Where the
+  engine's line has a forcing continuation belonging to the player who moved, the reason shows up to three of
+  its plies and always ends on THAT player's capture, check or mate - never on a quiet move, and never on the
+  opponent's reply. On 13.Rxd7 in the Opera Game it reads "If Nxd7, Bxe7 Bxe7 Bxd7+ ...", so the recapture
+  that makes the move work is on screen; on 10.Nxb5, whose line has no forcing continuation of White's own,
+  it is unchanged at one ply. THE PARITY HALF OF THIS CLAUSE IS NOT DECORATION: without it the line ends on
+  the opponent's move whenever it is even in length, and on ply 74 of Kunal's own game that printed
+  "If Qxf7+, Kxf7 Rf1+ and Black is winning" with Rf1+ being White checking his king - the opposite of what
+  this clause is for. (Kunal, 2026-10-04, from his own game: "the line runs one move further so the recapture
+  is on screen". #504, parity term on an upheld antagonist veto.) (TC-R10)
+- A FAILED ENGINE SEARCH IS NEVER SHOWN, AND NEVER REMEMBERED AS AN ANSWER. If the search that builds that
+  line dies, the reason simply omits the clause, and the position is asked again the next time the player
+  visits that ply, up to three attempts - it is not left blank for the rest of the session (#389, #504).
+  (TC-R10)
 
 ### US-R07 I can analyse any position myself
 As a player, from any ply I open an analysis board where both colours are movable, with Undo and Exit.
