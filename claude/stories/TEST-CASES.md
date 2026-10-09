@@ -873,12 +873,20 @@ Every row below is **#508's re-derivation on the shipping source `83610da7d7c0`*
 
 | bundle | tree | geometries | result |
 |---|---|---|---|
-| `28f1ff838440` | **the bundle that ships**, over source `83610da7d7c0` | se, kunal730, kunal761 | **90 pass, 0 fail** (three runs, verdict-set sha `a2b7178415b276ee`) |
-| `9f79fc2fea1d` | NC-NORESERVE | se, kunal730, kunal761 | 76 pass, 14 fail {F1,F1b,F2,F3,F4,F4b} |
-| `5680506bfb5a` | NC-NOCOVRESERVE | se, kunal730, kunal761 | 86 pass, 4 fail {C3,C3c,C3d,C3f} |
-| `bbefc99c3eec` | NC-WIDETEMPLATE | se, kunal730, kunal761 | 88 pass, 2 fail {C1b,C1c} |
+| `28f1ff838440` | **the bundle that ships**, over source `83610da7d7c0` | se, kunal730, kunal761 | **91 pass, 0 fail** (three runs, verdict-set sha `185f9795531a1e46`) |
+| `9f79fc2fea1d` | NC-NORESERVE | se, kunal730, kunal761 | 77 pass, 14 fail {F1,F1b,F2,F3,F4,F4b} |
+| `5680506bfb5a` | NC-NOCOVRESERVE | se, kunal730, kunal761 | 87 pass, 4 fail {C3,C3c,C3d,C3f} |
+| `bbefc99c3eec` | NC-WIDETEMPLATE | se, kunal730, kunal761 | 89 pass, 2 fail {C1b,C1c} |
+| `53d219441ba6` | **NC-UNGR** — `gradeCacheUsable` reverted to `!!st`, so a stale tally reads as graded (the #503 / TC-R61 P0) | se, kunal730, kunal761 | 86 pass, 5 fail {E1,E1b,E4,E5,**E7b**} |
+| `62b05dc93364` | **NC-PLURAL** — `_scope`'s plural hard-coded, restoring antagonist B's finding-4 defect | se, kunal730, kunal761 | 90 pass, 1 fail {**C3e**} |
 
-WITHDRAWN #507 rows, kept so the correction is auditable: `6683fe5db924` 93/0; `a7dec72c28a5` 73/20; `757fb8c08773` 91/2; `5b24fbf005b3` 92/1.
+**EVERY ROW SUMS TO 91**, which is the cheap check that they share one denominator. **FIVE CONTROLS, FIVE DISTINCT RED SETS**, and the two assertions #508 repaired are each uniquely caught by their own control.
+
+**#508 CLEARED AN UPHELD VETO THAT HAD BEEN SILENTLY UN-FIXED BETWEEN TWO OF #507's OWN COMMITS, and this is the most reusable thing on this case.** `bebd6ef` repaired E7b to `ungFound && ungInk` against a bundle that carried `visibility:_ungr>0?'visible':'hidden'` on the coverage line. `880fda5` — part 3, antagonist B's painted-ink recommendation — then **deleted that toggle**. Nothing in the shipping tree sets `visibility` on the element or any ancestor, and visibility is inherited, so `ungInk` became identical to `ungFound` and the predicate collapsed back to the exact one that had been vetoed two commits earlier. **Measured, not argued:** on NC-UNGR, E7b *passed* with payload `{"ungraded":"All 7 games are graded.","graded":null,"total":null}` — the defect certified by the assertion written to forbid it. Re-pointed at the warning branch (`graded<total`, which is C2's shape) and it now reddens. The lesson is not "re-run your controls"; it is that **a repair and the mechanism it depends on can be in the same build, two commits apart, and nothing mechanical connects them.**
+
+**AND C3e COULD NOT FAIL.** It ran only in the 4-game alpha state, where its `"1 games"` pattern is unmatchable at any value the complete form can produce, and half its input (`c3.empty`) was `null` — the missing-denominator trap this same build fixed in E7c twelve lines away. It now runs at the n===1 state antagonist B actually measured (account beta plus the pre-existing name box on `opp6`, where the fixture's `g6` has no tally), with **C3e0** as its own separate non-vacuity assertion rather than a conjunct. NC-PLURAL reddens C3e alone.
+
+WITHDRAWN #507 rows, kept so the correction is auditable: `6683fe5db924` 93/0; `a7dec72c28a5` 73/20; `757fb8c08773` 91/2; `5b24fbf005b3` 92/1. Every one was measured before two upheld antagonist vetoes changed both the gate and chess.jsx.
 
 NOTE ON THE ID. **TC-R63 was checked free by grep over the whole repository before use, and TC-R62 was NOT free** — it is US-R50's modal-reachability case on gate 74, landed at #505. The highest `TC-R` id in this file is 61, so taking "the next one" would have collided; the id space is not contiguous and must be grepped, not incremented.
 

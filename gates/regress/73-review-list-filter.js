@@ -20,7 +20,11 @@
 //      375x730 or 375x761. So the "~50px growth" is real and is a 320-ONLY number.
 //      the COVERAGE LINE costs 34px at EVERY geometry including Kunal's own, and its jump is the UNCOMMANDED
 //      one: `_ungr` decays to zero as the background pass grades, so on main the line VANISHES on its own
-//      seconds after the player stopped touching anything. After the fix: 34 -> 0px at 375, 34 -> 16px at 320
+//      seconds after the player stopped touching anything. After the fix, AS FIRST WRITTEN: 34 -> 0px at
+//      375, 34 -> 16px at 320. [#508: SUPERSEDED BY PART 3 AND CORRECTED HERE, R18. Painting ink in the
+//       reserved box changed both figures - part 3 measured 34 -> 17 at 375 and 50 -> 34 at 320. The
+//       correction was written into the commit message and left standing here, which is the #450 shape:
+//       a withdrawal recorded in one file and not in the file a reader opens first.]
 //      (residual, because clause (3)'s narrowed wording wraps to 3 lines there - named, not hidden).
 //    BLOCK F runs at 320x568, 375x730 AND 375x761 for that reason, and the geometry list is the input axis
 //    under test: a block pinned to this file's 375x730 could not have failed on the defect it is written for,
@@ -28,7 +32,12 @@
 //    #505, 761 is ADDED and 730 is NOT substituted, so no existing pin in this file moves.
 //    FOUR EXISTING ASSERTIONS WERE REWRITTEN, every one of them because this build changed what they test:
 //      C3   was `!ungFound` - NO ELEMENT. The line now holds its box and drops only its ink, so `!ungFound`
-//           would go red on a correct build. It asserts no INK; C3c is new and asserts the box is reserved.
+//           would go red on a correct build. [#508 CORRECTION, R18: THIS LINE STATES THE OPPOSITE OF WHAT
+//           C3 ACTUALLY ASSERTS. The live assertion is `c3.ungFound&&c3.ungInk===true` - it requires the
+//           line to be PAINTED, because part 3 then made the box paint the complete sentence instead of
+//           being held blank. 'It asserts no INK' describes my first version, for about half an hour.
+//           Worth more than the typo: a reader who trusted this header would conclude C3 forbids the ink
+//           that C3 requires.] C3c asserts the box is reserved.
 //      C1b  was one template regex. Two templates exist now, so it asserts EXACTLY ONE matched, and C1c is
 //           new and asserts the NARROW one fired. nc-widetemplate shows why: C1b PASSES there.
 //      B7, D2b  both rested on `chips.some(c=>c.ct==='gf-clear')`. This build makes the Clear chip ALWAYS
@@ -39,9 +48,20 @@
 //    asserted nothing changed. It cannot fail: the chip is ghosted only when there is no filter to clear, so
 //    a fully live control would have left the screen identical and a pointerEvents:'auto' bundle would have
 //    PASSED it. Replaced by three separate inertness properties. Found by asking what the control would print.
+//    [#508, R18: AND THOSE THREE WERE THEN FOLDED BACK INTO ONE on a later upheld veto in the same run,
+//     because visibility:hidden IMPLIES all three, so each would have reddened a CORRECT bundle that
+//     achieved inertness another way (#391). F4c and F4d NO LONGER EXIST in this file; what ships is F4
+//     plus an explicit un-asserted note printing the three properties. A control set naming F4c/F4d is
+//     naming a gate that no longer exists.]
 //    CLAUSE (2) OF THE CLOSER'S SCREEN IS WITHDRAWN AS A FALSE DEFECT and B6c is deliberately UNTOUCHED: the
 //    band from the filter row the player has just tapped to the BOTTOM of the empty-state Clear measures
 //    291.6px against a 730 viewport, 291.6 against 761 and 341.6 against 568 on the SHIPPED bundle, so it
+//    [#508: THOSE THREE FIGURES ARE WITHDRAWN AND chess.jsx:7725-7726 ALREADY WITHDREW THEM - this header
+//     did not, which is the #450 shape again. The band is NOT a constant: it is 270.59 at 730 and 761 and
+//     320.59 at 568 in the short-wording state, so it MOVES WITH THE WORDING. THE CONCLUSION SURVIVES on a
+//     different and better instrument - B6c measures reachability the #382 way, walking ancestors for a
+//     computed overflow-y of auto|scroll AND scrollHeight>clientHeight+1, scrolling, and re-reading the
+//     rect - so the clause-2 withdrawal stands and this arithmetic is not what holds it up.]
 //    fits every geometry. The 748.5 reading is at a scroll origin the player is never at. CLAUDE.md records
 //    two false P0s in one night from that confusion and one of them was THIS screen (#382). B6c was already
 //    the right assertion and this build does not touch it.
@@ -60,16 +80,32 @@
 //    WHAT SURVIVES, AND IT IS THE CLAIM THAT MATTERS: all three controls STILL REDDEN, and they still
 //    redden THREE DISJOINT SETS - the F block, the C3 family and the C1 pair - so this gate's green is
 //    evidence and not decoration.
-//    MEASURED BY #508 (build__1791577208000), each control ONE change from the shipping source
-//    83610da7d7c0, each built with CT_OUT and run with CT_APP so the log names what it measured:
-//      SHIPPING   28f1ff838440 over 83610da7d7c0   90 pass /  0 fail
-//        and THREE runs, byte-identical verdict sets, sha a2b7178415b276ee [R36].
-//      nc-noreserve     9f79fc2fea1d   76 pass / 14 FAIL  {F1,F1b,F2,F3,F4,F4b}
+//    MEASURED BY #508 (build__1791577208000) AGAINST THE GATE AS IT SHIPS - 91 assertions, after this run
+//    added C3e0 and re-pointed E7b on an upheld veto. Each control is ONE change from the shipping source
+//    83610da7d7c0, built with CT_OUT and run with CT_APP so every log names what it measured. EVERY ROW'S
+//    pass+fail SUMS TO 91, which is the cheap check that they share one denominator:
+//      SHIPPING          28f1ff838440 over 83610da7d7c0   91 pass /  0 fail
+//        THREE runs, byte-identical verdict sets, sha 185f9795531a1e46 [R36], on THIS file - not on the
+//        smaller file the earlier figure described, which is #504's "a fact about a file that no longer
+//        exists" and is why the sha is re-derived here rather than carried.
+//      nc-noreserve      9f79fc2fea1d   77 pass / 14 FAIL  {F1,F1b,F2,F3,F4,F4b}
 //        (the Clear chip returned to its shipped conditional render)
-//      nc-nocovreserve  5680506bfb5a   86 pass /  4 FAIL  {C3,C3c,C3d,C3f}
+//      nc-nocovreserve   5680506bfb5a   87 pass /  4 FAIL  {C3,C3c,C3d,C3f}
 //        (the coverage line returned to `_gradeOn&&_ungr>0&&`)
-//      nc-widetemplate  bbefc99c3eec   88 pass /  2 FAIL  {C1b,C1c}
+//      nc-widetemplate   bbefc99c3eec   89 pass /  2 FAIL  {C1b,C1c}
 //        (`_narrowed` forced false, so the unnarrowed wording prints over a narrowed set)
+//      nc-ungr           53d219441ba6   86 pass /  5 FAIL  {E1,E1b,E4,E5,E7b}
+//        (gradeCacheUsable reverted to `!!st`, so a STALE tally reads as graded - the #503/TC-R61 P0.
+//         THIS IS THE CONTROL THAT CLEARS THE VETO: E7b reddens here, and before this run's fix it
+//         PASSED on this very bundle while the screen read "All 7 games are graded." over a stale library.
+//         Note it reddens FIVE ids, not one: the same mutation breaks the invalidation path too, which is
+//         why my antagonist's prediction of "90 pass / 0 fail, no coverage at all" was too strong.)
+//      nc-plural         62b05dc93364   90 pass /  1 FAIL  {C3e}
+//        (`_scope`'s plural hard-coded, restoring antagonist B's finding-4 defect "0 of the 1 games".
+//         C3e reddens ALONE here, which is what makes it a discriminating assertion rather than the
+//         pass-over-an-unreachable-state it was before C3e0 drove the n===1 input.)
+//    FIVE CONTROLS, FIVE DISTINCT RED SETS, and the two assertions this run repaired are each uniquely
+//    caught by their own control. That is what makes this gate's green evidence.
 //    WHY EACH ONE MOVED, because a changed number with no cause is not a measurement:
 //      F4c AND F4d ARE NO LONGER ASSERTIONS AT ALL, which is why nc-noreserve lost 6 reds. Antagonist A
 //      vetoed them as not three independent mechanisms - visibility:hidden implies all three, so each
@@ -251,7 +287,9 @@ async function READ(b){
     // #507 the two reserved boxes, measured as BOXES (offsetHeight, scroll-independent) and as INK (visibility)
     const filOH=fil?fil.offsetHeight:null;
     const filTops=fil?[...new Set([...fil.querySelectorAll('button')].map(c=>Math.round(c.getBoundingClientRect().top)))].length:null;
-    const ungBox=ungEl?{oh:ungEl.offsetHeight,vis:getComputedStyle(ungEl).visibility,ghost:ungEl.getAttribute('data-ghost')||null}:null;
+    // #508 `ghost` READ `data-ghost`, WHICH PART 3 RENAMED TO `data-complete` on this element, so the field
+    // was permanently null in every C3c/C3f payload - a dead readout in the evidence, not a wrong verdict.
+    const ungBox=ungEl?{oh:ungEl.offsetHeight,vis:getComputedStyle(ungEl).visibility,complete:ungEl.getAttribute('data-complete')||null}:null;
     // #476 THE ESCAPE SCAN, screen-wide, added after antagonist A's P0. A `\u2014` written in JSX TEXT
     // (not in a JS string) is never interpreted, so the screen painted the six literal characters while all
     // four assertions on that element passed - they read it through /graded (\d+) of (\d+)/ and never looked
@@ -575,9 +613,60 @@ function mkTap(b,READ){
        hard-coded plural. (5) And it found the rename HALF-APPLIED: the coverage line named its set while
        the empty state, 92.6px below it on the same screen, still said "graded so far" for the SAME set -
        which is the very defect clause (3) exists to fix, with an extra step. Both sentences now take one
-       shared `_scope` phrase, so they cannot drift apart again, and these two assert it. */
-    L.say(!/ of the 1 games | of 1 games |\b1 games\b/.test((c3.ungraded||'')+' '+(c3.empty||'')),
-      'C3e no sentence on this screen says "1 games" - the scope phrase pluralises, which the first draft of it did not',{cov:c3.ungraded,empty:c3.empty});
+       shared `_scope` phrase, so they cannot drift apart again, and these two assert it.
+       [#508 THAT CLAIM IS FALSE AND IS WITHDRAWN HERE, R18. `grep -n '_scope' chess.jsx` shows it declared
+        at 7442 and called at 7508 and 7509 ONLY - both inside `_covTxt`. `_emptyTxt` (7466-7472) does NOT
+        call it. That is DELIBERATE: antagonist B's finding 5 asked for the empty state to be renamed too
+        and #507 implemented it, measured the prose getting worse, measured it turning C5c RED, and
+        declined it - correctly. But the comment asserting one shared phrase was left behind in BOTH files.
+        So the two sentences CAN differ and do: `_covTxt` says 'the 1 game', `_emptyTxt` says 'The one
+        game'. What C3e/C3e0 actually assert is that NEITHER sentence says '1 games' - a property of both
+        strings, which is true and is worth asserting, and NOT that they share an implementation.
+        chess.jsx:7441 CARRIES THE SAME FALSE CLAIM AND IS NOT CORRECTED THERE, deliberately: correcting a
+        comment in chess.jsx means rebuilding, and app.js 28f1ff838440 is the bundle five negative controls
+        and a three-run determinism set were measured against. Filed instead, and the next build that
+        rebuilds chess.jsx owes the edit. Naming where a correction did NOT reach [#450]. */
+    /* #508 C3e WAS A PASS THAT COULD NOT FAIL, AND IT IS NOW DRIVEN AT THE ONE INPUT THAT DISCRIMINATES.
+       Found by antagonist A. C3e ran ONLY in state c3 - account alpha, whose four games are all tallied -
+       so `_preGrade.length===4`, `_ungr===0`, and the sentence is "All the 4 games this filter is looking
+       at are graded." Its pattern needs a literal "1 games", and NO value of n that c3 can produce makes
+       the complete form say that; the `\b1 games\b` arm needs n===1, which c3 never has. On a bundle whose
+       `_scope` hard-coded the plural, c3's sentence is CHARACTER-IDENTICAL, so the assertion passed on the
+       broken build. Half its input was empty too (`c3.empty` is null there), which is the missing-
+       denominator trap this same build fixed in E7c twelve lines away.
+       THE CODE WAS NEVER WRONG - the pluralisation fix in `_scope` is correct, and only its gate was
+       vacuous. So this drives B's ACTUAL state instead: account beta plus the pre-existing name box on
+       'opp6'. The fixture's g6 is beta-vs-opp6 with NO TALLY, so `_preGrade` is exactly one game and
+       `_ungr` is 1 - the WARNING form at n===1, which is the sentence B measured as
+       "Graded 0 of the 1 games this filter is looking at" at visibility:visible.
+       C3e0 IS ITS OWN ASSERTION AND NOT A CONJUNCT, because an assertion over a state that never arrived
+       is the trap above wearing a different hat: it asserts the n===1 state WAS reached before C3e reads
+       the sentence that only exists in it [CLAUDE.md: assert the denominator in its own L.say]. */
+    await tapC('gf-acct-alpha',500);                        // alpha off
+    await tapC('gf-acct-beta');                             // beta on: g5, g6, g7
+    const boxC=b.page.locator('input[placeholder="'+NAMEBOX+'"]');
+    let c1g=null;
+    if(await boxC.count()>0){
+      await boxC.fill('opp6'); await b.settle(800);
+      c1g=await READ(b);
+    }
+    /* #508 C3e0's FIRST PREDICATE WAS WRONG AND THE APP WAS RIGHT, CAUGHT BY RUNNING IT AGAINST THE GOOD
+       BUNDLE BEFORE TRUSTING IT. I wrote `rows===1 && ungTotal===1` and it went RED on the shipping bundle
+       with payload {"rows":0,"total":1,"line":"Graded 0 of the 1 game this filter is looking at ..."}.
+       `rows` is the DISPLAYED list AFTER the grade filter, and the brilliancy chip is still on from c1
+       while g6 has no tally, so ZERO rows match - correctly. `ungTotal` is the size of the set the grade
+       filter is CHOOSING FROM, which is the quantity this assertion is about and which reads 1 exactly as
+       intended. The two denominators are different on purpose and C4's own message already says so; I
+       conflated them. Withdrawn and re-pointed at `ungTotal` alone [R18]. */
+    L.say(!!c1g&&c1g.ungTotal===1&&c1g.ungFound===true,
+      'C3e0 the single-game state is REACHED - beta plus the name box on opp6 leaves exactly ONE game in the set the grade filter is choosing from (ungTotal, not the displayed row count, which the grade chip legitimately empties), so C3e below reads a sentence that actually says "1"',
+      {rowsDisplayed:c1g?c1g.rows:null,setTotal:c1g?c1g.ungTotal:null,line:c1g?c1g.ungraded:null});
+    L.say(!!c1g&&!/ of the 1 games | of 1 games |\b1 games\b/.test((c1g.ungraded||'')+' '+(c1g.empty||'')),
+      'C3e no sentence on this screen says "1 games" - the scope phrase pluralises, which the first draft of it did not, AND IT IS NOW ASSERTED AT n===1 where a hard-coded plural actually shows',
+      {cov:c1g?c1g.ungraded:null,empty:c1g?c1g.empty:null});
+    await boxC.fill(''); await b.settle(600);
+    await tapC('gf-acct-beta',500);                         // beta off
+    await tapC('gf-acct-alpha');                            // back to c3's state for anything below
     /* #507 C3f IS THE RESIDUAL THIS BUILD DID NOT ELIMINATE, GATED RATHER THAN ONLY CONFESSED.
        Painting ink in the reserved box removes the blank space but does NOT collapse the box to one height
        class, because the complete sentence is shorter than the warning one and wraps differently. Antagonist
@@ -592,7 +681,43 @@ function mkTap(b,READ){
     const _warnBox=(c1.ungBox||{}).oh, _doneBox=(c3.ungBox||{}).oh;
     L.say(typeof _warnBox==='number'&&typeof _doneBox==='number'&&_doneBox>0&&_doneBox<=_warnBox,
       'C3f the COMPLETE form is never TALLER than the warning form, so finishing the grading pass can only close the list up and can never push it down under the finger - the residual two-height-class behaviour is bounded in the safe direction',
-      {warningBox:_warnBox,completeBox:_doneBox,shrinkPx:(typeof _warnBox==='number'&&typeof _doneBox==='number')?(_warnBox-_doneBox):null});
+      {warningBox:_warnBox,completeBox:_doneBox,
+       /* #508 THIS FIGURE IS RENAMED, NOT RECOMPUTED, ON AN UPHELD ANTAGONIST FINDING. It was published as
+          `shrinkPx` - which reads as the decay shrink, the thing a player sees when the background pass
+          finishes. IT IS NOT THAT. `_warnBox` comes from c1 (account beta, 3 games) and `_doneBox` from c3
+          (account alpha, 4 games), so it compares TWO DIFFERENT FILTERS over TWO DIFFERENT SETS, holding
+          nothing fixed but the geometry. The decay transition holds `_narrowed` and `_preGrade` fixed and
+          moves only `_ungr`. #507's own commit 15addcf withdrew exactly this confusion in prose - "the
+          published 16px residual at 320x568 is a COMMANDED cross-filter comparison, not the uncommanded
+          decay" - and then the gate encoded it anyway. The DIRECTION test above is still sound and is what
+          C3f asserts; only the published name was wrong. Also note the scope: block C uses GEO, so C3f runs
+          at 375x730 ONLY, and any claim that this residual was measured at three geometries is about the
+          pen note and not about any assertion in this file. */
+       crossFilterBoxDeltaPx:(typeof _warnBox==='number'&&typeof _doneBox==='number')?(_warnBox-_doneBox):null,
+       whatThisIsNot:'not the uncommanded decay shrink: c1 is beta/3 and c3 is alpha/4, two filters over two sets'});
+    /* ══ #508 C3g. THE COST THIS BUILD INTRODUCES, MEASURED EVERY RUN RATHER THAN ARGUED ONCE.
+       Raised by my antagonist A from the diff door, as arithmetic over this build's own published table. I
+       am MEASURING it instead of inheriting the arithmetic [R18], from two readings this block already
+       takes in one run: `base` (no grade filter: C0 asserts the coverage line is ABSENT) and `c3` (a grade
+       filter on over a FULLY GRADED set: C3c asserts its box is OCCUPIED).
+       THE TRANSITION BETWEEN THOSE TWO STATES IS A NEW COMMANDED JUMP THAT MAIN DOES NOT HAVE. On main the
+       coverage line renders only when `_gradeOn && _ungr>0`, so over an already-graded library it is absent
+       before AND after the tap - zero movement. This build renders it whenever `_gradeOn`, so the same tap
+       now inserts a box plus the 9px gap of the flex column it sits in (chess.jsx:7336).
+       WHY IT IS NOT A REGRESSION OF THE THING THIS BUILD FIXED, and why it is still worth printing: the jump
+       this build removed was UNCOMMANDED - the line vanished on its own, seconds after the player stopped
+       touching anything, under a finger already reaching for a row. This one happens on the tap that caused
+       it, which is the kind a player can attribute. That is a real distinction and it is NOT a reason to
+       leave it unmeasured: it is a cost at Kunal's own geometry in the steady state every player reaches,
+       and R14's tenth dimension asks whether what is on screen earns its space.
+       IT IS A NOTE AND NOT AN ASSERTION, DELIBERATELY. Removing it means reserving the coverage line's box
+       on EVERY Review screen, including the screens of players who never filter - which spends the same
+       pixels permanently to save them on one tap. That is a product trade-off a player would notice, so it
+       is AMBER and belongs to Kunal, not to a gate [R20, prompts/decision-rights]. Printing it every run is
+       what stops it becoming folklore. */
+    const _gapPx=9;
+    const _c3Jump=(!base.ungFound&&c3.ungBox&&typeof c3.ungBox.oh==='number')?(c3.ungBox.oh+_gapPx):null;
+    L.note('C3g [MEASURED, NOT ASSERTED] the commanded jump this build adds when a grade filter goes on over an already-graded set, at '+GEO.w+'x'+GEO.h+': '+JSON.stringify({lineAbsentWithNoFilter:!base.ungFound,boxPx:c3.ungBox?c3.ungBox.oh:null,gapPx:_gapPx,jumpPx:_c3Jump,mainWouldBe:0,commanded:true,sentence:c3.ungraded}));
     L.say(c3.rows===2,'C3b and it still returns alpha\'s two brilliancy games',{rows:c3.rows,opps:c3.opps});
     // #476 C5 IS ANTAGONIST B's P1 VETO AS AN ASSERTION. Clause (4) made the COVERAGE line honest and left
     // the EMPTY state flatly claiming "No games match brilliancies" while the sentence 59px above admitted
@@ -632,7 +757,9 @@ function mkTap(b,READ){
     L.say(d1.rows===1&&d1.count==='1 of 7','D1 the blunder filter narrows to the one seeded blunder',{rows:d1.rows,count:d1.count});
     // remove the OTHER account: the list falls to 5, BELOW the >6 threshold the filter row is gated on
     const x=b.page.locator('[aria-label="Remove alpha"]').last();
-    if(await x.count()===0){L.say(false,'D2 the Imported remove control for alpha is absent, so this block is not evidence',{});}
+    /* #508 THIS WAS ALSO ID'd `D2`, so two mutually exclusive assertions shared one id and `grep '^PASS D2 '`
+       over a log could not say which ran - a log is the evidence this project pushes on. Renamed D2z. */
+    if(await x.count()===0){L.say(false,'D2z the Imported remove control for alpha is absent, so this block is not evidence',{});}
     else{
       await x.scrollIntoViewIfNeeded(); await x.click(); await b.page.waitForTimeout(900);
       const d2=await READ(b);
@@ -685,7 +812,9 @@ function mkTap(b,READ){
   //    NEGATIVE CONTROLS - BUILT AND RUN AT #503, NOT PREDICTED. The command is
   //    `CT_APP=<bundle> node gates/regress/73-review-list-filter.js` at 375x730, counts are whole-file, and
   //    the bundle md5 is cited rather than a build number because a number names several bundles [#454].
-  //    BLOCK E IS 16 OF THE FILE'S 61: eleven as first written, plus E6a/E6b/E7a/E7b/E7c added on two upheld
+  //    BLOCK E IS 16 OF THE FILE'S 91 [#508: this read "of the FILE'S 61", a frozen denominator - the file
+  //    was 61 when block E landed at #503 and is 91 now, which is #405's own trap inside a gate header]:
+  //    eleven as first written, plus E6a/E6b/E7a/E7b/E7c added on two upheld
   //    antagonist vetoes. THE FIRST VERSION OF THIS LINE SAID "12 of 56" AND THE 12 WAS WRONG IN FOUR
   //    COMMITTED PLACES [R18] - here, TC-R61, the commit message and the `503 minted` register row. The
   //    count came from an `awk` that ran to END OF FILE and swallowed the file's trailing catch handler.
@@ -888,7 +1017,38 @@ function mkTap(b,READ){
          nothing since #476. MEASURED on the committed logs rather than inferred: `PASS E7c ... [{"empty":
          null}]` on BOTH 505-all.log and 506-all.log. CLAUDE.md: a missing denominator is reported, never
          credited. It is now a NOTE when the state is absent and an assertion when it is present. */
-      L.say(c.ungFound===true&&c.ungInk===true,
+      /* #508 E7b IS RE-POINTED, AND AN UPHELD VETO WAS SILENTLY UN-FIXED BETWEEN TWO OF #507's OWN COMMITS.
+         THE HISTORY, because the mechanism is worth more than the fix. #507's antagonist A vetoed this
+         assertion when it read `c.ungFound===true` - the coverage-line ELEMENT EXISTS - because #507's
+         change renders that element whenever `_gradeOn` and drops only its INK, so existence became true
+         in the defect state too. bebd6ef repaired it to `ungFound && ungInk`, and THAT REPAIR WAS CORRECT
+         AGAINST THE BUNDLE OF ITS MOMENT, which carried `style={{visibility:_ungr>0?'visible':'hidden'}}`
+         on the element. THEN 880fda5 - part 3, antagonist B's painted-ink recommendation - DELETED THAT
+         visibility TOGGLE. Nothing in the shipping tree sets `visibility` on the element or on any
+         ancestor (chess.jsx:7701-7702 is its whole style object; the enclosing column at :7336 sets only
+         background/border/padding/display/flexDirection/gap), and visibility is inherited, so computed
+         visibility is 'visible' whenever the element exists. Therefore on bundle 28f1ff838440
+         `ungInk === ungFound` identically, and the conjunction collapsed back to the exact predicate that
+         had been vetoed two commits earlier.
+         MEASURED, NOT ARGUED [#508]. The nc-ungr control - gradeCacheUsable reverted to `!!st`, so a stale
+         tally reads as graded, which IS the #503/TC-R61 P0 - was rebuilt on the shipping source as
+         53d219441ba6 and run: E7b PASSED on it, with payload
+           {"ungraded":"All 7 games are graded.","graded":null,"total":null,"found":true,"ink":true}
+         The screen states "All 7 games are graded." over a library whose tallies are stale, and the
+         assertion written to forbid exactly that certified it.
+         AND ONE THING THE VETO GOT WRONG, recorded because an antagonist's decisive fact must be
+         reproduced and not inherited: A predicted nc-ungr would score 90 pass / 0 fail, i.e. that the P0
+         had NO coverage left. It scores 86 pass / 4 FAIL at {E1,E1b,E4,E5}. The control does redden - via
+         the INVALIDATION assertions, because the same mutation breaks both paths. What was unguarded is
+         narrower than A claimed and still real: the USER-VISIBLE half, a display-only regression that left
+         invalidation intact, would have passed unseen.
+         THE FIX PINS THE BRANCH AND THE NUMBER, which is CLAUDE.md's own prescription for this class:
+         match one template and check the number it printed lies in the band that template is printed for.
+         The warning form yields graded<total (measured: 6 of 7 on the shipping bundle); the complete form
+         does not match the parse at all and yields null, which is what the defect prints. `ungInk` stays in
+         the payload because it is informative, and is NOT a conjunct, because a conjunct that cannot fail
+         independently of its partner reads as two checks while being one [CLAUDE.md, the #493 class]. */
+      L.say(c.ungGraded!==null&&c.ungTotal!==null&&c.ungGraded<c.ungTotal,
         'E7b (TC-R61) THE COVERAGE LINE SEES A STALE TALLY: a game whose tally is present but NOT USABLE is counted as not-yet-graded, so the screen STATES its own coverage - asserted as painted INK and not as a present element, because this build reserves the element\'s space in every grade-filtered state',
         {ungraded:c.ungraded,graded:c.ungGraded,total:c.ungTotal,rows:c.rows,found:c.ungFound,ink:c.ungInk});
       if(c.emptyFound){
@@ -961,7 +1121,14 @@ function mkTap(b,READ){
         {preRows:pre.rows,postRows:post.rows,clearVis:postClear&&postClear.vis});
 
       L.say(pre.filOH!=null&&post.filOH!=null&&pre.filOH===post.filOH,
-        'F2 ['+gname+'] THE FILTER ROW BOX IS THE SAME HEIGHT before and after Clear appears, so nothing below it moves under the finger that just tapped a chip',
+        /* #508 F2's MESSAGE CLAIMED MORE THAN F2 MEASURES, on an upheld antagonist finding. `filOH` is the
+           offsetHeight of [data-ct="glist-filters"], which CLOSES at chess.jsx:7667; the coverage line is a
+           SIBLING at :7701, OUTSIDE it. So the tap F2 performs does insert a box below the row - the
+           coverage line, in the warning state this fixture produces - and F2 cannot see it. The ROW's own
+           box genuinely does not change, which is what clause (6) is about and what the control proves; the
+           words 'nothing below it moves' overstated that into a claim about the whole screen. Scoped to
+           what it reads. The commanded coverage-line movement is measured by C3g below. */
+        'F2 ['+gname+'] THE FILTER ROW\'S OWN BOX IS THE SAME HEIGHT before and after Clear appears, so the row does not grow under the finger that just tapped a chip (this reads the ROW only - a sibling below it can still move, and C3g measures that)',
         {before:pre.filOH,after:post.filOH,delta:(post.filOH!=null&&pre.filOH!=null)?(post.filOH-pre.filOH):null,geo:gname});
       L.say(pre.filTops!=null&&post.filTops!=null&&pre.filTops===post.filTops,
         'F3 ['+gname+'] and it still occupies the same number of wrapped LINES, which is the mechanism behind F2 rather than a second reading of it',
