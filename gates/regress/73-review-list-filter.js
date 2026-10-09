@@ -465,9 +465,16 @@ function mkTap(b,READ){
   //    preserved three. It also gives the invalidation TWO inputs rather than one, so E1 is a measurement and
   //    not a demonstration [R18].
   //
-  //    NEGATIVE CONTROLS - BUILT AND RUN AT #503, NOT PREDICTED. Counts are whole-file (block E is 12 of the
-  //    file's 56), the command is `CT_APP=<bundle> node gates/regress/73-review-list-filter.js` at 375x730,
-  //    and the bundle md5 is cited rather than a build number, because a number names several bundles [#454].
+  //    NEGATIVE CONTROLS - BUILT AND RUN AT #503, NOT PREDICTED. The command is
+  //    `CT_APP=<bundle> node gates/regress/73-review-list-filter.js` at 375x730, counts are whole-file, and
+  //    the bundle md5 is cited rather than a build number because a number names several bundles [#454].
+  //    BLOCK E IS 16 OF THE FILE'S 61: eleven as first written, plus E6a/E6b/E7a/E7b/E7c added on two upheld
+  //    antagonist vetoes. THE FIRST VERSION OF THIS LINE SAID "12 of 56" AND THE 12 WAS WRONG IN FOUR
+  //    COMMITTED PLACES [R18] - here, TC-R61, the commit message and the `503 minted` register row. The
+  //    count came from an `awk` that ran to END OF FILE and swallowed the file's trailing catch handler.
+  //    Antagonist A measured it two ways (L.say calls inside the block, and `grep -cE '^PASS E'` on the log,
+  //    both 11) and the file's own arithmetic agrees: TC-R48 records the pre-#503 file at 45, and 45+11=56,
+  //    which was the total every log printed. The authority is the command, not this comment.
   //      CANDIDATE    9b39aa255045  ->  56 pass /  0 fail
   //      NC-NOSTAMP   9d1b16c16187  ->  52 pass /  4 fail: E1, E1b, E4, E5. The skip test reverted to
   //                   `if(gameStatsRef.current[k])continue;`. The ideal control - it is the shipped
@@ -476,8 +483,19 @@ function mkTap(b,READ){
   //      NC-NOREVIEW  d0992388fd5e  ->  53 pass /  3 fail: E0c, E3, E3b. The `||st.src==='review'` clause
   //                   removed from gradeCacheUsable. The reviewed game is re-graded to src:'est' and the row
   //                   badge flips to EST, which is exactly the regression the clause exists to prevent.
-  //    THE TWO CONTROLS REDDEN DISJOINT SETS, and that is the point of running both: it proves E1 is not a
-  //    restatement of E3 and neither is a restatement of E2.
+  //    THE CONTROLS REDDEN DISJOINT SETS, and that is the point of running several: it proves E1 is not a
+  //    restatement of E3, nor E6b of either.
+  //    AND THE CLAIM "NEITHER IS A RESTATEMENT OF E2" WAS NOT ESTABLISHED BY THOSE TWO, which antagonist A
+  //    caught: NEITHER of them touches E2 or E2b, so nothing in this build's own evidence showed the
+  //    preservation-of-unstamped assertions could fail at all. A built the two missing ones and they are
+  //    cited here rather than described: NC-ABSENTSTALE (`gradeVerOf` absent -> 0, md5 bdcade045c2e) is
+  //    52/4 with E2 RED ALONE in block E, and NC-ABSENT+NOREVIEW (absent -> 0 AND the review clause
+  //    removed, md5 65ece67aa9f9) is 44/12 with E0c, E2, E2b, E3, E3b red. So E2 and E2b can fail; they
+  //    had simply never been shown to.
+  //    A COUPLING THIS HEADER USED TO DENY, also A's: NC-ABSENTSTALE reddens B2, B3 and D1 as well, because
+  //    every entry in the SHARED `TALLY` is unstamped - so blocks A to D's pinned counts are stable only
+  //    BECAUSE absent means current. The grandfathering decision is load-bearing for this whole file, not
+  //    just for block E, and anyone changing `gradeVerOf`'s default should expect reds outside E.
   //    E0c IS COUPLED TO THE REVIEW CLAUSE AND IS DECLARED SO RATHER THAN LEFT TO BE FOUND. It proves the 999
   //    injection arrived by reading it back off g1, the one entry the shipped design preserves - so on
   //    NC-NOREVIEW, where g1 is re-graded, E0c cannot make that proof and correctly goes red. Its red there
@@ -567,6 +585,80 @@ function mkTap(b,READ){
       'E3b and the row for that game still paints the reviewed badge, not the EST one, which is the half of E3 a player can actually see',
       {badge});
     await b.close();
+
+    /* ── E6. THE STEADY STATE, AND IT IS THE HOLE ANTAGONIST A VETOED THIS BUILD FOR. ──────────────────
+       Every input above is STALE (gv 999) or UNSTAMPED. Nothing carried gv === GRADE_VER - and from the
+       moment #503 ships, that is the state of every entry on every phone from the second Review visit
+       onward, because recordGameStats stamps the current version on every write. So the one state the
+       installed base is actually IN had no input at all, and E2/E2b reach "left alone" through
+       gradeVerOf's absent-means-1 DEFAULT, a path that never reads a stamp the app wrote.
+       MEASURED, which is why this is an assertion and not a note: A built the one-clause mutation
+       `st.gv===undefined` in place of `gradeVerOf(st)===GRADE_VER` (bundle 17dff0d433ad) - "invalidate
+       anything carrying a version I do not recognise", written one clause wrong. It ABOLISHES THE CACHE:
+       every game is re-graded on every single visit to the Review screen, for ever, which is the whole
+       cost the cache exists to avoid. It scored 56 pass / 0 fail. I reproduced that independently at
+       6f49ad6d283c before accepting the veto: 56/0, block E 11/11 green.
+       WHY THE OBVIOUS VERSION OF THIS CHECK CANNOT WORK, and it took one try to see: re-seeding the
+       post-pass map and asserting it is unchanged proves nothing, because a recompute of the same PGN
+       produces the SAME counts and the same stamp - byte-identical whether it was served or recomputed.
+       So the fixture carries the app's OWN stamp with IMPOSSIBLE counts. Sevens cannot be re-derived from
+       the fixture's ten-ply PGN, so they survive if and only if the entry was genuinely served from
+       cache. That also makes this the ROUND TRIP: the stamp the app WROTE is handed back to the app's own
+       skip test, which nothing else here tests. */
+    {
+      const K2b=gk(G[1]);
+      const APPGV=(fin[K2b]||{}).gv;
+      const SEED={};Object.keys(fin).forEach(k=>{SEED[k]={...fin[k]};});
+      SEED[K2b]={bril:7,great:7,inacc:7,mist:7,blun:7,src:'est',gv:APPGV};
+      const b2=await L.launch({geo:GEO,name:'E-steady',store:{ct_ccuser:'',ct_liuser:'',
+        ct_accts:['cc:alpha','cc:beta'],
+        ct_acctgames:{'cc:alpha':G.slice(0,4).map(row),'cc:beta':G.slice(4).map(row)},
+        ct_gamestats:SEED}});
+      await b2.open(); await b2.tile('Review'); await b2.settle(1200);
+      await b2.page.waitForTimeout(6000);   // far past the measured recompute window (every poll above exits at 0ms)
+      const f2=await b2.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_gamestats')||'{}')||{};}catch(e){return {};}});
+      const g=f2[K2b]||{};
+      L.say(typeof APPGV==='number','E6a the app wrote a numeric stamp for this fixture to hand back, so E6b is not vacuous',{appGv:APPGV});
+      L.say(g.bril===7&&g.blun===7&&g.gv===APPGV,
+        'E6b (TC-R61) THE STEADY STATE AND THE ROUND TRIP: an entry carrying the stamp THE APP ITSELF WROTE is served from cache, not recomputed - impossible counts survive untouched, so the cache the stamp governs is still a cache',
+        {appGv:APPGV,final:g});
+      await b2.close();
+    }
+
+    /* ── E7. THE COVERAGE LINE MUST SEE STALENESS. Antagonist B's P0, from the shipped-surface door. ───
+       _ungr counted only games with NO ENTRY, so a STALE entry read as graded and the one number that
+       suppresses both the coverage line and all three empty-state sentences went to 0 - exactly while the
+       pass is rewriting the answer. B measured it at the real 200-game cap with everything stale: the
+       blunder filter answered "26 of 200" and decayed through 27 DISTINCT COUNTS to "0 of 200" over 23.9
+       seconds with glist-ungraded null at all 57 samples, ending on the flat "No games match blunders." -
+       the sentence C5b above forbids. Latent today and armed for the first bump, so it ships fixed.
+       THE INPUT IS A PERMANENTLY-STALE ENTRY, which is what makes this deterministic rather than a race:
+       g6 carries a gv-999 tally AND a PGN with no moves, so analyzeGameCounts returns null, the caller
+       records nothing, and the entry can never become current however long the pass runs. g7 gets an
+       unstamped entry so it is usable and does NOT contribute - otherwise an always-ungraded game would
+       make the line appear on the broken bundle too and E7 would not discriminate. */
+    {
+      const T4={};
+      TALLYSTALE.forEach(([g,st])=>{T4[gk(g)]={...st};});
+      T4[gk(G[5])]={bril:0,great:1,inacc:0,mist:0,blun:1,src:'est',gv:999};  // never gradeable: no moves
+      T4[gk(G[6])]={bril:0,great:1,inacc:0,mist:0,blun:0,src:'est'};          // unstamped => usable
+      const b3=await L.launch({geo:GEO,name:'E-coverage',store:{ct_ccuser:'',ct_liuser:'',
+        ct_accts:['cc:alpha','cc:beta'],
+        ct_acctgames:{'cc:alpha':G.slice(0,4).map(row),'cc:beta':G.slice(4).map(row)},
+        ct_gamestats:T4}});
+      await b3.open(); await b3.tile('Review'); await b3.settle(1200);
+      await b3.page.waitForTimeout(6000);
+      const tapE=mkTap(b3,READ);
+      const c=await tapE('gf-blun');
+      L.say(c.rows>0||c.emptyFound,'E7a the blunder filter reached a state worth reading, so E7b is not vacuous',{rows:c.rows,count:c.count,empty:c.empty});
+      L.say(c.ungFound===true,
+        'E7b (TC-R61) THE COVERAGE LINE SEES A STALE TALLY: a game whose tally is present but NOT USABLE is counted as not-yet-graded, so the screen states its own coverage instead of presenting a decaying answer as complete',
+        {ungraded:c.ungraded,graded:c.ungGraded,total:c.ungTotal,rows:c.rows});
+      L.say(!(c.empty||'').match(/^No games match/),
+        'E7c and the empty state never makes the flat "No games match" claim while a stale tally is still unanswered, which is C5b applied to staleness rather than to absence',
+        {empty:c.empty});
+      await b3.close();
+    }
   }
 
   L.done('73-review-list-filter');

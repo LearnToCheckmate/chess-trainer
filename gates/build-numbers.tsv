@@ -514,3 +514,4 @@
 502	built	-	958b5d4dc8d8	be71ee34ee76	2026-10-08T21:56Z	build__1791494550078	build.sh	Bundle built and stamped #502. Recorded by gates/build.sh so the number resolves to an artefact.
 503	minted	-	-	-	2026-10-09T00:44Z	build__1791505215239	minted	ship-list id 1: work[3] of the review-list filter job - the grading-version stamp on the cached per-game tally, so a grading change invalidates a tally instead of serving it, plus gate 73 block E (12 assertions, two controls) and US-R36 clause (5) / TC-R61
 503	built	-	b64bd6ee8288	38abcb838cea	2026-10-09T00:46Z	build__1791505215239	build.sh	Bundle built and stamped #503. Recorded by gates/build.sh so the number resolves to an artefact.
+503	built	-	2fb1d7707780	ef7a141bec38	2026-10-09T01:23Z	build__1791505215239	build.sh	Bundle built and stamped #503. Recorded by gates/build.sh so the number resolves to an artefact.

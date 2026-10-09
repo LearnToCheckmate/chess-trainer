@@ -1298,14 +1298,13 @@ function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
    WHAT IT GUARDS. ct_gamestats caches a per-game tally keyed on gkey, and the background pass below skips any
    game that already has one. That is correct and is the whole point of the cache - until the GRADER changes.
    decisions/brilliant-is-not-gated-by-who-is-winning-2026-09-23 is already decided in Kunal's own words and
-   drops the evBefore>-1.0 condition at brilliantGate (chess.jsx:1220, the `ok` line at :1286); only its exact
-   floor is still owed by
+   drops the evBefore>-1.0 condition from brilliantGate's `ok` expression; only its exact floor is still owed by
    jobs/grading-convergence-index-2026-09-23. The day that lands, every cached tally keeps serving counts
    graded under the OLD rule, and the Review list's brilliancy filter then tells a player with brilliancies
    that they have none - which is this job's own complaint arriving back out of its own fix.
 
    NOT A NEW IDIOM - THE FILE ALREADY DOES THIS ONE CACHE OVER, AND FINDING THAT SAVED INVENTING IT. evalCacheKey
-   (chess.jsx:5527) hashes the move list AND the literal engine token '|sf18c' into its key, so a new engine
+   hashes the move list AND the literal engine token '|sf18c' into its key, so a new engine
    cannot be served an old evaluation. ct_evalcache is deliberately NOT in this class and was checked rather
    than assumed: it stores raw evaluations (evW, ev2W, bU, aU), which are properties of a POSITION and do not
    move when the brilliant gate moves. Of the app's grading-dependent stores, ct_gamestats was the only
@@ -1316,15 +1315,42 @@ function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
    game: brilliantGate's conditions, classify's bands, the mate ladder, winDrop. Do NOT bump it for a change
    that only alters how a tally is DISPLAYED - a bump costs every player a re-grade of their whole list.
 
-   ABSENT MEANS 1, DELIBERATELY, AND THIS IS THE ONE DECISION IN HERE WORTH ARGUING WITH. Every tally on a
-   phone today was written with no stamp, and it was written under the rule that is STILL in force on main,
-   because no grading change has shipped yet. So an unstamped entry is not stale - it is version 1 by
-   definition, and treating it as stale would re-grade the entire installed base for no grading reason at all.
-   THE ALTERNATIVE WAS MEASURED AND REJECTED: invalidating unstamped entries would also drop every one of them
-   through the background pass, which writes src:'est', so each game the player had actually REVIEWED would
-   have its row badge flip from data-ct="gstat-rev" to "gstat-est" (chess.jsx:7355) and its `was` provenance
-   erased - a visible downgrade of real data, bought for nothing. The stamp starts doing work on the first
-   bump, which is the build that moves the gate, and that is the only moment it is needed. */
+   ABSENT MEANS 1, DELIBERATELY, AND THIS IS THE ONE DECISION IN HERE WORTH ARGUING WITH.
+   THE FIRST VERSION OF THIS PARAGRAPH JUSTIFIED IT WITH TWO CLAIMS AND BOTH WERE FALSE. Antagonist A
+   vetoed it, the veto was upheld in full, and the text is corrected here rather than softened, because it
+   was presented as measurement in three documents and it was not measurement [R18].
+
+   WHAT WAS WRONG, FIRST: it said "no grading change has shipped yet", so every unstamped tally was written
+   under the rule still in force. FOUR HAVE SHIPPED, all ancestors of origin/main, all in this comment's own
+   bump list, each confirmed with `git merge-base --is-ancestor` and by reading its diff of this file:
+     c30b7a9  2026-09-30  #440  classify() re-banded onto winDrop - "what it cost your chances"
+     8f4cb19  2026-10-01  #449  the promotion credit on both arms of brilliantGate's sac
+     996a4b4  2026-10-07  #491  mateLadder added INSIDE analyzeGameCounts
+     b84595e  2026-10-07  #494  brilliantGate's ceiling again
+   ct_gamestats has been written since #310. So a phone that opened Review before 2026-09-30 holds tallies
+   graded by the pre-#440 linear classify, and one that opened it before 2026-10-07 holds blunder counts
+   #491's own in-file comment says disagree with the verdict the review screen prints for the same move.
+   THE PRE-#503 ESTIMATE POPULATION IS THEREFORE GENUINELY STALE, and this build does NOT clear it. That is
+   a deliberate, named residual, not a claim that there is nothing to clear. The file already knew:
+   ct_bril_reset_v1 is a one-time reset Kunal asked for, dropping pre-#59 brilliancies "so they
+   rebuild with the stricter detector" - a grading-change invalidation of a grading-derived store, 1,900
+   lines below the sentence that said such a thing had never happened.
+
+   WHAT WAS WRONG, SECOND, AND IT IS THE MORE EMBARRASSING HALF: the alternative was rejected on the grounds
+   that invalidating unstamped entries "would drop every REVIEWED game back to an estimate" and flip its
+   badge. THE src:'review' CLAUSE BELOW MAKES THAT IMPOSSIBLE. Measured by A on a GRADE_VER=2 bundle
+   (76a6e18230c7) with otherwise byte-identical source: an unstamped review entry and a stamped one are both
+   SKIPPED, `was` preserved, no badge flips; only unstamped ESTIMATE entries are recomputed. So the whole
+   cost of a bump is one background pass over est entries - what the app already does for a game it has
+   never graded. The harm cited as the reason did not exist.
+
+   SO WHY IT IS STILL 1, now that the honest reasons are on the table. Because the bump is not free and its
+   price is MEASURED rather than guessed: antagonist B drove the real 200-game cap with every entry stale
+   and the full re-grade took 23,928ms, about 120ms a game, during which the grade filter's answer decays.
+   Spending that on every player's phone changes numbers they have already seen, which is a product call and
+   not a build-lane one, so it is routed with its measurement instead of taken here. What ships is the
+   MECHANISM, which is what work[3] asked for and what must exist before the gate moves at all. The bump is
+   jobs/bump-grade-ver-to-clear-the-four-shipped-grading-changes-2026-10-09. */
 const GRADE_VER=1;
 const gradeVerOf=(st)=>(st&&st.gv!==undefined)?st.gv:1;
 /* A cached tally is usable when its grading version is the current one. A src:'review' tally is ALSO left
@@ -3002,9 +3028,19 @@ export default function App(){
   const [gsVer,setGsVer]=useState(0);   // bump to re-render game rows as background stats fill in
   const analyzingRef=useRef(false);
   // #503 THE STAMP IS WRITTEN HERE, IN THE ONE WRITER, AND NOT AT EITHER CALL SITE. Both producers funnel
-  // through this function - the full review at :4363 (src:'review') and the background estimate at :4609
-  // (src:'est') - so a choke-point edit cannot be half-applied and a third producer added later is
-  // stamped without anyone remembering to [R06].
+  // through this function - the full review (which writes src:'review') and the background estimate (src:'est')
+  // - so a choke-point edit cannot be half-applied and a fourth tally producer added later is stamped without
+  // anyone remembering to [R06].
+  // NO LINE NUMBERS IN THIS COMMENT, AND THAT IS DELIBERATE [#399, and the line-citation-ceiling job's own
+  // verdict that the right fix is symbol names]. The first version of this build cited four call sites by
+  // line; antagonist A measured all four as WRONG IN BOTH TREES, because they were read before two later
+  // comment blocks shifted them, and correcting them once shifted them AGAIN by 28. A citation that a
+  // comment in the same file can invalidate by growing is not a citation. Symbols do not move.
+  // AND KNOW THAT THIS CHOKE POINT IS NOT THE ONLY WRITER OF THE KEY, which the first version of this
+  // comment implied: the cloud-sync pull writes ct_gamestats STRAIGHT TO localStorage, bypassing both this
+  // function and gameStatsRef, so a blob written by a pre-#503 build arrives unstamped on a signed-in
+  // device. Found by antagonist A; filed with its measurement rather than fixed here, because the merge
+  // rule it lands in is a pre-existing length comparison and changing it needs its own control.
   const recordGameStats=(k,v)=>{gameStatsRef.current={...gameStatsRef.current,[k]:{...v,gv:GRADE_VER}};try{localStorage.setItem('ct_gamestats',JSON.stringify(gameStatsRef.current));}catch{}setGsVer(x=>x+1);};
   const [ccGames,setCcGames]=useState(null);
   const gamesListRef=useRef(null);
@@ -7183,7 +7219,25 @@ export default function App(){
               // which is why the row keeps a `was` field for the opposite direction. The honest claim is the
               // converse only: a game not yet graded cannot match. The estimate-under-counts case is named on
               // US-R36's "what this clause does not claim" and is not fixed here.
-              const _ungr=_gradeOn?_preGrade.filter(g=>!_GS[gkey(g)]).length:0;
+              /* #503 WAS `.filter(g=>!_GS[gkey(g)])`, WHICH COUNTED ONLY A GAME WITH NO ENTRY AT ALL, AND THAT
+                 IS A P0 THE #503 INVALIDATION ARMS. Antagonist B found it from the shipped-surface door and
+                 measured it rather than reading it: a STALE entry is PRESENT, so the old predicate scored it
+                 as graded, so `_ungr` was 0 - and this ONE number suppresses BOTH the coverage line below and
+                 all three empty-state sentences, exactly while the background pass is rewriting the answer.
+                 MEASURED at the real 200-game cap with every entry stale: the blunder filter answered
+                 "26 of 200" and decayed monotonically through 27 DISTINCT COUNTS to "0 of 200" over 23.9
+                 SECONDS, with `glist-ungraded` null at every one of 57 samples, ending on the flat "No games
+                 match blunders." - the sentence gate 73's own C5b forbids while games are still ungraded.
+                 On origin/main the same store is a rock-steady "29 of 200", one state, because nothing is
+                 ever stale there. The defect is NOT reachable today (GRADE_VER is 1 and an unstamped entry is
+                 version 1 by definition, so the stale set is empty) and it detonates the first time anyone
+                 bumps the constant - which is the one thing this build exists to make possible, so it ships
+                 fixed rather than filed. `gradeCacheUsable` is the predicate the pass itself uses and was
+                 already in this file: a game is un-answerable if it has no USABLE tally, which is what the
+                 sentence claims. IT IS A NO-OP TODAY, deliberately: gradeCacheUsable(undefined) is false, so
+                 a missing entry still counts exactly as it did, and an unstamped entry is usable so it still
+                 does not - which is why B's measurement of "nothing a player sees changes" still holds. */
+              const _ungr=_gradeOn?_preGrade.filter(g=>!gradeCacheUsable(_GS[gkey(g)])).length:0;
               // #476 THE LABEL SAYS "all of" WHEN MORE THAN ONE GRADE IS ON, because the chips INTERSECT and
               // the list read as a union [antagonist B, P2 5]: with a game that has a brilliancy and a
               // different game that has a blunder, both chips on gave "No games match brilliancies,
