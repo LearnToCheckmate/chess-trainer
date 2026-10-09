@@ -2795,3 +2795,67 @@ no result at all. Measured on the shipped bundle at 375x730, 375x568 and 320x568
 empty on one tap, and the dismissed result card re-opened over the board on every Back/Forward round trip. Both are
 fixed at `2076eea`. Nothing here was raised by Kunal directly; the finding is the uat-internal-challenger's, and it
 is recorded here because the defect was on his own geometry and he would have met it.
+
+---
+
+## #504 — 2026-10-09. Your brilliancy complaint: built, tested, and **NOT shipped**. It is sitting on a defect my own test suite caught.
+
+**Nothing changed on your phone today.** Please read the rest knowing that. The work is written and it is held.
+
+**Your words, 2026-10-04, from your own game review on your own phone:** the move was brilliant *because the piece
+comes back*; *"the why preview stops short before actually taking the knight"*; and the text that would have helped
+is that the queen is pinned and that is why you can take the knight, *instead of saying this is 0.6 or 0.9 better
+than something else.* Your own test for the middle one: *"the line runs one move further so the recapture is on
+screen."*
+
+**What was wrong, and it was not a wording problem.** The sentence could not have shown the recapture no matter how
+it was written. The code asked the engine one question and kept only its single best move, so **one reply was the
+structural maximum.** The change asks a question that returns the whole line — the same query, the same 700
+milliseconds, no extra engine work — and shows up to three moves of it, always stopping on **your own** capture,
+check or mate. On the reference game a Great move at 13.Rxd7 goes from *"If Nxd7, Bxe7 and White is winning"* to
+*"If Nxd7, Bxe7 Bxe7 Bxd7+ and White is winning"*: White wins the queen and gets the bishop back, which is the thing
+the old sentence left out. That part works and it is tested.
+
+**WHY IT DID NOT SHIP, in plain terms.** The app has one engine helper for analysis, and it can only be working on
+one question at a time. When something asks it a new question, it **cancels** whatever it was doing and the
+cancelled question comes back empty. My new sentence asks a question on exactly the moves you care about — the
+brilliant and great ones — and the **engine line underneath the sentence** asks its own question on the same move at
+the same instant. One of the two gets cancelled. When it is the engine line that loses, that row shows a number and
+then a bare `…` with no moves after it, and the app *remembers* that emptiness and never asks again, so it stays
+blank for the rest of the session.
+
+That is the same defect you and I chased months ago — a failed question being filed as though it were an answer —
+coming back by a new route. My test for it went red on exactly the two moves my new sentence fires on, after being
+green on the six builds before this one. So the test did its job, and the honest conclusion is that my change makes
+a different part of the same screen worse. **I would rather show you nothing than ship you that.**
+
+**How often you would actually have hit it, measured rather than guessed.** The engine line is **off unless you turn
+it on** — it is the ⋯ menu's *"Analyze with the engine"*, and it goes back to off every time you open the app afresh.
+So if you never switch it on, you would never have seen this at all; the new sentence would simply have worked. If
+you do switch it on, then from that moment the engine line below the sentence is liable to go blank on your
+brilliant and great moves and stay blank for the rest of that review. **That is the whole reason I am telling you
+about a defect you might never have met: I would be relying on you not using a feature, and that is not a decision
+I should make quietly on your behalf.** If you tell me you never use the engine line, this becomes much less urgent
+and I will say so in the record.
+
+**What happens next.** The real fix is to stop the two questions fighting: either they take turns, or a cancelled
+question is never remembered as an answer, or — best — the two stop asking the engine the same thing about the same
+position twice over, which is pure waste as it stands. That is a change to the engine's cancel path and it needs its
+own pass and its own test, not a patch at the end of this one. The work is kept on a branch, the defect is written
+up, and the tree is registered as refused so no later run can pick it up thinking it was fine.
+
+**WHAT I DID NOT BUILD, AND IT IS THE PART YOU CARE ABOUT MORE.** The sentence still prices the move instead of
+explaining it, and it still compares against a move you did not play in pawns. Both are open. Naming the tactic —
+*the queen is pinned, that is why you can take the knight* — needs the app to detect a pin **against the queen**,
+which the standard chess libraries do not report at all, so it is real work rather than a string change. And the new
+wording would be yours to approve, not mine to invent.
+
+**One question still waiting on you, for when this does ship.** The longer line spends part of a fixed character
+budget, so at your screen size the sentence drops its last clause — *"It forks two pieces at once."* — to make room.
+I think the recapture is worth more than the motif, and I may be wrong about that; say so and it changes in one
+commit. It is recorded at `flags/amber-504-how-far-the-brilliant-refutation-line-runs` with the options I rejected
+and why.
+
+**And the honest size of it, for when it lands.** Across 265 moves of three real games, only four print a longer
+line at all — and **your own 19…Bxh3!!**, the brilliancy you found by hand, still shows one move. This would have
+made the explanation better in four places. It would not have made it better on the move you were looking at.
