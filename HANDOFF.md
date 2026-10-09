@@ -1,55 +1,70 @@
 # HANDOFF
 
-**#505 SHIPPED, 2026-10-09. origin/main at `dcfc09d` (the work) with this run’s close-out commit as its child.** The lesson intro card now survives the gesture
-that reaches its own button. `jobs/the-lesson-cta-centre-hit-tests-to-the-lesson-footer-and-a-tap-closes-the-lesson-at-568-tall-2026-10-04`
-(band 16, P0) — route 1 of #498's held tree, brought forward by diff, plus the one attribute it was held
-for and the guard four upheld vetoes forced onto it. **GATES GREEN #505 at `59` sections /
-`4537` PASS / 0 FAIL** over gated sha `dcfc09d`, bundle `ebb88c8f76f7`, source `a58bafeb9f65`.
+**#506 SHIPPED, 2026-10-09. It is the INTEGRATION RUN and it changed NO APPLICATION CODE.** `app.js` is
+byte-identical to #505's registered artefact `ebb88c8f76f7` and `chess.jsx` to `a58bafeb9f65`, so
+**nothing on Kunal's phone looks or behaves differently because of this build** — say that first, because a
+reader skimming "SHIPPED" will otherwise assume otherwise. What landed is eleven of twelve parked payloads
+from four process-build lanes that cannot push: four audit instruments that were off main, two regression
+gates, the suite driver's `--selftest` arm, a case-register row and eleven lane records.
+**GATES GREEN #506 at `59` sections / `4577` PASS / 0 FAIL** over gated sha `0a73757`, bundle
+`ebb88c8f76f7`, source `a58bafeb9f65`.
 
-## READ THIS FIRST: FIVE POINTERS, AND THE FIRST TWO ARE WORTH MORE THAN THE REST TOGETHER
+**THE SLOT OPENED FOR THE FIRST TIME IN FOUR DAYS.** STEP 1I's window is UTC hour >= 11. #502, #503, #504
+and #505 all woke before it, each measured the slot shut, and each wrote that it was owed by "the first fire
+after 11:00Z that wins the pen". This run woke at 11:21:08Z. **The manifest was TWELVE, not the five handed
+forward** — re-derived, not carried — because the backlog grew while the window stayed closed.
 
-**(1) RUN THE ANTAGONISTS BEFORE THE SUITE, THROUGH TWO DOORS, AND ADD THE THIRD QUESTION #504 ASKED FOR.**
-This is now five builds of evidence and it paid again: both passes vetoed, four vetoes upheld, the tree was
-rebuilt twice and the gate grew 35 → 42 assertions — and **not one gate minute** was spent on a tree that was
-going to change. **BOTH DOORS WERE NECESSARY AND NEITHER WOULD HAVE DONE.** A's veto is a predicate in a
-filter and is invisible from the screen; B's is a population sweep over 97 cards and the diff does not say
-which cards have a scrollable child. A single antagonist at B's door would have shipped a regression on 80 of
-97 cards **with the suite green**. #504's handover asked for a third question in the brief — *what shared
-resource does this change newly contend for* — and I did not add it, because this change touches no worker,
-cache or lock. **It should still go in the standing brief**, and a fourth belongs beside it, which this run
-earned: *what population does your assertion's own skip condition exclude, and is it the population the fix
-is about?* Block D skipped on the PANEL's room while the fix was about the CHILD's scroll.
+## READ THIS FIRST: FIVE POINTERS, AND THE FIRST IS THE ONE THAT NEARLY COST THIS RUN ITS LOG
 
-**(2) AN ASSERTION'S SKIP CONDITION IS AN ASSERTION, AND NOBODY CONTROLS IT.** This is the generalisation of
-B's veto and it is the thing most likely to recur. Gate 74's block D guarded itself with `if(pi.room>0)` —
-the panel's scroll room — and that guard is where the 80-card population went. The gate had a negative
-control for every assertion in the block and **none for the condition that decides whether the block runs**,
-so the skip was invisible to the whole control set. The remedy that worked is a GLOBAL accumulator plus a
-`>=1` assertion over it (`F1G`, the shape `B3G` and `B1bG2` already use): it turns "the population was not
-present" from a silent pass into a red. **Before trusting a block's green, ask what its own `if` excluded and
-whether anything asserts that the excluded set is empty.**
+**(1) THE BUILD NUMBER YOU GATE UNDER IS NOT THE NUMBER THE BUNDLE IS STAMPED WITH, AND `CT_EXPECT` IS THE
+SEAM.** I launched the suite as `'#505'`, reasoning that `gates/mountcheck.js` asserts the bundle carries the
+number being gated and that this run may not rebuild (`gates/build.sh` embeds the minute in the stamp, and
+`app.js` in the diff is a STOP under STEP 1I.3's allow-list). Antagonist A vetoed on four limbs and three
+were right — #505 is issued with five register rows, #506 was unminted, and
+**`claude/agents/gatelogs/505-all.log` ALREADY EXISTS COMMITTED**, so archiving over it would have destroyed
+the #416-class evidence this project keeps two logs for. THE FIX IS ONE ENV VAR: `gates.sh:160` is
+`export CT_EXPECT="${CT_EXPECT:-$N}"`, so `CT_EXPECT='#505' gates/.gates-run-506.sh '#506'` stamps the log
+#506 while mountcheck asserts the bundle's true #505 stamp — green at 16 PASS. **AND MY OWN PREMISE WAS
+WRONG TOO:** `node gates/mountcheck.js '#506'` run directly PASSES at 14/0, because that assertion is
+conditional on `CT_EXPECT`; the suite's mountcheck reports SIXTEEN, and the two extra assertions are the
+stamp check. The 14-vs-16 discrepancy is the instrument that catches this. Cost: ten minutes.
 
-**(3) FIXING ONE COPY OF A DUPLICATED PREDICATE IS WORSE THAN FIXING NEITHER.** `userScrollables()` and block
-C's inline walk are two copies of the same filter, duplicated because one runs in node and one inside a
-`page.evaluate`. I corrected `userScrollables` for `touch-action`, re-ran the control, and **C0 still passed
-from the uncorrected copy in the same run** — so the gate reported "what a finger could scroll" from a
-corrected filter in B1b and an uncorrected one in C0, simultaneously. The duplication is forced by the
-architecture and cannot be removed; what makes it safe is that the control reddens **both**, which is now
-verified rather than assumed. If you touch either copy, run `nc-touchaction` and check both ids go red.
+**(2) A VETO CAN BE RIGHT ON THE VERDICT AND WRONG ON THE DECISIVE FACT — CHECK IT BEFORE YOU ACT.** A's limb
+(1) said neither registered #505 bundle is `ebb88c8f76f7`. `awk -F'\t' '$1==505'` over
+`gates/build-numbers.tsv` returns FIVE rows, FOUR of them `built`, and `ebb88c8f76f7` IS the fourth. A later
+conceded it had run `buildnum.sh check | head -8` and published "neither" over a listing it had TRUNCATED —
+"the same sin as the `| tail` I was engaged to catch". **I made the identical error earlier in the same run**,
+reading an exit code through `| tail` and printing 0 for a script whose own last line says RED. Two
+independent instances of one class in one run: a count or a status read through a truncating pipe.
 
-**(4) DO NOT PUT A BUNDLE md5 IN A FILE THAT IS AN INPUT TO THE BUNDLE — AND DO PUT IT IN ONE THAT IS NOT.**
-#503's pointer was about line numbers; this is its sibling and the rule is sharper than "avoid md5s". A gate
-file is **not** an input to `app.js`, so md5s there are stable and belong there. A `chess.jsx` comment **is**
-an input, so an md5 written into one is invalidated by writing it. #505 rebuilt **four times** and any md5
-pinned in a `chess.jsx` comment would have gone stale three times. Keep the figures in the gate's CONTROLS
-block and rewrite that block once, at the end, against the final bundles.
+**(3) RUN THE CROSS-READ. IT FALSIFIED A CAUSE I HAD ALREADY COMMITTED.** Both antagonists found the
+`gates/audit/play.js` roster gap independently and both said one roster row closes it — correct. But B
+located the recruiting citation at `gates/regress/65-promotion-after-gameover.js:282`, I wrote that into the
+roster row AND the commit message, and A falsified it on the cross-read: `cited-not-run.sh`'s own
+`default_records()` scans the record documents and **never `gates/regress/`**, so a line in a gate file
+cannot recruit anything. The real citation is `claude/PROCESS-LOG.md:858`. A's sentence is the one that
+matters: *a run that acted on B's line would edit the gate, re-run the audit, and find the member still
+there.* Corrected in its own commit. The two doors disagreed about a mechanism and the disagreement was the
+product.
 
-**(5) A REGISTER YOU PORT UNCHANGED IS A CLAIM YOU ARE MAKING.** I carried #498's TC-R62 and manifest row
-into a build that changes what they document, and both named a **must-not-ship** bundle as "SHIPPED" and
-green, prescribed the attribute this build replaces, and described an assertion as the opposite of what its
-own gate prints. `gates/held-trees.tsv` said the same md5 must not ship. **Two committed files, one md5,
-opposite verdicts** — #450's shape with the sign flipped. When a build lands somebody else's case document,
-diff what it says against what the gate now does, line by line, before the push.
+**(4) A FIX FOR STALE CITATIONS CAN BE A STALE CITATION. MINE WAS.** This batch grows `gates/gates.sh`
+329 -> 395 lines, all below `set -uo pipefail`, so every citation into it is stale by **+66** — and five were
+brand-new text in these very payloads. I re-pointed them BY SYMBOL per #503's pointer 4. **My first draft
+quoted them literally in the counted `path:NNN` form, so the note explaining the de-pin became three live
+citations itself and the tree-wide count did not fall.** `claude/PROCESS-LOG.md` already records that exact
+failure. Rewritten in words. Nineteen PRE-EXISTING live sites remain stale and are NOT fixed: five of their
+ten files are ones this run held no R44 lock on, and `RUN-LOG.md`'s six are historical rows that must not be
+rewritten. Enumerated with the command on the job that owns the cause.
+
+**(5) THE FROZEN COPY PROTECTS ONE FILE OUT OF SIXTY-THREE, AND THE OTHER SIXTY-TWO ARE THE DANGEROUS ONES.**
+Copying `gates.sh` to `gates/.gates-run-NNN.sh` inside `gates/` is right and it worked (all three md5s equal,
+`ROOT` resolves). But the suite reads `gatemanifest.sh`, `mountcheck.js`, `lib.js`, `drive/play.js` and all 58
+regress gates **from the live working tree, progressively, over 95 minutes** — and node reads a gate wholly
+at require time, so a mid-run edit to a gate NOT YET REACHED produces no error at all, just a green log that
+is a collage of two trees. That is strictly worse than #461's loud bash failure. So before making the veto
+edits mid-run I measured that ZERO files under `gates/regress/`, `gates/lib.js` or `gates/drive/` reference
+any of the three scripts I touched, and I re-measured all 79 suite-read JS files as byte-identical between
+launch and finish. **Freeze them and diff them; do not reason about it.**
 
 ## WHAT IS OWED, AND NONE OF IT IS DISCHARGED BY THIS RUN
 
