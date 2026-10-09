@@ -63,6 +63,49 @@
 # applies nothing, pushes nothing, needs no network beyond the fetch the caller already
 # did, and never writes to the repository it reads.
 #
+# L9 ADDED 2026-10-09 BY process-build LANE 1, run process-build-1__1791506104304, AND IT IS
+# A THIRD DELIVERY ARM RATHER THAN A TWEAK TO THE TWO ABOVE.
+#
+#   L9-NEW-FILE-ON-MAIN   for every payload that ADDS a file, is that path in
+#                         `git ls-tree -r --name-only origin/main`.
+#   L9b-NEW-FILE-POPULATION  how many payloads add a file at all. ITS OWN LINE,
+#                         never a conjunct of L9, because `for` over nothing and
+#                         `every()` over nothing both report success loudest
+#                         exactly when the thing they guard has disappeared.
+#
+# WHY A THIRD ARM, MEASURED ON THE LIVE PILE AND NOT REASONED FROM THE SOURCE.
+# Run over all 43 documents of collection `patches` at origin/main 9cec233 in a
+# complete clone, THIS FILE AS IT STANDS ON MAIN REPORTS L4a-NO-FALSE-DELIVERY
+# **PASS** - while SEVEN payloads that carry an integrationResult each add a new
+# file that is not among origin/main's 528 tracked paths:
+#   proc-lane2-art-gates-audit-pipefail-grep-sh-2026-10-07        gates/audit/pipefail-grep.sh
+#   proc-lane3-art-gates-audit-all-sh-2026-10-07                  gates/audit-all.sh
+#   proc-lane3-art-gates-audit-r19-phone-geometry-sh-2026-10-07    gates/audit/r19-phone-geometry.sh
+#   proc-lane3-art-gates-audit-red-count-sh-2026-10-07             gates/audit/red-count.sh
+#   proc-lane3-art-gates-audit-stamp-regex-selftest-sh-2026-10-07  gates/audit/stamp-regex-selftest.sh
+#   proc-lane3-art-gates-regress-19-review-grade-counts-js-2026-10-08  gates/audit/require-resolve.sh
+#   proc-lane4-art-gates-audit-story-join-sh-2026-10-07            gates/audit/story-join.sh
+#
+# AND THE REASON IS NOT A VACUITY, WHICH IS WHAT THIS ARM'S AUTHOR ASSUMED FIRST
+# AND THEN MEASURED. Every one of the seven reads `content=NOT-ON-MAIN |
+# ancestry=ALL | delivered=yes by ancestry`. The ancestry arm scrapes hex tokens
+# out of the free-text integrationResult, and all seven quote the integration
+# run's own base - `97393a6` and `dee3ce0` - which are commits OF origin/main and
+# are therefore ancestors of it BY CONSTRUCTION. So `anc_ok` is non-zero, the
+# ancestry arm reads ALL, and it OVERRIDES the content arm's correct reading of
+# absence. The claim is confirmed by main's own history rather than by the
+# payload's. This file's header above calls that parser "deliberately generous"
+# and says the unmeasurable bucket carries the cost; it does not. The cost is a
+# false PASS on the one verdict this file exists for.
+#
+# A NEW FILE IS THE ONLY DELIVERY QUESTION THAT IS DECIDABLE OUTRIGHT. It needs
+# no 3-way, no base, and no sha: either the path is in the tree or it is not, so
+# no token scraped out of prose can confirm it. That is why MISSING here
+# OVERRIDES both other arms rather than joining a vote. A modification is not
+# decidable this cheaply, and the 14 payloads that claim integration while only
+# MODIFYING a file are NOT covered by this arm - stated so nobody reads a green
+# L9 as a clean pile [R18].
+#
 # Written by process-build lane 3, run process-build-3__1791282388056, 2026-10-06.
 # The PROSE half of its job - step (3), typing `integrationResult` so presence cannot
 # read as delivery - is a schema change in prompts/* and is the orchestrator's under
@@ -136,6 +179,27 @@ print("\n".join(sorted(out)))
 ' "$1" 2>/dev/null
 }
 
+# Every path a patch ADDS, one per line, de-duplicated and sorted. python rather
+# than awk/sed for the same reason shas_in is: the patch body is a multi-line
+# field and this sandbox's awk ignores interval expressions. The pairing is
+# positional and deliberately tight - a `new file mode` line is matched to the
+# nearest preceding `diff --git` header within three lines - so a `deleted file
+# mode` or a plain modification contributes nothing.
+newfiles_in() {
+  "$PY" -I -c '
+import re,sys
+lines=sys.argv[1].split("\n")
+out=set()
+for n,l in enumerate(lines):
+    if not l.startswith("new file mode"): continue
+    for k in range(n-1,max(-1,n-4),-1):
+        m=re.match(r"diff --git a/(.+) b/(.+)$",lines[k])
+        if m:
+            out.add(m.group(2)); break
+print("\n".join(sorted(out)))
+' "$1" 2>/dev/null
+}
+
 # ---------------------------------------------------------------------------
 audit() {
   local docdir="$1" repo="$2"
@@ -170,11 +234,21 @@ audit() {
   local tmp
   tmp=$(mktemp -d) || { say L0d-TMPDIR SKIP "cannot mktemp"; return 2; }
 
+  # The one listing the new-file arm reads, taken ONCE so the report cannot drift
+  # mid-run. An UNREADABLE listing must never read as "nothing is missing": it
+  # sets nf_readable=0 and L9 then says it measured nothing [R18].
+  local treefile="$tmp/origin-main-tree.txt"
+  git -C "$repo" ls-tree -r --name-only origin/main > "$treefile" 2>/dev/null || true
+  [ -s "$treefile" ] || nf_readable=0
+
   local f id ir patchbody artefact nshas s content
   local total=0 withpatch=0 withir=0
   local naive_pile=0 true_undelivered=0
   local L1_NOSHA="" L2_NOTANC="" L2_ABSENT="" L4A="" L4B="" L4C="" L3_INDET=""
   local n1=0 n2=0 n2b=0 n4a=0 n4b=0 n4c=0 n3=0
+  # L9: the new-file arm. nf_pop is the DENOMINATOR and is reported on its own
+  # line; n9 is the breach count among payloads that claim integration.
+  local L9_MISSING="" L9_OUTSTANDING="" n9=0 n9o=0 nf_pop=0 nf_sites=0 nf_readable=1
 
   for f in $(ls -1 "$docdir"/*.json 2>/dev/null | sort); do
     total=$((total+1))
@@ -185,6 +259,24 @@ audit() {
     ir=$(json_field "$f" integrationResult)
     artefact=$(json_field "$f" artefact)
     printf '%s' "$patchbody" > "$tmp/$id.patch"
+
+    # ---- L9  THE NEW-FILE ARM, PER DOCUMENT. ----
+    # nf=NONE         this payload adds no file; this arm says nothing about it
+    # nf=ALL-PRESENT  every path it adds is in origin/main's tree
+    # nf=MISSING      at least one path it adds is NOT, and that is not a
+    #                 judgement, an inference or a 3-way: it is absence.
+    local nf=NONE nfmiss="" nfp
+    if [ "$nf_readable" -eq 1 ]; then
+      while IFS= read -r nfp; do
+        [ -n "$nfp" ] || continue
+        nf_sites=$((nf_sites+1))
+        if ! grep -Fxq -- "$nfp" "$treefile"; then nfmiss="$nfmiss $nfp"; fi
+      done <<< "$(newfiles_in "$patchbody")"
+      if [ -n "$(newfiles_in "$patchbody")" ]; then
+        nf_pop=$((nf_pop+1))
+        if [ -n "$nfmiss" ]; then nf=MISSING; else nf=ALL-PRESENT; fi
+      fi
+    fi
 
     # ---- L3  PER-FILE RECONCILIATION, and this is the half the job's step (2)
     # ---- asks for. A PRESENT FILE IS NOT A LANDED CHANGE, so presence is not
@@ -249,9 +341,23 @@ audit() {
     elif [ "$anc" = "ALL" ]; then
       delivered=yes; evidence=ancestry
     fi
+    # L9 OVERRIDES BOTH ARMS, AND ONLY IN THE ONE DIRECTION IT CAN PROVE.
+    # A path this payload creates is not in main's tree, so the payload did not
+    # land - whatever reverse-apply could not decide and whatever sha its own
+    # prose quotes. It can never override the other way: ALL-PRESENT does NOT
+    # make an undelivered payload delivered, because a file can be created on
+    # main by somebody else's commit.
+    if [ "$nf" = "MISSING" ]; then
+      delivered=no; evidence=new-file-absent
+    fi
     [ "$delivered" = "yes" ] || true_undelivered=$((true_undelivered+1))
 
-    info "DOC" "$id | artefact=${artefact:-<none>} | integrationResult=$([ -n "$ir" ] && echo present || echo absent) | content=$content | ancestry=$anc | delivered=$delivered by $evidence"
+    info "DOC" "$id | artefact=${artefact:-<none>} | integrationResult=$([ -n "$ir" ] && echo present || echo absent) | content=$content | ancestry=$anc | newfile=$nf${nfmiss:+ (absent:$nfmiss)} | delivered=$delivered by $evidence"
+
+    if [ "$nf" = "MISSING" ]; then
+      if [ -n "$ir" ]; then n9=$((n9+1));  L9_MISSING="$L9_MISSING $id:${nfmiss# }"
+      else                  n9o=$((n9o+1)); L9_OUTSTANDING="$L9_OUTSTANDING $id"; fi
+    fi
 
     if [ -n "$ir" ]; then
       if [ "$content" = "NOT-ON-MAIN" ] && [ "$delivered" = "no" ]; then n4a=$((n4a+1)); L4A="$L4A $id"; fi
@@ -313,6 +419,25 @@ audit() {
     pass L3-CONTENT-DECIDABLE "every payload's content is decidably on or off main"
   else
     info L3-CONTENT-DECIDABLE "$n3 payload(s) neither apply nor reverse-apply against main's tree - main has moved under them and a 3-way is needed to tell; each is then decided by the ancestry arm instead, and only an indeterminate payload with no ancestry evidence counts as undelivered:$L3_INDET"
+  fi
+
+  # ---- L9  THE NEW-FILE ARM. Its denominator is printed FIRST and on its own
+  # ---- line, so a green L9 over an empty population cannot be read as clean.
+  if [ "$nf_readable" -ne 1 ]; then
+    info L9b-NEW-FILE-POPULATION "origin/main's tree listing could not be read - MEASURED NOTHING on this arm"
+    info L9-NEW-FILE-ON-MAIN     "MEASURED NOTHING on this arm"
+  else
+    info L9b-NEW-FILE-POPULATION "$nf_pop of $withpatch payload(s) add at least one file, $nf_sites added path(s) in all, against $(grep -c . "$treefile") path(s) tracked on origin/main"
+    if [ "$nf_pop" -eq 0 ]; then
+      info L9-NEW-FILE-ON-MAIN   "no payload in this population adds a new file - MEASURED NOTHING on this arm"
+    elif [ "$n9" -eq 0 ]; then
+      pass L9-NEW-FILE-ON-MAIN   "every path added by a payload that claims integration is on origin/main ($nf_pop payload(s) examined, $nf_sites added path(s))"
+    else
+      fail L9-NEW-FILE-ON-MAIN   "$n9 payload(s) CLAIM INTEGRATION AND ADD A FILE THAT IS NOT IN origin/main's TREE - a new file cannot half-land, so this is absence and not an inference, and it OUTRANKS any sha their prose quotes:$L9_MISSING"
+    fi
+    if [ "$n9o" -gt 0 ]; then
+      info L9c-OUTSTANDING-ADDERS "$n9o payload(s) add a file that is not on main AND carry no integrationResult - correctly outstanding, listed so the integrator can see which pending payloads create files:$L9_OUTSTANDING"
+    fi
   fi
 
   # ---- L5  THE TWO PILE DEPTHS, SIDE BY SIDE. This is the number the lanes halt
@@ -475,6 +600,70 @@ json.dump(d,open(sys.argv[1],"w"))
   fresh_docdir; mkdoc d-noanc "$P_LANDED" "APPLIED to the branch, commit $STRANDED"
   out="$T/o19"; audit "$D" "$M" > "$out" 2>&1; rc=$?
   check C19-NO-ANCESTRY-STAYS-UNDEL 1 "L4c-CLAIM-IS-CHECKABLE     FAIL" "$rc" "$out"
+
+  # ===================== C27 to C31  L9, THE NEW-FILE ARM ==================
+  # A SEPARATE FIXTURE REPO, so none of C1 to C19's expectations move: every
+  # patch above modifies one tracked file and adds nothing, so on those controls
+  # nf_pop is 0 and L9 correctly says it measured nothing.
+  local NFR="$T/nfrepo"
+  git clone -q "$R" "$NFR" 2>/dev/null
+  git -C "$NFR" config user.email a@b.c; git -C "$NFR" config user.name t
+  git -C "$NFR" checkout -q -B nfmain "$LANDED"
+  mkdir -p "$NFR/gates/audit"
+  printf 'present\n' > "$NFR/gates/audit/present.js"
+  git -C "$NFR" add -A; git -C "$NFR" commit -q -m 'adds present.js'
+  local NFPRESENT; NFPRESENT=$(git -C "$NFR" rev-parse HEAD)
+  git -C "$NFR" update-ref refs/remotes/origin/main HEAD
+  git -C "$NFR" checkout -q -b nfside
+  printf 'absent\n' > "$NFR/gates/audit/absent.js"
+  git -C "$NFR" add -A; git -C "$NFR" commit -q -m 'adds absent.js'
+  local NFABSENT; NFABSENT=$(git -C "$NFR" rev-parse HEAD)
+  git -C "$NFR" checkout -q "$NFPRESENT" 2>/dev/null
+  local P_ADDS_ABSENT="$T/p.adds_absent" P_ADDS_PRESENT="$T/p.adds_present"
+  git -C "$NFR" format-patch --stdout "$NFABSENT^..$NFABSENT"   > "$P_ADDS_ABSENT"
+  git -C "$NFR" format-patch --stdout "$NFPRESENT^..$NFPRESENT" > "$P_ADDS_PRESENT"
+
+  # C27 / C27b: THE EXACT LIVE CASE. The payload adds a file that is NOT on
+  # main, and its claim quotes MAIN'S OWN SHA - which is an ancestor by
+  # construction, so before this arm existed the ancestry arm read ALL and
+  # called it delivered. L9 must fail, and L4a must now fire with it.
+  fresh_docdir; mkdoc d-adds-absent "$P_ADDS_ABSENT" "APPLIED onto origin/main $NFPRESENT, measured and parked again"
+  out="$T/o27"; audit "$D" "$NFR" > "$out" 2>&1; rc=$?
+  check C27-ADDED-FILE-ABSENT     1 "L9-NEW-FILE-ON-MAIN        FAIL" "$rc" "$out"
+  check C27b-ANCESTRY-NO-LONGER-WINS 1 "delivered=no by new-file-absent" "$rc" "$out"
+  check C27c-L4A-NOW-FIRES        1 "L4a-NO-FALSE-DELIVERY      FAIL" "$rc" "$out"
+
+  # C28: the other direction. Same shape of payload, but the file it adds IS on
+  # main, so L9 passes and the arm is shown able to return both answers.
+  fresh_docdir; mkdoc d-adds-present "$P_ADDS_PRESENT" "APPLIED, commit $NFPRESENT"
+  out="$T/o28"; audit "$D" "$NFR" > "$out" 2>&1; rc=$?
+  check C28-ADDED-FILE-PRESENT    0 "L9-NEW-FILE-ON-MAIN        PASS" "$rc" "$out"
+
+  # C29: THE DENOMINATOR. A population in which nothing adds a file must report
+  # that it measured nothing, and must NOT print a PASS - the empty-collection
+  # trap this project records as a class.
+  fresh_docdir; mkdoc d-modify-only "$P_LANDED" "APPLIED, commit $LANDED"
+  out="$T/o29"; audit "$D" "$R" > "$out" 2>&1; rc=$?
+  check C29-NO-ADDERS-MEASURES-0  0 "no payload in this population adds a new file" "$rc" "$out"
+
+  # C30: an adder with NO integrationResult is correctly outstanding, not a
+  # false delivery, so it goes to L9c and L9 still passes over the claimers.
+  fresh_docdir; mkdoc d-adds-absent-noir "$P_ADDS_ABSENT" ""
+  out="$T/o30"; audit "$D" "$NFR" > "$out" 2>&1; rc=$?
+  check C30-OUTSTANDING-ADDER-INFO 0 "L9c-OUTSTANDING-ADDERS     INFO" "$rc" "$out"
+
+  # C31: the extractor itself, both directions, on the function and not through
+  # a report - C17's shape. A `new file mode` must bind to its own header, and a
+  # modify-only patch must contribute nothing at all.
+  n=$((n+1))
+  local nf_pos nf_neg
+  nf_pos=$(newfiles_in "$(cat "$P_ADDS_ABSENT")")
+  nf_neg=$(newfiles_in "$(cat "$P_LANDED")")
+  if [ "$nf_pos" = "gates/audit/absent.js" ] && [ -z "$nf_neg" ]; then
+    printf '%-26s %-5s %s\n' C31-ADD-EXTRACTOR-WORKS PASS "finds the added path, finds none in a modify-only patch"; ok=$((ok+1))
+  else
+    printf '%-26s %-5s %s\n' C31-ADD-EXTRACTOR-WORKS FAIL "positive gave [$nf_pos], negative gave [$nf_neg]"
+  fi
 
   # ===================== C16  determinism of the report ====================
   # Byte-identical output on repeated runs over one input [R36]. A report whose
