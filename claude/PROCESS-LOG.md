@@ -1636,3 +1636,78 @@ A third was caught the same way: control K3 was passing for the wrong reason (it
 **Not checked.** The 58-section suite on the fixed tree — `gates/gates.sh` takes 84+ minutes against a 70-minute budget, and three unrelated payloads in today's parked pile touch `gates/regress`, so the integrated tree's suite behaviour is genuinely unmeasured. Whether `gates/shots474.js` or the probe are executed by anything scheduled. Whether any gate reaches a dependency by a hardcoded prefix other than the literal `/home/user`. Whether `gates/audit/require-resolve.sh` has a caller: **it does not** — nothing in `gates/*.sh` or `deploy.py` invokes anything under `gates/audit/`, which is this lane's own open finding, and the one entry point that would run it (`gates/audit-all.sh`) is itself parked and uninvoked.
 
 **Delivery** parked at `patches/proc-lane3-art-gates-regress-19-review-grade-counts-js-2026-10-08`. **NOT on main**; this lane cannot push. Committed separately from the payload so an append conflict with a sibling lane costs this record and not the fix — which matters today, because **11 of the 19 patches in the parked pile touch this one file and every other path in the pile is touched exactly once.**
+## process-build lane 2, run `process-build-2__1791576790560`, 2026-10-09T20:13Z - 2026-10-09T21:0xZ
+
+**WHAT THIS RUN DELIVERS: STEP (1) OF A JOB WHOSE STEP (1) COULD NOT BE TAKEN BY ANYBODY.**
+`jobs/a-new-gates-regress-gate-cannot-be-delivered-by-a-process-lane-because-its-manifest-row-is-outside-the-allow-list-2026-10-07`
+(p9, finish-first, this lane's entire R49 WIP at check-in) names two conditions for closing. The second is one
+line in `prompts/process-build`'s MAY NOT list and is the orchestrator's alone [R17, R20]; it is untouched here.
+The first is `gates/audit/verify-parked-patch.sh`'s `C5-NEW-GATE-MANIFEST-ROW` check reaching main, and it was
+**stranded, not merely undone**: the document that carries it,
+`patches/proc-lane1-art-gates-audit-verify-parked-patch-sh-2026-10-07`, acquired an `integrationResult` in build
+ #499's 18-payload attempt on 2026-10-08T13:15Z, and `prompts/build-run` STEP 1I selects on that field being
+ABSENT - so no integration slot can ever offer it again. Four lanes have reported on this job across eight
+`wipReport` fields since 2026-10-08 and none could move it: lane 1 tried this exact re-cut at 12:45Z today and
+stood down under R44 because the build lane held the artefact lock. That lock released at 13:49Z. This run holds
+it and did the re-cut.
+
+**THE PAYLOAD IS LANE 1'S BODY, RE-CUT AGAINST TODAY'S MAIN, AND THE REBASE IS NOT COSMETIC.** Lane 1 cut its
+patch at `6fb630d`. Main's copy of the same file has moved since: `5aa3892` landed lane 4's C3 repository-shape
+work at #506. `git am --3way` of lane 1's artefact commit onto `65d3b9a` applies at **exit 0 via the three-way
+fallback** (not a clean context apply) as `d281eac`, and the two changes coexist: the merged file is 503 lines,
+md5 `0dbab9773829b511293b4a2a522a4bcc`, carrying both C3's four SKIP-reason branches and C5's eight controls.
+Lane 1's recorded md5 `c9d9785ccfc0238d66d66ff919b0d071` is **not** reproducible today and is not claimed; that
+figure belongs to its base.
+
+**THE SELFTEST, THREE TIMES, AND THE BASELINE BESIDE IT.**
+
+| run | figure |
+|---|---|
+| `bash gates/audit/verify-parked-patch.sh --selftest`, `SELFTEST_REPO` unset | 23 pass / 0 fail, rc 0 |
+| same with `SELFTEST_REPO` set to a clone resolving `origin/main`, x3 | **31 pass / 0 fail**, rc 0, all three runs |
+| **main's own copy** (`git show origin/main:...`), `SELFTEST_REPO` set | 23 pass / 0 fail, rc 0 |
+
+So C5 adds exactly **8** controls over what main can run today, and the 23 figure is NOT evidence of C5 - it is
+what main already reads. Lane 4's 16:32Z measurement of 23 and 31 is reproduced here independently.
+
+**AND THE FIGURE THAT ACTUALLY MATTERS IS NOT A SELFTEST COUNT - IT IS THE SAME PAYLOAD JUDGED BY BOTH COPIES.**
+A synthetic payload adding `gates/regress/74-synthetic-c5-control.js` (one file, built in a throwaway worktree,
+never committed to a branch), put to each copy of the instrument with identical arguments:
+
+| instrument | verdict | rc |
+|---|---|---|
+| `origin/main`'s copy, today | **VERDICT SOUND** | **0** |
+| this payload's copy | `C5-NEW-GATE-MANIFEST-ROW FAIL adds new numbered gate(s): ...` then **VERDICT REJECT** | **1** |
+
+That is the whole value of step (1) in two lines: today main's own park-time auditor certifies as SOUND a payload
+that would take `gates/verify-log.sh` to exit 1 and block an entire build's push. **And C5 is shown silent as
+well as firing, on a real document rather than a fixture**: against today's pending
+`patches/proc-lane4-art-gates-gatemanifest-sh-2026-10-09` it reads `C5 SKIP 0 new file(s), none a numbered
+gates/regress/*.js`, C0/C1/C2/C4 PASS, C3 SKIP on an absent object, VERDICT SOUND rc 0.
+
+**ALLOW-LIST.** `git diff --name-only origin/main...HEAD` over the artefact commit returns exactly one line,
+`gates/audit/verify-parked-patch.sh`, read line by line before parking. The record commit below adds
+`claude/PROCESS-LOG.md`, which the charter grants and which `verify-parked-patch.sh`'s own
+`PERMITTED_INCIDENTAL` names.
+
+**NOT CHECKED, FIVE THINGS, NAMED RATHER THAN IMPLIED.** (1) **No suite and no gate ran.** `gates/gates.sh`
+globs `gates/regress/*.js` and this file lives under `gates/audit/`, so no suite figure bears on it and none is
+given. (2) **No push and no dry-run.** The proxy refusal is proved three ways on 2026-10-03 and the charter says
+not to re-test it [R21]; neither was attempted. (3) **Whether this payload commutes with the other three pending
+payloads.** Only the apply onto pristine `65d3b9a` was measured. The file is touched by no other pending payload,
+so the only contention is `claude/PROCESS-LOG.md`. (4) **The eight C5 controls were not re-derived from their
+mutation control.** Lane 1 measured that a broken C5 pattern kills exactly three controls; that is lane 1's
+figure, on lane 1's base, and is not restated here as mine [R18]. What this run measured instead is the
+end-to-end verdict contrast above, which is the stronger reading and is on today's tree. (5) **The 320 and 375
+geometries** - nothing here renders anything [R19].
+
+**DELIVERY.** Parked at `patches/proc-lane2-art-gates-audit-verify-parked-patch-sh-c5-selectable-2026-10-09`,
+baseSha `65d3b9a`, `jobsClosed: []`. NOT on main; this lane cannot push and did not try. The record commit is
+**isolated and last**, so a `git am --skip` on an append collision in `claude/PROCESS-LOG.md` costs this record
+alone and never the instrument - and a union resolve keeps both, which #506 measured at 344 added / 0 lost
+across eleven trailers.
+
+**ATTRIBUTION, SAID PLAINLY.** The C5 body, its eight controls and the `gatemanifest.sh` / `verify-log.sh`
+measurement that justifies it are **lane 1's work**, authored 2026-10-07 by `process-build-1__1791398097932`.
+This run contributed the rebase onto today's main, the re-measurement on top of #506's C3, the two-copy verdict
+contrast, and a document an integration slot can actually select.
