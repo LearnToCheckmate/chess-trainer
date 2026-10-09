@@ -1711,3 +1711,34 @@ across eleven trailers.
 measurement that justifies it are **lane 1's work**, authored 2026-10-07 by `process-build-1__1791398097932`.
 This run contributed the rebase onto today's main, the re-measurement on top of #506's C3, the two-copy verdict
 contrast, and a document an integration slot can actually select.
+## 2026-10-09T22:46Z — process-build lane 3, run `process-build-3__1791584824170` — PHASE 1B of gate 51 is admitted under R36
+
+**The item.** `jobs/gate-51-fallback-column-assertions-written-and-three-are-red-on-main-2026-10-03`, priority 14, `finishFirst`, `owningLane` build, taken from the ready queue under R05b after this lane's own R49 WIP (one job) proved to have no step any process lane can perform. Its `whatIsLeft` names three remainders; this run re-tested all three **against origin/main 65d3b9a rather than against the payload documents meant to deliver them**, which is the test that has moved a partial on four previous process-lane runs when nothing else did.
+
+**Remainder 1 is DONE and nothing said so.** The job's `whatIsLeft` reads "none of the seven new ids appears anywhere in `claude/stories/`". Measured on main: `A0e`, `A9a`, `A9b`, `A9c`, `A10`, `A11`, `A12` are **all seven inside the TC-R16 row itself** (line 36), landed by `9439b37` "process: TC-R16's register row names the 27 assertion ids gate 51 actually runs", committed 2026-10-09T11:31:36Z and confirmed an ancestor of `origin/main` by `git merge-base --is-ancestor`. TEST-CASES.md md5 `1876d865299de5c77fd49a5cfdc84a88`, 59 case rows. That remainder is discharged; the field that still claims otherwise is stale, and a run selecting on it would have re-authored work already on main.
+
+**Remainder 2 is BLOCKED, not undone.** The US-R13 clause this job names is genuinely absent from main — `claude/stories/USER-STORIES.md` US-R13 (:284) has no clause about the engine BRANCH the device chooses, which is what `A0e` and `A9a`–`A9c` assert. It was not written because `claims/art-claude-stories-USER-STORIES-md` reads **open to the build lane** `build__1791577208000`, claimed 20:30:00Z, `expiresAt` 23:30:00Z — not mine and not expired, so R44 says stand down on that artefact and the skip is recorded rather than stepped over.
+
+**Remainder 3 is the one this run BUILT.** PHASE 1B (`A10`/`A11`/`A12`, the fen-keyed store merge) was declared a CANDIDATE under R36 at `:253`, and the job names *three green runs on a tree where A0e is GREEN* as the only thing between it and admission. That tree existed here for the first time.
+
+**The measurement, every figure read from this container [R18].** `node gates/regress/51-drill-explain-why.js`, no `CT_*` set, against origin/main's own committed bundle `app.js` md5 `ebb88c8f76f7`:
+
+| run | verdicts | A0e | A1 | wall |
+|---|---|---|---|---|
+| 1 | 80 pass / 0 fail | GREEN (`engine:"sf"`) | captured 2 / inputs 2 | 150 s |
+| 2 | 80 pass / 0 fail | GREEN | 2 / 2 | 148 s |
+| 3 | 80 pass / 0 fail | GREEN | 2 / 2 | 150 s |
+
+The PASS/FAIL set is **byte-identical across all three, including every payload object**: md5 `ffc7d0ccc6ca648f` over the full lines, `f750a072a0973170` over verdict and text alone, `297051ee6fba812b` over A10/A11/A12's own three lines. Not just the verdicts — zero drift in any rect, count or string across 80 lines. R36 criterion 1 is therefore measured, not asserted. Criterion 2 is already paid: PHASE 1B runs inside this gate's existing run and adds no section and no browser to the suite. Criterion 3 is `A11`'s own subject — the ~148 mistakes left permanently unexplained, which is the defect Kunal reported twice.
+
+**And the edit is shown not to move the number, rather than assumed not to.** A fourth full run after the change reproduces **80 pass / 0 fail at md5 `ffc7d0ccc6ca648f`**, the same hash as the three before it. No assertion, selector, threshold or fixture changed; only the declaration did.
+
+**The admission is SCOPED and the comment says so.** It is admitted on the pooled Stockfish branch — the branch `A0e` already requires this whole gate to be reporting on. A run where `A0e` is RED is a run on uncovered code and this block's determinism is not claimed there. It was not bought by hand-seeding the fresh capture, which would re-create the vacuity shape PHASE 1 exists to design out.
+
+**A contradiction this change CREATES, named in the gate itself rather than shipped silently [R45 shape (2)].** `claude/stories/TEST-CASES.md`'s TC-R16 row still reads "PHASE 1B, a CANDIDATE under R36 and not admitted", "PHASE 1B still needs three green runs… before admission" and "R36: deterministic across 3 runs NOT yet measured". All three are refuted above. The row was not corrected in the same change because `claims/art-claude-stories-TEST-CASES-md` is **open to the live build run** `build__1791577208000` until 23:30:00Z, and R44 gives one agent one artefact. The executable's declaration is the newer of the two; the register row is the stale one, it is one row, and it is named as the remaining step on the job.
+
+**Not checked, six things, named rather than implied.** (1) The 59-section suite did not run — this is one gate's own invocation and authorises no push, and no process lane can push in any case. (2) No negative control was re-fired: the gate's three recorded controls are #426 and #422 readings and are cited, not reproduced, so the 80/0 green rests partly on them. (3) The fallback (minimax) branch — PHASE 1B's determinism there is explicitly NOT claimed and is the condition the scoping names. (4) Whether any *other* block of this gate is still a candidate: only PHASE 1B's declaration was read and changed. (5) The unlanded patch the previous lock-holder warns about (`docs/patch-clauses-cite-assertions-that-do-not-assert-them-2026-09-28-2026-10-08`) was NOT re-cut — different region, different lane's authorship, and its real problem is that it sits in `docs` where STEP 1I cannot select it. (6) No push and no push dry-run was attempted; the proxy refusal is proved three ways and the charter says not to re-test it [R21].
+
+**One thing read and left alone.** `B9`'s verdict line labels 375x730 "KUNAL", which R19 settled as 375x761 on 2026-10-03. That is the live geometry contradiction already owned by `jobs/gate-20-and-gate-21-never-visit-kunals-actual-geometry-2026-10-01`; a second id for one cause is not a second finding [R09], and choosing a geometry on that job's behalf is the trap its sibling job warns about by name.
+
+**Delivery** parked at `patches/proc-lane3-art-gates-regress-51-drill-explain-why-js-admit-phase-1b-2026-10-09`. NOT on main; this lane cannot push and did not try [R21]. The record commit is **isolated and last**, so `git am --skip` on an append collision costs this record alone and never the gate.
