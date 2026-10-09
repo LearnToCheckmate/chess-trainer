@@ -83,14 +83,14 @@ ckmsg() { # ckmsg <description> <expected-exit> <substring the refusal must name
   # jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02, the class
   # sweep that job's own notChecked asked for and never carried. WAS, on both lines:
   #     printf '%s' "$out" | grep -qF -- "$need"
-  # This file sets `set -uo pipefail` (line 31) and $out is the WHOLE output of verify-log.sh, which grows with
+  # This file sets `set -uo pipefail` near the top and $out is the WHOLE output of verify-log.sh, which grows with
   # the log it reads. `grep -qF` stops reading at its first match, so once $out exceeds the pipe buffer the
   # printf is killed with SIGPIPE, exits 141, and pipefail reports 141 FOR A PIPELINE WHOSE GREP SUCCEEDED.
   # The two consequences are different and both wrong:
   #   - in the `if` condition the test goes FALSE on a needle that IS present, so a passing self-test is
-  #     reported FAIL. That is the opposite of the gates.sh:167 symptom and strictly worse: gates.sh printed a
+  #     reported FAIL. That is the opposite of the gates.sh MANI_LINE symptom and strictly worse: gates.sh printed a
   #     false NOT CHECKED beside a real verdict, this prints a false FAIL beside a correct refusal.
-  #   - in the diagnostic the `|| echo NO` arm ALSO runs, exactly as it did at gates.sh:167.
+  #   - in the diagnostic the `|| echo NO` arm ALSO runs, exactly as it did at the gates.sh MANI_LINE site.
   # A HERESTRING HAS NO PIPE AND THEREFORE NO SIGPIPE. The reproduction, its control and the ratchet that
   # stops a third instance appearing are in gates/audit/pipefail-grep.sh.
   if [ "$got" = "$want" ] && grep -qF -- "$need" <<<"$out"; then

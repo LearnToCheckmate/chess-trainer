@@ -2,8 +2,15 @@
 # gates/audit/pipefail-grep.sh   THE EARLY-EXITING GREP UNDER PIPEFAIL, DERIVED BY COMMAND AND RATCHETED.
 #
 # jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02 asked for three
-# things. Two were done at #461 and #467: the gates.sh:167 site was repaired and the mechanism was written
-# down at gates/gates.sh:168-184. The third is this file, and the job's own notChecked says why it is owed:
+# things. Two were done at #461 and #467: the gates.sh MANI_LINE site was repaired and the mechanism was
+# written down in the `# WAS:` comment block directly above that assignment. CITED BY SYMBOL AND NOT BY LINE
+# NUMBER, deliberately: #506 shifted gates.sh by +66 lines and the three line citations this file shipped with
+# (gates.sh line 167 twice and lines 168-184 - written here in words, NOT in the path:NNN form, because the
+#  first draft of this very comment quoted them literally and so BECAME three live citations itself, which is
+#  the trap claude/PROCESS-LOG.md already records: 'the note explaining the de-pin WAS ITSELF A CITATION')
+#  all went stale in the same commit that shifted them, which is
+# exactly the class CLAUDE.md records at #503 pointer 4 - use symbol names, because a citing comment survives a
+# file that moves and a line number does not. Found by antagonist B from the shipped-surface door at #506. The third is this file, and the job's own notChecked says why it is owed:
 #   "Whether any OTHER | grep under pipefail survives in gates/. I verified this one site and fixed my own
 #    new instance in verify-log.sh's floor arm during #467, but I did NOT sweep the directory - that is the
 #    class sweep this job should carry and it is not done."
@@ -18,7 +25,7 @@
 #
 # THE THREE CONSEQUENCES ARE DIFFERENT AND THE CLASS IS WORTH SWEEPING BECAUSE OF THAT, not because the
 # shape repeats. Measured instances, all three now on this branch:
-#   TIER A  `$( producer | grep -m1 X || echo FALLBACK )`   both outputs are captured. gates.sh:167.
+#   TIER A  `$( producer | grep -m1 X || echo FALLBACK )`   both outputs are captured. gates.sh, the MANI_LINE assignment.
 #           A false NOT CHECKED printed beside a manifest that was read perfectly, refusing a green suite.
 #   TIER B  `if producer | grep -q X; then`                  a present needle reads ABSENT. verify-log-selftest.sh:83.
 #           A false FAIL on a self-test that passed.
