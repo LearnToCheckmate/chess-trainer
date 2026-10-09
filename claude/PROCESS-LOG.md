@@ -962,3 +962,53 @@ count across the register.
 **Not checked.** (1) The 59-section suite: `gates.sh` globs `gates/regress/*.js`, so this file is the DRIVER and no section covers it; running the suite needs the build lane's container and the pen, and I did not pretend otherwise. (2) A real `gatemanifest.sh check` at over 64KB of output — the arm drives the capture expression directly with a synthetic value, which is what the job's `case` asks for, and does not force the producer. (3) The exact pipe-buffer threshold on this platform; 200,000 bytes is unambiguously over it and the boundary was not measured, which is this job's own second notChecked and is still open. (4) Whether the other four sites in the job's `classSwept` are still live — three were measured VOID at `gatemanifest.sh` twice by sibling lanes and I did not re-derive that. (5) Whether any entry point will ever CALL this arm; nothing on main invokes a `gates/*.sh --selftest`, which is `jobs/a-test-in-the-repo-that-no-suite-runs-2026-09-28`'s class and is named on my check-out row rather than claimed as solved. (6) The merge against the other claude/PROCESS-LOG.md payloads, in either order.
 
 **Delivery.** Parked at `patches/proc-lane4-art-gates-gates-sh-selftest-2026-10-08`. NOT on main; this lane cannot push. This record is committed SEPARATELY and LAST, so `git am --skip` on an append collision costs this record and leaves the arm intact.
+## 2026-10-09 00:41Z - process-build lane 1 - run `process-build-1__1791506104304`
+
+*(Every time in this record is from `date -u` and none is estimated. The run started 00:35:04Z, both artefact locks were claimed 00:40:55Z, the R05 receipt was written 00:41Z, and this record is the last commit of the parked body.)*
+
+**Item** `jobs/a-refusal-written-into-integrationresult-removes-the-payload-from-every-future-manifest-2026-10-06` (P1, priority 11, owningLane orchestrator, raised 2026-10-06 by antagonist B of #486). Not a new job: the cause is that job's cause and a second id for one cause is not a second finding [R09, R25].
+
+**How it was found: by RUNNING an instrument that is already on main, not by reading it.** Back-pressure measured 5 of a ceiling of 20, with the oldest unintegrated payload 10.4 hours old, so this lane was legal to run. A pile of 5 after three weeks at 19 and 20 is the kind of number that invites a comfortable conclusion, so the first thing this run did was point `gates/audit/landed-on-main.sh` - the file written precisely to stop that - at the live `patches` collection. It reported **`L4a-NO-FALSE-DELIVERY  PASS`**.
+
+**And seven payloads that claim integration add a file that is not in origin/main's tree.**
+
+| payload | the file it adds, absent from origin/main |
+|---|---|
+| `proc-lane2-art-gates-audit-pipefail-grep-sh-2026-10-07` | `gates/audit/pipefail-grep.sh` |
+| `proc-lane3-art-gates-audit-all-sh-2026-10-07` | `gates/audit-all.sh` |
+| `proc-lane3-art-gates-audit-r19-phone-geometry-sh-2026-10-07` | `gates/audit/r19-phone-geometry.sh` |
+| `proc-lane3-art-gates-audit-red-count-sh-2026-10-07` | `gates/audit/red-count.sh` |
+| `proc-lane3-art-gates-audit-stamp-regex-selftest-sh-2026-10-07` | `gates/audit/stamp-regex-selftest.sh` |
+| `proc-lane3-art-gates-regress-19-review-grade-counts-js-2026-10-08` | `gates/audit/require-resolve.sh` |
+| `proc-lane4-art-gates-audit-story-join-sh-2026-10-07` | `gates/audit/story-join.sh` |
+
+Measured against `git ls-tree -r --name-only origin/main` (528 paths) in a complete clone, which is why the `--unshallow` line in the check-in row matters: a new file is either in the tree or it is not, and that is the whole test.
+
+**The cause is NOT an empty-set vacuity, which is what I assumed and then measured [R18].** Every one of the seven reads `content=NOT-ON-MAIN | ancestry=ALL | delivered=yes by ancestry`. The ancestry arm takes every hex token out of the free-text `integrationResult`, and all seven quote the integration run's own base - `97393a6` and `dee3ce0`. Both are commits **of** origin/main, so both are ancestors of it **by construction**. So `anc_ok` is non-zero, ancestry reads `ALL`, and the ancestry arm **overrides** the content arm's correct reading of absence. The claim is confirmed by main's own history rather than by the payload's. The file's header already calls its parser "deliberately generous" and says the unmeasurable bucket carries the cost; it does not. The cost is a false PASS on the one verdict the file exists for. This is CLAUDE.md's standing trap - *the check and the thing being checked were the same object* - and here they were the same **sha set**; and it is R18's "count inputs, not assertions", because `anc_ok` counted tokens rather than landings.
+
+**Changed** `gates/audit/landed-on-main.sh` and nothing else (plus this record, in its own commit). `L9-NEW-FILE-ON-MAIN` is a **third delivery arm**, not a tweak to the two that exist: `MISSING` overrides both, and only ever towards undelivered - `ALL-PRESENT` never promotes an undelivered payload, because somebody else's commit can create a path. `L9b-NEW-FILE-POPULATION` is its denominator **on its own line and never as a conjunct**, because an iteration over nothing reports success loudest exactly when the thing it guards has gone.
+
+**Gates run.** Not a gate and `gates.sh` cannot reach it: the suite's list is `for f in "$G"/regress/*.js`, so nothing under `gates/audit/` is executed and `GATES GREEN` is unaffected either way. What was run instead, against origin/main 9cec233:
+
+| | before (main's own copy) | after |
+|---|---|---|
+| `L4a-NO-FALSE-DELIVERY` | **PASS** | **FAIL, 7 named with their paths** |
+| `L5-PILE-DEPTH-NAIVE` (what the halt reads) | 5 | 5 |
+| `L5-PILE-DEPTH-TRUE` | 6 | **13** |
+| `L5-PILE-DEPTHS-AGREE` | FAIL, off by 1 | FAIL, **off by 8** |
+| `L9b-NEW-FILE-POPULATION` | - | 16 of 43 payloads add a file, 19 added paths, 528 tracked |
+| `--selftest` | 19 controls | **26 controls, 26 PASS / 0 FAIL** |
+
+Real-population report byte-identical over three consecutive runs, md5 `4dff36381bf2aca1681710cf24f9ab04`, exit 1 three times [R36]. The exit 1 is the file doing its job.
+
+**Two mutation controls, run rather than asserted.** Forcing the tree lookup to say *present* (`grep -Fxq` → `false`) gives **22 PASS / 4 FAIL** and kills exactly C27, C27b, C27c and C30 - the four arms that depend on absence being detectable - leaving the other 22 green. Removing the empty-population guard so `nf_pop == 0` reads as a PASS gives **25 PASS / 1 FAIL** and kills exactly C29. Each mutation kills the controls written for it and nothing else.
+
+**No new `producer | grep -q` site.** The lookup is `grep -Fxq -- "$nfp" "$treefile"` against a FILE and not a pipe, deliberately: `gates/audit/pipefail-grep.sh`'s tier-B roster ceiling is blocker (1) of build #499's dropped 18-payload batch, and adding a status-only pipe here would have put one more member against that ceiling.
+
+**What this does NOT fix, so a green L9 is not read as a clean pile [R06 class sweep].** The class is "a delivery arm in this file confirmable by evidence that is true independent of the payload". It has **one** member - the ancestry arm - and it is **narrowed, not removed**: 13 payloads still read `content=NOT-ON-MAIN` with `delivered=yes by ancestry`, and **every one of the 13 is modify-only**, so L9 cannot reach them by construction. A further 16 are `INDETERMINATE` and decided by ancestry, which is the arm's legitimate job. The fix for the 13 is the ancestry narrowing **already parked** at `patches/proc-lane1-art-gates-audit-landed-on-main-sh-2026-10-06`; re-deriving it here is the duplicate work R09 exists to stop. found 1 / fixed 0 / narrowed 1 / left 1, said that way rather than as a 1-of-1.
+
+**A correction to the job's own `whatIsLeft` [R18], and it is worth more than the patch.** Step (2) reads, verbatim: *"LAND patches/proc-lane1-art-gates-audit-landed-on-main-sh-2026-10-06, which carries a `patch` field and no `integrationResult` and is therefore exactly what STEP 1I selects by."* **That payload now carries an `integrationResult`** - build #499 wrote one onto it at 2026-10-08T13:15Z recording the batch veto. So the remedy for this defect was removed from every future manifest **by this defect**, eight hours after the remedy was named, and the compensating control for the class is inside the thing the class has hidden. The diagnosis is unchanged; its remedy can no longer be reached by the selector as written and now needs the integrator to take that document **by id**.
+
+**Not checked.** Whether the 14 payloads that claim integration while only MODIFYING a file are delivered (a modification is not decidable without a 3-way, which is exactly why the new-file arm is worth having alone); whether `gates/audit-all.sh` discovers this file, since that umbrella is one of the seven absentees and is therefore not on main to ask; whether `gates/audit/cited-not-run.sh` has a roster row for the new arm (the arm is in a file that already has one, so no new instrument is added); the 59-section suite, which this change cannot reach; and whether any sibling payload also edits this file in the window - no process lane held this lock between 2026-10-06T18:50Z and this claim.
+
+**Delivery** parked at `patches/proc-lane1-art-gates-audit-landed-on-main-sh-L9-2026-10-09`. **NOT on main**: no lane but the build routine can push, proved three ways on 2026-10-03, and not re-tested here [R21]. This record is the LAST commit of the parked body and a pure append, so `git am --skip` on a collision costs this lane's record and leaves the instrument intact.
