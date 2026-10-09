@@ -80,11 +80,24 @@ ck() { # ck <description> <expected-exit> <command...>
 ckmsg() { # ckmsg <description> <expected-exit> <substring the refusal must name> <command...>
   local d="$1" want="$2" need="$3"; shift 3
   local out; out="$("$@" 2>&1)"; local got=$?
-  if [ "$got" = "$want" ] && printf '%s' "$out" | grep -qF -- "$need"; then
+  # jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02, the class
+  # sweep that job's own notChecked asked for and never carried. WAS, on both lines:
+  #     printf '%s' "$out" | grep -qF -- "$need"
+  # This file sets `set -uo pipefail` (line 31) and $out is the WHOLE output of verify-log.sh, which grows with
+  # the log it reads. `grep -qF` stops reading at its first match, so once $out exceeds the pipe buffer the
+  # printf is killed with SIGPIPE, exits 141, and pipefail reports 141 FOR A PIPELINE WHOSE GREP SUCCEEDED.
+  # The two consequences are different and both wrong:
+  #   - in the `if` condition the test goes FALSE on a needle that IS present, so a passing self-test is
+  #     reported FAIL. That is the opposite of the gates.sh:167 symptom and strictly worse: gates.sh printed a
+  #     false NOT CHECKED beside a real verdict, this prints a false FAIL beside a correct refusal.
+  #   - in the diagnostic the `|| echo NO` arm ALSO runs, exactly as it did at gates.sh:167.
+  # A HERESTRING HAS NO PIPE AND THEREFORE NO SIGPIPE. The reproduction, its control and the ratchet that
+  # stops a third instance appearing are in gates/audit/pipefail-grep.sh.
+  if [ "$got" = "$want" ] && grep -qF -- "$need" <<<"$out"; then
     P=$((P+1)); printf 'PASS %s (exit %s, names "%s")\n' "$d" "$got" "$need"
   else
     F=$((F+1)); printf 'FAIL %s (exit %s wanted %s; names "%s": %s)\n' "$d" "$got" "$want" "$need" \
-      "$(printf '%s' "$out" | grep -qF -- "$need" && echo yes || echo NO)"
+      "$(grep -qF -- "$need" <<<"$out" && echo yes || echo NO)"
   fi
 }
 holeneg() { # holeneg <job id> <description> <expected-exit WHEN FIXED> <substring the refusal must NOT name> <command...>
@@ -94,7 +107,10 @@ holeneg() { # holeneg <job id> <description> <expected-exit WHEN FIXED> <substri
   # lane's to decide [R17]. What is required is the diagnosis, not the sentence.
   local job="$1" d="$2" want="$3" banned="$4"; shift 4
   local out; out="$("$@" 2>&1)"; local got=$?
-  if [ "$got" = "$want" ] && ! printf '%s' "$out" | grep -qF -- "$banned"; then
+  # SAME CLASS AS ckmsg ABOVE AND THE WORST OF THE THREE, because this one is NEGATED: with `!` in front, a
+  # SIGPIPE-induced non-zero makes the condition TRUE, so a banned string that IS present reads as absent and
+  # the hole reports CLOSED on a refusal that still misreports. A false PASS, not a false FAIL.
+  if [ "$got" = "$want" ] && ! grep -qF -- "$banned" <<<"$out"; then
     HCLOSED=$((HCLOSED+1)); printf 'HOLE CLOSED %s (exit %s, no longer says "%s")\n' "$d" "$got" "$banned"
   else
     HOPEN=$((HOPEN+1)); printf 'HOLE OPEN   %s (exit %s, still reports itself as "%s") [%s]\n' "$d" "$got" "$banned" "$job"
