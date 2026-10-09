@@ -526,3 +526,6 @@
 505	built	-	bec8749bfdea	42b495451f82	2026-10-09T08:43Z	build__1791530504548	build.sh	Bundle built and stamped #505. Recorded by gates/build.sh so the number resolves to an artefact.
 505	built	-	ebb88c8f76f7	a58bafeb9f65	2026-10-09T08:50Z	build__1791530504548	build.sh	Bundle built and stamped #505. Recorded by gates/build.sh so the number resolves to an artefact.
 506	minted	-	-	-	2026-10-09T11:56Z	build__1791544868000	minted	INTEGRATION RUN: 11 of 12 pending parked patches from four process-build lanes; no bundle is built and app.js stays byte-identical to #505 at ebb88c8f76f7, so the suite runs under CT_EXPECT=#505 against that bundle
+507	minted	-	-	-	2026-10-09T14:32Z	build__1791555675000	minted	ship-list id 1: the three P2 residuals of review-list-filter - reserve the Clear chip space, lift the empty-state Clear above the fold, and reconcile the two glist denominators
+507	built	-	a75a790c92d2	79a364ab4792	2026-10-09T14:47Z	build__1791555675000	build.sh	Bundle built and stamped #507. Recorded by gates/build.sh so the number resolves to an artefact.
+507	built	-	6683fe5db924	2500e53c0824	2026-10-09T15:05Z	build__1791555675000	build.sh	Bundle built and stamped #507. Recorded by gates/build.sh so the number resolves to an artefact.

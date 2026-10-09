@@ -2,7 +2,49 @@
 // GUARDS: US-R36 - "The Review list can be narrowed to the games the player is looking for, and whenever it is
 //         narrowed the screen says how many games it is showing, names the narrowing when nothing matches, and
 //         never presents an answer drawn from a partly computed tally as if it were complete."
-// IMPLEMENTS: TC-R48.
+// IMPLEMENTS: TC-R48, TC-R61 (block E, #503) and TC-R63 (block F plus C3/C3c and C1b/C1c, #507).
+//
+// ── #507 EXTENSION, AND WHAT IT CHANGED IN THIS FILE'S EXISTING ASSERTIONS.
+//    US-R36 gains clause (6): the filter header's controls RESERVE THEIR SPACE, so nothing under them moves
+//    when one appears. Two controls here can appear - the Clear chip and clause (4)'s coverage line - and
+//    both were conditionally rendered. The closer's screen named only the Clear chip; the coverage line was
+//    found by MEASURING, and it is the worse of the two.
+//    THE NUMBERS, one probe over both bundles (main ebb88c8f76f7, this build 6683fe5db924), three geometries:
+//      the CLEAR CHIP grows the row 94px/2 lines -> 144px/3 lines at 320x568 and moves it NOT ONE PIXEL at
+//      375x730 or 375x761. So the "~50px growth" is real and is a 320-ONLY number.
+//      the COVERAGE LINE costs 34px at EVERY geometry including Kunal's own, and its jump is the UNCOMMANDED
+//      one: `_ungr` decays to zero as the background pass grades, so on main the line VANISHES on its own
+//      seconds after the player stopped touching anything. After the fix: 34 -> 0px at 375, 34 -> 16px at 320
+//      (residual, because clause (3)'s narrowed wording wraps to 3 lines there - named, not hidden).
+//    BLOCK F runs at 320x568, 375x730 AND 375x761 for that reason, and the geometry list is the input axis
+//    under test: a block pinned to this file's 375x730 could not have failed on the defect it is written for,
+//    which nc-noreserve proves rather than argues - F2 and F3 each redden EXACTLY ONCE, at `se` alone. Per
+//    #505, 761 is ADDED and 730 is NOT substituted, so no existing pin in this file moves.
+//    FOUR EXISTING ASSERTIONS WERE REWRITTEN, every one of them because this build changed what they test:
+//      C3   was `!ungFound` - NO ELEMENT. The line now holds its box and drops only its ink, so `!ungFound`
+//           would go red on a correct build. It asserts no INK; C3c is new and asserts the box is reserved.
+//      C1b  was one template regex. Two templates exist now, so it asserts EXACTLY ONE matched, and C1c is
+//           new and asserts the NARROW one fired. nc-widetemplate shows why: C1b PASSES there.
+//      B7, D2b  both rested on `chips.some(c=>c.ct==='gf-clear')`. This build makes the Clear chip ALWAYS
+//           present (ghosted when idle), so that predicate is true on every screen and BOTH assertions would
+//           have become unable to fail - created by this build's own change to the thing they assert over.
+//           Both now require the chip to be PAINTED.
+//    AND ONE NEW ASSERTION WAS WITHDRAWN BEFORE IT SHIPPED. F4's first draft pressed the ghosted chip and
+//    asserted nothing changed. It cannot fail: the chip is ghosted only when there is no filter to clear, so
+//    a fully live control would have left the screen identical and a pointerEvents:'auto' bundle would have
+//    PASSED it. Replaced by three separate inertness properties. Found by asking what the control would print.
+//    CLAUSE (2) OF THE CLOSER'S SCREEN IS WITHDRAWN AS A FALSE DEFECT and B6c is deliberately UNTOUCHED: the
+//    band from the filter row the player has just tapped to the BOTTOM of the empty-state Clear measures
+//    291.6px against a 730 viewport, 291.6 against 761 and 341.6 against 568 on the SHIPPED bundle, so it
+//    fits every geometry. The 748.5 reading is at a scroll origin the player is never at. CLAUDE.md records
+//    two false P0s in one night from that confusion and one of them was THIS screen (#382). B6c was already
+//    the right assertion and this build does not touch it.
+//    #507's CONTROLS, three, each one change from the shipping source, each reddening a DISJOINT set:
+//      nc-noreserve     a7dec72c28a5   73 pass / 20 FAIL  {F1,F1b,F2,F3,F4,F4b,F4c,F4d}
+//      nc-nocovreserve  757fb8c08773   91 pass /  2 FAIL  {C3,C3c}
+//      nc-widetemplate  5b24fbf005b3   92 pass /  1 FAIL  {C1c}
+//    SHIPPING CANDIDATE 6683fe5db924 over source 2500e53c0824: 93 pass / 0 fail. #507 names TWO bundles (a
+//    mid-run revert forced a rebuild and the register flagged it itself) - CITE THE MD5, NEVER THE NUMBER.
 // JOB: jobs/review-list-filter-and-search-2026-09-23, priority 9, askedBy Kunal 2026-09-23 and WIDENED BY HIM
 //      THE SAME DAY (so it is a twice-raised item under STEP 1S's tie-break (a)):
 //        "might be good to add the ability to filter, so if I want to filter for games where I have
@@ -147,14 +189,27 @@ async function READ(b){
     const emptyEl=document.querySelector('[data-ct="glist-empty"]')||
       [...document.querySelectorAll('div')].find(x=>x.children.length<=1&&/no games match/i.test(txt(x)||''));
     const ungEl=document.querySelector('[data-ct="glist-ungraded"]')||
-      [...document.querySelectorAll('div')].find(x=>x.children.length===0&&/graded \d+ of \d+/i.test(txt(x)||''));
-    const ung=txt(ungEl), m=ung?ung.match(/graded (\d+) of (\d+)/i):null;
+      [...document.querySelectorAll('div')].find(x=>x.children.length===0&&/graded \d+ of (?:the )?\d+/i.test(txt(x)||''));
+    // #507 THE DENOMINATOR IS PARSED THROUGH BOTH TEMPLATES. The coverage sentence now names its own set when
+    // the list is narrowed ("of the 4 games this filter is looking at") and keeps the bare form when it is
+    // not ("of 7 so far"). `(?:the )?` is what lets ONE instrument read the shipped bundle and the fix, which
+    // is the whole point of block A's design and is why C2/C4/C4b did not have to be rewritten per bundle.
+    const ung=txt(ungEl), m=ung?ung.match(/graded (\d+) of (?:the )?(\d+)/i):null;
     const opps=rows.map(r=>{const m2=(r.innerText||'').match(/vs\s+(\S+)/);return m2?m2[1]:null;}).filter(Boolean);
     const badges=rows.map(r=>{const m3=(r.innerText||'').match(/^(WON|LOST|DRAW|GAME)/);return m3?m3[1]:null;});
     const fil=document.querySelector('[data-ct="glist-filters"]');
+    // #507 vis AND ghost ARE WHAT STOP B7 AND D2b GOING VACUOUS. The Clear chip is now ALWAYS in the layout
+    // (ghosted when there is nothing to clear), so `chips.some(c=>c.ct==='gf-clear')` is true on every screen
+    // and any assertion resting on presence alone can no longer fail. Both assertions now require vis.
     const chips=fil?[...fil.querySelectorAll('button')].map(x=>{const q=x.getBoundingClientRect();
       return {ct:x.getAttribute('data-ct'),lab:txt(x),w:Math.round(q.width*10)/10,h:Math.round(q.height*10)/10,
-              right:Math.round(q.right*10)/10,left:Math.round(q.left*10)/10,on:x.getAttribute('aria-pressed')==='true'};}):[];
+              right:Math.round(q.right*10)/10,left:Math.round(q.left*10)/10,on:x.getAttribute('aria-pressed')==='true',
+              vis:getComputedStyle(x).visibility,ghost:x.getAttribute('data-ghost')||null,
+              pe:getComputedStyle(x).pointerEvents,ah:x.getAttribute('aria-hidden'),ti:x.getAttribute('tabindex')};}):[];
+    // #507 the two reserved boxes, measured as BOXES (offsetHeight, scroll-independent) and as INK (visibility)
+    const filOH=fil?fil.offsetHeight:null;
+    const filTops=fil?[...new Set([...fil.querySelectorAll('button')].map(c=>Math.round(c.getBoundingClientRect().top)))].length:null;
+    const ungBox=ungEl?{oh:ungEl.offsetHeight,vis:getComputedStyle(ungEl).visibility,ghost:ungEl.getAttribute('data-ghost')||null}:null;
     // #476 THE ESCAPE SCAN, screen-wide, added after antagonist A's P0. A `\u2014` written in JSX TEXT
     // (not in a JS string) is never interpreted, so the screen painted the six literal characters while all
     // four assertions on that element passed - they read it through /graded (\d+) of (\d+)/ and never looked
@@ -176,6 +231,8 @@ async function READ(b){
               fg:st.color,eff:[Math.round(eff.r*10)/10,Math.round(eff.g*10)/10,Math.round(eff.b*10)/10],layers:layers.length,px:st.fontSize};};
     const cr={};['gf-bril','gf-blun','gf-mist'].forEach(k=>{const e=document.querySelector('[data-ct="'+k+'"]');if(e)cr[k]=ratio(e);});
     return {rows:rows.length,opps,badges,count:txt(cEl),countFound:!!cEl,esc:[...new Set(esc)],
+            filOH,filTops,ungBox,
+            ungInk:!!ungEl&&getComputedStyle(ungEl).visibility!=='hidden',
             empty:txt(emptyEl),emptyFound:!!emptyEl,ungraded:ung,ungFound:!!ungEl,
             ungGraded:m?+m[1]:null,ungTotal:m?+m[2]:null,
             filFound:!!fil,chips,vw:innerWidth,contrast:cr,
@@ -213,7 +270,19 @@ function mkTap(b,READ){
 }
 
 (async()=>{
-  const GEO={w:375,h:730,safe:''};   // R19: Kunal's real phone
+  /* #507 THE R19 CITATION IS CORRECTED, AND THE GEOMETRY IS NOT TOUCHED. This line read
+     "// R19: Kunal's real phone", and R19's own text says the opposite: it SETTLED on 375x761 on
+     2026-10-03 and says in terms that "the figure 730 is wrong and should be corrected wherever it
+     appears". So this file was citing R19 as the authority for the one number R19 rejects. #505 found five
+     such lines on main and left all five deliberately, because four were gate files its own live suite was
+     loading as node subprocesses at the time; it recorded that the citations "are fixable today and do not
+     wait on the dispute". This build holds the artefact lock on this file and its suite is not yet running,
+     so this one is fixed and the other four are left to whoever holds their locks.
+     THE NUMBER STAYS 730 ON PURPOSE. #505 measured that 730 and 761 are the SAME REGIME for this family of
+     surfaces and warned: ADD kunal761, never SUBSTITUTE it, because substituting moves every pin in the
+     file at once inside an unrelated build. Block F below ADDS 761 and 320x568 for the assertions that are
+     new, which is the migration done the way #505 prescribed. */
+  const GEO={w:375,h:730,safe:''};   // 375x730, the shorter-phone column for this file's existing pins
   const NAMEBOX='Filter by player name';
 
   // ══ BLOCK A. THE SHIPPED SCREEN'S OWN DEFECT, keyed on nothing this build added, so it runs on both
@@ -340,8 +409,15 @@ function mkTap(b,READ){
       'B6c the empty state is REACHABLE: scrolling its real scrolling ancestor moves it and brings it fully on screen',reach);
     // the Clear control returns the whole list
     const pre=await READ(b);
-    const hasClear=pre.chips.some(c=>c.ct==='gf-clear');
-    L.say(hasClear,'B7 a Clear control is offered while any filter is on',{found:hasClear});
+    /* #507 B7 NOW REQUIRES INK, BECAUSE PRESENCE ALONE CAN NO LONGER FAIL. The Clear chip is always in the
+       layout from this build (ghosted when there is nothing to clear), so the old
+       `chips.some(c=>c.ct==='gf-clear')` is TRUE ON EVERY SCREEN including the unfiltered one - an assertion
+       that cannot go red, created by this build's own change to the thing it asserts over. That is the shape
+       this project has recorded eleven times and it would have been the twelfth. Fixed by asserting the
+       property the player actually depends on: the control is VISIBLE. */
+    const clearChip=pre.chips.find(c=>c.ct==='gf-clear');
+    L.say(!!clearChip&&clearChip.vis!=='hidden'&&!clearChip.ghost,
+      'B7 a Clear control is offered AND PAINTED while any filter is on',{chip:clearChip});
     // #476 B7a IS THE PRECONDITION B7b COULD NOT DO WITHOUT, and its absence was antagonist A's F3 veto.
     // B7b alone reads rows===7 && count==='7 loaded', which is what the UNFILTERED screen reads - so it
     // passed on the real shipped bundle, which has no Clear control in existence, and on all three trial
@@ -369,8 +445,28 @@ function mkTap(b,READ){
     L.say(c1.ungFound,'C1 a grade filter over a set containing ungraded games STATES its coverage',{line:c1.ungraded});
     // #476 PIN THE WHOLE SENTENCE. C2/C4/C4b read only the two digits, which is how a literal escape sequence
     // in the same sentence passed four assertions [antagonist A, F1]. One template, matched end to end.
-    const SENT=/^Graded \d+ of \d+ so far — a game we haven’t graded yet can’t match this filter\.$/;
-    L.say(!!c1.ungraded&&SENT.test(c1.ungraded),'C1b the coverage line is EXACTLY its template end to end - no stray escape, no drifted wording',{line:c1.ungraded});
+    /* #507 TWO TEMPLATES EXIST NOW, SO THIS PIN ASSERTS WHICH ONE FIRED - IT IS NOT AN ALTERNATION.
+       CLAUDE.md's #388 rule: an alternation that matches every branch pins nothing, and the remedy is to
+       match ONE template, assert exactly one of the known templates matched, and check the number the
+       template printed lies in the band that template is printed for. Here the "band" is the narrowing
+       itself: the WIDE form is printed only when the grade filter is choosing from the whole loaded list,
+       and the NARROW form only when an account chip or the name box has already cut it down. C1's state has
+       account beta on, so 3 != 7 and the NARROW form is the one that must fire; asserting merely that one of
+       the two fired would pass on a build that printed the wide form over a narrowed set, which is the exact
+       sentence #476's C4 exists to forbid. */
+    const COV_WIDE=/^Graded (\d+) of (\d+) so far — a game we haven’t graded yet can’t match this filter\.$/;
+    const COV_NARROW=/^Graded (\d+) of the (\d+) games this filter is looking at — a game we haven’t graded yet can’t match this filter\.$/;
+    const cov=(line,loadedTotal)=>{
+      const w=COV_WIDE.exec(line||''),n=COV_NARROW.exec(line||'');
+      const m=w||n;
+      return {wide:!!w,narrow:!!n,exactlyOne:(!!w)!==(!!n),graded:m?+m[1]:null,total:m?+m[2]:null,
+              branchAgrees:m?((!!n)===( (+m[2])!==loadedTotal )):false};
+    };
+    const cv1=cov(c1.ungraded,7);
+    L.say(cv1.exactlyOne,'C1b the coverage line is EXACTLY one of the two known templates end to end - no stray escape, no drifted wording, and not something that satisfies both',{line:c1.ungraded,wide:cv1.wide,narrow:cv1.narrow});
+    L.say(cv1.narrow&&cv1.branchAgrees,
+      'C1c and it is the NARROW template, because beta\'s 3 is not the loaded 7 - a build printing the wide form over a narrowed set states a figure about a set nobody is looking at',
+      {line:c1.ungraded,total:cv1.total,loaded:7,branchAgrees:cv1.branchAgrees});
     L.say(c1.ungGraded!==null&&c1.ungTotal!==null&&c1.ungGraded<c1.ungTotal,
       'C2 the coverage line says fewer are graded than are listed, so a partial answer cannot read as complete',{graded:c1.ungGraded,total:c1.ungTotal});
     L.say(c1.ungTotal===3,
@@ -380,7 +476,19 @@ function mkTap(b,READ){
     // the same filter over a FULLY graded set must say nothing - the deterministic half of the pair
     await tapC('gf-acct-beta',500);                         // off
     const c3=await tapC('gf-acct-alpha');                   // alpha's four are all graded
-    L.say(!c3.ungFound,'C3 the same grade filter over a fully graded set shows NO coverage line',{line:c3.ungraded,rows:c3.rows});
+    /* #507 C3's PROMISE CHANGED DELIBERATELY AND IS REWRITTEN TO THE NEW ONE, NOT DELETED AND NOT WEAKENED.
+       It used to read `!c3.ungFound` - no ELEMENT. The coverage line now holds its space for as long as a
+       grade filter is on and drops only its INK, because on the shipped bundle `_ungr` decays to zero as the
+       background pass grades and the line VANISHED ON ITS OWN, jumping the list 34px at every geometry with
+       the player touching nothing (measured both ways on both bundles with one probe: SHIPPED 34px -> 0px
+       box, FIX 34px -> 34px box). So the element now exists in this state and `!ungFound` would go red on a
+       correct build. WHAT C3 PROTECTED IS KEPT AND IS NOW ASSERTED MORE TIGHTLY: the player must still read
+       nothing here, which is tested as computed visibility rather than as absence, AND the box must still be
+       there, which the old assertion could not have told apart from the defect. Two assertions, because a
+       conjunct whose halves cannot fail independently is this project's own eleventh costume of the
+       check-is-the-thing-checked trap. */
+    L.say(c3.ungFound&&c3.ungInk===false,'C3 over a fully graded set the coverage line paints NO INK, so it is still not noise on a screen that has nothing to report',{found:c3.ungFound,ink:c3.ungInk,vis:(c3.ungBox||{}).vis,line:c3.ungraded});
+    L.say(!!c3.ungBox&&c3.ungBox.oh>0,'C3c and its BOX IS STILL RESERVED, so the list does not jump when the background grading pass finishes and the sentence stops applying',{box:c3.ungBox});
     L.say(c3.rows===2,'C3b and it still returns alpha\'s two brilliancy games',{rows:c3.rows,opps:c3.opps});
     // #476 C5 IS ANTAGONIST B's P1 VETO AS AN ASSERTION. Clause (4) made the COVERAGE line honest and left
     // the EMPTY state flatly claiming "No games match brilliancies" while the sentence 59px above admitted
@@ -425,7 +533,12 @@ function mkTap(b,READ){
       await x.scrollIntoViewIfNeeded(); await x.click(); await b.page.waitForTimeout(900);
       const d2=await READ(b);
       L.say(d2.filFound,'D2 THE FILTER ROW SURVIVES the list dropping below the seven-game threshold while a filter is still applied',{rows:d2.rows,count:d2.count,fil:d2.filFound,chips:d2.chips.length});
-      L.say(d2.chips.some(c=>c.ct==='gf-clear'),'D2b and Clear is still on screen, so the narrowing can be undone without reloading the app',{chips:d2.chips.map(c=>c.ct)});
+      /* #507 ALSO REQUIRES INK NOW - see B7. D2b's whole subject is that Clear SURVIVES when the list
+         shrinks below the seven-game threshold that renders the row, and a ghost satisfies `.some(...)`
+         in every state, so without `vis` this assertion would have stopped being about anything. */
+      const d2Clear=d2.chips.find(c=>c.ct==='gf-clear');
+      L.say(!!d2Clear&&d2Clear.vis!=='hidden'&&!d2Clear.ghost,
+        'D2b and Clear is still on screen AND PAINTED, so the narrowing can be undone without reloading the app',{chip:d2Clear,chips:d2.chips.map(c=>c.ct)});
       const d3=await tapD('gf-clear');
       L.say(d3.rows===5&&d3.count==='5 loaded','D3 Clear restores every remaining game and the unfiltered wording',{rows:d3.rows,count:d3.count});
     }
@@ -658,6 +771,74 @@ function mkTap(b,READ){
         'E7c and the empty state never makes the flat "No games match" claim while a stale tally is still unanswered, which is C5b applied to staleness rather than to absence',
         {empty:c.empty});
       await b3.close();
+    }
+  }
+
+  /* ══ BLOCK F. #507. THE FILTER ROW RESERVES THE SPACE OF EVERY CONTROL THAT CAN APPEAR IN IT.
+     CLAUDE.md: "A row that can appear must reserve its space." Two controls in this header can appear: the
+     Clear chip (when any filter goes on) and the coverage line (when a grade filter is on over a set with
+     ungraded games). Block C now covers the coverage line's box at C3/C3c. This block covers the ROW.
+
+     IT RUNS AT 320x568 AND AT 375x761 AS WELL AS AT THIS FILE'S 375x730, AND THAT IS THE WHOLE REASON IT
+     IS A SEPARATE BLOCK. MEASURED on the shipped bundle with one probe across three geometries: turning on
+     a grade chip grows the chip row from 94px/2 lines to 144px/3 lines AT 320x568 ONLY. At 375x730 and
+     375x761 the row is 94px and 2 lines in BOTH states - it does not move one pixel. So the closer's
+     "consistent with the recorded ~50px growth" is TRUE AND IS A 320-ONLY NUMBER, published here with its
+     geometry attached rather than as a bare figure [#411/#412: a count with no scope cannot be checked].
+     A BLOCK PINNED TO THIS FILE'S 375x730 COULD NOT HAVE FAILED ON THE DEFECT IT IS WRITTEN FOR - the
+     shipped bundle passes F2 and F3 at 375 - which is the #375 trap (a gate that exercises the fixed path
+     twice) arriving through the geometry list instead of through a worker pool.
+
+     F4 IS THE ONE THAT STOPS THE RESERVE BEING A HIDDEN LIVE CONTROL. A reserved box the player cannot see
+     but CAN press would clear a filter with no visible cause, which is worse than the jump it replaces. */
+  {
+    for(const gname of ['se','kunal730','kunal761']){
+      const g=L.GEOS[gname];
+      const b=await L.launch({geo:g,store:STORE,name:'F-reserve-'+gname});
+      await b.open(); await b.tile('Review'); await b.settle(1200);
+      const tapF=mkTap(b,READ);
+      const pre=await READ(b);
+      const preClear=pre.chips.find(c=>c.ct==='gf-clear');
+
+      L.say(!!preClear,'F1 ['+gname+'] the Clear chip is IN THE LAYOUT on the unfiltered screen, which is what reserves its space',{chip:preClear});
+      L.say(!!preClear&&preClear.vis==='hidden'&&preClear.ghost==='1',
+        'F1b ['+gname+'] and it paints NO INK there, so reserving its space does not put a control on screen with nothing to do',{chip:preClear});
+      // THE ANTI-VACUITY GUARD: F2/F3 compare two states, so prove the second state really differs.
+      const post=await tapF('gf-bril');
+      const postClear=post.chips.find(c=>c.ct==='gf-clear');
+      L.say(post.rows!==pre.rows&&!!postClear&&postClear.vis!=='hidden',
+        'F2a ['+gname+'] the grade chip really went on - the row count changed AND Clear is now painted - so F2 and F3 are comparing two different states and not one state twice',
+        {preRows:pre.rows,postRows:post.rows,clearVis:postClear&&postClear.vis});
+
+      L.say(pre.filOH!=null&&post.filOH!=null&&pre.filOH===post.filOH,
+        'F2 ['+gname+'] THE FILTER ROW BOX IS THE SAME HEIGHT before and after Clear appears, so nothing below it moves under the finger that just tapped a chip',
+        {before:pre.filOH,after:post.filOH,delta:(post.filOH!=null&&pre.filOH!=null)?(post.filOH-pre.filOH):null,geo:gname});
+      L.say(pre.filTops!=null&&post.filTops!=null&&pre.filTops===post.filTops,
+        'F3 ['+gname+'] and it still occupies the same number of wrapped LINES, which is the mechanism behind F2 rather than a second reading of it',
+        {before:pre.filTops,after:post.filTops,geo:gname});
+
+      /* F4. THE BEHAVIOURAL VERSION OF THIS ASSERTION CANNOT FAIL AND I FOUND THAT BY TRYING TO CONTROL
+         IT, so it is replaced rather than kept as decoration. The first draft pressed the ghosted chip's own
+         coordinates and asserted the screen did not change. But the chip is ghosted ONLY when `_anyF` is
+         false, and `_anyF` false means there is no filter to clear - so _clearAll() is a no-op in that state
+         and a FULLY LIVE control would have left the screen identical too. A trial bundle with
+         pointerEvents:'auto' restored would have PASSED it. That is this project's own "a negative control
+         must cross the threshold, not just disturb the mechanism" rule failing one step earlier: there was
+         no threshold to cross. Found by asking what my own control bundle would print, which is the #418
+         lesson ("ask what that program would print on a case you already know is FINE").
+         WHAT IS ASSERTED INSTEAD IS THE MECHANISM: three properties that each independently make the
+         reserved box inert and each of which a regression can remove on its own - out of the TAP path
+         (pointerEvents none), out of the ACCESSIBILITY tree (aria-hidden), out of the TAB order (tabIndex
+         -1). Three separate assertions, not one conjunct, because a conjunct whose halves cannot fail
+         independently is the trap this file's own header warns about. */
+      const back=await tapF('gf-clear');
+      L.say(back.rows===7&&back.count==='7 loaded','F4a ['+gname+'] Clear emptied the filter, so the chip under test is ghosted again for F4',{rows:back.rows,count:back.count});
+      const ghostNow=back.chips.find(c=>c.ct==='gf-clear');
+      L.say(!!ghostNow&&ghostNow.vis==='hidden','F4b ['+gname+'] and it is ghosted again rather than gone, so F4 is reading the reserve and not an absence',{chip:ghostNow});
+      L.say(!!ghostNow&&ghostNow.pe==='none','F4 ['+gname+'] the ghosted Clear is out of the TAP path (pointerEvents none), so a press where it sits cannot clear a filter the player cannot see',{pe:ghostNow&&ghostNow.pe});
+      L.say(!!ghostNow&&ghostNow.ah==='true','F4c ['+gname+'] and out of the ACCESSIBILITY tree, so a screen reader is not offered a control that does nothing',{ariaHidden:ghostNow&&ghostNow.ah});
+      L.say(!!ghostNow&&ghostNow.ti==='-1','F4d ['+gname+'] and out of the TAB order, so a keyboard cannot reach it either',{tabIndex:ghostNow&&ghostNow.ti});
+      await b.close();
     }
   }
 

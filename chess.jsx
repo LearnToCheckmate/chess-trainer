@@ -7426,9 +7426,35 @@ export default function App(){
                     ?('The one game graded so far does not match '+_fLab+'. '+_ungr+' still to grade.')
                     :('None of the '+_nG+' graded so far match '+_fLab+'. '+_ungr+' still to grade.')))
                 :('No games match '+_fLab+'.');
+              /* #507 THE COVERAGE SENTENCE NAMES ITS OWN SET WHEN THE LIST IS NARROWED, AND THE NUMBER DOES
+                 NOT MOVE. The closer's clause (3) asked us to "decide which one the screen means and say it
+                 once", reading glist-count's "2 of 7" against this line's "Graded 5 of 7" as two accounts of
+                 one list. CHECKED AGAINST THE MECHANISM BEFORE IMPLEMENTING IT [CLAUDE.md: the fix a flag
+                 proposes is a hypothesis], AND THE LITERAL READING WOULD HAVE REVERTED A DELIBERATE #476
+                 DECISION: the two denominators describe DIFFERENT SETS on purpose - glist-count is shown-of-
+                 loaded, this line is graded-of-the-set-the-grade-filter-is-choosing-from - and gate 73's C4
+                 already PINS `ungTotal===3` with the reason spelled out in its own message ("not the whole
+                 list of 7 - otherwise the sentence is true of a set nobody is looking at"). Unifying them
+                 would have made this sentence true of a set nobody is looking at and reddened C4. So the
+                 ambiguity is removed where it actually lives - in the WORDING, which printed a bare "of N"
+                 that a reader maps onto the count above it - and the denominator is untouched. */
+              const _narrowed=_preGrade.length!==ccGames.length;
+              const _covTxt='Graded '+_nG+(_narrowed?(' of the '+_preGrade.length+' games this filter is looking at'):(' of '+_preGrade.length+' so far'))+' \u2014 a game we haven\u2019t graded yet can\u2019t match this filter.';
               const _clearAll=()=>{setGFil({bril:0,blun:0,mist:0,acct:''});setGameSearch('');};
-              const _chip=(on,lab,ct,oc,col)=>(<button key={ct} data-ct={ct} aria-pressed={on?'true':'false'} onClick={oc}
-                style={{minHeight:44,display:'inline-flex',alignItems:'center',padding:'0 11px',borderRadius:9,cursor:'pointer',
+              /* #507 THE `ghost` ARM RESERVES A CHIP'S SPACE WITHOUT PAINTING IT. A row that can appear must
+                 reserve its space [CLAUDE.md]. MEASURED on the shipped bundle before this change, with the
+                 SAME probe on both bundles: turning on one grade chip makes the Clear chip appear, and at
+                 320x568 the row wraps from 2 lines to 3 and grows 94px -> 144px, moving the whole list down
+                 50px under the finger that is still on the chips. AT 375 WIDE IT DOES NOT GROW AT ALL (94px
+                 in both states, 2 lines) - so the closer's "~50px growth" is real but is a 320-ONLY number
+                 and is recorded here with its geometry rather than as a bare figure [#411/#412]. A ghost is
+                 NOT a disabled control: aria-hidden and tabIndex -1 take it out of the accessibility tree
+                 and the tab order, and pointerEvents none means a tap where it sits does nothing rather
+                 than silently clearing a filter the player cannot see. */
+              const _chip=(on,lab,ct,oc,col,ghost)=>(<button key={ct} data-ct={ct} aria-pressed={on?'true':'false'} onClick={ghost?undefined:oc}
+                aria-hidden={ghost?'true':undefined} tabIndex={ghost?-1:undefined} data-ghost={ghost?'1':undefined}
+                style={{visibility:ghost?'hidden':'visible',pointerEvents:ghost?'none':'auto',
+                  minHeight:44,display:'inline-flex',alignItems:'center',padding:'0 11px',borderRadius:9,cursor:'pointer',
                   background:on?'rgba(255,255,255,.17)':'rgba(255,255,255,.05)',border:'1px solid '+(on?(col||'rgba(255,255,255,.55)'):'rgba(255,255,255,.14)'),
                   // #476 THE PRESSED LABEL IS WHITE, NOT THE ACCENT. Antagonist B measured the accent used
                   // as the text colour against the lit background two ways that AGREED - 2.80:1 composited
@@ -7569,10 +7595,50 @@ export default function App(){
                     that is why this is written down rather than left to the gate. Only with more than one
                     account, because filtering to the only account you have is a no-op that costs a row. */}
                 {ccAccts.length>1&&ccAccts.filter(id=>(((acctGamesRef.current||{})[id])||[]).length>0).map(id=>_chip(_F.acct===id,id.slice(id.indexOf(':')+1),'gf-acct-'+id.slice(id.indexOf(':')+1),()=>gfTog('acct',id),'#9bd6a0'))}
-                {_anyF&&_chip(false,'Clear','gf-clear',_clearAll)}
+                {/* #507 ALWAYS IN THE LAYOUT, GHOSTED WHEN THERE IS NOTHING TO CLEAR - see _chip's ghost arm. */}
+                {_chip(false,'Clear','gf-clear',_clearAll,null,!_anyF)}
               </div>)}
-              {_gradeOn&&_ungr>0&&(<div data-ct="glist-ungraded" style={{fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.60)',lineHeight:1.4}}>Graded {_preGrade.length-_ungr} of {_preGrade.length} so far — a game we haven’t graded yet can’t match this filter.</div>)}
+              {/* #507 THE SECOND MEMBER OF THE SAME CLASS AS THE CLEAR CHIP, AND THE WORSE ONE, FOUND BY
+                  MEASURING RATHER THAN BY READING THE CLOSER'S CLAUSE. The closer named only the Clear chip.
+                  Measured with one probe on both bundles, the Clear chip moves the list 0px at 375 and 50px
+                  at 320 - while THIS line appearing moves it 42.6px AT EVERY GEOMETRY, including Kunal's own.
+                  So the bigger jump at his phone was the one nobody had named. R06: the class is "a row in
+                  the games-list header that can appear without reserving its space", it has exactly two
+                  members, and both are fixed in this pass.
+                  AND ITS JUMP IS THE UNCOMMANDED ONE, which is why this matters more than the chip: `_ungr`
+                  DECAYS TO ZERO as the background grading pass walks the list, so on the shipped bundle this
+                  line VANISHES on its own, seconds after the player stopped touching anything, and the list
+                  jumps up 42.6px under a finger already reaching for a row. #503's own measurement of the
+                  stale-store case watched it decay through 27 distinct counts over 23.9 seconds.
+                  SO THE SPACE IS HELD FOR AS LONG AS A GRADE FILTER IS ON, and only the ink goes. The
+                  sentence is still rendered when `_ungr` is 0 (it reads truthfully, "Graded M of M") so the
+                  reserved box is exactly the height of the box it reserves - a placeholder sized by anything
+                  other than the real string is #396's clamp-versus-clip trap wearing a third costume.
+                  C0 IS UNAFFECTED AND DELIBERATELY SO: with no grade filter on, `_gradeOn` is false and this
+                  element does not exist at all, so the line is still not noise on the default screen. */}
+              {_gradeOn&&(<div data-ct="glist-ungraded" data-ghost={_ungr>0?undefined:'1'} aria-hidden={_ungr>0?undefined:'true'}
+                style={{visibility:_ungr>0?'visible':'hidden',fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.60)',lineHeight:1.4}}>{_covTxt}</div>)}
               {ccGames.length>6&&(<input value={gameSearch} onChange={e=>setGameSearch(e.target.value)} placeholder="Filter by player name" style={{width:'100%',padding:'6px 10px',borderRadius:7,background:'rgba(0,0,0,.25)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.10)',fontSize:'clamp(14px,3.1vw,16px)'}}/>)}
+              {/* #507 CLAUSE (2) OF THE CLOSER'S SCREEN IS WITHDRAWN AS A FALSE DEFECT, MEASURED, AND THE
+                  EMPTY STATE IS DELIBERATELY LEFT WHERE IT WAS. The clause read: "the empty state's own
+                  Clear button at top 748.5 in a 730 viewport is a placement fix", and I moved the block
+                  above the scroll list before measuring what that bought. It bought NINE PIXELS (eClear
+                  bottom 844.52 -> 835.52) and fixed nothing, so the move is reverted rather than shipped as
+                  a fix for a defect that is not there.
+                  WHY IT IS NOT A DEFECT, decided WITHOUT scrolling anything, which is what makes it
+                  reproducible: the player can only have reached this state by tapping a chip in the filter
+                  row, so THAT ROW IS ON SCREEN BY CONSTRUCTION. The band from the top of the filter row to
+                  the BOTTOM of the empty-state Clear button measures 291.6px on the SHIPPED bundle against a
+                  730 viewport, 291.6 against 761, and 341.6 against 568 - it fits every geometry with 226 to
+                  469px to spare. So whenever the control that produced the empty list is visible, the
+                  message and its Clear button are visible too.
+                  THE 748.5 FIGURE IS REAL AND IS A MEASUREMENT AT SCROLL ORIGIN, where the whole games list
+                  is below the fold BY DESIGN - the Review entry screen carries the accounts UI above it and
+                  is a scrolling form. CLAUDE.md records TWO false P0s in one night from exactly this
+                  confusion and ONE OF THEM WAS THIS SCREEN (#382, "the Review entry screen"), with the rule
+                  that an element below the fold is unreachable only when no scrollable ancestor can bring it
+                  on screen. Gate 73's own B6c already proves one can. B6c is therefore left exactly as it
+                  is: it was already the right assertion, and this build does not touch it. */}
               <div className="scroll" style={{display:'flex',flexDirection:'column',gap:6,maxHeight:'min(46vh,340px)',overflowY:'auto'}}>
               {_shown.map((g,i)=>{const info=gameInfo(g);const bd=outcomeBadge(info.code);const st=gameStatsRef.current[gkey(g)];return(
                 <button key={i} data-ct="game-row" onClick={()=>pickCcGame(g)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 11px',borderRadius:10,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',textAlign:'left',fontFamily:"'Segoe UI',system-ui,sans-serif",boxShadow:SHADOW_BTN}}>
