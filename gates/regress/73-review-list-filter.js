@@ -332,10 +332,18 @@ function mkTap(b,READ){
     // NO filter row at all - both went PASS, because [].filter(...).length is 0. Two assertions that cannot
     // fail, found by running the designed control rather than by reading them, which is the one thing that
     // finds this class. A geometry assertion over an empty set is a statement about nothing.
-    const spill=base.chips.filter(c=>c.right>base.vw+0.5||c.left<-0.5);
-    L.say(base.chips.length>0&&spill.length===0,'B0d no chip paints past the 375 viewport (the row wraps)',{vw:base.vw,chips:base.chips.length,spill:spill.map(c=>c.ct+'@'+c.right)});
-    const small=base.chips.filter(c=>c.h<43.95);
-    L.say(base.chips.length>0&&small.length===0,'B0e every filter chip is at least 44px tall - Kunal\'s tap-target standard, which invariant 1 only REPORTS',{chips:base.chips.length,small:small.map(c=>c.ct+' '+c.w+'x'+c.h)});
+    /* #507 THE CENSUS EXCLUDES THE GHOST, ON AN UPHELD VETO. This build makes the Clear chip permanently
+       present but invisible, so `base.chips` went 5 -> 6 and B0e began certifying "Kunal's tap-target
+       standard" over a button the player cannot tap - measured on the committed logs: `{"chips":5}` on
+       505-all.log against `{"chips":6}` on this build's run. Not a weakening (the five real chips are still
+       checked, and the ghost is 44px anyway) but a census over a control that is not a control is a wrong
+       number, and B0b/B0c deliberately keep the UNFILTERED list because they are about which chips the row
+       CARRIES rather than which ones a finger can reach. */
+    const inkChips=base.chips.filter(c=>c.vis!=='hidden');
+    const spill=inkChips.filter(c=>c.right>base.vw+0.5||c.left<-0.5);
+    L.say(inkChips.length>0&&spill.length===0,'B0d no PAINTED chip paints past the 375 viewport (the row wraps)',{vw:base.vw,painted:inkChips.length,ofTotal:base.chips.length,spill:spill.map(c=>c.ct+'@'+c.right)});
+    const small=inkChips.filter(c=>c.h<43.95);
+    L.say(inkChips.length>0&&small.length===0,'B0e every PAINTED filter chip is at least 44px tall - Kunal\'s tap-target standard, which invariant 1 only REPORTS. The reserved ghost is excluded: it is not a control.',{painted:inkChips.length,ofTotal:base.chips.length,small:small.map(c=>c.ct+' '+c.w+'x'+c.h)});
 
     const tap=mkTap(b,READ);
     const r1=await tap('gf-bril');
@@ -459,14 +467,24 @@ function mkTap(b,READ){
     const cov=(line,loadedTotal)=>{
       const w=COV_WIDE.exec(line||''),n=COV_NARROW.exec(line||'');
       const m=w||n;
-      return {wide:!!w,narrow:!!n,exactlyOne:(!!w)!==(!!n),graded:m?+m[1]:null,total:m?+m[2]:null,
+      // #507 `exactlyOne` WAS `(!!w)!==(!!n)` AND THAT IS JUST `w||n`, because the two templates are
+      // mutually exclusive by construction (one requires ' of N so far', the other ' of the N games this
+      // filter is looking at'), so no string can satisfy both. C1b's message claimed to rule out a string
+      // that satisfied both - a claim with no content. Renamed honestly; the discriminating work is C1c's.
+      return {wide:!!w,narrow:!!n,matched:(!!w)||(!!n),graded:m?+m[1]:null,total:m?+m[2]:null,
               branchAgrees:m?((!!n)===( (+m[2])!==loadedTotal )):false};
     };
-    const cv1=cov(c1.ungraded,7);
-    L.say(cv1.exactlyOne,'C1b the coverage line is EXACTLY one of the two known templates end to end - no stray escape, no drifted wording, and not something that satisfies both',{line:c1.ungraded,wide:cv1.wide,narrow:cv1.narrow});
+    // #507 THE LOADED TOTAL IS READ FROM THE SCREEN, NOT HARD-CODED. It was `cov(c1.ungraded,7)`, which
+    // pinned branchAgrees to the fixture rather than to what the app printed - correct today, wrong the
+    // first time the fixture grows. glist-count renders 'N of M' whenever any filter is on, so M is the
+    // loaded total the app itself is using, and C1a asserts it arrived before C1c leans on it.
+    const loadedFromScreen=(()=>{const mm=(c1.count||'').match(/^\d+ of (\d+)$/);return mm?+mm[1]:null;})();
+    L.say(loadedFromScreen===7,'C1a the loaded total is readable off glist-count and is the fixture\'s seven, so C1c\'s branch test is pinned to the screen rather than to a literal',{count:c1.count,loaded:loadedFromScreen});
+    const cv1=cov(c1.ungraded,loadedFromScreen);
+    L.say(cv1.matched,'C1b the coverage line matches EXACTLY one of the two known templates end to end - no stray escape and no drifted wording',{line:c1.ungraded,wide:cv1.wide,narrow:cv1.narrow});
     L.say(cv1.narrow&&cv1.branchAgrees,
       'C1c and it is the NARROW template, because beta\'s 3 is not the loaded 7 - a build printing the wide form over a narrowed set states a figure about a set nobody is looking at',
-      {line:c1.ungraded,total:cv1.total,loaded:7,branchAgrees:cv1.branchAgrees});
+      {line:c1.ungraded,total:cv1.total,loaded:loadedFromScreen,branchAgrees:cv1.branchAgrees});
     L.say(c1.ungGraded!==null&&c1.ungTotal!==null&&c1.ungGraded<c1.ungTotal,
       'C2 the coverage line says fewer are graded than are listed, so a partial answer cannot read as complete',{graded:c1.ungGraded,total:c1.ungTotal});
     L.say(c1.ungTotal===3,
@@ -479,9 +497,13 @@ function mkTap(b,READ){
     /* #507 C3's PROMISE CHANGED DELIBERATELY AND IS REWRITTEN TO THE NEW ONE, NOT DELETED AND NOT WEAKENED.
        It used to read `!c3.ungFound` - no ELEMENT. The coverage line now holds its space for as long as a
        grade filter is on and drops only its INK, because on the shipped bundle `_ungr` decays to zero as the
-       background pass grades and the line VANISHED ON ITS OWN, jumping the list 34px at every geometry with
-       the player touching nothing (measured both ways on both bundles with one probe: SHIPPED 34px -> 0px
-       box, FIX 34px -> 34px box). So the element now exists in this state and `!ungFound` would go red on a
+       background pass grades and the line VANISHED ON ITS OWN, with the player touching nothing.
+       TWO FIGURES, TWO QUANTITIES, AND THIS COMMENT CONFLATED THEM [upheld antagonist veto]. THE BOX is
+       33.59px, offsetHeight 34. THE JUMP IS 42.6px - the box PLUS the 9px gap of the flex column it sits
+       in, which goes with it when it goes: 33.59 + 9 = 42.59. This line said "jumping the list 34px" while
+       chess.jsx said 42.6; both were right about different things and only one of them is the jump, so one
+       quantity was published twice 25% apart. Measured both ways on both bundles with one probe: SHIPPED
+       box 34 -> 0, FIX box 34 -> 34, so the LIST movement is 42.6 -> 0. So the element now exists in this state and `!ungFound` would go red on a
        correct build. WHAT C3 PROTECTED IS KEPT AND IS NOW ASSERTED MORE TIGHTLY: the player must still read
        nothing here, which is tested as computed visibility rather than as absence, AND the box must still be
        there, which the old assertion could not have told apart from the defect. Two assertions, because a
@@ -764,20 +786,61 @@ function mkTap(b,READ){
       const tapE=mkTap(b3,READ);
       const c=await tapE('gf-blun');
       L.say(c.rows>0||c.emptyFound,'E7a the blunder filter reached a state worth reading, so E7b is not vacuous',{rows:c.rows,count:c.count,empty:c.empty});
-      L.say(c.ungFound===true,
-        'E7b (TC-R61) THE COVERAGE LINE SEES A STALE TALLY: a game whose tally is present but NOT USABLE is counted as not-yet-graded, so the screen states its own coverage instead of presenting a decaying answer as complete',
-        {ungraded:c.ungraded,graded:c.ungGraded,total:c.ungTotal,rows:c.rows});
-      L.say(!(c.empty||'').match(/^No games match/),
-        'E7c and the empty state never makes the flat "No games match" claim while a stale tally is still unanswered, which is C5b applied to staleness rather than to absence',
-        {empty:c.empty});
+      /* #507 E7b NOW REQUIRES INK, AND THIS IS AN UPHELD ANTAGONIST VETO ON THIS BUILD'S OWN CHANGE.
+         It read `c.ungFound===true` - the ELEMENT EXISTS. That was a sound test while the coverage line
+         rendered iff `_gradeOn && _ungr>0`: on the #476 P0's bundle a stale tally read as graded, `_ungr`
+         went to 0, the element was ABSENT, and E7b went red. The gate's own header records "glist-ungraded
+         NULL at all 57 samples" as the signature of that defect.
+         THIS BUILD RENDERS THE ELEMENT WHENEVER `_gradeOn` AND DROPS ONLY ITS INK, so `ungFound` is now
+         true in that state too and E7b COULD NO LONGER FAIL - on the one case TC-R61 exists for, which is
+         a P0. PROVED FROM THIS GATE'S OWN GREEN RUN rather than argued: C3's payload in the same log reads
+         `{"found":true,"ink":false,"vis":"hidden"}`, so a state where the element exists and the player
+         sees nothing is measured, and `ungFound===true` is satisfied by it.
+         I REWROTE B7, D2b AND C3 FOR EXACTLY THIS REASON AND MISSED THIS ONE - and worse than missed: I
+         grepped `ungFound`, SAW this line, and marked it fine, reasoning that it "stays true" without
+         asking whether staying true was the thing it was built to stop. Three correct rewrites were done
+         by looking at the diff's neighbourhood; the question that finds the fourth is file-wide and blunt:
+         WHICH ASSERTION ANYWHERE READS THIS ELEMENT'S EXISTENCE? There were five consumers, not four.
+         E7c's EMPTY DENOMINATOR IS NOT MINE AND IS FIXED HERE ANYWAY. It tests `!(c.empty||'')` and
+         `c.empty` is NULL in this state - no empty state is on screen at all - so it has been a pass over
+         nothing since #476. MEASURED on the committed logs rather than inferred: `PASS E7c ... [{"empty":
+         null}]` on BOTH 505-all.log and 506-all.log. CLAUDE.md: a missing denominator is reported, never
+         credited. It is now a NOTE when the state is absent and an assertion when it is present. */
+      L.say(c.ungFound===true&&c.ungInk===true,
+        'E7b (TC-R61) THE COVERAGE LINE SEES A STALE TALLY: a game whose tally is present but NOT USABLE is counted as not-yet-graded, so the screen STATES its own coverage - asserted as painted INK and not as a present element, because this build reserves the element\'s space in every grade-filtered state',
+        {ungraded:c.ungraded,graded:c.ungGraded,total:c.ungTotal,rows:c.rows,found:c.ungFound,ink:c.ungInk});
+      if(c.emptyFound){
+        L.say(!(c.empty||'').match(/^No games match/),
+          'E7c and the empty state never makes the flat "No games match" claim while a stale tally is still unanswered, which is C5b applied to staleness rather than to absence',
+          {empty:c.empty});
+      } else {
+        L.note('E7c NOT RUN: no empty state is on screen here ('+JSON.stringify({empty:c.empty,rows:c.rows})+'), so there is no sentence to check. Reported rather than credited as a pass - it has been a pass over `empty:null` on every log since #476, measured on 505-all.log and 506-all.log. [L.note takes ONE argument (lib.js:314); a second is silently dropped, which is how a payload disappears.]');
+      }
       await b3.close();
     }
   }
 
   /* ══ BLOCK F. #507. THE FILTER ROW RESERVES THE SPACE OF EVERY CONTROL THAT CAN APPEAR IN IT.
-     CLAUDE.md: "A row that can appear must reserve its space." Two controls in this header can appear: the
-     Clear chip (when any filter goes on) and the coverage line (when a grade filter is on over a set with
-     ungraded games). Block C now covers the coverage line's box at C3/C3c. This block covers the ROW.
+     CLAUDE.md: "A row that can appear must reserve its space." THE CLASS HAS THREE MEMBERS AT THIS SITE,
+     NOT TWO, AND ONLY TWO ARE FIXED - corrected on an upheld antagonist veto, because the first version of
+     this header said "two controls" and the R06 count in chess.jsx said "exactly two members, and both are
+     fixed in this pass", which was FALSE:
+       (1) THE CLEAR CHIP, when any filter goes on. FIXED, block F below. Commanded.
+       (2) THE COVERAGE LINE, when a grade filter is on over a set with ungraded games. FIXED, C3/C3c.
+           UNCOMMANDED.
+       (3) THE EMPTY STATE's OWN BLOCK (`glist-empty`, chess.jsx `_emptyTxt`). NOT FIXED, and UNCOMMANDED
+           like (2). Its wording changes as `_nG` grows under the background grading pass, so the block and
+           its 44px Clear button move with nobody touching anything. MEASURED at kunal730 with
+           `ct_gamestats:{}` so the pass has real work: `empOH` 85 -> 64 and `glist-empty-clear` moved UP
+           21.0px between two samples 400ms apart - 48% of that button's own height - as the sentence went
+           from "None of the 6 graded so far match brilliancies. 1 still to grade." to the flat "No games
+           match brilliancies." It also goes 85 -> 0 when the pass makes a game start matching, so 21px is
+           a FLOOR, not the worst case. This is CLAUDE.md #398 verbatim - the damage moved to the row
+           nobody was asserting over - and it is the SAME ELEMENT clause (2) of the closer's screen was
+           about, which is the sharpest part of the finding: I withdrew that clause as a false defect about
+           PLACEMENT, and the element has a real defect about MOVEMENT that neither the closer nor I named.
+           Left unfixed deliberately rather than widening this build, and filed.
+     This block covers the ROW; block C covers the coverage line's box.
 
      IT RUNS AT 320x568 AND AT 375x761 AS WELL AS AT THIS FILE'S 375x730, AND THAT IS THE WHOLE REASON IT
      IS A SEPARATE BLOCK. MEASURED on the shipped bundle with one probe across three geometries: turning on
@@ -801,7 +864,12 @@ function mkTap(b,READ){
       const preClear=pre.chips.find(c=>c.ct==='gf-clear');
 
       L.say(!!preClear,'F1 ['+gname+'] the Clear chip is IN THE LAYOUT on the unfiltered screen, which is what reserves its space',{chip:preClear});
-      L.say(!!preClear&&preClear.vis==='hidden'&&preClear.ghost==='1',
+      /* #507 THE `ghost==='1'` CONJUNCT IS DROPPED ON AN UPHELD VETO. data-ghost is an attribute THIS
+         BUILD INVENTED, so a correct alternative implementation that reserved the space by any other means
+         would have gone red here - #432's trap on the CORRECT-ALTERNATIVE side, which is the side I claimed
+         to have avoided and had only avoided on the defect-detecting side. `visibility` is the property the
+         player's experience actually depends on; the attribute is a convenience for reading the payload. */
+      L.say(!!preClear&&preClear.vis==='hidden',
         'F1b ['+gname+'] and it paints NO INK there, so reserving its space does not put a control on screen with nothing to do',{chip:preClear});
       // THE ANTI-VACUITY GUARD: F2/F3 compare two states, so prove the second state really differs.
       const post=await tapF('gf-bril');
@@ -835,9 +903,28 @@ function mkTap(b,READ){
       L.say(back.rows===7&&back.count==='7 loaded','F4a ['+gname+'] Clear emptied the filter, so the chip under test is ghosted again for F4',{rows:back.rows,count:back.count});
       const ghostNow=back.chips.find(c=>c.ct==='gf-clear');
       L.say(!!ghostNow&&ghostNow.vis==='hidden','F4b ['+gname+'] and it is ghosted again rather than gone, so F4 is reading the reserve and not an absence',{chip:ghostNow});
-      L.say(!!ghostNow&&ghostNow.pe==='none','F4 ['+gname+'] the ghosted Clear is out of the TAP path (pointerEvents none), so a press where it sits cannot clear a filter the player cannot see',{pe:ghostNow&&ghostNow.pe});
-      L.say(!!ghostNow&&ghostNow.ah==='true','F4c ['+gname+'] and out of the ACCESSIBILITY tree, so a screen reader is not offered a control that does nothing',{ariaHidden:ghostNow&&ghostNow.ah});
-      L.say(!!ghostNow&&ghostNow.ti==='-1','F4d ['+gname+'] and out of the TAB order, so a keyboard cannot reach it either',{tabIndex:ghostNow&&ghostNow.ti});
+      /* #507 F4, F4c AND F4d AS FIRST WRITTEN WERE WRONG IN THE OPPOSITE DIRECTION FROM THE VACUITY THEY
+         REPLACED, AND THIS IS AN UPHELD ANTAGONIST VETO. They asserted pointerEvents:none, aria-hidden and
+         tabIndex -1 as "three properties that each independently make the reserved box inert, each of which
+         a regression can remove on its own". MEASURED on the live screen, removing each one at a time: with
+         pointerEvents restored to 'auto' the ghost is STILL not the hit-test target; with aria-hidden
+         removed it is STILL absent from a 516-node accessibility snapshot; with tabIndex removed it is
+         STILL never focused across fourteen Tab presses. ALL THREE ARE ALREADY IMPLIED BY
+         `visibility:hidden`, which F1b and F4b assert on their own. So each would go RED ON A BEHAVIOURALLY
+         CORRECT BUNDLE that reserved the space without them - #391 records that a red on a healthy build is
+         worse than no assertion - while none can go red on a bundle where the box is genuinely live,
+         because there `visibility` is `visible` and F1b/F4b catch it first.
+         I FOUND THE FIRST VACUITY BY ASKING WHAT MY CONTROL BUNDLE WOULD PRINT AND DID NOT ASK IT OF THE
+         REPLACEMENT. That is the lesson: the question is owed to every version of an assertion, not only to
+         the one you were already suspicious of.
+         WHAT IS ASSERTED INSTEAD IS THE THING ACTUALLY LOAD-BEARING: a box that occupies its full space and
+         paints nothing. The three code properties stay in chess.jsx - cheap, correct, belt-and-braces - and
+         are PRINTED here as a note, so a reader sees them without an assertion claiming a discriminating
+         power they do not have. */
+      L.say(!!ghostNow&&ghostNow.vis==='hidden'&&ghostNow.h>=43.95,
+        'F4 ['+gname+'] the reserved Clear OCCUPIES ITS FULL BOX AND PAINTS NOTHING - the one property the no-jump promise actually rests on, and the one a regression in either direction breaks',
+        {vis:ghostNow&&ghostNow.vis,h:ghostNow&&ghostNow.h,w:ghostNow&&ghostNow.w});
+      L.note('F4 belt-and-braces (NOT asserted, because visibility:hidden already implies all three and asserting them would redden a correct alternative): '+JSON.stringify({pointerEvents:ghostNow&&ghostNow.pe,ariaHidden:ghostNow&&ghostNow.ah,tabIndex:ghostNow&&ghostNow.ti}));
       await b.close();
     }
   }
