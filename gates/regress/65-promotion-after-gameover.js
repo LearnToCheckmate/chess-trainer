@@ -273,6 +273,75 @@ async function blockCDE(geo){
     L.say(p1===p0,'C2 ['+g+'] the board refuses a legal move after resign, Pass & Play',{before:p0,after:p1,row:await row(b)});
     await b.close();
   }
+  // C3 vs COMPUTER WITH THE HUMAN PLAYING BLACK, RESIGNED. THE ONE CELL OF THIS DEFECT'S INPUT SPEC THAT
+  // NOTHING IN THIS REPOSITORY REACHED, and the reason is worth one sentence: every arm above and below plays
+  // the human as WHITE. C1 is vs Computer and C2 is Pass & Play, and in both the human owns the side that
+  // moves first, so the whole gate exercises `humanCanMove`'s colour term on one value of it.
+  // THE GAP WAS MEASURED BEFORE THIS BLOCK WAS WRITTEN, by closer__1791506804699 and re-derived here:
+  // `grep -rn cpu-black gates/` on origin/main hits gates/drive/play.js:34, gates/drive/play.js:136 and
+  // gates/audit/play.js:88 and NOTHING under gates/regress - so the driver has DEFINED a human-plays-Black
+  // state since before #439 and no gate has ever driven it. The parent job
+  // (jobs/a-pawn-can-be-promoted-into-a-game-that-already-ended-on-time-2026-09-30) asks for the ending in
+  // Pass & Play AND vs Computer; this is the vs-Computer, human-as-Black half.
+  //
+  // WHAT THIS BLOCK DOES NOT COVER, SAID HERE SO A GREEN C3 IS NOT READ AS THE WHOLE CELL [R06, R18]. The
+  // parent's input spec asks for the human-plays-Black cell AT A CLOCK FLAG and WITH THE PICKER OPEN. This
+  // block uses RESIGN, not a clock flag, and touches no promotion picker. Both omissions are deliberate and
+  // measured rather than conceded:
+  //   * RESIGN RATHER THAN THE FLAG. The gate's own header records resign as a route into the same state -
+  //     "AND THE CLOCK IS NOT THE ONLY ROUTE - RESIGN IS ONE TOO, and resign is one tap from the More sheet
+  //     of every game" - and it is the route C1 and C2 already use, so the ONE variable this block adds is
+  //     the human's colour. A flag variant needs the clock composed onto cpu-black, which gates/drive/play.js
+  //     does not offer (cpu-clock-m0 selects the default White) and which this lane did not take a second
+  //     artefact lock to add [R44].
+  //   * NO PICKER. #495 measured 17 games across six probes - greedy raid, single-file raid, queenside raid,
+  //     seeded and unseeded - and ZERO reached a promotion against the built-in engine, because the bot must
+  //     cooperate and cannot be made to, and 10 of its 12 sweep games ended with the probe's own generator
+  //     running dry. Its conclusion, recorded as theROUTEISPROVENEXPENSIVE, is that a vs-Computer promotion
+  //     needs a POSITION FIXTURE that play setup does not offer - there is no FEN entry, and pp-mate reaches
+  //     its mate move by move. So the picker half of this cell is blocked on missing harness capability, not
+  //     on anybody's attention, and asserting it here would mean driving a state nothing can reach.
+  // The BOARD half is the half that is reachable today, and the board half is where the measured defect was:
+  // the gate's own header records "THE BOARD, which the job does not name at all" as a second, separate hole.
+  {
+    const b=await L.launch({geo,name:'65C3-'+geo});await b.open();
+    await P.states['cpu-black'](b);
+    const pStart=await plies(b),rStart=await row(b),bdStart=await b.board();
+    // C3a THE CELL IS THE CELL, asserted and not assumed. Two independent readings, because the whole value of
+    // this block is that the human is BLACK: the engine has already moved (so the move row is non-empty before
+    // the human has touched the board, which cannot happen on the White side) AND the board is FLIPPED.
+    L.say(pStart>=1&&!!bdStart&&bdStart.flip===true,
+      'C3a ['+g+'] the human really is on the BLACK side - the engine has already moved and the board is flipped',
+      {plies:pStart,row:rStart,flip:bdStart?bdStart.flip:null});
+    // C3b INSTRUMENT VALIDATION, and it is not optional: C3 below asserts that a tap DOES NOTHING, and "it did
+    // nothing" is worthless unless the same kind of tap is shown to do something first [the parent job's own
+    // wording]. g8-f6 is BLACK's knight and is legal after any White first move.
+    await b.move('g8','f6',900);
+    const pLive=await plies(b),rLive=await row(b);
+    L.say(pLive>pStart,
+      'C3b ['+g+'] INSTRUMENT: a BLACK move from the human side is accepted while the game is LIVE',
+      {before:pStart,after:pLive,row:rLive});
+    await resignHere(b);
+    const cd=await card(b),pOver=await plies(b),rOver=await row(b);
+    L.say(/Resign/i.test(cd||''),'C3c ['+g+'] the game is over by resignation, so playEnd is set',{card:cd});
+    // C3d THE PRECONDITION THAT STOPS C3 PASSING VACUOUSLY. A refusal assertion over an ILLEGAL move is a
+    // PASS for the wrong reason - the board would decline it on a live game too - so the move C3 attempts must
+    // be legal in the position on screen, and that is established by reading the two squares rather than by
+    // assuming the engine's replies left them alone. The knight that answered C3b is on f6; g8 is the square it
+    // came from and the king has not moved, so f6-g8 is the retreat and it is legal iff f6 still holds that
+    // knight and g8 is empty.
+    const onF6=await pieceAt(b,'f6'),onG8=await pieceAt(b,'g8');
+    L.say(!!onF6&&onG8===null,
+      'C3d PRECONDITION: the Black knight is still on f6 and g8 is empty, so f6-g8 is a legal Black move in this position',
+      {f6:!!onF6,g8empty:onG8===null});
+    await b.move('f6','g8',600);
+    const pAfter=await plies(b),rAfter=await row(b);
+    L.say(pAfter===pOver&&rAfter===rOver,
+      'C3 ['+g+'] the board refuses a legal BLACK move after resign, with the human playing Black - no ply appended and the move row unchanged',
+      {before:pOver,after:pAfter,rowBefore:rOver,rowAfter:rAfter});
+    L.say(b.errs.length===0,'C3e ['+g+'] no console errors in the human-plays-Black block',{errs:b.errs.length});
+    await b.close();
+  }
   // D THE PREDICATE CONTROL: a mated game already refused, on both bundles
   {
     const b=await L.launch({geo,name:'65D-'+geo});await b.open();
