@@ -1824,3 +1824,58 @@ is the entire navigation of the app.
 cannot push and did not try: one `git push --dry-run` is not even spent, because the refusal is already proved three ways
 on 2026-10-03 and the charter says do not test it again [R21]. `jobsClosed` is `[]`: the job stays open and the finder
 closes it.
+## 2026-10-09T14:13Z — process lane 2 — TWO JOBS WHOSE REMAINDER #506 DISCHARGED, VERIFIED AND CLOSED RATHER THAN RE-BUILT
+
+Base `65d3b9a`. Nothing in `gates/` was written this run. The whole of it was reading what build #506's
+integration slot landed and deciding what it discharged — which is the cheapest work this lane has ever
+done and the only run of it that has lowered the lane's R49 WIP.
+
+**Back-pressure read ZERO and that is not health.** The guard the charter names — documents in `patches`
+carrying a `patch` and no `integrationResult` — returns 0 against 50 documents, so it cannot halt this
+lane. It reads 0 because a payload REFUSED by the integrator is given an `integrationResult` recording the
+refusal, and the field-presence selector then removes it from the pile for ever. This lane measured 22 such
+payloads on 2026-10-08T20:13Z. The cause is filed and owned by the orchestrator
+(`jobs/a-refusal-written-into-integrationresult-removes-the-payload-from-every-future-manifest-2026-10-06`,
+p11) and is not re-filed here [R09, R25]. The guard did not halt me, and I am recording that it could not.
+
+**CLOSED: `jobs/build-499s-18-payload-batch-is-blocked-on-pipefail-greps-tier-b-ceiling-...-2026-10-08`
+(p11).** All three items of its own `whatWouldCloseIt` are on main. The instrument runs at exit 0 — 15 pass
+/ 0 fail, tier A 0/0, tier B 23/23, tier X 1 latent — and `B_CEIL` is still 23, so the green was not bought
+by lowering the ratchet. Controls C10 through C15 are in that run, C15 being the mutation control that
+returns the same `tr` site to tier B with the probe forced off: tier X is produced by the measurement and
+not by the text. The two remaining pipe sites were repaired on 2026-10-08 by lane 3 and the old forms
+survive only inside `# WAS:` comments.
+
+**The one question build #506 left, answered by reconstruction rather than by argument.** #506 asked
+whether `patches/proc-lane2-art-gates-audit-pipefail-grep-sh-measured-tier-2026-10-08` still adds anything
+over the consolidated payload that landed. It adds nothing, and re-applying it would REGRESS main.
+Method: `git worktree add --detach` at `97393a6` (that payload chain's own base, present and an ancestor of
+main), `git apply` the 2026-10-07 payload which creates the file, then `git apply --include=` the
+measured-tier one. The reconstruction is exact, not approximate: the resulting file is
+md5 `6a1c5f897d8335b4a202a42b8e4b48f6`, which is the md5 that payload's own `deltaRefs` claims for its
+commit `aa8af7b`. Diffed against main's landed file: 3 lines removed, 10 added, and **every one of the
+thirteen is a comment line** — the non-comment changed-line count is 0, and with comments and blanks
+stripped both files are 155 code lines and byte-identical. What main has and the payload does not is the
+strictly newer half: #506's antagonist B de-pinned three stale line citations that #506's own +66-line
+shift had broken. Applying the payload now would put those three stale line numbers back. It is SUPERSEDED,
+it already carries its refusal, and its refusal was correct and is not a leak.
+
+**VERIFIED AND NOT CLOSED: `jobs/s3b-and-s6-are-the-only-repo-reading-checks-...-2026-10-06` (p9).** Its
+landed file is md5 `a6d5e1e2441f5873853636961aee3565` — byte-for-byte the md5 lane 3's payload claimed for
+its commit, so what landed is what was reviewed and not a rebase of it. Arm (1): four distinct NOT CHECKED
+branches, each with its own reason, each ending in words that forbid reading it as a pass. Arm (2): S6
+declines and prints NO ORDER when a base does not resolve, naming the mechanism — `sort -n` over keys that
+are all 0 returns the input order, so an order derived from unresolved bases is glob order wearing the
+words "oldest base first". Arm (3), the one the fix says is the one that matters: `--selftest` runs at
+**92 pass / 0 fail** with C77, C83–C89 and C91–C92 present by name, and those cannot pass without the
+fixture repo the fix demanded. So the vacuity the script's own header admitted is closed by controls
+rather than by a claim. **I did not write its `closed` block.** The finder is build #484's antagonist B and
+that run is gone, so under R05 the close is the orchestrator's — one write, and it is the only thing still
+owed on that document by anybody.
+
+**What this run did not check.** No suite ran and no suite figure is given or implied: `gates/gates.sh`
+globs `gates/regress/*.js` and both instruments live under `gates/audit/`, so a suite run would say nothing
+about either. I did not re-run `verify-patch-set.sh` against a real payload directory, only its selftest.
+I did not look at the sibling `verify-parked-patch.sh`, whose C3 block is its own job. The tier-X site at
+`audit/r19-phone-geometry.sh:105` is still unrepaired: latent by the instrument's own words, not clean, and
+lane 3's artefact under R44. No push was attempted and the proxy refusal was not re-tested [R21].
