@@ -1742,3 +1742,85 @@ The PASS/FAIL set is **byte-identical across all three, including every payload 
 **One thing read and left alone.** `B9`'s verdict line labels 375x730 "KUNAL", which R19 settled as 375x761 on 2026-10-03. That is the live geometry contradiction already owned by `jobs/gate-20-and-gate-21-never-visit-kunals-actual-geometry-2026-10-01`; a second id for one cause is not a second finding [R09], and choosing a geometry on that job's behalf is the trap its sibling job warns about by name.
 
 **Delivery** parked at `patches/proc-lane3-art-gates-regress-51-drill-explain-why-js-admit-phase-1b-2026-10-09`. NOT on main; this lane cannot push and did not try [R21]. The record commit is **isolated and last**, so `git am --skip` on an append collision costs this record alone and never the gate.
+## 2026-10-09T21:49Z-22:17Z — process-build lane 4 — gate 49 block G: a finished patch re-cut into the collection the integrator actually selects on, and R36 criterion 1 re-derived for the two-store form
+
+**Item** `jobs/class-clause-instance-case-2026-09-28` (P14, owningLane test-authoring, finishFirst). Taken under R05b as
+the highest-priority ready job whose remaining work is inside this lane's allow-list. `owningLane` NOT changed: a process
+lane doing one step of another lane's job is not a handoff and must not read as one [R49 A3]. The job is NOT closed — the
+finder closes [R05].
+
+**What was wrong, and it is a delivery defect rather than a test defect.** test-authoring finished, round-tripped and
+parked the v3 block-G patch on 2026-10-07. It parked it in collection `docs`, doc
+`patch-class-clause-instance-case-2026-09-28-2026-10-07`, with the diff inside a prose `text` field between ```diff
+fences. `prompts/build-run` STEP 1I selects every document in collection **`patches`** carrying a **`patch`** field and no
+`integrationResult`, *by field and never by id prefix*. So this patch was invisible to the integration slot from the
+moment it was written, and no number anywhere would have said so: the job reads `testFilesReady`, the lane's claim row
+reads a full outcome, and `gates/regress/49-home.js` on main is still 871 lines sixteen builds later. This is leakage
+class 3 in R42 — a written gate nobody landed — with the twist that the producer did everything but address it.
+
+**What this run changed.** One file, one hunk, append-only: `gates/regress/49-home.js`, +278 lines before the file's
+closing `},'HOME');`. Not one line of it is this lane's authorship — it is test-authoring's diff read back out of the
+tracker and applied unchanged.
+
+**Measured, not read [R18].**
+- Diff extracted from the `text` field: sha256-16 `b2f12bef3ff10406`, which is the value that document itself declares.
+  The round-trip out of the tracker is therefore bit-identical, and that is a measurement and not a claim.
+- Applied onto **origin/main 65d3b9a** (not the 97393a6 it was written against): `git apply` rc 0, no fuzz. Resulting
+  file md5 `3b7fd8b47ed8dad1bc661aef402f49f4`, 1149 lines, `node --check` clean — both of the values the handoff declares,
+  reproduced two days and sixteen build numbers later. `gates/regress/49-home.js` is byte-identical between 97393a6 and
+  65d3b9a (md5 `f54a9ba405c573f2a46b94b75e8592e1` at both), which is WHY it still applies, and that is the reason rather
+  than luck.
+- **One figure of the handoff's own is corrected [R18].** It says "+279 lines" and "279 added". `git apply --stat` reads
+  **278 insertions** and `grep -c '^+'` reads 279 because one of those lines is the `+++ b/...` header. 278 added, 0
+  removed. The patch is unaffected; the number in the prose was one too many.
+
+**R36 criterion 1, RE-DERIVED FOR THIS FORM, which is item 0 of the job's own `whatIsLeft` and was explicitly not done
+for it.** It was re-derived on 2026-10-06 for the ONE-store 104/0 form (md5 `d87e66e01183f7a033ab02f77649c908`); the
+lane's own claim row says criterion 1 was "not re-derived" for the 210/0 two-store form. Three consecutive
+`CT_HM_BLOCKS=G node gates/regress/49-home.js` runs against main's committed bundle `app.js` md5 `ebb88c8f76f7`:
+
+| run | start | wall | result | PASS/FAIL sequence md5 (verdict+text) | with measured payloads |
+|---|---|---|---|---|---|
+| 1 | 21:56:30Z | 395.0 s | 210 pass / 0 fail | `9db7dca81fbcccf3e5015eba521ae45e` | `21ad33f2ae882aca7534496d9028d3f5` |
+| 2 | 22:03:14Z | 395.4 s | 210 pass / 0 fail | `9db7dca81fbcccf3e5015eba521ae45e` | `21ad33f2ae882aca7534496d9028d3f5` |
+| 3 | 22:09:56Z | 395.1 s | 210 pass / 0 fail | `9db7dca81fbcccf3e5015eba521ae45e` | `21ad33f2ae882aca7534496d9028d3f5` |
+
+All three byte-identical **including every measured payload**, not merely the verdicts — 210 lines, zero drift in any
+rect, count or string. Criterion 1 is met for the two-store form. The command is published with the counts, because a
+count with no scope cannot be checked and this very file's own header records two published control numbers that turned
+out to be subset runs.
+
+**Criterion 2 is NOT met and is not mine to waive.** 395 s for block G alone on this container, against the 415 s
+test-authoring measured on theirs — the same measurement on two machines, so neither figure is withdrawn. Either way one
+block adds between six and seven minutes to a suite whose full run this repo records at 43m44s to 71m. R36 says a test
+that fails any of the three criteria is filed as a candidate, not admitted. It stays a **candidate**, and the scope
+question — is 6.6 minutes of every build worth nine Home controls driven for dismissal instead of three — belongs to the
+orchestrator. This lane does not admit it and did not alter `gates/gate-manifest.tsv` (outside its allow-list in any case).
+
+**Criterion 3 is met on its face:** every tile, card and coach line on Home either takes Home down or does not, and that
+is the entire navigation of the app.
+
+**Not checked, five things.**
+1. **The other three geometries.** `GEOS` is `['se','kunal730','390','430']` and block G runs its own default pair,
+   `se,kunal730`. 390 and 430 were not visited by these runs.
+2. **`kunal730` is the wrong geometry and this run did not fix it.** R19 settled Kunal's phone at **375x761** on
+   2026-10-03 and says in terms that "the figure 730 is wrong and should be corrected wherever it appears, including the
+   GEOS entry labelled kunal730", and that `GEOS` already carries `kunal761`. Block G's default set names `kunal730`, and
+   `CLAUDE.md` still states 375x730 as "his actual phone's layout viewport". That is an R45 shape-(1) contradiction — one
+   number, two values — and it is NOT filed as a new id here [R09, R50]: `CLAUDE.md` is explicitly outside this lane's
+   allow-list, the geometry class already has `jobs/gate-20-and-gate-21-never-visit-kunals-actual-geometry-2026-10-01`
+   ready at P14, and a second id for one cause is not a second finding. Recorded on the job and on this run's row.
+3. **The negative controls were not re-run.** NC6 (`d05ee558cb56`) and NC7 (`d06270b31412`) are test-authoring's, measured
+   by it, and this run reproduced neither. A green block whose controls are taken on trust is weaker evidence than one
+   whose controls were re-fired, and that is this entry's own first weakness.
+4. **No full suite ran.** Only block G of gate 49. Nothing here says anything about the other 58 files in
+   `gates/regress/`, and this log authorises no push [`gates/verify-log.sh` refuses a subset by design].
+5. **The TC-HM-051a..d register rows are still unwritten**, for the fourth consecutive run on this job, and for the same
+   reason each time: they live in `claude/stories/TEST-CASES.md`, a second artefact, and R44 is one agent one artefact
+   with both locks taken before work starts. Mine were `art-gates-regress-49-home-js` and `art-claude-PROCESS-LOG-md`.
+
+**Delivery** parked at `patches/proc-lane4-art-gates-regress-49-home-js-2026-10-09`, carrying a `patch` field and no
+`integrationResult` — which is exactly what STEP 1I selects on, and the whole point of this run. NOT on main. This lane
+cannot push and did not try: one `git push --dry-run` is not even spent, because the refusal is already proved three ways
+on 2026-10-03 and the charter says do not test it again [R21]. `jobsClosed` is `[]`: the job stays open and the finder
+closes it.
