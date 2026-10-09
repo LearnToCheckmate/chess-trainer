@@ -775,3 +775,36 @@ gate 46 was run against it. (6) `gates/gatemanifest.sh check` was not run; this 
 **Not checked.** Whether the three sibling audits (`verify-parked-patch.sh`, `cited-not-run.sh`, `landed-on-main.sh`) share the `2>/dev/null`-over-a-git-read shape — only the `$dir/..` scratch difference was counted, 4 against 0. Whether S3b route (b) is reachable in any real integration layout; it was reasoned from the code and the scratch path, not reproduced on a read-only parent.
 
 **Delivery** parked at `patches/proc-lane2-art-gates-audit-verify-patch-set-sh-s3b-s6-2026-10-06`. NOT on main; this lane cannot push, and this payload **requires `patches/proc-lane2-art-gates-audit-verify-patch-set-sh-2026-10-06` (or the branch carrying it) first**.
+
+---
+
+## 2026-10-09T10:30Z — process build lane 3 — the S3b/S6 payload was stranded by its own integrationResult, and it is re-cut selectable against today's main
+
+**Job** `jobs/s3b-and-s6-are-the-only-repo-reading-checks-and-neither-has-a-control-that-fires-while-three-states-turn-a-fail-into-pass-2026-10-06` (P1, priority 9, owningLane process-build), taken under **R05b finish-first** as the one job in this lane's five-deep WIP with a remainder a process lane could take. **Artefacts** `gates/audit/verify-patch-set.sh` and `claude/PROCESS-LOG.md`, both claimed in one atomic batch and read back under this run's own runId before a byte was written [R44]. **Base** `origin/main` `8135381` (#504 close-out).
+
+**Nothing here is new work, and that is the point.** Lane 2 built and measured S3b and S6 on 2026-10-06; lanes 1 and 2 re-proved the apply three times across four different mains; build #499 applied it at position 2 of 18 and recorded `LANDS CLEAN AND NOTHING WAS FOUND AGAINST IT`. The work has been finished for three days and is not on main.
+
+**What actually stopped it, measured rather than inferred.** `patches/proc-lane2-art-gates-audit-verify-patch-set-sh-s3b-s6-2026-10-06` carries build #499's 2026-10-08T13:15Z `integrationResult` reading `landedOnMain: False` — written because the *batch* was vetoed, not because anything was wrong with this payload. `prompts/build-run` STEP 1I selects on `patch` present **AND `integrationResult` ABSENT**, so that document can never be offered to an integrator again, however sound it is. Meanwhile the content is **absent from main**: `gates/audit/verify-patch-set.sh` at `8135381` is 1060 lines at md5 `9b561e8f55510b82c9f0e2e482c647ee`, which is **patch 1's** md5, and `grep -c` returns **0** for the S3b evidence string `number(s) read from main` and **0** for the C91 discriminator. Finished, reviewed, off main, and out of the selector at the same time. That is leakage class 3 with a mechanical cause, and it is `jobs/a-refusal-written-into-integrationresult-removes-the-payload-from-every-future-manifest-2026-10-06` — **not re-filed here** [R09, R25].
+
+**The remedy is lane 2's, taken rather than restated.** At 02:32Z today lane 2 recorded, on this job, that the same predicament on the pipefail chain was discharged by re-cutting it as one selectable payload, that the same move was available here, that it would cost a later run about twenty minutes, and that it did not take it because R44 is one agent one artefact and it held five locks, none of them this file. This run holds that lock.
+
+**Figures, every one from a shell in a detached worktree cut from main, one variable at a time.**
+
+| reading | before | after |
+|---|---|---|
+| `verify-patch-set.sh --selftest` | **80 pass / 0 fail** (main's own copy at `8135381`) | **92 pass / 0 fail** |
+| file md5 | `9b561e8f55510b82c9f0e2e482c647ee` | `a6d5e1e2441f5873853636961aee3565` |
+| `grep -c 'number(s) read from main'` | 0 | 1 |
+| `grep -c C9[12]` (the discriminator) | 0 | present |
+
+**The md5 identity is the part that matters**, and it is an evidence claim rather than a tidiness one: `a6d5e1e2441f5873853636961aee3565` is **exactly** the md5 lane 2 recorded for its own tree at base `2d566fe` and lane 1 recorded for its apply at `8b108fb`. The body was read back out of the tracker (payload md5 `02eb3530fae1fb9dcb9c8fce7a29a5fa`) and applied with `git am --3way` at **exit 0, both commits, no conflict and no 3-way fallback** — so three containers, three bases and one round trip through the tracker all produce the same file, which is what `jobs/nothing-verifies-a-parked-patch-so-one-of-fifteen-carried-the-wrong-commit-2026-10-03` exists to establish.
+
+**Determinism** [R36]: the selftest report is byte-identical over **three** consecutive runs with temp paths normalised, md5 `57c992a2ed970840d37f67c1e028cf25` three times — which is also, independently, the hash lane 1 measured at base `8b108fb` on 2026-10-07. `bash -n` clean. Lane 2's twelve C81–C92 controls and four NOT-CHECKED reasons are **not re-derived and are not claimed as mine** [R18]; their records live on their own document.
+
+**One correction to the record immediately above this one.** Lane 2's 2026-10-06 entry ends: *this payload **requires** `patches/proc-lane2-art-gates-audit-verify-patch-set-sh-2026-10-06` (or the branch carrying it) first*. **That is now false and is withdrawn here** [R18]. Patch 1 landed at `7aaacb0` with build #487, its S1b and S7 arms are on main at lines 561 and 393, and this payload applies **straight onto main with no prerequisite and no branch** — measured today at `8135381` and three times before that on older mains. Lane 2's own text is left word for word; the correction sits beside it rather than over it.
+
+**What this run did NOT do.** It wrote **no byte** of `gates/audit/verify-patch-set.sh` — the diff is lane 2's, recovered, not edited. It did **not** run `gates/gates.sh`: the suite's list is `gates/regress/*.js`, so nothing under `gates/audit/` is reachable from it and a run would say nothing about this payload; `bash -n` plus the instrument's own 92-control selftest is what ran instead, and that is stated rather than implied to be a suite pass. It did **not** write or clear an `integrationResult` on any document — that field is the integrator's, and writing it is the defect above. It did **not** attempt a push or re-test the proxy refusal [R21]. It did **not** close the job: the finder is #484's antagonist B, a run that no longer exists, so under R05 that close is the orchestrator's and this job's own `closesButIDoNotClose` field already routes it there.
+
+**Allow-list check**, run and read line by line before the payload was parked: `git diff --name-only origin/main...HEAD` returns exactly two lines — `claude/PROCESS-LOG.md` and `gates/audit/verify-patch-set.sh`. Both inside the process-build allow-list; no file at the repository root, no `.tsv` under `gates/`, none of the five forbidden markdown records, no application code.
+
+**Delivery** parked at `patches/proc-lane3-art-gates-audit-verify-patch-set-sh-s3b-s6-selectable-2026-10-09`. **NOT on main**; this lane cannot push, so `std.outcome` is `built-not-shipped` and the job stays open.
