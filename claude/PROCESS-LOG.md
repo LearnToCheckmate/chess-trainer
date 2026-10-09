@@ -712,3 +712,45 @@ kept only as the precondition's partner. (5) Whether any OTHER gate would redden
 gate 46 was run against it. (6) `gates/gatemanifest.sh check` was not run; this commit adds no gate file.
 
 **Delivery** parked at `patches/proc-lane3-art-gates-regress-46-play-js-tc-pl-032-2026-10-08`. NOT on main.
+## process lane 2, run `process-build-2__1791511973121`, 2026-10-09T02:12Z-02:3xZ
+
+**Item** `jobs/build-499s-18-payload-batch-is-blocked-on-pipefail-greps-tier-b-ceiling-and-the-tier-is-read-off-the-consumer-when-the-producer-decides-2026-10-08`, which this lane number filed at 2026-10-08T14:30Z. It was already in this lane's R49 WIP, so working it could not raise the number. Its `whatIsLeft` names three steps. **Step (1) as written could not be performed by anybody**, and that is what this run fixed.
+
+**The cause, measured and not reasoned.** `gates/audit/pipefail-grep.sh`, `gates/audit/r19-phone-geometry.sh` and `gates/audit/red-count.sh` are all ABSENT from `origin/main` 9cec233 - `ls gates/audit/` in a fresh clone lists 33 entries and none of the three is among them - while all four payloads that carried them (`proc-lane2-...-pipefail-grep-sh-2026-10-07`, `...-measured-tier-2026-10-08`, `proc-lane3-...-r19-phone-geometry-sh-2026-10-07`, `proc-lane3-...-red-count-sh-2026-10-07`) now hold an `integrationResult`. `prompts/build-run` STEP 1I selects on `patch` present and `integrationResult` ABSENT, so the successor payload modifies a file no selectable payload creates. Blocker (1) of build #499's batch was undeliverable by construction.
+
+**What this run built: nothing new, and that is the point.** It did not re-derive the probe, the tier split or lane 3's two one-word repairs - they are built, measured and recorded on their own documents [R18]. It reconstructed them by replay (`git am --3way` of the four bodies, `--skip` on four `claude/PROCESS-LOG.md` record commits only) and re-cut them as **ONE selectable payload over today's main**, so one `git am --3way` clears the whole of blocker (1).
+
+**Before and after, one variable at a time, every figure read from this shell [R18].**
+
+| tree | tier A | tier B | tier C | tier X | exit |
+|---|---|---|---|---|---|
+| instrument alone on pristine main 9cec233 | **1 / 0** | 24 / 23 | **1 / 0** | 0 | 1 |
+| plus the `gates/verify-log-selftest.sh` repair that rides with it | 0 / 0 | 23 / 23 | 0 / 0 | 0 | 0 |
+| all three instruments, lane 3's r19 repair reverted | 0 / 0 | 24 / 23 | 0 / 0 | 1 | 1 |
+| **this payload** | 0 / 0 | **23 / 23** | 0 / 0 | 1 | **0** |
+
+`B_CEIL` is still 23. **The ceiling was not lowered.** Lane 3's 23/23 exit-0 reading was taken on build #499's assembled tree; this reproduces it on a main five builds newer, which is agreement across bases rather than a repeated measurement.
+
+**One fact main does not know about itself, found by this measurement.** On pristine `origin/main` 9cec233 the instrument reports **tier A 1 against a ceiling of 0 and tier C 1 against a ceiling of 0**, both in `gates/verify-log-selftest.sh`. Tier A is the class where a broken pipe corrupts a status that is then acted on. The repair for all three sites is the 22-line change that has been riding with this payload since 2026-10-07 and has never landed.
+
+**Two blockers cleared beyond step (1), both inside this lane's allow-list and both measured rather than assumed.**
+- **Blocker (2), the file modes, half of it.** `gates/audit/pipefail-grep.sh` was committed 100644 while all its siblings are 100755, and `gates/audit-all.sh` discovers by `find -perm -u+x`. Committed 100755 here. `gates/audit/story-join.sh` is lane 4's artefact and is untouched.
+- **Blocker (3), the roster, for this payload's own arrivals.** `gates/audit/cited-not-run.sh` section 2b refuses a tree whose `gates/` set has a member no roster row accounts for, and refuses a row that names a non-member as STALE. **THREE rows are carried, and the count is a measurement rather than a tidy choice.** Measured on the replay tree with the record commit absent: `UNACCOUNTED 3` - only `pipefail-grep.sh`, because the other two were not cited by anything. **The `claude/PROCESS-LOG.md` record this payload's own second commit appends is itself one of the five record documents that script scans**, so naming the three instruments in it RECRUITS `r19-phone-geometry.sh` and `red-count.sh` into the cited-and-unreachable set: with the record commit present, `UNACCOUNTED 4`. So the rows ride in the SAME commit as the instruments they name, because a row is STALE before its file exists and a member is UNACCOUNTED after it.
+
+**THE CHARTER STEP AND THE INSTRUMENT PULL AGAINST EACH OTHER AND THAT IS WORTH WRITING DOWN RATHER THAN WORKING AROUND IN SILENCE.** STEP 6 of `prompts/process-build` requires every process-lane run to append a record naming the gates it ran. `gates/audit/cited-not-run.sh` reads that file as a record document. So **the charter's own step manufactures a cited-not-run member for every `gates/` file a process lane's record names**, and the roster debt a payload owes depends on whether its record commit lands. Measured both ways on this payload:
+
+| state | UNACCOUNTED | STALE-ROSTER | exit |
+|---|---|---|---|
+| both commits land | 2 (`gates/fastgate.sh`, `gates/pending/50-drill-verdict-no-jump.js` - **main's own**) | 0 | 1 |
+| record commit `--skip`ped | 2 (the same two) | **2** (my two rows, now naming non-members) | 1 |
+| both commits land **and** `patches/proc-lane1-art-gates-audit-cited-not-run-sh-2026-10-08` lands | **0** | 0 | **0** |
+
+**So this payload adds zero unaccounted members in the state it is meant to land in, and the `--skip` route costs two stale rows rather than an instrument.** It is filed as its own cause rather than merged into the R44-versus-STEP-6 contradiction, which is about holding two locks and not about this.
+
+**AND THE TWO PAYLOADS COMMUTE, MEASURED IN BOTH ORDERS RATHER THAN ASSERTED.** `git am --3way` of this payload then `patches/proc-lane1-art-gates-audit-cited-not-run-sh-2026-10-08`, and the reverse: **exit 0 both ways, no conflict and no 3-way fallback**, and in both resulting trees `gates/audit/cited-not-run.sh` reads `ACCOUNTED-GREEN 28 of 28, UNACCOUNTED 0, STALE-ROSTER 0, exit 0` and `gates/audit/pipefail-grep.sh` exits 0. The two remaining unaccounted members are main's own, arrived with builds #490 and #500, and lane 1's payload is the one that accounts for them. **Landing the two together turns both instruments green; landing either alone does not.**
+
+**Figures.** `gates/audit/r19-phone-geometry.sh --selftest` 23 pass / 0 fail; `gates/audit/red-count.sh --selftest` 23 pass / 0 fail; `gates/audit/pipefail-grep.sh` 15 pass / 0 fail. `bash -n` clean on all five changed `.sh` files. The three-run determinism md5s and the mutation controls behind these instruments are lane 2's and lane 3's own and are not restated as mine.
+
+**Not checked.** (1) The 59-section suite: `gates/gates.sh` globs `gates/regress/*.js`, so nothing under `gates/audit/` is reachable from it and running it would prove nothing about this payload. (2) Whether either payload commutes with the other four pending payloads; only the lane-1 cited-not-run pair was measured, because it is the only other pending payload touching a file this one touches. (3) `gates/audit/story-join.sh`'s mode, which is lane 4's artefact. (4) Whether the tier-X site at `r19-phone-geometry.sh:105` propagates at sizes above 4MB; it is named, uncounted and explicitly not called clean. (5) The probe's producer verdicts on a different coreutils build.
+
+**Delivery.** Parked; NOT on main. This lane cannot push and no dry-run was attempted - the refusal is proved three ways on 2026-10-03 and R21 forbids looking for a workaround.
