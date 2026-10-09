@@ -868,4 +868,282 @@ if(blk('F'))for(const geo of ['se','kunal730']){
   }
 }
 
+// =========================================================================================================
+// HM-G  US-HM-11 OVER ITS WHOLE CLASS, ENUMERATED AT RUNTIME, ON BOTH STORE SHAPES.  TC-HM-051a … TC-HM-051d.
+// jobs/class-clause-instance-case-2026-09-28, band-14 remainder. Authored by test-authoring__1791103076029 on
+// 2026-10-04 against origin/main 2e5f30b; default geometry set corrected and R36 criterion 1 re-derived by
+// test-authoring__1791275896214 on 2026-10-06; THE SECOND ROSTER, FOR THE EARNED STORE, added by
+// test-authoring__1791362299920 on 2026-10-07 against origin/main 97393a6, app.js md5 d0d4206809ae,
+// stamp '#490 - 2026-10-06 23:33 ET' read from the SERVED page on every launch [measurement rule 5].
+//
+// WHY THIS BLOCK EXISTS AND WHY IT IS NOT MORE INPUTS IN BLOCK F. US-HM-11's heading quantifies over a class -
+// "Every card on Home that opens a screen brings Home down with it, and lands on the screen it named" - and
+// block F's TC-HM-050c drives a HAND-WRITTEN THREE-MEMBER ARRAY (NEW HERE, coach line, Daily 3). A literal list
+// is the shape the clause was filed against: it cannot notice a control that was added, and it cannot notice a
+// control that stopped rendering, so "the class was swept" stays a sentence. This block enumerates the controls
+// OFF THE RUNNING SCREEN and asserts the population itself, which is what makes the loop a measurement.
+//
+// THE COUNTS, MEASURED, AND THE FIRST READING OF THEM CORRECTED IN PLACE [R18]. MEASURED by enumerating every
+// clickable control in the Home overlay and then TAPPING each one from the mode==='play' state: ON A FRESH
+// STORE the overlay holds FOURTEEN clickable controls, of which SEVEN take Home down and SEVEN leave it up.
+// Block F drives three of the seven, so FOUR navigating controls - the four tiles - had no dismissal coverage
+// of any kind before this block.
+//
+// WITHDRAWN BEFORE IT WAS HANDED OVER, because it was wrong in the direction that flattered the finding: this
+// header first read "the denominator is seven, not nine", calling the job's and US-HM-11's own figure of nine
+// navigating controls an error. IT IS NOT AN ERROR. US-HM-11's prose names its nine - "the four tiles, the
+// streak card, the Daily 3 card, the coach line, Continue, and NEW HERE" - and TWO of those render only on an
+// EARNED store: the streak card (EARNED_SIG above carries 'streak' and no 'newhere') and the Daily 3 card in
+// its 'Continue: …' form, which is what it becomes when ct_lastlesson is set.
+//
+// AND THAT WITHDRAWAL IS NOW DISCHARGED, which is the whole of this 2026-10-07 change. The 2026-10-04 and
+// 2026-10-06 versions ran ONE store shape, H.fresh(b,{}), so 7 was the fresh-store navigating population and 9
+// was the population across both - and the two earned-store variants stayed UNDRIVEN for dismissal, named as
+// "the concrete next step on this job" in this header for three days. The remedy is A SECOND ROSTER AND A SEED,
+// not a bigger roster for the fresh store: the loop, the kind declaration, the scroll-and-hit precondition and
+// all four assertions below take it unchanged. HOME_STORES is what drives them twice.
+//
+// THE EARNED ROSTER IS MEASURED AND THEN DECLARED, NEVER THE OTHER WAY ROUND. Enumerated at kunal730 on
+// #490 BEFORE a line of it was written, with the earned store seeded:
+//   fresh   ☰ · 👋 · "Daily 3 … 1 lesson" · "NEW HERE? START HERE" · 🔭 · 🧩 · 🔍 · ♟ · 🎓 · Colours & pieces
+//           · Style · 🎬 · 💬 · intro(div)                                                        = 14
+//   earned  ☰ · 👋 · "Daily 3 … Continue: …" ·        (NEW HERE GONE)        · 🔭 · 🧩 · 🔍 · ♟ · 🎓
+//           · Colours & pieces · Style · 🎬 · 💬 · intro(div) · "🔥 4 DAYS ⭐ 120 XP 🎯 2/5 TODAY"(div) = 14
+// So the earned shape is not "the fresh shape plus two": it TRADES newhere for streak, and the counts are
+// equal by coincidence. Asserting a count would have been green on either roster; the population assertion
+// compares the id SET, which is why it can tell them apart.
+//
+// AND THE SECOND ROSTER IS WORTH MORE THAN THE TWO CONTROLS IT ADDS, which was not obvious before measuring:
+// THE DAILY 3 CARD CHANGES WHERE IT GOES. chess.jsx:5642's handler is
+//   setHomeScreen(false); if(!L&&lastLesson!=null&&LIB[lastLesson]){setMode('learn');selectOpening(lastLesson);}
+//   else if(!L){setMode('learn');setOpenIdx(null);} else {setMode('puzzle');}
+// so on a fresh store it lands on DISCOVER and on an earned store it opens THAT LESSON. One control, two
+// declared destinations, and the one-store form could only ever assert one of them. TC-HM-051d is the
+// assertion that now distinguishes them, and a handler that stopped honouring ct_lastlesson would red in the
+// earned pass while staying green in the fresh one.
+//
+// The seven that leave Home up on a fresh store are not a gap: ☰, 👋,
+// Colours & pieces, Style, 🎬, 💬 and the intro block all open a sheet OVER Home or do nothing, and
+// chess.jsx's ☰ handler is `onClick={()=>setMenuOpen(true)}` with no setHomeScreen call at all. US-HM-11's
+// clause does not reach them, so counting them as uncovered would have widened the gate onto controls the
+// story does not speak about.
+//
+// THE KIND IS A DECLARATION ASSERTED IN BOTH DIRECTIONS, not a requirement to navigate. This is the shape
+// 40-reachability.js's DENOM_KIND and HDR_DEPTH_KIND already use in this suite, and it is the only form that
+// is falsifiable both ways: a 'sheet' control that starts dismissing Home reds, and a 'screen' control that
+// stops dismissing it reds. A one-sided loop over the navigating controls alone would have been satisfied by
+// the app dismissing Home on every tap, which is a worse screen than the one the clause is about.
+const HOME_ROSTER=[
+  // id              kind      lands            what it is, and the measurement behind the declaration
+  {id:'home-menu',     kind:'sheet'                }, // chess.jsx: onClick={()=>setMenuOpen(true)}, no setHomeScreen
+  {id:'wave',          kind:'sheet'                }, // the sign-in / account sheet, fixed in the overlay's top-right
+  {id:'daily3',        kind:'screen', lands:'learn'}, // on a FRESH store (ct_lastlesson null) it goes to Discover
+  {id:'newhere',       kind:'screen', lands:'lesson'},
+  {id:'tile-discover', kind:'screen', lands:'learn'},
+  {id:'tile-puzzles',  kind:'screen', lands:'puzzle'},
+  {id:'tile-review',   kind:'screen', lands:'review'},
+  {id:'tile-play',     kind:'screen', lands:'play'},
+  {id:'coachline',     kind:'screen', lands:'lesson'},
+  {id:'home-look',     kind:'sheet'                }, // the Look and feel picker, [data-ct="look"], drawn over Home
+  {id:'stylerow',      kind:'sheet'                },
+  {id:'home-preview',  kind:'sheet'                }, // 🎬 the preview gallery (dev)
+  {id:'home-feedback', kind:'sheet'                }, // 💬 the feedback sheet
+  {id:'intro',         kind:'sheet'                }, // the animated title block: it carries an onclick and does not navigate
+];
+// THE EARNED ROSTER. Same loop, same kinds, same assertions - a roster and a seed, which is what the job asked
+// for. newhere is GONE (chess.jsx:5651, "new" is defined as no XP and nothing learned), streak is PRESENT as a
+// DIV WITH AN onclick rather than a button (chess.jsx:5620 returns a <div onClick={goPz}>), and daily3's
+// declared landing changes from 'learn' to 'lesson' for the reason quoted in the header above.
+const HOME_ROSTER_EARNED=[
+  {id:'home-menu',     kind:'sheet'                },
+  {id:'wave',          kind:'sheet'                },
+  {id:'daily3',        kind:'screen', lands:'lesson'}, // 'Continue: <lesson>' - setMode('learn'); selectOpening(lastLesson)
+  {id:'streak',        kind:'screen', lands:'puzzle'}, // chess.jsx:5620 goPz(): setMode('puzzle'), pzView 'roadmap'
+  {id:'tile-discover', kind:'screen', lands:'learn'},
+  {id:'tile-puzzles',  kind:'screen', lands:'puzzle'},
+  {id:'tile-review',   kind:'screen', lands:'review'},
+  {id:'tile-play',     kind:'screen', lands:'play'},
+  {id:'coachline',     kind:'screen', lands:'lesson'},
+  {id:'home-look',     kind:'sheet'                },
+  {id:'stylerow',      kind:'sheet'                },
+  {id:'home-preview',  kind:'sheet'                },
+  {id:'home-feedback', kind:'sheet'                },
+  {id:'intro',         kind:'sheet'                },
+];
+// THE EARNED SEED IS THE ONE BLOCK E ALREADY USES, deliberately, so this block introduces no new fixture to
+// disagree with: ct_daily {date:TODAY,streak:4,count:2} plus the puzzle progress at xp 120 is TC-HM-037's own
+// store (49-home.js block E), and ct_lastlesson:'0' is TC-HM-044's. date is TODAY and not YDAY on purpose -
+// yesterday's date would raise the streak-at-risk path (chess.jsx:5648) and change the coach line's kind
+// mid-loop, which would make this roster measure a third store shape without declaring it.
+const HOME_STORES=[
+  {store:'fresh',  roster:HOME_ROSTER,        seed:{}},
+  {store:'earned', roster:HOME_ROSTER_EARNED, seed:{ct_daily:{date:TODAY,streak:4,count:2},
+    'chesstrainer.progress.v1':{solved:{g0:1,g1:1},streak:2,best:3,xp:120,online:0,onlineIds:{}},
+    ct_lastlesson:'0'}},
+];
+// Enumerated off the screen, never from a list. Buttons plus divs carrying their own onclick, because the intro
+// block is a div and a control that stops being a <button> must not drop silently out of the population - and
+// because the streak card is a div too, so a button-only walk would have reported the earned store as thirteen
+// controls with the one this change exists for missing, and the population assertion would have named it.
+const HOME_CTRLS=(b)=>b.page.evaluate(()=>{
+  const ov=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500');
+  if(!ov)return null;
+  const idOf=(e)=>{const ct=e.getAttribute('data-ct');if(ct)return ct;
+    const t=(e.innerText||'').replace(/\s+/g,' ').trim();
+    if(!t)return e.tagName==='DIV'?'intro':'blank';
+    if(/^☰$/.test(t))return 'menu';
+    if(/^\u{1F44B}$/u.test(t))return 'wave';
+    if(/^\u{1F525}/u.test(t))return 'streak';
+    if(/^Daily 3/.test(t))return 'daily3';
+    if(/^NEW HERE/.test(t))return 'newhere';
+    if(/^\u{1F52D}\s*Discover/u.test(t))return 'tile-discover';
+    if(/^\u{1F9E9}\s*Puzzles/u.test(t))return 'tile-puzzles';
+    if(/^\u{1F50D}\s*Review/u.test(t))return 'tile-review';
+    if(/^♟/u.test(t))return 'tile-play';
+    if(/^(\u{1F393}|⚠️)/u.test(t))return 'coachline';
+    if(/^Colours & pieces/.test(t))return 'lookrow';
+    if(/Style:/.test(t))return 'stylerow';
+    return 'UNKNOWN:'+t.slice(0,24);};
+  const all=[...ov.querySelectorAll('button')]
+    .concat([...ov.querySelectorAll('div')].filter(d=>typeof d.onclick==='function'));
+  return all.map(e=>{const r=e.getBoundingClientRect();
+    return {id:idOf(e),tag:e.tagName.toLowerCase(),x:r.left+r.width/2,y:r.top+r.height/2,
+      w:Math.round(r.width),h:Math.round(r.height),y0:Math.round(r.top)};});});
+// WHERE AM I. Each landing is read by a MARKER OF THE SCREEN rather than by the absence of Home, because
+// "Home came down" is the clause's FIRST half and would make the second half vacuous if it were also its test.
+const WHERE=(b)=>b.page.evaluate(()=>{
+  const ov=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500');
+  const mid=ov?document.elementFromPoint(Math.round(innerWidth/2),Math.round(innerHeight/2)):null;
+  const t=((document.querySelector('#root')||document.body).innerText||'').replace(/\s+/g,' ');
+  const q=(s)=>!!document.querySelector(s);
+  return {home:!!ov,homeCoversMiddle:!!(ov&&mid&&ov.contains(mid)),
+    lesson:q('[data-ct="lesson-note"]'),
+    learn:/What do you want to learn\?/.test(t),
+    puzzle:/Daily goal/.test(t)&&/Rank/.test(t),
+    review:/Review any game, from anywhere/.test(t)||q('[data-ct="rev-row1"]'),
+    play:q('[data-ct="setup-sheet"]')||q('[data-ct="play-home"]'),
+    look:q('[data-ct="look"]'),
+    txt:t.slice(0,90)};});
+const LANDED={lesson:(w)=>w.lesson,learn:(w)=>w.learn,puzzle:(w)=>w.puzzle,review:(w)=>w.review,play:(w)=>w.play};
+
+// ONE BROWSER PER GEOMETRY, deliberately: fourteen controls times a launch each is fourteen bundles' worth of
+// boot time and would put this block outside R36's "fast enough to run on every build" on its own. H.fresh()
+// plus b.home() returns to the Home overlay from wherever a tap landed, so the loop re-enters the state, and
+// H.fresh(b,seed) is also what switches store shape WITHOUT a second launch - which is why the earned roster
+// costs one more pass over the controls and not one more browser.
+// THE DEFAULT IS se,kunal730 AND NOT kunal730, CHANGED 2026-10-06 BY test-authoring__1791275896214 UNDER R36.
+// This block's author measured, and wrote into this file's own header, that at se (320x568) five of the fourteen
+// controls sit below the fold and that a tap which never happened satisfies "Home STAYS UP" perfectly - five
+// vacuous greens beside three false reds, from one missing scroll. The author then wrote "CT_HM_GEOS=se,kunal730
+// is the form this gate should carry" into the handoff AND LEFT THE DEFAULT AT kunal730, so gates/gates.sh - which
+// sets no CT_HM_* variable, measured again on 2026-10-07 at 97393a6 and still true - would have run this block at
+// ONE geometry: the geometry in which that whole class of fault is invisible. A recommendation in a header is not
+// a default. CT_HM_STORES is the same shape and ITS default is both shapes, for the same reason.
+if(blk('G'))for(const geo of (process.env.CT_HM_GEOS||'se,kunal730').split(',').map(x=>x.trim()).filter(Boolean)){
+  const b=await L.launch({geo,name:'home-g-class-'+geo});await b.open();
+  const stores=HOME_STORES.filter(s=>(process.env.CT_HM_STORES||'fresh,earned').split(',').map(x=>x.trim()).indexOf(s.store)>=0);
+  for(const S of stores){
+  const tag=geo+'/'+S.store;
+  await H.fresh(b,S.seed);
+  const seen=await HOME_CTRLS(b);
+  const ids=(seen||[]).map(c=>c.id), want=S.roster.map(r=>r.id);
+  const missing=want.filter(x=>ids.indexOf(x)<0), extra=ids.filter(x=>want.indexOf(x)<0);
+  // G1 IS THE ASSERTION THE HAND-WRITTEN ARRAY COULD NOT MAKE, and it is the whole reason this block is not
+  // three more inputs in block F: it reds when a control is ADDED to Home and reds when one stops rendering,
+  // so US-HM-11's "every card" has a denominator that is re-derived on every run instead of restated. It is
+  // also the assertion that tells the two STORE SHAPES apart: both hold 14 controls, so a count is green on
+  // either and only the id SET distinguishes an earned Home from a fresh one.
+  L.say(!!seen&&missing.length===0&&extra.length===0&&ids.length===want.length,
+    tag+': TC-HM-051a US-HM-11 POPULATION - the Home overlay on a '+S.store+' store holds exactly the '+want.length+' clickable controls that store shape\'s roster declares, enumerated off the screen. Measured '+ids.length+'. A control added to Home, one that stopped rendering, or one that renders on the wrong store shape reds HERE, which is what gives "every card on Home" a denominator rather than a sentence',
+    {store:S.store,n:ids.length,want:want.length,missing,extra,ids});
+  let nav=0, sheet=0;
+  for(const r of S.roster){
+    await H.fresh(b,S.seed);
+    await b.tile('Play');await b.settle(900);
+    const inPlay=await WHERE(b);
+    // PRECONDITION, kept from TC-HM-050c and for its reason: [data-ct="setup-sheet"] renders only under
+    // mode==='play' && playSetup && !homeScreen, so its presence is what establishes the mode. Home being
+    // down would NOT establish it, and in mode 'learn' a card lands on a lesson for the wrong reason.
+    const modeIsPlay=inPlay.play===true&&inPlay.home===false;
+    await b.home();await b.settle(500);
+    const here=await HOME_CTRLS(b);
+    const t=(here||[]).find(x=>x.id===r.id);
+    L.say(modeIsPlay&&!!t,
+      tag+' ['+r.id+']: TC-HM-051b precondition - mode was "play" when Home re-opened (the play setup sheet was mounted before the return) and this control is on the re-opened Home with a rect to tap. Without both, every verdict below passes by never reaching the state it names',
+      {store:S.store,modeIsPlay,found:!!t,rect:t||null});
+    if(!(modeIsPlay&&t))continue;
+    // SCROLL IT INTO VIEW, RE-READ THE RECT, AND ASSERT THE POINT IS HIT-TESTABLE BEFORE TAPPING IT
+    // [measurement rules 1 and 3]. THIS BLOCK'S FIRST VERSION DID NOT, and the cost is recorded rather than
+    // quietly repaired: run at se (320x568) on UNMODIFIED origin/main it read 71 pass / 5 FAIL, and the five
+    // were tile-review, tile-play and coachline, whose rect centres are y 568.5, 568.5 and 675.5 on a
+    // 568-high viewport. The clicks landed OUTSIDE the viewport, nothing was tapped, Home stayed up, and the
+    // assertion reported the app failing US-HM-11. The HALF THAT IS WORSE: the sheet-kind controls at y 713,
+    // 766 and 812 PASSED at se, because "Home stays up" is satisfied by a tap that never happened - five
+    // vacuous greens and three false reds out of one missing scroll. Home is an overflow-y:auto fixed layer,
+    // so its own box is the scroller and the document never moves; scrollIntoView is correct here and is NOT
+    // the 40-reachability.js fault, because this assertion is about what a tap DOES and not about whether a
+    // finger could reach it - reachability is block B's subject and has its own instrument.
+    const hit=await b.page.evaluate((id)=>{
+      const ov=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500');
+      if(!ov)return {ok:false,why:'no overlay'};
+      const all=[...ov.querySelectorAll('button')]
+        .concat([...ov.querySelectorAll('div')].filter(d=>typeof d.onclick==='function'));
+      const el=all.find(e=>(e.getAttribute('data-ct')||'')===id)||all.find(e=>{
+        const t=(e.innerText||'').replace(/\s+/g,' ').trim();
+        return (id==='daily3'&&/^Daily 3/.test(t))||(id==='newhere'&&/^NEW HERE/.test(t))
+          ||(id==='streak'&&e.tagName==='DIV'&&/^\u{1F525}/u.test(t))
+          ||(id==='tile-discover'&&/^\u{1F52D}\s*Discover/u.test(t))||(id==='tile-puzzles'&&/^\u{1F9E9}\s*Puzzles/u.test(t))
+          ||(id==='tile-review'&&/^\u{1F50D}\s*Review/u.test(t))||(id==='tile-play'&&/^♟/u.test(t))
+          ||(id==='coachline'&&/^(\u{1F393}|⚠️)/u.test(t))||(id==='stylerow'&&/Style:/.test(t))
+          ||(id==='wave'&&/^\u{1F44B}$/u.test(t))||(id==='intro'&&e.tagName==='DIV'&&!t);});
+      if(!el)return {ok:false,why:'gone after scroll'};
+      el.scrollIntoView({block:'center'});
+      const r=el.getBoundingClientRect(), x=Math.round(r.left+r.width/2), y=Math.round(r.top+r.height/2);
+      const inView=x>=0&&y>=0&&x<=innerWidth&&y<=innerHeight;
+      const at=document.elementFromPoint(x,y);
+      return {ok:inView&&!!at&&(el===at||el.contains(at)),inView,x,y,vw:innerWidth,vh:innerHeight,
+        onTop:!!at&&(el===at||el.contains(at)),top:Math.round(r.top),h:Math.round(r.height)};},r.id);
+    L.say(hit.ok===true,
+      tag+' ['+r.id+']: TC-HM-051b precondition 2 - the control was scrolled into Home\'s own scroller, its rect RE-READ after the scroll, the tap point is inside the viewport and elementFromPoint at that point IS this control. Without this line a tap at a point below the fold lands nowhere: measured at se before it existed, three screen-kind controls reported the APP failing US-HM-11 and three sheet-kind controls reported a vacuous PASS, from one missing scroll',
+      Object.assign({store:S.store},hit));
+    if(!hit.ok)continue;
+    await b.page.mouse.click(hit.x,hit.y);
+    await b.settle(2500);
+    const w=await WHERE(b);
+    if(r.kind==='screen'){
+      nav++;
+      // THE CLAUSE'S FIRST HALF, over the whole class rather than over three of it.
+      L.say(w.home===false&&w.homeCoversMiddle===false,
+        tag+' ['+r.id+']: TC-HM-051c US-HM-11 first half - this control opens a screen, so Home COMES DOWN with it. Two readings, because "the overlay is absent" and "the overlay is not the element at the viewport centre" fail differently',
+        {store:S.store,home:w.home,homeCoversMiddle:w.homeCoversMiddle,txt:w.txt});
+      // THE CLAUSE'S SECOND HALF, read by a marker of the destination and NOT by the absence of Home, so the
+      // two halves cannot be satisfied by one fact. AND THE DESTINATION IS DECLARED PER STORE SHAPE: daily3
+      // lands on Discover with no last lesson and on THAT LESSON with one, so this line is the only assertion
+      // in the suite that can tell a Daily 3 card which has stopped honouring ct_lastlesson from one that has not.
+      L.say(LANDED[r.lands](w)===true,
+        tag+' ['+r.id+']: TC-HM-051d US-HM-11 second half - it lands on the screen it NAMED ('+r.lands+' on a '+S.store+' store), not on whatever screen `mode` already named. mode was "play" on entry, so a handler that only calls setHomeScreen(false) reveals the game instead and reds here',
+        {store:S.store,lands:r.lands,w});
+    }else{
+      sheet++;
+      // THE OTHER DIRECTION OF THE SAME DECLARATION. This is what stops the block being satisfied by an app
+      // that dismisses Home on every tap, which would be a worse screen than the one US-HM-11 describes.
+      L.say(w.home===true,
+        tag+' ['+r.id+']: TC-HM-051c US-HM-11 EXCLUSION - this control opens a sheet OVER Home or does nothing, so it is outside the clause and Home must STAY UP. The roster\'s kind is asserted in both directions: a sheet control that starts dismissing Home reds here, so the exclusion is a measurement and not an exemption',
+        {store:S.store,home:w.home,look:w.look,txt:w.txt});
+    }
+  }
+  L.say(nav===S.roster.filter(r=>r.kind==='screen').length&&sheet===S.roster.filter(r=>r.kind==='sheet').length,
+    tag+': TC-HM-051a the loop actually ran over every roster member of the '+S.store+' store - '+nav+' screen-kind and '+sheet+' sheet-kind reached, against '+S.roster.filter(r=>r.kind==='screen').length+' and '+S.roster.filter(r=>r.kind==='sheet').length+' declared. A precondition failure skips a control, so without this line the block could report green having driven two of fourteen',
+    {store:S.store,nav,sheet});
+  L.say(b.errs.length===0,tag+': zero app errors across all '+S.roster.length+' Home control taps on the '+S.store+' store',b.errs.slice(0,3));
+  }
+  // THE STORE SHAPES RAN, AND THIS IS THE LINE THAT SAYS SO. Without it, CT_HM_STORES or a filter typo narrows
+  // the block to one shape and every assertion above still passes - which is exactly how the GEOMETRY default
+  // went unnoticed for three days on this same block. A scope variable needs an assertion that reads it back.
+  L.say(stores.length===HOME_STORES.length,
+    geo+': TC-HM-051a US-HM-11 was driven over BOTH store shapes - '+stores.map(s=>s.store).join(' and ')+' - against the '+HOME_STORES.length+' declared. The streak card and the Daily 3 "Continue" variant, 2 of US-HM-11\'s own nine navigating controls, exist ONLY on the earned store, so a run that silently drops that shape leaves the clause covered at 7 of 9 while reading green',
+    {ran:stores.map(s=>s.store),declared:HOME_STORES.map(s=>s.store)});
+  await b.close();
+}
+
 },'HOME');
