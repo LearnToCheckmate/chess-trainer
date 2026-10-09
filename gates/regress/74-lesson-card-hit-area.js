@@ -55,8 +55,11 @@
 // Petroff reads own 25/50/75 = false/false/false with the centre on the footer bar, and on this build it reads
 // true / true / (outside the viewport). So the HIT-TEST fault is fixed for it and an OVERFLOW fault remains.
 // Those are two different faults, and this gate asserts them separately - B1 over the sample points that are ON
-// the screen, B1b over whether a control is on the screen at all, with a per-card ceiling of 2 (Petroff's CTA and
-// its close X) and every instance printed by B1bG. The overflow is filed as
+// the screen, B1b over whether a control is REACHABLE at all, at a per-card ceiling of ZERO. [#505, R18: this
+// sentence read "on the screen at all, with a per-card ceiling of 2 (Petroff's CTA and its close X)" and that
+// described #497's withdrawn assertion, not the live one - UNREACHABLE_CEILING_PER_CARD is 0 and has been since
+// #498, because 2<=2 held on the broken AND the fixed bundle. Found by this build's antagonist A.]
+// Every unreachable instance is printed by B1bG. The overflow is filed as
 // jobs/the-lesson-intro-card-can-be-taller-than-the-viewport-and-nothing-scrolls-it-2026-10-08.
 // AND IT COSTS THE HARNESS SOMETHING, recorded because it is the kind of thing that is rediscovered: Petroff's
 // panel top is OFF SCREEN, so a hold-tap at panelTop+10 lands outside the viewport, the hold never registers and
@@ -162,9 +165,31 @@
 //     sed 's/position:"relative",maxHeight:"100vh",overflowY:"auto"/position:"relative",maxHeight:"100vh"/' \
 //         app.js > gates/.probe/nocontrol.js        # md5 598cbe4857d6
 //     CT_APP=gates/.probe/nocontrol.js CT_74_GEOS=se node gates/regress/74-lesson-card-hit-area.js
-// MEASURED THREE WAYS rather than asserted:
-//     8f25da67c4e3  SHIPPED, all three geometries : 214 pass,  0 fail
-//     e60f12585339  main, CT_74_GEOS=se           :  70 pass,  5 FAIL  (B1b 2 unreachable, B1d, B1e2, B1bG, B1bG2)
+// ---- #505: THE CONTROL SET, AND THE WORD "SHIPPED" IS CORRECTED OFF TWO #498 BUNDLES [R18]. ----
+// THE CONTRADICTION ANTAGONIST A FOUND, named here so it is not re-litigated: this block said
+// "8f25da67c4e3  SHIPPED, all three geometries : 214 pass, 0 fail" while gates/gate-manifest.tsv's row for this
+// same gate said "95ee23d86752 (SHIPPED) over all three geometries = 223 pass / 0 fail". Two md5s and two
+// totals, nine assertions apart, both labelled "#498 shipped, all three geometries", in two committed files on
+// one tree. AT MOST ONE COULD BE RIGHT AND IN FACT NEITHER WAS: #498 built three bundles (0cc8d3dc196f,
+// 8f25da67c4e3, 95ee23d86752), its gate grew between them, and IT SHIPPED NONE OF THEM - it stood down on three
+// upheld vetoes and 95ee23d86752 is on gates/held-trees.tsv as a tree that must not ship. So both figures are
+// honest readings of different bundles at different gate versions, and both labels were wrong. This is #454's
+// rule ("a number is ambiguous about as often as not - cite the md5") biting the md5 itself, because the md5 was
+// right and the WORD beside it was not.
+// #505's CONTROLS, which are the ones to use, each cut from the shipped bundle by one change and nothing else:
+//     shipped         se,short375,kunal730 : 227 pass, 0 fail   (three runs, byte-identical verdicts [R36])
+//     nc-nocapture    se                   :  84 pass, 1 FAIL   D2 only. onScrollCapture -> onScroll, 7 bytes.
+//     nc-unguarded    se                   :  84 pass, 1 FAIL   F1 only. The panel-has-room guard removed.
+//     nc-touchaction  se                   :  79 pass, 5 FAIL   B1b, B1bG, C0, D1b, D2. touch-action:'none' on
+//                                                               the panel and both inner blocks.
+// THE THREE RED SETS ARE DISJOINT WHERE THEY SHOULD BE, which is what says the assertions measure three things:
+// D2 is the capture phase, F1 is the guard on it, and the reachability set is the touch-action filter. The md5s
+// are in the run's build-numbers.tsv rows and in the commit message rather than here, because #505 rebuilt four
+// times on upheld vetoes and any md5 pinned in this comment would have gone stale three times.
+// AND THE TWO HISTORICAL #498 READINGS, kept because they are real and are the only record of those bundles:
+//     8f25da67c4e3  #498, NOT shipped, three geos : 214 pass,  0 fail  (an earlier version of this gate)
+//     95ee23d86752  #498, HELD, three geos        : 223 pass,  0 fail  (before D asserted the reader's gesture)
+//     e60f12585339  #497's shipped bundle, se     :  70 pass,  5 FAIL  (B1b 2 unreachable, B1d, B1e2, B1bG, B1bG2)
 //     598cbe4857d6  capped but not scrolling, se  :  70 pass,  4 FAIL  (B1b 1 unreachable, C0, B1bG, B1bG2)
 // NOTE WHAT THE THIRD ROW PROVES THAT THE SECOND CANNOT: on 598cbe4857d6 **B1d PASSES** - the panel genuinely
 // does fit the viewport - while B1b reddens. So B1b and B1d are not two names for one measurement: one is about
@@ -196,6 +221,11 @@ const VACUOUS=[];
 // reason B3G and B1bG2 are global: adding or reordering a geometry must never be able to disarm an assertion in
 // silence. #505.
 const D2EXERCISED=[];
+// FPOP: every card/geometry in this run whose PANEL has no scroll room while a CHILD does - the population
+// block F asserts over, and the one the first version of #505's fix regressed. Global for the same reason
+// D2G, B3G and B1bG2 are: a geometry or lesson list that happens to miss the population must not let F1
+// report green over nothing. #505.
+const FPOP=[];
 // #498 CHANGED WHAT THIS BLOCK ASSERTS, AND THE REASON IS THAT THE OLD TEST COULD NOT SEE ITS OWN FIX.
 // #497 asserted `fullyOnScreen` with a per-card ceiling of 2, Petroff's CTA and close X being the two. MEASURED on
 // the SHIPPED bundle 8f25da67c4e3: Petroff has ONE control not fully on screen at rest - the CTA at 573.55..617.55;
@@ -280,9 +310,37 @@ const layer=(b)=>b.page.evaluate(()=>{
   //     element on screen. So they are scrolled for real and the rect is RE-READ, then every scrollTop is restored.
   // Measured at rest FIRST and reachability SECOND, in two passes, so one element's scroll test cannot contaminate
   // another's resting rect.
+  // (c) ADDED AT #505 ON AN UPHELD ANTAGONIST VETO, AND IT IS TRAP (a) WEARING A THIRD COSTUME.
+  //     The filter above tested overflow-y and room and NOTHING ELSE, so it answered a question about what
+  //     SCRIPT can scroll while every message built on it said "what a FINGER can scroll". `touch-action`
+  //     is the property that separates the two and it was not read. REPRODUCED on a control bundle - the
+  //     shipped bundle with touchAction:'none' added to the panel and to both inner blocks, 60-odd characters
+  //     and nothing else - where SIX real CDP finger drags leave every scrollTop at 0 and Petroff's CTA centre
+  //     never moves from 595.55 in a 568 viewport, so a player can NEVER reach that card's own primary button.
+  //     Gate 74 scored 78 pass / 2 FAIL on it with B1b, B1d, B1bG, B1bG2, C0 and C1 ALL GREEN, and C1 printed
+  //     "the card was scrolled first, as a finger would have to: 1 finger-scrollable ancestor" about a finger
+  //     that scrolls nothing. The two reds were D1b and D2, which catch it for an ADJACENT reason (a finger
+  //     that scrolls nothing fires no scroll event either, so the hold fails) and not for the stated one.
+  //     THIS IS THIS BLOCK'S OWN RULE (a) EXACTLY: "script is not so limited, and scrollIntoView() happily
+  //     scrolls an overflow:hidden box". overflow:hidden was the property it was written about; touch-action is
+  //     a second property with the same shape, and the filter has to read both or the word "finger" is a claim
+  //     the instrument does not support.
+  //     THE EFFECTIVE touch-action IS THE INTERSECTION DOWN THE ANCESTOR CHAIN, not a property of one element,
+  //     so an ancestor carrying `none` disables panning on a scroller that permits it. The chain is therefore
+  //     walked to documentElement. Vertical panning survives `auto`, `manipulation`, `pan-y` and the pan-up /
+  //     pan-down keywords; it does NOT survive `none`, `pan-x`, `pan-left` or `pan-right`.
+  //     ON THE SHIPPED BUNDLE THIS CHANGES NOTHING - computed touch-action is `auto` on the panel, both inner
+  //     blocks and every ancestor - which is the point: it is a guard against a future tree, proved able to
+  //     fire by the control above rather than asserted to be sound.
+  const fingerCanPanY=(el)=>{let p=el;
+    while(p&&p!==document.documentElement){const ta=(getComputedStyle(p).touchAction||'auto').trim();
+      if(/\bnone\b/.test(ta))return false;
+      if(/\bpan-(x|left|right)\b/.test(ta)&&!/\bpan-(y|up|down)\b/.test(ta))return false;
+      p=p.parentElement;}
+    return true;};
   const userScrollables=(el)=>{const out=[];let p=el.parentElement;
     while(p&&p!==document.documentElement){const s=getComputedStyle(p);
-      if(/auto|scroll/.test(s.overflowY)&&p.scrollHeight>p.clientHeight+1)out.push(p);
+      if(/auto|scroll/.test(s.overflowY)&&p.scrollHeight>p.clientHeight+1&&fingerCanPanY(p))out.push(p);
       p=p.parentElement;}
     return out;};
   const reach=(el,rest)=>{
@@ -539,8 +597,19 @@ for(const geo of GEOS){
         const cy=r0.top+r0.height/2, cx=r0.left+r0.width/2;
         if(cy>=0&&cy<innerHeight&&cx>=0&&cx<innerWidth)return {found:true,scrollNeeded:false,scrollers:0};
         const scs=[];let q=g.parentElement;
+        // #505: THE SAME touch-action TEST AS userScrollables, AND THE DUPLICATION IS FORCED AND NAMED.
+        // Block C builds its own scroller list because this walk runs inside a page.evaluate and cannot call
+        // the node-side helper. That is exactly how C0 kept passing on the touch-action control bundle after
+        // userScrollables had been fixed: ONE of the two copies of this filter was corrected and the other was
+        // not, so the gate reported "what a finger could scroll" from a corrected filter in B1b and an
+        // uncorrected one in C0, in the same run. The two copies must agree, and what proves they do is that
+        // the control reddens BOTH - verified at #505, not asserted.
+        const canPanY=(n)=>{let z=n;while(z&&z!==document.documentElement){const ta=(getComputedStyle(z).touchAction||'auto').trim();
+          if(/\bnone\b/.test(ta))return false;
+          if(/\bpan-(x|left|right)\b/.test(ta)&&!/\bpan-(y|up|down)\b/.test(ta))return false;
+          z=z.parentElement;}return true;};
         while(q&&q!==document.documentElement){const st=getComputedStyle(q);
-          if(/auto|scroll/.test(st.overflowY)&&q.scrollHeight>q.clientHeight+1)scs.push(q);
+          if(/auto|scroll/.test(st.overflowY)&&q.scrollHeight>q.clientHeight+1&&canPanY(q))scs.push(q);
           q=q.parentElement;}
         for(let i=scs.length-1;i>=0;i--){const z=scs[i];
           const zr=z.getBoundingClientRect(),er=g.getBoundingClientRect();
@@ -555,7 +624,7 @@ for(const geo of GEOS){
       // The tap point must be INSIDE the viewport, or page.mouse.click sends the tap nowhere and C1's red would be
       // an artefact of the harness rather than a fact about the app. Asserted on the CENTRE for the reason above.
       const onScreen=!!(c2&&c2.y>=0&&c2.y<b.geo.h&&c2.x>=0);
-      L.say(onScreen,'74 C0 ['+geo+'] '+o.name+': the CTA\'s OWN CENTRE is inside the viewport when the tap is made - at rest, or after scrolling only what a finger can scroll ('+JSON.stringify(scrolled)+'). This is the tap point C1 uses; if it is red the centre is unreachable and C1 below says nothing. The rect may still be partly cut, which is B1b\'s and B1d\'s business and not this assertion\'s',{ctaCentreY:c2&&c2.y,ctaRect:c2,scrolled,vh:b.geo.h});
+      L.say(onScreen,'74 C0 ['+geo+'] '+o.name+': the CTA\'s OWN CENTRE is inside the viewport when the tap is made - at rest, or after scrolling only what a finger could scroll - a set filtered on computed overflow-y, room AND touch-action down the whole ancestor chain, then scrolled by script and the rect re-read, never scrollIntoView ('+JSON.stringify(scrolled)+'). This is the tap point C1 uses; if it is red the centre is unreachable and C1 below says nothing. The rect may still be partly cut, which is B1b\'s and B1d\'s business and not this assertion\'s',{ctaCentreY:c2&&c2.y,ctaRect:c2,scrolled,vh:b.geo.h});
       if(onScreen){
         await b.page.mouse.click(c2.x,c2.y);await b.settle(900);
         const stillCard=await cardUp(b), stillIn=await inLesson(b);
@@ -642,7 +711,7 @@ for(const geo of GEOS){
   // returns the DIV and not the button. So the real choice was REACHABLE versus DELETED, not clipped versus
   // nothing, and D3a prints the clipped width so the price is in every log rather than in a commit message.
   L.say(pi.ovfX==='hidden','74 D3 ['+geo+'] the card panel\'s computed overflow-x is pinned to hidden ('+pi.ovfX+'), so making it a vertical scroller did not silently give it a horizontal axis. On main it read visible; with overflow-y:auto alone it computes to auto, and at a 256-wide viewport that clipped a Related-lessons chip by 33.5px',{overflowX:pi.ovfX,overflowY:pi.ovfY});
-  L.note('74 D3a ['+geo+'] THE PRICE OF PINNING overflow-x, printed rather than asserted: the panel hides '+pi.ovfW+'px horizontally (scrollWidth-clientWidth). Where that is above zero a Related-lessons chip is CLIPPED AND UNTAPPABLE - `hidden` deletes it where `auto` left it reachable by a horizontal drag - which is a cost the #498 comment named only as clipped, and which is sharper than that: a clipped BUTTON is a deleted button [R18].');
+  L.note('74 D3a ['+geo+'] THE PRICE OF PINNING overflow-x, printed rather than asserted: the panel hides '+pi.ovfW+'px horizontally (scrollWidth-clientWidth). Where that is above zero the widest Related-lessons chip has its TAIL clipped and its label cut mid-word with no ellipsis, while its centre stays hit-testable: MEASURED at 256 wide, chip 216.89 with 183.39 on screen and 33.50 clipped, so 84.6% of the button is painted, and a real tap at its visible centre opens the Related lesson. An earlier draft of this note said the chip was CLIPPED AND UNTAPPABLE and that `hidden` DELETES it; BOTH ANTAGONISTS MEASURED THAT FALSE INDEPENDENTLY AND IT IS WITHDRAWN [R18]. elementFromPoint inside the clipped STRIP returning the panel div is what a clipped strip IS, not evidence the button is gone.');
   if(pi.room>0){
     // THE GESTURE IS ONE DRAG STARTED ON THE CARD'S OWN BODY TEXT, AND THAT CHANGE IS THE WHOLE POINT
     // [antagonist C, objection 2]. D's first gesture was TWO drags of 120px from y=420. y=420 is inside the
@@ -677,13 +746,15 @@ for(const geo of GEOS){
     // WITHDRAWN HERE [R18]. #505's fix is `onScrollCapture` in place of `onScroll`, a SEVEN-BYTE difference in
     // the bundle, and the four-cell control grid is:
     //                              D1            D2
-    //   se        onScroll         FAIL          FAIL     <- control, 71496368cc17 (first cut 413d7af115e9)
-    //   se        onScrollCapture  FAIL          PASS     <- shipped,  76d6bf71ab59 (first cut b786fb415055)
+    //   se        onScroll         FAIL          FAIL     <- control nc-nocapture
+    //   se        onScrollCapture  FAIL          PASS     <- shipped
     //   short375  onScroll         PASS          FAIL
     //   short375  onScrollCapture  PASS          PASS
-    // The grid was taken twice, on two pairs of bundles - the pre-comment-fix pair and the shipped pair - and
-    // both pairs give the same four cells. #505 therefore names TWO bundles and the register says so itself;
-    // cite the md5 and never the number [#454].
+    // The grid was taken on THREE successive shipped/control pairs across this run's rebuilds and gives the same
+    // four cells every time. THE md5s ARE DELIBERATELY NOT WRITTEN INTO THIS COMMENT: #505 rebuilt four times on
+    // upheld vetoes, so any md5 pinned here would have gone stale three times, and this project's own #454 rule
+    // ("cite the md5, never the number") is satisfied by the CONTROLS block at the head of this file, which is
+    // rewritten against the final bundles at the end of the run. A grid is about the SHAPE of the result.
     // D1 READS IDENTICALLY ON BOTH BUNDLES AT BOTH GEOMETRIES, to the digit (se: panel 0->0 of 67, CTA centre
     // 595.546875 in 568; short375: panel 0->0 of 5, CTA centre 534.171875 in 568). So D1 has ZERO discriminating
     // power for this fix anywhere in this run, and at short375 it is additionally a POSITIVE CONTROL credited as
@@ -728,6 +799,70 @@ for(const geo of GEOS){
   }
   await b.close();
 }
+
+// ── F: AND THE HOLD MUST NOT FIRE WHERE NO GESTURE IS NEEDED. UPHELD VETO FROM #505's ANTAGONIST B. ──────
+// THE DEFECT THIS EXISTS FOR WAS INTRODUCED BY #505's OWN FIRST FIX AND CAUGHT BEFORE THE PUSH, which is the
+// second time in two builds that the fix for this card's hold has had to be narrowed by a blind antagonist.
+// #505 made the panel hear a DESCENDANT's scroll so a reader's drag would hold the card. The first version
+// held it on ANY descendant scroll on ANY card - including every card whose button is already fully on screen
+// and whose panel has nowhere to scroll, where there is no gesture to survive and nothing below the fold.
+// MEASURED, Openings row 20 (Queen's Gambit), 320x568: the panel's own scroll room is ZERO, the CTA sits fully
+// on screen at 495.56..539.56 in a 568 viewport, and exactly one child scrolls (55px of room). Scrolling that
+// child by 55px with NO click left the card up at +4600ms, +12000ms AND +20000ms on the unguarded bundle and
+// dismissed it at +4600ms on a bundle with no hook at all - so an incidental drag on a PARAGRAPH pinned a modal
+// over a demo that had autoplayed to its end. Antagonist B swept the population: of all 97 Openings rows at
+// 320x568, EIGHTY have a scrollable child and a panel with no room, ONE has both (Petroff), sixteen have
+// neither. So the unguarded hook made a latent fault routine on 80 of 97 cards.
+// THE FIX IS A GUARD ON THE PANEL HAVING SOMEWHERE TO SCROLL, and F asserts it from the player's side.
+// WHY THIS BLOCK SCROLLS PROGRAMMATICALLY AND SAYS SO, rather than claiming a finger it did not use - which is
+// the mistake #505's antagonist A caught in C0/C1 one block up. The question F asks is about the HOLD
+// MECHANISM: "a scroll happened and no click happened - is the card held?" A scrollTop assignment fires a real
+// scroll event and fires no click, so it is a faithful instrument for exactly that question. It is ALSO the
+// instrument that settled a disagreement between this build and its own antagonist: B reported a finger drag
+// scrolling Queen's Gambit's plans block 0 -> 55, and this build could not reproduce that gesture in this
+// container over two attempts at two drag speeds, while the MECHANISM reproduced first time on both bundles.
+// So the verdict rests on the mechanism, which both of us can reproduce, and not on the gesture, which only one
+// of us could. A FINGER-DRIVEN version of F would be stronger and is owed; it is named in notChecked.
+{
+  const b=await L.launch({geo:'se',name:'74F-se'});await b.open();
+  const o=await openPlain(b,'Openings',20);   // NOT openHeld: a click would hold the card and void F1
+  if(!o.ok){L.say(false,'74 F0 [se] could not reach Openings row 20 for the incidental-scroll check',o);}
+  else{
+    L.say(/^Queen.s Gambit$/.test(o.name),'74 F0b [se] Openings row 20 is still /^Queen.s Gambit$/ ('+o.name+') - if the lesson list is reordered this block must say so rather than silently measure another card',{got:o.name});
+    const pop=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));
+      if(!g)return null; let q=g;while(q&&q.parentElement&&getComputedStyle(q.parentElement).position!=='fixed')q=q.parentElement;
+      const kids=[...q.children].filter(c=>{const s2=getComputedStyle(c);return /auto|scroll/.test(s2.overflowY)&&c.scrollHeight>c.clientHeight+1;});
+      const gr=g.getBoundingClientRect();const r2=n=>Math.round(n*100)/100;
+      return {panelRoom:q.scrollHeight-q.clientHeight,childRoom:kids.length?Math.max(...kids.map(c=>c.scrollHeight-c.clientHeight)):0,
+              kids:kids.length,ctaTop:r2(gr.top),ctaBottom:r2(gr.bottom),ctaFullyOn:gr.top>=0&&gr.bottom<=innerHeight,vh:innerHeight};});
+    if(!pop){L.say(false,'74 F0c [se] the intro card was not up for the incidental-scroll check',{});}
+    else if(!(pop.panelRoom===0&&pop.childRoom>0)){
+      // THE POPULATION IS NOT PRESENT. Reported, never credited: F1 over a card whose panel CAN scroll is a
+      // positive control, because the guard legitimately permits the hold there.
+      L.note('74 F [se] NOT EXERCISED HERE, reported rather than credited: this card is not in the population F is about (panelRoom '+pop.panelRoom+', childRoom '+pop.childRoom+'); F1 needs panelRoom 0 AND a scrollable child. No PASS emitted.');
+    }else{
+      FPOP.push('se/'+o.name+' panelRoom 0 childRoom '+pop.childRoom);
+      // F0d: THE PRECONDITION THAT MAKES F1 A STATEMENT ABOUT AN UNNEEDED HOLD. If the CTA were off screen the
+      // reader WOULD need a gesture and holding the card would be right, so F1 would be asserting the wrong thing.
+      L.say(pop.ctaFullyOn,'74 F0d [se] '+o.name+': the CTA is ALREADY fully on screen at rest ('+pop.ctaTop+'..'+pop.ctaBottom+' in '+pop.vh+'), so no gesture is needed to reach it and a hold here buys the reader nothing. This is what makes F1 a statement about an UNNEEDED hold rather than about the hold this build exists to create',{ctaTop:pop.ctaTop,ctaBottom:pop.ctaBottom,vh:pop.vh});
+      const moved=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));
+        let q=g;while(q&&q.parentElement&&getComputedStyle(q.parentElement).position!=='fixed')q=q.parentElement;
+        const kids=[...q.children].filter(c=>{const s2=getComputedStyle(c);return /auto|scroll/.test(s2.overflowY)&&c.scrollHeight>c.clientHeight+1;});
+        const ch=kids[kids.length-1];const before=ch.scrollTop;ch.scrollTop=ch.scrollHeight;
+        return {before,after:ch.scrollTop,panel:q.scrollTop};});
+      // F0e: THE DENOMINATOR. If nothing scrolled, F1 is green over a non-event - the vacuity trap this file
+      // records four times. Asserted separately and never as a conjunct.
+      L.say(moved.after>moved.before,'74 F0e [se] '+o.name+': THE DENOMINATOR FOR F1 - a child of the panel actually scrolled ('+moved.before+' -> '+moved.after+') with no click anywhere, so F1 below is a statement about an incidental scroll and not about a non-event',moved);
+      await b.page.waitForTimeout(4600);
+      const up=await cardUp(b);
+      L.say(!up,'74 F1 [se] '+o.name+': AN INCIDENTAL SCROLL OF A PARAGRAPH DOES NOT PIN THE CARD. On a card whose panel has NO scroll room and whose button is already on screen, a descendant scroll with no click must leave the 4000ms auto-dismiss alone - the card is gone at +4600ms. #505s own first fix held it here indefinitely (+4600, +12000 and +20000ms all measured card-up) because the hook fired on any descendant scroll on any card, which antagonist B swept at 80 of 97 Openings rows; the shipped guard requires the PANEL to have somewhere to scroll before a scroll may hold the card',{cardUpAt4600:up,panelRoom:pop.panelRoom,childScrolled:moved.after});
+    }
+  }
+  await b.close();
+}
+L.say(FPOP.length>=1,
+  '74 F1G ANTI-VACUITY FOR BLOCK F, global: at least one card in this run is in the population F is about - panel with NO scroll room and a scrollable child - so F1 is capable of failing somewhere. Without this, a lesson or geometry list that happened to miss that population would report F1 green over nothing, which is exactly how #505s first fix regressed 80 of 97 cards with the suite green: '+(FPOP.join(' | ')||'NONE'),
+  {count:FPOP.length,items:FPOP});
 
 // B1bG IS NOW AN ASSERTION, NOT A TALLY. #497 printed the residual because it did not fix it; #498 fixes it, so the
 // count must be ZERO and a regression must be a red rather than a longer list in a passing line.

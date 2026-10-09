@@ -523,3 +523,5 @@
 505	minted	-	-	-	2026-10-09T07:32Z	build__1791530504548	minted	route 1 of the held #498 intro-card tree: the card survives the one-drag gesture that reaches its own button (onScroll -> onScrollCapture, because scroll does not bubble past the inner blocks)
 505	built	-	b786fb415055	a084428eb94e	2026-10-09T07:32Z	build__1791530504548	build.sh	Bundle built and stamped #505. Recorded by gates/build.sh so the number resolves to an artefact.
 505	built	-	76d6bf71ab59	0ce3c648af88	2026-10-09T07:45Z	build__1791530504548	build.sh	Bundle built and stamped #505. Recorded by gates/build.sh so the number resolves to an artefact.
+505	built	-	bec8749bfdea	42b495451f82	2026-10-09T08:43Z	build__1791530504548	build.sh	Bundle built and stamped #505. Recorded by gates/build.sh so the number resolves to an artefact.
+505	built	-	ebb88c8f76f7	a58bafeb9f65	2026-10-09T08:50Z	build__1791530504548	build.sh	Bundle built and stamped #505. Recorded by gates/build.sh so the number resolves to an artefact.

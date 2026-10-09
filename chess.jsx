@@ -6937,7 +6937,8 @@ export default function App(){
           scrollIntoView, which says yes on an overflow:hidden box.
           THE FIX IS TWO PROPERTIES ON THE PANEL: maxHeight:'100vh' and overflowY:'auto'. It is this file's established
           idiom for a modal panel - the lessonMore sheet below carries maxHeight:'72vh',overflowY:'auto' in the same
-          shape - and `*{box-sizing:border-box}` at :5934 means the cap includes the panel's own padding and border.
+          shape - and the global `*{box-sizing:border-box}` in this file's <style> block means the cap includes the
+          panel's own padding and border.
           THE CAP IS 100vh AND NOT calc(100vh - 36px), AND THE FIRST VERSION OF THIS FIX USED THE LATTER [R18,
           self-caught before the gate ran]. Respecting the overlay's own padding:18 looks like the principled choice
           and it caps at 532 on a 568 screen, which is TIGHTER THAN THE VIEWPORT. MEASURED over all 170 cards at
@@ -6973,13 +6974,19 @@ export default function App(){
           overlay, so it is nominated for Kunal and not taken here.
           ---- AND THE CAP ALONE WAS A REGRESSION ON THE ONE CARD IT WAS BUILT FOR. BOTH BLIND ANTAGONISTS VETOED
           THIS BUILD AND B's V1 IS WHY THERE ARE THREE PROPERTIES HERE AND NOT TWO. ----
-          `introHoldRef` is set ONLY by this panel's onClick (see the useEffect at :2850, which arms a 4000ms
+          `introHoldRef` is set ONLY by this panel's onClick (see the useEffect that sets `introHoldRef.current=false`
+          and arms a 4000ms
           auto-dismiss and checks the ref when it fires). A TOUCH DRAG THAT SCROLLS PRODUCES NO CLICK. So once the
           cap put Petroff's CTA below the fold at 320x568, the only way to reach it became a gesture that does not
           hold the card, and the card died under the finger.
           MEASURED, 320x568, Openings row 45, with real CDP touch drags (NOT synthesizeScrollGesture, which
-          antagonist B established is inert in this container, and NOT scrollIntoView): two drags move the panel
-          scrollTop 0 -> 67 and the CTA's centre 595.55 -> 528.55, so the scroll itself works; the card is
+          antagonist B established is inert in this container, and NOT scrollIntoView): the panel reaches scrollTop 67
+          and the CTA's centre 595.55 -> 528.55, so the scroll itself works - and THE DRAG COUNT THIS SENTENCE
+          USED TO CARRY WAS WRONG AND IS WITHDRAWN [R18, #505]. It read "two drags", which is the figure for the
+          120px-from-y=420 gesture gate 74's own comment REJECTS as "not the gesture a reader makes". With the
+          80px drag at the plans block's centre that the gate actually drives, it is THREE: child 0->73, child
+          73->97, then panel 0->67. Published with the command, because a drag count with no length and no start
+          point cannot be reproduced [#411]; the card is
           nevertheless GONE at +4600ms; and a real tap at that same centre then lands on the lesson footer -
           elementFromPoint returns a footer glyph - and STEPS THE DEMO. Confirmed twice here and 3 of 3 by
           antagonist B. On main the CTA's centre was 562.28, ON SCREEN and tappable, so this was a genuine
@@ -7014,26 +7021,64 @@ export default function App(){
           the claim still had to be re-measured BY THE SINGLE-DRAG CASE and not by the two-drag case, because
           the two-drag case was already passing. That is what gate 74's block D drives and it is why block D is
           RED on #498's branch and must be GREEN here: the control for this fix was written before the fix.
-          WHAT THIS DOES NOT FIX, said rather than implied: the CTA is still below the panel's visible bottom on
-          the one card that needs the cap, so it is reachable by scrolling and is not on screen at rest. Pinning
-          it below a scrolling content area is the structural remedy, it is a change to a SHARED overlay, and it
-          stays where #498 filed it - jobs/the-intro-cards-primary-button-should-not-be-below-its-own-fold-2026-10-08.
-          This build makes the card survive the gesture that reaches the button. It does not move the button.
+          AND THE HOLD IS GUARDED ON THE PANEL HAVING SOMEWHERE TO SCROLL, WHICH IS AN UPHELD ANTAGONIST VETO
+          AND NOT A REFINEMENT. The first version of this fix was the bare `onScrollCapture={()=>{...}}`, and the
+          blind pair's shipped-surface antagonist measured what that costs: the hook fires on ANY descendant
+          scroll on ANY card, including every card whose button is already fully on screen, so an incidental
+          drag on a PARAGRAPH pinned the modal indefinitely over a running demo. MEASURED on Openings row 20,
+          Queen's Gambit, at 320x568, where the panel's own scroll room is ZERO and the CTA sits fully on screen
+          at 495.56..539.56 in a 568 viewport: scrolling the one scrollable child by 55px left the card up at
+          +4600ms, +12000ms and +20000ms on the unguarded bundle and dismissed it at +4600ms on the bundle
+          without the hook - so the card stayed over a demo that had autoplayed to its end. That is a NEW
+          regression this build introduced, on the overwhelming majority of cards: swept over all 97 Openings
+          rows at 320x568, EIGHTY have a scrollable child and a panel with no room, one has both (Petroff) and
+          sixteen have neither. So the unguarded hook made a latent fault routine.
+          THE GUARD IS THE SCOPE THE CLAIM ALREADY HAD: hold the card only where the panel itself can scroll,
+          which is exactly where content is below the fold and a gesture is needed to reach it. `e.currentTarget`
+          is this panel, because the handler is attached to it. On Petroff at 320x568 the panel's room is 67 and
+          at 375x568 it is 5, so the hold still fires there and the defect this build exists to close stays
+          closed; on Queen's Gambit the room is 0 and the 4000ms behaviour is exactly what main has.
+          NOTE WHAT THE GUARD IS NOT KEYED TO, because that was the first fix's whole mistake: it is keyed to the
+          PANEL's room, which is what decides whether the reader needs a gesture at all, and NOT to which
+          element the scroll came from. Any descendant's scroll still holds a card that has somewhere to scroll.
+          WHAT THIS DOES NOT FIX, said rather than implied. Two things, both filed. (1) The CTA is still below
+          the panel's visible bottom on the one card that needs the cap, so it is reachable by scrolling and is
+          not on screen at rest; pinning it below a scrolling content area is the structural remedy and it stays
+          where #498 filed it - jobs/the-intro-cards-primary-button-should-not-be-below-its-own-fold-2026-10-08.
+          (2) THE 4000ms CLOCK STARTS AT OPEN, NOT AT THE GESTURE, so a reader who reads before scrolling loses
+          the card before touching it - measured by the same antagonist at +4049ms on a 676-character card, and
+          IDENTICAL on both bundles, so it is pre-existing and this build neither causes nor cures it. The
+          honest scope of this build's own claim is therefore: the card survives a scroll gesture BEGUN within
+          the 4000ms window, on a card that has something below the fold.
+          This build makes the card survive the gesture that reaches the button. It does not move the button and
+          it does not change the clock.
           `overflowX:'hidden'` CLOSES A SIDE EFFECT THIS BUILD INTRODUCED AND DID NOT NOTICE. Setting overflow-y to
           auto makes the OTHER axis compute to auto as well: antagonist B measured the panel's computed overflow-x
           going visible -> auto, and at a 256-wide viewport (125% zoom on a 320 phone) that gave the card 35px of
           horizontal room with the long Related chip clipped by 33.5px where on main it painted outside the card.
           Pinning it to hidden keeps the one axis the fix is about. It is invisible at 320x568, where horizontal
           room is 0, which is why the build's own sweep could not have found it.
-          AND #505 SHARPENS WHAT THAT COSTS, because "clipped" understates it for a BUTTON and the clipped element
-          IS one - the Related-lessons chip. Of the three available states antagonist C measured `visible` painting
-          it outside the card fully usable, `auto` clipping it at rest but leaving it reachable by a horizontal
-          drag, and `hidden` DELETING it: elementFromPoint in the clipped strip returns the div and not the button.
-          So the choice this line makes is REACHABLE versus UNTAPPABLE, and it is made deliberately - the vertical
-          axis is what the player needs to reach the CTA, and a chip that painted outside the card's own border was
-          never right either. Gate 74's D3a now prints the hidden width every run so the price is in the log rather
-          than only here, and it is 0 at 320x568 and 35 at 256 wide.
-          `className="scroll"` IS THE APP'S OWN SCROLLER IDIOM (eleven other sites) and paints a 5px thumb. BE
+          AND #505 PUTS A NUMBER ON WHAT THAT COSTS, AFTER OVERSTATING IT FIRST AND BEING CAUGHT [R18].
+          The clipped element is a tappable BUTTON - the Related-lessons chip - and my first version of this
+          paragraph said `hidden` DELETES it and that the choice is "REACHABLE versus UNTAPPABLE". THAT IS AN
+          OVERSTATEMENT AND IT IS WITHDRAWN. MEASURED on this bundle at 256x568 (125% zoom on a 320 phone), the
+          widest chip, "Stafford Gambit: Mating Trap": the panel hides 35px horizontally, the chip is 216.89 wide
+          with 183.39 ON SCREEN and 33.50 clipped, so 84.6% of the button is painted. At 213x568 it is 143.83 of
+          216.89, 66.3%. Antagonist C's reading - that elementFromPoint INSIDE the clipped strip returns the div
+          and not the button - is correct and is simply what a clipped strip IS; it is not evidence the button is
+          gone, and #505's antagonist A drove a real tap at the chip's visible centre and OPENED the Related
+          lesson. So the honest statement is that `visible` paints the chip outside the card, `auto` leaves it
+          reachable by a horizontal drag, and `hidden` CLIPS ITS TAIL while leaving most of it tappable - and this
+          line prefers that, deliberately, because the vertical axis is what the player needs to reach the CTA and
+          a chip painting outside the card's own border was never right either. Gate 74's D3a prints the hidden
+          width every run, and it is 0 at all three geometries the gate drives; the 35 and the 74 come from this
+          run's own probe at 256 and 213 wide and from NO log of this build, which is said rather than implied.
+          THE LESSON IS THE ONE THIS FILE ALREADY RECORDS AT #398, POINTED THE OTHER WAY: "clipped by 2px" in a
+          write-up will be read as something the user saw, and so will "deleted" - I set out to correct an
+          understatement and shipped its opposite.
+          `className="scroll"` IS THE APP'S OWN SCROLLER IDIOM - `grep -o 'className="scroll"' chess.jsx | wc -l`
+          counts THIRTEEN occurrences, so twelve others, where an earlier draft of this comment said eleven
+          [R18, #505] - and it paints a 5px thumb. BE
           HONEST ABOUT WHAT IT DOES NOT DO: it is an overlay scrollbar, so it appears during the gesture and not at
           rest, and B's measurement stands - at rest the card ends in 9.45px of blank padding and a rounded border
           on the viewport's last row, with no clipped glyph, no fade and 67px hidden, so the card still READS as
@@ -7042,7 +7087,7 @@ export default function App(){
           with B's numbers as jobs/the-intro-cards-primary-button-should-not-be-below-its-own-fold-2026-10-08.
           Amber record: flags/amber-498-intro-card-panel-caps-and-scrolls. */}
       {mode==='learn'&&openIdx!==null&&introCard&&(<div onClick={()=>setIntroCard(false)} style={{position:'fixed',inset:0,zIndex:472,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',padding:18}}>
-        <div className="scroll" onClick={e=>{e.stopPropagation();introHoldRef.current=true;}} onScrollCapture={()=>{introHoldRef.current=true;}} style={{maxWidth:380,width:'92%',background:'linear-gradient(150deg,#1b1d24,#101116)',border:'1px solid rgba(var(--acr),.5)',borderRadius:16,padding:'18px 18px 16px',boxShadow:'0 20px 60px rgba(0,0,0,.6)',position:'relative',maxHeight:'100vh',overflowY:'auto',overflowX:'hidden'}}>
+        <div className="scroll" onClick={e=>{e.stopPropagation();introHoldRef.current=true;}} onScrollCapture={e=>{const _p=e.currentTarget;if(_p.scrollHeight>_p.clientHeight+1)introHoldRef.current=true;}} style={{maxWidth:380,width:'92%',background:'linear-gradient(150deg,#1b1d24,#101116)',border:'1px solid rgba(var(--acr),.5)',borderRadius:16,padding:'18px 18px 16px',boxShadow:'0 20px 60px rgba(0,0,0,.6)',position:'relative',maxHeight:'100vh',overflowY:'auto',overflowX:'hidden'}}>
           {learnLabel&&<div style={{fontSize:'clamp(15px,4vw,20px)',fontWeight:800,color:'var(--ac2)',marginBottom:8,paddingRight:30}}>{learnLabel}</div>}
           <div style={{fontSize:'clamp(14px,3.2vw,16px)',color:'rgba(255,255,255,.9)',lineHeight:1.55,maxHeight:'40vh',overflowY:'auto'}}>{learnIdea||LIB[openIdx].idea}</div>
           {(learnPlans||LIB[openIdx].plans)&&(<div style={{fontSize:'clamp(14px,3vw,15px)',color:'rgba(255,255,255,.7)',lineHeight:1.5,marginTop:13,paddingTop:13,borderTop:'1px solid rgba(255,255,255,.13)',maxHeight:'26vh',overflowY:'auto'}}>{learnPlans||LIB[openIdx].plans}</div>)}
