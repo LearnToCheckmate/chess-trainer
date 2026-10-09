@@ -7601,10 +7601,25 @@ export default function App(){
               {/* #507 THE SECOND MEMBER OF THE SAME CLASS AS THE CLEAR CHIP, AND THE WORSE ONE, FOUND BY
                   MEASURING RATHER THAN BY READING THE CLOSER'S CLAUSE. The closer named only the Clear chip.
                   Measured with one probe on both bundles, the Clear chip moves the list 0px at 375 and 50px
-                  at 320 - while THIS line appearing moves it 42.6px AT EVERY GEOMETRY, including Kunal's own.
-                  So the bigger jump at his phone was the one nobody had named. R06: the class is "a row in
-                  the games-list header that can appear without reserving its space", it has exactly two
-                  members, and both are fixed in this pass.
+                  at 320 - while THIS line appearing moves the list 42.6px AT EVERY GEOMETRY, including
+                  Kunal's own. So the bigger jump at his phone was the one nobody had named. NOTE WHICH
+                  QUANTITY 42.6 IS, because this build published two figures for it 25% apart before an
+                  antagonist caught it: the BOX is 33.59px (offsetHeight 34) and the JUMP is 42.6 - the box
+                  plus the 9px gap of the flex column it sits in, which goes with it. 33.59 + 9 = 42.59.
+                  R06: THE CLASS HAS THREE MEMBERS AND TWO OF THEM ARE FIXED HERE. THE FIRST VERSION OF
+                  THIS COMMENT SAID "exactly two members, and both are fixed in this pass" AND THAT IS
+                  WITHDRAWN AS FALSE [R18, upheld antagonist veto]. The class is "a box in the games-list
+                  header whose size changes without reserving it", and the third member is the EMPTY STATE's
+                  own block at `_emptyTxt` below: its wording changes as `_nG` grows under the background
+                  grading pass, so MEASURED at kunal730 with an empty `ct_gamestats`, `glist-empty` went
+                  85px -> 64px and its 44px Clear button moved UP 21.0px between two samples 400ms apart,
+                  uncommanded - 48% of that button's own height. It goes 85 -> 0 when the pass makes a game
+                  start matching, so 21px is a floor. That is CLAUDE.md #398 verbatim, the damage moving to
+                  the row nobody was asserting over, and it is the SAME ELEMENT whose PLACEMENT this build
+                  withdrew as a false defect - so the element a closer screen sent me to had no placement
+                  defect and does have a movement one. NOT FIXED HERE, deliberately: fixing it means
+                  deciding what that box reserves across four wording branches, which is its own piece of
+                  work rather than a widening of this one. Filed.
                   AND ITS JUMP IS THE UNCOMMANDED ONE, which is why this matters more than the chip: `_ungr`
                   DECAYS TO ZERO as the background grading pass walks the list, so on the shipped bundle this
                   line VANISHES on its own, seconds after the player stopped touching anything, and the list
@@ -7625,13 +7640,27 @@ export default function App(){
                   above the scroll list before measuring what that bought. It bought NINE PIXELS (eClear
                   bottom 844.52 -> 835.52) and fixed nothing, so the move is reverted rather than shipped as
                   a fix for a defect that is not there.
-                  WHY IT IS NOT A DEFECT, decided WITHOUT scrolling anything, which is what makes it
-                  reproducible: the player can only have reached this state by tapping a chip in the filter
-                  row, so THAT ROW IS ON SCREEN BY CONSTRUCTION. The band from the top of the filter row to
-                  the BOTTOM of the empty-state Clear button measures 291.6px on the SHIPPED bundle against a
-                  730 viewport, 291.6 against 761, and 341.6 against 568 - it fits every geometry with 226 to
-                  469px to spare. So whenever the control that produced the empty list is visible, the
-                  message and its Clear button are visible too.
+                  WHY IT IS NOT A DEFECT: IT IS REACHABLE, measured the way gates/regress/40-reachability.js
+                  prescribes - find the ancestor a finger can actually scroll, scroll it, re-read the rect.
+                  `scrollers:1` and `onScreenAfter:true` at 375x730 (top 779.52 -> 247.52), at 375x761
+                  (779.52 -> 278.52), at 320x568 (844.41 -> 85.41) AND through the name-box door with no
+                  chip tapped at all (736.92 -> 246.92). Gate 73's B6c asserts exactly this and is left
+                  UNTOUCHED by this build, because it was already the right assertion.
+                  MY FIRST VERSION OF THIS PARAGRAPH ARGUED IT TWO OTHER WAYS AND BOTH ARE WITHDRAWN AS
+                  UNSOUND [R18, upheld antagonist veto], which matters because a right conclusion resting on
+                  a wrong argument is how the next run re-opens it. (a) It said "the player can only have
+                  reached this state by tapping a chip in the filter row, so THAT ROW IS ON SCREEN BY
+                  CONSTRUCTION." FALSE: the filter survives leaving Review and coming back (there is a job
+                  for it, the-review-list-filter-survives-leaving-the-review-screen-2026-10-06), so Home ->
+                  Review returns to the identical narrowed screen at scroll origin with nothing tapped in
+                  that visit - and at 320x568 the filter row's own top is then 567.81 in a 568 viewport,
+                  0.19px on screen. There is also a second door with no chip at all: the name box. (b) It
+                  published a 291.6px band "against a 730 viewport" as a property of the screen. The band is
+                  NOT a constant - it is 270.59 at 730 and 761 and 320.59 at 568 in the short-wording state,
+                  exactly 21.0px less, because the empty block's own height moves under the grading pass as
+                  the paragraph above now records. I had read it in the long-wording state and published it
+                  as the screen's. #411/#412: publish the state with the number, or do not publish it.
+                  THE FIGURE THAT SURVIVES IS NINE PIXELS: what moving the block actually bought.
                   THE 748.5 FIGURE IS REAL AND IS A MEASUREMENT AT SCROLL ORIGIN, where the whole games list
                   is below the fold BY DESIGN - the Review entry screen carries the accounts UI above it and
                   is a scrolling form. CLAUDE.md records TWO false P0s in one night from exactly this
