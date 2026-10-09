@@ -10,6 +10,12 @@
 //    both were conditionally rendered. The closer's screen named only the Clear chip; the coverage line was
 //    found by MEASURING, and it is the worse of the two.
 //    THE NUMBERS, one probe over both bundles (main ebb88c8f76f7, this build 6683fe5db924), three geometries:
+//    [#508 PROVENANCE CORRECTION, R18. `6683fe5db924` IS A SUPERSEDED BUNDLE AND IS KEPT HERE ONLY BECAUSE IT
+//     IS WHAT THIS PROBE ACTUALLY RAN ON. #507 rebuilt TWICE after taking it - once for antagonist A's veto
+//     and once for antagonist B's one recommendation (the reserved box paints ink instead of being held
+//     blank, which is a real behavioural change) - so the bundle that SHIPS is 28f1ff838440 over source
+//     83610da7d7c0. The px figures below are unaffected: they measure the chip row, which neither rebuild
+//     touched. The ASSERTION COUNTS below were affected and are corrected at the control block.]
 //      the CLEAR CHIP grows the row 94px/2 lines -> 144px/3 lines at 320x568 and moves it NOT ONE PIXEL at
 //      375x730 or 375x761. So the "~50px growth" is real and is a 320-ONLY number.
 //      the COVERAGE LINE costs 34px at EVERY geometry including Kunal's own, and its jump is the UNCOMMANDED
@@ -39,12 +45,48 @@
 //    fits every geometry. The 748.5 reading is at a scroll origin the player is never at. CLAUDE.md records
 //    two false P0s in one night from that confusion and one of them was THIS screen (#382). B6c was already
 //    the right assertion and this build does not touch it.
-//    #507's CONTROLS, three, each one change from the shipping source, each reddening a DISJOINT set:
-//      nc-noreserve     a7dec72c28a5   73 pass / 20 FAIL  {F1,F1b,F2,F3,F4,F4b,F4c,F4d}
-//      nc-nocovreserve  757fb8c08773   91 pass /  2 FAIL  {C3,C3c}
-//      nc-widetemplate  5b24fbf005b3   92 pass /  1 FAIL  {C1c}
-//    SHIPPING CANDIDATE 6683fe5db924 over source 2500e53c0824: 93 pass / 0 fail. #507 names TWO bundles (a
-//    mid-run revert forced a rebuild and the register flagged it itself) - CITE THE MD5, NEVER THE NUMBER.
+//    #507's CONTROLS AS #507 PUBLISHED THEM - EVERY FIGURE MEASURED ON A GATE AND A SOURCE THAT NO LONGER
+//    EXIST, SO ALL FOUR LINES ARE WITHDRAWN AND RE-DERIVED BELOW [#508, R18]:
+//      nc-noreserve     a7dec72c28a5   73 pass / 20 FAIL  {F1,F1b,F2,F3,F4,F4b,F4c,F4d}   WITHDRAWN
+//      nc-nocovreserve  757fb8c08773   91 pass /  2 FAIL  {C3,C3c}                        WITHDRAWN
+//      nc-widetemplate  5b24fbf005b3   92 pass /  1 FAIL  {C1c}                           WITHDRAWN
+//      SHIPPING CANDIDATE 6683fe5db924 over source 2500e53c0824: 93 pass / 0 fail         WITHDRAWN
+//
+// ── #508 RE-DERIVED THE WHOLE CONTROL SET ON THE SHIPPING SOURCE, AND THE REASON IS A JOB THIS PROJECT
+//    ALREADY HOLDS: `veto-fixes-land-with-no-assertion-because-the-gate-is-frozen-pre-veto-2026-09-28`.
+//    #507 ran its controls, THEN took two upheld antagonist vetoes that changed BOTH this gate and
+//    chess.jsx, and died before re-running them. So the published set described a gate that no longer
+//    existed. The headline claim survived and three of its particulars did not.
+//    WHAT SURVIVES, AND IT IS THE CLAIM THAT MATTERS: all three controls STILL REDDEN, and they still
+//    redden THREE DISJOINT SETS - the F block, the C3 family and the C1 pair - so this gate's green is
+//    evidence and not decoration.
+//    MEASURED BY #508 (build__1791577208000), each control ONE change from the shipping source
+//    83610da7d7c0, each built with CT_OUT and run with CT_APP so the log names what it measured:
+//      SHIPPING   28f1ff838440 over 83610da7d7c0   90 pass /  0 fail
+//        and THREE runs, byte-identical verdict sets, sha a2b7178415b276ee [R36].
+//      nc-noreserve     9f79fc2fea1d   76 pass / 14 FAIL  {F1,F1b,F2,F3,F4,F4b}
+//        (the Clear chip returned to its shipped conditional render)
+//      nc-nocovreserve  5680506bfb5a   86 pass /  4 FAIL  {C3,C3c,C3d,C3f}
+//        (the coverage line returned to `_gradeOn&&_ungr>0&&`)
+//      nc-widetemplate  bbefc99c3eec   88 pass /  2 FAIL  {C1b,C1c}
+//        (`_narrowed` forced false, so the unnarrowed wording prints over a narrowed set)
+//    WHY EACH ONE MOVED, because a changed number with no cause is not a measurement:
+//      F4c AND F4d ARE NO LONGER ASSERTIONS AT ALL, which is why nc-noreserve lost 6 reds. Antagonist A
+//      vetoed them as not three independent mechanisms - visibility:hidden implies all three, so each
+//      would redden a CORRECT bundle that achieved inertness another way [#391]. They were folded into
+//      F4 plus an explicit un-asserted note. The control's id set shrank because the GATE got honester.
+//      C3d AND C3f ARE NEW, added with antagonist B's painted-ink change, so nc-nocovreserve reddens two
+//      more than it did. The gate got stronger and its control reports it.
+//      AND ONE PUBLISHED CLAIM IS NOT MERELY STALE BUT FALSE ON THIS TREE, WITHDRAWN HERE [R18]: #507
+//      wrote that `C1b PASSED` on nc-widetemplate and called that 'the measured proof that C1c and not
+//      C1b is the discriminating assertion'. ON THE SHIPPING TREE C1b REDDENS on that control, measured.
+//      So BOTH halves of the C1 pair discriminate here and the #388 argument built on C1b passing does
+//      not hold. The CONCLUSION it supported - that an alternation over both templates would pin nothing
+//      - is still true as a statement about ALTERNATIONS and is now unsupported by this control, so it
+//      rests on C1c's own message and not on C1b's verdict. The gate is stronger than #507 claimed and
+//      its published reasoning was wrong; both are said here rather than only the flattering one.
+//    CITE THE MD5, NEVER THE NUMBER [#454]: #507 names FOUR bundles - a75a790c92d2, 6683fe5db924,
+//    3feb9f9ffe5a and the shipping 28f1ff838440 - and its own register rows flagged every rebuild.
 // JOB: jobs/review-list-filter-and-search-2026-09-23, priority 9, askedBy Kunal 2026-09-23 and WIDENED BY HIM
 //      THE SAME DAY (so it is a twice-raised item under STEP 1S's tie-break (a)):
 //        "might be good to add the ability to filter, so if I want to filter for games where I have
