@@ -961,6 +961,54 @@ function dropTxt(altSan,altDrop){
   if(d>=0.35)return altSan+' was the only other try, '+d.toFixed(1)+' worse.';
   return altSan+' was as good on paper, but nothing like as forcing.';
 }
+/* #504 jobs/the-brilliant-sentence-prices-the-move-instead-of-explaining-it-2026-10-04, part (b).
+   KUNAL, 2026-10-04, from his own game review on his own phone: the move was brilliant BECAUSE the piece
+   comes back, and "the why preview stops short before actually taking the knight". His own test for this
+   part, verbatim: "the line runs one move further so the recapture is on screen."
+   WHY IT COULD NOT POSSIBLY HAVE DONE SO BEFORE, and this is the whole of the defect: sacRun asked
+   sfEval1 and read only r.bestmove, so ONE reply ply was the STRUCTURAL MAXIMUM. No wording change could
+   ever have shown the recovery. sfBestLine, three lines below sfEval1 and already used by Review to play
+   the better line out, resolves the WHOLE principal variation from the SAME single query, so the extra
+   plies cost NO extra engine query - which is the only reason this part of the job is bounded.
+   THE TRIM RULE, AND IT ENDS ON THE RECOVERY RATHER THAN ON A NUMBER OF PLIES. A quiet tail adds noise
+   without showing anything ("Then e5 Nf3 d6 d4 follows" is the trap explainAnno's own pvShow comment
+   names), so the line is cut back to the last FORCING ply: a capture, a check or mate. In Kunal's
+   position that is exactly what puts the recapture on screen - after 9.hxg4 the pv is Bxg4, a white
+   move, then Black taking the f3 knight, and trimming to the last capture keeps all three. Where the
+   pv has no forcing continuation the line collapses to one ply, which is what shipped before, so this
+   change can only ever ADD the recovery and never shorten an existing line.
+   THE CAP IS SAC_LINE_MAX AND IT IS 3 ON PURPOSE: it is pvShow's own existing cap one function above,
+   so the two places that print a continuation agree rather than drifting. */
+const SAC_LINE_MAX=3;
+const SAC_DEAD_TRIES=3;
+function sacLine(gAfterCap,pvUci){
+  const out=[];
+  try{
+    if(!pvUci||!pvUci.length)return out;
+    let g=gAfterCap;
+    for(let i=0;i<pvUci.length&&out.length<SAC_LINE_MAX;i++){
+      const m=uciToMove(g,pvUci[i]); if(!m)break;
+      const nb=applyMove(g.board,m);
+      out.push(toSAN(g,m,nb));
+      g=makeMove(g,m);
+    }
+    /* never END on a quiet move, and never trim below the one ply that shipped before */
+    while(out.length>1&&!/[x+#]/.test(out[out.length-1]))out.pop();
+  }catch(e){}
+  return out;
+}
+/* the refutation clause, in ONE definition that both the Brilliant and the Great branch read. It was
+   written out twice before, identically, which is the shape the _curSel comment below calls a scope
+   mismatch waiting to happen - and it matters more now that the clause has a multi-ply form. Pure and
+   module-level like dropTxt and explainAnno, so the harness exercises the real sentence rather than a
+   copy of it. replyLine is the #504 form; replySan is the single-ply fallback, so a record stored by an
+   older bundle still renders. */
+function refuteTxt(R){
+  if(!R||!R.capSan)return '';
+  const line=(R.replyLine&&R.replyLine.length)?R.replyLine:(R.replySan?[R.replySan]:[]);
+  if(!line.length)return '';
+  return 'If '+R.capSan+', '+line.join(' ')+(R.verdict?(' '+R.verdict):'')+'.';
+}
 /* #426 jobs/drill-explain-why-it-was-better. Kunal, twice (2026-09-19 and 2026-09-20): "it told me yes
    that's the move you missed, but it doesn't explain to me why that's better, which is what it should be
    doing." The mistake drill stored NO `why` at all: out[i] is in scope at the capture site carrying loss,
@@ -1164,17 +1212,17 @@ function explainAnno(a,ctx){
     const _gv=(g.given!=null?g.given:g.sac);
     const what=_gv>=9?'the queen':_gv>=5?'a rook':_gv>=2?'a piece':_gv>=1?'a pawn':'material';
     const R=ctx&&ctx.refute;
-    const _l=(R&&R.capSan&&R.replySan)?'':pvShow(pvTakes);   // the refutation says it better than the bare line
+    const refTxt=refuteTxt(R);
+    const _l=refTxt?'':pvShow(pvTakes);   // the refutation says it better than the bare line
     const _give='You give up '+what+(_l?(', and '+_l):'.');
     // #365 WHY it works: what happens if they take (analysed on demand, handed in through ctx.refute),
     // and what the next best move would have got instead. Those two clauses are the explanation;
     // the material count and the standing were only ever the definition.
-    const refTxt=(R&&R.capSan&&R.replySan)?('If '+R.capSan+', '+R.replySan+(R.verdict?(' '+R.verdict):'')+'.'):'';
     const cmpTxt=dropTxt(a.altSan,a.altDrop);
     return pvMates?pack([_give,refTxt,cmpTxt]):pack([_give,refTxt,cmpTxt,motifTxt,standing]);}
   if(L==='Great'){const alt=(a.altSan&&a.altDrop!=null&&a.altDrop>=120)?dropTxt(a.altSan,a.altDrop):'';
     const R=ctx&&ctx.refute;
-    const refTxt=(R&&R.capSan&&R.replySan)?('If '+R.capSan+', '+R.replySan+(R.verdict?(' '+R.verdict):'')+'.'):'';
+    const refTxt=refuteTxt(R);
     const _pv=(refTxt?'':pvTxt);   /* #365 the refutation says the line with its reason attached; do not say it twice */
     return pack(['The only move that keeps it.',refTxt,_pv,didTxt,motifTxt,alt]);}
   const gapTxt=(()=>{if(!a.altSan||a.altDrop==null)return '';if(a.altDrop<35)return a.altSan+' was just as good.';return dropTxt(a.altSan,a.altDrop);})();
@@ -5669,7 +5717,12 @@ export default function App(){
      Brilliant, find the opponent's capture of the offered piece, ask the engine what follows, and
      hand the answer to the sentence. Once per ply per review, on demand, never during the review
      itself (the pool is busy then and the number is only wanted when someone is looking). */
-  const sacRef=useRef({key:null,byPly:{}});
+  /* #504 `dead` counts FAILED searches per ply, separately from byPly, because byPly[ai] is
+     overwritten with {pending:true} by the effect below before every attempt and so cannot carry a
+     try count across attempts. It bounds the retry at SAC_DEAD_TRIES (module level, beside
+     SAC_LINE_MAX, so sacRun's useCallback([]) cannot close over a per-render copy) so a permanently
+     dead engine stops being asked. */
+  const sacRef=useRef({key:null,byPly:{},dead:{}});
   const [sacTick,setSacTick]=useState(0);
   const sacWantRef=useRef(null), sacBusyRef=useRef(false);
   /* #365 SINGLE FLIGHT, DEBOUNCED. The first version fired one engine query per ply as the user (or the
@@ -5682,15 +5735,49 @@ export default function App(){
     const w=sacWantRef.current; if(!w)return; sacWantRef.current=null;
     sacBusyRef.current=true;
     try{
-      let r=null; try{ if(sfReadyRef.current&&await ensureAna()) r=await sfEval1(toFEN(w.t.after),700); }catch(e){}
-      let replySan='',verdict='';
-      try{ if(r&&r.bestmove){const rm=uciToMove(w.t.after,r.bestmove); if(rm){replySan=toSAN(w.t.after,rm,applyMove(w.t.after.board,rm));}} }catch(e){}
+      /* #504 sfBestLine, NOT sfEval1, and the swap is the whole fix for part (b) of Kunal's report: one
+         query, same 700ms, but its pv: handler carries the FULL principal variation where sfEval1 keeps
+         only a bestmove. The score comes back through onScore, sign-converted to WHITE's frame exactly as
+         sfEval1 does it internally (mateW(raw,sign), cp*sign), because every consumer downstream - the
+         verdict clause here, cpW and mateW on the stored record - was already White-framed and silently
+         re-framing them would be #385's hundredfold error in a new place. */
+      const _fen=toFEN(w.t.after);
+      const _sgn=((_fen.split(' ')[1]||'w')==='w')?1:-1;
+      let pv=null,_cpW=null,_mtW=null;
+      try{ if(sfReadyRef.current&&await ensureAna()) pv=await sfBestLine(_fen,700,(sc)=>{
+        if((sc.mpv||1)!==1)return;
+        if(sc.mate!=null){_mtW=mateW(sc.mate,_sgn);_cpW=null;}
+        else if(sc.cp!=null){_cpW=_sgn*sc.cp;_mtW=null;}
+      }); }catch(e){}
+      const sanLine=sacLine(w.t.after,pv);
+      const replySan=sanLine[0]||'';
       const mover=w.pos.turn, moverName=mover==='w'?'White':'Black';
-      if(r&&!/#/.test(replySan)){   /* a reply that is itself mate needs no verdict after it */
-        if(r.mate!=null){ const forMover=(r.mate>0)===(mover==='w'); verdict=forMover?(Math.abs(r.mate)<1?'and it is mate':('and it is mate in '+Math.abs(r.mate))):''; }
-        else if(r.cp!=null){ const c=mover==='w'?r.cp:-r.cp; verdict=c>=300?('and '+moverName+' is winning'):c>=100?('and '+moverName+' keeps a clear edge'):c>=-30?('and '+moverName+' holds'):''; }
+      let verdict='';
+      /* the guard now reads the LAST ply of the line rather than the only one. A line that ENDS in mate
+         needs no "and White is winning" after it; a line that merely PASSES THROUGH a check still does. */
+      if(sanLine.length&&!/#/.test(sanLine[sanLine.length-1])){
+        if(_mtW!=null){ const forMover=(_mtW>0)===(mover==='w'); verdict=forMover?(Math.abs(_mtW)<1?'and it is mate':('and it is mate in '+Math.abs(_mtW))):''; }
+        else if(_cpW!=null){ const c=mover==='w'?_cpW:-_cpW; verdict=c>=300?('and '+moverName+' is winning'):c>=100?('and '+moverName+' keeps a clear edge'):c>=-30?('and '+moverName+' holds'):''; }
       }
-      if(sacRef.current.key===w.key)sacRef.current.byPly[w.ai]={capSan:w.t.san,replySan,verdict,cpW:r?r.cp:null,mateW:r?r.mate:null};
+      /* #504, AND THIS HALF IS A PRECONDITION OF THE HALF ABOVE RATHER THAN EXTRA SCOPE. sfBestLine
+         resolves null on EVERY failure path - worker not ready, idle check failed, postMessage threw,
+         aborted, or the WASM trapping mid-search - and never rejects. This line used to store its result
+         UNCONDITIONALLY, so a dead search was cached as a permanent empty answer, refute stayed null for
+         ever and the position was never asked about again. That is the defect CLAUDE.md records at #389
+         against sfBestLine BY NAME ("A FAILED QUERY IS NOT AN ANSWER, AND CACHING IT IS HOW BROKEN ONCE
+         BECOMES BROKEN FOR EVER"), measured there on plies 19 and 25 over three revisits each, and moving
+         to sfBestLine makes it strictly more likely to fire.
+         A RETRYABLE MARKER AND NOT A DELETE. Deleting the entry would re-arm the effect below on the very
+         next render and spin the worker while the engine stays dead; a `retryable` entry is TRUTHY, so the
+         effect's own `if(sacRef.current.byPly[ai])return;` holds the retry until the user LEAVES and
+         revisits the ply, which is the existing mechanism for `pending` and needs no new machinery. */
+      if(sacRef.current.key===w.key){
+        if(!sacRef.current.dead)sacRef.current.dead={};
+        if(!sanLine.length){
+          const n=(sacRef.current.dead[w.ai]||0)+1; sacRef.current.dead[w.ai]=n;
+          sacRef.current.byPly[w.ai]=(n>=SAC_DEAD_TRIES)?{none:true,deadTries:n}:{retryable:true,tries:n,capSan:w.t.san};
+        } else sacRef.current.byPly[w.ai]={capSan:w.t.san,replySan,replyLine:sanLine,verdict,cpW:_cpW,mateW:_mtW};
+      }
       setSacTick(x=>x+1);
     }finally{
       sacBusyRef.current=false;
@@ -5701,7 +5788,7 @@ export default function App(){
     if(!inReview||!review||!curAnno||ply<1)return;
     const L=curAnno.cls&&curAnno.cls.label; if(L!=='Brilliant'&&L!=='Great')return;
     const key=(review.headers&&(review.headers.White+'|'+review.headers.Black+'|'+review.plies.length))||String(review.plies.length);
-    if(sacRef.current.key!==key){sacRef.current={key,byPly:{}};}
+    if(sacRef.current.key!==key){sacRef.current={key,byPly:{},dead:{}};}
     const ai=ply-1; if(sacRef.current.byPly[ai])return;
     const pos=review.positions&&review.positions[ai], pl=review.plies[ai];
     if(!pos||!pl||!pl.move){sacRef.current.byPly[ai]={none:true};return;}
@@ -5709,7 +5796,9 @@ export default function App(){
     if(!t){sacRef.current.byPly[ai]={none:true};return;}
     sacRef.current.byPly[ai]={pending:true,capSan:t.san};
     const timer=setTimeout(()=>{sacWantRef.current={key,ai,t,pos};sacRun();},450);
-    return()=>{clearTimeout(timer);if(sacRef.current.byPly[ai]&&sacRef.current.byPly[ai].pending)delete sacRef.current.byPly[ai];};
+    /* #504 a `retryable` entry is dropped on the way out exactly as a `pending` one is, which is what
+       turns the dead-search marker above into a real retry on the next visit rather than a cache. */
+    return()=>{clearTimeout(timer);const _e=sacRef.current.byPly[ai];if(_e&&(_e.pending||_e.retryable))delete sacRef.current.byPly[ai];};
   },[inReview,review,ply,curAnno,sacRun]);
   const _annoWhy=useMemo(()=>{
     if(!curAnno||!inReview||!review)return null;

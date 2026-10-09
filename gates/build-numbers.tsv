@@ -515,3 +515,5 @@
 503	minted	-	-	-	2026-10-09T00:44Z	build__1791505215239	minted	ship-list id 1: work[3] of the review-list filter job - the grading-version stamp on the cached per-game tally, so a grading change invalidates a tally instead of serving it, plus gate 73 block E (12 assertions, two controls) and US-R36 clause (5) / TC-R61
 503	built	-	b64bd6ee8288	38abcb838cea	2026-10-09T00:46Z	build__1791505215239	build.sh	Bundle built and stamped #503. Recorded by gates/build.sh so the number resolves to an artefact.
 503	built	-	2fb1d7707780	ef7a141bec38	2026-10-09T01:23Z	build__1791505215239	build.sh	Bundle built and stamped #503. Recorded by gates/build.sh so the number resolves to an artefact.
+504	minted	-	-	-	2026-10-09T03:30Z	build__1791516073899	minted	brilliant sacrifice line stops one ply before the recapture (Kunal, 2026-10-04, band 16 part b) + the dead-search cache on that same path
+504	built	-	6b7dadfdccf6	bd09a18c3ecd	2026-10-09T03:37Z	build__1791516073899	build.sh	Bundle built and stamped #504. Recorded by gates/build.sh so the number resolves to an artefact.

@@ -46,8 +46,90 @@ const FORMS=[
 ];
 // the five forms of `standing`, chess.jsx:727
 const STAND=/(?:White|Black) is (?:winning|losing) here\.$|(?:White|Black) is clearly (?:better|worse)\.$|The position stays roughly level\.$/;
+/* ── #504 BLOCK S SUPPORT. jobs/the-brilliant-sentence-prices-the-move-instead-of-explaining-it-2026-10-04,
+   part (b), from KUNAL on 2026-10-04: "the why preview stops short before actually taking the knight".
+   WHAT BLOCK S IS FOR, AND WHY A DRIVEN BLOCK ALONE WOULD NOT DO. The displayed line is built from
+   whatever principal variation the engine happens to return, and CLAUDE.md's #391 rule is explicit about
+   that shape: "when an assertion parses something an engine wrote, enumerate what the engine can legally
+   produce and unit-test the predicate against that list, including the cases it must REJECT." Gate 22
+   shipped a variation test that went green twice on a coin flip and reddened a healthy build four builds
+   later because nobody had done that. So the trim rule is tested here over ELEVEN enumerated pv inputs at
+   one real position, and the plumbing is tested in block N against the bundle.
+   HOW IT READS THE CODE, and the caveat is the same one gate 68 states loudly: IT MEASURES chess.jsx, NOT
+   THE BUNDLE NAMED BY CT_APP, because gates/build.sh minifies and the names are mangled. So block S's
+   negative control is CT_SRC and block N's is CT_APP, and neither substitutes for the other.
+   AND IT FAILS SOFT ON ABSENCE RATHER THAN THROWING. engine-extract's need() throws when a name is
+   missing, which would take this whole gate down against a pre-#504 chess.jsx and hide the 90-odd
+   assertions after it - the #393 trap. So S0 goes RED on its own assertion and blocks S and N carry on. */
+const SAC_SRC=(()=>{
+  const fs=require('fs'),path=require('path'),crypto=require('crypto');
+  const file=process.env.CT_SRC||path.join(__dirname,'..','..','chess.jsx');
+  let src='';try{src=fs.readFileSync(file,'utf8');}catch(e){return {err:String(e.message),file,missing:['<unreadable>']};}
+  const md5=crypto.createHash('md5').update(src).digest('hex').slice(0,12);
+  const lines=src.split('\n'),starts=[];
+  for(let i=0;i<lines.length;i++) if(/^(function|const|let|var)\s/.test(lines[i])) starts.push(i);
+  const blocks=new Map();
+  for(let i=0;i<starts.length;i++){
+    const a=starts[i],z=(i+1<starts.length?starts[i+1]:lines.length);
+    const m=/^(?:function|const|let|var)\s+([A-Za-z_$][\w$]*)/.exec(lines[a]);
+    if(m&&!blocks.has(m[1])) blocks.set(m[1],lines.slice(a,z).join('\n'));
+  }
+  const want=['SAC_LINE_MAX','sacLine','refuteTxt','uciToMove'];
+  const missing=want.filter(n=>!blocks.has(n));
+  if(missing.length) return {missing,md5,file};
+  try{
+    const E=require('../engine-extract');
+    const code=want.map(n=>blocks.get(n)).join('\n')+'\nreturn {SAC_LINE_MAX:SAC_LINE_MAX,sacLine:sacLine,refuteTxt:refuteTxt};';
+    const api=new Function('FILES','getLegal','applyMove','toSAN','makeMove',code)(E.FILES,E.getLegal,E.applyMove,E.toSAN,E.makeMove);
+    return Object.assign({missing:[],md5,file,E},api);
+  }catch(e){return {missing:['<eval: '+e.message+'>'],md5,file};}
+})();
+/* The position the #504 probe measured, derived rather than typed: the Opera fixture's ply 25 is 13.Rxd7,
+   sacTaker takes the CHEAPEST capture of d7 (Nxd7, a knight before the rook and the queen), and this is
+   the FEN after it. The engine's pv from here is Bxe7 Bxe7 Bxd7+ - White wins the queen and recovers the
+   bishop - which is exactly the "the piece comes back" shape Kunal's report is about. */
+const SAC_FEN25='3rkb1r/p2nqppp/8/1B2p1B1/4P3/1Q6/PPP2PPP/2K4R w k - 0 1';
 const gridSig=(b)=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));if(!g)return '';return [...g.children].slice(0,64).map(c=>{const im=c.querySelector('img');return im?im.getAttribute('src').slice(-12):'';}).join('|');});
 L.run(async()=>{
+  /* ── #504 BLOCK S. THE TRIM RULE, OVER ENUMERATED ENGINE OUTPUT ─────────────────────────────────── */
+  L.note('    #504 block S reads chess.jsx '+SAC_SRC.file+' md5 '+(SAC_SRC.md5||'?')+'  (NOT the CT_APP bundle - see the header)');
+  L.say(SAC_SRC.missing.length===0,'TC-R10/S0 #504 chess.jsx declares the refutation-line machinery at module level (SAC_LINE_MAX, sacLine, refuteTxt) so the sentence can be exercised without a browser',{missing:SAC_SRC.missing,src:SAC_SRC.md5});
+  if(SAC_SRC.missing.length===0){
+    const E=SAC_SRC.E, g25=E.fromFEN(SAC_FEN25), sl=SAC_SRC.sacLine, rt=SAC_SRC.refuteTxt;
+    const F='abcdefgh', uci=(m)=>F[m.fc]+(8-m.fr)+F[m.tc]+(8-m.tr)+(m.promo?String(m.promo).toLowerCase():'');
+    const sanOf=(g,m)=>E.toSAN(g,m,E.applyMove(g.board,m));
+    const LINE=['g5e7','f8e7','b5d7'];
+    /* NON-VACUITY FIRST, AND AS ITS OWN ASSERTION RATHER THAN A CONJUNCT [the eleventh-costume rule]:
+       every S assertion below reads a list sacLine produced, and every one of them would pass loudest if
+       the fixture position were wrong and the list were always empty. */
+    L.say(!!g25&&g25.turn==='w','TC-R10/S1 #504 the fixture position parsed and it is White to move after Nxd7, so the pv below is a legal input rather than an empty set',{turn:g25&&g25.turn});
+    const base=sl(g25,LINE);
+    L.say(base.length===3&&base.join(' ')==='Bxe7 Bxe7 Bxd7+','TC-R10/S2 #504 the engine pv Bxe7/Bxe7/Bxd7+ renders as THREE plies of SAN - this is the line Kunal asked to see run one move further, and the recapture Bxd7+ is the ply that was being cut',{got:base});
+    /* THE CAP. A fourth legal ply is computed rather than invented, so this is a real input and not a stub. */
+    let g4=g25;for(const u of LINE)g4=E.makeMove(g4,E.getLegal(g4).find(m=>uci(m)===u));
+    const nxt=E.getLegal(g4)[0], four=LINE.concat([uci(nxt)]);
+    L.say(sl(g25,four).length===3,'TC-R10/S3 #504 a FOUR-ply pv is capped at SAC_LINE_MAX=3, which is pvShow own existing cap in the same function rather than a new number',{got:sl(g25,four),fourth:nxt?sanOf(g4,nxt):null});
+    L.say(SAC_SRC.SAC_LINE_MAX===3,'TC-R10/S4 #504 SAC_LINE_MAX is 3',SAC_SRC.SAC_LINE_MAX);
+    /* THE TRIM. A quiet third ply must be DROPPED, so the line never ends on a move that shows nothing. */
+    const quiet3=E.getLegal(E.makeMove(E.makeMove(g25,E.getLegal(g25).find(m=>uci(m)===LINE[0])),E.getLegal(E.makeMove(g25,E.getLegal(g25).find(m=>uci(m)===LINE[0]))).find(m=>uci(m)===LINE[1]))).find(m=>!/[x+#]/.test(sanOf(E.makeMove(E.makeMove(g25,E.getLegal(g25).find(x=>uci(x)===LINE[0])),E.getLegal(E.makeMove(g25,E.getLegal(g25).find(x=>uci(x)===LINE[0]))).find(x=>uci(x)===LINE[1])),m)));
+    const trimmed=quiet3?sl(g25,[LINE[0],LINE[1],uci(quiet3)]):null;
+    L.say(!!quiet3,'TC-R10/S5 #504 a QUIET third ply exists in that position, so the trim assertion below has a real input and is not vacuous',quiet3?uci(quiet3):null);
+    L.say(!!trimmed&&trimmed.length===2&&/[x+#]/.test(trimmed[trimmed.length-1]),'TC-R10/S6 #504 a pv whose third ply is QUIET is trimmed back to the last FORCING ply, so the displayed line never ends on a move that shows nothing',{got:trimmed});
+    /* NEVER BELOW ONE. A single quiet ply is what shipped before #504 and must still render. */
+    L.say(sl(g25,['b5a6']).join(' ')==='Ba6','TC-R10/S7 #504 a pv of ONE quiet ply is kept, not trimmed to nothing - this is the pre-#504 behaviour and the change can only ever ADD plies',{got:sl(g25,['b5a6'])});
+    /* THE CASES IT MUST REJECT - #391: enumerate what the engine can legally produce, including failure. */
+    L.say(sl(g25,[]).length===0&&sl(g25,null).length===0&&sl(g25,undefined).length===0,'TC-R10/S8 #504 an EMPTY or absent pv yields no line at all, which is what makes the dead-search guard in sacRun reachable',{empty:sl(g25,[]),nul:sl(g25,null)});
+    L.say(sl(g25,['e2e4']).length===0,'TC-R10/S9 #504 a pv whose FIRST move is illegal in this position yields no line rather than a wrong one',{got:sl(g25,['e2e4'])});
+    L.say(sl(g25,['g5e7','zzzz']).join(' ')==='Bxe7','TC-R10/S10 #504 a pv that goes illegal at its SECOND move stops at the first, rather than throwing or skipping ahead',{got:sl(g25,['g5e7','zzzz'])});
+    /* refuteTxt, the ONE definition both the Brilliant and the Great branch now read. */
+    L.say(rt(null)===''&&rt(undefined)===''&&rt({})==='','TC-R10/S11 #504 refuteTxt renders nothing from nothing, so an absent refutation cannot print a half sentence');
+    L.say(rt({capSan:'Nxd7'})==='','TC-R10/S12 #504 refuteTxt renders nothing from a capture with no reply - the state sacRun stores while the search is still running');
+    L.say(rt({capSan:'Nxd7',replySan:'Bxe7'})==='If Nxd7, Bxe7.','TC-R10/S13 #504 refuteTxt still renders the SINGLE-ply form from replySan alone, so a record stored by a pre-#504 bundle does not break',rt({capSan:'Nxd7',replySan:'Bxe7'}));
+    L.say(rt({capSan:'Nxd7',replyLine:['Bxe7','Bxe7','Bxd7+'],verdict:'and White is winning'})==='If Nxd7, Bxe7 Bxe7 Bxd7+ and White is winning.','TC-R10/S14 #504 refuteTxt renders the multi-ply form with its verdict, byte for byte',rt({capSan:'Nxd7',replyLine:['Bxe7','Bxe7','Bxd7+'],verdict:'and White is winning'}));
+    L.say(rt({capSan:'Nxd7',replyLine:[],replySan:'Bxe7'})==='If Nxd7, Bxe7.','TC-R10/S15 #504 an EMPTY replyLine falls back to replySan rather than printing "If Nxd7, ."',rt({capSan:'Nxd7',replyLine:[],replySan:'Bxe7'}));
+  } else {
+    for(let i=0;i<14;i++) L.say(false,'TC-R10/S'+(i+2)+' #504 NOT RUN: chess.jsx declares no refutation-line machinery ('+SAC_SRC.missing.join(', ')+'), so the trim rule could not be exercised. A missing denominator is REPORTED, never credited.');
+  }
   const b=await L.launch({geo:'kunal',name:'review-brilliant',store:{ct_pool:'3'}});await b.open();
   await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});await b.settle(600);
@@ -179,6 +261,69 @@ L.run(async()=>{
   const offenders=withClause.filter(r=>bare(r.alt)===bare(r.played));
   for(const r of withClause) L.note('      '+r.head.replace(/\s+/g,' ').slice(0,20).padEnd(20)+' played '+String(r.played).padEnd(7)+' alt '+String(r.alt).padEnd(7)+(bare(r.alt)===bare(r.played)?'  <- NAMES THE PLAYED MOVE':''));
   L.say(offenders.length===0,'TC-R10 NO ply in the whole game offers the played move as its own alternative (kunal-review-alt-names-the-played-move)',{selfNamed:offenders.length,ofClauses:withClause.length,plies:offenders.map(r=>r.head.replace(/\s+/g,' ').slice(0,14)+' ('+r.played+')')});
+
+  /* ── #504 BLOCK N. THE REFUTATION LINE, DRIVEN ON THE BUNDLE UNDER TEST ───────────────────────────
+     Block S above proves the trim RULE over enumerated pv inputs, reading chess.jsx. It cannot prove the
+     PLUMBING - that sfBestLine's pv reaches sacRun, survives the store, and is rendered - because it never
+     opens the bundle. And a block that only read chess.jsx would be #432's trap exactly: an assertion that
+     can only see what the fix added. So N locates the clause by WHAT IT SAYS, not by any new data-ct, which
+     is why N3 below reddens on the SHIPPED #503 bundle with no code of mine in it at all.
+     MEASURED BEFORE THIS BLOCK WAS WRITTEN, over all 33 plies of this fixture on both bundles:
+       ply 19  10.Nxb5  Brilliant  "If cxb5, Bxb5+ and White is winning"      1 ply on BOTH
+       ply 25  13.Rxd7  Great      "If Nxd7, Bxe7 and White is winning"       1 ply on #503 (2fb1d7707780)
+                                   "If Nxd7, Bxe7 Bxe7 Bxd7+ and White is winning"  3 plies on #504 (6b7dadfdccf6)
+       ply 31  16.Qb8+  Great      "If Nxb8, Rd8#"                            1 ply on BOTH
+     THREE plies in this game carry a refutation clause and exactly ONE of them changes, which is the whole
+     point of the trim rule: a line grows only where the pv has a forcing continuation, so 19 and 31 are
+     byte-identical and the #387 pin at the top of this gate is untouched.
+
+     IT RUNS IN ITS OWN BROWSER, AND THAT IS A MEASUREMENT AND NOT TIDINESS. The first version of this block
+     reused `b` after the play-out and the 34-ply backward sweep, and ply 25 then printed NO refutation
+     clause at all - "The only move that keeps it. Nxd7 follows." - because the analysis worker was no
+     longer answering, so sfBestLine resolved null and the Great branch fell back to pvShow. On a fresh
+     browser the identical ply prints the three-ply line, reproducibly, on two separate probe runs. So the
+     clause is a function of the engine's availability as well as of the code, and a block that measures it
+     after an hour of engine abuse is measuring the abuse. WHAT CAUGHT IT WAS N2, the non-vacuity assertion:
+     without it N3 to N5 would have read an empty list and every `<=` and `every`-shaped check would have
+     passed loudest exactly where the thing under test had vanished.
+     THE SETTLE IS 1800ms, NOT THE SWEEP'S 260ms, DELIBERATELY. The clause arrives from a DEBOUNCED engine
+     query - 450ms of rest and then a 700ms search - so the sweep above cannot see it at all and a short
+     settle here would measure the sentence before the clause lands [#387]. */
+  const parseRefute=(w)=>{const m=/If ([^,]+), ([^.]*)\./.exec(String(w||''));if(!m)return null;
+    const mv=m[2].replace(/\s+and\s+(?:White|Black|it)\b.*$/,'').trim();
+    return {cap:m[1],moves:mv?mv.split(/\s+/):[]};};
+  const RV=require('../drive/review');
+  const n=await L.launch({geo:'kunal730',name:'review-brilliant-504',store:{ct_pool:'3'}});await n.open();
+  await RV.ensureReview(n,'opera');await RV.startReview(n);
+  const readPly=async(ply)=>{
+    await RV.goPly(n,ply);await n.settle(1800);
+    const ml=await n.rect('[data-ct="rev-move-line"]');
+    const why=(await n.text('[data-ct="rev-why-txt"]'))||(await n.text('[data-ct="rev-why"]'))||'';
+    const box=await n.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]')||document.querySelector('[data-ct="rev-why"]');if(!e)return null;return {sh:e.scrollHeight,ch:e.clientHeight};});
+    L.note('    #504 ply'+ply+' '+String((ml&&ml.text)||'').split('\n')[0].trim()+'  ->  '+why.replace(/\s+/g,' '));
+    return {head:String((ml&&ml.text)||'').split('\n')[0],why,box,r:parseRefute(why)};
+  };
+  const P19=await readPly(19), P25=await readPly(25), P31=await readPly(31);
+  /* THE STATE FIRST, THEN THE PROPERTY [#385]: an assertion that says "the line is long here" is worthless
+     if the walk never arrived at the ply it names. */
+  L.say(/Rxd7/.test(P25.head),'TC-R10/N1 #504 the walk reached ply 25, 13.Rxd7 - the one ply of this fixture whose pv has a forcing continuation',P25.head);
+  /* AND THE DENOMINATOR AS ITS OWN ASSERTION, never as a conjunct: every N check below reads P25.r.moves,
+     and all of them would pass loudest over an empty list if the clause had vanished entirely. This is the
+     assertion that caught the stale-engine reading described in the header. */
+  L.say(!!P25.r&&P25.r.moves.length>0,'TC-R10/N2 #504 ply 25 actually PRINTS a refutation clause, so N3 to N5 have a real reading rather than an absent one',{clause:P25.r,why:P25.why.slice(0,90)});
+  L.say(!!P25.r&&P25.r.moves.length>=2,'TC-R10/N3 #504 the refutation line at ply 25 runs PAST the opponent capture - two or more plies, so the recovery is on screen. This is Kunal own test ("the line runs one move further so the recapture is on screen") and it is RED on the shipped #503 bundle, where sacRun read only sfEval1 bestmove so one ply was the structural maximum',{moves:P25.r&&P25.r.moves,n:P25.r&&P25.r.moves.length});
+  L.say(!!P25.r&&P25.r.moves.length>0&&/[x+#]/.test(P25.r.moves[P25.r.moves.length-1]),'TC-R10/N4 #504 the displayed line ENDS on a forcing move - a capture, a check or mate - so it never trails off on a quiet move that shows nothing',{last:P25.r&&P25.r.moves[P25.r.moves.length-1],moves:P25.r&&P25.r.moves});
+  L.say(!!P25.r&&P25.r.moves.length<=3,'TC-R10/N5 #504 and it is capped at three plies, so a long pv cannot push the clauses after it out of the character budget without bound',{n:P25.r&&P25.r.moves.length});
+  /* THE BOX. The clause got longer, and this file records four separate episodes of a longer string being
+     cut by a container rather than by its clamp (#394, #396, #397, #398). pack() bounds the sentence by
+     CHARACTERS, which is not the same claim as the box fitting, so the box is measured. */
+  L.say(!!P25.box&&P25.box.sh<=P25.box.ch+1,'TC-R10/N6 #504 the longer sentence does not overflow its own box at 375x730 - scrollHeight within 1px of clientHeight, so nothing is silently clipped by the container [#396]',P25.box);
+  L.say(!!P19.r&&P19.r.moves.length===1,'TC-R10/N7 #504 ply 19 is UNCHANGED at one ply, because the pv after cxb5 has no forcing continuation - the trim rule can only ever ADD the recovery and never rewrites a sentence that was already right',{moves:P19.r&&P19.r.moves,why:P19.why.slice(0,70)});
+  L.say(/Qb8\+/.test(P31.head)&&!!P31.r&&P31.r.moves.length===1&&/#$/.test(P31.r.moves[0]),'TC-R10/N8 #504 ply 31, 16.Qb8+, still reads exactly "If Nxb8, Rd8#" - a line that ENDS IN MATE is one ply, is not extended past the mate, and gets no verdict clause appended after it',{at:P31.head,moves:P31.r&&P31.r.moves,why:P31.why});
+  const badN=n.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
+  L.note('    #504 block N app errors beyond the allowed engine trap: '+badN.length+(badN.length?' '+JSON.stringify(badN.slice(0,2)):''));
+  await n.shot('review-brilliant-504-ply25');
+  await n.close();
 
   const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
   L.say(bad.length===0,'TC-R10 no app error beyond the one allowed engine trap',{allowed:b.errs.length-bad.length,other:bad.slice(0,2)});
