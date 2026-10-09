@@ -509,8 +509,48 @@ function mkTap(b,READ){
        there, which the old assertion could not have told apart from the defect. Two assertions, because a
        conjunct whose halves cannot fail independently is this project's own eleventh costume of the
        check-is-the-thing-checked trap. */
-    L.say(c3.ungFound&&c3.ungInk===false,'C3 over a fully graded set the coverage line paints NO INK, so it is still not noise on a screen that has nothing to report',{found:c3.ungFound,ink:c3.ungInk,vis:(c3.ungBox||{}).vis,line:c3.ungraded});
-    L.say(!!c3.ungBox&&c3.ungBox.oh>0,'C3c and its BOX IS STILL RESERVED, so the list does not jump when the background grading pass finishes and the sentence stops applying',{box:c3.ungBox});
+    /* #507 C3 HAS BEEN REWRITTEN TWICE IN ONE BUILD AND BOTH REWRITES WERE FORCED BY UPHELD VETOES FROM
+       DIFFERENT DOORS. Recorded in order, because the sequence is the useful part:
+         AS MAIN SHIPPED IT: `!c3.ungFound` - over a fully graded set the coverage ELEMENT is absent.
+         AFTER MY FIRST FIX (reserve the box, drop the ink): `ungFound && ungInk===false` - the element
+           exists and paints nothing. `!ungFound` would have gone RED on a correct build.
+         AFTER ANTAGONIST B's SHIPPED-SURFACE FINDING, which is where it now stands: the box is no longer
+           held blank at all. B measured the price of blankness from the player's side - 42.6px at 375x730
+           (5.8% of Kunal's viewport) and 59.3px at 320x568 (10.4%), held in the STEADY STATE every real
+           player reaches within seconds of opening Review, because the background pass grades the library
+           and then there is nothing left for the warning sentence to say. Trading a 42.6px jump for 42.6px
+           of permanent dead space is not a win and R14's tenth dimension says so. So the box now paints
+           the COMPLETE form instead, which costs zero additional pixels and keeps the anti-jump property.
+       SO C3's PROMISE IS NOW THE OPPOSITE OF WHAT IT WAS AN HOUR AGO, and the assertion says what the
+       screen now owes: ink in every grade-filtered state, and the right ink for the state. */
+    L.say(c3.ungFound&&c3.ungInk===true,'C3 over a FULLY GRADED set the coverage line still PAINTS, so the box this build reserves is never held blank - the steady state every player reaches within seconds of opening Review',{found:c3.ungFound,ink:c3.ungInk,line:c3.ungraded});
+    L.say(!!c3.ungBox&&c3.ungBox.oh>0,'C3c and its BOX IS OCCUPIED, so the list does not jump when the background grading pass finishes and the warning sentence stops applying',{box:c3.ungBox});
+    L.say(!!c3.ungraded&&/^All /.test(c3.ungraded)&&!/haven/.test(c3.ungraded),
+      'C3d and what it paints is the COMPLETE form, not the warning sentence - a screen with nothing left to warn about must not print a warning',{line:c3.ungraded});
+    /* #507 C3e AND C3f ARE ANTAGONIST B's FINDINGS 4 AND 5 AS ASSERTIONS.
+       (4) B found a VISIBLE grammar defect my own new wording printed: "Graded 0 of the 1 games this filter
+       is looking at", at visibility:visible, on both geometries. A phrase built by concatenation with a
+       hard-coded plural. (5) And it found the rename HALF-APPLIED: the coverage line named its set while
+       the empty state, 92.6px below it on the same screen, still said "graded so far" for the SAME set -
+       which is the very defect clause (3) exists to fix, with an extra step. Both sentences now take one
+       shared `_scope` phrase, so they cannot drift apart again, and these two assert it. */
+    L.say(!/ of the 1 games | of 1 games |\b1 games\b/.test((c3.ungraded||'')+' '+(c3.empty||'')),
+      'C3e no sentence on this screen says "1 games" - the scope phrase pluralises, which the first draft of it did not',{cov:c3.ungraded,empty:c3.empty});
+    /* #507 C3f IS THE RESIDUAL THIS BUILD DID NOT ELIMINATE, GATED RATHER THAN ONLY CONFESSED.
+       Painting ink in the reserved box removes the blank space but does NOT collapse the box to one height
+       class, because the complete sentence is shorter than the warning one and wraps differently. Antagonist
+       B expected one class; it is two, and I am asserting the direction rather than pinning the pixels
+       (#480: every absolute text-derived pin in this suite is a function of an unrecorded font).
+       THE DIRECTION IS THE PROPERTY THAT MATTERS. When the background pass completes, the warning sentence
+       is replaced by the shorter complete one, so the box may SHRINK - the list closes up by the difference.
+       It must never GROW, because a box that grows as the pass finishes pushes the list DOWN under a finger
+       already reaching for a row, which is the defect this whole build exists to remove and would be worse
+       than what main does. Both heights are printed so the residual is a number a later reader can act on
+       rather than a sentence they have to trust. */
+    const _warnBox=(c1.ungBox||{}).oh, _doneBox=(c3.ungBox||{}).oh;
+    L.say(typeof _warnBox==='number'&&typeof _doneBox==='number'&&_doneBox>0&&_doneBox<=_warnBox,
+      'C3f the COMPLETE form is never TALLER than the warning form, so finishing the grading pass can only close the list up and can never push it down under the finger - the residual two-height-class behaviour is bounded in the safe direction',
+      {warningBox:_warnBox,completeBox:_doneBox,shrinkPx:(typeof _warnBox==='number'&&typeof _doneBox==='number')?(_warnBox-_doneBox):null});
     L.say(c3.rows===2,'C3b and it still returns alpha\'s two brilliancy games',{rows:c3.rows,opps:c3.opps});
     // #476 C5 IS ANTAGONIST B's P1 VETO AS AN ASSERTION. Clause (4) made the COVERAGE line honest and left
     // the EMPTY state flatly claiming "No games match brilliancies" while the sentence 59px above admitted

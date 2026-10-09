@@ -7419,6 +7419,50 @@ export default function App(){
               // with the honest readout and the dishonest one in the same box. So when a grade filter is on
               // and anything is still ungraded, the empty state is SCOPED TO WHAT WAS ACTUALLY GRADED.
               const _nG=_preGrade.length-_ungr;
+              /* #507 `_narrowed` IS DECLARED HERE, ABOVE `_scope`, AND THE ORDER IS LOAD-BEARING. It used
+                 to sit with the coverage sentence forty lines below. `_scope` closes over it and
+                 `_emptyTxt` CALLS `_scope` on the line after this one, so with the old ordering the first
+                 render threw a ReferenceError out of the const temporal dead zone - caught here by reading
+                 my own edit back rather than by the browser. */
+              const _narrowed=_preGrade.length!==ccGames.length;
+              /* #507, ON ANTAGONIST B's SHIPPED-SURFACE FINDINGS 4 AND 5. ONE SCOPE PHRASE, CORRECTLY
+                 PLURALISED, SHARED BY THE COVERAGE LINE AND THE EMPTY STATE.
+                 (4) B MEASURED A VISIBLE GRAMMAR DEFECT MY OWN NEW WORDING PRINTS: with the name box on
+                 `opp6`, account beta and the mistake chip, the screen reads "Graded 0 of the 1 games this
+                 filter is looking at" - `visibility:visible`, at 320x568 and at 375x730. My first draft
+                 built the phrase by concatenation with a hard-coded "games" and never asked what it reads
+                 at one.
+                 (5) AND IT MEASURED THE RENAME AS HALF-APPLIED, which is worse than not having done it: in
+                 state beta+blunder the screen prints the coverage line naming its set AND, 92.6px below it,
+                 "The one game graded so far does not match blunders, account beta" - the OLD vocabulary,
+                 for the SAME set, on one screen. The defect clause (3) exists to fix is "two numbers read
+                 as two accounts of one list"; renaming one of the two sentences that print the denominator
+                 and leaving the other is that defect with an extra step. Both now take the phrase from
+                 here, so they cannot drift apart again. */
+              const _scope=(n)=>(_narrowed?('the '+n+' game'+(n===1?'':'s')+' this filter is looking at'):(n+' game'+(n===1?'':'s')));
+              /* #507 ANTAGONIST B's FINDING 5 IS DECLINED, WITH THE REASON MEASURED RATHER THAN ASSERTED,
+                 AFTER I BUILT IT AND READ IT BACK. B measured that this build renamed ONE of the two
+                 sentences that print the denominator and left the other, so beta+blunder prints the
+                 coverage line naming its set and, 92.6px below it, "The one game graded so far does not
+                 match blunders, account beta" - two vocabularies for one set on one screen. The finding is
+                 real as an observation. ITS PRESCRIBED FIX IS A HYPOTHESIS AND IT DOES NOT SURVIVE THE
+                 MECHANISM [CLAUDE.md], TWICE:
+                 (a) THIS SENTENCE ALREADY CARRIES ITS SCOPE, BY A DELIBERATE AND DIFFERENT ROUTE. #476
+                 designed it to disclose its own set arithmetically - "N graded so far" plus "M still to
+                 grade" IS the set - and gate 73's C5c pins exactly that, with its own message saying "it
+                 names what WAS graded and what is still coming, so the answer carries its own scope". So
+                 the two sentences do not disagree about the set; they disclose it two ways, one of which
+                 was chosen on purpose.
+                 (b) I IMPLEMENTED THE RENAME AND THE PROSE GOT WORSE: it read "The one game graded of the
+                 3 games this filter is looking at does not match brilliancies, account beta", which is
+                 clumsy where the original is plain, and it turned C5c RED - an assertion guarding a #476
+                 antagonist P0. Replacing a working self-scoping sentence with worse prose to satisfy a
+                 consistency nit is a bad trade, and reddening the assertion that protects it to do so is a
+                 worse one.
+                 WHAT IS FIXED FROM THAT PAIR OF FINDINGS IS FINDING 4, WHICH IS A REAL VISIBLE DEFECT: the
+                 coverage line printed "Graded 0 of the 1 games this filter is looking at" at
+                 visibility:visible. That is pluralisation and it is fixed in `_scope`. Finding 5 is named
+                 as a residual on the job rather than smoothed over. */
               const _emptyTxt=(_gradeOn&&_ungr>0)
                 ?(_nG===0
                   ?('No games are graded yet, so this filter has nothing to match. '+_ungr+' still to grade.')
@@ -7438,8 +7482,31 @@ export default function App(){
                  would have made this sentence true of a set nobody is looking at and reddened C4. So the
                  ambiguity is removed where it actually lives - in the WORDING, which printed a bare "of N"
                  that a reader maps onto the count above it - and the denominator is untouched. */
-              const _narrowed=_preGrade.length!==ccGames.length;
-              const _covTxt='Graded '+_nG+(_narrowed?(' of the '+_preGrade.length+' games this filter is looking at'):(' of '+_preGrade.length+' so far'))+' \u2014 a game we haven\u2019t graded yet can\u2019t match this filter.';
+              /* #507, AND THIS IS ANTAGONIST B's ONE RECOMMENDATION, TAKEN. THE RESERVED BOX PAINTS INK IN
+                 EVERY GRADE-FILTERED STATE INSTEAD OF BEING HELD BLANK.
+                 MY FIRST VERSION RESERVED THE BOX AND DROPPED ONLY ITS INK, which killed the uncommanded
+                 jump and bought it with dead space. B measured the price from the shipped-surface door and
+                 it is not small: once the background pass has graded your library - the steady state every
+                 real player reaches WITHIN SECONDS of opening Review - every grade-filtered screen carried
+                 a blank gap of 42.6px at 375x730, which is 5.8% of Kunal's own viewport, and 59.3px at
+                 320x568, which is 10.4%. Measured as `contentBottom` on both bundles: 1333.9 -> 1376.5 at
+                 375, 1430.8 -> 1490.1 at 320. In a 32-second watch the box went visible at t+0 and
+                 reserved-and-blank from t+2s onward, and stayed that way.
+                 SO TRADING A 42.6px JUMP FOR 42.6px OF PERMANENT BLANK IS NOT A WIN, and R14's tenth
+                 dimension - whether what is on screen earns its space - says so directly. B's fix gets
+                 both: paint the complete form in the box that is already being held. It costs ZERO
+                 additional pixels, keeps the anti-jump property this build exists for, and turns dead
+                 space into a line that tells the player something true.
+                 WHAT IT DOES NOT FIX, SAID PLAINLY RATHER THAN CLAIMED: the box still has more than one
+                 HEIGHT CLASS, because these sentences are different lengths and wrap differently at 320.
+                 B's finding 3 measured the narrowed/unnarrowed transition at 320 moving the box 34 -> 50px,
+                 and that remains - smaller than main's equivalent -42.6px but larger than main's 0 for the
+                 account-chip transition specifically. B thought painting ink would collapse the box to one
+                 height class; it does not, because the complete form is shorter than the warning form.
+                 Naming that rather than inheriting B's optimism. */
+              const _covTxt=(_ungr>0)
+                ?('Graded '+_nG+' of '+_scope(_preGrade.length)+' \u2014 a game we haven\u2019t graded yet can\u2019t match this filter.')
+                :('All '+_scope(_preGrade.length)+' '+(_preGrade.length===1?'is':'are')+' graded.');
               const _clearAll=()=>{setGFil({bril:0,blun:0,mist:0,acct:''});setGameSearch('');};
               /* #507 THE `ghost` ARM RESERVES A CHIP'S SPACE WITHOUT PAINTING IT. A row that can appear must
                  reserve its space [CLAUDE.md]. MEASURED on the shipped bundle before this change, with the
@@ -7631,8 +7698,8 @@ export default function App(){
                   other than the real string is #396's clamp-versus-clip trap wearing a third costume.
                   C0 IS UNAFFECTED AND DELIBERATELY SO: with no grade filter on, `_gradeOn` is false and this
                   element does not exist at all, so the line is still not noise on the default screen. */}
-              {_gradeOn&&(<div data-ct="glist-ungraded" data-ghost={_ungr>0?undefined:'1'} aria-hidden={_ungr>0?undefined:'true'}
-                style={{visibility:_ungr>0?'visible':'hidden',fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.60)',lineHeight:1.4}}>{_covTxt}</div>)}
+              {_gradeOn&&(<div data-ct="glist-ungraded" data-complete={_ungr>0?undefined:'1'}
+                style={{fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.60)',lineHeight:1.4}}>{_covTxt}</div>)}
               {ccGames.length>6&&(<input value={gameSearch} onChange={e=>setGameSearch(e.target.value)} placeholder="Filter by player name" style={{width:'100%',padding:'6px 10px',borderRadius:7,background:'rgba(0,0,0,.25)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.10)',fontSize:'clamp(14px,3.1vw,16px)'}}/>)}
               {/* #507 CLAUSE (2) OF THE CLOSER'S SCREEN IS WITHDRAWN AS A FALSE DEFECT, MEASURED, AND THE
                   EMPTY STATE IS DELIBERATELY LEFT WHERE IT WAS. The clause read: "the empty state's own
