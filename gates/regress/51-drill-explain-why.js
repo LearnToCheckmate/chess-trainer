@@ -250,21 +250,44 @@ L.run(async()=>{
   await b.close();
 
   // ===== PHASE 1B: THE FEN-KEYED STORE MERGE. ============================================================
-  // SUITE ADMISSION, DECLARED AGAINST THIS BLOCK BY THE RUN THAT WROTE IT [R36]. PHASE 1B IS A CANDIDATE,
-  // NOT AN ADMITTED ASSERTION, and the reason is measured rather than suspected. Two runs on the same tree
-  // (f3ae36a, #473) disagreed about A11: the narrowed run at CT_GEO51=375x730 read why '<FIELD ABSENT>'
-  // and went RED; the full seven-geometry run two minutes later read the upgraded sentence and went GREEN,
-  // with A10 and A12 green in both. Nothing about the tree or this block changed between them. The cause
-  // is upstream and A1 shows it: the capture set itself varies on the minimax fallback branch (1 mistake
-  // where this gate's header claims a measured 2), so whether a fresh capture lands on the seeded fen -
-  // which is the precondition for the merge to have anything to upgrade - is not determined. R36 requires
-  // determinism across three runs before admission, and this has 1 red and 1 green across two.
-  // SO IT IS NOT YET A GATE, AND IT IS LEFT IN RATHER THAN DELETED on purpose: it is the only assertion in
-  // the suite that touches the #426 P0-3 merge at all, and a candidate that says so is worth more than a
-  // silent gap. WHAT WOULD ADMIT IT: run it three times on a tree where A0e is GREEN (the pooled Stockfish
-  // branch), where the capture set is the stable 2 the header names. Do not stabilise it by hand-seeding
-  // the fresh capture - that re-creates the vacuity shape PHASE 1 exists to design out, because the sentence
-  // the merge is asked to copy would then be the fixture's own.
+  // SUITE ADMISSION [R36]: PHASE 1B IS ADMITTED. Measured 2026-10-09 by process-build-3__1791584824170
+  // against origin/main 65d3b9a's OWN committed bundle, app.js md5 ebb88c8f76f7, on the pooled Stockfish
+  // branch. THREE CONSECUTIVE FULL RUNS, no narrowing and no CT_GEO51: 80 pass / 0 fail each, and the
+  // PASS/FAIL set is BYTE-IDENTICAL across all three INCLUDING every payload object - md5 ffc7d0ccc6ca648f
+  // over the full lines, f750a072a0973170 over verdict and text alone, and 297051ee6fba812b over A10, A11
+  // and A12's own three lines. Wall clock 150 s, 148 s, 150 s. A0e was GREEN in all three (engine 'sf') and
+  // A1 read captured 2 / inputs 2 - which is exactly the tree state the admission condition below NAMED, so
+  // this is the measurement that was asked for and not a near neighbour of it. Criterion 2 is already paid:
+  // PHASE 1B runs inside this gate's own existing run and adds no section and no browser to the suite.
+  // Criterion 3 is the defect Kunal reported twice, recorded four paragraphs below.
+  // THE COMMAND, because a count with no scope cannot be checked: `node gates/regress/51-drill-explain-why.js`
+  // with no CT_* set, three times, on a tree at 65d3b9a with gates/node_modules installed.
+  // WHY IT WAS A CANDIDATE UNTIL TODAY - KEPT RATHER THAN DELETED, because the history is the useful part.
+  // Two runs on the same tree (f3ae36a, #473) disagreed about A11: the narrowed run at CT_GEO51=375x730 read
+  // why '<FIELD ABSENT>' and went RED; the full seven-geometry run two minutes later read the upgraded
+  // sentence and went GREEN, with A10 and A12 green in both. Nothing about the tree or this block changed
+  // between them. The cause was upstream and A1 showed it: the capture set itself varies on the minimax
+  // fallback branch (1 mistake where this gate's header claims a measured 2), so whether a fresh capture
+  // lands on the seeded fen - the precondition for the merge to have anything to upgrade - was not determined.
+  // SO THE ADMISSION IS SCOPED, AND SAYING SO IS THE POINT: it is admitted ON THE POOLED STOCKFISH BRANCH,
+  // which is the branch A0e already requires this whole gate to be reporting on. A run where A0e is RED is a
+  // run on uncovered code, and this block's determinism is NOT claimed there. If the fallback branch is ever
+  // brought into this gate's coverage, PHASE 1B's determinism has to be re-measured on it before it carries
+  // over; nothing here says it will hold.
+  // THE ADMISSION WAS NOT BOUGHT BY HAND-SEEDING THE FRESH CAPTURE - that would re-create the vacuity shape
+  // PHASE 1 exists to design out, because the sentence the merge is asked to copy would then be the fixture's
+  // own. Not one assertion, selector, threshold or fixture in this block changed; only this declaration did,
+  // which is why the three runs measure the same code the previous reading measured.
+  // AND THE REGISTER DOES NOT AGREE WITH THIS YET, WHICH IS SAID HERE RATHER THAN LEFT TO BE DISCOVERED
+  // [R45 shape (2), a gate against its register]. claude/stories/TEST-CASES.md's TC-R16 row still reads
+  // "A10/A11/A12 (PHASE 1B, a CANDIDATE under R36 and not admitted - see below)" and ends "PHASE 1B still
+  // needs three green runs on a tree where A0e is green before admission", and "R36: deterministic across
+  // 3 runs NOT yet measured". All three of those sentences are refuted by the measurement above, and the
+  // row was NOT corrected in the same change for one mechanical reason: claims/art-claude-stories-TEST-CASES-md
+  // was held open by the live build run build__1791577208000 from 20:30:00Z to 23:30:00Z, and R44 gives one
+  // agent one artefact. So this declaration is the NEWER of the two and the register row is the stale one.
+  // The register edit is one row, it is owed, and it is named as the remaining step on
+  // jobs/gate-51-fallback-column-assertions-written-and-three-are-red-on-main-2026-10-03.
   // A FIRST READING OF THE RED WAS WRONG AND IS WITHDRAWN HERE RATHER THAN QUIETLY DROPPED [R18]: it was
   // filed as "the #426 P0-3 merge may not work". The second run refutes that - the merge upgrades in place
   // and preserves ts, played and last exactly as designed. The defect is this block's determinism, not the
