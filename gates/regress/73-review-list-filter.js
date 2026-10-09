@@ -121,6 +121,15 @@ TALLY[gk(G[2])]={bril:0,great:0,inacc:0,mist:1,blun:0,src:'est'};
 TALLY[gk(G[3])]={bril:2,great:0,inacc:0,mist:0,blun:3,src:'review'};
 TALLY[gk(G[4])]={bril:0,great:1,inacc:0,mist:0,blun:0,src:'est'};
 // g6 and g7 deliberately absent - see the header
+// #503 BLOCK E's OWN STAMPS. Same seven games, different grading versions; 999 is an impossible version so
+// this fixture cannot go quiet when GRADE_VER is next bumped. See block E's header for the case per game.
+const TALLYSTALE=[
+  [G[0],{bril:1,great:2,inacc:0,mist:0,blun:0,src:'review',gv:999}],
+  [G[1],{bril:0,great:1,inacc:1,mist:2,blun:1,src:'est',   gv:999}],
+  [G[2],{bril:0,great:0,inacc:0,mist:1,blun:0,src:'est'            }],
+  [G[3],{bril:2,great:0,inacc:0,mist:0,blun:3,src:'review'         }],
+  [G[4],{bril:0,great:1,inacc:0,mist:0,blun:0,src:'est',   gv:999}],
+];
 const STORE={ct_ccuser:'',ct_liuser:'',
   ct_accts:['cc:alpha','cc:beta'],
   ct_acctgames:{'cc:alpha':G.slice(0,4).map(row),'cc:beta':G.slice(4).map(row)},
@@ -420,6 +429,143 @@ function mkTap(b,READ){
       const d3=await tapD('gf-clear');
       L.say(d3.rows===5&&d3.count==='5 loaded','D3 Clear restores every remaining game and the unfiltered wording',{rows:d3.rows,count:d3.count});
     }
+    await b.close();
+  }
+
+
+  // ══ BLOCK E. THE GRADING-VERSION STAMP. work[3] of this gate's own job, built at #503.
+  //
+  //    WHAT IT IS FOR. ct_gamestats memoises a per-game tally and the background pass SKIPS any game that
+  //    already has one. Before #503 "already has one" was the whole test, so a tally graded under a
+  //    superseded rule was served for ever. decisions/brilliant-is-not-gated-by-who-is-winning-2026-09-23 is
+  //    already decided in Kunal's words and drops brilliantGate's evBefore condition; the day it lands, this
+  //    gate's own subject - the brilliancy filter - would tell a player with brilliancies that they have none.
+  //
+  //    WHY THIS BLOCK BRINGS ITS OWN STORE AND ITS OWN LAUNCH. Blocks A, B, C and D pin COUNTS read off the
+  //    seeded tally. If this block's stale entries lived in the shared STORE, the background pass would
+  //    recompute them mid-run and every count in this file would become a race - the flaky assertion #387
+  //    warns about, manufactured by its own fixture. Same seven games, so every threshold and every wording
+  //    the other blocks depend on is untouched; only the STAMPS differ.
+  //
+  //    THE STAMPS, AND EACH ONE IS A DIFFERENT CASE ON PURPOSE. 999 is an impossible version, so an entry
+  //    carrying it is stale under any GRADE_VER this app will ever hold, which keeps this block from going
+  //    quiet the next time the constant is bumped.
+  //      g1  src:'review'  gv:999     STALE, but reviewed -> must be LEFT (E3)
+  //      g2  src:'est'     gv:999     STALE -> must be RECOMPUTED (E1)
+  //      g3  src:'est'     no gv      GRANDFATHERED as v1 -> must be LEFT (E2)
+  //      g4  src:'review'  no gv      grandfathered + reviewed -> must be LEFT (E2b)
+  //      g5  src:'est'     gv:999     STALE -> must be RECOMPUTED (E5), and it is the ORDERING WITNESS
+  //      g6, g7                       no tally and no moves, so never gradeable (the file's own fixture trick)
+  //
+  //    E5 IS NOT A SECOND COPY OF E1 AND THIS IS THE LOAD-BEARING PART OF THE DESIGN. E2 claims g3 was left
+  //    alone, and "left alone" is indistinguishable from "not reached yet" if the walk is still in flight -
+  //    which is the vacuous-denominator trap wearing a timing costume. g5 sits at index 4, AFTER g3 and g4,
+  //    so g5 having been recomputed PROVES the pass walked past both of them and their being unchanged is a
+  //    decision rather than a race. The poll below therefore waits for BOTH g2 and g5 and only then reads the
+  //    preserved three. It also gives the invalidation TWO inputs rather than one, so E1 is a measurement and
+  //    not a demonstration [R18].
+  //
+  //    NEGATIVE CONTROLS - BUILT AND RUN AT #503, NOT PREDICTED. Counts are whole-file (block E is 12 of the
+  //    file's 56), the command is `CT_APP=<bundle> node gates/regress/73-review-list-filter.js` at 375x730,
+  //    and the bundle md5 is cited rather than a build number, because a number names several bundles [#454].
+  //      CANDIDATE    9b39aa255045  ->  56 pass /  0 fail
+  //      NC-NOSTAMP   9d1b16c16187  ->  52 pass /  4 fail: E1, E1b, E4, E5. The skip test reverted to
+  //                   `if(gameStatsRef.current[k])continue;`. The ideal control - it is the shipped
+  //                   behaviour this block exists for, and the stale entry comes back gv:999 unchanged after
+  //                   the full 20s poll, which is the defect stated as a measurement.
+  //      NC-NOREVIEW  d0992388fd5e  ->  53 pass /  3 fail: E0c, E3, E3b. The `||st.src==='review'` clause
+  //                   removed from gradeCacheUsable. The reviewed game is re-graded to src:'est' and the row
+  //                   badge flips to EST, which is exactly the regression the clause exists to prevent.
+  //    THE TWO CONTROLS REDDEN DISJOINT SETS, and that is the point of running both: it proves E1 is not a
+  //    restatement of E3 and neither is a restatement of E2.
+  //    E0c IS COUPLED TO THE REVIEW CLAUSE AND IS DECLARED SO RATHER THAN LEFT TO BE FOUND. It proves the 999
+  //    injection arrived by reading it back off g1, the one entry the shipped design preserves - so on
+  //    NC-NOREVIEW, where g1 is re-graded, E0c cannot make that proof and correctly goes red. Its red there
+  //    is an honest "I cannot ground E1 on this bundle", not a second finding. Reading the map EARLY instead
+  //    would be independent of the clause and would also be a race against the pass, which is the trade made
+  //    knowingly here: a denominator that is sometimes coupled beats one that is sometimes flaky [#387].
+  {
+    const T3={};
+    TALLYSTALE.forEach(([g,st])=>{T3[gk(g)]=st;});
+    const b=await L.launch({geo:GEO,name:'E-gradever',store:{ct_ccuser:'',ct_liuser:'',
+      ct_accts:['cc:alpha','cc:beta'],
+      ct_acctgames:{'cc:alpha':G.slice(0,4).map(row),'cc:beta':G.slice(4).map(row)},
+      ct_gamestats:T3}});
+    await b.open(); await b.tile('Review'); await b.settle(1200);
+
+    const MAP=()=>b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_gamestats')||'{}')||{};}catch(e){return {};}});
+    const K1=gk(G[0]),K2=gk(G[1]),K3=gk(G[2]),K4=gk(G[3]),K5=gk(G[4]);
+
+    /* THE BASELINE IS THE INJECTED LITERAL T3, NOT A READ OFF THE PAGE, AND THE FIRST VERSION OF THIS BLOCK
+       GOT THAT WRONG IN A WAY THAT WENT GREEN [self-caught at #503, before any control was run].
+       It read a `seeded` map after b.settle(1200) and used it as the before-picture. By then the background
+       pass had ALREADY recomputed the stale entries, so the before-picture printed seededGv:1 for an entry
+       this fixture injects at 999 - and worse, E2's "unchanged" compared two LATE reads of the same map,
+       which is satisfied by an app that recomputed g3 before either read. That is the check and the thing
+       being checked collapsing into one object, for the twelfth time in this project's record, wearing a
+       timing costume. The fixture constant is the only honest before-picture: it is what was injected. */
+    const BASE=T3;
+
+    // E0 THE DENOMINATORS, THREE SEPARATE ASSERTIONS AND NOT ONE CONJUNCT, because each can fail alone and a
+    // compound would report the wrong cause.
+    const e0=await READ(b);
+    L.say(e0.rows===7,'E0 the list renders all seven fixture games, so the background pass has the whole list to walk',{rows:e0.rows});
+    const early=await MAP();
+    L.say(Object.keys(early).length===5,'E0b five tallies are in ct_gamestats, so the tally fixture arrived',{n:Object.keys(early).length});
+
+    // THE POLL. Settle past the thing we are racing rather than guessing a number [#387]: wait until BOTH
+    // stale est entries have been rewritten, which is also the proof the walk passed the preserved ones.
+    let waited=0;
+    while(waited<20000){
+      const now=await MAP();
+      if(now[K2]&&now[K2].gv!==999&&now[K5]&&now[K5].gv!==999)break;
+      await b.page.waitForTimeout(400); waited+=400;
+    }
+    // a further quiet period, so "unchanged" below is read after the pass has finished rather than mid-walk
+    await b.page.waitForTimeout(1500);
+    const fin=await MAP();
+
+    // E0c IS THE DENOMINATOR THAT E1 AND E5 ACTUALLY NEED, and it is why this block cannot go quiet if the
+    // stamp injection ever stops working. Every "the 999 was invalidated" claim below is vacuously true on a
+    // fixture whose 999 never reached the page. g1 is the one entry this design deliberately preserves, so
+    // its stamp surviving at 999 is independent proof that 999 was injected in the first place.
+    L.say(!!fin[K1]&&fin[K1].gv===999,'E0c THE STALE STAMP DEMONSTRABLY ARRIVED: an injected gv of 999 is still readable on the page, so the invalidation claims below are not vacuous',{g1:fin[K1]});
+
+    const f2=fin[K2]||{}, b2=BASE[K2];
+    L.say(!!fin[K2]&&f2.gv!==999,
+      'E1 (TC-R61) THE INVALIDATION: a stale tally (gv 999) is RECOMPUTED rather than served, so a grading change can reach a cached count',
+      {injected:b2,final:f2,waitedMs:waited});
+    L.say(!!fin[K2]&&(f2.mist!==b2.mist||f2.blun!==b2.blun||f2.great!==b2.great),
+      'E1b and the COUNTS moved, not just the stamp - the recompute really re-graded the game rather than restamping a stale tally in place',
+      {injected:{great:b2.great,mist:b2.mist,blun:b2.blun},final:{great:f2.great,mist:f2.mist,blun:f2.blun}});
+    L.say(typeof f2.gv==='number'&&f2.gv!==999,
+      'E4 THE STAMP IS WRITTEN BY THE APP: the recomputed entry carries a numeric grading version, read off the app rather than pinned to a literal in this gate',
+      {gv:f2.gv,type:typeof f2.gv});
+    const f5=fin[K5]||{}, b5=BASE[K5];
+    L.say(!!fin[K5]&&f5.gv!==999,
+      'E5 THE SECOND INPUT, and the ORDERING WITNESS: the stale entry at index 4 is also recomputed, which proves the pass walked past g3 and g4',
+      {injected:b5,final:f5});
+
+    const same=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
+    L.say(same(BASE[K3],fin[K3]),
+      'E2 THE CACHE STILL CACHES: an UNSTAMPED tally is grandfathered as version 1 and left byte-identical to what was injected, so no player re-grades their list for nothing',
+      {injected:BASE[K3],final:fin[K3]});
+    L.say(same(BASE[K4],fin[K4]),
+      'E2b and the same holds for an unstamped REVIEWED tally',
+      {injected:BASE[K4],final:fin[K4]});
+    L.say(same(BASE[K1],fin[K1])&&fin[K1]&&fin[K1].src==='review',
+      'E3 THE REVIEW PROVENANCE SURVIVES STALENESS: a stale src:review tally is NOT downgraded to a depth-2 estimate by the background pass',
+      {injected:BASE[K1],final:fin[K1]});
+    // and the same thing read off the SCREEN rather than the store, because the badge is what the player sees
+    const badge=await b.page.evaluate(()=>{
+      const rows=[...document.querySelectorAll('[data-ct="game-row"]')];
+      const r=rows.find(x=>/opp1/.test(x.innerText||''));
+      if(!r)return null;
+      return {rev:!!r.querySelector('[data-ct="gstat-rev"]'),est:!!r.querySelector('[data-ct="gstat-est"]')};
+    });
+    L.say(!!badge&&badge.rev&&!badge.est,
+      'E3b and the row for that game still paints the reviewed badge, not the EST one, which is the half of E3 a player can actually see',
+      {badge});
     await b.close();
   }
 

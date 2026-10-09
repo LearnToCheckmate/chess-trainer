@@ -1291,6 +1291,49 @@ function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
   return brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite).ok;
 }
 
+/* #503 THE GRADING-VERSION STAMP. work[3] of jobs/review-list-filter-and-search-2026-09-23, and its own
+   twoThingsToGetRight[1] is the reason it exists: "any cached tally needs a grading-version stamp so a stale
+   count is recomputed rather than served."
+
+   WHAT IT GUARDS. ct_gamestats caches a per-game tally keyed on gkey, and the background pass below skips any
+   game that already has one. That is correct and is the whole point of the cache - until the GRADER changes.
+   decisions/brilliant-is-not-gated-by-who-is-winning-2026-09-23 is already decided in Kunal's own words and
+   drops the evBefore>-1.0 condition at brilliantGate (chess.jsx:1220, the `ok` line at :1286); only its exact
+   floor is still owed by
+   jobs/grading-convergence-index-2026-09-23. The day that lands, every cached tally keeps serving counts
+   graded under the OLD rule, and the Review list's brilliancy filter then tells a player with brilliancies
+   that they have none - which is this job's own complaint arriving back out of its own fix.
+
+   NOT A NEW IDIOM - THE FILE ALREADY DOES THIS ONE CACHE OVER, AND FINDING THAT SAVED INVENTING IT. evalCacheKey
+   (chess.jsx:5527) hashes the move list AND the literal engine token '|sf18c' into its key, so a new engine
+   cannot be served an old evaluation. ct_evalcache is deliberately NOT in this class and was checked rather
+   than assumed: it stores raw evaluations (evW, ev2W, bU, aU), which are properties of a POSITION and do not
+   move when the brilliant gate moves. Of the app's grading-dependent stores, ct_gamestats was the only
+   memoised one carrying no version token at all. The other two are listed as left, with their reason, on the
+   job's classSwept.
+
+   BUMP IT whenever a change alters what analyzeGameCounts or the review grader can RETURN for an unchanged
+   game: brilliantGate's conditions, classify's bands, the mate ladder, winDrop. Do NOT bump it for a change
+   that only alters how a tally is DISPLAYED - a bump costs every player a re-grade of their whole list.
+
+   ABSENT MEANS 1, DELIBERATELY, AND THIS IS THE ONE DECISION IN HERE WORTH ARGUING WITH. Every tally on a
+   phone today was written with no stamp, and it was written under the rule that is STILL in force on main,
+   because no grading change has shipped yet. So an unstamped entry is not stale - it is version 1 by
+   definition, and treating it as stale would re-grade the entire installed base for no grading reason at all.
+   THE ALTERNATIVE WAS MEASURED AND REJECTED: invalidating unstamped entries would also drop every one of them
+   through the background pass, which writes src:'est', so each game the player had actually REVIEWED would
+   have its row badge flip from data-ct="gstat-rev" to "gstat-est" (chess.jsx:7355) and its `was` provenance
+   erased - a visible downgrade of real data, bought for nothing. The stamp starts doing work on the first
+   bump, which is the build that moves the gate, and that is the only moment it is needed. */
+const GRADE_VER=1;
+const gradeVerOf=(st)=>(st&&st.gv!==undefined)?st.gv:1;
+/* A cached tally is usable when its grading version is the current one. A src:'review' tally is ALSO left
+   alone when stale, and that is not an oversight: the background pass can only produce a depth-2 ESTIMATE, so
+   refreshing a reviewed game would replace better data with worse and downgrade the badge the player sees. A
+   stale reviewed tally is refreshed by the next full review of that game, which re-stamps it through the same
+   writer. Named as a residual on the job rather than hidden here. */
+const gradeCacheUsable=(st)=>!!st&&(gradeVerOf(st)===GRADE_VER||st.src==='review');
+
 // Background tally of a game's move quality for the USER (or all moves if color unknown). Yields periodically so it can run without freezing the UI.
 async function analyzeGameCounts(pgn,userColor){
   try{
@@ -2958,7 +3001,11 @@ export default function App(){
   const gameStatsRef=useRef((()=>{try{return JSON.parse(localStorage.getItem('ct_gamestats')||'{}')||{};}catch{return {};}})());  // gkey -> {bril,great,inacc,mist,blun}
   const [gsVer,setGsVer]=useState(0);   // bump to re-render game rows as background stats fill in
   const analyzingRef=useRef(false);
-  const recordGameStats=(k,v)=>{gameStatsRef.current={...gameStatsRef.current,[k]:v};try{localStorage.setItem('ct_gamestats',JSON.stringify(gameStatsRef.current));}catch{}setGsVer(x=>x+1);};
+  // #503 THE STAMP IS WRITTEN HERE, IN THE ONE WRITER, AND NOT AT EITHER CALL SITE. Both producers funnel
+  // through this function - the full review at :4363 (src:'review') and the background estimate at :4609
+  // (src:'est') - so a choke-point edit cannot be half-applied and a third producer added later is
+  // stamped without anyone remembering to [R06].
+  const recordGameStats=(k,v)=>{gameStatsRef.current={...gameStatsRef.current,[k]:{...v,gv:GRADE_VER}};try{localStorage.setItem('ct_gamestats',JSON.stringify(gameStatsRef.current));}catch{}setGsVer(x=>x+1);};
   const [ccGames,setCcGames]=useState(null);
   const gamesListRef=useRef(null);
   const [ccErr,setCcErr]=useState('');
@@ -4559,7 +4606,11 @@ export default function App(){
       for(const g of ccGames){
         if(cancelled)return;
         const k=gkey(g);
-        if(gameStatsRef.current[k])continue;
+        // #503 was `if(gameStatsRef.current[k])continue;` - an entry EXISTING was enough, so a tally graded
+        // under a superseded rule was served for ever and no bump could ever reach it. Now it must also be
+        // USABLE: see gradeCacheUsable beside analyzeGameCounts for what that means and for why a stale
+        // src:'review' tally is deliberately left for a real review rather than downgraded to an estimate.
+        if(gradeCacheUsable(gameStatsRef.current[k]))continue;
         while(analyzingRef.current&&!cancelled)await new Promise(r=>setTimeout(r,150));
         if(cancelled)return;
         const c=await analyzeGameCounts(g.pgn,gameInfo(g).userColor);
