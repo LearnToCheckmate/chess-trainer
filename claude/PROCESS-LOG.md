@@ -877,3 +877,71 @@ Three consecutive runs on main's bundle all read 42/0, and the **verdict set** �
 **Not checked.** The 59-section `gates/gates.sh` suite, in either tree: it needs 84+ minutes against this lane's 70-minute budget, and `CT_B65` exists precisely so a one-block change is measured by its own block. Whether blocks A, B, F, G, H, I, J and JS still pass with this insertion — nothing in C3 is reachable from them (its own browser, closed at the end) but that is an argument and not a measurement. Whether the promotion-after-game-over symptom reproduces in the cpu-black configuration (the picker half above). Whether a colour-asymmetric guard would separate C3 from C1. Any geometry but 375x730 and 320x568, which are the two this block's siblings use.
 
 **Delivery** parked at `patches/proc-lane4-art-gates-regress-65-promotion-after-gameover-js-2026-10-09`. **NOT on main**: no lane but the build routine can push, proved three ways on 2026-10-03, and not re-tested here [R21]. This record is the LAST commit of the parked body and a pure append.
+## 2026-10-09T04:33Z — process-build lane 3 — TC-R16's register row names the 27 assertion ids gate 51 runs
+
+THE ITEM. jobs/gate-51-fallback-column-assertions-written-and-three-are-red-on-main-2026-10-03,
+priority 14, finishFirst true, owningLane build. Taken under R05b from the finish-first queue. Its
+`scopeReducedTo` names three remainders and exactly one is inside this lane's allow-list: the TC-R16
+case rows in claude/stories/TEST-CASES.md. The other two are the R36 phase-1B admission runs (three
+green runs on a tree where A0e is green, which needs a machine where Stockfish readies and this
+container is not one) and the US-R13 clause, which process-build-1 built and parked on 2026-10-07.
+
+WHY THIS LANE'S OWN FIVE FINISH-FIRST JOBS WERE NOT TAKEN. All five were re-read this run and every
+remaining step on all five belongs to the build lane's integration slot or to the orchestrator. Lane 4
+measured at 04:05Z today that build-499's steps (2) and (3), which READ as one-word process-lane
+repairs, have a hard prerequisite: neither gates/audit/r19-phone-geometry.sh nor gates/audit/red-count.sh
+is on main. I did not re-measure that; I read its correction and did not spend a slot reproducing it.
+
+THE GAP IS TEN AND THE JOB SAID SEVEN. The job's `case` field places A0e, A9a, A9b, A9c, A10, A11 and
+A12 in this register. Measured by set difference between the TC-R16 assertion ids in
+gates/regress/51-drill-explain-why.js and the ids named in the row:
+
+  gate asserts                27 ids
+  row named (main, 6bd5e54)   12 ids
+  in gate, not in row         15 ids: A0e A1 A10 A11 A12 A4 A5 A9a A9b A9c B0 B2 B3 B7 B9
+  in row, not in gate          0
+
+Of those 15, five (A4, A5, B2, B3, B7) were named only inside the ranges `A3-A6`, `B1-B4` and `B6-B8`,
+so they were present to a reader and absent to every mechanical read. The other TEN were absent
+outright, and THREE of them are not the job's seven: A1 (the input-count assertion), B0 (the premise
+of every B assertion) and B9 (the explanations are all different). Nobody had counted them.
+
+WHAT CHANGED, one line, one file.
+  (a) the three ranges expanded to explicit ids, so the id list is enumerable rather than inferred;
+  (b) the ten missing ids named with what each asserts, A10/A11/A12 flagged as the R36 CANDIDATE they
+      still are at 51-drill-explain-why.js:253;
+  (c) the INPUTS count given its branch: A1 requires >= 2 captures and the minimax fallback yields 1 on
+      the same game, so `2` is a property of the covered branch and not of the fixture;
+  (d) the `#426: 34 PASS` figure in the result column marked as a #426 reading that predates ten of
+      these ids. The 80 PASS / 0 fail the integration slot reported at #474 is CITED to its document and
+      NOT re-derived here, because this container cannot ready Stockfish [R18].
+
+AFTER: 27 == 27, zero in both directions, 6 columns unchanged.
+
+THREE CONTROLS, ALL RED IN THE RIGHT PLACE.
+  K1b  strike both mentions of B9        -> FAIL, GATE NOT ROW = [B9]
+  K2   re-collapse the B6-B8 range       -> FAIL, GATE NOT ROW = [B7]
+  K3   plant B99, which no assertion has -> FAIL, ROW NOT GATE = [B99]
+Determinism: three consecutive runs byte-identical, output md5 8450220193bf3ca0d974da123fc931c1.
+
+AND K1's FIRST VERSION DID NOT FIRE, recorded rather than quietly fixed, because it is a limit of the
+measurement and not a typo. Striking `B9:` from the enumeration alone left the row PASSING, because my
+own column-6 note mentions B9 in prose. The comparator reads ids ANYWHERE in the row, so a row that
+merely MENTIONS an id satisfies it. That is the shape
+jobs/register-join-and-input-count-wrong-2026-09-28 (priority 14) already owns, and the measurement is
+recorded there rather than filed as a new id [R09, R25].
+
+NON-INTERFERENCE, MEASURED RATHER THAN ASSERTED. `gates/verify-log.sh --citations` run on a pristine
+worktree at origin/main 6bd5e54 and on this tree returns the SAME output: the same four wrong-width
+rows (lines 29, 34, 37, 137 - my row 36 is not among them), the same `4 exceeds the committed ceiling
+of 2 by 2`, the same 17 dead paths / 20 unsupported case ids / 10 misfiled rows. So main's own register
+self-check is RED ON ARRIVAL and this change moves nothing in it, in either direction. I did NOT search
+the jobs collection for an existing id covering that red, so I have not filed one [R09].
+`gates/verify-log.sh --citations-selftest`: 30 pass / 0 fail on both trees.
+
+NOT CHECKED. Gate 51 itself - it needs Stockfish, which this container never readies, which is the exact
+condition A0e exists to report; so no pass/fail figure for gate 51 is published by this run and
+std.gates is null rather than zero. The 59-section suite. The R36 phase-1B admission runs. Whether any
+of the other eight pending payloads touches this file (none names it, read from their own fields). The
+19 other register rows' own id coverage, so the 15-id gap is a measurement about TC-R16 and not a class
+count across the register.
