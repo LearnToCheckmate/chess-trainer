@@ -1,133 +1,126 @@
 # HANDOFF
 
-**#506 SHIPPED, 2026-10-09. It is the INTEGRATION RUN and it changed NO APPLICATION CODE.** `app.js` is
-byte-identical to #505's registered artefact `ebb88c8f76f7` and `chess.jsx` to `a58bafeb9f65`, so
-**nothing on Kunal's phone looks or behaves differently because of this build** — say that first, because a
-reader skimming "SHIPPED" will otherwise assume otherwise. What landed is eleven of twelve parked payloads
-from four process-build lanes that cannot push: four audit instruments that were off main, two regression
-gates, the suite driver's `--selftest` arm, a case-register row and eleven lane records.
-**GATES GREEN #506 at `59` sections / `4577` PASS / 0 FAIL** over gated sha `0a73757`, bundle
-`ebb88c8f76f7`, source `a58bafeb9f65`.
+**#507 SHIPPED, 2026-10-09 — AND IT WAS GATED AND PUSHED BY A DIFFERENT RUN FROM THE ONE THAT BUILT IT.**
+Read that first, because every register row for #507 except one names a run that is dead.
 
-**THE SLOT OPENED FOR THE FIRST TIME IN FOUR DAYS.** STEP 1I's window is UTC hour >= 11. #502, #503, #504
-and #505 all woke before it, each measured the slot shut, and each wrote that it was owed by "the first fire
-after 11:00Z that wins the pen". This run woke at 11:21:08Z. **The manifest was TWELVE, not the five handed
-forward** — re-derived, not carried — because the backlog grew while the window stayed closed.
+`#507` was built by `build__1791555675000`, which took the pen at 14:21:15Z, wrote the fix, ran both blind
+antagonists, upheld and fixed every veto — and then **stopped at 16:28:09Z with its suite killed at 15 of 59
+sections and nothing on main.** Its four commits sat on `origin/claude/cool-noether-r149ki`, 4 ahead of main
+and 0 behind: R42 class 1 leakage in its purest form, work finished and not delivered.
+`build__1791577208000` woke at 20:20:08Z, took the pen as an **R38 takeover**, reset its own designated branch
+to that tip, re-verified every claim rather than inheriting it, and gated #507's own registered artefact.
 
-## READ THIS FIRST: FIVE POINTERS, AND THE FIRST IS THE ONE THAT NEARLY COST THIS RUN ITS LOG
+**GATES GREEN #507 at `59` sections / `4607` PASS / 0 FAIL / 0 red sections / 0 `<<<`**, gated sha `a795d9f`,
+bundle `28f1ff838440`, source `83610da7d7c0`, stamp `#507 - 2026-10-09 12:04 ET`.
 
-**(1) THE BUILD NUMBER YOU GATE UNDER IS NOT THE NUMBER THE BUNDLE IS STAMPED WITH, AND `CT_EXPECT` IS THE
-SEAM.** I launched the suite as `'#505'`, reasoning that `gates/mountcheck.js` asserts the bundle carries the
-number being gated and that this run may not rebuild (`gates/build.sh` embeds the minute in the stamp, and
-`app.js` in the diff is a STOP under STEP 1I.3's allow-list). Antagonist A vetoed on four limbs and three
-were right — #505 is issued with five register rows, #506 was unminted, and
-**`claude/agents/gatelogs/505-all.log` ALREADY EXISTS COMMITTED**, so archiving over it would have destroyed
-the #416-class evidence this project keeps two logs for. THE FIX IS ONE ENV VAR: `gates.sh:160` is
-`export CT_EXPECT="${CT_EXPECT:-$N}"`, so `CT_EXPECT='#505' gates/.gates-run-506.sh '#506'` stamps the log
-#506 while mountcheck asserts the bundle's true #505 stamp — green at 16 PASS. **AND MY OWN PREMISE WAS
-WRONG TOO:** `node gates/mountcheck.js '#506'` run directly PASSES at 14/0, because that assertion is
-conditional on `CT_EXPECT`; the suite's mountcheck reports SIXTEEN, and the two extra assertions are the
-stamp check. The 14-vs-16 discrepancy is the instrument that catches this. Cost: ten minutes.
+## WHAT A PLAYER SEES, AND BE PRECISE ABOUT WHICH HALF REACHES KUNAL'S PHONE
 
-**(2) A VETO CAN BE RIGHT ON THE VERDICT AND WRONG ON THE DECISIVE FACT — CHECK IT BEFORE YOU ACT.** A's limb
-(1) said neither registered #505 bundle is `ebb88c8f76f7`. `awk -F'\t' '$1==505'` over
-`gates/build-numbers.tsv` returns FIVE rows, FOUR of them `built`, and `ebb88c8f76f7` IS the fourth. A later
-conceded it had run `buildnum.sh check | head -8` and published "neither" over a listing it had TRUNCATED —
-"the same sin as the `| tail` I was engaged to catch". **I made the identical error earlier in the same run**,
-reading an exit code through `| tail` and printing 0 for a script whose own last line says RED. Two
-independent instances of one class in one run: a count or a status read through a truncating pipe.
+The Review games list's filter header no longer moves the list underneath it. Two controls there could appear
+and both were conditionally rendered:
 
-**(3) RUN THE CROSS-READ. IT FALSIFIED A CAUSE I HAD ALREADY COMMITTED.** Both antagonists found the
-`gates/audit/play.js` roster gap independently and both said one roster row closes it — correct. But B
-located the recruiting citation at `gates/regress/65-promotion-after-gameover.js:282`, I wrote that into the
-roster row AND the commit message, and A falsified it on the cross-read: `cited-not-run.sh`'s own
-`default_records()` scans the record documents and **never `gates/regress/`**, so a line in a gate file
-cannot recruit anything. The real citation is `claude/PROCESS-LOG.md:858`. A's sentence is the one that
-matters: *a run that acted on B's line would edit the gate, re-run the audit, and find the member still
-there.* Corrected in its own commit. The two doors disagreed about a mechanism and the disagreement was the
-product.
+- **The Clear chip** is now always in the layout, ghosted when there is nothing to clear. This stops the chip
+  row wrapping from 2 lines to 3 — **94px → 144px, a 50px drop, AT 320x568 ONLY.** At 375x730 and 375x761 the
+  row never wrapped, so **this half is a no-op on Kunal's own phone** and the clause's value to him is
+  entirely in the second half. Say so rather than letting "fixed the jump" imply otherwise.
+- **The coverage line** ("Graded 6 of 7 games — a game we haven't graded yet can't match this filter.") now
+  holds its box for as long as a grade filter is on, and paints the *complete* sentence when the pass
+  finishes instead of being held blank. This is the one that reaches him: it costs **34px at every geometry
+  including his**, and its jump was the **uncommanded** one — `_ungr` decays to zero as the background pass
+  grades, so on main the line vanished on its own seconds after he stopped touching anything, dropping the
+  list under a finger already reaching for a row.
 
-**(4) A FIX FOR STALE CITATIONS CAN BE A STALE CITATION. MINE WAS.** This batch grows `gates/gates.sh`
-329 -> 395 lines, all below `set -uo pipefail`, so every citation into it is stale by **+66** — and five were
-brand-new text in these very payloads. I re-pointed them BY SYMBOL per #503's pointer 4. **My first draft
-quoted them literally in the counted `path:NNN` form, so the note explaining the de-pin became three live
-citations itself and the tree-wide count did not fall.** `claude/PROCESS-LOG.md` already records that exact
-failure. Rewritten in words. Nineteen PRE-EXISTING live sites remain stale and are NOT fixed: five of their
-ten files are ones this run held no R44 lock on, and `RUN-LOG.md`'s six are historical rows that must not be
-rewritten. Enumerated with the command on the job that owns the cause.
+**AND THE COST THIS BUILD ADDS, measured and not hidden.** Rendering the line whenever a grade filter is on
+means that over an **already fully graded** library — the steady state any real player reaches within seconds
+— tapping a grade chip now inserts `17px box + 9px flex gap = 26px` at 375x730, where main inserted **zero**.
+Gate 73's new `C3g` prints that every run. It is a NOTE and not an assertion on purpose: removing it means
+reserving the box on *every* Review screen, including for players who never filter, which spends the same
+pixels permanently to save them on one tap. That is a product trade-off and it is Kunal's, routed as
+`jobs/orchestrator-the-coverage-line-now-adds-a-commanded-26px-jump-where-main-has-zero-...-2026-10-09`.
 
-**(5) THE FROZEN COPY PROTECTS ONE FILE OUT OF SIXTY-THREE, AND THE OTHER SIXTY-TWO ARE THE DANGEROUS ONES.**
-Copying `gates.sh` to `gates/.gates-run-NNN.sh` inside `gates/` is right and it worked (all three md5s equal,
-`ROOT` resolves). But the suite reads `gatemanifest.sh`, `mountcheck.js`, `lib.js`, `drive/play.js` and all 58
-regress gates **from the live working tree, progressively, over 95 minutes** — and node reads a gate wholly
-at require time, so a mid-run edit to a gate NOT YET REACHED produces no error at all, just a green log that
-is a collage of two trees. That is strictly worse than #461's loud bash failure. So before making the veto
-edits mid-run I measured that ZERO files under `gates/regress/`, `gates/lib.js` or `gates/drive/` reference
-any of the three scripts I touched, and I re-measured all 79 suite-read JS files as byte-identical between
-launch and finish. **Freeze them and diff them; do not reason about it.**
+**ONE OF THE THREE RESIDUALS WAS WITHDRAWN AS A FALSE DEFECT AND MUST NOT BE RE-TAKEN.** A closer screen read
+the empty state's Clear button as below the fold at `top 748.5` in a 730 viewport. #507 measured the band from
+the filter row the player has just tapped to the bottom of that button as 291.6px at 730, 291.6 at 761 and
+341.6 at 568 — it fits every geometry, and the 748.5 came from reading at a scroll origin the player is never
+at. `B6c` was already the right assertion and is untouched. Its published 291.6 figure is itself now withdrawn
+as state-dependent (270.59 / 320.59) at `chess.jsx:7725`; the **conclusion** survives on `B6c`'s own
+reachability walk, which scrolls and re-reads the rect the #382 way.
 
-## WHAT IS OWED, AND NONE OF IT IS DISCHARGED BY THIS RUN
+## THE FINDING THE NEXT RUN SHOULD ACTUALLY CARRY
 
-1. **THE 4000ms CLOCK IS THE RESIDUAL AND IT IS NOT MINE.** `jobs/the-intro-card-dismisses-itself-under-a-reader-and-the-next-tap-steps-the-demo-2026-10-08`
-   (P1, priority 11, build) now carries this run's measurements: the clock starts at **open**, not at the
-   gesture, so a reader who reads before scrolling loses the card at **+4049ms** on a 676-character card, and
-   every figure is **identical on both bundles** — pre-existing, and this build neither causes nor cures it.
-   Staged pauses of 0/2000/3500ms survive; 4200ms is already gone. The honest scope of #505's own claim is
-   therefore *the card survives a scroll gesture BEGUN inside the 4000ms window, on a card that has something
-   below the fold*, and the commit and the comment both say exactly that. Two remedies were named by the
-   antagonists and **neither was measured**: pause the demo while the card is up, or make the hold expire.
-   Both are AMBER, not green.
-2. **THE CTA IS STILL BELOW THE FOLD ON THE ONE CARD THAT NEEDS THE CAP.** Reachable by scrolling, which
-   US-R50 accepts in terms, and not on screen at rest. That is route 2 —
-   `jobs/the-intro-cards-primary-button-should-not-be-below-its-own-fold-2026-10-08` — a flex restructure of a
-   SHARED overlay, with #398 as this project's worked example of that going wrong. It needs its own run and
-   its own control set.
-3. **BLOCK F SCROLLS PROGRAMMATICALLY AND A FINGER-DRIVEN F IS OWED.** It says so in its own header. The
-   mechanism is the right instrument for the question F asks, and it is weaker than a finger.
-4. **375x679 EXERCISES BLOCK D AND IS NOT IN `CT_74_GEOS`.** Antagonist A measured the cap binding there
-   (plans room 5, card survives, tap works), so a fourth geometry exercises D2 and nothing runs there. Block D
-   emits **no PASS at `kunal730`**, which is Kunal's own phone.
-5. **THE FIVE PARKED PATCHES ARE NOW OWED BY A FIFTH CONSECUTIVE RUN.** STEP 1I's window is hour ≥ 11 and five
-   consecutive fires have woken before it. That is a structural starvation of the integration slot, not a
-   scheduling accident, and it belongs to the orchestrator.
-6. **THE AUDITOR HAS NOT RUN FOR EIGHT CONSECUTIVE BUILDS**, and the live site is unreachable from this
-   container so no run here can verify the deployed app.
-7. **THREE GATES ARE KNOWN-ABSENT** (`50-drill-verdict-no-jump`, `17-drill-grade-arithmetic`,
-   `52-drill-grades-the-move`), so every GATES GREEN in this project is honest and blind in exactly those three
-   places. Gate 50 is still in `gates/pending/`, which nothing enumerates.
-8. **SIX NEW MEMBERS OF THE EMPTY-DENOMINATOR CLASS** are named with file and line on
-   `jobs/three-suite-assertions-read-an-empty-or-constant-denominator-as-a-pass-2026-10-07`, from A's rotating
-   audit. The rotation covered `53-lesson-hit-area.js` fully and sampled 63, 65, 66 and 70; **continue at
-   `gates/regress/51-drill-explain-why.js`.**
+**An upheld veto was silently un-fixed between two of #507's own commits.** Its antagonist vetoed gate 73's
+`E7b` when it read `ungFound` (the element exists). `bebd6ef` repaired it to `ungFound && ungInk`, and that
+repair was **correct against the bundle of its moment**, which carried `visibility:_ungr>0?'visible':'hidden'`
+on the element. `880fda5` — part 3, taking the other antagonist's painted-ink recommendation — **deleted that
+toggle.** Nothing in the shipping tree sets `visibility` on the element or any ancestor, visibility is
+inherited, so `ungInk === ungFound` identically and the predicate collapsed back to the vetoed one.
 
-### 6. R19 IS CITED BY NAME AS THE AUTHORITY FOR BOTH ANSWERS, AND THIS RUN DID NOT FIX IT — DELIBERATELY
+Measured rather than argued: control `nc-ungr` (`53d219441ba6`, `gradeCacheUsable` reverted to `!!st`, which
+IS the #503/TC-R61 P0) made **E7b PASS** with payload
+`{"ungraded":"All 7 games are graded.","graded":null,"total":null}` — the screen stating a complete answer over
+a stale library, certified by the assertion written to forbid exactly that. Re-pointed at the warning branch
+(`ungGraded<ungTotal`, which is C2's existing shape) and it now reddens.
 
-Found by the second R37 feedback read, not by me: `flags/build-ext-2026-10-09` at 09:37Z, written by the
-build lane's external challenger **while this suite was running**. Five lines cite rule R19 as the authority
-FOR 375x730 — the exact figure R19's own text declares wrong and orders corrected wherever it appears —
-while four cite it correctly for 375x761. I re-derived all nine with one grep rather than repeating the
-claim, and the five are exact: `gates/shots476.js:1`, `gates/regress/70-live-game-reset-guard.js:78`,
-`gates/regress/20-review.js:3`, `gates/regress/18-drill-credit-provenance.js:41`,
-`gates/regress/73-review-list-filter.js:216`.
+**The generalisable part is not "re-run your controls".** It is that a repair and the mechanism it depends on
+can live in one build, two commits apart, with nothing mechanical connecting them — and that #507 *did* write
+the assertion its veto asked for, so the class rule as currently drafted would have been satisfied at
+`bebd6ef`. Recorded on `jobs/veto-fixes-land-with-no-assertion-because-the-gate-is-frozen-pre-veto-2026-09-28`
+rather than as a new id.
 
-**Gate 74 adds no sixth false citation — it cites R19 nowhere — but it runs the wrong phone, and it was
-told to.** `gates/lib.js:31` reads verbatim *"'kunal730' is the real phone and new gates should use it"*,
-five days after R19 settled against it, and gate 74 obeyed: it runs `se,short375,kunal730` and never
-`kunal761`. The challenger's own class count already names gate 74 as one of the 730-only files, so that
-count is filed and is NOT re-filed here [R09, R25].
+**AND MY ANTAGONIST WAS WRONG ON ONE DECISIVE FACT, which is why it was reproduced before being acted on.** It
+predicted `nc-ungr` would score 90/0 — that the P0 had *no* coverage left. It scores **86/5**: the control does
+redden, via the invalidation assertions, because one mutation breaks both paths. What was unguarded is narrower
+than claimed and still real — a display-only regression leaving invalidation intact would have passed unseen.
 
-**WHY THIS RUN LEFT IT ALONE, so the next run does not read the silence as an oversight.** Three reasons,
-in order of force. (1) Editing any of those five files mid-suite would have invalidated the suite: four of
-them (`18`, `20`, `70`, `73`) are gate files the running suite loads as node subprocesses, and `70`, `73`
-and `74` had not yet run at the moment the flag arrived — so the log would have gated a tree that no longer
-existed on disk. That is #461's "freeze the harness before you launch" generalised from shell scripts to
-gates, and it is the same family as the suite dying on an edited `gates.sh`. (2) It is a parked P3 whose own
-challenger wrote *"I am not arguing for a change and priority is not mine to set"*. (3) It needs five more
-artefact locks on top of the nine this run already holds.
+## FIVE POINTERS FOR WHOEVER HOLDS THE PEN NEXT
 
-**WHAT THIS RUN DID INSTEAD, and it is the half the challenger could not do:** it MEASURED whether the
-#505 fix holds at 375x761, which no document carried. See the job's own record. The expected answer is that
-the defect is NOT EXERCISED at 761 — the panel caps at `100vh` and block F requires `panelRoom===0`, so a
-taller viewport makes the collision less likely, exactly as gate 74 already reports for `kunal730` at B3
-and B5 — which would mean the coverage gap is real but much weaker than it looks, because the defect lives
-at the SHORT geometries the gate does cover. That is a prediction, and the measurement is what settles it.
+1. **A TAKEOVER IS CHEAP AND THE TREE IS USUALLY SOUND — VERIFY THE CLAIMS, NOT THE CODE.** This run changed no
+   line of `chess.jsx` and still found a veto-level defect, five stale control figures and nine false claims,
+   all in the *records about* the tree. When you inherit a dead run's branch, the code is the part its
+   antagonists already attacked; the claims are the part nobody re-read.
+2. **RE-RUN THE CONTROL SET AGAINST THE GATE AS IT SHIPS, not as it was when you measured.** Every row's
+   `pass + fail` should sum to the gate's assertion count — that one arithmetic check would have caught all
+   three of #507's stale sets instantly, and it costs nothing.
+3. **NEVER READ AN EXIT CODE THROUGH A PIPE.** `fastgate.sh ... | tail -20; echo $?` printed **0** (FAST GATE
+   GREEN, push with no suite). The real code is **2 = GO FULL**. #506 recorded this class against itself twice
+   and it still landed here, on the one command that decides whether the suite happens at all. A `||` at the
+   end of an `&&` chain bit the same way, reporting the suite dead when an empty `grep` had failed four
+   commands earlier.
+4. **DO NOT REBUILD AN INHERITED BUNDLE TO FIX A COMMENT.** `app.js` is the bundle *of* a specific `chess.jsx`,
+   and `build.sh` embeds the minute in the stamp, so any rebuild changes the md5 and orphans every control and
+   determinism figure measured against it. Three false comments in `chess.jsx` are therefore left standing,
+   named here and on the job, and owed by the next build that rebuilds anyway.
+5. **THE REGISTER ROW UNDER YOUR OWN runId IS NOT BOOKKEEPING.** All five prior #507 rows name a dead run.
+   Without the sixth, nothing records which run gated and pushed the artefact, and the audit trail for the
+   build ends at a session that never finished.
+
+## WHAT IS OWED AND NOT DONE
+
+1. **The auditor did not run, making it NINE consecutive builds.** The structural cause is not this lane's:
+   seventeen of eighteen lanes have no enabled scheduled task and a build lane may not enable a trigger [R20].
+   Owned by `jobs/seventeen-of-eighteen-lanes-have-no-enabled-scheduled-task-2026-10-03`. One antagonist ran,
+   not two: the tree arrived already cleared by #507's full blind pair, so a single careful pass was the right
+   trade — **and no coverage estimate is published from it, because a single antagonist cannot produce one.**
+2. **`builds/507` is `closed:false` with its derived auditors unrun**, for the same reason.
+3. **Three false comments in `chess.jsx`** (`:7424`'s TDZ justification and `:7441`'s "cannot drift apart
+   again", both describing a draft that was reverted when antagonist B's finding 5 was declined). Withdrawn in
+   the gate and on the job; owed in `chess.jsx` by the next build that rebuilds it.
+4. **Two of ten assertions in `gates/regress/25-online-clocks.js` cannot fail**, found by this run's required
+   rotating audit and filed with the fix and the controls that would close it. The file is **byte-identical to
+   `13a4ba2` (#416)**, and #493's antagonists already named two of these — so this is the second independent
+   audit to land on the same two lines with nothing changed in between. Next rotation starts at
+   `gates/regress/26-invariants.js`.
+5. **`gates/closeout.sh` does not exist on main.** #504's pointer 5 says it "now greps the FINISHED records for
+   a false ship claim and exits 1" — that script is on no ref. #504 stood down and never pushed it, so the
+   mechanical guard against a records file claiming a ship it did not make was lost with its container. This
+   run wrote its records by hand and checked them by reading.
+6. **The live site is still unverifiable from this container** — `learntocheckmate.github.io` is blocked by the
+   egress proxy, so every claim here is about a bundle and never about the deployed site. Inherited, still live.
+7. **The three known-absent gates remain absent** (`50-drill-verdict-no-jump`, `17-drill-grade-arithmetic`,
+   `52-drill-grades-the-move`), so this GATES GREEN is honest and blind in exactly those three places — the
+   drill verdict's board movement and the drill's grading arithmetic. The suite reports them every run on
+   purpose.
+
+**AND ONE THING THAT IS NOT OWED, said so it is not redone:** the control set does not need re-deriving. All
+five controls were rebuilt on the shipping source `83610da7d7c0`, each is one change from it, each reddens a
+disjoint set, every row sums to 91, and the two repaired assertions are each uniquely caught. Gate 73's 91 PASS
+is reproduced on two independent instruments (standalone three times, and inside the suite).

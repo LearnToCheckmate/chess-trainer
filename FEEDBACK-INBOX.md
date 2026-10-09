@@ -2859,3 +2859,52 @@ and why.
 **And the honest size of it, for when it lands.** Across 265 moves of three real games, only four print a longer
 line at all — and **your own 19…Bxh3!!**, the brilliancy you found by hand, still shows one move. This would have
 made the explanation better in four places. It would not have made it better on the move you were looking at.
+
+---
+
+## #507 — the Review games list stops moving under your finger while you filter it
+
+**2026-10-09.** This is the filter you asked for on 23 September — *"it's a little hard to scroll through that
+list right now"* — coming back for its last piece. The filter itself shipped a while ago. What was still wrong
+is that **using it moved the list**, which is the thing that makes a list hard to use with a thumb.
+
+**What changes on your phone.** Turn on a grade filter — brilliancies, blunders, mistakes — and the line under
+the chips that tells you how much of your library has actually been graded yet now **holds its place**. Before
+this, that line let go of its space on its own: the app grades your games quietly in the background, and the
+moment it finished, the line disappeared and **the whole list jumped up 34 pixels** — with you not touching
+anything, often just as you were reaching for a row. That is the half of this that reaches your phone, and it
+is the half worth having.
+
+**And I want to be straight about the other half, because the headline would mislead you.** There was a second
+jump — the **Clear** chip appearing and pushing the chip row from two lines to three. That one is fixed too, and
+**on your phone it was never happening.** At 375 wide the row never wrapped, so it never moved. It only moved
+at 320 — a smaller screen than yours — where it cost 50 pixels. So if you tap a filter expecting to see that
+part improve, you will see nothing, because there was nothing there to see.
+
+**One thing got slightly worse, and it is a question for you rather than something I should decide.** Because
+that coverage line now keeps its space whenever a grade filter is on, there is a case where it *appears* where
+it previously didn't: once the app has finished grading everything — which is where you'll be within seconds of
+opening Review — tapping a grade chip now adds the line, and **the list moves down 26 pixels.** On the old build
+it moved zero there.
+
+So the trade is: an **unprompted** jump that happened while you weren't touching the screen, swapped for a
+**prompted** one that happens on the tap that caused it. I think that is the right way round — a jump you can
+attribute to your own tap is far less annoying than one that happens on its own — but it is a judgement, not a
+measurement, and you may disagree.
+
+The fix for the remaining 26 pixels is to hold that line's space on **every** Review screen, all the time,
+including for someone who never filters at all. That spends the same pixels permanently to save them on one
+tap, and on a screen where you have told me repeatedly that board and list space is precious, I did not want to
+make that call for you. It is on your Decision Desk with the measurements.
+
+**What I did not do.** A closer look at this screen had also flagged that the **Clear filters** button on the
+"no games match" state sits below the fold. I measured it and **that one is not a defect** — the distance from
+the filter row you have just tapped to the bottom of that button is about 292 pixels on your screen, so it fits
+comfortably; the earlier reading had measured from a scroll position you are never actually at. Nothing was
+changed there, and I would rather tell you a report was wrong than quietly "fix" something that works.
+
+**One piece of housekeeping worth knowing, because it explains the build number.** The run that wrote this fix
+stopped partway through this afternoon — before it had run the full test suite or put anything live. The work
+was sitting finished on a branch. This run picked it up, re-checked all of it rather than taking its word, found
+and fixed a real hole in one of its tests, and then shipped it. Nothing about the app changed between those two
+runs; what changed is that it is now actually on your phone, and that its tests can now fail if it breaks.
