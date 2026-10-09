@@ -6920,9 +6920,129 @@ export default function App(){
           375x568 and 375x730, because no fixed bottom bar is on screen during a Pass & Play game at all; the celebration I
           could not reach and I say so instead of crediting it. Neither is changed here - an unexercised z-index change is the
           unmeasured branch #496 shipped and had vetoed - and both are carried on
-          jobs/two-modals-of-the-497-class-cannot-be-driven-so-their-ordering-is-unexercised-2026-10-08. */}
+          jobs/two-modals-of-the-497-class-cannot-be-driven-so-their-ordering-is-unexercised-2026-10-08.
+          ---- #498. THE RESIDUAL #497 NAMED IS NOW FIXED, AND IT WAS A SECOND AND DIFFERENT FAULT. ----
+          #497 fixed the HIT TEST (z-index, paint). This fixes the OVERFLOW (layout), which z-index could not move and
+          which #497 asserted rather than hid. The panel carries no height cap, and the overlay is display:flex with
+          alignItems:'center' and padding:18, so a panel taller than the viewport overflows SYMMETRICALLY off BOTH ends.
+          MEASURED on #497's own shipped bundle e60f12585339 at 320x568, Openings row 45, Petroff (Russian) Defense,
+          inside the 4000ms auto-dismiss with the hold-tap on the panel - every figure equal to #497's published
+          residual to the hundredth: panel -33.27..601.28 (h 634.55) in a 568 viewport; CTA 540.28..584.28, 16.28px
+          below the screen; close X -23.27..6.73, 6.73px of a 30px button on it.
+          AND THE NUMBER THAT MAKES IT A DEFECT RATHER THAN A COMPLAINT, which #497 did not publish: the count of
+          USER-scrollable ancestors of each control was ZERO, and after actually scrolling every one of them and
+          re-reading the rect both controls moved by 0.00px and both stayed off screen. So this was UNREACHABLE ink,
+          not below-the-fold ink - the distinction CLAUDE.md insists on - measured by gate 40's treatment (computed
+          overflow-y auto|scroll AND room to scroll, scrolled for real, rect re-read, scrollTop restored) and never by
+          scrollIntoView, which says yes on an overflow:hidden box.
+          THE FIX IS TWO PROPERTIES ON THE PANEL: maxHeight:'100vh' and overflowY:'auto'. It is this file's established
+          idiom for a modal panel - the lessonMore sheet below carries maxHeight:'72vh',overflowY:'auto' in the same
+          shape - and `*{box-sizing:border-box}` at :5934 means the cap includes the panel's own padding and border.
+          THE CAP IS 100vh AND NOT calc(100vh - 36px), AND THE FIRST VERSION OF THIS FIX USED THE LATTER [R18,
+          self-caught before the gate ran]. Respecting the overlay's own padding:18 looks like the principled choice
+          and it caps at 532 on a 568 screen, which is TIGHTER THAN THE VIEWPORT. MEASURED over all 170 cards at
+          320x568: that version fixed Petroff and moved Gambits row 50's CTA from 510.94..554.94, fully on screen on
+          main, to 532.86..576.86, below the fold and needing a scroll - a card with nothing wrong with it made
+          worse to fix a card that was broken. That is #398's rule exactly, 'the damage moved to the row nobody was
+          asserting over', and the sweep caught it only because it measures every card rather than the one in the
+          job. 100vh binds only where the panel would otherwise leave the SCREEN, which is the actual defect: a
+          568-tall item in the overlay's 532 content box centres to top 0 / bottom 568, so the 18px padding is
+          cancelled symmetrically for exactly those cards that need the room and for no others.
+          WHAT 100vh COSTS, named: on the tallest cards the panel is flush to the top and bottom of the screen and
+          loses the overlay's 18px gutter. That is the price of not regressing a card that was fine, and it is the
+          cheaper of the two. A KNOWN LIMIT IT SHARES WITH EVERY OTHER vh IN THIS FILE (40vh, 26vh, 72vh): in
+          non-installed iOS Safari 100vh can exceed the visible viewport. R19 records that Kunal opens from the Home
+          Screen icon, where it does not. `dvh` would be exact and is deliberately NOT used: if it were ever
+          unsupported the declaration is dropped silently and the cap - and the defect's fix - goes with it.
+          THE CAP BINDS ONLY WHERE THE CARD WOULD OVERFLOW. At 375x730 - Kunal's phone - the panel measures 607.5 in a
+          730 viewport and is untouched by this change, and the same is true of 169 of the 170 cards. US-R50 sanctions
+          this remedy in terms: a dialog MAY be taller than the viewport provided its controls are reachable, and one
+          whose content scrolls satisfies that by scrolling.
+          THE TWO OPTIONS NOT TAKEN, REJECTED ON MEASUREMENT RATHER THAN ON TASTE, because the filed job offered three
+          and called them interchangeable [the #416 rule: a flag's proposed fix is a hypothesis, not a prescription].
+          (a) Make the OVERLAY the scroller: its measured scrollRoom is 33px, but the panel also overflows ~33px ABOVE
+          the origin and scrollHeight cannot express content above the top, so this reaches the CTA and can NEVER reach
+          the close X unless alignItems also flips to 'flex-start' - which re-positions all 170 cards on every screen to
+          fix one card at one geometry. (b) Tighten the inner 40vh/26vh caps: measured on Petroff the idea block is
+          216.88 against a 227.2 cap (NOT at its cap) and the plans block 147.67 against 147.68 (AT its cap, already
+          scrolling 97px), so the overflow is not one greedy block and tightening shrinks the reading space of all 170
+          cards to fix one. (c) Dropping the Related-lessons row removes a capability, which is RED and not this lane's.
+          WHAT IT COSTS, STATED: on Petroff at 320x568 the CTA is now BELOW the panel's visible bottom and is reached by
+          scrolling the card. That is reachable and it is not the same as on-screen-at-rest. A card whose CTA is pinned
+          always-visible below a scrolling content area would be better and is a structural DESIGN change to a shared
+          overlay, so it is nominated for Kunal and not taken here.
+          ---- AND THE CAP ALONE WAS A REGRESSION ON THE ONE CARD IT WAS BUILT FOR. BOTH BLIND ANTAGONISTS VETOED
+          THIS BUILD AND B's V1 IS WHY THERE ARE THREE PROPERTIES HERE AND NOT TWO. ----
+          `introHoldRef` is set ONLY by this panel's onClick (see the useEffect at :2850, which arms a 4000ms
+          auto-dismiss and checks the ref when it fires). A TOUCH DRAG THAT SCROLLS PRODUCES NO CLICK. So once the
+          cap put Petroff's CTA below the fold at 320x568, the only way to reach it became a gesture that does not
+          hold the card, and the card died under the finger.
+          MEASURED, 320x568, Openings row 45, with real CDP touch drags (NOT synthesizeScrollGesture, which
+          antagonist B established is inert in this container, and NOT scrollIntoView): two drags move the panel
+          scrollTop 0 -> 67 and the CTA's centre 595.55 -> 528.55, so the scroll itself works; the card is
+          nevertheless GONE at +4600ms; and a real tap at that same centre then lands on the lesson footer -
+          elementFromPoint returns a footer glyph - and STEPS THE DEMO. Confirmed twice here and 3 of 3 by
+          antagonist B. On main the CTA's centre was 562.28, ON SCREEN and tappable, so this was a genuine
+          regression and not a pre-existing cost: the fix had made the button harder to use than it found it.
+          THAT IS #497's OWN SYMPTOM REINTRODUCED BY TIMING INSTEAD OF BY PAINT ORDER, which is the sharpest thing
+          either antagonist found: #497 moved one integer so a tap meant for the card would stop reaching the
+          footer, and capping the card without holding it on scroll handed the same outcome back through a
+          different mechanism. A fix is not done when its own measurement is green; it is done when the player can
+          use the control.
+          SO A SCROLL SETS THE SAME REF THE onClick ALREADY SETS. One expression, the existing hold design
+          extended to the gesture the cap created. Not onTouchStart as well: the harmful gesture is the one that
+          SCROLLS, a finger resting on the card without scrolling leaves the 4000ms behaviour exactly as main has
+          it, and widening the hold to any touch is a behaviour change nobody measured.
+          ---- #505. AND IT MUST BE onScrollCapture, NOT onScroll, WHICH IS THE WHOLE OF THIS BUILD. ----
+          #498 shipped this hook as `onScroll` and HELD the tree, because its own antagonist measured that the
+          hook does not fire on the gesture a reader actually makes. THE MECHANISM, and it is a property of the
+          DOM rather than of React: the `scroll` event DOES NOT BUBBLE. The panel is not the only scroller in
+          this card - the idea block carries maxHeight:'40vh' and the plans block maxHeight:'26vh', each with
+          its own overflowY:'auto' - so a finger that lands on the card's body text scrolls the INNER block
+          first and the panel not at all. #498 measured the plans block's room at 97px against the panel's 67,
+          so the first drag is entirely absorbed by the child and the panel's own onScroll never fires at all.
+          The two-drag case reached the panel and passed; the ONE-DRAG case, which is what a reader does, did
+          not. The card then died under the finger on the 4000ms auto-dismiss and the next tap stepped the demo
+          - #497's own symptom handed back a third time, now through the event model rather than through paint
+          order or timing.
+          `onScrollCapture` CLOSES IT BECAUSE CAPTURE PROPAGATES WHERE BUBBLING DOES NOT. React attaches a
+          non-delegated `scroll` listener directly to the element for onScroll, which is why a child's scroll
+          is invisible to it; for the Capture form it listens at the root and replays the CAPTURE path, which
+          runs root-downwards THROUGH every ancestor of the target. The panel is an ancestor of both inner
+          blocks, so it sees their scrolls as well as its own. #498's antagonist C measured the capture path
+          receiving a descendant's scroll - 14 events where the bubble handler saw 0 - and said in terms that
+          the claim still had to be re-measured BY THE SINGLE-DRAG CASE and not by the two-drag case, because
+          the two-drag case was already passing. That is what gate 74's block D drives and it is why block D is
+          RED on #498's branch and must be GREEN here: the control for this fix was written before the fix.
+          WHAT THIS DOES NOT FIX, said rather than implied: the CTA is still below the panel's visible bottom on
+          the one card that needs the cap, so it is reachable by scrolling and is not on screen at rest. Pinning
+          it below a scrolling content area is the structural remedy, it is a change to a SHARED overlay, and it
+          stays where #498 filed it - jobs/the-intro-cards-primary-button-should-not-be-below-its-own-fold-2026-10-08.
+          This build makes the card survive the gesture that reaches the button. It does not move the button.
+          `overflowX:'hidden'` CLOSES A SIDE EFFECT THIS BUILD INTRODUCED AND DID NOT NOTICE. Setting overflow-y to
+          auto makes the OTHER axis compute to auto as well: antagonist B measured the panel's computed overflow-x
+          going visible -> auto, and at a 256-wide viewport (125% zoom on a 320 phone) that gave the card 35px of
+          horizontal room with the long Related chip clipped by 33.5px where on main it painted outside the card.
+          Pinning it to hidden keeps the one axis the fix is about. It is invisible at 320x568, where horizontal
+          room is 0, which is why the build's own sweep could not have found it.
+          AND #505 SHARPENS WHAT THAT COSTS, because "clipped" understates it for a BUTTON and the clipped element
+          IS one - the Related-lessons chip. Of the three available states antagonist C measured `visible` painting
+          it outside the card fully usable, `auto` clipping it at rest but leaving it reachable by a horizontal
+          drag, and `hidden` DELETING it: elementFromPoint in the clipped strip returns the div and not the button.
+          So the choice this line makes is REACHABLE versus UNTAPPABLE, and it is made deliberately - the vertical
+          axis is what the player needs to reach the CTA, and a chip that painted outside the card's own border was
+          never right either. Gate 74's D3a now prints the hidden width every run so the price is in the log rather
+          than only here, and it is 0 at 320x568 and 35 at 256 wide.
+          `className="scroll"` IS THE APP'S OWN SCROLLER IDIOM (eleven other sites) and paints a 5px thumb. BE
+          HONEST ABOUT WHAT IT DOES NOT DO: it is an overlay scrollbar, so it appears during the gesture and not at
+          rest, and B's measurement stands - at rest the card ends in 9.45px of blank padding and a rounded border
+          on the viewport's last row, with no clipped glyph, no fade and 67px hidden, so the card still READS as
+          finished. The affordance problem is real and only half-addressed here. Pinning the CTA below a scrolling
+          content area is the fix that dissolves it, it is a structural change to a shared overlay, and it is filed
+          with B's numbers as jobs/the-intro-cards-primary-button-should-not-be-below-its-own-fold-2026-10-08.
+          Amber record: flags/amber-498-intro-card-panel-caps-and-scrolls. */}
       {mode==='learn'&&openIdx!==null&&introCard&&(<div onClick={()=>setIntroCard(false)} style={{position:'fixed',inset:0,zIndex:472,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',padding:18}}>
-        <div onClick={e=>{e.stopPropagation();introHoldRef.current=true;}} style={{maxWidth:380,width:'92%',background:'linear-gradient(150deg,#1b1d24,#101116)',border:'1px solid rgba(var(--acr),.5)',borderRadius:16,padding:'18px 18px 16px',boxShadow:'0 20px 60px rgba(0,0,0,.6)',position:'relative'}}>
+        <div className="scroll" onClick={e=>{e.stopPropagation();introHoldRef.current=true;}} onScrollCapture={()=>{introHoldRef.current=true;}} style={{maxWidth:380,width:'92%',background:'linear-gradient(150deg,#1b1d24,#101116)',border:'1px solid rgba(var(--acr),.5)',borderRadius:16,padding:'18px 18px 16px',boxShadow:'0 20px 60px rgba(0,0,0,.6)',position:'relative',maxHeight:'100vh',overflowY:'auto',overflowX:'hidden'}}>
           {learnLabel&&<div style={{fontSize:'clamp(15px,4vw,20px)',fontWeight:800,color:'var(--ac2)',marginBottom:8,paddingRight:30}}>{learnLabel}</div>}
           <div style={{fontSize:'clamp(14px,3.2vw,16px)',color:'rgba(255,255,255,.9)',lineHeight:1.55,maxHeight:'40vh',overflowY:'auto'}}>{learnIdea||LIB[openIdx].idea}</div>
           {(learnPlans||LIB[openIdx].plans)&&(<div style={{fontSize:'clamp(14px,3vw,15px)',color:'rgba(255,255,255,.7)',lineHeight:1.5,marginTop:13,paddingTop:13,borderTop:'1px solid rgba(255,255,255,.13)',maxHeight:'26vh',overflowY:'auto'}}>{learnPlans||LIB[openIdx].plans}</div>)}
