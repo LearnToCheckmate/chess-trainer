@@ -18,10 +18,14 @@
 //     touched. The ASSERTION COUNTS below were affected and are corrected at the control block.]
 //      the CLEAR CHIP grows the row 94px/2 lines -> 144px/3 lines at 320x568 and moves it NOT ONE PIXEL at
 //      375x730 or 375x761. So the "~50px growth" is real and is a 320-ONLY number.
-//      [#508: "a 320-ONLY number" IS WITHDRAWN AS WRITTEN - it is true AT TWO ACCOUNTS and false at four,
-//      because the account chips share this row so the ACCOUNT COUNT moves the wrap boundary just as the
-//      width does. At FOUR accounts the same 94 -> 144 growth happens at 375x730 and 375x761 too. Block G
-//      drives that cell; the 2x3 table is in STORE4's header and the figure's full scope is on TC-R63.]
+//      [#508: "a 320-ONLY number" IS WITHDRAWN AS WRITTEN - it is true AT TWO ACCOUNTS, which is the only
+//      account count block F drives, and false at four: at FOUR accounts the same 94 -> 144 growth happens
+//      at 375x730 and 375x761 too, and block G drives that cell. THE VARIABLE IS THE TOTAL WIDTH OF THE
+//      CHIPS AND NOT THE ACCOUNT COUNT - this note's own first version said the count and that is withdrawn
+//      too, on an upheld antagonist finding: the relation is NOT MONOTONIC in the count (94px/2 lines at
+//      one, two AND three accounts, 144px/3 at four, a no-op again at five with the labels measured) and a
+//      four-account state with short labels is 94px/2 lines. The count is a proxy; G0b asserts the real
+//      condition. The 2x3 table is in STORE4's header and the figure's full scope is on TC-R63.]
 //      the COVERAGE LINE costs 34px at EVERY geometry including Kunal's own, and its jump is the UNCOMMANDED
 //      one: `_ungr` decays to zero as the background pass grades, so on main the line VANISHES on its own
 //      seconds after the player stopped touching anything. After the fix, AS FIRST WRITTEN: 34 -> 0px at
@@ -110,6 +114,34 @@
 //         pass-over-an-unreachable-state it was before C3e0 drove the n===1 input.)
 //    FIVE CONTROLS, FIVE DISTINCT RED SETS, and the two assertions this run repaired are each uniquely
 //    caught by their own control. That is what makes this gate's green evidence.
+//
+// ── #508's OWN CONTROL REGISTER. THE FIVE ROWS ABOVE ARE #507's AND REMAIN CORRECT FOR THE 91-ASSERTION
+//    GATE THEY WERE MEASURED AGAINST; CHECK A ROW AGAINST THE GATE IT WAS RUN ON, NEVER AGAINST THE NEWEST
+//    NUMBER. This block is appended rather than written over them, because an upheld antagonist finding was
+//    that #508's first pass updated TEST-CASES.md and the manifest row and left THIS register saying 91,
+//    five controls and "sums to 91" - seven lines below the paragraph that names
+//    jobs/veto-fixes-land-with-no-assertion-because-the-gate-is-frozen-pre-veto-2026-09-28. Same file, same
+//    paragraph, next build.
+//      THE FILE IS 105 ASSERTIONS. Counted off a real run with `grep -c '^PASS'`, not from the source.
+//      SHIPPING   227126b82b81 over source a510e35796cb   105 pass / 0 fail
+//        THREE runs, verdict sets BYTE-IDENTICAL, setSha 6a233573d343e9d6 [R36], measured on the gate AS IT
+//        SHIPS and with the gate's md5 frozen at launch and re-checked at the end (fc9d6848a62d both).
+//      nc-noghost  d1debc183fe8   83 pass / 22 fail   sum 105
+//        ONE change from the shipping source: the Clear chip returned to its pre-#507 conditional render.
+//        Reds: F1x3, F1bx3, F2x1[se], F3x1[se], F4x3, F4bx3  (=14, block F, ID-FOR-ID the set nc-noreserve
+//        reports above, re-derived from a control cut against a DIFFERENT source) + G1x2, G2x2, G3x2, G4x2
+//        (=8, block G at kunal730 and kunal761).
+//      AND IT IS NOT A SIXTH CONTROL, WHICH IS A CORRECTION TO #508's OWN FIRST WORDING [R18]. nc-noghost
+//        and nc-noreserve are THE SAME ONE-LINE MUTATION, re-cut against a later source; nc-noghost's red
+//        set is a strict SUPERSET of nc-noreserve's. So this gate has FIVE distinct source mutations and
+//        not six, and the sets differ because the GATE grew, not because the controls are independent.
+//        Saying "six controls, six distinct red sets" overstated the evidence and is withdrawn.
+//      THE TWO BLOCKS' DISCRIMINATING CELLS ARE DISJOINT AND TOGETHER COVER ALL THREE GEOMETRIES: F2/F3
+//        redden at `se` alone, G2/G3 at kunal730 and kunal761 alone.
+//      G0b PASSES ON BOTH BUNDLES AND THAT IS ITS DESIGN, NOT A VACUITY. It is block G's denominator and it
+//        is measured in the FILTERED state, where both bundles paint the chip, precisely so it cannot fail
+//        because the thing under test is missing - the conflation that made its own first draft wrong. The
+//        control proves the separation: G0b green on both, G1/G2/G3/G4 red on the control.
 //    WHY EACH ONE MOVED, because a changed number with no cause is not a measurement:
 //      F4c AND F4d ARE NO LONGER ASSERTIONS AT ALL, which is why nc-noreserve lost 6 reds. Antagonist A
 //      vetoed them as not three independent mechanisms - visibility:hidden implies all three, so each
@@ -875,7 +907,12 @@ function mkTap(b,READ){
   //    NEGATIVE CONTROLS - BUILT AND RUN AT #503, NOT PREDICTED. The command is
   //    `CT_APP=<bundle> node gates/regress/73-review-list-filter.js` at 375x730, counts are whole-file, and
   //    the bundle md5 is cited rather than a build number because a number names several bundles [#454].
-  //    BLOCK E IS 16 OF THE FILE'S 91 [#508: this read "of the FILE'S 61", a frozen denominator - the file
+  //    BLOCK E IS 15 OF THE FILE'S 105 [#508, SECOND CORRECTION, AND THIS LINE HAS NOW BEEN WRONG TWICE:
+  //    it read "16 OF THE FILE'S 91" and BOTH terms were wrong. The file is 105, counted off a run. And the
+  //    numerator is 15, not 16: `grep -cE '^PASS E'` returns 15 on every log checked, because the
+  //    enumeration below counts E7c, which routes to an L.note and NEVER EMITS A VERDICT - so a line
+  //    written to correct a frozen denominator was itself miscounting its own numerator. Found by an
+  //    antagonist at the diff door. The original note read "of the FILE'S 61", a frozen denominator - the file
   //    was 61 when block E landed at #503 and is 91 now, which is #405's own trap inside a gate header]:
   //    eleven as first written, plus E6a/E6b/E7a/E7b/E7c added on two upheld
   //    antagonist vetoes. THE FIRST VERSION OF THIS LINE SAID "12 of 56" AND THE 12 WAS WRONG IN FOUR
@@ -1135,12 +1172,25 @@ function mkTap(b,READ){
            UNCOMMANDED.
        (3) THE EMPTY STATE's OWN BLOCK (`glist-empty`, chess.jsx `_emptyTxt`). NOT FIXED, and UNCOMMANDED
            like (2). Its wording changes as `_nG` grows under the background grading pass, so the block and
-           its 44px Clear button move with nobody touching anything. MEASURED at kunal730 with
-           `ct_gamestats:{}` so the pass has real work: `empOH` 85 -> 64 and `glist-empty-clear` moved UP
+           its 44px Clear button move with nobody touching anything.
+           [#508: THE THREE FIGURES THAT STOOD HERE DO NOT REPRODUCE AND ARE WITHDRAWN [R18]. They read
+           "MEASURED at kunal730 with `ct_gamestats:{}`: `empOH` 85 -> 64 and `glist-empty-clear` moved UP
            21.0px between two samples 400ms apart - 48% of that button's own height - as the sentence went
-           from "None of the 6 graded so far match brilliancies. 1 still to grade." to the flat "No games
-           match brilliancies." It also goes 85 -> 0 when the pass makes a game start matching, so 21px is
-           a FLOOR, not the worst case. This is CLAUDE.md #398 verbatim - the damage moved to the row
+           from 'None of the 6 graded so far match brilliancies. 1 still to grade.' to the flat 'No games
+           match brilliancies.' It also goes 85 -> 0 ... so 21px is a FLOOR, not the worst case."
+           RE-MEASURED on the same recipe, by an antagonist over 200 samples at 100ms on BOTH the two- and
+           four-account stores, and INDEPENDENTLY by this build over 70 samples at 100ms: `empOH` is 85 in
+           every state observed and NEVER 64; `glist-empty-clear` takes exactly ONE y value and moves 0.0px,
+           not 21.0px. AND THE QUOTED SENTENCE IS UNREACHABLE BY MECHANISM, not merely unobserved: this
+           fixture's g6 and g7 carry moveless PGNs and stay ungraded PERMANENTLY, as this file's own header
+           states, so `_nG` cannot exceed 5 and `_ungr` cannot reach 0 - which means neither "the 6 graded"
+           nor the flat "No games match" form can ever render here. The real uncommanded behaviour at this
+           element is a handful of SENTENCE changes inside about one second with ZERO layout movement.
+           The class membership survives as a QUESTION rather than a measurement: the wording does change
+           under the background pass, and whether any wording change moves the button at some account count
+           or geometry is not established. The figure was inherited from #507 and carried without
+           re-derivation while this build re-derived every other inherited figure, which is the one
+           inherited number it should have checked first.] This is CLAUDE.md #398 verbatim - the damage moved to the row
            nobody was asserting over - and it is the SAME ELEMENT clause (2) of the closer's screen was
            about, which is the sharpest part of the finding: I withdrew that clause as a false defect about
            PLACEMENT, and the element has a real defect about MOVEMENT that neither the closer nor I named.
@@ -1153,6 +1203,16 @@ function mkTap(b,READ){
      375x761 the row is 94px and 2 lines in BOTH states - it does not move one pixel. So the closer's
      "consistent with the recorded ~50px growth" is TRUE AND IS A 320-ONLY NUMBER, published here with its
      geometry attached rather than as a bare figure [#411/#412: a count with no scope cannot be checked].
+     [#508 WITHDRAWS "AT 320x568 ONLY" AND "A 320-ONLY NUMBER" AS WRITTEN, HERE, IN THE FILE THAT CARRIES
+     THEM. Those clauses are true AT TWO ACCOUNTS, which is the only account count this block drives, and
+     false at four: the account chips share this row, so what crosses the wrap boundary is the TOTAL CHIP
+     WIDTH, and at four accounts the same 94 -> 144 growth happens at BOTH 375 geometries. Block G measures
+     that cell. THIS WITHDRAWAL IS IN THIS FILE BECAUSE IT HAD TO BE: #508's first pass withdrew the claim
+     in chess.jsx, USER-STORIES, TEST-CASES and the manifest row, wrote in two of them that it was
+     "WITHDRAWN IN ALL FOUR DOCUMENTS THAT CARRIED IT", and left this - the fifth site, and the one a reader
+     opening block F to ask why F2 exists reaches first. An antagonist caught it. That is #450 exactly, with
+     a completeness claim attached, in the build whose own thesis is that a withdrawal must land where a
+     reader looks.]
      A BLOCK PINNED TO THIS FILE'S 375x730 COULD NOT HAVE FAILED ON THE DEFECT IT IS WRITTEN FOR - the
      shipped bundle passes F2 and F3 at 375 - which is the #375 trap (a gate that exercises the fixed path
      twice) arriving through the geometry list instead of through a worker pool.
