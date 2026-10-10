@@ -104,6 +104,28 @@ work, and I can watch that line on the board.
   Bxb5+ ...") and the next-best comparison (#357, #365). (TC-R10)
 - The "why" / play-out button (rev-playout) exists on Brilliant, Great, Best and Excellent moves and animates
   the line on the board without a console error (#354, #356). (TC-R10)
+- THE LINE RUNS TO THE PLAYER'S OWN RECOVERY, NOT TO THE SACRIFICE AND NOT TO THE PUNISHMENT. Where the
+  engine's line has a forcing continuation belonging to the player who moved, the reason shows up to three of
+  its plies and always ends on THAT player's capture, check or mate - never on a quiet move, and never on the
+  opponent's reply. On 13.Rxd7 in the Opera Game it reads "If Nxd7, Bxe7 Bxe7 Bxd7+ ...", so the recapture
+  that makes the move work is on screen; on 10.Nxb5, whose line has no forcing continuation of White's own,
+  it is unchanged at one ply. THE PARITY HALF OF THIS CLAUSE IS NOT DECORATION: without it the line ends on
+  the opponent's move whenever it is even in length, and on ply 74 of Kunal's own game that printed
+  "If Qxf7+, Kxf7 Rf1+ and Black is winning" with Rf1+ being White checking his king - the opposite of what
+  this clause is for. (Kunal, 2026-10-04, from his own game: "the line runs one move further so the recapture
+  is on screen". Built at #504, parity term on an upheld antagonist veto, landed at #512.) (TC-R10)
+- AND THE LINE IS NOT SHOWN WHERE THE RECOVERY FALLS OUTSIDE THE THREE PLIES. Stated as part of the clause
+  rather than as a footnote, because it is the honest bound: the trim happens inside the three-ply window, so
+  a recovery sitting at the fourth ply - or at the third behind a quiet second - is not shown and the reason
+  falls back to the single ply it printed before. The line it shows is never wrong; it is sometimes shorter
+  than the player would want. (#512, asserted as a known limit rather than discovered.) (TC-R10)
+- A FAILED ENGINE SEARCH IS NEVER SHOWN, AND NEVER REMEMBERED AS AN ANSWER. If the search that builds that
+  line dies, the reason simply omits the clause and the position is asked again the next time the player
+  visits that ply, rather than being left blank for the rest of the session (#389, #511). THE WORDING OF THIS
+  CLAUSE IS DELIBERATELY NOT "up to three attempts" [R18]: the version of this feature built at #504 bounded
+  the retry at three tries, and #512 does NOT ship that mechanism - it ships #511's, which drops the entry
+  and re-queries whenever the player returns, with no attempt count. A story clause promising a bound the
+  code does not have would be worse than no clause. (TC-R10)
 
 ### US-R07 I can analyse any position myself
 As a player, from any ply I open an analysis board where both colours are movable, with Undo and Exit.

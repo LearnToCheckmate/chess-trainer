@@ -46,8 +46,244 @@ const FORMS=[
 ];
 // the five forms of `standing`, chess.jsx:727
 const STAND=/(?:White|Black) is (?:winning|losing) here\.$|(?:White|Black) is clearly (?:better|worse)\.$|The position stays roughly level\.$/;
+/* ── #504 BLOCK S SUPPORT. jobs/the-brilliant-sentence-prices-the-move-instead-of-explaining-it-2026-10-04,
+   part (b), from KUNAL on 2026-10-04: "the why preview stops short before actually taking the knight".
+   WHAT BLOCK S IS FOR, AND WHY A DRIVEN BLOCK ALONE WOULD NOT DO. The displayed line is built from
+   whatever principal variation the engine happens to return, and CLAUDE.md's #391 rule is explicit about
+   that shape: "when an assertion parses something an engine wrote, enumerate what the engine can legally
+   produce and unit-test the predicate against that list, including the cases it must REJECT." Gate 22
+   shipped a variation test that went green twice on a coin flip and reddened a healthy build four builds
+   later because nobody had done that. So the trim rule is tested here over ELEVEN enumerated pv inputs at
+   one real position, and the plumbing is tested in block N against the bundle.
+   HOW IT READS THE CODE, and the caveat is the same one gate 68 states loudly: IT MEASURES chess.jsx, NOT
+   THE BUNDLE NAMED BY CT_APP, because gates/build.sh minifies and the names are mangled. So block S's
+   negative control is CT_SRC and block N's is CT_APP, and neither substitutes for the other.
+   AND IT FAILS SOFT ON ABSENCE RATHER THAN THROWING. engine-extract's need() throws when a name is
+   missing, which would take this whole gate down against a pre-#504 chess.jsx and hide the 90-odd
+   assertions after it - the #393 trap. So S0 goes RED on its own assertion and blocks S and N carry on. */
+const SAC_SRC=(()=>{
+  const fs=require('fs'),path=require('path'),crypto=require('crypto');
+  const file=process.env.CT_SRC||path.join(__dirname,'..','..','chess.jsx');
+  let src='';try{src=fs.readFileSync(file,'utf8');}catch(e){return {err:String(e.message),file,missing:['<unreadable>']};}
+  const md5=crypto.createHash('md5').update(src).digest('hex').slice(0,12);
+  const lines=src.split('\n'),starts=[];
+  for(let i=0;i<lines.length;i++) if(/^(function|const|let|var)\s/.test(lines[i])) starts.push(i);
+  const blocks=new Map();
+  for(let i=0;i<starts.length;i++){
+    const a=starts[i],z=(i+1<starts.length?starts[i+1]:lines.length);
+    const m=/^(?:function|const|let|var)\s+([A-Za-z_$][\w$]*)/.exec(lines[a]);
+    if(m&&!blocks.has(m[1])) blocks.set(m[1],lines.slice(a,z).join('\n'));
+  }
+  const want=['SAC_LINE_MAX','sacLine','refuteTxt','uciToMove'];
+  const missing=want.filter(n=>!blocks.has(n));
+  if(missing.length) return {missing,md5,file};
+  try{
+    const E=require('../engine-extract');
+    const code=want.map(n=>blocks.get(n)).join('\n')+'\nreturn {SAC_LINE_MAX:SAC_LINE_MAX,sacLine:sacLine,refuteTxt:refuteTxt};';
+    const api=new Function('FILES','getLegal','applyMove','toSAN','makeMove',code)(E.FILES,E.getLegal,E.applyMove,E.toSAN,E.makeMove);
+    return Object.assign({missing:[],md5,file,E},api);
+  }catch(e){return {missing:['<eval: '+e.message+'>'],md5,file};}
+})();
+/* The position the #504 probe measured, derived rather than typed: the Opera fixture's ply 25 is 13.Rxd7,
+   sacTaker takes the CHEAPEST capture of d7 (Nxd7, a knight before the rook and the queen), and this is
+   the FEN after it. The engine's pv from here is Bxe7 Bxe7 Bxd7+ - White wins the queen and recovers the
+   bishop - which is exactly the "the piece comes back" shape Kunal's report is about. */
+/* #504 THE ID LIST, DEFINED ONCE AND READ BY BOTH BRANCHES. The fallback and the happy path reported
+   DIFFERENT TOTALS in the first version of this block (16 against 15) because the fallback was a
+   numeric loop that started at the wrong index and silently dropped S1 - the non-vacuity assertion
+   [#504 antagonist A, upheld]. A loop over a literal range cannot stay in step with a hand-written
+   list of ids; one list that both branches read can. */
+/* ── NEGATIVE CONTROLS, RECORDED HERE BESIDE THE ASSERTIONS THEY PROVE, PER #401's RULE ───────────────
+   *** #512 WITHDRAWS THIS PARAGRAPH'S OWN HEADLINE FIGURES BEFORE RESTATING THEM [R18]. *** It used to
+   open "the gate reads 81 pass / 0 fail on the shipping bundle 1d434d3a871d over source 9728a5fbdebf",
+   with a two-run-plus-suite determinism claim attached. All of it was #504's and all of it is a fact about
+   a file and a bundle that no longer exist: this gate is 76 assertions, the shipping bundle is
+   f6770938d081 over source b1eddfc83e32, and R36 determinism is re-derived by #512 against the file AS IT
+   SHIPS rather than inherited. Leaving the old figure here and the correction forty lines below would be
+   #508's own V1/V2 defect - a file describing its previous version, seven lines from the paragraph that
+   withdraws it.
+   version of the gate and is a fact about a file that no longer exists - which is exactly what #503's
+   pointer 5 warns about, so it is withdrawn rather than carried.
+
+   *** #512: EVERY FIGURE IN #504's CONTROL REGISTER IS WITHDRAWN AND RE-DERIVED BELOW [R18]. ***
+   Not because any of it was wrong when written - it was measured and it was honest - but because every one
+   of those five rows is a fact about a bundle built on a sacRun THAT NO LONGER EXISTS. #511 rewrote that
+   function (the yield to the analysis worker, the per-attempt token, the ownership re-validation), and #512
+   grafted part (b) onto #511's version rather than replaying #504's, so the file under test, the bundle, the
+   total and the id list have all moved. Carrying the old numbers would be #504's own "a fact about a file
+   that no longer exists" committed by the run that quotes the warning. The old rows named a 66- and then
+   81-assertion gate against a 26-id SAC_S_IDS; this gate is 76 assertions over 21 S-ids.
+
+   THE TOTAL IS 76 AND IT FELL FROM #504's 81 ON PURPOSE. S17 to S21 are gone - see the block comment at
+   SAC_S_IDS for the reason - so a reader comparing totals across the two trees sees -5 and is owed an
+   explanation rather than left to assume an assertion was quietly dropped [#510's pointer 1].
+
+   THREE CONTROLS, RE-RUN FROM SCRATCH AGAINST THIS TREE, AND EVERY ROW'S pass+fail SUMS TO 76:
+
+     SHIPPING  bundle f6770938d081 over source b1eddfc83e32      76 pass /  0 FAIL
+     NC1  CT_SRC + CT_APP = origin/main's OWN source and bundle
+          (b6b7fbb25df0 / f47aa0197967)                          52 pass / 24 FAIL
+          all 21 ids in SAC_S_IDS, plus S0, plus N3 and N10.
+          THE IDEAL CONTROL AND IT IS FREE [#432]: the control is not something built to fail, it is the
+          bundle a player is running right now. Both doors are driven at once here deliberately, so the
+          row measures the whole feature rather than one of its halves. N2 still PASSES there, so N3's red
+          is about the LENGTH of the line and not the absence of the clause, which is the discrimination
+          those two assertions exist to make.
+     NC2  CT_SRC = this tree with the PARITY TERM alone removed  72 pass /  4 FAIL   S6, S23, S23b, S24
+          The designed control for #504 antagonist B's upheld veto, re-cut against THIS source. Its S23b
+          payload prints the defect verbatim - "If Qxf7+, Kxf7 Rf1+ and Black is winning." - which is WHITE
+          checking Kunal's own king on his own game, the exact inverse of the report this build answers.
+     NC3  CT_APP = a bundle with sfEval1 RESTORED in sacRun,
+          everything else identical (c5c6633f55f5)               74 pass /  2 FAIL   N3, N10
+          THE ONE-VARIABLE CONTROL FOR THE MECHANISM, and the sharpest row here. sacLine, refuteTxt and the
+          explainAnno wiring are all PRESENT and correct in that bundle's source, so the whole S block stays
+          GREEN - and the screen still shows the one-ply line, because sfEval1 keeps only a bestmove. It
+          isolates the claim that the SWAP, not the new module functions, is what puts the recovery on
+          screen. Without this row NC1 could not tell the two apart.
+
+   WHAT THE THREE ROWS PROVE BETWEEN THEM, said once so the set is not read as repetition: NC1 that the
+   feature is absent on main; NC2 that the parity term is load-bearing rather than decorative; NC3 that the
+   engine-call swap is the mechanism and the module functions alone are not sufficient. The sentence each
+   one prints at Opera ply 25 is the whole story:
+        main / NC1   "The only move that keeps it. If Nxd7, Bxe7 and White is winning. ..."
+        NC3          "The only move that keeps it. If Nxd7, Bxe7 and White is winning. ..."
+        SHIPPING     "The only move that keeps it. If Nxd7, Bxe7 Bxe7 Bxd7+ and White is winning. ..."
+
+   WHAT IS NOT CONTROLLED HERE, AND IT IS NOT A HOLE THIS RUN LEFT: the poisoned-cache / token half of
+   sacRun is #511's and is controlled by gates/regress/22-engline-recovery.js block R over FOUR bundles each
+   one hunk-group from the next. This gate does not duplicate it, and #512 changed the store CONDITION
+   (`r.ok` -> `sanLine.length`) because the return type changed from an object to an array-or-null - so that
+   assertion lives where its control already is, and gate 22 is run beside this one rather than restated.
+
+   CT_SRC AND CT_APP CONTROLS ARE NOT INTERCHANGEABLE, and that is a property of the gate rather than an
+   omission: block S reads chess.jsx and block N reads the MINIFIED bundle, so CT_APP cannot redden S and
+   CT_SRC cannot redden N. Gate 68 states the same caveat about itself and for the same reason. NC1 and NC5
+   are the bundle-level half; NC2 to NC4 the source half.
+   WHY FIVE AND NOT ONE: antagonist B measured that the first control moved ONE assertion of 66, and that
+   N4 and N5 PASS on the shipped bundle because the pre-fix behaviour satisfies them. Both points upheld,
+   and the trial bundles exist to give those assertions something they can actually fail against. */
+/* #512 S17 TO S21 ARE REMOVED, AND THIS IS THE ONE PLACE A READER WILL LOOK TO ASK WHY A PUBLISHED
+   ASSERTION SET SHRANK. They unit-tested #504's sacStore() - a pure module-level store decision with a
+   `mark` identity and a SAC_DEAD_TRIES bound - and #512 DELIBERATELY DOES NOT SHIP sacStore. #511 landed a
+   different and simpler guard for the same concern (a per-attempt token on the marker and on the request,
+   plus an ownership re-validation and a bounded yield, all inside sacRun), and carrying both would be two
+   mechanisms for one concern, which is the contradiction R45 forbids. An assertion must test what SHIPS:
+   five assertions over a function that is not in the bundle would be the #432 trap exactly - a check that
+   reads only what its own build added, passing over a defect it cannot see.
+   THE CONCERN IS NOT LEFT UNCONTROLLED, WHICH IS THE ONLY THING THAT WOULD MAKE THIS A LOSS. #511 shipped
+   gates/regress/22-engline-recovery.js block R for it - 8 assertions over FOUR bundles each one hunk-group
+   from the next, with main's own bundle as the negative control reddening R4 and R5 - so the poisoned-cache
+   path is measured, by a control set this run did not have to build. What is genuinely lost is the
+   SAC_DEAD_TRIES retry bound, which #511's guard does not have an equivalent of: it deletes and re-queries
+   on the next visit instead of counting attempts. That is a real difference, it is a deliberate choice of
+   #511's mechanism over #504's, and it is named on the job rather than hidden here.
+   SO THE TOTAL FALLS 26 -> 21 BY DESIGN AND THE DROP IS DECLARED. gates.sh:9 and :304 both say a gate's
+   total must only rise, and #510's own pointer 1 records that a deleted assertion is invisible in a green
+   run and that the ONLY tell is the total. This is that tell, fired on purpose, with the reason beside it. */
+const SAC_S_IDS=['S1','S2','S3','S4','S5','S6','S7','S8','S9','S10','S11','S12','S13','S14','S15',
+                 'S16a','S16b','S22','S23','S23b','S24'];
+const SAC_FEN25='3rkb1r/p2nqppp/8/1B2p1B1/4P3/1Q6/PPP2PPP/2K4R w k - 0 1';
 const gridSig=(b)=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));if(!g)return '';return [...g.children].slice(0,64).map(c=>{const im=c.querySelector('img');return im?im.getAttribute('src').slice(-12):'';}).join('|');});
 L.run(async()=>{
+  /* ── #504 BLOCK S. THE TRIM RULE, OVER ENUMERATED ENGINE OUTPUT ─────────────────────────────────── */
+  L.note('    #504 block S reads chess.jsx '+SAC_SRC.file+' md5 '+(SAC_SRC.md5||'?')+'  (NOT the CT_APP bundle - see the header)');
+  L.say(SAC_SRC.missing.length===0,'TC-R10/S0 #504 chess.jsx declares the refutation-line machinery at module level (SAC_LINE_MAX, sacLine, refuteTxt) so the sentence can be exercised without a browser',{missing:SAC_SRC.missing,src:SAC_SRC.md5});
+  if(SAC_SRC.missing.length===0){
+    const E=SAC_SRC.E, g25=E.fromFEN(SAC_FEN25), sl=SAC_SRC.sacLine, rt=SAC_SRC.refuteTxt;
+    const F='abcdefgh', uci=(m)=>F[m.fc]+(8-m.fr)+F[m.tc]+(8-m.tr)+(m.promo?String(m.promo).toLowerCase():'');
+    const sanOf=(g,m)=>E.toSAN(g,m,E.applyMove(g.board,m));
+    const LINE=['g5e7','f8e7','b5d7'];
+    /* NON-VACUITY FIRST, AND AS ITS OWN ASSERTION RATHER THAN A CONJUNCT [the eleventh-costume rule]:
+       every S assertion below reads a list sacLine produced, and every one of them would pass loudest if
+       the fixture position were wrong and the list were always empty. */
+    L.say(!!g25&&g25.turn==='w','TC-R10/S1 #504 the fixture position parsed and it is White to move after Nxd7, so the pv below is a legal input rather than an empty set',{turn:g25&&g25.turn});
+    const base=sl(g25,LINE);
+    L.say(base.length===3&&base.join(' ')==='Bxe7 Bxe7 Bxd7+','TC-R10/S2 #504 the engine pv Bxe7/Bxe7/Bxd7+ renders as THREE plies of SAN - this is the line Kunal asked to see run one move further, and the recapture Bxd7+ is the ply that was being cut',{got:base});
+    /* THE CAP. A fourth legal ply is computed rather than invented, so this is a real input and not a stub. */
+    let g4=g25;for(const u of LINE)g4=E.makeMove(g4,E.getLegal(g4).find(m=>uci(m)===u));
+    const nxt=E.getLegal(g4)[0], four=LINE.concat([uci(nxt)]);
+    L.say(sl(g25,four).length===3,'TC-R10/S3 #504 a FOUR-ply pv is capped at SAC_LINE_MAX=3, which is pvShow own existing cap in the same function rather than a new number',{got:sl(g25,four),fourth:nxt?sanOf(g4,nxt):null});
+    L.say(SAC_SRC.SAC_LINE_MAX===3,'TC-R10/S4 #504 SAC_LINE_MAX is 3',SAC_SRC.SAC_LINE_MAX);
+    /* THE TRIM. A quiet third ply must be DROPPED, so the line never ends on a move that shows nothing. */
+    const quiet3=E.getLegal(E.makeMove(E.makeMove(g25,E.getLegal(g25).find(m=>uci(m)===LINE[0])),E.getLegal(E.makeMove(g25,E.getLegal(g25).find(m=>uci(m)===LINE[0]))).find(m=>uci(m)===LINE[1]))).find(m=>!/[x+#]/.test(sanOf(E.makeMove(E.makeMove(g25,E.getLegal(g25).find(x=>uci(x)===LINE[0])),E.getLegal(E.makeMove(g25,E.getLegal(g25).find(x=>uci(x)===LINE[0]))).find(x=>uci(x)===LINE[1])),m)));
+    const trimmed=quiet3?sl(g25,[LINE[0],LINE[1],uci(quiet3)]):null;
+    L.say(!!quiet3,'TC-R10/S5 #504 a QUIET third ply exists in that position, so the trim assertion below has a real input and is not vacuous',quiet3?uci(quiet3):null);
+    /* S6 EXPECTED LENGTH 2 UNTIL THE PARITY TERM LANDED, AND IT WENT RED ON MY OWN BUNDLE WHEN IT DID -
+       which is the assertion doing its job on a stale expectation of mine rather than a defect. The chain
+       is now three pops and worth spelling out because it is not obvious: length 3, index 2 is the mover's
+       but QUIET -> pop; length 2, index 1 is the OPPONENT'S -> pop; length 1, index 0 is the mover's and
+       forcing -> keep. So a quiet third ply does not leave a two-ply line, it collapses the line to the
+       mover's first reply, which is exactly the pre-#504 output. The parity term makes the rule STRICTER,
+       never looser, and this is the case that shows it. */
+    L.say(!!trimmed&&trimmed.length===1&&trimmed[0]==='Bxe7','TC-R10/S6 #504 a pv whose third ply is QUIET collapses to the MOVER own first forcing reply - not to a two-ply line, because an even length would end on the opponent. The displayed line therefore never ends on a move that shows nothing AND never on a move that is not the player own',{got:trimmed});
+    /* NEVER BELOW ONE. A single quiet ply is what shipped before #504 and must still render. */
+    L.say(sl(g25,['b5a6']).join(' ')==='Ba6','TC-R10/S7 #504 a pv of ONE quiet ply is kept, not trimmed to nothing - this is the pre-#504 behaviour and the change can only ever ADD plies',{got:sl(g25,['b5a6'])});
+    /* THE CASES IT MUST REJECT - #391: enumerate what the engine can legally produce, including failure. */
+    L.say(sl(g25,[]).length===0&&sl(g25,null).length===0&&sl(g25,undefined).length===0,'TC-R10/S8 #504 an EMPTY or absent pv yields no line at all, which is what makes the dead-search guard in sacRun reachable',{empty:sl(g25,[]),nul:sl(g25,null)});
+    L.say(sl(g25,['e2e4']).length===0,'TC-R10/S9 #504 a pv whose FIRST move is illegal in this position yields no line rather than a wrong one',{got:sl(g25,['e2e4'])});
+    L.say(sl(g25,['g5e7','zzzz']).join(' ')==='Bxe7','TC-R10/S10 #504 a pv that goes illegal at its SECOND move stops at the first, rather than throwing or skipping ahead',{got:sl(g25,['g5e7','zzzz'])});
+    /* refuteTxt, the ONE definition both the Brilliant and the Great branch now read. */
+    L.say(rt(null)===''&&rt(undefined)===''&&rt({})==='','TC-R10/S11 #504 refuteTxt renders nothing from nothing, so an absent refutation cannot print a half sentence');
+    L.say(rt({capSan:'Nxd7'})==='','TC-R10/S12 #504 refuteTxt renders nothing from a capture with no reply - the state sacRun stores while the search is still running');
+    L.say(rt({capSan:'Nxd7',replySan:'Bxe7'})==='If Nxd7, Bxe7.','TC-R10/S13 #504 refuteTxt still renders the SINGLE-ply form from replySan alone, so a record stored by a pre-#504 bundle does not break',rt({capSan:'Nxd7',replySan:'Bxe7'}));
+    L.say(rt({capSan:'Nxd7',replyLine:['Bxe7','Bxe7','Bxd7+'],verdict:'and White is winning'})==='If Nxd7, Bxe7 Bxe7 Bxd7+ and White is winning.','TC-R10/S14 #504 refuteTxt renders the multi-ply form with its verdict, byte for byte',rt({capSan:'Nxd7',replyLine:['Bxe7','Bxe7','Bxd7+'],verdict:'and White is winning'}));
+    L.say(rt({capSan:'Nxd7',replyLine:[],replySan:'Bxe7'})==='If Nxd7, Bxe7.','TC-R10/S15 #504 an EMPTY replyLine falls back to replySan rather than printing "If Nxd7, ."',rt({capSan:'Nxd7',replyLine:[],replySan:'Bxe7'}));
+    /* ── S16: THE LIMIT OF THE TRIM RULE, ASSERTED SO IT IS RECORDED RATHER THAN DISCOVERED ──────────
+       #504 antagonist A measured, and I reproduced, that the first version of this build's comment and
+       commit claimed the rule "ends on the recovery". IT DOES NOT. Trimming happens INSIDE the 3-ply
+       window, so where the recovery sits at ply 4 - or at ply 3 behind a quiet ply 2 - the quiet tail is
+       popped and the line falls back to ONE ply, byte-identical to pre-#504. The pv below is legal and
+       enumerated, not invented: Bxe7 Rc8 Bd8 Rxc2+, where Rxc2+ IS the recovery and is never shown.
+       This is a SAFE fallback and the "can only ever ADD" claim survives it (1 >= 1). It is asserted
+       because an unasserted limit is the thing the next reader will not know, and because if anyone later
+       raises the cap this assertion is what tells them what they changed. */
+    const deepPv=['g5e7','d8c8','e7d8','c8c2'];
+    let gd=g25, deepSan=[];
+    for(const u of deepPv){const mv=E.getLegal(gd).find(m=>uci(m)===u); if(!mv)break; deepSan.push(sanOf(gd,mv)); gd=E.makeMove(gd,mv);}
+    const deepOut=sl(g25,deepPv);
+    L.say(deepSan.length===4&&/[x+#]/.test(deepSan[3]),'TC-R10/S16a #504 the deep-recovery input class EXISTS and is legal - a four-ply pv whose FORCING recovery is the fourth ply - so S16b below is a real reading and not a vacuous one',{pv:deepSan});
+    L.say(deepOut.length===1&&deepOut[0]===deepSan[0],'TC-R10/S16b #504 THE RULE LOSES A RECOVERY THAT SITS AT PLY 4: the cap drops it, the trim then pops the two quiet plies, and the line falls back to the single pre-#504 ply. Asserted as the KNOWN LIMIT of the trim rule, not as a success - the comment that claimed the rule "ends on the recovery" was withdrawn on this measurement',{got:deepOut,fullPv:deepSan});
+    /* ── S22 to S24: THE PARITY RULE, ON KUNAL'S OWN GAME, BECAUSE THIS IS WHERE THE SECOND VETO LANDED ──
+       Antagonist B measured, and I reproduced, that the first trim rule tested only `x|+|#` - a property
+       of the STRING, as true of the OPPONENT'S check as of the player's recapture. The position handed to
+       sacLine is the one AFTER the opponent's capture, so the mover is to play and out[i] is the mover's
+       exactly when i is EVEN; every EVEN-length line therefore ended on the opponent's move. On
+       claude/agents/bench/pgn/184024052818.pgn ply 74 - 37...Rf7, Great, and Kunal2023 is BLACK, so this
+       is his own game - the line read "If Qxf7+, Kxf7 Rf1+ and Black is winning", where Rf1+ is WHITE
+       checking Kunal's king. The previous bundle already got that ply right at "Kxf7". That is the exact
+       inverse of the feedback this build exists to answer, so the fix is the parity term and this is its
+       control. The pv below is built from LEGAL MOVES of the real game, not invented. */
+    const kPgn=require('path').join(__dirname,'..','..','claude','agents','bench','pgn','184024052818.pgn');
+    let KG=null;
+    try{
+      const st=E.loadSANs(E.parsePGN(require('fs').readFileSync(kPgn,'utf8')));
+      const ai=73, pos=st.positions[ai], pl=st.plies[ai], g1=E.makeMove(pos,pl.move);
+      const caps=E.getLegal(g1).filter(m=>m.tr===pl.move.tr&&m.tc===pl.move.tc);
+      caps.sort((a,b)=>(E.VAL[(g1.board[a.fr][a.fc]||{}).t]||0)-(E.VAL[(g1.board[b.fr][b.fc]||{}).t]||0));
+      const cap=caps[0];
+      KG={san:pl.san,capSan:sanOf(g1,cap),after:E.makeMove(g1,cap)};
+      KG.pv=[];let gg=KG.after;
+      for(const w of ['Kxf7','Rf1+']){const mv=E.getLegal(gg).find(m=>sanOf(gg,m)===w);if(!mv){KG.pv=null;break;}KG.pv.push(uci(mv));gg=E.makeMove(gg,mv);}
+    }catch(e){KG={err:String(e.message)};}
+    L.say(!!KG&&KG.san==='Rf7'&&KG.capSan==='Qxf7+'&&!!KG.pv&&KG.pv.length===2,'TC-R10/S22 #504 the veto fixture EXISTS and is the real game - ply 74 of Kunal own 184024052818 is 37...Rf7, its cheapest capture is Qxf7+, and the two-ply forcing continuation Kxf7/Rf1+ is legal from there. Without this S23 and S24 would read an empty list',KG&&{san:KG.san,cap:KG.capSan,pv:KG.pv,err:KG.err});
+    const kOut=(KG&&KG.pv)?sl(KG.after,KG.pv):[];
+    L.say(kOut.length===1&&kOut[0]==='Kxf7','TC-R10/S23 #504 THE VETO CASE: an EVEN-length forcing pv is trimmed back to the MOVER OWN last forcing ply, so Kunal ply 74 reads ["Kxf7"] and not ["Kxf7","Rf1+"]. Before the parity term this returned two plies and the sentence ended on WHITE checking his king while concluding "and Black is winning"',{got:kOut,fullPv:(KG&&KG.pv)||null});
+    L.say(rt({capSan:'Qxf7+',replyLine:kOut,replySan:kOut[0],verdict:'and Black is winning'})==='If Qxf7+, Kxf7 and Black is winning.','TC-R10/S23b #504 and the rendered sentence for that ply is byte-identical to what the PREVIOUS bundle printed, so the parity fix removes the degradation rather than papering over it',rt({capSan:'Qxf7+',replyLine:kOut,replySan:kOut[0],verdict:'and Black is winning'}));
+    /* THE INVARIANT, over every pv this gate has constructed, as ONE assertion with the population stated. */
+    const parityIn=[[g25,LINE],[g25,four],[g25,['b5a6']],(quiet3?[g25,[LINE[0],LINE[1],uci(quiet3)]]:null),
+                    [g25,deepPv],((KG&&KG.pv)?[KG.after,KG.pv]:null)].filter(Boolean);
+    const parityOut=parityIn.map(([pos,pv])=>sl(pos,pv));
+    const odd=parityOut.filter(o=>o.length>0&&o.length%2===1).length, nonEmpty=parityOut.filter(o=>o.length>0).length;
+    L.say(nonEmpty>=5&&odd===nonEmpty,'TC-R10/S24 #504 EVERY non-empty line this gate constructs is ODD in length, which is the mechanical statement of "it ends on the mover own move" - out[0] is always the mover reply, so an odd length is necessary and sufficient. Asserted over the whole constructed population rather than one case, with the population size in the payload so it cannot pass over an empty set',{inputs:parityIn.length,nonEmpty:nonEmpty,odd:odd,lengths:parityOut.map(o=>o.length)});
+  } else {
+    /* THE FALLBACK USED TO START AT S2 AND SILENTLY DROP S1 [#504 antagonist A, upheld]. S1 is the
+       non-vacuity assertion - the denominator - so the one id the NOT-RUN report lost was the one whose
+       own text says "a missing denominator is REPORTED, never credited", and the two branches reported
+       different totals (16 against 15). It now emits every id in SAC_S_IDS, so S0 plus these is 22 either
+       way - and it reads the list rather than a numeric range, so removing S17 to S21 moved both branches
+       together and neither can drift from the other. */
+    for(const id of SAC_S_IDS) L.say(false,'TC-R10/'+id+' #504 NOT RUN: chess.jsx declares no refutation-line machinery ('+SAC_SRC.missing.join(', ')+'), so neither the trim rule nor the store decision could be exercised. A missing denominator is REPORTED, never credited.');
+  }
   const b=await L.launch({geo:'kunal',name:'review-brilliant',store:{ct_pool:'3'}});await b.open();
   await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});await b.settle(600);
@@ -179,6 +415,126 @@ L.run(async()=>{
   const offenders=withClause.filter(r=>bare(r.alt)===bare(r.played));
   for(const r of withClause) L.note('      '+r.head.replace(/\s+/g,' ').slice(0,20).padEnd(20)+' played '+String(r.played).padEnd(7)+' alt '+String(r.alt).padEnd(7)+(bare(r.alt)===bare(r.played)?'  <- NAMES THE PLAYED MOVE':''));
   L.say(offenders.length===0,'TC-R10 NO ply in the whole game offers the played move as its own alternative (kunal-review-alt-names-the-played-move)',{selfNamed:offenders.length,ofClauses:withClause.length,plies:offenders.map(r=>r.head.replace(/\s+/g,' ').slice(0,14)+' ('+r.played+')')});
+
+  /* ── #504 BLOCK N. THE REFUTATION LINE, DRIVEN ON THE BUNDLE UNDER TEST ───────────────────────────
+     Block S above proves the trim RULE over enumerated pv inputs, reading chess.jsx. It cannot prove the
+     PLUMBING - that sfBestLine's pv reaches sacRun, survives the store, and is rendered - because it never
+     opens the bundle. And a block that only read chess.jsx would be #432's trap exactly: an assertion that
+     can only see what the fix added. So N locates the clause by WHAT IT SAYS, not by any new data-ct, which
+     is why N3 below reddens on the SHIPPED #503 bundle with no code of mine in it at all.
+     MEASURED BEFORE THIS BLOCK WAS WRITTEN, over all 33 plies of this fixture on both bundles:
+       ply 19  10.Nxb5  Brilliant  "If cxb5, Bxb5+ and White is winning"      1 ply on BOTH
+       ply 25  13.Rxd7  Great      "If Nxd7, Bxe7 and White is winning"       1 ply on #503 (2fb1d7707780),
+                                   and RE-MEASURED BY #512: still 1 ply on main's own current bundle
+                                   f47aa0197967 (#511), so the defect is live today and not only at #503
+                                   "If Nxd7, Bxe7 Bxe7 Bxd7+ and White is winning"  3 plies on #504
+                                   (6b7dadfdccf6) and on #512 (f6770938d081), two independently built trees
+       ply 31  16.Qb8+  Great      "If Nxb8, Rd8#"                            1 ply on BOTH
+     THREE plies in this game carry a refutation clause and exactly ONE of them changes, which is the whole
+     point of the trim rule: a line grows only where the pv has a forcing continuation, so 19 and 31 are
+     byte-identical and the #387 pin at the top of this gate is untouched.
+
+     IT RUNS IN ITS OWN BROWSER, AND THAT IS A MEASUREMENT AND NOT TIDINESS. The first version of this block
+     reused `b` after the play-out and the 34-ply backward sweep, and ply 25 then printed NO refutation
+     clause at all - "The only move that keeps it. Nxd7 follows." - because the analysis worker was no
+     longer answering, so sfBestLine resolved null and the Great branch fell back to pvShow. On a fresh
+     browser the identical ply prints the three-ply line, reproducibly, on two separate probe runs. So the
+     clause is a function of the engine's availability as well as of the code, and a block that measures it
+     after an hour of engine abuse is measuring the abuse. WHAT CAUGHT IT WAS N2, the non-vacuity assertion:
+     without it N3 to N5 would have read an empty list and every `<=` and `every`-shaped check would have
+     passed loudest exactly where the thing under test had vanished.
+     THE SETTLE IS 1800ms, NOT THE SWEEP'S 260ms, DELIBERATELY. The clause arrives from a DEBOUNCED engine
+     query - 450ms of rest and then a 700ms search - so the sweep above cannot see it at all and a short
+     settle here would measure the sentence before the clause lands [#387]. */
+  const parseRefute=(w)=>{const m=/If ([^,]+), ([^.]*)\./.exec(String(w||''));if(!m)return null;
+    const mv=m[2].replace(/\s+and\s+(?:White|Black|it)\b.*$/,'').trim();
+    return {cap:m[1],moves:mv?mv.split(/\s+/):[]};};
+  const RV=require('../drive/review');
+  const n=await L.launch({geo:'kunal730',name:'review-brilliant-504',store:{ct_pool:'3'}});await n.open();
+  await RV.ensureReview(n,'opera');await RV.startReview(n);
+  const readPly=async(ply)=>{
+    await RV.goPly(n,ply);await n.settle(1800);
+    const ml=await n.rect('[data-ct="rev-move-line"]');
+    const why=(await n.text('[data-ct="rev-why-txt"]'))||(await n.text('[data-ct="rev-why"]'))||'';
+    const box=await n.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]')||document.querySelector('[data-ct="rev-why"]');if(!e)return null;const cs=getComputedStyle(e);const cl=parseInt(cs.webkitLineClamp,10),lh=parseFloat(cs.lineHeight);return {sh:e.scrollHeight,ch:e.clientHeight,clamp:cl||null,lh:lh||null,cap:(cl&&lh)?Math.ceil(cl*lh):null};});
+    L.note('    #504 ply'+ply+' '+String((ml&&ml.text)||'').split('\n')[0].trim()+'  ->  '+why.replace(/\s+/g,' '));
+    return {head:String((ml&&ml.text)||'').split('\n')[0],why,box,r:parseRefute(why)};
+  };
+  const P19=await readPly(19), P25=await readPly(25), P31=await readPly(31);
+  /* THE STATE FIRST, THEN THE PROPERTY [#385]: an assertion that says "the line is long here" is worthless
+     if the walk never arrived at the ply it names. */
+  L.say(/Rxd7/.test(P25.head),'TC-R10/N1 #504 the walk reached ply 25, 13.Rxd7 - the one ply of this fixture whose pv has a forcing continuation',P25.head);
+  /* AND THE DENOMINATOR AS ITS OWN ASSERTION, never as a conjunct: every N check below reads P25.r.moves,
+     and all of them would pass loudest over an empty list if the clause had vanished entirely. This is the
+     assertion that caught the stale-engine reading described in the header. */
+  L.say(!!P25.r&&P25.r.moves.length>0,'TC-R10/N2 #504 ply 25 actually PRINTS a refutation clause, so N3 to N5 have a real reading rather than an absent one',{clause:P25.r,why:P25.why.slice(0,90)});
+  L.say(!!P25.r&&P25.r.moves.length>=2,'TC-R10/N3 #504 the refutation line at ply 25 runs PAST the opponent capture - two or more plies, so the recovery is on screen. This is Kunal own test ("the line runs one move further so the recapture is on screen") and it is RED on the shipped #503 bundle, where sacRun read only sfEval1 bestmove so one ply was the structural maximum',{moves:P25.r&&P25.r.moves,n:P25.r&&P25.r.moves.length});
+  L.say(!!P25.r&&P25.r.moves.length>0&&/[x+#]/.test(P25.r.moves[P25.r.moves.length-1]),'TC-R10/N4 #504 the displayed line ENDS on a forcing move - a capture, a check or mate - so it never trails off on a quiet move that shows nothing',{last:P25.r&&P25.r.moves[P25.r.moves.length-1],moves:P25.r&&P25.r.moves});
+  L.say(!!P25.r&&P25.r.moves.length<=3,'TC-R10/N5 #504 and it is capped at three plies, so a long pv cannot push the clauses after it out of the character budget without bound',{n:P25.r&&P25.r.moves.length});
+  /* THE BOX, AND THE PREDICATE IS #396's OWN AND NOT THE ONE I FIRST WROTE [#504 antagonist B, upheld].
+     My first version asserted `scrollHeight <= clientHeight+1` and called that "nothing is silently
+     clipped by the container". THAT IS THE WRONG INSTRUMENT. `scrollHeight > clientHeight` is the NORMAL
+     reading whenever the -webkit-line-clamp fires, and a clamp DRAWS AN ELLIPSIS - that is the whole
+     distinction #387 was written about. B measured a byte-identical sentence at 320x568 reading sh 68 /
+     ch 51 with the clamp drawing a visible ellipsis, which is a HEALTHY state, and my predicate called it
+     a defect. #396's actual check is that the CONTAINER is no taller than the lines the clamp allows:
+     clientHeight <= ceil(lines x lineHeight). That is what distinguishes "the clamp cut and said so" from
+     "the box ended early and said nothing", which is the real #394/#396/#397/#398 family. */
+  L.say(!!P25.box&&P25.box.cap!=null,'TC-R10/N6a #504 the clamp and line-height are readable, so N6b below is a real #396 check rather than a null comparison',P25.box);
+  L.say(!!P25.box&&P25.box.cap!=null&&P25.box.ch<=P25.box.cap,'TC-R10/N6b #504 the CONTAINER is no taller than the lines its clamp allows - clientHeight <= ceil(clamp x lineHeight) - so whatever truncates is the clamp, which draws an ellipsis, and not the box, which would not [#396]',P25.box);
+  L.say(!!P19.r&&P19.r.moves.length===1,'TC-R10/N7 #504 ply 19 is UNCHANGED at one ply, because the pv after cxb5 has no forcing continuation - the trim rule can only ever ADD the recovery and never rewrites a sentence that was already right',{moves:P19.r&&P19.r.moves,why:P19.why.slice(0,70)});
+  L.say(/Qb8\+/.test(P31.head)&&!!P31.r&&P31.r.moves.length===1&&/#$/.test(P31.r.moves[0]),'TC-R10/N8 #504 ply 31, 16.Qb8+, still reads exactly "If Nxb8, Rd8#" - a line that ENDS IN MATE is one ply, is not extended past the mate, and gets no verdict clause appended after it',{at:P31.head,moves:P31.r&&P31.r.moves,why:P31.why});
+  /* ── N10: THE WHOLE PLY-25 SENTENCE, PINNED, BECAUSE A LONGER CLAUSE SPENDS A SHARED BUDGET ────────
+     Antagonist B's second veto ground: the longer refutation clause pushed "It forks two pieces at once."
+     out of the sentence at 375x730 - 126 characters against the shipped 144 - and NOTHING in this gate
+     asserted over that, because every N assertion read only the "If ..., ..." clause. B is right that a
+     note is not a guard. pack() (chess.jsx, search _maxw) is a greedy CHARACTER budget of 150 in portrait
+     and it stops at the first clause that would overflow, so spending 18 characters on the refutation
+     costs a 29-character clause at the end. THE TRADE IS RECORDED AS AMBER, at
+     flags/amber-504-how-far-the-brilliant-refutation-line-runs, and it is Kunal's to reverse in one word.
+     WHAT IS PINNED HERE IS THE WHOLE STRING, in the idiom this gate already uses for the #387 sentence at
+     ply 19: if any future change moves a clause in or out of this sentence, this assertion says so on the
+     next run instead of a reader having to diff two logs. */
+  L.say(P25.why==='The only move that keeps it. If Nxd7, Bxe7 Bxe7 Bxd7+ and White is winning. Chases the queen off e7 and takes the open d file.','TC-R10/N10 #504 PINNED the whole ply-25 sentence, so a clause silently entering or leaving it is a red rather than a diff. The shipped bundle prints 144 characters here and ends "...takes the open d file. It forks two pieces at once."; this prints 126 and the motif clause is displaced by the longer refutation - a recorded amber trade, not an accident',{got:P25.why,chars:P25.why.length});
+  /* ── #504 N9: THE NARROWEST SUPPORTED PHONE ───────────────────────────────────────────────────────
+     CLAUDE.md: "375x730 is Kunal's phone, not the standard, and the app must be playable on any standard
+     phone." Block N above drives 375x730 only, so 320x568 was measured on BOTH bundles.
+     MY FIRST VERSION OF THIS BLOCK CLAIMED A DEFECT HERE AND THE CLAIM IS WITHDRAWN [#504 antagonist B,
+     upheld]. I measured the SHIPPED bundle at 320x568 reading scrollHeight 68 in a clientHeight 51 box,
+     144 characters, and wrote that as "about a whole line CUT with no ellipsis, because the box is
+     overflow-y hidden". That was the wrong instrument twice over. The element carries BOTH a
+     -webkit-line-clamp of 3 AND overflow-y:hidden, and the container is sized to EXACTLY the clamped
+     lines: ceil(3 x 16.9) = ceil(50.7) = 51 = clientHeight. So the clamp is what truncates, the clamp
+     DRAWS AN ELLIPSIS, and B's dpr-3 crop shows it on screen ("...Bxf6 was 1.1 pawns worse. White is..").
+     sh > ch is simply what a fired clamp reads. There is no silent cut on main and there never was.
+     WHAT THIS BLOCK ASSERTS INSTEAD is #396's real invariant at the narrowest width - the container never
+     outgrows its own clamp - plus the character budget, which is the thing that actually changed. */
+  const sePly=async()=>{
+    const q=await L.launch({geo:'se',name:'review-brilliant-504-se',store:{ct_pool:'3'}});await q.open();
+    await RV.ensureReview(q,'opera');await RV.startReview(q);await RV.goPly(q,25);await q.settle(1800);
+    const box=await q.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]')||document.querySelector('[data-ct="rev-why"]');if(!e)return null;const cs=getComputedStyle(e);const cl=parseInt(cs.webkitLineClamp,10),lh=parseFloat(cs.lineHeight);return {sh:e.scrollHeight,ch:e.clientHeight,chars:(e.textContent||'').length,lh:lh||null,ofY:cs.overflowY,clamp:cl||null,cap:(cl&&lh)?Math.ceil(cl*lh):null};});
+    const why=(await q.text('[data-ct="rev-why-txt"]'))||'';
+    await q.shot('review-brilliant-504-se');await q.close();
+    return {box,why};
+  };
+  const SE=await sePly();
+  L.note('    #504 320x568 ply25 box '+JSON.stringify(SE.box)+'  ->  '+SE.why.replace(/\s+/g,' '));
+  L.say(!!SE.box&&SE.box.chars>0&&SE.box.cap!=null,'TC-R10/N9a #504 the 320x568 reading is non-empty and its clamp and line-height are readable, so N9b below is a real check rather than a null comparison',SE.box);
+  L.say(!!SE.box&&SE.box.cap!=null&&SE.box.ch<=SE.box.cap,'TC-R10/N9b #504 at 320x568 - the narrowest supported phone - the CONTAINER is still no taller than the lines its clamp allows, so whatever truncates there is the clamp and it draws an ellipsis [#396]. This is GREEN on the shipped bundle too, and that is correct: the 320 reading was never a defect, which is a claim this block made and withdrew',SE.box);
+  /* LANDSCAPE IS MEASURED AND DELIBERATELY NOT ASSERTED. At 730x375 the box is 238x34 with a 2-line clamp
+     and the content needs 94px on this build and 75px on the shipped one, so most of the sentence is
+     unpainted on BOTH. That is flags/uat397-rev-why-clips-landscape - broken:true, open since 2026-09-15,
+     a self-inflicted #397 regression the build lane accepted as its own: the 34px literal is ceil(2x16.9)
+     and 16.9 is the line-height only below 465px wide, so above that two lines need 37.7px. gate 26's own
+     header says landscape "is not swept" and names that flag. Asserting it here would redden the suite on
+     a known open defect belonging to another job and block this push, so it is a NOTE with the citation
+     instead - an explicit open is a record, a silent open is a leak. The geometry is IDENTICAL on both
+     bundles (238x34, clamp 2), so this change alters only which words fall inside those two lines. */
+  L.note('    #504 730x375 landscape ply25: box 238x34 clamp 2, content 94 here vs 75 on 2fb1d7707780 - BOTH clipped, pre-existing, flags/uat397-rev-why-clips-landscape (open); gate 26:85 says landscape is not swept');
+  const badN=n.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
+  L.note('    #504 block N app errors beyond the allowed engine trap: '+badN.length+(badN.length?' '+JSON.stringify(badN.slice(0,2)):''));
+  await n.shot('review-brilliant-504-ply25');
+  await n.close();
 
   const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
   L.say(bad.length===0,'TC-R10 no app error beyond the one allowed engine trap',{allowed:b.errs.length-bad.length,other:bad.slice(0,2)});
