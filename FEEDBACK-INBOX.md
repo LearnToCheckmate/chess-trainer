@@ -2908,3 +2908,41 @@ stopped partway through this afternoon — before it had run the full test suite
 was sitting finished on a branch. This run picked it up, re-checked all of it rather than taking its word, found
 and fixed a real hole in one of its tests, and then shipped it. Nothing about the app changed between those two
 runs; what changed is that it is now actually on your phone, and that its tests can now fail if it breaks.
+
+## #508 — the games-list filter, and a chip you cannot tap on your own phone
+
+**What I built.** Nothing you can see. This run went entirely into the *test* for the Review games
+list filter — the one that stops the list jumping under your finger when you tap a grade chip.
+
+**Why that was worth a run.** The test was already green, and it was green for the wrong reason. It
+checked the filter row at a store holding **two** accounts, and at two accounts the "Clear" chip
+fits on the line the account chips already occupy — so the space the app reserves for it costs
+nothing, and a build that *removed the reserve entirely* passed the test unchanged. The protection
+you were relying on was not being exercised. At **four** accounts the row goes from 94px and two
+lines to 144px and three, and the test now reddens exactly there.
+
+**Your inbox entry for #431 says your games are "across three accounts", so here is the honest
+scope:** at three accounts this costs nothing on your phone. The hole was real and the fix is real,
+but I am not claiming it changes what you see today.
+
+**AND ONE THING YOU SHOULD KNOW, because it is about your phone and I did not fix it.** At four
+accounts on a 375x730 screen — yours — the "Clear" chip is painted **underneath the bottom tab bar**.
+A real tap on it opens the **Home** tab instead of clearing the filter. I found this only because one
+of the two adversarial passes drove a real finger instead of reading the layout; my own test missed it
+because the test helper scrolls a control into view before tapping it, which a thumb does not do.
+
+**I did not fix it, and the reason is not that it is small.** It is already on the live app — this
+build did not cause it — so writing a test that fails on it would turn the whole suite red on code
+nobody broke and block every future push until it was fixed. It is now the **fifth** recorded
+instance of one class: *a control that comes to rest under the fixed tab bar*. The other four were
+all on short screens; yours is the first on a normal-height one. The class has a named cause and an
+owner, it is measured on every run from now on, and the suite now reports out loud that there is **no
+gate** covering it rather than staying quiet about it.
+
+**Two other things I will not pretend are covered.** With a filter that matches nothing, the screen
+says *"All the 0 games this filter is looking at are graded."* — a completeness claim about nothing.
+And three figures I inherited from an earlier run about this same screen do not reproduce at all; I
+re-measured 70 times and an adversary 200 times, and the sentence those figures described cannot be
+reached by any input, because two of the fixture's games have no moves.
+
+**Nothing here is certified.** As always, that is yours and not mine.
