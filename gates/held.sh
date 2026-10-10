@@ -10,8 +10,11 @@
 #   gates/held.sh check [<bundleMd5-or-sha>]   is this tree held? With no argument, md5sum app.js on disk.
 #                                              exit 0 = not held, exit 1 = HELD (prints the row), 2 = usage.
 #   gates/held.sh add <bundleMd5> <gatedSha> <#NNN> <reason...>    append a row. Refuses a duplicate.
-#                                              Then add the sourceMd5 7th field by hand:
-#                                              git show <gatedSha>:chess.jsx | md5sum | cut -c1-12
+#                                              Field 7, the sourceMd5, IS COMPUTED - `git show <gatedSha>:chess.jsx
+#                                              | md5sum | cut -c1-12`. You do not add it by hand. CT_SRCMD5
+#                                              overrides it; `add` says which tree it used, every time.
+#   gates/held-selftest.sh                     the controls for this file. Not a gate; runs in about a second.
+#   gates/held.sh selftest                     the same thing, for a caller that only knows this file's name.
 #   gates/held.sh list                         every live row, reason IN FULL. Cleared rows (the '-' prefix)
 #                                              are listed separately below them, not mixed in.
 #
@@ -105,9 +108,118 @@ case "${1:-}" in
       echo "  author cannot be traced is half a record. Re-run as: CT_RUNID=<your runId> gates/held.sh add ..."
       exit 2
     fi
-    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$MD5" "$SHA" "$BUILD" "$(date -u +%Y-%m-%dT%H:%MZ)" "$CT_RUNID" "$REASON" "${CT_SRCMD5:--}" >> "$REG"
+    # ==== FIELD 7, THE SOURCE KEY. IT IS COMPUTED HERE AND IT IS COMPUTED FROM THE GATED SHA. ====
+    # This arm used to write "${CT_SRCMD5:--}" - i.e. '-' unless an operator remembered an environment variable -
+    # and the header above used to tell the operator to fill it in afterwards. MEASURED on main at 2bb09bf over
+    # the 12 rows of held-trees.tsv with NF>=6: ONE (bundle e7d0499e886b) has field 7 = '-'. One is better than
+    # the two this defect was filed on, and it is still the one key that survives a REBUILD being opt-in:
+    # gates/build.sh embeds a minute-resolution stamp, so a rebuild of a held source tree gets a fresh bundle md5
+    # AND a fresh sha and matches neither of the first two keys. An opt-in guard is the guard that is not there.
+    #
+    # AND IT IS THE GATED SHA, NOT THE WORKING TREE, WHICH IS THE OPPOSITE OF WHAT THE FILED JOB PRESCRIBED.
+    # jobs/held-sh-add-leaves-the-only-rebuild-proof-key-empty-2026-10-02 asks for `md5sum $ROOT/chess.jsx`.
+    # #463 shipped exactly that and its own antagonist measured it as an ACTIVE INVERSION OF BOTH POLARITIES:
+    # build V1, gate it, take a veto, edit to V2, stand down, add - and field 7 names V2. A later run rebuilds
+    # V1, gets a fresh bundle md5 in a new minute, and `check` says NOT HELD: the refused tree ships. Meanwhile
+    # the never-gated V2 gets HELD BY SOURCE: a false hold on a tree nobody ever refused. The edit-then-stand-down
+    # sequence is not exotic - #459, #461 and #463 all ran it.
+    #
+    # THE DECIDING CONSUMER IS NOT THIS FILE. gates/verify-log.sh takes the same key as
+    # `git show "$LOGSHAH:chess.jsx" | md5sum | cut -c1-12` at the door that authorises a push, and `list` has
+    # printed the label "(chess.jsx at that sha)" all along. Two readers, one key: a row written from the working
+    # tree can never match either of them, so the working-tree default silently disarms the push gate's source
+    # refusal. Measured by the same antagonist over the live register: 7 of 8 rows then, 11 of 12 now, carry the
+    # gated-sha form. This is the register's established semantics and it is now what `add` writes.
+    SRC7=""; SRC7_HOW=""
+    if [ -n "${CT_SRCMD5:-}" ]; then
+      SRC7="$(printf '%s' "$CT_SRCMD5" | tr 'A-F' 'a-f')"
+      # AN OVERRIDE IS VALIDATED LIKE AN ARGUMENT. '-' stays legal: it is how an operator says "this hold has no
+      # source key", which clause 4 below also writes, and refusing it would make the honest answer unsayable.
+      if [ "$SRC7" != "-" ]; then
+        case "$SRC7" in *[!0-9a-f]*) echo "held.sh add: CT_SRCMD5 '$CT_SRCMD5' is not hex"; exit 2;; esac
+        if [ "${#SRC7}" -lt 8 ] || [ "${#SRC7}" -gt 12 ]; then
+          echo "held.sh add: CT_SRCMD5 '$CT_SRCMD5' is ${#SRC7} chars. verify-log.sh compares 12"
+          echo "  (\`git show <sha>:chess.jsx | md5sum | cut -c1-12\`), so anything outside 8-12 matches nothing."
+          exit 2; fi
+      fi
+      SRC7_HOW="CT_SRCMD5, given explicitly"
+    else
+      # CLAUSE: A COMMA-SEPARATED SHA LIST IS REFUSED RATHER THAN GUESSED. Row 1 of the register (#441's) carries
+      # two shas, and a row covering two shas covers two trees - which have two different chess.jsx and therefore
+      # two different keys. Picking the first silently is the kind of guess this register exists to remove.
+      case "$SHA" in *,*)
+        echo "held.sh add: the sha argument names more than one commit ('$SHA'), so there is no single"
+        echo "  chess.jsx to key field 7 from - two shas are two trees. Either add one row per tree, or say"
+        echo "  which source you mean: CT_SRCMD5=\$(git show <the gated sha>:chess.jsx | md5sum | cut -c1-12)"
+        echo "  gates/held.sh add ...   (CT_SRCMD5=- is legal and records that this hold has no source key.)"
+        exit 2;; esac
+      DISKSRC=""; [ -r "$ROOT/chess.jsx" ] && DISKSRC="$(md5sum "$ROOT/chess.jsx" | cut -c1-12)"
+      if git -C "$ROOT" cat-file -e "$SHA^{commit}" 2>/dev/null; then
+        SRC7="$(git -C "$ROOT" show "$SHA:chess.jsx" 2>/dev/null | md5sum 2>/dev/null | cut -c1-12)"
+        if [ -z "$SRC7" ] || [ "$SRC7" = "d41d8cd98f00" ]; then
+          # The sha exists but carries no chess.jsx (d41d8cd98f00 is md5 of nothing, which is what a failed
+          # `git show` pipes into md5sum - and `set -o pipefail` cannot be relied on to notice inside $( )).
+          SRC7="${DISKSRC:--}"; SRC7_HOW="the WORKING TREE: $SHA has no readable chess.jsx"
+        else
+          SRC7_HOW="chess.jsx at the gated sha $SHA"
+          # CLAUSE: WARN LOUDLY WHEN DISK AND GATED SHA DISAGREE. That disagreement is the mechanical tell that
+          # the gate-then-edit-then-stand-down sequence happened, and it is the one moment the operator has to
+          # choose which tree the row is about. It is a warning and not a refusal: the gated sha is the right
+          # default and the row is still correct, but a silent default here is how #463 got it backwards.
+          if [ -n "$DISKSRC" ] && [ "$DISKSRC" != "$SRC7" ]; then
+            echo "held.sh add: WARNING - chess.jsx ON DISK is md5 $DISKSRC but at the gated sha $SHA it is $SRC7."
+            echo "  The working tree is NOT the tree you gated, which means this run edited chess.jsx after its"
+            echo "  gating run. Field 7 is written from the GATED SHA ($SRC7), because that is the tree the other"
+            echo "  two keys and the reason string are about, and the only form gates/verify-log.sh can match."
+            echo "  If you meant to hold the tree on disk instead, re-run with CT_SRCMD5=$DISKSRC."
+          fi
+        fi
+      else
+        SRC7="${DISKSRC:--}"
+        SRC7_HOW="the WORKING TREE: $SHA is not a commit in this clone"
+        echo "held.sh add: NOTE - '$SHA' is not a commit in this clone (a shallow clone is normal here), so"
+        echo "  field 7 is md5 of chess.jsx ON DISK ($SRC7) rather than at that sha. If the two trees differ,"
+        echo "  this key names the wrong one; fetch the sha, or pass CT_SRCMD5 explicitly."
+      fi
+      # CLAUSE: A KEY EQUAL TO MAIN'S OWN chess.jsx IS WRITTEN AS '-', LOUDLY. Found by #463 trying to write its
+      # own row and not by either antagonist. On a HARNESS-ONLY hold there is no held source: chess.jsx is
+      # byte-identical to main's, so this key would make `check` print HELD BY SOURCE for every future tree built
+      # from main's chess.jsx - including every later harness-only build - until somebody noticed and cleared the
+      # row. A guard that refuses main is worse than a guard that refuses nothing, so the honest answer is '-'
+      # and a sentence saying what was lost. The first two keys still hold the row; only the rebuild key is gone.
+      if [ "$SRC7" != "-" ]; then
+        MAINSRC=""
+        for R in origin/main main origin/HEAD; do
+          if git -C "$ROOT" cat-file -e "$R^{commit}" 2>/dev/null; then
+            MAINSRC="$(git -C "$ROOT" show "$R:chess.jsx" 2>/dev/null | md5sum 2>/dev/null | cut -c1-12)"
+            [ -n "$MAINSRC" ] && [ "$MAINSRC" != "d41d8cd98f00" ] && break
+            MAINSRC=""
+          fi
+        done
+        if [ -n "$MAINSRC" ] && [ "$SRC7" = "$MAINSRC" ]; then
+          echo "held.sh add: field 7 written as '-'. The source key computed to $SRC7, which is main's OWN"
+          echo "  chess.jsx, so this is a HARNESS-ONLY hold and there is no held source to key on. Writing it"
+          echo "  would make \`check\` report HELD BY SOURCE for every future tree built from main - including"
+          echo "  every later harness-only build. THE ROW LOSES ITS REBUILD-PROOF KEY and keeps the other two:"
+          echo "  a rebuild of this bundle in a new minute will NOT be caught. Say so in the reason if it matters."
+          SRC7="-"; SRC7_HOW="'-', because the computed key equalled main's own chess.jsx"
+        fi
+      fi
+    fi
+    [ -n "$SRC7" ] || SRC7="-"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$MD5" "$SHA" "$BUILD" "$(date -u +%Y-%m-%dT%H:%MZ)" "$CT_RUNID" "$REASON" "$SRC7" >> "$REG"
+    echo "held.sh: field 7 (sourceMd5) = $SRC7, from $SRC7_HOW"
     echo "held.sh: recorded $BUILD bundle $MD5 sha $SHA. COMMIT THIS TO MAIN, not to the per-run branch -"
     echo "  a row on a branch that never merges is the failure this register was written for." ;;
+  selftest|--selftest)
+    # ONE TOOL, TWO NAMES, AND THAT IS DELIBERATE. gates/buildnum-selftest.sh is the house pattern and this
+    # file's controls live beside it at gates/held-selftest.sh. But a caller that only knows THIS file's name
+    # should not have to know the other one: jobs/build-one-door-for-every-non-gate-check-2026-10-10, which is
+    # Kunal's own one-door decision, names the entry as `gates/held.sh --selftest`. Both spellings reach the
+    # same script, so the door can list either and neither goes stale.
+    ST="$HERE/held-selftest.sh"
+    [ -x "$ST" ] || [ -r "$ST" ] || { echo "held.sh selftest: no controls at $ST"; exit 2; }
+    exec bash "$ST" ;;
   list)
     # THE REASON IS PRINTED IN FULL, WRAPPED - IT IS NOT TRUNCATED. The first version cut it at
     # substr($6,1,140), which stopped #441's row mid-clause at "measured at this" and amputated every actionable
