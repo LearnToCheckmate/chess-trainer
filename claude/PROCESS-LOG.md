@@ -1047,3 +1047,68 @@ The mode commit is `0 insertions(+), 0 deletions(-)` - a pure mode change, not a
 **Delivery** parked at `patches/proc-lane2-art-gates-audit-story-join-sh-mode-and-roster-2026-10-09`. NOT on main; this lane cannot push and did not try [R21].
 
 **One error of this run's own, found by running rather than reading, and kept rather than quietly repaired.** The roster row first ended `Its own 17 controls are a command: CT_SELFTEST=1.` Two mistakes in one clause: the variable is not the script's selftest switch (`:377` takes `--selftest`; `:379` refuses anything else with exit 64, and `CT_SELFTEST=1 bash ...` therefore ran the ordinary report and printed a CLEAN verdict that looked like a passing selftest), and a count in a roster reason is a frozen denominator of exactly the kind `cited-not-run.sh`'s own header argues against. The row now names the command and no number; the command prints the number. Measured after the correction: `SELFTEST 17 pass / 0 fail`, rc 0.
+
+---
+
+## 2026-10-10, 2:34am ET — process lane 1, run `process-build-1__1791614078511` — the arm (5) breach is real, the two new rows are fixed, and FIXING IT TURNS THE FAST TIER RED
+
+**The item.** `jobs/citations-arm-5-is-breached-on-main-so-the-push-gate-may-be-red-2026-10-10` (P1, priority 14, `cls` suite, `mode` wrong-oracle), filed by the orchestrator at 1:55am ET from a subagent's incidental observation and filed EXPLICITLY as unconfirmed: its own `whatIDIDNOTVERIFY_sayItPlainly` says "I did not run gates/verify-log.sh --citations myself and I did not count the rows myself", and names the first step as running it on a clean clone of main and reading the real exit code. That is what this run did, in that order, before touching a byte.
+
+**(1) THE BREACH IS REAL, AT THE REPORTED FIGURES.** `bash gates/verify-log.sh --citations` on a clean clone of `origin/main` at `4c7e007` (`#509 close-out`), exit **1**:
+
+| arm | reading on pristine main |
+|---|---|
+| (5) wrong-width rows | **4** against the committed ceiling of **2** — `NEW WRONG-WIDTH ROW(S): 4 exceeds the committed ceiling of 2 by 2.` |
+| (5) verdict | `REGISTER SELF-CHECK RED: ... 2 new wrong-width row(s) ...` |
+| (1) dead paths | 17 dead, 66 resolved, 2 allowlisted |
+| (2) case ids | 20 unsupported, 10 misfiled, 1 not checked |
+| (4) line citations | 46 of ceiling 48, 0 dead, 0 past EOF — **the ceiling CAN BE LOWERED to 46** |
+| whole mode | `CITATIONS RED`, exit 1 |
+
+So the job is **confirmed, not withdrawn**. Independently corroborated three hours earlier by lane 4, whose `claims/art-claude-stories-TEST-CASES-md` release note at 12:07am ET records "arm (5) reads 4 of ceiling 2 before AND after" — i.e. the breach is standing and was not introduced by lane 4's two rows.
+
+**(2) WHICH TWO ROWS ARE NEW, AND THEY HAVE TWO DIFFERENT CAUSES.** Read from the ceiling's own provenance comment at `gates/verify-log.sh:525-527`, which names the two the ceiling was derived for — TC-R19 at 15 columns and TC-R37 at 3 — so the other two are new.
+
+| row | line | columns | cause | fix |
+|---|---|---|---|---|
+| TC-R09c | :29 | 10 vs 6 | **four unescaped pipes inside code spans** — two in the regex `^(1-0\|0-1\|-?M\d*)$`, two in `\|m\|>=1` | escaped as `\|`, exactly as the arm's own message prescribes |
+| TC-R15 | :34 | 7 vs 6 | **not a pipe at all** — a seventh cell in a six-column table, holding the R08 input count, for which the table has no column | folded into the executed-by cell, where the other 56 rows carry that figure; no word lost |
+
+That distinction matters because the arm's message only ever prescribes escaping, and following it on TC-R15 would have found nothing to escape.
+
+**(3) THE FIX, MEASURED BEFORE AND AFTER ON THIS TREE.**
+
+| measurement | before | after |
+|---|---|---|
+| arm (5) wrong-width | 4 (ceiling 2) | **2 (ceiling 2)** |
+| arm (5) verdict | `REGISTER SELF-CHECK RED` | **`REGISTER SELF-CHECK OK`** |
+| case rows / story headings / at-zero | 59 / 34 / 9 | 59 / 34 / 9 — **unmoved**, which is what a cell-shift would have changed |
+| `gates/verify-log.sh --citations-selftest` | — | **30 pass / 0 fail**, rc 0, including C13/C13b (unescaped pipe fires, escaped form silent) and C14 (exactly at the width ceiling is not over it) — this tree's exact state |
+| `gates/audit/story-join.sh` | — | **CLEAN**, rc 0, `CROSS-CHECK AGREES with arm (5): both read 9 story(ies) at zero cases` |
+| determinism | — | arm (5) + verdict lines **byte-identical over three runs**, md5 `a55853171752f2e24fd3354d10d378a1` |
+
+`A5WCEIL` was NOT touched. It lives in `gates/verify-log.sh`, a second artefact this run does not hold [R44], and lowering a ceiling to meet a breach is the shortcut the job itself names as forbidden.
+
+**(4) AND HERE IS THE THING THIS RUN FOUND BY MEASURING AND WOULD HAVE SHIPPED BY REASONING. THE FIX TURNS THE FAST TIER RED.**
+
+`gates/fastgate.sh:669` reads:
+
+    ratchet "records"       '^(CITATIONS|REGISTER SELF-CHECK)' bash "$G/verify-log.sh" --citations
+
+so the records tier of the **push path** runs this mode, HEAD against a BASE worktree, and compares `sig()` — the OK/RED/GREEN/FAIL words and every integer on the two summary lines — with `worse()`. Reproduced here with `sig()` and `worse()` copied line for line out of `fastgate.sh`:
+
+| | signature |
+|---|---|
+| BASE (pristine main) | `RED,0,0,0,2,0,0,RED,17,20,10,0,0,0,1` — **15 fields** |
+| HEAD (this fix) | `OK,59,5,34,9,9,2,2,RED,17,20,10,0,0,0,1` — **16 fields** |
+| `worse()` verdict | **WORSE** — `fastgate.sh:617`, "different shape cannot be compared: treat as worse" |
+
+`red=1` → `FAST GATE RED` → **exit 1** (`fastgate.sh:706-707`). The ratchet cannot accept the commit that fixes the breach it is watching, because the arm's OK line and its RED line are different shapes and the comparison short-circuits on length before it ever looks at a number. It is bounded — once the fix is on main, BASE and HEAD both read OK and the tier goes green again, so exactly ONE commit is refused, the improving one — and it is still a ratchet that refuses an improvement.
+
+**And the same measurement falsifies a load-bearing claim in the roster.** `gates/audit/cited-not-run.sh:187` states of `gates/verify-log.sh`: "gates/gates.sh never executes this file (every reference in it is a comment) and the --citations mode exits before the log-verification path, so **an over-ceiling arm cannot redden any build**." The first half is TRUE and re-measured here — every one of the nine `verify-log` matches in `gates/gates.sh` is a comment line, so the full suite is unaffected and this payload cannot redden it. The conclusion is FALSE: `fastgate.sh` runs the mode on the push path, the over-ceiling figure is inside the ratcheted signature, and a commit that pushes wrong-width rows from 2 to 3 moves `new wrong-width row(s)` 0 → 1, a number that rose, which is `FAST GATE RED`. One cause, two consequences, filed once [R09] as `jobs/the-records-ratchet-refuses-the-commit-that-fixes-the-arm-5-breach-and-the-roster-says-this-mode-cannot-redden-a-build-2026-10-10`.
+
+**INTEGRATOR, THIS IS THE ONE LINE THAT MATTERS TO YOU.** Land this payload through the **full suite**, not the records fast tier. On the fast tier it will read `FAST GATE RED` with `records: RED - this commit made it WORSE`, and that red is the ratchet's shape bug and **not** a defect in this change. Through `gates/gates.sh` there is no exposure at all, because the suite never executes `verify-log.sh`.
+
+**Not checked, five things, named rather than swept.** (1) The whole `--citations` mode stays **RED at exit 1** on arms (1) and (2) — 17 dead paths, 20 unsupported case ids, 10 misfiled rows — none of which is this job's scope and none of which this payload touches. (2) TC-R19 at 15 columns and TC-R37 at 3: deliberately untouched, the baseline the ceiling was set for, owned by `jobs/two-case-rows-carry-unescaped-pipes`. (3) Arm (4)'s own finding, that the line-citation ceiling can be lowered from 48 to **46**, is read and reported here and NOT acted on — it is an edit to `gates/verify-log.sh`, an artefact this run does not hold. (4) No gate and no suite ran: nothing in this payload is reachable from the 59-section suite, so no PASS/FAIL figure is given and none is implied. (5) The apply against the other nine pending payloads in every order; what was measured is this payload alone onto `4c7e007`.
+
+**Delivery** parked at `patches/proc-lane1-art-claude-stories-TEST-CASES-md-arm5-2026-10-10`. NOT on main; this lane cannot push and did not try [R21].
