@@ -207,32 +207,35 @@ L.run(async()=>{
      byPly[ai], so that ply was NEVER re-queried and the clause that says WHY the sacrifice works was gone
      for the rest of the review. CLAUDE.md's #389 in the caller #389 did not touch.
 
-     TWO ARMS, BECAUSE THE FIX HAS TWO HALVES AND ONE ARM ONLY SEES ONE OF THEM. This block shipped with one
-     arm and BOTH BLIND ANTAGONISTS CAUGHT THAT IT CONTROLLED HALF THE DIFF. Measured, four bundles each one
-     hunk-group from the next, one container, this gate:
-
-       bundle         yield  cache/token   'waiting' arm     'inflight' arm
-       main             -         -         RED  (defect)     RED  (defect)
-       cache-only       -         +         RED  (defect)     green
-       yield-only       +         -         green             RED  (defect)
-       shipping         +         +         green             green
-     (The md5s belong in the log and in the build record, not here: this file outlives any one bundle and a
+     ONE LAUNCH CONTROLS BOTH HALVES OF THE FIX, AND THE SECOND ARM THAT USED TO DO IT WAS WORSE.
+     This block shipped with ONE assertion set and BOTH BLIND ANTAGONISTS CAUGHT THAT IT CONTROLLED HALF
+     THE DIFF: a yield-only bundle (HEAD minus the three cache/token hunks) scored the shipping verdict
+     exactly. The two halves are now controlled by two assertions in one pass:
+       R3c  THE YIELD HALF      the engine line keeps a real variation on this Brilliant ply, because
+                                sacRun no longer aborts it. Needs no step-away, so it cannot trap.
+       R4   THE CACHE/TOKEN     the clause survives a step-away that aborts sacRun mid-search.
+     MEASURED, four bundles each one hunk-group from the next, one container:
+       bundle         yield  cache/token   R3c            R4
+       main             -         -        RED            RED
+       cache-only       -         +        RED            green
+       yield-only       +         -        green          RED
+       shipping         +         +        green          green
+     (The md5s belong in the log and the build record, not here: this file outlives any one bundle and a
       hard-coded md5 in a gate header is a stale citation waiting to happen. Cite the md5 beside the run.)
+     THE STEP-AWAY IS TIMED OFF THE ENGINE LINE'S OWN ARRIVAL, NOT OFF A WALL CLOCK [antagonist B's
+     cross-read, upheld]. The first version used fixed 600ms and 1200ms waits. Those are correct in THIS
+     container and are the #480/#416 class. B measured why: the engline's variation lands at t+839/840ms
+     and the clause at t+1676/1677ms, so sacRun's in-flight window is about 1.05s-1.68s and 1200 sat
+     ~150ms inside a ~600ms window WHOSE BOTH EDGES ARE ENGINE-SPEED TERMS. On a faster engine sacRun would
+     have stored its answer before 1200ms, the step-away would abort nothing, and the arm would go SILENTLY
+     GREEN ON A BUNDLE MISSING THE CACHE AND TOKEN FIX. R3c now polls for the arrival and R4 steps away
+     200ms after it, so the state is read off the screen; an engine too fast or too slow reddens R3c rather
+     than passing quietly. Kunal's phone is slower than this container.
      AND ONE ASSERTION OUTSIDE BLOCK R IS NON-DETERMINISTIC ON THE CACHE-ONLY BUNDLE, recorded because two
-     independent runs of it disagreed and neither reading should be written down as the truth: 'ply 25: a
-     REVISIT yields a variation' went RED in antagonist A's cache-only run (reading '+5.4 ...', the engine
-     line losing its variation) and GREEN in mine. A's mechanism is the best explanation - without the
-     yield, sacRun's abort costs the engine line its variation, which is exactly what antagonist B measured
-     on MAIN at plies 19 and 25 - and it is not established, because one clean run each disagrees. It needs
-     its own control before anyone states it either way.
-
-     WHY THE TWO ARMS SEPARATE, AND IT IS THE MECHANISM AND NOT A COINCIDENCE. sacRun now YIELDS to a busy
-     worker instead of aborting it, so it takes the worker LATER - only once the engine line's own 900ms
-     query has finished. Stepping away at 600ms therefore catches sacRun still WAITING (nothing to abort, so
-     the yield alone is enough and the cache guard is never exercised); stepping away at 1200ms catches it
-     IN FLIGHT, which is the only state where the aborted-search-stored-as-an-answer fault can fire. A gate
-     with only the 600ms arm scores 29/0 on a bundle missing the entire cache and token fix.
-
+     independent runs disagreed and neither reading should be written down as the truth: 'ply 25: a REVISIT
+     yields a variation' went RED in antagonist A's cache-only run (reading '+5.4 ...') and GREEN in mine.
+     A's mechanism is the best explanation and is the same one R3c now asserts - without the yield, sacRun's
+     abort costs the engine line its variation - and it is not established. It needs its own control.
      THE DENOMINATOR IS TAKEN AT A DIFFERENT PLY FROM THE RACE, AND THAT IS THE WHOLE DESIGN.
      The first draft settled on ply 38 with the engine off, read the clause, and then raced ply 38 - and
      scored 28 pass / 0 FAIL on main, CERTIFYING THE DEFECT ABSENT. sacRef.byPly is keyed BY PLY and never
@@ -276,9 +279,9 @@ L.run(async()=>{
        in R4a's own state-reached-not-assumed style, so a future reader can tell a green that means FIXED
        from a green that means THE RACE MISSED. If the engine is so fast or so slow that an arm cannot
        reach its state, R3b goes RED and says so rather than quietly passing. */
-    for(const ARM of ['waiting','inflight']){
-      const tag='R['+ARM+'] ';
-      const r=await L.launch({geo:'kunal730',name:'engline-sacrun-race-'+AWAY,store:{ct_pool:'3'}});await r.open();
+    {
+      const tag='R ';
+      const r=await L.launch({geo:'kunal730',name:'engline-sacrun-race',store:{ct_pool:'3'}});await r.open();
       await r.tile('Review');await r.page.locator('textarea').first().fill(KPGN);await r.tapText(/^⚡ Analyze Game$/,{wait:300});
       await r.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await r.settle(600);
       await r.tapText(/^Start review/,{wait:900});
@@ -308,34 +311,47 @@ L.run(async()=>{
       /* THE STEP-AWAY IS TIMED OFF THE ENGINE LINE'S OWN ARRIVAL, read at 50ms granularity. */
       const t0=Date.now();
       const engVar=async()=>{const t=await r.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-engline"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});return {txt:t,got:hasVar(t)};};
-      let arrivedMs=null,stateNote=null;
-      if(ARM==='waiting'){
-        /* Past sacRun's own 450ms debounce (so it has asked for the worker) but before the engine line has
-           finished with it - so sacRun is YIELDING and there is nothing for the step-away to abort. This is
-           the state the YIELD half alone is enough to survive. */
-        await r.page.waitForTimeout(500);
-        const e1=await engVar(); arrivedMs=Date.now()-t0; stateNote={msSinceLanding:arrivedMs,englineHasVariation:e1.got,engline:e1.txt};
-        L.say(!e1.got,tag+'R3b STATE RACED, read off the screen rather than assumed: the engine line has NOT yet produced its variation, so it still owns the worker and sacRun is YIELDING for it. This is the state this arm must race, and an engine fast enough to break that would redden this line instead of passing quietly.',stateNote);
-      }else{
-        /* Poll until the engine line HAS produced its variation - the worker is then free and sacRun, which
-           has been yielding, takes it immediately and runs for 700ms. Stepping away just after that moment
-           catches sacRun IN FLIGHT, which is the only state where an aborted search can be stored as an
-           answer, so this is the arm the CACHE and TOKEN half exists for. */
-        for(let i=0;i<160;i++){const e=await engVar();if(e.got){arrivedMs=Date.now()-t0;stateNote={englineArrivedMs:arrivedMs,engline:e.txt};break;}await r.page.waitForTimeout(50);}
-        L.say(arrivedMs!==null,tag+'R3b STATE RACED, read off the screen rather than assumed: the engine line produced its variation at the millisecond recorded here, so the worker is now free and sacRun has taken it - this arm races sacRun IN FLIGHT. A run where this never arrives reddens here rather than racing nothing.',stateNote||{englineArrivedMs:null,timedOutAfterMs:Date.now()-t0});
-        await r.page.waitForTimeout(200);
-      }
+      /* R3c CONTROLS THE YIELD HALF, AND IT NEEDS NO STEP-AWAY AT ALL.
+         The yield's job is to stop sacRun ABORTING the engine line's query. Its observable is therefore the
+         ENGINE LINE, not the sentence: without the yield, sacRun's sfEval1 kills the engline's in-flight
+         sfBestLine on exactly the Brilliant and Great plies sacRun fires on, and the engline is left with a
+         bare number and no variation. Antagonist B measured precisely that on MAIN over an 85-ply walk -
+         'rows 38 and 74, precisely the two sacrifice plies, showed a bare number with no variation' - and
+         antagonist A's cache-only run reddened the pre-existing ply-25 revisit assertion for the same
+         reason from the other door. So this one poll controls the yield half on a healthy worker.
+         WHY THIS REPLACED A SECOND ARM, and it is the more useful half of the story. The first version of
+         this block had a 'waiting' arm that stepped away at ~500ms, while the engline query was still
+         running, in order to catch sacRun yielding. MEASURED: that step-away ABORTS A LIVE ENGLINE QUERY,
+         which is #356's abort-before-readyok, and it TRAPPED THE WASM - so the arm went RED on the
+         SHIPPING bundle (37 pass / 2 fail, one PAGEERROR) for a reason that is not the defect. An arm that
+         reliably reddens a correct build is worse than one that cannot redden a broken one, and no
+         precondition can save it because the trap happens DURING the race, after the precondition passed.
+         The route below never interrupts a live engline query and measured ZERO page errors. */
+      let arrivedMs=null,lastTxt=null;
+      for(let i=0;i<160;i++){const e=await engVar();lastTxt=e.txt;if(e.got){arrivedMs=Date.now()-t0;break;}await r.page.waitForTimeout(50);}
+      L.say(arrivedMs!==null,tag+'R3c THE YIELD HALF: on this Brilliant ply the ENGINE LINE produces a real variation, so sacRun did not abort it. Without the yield, sacRun kills the engline mid-search on exactly these plies and it is left with a bare number.',{englineArrivedMs:arrivedMs,engline:lastTxt});
+      /* Stepping away NOW catches sacRun IN FLIGHT: the worker has just been freed by the engline, sacRun
+         has been yielding for it and takes it at once for 700ms. That is the only state in which an aborted
+         search can be stored as an answer, so this is what the CACHE and TOKEN half exists for. Timed off
+         the observed arrival rather than a wall-clock literal [antagonist B's cross-read]. */
+      await r.page.waitForTimeout(200);
       await fwd(r,1,120);await r.settle(4000);
       await back(r,1,120);await r.settle(12000);
       const atT=await plyTxt(r);
       L.say(!!atT&&atT.indexOf(T+'/85')>=0&&/Brilliant/.test(atT),tag+'R4a back on ply '+T+' AND it really is the Brilliant - sacRun only fires on Brilliant or Great, so this names the state R4 reads',atT);
       const raced=await why(r);
-      L.say(IF(raced),tag+'R4 THE DEFECT: stepping off the Brilliant ply '+(ARM==='waiting'?'while sacRun is still WAITING for the worker - THIS ARM FAILS WITHOUT THE YIELD HALF':'while sacRun HOLDS the worker, so the step-away aborts it mid-search - THIS ARM FAILS WITHOUT THE CACHE AND TOKEN HALF')+' used to leave the aborted search cached as the answer, so the "If they take it" clause never came back. It must be here on return.',raced);
+      L.say(IF(raced),tag+'R4 THE CACHE AND TOKEN HALF: stepping off the Brilliant ply while sacRun HOLDS the worker aborts its search mid-flight, and that aborted search used to be stored as the answer - so the "If they take it" clause never came back. It must be here on return.',raced);
 
       await fwd(r,1,120);await r.settle(2000);await back(r,1,120);await r.settle(12000);
       const raced2=await why(r);
       L.say(IF(raced2),tag+'R5 and it is STILL here on a second return, so the entry is a real answer and not a one-off recovery',raced2);
-      L.note(tag+'page errors (traps here are allowed by the same exact text as the closing assertion): '+JSON.stringify(r.errs.slice(0,4)));
+      /* THE CONFOUNDER GUARD, AFTER THE RACE AND NOT ONLY BEFORE IT. R2b asserts the worker was healthy
+         going in; this asserts it stayed healthy, because a trap mid-race makes every assertion above
+         unrunnable rather than false - the clause is permanently absent after a trap on EVERY bundle,
+         main included [antagonist B, filed as its own job]. Without this line a trapped run would publish
+         a red that says 'the defect is present' when what happened is 'the instrument died'. */
+      const trapsAfter=r.errs.filter(e=>/RuntimeError: unreachable/.test(e));
+      L.say(trapsAfter.length===0,tag+'R6 the WASM worker did not trap at any point during the race either, so R3c and R4 above measured a live engine rather than a dead one - after a trap the clause is permanently absent on every bundle and a red here would mean nothing',{traps:trapsAfter.length,errs:r.errs.slice(0,3)});
       await r.close();
     }
   }
