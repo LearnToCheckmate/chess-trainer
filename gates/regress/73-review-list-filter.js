@@ -237,6 +237,10 @@ const G=[
 ];
 const row=(g)=>({src:g.src,acct:g.acct,white:g.white,black:g.black,wr:g.wr,tc:g.tc,date:g.date,
                  pgn:pgn(g.white,g.black,g.wr==='win'?'1-0':(g.wr==='draw'?'1/2-1/2':'0-1'),g.moves)});
+// #508 `row4` OVERRIDES ONLY THE ACCOUNT. It is a separate helper and NOT a second parameter on `row`,
+// deliberately: every existing call site is `.map(row)`, and Array.prototype.map passes the INDEX as the
+// second argument, so adding a parameter to `row` would have set four stores' accounts to 0,1,2,3.
+const row4=(g,acct)=>Object.assign({},row(g),{acct});
 const gk=(g)=>g.src+':'+g.date+':'+g.white+':'+g.black;
 const TALLY={};
 TALLY[gk(G[0])]={bril:1,great:2,inacc:0,mist:0,blun:0,src:'review'};
@@ -289,9 +293,23 @@ const STORE={ct_ccuser:'',ct_liuser:'',
 // suite is container-dependent].
 const STORE4={ct_ccuser:'',ct_liuser:'',
   ct_accts:['cc:alpha','cc:beta','cc:gamma','cc:delta'],
-  ct_acctgames:{'cc:alpha':G.slice(0,3).map(row),'cc:beta':[row(G[3])],
-                'cc:gamma':[row(G[4])],'cc:delta':G.slice(5).map(row)},
+  ct_acctgames:{'cc:alpha':G.slice(0,3).map(g=>row4(g,'alpha')),'cc:beta':[row4(G[3],'beta')],
+                'cc:gamma':[row4(G[4],'gamma')],'cc:delta':G.slice(5).map(g=>row4(g,'delta'))},
   ct_gamestats:TALLY};
+// #508 ON AN UPHELD VETO FROM BOTH ANTAGONISTS INDEPENDENTLY - THE FIRST STORE4 WAS INCOHERENT.
+// It moved rows between ct_acctgames KEYS and left each row's own `acct` field alone, and chess.jsx's
+// `_aid` derives the account FROM THE ROW, not from the key. Measured on the shipping bundle: tapping
+// gf-acct-gamma and gf-acct-delta each returned ZERO rows and "No games match account <x>", so two of the
+// four chips were dead and the published "SAME SEVEN GAMES, SO EVERY COUNT ON THE SCREEN IS UNCHANGED" was
+// false of the per-account counts. `row4` sets the account to match the key.
+// WHAT THIS FIXTURE DOES AND DOES NOT MODEL, said rather than overclaimed: it models the account
+// ASSIGNMENT, which is the only thing the filter and the chip row read. The games' PGN player names are
+// unchanged, so a row filed under cc:gamma still shows beta's players - which no importer would produce.
+// That does not touch anything block G asserts (the chip LABEL comes from the key and the wrap comes from
+// the label widths) and it is recorded so nobody builds a player-facing assertion on this fixture.
+// THE LAYOUT RESULT IS UNAFFECTED AND I RE-MEASURED IT RATHER THAN INHERITING THE CLAIM: with the
+// consistent fixture the resting row is still 144px / 3 lines at four accounts at both 375 geometries, and
+// the no-reserve control still jumps 94 -> 144 there.
 
 // everything the assertions read, in ONE evaluate, so every number in a row comes from one screen state
 async function READ(b){
@@ -319,7 +337,14 @@ async function READ(b){
     // and any assertion resting on presence alone can no longer fail. Both assertions now require vis.
     const chips=fil?[...fil.querySelectorAll('button')].map(x=>{const q=x.getBoundingClientRect();
       return {ct:x.getAttribute('data-ct'),lab:txt(x),w:Math.round(q.width*10)/10,h:Math.round(q.height*10)/10,
-              right:Math.round(q.right*10)/10,left:Math.round(q.left*10)/10,on:x.getAttribute('aria-pressed')==='true',
+              right:Math.round(q.right*10)/10,left:Math.round(q.left*10)/10,
+              // #508 `top` and `bottom` ADDED. Block G's G0b needs the wrapped-line membership of each chip and
+              // this reader never produced it, so G0b's first version compared undefineds and reddened on the
+              // SHIPPING bundle - an assertion reading a field its own instrument does not emit, which is #394's
+              // "a selector that cannot match reports a defect that is not there". Caught by my own gate run.
+              // Additive: no existing assertion reads either key, they only widen the payloads.
+              top:Math.round(q.top*10)/10,bottom:Math.round(q.bottom*10)/10,
+              on:x.getAttribute('aria-pressed')==='true',
               vis:getComputedStyle(x).visibility,ghost:x.getAttribute('data-ghost')||null,
               pe:getComputedStyle(x).pointerEvents,ah:x.getAttribute('aria-hidden'),ti:x.getAttribute('tabindex')};}):[];
     // #507 the two reserved boxes, measured as BOXES (offsetHeight, scroll-independent) and as INK (visibility)
@@ -1229,7 +1254,22 @@ function mkTap(b,READ){
      and geometry. The cost is a product trade-off - 50px of Kunal's own viewport spent permanently against a
      50px jump removed - and it is routed to the Desk, not decided here [R20]. */
   {
-    for(const gname of ['se','kunal730','kunal761']){
+    /* #508 BLOCK G RUNS AT THE TWO 375 GEOMETRIES AND NOT AT `se`, AND MY OWN NEW DENOMINATOR GUARD IS WHAT
+       TOLD ME SO - which is the most useful thing that happened to this block. G0b asserts that the Clear
+       chip sits on a wrapped line of its own. It PASSES at kunal730 and kunal761 (clearTop 688.9 against
+       other chips at 588.9 and 638.9) and it FAILED at `se`, where the payload read
+       otherTops [603.8, 653.8, 703.8] with clearTop 703.8 - the Clear chip SHARES line 3 with the fourth
+       account chip. Measured consequence: at 320x568 with four accounts the row is 144px/3 lines on the
+       shipping bundle AND 144px/3 lines on the no-reserve control, so the reserve costs nothing there and
+       G2/G3 have NO DISCRIMINATING POWER at `se` - block G at that geometry was four assertions duplicating
+       F1/F1b/F4/F4b plus two that pass on the only control. An antagonist said exactly this from the diff
+       door and the guard then proved it from the inside.
+       SO THE TWO BLOCKS ARE NOW COEXTENSIVE WITH THEIR OWN POWER AND THEIR CELLS ARE DISJOINT: block F
+       reddens at `se` (where the two-account row grows) and block G reddens at kunal730 and kunal761 (where
+       the four-account row grows), and together they cover all three geometries with no cell duplicated.
+       Removing `se` from this block removes SIX assertions and no coverage, which is why the file's total
+       falls rather than rises - said plainly because a falling assertion count normally means weakening. */
+    for(const gname of ['kunal730','kunal761']){
       const g=L.GEOS[gname];
       const b=await L.launch({geo:g,store:STORE4,name:'G-reserve4-'+gname});
       await b.open(); await b.tile('Review'); await b.settle(1200);
@@ -1263,9 +1303,65 @@ function mkTap(b,READ){
       // the anti-vacuity guard on the pair below: prove the second state really differs [block F's F2a]
       const post=await tapG('gf-bril');
       const postClear=post.chips.find(c=>c.ct==='gf-clear');
+      /* #508 G2a's WORDING IS NARROWED ON AN UPHELD VETO FROM THE SHIPPED-SURFACE DOOR. It said "Clear is
+         now PAINTED", and `visibility!=='hidden'` does not support the word painted in the sense a reader
+         takes it: at four accounts at 375x730 this chip is `visibility:visible` and 100% covered by the
+         fixed bottom tab bar, so the player sees nothing. The assertion is still exactly right as an
+         anti-vacuity guard - it proves the second state arrived - and only the claim about what the player
+         can see is withdrawn. The occlusion itself is measured in G5 below and filed. */
       L.say(post.rows!==pre.rows&&!!postClear&&postClear.vis!=='hidden',
-        'G2a ['+gname+'] the grade chip really went on - the row count changed AND Clear is now painted - so G2 and G3 compare two states and not one twice',
+        'G2a ['+gname+'] the grade chip really went on - the row count changed AND Clear is no longer visibility:hidden - so G2 and G3 compare two states and not one twice (this says the chip is IN the paint tree, NOT that a player can see it: G5 measures that)',
         {preRows:pre.rows,postRows:post.rows,clearVis:postClear&&postClear.vis});
+
+      /* G0b IS BLOCK G's REAL DENOMINATOR AND ITS ABSENCE WAS AN UPHELD VETO. G0 asserts four account
+         chips render; the property that actually makes this cell discriminating is that THE CLEAR CHIP
+         DOES NOT FIT ON THE LINE THE OTHER CHIPS ALREADY OCCUPY, and until now that lived only in an
+         unasserted L.note. An antagonist measured a four-account state with SHORT labels (al, be, ga, de)
+         where G0 passes, the row is two lines, and G2/G3 pass on the no-reserve control - block G's own
+         vacuity, one axis along from the one it was built to remove. So the count is a PROXY and the width
+         is the variable.
+         MEASURED IN THE FILTERED STATE, ON PURPOSE, AND THIS IS THE WHOLE DESIGN OF THE GUARD: in the
+         post-tap state BOTH bundles paint the chip, so this condition reads identically on the shipping
+         bundle and on the control. A guard written at REST would have reddened on the control for a reason
+         that has nothing to do with the fixture - the ghost is simply absent there - which is precisely the
+         conflation that made G0's first draft wrong. A denominator guard must not be able to fail because
+         the thing under test is missing. */
+      /* #508 BOTH G0b AND G5 READ A RECT, SO BOTH ARE MEASURED AT A KNOWN SCROLL ORIGIN AND NOT WHEREVER
+         THE LAST TAP LEFT THE SCROLLER. `mkTap` calls scrollIntoViewIfNeeded, so every rect taken after it
+         sits at an unrecorded offset: G5's first version ran after the Clear tap and reported the chip at
+         342.9 instead of 688.9, which is this file's own "a rect is only comparable across states at a KNOWN
+         scroll position" trap. The scroller is reset to 0 here and the value found is recorded, so the
+         numbers below describe the position a player actually lands on. */
+      const scrollWas=await b.page.evaluate(()=>{const r=document.getElementById('root');const was=r?r.scrollTop:null;if(r)r.scrollTop=0;return was;});
+      await b.settle(250);
+      const postRest=await READ(b);
+      const prClear=postRest.chips.find(c=>c.ct==='gf-clear');
+      const otherTops=postRest.chips.filter(c=>c.ct!=='gf-clear'&&c.top!=null).map(c=>c.top);
+      const clearTop=prClear?prClear.top:null;
+      L.say(clearTop!=null&&otherTops.length>0&&!otherTops.includes(clearTop),
+        'G0b ['+gname+'] THE DENOMINATOR: the Clear chip sits on a wrapped line of its OWN, so this fixture really is in the state where the reserve costs a line - which is the condition block G exists for, and it is the CHIP WIDTH and not the account count that produces it',
+        {clearTop,otherTops:[...new Set(otherTops)],labels:postRest.chips.map(c=>(c.lab||'')+':'+c.w),scrollWas,geo:gname});
+
+      /* G5. THE OCCLUSION, measured in the PAINTED state at the reset scroll origin above. */
+      const occ=await b.page.evaluate(()=>{
+        let bar=null;
+        for(const d of document.querySelectorAll('div')){const st=getComputedStyle(d);
+          if(st.position==='fixed'){const q=d.getBoundingClientRect();
+            if(q.bottom>=innerHeight-2&&q.height>0&&q.height<120&&q.width>innerWidth*0.8){bar={top:Math.round(q.top*10)/10,z:st.zIndex};break;}}}
+        const c=document.querySelector('[data-ct="gf-clear"]');if(!c)return {bar};
+        const q=c.getBoundingClientRect();
+        const cx=q.left+q.width/2, cy=q.top+q.height/2;
+        const e=(cy>=0&&cy<innerHeight)?document.elementFromPoint(cx,cy):null;
+        const underBar=bar?Math.max(0,Math.min(q.bottom,innerHeight)-Math.max(q.top,bar.top)):0;
+        return {bar,vh:innerHeight,vis:getComputedStyle(c).visibility,
+                box:{top:Math.round(q.top*10)/10,bottom:Math.round(q.bottom*10)/10},
+                coveredByBarPx:Math.round(underBar*10)/10,
+                offScreenPx:Math.round(Math.max(0,q.bottom-innerHeight)*10)/10,
+                centreInViewport:(cy>=0&&cy<innerHeight),
+                hit:e?(e.tagName+(e.getAttribute('data-ct')?'['+e.getAttribute('data-ct')+']':'')+':'+(e.textContent||'').trim().slice(0,14)):null,
+                hitIsClear:e?(c===e||c.contains(e)):false};});
+      L.note('G5-occlusion ['+gname+'] NOT ASSERTED - pre-existing on main [see the block header for why], filed as instance 5 on jobs/the-drill-nav-row-rests-under-the-tab-bar-at-320x568-on-main-2026-10-04 and carried as a known-absent manifest row so gatemanifest reports the gap every run: '+JSON.stringify(occ));
+
 
       /* G2 AND G3 ARE THE ASSERTIONS THIS BLOCK EXISTS FOR. On the no-reserve control these two go RED at
          kunal730 and kunal761 - the two cells where block F's F2 and F3 stay green on that same control. */
@@ -1282,9 +1378,38 @@ function mkTap(b,READ){
         'G4 ['+gname+'] and after clearing, the reserved Clear occupies its full box and paints nothing at four accounts too - the property the no-jump promise rests on [block F\'s F4 at the new axis]',
         {vis:ghostNow&&ghostNow.vis,h:ghostNow&&ghostNow.h,w:ghostNow&&ghostNow.w,rows:back.rows});
 
+      /* G5. THE OCCLUSION, MEASURED HERE AND DELIBERATELY NOT ASSERTED. THIS IS THE MOST IMPORTANT THING
+         ON THIS SCREEN AND IT IS NOT THIS BUILD'S TO FIX.
+         An antagonist at the shipped-surface door measured, and I reproduced on my own instrument with a
+         consistent fixture: at FOUR accounts at 375x730 the PAINTED Clear chip's box runs 688.9 to 732.9
+         while the fixed bottom tab bar starts at 674 and the viewport ends at 730. So 41.1px of its 44px is
+         under an opaque fixed sibling and the remaining 2.9px is off-screen - the whole control - and
+         `elementFromPoint` at its own centre returns the Home tab. A REAL FINGER TAP THERE DOES NOT CLEAR
+         THE FILTER: measured, the count stays "2 of 7" and the player is taken to Home. At one, two and
+         three accounts the same tap returns `gf-clear` and restores "7 loaded".
+         WHY NO ASSERTION, STATED SO IT IS A RECORDED DECISION AND NOT A LAPSE. The defect is PRE-EXISTING
+         on origin/main - this bundle is byte-identical to main's but for twelve stamp bytes, and the
+         no-reserve control shares it because the chip lands on line 3 in both states - so an assertion here
+         would redden the suite on a tree this build did not break and would block every push until a layout
+         fix lands. That fix is a change to how this scroller relates to a fixed bar and it needs its own
+         measurement, its own control and probably its own amber record. It is filed, and a `known-absent`
+         row in gates/gate-manifest.tsv makes `gatemanifest check` report the gap EVERY run, which is this
+         project's own mechanism for a defect class with no gate rather than a silence.
+         AND WHY mkTap COULD NOT HAVE FOUND IT: mkTap calls `scrollIntoViewIfNeeded()` and then clicks the
+         ELEMENT, so it scrolls the control out from under the bar before pressing it. Every tap in this file
+         is therefore blind to occlusion at the resting scroll position. That is the #386/#390 trap pointed
+         the other way: there the harness tap landed on nothing a finger could reach, here it reaches
+         something a finger cannot.
+         ONE CORRECTION TO THE ANTAGONIST, measured: it reported the consequence as "whether the filter can
+         be turned off at all". The filter CAN be turned off - the grade chips sit on line 1 at y 588.9,
+         well above the bar, so re-tapping one clears it, and where the result is empty the empty state
+         renders its own "Clear filters" button. The control is invisible and its coordinates belong to a
+         nav tab; the screen is not a dead end. The severity is lower than the report framed it and the
+         measurement behind it is exactly right. */
       /* THE COST, MEASURED AND NOTED RATHER THAN ASSERTED. A pixel pin here would be a claim about these four
-         account NAMES at this container's font resolution, which is exactly the #480 trap. The trade it prices
-         is Kunal's [R20] and is routed on the job. */
+         account NAMES at this container's font resolution, which is exactly the #480 trap. And the trade it
+         prices is much weaker than this build first said: at THREE accounts, which is what the repository
+         records as Kunal's own count, the reserve costs 0px and buys 0px at both 375 geometries. */
       L.note('G-cost ['+gname+'] resting filter-row box at FOUR accounts: '+JSON.stringify({restOH:pre.filOH,restLines:pre.filTops,afterTapOH:post.filOH,afterTapLines:post.filTops,acctLabels:acctChips.map(c=>c.lab+':'+c.w),clearW:preClear&&preClear.w,note:'the reserve is spent at rest whenever the ghost does not fit on the line the chips already occupy'}));
       await b.close();
     }

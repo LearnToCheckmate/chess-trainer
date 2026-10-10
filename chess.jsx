@@ -7424,9 +7424,17 @@ export default function App(){
                  CALLS `_scope` on the line after this one, so with the old ordering the first render threw a
                  ReferenceError out of the const temporal dead zone." THE SECOND CLAUSE IS THE FALSE ONE AND
                  IT CARRIES THE FIRST: `_emptyTxt` does NOT call `_scope`. Measured, not read -
-                 `grep -n '_scope' chess.jsx` returns the declaration plus exactly two call sites, 7508 and
-                 7509, BOTH inside `_covTxt`; `grep -n '_narrowed'` returns the declaration plus exactly one
-                 consumer, `_scope` itself. So `_scope` is never invoked above `_covTxt`, every candidate
+                 `grep -n '_scope' chess.jsx` returns the declaration plus exactly TWO call sites, BOTH of
+                 them inside `_covTxt`; `grep -n '_narrowed'` returns the declaration plus exactly ONE
+                 consumer, `_scope` itself. [#508: THIS SENTENCE FIRST CITED THOSE CALL SITES AS LINES 7508
+                 AND 7509 AND BOTH NUMBERS WERE WRONG BY THE TIME THEY SHIPPED - an upheld antagonist
+                 finding. They are correct of origin/main and this build's own two hunks in this very block
+                 shifted everything below them by +24, so the shipping file has them 24 lines lower. A
+                 citation by line number inside the file it cites is stale the moment the file grows, which
+                 is #399's defect arriving in the build whose whole thesis is that a withdrawal must land
+                 where a reader looks. RE-POINTED BY SYMBOL, which cannot go stale, and the grep that
+                 produces it is written out so the next reader re-derives rather than trusts.] So `_scope`
+                 is never invoked above `_covTxt`, every candidate
                  declaration site for `_narrowed` is above that, and NO ordering of these two lines can reach
                  the temporal dead zone.
                  WHY IT WAS TRUE WHEN WRITTEN AND IS NOT NOW: #507's part 2 had `_emptyTxt` take the shared
@@ -7538,21 +7546,43 @@ export default function App(){
                  320x568 the row wraps from 2 lines to 3 and grows 94px -> 144px, moving the whole list down
                  50px under the finger that is still on the chips.
                  #508 THE NEXT CLAUSE WAS "AT 375 WIDE IT DOES NOT GROW AT ALL (94px in both states, 2 lines)
-                 - so the closer's ~50px growth is real but is a 320-ONLY number". IT IS TRUE AT TWO ACCOUNTS
-                 AND FALSE AT FOUR, AND IT IS WITHDRAWN AS A GENERAL STATEMENT ABOUT 375 [R18]. The account
-                 chips share this row, so the ACCOUNT COUNT moves the wrap boundary just as the width does.
-                 Re-measured on both bundles across three geometries x two account counts: with FOUR imported
-                 accounts at 375x730 and at 375x761 the pre-reserve bundle grows 94px -> 144px on the tap,
-                 exactly the 50px jump the 320 reading describes - so 375 is not immune, it is simply past the
-                 boundary at two accounts and short of it at four. THE RESERVE THEREFORE COSTS 50px AT REST at
-                 375 with four accounts, which is 6.8% of Kunal's own 730-tall viewport, spent permanently and
-                 also by a player who never filters. That is a trade and not a defect - 50px of jump removed
-                 for 50px of reserve - and it is HIS to settle, so it is routed to the Desk on
-                 jobs/review-list-filter-and-search-2026-09-23 rather than decided here [R20].
+                 - so the closer's ~50px growth is real but is a 320-ONLY number". IT IS WITHDRAWN AS A
+                 GENERAL STATEMENT ABOUT 375 [R18]: the account chips share this row, so what crosses the
+                 wrap boundary is the TOTAL WIDTH OF THE CHIPS, and at some chip counts 375 does grow.
+                 THE AXIS IS TOTAL CHIP WIDTH AND NOT THE ACCOUNT COUNT, which is a correction to #508's own
+                 first wording on an upheld antagonist finding. Saying "the account count moves the boundary
+                 just as the width does" invited the reader to treat the count as the variable, and it is
+                 only a proxy for one: MEASURED at 375x730, the relation is NOT MONOTONIC in the count - the
+                 row is 94px/2 lines at one, two and three accounts, 144px/3 at four, and an antagonist
+                 measured it back to a no-op at five with the labels it used. A four-account state with SHORT
+                 labels (al, be, ga, de) is 94px/2 lines and the reserve costs nothing there. So four
+                 accounts with THESE label widths is one instance of the real condition, which is that the
+                 ghost does not fit on the line the other chips already occupy.
+                 AND THE COST IS RE-PRICED AGAINST THE CONFIGURATION HE IS RECORDED AS HAVING, which is the
+                 sharpest thing either antagonist found. #508's first draft of this comment priced the reserve
+                 at "50px, 6.8% of Kunal's own 730-tall viewport" on the strength of the four-account reading
+                 and said three accounts was not measured. FEEDBACK-INBOX.md's #431 entry records his 47 games
+                 as played ACROSS THREE ACCOUNTS. MEASURED at three accounts at 375x730 and 375x761, on this
+                 bundle and on the no-reserve control: 94px / 2 lines at rest, jump 0, on BOTH - so at his own
+                 account count THE RESERVE COSTS NOTHING AND BUYS NOTHING, and the sentence this build set out
+                 to withdraw is TRUE there. The 6.8%-of-his-viewport framing is withdrawn with it. What the
+                 reserve does cost at 375 is 50px at ONE account (94 against 44) and at four, and at one
+                 account an antagonist measured that 50px costing a visible game row. None of this is a
+                 defect - the alternative is the jump - and none of it is now worth Kunal's attention, so no
+                 Desk question is raised for it [R20/R32]; the measurements are on
+                 jobs/review-list-filter-and-search-2026-09-23 for whoever next touches this row.
                  THE COVERAGE CONSEQUENCE, which is the half that cost the gate something: gate 73's block F
                  drove ONE account count, so at both 375 geometries its F2 and F3 passed on the no-reserve
-                 control and could not have failed on the defect they were written for. Block G now drives the
-                 four-account axis and reddens there. A ghost is
+                 control and could not have failed on the defect they were written for. Block G now drives a
+                 four-account fixture and reddens there - and block G's own denominator is asserted, so the
+                 next reader can see that its power comes from the wrap and not from the count.
+                 AND ONE THING AT THIS SITE IS A REAL DEFECT RATHER THAN A TRADE, FOUND FROM THE SHIPPED
+                 SURFACE AND NOT FROM THIS DIFF: at four accounts at 375x730 the painted Clear chip's box runs
+                 688.9 to 732.9 while the fixed bottom tab bar starts at 674, so the control is entirely
+                 covered or off-screen at the resting scroll position, `elementFromPoint` at its own centre
+                 returns the Home tab, and a real finger tap there does not clear the filter. It is
+                 PRE-EXISTING on main and this build does not cause it; it is filed with its table and its
+                 prescribed assertion rather than fixed here. A ghost is
                  NOT a disabled control: aria-hidden and tabIndex -1 take it out of the accessibility tree
                  and the tab order, and pointerEvents none means a tap where it sits does nothing rather
                  than silently clearing a filter the player cannot see. */
