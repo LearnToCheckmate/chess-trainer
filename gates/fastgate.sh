@@ -129,32 +129,108 @@ if [ -n "$BUNDLEDIFF" ]; then
   exit 2
 fi
 
-# ── GUARD FILES MAY NOT SHRINK. ─────────────────────────────────────────────────────────────────────────────
+# ── GUARD REGISTERS: AN APPEND-ONLY VALUE RATCHET, NOT A LINE COUNT. ────────────────────────────────────────
 # held-trees.tsv is the only carrier of "a previous run refused to ship this tree" and verify-log.sh consults it
-# by default; build-numbers.tsv is the #454 non-reuse register. Both only ever grow in normal operation, and
-# RE-SCOPED AT #490. This guard was the ONLY protection on those two files and it implemented the WRONG
-# INVARIANT: it compares `wc -l`, and the threat is not emptying but DISARMING. Both #490 antagonists reproduced
-# it independently. Prefixing one "-" to a row's bundleMd5 CLEARS that row (verify-log.sh:799 and held.sh treat a
-# leading "-" as a cleared row) with zero lines removed, and I reproduced the full threshold crossing myself:
-# `verify-log.sh claude/agents/gatelogs/459b-all.log` went from REAL EXIT 1 "REFUSED (held tree)" to REAL EXIT 0
-# "OK", and held.sh's live-row count went 9 -> 0, on a FAST GATE GREEN. The same two-character trick renumbers a
-# build-numbers.tsv row in place and takes `buildnum.sh check 490` from ISSUED/exit 1 to free/exit 0, making one
-# number re-mintable. THE FIX IS IN classify(): both files are now FORCE, because their protection lives in their
-# row VALUES and no line-count or subset test is worth trusting with the #450 class. This block is kept as a
-# second line of defence and, with those two paths forced, it normally cannot fire - said plainly rather than
-# left looking load-bearing.
-SHRANK=""
-for f in gates/held-trees.tsv gates/build-numbers.tsv; do
-  nb="$($GIT show "$BASEFULL:$f" 2>/dev/null | wc -l | tr -d ' ')"; nb="${nb:-0}"
-  nh="$($GIT show "$HEAD:$f" 2>/dev/null | wc -l | tr -d ' ')"; nh="${nh:-0}"
-  [ "$nh" -lt "$nb" ] 2>/dev/null && SHRANK="$SHRANK$f ($nb lines -> $nh)\n"
-done
-if [ -n "$SHRANK" ]; then
-  say ""
-  say "FAST GATE REFUSED - a guard register LOST rows, which no legitimate records commit does:"
-  printf "$SHRANK" | sed 's/^/    /' | tee -a "$LOG"
+# by default; build-numbers.tsv is the #454 non-reuse register. Both only ever grow in normal operation.
+#
+# THE WRONG INVARIANT SHIPPED HERE ONCE AND THE RIGHT ONE WAS THEN BOUGHT TOO DEARLY. BOTH HALVES ARE KEPT.
+# v1 compared `wc -l`, and the threat is not emptying but DISARMING. Both #490 antagonists reproduced it
+# independently: prefixing one "-" to a row's bundleMd5 CLEARS that row (verify-log.sh:799 and held.sh treat a
+# leading "-" as a cleared row) with ZERO lines removed, and the full threshold crossing was reproduced -
+# `verify-log.sh claude/agents/gatelogs/459b-all.log` went from REAL EXIT 1 "REFUSED (held tree)" to REAL
+# EXIT 0 "OK", and held.sh's live-row count went 9 -> 0, on a FAST GATE GREEN. The same two-character trick
+# renumbers a build-numbers.tsv row in place and takes `buildnum.sh check 490` from ISSUED/exit 1 to free/exit
+# 0, making one number re-mintable.
+# #490's FIX was to put both files in classify()'s FORCE arm. Correct against the threat, and it had a price
+# nobody measured until #509: MINTING A BUILD NUMBER APPENDS A ROW TO build-numbers.tsv, so every run that
+# took a number paid the full 84-minute suite - which is close to every run this lane makes. Measured over
+# main's last 400 commits with main's own classify() logic: 83 commits can take the fast tier as that arm
+# stands, and 96 can with these two files moved to a value-ratcheted RECORDS arm.
+# SO v2 (#509) MOVES BOTH FILES OUT OF FORCE AND MAKES THIS BLOCK LOAD-BEARING INSTEAD OF DECORATIVE. The
+# invariant is now the one the threat actually needs: APPEND-ONLY BY VALUE. Every byte present at BASE must be
+# byte-identical at HEAD, and the head file must EXTEND the base file rather than diverge from it. That is
+# STRICTLY STRONGER than the line count it replaces, and the comparison is the point: a row edited in place, a
+# row renumbered, a "-" prefixed to a bundleMd5, and a mid-file insertion ALL break this and NONE of them
+# breaks `wc -l`. A deleted row breaks both.
+# THE TWO CONDITIONS ARE REPORTED SEPARATELY AND NOT AS A CONJUNCT, because prompts/common's rule is that two
+# halves which cannot fail independently read as two checks while being one. These genuinely can fail
+# independently: a truncation is caught by LENGTH, and an in-place edit or a mid-file insertion leaves the
+# length alone and is caught by PREFIX. The log names which one fired.
+# AND NOTE WHAT THIS BLOCK IS NOW: with those two paths out of FORCE, it is the ONLY protection either file
+# has under a fast green. It therefore REFUSES rather than skips on any failure of its own instrument,
+# including a failed mktemp - gates/gates.sh:59's unchecked `mktemp -d` wrote a 200KB fixture to the
+# filesystem root at #506 while still reporting 10 pass, and an unchecked temp here would silently compare
+# nothing and print the append-only line anyway.
+REGTMP="$(mktemp -d 2>/dev/null || true)"
+if [ -z "$REGTMP" ] || [ ! -d "$REGTMP" ]; then
+  say "FAST GATE REFUSED - mktemp -d gave no usable directory, so the guard-register ratchet cannot be staged."
+  say "Refusing rather than skipping: since #509 this block is the only protection on held-trees.tsv and"
+  say "build-numbers.tsv, because classify() no longer forces them."
   exit 1
 fi
+trap 'rm -rf "$REGTMP"' EXIT
+
+REGBAD=""
+for f in gates/held-trees.tsv gates/build-numbers.tsv; do
+  bb="$($GIT rev-parse --quiet --verify "$BASEFULL:$f" 2>/dev/null || true)"
+  hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || true)"
+  if [ "$bb" = "$hb" ]; then
+    say "    $f: untouched by this commit (same blob id at base and head)."
+    continue
+  fi
+  if [ -z "$bb" ]; then
+    say "    $f: absent at base, present at head - no base rows exist to protect."
+    continue
+  fi
+  if [ -z "$hb" ]; then
+    REGBAD="$REGBAD$f: GONE - present at base, absent at head. A records commit may not delete a register.\n"
+    continue
+  fi
+  $GIT cat-file blob "$bb" > "$REGTMP/base" 2>/dev/null
+  $GIT cat-file blob "$hb" > "$REGTMP/head" 2>/dev/null
+  nb="$(wc -c < "$REGTMP/base" | tr -d ' ')"; nb="${nb:-0}"
+  nh="$(wc -c < "$REGTMP/head" | tr -d ' ')"; nh="${nh:-0}"
+  if [ "$nh" -lt "$nb" ] 2>/dev/null; then
+    REGBAD="$REGBAD$f: LENGTH - $nh bytes at head against $nb at base, so content was removed or truncated\n"
+    continue
+  fi
+  head -c "$nb" "$REGTMP/head" > "$REGTMP/prefix" 2>/dev/null
+  if ! cmp -s "$REGTMP/prefix" "$REGTMP/base"; then
+    WHERE="$(cmp "$REGTMP/prefix" "$REGTMP/base" 2>&1 | head -1)"
+    REGBAD="$REGBAD$f: PREFIX - the $nb bytes present at base are NOT byte-identical at head [$WHERE]. A row\n"
+    REGBAD="$REGBAD    was edited in place, renumbered, cleared with a leading \"-\", removed, or inserted mid-file.\n"
+    continue
+  fi
+  say "    $f: append-only BY VALUE ($nb bytes at base, every one byte-identical at head; $((nh-nb)) appended)."
+done
+if [ -n "$REGBAD" ]; then
+  say ""
+  say "FAST GATE REFUSED - a guard register was not APPENDED to, it was CHANGED:"
+  printf "$REGBAD" | sed 's/^/    /' | tee -a "$LOG"
+  say "held-trees.tsv is the only carrier of a previous run's refusal to ship a tree and build-numbers.tsv is"
+  say "the non-reuse register, so neither file's existing rows may move under a records commit [#450, #454]."
+  say "If the change is deliberate, it is not a records commit. Run the FULL suite."
+  exit 1
+fi
+
+# ── DOES THIS HEAD CARRY .nojekyll? MEASURED ONCE, FROM THE OBJECT STORE, AND USED BY classify() BELOW. ─────
+# Added #509. The root-.md arm of classify() used to be an unconditional FORCE whose stated reason was "GitHub
+# Pages runs Jekyll here (no .nojekyll), so index.md would be SERVED". That reason was true and the arm was
+# still wrong, because RUN-LOG.md and HANDOFF.md are both root-level .md and CLAUDE.md requires BOTH at every
+# close-out - so the arm forced the 84-minute suite on every commit that records a build, in order to guard
+# against a root index.md that does not exist. Measured on main's last 400 commits: that one arm costs 90 of
+# them the fast tier.
+# THE FIX IS TO REMOVE THE PREMISE RATHER THAN THE RULE. With .nojekyll at the root, GitHub Pages serves the
+# tree statically and does not render or serve a root index.md at all. So the arm is now CONDITIONAL on that
+# file, and if somebody ever deletes it the arm goes straight back to FORCE with no further edit. That is why
+# this is a measurement and not a constant: a rule whose premise is a file should read the file.
+# ASKED OF THE OBJECT STORE AT HEAD, NOT OF THE FILESYSTEM. docs/fast-gate-state records a field withdrawn in
+# full for exactly this mistake - it concluded this script did not exist on main because `ls` returned no such
+# file, when `git cat-file -e <sha>:gates/fastgate.sh` succeeded at both shas it named. An ls of a working
+# directory is not a measurement of a commit, and fast mode gates a COMMIT.
+NOJEKYLL=no
+$GIT rev-parse --quiet --verify "$HEAD:.nojekyll" >/dev/null 2>&1 && NOJEKYLL=yes
+say "root .nojekyll at head: $NOJEKYLL (it decides whether a ROOT-level .md is records-only - see classify)"
 
 # ── THE CLASSIFIER. ONE FUNCTION, TWO CALLERS, AND THAT IS THE WHOLE POINT. ─────────────────────────────────
 # Added #490. Until now the changed-set decision below and the premise check further down each carried their own
@@ -180,10 +256,17 @@ classify(){   # classify <repo-relative-path>  ->  "FORCE <reason>"  or  "RECORD
     gates/fastgate.sh)                              echo "FORCE this script gates itself by the full suite" ;;
     functions/*|firebase.json|*.html)               echo "FORCE shipped surface outside the bundle" ;;
     claude/agents/bench/*)                          echo "FORCE gate 68 reads its PGN corpus here with fs.readFileSync - measured #490" ;;
-    gates/held-trees.tsv|gates/build-numbers.tsv)   echo "FORCE a GUARD REGISTER whose protection lives in its row VALUES - #490 antagonists" ;;
+    # gates/held-trees.tsv and gates/build-numbers.tsv were FORCE from #490 to #509, on the correct ground
+    # that their protection lives in their row VALUES. They now fall through to the gates/*.tsv RECORDS arm
+    # below, and GUARD REGISTERS above enforces that value by an append-only byte ratchet that is strictly
+    # stronger than the `wc -l` test #490 found insufficient. Moved because minting a build number appends a
+    # row to build-numbers.tsv, so the FORCE arm made the fast tier unreachable by every run that takes a
+    # number [#509, jobs/the-tiered-gate-is-unreachable-two-classify-rules-force-every-close-out-2026-10-10].
     claude/*|gates/logs/*|gates/*.tsv)              echo "RECORDS" ;;
     */*.md)                                         echo "RECORDS" ;;
-    *.md)                                           echo "FORCE a ROOT-level .md: GitHub Pages runs Jekyll here (no .nojekyll), so index.md would be SERVED" ;;
+    *.md)   if [ "$NOJEKYLL" = yes ]; then echo "RECORDS"
+            else echo "FORCE a ROOT-level .md and NO .nojekyll at head: GitHub Pages would run Jekyll, so index.md would be SERVED"
+            fi ;;
     *.js|*.html|*.json)                             echo "FORCE a .js, .html or .json file this script does not otherwise recognise" ;;
     gates/*)                                        echo "FORCE gates/ path this script does not recognise - defaulting to FULL" ;;
     *)                                              echo "FORCE path this script does not recognise - defaulting to FULL" ;;

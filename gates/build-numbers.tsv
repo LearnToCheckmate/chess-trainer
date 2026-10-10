@@ -535,3 +535,4 @@
 508	minted	-	-	-	2026-10-09T23:31Z	build__1791588049000	minted	ship-list id 1, residuals (2) and (3): gate 73 block F gains the ACCOUNT COUNT as a second input axis so the four-account case is covered, and the three false _scope comments chess.jsx carries are withdrawn in the file a reader opens
 508	built	-	07d8e49d96ae	a6e49fb93cdd	2026-10-10T00:01Z	build__1791588049000	build.sh	Bundle built and stamped #508. Recorded by gates/build.sh so the number resolves to an artefact.
 508	built	-	227126b82b81	a510e35796cb	2026-10-10T00:40Z	build__1791588049000	build.sh	Bundle built and stamped #508. Recorded by gates/build.sh so the number resolves to an artefact.
+509	minted	-	-	-	2026-10-10T03:24Z	build__1791602453578	minted	STEP 0F part (5): make the tiered gate reachable - .nojekyll plus a root-.md RECORDS arm, and the two guard registers moved to a value-ratcheted RECORDS arm. Job: the-tiered-gate-is-unreachable-two-classify-rules-force-every-close-out-2026-10-10
