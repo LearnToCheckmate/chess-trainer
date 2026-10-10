@@ -53,7 +53,36 @@ G="$ROOT/gates"
 # Matching those made five build-toolchain scripts read as reachable and dropped the leak count from
 # 17 to 12 in the wrong direction. A detector that reads a comment as an invocation understates the
 # class it exists to count, which is the quietest way for this file to be useless.
-decomment(){ sed -e 's/^[[:space:]]*#.*$//' -e 's/[[:space:]]#[[:space:]].*$//' "$1"; }
+# decomment: strip the things a TEXT SCAN must not read as an invocation.
+# WIDENED BY #513 ON AN UPHELD ANTAGONIST VETO, and the veto is worth reading because this function's
+# output decides whether a file is REACHABLE, which decides whether its roster row is STALE, which is
+# what #513 acted on when it deleted the row for gates/verify-log.sh - THE PUSH GATE - to turn this
+# audit green. The signal was FALSE and this batch's own prose created it.
+#   (a) SHELL COMMENTS - as before.
+#   (b) `//` LINE COMMENTS, for .js inputs. gates/regress/26-invariants.js gained a header comment
+#       naming gates/verify-log.sh, and this function stripped shell comments only, so a pure comment
+#       line read as an invocation of the push gate by the suite.
+#   (c) A LINE CARRYING THE `SIGPIPE-FIXTURE` MARKER, which is the project's existing declaration that
+#       a line is a QUOTED SPECIMEN inside a message and not code. gates/gatemanifest.sh echoes a
+#       specimen command containing `bash gates/verify-log.sh --citations` inside a refusal message, and
+#       that one line was the whole of the false signal. gatemanifest.sh's own sigpipe_sites already
+#       honours this marker for exactly this reason; this function did not, so the check and the
+#       convention it relies on were written in different vocabularies - CLAUDE.md's own repeated shape.
+# CONTROLLED IN BOTH DIRECTIONS at #513: renaming those two strings takes the audit from exit 0 to
+# exit 1 with `UNACCOUNTED gates/verify-log.sh` against a hard ceiling of 0, so the green really was
+# load-bearing on two comment strings; with this fix, reachable reads 69 and the push gate is back in
+# the leak set where its roster row accounts for it.
+decomment(){
+  case "$1" in
+    # THE MARKER DELETE COMES FIRST AND THE ORDER IS THE WHOLE FIX. sed applies -e in sequence, so with
+    # the trailing-comment rule first the `# SIGPIPE-FIXTURE` marker is stripped BEFORE the delete can
+    # match it, the specimen line survives as bare code, and the false signal is unchanged. #513 wrote it
+    # in the wrong order first, measured reachable still 70, and found it by re-running rather than by
+    # reading the sed.
+    *.js) sed -e '/SIGPIPE-FIXTURE/d' -e 's|^[[:space:]]*//.*$||' "$1" ;;
+    *)    sed -e '/SIGPIPE-FIXTURE/d' -e 's/^[[:space:]]*#.*$//' -e 's/[[:space:]]#[[:space:]].*$//' "$1" ;;
+  esac
+}
 
 reachable_seed(){
   local sh="$ROOT/$1"
@@ -169,6 +198,7 @@ default_records(){
 #   `-` is refused and `x` is not." Here even empty passed.
 roster_default(){ cat <<'EOF'
 gates/audit/cited-not-run.sh|OPERATOR|strong|This script. Run by a process lane or the orchestrator against a tree; it reports and admits nothing, so a suite running it could only redden itself on its own report.
+gates/verify-log.sh|OPERATOR|strong|THE PUSH GATE. It reads a finished gatelog and authorises the push, so by construction it runs after the suite, not inside it. Its ceiling arms are an OPERATOR-RUN AUDIT and are NOT the push authority: gates/gates.sh never executes this file (every reference in it is a comment) and the --citations mode exits before the log-verification path, so an over-ceiling arm cannot redden any build. The omission is deliberate and recorded at gates/verify-log.sh:103. The arms are audited by their own selftest.
 gates/audit-all.sh|OPERATOR|strong|The umbrella that invokes every instrument under gates/audit/ and reports which ran, which are green and which are accounted for. Landed by the 2026-10-10 integration slot, which is also when the records began citing it. A suite running it would be wrong rather than right: it runs the OPERATOR tools above, several of which write or need a credential dump, and its verdict is about whether this directory's instruments are self-testing - a question about the harness, not about the bundle. CLASSIFIED BY THE INTEGRATION RUN (#513) on the day it appeared, which is what this roster's own header asks for ('a new unaccounted one turns this script red on the day it appears, which is the day somebody can still say why').
 gates/audit/require-resolve.sh|OPERATOR|strong|Derives the absolute-path-require class across gates/ by command. Its input is the gates/ tree rather than the working app, so a build has nothing for it to read, and its verdict names source sites to repair - which no regression gate may assert on. Same shape and same reason as pipefail-grep.sh two rows above. CLASSIFIED BY THE INTEGRATION RUN (#513) on the day the records began citing it.
 gates/audit/suite-shared-paths.sh|OPERATOR|strong|Derives which paths two concurrent gate suites would collide on. Its input is the suite's own files and lock layout, not the bundle, so there is no build-time verdict to gate; it exists to justify or retire the suite lock, which is a question about the harness. CLASSIFIED BY THE INTEGRATION RUN (#513) on the day the records began citing it.

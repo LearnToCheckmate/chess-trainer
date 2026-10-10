@@ -56,7 +56,9 @@ of one of TWO code paths, and the device chooses which one. `const useSF=sfReady
 decides it in `chess.jsx`; there is no `ct_*` override on either side, so a phone whose Stockfish worker never
 answers `readyok` takes the minimax fallback - the `else` of that same `if(useSF)` - and the player still reads a
 full review. Which branch ran IS recorded: the review writes `engine:useSF?'sf':'fallback'` into `ct_gamestats`
-(chess.jsx:4072).
+(the `engine:` key written beside `ct_gamestats` in `chess.jsx` - cited BY SYMBOL rather than by line, because the
+arm (4) line-citation ceiling is at 48 of 48 and a line number in a register rots the moment the file it points into
+is edited).
 
 **AND THE TWO BRANCHES DO NOT PRODUCE THE SAME DATA. MEASURED on main 97393a6, by reading the two `out.push`
 calls rather than by inference.** The pooled-Stockfish push carries twelve fields:

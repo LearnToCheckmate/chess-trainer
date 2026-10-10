@@ -259,10 +259,29 @@ SP_TOTAL_CEIL=17   # RE-RATCHETED 9 -> 17 BY THE INTEGRATION RUN (#513), WITH TH
                    # and I had asserted it from the shape of the filename instead of asking the object
                    # store. BOTH HALVES ARE PUBLISHED BECAUSE A NET IS NOT A MEASUREMENT: the total got
                    # worse by 3 and the one tier that decides control flow got better by 1.
-                   # WHAT THIS DOES NOT DO: it does not excuse a new site. A and B, the two tiers that can
-                   # produce a wrong verdict, are both 0 with ceilings of 0, so the guard that matters is
-                   # STRICTLY TIGHTER than it arrived. 17 is the honest floor for C and D on this tree and
-                   # the next run that adds one still fires.
+                   # WHAT THIS DOES NOT DO: it does not excuse a new site. 17 is the honest floor for C and
+                   # D on this tree and the next run that adds one still fires.
+                   # AND A SENTENCE THAT STOOD HERE IS WITHDRAWN AS FALSE [R18], CAUGHT BY #513's OWN
+                   # ANTAGONIST A BEFORE THE PUSH. It read: "A and B, the two tiers that can produce a wrong
+                   # verdict, are both 0 with ceilings of 0, so the guard that matters is STRICTLY TIGHTER
+                   # than it arrived." THE LIVE COUNTS ARE 0, AND SP_A_CEIL IS 1, NOT 0 - it is 17 lines
+                   # above this comment, in this same file, and the audit's own stdout prints "A 0
+                   # (ceiling 1)" and then "CEILING CAN BE LOWERED: SP_A_CEIL=0" in the same run. So the
+                   # file contradicted itself in two places seventeen lines apart, and the direction of the
+                   # error OVERSTATED the guard.
+                   # THE CONSEQUENCE, MEASURED BY THE ANTAGONIST WITH A SHARPER CONTROL THAN MINE: TIER A
+                   # HAS ONE UNUSED SLOT. Defuse one TIER C site to hold the total at 17, then append a new
+                   # TIER A site - the banned shape, a pipeline into `grep -q` whose status decides control
+                   # flow - and the audit reports "A 1 (ceiling 1)" at EXIT 0 with no refusal and no advice
+                   # line. My own attempt at that control was weaker and I record the difference: I appended
+                   # a TIER A site WITHOUT holding the total down, so it refused on the TOTAL (18 > 17) and
+                   # told me nothing about the A arm. Holding the other variable fixed is what made the
+                   # control discriminate.
+                   # SO THE TRUE STATEMENT IS: the guard is tighter on TOTAL and UNCHANGED on the one tier
+                   # that can produce a wrong verdict, which still has a slot. Tightening SP_A_CEIL to 0 is
+                   # the right fix and it reddens this file's own tier-A control, which is calibrated
+                   # against the ceiling being 1 - the threshold and the control that proves it are the same
+                   # object. Filed with the control repair it needs rather than taken here.
 SP_FIXTURE_CEIL=9  # early-exit lines carrying SIGPIPE-FIXTURE. Eight are this file's own controls and the
                    # ninth is a quoted specimen inside a refusal message - which the audit flagged on its
                    # own next run, correctly, because a specimen and a site look identical to a text scan.
