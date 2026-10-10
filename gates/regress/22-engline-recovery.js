@@ -211,11 +211,20 @@ L.run(async()=>{
      arm and BOTH BLIND ANTAGONISTS CAUGHT THAT IT CONTROLLED HALF THE DIFF. Measured, four bundles each one
      hunk-group from the next, one container, this gate:
 
-       bundle         md5            yield  cache/token   AWAY=600 arm      AWAY=1200 arm
-       main           227126b82b81     -         -        RED  (defect)     RED  (defect)
-       cache-only     fb42941da181     -         +        RED  (defect)     green
-       yield-only     0b2220bba12b     +         -        green             RED  (defect)
-       shipping       (this build)     +         +        green             green
+       bundle         yield  cache/token   'waiting' arm     'inflight' arm
+       main             -         -         RED  (defect)     RED  (defect)
+       cache-only       -         +         RED  (defect)     green
+       yield-only       +         -         green             RED  (defect)
+       shipping         +         +         green             green
+     (The md5s belong in the log and in the build record, not here: this file outlives any one bundle and a
+      hard-coded md5 in a gate header is a stale citation waiting to happen. Cite the md5 beside the run.)
+     AND ONE ASSERTION OUTSIDE BLOCK R IS NON-DETERMINISTIC ON THE CACHE-ONLY BUNDLE, recorded because two
+     independent runs of it disagreed and neither reading should be written down as the truth: 'ply 25: a
+     REVISIT yields a variation' went RED in antagonist A's cache-only run (reading '+5.4 ...', the engine
+     line losing its variation) and GREEN in mine. A's mechanism is the best explanation - without the
+     yield, sacRun's abort costs the engine line its variation, which is exactly what antagonist B measured
+     on MAIN at plies 19 and 25 - and it is not established, because one clean run each disagrees. It needs
+     its own control before anyone states it either way.
 
      WHY THE TWO ARMS SEPARATE, AND IT IS THE MECHANISM AND NOT A COINCIDENCE. sacRun now YIELDS to a busy
      worker instead of aborting it, so it takes the worker LATER - only once the engine line's own 900ms
@@ -251,10 +260,24 @@ L.run(async()=>{
     const D=74;                       // 37...Rf7 !  Great      - THE DENOMINATOR, a different ply
     const IF=(x)=>!!x&&/\bIf\s+\S+,\s+\S+/.test(x);
     const why=(bb)=>bb.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
-    /* AWAY=600 exercises the YIELD half (sacRun is still waiting for the worker).
-       AWAY=1200 exercises the CACHE/TOKEN half (sacRun holds the worker, so the step-away aborts it). */
-    for(const AWAY of [600,1200]){
-      const tag='R['+AWAY+'] ';
+    /* TWO ARMS, NAMED BY THE STATE THEY RACE AND NOT BY A MILLISECOND COUNT [antagonist B's cross-read,
+       upheld]. The first version of this pair stepped away at fixed 600ms and 1200ms. Those numbers are
+       correct in THIS container and are the #480/#416 class - a threshold belonging to the instrument it
+       was calibrated on. B measured why: the engine line's variation lands at t+839ms and t+840ms in two
+       independent runs and the clause at t+1676/1677ms, so sacRun's in-flight window is about 1.05s to
+       1.68s and 1200 sat ~150ms inside a ~600ms window WHOSE BOTH EDGES ARE ENGINE-SPEED TERMS. On a
+       faster engine sacRun would acquire at 450ms and have stored its answer before 1200ms, so the
+       step-away would abort nothing and THE ARM WOULD GO SILENTLY GREEN ON A BUNDLE MISSING THE CACHE AND
+       TOKEN FIX - the exact failure it was added to prevent; on a slower one it would duplicate the first
+       arm. Kunal's phone is slower than this container.
+       SO EACH ARM NOW READS THE SCREEN AND SAYS WHICH STATE IT RACED. The engine line's arrival is
+       observable - it gains a real variation when its query returns - so 'waiting' steps away while that
+       has NOT happened yet and 'inflight' steps away just after it has. R3b asserts the state in each arm,
+       in R4a's own state-reached-not-assumed style, so a future reader can tell a green that means FIXED
+       from a green that means THE RACE MISSED. If the engine is so fast or so slow that an arm cannot
+       reach its state, R3b goes RED and says so rather than quietly passing. */
+    for(const ARM of ['waiting','inflight']){
+      const tag='R['+ARM+'] ';
       const r=await L.launch({geo:'kunal730',name:'engline-sacrun-race-'+AWAY,store:{ct_pool:'3'}});await r.open();
       await r.tile('Review');await r.page.locator('textarea').first().fill(KPGN);await r.tapText(/^⚡ Analyze Game$/,{wait:300});
       await r.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await r.settle(600);
@@ -282,13 +305,32 @@ L.run(async()=>{
       L.say(!!eng,tag+'R3 COMPANION: the engine line row is actually on screen, so there really are two analysis callers from here on',eng&&eng.text);
 
       await fwd(r,1,120);
-      await r.page.waitForTimeout(AWAY);
+      /* THE STEP-AWAY IS TIMED OFF THE ENGINE LINE'S OWN ARRIVAL, read at 50ms granularity. */
+      const t0=Date.now();
+      const engVar=async()=>{const t=await r.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-engline"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});return {txt:t,got:hasVar(t)};};
+      let arrivedMs=null,stateNote=null;
+      if(ARM==='waiting'){
+        /* Past sacRun's own 450ms debounce (so it has asked for the worker) but before the engine line has
+           finished with it - so sacRun is YIELDING and there is nothing for the step-away to abort. This is
+           the state the YIELD half alone is enough to survive. */
+        await r.page.waitForTimeout(500);
+        const e1=await engVar(); arrivedMs=Date.now()-t0; stateNote={msSinceLanding:arrivedMs,englineHasVariation:e1.got,engline:e1.txt};
+        L.say(!e1.got,tag+'R3b STATE RACED, read off the screen rather than assumed: the engine line has NOT yet produced its variation, so it still owns the worker and sacRun is YIELDING for it. This is the state this arm must race, and an engine fast enough to break that would redden this line instead of passing quietly.',stateNote);
+      }else{
+        /* Poll until the engine line HAS produced its variation - the worker is then free and sacRun, which
+           has been yielding, takes it immediately and runs for 700ms. Stepping away just after that moment
+           catches sacRun IN FLIGHT, which is the only state where an aborted search can be stored as an
+           answer, so this is the arm the CACHE and TOKEN half exists for. */
+        for(let i=0;i<160;i++){const e=await engVar();if(e.got){arrivedMs=Date.now()-t0;stateNote={englineArrivedMs:arrivedMs,engline:e.txt};break;}await r.page.waitForTimeout(50);}
+        L.say(arrivedMs!==null,tag+'R3b STATE RACED, read off the screen rather than assumed: the engine line produced its variation at the millisecond recorded here, so the worker is now free and sacRun has taken it - this arm races sacRun IN FLIGHT. A run where this never arrives reddens here rather than racing nothing.',stateNote||{englineArrivedMs:null,timedOutAfterMs:Date.now()-t0});
+        await r.page.waitForTimeout(200);
+      }
       await fwd(r,1,120);await r.settle(4000);
       await back(r,1,120);await r.settle(12000);
       const atT=await plyTxt(r);
       L.say(!!atT&&atT.indexOf(T+'/85')>=0&&/Brilliant/.test(atT),tag+'R4a back on ply '+T+' AND it really is the Brilliant - sacRun only fires on Brilliant or Great, so this names the state R4 reads',atT);
       const raced=await why(r);
-      L.say(IF(raced),tag+'R4 THE DEFECT: stepping off the Brilliant ply '+(AWAY===600?'while sacRun is still WAITING for the worker (this arm fails without the YIELD half)':'while sacRun HOLDS the worker, so the step-away aborts it (this arm fails without the CACHE/TOKEN half)')+' used to leave the aborted search cached as the answer, so the "If they take it" clause never came back. It must be here on return.',raced);
+      L.say(IF(raced),tag+'R4 THE DEFECT: stepping off the Brilliant ply '+(ARM==='waiting'?'while sacRun is still WAITING for the worker - THIS ARM FAILS WITHOUT THE YIELD HALF':'while sacRun HOLDS the worker, so the step-away aborts it mid-search - THIS ARM FAILS WITHOUT THE CACHE AND TOKEN HALF')+' used to leave the aborted search cached as the answer, so the "If they take it" clause never came back. It must be here on return.',raced);
 
       await fwd(r,1,120);await r.settle(2000);await back(r,1,120);await r.settle(12000);
       const raced2=await why(r);

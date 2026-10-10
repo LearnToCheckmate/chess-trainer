@@ -5714,7 +5714,13 @@ export default function App(){
        user IS waiting on. On main that window was one attempt wide; the yield widened it to 6 seconds, so this
        is a hazard this build introduced and not one it inherited. Re-validating ownership HERE, before either
        the yield or the query, closes it: an attempt whose pending marker is gone (the effect cleanup deleted
-       it on the ply change) stops immediately and stops yielding too. */
+       it on the ply change) returns on its first tick without taking the worker and without re-arming.
+       SAID PRECISELY, BECAUSE THE OBVIOUS WORDING IS WRONG [antagonist A's cross-read caveat]: sacYieldRef
+       is NOT cleared by the effect cleanup, so an abandoned attempt's pending 300ms timer still FIRES - it
+       is rendered INERT by the check above rather than cancelled. That is deliberate: failing fast at the
+       one place that takes the worker beats clearing a timer in three cleanup paths and missing one. But
+       "the abandoned attempt stops immediately" is true of the WORK and not of the TIMER, and a reader who
+       takes it as the timer will go looking for a clearTimeout that is not there. */
     const _own=sacRef.current.byPly[w.ai];
     if(!(sacRef.current.key===w.key&&_own&&_own.pending&&_own.tok===w.tok)){sacWantRef.current=null;return;}
     /* #511: YIELD TO THE WORKER, DO NOT KILL WHAT IS ON IT. THIS IS THE HALF THAT THE USER SEES.
