@@ -345,13 +345,25 @@ L.run(async()=>{
       await fwd(r,1,120);await r.settle(2000);await back(r,1,120);await r.settle(12000);
       const raced2=await why(r);
       L.say(IF(raced2),tag+'R5 and it is STILL here on a second return, so the entry is a real answer and not a one-off recovery',raced2);
-      /* THE CONFOUNDER GUARD, AFTER THE RACE AND NOT ONLY BEFORE IT. R2b asserts the worker was healthy
-         going in; this asserts it stayed healthy, because a trap mid-race makes every assertion above
-         unrunnable rather than false - the clause is permanently absent after a trap on EVERY bundle,
-         main included [antagonist B, filed as its own job]. Without this line a trapped run would publish
-         a red that says 'the defect is present' when what happened is 'the instrument died'. */
+      /* R6 IS BOTH AN ASSERTION AND A VALIDITY FLAG, AND ITS FIRST WORDING TOLD THE READER TO THROW AWAY
+         FOUR TRUE POSITIVES. It said "a red here would mean nothing". MEASURED on main: R2b passes (zero
+         traps before the race) and R6 then reads traps:1 - so the trap happens DURING the race and it is
+         CAUSED BY THE DEFECT, because sacRun's abort of the engine line IS #356's abort-before-readyok.
+         On main the one cause produces all four reds at once: the engline loses its variation (R3c), the
+         worker traps (R6), and the clause never returns (R4, R5). A reader who took the old wording at
+         face value would have discarded the whole control.
+         SO READ R6 WITH R3c, AND THE PAIR IS UNAMBIGUOUS:
+           R6 red  AND R3c red  -> THE DEFECT. The abort killed the variation and trapped the worker. This
+                                   is main's signature and antagonist B measured the same thing from the
+                                   other door (2 traps on an 85-ply engine-on walk, both at sacrifice plies).
+           R6 red  AND R3c green -> THE CONFOUNDER. Something else trapped the worker, the clause is then
+                                   permanently absent on EVERY bundle, and R4's verdict is worthless. That
+                                   is the case that killed this block's first second arm, which trapped the
+                                   worker with its own step-away and so reddened the SHIPPING bundle.
+           R6 green              -> the fix also removes the trap, which is a real property of it and not
+                                   merely hygiene: this is antagonist B's measured benefit asserted. */
       const trapsAfter=r.errs.filter(e=>/RuntimeError: unreachable/.test(e));
-      L.say(trapsAfter.length===0,tag+'R6 the WASM worker did not trap at any point during the race either, so R3c and R4 above measured a live engine rather than a dead one - after a trap the clause is permanently absent on every bundle and a red here would mean nothing',{traps:trapsAfter.length,errs:r.errs.slice(0,3)});
+      L.say(trapsAfter.length===0,tag+'R6 the WASM worker did not trap at any point during the race, which is a PROPERTY OF THE FIX and not only a validity check - sacRun no longer aborts the engine line, so it no longer trips #356. READ THIS WITH R3c: red here AND red at R3c is the defect\u2019s own signature (one abort, both effects); red here with R3c GREEN is an unrelated trap and then R4 means nothing',{traps:trapsAfter.length,errs:r.errs.slice(0,3)});
       await r.close();
     }
   }
