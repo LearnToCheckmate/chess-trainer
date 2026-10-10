@@ -1879,3 +1879,46 @@ about either. I did not re-run `verify-patch-set.sh` against a real payload dire
 I did not look at the sibling `verify-parked-patch.sh`, whose C3 block is its own job. The tier-X site at
 `audit/r19-phone-geometry.sh:105` is still unrepaired: latent by the instrument's own words, not clean, and
 lane 3's artefact under R44. No push was attempted and the proxy refusal was not re-tested [R21].
+## process-build lane 1, run `process-build-1__1791592504361`, 2026-10-10T00:35Z - THE POSITIVE DIRECTION OF THE MANIFEST ARGUMENT, RUN AT LAST
+
+**What this run did, and it wrote no gates/ file at all.** It discharged the FIRST `notChecked` of `jobs/a-new-gates-regress-gate-cannot-be-delivered-by-a-process-lane-because-its-manifest-row-is-outside-the-allow-list-2026-10-07` - *"whether `gates/gatemanifest.sh sync` would in fact make such a gate pushable. The claim measured here is only that it is REFUSED without the row; the positive direction was not run."* That sentence was written on 2026-10-07 by this lane number, repeated as still-unrun by lane 2 at 20:13Z on 2026-10-09, and repeated again in that job's own `whatDidNot`. **Three runs have said it was not done and none had done it.** It is 3 minutes of commands.
+
+**Why it mattered rather than being tidy.** `theFIX` on that job offers three options and the choice is the orchestrator's. Option (b) - *"let the payload carry the row as DATA, not as a diff: a new field on the patch document, `manifestRow`, holding the one tab-separated line, which the integration slot appends with `gates/gatemanifest.sh sync` after applying"* - rests entirely on a premise nobody had tested: that `sync` can add a row for a gate that has NO row at all. If `sync` only promoted existing `absent`/`retired` rows, option (b) was impossible and the orchestrator was choosing between (a) and (c) without knowing it.
+
+**MEASURED, BOTH DIRECTIONS, DETECTOR SHOWN FIRING AND SILENT AND THEN SILENT AGAIN.** In a detached `git worktree` of `origin/main` **165b7b8** (`#507 close-out`), so the `gate anchor` arm is LIVE throughout - it reads `NOT CHECKED` in a copied directory, which is how the 2026-10-07 reading was taken and is a vacuity this run removed:
+
+| step | state of the tree | `check` footer | exit |
+|---|---|---|---|
+| W1 | pristine main | `58 required, 58 present, 0 missing, 0 unlisted` + `gate anchor: origin/main, 0 vanished, 0 weakened` | **0** |
+| W2 | `+ gates/regress/74-synthetic-measurement.js`, no row | `58 required, 59 present, 0 missing, 1 unlisted` + anchor silent | **2** |
+| W3 | `CT_BUILD=#507 CT_RUNID=<runId> gatemanifest.sh sync '...'` | `added 74-synthetic-measurement.js as required (build 507, <runId>)` | **0** |
+| W4 | gate + row | `59 required, 59 present, 0 missing, 0 unlisted` + anchor silent | **0** |
+| W5 | `git status --porcelain` | `M gates/gate-manifest.tsv` and `?? gates/regress/74-...js` - **exactly two paths** | - |
+| W6 | both reverted | back to `58 required, 58 present, 0 unlisted`, `git status` empty | **0** |
+
+**SO THE ANSWER IS YES, AND OPTION (b) IS CHEAPER THAN THE JOB THAT PROPOSED IT.** `sync`'s first loop (`gatemanifest.sh:351-359`) appends a `required` row for every gate on disk with no row, and **every column of that row is DERIVED** - filename, state, `CT_BUILD`, today's date, `CT_RUNID`, the description from the gate file's own first `//` comment in lines 2-6, and the reason from `sync`'s own argument. Read off the appended row with tabs made visible, 7 fields:
+
+```
+74-synthetic-measurement.js<TAB>required<TAB>507<TAB>2026-10-10<TAB>process-build-1__1791592504361<TAB>Synthetic gate used ONLY to measure the manifest mechanism. Never committed.<TAB>measurement: can a process lane deliver a new numbered gate if the slot syncs
+```
+
+**A process payload therefore needs to carry NO data at all - no `manifestRow` field, no tab-separated line.** The integration slot runs one command after applying, and the row writes itself from the gate file the payload already contains. That removes the only part of option (b) that looked expensive.
+
+**AND THE PUSH-GATE HALF, BOTH DIRECTIONS, ON THE REAL COMMITTED LOG.** The 2026-10-07 filing measured only the refusal. Here is the pair, at today's main, on `claude/agents/gatelogs/507-all.log`:
+
+| | log | `verify-log.sh` | exit |
+|---|---|---|---|
+| V1 **positive** | the committed `507-all.log`, footer `0 unlisted` | `OK: ... full-suite green for #507 (59 suites, 4607 PASS, footer agrees)` | **0** |
+| V2 negative | same log, one token changed to `59 present, 1 unlisted`, arithmetic kept consistent | `REFUSED (gate manifest): reports 1 gate(s) on disk with no row` | **1** |
+
+**Three further readings, because a mechanism nobody has driven has more than one question in it.** (A) `sync` with `CT_BUILD` and `CT_RUNID` **unset** writes `build=unknown`, `runId=unknown-run` - so if the integration slot runs `sync`, the row records the SLOT's identity, not the lane that authored the gate, and the manifest's provenance columns exist precisely to be attributable. The prompts change that enables option (b) needs one more clause: the slot sets `CT_RUNID` to the payload's own runId, or names the parked patch id in the `sync` reason. (B) A gate file with no `//` header comment in lines 2-6 gets the description `(no header comment)` - so a gate delivered this way must carry a one-line `//` header or the manifest row is uninformative for ever. (C) `sync` is **idempotent**: run twice, `75-a.js` and `76-b.js` have exactly one row each, and the second run prints `nothing to sync`.
+
+**Determinism.** The whole sequence (check / sync / check / read the row back) run three times in three fresh copies: **byte-identical, md5 `89cfa35afb49bf29dd7ca9d9360f4102` all three.**
+
+**TWO ERRORS OF THIS RUN'S OWN, BOTH FOUND BY RUNNING, BOTH KEPT.** (1) A first pass used `echo "...$(bash gatemanifest.sh check | tail -1)"` and then read `${PIPESTATUS[0]}`, which is the **echo's** status, so it published `exit=0` for a tree with two unlisted gates. Re-taken directly: **exit 2**. The figures in the tables above are the directly-read ones and the wrong reading is withdrawn here rather than overwritten [R18]. (2) A cleanup glob `rm -f regress/74-*.js` in a **throwaway copy** also deleted that copy's `74-lesson-card-hit-area.js`, which is a real gate on main - the repository working tree was untouched and `git status` was empty throughout, confirmed. It produced an unplanned but valid control: `60 required, 59 present, 1 missing` at **exit 1**, the HARD verdict, so the missing detector is shown firing too. **And it exposed a trap in the job's own text:** the synthetic gate name `74-synthetic-measurement.js` that the 2026-10-07 measurement used **collides with a real gate on main today**. Derived rather than guessed, from the filenames: the next free gate number is **75**.
+
+**Not checked, five things.** (1) Whether a gate delivered this way actually PASSES - nothing was executed as a gate and no suite ran; this measures the manifest and the push gate, not a gate's content. (2) Whether `gates.sh` picks the new gate up - it globs `gates/regress/*.js` so it would, and that was NOT driven. (3) The `--this-bundle` and `--on-main` arms of `verify-log.sh`. (4) Whether any job outside the ready finish-first set needs a new gate; the blast-radius count of ONE on the job is a lower bound and is unchanged. (5) `gates/drive/` and `gates/pending/` against any required set - still only `gates/regress/*.js` was traced, which is what `diskgates` reads.
+
+**What this does NOT do.** It does not close that job. Neither of its two `whatIsLeft` steps moved: step (1) is the integration slot's apply of `patches/proc-lane2-art-gates-audit-verify-parked-patch-sh-c5-selectable-2026-10-09`, which is pending in the pile right now, and step (2) is the one line in `prompts/process-build`'s MAY NOT list, which is **the orchestrator's alone and is now three days old** [R17, R20]. Nothing is on main; this lane cannot push and did not try beyond the one documented dry-run [R21].
+
+**Delivery** parked at `patches/proc-lane1-art-claude-PROCESS-LOG-md-2026-10-10`. Back-pressure at check-in: **6 pending of a ceiling of 20**, oldest under 24 hours - the shallowest since 2026-10-06, because #506 landed 11 of 12.
