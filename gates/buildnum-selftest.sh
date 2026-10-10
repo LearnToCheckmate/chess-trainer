@@ -277,6 +277,57 @@ eq "the rows are issued, not shipped"       "3" "$(awk -F'\t' '$2=="issued" && $
 eq "every written row has exactly 9 fields" "1" "$(awk -F'\t' '!/^#/ && NF {print NF}' "$GD/build-numbers.tsv" | sort -u | wc -l | tr -d ' ')"
 eq "#901 now answers ISSUED rather than free" "1" "$("$BG" check '#901' 2>/dev/null | grep -c 'already on the register')"
 
+# 27a. THE SWEPT ROW MUST BE AUDITABLE WITHOUT RE-RUNNING THE SWEEP, AND THE ORDER OF OPERATIONS MUST HOLD.
+# These are the two R08 cases owed by jobs/swept-register-rows-cite-no-sha-so-they-cannot-be-audited-without-the-tool-2026-10-02
+# and jobs/sweep-computes-the-absent-set-before-it-takes-the-lock-2026-10-02. BOTH jobs were SKIPPED by two
+# separate burst agents on 2026-10-03 for the same reason and they recorded it: one held gates/buildnum.sh and
+# could not write the case, the other held THIS file and could not reach the fix. Two agents, one artefact lock
+# each, one job undone twice. They land together because R44 lets one agent hold both.
+# WHY THIS IS NOT A COUNT. "104 rows cite no sha" is a fact about one afternoon; the assertion is that EVERY row
+# this tool writes carries evidence a reader can fetch, which is the class and not the instance [R06].
+SWEPT_SHAS="$(awk -F'\t' '$8=="git-log" {print $1"\t"$3}' "$GD/build-numbers.tsv")"
+eq "every swept row carries a sha and none carries '-'" "0" \
+   "$(printf '%s\n' "$SWEPT_SHAS" | awk -F'\t' '$2=="-"' | grep -c . )"
+R_OK=0; R_SUBJ=0; R_N=0
+while IFS="$(printf '\t')" read -r _num _sha; do
+  [ -n "${_num:-}" ] || continue
+  R_N=$((R_N+1))
+  git -C "$GD" cat-file -e "$_sha" 2>/dev/null && R_OK=$((R_OK+1))
+  git -C "$GD" show --no-patch --format=%s "$_sha" 2>/dev/null | grep -qE "(#|[Bb]uild +)0*$_num(\$|[^0-9])" \
+    && R_SUBJ=$((R_SUBJ+1))
+done <<< "$SWEPT_SHAS"
+eq "every swept sha RESOLVES under git cat-file -e"            "$R_N" "$R_OK"
+eq "and the commit it names has that number in its SUBJECT"    "$R_N" "$R_SUBJ"
+eq "and there were three swept rows to check, not zero"        "3"    "$R_N"
+# THE NEGATIVE HALF, BECAUSE A DENOMINATOR THAT CANNOT BE EMPTY IS NOT THE ONLY VACUITY TRAP: a predicate that
+# cannot say NO is the other one. The fixture's own pre-existing #900 row carries '-' in field 3 - the exact
+# shape every swept row had before this fix - so the same two predicates are run against it and must FAIL.
+# Without this the four assertions above would read identically on a register where nothing was checkable.
+BAD_SHA="$(awk -F'\t' '$1==900 {print $3; exit}' "$GD/build-numbers.tsv")"
+# NOT "exit 1". MEASURED: `git cat-file -e -` exits 128, not 1, because '-' is not a malformed object id that
+# cat-file rejects, it is a rev git cannot parse at all. The first draft of this case asserted 1 and went red on
+# a correct tree - a control whose expected value was guessed rather than read, which is the thing this whole
+# file exists to stop. The assertion is therefore that the predicate says NO (non-zero), not which non-zero.
+eq "the predicate is shown able to say NO: the '-' row's sha does not resolve" "no" \
+   "$(git -C "$GD" cat-file -e "$BAD_SHA" 2>/dev/null && echo yes || echo no)"
+eq "and that row is the pre-existing one, so the control is a real row and not a fabrication" "-" "$BAD_SHA"
+# THE ORDER OF OPERATIONS, ASSERTED BY READING THE SCRIPT RATHER THAN BY RACING TWO PROCESSES. The job itself
+# proposes this: a true concurrency case needs two processes and would have to argue R36 admission (deterministic
+# across three runs) before it could join anything, while the order is a property of the file and is the same on
+# every run. It reads the REPOSITORY copy under test, not the temp copy, so a reader can point at the line.
+SRC="$HERE/buildnum.sh"
+LT_LINE="$(grep -n 'lock_take || exit 1' "$SRC" | tail -1 | cut -d: -f1)"
+AN_LINE="$(grep -n 'ABSENT_NOW="\$(comm' "$SRC" | head -1 | cut -d: -f1)"
+eq "the absent set is re-derived AFTER the lock is taken, not before" "yes" \
+   "$([ -n "$AN_LINE" ] && [ -n "$LT_LINE" ] && [ "$AN_LINE" -gt "$LT_LINE" ] && echo yes || echo no)"
+eq "and the append loop iterates the RE-DERIVED set"   "1" "$(grep -c 'for n in \$(printf .*ABSENT_NOW' "$SRC")"
+eq "and never the pre-lock set it reported"            "0" "$(grep -c 'for n in \$(printf .*\$ABSENT"' "$SRC")"
+# AND THE RE-DERIVATION MUST COMPARE UNDER LC_ALL=C LIKE THE ONE IT COPIES. #465's antagonist B found that comm
+# wants lexicographic order while both sets are sorted numerically, and the two agree only while every number
+# has the same digit count - it bites at #1000, which in_range permits. A second comparison that drifted from
+# the first would reintroduce that defect inside the lock, where the 4-digit fixture below would still pass.
+eq "both comm comparisons sort under LC_ALL=C" "4" "$(grep -c 'LC_ALL=C sort -u' "$SRC")"
+
 # 27b. THE SHALLOW CLONE, AND BOTH BRANCHES, AND THE FIXTURE REBUILT BECAUSE THE FIRST ONE WAS A NO-OP.
 # BOTH of #465's antagonists, independently and from different doors, measured that the first version of this
 # block could not see the guard it was named for. `grep -v '^901'` was meant to manufacture an absent number

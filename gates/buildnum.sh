@@ -542,8 +542,69 @@ case "${1:-}" in
       echo "  would be a partial backfill presented as a complete one. Unshallow first."; exit 2; }
     AT="$(date -u +%Y-%m-%dT%H:%MZ)"
     lock_take || exit 1
+    # ── RE-DERIVE INSIDE THE LOCK, AND CARRY THE SHA ─────────────────────────────────────────────────────────
+    # Two jobs, one block, because both fixes are in it and doing one alone would park two patches on one file:
+    # jobs/sweep-computes-the-absent-set-before-it-takes-the-lock-2026-10-02 (P2, #465 antagonist A, diff door)
+    # jobs/swept-register-rows-cite-no-sha-so-they-cannot-be-audited-without-the-tool-2026-10-02 (P2, antagonist B).
+    #
+    # WHY THE RE-DERIVATION. ABSENT above is computed BEFORE lock_take, so the lock serialised only the APPENDS:
+    # two concurrent `--add` runs both compute the same absent set, both pass the lock in turn, and both append
+    # it - duplicate `issued` rows in a file whose own header says a row is never removed, after which `check`
+    # reports numbers as naming SEVERAL artefacts when they name none. That is #454's alarm-that-is-always-wrong,
+    # in the register that alarm is about. Not reachable while the pen rule leaves exactly one writer, which is
+    # why it is P2 and not higher; the finding was from reading the code and the job says so rather than implying
+    # a race was run, and nothing here claims to have raced it either.
+    # THE JOB OFFERED TWO FIXES AND NAMED THE BETTER ONE, and this takes that one: re-derive inside the lock
+    # rather than merely take the lock earlier, because it makes --add IDEMPOTENT under concurrency instead of
+    # only serialised, and it costs one re-read of a file already in page cache.
+    # ONREG_NOW AND ABSENT_NOW ARE NEW NAMES AND NOT A REASSIGNMENT, deliberately. The report above printed the
+    # PRE-LOCK figures and must keep saying what IT measured [R18]; and a pair of distinct names is what lets a
+    # selftest assert the ORDER OF OPERATIONS by reading this script, which is the deterministic control the job
+    # proposes in place of racing two processes - a true concurrency case needs two processes and would have to
+    # argue R36 admission first.
+    ONREG_NOW="$(rows | cut -f1 | sort -un)"
+    ABSENT_NOW="$(comm -23 <(printf '%s\n' "$NAMED" | grep '[0-9]' | LC_ALL=C sort -u) \
+                           <(printf '%s\n' "$ONREG_NOW" | grep '[0-9]' | LC_ALL=C sort -u) | sort -n)"
+    # LC_ALL=C ON BOTH SIDES, EXACTLY AS IN THE PRE-LOCK COMPUTATION ABOVE. #465's antagonist B found that comm
+    # wants lexicographic order while both sets are sorted numerically, and that the two agree only while every
+    # number has the same digit count - it bites at #1000, which in_range already permits. This copy must never
+    # drift from that one, and gates/buildnum-selftest.sh's 4-digit fixture now covers BOTH of them.
+    # WHAT IS DELIBERATELY *NOT* RE-DERIVED: NAMED. It comes from git history, which no concurrent `--add` can
+    # change, so re-walking it here would hold the lock across a full `git log --all` and buy nothing.
+    #
+    # THE SHA MAP, AND WHY A ROW WITH NO SHA IS NOT A RECORD. Every row --add wrote before this change carried
+    # sha '-' and a note saying only that 'a commit subject on some ref names #NNN', so 104 of the register's
+    # numbers became assertions whose only evidence was the tool that made them - while the pre-existing rows
+    # cite a sha, a gatelog filename or RUN-LOG.md. This project's own rule is that a measurement must say how it
+    # was taken well enough to be re-derived (#411/#412, publish the command with the count). The walk that
+    # yields the subject already yields %H and the old formatting threw it away.
+    # --reverse MAKES "THE FIRST SHA THAT NAMES EACH NUMBER" THE OLDEST SUCH COMMIT, so the value is
+    # deterministic rather than whatever the ref enumeration happened to be that day [R36].
+    # THE EXTRACTOR IS THE SAME PIPELINE AS NAMED ABOVE, CHARACTER FOR CHARACTER, AND THAT IS LOAD-BEARING: a
+    # second regex that drifted would attribute a number to a commit that does not name it, or find no sha for a
+    # number NAMED did match. The pre-filter is on the WHOLE LINE and changes nothing semantically - a line whose
+    # subject matches also matches as a line, and a line that matched only via the sha is impossible, because a
+    # 40-hex sha contains no '#' and no word "build" - so it only skips commits that could never contribute.
+    # NO awk INTERVAL MATCH ANYWHERE IN IT. mawk 1.3.4's leftmost-shortest match() on /[0-9]{3,4}/ is what got
+    # burst wave 1's patch 11 on this very file DROPPED from the 2026-10-03 integration
+    # (jobs/buildnum-patch-computes-the-absent-set-lexicographically-and-breaks-its-own-selftest-2026-10-03), and
+    # the one awk here compares a whole field for equality and matches no pattern at all. Baseline measured
+    # before touching the file: gates/buildnum-selftest.sh is 76 pass / 0 fail on origin/main 2bb09bf, which is
+    # the exact figure that dropped patch broke (76/0 -> 75/1).
+    # IT IS BUILT HERE, INSIDE THE LOCK AND ONLY ON THE --add PATH, because it is the most expensive thing this
+    # subcommand does and `--report`, which gates/build.sh reaches on every build, must not pay for it.
+    # ONE RESIDUAL, NAMED RATHER THAN ENGINEERED AWAY: a subject containing a literal tab would be split by the
+    # read below and only its first part scanned. git subjects are single-line and this history has none; if one
+    # ever appears the symptom is the loud refusal below, not a wrong sha.
+    SHAMAP="$(git -C "$HERE" log --all --reverse --format='%H%x09%s' 2>/dev/null \
+      | grep -iE '(#|\bbuild +)[0-9]{3,4}' \
+      | while IFS=$'\t' read -r _sha _subj; do
+          printf '%s\n' "$_subj" \
+            | grep -oiE '(#|\bbuild +)[0-9]{3,4}' | grep -oE '[0-9]{3,4}' | sed 's/^0*//' \
+            | while read -r _n; do printf '%s\t%s\n' "$_n" "$_sha"; done
+        done)"
     N_WROTE=0
-    for n in $(printf '%s\n' "$ABSENT" | grep '[0-9]'); do
+    for n in $(printf '%s\n' "$ABSENT_NOW" | grep '[0-9]'); do
       # DEAD TODAY AND LOUD IF IT EVER FIRES. Antagonist A measured that `in_range` can never reject here,
       # because every element came from a {3,4}-digit match - and that a silent `continue` would have let
       # --add exit 0 having written nothing while the sweep stayed dirty, which is the worst shape a guard
@@ -551,11 +612,36 @@ case "${1:-}" in
       in_range "$n" || { echo "buildnum.sh sweep --add: refusing to write '$n', which is not 3-4 digits."
         echo "  This is unreachable by construction; if you are reading it, the extractor changed."
         lock_free; exit 2; }
-      append_row "$(printf '%s\tissued\t-\t-\t-\t%s\t%s\tgit-log\t%s' "$n" "$AT" "$CT_RUNID" \
-        "Swept in: a commit subject on some ref names #$n, so the number was used and must never be reused. State issued, not shipped - a commit subject does not prove a bundle. Found by buildnum.sh sweep over $NCOMMITS commits on $NREFS refs.")"
+      # THE SHA IS REFUSED, NEVER QUIETLY WRITTEN AS '-'. A '-' in field 3 is the defect this change removes, so
+      # falling back to one on a miss would reintroduce it silently for the one row where it matters. Unreachable
+      # by construction, like the guard above - every element of ABSENT_NOW came out of NAMED, which came out of
+      # the same subjects this map was built from - so if you are reading it the two extractors have drifted.
+      NSHA="$(printf '%s\n' "$SHAMAP" | awk -F'\t' -v n="$n" '$1==n{print $2; exit}')"
+      [ -n "$NSHA" ] || { echo "buildnum.sh sweep --add: no commit sha found for '$n', which NAMED matched."
+        echo "  The two extractors have drifted; refusing to write a row that cannot be re-derived."
+        lock_free; exit 2; }
+      # AND IT IS RESOLVED BEFORE IT IS WRITTEN, which is the half of this job that makes the row auditable:
+      # `add` already validates that a sha names a real object, so a swept sha is held to the same bar. This
+      # also discharges the field-forgery check clean_field exists for without a subshell that could exit while
+      # holding the lock: a value `cat-file -e` resolves is 40 hex characters and can carry no tab or newline.
+      git -C "$HERE" cat-file -e "$NSHA" 2>/dev/null || {
+        echo "buildnum.sh sweep --add: sha '$NSHA' for '$n' does not resolve in this repository."
+        echo "  Refusing to write a row whose own evidence cannot be fetched."
+        lock_free; exit 2; }
+      append_row "$(printf '%s\tissued\t%s\t-\t-\t%s\t%s\tgit-log\t%s' "$n" "$NSHA" "$AT" "$CT_RUNID" \
+        "Swept in: commit $NSHA names #$n in its subject, so the number was used and must never be reused. Re-derive this row with \`git show --no-patch --format=%s $NSHA\`. State issued, not shipped - a commit subject does not prove a bundle. Found by buildnum.sh sweep over $NCOMMITS commits on $NREFS refs.")"
       N_WROTE=$(( N_WROTE + 1 ))
     done
     lock_free
+    # BOTH FIGURES ARE PRINTED WHEN THEY DIFFER, because that difference is the entire point of the
+    # re-derivation: it means another writer landed rows between the report above and this append. Without this
+    # line "recorded 2 number(s)" under a report saying "3 NAMED AND ABSENT" reads as a lost row, and a reader
+    # chasing it would find nothing wrong.
+    if [ "$N_WROTE" != "$NABSENT" ]; then
+      printf 'buildnum.sh sweep: %s number(s) were absent when this run MEASURED and %s when it held the LOCK;\n' \
+        "$NABSENT" "$N_WROTE"
+      echo "  another writer recorded the difference. Nothing was lost and nothing was written twice."
+    fi
     printf 'buildnum.sh sweep: recorded %s number(s) as issued. Commit %s to main.\n' "$N_WROTE" "$(basename "$REG")" ;;
 
   list)
