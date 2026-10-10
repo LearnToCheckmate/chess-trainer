@@ -193,10 +193,14 @@ console.log("STAMP-ONLY 3 sites, base \""+sb+"\" -> head \""+sh+"\", "
 ' "$1" "$2" 2>&1; }
 
 # THE FOUR CONTROLS THE JOB MANDATES, AND THEY RUN ON EVERY INVOCATION RATHER THAN ONCE AT AUTHORING TIME.
-# "An unproven control is not a control [R08]" - so if any of the four gives the wrong answer this script
-# REFUSES (exit 1) instead of deciding anything. They are pure byte fixtures cut from the base's OWN app.js,
-# so they need no esbuild, no commit and no network: measured at 0.4s for all four on a 968KB bundle, against
-# fastgate's own ~7s. That is why they can be unconditional, which is what the job asks for.
+# "An unproven control is not a control [R08]" - so if any of them gives the wrong answer this script REFUSES
+# (exit 1) instead of deciding anything. BE PRECISE ABOUT WHICH RUN HERE: so_selftest runs the THREE fixture
+# controls (a), (b) and (c); control (d), the #489 rename, is proved by the BUNDLE IDENTITY loop above, which
+# sees app.js MISSING at head and exits 2 before this block is reached. The first draft of this comment said
+# "all four" and claimed "0.4s", and BOTH were wrong [R18]: the fixtures are pure byte operations cut from the
+# base's OWN app.js, needing no esbuild, no commit and no network, and they measure 165 ms (164/165/168 over
+# three runs) against this script's own 7.0-7.5s end to end. That is why they can be unconditional, which is
+# what the job asks for - and the figure is now one I took rather than one I estimated.
 #   (a) POSITIVE  a different valid stamp at all three sites           -> STAMP-ONLY
 #   (b) NEGATIVE  one meaningful byte changed OUTSIDE the stamp sites  -> NOT-STAMP-ONLY
 #   (c) NEGATIVE  a byte changed INSIDE a stamp site to a non-stamp    -> NOT-STAMP-ONLY  (the loose-normaliser case)
