@@ -299,196 +299,20 @@ fi
 # SHORTER' instead of exit 2 naming chess.jsx. That is #490's and is filed, not fixed here. This block is now
 # only ever reached by a commit that WOULD OTHERWISE TAKE A FAST GREEN, which is the only commit it has any
 # business judging.
-# ── RATCHETED RECORDS. THREE CONDITIONS, REPORTED SEPARATELY, OVER THE FILES A RECORDS COMMIT MAY TOUCH. ─────
-# WHAT THIS BLOCK IS FOR. A records-only commit may reach main in about seven seconds. So for every file that
-# classify() calls RECORDS and that something in this project RELIES ON, "records-only" has to mean APPENDED TO
-# or GROWN, never REWRITTEN. The 84 minutes this tier removes were the only thing that incidentally made
-# destroying a record expensive, and fastgate.sh already accepted that argument once for the gate logs.
+# ── RATCHETED RECORDS. NOW ITS OWN DOOR: gates/records-gate.sh. ────────────────────────────────────
+# The 192 lines that stood here - the TEXT, NOSHRINK and APPENDONLY conditions, their two lists, blobtype(),
+# the staging directory and every refusal string - are now gates/records-gate.sh, verbatim and moved rather
+# than retyped. Part (1) of jobs/build-one-door-for-every-non-gate-check-2026-10-10, which is Kunal's one-door
+# decision of 12:49am ET on 2026-10-10. Read that file's header for what this change is NOT: the ratchets are
+# still ratchets (part 3 is NOT taken), and the full-suite path does NOT yet call this door (part 2's second
+# half is NOT taken). Nothing about what this tier accepts or refuses has changed, and that is measured: this
+# script's stdout and its log are byte-identical before and after the move over the same commit pairs.
 #
-# ITS HISTORY IN THREE STEPS, KEPT IN FULL BECAUSE THE WRONG INVARIANT SHIPPED TWICE AND EACH REASON IS USEFUL.
-# (1) #490 shipped a `wc -l` SHRANK test over the two guard registers. The threat is not emptying but DISARMING:
-#     both #490 antagonists reproduced prefixing one "-" to a row's bundleMd5, which CLEARS that row
-#     (verify-log.sh and held.sh treat a leading "-" as cleared) with ZERO lines removed, taking held.sh's live
-#     count 9 -> 0 and `buildnum.sh check 490` from ISSUED/exit 1 to free/exit 0 on a FAST GATE GREEN.
-# (2) #490 then put both registers in classify()'s FORCE arm and kept this block as a second line of defence
-#     that, with those paths forced, "normally cannot fire" - correct, and the registers stayed safe.
-# (3) #509 MEASURED THE PRICE OF ITS OWN FIX AND PAID A DIFFERENT ONE. Moving root-level *.md to RECORDS
-#     un-forces EIGHT files, five of which CLAUDE.md's own truth table names as this project's record -
-#     CLAUDE.md itself, HANDOFF.md, RUN-LOG.md, DECISIONS-LOG.md, and FEEDBACK-INBOX.md, which CLAUDE.md
-#     declares "Append-only; never reword an entry". MEASURED by extracting classify() from both trees and
-#     running it over all 539 tracked paths: exactly TEN paths change FORCE -> RECORDS, and before this block
-#     was written EIGHT of them had no ratchet of any kind, in the same commit that built one for the other two.
-#     BOTH of #509's blind antagonists found that independently, from different doors, and both prescribed this.
-#
-# THE THREE CONDITIONS, AND THEY ARE THREE RATHER THAN ONE CONJUNCT ON PURPOSE. prompts/common's rule is that
-# halves which cannot fail independently read as two checks while being one. These fail independently and the
-# log names which fired.
-#   TEXT        the head blob carries no NUL and no C0 control byte but tab, newline and carriage return.
-#   NOSHRINK    the line count a consumer actually sees may not fall.
-#   APPENDONLY  for the listed files only: every byte present at BASE is byte-identical at HEAD.
-#
-# WHY TEXT EXISTS, AND IT IS THE ONE CONDITION NO AMOUNT OF BYTE COMPARISON CAN REPLACE. #509's antagonist B
-# found that the ratchet's notion of "append" is BYTES while every consumer's is LINES SURVIVING grep, and GNU
-# grep switches to binary mode on a NUL anywhere in the file and suppresses the matching lines. A single NUL
-# appended after the final newline satisfies NOSHRINK and APPENDONLY PERFECTLY. Reproduced by B end to end and
-# then by this build on its own instrument: one 0x00 byte takes held-trees.tsv from 12 live rows to 0 with grep
-# printing "binary file matches", `held.sh check <a held md5>` from exit 1 to exit 0, and
-# `buildnum.sh stampable 509` from exit 1 to exit 0 - which is the predicate gates/build.sh consults to refuse
-# build-number reuse, so a second run could stamp #509 over a different tree. That is the #416 defect the
-# register exists to make impossible. CLAUDE.md already records this grep-goes-binary trap from #419, where a
-# corrupt log was refused for "carries no footer" when the footer was there and grep had gone binary on a NUL -
-# "a wrong reason that reaches the right verdict is a trap, not a check". It arrived here at the instrument.
-# THE TEST IS CONTROL BYTES AND DELIBERATELY NOT PRINTABLE-ASCII: CLAUDE.md carries 36 non-ASCII bytes and this
-# script carries 1263, so an ASCII test would refuse the tree it is meant to protect. Measured at 38a8a25: all
-# of these files carry ZERO bytes outside tab/newline/CR/0x20-0xff, so the condition is satisfied by every one.
-# AND KNOW ITS HONEST LIMIT, because both of #509's antagonists swept it independently and agreed. Each appended
-# all 256 byte values in turn and counted the rows a consumer's grep+awk pipeline still yields: EXACTLY ONE BYTE
-# OF 256 SUPPRESSES LINES, 0x00, under LC_ALL=C and LC_ALL=C.utf8 alike. A lone 0xFF or a truncated multibyte
-# sequence prints its lines normally and emits "binary file matches" to STDERR ONLY, so antagonist A's own
-# encoding-error hypothesis was measured FALSE and withdrawn before it could cost a wrong fix. So this arm does
-# close the grep class ON THIS TOOLCHAIN - and that is a property of grep 3.11 plus a non-UTF-8 default locale,
-# NOT a property of the invariant, and nothing in this repository pins either. IT IS A BYTE-CLASS GUARD THAT
-# HAPPENS TO COVER THE ONE BYTE grep CARES ABOUT, and it is NOT a semantic guard: a line can be destroyed by
-# bytes that are all printable, which is what the CLAUDE.md arm in classify() and the line-boundary check below
-# exist for. The condition that would catch the whole shape is the consumer's OWN row count - grep+awk over the
-# head blob must equal the base plus the appended rows - and that is on
-# jobs/the-guard-registers-cannot-leave-force-until-the-ratchet-speaks-the-consumers-language-2026-10-10.
-#
-# AND NOTE WHAT #509 DID *NOT* DO ON THE STRENGTH OF THIS BLOCK. It did NOT move gates/held-trees.tsv or
-# gates/build-numbers.tsv out of classify()'s FORCE arm. It tried, its antagonists showed the ratchet is not
-# sufficient for them, and the move was withdrawn - see the note in classify(). They are ratcheted here anyway,
-# as #490 intended, as a second line of defence that normally cannot fire.
-RATCHET_APPENDONLY="gates/held-trees.tsv gates/build-numbers.tsv FEEDBACK-INBOX.md DECISIONS-LOG.md"
-RATCHET_NOSHRINK="RUN-LOG.md HANDOFF.md README.md chess-trainer-backlog.md feedback-inbox.md"
-# CLAUDE.md IS DELIBERATELY NOT IN EITHER LIST: classify() FORCES it outright (see the arm below), which is
-# strictly stronger than any ratchet here, so listing it would be dead code that reads like protection.
-# APPENDONLY is for the files whose OLD ROWS ARE EVIDENCE and are never rewritten: the two guard registers, and
-# the two records CLAUDE.md and DECISIONS-LOG.md's own line 6 declare append-only. NOSHRINK is the correct
-# weaker guard for the rest, because CLAUDE.md, RUN-LOG.md and HANDOFF.md ARE legitimately edited in place
-# every run and a byte prefix would refuse every honest close-out. Getting that split wrong in either direction
-# is the whole difficulty: too strong and the tier is unusable, too weak and the record is disposable.
-
-REGTMP="$(mktemp -d 2>/dev/null || true)"
-if [ -z "$REGTMP" ] || [ ! -d "$REGTMP" ]; then
-  say "FAST GATE REFUSED - mktemp -d gave no usable directory, so the records ratchet cannot be staged."
-  say "Refusing rather than skipping: this block is the only protection the root-level records have now that"
-  say "classify() no longer forces them."
-  exit 1
-fi
-trap 'rm -rf "$REGTMP"' EXIT
-
-# blobsize <rev> <path> -> prints the blob's byte size, or MISSING, or NOTBLOB.
-# WHY THE TYPE IS CHECKED. #509's antagonist A found that `git rev-parse --verify "<rev>:<path>"` resolves a
-# DIRECTORY to a tree id just as happily as a file to a blob, and the first draft of this block then ran
-# `cat-file blob` on it with no exit check: the redirect truncated the staged copy to 0 bytes, the prefix
-# comparison became empty-against-empty, and the block PRINTED ITS OWN SUCCESS SENTENCE - verbatim the failure
-# its own header says it refuses. A demonstrated it end to end with the register moved under a directory of the
-# same name: 11 live held rows to 0, held.sh not-held, FAST GATE GREEN, certified by this ratchet. That is
-# CLAUDE.md's non-empty-denominator rule arriving at the instrument, and it is why the size is asserted below
-# in its own say rather than as a conjunct. `^{blob}` does NOT work here - A measured it: `git rev-parse
-# --verify "<sha>:<path>^{blob}"` answers `fatal: Needed a single revision`, exit 128, on a real blob. The
-# working form is `cat-file -t`, which answers blob, tree, or fails with exit 128 when the path is absent.
-blobtype(){ $GIT cat-file -t "$1:$2" 2>/dev/null || echo MISSING; }
-
-RECBAD=""
-for f in $RATCHET_APPENDONLY $RATCHET_NOSHRINK; do
-  case " $RATCHET_APPENDONLY " in *" $f "*) MODE=appendonly ;; *) MODE=noshrink ;; esac
-  bt="$(blobtype "$BASEFULL" "$f")"; ht="$(blobtype "$HEAD" "$f")"
-  bb="$($GIT rev-parse --quiet --verify "$BASEFULL:$f" 2>/dev/null || true)"
-  hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || true)"
-  if [ "$bt" = MISSING ]; then
-    say "    $f: absent at base ($MODE) - no base content exists to protect."
-    continue
-  fi
-  if [ "$bt" != blob ]; then
-    RECBAD="$RECBAD$f: BASE is a $bt, not a blob, so no ratchet over it means anything. Run FULL.\n"; continue
-  fi
-  if [ "$bb" = "$hb" ] && [ "$ht" = blob ]; then
-    say "    $f: untouched by this commit ($MODE, same blob id at base and head)."
-    continue
-  fi
-  if [ "$ht" = MISSING ]; then
-    RECBAD="$RECBAD$f: GONE - present at base, absent at head. A records commit may not delete a record.\n"; continue
-  fi
-  if [ "$ht" != blob ]; then
-    RECBAD="$RECBAD$f: HEAD is a $ht, not a blob (replaced by a directory?). Run FULL.\n"; continue
-  fi
-  $GIT cat-file blob "$bb" > "$REGTMP/base" 2>/dev/null || { RECBAD="$RECBAD$f: could not read the BASE blob.\n"; continue; }
-  $GIT cat-file blob "$hb" > "$REGTMP/head" 2>/dev/null || { RECBAD="$RECBAD$f: could not read the HEAD blob.\n"; continue; }
-  nb="$(wc -c < "$REGTMP/base" | tr -d ' ')"; nb="${nb:-0}"
-  nh="$(wc -c < "$REGTMP/head" | tr -d ' ')"; nh="${nh:-0}"
-  # THE DENOMINATOR, ASSERTED IN ITS OWN say AND NEVER AS A CONJUNCT [prompts/common, CLAUDE.md].
-  if [ "$nb" -eq 0 ] 2>/dev/null; then
-    RECBAD="$RECBAD$f: the BASE blob is ZERO BYTES, so every comparison below would pass over nothing.\n"; continue
-  fi
-  # TEXT: no NUL and no C0 control byte but tab, newline, CR. Non-ASCII is fine and must be.
-  CTL="$(LC_ALL=C tr -d '\11\12\15\40-\377' < "$REGTMP/head" | wc -c | tr -d ' ')"; CTL="${CTL:-0}"
-  if [ "$CTL" -ne 0 ] 2>/dev/null; then
-    RECBAD="$RECBAD$f: TEXT - the head blob carries $CTL control byte(s) outside tab/newline/CR. grep goes\n"
-    RECBAD="$RECBAD    binary on a NUL and SUPPRESSES the matching lines, so every grep-based consumer of this\n"
-    RECBAD="$RECBAD    file silently reads fewer rows while the bytes all verify as appended [#509 antagonist B].\n"
-    continue
-  fi
-  # COUNTED WITH awk AND NOT WITH `grep -c '' || echo 0`, AND THIS IS #509's OWN WORST BUG, FOUND BY READING
-  # ITS OWN LOG LINE AFTER A CONTROL THAT PASSED. `grep -c '' < an-empty-file` PRINTS 0 *AND EXITS 1*, so the
-  # `|| echo 0` fallback ran as well and the captured value was TWO LINES, "0\n0". `[ "$LH" -lt "$LB" ]` on that
-  # is not an integer comparison: it errors, the `if` is false, and THE REFUSAL NEVER HAPPENS. So NOSHRINK could
-  # not fire on an EMPTY head - the single most important case it exists for - and the block printed its own
-  # success sentence while naming the two numbers that contradict it: "HANDOFF.md: no shrink and no control bytes
-  # (103 lines at base, 0...)". Control (h) masked it because every file it gutted still had a non-empty head or
-  # was caught by APPENDONLY's LENGTH arm instead. `awk END{print NR}` exits 0 always, prints 0 for an empty
-  # file, and counts a final line with no trailing newline - which is the count a consumer actually sees.
-  LB="$(awk 'END{print NR}' "$REGTMP/base" 2>/dev/null)"; LB="${LB:-0}"
-  LH="$(awk 'END{print NR}' "$REGTMP/head" 2>/dev/null)"; LH="${LH:-0}"
-  # THE DENOMINATOR AGAIN, IN ITS OWN say. A base of zero lines makes NOSHRINK unfalsifiable.
-  case "$LB" in ''|*[!0-9]*) RECBAD="$RECBAD$f: the base line count did not read as a number, so NOSHRINK cannot be evaluated.\n"; continue ;; esac
-  case "$LH" in ''|*[!0-9]*) RECBAD="$RECBAD$f: the head line count did not read as a number, so NOSHRINK cannot be evaluated.\n"; continue ;; esac
-  if [ "$LB" -eq 0 ]; then
-    RECBAD="$RECBAD$f: the BASE is ZERO LINES, so NOSHRINK would pass over nothing.\n"; continue
-  fi
-  if [ "$LH" -lt "$LB" ]; then
-    RECBAD="$RECBAD$f: NOSHRINK - $LH lines at head against $LB at base. A records commit may grow a record\n"
-    RECBAD="$RECBAD    and may not shorten one.\n"
-    continue
-  fi
-  if [ "$MODE" = appendonly ]; then
-    if [ "$nh" -lt "$nb" ] 2>/dev/null; then
-      RECBAD="$RECBAD$f: LENGTH - $nh bytes at head against $nb at base, so content was removed or truncated\n"
-      continue
-    fi
-    # AN APPEND MUST START AT A LINE BOUNDARY, OR IT IS NOT AN APPEND. #509's antagonist B found that the byte
-    # prefix test never requires this, and antagonist A then measured the live case: README.md's last byte at
-    # HEAD is 0x72, not a newline, so any "append" to it concatenates onto the last existing line - rewriting
-    # it - while the byte prefix verifies and the line count does not move. gates/held.sh appends a row with a
-    # bare `>>` and no newline guard, where gates/buildnum.sh has ensure_nl() for exactly this reason. So the
-    # base must END IN A NEWLINE before an append can be credited, and when it does not this is REPORTED and
-    # never credited [CLAUDE.md: a missing denominator is reported, never credited]. Measured at this base: all
-    # four APPENDONLY files end in 0x0a, so this reports nothing today and guards the arm rather than the tree.
-    if [ "$(tail -c 1 "$REGTMP/base" | od -An -tx1 | tr -d ' \n')" != "0a" ]; then
-      RECBAD="$RECBAD$f: the BASE does not end in a newline, so a byte append would extend its LAST ROW rather\n"
-      RECBAD="$RECBAD    than add one. Not credited as append-only. Fix the writer (see gates/buildnum.sh ensure_nl).\n"
-      continue
-    fi
-    head -c "$nb" "$REGTMP/head" > "$REGTMP/prefix" 2>/dev/null
-    if ! cmp -s "$REGTMP/prefix" "$REGTMP/base"; then
-      WHERE="$(cmp "$REGTMP/prefix" "$REGTMP/base" 2>&1 | head -1 | tr -d '%')"
-      RECBAD="$RECBAD$f: PREFIX - the $nb bytes present at base are NOT byte-identical at head [$WHERE]. A row\n"
-      RECBAD="$RECBAD    was edited in place, renumbered, cleared with a leading dash, removed, or inserted mid-file.\n"
-      continue
-    fi
-    say "    $f: append-only BY VALUE ($nb base bytes all identical at head; $((nh-nb)) appended, $((LH-LB)) lines, 0 control bytes)."
-  else
-    say "    $f: no shrink and no control bytes ($LB lines at base, $LH at head; $nb -> $nh bytes)."
-  fi
-done
-if [ -n "$RECBAD" ]; then
-  say ""
-  say "FAST GATE REFUSED - a ratcheted record was not appended to or grown, it was CHANGED:"
-  printf "%b" "$RECBAD" | sed 's/^/    /' | tee -a "$LOG"
-  say "These files are what this project knows. held-trees.tsv is the only carrier of a previous run's refusal"
-  say "to ship a tree [#450]; build-numbers.tsv is the non-reuse register [#454]; CLAUDE.md is the one file"
-  say "every build session reads before it acts; FEEDBACK-INBOX.md is append-only by CLAUDE.md's own rule."
-  say "If the change is deliberate, it is not a records commit. Run the FULL suite."
+# WHY THE EXIT CODE IS MAPPED AND NOT PASSED THROUGH. The door answers 0 ran-and-clean, 1 refused, 2 could-not-
+# run. A records tier that proceeded on 2 would be crediting a check that never compared anything, which is the
+# empty-denominator trap CLAUDE.md records eleven times - so 2 refuses here, and the door's own line says why.
+# `set -uo pipefail` is on from line 48, so the pipeline below carries the door's status and not tee's.
+if ! "$G/records-gate.sh" "$BASEFULL" "$HEAD" 2>&1 | tee -a "$LOG"; then
   exit 1
 fi
 
