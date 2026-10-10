@@ -129,6 +129,220 @@ if [ -n "$BUNDLEDIFF" ]; then
   exit 2
 fi
 
+trap 'rm -rf "$REGTMP"' EXIT
+
+REGBAD=""
+for f in gates/held-trees.tsv gates/build-numbers.tsv; do
+  bb="$($GIT rev-parse --quiet --verify "$BASEFULL:$f" 2>/dev/null || true)"
+  hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || true)"
+  if [ "$bb" = "$hb" ]; then
+    say "    $f: untouched by this commit (same blob id at base and head)."
+    continue
+  fi
+  if [ -z "$bb" ]; then
+    say "    $f: absent at base, present at head - no base rows exist to protect."
+    continue
+  fi
+  if [ -z "$hb" ]; then
+    REGBAD="$REGBAD$f: GONE - present at base, absent at head. A records commit may not delete a register.\n"
+    continue
+  fi
+  $GIT cat-file blob "$bb" > "$REGTMP/base" 2>/dev/null
+  $GIT cat-file blob "$hb" > "$REGTMP/head" 2>/dev/null
+  nb="$(wc -c < "$REGTMP/base" | tr -d ' ')"; nb="${nb:-0}"
+  nh="$(wc -c < "$REGTMP/head" | tr -d ' ')"; nh="${nh:-0}"
+  if [ "$nh" -lt "$nb" ] 2>/dev/null; then
+    REGBAD="$REGBAD$f: LENGTH - $nh bytes at head against $nb at base, so content was removed or truncated\n"
+    continue
+  fi
+  head -c "$nb" "$REGTMP/head" > "$REGTMP/prefix" 2>/dev/null
+  if ! cmp -s "$REGTMP/prefix" "$REGTMP/base"; then
+    WHERE="$(cmp "$REGTMP/prefix" "$REGTMP/base" 2>&1 | head -1)"
+    REGBAD="$REGBAD$f: PREFIX - the $nb bytes present at base are NOT byte-identical at head [$WHERE]. A row\n"
+    REGBAD="$REGBAD    was edited in place, renumbered, cleared with a leading \"-\", removed, or inserted mid-file.\n"
+    continue
+  fi
+  say "    $f: append-only BY VALUE ($nb bytes at base, every one byte-identical at head; $((nh-nb)) appended)."
+done
+if [ -n "$REGBAD" ]; then
+  say ""
+  say "FAST GATE REFUSED - a guard register was not APPENDED to, it was CHANGED:"
+  printf "$REGBAD" | sed 's/^/    /' | tee -a "$LOG"
+  say "held-trees.tsv is the only carrier of a previous run's refusal to ship a tree and build-numbers.tsv is"
+  say "the non-reuse register, so neither file's existing rows may move under a records commit [#450, #454]."
+  say "If the change is deliberate, it is not a records commit. Run the FULL suite."
+  exit 1
+fi
+
+# ── DOES THIS HEAD CARRY .nojekyll? MEASURED ONCE, FROM THE OBJECT STORE, AND USED BY classify() BELOW. ─────
+# Added #509. The root-.md arm of classify() used to be an unconditional FORCE whose stated reason was "GitHub
+# Pages runs Jekyll here (no .nojekyll), so index.md would be SERVED". That reason was true and the arm was
+# still wrong, because RUN-LOG.md and HANDOFF.md are both root-level .md and CLAUDE.md requires BOTH at every
+# close-out - so the arm forced the 84-minute suite on every commit that records a build, in order to guard
+# against a root index.md that does not exist. Measured on main's last 400 commits: that one arm costs 90 of
+# them the fast tier IN THE TREE THAT MEASUREMENT WAS TAKEN ON (#508's). BE PRECISE ABOUT WHICH MARGINAL THIS
+# IS, because #509's antagonist A caught the first draft stating one number unconditionally: with the two guard
+# registers FORCE, as they are here, moving root .md to records takes the reachable set 83 -> 173, a marginal of
+# 90; with them records-only it would be 96 -> 192, a marginal of 96. Both antagonists re-derived all four
+# figures independently and both reproduced 83 / 173 / 96 / 192 exactly.
+# THE FIX IS TO REMOVE THE PREMISE RATHER THAN THE RULE. With .nojekyll at the root, GitHub Pages serves the
+# tree statically and does NOT RENDER a root index.md. BE EXACT, because #509's first draft said "not rendered
+# or served at all" and both antagonists called the second half false: a root index.md IS still served,
+# verbatim, at /index.md. What .nojekyll removes is the RENDERING, not the file.
+# AND THE CROSS-READ WENT FURTHER, SO THE REASON FOR THIS ARM IS NOT THE ONE IT LOOKS LIKE. Measured on this
+# tree: of 31 tracked .md files ZERO carry YAML front matter, and Jekyll renders only files that have it,
+# copying the rest verbatim as StaticFiles - so a root index.md WOULD NOT HAVE BEEN RENDERED AT / EVEN WITHOUT
+# .nojekyll, and index.html is tracked at the root so / resolves to it either way. THE OLD ARM'S STATED PREMISE
+# WAS THEREFORE ALREADY FALSE for the only index.md this repository could plausibly grow. The honest reason for
+# this change is NOT "it closes a live Jekyll render path" but "un-forcing root .md needs the dotfile-publishing
+# switch to be explicit, present, and itself FORCED" - which is what .nojekyll falling to the default *) arm
+# gives. That matters because a fix justified by a consequence nobody can reproduce gets withdrawn along with
+# its reason. The one real shipped-surface delta: Jekyll does not publish dotfiles, so /.nojekyll and
+# /.gitignore become fetchable URLs that were not before; .gitignore was read and carries scratch paths and
+# comments, no secret. So the arm is now CONDITIONAL on that
+# file, and if somebody ever deletes it the arm goes straight back to FORCE with no further edit. That is why
+# this is a measurement and not a constant: a rule whose premise is a file should read the file.
+# ASKED OF THE OBJECT STORE AT HEAD, NOT OF THE FILESYSTEM. docs/fast-gate-state records a field withdrawn in
+# full for exactly this mistake - it concluded this script did not exist on main because `ls` returned no such
+# file, when `git cat-file -e <sha>:gates/fastgate.sh` succeeded at both shas it named. An ls of a working
+# directory is not a measurement of a commit, and fast mode gates a COMMIT.
+# AND IT MUST BE A BLOB. #509's antagonist A found that the first draft asked `rev-parse --verify`, which
+# resolves a DIRECTORY named .nojekyll to a tree id and reported `yes`: GitHub Pages sees no .nojekyll FILE, so
+# Jekyll still runs and a root index.md is still rendered at /, and the arm below would have called it
+# records-only. Demonstrated end to end at exit 0. `cat-file -t` is the working form and `^{blob}` is not -
+# `rev-parse --verify "<sha>:<path>^{blob}"` answers `fatal: Needed a single revision` on a real blob.
+NOJEKYLL=no
+[ "$($GIT cat-file -t "$HEAD:.nojekyll" 2>/dev/null || echo MISSING)" = blob ] && NOJEKYLL=yes
+say "root .nojekyll at head: $NOJEKYLL (a BLOB, not merely a resolvable path; it decides whether a ROOT-level"
+say "  .md is records-only - see classify. Absent or a directory means the ROOT .md arm goes back to FORCE.)"
+
+# ── THE CLASSIFIER. ONE FUNCTION, TWO CALLERS, AND THAT IS THE WHOLE POINT. ─────────────────────────────────
+# Added #490. Until now the changed-set decision below and the premise check further down each carried their own
+# idea of what counts as records-only, and the premise check's idea was written in a DIFFERENT VOCABULARY from
+# the decision's - require() targets against glob patterns. So a gate could read a file the decision classed as
+# records and the premise check could not see it. MEASURED on main at 109d897 before this fix:
+# gates/regress/68-brilliant-sac-empty-square.js reads its nine-game PGN corpus out of
+# claude/agents/bench/pgn/ with fs.readFileSync, claude/* was records-only, and a commit DELETING one of those
+# PGNs took FAST GATE GREEN with the log asserting "the 54 browser gates ... could not have differed". Gate 68
+# on that tree: 70 pass / 3 FAIL / exit 1, against 78 pass / 0 fail with the file present. The fast green was
+# wrong, and the premise check that exists to catch exactly that returned OK.
+# So classification now lives in ONE place that both callers ask. Two lists cannot drift when there is one list.
+# THIS IS THE ELEVENTH COSTUME OF THE TRAP CLAUDE.md RECORDS TEN TIMES: the check and the thing being checked
+# must not be the same object, and the dual failure is just as bad - a check that cannot SEE the thing it checks.
+classify(){   # classify <repo-relative-path>  ->  "FORCE <reason>"  or  "RECORDS"
+  case "$1" in
+    app.js|chess.jsx|entry.jsx)                     echo "FORCE bundle input or the bundle itself" ;;
+    package.json|package-lock.json)                 echo "FORCE build toolchain" ;;
+    gates/regress/*|gates/mountcheck.js|gates/lib.js) echo "FORCE a gate or the harness" ;;
+    gates/drive/*)                                  echo "FORCE 33 of the regress gates require these drivers - #489 finding 2" ;;
+    gates/audit/*|gates/engine-extract.js)          echo "FORCE executable harness, not a record: gates/audit holds 0 non-code files" ;;
+    gates/build.sh|gates/gates.sh|gates/gatemanifest.sh|gates/gate-manifest.tsv) echo "FORCE how the suite is built or enumerated" ;;
+    gates/fastgate.sh)                              echo "FORCE this script gates itself by the full suite" ;;
+    functions/*|firebase.json|*.html)               echo "FORCE shipped surface outside the bundle" ;;
+    claude/agents/bench/*)                          echo "FORCE gate 68 reads its PGN corpus here with fs.readFileSync - measured #490" ;;
+    # #509 TRIED TO MOVE THE NEXT TWO PATHS TO RECORDS AND WITHDREW IT ON BOTH ANTAGONISTS' VETO. The move was
+    # part two of its job: minting a build number appends a row to build-numbers.tsv, so this FORCE arm makes
+    # the fast tier unreachable by every run that takes a number, and #509 built the append-only byte ratchet
+    # above to replace the protection. THE RATCHET IS NOT SUFFICIENT FOR THESE TWO FILES AND THAT WAS MEASURED,
+    # not argued. (a) ONE APPENDED NUL BYTE satisfies every byte condition - it grows the file and changes no
+    # base byte - and takes held-trees.tsv from 12 live rows to 0, `held.sh check` from exit 1 to exit 0 and
+    # `buildnum.sh stampable 509` from exit 1 to exit 0, because grep goes binary on a NUL and suppresses the
+    # matching lines. The TEXT condition above now catches that, which is why it exists. (b) ONE WELL-FORMED
+    # APPENDED ROW numbered 9999 - a legitimate append by every condition there is - wedges `buildnum.sh next`
+    # and `mint` project-wide, and removing it is a PREFIX failure, so the UNDO is not a records commit and
+    # costs the full suite. Closing (b) needs a plausibility bound in gates/buildnum.sh and a consumer control
+    # that #509's control set did not have, which is a piece of work with its own controls and not a line.
+    # SO THESE TWO STAY FORCE, which is #490's state and is correct. The cost is measured and small: of main's
+    # last 400 commits the fast tier reaches 173 with root .md records-only and 192 with these two as well, so
+    # this arm costs 19 commits of 400 and part one carries 90 of the 109. Job:
+    # jobs/the-tiered-gate-is-unreachable-two-classify-rules-force-every-close-out-2026-10-10, part two owed.
+    gates/held-trees.tsv|gates/build-numbers.tsv)   echo "FORCE a GUARD REGISTER whose protection lives in its row VALUES - #490 antagonists, re-upheld at #509" ;;
+    claude/*|gates/logs/*|gates/*.tsv)              echo "RECORDS" ;;
+    # CLAUDE.md IS NOT A RECORD OF WHAT HAPPENED, IT IS THE PUSH BAR ITSELF, AND #509's CROSS-READ IS WHY THIS
+    # ARM EXISTS. The root-.md arm below gave CLAUDE.md the NOSHRINK ratchet, which is a LINE COUNT - and
+    # antagonist A's reproduced attack was a ZERO-NET-LINE-CHANGE commit. Antagonist B then drove it against
+    # #509's own fixed tree and it took a FAST GATE GREEN: 742 lines at base, 742 at head, 9 bytes smaller, and
+    # one of CLAUDE.md's two statements of the held-tree requirement gone, on the one file every build session
+    # reads before it acts. That is verbatim the sentence the withdrawn part two is condemned by - "the threat
+    # is not emptying but DISARMING" - landing on the push bar. APPENDONLY is the wrong arm for it (CLAUDE.md is
+    # legitimately edited in place, by deliberate decision) and NOSHRINK is too weak, so the honest answer is
+    # that a commit which rewrites the rules every session reads is NOT a records commit. It costs almost
+    # nothing: CLAUDE.md is edited rarely, while RUN-LOG.md and HANDOFF.md - the two every close-out writes -
+    # stay records-only, which is what part one was for.
+    CLAUDE.md)                                      echo "FORCE the push bar itself, not a record of a run: a commit that rewrites the rules every session reads is not a records commit - #509 cross-read" ;;
+    */*.md)                                         echo "RECORDS" ;;
+    *.md)   if [ "$NOJEKYLL" = yes ]; then echo "RECORDS"
+            else echo "FORCE a ROOT-level .md and NO .nojekyll at head: GitHub Pages would run Jekyll, so index.md would be SERVED"
+            fi ;;
+    *.js|*.html|*.json)                             echo "FORCE a .js, .html or .json file this script does not otherwise recognise" ;;
+    gates/*)                                        echo "FORCE gates/ path this script does not recognise - defaulting to FULL" ;;
+    *)                                              echo "FORCE path this script does not recognise - defaulting to FULL" ;;
+  esac
+}
+
+# ── EVIDENCE MAY NOT BE DESTROYED BY A RECORDS COMMIT. ──────────────────────────────────────────────────────
+# Added #490 on antagonist A's P0-3 and antagonist B's P2-3, both reproduced, and note what it is NOT: it is not
+# a hole fastgate INTRODUCED, because the full suite never checked these either. What fast mode removes is the 84
+# minutes that incidentally made destroying evidence expensive, and a records tier whose cheapest operation is
+# deleting the proof is the wrong shape whatever the suite does.
+#   A: `git rm claude/agents/gatelogs/489-all.log` - the ONLY full-suite green over the bundle main serves, and
+#      the artefact verify-log.sh cites - took EXIT 0 FAST GATE GREEN, and the control-audit ratchet called it
+#      "no worse". I FIXED THAT RATCHET'S KEY (it was matching only a header line) and the deletion STILL passed,
+#      because control-audit measures CONTROL COVERAGE and that reads 0 covered / 56 gates either way. So the
+#      honest finding is that no ratchet over coverage can see this, and it needs its own rule. Measured both
+#      ways: SUMMARY is byte-identical with and without the log.
+#   B: truncating claude/stories/TEST-CASES.md from 702 to 552 lines - 21% of the case register - scored as an
+#      IMPROVEMENT, because the only number that moved was "1 row(s) NOT CHECKED" falling to 0.
+# THE RULE: a records commit may ADD records. Removing a gate log, or shortening a register, is not a records
+# action and does not get the cheap tier. It is still perfectly possible - it just pays the full suite and is
+# therefore visible.
+GONE="$($GIT diff --name-only --no-renames --diff-filter=D "$BASEFULL".."$HEAD" 2>/dev/null | grep -E '^claude/agents/gatelogs/' || true)"
+if [ -n "$GONE" ]; then
+  say ""
+  say "FAST GATE REFUSED - this commit DELETES gate log evidence, which no records commit does:"
+  echo "$GONE" | sed 's/^/    /' | tee -a "$LOG"
+  say "A gate log is what verify-log.sh cites to prove a bundle was gated. Run FULL, or do not delete it."
+  exit 1
+fi
+SHORTER=""
+for f in claude/stories/TEST-CASES.md claude/stories/USER-STORIES.md; do
+  nb="$($GIT show "$BASEFULL:$f" 2>/dev/null | wc -l | tr -d ' ')"; nb="${nb:-0}"
+  nh="$($GIT show "$HEAD:$f" 2>/dev/null | wc -l | tr -d ' ')"; nh="${nh:-0}"
+  [ "$nh" -lt "$nb" ] 2>/dev/null && SHORTER="$SHORTER$f ($nb lines -> $nh)\n"
+done
+if [ -n "$SHORTER" ]; then
+  say ""
+  say "FAST GATE REFUSED - a register of cases or stories got SHORTER, which the records ratchet reads as an"
+  say "improvement because the only number that moves is a 'not checked' count falling:"
+  printf "$SHORTER" | sed 's/^/    /' | tee -a "$LOG"
+  exit 1
+fi
+
+# ── WHAT FORCES THE FULL SUITE. Anything that can change the bundle, the gates, or how they run. ─────────────
+FORCE=""
+while IFS= read -r p; do
+  [ -n "$p" ] || continue
+  v="$(classify "$p")"
+  [ "$v" = "RECORDS" ] || FORCE="$FORCE$p (${v#FORCE })\n"
+done <<< "$CHANGED"
+
+if [ -n "$FORCE" ]; then
+  say ""
+  say "FULL SUITE REQUIRED. These paths are not records-only:"
+  printf "$FORCE" | sed 's/^/    /' | tee -a "$LOG"
+  say "Run: gates/gates.sh \"#<N>\"   (the full suite, and only its own green footer authorises this push)"
+  exit 2          # exit 2 means GO FULL. It is not a failure.
+fi
+
+# ── WHY THIS BLOCK SITS *AFTER* THE FORCE DECISION, AND IT DID NOT AT FIRST. ─────────────────────────────────
+# #509 first placed the records ratchet above classify(), where #490 put its own SHORTER guard. MEASURED and
+# it is wrong: a commit that both rewrites a record AND touches chess.jsx must be told GO FULL (exit 2), not
+# REFUSED (exit 1) - the full suite is exactly where such a commit belongs, and refusing it stops honest work.
+# Control (k2) proves the pre-existing version of that mistake is still live one block below: shrinking
+# claude/stories/TEST-CASES.md while touching chess.jsx returns REAL EXIT 1 'a register of cases or stories got
+# SHORTER' instead of exit 2 naming chess.jsx. That is #490's and is filed, not fixed here. This block is now
+# only ever reached by a commit that WOULD OTHERWISE TAKE A FAST GREEN, which is the only commit it has any
+# business judging.
 # ── RATCHETED RECORDS. THREE CONDITIONS, REPORTED SEPARATELY, OVER THE FILES A RECORDS COMMIT MAY TOUCH. ─────
 # WHAT THIS BLOCK IS FOR. A records-only commit may reach main in about seven seconds. So for every file that
 # classify() calls RECORDS and that something in this project RELIES ON, "records-only" has to mean APPENDED TO
@@ -170,14 +384,28 @@ fi
 # "a wrong reason that reaches the right verdict is a trap, not a check". It arrived here at the instrument.
 # THE TEST IS CONTROL BYTES AND DELIBERATELY NOT PRINTABLE-ASCII: CLAUDE.md carries 36 non-ASCII bytes and this
 # script carries 1263, so an ASCII test would refuse the tree it is meant to protect. Measured at 38a8a25: all
-# ten files carry ZERO bytes outside tab/newline/CR/0x20-0xff, so the condition is satisfied today by every one.
+# of these files carry ZERO bytes outside tab/newline/CR/0x20-0xff, so the condition is satisfied by every one.
+# AND KNOW ITS HONEST LIMIT, because both of #509's antagonists swept it independently and agreed. Each appended
+# all 256 byte values in turn and counted the rows a consumer's grep+awk pipeline still yields: EXACTLY ONE BYTE
+# OF 256 SUPPRESSES LINES, 0x00, under LC_ALL=C and LC_ALL=C.utf8 alike. A lone 0xFF or a truncated multibyte
+# sequence prints its lines normally and emits "binary file matches" to STDERR ONLY, so antagonist A's own
+# encoding-error hypothesis was measured FALSE and withdrawn before it could cost a wrong fix. So this arm does
+# close the grep class ON THIS TOOLCHAIN - and that is a property of grep 3.11 plus a non-UTF-8 default locale,
+# NOT a property of the invariant, and nothing in this repository pins either. IT IS A BYTE-CLASS GUARD THAT
+# HAPPENS TO COVER THE ONE BYTE grep CARES ABOUT, and it is NOT a semantic guard: a line can be destroyed by
+# bytes that are all printable, which is what the CLAUDE.md arm in classify() and the line-boundary check below
+# exist for. The condition that would catch the whole shape is the consumer's OWN row count - grep+awk over the
+# head blob must equal the base plus the appended rows - and that is on
+# jobs/the-guard-registers-cannot-leave-force-until-the-ratchet-speaks-the-consumers-language-2026-10-10.
 #
 # AND NOTE WHAT #509 DID *NOT* DO ON THE STRENGTH OF THIS BLOCK. It did NOT move gates/held-trees.tsv or
 # gates/build-numbers.tsv out of classify()'s FORCE arm. It tried, its antagonists showed the ratchet is not
 # sufficient for them, and the move was withdrawn - see the note in classify(). They are ratcheted here anyway,
 # as #490 intended, as a second line of defence that normally cannot fire.
 RATCHET_APPENDONLY="gates/held-trees.tsv gates/build-numbers.tsv FEEDBACK-INBOX.md DECISIONS-LOG.md"
-RATCHET_NOSHRINK="CLAUDE.md RUN-LOG.md HANDOFF.md README.md chess-trainer-backlog.md feedback-inbox.md"
+RATCHET_NOSHRINK="RUN-LOG.md HANDOFF.md README.md chess-trainer-backlog.md feedback-inbox.md"
+# CLAUDE.md IS DELIBERATELY NOT IN EITHER LIST: classify() FORCES it outright (see the arm below), which is
+# strictly stronger than any ratchet here, so listing it would be dead code that reads like protection.
 # APPENDONLY is for the files whose OLD ROWS ARE EVIDENCE and are never rewritten: the two guard registers, and
 # the two records CLAUDE.md and DECISIONS-LOG.md's own line 6 declare append-only. NOSHRINK is the correct
 # weaker guard for the rest, because CLAUDE.md, RUN-LOG.md and HANDOFF.md ARE legitimately edited in place
@@ -245,9 +473,24 @@ for f in $RATCHET_APPENDONLY $RATCHET_NOSHRINK; do
     RECBAD="$RECBAD    file silently reads fewer rows while the bytes all verify as appended [#509 antagonist B].\n"
     continue
   fi
-  LB="$(grep -c '' < "$REGTMP/base" 2>/dev/null || echo 0)"
-  LH="$(grep -c '' < "$REGTMP/head" 2>/dev/null || echo 0)"
-  if [ "$LH" -lt "$LB" ] 2>/dev/null; then
+  # COUNTED WITH awk AND NOT WITH `grep -c '' || echo 0`, AND THIS IS #509's OWN WORST BUG, FOUND BY READING
+  # ITS OWN LOG LINE AFTER A CONTROL THAT PASSED. `grep -c '' < an-empty-file` PRINTS 0 *AND EXITS 1*, so the
+  # `|| echo 0` fallback ran as well and the captured value was TWO LINES, "0\n0". `[ "$LH" -lt "$LB" ]` on that
+  # is not an integer comparison: it errors, the `if` is false, and THE REFUSAL NEVER HAPPENS. So NOSHRINK could
+  # not fire on an EMPTY head - the single most important case it exists for - and the block printed its own
+  # success sentence while naming the two numbers that contradict it: "HANDOFF.md: no shrink and no control bytes
+  # (103 lines at base, 0...)". Control (h) masked it because every file it gutted still had a non-empty head or
+  # was caught by APPENDONLY's LENGTH arm instead. `awk END{print NR}` exits 0 always, prints 0 for an empty
+  # file, and counts a final line with no trailing newline - which is the count a consumer actually sees.
+  LB="$(awk 'END{print NR}' "$REGTMP/base" 2>/dev/null)"; LB="${LB:-0}"
+  LH="$(awk 'END{print NR}' "$REGTMP/head" 2>/dev/null)"; LH="${LH:-0}"
+  # THE DENOMINATOR AGAIN, IN ITS OWN say. A base of zero lines makes NOSHRINK unfalsifiable.
+  case "$LB" in ''|*[!0-9]*) RECBAD="$RECBAD$f: the base line count did not read as a number, so NOSHRINK cannot be evaluated.\n"; continue ;; esac
+  case "$LH" in ''|*[!0-9]*) RECBAD="$RECBAD$f: the head line count did not read as a number, so NOSHRINK cannot be evaluated.\n"; continue ;; esac
+  if [ "$LB" -eq 0 ]; then
+    RECBAD="$RECBAD$f: the BASE is ZERO LINES, so NOSHRINK would pass over nothing.\n"; continue
+  fi
+  if [ "$LH" -lt "$LB" ]; then
     RECBAD="$RECBAD$f: NOSHRINK - $LH lines at head against $LB at base. A records commit may grow a record\n"
     RECBAD="$RECBAD    and may not shorten one.\n"
     continue
@@ -255,6 +498,19 @@ for f in $RATCHET_APPENDONLY $RATCHET_NOSHRINK; do
   if [ "$MODE" = appendonly ]; then
     if [ "$nh" -lt "$nb" ] 2>/dev/null; then
       RECBAD="$RECBAD$f: LENGTH - $nh bytes at head against $nb at base, so content was removed or truncated\n"
+      continue
+    fi
+    # AN APPEND MUST START AT A LINE BOUNDARY, OR IT IS NOT AN APPEND. #509's antagonist B found that the byte
+    # prefix test never requires this, and antagonist A then measured the live case: README.md's last byte at
+    # HEAD is 0x72, not a newline, so any "append" to it concatenates onto the last existing line - rewriting
+    # it - while the byte prefix verifies and the line count does not move. gates/held.sh appends a row with a
+    # bare `>>` and no newline guard, where gates/buildnum.sh has ensure_nl() for exactly this reason. So the
+    # base must END IN A NEWLINE before an append can be credited, and when it does not this is REPORTED and
+    # never credited [CLAUDE.md: a missing denominator is reported, never credited]. Measured at this base: all
+    # four APPENDONLY files end in 0x0a, so this reports nothing today and guards the arm rather than the tree.
+    if [ "$(tail -c 1 "$REGTMP/base" | od -An -tx1 | tr -d ' \n')" != "0a" ]; then
+      RECBAD="$RECBAD$f: the BASE does not end in a newline, so a byte append would extend its LAST ROW rather\n"
+      RECBAD="$RECBAD    than add one. Not credited as append-only. Fix the writer (see gates/buildnum.sh ensure_nl).\n"
       continue
     fi
     head -c "$nb" "$REGTMP/head" > "$REGTMP/prefix" 2>/dev/null
@@ -278,192 +534,6 @@ if [ -n "$RECBAD" ]; then
   say "every build session reads before it acts; FEEDBACK-INBOX.md is append-only by CLAUDE.md's own rule."
   say "If the change is deliberate, it is not a records commit. Run the FULL suite."
   exit 1
-fi
-trap 'rm -rf "$REGTMP"' EXIT
-
-REGBAD=""
-for f in gates/held-trees.tsv gates/build-numbers.tsv; do
-  bb="$($GIT rev-parse --quiet --verify "$BASEFULL:$f" 2>/dev/null || true)"
-  hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || true)"
-  if [ "$bb" = "$hb" ]; then
-    say "    $f: untouched by this commit (same blob id at base and head)."
-    continue
-  fi
-  if [ -z "$bb" ]; then
-    say "    $f: absent at base, present at head - no base rows exist to protect."
-    continue
-  fi
-  if [ -z "$hb" ]; then
-    REGBAD="$REGBAD$f: GONE - present at base, absent at head. A records commit may not delete a register.\n"
-    continue
-  fi
-  $GIT cat-file blob "$bb" > "$REGTMP/base" 2>/dev/null
-  $GIT cat-file blob "$hb" > "$REGTMP/head" 2>/dev/null
-  nb="$(wc -c < "$REGTMP/base" | tr -d ' ')"; nb="${nb:-0}"
-  nh="$(wc -c < "$REGTMP/head" | tr -d ' ')"; nh="${nh:-0}"
-  if [ "$nh" -lt "$nb" ] 2>/dev/null; then
-    REGBAD="$REGBAD$f: LENGTH - $nh bytes at head against $nb at base, so content was removed or truncated\n"
-    continue
-  fi
-  head -c "$nb" "$REGTMP/head" > "$REGTMP/prefix" 2>/dev/null
-  if ! cmp -s "$REGTMP/prefix" "$REGTMP/base"; then
-    WHERE="$(cmp "$REGTMP/prefix" "$REGTMP/base" 2>&1 | head -1)"
-    REGBAD="$REGBAD$f: PREFIX - the $nb bytes present at base are NOT byte-identical at head [$WHERE]. A row\n"
-    REGBAD="$REGBAD    was edited in place, renumbered, cleared with a leading \"-\", removed, or inserted mid-file.\n"
-    continue
-  fi
-  say "    $f: append-only BY VALUE ($nb bytes at base, every one byte-identical at head; $((nh-nb)) appended)."
-done
-if [ -n "$REGBAD" ]; then
-  say ""
-  say "FAST GATE REFUSED - a guard register was not APPENDED to, it was CHANGED:"
-  printf "$REGBAD" | sed 's/^/    /' | tee -a "$LOG"
-  say "held-trees.tsv is the only carrier of a previous run's refusal to ship a tree and build-numbers.tsv is"
-  say "the non-reuse register, so neither file's existing rows may move under a records commit [#450, #454]."
-  say "If the change is deliberate, it is not a records commit. Run the FULL suite."
-  exit 1
-fi
-
-# ── DOES THIS HEAD CARRY .nojekyll? MEASURED ONCE, FROM THE OBJECT STORE, AND USED BY classify() BELOW. ─────
-# Added #509. The root-.md arm of classify() used to be an unconditional FORCE whose stated reason was "GitHub
-# Pages runs Jekyll here (no .nojekyll), so index.md would be SERVED". That reason was true and the arm was
-# still wrong, because RUN-LOG.md and HANDOFF.md are both root-level .md and CLAUDE.md requires BOTH at every
-# close-out - so the arm forced the 84-minute suite on every commit that records a build, in order to guard
-# against a root index.md that does not exist. Measured on main's last 400 commits: that one arm costs 90 of
-# them the fast tier IN THE TREE THAT MEASUREMENT WAS TAKEN ON (#508's). BE PRECISE ABOUT WHICH MARGINAL THIS
-# IS, because #509's antagonist A caught the first draft stating one number unconditionally: with the two guard
-# registers FORCE, as they are here, moving root .md to records takes the reachable set 83 -> 173, a marginal of
-# 90; with them records-only it would be 96 -> 192, a marginal of 96. Both antagonists re-derived all four
-# figures independently and both reproduced 83 / 173 / 96 / 192 exactly.
-# THE FIX IS TO REMOVE THE PREMISE RATHER THAN THE RULE. With .nojekyll at the root, GitHub Pages serves the
-# tree statically and does NOT RENDER a root index.md - so it is never built into the index.html that / resolves
-# to, which is what the old arm's "would be SERVED" was about. BE EXACT, because #509's first draft said "not
-# rendered or served at all" and both antagonists called the second half false: a root index.md IS still served,
-# verbatim, at /index.md. What .nojekyll removes is the RENDERING, not the file. Measured on this tree: of 31
-# tracked .md files ZERO carry YAML front matter and the six served .html files carry ZERO Liquid tags, so
-# Jekyll's output here is already a byte-for-byte copy and no served page changes. The one real delta is that
-# Jekyll does not publish dotfiles, so /.nojekyll and /.gitignore become fetchable URLs that were not before;
-# .gitignore was read and carries scratch paths and comments, no secret. So the arm is now CONDITIONAL on that
-# file, and if somebody ever deletes it the arm goes straight back to FORCE with no further edit. That is why
-# this is a measurement and not a constant: a rule whose premise is a file should read the file.
-# ASKED OF THE OBJECT STORE AT HEAD, NOT OF THE FILESYSTEM. docs/fast-gate-state records a field withdrawn in
-# full for exactly this mistake - it concluded this script did not exist on main because `ls` returned no such
-# file, when `git cat-file -e <sha>:gates/fastgate.sh` succeeded at both shas it named. An ls of a working
-# directory is not a measurement of a commit, and fast mode gates a COMMIT.
-# AND IT MUST BE A BLOB. #509's antagonist A found that the first draft asked `rev-parse --verify`, which
-# resolves a DIRECTORY named .nojekyll to a tree id and reported `yes`: GitHub Pages sees no .nojekyll FILE, so
-# Jekyll still runs and a root index.md is still rendered at /, and the arm below would have called it
-# records-only. Demonstrated end to end at exit 0. `cat-file -t` is the working form and `^{blob}` is not -
-# `rev-parse --verify "<sha>:<path>^{blob}"` answers `fatal: Needed a single revision` on a real blob.
-NOJEKYLL=no
-[ "$($GIT cat-file -t "$HEAD:.nojekyll" 2>/dev/null || echo MISSING)" = blob ] && NOJEKYLL=yes
-say "root .nojekyll at head: $NOJEKYLL (a BLOB, not merely a resolvable path; it decides whether a ROOT-level"
-say "  .md is records-only - see classify. Absent or a directory means the ROOT .md arm goes back to FORCE.)"
-
-# ── THE CLASSIFIER. ONE FUNCTION, TWO CALLERS, AND THAT IS THE WHOLE POINT. ─────────────────────────────────
-# Added #490. Until now the changed-set decision below and the premise check further down each carried their own
-# idea of what counts as records-only, and the premise check's idea was written in a DIFFERENT VOCABULARY from
-# the decision's - require() targets against glob patterns. So a gate could read a file the decision classed as
-# records and the premise check could not see it. MEASURED on main at 109d897 before this fix:
-# gates/regress/68-brilliant-sac-empty-square.js reads its nine-game PGN corpus out of
-# claude/agents/bench/pgn/ with fs.readFileSync, claude/* was records-only, and a commit DELETING one of those
-# PGNs took FAST GATE GREEN with the log asserting "the 54 browser gates ... could not have differed". Gate 68
-# on that tree: 70 pass / 3 FAIL / exit 1, against 78 pass / 0 fail with the file present. The fast green was
-# wrong, and the premise check that exists to catch exactly that returned OK.
-# So classification now lives in ONE place that both callers ask. Two lists cannot drift when there is one list.
-# THIS IS THE ELEVENTH COSTUME OF THE TRAP CLAUDE.md RECORDS TEN TIMES: the check and the thing being checked
-# must not be the same object, and the dual failure is just as bad - a check that cannot SEE the thing it checks.
-classify(){   # classify <repo-relative-path>  ->  "FORCE <reason>"  or  "RECORDS"
-  case "$1" in
-    app.js|chess.jsx|entry.jsx)                     echo "FORCE bundle input or the bundle itself" ;;
-    package.json|package-lock.json)                 echo "FORCE build toolchain" ;;
-    gates/regress/*|gates/mountcheck.js|gates/lib.js) echo "FORCE a gate or the harness" ;;
-    gates/drive/*)                                  echo "FORCE 33 of the regress gates require these drivers - #489 finding 2" ;;
-    gates/audit/*|gates/engine-extract.js)          echo "FORCE executable harness, not a record: gates/audit holds 0 non-code files" ;;
-    gates/build.sh|gates/gates.sh|gates/gatemanifest.sh|gates/gate-manifest.tsv) echo "FORCE how the suite is built or enumerated" ;;
-    gates/fastgate.sh)                              echo "FORCE this script gates itself by the full suite" ;;
-    functions/*|firebase.json|*.html)               echo "FORCE shipped surface outside the bundle" ;;
-    claude/agents/bench/*)                          echo "FORCE gate 68 reads its PGN corpus here with fs.readFileSync - measured #490" ;;
-    # #509 TRIED TO MOVE THE NEXT TWO PATHS TO RECORDS AND WITHDREW IT ON BOTH ANTAGONISTS' VETO. The move was
-    # part two of its job: minting a build number appends a row to build-numbers.tsv, so this FORCE arm makes
-    # the fast tier unreachable by every run that takes a number, and #509 built the append-only byte ratchet
-    # above to replace the protection. THE RATCHET IS NOT SUFFICIENT FOR THESE TWO FILES AND THAT WAS MEASURED,
-    # not argued. (a) ONE APPENDED NUL BYTE satisfies every byte condition - it grows the file and changes no
-    # base byte - and takes held-trees.tsv from 12 live rows to 0, `held.sh check` from exit 1 to exit 0 and
-    # `buildnum.sh stampable 509` from exit 1 to exit 0, because grep goes binary on a NUL and suppresses the
-    # matching lines. The TEXT condition above now catches that, which is why it exists. (b) ONE WELL-FORMED
-    # APPENDED ROW numbered 9999 - a legitimate append by every condition there is - wedges `buildnum.sh next`
-    # and `mint` project-wide, and removing it is a PREFIX failure, so the UNDO is not a records commit and
-    # costs the full suite. Closing (b) needs a plausibility bound in gates/buildnum.sh and a consumer control
-    # that #509's control set did not have, which is a piece of work with its own controls and not a line.
-    # SO THESE TWO STAY FORCE, which is #490's state and is correct. The cost is measured and small: of main's
-    # last 400 commits the fast tier reaches 173 with root .md records-only and 192 with these two as well, so
-    # this arm costs 19 commits of 400 and part one carries 90 of the 109. Job:
-    # jobs/the-tiered-gate-is-unreachable-two-classify-rules-force-every-close-out-2026-10-10, part two owed.
-    gates/held-trees.tsv|gates/build-numbers.tsv)   echo "FORCE a GUARD REGISTER whose protection lives in its row VALUES - #490 antagonists, re-upheld at #509" ;;
-    claude/*|gates/logs/*|gates/*.tsv)              echo "RECORDS" ;;
-    */*.md)                                         echo "RECORDS" ;;
-    *.md)   if [ "$NOJEKYLL" = yes ]; then echo "RECORDS"
-            else echo "FORCE a ROOT-level .md and NO .nojekyll at head: GitHub Pages would run Jekyll, so index.md would be SERVED"
-            fi ;;
-    *.js|*.html|*.json)                             echo "FORCE a .js, .html or .json file this script does not otherwise recognise" ;;
-    gates/*)                                        echo "FORCE gates/ path this script does not recognise - defaulting to FULL" ;;
-    *)                                              echo "FORCE path this script does not recognise - defaulting to FULL" ;;
-  esac
-}
-
-# ── EVIDENCE MAY NOT BE DESTROYED BY A RECORDS COMMIT. ──────────────────────────────────────────────────────
-# Added #490 on antagonist A's P0-3 and antagonist B's P2-3, both reproduced, and note what it is NOT: it is not
-# a hole fastgate INTRODUCED, because the full suite never checked these either. What fast mode removes is the 84
-# minutes that incidentally made destroying evidence expensive, and a records tier whose cheapest operation is
-# deleting the proof is the wrong shape whatever the suite does.
-#   A: `git rm claude/agents/gatelogs/489-all.log` - the ONLY full-suite green over the bundle main serves, and
-#      the artefact verify-log.sh cites - took EXIT 0 FAST GATE GREEN, and the control-audit ratchet called it
-#      "no worse". I FIXED THAT RATCHET'S KEY (it was matching only a header line) and the deletion STILL passed,
-#      because control-audit measures CONTROL COVERAGE and that reads 0 covered / 56 gates either way. So the
-#      honest finding is that no ratchet over coverage can see this, and it needs its own rule. Measured both
-#      ways: SUMMARY is byte-identical with and without the log.
-#   B: truncating claude/stories/TEST-CASES.md from 702 to 552 lines - 21% of the case register - scored as an
-#      IMPROVEMENT, because the only number that moved was "1 row(s) NOT CHECKED" falling to 0.
-# THE RULE: a records commit may ADD records. Removing a gate log, or shortening a register, is not a records
-# action and does not get the cheap tier. It is still perfectly possible - it just pays the full suite and is
-# therefore visible.
-GONE="$($GIT diff --name-only --no-renames --diff-filter=D "$BASEFULL".."$HEAD" 2>/dev/null | grep -E '^claude/agents/gatelogs/' || true)"
-if [ -n "$GONE" ]; then
-  say ""
-  say "FAST GATE REFUSED - this commit DELETES gate log evidence, which no records commit does:"
-  echo "$GONE" | sed 's/^/    /' | tee -a "$LOG"
-  say "A gate log is what verify-log.sh cites to prove a bundle was gated. Run FULL, or do not delete it."
-  exit 1
-fi
-SHORTER=""
-for f in claude/stories/TEST-CASES.md claude/stories/USER-STORIES.md; do
-  nb="$($GIT show "$BASEFULL:$f" 2>/dev/null | wc -l | tr -d ' ')"; nb="${nb:-0}"
-  nh="$($GIT show "$HEAD:$f" 2>/dev/null | wc -l | tr -d ' ')"; nh="${nh:-0}"
-  [ "$nh" -lt "$nb" ] 2>/dev/null && SHORTER="$SHORTER$f ($nb lines -> $nh)\n"
-done
-if [ -n "$SHORTER" ]; then
-  say ""
-  say "FAST GATE REFUSED - a register of cases or stories got SHORTER, which the records ratchet reads as an"
-  say "improvement because the only number that moves is a 'not checked' count falling:"
-  printf "$SHORTER" | sed 's/^/    /' | tee -a "$LOG"
-  exit 1
-fi
-
-# ── WHAT FORCES THE FULL SUITE. Anything that can change the bundle, the gates, or how they run. ─────────────
-FORCE=""
-while IFS= read -r p; do
-  [ -n "$p" ] || continue
-  v="$(classify "$p")"
-  [ "$v" = "RECORDS" ] || FORCE="$FORCE$p (${v#FORCE })\n"
-done <<< "$CHANGED"
-
-if [ -n "$FORCE" ]; then
-  say ""
-  say "FULL SUITE REQUIRED. These paths are not records-only:"
-  printf "$FORCE" | sed 's/^/    /' | tee -a "$LOG"
-  say "Run: gates/gates.sh \"#<N>\"   (the full suite, and only its own green footer authorises this push)"
-  exit 2          # exit 2 means GO FULL. It is not a failure.
 fi
 
 # ── PREMISE CHECK. Re-derived every run, because the whole script rests on it. ───────────────────────────────
