@@ -52,8 +52,9 @@ const plyTxt=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct=
 const SAN='(?:O-O-O|O-O|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?[+#]?)';
 const hasVar=(s)=>{if(!s)return false;const rest=s.replace(/^\S+\s*/,'');return new RegExp('\\d+\\.+\\s*'+SAN).test(rest);};
 const num=(s)=>{if(!s)return null;const m=String(s).match(/^([+-]?\d+\.\d)/);return m?parseFloat(m[1]):null;};
-const fwd=async(b,n)=>{for(let i=0;i<n;i++){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});await b.page.waitForTimeout(110);}};
-const back=async(b,n)=>{for(let i=0;i<n;i++){await b.page.locator('[aria-label="Previous move"], [title="Previous move"]').first().click({timeout:5000});await b.page.waitForTimeout(110);}};
+const b2rect=(bb,sel)=>bb.rect(sel);
+const fwd=async(b,n,w)=>{for(let i=0;i<n;i++){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});await b.page.waitForTimeout(w||110);}};
+const back=async(b,n,w)=>{for(let i=0;i<n;i++){await b.page.locator('[aria-label="Previous move"], [title="Previous move"]').first().click({timeout:5000});await b.page.waitForTimeout(w||110);}};
 L.run(async()=>{
   const b=await L.launch({geo:'kunal730',name:'engline-recovery',store:{ct_pool:'3'}});await b.open();
   await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
@@ -193,8 +194,119 @@ L.run(async()=>{
     L.say(n!==null,'ply '+target+': the revisited engine line still leads with a readable number',again);
     L.say(n!==null&&n>=1.0,'ply '+target+': that number is POSITIVE and over a pawn - White is winning both of these positions, and a trapped search used to leave a negative here',{engline:n,wasOnBrokenBuild:(target===19?-2.8:-5.0)});
   }
+  await b.close();
+
+  /* ──────────────────────────────────────────────────────────────────────────────────────────────────────
+     BLOCK R (#511). THE OTHER CALLER. Added for
+     jobs/two-analysis-queries-on-one-worker-abort-each-other-and-the-loser-is-cached-as-an-answer-2026-10-09.
+
+     EVERYTHING ABOVE ASKS WHETHER THE *ENGLINE* CALLER SURVIVES A FAILED QUERY. Nothing asked the same
+     question of the OTHER caller on the same worker, and that is where the defect still was. sacRun (#365,
+     the "If they take it, ..." clause on a Brilliant or Great move) stored its result guarded only by the
+     GAME key:
+
+         if(sacRef.current.key===w.key)sacRef.current.byPly[w.ai]={capSan,replySan,verdict,...}
+
+     The analysis worker serves ONE query through a single callback slot and BOTH entry points open by
+     aborting the incumbent (#356). sfEval1 resolves an OBJECT with bestmove:null on an abort - NOT the
+     `null` the engline path checks for - so an aborted search was stored as `{replySan:'',verdict:''}`, and
+     the effect returns early on any existing byPly[ai], so that ply was NEVER re-queried. The clause that
+     says WHY the sacrifice works was gone for the rest of the review. That is CLAUDE.md's #389 - "a failed
+     query is not an answer, and caching it is how broken once becomes broken for ever" - in the caller #389
+     did not touch.
+
+     WHY THIS BLOCK LAUNCHES ITS OWN BROWSER AND DOES NOT REUSE THE ONE ABOVE. By the time the block above
+     finishes, the WASM worker in that page has trapped - the gate ALLOWS those traps by exact text and the
+     header explains why. A trapped worker answers nothing, so every query after it fails for a reason that
+     has nothing to do with this defect. Measured: driving this case in the already-walked page gives
+     if=false on BOTH bundles, which is a vacuous red that would have "passed" its control for the wrong
+     reason. A healthy worker is the precondition and it is ASSERTED below, not assumed.
+
+     THE CONTROL, AND IT CROSSES THE LINE RATHER THAN MERELY DISTURBING THE MECHANISM [#384, #416].
+     One variable - the bundle - same container, same fixture, same geometry, same click sequence:
+         main   227126b82b81   raced -> "You give up a piece. Black is clearly better."                 if=false
+                               returned again -> identical                                              if=false
+         #511   81b805f1748b   raced -> "You give up a piece. If gxh3, Rxf3 and Black keeps a clear
+                                         edge. Black is clearly better."                                if=true
+                               returned again -> identical                                              if=true
+     THE FIXTURE IS KUNAL'S OWN GAME, which is the configuration the user has rather than the one the fix
+     was written for [#375/#377]: claude/agents/bench/pgn/184024052818.pgn, 19...Bxh3!! at ply 38, the
+     brilliancy he found by hand and the one #420 shipped a guard for.
+
+     AND NOTE WHAT THE FIRST FIX ALONE DID NOT DO, recorded because it is the part that would otherwise be
+     rediscovered: dropping the poisoned entry is NECESSARY AND NOT SUFFICIENT. Measured on a bundle carrying
+     only that change, this block read if=false at every arm, because each revisit re-queried and the two
+     callers collided again. Nothing recovers while they keep racing, so the shipped fix also makes sacRun
+     YIELD to a busy worker instead of aborting it. Two changes, one defect; a gate that only covered the
+     cache would have gone green on a bundle a player still sees the bug on.                              */
+  {
+    const fs=require('fs');
+    const KPGN=fs.readFileSync(__dirname+'/../../claude/agents/bench/pgn/184024052818.pgn','utf8');
+    const T=38;                       // 19...Bxh3!! Brilliant - THE RACE TARGET
+    const D=74;                       // 37...Rf7 ! Great     - THE DENOMINATOR, a DIFFERENT ply (see below)
+    const AWAY=600;                   // sacRun's timer is 450ms and its sfEval1 runs 700ms, so 600 is in flight
+    const IF=(x)=>!!x&&/\bIf\s+\S+,\s+\S+/.test(x);
+    const why=(bb)=>bb.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
+    const r=await L.launch({geo:'kunal730',name:'engline-sacrun-race',store:{ct_pool:'3'}});await r.open();
+    await r.tile('Review');await r.page.locator('textarea').first().fill(KPGN);await r.tapText(/^⚡ Analyze Game$/,{wait:300});
+    await r.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await r.settle(600);
+    await r.tapText(/^Start review/,{wait:900});
+
+    /* THE DENOMINATOR IS TAKEN AT A DIFFERENT PLY, AND THAT IS THE WHOLE DESIGN OF THIS BLOCK.
+       The first version of it settled on ply 38 with the engine off, read the clause, and then raced ply 38 -
+       and it went GREEN ON MAIN at 28/0, certifying the defect absent. The reason is this project's own trap
+       in a new costume: sacRef.byPly is keyed BY PLY and the entry never expires, so SETTLING ON PLY 38 TO
+       PROVE THE CLAUSE EXISTS CACHES A GOOD ANSWER FOR PLY 38, and the race that follows never issues a
+       query at all because the effect returns early on any existing entry. The check and the thing being
+       checked were the same object [CLAUDE.md records this nine times; this is the denominator wearing it].
+       MEASURED: standalone, main reads if=false at both arms; inside the gate with a ply-38 denominator in
+       front of it, main reads if=true at both arms. Same bundle, same container, opposite verdicts.
+       So the denominator is taken at ply 74 (37...Rf7, Great), which is the OTHER ply in this game whose
+       sentence carries the clause - measured, by walking all 85 plies and reading each: only 38 and 74 of the
+       six Brilliant/Great plies produce one. It proves the fixture, the selector and the wording are right
+       while leaving ply 38's entry cold.
+       WALKING THROUGH PLY 38 ON THE WAY DOES NOT WARM IT: the effect arms a 450ms timer and the cleanup
+       clears it on the next ply change, and the steps here are 80ms apart. */
+    await fwd(r,D,80);await r.settle(7000);
+    const atD=await plyTxt(r);
+    L.say(!!atD&&atD.indexOf(D+'/85')>=0,'R0 reached ply '+D+' of Kunal’s own game (state-reached, not assumed)',atD);
+    const denom=await why(r);
+    L.say(IF(denom),'R1 DENOMINATOR, AT A DIFFERENT PLY SO IT CANNOT WARM THE ONE UNDER TEST: with no second caller on the worker the refutation clause IS on screen, so this fixture can satisfy R4 and a red there is about the race',denom);
+
+    // Walk BACK to the ply before the target, still engine-off, so the worker is untouched.
+    await back(r,D-(T-1),80);await r.settle(4000);
+    const atPrev=await plyTxt(r);
+    L.say(!!atPrev&&atPrev.indexOf((T-1)+'/85')>=0,'R2 walked back to ply '+(T-1)+' with the engine still off',atPrev);
+    L.say(r.errs.length===0,'R2b PRECONDITION: the engine-off walk trapped NOTHING, so the worker is HEALTHY before the race - a trapped worker answers nothing and would redden this block on every bundle for the wrong reason',r.errs.slice(0,3));
+
+    // Switch the engine line on and let ITS query for THIS ply settle cleanly, so the only contention below
+    // is the one this block is about.
+    await r.tapText(/^⋯$/,{wait:500}).catch(()=>{});
+    await r.tapText(/Analyze with the engine/,{wait:900}).catch(()=>{});
+    await r.settle(6000);
+    const eng=await r.rect('[data-ct="rev-engline"]');
+    L.say(!!eng,'R3 COMPANION: the engine line row is actually on screen, so there really are two analysis callers from here on',eng&&eng.text);
+
+    // ONE step onto the Brilliant ply - a fresh landing, engine on, healthy worker, COLD cache entry - then
+    // step away INSIDE sacRun's flight so the next ply's engline query aborts it, and come back.
+    await fwd(r,1,120);
+    await r.page.waitForTimeout(AWAY);
+    await fwd(r,1,120);await r.settle(4000);
+    await back(r,1,120);await r.settle(12000);
+    const atT=await plyTxt(r);
+    L.say(!!atT&&atT.indexOf(T+'/85')>=0&&/Brilliant/.test(atT),'R4a back on ply '+T+' AND it really is the Brilliant - sacRun only fires on Brilliant or Great, so this names the state R4 reads',atT);
+    const raced=await why(r);
+    L.say(IF(raced),'R4 THE DEFECT: stepping off the Brilliant ply while sacRun’s query is in the air used to cache the ABORTED search as the answer, so the "If they take it" clause never came back. It must be here on return.',raced);
+
+    // A SECOND return separates "slow" from "poisoned for ever" - the distinction #389 exists for.
+    await fwd(r,1,120);await r.settle(2000);await back(r,1,120);await r.settle(12000);
+    const raced2=await why(r);
+    L.say(IF(raced2),'R5 and it is STILL here on a second return, so the entry is a real answer and not a one-off recovery',raced2);
+    L.note('BLOCK R page errors (traps here are allowed by the same exact text as above): '+JSON.stringify(r.errs.slice(0,4)));
+    await r.close();
+  }
+
   L.note('page errors seen (the WASM trap is EXPECTED and allowed by exact text): '+JSON.stringify(b.errs.slice(0,6)));
   const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
   L.say(bad.length===0,'no app error beyond the allowed engine trap',{allowed:b.errs.length-bad.length,other:bad.slice(0,2)});
-  await b.close();
 },'ENGLINE-RECOVERY');

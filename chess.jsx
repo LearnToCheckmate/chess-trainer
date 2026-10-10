@@ -2661,6 +2661,7 @@ export default function App(){
   const sfAnaAbortRef=useRef(null);                 // #356 cancels whatever query currently owns the analysis worker
   const sfSyncRef=useRef(null);                     // #356 same idle hook for the play / eval-bar worker
   const sfAnaCbRef=useRef(null);                    // {score,best} handlers for the in-flight analysis eval
+  const sfAnaBusyRef=useRef(false);                 // #511: true while a query owns the analysis worker, so a low-priority caller can YIELD instead of aborting it
   const sfPoolRef=useRef([]);                       // #343: extra review workers. A review is N independent evals, so it parallelises cleanly.
   const [poolN,setPoolN]=useState(0);               // how many review workers actually came up (shown on the progress line)
   const sfEvalingRef=useRef(false);                 // a full-strength eval search is running (vs a move search)
@@ -4090,11 +4091,22 @@ export default function App(){
     try{const _p=sfAnaAbortRef.current;if(_p)_p();}catch(e){}
     const stm=(fen.split(' ')[1]||'w'),sign=stm==='w'?1:-1;
     let cp=null,mate=null,cp2=null,mate2=null,alt=null,done=false;
-    const finish=(bm)=>{if(done)return;done=true;sfAnaCbRef.current=null;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null});};
-    const _abort=()=>finish(null); sfAnaAbortRef.current=_abort;
-    const to=setTimeout(()=>finish(null),depth?Math.max(20000,movetime*8):Math.max(4000,movetime*8));
-    sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=mateW(s.mate,sign);cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=mateW(s.mate,sign);cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm)};
-    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null);return;}try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));}catch(e){finish(null);}});
+    /* #511: `ok` SAYS WHETHER THE ENGINE ACTUALLY ANSWERED, because `bestmove:null` cannot.
+       Five paths resolve this promise with no move - abort (a new caller killed this search, #356),
+       the stuck-worker timeout, the idle check failing, postMessage throwing, and the engine legitimately
+       replying 'bestmove (none)' on a terminal position - and they resolved an INDISTINGUISHABLE object.
+       Only the last is an answer. A caller that caches on `bestmove` alone therefore remembers an
+       aborted search for ever, which is CLAUDE.md's #389 defect by the abort route rather than the
+       dead-search route; sacRun was doing exactly that. `ok` is true only when the `best` callback
+       delivered the result, so an aborted search's PARTIAL cp/mate can never be mistaken for a verdict
+       either (#392: a dead search's score is as untrustworthy as its missing line). Purely additive -
+       no caller before this one reads it, and the review pass at sfEvalOn's fallback is untouched. */
+    sfAnaBusyRef.current=true;
+    const finish=(bm,ok)=>{if(done)return;done=true;sfAnaCbRef.current=null;sfAnaBusyRef.current=false;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null,ok:!!ok});};
+    const _abort=()=>finish(null,false); sfAnaAbortRef.current=_abort;
+    const to=setTimeout(()=>finish(null,false),depth?Math.max(20000,movetime*8):Math.max(4000,movetime*8));
+    sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=mateW(s.mate,sign);cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=mateW(s.mate,sign);cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm,true)};
+    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));}catch(e){finish(null,false);}});
   });
   // Engine's best line (principal variation) from a position; resolves an array of UCI moves or null. Lets Review play the better line out at full engine strength.
   const sfBestLine=(fen,movetime,onScore)=>new Promise(resolve=>{
@@ -4102,7 +4114,8 @@ export default function App(){
     if(!w||!sfAnaReadyRef.current){resolve(null);return;}
     try{const _p=sfAnaAbortRef.current;if(_p)_p();}catch(e){}
     let line=null,done=false;
-    const finish=(r)=>{if(done)return;done=true;sfAnaCbRef.current=null;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearTimeout(to);resolve(r);};
+    sfAnaBusyRef.current=true;
+    const finish=(r)=>{if(done)return;done=true;sfAnaCbRef.current=null;sfAnaBusyRef.current=false;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearTimeout(to);resolve(r);};
     const _abort=()=>finish(null); sfAnaAbortRef.current=_abort;
     const to=setTimeout(()=>finish(line),Math.max(4000,movetime*8));
     sfAnaCbRef.current={score:(sc)=>{if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(arr&&arr.length)line=arr;},best:(bm)=>finish(line||(bm&&bm!=='(none)'?[bm]:null))};
@@ -5672,6 +5685,8 @@ export default function App(){
   const sacRef=useRef({key:null,byPly:{}});
   const [sacTick,setSacTick]=useState(0);
   const sacWantRef=useRef(null), sacBusyRef=useRef(false);
+  const sacTokRef=useRef(0);                        // #511: identifies one sacRun attempt, so a late failure cannot clear a newer attempt's marker
+  const sacYieldRef=useRef(null);                   // #511: the pending re-try timer while sacRun waits for the analysis worker
   /* #365 SINGLE FLIGHT, DEBOUNCED. The first version fired one engine query per ply as the user (or the
      harness) stepped, each aborting the last, and Stockfish hit RuntimeError: unreachable within
      twelve plies - the #356 trap again: "stop" is asynchronous and a new "position" before readyok
@@ -5679,7 +5694,39 @@ export default function App(){
      has rested 450ms, and a step that arrives mid-query is answered when that query finishes. */
   const sacRun=useCallback(async()=>{
     if(sacBusyRef.current)return;
-    const w=sacWantRef.current; if(!w)return; sacWantRef.current=null;
+    const w=sacWantRef.current; if(!w)return;
+    /* #511: YIELD TO THE WORKER, DO NOT KILL WHAT IS ON IT. THIS IS THE HALF THAT THE USER SEES.
+       The analysis worker serves ONE query through a single callback slot, and BOTH entry points open by
+       aborting the incumbent (#356, so a query the user has stepped away from can be cancelled). sacRun and
+       the engine line therefore fought over every Brilliant and Great ply: engLine fires on landing with a
+       900ms sfBestLine, sacRun fires 450ms later with a 700ms sfEval1, and whichever starts second killed the
+       other. MEASURED on main's own bundle, Kunal's own game (claude/agents/bench/pgn/184024052818.pgn,
+       19...Bxh3!! at ply 38), three visits each at 375x730:
+         engine line OFF -> "You give up a piece. If gxh3, Rxf3 and Black keeps a clear edge." + 0 page errors
+         engine line ON  -> "You give up a piece."                                            + WASM traps
+       So turning the engine line on DELETED the one clause that says why the sacrifice works, on every visit,
+       and the collision also trapped the worker ("RuntimeError: unreachable" - #356's own note that a new
+       `position` before `readyok` kills it). Dropping the poisoned cache entry (below) was necessary and NOT
+       sufficient: I measured that fix alone and the clause stayed absent at all three visits, because each
+       revisit re-queried and collided again. Nothing recovers while the two keep racing.
+       SACRUN IS THE ONE THAT MUST YIELD. The engine line is what the user explicitly switched on; this
+       sentence is a best-effort embellishment that is allowed to arrive late. So it waits for the worker to
+       go free rather than taking it, and the abort path is left exactly as #356 built it for everyone else.
+       BOUNDED, so a permanently busy worker cannot spin: 20 yields at 300ms is 6 seconds, after which the
+       attempt is abandoned and its marker dropped so a later visit tries again. */
+    if(sfAnaBusyRef.current){
+      w.yields=(w.yields||0)+1;
+      if(w.yields>20){
+        sacWantRef.current=null;
+        const _y=sacRef.current.byPly[w.ai];
+        if(sacRef.current.key===w.key&&_y&&_y.pending&&_y.tok===w.tok)delete sacRef.current.byPly[w.ai];
+        return;
+      }
+      if(sacYieldRef.current)clearTimeout(sacYieldRef.current);
+      sacYieldRef.current=setTimeout(()=>{sacYieldRef.current=null;sacRun();},300);
+      return;
+    }
+    sacWantRef.current=null;
     sacBusyRef.current=true;
     try{
       let r=null; try{ if(sfReadyRef.current&&await ensureAna()) r=await sfEval1(toFEN(w.t.after),700); }catch(e){}
@@ -5690,7 +5737,28 @@ export default function App(){
         if(r.mate!=null){ const forMover=(r.mate>0)===(mover==='w'); verdict=forMover?(Math.abs(r.mate)<1?'and it is mate':('and it is mate in '+Math.abs(r.mate))):''; }
         else if(r.cp!=null){ const c=mover==='w'?r.cp:-r.cp; verdict=c>=300?('and '+moverName+' is winning'):c>=100?('and '+moverName+' keeps a clear edge'):c>=-30?('and '+moverName+' holds'):''; }
       }
-      if(sacRef.current.key===w.key)sacRef.current.byPly[w.ai]={capSan:w.t.san,replySan,verdict,cpW:r?r.cp:null,mateW:r?r.mate:null};
+      /* #511: CACHE ONLY A REAL ANSWER, AND ONLY FOR THIS ATTEMPT. Two faults in one line, both the
+         shape CLAUDE.md records at #389: "a failed query is not an answer, and caching it is how
+         broken once becomes broken for ever."
+         (1) The write was guarded only by the GAME key, so a search that resolved with no move -
+         overwhelmingly because a NEW analysis query ABORTED it, since sfEval1 and sfBestLine each open
+         by killing the incumbent and share one callback slot - was stored as `{replySan:'',verdict:''}`.
+         The effect below returns early on any existing byPly[ai], so that ply was NEVER re-queried and
+         the Brilliant sentence lost its "If <capture>, <reply> ..." clause for the rest of the review.
+         Reachable on main with no new feature: the engine line's own sfBestLine is the second query.
+         (2) The effect's cleanup already discards an abandoned `pending` marker, but this late write
+         put a fresh entry BACK for a ply the user had left, so the cleanup could not actually clean up.
+         The token pins the write to the attempt that started it, so a newer attempt's marker is never
+         deleted by an older attempt's failure and a good answer is never dropped.
+         DROPPING the entry rather than retrying in place is deliberate and is #389's own remedy: the
+         effect's deps do not include sacTick, so nothing re-fires while the user stands still, and the
+         ply is re-queried when they come back. It turns "never" into "tries again when you return". */
+      const _cur=sacRef.current.byPly[w.ai];
+      const _mine=sacRef.current.key===w.key&&_cur&&_cur.pending&&_cur.tok===w.tok;
+      if(_mine){
+        if(r&&r.ok)sacRef.current.byPly[w.ai]={capSan:w.t.san,replySan,verdict,cpW:r.cp,mateW:r.mate};
+        else delete sacRef.current.byPly[w.ai];
+      }
       setSacTick(x=>x+1);
     }finally{
       sacBusyRef.current=false;
@@ -5707,9 +5775,14 @@ export default function App(){
     if(!pos||!pl||!pl.move){sacRef.current.byPly[ai]={none:true};return;}
     const t=sacTaker(pos,pl.move);
     if(!t){sacRef.current.byPly[ai]={none:true};return;}
-    sacRef.current.byPly[ai]={pending:true,capSan:t.san};
-    const timer=setTimeout(()=>{sacWantRef.current={key,ai,t,pos};sacRun();},450);
-    return()=>{clearTimeout(timer);if(sacRef.current.byPly[ai]&&sacRef.current.byPly[ai].pending)delete sacRef.current.byPly[ai];};
+    /* #511: one token per attempt, carried on the marker AND on the request, so sacRun can tell its own
+       attempt from a later one. Without it both the cleanup here and the store there operate on "whatever
+       pending marker happens to be present", which is two different attempts whenever `review` or
+       `curAnno` changes identity while a query is in flight. */
+    const tok=++sacTokRef.current;
+    sacRef.current.byPly[ai]={pending:true,capSan:t.san,tok};
+    const timer=setTimeout(()=>{sacWantRef.current={key,ai,t,pos,tok};sacRun();},450);
+    return()=>{clearTimeout(timer);const _c=sacRef.current.byPly[ai];if(_c&&_c.pending&&_c.tok===tok)delete sacRef.current.byPly[ai];};
   },[inReview,review,ply,curAnno,sacRun]);
   const _annoWhy=useMemo(()=>{
     if(!curAnno||!inReview||!review)return null;
