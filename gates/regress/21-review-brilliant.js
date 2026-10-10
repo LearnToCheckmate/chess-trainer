@@ -94,84 +94,136 @@ const SAC_SRC=(()=>{
    [#504 antagonist A, upheld]. A loop over a literal range cannot stay in step with a hand-written
    list of ids; one list that both branches read can. */
 /* ── NEGATIVE CONTROLS, RECORDED HERE BESIDE THE ASSERTIONS THEY PROVE, PER #401's RULE ───────────────
-   *** #512 WITHDRAWS THIS PARAGRAPH'S OWN HEADLINE FIGURES BEFORE RESTATING THEM [R18]. *** It used to
-   open "the gate reads 81 pass / 0 fail on the shipping bundle 1d434d3a871d over source 9728a5fbdebf",
-   with a two-run-plus-suite determinism claim attached. All of it was #504's and all of it is a fact about
-   a file and a bundle that no longer exist: this gate is 76 assertions, the shipping bundle is
-   f6770938d081 over source b1eddfc83e32, and R36 determinism is re-derived by #512 against the file AS IT
-   SHIPS rather than inherited. Leaving the old figure here and the correction forty lines below would be
-   #508's own V1/V2 defect - a file describing its previous version, seven lines from the paragraph that
-   withdraws it.
+   *** THIS REGISTER DESCRIBED THE PRE-VETO FILE AND IS REWRITTEN HERE. SELF-CAUGHT, AFTER COMMIT. ***
+   The version committed at 8704fa2 opened "this gate is 76 assertions, the shipping bundle is
+   f6770938d081 over source b1eddfc83e32" and published THREE control rows summing to 76. Every one of
+   those figures was true of the file the two antagonists read and NONE of them is true of the file that
+   ships: the veto fixes took the gate to 88 assertions over 30 S-ids and added three more controls. Worse,
+   its closing paragraph described the store condition as `r.ok -> sanLine.length`, which is EXACTLY the
+   change both antagonists vetoed - so the register documented the vetoed design as shipped, in a file
+   whose own text warns against "#508's V1/V2 defect, a file describing its previous version". I found it
+   by reading the file to re-derive figures for the close-out, after the commit and after the suite had
+   launched. It was never going to be caught by a count: it is a COMMENT, so no assertion reads it, the
+   totals it misstates are its own, and `verify-log.sh` has no view of it.
+   WHY IT WAS NOT FIXED THE MOMENT IT WAS FOUND, which matters more than the error: the full suite was
+   mid-run and this is a suite-read file. Editing it would have made the gated log describe a file that no
+   longer existed [#461, where two mid-run edits cost a complete 48-section green its footer]. So it was
+   held until the suite finished and applied as a COMMENT-ONLY change, proved comment-only mechanically
+   rather than asserted - see the close-out record for the stripped-source hash on both sides.
 
-   *** #512: EVERY FIGURE IN #504's CONTROL REGISTER IS WITHDRAWN AND RE-DERIVED BELOW [R18]. ***
-   Not because any of it was wrong when written - it was measured and it was honest - but because every one
-   of those five rows is a fact about a bundle built on a sacRun THAT NO LONGER EXISTS. #511 rewrote that
-   function (the yield to the analysis worker, the per-attempt token, the ownership re-validation), and #512
-   grafted part (b) onto #511's version rather than replaying #504's, so the file under test, the bundle, the
-   total and the id list have all moved. Carrying the old numbers would be #504's own "a fact about a file
-   that no longer exists" committed by the run that quotes the warning. The old rows named a 66- and then
-   81-assertion gate against a 26-id SAC_S_IDS; this gate is 76 assertions over 21 S-ids.
+   *** EVERY FIGURE #504 PUBLISHED HERE IS WITHDRAWN AND RE-DERIVED [R18]. *** Not because any of it was
+   wrong when written - it was measured and honest - but because all of it is a fact about a bundle built on
+   a sacRun THAT NO LONGER EXISTS. #511 rewrote that function (the yield to the analysis worker, the
+   per-attempt token, the ownership re-validation) and #512 grafted part (b) onto #511's version rather than
+   replaying #504's, so the file under test, the bundle, the total and the id list have all moved.
 
-   THE TOTAL IS 76 AND IT FELL FROM #504's 81 ON PURPOSE. S17 to S21 are gone - see the block comment at
-   SAC_S_IDS for the reason - so a reader comparing totals across the two trees sees -5 and is owed an
-   explanation rather than left to assume an assertion was quietly dropped [#510's pointer 1].
+   THE TOTAL IS 88 AND ITS WHOLE HISTORY IS DECLARED, because #510 measured that a deleted assertion inside
+   a gate is invisible in a green run and that the ONLY tell is the total. 42 on main -> 81 at #504 -> 76
+   here when S17 to S21 went (they unit-tested sacStore, which this build deliberately does not ship; the
+   reason is at SAC_S_IDS) -> 88 after the veto fixes added S25 to S33, N3b, N3c and N3d. A reader comparing
+   trees therefore sees -5 and then +12, and is owed both explanations rather than left to assume.
 
-   THREE CONTROLS, RE-RUN FROM SCRATCH AGAINST THIS TREE, AND EVERY ROW'S pass+fail SUMS TO 76:
+   FOUR GENERATIONS OF THIS FILE EXIST AND EVERY ROW BELOW NAMES THE ONE IT WAS MEASURED ON [#510: a figure
+   taken on a different file is not a figure for this one]. `c` = 85 assertions, the graft's first full gate.
+   `f` = 86, S32's input rebuilt. `g` = 88, N3c and N3d added. `h` = 88, the dead third sample moved to its
+   own arm - THE FILE THAT SHIPS. Promoting an `f` figure to an `h` row would be the frozen-denominator
+   defect [#405] committed inside a register, so the generation is part of the citation.
 
-     SHIPPING  bundle f6770938d081 over source b1eddfc83e32      76 pass /  0 FAIL
-     NC1  CT_SRC + CT_APP = origin/main's OWN source and bundle
-          (b6b7fbb25df0 / f47aa0197967)                          52 pass / 24 FAIL
-          all 21 ids in SAC_S_IDS, plus S0, plus N3 and N10.
-          THE IDEAL CONTROL AND IT IS FREE [#432]: the control is not something built to fail, it is the
-          bundle a player is running right now. Both doors are driven at once here deliberately, so the
-          row measures the whole feature rather than one of its halves. N2 still PASSES there, so N3's red
-          is about the LENGTH of the line and not the absence of the clause, which is the discrimination
-          those two assertions exist to make.
-     NC2  CT_SRC = this tree with the PARITY TERM alone removed,
-          source md5 2027fb7a8b98                             72 pass /  4 FAIL   S6, S23, S23b, S24
-          THE SOURCE MD5 IS PUBLISHED BECAUSE A COUNT WITHOUT ITS INPUT CANNOT BE RE-DERIVED [#411/#412,
-          and #512 antagonist A's F4]: the first version of this row gave the ids and the counts and no
-          hash, so the one control proving the parity claim was not citable. A re-derived it independently
-          and got the same hash and the same four ids, which is the only reason it survived unchallenged.
-          The designed control for #504 antagonist B's upheld veto, re-cut against THIS source. Its S23b
-          payload prints the defect verbatim - "If Qxf7+, Kxf7 Rf1+ and Black is winning." - which is WHITE
-          checking Kunal's own king on his own game, the exact inverse of the report this build answers.
-     NC3  CT_APP = a bundle with sfEval1 RESTORED in sacRun,
-          everything else identical (c5c6633f55f5)               74 pass /  2 FAIL   N3, N10
+     SHIPPING  gen h, bundle a33b9f8c6931 over source 98e60c9b98ca     88 pass /  0 FAIL
+          R36: THREE runs, 88/0 each, IDENTICAL VERDICT on all 88 assertions. The logs are NOT
+          byte-identical and the narrow claim is the true one: det1 and det3 hash ccb10c436f2abd9ffdff6703
+          9a690d16, det2 differs in FIVE payloads (N2, N3, N3b, N4, N5) with `samples` [1,3,3] against
+          [3,3,3] twice, because that run's ply-25 sample came back one ply. The known ply-25 variance fired
+          INSIDE the determinism set and every verdict held over it, which is what N3c exists to do.
+     NC1  gen g. CT_SRC + CT_APP = origin/main's OWN source and bundle
+          (b6b7fbb25df0 / f47aa0197967)                                55 pass / 33 FAIL
+          THE IDEAL CONTROL AND IT IS FREE [#432]: not something built to fail, but the bundle a player is
+          running right now. Both doors driven at once deliberately, so the row measures the whole feature.
+          The 33 reds are the S-series reporting `NOT RUN: chess.jsx declares no refutation-line machinery`,
+          plus S0, N3 and N10. N2 still PASSES there, so N3's red is about the LENGTH of the line and not
+          the absence of the clause - the discrimination those two assertions exist to make.
+          AND ITS FIRST RUN WAS AN INSTRUMENT FAILURE THAT READ LIKE A CATASTROPHIC BUNDLE: 0 pass / 32 FAIL
+          with a `harness threw`, because CT_APP was given as `<(git show origin/main:app.js)` and the
+          process substitution's /dev/fd path is gone before the browser opens. Re-run from real files on
+          disk. Published because 0/32 and 55/33 are the same control and only one of them is a measurement.
+     NC2  gen f. CT_SRC = this tree with the PARITY TERM alone removed,
+          source md5 0a1ff8f02a4a                                      82 pass /  4 FAIL   S6, S23, S23b, S24
+          THE SOURCE MD5 IS PUBLISHED BECAUSE A COUNT WITHOUT ITS INPUT CANNOT BE RE-DERIVED [#411/#412, and
+          antagonist A's F4]. NOTE THE HASH CHANGED WITH THE GENERATION: the pre-veto NC2 cut was
+          2027fb7a8b98 and A re-derived that one independently; 0a1ff8f02a4a is the same control re-cut
+          against the post-veto tree, and quoting the old hash beside a new count would make the row
+          uncheckable. Its S23b payload prints the defect verbatim - "If Qxf7+, Kxf7 Rf1+ and Black is
+          winning." - which is WHITE checking Kunal's own king in his own game, the exact inverse of the
+          report this build answers.
+     NC3  gen h. CT_APP = a bundle with sfEval1 RESTORED in sacRun,
+          everything else identical                                    87 pass /  1 FAIL   N3c
           THE ONE-VARIABLE CONTROL FOR THE MECHANISM, and the sharpest row here. sacLine, refuteTxt and the
           explainAnno wiring are all PRESENT and correct in that bundle's source, so the whole S block stays
           GREEN - and the screen still shows the one-ply line, because sfEval1 keeps only a bestmove. It
-          isolates the claim that the SWAP, not the new module functions, is what puts the recovery on
-          screen. Without this row NC1 could not tell the two apart.
+          isolates the claim that the SWAP, not the new module functions, puts the recovery on screen.
+          Without this row NC1 could not tell the two apart.
+          AND THIS ROW WAS DESTROYED ONCE AND RESTORED, WHICH IS THE REASON N3c IS A MAXIMUM AND NOT A PIN:
+          ply 25's pv is not stable (measured 6 of 8 runs three-ply, 2 of 8 one-ply), and the obvious repair
+          - widen N3 and N10 to admit either shape - made this row score 86 / 0. An assertion loose enough
+          to pass whatever the engine returns is loose enough to pass with the feature removed, which is
+          antagonist A's #511 veto ground re-created by my own fix one build later.
+     NC4  gen f. CT_SRC = the explainAnno BRILLIANT branch reverted,
+          source md5 101d571ad636                                      85 pass /  1 FAIL   S26
+          Closes antagonist A's F2: that branch had NO control anywhere, and A measured 76 pass / 0 fail
+          with the hunk reverted, because the Opera fixture's only Brilliant clause is ONE ply and the two
+          sentence templates are byte-identical at length 1.
+     NC5  gen f. CT_SRC = sacKeep ignoring its `ok` argument,
+          source md5 c203a23d5be7                                      85 pass /  1 FAIL   S30
+          THE VETO CASE FOR THE ONE FINDING BOTH DOORS REACHED INDEPENDENTLY. sfBestLine's stuck-worker path
+          resolves whatever partial pv has arrived, so a NON-EMPTY line can come out of a search that never
+          answered; keying the store on the line being non-empty would cache it for the session. Strictly
+          worse than the defect #511 cured, because gate 22 can see a poisoned EMPTY record and cannot see a
+          plausible partial one.
+     NC6  gen f. CT_SRC = the PER-PLY forcing rule reverted,
+          source md5 988f1c7bdba1                                      85 pass /  1 FAIL   S32
+          Closes antagonist B's F2. AND ITS FIRST VERSION SCORED 85 / 0 - a control that proved nothing,
+          because the pv handed to S32 had an ILLEGAL third ply, so both bundles truncated it for an
+          unrelated reason and the thing under test was never reached. S32's input was rebuilt by
+          ENUMERATING 49 legal triples from the real position. A control over a vacuous input is a green you
+          cannot spend.
 
-   WHAT THE THREE ROWS PROVE BETWEEN THEM, said once so the set is not read as repetition: NC1 that the
+   WHAT THE SIX ROWS PROVE BETWEEN THEM, said once so the set is not read as repetition: NC1 that the
    feature is absent on main; NC2 that the parity term is load-bearing rather than decorative; NC3 that the
-   engine-call swap is the mechanism and the module functions alone are not sufficient. The sentence each
-   one prints at Opera ply 25 is the whole story:
-        main / NC1   "The only move that keeps it. If Nxd7, Bxe7 and White is winning. ..."
+   engine-call swap is the mechanism and the module functions alone are not sufficient; NC4 that the
+   rendering branch is reached; NC5 that the store refuses a dead search's partial line; NC6 that no quiet
+   ply can sit inside the line. The sentence each one prints at Opera ply 25 is the whole story:
+        main / NC1   "The only move that keeps it. If Nxd7, Bxe7 and White is winning. Chases the queen off
+                      e7 and takes the open d file. It forks two pieces at once."
         NC3          "The only move that keeps it. If Nxd7, Bxe7 and White is winning. ..."
-        SHIPPING     "The only move that keeps it. If Nxd7, Bxe7 Bxe7 Bxd7+ and White is winning. ..."
+        SHIPPING     "The only move that keeps it. If Nxd7, Bxe7 Bxe7 Bxd7+ and White is winning. Chases the
+                      queen off e7 and takes the open d file."
+   READ THE THIRD CLAUSE OF THE FIRST ROW AND THE ABSENCE OF IT IN THE THIRD: pack() is a greedy 150-char
+   budget in portrait, so the longer line pushes "It forks two pieces at once." OUT - 126 characters against
+   main's 144. That is a real trade, it is Kunal's to reverse in one word, and N10 pins the whole string so
+   it can never move silently again.
 
    WHAT IS NOT CONTROLLED HERE, AND IT IS NOT A HOLE THIS RUN LEFT: the poisoned-cache / token half of
    sacRun is #511's and is controlled by gates/regress/22-engline-recovery.js block R over FOUR bundles each
-   one hunk-group from the next. This gate does not duplicate it, and #512 changed the store CONDITION
-   (`r.ok` -> `sanLine.length`) because the return type changed from an object to an array-or-null - so that
-   assertion lives where its control already is, and gate 22 is run beside this one rather than restated.
+   one hunk-group from the next. This gate does not duplicate it. **WHAT #512 CHANGED IS THE STORE
+   CONDITION, AND THE PRE-VETO TEXT HERE NAMED THE VETOED VERSION:** it is `sacKeep(ok,line)`, NOT
+   `sanLine.length`, and NOT #511's bare `r.ok` - the return type changed from an object to an
+   array-or-null, so the success signal had to become explicit (an additive fourth parameter `onDone(ok)` on
+   sfBestLine, whose resolved value is unchanged for its two other callers) rather than inferred from the
+   line's length. S28 to S31 assert sacKeep directly and NC5 is its control, so that claim is measured HERE
+   while the cache/token machinery stays measured where its own control already is, and gate 22 is run
+   beside this one rather than restated.
 
    CT_SRC AND CT_APP CONTROLS ARE NOT INTERCHANGEABLE, and that is a property of the gate rather than an
    omission: block S reads chess.jsx and block N reads the MINIFIED bundle, so CT_APP cannot redden S and
    CT_SRC cannot redden N. Gate 68 states the same caveat about itself and for the same reason.
-   WHICH ROW IS WHICH, RE-STATED FOR THIS TREE'S ACTUAL CONTROL SET [#512 antagonist A's F4, upheld]: the
-   sentence here used to read "NC1 and NC5 are the bundle-level half; NC2 to NC4 the source half", which is
-   #504's mapping and is WRONG about this gate twice over - there is no NC4 or NC5 in this tree, and #512's
-   NC3 is a CT_APP control, so the old sentence mis-filed the one row that carries the engine-call claim. It
-   sat twenty lines below a paragraph announcing that every figure in #504's register was withdrawn, which
-   is #508's V1/V2 defect inside the paragraph that cites it. THE TRUE MAPPING: NC1 drives BOTH doors at
-   once (CT_SRC and CT_APP together, main's own source and bundle); NC2 is CT_SRC only; NC3 is CT_APP only.
-   WHY THREE AND NOT ONE: a single control cannot separate the three claims this gate makes - that the
-   feature is absent on main, that the parity term is load-bearing, and that the engine-call swap rather
-   than the new module functions is what puts the recovery on screen. NC3 exists precisely because NC1
-   cannot tell the second from the third. */
+   WHICH ROW IS WHICH [antagonist A's F4, upheld, and RE-STATED AGAIN because A's correction was itself
+   written against a three-row tree]: NC1 drives BOTH doors at once (CT_SRC and CT_APP together, main's own
+   source and bundle); NC3 is CT_APP only; NC2, NC4, NC5 and NC6 are CT_SRC only. A's veto was that the
+   sentence here read "NC1 and NC5 are the bundle-level half; NC2 to NC4 the source half" - #504's mapping,
+   wrong twice over about that tree. The fix it received named three rows, and there are now six, which is
+   why this sentence is written as a rule about each row rather than as a range.
+   WHY SIX AND NOT ONE: no single control can separate the six claims above, and NC3 exists precisely
+   because NC1 cannot tell the second from the third. */
 /* #512 S17 TO S21 ARE REMOVED, AND THIS IS THE ONE PLACE A READER WILL LOOK TO ASK WHY A PUBLISHED
    ASSERTION SET SHRANK. They unit-tested #504's sacStore() - a pure module-level store decision with a
    `mark` identity and a SAC_DEAD_TRIES bound - and #512 DELIBERATELY DOES NOT SHIP sacStore. #511 landed a
