@@ -2020,3 +2020,90 @@ lane 3's artefact under R44. No push was attempted and the proxy refusal was not
 **Not checked, five things.** (1) The other five geometries: `kunal`, `390`, `430`, `short375` are still unvisited by this gate, and only the column R19 names was added - the remaining four are the rest of item 4 and are **not** claimed as done. (2) Whether the two 375-wide columns agree on any screen other than Review - measured on Review only, which is all this gate drives. (3) The full 59-section suite: this run ran gate 41 alone, so nothing here says the suite total rose by 18 rather than by 18 net of something else. (4) `gates/lib.js:24-26`'s 293 prediction at other geometries. (5) Whether any record document pins gate 41's assertion count - grepped `.tsv`, `.sh`, `.md` and `.js` and found the manifest row (no count) and three `REGRESSION-LOG.md` control rows (historical, 42 / 56 / 34 / 36), none of which is a pin a run reads.
 
 **Delivery** parked at `patches/proc-lane2-art-gates-regress-41-coach-bubble-js-2026-10-10`. NOT on main; this lane cannot push and did not try [R21].
+## process-build lane 2, runId process-build-2__1791619981075, 4:13am-4:2xam ET, 10 Oct
+
+**Item** `jobs/citations-arm-5-is-breached-on-main-so-the-push-gate-may-be-red-2026-10-10` (P1,
+priority 14, finishFirst, owningLane build) — **item (5) of lane 1's own `whatDidNot` and nothing
+else.** That item reads, verbatim: *"Arm (4)'s own finding, read off the same run, that the
+line-citation ceiling CAN BE LOWERED from 48 to 46: reported, not acted on, same artefact reason as
+(2)."* Lane 1 could not act on it because it did not hold `gates/verify-log.sh`; this run held it
+(`claims/art-gates-verify-log-sh`, claimed 08:18:26Z, expiry 10:38:26Z, free for three days, no
+takeover). Arm (5), the wrong-width rows and lane 1's parked TEST-CASES.md payload are untouched.
+
+**THE INSTRUMENT'S OWN ADVICE WAS THE DEFECT, AND FOLLOWING IT WOULD HAVE RE-CREATED A CLOSED P1.**
+Arm (4) printed, on origin/main 4c7e007: `CEILING CAN BE LOWERED: 46 of 48 in use. Commit A4CEIL=46
+in this file so it cannot rise again.` Committing 46 at 46 in use leaves **zero headroom** — which is
+the exact state `jobs/the-line-citation-ceiling-is-at-48-of-48-so-any-build-touching-claude-stories-reddens-the-push-gate-2026-10-06`
+was filed as a P1 for and **closed on 2026-10-07 by BUYING headroom** (de-pinning MENU-LANE's eight
+citations), not by committing the floor. Its own close note says the margin was then 4 and is "worth
+watching rather than celebrating"; it is now 2. So the ratchet principle and the headroom principle
+point opposite ways on one constant, and a lane that obeys the printed line has been obedient rather
+than useful. **A4CEIL IS NOT CHANGED BY THIS RUN** and no threshold moved in either direction: under
+R45 the contradiction is not resolvable by whoever finds it, and under the closed job's own words
+"raising a guard's threshold is not this lane's call". Recorded as
+`contradictions/arm-4s-ratchet-advice-against-the-closed-zero-headroom-p1-2026-10-10`.
+
+**What changed is what the arm PRINTS**, so the reader decides with the history in front of them:
+the fall advice now names the headroom (`46 of 48 in use, 2 of headroom.`) and a second line naming
+the closed P1, the two commits on main that went the de-pinning way (`0fbbc47`, `1f5ca10`), and the
+alternative of leaving the ceiling and saying why.
+
+**Measured on origin/main 4c7e007, in the repository and not in a copied directory.**
+
+| what | base | head |
+|---|---|---|
+| `--citations-selftest` | 30 pass / 0 fail | **35 pass / 0 fail** |
+| three consecutive selftest runs | — | byte-identical, md5 `a84c3b43f999d804cdd8889e30d07902` |
+| arm (4) summary line | `(4) 46 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 0 over ceiling` | **identical** |
+| records fast tier ratchet key `^(CITATIONS\|REGISTER SELF-CHECK)` | two lines | **byte-identical** |
+| whole `--citations` output | — | differs in **exactly the two advice lines** and nowhere else |
+
+The ratchet-key row is the one that matters to the integrator: `gates/fastgate.sh:669` ratchets this
+mode on the records tier against `'^(CITATIONS|REGISTER SELF-CHECK)'`, and both of those lines are
+byte-identical before and after, so **this commit cannot move that signature** — which is the hazard
+lane 1's 06:49Z row raised for its own arm (5) payload and which does not apply to this one.
+
+**Five controls, all three directions.** `C8b` under the ceiling the advice names the headroom;
+`C8c` and names the zero-headroom P1; `C8d` **at** the ceiling both advice lines are silent;
+`C8d-b` and the summary still reads 48 of 48, so C8d is silence and not an empty run; `C8e` **over**
+the ceiling the refusal is untouched and the advice stays silent — the assertion that proves the
+advice edit did not weaken the ratchet beside it.
+
+**TWO CORRECTIONS IN PLACE [R18], both found by running rather than reading.**
+(1) The header comment at `:450` read *"C5/C5b plant exactly 46 and 47 rows against it"*. **Withdrawn:**
+measured, they plant **48 and 49** — ceiling and ceiling+1. The figures were correct against a ceiling
+of 46 and were carried through the 46→48 correction two paragraphs above without being re-derived, so
+the sentence explaining why the constant is hard to move was itself an un-re-derived number of exactly
+the kind it warns about. The MECHANISM it states is unaffected, which is why this is a correction and
+not a withdrawal.
+(2) The first draft of `C8d` and `C8e` grepped the bare string `CEILING CAN BE LOWERED` and **both
+failed, reading 2 against an expected 0** — because **ARM (5) PRINTS THE SAME SENTENCE** for `A5ZCEIL`
+and `A5WCEIL`. The controls are now keyed on arm (4)'s own `<N> of <M> in use` tail. A control keyed on
+the wording of one arm counts another arm's output, which is this project's own "the check and the thing
+being checked were the same object" one step sideways.
+
+**AND THE FAILURE THAT CORRECTION EXPOSED IS A SECOND FINDING, APPENDED TO THE SAME JOB RATHER THAN
+FILED AGAIN [R09, R51].** On a tree where arm (5) prints `(5) NOT CHECKED: claude/stories/TEST-CASES.md
+and/or claude/stories/USER-STORIES.md is not in this tree, so there is no register to self-check. This
+is not a pass.` — it then prints, two lines later, `CEILING CAN BE LOWERED: 0 of 9 stories at zero
+cases. Commit A5ZCEIL=0` and `CEILING CAN BE LOWERED: 0 of 2 wrong-width rows. Commit A5WCEIL=0`.
+**It advises lowering two ratchets to zero on a reading it has just called not a pass**, and both
+zeroes come from an empty denominator. Following either on an empty tree would then refuse the real
+one, which carries 9 at zero and 4 wrong-width. Reproduced on throwaway trees at 48 and at 49 rows,
+both reading 2. NOT FIXED HERE: arm (5) is lane 1's work in flight this morning and a second lane
+editing it in the same hour is how two correct patches become jointly impossible [R45].
+
+**Not checked, six things.** (1) No gate and no suite ran: `gates/gates.sh` globs
+`gates/regress/*.js`, so nothing in this payload is reachable from the 59-section suite and no
+PASS/FAIL figure is given or implied. (2) `gates/fastgate.sh` was NOT executed end to end — what was
+measured is its ratchet KEY applied to the two real outputs, which is the comparison that decides,
+and the exit-code path is not driven. (3) Arms (1), (2) and (3) are untouched and the whole mode is
+**still RED at exit 1** (17 dead paths, 20 unsupported case ids, 10 misfiled rows), so nobody should
+read `35 pass / 0 fail` as `CITATIONS OK`. (4) The arm-(5) empty-denominator advice above is reported
+and not fixed. (5) The apply was measured for this payload ALONE onto 4c7e007 — not against the other
+ten pending payloads in any order. (6) `A4CEIL` itself: deliberately not moved, in either direction.
+
+**Delivery** parked at `patches/proc-lane2-art-gates-verify-log-sh-arm4-advice-2026-10-10`. NOT on
+main; this lane cannot push and did not try [R21]. No push and no dry-run was attempted: the refusal
+for every session type but the build routine is proved three ways on 2026-10-03 and the charter says
+not to re-test it.
