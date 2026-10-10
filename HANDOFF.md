@@ -1,218 +1,170 @@
 # HANDOFF — where the last run left off
 
-**Build #510. If you are about to touch the portrait fit loop in `chess.jsx` (search `_fitScreen`),
-read `gates/pending/75-fit-loop-one-way-ratchet.js` first — its header carries the whole measurement
-and three falsified fixes.** Everything below is either measured this run or explicitly marked as not.
+Read this, then `claude/BUILD-CONTEXT.md`, then the flags. The procedure is tracker
+`5326ERvZCZ5tEYRkPavPTF`, collection `prompts`, docs `common` then `build-run`; where it and CLAUDE.md
+differ, the tracker wins.
 
-## What #510 did, in one line
+Build **#511**, runId `build__1791624032000`, 2026-10-10. Pen taken and released on R38 test (c).
 
-Turned a defect the owning job records as firing "about 1 run in 5" into a **deterministic six-cell
-reproduction**, built a fix, and **had that fix killed by its own control**. **No app behaviour
-changed** — `app.js` is `227126b82b81`, `chess.jsx` is `a510e35796cb` and `index.html` is
-`4a95e865bca8`, byte-identical to main at my base and at my tip, measured with `git show | md5sum` on
-both sides. **That is the fifth consecutive build in which the app did not change**, which is the
-honest headline and not a good one.
+## What #511 did, in one line
+
+Fixed the Brilliant/Great explanation losing its refutation clause — permanently, for the rest of a
+session — by repairing **two** mechanisms in the analysis worker's single-slot plumbing, and proved the
+fix with a four-bundle control matrix rather than against main alone.
 
 ## THE ONE THING THE NEXT RUN MUST NOT CARRY FORWARD
 
-The owning job is titled "the lesson demo board latches **16-24px**". **BOTH NUMBERS ARE ARTEFACTS OF
-THE TRANSIENT SIZE I HAPPENED TO DRIVE** (16px), and the worst thing this build did was publish the
-converse as a property: I measured 0px at Kunal's two geometries at 16px and wrote **"NOT on Kunal's
-phone"** into a gate assertion, a durable manifest row, two story docs and a job. **IT IS ON HIS
-PHONE.** Measured on main's own bundle, board read after the content is gone:
+**The item's own locus was one caller off, and the line it cited already carries the fix.** The job said
+the engline caller caches a failed query at `chess.jsx:5250`. Measured on main: that caller **deletes** its
+cache entry on failure and its cleanup sets `dead` first, so the abort route cannot poison it (#389/#392
+hardened it), and `:5250` is inside `playBestLine` — a different function. Had I implemented the job as
+written I would have "fixed" code that was already correct and shipped the defect. The real fault is the
+same SHAPE one caller away, in `sacRun`. I corrected the item's `locus` and its `fingerprint`
+(`9728f8201c48df4a` → `2283ad1edeb50cc7`) in place, so a successor matching on fingerprint will find the
+corrected row — but **a job is a report, not a prescription**, and this one's verdict and severity were
+right while its locus was not.
 
-| geometry | 16px | 56/64px | 88px | 120px | via the real demo→practice route |
-|---|---|---|---|---|---|
-| 375x730 | 0.00 | 0.00 | **29.20** | — | **45.20** |
-| 375x761 (R19's settled figure) | 0.00 | — | — | **32.80** | **48.80** |
-| 375x568 | 16.00 | — | **78.88 = 29%** | — | 16.00 |
-| 320x540 | 24.00 | — | — | — | 24.00 |
+## The deliverable, and the two mechanisms
 
-`chess.jsx`'s own #436 comment said so in a clause I dropped — *"the trim cannot move the board at all
-UNTIL IT EXCEEDS ~145px"*. Antagonist B's veto; I reproduced it myself before accepting it, and the
-withdrawal is withdrawn in all six places it landed. **The 60-90px band is reachable, not
-hypothetical:** `gates/regress/16-cpu-result-line.js` already measures a **62px** in-flow tab-bar
-spacer doing this (224.00 → 192.00, and *"card-gone 192.00"* is the latch). Read that citation's scope
-limit in the gate header before reusing it — it is a landscape measurement on a dead bundle, which
-antagonist A caught in the cross-read.
+Neither half works alone; that is measured, not argued.
 
-## What the deliverable is, and why it is in `pending/`
+1. **The cache/token half.** `sfEval1` resolves an **object** with `bestmove:null` on abort — not `null` —
+   so its partial score looked like an answer. It now carries `ok`, set true only on a real `bestmove`.
+   `sacRun` stores only `r.ok`, and only when the pending marker is still its own attempt (game key +
+   per-attempt token), so a stale or aborted search can neither write nor be cached for ever.
+2. **The yield half.** `sacRun` used to OPEN by aborting the incumbent analysis (#356's
+   abort-before-readyok). That kills the engline query in flight and can trap the WASM. It now **yields**
+   on a new `sfAnaBusyRef` — 300ms re-try, capped at 20 yields — instead of aborting, and both entry points
+   install their callback INSIDE the `anaIdle` callback so a previous search's flushed `bestmove` finds a
+   null slot.
 
-`gates/pending/75-fit-loop-one-way-ratchet.js`, **TC-R64 / US-R72**: 64 assertions over 10 browser
-launches, **60 pass / 4 fail on main's own bundle `227126b82b81`, REAL_EXIT 1** — measured on the FINAL
-file after the suite finished, not carried from the version the figure was first taken on. **AND
-RE-MEASURING IT IS THE ONLY REASON THE GATE IS NOT 19% SMALLER THAN THIS SENTENCE SAYS:** the first
-re-run read **48 pass / 4 fail**, because my own cross-read commit had deleted A7 and A8 — zero console
-errors asserted *per arm*, themselves an upheld antagonist fix — as collateral while replacing the A6
-precondition eight lines above. 2 per pair × 6 pairs = **12 assertions, and nothing noticed**: the file
-still ran, still exited non-zero, and still reddened in exactly the four right places. **The total was
-the only tell.** Restored and re-measured. The class is filed: `gates.sh:9` and `:304` both state "the
-total must only rise" and, measured, those two comments are the only occurrences anywhere — nothing
-compares totals across logs, and footer self-consistency is preserved exactly by the edit that deletes
-assertions (`jobs/a-deleted-assertion-inside-a-gate-is-invisible-in-a-green-run-2026-10-10`).
-It carries **no expected board width** — every
-block drives the same path twice, clean and transient, in one run — so it cannot go stale on this
-container's fonts. It is in `pending/` with an `absent` manifest row (**known-absent 4 → 5**) because
-it reds on main *by design*: the app defect is unfixed and `L.run` exits non-zero. Promote it in the
-build that fixes the loop.
+What a player sees, on Kunal's own game `184024052818` at ply 38 (19...Bxh3!!, the move he found by hand
+at #420), 375x730, engine on, stepping away and back:
 
-**It is also one of the only gates that visits 761.** The SIT lane measured, independently and the
-same morning, that **47 of the 48 `geo:` literals in `gates/regress` still drive the figure R19
-corrects** (`flags/sit-2026-10-10`). The 761 cell carries the largest number in my whole measurement —
-48.80px against 45.20 at 730 — so a 730-only gate would have published a smaller defect and called it
-the maximum. Two lanes arriving at the same argument from different directions is the strongest thing
-on either report.
+- main `227126b82b81`: `You give up a piece. Black is clearly better.`
+- #511 `f47aa0197967`: `You give up a piece. If gxh3, Rxf3 and Black keeps a clear edge. Black is clearly better.`
 
-## Three fixes are falsified. Do not re-take them without reading why.
+## #511 NAMES FOUR BUNDLES. CITE THE MD5, NOT THE NUMBER [#454]
 
-1. **The one-confirmation-frame guard on the shrink branch** — I built it (bundle `fc54d99154d7` over
-   source `c662604ceb87`) and **its own control reproduced the latch unchanged, 24.00px and 16.00px.**
-   My reading that the overflow was a 1–2 frame transient was wrong: it appeared on one frame only
-   because the shrink landed on the next one. Both register rows are `abandoned`; the source is on no
-   ref, deliberately.
-2. **Two of the job's three prescribed "one-liners" are falsified by measurement.** `spacers` reads 0
-   (its predicate needs a direct `aria-hidden` grow child of `#root` with no children; the only
-   grow-capable box is a level deeper with six children) and `over` reads exactly **0** in every
-   settled state.
-3. The third trades against **#355's** stated reason for settling from the current trim, so it is a
-   product trade-off and not a one-liner.
+| bundle md5 | source md5 | what it is |
+|---|---|---|
+| `fb850cc02250` | `a3a4fd6c557f` | the cache half alone. **SUPERSEDED, and kept as evidence**: it proved that half insufficient. |
+| `81b805f1748b` | `c6884596f416` | pre-veto. **What both antagonists measured** — cite this one when reading their reports. |
+| `f401c6bc08dc` | `ae98608b23db` | post-veto. |
+| `f47aa0197967` | `b6b7fbb25df0` | **SHIPPED.** Comment-only from `f401c6bc08dc`, proved: executable content byte-identical, 886027 bytes, md5 `13b455ec4519` both sides. |
 
-**And "where the slack goes" is no longer open.** `data-ct="moves-panel"` goes 64.61 → 88.61 at 320x540
-and 74.13 → 90.13 at 375x568 — **+24.00 and +16.00, exactly the board lost** — and `chess.jsx`'s own
-comment there says it *"ABSORBS THE SLACK"*. My probe looked for flex FREE SPACE, which is identically
-0 wherever a flex-grow child exists, so it could not have printed anything else on any bundle. Both
-antagonists found this independently in the frozen log I handed them. **A measurement-based fix is back
-on the table.**
+## The control matrix: one gate file, one container, four bundles one hunk-group apart
 
-## The one number that matters to the next run
+Antagonist A vetoed the fact that I had controlled only against main, which cannot distinguish the two
+halves. This is the replacement. (A vetoed; B did NOT veto on its blind pass - it vetoed in the cross-read.
+See below.)
 
-**A close-out touching only `RUN-LOG.md` and `HANDOFF.md` now takes `FAST GATE GREEN` in about 7
-seconds instead of the 84-minute suite.** Measured, control (e), 7421 ms. Ask the script; do not judge
-the changed set yourself:
+| bundle | md5 | yield | cache/token | R3c | R4/R5 | R6 | englineArrivedMs | traps |
+|---|---|---|---|---|---|---|---|---|
+| main | `227126b82b81` | – | – | RED | RED | RED | null | 1 |
+| cache-only | `17b13eec1d99` | – | ✓ | RED | RED | RED | null | 1 |
+| yield-only | `a61066782641` | ✓ | – | green | **RED** | green | 805ms | 0 |
+| shipped | `f47aa0197967` | ✓ | ✓ | green | green | green | 801ms | 0 |
 
-    bash gates/fastgate.sh "$(git rev-parse origin/main)"
+**The cache/token half's clean control is the trap-free pair** — yield-only against shipped. On the two
+no-yield bundles the worker traps and every arm reddens for the OTHER reason, so main is not a control for
+that half at all. `gates/regress/22-engline-recovery.js` went 21 → 31 assertions (block R is 10). **R36 on
+the final file: three runs, 31/0 each, setSha `d262a7d8a428f6a7`.**
 
-`0` = you may push THIS COMMIT. `2` = GO FULL, which is not a failure. `1` = STOP.
+## Four things are falsified. Do not re-take them without reading why.
 
-STEP 0F(3) still applies: `docs/fast-gate-state` must be green and under 36 hours old, or fast mode is
-off whatever the changed set says.
-
-## What is NOT records-only, and the second one will surprise you
-
-`gates/`, `chess.jsx`, `app.js`, the two guard registers — and **`CLAUDE.md`**. `RUN-LOG.md`, `HANDOFF.md`,
-`DECISIONS-LOG.md`, `FEEDBACK-INBOX.md`, `README.md`, `chess-trainer-backlog.md` and
-`feedback-inbox.md` ARE records-only, each behind a ratchet.
-
-**THIS SECTION AND THE ONE ABOVE IT ARE CARRIED FORWARD FROM #509, NOT MEASURED BY #510** [R18]. They
-are kept because they are durable tool facts the next run needs on its first screen, and dropping them
-to avoid inheriting them would cost the next run the 84-minute suite. Two things were edited out rather
-than left to read as mine: #509's sentence that the `CLAUDE.md` arm "is the whole subject of this run's
-cross-read; see below" — true of #509, false here, and its "see below" pointed at sections this
-rewrite replaced — and the 7421 ms figure is #509's control (e), not a #510 measurement. **#510 did not
-use the fast tier at all**, so it has no reading of its own to offer: this run went through the full
-suite because it changed `gates/` and `claude/stories/`.
-
-
-## Two process findings this run filed, both with dates attached
-
-- **The snapshot prune ceiling of TWELVE is a frozen denominator** and it has a date.
-  `prompts/build-run` step 7 justifies twelve as *"about 800KB … plenty of headroom"*, which implies
-  65KB a row. **Measured on the live collection: twelve rows = 1,909,609 bytes, mean 159KB, so twelve
-  is 1.82MB — 71% of the 2.7MB that blanked Kunal's dashboard on 2026-09-14.** Growth is +4,969 bytes
-  per build least-squares over twelve rows, so twelve rows reach 2.7MB in **about 13 builds, a week
-  away**. I pruned to twelve as instructed and did not freelance the retention: 1.82MB demonstrably
-  still renders, and the count feeds two things he looks at. The remedy is to prune on BYTES and to
-  stop the rows growing without bound.
-  `jobs/the-snapshot-prune-ceiling-of-twelve-was-calibrated-at-65kb-a-row-2026-10-10`.
-- **R49 A2's WIP id-sha is a perfect equality check that carries no information about a difference.**
-  It worked: my 44 at check-in hashed to #509's `c7195f1857db7ce4` exactly, so I could say *the same 44
-  documents*. Then my check-out read **42** — it FELL — and four build-owned finish-first jobs closed
-  after my check-in against a net of two, so two of the four were already non-ready **and I cannot say
-  which two**, because only the hash was stored. Store the list.
-  `jobs/r49-a2s-wip-id-sha-cannot-explain-a-difference-only-detect-one-2026-10-10`.
+- **The cache fix alone.** `fb850cc02250` leaves the clause absent at every arm, exactly as main. `sacRun`
+  was aborting the query that would have produced the answer, so the token guard had nothing to protect.
+- **A step-away arm at a fixed delay (`AWAY=1200`).** Antagonist B, in the CROSS-READ rather than its blind
+  pass, measured the window: engline arrival
+  839/840ms, clause 1676/1677ms, so 1200 sat ~150ms inside a ~600ms gap **whose both edges are
+  engine-speed terms** — a faster engine makes the arm go silently green on a bundle missing the
+  cache/token fix. This refuted my own written reason for thinking it safe (that `movetime` is wall-clock):
+  the arrival is, the clause's second query is not. **Poll for the observed arrival; do not pick a number.**
+- **A step-away as a way to control the yield half.** Any step-away during a LIVE engline query *is* an
+  abort, so it reproduces #356 and traps the WASM — the clause then stays absent on every bundle, fixed or
+  not. My replacement arm reddened the bundle I was trying to ship (37 pass / 2 FAIL + PAGEERROR). The
+  instrument was manufacturing the defect it measured. R3c controls that half by **polling**, no step-away.
+- **The Opera Game as the fixture.** No ply in it produces a `sacRun` attempt, so the clause is legitimately
+  empty on every bundle and any gate built on it is green by construction.
 
 ## What I got wrong against myself, before any antagonist
 
-- **The non-vacuity precondition took three tries.** Try 1 (peak `over`) **reddened a working control
-  at 3 of 6 cells**. Try 2 (the board moved while the transient was in flow) is green on main and still
-  wrong — it is a claim about the APP, so a fix that absorbed the transient without shrinking the board
-  would redden it **while being correct**. Only try 3 is sound: assert the **control** was applied
-  (`injRect.inFlow === true && |injRect.h − px| < 1`), a fact no correct bundle can falsify.
-- **My own story doc breached the register ratchet.** TC-R64 written as a prose section added a story
-  heading and no case ROW, so US-R72 went into the at-zero set, **9 → 10 against a ceiling of 9**.
-  Found only by running `verify-log.sh --citations` against **my** tree rather than against main.
-- **I left the gate name I changed mid-run stale in two docs**, both naming a path that exists nowhere.
-- **A pipe destroyed a probe's output.** `node probe.js 2>&1 | tail -30` under `timeout`: SIGTERM
-  killed the pipeline and `tail` died with its buffer unflushed, leaving a 35-byte file reading
-  "Terminated". **A pipe does not only mislabel a value, it can DELETE one.**
+- **Block R's first draft certified the defect ABSENT on main — 28 pass / 0 fail.** Its denominator settled
+  on **ply 38, the ply under test**, which caches a good answer for that ply and papers the defect over
+  before the assertions run. Moved to ply 74. The same-object trap again: the check and the
+  thing checked were the same object — here the same PLY. **It gets no ordinal:** measured, "eleventh costume"
+  appears FIVE times in RUN-LOG.md for five different findings, so the number identifies nothing, and my own
+  pen note and first draft already disagreed (eleventh vs twelfth). The tell was a green where I had predicted red,
+  visible only because I had built the control before writing the assertion. **I give it no ordinal on purpose:**
+  measured, "eleventh costume" appears FIVE times in RUN-LOG.md for five different findings, so the number
+  identifies nothing and my own pen note and first draft already disagreed (eleventh vs twelfth).
+- **I edited the gate and launched a six-run matrix without once executing the file.** `ReferenceError: AWAY
+  is not defined` — a leftover in a launch NAME after renaming the loop variable. The matrix's first run
+  died at 20 pass / 1 fail in 67s with **block R never running**, and the 1 fail looked ordinary.
+  `node --check` passes on a runtime ReferenceError.
+- **I corrected antagonist A and the correction was wrong, so I withdrew it.** I attributed A's cache-only
+  third red to a two-Chromium flake. Measured: my fresh run's third red was `harness threw: Target page...
+  closed`, a flake **I caused by killing browsers mid-run**, while my earlier clean run had exactly 2 fails.
+  Neither attribution holds. It is non-deterministic, A's mechanism is the best explanation, and it is filed
+  as owing its own control rather than written off.
+- **The clock drift reversed direction for the first time in sixteen builds.** I believed 55 minutes had
+  passed when **648 seconds** had — slow, by a factor of five, where the previous fifteen all drifted fast.
+  The decision it was steering was whether to cut the blind pair for time, on the build whose two
+  antagonists then produced every veto that mattered.
 
-## R30's four numbers, and why the series' own pointer cannot be satisfied
+## The numbers [R30]
 
-**openP0 7, openP1 86**, with the series' own query (`severity` field + `status eq ready`). #508's
-pointer 2b asks me to reproduce the predecessor's value first. **I cannot, and it is not the
-instrument** — #509's method is character-for-character mine. The collection moved: closing waves at
-05:40, 05:41, 06:08, 06:40 and 07:14Z. **P0 reconciles row-exactly** (−4 = four datable departures, 0
-arrivals). **P1 brackets** (−16 departures, ≤7 arrivals, giving −12…−9 around an observed −11) and
-cannot be closed, because a departure is datable only where the closing lane wrote a stamp and
-`jobs/42-closed-jobs-skipped-r05s-middle-write…` records that it often does not — five of eighteen
-closed P0 rows carry no closing stamp at all. So **2b is unsatisfiable as written for this series**:
-nothing freezes a predecessor's read. Reproduce the METHOD and account for the delta as far as the
-stamps allow, saying where they run out.
+- **openP0 7** (`severity eq P0` AND `status eq ready`) — reproduces #510's 7 exactly, same query.
+- **openP1 88** — #510 read 86 at 07:4xZ. The delta closes **row-exactly**: +2, both arrivals are #510's own
+  close-out filings, both stamped after its snapshot read, zero datable departures in the window. Better
+  than #510 could do for P1, which could only bracket −12…−9 around −11.
+- **coverage** 58/58 gate manifest, **5 known-absent**, 0 missing / unlisted / retired / unjustified.
+- **assertions** **4631**, and that is the footer's figure AND an independent `grep -c '^PASS'` of the same file [#405] - 0 `^FAIL`, 0 `<<<` markers, 6050 lines, one `GATES GREEN`.
 
 ## Still owed, and none of it is mine to take
 
-- **The drill-verdict P0 Kunal reported twice is still live on main.** Seven P0s read `ready`; I took
-  none of them.
-- The auditor did not run, making it **eleven consecutive builds**. Structural: seventeen of eighteen
-  lanes have no enabled scheduled task and a build lane may not enable a trigger.
-- `--citations` **exits 1 on main and on my tree** for 17 dead paths, 20 unsupported case ids and 10
-  misfiled rows — identical figures both sides, independently measured by process-build lane 1 at
-  06:47Z. It **cannot refuse a push**: all nine `verify-log` references in `gates/gates.sh` are
-  comments (0 non-comment, measured) and `--citations` is an opt-in first argument at `:330`. Arm 5 is
-  now OK, because this run landed lane 1's parked payload in the integration slot.
-- The live site is unverifiable from this container (egress-blocked), so every claim here is about a
-  bundle and never about the deployed site.
-- A **per-run branch carries real work until main has its commit.** Mine is
-  `claude/cool-noether-rgpj7r`.
+- `drill-eval-bar-is-an-amber-board-width-decision-2026-10-01` — **blocker holds, and I measured it rather
+  than inferring it**: I listed all **87** Decision Desk questions and grepped them, and **zero** mention an
+  eval bar. #510 recorded this re-test as PARTIAL (it relied on two closer screens); that partial is now
+  closed. Desk spread: done 41, answered 10, none 27, open 3, snoozed 1, withdrawn 3, retired-stale 1, merged 1.
+- `entry-two-the-coverage-ratchet-2026-10-10` and `entry-three-contracts-become-runnable-asserts-2026-10-10`
+  — both blocked on `build-one-door-for-every-non-gate-check-2026-10-10`, which my own P1 query returns as
+  `ready`. Whoever takes that unblocks two.
+- `legal-pages-fill-placeholders` — **not re-tested**, said plainly rather than skipped silently: the content
+  is Kunal's to supply and it is the lowest priority in the collection.
+- `practice-row-label-keyed-to-a-board-threshold-not-its-budget-2026-09-29` — **not mine**, owningLane
+  orchestrator.
+
+Four jobs filed this run, all typed [R51], all with `ifNotDone`: the coach sentence losing its last sentence
+in landscape (`d2b89afa604fb588`), the coach sentence being rewritten two seconds in (`0f51494d486d4380`),
+block R driving `CT_POOL=3` only (`ea2aaae5baee5265`), and the trapped-worker class itself
+(`e4ba36d7fe41a92b`). The ply-25 non-determinism was **appended to the gate-22 job rather than filed as a
+fifth id** [R51: never file on the ground that the match was not exact].
+
+## The auditor did NOT run. Twelfth consecutive build.
+
+build-run 2b permits it — "if you are short of time, the antagonist wins … the auditor may be skipped for a
+run, provided the run report says it was skipped and why." **Why:** the browser was continuously occupied by
+the blind pair, then the four-bundle matrix, then the determinism set, then the suite; and two Chromiums in
+one container is a measured flake source (#507 — and I caused one myself this run by killing browsers
+mid-run). Twelve in a row is no longer a scheduling accident and the next run should treat the auditor as
+the thing to protect time for, not the thing to drop.
 
 ## Provenance
 
-`GATES GREEN #510`, **59 sections, 4621 PASS, 0 FAIL**, 0 `<<<` markers, 6039 log lines, over bundle
-`227126b82b81`, gated sha `a336836`, base `4c7e007`. Suite **07:31:12Z to 09:11:33Z, 100 minutes**, pid
-13067, from the frozen sibling copy `gates/.gates-run-510.sh`, **byte-identical to `gates.sh` at the
-gated sha, both `9dd41aaff6c2`** — the #493 correction, which is that the copy must live inside
-`gates/` because `gates.sh:33` derives `ROOT` from its own location.
+`GATES GREEN #511`, **59 sections / 4631 PASS / 0 FAIL**, over bundle `f47aa0197967`, gated sha `6e243c0`,
+base `b3767c4`. Suite 12:12:29Z to 13:55:53Z, **103 minutes 24 seconds**, pid 22334. Figures RE-DERIVED, not read off the
+footer: the footer's 4631 equals an independent `grep -c '^PASS'`, with 0 `^FAIL` and 0 `<<<` markers.
+PUSH GATE, every exit code captured in its own variable and never read through a pipe: `verify-log '#511'`
+**0**, `--this-bundle` **0**, `--on-main` **1 before the push and 0 after** (so that instrument demonstrably
+reports both answers, not only the one I wanted), `held.sh check` **0** not held - and **0** again when asked
+by the gated sha and by the bundle md5 separately - and `buildnum.sh stampable '#511'` **0**.
 
-Figures **re-derived, not read off the footer** [#405]: the footer's own 4621 equals an independent
-`grep -c '^PASS'` of 4621, with `^FAIL` 0. **4621 is exactly #509's figure, and that is the expected
-answer rather than a coincidence worth hiding** — no `regress` gate changed this run, because the gate
-this build wrote is in `pending/`.
+Suite run from the frozen sibling copy `gates/.gates-run-511.sh` inside `gates/` (#493: the copy must live
+there, because `gates.sh` derives `ROOT` from its own location). Harness frozen before launch and checked
+after: `suite-freeze.txt` records the suite script and all 67 suite-read files (#461, where two mid-run
+edits cost a complete 48-section green its footer). Pre-launch state: manifest 58/58/0/0, `held.sh check`
+not held, fastgate REAL EXIT 2 = GO FULL, mountcheck 16/0. Archived log: `gates/logs/511-all.log`.
 
-Push gate, **every exit code captured in a variable on its own line and not read through a pipe** — a
-mistake this close-out made three times before it stopped making it, most instructively when `grep |
-sed` made a provenance check's own "NONE" branch unreachable:
-
-| check | real exit |
-|---|---|
-| `verify-log.sh gates/logs/510-all.log '#510'` | **0** |
-| `verify-log.sh … --this-bundle` | **0** — "gated md5 `227126b82b81`, which is app.js on disk" |
-| `verify-log.sh … --on-main` | **1** before the push, **0** after |
-| `verify-log.sh claude/agents/gatelogs/510-all.log '#510'` | **0** — the copy is what future runs cite |
-| `held.sh check` | **0** — not held, 11 live rows checked |
-| `buildnum.sh stampable '#510'` | **0** — "#510 is yours" |
-| `audit/cited-not-run.sh` | **0** — ACCOUNTED-GREEN, 31 of 31, 0 unaccounted, 0 stale roster |
-
-Manifest **58 required / 58 present / 0 missing / 0 unlisted / 5 known-absent / 0 retired / 0
-unjustified / 0 unreadable**, so this green is honest and blind in exactly five places, as it says
-every run.
-
-**Provenance of the green, measured rather than assumed.** Of the six files differing between the gated
-sha and the tree, exactly one is under `gates/` and **zero are suite-read**: `gates.sh:178` globs
-`gates/regress/*.js` only, and the log's own header lists that file among its five known-absent gates.
-All nine `gates/*.sh` are byte-identical to the gated sha, so **the harness was frozen for the whole
-100 minutes** (#461, where two mid-run edits cost a complete 48-section green its footer). The tree was
-clean at 07:30:45Z and the suite launched at 07:31:12Z, so the log's dirty count of 0 is correct.
-
-**A green log is a statement about the suite, not permission to push** [#450]. This tree was not held,
-and nothing about it is held now. **And this green says nothing about the app**, which did not change:
-the four reds that matter are in a gate in `pending/`, describing a defect that is still live on main.
+Development branch `claude/cool-noether-pz2fdl`. main was at `b3767c4` at check-in.
