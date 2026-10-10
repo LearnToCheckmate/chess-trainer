@@ -54,35 +54,35 @@ G="$ROOT/gates"
 # 17 to 12 in the wrong direction. A detector that reads a comment as an invocation understates the
 # class it exists to count, which is the quietest way for this file to be useless.
 # decomment: strip the things a TEXT SCAN must not read as an invocation.
-# WIDENED BY #513 ON AN UPHELD ANTAGONIST VETO, and the veto is worth reading because this function's
-# output decides whether a file is REACHABLE, which decides whether its roster row is STALE, which is
-# what #513 acted on when it deleted the row for gates/verify-log.sh - THE PUSH GATE - to turn this
-# audit green. The signal was FALSE and this batch's own prose created it.
-#   (a) SHELL COMMENTS - as before.
-#   (b) `//` LINE COMMENTS, for .js inputs. gates/regress/26-invariants.js gained a header comment
-#       naming gates/verify-log.sh, and this function stripped shell comments only, so a pure comment
-#       line read as an invocation of the push gate by the suite.
-#   (c) A LINE CARRYING THE `SIGPIPE-FIXTURE` MARKER, which is the project's existing declaration that
-#       a line is a QUOTED SPECIMEN inside a message and not code. gates/gatemanifest.sh echoes a
-#       specimen command containing `bash gates/verify-log.sh --citations` inside a refusal message, and
-#       that one line was the whole of the false signal. gatemanifest.sh's own sigpipe_sites already
-#       honours this marker for exactly this reason; this function did not, so the check and the
-#       convention it relies on were written in different vocabularies - CLAUDE.md's own repeated shape.
-# CONTROLLED IN BOTH DIRECTIONS at #513: renaming those two strings takes the audit from exit 0 to
-# exit 1 with `UNACCOUNTED gates/verify-log.sh` against a hard ceiling of 0, so the green really was
-# load-bearing on two comment strings; with this fix, reachable reads 69 and the push gate is back in
-# the leak set where its roster row accounts for it.
-decomment(){
-  case "$1" in
-    # THE MARKER DELETE COMES FIRST AND THE ORDER IS THE WHOLE FIX. sed applies -e in sequence, so with
-    # the trailing-comment rule first the `# SIGPIPE-FIXTURE` marker is stripped BEFORE the delete can
-    # match it, the specimen line survives as bare code, and the false signal is unchanged. #513 wrote it
-    # in the wrong order first, measured reachable still 70, and found it by re-running rather than by
-    # reading the sed.
-    *.js) sed -e '/SIGPIPE-FIXTURE/d' -e 's|^[[:space:]]*//.*$||' "$1" ;;
-    *)    sed -e '/SIGPIPE-FIXTURE/d' -e 's/^[[:space:]]*#.*$//' -e 's/[[:space:]]#[[:space:]].*$//' "$1" ;;
-  esac
-}
+# WIDENED BY #513 ON AN UPHELD ANTAGONIST VETO. This function's output decides whether a file is
+# REACHABLE, which decides whether its roster row is STALE, which is what #513 acted on when it deleted
+# the row for gates/verify-log.sh - THE PUSH GATE - to turn this audit green. The signal was FALSE and
+# this batch's own prose created it.
+# THE CAUSE IS ONE LINE, NOT TWO, AND MY FIRST VERSION OF THIS COMMENT CLAIMED TWO [R18]. It said a `//`
+# header comment in gates/regress/26-invariants.js was a second cause. THAT IS WITHDRAWN AS FALSE. Both
+# antagonists isolated it independently and I reproduced it: at the pre-fix tip, renaming ONLY the
+# gatemanifest.sh specimen gives reachable 70 -> 69 and exit 1, while renaming ONLY the 26-invariants.js
+# comment leaves reachable 70 and exit 0 ACCOUNTED-GREEN. The echoed specimen was the WHOLE of the false
+# signal. My own reproduction renamed BOTH strings at once, so it could not discriminate - the identical
+# methodological fault I had just credited an antagonist for catching in me on SP_A_CEIL, with the roles
+# reversed. Holding one variable fixed is what names a cause.
+# SO THE RULE IS ONE RULE: delete a line whose TRAILING COMMENT carries the SIGPIPE-FIXTURE marker, which
+# is this project's existing declaration that a line is a QUOTED SPECIMEN inside a message and not code.
+# gates/gatemanifest.sh's own sigpipe_sites already honours it; this function did not, so the check and
+# the convention it relies on were written in different vocabularies - CLAUDE.md's own repeated shape.
+# MATCHED AS A COMMENT (`#` then the marker) AND NOT AS A BARE SUBSTRING, which is tighter than my first
+# version and closes a second vocabulary gap both antagonists named: gatemanifest.sh's SP_FIXTURE_CEIL
+# comment is explicit that "Lines that merely NAME the token are not counted", and a bare substring match
+# deletes prose mentions too.
+# THERE IS NO `.js` ARM AND THAT IS DELIBERATE: I wrote one and it was DEAD. Measured - decomment has
+# exactly two call sites, the entry point and the *.sh|*.py arm of closure(), and the entry points are the
+# hardcoded "gates/gates.sh gates/build.sh deploy.py", so decomment is never called with a .js argument.
+# A dead branch carrying a comment explaining why it is load-bearing is worse than no branch, because the
+# next reader who simplifies this function cannot tell the live rule from the inert one.
+# THE `.js` CLASS IS STILL LIVE WHERE .js TEXT IS ACTUALLY READ, AND IS NOT FIXED HERE: closure() greps
+# require() off the RAW file, so a COMMENTED-OUT require is a real edge. Nine instances today; none is
+# load-bearing, because every target is reachable by a genuine require anyway. Latent, named, and filed.
+decomment(){ sed -e '/#[[:space:]]*SIGPIPE-FIXTURE/d' -e 's/^[[:space:]]*#.*$//' -e 's/[[:space:]]#[[:space:]].*$//' "$1"; }
 
 reachable_seed(){
   local sh="$ROOT/$1"
@@ -198,7 +198,7 @@ default_records(){
 #   `-` is refused and `x` is not." Here even empty passed.
 roster_default(){ cat <<'EOF'
 gates/audit/cited-not-run.sh|OPERATOR|strong|This script. Run by a process lane or the orchestrator against a tree; it reports and admits nothing, so a suite running it could only redden itself on its own report.
-gates/verify-log.sh|OPERATOR|strong|THE PUSH GATE. It reads a finished gatelog and authorises the push, so by construction it runs after the suite, not inside it. Its ceiling arms are an OPERATOR-RUN AUDIT and are NOT the push authority: gates/gates.sh never executes this file (every reference in it is a comment) and the --citations mode exits before the log-verification path, so an over-ceiling arm cannot redden any build. The omission is deliberate and recorded at gates/verify-log.sh:103. The arms are audited by their own selftest.
+gates/verify-log.sh|OPERATOR|strong|THE PUSH GATE. It reads a finished gatelog and authorises the push, so by construction it runs after the suite, not inside it. Its ceiling arms are an OPERATOR-RUN AUDIT and are NOT the push authority: gates/gates.sh never executes this file (every reference in it is a comment) and the --citations mode exits before the log-verification path. ONE CLAUSE OF THIS ROW IS WITHDRAWN AS FALSE [R18, #513, found by antagonist A]: it read "so an over-ceiling arm cannot redden any build", and gates/fastgate.sh runs `ratchet "records" '^(CITATIONS|REGISTER SELF-CHECK)' bash verify-log.sh --citations`, whose sigged CITATIONS line carries the over-ceiling count as one of its tokens, so a rise in it IS read as WORSE and DOES redden the records tier. The row was restored VERBATIM from origin/main at #513 - correct as provenance - and verbatim restoration carried a false sentence back in with the true ones. The row's CONCLUSION stands on its other two grounds; only this clause goes. The omission is deliberate and recorded at gates/verify-log.sh:103. The arms are audited by their own selftest.
 gates/audit-all.sh|OPERATOR|strong|The umbrella that invokes every instrument under gates/audit/ and reports which ran, which are green and which are accounted for. Landed by the 2026-10-10 integration slot, which is also when the records began citing it. A suite running it would be wrong rather than right: it runs the OPERATOR tools above, several of which write or need a credential dump, and its verdict is about whether this directory's instruments are self-testing - a question about the harness, not about the bundle. CLASSIFIED BY THE INTEGRATION RUN (#513) on the day it appeared, which is what this roster's own header asks for ('a new unaccounted one turns this script red on the day it appears, which is the day somebody can still say why').
 gates/audit/require-resolve.sh|OPERATOR|strong|Derives the absolute-path-require class across gates/ by command. Its input is the gates/ tree rather than the working app, so a build has nothing for it to read, and its verdict names source sites to repair - which no regression gate may assert on. Same shape and same reason as pipefail-grep.sh two rows above. CLASSIFIED BY THE INTEGRATION RUN (#513) on the day the records began citing it.
 gates/audit/suite-shared-paths.sh|OPERATOR|strong|Derives which paths two concurrent gate suites would collide on. Its input is the suite's own files and lock layout, not the bundle, so there is no build-time verdict to gate; it exists to justify or retire the suite lock, which is a question about the harness. CLASSIFIED BY THE INTEGRATION RUN (#513) on the day the records began citing it.
@@ -223,7 +223,7 @@ gates/build.sh|OPERATOR|strong|The bundle builder itself, reached from the deplo
 gates/fastgate.sh|OPERATOR|strong|THE TIER DECIDER ON THE PUSH PATH. Invoked by the build routine with a base sha (prompts/build-run STEP 0F) to decide whether THIS tree may push without the full suite, so it runs BEFORE gates/gates.sh and decides whether gates.sh runs at all. A suite that invoked it would be asking the thing it may skip whether it may be skipped - the circularity gates/control-audit.js's row names one line up - and it takes an argument no gate run has. Same shape as the gates/verify-log.sh row above: a push-path authority runs around the suite, not inside it. NOT A SHELF SCRIPT: unlike most members of this set it is exercised on every fast-eligible push, which is why its reason is strong rather than weak. Its own trustworthiness is a separate question from its admissibility and is not settled by this row - gates/fastgate.sh:19 carries a withdrawn load-bearing claim of its own [R18] and has no companion selftest in this roster, which is an ADMIT candidate for whoever writes one, not a reason to keep this file unaccounted.
 gates/verify-log-selftest.sh|SELFTEST|weak|The companion selftest of the push gate, run by whoever edits gates/verify-log.sh. WEAK AND I DO NOT BELIEVE IT: this is the selftest of the one script that decides whether anything ships, and an editor-triggered selftest is exactly the shape that let A4CEIL go stale and get breached by 2 on the commit it landed on. It is the strongest ADMIT candidate in this roster and it is not mine to admit.
 gates/buildnum-selftest.sh|SELFTEST|weak|The companion selftest of gates/buildnum.sh, run by whoever edits it. WEAK for the same reason one notch down: buildnum.sh owns the build-number space, two concurrent runs have already collided in it (jobs/concurrent-runs-collide-on-the-gate-number-space-2026-09-28), and nothing re-runs this after an unrelated change.
-gates/held-selftest.sh|ADMIT|strong|THE COMPANION CONTROLS OF gates/held.sh, the held-tree register that tells the push bar a tree was deliberately refused. 35 assertions over 19 inputs to `add`, about a second, against a throwaway git repository it builds itself with its own chess.jsx at three versions and its own origin/main - never the real gates/held-trees.tsv, which is append-only and which the lane that wrote this may not write at all. IT SHOULD RUN ON EVERY BUILD AND DOES NOT, which is this class exactly: part (4) of jobs/build-one-door-for-every-non-gate-check-2026-10-10 - Kunal's own one-door decision of 12:49am ET on 2026-10-10 - lists `gates/held.sh --selftest` BY NAME among the checks gates/records-gate.sh must hold, and gates/held.sh now answers both that spelling and `selftest` so the door's entry cannot go stale. The door is built and PARKED, not landed (patches/proc-lane3-art-gates-records-gate-sh-2026-10-10, no integrationResult, its named file absent from main), so there is nothing to admit it to yet. WHY NOT SELFTEST|weak, WHICH IS THE ROW THE TWO SELFTESTS ABOVE CARRY, because this choice moves a number and must be argued rather than assumed: those two rows each say in terms 'it is the strongest ADMIT candidate in this roster and it is not mine to admit', written when there was no door to admit anything to. There is now, by Kunal's decision, and it names this check. A weak row would also have taken WEAK from 2 to 3 against A_WEAK_CEIL=2, a ceiling the header says MAY ONLY FALL and which line 348 actually enforces - so the weak row is not merely less informative, it reddens this audit on the commit that lands the instrument. I am NOT claiming that is the reason for the class; the reason is that the claim 'this should run on every build' is one I hold strongly and can name the decision for. AND THE COST IS DECLARED RATHER THAN SLIPPED IN, in the same terms as the two ADMIT rows below: THIS ROW TAKES ADMIT FROM 2 TO 3 against a header that calls ADMIT a CEILING, MAY ONLY FALL. Gate 50's row already names the contradiction that no line of this script enforces that ratchet - ADMIT is computed into cAD, printed as ADMIT-WORKLIST and excluded from the exit code at line 331 - and I am not resolving it and not re-filing it [R09, R45: the finder does not pick a side].
+gates/held-selftest.sh|ADMIT|strong|THE COMPANION CONTROLS OF gates/held.sh, the held-tree register that tells the push bar a tree was deliberately refused. 35 assertions over 19 inputs to `add`, about a second, against a throwaway git repository it builds itself with its own chess.jsx at three versions and its own origin/main - never the real gates/held-trees.tsv, which is append-only and which the lane that wrote this may not write at all. IT SHOULD RUN ON EVERY BUILD AND DOES NOT, which is this class exactly: part (4) of jobs/build-one-door-for-every-non-gate-check-2026-10-10 - Kunal's own one-door decision of 12:49am ET on 2026-10-10 - lists `gates/held.sh --selftest` BY NAME among the checks gates/records-gate.sh must hold, and gates/held.sh now answers both that spelling and `selftest` so the door's entry cannot go stale. The door is built and PARKED, not landed (patches/proc-lane3-art-gates-records-gate-sh-2026-10-10, no integrationResult, its named file LANDED IN THIS SAME BATCH (#513) - a premise this row shipped with and which its own commit falsified; the admission is now possible and is the next step [R18]), so there is nothing to admit it to yet. WHY NOT SELFTEST|weak, WHICH IS THE ROW THE TWO SELFTESTS ABOVE CARRY, because this choice moves a number and must be argued rather than assumed: those two rows each say in terms 'it is the strongest ADMIT candidate in this roster and it is not mine to admit', written when there was no door to admit anything to. There is now, by Kunal's decision, and it names this check. A weak row would also have taken WEAK from 2 to 3 against A_WEAK_CEIL=2, a ceiling the header says MAY ONLY FALL and which line 348 actually enforces - so the weak row is not merely less informative, it reddens this audit on the commit that lands the instrument. I am NOT claiming that is the reason for the class; the reason is that the claim 'this should run on every build' is one I hold strongly and can name the decision for. AND THE COST IS DECLARED RATHER THAN SLIPPED IN, in the same terms as the two ADMIT rows below: THIS ROW TAKES ADMIT FROM 2 TO 3 against a header that calls ADMIT a CEILING, MAY ONLY FALL. Gate 50's row already names the contradiction that no line of this script enforces that ratchet - ADMIT is computed into cAD, printed as ADMIT-WORKLIST and excluded from the exit code at line 331 - and I am not resolving it and not re-filing it [R09, R45: the finder does not pick a side].
 gates/measure-drill-verdict-reserve.js|ONEOFF|strong|Measured the drill verdict's board cost once; its figure is published in claude/stories/USER-STORIES.md:26 and in TEST-CASES.md. The recurring assertion lives in the drill gates.
 gates/measure-kunal-qh3.js|ONEOFF|strong|One-shot measurement of a single named position for a single published number. Nothing about it generalises to a build.
 gates/audit/antagonist373-label.js|ONEOFF|strong|Antagonist probe written for build #373 against that bundle's labels. Its finding is recorded; the gate that protects the behaviour is in gates/regress/.
@@ -447,6 +447,32 @@ EOF
   ck "C16 a file named only in a COMMENT is still a leak" "1" "$(grep -c 'LEAK gates/mentioned-only.js' <<<"$out")"
   ck "C17 and a file named on a CODE line is not"         "0" "$(grep -c 'LEAK gates/gatemanifest.sh' <<<"$out")"
   rm -f "$T/gates/mentioned-only.js"
+  sed -i '$d' "$T/RUN-LOG.md"
+
+  # C32/C33: THE SPECIMEN RULE, FIRING AND SILENT. Added by #513, and the reason is a finding against
+  # #513 itself. The commit that introduced the SIGPIPE-FIXTURE rule into decomment() shipped with NO
+  # CONTROL FOR IT: antagonist B measured this selftest at 43 pass / 0 fail on origin/main, on the commit
+  # carrying the defect AND on the commit that fixed it, so the `-e` ordering bug - which I found by
+  # re-running and reading a number, not by reading the sed - had no regression arm anywhere, in the file
+  # whose own section header promises "Every detector shown FIRING and SILENT, per R18". C16/C17 above
+  # cover ordinary `#` comments, which main already handled; neither of them touches the marker.
+  : > "$T/gates/specimen-only.sh"
+  echo 'echo "  try: bash gates/specimen-only.sh --check"   # SIGPIPE-FIXTURE: a QUOTED SPECIMEN, not code' >> "$T/gates/gates.sh"
+  echo "evidence: gates/specimen-only.sh -> 9 rows" >> "$T/RUN-LOG.md"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" bash "$SELF/cited-not-run.sh" 2>&1)"
+  # C32 FIRES: the path is named ONLY inside a line whose trailing comment carries the marker, in the
+  # REACHABLE fixture gates.sh. The marker declares it a quoted specimen, so decomment must delete the
+  # whole line, no edge may be created, and the file must remain a LEAK. THIS IS THE ORDERING TEST:
+  # with the trailing-comment rule ahead of the marker delete, the marker is stripped first, the
+  # specimen survives as bare code, an edge IS created, and this arm reads 0.
+  ck "C32 a SIGPIPE-FIXTURE specimen creates no edge"   "1" "$(grep -c 'LEAK gates/specimen-only.sh' <<<"$out")"
+  # C33 SILENT: the SAME path on the SAME line with the marker removed is an ordinary reference, so it
+  # MUST create an edge and the file must stop being a leak. Without this, C32 would pass on a decomment
+  # that deleted every line - the one-sided control that is worth nothing.
+  sed -i 's|   # SIGPIPE-FIXTURE: a QUOTED SPECIMEN, not code||' "$T/gates/gates.sh"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" bash "$SELF/cited-not-run.sh" 2>&1)"
+  ck "C33 the same line WITHOUT the marker does"        "0" "$(grep -c 'LEAK gates/specimen-only.sh' <<<"$out")"
+  rm -f "$T/gates/specimen-only.sh"
   sed -i '$d' "$T/RUN-LOG.md"
 
   # ── THE ROSTER ARM, C18-C29. Every detector FIRING and SILENT, on the same fixture tree ─────────
