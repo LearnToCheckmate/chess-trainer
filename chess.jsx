@@ -995,11 +995,23 @@ function dropTxt(altSan,altDrop){
    unconditionally. So the two already disagree on the mating case, today. Making pvShow read SAC_LINE_MAX
    would change a different sentence's output in a build that was not gated for it, so it is left alone.
    HOISTING, CHECKED RATHER THAN ASSUMED [#507's own declaration-order bug, caught by reading the edit
-   back]: this sits ~640 lines ABOVE uciToMove, but every helper it calls - applyMove:69, toSAN:90,
-   makeMove:98, uciToMove:1597 - is a `function` DECLARATION and so is hoisted to module scope, and sacLine
+   back]: this sits ~640 lines ABOVE uciToMove, but every helper it calls - applyMove, toSAN,
+   makeMove and uciToMove - is a `function` DECLARATION and so is hoisted to module scope, and sacLine
    is only ever called at runtime from sacRun. A `const` arrow would have been a temporal-dead-zone
    ReferenceError here; a declaration is not. */
 const SAC_LINE_MAX=3;
+/* #512, ANTAGONIST A's F1: THE STORE DECISION, PURE AND MODULE-LEVEL SO IT CAN BE ENUMERATED.
+   `ok` is sfBestLine's new onDone flag - true only when the engine's `best` callback delivered - and
+   `line` is the trimmed SAN line. An entry is cached only when the engine ANSWERED and the answer renders.
+   THIS IS NOT #504's sacStore RETURNING BY THE BACK DOOR, and the distinction is the whole of the R45
+   argument this build made for dropping that: sacStore was a SECOND MECHANISM for the poisoned-cache
+   concern - it decided which entry to write, carried a `mark` identity through the request and counted
+   retries against SAC_DEAD_TRIES, in parallel with #511's token. sacKeep decides NOTHING of the sort. It
+   is #511's own "is this a real answer" question, unchanged, lifted out of the callback so a gate can ask
+   it without a browser - which is exactly the move A praised in #504's veto ("making the thing under test
+   a pure function is the fix for that, not an assertion written around it"). #511's token, ownership
+   re-validation, yield and `else delete` are all still the only cache machinery in this file. */
+function sacKeep(ok,line){return !!ok&&!!line&&line.length>0;}
 function sacLine(gAfterCap,pvUci){
   const out=[];
   try{
@@ -1008,7 +1020,31 @@ function sacLine(gAfterCap,pvUci){
     for(let i=0;i<pvUci.length&&out.length<SAC_LINE_MAX;i++){
       const m=uciToMove(g,pvUci[i]); if(!m)break;
       const nb=applyMove(g.board,m);
-      out.push(toSAN(g,m,nb));
+      const san=toSAN(g,m,nb);
+      /* #512, ANTAGONIST B's F2, VETO UPHELD: EVERY PLY PAST THE FIRST MUST ITSELF BE FORCING, not just
+         the last surviving one. The first version of this loop pushed whatever the pv held and then
+         trimmed from the RIGHT, so an intermediate QUIET ply could sit inside the line as long as the
+         ply after it was a capture. B measured two on real games: on 174540842570 ply 74 the line read
+         "If exf6+, Kxf6 f5 gxf5" where f5 is WHITE's quiet pawn push, and on 174386847848 ply 31
+         "If Bxe5, h3 Bc6 Bxc6" where neither h3 nor Bc6 is forcing - a three-move sequence the opponent
+         has no reason to follow, ending in a trade that recovers nothing. Both printed ONE ply on main,
+         so both were regressions this build introduced.
+         AND THE STANDARD WAS ALREADY WRITTEN IN THIS FILE, 300 LINES ABOVE, which is what makes this a
+         contradiction rather than an oversight: explainAnno's own pvForcing is `_pv.every(...)` and its
+         comment says a continuation "is only an EXPLANATION when it is forcing ... the line is shown when
+         EVERY move in it is a capture, a check or mate". sacLine now meets the same bar instead of a
+         weaker one. Breaking HERE rather than trimming later also restores the claim this build makes
+         further up - that it can only ever ADD the recovery - because a non-forcing continuation now
+         leaves the line exactly where main left it.
+         WHY out[0] IS EXEMPT, and it is deliberate rather than an oversight [B's F3]: out[0] is the
+         engine's best reply to the opponent's capture and is what shipped BEFORE this build, quiet or
+         not. B measured single quiet replies on BOTH bundles byte-identically - "If Qxa4, Rd8",
+         "If Kxf1, Re8", "If Kxg3, Rh8" - so requiring out[0] to be forcing would DELETE a clause main
+         shows, which is a different change from the one this build is for and is not gated for. The
+         honest statement of the rule is therefore: the FIRST ply is the engine's reply as before, and
+         the line is EXTENDED only through forcing plies of which the last is the mover's own. */
+      if(out.length>0&&!/[x+#]/.test(san))break;
+      out.push(san);
       g=makeMove(g,m);
     }
     while(out.length>1&&!(/[x+#]/.test(out[out.length-1])&&(out.length-1)%2===0))out.pop();
@@ -4186,20 +4222,46 @@ export default function App(){
     anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=mateW(s.mate,sign);cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=mateW(s.mate,sign);cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm,true)};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));}catch(e){finish(null,false);}});
   });
   // Engine's best line (principal variation) from a position; resolves an array of UCI moves or null. Lets Review play the better line out at full engine strength.
-  const sfBestLine=(fen,movetime,onScore)=>new Promise(resolve=>{
+  /* #512, ANTAGONIST A's F1, VETO UPHELD: THIS FUNCTION NOW SAYS WHETHER THE ENGINE ACTUALLY ANSWERED.
+     `onDone(ok)` is optional and PURELY ADDITIVE - the resolved value is unchanged on every path, so the
+     two existing callers (the moves-view engine line at the `_lcp` site, and playBestLine) are untouched
+     byte for byte. It exists because #511 gave sfEval1 an `ok` for exactly this reason and sfBestLine
+     never got one, and #512 then moved sacRun from sfEval1 to sfBestLine - which silently dropped the
+     protection.
+     THE PATH THAT MATTERS, AND MY OWN CLAIM ABOUT IT WAS FALSE [R18, withdrawn here]. #512's commit
+     message and its sacRun comment both said sfBestLine "resolves an ARRAY or NULL, and all four failure
+     paths resolve NULL". IT HAS SIX SETTLE SITES, NOT FOUR, and the one I omitted is the one that breaks
+     the claim: the stuck-worker timeout below resolves `line` - WHATEVER PARTIAL pv HAS ACCUMULATED - not
+     null. sfEval1's timeout resolves `ok:false`. So `sanLine.length` accepted a dead search's partial,
+     possibly depth-1 line AND its partial score as the answer, where #511's `r.ok` refused it, and cached
+     it for the session. That is CLAUDE.md's #389 ("a failed query is not an answer, and caching it is how
+     broken once becomes broken for ever") and #392 ("a dead search's score is as untrustworthy as its
+     missing line") re-opened on the same function 28 minutes after #511 closed them.
+     AND IT WAS WORSE THAN A MISS, which is the part worth carrying: on main the poisoned entry had an
+     EMPTY replySan, so no clause rendered and gate 22's R4/R5 ("the clause must be here on return") could
+     SEE it. Under the first cut of #512 the poisoned entry had a NON-EMPTY replySan, so it renders a
+     clause and R4/R5 PASS. I had converted a detectable poisoning into an undetectable one, and delegated
+     the concern to the gate that had just lost the ability to detect it. Eleventh costume of the trap this
+     project records: the check and the thing being checked were the same object.
+     WHY NOT JUST MAKE THE TIMEOUT RESOLVE NULL: because the resolved value is the contract for two other
+     callers, and the Review play-out legitimately wants whatever line it got. Reporting beside the value
+     changes nothing for them. */
+  const sfBestLine=(fen,movetime,onScore,onDone)=>new Promise(resolve=>{
+    const _say=(ok)=>{if(onDone)try{onDone(!!ok);}catch(e){}};
     const w=sfAnaRef.current;
-    if(!w||!sfAnaReadyRef.current){resolve(null);return;}
+    if(!w||!sfAnaReadyRef.current){_say(false);resolve(null);return;}
     try{const _p=sfAnaAbortRef.current;if(_p)_p();}catch(e){}
     let line=null,done=false;
     sfAnaBusyRef.current=true;
-    const finish=(r)=>{if(done)return;done=true;sfAnaCbRef.current=null;sfAnaBusyRef.current=false;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearTimeout(to);resolve(r);};
-    const _abort=()=>finish(null); sfAnaAbortRef.current=_abort;
-    const to=setTimeout(()=>finish(line),Math.max(4000,movetime*8));
+    const finish=(r,ok)=>{if(done)return;done=true;sfAnaCbRef.current=null;sfAnaBusyRef.current=false;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearTimeout(to);_say(ok);resolve(r);};
+    const _abort=()=>finish(null,false); sfAnaAbortRef.current=_abort;
+    /* #512: still resolves the partial `line` - that is the existing contract - but reports ok:false. */
+    const to=setTimeout(()=>finish(line,false),Math.max(4000,movetime*8));
     /* #511: the same move as in sfEval1 above, for the same reason - a previous search's `bestmove` or `info`
        must not be read as this query's. Here it matters doubly, because `pv` ACCUMULATES into `line` and the
        timeout resolves whatever `line` holds: a stray pv from the old search would have been returned as this
        position's principal variation. */
-    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null);return;}sfAnaCbRef.current={score:(sc)=>{if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(arr&&arr.length)line=arr;},best:(bm)=>finish(line||(bm&&bm!=='(none)'?[bm]:null))};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null);}});
+    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(sc)=>{if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(arr&&arr.length)line=arr;},best:(bm)=>finish(line||(bm&&bm!=='(none)'?[bm]:null),true)};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null,false);}});
   });
   // ── #343: parallel review workers ────────────────────────────────────────
   // A game review is 60-80 INDEPENDENT position evaluations, so it parallelises almost perfectly.
@@ -5833,7 +5895,12 @@ export default function App(){
          internally (mateW(raw,sign), cp*sign) and the verdict clause below reads the number in WHITE's
          frame; sfBestLine hands `onScore` the RAW uci score. Re-framing it silently would be #385's
          hundredfold error in a new place, so the conversion is spelled out and uses the same mateW:120 and
-         the same stm-derived sign that sfEval1:4092 uses, read off this very FEN.
+         the same stm-derived sign that sfEval1's own `const stm=` line uses, read off this very FEN.
+         THE LINE NUMBER THAT USED TO BE IN THAT SENTENCE WAS MAIN'S, NOT THIS TREE'S [#512 antagonist A's
+         F3, upheld]: it read `sfEval1:4092`, which is correct on origin/main and is 4160 here, because
+         this build's own hunk inserts 68 lines above it. De-pinned to the SYMBOL, which is the remedy
+         #506's pointer 4 and #399 both prescribe - a line number in a comment that lives in the file it
+         cites goes stale the moment anything above it moves.
          ONLY mpv 1. sfEval1 keeps a second multipv line for its `alt`; nothing here consumes one, so a
          multipv-2 score must not be allowed to overwrite the verdict's input.
          WHAT IS DIFFERENT FROM #504, WHICH BUILT THIS FIRST AND COULD NOT SHIP IT: #504 also carried its
@@ -5852,12 +5919,12 @@ export default function App(){
          it stays a named residual on the job. It is pre-existing for sfBestLine's other caller. */
       const _fen=toFEN(w.t.after);
       const _sgn=((_fen.split(' ')[1]||'w')==='w')?1:-1;
-      let pv=null,_cpW=null,_mtW=null;
+      let pv=null,_cpW=null,_mtW=null,_ansOk=false;
       try{ if(sfReadyRef.current&&await ensureAna()) pv=await sfBestLine(_fen,700,(sc)=>{
         if((sc.mpv||1)!==1)return;
         if(sc.mate!=null){_mtW=mateW(sc.mate,_sgn);_cpW=null;}
         else if(sc.cp!=null){_cpW=_sgn*sc.cp;_mtW=null;}
-      }); }catch(e){}
+      },(ok)=>{_ansOk=ok;}); }catch(e){}
       const sanLine=sacLine(w.t.after,pv);
       const replySan=sanLine[0]||'';
       const mover=w.pos.turn, moverName=mover==='w'?'White':'Black';
@@ -5896,19 +5963,15 @@ export default function App(){
       const _cur=sacRef.current.byPly[w.ai];
       const _mine=sacRef.current.key===w.key&&_cur&&_cur.pending&&_cur.tok===w.tok;
       if(_mine){
-        /* #512 THE REAL-ANSWER TEST MOVES FROM `r.ok` TO `sanLine.length`, AND IT IS NOT A WEAKENING -
-           IT IS THE SAME QUESTION ASKED OF A DIFFERENT RETURN TYPE. #511 needed `ok` because sfEval1
-           resolves an OBJECT on every path and `bestmove:null` could not tell an abort, a timeout, a
-           failed idle check, a postMessage throw and a legitimate 'bestmove (none)' apart. sfBestLine
-           does not have that problem: it resolves an ARRAY or NULL, and all four failure paths resolve
-           NULL (abort, !idle, postMessage throw, and the no-move case), so a non-empty pv already means
-           the engine produced a line for THIS position. #511's own F4 fix is what makes that true - it
-           moved the callback installation inside the idle callback in sfBestLine too, so a stray pv from
-           a previous search can no longer accumulate into `line` and be resolved as this position's.
-           sanLine rather than pv because an unparseable first move is also no answer, and because it is
-           the thing the sentence actually renders. `delete` keeps #511's own remedy exactly: the ply is
-           re-queried when the reader returns, which turns "never" into "tries again when you come back". */
-        if(sanLine.length)sacRef.current.byPly[w.ai]={capSan:w.t.san,replySan,replyLine:sanLine,verdict,cpW:_cpW,mateW:_mtW};
+        /* #512 THE REAL-ANSWER TEST IS sacKeep(ok, line), AND THE FIRST VERSION OF IT WAS WRONG.
+           It read `sanLine.length` alone, on the stated ground that sfBestLine "resolves an ARRAY or NULL
+           and all four failure paths resolve NULL". THAT ENUMERATION IS FALSE AND IS WITHDRAWN [R18]:
+           sfBestLine has SIX settle sites and the stuck-worker timeout resolves the PARTIAL pv, not null.
+           See the withdrawal at sfBestLine itself; the short version is that a dead search's shallow line
+           and its untrustworthy score were cached as the answer, which is the #389/#392 pair #511 had
+           closed on this very function half an hour earlier. `ok` now comes from sfBestLine's own
+           `best`-delivered flag, so the question asked here is the same one #511's `r.ok` asked. */
+        if(sacKeep(_ansOk,sanLine))sacRef.current.byPly[w.ai]={capSan:w.t.san,replySan,replyLine:sanLine,verdict,cpW:_cpW,mateW:_mtW};
         else delete sacRef.current.byPly[w.ai];
       }
       setSacTick(x=>x+1);

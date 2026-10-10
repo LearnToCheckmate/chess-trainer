@@ -106,8 +106,12 @@ work, and I can watch that line on the board.
   the line on the board without a console error (#354, #356). (TC-R10)
 - THE LINE RUNS TO THE PLAYER'S OWN RECOVERY, NOT TO THE SACRIFICE AND NOT TO THE PUNISHMENT. Where the
   engine's line has a forcing continuation belonging to the player who moved, the reason shows up to three of
-  its plies and always ends on THAT player's capture, check or mate - never on a quiet move, and never on the
-  opponent's reply. On 13.Rxd7 in the Opera Game it reads "If Nxd7, Bxe7 Bxe7 Bxd7+ ...", so the recapture
+  its plies; EVERY ply it adds is a capture, a check or mate, and the last of them is THAT player's own.
+  THE FIRST PLY IS THE ENGINE'S BEST REPLY AND MAY BE QUIET, exactly as it was before this clause existed -
+  that is stated rather than glossed, because the first version of this clause said "never on a quiet move"
+  and an antagonist measured that FALSE OF BOTH BUNDLES: a one-ply line is whatever the engine answers, and
+  "If Qxa4, Rd8", "If Kxf1, Re8" and "If Kxg3, Rh8" read byte-identically on the shipped build and on the one
+  before it. Requiring otherwise would delete a clause the app already shows. On 13.Rxd7 in the Opera Game it reads "If Nxd7, Bxe7 Bxe7 Bxd7+ ...", so the recapture
   that makes the move work is on screen; on 10.Nxb5, whose line has no forcing continuation of White's own,
   it is unchanged at one ply. THE PARITY HALF OF THIS CLAUSE IS NOT DECORATION: without it the line ends on
   the opponent's move whenever it is even in length, and on ply 74 of Kunal's own game that printed
@@ -121,11 +125,20 @@ work, and I can watch that line on the board.
   than the player would want. (#512, asserted as a known limit rather than discovered.) (TC-R10)
 - A FAILED ENGINE SEARCH IS NEVER SHOWN, AND NEVER REMEMBERED AS AN ANSWER. If the search that builds that
   line dies, the reason simply omits the clause and the position is asked again the next time the player
-  visits that ply, rather than being left blank for the rest of the session (#389, #511). THE WORDING OF THIS
-  CLAUSE IS DELIBERATELY NOT "up to three attempts" [R18]: the version of this feature built at #504 bounded
-  the retry at three tries, and #512 does NOT ship that mechanism - it ships #511's, which drops the entry
-  and re-queries whenever the player returns, with no attempt count. A story clause promising a bound the
-  code does not have would be worse than no clause. (TC-R10)
+  visits that ply, rather than being left blank for the rest of the session (#389, #511, #512). THE WORDING
+  OF THIS CLAUSE IS DELIBERATELY NOT "up to three attempts" [R18]: the version of this feature built at #504
+  bounded the retry at three tries, and #512 does NOT ship that mechanism - it ships #511's, which drops the
+  entry and re-queries whenever the player returns, with no attempt count. A story clause promising a bound
+  the code does not have would be worse than no clause.
+  AND THIS CLAUSE WAS BRIEFLY FALSE OF THE BUILD THAT WROTE IT, WHICH IS WHY IT NOW NAMES ITS GUARD. #512's
+  first cut moved the engine query from sfEval1 to sfBestLine and tested only whether a line came back.
+  sfBestLine's stuck-worker timeout resolves the PARTIAL variation rather than nothing, so a search that
+  never answered WAS shown and WAS remembered - and both blind antagonists found it independently, one by
+  driving the function against a stub worker that never sends a bestmove, the other by capping the worker's
+  search depth and reading a sentence that contradicted itself on screen ("keeps a clear edge" eight words
+  before "is winning here"). What makes the clause true is the predicate sacKeep, which caches a line only
+  when the engine's own best-move callback delivered it. A story clause whose mechanism is named can be
+  checked; this one is, by TC-R10/S28 to S31. (TC-R10)
 
 ### US-R07 I can analyse any position myself
 As a player, from any ply I open an analysis board where both colours are movable, with Undo and Exit.
