@@ -44,10 +44,41 @@ const seen=(b,sel)=>b.page.locator(sel).last().isVisible().catch(()=>false);
 
 // The review board's width per geometry, measured not assumed: 349 is Kunal's phone, 264 the same board at
 // 320 minus the same eval bar. PINNED, so this gate cannot go green against a board that was wrong already.
-const WANT={kunal730:{board:349},se:{board:264}};
+//
+// 2026-10-10, process lane 2, alsoFromTheSameAudit ITEM 4 of
+// jobs/gate40-headline-assertion-has-a-zero-denominator-at-kunals-geometry-2026-09-28. THIS GATE PINNED THE
+// BOARD AT 2 OF THE 7 GEOMETRIES AND NEITHER OF THEM WAS THE ONE THE RULE NAMES. prompts/common R19 has said
+// since 2026-10-03 "USE 375 x 761", and a sweep of all 55 files in gates/regress at 11abfaa found only THREE
+// that ever visit kunal761 (26-invariants, 45-play-setup, 72-drill-prev) against 37 at kunal730. This file was
+// one of the 37.
+//
+// kunal761 IS ADDED AND NOTHING IS REPLACED, AND THAT IS DELIBERATE RATHER THAN TIMID.
+// contradictions/r19-height-settled-against-the-phone-card-still-asking-2026-10-04 is OPEN with eight sides:
+// R19 says 761, gates/lib.js:31 says "'kunal730' is the real phone and new gates should use it", and
+// claude/stories/USER-STORIES.md names 375x730 in both canonical geometry sets. R45 reserves resolving a
+// contradiction to someone other than whoever reports it, so this gate does not pick a side, does not touch
+// gates/lib.js (which is outside the process lane's allow-list in any case) and DELETES NO COLUMN - deleting
+// the 730 column is the migration hazard owned by
+// jobs/the-geometry-token-is-a-control-flow-discriminator-so-the-761-migration-stays-green-while-deleting-coverage-2026-10-08.
+// Adding the column is the same shape process lane 1's gate-21 payload took, which that contradiction's own
+// fifth side records as side A behaviour.
+//
+// THE 349 FOR kunal761 IS MEASURED ON THIS BUNDLE AND IS NOT COPIED FROM THE 730 COLUMN [R18]. Measured
+// 2026-10-10 in real Chromium against origin/main 165b7b8's own app.js (md5 read by gates.sh at run time), in
+// a throwaway copy of gates/ outside the repository: at GEOS.kunal761 (375x761 viewport, ct_safe 51,31) on the
+// Review screen with the Opera Game analysed, the review board renders 349.03125px wide - BYTE-IDENTICAL to
+// what this gate already reads at kunal730, and 0.01px from the boardPx 349.04 in Kunal's own 2026-09-14
+// diagnostics report that R19 quotes. SHOWN BOTH WAYS, because a pin that was never seen to fire is not a pin:
+// with the cell pinned at -1 the assertion FAILS and prints 349.03125 as the actual (17 pass / 1 fail); with it
+// pinned at 349 the same run reads 18 pass / 0 fail. That the two 375-wide columns agree is a RESULT, not an
+// assumption - it also falsifies gates/lib.js:24-26's 2026-09-12 prediction that ct_safe at 761 would make the
+// board 293, by 56px, which process lane 1 measured independently on 2026-10-04 at a different bundle.
+const WANT={kunal761:{board:349},kunal730:{board:349},se:{board:264}};
 
 L.run(async()=>{
-  for(const geo of ['kunal730','se']){
+  // kunal761 FIRST: R19 says "Test at 375 first, then the six width bands in the UAT pipeline", and of the
+  // three columns this is the one the rule names. 730 and se follow unchanged, so no coverage is lost.
+  for(const geo of ['kunal761','kunal730','se']){
     const b=await L.launch({geo,name:'coach-'+geo,store:{ct_pool:'3'}});
     const W=WANT[geo];
     await b.open();
