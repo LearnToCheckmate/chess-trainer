@@ -31,15 +31,21 @@
 // the headless-gallery lane could not in 11. This gate does not wait for the trigger, it CAUSES one, and
 // then asks whether the board comes back.
 //
-// AND THE TRIGGER IS NOT UNIDENTIFIED - THE REPOSITORY HELD A MEASURED INSTANCE ALL ALONG, which this
-// file's first draft published as an open question. gates/regress/16-cpu-result-line.js:424 - a REQUIRED
-// gate - records that at game over "its 62px in-flow spacer (chess.jsx:7175) entered the flow, the fit loop
-// read it as content and trimmed the board 224.00 -> 192.00 - 14%", and the irreversibility is in its own
-// measurement: "live 224.00 -> card-up 192.00 -> card-gone 192.00". card-gone 192.00 IS the latch. So the
-// trigger CLASS is known - a fixed bar's in-flow spacer entering the flow on a content change - and 62px
-// sits inside the band that latches Kunal's own phone below. The honest open question is much narrower than
-// "trigger unidentified": WHICH PORTRAIT SCREEN STILL PUTS >60px INTO THE FLOW ON A CONTENT CHANGE.
-// Found by antagonist B; the build never grepped its own suite for the loop it was characterising.
+// AND A TRANSIENT OF THE SIZE THAT LATCHES HIS PHONE IS SOMETHING THIS APP REALLY PUTS INTO THE FLOW -
+// with one important qualification that the cross-read supplied and that is easy to get wrong.
+// gates/regress/16-cpu-result-line.js records at :424 that at game over "its 62px in-flow spacer
+// (chess.jsx:7175) entered the flow, the fit loop read it as content and trimmed the board 224.00 -> 192.00
+// - 14%", with the irreversibility in its own figures: "live 224.00 -> card-up 192.00 -> card-gone 192.00".
+// THE QUALIFICATION: that measurement sits under that file's "E: LANDSCAPE, 730x375" header and was taken on
+// the #434 bundle, and #436 then took the loop OUT of landscape entirely (`_fitScreen` opens with `!wide`).
+// So gate 16 is a HISTORICAL RECORD of a bundle two builds dead; it does NOT assert the portrait ratchet
+// today, and this file remains the only gate over the PORTRAIT ratchet. What gate 16 does establish, and it
+// is the part that matters, is that a 62px in-flow spacer entering the flow on a content change is a REAL
+// pattern in this codebase and not a synthetic one - which is why the 60-90px band that latches Kunal's own
+// phone is reachable rather than hypothetical. Antagonist B found the citation; antagonist A corrected its
+// scope in the cross-read, and the build verified both before writing this. The honest open question is
+// therefore narrower than "the trigger is unidentified" and sharper than "it is already measured":
+// WHICH PORTRAIT SCREEN STILL PUTS MORE THAN ABOUT 60px INTO THE FLOW ON A CONTENT CHANGE.
 //
 // THE SIZE OF THE TRANSIENT IS AN INPUT AXIS, AND THE FIRST DRAFT OF THIS FILE DROVE ONE VALUE OF IT AND
 // PUBLISHED THE RESULT AS A PROPERTY. That is the single worst thing this build did and it is corrected
@@ -182,6 +188,9 @@ const armInner=async(geo,px)=>{
       return bottom>0?(bottom-sp+pb-de.clientHeight):(de.scrollHeight-de.clientHeight);};
     const tick=()=>{if(window.__ct75stop)return;const o=read();if(o!==null)window.__ct75.push(Math.round(o*100)/100);requestAnimationFrame(tick);};
     requestAnimationFrame(tick);});
+  const injRect=px?await b.page.evaluate(()=>{const e=document.getElementById('ct510inj');
+    if(!e)return null; const r=e.getBoundingClientRect(); const cs=getComputedStyle(e);
+    return {h:Math.round(r.height*100)/100,pos:cs.position,inFlow:cs.position!=='fixed'&&cs.position!=='absolute'};}):null;
   const clicked=await toPractice(b);
   await b.settle(1400);
   const peak=await b.page.evaluate(()=>{window.__ct75stop=true;
@@ -192,7 +201,7 @@ const armInner=async(geo,px)=>{
   const board=await bw(b), ov=await overOf(b), practice=await inPractice(b);
   const errs=b.errs.length;
   await b.close();
-  return {demo,board,during,ov,clicked,practice,nInflow,errs,peak};
+  return {demo,board,during,injRect,ov,clicked,practice,nInflow,errs,peak};
 };
 
 // #393: a harness throw in one arm must go red on its OWN assertion and let the rest of the file run.
@@ -200,7 +209,7 @@ const armInner=async(geo,px)=>{
 // assertion after it. Antagonist A's finding.
 const arm=async(geo,px)=>{
   try{ return await armInner(geo,px); }
-  catch(e){ return {demo:null,board:null,during:null,ov:null,clicked:false,practice:false,nInflow:null,errs:-1,peak:null,threw:String(e&&e.message||e)}; }
+  catch(e){ return {demo:null,board:null,during:null,injRect:null,ov:null,clicked:false,practice:false,nInflow:null,errs:-1,peak:null,threw:String(e&&e.message||e)}; }
 };
 
 const pair=(n,tag,clean,inj,px,engages)=>{
@@ -210,22 +219,29 @@ const pair=(n,tag,clean,inj,px,engages)=>{
   L.say(typeof clean.board==='number'&&clean.board>40,'TC-R64 '+tag+'3 '+n+' a board is painted in the clean arm - the denominator',{board:clean.board});
   L.say(typeof inj.board==='number'&&inj.board>40,'TC-R64 '+tag+'4 '+n+' a board is painted in the injected arm. `lost` is 0 when BOTH boards are null, so the recovery assertion would pass over two absent boards',{board:inj.board});
   L.say(clean.demo===inj.demo,'TC-R64 '+tag+'5 '+n+' THE TWO ARMS ARE COMPARABLE: they agree at the demo end, measured BEFORE either diverges. An L.note in the first draft, and both antagonists called it a precondition and therefore a verdict - gate 48 records this board as BISTABLE between runs ("192 then 192 in one run and 270.9 then 270.9 in the next", about 2 runs in 6), so two independent draws could both be low and report a recovery that never happened',{cleanDemo:clean.demo,injectedDemo:inj.demo});
-  // THE NON-VACUITY OF THE RECOVERY ASSERTION, AND MY FIRST VERSION OF IT WAS UNSOUND AND THE RUN CAUGHT IT
-  // [R18]. That version asserted the transient had moved the peak `over` I sample per frame, and it went RED
-  // ON A WORKING CONTROL at three of six cells: at 375x568 the injected and clean peaks are BOTH 2.88 while
-  // only the injected arm latches, and at the two sub-threshold cells both are 0. Sampled `over` does not
-  // capture what the loop acts on - the loop measures inside its OWN rAF callback, after its own setBoardTrim
-  // has applied, so an outside sampler and the loop never see the same DOM. "An assertion you cannot ground is
-  // worse than no assertion", so the peaks are now printed and the non-vacuity is pinned to a quantity I CAN
-  // ground: the board WHILE the transient is in flow. On ANY bundle, broken or fixed, content that needs room
-  // must take it - so a dip is the control engaging, and its absence means the transient did nothing.
-  if(engages){
-    L.say(typeof inj.during==='number'&&inj.during<clean.board-0.5,'TC-R64 '+tag+'6 '+n+' THE '+px+'px TRANSIENT ACTUALLY TOOK BOARD ROOM while it was in flow, which is the non-vacuity of the recovery assertion below: without it, two equal boards would prove only that nothing happened. Grounded in the board itself rather than in a sampled `over` [#416, #385]',{duringInjection:inj.during,cleanBoard:clean.board,px});
+  // THE NON-VACUITY OF THE RECOVERY ASSERTION, AND IT TOOK THREE TRIES TO GET RIGHT [R18]. The versions
+  // that were wrong are recorded because the mistake is the instructive part and both were caught, not
+  // reasoned away.
+  //   TRY 1 asserted the transient had moved the peak `over` this file samples per frame. It went RED ON A
+  //   WORKING CONTROL at three of six cells - at 375x568 the injected and clean peaks are BOTH 2.88 while
+  //   only the injected arm latches, and at the two sub-threshold cells both read 0 - because an outside
+  //   sampler and the loop never see the same DOM: the loop measures inside its OWN rAF callback, after its
+  //   own setBoardTrim has applied. Caught by running it.
+  //   TRY 2 asserted the BOARD had moved while the transient was in flow. That passes on main at all six
+  //   cells, and it is still wrong, because it is a claim about the APP: a fix that absorbed the transient
+  //   without shrinking the board at all would REDDEN IT WHILE BEING CORRECT. That is precisely the fault
+  //   antagonist A vetoed in this file's first C1/C2, one level along, and A caught it again in the
+  //   cross-read before the suite finished.
+  // SO THE PRECONDITION IS NOW A FACT ABOUT THE CONTROL AND NOT ABOUT THE APP, which is antagonist A's own
+  // prescription: the injected element really did sit IN THE FLOW with its full height at the moment of the
+  // dependency change. No bundle, broken or fixed, can make that false, and without it two equal boards
+  // would prove only that the injection never happened.
+  if(px){
+    L.say(!!inj.injRect&&inj.injRect.inFlow===true&&Math.abs(inj.injRect.h-px)<1,'TC-R64 '+tag+'6 '+n+' THE CONTROL REALLY WAS APPLIED: the '+px+'px transient sat IN THE FLOW with its full height at the moment of the dependency change. A fact about the injection, not about the app, so no correct bundle can redden it [#385, and antagonist A twice]',{measured:inj.injRect,px});
   } else {
-    L.say(typeof inj.during==='number'&&Math.abs(inj.during-clean.board)<0.5,'TC-R64 '+tag+'6 '+n+' a '+px+'px transient is ABSORBED at this geometry and never takes board room at all - the board is unmoved even while the content is in flow. This is the sub-threshold regime and it is why the recovery assertion below is green on the broken bundle here [#385: the instrument is shown able to report both answers]',{duringInjection:inj.during,cleanBoard:clean.board,px});
+    L.say(inj.injRect===null,'TC-R64 '+tag+'6 '+n+' the clean arm injected nothing',{injRect:inj.injRect});
   }
-  L.say(clean.errs===0,'TC-R64 '+tag+'7 '+n+' zero console errors, clean arm',{errs:clean.errs});
-  L.say(inj.errs===0,'TC-R64 '+tag+'8 '+n+' zero console errors, injected arm - asserted separately from the clean arm, because a conjunct over both cannot say which one errored',{errs:inj.errs});
+  L.note(n+' '+px+'px board WHILE the transient was in flow (after the dependency change, before removal): '+inj.during+'  against a clean '+clean.board+'. Printed and NOT asserted: see the comment above. On main this is where the shrink has already landed, so it equals the final latched board; a fix that absorbed the transient without shrinking would read the clean value here and must not be called a failure for it.');
   const lost=Math.round((clean.board-inj.board)*100)/100;
   L.say(Math.abs(lost)<0.5,'TC-R64 '+tag+'9 '+n+' THE BOARD COMES BACK after a '+px+'px transient. A transient piece of in-flow content across one loop-dependency change must not cost board for the rest of the visit: the board after the injection cycle equals the board with no injection. NO pixel literal - the control is the other arm of the same run'+(engages?'':' (this cell is BELOW the threshold on main, so it is green on the broken bundle too and its job is to show the instrument can report both answers [#385])'),{cleanBoard:clean.board,afterInjectCycle:inj.board,lostPx:lost,transientPx:px});
   L.note(n+' '+px+'px peak `over` sampled per frame: injected='+inj.peak+'  clean='+clean.peak+'   -- printed, NOT asserted: see the comment above A6. At 375x568 these are EQUAL at 2.88 while only the injected arm latches, which is why a predicate over them reddens a working control.');
