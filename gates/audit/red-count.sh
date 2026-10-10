@@ -57,6 +57,11 @@ raw_of()   { grep -c '^FAIL' "$1" 2>/dev/null || true; }
 dedup_of() { grep '^FAIL' "$1" 2>/dev/null | sort -u | wc -l | tr -d ' '; }
 token_of() { grep -o '^FAIL [A-Za-z0-9]*' "$1" 2>/dev/null | sort -u | wc -l | tr -d ' '; }
 sect_of()  { grep -c '^=== ' "$1" 2>/dev/null || true; }
+# ADDED 2026-10-10 by process-build lane 3 for sections (5) and (6). A RED SECTION is a summary line
+# gates.sh writes at :356, four spaces then the gate name then ": RED (". It is the unit the replay
+# cap applies to, and it is also - section (6) - the only place a '<<<' has ever appeared in a log.
+redsect_of() { grep -cE '^ {4}[^ ]+: RED \(' "$1" 2>/dev/null || true; }
+mark_of()    { grep -c '<<<' "$1" 2>/dev/null || true; }
 
 gatelogs() {
   for d in claude/agents/gatelogs claude/agents/controls gates/logs; do
@@ -215,6 +220,153 @@ report() {
   echo "    can produce several hits. DE-DUPLICATE BY (gatelog, figure) BEFORE PUBLISHING A TOTAL."
   echo
 
+  # ── 5. THE REPLAY CAP, DERIVED FROM gates.sh RATHER THAN REMEMBERED ───────────────────────────
+  # ADDED 2026-10-10 by process-build lane 3, run process-build-3__1791649597346, for the FIRST of
+  # the two notChecked items of
+  # jobs/a-fail-line-count-on-a-gatelog-over-reports-by-up-to-five-2026-10-03:
+  #
+  #   "whether the replay is capped at exactly 5 for every section or varies with the section's own
+  #    FAIL count - measured 5 on one section with 16 FAILs; THE CAP WAS NOT READ OUT OF gates.sh"
+  #
+  # Three runs named it unrun: the 2026-10-03 filing, this lane's 2026-10-07 outcome, and #492's.
+  # It is two greps. IT IS READ OUT OF gates.sh HERE, EVERY RUN, rather than written down, because
+  # the whole published bound is a property of one literal in another file and a literal in another
+  # file is exactly what goes stale [R18].
+  #
+  # AND READING IT CORRECTS THIS JOB'S OWN HEADLINE. The cap is a CONSTANT 5 PER RED SECTION, not
+  # per log, so the bound on a log's over-report is 5 x (its red sections) and the title's "up to
+  # five" is a per-section figure published as a per-log one. It has never been exceeded only
+  # because no committed log yet has more than TWO red sections, which section (5) measures rather
+  # than assumes - and the suite runs 59 sections, so the condition under which the published bound
+  # breaks is "a build goes red in three or more sections", not anything exotic.
+  echo "(5) THE REPLAY CAP, READ OUT OF gates/gates.sh, AND THE BOUND IT IMPLIES"
+  GS="$ROOT/gates/gates.sh"
+  CAP_EXPECT="${CT_CAP_EXPECT:-5}"
+  if [ ! -r "$GS" ]; then
+    echo "    MEASURED NOTHING on this section: $GS is not readable, so the cap cannot be derived"
+    echo "    and no bound below it may be quoted. This is not a PASS."
+  else
+    # A REPLAY SITE is a line that extracts FAIL lines, caps them with head, and appends to $ALL.
+    # Both of gates.sh's sites match: :356 (`grep '^FAIL' "$log" | head -5 | tee -a "$ALL"`) and
+    # :326 (the unit-drill-why translation, `sed -n 's/^  FAIL /FAIL unit-drill-why /p' ... head -5`).
+    RSITES="$(grep -nE 'FAIL' "$GS" 2>/dev/null | grep -E 'head -' | grep -F 'tee -a' || true)"
+    NRS=0; [ -n "$RSITES" ] && NRS="$(grep -c . <<<"$RSITES" || true)"
+    CAPSET="$(grep -oE 'head -[0-9]+' <<<"${RSITES:-}" | grep -oE '[0-9]+' | sort -un | tr '\n' ',' | sed 's/,$//' || true)"
+    VARCAP="$(grep -cE 'head -\$' <<<"${RSITES:-}" || true)"
+    echo "    $NRS replay site(s) in gates/gates.sh:"
+    [ -n "$RSITES" ] && sed 's/^/        /' <<<"$RSITES"
+    if [ "$NRS" -eq 0 ]; then
+      echo "    MEASURED NOTHING: no replay site matched. Either the mechanism is gone - in which case"
+      echo "    every bound this project has published about it is about nothing - or this detector's"
+      echo "    pattern no longer fits gates.sh. BOTH need a human; neither is a PASS."
+      RED=1; FAILN=$((FAILN+1)); echo "FAIL (5) the replay site is locatable in gates.sh"
+    else
+      ck "(5) every replay cap is a literal, not derived from the section's FAIL count" "0" "$VARCAP"
+      [ "$VARCAP" -eq 0 ] || RED=1
+      ck "(5) the cap is one value across every replay site" "$CAP_EXPECT" "$CAPSET"
+      if [ "$CAPSET" != "$CAP_EXPECT" ]; then
+        RED=1
+        echo "    THE CAP MOVED, OR THE SITES DISAGREE: derived [$CAPSET] against the recorded $CAP_EXPECT."
+        echo "    EVERY published over-report bound in this project is 'the cap x the red sections', so a"
+        echo "    change here invalidates all of them at once and is why this is derived and not stored."
+      fi
+      CAP="${CAP_EXPECT}"; [ "$CAPSET" = "$CAP_EXPECT" ] && CAP="$CAPSET"
+      # THE BOUND, OVER THE SAME POPULATION SECTION (1) WALKED.
+      MAXRS=0; MAXOVER=0; MAXOVERLOG=""; NB=0; BADB=0
+      while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        r="$(raw_of "$f")"; [ "${r:-0}" -gt 0 ] || continue
+        d="$(dedup_of "$f")"; rs="$(redsect_of "$f")"; rs="${rs:-0}"
+        NB=$((NB+1)); over=$(( r - d ))
+        [ "$rs" -gt "$MAXRS" ] && MAXRS="$rs"
+        if [ "$over" -gt "$MAXOVER" ]; then MAXOVER="$over"; MAXOVERLOG="$(basename "$f")"; fi
+        if [ "$over" -gt $(( CAP * rs )) ]; then
+          BADB=$((BADB+1))
+          echo "    OVER-REPORT EXCEEDS THE DERIVED BOUND: $(basename "$f") raw $r dedup $d over $over,"
+          echo "        against $CAP x $rs red section(s) = $(( CAP * rs )). The replay is not the whole cause here."
+        fi
+      done < <(gatelogs)
+      if [ "$NB" -eq 0 ]; then
+        echo "    MEASURED NOTHING on the bound: no log with a red to apply it to."
+      else
+        ck "(5) no log over-reports by more than cap x its own red sections" "0" "$BADB"
+        [ "$BADB" -eq 0 ] || RED=1
+        echo "    $NB log(s) with reds. WORST OVER-REPORT $MAXOVER on ${MAXOVERLOG:-none}."
+        echo "    MOST RED SECTIONS IN ANY ONE LOG: $MAXRS. So the bound actually reachable TODAY is"
+        echo "    $CAP x $MAXRS = $(( CAP * MAXRS )), and the only reason the published 'up to five' has never been"
+        echo "    exceeded is that no committed log has gone red in three or more sections. gates.sh runs"
+        echo "    59 sections, so that is a fact about the sample and not a property of the mechanism."
+        echo "    QUOTE THE BOUND AS '$CAP PER RED SECTION', NEVER AS '$CAP PER LOG' [R18]."
+      fi
+    fi
+  fi
+  echo
+
+  # ── 6. THE MARKER RECIPE, WHICH IS THE SAME CAUSE AND STRICTLY WORSE ─────────────────────────
+  # ADDED 2026-10-10 by process-build lane 3 for the SECOND notChecked item of the same job:
+  #
+  #   "whether the `0 <<<` field in the summary line has the same replay behaviour"
+  #
+  # ANSWERED, AND THE ANSWER IS NOT 'THE SAME': IT IS WORSE IN KIND. gates.sh counts `marks` from
+  # the PER-GATE log (`marks=$(grep -c '<<<' "$log")`, :340) and then prints the count inside the
+  # section's summary line, which contains the LITERAL STRING `<<<` - so the all-log gains one
+  # `<<<` occurrence per RED SECTION that is pure formatting. A raw FAIL count over-reports a real
+  # number; a raw marker count over an all-log reports a number with NO true component.
+  #
+  # MEASURED 2026-10-10 over all 148 committed logs under claude/agents/: there are exactly 15
+  # occurrences of `<<<`, every one of them a RED summary line reading `0 <<<`, and ZERO genuine
+  # marker lines anywhere. `grep -c '<<<' <all-log>` therefore returns the log's RED SECTION COUNT
+  # and has never once returned a marker count.
+  #
+  # THE SEVERITY IS SEPARATED RATHER THAN BORROWED, which is what keeps this a finding and not an
+  # alarm: gates.sh's own red condition reads `marks` from the per-gate log, never from $ALL, so no
+  # build was wrongly reddened or greened by this and the suite's verdict is unaffected. The cost
+  # falls on exactly the population this job's ifNotDone names - a lane or an antagonist auditing a
+  # gatelog - and it is the one `<<<` is most likely to mislead, because `<<<` is one of the three
+  # conditions gates.sh exits 1 on, so a non-zero reading reads as a marker failure.
+  #
+  # THE SOUND RECIPE is to drop the summary lines first:
+  #   grep '<<<' <log> | grep -vE '^ {4}[^ ]+: RED \(' | wc -l
+  # or to read the FIELD'S VALUE rather than count the token.
+  echo "(6) THE MARKER RECIPE: what 'grep -c <<<' over an all-log actually counts"
+  MK_RAW=0; MK_SUMM=0; MK_GEN=0; NMK=0; BADM=0
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    mr="$(mark_of "$f")"; mr="${mr:-0}"
+    [ "$mr" -gt 0 ] || continue
+    NMK=$((NMK+1))
+    ms="$(grep '<<<' "$f" 2>/dev/null | grep -cE '^ {4}[^ ]+: RED \(' || true)"; ms="${ms:-0}"
+    mg=$(( mr - ms ))
+    MK_RAW=$(( MK_RAW + mr )); MK_SUMM=$(( MK_SUMM + ms )); MK_GEN=$(( MK_GEN + mg ))
+    if [ "$mg" -lt 0 ]; then
+      BADM=$((BADM+1))
+      echo "    ATTRIBUTION IS IMPOSSIBLE: $(basename "$f") raw $mr, summary lines $ms. More summary"
+      echo "        lines than occurrences means this section's own pattern is wrong, not the log."
+    elif [ "$mg" -gt 0 ]; then
+      echo "    GENUINE MARKER(S): $(basename "$f") holds $mg '<<<' line(s) that are NOT a summary line."
+      echo "        This is the FIRST such log. gates.sh's '<<<' red branch has never been exercised on"
+      echo "        any committed log, so nothing here says it behaves as its own comment claims."
+    fi
+  done < <(gatelogs)
+  if [ "$NMK" -eq 0 ]; then
+    echo "    MEASURED NOTHING on this section: no log under $ROOT holds a '<<<' at all, so neither"
+    echo "    recipe can be compared. This is NOT a PASS - a report over an empty population is the"
+    echo "    one green this script refuses to print."
+  else
+    ck "(6) every '<<<' occurrence is attributable" "0" "$BADM"
+    [ "$BADM" -eq 0 ] || RED=1
+    echo "    $NMK log(s) hold a '<<<'. RAW TOTAL $MK_RAW = $MK_SUMM summary line(s) + $MK_GEN genuine marker(s)."
+    if [ "$MK_GEN" -eq 0 ]; then
+      echo "    SO EVERY '<<<' IN THE TREE IS FORMATTING. 'grep -c <<<' over an all-log returns that"
+      echo "    log's RED SECTION COUNT and never a marker count - it has no true component at all,"
+      echo "    which is strictly worse than the FAIL case, where the raw count at least over-reports"
+      echo "    a real number. USE: grep '<<<' <log> | grep -vE '^ {4}[^ ]+: RED \(' | wc -l"
+      echo "    THE SUITE'S OWN VERDICT IS UNAFFECTED: gates/gates.sh:340 counts marks from the"
+      echo "    PER-GATE log, not from the all-log, so no build was reddened or greened by this."
+    fi
+  fi
+  echo
+
   rm -f "$TBL" "$BA"
   echo "red-count: $PASSN PASS / $FAILN FAIL"
   return "$RED"
@@ -325,6 +477,84 @@ selftest() {
   ck "C11e and the citation is still examined rather than skipped" "1" \
     "$(printf '%s' "$O8" | grep -c 'citation pair(s) examined')"
   rm -f "$T/claude/agents/REPORT.md"
+
+  # ── C12 to C14: SECTIONS (5) AND (6). ADDED 2026-10-10 by process-build lane 3.
+  # Every new detector is shown BOTH firing and silent on a tree built here, because a detector only
+  # ever seen silent is indistinguishable from one that cannot fire.
+
+  # C12 THE CAP DERIVATION, SILENT then FIRING. The fixture tree needs its own gates/gates.sh,
+  # because section (5) reads the cap out of $ROOT and not out of the repository this script lives in.
+  mkdir -p "$T/gates"
+  printf 'x\n  grep "^FAIL" "$log" | head -5 | tee -a "$ALL"\n' > "$T/gates/gates.sh"
+  O9="$(CT_ROOT="$T" CT_TOKEN_CEIL=0 bash "$ROOT/gates/audit/red-count.sh" 2>&1)"; RC9=$?
+  # C12 ASSERTS THE DERIVATION'S OWN LINES AND NOT THE EXIT CODE, and its first draft asserted
+  # rc 0 and FAILED - correctly, and the detector was right. At this point in the selftest the
+  # fixture still holds b-replayed.log, which over-reports by 2 with ZERO red summary lines, so
+  # section (5)'s BOUND arm fires and the tree is rc 1 for a reason that has nothing to do with the
+  # cap. Kept rather than quietly repaired: an exit code is the conjunction of every arm, so a
+  # control on one arm must read that arm's line. C13 below is the control for the bound.
+  ck "C12 a tree whose cap is 5 derives it as a literal" "1" \
+    "$(printf '%s' "$O9" | grep -c "PASS (5) every replay cap is a literal")"
+  ck "C12b and the derived cap is reported as one value" "1" \
+    "$(printf '%s' "$O9" | grep -c 'PASS (5) the cap is one value across every replay site')"
+  printf 'x\n  grep "^FAIL" "$log" | head -9 | tee -a "$ALL"\n' > "$T/gates/gates.sh"
+  O10="$(CT_ROOT="$T" CT_TOKEN_CEIL=0 bash "$ROOT/gates/audit/red-count.sh" 2>&1)"; RC10=$?
+  ck "C12c a cap that MOVED refuses" "1" "$RC10"
+  ck "C12d and names both the derived value and the recorded one" "1" \
+    "$(printf '%s' "$O10" | grep -c 'derived \[9\] against the recorded 5')"
+  # C12e A CAP TAKEN FROM A VARIABLE is the thing the notChecked item asked about - a replay that
+  # varies with the section's own FAIL count - and it must refuse rather than read as a literal.
+  printf 'x\n  grep "^FAIL" "$log" | head -$fails | tee -a "$ALL"\n' > "$T/gates/gates.sh"
+  O11="$(CT_ROOT="$T" CT_TOKEN_CEIL=0 bash "$ROOT/gates/audit/red-count.sh" 2>&1)"; RC11=$?
+  ck "C12e a cap derived from a variable refuses" "1" "$RC11"
+  ck "C12f and says the cap is not a literal" "1" \
+    "$(printf '%s' "$O11" | grep -c 'FAIL (5) every replay cap is a literal')"
+  # C12g NO REPLAY SITE AT ALL must refuse too, and must not read as a clean derivation: the
+  # mechanism being gone is a bigger finding than the cap having changed, not a smaller one.
+  printf 'x\n' > "$T/gates/gates.sh"
+  O12="$(CT_ROOT="$T" CT_TOKEN_CEIL=0 bash "$ROOT/gates/audit/red-count.sh" 2>&1)"; RC12=$?
+  ck "C12g a tree with no replay site refuses" "1" "$RC12"
+  ck "C12h and says it measured nothing rather than passing" "1" \
+    "$(printf '%s' "$O12" | grep -c 'FAIL (5) the replay site is locatable in gates.sh')"
+  printf 'x\n  grep "^FAIL" "$log" | head -5 | tee -a "$ALL"\n' > "$T/gates/gates.sh"
+
+  # C13 THE BOUND. b-replayed.log has 4 sections but ZERO red summary lines, so its bound is 5 x 0 = 0
+  # while its over-report is 2 - which must FIRE. That is not a contrived fixture: it is what a
+  # hand-assembled or subset log looks like, and it is the shape that proves the bound is computed
+  # from RED SECTIONS and not from section headers.
+  O13="$(CT_ROOT="$T" CT_TOKEN_CEIL=0 bash "$ROOT/gates/audit/red-count.sh" 2>&1)"; RC13=$?
+  ck "C13 an over-report with no red summary line exceeds the bound and refuses" "1" "$RC13"
+  ck "C13b and the bound is shown as cap x red sections" "1" \
+    "$(printf '%s' "$O13" | grep -c 'against 5 x 0 red section(s) = 0')"
+  # C13c SILENT once the log carries the summary line that explains its own replay.
+  printf '    somegate: RED (exit 1, 2 FAIL lines, 0 <<<)\n' >> "$T/claude/agents/gatelogs/b-replayed.log"
+  O14="$(CT_ROOT="$T" CT_TOKEN_CEIL=0 bash "$ROOT/gates/audit/red-count.sh" 2>&1)"; RC14=$?
+  ck "C13c silent once one red section accounts for the replay" "0" "$RC14"
+  ck "C13d and the most-red-sections figure is published, not assumed" "1" \
+    "$(printf '%s' "$O14" | grep -c 'MOST RED SECTIONS IN ANY ONE LOG: 1')"
+
+  # C14 THE MARKER SECTION. The line added for C13c is a real gates.sh summary line and carries the
+  # literal '<<<', so it is also section (6)'s whole population: raw 1, summary 1, genuine 0.
+  ck "C14 a summary line is attributed to formatting and not to a marker" "1" \
+    "$(printf '%s' "$O14" | grep -c 'RAW TOTAL 1 = 1 summary line(s) + 0 genuine marker(s)')"
+  ck "C14b and the conclusion is stated rather than left to the reader" "1" \
+    "$(printf '%s' "$O14" | grep -c 'SO EVERY .<<<. IN THE TREE IS FORMATTING')"
+  # C14c A GENUINE MARKER, which no committed log has ever held, must be separated from the
+  # formatting rather than added to it. Without this arm section (6) has only ever seen one answer.
+  printf 'FAIL something <<< a real marker\n' >> "$T/claude/agents/gatelogs/b-replayed.log"
+  O15="$(CT_ROOT="$T" CT_TOKEN_CEIL=0 bash "$ROOT/gates/audit/red-count.sh" 2>&1)"
+  ck "C14c a genuine marker is counted apart from the summary lines" "1" \
+    "$(printf '%s' "$O15" | grep -c 'RAW TOTAL 2 = 1 summary line(s) + 1 genuine marker(s)')"
+  ck "C14d and it is named as the first unexercised case" "1" \
+    "$(printf '%s' "$O15" | grep -c 'GENUINE MARKER(S): b-replayed.log holds 1')"
+  ck "C14e and the formatting-only conclusion is NOT printed when a real marker exists" "0" \
+    "$(printf '%s' "$O15" | grep -c 'SO EVERY .<<<. IN THE TREE IS FORMATTING')"
+  # C14f THE VACUITY GUARD on section (6): a tree with reds but no '<<<' at all must say it measured
+  # nothing rather than print a pass, which is this script's own standing rule applied to a new arm.
+  printf 'FAIL only one red here\n' > "$T/claude/agents/gatelogs/b-replayed.log"
+  O17="$(CT_ROOT="$T" CT_TOKEN_CEIL=0 bash "$ROOT/gates/audit/red-count.sh" 2>&1)"
+  ck "C14f no '<<<' anywhere reads as MEASURED NOTHING, not as a pass" "1" \
+    "$(printf '%s' "$O17" | grep -c 'MEASURED NOTHING on this section: no log under')"
 
   echo "red-count --selftest: $PASSN pass / $FAILN fail"
   [ "$FAILN" -eq 0 ]
