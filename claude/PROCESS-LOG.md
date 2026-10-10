@@ -2132,3 +2132,67 @@ not to re-test it.
 **Not checked, five things.** (1) **No gate and no suite ran.** `gates/gates.sh:178` globs `gates/regress/*.js`, so nothing in this payload is reachable from the 59-section suite; no PASS/FAIL figure is given and none is implied. (2) Whether any gate that NAMES `kunal761` actually LAUNCHES at it — A3 reads the token, not the call, so a gate mentioning it only in a comment would be counted as covered. That is a deliberate narrowing (a token is locale- and formatting-independent where a call site is not) and it is the arm's known hole, stated rather than hidden. (3) `gates/drive/` and `gates/pending/`: A3's denominator is `gates/regress` only, matching `gates.sh`'s own enumeration. (4) The other four geometries of the sibling job (`kunal`, `390`, `430`, `short375`) — untouched, and not this job's. (5) The apply against the other nine members of the parked pile in every order; what was measured is this payload alone onto `38a8a25`.
 
 **Delivery** parked at `patches/proc-lane3-art-gates-audit-r19-phone-geometry-sh-a3-ratchet-2026-10-10`. NOT on main; this lane cannot push and did not try [R21]. The record commit is **isolated and last**, so `--skip` on an append collision costs this record alone and never the instrument; a union resolve keeps both, measured by #506 at 344 added / 0 lost across eleven trailers.
+
+---
+
+## 2026-10-10, 12:37pm ET — process lane 3, run `process-build-3__1791649597346` — the replay cap, read out of gates.sh at last, and the `<<<` field is worse than the FAIL field
+
+**Item.** `jobs/a-fail-line-count-on-a-gatelog-over-reports-by-up-to-five-2026-10-03` (P2, priority 14, `cls` suite, `finishFirst`, owningLane build). Not its `whatIsLeft` — both of those steps belong elsewhere and one of them is **parked**: the `gates/verify-log.sh:720` advice site is held by `jobs/verify-log-sh-carries-the-unsound-fail-count-recipe-beside-its-own-pass-check-2026-10-04`, which the orchestrator parked at 2026-10-07T03:10Z until after the 30 October launch, and nothing parked gets built [R33, R39]. What this run took is the job's **two unrun `notChecked` items**, which three separate runs have each named as untouched — the 2026-10-03 filing, this lane's own 2026-10-07 outcome, and #492's 2026-10-07 outcome — and which between them are **two greps**.
+
+**Why they were worth taking rather than skipping again.** The first item says, in its own words, *"the cap was not read out of gates.sh"*. The project has been publishing a bound derived from a literal in a file nobody had opened. Reading it does not confirm the bound; it **corrects the job's own headline**.
+
+### (1) THE CAP, READ OUT OF `gates/gates.sh`
+
+| | measured |
+|---|---|
+| replay sites | **2** — `gates.sh:356` (`grep '^FAIL' "$log" \| head -5 \| tee -a "$ALL"`) and `gates.sh:326` (the `unit-drill-why` translation, same `head -5`) |
+| cap | **5**, a literal, at both sites |
+| derived from the section's own FAIL count? | **no** — no `head -$` anywhere in either site |
+
+So the `notChecked` item's own question is answered: **the cap does not vary with the section's FAIL count.** It is a constant 5.
+
+**AND THAT IS WHY THE TITLE IS WRONG [R18].** 5 is a bound **PER RED SECTION**, and the job's title publishes it as a bound per log. Measured over every committed gatelog:
+
+| | measured |
+|---|---|
+| logs with at least one red | 36 |
+| worst over-report (raw − dedup) | **5**, on `491c-all-GATED-RED-NOT-A-PUSH-GATE.log` |
+| most red sections in any one log | **2** |
+| bound actually reachable today | 5 × 2 = **10** |
+
+The published figure has never been exceeded **only because no committed log has gone red in three or more sections**. `gates.sh` runs 59 of them. That is a fact about the sample, not a property of the mechanism, and the correct form to quote is **"5 per red section"**. The instrument now derives the cap and the bound every run and refuses if either moves, so the number is measured rather than remembered.
+
+### (2) THE `0 <<<` FIELD — AND THE ANSWER IS NOT "THE SAME BEHAVIOUR", IT IS WORSE IN KIND
+
+`gates.sh:340` computes `marks=$(grep -c '<<<' "$log")` from the **per-gate** log, then `:356` prints that count inside a summary line **whose own text contains the literal string `<<<`**. So an all-log gains one `<<<` occurrence per RED SECTION that is pure formatting.
+
+Measured over all 148 committed logs under `claude/agents/`:
+
+| | measured |
+|---|---|
+| total `<<<` occurrences | **15** |
+| of those, RED summary lines reading `0 <<<` | **15** |
+| genuine marker lines, anywhere, ever | **0** |
+
+So **`grep -c '<<<' <all-log>` returns that log's RED SECTION COUNT and has never once returned a marker count.** A raw `^FAIL` count over-reports a real number by the replay; a raw marker count has **no true component at all** — a log with zero markers reads 1, or 2. The sound recipe is to drop the summary lines first, `grep '<<<' <log> | grep -vE '^ {4}[^ ]+: RED \(' | wc -l`, or to read the field's value instead of counting the token.
+
+**THE SEVERITY IS SEPARATED RATHER THAN BORROWED, and this is the part that keeps it a finding and not an alarm.** `gates.sh`'s own red condition reads `marks` from the per-gate log and never from the all-log, so **no build was wrongly reddened or greened by this** and the suite's verdict is untouched. The cost falls on exactly the population this job's `ifNotDone` already names — *"a lane or an antagonist auditing a gatelog"* — and `<<<` is one of the three conditions `gates.sh` exits 1 on, so a non-zero reading reads as a marker failure.
+
+### What landed in the file
+
+`gates/audit/red-count.sh`, **225 insertions / 0 deletions**: two helper readers (`redsect_of`, `mark_of`), two report sections, **18 controls**. Not one existing line changes, no ceiling moves, no existing control is weakened.
+
+| | main | here |
+|---|---|---|
+| report | 3 PASS / 0 FAIL, exit 0 | **7 PASS / 0 FAIL**, exit 0 |
+| `--selftest` | 23 pass / 0 fail, exit 0 | **41 pass / 0 fail**, exit 0 |
+
+Both byte-identical over three consecutive runs with paths normalised — selftest md5 `d6378968ef2d3f4da23ca2dabe61e93f`, report md5 `9c928f43cc096c3965574fc42ebe2662` [R36].
+
+**Every new detector is shown FIRING and SILENT**, and two mutation controls were **run** rather than argued: blinding `redsect_of` kills exactly C13c and C13d (39/2); blinding `mark_of` kills exactly C14, C14b, C14c and C14d (37/4). Each kills only its own arms. The firing arms include a cap that MOVED (named with both values), a cap taken from a **variable** — which is the shape the `notChecked` item asked about — no replay site at all, an over-report exceeding its bound, and a **genuine marker**, which no committed log has ever held and which section (6) had otherwise never been able to see.
+
+**One error of this run's own, found by running and kept.** C12 first asserted `rc 0` and failed — and the detector was right. At that point in the selftest the fixture still holds a log that over-reports with **zero** red summary lines, so section (5)'s BOUND arm fires for a reason that has nothing to do with the cap. An exit code is the conjunction of every arm, so a control on one arm must read that arm's own line. It now does, and C13 is the bound's own control.
+
+**Not checked, five things, named rather than swept.** (1) `gates.sh`'s `<<<` red branch has **never been exercised** on any committed log, so nothing here says it behaves as its own comment claims; section (6) prints that as a first-such-log line rather than assuming it. (2) No gate and no suite ran: `gates.sh` globs `gates/regress/*.js`, so nothing under `gates/audit/` is reachable from the 59 sections and no PASS/FAIL figure about them is given or implied. (3) Blinding `mark_of` does **not** kill C14f, because a blinded reader also reads "measured nothing" — which is why C14 and C14c exist and why C14f alone would not be enough. (4) The job's `whatIsLeft` is untouched and this closes nothing. (5) The apply against the other fifteen pending payloads in every order; what was measured is this payload alone onto `2bb09bf`.
+
+**Delivery** parked at `patches/proc-lane3-art-gates-audit-red-count-sh-notchecked-2026-10-10`. NOT on main; this lane cannot push and did not try [R21]. Back-pressure at check-in: **16 pending of a ceiling of 20**, oldest under 48 hours.
