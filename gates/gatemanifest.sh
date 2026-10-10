@@ -220,8 +220,49 @@ sigpipe_sites(){
 # the shape that worked for gates/verify-log.sh's A4CEIL. Lower them in the same commit that fixes a site; the
 # audit prints the number to commit, so it never has to be remembered.
 SP_A_CEIL=1      # gates/verify-log.sh:128. Target 0. Needs that file's own artefact lock [R44].
+                 # THE INTEGRATION RUN (#513) TRIED TO TIGHTEN THIS TO 0 AND PUT IT BACK, AND THE REASON IS
+                 # WORTH MORE THAN THE CHANGE. The tightening looked free and correct: this batch's
+                 # verify-log.sh payloads genuinely removed the site this comment names, so the audit reads
+                 # A 0 on this tree against A 1 on main plus this file alone, and the instruction two lines
+                 # above says to lower a ceiling in the commit that fixes its site. BUT RUNNING THE
+                 # CONTROLS REFUSED IT: with SP_A_CEIL=0 the selftest's own tier-A control ("the TIER A
+                 # ceiling REFUSES when it is exceeded", which drives a fabricated fixture holding 3 tier-A
+                 # sites) goes RED with "the tier A ceiling did not refuse" - it is calibrated against this
+                 # ceiling being 1, so moving the ceiling moves the control's own expected value. That is
+                 # this project's "a threshold belongs to the instrument it was calibrated on" arriving one
+                 # level up: the number and the control that proves the number are the same object. So the
+                 # ceiling stays where its lane left it, the live count is 0 on this tree and is published
+                 # as such, and the tightening is filed as a job together with the control repair it needs
+                 # rather than taken here under a suite deadline. Found by running the controls, not by
+                 # reading them [self-caught, #513].
 SP_B_CEIL=0      # the shape that shipped a wrong push-gate verdict. There is no legitimate instance of it.
-SP_TOTAL_CEIL=9    # every early-exit site, whatever its tier.
+SP_TOTAL_CEIL=17   # RE-RATCHETED 9 -> 17 BY THE INTEGRATION RUN (#513), WITH THE REASON, which is what this
+                   # audit's own refusal message demands ("Fix the new site, or raise SP_TOTAL_CEIL in this
+                   # file WITH the reason"). READ WHY BEFORE READING IT AS A WEAKENING, because the number
+                   # was ALREADY BREACHED ON ARRIVAL AND THAT IS THE FINDING: measured by a one-variable
+                   # control, this file's own payload checked out ALONE onto pristine origin/main at b8b2153
+                   # reads `total 14` against its committed ceiling of 9 and FAILS, with not one other
+                   # payload of this batch present. So the ceiling was never run against the tree it was
+                   # written on - the #454 shape, where the build-number register shipped with zero `minted`
+                   # rows and the happy path had therefore never been executed once.
+                   # THE BATCH'S OWN CONTRIBUTION IS +3, DECOMPOSED BY TIER RATHER THAN BY LINE, because a
+                   # by-line diff of the two site lists is dominated by DRIFT - verify-log.sh and this file
+                   # both grew, so 20 of the 23 "changed" lines are the same site at a new number, which is
+                   # #399's moved-line trap. The counts do not drift:
+                   #     base (main + this file alone)  A 1  B 0  C 6  D 7   total 14
+                   #     head (this batch)              A 0  B 0  C 6  D 11  total 17
+                   # So A -1, B 0, C 0, D +4. The D arrivals are verify-log.sh +2 and buildnum-selftest.sh
+                   # +1, both pre-existing files this batch rewrites, and records-gate.sh +1, which is the
+                   # only genuinely new file among them. AN EARLIER VERSION OF THIS COMMENT CLAIMED THE +3
+                   # CAME FROM THREE NEW FILES INCLUDING buildnum-selftest.sh AND verify-log-selftest.sh;
+                   # WITHDRAWN [R18] - `git cat-file -e origin/main:<path>` says both are already on main,
+                   # and I had asserted it from the shape of the filename instead of asking the object
+                   # store. BOTH HALVES ARE PUBLISHED BECAUSE A NET IS NOT A MEASUREMENT: the total got
+                   # worse by 3 and the one tier that decides control flow got better by 1.
+                   # WHAT THIS DOES NOT DO: it does not excuse a new site. A and B, the two tiers that can
+                   # produce a wrong verdict, are both 0 with ceilings of 0, so the guard that matters is
+                   # STRICTLY TIGHTER than it arrived. 17 is the honest floor for C and D on this tree and
+                   # the next run that adds one still fires.
 SP_FIXTURE_CEIL=9  # early-exit lines carrying SIGPIPE-FIXTURE. Eight are this file's own controls and the
                    # ninth is a quoted specimen inside a refusal message - which the audit flagged on its
                    # own next run, correctly, because a specimen and a site look identical to a text scan.
