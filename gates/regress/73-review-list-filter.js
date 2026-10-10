@@ -18,6 +18,10 @@
 //     touched. The ASSERTION COUNTS below were affected and are corrected at the control block.]
 //      the CLEAR CHIP grows the row 94px/2 lines -> 144px/3 lines at 320x568 and moves it NOT ONE PIXEL at
 //      375x730 or 375x761. So the "~50px growth" is real and is a 320-ONLY number.
+//      [#508: "a 320-ONLY number" IS WITHDRAWN AS WRITTEN - it is true AT TWO ACCOUNTS and false at four,
+//      because the account chips share this row so the ACCOUNT COUNT moves the wrap boundary just as the
+//      width does. At FOUR accounts the same 94 -> 144 growth happens at 375x730 and 375x761 too. Block G
+//      drives that cell; the 2x3 table is in STORE4's header and the figure's full scope is on TC-R63.]
 //      the COVERAGE LINE costs 34px at EVERY geometry including Kunal's own, and its jump is the UNCOMMANDED
 //      one: `_ungr` decays to zero as the background pass grades, so on main the line VANISHES on its own
 //      seconds after the player stopped touching anything. After the fix, AS FIRST WRITTEN: 34 -> 0px at
@@ -253,6 +257,40 @@ const TALLYSTALE=[
 const STORE={ct_ccuser:'',ct_liuser:'',
   ct_accts:['cc:alpha','cc:beta'],
   ct_acctgames:{'cc:alpha':G.slice(0,4).map(row),'cc:beta':G.slice(4).map(row)},
+  ct_gamestats:TALLY};
+
+// #508 THE FOUR-ACCOUNT FIXTURE, AND THE AXIS IT EXISTS TO LADDER. Block F ran at three geometries over ONE
+// account count, and its own header argues - correctly - that pinning a block to one geometry would have made
+// it unable to fail on the defect it was written for. THE SAME ARGUMENT APPLIES TO THE ACCOUNT COUNT AND THE
+// HEADER MISSED IT. Measured on the shipped bundle 28f1ff838440 and on a one-change control:
+//      geometry      2 accounts                        4 accounts
+//      320x568       control JUMPS 50, fix holds       both 144px at rest, no jump either way
+//      375x730       control 0, fix 0  <-- NO POWER    control JUMPS 50, fix holds
+//      375x761       control 0, fix 0  <-- NO POWER    control JUMPS 50, fix holds
+// So at KUNAL'S OWN WIDTH, F2 and F3 pass on a bundle with the reserve removed, because at two accounts the
+// Clear chip fits on line 2 in both states and there is no jump to detect. The four-account state is where the
+// wrap boundary actually falls at 375, and it is the only cell at 375 where those assertions can fail at all.
+// THE EVIDENCE WAS ALREADY PUBLISHED AND CORRECTLY DECOMPOSED; WHAT WAS NEVER DRAWN IS THE CONSEQUENCE. My
+// first draft of this paragraph said "nobody decomposed it", and that is FALSE and is withdrawn here before it
+// shipped [R18]: TC-R63's own DENOMINATOR section states in terms that in NC-NORESERVE "F2 and F3 each redden
+// EXACTLY ONCE across the three geometries, at `se` alone", and #508 re-derived the same 14 independently. So
+// the vacuity at both 375 geometries was measured, written down and cited as evidence FOR the geometry ladder -
+// and the inference that something other than geometry must therefore give those two cells their power was not
+// made. That is the more useful finding and the less flattering one: the number was right, it was in the right
+// document, and it was read as a reason to keep laddering the axis that was already laddered.
+//
+// SAME SEVEN GAMES, SO EVERY COUNT ON THE SCREEN IS UNCHANGED and the ONLY variable is how many account chips
+// the row must wrap. The chip label is the id after the colon (chess.jsx:7664), so the LABEL WIDTHS drive the
+// wrap and they are published with the measurement rather than left implicit [#411/#412]: at 375 the three
+// grade chips are 101 / 103.4 / 96.6 and fill line 1; alpha 66.1, beta 58.4, gamma 80 and delta 63 fill line 2;
+// Clear at 63.5 is then alone on line 3. A DIFFERENT SET OF ACCOUNT NAMES WOULD WRAP DIFFERENTLY, which is why
+// the assertions below pin the INVARIANT (the row does not grow when Clear appears) and the resting COST is
+// reported as a note with its labels attached, never as a pixel pin [#480: every text-derived number in this
+// suite is container-dependent].
+const STORE4={ct_ccuser:'',ct_liuser:'',
+  ct_accts:['cc:alpha','cc:beta','cc:gamma','cc:delta'],
+  ct_acctgames:{'cc:alpha':G.slice(0,3).map(row),'cc:beta':[row(G[3])],
+                'cc:gamma':[row(G[4])],'cc:delta':G.slice(5).map(row)},
   ct_gamestats:TALLY};
 
 // everything the assertions read, in ONE evaluate, so every number in a row comes from one screen state
@@ -1174,6 +1212,80 @@ function mkTap(b,READ){
         'F4 ['+gname+'] the reserved Clear OCCUPIES ITS FULL BOX AND PAINTS NOTHING - the one property the no-jump promise actually rests on, and the one a regression in either direction breaks',
         {vis:ghostNow&&ghostNow.vis,h:ghostNow&&ghostNow.h,w:ghostNow&&ghostNow.w});
       L.note('F4 belt-and-braces (NOT asserted, because visibility:hidden already implies all three and asserting them would redden a correct alternative): '+JSON.stringify({pointerEvents:ghostNow&&ghostNow.pe,ariaHidden:ghostNow&&ghostNow.ah,tabIndex:ghostNow&&ghostNow.ti}));
+      await b.close();
+    }
+  }
+
+
+  /* ══ BLOCK G. #508. THE SAME RESERVE INVARIANT AT THE ACCOUNT COUNT WHERE IT CAN ACTUALLY FAIL AT 375.
+     This is block F's assertion over block F's missing input axis - see STORE4's header for the 2x3 table and
+     for why F2/F3 have no discriminating power at either 375 geometry with two accounts.
+     IT IS A SEPARATE BLOCK WITH ITS OWN IDS rather than a second arm of block F's loop, deliberately: every
+     existing F id keeps its meaning, its geometry list and its published control sets, so this build adds
+     coverage and moves no figure anyone has already cited.
+     WHAT IS ASSERTED AND WHAT IS ONLY MEASURED, because the distinction is the whole lesson of #480 and #411:
+     the INVARIANT is asserted (the row's own box and line count do not change when Clear appears, and the
+     reserved chip is ghosted and full-size), and the RESTING COST is reported with L.note carrying its labels
+     and geometry. The cost is a product trade-off - 50px of Kunal's own viewport spent permanently against a
+     50px jump removed - and it is routed to the Desk, not decided here [R20]. */
+  {
+    for(const gname of ['se','kunal730','kunal761']){
+      const g=L.GEOS[gname];
+      const b=await L.launch({geo:g,store:STORE4,name:'G-reserve4-'+gname});
+      await b.open(); await b.tile('Review'); await b.settle(1200);
+      const tapG=mkTap(b,READ);
+      const pre=await READ(b);
+      const preClear=pre.chips.find(c=>c.ct==='gf-clear');
+      const acctChips=pre.chips.filter(c=>/^gf-acct-/.test(c.ct||''));
+
+      /* G0 IS THE NON-VACUITY GUARD AND IT COMES FIRST [prompts/common R18, and this file's own header rule:
+         assert the collection is non-empty in its OWN L.say, never as a conjunct]. Without it every assertion
+         below is a claim about a screen that might be rendering the two-account row, which would make this
+         whole block a second reading of block F rather than a new axis. */
+      /* G0 WAS A CONJUNCT AND I CAUGHT IT WITH MY OWN CONTROL BEFORE SHIPPING IT. It read
+         `acctChips.length===4 && pre.chips.length===8`, and on the no-reserve control it went RED - not
+         because the fixture failed to render four accounts, which is the only thing a denominator guard is
+         for, but because the Clear chip is absent at rest on that bundle so the TOTAL is 7. A guard that
+         reddens when the thing it guards is fine is reporting two facts through one verdict, which is
+         exactly the "conjunct whose halves cannot fail independently" trap this file's own header warns
+         about and which #493's antagonists found three live instances of. Split: G0 asserts ONLY the
+         denominator, so it stays green on every bundle where the fixture is sound and goes red only if the
+         four-account state never arrived; the total is carried in the payload, where a reader can see it
+         without an assertion claiming to discriminate on it. G1 is what detects the missing reserve. */
+      L.say(acctChips.length===4,
+        'G0 ['+gname+'] the four-account fixture really renders FOUR account chips, so this block is a different state from block F and not the same state twice - the DENOMINATOR, asserted alone [R18]',
+        {acct:acctChips.map(c=>c.lab),chipsTotal:pre.chips.length,rows:pre.rows,count:pre.count});
+
+      L.say(!!preClear&&preClear.vis==='hidden',
+        'G1 ['+gname+'] the Clear chip is in the layout and paints no ink at rest, at four accounts as at two',
+        {chip:preClear});
+
+      // the anti-vacuity guard on the pair below: prove the second state really differs [block F's F2a]
+      const post=await tapG('gf-bril');
+      const postClear=post.chips.find(c=>c.ct==='gf-clear');
+      L.say(post.rows!==pre.rows&&!!postClear&&postClear.vis!=='hidden',
+        'G2a ['+gname+'] the grade chip really went on - the row count changed AND Clear is now painted - so G2 and G3 compare two states and not one twice',
+        {preRows:pre.rows,postRows:post.rows,clearVis:postClear&&postClear.vis});
+
+      /* G2 AND G3 ARE THE ASSERTIONS THIS BLOCK EXISTS FOR. On the no-reserve control these two go RED at
+         kunal730 and kunal761 - the two cells where block F's F2 and F3 stay green on that same control. */
+      L.say(pre.filOH!=null&&post.filOH!=null&&pre.filOH===post.filOH,
+        'G2 ['+gname+'] AT FOUR ACCOUNTS the filter row\'s own box is the same height before and after Clear appears, so the list does not move under the finger that just tapped a chip (this reads the ROW only; C3g measures the sibling coverage line)',
+        {before:pre.filOH,after:post.filOH,delta:(post.filOH!=null&&pre.filOH!=null)?(post.filOH-pre.filOH):null,geo:gname,accts:4});
+      L.say(pre.filTops!=null&&post.filTops!=null&&pre.filTops===post.filTops,
+        'G3 ['+gname+'] and it still occupies the same number of wrapped LINES at four accounts, which is the mechanism behind G2 rather than a second reading of it',
+        {before:pre.filTops,after:post.filTops,geo:gname,accts:4});
+
+      const back=await tapG('gf-clear');
+      const ghostNow=back.chips.find(c=>c.ct==='gf-clear');
+      L.say(!!ghostNow&&ghostNow.vis==='hidden'&&ghostNow.h>=43.95,
+        'G4 ['+gname+'] and after clearing, the reserved Clear occupies its full box and paints nothing at four accounts too - the property the no-jump promise rests on [block F\'s F4 at the new axis]',
+        {vis:ghostNow&&ghostNow.vis,h:ghostNow&&ghostNow.h,w:ghostNow&&ghostNow.w,rows:back.rows});
+
+      /* THE COST, MEASURED AND NOTED RATHER THAN ASSERTED. A pixel pin here would be a claim about these four
+         account NAMES at this container's font resolution, which is exactly the #480 trap. The trade it prices
+         is Kunal's [R20] and is routed on the job. */
+      L.note('G-cost ['+gname+'] resting filter-row box at FOUR accounts: '+JSON.stringify({restOH:pre.filOH,restLines:pre.filTops,afterTapOH:post.filOH,afterTapLines:post.filTops,acctLabels:acctChips.map(c=>c.lab+':'+c.w),clearW:preClear&&preClear.w,note:'the reserve is spent at rest whenever the ghost does not fit on the line the chips already occupy'}));
       await b.close();
     }
   }

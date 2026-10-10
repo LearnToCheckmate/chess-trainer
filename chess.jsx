@@ -7419,11 +7419,24 @@ export default function App(){
               // with the honest readout and the dishonest one in the same box. So when a grade filter is on
               // and anything is still ungraded, the empty state is SCOPED TO WHAT WAS ACTUALLY GRADED.
               const _nG=_preGrade.length-_ungr;
-              /* #507 `_narrowed` IS DECLARED HERE, ABOVE `_scope`, AND THE ORDER IS LOAD-BEARING. It used
-                 to sit with the coverage sentence forty lines below. `_scope` closes over it and
-                 `_emptyTxt` CALLS `_scope` on the line after this one, so with the old ordering the first
-                 render threw a ReferenceError out of the const temporal dead zone - caught here by reading
-                 my own edit back rather than by the browser. */
+              /* #508 THE #507 COMMENT THAT STOOD HERE IS WITHDRAWN AS FALSE OF THIS TREE [R18]. It read:
+                 "`_narrowed` IS DECLARED HERE, ABOVE `_scope`, AND THE ORDER IS LOAD-BEARING ... `_emptyTxt`
+                 CALLS `_scope` on the line after this one, so with the old ordering the first render threw a
+                 ReferenceError out of the const temporal dead zone." THE SECOND CLAUSE IS THE FALSE ONE AND
+                 IT CARRIES THE FIRST: `_emptyTxt` does NOT call `_scope`. Measured, not read -
+                 `grep -n '_scope' chess.jsx` returns the declaration plus exactly two call sites, 7508 and
+                 7509, BOTH inside `_covTxt`; `grep -n '_narrowed'` returns the declaration plus exactly one
+                 consumer, `_scope` itself. So `_scope` is never invoked above `_covTxt`, every candidate
+                 declaration site for `_narrowed` is above that, and NO ordering of these two lines can reach
+                 the temporal dead zone.
+                 WHY IT WAS TRUE WHEN WRITTEN AND IS NOT NOW: #507's part 2 had `_emptyTxt` take the shared
+                 phrase, which is what put a call site above the declaration; its part 3 then DECLINED that
+                 rename on measurement (see the block below) and removed the call, and the comment justifying
+                 the ordering was not revisited. The ordering is still correct style - a closure's free
+                 variable declared above it reads better - and it is NOT load-bearing, so nobody should defend
+                 it as if moving the line would break a render.
+                 THIS IS THE SAME SHAPE AS THE DEFECT #508's ANTAGONIST FOUND IN THE GATE: an upheld veto's
+                 repair and the mechanism it depended on sat two commits apart with nothing connecting them. */
               const _narrowed=_preGrade.length!==ccGames.length;
               /* #507, ON ANTAGONIST B's SHIPPED-SURFACE FINDINGS 4 AND 5. ONE SCOPE PHRASE, CORRECTLY
                  PLURALISED, SHARED BY THE COVERAGE LINE AND THE EMPTY STATE.
@@ -7437,8 +7450,19 @@ export default function App(){
                  "The one game graded so far does not match blunders, account beta" - the OLD vocabulary,
                  for the SAME set, on one screen. The defect clause (3) exists to fix is "two numbers read
                  as two accounts of one list"; renaming one of the two sentences that print the denominator
-                 and leaving the other is that defect with an extra step. Both now take the phrase from
-                 here, so they cannot drift apart again. */
+                 and leaving the other is that defect with an extra step.
+                 #508: THE SENTENCE THAT FOLLOWED IS WITHDRAWN AS FALSE [R18]. It read "Both now take the
+                 phrase from here, so they cannot drift apart again." ONLY `_covTxt` takes it. `_emptyTxt`,
+                 twenty lines below, still carries its own "graded so far" wording, because the very next
+                 comment block DECLINES finding 5 after implementing it and measuring the prose getting worse
+                 and gate 73's C5c going red. So this paragraph describes finding 5 as fixed and the next one
+                 declines it, two comments apart, and the file contradicted itself for a reader who stopped at
+                 the first. That is why the withdrawal goes HERE and not only on the job: #450 is this
+                 project's record of a withdrawal written everywhere except the file a reader opens.
+                 WHAT IS ACTUALLY TRUE: the two sentences disclose their set by two deliberate routes - this
+                 one names it, the empty state discloses it arithmetically - and keeping them that way is a
+                 live residual on jobs/review-list-filter-and-search-2026-09-23, routed as a wording question
+                 because the one available fix reddens a #476 antagonist P0's guard. */
               const _scope=(n)=>(_narrowed?('the '+n+' game'+(n===1?'':'s')+' this filter is looking at'):(n+' game'+(n===1?'':'s')));
               /* #507 ANTAGONIST B's FINDING 5 IS DECLINED, WITH THE REASON MEASURED RATHER THAN ASSERTED,
                  AFTER I BUILT IT AND READ IT BACK. B measured that this build renamed ONE of the two
@@ -7512,9 +7536,23 @@ export default function App(){
                  reserve its space [CLAUDE.md]. MEASURED on the shipped bundle before this change, with the
                  SAME probe on both bundles: turning on one grade chip makes the Clear chip appear, and at
                  320x568 the row wraps from 2 lines to 3 and grows 94px -> 144px, moving the whole list down
-                 50px under the finger that is still on the chips. AT 375 WIDE IT DOES NOT GROW AT ALL (94px
-                 in both states, 2 lines) - so the closer's "~50px growth" is real but is a 320-ONLY number
-                 and is recorded here with its geometry rather than as a bare figure [#411/#412]. A ghost is
+                 50px under the finger that is still on the chips.
+                 #508 THE NEXT CLAUSE WAS "AT 375 WIDE IT DOES NOT GROW AT ALL (94px in both states, 2 lines)
+                 - so the closer's ~50px growth is real but is a 320-ONLY number". IT IS TRUE AT TWO ACCOUNTS
+                 AND FALSE AT FOUR, AND IT IS WITHDRAWN AS A GENERAL STATEMENT ABOUT 375 [R18]. The account
+                 chips share this row, so the ACCOUNT COUNT moves the wrap boundary just as the width does.
+                 Re-measured on both bundles across three geometries x two account counts: with FOUR imported
+                 accounts at 375x730 and at 375x761 the pre-reserve bundle grows 94px -> 144px on the tap,
+                 exactly the 50px jump the 320 reading describes - so 375 is not immune, it is simply past the
+                 boundary at two accounts and short of it at four. THE RESERVE THEREFORE COSTS 50px AT REST at
+                 375 with four accounts, which is 6.8% of Kunal's own 730-tall viewport, spent permanently and
+                 also by a player who never filters. That is a trade and not a defect - 50px of jump removed
+                 for 50px of reserve - and it is HIS to settle, so it is routed to the Desk on
+                 jobs/review-list-filter-and-search-2026-09-23 rather than decided here [R20].
+                 THE COVERAGE CONSEQUENCE, which is the half that cost the gate something: gate 73's block F
+                 drove ONE account count, so at both 375 geometries its F2 and F3 passed on the no-reserve
+                 control and could not have failed on the defect they were written for. Block G now drives the
+                 four-account axis and reddens there. A ghost is
                  NOT a disabled control: aria-hidden and tabIndex -1 take it out of the accessibility tree
                  and the tab order, and pointerEvents none means a tap where it sits does nothing rather
                  than silently clearing a filter the player cannot see. */
