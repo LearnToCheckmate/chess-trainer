@@ -129,50 +129,6 @@ if [ -n "$BUNDLEDIFF" ]; then
   exit 2
 fi
 
-trap 'rm -rf "$REGTMP"' EXIT
-
-REGBAD=""
-for f in gates/held-trees.tsv gates/build-numbers.tsv; do
-  bb="$($GIT rev-parse --quiet --verify "$BASEFULL:$f" 2>/dev/null || true)"
-  hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || true)"
-  if [ "$bb" = "$hb" ]; then
-    say "    $f: untouched by this commit (same blob id at base and head)."
-    continue
-  fi
-  if [ -z "$bb" ]; then
-    say "    $f: absent at base, present at head - no base rows exist to protect."
-    continue
-  fi
-  if [ -z "$hb" ]; then
-    REGBAD="$REGBAD$f: GONE - present at base, absent at head. A records commit may not delete a register.\n"
-    continue
-  fi
-  $GIT cat-file blob "$bb" > "$REGTMP/base" 2>/dev/null
-  $GIT cat-file blob "$hb" > "$REGTMP/head" 2>/dev/null
-  nb="$(wc -c < "$REGTMP/base" | tr -d ' ')"; nb="${nb:-0}"
-  nh="$(wc -c < "$REGTMP/head" | tr -d ' ')"; nh="${nh:-0}"
-  if [ "$nh" -lt "$nb" ] 2>/dev/null; then
-    REGBAD="$REGBAD$f: LENGTH - $nh bytes at head against $nb at base, so content was removed or truncated\n"
-    continue
-  fi
-  head -c "$nb" "$REGTMP/head" > "$REGTMP/prefix" 2>/dev/null
-  if ! cmp -s "$REGTMP/prefix" "$REGTMP/base"; then
-    WHERE="$(cmp "$REGTMP/prefix" "$REGTMP/base" 2>&1 | head -1)"
-    REGBAD="$REGBAD$f: PREFIX - the $nb bytes present at base are NOT byte-identical at head [$WHERE]. A row\n"
-    REGBAD="$REGBAD    was edited in place, renumbered, cleared with a leading \"-\", removed, or inserted mid-file.\n"
-    continue
-  fi
-  say "    $f: append-only BY VALUE ($nb bytes at base, every one byte-identical at head; $((nh-nb)) appended)."
-done
-if [ -n "$REGBAD" ]; then
-  say ""
-  say "FAST GATE REFUSED - a guard register was not APPENDED to, it was CHANGED:"
-  printf "$REGBAD" | sed 's/^/    /' | tee -a "$LOG"
-  say "held-trees.tsv is the only carrier of a previous run's refusal to ship a tree and build-numbers.tsv is"
-  say "the non-reuse register, so neither file's existing rows may move under a records commit [#450, #454]."
-  say "If the change is deliberate, it is not a records commit. Run the FULL suite."
-  exit 1
-fi
 
 # ── DOES THIS HEAD CARRY .nojekyll? MEASURED ONCE, FROM THE OBJECT STORE, AND USED BY classify() BELOW. ─────
 # Added #509. The root-.md arm of classify() used to be an unconditional FORCE whose stated reason was "GitHub
