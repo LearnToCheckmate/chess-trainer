@@ -115,11 +115,17 @@ echo "$CHANGED" | sed 's/^/    /' | tee -a "$LOG"
 # change or a content change all move the blob id or remove the object, and any of those sends you to the full
 # suite. This is the premise stated as a measurement, and it does not care how the path list was computed.
 SHIPPED="app.js lessons.js sw.js stockfish-18-lite-single.js index.html privacy.html terms.html refund.html delete-account.html chess-tracker.html"
-BUNDLEDIFF=""
+BUNDLEDIFF=""     # any served file other than app.js whose blob moved -> always FULL
+APPDIFF=""        # app.js specifically, which may be stamp-only (see STAMP-ONLY below)
 for f in $SHIPPED; do
   b="$($GIT rev-parse --quiet --verify "$BASEFULL:$f" 2>/dev/null || echo MISSING)"
   h="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
-  [ "$b" = "$h" ] || BUNDLEDIFF="$BUNDLEDIFF$f (base ${b%% *} -> head ${h%% *})\n"
+  [ "$b" = "$h" ] && continue
+  if [ "$f" = app.js ] && [ "$b" != MISSING ] && [ "$h" != MISSING ]; then
+    APPDIFF="app.js (base ${b%% *} -> head ${h%% *})"
+  else
+    BUNDLEDIFF="$BUNDLEDIFF$f (base ${b%% *} -> head ${h%% *})\n"
+  fi
 done
 if [ -n "$BUNDLEDIFF" ]; then
   say ""
@@ -129,6 +135,162 @@ if [ -n "$BUNDLEDIFF" ]; then
   exit 2
 fi
 
+# ── STAMP-ONLY. THE ONE NARROW EXEMPTION, STATED POSITIVELY, WITH ITS CONTROLS WIRED IN. ────────────────────
+# jobs/the-tier-check-compares-a-stamped-bundle-so-no-rebuild-is-ever-byte-identical-2026-10-10, band 17,
+# Kunal's own override. THE DEFECT: gates/build.sh embeds the build stamp via --define:__BUILD__="\"$STAMP\"",
+# and esbuild substitutes it at THREE sites, so a rebuild NEVER produces a byte-identical app.js even when not
+# one line of application logic changed. Measured at #510: this check returned GO FULL naming app.js
+# (0a2663582f2a -> ff6559a18078) while that same run's close-out independently recorded the app as
+# byte-identical to main for the fifth consecutive build. BOTH were true - the tier compares a fresh rebuild
+# with the new stamp in it, the close-out compares final states with the stamp on both sides. So the one lane
+# paying the 84-minute suite was the one lane structurally excluded from the tier, because it rebuilds.
+#
+# THE CONSTRUCTION IS INVERTED ON PURPOSE AND THIS IS THE WHOLE RISK OF THE CHANGE. The job says in terms: do
+# NOT implement this as "normalise the stamp sites, then compare". Blanking bytes before a comparison is how a
+# check goes green on evidence that was removed, and this project already has one - gates/audit/cited-not-run.sh
+# went red to green on 2026-10-07 because a HANDOFF.md rewrite deleted the only citation of gates/shots476.js,
+# so the file left the instrument's member set and the red cleared with nothing accounted for. A normaliser
+# matching one byte more than the stamp would let a GENUINE app change read as identical and ship with ZERO
+# browser gates run. Today's failure costs 84 wasted minutes; that failure ships a defect. So the test is
+# POSITIVE: find the stamp occurrences, require EXACTLY THREE a side all equal to one another, then require
+# that substituting the base stamp literal for the head stamp literal REPRODUCES THE HEAD BLOB BYTE FOR BYTE.
+# A fourth differing byte anywhere makes the reconstruction unequal and forces FULL.
+#
+# IT FAILS SAFE IN EVERY DIRECTION, which is why the regex may be strict: a stamp that does not match (a
+# five-digit build number, a changed stamp format), a count that is not three, two unequal stamps on one side,
+# or one byte changed anywhere else all leave STAMPONLY empty and send the run to the full suite.
+#
+# WHY A STAMP-ONLY app.js CANNOT MOVE A GATE'S VERDICT, measured on this tree rather than asserted. The 23
+# regress gates that mention the stamp all reach it through `L.note(... await b.stamp())`, and gates/lib.js:314
+# is `function note(msg){console.log('     '+msg);}` - it touches neither _pass nor _fails, so NO regress gate
+# ASSERTS the stamp value. Gate 68 computes an appMd5 and its own line says it "is NOT what this gate reads".
+# The three gates that read app.js off disk (33-reproducible-review, 66-winprob-ladder, 67-sel-cls-consumers)
+# match MINIFIED CODE, which a stamp-only diff leaves byte-identical. The one real stamp ASSERTION anywhere is
+# gates/mountcheck.js:15, conditional on CT_EXPECT, and mountcheck is NOT one of the browser gates this tier
+# skips - gates.sh runs it itself, in full mode, every time.
+
+# ONE DEFINITION OF THE PREDICATE, CALLED BY THE LIVE PATH AND BY THE CONTROLS, so the two cannot drift. That
+# is classify()'s own argument one block down ("two lists cannot drift when there is one list") applied here:
+# a control that exercises a SECOND copy of the rule proves nothing about the copy that decides the push.
+# latin1 maps every byte to one char, so every string operation is a BYTE operation and the reconstruction is
+# exact; utf8 would re-encode and could not prove byte identity.
+so_pred(){ node -e '
+const fs=require("fs");
+const RE=/#\d{3,4} - 20\d\d-\d\d-\d\d \d\d:\d\d ET/g;
+const b=fs.readFileSync(process.argv[1],"latin1"), h=fs.readFileSync(process.argv[2],"latin1");
+const bm=b.match(RE)||[], hm=h.match(RE)||[];
+const bail=(m)=>{console.log("NOT-STAMP-ONLY "+m);process.exit(1);};
+if(bm.length!==3) bail("base app.js carries "+bm.length+" build stamps, not 3");
+if(hm.length!==3) bail("head app.js carries "+hm.length+" build stamps, not 3");
+const sb=bm[0], sh=hm[0];
+if(!bm.every(x=>x===sb)) bail("the 3 base stamps are not identical to each other");
+if(!hm.every(x=>x===sh)) bail("the 3 head stamps are not identical to each other");
+const nb=b.split(sb).length-1;
+if(nb!==3) bail("the base stamp literal occurs "+nb+" times as a literal, not 3");
+if(b.split(sb).join(sh)!==h) bail("the differing bytes are NOT confined to the 3 stamp sites");
+console.log("STAMP-ONLY 3 sites, base \""+sb+"\" -> head \""+sh+"\", "
+  +Buffer.byteLength(b,"latin1")+" -> "+Buffer.byteLength(h,"latin1")+" bytes, identical elsewhere");
+' "$1" "$2" 2>&1; }
+
+# THE FOUR CONTROLS THE JOB MANDATES, AND THEY RUN ON EVERY INVOCATION RATHER THAN ONCE AT AUTHORING TIME.
+# "An unproven control is not a control [R08]" - so if any of the four gives the wrong answer this script
+# REFUSES (exit 1) instead of deciding anything. They are pure byte fixtures cut from the base's OWN app.js,
+# so they need no esbuild, no commit and no network: measured at 0.4s for all four on a 968KB bundle, against
+# fastgate's own ~7s. That is why they can be unconditional, which is what the job asks for.
+#   (a) POSITIVE  a different valid stamp at all three sites           -> STAMP-ONLY
+#   (b) NEGATIVE  one meaningful byte changed OUTSIDE the stamp sites  -> NOT-STAMP-ONLY
+#   (c) NEGATIVE  a byte changed INSIDE a stamp site to a non-stamp    -> NOT-STAMP-ONLY  (the loose-normaliser case)
+#   (d) NEGATIVE  app.js absent at head, the #489 rename               -> handled by BUNDLE IDENTITY above, re-proved here
+so_selftest(){
+  local D RC OUT FAILED=0
+  D="$(mktemp -d)" || { say "FAST GATE REFUSED - mktemp -d failed, so the stamp-only controls could not run."; exit 1; }
+  if ! $GIT cat-file blob "$BASEFULL:app.js" > "$D/base" 2>/dev/null || [ ! -s "$D/base" ]; then
+    rm -rf "$D"; return 2   # no base app.js to cut fixtures from; caller decides
+  fi
+  node -e '
+const fs=require("fs");
+const RE=/#\d{3,4} - 20\d\d-\d\d-\d\d \d\d:\d\d ET/g;
+const D=process.argv[1];
+const b=fs.readFileSync(D+"/base","latin1");
+const m=b.match(RE)||[];
+if(m.length!==3){console.error("FIXTURE-UNAVAILABLE base carries "+m.length+" stamps, not 3");process.exit(3);}
+const sb=m[0], sh="#9999 - 2099-01-01 00:00 ET";
+const a=b.split(sb).join(sh);
+fs.writeFileSync(D+"/a",a,"latin1");                                     // (a) stamp-only
+const i=b.indexOf("createRoot");                                         // (b) a real code site, not padding
+if(i<0){console.error("FIXTURE-UNAVAILABLE no createRoot in base");process.exit(3);}
+fs.writeFileSync(D+"/b",a.slice(0,i)+"createRoo7"+a.slice(i+10),"latin1");
+const j=a.indexOf(sh);                                                   // (c) inside a stamp site
+fs.writeFileSync(D+"/c",a.slice(0,j)+"#999X"+a.slice(j+5),"latin1");
+' "$D" 2>&1 || { rm -rf "$D"; return 3; }
+  # (a) must be STAMP-ONLY
+  OUT="$(so_pred "$D/base" "$D/a")"; RC=$?
+  [ "$RC" = 0 ] || { say "    CONTROL (a) FAILED - a stamp-only rebuild was not recognised: $OUT"; FAILED=1; }
+  # (b) must NOT be
+  OUT="$(so_pred "$D/base" "$D/b")"; RC=$?
+  [ "$RC" != 0 ] || { say "    CONTROL (b) FAILED - one changed code byte outside the stamps read as stamp-only: $OUT"; FAILED=1; }
+  # (c) must NOT be
+  OUT="$(so_pred "$D/base" "$D/c")"; RC=$?
+  [ "$RC" != 0 ] || { say "    CONTROL (c) FAILED - a non-stamp byte inside a stamp site read as stamp-only: $OUT"; FAILED=1; }
+  rm -rf "$D"
+  [ "$FAILED" = 0 ] || return 1
+  return 0
+}
+
+STAMPONLY=""
+if [ -n "$APPDIFF" ]; then
+  so_selftest; SO_ST=$?
+  case "$SO_ST" in
+    0) say ""
+       say "stamp-only controls: (a) positive, (b) one code byte outside the stamps, (c) a non-stamp byte inside"
+       say "    a stamp site - all three answered correctly against fixtures cut from this base's own app.js." ;;
+    2) say ""
+       say "FULL SUITE REQUIRED. There is no base app.js to cut the stamp-only controls from, so the exemption"
+       say "    cannot be proven and is not taken."
+       say "    $APPDIFF"
+       exit 2 ;;
+    *) say ""
+       say "FAST GATE REFUSED - THE STAMP-ONLY CONTROLS DID NOT ANSWER CORRECTLY, so this script will not use"
+       say "    the exemption to decide anything. An unproven control is not a control [R08]. File at priority 16."
+       exit 1 ;;
+  esac
+  # `cat-file -t` and not `rev-parse --verify <rev>:<path>`: a DIRECTORY resolves to a tree id as happily as a
+  # file resolves to a blob, and #509's antagonist A proved that reading a tree with `cat-file blob` truncates
+  # to 0 bytes and makes an empty-against-empty comparison succeed - the block printing its own success line.
+  # `^{blob}` is NOT the remedy; it answers `fatal: Needed a single revision` on a real blob.
+  SO_BT="$($GIT cat-file -t "$BASEFULL:app.js" 2>/dev/null || echo none)"
+  SO_HT="$($GIT cat-file -t "$HEAD:app.js" 2>/dev/null || echo none)"
+  SO_B="$(mktemp)"; SO_H="$(mktemp)"
+  if [ -z "$SO_B" ] || [ -z "$SO_H" ] || [ ! -f "$SO_B" ] || [ ! -f "$SO_H" ]; then
+    say ""; say "FULL SUITE REQUIRED. mktemp failed, so the stamp-only test could not be run at all."
+    say "    $APPDIFF"; exit 2
+  fi
+  $GIT cat-file blob "$BASEFULL:app.js" > "$SO_B" 2>/dev/null || true
+  $GIT cat-file blob "$HEAD:app.js"     > "$SO_H" 2>/dev/null || true
+  if [ "$SO_BT" != blob ] || [ "$SO_HT" != blob ] || [ ! -s "$SO_B" ] || [ ! -s "$SO_H" ]; then
+    SO_OUT="NOT-STAMP-ONLY app.js is not a non-empty blob on both sides (base $SO_BT, head $SO_HT)"
+    SO_RC=1
+  else
+    SO_OUT="$(so_pred "$SO_B" "$SO_H")"
+    SO_RC=$?
+  fi
+  rm -f "$SO_B" "$SO_H"
+  if [ "$SO_RC" = 0 ]; then
+    STAMPONLY=yes
+    say ""
+    say "app.js differs from the base BY ITS BUILD STAMP ONLY, so it does not force the full suite:"
+    say "    $APPDIFF"
+    say "    $SO_OUT"
+    say "    No regress gate asserts the stamp (gates/lib.js:314 note() is not a verdict), and the three gates"
+    say "    that read app.js off disk match minified CODE, which is byte-identical here."
+  else
+    say ""
+    say "FULL SUITE REQUIRED. app.js is not byte-identical to the base and the difference is NOT stamp-only:"
+    say "    $APPDIFF"
+    say "    $SO_OUT"
+    exit 2
+  fi
+fi
 
 # ── DOES THIS HEAD CARRY .nojekyll? MEASURED ONCE, FROM THE OBJECT STORE, AND USED BY classify() BELOW. ─────
 # Added #509. The root-.md arm of classify() used to be an unconditional FORCE whose stated reason was "GitHub
@@ -278,6 +440,19 @@ fi
 FORCE=""
 while IFS= read -r p; do
   [ -n "$p" ] || continue
+  # THE STAMP-ONLY EXEMPTION IS APPLIED HERE AND NOT IN classify(), AND THE DISTINCTION IS LOAD-BEARING.
+  # classify() is asked by THREE callers: this changed-set decision and the TWO premise checks below, which
+  # walk what the gates themselves read and REFUSE (exit 1) if a gate requires a file classify() calls
+  # records-only. gates/regress/33-reproducible-review.js reads app.js off disk, so making classify() return
+  # RECORDS for app.js would break the premise check and retire fast mode outright. The exemption therefore
+  # belongs to THIS decision alone: app.js stays FORCE for everyone who asks the classifier, and is dropped
+  # from the force set for this one commit only once the stamp-only test above has PROVED the difference is
+  # confined to the three stamp sites. Measured on this tree: the job's locus names the bundle compare only,
+  # and a bundle-compare-only fix is INERT, because classify():190 forces app.js by itself.
+  if [ "$p" = app.js ] && [ "$STAMPONLY" = yes ]; then
+    say "    app.js: classify() forces it, and the stamp-only proof above exempts it for THIS commit."
+    continue
+  fi
   v="$(classify "$p")"
   [ "$v" = "RECORDS" ] || FORCE="$FORCE$p (${v#FORCE })\n"
 done <<< "$CHANGED"
@@ -515,7 +690,14 @@ say "  differed: every file any of them reads is in the FORCE set, re-derived ab
 # #490: the old ref line read "bundle UNCHANGED (app.js not in the changed set)", which is VERBATIM the ground
 # 6120ecd records as the lie that certified a blank page - a path-list inference. The verdict is now sound because
 # BUNDLE IDENTITY compares blob ids, so the line should state THAT and not the discredited reason.
-say "ref: HEAD $HEAD | base $BASEFULL (= origin/main) | bundle UNCHANGED by BLOB ID over all $(set -- $SHIPPED; echo $#) served files"
+# #490: the ref line must state what was MEASURED. It said "bundle UNCHANGED by BLOB ID over all N served
+# files", which stops being true the moment the stamp-only exemption fires - app.js's blob HAS moved. Saying
+# otherwise would be the same class of defect #490 fixed here: a log stating a discredited reason.
+if [ "$STAMPONLY" = yes ]; then
+  say "ref: HEAD $HEAD | base $BASEFULL (= origin/main) | $(set -- $SHIPPED; echo $#) served files: all byte-identical by BLOB ID except app.js, whose only differing bytes are its 3 build-stamp sites (proved above)"
+else
+  say "ref: HEAD $HEAD | base $BASEFULL (= origin/main) | bundle UNCHANGED by BLOB ID over all $(set -- $SHIPPED; echo $#) served files"
+fi
 if [ $red -eq 0 ]; then
   say "FAST GATE GREEN $HEAD"
   say "This authorises a push of THIS COMMIT ONLY. It is not the full suite's own green footer and must never"
