@@ -596,7 +596,21 @@ if [ -n "$FSBAD" ]; then
 fi
 say ""
 say "premise check: $(echo "$DEPS" | grep -c .) distinct require() targets across the regress gates, every one of them"
-say "  inside the FORCE set. So no gate's verdict can differ from its verdict on the base for this commit."
+say "  inside the FORCE set."
+# THE CONCLUSION IS STATED SEPARATELY AND CONDITIONALLY, BECAUSE THE STAMP-ONLY EXEMPTION ADDS A PREMISE TO IT.
+# Before #514 this sentence could be one line: every file a gate reads is FORCE, and nothing FORCE is in the
+# diff, therefore no verdict can differ. With the exemption, app.js CAN be in the diff while gate 33 reads it,
+# so the conclusion now rests on the stamp-only proof as well, and a log that did not say so would be asserting
+# the old reasoning over the new facts - which is #490's defect (a sentence stating a discredited reason) with
+# my own change attached.
+if [ "$STAMPONLY" = yes ]; then
+  say "  app.js IS in this diff and gates 33/66/67 read it, so the no-verdict-can-differ conclusion rests on the"
+  say "  stamp-only proof above as well: those three match minified CODE and the only differing bytes are the"
+  say "  three build-stamp string literals. No regress gate ASSERTS the stamp - they reach it through L.note,"
+  say "  which is not a verdict - so none of their verdicts can differ from its verdict on the base."
+else
+  say "  Nothing in the FORCE set is in this diff, so no gate's verdict can differ from its verdict on the base."
+fi
 say "premise check part two: $FSSEEN existing repo paths reached by path.join in the gates, every one of them FORCE."
 
 # ── WHAT STILL RUNS, AND HOW IT JUDGES. ─────────────────────────────────────────────────────────────────────
@@ -690,7 +704,14 @@ say ""
 # control-audit = 56 sections counting mountcheck). Both antagonists caught it independently. Compute it.
 NGATES="$(ls "$G"/regress/*.js 2>/dev/null | wc -l | tr -d ' ')"
 say "gates ran: records tier only. The $NGATES browser gates in gates/regress were NOT run, and could not have"
-say "  differed: every file any of them reads is in the FORCE set, re-derived above, and none is in this diff."
+if [ "$STAMPONLY" = yes ]; then
+  # "none is in this diff" IS FALSE when the exemption fires - app.js is in the diff - and saying it anyway
+  # would be the exact class of defect #490 fixed two lines below. State what was measured instead.
+  say "  differed: every file any of them reads is in the FORCE set, re-derived above, and the only one of those"
+  say "  in this diff is app.js, whose differing bytes are its three build-stamp literals and nothing else."
+else
+  say "  differed: every file any of them reads is in the FORCE set, re-derived above, and none is in this diff."
+fi
 # #490: the old ref line read "bundle UNCHANGED (app.js not in the changed set)", which is VERBATIM the ground
 # 6120ecd records as the lie that certified a blank page - a path-list inference. The verdict is now sound because
 # BUNDLE IDENTITY compares blob ids, so the line should state THAT and not the discredited reason.
