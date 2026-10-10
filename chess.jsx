@@ -4105,8 +4105,17 @@ export default function App(){
     const finish=(bm,ok)=>{if(done)return;done=true;sfAnaCbRef.current=null;sfAnaBusyRef.current=false;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null,ok:!!ok});};
     const _abort=()=>finish(null,false); sfAnaAbortRef.current=_abort;
     const to=setTimeout(()=>finish(null,false),depth?Math.max(20000,movetime*8):Math.max(4000,movetime*8));
-    sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=mateW(s.mate,sign);cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=mateW(s.mate,sign);cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm,true)};
-    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));}catch(e){finish(null,false);}});
+    /* #511, ANTAGONIST A's F4, UPHELD: INSTALL THE CALLBACK ONLY WHEN OUR OWN SEARCH IS ABOUT TO START.
+       This assignment used to sit BEFORE anaIdle, and anaIdle posts `stop` and waits for `readyok` - so the
+       PREVIOUS search's `bestmove` arrives in between and the message handler hands it to whatever callback is
+       installed, which was already OURS. The caller then resolved `ok:true` carrying a bestmove for a
+       DIFFERENT POSITION, which is precisely the entry `ok` exists to refuse: the comment above claimed "only
+       the last is an answer" and that was false for this path. Reachable on every exit that clears the busy
+       flag without posting `stop` - the stuck-worker timeout and both !idle branches - and the yield does NOT
+       close it, because the yield reads the same busy flag. Moving the assignment inside the idle callback
+       means a stray message from a search we did not issue finds a null slot and is ignored (see the handler's
+       own `if(!cb)return`). anaIdle's own `readyok` handling does not read this slot, so nothing else moves. */
+    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=mateW(s.mate,sign);cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=mateW(s.mate,sign);cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm,true)};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));}catch(e){finish(null,false);}});
   });
   // Engine's best line (principal variation) from a position; resolves an array of UCI moves or null. Lets Review play the better line out at full engine strength.
   const sfBestLine=(fen,movetime,onScore)=>new Promise(resolve=>{
@@ -4118,8 +4127,11 @@ export default function App(){
     const finish=(r)=>{if(done)return;done=true;sfAnaCbRef.current=null;sfAnaBusyRef.current=false;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearTimeout(to);resolve(r);};
     const _abort=()=>finish(null); sfAnaAbortRef.current=_abort;
     const to=setTimeout(()=>finish(line),Math.max(4000,movetime*8));
-    sfAnaCbRef.current={score:(sc)=>{if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(arr&&arr.length)line=arr;},best:(bm)=>finish(line||(bm&&bm!=='(none)'?[bm]:null))};
-    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null);return;}try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null);}});
+    /* #511: the same move as in sfEval1 above, for the same reason - a previous search's `bestmove` or `info`
+       must not be read as this query's. Here it matters doubly, because `pv` ACCUMULATES into `line` and the
+       timeout resolves whatever `line` holds: a stray pv from the old search would have been returned as this
+       position's principal variation. */
+    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null);return;}sfAnaCbRef.current={score:(sc)=>{if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(arr&&arr.length)line=arr;},best:(bm)=>finish(line||(bm&&bm!=='(none)'?[bm]:null))};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null);}});
   });
   // ── #343: parallel review workers ────────────────────────────────────────
   // A game review is 60-80 INDEPENDENT position evaluations, so it parallelises almost perfectly.
@@ -5695,6 +5707,16 @@ export default function App(){
   const sacRun=useCallback(async()=>{
     if(sacBusyRef.current)return;
     const w=sacWantRef.current; if(!w)return;
+    /* #511, ANTAGONIST A's F5, UPHELD: AN ABANDONED ATTEMPT MUST NOT SPEND A SEARCH.
+       The token below guards the STORE, so a result the user has walked away from is thrown away - but it was
+       still COMPUTED, and sfEval1 still opens by aborting whatever is on the worker. So a stale attempt could
+       fire up to the full yield budget after the reader left the ply, take the worker, and abort a query the
+       user IS waiting on. On main that window was one attempt wide; the yield widened it to 6 seconds, so this
+       is a hazard this build introduced and not one it inherited. Re-validating ownership HERE, before either
+       the yield or the query, closes it: an attempt whose pending marker is gone (the effect cleanup deleted
+       it on the ply change) stops immediately and stops yielding too. */
+    const _own=sacRef.current.byPly[w.ai];
+    if(!(sacRef.current.key===w.key&&_own&&_own.pending&&_own.tok===w.tok)){sacWantRef.current=null;return;}
     /* #511: YIELD TO THE WORKER, DO NOT KILL WHAT IS ON IT. THIS IS THE HALF THAT THE USER SEES.
        The analysis worker serves ONE query through a single callback slot, and BOTH entry points open by
        aborting the incumbent (#356, so a query the user has stepped away from can be cancelled). sacRun and
@@ -5752,7 +5774,16 @@ export default function App(){
          deleted by an older attempt's failure and a good answer is never dropped.
          DROPPING the entry rather than retrying in place is deliberate and is #389's own remedy: the
          effect's deps do not include sacTick, so nothing re-fires while the user stands still, and the
-         ply is re-queried when they come back. It turns "never" into "tries again when you return". */
+         ply is re-queried when they come back. It turns "never" into "tries again when you return".
+         THE CONTROL FOR THIS HALF, AND THE FIRST ONE I CITED WAS WORTHLESS [R18, withdrawn here].
+         I first cited an A/B/C probe reading "clause absent at every arm" on a bundle carrying only this
+         half. Both blind antagonists independently found that the SAME probe prints the SAME thing on the
+         bundle that SHIPS - the two logs are byte-identical but for the header line - because it walks 37
+         plies with the engine on and traps the WASM worker, so it could not tell any two bundles apart.
+         That is CLAUDE.md's #418 rule exactly: ask what the program prints on a case you already know is
+         fine. WITHDRAWN. The discriminating measurement is gate 22 block R itself, over four bundles that
+         differ by one hunk group each, and it is in the gate's own header. This half is controlled by the
+         AWAY=1200 arm, where the reader steps off AFTER sacRun has taken the worker. */
       const _cur=sacRef.current.byPly[w.ai];
       const _mine=sacRef.current.key===w.key&&_cur&&_cur.pending&&_cur.tok===w.tok;
       if(_mine){
