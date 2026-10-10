@@ -39,10 +39,18 @@ antagonist A caught in the cross-read.
 ## What the deliverable is, and why it is in `pending/`
 
 `gates/pending/75-fit-loop-one-way-ratchet.js`, **TC-R64 / US-R72**: 64 assertions over 10 browser
-launches, **60 pass / 4 fail on main's own bundle** — PROVISIONAL AS THIS LINE IS WRITTEN: that figure
-was taken on the PREVIOUS version of the file, before the cross-read replaced the A6/C6 precondition,
-and the final file is re-run after the suite finishes and this number corrected if it moved. A browser
-was deliberately not launched beside the push-gate suite. It carries **no expected board width** — every
+launches, **60 pass / 4 fail on main's own bundle `227126b82b81`, REAL_EXIT 1** — measured on the FINAL
+file after the suite finished, not carried from the version the figure was first taken on. **AND
+RE-MEASURING IT IS THE ONLY REASON THE GATE IS NOT 19% SMALLER THAN THIS SENTENCE SAYS:** the first
+re-run read **48 pass / 4 fail**, because my own cross-read commit had deleted A7 and A8 — zero console
+errors asserted *per arm*, themselves an upheld antagonist fix — as collateral while replacing the A6
+precondition eight lines above. 2 per pair × 6 pairs = **12 assertions, and nothing noticed**: the file
+still ran, still exited non-zero, and still reddened in exactly the four right places. **The total was
+the only tell.** Restored and re-measured. The class is filed: `gates.sh:9` and `:304` both state "the
+total must only rise" and, measured, those two comments are the only occurrences anywhere — nothing
+compares totals across logs, and footer self-consistency is preserved exactly by the edit that deletes
+assertions (`jobs/a-deleted-assertion-inside-a-gate-is-invisible-in-a-green-run-2026-10-10`).
+It carries **no expected board width** — every
 block drives the same path twice, clean and transient, in one run — so it cannot go stale on this
 container's fonts. It is in `pending/` with an `absent` manifest row (**known-absent 4 → 5**) because
 it reds on main *by design*: the app defect is unfixed and `L.run` exits non-zero. Promote it in the
@@ -169,4 +177,42 @@ stamps allow, saying where they run out.
 
 ## Provenance
 
-PROVENANCE_PLACEHOLDER
+`GATES GREEN #510`, **59 sections, 4621 PASS, 0 FAIL**, 0 `<<<` markers, 6039 log lines, over bundle
+`227126b82b81`, gated sha `a336836`, base `4c7e007`. Suite **07:31:12Z to 09:11:33Z, 100 minutes**, pid
+13067, from the frozen sibling copy `gates/.gates-run-510.sh`, **byte-identical to `gates.sh` at the
+gated sha, both `9dd41aaff6c2`** — the #493 correction, which is that the copy must live inside
+`gates/` because `gates.sh:33` derives `ROOT` from its own location.
+
+Figures **re-derived, not read off the footer** [#405]: the footer's own 4621 equals an independent
+`grep -c '^PASS'` of 4621, with `^FAIL` 0. **4621 is exactly #509's figure, and that is the expected
+answer rather than a coincidence worth hiding** — no `regress` gate changed this run, because the gate
+this build wrote is in `pending/`.
+
+Push gate, **every exit code captured in a variable on its own line and not read through a pipe** — a
+mistake this close-out made three times before it stopped making it, most instructively when `grep |
+sed` made a provenance check's own "NONE" branch unreachable:
+
+| check | real exit |
+|---|---|
+| `verify-log.sh gates/logs/510-all.log '#510'` | **0** |
+| `verify-log.sh … --this-bundle` | **0** — "gated md5 `227126b82b81`, which is app.js on disk" |
+| `verify-log.sh … --on-main` | **1** before the push, **0** after |
+| `verify-log.sh claude/agents/gatelogs/510-all.log '#510'` | **0** — the copy is what future runs cite |
+| `held.sh check` | **0** — not held, 11 live rows checked |
+| `buildnum.sh stampable '#510'` | **0** — "#510 is yours" |
+| `audit/cited-not-run.sh` | **0** — ACCOUNTED-GREEN, 31 of 31, 0 unaccounted, 0 stale roster |
+
+Manifest **58 required / 58 present / 0 missing / 0 unlisted / 5 known-absent / 0 retired / 0
+unjustified / 0 unreadable**, so this green is honest and blind in exactly five places, as it says
+every run.
+
+**Provenance of the green, measured rather than assumed.** Of the six files differing between the gated
+sha and the tree, exactly one is under `gates/` and **zero are suite-read**: `gates.sh:178` globs
+`gates/regress/*.js` only, and the log's own header lists that file among its five known-absent gates.
+All nine `gates/*.sh` are byte-identical to the gated sha, so **the harness was frozen for the whole
+100 minutes** (#461, where two mid-run edits cost a complete 48-section green its footer). The tree was
+clean at 07:30:45Z and the suite launched at 07:31:12Z, so the log's dirty count of 0 is correct.
+
+**A green log is a statement about the suite, not permission to push** [#450]. This tree was not held,
+and nothing about it is held now. **And this green says nothing about the app**, which did not change:
+the four reds that matter are in a gate in `pending/`, describing a defect that is still live on main.
