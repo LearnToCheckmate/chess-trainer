@@ -242,6 +242,17 @@ const pair=(n,tag,clean,inj,px,engages)=>{
     L.say(inj.injRect===null,'TC-R64 '+tag+'6 '+n+' the clean arm injected nothing',{injRect:inj.injRect});
   }
   L.note(n+' '+px+'px board WHILE the transient was in flow (after the dependency change, before removal): '+inj.during+'  against a clean '+clean.board+'. Printed and NOT asserted: see the comment above. On main this is where the shrink has already landed, so it equals the final latched board; a fix that absorbed the transient without shrinking would read the clean value here and must not be called a failure for it.');
+  // A7/A8 RESTORED AT 09:1xZ AFTER THE RE-RUN ON THE FINAL FILE COUNTED 52 ASSERTIONS WHERE EVERY DOCUMENT SAID 64.
+  // These two were an UPHELD ANTAGONIST FIX - b430f0e asserted `clean.errs===0&&inj.errs===0` as one conjunct, the veto
+  // said a conjunct over both arms cannot say which one errored, and a336836 split them. My own cross-read commit
+  // b111ce9, which replaced the A6 precondition eight lines above, DELETED BOTH as collateral - 2 per pair x 6 pairs = 12
+  // assertions, and nothing noticed, because the file still ran and still went red in the four places it should.
+  // THE ONLY REASON THIS WAS CAUGHT is that the figures were re-measured on the final file instead of carried from the
+  // file they were taken on [#504]: 48 pass / 4 fail against a published 60 / 4 is a 12-assertion hole, and the count was
+  // the only thing that showed it. A deleted assertion is invisible in a green run - which is this project's own
+  // gates-green-does-not-say-which-gates-RAN finding, one level down: inside a gate, nothing counts its own assertions.
+  L.say(clean.errs===0,'TC-R64 '+tag+'7 '+n+' zero console errors, clean arm',{errs:clean.errs});
+  L.say(inj.errs===0,'TC-R64 '+tag+'8 '+n+' zero console errors, injected arm - asserted separately from the clean arm, because a conjunct over both cannot say which one errored',{errs:inj.errs});
   const lost=Math.round((clean.board-inj.board)*100)/100;
   L.say(Math.abs(lost)<0.5,'TC-R64 '+tag+'9 '+n+' THE BOARD COMES BACK after a '+px+'px transient. A transient piece of in-flow content across one loop-dependency change must not cost board for the rest of the visit: the board after the injection cycle equals the board with no injection. NO pixel literal - the control is the other arm of the same run'+(engages?'':' (this cell is BELOW the threshold on main, so it is green on the broken bundle too and its job is to show the instrument can report both answers [#385])'),{cleanBoard:clean.board,afterInjectCycle:inj.board,lostPx:lost,transientPx:px});
   L.note(n+' '+px+'px peak `over` sampled per frame: injected='+inj.peak+'  clean='+clean.peak+'   -- printed, NOT asserted: see the comment above A6. At 375x568 these are EQUAL at 2.88 while only the injected arm latches, which is why a predicate over them reddens a working control.');
