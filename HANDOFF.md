@@ -259,7 +259,7 @@ Figures **re-derived, not read off the footer**: the actual `^PASS` count equals
 byte-identical between launch and finish (aggregate `f781590fd58f`), so the log is not a collage of two
 trees. Shipped as a clean fast-forward `38a8a25..5ba16d7`, verified with `merge-base --is-ancestor` and
 an independent `ls-remote`. Manifest 58 required / 58 present / 0 missing / 0 unlisted / **4
-known-absent**, so this green is honest and blind in exactly four places, as it says every run.
+known-absent**, so this green is honest and blind in exactly four places, as it says every run. **FIVE AS OF #510** [R18]: that build added `gates/pending/75-fit-loop-one-way-ratchet.js` with an `absent` row, so the tool now reports five and this sentence — which is scoped to #509's green and so is not false — is the one line a handoff reader uses for coverage. Antagonist B flagged it against the tree it describes.
 
 **A green log is a statement about the suite, not permission to push** [#450]. This tree was not held,
 and nothing about it is held now.

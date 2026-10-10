@@ -1027,3 +1027,83 @@ On `598cbe4857d6` **B1d PASSES** — the panel genuinely does fit — while B1b 
 **HARNESS TRAP, ESTABLISHED AND NOT TO BE REDISCOVERED.** `CDP Input.synthesizeScrollGesture` is **inert in this container** — 0 px produced against 6124 px of available root scroll, three times at three geometries. `page.mouse.wheel` works, and a manual `Input.dispatchTouchEvent` touchStart/Move/End sequence works. Any future gate claiming "a finger can scroll this" must not use `synthesizeScrollGesture`; `fingerDrag` in gate 74 is a working implementation, and D prints its tool-check against a known scroller before emitting any verdict.
 
 **THE SWEEP PROBE IS NOT COMMITTED, and that is deliberate rather than an omission.** It lived in `gates/.probe/`, which `.gitignore` carries for exactly this. A script under `gates/` that no suite runs is what `jobs/a-test-in-the-repo-that-no-suite-runs-2026-09-28` exists about, and #497 set the same precedent for the same reason. The predicate above is stated in full so the sweep can be re-derived; what is permanent is the gate.
+
+### TC-R64 (US-R72) — the lesson board comes back to its own size after a transient shrank it
+
+TC-R64  US-R72 (#510), a transient piece of in-flow content must not cost lesson board width for the rest of
+the visit.  GATE `gates/pending/75-lesson-demo-board-latch.js`, **64 assertions over 10 browser launches** —
+4 geometries x (clean + small-transient) arms plus a LARGE-transient arm at each of Kunal's two.  **THE COUNT WENT 26 -> 30 -> 64 ACROSS TWO ANTAGONIST
+VETOES AND THE COMPOSITION MATTERS MORE THAN THE TOTAL:** antagonist A had two assertions REMOVED (they would
+have reddened a correctly fixed bundle) and four added, and antagonist B's veto added a LARGE-transient arm at
+each of Kunal's geometries, which is what turned block D from decoration into a discriminating control. GEOMETRIES: **320x540 and 375x568** (the two cells
+where the latch reproduces; 320x540 is not invented here — `gates/regress/48-lesson-flow.js` already drives
+it, labelled "inside the overflow band, not at its floor", #424) and **375x761** (Kunal's phone, R19's settled figure) plus
+**375x730** (the legacy `lib.js` GEOS entry), driven at a SMALL transient as the control that a sub-threshold
+transient is absorbed AND at a LARGE one (88px, 120px) where the board latches on his own phone.
+INPUTS: the Endgames lesson at index 0 driven to its demo end by `gates/drive/lesson.js` state
+`endgame-demo-end`, then `✋ Now I'll try it`; the transient is a 16px `flex:0 0 16px` div appended to
+`#root`'s single in-flow child, which is the trigger the owning job's own #468 block established and the only
+one anybody has been able to cause on demand.
+
+PASS CONDITIONS, each failing separately: (a) **THE BOARD COMES BACK** — the practice board after the
+injection cycle EQUALS the practice board with no injection, same geometry, same run (B1); (b) the two arms
+AGREE AT THE DEMO END, before either diverges, which is B1's comparability precondition (A4); (c) the
+injection MOVED the quantity the shrink branch reads, sampled per frame (A5); (d) the practice state was
+actually reached in both arms, at every geometry (A0, A0b, D0b); (e) a board is painted in both arms (A1,
+A1b, D0, D0c); (f) the clean board is HEIGHT-bound at the latch cells and WIDTH-bound at Kunal's (A2, D1);
+(g) at Kunal's geometries the board is unmoved by the injection cycle (D2).
+
+**THERE IS NO EXPECTED BOARD WIDTH ANYWHERE IN THIS CASE, AND THAT IS THE DESIGN.** Block B drives the same
+path twice in one run and compares the two results. Every absolute board pin in this suite is a function of
+the container's fonts — `gates/lib.js`'s #480 note measures the app's stack and bare sans-serif 53.84px apart
+on one line, and six consecutive containers once could not gate any tree because of it — so a relation
+between two measurements taken in one run does not depend on any of that. **BUT THE WORD "IMMUNE" IS WRONG
+AND WAS IN THE FIRST DRAFT [R18]:** the ASSERTION is container-independent and its ability to FAIL is not.
+The latch step at 375x568 fires on an `over` of 2.88px, so a container whose lesson text lays out 3px shorter
+makes that cell stop reproducing and B1 would go green on a broken bundle with nothing saying so. That is
+what A5 exists for — it measures the peak `over` the injection produced, so a vanished margin reports itself
+rather than passing quietly. Found by antagonist A.
+
+**TWO ASSERTIONS WERE REMOVED BECAUSE THEY WOULD HAVE VETOED THE FIX THEY EXIST TO ENABLE.** The first draft
+asserted `over===0` and `spacers===0` as PASS conditions, on the reasoning that a fix which returns the
+pixels while leaving the loop blind to slack has not closed the class. That is backwards: the surviving
+candidate fixes make `over` signed or widen the `spacers` predicate, so both assertions would have gone RED
+ON A CORRECTLY FIXED BUNDLE. They were also a COPY of the app's predicate rather than a reading of it, so
+their messages claimed something about `chess.jsx` the gate cannot see. They are now an `L.note` printing the
+same numbers every run. A note is not a guard — and here the property is a fact about the implementation
+under test, not a requirement on it, and the requirement is B1.
+
+EVIDENCE IT FAILED BEFORE ANY FIX, which is what this register requires: run against **main's own bundle
+`227126b82b81`**, the gate scores **60 pass / 4 fail**, real exit 1, and the four reds are the recovery
+assertion at each cell whose transient exceeds that geometry's threshold — 320x540 at 16px (lostPx 24.00),
+375x568 at 16px (16.00), 375x730 at 88px (29.20) and 375x761 at 120px (32.80) — and nothing else.
+
+**AND THE GEOMETRY CLAIM THE FIRST DRAFT MADE IS WITHDRAWN IN FULL [R18].** It read "EXACTLY 0px at 375x730
+AND 375x761 ... the defect is NOT on Kunal's phone", and it asserted that in the gate. It drove ONE transient
+size, 16px, and published the result as a property of those geometries. The size is an input axis: at 375x730
+the loss is 0.00 at 16, 56 and 64px and **29.20px at 88px**; at 375x761 it is **32.80px at 120px**. The app's
+own #436 comment carried the qualifier the draft dropped. Antagonist B's veto; reproduced by the build before
+acceptance. **THE LOSS ALSO SCALES:** at 375x568 an 88px transient lands on **192.00, losing 78.88px (29%)**,
+which is the floor gate 48 records from the wild — so "16-24px" was an artefact of the probe size.
+
+THE MECHANISM FIGURES, CORRECTED FROM THE FIRST DRAFT AND THE CORRECTION IS THE USEFUL PART [R18]. At 320x540
+the shrink branch consumes `over=12.39` and spends `ceil(12.39/8)*8+8 = 24`, matching the loss exactly. **At
+375x568 the first draft cited `over=6.88` and it is the WRONG INPUT:** 6.88 occurs at board 270.88 and drives
+270.88 → 254.88, which `control.log` shows happens **on the clean arm too** (the clean demo→practice step is
+a real 16px there), so it drives the LEGITIMATE step and not the latch. The latch step is **254.88 → 238.88**
+and its input is **`over=2.88`**, which was in the same log and was never cited; `ceil(2.88/8)*8+8 = 16`, the
+right answer from a different input. The first draft also cited the chain 270.88 → 254.88 → 238.88, which
+loses 32px and not the 16 its cited spend produces. **This is the identical confound the same build correctly
+caught in the owning job's own published figure, committed two paragraphs later in its own commit message.**
+
+AND THE CONTROL CORRECTED THE OWNING JOB'S PUBLISHED FIGURE BEFORE IT WAS TRUSTED. The job publishes
+"236.39 → 212.39", which compares a DEMO board against a PRACTICE board; the clean demo→practice step is 0px
+at 320x540 and a real 16px at 375x568. So the latch is 24 and 16, and the job's number is right at 320x540
+and would have overstated it by 16px at the geometry in its own title.
+
+NOT CHECKED, named rather than claimed: the other three screen families the loop runs on (play, puzzle
+browse/online, compact review) — the arithmetic half of the mechanism is screen-independent and the
+instrument-blindness half was measured on the lesson screen only; the real-world trigger, unidentified by
+every lane that has looked; and the four-geometry control was run on main's bundle at TWO geometries only —
+the 0px at 375x730/761 comes from this gate's block D, which is a different instrument from the probe, and
+the first draft's "at four geometries on both bundles" conflated the two [#411/#412].

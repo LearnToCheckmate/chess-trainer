@@ -110,3 +110,43 @@ re-authored a fourth time. Run it by hand with CT_APP set:
     CT_APP=/path/to/bundle.js node gates/pending/50-drill-verdict-no-jump.js
 WHEN THE FIX LANDS: git mv it into regress/ and flip gate-manifest.tsv row 78 to `required` in the SAME commit.
 
+
+## 75-fit-loop-one-way-ratchet.js  (added #510, 2026-10-10)
+The executable reproduction of the PORTRAIT fit loop's one-way ratchet, owned by
+jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29 (priority 16, band 16) and keyed at
+fingerprints/94a2c0fe0b10aab2 (`chess.jsx|boardTrim` — the loop, not the screen). It is HERE rather than in
+regress/ because it is RED ON main BY DESIGN — 60 pass / 4 fail against main's own bundle `227126b82b81` —
+and `L.run` exits non-zero, so in regress/ it would fail its section and block every push on a tree no build
+broke. gates.sh enumerates `"$G"/regress/*.js` only, so nothing here runs and it cannot redden a suite.
+
+**THIS SECTION EXISTS BECAUSE THIS DIRECTORY'S OWN RULE WOULD SEND THE FILE AWAY, and that objection is
+right on its face.** The header above says the only thing that belongs here is a gate whose subject is
+blocked on a decision Kunal has not made, and that *"a gate that is red because the app is broken belongs in
+`regress/`, and the app gets fixed."* This gate is red because the app is broken and it is explicitly NOT
+blocked on a decision — Kunal answered `q-latch-detector-blocking` on 2026-10-04 with `fix-app-first`. So the
+exception needs arguing rather than assuming, exactly as #500 argued gate 50's:
+
+- **The app did not get fixed, and the reason is measured rather than asserted.** #510 built a candidate and
+  **its own control falsified it** (bundle `fc54d99154d7`, registered under #510, never shipped: the latch
+  still fires at 24px and 16px on it). Two of the job's three prescribed "one-liners" are falsified by
+  measurement — the loop's `spacers` term reads 0 on this screen, and `over` is structurally 0 so no deadband
+  reaches a signal — and the third trades against #355's stated reason for settling from the current trim
+  (*"or the board visibly jumps to full size and back on every single move, which is exactly what Kunal
+  saw"*), which makes it a product trade-off and not an implementation detail.
+- **So the file would redden every push for a fix that cannot be written this run without a ruling.** That is
+  the same position gate 50 is in, for the same directory, ten builds earlier.
+- **And the alternative is worse than the rule it breaks.** The defect has existed since 2026-09-29 with no
+  reproduction at all: the job records it firing "about 1 run in 5", #468 could not provoke it in 36 launches
+  and the headless-gallery lane could not in 11. Keeping the reproduction out of the repository to respect a
+  directory rule would leave the project exactly where it was — with an intermittent nobody can trigger.
+
+**WHAT IT COSTS AND WHO IS TOLD.** `gates/gate-manifest.tsv` carries an `absent` row, so
+`gatemanifest.sh check` reports the gap on every run (known-absent went 4 → 5) rather than it being a
+silence; and `gates/audit/cited-not-run.sh` carries a matching `ADMIT` roster row, declared, taking ADMIT
+1 → 2 against a section header that calls ADMIT a ceiling that may only fall. That contradiction is already
+named on gate 50's roster row and is not resolved here [R45].
+
+**IT MOVES TO `regress/` AND THE MANIFEST ROW FLIPS TO `required` IN THE SAME COMMIT AS THE FIX**, never
+before — and whoever does that should add the PLAY and PUZZLE cells first: `_fitScreen` spans four screen
+families and antagonist B measured the identical ratchet on play (272.00 → 256.00) and puzzle
+(259.03 → 235.03) at 375x568. Promoting a lesson-only file would certify one screen and stay blind on two.

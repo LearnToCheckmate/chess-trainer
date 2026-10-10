@@ -1181,3 +1181,80 @@ So a **longer** verdict is whole and a shorter one is cut, because `c13`'s two-l
 **WHAT THIS CLAUSE DOES NOT DECIDE.** Four changes satisfy it — put the news first (precedent above); cap the explanation; give the news its own row; or leave it to the modal and keep it out of the box — and they differ in what the player reads and what the screen costs. That is not a choice the run that found it may make [R45]. Routed with the measurement and a recommendation.
 
 CASE: TC-R58, and the gate is owed by the test-authoring lane [R17].
+
+### US-R72 The lesson board does not get smaller because something appeared for a moment
+As a player working through a lesson on a short phone, the demo board is as large as the screen allows, and it
+stays that size for the whole visit — it does not end up smaller than it started because a note, a label or a
+font arrived a frame late.
+
+- The board is maximised and must never jump (CLAUDE.md's first layout rule). This clause adds the half that
+  rule does not state: a board that shrinks ONCE and never comes back is not a jump, it is a permanent loss,
+  and it is invisible to any assertion that only compares two adjacent states.
+- WHY THIS CLAUSE IS NEW RATHER THAN A REPOINTING, and the citation it replaces was FALSE. The gate for this
+  defect was written at #510 citing a clause numbered **21**, and no story clause in this file has ever been
+  numbered 21 — the ids run to US-R71. I am deliberately NOT writing that id out again here, because this
+  paragraph would then be the only occurrence of it in the file and would falsify its own check: that is the
+  recursion #506 recorded against itself, where "prose that quotes the defective form IS the defective form
+  as far as a textual scan is concerned". The two nearest real clauses do not cover this screen either:
+  **US-R04** ("The move screen fits the phone and the board never moves") is scoped to REVIEW and **US-R12**
+  ("The drill board stays still when the app answers me") to the DRILL. Nothing here covered the LESSON
+  board's stability, which is why the defect could sit for eleven days with its own job at band 16 and no
+  clause to hold a fix to. Found by the #510 build against its own gate, before any antagonist read it.
+- NOT TRUE ON main AS OF #510, AND THIS CLAUSE IS THE TARGET RATHER THAN THE RECORD. Measured on main's own
+  bundle `227126b82b81`: after a transient 16px of in-flow content across one loop-dependency change at the
+  lesson demo end, the board is **24.00px smaller at 320x540** and **16.00px smaller at 375x568**, for the
+  rest of the visit, and nothing in the app can reclaim it. It recovers only by leaving and re-entering.
+- **AND AT 320x540 IT COSTS MORE THAN BOARD WIDTH.** The latched board is 212.39, the exact pre-#430 value.
+  `gates/regress/48-lesson-flow.js` publishes the arithmetic — the MOVES row's residual is its min-content
+  (231.55px, geometry-independent) minus the board — so 231.55 − 212.39 = **19.16**, which is #424's PINNED
+  residual at that height to the hundredth. The latch therefore RE-OPENS the "Other lines" button overflow
+  that #430 closed and that gate 48 had pinned as a live unrecoverable defect. The clean board 236.39
+  reproduces gate 48's own "−4.84, fits with 4.84px to spare". At 375x568 the residual stays negative.
+- **IT HAPPENS ON KUNAL'S OWN PHONE, AND THE FIRST DRAFT OF THIS CLAUSE SAID IT DOES NOT [R18].** That draft
+  measured 0px at 375x730 and 375x761 with a **16px** transient and withdrew the owning job's claim about his
+  phone. The transient SIZE is an input axis and it drove one value of it. Measured on main's own bundle at
+  the lesson demo end, injection alone, board read after the content is gone: 375x730 loses **0.00px at 16,
+  56 and 64px** and **29.20px at 88px** (board 345.83); 375x761 loses **32.80px at 120px** (board 342.23).
+  `chess.jsx`'s own #436 comment said so in a clause the draft dropped — *"the trim cannot move the board at
+  all UNTIL IT EXCEEDS ~145px"*. So the withdrawal is withdrawn: the job's claim stands, and what it was
+  missing is the THRESHOLD, which is new. (375x761 is his phone per R19; 730 is the legacy `lib.js` GEOS
+  entry, and R19's own text calls 730 the figure to correct.)
+- **AND THE APP PUTS A TRANSIENT OF THAT SIZE INTO THE FLOW FOR REAL, so this is not a synthetic worry.**
+  `gates/regress/16-cpu-result-line.js:424` — a REQUIRED gate — measures a **62px** in-flow tab-bar spacer
+  entering the flow at game over and trimming the board 224.00 → 192.00, with the irreversibility in its own
+  figures: *"live 224.00 → card-up 192.00 → card-gone 192.00"*. 62px sits in the band that latches his phone.
+- **THE LOSS SCALES WITH THE TRANSIENT, so "16–24px" was an artefact of a 16px probe.** At 375x568 an 88px
+  transient lands the board on **192.00 — losing 78.88px, 29% of the board** — which is EXACTLY the floor
+  `gates/regress/48-lesson-flow.js` records from the wild against a usual 270.88, "about 2 runs in 6". That
+  is the only magnitude this project has ever observed in the field and it reproduces at one input size.
+  A LIMIT ON THE SEVERITY, published beside it: repeated identical transients do NOT accumulate — 14
+  inject/remove cycles moved the board once and 0 times after — so a single transient's size decides it.
+- **THE CLASS IS FOUR SCREEN FAMILIES, NOT ONE.** `_fitScreen` spans compact review, play, puzzle
+  browse/online and lesson, and the identical ratchet is measured on PLAY (272.00 → 256.00) and PUZZLE
+  (259.03 → 235.03) at 375x568. Compact review did not reproduce with a ply-change trigger, which is NOT
+  REPRODUCED and not immune. This clause is written for the lesson because that is where the gate drives;
+  play and puzzle are measured-affected and uncovered, and that is owed work rather than a claim.
+- THE MECHANISM IS ESTABLISHED AND THE TRIGGER IS NOT. The portrait fit loop (`chess.jsx`, search
+  `boardTrim`) shrinks on a real overflow and can never grow back, for two independent reasons either of
+  which alone is sufficient: the slack a single shrink leaves is `ceil(over/8)*8+8-over`, which lies in
+  **[8,16)** for every possible `over>0` against a growth branch requiring `over<-24`; and `over` reads
+  exactly 0 in every settled lesson state, because `#root` has one in-flow child whose height equals the
+  viewport — which also means #364's growth branch, added for "Kunal's phone sat at board 319 with trim 0 and
+  56px of slack nobody could claim", CANNOT FIRE ON ANY PORTRAIT SCREEN. That is a landed fix that never
+  executes and it is a larger, separate item than this latch. The honest open question is NARROWER than
+  "the trigger is unidentified", which the first draft wrote and which is true of the job and false of the
+  repository: the trigger CLASS is measured in `gates/regress/16-cpu-result-line.js`, and what nobody knows
+  is WHICH PORTRAIT SCREEN STILL PUTS MORE THAN ~60px INTO THE FLOW ON A CONTENT CHANGE.
+- WHERE THE SLACK GOES **IS** KNOWN, and #510's first draft wrongly called it an open question: the MOVES
+  PANEL absorbs it, +24.00px at 320x540 and +16.00px at 375x568, exactly the board lost, and `chess.jsx`'s
+  own comment at the panel says it "ABSORBS THE SLACK". A probe looking for flex FREE SPACE cannot see that,
+  because free space is identically 0 wherever a flex-grow child exists. So a measurement-based fix is NOT
+  ruled out, which is the opposite of what that draft concluded.
+- WHAT THIS CLAUSE DOES NOT DECIDE, and it is a product question rather than an implementation one: the
+  surviving candidate fix is to stop re-deriving the trim from its current value on a content change, and
+  #355's comment states the reason that behaviour exists ("or the board visibly jumps to full size and back
+  on every single move, which is exactly what Kunal saw"). How big a residual jump is acceptable is Kunal's
+  call, not this lane's.
+
+CASE: TC-R64, gate `gates/pending/75-lesson-demo-board-latch.js` — in `pending/` and manifest-`absent`
+because it reds on main by design, and it moves to `regress/` in the same commit as the fix.
