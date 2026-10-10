@@ -202,6 +202,42 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   R8="$(st_tree)"; printf 'a `gates/regress/10-real.js:4`\nb `gates/regress/99-gone.js:1`\n' > "$R8/claude/stories/A.md"
   st_ck "C8 two runs over one tree agree" "$(st_arm4 "$R8")" "$(st_arm4 "$R8")"
 
+  # C8b/C8c/C8d THE FALL ADVICE, in all three directions, added 2026-10-10 by process-build lane 2
+  # (runId process-build-2__1791619981075) with the advice itself. WHY IT NEEDS CONTROLS AT ALL, since it
+  # only PRINTS: arm (4)'s advice is the one line in this mode a reader is meant to ACT on, and the previous
+  # version of it told the reader to commit the floor - which lands the tree in the zero-headroom state
+  # jobs/the-line-citation-ceiling-is-at-48-of-48-... was filed as a P1 for and closed by buying headroom.
+  # An instruction a tool prints is part of the tool. Three directions because the advice has three states
+  # and the middle one is where a one-sided prescription hides: under the ceiling it must name the headroom
+  # AND the hazard, AT the ceiling it must say nothing at all, and OVER it the refusal must be unchanged.
+  # THE PATTERNS BELOW ARE ARM-(4)-SPECIFIC AND THAT IS NOT TIDINESS, IT IS A MEASUREMENT [R18]. The first
+  # draft of C8d and C8e grepped the bare string 'CEILING CAN BE LOWERED' and both FAILED, reading 2 where
+  # they expected 0: ARM (5) PRINTS THE SAME SENTENCE for A5ZCEIL and A5WCEIL, so a control keyed on the
+  # wording of one arm counts another arm's output. Measured on a throwaway tree at 48 and at 49 rows, both
+  # read 2. Hence the '<N> of <M> in use' tail, which only arm (4) prints.
+  st_adv() { # st_adv <root> <pattern> -> how many advice lines match
+    ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 | grep -cE "$2" || true )
+  }
+  R9="$(st_tree)"; printf 'one `gates/regress/10-real.js:1`\n' > "$R9/claude/stories/A.md"
+  st_ck "C8b under the ceiling, the fall advice names the headroom it would leave" \
+    "  CEILING CAN BE LOWERED: 1 of 48 in use, 47 of headroom." \
+    "$( cd "$R9" && bash gates/verify-log.sh --citations 2>&1 | grep -E '^  CEILING CAN BE LOWERED' | head -1 )"
+  st_ck "C8c and it refuses to recommend the fall without naming the zero-headroom P1" \
+    "1" "$(st_adv "$R9" '^  AND A FALL TO THE FLOOR IS NOT FREE: committing A4CEIL=1 leaves ZERO headroom')"
+  # C8d THE BOUNDARY, and it is the half that stops C8b/C8c passing by accident: exactly AT the ceiling there
+  # is no fall to advise, so BOTH advice lines must be silent while the (4) summary still reports 48 of 48.
+  R10="$(st_tree)"; : > "$R10/claude/stories/A.md"
+  i=1; while [ "$i" -le 48 ]; do printf 'row %s `gates/regress/10-real.js:1`\n' "$i" >> "$R10/claude/stories/A.md"; i=$((i+1)); done
+  st_ck "C8d at the ceiling there is no fall advice at all" \
+    "0" "$(st_adv "$R10" '^  (CEILING CAN BE LOWERED: [0-9]+ of [0-9]+ in use|AND A FALL TO THE FLOOR IS NOT FREE)')"
+  st_ck "C8d-b and the summary still reads 48 of 48, so C8d is silence and not an empty run" \
+    "  (4) 48 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R10")"
+  # C8e OVER the ceiling the REFUSAL is untouched by this change - the one assertion that proves the advice
+  # edit did not weaken the ratchet it sits beside.
+  printf 'row 49 `gates/regress/10-real.js:1`\n' >> "$R10/claude/stories/A.md"
+  st_ck "C8e over the ceiling still refuses, and the fall advice stays silent" \
+    "1 0" "$(st_adv "$R10" '^  NEW LINE CITATION\(S\): 49 exceeds the committed ceiling of 48 by 1') $(st_adv "$R10" '^  CEILING CAN BE LOWERED: [0-9]+ of [0-9]+ in use')"
+
 
   # === ARM (5) CONTROLS, C9 to C16. Added 2026-10-06 by process-build lane 2 with arm (5) itself, for the
   # remainder of jobs/register-join-and-input-count-wrong-2026-09-28. Same rule as C1-C8: every detector is
@@ -502,9 +538,17 @@ EOF
   # MENU-LANE 8, SUITE-AUDIT 4, TEST-CASES 21, USER-STORIES 15 = 48, 0 dead, 0 past EOF. The integration that
   # landed this payload touched NO file under claude/stories/, so the breach was never the landing run's.
   # WHY THIS WAS NOT 'JUST SET IT TO 48': the nine expected strings in the selftest above hard-code the
-  # ceiling, and C5/C5b plant exactly 46 and 47 rows against it - so raising the constant alone takes the
-  # selftest RED and, worse, leaves C5b asserting that 47 is over a ceiling of 48, which it is not. The
-  # fixtures move with the constant or the control stops controlling.
+  # ceiling, and C5/C5b plant rows against it - so changing the constant alone takes the selftest RED and,
+  # worse, leaves C5b asserting that its row count is over a ceiling it is not over. The fixtures move with
+  # the constant or the control stops controlling.
+  # THE FIGURES '46 AND 47' THAT STOOD IN THAT SENTENCE ARE WITHDRAWN [R18, process-build lane 2,
+  # runId process-build-2__1791619981075, 4:3xam ET, 10 Oct]. They were correct when written against a
+  # ceiling of 46 and were carried through the 46->48 correction two paragraphs above without being
+  # re-derived, so the sentence explaining why the constant is hard to move was itself an un-re-derived
+  # number of the kind it warns about. MEASURED on origin/main 4c7e007 by reading the two fixture loops:
+  # C5 plants 48 and C5b plants 49, i.e. ceiling and ceiling+1, which is what the boundary needs. The
+  # MECHANISM the sentence states is unaffected and is why this is a correction and not a withdrawal:
+  # the fixtures are pinned to the constant's value either way.
   # So an outright refusal is RED ON A CLEAN TREE from its first run, on 48 pre-existing rows in two
   # historical lane documents nobody is editing - and gate 67's own note records the verdict on that shape:
   # "a gate red on a good build is worse than no gate". a5313ab is also narrower than the job quotes it as:
@@ -549,7 +593,9 @@ EOF
     A4RISE=$((A4TOT-A4CEIL))
     echo "  NEW LINE CITATION(S): $A4TOT exceeds the committed ceiling of $A4CEIL by $A4RISE. Cite a symbol, not a line [a5313ab]."
   elif [ "$A4TOT" -lt "$A4CEIL" ]; then
-    echo "  CEILING CAN BE LOWERED: $A4TOT of $A4CEIL in use. Commit A4CEIL=$A4TOT in this file so it cannot rise again."
+    A4HEAD=$((A4CEIL-A4TOT))
+    echo "  CEILING CAN BE LOWERED: $A4TOT of $A4CEIL in use, $A4HEAD of headroom."
+    echo "  AND A FALL TO THE FLOOR IS NOT FREE: committing A4CEIL=$A4TOT leaves ZERO headroom, which is the exact state jobs/the-line-citation-ceiling-is-at-48-of-48-so-any-build-touching-claude-stories-reddens-the-push-gate-2026-10-06 was filed as a P1 for and CLOSED on 2026-10-07 by BUYING headroom, not by committing the floor. Lower it together with a de-pinning that leaves headroom - main has gone that way twice, 0fbbc47 and 1f5ca10 - or leave the ceiling and say why."
   fi
   echo "  (4) $A4TOT line-number citation(s), ceiling $A4CEIL, $A4DEAD dead, $A4EOF past end of file, $A4RISE over ceiling"
   # ── (13) ARM (5), THE REGISTER SELF-CHECK. Added 2026-10-06 by process-build lane 2
