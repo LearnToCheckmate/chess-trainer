@@ -1937,3 +1937,28 @@ lane 3's artefact under R44. No push was attempted and the proxy refusal was not
 **THE ROUTE IS NOT MINE TO INVENT - IT IS ON MAIN ALREADY.** `gates/audit/cited-not-run.sh:198` records that **build #500** landed `gates/pending/50-drill-verdict-no-jump.js` into `gates/pending` and cited it in four record documents, and carries the `ADMIT|strong` row that accounts for it - the first ADMIT entry that roster ever held. So the mechanism has been exercised once, by the pen, and what this run adds is the measurement that a **process** lane can do the same within its own allow-list, and the exact price: **one `ADMIT` row in `gates/audit/cited-not-run.sh`, which is itself allow-listed, committed together with the citation** (the four-case argument for one commit is recorded in this file by lane 2 on 2026-10-09 and applies unchanged).
 
 **WHAT THIS MEANS FOR THE CHOICE THAT IS NOT MINE [R17, R20].** Option (a) of that job's `theFIX` - add a line to the MAY NOT list and lose the capability - is the one option this measurement makes unnecessary, because the capability exists today via `gates/pending/` and has a precedent on main. The orchestrator's decision is therefore between writing the `gates/pending/` + ADMIT-row route into the charter (cheapest, no slot change) and option (b)'s `sync` in the integration slot (fuller, needs the three clauses above). **I am not choosing it and I have not edited the charter.** The first candidate the route would unblock is `jobs/20-review-cats-frozen-at-eight` (priority 13, raised 2026-09-22, `owningLane` test-authoring), whose remainder item (2) is exactly `gates/regress/56-review-ladder.js` not existing on main - and whose other remainder, a nine-row control bundle, is untouched and is not this.
+
+---
+
+## 2026-10-10, 8:55am ET — process lane 1 — the suite lock's timing justification, measured at one gate
+
+**Item.** `jobs/the-suite-lock-was-never-justified-by-a-measured-timing-conflict-2026-10-04` (P0, priority 15, owningLane orchestrator), its **notChecked item 1**: *whether the suite is settle-bound rather than CPU-bound on a container under real load.* Open and untouched since 4 October. Not the job's headline experiment — that is two full suites at 83 minutes each and no parallel lane's 70-minute budget reaches the end of one, which is exactly why this item kept being skipped. Process lane 4 took **item 2** (the shared-path enumeration, `gates/audit/suite-shared-paths.sh`) at 5:53am ET today; this is the other item, a different file, so the two payloads cannot collide.
+
+**What landed.** `gates/audit/suite-lock-contention.sh` — runs a real gate alone, then N copies at once, and compares the **median wall clock** and the **assertion counts and exit codes** per worker. Every per-worker path is isolated (`CT_SHOTS`, its own output file), so what it reports is the **timing half alone** and never a filename collision.
+
+**Measured at `origin/main` b3767c4, bundle md5 `227126b82b81`, two cores, node v22.22.0.** Two gates, not one assertion:
+
+| gate | solo | C=2 | C=4 | counts |
+|---|---|---|---|---|
+| `42-home-devrow` | 19358 ms, 45 pass / 0 fail | 19736 ms (+1%) | 21330 ms (+10%) | identical at every worker |
+| `36-evalbar` | 24468 ms, 31 pass / 0 fail | 28192 ms (+15%) | not run | identical at every worker |
+
+**Verdict on the timing half: SETTLE-BOUND.** Four concurrent copies of a browser gate on two cores cost 10% of wall clock and changed no assertion. `CLAUDE.md`'s claim that the wall clock is set by the app's own holds rather than by CPU — written there as an observation its own text calls unmeasured — now has a measurement behind it.
+
+**The positive control is the part worth reading, because the first two did not flip.** One busy loop per core moved gate 42 by 8%; eight per core by 22%; both inside the 25% tolerance, so the control came out SETTLE-BOUND and proved nothing about the detector. A control that cannot flip the verdict is this project's own *gate that cannot fail*, written into the instrument built to measure gates. The script therefore **refuses its own verdict at exit 4** when a control run does not flip, and `CT_CONTENTION_HOGS` raises the load. At 16 loops on 2 cores it read **+44% and CPU-BOUND, exit 0**. So the detector is shown firing, and the clean runs above are a measurement rather than a vacuity.
+
+**What this does NOT license, stated because the job's headline is a P0 about throughput.** It does not license removing or weakening the lock. `gates/gates.sh:112-120` records a **second and independent** reason for it — a shared per-gate log path that produced two collage logs at #418, one of them with an 18KB hole of NUL bytes — and lane 4 measured today that `gates/shots/gates-$TAG` is shared the same way. This script isolates both on purpose. **Both halves have to be answered before the lock can be scoped per-log-path**, and only one of them is answered now.
+
+**Not checked, four things, named rather than swept.** (1) No full suite was run: 2 gates of 59 sections, and the suite's own settle profile may differ at the gates that drive long games. (2) C=4 was measured on `42-home-devrow` only. (3) Reps are 2 per level, so the medians are two or four samples — enough to see a 44% effect, not enough to bound variance tightly. (4) This container is not the build lane's: `jobs/the-suites-absolute-pixel-pins-are-container-dependent-so-this-container-cannot-gate-any-tree` is about pass/fail here, not wall clock, and both gates above read green anyway.
+
+**Delivery** parked at `patches/proc-lane1-art-gates-audit-suite-lock-contention-sh-2026-10-10`. NOT on main; this lane cannot push and did not try [R21].
