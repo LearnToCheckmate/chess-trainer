@@ -29,6 +29,28 @@
 # green log from that point on. This reports. A1 IS RED ON MAIN TODAY and that is the point: a case
 # that passes before the fix proves nothing [R10 item 2].
 #
+# A3, ADDED 2026-10-10 by process-build lane 3 for work item 4 of
+# jobs/gate-20-and-gate-21-never-visit-kunals-actual-geometry-2026-10-01. That item asks for "the
+# fleet-wide sweep of the `kunal` token across the other ~50 gate files", and it has been owed since
+# 1 October because a sweep is a one-off count: somebody derives it, writes it in a document, and it
+# is stale by the next build. A3 makes it an INSTRUMENT. It counts the gates in gates/regress that
+# ever launch at kunal761 and RATCHETS that count, so the number can only go up.
+#
+# A3 TAKES NO SIDE IN THE OPEN 730/761 CONTRADICTION, AND THAT IS WHY IT IS BUILDABLE TODAY.
+# contradictions/r19-height-settled-against-the-phone-card-still-asking-2026-10-04 is open: R19 says
+# 375x761, gates/lib.js:31 says kunal730 is the real phone, and 39 of the 58 gates on main name 730.
+# Process lane 2 measured at 02:35Z on 2026-10-10 that deleting those 730 columns IS the resolution
+# of that contradiction, and R45 reserves a resolution to someone other than whoever reports it. A3
+# therefore asserts NOTHING about 730. It asserts only that the suite's 761 coverage does not FALL,
+# which R19 settled on 2026-10-03 and which no side of the contradiction disputes. A1 is where the
+# "calls 730 his phone" claim is already measured, and A1 is already red.
+#
+# WHY A RATCHET AND NOT A TARGET. A target ("all 58 gates must visit 761") would be red on the day it
+# landed and would stay red for weeks, which is the failure cited-not-run.sh recorded on 2026-10-06
+# and which this file's A1 census comment already names. A floor can be met today, cannot be met by
+# bookkeeping, and turns a gate that LOSES its 761 column - or a new gate that never had one - into a
+# red on the build that does it. The floor is a committed literal, so raising it is a diff.
+#
 # USAGE
 #   gates/audit/r19-phone-geometry.sh             report against the repository it lives in
 #   gates/audit/r19-phone-geometry.sh --strict    same, but exit 1 when a check is RED (for a caller)
@@ -74,6 +96,29 @@ R19_PHRASE='(real phone|his phone|[Kk]unal.s phone|actual phone)'
 CLAIM_RE="(${R19_NUM}.{0,80}${R19_PHRASE}|${R19_PHRASE}.{0,80}${R19_NUM})"
 ANCHOR_TOKEN='kunal761'
 
+# ── A3's THREE COMMITTED LITERALS.
+# A3_FLOOR  MEASURED at origin/main 38a8a25 on 2026-10-10: `grep -lF kunal761 gates/regress/*.js | wc -l`
+#           reads 6 of 58 gate files, and the SET was re-derived by command rather than copied from
+#           any lane's description of itself [R18]: 21-review-brilliant, 26-invariants, 45-play-setup,
+#           67-sel-cls-consumers, 72-drill-prev, 73-review-list-filter. NOTE WHAT IS NOT IN IT:
+#           41-coach-bubble. Process lane 2 added its kunal761 column at 02:35Z on 2026-10-10 and that
+#           work is PARKED, not landed - patches/proc-lane2-art-gates-regress-41-coach-bubble-js-2026-10-10
+#           carries a patch and no integrationResult - so main does not have it. My own first draft of
+#           this comment named 41 from that lane outcome and the firing demonstration below caught it,
+#           which is the whole reason a floor is measured off the tree and not off a report. The floor
+#           is that measurement and nothing
+#           aspirational, so the arm is GREEN on the tree that introduces it and goes red only on a
+#           regression. Raise it in a commit when the number rises; the report prints the exact line.
+# A3_MIN_SUITE  The denominator guard. A3 self-selects OUT of a tree holding fewer than this many
+#           regress gates, because the fixture trees in selftest() below carry one or two and a floor
+#           of 6 over a two-file fixture is a red that says nothing about the suite. C24 to C29 drive
+#           A3 over synthetic trees ABOVE this threshold in both directions, so the arm is never
+#           asserted only by its own skip - which is the vacuity this family keeps finding.
+# A3 IS A SEPARATE L.say-SHAPED CHECK AND NOT A CONJUNCT OF A1, deliberately: a compound whose halves
+# cannot fail independently reads as two checks while being one.
+A3_FLOOR="${CT_A3FLOOR:-6}"
+A3_MIN_SUITE="${CT_A3MIN:-20}"
+
 # ── SCOPE. The five paths the case names, expanded. Printed as a file count because R18 says count
 # inputs and not assertions: one file is a demonstration, 61 is a measurement.
 scope_files(){
@@ -103,6 +148,20 @@ a2_ok(){
   local lib="$ROOT/gates/lib.js"
   [ -r "$lib" ] || return 2
   tr -d '\n' < "$lib" | grep -qEi "(${ANCHOR_TOKEN}.{0,200}phone|phone.{0,200}${ANCHOR_TOKEN})"
+}
+
+# A3. The 761 suite-coverage ratchet. Two predicates, each one line, so a control can drive either.
+# grep -lF, not grep -l: the token is a literal and -F removes any chance of a pattern reading.
+# No `grep -q`, no `head`, and nothing consuming part of a producer's output, per this file's header.
+a3_gates(){   # every regress gate file, one per line, sorted. The DENOMINATOR.
+  find "$ROOT/gates/regress" -maxdepth 1 -type f -name '*.js' 2>/dev/null | sort
+}
+a3_covered(){ # of those, the ones that name the anchor geometry at all. The NUMERATOR.
+  local f
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    grep -lF "$ANCHOR_TOKEN" "$f" 2>/dev/null
+  done < <(a3_gates)
 }
 
 census(){
@@ -152,6 +211,27 @@ report(){
     fi
     echo "A2 FAIL: gates/lib.js does not state $ANCHOR_TOKEN as the phone."
     rc=1
+  fi
+  local ntot ncov
+  ntot=$(a3_gates | grep -c . || true)
+  ncov=$(a3_covered | grep -c . || true)
+  if [ "$ntot" -lt "$A3_MIN_SUITE" ]; then
+    # NOT A PASS AND NOT COUNTED. Printed as its own line so a reader can see the arm did not run,
+    # rather than reading a green that covered nothing [R18: a missing denominator is reported,
+    # never credited].
+    echo "A3 NOT APPLICABLE: gates/regress under this root holds $ntot gate file(s), fewer than the"
+    echo "         $A3_MIN_SUITE a real suite carries, so the 761 coverage ratchet did not run. rc unaffected."
+  elif [ "$ncov" -lt "$A3_FLOOR" ]; then
+    echo "A3 FAIL: $ncov of $ntot gates in gates/regress ever launch at $ANCHOR_TOKEN, below the"
+    echo "         committed floor of $A3_FLOOR. A gate has lost its $ANCHOR_TOKEN column, or the floor"
+    echo "         was raised without the gates to meet it. The covered set is:"
+    a3_covered | sed -e "s|^$ROOT/||" -e 's/^/  /'
+    rc=1
+  else
+    echo "A3 PASS: $ncov of $ntot gates in gates/regress launch at $ANCHOR_TOKEN, at or above the floor of $A3_FLOOR."
+    if [ "$ncov" -gt "$A3_FLOOR" ]; then
+      echo "         RATCHET CAN RISE: set A3_FLOOR=$ncov in this file, in a commit, so the new coverage is held."
+    fi
   fi
   echo "census (context only, asserted by nothing [R18]): kunal730 $(census kunal730) occurrence(s), kunal761 $(census kunal761)"
   if [ "$rc" -eq 0 ]; then echo "VERDICT GREEN"; else echo "VERDICT RED"; fi
@@ -235,6 +315,43 @@ selftest(){
   echo "-- REPORT MODE CANNOT BREAK A CALLER, which is why it is safe to wire --"
   mk "const GEOS={kunal730:{label:'375x730 = Kunal\\'s real phone'}};"
   chk C23-dirty-report-exits-0 0 env CT_ROOT="$t" bash "$SELF/$(basename "${BASH_SOURCE[0]}")"
+
+  echo "-- A3, THE 761 COVERAGE RATCHET, over synthetic suites ABOVE the denominator guard --"
+  # The fixture trees above carry ONE regress gate, so every control from C15 to C23 runs with A3
+  # NOT APPLICABLE and is unaffected by this arm. These six drive A3 itself, through the real walk,
+  # in both directions - firing, silent, and at its own boundary - so the arm is never asserted by
+  # its skip alone.
+  local a; a="$(mktemp -d)"
+  mka(){ # mka <total gates> <how many carry the token>
+    rm -rf "$a"; mkdir -p "$a/gates/regress" "$a/claude/stories"
+    printf "const GEOS={kunal761:{label:'375x761 = the phone'}};\n" > "$a/gates/lib.js"
+    printf 'stories\n' > "$a/claude/stories/USER-STORIES.md"
+    printf 'cases\n'   > "$a/claude/stories/TEST-CASES.md"
+    printf 'claude\n'  > "$a/CLAUDE.md"
+    local i=0
+    while [ "$i" -lt "$1" ]; do
+      if [ "$i" -lt "$2" ]; then printf "L.launch({geo:'kunal761'});\n" > "$a/gates/regress/$i-g.js"
+      else                       printf "L.launch({geo:'kunal'});\n"    > "$a/gates/regress/$i-g.js"; fi
+      i=$((i+1))
+    done
+  }
+  RUNME="$SELF/$(basename "${BASH_SOURCE[0]}")"
+  mka 25 0
+  chk C24-a3-zero-coverage-is-red      1 env CT_ROOT="$a" CT_A3FLOOR=1 bash "$RUNME" --strict
+  mka 25 3
+  chk C25-a3-above-floor-is-green      0 env CT_ROOT="$a" CT_A3FLOOR=3 bash "$RUNME" --strict
+  chk C26-a3-one-below-floor-is-red    1 env CT_ROOT="$a" CT_A3FLOOR=4 bash "$RUNME" --strict
+  chk C27-a3-at-floor-exactly-is-green 0 env CT_ROOT="$a" CT_A3FLOOR=3 bash "$RUNME" --strict
+  mka 19 0
+  # THE GUARD ITSELF, and it must be GREEN rather than red: a 19-gate tree is not a suite, so a
+  # floor of 1 over it must not be charged. This is the control that makes C24 mean something - the
+  # two trees differ only in gate count, so C24's red cannot be coming from the walk failing.
+  chk C28-a3-below-min-suite-skips     0 env CT_ROOT="$a" CT_A3FLOOR=1 bash "$RUNME" --strict
+  # AND THE SKIP MUST BE VISIBLE. A silent skip is how an arm stops existing without anybody
+  # noticing, so the NOT APPLICABLE line is asserted as output and not only as an exit code.
+  chk C29-a3-skip-says-so-in-the-report 0 \
+      env CT_ROOT="$a" CT_A3FLOOR=1 bash -c 'r=$("$0" 2>&1); case "$r" in *"A3 NOT APPLICABLE"*) exit 0;; *) exit 1;; esac' "$RUNME"
+  rm -rf "$a"
 
   rm -rf "$t" "$e"
   echo "SELFTEST $pass pass / $fail fail"
