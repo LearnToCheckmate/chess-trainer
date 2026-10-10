@@ -1256,5 +1256,5 @@ font arrived a frame late.
   on every single move, which is exactly what Kunal saw"). How big a residual jump is acceptable is Kunal's
   call, not this lane's.
 
-CASE: TC-R64, gate `gates/pending/75-lesson-demo-board-latch.js` — in `pending/` and manifest-`absent`
+CASE: TC-R64, gate `gates/pending/75-fit-loop-one-way-ratchet.js` (renamed from `75-lesson-demo-board-latch.js` during the run, because the same ratchet was measured on PLAY and PUZZLE) — in `pending/` and manifest-`absent`
 because it reds on main by design, and it moves to `regress/` in the same commit as the fix.
