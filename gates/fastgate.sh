@@ -144,6 +144,9 @@ fi
 # byte-identical to main for the fifth consecutive build. BOTH were true - the tier compares a fresh rebuild
 # with the new stamp in it, the close-out compares final states with the stamp on both sides. So the one lane
 # paying the 84-minute suite was the one lane structurally excluded from the tier, because it rebuilds.
+# AND THAT EXCLUSION IS NOT REMOVED BY THIS CHANGE - said here, at the top, because this is the paragraph a
+# reader takes the claim from. Minting is the OTHER condition and it is untouched: measured marginal 0 of 400
+# until part two lands. The full statement, with the blocker census and the numbers, is at the FORCE loop.
 #
 # THE CONSTRUCTION IS INVERTED ON PURPOSE AND THIS IS THE WHOLE RISK OF THE CHANGE. The job says in terms: do
 # NOT implement this as "normalise the stamp sites, then compare". Blanking bytes before a comparison is how a
@@ -156,18 +159,52 @@ fi
 # that substituting the base stamp literal for the head stamp literal REPRODUCES THE HEAD BLOB BYTE FOR BYTE.
 # A fourth differing byte anywhere makes the reconstruction unequal and forces FULL.
 #
+# THREE RESIDUALS, NAMED RATHER THAN IMPLIED [#514 blind pair]. (1) The predicate does not ask whether the new
+# stamp is a PLAUSIBLE build: a LOWER build number and a nonsense date reachable through build.sh's unvalidated
+# CT_STAMP_TIME are both accepted, measured at exit 0, and the length pin does not touch them because both are
+# the same length. Impact is low for a structural reason rather than a lucky one - a REAL build also writes a
+# gates/build-numbers.tsv row, which classify() FORCEs, so anything that genuinely rebuilt goes full anyway.
+# (2) This tier never calls gates/held.sh check, so nothing here asks whether the tree was one a previous run
+# refused to ship. A raised it; B established it is STRUCTURALLY CLOSED rather than latent, and the reasoning
+# is worth keeping: held.sh's sourceMd5 key reads chess.jsx, the exemption PROVES chess.jsx is unchanged (any
+# chess.jsx in the diff exits 2 at classify) on a tree already proved clean, so held.sh would return the same
+# source-key verdict here as on origin/main; only the bundle key moves, and held.sh itself declares that key
+# useless across a rebuild. DELIBERATELY NOT ADDED: `held.sh check` exits 1 for HELD and 2 for usage, so a
+# naive wiring re-creates the very refuse-instead-of-go-full bug arm 3 above exists to fix. Filed against the
+# tier as a whole. (3) The marginal is zero today - see the FORCE loop below.
+#
 # IT FAILS SAFE IN EVERY DIRECTION, which is why the regex may be strict: a stamp that does not match (a
 # five-digit build number, a changed stamp format), a count that is not three, two unequal stamps on one side,
 # or one byte changed anywhere else all leave STAMPONLY empty and send the run to the full suite.
 #
-# WHY A STAMP-ONLY app.js CANNOT MOVE A GATE'S VERDICT, measured on this tree rather than asserted. The 23
-# regress gates that mention the stamp all reach it through `L.note(... await b.stamp())`, and gates/lib.js:314
-# is `function note(msg){console.log('     '+msg);}` - it touches neither _pass nor _fails, so NO regress gate
-# ASSERTS the stamp value. Gate 68 computes an appMd5 and its own line says it "is NOT what this gate reads".
-# The three gates that read app.js off disk (33-reproducible-review, 66-winprob-ladder, 67-sel-cls-consumers)
-# match MINIFIED CODE, which a stamp-only diff leaves byte-identical. The one real stamp ASSERTION anywhere is
-# gates/mountcheck.js:15, conditional on CT_EXPECT, and mountcheck is NOT one of the browser gates this tier
-# skips - gates.sh runs it itself, in full mode, every time.
+# WHY A STAMP-ONLY app.js CANNOT MOVE A GATE'S VERDICT. THE FIRST VERSION OF THIS PARAGRAPH WAS FALSE, BOTH
+# ANTAGONISTS CAUGHT IT INDEPENDENTLY AT #514, AND IT HAD ALREADY BEEN PROMOTED INTO THE PRINTED LOG - which is
+# worse than a wrong comment, because the log is the artefact that authorises a push [#450, #490].
+# THE FALSE VERSION read "NO regress gate ASSERTS the stamp value - they reach it through L.note". MEASURED,
+# `grep -n "L.say(" gates/regress/*.js` filtered on the stamp returns FIVE build-stamp ASSERTIONS:
+#   42-home-devrow.js:104   the dev row sits ABOVE the build stamp               (GEOMETRY)
+#   47-menu.js:263          TC-MN-007, reachable and HIT-TESTABLE                (GEOMETRY)
+#   47-menu.js:342          a readout matching /build #/i                        (format)
+#   49-home.js:551          TC-HM-021, near(bld.restTop, W.build.y, 1)           (GEOMETRY, 1px)
+#   49-home.js:554          TC-HM-022, /^Build #\d{3,4} - 20\d\d-\d\d-\d\d \d\d:\d\d ET$/   (format)
+# THE CORRECT ARGUMENT IS IN TWO HALVES AND BOTH ARE LOAD-BEARING:
+#   FORMAT   49:554's regex is this script's own RE anchored with ^Build and $, so it accepts exactly what the
+#            exemption accepts; 47:342 needs only the literal "build #". THAT AGREEMENT IS A CROSS-FILE
+#            COUPLING AND CONTROL (g) ABOVE IS WHAT CHECKS IT - before #514 nothing did.
+#   GEOMETRY 42:104, 47:263 and 49:551 read the stamp's rendered position. The LENGTH PIN is what holds them,
+#            and the wrap margin measured at so_pred is why one character could not have moved them anyway.
+# AND THE COUNT OF app.js READERS WAS WRONG TOO, with B's correction being larger and sharper than A's: THREE
+# regress gates read app.js AS DATA (33-reproducible-review, 66-winprob-ladder, 67-sel-cls-consumers) and all
+# three match MINIFIED CODE; 68-brilliant-sac-empty-square:53 reads it only to HASH it for a NOTE, and its own
+# :55 says in terms that it "is NOT what this gate reads" while :30 says it measures chess.jsx - run against
+# both bundles it is 78 pass / 0 fail with only that note line differing; and gates/lib.js:214 SERVES the
+# bundle to all 58 browser gates. A stamp-only diff leaves every code byte identical, so the conclusion holds.
+# WHAT COVERS mountcheck, SAID PROPERLY. The one real stamp assertion outside regress is mountcheck.js:15,
+# conditional on CT_EXPECT. THIS TIER DOES NOT RUN MOUNTCHECK EITHER - gates.sh does, in full mode - so under
+# the exemption a rebuilt bundle reaches main having been mounted in a browser by NOTHING AT ALL, and the #351
+# white-screen guard never runs. What covers that is the BYTE PROOF, not another gate. The earlier sentence
+# ("mountcheck is NOT one of the browser gates this tier skips") was true only on a technicality and is
+# withdrawn: it sat in a paragraph reassuring the reader about the FAST path, where gates.sh is never invoked.
 
 # ONE DEFINITION OF THE PREDICATE, CALLED BY THE LIVE PATH AND BY THE CONTROLS, so the two cannot drift. That
 # is classify()'s own argument one block down ("two lists cannot drift when there is one list") applied here:
@@ -185,6 +222,32 @@ if(hm.length!==3) bail("head app.js carries "+hm.length+" build stamps, not 3");
 const sb=bm[0], sh=hm[0];
 if(!bm.every(x=>x===sb)) bail("the 3 base stamps are not identical to each other");
 if(!hm.every(x=>x===sh)) bail("the 3 head stamps are not identical to each other");
+// THE LENGTH PIN. PRECAUTIONARY, AND THE MECHANISM FIRST OFFERED FOR IT IS FALSIFIED - both halves said here,
+// because publishing only the first would be the prose this project files against [#514 blind pair + cross-read].
+// A (diff door) vetoed on the ground that a different-LENGTH stamp could move three GEOMETRY assertions:
+// 42-home-devrow.js:104, 47-menu.js:263, and 49-home.js:551 which pins the stamps rest-top within ONE pixel.
+// THAT MECHANISM DOES NOT OCCUR, measured from two doors rather than argued. B drove an adversarial bundle
+// restamped one byte LONGER at se/kunal730/390/430 against mains bundle and a real rebuild: TC-HM-021 restTop
+// 839/839/823.5/794.8 IDENTICAL on all three, TC-HM-022 PASS on all three, 49-home block C 16 pass / 0 fail
+// each, Home innerText md5 799c0c91ce46 identical across nine runs, scrollWidth == innerWidth at 320, zero
+// console errors; only the stamps own box moved, 227.94 -> 235.06px. A then measured WHY: all three assertions
+// read VERTICAL quantities, so they move only if the line WRAPS, and at 320x568 the line is 227.94px in a
+// 284px content box that first wraps at +8 CHARACTERS - while this regex bounds the delta to EXACTLY ONE
+// character, every field being fixed-width but the 3-or-4-digit number. A margin of 8 against an excursion of 1.
+// SO WHY KEEP IT, and the reason is Bs and not As: without the pin the accepted set is the ENTIRE LANGUAGE of
+// the regex above, and a fast greens soundness then rests on 49-home.js:554s regex staying in step with this
+// one - a cross-file coupling with nothing checking it. The pin makes the head a function of the base with one
+// unknown and removes the coupling. ITS ONLY COST, stated so nobody discovers it later: the single
+// #999 -> #1000 build pays a full suite it would not otherwise have paid, and it fails safe in that direction.
+// NO APOSTROPHE MAY APPEAR ANYWHERE IN THIS NODE PROGRAM. It is passed as a single-quoted shell string, so
+// one apostrophe terminates it and the rest is parsed as shell. My first draft of the message below wrote
+// "the base" with a possessive and "49-home.js:554" with one, and every control failed with
+// "line 243: the: command not found" - so_pred answered wrongly, control (a) reported it, and the script
+// correctly REFUSED at exit 1 rather than deciding anything. The guard caught my own typo, which is the
+// strongest evidence the arm distinction added at #514 is right: a lying instrument must refuse, not go full.
+if(sb.length!==sh.length) bail("the head stamp is "+sh.length+" bytes and the base stamp "+sb.length
+  +"; the accepted set must not widen to the whole regex language, because a fast green would then depend on"
+  +" the regex in 49-home.js staying in step with this one, and nothing checks that");
 const nb=b.split(sb).length-1;
 if(nb!==3) bail("the base stamp literal occurs "+nb+" times as a literal, not 3");
 if(b.split(sb).join(sh)!==h) bail("the differing bytes are NOT confined to the 3 stamp sites");
@@ -207,6 +270,7 @@ console.log("STAMP-ONLY 3 sites, base \""+sb+"\" -> head \""+sh+"\", "
 #   (d) NEGATIVE  app.js absent at head, the #489 rename               -> handled by BUNDLE IDENTITY above, re-proved here
 so_selftest(){
   local D RC OUT FAILED=0
+  SO_FIXWHY=""
   D="$(mktemp -d)" || { say "FAST GATE REFUSED - mktemp -d failed, so the stamp-only controls could not run."; exit 1; }
   if ! $GIT cat-file blob "$BASEFULL:app.js" > "$D/base" 2>/dev/null || [ ! -s "$D/base" ]; then
     rm -rf "$D"; return 2   # no base app.js to cut fixtures from; caller decides
@@ -218,15 +282,27 @@ const D=process.argv[1];
 const b=fs.readFileSync(D+"/base","latin1");
 const m=b.match(RE)||[];
 if(m.length!==3){console.error("FIXTURE-UNAVAILABLE base carries "+m.length+" stamps, not 3");process.exit(3);}
-const sb=m[0], sh="#9999 - 2099-01-01 00:00 ET";
+// THE POSITIVE FIXTURE MUST BE THE SAME LENGTH AS THE BASE STAMP, AND ITS WIDTH IS DERIVED, NOT HARD-CODED.
+// My first draft hard-coded a 4-digit "#9999 - ..." here, which is 27 bytes against a 3-digit base of 26, so
+// the length pin added at #514 REJECTED the positive fixture and control (a) failed on every run - and the
+// script correctly refused at exit 1 rather than deciding. Deriving the width keeps (a) valid when build
+// numbers reach 4 digits, which is the frozen-literal trap this project files against.
+const sb=m[0];
+const W=(sb.match(/^#(\d+)/)||[0,"000"])[1].length;
+const sh="#"+"9".repeat(W)+" - 2099-01-01 00:00 ET";                     // same length as sb by construction
 const a=b.split(sb).join(sh);
-fs.writeFileSync(D+"/a",a,"latin1");                                     // (a) stamp-only
+fs.writeFileSync(D+"/a",a,"latin1");                                     // (a) stamp-only, SAME length
 const i=b.indexOf("createRoot");                                         // (b) a real code site, not padding
 if(i<0){console.error("FIXTURE-UNAVAILABLE no createRoot in base");process.exit(3);}
 fs.writeFileSync(D+"/b",a.slice(0,i)+"createRoo7"+a.slice(i+10),"latin1");
 const j=a.indexOf(sh);                                                   // (c) inside a stamp site
 fs.writeFileSync(D+"/c",a.slice(0,j)+"#999X"+a.slice(j+5),"latin1");
-' "$D" 2>&1 || { rm -rf "$D"; return 3; }
+// (f) ONE CHARACTER LONGER AND STILL WELL-FORMED. Only available while the base is 3 digits, because the
+// regex tops out at 4: at W=4 no LONGER stamp is still valid, so the fixture is not written and the control
+// below says so explicitly rather than passing over a file that is not there [non-empty denominator].
+if(W<4) fs.writeFileSync(D+"/f",b.split(sb).join("#"+"9".repeat(W+1)+" - 2099-01-01 00:00 ET"),"latin1");
+' "$D" > "$D.why" 2>&1 || { SO_FIXWHY="$(cat "$D.why" 2>/dev/null)"; rm -f "$D.why"; rm -rf "$D"; return 3; }
+rm -f "$D.why"
   # (a) must be STAMP-ONLY
   OUT="$(so_pred "$D/base" "$D/a")"; RC=$?
   [ "$RC" = 0 ] || { say "    CONTROL (a) FAILED - a stamp-only rebuild was not recognised: $OUT"; FAILED=1; }
@@ -236,7 +312,55 @@ fs.writeFileSync(D+"/c",a.slice(0,j)+"#999X"+a.slice(j+5),"latin1");
   # (c) must NOT be
   OUT="$(so_pred "$D/base" "$D/c")"; RC=$?
   [ "$RC" != 0 ] || { say "    CONTROL (c) FAILED - a non-stamp byte inside a stamp site read as stamp-only: $OUT"; FAILED=1; }
+  # (f) a WELL-FORMED stamp one character LONGER must be refused by the length pin
+  if [ -f "$D/f" ]; then
+    OUT="$(so_pred "$D/base" "$D/f")"; RC=$?
+    [ "$RC" != 0 ] || { say "    CONTROL (f) FAILED - a longer valid stamp read as stamp-only: $OUT"; FAILED=1; }
+  else
+    say "    CONTROL (f) DID NOT RUN - the base stamp is already 4 digits, so no LONGER well-formed stamp"
+    say "        exists for the regex to accept. Reported, not credited as a pass."
+  fi
   rm -rf "$D"
+  # ── (g) THE CROSS-FILE REGEX COUPLING. ANTAGONIST B's P1-2 AT #514, BUILT A's THREE WAYS. ──────────────────
+  # WHY IT EXISTS. The conclusion a fast green prints - that no gate's verdict can differ - survives only
+  # because gates/regress/49-home.js:554 ASSERTS the stamp with a regex that happens to be this script's own,
+  # anchored with ^Build and $. That is a coupling across two files with NOTHING CHECKING IT: tighten 49-home's
+  # pattern (a plausible-date check, an exact-text pin) and the printed sentence silently becomes a lie. B
+  # called it the eleventh-costume trap with the roles swapped - the check's stated REASON and the thing being
+  # checked had become the same regex.
+  # BUILT THE THREE WAYS A PRESCRIBED, because the obvious version is circular:
+  #   (i)   FIXTURE-DRIVEN, never a comparison of the two patterns as TEXT. Comparing pattern source is the
+  #         brittle version and tells you nothing about the language either accepts.
+  #   (ii)  CONTAINMENT, not equality: the relation that must hold is "every stamp so_pred accepts, 49-home
+  #         accepts". Equality would go RED on a legitimate tightening of this script's own regex.
+  #   (iii) EXTRACTION FAILURE IS A HARD RED. If a refactor moves 49-home's literal into a const, the grep
+  #         returns nothing and a naive control would pass over an EMPTY SET - the non-empty-denominator trap
+  #         this project records eleven times, and #490's premise check written in the vocabulary of the thing
+  #         it checks. So an empty extraction FAILS, and so does a fixture set nothing accepts.
+  # ITS LIMIT, STATED BESIDE IT: it covers gate 49 only. 42:104 and 47:263 involve no regex at all; what makes
+  # those safe is the LENGTH PIN and the wrap margin recorded at so_pred, not any pattern agreement.
+  HOMERE="$(grep -oE '\^Build #[^/]*\$' "$G/regress/49-home.js" 2>/dev/null | head -1)"
+  if [ -z "$HOMERE" ]; then
+    say "    CONTROL (g) FAILED - could not extract 49-home.js's stamp regex, so the containment this script"
+    say "        prints as its soundness argument is UNCHECKED. That is a hard red, not a skip [(iii)]."
+    FAILED=1
+  else
+    OUT="$(node -e '
+const theirs=new RegExp(process.argv[1]);
+const mine=/^#\d{3,4} - 20\d\d-\d\d-\d\d \d\d:\d\d ET$/;
+const F=["#511 - 2026-10-10 07:40 ET","#1000 - 2026-10-11 01:11 ET","#511 - 2099-99-99 99:99 ET",
+         "#99 - 2026-01-01 00:00 ET","#51100 - 2026-01-01 00:00 ET","Build #511 - 2026-10-10 07:40 ET",""];
+let acc=0, bad=[];
+for(const f of F){
+  const m=mine.test(f);
+  if(m){ acc++; if(!theirs.test("Build "+f)) bad.push(f); }
+}
+if(acc===0){ console.log("VACUOUS the fixture set contains no stamp this script accepts, so containment is untested"); process.exit(1); }
+if(bad.length){ console.log("NOT-CONTAINED 49-home rejects "+bad.length+" stamp(s) this exemption accepts: "+JSON.stringify(bad)); process.exit(1); }
+console.log("CONTAINED "+acc+" of "+F.length+" fixtures are accepted here and all are accepted by 49-home.js");
+' "$HOMERE")"; RC=$?
+    [ "$RC" = 0 ] || { say "    CONTROL (g) FAILED - $OUT"; FAILED=1; }
+  fi
   [ "$FAILED" = 0 ] || return 1
   return 0
 }
@@ -246,16 +370,40 @@ if [ -n "$APPDIFF" ]; then
   so_selftest; SO_ST=$?
   case "$SO_ST" in
     0) say ""
-       say "stamp-only controls: (a) positive, (b) one code byte outside the stamps, (c) a non-stamp byte inside"
-       say "    a stamp site - all three answered correctly against fixtures cut from this base's own app.js." ;;
+       say "stamp-only controls, all answered correctly against fixtures cut from this base's own app.js:"
+       say "    (a) a same-length restamp is recognised   (b) one code byte outside the stamps is not"
+       say "    (c) a non-stamp byte inside a stamp site is not   (f) a one-character-longer valid stamp is not"
+       say "    (g) every stamp this exemption accepts is accepted by the regex in gates/regress/49-home.js" ;;
     2) say ""
        say "FULL SUITE REQUIRED. There is no base app.js to cut the stamp-only controls from, so the exemption"
        say "    cannot be proven and is not taken."
        say "    $APPDIFF"
        exit 2 ;;
-    *) say ""
-       say "FAST GATE REFUSED - THE STAMP-ONLY CONTROLS DID NOT ANSWER CORRECTLY, so this script will not use"
-       say "    the exemption to decide anything. An unproven control is not a control [R08]. File at priority 16."
+    3) # COULD NOT BUILD OR RUN THE FIXTURES. THIS IS exit 2, NOT exit 1, AND THE DISTINCTION IS A's VETO AT
+       # #514 - the only finding in either antagonist pass that was a MEASURED REGRESSION AGAINST MAIN rather
+       # than a false claim. The controls did not answer WRONGLY here; they gave no answer at all, e.g. a base
+       # app.js carrying FOUR stamp sites because somebody shipped a feature showing the build in one more
+       # place, or no node on PATH. Such a commit belongs in the full suite, which is exactly where it was
+       # going before this script existed: REPRODUCED from both doors, the identical commit shape returns
+       # EXIT 2 on origin/main's copy and returned EXIT 1 here. Refusing it is the exit-code mistake the
+       # records-ratchet block below records as #509's own, committed a third time.
+       # AND THE REASON NOW GOES THROUGH say() SO IT REACHES THE ARCHIVED LOG. It used to go to stdout only,
+       # so gates/logs/fast-*-all.log carried NO explanation - measured 0 occurrences of FIXTURE-UNAVAILABLE
+       # in the archive by both antagonists - and told the next run the controls had answered incorrectly,
+       # which was false and sent it hunting a bug in so_pred that is not there.
+       say ""
+       say "FULL SUITE REQUIRED. The stamp-only controls could not be BUILT or RUN, so the exemption is not"
+       say "    proven and is not taken. This is NOT a wrong answer from the controls; it is no answer:"
+       say "    ${SO_FIXWHY:-(no diagnostic captured)}"
+       say "    $APPDIFF"
+       exit 2 ;;
+    *) # A CONTROL ANSWERED WRONGLY. THIS STAYS exit 1 AND THE TWO ARMS ARE DELIBERATELY NOT ONE - antagonist
+       # B's cross-read point, and it is right: a LYING instrument needs fixing, and exit 2 would let every
+       # future run route around it unnoticed. Only "could not be built" (arm 3) becomes GO FULL. Collapsing
+       # both onto 2 would have weakened the guard while fixing the regression.
+       say ""
+       say "FAST GATE REFUSED - A STAMP-ONLY CONTROL ANSWERED INCORRECTLY, so this script will not use the"
+       say "    exemption to decide anything. An unproven control is not a control [R08]. File at priority 16."
        exit 1 ;;
   esac
   # `cat-file -t` and not `rev-parse --verify <rev>:<path>`: a DIRECTORY resolves to a tree id as happily as a
@@ -452,9 +600,37 @@ while IFS= read -r p; do
   # belongs to THIS decision alone: app.js stays FORCE for everyone who asks the classifier, and is dropped
   # from the force set for this one commit only once the stamp-only test above has PROVED the difference is
   # confined to the three stamp sites. Measured on this tree: the job's locus names the bundle compare only,
-  # and a bundle-compare-only fix is INERT, because classify():190 forces app.js by itself.
+  # and a bundle-compare-only fix is INERT, because classify()'s own `app.js|chess.jsx|entry.jsx` arm forces
+  # app.js by itself. DE-PINNED BY SYMBOL ON A's VETO: this cited "classify():190", which is correct on
+  # origin/main's copy and lands inside so_pred in THIS one, because the block above inserts lines. That is
+  # #450's "one line number meaning two different things on two trees", committed in the build that
+  # re-derived #450's own lesson for the ref line.
   if [ "$p" = app.js ] && [ "$STAMPONLY" = yes ]; then
+    # ── WHAT THIS EXEMPTION IS WORTH TODAY: NOTHING. THE MARGINAL IS ZERO AND IT IS PUBLISHED HERE RATHER
+    # ── THAN DISCOVERED LATER. Both antagonists reached this from opposite doors at #514 and I re-derived
+    # every figure myself. Removing this FORCE is ONE OF TWO conditions. gates/build.sh ends every non-CT_OUT
+    # build with `buildnum.sh record`, appending a row to gates/build-numbers.tsv, which classify() FORCEs -
+    # and a rebuild CANNOT happen without minting, by this project's own rule. So the commit shape a real
+    # build produces still takes the full suite: measured, stamp-only app.js plus that exact row returns
+    # EXIT 2 naming the register, with this exemption firing correctly one line above.
+    # THE NUMBER, over origin/main~400..origin/main, classify() transcribed verbatim, re-derived three times
+    # independently and agreeing to the commit: 73 commits touch app.js; 64 of those ALSO touch the register;
+    # and the count whose other changed paths are all records-only - where this exemption could actually fire
+    # - is ZERO. The remaining 9 are each blocked by chess.jsx, a gates/regress file, gates/lib.js or the held
+    # register. AND IT IS A PER-COMMIT UPPER BOUND: fastgate diffs base..HEAD over a whole push, a union that
+    # can only ADD blockers, so the per-push figure is at most 0.
+    # THE BLOCKER CENSUS, because the register is not the only wall and the next marginal must count them all:
+    # gates/build-numbers.tsv 64 of 73, chess.jsx 50, gates/gate-manifest.tsv 18, gates/lib.js 3, held 2.
+    # SO: every other classify() arm ships a marginal (83->173, 90 of 400, 19 of 400). THIS ONE SHIPS 0 OF 400
+    # UNTIL PART TWO LANDS, and part two is jobs/the-tiered-gate-is-unreachable-two-classify-rules-force-every-
+    # close-out-2026-10-10, which #509 WITHDREW on both its antagonists' veto and which is blocked on two named
+    # jobs. It was NOT re-taken here. Nothing about #514 should be cited as the fix for the build lane.
+    # AND THE SYMMETRY THAT MAKES SHIPPING IT SAFE, which neither antagonist stated: the benefit and the new
+    # trust surface are gated by THE SAME CONDITION. If no commit can reach the exemption, no bundle can reach
+    # main through it either - so today's RISK is zero as well, not merely the benefit.
     say "    app.js: classify() forces it, and the stamp-only proof above exempts it for THIS commit."
+    say "    (One of TWO conditions. A commit that actually REBUILT also writes a gates/build-numbers.tsv row,"
+    say "     which is FORCE, so a real build still goes full. Marginal measured 0 of 400 until part two lands.)"
     continue
   fi
   v="$(classify "$p")"
@@ -604,10 +780,13 @@ say "  inside the FORCE set."
 # the old reasoning over the new facts - which is #490's defect (a sentence stating a discredited reason) with
 # my own change attached.
 if [ "$STAMPONLY" = yes ]; then
-  say "  app.js IS in this diff and gates 33/66/67 read it, so the no-verdict-can-differ conclusion rests on the"
-  say "  stamp-only proof above as well: those three match minified CODE and the only differing bytes are the"
-  say "  three build-stamp string literals. No regress gate ASSERTS the stamp - they reach it through L.note,"
-  say "  which is not a verdict - so none of their verdicts can differ from its verdict on the base."
+  say "  app.js IS in this diff, so the no-verdict-can-differ conclusion rests on the stamp-only proof as well."
+  say "  Three regress gates read app.js as DATA (33, 66, 67) and match minified CODE; 68 hashes it for a note;"
+  say "  gates/lib.js serves it to all 58. Every code byte here is identical, so none of those can differ."
+  say "  FIVE assertions DO read the build stamp. Two are format - 49-home.js:554's regex is this script's own"
+  say "  anchored, which control (g) checks rather than assumes - and three are GEOMETRY, held by the length pin."
+  say "  NOTE WHAT THIS TIER DOES NOT DO: it runs no mountcheck either, so this bundle has been mounted in a"
+  say "  browser by nothing. What covers that is the byte proof above, not another gate."
 else
   say "  Nothing in the FORCE set is in this diff, so no gate's verdict can differ from its verdict on the base."
 fi
