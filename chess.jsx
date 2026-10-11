@@ -3126,7 +3126,7 @@ export default function App(){
   // moves panel (search data-ct="moves-panel"); this effect re-attaches whenever the fit loop's own screen
   // predicate changes, because the panel mounts and unmounts with the screen.
   const fitAbsRef=useRef(null);
-  const fitBaseRef=useRef(null);
+  const fitSlackRef=useRef(null);
   const fitNoGiveBackRef=useRef(false);
   const fitGeoRef=useRef('');                  // #346: the last GEOMETRY the trim was derived for
   // #338: the puzzle screen stacks text above the board and controls below it; measure both so the board is sized to what is actually left.
@@ -3496,7 +3496,7 @@ export default function App(){
     // Reset ONLY on a geometry change (rotate, resize, different screen). A content change - a move played, a
     // banner appearing - settles from the CURRENT trim, or the board visibly jumps to full size and back on
     // every single move, which is exactly what Kunal saw.
-    if(fitGeoRef.current!==_geoKey){fitGeoRef.current=_geoKey;setBoardTrim(0);fitBaseRef.current=null;fitNoGiveBackRef.current=false;}
+    if(fitGeoRef.current!==_geoKey){fitGeoRef.current=_geoKey;setBoardTrim(0);fitSlackRef.current=null;fitNoGiveBackRef.current=false;}
     let raf=0,passes=0,stop=false,settle=false,gaveBack=0,shrankAfterGiveBack=false;
     const tick=()=>{
       if(stop)return;
@@ -3586,11 +3586,35 @@ export default function App(){
       // latch, it RECLAIMS 24.00px at 320x540 and 17.00px at 375x568 of genuinely free space and makes the
       // board BIGGER than every gate in this suite pins it - which is #364's own unfinished intent, is an AMBER
       // product change under decision rights, and is NOT this job. Clamping at base keeps the two apart.
-      else if(fitBaseRef.current===null)fitBaseRef.current=boardTrimRef.current;
-      else if(!shrankAfterGiveBack&&!fitNoGiveBackRef.current&&boardTrimRef.current>fitBaseRef.current){
+      else{
+        // THE SIGNAL IS THE *INCREASE* IN SLACK SINCE THE LAST SETTLED FRAME, NEVER THE SLACK ITSELF, AND THAT
+        // DISTINCTION IS THE WHOLE FIX. I built the absolute version first and gate 48 falsified it in twenty
+        // minutes, which is worth more than the fix: the absorber's slack is space the panel is GIVEN by design
+        // (#372 - "this panel is always there and absorbs the slack, so the board's top edge holds and there is
+        // no empty band under it"), so it is present in a perfectly clean state too. An absolute reading cannot
+        // tell "latched" from "clean", and the absolute version proved it by handing the board 8.00px of the
+        // 16.00px that lesson PRACTICE legitimately takes at 320x568 - gate 48 pins that board at 254.9 as a
+        // MEASURED IDENTITY (#430 stopped the MOVES row wrapping, the panel fell 98.13 -> 74.13 and the board
+        // took the 24px back), and re-pinning a measured assertion to make a change green is the one thing this
+        // project never does.
+        // A LATCH, BY CONTRAST, IS SLACK THAT APPEARED: content left the flow and the absorber swallowed the
+        // room instead of the board getting it back. So record the slack at every settle and act only on a
+        // RISE. A clean content change re-baselines and never fires; a transient leaving raises it by exactly
+        // what the board lost, which is why the give-back is bounded by the rise and needs no board arithmetic.
         const sl=slackNow();
-        if(sl>=8){const _base=fitBaseRef.current;gaveBack++;
-          setBoardTrim(t=>Math.max(_base,t-Math.min(64,Math.floor(sl/8)*8)));settle=true;}
+        if(fitSlackRef.current===null)fitSlackRef.current=sl;
+        else{
+          const rise=sl-fitSlackRef.current;
+          if(rise>=8&&!shrankAfterGiveBack&&!fitNoGiveBackRef.current&&boardTrimRef.current>0){
+            gaveBack++;
+            setBoardTrim(t=>Math.max(0,t-Math.min(64,Math.floor(rise/8)*8)));
+            settle=true;
+          }
+          // THE BASELINE ONLY EVER FALLS, so a rise that arrives over several frames still accumulates. Raising
+          // it on every settled frame would let an incremental rise be eaten one sub-threshold step at a time,
+          // which is the gradual-signal version of a frozen denominator.
+          if(sl<fitSlackRef.current)fitSlackRef.current=sl;
+        }
       }
       if(++passes<36)raf=requestAnimationFrame(tick);
     };
