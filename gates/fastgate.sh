@@ -267,7 +267,12 @@ console.log("STAMP-ONLY 3 sites, base \""+sb+"\" -> head \""+sh+"\", "
 #   (a) POSITIVE  a different valid stamp at all three sites           -> STAMP-ONLY
 #   (b) NEGATIVE  one meaningful byte changed OUTSIDE the stamp sites  -> NOT-STAMP-ONLY
 #   (c) NEGATIVE  a byte changed INSIDE a stamp site to a non-stamp    -> NOT-STAMP-ONLY  (the loose-normaliser case)
-#   (d) NEGATIVE  app.js absent at head, the #489 rename               -> handled by BUNDLE IDENTITY above, re-proved here
+#   (d) NEGATIVE  app.js absent at head, the #489 rename               -> handled by BUNDLE IDENTITY above,
+#       NOT re-proved by a fixture here. app.js reads MISSING on one side, so the loop sends it to BUNDLEDIFF
+#       and the tier exits 2 before this block runs. The guard is STRUCTURAL, not a sample. This line said
+#       "re-proved here" until #514 re-read its own comment: grep 'CONTROL (' returns a, b, c, f, g and no d,
+#       so it contradicted the prose four lines above, which was already correct. a5ccbe6 fixed the "all four"
+#       overclaim in the PROSE and left it standing in the TABLE - one claim, two homes, one fixed [#493].
 so_selftest(){
   local D RC OUT FAILED=0
   SO_FIXWHY=""
