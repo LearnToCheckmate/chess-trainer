@@ -3114,6 +3114,20 @@ export default function App(){
   const [fitBump,setFitBump]=useState(0);        /* #364: re-arms the fit loop when the root's size changes after the loop has run its 36 passes - a lesson's text arriving late left an 11px overflow uncorrected on a 375x679 phone */
   useEffect(()=>{if(!window.ResizeObserver||!rootRef.current)return;let last=0;const ro=new ResizeObserver(es=>{const h=Math.round(es[0].contentRect.height);if(Math.abs(h-last)>2){last=h;setFitBump(b=>b+1);}});ro.observe(rootRef.current);return()=>ro.disconnect();},[]);
   const boardTrimRef=useRef(0);boardTrimRef.current=boardTrim;
+  // #515 THE RE-ARM ABOVE CANNOT FIRE IN PORTRAIT, FOR THE SAME STRUCTURAL REASON `over` IS ALWAYS 0.
+  // The #364 observer watches rootRef, and #root's contentRect height IS the viewport - it has exactly one
+  // in-flow child whose height equals the viewport (MEASURED this build at 320x540 and 375x568: one in-flow
+  // child, height 540.00 and 568.00, root height identical). So `Math.abs(h-last)>2` is never true after the
+  // first paint and setFitBump never fires. That is the third face of one cause: the loop MEASURES a quantity
+  // pinned to the viewport, it RE-ARMS on a quantity pinned to the viewport, and so after its 36 passes it is
+  // dead and nothing can wake it. The absorber's box is NOT pinned: the moves panel takes the slack a shrink
+  // leaves and gives it back when content leaves the flow, measured +24.00px at 320x540 and +16.00px at
+  // 375x568, exactly the board lost in each cell. So watch THAT box as well. fitAbsRef is attached to the
+  // moves panel (search data-ct="moves-panel"); this effect re-attaches whenever the fit loop's own screen
+  // predicate changes, because the panel mounts and unmounts with the screen.
+  const fitAbsRef=useRef(null);
+  const fitBaseRef=useRef(null);
+  const fitNoGiveBackRef=useRef(false);
   const fitGeoRef=useRef('');                  // #346: the last GEOMETRY the trim was derived for
   // #338: the puzzle screen stacks text above the board and controls below it; measure both so the board is sized to what is actually left.
   const pzTopRef=useRef(null),pzBotRef=useRef(null);
@@ -3441,6 +3455,9 @@ export default function App(){
   // So the analytic cap above is only the first guess; this measures the REAL overflow after paint and corrects it.
   // Shrink fast (one pass clears the whole overflow), grow back slowly and only with 12px of proven slack, so it
   // settles instead of oscillating. Bounded passes per trigger; never runs outside the one-screen review.
+  useEffect(()=>{if(!window.ResizeObserver)return;const el=fitAbsRef.current;if(!el)return;let last=Math.round(el.getBoundingClientRect().height);
+    const ro=new ResizeObserver(es=>{const h=Math.round(es[0].contentRect.height);if(Math.abs(h-last)>2){last=h;setFitBump(b=>b+1);}});
+    ro.observe(el);return()=>ro.disconnect();},[mode,openIdx,playSetup,pzView,inReview,revCompact,wide,movesOpen,isOver,learnPhase]);
   useLayoutEffect(()=>{
     // #436 THE LOOP DOES NOT RUN IN LANDSCAPE, because there it can only do harm. MEASURED on the shipped
     // #435 bundle, live game vs Pip, at three landscape widths, comparing a fresh landscape launch against a
@@ -3479,8 +3496,8 @@ export default function App(){
     // Reset ONLY on a geometry change (rotate, resize, different screen). A content change - a move played, a
     // banner appearing - settles from the CURRENT trim, or the board visibly jumps to full size and back on
     // every single move, which is exactly what Kunal saw.
-    if(fitGeoRef.current!==_geoKey){fitGeoRef.current=_geoKey;setBoardTrim(0);}
-    let raf=0,passes=0,stop=false,settle=false;
+    if(fitGeoRef.current!==_geoKey){fitGeoRef.current=_geoKey;setBoardTrim(0);fitBaseRef.current=null;fitNoGiveBackRef.current=false;}
+    let raf=0,passes=0,stop=false,settle=false,gaveBack=0,shrankAfterGiveBack=false;
     const tick=()=>{
       if(stop)return;
       // #355 SETTLE BETWEEN CORRECTIONS. setBoardTrim is async, so measuring on every frame meant
@@ -3515,8 +3532,66 @@ export default function App(){
         const padB=parseFloat(getComputedStyle(rEl).paddingBottom)||0;
         over=bottom>0?(bottom-spacers+padB-de.clientHeight):(de.scrollHeight-de.clientHeight);
       } else over=de.scrollHeight-de.clientHeight;
-      if(over>0){setBoardTrim(t=>Math.min(600,t+Math.ceil(over/8)*8+8));settle=true;}
+      // #515 MEASURE THE SLACK THE ABSORBER IS HOLDING, because `over` structurally cannot report it.
+      // The absorber is the moves panel in fill mode (flex:'1 1 auto'); its own comment says it "absorbs the
+      // slack". Its grow child is a scroller, so scrollHeight is CLAMPED to clientHeight and reads equal on a
+      // box that is half empty (MEASURED here: clientH 48 scrollH 48 at 320x540 with content reaching 24.00,
+      // and clientH 41 scrollH 41 at 375x568 with content reaching 24.00) - the same clamp #355 hit on the
+      // document. So the slack is the gap between the grow child's CONTENT BOX and its bottom-most in-flow
+      // descendant, which is signed and real. A probe for flex FREE SPACE cannot see it either: free space is
+      // identically 0 wherever a grow child exists, because the grow child consumes exactly that space.
+      // MEASURED LAZILY AND ONLY WHEN IT CAN BE ACTED ON. The walk costs a getComputedStyle per child per
+      // frame, and the loop runs every frame on four screen families, so computing it during the shrink phase
+      // would be paid on every build for a value no branch below can use.
+      const slackNow=()=>{
+        let sl=0;const ab=fitAbsRef.current;
+        if(!ab||!(parseFloat(getComputedStyle(ab).flexGrow)>0))return 0;
+        for(let i=0;i<ab.children.length;i++){
+          const g=ab.children[i];
+          if(!(parseFloat(getComputedStyle(g).flexGrow)>0))continue;
+          const gr=g.getBoundingClientRect();let cb=0;
+          for(let j=0;j<g.children.length;j++){
+            const d=g.children[j],ds=getComputedStyle(d);
+            if(ds.position==='fixed'||ds.position==='absolute')continue;
+            const dr=d.getBoundingClientRect();if(dr.height<=0)continue;
+            if(dr.bottom-gr.top>cb)cb=dr.bottom-gr.top;
+          }
+          if(cb>0)sl+=Math.max(0,g.clientHeight-cb);
+        }
+        return sl;
+      };
+      // WHY THERE IS NO RE-OVERFLOW TO GUARD AGAINST, reasoned out rather than left to the suite, because the
+      // obvious guard for it is WORSE THAN THE BUG. I first wrote one: on a shrink at or below base, null the
+      // base and re-learn it, so recovery could never pull below what the content needs. IT SILENTLY DISABLES
+      // THE WHOLE FIX. In the real sequence the shrink happens WHILE THE TRANSIENT IS STILL IN THE FLOW and
+      // trim is still at base, so that line nulls the base and re-records it at the INFLATED trim - and the
+      // board then never comes back. The loop cannot tell a transient from genuine growth at the moment of the
+      // shrink, and it does not need to: the give-back is BOUNDED BY THE MEASURED SLACK, so it can only ever
+      // hand back room the absorber is provably not using and can never squeeze the content. If the content
+      // genuinely grew, the slack does not reappear and recovery never fires. The two flags below are kept as
+      // within-run belt-and-braces, not as the argument.
+      if(over>0){if(gaveBack>0){shrankAfterGiveBack=true;fitNoGiveBackRef.current=true;}setBoardTrim(t=>Math.min(600,t+Math.ceil(over/8)*8+8));settle=true;}
       else if(over<-24){setBoardTrim(t=>Math.max(-480,t-Math.min(64,Math.floor(-over/8)*8)));settle=true;} /* #364: t>0?...:t meant the loop could only UNDO a trim, never grow past SQ's first guess. Kunal's phone (375x761, insets 51/31) sat at board 319 with trim 0 and 56px of slack nobody could claim. Negative trim is growth; SQ clamps it to the width cap so it can never push the board off the sides. */
+      // #515 RECOVER THE TRIM A TRANSIENT ADDED, AND NOTHING MORE. THE CLAMP AT `base` IS THE WHOLE SAFETY
+      // ARGUMENT AND IT IS WHY THIS CHANGES NO SETTLED BOARD ANYWHERE IN THE SUITE.
+      // `base` is the trim THIS GEOMETRY SETTLED AT before any content change, recorded the first time the
+      // loop reaches a settled state and reset only on a geometry change beside setBoardTrim(0). Recovery can
+      // only ever walk trim back DOWN TO base, never past it, so every clean first-settle board is bit-for-bit
+      // what it is today and no pinned board figure in gates/regress moves.
+      // AND I CHECKED THAT CLAMP RATHER THAN READING IT, BECAUSE THE OBVIOUS VERSION OF THIS FIX IS WRONG.
+      // "trim is 0 when the screen is clean, so a recovery branch cannot fire there" is the natural reading and
+      // it is FALSE: DERIVED from SQ at 320x540 on the lesson (widthCap 320, heightCap 540*0.66-16 = 340.40,
+      // _edge true so boardPx = _cap) the clean settled board of 236.39 needs a trim of 104.01. The loop trims
+      // 104px in the state this project calls clean. So an unclamped "give the slack back" does not recover a
+      // latch, it RECLAIMS 24.00px at 320x540 and 17.00px at 375x568 of genuinely free space and makes the
+      // board BIGGER than every gate in this suite pins it - which is #364's own unfinished intent, is an AMBER
+      // product change under decision rights, and is NOT this job. Clamping at base keeps the two apart.
+      else if(fitBaseRef.current===null)fitBaseRef.current=boardTrimRef.current;
+      else if(!shrankAfterGiveBack&&!fitNoGiveBackRef.current&&boardTrimRef.current>fitBaseRef.current){
+        const sl=slackNow();
+        if(sl>=8){const _base=fitBaseRef.current;gaveBack++;
+          setBoardTrim(t=>Math.max(_base,t-Math.min(64,Math.floor(sl/8)*8)));settle=true;}
+      }
       if(++passes<36)raf=requestAnimationFrame(tick);
     };
     raf=requestAnimationFrame(tick);
@@ -8985,7 +9060,7 @@ export default function App(){
       </div>)}
 
       {/* Move history (play/learn) */}
-      {(()=>{const _lFill=(mode==='learn'&&openIdx!==null&&!wide); /* #372 (antagonist Y-02): in a lesson on a phone this panel is always there and absorbs the slack, so the board's top edge holds and there is no empty band under it on taller phones */ const _pLive=(mode==='play'&&!wide&&!playSetup&&!!opponent); /* #373 (audit A-12 / antagonist X-09): on a phone this panel used to leave the flow when Moves was closed, and the fit loop handed its ~64px to the board - the board moved 23px on every toggle. HANDOFF rule: a row that can appear or disappear must reserve its space; toggle its CONTENT, never the row. So in a live phone game the panel is always laid out and Moves only hides what is in it. */ const _pFill=_pLive||_lFill;const _pHide=_pLive&&!movesOpen;return (!inReview&&!pzLow&&(boardGame.history.length>0||_pFill)&&!(mode==='learn'&&openIdx===null)&&(mode!=='play'||movesOpen||_pLive)&&(<div data-ct="moves-panel" style={{marginTop:10,width:boardPx,maxWidth:_edge?'100vw':'98vw',visibility:_pHide?'hidden':'visible',...(_pFill?{flex:'1 1 auto',minHeight:0,display:'flex',flexDirection:'column'}:null)}}>
+      {(()=>{const _lFill=(mode==='learn'&&openIdx!==null&&!wide); /* #372 (antagonist Y-02): in a lesson on a phone this panel is always there and absorbs the slack, so the board's top edge holds and there is no empty band under it on taller phones */ const _pLive=(mode==='play'&&!wide&&!playSetup&&!!opponent); /* #373 (audit A-12 / antagonist X-09): on a phone this panel used to leave the flow when Moves was closed, and the fit loop handed its ~64px to the board - the board moved 23px on every toggle. HANDOFF rule: a row that can appear or disappear must reserve its space; toggle its CONTENT, never the row. So in a live phone game the panel is always laid out and Moves only hides what is in it. */ const _pFill=_pLive||_lFill;const _pHide=_pLive&&!movesOpen;return (!inReview&&!pzLow&&(boardGame.history.length>0||_pFill)&&!(mode==='learn'&&openIdx===null)&&(mode!=='play'||movesOpen||_pLive)&&(<div data-ct="moves-panel" ref={fitAbsRef} style={{marginTop:10,width:boardPx,maxWidth:_edge?'100vw':'98vw',visibility:_pHide?'hidden':'visible',...(_pFill?{flex:'1 1 auto',minHeight:0,display:'flex',flexDirection:'column'}:null)}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:4,minHeight:23}}>{/* #378: minHeight is the chips' own drawn height. fb-controls removes them on the play screen only, and without this the row shrinks there, the board grows into the slack (Pass & Play 351 -> 367) and then shrinks back at game over (375 -> 367) - the board jumping, which gate 15 caught inside the k10 card. A row that can appear reserves its space. */}
           <span data-ct="moves-head" style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.4)',letterSpacing:1.5,fontFamily:'monospace'}}>MOVES</span>
           {/* fb-controls (Kunal, "Just those two"): in a live game Analyze and Copy moves are rows in the More sheet, not chips in this row. They stay HERE on every screen that has no More sheet - a lesson, a puzzle, the analysis board, an online game - because there they are the only way to reach either control. The predicate is the sheet's own: chess.jsx line 4068 renders the sheet on mode==='play'&&opponent!=='online'. */}
