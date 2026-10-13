@@ -54,6 +54,21 @@ ck "mint without CT_RUNID refused" 2 env -u CT_RUNID "$BN" mint "a note that is 
 # 8. ... and refuses a note too short to interpret later.
 ck "mint with a short note refused" 2 env CT_RUNID=selftest "$BN" mint "too short"
 
+# 8b. FIXTURE COLLISION CONTROL, asserted BEFORE the first case writes anything (TC-SUITE-BN-FIXTURE-001, from
+# jobs/the-buildnum-selftest-fixture-was-renumbered-onto-the-live-series-so-it-breaks-the-moment-that-number-is-minted-2026-10-13).
+# $TD's register is a COPY OF THE REAL ONE, so a number the fixture writes that the real series has already reached
+# is counted twice by the grep -c in case 13 below. That is how the #518/#519 renumbering broke on 13 Oct, and
+# a non-zero count here names the cause in one line instead of leaving a later case to fail for a reason that looks
+# unrelated. #999 is the only fixture number written to this working register: case 14 builds a register of its own
+# and the 4-digit sweep cases further down build theirs. The list is asserted non-empty first, so a refactor that
+# empties it fails loudly instead of passing over nothing.
+FXN="999"
+if [ -n "$FXN" ]; then P=$((P+1)); echo "PASS the fixture-number list is not empty, so the collision control below is not vacuous"
+else F=$((F+1)); echo "FAIL the fixture-number list is empty - the collision control below would pass over nothing"; fi
+for fx in $FXN; do
+  eq "fixture number #$fx is not already a real row on the register copy" "0" "$(grep -c "^$fx"$'\t' "$TD/build-numbers.tsv" || true)"
+done
+
 # 9-10. add VALIDATES ITS KEYS. held.sh had to learn this: it accepted a 32-char md5, an UPPERCASE md5 and a
 # 1-char md5, each of which `list` shows as live and which can never match anything.
 ck "add with a bad state refused" 2 env CT_RUNID=selftest "$BN" add "#999" bogus - - "a note long enough to pass the floor"
@@ -82,8 +97,27 @@ eq "record is idempotent on an identical triple" "1" "$(grep -c '^999' "$TD/buil
 CT_RUNID=selftest "$BN" record "#999" cccccccccccc bbbbbbbbbbbb >/dev/null 2>&1
 eq "a NEW bundle under the same number DOES append" "2" "$(grep -c '^999' "$TD/build-numbers.tsv")"
 
+# 13b. TAKE THE FIXTURE'S ROWS BACK OUT OF THE WORKING REGISTER. $TD's register is a COPY OF THE REAL ONE, and a
+# well-formed #999 row on top of a real series that is in the 500s is exactly the bad high row that buildnum.sh's
+# delta_ok() refuses to mint past (jobs/buildnum-highest-has-no-plausibility-bound-so-one-appended-row-wedges-minting-2026-10-10).
+# Left in, it would make every later next/mint in this file refuse. The register is append-only by design, but $TD
+# is a throwaway copy, and case 20 below does the same for its own #9999. RENUMBERING THE FIXTURE TO THE NEXT REAL
+# NUMBERS INSTEAD DOES NOT WORK: #518/#519 was tried on 13 Oct and the integration run that minted #518 reverted it,
+# because every grep -c above then counts the REAL #518 row as well as the fixture's own (95 pass became 93 pass /
+# 2 fail, and a third case was due to follow at #519). A fixture row that is taken back out cannot collide with
+# anything the series reaches later.
+sed -i '/^999\t/d' "$TD/build-numbers.tsv"
+eq "the fixture's #999 rows are out of the working register again" "0" "$(grep -c '^999' "$TD/build-numbers.tsv" || true)"
+
 # 14. next IS THE HIGHEST PLUS ONE, and it is computed numerically. A lexical sort would put 99 after 454.
-eq "next is numeric, not lexical" "#1000" "$(CT_RUNID=selftest "$BN" next)"
+# ON A REGISTER OF ITS OWN, three contiguous rows ending at #999: the cross-digit step (999 -> 1000) is the whole
+# point of the case, a lexical sort puts "999" after "1000", and a register of the real copy's size cannot hold
+# a #999 row without looking like the bad high row the delta bound exists to refuse. Contiguous rows are ordinary
+# growth to that bound (delta 1), so this also shows the bound lets the 3-to-4-digit step through.
+CX="$(mktemp -d)"; cp "$HERE/buildnum.sh" "$CX/buildnum.sh"; chmod +x "$CX/buildnum.sh"
+for n in 997 998 999; do printf '%s\tissued\t-\t-\t-\t2026-01-01T00:00Z\tfixture\tfixture\ta note long enough to pass the floor\n' "$n"; done > "$CX/build-numbers.tsv"
+eq "next is numeric, not lexical" "#1000" "$(CT_RUNID=selftest "$CX/buildnum.sh" next)"
+rm -rf "$CX"
 
 # 15. A REGISTER WITH NO NUMBERED ROWS MUST REFUSE TO INVENT A SERIES rather than start at 1.
 printf '# header only, no rows\n' > "$TD/empty.tsv"
@@ -121,7 +155,7 @@ UNIQ="$(printf '%s\n' "$OUT" | grep '^#' | sort -u | wc -l | tr -d ' ')"
 eq "every concurrent mint got a DISTINCT number" "$GOT" "$UNIQ"
 # SCOPED TO THE RACE'S OWN ROWS, and that scoping is the point rather than a convenience: the live register
 # DELIBERATELY carries five recorded collisions (416, 440, 441, 451, 452 - real history this file exists to make
-# visible) plus #999 from case 12. A whole-file duplicate scan therefore reports those as failures, which is the
+# visible). A whole-file duplicate scan therefore reports those as failures, which is the
 # frozen-denominator mistake in miniature: the right denominator is the rows THIS CASE created.
 DUPES="$(grep -vE '^[[:space:]]*#' "$TD/build-numbers.tsv" | awk -F'\t' '$1 ~ /^[0-9]+$/ && $7 ~ /^race-/ {print $1}' | sort -n | uniq -d | tr '\n' ' ')"
 if [ -z "${DUPES// /}" ]; then P=$((P+1)); echo "PASS the race left NO number claimed twice"
