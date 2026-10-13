@@ -56,8 +56,8 @@ ck "mint with a short note refused" 2 env CT_RUNID=selftest "$BN" mint "too shor
 
 # 9-10. add VALIDATES ITS KEYS. held.sh had to learn this: it accepted a 32-char md5, an UPPERCASE md5 and a
 # 1-char md5, each of which `list` shows as live and which can never match anything.
-ck "add with a bad state refused" 2 env CT_RUNID=selftest "$BN" add "#999" bogus - - "a note long enough to pass the floor"
-ck "add with a 32-char md5 refused" 2 env CT_RUNID=selftest "$BN" add "#999" built - "A4DF39C38222A4DF39C38222A4DF3922" "a note long enough to pass the floor"
+ck "add with a bad state refused" 2 env CT_RUNID=selftest "$BN" add "#518" bogus - - "a note long enough to pass the floor"
+ck "add with a 32-char md5 refused" 2 env CT_RUNID=selftest "$BN" add "#518" built - "A4DF39C38222A4DF39C38222A4DF3922" "a note long enough to pass the floor"
 
 # 11. THE NEGATIVE CONTROL: none of the refusals above wrote anything.
 # #454's first version of this check used `git diff` on a file that is NEW and therefore untracked, so git could
@@ -70,20 +70,20 @@ eq "no refused call wrote to the register" "$BEFORE" "$AFTER"
 # 12. THE POSITIVE CONTROL, WITHOUT WHICH CASE 11 IS WORTHLESS. A legal call MUST write, or "nothing changed"
 # proves only that the tool is inert. This is the rule #418 paid for: ask what your check prints on a case you
 # already know is fine, before believing what it printed on the case in question.
-CT_RUNID=selftest "$BN" record "#999" aaaaaaaaaaaa bbbbbbbbbbbb >/dev/null 2>&1
+CT_RUNID=selftest "$BN" record "#518" aaaaaaaaaaaa bbbbbbbbbbbb >/dev/null 2>&1
 NOW="$(md5sum "$TD/build-numbers.tsv" | cut -c1-12)"
 if [ "$NOW" != "$AFTER" ]; then P=$((P+1)); echo "PASS a legal record DOES write, so case 11 is not vacuous"
 else F=$((F+1)); echo "FAIL nothing writes at all - every case above proves nothing"; fi
 
 # 13. record IS IDEMPOTENT ON THE TRIPLE: re-gating the same bundle must not grow the register, while a
 # genuinely new bundle under the same number must.
-CT_RUNID=selftest "$BN" record "#999" aaaaaaaaaaaa bbbbbbbbbbbb >/dev/null 2>&1
-eq "record is idempotent on an identical triple" "1" "$(grep -c '^999' "$TD/build-numbers.tsv")"
-CT_RUNID=selftest "$BN" record "#999" cccccccccccc bbbbbbbbbbbb >/dev/null 2>&1
-eq "a NEW bundle under the same number DOES append" "2" "$(grep -c '^999' "$TD/build-numbers.tsv")"
+CT_RUNID=selftest "$BN" record "#518" aaaaaaaaaaaa bbbbbbbbbbbb >/dev/null 2>&1
+eq "record is idempotent on an identical triple" "1" "$(grep -c '^518' "$TD/build-numbers.tsv")"
+CT_RUNID=selftest "$BN" record "#518" cccccccccccc bbbbbbbbbbbb >/dev/null 2>&1
+eq "a NEW bundle under the same number DOES append" "2" "$(grep -c '^518' "$TD/build-numbers.tsv")"
 
 # 14. next IS THE HIGHEST PLUS ONE, and it is computed numerically. A lexical sort would put 99 after 454.
-eq "next is numeric, not lexical" "#1000" "$(CT_RUNID=selftest "$BN" next)"
+eq "next is numeric, not lexical" "#519" "$(CT_RUNID=selftest "$BN" next)"
 
 # 15. A REGISTER WITH NO NUMBERED ROWS MUST REFUSE TO INVENT A SERIES rather than start at 1.
 printf '# header only, no rows\n' > "$TD/empty.tsv"
@@ -121,7 +121,7 @@ UNIQ="$(printf '%s\n' "$OUT" | grep '^#' | sort -u | wc -l | tr -d ' ')"
 eq "every concurrent mint got a DISTINCT number" "$GOT" "$UNIQ"
 # SCOPED TO THE RACE'S OWN ROWS, and that scoping is the point rather than a convenience: the live register
 # DELIBERATELY carries five recorded collisions (416, 440, 441, 451, 452 - real history this file exists to make
-# visible) plus #999 from case 12. A whole-file duplicate scan therefore reports those as failures, which is the
+# visible) plus #518 from case 12. A whole-file duplicate scan therefore reports those as failures, which is the
 # frozen-denominator mistake in miniature: the right denominator is the rows THIS CASE created.
 DUPES="$(grep -vE '^[[:space:]]*#' "$TD/build-numbers.tsv" | awk -F'\t' '$1 ~ /^[0-9]+$/ && $7 ~ /^race-/ {print $1}' | sort -n | uniq -d | tr '\n' ' ')"
 if [ -z "${DUPES// /}" ]; then P=$((P+1)); echo "PASS the race left NO number claimed twice"
