@@ -361,6 +361,65 @@ selftest(){
   out="$(bash "$door" --entries 2>&1 | awk -F'\t' '{print $1}' | sort -u | tr '\n' ',' )"
   chk "C8 --entries uses exactly the two modes the loop reads" "appendonly,noshrink," "$out"
 
+  # C9  PARSE STABILITY, per jobs/the-guard-registers-cannot-leave-force-until-the-ratchet-speaks-the-consumers-
+  #     language-2026-10-10. Proves the new check fires on build-numbers.tsv too, not only on the file C3 already
+  #     covers - and that it is the SAME underlying cause (a NUL trips grep's binary mode) read through a DIFFERENT
+  #     consumer (buildnum.sh rows(), which demands a bare-digit first field; the fixture's "#440" rows would never
+  #     match that predicate, so this control writes real digit-shaped rows rather than relying on mkfix's default).
+  B="$(mkfix "$T/c9")"; cp "$door" "$T/c9/gates/records-gate.sh"
+  printf '440\tminted\n441\tminted\n' > "$T/c9/gates/build-numbers.tsv"
+  commitas "$T/c9" renumber >/dev/null
+  B="$(git -C "$T/c9" rev-parse HEAD)"
+  printf '440\tminted\n441\tminted\n442\tminted\n' > "$T/c9/gates/build-numbers.tsv"
+  printf '\000' >> "$T/c9/gates/build-numbers.tsv"
+  H="$(commitas "$T/c9" append-plus-nul)"
+  out="$(bash "$T/c9/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc=$?
+  chk "C9 a NUL appended after a legitimate build-numbers.tsv row is refused" 1 "$rc"
+  case "$out" in *"TEXT"*build-numbers*) ok "C9 the byte-level TEXT check alone already catches this NUL" ;;
+                 *"PARSE STABILITY"*build-numbers*) ok "C9 the new consumer-level check caught it" ;;
+                 *) no "C9 neither TEXT nor PARSE STABILITY named build-numbers.tsv in the refusal" ;; esac
+  # C9b NEGATIVE / NON-VACUITY: the SAME real-digit append, with no NUL, must still be accepted and must be seen
+  #     by buildnum.sh's own rows() predicate as a genuine rise - proving the check is not merely silent, and
+  #     is not a way to make this door harder to satisfy than the byte-level ratchet already was.
+  B="$(mkfix "$T/c9b")"; cp "$door" "$T/c9b/gates/records-gate.sh"
+  printf '440\tminted\n441\tminted\n' > "$T/c9b/gates/build-numbers.tsv"
+  commitas "$T/c9b" renumber >/dev/null
+  B="$(git -C "$T/c9b" rev-parse HEAD)"
+  printf '440\tminted\n441\tminted\n442\tminted\n' > "$T/c9b/gates/build-numbers.tsv"
+  H="$(commitas "$T/c9b" legitimate-append)"
+  out="$(bash "$T/c9b/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc=$?
+  chk "C9b NEGATIVE: the same append with no NUL is accepted" 0 "$rc"
+  cbase="$(grep -v '^[[:space:]]*#' "$T/c9b/gates/build-numbers.tsv" | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/' | wc -l | tr -d ' ')"
+  chk "C9b NON-VACUITY: buildnum.sh's own rows() predicate sees the risen count (3) on the accepted head" 3 "$cbase"
+
+  # C9c THE LIMIT, DECLARED RATHER THAN CLAIMED FIXED: the wider non-NUL binary-mode class the job's control (b)
+  #     names (invalid UTF-8 under a UTF-8 locale, a lone CR) could NOT be reproduced here. This sandbox's default
+  #     locale is POSIX/C (measured: `locale` reports LC_CTYPE=POSIX and setting LANG=en_US.UTF-8 changed nothing
+  #     observable in grep's output), under which grep does not switch to binary mode for an invalid UTF-8 sequence
+  #     or a lone CR - only a literal NUL reliably does, which C3 and C9 already both prove. The new check is
+  #     STRICTLY MORE GENERAL than TEXT (it asks the consumer directly rather than enumerating bytes), so it WOULD
+  #     catch a locale-dependent trigger if one fired in production - but that claim is not controlled here, and is
+  #     left as NOT CHECKED rather than quietly claimed proven.
+  ok "C9c DECLARED LIMIT: non-NUL binary-mode triggers (invalid UTF-8, lone CR) are not reproducible in this sandbox's POSIX locale and are NOT CHECKED by a real exit code, only argued from the mechanism"
+
+  # C9d MUTATION, THE SAME METHOD AS C5: with the TEXT check's own refusal line patched out, PARSE STABILITY must
+  #     catch the NUL on its OWN, proving the new check is a real second door and not dead code that TEXT's earlier
+  #     position in the loop always reaches first (which C9 above, by itself, could not distinguish from).
+  local tdoor="$T/door/notext.sh"
+  sed -e 's/if \[ "\$CTL" -ne 0 \] 2>\/dev\/null; then/if false; then/' "$door" > "$tdoor"
+  grep -q 'if false; then' "$tdoor" || { no "C9d setup: the TEXT arm's condition line was not found to defang"; }
+  B="$(mkfix "$T/c9d")"; cp "$tdoor" "$T/c9d/gates/records-gate.sh"
+  printf '440\tminted\n441\tminted\n' > "$T/c9d/gates/build-numbers.tsv"
+  commitas "$T/c9d" renumber >/dev/null
+  B="$(git -C "$T/c9d" rev-parse HEAD)"
+  printf '440\tminted\n441\tminted\n442\tminted\n' > "$T/c9d/gates/build-numbers.tsv"
+  printf '\000' >> "$T/c9d/gates/build-numbers.tsv"
+  H="$(commitas "$T/c9d" append-plus-nul)"
+  out="$(bash "$T/c9d/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc=$?
+  chk "C9d MUTATION: with TEXT's refusal line defanged, PARSE STABILITY alone still refuses the NUL" 1 "$rc"
+  case "$out" in *"PARSE STABILITY"*build-numbers*) ok "C9d the refusal is attributed to PARSE STABILITY, not TEXT" ;;
+                 *) no "C9d the refusal (if any) is not attributed to PARSE STABILITY" ;; esac
+
   echo "records-gate selftest: $PASSN pass, $FAILN fail"
   [ "$FAILN" -eq 0 ]
 }
@@ -394,6 +453,38 @@ trap 'rm -rf "$REGTMP"' EXIT
 # --verify "<sha>:<path>^{blob}"` answers `fatal: Needed a single revision`, exit 128, on a real blob. The
 # working form is `cat-file -t`, which answers blob, tree, or fails with exit 128 when the path is absent.
 blobtype(){ $GIT cat-file -t "$1:$2" 2>/dev/null || echo MISSING; }
+
+# PARSE-STABILITY, per jobs/the-guard-registers-cannot-leave-force-until-the-ratchet-speaks-the-consumers-language-2026-10-10.
+# THE TEXT CHECK ABOVE (#509) TESTS BYTES; THE REAL THREAT TESTS GREP. gates/held.sh's match_rows()/live_rows() and
+# gates/buildnum.sh's rows() all pipe the register through `grep -v '^[[:space:]]*#' | awk -F'\t' ...`, and GNU grep
+# switches to BINARY MODE and SUPPRESSES every matching line the moment ANY byte in the file trips its own binary
+# heuristic - NOT ONLY a NUL. An invalid UTF-8 sequence under a UTF-8 locale, a lone CR with no paired LF, or a form
+# feed can each trip the same suppression on some greps/locales while every byte-level and TEXT-level condition
+# above still passes, because those conditions enumerate BYTES this project already knows about rather than asking
+# the consumer what IT sees. So this is not an additional instance of the TEXT class, it is the class itself,
+# answered in the consumers' own vocabulary: run each register's REAL reader over the base and head blobs and
+# refuse if the row count the reader itself returns ever falls. Byte-identical, TEXT-clean, and still refused here
+# is not a contradiction - it is the fix doing the one thing #509 could not: ask the thing that actually reads the
+# file instead of asking whether its bytes look safe to a human auditing them.
+#
+# Only gates/held-trees.tsv and gates/build-numbers.tsv have a known grep-based consumer in this project (FEEDBACK-
+# INBOX.md and DECISIONS-LOG.md are read as prose, not piped through grep|awk by any shipped tool), so the dispatch
+# below is keyed on the file's basename and returns the EMPTY STRING (checked = no) for every other ratcheted file
+# - a file with no known consumer pipeline cannot be parse-stability-checked and is never silently credited as
+# checked when it is not.
+consumer_row_count(){
+  # $1 = basename this ratchet entry carries (e.g. "gates/held-trees.tsv"), $2 = a file to read as that register.
+  # Echoes the row count the NAMED CONSUMER itself would see, or the empty string if this file has none known.
+  # Runs the consumer's OWN pipeline verbatim (copied from gates/held.sh / gates/buildnum.sh, not re-derived),
+  # so a change to those pipelines must be mirrored here by hand - declared, not hidden, in the job's notChecked.
+  case "$1" in
+    */held-trees.tsv|held-trees.tsv)
+      grep -v '^[[:space:]]*#' "$2" 2>/dev/null | awk -F'\t' 'NF>=6 && $1 !~ /^-/' 2>/dev/null | awk 'END{print NR}' 2>/dev/null ;;
+    */build-numbers.tsv|build-numbers.tsv)
+      grep -v '^[[:space:]]*#' "$2" 2>/dev/null | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/' 2>/dev/null | awk 'END{print NR}' 2>/dev/null ;;
+    *) printf '' ;;
+  esac
+}
 
 RECBAD=""
 for f in $RATCHET_APPENDONLY $RATCHET_NOSHRINK; do
@@ -433,6 +524,23 @@ for f in $RATCHET_APPENDONLY $RATCHET_NOSHRINK; do
     RECBAD="$RECBAD    binary on a NUL and SUPPRESSES the matching lines, so every grep-based consumer of this\n"
     RECBAD="$RECBAD    file silently reads fewer rows while the bytes all verify as appended [#509 antagonist B].\n"
     continue
+  fi
+  # PARSE STABILITY: ask the consumer, not the bytes. A file with a known consumer (held-trees.tsv, build-numbers.tsv)
+  # is re-read through that consumer's OWN pipeline over both blobs; if the row count the consumer sees FALLS, this
+  # is refused even though every byte and TEXT condition above passed - which is exactly the case theControlSetThis-
+  # NeedsR08(b) asks for: invalid UTF-8 under a UTF-8 locale, a lone CR, or a form feed can each trip a grep's binary
+  # heuristic without tripping the C0/NUL scan above. A file with NO known consumer (the empty-string arm) is NOT
+  # checked here and is not claimed to be; see notChecked on the job this fix closes.
+  CB="$(consumer_row_count "$f" "$REGTMP/base")"
+  CH="$(consumer_row_count "$f" "$REGTMP/head")"
+  if [ -n "$CB" ] && [ -n "$CH" ]; then
+    if [ "$CH" -lt "$CB" ] 2>/dev/null; then
+      RECBAD="$RECBAD$f: PARSE STABILITY - $f's own consumer sees $CH row(s) at head against $CB at base, a FALL\n"
+      RECBAD="$RECBAD    this ratchet's byte and TEXT conditions did not catch. Something in the head blob trips a\n"
+      RECBAD="$RECBAD    binary-mode or field-shape trigger the consumer's own grep|awk pipeline reacts to, even\n"
+      RECBAD="$RECBAD    though the bytes verify as appended [jobs/the-guard-registers-cannot-leave-force...-2026-10-10].\n"
+      continue
+    fi
   fi
   # COUNTED WITH awk AND NOT WITH `grep -c '' || echo 0`, AND THIS IS #509's OWN WORST BUG, FOUND BY READING
   # ITS OWN LOG LINE AFTER A CONTROL THAT PASSED. `grep -c '' < an-empty-file` PRINTS 0 *AND EXITS 1*, so the
