@@ -836,7 +836,7 @@ ratchet(){ # ratchet <label> <verdict-grep> <cmd...>
   local label="$1"; KEY="$2"; shift 2
   local hv bv hs bs wt
   hv="$(verdicts "$@")"
-  wt="$(mktemp -d)"
+  wt="$(mktemp -d)" || { red=1; say "    $label: RED (mktemp -d failed - could not create a temp directory for the base worktree)"; return; }
   if ! git -C "$ROOT" worktree add -q --detach "$wt" "$BASEFULL" 2>>"$LOG"; then
     red=1; say "    $label: RED (could not create a base worktree at $BASEFULL - the ratchet cannot be evaluated)"
     rm -rf "$wt"; return
