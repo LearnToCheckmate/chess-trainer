@@ -164,6 +164,60 @@ ck "mint refuses to hand out a 5-digit number" 2 env CT_RUNID=selftest "$BN" min
 eq "nothing in the 10000 range was written" "0" "$(grep -c '^10000' "$TD/build-numbers.tsv" || true)"
 sed -i '/^9999\t/d' "$TD/build-numbers.tsv"
 
+# 22-25. jobs/buildnum-highest-has-no-plausibility-bound-so-one-appended-row-wedges-minting-2026-10-10's OWN
+# four-point control set (R08), run on a FRESH isolated register rather than $TD's cumulative one so each case
+# starts from a known, contiguous baseline and is not hostage to whatever earlier cases left highest() at.
+# THE DIAGNOSIS THIS JOB CORRECTED: case 20 above (#9999) was never the damaging case - in_range() at
+# buildnum.sh:171 already refused it LOUDLY, by name, before this job existed. The damaging case is a
+# WELL-FORMED #999 row: it passes in_range (3 digits) just fine, silently becomes the new highest(), and next/
+# mint used to hand out #1000 at exit 0 with no diagnostic at all - 490 numbers burned in silence had the real
+# series been sitting at #510. That is case 22 below. Comparing next()'s output against highest() can never
+# catch it, because highest() itself IS the bad row by the time next() runs; the bound has to compare highest()
+# against the register's own next-highest DISTINCT value instead (delta_ok() / second_highest(), added above).
+R08D="$(mktemp -d)"; cp "$HERE/buildnum.sh" "$R08D/buildnum.sh"; chmod +x "$R08D/buildnum.sh"
+R08BN="$R08D/buildnum.sh"
+seed_r08() { # writes a small, CONTIGUOUS fixture register (…#508 #509 #510) so "the previous highest" is
+             # unambiguous and the margin math is easy to check by hand.
+  printf '508\tbuilt\t-\taaaaaaaaaaaa\tbbbbbbbbbbbb\t2026-01-01T00:00Z\tfixture\tbuild.sh\ta note long enough to pass the floor\n509\tbuilt\t-\tcccccccccccc\tdddddddddddd\t2026-01-01T00:01Z\tfixture\tbuild.sh\ta note long enough to pass the floor\n510\tshipped\teeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\tffffffffffff\t111111111111\t2026-01-01T00:02Z\tfixture\tmeasured\ta note long enough to pass the floor\n' > "$R08D/build-numbers.tsv"
+}
+
+# 22. (R08 a, THE LIVE CASE) a well-formed #999 row appended to a register whose real highest is #510 - the
+# exact shape of the production incident this job measured (baseline next=#510, one append, next/mint burn
+# straight to #1000). next and mint must now REFUSE, and the refusal must NAME #999, the suspect row - not just
+# fail silently or with a message that could be about anything.
+seed_r08
+CT_RUNID=selftest "$R08BN" add "#999" built - - "a well-formed row that is nonetheless a 489-number jump" >/dev/null 2>&1
+NEXT_ERR="$(CT_RUNID=selftest "$R08BN" next 2>&1 >/dev/null)"
+ck "R08(a) LIVE CASE: next refuses on a well-formed #999 row (used to silently return #1000)" 2 "$R08BN" next
+eq "R08(a) the refusal NAMES #999, the suspect row, not just a number" "yes" \
+   "$(printf '%s' "$NEXT_ERR" | grep -qc '#999' && echo yes || echo no)"
+ck "R08(a) mint refuses too (used to silently hand out #1000, no diagnostic at all)" 2 \
+   env CT_RUNID=selftest "$R08BN" mint "this must not be handed out at all, it would burn 489 numbers"
+eq "R08(a) nothing in the 1000 range was written by the refused mint" "0" \
+   "$(grep -c '^1000	' "$R08D/build-numbers.tsv" || true)"
+
+# 23. (R08 b, NO REGRESSION) a #9999 row must keep refusing LOUDLY, exactly as it already did via in_range()
+# before this job's delta_ok() existed - the fix must not trade the 5-digit gap for the 3-digit one.
+seed_r08
+CT_RUNID=selftest "$R08BN" add "#9999" built - - "a deliberately high 4-digit row, same as case 20 above" >/dev/null 2>&1
+ck "R08(b) NO REGRESSION: next still refuses a #9999 row (in_range's own case, unchanged)" 2 "$R08BN" next
+ck "R08(b) NO REGRESSION: mint still refuses a #9999 row" 2 env CT_RUNID=selftest "$R08BN" mint "this must still refuse, same as before this job"
+
+# 24. (R08 c, NON-VACUITY) a legitimate append of the REAL next number - #511, one past the seeded #510 - must
+# still succeed. A delta bound tight enough to refuse ordinary growth is the obvious wrong fix this control
+# exists to catch.
+seed_r08
+eq "R08(c) NON-VACUITY: next still returns the real next number for ordinary growth" "#511" "$(CT_RUNID=selftest "$R08BN" next)"
+ck "R08(c) NON-VACUITY: mint still succeeds for ordinary growth" 0 env CT_RUNID=selftest "$R08BN" mint "an ordinary legitimate build, one past the seeded highest"
+eq "R08(c) and the minted row is #511, not refused or skipped" "1" "$(grep -c '^511	' "$R08D/build-numbers.tsv")"
+rm -rf "$R08D"
+
+# 25. (R08 d, THE OTHER 86) already proved by this file's own footer count, not a separate assertion here:
+# this run's own "pass"/"fail" totals below ARE that count, and jobs/...-2026-10-10's record of them on
+# parkedAt is what carries the number forward. Restated here only so a reader of the case list, not the footer,
+# still sees the obligation named.
+echo "R08(d): the 86 pre-existing cases above are counted in this run's own pass/fail footer, not re-counted here."
+
 # 21. FIELD 5 IS THE LOAD-BEARING KEY and was the unvalidated one: sourceMd5 is what held.sh compares against
 # the working tree, so an unusable value there is worse than an unusable bundle md5.
 ck "a non-hex CT_SRCMD5 is refused"  2 env CT_RUNID=selftest CT_SRCMD5=NOT-A-HASH-AT-ALL "$BN" add "#996" built - - "a note long enough to pass the floor here"
