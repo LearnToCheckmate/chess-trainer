@@ -4,143 +4,185 @@ Read this, then `claude/BUILD-CONTEXT.md`, then the flags. The procedure is trac
 `5326ERvZCZ5tEYRkPavPTF`, collection `prompts`, docs `common` then `build-run`; where it and CLAUDE.md
 differ, the tracker wins.
 
-Build **#514**, runId `build__1791674417817`, 2026-10-11. Pen taken free on a clean release (third
-consecutive) and released at close-out.
+Build **#516**, runId `build__1791901250083`, 2026-10-13. Pen taken free on a clean release and
+released at close-out. **HELD — nothing pushed to main.**
 
-## *** #514 CHANGED NO APPLICATION CODE. NOTHING ON KUNAL'S PHONE CHANGED, AND THAT IS BY CONSTRUCTION. ***
+## *** FIRST GIT ACTION OF YOUR RUN: `git fetch --unshallow`. NOT `--deepen=400`. ***
 
-**MEASURED, not assumed:** `git rev-parse origin/main:app.js` and `HEAD:app.js` return the same blob
-`53eeef62`, and `chess.jsx` the same blob `01a1ebb3`. Byte-identical, not merely equivalent. `appChanged`
-is **no**, the bundle stays **`f47aa0197967`** stamped `#511 - 2026-10-10 07:40 ET`, and #514 never ran
-`gates/build.sh` at all — it took build number 514 for the register's sake and minted no bundle. A green
-suite here is a statement about the **harness**, not about anything a player sees. Third such build in a
-row (#512, #513, #514).
+This replaces the instruction that stood here through #515. **`--deepen=400` is measurably
+insufficient and it fails SILENTLY WITH EXIT 0**: from a `--depth 50` clone it reaches **456 of 1162**
+commits, which is enough to answer the one ancestry question #516's job happened to cite and **not**
+enough for 24 of the 78 archived gatelogs, 20 of the 105 refs on origin, two shas named in CLAUDE.md's
+own branch-record table, or the `ecstatic-tesla` merge-base that table's figure rests on. Worse, with
+that partial deepen the branch-record cell's own command prints **`456 50`** where the truth is
+**`624 1`** — wrong by 50x, no warning, exit 0. Use `--unshallow`; it costs one fetch on a container
+that is about to spend 70 minutes in a browser.
 
-## What #514 did, in one line
+**And `gates/verify-log.sh:1222` still hard-codes that 400**, with a comment asserting its failure
+branch is unreachable. It is reachable by 24 logs. #516 left it unfixed on purpose — it needed that
+script to gate its own push — and routed it as
+`jobs/the-deepen-400-in-verify-log-is-calibrated-against-a-main-that-has-since-grown-2026-10-13`
+with the full measurement attached. **If you are a shallow container trying to verify an archived log
+and it refuses for clone depth, that job is your answer, and `--unshallow` is your workaround.**
 
-Fixed the tier check that compared a **stamped** bundle — `gates/build.sh` embeds a minute-resolution
-stamp at three sites, so no rebuild is ever byte-identical and the fast tier could never be reached by
-anything that rebuilt — and then **measured that the fix buys nothing yet, and said so in four places.**
+## *** #516 HELD. NOTHING WENT TO MAIN. ITS WORK IS ON A BRANCH AND YOU SHOULD LAND IT. ***
 
-## *** READ THIS BEFORE YOU TRUST THE FAST TIER: THE MARGINAL IS ZERO ***
+`GATES RED #516` — one red section, `48-lesson-flow`, on the **known portrait fit-loop latch**. Second
+recorded firing, reproducing #512 to the digit (35.23 / 227.23 / board 192, four 192 readings in each
+log). Not this tree's doing: the tree is records-only and the bundle is main's own. But a red log
+authorises nothing, Kunal decided on 4 Oct that this gate keeps blocking and the app gets fixed, and
+the fix he chose at 9:28am ET today is parked under `docs/product-pause-2026-10-13`.
 
-The change is correct and controlled and **it does not let the build lane reach the fast tier.** Taking a
-build number writes a `minted` row to `gates/build-numbers.tsv`, which `classify()` puts in **FORCE**, so
-a commit that actually rebuilt still goes full. The exemption can only fire on a commit that moved
-`app.js` and touched **no** forced file.
+**WHAT YOU SHOULD DO ABOUT IT, AND IT IS THE MOST ACTIONABLE ITEM IN THIS FILE.** Seven corrections to
+*this file's own rulebook* are sitting on `origin/claude/practical-sagan-k2famj` at **`1202355`**, four
+commits ahead of main, touching only `CLAUDE.md` and `gates/build-numbers.tsv`. They include a
+prescription CLAUDE.md was giving every session — `git fetch --deepen=400` — that #516 measured to
+leave a different figure **on the same page** wrong by 50x with exit 0 and no warning. **If your suite
+goes green, cherry-pick or merge that branch and land it.** It needs no rebuild: `app.js`, `chess.jsx`
+and `index.html` on it are byte-identical to main. Leaving it on a branch is the #441 shape this
+project has already paid for once, where the only copy of a warning lived on a ref that never merged.
 
-**Measured over the last 400 commits on `origin/main`: 73 touch `app.js`, 64 of those also touch
-`gates/build-numbers.tsv`, and ZERO are commits where this exemption could have fired.** A per-commit
-upper bound, derived independently three times (antagonist A found the mechanism, antagonist B produced
-the number, I re-derived both).
+## *** #516 CHANGED NO APPLICATION CODE. NOTHING ON KUNAL'S PHONE CHANGED. ***
 
-**Part two is NOT available.** Letting a records-classified register row stop forcing is the #509 ratchet,
-which **both** of #509's antagonists vetoed on two reproduced attacks, and it is blocked on two named
-jobs. So the single remedy available was to state the marginal, which is done in the script header, in the
-FORCE loop's own printed lines, in the log the tier emits, and in the commit message. **Do not "discover"
-that fast mode is still unreachable and file it as a defect — it is recorded as the measured expectation.**
+**MEASURED, not assumed**, and independently by an antagonist with no database access: `app.js`,
+`chess.jsx` and `index.html` are byte-identical to `origin/main` — md5 `f47aa0197967`, `b6b7fbb25df0`,
+`4a95e865bca8` — across all three commits. `appChanged` is **no**, the bundle stays `f47aa0197967`
+stamped `#511 - 2026-10-10 07:40 ET`, and #516 never ran `gates/build.sh`: it took the number for the
+register's sake and minted no bundle, gating main's existing bundle through the `gates.sh:161`
+`CT_EXPECT` seam. A green suite here is a statement about the **harness and the records**, not about
+anything a player sees. **Fifth such build in a row** (#512, #513, #514, #515, #516) — which is itself
+worth noticing: the lane has spent five consecutive passes on its own instruments.
 
-The honest case for landing it anyway: **the benefit and the new trust surface are gated by the same
-condition.** The exemption cannot fire, so it cannot save a suite — and it also cannot wrongly exempt
-anything. Today's risk is zero for exactly the reason today's benefit is zero.
+## What #516 did, and the one thing it got wrong twice
 
-## THE SUITE: `GATES GREEN #514`
+It took `jobs/the-is-ancestor-instrument-returns-false-negatives-in-a-shallow-clone-2026-10-01`, scope
+reduced to its two CLAUDE.md edits, and landed both: a new row documenting the instrument, and a
+re-measurement of the branch-record cell at `CLAUDE.md:52`.
 
-**59 sections / 4885 PASS / 0 FAIL**, 00:27:56Z to 02:14:58Z (**107 minutes**), run from the frozen
-sibling copy `gates/.gates-run-514.sh` so no later edit could reach the running interpreter (#461, #493).
-The copy's md5 equalled `gates/gates.sh` **at launch and again at finish** — checked both times, because
-#461 cost a whole 48-section suite its footer.
+**THE FINDING THAT MATTERS MOST IS NOT THE ONE THE JOB ASKED FOR.** The cell's historic figures — 539
+and 46 as the ahead and behind counts — were filed as stale leftovers from #376's era. They are not.
+`git clone --depth 46` plus the cell's own command prints `46` then `539` **today**: the branch's whole
+reachable history is 539 commits, so a main truncated to 46 leaves every one of them on the branch
+side, and **the left-hand number simply is the clone depth**. The figures were reproducible by anyone
+on any day they stood there; what was missing was the precondition. So the rule now in CLAUDE.md is
+**publish the clone depth beside any count derived from graph distance** — and the two halves of the
+job turn out to be one defect, since the branch-record cell was a live instance of the instrument the
+new row documents.
 
-Bundle md5 **`f47aa0197967`**; gated sha **`be615f5`**; log at `claude/agents/gatelogs/514-all.log`
-(6306 lines, a real log and not a stdout capture).
+**BOTH BLIND ANTAGONISTS VETOED AND BOTH VETOES WERE UPHELD.** Six claims in the first draft of that
+row were wrong and were fixed before the push to main, each re-measured by me rather than taken on
+report: the `--depth 50` recipe omitted the load-bearing `--no-single-branch`; `--deepen=400` was
+prescribed; "THIRTEEN CONSECUTIVE CONTAINERS, #502 to #516" is 15 numbers and 14 runIds; the
+discriminator is reachability through fetched objects, not object presence; `error: no such commit`
+comes from `git branch --contains` and never from `merge-base`; and "LIES IN TWO DIRECTIONS" is one
+direction too many, since a graft only ever removes reachability — **a YES can be trusted and a NO
+cannot.**
 
-**`CT_EXPECT='#511'` was set on the run.** That is the `gates.sh:161` seam (#506's resolution): mountcheck
-asserts the bundle's **true** stamp while the log is stemmed and footed `#514`. Without it a suite over an
-un-rebuilt bundle cannot be stamped with this run's number at all.
+**And one sentence was corrected twice, the second correction undoing the first.** Antagonist B argued
+from content that #504's two readings must contradict each other; the argument was tight and I shipped
+it. Antagonist A ran the command: `git branch -a --contains` omits main, so the readings **agree** and
+are wrong together, which is exactly what makes a second opinion corroborate the lie instead of
+catching it. Recorded in CLAUDE.md as what reproduces, with the note that #504's record does not.
 
-**Nothing was committed while the suite ran.** The gated sha is exactly the tree the log measured, against
-`jobs/amending-a-commit-after-launching-the-suite-orphans-the-logs-own-gated-sha-2026-10-07`.
+## THE SUITE: `GATES RED #516`
 
-## THE BLIND PAIR: 13 FINDINGS, BOTH VETOES UPHELD, AND THE PAIR STILL MISSED ABOUT FIVE
+**14:35:12Z to 16:28:04Z, 113 minutes.** 59 sections green, **1 red** (`48-lesson-flow`), **4884 PASS**,
+1 FAIL (printed twice — once in the block, once in the section summary). Manifest 58 required / 58
+present / 0 missing / 0 unlisted / **5 known-absent**. Footer self-consistent: actual `^PASS` is 4884
+and the footer says 4884. `gates/verify-log.sh` **refuses it**, for the right reason — *"does not end
+with a clean 'GATES GREEN #NNN'"* — and that refusal is correct and was expected.
 
-Launched in **one message** before the suite (so neither's findings existed while the other worked), B as
-the **Explore** agent type with **no database tool**, handed the frozen diff and both bundles as files.
-uniqueToA **6**, uniqueToB **3**, common **4**; Lincoln-Petersen ⇒ about **18** exist, so **both missed
-about five**. An overlap of 4 of 13 is a far more stable denominator than #511's 1 of 11.
+Ran from the frozen sibling copy `gates/.gates-run-516.sh`, md5 `9dd41aaff6c2a7b191de3df1a02a4164`,
+equal to `gates/gates.sh` **at launch and at finish**. `CT_EXPECT='#511'` so mountcheck asserted the
+bundle's true stamp while the log is stemmed `#516`.
 
-**The two decisive findings were each structurally invisible from the other's door — the sixth consecutive
-build to find this shape.**
-- **A (diff door):** the failure path returned **exit 1 where main returned 2**, so a control that could
-  not be *built* took an ordinary commit from "go run the suite" to **REFUSED**. The only measured
-  regression in either pass. B says in terms it could not reach this: its nine-way fail-safe matrix
-  perturbed the **head** nine ways and **never once perturbed the base**.
-- **B (shipped-surface door):** the printed log claimed "no regress gate asserts the stamp", which is
-  **false** — `gates/regress/49-home.js:554` matches the Home build line against its own regex — so the
-  soundness argument rested on a **cross-file regex coupling** with nothing checking it.
+**The PASS total was pre-registered before the result, and it predicted the decomposition.** #513,
+#514 and last night's nightly each read **4885** over this same never-rebuilt bundle; my diff touches
+no file under `gates/regress/`, so determinism predicted equality rather than a floor, and with one
+assertion flipped the prediction was **4884 + 1 = 4885**. That is exactly what landed. Treat that as
+the baseline: *if your PASS total over `f47aa0197967` is not 4885 minus your FAILs, something moved
+that you did not move.*
 
-**The cross-read was a third tree-changing stage and it is worth reading** (full text on
-`runreports/build__1791674417817`): it made **A withdraw its own veto ground on a measurement** — the Home
-build line has ~8 characters of wrap margin against an excursion the regex bounds to **1** — and I kept
-the length pin anyway **for B's different reason**, publishing both halves in the shipped comment.
+## THE BLIND PAIR: BOTH VETOED, BOTH UPHELD, AND THEY DISAGREED WITH EACH OTHER ONCE
+
+A entered by the diff door with database tools; B by the shipped surface with **no** database tool, on
+purpose. Neither could see the other. Both vetoed; both vetoes were upheld; every contested claim was
+re-measured by me before I amended anything, and that mattered in both directions.
+
+- **B was wrong once, in my favour.** It reported the `--depth 50` recipe returning 128. Measured, it
+  returns **1 with empty stderr** in a `--no-single-branch` clone and 128 only single-branch — so the
+  real repair was to name the clone shape, not to add the fetch B asked for. **This container is
+  multi-branch (105 refs), so the routine lives in the SILENT variant**, which makes the finding more
+  serious than B knew.
+- **A was wrong once too**, offering "present and inside the graft" as the discriminator. Measured,
+  `origin/main~50` answers correctly because sibling packs supply parents and main walks **57** commits,
+  not the 50 requested. The real predicate is reachability from `origin/main` through the objects
+  actually fetched — which is what the row's own refinement (b) had said all along.
+- **And they contradicted each other on #504's anecdote, where the measuring door beat the reasoning
+  door.** See the head of this file.
+
+What the pair did NOT cover, named so you do not assume it: neither ran the gate suite, and B could not
+see any tracker document, so its "fast-gate-state is stale" sub-finding is wrong — `docs/fast-gate-state`
+re-certified `f47aa0197967` at 01:01:33Z today, which B had no way to read. **`HANDOFF.md`'s own fast-mode
+paragraph was the stale thing**, and it is corrected below.
 
 ## WHAT IS LEFT, NAMED
 
-1. **Implausible stamps are accepted.** `so_pred` pins shape and length, not value: `#100 - 2020-01-01
-   00:00 ET` is also 26 bytes and passes, and `CT_STAMP_TIME` is unvalidated. Sound for what the predicate
-   is *for*; it is not a plausibility bound. Both antagonists found it independently.
-2. **`gates/held.sh check` is still not called from this tier.** Deliberately not added: `held.sh` exits
-   **1 = HELD** and **2 = USAGE**, so a naive wiring maps a usage error onto GO FULL and re-creates exactly
-   the regression A had just found. B also established the gap is *structurally* closed — `held.sh`'s only
-   rebuild-surviving key is `sourceMd5` over `chess.jsx`, and the exemption proves `chess.jsx` unchanged.
-3. **The auditor has not run.** This is the **fourteenth consecutive** build with `expectedAuditors` naming
-   `build-external-challenger` and `auditedBy` empty.
-4. **CLAUDE.md carries two stale selftest figures** — `gatemanifest.sh selftest` is written as 19 controls
-   and reads **48**; `buildnum-selftest.sh` is written as 47 and reads **86**. Both measured by running
-   them. CLAUDE.md is a FORCED file and outside this item's scope, so untouched.
-5. **`prompts/build-run` is 172,301 characters** while CLAUDE.md and `prompts/common` both say ~92,000 —
-   stale by 87%. Same FORCED-file reason.
-6. **The `build-one-door` blocker still needs an outcome** before two `blocked` jobs can be re-tested.
-
-## A DEFECT FOUND IN THE TRACKER BY AN ORDINARY QUERY — AND IT WILL BITE YOU TOO
-
-`order_by buildNumber desc limit 3` on the `builds` collection returns **`'485'`, `'472'`, `'466'`** while
-**513 exists**. `buildNumber` is a **string on 42** of 101 documents, an **int on 40**, **absent on 18**
-and null on 1, and strings and numbers sort in **separate bands**. The 19 with no usable value are
-excluded from any ordered query on that field altogether.
-
-**So "show me the newest build record" — the most ordinary query in this lane, on the collection the build
-lane writes every single pass — answers 28 builds out of date, and no tool reports it.** It was not found
-by a sweep; it was found by needing a template for this very record.
-
-Appended as a dated recurrence to the live parked job
-`jobs/a-run-record-row-in-the-snapshots-collection-outranks-every-real-snapshot-2026-10-01`, where it
-answers that job's own `notChecked` item "the other collections … for the same two-type problem" with a
-**yes**. **Not filed as a new job** [R09/R25]; the park **not** lifted [R23]. I did not repair the 42 rows
-— the closed sibling records that #508's own type repair replaced a wrong type with a wrong *time* by
-600,000 ms, and the same job establishes that the copy-forward convention reinstates the type, so the fix
-belongs at the write step. `builds/514` is written with an **integer** `buildNumber`.
-
-## The four numbers at this close-out
-
-**openP0 6, openP1 88**, coverage **0 of 10** (carried, not re-derived), assertions **4885**.
-
-**Know the instrument before you compare these to anything.** This is `status = ready` AND
-`severity in [P0, P1]`, **all lanes** — #513's method, and it returns exactly #513's pair. #477 measured
-that the lane-filtered variant leaves **165 of 316** ready build-lane jobs **unbucketable** (numeric
-`priority`, no `severity` field), **45 of which name a P0 in their own text** — so **6 is a floor, not a
-count**, and that is #405's frozen denominator wearing the `severity` field as a costume. Two open jobs
-already carry this; this close-out adds no third method.
+1. **`gates/verify-log.sh:1222` still hard-codes `--deepen=400`** against a main that has grown from 860
+   to 1162 commits. 24 of 78 archived logs are past its reach. Routed with the full measurement; see the
+   head of this file. **Fail direction is REFUSE, never accept** — nothing has been wrongly authorised.
+2. **`gates/regress/70`'s `resultText` predicate matches ordinary chrome.** Unanchored
+   `/won|win|lose|lost|…|draw/i` makes `Close` match via *lose*, `Withdraw` via *draw* and
+   `is winning here` via *win*, so F0/F1b's "the screen states a result" can be satisfied by the gate's
+   own sheet chrome. #391's rule unapplied. Job filed, P1.
+3. **`gates/regress/41`'s five coach-overlay absence assertions cannot fail** against any bundle built
+   from main — all four `data-ct` tokens occur 0 times in `app.js`. Keep them as tripwires; the real
+   coverage is the nine-point square hit-test beside them. Job filed, P2.
+4. **Nine integration payload bases are absent from origin ENTIRELY**, not merely outside a graft —
+   checked against a fully unshallowed clone with all 105 refs. So `S6-APPLY-ORDER` can never be checked
+   for that set and no deepen helps; those payloads must be re-cut or retired by someone who still has
+   the trees. Job filed, P1, owning lane **orchestrator**.
+5. **The integration slot is still structurally deadlocked.** STEP 1I fires, its mandatory pre-check
+   S2-FAILs on two `gates/buildnum.sh` payloads, so nothing lands — and those are the payloads a
+   prerequisite needs. Recorded on the band-17 job; the one-sentence fix is an orchestrator job.
+6. **The auditor still has not run.** `expectedAuditors` names `build-external-challenger` and
+   `auditedBy` is empty for the **sixteenth consecutive** build.
+7. **`prompts/common` says `prompts/build-run` is ~92,000 characters; it is 191,950.** Stale by 108%.
+   On the tracker, so this lane cannot edit it.
+8. **Implausible stamps are still accepted** (`so_pred` pins shape and length, not value) and
+   **`gates/held.sh check` is still not called from the fast tier**, both deliberately, both from #514.
 
 ## If you are the next run
 
-- `app.js` and `chess.jsx` are byte-identical to main. If you intend to change application code, you are
-  the first in four builds — re-read "the board is sacred" first.
-- Fast mode was **OFF** for #514 and will likely be off for you: `docs/fast-gate-state` certifies bundle
-  `227126b82b81` while main serves `f47aa0197967`, so the nightly's certification is **two app-builds
-  stale**. That was the **first live firing** of the fourth test added 2026-10-10, and it is appended to
-  `jobs/fast-gate-state-certifies-a-bundle-main-no-longer-carries-and-step-0f-cannot-see-it-2026-10-07`.
-- **Eleventh consecutive shallow container.** `origin/main` read `97392e2` — nine builds stale — until
-  `git fetch --unshallow` as the **first** git action. Do that before any ancestry claim, or
-  `merge-base --is-ancestor` will lie to you.
-- The UAT kick (`fire_trigger` on `trig_01JGZboE9JSXYgMSXqA5GWkB`) is **not available** in this session. I
-  did not substitute another trigger and did not enable, disable or edit any trigger [R21].
+- **LAND #516's BRANCH if your suite goes green.** `origin/claude/practical-sagan-k2famj` at `1202355`,
+  records-only, byte-identical app. See the top of this file.
+- **YOUR SUITE MAY GO RED ON SOMETHING THAT IS NOT YOURS, AND HERE IS HOW TO RECOGNISE IT IN ONE GREP.**
+  `grep -n 'board":192' gates/logs/<N>-all.log`. If `48-lesson-flow` is your only red section and its
+  single FAIL reads *"Flip runs 35.23px past its OWN row ... at board 192 ... (227.23px against 192px)"*
+  at 320x540 `[endgame-demo-end]`, that is the known portrait fit-loop latch, it is live on main, and it
+  is owned by `jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29` (priority 16, parked). It is
+  **rare, not deterministic** — and do NOT quote an incidence as a per-run probability, because the
+  recorded figure is an observation frequency across six builds on six different bundles, which that job
+  says in terms must not be read that way. Record it as a recurrence; do not re-pin gate 48 (Kunal's own
+  bar calls a pin changed to reach green a breach), and do NOT add a `held-trees` row — that register is
+  keyed on bundle md5 and the bundle is main's own `f47aa0197967`, so a row would make every later run's
+  `held.sh check` refuse the bundle main is serving.
+- **WHEN ASKING "HAS THIS HAPPENED BEFORE", SWEEP `gates/logs/*.log` AND NOT `*-all.log`.** #516 swept 57
+  `*-all.log` files for a 192 board and got zero, concluding the event was unprecedented in the project's
+  whole history and hunting a container cause that does not exist. The prior firing is archived — as
+  `512-RED-the-pre-existing-gate-48-latch-fired-at-320x540.log`, which no `*-all.log` glob can see,
+  *because it was named descriptively for being the exception.* The one log that answers the question is
+  the one the conventional selector hides.
+- **`git fetch --unshallow` FIRST.** See the top of this file for why `--deepen=400` is not enough.
+- **Fast mode may actually be available to you, and #514's note here was stale.**
+  `docs/fast-gate-state` certifies `f47aa0197967` — which is what main serves — as of
+  `2026-10-13T01:01:33Z`. #516 still paid the full suite, because `classify()` puts both `CLAUDE.md` and
+  `gates/*.tsv` on the FORCE list and this diff touches both. Check the state document yourself; do not
+  carry this paragraph forward without re-reading it, which is the mistake it is correcting.
+- **This container was NOT shallow** (`--is-shallow-repository` printed false, 105 refs), the first in a
+  long run of shallow ones. Measure your own rather than inheriting a tally:
+  `head -1 .git/logs/refs/remotes/origin/main` tells you how yours was fetched.
+- `app.js` and `chess.jsx` are byte-identical to main. If you intend to change application code you are
+  the first in **five** builds — re-read "the board is sacred" first.
+- The UAT kick (`fire_trigger` on `trig_01JGZboE9JSXYgMSXqA5GWkB`) is **not available** in this session.
+  I did not substitute another trigger and did not enable, disable or edit any trigger [R21].
