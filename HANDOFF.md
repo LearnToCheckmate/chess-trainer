@@ -4,143 +4,103 @@ Read this, then `claude/BUILD-CONTEXT.md`, then the flags. The procedure is trac
 `5326ERvZCZ5tEYRkPavPTF`, collection `prompts`, docs `common` then `build-run`; where it and CLAUDE.md
 differ, the tracker wins.
 
-Build **#514**, runId `build__1791674417817`, 2026-10-11. Pen taken free on a clean release (third
+Build **#517**, runId `build__1791911984000`, 2026-10-13. Pen taken free on a clean release (seventh
 consecutive) and released at close-out.
 
-## *** #514 CHANGED NO APPLICATION CODE. NOTHING ON KUNAL'S PHONE CHANGED, AND THAT IS BY CONSTRUCTION. ***
+## *** #517 WAS THE INTEGRATION SLOT. IT CHANGED NO APPLICATION CODE AND NO GATE ASSERTION. ***
 
-**MEASURED, not assumed:** `git rev-parse origin/main:app.js` and `HEAD:app.js` return the same blob
-`53eeef62`, and `chess.jsx` the same blob `01a1ebb3`. Byte-identical, not merely equivalent. `appChanged`
-is **no**, the bundle stays **`f47aa0197967`** stamped `#511 - 2026-10-10 07:40 ET`, and #514 never ran
-`gates/build.sh` at all — it took build number 514 for the register's sake and minted no bundle. A green
-suite here is a statement about the **harness**, not about anything a player sees. Third such build in a
-row (#512, #513, #514).
+**MEASURED, not assumed:** `app.js` (`f47aa0197967`), `chess.jsx` (`b6b7fbb25df0`) and `index.html`
+(`4a95e865bca8`) are byte-identical to `origin/main`, checked with `md5sum` against
+`git show origin/main:<f>`. `appChanged` is **no**, the bundle stays `f47aa0197967` stamped
+`#511 - 2026-10-10 07:40 ET`, and #517 never ran `gates/build.sh`. **And not one path under
+`gates/regress/` is in the diff**, so the suite's assertion set over this tree is IDENTICAL to main's.
 
-## What #514 did, in one line
+**READ THAT SECOND SENTENCE BEFORE YOU CITE THE GREEN.** `GATES GREEN #517` is a **re-certification of
+main's own bundle**, not a statement about new coverage. Every gate change this pass attempted was
+dropped. Sixth consecutive build with no application code on main.
 
-Fixed the tier check that compared a **stamped** bundle — `gates/build.sh` embeds a minute-resolution
-stamp at three sites, so no rebuild is ever byte-identical and the fast tier could never be reached by
-anything that rebuilt — and then **measured that the fix buys nothing yet, and said so in four places.**
+## What #517 did, in one line
 
-## *** READ THIS BEFORE YOU TRUST THE FAST TIER: THE MARGINAL IS ZERO ***
+Landed **3 of 20** parked process-lane payloads in **6 commits** — the first pass ever to execute STEP 1I
+**amendment 5**, written at 10:44am ET the same morning after the 9:19am fire filed the job showing the
+old rule stopped everything over four S2 collisions.
 
-The change is correct and controlled and **it does not let the build lane reach the fast tier.** Taking a
-build number writes a `minted` row to `gates/build-numbers.tsv`, which `classify()` puts in **FORCE**, so
-a commit that actually rebuilt still goes full. The exemption can only fire on a commit that moved
-`app.js` and touched **no** forced file.
+## The accounting, stated once so nobody has to reconcile it
 
-**Measured over the last 400 commits on `origin/main`: 73 touch `app.js`, 64 of those also touch
-`gates/build-numbers.tsv`, and ZERO are commits where this exemption could have fired.** A per-commit
-upper bound, derived independently three times (antagonist A found the mechanism, antagonist B produced
-the number, I re-derived both).
+**20 in the manifest = 4 excluded on S2 + 3 landed + 3 dropped on upheld antagonist vetoes + 10 refused.**
+Six **payload** commits on a **seven**-commit branch, the seventh being the register commit. Every one of
+the 20 carries an `integrationResult517` saying what happened to it and why.
 
-**Part two is NOT available.** Letting a records-classified register row stop forcing is the #509 ratchet,
-which **both** of #509's antagonists vetoed on two reproduced attacks, and it is blocked on two named
-jobs. So the single remedy available was to state the marginal, which is done in the script header, in the
-FORCE loop's own printed lines, in the log the tier emits, and in the commit message. **Do not "discover"
-that fast mode is still unreachable and file it as a defect — it is recorded as the measured expectation.**
+Landed, all three whole with **no `git am --skip` of any kind**: `stamp-selftest`,
+`fastgate-ratchet-mktemp`, `cited-not-run-closure`.
 
-The honest case for landing it anyway: **the benefit and the new trust surface are gated by the same
-condition.** The exemption cannot fire, so it cannot save a suite — and it also cannot wrongly exempt
-anything. Today's risk is zero for exactly the reason today's benefit is zero.
+## *** BOTH BLIND ANTAGONISTS VETOED AND BOTH VETOES WERE UPHELD. THREE PAYLOADS WERE DROPPED. ***
 
-## THE SUITE: `GATES GREEN #514`
+Do **not** re-land these three from their current documents. Each has a job against its owning lane.
 
-**59 sections / 4885 PASS / 0 FAIL**, 00:27:56Z to 02:14:58Z (**107 minutes**), run from the frozen
-sibling copy `gates/.gates-run-514.sh` so no later edit could reach the running interpreter (#461, #493).
-The copy's md5 equalled `gates/gates.sh` **at launch and again at finish** — checked both times, because
-#461 cost a whole 48-section suite its footer.
+- **gate 67** (`proc-lane2-...-67-sel-cls-consumers-js-2026-10-13`) — its new `['Mistake','control-admissible']`
+  row is asserted at `:507-512` as a third "G2 CONTROL" claiming the guard is selective, and it **cannot
+  cross the threshold**: `chess.jsx:519`'s `drillGrade` returns `DRILL_GRADES[0]`=`'Mistake'` for that label
+  and the total-flatten bug returns the literal `'mistake'`, and the assertion lowercases both. Instance
+  **twelve** of the cannot-fail class CLAUDE.md records eleven times — shipped in the commit meant to close it.
+- **gate 65 block K** (`proc-lane4-...-blockk-2026-10-10`) — `:1001` asserts a flag happened and `:1003`
+  asserts the card matches `/Time/i`. `chess.jsx:5298` renders `'Time!'` for **any** time-out whichever clock
+  ran out, so both pass for block I's already-covered cell. The discriminating value was measured by its own
+  author and left in prose in `lane-4.md` (`'Time! You lose'`).
+- **gate 26** (`proc-lane4-...-26-invariants-js-2026-10-13`) — its commit 2/2 is **TRUNCATED, not empty**: it
+  declares ` create mode 100644 claude/process-log/lane-4.md` and 51 insertions with its hunks replaced by
+  prose. The **code change is correct** and is still owed; lane 4 must re-cut an intact payload.
 
-Bundle md5 **`f47aa0197967`**; gated sha **`be615f5`**; log at `claude/agents/gatelogs/514-all.log`
-(6306 lines, a real log and not a stdout capture).
+**Dropped rather than hand-edited**, per STEP 1I: a payload-level problem is a reason to drop and record,
+never to resolve — the lane that writes a gate owns its assertions.
 
-**`CT_EXPECT='#511'` was set on the run.** That is the `gates.sh:161` seam (#506's resolution): mountcheck
-asserts the bundle's **true** stamp while the log is stemmed and footed `#514`. Without it a suite over an
-un-rebuilt bundle cannot be stamped with this run's number at all.
+## THE SHARPEST THING THIS RUN FOUND IS A CORRECTION TO A JOB FILED FOUR HOURS EARLIER
 
-**Nothing was committed while the suite ran.** The gated sha is exactly the tree the log measured, against
-`jobs/amending-a-commit-after-launching-the-suite-orphans-the-logs-own-gated-sha-2026-10-07`.
+`jobs/nine-integration-patch-bases-are-absent-from-origin-entirely-2026-10-13` says nine payload bases are
+absent from origin, apply order can **never** be established, and nine payloads must be re-cut or retired.
+**It rests on a category error.** `S6-APPLY-ORDER` reads the `From <sha>` line and calls it a base;
+`git format-patch` emits `From <commit-id>` where the commit-id is **the sha of the commit being exported**,
+so it names the lane's own unpushed commit and is absent from origin **by construction** for every payload
+here. The real base is the document's `baseSha`, and **16 of 20 resolve**. The control is the job's own
+evidence: `51249a09`, one of the two shas it cites as proof, belongs to a payload **that landed in this pass**.
+Acting on that remedy would have discarded working payloads.
 
-## THE BLIND PAIR: 13 FINDINGS, BOTH VETOES UPHELD, AND THE PAIR STILL MISSED ABOUT FIVE
+## What the next run should know, shortest first
 
-Launched in **one message** before the suite (so neither's findings existed while the other worked), B as
-the **Explore** agent type with **no database tool**, handed the frozen diff and both bundles as files.
-uniqueToA **6**, uniqueToB **3**, common **4**; Lincoln-Petersen ⇒ about **18** exist, so **both missed
-about five**. An overlap of 4 of 13 is a far more stable denominator than #511's 1 of 11.
+1. **`gates/stamp-selftest.sh` is now on main and controls NOTHING.** It executes in no automated path, its
+   header cites `gates/lib.js:113` **ten** times for a regex at `:217`/`:255`, and `drive()` holds a third
+   uncompared copy. Antagonist B objected to landing it; I **overruled with reasons** on the job. Do not read
+   it as evidence the stamp regex is guarded.
+2. **`gates/audit/landed-on-main.sh:286` reverse-applies against the WORKING TREE, not `origin/main`.** Run it
+   **before** you apply anything, as the 9:19am fire did, or it reads your own work back as `content=ON-MAIN`.
+   Mine was contaminated and is annotated as such.
+3. **Never pass `-c user.email` on a build commit.** The container is configured; the `git am` commits prove it.
+   Getting this wrong cost 22 minutes of suite time, because `gates.sh:174` samples the gated sha early.
+4. **Two payloads are permanently invisible to the manifest** and it is not fixed: `suite-lock-contention` and
+   `stamp-regex-selftest` were applied and reverted by #513, so their subjects AND their artefact commits are
+   on main while their files are not, and both LANDED arms read true. Arm (ii) is broken too, which is new.
+5. The R22 90-minute budget cannot hold for an integration run that pays a full suite. Say so rather than
+   rushing the antagonists.
 
-**The two decisive findings were each structurally invisible from the other's door — the sixth consecutive
-build to find this shape.**
-- **A (diff door):** the failure path returned **exit 1 where main returned 2**, so a control that could
-  not be *built* took an ordinary commit from "go run the suite" to **REFUSED**. The only measured
-  regression in either pass. B says in terms it could not reach this: its nine-way fail-safe matrix
-  perturbed the **head** nine ways and **never once perturbed the base**.
-- **B (shipped-surface door):** the printed log claimed "no regress gate asserts the stamp", which is
-  **false** — `gates/regress/49-home.js:554` matches the Home build line against its own regex — so the
-  soundness argument rested on a **cross-file regex coupling** with nothing checking it.
+## Inherited and still live
 
-**The cross-read was a third tree-changing stage and it is worth reading** (full text on
-`runreports/build__1791674417817`): it made **A withdraw its own veto ground on a measurement** — the Home
-build line has ~8 characters of wrap margin against an excursion the regex bounds to **1** — and I kept
-the length pin anyway **for B's different reason**, publishing both halves in the shipped comment.
+The live site is blocked by the egress proxy so no run from this container can verify the deployed app. The
+auditor has not run for several builds. Gate 50 is in `gates/pending/`. The three known-absent gates mean every
+`GATES GREEN` here is honest and blind in exactly those places — the suite reports them every run on purpose.
 
-## WHAT IS LEFT, NAMED
+## The gate figures
 
-1. **Implausible stamps are accepted.** `so_pred` pins shape and length, not value: `#100 - 2020-01-01
-   00:00 ET` is also 26 bytes and passes, and `CT_STAMP_TIME` is unvalidated. Sound for what the predicate
-   is *for*; it is not a plausibility bound. Both antagonists found it independently.
-2. **`gates/held.sh check` is still not called from this tier.** Deliberately not added: `held.sh` exits
-   **1 = HELD** and **2 = USAGE**, so a naive wiring maps a usage error onto GO FULL and re-creates exactly
-   the regression A had just found. B also established the gap is *structurally* closed — `held.sh`'s only
-   rebuild-surviving key is `sourceMd5` over `chess.jsx`, and the exemption proves `chess.jsx` unchanged.
-3. **The auditor has not run.** This is the **fourteenth consecutive** build with `expectedAuditors` naming
-   `build-external-challenger` and `auditedBy` empty.
-4. **CLAUDE.md carries two stale selftest figures** — `gatemanifest.sh selftest` is written as 19 controls
-   and reads **48**; `buildnum-selftest.sh` is written as 47 and reads **86**. Both measured by running
-   them. CLAUDE.md is a FORCED file and outside this item's scope, so untouched.
-5. **`prompts/build-run` is 172,301 characters** while CLAUDE.md and `prompts/common` both say ~92,000 —
-   stale by 87%. Same FORCED-file reason.
-6. **The `build-one-door` blocker still needs an outcome** before two `blocked` jobs can be re-tested.
+`GATES GREEN #517`, **59 suites / 4885 PASS / 0 FAIL / 0 RED / 0 `<<<`**, over bundle **`f47aa0197967`**
+from source `b6b7fbb25df0`, gated sha **`46d919dc`**. Suite 18:07:07Z to 19:5xZ, about 106 minutes, from the
+frozen sibling copy `gates/.gates-run-517c.sh` whose md5 equals `gates/gates.sh` **at launch and at finish**.
+Manifest 58 required / 58 present / 0 missing / 0 unlisted / **5 known-absent** / 0 unjustified.
+`verify-log.sh gates/logs/517-all.log '#517'` returns **OK**; `held.sh check` reads **not held**.
 
-## A DEFECT FOUND IN THE TRACKER BY AN ORDINARY QUERY — AND IT WILL BITE YOU TOO
+**4885 is the SAME total `513-all.log` and `514-all.log` report over this same bundle**, re-counted here
+from all three files rather than quoted — three suites, three containers, agreeing to the assertion. That is
+what makes this green evidence rather than a reading, and it is also why it says nothing new about coverage.
 
-`order_by buildNumber desc limit 3` on the `builds` collection returns **`'485'`, `'472'`, `'466'`** while
-**513 exists**. `buildNumber` is a **string on 42** of 101 documents, an **int on 40**, **absent on 18**
-and null on 1, and strings and numbers sort in **separate bands**. The 19 with no usable value are
-excluded from any ordered query on that field altogether.
-
-**So "show me the newest build record" — the most ordinary query in this lane, on the collection the build
-lane writes every single pass — answers 28 builds out of date, and no tool reports it.** It was not found
-by a sweep; it was found by needing a template for this very record.
-
-Appended as a dated recurrence to the live parked job
-`jobs/a-run-record-row-in-the-snapshots-collection-outranks-every-real-snapshot-2026-10-01`, where it
-answers that job's own `notChecked` item "the other collections … for the same two-type problem" with a
-**yes**. **Not filed as a new job** [R09/R25]; the park **not** lifted [R23]. I did not repair the 42 rows
-— the closed sibling records that #508's own type repair replaced a wrong type with a wrong *time* by
-600,000 ms, and the same job establishes that the copy-forward convention reinstates the type, so the fix
-belongs at the write step. `builds/514` is written with an **integer** `buildNumber`.
-
-## The four numbers at this close-out
-
-**openP0 6, openP1 88**, coverage **0 of 10** (carried, not re-derived), assertions **4885**.
-
-**Know the instrument before you compare these to anything.** This is `status = ready` AND
-`severity in [P0, P1]`, **all lanes** — #513's method, and it returns exactly #513's pair. #477 measured
-that the lane-filtered variant leaves **165 of 316** ready build-lane jobs **unbucketable** (numeric
-`priority`, no `severity` field), **45 of which name a P0 in their own text** — so **6 is a floor, not a
-count**, and that is #405's frozen denominator wearing the `severity` field as a costume. Two open jobs
-already carry this; this close-out adds no third method.
-
-## If you are the next run
-
-- `app.js` and `chess.jsx` are byte-identical to main. If you intend to change application code, you are
-  the first in four builds — re-read "the board is sacred" first.
-- Fast mode was **OFF** for #514 and will likely be off for you: `docs/fast-gate-state` certifies bundle
-  `227126b82b81` while main serves `f47aa0197967`, so the nightly's certification is **two app-builds
-  stale**. That was the **first live firing** of the fourth test added 2026-10-10, and it is appended to
-  `jobs/fast-gate-state-certifies-a-bundle-main-no-longer-carries-and-step-0f-cannot-see-it-2026-10-07`.
-- **Eleventh consecutive shallow container.** `origin/main` read `97392e2` — nine builds stale — until
-  `git fetch --unshallow` as the **first** git action. Do that before any ancestry claim, or
-  `merge-base --is-ancestor` will lie to you.
-- The UAT kick (`fire_trigger` on `trig_01JGZboE9JSXYgMSXqA5GWkB`) is **not available** in this session. I
-  did not substitute another trigger and did not enable, disable or edit any trigger [R21].
+**This suite was run THREE TIMES and the first two were killed on purpose.** Attempt A died at 17 sections
+(a committer-identity amend would have orphaned its gated sha); attempt B at 6 sections (both antagonists
+vetoed and the tree changed). Both are preserved under `gates/logs/killed-517a/` and `killed-517b/` and
+neither authorises anything. Only this third log exists at `517-all.log`.
