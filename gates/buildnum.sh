@@ -185,38 +185,6 @@ show_row() { # one row on stdin fields: number state sha bundleMd5 sourceMd5 at 
 
 highest() { rows | cut -f1 | sort -n | tail -1; }
 
-# jobs/buildnum-highest-has-no-plausibility-bound-so-one-appended-row-wedges-minting-2026-10-10.
-# in_range() above bounds the MAGNITUDE of a number and that is correct and not the gap: a #9999 row already
-# makes `next`/`mint` refuse loudly, by name, every time. The case in_range() ADMITS is the damaging one: a
-# single well-formed #999 row (3 digits, passes in_range just fine) silently becomes the new highest(), and
-# `next`/`mint` then hand out #1000 at exit 0 with no diagnostic - 490 numbers burned in silence if the true
-# series was sitting at #510. Comparing the computed next number against highest() itself can never catch
-# this: highest() IS #999, so next-minus-highest is always exactly 1 by construction, however bad the row is.
-# The bad row only shows up against the number BELOW it - the series' own second-highest DISTINCT value, which
-# in a healthy register is always exactly one less than highest() (measured over all 557 real rows this file
-# ships with: every one of the last 60 distinct numbers sits exactly 1 above its predecessor). So the bound is
-# on that gap, not on next()'s output: if highest() sits more than a small margin above the next distinct value
-# down, highest() itself is almost certainly the bad row, named here rather than guessed at.
-second_highest() { rows | cut -f1 | sort -n -u | tail -2 | head -1; }
-BUILDNUM_MAX_DELTA=10  # a small margin: real growth is +1 almost always; +10 covers a few concurrent minters;
-                       # +491 (the #999 case) or more is not growth, it is a bad high row.
-# <#NX> <#H> <label: "next"|"mint">; prints nothing and returns 0 if the gap is plausible, else prints a named
-# refusal to stderr and returns 1. Runs AFTER in_range so the existing 5-digit wording for #9999-class rows is
-# unchanged; this is the SECOND, independent net, for rows in_range already lets through.
-delta_ok() {
-  local nx="$1" h="$2" label="$3" h2 delta
-  h2="$(second_highest)"
-  [ -n "$h2" ] || return 0   # only one distinct number on the register; nothing to compare against yet
-  delta=$(( h - h2 ))
-  [ "$delta" -gt "$BUILDNUM_MAX_DELTA" ] || return 0
-  echo "buildnum.sh $label: the next number would be #$nx, $delta past the register's own next-highest" >&2
-  echo "  distinct number (#$h2) - more than the ${BUILDNUM_MAX_DELTA}-margin this tool allows for real growth." >&2
-  echo "  #$h is almost certainly a bad row, not $delta builds' worth of real progress. Refusing rather than" >&2
-  echo "  silently handing out #$nx and burning every number between #$h2 and here. Look for #$h in the" >&2
-  echo "  register and fix or remove it, not this bound." >&2
-  return 1
-}
-
 case "${1:-}" in
   check)
     N="$(want_num "${2:-}")" || exit 2
@@ -254,7 +222,6 @@ case "${1:-}" in
       echo "buildnum.sh next: the next number would be #$NX, which is ${#NX} digits and outside the" >&2
       echo "  ^#[0-9]{3,4}\$ that build.sh and gates.sh require. Reporting it rather than printing a number" >&2
       echo "  nothing downstream will accept. Look for a bad high row in the register." >&2; exit 2; fi
-    delta_ok "$NX" "$H" "next" || exit 2
     echo "#$NX" ;;
 
   mint)
@@ -282,7 +249,6 @@ case "${1:-}" in
       echo "  every later build would be refused by the bundler and by \`check\`. Almost certainly a bad row"
       echo "  was added by hand (look for an implausible high number in the register) - fix that, not this."
       exit 2; fi
-    if ! delta_ok "$N" "$H" "mint"; then lock_free; exit 2; fi
     append_row "$(printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s' \
       "$N" "minted" "-" "-" "$SRC" "$(date -u +%Y-%m-%dT%H:%MZ)" "$CT_RUNID" "minted" "$NOTE")"
     # READ IT BACK, AND ASK THE RIGHT QUESTION. The first version counted rows for this number ATTRIBUTED TO
