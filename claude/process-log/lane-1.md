@@ -64,3 +64,51 @@ WHAT I DID NOT CHECK.
   bundle and no application code was touched.
 - the push was refused as documented - `git push --dry-run` returned the proxy's 403 and REAL EXIT 128
   on the first attempt of the run - so the payload is PARKED and nothing of this reached main.
+
+---
+
+## 2026-10-13 — 2:45am ET, run process-build-1__1791873308771
+
+WHAT I CHANGED. One new file, `gates/stamp-selftest.sh`, nothing else. No existing file touched.
+
+WHY. jobs/uat-stamp-regex-4xx names a gap: the title condition ("the UAT stamp regex cannot read
+build numbers from #400 upward") was already fixed on main by 2026-10-04, but the job's own second
+half - "add the cases" - was left unwritten, in the orchestrator's own words: "nothing in gates/
+drives b.stamp()'s regex over synthetic stamps ... a future narrowing of lib.js:113 would be
+invisible again." This is that driver: 8 assertions over 7 inputs (5 positive, matching the job's own
+"input count 5" over #399/#400/#416/#422/#1000; 2 negative, a 2-digit and a 5-digit number that must
+NOT match), plus a case 0 that fails loudly if this file's own copy of the regex ever drifts from
+gates/lib.js:113's literal.
+
+WHAT I DELIBERATELY DID NOT DO, AND WHY, NAMED RATHER THAN SILENTLY SKIPPED. I did not add a row to
+claude/stories/TEST-CASES.md and did not add this file to gates/audit/cited-not-run.sh's roster.
+That script's own header states ADMIT and WEAK are ceilings that MAY ONLY FALL, and a third
+SELFTEST|weak row (the shape its two existing companions already carry) would either sit under that
+ceiling or breach it - I could not tell which without running that audit's own --selftest and reading
+its live A_WEAK_CEIL, and this lane holds no pen to recover from guessing wrong and turning that audit
+red on the commit that lands this file. So the file is written, proved, and NOT cited anywhere that
+would recruit it into that ratchet (confirmed: `bash gates/audit/cited-not-run.sh` on this tree still
+reports ACCOUNTED-GREEN, 38 cited, 0 unaccounted - unchanged from before this file existed, because
+an uncited file is invisible to that derivation by construction). The TEST-CASES.md row, and the
+roster row if the ceiling has headroom, are the remaining step and are named on the job rather than
+attempted here.
+
+CHECKS RUN AND THEIR NUMBERS.
+| check | result |
+|---|---|
+| `bash -n gates/stamp-selftest.sh` | clean |
+| `bash gates/stamp-selftest.sh` | 8 pass / 0 fail, REAL EXIT 0 |
+| R36 determinism, three runs | byte-identical stdout, md5 `8151bbe6e1e8e96b57351a0cc78f4354` |
+| mutation control on case 0 (narrowed the copy's own regex to `{2,4}`) | case 0 alone reads FAIL, the other 7 unaffected - the control is real |
+| mutation control on the positive cases (drove #1000 through the OLD, narrower `#\d{3}\b` shape by hand in a one-off node check, outside the file) | returns no match - proves the positive cases would have caught the original defect, not merely restated the current behaviour |
+| `bash gates/audit/cited-not-run.sh` before and after this file existed | ACCOUNTED-GREEN both times, 38 cited / 0 unaccounted / WEAK 2 of ceiling 2, unchanged - this file recruited nothing |
+| `git diff --name-only <base>...HEAD` against the allow-list | one path, `gates/stamp-selftest.sh`, inside `gates/*.sh` |
+
+WHAT I DID NOT CHECK. gates/lib.js's own `stamp()` was not driven through a real browser - this is a
+pure regex/string check against synthetic HTML, not an end-to-end one, because the job's own case text
+asks only for the regex arm ("One case over stamps ...; input count 5") and a browser needs a bundle
+this change does not build. gates/audit/cited-not-run.sh's own `--selftest` (the controls FOR that
+script) was not run, which is exactly why I did not touch its roster - that run is the prerequisite
+for the remaining step, not a substitute for it. No application code was touched; no gate under
+gates/regress/ was run; no browser was launched. The push was not re-attempted - refused as already
+proved and recorded on 2026-10-10 and 2026-10-13's own runs [R21].
