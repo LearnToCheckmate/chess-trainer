@@ -169,12 +169,15 @@ wider one.
   not - so "a gate leaves only in a commit that says why" is true of the DIFF and not of any check, and deleting the row instead would make the manifest agree with the deletion silently. KNOW ITS
   LIMIT, because it is the #419 limit again: the footer is a claim this harness computes, so `verify-log.sh`
   reading it back is not an independent measurement, and it cannot be - that script runs on archived logs with no
-  tree on disk. **NINETEEN controls as a command, not a paragraph: `gates/gatemanifest.sh selftest`
-  (TC-SUITE-001..019).** It started at twelve, reached fourteen when my own adversarial pass found that an
-  `absent` row with no reason was accepted, and reached nineteen on the two antagonist vetoes - and the count
-  DRIFTED ACROSS THREE DOCUMENTS IN ONE BUILD while the file that records it said "the register and the
-  executable cannot drift", which antagonist A caught and which is why the number is written once here and the
-  authority is the command's own output. A gate that is PRESENT but empty is no longer a hole: `gates.sh` now
+  tree on disk. **ITS CONTROLS ARE A COMMAND, NOT A PARAGRAPH: `gates/gatemanifest.sh selftest`, WHICH READ 48 PASS / 0 FAIL
+  WHEN RUN ON 2026-10-13 AT #516.** It started at twelve, reached fourteen when an adversarial pass found that an
+  `absent` row with no reason was accepted, and reached nineteen on two antagonist vetoes - **and this line said
+  NINETEEN until #516, by which time the command itself read 48, so the drift the row warns about had happened to
+  the row.** That is the point rather than an embarrassment: the count DRIFTED ACROSS THREE DOCUMENTS IN ONE BUILD
+  while the file recording it said "the register and the executable cannot drift", which is why the rule here is
+  that **the authority is the command's own output and any number written beside it is a dated observation.** Run
+  it; do not cite this figure. #514 measured the same 48 and could not fix it, because only the pen holder may
+  edit this file and #514's item did not carry CLAUDE.md scope. A gate that is PRESENT but empty is no longer a hole: `gates.sh` now
   treats a section that exits clean and asserts nothing as red (#405's "0 PASS is the tell").
 - The harness library is `gates/lib.js`; read its header before writing a gate.
 - Serve locally. `learntocheckmate.github.io` is blocked by the egress proxy; `github.com` is not.
@@ -717,8 +720,9 @@ wider one.
   anomaly and is the median. A LOWER BOUND twice over: committed bundles only (#439 reads 1 by this method and
   three existed), and only back to #439. **So "measured on #NNN" is not a reference. Cite the bundle md5.**
   The guard: `gates/build-numbers.tsv` is the register of issued numbers, `gates/buildnum.sh`
-  (`check|stampable|next|mint|add|record|list`) reads and writes it, `gates/buildnum-selftest.sh` is its **47
-  controls as a command rather than a paragraph**, and `gates/build.sh` refuses a number that is not this run's
+  (`check|stampable|next|mint|add|record|list`) reads and writes it, `gates/buildnum-selftest.sh` is **its controls as a
+  command rather than a paragraph, reading 86 pass / 0 fail on 2026-10-13 at #516** (this line said 47 until
+  then - a dated observation, not an authority; run it), and `gates/build.sh` refuses a number that is not this run's
   before esbuild runs. Take one with `CT_RUNID=<runId> gates/buildnum.sh mint '<what for>'`, then build it.
   **BE PRECISE ABOUT WHAT IT ENFORCES: NON-REUSE, NOT MINTEDNESS.** `gates/build.sh '#300'` still succeeds,
   because #300 is absent from the register; the run therefore still CHOOSES its number and what it can no longer
