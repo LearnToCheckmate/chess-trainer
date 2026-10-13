@@ -166,3 +166,65 @@ tripping the new bound (e.g. seeding several contiguous 4-digit rows first). A t
 race against delta_ok's own read-then-decide window is not argued here (same R36-admission gap already
 noted on the record()-idempotence patch, unlanded, this file). No application code was touched; no bundle
 was built; the push was not re-attempted - refused and recorded on prior dated runs [R21].
+
+---
+
+## INTEGRATOR'S CORRECTION, build #518, 2026-10-13 — THE SECTION ABOVE DESCRIBES WORK THAT IS NOT ON THIS TREE
+
+Appended by the STEP 1I integration run (build__1791932300000, #518), not by lane 1, under the
+append-only union rule [R44 A4]. Lane 1's section above is left byte-for-byte as it was written: it was
+honest and correct about the tree it was measured on. This note exists because that tree is not the tree
+being pushed, and a later reader deciding whether
+`jobs/buildnum-highest-has-no-plausibility-bound-so-one-appended-row-wedges-minting-2026-10-10` is done
+would otherwise read "BUILT THIS RUN" and close a job whose fix is absent.
+
+**WHAT HAPPENED.** #518 applied `patches/proc-lane1-art-gates-buildnum-sh-delta-bound-2026-10-13-recut`
+with `git am --3way` (3 commits: ded2b2b, 67047e2, b5d0289) and then **REVERTED ALL THREE at 613efca**,
+before pushing anything to main.
+
+**WHY, MEASURED.** `gates/buildnum-selftest.sh:22` seeds its fixture with
+`cp "$HERE/build-numbers.tsv" "$TD/build-numbers.tsv"` — a copy of the LIVE register. The payload
+renumbered the fixture from `#999/#1000` to `#518/#519`, and #518 was the next number to be minted.
+This run minted it. Cases 13/14 count `grep -c '^518'` against hard-coded 1 and 2, so they now count the
+real row too:
+
+| tree | `bash gates/buildnum-selftest.sh` |
+|---|---|
+| origin/main 5ede631 | 86 pass / 0 fail, exit 0 |
+| payload applied, before the mint | 95 pass / 0 fail, exit 0 (the figure in the table above) |
+| payload applied, after the #518 mint | **93 pass / 2 fail, exit 1** |
+| + #519 minted (the next build) | 92 pass / 3 fail — `next is numeric` fails too |
+| after the revert (this tree) | 86 pass / 0 fail, exit 0 |
+
+So the 95/0 in the table above is correct for the tree it was taken on and false for any tree where #518
+has been minted. Both of this build's blind antagonists reached this independently — one predicted it in a
+scratch clone before the mint and then confirmed it live on the real tree.
+
+**THE THREE COMMITS ARE COUPLED AND COULD NOT BE PARTLY LANDED.** Measured in a scratch worktree:
+reverting only the fixture renumber and keeping the bound gives **89 pass / 6 fail** — worse than landing
+nothing — because a `#999` row trips the new `delta_ok` and `mint`/`next`/`stampable` then return empty. The
+stated reason for moving the fixture off #999 is real.
+
+**A SECOND BREACH THE REVERT ALSO CLEARED,** found by antagonist A and reproduced here rather than taken on
+trust: `gates/buildnum-selftest.sh:193` as landed was
+`"$(printf '%s' "$NEXT_ERR" | grep -qc '#999' && echo yes || echo no)"`, a TIER B sigpipe shape whose ceiling
+is zero. `gates/gatemanifest.sh selftest` read **47 passed / 1 failed, exit 1** with the payload applied and
+reads **48 passed / 0 failed, exit 0** on this tree. (`gates.sh` runs `gatemanifest.sh check`, not
+`selftest`, and check was green throughout, so GATES GREEN was never at risk.)
+
+**ONE FIGURE IN THE REVERTED COMMENT, CORRECTED HERE so the re-cut does not carry it back** [R18]: the
+`delta_ok` comment block said the margin was chosen "measured over all 557 real rows this file ships with".
+557 is the LINE count. The tool's own `rows()` predicate — the one `highest()` and `second_highest()`
+consume — returns **494** on origin/main (495 with this run's mint row); the other 63 are header and comment
+lines. The companion half of that sentence is sound and was verified: over the last 60 distinct numbers the
+maximum gap is 1, and the maximum distinct gap across the whole register is 4 against a margin of 10, so the
+bound would never have fired on real history.
+
+**THE DELTA BOUND IS NOT REJECTED AND THE JOB IS NOT CLOSED.** The bound is good work and the deadlock this
+project feared did not happen: minting #518 through it completed at exit 0 on the first attempt, so it does
+not repeat the #454 failure. What is wrong is the fixture, and the repair is already present eight lines
+further down in the same file — cases 22-25 build an isolated register (`R08D="$(mktemp -d)"`, `seed_r08`)
+instead of copying the live one. Cases 9-19 should do the same, and then the fixture number stops mattering.
+Carried, with the measurements, on
+`jobs/the-buildnum-selftest-fixture-was-renumbered-onto-the-live-series-so-it-breaks-the-moment-that-number-is-minted-2026-10-13`.
+
