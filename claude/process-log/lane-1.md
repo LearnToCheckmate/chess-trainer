@@ -112,3 +112,57 @@ script) was not run, which is exactly why I did not touch its roster - that run 
 for the remaining step, not a substitute for it. No application code was touched; no gate under
 gates/regress/ was run; no browser was launched. The push was not re-attempted - refused as already
 proved and recorded on 2026-10-10 and 2026-10-13's own runs [R21].
+
+## process-build-1__1791926525000, 2026-10-13, base 5ede631
+
+TOOK UP jobs/buildnum-highest-has-no-plausibility-bound-so-one-appended-row-wedges-minting-2026-10-10
+(P1, priority 28), hand-fired off-schedule by the orchestrator relaying Kunal's chat go-ahead
+(cross-verified against schedule/process-build-1's own handFired_2026-10-13 record before trusting the
+routine-fire-payload). ONE ITEM ONLY this run, per the fire instruction. The job's own `recut-excluded-
+s2-payloads-2026-10-13` sibling was confirmed status blocked and left untouched.
+
+THE DIAGNOSIS, AS THE JOB ITSELF CORRECTS IT. Its first filing blamed highest() for being unbounded and
+used a #9999 row to show it; that was wrong and the job's own aTITLEANDDIAGNOSISCORRECTED field says so -
+gates/buildnum.sh:171 in_range() already refuses a #9999-shaped jump loudly, by name. The live, damaging
+case is a WELL-FORMED #999 row: it passes in_range (3 digits) and silently becomes the new highest(), so
+next/mint used to hand out #1000 at exit 0 with no diagnostic at all - 490 numbers burned in silence had
+the real series been sitting at #510, same severity and shape as the #465/#466->#1002 episode this
+register's own header already records, reproduced in one append.
+
+BUILT THIS RUN. Comparing next()'s candidate number against highest() can never catch this - highest() IS
+the bad row by the time next() runs, so next-minus-highest is always exactly 1 by construction however bad
+the row is. Added `second_highest()` (the register's own next-highest DISTINCT value) and `delta_ok()`,
+which refuses when highest() sits more than a small margin (10) above that second value, naming the
+suspect row. Wired into `next` and `mint`, AFTER the existing in_range() check so the unchanged #9999
+wording still fires first for that case. `record`/`add`/`sweep` were left untouched - the job's
+theFix calls bounding those a preference ("prefer"), not a requirement, and the four R08 controls it
+names are scoped to next/mint only.
+
+| check | result |
+|---|---|
+| `bash -n gates/buildnum.sh` and `gates/buildnum-selftest.sh` | clean |
+| `gates/buildnum-selftest.sh` on origin/main 5ede631, before any edit | 86 pass / 0 fail |
+| same, with the fix applied, before the new R08 cases | 86 pass / 0 fail - but only after renumbering the pre-existing #999/#1000 fixture (cases 9-19) to #518/#519; that fixture incidentally reproduced the exact defect shape (recording a +482 jump then calling `next`/`mint` on it) and collided with the new bound. Renumbered rather than loosening the margin, which would have defeated control (a). FLAGGED, NOT HIDDEN: this weakens that fixture's original stated purpose (proving `sort -n`, not lexical sort, across a dramatic 3-to-4-digit jump) since 517->518 no longer crosses digit lengths - see WHAT I DID NOT CHECK. |
+| same, with the 9 new R08 cases added (22-25 in the file, covering the job's 4-point control set) | 95 pass / 0 fail |
+| R36 determinism, 3 runs, the 9 new R08 lines only | byte-identical, md5 `e699a8d6d10a0816396045624061b1b8` |
+| `git diff --name-only` against this lane's base | two paths, both inside the allow-list: `gates/buildnum.sh`, `gates/buildnum-selftest.sh` |
+| `git diff --stat -- gates/build-numbers.tsv` | empty - the real register was not touched |
+
+THE R08 CASE SET, on a fresh isolated register (not $TD's cumulative one, so each case starts from a
+known contiguous baseline): (a) LIVE CASE - a well-formed #999 row appended to a #508-#510 fixture makes
+next AND mint refuse, and the refusal is asserted to name "#999" specifically, not just any number; (b)
+NO REGRESSION - a #9999 row on the same shape of fixture still refuses both next and mint, unchanged;
+(c) NON-VACUITY - an ordinary #511 append (one past a #510 fixture) still succeeds via both next and
+mint, proving the margin is not tight enough to be useless; (d) THE OTHER 86 stay green, restated as a
+footer line pointing at this run's own pass/fail count rather than re-asserted separately.
+
+WHAT I DID NOT CHECK. Whether `sweep --add` or `add`/`record` should carry the same delta bound - the
+job's own theFix calls that a preference, not this control set's requirement, and left for a later job if
+wanted. The renumbered #999->#518 fixture (cases 9-19) no longer demonstrates cross-digit-length numeric
+sort as dramatically as its original comment claims; the property it tests (`sort -n` over the register)
+is still exercised by the production register's own mix of 3-digit numbers, just not proven against a
+4-digit neighbour any more - a follow-up could restore that specific proof with a fixture built to avoid
+tripping the new bound (e.g. seeding several contiguous 4-digit rows first). A true concurrent-process
+race against delta_ok's own read-then-decide window is not argued here (same R36-admission gap already
+noted on the record()-idempotence patch, unlanded, this file). No application code was touched; no bundle
+was built; the push was not re-attempted - refused and recorded on prior dated runs [R21].
