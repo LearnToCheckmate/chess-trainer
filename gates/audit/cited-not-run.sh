@@ -79,10 +79,17 @@ G="$ROOT/gates"
 # hardcoded "gates/gates.sh gates/build.sh deploy.py", so decomment is never called with a .js argument.
 # A dead branch carrying a comment explaining why it is load-bearing is worse than no branch, because the
 # next reader who simplifies this function cannot tell the live rule from the inert one.
-# THE `.js` CLASS IS STILL LIVE WHERE .js TEXT IS ACTUALLY READ, AND IS NOT FIXED HERE: closure() greps
-# require() off the RAW file, so a COMMENTED-OUT require is a real edge. Nine instances today; none is
-# load-bearing, because every target is reachable by a genuine require anyway. Latent, named, and filed.
+# THE `.js` CLASS WAS LIVE WHERE .js TEXT IS ACTUALLY READ, AND IS FIXED HERE [R18, jobs/cited-not-run-
+# closure-greps-require-off-the-raw-file-so-a-commented-require-is-an-edge-2026-10-10]: closure() used to
+# grep require() off the RAW file, so a COMMENTED-OUT require was a real edge - and the error ADDED
+# reachability, which turns a leak into a green (a false GREEN, not a false RED). decomment() above is
+# SH-flavoured (it strips `#` comments) and is the wrong tool for a .js file, so a SEPARATE js-flavoured
+# stripper is used rather than widening decomment() itself: decomment_js() below strips `//` line comments
+# and `/* */` block comments before the require() scan. Controls C34/C35 require it to fire in BOTH
+# directions - a commented-out require must NOT be an edge, and the identical line uncommented must still
+# BE one - so a regression here cannot hide the way the earlier dead `.js` arm did.
 decomment(){ sed -e '/#[[:space:]]*SIGPIPE-FIXTURE/d' -e 's/^[[:space:]]*#.*$//' -e 's/[[:space:]]#[[:space:]].*$//' "$1"; }
+decomment_js(){ sed -E 's,//.*$,,' "$1" | perl -0777 -pe 's{/\*.*?\*/}{}gs'; }
 
 reachable_seed(){
   local sh="$ROOT/$1"
@@ -128,7 +135,7 @@ closure(){
           case "$res" in gates/*) ;; *) continue;; esac
           [ -n "${seen[$res]:-}" ] && continue
           seen["$res"]=1; queue+=("$res")
-        done < <(grep -oE "require\(['\"][^'\"]+['\"]\)" "$abs" | sed -E "s/require\(['\"]//; s/['\"]\)//")
+        done < <(decomment_js "$abs" | grep -oE "require\(['\"][^'\"]+['\"]\)" | sed -E "s/require\(['\"]//; s/['\"]\)//")
         ;;
       *.sh|*.py)
         while IFS= read -r spec; do
@@ -473,6 +480,30 @@ EOF
   out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" bash "$SELF/cited-not-run.sh" 2>&1)"
   ck "C33 the same line WITHOUT the marker does"        "0" "$(grep -c 'LEAK gates/specimen-only.sh' <<<"$out")"
   rm -f "$T/gates/specimen-only.sh"
+  sed -i '$d' "$T/RUN-LOG.md"
+
+  # C34/C35: THE RAW-FILE EDGE, FIRING AND SILENT [R18, jobs/cited-not-run-closure-greps-require-off-the-
+  # raw-file-so-a-commented-require-is-an-edge-2026-10-10]. closure()'s *.js arm used to grep require()
+  # off the RAW file with no decomment step, so a require() mentioned only inside a `//` comment created a
+  # real edge - the error ADDS reachability, turning a leak into a green. gates/regress/3-fix.js is
+  # reachable (it is in the regress glob) and gates/commented-req-only.js is CITED but has no genuine
+  # requirer, so it must be a LEAK on its own.
+  echo "evidence: gates/commented-req-only.js -> 4 checks" >> "$T/RUN-LOG.md"
+  : > "$T/gates/commented-req-only.js"
+  echo "// require('../commented-req-only.js')" >> "$T/gates/regress/3-fix.js"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" bash "$SELF/cited-not-run.sh" 2>&1)"
+  # C34 FIRES: the require() exists only inside a `//` comment in a reachable file, so decomment_js must
+  # strip it before the scan, no edge may be created, and the cited target must remain a LEAK. Without the
+  # fix this reads 0 - the file is wrongly made reachable by a dead comment.
+  ck "C34 a commented-out require creates no edge"     "1" "$(grep -c 'LEAK gates/commented-req-only.js' <<<"$out")"
+  # C35 SILENT: the identical line with the comment marker removed is a genuine require(), so it MUST
+  # create an edge and the file must stop being a leak. Without this, C34 would pass on a decomment_js
+  # that stripped every require() line, which is the one-sided control that proves nothing.
+  sed -i 's,// require(\(.*\)),require(\1),' "$T/gates/regress/3-fix.js"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" bash "$SELF/cited-not-run.sh" 2>&1)"
+  ck "C35 the same require UNcommented does"            "0" "$(grep -c 'LEAK gates/commented-req-only.js' <<<"$out")"
+  sed -i '/commented-req-only/d' "$T/gates/regress/3-fix.js"
+  rm -f "$T/gates/commented-req-only.js"
   sed -i '$d' "$T/RUN-LOG.md"
 
   # ── THE ROSTER ARM, C18-C29. Every detector FIRING and SILENT, on the same fixture tree ─────────
