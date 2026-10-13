@@ -1315,9 +1315,15 @@ L.run(async()=>{
           const out={};
           for(const c of rows){const w=parseInt(c[c.length-2],10),bk=parseInt(c[c.length-1],10);
             if(Number.isFinite(w)&&Number.isFinite(bk))out[c[0]]={w,b:bk};}
+          // jobs/gate-26-grade-table-nonvacuity-assertion-passes-on-an-empty-object-2026-10-10:
+          // the panel can exist with zero matching rows (selector drift), in which case out stays
+          // {} - truthy - and the !!grades check below would be satisfied by an empty table. Return
+          // null here so the absent-panel case and the unmatched-row case are indistinguishable to
+          // every assertion that follows, which is exactly what that L.say's own text claims.
+          if(Object.keys(out).length===0)return null;
           return out;
         },LADDER);
-        L.say(!!grades,g+' rev-summary: the grade table was found and read, so the ladder assertions below are not vacuous',grades&&Object.keys(grades).length);
+        L.say(!!grades,g+' rev-summary: the grade table was found and read (non-empty), so the ladder assertions below are not vacuous',grades&&Object.keys(grades).length);
         if(grades){
           const got=Object.keys(grades);
           L.say(got.length===10,g+' rev-summary: the summary shows all TEN grades US-R03 specifies - Excellent is its own row and is not folded into Best (#421)',{rows:got.length,got});
