@@ -220,6 +220,26 @@ RATCHET_NOSHRINK="RUN-LOG.md HANDOFF.md README.md chess-trainer-backlog.md feedb
 # normal case here too, and it is what part (4) will do.
 RECORDS_BASELINE="appendonly:gates/held-trees.tsv appendonly:gates/build-numbers.tsv appendonly:FEEDBACK-INBOX.md appendonly:DECISIONS-LOG.md noshrink:RUN-LOG.md noshrink:HANDOFF.md noshrink:README.md noshrink:chess-trainer-backlog.md noshrink:feedback-inbox.md"
 
+# ── THE CONSUMERS' OWN ROW COUNTS. DEFINED HERE, ABOVE selftest(), AND NOT BESIDE THE LOOP THAT USES THEM. ─────
+# The PARSE STABILITY arm in the file loop further down calls this, and its header sits above that loop. The function
+# lives here because `--selftest` exits before execution reaches that side of the file, so a definition down there
+# does not exist yet when C12 (the byte sweep) calls it, and a second copy of a consumer's pipeline would be the very
+# defect this arm exists to catch. The two pipelines are COPIED from gates/held.sh (live_rows) and gates/buildnum.sh
+# (rows), not re-derived, so a change to either must be mirrored here by hand.
+consumer_row_count(){
+  # $1 = the path this ratchet entry carries (e.g. "gates/held-trees.tsv"), $2 = a file to read as that register.
+  # Echoes the row count the NAMED CONSUMER itself would see, or the sentinel NO-CONSUMER when this file has none.
+  # Runs the consumer's OWN pipeline verbatim (copied from gates/held.sh / gates/buildnum.sh, not re-derived),
+  # so a change to those pipelines must be mirrored here by hand - declared, not hidden, in the job's notChecked.
+  case "$1" in
+    */held-trees.tsv|held-trees.tsv)
+      grep -v '^[[:space:]]*#' "$2" 2>/dev/null | awk -F'\t' 'NF>=6 && $1 !~ /^-/' 2>/dev/null | awk 'END{print NR}' 2>/dev/null ;;
+    */build-numbers.tsv|build-numbers.tsv)
+      grep -v '^[[:space:]]*#' "$2" 2>/dev/null | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/' 2>/dev/null | awk 'END{print NR}' 2>/dev/null ;;
+    *) printf 'NO-CONSUMER' ;;
+  esac
+}
+
 # ── THE CONTROLS, AS A COMMAND RATHER THAN A PARAGRAPH. ─────────────────────────────────────────────────────
 # Every one is a real exit code from a real subprocess over a real git repository where the answer is known, as
 # jobs/build-one-door-for-every-non-gate-check-2026-10-10's theCONTROLSETThisNeeds_R08 asks: "Each one a real
@@ -230,9 +250,11 @@ RECORDS_BASELINE="appendonly:gates/held-trees.tsv appendonly:gates/build-numbers
 # C5 IS THE ONE THAT MAKES THE OTHERS MEAN ANYTHING. It empties the two ratchet lists and requires C1, C2 and C3
 # to go GREEN. Without it, three refusals prove only that something refused; with it, they are shown to be
 # produced BY the lists this file carries, which is the mutation control this project asks for by name.
-PASSN=0; FAILN=0
+PASSN=0; FAILN=0; NOTRUN=0
 ok(){ PASSN=$((PASSN+1)); echo "PASS $*"; }
 no(){ FAILN=$((FAILN+1)); echo "FAIL $*"; }
+# notrun: a control that was NOT executed is printed as NOT-RUN and counted on its own in the footer. It is never an ok().
+notrun(){ NOTRUN=$((NOTRUN+1)); echo "NOT-RUN $*"; }
 chk(){ # chk <label> <expected-rc> <actual-rc>
   if [ "$2" = "$3" ]; then ok "$1 (rc=$3)"; else no "$1 (expected rc=$2, got rc=$3)"; fi; }
 
@@ -255,8 +277,56 @@ mkfix(){ # mkfix <dir> -> a repo with ONE base commit carrying every ratcheted f
 }
 commitas(){ local d="$1"; shift; git -C "$d" add -A >/dev/null; git -C "$d" commit -qm "$*" >/dev/null; git -C "$d" rev-parse HEAD; }
 
+mkreal(){ # mkreal <dir> -> mkfix, then REAL-SHAPED rows in both registers so each consumer's own pipeline has rows to count
+  local d="$1"
+  mkfix "$d" >/dev/null
+  printf '440\tminted\n441\tminted\n442\tminted\n' > "$d/gates/build-numbers.tsv"
+  printf 'k1\tb1\tc1\td1\te1\tf1\nk2\tb2\tc2\td2\te2\tf2\nk3\tb3\tc3\td3\te3\tf3\n' > "$d/gates/held-trees.tsv"
+  commitas "$d" real-rows
+}
+# mkfix's own default rows are NOT real-shaped: '#440' fails buildnum.sh's bare-digit first field and held-trees.tsv's
+# two-field rows fail live_rows()'s NF>=6, so BOTH consumers read ZERO rows at base. That is exactly the base C10 needs
+# for the denominator guard, which is why mkfix is left as it is and every control that needs the consumer to see
+# rows builds its own (C9, C9b, C9d) or calls mkreal (C10c, TC-SUITE-RG-001).
+
+reasonof(){ # reasonof <rc> <door output> -> ACCEPT, or the name of the arm whose sentence the refusal printed
+  if [ "$1" = 0 ]; then printf 'ACCEPT'; return 0; fi
+  case "$2" in
+    *": TEXT - "*)                 printf 'TEXT' ;;
+    *": NOSHRINK - "*)             printf 'NOSHRINK' ;;
+    *": LENGTH - "*)               printf 'LENGTH' ;;
+    *"does not end in a newline"*) printf 'BOUNDARY' ;;
+    *": PREFIX - "*)               printf 'PREFIX' ;;
+    *": PARSE STABILITY - "*)      printf 'PARSE' ;;
+    *)                             printf 'OTHER' ;;
+  esac
+}
+# An exit code that is right for the wrong reason is the trap this file's own header records, so TC-SUITE-RG-001 pins the
+# REASON for every input as well as the code. The refusal paragraph's closing sentences name build-numbers.tsv and
+# held-trees.tsv in prose, which is why reasonof() keys on the ": ARM - " shape the per-file sentences share and never
+# on a file name.
+
+rg_mutate(){ # rg_mutate <n> <dir>: apply hostile input number n to a mkreal repo's working tree (the caller commits it)
+  local n="$1" bn="$2/gates/build-numbers.tsv" ht="$2/gates/held-trees.tsv"
+  case "$n" in
+    1)  printf '443\tminted\n# a comment\n' >> "$bn" ;;
+    2)  printf '443\tminted\n\000' >> "$bn" ;;
+    3)  printf '\000' >> "$bn" ;;
+    4)  printf ' 443\tminted\n' >> "$bn" ;;
+    5)  printf '440\tminted\n# 441\tminted\n442\tminted\n' > "$bn" ;;
+    6)  printf 'k1\tb1\tc1\td1\te1\tf1\n-k2\tb2\tc2\td2\te2\tf2\nk3\tb3\tc3\td3\te3\tf3\n' > "$ht" ;;
+    7)  printf 'k4\tb4\tc4\n' >> "$ht" ;;
+    8)  printf '443\tminted\n\r' >> "$bn" ;;
+    9)  printf '443\tminted\n\377' >> "$bn" ;;
+    10) printf '443\tminted\n\f' >> "$bn" ;;
+    11) printf '440\tminted\n' > "$bn" ;;
+    12) : > "$bn" ;;
+    13) printf '440\tminted\n441\tminted\n442\tm\n' > "$bn" ;;
+  esac
+}
+
 selftest(){
-  local T B H out rc door
+  local T B H out rc door cnt nchg
   T="$(mktemp -d)" || { echo "FAIL could not mktemp"; return 1; }
   trap 'rm -rf "$T"' RETURN
   door="$T/door/records-gate.sh"; mkdir -p "$T/door"
@@ -375,9 +445,16 @@ selftest(){
   H="$(commitas "$T/c9" append-plus-nul)"
   out="$(bash "$T/c9/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc=$?
   chk "C9 a NUL appended after a legitimate build-numbers.tsv row is refused" 1 "$rc"
-  case "$out" in *"TEXT"*build-numbers*) ok "C9 the byte-level TEXT check alone already catches this NUL" ;;
-                 *"PARSE STABILITY"*build-numbers*) ok "C9 the new consumer-level check caught it" ;;
-                 *) no "C9 neither TEXT nor PARSE STABILITY named build-numbers.tsv in the refusal" ;; esac
+  # TWO SEPARATE ASSERTIONS, NOT ONE case WITH A BRANCH FOR EVERY OUTCOME. The first version was a three-way case whose
+  # `*"TEXT"*build-numbers*` arm matched the word TEXT anywhere in the output followed by build-numbers anywhere after it,
+  # and the refusal's own closing paragraph says "build-numbers.tsv is the non-reuse register" - so that arm passed on
+  # boilerplate, and its sibling passed on the PARSE sentence. An alternation where every branch passes pins nothing
+  # [CLAUDE.md], and this control was the arm's headline: it went green on the arm it was written to test. Each
+  # question is now asked alone, on the exact per-file sentence.
+  case "$out" in *"gates/build-numbers.tsv: TEXT - "*) ok "C9 the refusal is TEXT's sentence, on gates/build-numbers.tsv" ;;
+                 *) no "C9 the refusal is not TEXT's sentence for gates/build-numbers.tsv" ;; esac
+  case "$out" in *"PARSE STABILITY"*) no "C9 PARSE STABILITY spoke on a NUL that TEXT refuses first, so the arm order is not what the header says" ;;
+                 *) ok "C9 PARSE STABILITY is silent on it: TEXT reaches the NUL first, as the header says" ;; esac
   # C9b NEGATIVE / NON-VACUITY: the SAME real-digit append, with no NUL, must still be accepted and must be seen
   #     by buildnum.sh's own rows() predicate as a genuine rise - proving the check is not merely silent, and
   #     is not a way to make this door harder to satisfy than the byte-level ratchet already was.
@@ -392,22 +469,28 @@ selftest(){
   cbase="$(grep -v '^[[:space:]]*#' "$T/c9b/gates/build-numbers.tsv" | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/' | wc -l | tr -d ' ')"
   chk "C9b NON-VACUITY: buildnum.sh's own rows() predicate sees the risen count (3) on the accepted head" 3 "$cbase"
 
-  # C9c THE LIMIT, DECLARED RATHER THAN CLAIMED FIXED: the wider non-NUL binary-mode class the job's control (b)
-  #     names (invalid UTF-8 under a UTF-8 locale, a lone CR) could NOT be reproduced here. This sandbox's default
-  #     locale is POSIX/C (measured: `locale` reports LC_CTYPE=POSIX and setting LANG=en_US.UTF-8 changed nothing
-  #     observable in grep's output), under which grep does not switch to binary mode for an invalid UTF-8 sequence
-  #     or a lone CR - only a literal NUL reliably does, which C3 and C9 already both prove. The new check is
-  #     STRICTLY MORE GENERAL than TEXT (it asks the consumer directly rather than enumerating bytes), so it WOULD
-  #     catch a locale-dependent trigger if one fired in production - but that claim is not controlled here, and is
-  #     left as NOT CHECKED rather than quietly claimed proven.
-  ok "C9c DECLARED LIMIT: non-NUL binary-mode triggers (invalid UTF-8, lone CR) are not reproducible in this sandbox's POSIX locale and are NOT CHECKED by a real exit code, only argued from the mechanism"
+  # C9c THE LIMIT, DECLARED AS NOT RUN. A refusal on a REAL non-NUL binary-mode trigger cannot be produced on this
+  #     toolchain, so whether the consumer-level arm would refuse one is not controlled anywhere in this file. What IS
+  #     measured: C12 appends each of the 256 byte values to a real-shaped register and finds that exactly one, 0x00,
+  #     makes the consumer read fewer rows (grep 3.11, under LC_ALL=C, POSIX and C.UTF-8 alike; en_US.UTF-8 is not
+  #     installed on this toolchain), and TEXT refuses that byte first;
+  #     TC-SUITE-RG-001 inputs 8, 9 and 10 append a lone CR, a lone 0xFF and a form feed and show what the door does
+  #     with them. The SIMULATED DRIFT block exercises the arm's logic against a grep shim, which is a different claim
+  #     and is labelled as one. The first version of this line was `ok "C9c DECLARED LIMIT ..."`: a PASS, counted in the
+  #     totals, that described a control which did not exist and could not have failed.
+  notrun "C9c a REAL non-NUL binary-mode trigger cannot be produced on this toolchain; refusal on one is argued from the mechanism and exercised only under SIMULATED DRIFT"
 
   # C9d MUTATION, THE SAME METHOD AS C5: with the TEXT check's own refusal line patched out, PARSE STABILITY must
   #     catch the NUL on its OWN, proving the new check is a real second door and not dead code that TEXT's earlier
   #     position in the loop always reaches first (which C9 above, by itself, could not distinguish from).
   local tdoor="$T/door/notext.sh"
   sed -e 's/if \[ "\$CTL" -ne 0 \] 2>\/dev\/null; then/if false; then/' "$door" > "$tdoor"
-  grep -q 'if false; then' "$tdoor" || { no "C9d setup: the TEXT arm's condition line was not found to defang"; }
+  # THE SETUP CHECK COUNTS THE LINES THE MUTATION CHANGED. The first version was `grep -q 'if false; then' "$tdoor"`, which
+  # asks whether that string occurs ANYWHERE in the mutant, so it passed on any door that already carries it (this one
+  # carries several) even when the sed matched nothing: a setup check that could not fail. A one-line substitution is one
+  # line out and one line in, and `diff` counts exactly that.
+  nchg="$(diff "$door" "$tdoor" | awk '/^[<>]/{n++} END{print n+0}')"
+  chk "C9d setup: the TEXT arm's condition line was found and defanged (diff changed 2 lines)" 2 "$nchg"
   B="$(mkfix "$T/c9d")"; cp "$tdoor" "$T/c9d/gates/records-gate.sh"
   printf '440\tminted\n441\tminted\n' > "$T/c9d/gates/build-numbers.tsv"
   commitas "$T/c9d" renumber >/dev/null
@@ -417,10 +500,221 @@ selftest(){
   H="$(commitas "$T/c9d" append-plus-nul)"
   out="$(bash "$T/c9d/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc=$?
   chk "C9d MUTATION: with TEXT's refusal line defanged, PARSE STABILITY alone still refuses the NUL" 1 "$rc"
-  case "$out" in *"PARSE STABILITY"*build-numbers*) ok "C9d the refusal is attributed to PARSE STABILITY, not TEXT" ;;
-                 *) no "C9d the refusal (if any) is not attributed to PARSE STABILITY" ;; esac
+  case "$out" in *"gates/build-numbers.tsv: PARSE STABILITY - "*"a FALL"*) ok "C9d the refusal is PARSE STABILITY's fall sentence, on gates/build-numbers.tsv" ;;
+                 *) no "C9d the refusal (if any) is not PARSE STABILITY's fall sentence" ;; esac
+  case "$out" in *": TEXT - "*) no "C9d TEXT still spoke, so the defang did not take" ;;
+                 *) ok "C9d TEXT is silent: its refusal line is defanged, so PARSE STABILITY is the only door that spoke" ;; esac
 
-  echo "records-gate selftest: $PASSN pass, $FAILN fail"
+  # C10  THE DENOMINATOR GUARD: THE PART OF THE PARSE ARM THAT CHANGES A VERDICT ON THE REAL TOOLCHAIN. A register whose own
+  #      consumer reads ZERO rows at base has nothing a fall could be measured against, so "the count did not fall" would be
+  #      credited over nothing. mkfix's default build-numbers.tsv carries '#440'-shaped rows, which buildnum.sh's rows()
+  #      (a bare-digit first field) does not count, so it is exactly that register. A byte-perfect append of a real row to
+  #      it passes TEXT, NOSHRINK, LENGTH, the line boundary and PREFIX, and the arm as it landed in #518 then credited it
+  #      over a base of zero. It is refused in its own sentence now, and C10 shows that sentence is produced by that line.
+  B="$(mkfix "$T/c10")"; cp "$door" "$T/c10/gates/records-gate.sh"
+  printf '442\tminted\n' >> "$T/c10/gates/build-numbers.tsv"
+  H="$(commitas "$T/c10" append-onto-a-register-the-consumer-reads-zero-rows-from)"
+  out="$(bash "$T/c10/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc=$?
+  chk "C10 an append onto a register whose consumer reads ZERO rows at base is refused" 1 "$rc"
+  case "$out" in *"gates/build-numbers.tsv: PARSE STABILITY - "*"ZERO rows at BASE"*) ok "C10 the refusal is the denominator sentence, on gates/build-numbers.tsv" ;;
+                 *) no "C10 the refusal is not the ZERO-rows-at-BASE sentence for gates/build-numbers.tsv" ;; esac
+  case "$out" in *": TEXT - "*|*": NOSHRINK - "*|*": LENGTH - "*|*": PREFIX - "*|*"does not end in a newline"*)
+                   no "C10 an EARLIER arm also spoke, so the guard is not the only reason this was refused" ;;
+                 *) ok "C10 no earlier arm spoke: the guard is the only reason this was refused" ;; esac
+  local gdoor="$T/door/noguard.sh"
+  sed -e 's/if \[ "\$CB" -eq 0 \]; then   # PARSE-DENOMINATOR-GUARD/if false; then   # PARSE-DENOMINATOR-GUARD/' "$door" > "$gdoor"
+  nchg="$(diff "$door" "$gdoor" | awk '/^[<>]/{n++} END{print n+0}')"
+  chk "C10 MUTATION setup: the guard's condition line was found and defanged (diff changed 2 lines)" 2 "$nchg"
+  cp "$gdoor" "$T/c10/gates/records-gate.sh"
+  bash "$T/c10/gates/records-gate.sh" "$B" "$H" >/dev/null 2>&1; rc=$?
+  chk "C10 MUTATION: with the guard defanged the same pair is ACCEPTED, so that line is what refused it" 0 "$rc"
+
+  # C10b THE SAME GUARD ON THE OTHER REGISTER. mkfix's held-trees.tsv rows have two fields and held.sh's live_rows() wants
+  #      six, so that consumer reads zero rows at base too; a six-field live row appended to it passes every earlier arm.
+  B="$(mkfix "$T/c10b")"; cp "$door" "$T/c10b/gates/records-gate.sh"
+  printf 'k9\tb9\tc9\td9\te9\tf9\n' >> "$T/c10b/gates/held-trees.tsv"
+  H="$(commitas "$T/c10b" append-a-live-row-onto-a-register-the-consumer-reads-zero-rows-from)"
+  out="$(bash "$T/c10b/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc=$?
+  chk "C10b the same append onto held-trees.tsv (its consumer reads ZERO rows at base) is refused" 1 "$rc"
+  case "$out" in *"gates/held-trees.tsv: PARSE STABILITY - "*"ZERO rows at BASE"*) ok "C10b the refusal is the denominator sentence, on gates/held-trees.tsv" ;;
+                 *) no "C10b the refusal is not the ZERO-rows-at-BASE sentence for gates/held-trees.tsv" ;; esac
+
+  # C10c NEGATIVE / NON-VACUITY. On REAL-SHAPED registers, where each consumer reads rows at base, a legitimate append to
+  #      BOTH is accepted and each consumer's own predicate reads the risen count. A guard that refused this would be a way
+  #      to make the fast tier unusable, which is the opposite failure and is what this control is here to rule out.
+  B="$(mkreal "$T/c10c")"; cp "$door" "$T/c10c/gates/records-gate.sh"
+  printf '443\tminted\n' >> "$T/c10c/gates/build-numbers.tsv"
+  printf 'k4\tb4\tc4\td4\te4\tf4\n' >> "$T/c10c/gates/held-trees.tsv"
+  H="$(commitas "$T/c10c" legitimate-appends-to-both-registers)"
+  out="$(bash "$T/c10c/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc=$?
+  chk "C10c NEGATIVE: legitimate appends to both real-shaped registers are accepted" 0 "$rc"
+  cnt="$(consumer_row_count gates/build-numbers.tsv "$T/c10c/gates/build-numbers.tsv")"
+  chk "C10c NON-VACUITY: buildnum.sh's consumer reads 4 rows on the accepted head (3 at base)" 4 "$cnt"
+  cnt="$(consumer_row_count gates/held-trees.tsv "$T/c10c/gates/held-trees.tsv")"
+  chk "C10c NON-VACUITY: held.sh's consumer reads 4 rows on the accepted head (3 at base)" 4 "$cnt"
+
+  # C11  R08 LETTER (d) OF jobs/the-guard-registers-cannot-leave-force-until-the-ratchet-speaks-the-consumers-language-2026-10-10:
+  #      an append onto a register whose last row has no trailing newline must be refused. Written with a bare `>>`, which is
+  #      how gates/held.sh writes, the new row is concatenated onto the LAST OLD ROW (441<TAB>minted442<TAB>minted): the
+  #      consumer still reads two rows, the byte prefix verifies and no line is lost, so the line-boundary arm is the only
+  #      thing that can see it, and the mutation below shows nothing else does.
+  B="$(mkfix "$T/c11")"; cp "$door" "$T/c11/gates/records-gate.sh"
+  printf '440\tminted\n441\tminted' > "$T/c11/gates/build-numbers.tsv"
+  B="$(commitas "$T/c11" register-whose-last-row-has-no-newline)"
+  printf '442\tminted\n' >> "$T/c11/gates/build-numbers.tsv"
+  H="$(commitas "$T/c11" bare-append)"
+  out="$(bash "$T/c11/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc=$?
+  chk "C11 a bare append onto a register with no trailing newline is refused (R08 letter d)" 1 "$rc"
+  case "$out" in *"gates/build-numbers.tsv: the BASE does not end in a newline"*) ok "C11 the refusal is the line-boundary sentence, on gates/build-numbers.tsv" ;;
+                 *) no "C11 the refusal is not the line-boundary sentence for gates/build-numbers.tsv" ;; esac
+  local ldoor="$T/door/noboundary.sh"
+  sed -e 's/^    if \[ "\$(tail -c 1 "\$REGTMP\/base".*"0a" \]; then$/    if false; then/' "$door" > "$ldoor"
+  nchg="$(diff "$door" "$ldoor" | awk '/^[<>]/{n++} END{print n+0}')"
+  chk "C11 MUTATION setup: the line-boundary condition was found and defanged (diff changed 2 lines)" 2 "$nchg"
+  cp "$ldoor" "$T/c11/gates/records-gate.sh"
+  bash "$T/c11/gates/records-gate.sh" "$B" "$H" >/dev/null 2>&1; rc=$?
+  chk "C11 MUTATION: with the line-boundary check defanged the same pair is ACCEPTED, so no other arm sees it" 0 "$rc"
+
+  # C12  THE BYTE SWEEP THE ARM'S HEADER LEANS ON, AS A CONTROL AND NOT A SENTENCE. For each of the 256 byte values: take a
+  #      REAL-SHAPED register, append that single byte after its final newline, and ask the door's own consumer_row_count how
+  #      many rows the consumer still reads. The header says exactly one value drops a row on this toolchain, 0x00, and that
+  #      TEXT refuses it before the PARSE arm is reached; this pins the first half for both registers (the second half is
+  #      TC-SUITE-RG-001 inputs 2 and 3). A failure here does not mean the door is wrong. It means the toolchain moved, the
+  #      arm is now doing work the header says it cannot, and the header is stale.
+  local rname v ntried=0 dropped
+  for rname in gates/build-numbers.tsv gates/held-trees.tsv; do
+    dropped=""
+    for ((v=0; v<256; v++)); do
+      case "$rname" in
+        */build-numbers.tsv) printf '440\tminted\n441\tminted\n442\tminted\n' > "$T/sweep.tsv" ;;
+        *)                   printf 'k1\tb1\tc1\td1\te1\tf1\nk2\tb2\tc2\td2\te2\tf2\nk3\tb3\tc3\td3\te3\tf3\n' > "$T/sweep.tsv" ;;
+      esac
+      printf "$(printf '\\%03o' "$v")" >> "$T/sweep.tsv"
+      ntried=$((ntried+1))
+      cnt="$(consumer_row_count "$rname" "$T/sweep.tsv")"
+      [ "$cnt" = 3 ] || dropped="$dropped $v"
+    done
+    case "$dropped" in
+      " 0") ok "C12 $rname: of the 256 byte values only 0x00 makes its consumer read fewer than 3 rows" ;;
+      *)    no "C12 $rname: the byte values that make its consumer read fewer than 3 rows are [${dropped# }], expected [0]: the toolchain moved and the arm's header is STALE" ;;
+    esac
+  done
+  chk "C12 vacuity: 512 appends were tried (256 byte values, two registers)" 512 "$ntried"
+
+  # TC-SUITE-RG-001  THIRTEEN HOSTILE INPUTS THROUGH THE SHIPPED DOOR AND THROUGH THE SAME DOOR WITH THE PARSE-STABILITY FALL
+  #      COMPARISON PATCHED OUT. This is the differential the first version of the arm never had. Its headline control
+  #      (C9) went green on the arm it was written to test because TEXT refused the NUL first, and nothing ever asked the
+  #      only question that matters about a second door: on which input does it, and nothing else, change the verdict?
+  #      THE ANSWER ON THIS TOOLCHAIN, MEASURED: on none of the thirteen. The two doors return the same exit code on all
+  #      thirteen and the reasons are pinned below, because an exit code that is right for the wrong reason is the trap this
+  #      file's header records. What the arm CAN change is shown elsewhere and labelled for what it is: C10 (the
+  #      denominator guard, on a base the consumer reads zero rows from) and SIMULATED DRIFT below (a grep that drops rows on
+  #      a byte TEXT does not know). A pin failing here means the toolchain moved, and the arm's header must be re-read.
+  local fdoor="$T/door/nofall.sh" n d out2 rc2 rcs="" why="" nvdiff=0 reason reason2
+  local -a names=(
+    "a legitimate row then a # comment line, appended"
+    "a legitimate row then a NUL, appended"
+    "a lone NUL, appended"
+    "a row with a leading space, appended"
+    "row 2 commented out in place with '# '"
+    "a held-trees row cleared in place with a leading dash"
+    "a held-trees row of only three fields, appended"
+    "a lone CR after the final newline, appended"
+    "a lone 0xFF byte (invalid UTF-8) after the final newline, appended"
+    "a form feed (0x0C) after the final newline, appended"
+    "build-numbers.tsv truncated to its first row"
+    "build-numbers.tsv emptied"
+    "a build-numbers.tsv row shortened in place, same line count"
+  )
+  sed -e 's/if \[ "\$CH" -lt "\$CB" \]; then   # PARSE-STABILITY-FALL/if false; then   # PARSE-STABILITY-FALL/' "$door" > "$fdoor"
+  nchg="$(diff "$door" "$fdoor" | awk '/^[<>]/{n++} END{print n+0}')"
+  chk "TC-SUITE-RG-001 setup: the fall comparison's condition line was found and defanged (diff changed 2 lines)" 2 "$nchg"
+  for n in 1 2 3 4 5 6 7 8 9 10 11 12 13; do
+    d="$T/rg$n"; B="$(mkreal "$d")"
+    rg_mutate "$n" "$d"
+    H="$(commitas "$d" "rg001-$n")"
+    cp "$door" "$d/gates/records-gate.sh"
+    out="$(bash "$d/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc=$?
+    cp "$fdoor" "$d/gates/records-gate.sh"
+    out2="$(bash "$d/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc2=$?
+    reason="$(reasonof "$rc" "$out")"; reason2="$(reasonof "$rc2" "$out2")"
+    echo "MEASURE TC-SUITE-RG-001 #$n ${names[$((n-1))]}: shipped rc=$rc ($reason), fall-comparison-defanged rc=$rc2 ($reason2)"
+    rcs="$rcs $rc"; why="$why $reason"
+    [ "$rc" = "$rc2" ] || nvdiff=$((nvdiff+1))
+  done
+  chk "TC-SUITE-RG-001 vacuity: thirteen inputs are defined and all thirteen ran" 13 "${#names[@]}"
+  case "${rcs# }" in
+    "0 1 1 0 1 1 0 0 0 1 1 1 1") ok "TC-SUITE-RG-001 the shipped door's exit codes over the thirteen inputs are 0 1 1 0 1 1 0 0 0 1 1 1 1" ;;
+    *)                         no "TC-SUITE-RG-001 the shipped door's exit codes are [${rcs# }], expected [0 1 1 0 1 1 0 0 0 1 1 1 1]" ;;
+  esac
+  case "${why# }" in
+    "ACCEPT TEXT TEXT ACCEPT PREFIX PREFIX ACCEPT ACCEPT ACCEPT TEXT NOSHRINK NOSHRINK LENGTH") ok "TC-SUITE-RG-001 the REASONS are ACCEPT TEXT TEXT ACCEPT PREFIX PREFIX ACCEPT ACCEPT ACCEPT TEXT NOSHRINK NOSHRINK LENGTH" ;;
+    *) no "TC-SUITE-RG-001 the reasons are [${why# }], expected [ACCEPT TEXT TEXT ACCEPT PREFIX PREFIX ACCEPT ACCEPT ACCEPT TEXT NOSHRINK NOSHRINK LENGTH]" ;;
+  esac
+  chk "TC-SUITE-RG-001 pin: the fall comparison changes 0 of 13 verdicts on this toolchain (the claim in the arm's header)" 0 "$nvdiff"
+  [ "$nvdiff" -eq 0 ] || echo "NOTE TC-SUITE-RG-001 the fall comparison changed $nvdiff of 13 verdicts: the toolchain moved and the header's 'changes no verdict' is stale"
+
+  # SIMULATED DRIFT. NOT A MEASUREMENT OF PRODUCTION AND NEVER TO BE READ AS ONE. A grep shim placed first on PATH behaves as
+  #      the real grep except that it prints nothing and exits 0 when any file operand holds the byte 0xFF: a stand-in for a
+  #      toolchain whose grep drops rows on a byte that TEXT does not list. Under it the arm's FALL comparison is the only
+  #      thing that can refuse input 9, and that is the only claim made: that the comparison works when the premise of the
+  #      header (no byte but NUL drops rows) stops holding. Whether such a toolchain exists anywhere is not shown. The shim is
+  #      written into this selftest's temporary directory and is not shipped.
+  local shimdir="$T/shim" realgrep shimout realout cleanout
+  mkdir -p "$shimdir"
+  realgrep="$(command -v grep)"
+  [ -n "$realgrep" ] && [ -x "$realgrep" ]; rc=$?
+  chk "SIMULATED DRIFT setup: the real grep was located and is executable" 0 "$rc"
+  {
+    printf '#!/usr/bin/env bash\nREAL_GREP=%q\n' "$realgrep"
+    cat <<'SHIM'
+# SIMULATED DRIFT ONLY. The real grep, except that it prints nothing and exits 0 when any file operand holds the byte 0xFF.
+for a in "$@"; do
+  if [ -f "$a" ] && [ -n "$(LC_ALL=C tr -d '\000-\376' < "$a")" ]; then exit 0; fi
+done
+exec "$REAL_GREP" "$@"
+SHIM
+  } > "$shimdir/grep"
+  chmod +x "$shimdir/grep"
+  printf '443\tminted\n\377' > "$T/drift-ff.tsv"; printf '443\tminted\n' > "$T/drift-clean.tsv"
+  shimout="$("$shimdir/grep" minted "$T/drift-ff.tsv")"
+  realout="$("$realgrep" minted "$T/drift-ff.tsv")"
+  cleanout="$("$shimdir/grep" minted "$T/drift-clean.tsv")"
+  [ -z "$shimout" ]; rc=$?
+  chk "SIMULATED DRIFT control: the shim prints nothing for a file holding 0xFF" 0 "$rc"
+  [ -n "$realout" ]; rc=$?
+  chk "SIMULATED DRIFT control: the real grep DOES print the row from that same file, so the shim is what dropped it" 0 "$rc"
+  [ "$cleanout" = "$(printf '443\tminted')" ]; rc=$?
+  chk "SIMULATED DRIFT control: the shim is transparent on a file without 0xFF" 0 "$rc"
+  for n in 9 1; do
+    d="$T/rgs$n"; B="$(mkreal "$d")"
+    rg_mutate "$n" "$d"
+    H="$(commitas "$d" "rg001-drift-$n")"
+    cp "$door" "$d/gates/records-gate.sh"
+    out="$(PATH="$shimdir:$PATH" bash "$d/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc=$?
+    cp "$fdoor" "$d/gates/records-gate.sh"
+    out2="$(PATH="$shimdir:$PATH" bash "$d/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc2=$?
+    echo "MEASURE SIMULATED DRIFT TC-SUITE-RG-001 #$n ${names[$((n-1))]}: shipped rc=$rc ($(reasonof "$rc" "$out")), fall-comparison-defanged rc=$rc2 ($(reasonof "$rc2" "$out2"))"
+    if [ "$n" = 9 ]; then
+      chk "SIMULATED DRIFT #9: the shipped door REFUSES a row-dropping byte that TEXT does not list" 1 "$rc"
+      case "$out" in
+        *"gates/build-numbers.tsv: PARSE STABILITY - "*"(they passed: TEXT, NOSHRINK, LENGTH, the line boundary and PREFIX)"*)
+          ok "SIMULATED DRIFT #9: the refusal is the fall sentence and names every arm that passed before it" ;;
+        *) no "SIMULATED DRIFT #9: the refusal is not PARSE STABILITY's fall sentence" ;;
+      esac
+      chk "SIMULATED DRIFT #9: with the fall comparison defanged the same pair is ACCEPTED, so the comparison is what refused it" 0 "$rc2"
+    else
+      chk "SIMULATED DRIFT #1: a clean append is accepted under the shim, so the shim does not break the door" 0 "$rc"
+      chk "SIMULATED DRIFT #1: and by the fall-defanged door" 0 "$rc2"
+    fi
+  done
+
+
+  # THE NOT-RUN COUNT IS ITSELF PINNED. notrun() is a counter and not a comment, and the defect it replaces (C9c as an
+  # unconditional `ok`) was a declaration scored as a pass. If notrun() ever counted as a pass this footer would still print
+  # "0 not run", so the count is asserted here: exactly one control is declared NOT RUN, and it is C9c.
+  chk "exactly one control is declared NOT RUN (C9c), counted on its own and never as a PASS" 1 "$NOTRUN"
+  echo "records-gate selftest: $PASSN pass, $FAILN fail, $NOTRUN not run"
   [ "$FAILN" -eq 0 ]
 }
 
@@ -454,37 +748,47 @@ trap 'rm -rf "$REGTMP"' EXIT
 # working form is `cat-file -t`, which answers blob, tree, or fails with exit 128 when the path is absent.
 blobtype(){ $GIT cat-file -t "$1:$2" 2>/dev/null || echo MISSING; }
 
-# PARSE-STABILITY, per jobs/the-guard-registers-cannot-leave-force-until-the-ratchet-speaks-the-consumers-language-2026-10-10.
-# THE TEXT CHECK ABOVE (#509) TESTS BYTES; THE REAL THREAT TESTS GREP. gates/held.sh's match_rows()/live_rows() and
-# gates/buildnum.sh's rows() all pipe the register through `grep -v '^[[:space:]]*#' | awk -F'\t' ...`, and GNU grep
-# switches to BINARY MODE and SUPPRESSES every matching line the moment ANY byte in the file trips its own binary
-# heuristic - NOT ONLY a NUL. An invalid UTF-8 sequence under a UTF-8 locale, a lone CR with no paired LF, or a form
-# feed can each trip the same suppression on some greps/locales while every byte-level and TEXT-level condition
-# above still passes, because those conditions enumerate BYTES this project already knows about rather than asking
-# the consumer what IT sees. So this is not an additional instance of the TEXT class, it is the class itself,
-# answered in the consumers' own vocabulary: run each register's REAL reader over the base and head blobs and
-# refuse if the row count the reader itself returns ever falls. Byte-identical, TEXT-clean, and still refused here
-# is not a contradiction - it is the fix doing the one thing #509 could not: ask the thing that actually reads the
-# file instead of asking whether its bytes look safe to a human auditing them.
+# PARSE-STABILITY, per jobs/the-guard-registers-cannot-leave-force-until-the-ratchet-speaks-the-consumers-language-2026-10-10
+# AND AS CORRECTED BY jobs/records-gates-new-parse-stability-arm-changes-no-verdict-and-its-headline-control-passes-on-the-arm-it-supersedes-2026-10-13.
+#
+# WHAT THIS ARM IS. The TEXT check above tests BYTES; the registers' consumers read LINES THROUGH grep. gates/held.sh's
+# live_rows() and gates/buildnum.sh's rows() both pipe the file through `grep -v '^[[:space:]]*#' | awk -F'\t' ...`,
+# and GNU grep switches to binary mode and suppresses the matching lines when a byte trips its own heuristic. This arm
+# re-reads each register through its consumer's OWN pipeline over the base and the head blob and refuses if the row
+# count the consumer sees FALLS, or if the consumer saw NO rows at base (nothing to fall from).
+#
+# WHAT IT DOES NOT DO ON THIS TOOLCHAIN, MEASURED AND NOT ARGUED: THE FALL COMPARISON CHANGES NO VERDICT HERE. Over the
+# thirteen hostile inputs of TC-SUITE-RG-001 in the selftest above, this door and the same door with the fall comparison
+# patched out return the same exit code on thirteen of thirteen. That follows from a second measurement, which C12 pins
+# for both registers: appending each of the 256 byte values in turn to a real-shaped register, exactly ONE (0x00) makes
+# the consumer's own pipeline read fewer rows, and TEXT refuses that byte before this arm is reached. The first
+# header on this block presented the arm as the fix for the grep class;
+# on this toolchain TEXT already closes that class and the fall comparison adds nothing to it.
+#
+# WHAT IT IS FOR, THEN: a DRIFT TRIPWIRE. If a grep or a locale arrives that drops rows on some OTHER byte, TEXT will not
+# know that byte and this arm will, because it asks the reader instead of listing bytes. THAT CLAIM IS SHOWN ONLY UNDER
+# SIMULATED DRIFT - a grep shim on PATH, labelled SIMULATED DRIFT in the selftest - and has never been observed in
+# production. It is a tripwire for a toolchain this repository does not pin, not the fix for one it has.
+#
+# WHAT DOES CHANGE A VERDICT ON THE REAL TOOLCHAIN is the DENOMINATOR guard: a consumer that sees ZERO rows at base cannot
+# show a fall (nothing is below zero), so "the count did not fall" would be credited over nothing. That is refused in
+# its own sentence, in the shape of the zero-byte and zero-line guards above (selftest C10).
+#
+# WHY IT RUNS LAST. When it speaks, TEXT, NOSHRINK and - for the APPENDONLY files - LENGTH, the line boundary and PREFIX
+# have all passed, so the sentence it prints is TRUE when it prints it. It first ran BEFORE them and refused an
+# ordinary two-row deletion with the sentence "even though the bytes verify as appended", while the door as it stood
+# before that arm landed (5ede631) refused the same input as NOSHRINK, which was the real reason.
+#
+# WHAT IT DOES NOT RUN, DECLARED. gates/held.sh's match_rows() (NF>=2 && $1 !~ /^-/) is NOT implemented here; only
+# live_rows() (NF>=6 && $1 !~ /^-/) for held-trees.tsv and rows() for build-numbers.tsv are. A corruption visible only
+# to a row of two to five fields is not seen by this arm. The two pipelines below are COPIED from those scripts, not
+# re-derived, and a change to either must be mirrored here by hand.
 #
 # Only gates/held-trees.tsv and gates/build-numbers.tsv have a known grep-based consumer in this project (FEEDBACK-
-# INBOX.md and DECISIONS-LOG.md are read as prose, not piped through grep|awk by any shipped tool), so the dispatch
-# below is keyed on the file's basename and returns the EMPTY STRING (checked = no) for every other ratcheted file
-# - a file with no known consumer pipeline cannot be parse-stability-checked and is never silently credited as
-# checked when it is not.
-consumer_row_count(){
-  # $1 = basename this ratchet entry carries (e.g. "gates/held-trees.tsv"), $2 = a file to read as that register.
-  # Echoes the row count the NAMED CONSUMER itself would see, or the empty string if this file has none known.
-  # Runs the consumer's OWN pipeline verbatim (copied from gates/held.sh / gates/buildnum.sh, not re-derived),
-  # so a change to those pipelines must be mirrored here by hand - declared, not hidden, in the job's notChecked.
-  case "$1" in
-    */held-trees.tsv|held-trees.tsv)
-      grep -v '^[[:space:]]*#' "$2" 2>/dev/null | awk -F'\t' 'NF>=6 && $1 !~ /^-/' 2>/dev/null | awk 'END{print NR}' 2>/dev/null ;;
-    */build-numbers.tsv|build-numbers.tsv)
-      grep -v '^[[:space:]]*#' "$2" 2>/dev/null | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/' 2>/dev/null | awk 'END{print NR}' 2>/dev/null ;;
-    *) printf '' ;;
-  esac
-}
+# INBOX.md and DECISIONS-LOG.md are read as prose, not piped through grep|awk by any shipped tool). Every other file
+# gets the SENTINEL NO-CONSUMER, which is not a number and so cannot be read as a count of zero. [The old arm answered
+# with the empty string, which a test for non-empty could not tell from a consumer that had nothing to say.]
+# consumer_row_count() itself is defined above selftest(), under "THE CONSUMERS' OWN ROW COUNTS", because C12 calls it.
 
 RECBAD=""
 for f in $RATCHET_APPENDONLY $RATCHET_NOSHRINK; do
@@ -525,23 +829,6 @@ for f in $RATCHET_APPENDONLY $RATCHET_NOSHRINK; do
     RECBAD="$RECBAD    file silently reads fewer rows while the bytes all verify as appended [#509 antagonist B].\n"
     continue
   fi
-  # PARSE STABILITY: ask the consumer, not the bytes. A file with a known consumer (held-trees.tsv, build-numbers.tsv)
-  # is re-read through that consumer's OWN pipeline over both blobs; if the row count the consumer sees FALLS, this
-  # is refused even though every byte and TEXT condition above passed - which is exactly the case theControlSetThis-
-  # NeedsR08(b) asks for: invalid UTF-8 under a UTF-8 locale, a lone CR, or a form feed can each trip a grep's binary
-  # heuristic without tripping the C0/NUL scan above. A file with NO known consumer (the empty-string arm) is NOT
-  # checked here and is not claimed to be; see notChecked on the job this fix closes.
-  CB="$(consumer_row_count "$f" "$REGTMP/base")"
-  CH="$(consumer_row_count "$f" "$REGTMP/head")"
-  if [ -n "$CB" ] && [ -n "$CH" ]; then
-    if [ "$CH" -lt "$CB" ] 2>/dev/null; then
-      RECBAD="$RECBAD$f: PARSE STABILITY - $f's own consumer sees $CH row(s) at head against $CB at base, a FALL\n"
-      RECBAD="$RECBAD    this ratchet's byte and TEXT conditions did not catch. Something in the head blob trips a\n"
-      RECBAD="$RECBAD    binary-mode or field-shape trigger the consumer's own grep|awk pipeline reacts to, even\n"
-      RECBAD="$RECBAD    though the bytes verify as appended [jobs/the-guard-registers-cannot-leave-force...-2026-10-10].\n"
-      continue
-    fi
-  fi
   # COUNTED WITH awk AND NOT WITH `grep -c '' || echo 0`, AND THIS IS #509's OWN WORST BUG, FOUND BY READING
   # ITS OWN LOG LINE AFTER A CONTROL THAT PASSED. `grep -c '' < an-empty-file` PRINTS 0 *AND EXITS 1*, so the
   # `|| echo 0` fallback ran as well and the captured value was TWO LINES, "0\n0". `[ "$LH" -lt "$LB" ]` on that
@@ -564,6 +851,7 @@ for f in $RATCHET_APPENDONLY $RATCHET_NOSHRINK; do
     RECBAD="$RECBAD    and may not shorten one.\n"
     continue
   fi
+  ESTAB="TEXT and NOSHRINK"
   if [ "$MODE" = appendonly ]; then
     if [ "$nh" -lt "$nb" ] 2>/dev/null; then
       RECBAD="$RECBAD$f: LENGTH - $nh bytes at head against $nb at base, so content was removed or truncated\n"
@@ -589,6 +877,33 @@ for f in $RATCHET_APPENDONLY $RATCHET_NOSHRINK; do
       RECBAD="$RECBAD    was edited in place, renumbered, cleared with a leading dash, removed, or inserted mid-file.\n"
       continue
     fi
+    ESTAB="TEXT, NOSHRINK, LENGTH, the line boundary and PREFIX"
+  fi
+  # PARSE STABILITY, LAST ON PURPOSE (the header above consumer_row_count says why). By here TEXT, NOSHRINK and - for the
+  # APPENDONLY files - LENGTH, the line boundary and PREFIX have passed, and ESTAB names which, so the sentence below is
+  # true when it prints. THE SENTINEL, NOT THE EMPTY STRING: the old test was `[ -n "$CB" ] && [ -n "$CH" ]`, and a
+  # consumer that sees nothing printed the string 0, which is non-empty and passed it.
+  CB="$(consumer_row_count "$f" "$REGTMP/base")"
+  if [ "$CB" != "NO-CONSUMER" ]; then
+    CH="$(consumer_row_count "$f" "$REGTMP/head")"
+    case "$CB" in ''|*[!0-9]*) RECBAD="$RECBAD$f: PARSE STABILITY - the consumer's row count at BASE did not read as a number, so it cannot be compared.\n"; continue ;; esac
+    case "$CH" in ''|*[!0-9]*) RECBAD="$RECBAD$f: PARSE STABILITY - the consumer's row count at HEAD did not read as a number, so it cannot be compared.\n"; continue ;; esac
+    # THE DENOMINATOR, IN ITS OWN say AND NEVER AS A CONJUNCT [prompts/common, CLAUDE.md] - the third of three siblings:
+    # the zero-byte base above, the zero-line base below, and this.
+    if [ "$CB" -eq 0 ]; then   # PARSE-DENOMINATOR-GUARD
+      RECBAD="$RECBAD$f: PARSE STABILITY - $f's own consumer sees ZERO rows at BASE, so a fall in its count cannot be\n"
+      RECBAD="$RECBAD    measured and 'did not fall' would be credited over nothing. REPORTED, NEVER CREDITED. Run FULL.\n"
+      continue
+    fi
+    if [ "$CH" -lt "$CB" ]; then   # PARSE-STABILITY-FALL
+      RECBAD="$RECBAD$f: PARSE STABILITY - $f's own consumer reads $CH row(s) at head against $CB at base, a FALL\n"
+      RECBAD="$RECBAD    that the checks before this one did not catch (they passed: $ESTAB). Something in the head blob\n"
+      RECBAD="$RECBAD    makes the consumer's own grep|awk pipeline drop rows it read at base\n"
+      RECBAD="$RECBAD    [jobs/the-guard-registers-cannot-leave-force-until-the-ratchet-speaks-the-consumers-language-2026-10-10].\n"
+      continue
+    fi
+  fi
+  if [ "$MODE" = appendonly ]; then
     say "    $f: append-only BY VALUE ($nb base bytes all identical at head; $((nh-nb)) appended, $((LH-LB)) lines, 0 control bytes)."
   else
     say "    $f: no shrink and no control bytes ($LB lines at base, $LH at head; $nb -> $nh bytes)."
