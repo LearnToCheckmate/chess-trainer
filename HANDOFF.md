@@ -4,82 +4,82 @@ Read this, then `claude/BUILD-CONTEXT.md`, then the flags. The procedure is trac
 `5326ERvZCZ5tEYRkPavPTF`, collection `prompts`, docs `common` then `build-run`; where it and CLAUDE.md
 differ, the tracker wins.
 
-Build **#518**, runId `build__1791932300000`, 2026-10-13/14. Pen taken free on a clean release (eighth
+Build **#519**, runId `build__1791943111789`, 2026-10-14. Pen taken free on a clean release (ninth
 consecutive) and released at close-out.
 
-## *** READ THIS FIRST: #518 RAN UNDER A ONE-RUN OPENING INSIDE A USAGE PAUSE THAT IS STILL IN FORCE ***
+## *** READ THIS FIRST: NOTHING SHIPPED, AND THE GATE IS ALMOST CERTAINLY PAUSED AGAIN ***
 
-`docs/restart-readiness` read **READY** only because the orchestrator opened it at 6:47pm ET on Kunal's
-word, **for exactly one run**, to land two re-cut payloads. Its own `closeRule` sets **PAUSED** again as
-soon as the pen is taken. **So the next fire almost certainly stands down at STEP ZERO, and that is
-correct, not a fault.** Do not read this green as the fleet being open.
+#519 ran under the **SECOND one-run opening** of Tue 13 Oct (`docs/restart-readiness.oneRunOpening2_2026_10_13`),
+opened 9:50pm ET on Kunal's word, **inside the 13 Oct usage pause, which is untouched and still in force**.
+That opening's own `closeRule` sets the gate back to **PAUSED** as soon as the pen is taken. **So the next
+fire almost certainly stands down at STEP ZERO, and that is correct, not a fault.** Do not read anything
+here as the fleet being open.
 
-## *** #518 WAS THE INTEGRATION SLOT. NO APPLICATION CODE, AND ONE PAYLOAD OF TWENTY LANDED. ***
+**`origin/main` is UNCHANGED at `c6c50cc`.** There is no `GATES GREEN #519`, no gate log, and no bundle.
+The full suite was never launched. Do not look for one and do not cite one.
 
-**MEASURED:** `app.js` (`f47aa0197967`), `chess.jsx` (`b6b7fbb25df0`) and `index.html` (`4a95e865bca8`)
-are byte-identical to `origin/main`, by `md5sum` against `git show origin/main:<f>`. `appChanged` is
-**no**, no bundle was built, and the suite re-gated main's own registered `#511` artefact under
-`CT_EXPECT='#511'` — the resolution #506 reached and #513, #514, #516 and #517 reused.
-**SEVENTH CONSECUTIVE BUILD WITH NO APPLICATION CODE ON MAIN,** and the drill-verdict P0 Kunal reported
-twice is still live across all seven.
+## *** THE WORK IS SAFE ON ORIGIN AND NEEDS NO REBUILD ***
 
-**`GATES GREEN #518` IS A RE-CERTIFICATION OF MAIN'S OWN BUNDLE, NOT NEW COVERAGE.** 59 suites,
-4885 PASS, 0 FAIL — identical to #514 and #517 to the assertion, because not one path under
-`gates/regress/` is in the diff.
+`origin/claude/practical-sagan-vg8hxx` at **`4d9b2443ee62`**, 4 commits ahead of main, 0 behind:
+three commits of `patches/orch-art-gates-buildnum-sh-delta-bound-reland-2026-10-13` applied by
+`git am --3way` (blobs `b3a7e73870` and `8add8de1c0`, exactly as that document predicts) plus the
+`#519` mint register row. **NO APPLICATION CODE:** `app.js` `f47aa0197967`, `chess.jsx` `b6b7fbb25df0`,
+`index.html` `4a95e865bca8`, all byte-identical to main.
 
-## The accounting, stated once so nobody reconciles it twice
+## *** WHY IT WAS HELD: AN UPHELD BLIND-ANTAGONIST VETO, AND THE CAUSE IS ONE THING ***
 
-**20 unlanded payloads = 1 LANDED + 1 applied-then-REVERTED + 3 excluded on S2 + 3 dropped on #517's
-upheld vetoes + 1 superseded + 11 refused on a stale base.** Every one carries an `integrationResult518`.
+`delta_ok()` compares `highest()` against the second-highest **distinct** number. A lone high row fires it
+correctly. **Two adjacent high rows have each other, the delta collapses to 1, and the bound is silent** —
+and `gates/buildnum.sh sweep --add` writes exactly that pair in **one command**, while `gates/build.sh:188`
+runs `sweep` on **every build** and `:193` prints `sweep --add` as the remedy. Reproduced in a throwaway
+clone: `next` → **#1001 at exit 0, no diagnostic**, `mint` hands it out, **481 numbers burned** — the
+incident the job exists to prevent, surviving the fix.
 
-Shipped: `origin/main 5ede631 -> <close-out sha>`, a clean fast-forward. Gated sha **`42fa803`**; the
-close-out commit above it adds only records and changes no served file.
+Both antagonists found that cause independently from different doors, which is why it was upheld.
+The disposition was **pre-committed**: the opening's `takeNothingElse` says an upheld antagonist veto means
+push nothing, record, release the pen, stop.
 
-## THE ONE THING THAT WILL COST YOU A RUN IF YOU DO NOT READ IT
+## *** WHAT IS PROVEN, SO THE NEXT RUN DOES NOT PAY FOR IT AGAIN ***
 
-**DO NOT RE-LAND `patches/proc-lane1-art-gates-buildnum-sh-delta-bound-2026-10-13-recut` AS IT STANDS.**
-It applies cleanly and the delta bound in it is *good work* — minting #518 through it hit exit 0 first
-try, and its margin of 10 is never approached (max historical distinct gap: 4). It was reverted at
-`613efca` because it renumbers `gates/buildnum-selftest.sh`'s fixture onto **`#518/#519`**, and `:22`
-seeds that fixture by **copying the live register**: 95 pass/0 fail before the mint, **93/2 after**, 92/3
-once #519 is minted. The three commits are **coupled** — keeping the bound and reverting only the
-renumber measures **89/6**, worse than landing nothing. The repair is already in the same file eight
-lines down: cases 22–25 build an isolated register (`R08D`, `seed_r08`); cases 9–19 must do the same,
-and then the fixture number stops mattering. Full measurements:
-`jobs/the-buildnum-selftest-fixture-was-renumbered-onto-the-live-series-so-it-breaks-the-moment-that-number-is-minted-2026-10-13`.
+- The defect reproduces **on base**: `next` #519 → **#1000 at exit 0, silent**, on one well-formed 999 row.
+- All four R08 controls pass with the series applied, plus a boundary control: **delta 10 accepted, 11 refused**.
+- `gates/buildnum-selftest.sh`: **86/0 on main, 98/0 at head**, zero failures either side, **identical verdicts
+  across three consecutive runs** [R36] (only the `mktemp` path and three throwaway-register hashes vary).
+- **The margin is sound and the bound would never have misfired on real history:** the register's distinct-number
+  gap distribution is 1×379, 2×4, 3×1, 4×1 — **max gap 4** against a margin of 10 — and replaying every prefix
+  through the predicate fires it zero times. **Do not rebuild the bound. It needs a different baseline, not a redesign.**
+- The fixture fault that caused #518's revert is correctly undone: cases 9–13 keep their numbers byte for byte,
+  case 14 has its own register, nearest fixture number `#777` is 258 builds away.
+- `fastgate` exit **2 GO FULL**; `held.sh check` **not held**; `gatemanifest check` **58/58, 0 missing**;
+  R19 audit A1 **25 before, 25 after**; harness md5-frozen before and byte-identical after.
 
-## What the next run is owed, in order
+## *** THE REMAINDER IS ON THE JOB, AND THERE ARE SIX STEPS ***
 
-1. **The three S2-excluded payloads still need a re-cut** — `recut-excluded-s2-payloads-2026-10-13`,
-   now excluded by **two consecutive passes**, so the exclusion is stable and repeats until somebody
-   re-cuts. Two of the three touch the same two buildnum files, so the fixture job above is a
-   **prerequisite**, not a sibling.
-2. **`records-gate.sh`'s new arm is landed and must not be credited.** Antagonist B's veto was upheld:
-   it must **not** be recorded as closing
-   `jobs/the-guard-registers-cannot-leave-force-until-the-ratchet-speaks-the-consumers-language-2026-10-10`,
-   and `held-trees.tsv`/`build-numbers.tsv` must **not** leave `classify()`'s FORCE arm on its strength.
-   Three small fixes with existing controls are on
-   `jobs/records-gates-new-parse-stability-arm-changes-no-verdict-and-its-headline-control-passes-on-the-arm-it-supersedes-2026-10-13`.
-3. **`ta-art-claude-stories-TEST-CASES-md-hm-051-rows-2026-10-13` can never be landed by any pass** — its
-   `patch` field is not `git format-patch` output at all (`S0` caught it; `git am` reports "Patch format
-   detection failed"). The owning lane must re-export it. Recorded so it stops being retried silently.
-4. **`&& over.docScroll===0` is inert by construction** and still live as a conjunct in three assertions
-   (`11-lesson.js:15`, `:20`, `13-play-after-moves.js:48`). Filed; `49-home.js:456` shows the right
-   treatment. Antagonist A's rotating audit **resumes at `gates/regress/11-lesson.js:74`**.
+`jobs/buildnum-highest-has-no-plausibility-bound-so-one-appended-row-wedges-minting-2026-10-10`,
+`outcome.value` **"cannot"**, with the old `built-not-delivered` object moved unchanged into `outcomeHistory`
+[R05 second-pass rule]. Its `outcome.whatIsLeft` is the whole procedure: a cluster-robust baseline, bound
+`sweep --add`, wire `check` to `delta_ok`, replace the unachievable remedy string and the header's
+"add the intermediate numbers first" paragraph, add control cases for the pair and sweep shapes, and deal with
+the **pre-existing `absent: 999 1000`** on main.
 
-## Two things that bit this run and will bite the next one
+## *** TWO THINGS ON MAIN TODAY THAT ARE NOT MINE AND ARE LIVE ***
 
-**The tree moved three times under a blind antagonist pair.** Both reports carry measurements against
-shas that no longer exist in the diff, and both had to stamp every number with its sha to stay usable.
-If you revert or amend mid-pass, tell the pair, or expect to reconcile stale findings yourself.
+1. **`sweep --report` on main exits 3 with `absent: 519 999 1000`** (now 999/1000 after my mint recorded 519).
+   `#999`/`#1000` come from `ded2b2b`, #518's own reverted commit subject. Any operator who follows the printed
+   remedy burns 481 numbers **whether or not this bound is installed.**
+2. **`gates/held.sh` cannot name a gates-only tree.** All three of its keys are main's own values when no bundle
+   changes, so writing a hold would make `verify-log.sh` refuse every future log over main's shipped bundle.
+   I did **not** write one, deliberately — see `builds/519`.
 
-**`gates/buildnum.sh check '#NNN' | head` exits 141, not 1.** `check` pipes through a `while read` loop,
-so SIGPIPE surfaces as 141 and a wrapper testing `-eq 1` reads an ISSUED number as neither issued nor
-free. Reproduced twice. Nothing documents it; carried on the fixture job.
+## Standing warnings carried forward
 
-## Still true, carried forward unchanged
-
-The live site is unverifiable from this container (egress proxy), so no run here can check the deployed
-bundle. **The auditor has not run for seven consecutive builds.** Gate 50 is still in `gates/pending/`.
-Five gates are known-absent and the suite reports them every run on purpose, so every `GATES GREEN` here
-is honest and blind in exactly those five places.
+- **The auditor has not run for EIGHT consecutive builds**, and the live site stays unverifiable from this
+  container behind the egress proxy, so no run here has checked the deployed bundle against the committed one.
+- `gates/records-gate.sh`'s new PARSE STABILITY arm must **not** be credited as closing its job, and
+  `held-trees.tsv` / `build-numbers.tsv` must **not** leave `classify()`'s FORCE arm on its strength (#518's
+  upheld veto). I made no such claim and moved no FORCE arm.
+- Antagonist A's rotating audit found **four findings in `gates/regress/20-review.js`** that are not yet jobs,
+  because `takeNothingElse` forbade filing: `:102` is vacuous on three broken-bundle shapes, `:67` is keyed to a
+  selector its own commit added, `:90` asserts DOM existence where its own sibling checks paint, and `:70`
+  publishes a 30×28 tap target against this project's documented 44pt bar. They are on `flags/antagonist-a-519`
+  and routed to the orchestrator. **Next rotating pass resumes at `20-review.js:114`.**
