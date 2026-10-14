@@ -35,7 +35,8 @@
 #                                    state: minted | issued | built | shipped | held | abandoned (issued =
 #                                    used, final
 #                                    disposition not established). sha and bundleMd5 may be '-'.
-#                                    CT_SRCMD5 sets the sourceMd5 field; CT_RUNID is REQUIRED.
+#                                    CT_SRCMD5 sets the sourceMd5 field; CT_RUNID is REQUIRED. REFUSES (exit 2) a number
+#                                    the register's series does not reach: see THE ONE LIMIT ON "HIGHER" below.
 #   gates/buildnum.sh record <#NNN> <bundleMd5> <sourceMd5>
 #                                    append a `built` row. gates/build.sh calls this itself after a successful
 #                                    bundle, so every number RESOLVES to the artefacts stamped with it.
@@ -47,6 +48,8 @@
 #                                    shallow clone. Always prints the commit and ref count it measured
 #                                    over, because a shallow clone finds fewer missing and so reports a
 #                                    falsely clean sweep - the backfill was a snapshot, this keeps it true.
+#                                    A name the register's series does not reach (more than BUILDNUM_MAX_DELTA
+#                                    past its top) is IMPLAUSIBLE: listed, not counted as absent, never written.
 #
 # POINT 2 OF THE JOB BRIEF IS DELIVERED HERE AND NOT IN THE STAMP, AND THAT IS A CORRECTION TO THE BRIEF RATHER
 # THAN A SHORTCUT. The brief asks that "the stamp carries the REF, not just the number", offering `#422
@@ -80,6 +83,15 @@
 # no network, survives the tracker being unreachable, and lets gates/build.sh refuse MECHANICALLY at the moment
 # of stamping. Use both. If they ever disagree, the HIGHER number is the safe one and the disagreement is a
 # finding, because a number issued twice is the defect this register exists to prevent.
+# THE ONE LIMIT ON "HIGHER" is the series bound further down. The register has a SERIES: its longest run of
+# distinct numbers in which no step is bigger than BUILDNUM_MAX_DELTA (default 10). A number the series does not
+# reach is not growth, it is a STRAY ROW, and next and mint REFUSE rather than hand out the number after it. add
+# and sweep --add apply the same test BEFORE they write, so this tool never creates a stray row itself. record does
+# not (it writes the number build.sh just stamped), and a row typed into the file by hand is caught when the next
+# number is asked for. THE REGISTER IS APPEND-ONLY, so a stray row cannot be edited out of it. To carry on above
+# one deliberately, accept the jump for that call with BUILDNUM_MAX_DELTA=<the gap or more>, which the refusal
+# prints; every later call needs it too until the series is rejoined, and a person has to decide how to retire
+# the row. Do NOT add the intermediate numbers to quiet the bound: that burns every one of them to hide one row.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; REG="$HERE/build-numbers.tsv"
 [ -f "$REG" ] || { echo "buildnum.sh: no register at $REG"; exit 2; }
@@ -185,6 +197,116 @@ show_row() { # one row on stdin fields: number state sha bundleMd5 sourceMd5 at 
 
 highest() { rows | cut -f1 | sort -n | tail -1; }
 
+# THE MARGIN IS ALSO THE OVERRIDE, AND ITS NAME SAYS SO. Until this change this was a bare assignment that silently
+# ignored the environment variable its own name advertises. It is honoured now and validated, because a refusal
+# the operator has no way past is not a remedy (see the refusal text in delta_ok). An override is never silent:
+# override_notice prints it on every call that uses it.
+BN_DEFAULT_DELTA=10   # real growth is +1 almost always; +10 covers a few concurrent minters
+BUILDNUM_MAX_DELTA="${BUILDNUM_MAX_DELTA:-$BN_DEFAULT_DELTA}"
+case "$BUILDNUM_MAX_DELTA" in
+  *[!0-9]*|0*|?????*)
+    echo "buildnum.sh: BUILDNUM_MAX_DELTA='$BUILDNUM_MAX_DELTA' is not a whole number from 1 to 9999. Refusing to guess." >&2
+    exit 2 ;;
+esac
+override_notice() { # <label>
+  [ "$BUILDNUM_MAX_DELTA" = "$BN_DEFAULT_DELTA" ] || \
+    echo "buildnum.sh $1: BUILDNUM_MAX_DELTA=$BUILDNUM_MAX_DELTA is in effect (the default is $BN_DEFAULT_DELTA)." >&2
+}
+
+# THE SERIES, AND WHY THE BOUND LOOKS AT IT RATHER THAN AT THE TOP TWO NUMBERS.
+# jobs/buildnum-highest-has-no-plausibility-bound-so-one-appended-row-wedges-minting-2026-10-10.
+# in_range() above bounds the MAGNITUDE of a number and that is correct and not the gap: a #9999 row already
+# makes `next`/`mint` refuse loudly, by name, every time. The case in_range() ADMITS is the damaging one: a
+# single well-formed #999 row (3 digits, passes in_range just fine) silently becomes the new highest(), and
+# `next`/`mint` then hand out #1000 at exit 0 with no diagnostic - 490 numbers burned in silence if the true
+# series was sitting at #510. Comparing the computed next number against highest() itself can never catch
+# this: highest() IS #999, so next-minus-highest is always exactly 1 by construction, however bad the row is.
+# THE FIRST VERSION OF THIS BOUND COMPARED highest() WITH THE SECOND-HIGHEST DISTINCT NUMBER AND ANY TWO ADJACENT
+# HIGH ROWS DEFEATED IT (the two blind antagonists of the 14 Oct direct run, independently): #999 and #1000 have each other, the
+# gap collapses to 1 and the guard is silent, and `sweep --add` wrote exactly such a pair in one command. So the
+# bound no longer asks what sits just below the top. It asks what the SERIES is: the longest run of distinct
+# numbers in which no step is bigger than BUILDNUM_MAX_DELTA (a tie goes to the LOWER run). A number the series
+# does not reach is cut off from it, one row or fifty, and a highest() above the series' top means next and mint
+# would hand out a number past every one of them. Measured on main's register at c6c50cc (#518): 385 distinct
+# numbers, #125 to #518, a single run, no step bigger than 4, so the margin of 10 never fires on real history.
+# THE ONE THING THIS CANNOT SEE: a stray run LONGER than the whole series would be taken for the series (an equal one
+# is a tie, and a tie goes to the lower run, so a higher stray run of the same length is still refused). That takes
+# more stray rows than the register has numbers; add and sweep --add refuse to write even one, so only record (one
+# stamped build at a time) or a hand edit could, and the tracker's docs/buildnumber is the only other witness.
+# gates/buildnum-selftest.sh pins the definition (case 28c), so a change to it is seen.
+series_run() { # prints "<top> <length>" of the series, or nothing when the register has no numbered rows
+  rows | cut -f1 | sort -n -u | awk -v m="$BUILDNUM_MAX_DELTA" '
+    { v = $1 + 0 }
+    NR == 1 || v - prev > m { start = NR }
+    { len = NR - start + 1; if (len > best) { best = len; top = v }; prev = v }
+    END { if (NR) print top, best }'
+}
+
+# WHERE THE SERIES TEST RUNS. next and mint (delta_ok) before they hand out a number. check and list (can_issue)
+# before they tell a reader which number comes next, so two documented verbs cannot give opposite answers on one
+# register state: the first version of this bound left `check` recommending `mint` on the very state where mint
+# exits 2. add (stray_check) and sweep --add (split_plausible) BEFORE they write, so this tool never creates a
+# stray row, which matters because the register is append-only and cannot take one back. NOT bounded: record. It
+# writes the number gates/build.sh has just stamped, and refusing there would turn a bookkeeping refusal into a
+# failed build for a number the run was already told it could use; a stray row written that way is still caught
+# the next time a number is asked for.
+# <#NX> <#H> <label: "next"|"mint">; returns 0 if highest() is the top of the series, else prints a named
+# refusal to stderr and returns 1. Runs AFTER in_range so the existing 5-digit wording for #9999-class rows is
+# unchanged; this is the SECOND, independent net, for rows in_range already lets through.
+delta_ok() {
+  local nx="$1" h="$2" label="$3" run top len strays first shown gap
+  override_notice "$label"
+  run="$(series_run)"; top="${run%% *}"; len="${run##* }"
+  [ -n "$top" ] || return 0        # defensive only: next and mint refuse an empty register before they call this
+  [ "$h" -gt "$top" ] || return 0  # highest() is the top of the series: nothing is cut off above it
+  strays="$(rows | cut -f1 | sort -n -u | awk -v t="$top" '$1 + 0 > t + 0 { printf "%d ", $1 + 0 }')"
+  first="${strays%% *}"; gap=$(( first - top ))
+  shown="$(printf '%s' "$strays" | sed 's/[0-9][0-9]*/#&/g')"
+  echo "buildnum.sh $label: refusing. The register holds number(s) cut off from its own series, so the next number" >&2
+  echo "  would be #$nx, past every one of them. The series is the longest run of numbers with no step bigger than" >&2
+  echo "  ${BUILDNUM_MAX_DELTA}: it has $len numbers and ends at #$top. Above it, joined to it by no step that small: ${shown% }." >&2
+  echo "  The nearest is $gap past #$top; handing out #$nx would silently burn every number between them." >&2
+  echo "  If that jump is real and intended, accept it for this one call: BUILDNUM_MAX_DELTA=$gap gates/buildnum.sh $label" >&2
+  echo "  Every later call needs it too until the series is rejoined. The register is append-only, so a bad row cannot" >&2
+  echo "  be edited out of it: if these are mistakes, a person has to decide how to retire them. Do not add the" >&2
+  echo "  intermediate numbers to quiet this check; that burns every one of them to hide one bad row." >&2
+  return 1
+}
+
+can_issue() { # <label>: would next/mint hand out a number right now? Silent; returns 0 yes, 1 no.
+  local h nx
+  h="$(highest)"; [ -n "$h" ] || return 1
+  nx=$(( h + 1 ))
+  in_range "$nx" || return 1
+  delta_ok "$nx" "$h" "$1" >/dev/null 2>&1
+}
+
+stray_check() { # <bare number> <label>: may this tool WRITE a row for the number? Returns 0, or prints why not and returns 1.
+  local n=$(( 10#$1 )) label="$2" run top gap
+  override_notice "$label"
+  run="$(series_run)"; top="${run%% *}"
+  [ -n "$top" ] || return 0                                  # nothing numbered yet: seeding is not a stray
+  [ "$n" -le $(( top + BUILDNUM_MAX_DELTA )) ] && return 0   # inside the series, or within the margin above it
+  gap=$(( n - top ))
+  echo "buildnum.sh $label: refusing to write #$n. It is $gap past #$top, where the register's own series ends, and" >&2
+  echo "  no step of ${BUILDNUM_MAX_DELTA} or less joins them. That is the shape of a stray row: this register is append-only, so" >&2
+  echo "  it could never be taken back out, and next and mint would refuse from then on. If the jump is real and intended," >&2
+  echo "  accept it for this one call: BUILDNUM_MAX_DELTA=$gap gates/buildnum.sh $label ..." >&2
+  return 1
+}
+
+split_plausible() { # stdin: absent numbers, ascending, one per line. Prints "P <n>" (may be recorded) or "I <n>" (implausible).
+  # A number is plausible when it lies inside the series, or is joined to its top by steps no bigger than the margin
+  # (each plausible number extends the top for the next one, so a short chain is recorded whole). Everything above the
+  # first break is implausible: it is what a stray row would be if it were written.
+  awk -v top="$(series_top)" -v m="$BUILDNUM_MAX_DELTA" '
+    NF { n = $1 + 0
+         if (top == "" || n <= top + 0) print "P", $1
+         else if (n - top <= m)         { print "P", $1; top = n }
+         else                           print "I", $1 }'
+}
+series_top() { local run; run="$(series_run)"; printf '%s' "${run%% *}"; }
+
 case "${1:-}" in
   check)
     N="$(want_num "${2:-}")" || exit 2
@@ -207,7 +329,14 @@ case "${1:-}" in
         echo "  A GENUINE COLLISION - one number, two different TREES from two different runs - is a different"
         echo "  thing and the rows say so themselves (see #416's two arms). Compare the runIds above."
       fi
-      echo "  Next free number is #$(( $(highest) + 1 )). Use \`gates/buildnum.sh mint\` rather than picking one."
+      # WIRED TO THE SAME TEST AS next/mint (can_issue). It used to print "Next free number is #1000. Use mint" on a
+      # register where mint exits 2: two documented verbs, opposite answers, and the one that recommended the verb
+      # that cannot work also named the forbidden number.
+      if can_issue check; then
+        echo "  Next free number is #$(( $(highest) + 1 )). Use \`gates/buildnum.sh mint\` rather than picking one."
+      else
+        echo "  No number can be handed out right now: \`gates/buildnum.sh next\` refuses, and its message says why."
+      fi
       exit 1
     fi
     echo "free: #$N is on no row of $(basename "$REG") ($(rows | wc -l | tr -d ' ') row(s) checked)"
@@ -222,6 +351,7 @@ case "${1:-}" in
       echo "buildnum.sh next: the next number would be #$NX, which is ${#NX} digits and outside the" >&2
       echo "  ^#[0-9]{3,4}\$ that build.sh and gates.sh require. Reporting it rather than printing a number" >&2
       echo "  nothing downstream will accept. Look for a bad high row in the register." >&2; exit 2; fi
+    delta_ok "$NX" "$H" "next" || exit 2
     echo "#$NX" ;;
 
   mint)
@@ -249,6 +379,7 @@ case "${1:-}" in
       echo "  every later build would be refused by the bundler and by \`check\`. Almost certainly a bad row"
       echo "  was added by hand (look for an implausible high number in the register) - fix that, not this."
       exit 2; fi
+    if ! delta_ok "$N" "$H" "mint"; then lock_free; exit 2; fi
     append_row "$(printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s' \
       "$N" "minted" "-" "-" "$SRC" "$(date -u +%Y-%m-%dT%H:%MZ)" "$CT_RUNID" "minted" "$NOTE")"
     # READ IT BACK, AND ASK THE RIGHT QUESTION. The first version counted rows for this number ATTRIBUTED TO
@@ -354,6 +485,9 @@ case "${1:-}" in
     # RECORD that rather than refuse to describe reality - the register's job is to make a collision visible, and
     # a tool that cannot write the one real collision in this project's history would be useless for auditing it.
     EXIST="$(print_rows_for "$N" | wc -l | tr -d ' ')"
+    # THE STRAY TEST COMES LAST, after every validation above, so each of those refusals keeps its own reason: a
+    # control that asserts only "exit 2" cannot tell this refusal from a bad state or a non-hex md5 if it runs first.
+    stray_check "$N" add || exit 2
     lock_take || exit 1
     append_row "$(printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s' \
       "$N" "$STATE" "$SHA" "$MD5" "$SRC" "$(date -u +%Y-%m-%dT%H:%MZ)" "$CT_RUNID" "$PROV" "$NOTE")"
@@ -510,9 +644,24 @@ case "${1:-}" in
     # substitution, so it is discarded and comm's exit 1 is never seen. `sweep --add` would then append a
     # duplicate row to a file whose header says a number is never removed. So: compare under LC_ALL=C and
     # sort only the DISPLAY numerically.
-    ABSENT="$(comm -23 <(printf '%s\n' "$NAMED" | grep '[0-9]' | LC_ALL=C sort -u) \
-                       <(printf '%s\n' "$ONREG" | grep '[0-9]' | LC_ALL=C sort -u) | sort -n)"
+    ABSENT_ALL="$(comm -23 <(printf '%s\n' "$NAMED" | grep '[0-9]' | LC_ALL=C sort -u) \
+                           <(printf '%s\n' "$ONREG" | grep '[0-9]' | LC_ALL=C sort -u) | sort -n)"
+    # THE PLAUSIBILITY SPLIT (14 Oct direct run; jobs/buildnum-highest-has-no-plausibility-bound-so-one-appended-row-wedges-minting-2026-10-10).
+    # ABSENT_ALL is every number a commit subject names that the register does not, and on this repository's own
+    # main that set holds #999 and #1000, named by the subject of ded2b2b, the reverted first attempt at this very
+    # bound. They are not builds: they are the TEXT of a commit about a defect, the self-reference trap this file
+    # records for the body scan. The remedy this report used to print, `sweep --add`, would have written both as
+    # rows: next and mint would then have handed out #1001 at exit 0, 481 numbers burned in one command, and
+    # gates/build.sh prints that remedy on every build. So the set is split. A number is PLAUSIBLE when it lies
+    # inside the register's series or is joined to its top by steps no bigger than the margin (each one extends
+    # the top for the next, so a short chain is recorded whole); ABSENT keeps its old meaning for those alone.
+    # The rest are IMPLAUSIBLE: reported, never counted as absent, never written. A number that is implausible
+    # today becomes plausible, and is reported as absent, the moment the series gets within the margin of it.
+    SPLIT="$(printf '%s\n' "$ABSENT_ALL" | grep '[0-9]' | split_plausible)"
+    ABSENT="$(printf '%s\n' "$SPLIT" | sed -n 's/^P //p')"
+    IMPLAUSIBLE="$(printf '%s\n' "$SPLIT" | sed -n 's/^I //p')"
     NABSENT="$(printf '%s\n' "$ABSENT" | grep -c '[0-9]' || true)"
+    NIMPL="$(printf '%s\n' "$IMPLAUSIBLE" | grep -c '[0-9]' || true)"
     printf 'buildnum.sh sweep: measured over %s commits on %s refs (shallow: %s)\n' "$NCOMMITS" "$NREFS" "$SHALLOW"
     # LABEL THE UNITS. #465's antagonist B measured that this line said "316 on build-numbers.tsv" while
     # `check` and `list` both say "340 row(s)" of the same file, with nothing saying one counts DISTINCT
@@ -521,11 +670,21 @@ case "${1:-}" in
     # the whole reason the two differ.
     printf '  %s distinct number(s) named in a commit subject; %s distinct on %s (%s row(s)); %s NAMED AND ABSENT.\n' \
       "$NNAMED" "$NONREG" "$(basename "$REG")" "$(rows | wc -l | tr -d ' ')" "$NABSENT"
+    if [ "$NIMPL" != "0" ]; then
+      echo "  implausible: $(printf '%s\n' "$IMPLAUSIBLE" | grep '[0-9]' | tr '\n' ' ')"
+      echo "  ($NIMPL more number(s) named in a commit subject but joined to the register's series by no step of"
+      echo "  ${BUILDNUM_MAX_DELTA} or less, so they are NOT counted as absent and sweep --add will never write them: a cross-reference or"
+      echo "  a typo, not a build. Writing one would make next and mint refuse, or burn every number below it.)"
+    fi
     if [ "$SHALLOW" = yes ]; then
       echo "  WARNING - THIS CLONE IS SHALLOW, so the count above is a LOWER BOUND and a clean result proves"
       echo "  nothing. Run \`git fetch --unshallow\` first, or treat this sweep as unmeasured."; fi
     if [ "$NABSENT" = "0" ]; then
       [ "$SHALLOW" = yes ] && { echo "  no absent numbers found, but see the shallow warning above"; exit 3; }
+      if [ "$NIMPL" != "0" ]; then
+        echo "  the register names every number any commit SUBJECT names that its series reaches; the implausible"
+        echo "  ones listed above are the only others, and none is a build. NOT CHECKED: commit BODIES and git tags."
+        exit 0; fi
       echo "  the register names every number any commit SUBJECT names, in either the #NNN or the 'Build NNN'"
       echo "  form. NOT CHECKED: commit BODIES (deliberately - scanning them made writing about a number spend"
       echo "  it) and git tags (there are none today, so that door is shut rather than covered)."
@@ -569,6 +728,12 @@ case "${1:-}" in
     # wants lexicographic order while both sets are sorted numerically, and that the two agree only while every
     # number has the same digit count - it bites at #1000, which in_range already permits. This copy must never
     # drift from that one, and gates/buildnum-selftest.sh's 4-digit fixture now covers BOTH of them.
+    # THE SPLIT IS RE-DERIVED TOO, against the series as it stands INSIDE the lock, because rows another writer
+    # added since the report can move the top. ABSENT_NOW stays the whole re-derived set, and the loop below
+    # iterates only its plausible part.
+    SPLIT_NOW="$(printf '%s\n' "$ABSENT_NOW" | grep '[0-9]' | split_plausible)"
+    ABSENT_NOW_PLAUSIBLE="$(printf '%s\n' "$SPLIT_NOW" | sed -n 's/^P //p')"
+    ABSENT_NOW_IMPLAUSIBLE="$(printf '%s\n' "$SPLIT_NOW" | sed -n 's/^I //p')"
     # WHAT IS DELIBERATELY *NOT* RE-DERIVED: NAMED. It comes from git history, which no concurrent `--add` can
     # change, so re-walking it here would hold the lock across a full `git log --all` and buy nothing.
     #
@@ -604,7 +769,7 @@ case "${1:-}" in
             | while read -r _n; do printf '%s\t%s\n' "$_n" "$_sha"; done
         done)"
     N_WROTE=0
-    for n in $(printf '%s\n' "$ABSENT_NOW" | grep '[0-9]'); do
+    for n in $(printf '%s\n' "$ABSENT_NOW_PLAUSIBLE" | grep '[0-9]'); do
       # DEAD TODAY AND LOUD IF IT EVER FIRES. Antagonist A measured that `in_range` can never reject here,
       # because every element came from a {3,4}-digit match - and that a silent `continue` would have let
       # --add exit 0 having written nothing while the sweep stayed dirty, which is the worst shape a guard
@@ -642,6 +807,10 @@ case "${1:-}" in
         "$NABSENT" "$N_WROTE"
       echo "  another writer recorded the difference. Nothing was lost and nothing was written twice."
     fi
+    if [ -n "$(printf '%s' "$ABSENT_NOW_IMPLAUSIBLE" | tr -d ' \n')" ]; then
+      echo "buildnum.sh sweep: NOT recorded, implausible: $(printf '%s\n' "$ABSENT_NOW_IMPLAUSIBLE" | grep '[0-9]' | tr '\n' ' ')"
+      echo "  (no step of ${BUILDNUM_MAX_DELTA} or less joins them to the series; writing them would wedge next and mint)"
+    fi
     printf 'buildnum.sh sweep: recorded %s number(s) as issued. Commit %s to main.\n' "$N_WROTE" "$(basename "$REG")" ;;
 
   list)
@@ -663,7 +832,12 @@ case "${1:-}" in
     [ -z "${DUP// /}" ] || { echo; echo "NUMBERS NAMING MORE THAN ONE ARTEFACT: $DUP"
       echo "  Mostly legal: a run that rebuilt mid-pass. It means the NUMBER does not identify a bundle, so"
       echo "  cite the md5 with it. Only #416 is a genuine two-tree collision, and its own rows say so."; }
-    H="$(highest)"; [ -z "$H" ] || echo; [ -z "$H" ] || echo "highest issued: #$H   next free: #$(( H + 1 ))" ;;
+    H="$(highest)"
+    if [ -n "$H" ]; then
+      echo
+      if can_issue list; then echo "highest issued: #$H   next free: #$(( H + 1 ))"
+      else echo "highest issued: #$H   next free: NONE - \`gates/buildnum.sh next\` refuses and its message says why"; fi
+    fi ;;
 
   *) # Print only the comment block, derived rather than hard-coded - held.sh's --help printed three lines of
      # its own source because the range was pinned to a line number that drifted.
