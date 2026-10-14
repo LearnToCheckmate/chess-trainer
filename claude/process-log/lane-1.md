@@ -228,3 +228,48 @@ instead of copying the live one. Cases 9-19 should do the same, and then the fix
 Carried, with the measurements, on
 `jobs/the-buildnum-selftest-fixture-was-renumbered-onto-the-live-series-so-it-breaks-the-moment-that-number-is-minted-2026-10-13`.
 
+
+## 2026-10-14 — 12:06am ET, run process-build-1__1791949697698 (RECUT-ONLY, hand-fired)
+
+**SCOPE.** `schedule/process-build-1`'s `handFired_2026-10-14` named two re-cut items ONLY and said do
+nothing else: skip 2b, 2c and 3, take no job. Both are recorded here because the record is the isolated
+last commit of the last patch this run parks, and this run parks exactly one patch.
+
+**ITEM 1a — `gates/audit/landed-on-main.sh`, re-cut and parked.** The old payload
+(`patches/proc-lane1-art-gates-audit-landed-on-main-sh-2026-10-06`, refused twice as #517/#518 on a stale
+base) added L7/L8 (REFUSAL-NOT-OWED; MANIFEST-BY-SELECTOR/TRUE/SELECTOR-COMPLETE) plus an ancestry-arm
+bugfix. MEASURED first: none of those markers are present in `gates/audit/landed-on-main.sh` on
+`origin/main@c6c50cc5a327`, so the work had not landed under a different name. Re-cut onto that sha in a
+detached worktree: `git am --3way` conflicted in two regions — local-variable declarations near the top of
+`audit()`, and a block of selftest control cases near the end — both additive and non-colliding (main's own
+independent "L9, the new-file arm" sits beside this payload's L7/L8 and its own C20–C26 selftest IDs beside
+main's C27–C31), so both sides were spliced together rather than one being chosen. `bash -n` clean; the
+file's own `--selftest`: **38 PASS / 0 FAIL**; md5 of the applied file `5c9e3eabb568859cdf054a3a02718784`.
+Independently re-verified in a SECOND fresh worktree: the re-cut patch applies clean (`git am --3way` exit
+0) and reproduces the same md5. Parked as `patches/proc-lane1-art-gates-audit-landed-on-main-sh-recut-2026-10-14`,
+`supersedes` the old document, which now carries `supersededBy` pointing here. R44 lock
+`claims/art-gates-audit-landed-on-main-sh` set `parked-unlanded`, outcome pointing to the new document.
+
+**ITEM 1b — `gates/gatemanifest.sh`, NOT re-cut: parked nothing.** Lane 4's two payloads
+(`-2026-10-06` and its successor `-2026-10-09`, which embeds it as its first commit) were handed to this
+lane "for balance." MEASURED: `git am --3way` of the `-2026-10-09` document's 3-commit patch onto
+`origin/main@c6c50cc5a327` stops with 7 conflict regions inside the sigpipe-audit block, all in
+`gates/gatemanifest.sh`. `git log --oneline --follow -- gates/gatemanifest.sh` and direct execution of
+`gates/gatemanifest.sh sigpipe` on that main show this is not a stale-base textual conflict like item 1a:
+origin/main independently landed a COMPETING sigpipe-audit design at `2ae13e2`/`6024f00`/`97c3f87` — bare
+ceilings (`SP_A_CEIL`/`SP_B_CEIL`/`SP_TOTAL_CEIL`) — rather than this lineage's per-(tier,file)
+`SP_REGISTER`. The two are incompatible rewrites of the same function; main's live reading is `17
+early-exit pipe(s)... A 0 (ceiling 1), B 0 (ceiling 0), C 6, D 11, total ceiling 17; 9 fixture line(s)
+exempt (ceiling 9)` — main closed the same gap with its own already-shipped mechanism. Per this run's own
+instruction ("if a payload is right on its own but wrong on current main... do not repair it by guessing.
+Park nothing for it, write what you measured on the old document... and move to the next payload"),
+`git am --abort` was run and NOTHING was parked. `recutResult_2026_10_14` was written on both
+`patches/proc-lane4-art-gates-gatemanifest-sh-2026-10-06` and `-2026-10-09` with the measurement and a
+recommendation to escalate the contradiction (R45) rather than guess a merge. `claims/art-gates-gatemanifest-sh`
+released with that outcome, since nothing was parked and nothing is unlanded-on-this-lane's-behalf.
+
+**NO JOB TAKEN, NO PUSH.** Steps 2b, 2c and 3 were skipped as instructed. Parking each patch is the whole
+delivery [R21]; no push, not even a dry run, was attempted.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Wm6aX7EoNio8ESvp7Si8XN
