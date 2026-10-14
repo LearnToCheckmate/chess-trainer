@@ -359,6 +359,68 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   st_ck "C16 the real register is read: case rows > 0" "yes" "$( [ "${A5RR:-0}" -gt 0 ] 2>/dev/null && echo yes || echo "no [$A5REAL]" )"
   st_ck "C16b the real register is read: story headings > 0" "yes" "$( [ "${A5RS:-0}" -gt 0 ] 2>/dev/null && echo yes || echo "no [$A5REAL]" )"
 
+  # === C17 TO C17d, THE FALL-ADVICE READ GUARD. Added 2026-10-10 by process-build lane 2 with the A5READ
+  # gate above. FOUR CONTROLS AND THEY DRIVE BOTH DIRECTIONS, which is the whole requirement: a guard
+  # proved only on the tree that motivated it is a guard that cannot fail. C17 is the POSITIVE control and
+  # it is listed first deliberately - without it, deleting the two advice echoes entirely would pass C17b
+  # and C17c, and the measure would be satisfied by removing the feature.
+  #
+  # THE PATTERN IS KEYED ON THE ARM-(5) TAIL, NOT ON THE BARE SENTENCE, and this run did not discover that
+  # the hard way - the file's own comment at C8d records that the previous run's first draft of two arm-(4)
+  # controls grepped the bare string "CEILING CAN BE LOWERED" and BOTH FAILED, reading 2 where they expected
+  # 0, because ARM (5) PRINTS THE SAME SENTENCE TWICE. These controls therefore match on 'stories at zero
+  # cases' and 'wrong-width rows', which only arm (5) emits.
+  # st_adv IS DEFINED DEFENSIVELY AND THE REASON IS A MEASUREMENT, NOT TIDINESS. This payload was
+  # built on a tree carrying patches/proc-lane2-art-gates-verify-log-sh-arm4-advice-2026-10-10, which
+  # introduces st_adv for arm (4)'s controls. Applied onto PRISTINE origin/main b8b2153 WITHOUT that
+  # prerequisite the patch still returns `git am --3way` rc 0 - and then FIVE of these controls go red
+  # with "st_adv: command not found" and the selftest reads 33 pass / 5 fail. APPLIES CLEAN IS NOT
+  # WORKS, and a prerequisite that only shows up as a runtime red is the kind an integrator discovers
+  # after it has landed. So the guard below makes this payload independently landable in either order:
+  # if the prerequisite is already in the tree its definition stands, and if it is not, this one is used.
+  command -v st_adv >/dev/null 2>&1 || st_adv() { # st_adv <root> <pattern> -> matching advice lines
+    ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 | grep -cE "$2" ) || true
+  }
+  st_adv5() { # st_adv5 <root> -> how many of arm (5)'s two fall-advice lines are printed
+    ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 \
+      | grep -cE '^  CEILING CAN BE LOWERED: [0-9]+ of [0-9]+ (stories at zero cases|wrong-width rows)' ) || true
+  }
+
+  # C17 POSITIVE: a tree WITH a valid register under both ceilings must still get BOTH fall advisories.
+  # 0 of 9 at zero and 0 of 2 wrong-width, from a register that WAS read, is a real improvement to report.
+  R17="$(st_tree)"; st_reg "$R17"
+  st_ck "C17 both fall advisories fire on a register that was read and is under both ceilings" \
+    "2" "$(st_adv5 "$R17")"
+  st_ck "C17b and the no-fall line is NOT printed when a register was read" \
+    "0" "$(st_adv "$R17" '^  NO FALL IS ADVISED')"
+
+  # C17c ABSENT registers (A5NC=1): silent. This is the state the finding was filed on.
+  R17c="$(st_tree)"
+  st_ck "C17c no fall is advised when the registers are ABSENT" "0" "$(st_adv5 "$R17c")"
+  st_ck "C17c-b and the reason is stated rather than the advice merely withheld" \
+    "1" "$(st_adv "$R17c" '^  NO FALL IS ADVISED: arm \(5\) did not read a register')"
+  # and the NOT CHECKED line it contradicted must still be there, so this guard did not silence the arm
+  st_ck "C17c-c the NOT CHECKED line survives the guard" \
+    "1" "$(st_adv "$R17c" '^  \(5\) NOT CHECKED')"
+
+  # C17d EMPTY registers (A5VAC=1): silent too, and this is the half the whatWouldCloseIt did not name.
+  # The arm has already REFUSED on this run, so a prescription here contradicts its own verdict.
+  R17d="$(st_tree)"; : > "$R17d/claude/stories/USER-STORIES.md"; : > "$R17d/claude/stories/TEST-CASES.md"
+  st_ck "C17d no fall is advised when both registers EXIST and are EMPTY" "0" "$(st_adv5 "$R17d")"
+  st_ck "C17d-b and the REFUSED verdict survives the guard" \
+    "1" "$(st_adv "$R17d" '^  REFUSED \(5\): both registers EXIST and the derivation is EMPTY')"
+
+  # C17e A RISE IS NOT GATED. The guard must not be able to suppress a refusal: a tree whose register is
+  # OVER the wrong-width ceiling must still print the rise. This is the control that stops the fix from
+  # being a way to make arm (5) quieter.
+  R17e="$(st_tree)"; st_reg "$R17e"
+  { printf '\n| id | story | a | b | c | d | e | f | g |\n'
+    printf '| TC-Z-001 | US-X-01 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |\n'
+    printf '| TC-Z-002 | US-X-01 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |\n'
+    printf '| TC-Z-003 | US-X-01 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |\n'; } >> "$R17e/claude/stories/TEST-CASES.md"
+  st_ck "C17e a rise above the wrong-width ceiling still refuses with the guard in place" \
+    "1" "$(st_adv "$R17e" '^  NEW WRONG-WIDTH ROW\(S\):')"
+
   # C17 THE SIGPIPE MEMBERSHIP TEST [jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02].
   # C17 and C17b are a BOUNDARY, not an assertion about the repaired text: C17 proves the banned pipe form
   # really does invert its answer, and C17b proves the herestring form does not, on the SAME input. One
@@ -737,15 +799,47 @@ EOF
     echo "  REFUSED (5): both registers EXIST and the derivation is EMPTY - $A5ROWS case row(s), $A5STORIES story heading(s), $A5TABS table(s). Arm (5) cannot report a clean register it failed to read."
   fi
   A5ZRISE=0; A5WRISE=0; A5EXRISE=0
+  # ── A FALL IS ONLY ADVISED ON A READING. Added 2026-10-10 by process-build lane 2 (runId
+  # process-build-2__1791663213758) for item (3) of the 6:05pm ET closer screen on
+  # jobs/citations-arm-5-is-breached-on-main-so-the-push-gate-may-be-red-2026-10-10, whose own
+  # secondFindingProcessLane2_2026_10_10T0825Z names this file, these two branches and these controls.
+  #
+  # THE DEFECT, REPRODUCED BEFORE IT WAS FIXED, TWICE, ON THROWAWAY TREES OF THIS SAME SCRIPT:
+  #   registers ABSENT (A5NC=1)      arm (5) prints "(5) NOT CHECKED ... This is not a pass." and then,
+  #                                  two lines later, "CEILING CAN BE LOWERED: 0 of 9 stories at zero
+  #                                  cases. Commit A5ZCEIL=0" and "0 of 2 wrong-width rows. Commit
+  #                                  A5WCEIL=0".
+  #   registers EMPTY (A5VAC=1)      arm (5) REFUSES on the derivation being empty - and still prints
+  #                                  both of those same two prescriptions, on the same run.
+  # Both zeroes come from an EMPTY DENOMINATOR, not from a register that improved. A reader who obeys
+  # either one commits a ceiling of 0 and the next run against the REAL register - which carries 9
+  # stories at zero and 4 wrong-width rows - is refused for a breach that the advice created. The
+  # branches were gated on the COUNTS alone; the counts are zero precisely because nothing was read.
+  #
+  # THE GATE IS THE ARM'S OWN READ CONDITION AND NOT A SECOND TEST OF THE SAME THING. A5READ is 1 only
+  # when neither of the two states that produce a non-reading is set, so there is exactly one place in
+  # this arm that decides whether a register was read, and the advice and the verdict now read it.
+  # WHY BOTH STATES AND NOT JUST THE ABSENT ONE [R06]: the class is "advice derived from a denominator
+  # the arm did not fill", and it is the SAME DECISION in both. A5VAC is the worse of the two, because
+  # there the arm has already said REFUSED on this run and the prescription contradicts its own verdict.
+  # A rise is NOT gated. A rise above a ceiling cannot be manufactured by reading nothing - zero is
+  # never greater than a ceiling - so gating it would be a guard with no state that reaches it, and
+  # this file has already recorded once (C7b, see arm (5)'s comment above) what a guard that reddens
+  # unrelated trees costs.
+  A5READ=0
+  if [ "$A5NC" -eq 0 ] && [ "$A5VAC" -eq 0 ]; then A5READ=1; fi
   if [ "$A5ZERO" -gt "$A5ZCEIL" ]; then
     A5ZRISE=$((A5ZERO-A5ZCEIL)); echo "  NEW STORY AT ZERO CASES: $A5ZERO exceeds the committed ceiling of $A5ZCEIL by $A5ZRISE. Write the case, or list the story with a reason."
-  elif [ "$A5ZERO" -lt "$A5ZCEIL" ]; then
+  elif [ "$A5ZERO" -lt "$A5ZCEIL" ] && [ "$A5READ" -eq 1 ]; then
     echo "  CEILING CAN BE LOWERED: $A5ZERO of $A5ZCEIL stories at zero cases. Commit A5ZCEIL=$A5ZERO in this file so it cannot rise again."
   fi
   if [ "$A5WIDE" -gt "$A5WCEIL" ]; then
     A5WRISE=$((A5WIDE-A5WCEIL)); echo "  NEW WRONG-WIDTH ROW(S): $A5WIDE exceeds the committed ceiling of $A5WCEIL by $A5WRISE."
-  elif [ "$A5WIDE" -lt "$A5WCEIL" ]; then
+  elif [ "$A5WIDE" -lt "$A5WCEIL" ] && [ "$A5READ" -eq 1 ]; then
     echo "  CEILING CAN BE LOWERED: $A5WIDE of $A5WCEIL wrong-width rows. Commit A5WCEIL=$A5WIDE in this file so it cannot rise again."
+  fi
+  if [ "$A5READ" -eq 0 ]; then
+    echo "  NO FALL IS ADVISED: arm (5) did not read a register on this tree, so the zero counts above are an empty denominator and not an improvement. The real register carries 9 stories at zero and 4 wrong-width rows; committing a ceiling from this run would refuse it."
   fi
   if [ "$A5EX" -gt "$A5EXEMPT_CEIL" ]; then
     A5EXRISE=$((A5EX-A5EXEMPT_CEIL)); echo "  EXEMPTION COUNT ROSE: $A5EX story-less table(s) matched the exemption against a ceiling of $A5EXEMPT_CEIL."
