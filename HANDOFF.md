@@ -36,6 +36,28 @@ v2 landed at `b672868`), so it is correctly LANDED by a different lineage. Re-de
 and may not fix it.** The repair shape the two L8 arms already imply: LANDED should require the payload's
 CONTENT on main, not its commit subjects — definition (ii)'s recorded sha has the same weakness.
 
+## AND THE SAME INSTRUMENT HAS A SECOND HOLE: its L4b/L5/L8 arms read a key no run writes
+
+Measured AFTER the push, with a control, because antagonist B predicted an effect and the real number
+was worth more than the prediction.
+
+`gates/audit/landed-on-main.sh:304` reads the **exact** key `integrationResult` (via `json_field`'s
+`d.get()`), while STEP 1I amendment 3 (3) orders every pass to write its record as
+`integrationResult<build number>` and defines EXAMINED over the **prefix**. So after this run wrote all
+23 records, `L4b` still reads 8, `L5-PILE-DEPTHS-AGREE` still FAILs at 19-against-14, and
+`L8-MANIFEST-BY-SELECTOR` still *names* `orch-art-gates-buildnum-sh-series-bound-2026-10-14` — a payload
+that now carries `integrationResult520` with `landed: true`, and whose exact `integrationResult` key is
+absent. **`L8`'s own label, "what STEP 1I's rule selects", is not what STEP 1I's rule selects.**
+
+So B's finding-3 *measurement* was right and its *remedy* does not follow: writing records the prescribed
+way cannot move those three arms. **Do not spend a pass writing more records to fix that number.** The fix
+is one predicate — match the `integrationResult` prefix, exactly as amendment 3's own EXAMINED test does,
+and re-derive L4b, L5 and L8 from it. Advisory only: 3b says this instrument never stops a run, and it
+did not stop this one.
+
+That is the **second** defect found in this one instrument today, and the same family as the finding above:
+a check keyed on something other than what it claims to measure.
+
 ## What landed, and the one thing an auditor should check first
 
 Five payloads, nine commits, every one a gate/harness/record file:
