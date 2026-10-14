@@ -4,103 +4,82 @@ Read this, then `claude/BUILD-CONTEXT.md`, then the flags. The procedure is trac
 `5326ERvZCZ5tEYRkPavPTF`, collection `prompts`, docs `common` then `build-run`; where it and CLAUDE.md
 differ, the tracker wins.
 
-Build **#517**, runId `build__1791911984000`, 2026-10-13. Pen taken free on a clean release (seventh
+Build **#518**, runId `build__1791932300000`, 2026-10-13/14. Pen taken free on a clean release (eighth
 consecutive) and released at close-out.
 
-## *** #517 WAS THE INTEGRATION SLOT. IT CHANGED NO APPLICATION CODE AND NO GATE ASSERTION. ***
+## *** READ THIS FIRST: #518 RAN UNDER A ONE-RUN OPENING INSIDE A USAGE PAUSE THAT IS STILL IN FORCE ***
 
-**MEASURED, not assumed:** `app.js` (`f47aa0197967`), `chess.jsx` (`b6b7fbb25df0`) and `index.html`
-(`4a95e865bca8`) are byte-identical to `origin/main`, checked with `md5sum` against
-`git show origin/main:<f>`. `appChanged` is **no**, the bundle stays `f47aa0197967` stamped
-`#511 - 2026-10-10 07:40 ET`, and #517 never ran `gates/build.sh`. **And not one path under
-`gates/regress/` is in the diff**, so the suite's assertion set over this tree is IDENTICAL to main's.
+`docs/restart-readiness` read **READY** only because the orchestrator opened it at 6:47pm ET on Kunal's
+word, **for exactly one run**, to land two re-cut payloads. Its own `closeRule` sets **PAUSED** again as
+soon as the pen is taken. **So the next fire almost certainly stands down at STEP ZERO, and that is
+correct, not a fault.** Do not read this green as the fleet being open.
 
-**READ THAT SECOND SENTENCE BEFORE YOU CITE THE GREEN.** `GATES GREEN #517` is a **re-certification of
-main's own bundle**, not a statement about new coverage. Every gate change this pass attempted was
-dropped. Sixth consecutive build with no application code on main.
+## *** #518 WAS THE INTEGRATION SLOT. NO APPLICATION CODE, AND ONE PAYLOAD OF TWENTY LANDED. ***
 
-## What #517 did, in one line
+**MEASURED:** `app.js` (`f47aa0197967`), `chess.jsx` (`b6b7fbb25df0`) and `index.html` (`4a95e865bca8`)
+are byte-identical to `origin/main`, by `md5sum` against `git show origin/main:<f>`. `appChanged` is
+**no**, no bundle was built, and the suite re-gated main's own registered `#511` artefact under
+`CT_EXPECT='#511'` — the resolution #506 reached and #513, #514, #516 and #517 reused.
+**SEVENTH CONSECUTIVE BUILD WITH NO APPLICATION CODE ON MAIN,** and the drill-verdict P0 Kunal reported
+twice is still live across all seven.
 
-Landed **3 of 20** parked process-lane payloads in **6 commits** — the first pass ever to execute STEP 1I
-**amendment 5**, written at 10:44am ET the same morning after the 9:19am fire filed the job showing the
-old rule stopped everything over four S2 collisions.
+**`GATES GREEN #518` IS A RE-CERTIFICATION OF MAIN'S OWN BUNDLE, NOT NEW COVERAGE.** 59 suites,
+4885 PASS, 0 FAIL — identical to #514 and #517 to the assertion, because not one path under
+`gates/regress/` is in the diff.
 
-## The accounting, stated once so nobody has to reconcile it
+## The accounting, stated once so nobody reconciles it twice
 
-**20 in the manifest = 4 excluded on S2 + 3 landed + 3 dropped on upheld antagonist vetoes + 10 refused.**
-Six **payload** commits on a **seven**-commit branch, the seventh being the register commit. Every one of
-the 20 carries an `integrationResult517` saying what happened to it and why.
+**20 unlanded payloads = 1 LANDED + 1 applied-then-REVERTED + 3 excluded on S2 + 3 dropped on #517's
+upheld vetoes + 1 superseded + 11 refused on a stale base.** Every one carries an `integrationResult518`.
 
-Landed, all three whole with **no `git am --skip` of any kind**: `stamp-selftest`,
-`fastgate-ratchet-mktemp`, `cited-not-run-closure`.
+Shipped: `origin/main 5ede631 -> <close-out sha>`, a clean fast-forward. Gated sha **`42fa803`**; the
+close-out commit above it adds only records and changes no served file.
 
-## *** BOTH BLIND ANTAGONISTS VETOED AND BOTH VETOES WERE UPHELD. THREE PAYLOADS WERE DROPPED. ***
+## THE ONE THING THAT WILL COST YOU A RUN IF YOU DO NOT READ IT
 
-Do **not** re-land these three from their current documents. Each has a job against its owning lane.
+**DO NOT RE-LAND `patches/proc-lane1-art-gates-buildnum-sh-delta-bound-2026-10-13-recut` AS IT STANDS.**
+It applies cleanly and the delta bound in it is *good work* — minting #518 through it hit exit 0 first
+try, and its margin of 10 is never approached (max historical distinct gap: 4). It was reverted at
+`613efca` because it renumbers `gates/buildnum-selftest.sh`'s fixture onto **`#518/#519`**, and `:22`
+seeds that fixture by **copying the live register**: 95 pass/0 fail before the mint, **93/2 after**, 92/3
+once #519 is minted. The three commits are **coupled** — keeping the bound and reverting only the
+renumber measures **89/6**, worse than landing nothing. The repair is already in the same file eight
+lines down: cases 22–25 build an isolated register (`R08D`, `seed_r08`); cases 9–19 must do the same,
+and then the fixture number stops mattering. Full measurements:
+`jobs/the-buildnum-selftest-fixture-was-renumbered-onto-the-live-series-so-it-breaks-the-moment-that-number-is-minted-2026-10-13`.
 
-- **gate 67** (`proc-lane2-...-67-sel-cls-consumers-js-2026-10-13`) — its new `['Mistake','control-admissible']`
-  row is asserted at `:507-512` as a third "G2 CONTROL" claiming the guard is selective, and it **cannot
-  cross the threshold**: `chess.jsx:519`'s `drillGrade` returns `DRILL_GRADES[0]`=`'Mistake'` for that label
-  and the total-flatten bug returns the literal `'mistake'`, and the assertion lowercases both. Instance
-  **twelve** of the cannot-fail class CLAUDE.md records eleven times — shipped in the commit meant to close it.
-- **gate 65 block K** (`proc-lane4-...-blockk-2026-10-10`) — `:1001` asserts a flag happened and `:1003`
-  asserts the card matches `/Time/i`. `chess.jsx:5298` renders `'Time!'` for **any** time-out whichever clock
-  ran out, so both pass for block I's already-covered cell. The discriminating value was measured by its own
-  author and left in prose in `lane-4.md` (`'Time! You lose'`).
-- **gate 26** (`proc-lane4-...-26-invariants-js-2026-10-13`) — its commit 2/2 is **TRUNCATED, not empty**: it
-  declares ` create mode 100644 claude/process-log/lane-4.md` and 51 insertions with its hunks replaced by
-  prose. The **code change is correct** and is still owed; lane 4 must re-cut an intact payload.
+## What the next run is owed, in order
 
-**Dropped rather than hand-edited**, per STEP 1I: a payload-level problem is a reason to drop and record,
-never to resolve — the lane that writes a gate owns its assertions.
+1. **The three S2-excluded payloads still need a re-cut** — `recut-excluded-s2-payloads-2026-10-13`,
+   now excluded by **two consecutive passes**, so the exclusion is stable and repeats until somebody
+   re-cuts. Two of the three touch the same two buildnum files, so the fixture job above is a
+   **prerequisite**, not a sibling.
+2. **`records-gate.sh`'s new arm is landed and must not be credited.** Antagonist B's veto was upheld:
+   it must **not** be recorded as closing
+   `jobs/the-guard-registers-cannot-leave-force-until-the-ratchet-speaks-the-consumers-language-2026-10-10`,
+   and `held-trees.tsv`/`build-numbers.tsv` must **not** leave `classify()`'s FORCE arm on its strength.
+   Three small fixes with existing controls are on
+   `jobs/records-gates-new-parse-stability-arm-changes-no-verdict-and-its-headline-control-passes-on-the-arm-it-supersedes-2026-10-13`.
+3. **`ta-art-claude-stories-TEST-CASES-md-hm-051-rows-2026-10-13` can never be landed by any pass** — its
+   `patch` field is not `git format-patch` output at all (`S0` caught it; `git am` reports "Patch format
+   detection failed"). The owning lane must re-export it. Recorded so it stops being retried silently.
+4. **`&& over.docScroll===0` is inert by construction** and still live as a conjunct in three assertions
+   (`11-lesson.js:15`, `:20`, `13-play-after-moves.js:48`). Filed; `49-home.js:456` shows the right
+   treatment. Antagonist A's rotating audit **resumes at `gates/regress/11-lesson.js:74`**.
 
-## THE SHARPEST THING THIS RUN FOUND IS A CORRECTION TO A JOB FILED FOUR HOURS EARLIER
+## Two things that bit this run and will bite the next one
 
-`jobs/nine-integration-patch-bases-are-absent-from-origin-entirely-2026-10-13` says nine payload bases are
-absent from origin, apply order can **never** be established, and nine payloads must be re-cut or retired.
-**It rests on a category error.** `S6-APPLY-ORDER` reads the `From <sha>` line and calls it a base;
-`git format-patch` emits `From <commit-id>` where the commit-id is **the sha of the commit being exported**,
-so it names the lane's own unpushed commit and is absent from origin **by construction** for every payload
-here. The real base is the document's `baseSha`, and **16 of 20 resolve**. The control is the job's own
-evidence: `51249a09`, one of the two shas it cites as proof, belongs to a payload **that landed in this pass**.
-Acting on that remedy would have discarded working payloads.
+**The tree moved three times under a blind antagonist pair.** Both reports carry measurements against
+shas that no longer exist in the diff, and both had to stamp every number with its sha to stay usable.
+If you revert or amend mid-pass, tell the pair, or expect to reconcile stale findings yourself.
 
-## What the next run should know, shortest first
+**`gates/buildnum.sh check '#NNN' | head` exits 141, not 1.** `check` pipes through a `while read` loop,
+so SIGPIPE surfaces as 141 and a wrapper testing `-eq 1` reads an ISSUED number as neither issued nor
+free. Reproduced twice. Nothing documents it; carried on the fixture job.
 
-1. **`gates/stamp-selftest.sh` is now on main and controls NOTHING.** It executes in no automated path, its
-   header cites `gates/lib.js:113` **ten** times for a regex at `:217`/`:255`, and `drive()` holds a third
-   uncompared copy. Antagonist B objected to landing it; I **overruled with reasons** on the job. Do not read
-   it as evidence the stamp regex is guarded.
-2. **`gates/audit/landed-on-main.sh:286` reverse-applies against the WORKING TREE, not `origin/main`.** Run it
-   **before** you apply anything, as the 9:19am fire did, or it reads your own work back as `content=ON-MAIN`.
-   Mine was contaminated and is annotated as such.
-3. **Never pass `-c user.email` on a build commit.** The container is configured; the `git am` commits prove it.
-   Getting this wrong cost 22 minutes of suite time, because `gates.sh:174` samples the gated sha early.
-4. **Two payloads are permanently invisible to the manifest** and it is not fixed: `suite-lock-contention` and
-   `stamp-regex-selftest` were applied and reverted by #513, so their subjects AND their artefact commits are
-   on main while their files are not, and both LANDED arms read true. Arm (ii) is broken too, which is new.
-5. The R22 90-minute budget cannot hold for an integration run that pays a full suite. Say so rather than
-   rushing the antagonists.
+## Still true, carried forward unchanged
 
-## Inherited and still live
-
-The live site is blocked by the egress proxy so no run from this container can verify the deployed app. The
-auditor has not run for several builds. Gate 50 is in `gates/pending/`. The three known-absent gates mean every
-`GATES GREEN` here is honest and blind in exactly those places — the suite reports them every run on purpose.
-
-## The gate figures
-
-`GATES GREEN #517`, **59 suites / 4885 PASS / 0 FAIL / 0 RED / 0 `<<<`**, over bundle **`f47aa0197967`**
-from source `b6b7fbb25df0`, gated sha **`46d919dc`**. Suite 18:07:07Z to 19:5xZ, about 106 minutes, from the
-frozen sibling copy `gates/.gates-run-517c.sh` whose md5 equals `gates/gates.sh` **at launch and at finish**.
-Manifest 58 required / 58 present / 0 missing / 0 unlisted / **5 known-absent** / 0 unjustified.
-`verify-log.sh gates/logs/517-all.log '#517'` returns **OK**; `held.sh check` reads **not held**.
-
-**4885 is the SAME total `513-all.log` and `514-all.log` report over this same bundle**, re-counted here
-from all three files rather than quoted — three suites, three containers, agreeing to the assertion. That is
-what makes this green evidence rather than a reading, and it is also why it says nothing new about coverage.
-
-**This suite was run THREE TIMES and the first two were killed on purpose.** Attempt A died at 17 sections
-(a committer-identity amend would have orphaned its gated sha); attempt B at 6 sections (both antagonists
-vetoed and the tree changed). Both are preserved under `gates/logs/killed-517a/` and `killed-517b/` and
-neither authorises anything. Only this third log exists at `517-all.log`.
+The live site is unverifiable from this container (egress proxy), so no run here can check the deployed
+bundle. **The auditor has not run for seven consecutive builds.** Gate 50 is still in `gates/pending/`.
+Five gates are known-absent and the suite reports them every run on purpose, so every `GATES GREEN` here
+is honest and blind in exactly those five places.
