@@ -17,6 +17,10 @@
 # NOT A GATE. It lives in gates/ and not in gates/regress/, so gates.sh (which globs regress/*.js) never runs it
 # and it can never contribute to or block a GATES GREEN. It is a developer check on a developer tool.
 set -uo pipefail
+# AN EXPORTED BUILDNUM_MAX_DELTA WOULD CHANGE EVERY SERIES CASE BELOW, so it is scrubbed here, as case 7 scrubs CT_RUNID
+# (build #465's antagonist A ran this file with CT_RUNID exported and got failures that had nothing to do with the tool).
+# The override cases in 28f pass it explicitly, one call at a time, with env.
+unset BUILDNUM_MAX_DELTA
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TD="$(mktemp -d)"; trap 'rm -rf "$TD"' EXIT
 cp "$HERE/buildnum.sh" "$TD/buildnum.sh"; cp "$HERE/build-numbers.tsv" "$TD/build-numbers.tsv"
@@ -33,6 +37,15 @@ eq() { # eq <description> <expected> <actual>
   if [ "$2" = "$3" ]; then P=$((P+1)); printf 'PASS %s (%s)\n' "$1" "$3"
   else F=$((F+1)); printf 'FAIL %s (got %s, wanted %s)\n' "$1" "$3" "$2"; fi
 }
+
+# row_for <number> [state]: one real-shaped nine-field register row. Fixtures that must put a STRAY row on a register
+# write it with this and not with `add`, because add refuses a stray row now (that refusal is one of the things the
+# series-bound cases below control), and a fixture that goes through the guard it is testing proves nothing.
+row_for() { printf '%s\t%s\t-\t-\t-\t2026-01-01T00:00Z\tfixture\tfixture\ta note long enough to pass the floor\n' "$1" "${2:-issued}"; }
+# mkreg <dir> <number>...: a directory of its own holding a copy of buildnum.sh and a register of exactly these rows.
+mkreg() { local d="$1" n; shift; mkdir -p "$d"; cp "$HERE/buildnum.sh" "$d/buildnum.sh"; chmod +x "$d/buildnum.sh"
+          : > "$d/build-numbers.tsv"; for n in "$@"; do row_for "$n" >> "$d/build-numbers.tsv"; done; }
+md5of() { md5sum "$1" | cut -c1-12; }
 
 echo "== buildnum.sh self-test, register copy at $TD =="
 
@@ -53,6 +66,35 @@ eq "check prints both #416 rows" "2" "$("$BN" check '#416' 2>/dev/null | grep -c
 ck "mint without CT_RUNID refused" 2 env -u CT_RUNID "$BN" mint "a note that is comfortably long enough"
 # 8. ... and refuses a note too short to interpret later.
 ck "mint with a short note refused" 2 env CT_RUNID=selftest "$BN" mint "too short"
+
+# 8b. FIXTURE COLLISION CONTROL, asserted BEFORE the first case writes anything (TC-SUITE-BN-FIXTURE-001, from
+# jobs/the-buildnum-selftest-fixture-was-renumbered-onto-the-live-series-so-it-breaks-the-moment-that-number-is-minted-2026-10-13).
+# $TD's register is a COPY OF THE REAL ONE, so a number the fixture writes that the real series has already reached
+# is counted twice by the grep -c in case 13 below. That is how the #518/#519 renumbering broke on 13 Oct, and
+# a non-zero count here names the cause in one line instead of leaving a later case to fail for a reason that looks
+# unrelated. #999 is the only fixture number written to this working register: case 14 builds a register of its own
+# and the 4-digit sweep cases further down build theirs. The list is asserted non-empty first, so a refactor that
+# empties it fails loudly instead of passing over nothing.
+# THE LIST IS READ OFF THIS FILE, NOT TYPED. The 14 Oct direct run's antagonist A measured that the first version was
+# FXN="999" followed by `[ -n "$FXN" ]`, a literal tested against itself, which cannot fail. The numbers a fixture can
+# collide on are the ones this file passes to record or add, so the list is those, and the guard below fails if a
+# refactor ever changes their spelling so that none is found.
+FXN="$(grep -oE '(record|add) +"#[0-9]{3,4}"' "${BASH_SOURCE[0]}" | grep -oE '[0-9]{3,4}' | sort -u | tr '\n' ' ')"
+if [ -n "${FXN// /}" ]; then P=$((P+1)); echo "PASS the fixture-number list is read off this file and is not empty, so the collision control below is not vacuous"
+else F=$((F+1)); echo "FAIL no fixture number was found in this file - the collision control below would pass over nothing"; fi
+for fx in $FXN; do
+  eq "fixture number #$fx is not already a real row on the register copy" "0" "$(grep -c "^$fx"$'\t' "$TD/build-numbers.tsv" || true)"
+done
+
+# 8c. THE REAL REGISTER MUST BE ONE SERIES, OR EVERY MINT CASE BELOW FAILS FOR ONE REASON THAT LOOKS LIKE MANY (14 Oct direct run).
+# $TD's register is a copy of the real one and the cases from 17 on mint against it. If the real register ever holds a number
+# the series bound cuts off, each of them would fail with a refusal, and a reader would look for twenty causes. Asserted
+# BEFORE anything is written, in two independent ways: the largest step between consecutive distinct numbers, measured here
+# with awk and not with the tool, and the tool's own answer. Measured on main's register at c6c50cc (#518): 385 distinct numbers, #125 to #518, largest step 4.
+REAL_LS="$(grep -v '^[[:space:]]*#' "$TD/build-numbers.tsv" | awk -F'\t' '$1 ~ /^[0-9]+$/ {print $1}' | sort -n -u | awk 'NR > 1 && $1 - p > m {m = $1 - p} {p = $1} END {print m + 0}')"
+eq "the real register's largest step between consecutive distinct numbers is $REAL_LS, within the margin of 10 (measured here, not by the tool)" "yes" \
+   "$([ "$REAL_LS" -le 10 ] && echo yes || echo no)"
+eq "and the tool agrees: next on the real register copy issues a number" "yes" "$(CT_RUNID=selftest "$BN" next >/dev/null 2>&1 && echo yes || echo no)"
 
 # 9-10. add VALIDATES ITS KEYS. held.sh had to learn this: it accepted a 32-char md5, an UPPERCASE md5 and a
 # 1-char md5, each of which `list` shows as live and which can never match anything.
@@ -82,8 +124,27 @@ eq "record is idempotent on an identical triple" "1" "$(grep -c '^999' "$TD/buil
 CT_RUNID=selftest "$BN" record "#999" cccccccccccc bbbbbbbbbbbb >/dev/null 2>&1
 eq "a NEW bundle under the same number DOES append" "2" "$(grep -c '^999' "$TD/build-numbers.tsv")"
 
+# 13b. TAKE THE FIXTURE'S ROWS BACK OUT OF THE WORKING REGISTER. $TD's register is a COPY OF THE REAL ONE, and a
+# well-formed #999 row on top of a real series that is in the 500s is exactly the bad high row that buildnum.sh's
+# delta_ok() refuses to mint past (jobs/buildnum-highest-has-no-plausibility-bound-so-one-appended-row-wedges-minting-2026-10-10).
+# Left in, it would make every later next/mint in this file refuse. The register is append-only by design, but $TD
+# is a throwaway copy, and case 20 below does the same for its own #9999. RENUMBERING THE FIXTURE TO THE NEXT REAL
+# NUMBERS INSTEAD DOES NOT WORK: #518/#519 was tried on 13 Oct and the integration run that minted #518 reverted it,
+# because every grep -c above then counts the REAL #518 row as well as the fixture's own (95 pass became 93 pass /
+# 2 fail, and a third case was due to follow at #519). A fixture row that is taken back out cannot collide with
+# anything the series reaches later.
+sed -i '/^999\t/d' "$TD/build-numbers.tsv"
+eq "the fixture's #999 rows are out of the working register again" "0" "$(grep -c '^999' "$TD/build-numbers.tsv" || true)"
+
 # 14. next IS THE HIGHEST PLUS ONE, and it is computed numerically. A lexical sort would put 99 after 454.
-eq "next is numeric, not lexical" "#1000" "$(CT_RUNID=selftest "$BN" next)"
+# ON A REGISTER OF ITS OWN, three contiguous rows ending at #999: the cross-digit step (999 -> 1000) is the whole
+# point of the case, a lexical sort puts "999" after "1000", and a register of the real copy's size cannot hold
+# a #999 row without looking like the bad high row the delta bound exists to refuse. Contiguous rows are ordinary
+# growth to that bound (delta 1), so this also shows the bound lets the 3-to-4-digit step through.
+CX="$(mktemp -d)"; cp "$HERE/buildnum.sh" "$CX/buildnum.sh"; chmod +x "$CX/buildnum.sh"
+for n in 997 998 999; do printf '%s\tissued\t-\t-\t-\t2026-01-01T00:00Z\tfixture\tfixture\ta note long enough to pass the floor\n' "$n"; done > "$CX/build-numbers.tsv"
+eq "next is numeric, not lexical" "#1000" "$(CT_RUNID=selftest "$CX/buildnum.sh" next)"
+rm -rf "$CX"
 
 # 15. A REGISTER WITH NO NUMBERED ROWS MUST REFUSE TO INVENT A SERIES rather than start at 1.
 printf '# header only, no rows\n' > "$TD/empty.tsv"
@@ -121,7 +182,7 @@ UNIQ="$(printf '%s\n' "$OUT" | grep '^#' | sort -u | wc -l | tr -d ' ')"
 eq "every concurrent mint got a DISTINCT number" "$GOT" "$UNIQ"
 # SCOPED TO THE RACE'S OWN ROWS, and that scoping is the point rather than a convenience: the live register
 # DELIBERATELY carries five recorded collisions (416, 440, 441, 451, 452 - real history this file exists to make
-# visible) plus #999 from case 12. A whole-file duplicate scan therefore reports those as failures, which is the
+# visible). A whole-file duplicate scan therefore reports those as failures, which is the
 # frozen-denominator mistake in miniature: the right denominator is the rows THIS CASE created.
 DUPES="$(grep -vE '^[[:space:]]*#' "$TD/build-numbers.tsv" | awk -F'\t' '$1 ~ /^[0-9]+$/ && $7 ~ /^race-/ {print $1}' | sort -n | uniq -d | tr '\n' ' ')"
 if [ -z "${DUPES// /}" ]; then P=$((P+1)); echo "PASS the race left NO number claimed twice"
@@ -158,11 +219,73 @@ eq "no row claims the injected number 998" "0" "$(grep -c '^998' "$TD/build-numb
 # 20. THE SERIES MUST NOT BE WEDGED BY ONE HIGH ROW. A legal 4-digit `add` of #9999 used to make `next` return
 # #10000 and `mint` hand it out - a number build.sh and `check` both refuse, for ever, with no escape but
 # hand-editing. next and mint now validate their OWN OUTPUT against the range they document.
-CT_RUNID=selftest "$BN" add "#9999" built - - "a deliberately high row to test the range wedge" >/dev/null 2>&1
+# THE ROW IS WRITTEN DIRECTLY, NOT THROUGH add: add refuses a stray row now (see the series-bound cases below).
+row_for 9999 built >> "$TD/build-numbers.tsv"
 ck "next refuses to return a 5-digit number" 2 "$BN" next
 ck "mint refuses to hand out a 5-digit number" 2 env CT_RUNID=selftest "$BN" mint "this must not be handed out at all"
 eq "nothing in the 10000 range was written" "0" "$(grep -c '^10000' "$TD/build-numbers.tsv" || true)"
 sed -i '/^9999\t/d' "$TD/build-numbers.tsv"
+
+# R08(a)-(d). jobs/buildnum-highest-has-no-plausibility-bound-so-one-appended-row-wedges-minting-2026-10-10's OWN
+# four-point control set (R08), run on a FRESH isolated register rather than $TD's cumulative one so each case
+# starts from a known, contiguous baseline and is not hostage to whatever earlier cases left highest() at.
+# THE DIAGNOSIS THIS JOB CORRECTED: case 20 above (#9999) was never the damaging case - in_range() at
+# buildnum.sh (line 171 before this change) already refused it LOUDLY, by name, before this job existed. The damaging case is a
+# WELL-FORMED #999 row: it passes in_range (3 digits) just fine, silently becomes the new highest(), and next/
+# mint used to hand out #1000 at exit 0 with no diagnostic at all - 490 numbers burned in silence had the real
+# series been sitting at #510. That is case 22 below. Comparing next()'s output against highest() can never
+# catch it, because highest() itself IS the bad row by the time next() runs; the bound has to look at the register
+# itself and not at the number being asked for (delta_ok(), added in buildnum.sh). The first version compared highest()
+# with the register's next-highest distinct number, which section 28 below shows is not enough.
+R08D="$(mktemp -d)"; cp "$HERE/buildnum.sh" "$R08D/buildnum.sh"; chmod +x "$R08D/buildnum.sh"
+R08BN="$R08D/buildnum.sh"
+seed_r08() { # writes a small, CONTIGUOUS fixture register (…#508 #509 #510) so "the previous highest" is
+             # unambiguous and the margin math is easy to check by hand.
+  printf '508\tbuilt\t-\taaaaaaaaaaaa\tbbbbbbbbbbbb\t2026-01-01T00:00Z\tfixture\tbuild.sh\ta note long enough to pass the floor\n509\tbuilt\t-\tcccccccccccc\tdddddddddddd\t2026-01-01T00:01Z\tfixture\tbuild.sh\ta note long enough to pass the floor\n510\tshipped\teeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\tffffffffffff\t111111111111\t2026-01-01T00:02Z\tfixture\tmeasured\ta note long enough to pass the floor\n' > "$R08D/build-numbers.tsv"
+}
+
+# R08(a). (THE LIVE CASE) a well-formed #999 row appended to a register whose real highest is #510 - the
+# exact shape of the production incident this job measured (baseline next=#510, one append, next/mint burn
+# straight to #1000). next and mint must now REFUSE, and the refusal must NAME #999, the suspect row - not just
+# fail silently or with a message that could be about anything.
+seed_r08
+row_for 999 built >> "$R08D/build-numbers.tsv"   # written directly: add refuses it now
+NEXT_ERR="$(CT_RUNID=selftest "$R08BN" next 2>&1 >/dev/null)"
+ck "R08(a) LIVE CASE: next refuses on a well-formed #999 row (used to silently return #1000)" 2 "$R08BN" next
+eq "R08(a) the refusal NAMES #999, the suspect row, not just a number" "yes" \
+   "$(grep -q '#999' <<<"$NEXT_ERR" && echo yes || echo no)"
+ck "R08(a) mint refuses too (used to silently hand out #1000, no diagnostic at all)" 2 \
+   env CT_RUNID=selftest "$R08BN" mint "this must not be handed out at all, it would burn 489 numbers"
+eq "R08(a) nothing in the 1000 range was written by the refused mint" "0" \
+   "$(grep -c '^1000	' "$R08D/build-numbers.tsv" || true)"
+
+# R08(b). (NO REGRESSION) a #9999 row must keep refusing LOUDLY, exactly as it already did via in_range()
+# before this job's delta_ok() existed - the fix must not trade the 5-digit gap for the 3-digit one.
+seed_r08
+row_for 9999 built >> "$R08D/build-numbers.tsv"   # written directly: add refuses it now
+NEXT_ERR_B="$(CT_RUNID=selftest "$R08BN" next 2>&1 >/dev/null)"
+ck "R08(b) NO REGRESSION: next still refuses a #9999 row (in_range's own case, unchanged)" 2 "$R08BN" next
+# AN EXIT CODE SHARED BY TWO GUARDS CANNOT TELL THEM APART (the 14 Oct direct run's antagonist A: this case asserted exit 2 only,
+# so it could not distinguish in_range's refusal from the series bound's). The message can.
+eq "R08(b) and it is IN_RANGE that refuses (five-digit wording), not the series bound" "1 0" \
+   "$(printf '%s' "$NEXT_ERR_B" | grep -c 'which is 5 digits') $(printf '%s' "$NEXT_ERR_B" | grep -c 'cut off from its own series')"
+ck "R08(b) NO REGRESSION: mint still refuses a #9999 row" 2 env CT_RUNID=selftest "$R08BN" mint "this must still refuse, same as before this job"
+
+# R08(c). (NON-VACUITY) a legitimate append of the REAL next number - #511, one past the seeded #510 - must
+# still succeed. A delta bound tight enough to refuse ordinary growth is the obvious wrong fix this control
+# exists to catch.
+seed_r08
+eq "R08(c) NON-VACUITY: next still returns the real next number for ordinary growth" "#511" "$(CT_RUNID=selftest "$R08BN" next)"
+ck "R08(c) NON-VACUITY: mint still succeeds for ordinary growth" 0 env CT_RUNID=selftest "$R08BN" mint "an ordinary legitimate build, one past the seeded highest"
+eq "R08(c) and the minted row is #511, not refused or skipped" "1" "$(grep -c '^511	' "$R08D/build-numbers.tsv")"
+rm -rf "$R08D"
+
+# R08(d), THE OTHER 86, already proved by this file's own footer count, not a separate assertion here:
+# this run's own "pass"/"fail" totals below ARE that count, and jobs/...-2026-10-10's record of them on
+# parkedAt is what carries the number forward. Restated here only so a reader of the case list, not the footer,
+# still sees the obligation named. The count printed below is computed, not typed: the hard-coded "89" this line
+# used to carry was false the day it was written (the 14 Oct direct run's antagonist A: 44 cases were above it and 54 below).
+echo "R08(d): the $((P + F)) cases counted so far are in this run's own pass/fail footer, not re-counted here."
 
 # 21. FIELD 5 IS THE LOAD-BEARING KEY and was the unvalidated one: sourceMd5 is what held.sh compares against
 # the working tree, so an unusable value there is worse than an unusable bundle md5.
@@ -204,7 +327,7 @@ eq "list reserves the word collision for #416"               "1" "$("$BN" list 2
 # 26. A SHA THAT NAMES NO OBJECT. The register shipped with one (004cb86f6a9, inherited from held-trees.tsv),
 # which passed hex and length and resolved to nothing.
 ck "a sha that names no object is refused"  2 env CT_RUNID=selftest "$BN" add "#997" held 004cb86f6a9 - "a note long enough to pass the floor here"
-ck "a real short sha is accepted"           0 env CT_RUNID=selftest "$BN" add "#997" held 004cb86 - "a note long enough to pass the floor here"
+ck "a real short sha is accepted"           0 env CT_RUNID=selftest "$BN" add "$MN" held 004cb86 - "a note long enough to pass the floor here"
 ck "a sha of a single comma is refused"     2 env CT_RUNID=selftest "$BN" add "#995" held , - "a note long enough to pass the floor here"
 
 # 27. SWEEP: THE REGISTER'S DENOMINATOR, AND THE SHALLOW CLONE THAT MAKES A CLEAN SWEEP MEANINGLESS.
@@ -404,6 +527,178 @@ ck "and --add records only the two"  0 env CT_RUNID=selftest "$BQ" sweep --add
 eq "so #1000 still has exactly ONE row, not a duplicate" "1" \
    "$(awk -F'\t' '$1=="1000"' "$QD/build-numbers.tsv" | wc -l | tr -d ' ')"
 ck "and the 4-digit sweep is then clean" 0 "$BQ" sweep
+
+# ════ 28. THE SERIES BOUND, AND THE TWO ROWS THAT DEFEATED ITS FIRST VERSION (14 Oct direct run) ═══════════════════════
+# jobs/buildnum-highest-has-no-plausibility-bound-so-one-appended-row-wedges-minting-2026-10-10. The bound that cases
+# R08(a)-(d) above pin compared highest() with the SECOND-HIGHEST distinct number, and two adjacent high rows defeated
+# it: #999 and #1000 have each other, the gap collapses to 1 and the guard is silent. The 14 Oct direct run's two blind antagonists
+# found that independently, and `sweep --add` wrote exactly such a pair in one command. The bound now asks what the
+# SERIES is - the longest run of distinct numbers in which no step is bigger than BUILDNUM_MAX_DELTA (default 10) -
+# instead of what sits just below the top. R08's four controls all append ONE row, which is why they stayed green over
+# the hole; every case here that matters puts TWO OR MORE rows above a series.
+# EVERY FIXTURE IS A REGISTER OF ITS OWN (mkreg), and every STRAY row on one is written with row_for and not with `add`,
+# which refuses one now: a fixture that goes through the guard it is testing proves nothing.
+SB="$TD/series"; mkdir -p "$SB"
+
+# 28a. THE PAIR. A twelve-number series ending at #511 with #999 and #1000 above it.
+mkreg "$SB/pair" $(seq 500 511) 999 1000
+PAIR="$SB/pair/buildnum.sh"; PAIRREG="$SB/pair/build-numbers.tsv"; PM="$(md5of "$PAIRREG")"
+PAIR_ERR="$(CT_RUNID=selftest "$PAIR" next 2>&1 >/dev/null)"
+ck "28a THE PAIR: next refuses with #999 and #1000 above a series that ends at #511 (the second-highest bound was silent here)" 2 "$PAIR" next
+eq "28a the refusal names both strays in order, the series length and top, and the nearest gap" "1 1 1" \
+   "$(grep -c 'no step that small: #999 #1000\.' <<<"$PAIR_ERR") $(grep -c 'it has 12 numbers and ends at #511' <<<"$PAIR_ERR") $(grep -c 'The nearest is 488 past #511' <<<"$PAIR_ERR")"
+ck "28a mint refuses the same register" 2 env CT_RUNID=selftest "$PAIR" mint "this must not be handed out, it would burn 488 numbers"
+eq "28a and the refused mint wrote nothing and left no lock behind" "$PM no" \
+   "$(md5of "$PAIRREG") $([ -d "$SB/pair/.buildnum.lock" ] && echo yes || echo no)"
+mkreg "$SB/clean" $(seq 500 511)
+eq "28a CONTROL: the same series without the pair issues #512, so the refusals above are the pair's and not the fixture's" "#512" \
+   "$(CT_RUNID=selftest "$SB/clean/buildnum.sh" next 2>/dev/null)"
+# check AND list USED TO RECOMMEND `mint` ON THE VERY STATE WHERE mint EXITS 2, naming the forbidden number: two documented
+# verbs, opposite answers on one register. They share next's test now.
+CHK="$("$PAIR" check '#511' 2>/dev/null)"; LST="$("$PAIR" list 2>/dev/null)"
+eq "28a check does not recommend mint on the register where mint refuses, and says so" "0 1" \
+   "$(grep -c 'Next free number' <<<"$CHK") $(grep -c 'No number can be handed out right now' <<<"$CHK")"
+eq "28a list says NONE instead of naming #1001" "1 0" "$(grep -c 'next free: NONE' <<<"$LST") $(grep -c 'next free: #' <<<"$LST")"
+CHK_OK="$("$SB/clean/buildnum.sh" check '#511' 2>/dev/null)"; LST_OK="$("$SB/clean/buildnum.sh" list 2>/dev/null)"
+eq "28a CONTROL: on the clean register check and list both name #512" "1 1" \
+   "$(grep -c 'Next free number is #512' <<<"$CHK_OK") $(grep -c 'next free: #512' <<<"$LST_OK")"
+eq "28a none of the read-only calls above wrote anything" "$PM" "$(md5of "$PAIRREG")"
+
+# 28b. A CLUSTER, NOT ONLY A PAIR: five rows (#997 to #1001) above the same twelve-number series.
+mkreg "$SB/cluster" $(seq 500 511) 997 998 999 1000 1001
+CL_ERR="$(CT_RUNID=selftest "$SB/cluster/buildnum.sh" next 2>&1 >/dev/null)"
+ck "28b A FIVE-ROW CLUSTER (#997 to #1001) above a twelve-number series is refused as well" 2 "$SB/cluster/buildnum.sh" next
+eq "28b and the refusal lists every row of it, and the series it sits above" "1 1" \
+   "$(grep -c 'no step that small: #997 #998 #999 #1000 #1001\.' <<<"$CL_ERR") $(grep -c 'ends at #511' <<<"$CL_ERR")"
+
+# 28c. A TIE, AND THE DEFINITION. Two runs of the same length: the LOWER one is the series, so the higher run is refused
+# rather than trusted. A higher run that is strictly LONGER than the lower one is, by definition, the series; that is the
+# DECLARED LIMIT in buildnum.sh's header, pinned here as the definition it is so that a change to it is seen and the
+# header is rewritten with it. It takes more stray rows than the register has numbers, and add and sweep --add refuse
+# to write even one.
+mkreg "$SB/tie" 500 501 502 900 901 902
+TIE_ERR="$(CT_RUNID=selftest "$SB/tie/buildnum.sh" next 2>&1 >/dev/null)"
+ck "28c A TIE between two runs goes to the LOWER one, so the higher run is refused" 2 "$SB/tie/buildnum.sh" next
+eq "28c and the refusal says the series ends at #502 and names the higher run" "1 1" \
+   "$(grep -c 'ends at #502' <<<"$TIE_ERR") $(grep -c 'no step that small: #900 #901 #902\.' <<<"$TIE_ERR")"
+mkreg "$SB/longer" 500 501 502 900 901 902 903
+eq "28c DECLARED LIMIT, AS THE DEFINITION IT IS: a higher run LONGER than the lower one is the series (see the header)" "#904" \
+   "$(CT_RUNID=selftest "$SB/longer/buildnum.sh" next 2>/dev/null)"
+
+# 28d. NO FALSE ALARMS ON SHAPES THE REAL REGISTER MAY HAVE. A bound that cries wolf is switched off by the first person it
+# blocks. A stray BELOW the series is history, not a threat to the next number; a gap inside the history is not a stray
+# when the run above it is the longer one; and a real jump above the series IS refused, because a margin is a margin and
+# not a guess about intent (the override in 28f is how a person says it is real).
+mkreg "$SB/low" 125 $(seq 500 511)
+eq "28d A LOW stray, far below the series, is not an alarm" "#512" "$(CT_RUNID=selftest "$SB/low/buildnum.sh" next 2>/dev/null)"
+mkreg "$SB/gap" $(seq 500 505) $(seq 517 528)
+eq "28d a gap of 12 INSIDE the history is not an alarm when the run above it is the longer one" "#529" \
+   "$(CT_RUNID=selftest "$SB/gap/buildnum.sh" next 2>/dev/null)"
+mkreg "$SB/jump" $(seq 500 511) 530 531 532
+JUMP_ERR="$(CT_RUNID=selftest "$SB/jump/buildnum.sh" next 2>&1 >/dev/null)"
+ck "28d a real jump of 19 above a twelve-number series IS refused" 2 "$SB/jump/buildnum.sh" next
+eq "28d and the refusal prints the override that is exactly the gap" "1" "$(grep -c 'BUILDNUM_MAX_DELTA=19 gates/buildnum.sh next' <<<"$JUMP_ERR")"
+
+# 28e. THE BOUNDARY, BOTH SIDES OF IT: a step of exactly 10 is growth and a step of 11 is not.
+mkreg "$SB/b10" $(seq 500 511) 521
+eq "28e BOUNDARY: a step of exactly 10 above the top is growth" "#522" "$(CT_RUNID=selftest "$SB/b10/buildnum.sh" next 2>/dev/null)"
+mkreg "$SB/b11" $(seq 500 511) 522
+ck "28e and a step of 11 is not" 2 "$SB/b11/buildnum.sh" next
+
+# 28f. THE OVERRIDE. A refusal the operator has no way past is not a remedy, so the variable the bound's own name advertises
+# is honoured, validated and never silent. THE REMEDY THE REFUSAL PRINTS IS TAKEN VERBATIM, because a message that names a
+# number that does not work is worse than no message.
+HINT="$(sed -n 's/.*accept it for this one call: BUILDNUM_MAX_DELTA=\([0-9][0-9]*\) gates\/buildnum.sh next.*/\1/p' <<<"$PAIR_ERR")"
+eq "28f the refusal prints a number to override with, and it is the gap to the nearest stray" "488" "$HINT"
+OV_OUT="$(env BUILDNUM_MAX_DELTA="${HINT:-0}" CT_RUNID=selftest "$PAIR" next 2>"$SB/ov.err")"
+eq "28f taking that remedy VERBATIM gets past the refusal" "#1001" "$OV_OUT"
+eq "28f and an override is never silent" "1" "$(grep -c 'BUILDNUM_MAX_DELTA=488 is in effect (the default is 10)' "$SB/ov.err")"
+LESS_ERR="$(env BUILDNUM_MAX_DELTA=$(( ${HINT:-0} - 1 )) CT_RUNID=selftest "$PAIR" next 2>&1 >/dev/null)"
+eq "28f one less than the printed number still refuses, and for the series reason" "1" "$(grep -c 'cut off from its own series' <<<"$LESS_ERR")"
+eq "28f the override reaches check and list too, because they share next's test" "1 1" \
+   "$(env BUILDNUM_MAX_DELTA=488 "$PAIR" check '#511' 2>/dev/null | grep -c 'Next free number is #1001') $(env BUILDNUM_MAX_DELTA=488 "$PAIR" list 2>/dev/null | grep -c 'next free: #1001')"
+for bad in abc 0 -1 010 10000 1.5 "1 0" 5x; do
+  BAD_ERR="$(env BUILDNUM_MAX_DELTA="$bad" "$PAIR" next 2>&1 >/dev/null)"; BAD_RC=$?
+  eq "28f BUILDNUM_MAX_DELTA='$bad' is refused with its own message (exit 2)" "2 1" "$BAD_RC $(grep -c 'Refusing to guess' <<<"$BAD_ERR")"
+done
+ck "28f a bad value is refused by EVERY verb, not only the ones that read it, so a typo is not ignored by one path" 2 env BUILDNUM_MAX_DELTA=abc "$BN" check "#416"
+eq "28f the largest accepted value, 9999, is accepted" "#1001" "$(env BUILDNUM_MAX_DELTA=9999 "$PAIR" next 2>/dev/null)"
+eq "28f the smallest, 1, is accepted" "#512" "$(env BUILDNUM_MAX_DELTA=1 "$SB/clean/buildnum.sh" next 2>/dev/null)"
+eq "28f and an EMPTY value means the default, not zero" "#512" "$(env BUILDNUM_MAX_DELTA= "$SB/clean/buildnum.sh" next 2>/dev/null)"
+
+# 28g. add REFUSES TO WRITE A STRAY ROW. The register is append-only, so a stray row cannot be taken back out; the only
+# place to stop one is before it is written. THE STRAY TEST COMES LAST in add, after every validation, so each of those
+# keeps its own reason: a control that asserts only "exit 2" cannot tell this refusal from a bad state if it runs first.
+mkreg "$SB/addreg" $(seq 500 511)
+AR="$SB/addreg/buildnum.sh"; AREG="$SB/addreg/build-numbers.tsv"; AM="$(md5of "$AREG")"
+ADD_ERR="$(CT_RUNID=selftest "$AR" add '#999' issued - - "a stray number typed by hand, which must not be written" 2>&1)"
+ck "28g add refuses a number the series does not reach (#999 is 488 past #511)" 2 env CT_RUNID=selftest "$AR" add '#999' issued - - "a stray number typed by hand, which must not be written"
+eq "28g it says why, with the gap, and prints the way past" "1 1" \
+   "$(grep -c 'refusing to write #999. It is 488 past #511' <<<"$ADD_ERR") $(grep -c 'BUILDNUM_MAX_DELTA=488 gates/buildnum.sh add' <<<"$ADD_ERR")"
+eq "28g and wrote nothing" "$AM" "$(md5of "$AREG")"
+ck "28g the other half of the pair (#1000) is refused the same way" 2 env CT_RUNID=selftest "$AR" add '#1000' issued - - "the other half of the pair, which must not be written"
+ORD_ERR="$(CT_RUNID=selftest "$AR" add '#999' bogus - - "a stray number with a bad state, refused for the state" 2>&1)"
+eq "28g REASON ORDER: a bad state on that same stray number is refused for the STATE, not the stray" "1 0" \
+   "$(grep -c "state 'bogus' is not one of" <<<"$ORD_ERR") $(grep -c 'refusing to write' <<<"$ORD_ERR")"
+ck "28g add accepts ordinary growth (#512)" 0 env CT_RUNID=selftest "$AR" add '#512' issued - - "ordinary growth one past the top of the series"
+ck "28g add accepts exactly the margin above the top (#522 is #512 + 10)" 0 env CT_RUNID=selftest "$AR" add '#522' issued - - "exactly ten past the top, which is still growth"
+ck "28g and refuses one past the margin (#533 is #522 + 11)" 2 env CT_RUNID=selftest "$AR" add '#533' issued - - "eleven past the top, which is a stray row"
+ck "28g add accepts a second row for a number INSIDE the series (the legal rebuild shape)" 0 env CT_RUNID=selftest "$AR" add '#505' built - - "a second row for a number inside the series"
+eq "28g the register holds exactly the three accepted rows more than it began with" "15" "$(grep -c . "$AREG")"
+mkreg "$SB/seed"
+ck "28g seeding an EMPTY register is not a stray (there is no series yet to be cut off from)" 0 env CT_RUNID=selftest "$SB/seed/buildnum.sh" add '#500' issued - - "the first row of a register that has none yet"
+
+# 28h. record IS NOT BOUNDED, BY DESIGN. It writes the number gates/build.sh has just stamped, and refusing there would turn a
+# bookkeeping refusal into a failed build for a number the run was already told it could use. The stray row it can write is
+# caught the next time a number is asked for, which is the loud half of the contract.
+mkreg "$SB/rec" $(seq 500 511)
+ck "28h record writes the number build.sh just stamped even when it is a stray" 0 env CT_RUNID=selftest "$SB/rec/buildnum.sh" record '#999' aaaaaaaaaaaa bbbbbbbbbbbb
+ck "28h and the stray row it wrote is caught the next time a number is asked for" 2 env CT_RUNID=selftest "$SB/rec/buildnum.sh" next
+
+# 28i. sweep SPLITS WHAT THE COMMIT SUBJECTS NAME INTO PLAUSIBLE AND IMPLAUSIBLE. On this repository's own main the numbers
+# #999 and #1000 are named by the subject of the reverted first attempt at this very bound: the TEXT of a commit about a
+# defect, not builds. The remedy gates/build.sh prints on every build, `sweep --add`, used to write both as rows, after
+# which next and mint handed out #1001 at exit 0 with 481 numbers burned in one command. A number is plausible when it lies
+# in the series or is joined to its top by steps no bigger than the margin, each one extending the top for the next.
+mkreg "$SB/sw" $(seq 500 510)
+git -C "$SB/sw" init -q 2>/dev/null
+git -C "$SB/sw" config user.email selftest@example.com; git -C "$SB/sw" config user.name selftest
+git -C "$SB/sw" add -A >/dev/null 2>&1
+git -C "$SB/sw" commit -q -m "#510: the last real build on this fixture" >/dev/null 2>&1
+git -C "$SB/sw" commit -q --allow-empty -m "#999: a commit ABOUT a defect names a number nothing built" >/dev/null 2>&1
+git -C "$SB/sw" commit -q --allow-empty -m "#1000: and its twin" >/dev/null 2>&1
+SW="$SB/sw/buildnum.sh"; SWREG="$SB/sw/build-numbers.tsv"; SWM="$(md5of "$SWREG")"
+SW_OUT="$("$SW" sweep 2>&1)"; SW_RC=$?
+eq "28i sweep EXITS 0 when the only names the register lacks are implausible (it exited 3 and printed the wedging remedy)" "0" "$SW_RC"
+eq "28i it lists them as implausible and counts none of them as absent" "1 1 0" \
+   "$(grep -c 'implausible: 999 1000' <<<"$SW_OUT") $(grep -c ' 0 NAMED AND ABSENT' <<<"$SW_OUT") $(grep -c '^  absent:' <<<"$SW_OUT")"
+ck "28i sweep --add on it exits 0" 0 env CT_RUNID=selftest "$SW" sweep --add
+eq "28i and writes nothing, so the register is byte-identical" "$SWM" "$(md5of "$SWREG")"
+eq "28i and next is still #511, not #1001" "#511" "$(CT_RUNID=selftest "$SW" next 2>/dev/null)"
+git -C "$SB/sw" commit -q --allow-empty -m "#511: the next real build" >/dev/null 2>&1
+git -C "$SB/sw" commit -q --allow-empty -m "Build 518: seven past it, still joined" >/dev/null 2>&1
+git -C "$SB/sw" commit -q --allow-empty -m "#526: eight past that, still joined" >/dev/null 2>&1
+git -C "$SB/sw" commit -q --allow-empty -m "#538: twelve past that, joined to nothing" >/dev/null 2>&1
+SW_OUT="$("$SW" sweep 2>&1)"; SW_RC=$?
+eq "28i with plausible names too: exit 3, and exactly the plausible chain is counted as absent" "3 1 1" \
+   "$SW_RC $(grep -c ' 3 NAMED AND ABSENT' <<<"$SW_OUT") $(grep -c '^  absent: 511 518 526 *$' <<<"$SW_OUT")"
+eq "28i and #538 is listed with #999 and #1000 as implausible, not absent" "1" "$(grep -c 'implausible: 538 999 1000' <<<"$SW_OUT")"
+ADD_OUT="$(CT_RUNID=selftest "$SW" sweep --add 2>&1)"; ADD_RC=$?
+eq "28i sweep --add records the chain whole and exits 0" "0 1" "$ADD_RC $(grep -c 'recorded 3 number(s) as issued' <<<"$ADD_OUT")"
+eq "28i it says what it left out" "1" "$(grep -c 'NOT recorded, implausible: 538 999 1000' <<<"$ADD_OUT")"
+eq "28i exactly one row each for #511, #518 and #526" "1 1 1" \
+   "$(grep -c "^511"$'\t' "$SWREG") $(grep -c "^518"$'\t' "$SWREG") $(grep -c "^526"$'\t' "$SWREG")"
+eq "28i and none for #538, #999 or #1000" "0 0 0" \
+   "$(grep -c "^538"$'\t' "$SWREG" || true) $(grep -c "^999"$'\t' "$SWREG" || true) $(grep -c "^1000"$'\t' "$SWREG" || true)"
+eq "28i next is #527 afterwards: the chain is one series ending at #526" "#527" "$(CT_RUNID=selftest "$SW" next 2>/dev/null)"
+# A NAME THAT IS IMPLAUSIBLE TODAY BECOMES PLAUSIBLE THE MOMENT THE SERIES GETS WITHIN THE MARGIN OF IT, and is then reported
+# as absent. That is the documented behaviour (the report says so) and the reason an implausible number is listed rather than dropped.
+ck "28i add #530 (four past the series top)" 0 env CT_RUNID=selftest "$SW" add '#530' issued - - "four past the top, which brings #538 within the margin"
+SW_OUT="$("$SW" sweep 2>&1)"; SW_RC=$?
+eq "28i #538 is now within the margin of #530, so it is absent and #999 and #1000 are still implausible" "3 1 1" \
+   "$SW_RC $(grep -c '^  absent: 538 *$' <<<"$SW_OUT") $(grep -c 'implausible: 999 1000' <<<"$SW_OUT")"
+eq "28i the plausibility split is applied on BOTH sides of the lock (the report and the re-derivation inside it)" "2" \
+   "$(grep -c '| split_plausible' "$SRC")"
 
 echo "---"
 echo "buildnum self-test: $P pass, $F fail"
