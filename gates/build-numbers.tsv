@@ -563,3 +563,4 @@
 521	minted	-	-	-	2026-10-14T17:19Z	build__1791997793000	minted	PART TWO of the stamp job: gates/build-numbers.tsv out of the shared FORCE arm in fastgate classify(), protected by the records door value ratchet instead; held-trees.tsv stays FORCE alone
 522	minted	-	-	-	2026-10-15T00:16Z	build__1792020359000	minted	Part A the lesson board pre-paint re-fit (band 16 job) + gate 75 out of pending with per-frame block D; Part B #521 register arm split merged unrebuilt. One suite, one push.
 522	built	-	ec31de9fe6c5	1b41d1d1e765	2026-10-15T00:37Z	build__1792020359000	build.sh	Bundle built and stamped #522. Recorded by gates/build.sh so the number resolves to an artefact.
+523	minted	-	-	-	2026-10-15T12:31Z	build__1792066130000	minted	the fastgate harness (Part 1) and the stamp/register plausibility arm (Part 2): no application change, bundle stays #522 ec31de9fe6c5

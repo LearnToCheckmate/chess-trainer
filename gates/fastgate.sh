@@ -83,7 +83,8 @@ fi
 # IT IS A NO-OP ON EVERY HONEST TREE, which is why it is safe to add here: a clean `git status` already implies
 # worktree == index == HEAD, so this can only fire where the status check was being lied to.
 TAMPER=""
-for f in gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js; do
+for f in gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js \
+         gates/buildnum.sh; do   # buildnum.sh added #523: Part 2 EXECUTES it from the working tree
   hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
   wb="$($GIT hash-object "$ROOT/$f" 2>/dev/null || echo MISSING)"
   [ "$hb" = "$wb" ] || TAMPER="$TAMPER    $f: commit $hb, working tree $wb\n"
@@ -416,6 +417,118 @@ console.log("CONTAINED "+acc+" of "+F.length+" fixtures are accepted here and al
   return 0
 }
 
+# ── PART 2, THE PLAUSIBILITY ARM. ADDED #523. ───────────────────────────────────────────────────────────────
+# WHY IT EXISTS, AND IT IS RESIDUAL (1) OF THIS SCRIPT'S OWN HEADER BEING CLOSED RATHER THAN RE-DESCRIBED.
+# so_pred above proves the head bundle differs from the base BY ITS THREE BUILD STAMPS AND NOTHING ELSE. It
+# never asks whether the new stamp is a PLAUSIBLE build, so three wrong inputs took EXIT 0 FAST GATE GREEN on
+# origin/main at 7b2f5b9, measured by the orchestrator and reproduced by this run's own harness: a same-length
+# stamp with a LOWER number (#001), the same with a date five years ahead, and a stamp with no register row.
+# The residual's stated mitigation - that a real build also writes a gates/build-numbers.tsv row and a register
+# row FORCED the full suite - was void from #521, which took the register out of the FORCE arm.
+#
+# THE BOUNDS COME FROM SOURCES THAT ARE NOT UNDER TEST [R08 sibling clause]: the margin is read out of
+# gates/buildnum.sh rather than copied, the wall clock is read from the machine, and the second witness is the
+# register, which is a DIFFERENT file from the bundle being judged. Both witnesses are required, not either.
+#
+# MEASURED FIRST, OVER HISTORY, AND THE DENOMINATOR IS THE PART THAT MATTERS [Part 2(e)].
+# Over all 1204 commits on origin/main at 7b2f5b9 in a COMPLETE clone (git rev-parse --is-shallow-repository
+# false, so these are counts and not floors): 550 commits touch app.js; 43 of those have a STAMP-ONLY app.js
+# diff by so_pred's own predicate extracted verbatim; and only TEN of the 43 would ever REACH this arm, because
+# the other 33 carry some path classify() calls FORCE and exit before the stamp block. Over those ten:
+#   number step      +1 nine times, +2 once. Never negative, never above +2, against a margin of 10.
+#   stamp date       always later than the base stamp.
+#   built-row lag    EXACTLY 0 minutes on all ten, and 0 on #522 - the stamp and the row are two clock reads
+#                    seconds apart (gates/build.sh:114 and gates/buildnum.sh:523), so they share a minute.
+#   register match   10 of 10 carry exactly ONE `built` row for the stamp number whose bundle field equals the
+#                    first 12 hex of the md5 of that commit's own app.js. So rule (b) refuses none of history.
+# ZERO UNEXPLAINED VIOLATIONS. Three commits violate these rules over the WIDER stamp-only population of 43 and
+# all three are explained and none reaches this arm: 364f7009 is the deliberate "Revert main to #439" and
+# a3368361 is "#510 veto fixes", which walks the bundle back #510 -> #508 - both also touch a FORCE path
+# (chess.jsx, gates/audit/, gates/pending/), and b88f1c8 is #522's own real rebuild, +11 over a base stamp of
+# #511 because #512 to #521 shipped no app change, which is NOT stamp-only either. The lesson in one line: the
+# base stamp number is the number of the last commit that CHANGED app.js, not the previous build, so a step
+# larger than the margin is reachable - and it is reachable only through a real rebuild, which never gets here.
+#
+# EQUALITY IS ALLOWED, AND THAT IS A MEASUREMENT AND NOT A COURTESY. The job offered strict increase "unless
+# measured history shows equal number rebuilds landing on main". It does: 11 of the 43 stamp-only commits carry
+# the SAME number on both sides (#511 -> #511, #508 -> #508, #497 -> #497 twice, #491, #474, #471, #465, #451
+# twice, #436, #434). CLAUDE.md gives the mechanism - the stamp embeds the MINUTE, so a rebuild in a new minute
+# from byte-identical source is a new bundle under one number. Requiring hn > bn would refuse that class.
+#
+# FAIL-SAFE DIRECTION, KEEPING THIS SCRIPT'S OWN EXIT CONVENTION (lines 433-450 give the reason):
+#   an IMPLAUSIBLE stamp          -> exit 2, GO FULL. The commit belongs in the suite; it is not a liar.
+#   a check that COULD NOT RUN    -> exit 2, GO FULL, with the reason through say() so it reaches the log.
+#   a STRAY REGISTER ROW          -> exit 1, REFUSED. The register is append-only, so a bad row cannot be taken
+#                                    back out once it lands, and exit 2 would route it into a suite that does
+#                                    not check the register at all. Measured, not assumed: gates/gates.sh and
+#                                    gates/records-gate.sh were both read for this, and NEITHER runs
+#                                    buildnum.sh next nor any series check, so the full suite would land it.
+PLAUS_WHY=""
+plaus_stamp(){ grep -aoE '#[0-9]{3,4} - 20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET' "$1" 2>/dev/null | head -1; }
+# THE MARGIN IS READ, NOT COPIED. A second copy of a constant is the defect this project keeps filing, so this
+# greps gates/buildnum.sh for its own default and honours the same BUILDNUM_MAX_DELTA override buildnum.sh does.
+plaus_delta(){
+  local d
+  d="$(sed -n 's/^BN_DEFAULT_DELTA=\([0-9][0-9]*\).*/\1/p' "$G/buildnum.sh" 2>/dev/null | head -1)"
+  [ -n "$d" ] || return 1
+  d="${BUILDNUM_MAX_DELTA:-$d}"
+  case "$d" in ''|*[!0-9]*) return 1 ;; esac
+  printf '%s' "$d"
+}
+# ET -> UTC through the ZONE NAME, never an offset [R52]. AND NOT `TZ=... date -u`, WHICH IS THE TRAP I FELL
+# INTO WHILE MEASURING THIS: -u makes GNU date parse in UTC as well as print in it, so the conversion silently
+# becomes the identity and every lag reads exactly +240 minutes - the EDT offset wearing the mask of a result.
+# The TZ="..." prefix INSIDE the -d string is parsed in that zone and is correct across the 1 November boundary.
+plaus_et2utc(){ date -u -d "TZ=\"America/New_York\" $1" '+%Y-%m-%dT%H:%MZ' 2>/dev/null; }
+
+# THE PREDICATE. ONE DEFINITION, CALLED BY THE LIVE PATH AND BY gates/fastgate-drive.sh THROUGH THE SCRIPT
+# ITSELF, so there is no second copy of the rule to drift - classify()'s own argument applied again.
+# Echoes a verdict line; returns 0 plausible, 1 refuse (stray row), 2 go-full (implausible or cannot run).
+plaus_pred(){ # <base app.js> <head app.js> <head md5-12>
+  local BA="$1" HA="$2" HM5="$3" SB SH BNUM HNUM BDATE HDATE D NOW10 HUTC ROW RTIME HI
+  SB="$(plaus_stamp "$BA")"; SH="$(plaus_stamp "$HA")"
+  if [ -z "$SB" ] || [ -z "$SH" ]; then
+    PLAUS_WHY="could not read a build stamp from both sides (base '$SB', head '$SH')"; return 2; fi
+  BNUM="${SB#\#}"; BNUM="${BNUM%% *}"; HNUM="${SH#\#}"; HNUM="${HNUM%% *}"
+  BDATE="${SB#* - }"; BDATE="${BDATE% ET}"; HDATE="${SH#* - }"; HDATE="${HDATE% ET}"
+  case "$BNUM$HNUM" in *[!0-9]*) PLAUS_WHY="a stamp number is not numeric (base $BNUM, head $HNUM)"; return 2 ;; esac
+  D="$(plaus_delta)" || { PLAUS_WHY="could not read BN_DEFAULT_DELTA out of gates/buildnum.sh, so the series margin is unknown"; return 2; }
+  # (a) NUMBER. Equality allowed - measured, see the block comment above. Lower refuses; above the margin refuses.
+  if [ "$HNUM" -lt "$BNUM" ]; then
+    PLAUS_WHY="the head stamp number #$HNUM is LOWER than the base #$BNUM; a build number never goes backwards on a stamp-only commit"; return 2; fi
+  if [ "$((HNUM - BNUM))" -gt "$D" ]; then
+    PLAUS_WHY="the head stamp number #$HNUM is $((HNUM - BNUM)) above the base #$BNUM, past the series margin of $D that gates/buildnum.sh itself uses"; return 2; fi
+  # (a) DATE. Lexicographic compare is exact for YYYY-MM-DD HH:MM, so no date arithmetic and no DST edge here.
+  if [ "$HDATE" \< "$BDATE" ]; then
+    PLAUS_WHY="the head stamp date $HDATE is EARLIER than the base stamp date $BDATE"; return 2; fi
+  NOW10="$(date -d "TZ=\"America/New_York\" now + 10 minutes" '+%Y-%m-%d %H:%M' 2>/dev/null)"
+  [ -n "$NOW10" ] || { PLAUS_WHY="could not read the wall clock, so a future-dated stamp cannot be excluded"; return 2; }
+  if [ "$HDATE" \> "$NOW10" ]; then
+    PLAUS_WHY="the head stamp date $HDATE is later than the wall clock plus ten minutes ($NOW10 ET), so it cannot be a build that has happened"; return 2; fi
+  # (b) THE SECOND WITNESS: THE REGISTER. A different file from the bundle under judgement, so this is not the
+  # painter checking itself. A MISSING or out-of-band row is "cannot confirm" and goes FULL - never green -
+  # because buildnum.sh record is BEST EFFORT (it warns and does not fail the build), so a legitimate build can
+  # genuinely lack a row and must not be REFUSED for it.
+  [ -n "$HM5" ] || { PLAUS_WHY="the head bundle md5 was not computed, so the register row cannot be matched to it"; return 2; }
+  [ -r "$PLAUS_REG" ] || { PLAUS_WHY="the head register is unreadable, so the stamp has no second witness"; return 2; }
+  ROW="$(awk -F'\t' -v n="$HNUM" -v m="$HM5" 'NF>=6 && $1==n && $2=="built" && $4==m {print; exit}' "$PLAUS_REG")"
+  if [ -z "$ROW" ]; then
+    HI="$(awk -F'\t' -v n="$HNUM" 'NF>=2 && $1==n && $2=="built" {c++} END{print c+0}' "$PLAUS_REG")"
+    PLAUS_WHY="the head register holds no \`built\` row for #$HNUM whose bundle field is $HM5 (it holds $HI \`built\` row(s) for #$HNUM), so nothing but the bundle itself says this stamp names this build"; return 2; fi
+  RTIME="$(printf '%s' "$ROW" | cut -f6)"
+  HUTC="$(plaus_et2utc "$HDATE")"
+  [ -n "$HUTC" ] && [ -n "$RTIME" ] || { PLAUS_WHY="could not convert the stamp date to UTC to compare it with the register row time"; return 2; }
+  # BAND: the row is never EARLIER than the stamp (record runs after the bundle is written) and never more than
+  # an hour later. History is 0 minutes on all ten reachable commits and on #522; the hour is headroom for a
+  # build that straddles a minute, and it still rejects a row borrowed from a different build hours away.
+  if [ "$RTIME" \< "$HUTC" ]; then
+    PLAUS_WHY="the register row for #$HNUM is stamped $RTIME, EARLIER than the bundle stamp $HDATE ET ($HUTC); the row is written after the bundle"; return 2; fi
+  if [ "$RTIME" \> "$(date -u -d "$HUTC + 60 minutes" '+%Y-%m-%dT%H:%MZ' 2>/dev/null || printf '%s' "$RTIME")" ]; then
+    PLAUS_WHY="the register row for #$HNUM is stamped $RTIME, more than an hour after the bundle stamp $HDATE ET ($HUTC); history shows these two clock reads share a minute"; return 2; fi
+  PLAUS_WHY="stamp #$BNUM -> #$HNUM (step $((HNUM - BNUM)), margin $D), date $BDATE -> $HDATE, not after $NOW10 ET; register \`built\` row for #$HNUM names bundle $HM5 at $RTIME, and the bundle stamp is $HUTC"
+  return 0
+}
+
 STAMPONLY=""
 if [ -n "$APPDIFF" ]; then
   so_selftest; SO_ST=$?
@@ -480,6 +593,33 @@ if [ -n "$APPDIFF" ]; then
   rm -f "$SO_B" "$SO_H"
   if [ "$SO_RC" = 0 ]; then
     STAMPONLY=yes
+    # ── PART 2 CALL SITE, #523. The exemption is not taken until the stamp is PLAUSIBLE as well as stamp-only.
+    PLAUS_REG="$(mktemp)"
+    if [ -z "$PLAUS_REG" ] || [ ! -f "$PLAUS_REG" ]; then
+      say ""; say "FULL SUITE REQUIRED. mktemp failed, so the stamp-plausibility arm could not be run at all."
+      say "    $APPDIFF"; exit 2
+    fi
+    $GIT cat-file blob "$HEAD:gates/build-numbers.tsv" > "$PLAUS_REG" 2>/dev/null || true
+    PL_B="$(mktemp)"; PL_H="$(mktemp)"
+    $GIT cat-file blob "$BASEFULL:app.js" > "$PL_B" 2>/dev/null || true
+    $GIT cat-file blob "$HEAD:app.js"     > "$PL_H" 2>/dev/null || true
+    PL_M5="$(md5sum < "$PL_H" 2>/dev/null | cut -c1-12)"
+    plaus_pred "$PL_B" "$PL_H" "$PL_M5"; PL_RC=$?
+    rm -f "$PLAUS_REG" "$PL_B" "$PL_H"
+    case "$PL_RC" in
+      0) say ""
+         say "stamp plausibility, both witnesses [#523]: $PLAUS_WHY" ;;
+      1) say ""
+         say "FAST GATE REFUSED - the stamp plausibility arm answered that this tree must not take a fast green:"
+         say "    $PLAUS_WHY"
+         exit 1 ;;
+      *) say ""
+         say "FULL SUITE REQUIRED. app.js differs by its build stamp only, but that stamp is NOT a plausible"
+         say "    build, so the exemption is not taken [#523]:"
+         say "    NOT-STAMP-ONLY $PLAUS_WHY"
+         say "    $APPDIFF"
+         exit 2 ;;
+    esac
     say ""
     say "app.js differs from the base BY ITS BUILD STAMP ONLY, so it does not force the full suite:"
     say "    $APPDIFF"
@@ -494,6 +634,78 @@ if [ -n "$APPDIFF" ]; then
     say "    $SO_OUT"
     exit 2
   fi
+fi
+
+
+# ── PART 2(c), REGISTER PLAUSIBILITY. ADDED #523. ──────────────────────────────────────────────────────────
+# gates/build-numbers.tsv has been RECORDS since the arm split landed at #522, guarded by the records door's
+# APPEND-ONLY ratchet. That ratchet proves old rows were not edited. IT NEVER ASKS WHETHER AN APPENDED ROW IS A
+# PLAUSIBLE NUMBER, so one hand-written `999 minted` row took EXIT 0 FAST GATE GREEN on main - measured - and
+# in that same tree `buildnum.sh next` REFUSES with exit 2, because 999 is cut off from the series and handing
+# out #1000 would silently burn every number between. So the push gate accepted exactly the row that wedges the
+# minter, and the register is append-only, so it cannot be taken back out once it lands.
+#
+# THE SERIES BOUND IS REUSED, NOT RE-IMPLEMENTED. A second copy of the rule is the defect this project keeps
+# filing, so this ASKS buildnum.sh rather than re-deriving its series: `next` returning exit 0 is the same
+# predicate that will have to hold the next time anybody mints, and it is the one the wedge actually breaks.
+# The appended-row bound beside it is the cheap local check that names the offending row for a reader.
+#
+# THIS IS exit 1 AND NOT exit 2, AND THE REASON IS THE ONE THING I MEASURED RATHER THAN ASSUMED. Routing a
+# stray row to the full suite would be useless: I read gates/gates.sh and gates/records-gate.sh for this, and
+# NEITHER runs buildnum.sh next nor any series check - gates.sh never mentions buildnum at all - so the suite
+# would go green and the row would land. prompts/build-run STEP 0F reads exit 1 as STOP: do not push, file it.
+if printf '%s\n' "$CHANGED" | grep -qxF 'gates/build-numbers.tsv'; then
+  RP_D="$(plaus_delta)"
+  if [ -z "$RP_D" ]; then
+    say ""
+    say "FULL SUITE REQUIRED. gates/build-numbers.tsv changed but BN_DEFAULT_DELTA could not be read out of"
+    say "    gates/buildnum.sh, so an appended row cannot be bounded. No answer is not a green [#523]."
+    exit 2
+  fi
+  RP_B="$(mktemp)"; RP_H="$(mktemp)"
+  $GIT cat-file blob "$BASEFULL:gates/build-numbers.tsv" > "$RP_B" 2>/dev/null || true
+  $GIT cat-file blob "$HEAD:gates/build-numbers.tsv"     > "$RP_H" 2>/dev/null || true
+  if [ ! -s "$RP_H" ]; then
+    rm -f "$RP_B" "$RP_H"
+    say ""
+    say "FAST GATE REFUSED - gates/build-numbers.tsv is in the diff and the head copy is empty or unreadable."
+    say "    The register is append-only; an empty head is not an append [#523]."
+    exit 1
+  fi
+  # TOP OF THE BASE SERIES, read with buildnum.sh's own row filter (field 1 a bare number, NF>=2) so a comment
+  # or the header cannot be half-matched - held.sh's lesson, which buildnum.sh:102 already encodes.
+  RP_TOP="$(grep -v '^[[:space:]]*#' "$RP_B" 2>/dev/null | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/ {print $1}' | sort -n | tail -1)"
+  [ -n "$RP_TOP" ] || RP_TOP=0
+  # APPENDED ROWS: present at head, absent at base. comm needs sorted input, and the rows are not sorted, so
+  # this compares as SETS - which is what "append-only" leaves behind and is enough to name a new number.
+  RP_BAD=""
+  while IFS= read -r rline; do
+    [ -n "$rline" ] || continue
+    rnum="$(printf '%s' "$rline" | cut -f1)"
+    case "$rnum" in ''|*[!0-9]*) continue ;; esac
+    if [ "$rnum" -gt "$((RP_TOP + RP_D))" ]; then
+      RP_BAD="$RP_BAD    row #$rnum is $((rnum - RP_TOP)) above the base register top of #$RP_TOP, past the series margin of $RP_D\n"
+    fi
+  done < <(grep -vxF -f <(grep -v '^[[:space:]]*#' "$RP_B" 2>/dev/null || true) <(grep -v '^[[:space:]]*#' "$RP_H") 2>/dev/null || true)
+  rm -f "$RP_B" "$RP_H"
+  if [ -n "$RP_BAD" ]; then
+    say ""
+    say "FAST GATE REFUSED - gates/build-numbers.tsv gains a row the series cannot carry [#523]. The register is"
+    say "    APPEND-ONLY, so this cannot be edited out again once it lands, and it wedges every later mint:"
+    printf "$RP_BAD" | tee -a "$LOG"
+    exit 1
+  fi
+  # AND ASK THE MINTER ITSELF. This is the predicate the wedge actually breaks, so it is the one that decides.
+  RP_OUT="$(cd "$ROOT" && bash "$G/buildnum.sh" next 2>&1)"; RP_RC=$?
+  if [ "$RP_RC" != 0 ]; then
+    say ""
+    say "FAST GATE REFUSED - gates/build-numbers.tsv changed and gates/buildnum.sh next now REFUSES on the head"
+    say "    register (exit $RP_RC), so this commit would wedge the next mint [#523]:"
+    printf '%s\n' "$RP_OUT" | sed 's/^/    /' | tee -a "$LOG"
+    exit 1
+  fi
+  say "register plausibility [#523]: appended rows are within the series margin of $RP_D above the base top of"
+  say "  #$RP_TOP, and gates/buildnum.sh next still answers exit 0 on the head register ($RP_OUT)."
 fi
 
 # ── DOES THIS HEAD CARRY .nojekyll? MEASURED ONCE, FROM THE OBJECT STORE, AND USED BY classify() BELOW. ─────
