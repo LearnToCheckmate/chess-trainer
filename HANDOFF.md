@@ -1,3 +1,194 @@
+# HANDOFF — after #523: THE PUSH-GATE HARNESS IS BUILT, PROVED, AND HELD BY ITS OWN ANTAGONISTS
+
+**#523 reached `GATES GREEN` and refused to push.** The suite was clean — 60 sections, 4986 PASS, 0 FAIL,
+manifest 59/59 — over the tree at `claude/practical-sagan-v052x8` `6fcbca5a888f7cfa6cb7a8900a2b69986d680f1a`.
+Both blind antagonists vetoed, all three of their findings are real, and `gates/held-trees.tsv` on main now
+carries the row that stops the next run pushing that exact tree on four correct green checks — which is the one
+thing #441 failed to do and #450 paid for seventeen minutes later.
+
+**The deliverable is BUILT and must NOT be rebuilt.** Every blocking fix is a one-liner. Fix them on top of that
+branch and re-gate.
+
+| what | where |
+|---|---|
+| the work | `claude/practical-sagan-v052x8`, four commits, head `6fcbca5` |
+| the green log | `gates/logs/523-all.log`, archived at `claude/agents/gatelogs/523-all.log` |
+| the hold | `gates/held-trees.tsv`, row `#523`, written 20:23Z |
+| the findings | `flags/antagonist-a-523`, `flags/antagonist-b-523` (both carry a `crossRead_523` field) |
+| the full record | `builds/523`, `runreports/523` |
+
+## 0. WHAT WAS BUILT, AND THE ONE NUMBER THAT CAME OUT HIGHER THAN THE JOB EXPECTED
+
+`gates/fastgate-drive.sh` is new: 360 lines, 13 cases, driving `gates/fastgate.sh` end to end in throwaway
+clones. `gates/fastgate.sh` gained a stamp-plausibility arm and a register-plausibility arm, and
+`gates/buildnum.sh` joined the TAMPER blob-identity loop because Part 2 now executes it.
+
+**The job's premise was an undercount.** It said three wrong inputs take `EXIT 0 FAST GATE GREEN` on
+`origin/main` at `7b2f5b9`. Run against main's own script, the harness says **six** do: H3 a lower stamp
+number, H4 a future date, H5 a date before the base, H6 no register row, H7 a register row naming the wrong
+bundle, H8 a planted `999` row. Fixed mode gives 11 ok / 0 FAIL / 1 skipped; unfixed gives 5 ok / 6 FAIL,
+stable over eight runs.
+
+The bounds are set from history, not taste: the arm is reachable by only **10 of 1204** commits, and over those
+ten there are zero unexplained violations, steps of +1 nine times and +2 once, the date always forward, and a
+`built`-row-to-stamp lag of **exactly 0 minutes**. Equality of the stamp number is allowed because 12 of the 43
+stamp-only commits carry the same number on both sides.
+
+## 1. WHY IT IS HELD — THREE DEFECTS, ALL FILED, ALL SMALL
+
+**(1) The future-stamp bound is computed in UTC, so it is four hours wide — and this is the defect the build
+existed to close.** `gates/fastgate.sh:505`:
+
+```sh
+NOW10="$(date -d "TZ=\"America/New_York\" now + 10 minutes" '+%Y-%m-%d %H:%M')"
+```
+
+The `TZ="..."` prefix inside `-d` sets the **parsing** zone. `now` needs no parsing zone, and the **output**
+zone is the process `TZ`, which is unset here and therefore UTC. Measured at 2026-10-15T20:20Z: true ET
+**16:20**, what the arm computes **20:30**. So the bound is wall clock **+4h10m** under EDT and +5h10m under
+EST, and the verdict line prints the computed value labelled "ET". The orchestrator's own named fixture — a
+stamp three hours ahead of the clock — **still takes `EXIT 0 FAST GATE GREEN`**. Antagonist A reproduced it end
+to end; I re-measured and confirmed it.
+
+The fix is `NOW10="$(TZ=America/New_York date -d 'now + 10 minutes' '+%Y-%m-%d %H:%M')"`. **Do not touch
+`plaus_et2utc` two lines below** — `date -u -d 'TZ="America/New_York" X'` is correct *there*, because there the
+prefix is doing the parsing work. The two forms differ for a real reason. H4 cannot see this class because it
+uses `2031-01-01`, five years out, which fails on the date rule either way; the untested band is +10min to
++4h10m, which is the only band a plausible wrong stamp lives in.
+
+Two things bound the severity honestly. B showed the **tool path cannot reach the band**: `plaus_pred`'s band
+clause refuses a register row stamped earlier than the bundle, and an honest `record` writes *now*, so
+`CT_STAMP_TIME` cannot get there and A's own first attempt is the proof. And B showed **fixing this closes one
+of two doors**: an implausible stamp exits 2 = GO FULL, and *nothing in the full suite bounds a stamp date*
+(verified — no regress gate compares a stamp against a wall clock), so Part 2's bound is the only future-stamp
+check in the repository.
+
+**(2) The new `gates/gates.sh` unit block makes `GATES GREEN` nondeterministic.** `gates/fastgate.sh:788-790`
+pipes `records-gate.sh --entries` into `grep -qxF` under the `set -uo pipefail` at `:48`. `grep -q` exits on
+the 2nd of 9 lines, the writer takes SIGPIPE, and under `pipefail` the pipeline status is **141 even though
+grep matched** — so `&&` never fires, `BNRATCHET` stays `no`, `classify()` calls the register FORCE and
+fastgate exits 2 for a reason unrelated to the commit. On main that race is **fail-safe**; this build wires a
+harness asserting `exit 0` into the suite and inverts it. B measured 9/150 on the raw pipeline and **4 of 10
+harness runs RED** under load, and proved causation deterministically by forcing `BNRATCHET=no` to a
+byte-identical signature. My own 150 trials on a quiet box missed 0 — consistent with B's load-dependence, not
+a refutation. **Publish the load condition with any rate.** Fix: capture the output, then grep the variable.
+
+**(3) The same block makes a dirty working tree a hard suite red — and that is RETROACTIVE, not future.**
+`fastgate-drive.sh:64` refuses on a non-empty `git status --porcelain`, and `gates.sh` reds on
+`drc != 0 || dfail > 0 || dok == 0`. The documented sequence leaves the tree dirty between `build.sh` and
+`gates.sh`. A filed this as a future cost; B measured the archive and I re-measured it: **22 of the 151 logs in
+`claude/agents/gatelogs/` carry `WORKING TREE DIRTY`, and 21 of those 22 ended `GATES GREEN`** — including
+`522-all.log`, the green this very build cites as its baseline, at 16 dirty paths and 4975 PASS. So the block
+would have reddened a fifth of the archive. Make it a reported SKIP, as the esbuild case already is.
+
+**The root all of (2) and (3) share, which A found only in the cross-read:** `gates.sh` converts *any* non-zero
+exit of a 360-line harness into loss of `GATES GREEN`, without distinguishing "the harness could not run" from
+"the harness ran and a case failed".
+
+## 2. WHAT TO LAND FIRST, AND THE CORRECTIONS IT NEEDS
+
+**Commit `6fcbca5`'s content is the cheapest thing to land** — the CLAUDE.md withdrawals and
+`gates/audit/landed-on-main.sh`'s prefix read. Antagonist B audited the CLAUDE.md diff from the shipped-surface
+door and **found nothing measurably false in it**: `ls gates/regress/67-*` is one file, `ls gates/regress/50-*`
+is none, gate 67 is `required` at `gate-manifest.tsv:79` and ran 33 PASS in the #522 log, and it landed at
+`af49ceb`. Two corrections first:
+
+- **Two of the seven published pre/post checks do not reproduce.** The run wrote "all seven reproduce exactly".
+  Measured: `CLAUDE.md` went **742 → 754** lines, not "before and after"; and `does not outrank` is **1 → 1**,
+  not 1 → 2, because the new text *quotes* the withdrawn sentence rather than adding a live occurrence. The
+  third spot-check (row 54, one line, 3 pipes) does reproduce.
+- **`landed-on-main.sh`'s five new controls reuse `C27`–`C31`**, ids already in that file, so `--selftest`
+  prints two different controls per id. The selftest is 43 PASS / 0 FAIL and deterministic; renumber anyway,
+  because citation-by-id is this project's evidence mechanism.
+
+Also open and filed: Part 2(c) runs **behind** the stamp arm, so one implausible stamp in the same commit turns
+its deliberate `exit 1` into a go-full and the planted row lands on an append-only register (a one-line
+reorder); its margin accepts rows at `top+1..top+10`, which burns numbers permanently; the new coverage is
+**silently deletable** because `gates.sh:361` guards it with `[ -f "$DRIVESH" ]` with no manifest row — the very
+hole the item job was filed about; and the thirteen `TC-SUITE-057..069` ids never appear in any log, which
+ratchets `verify-log --citations` arm (2) by **+13** once #523's log is archived.
+
+## 3. THE HOLD ITSELF FOUND A DEFECT IN THE HOLD MECHANISM
+
+`gates/held-trees.tsv` **cannot express a hold on a run that changed only `gates/`.** All three of its keys —
+bundle md5, sha, sourceMd5 — identify an *artefact*, and a gates-only run's artefact is main's own. #523 changed
+no application code, so its bundle md5 is `ec31de9fe6c5`, exactly what `origin/main` serves, and `held.sh check`
+**prefix-matches field 1 against a log's md5**. A truthful row would therefore have answered HELD for the bundle
+main ships and made `verify-log.sh` refuse every future log over it.
+
+**So field 1 of #523's row carries the gated sha's first 12 hex, not a bundle md5**, field 2 carries the sha,
+field 7 is `-`, and the row's own reason says all of this in full. Verified both ways after writing: HELD on the
+sha, "not held" on `ec31de9fe6c5`. **Do not "correct" that field.** Filed as
+`jobs/the-held-register-cannot-express-a-harness-only-hold-because-all-three-of-its-keys-identify-an-artefact-2026-10-15`.
+
+## 4. WHAT THIS RUN COST, AND IT WAS NOT THE DEFECTS
+
+**The ship was lost to a clock.** The suite went green at **14:51Z** and nothing looked at it until **20:20Z**,
+because the only watcher was a `Monitor` that expired on its own 30-minute timeout at ~13:19Z and was never
+re-armed — CLAUDE.md's #407 rule, broken by arming exactly one watcher and letting its expiry notice be just
+another event in a stream nobody was reading. By then the run was **2h11m past its 6-hour pen liveness bound**,
+and the check-in row had explicitly budgeted one red cycle inside that bound. Every vetoed fault is a one-line
+fix. **Read at 15:00Z, this run ships.** 23rd consecutive build to drift on timing and the largest drift
+recorded; twice earlier in the same run the clock was misjudged by 45–60 minutes in the same direction, each
+time while about to cut scope.
+
+Three of its own measurements were wrong, all caught: a counter that printed **"0 of 22"** while listing 21
+names, because it incremented inside a `| head` pipeline subshell — the same self-reference family as the defect
+it was measuring; `grep -c required gates/gate-manifest.tsv` returning **65** against the suite footer's **59**,
+nearly published as a close-out number, because it matches the word in comments; and the two pre/post figures
+above, which an antagonist had to correct.
+
+One recorded procedure breach: **the first suite was launched before the cross-read had landed**, against the
+procedure's explicit hold, on a judgement that depended on the clock it had already misjudged. The cross-read
+then changed the record twice, which is the argument for the rule.
+
+## 5. WHAT IS OWED NEXT
+
+1. **Fix the three blockers and re-gate `claude/practical-sagan-v052x8`.** All one-liners. Land the gates/
+   fixes together — every one of these paths is FORCE by `classify()`, so they cost ~110 minutes each if split.
+2. **Part 3 has now been dropped at a cut line by two consecutive runs**
+   (`jobs/the-tier-guards-what-it-executes-but-not-what-it-reads-2026-10-14`). The R15 lookback calls that
+   declining rather than deferring. Its two controls were to be **H10 and H11**, and those slots were left
+   deliberately empty in the harness — the numbering's two holes are that job, not missing cases. Either raise
+   its priority above whatever keeps displacing it, or say it will not be done.
+3. **H1b has never executed anywhere.** It is the only case that rebuilds for real through `gates/build.sh`, and
+   esbuild is absent in this container, so it printed SKIPPED on every run. The accounting is correct; the case
+   is unproven, and so is the whole esbuild-present configuration.
+4. **The register half of the arm is covered by exactly one case.** By B's mutation testing: reverting the whole
+   arm reddens 6 cases, disabling the stamp half reddens 5, disabling Part 2(c) reddens **only H8**. H8b and H13
+   stay green with the entire arm deleted, so 2 of the 11 PASS lines added to the footer assert nothing about
+   `gates/fastgate.sh`.
+5. **The twelfth consecutive build with no application code.** The drill-verdict P0 Kunal reported twice is
+   still live on main.
+6. **Still blocked by the egress proxy:** no run from this container can verify the deployed app against the
+   committed bundle (R34's post-deploy half). Moot this run — nothing application-facing shipped.
+
+## 6. THE APPENDIX BELOW IS STILL LIVE — #523 APPLIED IT, ON A BRANCH THAT DID NOT LAND
+
+Section 7 and the appendix are #521's and #522's, kept **verbatim**, and their heading still says "NOT DONE
+HERE". That is now half true and the half that matters is unchanged: **#523 did apply both anchor blocks, and
+they are on `claude/practical-sagan-v052x8`, not on main.** `CLAUDE.md` is FORCE by `classify()`, so the edit
+needs a full suite, and this run's suite is the one being held. Two figures in that application were published
+wrong and are corrected in section 2 above — fix them before re-applying. Until the blocks are on `origin/main`,
+this appendix is the ready-to-apply text and must not be deleted: that is #493's "a fix recorded in one home does
+not travel", and #521 and #522 each carried this same appendix forward for exactly this reason.
+
+---
+
+# EVERYTHING BELOW THIS LINE IS #522's HANDOFF, RETAINED VERBATIM
+
+**Why it is still here rather than replaced.** `gates/records-gate.sh` holds `HANDOFF.md` under a **`noshrink`**
+ratchet that compares LINE COUNTS (`records-gate.sh:849`), and this run's follow-up records commit takes the FAST
+tier — so a rewrite that shortened this file would be refused at the door. Earlier runs did shorten it (#513 took
+it 262 → 96 lines, #517 146 → 106, #518 106 → 85), and every one of those commits went through the FULL suite,
+which never consults the records door. This run's suite is the one being held, so it cannot pay that way.
+
+Padding a document to satisfy a ratchet would be gaming the guard. Keeping #522's text costs nothing and has two
+real benefits: the ready-to-apply `CLAUDE.md` appendix below is **still live** (section 6 above says why), and
+#522's own account of the lesson-board ratchet is the context for the gate-48 history anyone reading this will
+hit next. Read the sections above for #523; everything below is the previous run's and is superseded except its
+appendix.
+
 # HANDOFF — after #522: THE LESSON BOARD'S ONE-WAY RATCHET IS FIXED BEFORE PAINT
 
 **READ THIS FIRST.** `#522` was a DIRECT run under `docs/restart-readiness.directOpening_2026_10_14b`, opened on
