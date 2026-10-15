@@ -65,6 +65,38 @@ if [ "$DIRTY" != "0" ]; then
   exit 1
 fi
 
+# ── THIS TIER EXECUTES WORKING-TREE CODE WHILE CLAIMING TO GATE A COMMIT. ASSERT THE TWO ARE THE SAME. ───────
+# Added #521 on antagonist B's cross-read, after A had found the route and B had measured that A's own fix did
+# not close it. THE HOLE: every check this tier runs is executed from the WORKING TREE - records-gate.sh twice,
+# gatemanifest.sh, verify-log.sh and control-audit.js - while every verdict it prints is about $HEAD. The only
+# thing tying those together was the DIRTY check above, and `git status` is a STATUS check, not a CONTENT check:
+# `git update-index --assume-unchanged <file>` makes it report 0 while the file on disk says whatever you like.
+# MEASURED, TWICE, BOTH AT EXIT 0 FAST GATE GREEN WITH NO PRIOR COMMIT. A defanged the working-tree door and
+# rewrote register rows in place. B then defeated A's `--entries` fix by adding ONE line inside entries_live()
+# in the working tree, so `--entries` listed the register while the ratchet loop still skipped it - which is the
+# sharpest statement of the whole class: "one list" is not a property of a FILE, it is a property of an HONEST
+# COPY of that file, and this script runs whichever copy is on disk.
+# SO THE FIX IS NOT A BETTER QUESTION ABOUT THE DOOR, IT IS TO PIN THE EXECUTABLE. Compare the blob the commit
+# records against the blob on disk, for every file this tier executes, and refuse on any difference.
+# I EXTENDED B's LIST BY ONE: B named records-gate.sh, verify-log.sh and control-audit.js; gatemanifest.sh is
+# executed here too (the `binary "gate manifest"` call) and is equally defangable, so it is in the set.
+# IT IS A NO-OP ON EVERY HONEST TREE, which is why it is safe to add here: a clean `git status` already implies
+# worktree == index == HEAD, so this can only fire where the status check was being lied to.
+TAMPER=""
+for f in gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js; do
+  hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
+  wb="$($GIT hash-object "$ROOT/$f" 2>/dev/null || echo MISSING)"
+  [ "$hb" = "$wb" ] || TAMPER="$TAMPER    $f: commit $hb, working tree $wb\n"
+done
+if [ -n "$TAMPER" ]; then
+  say ""
+  say "FAST GATE REFUSED - this tier EXECUTES these files from the working tree while every verdict it prints is"
+  say "about the COMMIT, and for these the two are not the same object:"
+  printf "$TAMPER" | tee -a "$LOG"
+  say "A clean git status cannot see this: assume-unchanged and skip-worktree both suppress it. Run FULL."
+  exit 1
+fi
+
 # ── THE BASE IS NOT TAKEN ON TRUST. ────────────────────────────────────────────────────────────────────────
 # Added #490 on both antagonists' finding, reproduced before acting. Until now BASE was whatever sha the caller
 # typed, and NOTHING checked it: not that it is an ancestor of HEAD, not that it is what main carries. So every
@@ -144,9 +176,14 @@ fi
 # byte-identical to main for the fifth consecutive build. BOTH were true - the tier compares a fresh rebuild
 # with the new stamp in it, the close-out compares final states with the stamp on both sides. So the one lane
 # paying the 84-minute suite was the one lane structurally excluded from the tier, because it rebuilds.
-# AND THAT EXCLUSION IS NOT REMOVED BY THIS CHANGE - said here, at the top, because this is the paragraph a
-# reader takes the claim from. Minting is the OTHER condition and it is untouched: measured marginal 0 of 400
-# until part two lands. The full statement, with the blocker census and the numbers, is at the FORCE loop.
+# THAT EXCLUSION IS REMOVED AT #521, AND THE SENTENCE THAT STOOD HERE IS WITHDRAWN [R18] - said at the top,
+# because this header's own words were "this is the paragraph a reader takes the claim from". It read: "AND THAT
+# EXCLUSION IS NOT REMOVED BY THIS CHANGE ... Minting is the OTHER condition and it is untouched: measured
+# marginal 0 of 400 until part two lands." #521 IS that part two: gates/build-numbers.tsv is out of the shared
+# FORCE arm, so a commit that rebuilt the bundle AND minted its number can reach this tier. Measured, each
+# version's own classify() over origin/main's last 400 commits: main 162, this arm 181 pure, 191 with the
+# stamp-only condition actually applied. The full statement, with the blocker census, the withdrawn figures and
+# the residual the change leaves live, is at the FORCE loop.
 #
 # THE CONSTRUCTION IS INVERTED ON PURPOSE AND THIS IS THE WHOLE RISK OF THE CHANGE. The job says in terms: do
 # NOT implement this as "normalise the stamp sites, then compare". Blanking bytes before a comparison is how a
@@ -162,8 +199,17 @@ fi
 # THREE RESIDUALS, NAMED RATHER THAN IMPLIED [#514 blind pair]. (1) The predicate does not ask whether the new
 # stamp is a PLAUSIBLE build: a LOWER build number and a nonsense date reachable through build.sh's unvalidated
 # CT_STAMP_TIME are both accepted, measured at exit 0, and the length pin does not touch them because both are
-# the same length. Impact is low for a structural reason rather than a lucky one - a REAL build also writes a
-# gates/build-numbers.tsv row, which classify() FORCEs, so anything that genuinely rebuilt goes full anyway.
+# the same length. ITS STATED MITIGATION WAS THE SENTENCE THIS BUILD FALSIFIED, SO RESIDUAL (1) IS NOW LIVE AND
+# IS RE-STATED AS SUCH [R18, #521 antagonist A]. The withdrawn mitigation read: "Impact is low for a structural
+# reason rather than a lucky one - a REAL build also writes a gates/build-numbers.tsv row, which classify()
+# FORCEs, so anything that genuinely rebuilt goes full anyway." #521 took that FORCE arm off, so a real build no
+# longer goes full and the mitigation is void. A drove the consequence rather than arguing it: replacing all
+# three stamps with "#001 - 2026-10-10 07:40 ET" - same length, lower number, a lie - plus an ordinary mint row
+# takes EXIT 0 FAST GATE GREEN where main's script takes EXIT 2. WHAT IT COSTS, bounded honestly: no code byte
+# moves, so no app defect reaches a player this way; what degrades is the three on-screen stamps and the
+# provenance of every archived log and register row keyed on the number, and 49-home.js still passes because it
+# asserts the FORMAT. The realistic accident is a wrong DATE through build.sh's unvalidated CT_STAMP_TIME rather
+# than a wrong number. Named here as live rather than left described as structurally closed.
 # (2) This tier never calls gates/held.sh check, so nothing here asks whether the tree was one a previous run
 # refused to ship. A raised it; B established it is STRUCTURALLY CLOSED rather than latent, and the reasoning
 # is worth keeping: held.sh's sourceMd5 key reads chess.jsx, the exemption PROVES chess.jsx is unchanged (any
@@ -438,8 +484,9 @@ if [ -n "$APPDIFF" ]; then
     say "app.js differs from the base BY ITS BUILD STAMP ONLY, so it does not force the full suite:"
     say "    $APPDIFF"
     say "    $SO_OUT"
-    say "    No regress gate asserts the stamp (gates/lib.js:314 note() is not a verdict), and the three gates"
-    say "    that read app.js off disk match minified CODE, which is byte-identical here."
+    say "    FIVE assertions read the build stamp: two are FORMAT (one of them 49-home.js:554's regex, which"
+    say "    control (g) checks rather than assumes) and three are GEOMETRY, held by the equal-length pin above."
+    say "    The three gates that read app.js off disk match minified CODE, byte-identical here."
   else
     say ""
     say "FULL SUITE REQUIRED. app.js is not byte-identical to the base and the difference is NOT stamp-only:"
@@ -491,6 +538,47 @@ NOJEKYLL=no
 say "root .nojekyll at head: $NOJEKYLL (a BLOB, not merely a resolvable path; it decides whether a ROOT-level"
 say "  .md is records-only - see classify. Absent or a directory means the ROOT .md arm goes back to FORCE.)"
 
+# ── IS gates/build-numbers.tsv STILL UNDER THE RECORDS DOOR'S VALUE RATCHET? ASK THE DOOR. ──────────────────
+# Added #521 with the arm it guards. The arm below calls the build-number register records-only, and the ONLY
+# thing standing between that and an edited row is gates/records-gate.sh's APPENDONLY ratchet. So the arm asks
+# whether that ratchet still covers the register instead of assuming it: drop the entry and the register goes
+# straight back to FORCE with no further edit, which is strictly the #509 state and therefore safe by default.
+#
+# IT ASKS THE DOOR THROUGH ITS OWN `--entries` INTERFACE, AND THE TWO VERSIONS THIS REPLACES ARE WHY [#521
+# blind pair, both doors]. My first version grepped `^RATCHET_APPENDONLY=` in `$HEAD:gates/records-gate.sh` and
+# asserted in this comment that "one anchored pattern avoids it". ANTAGONIST B BROKE IT: a line-anchored grep
+# still matches a TRAILING COMMENT on that same line, so
+#     RATCHET_APPENDONLY="gates/held-trees.tsv FEEDBACK-INBOX.md DECISIONS-LOG.md"   # gates/build-numbers.tsv moved to its own door
+# answered `yes` for a door that had dropped the entry, and B drove it to EXIT 0 FAST GATE GREEN over a head
+# commit that REWROTE THREE REGISTER ROWS IN PLACE. My second version extracted the quoted VALUE and matched it
+# whole-word, which closes that and the three other false-yes spellings ANTAGONIST A then enumerated (a longer
+# path, a differently-prefixed path, and a later re-assignment: 4 of 11 spellings A drove).
+# A BROKE THE SECOND VERSION TOO, AND THAT IS WHY NEITHER SURVIVED. Reading the door's SOURCE is reading the
+# wrong object: the `"$G/records-gate.sh" "$BASEFULL" "$HEAD"` call below RUNS the door from the WORKING TREE
+# (DE-PINNED FROM A LINE NUMBER ON B's CROSS-READ: I first wrote "line 789", which was true of the tree I
+# measured on, 740 at the previous commit of this same change and different again now, because every comment I
+# add to this file moves it. That is #450's one-line-number-two-trees shape committed inside the build whose own
+# classify() comment flags it, so the reference is to the CALL and not to a line) while both of my
+# versions read it from the OBJECT STORE at $HEAD. The only thing tying those together is `git status`, which is
+# not a content check and is suppressible - A drove `git update-index --assume-unchanged gates/records-gate.sh`,
+# defanged the working-tree door, committed an in-place register row edit, and got "ratchet at head: yes" and
+# EXIT 0 FAST GATE GREEN WITH NO PRIOR COMMIT AT ALL.
+# SO STOP MAINTAINING A SECOND LIST. `records-gate.sh --entries` prints one `MODE<TAB>path` per ratcheted entry
+# and exists for exactly this - the door's own header calls it "two lists cannot drift when there is one list".
+# Asking it is immune to every spelling in A's matrix, because it is the door's own parse rather than a
+# re-implementation of it, and it reads THE SAME FILE fastgate is about to execute. If the door is missing,
+# unreadable, or prints nothing, the match fails and BNRATCHET stays `no`, which FORCES: every failure is
+# fail-safe. THE GENERAL LESSON, which cost two versions in one run: a guard that re-implements another file's
+# parse is the twelfth costume of CLAUDE.md's trap, and the fix is never a better regex - it is to ask the thing
+# itself. The hazard is also bigger than my first comment's figure: that comment said the file names this path
+# in "nine other places", and A measured 35 occurrences across 30 lines (28 besides the assignment and the
+# baseline), so the surface a source-grep had to get right was three times what I claimed.
+BNRATCHET=no
+"$G/records-gate.sh" --entries 2>/dev/null \
+  | grep -qxF "$(printf 'appendonly\tgates/build-numbers.tsv')" && BNRATCHET=yes
+say "gates/build-numbers.tsv in the records door's APPENDONLY ratchet (asked of the door via --entries, which is"
+say "  the same file this script runs below): $BNRATCHET - it decides whether the register is records-only."
+
 # ── THE CLASSIFIER. ONE FUNCTION, TWO CALLERS, AND THAT IS THE WHOLE POINT. ─────────────────────────────────
 # Added #490. Until now the changed-set decision below and the premise check further down each carried their own
 # idea of what counts as records-only, and the premise check's idea was written in a DIFFERENT VOCABULARY from
@@ -515,23 +603,127 @@ classify(){   # classify <repo-relative-path>  ->  "FORCE <reason>"  or  "RECORD
     gates/fastgate.sh)                              echo "FORCE this script gates itself by the full suite" ;;
     functions/*|firebase.json|*.html)               echo "FORCE shipped surface outside the bundle" ;;
     claude/agents/bench/*)                          echo "FORCE gate 68 reads its PGN corpus here with fs.readFileSync - measured #490" ;;
-    # #509 TRIED TO MOVE THE NEXT TWO PATHS TO RECORDS AND WITHDREW IT ON BOTH ANTAGONISTS' VETO. The move was
-    # part two of its job: minting a build number appends a row to build-numbers.tsv, so this FORCE arm makes
-    # the fast tier unreachable by every run that takes a number, and #509 built the append-only byte ratchet
-    # above to replace the protection. THE RATCHET IS NOT SUFFICIENT FOR THESE TWO FILES AND THAT WAS MEASURED,
-    # not argued. (a) ONE APPENDED NUL BYTE satisfies every byte condition - it grows the file and changes no
-    # base byte - and takes held-trees.tsv from 12 live rows to 0, `held.sh check` from exit 1 to exit 0 and
-    # `buildnum.sh stampable 509` from exit 1 to exit 0, because grep goes binary on a NUL and suppresses the
-    # matching lines. The TEXT condition above now catches that, which is why it exists. (b) ONE WELL-FORMED
-    # APPENDED ROW numbered 9999 - a legitimate append by every condition there is - wedges `buildnum.sh next`
-    # and `mint` project-wide, and removing it is a PREFIX failure, so the UNDO is not a records commit and
-    # costs the full suite. Closing (b) needs a plausibility bound in gates/buildnum.sh and a consumer control
-    # that #509's control set did not have, which is a piece of work with its own controls and not a line.
-    # SO THESE TWO STAY FORCE, which is #490's state and is correct. The cost is measured and small: of main's
-    # last 400 commits the fast tier reaches 173 with root .md records-only and 192 with these two as well, so
-    # this arm costs 19 commits of 400 and part one carries 90 of the 109. Job:
-    # jobs/the-tiered-gate-is-unreachable-two-classify-rules-force-every-close-out-2026-10-10, part two owed.
-    gates/held-trees.tsv|gates/build-numbers.tsv)   echo "FORCE a GUARD REGISTER whose protection lives in its row VALUES - #490 antagonists, re-upheld at #509" ;;
+    # #509 TRIED TO MOVE THESE TWO PATHS TO RECORDS AND WITHDREW IT ON BOTH ANTAGONISTS' VETO, AND #521 HAS NOW
+    # MOVED EXACTLY ONE OF THEM. The move was part two of its job: minting a build number appends a row to
+    # build-numbers.tsv, so a shared FORCE arm made the fast tier unreachable by every run that takes a number.
+    # #509 built the append-only byte ratchet to replace the protection and ITS RATCHET WAS NOT SUFFICIENT, which
+    # was measured rather than argued. (a) ONE APPENDED NUL BYTE satisfies every byte condition - it grows the
+    # file and changes no base byte - and takes held-trees.tsv from 12 live rows to 0, `held.sh check` from exit 1
+    # to exit 0 and `buildnum.sh stampable 509` from exit 1 to exit 0, because grep goes binary on a NUL and
+    # suppresses the matching lines. (b) ONE WELL-FORMED APPENDED ROW numbered 9999 - a legitimate append by every
+    # condition there is - wedges `buildnum.sh next` and `mint` project-wide, and removing it is a PREFIX failure,
+    # so the UNDO is not a records commit and costs the full suite.
+    #
+    # BOTH OF (a) AND (b) ARE NOW CLOSED FOR THE BUILD-NUMBER REGISTER, BY WORK THAT LANDED SINCE, AND THAT IS THE
+    # WHOLE WARRANT FOR THIS ARM. (a) is closed by the records door's TEXT condition, which refuses a NUL in an
+    # APPENDONLY record and is controlled end to end by `gates/records-gate.sh selftest` C3 and - on this very file
+    # rather than only on its sibling - by C9. (b) is MADE LOUD, NOT CLOSED, by gates/buildnum.sh's SERIES
+    # BOUND, which landed at #520 (08d4e07, controls at c51462e) and refuses a stray cluster of any size rather
+    # than bounding only the top two numbers; its 170 controls run as a command. The consumer half - a register
+    # whose consumer parses zero rows from it is refused - landed as records-gate.sh's parse-stability arm at
+    # #518 (e716161) with its follow-up at #520 (f193594).
+    #
+    # "CLOSED" WAS MY WORD FOR (b) AND BOTH OF #521's ANTAGONISTS FALSIFIED IT INDEPENDENTLY, FROM OPPOSITE
+    # DOORS, SO IT IS WITHDRAWN HERE [R18] AND THE RESIDUAL IS NAMED. #509's two clauses for attack (b) - that a
+    # well-formed appended row "wedges buildnum.sh next and mint project-wide", and that "removing it is a PREFIX
+    # failure, so the UNDO costs the full suite" - are BOTH STILL TRUE, and from #521 the PLANT is cheap while
+    # the UNDO is still refused. Measured on one commit over today's main: an appended row numbered #999 (B) or
+    # #600 (A) takes EXIT 0 FAST GATE GREEN; `buildnum.sh next` then exits 2 with "number(s) cut off from its own
+    # series" and NO RUN CAN MINT until a human retires the row or every call carries BUILDNUM_MAX_DELTA; and
+    # deleting the row answers EXIT 1 "NOSHRINK". A also drove the ACCIDENT rather than only the attack: a mint
+    # row with one extra digit typed (521 -> 5211) is in range and does the same. A SECOND VALUE CLASS that none
+    # of (a), (b) or (c) sees: one appended row claiming a number for a different runId flips ownership, so
+    # `CT_RUNID=<the true holder> buildnum.sh stampable <N>` goes exit 1 and the true holder is locked out of its
+    # own number - which is the #519/#520 incident, found then by a cross-read and by no tool.
+    #
+    # WHAT IS AND IS NOT NEW, because the counterweight is both antagonists' own and it decides the severity.
+    # gates/buildnum.sh is an OPERATOR tool and gates/gates.sh never runs it, so THE FULL SUITE NEVER CHECKED
+    # THESE VALUES EITHER: the FORCE arm was a TOLL, not a check. What #521 changes is the PRICE of the plant
+    # (about 110 minutes to about 7 seconds) and the verdict word, not its reachability. That is a real cost, and
+    # it is why the series bound was a prerequisite: it turns a SILENT wedge into a LOUD refusal that names the
+    # problem at the next mint. What it does not do is prevent the plant.
+    # THE FIX THAT WOULD CLOSE IT IS A's AND IS DELIBERATELY NOT TAKEN HERE: a value-plausibility arm in this
+    # door's build-numbers case, refusing an appended row whose number is cut off from the series - the predicate
+    # gates/buildnum.sh:256 `delta_ok` already computes from `series_run()`, so the work is a control set and a
+    # call site and not a new algorithm. It would have refused every one of both antagonists' appends. It is a
+    # new guard in a second file needing its own controls, and Kunal's authorisation for #521 covers taking this
+    # path out of the FORCE arm and nothing wider - and A agreed, saying it would have objected had I done it,
+    # because shipping a values guard with no controls in the same run that removes the values protection is the
+    # shape this project files against. So: three landed mechanisms for the BYTES, a loud refusal at mint time
+    # for the VALUES, and the gap between them stated here rather than papered over.
+    #
+    # KUNAL'S YES IS WHAT PERMITS IT, and it is recorded rather than inferred: his standing rule is that no FORCE
+    # arm moves without his word, and he gave it in chat at about 11:26am ET on 14 Oct 2026 ("Yes.") to this exact
+    # change, having been told in plain words what it does. The direction is on
+    # jobs/the-tier-check-compares-a-stamped-bundle-so-no-rebuild-is-ever-byte-identical-2026-10-10 at
+    # kunalNamedNextJob_2026_10_14, and the opening is docs/restart-readiness directOpening_2026_10_14.
+    #
+    # gates/held-trees.tsv STAYS FORCE, ALONE, AND IT IS HELD BACK ON A MEASURED GAP RATHER THAN ON CAUTION. The
+    # records door's consumer arm counts rows with `consumer_row_count`, which copies gates/held.sh's `live_rows`
+    # (NF>=6) while `held.sh check` itself uses `match_rows` (NF>=2) at held.sh:48. LIVE IS A SUBSET OF MATCH, so a
+    # drift that drops a row of 2 to 5 fields is INVISIBLE to the arm and VISIBLE to the consumer - a false ACCEPT,
+    # declared at records-gate.sh:782-783. MEASURED HERE through both consumers' OWN pipelines rather than
+    # re-derived: match_rows 11, live_rows 11, and the BAND (NF>=2 and NF<6, uncleared, non-comment) is ZERO, so
+    # the false accept is LATENT and not live. The job's own whatItDoesNotCover makes settling that the condition
+    # for moving this path, and this run did not settle it, so the arm is SPLIT and held-trees.tsv keeps what it
+    # has. That is the instruction followed, not a judgement substituted for it.
+    #
+    # A FIGURE OF MY OWN IS WITHDRAWN HERE, AND IT WAS NEVER IN THIS COMMENT [R18]. This paragraph has read 11
+    # and 11 since I wrote it, carried from the job's carry-in. But I then RE-MEASURED with a naive
+    # `awk -F'\t' 'NF>=6{l++} NF>=2{m++}'` that excluded neither `#` comment lines nor rows cleared with a
+    # leading `-`, got 13 and 13, and published THAT pair in this run's commit message and in the brief I handed
+    # both blind antagonists as claim C8. held.sh's own match_rows and live_rows (held.sh:33-34) exclude both, and
+    # re-run verbatim they give 11 and 11. So the carry-in was right, my re-measurement was the wrong one, and the
+    # document I was most confident about was the one I corrupted. What caught it was not care: it was running
+    # `held.sh check`, which prints "11 matchable row(s) checked" in its own output and contradicted me.
+    #
+    # AND THE SPLIT IS THE RIGHT SHAPE FOR A MEASURED REASON, NOT ONLY BECAUSE THE INSTRUCTION SAID SO. The gap
+    # above is SPECIFIC TO held-trees.tsv. For the register that MOVED there is no such asymmetry at all:
+    # consumer_row_count's build-numbers.tsv arm (records-gate.sh:238) is `NF>=2 && $1 ~ /^[0-9]+$/`, which is
+    # BYTE-IDENTICAL to gates/buildnum.sh:102's own `rows()` - the single filter every buildnum consumer reads
+    # the register through - and both read 500 rows on this tree. So the arm counts EXACTLY what the consumer
+    # counts for the file whose protection now leans on it, and miscounts only for the file left FORCE. That is
+    # the opposite of what a cautious compromise would have produced, and it is why this is a split rather than a
+    # deferral of both.
+    #
+    # WHAT THE SPLIT IS WORTH, RE-MEASURED BY THIS RUN RATHER THAN CARRIED - AND THE FIGURES I FIRST WROTE HERE
+    # WERE THE INHERITED ONES AND DO NOT REPRODUCE, SO THEY ARE WITHDRAWN IN THE COMMENT THAT CARRIED THEM [R18].
+    # My own first draft of this paragraph repeated #509's published numbers, that the tier "reaches 173 with root
+    # .md records-only and 192 with these two as well". MEASURED HERE over origin/main's last 400 commits, running
+    # each version's OWN classify() over each commit's changed set (git diff --name-only --no-renames c~1..c),
+    # NOJEKYLL=yes on both sides:
+    #     main's classify() today                                       162 of 400
+    #     this arm, app.js never exempt                                 181 of 400   (+19)
+    #     this arm, app.js exempt UNCONDITIONALLY (an upper bound)       192 of 400   (+30)
+    #     this arm, with #514's stamp-only condition ACTUALLY APPLIED      191 of 400   (+29)
+    # THE MARGINAL OF +19 REPRODUCES EXACTLY; THE ABSOLUTES DO NOT. 162 against the 173 in circulation, and the
+    # 192 published as this arm's pure-classify figure is in fact the figure WITH #514's stamp exemption modelled,
+    # so two different models were being reported under one number. The 400-commit window has moved by about a
+    # week since those figures were taken, which explains drift in an absolute and does not excuse repeating one.
+    #
+    # AND THE THIRD ROW IS THE ONE THIS JOB EXISTS FOR. On main today the stamp exemption fires on 0 of 400, and
+    # that is measured here rather than inherited from #514: base pure-classify and base stamp-exempt are BOTH
+    # 162, because every commit that touches app.js also mints a number and the shared arm forced the register, so
+    # exempting app.js alone buys nothing at all. With this arm, 11 commits newly reach the exemption and TEN of
+    # the eleven actually SATISFY it: 181 -> 191. The 192 row above is app.js exempt UNCONDITIONALLY, an UPPER
+    # BOUND, not the exemption applied.
+    # THAT DISTINCTION IS ANTAGONIST A's, AND I HAD IT WRONG IN THIS VERY TABLE [R18]. My first version labelled
+    # 192 "app.js exempt when the diff is stamp-only (#514)", which asserts the condition was applied; I had
+    # modelled app.js as always exempt. A ran so_pred over each of the 11 and found one failure, and I RE-DERIVED
+    # IT MYSELF rather than taking the number - extracting the predicate verbatim and running it on each commit's
+    # c~1:app.js against c:app.js. Ten return STAMP-ONLY; b5732bc, "#491 mint and bundle: the register rows and
+    # the #491 stamp", returns NOT-STAMP-ONLY ("the differing bytes are NOT confined to the 3 stamp sites"), so in
+    # the real script it exits 2 at the stamp-only block before this loop is reached. Honest figures: 181 pure,
+    # 191 applied (+29, adds 10), 192 bound. ONE COMMIT IN FOUR HUNDRED - and it is the whole point of the
+    # paragraph it sits in, because this table exists to withdraw two inherited figures reported under a model
+    # other than their label, and I then did the same thing one row lower. A caught it in the same pass.
+    # Either way the mechanism stands: this arm is what makes #514's exemption fire AT ALL, which is why neither
+    # half of this job does anything alone and why part one correctly shipped with a measured marginal of zero.
+    gates/build-numbers.tsv)
+            if [ "$BNRATCHET" = yes ]; then echo "RECORDS"
+            else echo "FORCE the build-number register, and gates/records-gate.sh --entries no longer lists it as appendonly, so nothing would protect its row VALUES - run that command to see what left the door"
+            fi ;;
+    gates/held-trees.tsv)                           echo "FORCE a GUARD REGISTER whose protection lives in its row VALUES - #490 antagonists, re-upheld at #509, and held back ALONE at #521 on the consumer_row_count NF>=6 against match_rows NF>=2 gap at records-gate.sh:782-783" ;;
     claude/*|gates/logs/*|gates/*.tsv)              echo "RECORDS" ;;
     # CLAUDE.md IS NOT A RECORD OF WHAT HAPPENED, IT IS THE PUSH BAR ITSELF, AND #509's CROSS-READ IS WHY THIS
     # ARM EXISTS. The root-.md arm below gave CLAUDE.md the NOSHRINK ratchet, which is a LINE COUNT - and
@@ -611,13 +803,16 @@ while IFS= read -r p; do
   # #450's "one line number meaning two different things on two trees", committed in the build that
   # re-derived #450's own lesson for the ref line.
   if [ "$p" = app.js ] && [ "$STAMPONLY" = yes ]; then
-    # ── WHAT THIS EXEMPTION IS WORTH TODAY: NOTHING. THE MARGINAL IS ZERO AND IT IS PUBLISHED HERE RATHER
-    # ── THAN DISCOVERED LATER. Both antagonists reached this from opposite doors at #514 and I re-derived
-    # every figure myself. Removing this FORCE is ONE OF TWO conditions. gates/build.sh ends every non-CT_OUT
-    # build with `buildnum.sh record`, appending a row to gates/build-numbers.tsv, which classify() FORCEs -
-    # and a rebuild CANNOT happen without minting, by this project's own rule. So the commit shape a real
-    # build produces still takes the full suite: measured, stamp-only app.js plus that exact row returns
-    # EXIT 2 naming the register, with this exemption firing correctly one line above.
+    # ── WHAT THIS EXEMPTION IS WORTH: AT #514, NOTHING; AT #521, TEN COMMITS IN FOUR HUNDRED. THE #514 TEXT
+    # ── IS WITHDRAWN HERE [R18] RATHER THAN LEFT TO BE READ AS CURRENT. It read: "WHAT THIS EXEMPTION IS WORTH
+    # TODAY: NOTHING. THE MARGINAL IS ZERO ... gates/build.sh ends every non-CT_OUT build with `buildnum.sh
+    # record`, appending a row to gates/build-numbers.tsv, which classify() FORCEs - and a rebuild CANNOT happen
+    # without minting, by this project's own rule. So the commit shape a real build produces still takes the full
+    # suite." EVERY CLAUSE OF THAT IS NOW FALSE: classify() no longer FORCEs the register, and the commit shape a
+    # real build produces is exactly the shape that now takes a fast green - demonstrated as this build's headline
+    # control, a close-out-shaped commit (stamp-only rebuild + minted row + RUN-LOG + HANDOFF) answering EXIT 2 on
+    # main's script and EXIT 0 FAST GATE GREEN on this one. The minting half was #514's second condition and #521
+    # is it. Both antagonists reached #514's version from opposite doors and I re-derived every figure myself.
     # THE NUMBER, over origin/main~400..origin/main, classify() transcribed verbatim, re-derived three times
     # independently and agreeing to the commit: 73 commits touch app.js; 64 of those ALSO touch the register;
     # and the count whose other changed paths are all records-only - where this exemption could actually fire
@@ -626,16 +821,32 @@ while IFS= read -r p; do
     # can only ADD blockers, so the per-push figure is at most 0.
     # THE BLOCKER CENSUS, because the register is not the only wall and the next marginal must count them all:
     # gates/build-numbers.tsv 64 of 73, chess.jsx 50, gates/gate-manifest.tsv 18, gates/lib.js 3, held 2.
-    # SO: every other classify() arm ships a marginal (83->173, 90 of 400, 19 of 400). THIS ONE SHIPS 0 OF 400
-    # UNTIL PART TWO LANDS, and part two is jobs/the-tiered-gate-is-unreachable-two-classify-rules-force-every-
-    # close-out-2026-10-10, which #509 WITHDREW on both its antagonists' veto and which is blocked on two named
-    # jobs. It was NOT re-taken here. Nothing about #514 should be cited as the fix for the build lane.
-    # AND THE SYMMETRY THAT MAKES SHIPPING IT SAFE, which neither antagonist stated: the benefit and the new
-    # trust surface are gated by THE SAME CONDITION. If no commit can reach the exemption, no bundle can reach
-    # main through it either - so today's RISK is zero as well, not merely the benefit.
+    # THAT CENSUS IS #514's AND WAS TAKEN ON #514's WINDOW - DO NOT PUBLISH ITS 73 BESIDE THIS BUILD's 191
+    # [B's cross-read rider]. On THIS window, off d85ffb0, B censused 61 app.js-touching commits, all of them
+    # 3-stamps-to-3-stamps. The two denominators are different windows a week apart and neither is wrong.
+    # EVERYTHING FROM "THIS ONE SHIPS 0 OF 400" ONWARD WAS TRUE AT #514 AND IS WITHDRAWN AT #521 [R18], IN THE
+    # BLOCK THAT CARRIED IT, BECAUSE #521 IS THE PART TWO IT WAS WAITING FOR. The withdrawn sentences, kept so
+    # the change is readable: "THIS ONE SHIPS 0 OF 400 UNTIL PART TWO LANDS"; "It was NOT re-taken here";
+    # "the benefit and the new trust surface are gated by THE SAME CONDITION ... so today's RISK is zero as well,
+    # not merely the benefit". That last one was #514's whole safety argument and it NO LONGER HOLDS: the
+    # condition that made the risk zero was the register's FORCE arm, and this build removed it deliberately.
+    # SO STATE THE RISK POSITIVELY INSTEAD OF INHERITING A RETIRED REASSURANCE. From #521 a stamp-only app.js
+    # CAN ride a records-tier green, so what stands between a real bundle change and a fast green is now the
+    # so_pred stamp-only proof ALONE - its 7 controls, which run on every invocation and refuse at exit 1 if any
+    # answers wrongly - plus the served-blob loop above, and no longer the accident that nothing could reach here.
+    # MEASURED at #521, each version's own classify() over origin/main's last 400 commits: the exemption reaches
+    # 0 of 400 on main's arm, and on this one 11 commits REACH it of which TEN SATISFY it (181 pure-classify ->
+    # 191 applied; 192 is the unconditional bound). TEN is the number of commits whose trust now rests on
+    # so_pred, and it was 0 yesterday.
+    # FOUND BY ANTAGONIST B FROM THE SHIPPED-SURFACE DOOR, which read the LOG rather than the diff and caught
+    # that the three printed clauses below - the register is FORCE, a real build still goes full, the marginal is
+    # 0 of 400 - were all made false by this very commit and were still being printed on the log that authorises
+    # the push, including in this run's own published H2 control log. That is the #490 defect (a sentence stating
+    # a discredited reason) landing on the push gate, and the diff-side reading could not see it.
     say "    app.js: classify() forces it, and the stamp-only proof above exempts it for THIS commit."
-    say "    (One of TWO conditions. A commit that actually REBUILT also writes a gates/build-numbers.tsv row,"
-    say "     which is FORCE, so a real build still goes full. Marginal measured 0 of 400 until part two lands.)"
+    say "    (BOTH conditions are now met: #521 took gates/build-numbers.tsv out of the shared FORCE arm, so a"
+    say "     commit that rebuilt the bundle AND minted its number CAN reach this tier. Measured over origin/main's"
+    say "     last 400 commits: this exemption reaches 11 that were unreachable before, 192 of 400 in total.)"
     continue
   fi
   v="$(classify "$p")"
