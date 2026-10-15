@@ -3113,6 +3113,57 @@ export default function App(){
   const [boardTrim,setBoardTrim]=useState(0);   // #344: px shaved off the board so the screen actually fits, MEASURED per device
   const [fitBump,setFitBump]=useState(0);        /* #364: re-arms the fit loop when the root's size changes after the loop has run its 36 passes - a lesson's text arriving late left an 11px overflow uncorrected on a 375x679 phone */
   useEffect(()=>{if(!window.ResizeObserver||!rootRef.current)return;let last=0;const ro=new ResizeObserver(es=>{const h=Math.round(es[0].contentRect.height);if(Math.abs(h-last)>2){last=h;setFitBump(b=>b+1);}});ro.observe(rootRef.current);return()=>ro.disconnect();},[]);
+  /* #522 PART A, THE REFIT. Kunal chose `refit-no-blink` on 2026-10-13 (questions/lesson-board-one-jump-or-stuck-small-2026-10-12)
+     for jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29: re-fit the lesson board FROM SCRATCH whenever the lesson
+     content changes, wake the loop, and do the re-fit BEFORE the screen is drawn so no wrong-size board is ever painted.
+     WHY FROM SCRATCH IS THE ONLY SOUND MAGNITUDE, measured twice and not read: #364's growth branch needs `over < -24` and
+     `over` is 0 in every settled portrait state BY CONSTRUCTION (#root has one in-flow child whose height IS the viewport),
+     so the loop can shrink and never grow - a one-way ratchet. Every attempt to give it a signal has failed because the
+     absorber is a MIRROR of the board: #515 v1 (recover to the trim the geometry first settled at) and v2 (recover the rise
+     in slack) both went gate-48 RED, and this build re-measured the remaining candidate before writing a line of this.
+     MEASURED at #522 on main's own bundle f47aa0197967: the moves panel reads clientH 65 / scrollH 65 CLEAN and
+     clientH 109 / scrollH 109 LATCHED at 320x540, and 74 / 74 against 137 / 137 at 375x568 - slack 0 in BOTH states at
+     both cells, because the panel's own content re-wraps with the board's width (its inner scroller's scrollHeight goes
+     42 -> 80 as the board goes 236.39 -> 192). So `clientHeight - scrollHeight` saturates at 0 and carries no information
+     either. There is no instantaneous discriminator; the information is HISTORICAL, which is what re-deriving the trim
+     supplies. The figures are published in RUN-LOG.md and on the owning job; the probe that took them was scratch and is
+     deliberately not in the tree [.gitignore, #497 and #502].
+     WHY PRE-PAINT IS WHAT MAKES IT SHIPPABLE. Resetting the trim and letting the rAF loop re-settle is the SAME fix with a
+     visible jump to full size and back - #355's own reason for settling from the current trim, and the cost Kunal was asked
+     to price. The convergence below is driven by a state counter inside a LAYOUT effect, so React commits each trial trim
+     and re-runs the effect SYNCHRONOUSLY before the browser paints: the only frame that reaches the screen is the settled
+     one. gates/regress/75-fit-loop-one-way-ratchet.js block D measures exactly that, per frame; that file carries the
+     one-line recipe for the bundle that reddens it.
+     SCOPE IS THE LESSON SCREEN AND NOTHING ELSE. `_fitScreen` covers four screen families and gate 75's own header records
+     the identical ratchet on PLAY and PUZZLE as measured-affected and uncovered; widening this to them is owed work with
+     its own cells, not something to smuggle in here. A live game also changes content on every move, which is the case
+     #355's comment is about. */
+  const [fitPass,setFitPass]=useState(0);
+  const fitRefitRef=useRef(0);                 // 0 = idle, >0 = pass number of a convergence in flight
+  const fitSigRef=useRef('');                  // the lesson-content signature the current trim was derived for
+  const fitBaseSigRef=useRef('');              // the same signature WITHOUT the wake counter, so a wake cannot refill its own budget
+  const movesPanelRef=useRef(null);
+  const fitPanelHRef=useRef(-1);               // the absorber's height as the last refit LEFT it
+  const fitWakeNRef=useRef(0);                 // wakes spent on the current content epoch
+  const [fitWake,setFitWake]=useState(0);      // bumped when the flow changes in a way React cannot see
+  /* THE WAKE. theREARMISBLINDTOO_foundAt515: the #364 observer above watches rootRef and root's height IS the viewport, so
+     it can only ever see content that OVERFLOWS the root, never content that LEAVES it - measured this build, the injected
+     arm of gate 75 does shrink while the transient is in flow (the observer fires) and never recovers when it goes. The
+     absorber's HEIGHT is the one box that moves when slack appears, so it is the right TRIGGER even though its height is
+     useless as a SIGNAL: the magnitude comes from the from-scratch re-fit, not from this number. It cannot oscillate,
+     because a from-scratch re-fit is idempotent - it converges to the same trim for the same content, so the second wake
+     it provokes changes no state and the observer goes quiet.
+     THAT IDEMPOTENCE ARGUMENT IS NOT ENOUGH ON ITS OWN, AND THE TWO GUARDS BELOW ARE A PRECAUTION, NOT A FIX FOR
+     ANYTHING OBSERVED [R18]. The refit passes THROUGH trim 0 on its way back to the same answer, and that intermediate
+     state moves the panel, so an observer comparing against the previously OBSERVED height would fire on the refit's own
+     excursion: refit -> board moves -> panel resizes -> wake -> refit. I have NOT measured that cycle occurring, and I
+     must say so plainly, because I first diagnosed this build's non-mount as exactly that and was WRONG: the non-mount
+     was a temporal dead zone on `wide` in this effect's own dependency array (see the block above the refit below), and
+     the "blocked main thread" I cited as evidence was my own probe harness failing to exit, which hung identically on
+     main's bundle. So: compare against the height the last refit SETTLED at, because the excursion ends where it began;
+     and cap the wakes per content epoch, because a hang is catastrophic while a latch is only the status quo. Four per
+     epoch is far more than the one the measured case needs, and past that the screen keeps the trim it has, which is
+     what main does today. A guard whose failure mode is "no better than before" is the only kind worth having here. */
   const boardTrimRef=useRef(0);boardTrimRef.current=boardTrim;
   const fitGeoRef=useRef('');                  // #346: the last GEOMETRY the trim was derived for
   // #338: the puzzle screen stacks text above the board and controls below it; measure both so the board is sized to what is actually left.
@@ -3441,6 +3492,116 @@ export default function App(){
   // So the analytic cap above is only the first guess; this measures the REAL overflow after paint and corrects it.
   // Shrink fast (one pass clears the whole overflow), grow back slowly and only with 12px of proven slack, so it
   // settles instead of oscillating. Bounded passes per trigger; never runs outside the one-screen review.
+  /* #522: THE OVERFLOW MEASUREMENT, EXTRACTED SO THE LOOP AND THE REFIT CANNOT DRIFT APART. This is the #355/#364 body
+     verbatim, moved out of the loop below and called by both. It is extracted rather than copied for the reason
+     CLAUDE.md gives ten times over: two copies of one measurement is how a check and the thing it checks come to be
+     written in different vocabularies. The refit MUST converge to the value the loop would have reached, or the two
+     fight each other across a paint. */
+  const _fitOver=useCallback(()=>{
+    const de=document.documentElement;
+    const rEl=rootRef.current;
+    if(!rEl)return de.scrollHeight-de.clientHeight;
+    // #355 MEASURE THE CONTENT, NOT THE DOCUMENT. scrollHeight is clamped to at least clientHeight, so a page that
+    // FITS always reports overflow 0 and never negative. The real content height is the bottom-most laid-out child,
+    // which can be smaller than the viewport and gives a signed answer in both directions.
+    const rb=rEl.getBoundingClientRect(); let bottom=0;
+    let spacers=0;
+    for(let i=0;i<rEl.children.length;i++){
+      const c=rEl.children[i], r=c.getBoundingClientRect();
+      if(r.height<=0)continue;
+      const cs=getComputedStyle(c);
+      if(cs.position==='fixed'||cs.position==='absolute')continue;          // overlays and sheets are not content
+      // #364: the #338 centring spacers (aria-hidden, flex-grow) SWALLOW the slack this loop needs to see.
+      // On Kunal's phone the puzzle board sat 32px under its cap forever: one early overflow trimmed it, the
+      // spacers absorbed the room that came back, and "over" never went negative again. Their height is
+      // slack, not content, so it is subtracted here and they go on centring whatever is left.
+      if(c.getAttribute('aria-hidden')==='true'&&parseFloat(cs.flexGrow)>0&&c.children.length===0){spacers+=r.height;continue;}
+      if(r.bottom-rb.top>bottom)bottom=r.bottom-rb.top;
+    }
+    const padB=parseFloat(getComputedStyle(rEl).paddingBottom)||0;
+    return bottom>0?(bottom-spacers+padB-de.clientHeight):(de.scrollHeight-de.clientHeight);
+  },[]);
+  /* MOVED HERE FROM BESIDE ITS STATE, AND THE REASON IS A MEASURED CRASH, NOT TIDINESS. Declared next to `fitWake`
+     above, this effect's dependency list named `wide`, which is a const declared ~300 lines further down, so the
+     dependency array was evaluated in `wide`'s temporal dead zone and the app threw "Cannot access 'wide' before
+     initialization" at mount: #root stayed empty, page.waitForFunction timed out at 30s, and the first two trial
+     bundles of this build (9c42579fba28, 533ecfdc80a3) did not mount at all. An unminified bundle is what named it;
+     the minified one said "Cannot access 'Se'", which is unreadable, and I had wrongly diagnosed it as a render loop
+     from my own harness hanging - that harness bug (no process.exit after L.launch) hung on main's bundle too, so it
+     was never evidence about this change at all [R18]. A dependency array is evaluated at RENDER time, so an effect
+     may be declared before the state it owns but never before anything it depends on. */
+  useEffect(()=>{
+    /* SCOPED TO THE LESSON SCREEN, like the refit it feeds. The moves panel is also laid out in a live phone game
+       (#373 keeps it in the flow and toggles its CONTENT), so an unscoped observer would bump `fitWake` - and so
+       force a re-render - on every panel resize of every game, for a refit that returns early there anyway. */
+    if(!(mode==='learn'&&openIdx!==null&&!wide))return;
+    if(!window.ResizeObserver||!movesPanelRef.current)return;
+    const ro=new ResizeObserver(es=>{
+      if(fitRefitRef.current>0)return;                                  // our own convergence is in flight
+      const h=Math.round(es[0].contentRect.height);
+      if(fitPanelHRef.current<0){fitPanelHRef.current=h;return;}
+      if(Math.abs(h-fitPanelHRef.current)<=2)return;                    // this is where the last refit left it
+      if(fitWakeNRef.current>=4)return;                                 // epoch budget spent
+      fitWakeNRef.current++;setFitWake(w=>w+1);});
+    ro.observe(movesPanelRef.current);return()=>ro.disconnect();},[mode,openIdx,wide]);
+  /* #522 PART A: THE PRE-PAINT REFIT. See the block beside `fitPass` above for why from-scratch is the only sound
+     magnitude and why this runs before paint rather than in the rAF loop.
+     HOW THE NO-BLINK PROPERTY IS OBTAINED, because it is the whole point and it is not obvious from the code shape.
+     This is a LAYOUT effect whose dependency list contains `fitPass`. Setting state inside a layout effect makes React
+     commit the new DOM and re-run layout effects SYNCHRONOUSLY, before the browser paints. So the chain
+     (set trim 0 -> measure -> shrink -> measure -> settle) happens entirely between layout and paint, and the only
+     board width that ever reaches the screen is the settled one. A rAF-driven version of the same arithmetic paints
+     every intermediate value, which is the jump #355 refused and the thing Kunal priced.
+     IT IS CAPPED AT EIGHT PASSES. The shrink term adds at least 16px and the lesson cap is a few hundred px, so two or
+     three passes is the real cost; the cap is there so that a layout that cannot settle degrades to "stop" rather than
+     to React's own update-depth error, and so this can never spin. If it hits the cap it leaves the trim where it got
+     to - the same state the loop below would have reached - and says nothing, because a diagnostic that fires on a
+     normal screen gets switched off. */
+  useLayoutEffect(()=>{
+    const _lessonFit=!wide&&mode==='learn'&&openIdx!==null;
+    if(!_lessonFit){fitSigRef.current='';fitRefitRef.current=0;return;}
+    if(fitRefitRef.current===0){
+      // IDLE. Start a refit only when the content this trim was derived for has actually changed. `fitWake` is in the
+      // signature so a flow change React cannot see (the absorber's height moving) starts one too.
+      const base=_geoKey+'|'+learnPhase+'|'+openStep+'|'+demoPly+'|'+(curNote||'').length+'|'+(openMsg||'').length+'|'+(noteOpen?1:0)+'|'+(sqShow?1:0);
+      if(fitBaseSigRef.current!==base){fitBaseSigRef.current=base;fitWakeNRef.current=0;}   // a NEW content epoch refills the budget; a wake never does
+      const sig=base+'|'+fitWake;
+      if(fitSigRef.current===sig)return;
+      fitSigRef.current=sig;
+      fitRefitRef.current=1;
+      if(boardTrimRef.current!==0)setBoardTrim(0);
+      setFitPass(p=>p+1);
+      return;
+    }
+    // CONVERGING. The DOM is already committed at the trial trim, so this measurement is of the trial layout.
+    const over=_fitOver();
+    if(over>0&&fitRefitRef.current<8){
+      fitRefitRef.current++;
+      /* THE SAME STEP THE LOOP BELOW USES, SPARE MARGIN AND ALL, AND THE CHOICE IS MEASURED RATHER THAN TIDY.
+         The margin (`+8` on top of ceil(over/8)*8) is a safety term the loop pays because it does not re-measure
+         before its next trigger. This refit DOES re-measure, so dropping the margin looked obviously right - and
+         measured WORSE. The clean settled board, against main's own f47aa0197967 at the demo end and after the
+         practice tap, sampled per frame (the same measurement gate 75 block D now makes on every build):
+                            main        with margin        without margin
+             320x540 demo   236.39      236.39  =          244.39  +8
+             320x540 pract  236.39      228.39  -8         236.39  =
+             375x568 demo   270.88      270.88  =          278.88  +8
+             375x568 pract  254.88      254.88  =          262.88  +8
+         So the margin reproduces main at THREE of the four and the no-margin form at ONE. Neither reproduces all
+         four, and that is a property of the thing being fixed rather than of either formula: main's settled board
+         is the output of a PATH - the loop pays the margin once on the geometry's first fit and then inherits that
+         trim through every later content change - so no from-scratch rule can reproduce it everywhere. The one
+         deviation left is 320x540 practice at 8px SMALLER, which is the conservative direction (a smaller board
+         cannot overflow); #515's v1 deviated 8px LARGER at a practice cell and that is what reddened gate 48 with
+         3 FAIL. Stated here because a later reader will otherwise try the obvious no-margin form again. */
+      setBoardTrim(t=>Math.min(600,t+Math.ceil(over/8)*8+8));
+      setFitPass(p=>p+1);
+      return;
+    }
+    // SETTLED. Record where this refit left the absorber, so its own excursion can never wake it again.
+    fitRefitRef.current=0;
+    if(movesPanelRef.current)fitPanelHRef.current=Math.round(movesPanelRef.current.getBoundingClientRect().height);
+  },[fitPass,fitWake,wide,mode,openIdx,_geoKey,learnPhase,openStep,demoPly,curNote,openMsg,noteOpen,sqShow,_fitOver]);
   useLayoutEffect(()=>{
     // #436 THE LOOP DOES NOT RUN IN LANDSCAPE, because there it can only do harm. MEASURED on the shipped
     // #435 bundle, live game vs Pip, at three landscape widths, comparing a fresh landscape launch against a
@@ -3488,33 +3649,9 @@ export default function App(){
       // frames trimmed again. A 6px overflow could take 128px off the board. One idle frame after
       // each correction lets layout catch up, so the next measurement is of the new size.
       if(settle){settle=false;if(++passes<36)raf=requestAnimationFrame(tick);return;}
-      const de=document.documentElement;
-      // #355 MEASURE THE CONTENT, NOT THE DOCUMENT. scrollHeight is clamped to at least
-      // clientHeight, so a page that FITS always reports overflow 0 and never negative. The loop
-      // could therefore shrink but never grow back, and on any screen where height is the binding
-      // cap (an iPad in landscape) the board stayed permanently small after one over-correction.
-      // The real content height is the bottom-most laid-out child, which can be smaller than the
-      // viewport and gives a signed answer in both directions.
-      let over;
-      const rEl=rootRef.current;
-      if(rEl){
-        const rb=rEl.getBoundingClientRect(); let bottom=0;
-        let spacers=0;
-        for(let i=0;i<rEl.children.length;i++){
-          const c=rEl.children[i], r=c.getBoundingClientRect();
-          if(r.height<=0)continue;
-          const cs=getComputedStyle(c);
-          if(cs.position==='fixed'||cs.position==='absolute')continue;          // overlays and sheets are not content
-          // #364: the #338 centring spacers (aria-hidden, flex-grow) SWALLOW the slack this loop needs to see.
-          // On Kunal's phone the puzzle board sat 32px under its cap forever: one early overflow trimmed it, the
-          // spacers absorbed the room that came back, and "over" never went negative again. Their height is
-          // slack, not content, so it is subtracted here and they go on centring whatever is left.
-          if(c.getAttribute('aria-hidden')==='true'&&parseFloat(cs.flexGrow)>0&&c.children.length===0){spacers+=r.height;continue;}
-          if(r.bottom-rb.top>bottom)bottom=r.bottom-rb.top;
-        }
-        const padB=parseFloat(getComputedStyle(rEl).paddingBottom)||0;
-        over=bottom>0?(bottom-spacers+padB-de.clientHeight):(de.scrollHeight-de.clientHeight);
-      } else over=de.scrollHeight-de.clientHeight;
+      // #355's "measure the content, not the document" body now lives in _fitOver above, called by this loop
+      // and by #522's pre-paint refit, so the two cannot drift apart.
+      const over=_fitOver();
       if(over>0){setBoardTrim(t=>Math.min(600,t+Math.ceil(over/8)*8+8));settle=true;}
       else if(over<-24){setBoardTrim(t=>Math.max(-480,t-Math.min(64,Math.floor(-over/8)*8)));settle=true;} /* #364: t>0?...:t meant the loop could only UNDO a trim, never grow past SQ's first guess. Kunal's phone (375x761, insets 51/31) sat at board 319 with trim 0 and 56px of slack nobody could claim. Negative trim is growth; SQ clamps it to the width cap so it can never push the board off the sides. */
       if(++passes<36)raf=requestAnimationFrame(tick);
@@ -8985,7 +9122,7 @@ export default function App(){
       </div>)}
 
       {/* Move history (play/learn) */}
-      {(()=>{const _lFill=(mode==='learn'&&openIdx!==null&&!wide); /* #372 (antagonist Y-02): in a lesson on a phone this panel is always there and absorbs the slack, so the board's top edge holds and there is no empty band under it on taller phones */ const _pLive=(mode==='play'&&!wide&&!playSetup&&!!opponent); /* #373 (audit A-12 / antagonist X-09): on a phone this panel used to leave the flow when Moves was closed, and the fit loop handed its ~64px to the board - the board moved 23px on every toggle. HANDOFF rule: a row that can appear or disappear must reserve its space; toggle its CONTENT, never the row. So in a live phone game the panel is always laid out and Moves only hides what is in it. */ const _pFill=_pLive||_lFill;const _pHide=_pLive&&!movesOpen;return (!inReview&&!pzLow&&(boardGame.history.length>0||_pFill)&&!(mode==='learn'&&openIdx===null)&&(mode!=='play'||movesOpen||_pLive)&&(<div data-ct="moves-panel" style={{marginTop:10,width:boardPx,maxWidth:_edge?'100vw':'98vw',visibility:_pHide?'hidden':'visible',...(_pFill?{flex:'1 1 auto',minHeight:0,display:'flex',flexDirection:'column'}:null)}}>
+      {(()=>{const _lFill=(mode==='learn'&&openIdx!==null&&!wide); /* #372 (antagonist Y-02): in a lesson on a phone this panel is always there and absorbs the slack, so the board's top edge holds and there is no empty band under it on taller phones */ const _pLive=(mode==='play'&&!wide&&!playSetup&&!!opponent); /* #373 (audit A-12 / antagonist X-09): on a phone this panel used to leave the flow when Moves was closed, and the fit loop handed its ~64px to the board - the board moved 23px on every toggle. HANDOFF rule: a row that can appear or disappear must reserve its space; toggle its CONTENT, never the row. So in a live phone game the panel is always laid out and Moves only hides what is in it. */ const _pFill=_pLive||_lFill;const _pHide=_pLive&&!movesOpen;return (!inReview&&!pzLow&&(boardGame.history.length>0||_pFill)&&!(mode==='learn'&&openIdx===null)&&(mode!=='play'||movesOpen||_pLive)&&(<div data-ct="moves-panel" ref={movesPanelRef} style={{marginTop:10,width:boardPx,maxWidth:_edge?'100vw':'98vw',visibility:_pHide?'hidden':'visible',...(_pFill?{flex:'1 1 auto',minHeight:0,display:'flex',flexDirection:'column'}:null)}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:4,minHeight:23}}>{/* #378: minHeight is the chips' own drawn height. fb-controls removes them on the play screen only, and without this the row shrinks there, the board grows into the slack (Pass & Play 351 -> 367) and then shrinks back at game over (375 -> 367) - the board jumping, which gate 15 caught inside the k10 card. A row that can appear reserves its space. */}
           <span data-ct="moves-head" style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.4)',letterSpacing:1.5,fontFamily:'monospace'}}>MOVES</span>
           {/* fb-controls (Kunal, "Just those two"): in a live game Analyze and Copy moves are rows in the More sheet, not chips in this row. They stay HERE on every screen that has no More sheet - a lesson, a puzzle, the analysis board, an online game - because there they are the only way to reach either control. The predicate is the sheet's own: chess.jsx line 4068 renders the sheet on mode==='play'&&opponent!=='online'. */}

@@ -260,6 +260,131 @@ const pair=(n,tag,clean,inj,px,engages)=>{
   return lost;
 };
 
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+// BLOCK D, ADDED BY #522: THE PER-FRAME CHECK. It is the third item of Kunal's own bar for this fix
+// (jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29, START_HERE_2026_10_13_KUNALS_SHAPE.bar):
+// "A per-frame check that no wrong-size board is painted at 375x568 and at 320x540."
+//
+// WHAT "WRONG-SIZE" MEANS, STATED BEFORE ANY ASSERTION, BECAUSE THE OBVIOUS READING IS UNFALSIFIABLE. The board
+// legitimately CHANGES size across this sequence - practice chrome takes real height, and a transient in the flow
+// genuinely needs room - so "every frame equals one number" would redden a correct bundle. What must never be
+// painted is either half of the trade Kunal was asked to price:
+//   D1 NO OVERSHOOT. No frame may be WIDER than that arm's own settled board for that phase. An overshoot is the
+//      #355 blink, the board jumping to full size and back, which is what "re-fit the board from scratch" costs
+//      if it is done in the rAF loop instead of before paint.
+//   D3 NO LATCH, AND NO OSCILLATION. The injected arm must reach the clean arm's settled board after the
+//      transient leaves, and once it reaches it, it must never leave it again (the wrong-size frames must form a
+//      PREFIX). The prefix form is deliberate and threshold-free: a recovery cannot precede the removal that
+//      causes it, so SOME wrong frames are owed; what is not owed is a board that wanders afterwards.
+//
+// NEITHER ASSERTION CARRIES A PIXEL LITERAL. Every reference is the OTHER ARM of the same run at the same
+// geometry in the same container, which is this file's own construction and the reason it carries no expected
+// board width: every absolute board pin in this suite is a function of this container's fonts (gates/lib.js's
+// #480 note measures the app's stack and bare sans-serif 53.84px apart on one line).
+//
+// HOW EACH ONE WAS SHOWN ABLE TO FAIL, which is the part this project insists on [CLAUDE.md, #385].
+//   D3 reddens on main: measured on main's own bundle f47aa0197967, 209 of 209 removed-phase frames at 320x540
+//      and 210 of 210 at 375x568 sit at 192.00 against a clean 236.39 / 254.88 - the latch, every frame of it.
+//   D1 does NOT redden on main, because main never overshoots: it only gets stuck. So it is controlled against a
+//      BUNDLE BUILT TO FAIL IT, and the recipe is stated here rather than cited, because a citation to a file
+//      this repository does not carry is the STALE-ROSTER red that gates/audit/cited-not-run.sh exists to find.
+//      THE CONTROL, reproducible in one edit: in chess.jsx's #522 refit, replace the converging branch's
+//      `setBoardTrim(...)`/`setFitPass(...)` pair with `setFitBump(b=>b+1)` and return - i.e. reset the trim on a
+//      content change and let the rAF loop re-settle, which is exactly what this job's own outcome.whatIsLeft
+//      proposed. That bundle recovers the latch AND paints the full-size board on the way, so D4 and D6 go red
+//      while D8 and D9 stay green. #522's close-out records the md5 it measured. A check that has never seen its
+//      defect proves nothing, and an uncontrolled assertion in this file would be the thing its header warns of.
+//   AND D1 ALREADY CAUGHT SOMETHING NOBODY HAD FILED: on main, at 375x568, the CLEAN arm paints one frame at
+//      270.88 when the settled practice board is 254.88 - a one-frame board jump on the ordinary lesson path,
+//      with no injection at all, against the project's first rule that the board must never jump. #522's
+//      pre-paint refit removes it (0 of 98 frames), which is why this assertion covers the clean arm too.
+const DCELLS=[
+  {n:'320x540', g:{w:320,h:540,safe:''}, px:88},
+  {n:'375x568', g:L.GEOS.short375,       px:88},
+];
+
+// the painted board, measured exactly as gates/lib.js board() does: the widest div whose own
+// gridTemplateColumns is a repeat(8, ...). A bad selector is a reading, not a measurement [CLAUDE.md].
+const SAMPLER=()=>{
+  window.__ct522=[];window.__ct522stop=false;window.__ct522phase='demo';
+  const bwid=()=>{const els=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));
+    let best=null;for(const e of els){const r=e.getBoundingClientRect();if(r.width<40)continue;if(!best||r.width>best)best=r.width;}return best;};
+  const tick=()=>{if(window.__ct522stop)return;const w=bwid();
+    if(w!=null)window.__ct522.push([window.__ct522phase,Math.round(w*100)/100]);requestAnimationFrame(tick);};
+  requestAnimationFrame(tick);
+};
+const dphase=(b,p)=>b.page.evaluate((x)=>{window.__ct522phase=x;},p);
+
+const framesArmInner=async(geo,px)=>{
+  const b=await L.launch({geo});
+  await b.open();
+  await D.states['endgame-demo-end'](b);
+  await b.settle(900);
+  const demo=await bw(b);
+  await b.page.evaluate(SAMPLER);
+  await b.settle(120);
+  let injRect=null;
+  if(px){
+    await dphase(b,'injected');
+    injRect=await b.page.evaluate((n)=>{const r=document.getElementById('root');
+      const inflow=[...r.children].filter(c=>{const cs=getComputedStyle(c);
+        return cs.position!=='fixed'&&cs.position!=='absolute'&&c.getBoundingClientRect().height>0;});
+      const host=inflow.length===1?inflow[0]:r;
+      const d=document.createElement('div');d.id='ct510inj';
+      d.style.cssText='height:'+n+'px;flex:0 0 '+n+'px;width:100%';host.appendChild(d);
+      const q=d.getBoundingClientRect(),cs=getComputedStyle(d);
+      return {h:Math.round(q.height*100)/100,inFlow:cs.position!=='fixed'&&cs.position!=='absolute'};},px);
+    await b.settle(700);
+  }
+  await dphase(b,'practice');
+  const clicked=await toPractice(b);
+  await b.settle(1600);
+  const practiceSettled=await bw(b);
+  await dphase(b,'removed');
+  if(px)await b.page.evaluate(()=>{const e=document.getElementById('ct510inj');if(e)e.remove();});
+  await b.settle(1500);
+  await b.page.waitForTimeout(2000);
+  const frames=await b.page.evaluate(()=>{window.__ct522stop=true;return window.__ct522;});
+  const final=await bw(b), practice=await inPractice(b), errs=b.errs.length;
+  await b.close();
+  return {demo,practiceSettled,final,frames,clicked,practice,injRect,errs};
+};
+// #393: a harness throw in one arm must go red on its OWN assertion and let the rest of the file run.
+const framesArm=async(geo,px)=>{
+  try{ return await framesArmInner(geo,px); }
+  catch(e){ return {demo:null,practiceSettled:null,final:null,frames:[],clicked:false,practice:false,injRect:null,errs:-1,threw:String((e&&e.message)||e)}; }
+};
+const byPhase=(fr,p)=>fr.filter(f=>f[0]===p).map(f=>f[1]);
+const uniqW=(a)=>[...new Set(a)].sort((x,y)=>x-y);
+
+const blockD=(n,px,clean,inj)=>{
+  L.say(!clean.threw&&!inj.threw,'TC-R64 D0 '+n+' neither per-frame arm threw'+(clean.threw||inj.threw?' - '+(clean.threw||inj.threw):''),{clean:clean.threw||null,injected:inj.threw||null});
+  L.say(clean.practice===true&&inj.practice===true,'TC-R64 D1 '+n+' PRACTICE WAS REACHED in both per-frame arms - without this both arms sample the DEMO board and every frame assertion below passes on it [antagonist B\'s finding on block A]',{clean:clean.practice,injected:inj.practice});
+  // THE DENOMINATORS, EACH IN ITS OWN L.say [prompts/common R18's non-empty-collection rule]. every() and a
+  // negated test() are both TRUE over nothing, so an empty frame list would make D4..D7 report PASS loudest
+  // exactly when the sampler had stopped working. A conjunct would not say WHICH list was empty.
+  const cP=byPhase(clean.frames,'practice'), cR=byPhase(clean.frames,'removed');
+  const iP=byPhase(inj.frames,'practice'),   iR=byPhase(inj.frames,'removed');
+  L.say(cP.length>20&&cR.length>20,'TC-R64 D2 '+n+' the CLEAN arm actually sampled frames in both asserted phases - the denominator for D4 and D5',{practiceFrames:cP.length,removedFrames:cR.length});
+  L.say(iP.length>20&&iR.length>20,'TC-R64 D3 '+n+' the INJECTED arm actually sampled frames in both asserted phases - the denominator for D6 and D7',{practiceFrames:iP.length,removedFrames:iR.length});
+  L.say(!!inj.injRect&&inj.injRect.inFlow===true&&Math.abs(inj.injRect.h-px)<1,'TC-R64 D3b '+n+' THE CONTROL REALLY WAS APPLIED in the per-frame arm: the '+px+'px transient sat IN THE FLOW with its full height. A fact about the injection, not about the app, so no correct bundle can redden it',{measured:inj.injRect,px});
+  // D4..D7 NO OVERSHOOT, per arm per phase, against that ARM's OWN settled board. This is the blink.
+  const over=(ws,ref)=>(typeof ref==='number'?ws.filter(w=>w>ref+0.5):[]);
+  const o1=over(cP,clean.practiceSettled), o2=over(cR,clean.final), o3=over(iP,inj.practiceSettled), o4=over(iR,inj.final);
+  L.say(typeof clean.practiceSettled==='number'&&o1.length===0,'TC-R64 D4 '+n+' NO WRONG-SIZE BOARD IS PAINTED on the ORDINARY lesson path: no practice-phase frame of the clean arm is wider than its own settled '+clean.practiceSettled+'. On main at 375x568 this is RED - one frame paints 270.88 against a settled 254.88, a one-frame board jump with no injection at all',{settled:clean.practiceSettled,frames:cP.length,wider:uniqW(o1)});
+  L.say(typeof clean.final==='number'&&o2.length===0,'TC-R64 D5 '+n+' no removed-phase frame of the clean arm is wider than its own settled '+clean.final,{settled:clean.final,frames:cR.length,wider:uniqW(o2)});
+  L.say(typeof inj.practiceSettled==='number'&&o3.length===0,'TC-R64 D6 '+n+' no practice-phase frame of the injected arm is wider than its own settled '+inj.practiceSettled+' - a re-fit that resets the trim and re-settles in the rAF loop paints the full-size board here, which is the blink',{settled:inj.practiceSettled,frames:iP.length,wider:uniqW(o3)});
+  L.say(typeof inj.final==='number'&&o4.length===0,'TC-R64 D7 '+n+' no removed-phase frame of the injected arm is wider than its own settled '+inj.final,{settled:inj.final,frames:iR.length,wider:uniqW(o4)});
+  // D8/D9 THE LATCH AND THE OSCILLATION, per frame, in the phase where the two arms are in the same state.
+  const good=(w)=>typeof clean.final==='number'&&Math.abs(w-clean.final)<=0.5;
+  const firstGood=iR.findIndex(good);
+  L.say(firstGood>=0,'TC-R64 D8 '+n+' THE BOARD COMES BACK WITHIN THE OBSERVED WINDOW: some removed-phase frame of the injected arm reaches the clean arm\'s settled '+clean.final+'. On main this is RED at both short cells - every one of 209 / 210 removed-phase frames sits at 192.00 and the board never returns',{cleanFinal:clean.final,injectedFinal:inj.final,framesBeforeRecovery:firstGood,removedFrames:iR.length,widths:uniqW(iR)});
+  L.say(firstGood>=0&&iR.slice(firstGood).every(good),'TC-R64 D9 '+n+' AND IT STAYS BACK: once the board reaches the clean size it is never painted at another size again, so the wrong-size frames are a PREFIX and not a wander. Threshold-free on purpose: a recovery cannot precede the removal that causes it, so some wrong frames are owed; an oscillation is not',{firstGoodFrame:firstGood,afterThat:iR.slice(firstGood<0?0:firstGood).length,distinctAfter:uniqW(iR.slice(firstGood<0?0:firstGood))});
+  L.say(clean.errs===0,'TC-R64 D10 '+n+' zero console errors, clean per-frame arm',{errs:clean.errs});
+  L.say(inj.errs===0,'TC-R64 D11 '+n+' zero console errors, injected per-frame arm - asserted separately, because a conjunct over both arms cannot say which one errored',{errs:inj.errs});
+  L.note(n+' per-frame widths  clean practice='+JSON.stringify(uniqW(cP))+' removed='+JSON.stringify(uniqW(cR))+'   injected practice='+JSON.stringify(uniqW(iP))+' removed='+JSON.stringify(uniqW(iR))+'   settled clean practice/final='+clean.practiceSettled+'/'+clean.final+'  injected practice/final='+inj.practiceSettled+'/'+inj.final);
+};
+
 L.run(async()=>{
   for(const c of CELLS){
     const clean=await arm(c.g,0);
@@ -270,5 +395,13 @@ L.run(async()=>{
       const big=await arm(c.g,c.large);
       pair(c.n+' LARGE','C',clean,big,c.large,true);    // a large transient engages at every geometry
     }
+  }
+  // BLOCK D, #522: the per-frame check, at the two cells Kunal's bar names. Two further browser launches per
+  // cell, which is why it is scoped to the two short cells rather than to all four: 320x540 and 375x568 are
+  // where a small transient latches, and they are the two the bar asks for by name.
+  for(const c of DCELLS){
+    const cleanF=await framesArm(c.g,0);
+    const injF=await framesArm(c.g,c.px);
+    blockD(c.n,c.px,cleanF,injF);
   }
 },'75-fit-loop-one-way-ratchet');
