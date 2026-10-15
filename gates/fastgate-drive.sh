@@ -221,7 +221,17 @@ fi
 # H5  NEGATIVE, DATE BEFORE THE BASE.
 reset_clone
 H5N="$(mint_in_clone)"
-H5D="$(date -d "TZ=\"America/New_York\" $BASEDATE - 1 day" '+%Y-%m-%d %H:%M' 2>/dev/null)"
+# THE FIXTURE DATE IS NAIVE ARITHMETIC AND MUST NOT GO THROUGH A ZONE. A build stamp is a naive
+# "YYYY-MM-DD HH:MM" in Eastern, and subtracting a day from it is string arithmetic, not an instant. My first
+# version wrote `date -d 'TZ="America/New_York" $BASEDATE - 1 day'`, and GNU date does NOT combine a TZ prefix
+# with a relative offset the way it looks: it returned 2026-10-15 21:37 for a base of 2026-10-14 20:37 - a date
+# in the FUTURE - so H5 exercised H4's future-date rule instead of the before-the-base rule it exists for, and
+# the harness caught it by asserting the verdict LINE and not merely the exit code. That is the whole argument
+# for asserting both, arriving on this harness's first run.
+  H5D="$(python3 -I -c "
+import datetime,sys
+print((datetime.datetime.strptime(sys.argv[1],'%Y-%m-%d %H:%M')-datetime.timedelta(days=1)).strftime('%Y-%m-%d %H:%M'))
+" "$BASEDATE" 2>/dev/null)"
 if [ -n "$H5N" ] && [ -n "$H5D" ]; then
   restamp "#$H5N - $H5D ET" || true
   record_in_clone "$H5N" "$(md5_12 "$C/app.js")" "$(md5_12 "$C/chess.jsx")"
