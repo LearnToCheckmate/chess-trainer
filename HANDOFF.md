@@ -1,305 +1,310 @@
-# HANDOFF — after #521: THE ARM SPLIT IS BUILT AND CONTROLLED AND IT DID NOT LAND
+# HANDOFF — after #522: THE LESSON BOARD'S ONE-WAY RATCHET IS FIXED BEFORE PAINT
 
-**NOTHING FROM #521 IS ON main EXCEPT THIS RECORD.** `origin/main` is unchanged at `d85ffb0` for the application
-and for `gates/`; this commit carries records only (this file, `RUN-LOG.md`, and the gate log) through main's own
-RECORDS tier, which is why it exists at all. **Read the next three paragraphs before planning anything.**
+**READ THIS FIRST.** `#522` was a DIRECT run under `docs/restart-readiness.directOpening_2026_10_14b`, opened on
+Kunal's yes at 6:43pm ET on 14 Oct, with TWO PARTS in a fixed order and ONE push. It was NOT the integration slot.
+PART A was `jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29` (priority 16, band 16, finishFirst), the fix
+he chose on 13 Oct after #510 and #515 both ended `cannot`. PART B was part two of
+`jobs/the-tier-check-compares-a-stamped-bundle-so-no-rebuild-is-ever-byte-identical-2026-10-10`, merged UNREBUILT
+from `claude/practical-sagan-8t3gj4` at `55ef500`.
 
-**GATES RED #521 — 59 sections, 58 green, 1 red, 4884 PASS; the red is 48-lesson-flow.** ONE assertion, in `gates/regress/48-lesson-flow.js` at 320x540
-`[endgame-demo-end]`: the lesson demo board sits at **192px** and the ⟳ Flip control runs **35.23px** past its own
-row, because at board 192 the row cannot hold its two children's min-content (**227.23px** against 192px).
-Bundle `f47aa0197967` — main's own registered #511 artefact, re-gated under `CT_EXPECT='#511'` because nothing in
-the diff touches a bundle input. **Tenth consecutive build with no application code.**
+**VERDICT: BOTH PARTS LANDED. Part A is `fixed-in-part`, not `fixed`.** The latch is gone at both short cells —
+320x540 recovers 44.39px and 375x568 recovers 62.88px, measured per frame over ~210 frames per arm — and the
+no-blink bar is met at the only place it can be checked: on the shipping bundle the **first painted frame is
+already the settled width** (`settleMs == firstPaintMs`), which is the instrument antagonist A rightly says is
+better than any convergence model, because it asks the question directly. A pre-existing one-frame board jump at
+375x568 went with it (1 of 97 → 0 of 98), and antagonist B measured the same defect three frames wide at 320x540
+on main. **It is `fixed-in-part` because of a named residual that does NOT recover** — an 88px transient at
+`GEOS.kunal761` leaves 16.80px on the floor for the rest of the visit, identically on both bundles — and because
+the mechanism behind it is a hypothesis, not a finding. See §6.
 
-**THE RED IS NOT THIS BUILD'S, AND THAT IS MEASURED THREE WAYS, NOT ARGUED.** (1) `git diff --name-only
-d85ffb0..49ec643` is **two files**: `gates/fastgate.sh` and `gates/build-numbers.tsv`. (2) Every input gate 48
-reads is **byte-identical** between main and the gated sha, checked with `git rev-parse` per path —
-`gates/regress/48-lesson-flow.js`, `gates/lib.js`, `gates/drive/lesson.js`, `gates/mountcheck.js`, `app.js`,
-`chess.jsx`, `index.html`. (3) Gate 48 was **green at #520 with 353 PASS / 0 fail over this same bundle**, and it
-visited 320x540 there too. Those same three numbers — 192, 35.23, 227.23 — are what **#512** recorded, on the same
-gate at the same geometry that **#467** and **#468** each went red on.
+**`GATES GREEN #522`** — 60 sections, **4975 PASS, 0 FAIL**, in **111 minutes** (00:37:58Z → 02:29:00Z) against
+an ETA of 107–110 recorded at check-in. Manifest: **59 required, 59 present, 0 missing, 0 unlisted**, 4
+known-absent, 0 retired, 0 unjustified. `gates/verify-log.sh gates/logs/522-all.log '#522'` returns **OK**, and
+`--this-bundle` returns **THIS-BUNDLE OK: the log gated md5 ec31de9fe6c5, which is app.js on disk**. Harness
+hashed before and after: **identical**, so no edit reached the running interpreter (#461); the suite ran from
+`gates/.gates-run-522.sh`, a sibling copy inside `gates/` so `G` and `ROOT` still resolve from `$0` (#493).
 
-**AND THE DIFFERENTIAL PINS A MECHANISM THAT JOB SAYS IS NOT ESTABLISHED.** Comparing the same assertion's own
-JSON payload across the two runs, on byte-identical inputs: `needed` is **227.23 in both, identical to the
-hundredth**, while `board`/`rowW` read **236.4/236.39 at #520** and **192/192 here**. The two children measured
-159.64 + 70.75 at #520 and 159.64 + 61.59 here — **the first child is identical to the hundredth**. So the
-nondeterminism is in **board sizing**, not in fonts, not in text metrics, not in the row's content: a font or
-fontconfig difference would have moved the first child, and would not have left the row's min-content identical.
-192 is the documented floor, so what varies is whether the fit loop latches to it.
-`jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29` is status **blocked** under Kunal's product pause with
-his answer already given (`refit-no-blink`, 13 Oct), and #515 built two candidate fixes that this same gate 48
-falsified.
-
-## WHERE THE WORK IS, AND WHAT IT IS WORTH
-
-**Branch `claude/practical-sagan-8t3gj4`, head `55ef500`, whose TREE is byte-identical to the gated sha
-`49ec643`.** The head is a merge built with `git commit-tree` so the gated sha would not move while the suite ran;
-the second parent `e5c5969` is a superseded early push. **No rebase is needed as of this record** — measured, not
-assumed: `git merge-base --is-ancestor d85ffb0 55ef500` is TRUE, so the branch is strictly ahead and nothing on
-main is deleted on the way in. Re-check it, because main moves.
-
-The hand-off job is
-`jobs/521-the-register-arm-split-is-built-and-controlled-and-held-on-the-parked-lesson-board-latch-2026-10-14`
-(owningLane build, status ready, priority 17 — not below the parent's). The figures are in `builds/521`.
-
-**DO NOT REBUILD OR RE-DERIVE IT.** The arm split, the `BNRATCHET` premise, the blob-identity guard, all **14 of
-14** controls and both antagonist vetoes are done and recorded. The amendment made after those controls is
-provably comments-only, two independent ways: comment-stripped md5 `af69b6528737` at both `812698d` and
-`49ec643`, and `git diff` between them is **33 changed lines of which 33 are comments and 0 are not**.
-
-**THE ONLY STEP LEFT IS A GREEN FULL SUITE, AND BE HONEST ABOUT WHAT THAT IS.** `gates/fastgate.sh` is FORCE by
-its own `classify()` — *"this script gates itself by the full suite"* — so the tier cannot gate the change that
-builds it, and the full suite was the only door. The latch is bistable but **stable within a run**, so a re-gate
-is **a coin flip, not a fix**. Three builds in this exact position (#467, #468, #512) stood down rather than
-re-roll. Say which it was in the record.
-
-## WHAT WAS BUILT, IN ONE SENTENCE
-
-
-`classify()`'s shared arm `gates/held-trees.tsv|gates/build-numbers.tsv` is SPLIT: the build-number register is
-RECORDS, so a commit that rebuilt the bundle AND minted its number can reach the fast tier; `gates/held-trees.tsv`
-stays FORCE alone. This is PART TWO of
-`jobs/the-tier-check-compares-a-stamped-bundle-so-no-rebuild-is-ever-byte-identical-2026-10-10`, on Kunal's "Yes."
-in chat at about 11:26am ET on 14 Oct, under `docs/restart-readiness.directOpening_2026_10_14`.
-
-**#514's stamp exemption now fires for the first time.** Before this arm it reached **0 of 400** commits, measured
-twice independently; the two halves are what make a close-out reachable and neither does anything alone.
-
-## READ THIS FIRST: THE NUMBERS, AND FOUR OF MINE ARE WITHDRAWN
-
-Each version's own `classify()` over `origin/main`'s last 400 commits' changed sets, `NOJEKYLL=yes`:
-
-| model | reach |
-|---|---|
-| main's arm today | 162 of 400 |
-| this arm, pure classify | 181 (+19) |
-| this arm, #514's stamp-only condition ACTUALLY APPLIED | **191 (+29, adds 10)** |
-| this arm, app.js exempt unconditionally — AN UPPER BOUND | 192 (+30) |
-
-- **173/192 was in circulation and does not reproduce.** The +19 marginal does, exactly; the absolutes do not.
-- **192 is NOT the exemption applied.** Antagonist A disputed it and I re-derived it myself: `so_pred` over each
-  of the 11 commits the exemption newly reaches returns ten STAMP-ONLY and one not — `b5732bc`, "#491 mint and
-  bundle", whose differing bytes are not confined to the three stamp sites. So **191**. My label had asserted a
-  condition I had not applied, one row below a paragraph withdrawing two figures for exactly that.
-- **The register row counts are 11 and 11, not the 13/13 I published.** My awk excluded neither `#` comments nor
-  rows cleared with a leading `-`; `held.sh`'s own `match_rows`/`live_rows` exclude both. `held.sh check`
-  printing "11 matchable row(s) checked" is what contradicted me.
-- **"nine other places" is 35 occurrences across 30 lines** of `records-gate.sh` (A's measurement, re-derived).
-- **Do not publish #514's "73 commits touch app.js / 64 also touch the register" beside 191** — that census is on
-  #514's window. On this window B censused 61 app.js-touching commits, all 3-stamps-to-3-stamps.
-
-## WHY held-trees.tsv STAYS, AND WHY THE SPLIT IS THE RIGHT SHAPE
-
-`records-gate.sh`'s `consumer_row_count` copies `held.sh`'s `live_rows` (NF>=6) while `held.sh check` uses
-`match_rows` (NF>=2); live is a subset of match, so a drift dropping a 2-to-5-field row is invisible to the arm
-and visible to the consumer — a false ACCEPT. Measured through both pipelines: match 11, live 11, **band ZERO**,
-so it is latent. The job made settling it the condition for moving this path and this run did not settle it.
-
-**But for the register that MOVED there is no asymmetry at all**, and this is the part worth carrying forward:
-`consumer_row_count`'s build-numbers arm (`records-gate.sh:238`) is **byte-identical to `gates/buildnum.sh:102`'s
-own `rows()`** — the single filter every buildnum consumer reads the register through — 500 rows both ways. The
-arm is faithful for the file that now leans on it and miscounts only for the file left forced.
-
-## THE RESIDUAL THIS SHIPS, NAMED AND NOT CLOSED
-
-**A well-formed register row that is hostile by VALUE is now cheap to plant, and its undo is still refused.**
-Both antagonists drove it independently, one commit over main:
-
-- an appended row numbered `#999` (B) or `#600` (A) takes **EXIT 0 FAST GATE GREEN**;
-- `gates/buildnum.sh next` then **exits 2** — "number(s) cut off from its own series" — and **no run can mint**
-  until a human retires the row or every call carries `BUILDNUM_MAX_DELTA`;
-- deleting the row answers **EXIT 1 NOSHRINK**, so the undo costs a full suite on the lane that caused it;
-- the accident, not just the attack: a mint row with **one extra digit typed** (`521` → `5211`) does the same;
-- a second value class none of the three mechanisms sees: one appended row claiming a number for a **different
-  runId** flips ownership, so `stampable` locks the true holder out of its own number — the #519/#520 incident.
-
-**The honest counterweight is the antagonists' own, and it sets the severity.** `gates.sh` never runs
-`gates/buildnum.sh`, so **the full suite never checked these values either**: the FORCE arm was a TOLL, not a
-check. What #521 changes is the PRICE (about 110 minutes to about 7 seconds) and the verdict word, not the
-reachability. The series bound that landed at #520 is the protection and it works — it turns a silent wedge into
-a loud refusal naming the problem. What it does not do is prevent the plant.
-
-**THE NEXT STEP, AND IT IS A CONTROL SET AND A CALL SITE, NOT A NEW ALGORITHM.** Add a value-plausibility arm to
-`records-gate.sh`'s build-numbers case refusing an appended row whose number is cut off from the series — the
-predicate `gates/buildnum.sh:256`'s `delta_ok` already computes from `series_run()`. It would have refused every
-one of both antagonists' appends. **It was deliberately NOT taken here:** Kunal's authorisation covers taking
-this path out of the FORCE arm and nothing wider, and antagonist A said it would have objected had I taken it,
-because shipping a values guard with no controls in the same run that removes the values protection is the shape
-this project files against.
-
-## AND #514's RESIDUAL (1) IS NOW LIVE — ITS WHOLE MITIGATION WAS THE SENTENCE THIS BUILD FALSIFIED
-
-#514 named three residuals and said of the first that its impact was low "for a structural reason rather than a
-lucky one — a REAL build also writes a `gates/build-numbers.tsv` row, which `classify()` FORCEs, so anything that
-genuinely rebuilt goes full anyway." **#521 took that FORCE arm off, so the mitigation is void.** A drove the
-consequence: replacing all three stamps with `#001 - 2026-10-10 07:40 ET` — same length, lower number, a lie —
-plus an ordinary mint row takes **EXIT 0** where main takes exit 2. Bounded honestly: no code byte moves, so no
-app defect reaches a player this way; what degrades is the three on-screen stamps and the provenance of every
-archived log and register row keyed on the number. `49-home.js` still passes because it asserts the FORMAT. The
-realistic accident is a wrong DATE through `build.sh`'s unvalidated `CT_STAMP_TIME`, not a wrong number.
-
-Residual (2), `held.sh check`, is genuinely still closed: any `chess.jsx` in the diff exits 2 at `classify()`, so
-the `sourceMd5` key is unchanged. A re-verified that.
-
-## THE BLIND PAIR, AND THE ONE RESULT THAT OUTLIVES THIS BUILD
-
-Both antagonists VETOED. **Both vetoes upheld and fixed; neither overruled.** Records: `flags/antagonist-a-521`,
-`flags/antagonist-b-521`, `flags/antagonist-pair-coverage-estimate-521`. Overlap: **common 6, unique to A 8,
-unique to B 8** — both blindness conditions held (one message, B on an agent type with no database tool), so the
-estimate is publishable; B contributed 8 of 22 unique against 2b's one-in-five stop condition, so the pairing is
-earning its budget.
-
-**B BROKE A's OWN PROPOSED FIX, AND THAT SEQUENCE IS THE STRONGEST ARGUMENT FOR THE PAIR THIS PROJECT HAS.**
-B found my new `BNRATCHET` guard answered `yes` for a door that had dropped the entry (a trailing comment on the
-assignment line satisfies a line-anchored grep) and drove it to a fast green over three register rows rewritten
-in place. I fixed it by extracting the quoted VALUE. A broke that: reading the door's SOURCE is reading the wrong
-object, because the tier RUNS the door from the WORKING TREE while my check read it from the object store, tied
-together only by `git status` — and `git update-index --assume-unchanged` gives a fast green with **no prior
-commit at all**. A prescribed asking the door via `--entries`. **B then broke THAT**, with one line inside
-`entries_live()` in the working tree: `--entries` lists the register while the ratchet loop still skips it.
-"One list" is not a property of a FILE, it is a property of an HONEST COPY of that file.
-
-**So the repair that is on the branch is neither antagonist's prescription:** a blob-identity guard comparing the commit's
-blob against the working-tree blob for **every file the tier EXECUTES** — and B's list of three was short, because
-`gates/gatemanifest.sh` is executed too. All four are covered. It is a no-op on any honest tree, because a clean
-`git status` already implies worktree == index == HEAD, so it can only fire where the status check was being lied to.
-
-## FOURTEEN CONTROLS, EVERY ONE A REAL EXIT CODE THROUGH THE SCRIPT IN A SCRATCH CLONE
-
-| control | verdict |
-|---|---|
-| H1 base script, close-out-shaped commit | exit 2, FULL SUITE REQUIRED, names the register |
-| H2 this script, the SAME commit | **exit 0, FAST GATE GREEN** |
-| R1 a register row edited in place | exit 1, PREFIX |
-| R2 a register row deleted | exit 1, NOSHRINK |
-| R3 one NUL appended after a legitimate row | exit 1, TEXT |
-| R4 register append + `chess.jsx` | exit 2 naming chess.jsx — go full, NOT a refusal |
-| R5 `held-trees.tsv` appended | exit 2, FORCE alone — the split |
-| G1 `RUN-LOG.md` + `HANDOFF.md` only | exit 0 |
-| G2 one legitimate register append alone | exit 0 |
-| P1 ratchet entry removed at base | exit 2, `--entries` names what left |
-| P2 root `index.md`, `.nojekyll` absent at base | exit 2 naming index.md |
-| **N1 B's trailing-comment attack** | **exit 2** (was exit 0 FAST GATE GREEN) |
-| **N2 A's assume-unchanged defang, no prior commit** | **exit 1**, blob guard, `git status` saw 0 paths |
-| **N3 B's two-line `--entries` lie** | **exit 1**, blob guard, `--entries` DID list it |
-
-## WHAT THIS RUN COST, DECLARED RATHER THAN LEFT TO BE FOUND
-
-1. **I found three MORE false sentences after both vetoes, by running the grep the antagonists taught me** —
-   including one that contradicted a correction I had made two paragraphs above it. Fixing them moved the tree, so
-   I killed the 6-minute-old suite rather than let the log name a sha that was no longer HEAD, and relaunched. The
-   partial log is `gates/logs/521-all-ABANDONED-tree-moved-before-relaunch.log` and authorises nothing. The
-   amendment is provably comments-only: comment-stripped md5 `af69b6528737` at both shas.
-2. **I committed the #416 trap.** Stopping that suite I ran `pkill -f 'gates/regress/'` from a shell whose own
-   command line contained that string, and killed my own shell (exit 144) — the exact failure CLAUDE.md records,
-   in a run that had read the paragraph an hour earlier. I had used the bracket trick correctly for `pgrep` two
-   lines above. Nothing was lost; the aftermath was verified with `ps`, 0 survivors, no stale `.suite.lock`.
-3. **My branch is 1 ahead / 1 behind what I pushed**, because I amended twice after pushing it. Only a force-push
-   could move that ref and that is forbidden, so `origin/claude/practical-sagan-8t3gj4` stays at `e5c5969`,
-   inert, and main carries the real content.
-4. **I published 13/13 and the stale 192** before measuring them. Both withdrawn above.
-
-## STILL OWED, AND NONE OF IT IS THIS LANE'S TO TAKE
-
-1. **The value-plausibility arm** (above) — the named next step for the register.
-2. **`jobs/the-guard-registers-cannot-leave-force-until-the-ratchet-speaks-the-consumers-language-2026-10-10` is
-   NOT credited and must not be.** Antagonist B's veto of #518 stands and the opening forbade crediting it.
-   `gates/held-trees.tsv` is still FORCE, which is what that job is about.
-3. **A's rotating audit found a live gate defect nobody was looking at:**
-   `gates/regress/70-live-game-reset-guard.js:187-190`, where B3's three deltas each fall back to `0` when the row
-   is absent or renamed, so it PASSES on the worse defect — thirty lines above `C4`'s `worst=999`, which handles
-   exactly that case. Plus five `b.errs.length===0` absence assertions with no positive control anywhere.
-4. **B's P2 set:** nothing pins the copied consumer pipelines (now load-bearing); premise check part two is blind
-   to `__dirname+'/../..'` concatenation (latent); `gates/*.tsv) RECORDS` is the live default for any NEW `.tsv`;
-   and a row written `#521` rather than `521` makes `check` answer **free**, `stampable` exit 0 to any run and
-   `next` hand out #521 again — the #416 defect by one character, reachable only by an in-place edit, which
-   PREFIX catches.
-5. **The reverted-commit-subject defect from #520 is still open and still the orchestrator's** [R17]: LANDED must
-   require the payload's CONTENT on main, not its commit subjects.
-6. **Two stale `parked-unlanded` artefact locks.** `claims/art-gates-fastgate-sh` and
-   `claims/art-gates-records-gate-sh` both read `parked-unlanded` while their payloads are ON MAIN (#517 and
-   #518/#520). R44 A2 gives the clearing condition but names nobody to apply it, and the landing pass writes the
-   `integrationResult` on the PATCH and never touches the LOCK — so a parked-unlanded lock is cleared by no step
-   in any lane's procedure. I took the fastgate one over on measured evidence and recorded why.
-
-## ALSO FOUND, OUT OF STEP 0b: THE BRANCH-PUSH CONFLICT WAS NEVER A CONFLICT
-
-**Corrected in the TRACKER only. `CLAUDE.md` on main still carries the error** — `classify()` calls
-`CLAUDE.md` FORCE (*"a commit that rewrites the rules every session reads is not a records commit"*), so the
-fix could not ride this records commit, and the full suite is red. The authoritative copy IS corrected:
-`prompts/build-run` wins over this repo by the routine's own instruction, and its text and
-`triggerPromptVerified_2026_10_14b` both carry it. The exact replacement text for `CLAUDE.md` is at the end
-of this file so it survives this container and can be applied in one edit by whoever next has a green suite.
-
-Not a widening of the authorisation — `takeNothingElse` governs work taken, and this is a records correction to
-the two documents the opening step reads, found by a required step.
-
-**The trigger-prompt verification itself found nothing**: fired PART 1 len 1508 md5 `94e526c6dad18209`, equal to
-the stored `triggerPrompt` field and to today's 02:14Z figure, byte-identical after normalisation, push-authority
-clause present in both copies checked by three substrings. Recorded as `triggerPromptVerified_2026_10_14b`.
-One method change worth carrying: this session was context-compacted before STEP 0b ran, so the prompt was taken
-from the session transcript jsonl rather than written out. A from-memory capture would have been a paraphrase of
-a *summary*, and the eight earlier fields' wording ("I wrote my own scheduled-task prompt ... verbatim") cannot
-tell the two apart.
-
-**What was wrong was the documents.** CLAUDE.md's branch-record row and `prompts/build-run` both attributed the
-sentence "**PUSH** to the specified branch when your changes are complete" to the routine's own prompt. Measured
-on this run's own fire: `PUSH` occurs **once** in that prompt, in its own PUSH AUTHORITY paragraph, about
-**main**; `branch` **once**, in "never delete a branch"; `"specified branch"` **0**; `"designated"` **0**; this
-run's own branch name **0**. The sentence and the branch name arrive in a harness-injected
-`## Git Development Branch Requirements` block, delivered as a system-reminder in the same turn.
-
-**And both documents inverted the authorities.** They cast build-run's R1 — "the designated-branch instruction is
-satisfied by developing there" — as a tracker interpretation that cannot repeal what the routine fires with.
-R1 restates **Kunal's own standing decision**, `decisions/desk-round-1-2026-09-19` field `d14_branch`, 19
-September: *"Q-BRANCH = main. Builds land on main, as CLAUDE.md says. The designated-branch instruction is
-satisfied by DEVELOPING there. Push to main. Fetch and rebase if main moved. Never the GitHub upload page."*
-The conflict is a harness block against the project owner, with this lane's own procedure on the owner's side.
-
-Both also routed an ask to `jobs/branch-record-cannot-ever-be-current-2026-09-28`, which has been **closed since
-2026-10-10T18:35Z** as not-a-defect on exactly that ground.
-
-**#428 measured the harness/routine split on 2026-09-28** and its job field
-`theAskMayBeAimedAtTheWrongPlace_2026-09-28T22-14Z` names *both* documents as citing it wrongly — then fixed only
-the literal-prefix half and left the attribution standing in the two homes its own note had identified. Corrected
-at #521 in both, quoting the withdrawn text [R18]. Not written to the closed job: the orchestrator owns it and
-nothing is owed on it.
-
-**What does not change:** the harness block still fires every wake, this lane cannot edit it, `d14` does not
-forbid pushing the per-run ref, and #521 pushed its own. The push is **permitted and optional**, not mandated by
-the routine.
-
-**How this run's branch push was done, because the method is reusable.** The pushed tip `e5c5969` had been
-superseded by two amendments, so the branch needed `49ec643` without a force-push (barred) and without moving
-HEAD while the suite was gating it. A merge commit was built with `git commit-tree` — tree = `49ec643`'s tree,
-parents = `49ec643` and `e5c5969` — and pushed to the branch ref: a genuine fast-forward (`e5c5969..55ef500`),
-the old tip preserved as a second parent, HEAD never touched. Same instrument #500 used on main.
-
-## THE RESIDUAL #521 LEAVES IN ITS OWN NEW GUARD — MEASURED, NOT ESTIMATED
-
-The blob-identity guard added at `gates/fastgate.sh:86` covers the four files the tier **EXECUTES**
-(`records-gate.sh`, `gatemanifest.sh`, `verify-log.sh`, `control-audit.js`). **It does not cover the files the
-tier READS and derives a verdict from, and there are two such sites.** Same class as the hole antagonist B
-found — the tier reasoning about the COMMIT out of the WORKING TREE — reached through a read instead of an exec.
-
-| site | what it reads from the working tree | direction of the hole |
+| gate | this suite | the chain run earlier |
 |---|---|---|
-| `:393` control (g) | `gates/regress/49-home.js`, to extract gate 49's stamp regex | a **looser** working-tree regex makes the containment check PASS where the committed one would fail. Deleting the literal is already a hard red (empty extraction, `(iii)`); **loosening it is not.** |
-| `:900` premise check | `gates/regress/*.js`, `mountcheck.js`, `lib.js`, `engine-extract.js`, `drive/*.js`, grepped for `require()` targets | a `require()` **removed** in the working tree lets the premise pass while the COMMITTED gate still requires that records-classified file — verbatim the #490 defect the same block records, via a different door. |
+| `48-lesson-flow` | **green, 353 PASS** | 353 / 0 |
+| `75-fit-loop-one-way-ratchet` | **green, 90 PASS** (was 60 / 4 before the fix) | 90 / 0 |
+| `11-lesson` | green, 64 | 64 / 0 |
+| `26-invariants` | green, 370 | 370 / 0 |
+| `35-width-containment` | green, 76 | 76 / 0 |
+| `53-lesson-hit-area` | green, 95 | 95 / 0 |
+| `62-landscape-board-stable` | green, 26 | 26 / 0 |
+| `74-lesson-card-hit-area` | green, 227 | 227 / 0 |
 
-Both require a deliberate `git update-index --assume-unchanged` or `--skip-worktree`, which is the threat model the
-guard's own refusal message already names. Neither lets a bad *application* byte ship: no app code is involved.
+**ALL EIGHT REPRODUCE TO THE ASSERTION ACROSS TWO INDEPENDENT RUNS.** That matters most for gate 48, which is the
+gate #521 stood down on: its red there was this latch's downstream symptom — the stranded 192px board left the
+Flip button overrunning its row by 35.23px at 320x540 `[endgame-demo-end]`. **Part A turned it green through the
+mechanism, without touching gate 48, the Flip button or the assertion.** Two green observations is not a proof of
+determinism, and I am keeping that caveat attached because I applied it to main's own green earlier: the claim
+rests on the mechanism — the trim is re-derived from scratch each time — plus the per-frame measurements, not on a
+count of runs.
 
-**WHY IT IS NOT FIXED IN THIS BUILD, stated as a decision and not as an estimate.** I opened the code and read
-both sites [#392's rule] before deferring. The fix is NOT a longer hand-written file list — `:903` in this same
-block records that "a second list is the defect, whatever its patterns say", and #490's antagonist A proved it
-there with an unanchored glob. The sound fix is a `git ls-files`-driven loop comparing `hash-object` against
-`HEAD:` for the whole read set (~50 files, ~100 subprocesses, a second or two in a 7-second tier), and that needs
-its own controls — including one proving it reddens on a loosened `49-home.js` regex, which is the half no
-existing control covers. Taking it would also mean editing `fastgate.sh` and so killing a suite 40 minutes in for
-the second time this run, which by this project's own rule (an un-landed run wastes the work) costs more than the
-gap it closes. Filed as `jobs/the-tier-guards-what-it-executes-but-not-what-it-reads-2026-10-14`.
+**ONE DEFECT IN THE LOG ITSELF, NAMED BECAUSE IT WILL MISLEAD A LATER READER.** The ref line records
+`HEAD ce6ab81` — the Part B merge — because `gates.sh` captured HEAD before `b88f1c8` committed the bundle, and it
+says so: `WORKING TREE DIRTY: 16 path(s) - the gated bundle is not this commit's`. **`ce6ab81`'s own `app.js` is
+`f47aa0197967`, which is MAIN'S PRE-FIX BUNDLE**, while the log measured `ec31de9fe6c5`. So this archived green,
+read through `--on-main` alone, appears to vouch for a commit that carries the old app — which is the #450 hazard
+exactly (a later run finding a gated-green ancestor and pushing it). `--this-bundle` is the check that resolves it
+and it passes against `b88f1c8`. Recorded as an instance on
+`jobs/amending-a-commit-after-launching-the-suite-orphans-the-logs-own-gated-sha-2026-10-07`. The tree is clean
+now: those 16 paths were the bundle, the register row and the renders, all committed in `b88f1c8`.
 
----
+**WHAT THE GREEN COVERS AND WHAT IT DOES NOT, because a green footer is a statement about the suite and not a
+permission (#450).** It covers the app change: gate 48 at 353/0, gate 75 at 90/0 (was 60/4 before the fix), and
+11, 53, 74, 62, 26 and 35 all green. **It covers Part B not at all** — no gate reads `gates/fastgate.sh` and it
+has no manifest row — so Part B is vouched for by its own five controls, run here and reported in §5, and by
+nothing else. And it cannot see two things no tool in this project can: that `D6` and `D7` have never been shown
+able to fail, and that the residual's geometry has no per-frame gate because `DCELLS` drives neither 375x761 nor
+375x730.
+
+**THREE CLAIMS OF MINE WERE WITHDRAWN ON THE ANTAGONISTS' EVIDENCE [R18]**, and all three are corrected in place
+rather than quietly dropped: the render table's "does not latch on either bundle" at 375x761 (it is a 16.80px
+loss, and the same table's own rows prove it); "D4 does not redden on main", in the pushed message `b88f1c8` (main
+overshoots at both cells); and "the conservative direction" as a defence of the 8px at 320x540 (it is conservative
+about overflow and about nothing the player sees). A fourth, smaller one: that message says gate 48 drives the
+King's Gambit lesson at 320x540; it drives `endgame-demo-end` there, so coverage of the deviating lesson is
+*better* than claimed.
+
+**THE PAIR IS THE OTHER RESULT OF THIS RUN.** 12 distinct findings, **17% overlap**, and the only P1 plus **seven
+of the twelve from the shipped-surface door**. That asymmetry is structural, and the diff-door antagonist named it
+against its own interest: an 8px arithmetic change cannot show that it takes a word off a button, because no such
+string is in the diff. **A diff is a statement about a box; a player sees what is inside it** — which is #395's
+container-is-not-its-contents one level up, and it is the argument for the second door being the shipped surface,
+in a browser, with no access to the framing. The cross-read then yielded four findings neither antagonist had
+alone. Accounting in `notes/build__1792020359000__4`.
+
+## 1. WHAT THE FIX IS, AND WHY EVERY OTHER ROUTE IS CLOSED
+
+The portrait fit loop (`chess.jsx`, search `boardTrim`) shrinks the lesson board on a real overflow and can never
+grow it back: #364's growth branch needs `over < -24`, and `over` is **0 in every settled portrait state by
+construction**, because `#root` has exactly one in-flow child whose height IS the viewport. So a transient piece of
+in-flow content across one loop-dependency change costs board for the rest of the visit.
+
+**THE MEASUREMENT ROUTE IS CLOSED AND THIS RUN CLOSED THE LAST CANDIDATE RATHER THAN TRUSTING THE NOTE.** #515
+falsified a slack-based signal (v1 and v2, both gate-48 RED). The one reading left was the absorber's own content
+height — `clientHeight - scrollHeight` on `[data-ct="moves-panel"]` — which saturates where free space does not.
+Measured on main's own bundle `f47aa0197967`:
+
+| cell | clean | latched |
+|---|---|---|
+| 320x540 | clientH 65 / scrollH 65, slack **0** | clientH 109 / scrollH 109, slack **0** |
+| 375x568 | clientH 74 / scrollH 74, slack **0** | clientH 137 / scrollH 137, slack **0** |
+
+Slack is 0 in BOTH states at both cells, because the panel's own content **re-wraps as the board narrows** (its
+inner scroller's `scrollHeight` goes 42 -> 80 at 320x540). So the absorber mirrors the board on that reading too,
+and the job's claim that no instantaneous measurement contains the information is now independently confirmed.
+**DO NOT RE-ATTEMPT A MEASUREMENT-BASED FIX.** The information is historical; re-deriving the trim supplies it.
+
+**WHAT SHIPPED.** A pre-paint re-fit. On a lesson content change the trim is reset and re-converged inside a
+LAYOUT effect driven by a state counter (`fitPass`), so React commits each trial trim and re-runs the effect
+synchronously **before the browser paints** — the only board width that reaches the screen is the settled one. A
+rAF-driven version of the same arithmetic paints every intermediate value, which is #355's stated reason for
+settling from the current trim and the cost Kunal was asked to price. Capped at eight passes. A ResizeObserver on
+the moves panel wakes it for flow changes React cannot see (`theREARMISBLINDTOO_foundAt515`: the #364 observer
+watches `rootRef`, whose height IS the viewport, so it can only see content that OVERFLOWS the root, never content
+that leaves it).
+
+## 2. THE MARGIN IS A MEASURED CHOICE AND THE OBVIOUS FORM IS WORSE
+
+The refit uses the loop's own shrink step, spare `+8` and all. Dropping the margin looked obviously right — the
+refit re-measures, so it does not need a safety term — and measured worse. Clean settled board, sampled per frame:
+
+| | main | with margin | without margin |
+|---|---|---|---|
+| 320x540 demo | 236.39 | 236.39 = | 244.39 +8 |
+| 320x540 practice | 236.39 | **228.39 −8** | 236.39 = |
+| 375x568 demo | 270.88 | 270.88 = | 278.88 +8 |
+| 375x568 practice | 254.88 | 254.88 = | 262.88 +8 |
+
+The margin reproduces main at THREE of four, the no-margin form at ONE, and **neither reproduces all four** —
+because main's board is the output of a PATH (the loop pays the margin once per geometry and inherits that trim
+through every later content change), so no from-scratch rule can.
+
+**THE ONE DEVIATION LEFT: 320x540 practice reads 228.39 against main's 236.39.** I defended that in the pushed
+commit message as "8px smaller, the conservative direction". **"CONSERVATIVE" IS WITHDRAWN AS A USER-FACING CLAIM
+[R18]** — it is conservative about *overflow* and about nothing the player sees. Antagonist B measured what is
+inside the box: the control row sits 8px higher, the moves strip goes from **6px clipped to fully visible**, and
+the "↻ Again" button **loses its word** and renders icon-only at 72.4px. That is #395's container-is-not-its-
+contents pointed the other way — I classified an 8px box change as safe without asking what was in the box.
+Recorded as `flags/amber-522-the-320x540-practice-board-is-8px-smaller-and-again-loses-its-word`, late, and the
+lateness is recorded in it.
+
+**AND THE REAL DEFENCE IS STRONGER THAN THE ONE I OFFERED, which is antagonist A's point and not mine: B measured
+base ITSELF settling on 228.39 after a landscape round trip in the same visit.** So 228.39 is not a deviation from
+main's value at all — it is one of main's **own two** values, and the honest sentence is that the refit picks
+*deterministically* the one of main's two draws that is 8px smaller. That is exactly the bistability caveat I
+applied correctly to gate 48's green ("its latch is bistable, so main's green here is a draw of the good state")
+and failed to apply to my own margin table. A re-derived both numbers from `SQ` rather than from the table:
+heightCap 340.4 against widthCap 320, so trim 0 → 320.00, 80 → 260.39, 104 → 236.39, 112 → 228.39, every one a
+legal multiple of 8.
+
+The direction still matters for safety: #515's v1 deviated LARGER at a practice cell and that is what reddened
+gate 48 with 3 FAIL. Gate 48 drives `endgame-demo-end` at 320x540 — **not** the King's Gambit lesson, as this
+run's own commit message `b88f1c8` says; it drives King's Gambit at other cells, so coverage of the deviating
+lesson is BETTER than that message claimed, and the message is wrong in the safe direction [R18].
+
+## 3. WHAT IT COST TO GET RIGHT — three mistakes, all recorded
+
+1. **TWO TRIAL BUNDLES DID NOT MOUNT AT ALL.** The observer effect's dependency array named `wide`, a const
+   declared ~300 lines below it, so the array was evaluated in its temporal dead zone. The minified bundle said
+   "Cannot access 'Se'"; an **unminified** build named it in one line. A dependency array is evaluated at RENDER
+   time, so an effect may be declared before the state it owns but never before anything it depends on.
+2. **I DIAGNOSED THAT AS A RENDER LOOP AND WAS WRONG [R18].** The evidence was my own probe harness hanging — it
+   calls `L.launch` and never exits, and it hung identically on MAIN's bundle, so it was never evidence about the
+   change. The two guards that misdiagnosis motivated (compare the panel against the height the last refit
+   SETTLED at; cap the wakes per content epoch) are kept as a PRECAUTION and the comment in `chess.jsx` says that
+   is what they are, rather than claiming a fix for something observed.
+3. **THE SUITE WAS LAUNCHED BEFORE THE ANTAGONISTS' CROSS-READ**, against prompts/build-run 2b. Recorded as a
+   decision with its risk on the run row and in `notes/build__1792020359000__3`: an upheld veto that moves
+   `chess.jsx` invalidates the suite outright, because the bundle would be rebuilt and the gated md5 would no
+   longer be the pushed md5.
+
+## 4. THE GATE MOVED OUT OF gates/pending/ AND GAINED A PER-FRAME BLOCK
+
+`gates/regress/75-fit-loop-one-way-ratchet.js` (was `gates/pending/`), its manifest row promoted `absent` ->
+`required` by `gates/gatemanifest.sh sync`, and its ADMIT row removed from `gates/audit/cited-not-run.sh`. That
+audit's ADMIT count falls 3 -> 2 and its cited-and-unreachable set 38 -> 37; it is exit 1 before and after, with
+STALE-ROSTER 1 on both, so this build did not make it worse. Known-absent gates fall 5 -> 4.
+
+**BLOCK D is the per-frame check Kunal's bar asks for**, and it is falsifiable in both directions:
+- **D4/D6 NO OVERSHOOT** — no frame wider than that arm's own settled board for the phase. That is the blink.
+  **THE GATE'S OWN HEADER AT `:288` SAYS "D1 does NOT redden on main, because main never overshoots", AND THAT
+  SENTENCE IS FALSE; SO IS THE SAME CLAIM IN THIS RUN'S COMMIT MESSAGE `b88f1c8` [R18].** Antagonist B measured
+  main painting **3 wider frames at 320x540 on every lesson entry** (320.00 then 260.39 against a settled 236.39)
+  and **2 more returning from landscape**, plus the 1 of 97 at 375x568 that the same header's next paragraph
+  records. So **D4 and D5 need no synthetic control at all — main controls them at both cells.** But the
+  correction stops there, which is antagonist A's narrowing of its own point: every overshoot measured is on the
+  **clean** path, so **D6 and D7, which assert over the INJECTED arm, remain UNCONTROLLED** and still rest on the
+  unbuilt recipe at `:291-295`. Two controlled, two not. Filed with the header repair as
+  `jobs/522-gate-75-block-d-hygiene-...`.
+- **D8/D9 NO LATCH AND NO OSCILLATION** — the board must reach the clean arm's settled value after the transient
+  leaves, and the wrong-size frames must form a PREFIX that never recurs. Threshold-free on purpose: a recovery
+  cannot precede the removal that causes it, so some wrong frames are owed; a wander is not. D8 reddens on main
+  by 209 of 209 frames at 320x540 and 210 of 210 at 375x568.
+
+**AND D4 ALREADY CAUGHT SOMETHING NOBODY HAD FILED:** on main, at 375x568, the CLEAN lesson path paints one frame
+at 270.88 when the settled practice board is 254.88 — a one-frame board jump with no injection at all, against
+this project's first rule that the board must never jump. This fix paints 0 of 98. At 320x540 B measured the same
+defect three frames wide on every entry.
+
+**AND THE HOLE THE PAIR FOUND ONLY BY COMPARING THEIR OWN COVERAGE:** block D's `DCELLS` (`:301-304`) drives
+320x540 and 375x568 and **neither 375x761 nor 375x730** — so the residual's geometry and the geometry Kunal
+actually uses both have no per-frame gate, and B had driven neither 430x932 nor 375x761-with-insets. Same blind
+spot from both doors.
+
+## 5. PART B LANDS WITH NO SUITE COVERAGE, SO ITS OWN CONTROLS ARE THE ONLY THING VOUCHING FOR IT
+
+Part B is #521's build-number-register arm split in `gates/fastgate.sh`, merged **unrebuilt** from
+`claude/practical-sagan-8t3gj4` at `55ef500` exactly as the opening required. **MEASURED, NOT ASSUMED: no gate in
+`gates/regress/` reads `fastgate.sh` and it has no `gate-manifest.tsv` row**, so the 110-minute suite that
+authorises this push says nothing whatever about Part B. That is not a defect in this run — the opening ordered
+the merge unrebuilt — but it means the green footer must not be read as covering it.
+
+So I ran it. `gates/fastgate.sh $(git rev-parse origin/main)` against this tree:
+
+- the base check confirms the base IS `origin/main` and is an ancestor of HEAD;
+- **all five stamp-only controls answer correctly** — (a) a same-length restamp is recognised, (b) one code byte
+  outside the stamps is not, (c) a non-stamp byte inside a stamp site is not, (f) a one-character-longer valid
+  stamp is not, (g) every stamp the exemption accepts is accepted by `49-home.js`'s own regex;
+- and it returns **`FULL SUITE REQUIRED` (exit 2)**, naming `app.js` base `53eeef62` → head `60f6c465` as
+  `NOT-STAMP-ONLY`.
+
+That last line is the one worth keeping: the tier check correctly refused to let this very run take a fast green,
+which is the behaviour the arm split exists to produce, demonstrated on the tree that carries it. One caution for
+whoever lands the next change here — **#521's branch history has two commits with an identical message and an
+identical timestamp** (`e5c5969` and `49ec643`, 118 and 291 changed lines), merged by `55ef500`. The merge took
+the fuller version, and the net `fastgate.sh` diff landing on main is `+291`. The history is odd; the content is
+the one that was intended, and the controls above are the evidence for that rather than the commit graph.
+
+## 6. WHAT IS OWED NEXT
+
+**THE FIX IS NOT THE WHOLE STORY AND THE RESIDUALS ARE NAMED, NOT HIDDEN.** Four jobs, one amber record and one
+contradiction were filed by this run, every one of them from its own antagonist pair rather than from me.
+
+1. **`jobs/522-gate-75-block-d-hygiene-...`** (P2, build lane, forces the full suite). Five items. The file's
+   header still says it lives in `gates/pending/`; its D-labels collide with the real assertion ids (the header's
+   "D1" is the actual D4); `:288` asserts main never overshoots, which is **false** at both cells; D9's
+   persistence slice can be one element long, so "it stays back" can be asserted over nothing; and **`DCELLS`
+   drives neither 375x761 nor 375x730**, so the residual's geometry and Kunal's own phone have no per-frame gate.
+   On that last one, measure the added runtime first — two arms of ~210 frames per cell — and if it is
+   unaffordable, record the number and say so in the header rather than leaving the omission silent.
+2. **`jobs/522-the-fit-wake-compares-two-different-boxes-...`** (P2, build lane). The wake reads
+   `contentRect.height`; the settle writes `getBoundingClientRect().height`. Equal today **only** because the
+   moves panel has no padding and no border, which nothing asserts. Add either and every settle is followed by a
+   wake — four full synchronous re-renders per content epoch, which would reach a device as lesson jank that no
+   gate would attribute to padding. And neither `fitPanelHRef` nor `fitWakeNRef` is cleared when the observer
+   re-attaches, so a lesson-to-lesson or play-to-lesson change compares a new panel against a height another
+   screen left behind and spends a budgeted wake on nothing.
+3. **`jobs/522-the-lesson-drivers-try-again-selector-is-stale-...`** (P2, build lane, **pre-existing on both
+   bundles**). `gates/drive/lesson.js`'s `practice-tryagain` taps `/^↻ Try again$/`; the app renders "↻ Again"
+   (aria-label "Try again"), and icon-only at 320x540. `tapBtn` throws, so that driver state has never been
+   reached and **every assertion written against it is unrun rather than failing** — the "a bad selector is a
+   reading" rule one level up, in the harness instead of in a gate. **The blast radius is UNMEASURED:** the fix
+   must enumerate the consumers and report the count, because that count is the real size of this finding.
+4. **`flags/amber-522-the-320x540-practice-board-is-8px-smaller-...`** — the trade in §2, with B's own clearing
+   condition: an explicit recorded decision that 320x540 practice is 228.39 by intent, with the 6px clip as the
+   reason, plus the pin updates and a note that the "Again" word disappears there. The lever if he would rather
+   keep 236.39 is one line — drop the `+8` from the refit's shrink step — and the price is the demo board growing
+   8px at three of four combinations, which is the direction that reddened gate 48 before.
+5. **`contradictions/r19-vs-lib-js-which-emulation-is-kunals-phone-2026-10-14`** (owner: orchestrator; blocks
+   nothing today). `gates/lib.js:24-32` says **`kunal730` is the real phone** and `kunal761` is a cross-check whose
+   numbers differ because headless Chromium has no real `env()` padding; `prompts/common` **R19** says 375x761 is
+   right and names that very lib.js entry as the thing to correct. **This fix recovers the 88px transient at
+   kunal730 and does not at kunal761**, so the two documents decide between them whether the residual below is on
+   his phone or on an emulation known to differ from it. R17 makes `prompts/*` the orchestrator's, and moving the
+   harness's geometry table on a build lane's reading would shift every text-derived pin in the suite at once.
+   Not this run's to pick [R45].
+
+**THE RESIDUAL, with the claim I published about it withdrawn and a mechanism hypothesis that is NOT a finding.**
+At `GEOS.kunal761` (375x761 **with** `ct_safe 51,31`) an 88px transient leaves the board at 358.23 against a clean
+375.03 and it never returns — a **16.80px unrecovered loss, identical on both bundles.** My render table called
+that "no latch on either bundle", which the same table's own rows 1–2 contradict; antagonist A caught it and the
+claim is **withdrawn [R18]**. B drove a **bare** 375x761 and measured ship and base identical at every settled
+state, so the two readings are of two different geometries and do not conflict. Non-monotonic: **120px recovers
+there and 88px does not.** A's hypothesis, recorded as a hypothesis: the practice board reads 358.23 = trim 128
+*with the transient still in flow*, where the convergence model predicts trim 208 — so the discrepancy is in
+`_fitOver`'s reading of the transient, not in the recovery, and the candidate is the #364 spacer subtraction at
+`chess.jsx:3513` (`bottom - spacers`), because an `aria-hidden` flex-grow spacer absorbing part of the transient
+makes `over` a **non-linear** function of its size, and `kunal761` is the only geometry in `gates/lib.js:34`
+carrying insets at all. **The test is one line in a scratch build:** have `_fitOver` return
+`{bottom,spacers,padB,clientH,over}` and read all five at 375x761 with T = 0, 88, 120. If `spacers` moves with T,
+the mechanism is established. The same read settles B's `over=0` at a bottom-most child of y470 in a 540 viewport,
+which implies `padB - spacers ≈ 70` and is unverifiable as published. **This run did not do it deliberately:** it
+means editing `chess.jsx` while the suite authorising the push is still running, and the gated `sourceMd5` is
+already in the register, so a dirty tree at push time is the one state that invalidates everything.
+
+**Ranking, which is antagonist B's and is probably right:** B found no player route that creates an 88px transient
+at that geometry, so it ranks the residual **below** its own 320x540 finding. Nothing in my measurement
+contradicts that — an injected 88px element is a synthetic trigger. The trigger *class* is real (gate 16's 62px
+in-flow spacer at game over); this size at this geometry is not shown to be reachable.
+
+## 7. STILL OWED FROM #521 AND NOT DONE HERE — THE CLAUDE.md BRANCH-PUSH CORRECTION
+
+The opening for this run says in terms: **no CLAUDE.md edit**. #521's correction to CLAUDE.md's branch record is
+therefore still owed, and its exact text is carried forward verbatim below so the next run that may touch
+CLAUDE.md can apply it without re-deriving it. `prompts/build-run` was already fixed at #521; CLAUDE.md is the
+remaining home, and `gates/fastgate.sh`'s own `classify()` calls CLAUDE.md FORCE, so the commit that lands it pays
+the full suite.
+
+**AND A SECOND CLAUDE.md ITEM, FOUND BY THIS RUN'S OWN SUITE AT 02:11Z.** `CLAUDE.md:156` says
+`gates/regress/67-sel-cls-consumers.js` and `gates/regress/50-drill-verdict-no-jump.js` are **BOTH** absent from
+main. **Gate 67 is present, `required`, and GREEN at 33 PASS in this very suite** — `gates/gate-manifest.tsv:79`
+records it PROMOTED from absent at **#491**, when the #442–#447 win-probability pile landed. Gate 50 is still
+absent and this suite's own header lists it among the four known-absent.
+
+Be precise about what is wrong with it, because the paragraph is more careful than a quick read suggests: its
+measurement **is** correctly anchored to a sha ("MEASURED at `fabcfc2`: main's `gates/regress` holds 47 gate
+files"), and that remains true of `fabcfc2`. What has gone stale is the **conclusion**, which is written in the
+present tense — "Two known P0 classes with no gate on main, and no tool in this project could say so" — and only
+one of those two classes is now uncovered. So the fix is not to delete the measurement but to date its
+conclusion: say that gate 67 landed at #491 and that gate 50 remains the uncovered one. That is #433's rule
+pointed at this file rather than at a code comment: *a sentence that reasons about what main carries is a claim
+about `origin/main`, and `origin/main` is one grep away.* Two greps here — `ls gates/regress/67-*` and the
+manifest row — and both are free.
 
 ## APPENDIX: THE EXACT `CLAUDE.md` EDIT #521 COULD NOT LAND, READY TO APPLY
 
