@@ -69,6 +69,22 @@ if [ -n "$($GIT status --porcelain 2>/dev/null)" ]; then
 fi
 CAND="$($GIT rev-parse HEAD 2>/dev/null)"
 [ -n "$CAND" ] || { echo "fastgate-drive.sh: REFUSING - cannot resolve HEAD."; exit 2; }
+# THE UPSTREAM SHA IS RESOLVED HERE, IN THE PARENT, AND PASSED INTO THE CLONE, AND THIS IS NOT A DETAIL -
+# IT IS A BUG THIS HARNESS HAD ON ITS FIRST RUN AND CAUGHT IN ITS OWN CONTROL. `git clone` of a LOCAL
+# repository sets the clone's `origin` to that local path, so the clone's refs/remotes/origin/main tracks the
+# parent's LOCAL `main` BRANCH - not the parent's refs/remotes/origin/main. In this container the local branch
+# is whatever the routine's clone left behind and is routinely many builds stale: measured here at 87b432a
+# (the #514 era) against a real origin/main of 7b2f5b9, EIGHT builds apart. So unfixed mode was comparing
+# against a script old enough to predate the register arm split entirely (`grep -c BNRATCHET` 0 against 5),
+# which made gates/build-numbers.tsv FORCE and sent SEVEN cases to the full suite for a reason that has
+# nothing to do with the defect under test. They were red, and red for the wrong reason, which is the control
+# that disturbs something real and leaves the measured quantity untouched [CLAUDE.md, #416].
+UPSTREAM="$($GIT rev-parse --quiet --verify refs/remotes/origin/main 2>/dev/null)"
+if [ -z "$UPSTREAM" ]; then
+  echo "fastgate-drive.sh: REFUSING - refs/remotes/origin/main does not resolve in this repository, so the"
+  echo "  unfixed baseline cannot be built from the script as it actually ships. Run git fetch origin main."
+  exit 2
+fi
 
 # THE ONE CLOCK READ. Eastern, through the zone name and never an offset [R52]; this project crosses the DST
 # boundary on 1 November 2026 and a hard-coded -4 would be silently an hour wrong after it.
@@ -93,8 +109,8 @@ if [ "$MODE" = unfixed ]; then
   # H12. THE HARNESS MUST BE ABLE TO FAIL. Replace the two files this change touches with their origin/main
   # copies and COMMIT that as the clone's base, so the cases run against the script as it ships today.
   for f in gates/fastgate.sh gates/buildnum.sh; do
-    if git -C "$C" cat-file -e "origin/main:$f" 2>/dev/null; then
-      git -C "$C" show "origin/main:$f" > "$C/$f" || true
+    if git -C "$C" cat-file -e "$UPSTREAM:$f" 2>/dev/null; then
+      git -C "$C" show "$UPSTREAM:$f" > "$C/$f" || true
       chmod +x "$C/$f" 2>/dev/null || true
     fi
   done
@@ -107,6 +123,7 @@ fi
 git -C "$C" update-ref refs/remotes/origin/main "$BASESHA" \
   || { echo "fastgate-drive.sh: REFUSING - could not point the clone's origin/main at the base."; exit 2; }
 note "fastgate-drive.sh mode=$MODE  candidate=$(printf '%.12s' "$CAND")  clone base=$(printf '%.12s' "$BASESHA")  clock=$NOWET ET"
+[ "$MODE" = unfixed ] && note "  unfixed baseline taken from origin/main $(printf '%.12s' "$UPSTREAM"), resolved in the parent repository"
 
 BASESTAMP="$(grep -aoE '#[0-9]{3,4} - 20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET' "$C/app.js" 2>/dev/null | head -1)"
 if [ -z "$BASESTAMP" ]; then
