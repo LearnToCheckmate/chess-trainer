@@ -332,6 +332,53 @@ if [ -z "$SUBSET" ] && [ -f "$UNITJS" ]; then
   fi
 fi
 
+# ── THE UNIT LAYER, SECOND BLOCK: gates/fastgate-drive.sh DRIVES THE TIERED PUSH GATE. ADDED #523. ────────────
+# Closes the coverage half of
+# jobs/no-test-drives-gates-fastgate-sh-end-to-end-so-a-same-length-wrong-stamp-and-a-planted-register-row-both-take-a-fast-green-2026-10-15.
+# gates/fastgate.sh decides whether a commit may reach main WITHOUT this suite, and until now nothing in the
+# repository tested it: line 112's `for f in "$G"/regress/*.js` is the whole enumeration and no regress gate
+# reads it, so GATES GREEN said nothing about it. #522 landed 291 lines of that script under a green suite
+# that read none of them.
+#
+# WHY THE SECOND OPTION AGAIN, exactly as the unit-drill-why block above chose it: a harness that must build
+# throwaway clones and commits is not a browser gate, and keeping it out of regress/ keeps the gate manifest's
+# required count meaning what it says. IT DELIBERATELY GETS NO gate-manifest.tsv ROW for the same reason the
+# block above gets none: gates/verify-log.sh requires the roster to be MANIREQ + 1 (mountcheck), so a manifest
+# row for a non-regress file would refuse every green log from here on. The job's `what` field says this script
+# "has no gates/gate-manifest.tsv row, so a green suite says nothing about it"; the row is the diagnosis of the
+# hole and not the remedy, and the remedy is this block. Marker is `--- ` and never `=== `, same reason.
+#
+# AND I DID NOT MAKE jobs/the-unit-layers-ok-count-and-its-pass-lines-come-from-two-different-patterns-2026-10-03
+# WORSE, WHICH THE JOB ASKS IN TERMS. That job is about the block above: its `uok` comes from `grep -c "^  ok"`
+# while its PASS lines come from a sed with a different shape, so the count it reports and the lines it emits
+# can disagree. This block derives BOTH FROM ONE PATTERN - the PASS lines are generated first and the count is
+# a count OF THOSE LINES - so `dok` cannot differ from the number of PASS lines added to the log. I did not
+# change the block above, because it is not this run's item and its artefact lock is not mine to widen.
+#
+# FULL RUNS ONLY, same as above. And it needs no network and no esbuild: its one esbuild case prints SKIPPED
+# and does not count as an ok, so a container without esbuild cannot quietly turn this green on fewer cases.
+DRIVESH="$G/fastgate-drive.sh"
+if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
+  dlog="$G/logs/$STEM-fastgate-drive.log"
+  echo "--- fastgate-drive (unit layer, not a regress gate, not in the roster) ---" | tee -a "$ALL"
+  ( cd "$ROOT" && timeout 900 bash "$DRIVESH" fixed ) > "$dlog" 2>&1; drc=$?
+  sed -n 's/^  ok  *\(.*\)$/PASS fastgate-drive \1/p' "$dlog" > "$dlog.pass"
+  dok=$(grep -c '^PASS fastgate-drive ' "$dlog.pass" || true)
+  dfail=$(grep -c '^  FAIL ' "$dlog" || true)
+  dskip=$(grep -c '^  SKIPPED ' "$dlog" || true)
+  cat "$dlog.pass" >> "$ALL"; rm -f "$dlog.pass"
+  if [ "$drc" -ne 0 ] || [ "$dfail" -gt 0 ] || [ "$dok" -eq 0 ]; then
+    red=1
+    echo "    fastgate-drive: RED (exit $drc, $dfail FAIL, $dok ok, $dskip skipped)" | tee -a "$ALL"
+    sed -n 's/^  FAIL /FAIL fastgate-drive /p' "$dlog" | head -8 | tee -a "$ALL"
+    echo "        0 ok is as red as a FAIL here: this harness builds its own clone and refuses on a dirty" | tee -a "$ALL"
+    echo "        tree, on an unresolvable origin/main and on re-entry, so it can decline to run anything" | tee -a "$ALL"
+    echo "        rather than fail a case. Full output: $dlog" | tee -a "$ALL"
+  else
+    echo "    fastgate-drive: green ($dok ok -> $dok PASS lines, $dskip skipped)" | tee -a "$ALL"
+  fi
+fi
+
 for f in "${gates[@]}"; do
   name="$(basename "$f" .js)"; log="$G/logs/$STEM-$name.log"
   echo "=== $name ===" | tee -a "$ALL"

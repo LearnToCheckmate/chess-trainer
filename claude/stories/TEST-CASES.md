@@ -1220,3 +1220,50 @@ repository, so neither can be run by `gates.sh` or by any gate, and a build that
 bi-typed goes green on both. Arm A cannot see a `priority` that is numeric and absurd (0, or 900): it checks the
 TYPE and not the range. And it cannot see the nine rows with no `priority` key, which is why those are
 published in the expected cell as a count rather than left to the arm.
+
+---
+
+## The tiered push gate itself - does gates/fastgate.sh accept a wrong input? Executed against #523 (`gates/fastgate-drive.sh`, wired into gates.sh's unit layer; log `gates/logs/<N>-fastgate-drive.log`)
+
+**WHY THESE EXIST.** `gates/fastgate.sh` decides whether a commit may reach main WITHOUT the full suite, which
+took 107 minutes at #514 and 111 at #522. Nothing in this repository tested it: `gates.sh` enumerates the suite
+as `for f in "$G"/regress/*.js`, no regress gate reads it, and it has no `gate-manifest.tsv` row - so
+`GATES GREEN` said nothing about it, and #522 landed 291 lines of it under a green suite that read none of them.
+Job: `no-test-drives-gates-fastgate-sh-end-to-end-so-a-same-length-wrong-stamp-and-a-planted-register-row-both-take-a-fast-green-2026-10-15`.
+
+**THE IDS START AT 057 AND THE JOB'S OWN POINTER NEEDED CHECKING [R18].** Its `startHere` says "TC-SUITE-056 is
+the highest id in use", and in THIS FILE the highest is TC-SUITE-019 - 056 is published by
+`gates/audit/cited-not-run.sh` and `gates/audit/r19-phone-geometry.sh` and appears nowhere in the register,
+which is the same "published but unregistered" class #521's pen note records against TC-SUITE-RG-001. Measured
+across the whole repository (`grep -rhoE 'TC-SUITE-[0-9]{3}'`), 056 IS the true ceiling, so the pointer is right
+about the id space and this file is the thing that is incomplete. 057 cannot collide on either reading.
+
+**EVERY CASE ASSERTS THE EXIT CODE AND THE VERDICT LINE.** Exit code alone is not enough and that is measured
+rather than argued: TC-SUITE-061's first fixture computed its date with `date -d 'TZ="America/New_York" <base> - 1 day'`,
+which GNU date does not evaluate as it reads - it returned a date in the FUTURE - so the case asserted exit 2,
+GOT exit 2, and was exercising TC-SUITE-060's rule instead of its own. It failed on the verdict line.
+
+| id | story | steps (harness) | expected, measured | executed by | last result |
+|---|---|---|---|---|---|
+| TC-SUITE-057 | US-BN-01 | H1: in a throwaway clone of the candidate with origin/main pointed at it, mint the next number with the real `buildnum.sh mint`, restamp app.js at all three sites to that number and the one Eastern minute the harness read at start, `record` the row with the real tool, commit | exit 0 and `FAST GATE GREEN`. The honest rebuild must still be accepted, or the arm has cost the project its tier | `fastgate-drive.sh` H1 | PASS #523: exit 0 (11 ok / 0 FAIL on the fixed script) |
+| TC-SUITE-058 | US-BN-01 | H2: one `minted` row for the next number, no bundle change at all | exit 0 and `FAST GATE GREEN`. The ordinary records-only run must not be taxed: APPDIFF is empty, so the stamp block never runs | `fastgate-drive.sh` H2 | PASS #523: exit 0, and PASS on the UNFIXED script too, which is the point |
+| TC-SUITE-059 | US-BN-01 | H3: as H1 but the stamp number is `#001` - same byte length, a lower number, real register rows so the number is the only thing wrong | exit 2 and a line carrying `LOWER than the base`. **MEASURED EXIT 0 `FAST GATE GREEN` ON origin/main 7b2f5b9**, so this is #521 antagonist A's case, live since the register left the FORCE arm | `fastgate-drive.sh` H3 | PASS #523: exit 2 fixed / **exit 0 unfixed** |
+| TC-SUITE-060 | US-BN-01 | H4: as H1 but the stamp date is `2031-01-01 00:00`, with the plus-one number and the real rows so the date is the only thing varied | exit 2 and a line carrying `later than the wall clock`. **MEASURED EXIT 0 ON origin/main**; reachable through `gates/build.sh`'s unvalidated `CT_STAMP_TIME` | `fastgate-drive.sh` H4 | PASS #523: exit 2 fixed / **exit 0 unfixed** |
+| TC-SUITE-061 | US-BN-01 | H5: as H1 but the stamp date is one day BEFORE the base stamp date, computed as naive calendar arithmetic and not through a zone | exit 2 and a line carrying `EARLIER than the base stamp date`. **MEASURED EXIT 0 ON origin/main** - this one was only predicted by the job and is now measured | `fastgate-drive.sh` H5 | PASS #523: exit 2 fixed / **exit 0 unfixed** |
+| TC-SUITE-062 | US-BN-01 | H6: a plausible number and date at all three sites and NOTHING appended to the register | exit 2 and a line carrying ``no `built` row``. **MEASURED EXIT 0 ON origin/main.** This is the case the withdrawn mitigation used to cover - a real build also writes a row, and a row used to FORCE | `fastgate-drive.sh` H6 | PASS #523: exit 2 fixed / **exit 0 unfixed** |
+| TC-SUITE-063 | US-BN-01 | H7: as H1 but the `built` row's bundle field is `ffffffffffff` rather than the md5 of the head app.js | exit 2 and a line carrying `whose bundle field is`. **MEASURED EXIT 0 ON origin/main.** This is what stops a row being borrowed from another build | `fastgate-drive.sh` H7 | PASS #523: exit 2 fixed / **exit 0 unfixed** |
+| TC-SUITE-064 | US-BN-01 | H8: one well-formed hand-written `999 minted` row appended, nothing else changed | exit **1** `FAST GATE REFUSED` naming the row and the series - NOT exit 2, because the register is append-only and the suite does not check it. **MEASURED EXIT 0 ON origin/main** | `fastgate-drive.sh` H8 | PASS #523: exit 1 fixed / **exit 0 unfixed** |
+| TC-SUITE-065 | US-BN-01 | H8b: in that same planted tree, run `gates/buildnum.sh next` | exit 2, refusing - the wedge the refusal prevents. One accepted row blocks every later mint and cannot be edited out | `fastgate-drive.sh` H8b | PASS #523: exit 2 on both scripts (the wedge is real either way) |
+| TC-SUITE-066 | US-BN-01 | H9: one extra space after the first `function ` in app.js, stamps untouched | exit 2 and `NOT-STAMP-ONLY`, from `so_pred`, before plausibility is ever consulted | `fastgate-drive.sh` H9 | PASS #523: exit 2 on BOTH scripts - the control that the new arm loosened nothing |
+| TC-SUITE-067 | US-BN-01 | H12: build the clone's base from origin/main's own `fastgate.sh` and `buildnum.sh` (resolved in the PARENT repository) and run every case against it | H3 to H8 must go RED and H1, H2, H9 must stay green. **MEASURED: 5 ok / 6 FAIL, and all six failures are `exit 0, expected 2` or `expected 1`** - the six wrong inputs each take `FAST GATE GREEN` today | `fastgate-drive.sh unfixed` | PASS #523: 6 of 6 negatives red on the shipping script |
+| TC-SUITE-068 | US-BN-01 | H13: re-enter the harness with `CT_FASTGATE_DRIVE` set | exit 2, a refusal naming the variable, no recursion and NO `ok` line printed | `fastgate-drive.sh` H13 | PASS #523: exit 2, refuses by name |
+| TC-SUITE-069 | US-BN-01 | the harness's own refusals: run it with a dirty working tree, and with `refs/remotes/origin/main` unresolvable | exit 2 with a named reason in both cases, because it tests the COMMITTED candidate and builds its unfixed baseline from the real upstream | `fastgate-drive.sh` clauses (i) and the UPSTREAM guard | PASS #523: the dirty-tree refusal fired for real mid-run, on an uncommitted fixture fix |
+
+**WHAT THESE DO NOT COVER, named rather than left to be found.** H1b, the only case that rebuilds through
+`gates/build.sh` for real, **SKIPPED on #523** because esbuild is not in this container; it prints SKIPPED and
+does not count as an ok, so a container without esbuild cannot turn this green on fewer cases. The register
+agreement rule (TC-SUITE-062/063) is checked against a `built` row only: a `shipped` row is deliberately not
+accepted in its place, and that choice is untested here because no stamp-changing commit in main's history
+relied on one. And the arm is only ever reached by a commit whose app.js diff is stamp-only AND whose every
+other path is records: measured over all 1204 commits on main, 550 touch app.js, 43 are stamp-only, and only
+TEN would reach this arm at all - so these cases govern a narrow door, which is the honest denominator.
