@@ -658,7 +658,7 @@ plaus_pred(){ # <base app.js> <head app.js> <head md5-12>
 # stray row to the full suite would be useless: I read gates/gates.sh and gates/records-gate.sh for this, and
 # NEITHER runs buildnum.sh next nor any series check - gates.sh never mentions buildnum at all - so the suite
 # would go green and the row would land. prompts/build-run STEP 0F reads exit 1 as STOP: do not push, file it.
-if in_changed 'gates/build-numbers.tsv'; then   # #525: was `printf | grep -qxF`, a pipefail SIGPIPE race
+if in_changed 'gates/build-numbers.tsv'; then   # #525: was a printf-into-grep-qxF pipeline, a pipefail SIGPIPE race
   # THE DELTA IS NO LONGER A PRECONDITION OF THIS BLOCK [#524, antagonist A's veto, UPHELD].
   # This read `RP_D="$(plaus_delta)"; if [ -z "$RP_D" ]; then ... exit 2; fi` at the HEAD of the block, and A
   # defeated the whole refusal with one environment variable: plaus_delta validates with

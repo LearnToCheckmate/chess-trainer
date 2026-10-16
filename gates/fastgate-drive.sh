@@ -309,8 +309,23 @@ expect_env(){ # <case> <expected rc> <expected substring> <VAR=VALUE>
   OK=$((OK+1)); return 0
 }
 mint_in_clone(){ # echoes the minted bare number, or empty
-  local n out
-  n="$(cd "$C" && bash "$C/gates/buildnum.sh" next 2>/dev/null | grep -oE '#?[0-9]{3,4}' | head -1 | tr -d '#')"
+  # NO PIPELINE HERE EITHER [#525, antagonist B's finding 4]. This was
+  #   bash buildnum.sh next | grep -oE '#?[0-9]{3,4}' | head -1 | tr -d '#'
+  # a four-stage pipeline with `head -1` in the middle, under `set -uo pipefail` (:47), whose status is
+  # then discarded by the `[ -n "$n" ]` test. gatemanifest.sh's own sigpipe audit already flagged it
+  # TIER D. B measured ONE flake in TEN identical `unfixed` runs - nine at 5 ok / 20 FAIL / 1 skipped
+  # and one at 4 ok / 21 FAIL with H1 added - and could not pin the cause because the detailed log was
+  # overwritten, so I am NOT claiming this was it. What is true without that claim: this is the same
+  # early-exit-pipe class the P0 of this very run was about, in the harness that reports the P0, and a
+  # flaky assertion is worse than no assertion [CLAUDE.md]. The repair removes the class rather than the
+  # suspected cause, which is the only honest response to a defect whose cause is unknown.
+  # SCOPE, so nobody over-reads it: `fixed` is the only mode gates/gates.sh runs, and B measured it
+  # stable at 25 ok / 0 FAIL / 1 skipped in 3 of 3, one of them at loadavg 3.47.
+  local n out raw
+  raw="$(cd "$C" && bash "$C/gates/buildnum.sh" next 2>/dev/null || true)"
+  n="${raw%%$'\n'*}"                 # first line, in-shell
+  n="${n##*[!0-9#]}"                 # drop any leading prose
+  n="${n#\#}"; n="${n%%[!0-9]*}"      # bare digits only
   [ -n "$n" ] || return 1
   out="$(cd "$C" && CT_RUNID=fastgate-drive bash "$C/gates/buildnum.sh" mint "fastgate-drive.sh fixture, never pushed" 2>&1)" || { note "    (mint failed: $out)"; return 1; }
   printf '%s' "$n"
@@ -327,7 +342,7 @@ md5_12(){ md5sum "$1" 2>/dev/null | cut -c1-12; }
 reset_clone
 H1N="$(mint_in_clone)"
 if [ -z "$H1N" ]; then
-  note "  FAIL H1  could not mint a fixture number in the clone, so the positive case cannot be built"
+  note "  FAIL H1 [$(tc H1)]  could not mint a fixture number in the clone, so the positive case cannot be built"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H1"
 else
   restamp "#$H1N - $NOWET ET" || true
@@ -341,7 +356,7 @@ fi
 reset_clone
 H2N="$(mint_in_clone)"
 if [ -z "$H2N" ]; then
-  note "  FAIL H2  could not mint a fixture number in the clone"
+  note "  FAIL H2 [$(tc H2)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H2"
 else
   commit_case "H2 register only: one minted row for #$H2N, no bundle change"
@@ -367,7 +382,7 @@ if [ -n "$H4N" ]; then
   commit_case "H4 future date: stamp #$H4N dated 2031"
   expect H4 2 "later than the wall clock"
 else
-  note "  FAIL H4  could not mint a fixture number in the clone"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H4"
+  note "  FAIL H4 [$(tc H4)]  could not mint a fixture number in the clone"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H4"
 fi
 
 # H5  NEGATIVE, DATE BEFORE THE BASE.
@@ -410,7 +425,7 @@ if [ -n "$H7N" ]; then
   commit_case "H7 register row names the wrong bundle: #$H7N"
   expect H7 2 "whose bundle field is"
 else
-  note "  FAIL H7  could not mint a fixture number in the clone"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H7"
+  note "  FAIL H7 [$(tc H7)]  could not mint a fixture number in the clone"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H7"
 fi
 
 # H8  NEGATIVE, PLANTED ROW. One well-formed hand-written row, nothing else changed. It must be REFUSED at
@@ -701,17 +716,43 @@ if [ -n "$H24TOP" ]; then
   # plants a NON-CONTIGUOUS number, the same shape H8 uses, which the arm must refuse on contiguity alone.
   H24ROW=$((H24TOP + 474))
   reg_row "$H24ROW"
-  mkdir -p "$C/claude/agents/drive-pad"
+  # THE PADDING PREFIX IS LOAD-BEARING AND MY FIRST CHOICE DEFEATED THE CASE [#525, antagonist A's
+  # VETO, UPHELD AND REPRODUCED]. The defect is a SIGPIPE race, so it needs `grep -q` to EXIT EARLY,
+  # which needs the TARGET EARLY in the list. `git diff --name-only` emits sorted paths, and
+  # `claude/agents/drive-pad/...` sorts BEFORE `gates/build-numbers.tsv` - so the target was the LAST
+  # of 5001 lines, grep read the whole stream, printf had already finished, there was NO SIGPIPE, and
+  # the arm ran normally. H24 asserted exit 1 against a script that answers exit 1 either way.
+  # MEASURED, 40 trials per ordering at the same payload size: with the target at line 5001 the test
+  # reads TRUE 40 of 40 (the race never fires); with it at line 1, TRUE 2 of 40. A reproduced the case
+  # staying `ok` with the P0 fully reverted in the base, which is the definition of a harness lie.
+  # AND IT INVALIDATED A PUBLISHED NUMBER: TC-SUITE-081's "40 of 40 ... target at list position 1" was
+  # measured on the orchestrator's `zzz/` fixture and then carried across to this one after I changed
+  # the prefix - the threshold-belongs-to-its-instrument rule, committed by moving the instrument.
+  # `zzz-drive-pad/` sorts after `gates/` and is still RECORDS (classify()'s `*/*.md` arm).
+  mkdir -p "$C/zzz-drive-pad"
   H24N=0
   while [ "$H24N" -lt 5000 ]; do
     H24N=$((H24N + 1))
-    : > "$C/claude/agents/drive-pad/pad-$H24N.md"
+    : > "$C/zzz-drive-pad/pad-$H24N.md"
   done
   commit_case "H24 planted register row #$H24ROW plus 5000 records paths in one commit"
   H24C="$(git -C "$C" diff --name-only --no-renames "$BASESHA..HEAD" | grep -c . || true)"
+  # POSITION IS ASSERTED BESIDE SIZE, BECAUSE SIZE WAS NEVER THE OPERATIVE VARIABLE [#525, A's veto].
+  # The old self-check guarded only that the fixture produced >=5000 paths, and it PASSED on a fixture
+  # that could not exercise the defect at all. The race needs the target EARLY, so the case now refuses
+  # to report unless the target sits in the first tenth of the list - which is what makes a regression
+  # back to a late-sorting prefix a loud FAIL instead of a silent green.
+  H24P="$(git -C "$C" diff --name-only --no-renames "$BASESHA..HEAD" | grep -nxF 'gates/build-numbers.tsv' | cut -d: -f1)"
+  H24P="${H24P:-0}"
   if [ "$H24C" -lt 5000 ]; then
     note "  FAIL H24 [$(tc H24)]  the fixture only produced $H24C changed paths, under the pipe buffer, so it"
     note "         cannot exercise the defect - a case that cannot see what it guards is not a case."
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H24"
+  elif [ "$H24P" -eq 0 ] || [ "$H24P" -gt $((H24C / 10)) ]; then
+    note "  FAIL H24 [$(tc H24)]  the target path sits at line $H24P of $H24C, too late in the sorted list for"
+    note "         grep -q to exit early, so the SIGPIPE race cannot fire and this case would assert exit 1"
+    note "         against a script that answers exit 1 either way [#525, antagonist A's veto]. Pad under a"
+    note "         prefix that sorts AFTER gates/ ."
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H24"
   else
     # THE ASSERTION IS THE VERDICT LINE AND NOT THE EXIT CODE, because exit 1 is reachable from the stamp arm

@@ -469,7 +469,7 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
     echo "        claimed green over no assertions [#405's '0 PASS is the tell']. A DECLINE is handled above" | tee -a "$ALL"
     echo "        and is not this branch - and since #525 a decline must carry at least one REFUSING line, so" | tee -a "$ALL"
     echo "        an exit 2 from a harness that does not PARSE arrives here instead of reading as a skip." | tee -a "$ALL"
-    echo "        and is not this branch. Full output: $dlog" | tee -a "$ALL"
+    echo "        Full output: $dlog" | tee -a "$ALL"
   else
     echo "    fastgate-drive: green ($dok ok -> $dok PASS lines, $dskip skipped)" | tee -a "$ALL"
   fi
