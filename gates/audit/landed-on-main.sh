@@ -191,6 +191,55 @@ for c in python3 python; do
   if command -v "$c" >/dev/null 2>&1; then PY="$c"; break; fi
 done
 
+# ── THE RESULT KEYS, BY PREFIX, AND THE NEWEST VERDICT. ADDED #523. ───────────────────────────────────────────
+# WHY: this instrument read a document's result with `json_field "$f" integrationResult` - ONE EXACT KEY - while
+# both prompts that define the measurement read a PREFIX. prompts/process-build (amended 2026-10-13) says to
+# query for "documents with a `patch` field and no field whose name starts `integrationResult`", and
+# prompts/build-run STEP 1I defines EXAMINED as "the document has a field whose name starts
+# `integrationResult` (`integrationResult`, `integrationResult<N>`, `integrationResultAt`)". STEP 1I (3) is why
+# the suffixed form is the common one: "EVERY PASS WRITES A RECORD ON EVERY PAYLOAD IT TRIES ... as
+# `integrationResult<your build number>`". So the instrument was measuring a key the passes stopped writing.
+# MEASURED on the 88 patch-carrying documents of the patches collection, exported 2026-10-15: 69 carry the
+# plain key and 88 carry at least one key with the prefix, so the naive pile read 19 where the prompts' own
+# reading is 0, and all 19 of those carry a suffixed key and no plain one.
+# THE SOURCE FOR "NEWEST" IS NOT THIS FILE: prompts/build-run STEP 1I (3) names the suffix as the writing
+# pass's own build number, so the highest-numbered suffix is the latest pass to have tried the payload. The
+# plain key is used only when no numbered one exists. json, not grep: these documents carry embedded newlines
+# and the file already refuses to run without python3 for that reason.
+json_result_keys() {   # json_result_keys <file>  -> prints every integrationResult* key name, one per line
+  "$PY" -I -c '
+import json,sys
+try:
+    d=json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(0)
+if not isinstance(d,dict): sys.exit(0)
+for k in d:
+    if isinstance(k,str) and k.startswith("integrationResult"): print(k)
+' "$1" 2>/dev/null
+}
+
+json_newest_result() {   # json_newest_result <file>  -> the newest verdict text (highest numbered suffix, else plain)
+  "$PY" -I -c '
+import json,sys,re
+try:
+    d=json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(0)
+if not isinstance(d,dict): sys.exit(0)
+num=[]
+for k in d:
+    if not isinstance(k,str): continue
+    m=re.fullmatch(r"integrationResult(\d+)",k)
+    if m: num.append((int(m.group(1)),k))
+key=max(num)[1] if num else ("integrationResult" if "integrationResult" in d else None)
+if key is None: sys.exit(0)
+v=d[key]
+if v is None: sys.exit(0)
+sys.stdout.write(v if isinstance(v,str) else json.dumps(v,sort_keys=True))
+' "$1" 2>/dev/null
+}
+
 json_field() {   # json_field <file> <field>  -> prints value, empty if absent
   "$PY" -I -c '
 import json,sys
@@ -301,7 +350,8 @@ audit() {
     patchbody=$(json_field "$f" patch)
     [ -n "$patchbody" ] || continue
     withpatch=$((withpatch+1))
-    ir=$(json_field "$f" integrationResult)
+    ir=$(json_newest_result "$f")
+    irkeys=$(json_result_keys "$f")
     artefact=$(json_field "$f" artefact)
     printf '%s' "$patchbody" > "$tmp/$id.patch"
 
@@ -336,8 +386,12 @@ audit() {
       n3=$((n3+1)); L3_INDET="$L3_INDET $id"
     fi
 
-    [ -n "$ir" ] && withir=$((withir+1))
-    [ -z "$ir" ] && naive_pile=$((naive_pile+1))
+    # THE PILE IS COUNTED ON KEY PRESENCE, NOT ON THE VERDICT TEXT [#523]. A document whose only result field
+    # is `integrationResultAt`, or whose verdict is an empty string, is EXAMINED by the prompts' own reading -
+    # a pass looked at it - even though it carries no verdict text for L7 to classify. Counting on $ir would
+    # put those back in the pile and is the defect one level down from the exact-key read.
+    [ -n "$irkeys" ] && withir=$((withir+1))
+    [ -z "$irkeys" ] && naive_pile=$((naive_pile+1))
 
     # ---- L1 / L2  THE CLAIM, AND WHETHER IT IS TRUE ----
     # anc=ALL  every sha named is an ancestor of origin/main
@@ -535,7 +589,7 @@ audit() {
 
   # ---- L5  THE TWO PILE DEPTHS, SIDE BY SIDE. This is the number the lanes halt
   # ---- on, against the number they ought to halt on.
-  info L5-PILE-DEPTH-NAIVE "$naive_pile (documents with a patch field and no integrationResult - what prompts/process-build's back-pressure rule actually measures)"
+  info L5-PILE-DEPTH-NAIVE "$naive_pile (documents with a patch field and NO FIELD WHOSE NAME STARTS integrationResult - what prompts/process-build's back-pressure rule actually measures)"
   info L5-PILE-DEPTH-TRUE "$true_undelivered (documents whose content is NOT demonstrably on main)"
   if [ "$naive_pile" -eq "$true_undelivered" ]; then
     pass L5-PILE-DEPTHS-AGREE "both depths are $naive_pile, so the back-pressure number means what it says today"
@@ -611,13 +665,20 @@ selftest() {
   git -C "$R" format-patch --stdout "$LANDED^..$LANDED"     > "$P_LANDED"
   git -C "$R" format-patch --stdout "$STRANDED^..$STRANDED" > "$P_STRANDED"
 
-  mkdoc() {  # mkdoc <id> <patchfile> <integrationResult-or-empty>
+  mkdoc() {  # mkdoc <id> <patchfile> <verdict-or-empty> [keyname] [second-key] [second-verdict]
+    # THE FOURTH ARGUMENT IS THE KEY NAME, ADDED #523. Without it every fixture in this selftest wrote the
+    # PLAIN `integrationResult`, so the selftest could not reach the suffixed and `integrationResultAt` forms
+    # that the passes actually write - and the exact-key read this build fixed was therefore invisible to the
+    # very instrument that was supposed to control it. Default stays the plain key so every existing case is
+    # byte-unchanged; args 5 and 6 add a SECOND key so the newest-verdict rule can be driven.
     "$PY" -I -c '
 import json,sys
 d={"artefact":"gates/audit/kept.js","lane":"selftest","patch":open(sys.argv[2]).read()}
-if sys.argv[3]: d["integrationResult"]=sys.argv[3]
+key=sys.argv[4] if len(sys.argv)>4 and sys.argv[4] else "integrationResult"
+if sys.argv[3]: d[key]=sys.argv[3]
+if len(sys.argv)>6 and sys.argv[5]: d[sys.argv[5]]=sys.argv[6]
 json.dump(d,open(sys.argv[1],"w"))
-' "$D/$1.json" "$2" "$3"
+' "$D/$1.json" "$2" "$3" "${4:-}" "${5:-}" "${6:-}"
   }
 
   # ===================== C1 / C2  the shallow-clone precondition ============
@@ -825,6 +886,61 @@ json.dump(d,open(sys.argv[1],"w"))
   out="$T/o26"; audit "$D" "$R" > "$out" 2>&1; rc=$?
   check C26-PROSE-NO-OVERRIDE     1 "ancestry=QUOTES-LANDED-SHAS" "$rc" "$out"
   check C26b-QUOTER-STAYS-OWED    1 "L7-REFUSAL-NOT-OWED        FAIL" "$rc" "$out"
+
+  # ====== C32 to C36  THE RESULT KEY IS READ BY PREFIX, NOT BY ONE EXACT NAME [#523, RENUMBERED #524] ======
+  # RENUMBERED FROM C27..C31 BY #524. These five arrived at #523 reusing ids the SAME FILE already defines
+  # at the L9 new-file arm above (lines ~779-840: C27-ADDED-FILE-ABSENT, C28-ADDED-FILE-PRESENT,
+  # C29-NO-ADDERS-MEASURES-0, C30-OUTSTANDING-ADDER-INFO, C31-ADD-EXTRACTOR-WORKS). The full names never
+  # literally collided, because each carries its own suffix - which is exactly why nothing caught it - but
+  # the ID did, so "C29 passed" named two different controls in one script and no sentence of that form was
+  # safe. That is the TC-R05 collision CLAUDE.md records, where one id meant a different case in two
+  # documents and was still not fully unwound; here it is one id meaning two cases in ONE FILE. C32 to C36
+  # were free (the file defines C1 to C31 and nothing above 31).
+  # Each fixture carries ONE stranded payload, so the pile would be 1 if the document read as unexamined and 0
+  # if it reads as examined. The expected pile is written beside each one. Measured on the real collection
+  # before this build: 88 patch-carrying documents, 69 with the plain key, 88 with at least one prefixed key,
+  # so the naive pile read 19 against the prompts' own 0.
+  # C32  ONLY A NUMBERED KEY. This is the form prompts/build-run STEP 1I (3) tells every pass to write, so it
+  #      is the COMMON case, and it was the one the exact-key read could not see. Pile must be 0 of 1.
+  fresh_docdir; mkdoc d-suffixed "$P_STRANDED" "NOT LANDED, refused on a conflict" "integrationResult517"
+  out="$T/o27"; audit "$D" "$R" > "$out" 2>&1; rc=$?
+  check C32-SUFFIXED-KEY-IS-EXAMINED 1 "L5-PILE-DEPTH-NAIVE        INFO  0" "$rc" "$out"
+
+  # C33  ONLY integrationResultAt. The prompts' prefix reading counts it, and that is SAID rather than assumed:
+  #      a timestamp with no verdict text means a pass LOOKED at the payload, which is what EXAMINED means, so
+  #      it leaves the pile even though L7 has no verdict to classify. Pile must be 0 of 1.
+  fresh_docdir; mkdoc d-at "$P_STRANDED" "2026-10-14T03:50:00Z" "integrationResultAt"
+  out="$T/o28"; audit "$D" "$R" > "$out" 2>&1; rc=$?
+  check C33-RESULTAT-IS-EXAMINED 1 "L5-PILE-DEPTH-NAIVE        INFO  0" "$rc" "$out"
+
+  # C34  ONLY THE PLAIN KEY. The form the instrument always could see; it must not regress. Pile 0 of 1.
+  fresh_docdir; mkdoc d-plain "$P_STRANDED" "NOT LANDED, refused on a conflict"
+  out="$T/o29"; audit "$D" "$R" > "$out" 2>&1; rc=$?
+  check C34-PLAIN-KEY-STILL-EXAMINED 1 "L5-PILE-DEPTH-NAIVE        INFO  0" "$rc" "$out"
+
+  # C35  NO RESULT KEY AT ALL. The one state that IS the pile, and the control that C32 to C34 are not simply
+  #      reporting 0 for everything - without this the three above would pass on an instrument that had
+  #      stopped counting the pile entirely. Pile must be 1 of 1.
+  #      EXPECTED rc IS 0 AND NOT 1, and my first draft of this case had it wrong: with no result key the
+  #      naive pile is 1 and the true pile is 1, so L5-PILE-DEPTHS-AGREE PASSES and the run exits 0. C10 above
+  #      already records that exact shape at rc 0. The selftest caught my expectation, not the instrument.
+  fresh_docdir; mkdoc d-none "$P_STRANDED" ""
+  out="$T/o30"; audit "$D" "$R" > "$out" 2>&1; rc=$?
+  check C35-NO-KEY-IS-THE-PILE 0 "L5-PILE-DEPTH-NAIVE        INFO  1" "$rc" "$out"
+
+  # C36  BOTH KEYS, AND THE NEWEST VERDICT WINS. The plain key says it landed and the numbered key - a later
+  #      pass, by STEP 1I (3)'s own definition of the suffix - says it was refused. The verdict L7 classifies
+  #      must be the REFUSAL, so this reports L7-REFUSAL rather than an unconfirmed claim. The source for
+  #      "newest" is STEP 1I and not this file [R08 sibling clause].
+  fresh_docdir; mkdoc d-both "$P_STRANDED" "APPLIED, commit $STRANDED" "integrationResult" "integrationResult520" "NOT LANDED, refused on a conflict"
+  out="$T/o31"; audit "$D" "$R" > "$out" 2>&1; rc=$?
+  #      THE LINE NAME IS L7-REFUSAL-NOT-OWED, READ OFF THE INSTRUMENT RATHER THAN GUESSED: my first draft
+  #      asserted "L7-REFUSAL-RECORDED", which is the internal `kind` value and not the published line, and
+  #      the selftest refused it. REFUSAL-RECORDED is what the newest verdict classifies AS; NOT-OWED is the
+  #      line that reports it. The differential is the point of this case: with the exact-key read, `ir` was
+  #      the PLAIN key's "APPLIED, commit ..." and L7 classified it CLAIM-UNCONFIRMED, so this document
+  #      reported as an unconfirmed claim instead of as a recorded refusal.
+  check C36-NEWEST-VERDICT-WINS 1 "L7-REFUSAL-NOT-OWED        FAIL" "$rc" "$out"
 
   # ===================== C16  determinism of the report ====================
   # Byte-identical output on repeated runs over one input [R36]. A report whose
