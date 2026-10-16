@@ -207,7 +207,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H1b) printf 'TC-SUITE-070' ;;  H14) printf 'TC-SUITE-071' ;;  H15) printf 'TC-SUITE-072' ;;
     H16) printf 'TC-SUITE-073' ;;  H17) printf 'TC-SUITE-074' ;;
     H18) printf 'TC-SUITE-075' ;;  H19) printf 'TC-SUITE-076' ;;  H20) printf 'TC-SUITE-077' ;;
-    H21) printf 'TC-SUITE-078' ;;  H22) printf 'TC-SUITE-079' ;;
+    H21) printf 'TC-SUITE-078' ;;  H22) printf 'TC-SUITE-079' ;;  H23) printf 'TC-SUITE-080' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -586,6 +586,40 @@ printf '18446744073709552016\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminte
   "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/build-numbers.tsv"
 commit_case "H22 planted register row 18446744073709552016 (= 2^64 + 400)"
 expect H22 1 "more than six digits"
+
+# H23 POSITIVE, AND IT IS THE ACCEPT CASE FOR THE ONE FINDING I ALMOST SHIPPED AS A RESIDUAL. Four contiguous
+#     rows above the top, with gates/held-trees.tsv vouching for three of them - the shape a run inherits after
+#     three consecutive HELD runs, which this register records happening for real (#456-#459). Antagonist A's
+#     NOTE 5: the ceiling was measured over pushes that LANDED, which by construction cannot contain a held
+#     run's unlanded mint, and exit 1 is terminal with no full-suite escape. Measured how near it was: this
+#     branch adds exactly #523 and #524 above main's top, #523 already has a held row, and two more held runs
+#     reach four. So this case is the project's own writer being blocked by my guard in two runs' time, and it
+#     must go GREEN. H19 (four rows, NO held rows) must stay RED in the same run - the pair is what shows the
+#     exclusion discriminates rather than widens.
+reset_clone
+H23TOP="$(grep -v '^[[:space:]]*#' "$C/gates/build-numbers.tsv" | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/ {print $1+0}' | sort -n | tail -1)"
+if [ -n "$H23TOP" ]; then
+  for k in 1 2 3 4; do
+    printf '%s\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminted\tfour accumulated mints, row %s of 4, fixture only\n' \
+      "$((H23TOP + k))" "$(date -u '+%Y-%m-%dT%H:%MZ')" "$k" >> "$C/gates/build-numbers.tsv"
+  done
+  for k in 1 2 3; do
+    printf 'deadbeef%s00\t%s\t#%s\t%s\tfastgate-drive-fixture\tFIXTURE ONLY - a held tree so the mint above is vouched for.\t-\n' \
+      "$k" "$(printf 'f%039d' "$k")" "$((H23TOP + k))" "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/held-trees.tsv"
+  done
+  commit_case "H23 four contiguous mints #$((H23TOP+1))..#$((H23TOP+4)) with held rows for the first three"
+  # exit 2, NOT 0, AND THE REASON IS CORRECT RATHER THAN A CONCESSION: the fixture must touch
+  # gates/held-trees.tsv to plant the vouching rows, and classify() deliberately FORCES that file - "a GUARD
+  # REGISTER whose protection lives in its row VALUES", held back alone at #521 on a measured records-gate
+  # gap. So a commit editing it belongs in the full suite whatever this arm says. WHAT THIS CASE ASSERTS IS
+  # THE THING UNDER TEST: the register arm ran FIRST (the #524 reorder), counted FOUR new numbers above the
+  # top, and did NOT refuse - where H19's four UNVOUCHED rows in the same run do refuse at exit 1. The pair is
+  # what shows the held-trees exclusion discriminates rather than widens.
+  expect H23 2 "4 new build number(s) above the base register"
+else
+  note "  FAIL H23 [$(tc H23)]  could not read the base register top"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H23"
+fi
 
 # H13 RECURSION GUARD. Re-enter this harness with the guard set and require a named refusal at exit 2, no
 #     recursion and no ok line. Run as a case rather than described, because an unproven control is not one.

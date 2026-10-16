@@ -776,6 +776,8 @@ if printf '%s\n' "$CHANGED" | grep -qxF 'gates/build-numbers.tsv'; then
   # free number below the top. What the split buys is that neither can take the FAST door silently, and that
   # the log names every number being spent instead of asserting contiguity it never checked.
   RP_I=0
+  RP_K=0
+  RP_HELDOK=""
   RP_FILL=""
   while IFS= read -r rnum; do
     [ -n "$rnum" ] || continue
@@ -789,6 +791,27 @@ if printf '%s\n' "$CHANGED" | grep -qxF 'gates/build-numbers.tsv'; then
       continue
     fi
     RP_I=$((RP_I + 1))
+    # A NUMBER WITH A held-trees ROW IS AN ACCOUNTED-FOR MINT AND DOES NOT COUNT TOWARD THE CEILING
+    # [#524, antagonist A's NOTE 5, UPHELD AND CLOSED RATHER THAN LEFT AS A RESIDUAL]. A's objection was that
+    # the ceiling was measured over pushes that LANDED, which by construction can never contain a HELD run's
+    # unlanded mint - so honest unlanded mints accumulate and a legitimate tree can exceed three, while exit 1
+    # is terminal (prompts/build-run STEP 0F reads it as STOP) with no full-suite escape.
+    # IT IS NOT HYPOTHETICAL AND I MEASURED HOW NEAR IT WAS: this branch adds exactly #523 and #524 above
+    # main's top of #522, #523 already carries a held-trees row, and if this run holds then #524 does too. One
+    # more held run reaches 3 - still allowed - and the one after reaches FOUR, refused terminally, with three
+    # of the four being accounted-for holds. A guard that blocks the project's only writer in two runs is
+    # worse than the attack it was built for, and gates/held-trees.tsv on main records four CONSECUTIVE holds
+    # (#456-#459), so the shape recurs.
+    # TWO COUNTERS, DELIBERATELY NOT ONE: RP_I is the POSITION and contiguity still applies to every new
+    # number (an accounted-for mint is still sequential, so this does not loosen that test by a single row);
+    # RP_K is what the ceiling bounds, and it skips a number the held register vouches for. A's ten
+    # hand-written rows carry no held row, so they still count ten and are still refused - the attack is
+    # unaffected, which is the only thing that makes this safe rather than a widening.
+    if grep -q "	#$rnum	" "$ROOT/gates/held-trees.tsv" 2>/dev/null; then
+      RP_HELDOK="$RP_HELDOK #$rnum"
+    else
+      RP_K=$((RP_K + 1))
+    fi
     if [ "$rnum" -gt "$((RP_TOP + RP_I))" ]; then
       # BASE 10, FORCED, AND THE ORDINAL SPELLED [#524, antagonist B finding 6]. `[ "$rnum" -le ... ]` reads a
       # leading-zero number as DECIMAL while $(( )) reads the same string as OCTAL, so B's planted `0530` row
@@ -837,23 +860,11 @@ EOF
   # = parent of the group's oldest commit - and the maximum above-top PER PUSH is also 3 (#469, #480, #517),
   # with #454's register-creating push at 218 above a top of 0 and diverted by the RP_TOP=0 arm. So the number
   # is right for the population actually judged; the justification now names which population it is.
-  if [ "$RP_I" -gt 3 ]; then
-    # HOW MANY OF THESE ARE ACCOUNTED FOR BY A HELD RUN - REPORTED, NEVER CREDITED [A's NOTE 5]. A held run
-    # mints a number and its register row never reaches main (measured: main's register carries 0 rows for
-    # #523, which gates/held-trees.tsv holds), so unlanded mints ACCUMULATE on the next tree - and the
-    # population the ceiling was measured over is pushes that LANDED, which by construction can never contain
-    # one. held-trees.tsv on main records four consecutive holds (#456-#459), so the accumulating case is
-    # routine here rather than hypothetical, and this run's own tree has already spent 2 of the 3.
-    RP_HELD=0
-    while IFS= read -r rnum; do
-      [ -n "$rnum" ] || continue
-      if grep -q "	#$rnum	" "$ROOT/gates/held-trees.tsv" 2>/dev/null; then RP_HELD=$((RP_HELD + 1)); fi
-    done <<EOF
-$RP_NEW
-EOF
-    RP_BAD="$RP_BAD    this diff appends $RP_I NEW build numbers ABOVE the base top of #$RP_TOP, and the measured ceiling is THREE. A mint takes one (gates/buildnum.sh next is highest+1); two occur when a run merges a branch whose own minted row never reached main; three has happened three times in this register (#469 21b5967513, #480 dc0ece3609, #517 46d919dc3a, re-derived at #524); four has never happened, per commit or per push. NOTE THE SCOPE: this arm judges the whole diff \$BASEFULL..\$HEAD, not one commit, so a branch stack of honest one-mint commits is counted together.\n"
-    RP_BAD="$RP_BAD    OF THOSE $RP_I NUMBERS, $RP_HELD HAVE A ROW IN gates/held-trees.tsv - reported, not credited, and it is the evidence the next run needs. A HELD run's mint row never reaches main, so unlanded mints accumulate and a legitimate tree CAN exceed three. If that is what this is, the route is to raise the ceiling in a commit that says why and cites the measurement, not to work around this refusal. THIS REFUSAL IS DELIBERATELY TERMINAL AND exit 2 WAS CONSIDERED AND REJECTED: the full suite runs no series check, so routing a wholesale burn there lands it - which is the same argument the gap-fill door below turns the other way, because a gap fill cannot be distinguished from a census while a 4-above-top run can at least be weighed against the held register.\n"
-    RP_BAD="$RP_BAD    AND CHECK YOUR BASE BEFORE YOU HUNT A WEDGE [#524, A's NOTE 6]: if refs/remotes/origin/main is STALE this count is inflated by numbers that are already on the real main. A measured exactly that - with origin/main pinned eight builds back this arm reported '10 NEW build numbers' for a tree whose first eight were already landed. Run git fetch and read git log -1 origin/main before believing the figure above.\n"
+  if [ "$RP_K" -gt 3 ]; then
+    RP_BAD="$RP_BAD    this diff appends $RP_I NEW build numbers ABOVE the base top of #$RP_TOP, of which $RP_K are NOT vouched for by a row in gates/held-trees.tsv, and the measured ceiling is THREE. A mint takes one (gates/buildnum.sh next is highest+1); two occur when a run merges a branch whose own minted row never reached main; three has happened three times in this register (#469 21b5967513, #480 dc0ece3609, #517 46d919dc3a, re-derived at #524); four has never happened, per commit or per push. NOTE THE SCOPE: this arm judges the whole diff \$BASEFULL..\$HEAD, not one commit, so a branch stack of honest one-mint commits is counted together.\n"
+    [ -n "$RP_HELDOK" ] && RP_BAD="$RP_BAD    (Excluded from that count because gates/held-trees.tsv vouches for them:$RP_HELDOK. A HELD run's mint row never reaches main, so unlanded mints accumulate on the next tree - which is why they are excluded rather than counted.)\n"
+    RP_BAD="$RP_BAD    THIS REFUSAL IS TERMINAL AND exit 2 WAS CONSIDERED AND REJECTED: the full suite runs no series check, so routing a wholesale burn there lands it. If these numbers ARE accounted for, the route is a held-trees row per held mint - which this arm reads - and not a workaround.\n"
+    RP_BAD="$RP_BAD    AND CHECK YOUR BASE BEFORE YOU HUNT A WEDGE [#524, A's NOTE 6]: if refs/remotes/origin/main is STALE this count is inflated by numbers already on the real main. A measured exactly that - with origin/main pinned eight builds back this arm reported '10 NEW build numbers' for a tree whose first eight were already landed. Run git fetch and read git log -1 origin/main before believing the figure above.\n"
   fi
   if [ -n "$RP_BAD" ]; then
     say ""
@@ -895,6 +906,7 @@ EOF
   # 5(a), where a planted `363 minted` row got a fast green under a log asserting a check it had not done.
   # Both doors are now walked, so the sentence is true; and it names the count, so a reader can see k.
   say "register plausibility [#523, bound corrected #524]: $RP_I new build number(s) above the base register"
+  [ -n "$RP_HELDOK" ] && say "  ($RP_K of them count toward the ceiling of three; gates/held-trees.tsv vouches for$RP_HELDOK, which a held run's unlanded mint needs.)"
   say "  top of #$RP_TOP, each contiguous with it (an honest mint is highest+1, so the Nth new number may be"
   say "  at most #$RP_TOP+N) and at most three in one commit; NO new number at or below #$RP_TOP, which would"
   say "  be a gap fill rather than a mint and goes to the full suite; and gates/buildnum.sh next still answers"
