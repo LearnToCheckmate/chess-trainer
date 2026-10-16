@@ -367,13 +367,41 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   dfail=$(grep -c '^  FAIL ' "$dlog" || true)
   dskip=$(grep -c '^  SKIPPED ' "$dlog" || true)
   cat "$dlog.pass" >> "$ALL"; rm -f "$dlog.pass"
-  if [ "$drc" -ne 0 ] || [ "$dfail" -gt 0 ] || [ "$dok" -eq 0 ]; then
+  # ── DECLINED TO RUN IS A REPORTED SKIP, NOT A RED [#524]. ──────────────────────────────────────────────────
+  # #523 wrote this as `drc -ne 0 || dfail -gt 0 || dok -eq 0 -> red=1`, and the comment below defended the
+  # `dok -eq 0` limb on the ground that the harness "can decline to run anything rather than fail a case". That
+  # is true, and making the decline a RED is the mistake, because ONE OF THE THINGS IT DECLINES ON IS THE
+  # DOCUMENTED HAPPY PATH: gates/fastgate-drive.sh tests the COMMITTED tree, so it refuses when the working
+  # tree is dirty - and prompts/build-run's own sequence is mint -> gates/build.sh -> gates/gates.sh, which
+  # leaves app.js rebuilt and UNCOMMITTED at exactly the moment this block runs. MEASURED by #523's antagonist
+  # A: `touch zz-probe.tmp && bash gates/fastgate-drive.sh fixed` prints "REFUSING - the working tree is not
+  # clean" and exits 2, setting drc=2 AND dok=0, so both red limbs fire. #523 is the ONE configuration where
+  # that does not bite, because it shipped no application change; the next build that actually rebuilds app.js
+  # could not have reached GATES GREEN at all. It would also have reddened 21 of the 151 archived green logs,
+  # #522's among them - the very baseline #523 cited for itself.
+  # CLAUDE.md's rule is the one that decides this: a guard that fires on the normal case gets switched off,
+  # which is why --this-bundle is opt-in. So the verdict is split on WHAT THE HARNESS SAID, not merely on a
+  # non-zero code, and the harness's own convention already separates the two cases cleanly: exit 1 is "a case
+  # answered WRONGLY", exit 2 is "could not RUN" and is reached only by its named REFUSING paths, before any
+  # case executes. A decline therefore has dfail 0 and dok 0 by construction.
+  # IT IS NEVER SILENT, which is the whole difference between this and weakening the guard: the refusal line is
+  # copied verbatim into the log, so a reader sees that the push gate went untested and why. That is the same
+  # honest-and-blind shape as the five known-absent gates the manifest reports every run, and the same
+  # precedent as the esbuild-absent case inside the harness, which already prints SKIPPED and counts no ok.
+  if [ "$drc" -eq 2 ] && [ "$dfail" -eq 0 ] && [ "$dok" -eq 0 ]; then
+    echo "    fastgate-drive: SKIPPED - the harness DECLINED to run and asserted nothing (exit 2)." | tee -a "$ALL"
+    grep -a 'REFUSING' "$dlog" | head -3 | sed 's/^/        /' | tee -a "$ALL"
+    echo "        This is NOT a red and NOT a green: the tiered push gate was not exercised by this suite," | tee -a "$ALL"
+    echo "        so this log says nothing about gates/fastgate.sh. The usual cause is a dirty working tree," | tee -a "$ALL"
+    echo "        which is the documented path between gates/build.sh and gates/gates.sh. Full output: $dlog" | tee -a "$ALL"
+  elif [ "$drc" -ne 0 ] || [ "$dfail" -gt 0 ] || [ "$dok" -eq 0 ]; then
     red=1
     echo "    fastgate-drive: RED (exit $drc, $dfail FAIL, $dok ok, $dskip skipped)" | tee -a "$ALL"
     sed -n 's/^  FAIL /FAIL fastgate-drive /p' "$dlog" | head -8 | tee -a "$ALL"
-    echo "        0 ok is as red as a FAIL here: this harness builds its own clone and refuses on a dirty" | tee -a "$ALL"
-    echo "        tree, on an unresolvable origin/main and on re-entry, so it can decline to run anything" | tee -a "$ALL"
-    echo "        rather than fail a case. Full output: $dlog" | tee -a "$ALL"
+    echo "        A case answered WRONGLY, or the harness reported success having asserted nothing. Both are" | tee -a "$ALL"
+    echo "        red: exit 1 is the harness's own code for a wrong answer, and 0 ok with exit 0 would mean it" | tee -a "$ALL"
+    echo "        claimed green over no assertions [#405's '0 PASS is the tell']. A DECLINE is handled above" | tee -a "$ALL"
+    echo "        and is not this branch. Full output: $dlog" | tee -a "$ALL"
   else
     echo "    fastgate-drive: green ($dok ok -> $dok PASS lines, $dskip skipped)" | tee -a "$ALL"
   fi

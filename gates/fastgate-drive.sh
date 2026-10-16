@@ -157,20 +157,57 @@ commit_case(){ # <subject>
 run_fastgate(){
   ( cd "$C" && CT_FASTGATE_DRIVE=1 timeout 250 bash "$C/gates/fastgate.sh" "$BASESHA" 2>&1 )
 }
+# ── THE CASE NAME CARRIES ITS TC ID [#524]. ────────────────────────────────────────────────────────────────
+# claude/stories/TEST-CASES.md publishes thirteen TC-SUITE ids for these cases and the LOG CARRIED NONE of
+# them, so "TC-SUITE-060 passed" could not be checked against any artefact: a reader had to map H4 -> 060 by
+# hand out of a 1,270-line register. One table, one place, and the ok line prints it - which is also what makes
+# the two re-measured cells below verifiable by whoever reads the log next.
+# A MISSING ID IS NAMED RATHER THAN BLANK, because a silently empty field is how a register and a log drift.
+tc(){ # <case> -> its TC id, or a loud placeholder
+  case "$1" in
+    H1)  printf 'TC-SUITE-057' ;;  H2)  printf 'TC-SUITE-058' ;;  H3)  printf 'TC-SUITE-059' ;;
+    H4)  printf 'TC-SUITE-060' ;;  H5)  printf 'TC-SUITE-061' ;;  H6)  printf 'TC-SUITE-062' ;;
+    H7)  printf 'TC-SUITE-063' ;;  H8)  printf 'TC-SUITE-064' ;;  H8b) printf 'TC-SUITE-065' ;;
+    H9)  printf 'TC-SUITE-066' ;;  H12) printf 'TC-SUITE-067' ;;  H13) printf 'TC-SUITE-068' ;;
+    H1b) printf 'TC-SUITE-070' ;;  H14) printf 'TC-SUITE-071' ;;  H15) printf 'TC-SUITE-072' ;;
+    H16) printf 'TC-SUITE-073' ;;  H17) printf 'TC-SUITE-074' ;;
+    *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
+  esac
+}
 expect(){ # <case> <expected rc> <expected substring>
-  local name="$1" wantrc="$2" want="$3" out rc
+  local name="$1" wantrc="$2" want="$3" out rc id
+  id="$(tc "$name")"
   out="$(run_fastgate)"; rc=$?
   if [ "$rc" != "$wantrc" ]; then
-    printf '  FAIL %s  exit %s, expected %s\n' "$name" "$rc" "$wantrc"
+    printf '  FAIL %s [%s]  exit %s, expected %s\n' "$name" "$id" "$rc" "$wantrc"
     printf '%s\n' "$out" | grep -aE 'FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED' | head -3 | sed 's/^/         /'
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1
   fi
   if ! printf '%s' "$out" | grep -qaF "$want"; then
-    printf '  FAIL %s  exit %s as expected, but the verdict line does not carry %s\n' "$name" "$rc" "\"$want\""
+    printf '  FAIL %s [%s]  exit %s as expected, but the verdict line does not carry %s\n' "$name" "$id" "$rc" "\"$want\""
     printf '%s\n' "$out" | grep -aE 'FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED' | head -3 | sed 's/^/         /'
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1
   fi
-  printf '  ok  %s  (exit %s, %s)\n' "$name" "$rc" "$want"
+  printf '  ok  %s [%s]  (exit %s, %s)\n' "$name" "$id" "$rc" "$want"
+  OK=$((OK+1)); return 0
+}
+# expect_env: as expect, but with one environment variable set for the fastgate call only. H17 needs it and
+# nothing else does, so it is a wrapper rather than a parameter on the common path.
+expect_env(){ # <case> <expected rc> <expected substring> <VAR=VALUE>
+  local name="$1" wantrc="$2" want="$3" kv="$4" out rc id
+  id="$(tc "$name")"
+  out="$( ( cd "$C" && env "$kv" CT_FASTGATE_DRIVE=1 timeout 250 bash "$C/gates/fastgate.sh" "$BASESHA" 2>&1 ) )"; rc=$?
+  if [ "$rc" != "$wantrc" ]; then
+    printf '  FAIL %s [%s]  exit %s, expected %s (with %s)\n' "$name" "$id" "$rc" "$wantrc" "$kv"
+    printf '%s\n' "$out" | grep -aE 'FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED' | head -3 | sed 's/^/         /'
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1
+  fi
+  if ! printf '%s' "$out" | grep -qaF "$want"; then
+    printf '  FAIL %s [%s]  exit %s as expected, but no line carries %s (with %s)\n' "$name" "$id" "$rc" "\"$want\"" "$kv"
+    printf '%s\n' "$out" | grep -aE 'FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED|BUILDNUM_MAX_DELTA' | head -3 | sed 's/^/         /'
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1
+  fi
+  printf '  ok  %s [%s]  (exit %s, with %s, %s)\n' "$name" "$id" "$rc" "$kv" "$want"
   OK=$((OK+1)); return 0
 }
 mint_in_clone(){ # echoes the minted bare number, or empty
@@ -286,11 +323,15 @@ reset_clone
 printf '999\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminted\tplanted row, fixture only, never pushed\n' \
   "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/build-numbers.tsv"
 commit_case "H8 planted register row 999"
-expect H8 1 "series margin"
+# THE EXPECTED TEXT CHANGED WITH THE BOUND [#524]. This read "series margin", which was the right assertion
+# while the bound WAS the margin. The bound is now contiguity, so that substring no longer appears and this
+# case would have gone red on a correct script - the failure mode the job calls a stale pin. Asserting the
+# verdict LINE and not merely the exit code is what makes that visible rather than silent.
+expect H8 1 "an honest mint would have made it"
 H8NEXT_RC=0
 ( cd "$C" && bash "$C/gates/buildnum.sh" next >/dev/null 2>&1 ) || H8NEXT_RC=$?
 if [ "$H8NEXT_RC" = 2 ]; then
-  printf '  ok  %s  (exit 2, %s)\n' "H8b" "buildnum.sh next refuses on the planted tree - the wedge the refusal prevents"
+  printf '  ok  %s [%s]  (exit 2, %s)\n' "H8b" "$(tc H8b)" "buildnum.sh next refuses on the planted tree - the wedge the refusal prevents"
   OK=$((OK+1))
 else
   printf '  FAIL %s  buildnum.sh next exited %s on the planted tree, expected 2\n' "H8b" "$H8NEXT_RC"
@@ -322,20 +363,82 @@ if [ -x "$C/node_modules/.bin/esbuild" ] || command -v esbuild >/dev/null 2>&1; 
     commit_case "H1b real rebuild through build.sh at #$H1BN"
     expect H1b 0 "FAST GATE GREEN"
   else
-    note "  SKIPPED H1b  esbuild is present but gates/build.sh did not produce a bundle here; not counted as ok"
+    note "  SKIPPED H1b [$(tc H1b)]  esbuild is present but gates/build.sh did not produce a bundle here; not counted as ok"
     SKIP=$((SKIP+1))
   fi
 else
-  note "  SKIPPED H1b  esbuild is not available in this container, so a real rebuild cannot be fixtured; not counted as ok"
+  note "  SKIPPED H1b [$(tc H1b)]  esbuild is not available in this container, so a real rebuild cannot be fixtured; not counted as ok"
   SKIP=$((SKIP+1))
 fi
+
+# ── THE FOUR CASES #524 ADDS, ONE PER UPHELD FINDING AGAINST #523's GATED TREE. ────────────────────────────
+
+# H14 NEGATIVE, FUTURE DATE BY THREE HOURS. THE CONTROL FOR THE DEFECT THIS WHOLE BUILD EXISTS TO CLOSE.
+#     H4 already covers a future date and CANNOT SEE THIS CLASS: it uses 2031-01-01, five years out, which
+#     fails the lexicographic base-date rule whatever the wall-clock bound says. The untested band was +10
+#     minutes to +4h10m - the only band a PLAUSIBLE wrong stamp lives in - and it was open because the bound
+#     was formatted in UTC. +3 hours sits squarely inside it and is the orchestrator's own named fixture.
+#     ON THE UNFIXED SCRIPT this takes exit 0: origin/main's fastgate.sh carries no plausibility arm at all.
+reset_clone
+H14N="$(mint_in_clone)"
+H14D="$(TZ=America/New_York date -d 'now + 3 hours' '+%Y-%m-%d %H:%M' 2>/dev/null)"
+if [ -n "$H14N" ] && [ -n "$H14D" ]; then
+  restamp "#$H14N - $H14D ET" || true
+  record_in_clone "$H14N" "$(md5_12 "$C/app.js")" "$(md5_12 "$C/chess.jsx")"
+  commit_case "H14 future date by three hours: stamp #$H14N dated $H14D"
+  expect H14 2 "later than the wall clock"
+else
+  note "  FAIL H14 [$(tc H14)]  could not build the fixture (number '$H14N', date '$H14D')"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H14"
+fi
+
+# H15 NEGATIVE, BOTH WRONGS IN ONE COMMIT: a bad stamp AND a planted register row. THE ORDERING CASE.
+#     The harness tested each alone - H3 the stamp, H8 the row - and had no case with both, which is exactly
+#     how the ordering defect survived a green suite. Before the reorder the stamp arm exited 2 first and
+#     Part 2(c) never ran, so the planted row LANDED. It must now be exit 1, the register's refusal, because
+#     exit 1 means REFUSE and exit 2 only means pay for the suite - and the suite does not check the register.
+reset_clone
+printf '999\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminted\tplanted row beside a bad stamp, fixture only, never pushed\n' \
+  "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/build-numbers.tsv"
+restamp "#001 - $NOWET ET" || true
+commit_case "H15 planted register row 999 AND stamp #001 in one commit"
+expect H15 1 "an honest mint would have made it"
+
+# H16 NEGATIVE, A PLANTED ROW INSIDE THE OLD MARGIN. The margin was 10, so a row at top+5 was ACCEPTED and
+#     burned four numbers silently and permanently - measured by #523's antagonist B, which appended `530` to a
+#     base topping out at #523 and got FAST GATE GREEN, after which buildnum.sh next returned #531 with four
+#     numbers reading free. H8's 999 is far out of band and could never see this. Under contiguity the only
+#     honest first new number is top+1, so this is refused and the number it names is printed.
+reset_clone
+H16TOP="$(grep -v '^[[:space:]]*#' "$C/gates/build-numbers.tsv" | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/ {print $1}' | sort -n | tail -1)"
+if [ -n "$H16TOP" ]; then
+  printf '%s\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminted\tplanted row five above the top, inside the old margin of ten, fixture only\n' \
+    "$((H16TOP + 5))" "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/build-numbers.tsv"
+  commit_case "H16 planted register row #$((H16TOP + 5)), five above the base top and inside the old margin"
+  expect H16 1 "an honest mint would have made it"
+else
+  note "  FAIL H16 [$(tc H16)]  could not read the base register top"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H16"
+fi
+
+# H17 THE OVERRIDE IS NAMED AND DOES NOT BUY ANYTHING. BUILDNUM_MAX_DELTA used to widen the margin this arm
+#     read, so BUILDNUM_MAX_DELTA=1000 took H8's own 999 fixture to exit 0 while the log said only what the
+#     resulting margin was - buildnum.sh warns loudly on stderr in that situation and this script did not.
+#     TWO ASSERTIONS IN ONE CASE, deliberately: the refusal must STILL hold (contiguity does not read the
+#     margin, so the override cannot move it) and the log must SAY the override is live. Asserting only the
+#     second would pass on a script that still honoured it.
+reset_clone
+printf '999\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminted\tplanted row under a widened margin, fixture only\n' \
+  "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/build-numbers.tsv"
+commit_case "H17 planted register row 999 with BUILDNUM_MAX_DELTA=1000"
+expect_env H17 1 "BUILDNUM_MAX_DELTA=1000 is set in the environment" "BUILDNUM_MAX_DELTA=1000"
 
 # H13 RECURSION GUARD. Re-enter this harness with the guard set and require a named refusal at exit 2, no
 #     recursion and no ok line. Run as a case rather than described, because an unproven control is not one.
 H13_OUT="$(CT_FASTGATE_DRIVE=1 bash "$HERE/fastgate-drive.sh" "$MODE" 2>&1)"; H13_RC=$?
 if [ "$H13_RC" = 2 ] && printf '%s' "$H13_OUT" | grep -qaF 'CT_FASTGATE_DRIVE is set' \
    && ! printf '%s' "$H13_OUT" | grep -qaE '^  ok  '; then
-  printf '  ok  %s  (exit 2, refuses by name, recursed into no case and printed no ok)\n' "H13"
+  printf '  ok  %s [%s]  (exit 2, refuses by name, recursed into no case and printed no ok)\n' "H13" "$(tc H13)"
   OK=$((OK+1))
 else
   printf '  FAIL %s  exit %s, or it did not refuse by name, or it printed an ok line\n' "H13" "$H13_RC"
