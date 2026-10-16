@@ -150,7 +150,16 @@ open(p,'wb').write(b.replace(o,n))
 PY
 }
 commit_case(){ # <subject>
-  git -C "$C" add -A >/dev/null 2>&1
+  # EXCLUDE gates/.buildnum.lock [#524, antagonist A finding 7, and it is the mechanism behind a RED THIS
+  # HARNESS PRODUCES ON A CORRECT SCRIPT]. gates/buildnum.sh:129 is LOCKD="$HERE/.buildnum.lock", a directory
+  # holding a pid file, and it is NOT gitignored - so `git add -A` sweeps it into the fixture commit whenever
+  # a mint is in flight, the commit then touches an unrecognised gates/ path, and fastgate exits 2 for
+  # "paths are not records-only" instead of the reason the case asserts. A OBSERVED the directory inside the
+  # clone mid-run and reproduced the consequence deterministically. In `unfixed` mode that cost H5 its
+  # negative control; in `fixed` mode it hits the POSITIVE cases, which expect exit 0, so one leaked lock
+  # gives dfail>0 and gates.sh's block then reddens a 70-minute suite over a fixture's lock file. Belt and
+  # braces: the path is gitignored as well, so a future caller that forgets this exclusion is still safe.
+  git -C "$C" add -A -- ':!gates/.buildnum.lock' >/dev/null 2>&1
   git -C "$C" -c user.name=ct-drive -c user.email=ct-drive@local commit --quiet -m "$1" >/dev/null 2>&1
 }
 # ONE INVOCATION POINT, so the guard variable and the timeout are set the same way for every case.
@@ -171,6 +180,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H9)  printf 'TC-SUITE-066' ;;  H12) printf 'TC-SUITE-067' ;;  H13) printf 'TC-SUITE-068' ;;
     H1b) printf 'TC-SUITE-070' ;;  H14) printf 'TC-SUITE-071' ;;  H15) printf 'TC-SUITE-072' ;;
     H16) printf 'TC-SUITE-073' ;;  H17) printf 'TC-SUITE-074' ;;
+    H18) printf 'TC-SUITE-075' ;;  H19) printf 'TC-SUITE-076' ;;  H20) printf 'TC-SUITE-077' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -183,11 +193,27 @@ expect(){ # <case> <expected rc> <expected substring>
     printf '%s\n' "$out" | grep -aE 'FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED' | head -3 | sed 's/^/         /'
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1
   fi
-  if ! printf '%s' "$out" | grep -qaF "$want"; then
+  # NO SUBPROCESS AND NO PIPELINE FOR THE CONTENT TEST [#524, antagonist B's veto, UPHELD].
+  # This was `printf '%s' "$out" | grep -qaF "$want"`. B ran 31 runs and got ONE red with two FAILs - H7 and
+  # H14 both reporting "the verdict line does not carry <string>" - while the same log PROVED the string was
+  # there, and H4 had passed on the identical substring earlier in that very run. A false RED, which under
+  # this build's own gates.sh logic is drc=1 with dfail=2 and reddens an honest tree. 1 in 31 is worse than a
+  # high rate, because a reviewer who re-runs twice sees green.
+  # THE MECHANISM IS NOT PINNED FOR THIS SITE AND I AM NOT PRETENDING IT IS. B ruled out SIGPIPE here by
+  # measurement (the output is ~1 KB, far under the 64 KiB pipe buffer, so the single write cannot block) and
+  # ruled out fork failure, grep errors and line corruption. Antagonist A separately pinned a DIFFERENT
+  # wrong-reason red to a leaked gates/.buildnum.lock (fixed below), which explains A's H5 but not B's H7/H14,
+  # whose logged verdict line carries the string.
+  # SO THE FIX REMOVES THE CLASS RATHER THAN THE SUSPECTED CAUSE: a quoted `case` pattern is a literal
+  # substring test done by bash itself - no fork, no pipe, no second process to be killed or starved - so it
+  # cannot fail in any of the ways a pipeline can. That is the only honest response to a defect whose cause is
+  # unknown. The quoting is what makes it literal: inside a pattern a quoted expansion matches byte-for-byte
+  # and glob metacharacters in $want are not special, so this is `grep -F` semantics without grep.
+  case "$out" in *"$want"*) : ;; *)
     printf '  FAIL %s [%s]  exit %s as expected, but the verdict line does not carry %s\n' "$name" "$id" "$rc" "\"$want\""
     printf '%s\n' "$out" | grep -aE 'FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED' | head -3 | sed 's/^/         /'
-    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1
-  fi
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1 ;;
+  esac
   printf '  ok  %s [%s]  (exit %s, %s)\n' "$name" "$id" "$rc" "$want"
   OK=$((OK+1)); return 0
 }
@@ -202,11 +228,11 @@ expect_env(){ # <case> <expected rc> <expected substring> <VAR=VALUE>
     printf '%s\n' "$out" | grep -aE 'FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED' | head -3 | sed 's/^/         /'
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1
   fi
-  if ! printf '%s' "$out" | grep -qaF "$want"; then
+  case "$out" in *"$want"*) : ;; *)                 # in-shell, no pipeline [#524, as expect() above]
     printf '  FAIL %s [%s]  exit %s as expected, but no line carries %s (with %s)\n' "$name" "$id" "$rc" "\"$want\"" "$kv"
     printf '%s\n' "$out" | grep -aE 'FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED|BUILDNUM_MAX_DELTA' | head -3 | sed 's/^/         /'
-    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1
-  fi
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1 ;;
+  esac
   printf '  ok  %s [%s]  (exit %s, with %s, %s)\n' "$name" "$id" "$rc" "$kv" "$want"
   OK=$((OK+1)); return 0
 }
@@ -433,11 +459,79 @@ printf '999\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminted\tplanted row un
 commit_case "H17 planted register row 999 with BUILDNUM_MAX_DELTA=1000"
 expect_env H17 1 "BUILDNUM_MAX_DELTA=1000 is set in the environment" "BUILDNUM_MAX_DELTA=1000"
 
+# H18 NEGATIVE, A GAP FILL BELOW THE TOP - THE DOOR #524's FIRST BOUND LEFT WIDE OPEN. Antagonist A measured
+#     NINE gaps in this register (126, 256, 257, 258, 278, 303, 304, 361, 363), committed one `363 minted` row
+#     in a clone and got EXIT 0 FAST GATE GREEN under a log that POSITIVELY ASSERTED "every new number in this
+#     diff is contiguous with the base register top" - a check the code skipped for any number at or below the
+#     top. `buildnum.sh check 363` then went from free to ISSUED, permanently, because the register is
+#     append-only. The expected verdict is exit 2 and NOT exit 1: #454's census (f6127fcb36, a records-only
+#     commit touching this file and nothing else) filled 123 such numbers legitimately, so refusing the shape
+#     would refuse honest work. What must never happen again is the FAST door plus a false assertion.
+#     THE GAP IS FOUND, NOT HARD-CODED: a literal 363 would stop testing anything the day someone fills it.
+reset_clone
+H18TOP="$(grep -v '^[[:space:]]*#' "$C/gates/build-numbers.tsv" | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/ {print $1+0}' | sort -n | tail -1)"
+H18GAP="$(grep -v '^[[:space:]]*#' "$C/gates/build-numbers.tsv" | cut -f1 | awk 'NF && $1 ~ /^[0-9]+$/ {print $1+0}' | sort -n -u \
+          | awk -v t="$H18TOP" 'BEGIN{for(i=1;i<=t;i++) want[i]=1} {delete want[$1]} END{m=0; for(k in want) if(k+0>m) m=k+0; if(m) print m}')"
+if [ -n "$H18GAP" ] && [ "$H18GAP" -gt 0 ] 2>/dev/null; then
+  printf '%s\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminted\tplanted row filling a gap BELOW the base top, fixture only\n' \
+    "$H18GAP" "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/build-numbers.tsv"
+  commit_case "H18 planted register row #$H18GAP, a free number BELOW the base top of #$H18TOP"
+  expect H18 2 "fills a gap and turns a number"
+else
+  note "  FAIL H18 [$(tc H18)]  could not find a free number below the base top of '${H18TOP:-?}' to plant"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H18"
+fi
+
+# H19 NEGATIVE, THE DENSE ATTACK A ACTUALLY RAN. A planted ten CONTIGUOUS rows at top+1..top+10 and took EXIT 0
+#     FAST GATE GREEN, moving `buildnum.sh next` from #525 to #535: ten numbers burned in one commit, strictly
+#     worse than the six H16's sparse form was written for, because the per-position bound (`rnum > top + i`)
+#     is satisfied by every row of a dense run and NOTHING bounded how many rows there were. Four is used here
+#     rather than ten because four is the first count the measured ceiling refuses - #469 and #480 each
+#     appended three legitimately - so this case pins the ceiling itself and not merely some large number.
+reset_clone
+H19TOP="$(grep -v '^[[:space:]]*#' "$C/gates/build-numbers.tsv" | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/ {print $1+0}' | sort -n | tail -1)"
+if [ -n "$H19TOP" ]; then
+  for k in 1 2 3 4; do
+    printf '%s\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminted\tdense planted run, row %s of 4, fixture only\n' \
+      "$((H19TOP + k))" "$(date -u '+%Y-%m-%dT%H:%MZ')" "$k" >> "$C/gates/build-numbers.tsv"
+  done
+  commit_case "H19 four contiguous planted rows #$((H19TOP+1))..#$((H19TOP+4))"
+  expect H19 1 "NEW build numbers ABOVE the base top"
+else
+  note "  FAIL H19 [$(tc H19)]  could not read the base register top"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H19"
+fi
+
+# H20 POSITIVE, AND IT IS THE CASE THAT CAUGHT MY OWN FIRST BOUND. My first answer to A's dense attack was a
+#     flat ceiling of two new numbers per commit, justified in the comment by "nothing in this project's
+#     history appends three" - a sentence I had not measured. Measured, #480 (dc0ece3609) and #469 (21b5967513)
+#     each append THREE numbers above the then-top, and #454's census appends 123 below it. So the bound this
+#     case proves is not "small is good": it is that the ceiling sits ABOVE every shape this register has
+#     actually produced. A guard that refuses honest work is worse than no guard, and the accept direction is
+#     the one no attacker will ever report for me. The assertion names the COUNT, so it goes red both if three
+#     is refused and if the success line stops saying how many numbers it bounded.
+reset_clone
+H20TOP="$(grep -v '^[[:space:]]*#' "$C/gates/build-numbers.tsv" | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/ {print $1+0}' | sort -n | tail -1)"
+if [ -n "$H20TOP" ]; then
+  for k in 1 2 3; do
+    printf '%s\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminted\tthe #469/#480 shape, row %s of 3, fixture only\n' \
+      "$((H20TOP + k))" "$(date -u '+%Y-%m-%dT%H:%MZ')" "$k" >> "$C/gates/build-numbers.tsv"
+  done
+  commit_case "H20 three contiguous minted rows #$((H20TOP+1))..#$((H20TOP+3)), the #469/#480 shape"
+  expect H20 0 "3 new build number(s) above the base register"
+else
+  note "  FAIL H20 [$(tc H20)]  could not read the base register top"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H20"
+fi
+
 # H13 RECURSION GUARD. Re-enter this harness with the guard set and require a named refusal at exit 2, no
 #     recursion and no ok line. Run as a case rather than described, because an unproven control is not one.
 H13_OUT="$(CT_FASTGATE_DRIVE=1 bash "$HERE/fastgate-drive.sh" "$MODE" 2>&1)"; H13_RC=$?
-if [ "$H13_RC" = 2 ] && printf '%s' "$H13_OUT" | grep -qaF 'CT_FASTGATE_DRIVE is set' \
-   && ! printf '%s' "$H13_OUT" | grep -qaE '^  ok  '; then
+# Same change as expect() [#524]: the substring test is in-shell and the line-anchored one uses a HERESTRING
+# rather than a pipe. A herestring is a file descriptor, not a pipe, so neither can take SIGPIPE.
+H13_NAMED=no; case "$H13_OUT" in *"CT_FASTGATE_DRIVE is set"*) H13_NAMED=yes ;; esac
+H13_SAWOK=no; grep -qaE '^  ok  ' <<<"$H13_OUT" && H13_SAWOK=yes
+if [ "$H13_RC" = 2 ] && [ "$H13_NAMED" = yes ] && [ "$H13_SAWOK" = no ]; then
   printf '  ok  %s [%s]  (exit 2, refuses by name, recursed into no case and printed no ok)\n' "H13" "$(tc H13)"
   OK=$((OK+1))
 else
