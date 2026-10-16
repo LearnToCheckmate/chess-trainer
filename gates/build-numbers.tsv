@@ -564,3 +564,4 @@
 522	minted	-	-	-	2026-10-15T00:16Z	build__1792020359000	minted	Part A the lesson board pre-paint re-fit (band 16 job) + gate 75 out of pending with per-frame block D; Part B #521 register arm split merged unrebuilt. One suite, one push.
 522	built	-	ec31de9fe6c5	1b41d1d1e765	2026-10-15T00:37Z	build__1792020359000	build.sh	Bundle built and stamped #522. Recorded by gates/build.sh so the number resolves to an artefact.
 523	minted	-	-	-	2026-10-15T12:31Z	build__1792066130000	minted	the fastgate harness (Part 1) and the stamp/register plausibility arm (Part 2): no application change, bundle stays #522 ec31de9fe6c5
+524	minted	-	-	-	2026-10-16T00:25Z	build__1792108253000	minted	the fix run for the held #523 tree: the three upheld antagonist findings, the two content corrections and the case register. No application change, so a minted row and no built row.
