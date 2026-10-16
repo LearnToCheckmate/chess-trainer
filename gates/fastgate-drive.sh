@@ -79,11 +79,37 @@ CAND="$($GIT rev-parse HEAD 2>/dev/null)"
 # which made gates/build-numbers.tsv FORCE and sent SEVEN cases to the full suite for a reason that has
 # nothing to do with the defect under test. They were red, and red for the wrong reason, which is the control
 # that disturbs something real and leaves the measured quantity untouched [CLAUDE.md, #416].
-UPSTREAM="$($GIT rev-parse --quiet --verify refs/remotes/origin/main 2>/dev/null)"
-if [ -z "$UPSTREAM" ]; then
-  echo "fastgate-drive.sh: REFUSING - refs/remotes/origin/main does not resolve in this repository, so the"
-  echo "  unfixed baseline cannot be built from the script as it actually ships. Run git fetch origin main."
-  exit 2
+# THE CHECK BELONGS TO `unfixed` AND IT USED TO FIRE FOR BOTH MODES [#524 second pass, antagonist B
+# finding 7]. `fixed` never reads UPSTREAM, so in any plain clone - which is how a reviewer naturally works -
+# `bash gates/fastgate-drive.sh fixed` REFUSED at exit 2 because a REMOTE-TRACKING REF was absent. Under
+# gates/gates.sh that is exactly the decline branch this same build added, so the suite would print
+# "fastgate-drive: SKIPPED - the tiered push gate was not exercised by this suite" and lose the whole block's
+# coverage over a ref that has nothing to do with the thing under test. It is not reachable in the live
+# repository, which has the ref; it is reachable for everyone else.
+UPSTREAM=""
+if [ "$MODE" = unfixed ]; then
+  UPSTREAM="$($GIT rev-parse --quiet --verify refs/remotes/origin/main 2>/dev/null)"
+  if [ -z "$UPSTREAM" ]; then
+    echo "fastgate-drive.sh: REFUSING - refs/remotes/origin/main does not resolve in this repository, so the"
+    echo "  unfixed baseline cannot be built from the script as it actually ships. Run git fetch origin main."
+    exit 2
+  fi
+  # AND THE BASELINE MUST CARRY THE ARM UNDER TEST, OR ITS REDS MEAN NOTHING [#524, B finding 8]. B ran
+  # `unfixed` in a straight `git clone` of this repository and got 2 ok / 16 FAIL against the published
+  # 5 ok / 13 FAIL, because a clone's refs/remotes/origin/main tracks the PARENT'S LOCAL `main` branch -
+  # 87b432a here, the #514 era - and not the real origin/main at cbeb4ff. `git show 87b432a:gates/fastgate.sh
+  # | grep -c BNRATCHET` is 0, so H1/H2/H8b failed for "paths are not records-only", unrelated to anything
+  # under test. The baseline sha is printed, so the published count was disclosed rather than false - this is
+  # #411/#412's rule, not a lie - but a control whose reds come from the wrong script is not a control.
+  if [ "$($GIT cat-file blob "$UPSTREAM:gates/fastgate.sh" 2>/dev/null | grep -ac 'BNRATCHET' || true)" = 0 ]; then
+    echo "fastgate-drive.sh: REFUSING - the unfixed baseline $(printf '%.12s' "$UPSTREAM") predates the register"
+    echo "  arm entirely (grep -c BNRATCHET = 0), so every case would go red for 'paths are not records-only'"
+    echo "  rather than for the defect it targets. In a CLONE, refs/remotes/origin/main tracks the parent's"
+    echo "  LOCAL main, which can be many builds behind the real origin/main - that is what this is. Run"
+    echo "  'git fetch origin main:refs/remotes/origin/main' in this repository, or run unfixed in one whose"
+    echo "  origin/main is the real upstream."
+    exit 2
+  fi
 fi
 
 # THE ONE CLOCK READ. Eastern, through the zone name and never an offset [R52]; this project crosses the DST
@@ -181,6 +207,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H1b) printf 'TC-SUITE-070' ;;  H14) printf 'TC-SUITE-071' ;;  H15) printf 'TC-SUITE-072' ;;
     H16) printf 'TC-SUITE-073' ;;  H17) printf 'TC-SUITE-074' ;;
     H18) printf 'TC-SUITE-075' ;;  H19) printf 'TC-SUITE-076' ;;  H20) printf 'TC-SUITE-077' ;;
+    H21) printf 'TC-SUITE-078' ;;  H22) printf 'TC-SUITE-079' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -524,11 +551,50 @@ else
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H20"
 fi
 
+# H21 THE OVERRIDE IS NAMED ON THE PATH THAT REGRESSED, NOT ONLY ON A REFUSAL. H17 asserts the notice on a
+#     REFUSED tree and passed throughout - on the register arm's own duplicate re-grep - while the identical
+#     claim in plaus_pred was dead, because plaus_delta's globals were assigned inside a command substitution.
+#     So the case that was missing is the GREEN one: a stamp-only commit under BUILDNUM_MAX_DELTA, whose
+#     verdict line must carry the provenance rather than an empty bracket. Both antagonists vetoed on this
+#     independently and NOTHING in this harness could see it: `grep -c 'OVERRIDDEN by'` was 0.
+reset_clone
+H21N="$(mint_in_clone)"
+if [ -n "$H21N" ]; then
+  restamp "#$H21N - $NOWET ET" || true
+  record_in_clone "$H21N" "$(md5_12 "$C/app.js")" "$(md5_12 "$C/chess.jsx")" || true
+  commit_case "H21 honest rebuild to #$H21N, judged with BUILDNUM_MAX_DELTA=20 set"
+  expect_env H21 0 "OVERRIDDEN by BUILDNUM_MAX_DELTA=20" "BUILDNUM_MAX_DELTA=20"
+else
+  note "  FAIL H21 [$(tc H21)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H21"
+fi
+
+# H22 NEGATIVE, A ROW WHOSE NUMBER OVERFLOWS 64-BIT ARITHMETIC. 18446744073709552016 is 2^64 + 400 and 400 is
+#     in the base register, so `$((10#...))` wrapped to 400, the membership test matched, the row was skipped
+#     as "a number the base already carries" and the run took EXIT 0 FAST GATE GREEN under a log asserting
+#     "0 new build number(s)" - while `buildnum.sh next` went BACKWARDS from #525 to #401. Measured by
+#     antagonist A end to end in a clone. Refused on the FIELD WIDTH now, because no arithmetic repair makes a
+#     20-digit build number meaningful.
+reset_clone
+printf '18446744073709552016\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminted\t2^64+400, where 400 is in the base register, fixture only\n' \
+  "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/build-numbers.tsv"
+commit_case "H22 planted register row 18446744073709552016 (= 2^64 + 400)"
+expect H22 1 "more than six digits"
+
 # H13 RECURSION GUARD. Re-enter this harness with the guard set and require a named refusal at exit 2, no
 #     recursion and no ok line. Run as a case rather than described, because an unproven control is not one.
 H13_OUT="$(CT_FASTGATE_DRIVE=1 bash "$HERE/fastgate-drive.sh" "$MODE" 2>&1)"; H13_RC=$?
-# Same change as expect() [#524]: the substring test is in-shell and the line-anchored one uses a HERESTRING
-# rather than a pipe. A herestring is a file descriptor, not a pipe, so neither can take SIGPIPE.
+# Same change as expect() [#524]: the substring test is in-shell and the line-anchored one uses a HERESTRING.
+# THE REASON THIS LINE FIRST GAVE WAS FALSE AND IS WITHDRAWN [#524 second pass, antagonist A's NOTE 8]. It
+# said "a herestring is a file descriptor, not a pipe, so neither can take SIGPIPE". Measured on bash 5.2.21:
+#     $ bash -c 'readlink /proc/self/fd/0 <<<"small payload"'          -> pipe:[2592247]
+#     $ bash -c 'B=$(seq 1 200000); readlink /proc/self/fd/0 <<<"$B"'  -> /tmp/sh-thd.5ZFM51 (deleted)
+# Since bash 5.1 a SMALL here-string IS a pipe and only a large one falls back to a temp file, so the small
+# case - this one, and the membership test in fastgate.sh - is precisely the pipe case. The code is safe for a
+# DIFFERENT reason: a redirection is not a PIPELINE, so `pipefail` does not apply and the `if` reads grep's own
+# status; the writer that could take SIGPIPE is bash's own child and its death does not change that status.
+# Stress on the same shape: 0 misses in 200 trials. The sentence is corrected rather than the code, because a
+# future build that cited it would conclude here-strings are immune to a class they are not immune to.
 H13_NAMED=no; case "$H13_OUT" in *"CT_FASTGATE_DRIVE is set"*) H13_NAMED=yes ;; esac
 H13_SAWOK=no; grep -qaE '^  ok  ' <<<"$H13_OUT" && H13_SAWOK=yes
 if [ "$H13_RC" = 2 ] && [ "$H13_NAMED" = yes ] && [ "$H13_SAWOK" = no ]; then
