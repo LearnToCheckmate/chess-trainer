@@ -1,0 +1,128 @@
+gates.sh #524  bundle /home/user/chess-trainer/app.js  md5 ec31de9fe6c5  2026-10-16 01:21:41 UTC
+KNOWN-ABSENT GATE(S) - recorded as not on this tree, NOT a failure, reported every run on purpose:
+    50-drill-verdict-no-jump.js
+    17-drill-grade-arithmetic.js
+    52-drill-grades-the-move.js
+    76-no-control-under-the-fixed-tab-bar.js
+  A defect class with no gate on main is the thing that was previously invisible. Read the note column.
+gate anchor: origin/main, 0 vanished, 0 weakened
+gate manifest: 59 required, 59 present, 0 missing, 0 unlisted, 4 known-absent, 0 retired, 0 unjustified, 0 unreadable
+--- unit-drill-why (unit layer, not a regress gate, not in the roster) ---
+PASS unit-drill-why whyBand(0) -> "level"
+PASS unit-drill-why whyBand(0.49) -> "level"
+PASS unit-drill-why whyBand(-0.49) -> "level"
+PASS unit-drill-why whyBand(0.5) -> "slightly better"
+PASS unit-drill-why whyBand(-0.5) -> "slightly worse"
+PASS unit-drill-why whyBand(1.49) -> "slightly better"
+PASS unit-drill-why whyBand(1.5) -> "clearly better"
+PASS unit-drill-why whyBand(-1.5) -> "clearly worse"
+PASS unit-drill-why whyBand(2.99) -> "clearly better"
+PASS unit-drill-why whyBand(3) -> "winning"
+PASS unit-drill-why whyBand(-3) -> "losing"
+PASS unit-drill-why whyBand(5.99) -> "winning"
+PASS unit-drill-why whyBand(6) -> "completely winning"
+PASS unit-drill-why whyBand(-6) -> "completely losing"
+PASS unit-drill-why whyBand(99) -> "completely winning"
+PASS unit-drill-why whyBand(-99) -> "completely losing"
+PASS unit-drill-why black, same band, white-frame positive -> "Qb4+ was stronger. cxb5 left you losing."
+PASS unit-drill-why white, same band -> "Qb4+ was stronger. cxb5 left you winning."
+PASS unit-drill-why white, crossing, band pair dropped by the 52 budget -> "Rf3 was stronger. Qxh3 left you level."
+PASS unit-drill-why black frame mirrors it -> "Rf3 was stronger. Qxh3 left you level."
+PASS unit-drill-why the REASON is preferred over the band pair when only one fits -> "Rf3 was stronger. Qxh3 left you clearly better."
+PASS unit-drill-why fork clause (the REASON is kept, the band pair is what the budget spends) -> "Nd5 forks two pieces. Qxc2 left you level."
+PASS unit-drill-why mate clause -> "Rd8 forces mate. Kh8 left you completely winning."
+PASS unit-drill-why capture clause, black -> "Qxd7 wins material. Nxd7 left you completely losing."
+PASS unit-drill-why no engine units [0] -> false
+PASS unit-drill-why no engine units [1] -> false
+PASS unit-drill-why worst case <= WHY_DRILL_MAXW (52) -> true
+PASS unit-drill-why the comparison survives the budget (played move still named) -> true
+PASS unit-drill-why the worst case still names the better move AND a band -> true
+PASS unit-drill-why with short band words the REASON survives (A 4b: the old order spent this first) -> true
+PASS unit-drill-why no bestSan -> ""
+PASS unit-drill-why no playedSan -> ""
+PASS unit-drill-why null bestMove AND no evalAfter -> no sentence, never a fabricated band -> ""
+PASS unit-drill-why null bestMove with a real evalAfter still yields a sentence (White-frame +4 = Black losing) -> "Qb4+ was stronger. cxb5 left you losing."
+PASS unit-drill-why mate hint -> "There is a forcing line here, and it ends the game."
+PASS unit-drill-why fork hint -> "One move can hit two things at once."
+PASS unit-drill-why quiet hint does not say "forcing" -> "No tactic to spot here — look for the move that improves your worst piece."
+PASS unit-drill-why capture hint -> "There is material to be taken here."
+PASS unit-drill-why quiet hint contains no "forcing" -> false
+PASS unit-drill-why two different shapes give two different hints -> 2
+    unit-drill-why: green (40 ok -> 40 PASS lines)
+--- fastgate-drive (unit layer, not a regress gate, not in the roster) ---
+PASS fastgate-drive H1 [TC-SUITE-057]  (exit 0, FAST GATE GREEN)
+PASS fastgate-drive H2 [TC-SUITE-058]  (exit 0, FAST GATE GREEN)
+PASS fastgate-drive H3 [TC-SUITE-059]  (exit 2, LOWER than the base)
+PASS fastgate-drive H4 [TC-SUITE-060]  (exit 2, later than the wall clock)
+PASS fastgate-drive H5 [TC-SUITE-061]  (exit 2, EARLIER than the base stamp date)
+PASS fastgate-drive H6 [TC-SUITE-062]  (exit 2, no `built` row)
+PASS fastgate-drive H7 [TC-SUITE-063]  (exit 2, whose bundle field is)
+PASS fastgate-drive H8 [TC-SUITE-064]  (exit 1, an honest mint would have made it)
+PASS fastgate-drive H8b [TC-SUITE-065]  (exit 2, buildnum.sh next refuses on the planted tree - the wedge the refusal prevents)
+PASS fastgate-drive H9 [TC-SUITE-066]  (exit 2, NOT-STAMP-ONLY)
+PASS fastgate-drive H14 [TC-SUITE-071]  (exit 2, later than the wall clock)
+PASS fastgate-drive H15 [TC-SUITE-072]  (exit 1, an honest mint would have made it)
+PASS fastgate-drive H16 [TC-SUITE-073]  (exit 1, an honest mint would have made it)
+PASS fastgate-drive H17 [TC-SUITE-074]  (exit 1, with BUILDNUM_MAX_DELTA=1000, BUILDNUM_MAX_DELTA=1000 is set in the environment)
+PASS fastgate-drive H18 [TC-SUITE-075]  (exit 2, fills a gap and turns a number)
+PASS fastgate-drive H19 [TC-SUITE-076]  (exit 1, NEW build numbers ABOVE the base top)
+PASS fastgate-drive H20 [TC-SUITE-077]  (exit 0, 3 new build number(s) above the base register)
+PASS fastgate-drive H13 [TC-SUITE-068]  (exit 2, refuses by name, recursed into no case and printed no ok)
+    fastgate-drive: green (18 ok -> 18 PASS lines, 1 skipped)
+=== mountcheck ===
+     bundle: app.js  md5 ec31de9fe6c5  stamp #522 - 2026-10-14 20:37 ET  (CT_APP)
+     toolchain: playwright 1.56.1 (/opt/node22/lib/node_modules/playwright)  chromium 141.0.7390.37  [no browser is pinned in gates/package.json]
+     fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"   [#485 - every text-derived pin in this suite depends on this line]
+     text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)  -- 'Segoe UI' (the app stack's first family) is unresolvable, so the root renders system-ui; expected in these images
+     NOTE: the app's stack and bare sans-serif differ by 53.84px on one line here, so every absolute text-derived pin in this suite is container-dependent [#480].
+PASS kunal: build stamp in the DOM  [#522 - 2026-10-14 20:37 ET]
+FAIL kunal: stamp is #524  [#522 - 2026-10-14 20:37 ET]
+PASS kunal: four home tiles render (1322ms to mount)  [["Discover","Puzzles","Review","Play"]]
+PASS kunal: zero app console errors on Home  [[]]
+PASS kunal: Discover opens with zero errors  [[]]
+     Discover metrics {"board":null,"over":{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS kunal: Puzzles opens with zero errors  [[]]
+     Puzzles metrics {"board":null,"over":{"bottom":1787,"vh":679,"over":1108,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS kunal: Review opens with zero errors  [[]]
+     Review metrics {"board":null,"over":{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS kunal: Play opens with zero errors  [[]]
+     Play metrics {"board":{"w":344,"top":111,"left":24.5,"flip":false},"over":{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS 390: build stamp in the DOM  [#522 - 2026-10-14 20:37 ET]
+FAIL 390: stamp is #524  [#522 - 2026-10-14 20:37 ET]
+PASS 390: four home tiles render (1136ms to mount)  [["Discover","Puzzles","Review","Play"]]
+PASS 390: zero app console errors on Home  [[]]
+PASS 390: Discover opens with zero errors  [[]]
+     Discover metrics {"board":null,"over":{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+PASS 390: Puzzles opens with zero errors  [[]]
+     Puzzles metrics {"board":null,"over":{"bottom":1787,"vh":844,"over":943,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+PASS 390: Review opens with zero errors  [[]]
+     Review metrics {"board":null,"over":{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+PASS 390: Play opens with zero errors  [[]]
+     Play metrics {"board":{"w":360,"top":111.4,"left":24,"flip":false},"over":{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+MOUNTCHECK: 14 pass, 2 fail
+    mountcheck: RED (exit 1, 2 FAIL lines, 0 <<<)
+FAIL kunal: stamp is #524  [#522 - 2026-10-14 20:37 ET]
+FAIL 390: stamp is #524  [#522 - 2026-10-14 20:37 ET]
+=== 10-gameover ===
+     bundle: app.js  md5 ec31de9fe6c5  stamp #522 - 2026-10-14 20:37 ET  (CT_APP)
+     toolchain: playwright 1.56.1 (/opt/node22/lib/node_modules/playwright)  chromium 141.0.7390.37  [no browser is pinned in gates/package.json]
+     fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"   [#485 - every text-derived pin in this suite depends on this line]
+     text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)  -- 'Segoe UI' (the app stack's first family) is unresolvable, so the root renders system-ui; expected in these images
+     NOTE: the app's stack and bare sans-serif differ by 53.84px on one line here, so every absolute text-derived pin in this suite is container-dependent [#480].
+PASS kunal: board present mid-game and after the mate  [{"mid":{"w":351,"top":78,"left":12,"flip":false},"end":{"w":351,"top":78,"left":12,"flip":false}}]
+PASS kunal: board width unchanged at game over (351 -> 351)
+PASS kunal: board top unchanged at game over (78 -> 78)
+PASS kunal: the board at game over is 351 wide, the measured size for this geometry - not merely the same as it was a moment ago  [{"measured":351,"want":351}]
+PASS kunal: nothing scrolls at game over  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: row reads Review · Rematch, no Resign  [⌂ | ☰ | Moves | Back | Forward | Review | Rematch | More]
+PASS kunal: zero app errors  [[]]
+PASS 390: board present mid-game and after the mate  [{"mid":{"w":390,"top":103,"left":0,"flip":false},"end":{"w":390,"top":103,"left":0,"flip":false}}]
+PASS 390: board width unchanged at game over (390 -> 390)
+PASS 390: board top unchanged at game over (103 -> 103)
+PASS 390: the board at game over is 390 wide, the measured size for this geometry - not merely the same as it was a moment ago  [{"measured":390,"want":390}]
+PASS 390: nothing scrolls at game over  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: row reads Review · Rematch, no Resign  [⌂ | ☰ | Moves | Back | Forward | Review | Rematch | More]
+PASS 390: zero app errors  [[]]
+GAMEOVER: 14 pass, 0 fail
+    10-gameover: green (14 PASS)
+=== 11-lesson ===

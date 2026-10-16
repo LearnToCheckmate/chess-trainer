@@ -1,3 +1,199 @@
+# HANDOFF — after #524: THE HELD #523 TREE IS FIXED, AND ITS FIX WAS VETOED TOO
+
+**#524 is the fix run for the tree #523 held.** No application code was touched by either run: `app.js` is
+still #522's `ec31de9fe6c5`, which is what `origin/main` serves. Everything here is push-gate machinery.
+
+**IT IS HELD, AND THE WORK IS DONE.** `gates/held-trees.tsv` carries the `#524` row. No full suite ever
+completed over this tree — four were launched and all four abandoned, each for a reason in §4 and in
+`RUN-LOG.md` — and the last was abandoned deliberately, because both antagonists of this run's **second**
+blind pass vetoed and the tree had to change. The deliverable is 13 commits on
+`claude/practical-sagan-esdr3x`, head `04dee1eb`, every commit signed, harness **21 ok / 0 FAIL / 1 skipped**
+against **5 ok / 16 FAIL** on `origin/main`'s own scripts.
+
+**WHY IT IS HELD IS NOT CLERICAL.** My published cut line was a suite launched by 01:51:30Z and it passed;
+a 75-minute suite plus close-out no longer fits the pen budget with any margin, and #523 lost its ship on
+exactly that trade. The deeper reason: the last forty minutes of changes to `gates/fastgate.sh` — **the push
+gate itself** — have had no blind read, and both passes that did read this file found real defects in it,
+including two I introduced while fixing the pass before. Pushing the artefact that authorises every future
+push on an unreviewed diff with zero margin is #450's shape.
+
+| what | where |
+|---|---|
+| the work | `claude/practical-sagan-esdr3x`, 10 commits ahead of `cbeb4ff`, head ``04dee1eb` (13 commits, all signed)` |
+| the suite log | `gates/logs/524-all.log`, archived at `claude/agents/gatelogs/524-all.log` |
+| the aborted first attempt | `gates/logs/524-ABANDONED-ct-expect-defaulted-to-the-run-number.log` — kept on purpose, see §4 |
+| the first pass's findings | `flags/antagonist-a-524`, `flags/antagonist-b-524` (B's carries `crossRead_524`) |
+| the second pass's findings | `flags/antagonist-a-524b`, `flags/antagonist-b-524b` |
+| the full record | `builds/524`, `runreports/524` |
+| the #523 hold | `gates/held-trees.tsv`, row `#523` — still live, and §5 says what to do with it |
+
+## 0. WHAT THIS RUN FIXED, AND WHAT FOUND THE FIXES WANTING
+
+#523's three blockers are closed: the future-stamp bound is now FORMATTED in Eastern and not merely parsed
+there (it was wall clock +4h10m, so the orchestrator's own three-hour-future fixture took a fast green); the
+records-ratchet read no longer pipes into an early-exiting consumer under `pipefail`; and a dirty working tree
+is a reported SKIP rather than a hard suite red, which matters because the documented sequence
+mint → `build.sh` → `gates.sh` leaves the tree dirty exactly then. Part 2(c) also moved ABOVE the stamp block,
+so a commit that gets its stamp wrong AND plants a register row is REFUSED rather than routed to a suite that
+checks neither.
+
+**Then this run's own blind pair vetoed the fix, with eight findings, every one real.** They are in the two
+flags in full. The three that matter most to whoever reads this next:
+
+1. **The new contiguity bound was per-position, so k contiguous rows licensed k numbers.** Ten planted rows at
+   `top+1..top+10` took `EXIT 0 FAST GATE GREEN` and moved `buildnum.sh next` from #525 to #535.
+2. **`BUILDNUM_MAX_DELTA=abc` defeated the whole refusal**, because reading the margin was a PRECONDITION at
+   the head of the block — and a dead one, since contiguity does not consult the margin.
+3. **Every number at or below the base top was skipped**, under a comment claiming they were numbers the base
+   already carried. The register has NINE gaps, and a planted `363 minted` row landed with the log asserting
+   the contiguity check it had skipped.
+
+## 1. THE ONE THING TO READ IF YOU READ NOTHING ELSE
+
+**My first fix for (1) was a flat ceiling of two new numbers per commit, and I justified it in the code with
+"nothing in this project's history appends three" — a sentence I had not measured.**
+
+Measured — one `git show <sha>:gates/build-numbers.tsv` per commit touching the file, base number set against
+head number set:
+
+| door | largest single-commit append | where |
+|---|---|---|
+| ABOVE the base top (a MINT; `next` = highest+1) | **3** | `dc0ece3609` #480 and `21b5967513` #469 |
+| AT OR BELOW the base top (a CENSUS fill of a gap) | **123** | `f6127fcb36` #454 — **and that commit touches `gates/build-numbers.tsv` and nothing else**, i.e. a records-only commit, exactly this arm's population |
+| (excluded) the commit that CREATED the register against an empty base | 95 | `f89bca9db1` |
+
+So a ceiling of 2 would have refused three real commits, one of them on the fast path it governs. **"A guard
+that refuses honest work is worse than no guard" is this project's own rule and I was one command from
+breaking it.** The same measurement supplied the right shape, because the two doors are different operations:
+
+- **above the top** — contiguity AND `k <= 3`, **REFUSED** past it (exit 1), because the full suite runs no
+  series check, so routing a burn there lands it;
+- **at or below the top** — every number NAMED in the log and sent to the **FULL SUITE** (exit 2). Never a
+  fast green, because it turns a free number ISSUED for ever. Never refused, because #454 is the measured
+  proof that honest records-only commits do this.
+
+**What the split cannot do is written down rather than dressed up:** nothing distinguishes a census from a
+hand-written row claiming a free number, and the ceiling of 3 is a bound on this register's HISTORY, not on
+what is honest. Both are residuals (2a) and (2b) in `claude/stories/TEST-CASES.md`.
+
+## 2. THE CONTROL THAT PROVES THE ACCEPT DIRECTION, AND WHY `unfixed` IS NOT IT
+
+H20 asserts that three contiguous rows above the top still take exit 0. Under `unfixed` it FAILS — and that
+failure is **not a control**: `origin/main` has no bound at all, answers exit 0 for the right reason, and the
+case goes red there only because the success line it pins does not exist on that script. That is CLAUDE.md's
+**#432 trap** — an assertion keyed to a string its own build adds cannot be controlled by a bundle predating
+the string — and both the register and the harness now say so instead of counting a free red.
+
+**Its real control is a deliberate break of my own:** the ceiling put back to 2, committed in an isolated
+clone at `0986d2f` and run — **17 ok / 1 FAIL, the one failure being H20 at `exit 1, expected 0`**, with H19
+(four rows) still green. A refusal of honest work, caught by the assertion written to catch exactly that.
+
+**Harness totals:** `fixed` **18 ok / 0 FAIL / 1 skipped** (H1b skips — no esbuild in this container);
+`unfixed` **5 ok / 13 FAIL**, twelve of them wrong inputs taking `FAST GATE GREEN` on the script main ships.
+
+## 3. THE ARM, EXERCISED ON THE REALEST INPUT THERE IS: THIS RUN'S OWN COMMIT SET
+
+`bash gates/fastgate.sh $(git rev-parse origin/main)` on this branch → **exit 2, GO FULL**, with the register
+arm running FIRST (the reorder working) and printing *"register plausibility: 2 new build number(s) above the
+base register top of #522, each contiguous with it … and no new number at or below #522"*. Two numbers, #523
+(arriving with the held branch, whose own row never reached main) and #524. The GO FULL is correct and
+expected: this commit set touches six shell scripts, which `classify()` forces by name.
+
+## 4. FOUR PROCESS ERRORS OF MY OWN, THREE OF THEM THE SELF-REFERENCE TRAP
+
+**(a) `CT_EXPECT` defaults to the suite's own number argument.** `gates/gates.sh:160` is
+`export CT_EXPECT="${CT_EXPECT:-$N}"`, and mountcheck asserts the bundle's stamp starts with it. This run
+rebuilds nothing, so the bundle is stamped `#522`; launched as `'#524'` the suite went red at mountcheck in 90
+seconds with `FAIL kunal: stamp is #524 [#522 - …]`. #523 had the identical situation and set
+`CT_EXPECT='#522'`. **A gates-only run's suite label and its bundle's stamp are two different numbers and
+nothing in the procedure says so** — which is why this section exists. The aborted log is kept rather than
+deleted.
+
+**(b) Then my own watcher declared the relaunch dead 37 seconds in, while it ran fine.** I took the pid with
+`pgrep -f 'gates-run-524b.sh'` and got the **wrapper shell**, whose command line embeds the pattern. That is
+#407's `pgrep -f` matching itself and #416's `pkill -f` killing its own shell in a third costume: *the pattern
+matched the thing that was asking.* Read the pid from `gates/logs/.suite.lock/pid`, which the suite itself
+wrote — the one source that cannot be the asker.
+
+**(c) And then I did it again with `pkill`, in the same command that stopped the suite.** `pkill -f 'node
+.*gates/regress'` as a later clause killed its own shell at **exit 144**, twenty minutes after I wrote (b)
+down. The suite kill had already landed, so the cost was the two clauses after it. Writing a rule down is not
+holding it — #390's lesson, failing to travel across a single message. `ps -eo pid,args | grep '[g]ates/…'`
+is the form that cannot match the asker.
+
+**(d) The one that is not this trap, and it cost the most: I turned commit signing off defensively, then
+misread the instrument that would have told me.** `git log --format=%G?` prints `N` for **every** commit in
+this repository, signed and unsigned alike, because verification cannot run here (`gpg.ssh.allowedSignersFile
+needs to be configured and exist`). So the first instrument said "nothing here is signed, the flag cost
+nothing", which is backwards. What separates them is the `gpgsig` **header** in the commit object: seven of
+eight sampled commits carry it and the only two that did not were mine. A reading of `N` is a statement about
+the VERIFIER, not the object.
+
+Fixed at 11 of 60 sections rather than after a green, with every condition checked first: the rebased tree is
+byte-identical (`git diff c7bd567 HEAD` empty), both commits carry `gpgsig` and their `Claude-Session`
+trailer, the branch is still a clean fast-forward, and **nothing published was rewritten** — the remote stood
+at `b7c3239`, an ancestor of both heads — so the pen rule's "never force-push, never rewrite history" was
+never engaged. Cause filed as
+`jobs/a-defensive-commit-gpgsign-false-left-two-commits-unsigned-in-a-fully-signed-repository-2026-10-16`,
+with the remedy placed BEFORE the suite launch rather than at the stop hook.
+
+## 5. WHAT THE NEXT RUN INHERITS
+
+**A TREE THAT IS FINISHED AND UNGATED.** Everything below is done; what is missing is one clean full suite
+and one blind read of the post-veto diff.
+
+1. **RE-GATE AND PUSH.** `CT_EXPECT='#522'` — see §4(a), this costs sixteen minutes to rediscover — from a
+   frozen sibling copy (`cp gates/gates.sh gates/.gates-run-<N>.sh`). The bundle is #522's `ec31de9fe6c5`
+   and must not be rebuilt: there is no application change in #523 or #524.
+2. **GIVE THE POST-VETO DIFF A BLIND PASS FIRST.** `04dee1eb`, `3f451a8` and the two before them are the
+   commits no antagonist has read. This run's own history is the argument: pass 1 found 3 defects, pass 2
+   found 19 more *in pass 1's fixes*, and two of pass 2's fixes were wrong until the harness caught them.
+3. **`c5d1f70` HAS NO `Claude-Session` TRAILER.** It is signed, but CLAUDE.md's rule is the trailer, and a
+   fast-forward of this branch lands a trailerless commit on main. It is pushed, so rewriting it is
+   forbidden by the pen rule. Rebuild the merge with a trailer, or land the branch another way.
+4. **THE ONE OPEN DESIGN QUESTION IS CLOSED, NOT PARKED.** Antagonist A found that the ceiling of three was
+   measured over pushes that LANDED, which by construction cannot contain a held run's unlanded mint. I
+   measured how near the trap was: this branch adds exactly #523 and #524 above main's top, #523 already
+   carries a held row, and two more held runs would have reached four and been refused **terminally**, with
+   three of the four being accounted-for holds. A number with a `held-trees.tsv` row no longer counts toward
+   the ceiling; contiguity still applies to every row, so the test is not loosened, and A's ten hand-written
+   rows still count ten and are still refused. H23/H19 are the discriminating pair.
+5. **TWO JOBS FROM ANTAGONIST B THAT ARE NOT THIS BUILD'S** and want their own run: the records tier refuses
+   DELETING a gate log and permits REWRITING one (B rewrote one line of `523-all.log` and took `FAST GATE
+   GREEN`, and that line is what `held-trees.tsv`'s protection keys on); and the premise check's path scan
+   parses `path.join(` only, so a gate reading a repo file by `__dirname + '...'` concatenation — which
+   `gates/regress/22-engline-recovery.js:261` does today — is invisible to it.
+
+## 6. WHAT WAS DROPPED, AND WHY IT IS THE SLOT AND NOT THE RUNS
+
+Part 3 (`jobs/the-tier-guards-what-it-executes-but-not-what-it-reads-2026-10-14`) and the held-register job
+were dropped **ahead of** the cut line, on a measurement rather than a clock. Part 3's own brief, the pen note
+and this run's opening all say "H10 and H11 in the harness are its controls and are deliberately unused" —
+**measured, they do not exist**, on the held #523 tree and on this one, so its real cost is the guard PLUS two
+new `assume-unchanged` harness cases. A half-controlled guard in `fastgate.sh` is #489: applied, passed its
+single control, reverted for three holes that control could not reach.
+
+**This is the third consecutive run to drop it last, and all three were locally right**, which means the SLOT
+is wrong rather than the runs: it needs a run whose item it is. That ask is routed on the job, not wished for
+here.
+
+---
+---
+
+# THE PREVIOUS HAND-OFF, #523's, KEPT IN FULL AND NOT SUMMARISED
+
+**Why it is still here rather than replaced.** `gates/records-gate.sh` ratchets `HANDOFF.md` as `noshrink`,
+and my first version of this file replaced #523's 529 lines with 178 — which the ratchet refused, correctly:
+*"a records commit may grow a record and may not shorten one"*. That guard earned its keep here, because
+#523's hand-off is not stale background. **This run's branch is a direct descendant of the tree #523 held**,
+no application code changed in either run, and everything below — the bounds measured from main's own
+history, the ten-of-1204 reachability figure, the three defects and their mechanisms — is the warrant for
+the arm #524 then fixed. A reader who takes this branch needs both halves.
+
+Everything above the rule is #524's. Everything below it is #523's, byte-for-byte as it stood on `cbeb4ff`.
+
+---
+
 # HANDOFF — after #523: THE PUSH-GATE HARNESS IS BUILT, PROVED, AND HELD BY ITS OWN ANTAGONISTS
 
 **#523 reached `GATES GREEN` and refused to push.** The suite was clean — 60 sections, 4986 PASS, 0 FAIL,

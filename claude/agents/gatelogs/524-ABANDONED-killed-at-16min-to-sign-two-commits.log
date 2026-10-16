@@ -1,0 +1,708 @@
+gates.sh #524  bundle /home/user/chess-trainer/app.js  md5 ec31de9fe6c5  2026-10-16 01:23:58 UTC
+KNOWN-ABSENT GATE(S) - recorded as not on this tree, NOT a failure, reported every run on purpose:
+    50-drill-verdict-no-jump.js
+    17-drill-grade-arithmetic.js
+    52-drill-grades-the-move.js
+    76-no-control-under-the-fixed-tab-bar.js
+  A defect class with no gate on main is the thing that was previously invisible. Read the note column.
+gate anchor: origin/main, 0 vanished, 0 weakened
+gate manifest: 59 required, 59 present, 0 missing, 0 unlisted, 4 known-absent, 0 retired, 0 unjustified, 0 unreadable
+--- unit-drill-why (unit layer, not a regress gate, not in the roster) ---
+PASS unit-drill-why whyBand(0) -> "level"
+PASS unit-drill-why whyBand(0.49) -> "level"
+PASS unit-drill-why whyBand(-0.49) -> "level"
+PASS unit-drill-why whyBand(0.5) -> "slightly better"
+PASS unit-drill-why whyBand(-0.5) -> "slightly worse"
+PASS unit-drill-why whyBand(1.49) -> "slightly better"
+PASS unit-drill-why whyBand(1.5) -> "clearly better"
+PASS unit-drill-why whyBand(-1.5) -> "clearly worse"
+PASS unit-drill-why whyBand(2.99) -> "clearly better"
+PASS unit-drill-why whyBand(3) -> "winning"
+PASS unit-drill-why whyBand(-3) -> "losing"
+PASS unit-drill-why whyBand(5.99) -> "winning"
+PASS unit-drill-why whyBand(6) -> "completely winning"
+PASS unit-drill-why whyBand(-6) -> "completely losing"
+PASS unit-drill-why whyBand(99) -> "completely winning"
+PASS unit-drill-why whyBand(-99) -> "completely losing"
+PASS unit-drill-why black, same band, white-frame positive -> "Qb4+ was stronger. cxb5 left you losing."
+PASS unit-drill-why white, same band -> "Qb4+ was stronger. cxb5 left you winning."
+PASS unit-drill-why white, crossing, band pair dropped by the 52 budget -> "Rf3 was stronger. Qxh3 left you level."
+PASS unit-drill-why black frame mirrors it -> "Rf3 was stronger. Qxh3 left you level."
+PASS unit-drill-why the REASON is preferred over the band pair when only one fits -> "Rf3 was stronger. Qxh3 left you clearly better."
+PASS unit-drill-why fork clause (the REASON is kept, the band pair is what the budget spends) -> "Nd5 forks two pieces. Qxc2 left you level."
+PASS unit-drill-why mate clause -> "Rd8 forces mate. Kh8 left you completely winning."
+PASS unit-drill-why capture clause, black -> "Qxd7 wins material. Nxd7 left you completely losing."
+PASS unit-drill-why no engine units [0] -> false
+PASS unit-drill-why no engine units [1] -> false
+PASS unit-drill-why worst case <= WHY_DRILL_MAXW (52) -> true
+PASS unit-drill-why the comparison survives the budget (played move still named) -> true
+PASS unit-drill-why the worst case still names the better move AND a band -> true
+PASS unit-drill-why with short band words the REASON survives (A 4b: the old order spent this first) -> true
+PASS unit-drill-why no bestSan -> ""
+PASS unit-drill-why no playedSan -> ""
+PASS unit-drill-why null bestMove AND no evalAfter -> no sentence, never a fabricated band -> ""
+PASS unit-drill-why null bestMove with a real evalAfter still yields a sentence (White-frame +4 = Black losing) -> "Qb4+ was stronger. cxb5 left you losing."
+PASS unit-drill-why mate hint -> "There is a forcing line here, and it ends the game."
+PASS unit-drill-why fork hint -> "One move can hit two things at once."
+PASS unit-drill-why quiet hint does not say "forcing" -> "No tactic to spot here — look for the move that improves your worst piece."
+PASS unit-drill-why capture hint -> "There is material to be taken here."
+PASS unit-drill-why quiet hint contains no "forcing" -> false
+PASS unit-drill-why two different shapes give two different hints -> 2
+    unit-drill-why: green (40 ok -> 40 PASS lines)
+--- fastgate-drive (unit layer, not a regress gate, not in the roster) ---
+PASS fastgate-drive H1 [TC-SUITE-057]  (exit 0, FAST GATE GREEN)
+PASS fastgate-drive H2 [TC-SUITE-058]  (exit 0, FAST GATE GREEN)
+PASS fastgate-drive H3 [TC-SUITE-059]  (exit 2, LOWER than the base)
+PASS fastgate-drive H4 [TC-SUITE-060]  (exit 2, later than the wall clock)
+PASS fastgate-drive H5 [TC-SUITE-061]  (exit 2, EARLIER than the base stamp date)
+PASS fastgate-drive H6 [TC-SUITE-062]  (exit 2, no `built` row)
+PASS fastgate-drive H7 [TC-SUITE-063]  (exit 2, whose bundle field is)
+PASS fastgate-drive H8 [TC-SUITE-064]  (exit 1, an honest mint would have made it)
+PASS fastgate-drive H8b [TC-SUITE-065]  (exit 2, buildnum.sh next refuses on the planted tree - the wedge the refusal prevents)
+PASS fastgate-drive H9 [TC-SUITE-066]  (exit 2, NOT-STAMP-ONLY)
+PASS fastgate-drive H14 [TC-SUITE-071]  (exit 2, later than the wall clock)
+PASS fastgate-drive H15 [TC-SUITE-072]  (exit 1, an honest mint would have made it)
+PASS fastgate-drive H16 [TC-SUITE-073]  (exit 1, an honest mint would have made it)
+PASS fastgate-drive H17 [TC-SUITE-074]  (exit 1, with BUILDNUM_MAX_DELTA=1000, BUILDNUM_MAX_DELTA=1000 is set in the environment)
+PASS fastgate-drive H18 [TC-SUITE-075]  (exit 2, fills a gap and turns a number)
+PASS fastgate-drive H19 [TC-SUITE-076]  (exit 1, NEW build numbers ABOVE the base top)
+PASS fastgate-drive H20 [TC-SUITE-077]  (exit 0, 3 new build number(s) above the base register)
+PASS fastgate-drive H13 [TC-SUITE-068]  (exit 2, refuses by name, recursed into no case and printed no ok)
+    fastgate-drive: green (18 ok -> 18 PASS lines, 1 skipped)
+=== mountcheck ===
+     bundle: app.js  md5 ec31de9fe6c5  stamp #522 - 2026-10-14 20:37 ET  (CT_APP)
+     toolchain: playwright 1.56.1 (/opt/node22/lib/node_modules/playwright)  chromium 141.0.7390.37  [no browser is pinned in gates/package.json]
+     fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"   [#485 - every text-derived pin in this suite depends on this line]
+     text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)  -- 'Segoe UI' (the app stack's first family) is unresolvable, so the root renders system-ui; expected in these images
+     NOTE: the app's stack and bare sans-serif differ by 53.84px on one line here, so every absolute text-derived pin in this suite is container-dependent [#480].
+PASS kunal: build stamp in the DOM  [#522 - 2026-10-14 20:37 ET]
+PASS kunal: stamp is #522  [#522 - 2026-10-14 20:37 ET]
+PASS kunal: four home tiles render (1170ms to mount)  [["Discover","Puzzles","Review","Play"]]
+PASS kunal: zero app console errors on Home  [[]]
+PASS kunal: Discover opens with zero errors  [[]]
+     Discover metrics {"board":null,"over":{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS kunal: Puzzles opens with zero errors  [[]]
+     Puzzles metrics {"board":null,"over":{"bottom":1787,"vh":679,"over":1108,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS kunal: Review opens with zero errors  [[]]
+     Review metrics {"board":null,"over":{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS kunal: Play opens with zero errors  [[]]
+     Play metrics {"board":{"w":344,"top":111,"left":24.5,"flip":false},"over":{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0},"vw":375,"vh":679,"errs":0}
+PASS 390: build stamp in the DOM  [#522 - 2026-10-14 20:37 ET]
+PASS 390: stamp is #522  [#522 - 2026-10-14 20:37 ET]
+PASS 390: four home tiles render (1134ms to mount)  [["Discover","Puzzles","Review","Play"]]
+PASS 390: zero app console errors on Home  [[]]
+PASS 390: Discover opens with zero errors  [[]]
+     Discover metrics {"board":null,"over":{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+PASS 390: Puzzles opens with zero errors  [[]]
+     Puzzles metrics {"board":null,"over":{"bottom":1787,"vh":844,"over":943,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+PASS 390: Review opens with zero errors  [[]]
+     Review metrics {"board":null,"over":{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+PASS 390: Play opens with zero errors  [[]]
+     Play metrics {"board":{"w":360,"top":111.4,"left":24,"flip":false},"over":{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0},"vw":390,"vh":844,"errs":0}
+MOUNTCHECK: 16 pass, 0 fail
+    mountcheck: green (16 PASS)
+=== 10-gameover ===
+     bundle: app.js  md5 ec31de9fe6c5  stamp #522 - 2026-10-14 20:37 ET  (CT_APP)
+     toolchain: playwright 1.56.1 (/opt/node22/lib/node_modules/playwright)  chromium 141.0.7390.37  [no browser is pinned in gates/package.json]
+     fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"   [#485 - every text-derived pin in this suite depends on this line]
+     text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)  -- 'Segoe UI' (the app stack's first family) is unresolvable, so the root renders system-ui; expected in these images
+     NOTE: the app's stack and bare sans-serif differ by 53.84px on one line here, so every absolute text-derived pin in this suite is container-dependent [#480].
+PASS kunal: board present mid-game and after the mate  [{"mid":{"w":351,"top":78,"left":12,"flip":false},"end":{"w":351,"top":78,"left":12,"flip":false}}]
+PASS kunal: board width unchanged at game over (351 -> 351)
+PASS kunal: board top unchanged at game over (78 -> 78)
+PASS kunal: the board at game over is 351 wide, the measured size for this geometry - not merely the same as it was a moment ago  [{"measured":351,"want":351}]
+PASS kunal: nothing scrolls at game over  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: row reads Review · Rematch, no Resign  [⌂ | ☰ | Moves | Back | Forward | Review | Rematch | More]
+PASS kunal: zero app errors  [[]]
+PASS 390: board present mid-game and after the mate  [{"mid":{"w":390,"top":103,"left":0,"flip":false},"end":{"w":390,"top":103,"left":0,"flip":false}}]
+PASS 390: board width unchanged at game over (390 -> 390)
+PASS 390: board top unchanged at game over (103 -> 103)
+PASS 390: the board at game over is 390 wide, the measured size for this geometry - not merely the same as it was a moment ago  [{"measured":390,"want":390}]
+PASS 390: nothing scrolls at game over  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: row reads Review · Rematch, no Resign  [⌂ | ☰ | Moves | Back | Forward | Review | Rematch | More]
+PASS 390: zero app errors  [[]]
+GAMEOVER: 14 pass, 0 fail
+    10-gameover: green (14 PASS)
+=== 11-lesson ===
+     bundle: app.js  md5 ec31de9fe6c5  stamp #522 - 2026-10-14 20:37 ET  (CT_APP)
+     toolchain: playwright 1.56.1 (/opt/node22/lib/node_modules/playwright)  chromium 141.0.7390.37  [no browser is pinned in gates/package.json]
+     fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"   [#485 - every text-derived pin in this suite depends on this line]
+     text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)  -- 'Segoe UI' (the app stack's first family) is unresolvable, so the root renders system-ui; expected in these images
+     NOTE: the app's stack and bare sans-serif differ by 53.84px on one line here, so every absolute text-derived pin in this suite is container-dependent [#480].
+PASS kunal: demo end shows a board  [{"w":375,"top":92,"left":0,"flip":false}]
+PASS kunal: demo end board is 375 wide (375)
+PASS kunal: demo end board top is 92 (92)
+PASS kunal: note box is 75px  [75]
+PASS kunal: no scroll at the demo end  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: practice board = demo board (w 375 top 92)
+PASS kunal: board unchanged after one practice move (w 375 top 92)
+PASS kunal: no scroll after the move  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: zero app errors  [[]]
+PASS 390: demo end shows a board  [{"w":390,"top":92,"left":0,"flip":false}]
+PASS 390: note box is 75px  [75]
+PASS 390: no scroll at the demo end  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: practice board = demo board (w 390 top 92)
+PASS 390: board unchanged after one practice move (w 390 top 92)
+PASS 390: no scroll after the move  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: zero app errors  [[]]
+PASS 320x568 demo-end: the lesson board is on screen  [{"w":270.9,"x":24.6}]
+PASS 320x568 demo-end: the column fills the viewport (bottom 568 of 568). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":568,"vh":568}]
+PASS 320x568 demo-end: the board is 270.9 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":270.9,"want":270.9}]
+PASS 320x568 demo-end: the board never exceeds the viewport width  [{"w":270.9,"x":24.6}]
+PASS 320x568 demo-end: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 24.6, expected 24.6)  [{"w":270.9,"x":24.6}]
+PASS 320x568: the lesson footer shows its five buttons (precondition - without this the size checks below pass by measuring nothing)  [["Back a move","Play or pause","Forward a move","Close lesson","More for this lesson"]]
+PASS 320x568: every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent  [[44,44,44,44,44]]
+PASS 320x568: every footer GLYPH is at least 20px tall. The boxes were always big enough; the ink was not, and that is what he reported  [[{"a":"Back a move","gh":27},{"a":"Play or pause","gh":22},{"a":"Forward a move","gh":27},{"a":"Close lesson","gh":22},{"a":"More for this lesson","gh":22}]]
+PASS 320x568: and at least 16px wide  [[{"a":"Back a move","gw":27},{"a":"Play or pause","gw":16.8},{"a":"Forward a move","gw":27},{"a":"Close lesson","gw":16.8},{"a":"More for this lesson","gw":20}]]
+PASS 320x568: all five carry ONE font size, so "consistent" is a fact rather than a judgement. The play button shipped at 13px because it used to carry the word "Pause" - #347, icons still sized for the labels they stopped carrying  [[20]]
+PASS 320x568: and no glyph fills its box edge to edge - raising the ink must not make the button look like a solid block  [[{"a":"Back a move","gw":27,"w":44},{"a":"Play or pause","gw":16.8,"w":52},{"a":"Forward a move","gw":27,"w":44},{"a":"Close lesson","gw":16.8,"w":44},{"a":"More for this lesson","gw":20,"w":44}]]
+PASS 320x568 practice-m0: the lesson board is on screen  [{"w":254.9,"x":32.6}]
+PASS 320x568 practice-m0: the column fills the viewport (bottom 568 of 568). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":568,"vh":568}]
+PASS 320x568 practice-m0: the board is 254.9 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":254.9,"want":254.9}]
+PASS 320x568 practice-m0: the board never exceeds the viewport width  [{"w":254.9,"x":32.6}]
+PASS 320x568 practice-m0: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 32.6, expected 32.6)  [{"w":254.9,"x":32.6}]
+PASS 360x640 demo-end: the lesson board is on screen  [{"w":342.4,"x":8.8}]
+PASS 360x640 demo-end: the column fills the viewport (bottom 640 of 640). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":640,"vh":640}]
+PASS 360x640 demo-end: the board is 342.4 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":342.4,"want":342.4}]
+PASS 360x640 demo-end: the board never exceeds the viewport width  [{"w":342.4,"x":8.8}]
+PASS 360x640 demo-end: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 8.8, expected 8.8)  [{"w":342.4,"x":8.8}]
+PASS 360x640: the lesson footer shows its five buttons (precondition - without this the size checks below pass by measuring nothing)  [["Back a move","Play or pause","Forward a move","Close lesson","More for this lesson"]]
+PASS 360x640: every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent  [[44,44,44,44,44]]
+PASS 360x640: every footer GLYPH is at least 20px tall. The boxes were always big enough; the ink was not, and that is what he reported  [[{"a":"Back a move","gh":27},{"a":"Play or pause","gh":22},{"a":"Forward a move","gh":27},{"a":"Close lesson","gh":22},{"a":"More for this lesson","gh":22}]]
+PASS 360x640: and at least 16px wide  [[{"a":"Back a move","gw":27},{"a":"Play or pause","gw":16.8},{"a":"Forward a move","gw":27},{"a":"Close lesson","gw":16.8},{"a":"More for this lesson","gw":20}]]
+PASS 360x640: all five carry ONE font size, so "consistent" is a fact rather than a judgement. The play button shipped at 13px because it used to carry the word "Pause" - #347, icons still sized for the labels they stopped carrying  [[20]]
+PASS 360x640: and no glyph fills its box edge to edge - raising the ink must not make the button look like a solid block  [[{"a":"Back a move","gw":27,"w":44},{"a":"Play or pause","gw":16.8,"w":52},{"a":"Forward a move","gw":27,"w":44},{"a":"Close lesson","gw":16.8,"w":44},{"a":"More for this lesson","gw":20,"w":44}]]
+PASS 360x640 practice-m0: the lesson board is on screen  [{"w":326.4,"x":16.8}]
+PASS 360x640 practice-m0: the column fills the viewport (bottom 640 of 640). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":640,"vh":640}]
+PASS 360x640 practice-m0: the board is 326.4 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":326.4,"want":326.4}]
+PASS 360x640 practice-m0: the board never exceeds the viewport width  [{"w":326.4,"x":16.8}]
+PASS 360x640 practice-m0: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 16.8, expected 16.8)  [{"w":326.4,"x":16.8}]
+PASS 375x667 demo-end: the lesson board is on screen  [{"w":375,"x":0}]
+PASS 375x667 demo-end: the column fills the viewport (bottom 667 of 667). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":667,"vh":667}]
+PASS 375x667 demo-end: the board is 375 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":375,"want":375}]
+PASS 375x667 demo-end: the board never exceeds the viewport width  [{"w":375,"x":0}]
+PASS 375x667 demo-end: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 0, expected 0)  [{"w":375,"x":0}]
+PASS 375x667: the lesson footer shows its five buttons (precondition - without this the size checks below pass by measuring nothing)  [["Back a move","Play or pause","Forward a move","Close lesson","More for this lesson"]]
+PASS 375x667: every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent  [[44,44,44,44,44]]
+PASS 375x667: every footer GLYPH is at least 20px tall. The boxes were always big enough; the ink was not, and that is what he reported  [[{"a":"Back a move","gh":27},{"a":"Play or pause","gh":22},{"a":"Forward a move","gh":27},{"a":"Close lesson","gh":22},{"a":"More for this lesson","gh":22}]]
+PASS 375x667: and at least 16px wide  [[{"a":"Back a move","gw":27},{"a":"Play or pause","gw":17},{"a":"Forward a move","gw":27},{"a":"Close lesson","gw":17},{"a":"More for this lesson","gw":20.3}]]
+PASS 375x667: all five carry ONE font size, so "consistent" is a fact rather than a judgement. The play button shipped at 13px because it used to carry the word "Pause" - #347, icons still sized for the labels they stopped carrying  [[20.25]]
+PASS 375x667: and no glyph fills its box edge to edge - raising the ink must not make the button look like a solid block  [[{"a":"Back a move","gw":27,"w":44},{"a":"Play or pause","gw":17,"w":52},{"a":"Forward a move","gw":27,"w":44},{"a":"Close lesson","gw":17,"w":44},{"a":"More for this lesson","gw":20.3,"w":44}]]
+PASS 375x667 practice-m0: the lesson board is on screen  [{"w":352.2,"x":11.4}]
+PASS 375x667 practice-m0: the column fills the viewport (bottom 667 of 667). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.  [{"bottom":667,"vh":667}]
+PASS 375x667 practice-m0: the board is 352.2 wide - the largest square this height allows once the chrome above and below it is laid out. If a change makes it smaller the board lost space; if larger, the chrome did.  [{"measured":352.2,"want":352.2}]
+PASS 375x667 practice-m0: the board never exceeds the viewport width  [{"w":352.2,"x":11.4}]
+PASS 375x667 practice-m0: the width the board cannot use is shared evenly - it stays centred rather than pinned to one side (x 11.4, expected 11.4)  [{"w":352.2,"x":11.4}]
+LESSON: 64 pass, 0 fail
+    11-lesson: green (64 PASS)
+=== 12-hint ===
+     bundle: app.js  md5 ec31de9fe6c5  stamp #522 - 2026-10-14 20:37 ET  (CT_APP)
+     toolchain: playwright 1.56.1 (/opt/node22/lib/node_modules/playwright)  chromium 141.0.7390.37  [no browser is pinned in gates/package.json]
+     fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"   [#485 - every text-derived pin in this suite depends on this line]
+     text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)  -- 'Segoe UI' (the app stack's first family) is unresolvable, so the root renders system-ui; expected in these images
+     NOTE: the app's stack and bare sans-serif differ by 53.84px on one line here, so every absolute text-derived pin in this suite is container-dependent [#480].
+PASS kunal: puzzle board present before and with the hint
+PASS kunal: board unmoved by the hint (top 181.5 -> 181.5, w 375)
+PASS kunal: the puzzle board is 375 wide with the hint up - the measured size, not merely the same as a moment ago  [{"measured":375,"want":375}]
+PASS kunal: hint header shows the hint  [💡 It's mate in 2 — start with the most forcing check.]
+PASS kunal: hint text not clipped (scroll 27 vs 27)
+PASS kunal: hint header sits above the board, on screen
+PASS kunal: no scroll with the hint  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: zero app errors  [[]]
+PASS 390: puzzle board present before and with the hint
+PASS 390: board unmoved by the hint (top 278.5 -> 278.5, w 390)
+PASS 390: the puzzle board is 390 wide with the hint up - the measured size, not merely the same as a moment ago  [{"measured":390,"want":390}]
+PASS 390: hint header shows the hint  [💡 It's mate in 2 — start with the most forcing check.]
+PASS 390: hint text not clipped (scroll 27 vs 27)
+PASS 390: hint header sits above the board, on screen
+PASS 390: no scroll with the hint  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: zero app errors  [[]]
+PASS se: puzzle board present before and with the hint
+PASS se: board unmoved by the hint (top 184 -> 184, w 259)
+PASS se: the puzzle board is 259 wide with the hint up - the measured size, not merely the same as a moment ago  [{"measured":259,"want":259}]
+PASS se: hint header shows the hint  [💡 It's mate in 2 — start with the most forcing check.]
+PASS se: hint text not clipped (scroll 25 vs 25)
+PASS se: hint header sits above the board, on screen
+PASS se: no scroll with the hint  [{"bottom":568,"vh":568,"over":0,"scrollY":0,"docScroll":0}]
+PASS se: zero app errors  [[]]
+HINT: 24 pass, 0 fail
+    12-hint: green (24 PASS)
+=== 13-play-after-moves ===
+     bundle: app.js  md5 ec31de9fe6c5  stamp #522 - 2026-10-14 20:37 ET  (CT_APP)
+     toolchain: playwright 1.56.1 (/opt/node22/lib/node_modules/playwright)  chromium 141.0.7390.37  [no browser is pinned in gates/package.json]
+     fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"   [#485 - every text-derived pin in this suite depends on this line]
+     text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)  -- 'Segoe UI' (the app stack's first family) is unresolvable, so the root renders system-ui; expected in these images
+     NOTE: the app's stack and bare sans-serif differ by 53.84px on one line here, so every absolute text-derived pin in this suite is container-dependent [#480].
+PASS kunal: card k8 board unchanged over four plies (w 351 -> 351, top 78 -> 78)
+PASS kunal: Pass & Play board has ONE width and ONE top across five plies  [{"ws":[351],"tops":[78]}]
+PASS kunal: card k8 board is PINNED at 351 after four plies  [351]
+PASS kunal: card k8 board top is PINNED at 78 after four plies  [78]
+PASS kunal: Pass & Play board is PINNED at 351 after five plies  [351]
+PASS kunal: Pass & Play board top is PINNED at 78 after five plies  [78]
+PASS kunal: the five plies registered (Bb5 in the move list)
+PASS kunal: no scroll after five plies  [{"bottom":679,"vh":679,"over":0,"scrollY":0,"docScroll":0}]
+PASS kunal: zero app errors  [[]]
+PASS 390: card k8 board unchanged over four plies (w 390 -> 390, top 103 -> 103)
+PASS 390: Pass & Play board has ONE width and ONE top across five plies  [{"ws":[390],"tops":[103]}]
+PASS 390: card k8 board is PINNED at 390 after four plies  [390]
+PASS 390: card k8 board top is PINNED at 103 after four plies  [103]
+PASS 390: Pass & Play board is PINNED at 390 after five plies  [390]
+PASS 390: Pass & Play board top is PINNED at 103 after five plies  [103]
+PASS 390: the five plies registered (Bb5 in the move list)
+PASS 390: no scroll after five plies  [{"bottom":844,"vh":844,"over":0,"scrollY":0,"docScroll":0}]
+PASS 390: zero app errors  [[]]
+PLAY-AFTER-MOVES: 18 pass, 0 fail
+    13-play-after-moves: green (18 PASS)
+=== 14-uat-review-card ===
+     bundle: app.js  md5 ec31de9fe6c5  stamp #522 - 2026-10-14 20:37 ET  (CT_APP)
+     toolchain: playwright 1.56.1 (/opt/node22/lib/node_modules/playwright)  chromium 141.0.7390.37  [no browser is pinned in gates/package.json]
+     fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"   [#485 - every text-derived pin in this suite depends on this line]
+     text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)  -- 'Segoe UI' (the app stack's first family) is unresolvable, so the root renders system-ui; expected in these images
+     NOTE: the app's stack and bare sans-serif differ by 53.84px on one line here, so every absolute text-derived pin in this suite is container-dependent [#480].
+PASS the Review journey card is in the gallery  [["1 · PHONE · Your phone's exact screen size","2 · KEV · Our review of Kunal2023 v Kevitsch","1 · k10 · Game over: the board must not shrink (#371)","2 · k8 · Play after the first moves (#370)","3 · k11 · Lesson at the end of the demo (#371)","4 · k11 · Lesson in practice (#371, #372)","5 · A-06 · Puzzle with a hint showing (#372)","6 · US-R · The Review journey: import, summary, brilliancy, checkmate, analysis board (#373 UAT)","7 · y3 · Layout readout, with the tile ink line","8 · y3 · Home: the four icons (#366)"]]
+PASS caption at start names US-R01  [🎬 #522 · US-R01 · 375x679 Review: the Opera Game is being imported and analysed (about 45 s, the card waits)]
+PASS 52 s: caption names US-R03  [🎬 #522 · US-R03 · 375x679 Summary: accuracy, ten counts per side, Skills panel, footer pinned]
+PASS 52 s: the summary is up with its footer pinned  [679]
+PASS 52 s: the caption strip is inside the viewport  [667]
+PASS 58 s: caption names US-R04  [🎬 #522 · US-R04 · 375x679 Move screen at ply 0: board full width, eval bar on the left, nothing scrolls]
+PASS 58 s: move screen, board 349, no scroll  [{"board":{"w":349,"top":56,"left":24,"flip":false},"over":0}]
+PASS 64 s: US-R06 at 10.Nxb5  [10. Nxb5
+!!
+Brilliant
+▶ why
+19/33]
+PASS 64 s: the reason names the forcing line  [You give up a piece. If cxb5, Bxb5+ and White is winning. Nothing else came clos]
+PASS 70 s: k12 at 17.Rd8# with the label 1-0  [{"cap":"🎬 #522 · k12 · 375x679 17.Rd8#: the eval label reads 1-0 and the bar is white","num":"1-0"}]
+PASS 76 s: US-R07 analysis board with Undo and Exit  [{"cap":"🎬 #522 · US-R07 · 375x679 Analysis board from the round button: Undo and Exit analysis, both sides movable","btns":["↶ Undo","✕ Exit analysis"]}]
+PASS 82 s: US-R09 back on the summary  [🎬 #522 · US-R09 · 375x679 Exit analysis, then back to the summary]
+PASS 88 s: the caption clears after the card's hold
+PASS zero app errors beyond the allowed engine trap  [[]]
+UAT-REVIEW-CARD: 14 pass, 0 fail
+    14-uat-review-card: green (14 PASS)
+=== 15-gallery-playall ===
+PASS tailStable unit: F1 the measured card-1/8 shape: 375 for three reads then 351 to the end  [{"got":{"ok":true,"w":351.03,"fromMs":150,"heldMs":750,"why":null},"want":{"ok":true,"w":351.03,"fromMs":150}}]
+PASS tailStable unit: F2 already settled for the whole window  [{"got":{"ok":true,"w":351.03,"fromMs":0,"heldMs":900,"why":null},"want":{"ok":true,"w":351.03,"fromMs":0}}]
+PASS tailStable unit: F3 a transient LONGER than the hold (300ms) is still seen through, because the tail is what counts  [{"got":{"ok":true,"w":351.03,"fromMs":350,"heldMs":550,"why":null},"want":{"ok":true,"w":351.03,"fromMs":350}}]
+PASS tailStable unit: F4 a width still moving at the end of the window is NOT settled  [{"got":{"ok":false,"w":375,"fromMs":900,"heldMs":0,"why":"settled only 0ms"},"want":{"ok":false}}]
+PASS tailStable unit: F5 a tail that has only held 100ms is NOT settled  [{"got":{"ok":false,"w":351,"fromMs":850,"heldMs":50,"why":"settled only 50ms"},"want":{"ok":false}}]
+PASS tailStable unit: F6 sub-pixel jitter inside the tolerance IS settled  [{"got":{"ok":true,"w":351.03,"fromMs":0,"heldMs":900,"why":null},"want":{"ok":true,"w":351.03,"fromMs":0}}]
+PASS tailStable unit: F7 a card with no board on screen yields no baseline rather than a zero one  [{"got":{"ok":false,"why":"no board"},"want":{"ok":false}}]
+PASS tailStable unit: F8 the settled value is the LAST one even when an earlier value held longer  [{"got":{"ok":true,"w":351,"fromMs":650,"heldMs":250,"why":null},"want":{"ok":true,"w":351,"fromMs":650}}]
+PASS walkOk unit: W1 the list this walk really produces, sub-captions and the END frame included  [{"ok":true,"ns":[1,2,3,4,5,6,6,6,6,6,6,6,7,8,8]}]
+PASS walkOk unit: W2 a gallery card that never played is rejected  [{"ok":false,"why":"card 5 never appeared","ns":[1,2,3,4,6,6,6,6,6,6,6,7,8,8]}]
+PASS walkOk unit: W3 cards out of order are rejected  [{"ok":false,"why":"card 2 came after card 3","ns":[1,3,2,4,5,6,6,6,6,6,6,6,7,8,8]}]
+PASS walkOk unit: W4 THE HOLE THE OLD `seen.length>=N` LEFT: nine captions from two cards satisfied it and must not satisfy this  [{"ok":false,"why":"card 2 never appeared","ns":[1,6,6,6,6,6,6,6,8]}]
+PASS walkOk unit: W5 a caption whose total disagrees with the gallery count is rejected  [{"ok":false,"why":"caption says 1/9 but the gallery holds 8","ns":[]}]
+PASS walkOk unit: W6 no n/N token anywhere is rejected rather than passing vacuously  [{"ok":false,"why":"no caption carried an n/N token","ns":[]}]
+     geometries: kunal 375x812
+     bundle: app.js  md5 ec31de9fe6c5  stamp #522 - 2026-10-14 20:37 ET  (CT_APP)
+     toolchain: playwright 1.56.1 (/opt/node22/lib/node_modules/playwright)  chromium 141.0.7390.37  [no browser is pinned in gates/package.json]
+     fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"   [#485 - every text-derived pin in this suite depends on this line]
+     text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)  -- 'Segoe UI' (the app stack's first family) is unresolvable, so the root renders system-ui; expected in these images
+     NOTE: the app's stack and bare sans-serif differ by 53.84px on one line here, so every absolute text-derived pin in this suite is container-dependent [#480].
+PASS kunal: the pin is self-consistent - EXPECTED_N agrees with the id list this commit declares  [{"EXPECTED_N":2,"pinned":2}]
+PASS kunal: the ask queue holds the 2 cards this commit pins, in order (2)  [["1 PHONE","2 KEV"]]
+PASS kunal: the gallery renders the 2 asks AND the 8 harness states that five gates tap (10)  [{"asks":2,"all":10,"want":10}]
+PASS kunal: the harness state card "k10" is still reachable by the label gates/lib.js b.card() locates it by  [["1 · k10 · Game over: the board must not shrink (#371)"]]
+PASS kunal: the harness state card "k8" is still reachable by the label gates/lib.js b.card() locates it by  [["2 · k8 · Play after the first moves (#370)"]]
+PASS kunal: the harness state card "k11" is still reachable by the label gates/lib.js b.card() locates it by  [["3 · k11 · Lesson at the end of the demo (#371)","4 · k11 · Lesson in practice (#371, #372)"]]
+PASS kunal: the harness state card "A-06" is still reachable by the label gates/lib.js b.card() locates it by  [["5 · A-06 · Puzzle with a hint showing (#372)"]]
+PASS kunal: the harness state card "US-R" is still reachable by the label gates/lib.js b.card() locates it by  [["6 · US-R · The Review journey: import, summary, brilliancy, checkmate, analysis board (#373 UAT)"]]
+PASS kunal: the harness state card "y3" is still reachable by the label gates/lib.js b.card() locates it by  [["7 · y3 · Layout readout, with the tile ink line","8 · y3 · Home: the four icons (#366)"]]
+PASS kunal: the gallery offers a Play-all button to walk (1 found) - if the ask queue is EMPTY this is the expected red and the walk below is skipped BY DECLARATION, not by a harness throw  [{"pabN":1,"asks":2}]
+     kunal card "🎬 #522 · 375x679 Starting…": first read null, settled baseline null NOT SETTLED: no board
+     kunal card "🎬 #522 · 1/2 · PHONE · 375x679 La": first read null, settled baseline null NOT SETTLED: no board
+     kunal card "🎬 #522 · 2/2 · KEV · 375x679 Revi": first read null, settled baseline null NOT SETTLED: no board
+PASS kunal: the run ends on the RECORDING COMPLETE frame (4 captions seen)
+PASS kunal: every one of the 2 gallery cards was reached, in order (4 captions, card numbers 1,2,2)
+PASS kunal: no card leaves the page scrolling  [[]]
+PASS kunal: the page itself cannot scroll - body is out of flow and #root is the scroller  [[]]
+PASS kunal: no board shrinks inside a card, against a SETTLED baseline  [[]]
+PASS kunal: every card whose board is measurable settles inside the 900ms window  [[]]
+PASS kunal: the walk actually took samples to assert over - at least one per queued card (23 attributed against a floor of 2 for 2 cards, 0 discarded across a caption change)  [{"sampled":23,"floor":2,"N":2,"raced":0}]
+PASS kunal: every caption whose card is pinned to show a board showed one (0 of 3 captions had a board; 0 card ids pinned)  [[]]
+PASS kunal: no caption painted a board where this commit pins none - so a card whose state changes under us cannot pass by being boardless  [[]]
+PASS kunal: EXPECT_BOARD is empty and NO caption painted a board - the board-shrink, settle and baseline checks in this gate are inert this run BY DECLARATION, and the states they covered are pinned in 10-gameover, 13-play-after-moves, 11-lesson, 12-hint, 20-review and 14-uat-review-card  [{"withBoard":0,"captions":3}]
+PASS kunal: every caption whose board was on screen got a settled baseline (0 of 3 captions had a board, 0 baselined late)  [[]]
+PASS kunal: no app error beyond the allowed engine trap  [{"allowed":0,"other":[]}]
+PASS 375x812: the pin is self-consistent - EXPECTED_N agrees with the id list this commit declares  [{"EXPECTED_N":2,"pinned":2}]
+PASS 375x812: the ask queue holds the 2 cards this commit pins, in order (2)  [["1 PHONE","2 KEV"]]
+PASS 375x812: the gallery renders the 2 asks AND the 8 harness states that five gates tap (10)  [{"asks":2,"all":10,"want":10}]
+PASS 375x812: the harness state card "k10" is still reachable by the label gates/lib.js b.card() locates it by  [["1 · k10 · Game over: the board must not shrink (#371)"]]
+PASS 375x812: the harness state card "k8" is still reachable by the label gates/lib.js b.card() locates it by  [["2 · k8 · Play after the first moves (#370)"]]
+PASS 375x812: the harness state card "k11" is still reachable by the label gates/lib.js b.card() locates it by  [["3 · k11 · Lesson at the end of the demo (#371)","4 · k11 · Lesson in practice (#371, #372)"]]
+PASS 375x812: the harness state card "A-06" is still reachable by the label gates/lib.js b.card() locates it by  [["5 · A-06 · Puzzle with a hint showing (#372)"]]
+PASS 375x812: the harness state card "US-R" is still reachable by the label gates/lib.js b.card() locates it by  [["6 · US-R · The Review journey: import, summary, brilliancy, checkmate, analysis board (#373 UAT)"]]
+PASS 375x812: the harness state card "y3" is still reachable by the label gates/lib.js b.card() locates it by  [["7 · y3 · Layout readout, with the tile ink line","8 · y3 · Home: the four icons (#366)"]]
+PASS 375x812: the gallery offers a Play-all button to walk (1 found) - if the ask queue is EMPTY this is the expected red and the walk below is skipped BY DECLARATION, not by a harness throw  [{"pabN":1,"asks":2}]
+     375x812 card "🎬 #522 · 375x812 Starting…": first read null, settled baseline null NOT SETTLED: no board
+     375x812 card "🎬 #522 · 1/2 · PHONE · 375x812 La": first read null, settled baseline null NOT SETTLED: no board
+     375x812 card "🎬 #522 · 2/2 · KEV · 375x812 Revi": first read null, settled baseline null NOT SETTLED: no board
+PASS 375x812: the run ends on the RECORDING COMPLETE frame (4 captions seen)
+PASS 375x812: every one of the 2 gallery cards was reached, in order (4 captions, card numbers 1,2,2)
+PASS 375x812: no card leaves the page scrolling  [[]]
+PASS 375x812: the page itself cannot scroll - body is out of flow and #root is the scroller  [[]]
+PASS 375x812: no board shrinks inside a card, against a SETTLED baseline  [[]]
+PASS 375x812: every card whose board is measurable settles inside the 900ms window  [[]]
+PASS 375x812: the walk actually took samples to assert over - at least one per queued card (23 attributed against a floor of 2 for 2 cards, 0 discarded across a caption change)  [{"sampled":23,"floor":2,"N":2,"raced":0}]
+PASS 375x812: every caption whose card is pinned to show a board showed one (0 of 3 captions had a board; 0 card ids pinned)  [[]]
+PASS 375x812: no caption painted a board where this commit pins none - so a card whose state changes under us cannot pass by being boardless  [[]]
+PASS 375x812: EXPECT_BOARD is empty and NO caption painted a board - the board-shrink, settle and baseline checks in this gate are inert this run BY DECLARATION, and the states they covered are pinned in 10-gameover, 13-play-after-moves, 11-lesson, 12-hint, 20-review and 14-uat-review-card  [{"withBoard":0,"captions":3}]
+PASS 375x812: every caption whose board was on screen got a settled baseline (0 of 3 captions had a board, 0 baselined late)  [[]]
+PASS 375x812: no app error beyond the allowed engine trap  [{"allowed":0,"other":[]}]
+     block S kunal k10: baseline 351.03, 48 samples, lowest 351 (settled from 3ms)
+     block S kunal k8: baseline 351.03, 28 samples, lowest 351 (settled from 3ms)
+     block S kunal 3: baseline 375.03, 24 samples, lowest 375 (settled from 3ms)
+     block S kunal 4: baseline 375.03, 32 samples, lowest 375 (settled from 3ms)
+     block S kunal A-06: baseline 375.03, 24 samples, lowest 375 (settled from 3ms)
+PASS S0a kunal: every one of the 5 fixture cards could be REACHED by the route gates/lib.js b.card() uses  [[]]
+PASS S0 kunal: THE INSTRUMENT - a board was on screen on every one of the 5 fixture cards sampled (5), so the shrink assertion below is not vacuous  [{"sawAny":5,"boardless":[]}]
+PASS S1 kunal: every fixture card that showed a board got a SETTLED baseline inside the 900ms window (5 of 5)  [[]]
+PASS S2 kunal: NO BOARD SHRINKS inside a fixture card, sampled densely against a settled baseline - the board-jump instrument the ask queue no longer carries  [[]]
+PASS S3 kunal: no app error while driving the fixture cards  [{"other":[]}]
+     block S 375x812 k10: baseline 375.03, 48 samples, lowest 375 (settled from 4ms)
+     block S 375x812 k8: baseline 375.03, 28 samples, lowest 375 (settled from 3ms)
+     block S 375x812 3: baseline 375.03, 24 samples, lowest 375 (settled from 3ms)
+     block S 375x812 4: baseline 375.03, 32 samples, lowest 375 (settled from 3ms)
+     block S 375x812 A-06: baseline 375.03, 24 samples, lowest 375 (settled from 3ms)
+PASS S0a 375x812: every one of the 5 fixture cards could be REACHED by the route gates/lib.js b.card() uses  [[]]
+PASS S0 375x812: THE INSTRUMENT - a board was on screen on every one of the 5 fixture cards sampled (5), so the shrink assertion below is not vacuous  [{"sawAny":5,"boardless":[]}]
+PASS S1 375x812: every fixture card that showed a board got a SETTLED baseline inside the 900ms window (5 of 5)  [[]]
+PASS S2 375x812: NO BOARD SHRINKS inside a fixture card, sampled densely against a settled baseline - the board-jump instrument the ask queue no longer carries  [[]]
+PASS S3 375x812: no app error while driving the fixture cards  [{"other":[]}]
+     320x568 gallery: vw 320, 2 cards, doc scrollWidth 320
+PASS F1 320x568: the gallery renders the 2 pinned cards at this width (2)  [{"n":2}]
+PASS F1 320x568: the 8 fixture card boxes are IN the population the two containment checks below measure (8)  [{"states":8,"want":8}]
+PASS F1 320x568: no card box paints past the viewport  [[]]
+PASS F1 320x568: no card is cut horizontally by its own box (scrollWidth vs clientWidth)  [[]]
+PASS F1 320x568: TRIPWIRE (cannot fail while #root clips, proved against both NCs) - the gallery adds no horizontal page overflow  [{"docW":320,"vw":320}]
+PASS F2 320x568: the menu offers the Layout readout toggle card 1 drives
+PASS F2 320x568: the readout prints the inner/vv/app line card 1 tells him to screenshot  [inner 320x568 vv 320x568 app browser tab]
+     F2 320x568 readout says "inner 320x568 vv 320x568 app browser tab"; browser reports inner 320x568 vv 320x568
+PASS F2 320x568: the readout's inner WxH equals what the browser reports  [{"readout":"320x568","browser":"320x568"}]
+PASS F2 320x568: the readout's visual viewport equals window.visualViewport  [{"readout":"320x568","browser":"320x568"}]
+PASS F2 320x568: the readout names the display mode, and in headless Chromium it is the browser branch  [{"app":"browser tab"}]
+PASS F 320x568: no app error in the gallery or the readout  [{"other":[]}]
+     375x730 (Kunal) gallery: vw 375, 2 cards, doc scrollWidth 375
+PASS F1 375x730 (Kunal): the gallery renders the 2 pinned cards at this width (2)  [{"n":2}]
+PASS F1 375x730 (Kunal): the 8 fixture card boxes are IN the population the two containment checks below measure (8)  [{"states":8,"want":8}]
+PASS F1 375x730 (Kunal): no card box paints past the viewport  [[]]
+PASS F1 375x730 (Kunal): no card is cut horizontally by its own box (scrollWidth vs clientWidth)  [[]]
+PASS F1 375x730 (Kunal): TRIPWIRE (cannot fail while #root clips, proved against both NCs) - the gallery adds no horizontal page overflow  [{"docW":375,"vw":375}]
+PASS F2 375x730 (Kunal): the menu offers the Layout readout toggle card 1 drives
+PASS F2 375x730 (Kunal): the readout prints the inner/vv/app line card 1 tells him to screenshot  [inner 375x730 vv 375x730 app browser tab]
+     F2 375x730 (Kunal) readout says "inner 375x730 vv 375x730 app browser tab"; browser reports inner 375x730 vv 375x730
+PASS F2 375x730 (Kunal): the readout's inner WxH equals what the browser reports  [{"readout":"375x730","browser":"375x730"}]
+PASS F2 375x730 (Kunal): the readout's visual viewport equals window.visualViewport  [{"readout":"375x730","browser":"375x730"}]
+PASS F2 375x730 (Kunal): the readout names the display mode, and in headless Chromium it is the browser branch  [{"app":"browser tab"}]
+PASS F 375x730 (Kunal): no app error in the gallery or the readout  [{"other":[]}]
+     375x568 (wide-and-short) gallery: vw 375, 2 cards, doc scrollWidth 375
+PASS F1 375x568 (wide-and-short): the gallery renders the 2 pinned cards at this width (2)  [{"n":2}]
+PASS F1 375x568 (wide-and-short): the 8 fixture card boxes are IN the population the two containment checks below measure (8)  [{"states":8,"want":8}]
+PASS F1 375x568 (wide-and-short): no card box paints past the viewport  [[]]
+PASS F1 375x568 (wide-and-short): no card is cut horizontally by its own box (scrollWidth vs clientWidth)  [[]]
+PASS F1 375x568 (wide-and-short): TRIPWIRE (cannot fail while #root clips, proved against both NCs) - the gallery adds no horizontal page overflow  [{"docW":375,"vw":375}]
+PASS F2 375x568 (wide-and-short): the menu offers the Layout readout toggle card 1 drives
+PASS F2 375x568 (wide-and-short): the readout prints the inner/vv/app line card 1 tells him to screenshot  [inner 375x568 vv 375x568 app browser tab]
+     F2 375x568 (wide-and-short) readout says "inner 375x568 vv 375x568 app browser tab"; browser reports inner 375x568 vv 375x568
+PASS F2 375x568 (wide-and-short): the readout's inner WxH equals what the browser reports  [{"readout":"375x568","browser":"375x568"}]
+PASS F2 375x568 (wide-and-short): the readout's visual viewport equals window.visualViewport  [{"readout":"375x568","browser":"375x568"}]
+PASS F2 375x568 (wide-and-short): the readout names the display mode, and in headless Chromium it is the browser branch  [{"app":"browser tab"}]
+PASS F 375x568 (wide-and-short): no app error in the gallery or the readout  [{"other":[]}]
+     M gallery header: Two kinds of card, each marked on its face. ↻ DRIVES ITSELF: the app sets the screen up, you capture it. ☞ YOUR TAPS: only you can do it, on your own 
+     M cards: [{"head":"1 · PHONE","auto":true,"manual":false},{"head":"2 · KEV","auto":false,"manual":true}]
+PASS M1: every one of the 2 ask cards declares exactly one mode on its face (2 of 2)  [[{"head":"1 · PHONE","auto":true,"manual":false},{"head":"2 · KEV","auto":false,"manual":true}]]
+PASS M2: the mode pin is self-consistent with EXPECTED_N  [{"EXPECTED_MANUAL":1,"EXPECTED_AUTO":1,"EXPECTED_N":2}]
+PASS M2: the queue holds the 1 manual and 1 self-driving card this commit declares  [{"nMan":1,"nAuto":1}]
+PASS M3: the header names BOTH modes in the same words the cards use  [{"auto":true,"manual":true}]
+PASS M3: the header no longer claims "Each card drives itself" while a card says the taps are his
+PASS M9: no string painted on the gallery is a literal escape sequence rather than the character it names  [[]]
+PASS M4: the manual card "2 · KEV" is on the gallery to tap  [{"found":1}]
+PASS M4: the instruction IS on screen just after the tap (the state the hold is about was reached)  [{"atMs":1271}]
+     M4 at 30298ms: {"up":true,"barPe":"none","txt":"✕ 🎬 #522 · KEV · 375x730 Review: the grade rows for Kunal2023 v Kevitsch","done":true,"donePe":"auto","doneTxt":"✕","doneRect":{"w":44,"h":44,"right":367,"top":633.63},"vw":375}
+PASS M4: the manual card's instruction is STILL on screen at 30000ms - longer than the 20-60s its own task takes (gates/drive/review.js:5)  [{"up":true,"barPe":"none","txt":"✕ 🎬 #522 · KEV · 375x730 Review: the grade rows for Kunal2023 v Kevitsch","done":true,"donePe":"auto","doneTxt":"✕","doneRect":{"w":44,"h":44,"right":367,"top":633.63},"vw":375}]
+PASS M5: the held instruction bar still passes taps through (pointerEvents none), so it cannot eat the taps the card asks for  [{"barPe":"none"}]
+PASS M5b: a tappable Hide control exists while the instruction is held  [{"done":true,"pe":"auto"}]
+PASS M6: the Hide control meets the 44px tap-target minimum (44x44)  [{"w":44,"h":44,"right":367,"top":633.63}]
+PASS M6: the Hide control sits inside the viewport - no horizontal spill, which is the unrecoverable one  [{"right":367,"vw":375}]
+PASS M9b: the held instruction bar paints no literal escape sequence  [{"txt":"✕ 🎬 #522 · KEV · 375x730 Review: the grade rows for Kunal2023 v Kevit"}]
+PASS M10: the Hide control is labelled with ONE character, not with the escape sequence that names it  [{"label":"✕","codePoints":1}]
+PASS M7: tapping Hide clears the instruction  [{"stillUp":false}]
+PASS M: no app error while holding and hiding the instruction  [{"other":[]}]
+PASS M8: the self-driving card's caption appears when tapped (the state is reached)
+PASS M8: a SELF-DRIVING card still expires on its own 10s hold - the persistence is scoped to manual cards only  [{"atMs":16289,"still":false}]
+     M6 320x568: hide control {"w":44,"h":44,"left":270.2,"right":314.2,"top":471.63,"vw":320,"vh":568}
+PASS M6 320x568: the Hide control is a 44px target, fully inside the viewport  [{"w":44,"h":44,"left":270.2,"right":314.2,"top":471.63,"vw":320,"vh":568}]
+     M6 375x568: hide control {"w":44,"h":44,"left":323,"right":367,"top":471.63,"vw":375,"vh":568}
+PASS M6 375x568: the Hide control is a 44px target, fully inside the viewport  [{"w":44,"h":44,"left":323,"right":367,"top":471.63,"vw":375,"vh":568}]
+GALLERY-PLAYALL: 122 pass, 0 fail
+    15-gallery-playall: green (122 PASS)
+=== 16-cpu-result-line ===
+     bundle: app.js  md5 ec31de9fe6c5  stamp #522 - 2026-10-14 20:37 ET  (CT_APP)
+     toolchain: playwright 1.56.1 (/opt/node22/lib/node_modules/playwright)  chromium 141.0.7390.37  [no browser is pinned in gates/package.json]
+     fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"   [#485 - every text-derived pin in this suite depends on this line]
+     text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)  -- 'Segoe UI' (the app stack's first family) is unresolvable, so the root renders system-ui; expected in these images
+     NOTE: the app's stack and bare sans-serif differ by 53.84px on one line here, so every absolute text-derived pin in this suite is container-dependent [#480].
+PASS A1a kunal730: resigning as White at move 0 puts the result CARD up, reading Resigned  [{"card":"Resigned You lose"}]
+PASS A1b kunal730: and while the card is up the status slot carries the adaptive-strength note - asserted BEFORE the absence below, so a green here cannot come from eloMsg never being set (#385). The number is deliberately NOT pinned: a literal ~450 couples this gate to Pip being 500 and the step being 50, so changing either constant would redden an assertion that is about the slot and not about the ladder (antagonist A, F12)  [{"slot":"▼ Strength now ~450 Elo"}]
+PASS A2a kunal730: ~6.8s after the resignation (measured with Date.now() from the confirm tap to the read: 6.81s at both geometries) the result card has gone  [{"card":null}]
+PASS A2b kunal730: and the status slot now states the result, as the app's own two-part string head + " · " + sub - not a regex any wording would satisfy (#388)  [{"slot":"Resigned · You lose","want":"Resigned · You lose"}]
+PASS A3 kunal730: and the outcome it names is the one the GAME had - this side resigned as White, so the player lost, which is a fact about the game and not a reading off a sibling element (#389)  [{"slot":"Resigned · You lose"}]
+PASS A4 kunal730: a scan of every painted element under 44 chars matching the result vocabulary finds the result on screen - this returned ZERO hits on the shipped #433 bundle  [{"hits":[{"t":"Resigned · You lose","y":3.5,"w":142.6}]}]
+PASS A5 kunal730: the slot is actually painted (opacity 1), not present-and-invisible  [{"opacity":1}]
+PASS A6 kunal730: and nothing in that slot is silently cut - it is a nowrap ellipsis span whose scrollWidth fits its clientWidth. MEASURED in this span: the result is 143, the strength note 183, the two joined 340, and the slot is 96vw = 360 at 375 but 307.2 at 320 - so this assertion catches a concatenation at 320 and NOT at 375 (#387, #394)  [{"sw":143,"cw":143,"white":"nowrap","ell":"ellipsis"}]
+PASS A7 kunal730: and the board did not move across the card fade, to the hundredth of a pixel - the tolerance is 0.05 rather than 0.6 so that the gate asserts what the build CLAIMS (measured delta: exactly 0.0000) - the slot changing its text must never cost board geometry  [{"up":{"w":353.03,"y":93.75},"down":{"w":353.03,"y":93.75}}]
+PASS A8 kunal730: zero app errors across the termination  [[]]
+PASS B1a se: resigning as White at move 0 puts the result CARD up, reading Resigned  [{"card":"Resigned You lose"}]
+PASS B1b se: and while the card is up the status slot carries the adaptive-strength note - asserted BEFORE the absence below, so a green here cannot come from eloMsg never being set (#385). The number is deliberately NOT pinned: a literal ~450 couples this gate to Pip being 500 and the step being 50, so changing either constant would redden an assertion that is about the slot and not about the ladder (antagonist A, F12)  [{"slot":"▼ Strength now ~450 Elo"}]
+PASS B2a se: ~6.8s after the resignation (measured with Date.now() from the confirm tap to the read: 6.81s at both geometries) the result card has gone  [{"card":null}]
+PASS B2b se: and the status slot now states the result, as the app's own two-part string head + " · " + sub - not a regex any wording would satisfy (#388)  [{"slot":"Resigned · You lose","want":"Resigned · You lose"}]
+PASS B3 se: and the outcome it names is the one the GAME had - this side resigned as White, so the player lost, which is a fact about the game and not a reading off a sibling element (#389)  [{"slot":"Resigned · You lose"}]
+PASS B4 se: a scan of every painted element under 44 chars matching the result vocabulary finds the result on screen - this returned ZERO hits on the shipped #433 bundle  [{"hits":[{"t":"Resigned · You lose","y":3.5,"w":142.6}]}]
+PASS B5 se: the slot is actually painted (opacity 1), not present-and-invisible  [{"opacity":1}]
+PASS B6 se: and nothing in that slot is silently cut - it is a nowrap ellipsis span whose scrollWidth fits its clientWidth. MEASURED in this span: the result is 143, the strength note 183, the two joined 340, and the slot is 96vw = 360 at 375 but 307.2 at 320 - so this assertion catches a concatenation at 320 and NOT at 375 (#387, #394)  [{"sw":143,"cw":143,"white":"nowrap","ell":"ellipsis"}]
+PASS B7 se: and the board did not move across the card fade, to the hundredth of a pixel - the tolerance is 0.05 rather than 0.6 so that the gate asserts what the build CLAIMS (measured delta: exactly 0.0000) - the slot changing its text must never cost board geometry  [{"up":{"w":288,"y":62.5},"down":{"w":288,"y":62.5}}]
+PASS B8 se: zero app errors across the termination  [[]]
+PASS C0 375x730: the floor is READ BACK, not inferred - ct_elo is 400 going into the termination, so ne = max(400, 400-50) = 400 == cpuElo and chess.jsx:3144 cannot fire. Without this the whole C block explained an empty slot by a state it never checked (antagonist A, F10)  [{"ct_elo":"400"}]
+PASS C1 375x730: at the Elo floor a loss changes no strength, so the slot carries NO strength note while the card is up - the branch the job called unmeasured  [{"slot":""}]
+PASS C2 375x730: and with the slot free the result appears there exactly as it does for Pass & Play  [{"slot":"Resigned · You lose"}]
+PASS C3 375x730: with no strength note to pre-empt it, this input was already correct on #433 and stays correct here  [{"slot":"Resigned · You lose","hits":[{"t":"Resigned · You lose","y":3.5,"w":142.6}]}]
+PASS C4 375x730: zero app errors at the Elo floor  [[]]
+PASS D1 375x730: Pass & Play states its result in the same slot - White resigned, so BLACK wins, and the sentence names the winner rather than a first person who does not exist in a two-player game  [{"slot":"Resigned · Black wins"}]
+PASS D2 375x730: and the painted-element scan finds it, which it did on #433 too - this is the control that made the vs-computer absence a defect rather than a design  [{"hits":[{"t":"Resigned · Black wins","y":3.5,"w":159.2}]}]
+PASS D3 375x730: zero app errors across a Pass & Play resignation  [[]]
+PASS Gm1 kunal730 mate: the slot states the result BEFORE any tap, as the app's own two-part string head + " · " + sub, not a regex any wording would satisfy (#388). BLACK wins at both endings - by Qh4# on the mate arm, and because resign() resigns the side to move and after 1.f3 e5 that is White - which is a fact about the game, true whatever any readout says (#389)  [{"slot":"Checkmate! · Black wins","want":"Checkmate! · Black wins"}]
+PASS Gm2a kunal730 mate: and we are genuinely AT the last ply - Forward is present and DISABLED, so the Back tap below has somewhere to go and this block is not measuring a mid-game position  [{"forward":{"found":true,"dis":true,"x":127,"y":580.5}}]
+PASS Gm2b kunal730 mate: the painted Back control exists and takes the tap  [{"ok":true,"box":{"x":63.5,"y":580.52}}]
+PASS Gm2c kunal730 mate: THE WITNESS - Forward is now ENABLED, so the tap really moved the previewed ply. Without this, G3 passes on a tap that did nothing, which is #416 exactly  [{"before":{"found":true,"dis":true,"x":127,"y":580.5},"after":{"found":true,"dis":false,"x":127,"y":580.5}}]
+PASS Gm3 kunal730 mate: AND THE RESULT IS STILL THERE after one Back tap - the row answers whether the GAME is finished, not whether the previewed position is terminal. On #471 the mate arm read "" here  [{"slot":"Checkmate! · Black wins","want":"Checkmate! · Black wins","wasBefore":"Checkmate! · Black wins"}]
+PASS Gm4 kunal730 mate: and an independent painted-element scan still finds that exact string somewhere on screen, so G3 cannot be satisfied by a hidden or zero-area node  [{"hits":[{"t":"Checkmate! · Black wins","y":3.5,"w":178.7}],"want":"Checkmate! · Black wins"}]
+PASS Gm5 kunal730 mate: stepping Forward again does NOT re-open the dismissed result card. `_resultKey` was ply-keyed too, so on #471 this read "Checkmate!Black wins" on the mate arm - the card the player had already watched fade came back over the board, and would on every round trip  [{"card":null,"fwd":{"ok":true}}]
+PASS Gm6 kunal730 mate: and the slot still states the result at the terminal ply after the round trip  [{"slot":"Checkmate! · Black wins","want":"Checkmate! · Black wins"}]
+PASS Gm7 kunal730 mate: zero app errors across the whole round trip  [[]]
+PASS Gr1 kunal730 resign: the slot states the result BEFORE any tap, as the app's own two-part string head + " · " + sub, not a regex any wording would satisfy (#388). BLACK wins at both endings - by Qh4# on the mate arm, and because resign() resigns the side to move and after 1.f3 e5 that is White - which is a fact about the game, true whatever any readout says (#389)  [{"slot":"Resigned · Black wins","want":"Resigned · Black wins"}]
+PASS Gr2a kunal730 resign: and we are genuinely AT the last ply - Forward is present and DISABLED, so the Back tap below has somewhere to go and this block is not measuring a mid-game position  [{"forward":{"found":true,"dis":true,"x":127,"y":580.5}}]
+PASS Gr2b kunal730 resign: the painted Back control exists and takes the tap  [{"ok":true,"box":{"x":63.5,"y":580.52}}]
+PASS Gr2c kunal730 resign: THE WITNESS - Forward is now ENABLED, so the tap really moved the previewed ply. Without this, G3 passes on a tap that did nothing, which is #416 exactly  [{"before":{"found":true,"dis":true,"x":127,"y":580.5},"after":{"found":true,"dis":false,"x":127,"y":580.5}}]
+PASS Gr3 kunal730 resign: AND THE RESULT IS STILL THERE after one Back tap - the row answers whether the GAME is finished, not whether the previewed position is terminal. On #471 the mate arm read "" here  [{"slot":"Resigned · Black wins","want":"Resigned · Black wins","wasBefore":"Resigned · Black wins"}]
+PASS Gr4 kunal730 resign: and an independent painted-element scan still finds that exact string somewhere on screen, so G3 cannot be satisfied by a hidden or zero-area node  [{"hits":[{"t":"Resigned · Black wins","y":3.5,"w":159.2}],"want":"Resigned · Black wins"}]
+PASS Gr5 kunal730 resign: stepping Forward again does NOT re-open the dismissed result card. `_resultKey` was ply-keyed too, so on #471 this read "Checkmate!Black wins" on the mate arm - the card the player had already watched fade came back over the board, and would on every round trip  [{"card":null,"fwd":{"ok":true}}]
+PASS Gr6 kunal730 resign: and the slot still states the result at the terminal ply after the round trip  [{"slot":"Resigned · Black wins","want":"Resigned · Black wins"}]
+PASS Gr7 kunal730 resign: zero app errors across the whole round trip  [[]]
+PASS Hm1 short375 mate: the slot states the result BEFORE any tap, as the app's own two-part string head + " · " + sub, not a regex any wording would satisfy (#388). BLACK wins at both endings - by Qh4# on the mate arm, and because resign() resigns the side to move and after 1.f3 e5 that is White - which is a fact about the game, true whatever any readout says (#389)  [{"slot":"Checkmate! · Black wins","want":"Checkmate! · Black wins"}]
+PASS Hm2a short375 mate: and we are genuinely AT the last ply - Forward is present and DISABLED, so the Back tap below has somewhere to go and this block is not measuring a mid-game position  [{"forward":{"found":true,"dis":true,"x":136.6,"y":434}}]
+PASS Hm2b short375 mate: the painted Back control exists and takes the tap  [{"ok":true,"box":{"x":94.08,"y":434}}]
+PASS Hm2c short375 mate: THE WITNESS - Forward is now ENABLED, so the tap really moved the previewed ply. Without this, G3 passes on a tap that did nothing, which is #416 exactly  [{"before":{"found":true,"dis":true,"x":136.6,"y":434},"after":{"found":true,"dis":false,"x":136.6,"y":434}}]
+PASS Hm3 short375 mate: AND THE RESULT IS STILL THERE after one Back tap - the row answers whether the GAME is finished, not whether the previewed position is terminal. On #471 the mate arm read "" here  [{"slot":"Checkmate! · Black wins","want":"Checkmate! · Black wins","wasBefore":"Checkmate! · Black wins"}]
+PASS Hm4 short375 mate: and an independent painted-element scan still finds that exact string somewhere on screen, so G3 cannot be satisfied by a hidden or zero-area node  [{"hits":[{"t":"Checkmate! · Black wins","y":3.5,"w":178.7}],"want":"Checkmate! · Black wins"}]
+PASS Hm5 short375 mate: stepping Forward again does NOT re-open the dismissed result card. `_resultKey` was ply-keyed too, so on #471 this read "Checkmate!Black wins" on the mate arm - the card the player had already watched fade came back over the board, and would on every round trip  [{"card":null,"fwd":{"ok":true}}]
+PASS Hm6 short375 mate: and the slot still states the result at the terminal ply after the round trip  [{"slot":"Checkmate! · Black wins","want":"Checkmate! · Black wins"}]
+PASS Hm7 short375 mate: zero app errors across the whole round trip  [[]]
+PASS Hr1 short375 resign: the slot states the result BEFORE any tap, as the app's own two-part string head + " · " + sub, not a regex any wording would satisfy (#388). BLACK wins at both endings - by Qh4# on the mate arm, and because resign() resigns the side to move and after 1.f3 e5 that is White - which is a fact about the game, true whatever any readout says (#389)  [{"slot":"Resigned · Black wins","want":"Resigned · Black wins"}]
+PASS Hr2a short375 resign: and we are genuinely AT the last ply - Forward is present and DISABLED, so the Back tap below has somewhere to go and this block is not measuring a mid-game position  [{"forward":{"found":true,"dis":true,"x":136.6,"y":434}}]
+PASS Hr2b short375 resign: the painted Back control exists and takes the tap  [{"ok":true,"box":{"x":94.08,"y":434}}]
+PASS Hr2c short375 resign: THE WITNESS - Forward is now ENABLED, so the tap really moved the previewed ply. Without this, G3 passes on a tap that did nothing, which is #416 exactly  [{"before":{"found":true,"dis":true,"x":136.6,"y":434},"after":{"found":true,"dis":false,"x":136.6,"y":434}}]
+PASS Hr3 short375 resign: AND THE RESULT IS STILL THERE after one Back tap - the row answers whether the GAME is finished, not whether the previewed position is terminal. On #471 the mate arm read "" here  [{"slot":"Resigned · Black wins","want":"Resigned · Black wins","wasBefore":"Resigned · Black wins"}]
+PASS Hr4 short375 resign: and an independent painted-element scan still finds that exact string somewhere on screen, so G3 cannot be satisfied by a hidden or zero-area node  [{"hits":[{"t":"Resigned · Black wins","y":3.5,"w":159.2}],"want":"Resigned · Black wins"}]
+PASS Hr5 short375 resign: stepping Forward again does NOT re-open the dismissed result card. `_resultKey` was ply-keyed too, so on #471 this read "Checkmate!Black wins" on the mate arm - the card the player had already watched fade came back over the board, and would on every round trip  [{"card":null,"fwd":{"ok":true}}]
+PASS Hr6 short375 resign: and the slot still states the result at the terminal ply after the round trip  [{"slot":"Resigned · Black wins","want":"Resigned · Black wins"}]
+PASS Hr7 short375 resign: zero app errors across the whole round trip  [[]]
+PASS Im1 se mate: the slot states the result BEFORE any tap, as the app's own two-part string head + " · " + sub, not a regex any wording would satisfy (#388). BLACK wins at both endings - by Qh4# on the mate arm, and because resign() resigns the side to move and after 1.f3 e5 that is White - which is a fact about the game, true whatever any readout says (#389)  [{"slot":"Checkmate! · Black wins","want":"Checkmate! · Black wins"}]
+PASS Im2a se mate: and we are genuinely AT the last ply - Forward is present and DISABLED, so the Back tap below has somewhere to go and this block is not measuring a mid-game position  [{"forward":{"found":true,"dis":true,"x":109.1,"y":434}}]
+PASS Im2b se mate: the painted Back control exists and takes the tap  [{"ok":true,"box":{"x":66.58,"y":434}}]
+PASS Im2c se mate: THE WITNESS - Forward is now ENABLED, so the tap really moved the previewed ply. Without this, G3 passes on a tap that did nothing, which is #416 exactly  [{"before":{"found":true,"dis":true,"x":109.1,"y":434},"after":{"found":true,"dis":false,"x":109.1,"y":434}}]
+PASS Im3 se mate: AND THE RESULT IS STILL THERE after one Back tap - the row answers whether the GAME is finished, not whether the previewed position is terminal. On #471 the mate arm read "" here  [{"slot":"Checkmate! · Black wins","want":"Checkmate! · Black wins","wasBefore":"Checkmate! · Black wins"}]
+PASS Im4 se mate: and an independent painted-element scan still finds that exact string somewhere on screen, so G3 cannot be satisfied by a hidden or zero-area node  [{"hits":[{"t":"Checkmate! · Black wins","y":3.5,"w":178.7}],"want":"Checkmate! · Black wins"}]
+PASS Im5 se mate: stepping Forward again does NOT re-open the dismissed result card. `_resultKey` was ply-keyed too, so on #471 this read "Checkmate!Black wins" on the mate arm - the card the player had already watched fade came back over the board, and would on every round trip  [{"card":null,"fwd":{"ok":true}}]
+PASS Im6 se mate: and the slot still states the result at the terminal ply after the round trip  [{"slot":"Checkmate! · Black wins","want":"Checkmate! · Black wins"}]
+PASS Im7 se mate: zero app errors across the whole round trip  [[]]
+PASS Ir1 se resign: the slot states the result BEFORE any tap, as the app's own two-part string head + " · " + sub, not a regex any wording would satisfy (#388). BLACK wins at both endings - by Qh4# on the mate arm, and because resign() resigns the side to move and after 1.f3 e5 that is White - which is a fact about the game, true whatever any readout says (#389)  [{"slot":"Resigned · Black wins","want":"Resigned · Black wins"}]
+PASS Ir2a se resign: and we are genuinely AT the last ply - Forward is present and DISABLED, so the Back tap below has somewhere to go and this block is not measuring a mid-game position  [{"forward":{"found":true,"dis":true,"x":109.1,"y":434}}]
+PASS Ir2b se resign: the painted Back control exists and takes the tap  [{"ok":true,"box":{"x":66.58,"y":434}}]
+PASS Ir2c se resign: THE WITNESS - Forward is now ENABLED, so the tap really moved the previewed ply. Without this, G3 passes on a tap that did nothing, which is #416 exactly  [{"before":{"found":true,"dis":true,"x":109.1,"y":434},"after":{"found":true,"dis":false,"x":109.1,"y":434}}]
+PASS Ir3 se resign: AND THE RESULT IS STILL THERE after one Back tap - the row answers whether the GAME is finished, not whether the previewed position is terminal. On #471 the mate arm read "" here  [{"slot":"Resigned · Black wins","want":"Resigned · Black wins","wasBefore":"Resigned · Black wins"}]
+PASS Ir4 se resign: and an independent painted-element scan still finds that exact string somewhere on screen, so G3 cannot be satisfied by a hidden or zero-area node  [{"hits":[{"t":"Resigned · Black wins","y":3.5,"w":159.2}],"want":"Resigned · Black wins"}]
+PASS Ir5 se resign: stepping Forward again does NOT re-open the dismissed result card. `_resultKey` was ply-keyed too, so on #471 this read "Checkmate!Black wins" on the mate arm - the card the player had already watched fade came back over the board, and would on every round trip  [{"card":null,"fwd":{"ok":true}}]
+PASS Ir6 se resign: and the slot still states the result at the terminal ply after the round trip  [{"slot":"Resigned · Black wins","want":"Resigned · Black wins"}]
+PASS Ir7 se resign: zero app errors across the whole round trip  [[]]
+PASS L1 375x730 stalemate: the slot states the result BEFORE any tap, as the app's own two-part string. Black is not in check and has no legal move, so it is a STALEMATE and therefore a DRAW - a fact about the position, not about any readout  [{"slot":"Stalemate · Draw","want":"Stalemate · Draw"}]
+PASS L2a 375x730 stalemate: and we are at the last ply - Forward present and disabled  [{"forward":{"found":true,"dis":true,"x":127,"y":580.5}}]
+PASS L2b 375x730 stalemate: the Back control takes the tap  [{"ok":true,"box":{"x":63.5,"y":580.52}}]
+PASS L2c 375x730 stalemate: THE WITNESS - Forward is now enabled, so the ply moved  [{"before":{"found":true,"dis":true,"x":127,"y":580.5},"after":{"found":true,"dis":false,"x":127,"y":580.5}}]
+PASS L3 375x730 stalemate: AND THE RESULT IS STILL THERE after one Back tap. This is the branch no other input in this file evaluates - `_gameTermStatus` returns 'stalemate' and `_winSide` is null, so the sub comes from `_winTxt`'s Draw fall-through. On #471 and on NC1 this read ""  [{"slot":"Stalemate · Draw","want":"Stalemate · Draw"}]
+PASS L4 375x730 stalemate: and an independent painted-element scan finds that exact string  [{"hits":[{"t":"Stalemate · Draw","y":3.5,"w":127}],"want":"Stalemate · Draw"}]
+PASS L5 375x730 stalemate: zero app errors across a 19-ply stalemate and a step back  [[]]
+PASS J1 kunal730: the result card IS up at the mate, inside the ~3s window before the fade - asserted before the absence below, so a green on J2 cannot come from a build where the card never renders  [{"card":{"t":"Checkmate!White wins","x":95.9,"y":237.8,"w":183.2,"h":69}}]
+PASS J2a kunal730: the painted Back control takes the tap inside the window  [{"ok":true,"box":{"x":63.5,"y":580.52}}]
+PASS J2b kunal730: and the position shown is NOT the mate - the move row carries no "#", which is what makes the next assertion about a non-result position rather than about the result position  [{"moveRow":"2…Nc63.Qh53…Nf6"}]
+PASS J3 kunal730: THE CARD IS GONE. It answers "am I looking at the result position", so it must not paint over a board showing some other ply. The measured rect of whatever IS there is in the payload and NO coordinate is hardcoded in this message, because it runs at two geometries: the leaked card sits at x=95.9 y=237.8 at 375x730 and x=68.4 y=164.5 at 320x568, so one pair of numbers in the text would be wrong at one of them. Antagonist B pixel-diffed it at 375x730: >=83%% of the pixels of EIGHT squares replaced, three of them holding pieces  [{"card":null}]
+PASS J4a kunal730: WHILE THE CARD IS UP the slot carries the OPENING NAME, not the result - #434's time-split, measured at this frame on both bundles  [{"slot":"Scholar's Mate"}]
+PASS J4b kunal730: AND AFTER THE FADE, STILL AT THAT PREVIEWED PLY, the result takes the slot back - which is this build's actual fix holding at a non-final ply. White mates with Qxf7#, so WHITE wins  [{"slot":"Checkmate! · White wins"}]
+PASS J5 kunal730: zero app errors  [[]]
+PASS K1 se: the result card IS up at the mate, inside the ~3s window before the fade - asserted before the absence below, so a green on J2 cannot come from a build where the card never renders  [{"card":{"t":"Checkmate!White wins","x":68.4,"y":164.5,"w":183.2,"h":69}}]
+PASS K2a se: the painted Back control takes the tap inside the window  [{"ok":true,"box":{"x":66.58,"y":434}}]
+PASS K2b se: and the position shown is NOT the mate - the move row carries no "#", which is what makes the next assertion about a non-result position rather than about the result position  [{"moveRow":"2…Nc63.Qh53…Nf6"}]
+PASS K3 se: THE CARD IS GONE. It answers "am I looking at the result position", so it must not paint over a board showing some other ply. The measured rect of whatever IS there is in the payload and NO coordinate is hardcoded in this message, because it runs at two geometries: the leaked card sits at x=95.9 y=237.8 at 375x730 and x=68.4 y=164.5 at 320x568, so one pair of numbers in the text would be wrong at one of them. Antagonist B pixel-diffed it at 375x730: >=83%% of the pixels of EIGHT squares replaced, three of them holding pieces  [{"card":null}]
+PASS K4a se: WHILE THE CARD IS UP the slot carries the OPENING NAME, not the result - #434's time-split, measured at this frame on both bundles  [{"slot":"Scholar's Mate"}]
+PASS K4b se: AND AFTER THE FADE, STILL AT THAT PREVIEWED PLY, the result takes the slot back - which is this build's actual fix holding at a non-final ply. White mates with Qxf7#, so WHITE wins  [{"slot":"Checkmate! · White wins"}]
+PASS K5 se: zero app errors  [[]]
+PASS E0 730x375: the viewport really is landscape - asserted because `wide` is a computed flag and every other assertion in this block is about the branch it selects  [{"viewport":"730x375"}]
+PASS E1 730x375: the status row is rendered while the game is LIVE - the precondition, so a green below cannot come from a row that was never there in either state (#385)  [{"slot":""}]
+PASS E2 730x375: and while the card is up the row CARRIES the adaptive-strength note. Asserts the TEXT, not merely that the element exists: antagonist A pointed out that an existence-only check makes every green in this block compatible with a build where eloMsg is never set at all, so the block would never prove it entered the state it is about (the A1b analogue, #385). The number is not pinned, for the reason A1b gives  [{"slot":"▼ Strength now ~450 Elo"}]
+PASS E4 730x375: the result card has gone, so the slot is the only thing left that can state the result  [{"card":null}]
+PASS E5 730x375: and it states it, as the app's own head + " · " + sub. On the shipped #434 bundle this element DID NOT EXIST at this moment, for either opponent  [{"slot":"Resigned · You lose","want":"Resigned · You lose"}]
+PASS E6 730x375: the painted-element scan finds it - this returned [] on #434 for BOTH opponents, which is the defect in one number  [{"hits":[{"t":"Resigned · You lose","y":69,"w":142.6}]}]
+PASS E3 730x375: ONCE THE CARD HAS GONE exactly ONE painted element states the adaptive strength vs the computer, and ZERO in Pass & Play - the rail - where #434 had TWO and stated the result zero times. MEASURED on both bundles at this frame: #434 gives [{"▼ Strength now ~450 Elo",x:373.3,y:47.5,w:207.4},{"≈450 Elo",x:317.8,y:95}] and #435 gives [{"≈450 Elo",x:365.8,y:108}]. THREE THINGS ABOUT THIS ASSERTION WERE WRONG BEFORE THEY WERE MEASURED, and all three are the same mistake. (a) It first filtered resultHits(), whose vocabulary cannot match the word "strength", so it was [] on every bundle and COULD NOT FAIL - antagonist A vetoed the push on it. (b) The repair scanned for /strength (now|stays)/ alone, which returns 1 on the broken bundle AND 1 on the fixed one, so it still discriminated nothing. (c) It was taken while the card was UP, where both bundles legitimately show the note. It is now the widest wording, at the frame where the finding lives. The lesson is the file's own: an instrument has to be shown to move between the two cases, and neither draft was  [{"strengthHits":[{"t":"≈450 Elo","x":326.6,"y":207,"w":64.8,"h":15}]}]
+PASS E7 730x375: THE BOARD DOES NOT MOVE FROM LIVE TO OVER, to the hundredth. On #434 this read 224.00/75.50 live and 192.00/60.50 over - a 32px, 14% shrink at the instant the game ended, for both opponents. Spans the whole transition and not just the card fade, because the shrink had already happened by the time the card was up  [{"live":{"w":216,"y":79.5},"over":{"w":216,"y":79.5}}]
+PASS E8 730x375: and it does not move across the card fade either - the half A7/B7 cover at the portrait geometries  [{"up":216,"down":216}]
+PASS E9 730x375: nothing in the slot is silently cut at this geometry. Landscape is the WIDEST viewport this gate visits, so this is the weakest of the three truncation checks and is here to catch a slot whose width is keyed to the board column rather than the viewport, which is the one way landscape could cut where 375 does not  [{"sw":143,"cw":143}]
+PASS E10 730x375: and the bottom tab bar is NOT back. This is the mechanism assertion for E7: the bar returning is what put the 62px spacer into the flow and paid for it out of the board. If a later change restores the bar here, this goes red beside E7 and names the cause rather than leaving a bare geometry failure  [{"tabBarVisible":false}]
+PASS E11 730x375: and Home is still reachable. #435 hid the tab bar at game over in landscape, so this asserts the route that replaced it is actually there. MEASURED, one process per bundle, buttons on screen at this moment: #434 gave [menu,-,+,Moves,Back,Forward,Hint,Flip,More,Home,Discover,Puzzles,Review,Play] with tabBarVisible=true and board=192; #435 gives [HOME,menu,-,+,Moves,Back,Forward,Hint,Flip,More] with tabBarVisible=false and board=224. So this is a TRADE and not a free win - the four non-Home tab destinations go from one tap to two, via Home - and this assertion pins the half that must not silently become zero taps to anywhere. An earlier draft of this line said the amber record claimed NO capability was lost; that claim was too strong and was withdrawn in the record itself before the push (flags/amber-435-landscape-game-over-matches-portrait) [R18]  [{"homeButton":true}]
+PASS E12 730x375: zero app errors across a landscape termination  [[]]
+PASS F0 730x375: the viewport really is landscape - asserted because `wide` is a computed flag and every other assertion in this block is about the branch it selects  [{"viewport":"730x375"}]
+PASS F1 730x375: the status row is rendered while the game is LIVE - the precondition, so a green below cannot come from a row that was never there in either state (#385)  [{"slot":""}]
+PASS F2 730x375: and while the card is up the row is rendered and carries NO Elo of any kind - Pass & Play has no computer, so the whole adaptive-strength mechanism is absent and this block is the control that proves the landscape fix is not about that mechanism  [{"slot":""}]
+PASS F4 730x375: the result card has gone, so the slot is the only thing left that can state the result  [{"card":null}]
+PASS F5 730x375: and it states it, as the app's own head + " · " + sub. On the shipped #434 bundle this element DID NOT EXIST at this moment, for either opponent  [{"slot":"Resigned · Black wins","want":"Resigned · Black wins"}]
+PASS F6 730x375: the painted-element scan finds it - this returned [] on #434 for BOTH opponents, which is the defect in one number  [{"hits":[{"t":"Resigned · Black wins","y":69,"w":159.2}]}]
+PASS F3 730x375: ONCE THE CARD HAS GONE exactly ONE painted element states the adaptive strength vs the computer, and ZERO in Pass & Play - the rail - where #434 had TWO and stated the result zero times. MEASURED on both bundles at this frame: #434 gives [{"▼ Strength now ~450 Elo",x:373.3,y:47.5,w:207.4},{"≈450 Elo",x:317.8,y:95}] and #435 gives [{"≈450 Elo",x:365.8,y:108}]. THREE THINGS ABOUT THIS ASSERTION WERE WRONG BEFORE THEY WERE MEASURED, and all three are the same mistake. (a) It first filtered resultHits(), whose vocabulary cannot match the word "strength", so it was [] on every bundle and COULD NOT FAIL - antagonist A vetoed the push on it. (b) The repair scanned for /strength (now|stays)/ alone, which returns 1 on the broken bundle AND 1 on the fixed one, so it still discriminated nothing. (c) It was taken while the card was UP, where both bundles legitimately show the note. It is now the widest wording, at the frame where the finding lives. The lesson is the file's own: an instrument has to be shown to move between the two cases, and neither draft was  [{"strengthHits":[]}]
+PASS F7 730x375: THE BOARD DOES NOT MOVE FROM LIVE TO OVER, to the hundredth. On #434 this read 224.00/75.50 live and 192.00/60.50 over - a 32px, 14% shrink at the instant the game ended, for both opponents. Spans the whole transition and not just the card fade, because the shrink had already happened by the time the card was up  [{"live":{"w":216,"y":79.5},"over":{"w":216,"y":79.5}}]
+PASS F8 730x375: and it does not move across the card fade either - the half A7/B7 cover at the portrait geometries  [{"up":216,"down":216}]
+PASS F9 730x375: nothing in the slot is silently cut at this geometry. Landscape is the WIDEST viewport this gate visits, so this is the weakest of the three truncation checks and is here to catch a slot whose width is keyed to the board column rather than the viewport, which is the one way landscape could cut where 375 does not  [{"sw":159,"cw":159}]
+PASS F10 730x375: and the bottom tab bar is NOT back. This is the mechanism assertion for E7: the bar returning is what put the 62px spacer into the flow and paid for it out of the board. If a later change restores the bar here, this goes red beside E7 and names the cause rather than leaving a bare geometry failure  [{"tabBarVisible":false}]
+PASS F11 730x375: and Home is still reachable. #435 hid the tab bar at game over in landscape, so this asserts the route that replaced it is actually there. MEASURED, one process per bundle, buttons on screen at this moment: #434 gave [menu,-,+,Moves,Back,Forward,Hint,Flip,More,Home,Discover,Puzzles,Review,Play] with tabBarVisible=true and board=192; #435 gives [HOME,menu,-,+,Moves,Back,Forward,Hint,Flip,More] with tabBarVisible=false and board=224. So this is a TRADE and not a free win - the four non-Home tab destinations go from one tap to two, via Home - and this assertion pins the half that must not silently become zero taps to anywhere. An earlier draft of this line said the amber record claimed NO capability was lost; that claim was too strong and was withdrawn in the record itself before the push (flags/amber-435-landscape-game-over-matches-portrait) [R18]  [{"homeButton":true}]
+PASS F12 730x375: zero app errors across a landscape termination  [[]]
+CPU-RESULT-LINE: 129 pass, 0 fail
+    16-cpu-result-line: green (129 PASS)
+=== 18-drill-credit-provenance ===
+     bundle: app.js  md5 ec31de9fe6c5  stamp #522 - 2026-10-14 20:37 ET  (CT_APP)
+     toolchain: playwright 1.56.1 (/opt/node22/lib/node_modules/playwright)  chromium 141.0.7390.37  [no browser is pinned in gates/package.json]
+     fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"   [#485 - every text-derived pin in this suite depends on this line]
+     text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)  -- 'Segoe UI' (the app stack's first family) is unresolvable, so the root renders system-ui; expected in these images
+     NOTE: the app's stack and bare sans-serif differ by 53.84px on one line here, so every absolute text-derived pin in this suite is container-dependent [#480].
+     bundle on the page: #522 - 2026-10-14 20:37 ET
+     GEOMETRY: 375x730 only (Kunal). The decision under test has no viewport term; see the header.
+PASS TC-R42 D0 INSTRUMENT: the puzzle store starts at zero, so every later reading is a delta from a known baseline  [{"solved":{},"streak":0,"best":0,"xp":0,"online":0,"onlineIds":{}}]
+PASS TC-R42 D1 INSTRUMENT: the brilliancies store survived the ct_bril_reset_v1 migration (3 seeded)  [{"len":3}]
+PASS TC-R42 D1b INSTRUMENT: the mistakes store seeded (1 card, a different position from the brilliancy so the two card ids differ)  [{"len":1}]
+PASS TC-R42 D2 ARRIVAL: the analyze screen offers BOTH drills, so blocks A and B each have a door and a red below is about the credit rather than about navigation  [{"bril":true,"mis":true}]
+PASS TC-R42 D2b INSTRUMENT: reaching the analyze screen credits nothing by itself, so every delta below belongs to a SOLVE  [{"solved":{},"streak":0,"best":0,"xp":0,"online":0,"onlineIds":{}}]
+PASS TC-R42 A0 ARRIVAL: the brilliancies drill opened (pz-top is on screen)
+PASS TC-R42 A1[1/3] ARRIVAL: solve 1 has a board to play on  [{"w":339.03,"flip":false}]
+PASS TC-R42 A2[1/3] THE SOLVE REGISTERED: the app painted its own 🎉 verdict, so the absence assertions below are about the credit and not about a failed drive  [{"verdict":"🎉 That's your brilliant move. Nicely done. Qxd5 wins a whole rook for nothing."}]
+PASS TC-R42 A3[1/3] a brilliancies-drill solve does NOT count as a Lichess puzzle solved  [{"online":0,"expected":0}]
+PASS TC-R42 A4[1/3] NO id of any shape is banked into onlineIds by a drill solve - asserted as the TOTAL and not only as the "lichess:mine:" prefix, so renaming the prefix cannot satisfy it  [{"mineIds":[],"allIds":[],"totalExpected":0}]
+PASS TC-R42 A5[1/3] the puzzle streak does not advance on a drill solve  [{"streak":0,"expected":0}]
+PASS TC-R42 A6[1/3] no puzzle XP is banked on a drill solve  [{"xp":0,"expected":0}]
+PASS TC-R42 A7[1/3] pzBest is not raised by a drill solve  [{"best":0,"expected":0}]
+PASS TC-R42 A1[2/3] ARRIVAL: solve 2 has a board to play on  [{"w":339.03,"flip":false}]
+PASS TC-R42 A2[2/3] THE SOLVE REGISTERED: the app painted its own 🎉 verdict, so the absence assertions below are about the credit and not about a failed drive  [{"verdict":"🎉 That's your brilliant move. Nicely done. Qxd5 wins a whole rook for nothing."}]
+PASS TC-R42 A3[2/3] a brilliancies-drill solve does NOT count as a Lichess puzzle solved  [{"online":0,"expected":0}]
+PASS TC-R42 A4[2/3] NO id of any shape is banked into onlineIds by a drill solve - asserted as the TOTAL and not only as the "lichess:mine:" prefix, so renaming the prefix cannot satisfy it  [{"mineIds":[],"allIds":[],"totalExpected":0}]
+PASS TC-R42 A5[2/3] the puzzle streak does not advance on a drill solve  [{"streak":0,"expected":0}]
+PASS TC-R42 A6[2/3] no puzzle XP is banked on a drill solve  [{"xp":0,"expected":0}]
+PASS TC-R42 A7[2/3] pzBest is not raised by a drill solve  [{"best":0,"expected":0}]
+PASS TC-R42 A1[3/3] ARRIVAL: solve 3 has a board to play on  [{"w":339.03,"flip":false}]
+PASS TC-R42 A2[3/3] THE SOLVE REGISTERED: the app painted its own 🎉 verdict, so the absence assertions below are about the credit and not about a failed drive  [{"verdict":"🎉 That's your brilliant move. Nicely done. Qxd5 wins a whole rook for nothing."}]
+PASS TC-R42 A3[3/3] a brilliancies-drill solve does NOT count as a Lichess puzzle solved  [{"online":0,"expected":0}]
+PASS TC-R42 A4[3/3] NO id of any shape is banked into onlineIds by a drill solve - asserted as the TOTAL and not only as the "lichess:mine:" prefix, so renaming the prefix cannot satisfy it  [{"mineIds":[],"allIds":[],"totalExpected":0}]
+PASS TC-R42 A5[3/3] the puzzle streak does not advance on a drill solve  [{"streak":0,"expected":0}]
+PASS TC-R42 A6[3/3] no puzzle XP is banked on a drill solve  [{"xp":0,"expected":0}]
+PASS TC-R42 A7[3/3] pzBest is not raised by a drill solve  [{"best":0,"expected":0}]
+PASS TC-R42 A8 THE FARM IS CLOSED: three solves of the SAME retained brilliant card bank nothing cumulatively (the bundle on main, md5 4dd3b4aa09ed, reads a rising streak 1,2,3 and xp 120,123,126 here while the online count stays at 1)  [{"streakAfterEachSolve":[0,0,0],"xp":[0,0,0]}]
+     ct_daily after block A (bumpDaily('puz') is the fourth thing onlineSolved does; null = never written): null
+PASS TC-R42 B0 INSTRUMENT: a mistakes card is still available to drill (the mistakes drill DELETES its card on solve, which is exactly why this instance is bounded and the brilliancies one is not)  [{"available":1}]
+PASS TC-R42 B1 ARRIVAL: the mistakes drill opened with a board  [{"w":339.03}]
+PASS TC-R42 B2 THE SOLVE REGISTERED on the mistakes drill  [{"verdict":"🎉 Qxa5 just wins the rook; Qb2 left it alone.","uci":"a2a5"}]
+PASS TC-R42 B3 a MISTAKES-drill solve does NOT count as a Lichess puzzle solved either - the guard is on the card, not on the drill kind  [{"before":0,"after":0}]
+PASS TC-R42 B4 the mistakes card is not banked into onlineIds, asserted as the TOTAL key count (F3)  [{"mineIds":[],"allIds":[],"totalExpected":0}]
+PASS TC-R42 B5 no puzzle XP from a mistakes-drill solve  [{"before":0,"after":0}]
+     console errors in launch 1: 0
+PASS TC-R42 D3 no console errors across both drills  [{"errs":[]}]
+PASS TC-R42 C0 INSTRUMENT: launch 2 starts from a zeroed store  [{"solved":{},"streak":0,"best":0,"xp":0,"online":0,"onlineIds":{}}]
+PASS TC-R42 C0b INSTRUMENT: the Online-puzzles control is fully on screen before it is tapped, so a red below is the credit and not a tap that landed on nothing  [{"y":560,"h":44,"vh":730}]
+PASS TC-R42 C1 ARRIVAL: a real (non-drill) Lichess puzzle loaded and has a board  [{"w":284,"flip":true}]
+PASS TC-R42 C2 THE SOLVE REGISTERED on a real Lichess puzzle  [{"verdict":"🎉 Solved! (Lichess rating 1500.)"}]
+PASS TC-R42 C3 LEAK GUARD: a genuine Lichess solve STILL counts - the fix must key on the card's provenance, not remove the credit  [{"online":1,"expected":1}]
+PASS TC-R42 C4 LEAK GUARD: a genuine Lichess solve still advances the streak  [{"streak":1,"expected":1}]
+PASS TC-R42 C5 LEAK GUARD: a genuine Lichess solve still banks XP  [{"xp":150}]
+PASS TC-R42 C6 LEAK GUARD: the real puzzle's own id is banked, so onlineIds still does its job of not re-counting  [{"ids":["lichess:ctgate18"]}]
+     console errors in launch 2: 0
+PASS TC-R42 E0 INSTRUMENT: launch 3 starts from a store with a LIVE streak of 5 built on 4 real Lichess puzzles, which is the precondition pzBreakStreak needs and which every other launch here lacks  [{"solved":{},"streak":5,"best":5,"xp":500,"online":4,"onlineIds":{"lichess:aaaa1":1,"lichess:bbbb2":1,"lichess:cccc3":1,"lichess:dddd4":1}}]
+PASS TC-R42 E1 ARRIVAL: the brilliancies drill opened with a board  [{"w":339.03}]
+PASS TC-R42 E2 THE MISS REGISTERED: the app painted its own rejection, so the miss branch at chess.jsx:3991 really executed and E3 is about provenance rather than about a move that quietly succeeded  [{"verdict":"✗ Ke2 isn't it. Try again, or tap 💡."}]
+PASS TC-R42 E3 A DRILL FUMBLE DOES NOT BREAK A LICHESS STREAK: the drill neither builds nor breaks puzzle progress, which is the whole point of keying on the card and not on the outcome (the bundle on main, md5 4dd3b4aa09ed, reads 0 here)  [{"streak":5,"expected":5}]
+PASS TC-R42 E4 and the fumble moves nothing else either  [{"best":5,"online":4,"xp":500,"expected":{"best":5,"online":4,"xp":500}}]
+PASS TC-R42 E5 THE SOLVE REGISTERED after the fumble  [{"verdict":"🎉 That's your brilliant move. Nicely done. Qxd5 wins a whole rook for nothing."}]
+PASS TC-R42 E6 THE SINK IS CLOSED IN BOTH DIRECTIONS: after a fumble AND a solve on a drill card the Lichess streak, count and XP are exactly what the player earned on real puzzles (main reads streak 1, online 5, xp 620 - it destroys 5 and hands back 1)  [{"streak":5,"online":4,"xp":500,"expected":{"streak":5,"online":4,"xp":500}}]
+PASS TC-R42 E7 the four real Lichess rows are untouched and no drill row joined them  [{"ids":["lichess:aaaa1","lichess:bbbb2","lichess:cccc3","lichess:dddd4"]}]
+     console errors in launch 3: 0
+PASS TC-R42 E8 no console errors in the streak-sink walk  [{"errs":[]}]
+18-drill-credit-provenance: 52 pass, 0 fail
+    18-drill-credit-provenance: green (52 PASS)
+=== 19-review-grade-counts ===
+     bundle: app.js  md5 ec31de9fe6c5  stamp #522 - 2026-10-14 20:37 ET  (CT_APP)
+     toolchain: playwright 1.56.1 (/opt/node22/lib/node_modules/playwright)  chromium 141.0.7390.37  [no browser is pinned in gates/package.json]
+     fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"   [#485 - every text-derived pin in this suite depends on this line]
+     text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)  -- 'Segoe UI' (the app stack's first family) is unresolvable, so the root renders system-ui; expected in these images
+     NOTE: the app's stack and bare sans-serif differ by 53.84px on one line here, so every absolute text-derived pin in this suite is container-dependent [#480].
+PASS NOBOOK-kunal730 A1 the summary paints all ten grade rows with two numbers each
+PASS NOBOOK-kunal730 A2 painted Book total = 0 (w 0 b 0); this gate computes the prefix INDEPENDENTLY as 0, over 28 PGN plies
+PASS NOBOOK-kunal730 B0 at least one enabled grade row was actually clicked (clicked 7)
+PASS NOBOOK-kunal730 B1 clause (b): every enabled grade row navigates to a ply badged with its own label
+PASS NOBOOK-kunal730 A3 every one of the 28 reviewed plies paints a badge this gate can read
+PASS NOBOOK-kunal730 A3b THE WALK IS EXACT: 28 distinct plies visited, none twice, last 14b (the PGN carries 28)
+PASS NOBOOK-kunal730 A3c the summary accounts for every reviewed ply exactly once: its twenty counts sum to 28 against 28 plies walked
+PASS NOBOOK-kunal730 A0 the PGN loaded WHOLE: the app reviewed 28 plies and the PGN carries 28
+PASS NOBOOK-kunal730 A2b the painted Book total 0 equals the independently computed prefix 0 minus 0 Brilliant/Great plies inside it
+PASS NOBOOK-kunal730 A6 every element painting this ply grade colour agrees - chip, board badge and play-it-out button
+PASS NOBOOK-kunal730 A4 clause (a): all 20 grade counts equal the badges the move screen paints
+PASS NOBOOK-kunal730 A5 no page errors during the walk
+PASS OPERA-kunal730 A1 the summary paints all ten grade rows with two numbers each
+PASS OPERA-kunal730 A2 painted Book total = 5 (w 3 b 2); this gate computes the prefix INDEPENDENTLY as 5, over 33 PGN plies
+PASS OPERA-kunal730 B0 at least one enabled grade row was actually clicked (clicked 12)
+PASS OPERA-kunal730 B1 clause (b): every enabled grade row navigates to a ply badged with its own label
+PASS OPERA-kunal730 A3 every one of the 33 reviewed plies paints a badge this gate can read
+PASS OPERA-kunal730 A3b THE WALK IS EXACT: 33 distinct plies visited, none twice, last 17w (the PGN carries 33)
+PASS OPERA-kunal730 A3c the summary accounts for every reviewed ply exactly once: its twenty counts sum to 33 against 33 plies walked
+PASS OPERA-kunal730 A0 the PGN loaded WHOLE: the app reviewed 33 plies and the PGN carries 33
+PASS OPERA-kunal730 A2b the painted Book total 5 equals the independently computed prefix 5 minus 0 Brilliant/Great plies inside it
+PASS OPERA-kunal730 A6 every element painting this ply grade colour agrees - chip, board badge and play-it-out button
+PASS OPERA-kunal730 A4 clause (a): all 20 grade counts equal the badges the move screen paints
+PASS OPERA-kunal730 A5 no page errors during the walk
+PASS ALLBOOK-kunal730 A1 the summary paints all ten grade rows with two numbers each
+PASS ALLBOOK-kunal730 A2 painted Book total = 19 (w 10 b 9); this gate computes the prefix INDEPENDENTLY as 19, over 19 PGN plies
+PASS ALLBOOK-kunal730 B0 at least one enabled grade row was actually clicked (clicked 2)
+PASS ALLBOOK-kunal730 B1 clause (b): every enabled grade row navigates to a ply badged with its own label
+PASS ALLBOOK-kunal730 A3 every one of the 19 reviewed plies paints a badge this gate can read
+PASS ALLBOOK-kunal730 A3b THE WALK IS EXACT: 19 distinct plies visited, none twice, last 10w (the PGN carries 19)
+PASS ALLBOOK-kunal730 A3c the summary accounts for every reviewed ply exactly once: its twenty counts sum to 19 against 19 plies walked
+PASS ALLBOOK-kunal730 A0 the PGN loaded WHOLE: the app reviewed 19 plies and the PGN carries 19
+PASS ALLBOOK-kunal730 A2b the painted Book total 19 equals the independently computed prefix 19 minus 0 Brilliant/Great plies inside it
+PASS ALLBOOK-kunal730 A6 every element painting this ply grade colour agrees - chip, board badge and play-it-out button
+PASS ALLBOOK-kunal730 A4 clause (a): all 20 grade counts equal the badges the move screen paints
+PASS ALLBOOK-kunal730 A5 no page errors during the walk
+PASS ALLBOOK-se A1 the summary paints all ten grade rows with two numbers each
+PASS ALLBOOK-se A2 painted Book total = 19 (w 10 b 9); this gate computes the prefix INDEPENDENTLY as 19, over 19 PGN plies
+PASS ALLBOOK-se B0 at least one enabled grade row was actually clicked (clicked 2)
+PASS ALLBOOK-se B1 clause (b): every enabled grade row navigates to a ply badged with its own label
+PASS ALLBOOK-se A3 every one of the 19 reviewed plies paints a badge this gate can read
+PASS ALLBOOK-se A3b THE WALK IS EXACT: 19 distinct plies visited, none twice, last 10w (the PGN carries 19)
+PASS ALLBOOK-se A3c the summary accounts for every reviewed ply exactly once: its twenty counts sum to 19 against 19 plies walked
+PASS ALLBOOK-se A0 the PGN loaded WHOLE: the app reviewed 19 plies and the PGN carries 19
+PASS ALLBOOK-se A2b the painted Book total 19 equals the independently computed prefix 19 minus 0 Brilliant/Great plies inside it
+PASS ALLBOOK-se A6 every element painting this ply grade colour agrees - chip, board badge and play-it-out button
+PASS ALLBOOK-se A4 clause (a): all 20 grade counts equal the badges the move screen paints
+PASS ALLBOOK-se A5 no page errors during the walk
+PASS OPERA-classic C1 the run really is in CLASSIC mode: no [data-ct="rev-compact"] is rendered
+PASS OPERA-classic C2 the summary shows a non-zero Book count to click (3)
+PASS OPERA-classic C3 the Book row button was found and clicked
+PASS OPERA-classic C4 the classic verdict chip renders and this gate can read it
+PASS OPERA-classic C5 clicking the Book row in CLASSIC mode lands on a ply whose chip reads Book, not its underlying grade (read "≡Book")
+PASS OPERA-classic C6 no page errors in classic mode
+PASS Z1 at least one fixture measured a book prefix of ZERO (the control half) -- [{"tag":"NOBOOK-kunal730","bookPainted":0,"bookExpected":0}]
+PASS Z2 at least one fixture measured a book prefix ABOVE zero (the half the defect lives in) -- [{"tag":"OPERA-kunal730","bookPainted":5,"bookExpected":5},{"tag":"ALLBOOK-kunal730","bookPainted":19,"bookExpected":19},{"tag":"ALLBOOK-se","bookPainted":19,"bookExpected":19}]
+PASS Z3 all four fixture runs completed and were asserted over (got 4)
+GATE: 57 pass, 0 fail
+    19-review-grade-counts: green (57 PASS)
+=== 20-review ===
