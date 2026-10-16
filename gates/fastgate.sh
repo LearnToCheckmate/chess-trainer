@@ -811,6 +811,42 @@ if in_changed 'gates/build-numbers.tsv'; then   # #525: was `printf | grep -qxF`
   # I CANNOT DISTINGUISH A CENSUS FROM A's PLANTED ROW AND I AM NOT PRETENDING TO: both write a row for a
   # free number below the top. What the split buys is that neither can take the FAST door silently, and that
   # the log names every number being spent instead of asserting contiguity it never checked.
+  # ── THE HELD-TREES EXEMPTION IS READ FROM THE BASE COMMIT, NOT THE WORKING TREE. ADDED #525. ──────────────
+  # THREE FAULTS, found by an independent reviewer on the held #524 tree (its F2 and F3) and REPRODUCED by the
+  # orchestrator. The exemption below read `grep -q "<TAB>#NNN<TAB>" "$ROOT/gates/held-trees.tsv"`, i.e. the
+  # WORKING TREE, with no column discipline:
+  #  (1) THE WORKING TREE IS NOT WHAT IS BEING GATED, and this script's tamper pin covers the files it
+  #      EXECUTES, not the files it READS. Ten hand-written rows 525..534 are refused (exit 1); the same commit
+  #      with ten matching held rows written into the working tree only and hidden by
+  #      `git update-index --assume-unchanged gates/held-trees.tsv` answered EXIT 0 FAST GATE GREEN with
+  #      `git status --porcelain` EMPTY (orchestrator 1 of 1; reviewer 4 of 4, three with assume-unchanged and
+  #      one with skip-worktree). A merely dirty file is caught; those two index flags hide it from that check.
+  #  (2) IT WAS LOOSER THAN THE HOLD REGISTER'S OWN READER. Any line carrying the number between two tabs in
+  #      ANY column vouched for it - a COMMENT line and a CLEARED row (field 1 starting with `-`) included,
+  #      both of which gates/held.sh's own `match_rows` excludes. Three such lines plus four appended rows
+  #      answered EXIT 0 with "1 of them count toward the ceiling of three" (orchestrator 1 of 1).
+  #  (3) THE DIFF COULD VOUCH FOR ITSELF: ten rows and ten held rows in one diff answered exit 2 instead of
+  #      exit 1, and this script's own comments say exit 2 lands a burn because the full suite runs no series
+  #      check. H23's accept fixture planted its vouching rows in the SAME commit as the mint, so the harness
+  #      could not tell a row the BASE holds from one the diff supplies.
+  # THE FIX IS THE BASE BLOB, PARSED THE REGISTER'S OWN WAY, AND MATCHED IN THE NUMBER COLUMN ONLY. All three
+  # faults share one cause - the question "is this mint accounted for?" is a question about the tree being
+  # gated FROM, so it is asked of `git show "$BASEFULL":...` and of nothing else. A row the diff adds cannot
+  # vouch, because it is not in the base. The filter is `match_rows` from gates/held.sh:33 (skip comments,
+  # require NF>=2, reject a cleared row whose field 1 starts with `-`) and the number must be in FIELD 3, the
+  # column `held.sh add` writes it to, so the heldBy column can no longer vouch.
+  # FAIL-SAFE BY CONSTRUCTION: if the base carries no such file, or git cannot read it, the set is EMPTY and
+  # EVERY new number counts toward the ceiling. The failure direction is a refusal, never a green.
+  # AND THE MEMBERSHIP TEST IS PIPE-FREE, for the reason in_changed() above exists: this set is small today and
+  # a `case` is safe at any size, so the class does not come back here when the register grows.
+  RP_HELDBASE="$($GIT show "$BASEFULL:gates/held-trees.tsv" 2>/dev/null \
+    | grep -v '^[[:space:]]*#' | awk -F'\t' 'NF>=2 && $1 !~ /^-/ {print $3}' || true)"
+  RP_HELDBASE="$NL_525$RP_HELDBASE$NL_525"
+  held_vouches_at_base(){ # <bare number>: 0 iff a LIVE BASE row names it in the NUMBER column
+    case "$RP_HELDBASE" in *"$NL_525#$1$NL_525"*) return 0 ;; esac
+    return 1
+  }
+  say "held-trees rows in the BASE that can vouch for a mint: $(printf '%s' "$RP_HELDBASE" | grep -c '^#' || true) (read with git show from $BASE, never from the working tree [#525])"
   RP_I=0
   RP_K=0
   RP_HELDOK=""
@@ -843,7 +879,7 @@ if in_changed 'gates/build-numbers.tsv'; then   # #525: was `printf | grep -qxF`
     # RP_K is what the ceiling bounds, and it skips a number the held register vouches for. A's ten
     # hand-written rows carry no held row, so they still count ten and are still refused - the attack is
     # unaffected, which is the only thing that makes this safe rather than a widening.
-    if grep -q "	#$rnum	" "$ROOT/gates/held-trees.tsv" 2>/dev/null; then
+    if held_vouches_at_base "$rnum"; then   # #525: BASE blob, match_rows filter, number column only
       RP_HELDOK="$RP_HELDOK #$rnum"
     else
       RP_K=$((RP_K + 1))

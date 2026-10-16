@@ -358,6 +358,25 @@ fi
 # FULL RUNS ONLY, same as above. And it needs no network and no esbuild: its one esbuild case prints SKIPPED
 # and does not count as an ok, so a container without esbuild cannot quietly turn this green on fewer cases.
 DRIVESH="$G/fastgate-drive.sh"
+# ── A MISSING HARNESS IS A RED, NOT A SILENCE [#525]. ───────────────────────────────────────────────────────
+# This block was guarded by a bare `[ -f "$DRIVESH" ]`, so with gates/fastgate-drive.sh moved aside it printed
+# NOTHING, added no line to the suite log, and the suite ended green with red still 0 - MEASURED by the
+# orchestrator 1 of 1 at the held tip and 1 of 1 earlier at ab852a5, and named by #523's antagonist B as the
+# third fault of this block before it had a job of its own.
+# IT IS THE #461 TRAP EXACTLY: `gates.sh` built its gate list by globbing the directory it was checking, so a
+# gate that was deleted was indistinguishable from a gate that was never needed. Here the unit layer's own
+# existence was tested by the thing that would otherwise report its absence, and the answer to "did the push
+# gate get exercised?" was a blank where it should have been a refusal.
+# A SUBSET RUN IS STILL EXEMPT, and that is not the same hole: a subset cannot emit GATES GREEN at all, so it
+# authorises nothing and has no verdict to protect.
+if [ -z "$SUBSET" ] && [ ! -f "$DRIVESH" ]; then
+  red=1
+  echo "--- fastgate-drive (unit layer) ---" | tee -a "$ALL"
+  echo "    fastgate-drive: RED - THE HARNESS FILE IS ABSENT: $DRIVESH" | tee -a "$ALL"
+  echo "        gates/fastgate.sh is the script that authorises every fast-tier push, and this is the only" | tee -a "$ALL"
+  echo "        layer in this suite that drives it end to end. Its absence used to print nothing at all, so a" | tee -a "$ALL"
+  echo "        full suite could go GREEN with the push gate wholly unexercised and no line saying so [#525]." | tee -a "$ALL"
+fi
 if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   dlog="$G/logs/$STEM-fastgate-drive.log"
   echo "--- fastgate-drive (unit layer, not a regress gate, not in the roster) ---" | tee -a "$ALL"
@@ -366,6 +385,21 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   dok=$(grep -c '^PASS fastgate-drive ' "$dlog.pass" || true)
   dfail=$(grep -c '^  FAIL ' "$dlog" || true)
   dskip=$(grep -c '^  SKIPPED ' "$dlog" || true)
+  # ── A DECLINE NEEDS EVIDENCE, AND exit 2 ALONE IS NOT EVIDENCE [#525]. ────────────────────────────────────
+  # The decline branch below keyed on `drc -eq 2 && dfail -eq 0 && dok -eq 0`, which the comment correctly
+  # argues is the signature of the harness's own named REFUSING paths. It is also the signature of a harness
+  # THAT DOES NOT PARSE, because bash itself exits 2 on a syntax error - and then dfail and dok are 0 for the
+  # trivial reason that nothing ran at all. MEASURED by the orchestrator, 1 of 1, and by the reviewer, 1 of 1
+  # (its F5): `sed -i '62a if then; fi fi' gates/fastgate-drive.sh`, committed, makes
+  # `bash gates/fastgate-drive.sh fixed` exit 2 with "syntax error near unexpected token `then'", and this
+  # block then printed SKIPPED, printed NO REFUSING line, and left red at 0.
+  # SO THE TEST IS THE HARNESS'S OWN WORDS AND NOT ITS EXIT CODE. A genuine decline copies a REFUSING line
+  # into the log - the block already prints it - so requiring at least one makes the evidence the condition
+  # instead of a courtesy. A syntax error, a missing interpreter, a killed process and an exit 2 from anywhere
+  # that is not a named refusal all now fall through to the RED branch, which is where they belong.
+  # THE DIRTY-TREE DECLINE IS UNAFFECTED, which is the point of fixing it this way rather than by deleting the
+  # branch: that path prints "REFUSING - the working tree is not clean" before it exits, so it still SKIPS.
+  drefuse=$(grep -ac 'REFUSING' "$dlog" || true)
   cat "$dlog.pass" >> "$ALL"; rm -f "$dlog.pass"
   # ── DECLINED TO RUN IS A REPORTED SKIP, NOT A RED [#524]. ──────────────────────────────────────────────────
   # #523 wrote this as `drc -ne 0 || dfail -gt 0 || dok -eq 0 -> red=1`, and the comment below defended the
@@ -388,7 +422,7 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   # copied verbatim into the log, so a reader sees that the push gate went untested and why. That is the same
   # honest-and-blind shape as the five known-absent gates the manifest reports every run, and the same
   # precedent as the esbuild-absent case inside the harness, which already prints SKIPPED and counts no ok.
-  if [ "$drc" -eq 2 ] && [ "$dfail" -eq 0 ] && [ "$dok" -eq 0 ]; then
+  if [ "$drc" -eq 2 ] && [ "$dfail" -eq 0 ] && [ "$dok" -eq 0 ] && [ "$drefuse" -ge 1 ]; then   # #525: a decline must SAY so
     echo "    fastgate-drive: SKIPPED - the harness DECLINED to run and asserted nothing (exit 2)." | tee -a "$ALL"
     grep -a 'REFUSING' "$dlog" | head -3 | sed 's/^/        /' | tee -a "$ALL"
     echo "        This is NOT a red and NOT a green: the tiered push gate was not exercised by this suite," | tee -a "$ALL"
@@ -396,11 +430,13 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
     echo "        which is the documented path between gates/build.sh and gates/gates.sh. Full output: $dlog" | tee -a "$ALL"
   elif [ "$drc" -ne 0 ] || [ "$dfail" -gt 0 ] || [ "$dok" -eq 0 ]; then
     red=1
-    echo "    fastgate-drive: RED (exit $drc, $dfail FAIL, $dok ok, $dskip skipped)" | tee -a "$ALL"
+    echo "    fastgate-drive: RED (exit $drc, $dfail FAIL, $dok ok, $dskip skipped, $drefuse REFUSING line(s))" | tee -a "$ALL"
     sed -n 's/^  FAIL /FAIL fastgate-drive /p' "$dlog" | head -8 | tee -a "$ALL"
     echo "        A case answered WRONGLY, or the harness reported success having asserted nothing. Both are" | tee -a "$ALL"
     echo "        red: exit 1 is the harness's own code for a wrong answer, and 0 ok with exit 0 would mean it" | tee -a "$ALL"
     echo "        claimed green over no assertions [#405's '0 PASS is the tell']. A DECLINE is handled above" | tee -a "$ALL"
+    echo "        and is not this branch - and since #525 a decline must carry at least one REFUSING line, so" | tee -a "$ALL"
+    echo "        an exit 2 from a harness that does not PARSE arrives here instead of reading as a skip." | tee -a "$ALL"
     echo "        and is not this branch. Full output: $dlog" | tee -a "$ALL"
   else
     echo "    fastgate-drive: green ($dok ok -> $dok PASS lines, $dskip skipped)" | tee -a "$ALL"
