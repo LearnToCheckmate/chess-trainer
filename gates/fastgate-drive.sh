@@ -164,6 +164,15 @@ note "  base stamp $BASESTAMP   base register top #$(grep -v '^[[:space:]]*#' "$
 reset_clone(){
   git -C "$C" reset --hard --quiet "$BASESHA" >/dev/null 2>&1
   git -C "$C" clean -qfd >/dev/null 2>&1
+  # AND THE BASE REF AND INDEX FLAGS GO BACK TOO [#525]. The cases added below move
+  # refs/remotes/origin/main so a fixture can put rows in the BASE rather than in the diff, which is what the
+  # held-trees exemption now reads, and one of them sets an update-index flag to hide a doctored file. Without
+  # this restore the first such case would silently become the base of every case after it, and a fixture
+  # leaking into its successors is exactly the confounder this harness exists to avoid.
+  CASEBASE=""
+  git -C "$C" update-ref refs/remotes/origin/main "$BASESHA" >/dev/null 2>&1
+  git -C "$C" update-index --no-assume-unchanged gates/held-trees.tsv >/dev/null 2>&1 || true
+  git -C "$C" update-index --no-skip-worktree gates/held-trees.tsv >/dev/null 2>&1 || true
 }
 restamp(){ # <new stamp literal>   replaces ALL THREE sites, byte for byte, as so_selftest's fixtures do
   python3 -I - "$C/app.js" "$BASESTAMP" "$1" <<'PY'
@@ -189,9 +198,31 @@ commit_case(){ # <subject>
   git -C "$C" -c user.name=ct-drive -c user.email=ct-drive@local commit --quiet -m "$1" >/dev/null 2>&1
 }
 # ONE INVOCATION POINT, so the guard variable and the timeout are set the same way for every case.
+CASEBASE=""
 run_fastgate(){
-  ( cd "$C" && CT_FASTGATE_DRIVE=1 timeout 250 bash "$C/gates/fastgate.sh" "$BASESHA" 2>&1 )
+  ( cd "$C" && CT_FASTGATE_DRIVE=1 timeout 250 bash "$C/gates/fastgate.sh" "${CASEBASE:-$BASESHA}" 2>&1 )
 }
+# ── A FIXTURE CAN NOW PUT ROWS IN THE BASE, NOT ONLY IN THE DIFF [#525]. ─────────────────────────
+# The held-trees exemption reads gates/held-trees.tsv from the BASE COMMIT since #525, because a row the diff
+# supplies must not vouch for the diff's own mints. Every case here shared one global base, so a fixture could
+# only ever add rows to the DIFF - which is why H23 planted its vouching rows beside the mint and therefore
+# could not tell the two sides apart. new_base() commits the working state as a fresh base and points the
+# clone's origin/main at it; CASEBASE makes run_fastgate gate against it; reset_clone puts both back.
+new_base(){ # <subject>: commit the working state as this case's base and echo its sha
+  commit_case "$1"
+  CASEBASE="$(git -C "$C" rev-parse HEAD)"
+  git -C "$C" update-ref refs/remotes/origin/main "$CASEBASE" >/dev/null 2>&1
+  printf '%s' "$CASEBASE"
+}
+held_row(){ # <number> <nonce>: one well-formed LIVE held-trees row vouching for that number in FIELD 3
+  printf 'deadbeef%s00\t%s\t#%s\t%s\tfastgate-drive-fixture\tFIXTURE ONLY - vouching row for a held mint.\t-\n' \
+    "$2" "$(printf 'f%039d' "$2")" "$1" "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/held-trees.tsv"
+}
+reg_row(){ # <number>: one well-formed hand-written `minted` register row
+  printf '%s\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminted\tfixture only, never pushed\n' \
+    "$1" "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/build-numbers.tsv"
+}
+reg_top(){ grep -v '^[[:space:]]*#' "$C/gates/build-numbers.tsv" | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/ {print $1+0}' | sort -n | tail -1; }
 # ── THE CASE NAME CARRIES ITS TC ID [#524]. ────────────────────────────────────────────────────────────────
 # claude/stories/TEST-CASES.md publishes thirteen TC-SUITE ids for these cases and the LOG CARRIED NONE of
 # them, so "TC-SUITE-060 passed" could not be checked against any artefact: a reader had to map H4 -> 060 by
@@ -208,8 +239,22 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H16) printf 'TC-SUITE-073' ;;  H17) printf 'TC-SUITE-074' ;;
     H18) printf 'TC-SUITE-075' ;;  H19) printf 'TC-SUITE-076' ;;  H20) printf 'TC-SUITE-077' ;;
     H21) printf 'TC-SUITE-078' ;;  H22) printf 'TC-SUITE-079' ;;  H23) printf 'TC-SUITE-080' ;;
+    H24) printf 'TC-SUITE-081' ;;  H25) printf 'TC-SUITE-082' ;;  H26) printf 'TC-SUITE-083' ;;
+    H27) printf 'TC-SUITE-084' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
+}
+# ── THE VERDICT DISPLAY HAS NO PIPELINE EITHER [#525]. ─────────────────────────────────
+# Four FAIL paths below printed `printf | grep -aE ... | head -3 | sed ...`. `head -3` exits at its third
+# match and SIGPIPEs grep, which SIGPIPEs printf, so under `set -uo pipefail` (:47) the pipeline status is
+# 141. These are DISPLAY lines whose status nothing reads, so no verdict was ever wrong because of them and I
+# claim no measured defect here - but they are the same shape as the P0 this run fixed in gates/fastgate.sh,
+# sitting in the file that reports that P0, and leaving them is how a class comes back.
+# ONE awk DOES THE MATCH, THE LIMIT AND THE INDENT, so there is no pipe to break: awk exits itself after the
+# third line. The herestring is a redirection and not a pipeline, so pipefail does not apply to it - the
+# distinction H13's own corrected comment below spells out, measured on bash 5.2.21.
+show_verdict(){ # <text>: up to three verdict lines, indented, with no pipeline anywhere
+  awk '/FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED|BUILDNUM_MAX_DELTA/{printf "         %s\n", $0; if(++n==3) exit}' <<<"$1"
 }
 expect(){ # <case> <expected rc> <expected substring>
   local name="$1" wantrc="$2" want="$3" out rc id
@@ -217,7 +262,7 @@ expect(){ # <case> <expected rc> <expected substring>
   out="$(run_fastgate)"; rc=$?
   if [ "$rc" != "$wantrc" ]; then
     printf '  FAIL %s [%s]  exit %s, expected %s\n' "$name" "$id" "$rc" "$wantrc"
-    printf '%s\n' "$out" | grep -aE 'FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED' | head -3 | sed 's/^/         /'
+    show_verdict "$out"
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1
   fi
   # NO SUBPROCESS AND NO PIPELINE FOR THE CONTENT TEST [#524, antagonist B's veto, UPHELD].
@@ -238,7 +283,7 @@ expect(){ # <case> <expected rc> <expected substring>
   # and glob metacharacters in $want are not special, so this is `grep -F` semantics without grep.
   case "$out" in *"$want"*) : ;; *)
     printf '  FAIL %s [%s]  exit %s as expected, but the verdict line does not carry %s\n' "$name" "$id" "$rc" "\"$want\""
-    printf '%s\n' "$out" | grep -aE 'FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED' | head -3 | sed 's/^/         /'
+    show_verdict "$out"
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1 ;;
   esac
   printf '  ok  %s [%s]  (exit %s, %s)\n' "$name" "$id" "$rc" "$want"
@@ -252,12 +297,12 @@ expect_env(){ # <case> <expected rc> <expected substring> <VAR=VALUE>
   out="$( ( cd "$C" && env "$kv" CT_FASTGATE_DRIVE=1 timeout 250 bash "$C/gates/fastgate.sh" "$BASESHA" 2>&1 ) )"; rc=$?
   if [ "$rc" != "$wantrc" ]; then
     printf '  FAIL %s [%s]  exit %s, expected %s (with %s)\n' "$name" "$id" "$rc" "$wantrc" "$kv"
-    printf '%s\n' "$out" | grep -aE 'FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED' | head -3 | sed 's/^/         /'
+    show_verdict "$out"
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1
   fi
   case "$out" in *"$want"*) : ;; *)                 # in-shell, no pipeline [#524, as expect() above]
     printf '  FAIL %s [%s]  exit %s as expected, but no line carries %s (with %s)\n' "$name" "$id" "$rc" "\"$want\"" "$kv"
-    printf '%s\n' "$out" | grep -aE 'FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED|BUILDNUM_MAX_DELTA' | head -3 | sed 's/^/         /'
+    show_verdict "$out"
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1 ;;
   esac
   printf '  ok  %s [%s]  (exit %s, with %s, %s)\n' "$name" "$id" "$rc" "$kv" "$want"
@@ -569,7 +614,18 @@ if [ -n "$H21N" ]; then
   restamp "#$H21N - $NOWET ET" || true
   record_in_clone "$H21N" "$(md5_12 "$C/app.js")" "$(md5_12 "$C/chess.jsx")" || true
   commit_case "H21 honest rebuild to #$H21N, judged with BUILDNUM_MAX_DELTA=20 set"
-  expect_env H21 0 "OVERRIDDEN by BUILDNUM_MAX_DELTA=20" "BUILDNUM_MAX_DELTA=20"
+  # THE SUBSTRING IS NOW ONE ONLY THE GREEN STAMP PATH CAN PRINT [#525, the reviewer's F4, UPHELD].
+  # H21 asserted "OVERRIDDEN by BUILDNUM_MAX_DELTA=20", and THE REGISTER ARM PRINTS THAT SAME STRING from the
+  # same variable (gates/fastgate.sh:695, "register plausibility [#524]: $PLAUS_DELTA_SRC."). H21's fixture
+  # appends register rows, so the register arm runs and prints it - and the reviewer showed H21 still ok 1 of 1
+  # with the subshell bug put back by
+  #   sed -i '/no subshell \[#524\]$/a PLAUS_DELTA_SRC=""' gates/fastgate.sh
+  # i.e. THE CONTROL COULD NOT FAIL FOR ITS OWN DEFECT - this project's oldest trap, where the thing being
+  # detected is also printed by a path the assertion cannot distinguish.
+  # plaus_pred's success line (gates/fastgate.sh:626) is the only place the margin and its provenance appear
+  # TOGETHER, as "(step N, margin D [SRC])"; the register arm prints no "margin D [" at all. Asserting the
+  # PAIR pins the branch, which is CLAUDE.md's rule against an alternation that matches every branch.
+  expect_env H21 0 "margin 20 [OVERRIDDEN by BUILDNUM_MAX_DELTA=20" "BUILDNUM_MAX_DELTA=20"
 else
   note "  FAIL H21 [$(tc H21)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H21"
@@ -599,26 +655,143 @@ expect H22 1 "more than six digits"
 reset_clone
 H23TOP="$(grep -v '^[[:space:]]*#' "$C/gates/build-numbers.tsv" | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/ {print $1+0}' | sort -n | tail -1)"
 if [ -n "$H23TOP" ]; then
-  for k in 1 2 3 4; do
-    printf '%s\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminted\tfour accumulated mints, row %s of 4, fixture only\n' \
-      "$((H23TOP + k))" "$(date -u '+%Y-%m-%dT%H:%MZ')" "$k" >> "$C/gates/build-numbers.tsv"
-  done
-  for k in 1 2 3; do
-    printf 'deadbeef%s00\t%s\t#%s\t%s\tfastgate-drive-fixture\tFIXTURE ONLY - a held tree so the mint above is vouched for.\t-\n' \
-      "$k" "$(printf 'f%039d' "$k")" "$((H23TOP + k))" "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/held-trees.tsv"
-  done
-  commit_case "H23 four contiguous mints #$((H23TOP+1))..#$((H23TOP+4)) with held rows for the first three"
-  # exit 2, NOT 0, AND THE REASON IS CORRECT RATHER THAN A CONCESSION: the fixture must touch
-  # gates/held-trees.tsv to plant the vouching rows, and classify() deliberately FORCES that file - "a GUARD
-  # REGISTER whose protection lives in its row VALUES", held back alone at #521 on a measured records-gate
-  # gap. So a commit editing it belongs in the full suite whatever this arm says. WHAT THIS CASE ASSERTS IS
-  # THE THING UNDER TEST: the register arm ran FIRST (the #524 reorder), counted FOUR new numbers above the
-  # top, and did NOT refuse - where H19's four UNVOUCHED rows in the same run do refuse at exit 1. The pair is
-  # what shows the held-trees exclusion discriminates rather than widens.
-  expect H23 2 "4 new build number(s) above the base register"
+  # THE VOUCHING ROWS GO IN THE BASE, NOT BESIDE THE MINT [#525]. They used to be appended in the SAME commit
+  # as the four mints, which the reviewer caught (its F3): since #525 the exemption reads gates/held-trees.tsv
+  # from the BASE COMMIT, so a fixture that supplies its own vouchers tests nothing a real tree can do, and
+  # before #525 it could not tell a row the base holds from one the diff adds. H27 below is the negative twin
+  # of this change: the same shape with the rows in the DIFF, which must be REFUSED.
+  for k in 1 2 3; do held_row "$((H23TOP + k))" "$k"; done
+  new_base "H23 base: held-trees rows vouching for #$((H23TOP+1))..#$((H23TOP+3))" >/dev/null
+  for k in 1 2 3 4; do reg_row "$((H23TOP + k))"; done
+  commit_case "H23 four contiguous mints #$((H23TOP+1))..#$((H23TOP+4)), vouching rows already in the base"
+  # NOW exit 0, AND THAT IS THE POINT OF MOVING THE ROWS [#525]. While the fixture planted its vouchers beside
+  # the mint, the diff touched gates/held-trees.tsv, which classify() deliberately FORCES - "a GUARD REGISTER
+  # whose protection lives in its row VALUES" - so the case could only ever assert exit 2, i.e. that the arm
+  # had not REFUSED. With the vouchers in the base the diff is records-only and the case asserts the accept
+  # direction for real: a FAST GREEN, with three of the four mints excused and ONE counting.
+  # H19 IS THE DISCRIMINATING TWIN AND MUST STAY RED at exit 1 in the same run: four UNVOUCHED rows. H27 is
+  # the other twin: the same four with the vouchers in the DIFF instead of the base. One accept, two refusals,
+  # and the three together are what show the exemption discriminates rather than widens.
+  expect H23 0 "1 of them count toward the ceiling of three"
 else
   note "  FAIL H23 [$(tc H23)]  could not read the base register top"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H23"
+fi
+
+# H24 NEGATIVE, AND IT IS THE P0 THIS RUN EXISTS FOR. The SAME planted register row as H8, carried by a commit
+#     that also changes 5000 other records paths. That is the one confounder every other case holds fixed: a
+#     SMALL diff. gates/fastgate.sh entered the register arm only if the changed-path list, piped into
+#     `grep -qxF` under `set -uo pipefail`, matched - and past the 64 KiB pipe buffer grep exits at its first
+#     match, printf takes SIGPIPE, the pipeline reads 141, the test reads FALSE, and the WHOLE arm is skipped
+#     SILENTLY. MEASURED before the fix, with the mutation in the base so fastgate.sh is outside the changed
+#     set: EXIT 0 FAST GATE GREEN, 3 of 3, at 5001 changed paths, with `buildnum.sh next` then exiting 2 in
+#     that same tree - the wedge landing under a green. With the fix: exit 1 REFUSED, 3 of 3. The reviewer
+#     measured the bare pipeline losing the race 3 of 5 times at 3000 paths and 5 of 5 at 5000.
+#     THE DIRECTION IS WHAT MAKES IT A P0: the failure SKIPS a refusal, so the bigger the commit the weaker the
+#     gate, and one bulk records commit reaches it by accident rather than on purpose.
+#     THE PADDING PATHS ARE RECORDS PATHS on purpose, so that the only reason this commit could be refused is
+#     the register row itself. If they forced the suite the case would pass for the wrong reason.
+reset_clone
+H24TOP="$(reg_top)"
+if [ -n "$H24TOP" ]; then
+  # THE ROW MUST BE ONE THE ARM WOULD REFUSE, AND MY FIRST FIXTURE WAS NOT [#525, caught by running it].
+  # It planted #$((H24TOP+1)), which is exactly what an honest mint produces: contiguous and inside the
+  # ceiling, so the arm was RIGHT to pass it and the case went green for a correct reason. A case whose
+  # fixture is legal cannot detect a skipped refusal - the empty-denominator shape, one level up. So this
+  # plants a NON-CONTIGUOUS number, the same shape H8 uses, which the arm must refuse on contiguity alone.
+  H24ROW=$((H24TOP + 474))
+  reg_row "$H24ROW"
+  mkdir -p "$C/claude/agents/drive-pad"
+  H24N=0
+  while [ "$H24N" -lt 5000 ]; do
+    H24N=$((H24N + 1))
+    : > "$C/claude/agents/drive-pad/pad-$H24N.md"
+  done
+  commit_case "H24 planted register row #$H24ROW plus 5000 records paths in one commit"
+  H24C="$(git -C "$C" diff --name-only --no-renames "$BASESHA..HEAD" | grep -c . || true)"
+  if [ "$H24C" -lt 5000 ]; then
+    note "  FAIL H24 [$(tc H24)]  the fixture only produced $H24C changed paths, under the pipe buffer, so it"
+    note "         cannot exercise the defect - a case that cannot see what it guards is not a case."
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H24"
+  else
+    # THE ASSERTION IS THE VERDICT LINE AND NOT THE EXIT CODE, because exit 1 is reachable from the stamp arm
+    # too, and this case is about whether the REGISTER arm ran at all. H8 asserts the same sentence on the same
+    # planted row with a SMALL diff; the only difference here is the 5000 paths, which is the whole point.
+    expect H24 1 "an honest mint would have made it"
+  fi
+else
+  note "  FAIL H24 [$(tc H24)]  could not read the base register top"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H24"
+fi
+
+# H25 NEGATIVE, A DOCTORED WORKING TREE. Ten unvouched mints are refused (that is H19's shape). The same commit,
+#     with ten matching held rows written into the WORKING TREE ONLY and hidden from `git status` with
+#     `git update-index --assume-unchanged`, took EXIT 0 FAST GATE GREEN before #525 - orchestrator 1 of 1,
+#     reviewer 4 of 4 (three with assume-unchanged, one with skip-worktree) - with `git status --porcelain`
+#     EMPTY. The exemption read the working tree, and this script's tamper pin covers what it EXECUTES, not
+#     what it READS. A merely dirty file is caught by the dirty-tree refusal; those two index flags walk past
+#     it. Since #525 the exemption reads the base blob with git show, so a working-tree row vouches for
+#     nothing. reset_clone clears both flags, so this case cannot leak into the next.
+reset_clone
+H25TOP="$(reg_top)"
+if [ -n "$H25TOP" ]; then
+  for k in $(seq 1 10); do reg_row "$((H25TOP + k))"; done
+  commit_case "H25 ten mints #$((H25TOP+1))..#$((H25TOP+10)), vouchers to be faked in the working tree"
+  for k in $(seq 1 10); do held_row "$((H25TOP + k))" "$k"; done
+  git -C "$C" update-index --assume-unchanged gates/held-trees.tsv >/dev/null 2>&1 || true
+  H25DIRT="$(git -C "$C" status --porcelain | grep -c . || true)"
+  if [ "$H25DIRT" != 0 ]; then
+    note "  SKIPPED H25 [$(tc H25)]  update-index --assume-unchanged did not hide the file ($H25DIRT dirty"
+    note "         path(s)), so the fixture cannot reach the exemption and would be refused for dirtiness."
+    SKIP=$((SKIP+1))
+  else
+    expect H25 1 "are NOT vouched for by a row in gates/held-trees.tsv"
+  fi
+  git -C "$C" update-index --no-assume-unchanged gates/held-trees.tsv >/dev/null 2>&1 || true
+else
+  note "  FAIL H25 [$(tc H25)]  could not read the base register top"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H25"
+fi
+
+# H26 NEGATIVE, LINES THAT LOOK LIKE VOUCHERS AND ARE NOT. The old read accepted ANY line carrying the number
+#     between two tabs in ANY column, so a COMMENT line and a CLEARED row (field 1 starting with `-`) both
+#     vouched - while gates/held.sh's own `match_rows` (:33) excludes exactly those, and `held.sh add` writes
+#     the number to FIELD 3. Three such lines in the base plus FOUR new numbers took EXIT 0 FAST GATE GREEN
+#     before #525 with "1 of them count toward the ceiling of three"; after, exit 1 with "4 are NOT vouched"
+#     (1 of 1 each way). FOUR and not three deliberately: three would sit inside the ceiling and the case
+#     would pass whatever the exemption did - the control has to CROSS the line, not merely approach it.
+reset_clone
+H26TOP="$(reg_top)"
+if [ -n "$H26TOP" ]; then
+  printf 'aaaaaaaaaaaa\t%s\tn/a\t%s\t#%s\tFIXTURE - the number is in the heldBy column, not the number column.\t-\n' \
+    "$(printf 'f%039d' 1)" "$(date -u '+%Y-%m-%dT%H:%MZ')" "$((H26TOP + 1))" >> "$C/gates/held-trees.tsv"
+  printf -- '-bbbbbbbbbbbb\t%s\t#%s\t%s\tfastgate-drive-fixture\tFIXTURE - a CLEARED row; match_rows rejects a leading dash.\t-\n' \
+    "$(printf 'f%039d' 2)" "$((H26TOP + 2))" "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/held-trees.tsv"
+  printf '#\t#%s\tFIXTURE - a COMMENT line; match_rows strips it.\n' "$((H26TOP + 3))" >> "$C/gates/held-trees.tsv"
+  new_base "H26 base: three lines that mention a number without vouching for it" >/dev/null
+  for k in 1 2 3 4; do reg_row "$((H26TOP + k))"; done
+  commit_case "H26 four mints #$((H26TOP+1))..#$((H26TOP+4)) against three look-alike held lines"
+  expect H26 1 "are NOT vouched for by a row in gates/held-trees.tsv"
+else
+  note "  FAIL H26 [$(tc H26)]  could not read the base register top"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H26"
+fi
+
+# H27 NEGATIVE, THE DIFF VOUCHING FOR ITSELF, and the twin of H23. Ten mints and ten matching held rows in ONE
+#     commit answered exit 2 before #525 (orchestrator 1 of 1) - and this script's own comments say exit 2 lands
+#     a burn, because the full suite runs no series check. Since the exemption reads the BASE, a row the diff
+#     adds cannot excuse a mint the same diff makes: exit 1 REFUSED, 1 of 1. H23 is the accept direction of the
+#     identical fixture with the rows in the base, so the pair is what shows the rule is about WHERE the row
+#     is and not about whether one exists.
+reset_clone
+H27TOP="$(reg_top)"
+if [ -n "$H27TOP" ]; then
+  for k in $(seq 1 10); do reg_row "$((H27TOP + k))"; held_row "$((H27TOP + k))" "$k"; done
+  commit_case "H27 ten mints and their ten vouching rows in the SAME commit"
+  expect H27 1 "are NOT vouched for by a row in gates/held-trees.tsv"
+else
+  note "  FAIL H27 [$(tc H27)]  could not read the base register top"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H27"
 fi
 
 # H13 RECURSION GUARD. Re-enter this harness with the guard set and require a named refusal at exit 2, no
@@ -642,7 +815,7 @@ if [ "$H13_RC" = 2 ] && [ "$H13_NAMED" = yes ] && [ "$H13_SAWOK" = no ]; then
   OK=$((OK+1))
 else
   printf '  FAIL %s  exit %s, or it did not refuse by name, or it printed an ok line\n' "H13" "$H13_RC"
-  printf '%s\n' "$H13_OUT" | head -3 | sed 's/^/         /'
+  show_verdict "$H13_OUT"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H13"
 fi
 

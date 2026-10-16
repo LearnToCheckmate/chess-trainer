@@ -90,6 +90,38 @@ $(head -c 200000 /dev/zero | tr '\0' 'x')"
   st C8-live-form-pipes-nothing-into-grep "$(printf '%s' "$LIVE" | grep -cE '\|[[:space:]]*grep')" 0
   st C9-this-file-sets-pipefail-so-the-class-applies "$(grep -c '^set -uo pipefail' "$SF")" 1
   st C10-the-two-forms-were-extracted-and-differ "$( [ "$LIVE" != "MANI_LINE=\"\$($WAS)\"" ] && echo yes || echo no )" yes
+
+  # ── C11 to C14: THE fastgate-drive UNIT BLOCK'S TWO SILENT PATHS [#525]. ─────────────────────────────────
+  # The block below ran the harness that drives gates/fastgate.sh, the script that authorises every fast-tier
+  # push, and it had two ways to report nothing at all:
+  #   (1) A DECLINE NEEDED NO REFUSAL. It read `drc 2 && dfail 0 && dok 0` as a decline and printed SKIPPED.
+  #       bash itself exits 2 on a SYNTAX ERROR, and then dfail and dok are 0 because nothing ran, so a
+  #       harness that does not parse took the skip branch. MEASURED on the held tree, 1 of 1 by the
+  #       orchestrator and 1 of 1 by the reviewer (its F5).
+  #   (2) A MISSING HARNESS WAS SILENT. A bare `[ -f "$DRIVESH" ]` guard, so with the file moved aside the
+  #       block printed nothing, added no line to the suite log, and left red at 0.
+  # These four cases drive THE REAL BLOCK, extracted from this very file by the same awk the job was filed
+  # with, against three stub harnesses in a scratch tree. They are here and not in fastgate-drive.sh on
+  # purpose: the thing under test is gates.sh's verdict logic, and a harness cannot be the control for how its
+  # own absence is reported - that is the #461 trap, where the check and the thing checked were one object.
+  # C13 IS THE ONE THAT KEEPS THIS HONEST. The dirty-tree decline is the DOCUMENTED happy path between
+  # gates/build.sh and gates/gates.sh, and it must still SKIP. A guard that fires on the normal case gets
+  # switched off, so the pair C11/C13 is what shows the new condition discriminates rather than tightens.
+  awk '/^DRIVESH=/{p=1} /^for f in "\$\{gates\[@\]\}"; do/{if(p){exit}} p{print}' "$SF" > "$ST_T/block.sh"
+  st C14-the-unit-block-was-extracted "$( [ -s "$ST_T/block.sh" ] && echo yes || echo no )" yes
+  st_drive(){ # $1 = the body of the stub gates/fastgate-drive.sh; prints the block's final red value
+    local d="$ST_T/d"; rm -rf "$d"; mkdir -p "$d/gates/logs"
+    if [ -n "$1" ]; then printf '%s\n' '#!/usr/bin/env bash' "$1" > "$d/gates/fastgate-drive.sh"; fi
+    ( cd "$d" && G="$d/gates" ROOT="$d" STEM=probe ALL="$ST_T/d-all.log" SUBSET="" BLK="$ST_T/block.sh" \
+      bash -c 'set -uo pipefail; red=0; . "$BLK" >/dev/null 2>&1; printf %s "$red"' 2>/dev/null )
+  }
+  # C11 a harness that does not PARSE: bash exits 2 with no REFUSING line, so this must be RED (1), not a skip.
+  st C11-a-harness-that-does-not-parse-is-RED "$(st_drive 'if then; fi fi')" 1
+  # C12 the harness file is ABSENT: must be RED (1) and not a silence.
+  st C12-a-missing-harness-is-RED            "$(st_drive '')" 1
+  # C13 a NAMED refusal at exit 2 is still a SKIP (0): the dirty-tree path on the documented happy path.
+  st C13-a-named-refusal-is-still-a-SKIP     "$(st_drive 'echo "fastgate-drive.sh: REFUSING - stub"; exit 2')" 0
+
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
   exit 0
