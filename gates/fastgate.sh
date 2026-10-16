@@ -730,7 +730,18 @@ if printf '%s\n' "$CHANGED" | grep -qxF 'gates/build-numbers.tsv'; then
   # THE FIX IS THE FIELD WIDTH, not the arithmetic, because no arithmetic repair can make a 20-digit build
   # number meaningful: this register's numbers run 125..524, so anything over six digits is a malformed row
   # and is REFUSED by name. Below that bound every value is far inside both bash's and awk's exact range.
-  RP_WIDE="$(grep -v '^[[:space:]]*#' "$RP_H" 2>/dev/null | cut -f1 | awk 'NF && $1 ~ /^[0-9]{7,}$/ {print $1}' | sort -u | head -5 | tr '\n' ' ')"
+  # length(), NOT AN INTERVAL EXPRESSION, AND THIS PROJECT ALREADY KNEW [#524, caught by H22 on its first run].
+  # My first version of this line was `awk '$1 ~ /^[0-9]{7,}$/'`, and **mawk 1.3.4 does not support interval
+  # expressions**: `echo 1234567890 | awk '$1 ~ /^[0-9]{7,}$/'` prints NOTHING here. So the refusal matched no
+  # row, never fired, and H22 went EXIT 0 FAST GATE GREEN on the very fixture it was written for - a guard that
+  # LOOKED implemented and could not fail, which is "a selector that cannot match" (#394) with the sign flipped.
+  # THE PART THAT IS WORSE THAN THE BUG: gates/buildnum.sh:753 already carries the comment "NO awk INTERVAL
+  # MATCH ANYWHERE IN IT. mawk 1.3.4's leftmost-shortest match() on /[0-9]{3,4}/ is what got burst wave 1's
+  # patch 11 on this very file DROPPED from the 2026-10-03 integration". The lesson was written down, in this
+  # suite, one file away, and I reintroduced it anyway - #390's "a lesson recorded in one gate does not travel
+  # to the next one by itself", and #493's "a fix recorded in one home does not travel". `grep -rn "awk.*{[0-9]"
+  # gates/*.sh` finds exactly these two and nothing else, so the sweep is clean after this line.
+  RP_WIDE="$(grep -v '^[[:space:]]*#' "$RP_H" 2>/dev/null | cut -f1 | awk 'NF && $1 ~ /^[0-9]+$/ && length($1) > 6 {print $1}' | sort -u | head -5 | tr '\n' ' ')"
   if [ -n "$RP_WIDE" ]; then
     say ""
     say "FAST GATE REFUSED - gates/build-numbers.tsv carries a row whose build number is more than six digits"

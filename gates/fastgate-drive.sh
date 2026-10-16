@@ -484,7 +484,13 @@ reset_clone
 printf '999\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminted\tplanted row under a widened margin, fixture only\n' \
   "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/build-numbers.tsv"
 commit_case "H17 planted register row 999 with BUILDNUM_MAX_DELTA=1000"
-expect_env H17 1 "BUILDNUM_MAX_DELTA=1000 is set in the environment" "BUILDNUM_MAX_DELTA=1000"
+# RE-PINNED [#524 second pass]: the notice used to be built by a SECOND re-grep of BN_DEFAULT_DELTA inside the
+# register arm, printing "BUILDNUM_MAX_DELTA=1000 is set in the environment and the default is 10". That
+# duplicate is exactly why this case stayed green while plaus_pred's identical claim was dead in a subshell, so
+# the duplicate is gone and both sites now read one string from plaus_delta. The wording changed with it. THIS
+# IS THE SECOND STALE PIN THIS HARNESS HAS CAUGHT ON A CORRECT SCRIPT (H8 was the first, at the contiguity
+# change) and both were caught because every case asserts the verdict LINE and not merely the exit code.
+expect_env H17 1 "OVERRIDDEN by BUILDNUM_MAX_DELTA=1000 in the environment" "BUILDNUM_MAX_DELTA=1000"
 
 # H18 NEGATIVE, A GAP FILL BELOW THE TOP - THE DOOR #524's FIRST BOUND LEFT WIDE OPEN. Antagonist A measured
 #     NINE gaps in this register (126, 256, 257, 258, 278, 303, 304, 361, 363), committed one `363 minted` row
