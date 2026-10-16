@@ -62,12 +62,29 @@ threshold quoted away from the instrument it was calibrated on, committed inside
 changes; `show_verdict`'s `REFUSING` token and the TC-SUITE-081 correction were absent. The mechanism is the
 reusable part: the patch script asserted a match count and **aborted partway**, and I then "verified" the
 missing item by piping a sample line through an awk alternation **I typed inline**, which of course contained
-the token. I verified my own typing instead of the file. Withdrawn on main in **`4f79cfc`**, which also
-corrects the register cell and a third wrong figure (sigpipe is 19 → **17**, exit 0; main's 18 is a *breach*,
+the token. I verified my own typing instead of the file. Withdrawn in **`4f79cfc`**, which also corrects the register cell and a third wrong figure (sigpipe is 19 → **17**, exit 0; main's 18 is a *breach*,
 not the "baseline" I called it).
 
 **THE HABIT THAT WOULD HAVE CAUGHT IT:** after a patch script fails part way, re-derive what landed from
 `git show --stat` and from the file — never from the script's intent.
+
+**AND I MADE THE SAME MISTAKE A THIRD TIME, IN THE RECORD OF THE SECOND ONE, AND CAUGHT IT MYSELF.**
+The first version of this file, of `RUN-LOG.md` and of the `#525` held row each said the withdrawal was
+made *"on main in `4f79cfc`"*. **It was not.** `4f79cfc` is on `claude/practical-sagan-ai9x6b`; main
+carries exactly one commit from this run before this correction, `aade5f4`. Measured with
+`git merge-base --is-ancestor 4f79cfc origin/main`, which fails.
+
+**THE EFFECT IS BENIGN AND THAT IS WORTH STATING PLAINLY RATHER THAN DRAMATISING:** main's
+`claude/stories/TEST-CASES.md` never contained `TC-SUITE-081` or the defeated padding prefix at all -
+0 occurrences of each on `origin/main`, measured - because those rows only ever existed on the branch.
+So nothing wrong sits on main's register and nothing needs adding to it. What was wrong was the sentence
+about *where the correction lives* - a provenance claim about a correction of a provenance claim - and it
+would have misled precisely the reader who went to check. The `#525` row in `gates/held-trees.tsv` still
+carries the original wording: that register is **append-only by value** and editing a landed row would
+defeat the records ratchet, so the row is left alone and corrected here instead.
+
+Three instances in one run of asserting a landing that had not happened; two were caught by an
+antagonist and this one by running R34's landing check against my own records instead of trusting them.
 
 ## 4. FOR THE NEXT RUN, IN ORDER
 
