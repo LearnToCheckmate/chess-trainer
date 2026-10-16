@@ -1,3 +1,94 @@
+# HANDOFF — after #525: THE HELD #524 TREE IS FIXED AND ITS CASE WAS A LIE; THE TREE IS HELD AGAIN, ON ONE LINE
+
+**#525 is the landing run for the tree #524 held, and it did not land.** No application code was touched by
+#523, #524 or this run: `app.js` is still #522's `ec31de9fe6c5` and `chess.jsx` `1b41d1d1e765`, which is what
+`origin/main` serves, measured. Everything here is push-gate machinery.
+
+**IT IS HELD, AND WHAT IS HELD IS GOOD WORK.** `gates/held-trees.tsv` carries the `#525` row, keyed on the sha
+`4f79cfc9fa8f` and not on a bundle md5, because this run changes no application code and a bundle-keyed row
+would make `verify-log.sh` refuse every future log over main's own bundle. The deliverable is **6 commits on
+`claude/practical-sagan-ai9x6b`, head `4f79cfc9`, every commit signed and pushed.** NO SUITE EVER RAN over it:
+`gates/node_modules` did not exist in this container (`npm ci` had never run here, found at 15:34Z by the
+re-read pair's shipped-surface door), and by the time it was installed the published cut line for starting a
+suite was 27 minutes away with a veto open.
+
+## 1. WHY IT IS HELD, AND IT IS ONE LINE
+
+`gates/gates.sh`'s fastgate-drive unit block **credits SKIPS as green.** Its verdict has no bound above
+`dok -eq 0`, so a harness reporting **1 ok and 25 SKIPPED** prints `fastgate-drive: green` and leaves `red=0`.
+Measured by antagonist D with stub harnesses driven through the block that `gates.sh --selftest` itself
+extracts, and **reproduced independently by me** before I acted on it.
+
+**IT IS LIVE AND NOT LATENT, WHICH IS WHY IT VETOES.** This tree already prints
+`fastgate-drive: green (25 ok -> 25 PASS lines, 1 skipped)`. A skipped case is credited as compatible with
+green *today*; only the number is small. Two skip paths are reachable with no tampering at all — H1b (esbuild
+absent, live in this container) and H25 — so 2 skips is a normal outcome and nothing bounds the number above
+it. That is #405's "0 PASS is the tell" with the denominator removed rather than frozen.
+
+The run brief lists **"a skip that reads as green"** verbatim as veto class (b), and its rule (7)(c) lets **no
+unread fix land** after the re-read round. The fix is one line and D validated it with five controls, and
+applying it here would be the exact trade that cost #524 its ship: a change to the artefact that authorises
+every future push, with no blind read. So it is **FILED, not applied** —
+`jobs/the-unit-blocks-verdict-credits-skips-as-green-with-no-bound-2026-10-16`.
+
+## 2. WHAT THE BRANCH CARRIES, ALL CONTROLLED
+
+| what | control |
+|---|---|
+| **P0** the register arm of `gates/fastgate.sh` skipped its *whole* refusal on any commit larger than the pipe buffer: `printf \| grep -qxF` under `pipefail`, grep exits at its first match, printf takes SIGPIPE, the test reads FALSE, every `exit 1` in the arm is skipped **silently** | pipe restored in the base: **exit 0 `FAST GATE GREEN` 3 of 3** at 5001 paths with `buildnum.sh next` then exiting 2 — the wedge landing under a green; with the fix **exit 1 REFUSED 3 of 3**. Bare pipeline returns 141 **40 of 40** |
+| the held-trees exemption read the **working tree** with no column discipline | three inputs **0 / 0 / 2 → 1 / 1 / 1**: a tree doctored with `update-index --assume-unchanged`, three look-alike base lines plus four new numbers, and a diff vouching for itself. Control (ten unvouched rows) 1 → 1 |
+| the unit block's two **silent** paths: an exit 2 that does not parse read as a decline, and a missing harness printed nothing at all | by the job's own awk extraction, **red 0 → red 1** each; the documented dirty-tree decline still **SKIPPED**, red 0 |
+| **H21 could not fail for its own defect** | the reviewer's exact mutation now turns it **RED**; it was `ok` 1 of 1 before |
+| four new harness cases **H24–H27** / TC-SUITE-081–084, plus the missing TC-SUITE-080 row | H24 red 4 of 4 with the P0 restored, green with the fix; H25/H26/H27 all red against the pre-#525 exemption at the three exit codes their comments predict |
+| **two instruments that are RED on main are repaired here** | `gates/audit-all.sh` exit 1 → **exit 0, OK 9 of 9**; `gatemanifest.sh selftest` 47 pass 1 fail → **48 / 0**; `sigpipe` 19 / A 1 / exit 1 → **17 / A 0 / exit 0** |
+
+**No instrument is OK on main and not OK here. Two are the other way round.** Verified in fresh clones of both
+trees by the shipped-surface door: `gates.sh --selftest` 14/0 (main 10/0), `gatemanifest check` identical,
+`landed-on-main --selftest` 43/0 (main 38/0), `buildnum-selftest` 170/0, `held-selftest` 35/0,
+`stamp-selftest` 8/0, `records-gate --selftest` 60/0/1, `verify-log` byte-identical on two archived logs.
+
+## 3. THREE ANTAGONIST ROUNDS, AND TWO OF THEM CAUGHT ME
+
+**ROUND 1 VETOED H24 FROM BOTH DOORS INDEPENDENTLY, AND WAS RIGHT.** The case written for this run's P0 could
+not fail for that P0. The race needs `grep -q` to exit EARLY, so it needs the target EARLY in the sorted path
+list; I padded with `claude/agents/drive-pad/`, which sorts **before** `gates/build-numbers.tsv`, so the target
+was line **5001 of 5001**, grep drained the whole stream and nothing was killed. One door put the P0 back
+verbatim and still got `25 ok / 0 FAIL`. **And it invalidated one of my own published numbers:** TC-SUITE-081's
+"40 of 40, target at list position 1" was measured on a `zzz/` fixture and carried across after I changed the
+prefix — the cell named a payload that sorts to 5001 and asserted position 1, and could not both be true. A
+threshold quoted away from the instrument it was calibrated on, committed inside the fix for that class.
+
+**ROUND 2 FOUND THAT MY OWN COMMIT MESSAGE ASSERTED TWO FIXES THE TREE DOES NOT CARRY.** `a3829c2` lists seven
+changes; `show_verdict`'s `REFUSING` token and the TC-SUITE-081 correction were absent. The mechanism is the
+reusable part: the patch script asserted a match count and **aborted partway**, and I then "verified" the
+missing item by piping a sample line through an awk alternation **I typed inline**, which of course contained
+the token. I verified my own typing instead of the file. Withdrawn on main in **`4f79cfc`**, which also
+corrects the register cell and a third wrong figure (sigpipe is 19 → **17**, exit 0; main's 18 is a *breach*,
+not the "baseline" I called it).
+
+**THE HABIT THAT WOULD HAVE CAUGHT IT:** after a patch script fails part way, re-derive what landed from
+`git show --stat` and from the file — never from the script's intent.
+
+## 4. FOR THE NEXT RUN, IN ORDER
+
+1. **Four one-line fixes, each with a validated control on its job**, all under `gates/`: the skip bound (the
+   veto), `drefuse`'s unanchored `grep` (anchor it to `^fastgate-drive\.sh: REFUSING - `), `show_verdict`'s
+   missing `REFUSING`, and H24's byte-length assertion — **position is itself a proxy; the operative variable
+   is the byte length of the changed list against the 64 KiB pipe buffer**, and D slipped a 48 KB fixture past
+   both of my self-checks, leaving H24 green 4 of 6 runs against a broken script.
+2. **`npm ci` IN `gates/` IS A PREREQUISITE AND THIS CONTAINER DID NOT HAVE IT.** It is installed now but a
+   fresh container will not be. Do it before anything else; it is the difference between a suite and no suite.
+3. **Launch the suite as `CT_EXPECT='#522' gates/gates.sh '#525'`** — or whatever number is minted. `gates.sh`
+   defaults `CT_EXPECT` to the suite's own number argument and this bundle is stamped `#522`, so the default
+   reddens mountcheck in 90 seconds. Measured again by this run's pair; `claude/agents/gatelogs/524-ABANDONED-ct-expect-defaulted-to-the-run-number.log`
+   is this project abandoning a suite over exactly that.
+4. Do not rebuild or re-derive anything on the branch. Three rounds have read it.
+
+
+---
+
+# PREVIOUS HANDOFF (after #524), kept as history
+
 # HANDOFF — after #524: THE HELD #523 TREE IS FIXED, AND ITS FIX WAS VETOED TOO
 
 **#524 is the fix run for the tree #523 held.** No application code was touched by either run: `app.js` is
