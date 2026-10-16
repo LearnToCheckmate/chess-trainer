@@ -143,6 +143,42 @@ if [ -z "$CHANGED" ]; then say "FAST GATE REFUSED - no changed paths between $BA
 say "changed paths ($(echo "$CHANGED" | wc -l | tr -d ' ')):"
 echo "$CHANGED" | sed 's/^/    /' | tee -a "$LOG"
 
+# ── IN-SHELL LIST MEMBERSHIP AND FIRST LINE. ADDED #525. NO PIPE, SO NO SIGPIPE AND NO pipefail RACE. ────────
+# THE DEFECT THIS CLOSES, found on the held #524 tree by an independent reviewer (its finding F1) and
+# REPRODUCED by the orchestrator at 11:35pm ET, Thu 15 Oct: the register plausibility arm below was entered
+# only if `printf '%s\n' "$CHANGED" | grep -qxF 'gates/build-numbers.tsv'`, and this script runs under
+# `set -uo pipefail` (:48). Once the changed-path list exceeds the 64 KiB pipe buffer, grep -q EXITS AT ITS
+# FIRST MATCH, printf takes SIGPIPE, the PIPELINE status becomes 141, the test reads FALSE, and the WHOLE
+# register arm - every exit 1 refusal in it - is skipped WITHOUT A WORD.
+# MEASURED, control and test: one hand-written `999 minted` row on its own is REFUSED (exit 1, "gains a row
+# the series cannot carry"); the SAME row in a commit that also adds 4000 empty files under zzz/ takes EXIT 0
+# FAST GATE GREEN at 4001 changed paths, and `gates/buildnum.sh next` in that tree then exits 2 for every
+# later build - which burns the number range permanently, because the register is append-only. The reviewer
+# measured the bare pipeline losing the race 3 of 5 times at 3000 paths and 5 of 5 at 5000; 2000 and 2500
+# were refused, so the threshold on that machine lies between 2500 and 3000.
+# IT IS A FALSE GREEN AND NOT A FALSE REFUSAL, which is what makes it a P0: the direction of the failure is to
+# SKIP a refusal, so THE BIGGER THE COMMIT THE WEAKER THE GATE, and one bulk records commit reaches it by
+# ACCIDENT, not only on purpose.
+# WHY A `case` AND NOT A BIGGER BUFFER OR `|| true`: a quoted `case` has no pipe to break, so the class is
+# REMOVED rather than made less likely. `|| true` would mask a real failure and leave the race in place.
+# WHY A FUNCTION AND NOT A THIRD HAND-WRITTEN `case`: the BNRATCHET site below already carries exactly this
+# fix, and its own comment tells the story - this site was not swept, so A FIX RECORDED IN ONE HOME DID NOT
+# TRAVEL TO THE NEXT [CLAUDE.md records that trap by name]. One function is the only form that travels.
+# THE NEWLINE PADDING IS LOAD-BEARING: an unpadded substring match would accept `x/gates/build-numbers.tsv`
+# and `gates/build-numbers.tsv.bak`, which is exactly what the `-x` of the old grep was buying.
+NL_525='
+'
+in_changed(){ # <path>: 0 if $CHANGED carries it as a WHOLE LINE. Pipe-free, so payload-independent.
+  case "$NL_525$CHANGED$NL_525" in *"$NL_525$1$NL_525"*) return 0 ;; esac
+  return 1
+}
+# first_line <text>: the text up to its first newline. Replaces `<producer> | head -1`, where head exits early
+# and SIGPIPEs a producer still reading a large file (app.js is about 1 MB). THE VALUE WAS ALWAYS RIGHT at
+# those three sites - head prints the first line before it goes - so this is HARDENING and I claim no measured
+# false verdict for it. It is done anyway because the P0 above proves the shape is not safe by inspection, and
+# because two of the three sit in plaus_stamp and plaus_delta, which decide whether a push is refused.
+first_line(){ printf '%s' "${1%%"$NL_525"*}"; }
+
 # ── BUNDLE IDENTITY. MEASURED, NOT INFERRED FROM THE PATH LIST. ─────────────────────────────────────────────
 # Every file GitHub Pages actually serves, compared by blob id at base and at head. A rename, a delete, a mode
 # change or a content change all move the blob id or remove the object, and any of those sends you to the full
@@ -391,7 +427,7 @@ rm -f "$D.why"
   #         it checks. So an empty extraction FAILS, and so does a fixture set nothing accepts.
   # ITS LIMIT, STATED BESIDE IT: it covers gate 49 only. 42:104 and 47:263 involve no regex at all; what makes
   # those safe is the LENGTH PIN and the wrap margin recorded at so_pred, not any pattern agreement.
-  HOMERE="$(grep -oE '\^Build #[^/]*\$' "$G/regress/49-home.js" 2>/dev/null | head -1)"
+  HOMERE="$(first_line "$(grep -oE '\^Build #[^/]*\$' "$G/regress/49-home.js" 2>/dev/null || true)")"   # #525: no `| head -1`
   if [ -z "$HOMERE" ]; then
     say "    CONTROL (g) FAILED - could not extract 49-home.js's stamp regex, so the containment this script"
     say "        prints as its soundness argument is UNCHECKED. That is a hard red, not a skip [(iii)]."
@@ -464,7 +500,7 @@ console.log("CONTAINED "+acc+" of "+F.length+" fixtures are accepted here and al
 #                                    gates/records-gate.sh were both read for this, and NEITHER runs
 #                                    buildnum.sh next nor any series check, so the full suite would land it.
 PLAUS_WHY=""
-plaus_stamp(){ grep -aoE '#[0-9]{3,4} - 20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET' "$1" 2>/dev/null | head -1; }
+plaus_stamp(){ first_line "$(grep -aoE '#[0-9]{3,4} - 20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET' "$1" 2>/dev/null || true)"; }   # #525: no `| head -1`
 # THE MARGIN IS READ, NOT COPIED. A second copy of a constant is the defect this project keeps filing, so this
 # greps gates/buildnum.sh for its own default and honours the same BUILDNUM_MAX_DELTA override buildnum.sh does.
 # AND IT SAYS WHERE THE NUMBER CAME FROM [#524, antagonist A finding 6]. The margin honours
@@ -499,7 +535,7 @@ PLAUS_DELTA=""
 PLAUS_DELTA_SRC=""
 plaus_delta(){           # sets PLAUS_DELTA and PLAUS_DELTA_SRC in THIS shell; returns 0 ok, 1 unreadable
   local d b
-  b="$(sed -n 's/^BN_DEFAULT_DELTA=\([0-9][0-9]*\).*/\1/p' "$G/buildnum.sh" 2>/dev/null | head -1)"
+  b="$(first_line "$(sed -n 's/^BN_DEFAULT_DELTA=\([0-9][0-9]*\).*/\1/p' "$G/buildnum.sh" 2>/dev/null || true)")"   # #525: no `| head -1`
   PLAUS_DELTA=""
   if [ -z "$b" ]; then
     PLAUS_DELTA_SRC="gates/buildnum.sh carries no BN_DEFAULT_DELTA= line this script can read"; return 1; fi
@@ -622,7 +658,7 @@ plaus_pred(){ # <base app.js> <head app.js> <head md5-12>
 # stray row to the full suite would be useless: I read gates/gates.sh and gates/records-gate.sh for this, and
 # NEITHER runs buildnum.sh next nor any series check - gates.sh never mentions buildnum at all - so the suite
 # would go green and the row would land. prompts/build-run STEP 0F reads exit 1 as STOP: do not push, file it.
-if printf '%s\n' "$CHANGED" | grep -qxF 'gates/build-numbers.tsv'; then
+if in_changed 'gates/build-numbers.tsv'; then   # #525: was `printf | grep -qxF`, a pipefail SIGPIPE race
   # THE DELTA IS NO LONGER A PRECONDITION OF THIS BLOCK [#524, antagonist A's veto, UPHELD].
   # This read `RP_D="$(plaus_delta)"; if [ -z "$RP_D" ]; then ... exit 2; fi` at the HEAD of the block, and A
   # defeated the whole refusal with one environment variable: plaus_delta validates with
