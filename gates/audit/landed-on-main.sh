@@ -887,30 +887,38 @@ json.dump(d,open(sys.argv[1],"w"))
   check C26-PROSE-NO-OVERRIDE     1 "ancestry=QUOTES-LANDED-SHAS" "$rc" "$out"
   check C26b-QUOTER-STAYS-OWED    1 "L7-REFUSAL-NOT-OWED        FAIL" "$rc" "$out"
 
-  # ========== C27 to C31  THE RESULT KEY IS READ BY PREFIX, NOT BY ONE EXACT NAME [#523] ==========
+  # ====== C32 to C36  THE RESULT KEY IS READ BY PREFIX, NOT BY ONE EXACT NAME [#523, RENUMBERED #524] ======
+  # RENUMBERED FROM C27..C31 BY #524. These five arrived at #523 reusing ids the SAME FILE already defines
+  # at the L9 new-file arm above (lines ~779-840: C27-ADDED-FILE-ABSENT, C28-ADDED-FILE-PRESENT,
+  # C29-NO-ADDERS-MEASURES-0, C30-OUTSTANDING-ADDER-INFO, C31-ADD-EXTRACTOR-WORKS). The full names never
+  # literally collided, because each carries its own suffix - which is exactly why nothing caught it - but
+  # the ID did, so "C29 passed" named two different controls in one script and no sentence of that form was
+  # safe. That is the TC-R05 collision CLAUDE.md records, where one id meant a different case in two
+  # documents and was still not fully unwound; here it is one id meaning two cases in ONE FILE. C32 to C36
+  # were free (the file defines C1 to C31 and nothing above 31).
   # Each fixture carries ONE stranded payload, so the pile would be 1 if the document read as unexamined and 0
   # if it reads as examined. The expected pile is written beside each one. Measured on the real collection
   # before this build: 88 patch-carrying documents, 69 with the plain key, 88 with at least one prefixed key,
   # so the naive pile read 19 against the prompts' own 0.
-  # C27  ONLY A NUMBERED KEY. This is the form prompts/build-run STEP 1I (3) tells every pass to write, so it
+  # C32  ONLY A NUMBERED KEY. This is the form prompts/build-run STEP 1I (3) tells every pass to write, so it
   #      is the COMMON case, and it was the one the exact-key read could not see. Pile must be 0 of 1.
   fresh_docdir; mkdoc d-suffixed "$P_STRANDED" "NOT LANDED, refused on a conflict" "integrationResult517"
   out="$T/o27"; audit "$D" "$R" > "$out" 2>&1; rc=$?
-  check C27-SUFFIXED-KEY-IS-EXAMINED 1 "L5-PILE-DEPTH-NAIVE        INFO  0" "$rc" "$out"
+  check C32-SUFFIXED-KEY-IS-EXAMINED 1 "L5-PILE-DEPTH-NAIVE        INFO  0" "$rc" "$out"
 
-  # C28  ONLY integrationResultAt. The prompts' prefix reading counts it, and that is SAID rather than assumed:
+  # C33  ONLY integrationResultAt. The prompts' prefix reading counts it, and that is SAID rather than assumed:
   #      a timestamp with no verdict text means a pass LOOKED at the payload, which is what EXAMINED means, so
   #      it leaves the pile even though L7 has no verdict to classify. Pile must be 0 of 1.
   fresh_docdir; mkdoc d-at "$P_STRANDED" "2026-10-14T03:50:00Z" "integrationResultAt"
   out="$T/o28"; audit "$D" "$R" > "$out" 2>&1; rc=$?
-  check C28-RESULTAT-IS-EXAMINED 1 "L5-PILE-DEPTH-NAIVE        INFO  0" "$rc" "$out"
+  check C33-RESULTAT-IS-EXAMINED 1 "L5-PILE-DEPTH-NAIVE        INFO  0" "$rc" "$out"
 
-  # C29  ONLY THE PLAIN KEY. The form the instrument always could see; it must not regress. Pile 0 of 1.
+  # C34  ONLY THE PLAIN KEY. The form the instrument always could see; it must not regress. Pile 0 of 1.
   fresh_docdir; mkdoc d-plain "$P_STRANDED" "NOT LANDED, refused on a conflict"
   out="$T/o29"; audit "$D" "$R" > "$out" 2>&1; rc=$?
-  check C29-PLAIN-KEY-STILL-EXAMINED 1 "L5-PILE-DEPTH-NAIVE        INFO  0" "$rc" "$out"
+  check C34-PLAIN-KEY-STILL-EXAMINED 1 "L5-PILE-DEPTH-NAIVE        INFO  0" "$rc" "$out"
 
-  # C30  NO RESULT KEY AT ALL. The one state that IS the pile, and the control that C27 to C29 are not simply
+  # C35  NO RESULT KEY AT ALL. The one state that IS the pile, and the control that C32 to C34 are not simply
   #      reporting 0 for everything - without this the three above would pass on an instrument that had
   #      stopped counting the pile entirely. Pile must be 1 of 1.
   #      EXPECTED rc IS 0 AND NOT 1, and my first draft of this case had it wrong: with no result key the
@@ -918,9 +926,9 @@ json.dump(d,open(sys.argv[1],"w"))
   #      already records that exact shape at rc 0. The selftest caught my expectation, not the instrument.
   fresh_docdir; mkdoc d-none "$P_STRANDED" ""
   out="$T/o30"; audit "$D" "$R" > "$out" 2>&1; rc=$?
-  check C30-NO-KEY-IS-THE-PILE 0 "L5-PILE-DEPTH-NAIVE        INFO  1" "$rc" "$out"
+  check C35-NO-KEY-IS-THE-PILE 0 "L5-PILE-DEPTH-NAIVE        INFO  1" "$rc" "$out"
 
-  # C31  BOTH KEYS, AND THE NEWEST VERDICT WINS. The plain key says it landed and the numbered key - a later
+  # C36  BOTH KEYS, AND THE NEWEST VERDICT WINS. The plain key says it landed and the numbered key - a later
   #      pass, by STEP 1I (3)'s own definition of the suffix - says it was refused. The verdict L7 classifies
   #      must be the REFUSAL, so this reports L7-REFUSAL rather than an unconfirmed claim. The source for
   #      "newest" is STEP 1I and not this file [R08 sibling clause].
@@ -932,7 +940,7 @@ json.dump(d,open(sys.argv[1],"w"))
   #      line that reports it. The differential is the point of this case: with the exact-key read, `ir` was
   #      the PLAIN key's "APPLIED, commit ..." and L7 classified it CLAIM-UNCONFIRMED, so this document
   #      reported as an unconfirmed claim instead of as a recorded refusal.
-  check C31-NEWEST-VERDICT-WINS 1 "L7-REFUSAL-NOT-OWED        FAIL" "$rc" "$out"
+  check C36-NEWEST-VERDICT-WINS 1 "L7-REFUSAL-NOT-OWED        FAIL" "$rc" "$out"
 
   # ===================== C16  determinism of the report ====================
   # Byte-identical output on repeated runs over one input [R36]. A report whose
