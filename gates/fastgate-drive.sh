@@ -240,7 +240,9 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H18) printf 'TC-SUITE-075' ;;  H19) printf 'TC-SUITE-076' ;;  H20) printf 'TC-SUITE-077' ;;
     H21) printf 'TC-SUITE-078' ;;  H22) printf 'TC-SUITE-079' ;;  H23) printf 'TC-SUITE-080' ;;
     H24) printf 'TC-SUITE-081' ;;  H25) printf 'TC-SUITE-082' ;;  H26) printf 'TC-SUITE-083' ;;
-    H27) printf 'TC-SUITE-084' ;;
+    H27) printf 'TC-SUITE-084' ;;  H10) printf 'TC-SUITE-085' ;;  H11) printf 'TC-SUITE-086' ;;
+    H28) printf 'TC-SUITE-087' ;;  H30) printf 'TC-SUITE-088' ;;  H31) printf 'TC-SUITE-089' ;;
+    H32) printf 'TC-SUITE-090' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -880,6 +882,317 @@ if [ -n "$H27TOP" ]; then
 else
   note "  FAIL H27 [$(tc H27)]  could not read the base register top"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H27"
+fi
+
+# ── PART 3 OF THE STAMP JOB [#527]: THE TIER READS THE WORKING TREE, SO EACH ROUTE GETS A CASE. ─────────────
+# jobs/the-tier-guards-what-it-executes-but-not-what-it-reads-2026-10-14. Each case below first runs its fixture
+# HONESTLY and requires the refusal the doctoring is meant to hide - the fixture's own premise, a FAIL if it does
+# not hold, so a case can never pass because its fixture stopped meaning anything - and then hides the change
+# from `git status` and requires the guard that is meant to see it. A route git cannot be made to hide here
+# (the flag does not suppress the change on this git) is SKIPPED, never counted as ok; a route that hid and was
+# not refused is a FAIL. probe() runs fastgate once and checks the exit code and every substring, in-shell.
+probe(){ # <rc> <substring>...   sets PROBE_OUT and PROBE_RC
+  local want="$1" s; shift
+  PROBE_OUT="$(run_fastgate)"; PROBE_RC=$?
+  [ "$PROBE_RC" = "$want" ] || return 1
+  for s in "$@"; do case "$PROBE_OUT" in *"$s"*) : ;; *) return 1 ;; esac; done
+  return 0
+}
+hidden(){ [ "$(git -C "$C" status --porcelain | grep -c . || true)" = 0 ]; }
+# EVERY ROUTE PUTS THE COMMITTED BYTES BACK, AND CHECKS THEM RAW [#527 v3]. MEASURED by the orchestrator: after a
+# clean-filter route, a `git status` that runs more than a second after the file was written refreshes the index
+# with the DOCTORED file's stat data (its content matched through the filter), and from then on
+# `git checkout -- <path>` and `git reset --hard` both see an up-to-date entry and leave the doctored bytes in
+# place, invisible to `git status` even once the filter is gone. In the unfixed mode that made H29, the case
+# after H32, fail at the executable pin instead of at the series ceiling: one fixture confounding the next,
+# which reset_clone exists to prevent. restore_raw writes the bytes the commit records whatever the index says
+# and then checks them raw; a fixture that cannot put its file back is a FAIL of its own case.
+restore_raw(){ # <path>
+  git -C "$C" show "HEAD:$1" > "$C/$1" 2>/dev/null || return 1
+  [ "$(git -C "$C" hash-object --no-filters "$C/$1" 2>/dev/null)" = "$(git -C "$C" rev-parse --quiet --verify "HEAD:$1" 2>/dev/null)" ]
+}
+route_verdict(){ # <case> <ok text> : reads ROUTES_FAIL, ROUTES_SKIP, ROUTES_OK, ROUTES_LEAK and ROUTE_SHOW
+  if [ -n "$ROUTES_FAIL$ROUTES_LEAK" ]; then
+    note "  FAIL $1 [$(tc "$1")]  ${ROUTES_FAIL:+a route hid the change and was NOT refused:$ROUTES_FAIL}${ROUTES_FAIL:+${ROUTES_LEAK:+; }}${ROUTES_LEAK:+the fixture could not put back the committed bytes of:$ROUTES_LEAK}"
+    [ -n "$ROUTES_FAIL" ] && show_verdict "$ROUTE_SHOW"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $1"
+  elif [ -z "$ROUTES_OK" ]; then
+    note "  SKIPPED $1 [$(tc "$1")]  no route could hide the change from git status on this git:$ROUTES_SKIP"
+    SKIP=$((SKIP+1))
+  else
+    note "  ok  $1 [$(tc "$1")]  ($2; refused by route:$ROUTES_OK${ROUTES_SKIP:+; could not hide:$ROUTES_SKIP})"
+    OK=$((OK+1))
+  fi
+}
+
+# H10 NEGATIVE, A DOCTORED GATE 49 THAT TURNS CONTROL (g)'s HONEST RED INTO A GREEN. The case base TIGHTENS gate
+#     49's stamp regex from \d{3,4} to \d{3}, so on an honest stamp-only rebuild control (g) answers
+#     NOT-CONTAINED. Then the WORKING-TREE copy is put back to the looser regex and hidden two ways: with
+#     assume-unchanged, and with a clean filter in .git/info/attributes and no index flag at all (git reads a
+#     file through its filter only when the index's stat data does not already call it changed, and a size
+#     change does, so that route first resets the stat data with `git read-tree HEAD`). On #526's
+#     script control (g) read the doctored copy, printed CONTAINED and the commit took EXIT 0 FAST GATE GREEN
+#     both ways; the read pin, hashing raw bytes, refuses both at exit 1 and names the file.
+#     THE FILTER IS DECLARED AS `**/<path>` AND NOT `<path>` [#527 v2]. The pin hashes an ABSOLUTE path, and a
+#     pattern starting `gates/` matches the repository-relative path `git status` uses but never an absolute
+#     one, so the plain form hid the file from status and never reached the hash at all: a mutant of the read
+#     pin with --no-filters deleted SURVIVED this case, 31 ok and 0 FAIL, measured by the orchestrator on git
+#     2.43.0. `**/` matches both, so the route now reaches the one line it exists to control.
+reset_clone
+H10F=gates/regress/49-home.js
+H10OLD='^Build #\d{3,4} - '; H10NEW='^Build #\d{3} - '
+if [ "$(grep -cF -- "$H10OLD" "$C/$H10F" 2>/dev/null || true)" != 1 ]; then
+  note "  FAIL H10 [$(tc H10)]  gate 49 does not carry exactly one line with '$H10OLD', so the fixture cannot be cut"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H10"
+else
+  python3 -I - "$C/$H10F" "$H10OLD" "$H10NEW" <<'PY'
+import sys
+p,o,n=sys.argv[1],sys.argv[2],sys.argv[3]
+s=open(p,encoding='utf-8').read()
+if s.count(o)!=1: sys.exit("H10 fixture: the regex occurs %d times, not 1"%s.count(o))
+open(p,'w',encoding='utf-8').write(s.replace(o,n))
+PY
+  new_base "H10 base: gate 49's stamp regex tightened to three digits" >/dev/null
+  H10N="$(mint_in_clone)"
+  if [ -z "$H10N" ]; then
+    note "  FAIL H10 [$(tc H10)]  could not mint a fixture number in the clone"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H10"
+  else
+    restamp "#$H10N - $NOWET ET" || true
+    record_in_clone "$H10N" "$(md5_12 "$C/app.js")" "$(md5_12 "$C/chess.jsx")" || true
+    commit_case "H10 honest rebuild to #$H10N over the tightened gate 49"
+    if ! probe 1 "CONTROL (g) FAILED"; then
+      note "  FAIL H10 [$(tc H10)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
+      note "         not exit 1 with control (g) refusing, so hiding the regex would prove nothing"
+      show_verdict "$PROBE_OUT"
+      BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H10"
+    else
+      ROUTES_FAIL=""; ROUTES_SKIP=""; ROUTES_OK=""; ROUTES_LEAK=""; ROUTE_SHOW=""
+      git -C "$C" show "$BASESHA:$H10F" > "$C/$H10F"
+      git -C "$C" update-index --assume-unchanged "$H10F" >/dev/null 2>&1 || true
+      if ! hidden; then ROUTES_SKIP="$ROUTES_SKIP assume-unchanged"
+      elif probe 1 "this tier READS a verdict out of these files" "$H10F: commit "; then ROUTES_OK="$ROUTES_OK assume-unchanged"
+      else ROUTES_FAIL="$ROUTES_FAIL assume-unchanged(exit $PROBE_RC)"; ROUTE_SHOW="$PROBE_OUT"; fi
+      git -C "$C" update-index --no-assume-unchanged "$H10F" >/dev/null 2>&1 || true
+      restore_raw "$H10F" || ROUTES_LEAK="$ROUTES_LEAK $H10F"
+      git -C "$C" show "$BASESHA:$H10F" > "$C/$H10F"
+      printf '**/%s filter=ctdrive10\n' "$H10F" >> "$C/.git/info/attributes"   # `**/`: see the comment above
+      git -C "$C" config filter.ctdrive10.clean "cat >/dev/null; git show HEAD:$H10F"
+      git -C "$C" read-tree HEAD >/dev/null 2>&1 || true   # zero the index stat data, or git calls a size change a change unread
+      if ! hidden; then ROUTES_SKIP="$ROUTES_SKIP clean-filter"
+      elif probe 1 "this tier READS a verdict out of these files" "$H10F: commit "; then ROUTES_OK="$ROUTES_OK clean-filter"
+      else ROUTES_FAIL="$ROUTES_FAIL clean-filter(exit $PROBE_RC)"; ROUTE_SHOW="$PROBE_OUT"; fi
+      git -C "$C" config --unset filter.ctdrive10.clean >/dev/null 2>&1 || true
+      sed -i '/ filter=ctdrive10$/d' "$C/.git/info/attributes"
+      restore_raw "$H10F" || ROUTES_LEAK="$ROUTES_LEAK $H10F"
+      route_verdict H10 "exit 1, this tier READS a verdict out of these files, naming $H10F"
+    fi
+  fi
+fi
+
+# H11 NEGATIVE, A DOCTORED GATE THAT HIDES A RECORDS REQUIRE FROM THE PREMISE CHECK. The case base appends one
+#     require() of a records-only path to gate 10's file (claude/agents/zz-h11-fixture.js: classify() calls
+#     claude/* RECORDS, and the path need not exist, because part one resolves with realpath -m), so on a
+#     register-only commit the premise check answers THE PREMISE IS BROKEN. Then the require is removed from the
+#     WORKING-TREE copy only and hidden with assume-unchanged. On #526's script the premise check read the
+#     doctored copy and the commit took EXIT 0 FAST GATE GREEN while the COMMITTED gate still required a records
+#     file, which is #490's defect reached through another door. The read pin refuses it and names the file.
+reset_clone
+H11F=gates/regress/10-gameover.js
+printf '\n// fastgate-drive.sh H11 fixture, never pushed: a gate that requires a records-only path\nrequire("../../claude/agents/zz-h11-fixture.js");\n' >> "$C/$H11F"
+new_base "H11 base: gate 10 requires a records-only path" >/dev/null
+H11N="$(mint_in_clone)"
+if [ -z "$H11N" ]; then
+  note "  FAIL H11 [$(tc H11)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H11"
+else
+  commit_case "H11 register only: one minted row for #$H11N over the gate that requires a records path"
+  if ! probe 1 "THE PREMISE IS BROKEN"; then
+    note "  FAIL H11 [$(tc H11)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
+    note "         not exit 1 with THE PREMISE IS BROKEN, so hiding the require would prove nothing"
+    show_verdict "$PROBE_OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H11"
+  else
+    ROUTES_FAIL=""; ROUTES_SKIP=""; ROUTES_OK=""; ROUTES_LEAK=""; ROUTE_SHOW=""
+    git -C "$C" show "$BASESHA:$H11F" > "$C/$H11F"
+    git -C "$C" update-index --assume-unchanged "$H11F" >/dev/null 2>&1 || true
+    if ! hidden; then ROUTES_SKIP="$ROUTES_SKIP assume-unchanged"
+    elif probe 1 "this tier READS a verdict out of these files" "$H11F: commit "; then ROUTES_OK="$ROUTES_OK assume-unchanged"
+    else ROUTES_FAIL="$ROUTES_FAIL assume-unchanged(exit $PROBE_RC)"; ROUTE_SHOW="$PROBE_OUT"; fi
+    git -C "$C" update-index --no-assume-unchanged "$H11F" >/dev/null 2>&1 || true
+    restore_raw "$H11F" || ROUTES_LEAK="$ROUTES_LEAK $H11F"
+    route_verdict H11 "exit 1, this tier READS a verdict out of these files, naming $H11F"
+  fi
+fi
+
+# H28 NEGATIVE, THE CATCH-ALL: A WORSE CASE REGISTER, PUT BACK ON DISK AND HIDDEN FOUR WAYS. The commit adds one
+#     dead citation to claude/stories/TEST-CASES.md, so the records ratchet honestly answers "this commit made it
+#     WORSE" (FAST GATE RED, exit 1). Then the WORKING-TREE copy is put back as the base had it and hidden with
+#     assume-unchanged, with skip-worktree, with a clean filter, and with STALE STAT DATA [#527 v3]: the clean
+#     filter makes `git status` record the doctored file's stat as clean and is then removed, so no index flag and
+#     no filter is left and status still says nothing (the mechanism restore_raw above exists for). Neither pin
+#     covers that file: the ratchet's HEAD half reads it from the working tree, so on #526's script it printed "no worse than base" and the commit
+#     took EXIT 0 FAST GATE GREEN. The catch-all, which hashes every tracked file raw, refuses each route at exit 1.
+reset_clone
+H28F=claude/stories/TEST-CASES.md
+printf '\nfastgate-drive.sh H28 fixture, never pushed: this line names claude/stories/ZZ-H28-NO-SUCH-FILE.md, one more dead path for the citations arm.\n' >> "$C/$H28F"
+commit_case "H28 one more dead citation in the case register"
+if ! probe 1 "this commit made it WORSE"; then
+  note "  FAIL H28 [$(tc H28)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
+  note "         not exit 1 with the records ratchet reporting WORSE, so hiding the register would prove nothing"
+  show_verdict "$PROBE_OUT"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H28"
+else
+  ROUTES_FAIL=""; ROUTES_SKIP=""; ROUTES_OK=""; ROUTES_LEAK=""; ROUTE_SHOW=""
+  for H28R in assume-unchanged skip-worktree clean-filter stale-stat; do
+    git -C "$C" show "$BASESHA:$H28F" > "$C/$H28F"
+    case "$H28R" in
+      assume-unchanged) git -C "$C" update-index --assume-unchanged "$H28F" >/dev/null 2>&1 || true ;;
+      skip-worktree)    git -C "$C" update-index --skip-worktree "$H28F" >/dev/null 2>&1 || true ;;
+      clean-filter)     printf '**/%s filter=ctdrive28\n' "$H28F" >> "$C/.git/info/attributes"   # `**/` as H10
+                        git -C "$C" config filter.ctdrive28.clean "cat >/dev/null; git show HEAD:$H28F"
+                        git -C "$C" read-tree HEAD >/dev/null 2>&1 || true ;;   # as H10: zero the index stat data
+      stale-stat)       printf '**/%s filter=ctdrive28\n' "$H28F" >> "$C/.git/info/attributes"
+                        git -C "$C" config filter.ctdrive28.clean "cat >/dev/null; git show HEAD:$H28F"
+                        touch -d '-10 seconds' "$C/$H28F"   # older than the index write below, so git trusts its stat
+                        git -C "$C" read-tree HEAD >/dev/null 2>&1 || true
+                        git -C "$C" status --porcelain >/dev/null 2>&1   # records the doctored file's stat as clean
+                        git -C "$C" config --unset filter.ctdrive28.clean >/dev/null 2>&1 || true
+                        sed -i '/ filter=ctdrive28$/d' "$C/.git/info/attributes" ;;   # no flag and no filter is left
+    esac
+    if ! hidden; then ROUTES_SKIP="$ROUTES_SKIP $H28R"
+    elif probe 1 "not the blob the commit records" "$H28F: commit "; then ROUTES_OK="$ROUTES_OK $H28R"
+    else ROUTES_FAIL="$ROUTES_FAIL $H28R(exit $PROBE_RC)"; ROUTE_SHOW="$PROBE_OUT"; fi
+    git -C "$C" update-index --no-assume-unchanged --no-skip-worktree "$H28F" >/dev/null 2>&1 || true
+    git -C "$C" config --unset filter.ctdrive28.clean >/dev/null 2>&1 || true
+    sed -i '/ filter=ctdrive28$/d' "$C/.git/info/attributes"
+    restore_raw "$H28F" || ROUTES_LEAK="$ROUTES_LEAK $H28F"
+  done
+  route_verdict H28 "exit 1, the catch-all names $H28F"
+fi
+
+# H30 NEGATIVE, A RECORDS FILE A COMMITTED GATE NAMES, DELETED ON DISK AND HIDDEN. The case base appends one
+#     path.join of an EXISTING records file (claude/process-log/lane-2.md) to gate 12's file, so on a
+#     register-only commit the premise check's part two answers THE PREMISE IS BROKEN. Then that records file is
+#     deleted from the WORKING TREE and hidden with assume-unchanged. Part two skipped any reference not on disk,
+#     so on #526's script the commit took EXIT 0 FAST GATE GREEN with the committed gate still reading a records
+#     file. Since #527 part two asks the COMMIT as well, and the same refusal stands.
+reset_clone
+H30F=gates/regress/12-hint.js; H30R=claude/process-log/lane-2.md
+if ! git -C "$C" cat-file -e "HEAD:$H30R" 2>/dev/null; then
+  note "  FAIL H30 [$(tc H30)]  $H30R is not a tracked file of the candidate, so the fixture cannot be cut"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H30"
+else
+  printf "\n// fastgate-drive.sh H30 fixture, never pushed: a gate that names a records file\nconst _zzH30=path.join(__dirname,'..','..','claude','process-log','lane-2.md');\n" >> "$C/$H30F"
+  new_base "H30 base: gate 12 names a records file with path.join" >/dev/null
+  H30N="$(mint_in_clone)"
+  if [ -z "$H30N" ]; then
+    note "  FAIL H30 [$(tc H30)]  could not mint a fixture number in the clone"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H30"
+  else
+    commit_case "H30 register only: one minted row for #$H30N over the gate that names a records file"
+    if ! probe 1 "THE PREMISE IS BROKEN"; then
+      note "  FAIL H30 [$(tc H30)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
+      note "         not exit 1 with THE PREMISE IS BROKEN, so hiding the file would prove nothing"
+      show_verdict "$PROBE_OUT"
+      BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H30"
+    else
+      ROUTES_FAIL=""; ROUTES_SKIP=""; ROUTES_OK=""; ROUTES_LEAK=""; ROUTE_SHOW=""
+      git -C "$C" update-index --assume-unchanged "$H30R" >/dev/null 2>&1 || true
+      rm -f "$C/$H30R"
+      if ! hidden; then ROUTES_SKIP="$ROUTES_SKIP assume-unchanged"
+      elif probe 1 "THE PREMISE IS BROKEN" "$H30R"; then ROUTES_OK="$ROUTES_OK assume-unchanged"
+      else ROUTES_FAIL="$ROUTES_FAIL assume-unchanged(exit $PROBE_RC)"; ROUTE_SHOW="$PROBE_OUT"; fi
+      git -C "$C" update-index --no-assume-unchanged "$H30R" >/dev/null 2>&1 || true
+      restore_raw "$H30R" || ROUTES_LEAK="$ROUTES_LEAK $H30R"
+      route_verdict H30 "exit 1, THE PREMISE IS BROKEN, naming $H30R"
+    fi
+  fi
+fi
+
+# H31 NEGATIVE, AN UNTRACKED, EXCLUDED FILE THAT CHANGES WHICH PATH A REQUIRE RESOLVES TO. The case base appends
+#     require("../claude/agents/zz-h31-fixture.js") to gates/lib.js and commits that records-only target, so the
+#     gates-relative spelling exists in the commit and the premise check answers THE PREMISE IS BROKEN. Then an
+#     UNTRACKED file is put at the regress-relative spelling (gates/claude/agents/zz-h31-fixture.js) and matched by
+#     .git/info/exclude, so `git status` shows nothing. Part one chose its spelling by what was on DISK, kept the
+#     regress-relative one (classified FORCE), and on #526's script the commit took EXIT 0 FAST GATE GREEN. Since
+#     #527 the COMMIT decides, and the same refusal stands. `git clean -fd` keeps excluded files, so this case
+#     removes its own.
+reset_clone
+H31L=gates/lib.js; H31R=claude/agents/zz-h31-fixture.js; H31U=gates/claude/agents/zz-h31-fixture.js
+mkdir -p "$C/claude/agents"
+printf '// fastgate-drive.sh H31 fixture, never pushed: a records-only file a gates-level require names\n' > "$C/$H31R"
+printf '\n// fastgate-drive.sh H31 fixture, never pushed: a gates-level file that requires a records-only path\nrequire("../claude/agents/zz-h31-fixture.js");\n' >> "$C/$H31L"
+new_base "H31 base: gates/lib.js requires a records-only file that the commit carries" >/dev/null
+H31N="$(mint_in_clone)"
+if [ -z "$H31N" ]; then
+  note "  FAIL H31 [$(tc H31)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H31"
+else
+  commit_case "H31 register only: one minted row for #$H31N over the require of a records file"
+  if ! probe 1 "THE PREMISE IS BROKEN"; then
+    note "  FAIL H31 [$(tc H31)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
+    note "         not exit 1 with THE PREMISE IS BROKEN, so the untracked file would prove nothing"
+    show_verdict "$PROBE_OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H31"
+  else
+    ROUTES_FAIL=""; ROUTES_SKIP=""; ROUTES_OK=""; ROUTES_LEAK=""; ROUTE_SHOW=""
+    mkdir -p "$C/gates/claude/agents"
+    printf '// fastgate-drive.sh H31 fixture, never pushed: untracked and excluded\n' > "$C/$H31U"
+    printf 'gates/claude/\n' >> "$C/.git/info/exclude"
+    if ! hidden; then ROUTES_SKIP="$ROUTES_SKIP info-exclude"
+    elif probe 1 "THE PREMISE IS BROKEN" "$H31R"; then ROUTES_OK="$ROUTES_OK info-exclude"
+    else ROUTES_FAIL="$ROUTES_FAIL info-exclude(exit $PROBE_RC)"; ROUTE_SHOW="$PROBE_OUT"; fi
+    rm -rf "$C/gates/claude"
+    sed -i '/^gates\/claude\/$/d' "$C/.git/info/exclude"
+    route_verdict H31 "exit 1, THE PREMISE IS BROKEN, naming $H31R"
+  fi
+fi
+
+# H32 NEGATIVE, AN EXECUTED FILE DOCTORED ON DISK AND HIDDEN THREE WAYS: THE EXECUTABLE PIN'S OWN CASE [#527 v2].
+#     #521's pin refuses when a file this tier EXECUTES is not the blob the commit records, and until #527 no case
+#     here drove it. A register-only commit is made (H2's shape, green when honest, which is the fixture's
+#     premise); then one comment line is appended to the WORKING-TREE copy of gates/verify-log.sh, which the
+#     citations ratchet runs, and hidden with assume-unchanged, with skip-worktree and with a clean filter
+#     declared `**/<path>` (H10 says why that form). The pin hashes raw bytes and refuses each route at exit 1,
+#     naming the file. On #526's script the two index-flag routes were refused as well, because hash-object reads
+#     the disk whatever the index says; the clean-filter route was not, because that pin hashed through the
+#     filter and read the committed blob. A mutant of the pin without --no-filters is caught LATER, by the
+#     catch-all, and this case requires the pin's own refusal, so it fails that mutant rather than crediting it.
+reset_clone
+H32F=gates/verify-log.sh
+H32N="$(mint_in_clone)"
+if [ -z "$H32N" ]; then
+  note "  FAIL H32 [$(tc H32)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H32"
+else
+  commit_case "H32 register only: one minted row for #$H32N, then an executed file doctored on disk"
+  if ! probe 0 "FAST GATE GREEN"; then
+    note "  FAIL H32 [$(tc H32)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
+    note "         not exit 0 FAST GATE GREEN, so a refusal of the doctored tree would prove nothing"
+    show_verdict "$PROBE_OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H32"
+  else
+    ROUTES_FAIL=""; ROUTES_SKIP=""; ROUTES_OK=""; ROUTES_LEAK=""; ROUTE_SHOW=""
+    for H32R in assume-unchanged skip-worktree clean-filter; do
+      printf '\n# fastgate-drive.sh H32 fixture, never pushed: one line the commit does not carry\n' >> "$C/$H32F"
+      case "$H32R" in
+        assume-unchanged) git -C "$C" update-index --assume-unchanged "$H32F" >/dev/null 2>&1 || true ;;
+        skip-worktree)    git -C "$C" update-index --skip-worktree "$H32F" >/dev/null 2>&1 || true ;;
+        clean-filter)     printf '**/%s filter=ctdrive32\n' "$H32F" >> "$C/.git/info/attributes"   # `**/` as H10
+                          git -C "$C" config filter.ctdrive32.clean "cat >/dev/null; git show HEAD:$H32F"
+                          git -C "$C" read-tree HEAD >/dev/null 2>&1 || true ;;   # as H10: zero the index stat data
+      esac
+      if ! hidden; then ROUTES_SKIP="$ROUTES_SKIP $H32R"
+      elif probe 1 "this tier EXECUTES these files" "$H32F: commit "; then ROUTES_OK="$ROUTES_OK $H32R"
+      else ROUTES_FAIL="$ROUTES_FAIL $H32R(exit $PROBE_RC)"; ROUTE_SHOW="$PROBE_OUT"; fi
+      git -C "$C" update-index --no-assume-unchanged --no-skip-worktree "$H32F" >/dev/null 2>&1 || true
+      git -C "$C" config --unset filter.ctdrive32.clean >/dev/null 2>&1 || true
+      sed -i '/ filter=ctdrive32$/d' "$C/.git/info/attributes"
+      restore_raw "$H32F" || ROUTES_LEAK="$ROUTES_LEAK $H32F"
+    done
+    route_verdict H32 "exit 1, this tier EXECUTES these files, naming $H32F"
+  fi
 fi
 
 # H13 RECURSION GUARD. Re-enter this harness with the guard set and require a named refusal at exit 2, no

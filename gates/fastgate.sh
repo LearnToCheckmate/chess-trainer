@@ -86,7 +86,7 @@ TAMPER=""
 for f in gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js \
          gates/buildnum.sh; do   # buildnum.sh added #523: Part 2 EXECUTES it from the working tree
   hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
-  wb="$($GIT hash-object "$ROOT/$f" 2>/dev/null || echo MISSING)"
+  wb="$($GIT hash-object --no-filters "$ROOT/$f" 2>/dev/null || echo MISSING)"   # #527: RAW bytes, see below
   [ "$hb" = "$wb" ] || TAMPER="$TAMPER    $f: commit $hb, working tree $wb\n"
 done
 if [ -n "$TAMPER" ]; then
@@ -94,7 +94,59 @@ if [ -n "$TAMPER" ]; then
   say "FAST GATE REFUSED - this tier EXECUTES these files from the working tree while every verdict it prints is"
   say "about the COMMIT, and for these the two are not the same object:"
   printf "$TAMPER" | tee -a "$LOG"
-  say "A clean git status cannot see this: assume-unchanged and skip-worktree both suppress it. Run FULL."
+  say "A clean git status cannot see this: index flags and clean filters both suppress it. Run FULL."   # #527
+  exit 1
+fi
+
+# -- AND WHAT IT READS A VERDICT OUT OF. ADDED #527, PART 3 OF THE STAMP JOB. ---------------------------------
+# jobs/the-tier-guards-what-it-executes-but-not-what-it-reads-2026-10-14. The loop above pins the files this
+# tier EXECUTES. Two of its verdicts are READ out of working-tree files instead: control (g) greps gate 49's
+# stamp regex out of gates/regress/49-home.js, and the premise check greps every file of PSCAN for require()
+# and path.join. Under the same two index flags a working-tree copy that differs from the commit let control
+# (g) print CONTAINED and the premise print covered, both about a tree that is not the one being gated:
+# gates/fastgate-drive.sh H10 and H11 drive both, and both took EXIT 0 FAST GATE GREEN on #526's script.
+# THE SET IS NOT A SECOND LIST. PSCAN_PATS is the one definition: the premise check expands it into PSCAN, and
+# this loop hands the same patterns to `git ls-files`, so the two cannot drift. #490 recorded at the premise
+# check that a second hand-written list is the defect, whatever its patterns say. The files come from the
+# INDEX and not from a glob of the working tree, so a tracked file deleted on disk is MISSING here rather than
+# silently absent; the dirty check above has already shown the index to be the commit.
+# BOTH PINS HASH WITH --no-filters [#527, an independent reviewer's finding]. `git hash-object` applies a clean
+# filter unless told not to, and a filter declared in .git/info/attributes, which git never tracks, can turn a
+# changed file into the committed blob for `git status` and for this comparison alike, whenever its pattern
+# matches the ABSOLUTE path both loops hash: `**/gates/...` does and `gates/...` does not (measured, git 2.43.0).
+# Raw bytes cannot be filtered. H10 drives that route for this pin and H32 for the one above, each declaring the
+# `**/` form; with the plain form H10 could not fail, and a mutant of this loop without --no-filters survived it.
+# This repository declares no filter and no eol conversion, and the routine's container sets no core.autocrlf, so
+# no honest verdict moves THERE. A checkout made with core.autocrlf=true or an eol attribute holds bytes that are
+# not its blobs by design, and is REFUSED at exit 1 by the first pin that hashes a converted file (an independent
+# reader measured it with `git -c core.autocrlf=true checkout`): a false refusal, the safe direction, and such a
+# checkout takes the full suite by hand. Routing it to exit 2 instead is filed, not done here.
+# It is a no-op on an honest tree, like the loop above, and an empty set is reported, never credited.
+PSCAN_PATS='regress/*.js mountcheck.js lib.js engine-extract.js drive/*.js'
+read -r -a PSCAN_ARR <<< "$PSCAN_PATS"
+PSPECS=(); for p in "${PSCAN_ARR[@]}"; do PSPECS+=(":(glob)gates/$p"); done
+RSET="$($GIT -c core.quotePath=false ls-files -- "${PSPECS[@]}" 2>/dev/null)"   # v4: raw names, as the catch-all lists them
+READPIN=""; RN=0
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  RN=$((RN+1))
+  hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
+  wb="$($GIT hash-object --no-filters "$ROOT/$f" 2>/dev/null || echo MISSING)"
+  # v4: a name the commit cannot resolve is a refusal, never MISSING = MISSING credited as a match
+  [ "$hb" != MISSING ] && [ "$hb" = "$wb" ] || READPIN="$READPIN    $f: commit $hb, working tree $wb\n"
+done <<< "$RSET"
+if [ "$RN" = 0 ]; then
+  say ""
+  say "FULL SUITE REQUIRED. The read pin found NO tracked file matching PSCAN_PATS ($PSCAN_PATS), so it pinned"
+  say "    nothing, and an empty set is reported, never credited. The tiered gate is not taken."
+  exit 2
+fi
+if [ -n "$READPIN" ]; then
+  say ""
+  say "FAST GATE REFUSED - this tier READS a verdict out of these files (control (g) and the premise check) while"
+  say "every verdict it prints is about the COMMIT, and for these the two are not the same object:"
+  printf '%b' "$READPIN" | tee -a "$LOG"
+  say "A clean git status cannot see this: index flags and clean filters both suppress it. Run FULL."
   exit 1
 fi
 
@@ -1531,7 +1583,13 @@ fi
 # path - and latent is exactly how gate 68's fixture got here. gates/control-audit.js is deliberately NOT in this
 # set: it is not a browser gate, it is a records-tier check this script RATCHETS at base and head, so a change to
 # what it reads is compared rather than assumed away.
-PSCAN="$G/regress/*.js $G/mountcheck.js $G/lib.js $G/engine-extract.js $G/drive/*.js"
+# #527: PSCAN is EXPANDED from PSCAN_PATS, the one definition the read pin near the top of this script also
+# hands to git ls-files, so the files the premise reads and the files the pin compares are one set. The string
+# is byte for byte the literal it replaces: "$G/regress/*.js $G/mountcheck.js $G/lib.js $G/engine-extract.js $G/drive/*.js".
+# BUILT BY A LOOP AND NOT BY ${PSCAN_PATS// / $G/} [#527 v4]: bash 5.2 turns an `&` in a ${//} replacement into
+# the matched text, so a checkout path holding `&` broke that form (an independent reader's finding, reproduced
+# on this container's bash 5.2.21: "/tmp/a&b/gates" gave "/tmp/a b/gates/mountcheck.js").
+PSCAN=""; for _pp in "${PSCAN_ARR[@]}"; do PSCAN="$PSCAN $G/$_pp"; done; PSCAN="${PSCAN# }"
 DEPS="$(grep -ohE "require\(['\"][^'\"]+['\"]\)" $PSCAN 2>/dev/null \
         | sed -E "s/require\(['\"]//; s/['\"]\)//" | grep -E '^[./]' | sort -u)"
 # PART ONE ASKS classify(), AND CARRIES NO LIST OF ITS OWN. #490's first attempt left a hand-written `case`
@@ -1544,6 +1602,16 @@ DEPS="$(grep -ohE "require\(['\"][^'\"]+['\"]\)" $PSCAN 2>/dev/null \
 # produced by the very commit that was fixing the eleventh. The lesson is not "anchor the glob": it is that a
 # second list is the defect, whatever its patterns say. So the require() target is RESOLVED to a repo-relative
 # path and handed to classify(), the same function the changed-set decision uses.
+# EXISTENCE IS ASKED OF THE COMMIT [#527, Part 3]. Both parts of the premise check used to decide with
+# `[ -e "$ROOT/..." ]`, which asks the WORKING TREE, and the working tree can hold what the commit does not:
+# MEASURED on #526's script, (1) a records file a committed gate names with path.join, deleted on disk and
+# hidden with assume-unchanged, was skipped by part two and the commit took EXIT 0 FAST GATE GREEN; and (2) an
+# untracked file matched by .git/info/exclude, at the regress-relative spelling of a gates-level require(),
+# made part one keep that spelling (classified FORCE) instead of the gates-relative one the commit carries
+# (classified RECORDS), with the same green. H30 and H31 in gates/fastgate-drive.sh are those two. Part one now
+# chooses its spelling by what the COMMIT holds; part two counts a reference that is on disk OR in the commit,
+# which only ever adds the hidden ones, so no honest count or verdict moves.
+in_head(){ $GIT cat-file -e "$HEAD:$1" 2>/dev/null; }
 UNCOVERED=""
 while IFS= read -r dep; do
   [ -n "$dep" ] || continue
@@ -1552,7 +1620,7 @@ while IFS= read -r dep; do
   # the one that names a file that exists; if neither does, judge the regress-relative one, which is the stricter.
   rel="$(realpath -m --relative-to="$ROOT" "$G/regress/$dep" 2>/dev/null || echo "$dep")"
   alt="$(realpath -m --relative-to="$ROOT" "$G/$dep" 2>/dev/null || echo "$dep")"
-  if [ ! -e "$ROOT/$rel" ] && [ ! -e "$ROOT/$rel.js" ] && { [ -e "$ROOT/$alt" ] || [ -e "$ROOT/$alt.js" ]; }; then
+  if ! in_head "$rel" && ! in_head "$rel.js" && { in_head "$alt" || in_head "$alt.js"; }; then   # #527: the COMMIT decides
     rel="$alt"
   fi
   case "$rel" in
@@ -1604,8 +1672,8 @@ FSBAD=""
 FSSEEN=0
 while IFS= read -r ref; do
   [ -n "$ref" ] || continue
-  # keep only references that name something that really exists in the repo
-  [ -e "$ROOT/$ref" ] || continue
+  # keep only references that name something that really exists in the repo - on disk OR in the commit [#527]
+  [ -e "$ROOT/$ref" ] || in_head "$ref" || continue
   FSSEEN=$((FSSEEN+1))
   if [ "$(classify "$ref")" = "RECORDS" ]; then
     FSBAD="$FSBAD$ref (a gate reads this, and classify() calls it records-only)\n"
@@ -1725,6 +1793,70 @@ if command -v node >/dev/null 2>&1 && [ -f "$G/control-audit.js" ]; then
   ratchet "control audit" '^(SUMMARY|CONTROL-AUDIT)' node "$G/control-audit.js"
 else
   say "    control audit: SKIPPED (node or gates/control-audit.js not available here)"
+fi
+
+# -- THE CATCH-ALL: EVERY TRACKED FILE, BY ITS BYTES. ADDED #527, PART 3 OF THE STAMP JOB. ----------------------
+# The two pins near the top compare the files this tier EXECUTES and the files it READS A VERDICT OUT OF. Every
+# check since then has read the working tree somewhere else too, the HEAD half of the two ratchets just above
+# most of all, which runs verify-log.sh and control-audit.js in this working tree, and each of those can be fed
+# a copy the commit does not hold while `git status` stays clean. So rather than a third list this asks the one
+# question they share, after every specific guard has had its say and before the only green this script
+# prints: is every tracked file's working-tree content, read RAW (--no-filters), the blob the index records?
+# With a clean status the index is the commit. It never asks git whether a file changed; it hashes the bytes,
+# so it does not care HOW a status was made to lie: assume-unchanged, skip-worktree, a clean filter in
+# .git/info/attributes, a core.fsmonitor hook, stale stat data. One git process hashes them all (0.44 s for the
+# 581 tracked files of #526's tree). MEASURED BEFORE IT WAS WRITTEN, on #526's script: a commit adding one dead
+# citation to the case register is refused by the records ratchet (FAST GATE RED), and the same commit with
+# the register put back on disk as the base had it and hidden with assume-unchanged took EXIT 0 FAST GATE
+# GREEN, "records: no worse than base". Controlled by gates/fastgate-drive.sh H28, which hides it four ways.
+# It comes LAST and not first on purpose: placed first it would answer H10, H11, H25, H30 and H32 itself, and the
+# specific guards those cases control would no longer be shown to work. A checkout whose bytes differ from its
+# blobs by design (core.autocrlf, an eol attribute) is refused at exit 1, here or by a pin above, and is NOT
+# routed to the full suite [#527 v4: this said it "pays the full suite"]; this repository and the routine's
+# container have neither. An entry that is not a plain file (a symlink, a submodule, a conflict stage) is routed
+# to the full suite rather than judged. IT SEES TRACKED FILES ONLY: an UNTRACKED file that a check globs or reads
+# (verify-log.sh --citations globs gates/*.js and claude/stories/*.md, control-audit.js reads directories) is not
+# hashed here, and hidden by .git/info/exclude it is not in `git status` either; an independent reader showed one
+# turning the records ratchet RED on an honest commit. Item (4) of WHAT THESE DO NOT COVER in the case register.
+CA_IDX="$($GIT -c core.quotePath=false ls-files -s 2>/dev/null)" || CA_IDX=""
+if [ -z "$CA_IDX" ]; then
+  say ""
+  say "FULL SUITE REQUIRED. git ls-files -s listed no tracked file, so the catch-all could not run, and an empty"
+  say "    set is reported, never credited. The tiered gate is not taken."
+  exit 2
+fi
+CA_ODD="$(awk -F'\t' '{split($1, m, " "); if ((m[1] != "100644" && m[1] != "100755") || m[3] != "0" || $2 ~ /^"/) print}' <<< "$CA_IDX")"
+if [ -n "$CA_ODD" ]; then
+  say ""
+  say "FULL SUITE REQUIRED. The catch-all hashes file bytes, and these tracked entries are not plain files with a"
+  say "    plain path (a symlink, a submodule, a conflict stage or a quoted name), so it does not judge them:"
+  awk 'NR<=10 {print "    " $0}' <<< "$CA_ODD" | tee -a "$LOG"
+  exit 2
+fi
+CA_PATHS="$(cut -f2- <<< "$CA_IDX")"
+CA_WANT="$(awk '{print $2}' <<< "$CA_IDX")"
+CA_GOT="$($GIT hash-object --no-filters --stdin-paths <<< "$CA_PATHS" 2>/dev/null)"
+if [ "$CA_GOT" != "$CA_WANT" ]; then
+  mapfile -t CA_P <<< "$CA_PATHS"; mapfile -t CA_W <<< "$CA_WANT"; mapfile -t CA_G <<< "$CA_GOT"
+  CA_BAD=""; CA_NB=0; CA_HASHED=0
+  [ -n "$CA_GOT" ] && CA_HASHED="${#CA_G[@]}"
+  for ((i = 0; i < CA_HASHED && i < ${#CA_P[@]}; i++)); do
+    if [ "${CA_G[$i]}" != "${CA_W[$i]}" ]; then
+      CA_NB=$((CA_NB + 1))
+      [ "$CA_NB" -le 20 ] && CA_BAD="$CA_BAD    ${CA_P[$i]}: commit ${CA_W[$i]}, working tree ${CA_G[$i]}\n"
+    fi
+  done
+  if [ "$CA_HASHED" -lt "${#CA_P[@]}" ]; then
+    CA_NB=$((CA_NB + 1))
+    CA_BAD="$CA_BAD    ${CA_P[$CA_HASHED]}: commit ${CA_W[$CA_HASHED]}, working tree MISSING or unreadable, and git hash-object\n"
+    CA_BAD="$CA_BAD      stopped there, so the $(( ${#CA_P[@]} - CA_HASHED - 1 )) tracked file(s) after it were not hashed\n"
+  fi
+  say ""
+  say "FAST GATE REFUSED - $CA_NB tracked file(s) in the working tree are not the blob the commit records, and git"
+  say "status did not say so, so a check above may have read a copy the commit does not hold:"
+  printf '%b' "$CA_BAD" | tee -a "$LOG"
+  say "Find what hides it (git ls-files -v, .git/info/attributes, core.fsmonitor) and run again, or run FULL."
+  exit 1
 fi
 
 say ""
