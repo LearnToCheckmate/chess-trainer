@@ -567,3 +567,4 @@
 524	minted	-	-	-	2026-10-16T00:25Z	build__1792108253000	minted	the fix run for the held #523 tree: the three upheld antagonist findings, the two content corrections and the case register. No application change, so a minted row and no built row.
 525	minted	-	-	-	2026-10-16T13:08Z	build__1792155768000	minted	build #525: the landing run for the held #524 tree - the three new blockers (P0 register-arm grep -q pipefail skip, the held-register exemption, the gates.sh unit-block silence), the H21 harness repair and the two content corrections. No application change: the bundle stays #522 ec31de9fe6c5, so a minted row and no built row.
 526	minted	-	-	-	2026-10-20T03:05Z	build__1792465059000	minted	land the held #525 harness and fastgate work: four small fixes, one blind read, one full suite, one push
+527	minted	-	-	-	2026-10-20T22:15Z	build__1792533988000	minted	Run 4 (#527): land Part 3 of the stamp job and three ride-alongs as four patches, no application change
