@@ -83,7 +83,8 @@ fi
 # IT IS A NO-OP ON EVERY HONEST TREE, which is why it is safe to add here: a clean `git status` already implies
 # worktree == index == HEAD, so this can only fire where the status check was being lied to.
 TAMPER=""
-for f in gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js; do
+for f in gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js \
+         gates/buildnum.sh; do   # buildnum.sh added #523: Part 2 EXECUTES it from the working tree
   hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
   wb="$($GIT hash-object "$ROOT/$f" 2>/dev/null || echo MISSING)"
   [ "$hb" = "$wb" ] || TAMPER="$TAMPER    $f: commit $hb, working tree $wb\n"
@@ -141,6 +142,42 @@ CHANGED="$($GIT diff --name-only --no-renames "$BASEFULL".."$HEAD" 2>/dev/null)"
 if [ -z "$CHANGED" ]; then say "FAST GATE REFUSED - no changed paths between $BASE and $HEAD. Nothing to gate."; exit 1; fi
 say "changed paths ($(echo "$CHANGED" | wc -l | tr -d ' ')):"
 echo "$CHANGED" | sed 's/^/    /' | tee -a "$LOG"
+
+# ── IN-SHELL LIST MEMBERSHIP AND FIRST LINE. ADDED #525. NO PIPE, SO NO SIGPIPE AND NO pipefail RACE. ────────
+# THE DEFECT THIS CLOSES, found on the held #524 tree by an independent reviewer (its finding F1) and
+# REPRODUCED by the orchestrator at 11:35pm ET, Thu 15 Oct: the register plausibility arm below was entered
+# only if `printf '%s\n' "$CHANGED" | grep -qxF 'gates/build-numbers.tsv'`, and this script runs under
+# `set -uo pipefail` (:48). Once the changed-path list exceeds the 64 KiB pipe buffer, grep -q EXITS AT ITS
+# FIRST MATCH, printf takes SIGPIPE, the PIPELINE status becomes 141, the test reads FALSE, and the WHOLE
+# register arm - every exit 1 refusal in it - is skipped WITHOUT A WORD.
+# MEASURED, control and test: one hand-written `999 minted` row on its own is REFUSED (exit 1, "gains a row
+# the series cannot carry"); the SAME row in a commit that also adds 4000 empty files under zzz/ takes EXIT 0
+# FAST GATE GREEN at 4001 changed paths, and `gates/buildnum.sh next` in that tree then exits 2 for every
+# later build - which burns the number range permanently, because the register is append-only. The reviewer
+# measured the bare pipeline losing the race 3 of 5 times at 3000 paths and 5 of 5 at 5000; 2000 and 2500
+# were refused, so the threshold on that machine lies between 2500 and 3000.
+# IT IS A FALSE GREEN AND NOT A FALSE REFUSAL, which is what makes it a P0: the direction of the failure is to
+# SKIP a refusal, so THE BIGGER THE COMMIT THE WEAKER THE GATE, and one bulk records commit reaches it by
+# ACCIDENT, not only on purpose.
+# WHY A `case` AND NOT A BIGGER BUFFER OR `|| true`: a quoted `case` has no pipe to break, so the class is
+# REMOVED rather than made less likely. `|| true` would mask a real failure and leave the race in place.
+# WHY A FUNCTION AND NOT A THIRD HAND-WRITTEN `case`: the BNRATCHET site below already carries exactly this
+# fix, and its own comment tells the story - this site was not swept, so A FIX RECORDED IN ONE HOME DID NOT
+# TRAVEL TO THE NEXT [CLAUDE.md records that trap by name]. One function is the only form that travels.
+# THE NEWLINE PADDING IS LOAD-BEARING: an unpadded substring match would accept `x/gates/build-numbers.tsv`
+# and `gates/build-numbers.tsv.bak`, which is exactly what the `-x` of the old grep was buying.
+NL_525='
+'
+in_changed(){ # <path>: 0 if $CHANGED carries it as a WHOLE LINE. Pipe-free, so payload-independent.
+  case "$NL_525$CHANGED$NL_525" in *"$NL_525$1$NL_525"*) return 0 ;; esac
+  return 1
+}
+# first_line <text>: the text up to its first newline. Replaces `<producer> | head -1`, where head exits early
+# and SIGPIPEs a producer still reading a large file (app.js is about 1 MB). THE VALUE WAS ALWAYS RIGHT at
+# those three sites - head prints the first line before it goes - so this is HARDENING and I claim no measured
+# false verdict for it. It is done anyway because the P0 above proves the shape is not safe by inspection, and
+# because two of the three sit in plaus_stamp and plaus_delta, which decide whether a push is refused.
+first_line(){ printf '%s' "${1%%"$NL_525"*}"; }
 
 # ── BUNDLE IDENTITY. MEASURED, NOT INFERRED FROM THE PATH LIST. ─────────────────────────────────────────────
 # Every file GitHub Pages actually serves, compared by blob id at base and at head. A rename, a delete, a mode
@@ -390,7 +427,7 @@ rm -f "$D.why"
   #         it checks. So an empty extraction FAILS, and so does a fixture set nothing accepts.
   # ITS LIMIT, STATED BESIDE IT: it covers gate 49 only. 42:104 and 47:263 involve no regex at all; what makes
   # those safe is the LENGTH PIN and the wrap margin recorded at so_pred, not any pattern agreement.
-  HOMERE="$(grep -oE '\^Build #[^/]*\$' "$G/regress/49-home.js" 2>/dev/null | head -1)"
+  HOMERE="$(first_line "$(grep -oE '\^Build #[^/]*\$' "$G/regress/49-home.js" 2>/dev/null || true)")"   # #525: no `| head -1`
   if [ -z "$HOMERE" ]; then
     say "    CONTROL (g) FAILED - could not extract 49-home.js's stamp regex, so the containment this script"
     say "        prints as its soundness argument is UNCHECKED. That is a hard red, not a skip [(iii)]."
@@ -415,6 +452,553 @@ console.log("CONTAINED "+acc+" of "+F.length+" fixtures are accepted here and al
   [ "$FAILED" = 0 ] || return 1
   return 0
 }
+
+# ── PART 2, THE PLAUSIBILITY ARM. ADDED #523. ───────────────────────────────────────────────────────────────
+# WHY IT EXISTS, AND IT IS RESIDUAL (1) OF THIS SCRIPT'S OWN HEADER BEING CLOSED RATHER THAN RE-DESCRIBED.
+# so_pred above proves the head bundle differs from the base BY ITS THREE BUILD STAMPS AND NOTHING ELSE. It
+# never asks whether the new stamp is a PLAUSIBLE build, so three wrong inputs took EXIT 0 FAST GATE GREEN on
+# origin/main at 7b2f5b9, measured by the orchestrator and reproduced by this run's own harness: a same-length
+# stamp with a LOWER number (#001), the same with a date five years ahead, and a stamp with no register row.
+# The residual's stated mitigation - that a real build also writes a gates/build-numbers.tsv row and a register
+# row FORCED the full suite - was void from #521, which took the register out of the FORCE arm.
+#
+# THE BOUNDS COME FROM SOURCES THAT ARE NOT UNDER TEST [R08 sibling clause]: the margin is read out of
+# gates/buildnum.sh rather than copied, the wall clock is read from the machine, and the second witness is the
+# register, which is a DIFFERENT file from the bundle being judged. Both witnesses are required, not either.
+#
+# MEASURED FIRST, OVER HISTORY, AND THE DENOMINATOR IS THE PART THAT MATTERS [Part 2(e)].
+# Over all 1204 commits on origin/main at 7b2f5b9 in a COMPLETE clone (git rev-parse --is-shallow-repository
+# false, so these are counts and not floors): 550 commits touch app.js; 43 of those have a STAMP-ONLY app.js
+# diff by so_pred's own predicate extracted verbatim; and only TEN of the 43 would ever REACH this arm, because
+# the other 33 carry some path classify() calls FORCE and exit before the stamp block. Over those ten:
+#   number step      +1 nine times, +2 once. Never negative, never above +2, against a margin of 10.
+#   stamp date       always later than the base stamp.
+#   built-row lag    EXACTLY 0 minutes on all ten, and 0 on #522 - the stamp and the row are two clock reads
+#                    seconds apart (gates/build.sh:114 and gates/buildnum.sh:523), so they share a minute.
+#   register match   10 of 10 carry exactly ONE `built` row for the stamp number whose bundle field equals the
+#                    first 12 hex of the md5 of that commit's own app.js. So rule (b) refuses none of history.
+# ZERO UNEXPLAINED VIOLATIONS. Three commits violate these rules over the WIDER stamp-only population of 43 and
+# all three are explained and none reaches this arm: 364f7009 is the deliberate "Revert main to #439" and
+# a3368361 is "#510 veto fixes", which walks the bundle back #510 -> #508 - both also touch a FORCE path
+# (chess.jsx, gates/audit/, gates/pending/), and b88f1c8 is #522's own real rebuild, +11 over a base stamp of
+# #511 because #512 to #521 shipped no app change, which is NOT stamp-only either. The lesson in one line: the
+# base stamp number is the number of the last commit that CHANGED app.js, not the previous build, so a step
+# larger than the margin is reachable - and it is reachable only through a real rebuild, which never gets here.
+#
+# EQUALITY IS ALLOWED, AND THAT IS A MEASUREMENT AND NOT A COURTESY. The job offered strict increase "unless
+# measured history shows equal number rebuilds landing on main". It does: 11 of the 43 stamp-only commits carry
+# the SAME number on both sides (#511 -> #511, #508 -> #508, #497 -> #497 twice, #491, #474, #471, #465, #451
+# twice, #436, #434). CLAUDE.md gives the mechanism - the stamp embeds the MINUTE, so a rebuild in a new minute
+# from byte-identical source is a new bundle under one number. Requiring hn > bn would refuse that class.
+#
+# FAIL-SAFE DIRECTION, KEEPING THIS SCRIPT'S OWN EXIT CONVENTION (lines 433-450 give the reason):
+#   an IMPLAUSIBLE stamp          -> exit 2, GO FULL. The commit belongs in the suite; it is not a liar.
+#   a check that COULD NOT RUN    -> exit 2, GO FULL, with the reason through say() so it reaches the log.
+#   a STRAY REGISTER ROW          -> exit 1, REFUSED. The register is append-only, so a bad row cannot be taken
+#                                    back out once it lands, and exit 2 would route it into a suite that does
+#                                    not check the register at all. Measured, not assumed: gates/gates.sh and
+#                                    gates/records-gate.sh were both read for this, and NEITHER runs
+#                                    buildnum.sh next nor any series check, so the full suite would land it.
+PLAUS_WHY=""
+plaus_stamp(){ first_line "$(grep -aoE '#[0-9]{3,4} - 20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET' "$1" 2>/dev/null || true)"; }   # #525: no `| head -1`
+# THE MARGIN IS READ, NOT COPIED. A second copy of a constant is the defect this project keeps filing, so this
+# greps gates/buildnum.sh for its own default and honours the same BUILDNUM_MAX_DELTA override buildnum.sh does.
+# AND IT SAYS WHERE THE NUMBER CAME FROM [#524, antagonist A finding 6]. The margin honours
+# BUILDNUM_MAX_DELTA, which is correct - buildnum.sh honours it too - but NOTHING in any verdict said the
+# number had been overridden, so `BUILDNUM_MAX_DELTA=1000 gates/fastgate.sh` printed "past the series margin
+# of 1000 that gates/buildnum.sh itself uses", naming the wrong author for the bound and asserting a
+# provenance that was false. An environment variable that widens a push gate must appear in the artefact the
+# push is justified by. PLAUS_DELTA_SRC carries it; the two places the margin is DECISIVE both print it.
+# IT SETS TWO GLOBALS AND ECHOES NOTHING, AND THAT IS THE WHOLE FIX [#524 second pass, VETOED BY BOTH
+# ANTAGONISTS INDEPENDENTLY - A from the diff door, B from the shipped surface, which is the strongest signal
+# this process produces]. The previous version set PLAUS_DELTA_SRC and then ECHOED the number, and both call
+# sites read it as `D="$(plaus_delta)"` - a COMMAND SUBSTITUTION, i.e. a subshell - so every assignment died
+# with the subshell and all three readers saw the empty string from the initialiser.
+# B's one-line proof of the mechanism, which is the clearest statement of it:
+#     $ bash -c 'X=""; f(){ X="set by f"; printf "%s" 7; }; V="$(f)"; echo "V=$V  X=[$X]"'
+#     V=7  X=[]
+# MEASURED CONSEQUENCE, and it is a REGRESSION rather than merely a dead fix: the normal fast-green path -
+# every stamp-only bundle push - printed `(step 3, margin 1000 [])`, and the margin refusal printed `past the
+# series margin of 10 []`. Before #524 those read `margin 10` and `past the series margin of 10 that
+# gates/buildnum.sh itself uses` (`git show d7e6f8a^:gates/fastgate.sh`, lines 500 and 541). So a correct
+# sentence was traded for an empty bracket, on the artefact a push is justified by. A's finding 6 complained
+# that the margin's AUTHOR was misattributed when an override was live; my repair made the field mute in every
+# case, which is worse.
+# AND THE THIRD READER NAMED THE WRONG CAUSE: the register arm's `${PLAUS_DELTA_SRC:-BN_DEFAULT_DELTA could
+# not be read...}` fallback fired on a NON-NUMERIC OVERRIDE and blamed buildnum.sh, which had been read fine.
+# CLAUDE.md: "A wrong reason that reaches the right verdict is a trap, not a check."
+# NOTHING CONTROLLED IT. `grep -c 'OVERRIDDEN by' gates/fastgate-drive.sh` was 0, and H17 passes on a
+# DIFFERENT mechanism - the separate RP_DEF block in the register arm, which re-greps buildnum.sh in the
+# parent shell - so the harness was green over a dead mechanism. H21 below is the control, and it asserts the
+# bracket's CONTENT on the green path, which is the path that regressed.
+PLAUS_DELTA=""
+PLAUS_DELTA_SRC=""
+plaus_delta(){           # sets PLAUS_DELTA and PLAUS_DELTA_SRC in THIS shell; returns 0 ok, 1 unreadable
+  local d b
+  b="$(first_line "$(sed -n 's/^BN_DEFAULT_DELTA=\([0-9][0-9]*\).*/\1/p' "$G/buildnum.sh" 2>/dev/null || true)")"   # #525: no `| head -1`
+  PLAUS_DELTA=""
+  if [ -z "$b" ]; then
+    PLAUS_DELTA_SRC="gates/buildnum.sh carries no BN_DEFAULT_DELTA= line this script can read"; return 1; fi
+  d="${BUILDNUM_MAX_DELTA:-$b}"
+  # A WHOLE NUMBER FROM 1, NOT MERELY DIGITS [#524, antagonist B finding 2]. B swept the variable over one
+  # HONEST records commit - a single `525 minted` row written by the real `buildnum.sh mint` - and measured
+  # `BUILDNUM_MAX_DELTA=0` turning it into `FAST GATE REFUSED` (exit 1) with a reason that blamed the COMMIT:
+  # "gates/build-numbers.tsv changed and gates/buildnum.sh next now REFUSES ... so this commit would wedge the
+  # next mint". The commit wedges nothing; the caller's environment does, and prompts/build-run STEP 0F reads
+  # exit 1 as STOP, so a stray variable stopped an honest push. buildnum.sh's own bound is 1..9999 and this
+  # now matches it, so a 0 or a word is an ENVIRONMENT fault reported as a notice, never a refusal of the tree.
+  case "$d" in ''|*[!0-9]*)
+    PLAUS_DELTA_SRC="BUILDNUM_MAX_DELTA is set to '${BUILDNUM_MAX_DELTA:-}', which is not a whole number (gates/buildnum.sh's own BN_DEFAULT_DELTA is $b)"; return 1 ;; esac
+  if [ "$d" -lt 1 ] || [ "$d" -gt 9999 ]; then
+    PLAUS_DELTA_SRC="BUILDNUM_MAX_DELTA is set to '$d', outside the 1..9999 range gates/buildnum.sh itself accepts (its own BN_DEFAULT_DELTA is $b)"; return 1; fi
+  if [ -n "${BUILDNUM_MAX_DELTA:-}" ] && [ "${BUILDNUM_MAX_DELTA:-}" != "$b" ]; then
+    PLAUS_DELTA_SRC="OVERRIDDEN by BUILDNUM_MAX_DELTA=$BUILDNUM_MAX_DELTA in the environment; gates/buildnum.sh's own BN_DEFAULT_DELTA is $b"
+  else
+    PLAUS_DELTA_SRC="gates/buildnum.sh BN_DEFAULT_DELTA=$b"
+  fi
+  PLAUS_DELTA="$d"
+  return 0
+}
+# ET -> UTC through the ZONE NAME, never an offset [R52]. AND NOT `TZ=... date -u`, WHICH IS THE TRAP I FELL
+# INTO WHILE MEASURING THIS: -u makes GNU date parse in UTC as well as print in it, so the conversion silently
+# becomes the identity and every lag reads exactly +240 minutes - the EDT offset wearing the mask of a result.
+# The TZ="..." prefix INSIDE the -d string is parsed in that zone and is correct across the 1 November boundary.
+plaus_et2utc(){ date -u -d "TZ=\"America/New_York\" $1" '+%Y-%m-%dT%H:%MZ' 2>/dev/null; }
+
+# THE PREDICATE. ONE DEFINITION, CALLED BY THE LIVE PATH AND BY gates/fastgate-drive.sh THROUGH THE SCRIPT
+# ITSELF, so there is no second copy of the rule to drift - classify()'s own argument applied again.
+# Echoes a verdict line; returns 0 plausible, 1 refuse (stray row), 2 go-full (implausible or cannot run).
+plaus_pred(){ # <base app.js> <head app.js> <head md5-12>
+  local BA="$1" HA="$2" HM5="$3" SB SH BNUM HNUM BDATE HDATE D NOW10 HUTC ROW RTIME HI
+  SB="$(plaus_stamp "$BA")"; SH="$(plaus_stamp "$HA")"
+  if [ -z "$SB" ] || [ -z "$SH" ]; then
+    PLAUS_WHY="could not read a build stamp from both sides (base '$SB', head '$SH')"; return 2; fi
+  BNUM="${SB#\#}"; BNUM="${BNUM%% *}"; HNUM="${SH#\#}"; HNUM="${HNUM%% *}"
+  BDATE="${SB#* - }"; BDATE="${BDATE% ET}"; HDATE="${SH#* - }"; HDATE="${HDATE% ET}"
+  case "$BNUM$HNUM" in *[!0-9]*) PLAUS_WHY="a stamp number is not numeric (base $BNUM, head $HNUM)"; return 2 ;; esac
+  plaus_delta || { PLAUS_WHY="the series margin is unknown: $PLAUS_DELTA_SRC"; return 2; }   # no subshell [#524]
+  D="$PLAUS_DELTA"
+  # (a) NUMBER. Equality allowed - measured, see the block comment above. Lower refuses; above the margin refuses.
+  if [ "$HNUM" -lt "$BNUM" ]; then
+    PLAUS_WHY="the head stamp number #$HNUM is LOWER than the base #$BNUM; a build number never goes backwards on a stamp-only commit"; return 2; fi
+  if [ "$((HNUM - BNUM))" -gt "$D" ]; then
+    PLAUS_WHY="the head stamp number #$HNUM is $((HNUM - BNUM)) above the base #$BNUM, past the series margin of $D [$PLAUS_DELTA_SRC]"; return 2; fi
+  # (a) DATE. Lexicographic compare is exact for YYYY-MM-DD HH:MM, so no date arithmetic and no DST edge here.
+  if [ "$HDATE" \< "$BDATE" ]; then
+    PLAUS_WHY="the head stamp date $HDATE is EARLIER than the base stamp date $BDATE"; return 2; fi
+  # THE BOUND IS FORMATTED IN EASTERN, NOT MERELY PARSED THERE [#524, and it is the defect #523 existed to
+  # close, made two lines above its own correct conversion]. This read
+  #   date -d 'TZ="America/New_York" now + 10 minutes'
+  # where the TZ="..." prefix sets the PARSING zone and the OUTPUT zone stays the process TZ, which is UTC in
+  # every container this project runs in. `now` needs no parsing zone at all, so the prefix bought nothing and
+  # the output came back in UTC: the bound was wall clock +4h10m under EDT and +5h10m under EST, not +10
+  # minutes. MEASURED at 2026-10-16T00:05Z: true ET 20:05, the old form 2026-10-16 00:15, this form 20:15 -
+  # so the orchestrator's own named fixture, a stamp three hours ahead of the clock, took EXIT 0 FAST GATE
+  # GREEN. H14 below is the control, at +3 HOURS; H4's +5 YEARS fails the lexicographic date rule either way
+  # and therefore could not see this class at all.
+  # DO NOT "FIX" plaus_et2utc A FEW LINES ABOVE BY ANALOGY. There the TZ="..." prefix IS the parsing zone for a
+  # given ET timestamp and -u IS the intended output zone, so that form is correct. The two differ precisely
+  # because one parses an ET time into UTC and this one formats the current instant in ET.
+  NOW10="$(TZ=America/New_York date -d 'now + 10 minutes' '+%Y-%m-%d %H:%M' 2>/dev/null)"
+  [ -n "$NOW10" ] || { PLAUS_WHY="could not read the wall clock, so a future-dated stamp cannot be excluded"; return 2; }
+  if [ "$HDATE" \> "$NOW10" ]; then
+    PLAUS_WHY="the head stamp date $HDATE is later than the wall clock plus ten minutes ($NOW10 ET), so it cannot be a build that has happened"; return 2; fi
+  # (b) THE SECOND WITNESS: THE REGISTER. A different file from the bundle under judgement, so this is not the
+  # painter checking itself. A MISSING or out-of-band row is "cannot confirm" and goes FULL - never green -
+  # because buildnum.sh record is BEST EFFORT (it warns and does not fail the build), so a legitimate build can
+  # genuinely lack a row and must not be REFUSED for it.
+  [ -n "$HM5" ] || { PLAUS_WHY="the head bundle md5 was not computed, so the register row cannot be matched to it"; return 2; }
+  [ -r "$PLAUS_REG" ] || { PLAUS_WHY="the head register is unreadable, so the stamp has no second witness"; return 2; }
+  ROW="$(awk -F'\t' -v n="$HNUM" -v m="$HM5" 'NF>=6 && $1==n && $2=="built" && $4==m {print; exit}' "$PLAUS_REG")"
+  if [ -z "$ROW" ]; then
+    HI="$(awk -F'\t' -v n="$HNUM" 'NF>=2 && $1==n && $2=="built" {c++} END{print c+0}' "$PLAUS_REG")"
+    PLAUS_WHY="the head register holds no \`built\` row for #$HNUM whose bundle field is $HM5 (it holds $HI \`built\` row(s) for #$HNUM), so nothing but the bundle itself says this stamp names this build"; return 2; fi
+  RTIME="$(printf '%s' "$ROW" | cut -f6)"
+  HUTC="$(plaus_et2utc "$HDATE")"
+  [ -n "$HUTC" ] && [ -n "$RTIME" ] || { PLAUS_WHY="could not convert the stamp date to UTC to compare it with the register row time"; return 2; }
+  # BAND: the row is never EARLIER than the stamp (record runs after the bundle is written) and never more than
+  # an hour later. History is 0 minutes on all ten reachable commits and on #522; the hour is headroom for a
+  # build that straddles a minute, and it still rejects a row borrowed from a different build hours away.
+  if [ "$RTIME" \< "$HUTC" ]; then
+    PLAUS_WHY="the register row for #$HNUM is stamped $RTIME, EARLIER than the bundle stamp $HDATE ET ($HUTC); the row is written after the bundle"; return 2; fi
+  if [ "$RTIME" \> "$(date -u -d "$HUTC + 60 minutes" '+%Y-%m-%dT%H:%MZ' 2>/dev/null || printf '%s' "$RTIME")" ]; then
+    PLAUS_WHY="the register row for #$HNUM is stamped $RTIME, more than an hour after the bundle stamp $HDATE ET ($HUTC); history shows these two clock reads share a minute"; return 2; fi
+  PLAUS_WHY="stamp #$BNUM -> #$HNUM (step $((HNUM - BNUM)), margin $D [$PLAUS_DELTA_SRC]), date $BDATE -> $HDATE, not after $NOW10 ET; register \`built\` row for #$HNUM names bundle $HM5 at $RTIME, and the bundle stamp is $HUTC"
+  return 0
+}
+
+# ── ORDER [#524]. PART 2(c) RUNS *BEFORE* THE STAMP BLOCK, AND THE REORDER IS THE WHOLE FIX. ─────────
+# #523 placed this block AFTER the app.js/stamp-only block. Every implausible-stamp path in that block ends in
+# `exit 2`, so a commit that both planted a register row AND got its stamp wrong exited at the stamp arm and
+# PART 2(c) NEVER RAN - the row then landed, because the full suite checks neither buildnum.sh next nor any
+# series bound (gates.sh never mentions buildnum at all; that was measured for #523's own comment below).
+# MEASURED by #523's antagonist A: restamp app.js to '#001 - <now> ET' and append a '999 minted' row in ONE
+# commit gives EXIT 2 'the head stamp number #001 is LOWER than the base #522' with 'planted row present at
+# head: 1' printed beside it and no register verdict at all. The harness could not see it because it tested
+# the planted row ALONE (H8 -> exit 1) and the bad stamp ALONE (H3 -> exit 2) and had no case with both; H15
+# below is that case. Running the register arm first makes its exit 1 win over the stamp arm's exit 2 by
+# ordering rather than by arithmetic, which is the cheaper half of the two remedies the job offered - and the
+# correct precedence, because exit 1 means REFUSE and exit 2 only means go and pay the suite.
+# IT IS SAFE TO RUN FIRST: this block reads only $CHANGED (set at :141), $BASEFULL, $HEAD and plaus_delta,
+# all of which exist well above here, and it touches nothing the stamp block reads.
+# ── PART 2(c), REGISTER PLAUSIBILITY. ADDED #523. ──────────────────────────────────────────────────────────
+# gates/build-numbers.tsv has been RECORDS since the arm split landed at #522, guarded by the records door's
+# APPEND-ONLY ratchet. That ratchet proves old rows were not edited. IT NEVER ASKS WHETHER AN APPENDED ROW IS A
+# PLAUSIBLE NUMBER, so one hand-written `999 minted` row took EXIT 0 FAST GATE GREEN on main - measured - and
+# in that same tree `buildnum.sh next` REFUSES with exit 2, because 999 is cut off from the series and handing
+# out #1000 would silently burn every number between. So the push gate accepted exactly the row that wedges the
+# minter, and the register is append-only, so it cannot be taken back out once it lands.
+#
+# THE SERIES BOUND IS REUSED, NOT RE-IMPLEMENTED. A second copy of the rule is the defect this project keeps
+# filing, so this ASKS buildnum.sh rather than re-deriving its series: `next` returning exit 0 is the same
+# predicate that will have to hold the next time anybody mints, and it is the one the wedge actually breaks.
+# The appended-row bound beside it is the cheap local check that names the offending row for a reader.
+#
+# THIS IS exit 1 AND NOT exit 2, AND THE REASON IS THE ONE THING I MEASURED RATHER THAN ASSUMED. Routing a
+# stray row to the full suite would be useless: I read gates/gates.sh and gates/records-gate.sh for this, and
+# NEITHER runs buildnum.sh next nor any series check - gates.sh never mentions buildnum at all - so the suite
+# would go green and the row would land. prompts/build-run STEP 0F reads exit 1 as STOP: do not push, file it.
+if in_changed 'gates/build-numbers.tsv'; then   # #525: was a printf-into-grep-qxF pipeline, a pipefail SIGPIPE race
+  # THE DELTA IS NO LONGER A PRECONDITION OF THIS BLOCK [#524, antagonist A's veto, UPHELD].
+  # This read `RP_D="$(plaus_delta)"; if [ -z "$RP_D" ]; then ... exit 2; fi` at the HEAD of the block, and A
+  # defeated the whole refusal with one environment variable: plaus_delta validates with
+  # `case "$d" in ''|*[!0-9]*) return 1`, so BUILDNUM_MAX_DELTA=abc (or -5) makes it fail and the block
+  # exited 2 BEFORE the contiguity bound ran. Measured by A in a clone on H8's own planted `999 minted` row:
+  # abc and -5 give EXIT 2, while 10 and 0 give the correct EXIT 1. By this script's own argument - the full
+  # suite runs neither `buildnum.sh next` nor any series check - routing a stray row to the suite LANDS IT.
+  # IT WAS ALSO A DEAD PRECONDITION, which is what made it invisible: since #524 the bound does not read the
+  # delta at all, so the refusal reason it printed ("an appended row cannot be bounded") was already false.
+  # The delta is now needed ONLY for the disclosure line below, so an unreadable one costs a notice and never
+  # the check. A non-numeric override is still reported, because silence about it is A's finding 6.
+  plaus_delta || true
+  RP_D="$PLAUS_DELTA"
+  if [ -z "$RP_D" ]; then
+    say ""
+    say "register plausibility [#524]: the series margin is unknown ($PLAUS_DELTA_SRC)."
+    say "  THE BOUND BELOW STILL RUNS: since #524 it is contiguity and does not consult the margin at all."
+    RP_D="unreadable"
+  fi
+  # SAY WHEN THE OVERRIDE IS LIVE [#524]. plaus_delta honours ${BUILDNUM_MAX_DELTA:-...}, and buildnum.sh
+  # prints override_notice on stderr whenever it is in effect while this script printed only the resulting
+  # number - so BUILDNUM_MAX_DELTA=1000 silently widened the old margin far enough to accept H8's own 999
+  # fixture. The contiguity bound above no longer reads the margin at all, which is the real repair; this line
+  # exists so a reader of the log can still see that the environment was trying to move it.
+  # IT IS PRINTED HERE, BEFORE THE BOUND RUNS, AND NOT BESIDE THE SUCCESS LINE. My first draft put it with
+  # the final verdict say(), which meant a tree that was REFUSED never disclosed that an override was set -
+  # the one case a reader most needs it, because the override is what an attacker would reach for. H17 is
+  # the control and it asserts the notice on a REFUSAL, which that placement would have failed.
+  # ONE SOURCE FOR THE PROVENANCE STRING, NOT TWO [#524 second pass]. This block used to re-grep
+  # BN_DEFAULT_DELTA itself, in the parent shell - which is WHY H17 passed while plaus_pred's identical claim
+  # was dead, and is exactly the duplicated-constant defect this project files against itself. plaus_delta now
+  # sets PLAUS_DELTA_SRC in this shell, so there is one computation and one string.
+  case "$PLAUS_DELTA_SRC" in OVERRIDDEN*)
+    say "register plausibility [#524]: $PLAUS_DELTA_SRC."
+    say "  It does NOT widen the check below - appended rows are bounded by CONTIGUITY now, not by the margin -"
+    say "  and it is named here so the log records the attempt." ;;
+  esac
+  RP_B="$(mktemp)"; RP_H="$(mktemp)"
+  $GIT cat-file blob "$BASEFULL:gates/build-numbers.tsv" > "$RP_B" 2>/dev/null || true
+  $GIT cat-file blob "$HEAD:gates/build-numbers.tsv"     > "$RP_H" 2>/dev/null || true
+  if [ ! -s "$RP_H" ]; then
+    rm -f "$RP_B" "$RP_H"
+    say ""
+    say "FAST GATE REFUSED - gates/build-numbers.tsv is in the diff and the head copy is empty or unreadable."
+    say "    The register is append-only; an empty head is not an append [#523]."
+    exit 1
+  fi
+  # TOP OF THE BASE SERIES, read with buildnum.sh's own row filter (field 1 a bare number, NF>=2) so a comment
+  # or the header cannot be half-matched - held.sh's lesson, which buildnum.sh:102 already encodes.
+  RP_TOP="$(grep -v '^[[:space:]]*#' "$RP_B" 2>/dev/null | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/ {print $1}' | sort -n | tail -1)"
+  [ -n "$RP_TOP" ] || RP_TOP=0
+  # NO BASE SERIES AT ALL -> GO FULL, SAID OUT LOUD [#524]. With an absent or row-less base the top is 0 and
+  # contiguity would demand the first new number be #1, so the bound below would REFUSE the commit that
+  # CREATES the register - which is a real commit in this history (f89bca9db1, 95 numbers against an empty
+  # base). It cannot recur on main while the file exists, and that is exactly why it must not be a silent
+  # refusal: a run that hit it would read a confident sentence about a series that is not there. exit 2, not
+  # exit 1, because there is no series to wedge.
+  if [ "$RP_TOP" = 0 ]; then
+    rm -f "$RP_B" "$RP_H"
+    say ""
+    say "FULL SUITE REQUIRED - the BASE gates/build-numbers.tsv carries no numbered row, so there is no series"
+    say "    for an appended number to be contiguous with [#524]. Run: gates/gates.sh \"#<N>\""
+    exit 2
+  fi
+  # APPENDED ROWS: present at head, absent at base. comm needs sorted input, and the rows are not sorted, so
+  # this compares as SETS - which is what "append-only" leaves behind and is enough to name a new number.
+  # THE BOUND IS CONTIGUITY, NOT THE SERIES MARGIN [#524]. This compared each appended row against
+  # RP_TOP + RP_D, which accepted TEN numbers above the base top - so appending a bare `530 minted` row on a
+  # base topping out at #523 took EXIT 0 FAST GATE GREEN and BURNED SIX NUMBERS permanently, measured by
+  # #523's antagonist B in a clone (buildnum.sh next then returned #531 with #524, #525 and #529 reading
+  # free). THE MARGIN WAS NEVER THE RIGHT INSTRUMENT HERE: BN_DEFAULT_DELTA exists in buildnum.sh to let
+  # series_run tolerate a GAP IN HISTORY it is reading, not to license a run to skip numbers it is writing.
+  # What the minter actually does is `next` = highest + 1 (gates/buildnum.sh, the next verb), so a commit that
+  # appends k DISTINCT NEW numbers can only honestly have minted RP_TOP+1 .. RP_TOP+k. That is the rule now,
+  # and it is strictly stronger than the margin while still admitting every legitimate shape:
+  #   - a further row for a number already in the base (a `built` row after a `minted` row) is <= RP_TOP;
+  #   - this very run appends TWO numbers, #523 (arriving with the held branch, whose row never reached main)
+  #     and #524 (mine), against a base topping out at #522 - so 523 <= 522+1 and 524 <= 522+2, and it passes.
+  # A gap is still free in the OTHER direction: nothing here requires a number to be used once minted.
+  RP_BAD=""
+  RP_NEW="$(grep -vxF -f <(grep -v '^[[:space:]]*#' "$RP_B" 2>/dev/null || true) <(grep -v '^[[:space:]]*#' "$RP_H") 2>/dev/null \
+            | cut -f1 | awk 'NF && $1 ~ /^[0-9]+$/ {print $1}' | sort -n -u)"
+  # THE BASE'S NUMBER SET, NOT JUST ITS TOP [#524, antagonist A's veto 5(a), UPHELD]. The skip used to be
+  # `[ "$rnum" -le "$RP_TOP" ] && continue`, commented "another row for a number the base already carries" -
+  # AND THAT COMMENT IS FALSE WHENEVER THE REGISTER HAS A GAP. It has NINE, measured by A over 391 distinct
+  # numbers: 126, 256, 257, 258, 278, 303, 304, 361, 363. So a hand-written row for a FREE number below the
+  # top was never bounded at all: A committed one `363 minted` row in a clone, got EXIT 0 FAST GATE GREEN,
+  # and the log POSITIVELY ASSERTED "every new number in this diff is contiguous with the base register top
+  # of #524" - a check it had skipped - after which `buildnum.sh check 363` went from free to ISSUED, burned
+  # permanently because the register is append-only. The test is therefore MEMBERSHIP in the base's own
+  # number set, which is what the comment always claimed it was.
+  # NORMALISED AS STRINGS, NOT THROUGH ARITHMETIC [#524 second pass, antagonist A's VETO 2]. This read
+  # `awk '{print $1+0}'` and the membership test below read `$((10#$rnum))`, and BOTH overflow: bash wraps at
+  # 64 bits, so `$((10#18446744073709552016))` is 400 - measured - and awk's own +0 goes through a double and
+  # loses precision above 2^53. A appended ONE row numbered 18446744073709552016 (= 2^64 + 400, where 400 IS
+  # in the base register), the membership test matched the wrapped value, the row was classified as "a number
+  # the base already carries" and SKIPPED, and the run took EXIT 0 FAST GATE GREEN under a log positively
+  # asserting "0 new build number(s) above the base register top of #524 ... and NO new number at or below
+  # #524". `buildnum.sh next` then went BACKWARDS from #525 to #401, into already-spent numbers, with the
+  # "ask the minter itself" check passing because `next` still exits 0.
+  # THE EXIT CODE WAS PRE-EXISTING AND THE FALSE ASSERTION IS NEW, which is why it is this build's to fix:
+  # before #524 `[ "$rnum" -le "$RP_TOP" ]` errored on the operand and fell through to the same green, but it
+  # COUNTED the row; the membership skip made it invisible and the new success line certified its absence.
+  # That is A5(a)'s ground - a log asserting a check it skipped - with the number set to zero.
+  # THE FIX IS THE FIELD WIDTH, not the arithmetic, because no arithmetic repair can make a 20-digit build
+  # number meaningful: this register's numbers run 125..524, so anything over six digits is a malformed row
+  # and is REFUSED by name. Below that bound every value is far inside both bash's and awk's exact range.
+  # length(), NOT AN INTERVAL EXPRESSION, AND THIS PROJECT ALREADY KNEW [#524, caught by H22 on its first run].
+  # My first version of this line was `awk '$1 ~ /^[0-9]{7,}$/'`, and **mawk 1.3.4 does not support interval
+  # expressions**: `echo 1234567890 | awk '$1 ~ /^[0-9]{7,}$/'` prints NOTHING here. So the refusal matched no
+  # row, never fired, and H22 went EXIT 0 FAST GATE GREEN on the very fixture it was written for - a guard that
+  # LOOKED implemented and could not fail, which is "a selector that cannot match" (#394) with the sign flipped.
+  # THE PART THAT IS WORSE THAN THE BUG: gates/buildnum.sh:753 already carries the comment "NO awk INTERVAL
+  # MATCH ANYWHERE IN IT. mawk 1.3.4's leftmost-shortest match() on /[0-9]{3,4}/ is what got burst wave 1's
+  # patch 11 on this very file DROPPED from the 2026-10-03 integration". The lesson was written down, in this
+  # suite, one file away, and I reintroduced it anyway - #390's "a lesson recorded in one gate does not travel
+  # to the next one by itself", and #493's "a fix recorded in one home does not travel". `grep -rn "awk.*{[0-9]"
+  # gates/*.sh` finds exactly these two and nothing else, so the sweep is clean after this line.
+  RP_WIDE="$(grep -v '^[[:space:]]*#' "$RP_H" 2>/dev/null | cut -f1 | awk 'NF && $1 ~ /^[0-9]+$/ && length($1) > 6 {print $1}' | sort -u | head -5 | tr '\n' ' ')"
+  if [ -n "$RP_WIDE" ]; then
+    say ""
+    say "FAST GATE REFUSED - gates/build-numbers.tsv carries a row whose build number is more than six digits"
+    say "    long: $RP_WIDE[#524]. This register's numbers run 125..524, every bound in this arm and in"
+    say "    gates/buildnum.sh is integer arithmetic, and bash wraps at 64 bits - 10#18446744073709552016 is"
+    say "    400 - so such a row is silently read as a DIFFERENT number by every check that looks at it."
+    exit 1
+  fi
+  RP_BASENUMS="$(grep -v '^[[:space:]]*#' "$RP_B" 2>/dev/null | cut -f1 | awk 'NF && $1 ~ /^[0-9]+$/ {sub(/^0+/,"",$1); if($1=="")$1="0"; print $1}' | sort -u)"
+  # AND THE TWO DOORS ARE JUDGED SEPARATELY, BECAUSE I MEASURED THE HISTORY AND MY FIRST BOUND WOULD HAVE
+  # REFUSED HONEST WORK [#524]. My first answer to A's 5(b) was a flat ceiling of k <= 2 new numbers per
+  # commit, written with the sentence "nothing in this project's history appends three" - WHICH I HAD NOT
+  # MEASURED. Measured, one `git show <sha>:gates/build-numbers.tsv` per commit touching the file, base set
+  # against head set: the largest single-commit append is **123** (`f6127fcb36`, #454's census), and that
+  # commit touches **gates/build-numbers.tsv AND NOTHING ELSE** - a records-only commit, exactly the
+  # population this arm judges. A flat ceiling of 2 would have refused it, and two more: `dc0ece3609` (#480)
+  # and `21b5967513` (#469) each append THREE. "A guard that refuses honest work is worse than no guard" is
+  # this project's own rule and I was one command away from breaking it.
+  # WHAT THE SPLIT MEASUREMENT SHOWS, and it is a clean split:
+  #   ABOVE the base top (a MINT; `next` = highest+1)      max 3, at #480 and #469 - excluding f89bca9db1,
+  #                                                        which CREATED the register against an empty base
+  #                                                        and so counts 95 above a top of 0.
+  #   AT OR BELOW the base top (a CENSUS fill of a GAP)    max 123, in 5 commits, all of them #454/#465-era
+  #                                                        corrections of numbers already spent.
+  # So they are different operations with different honest shapes, and one bound cannot serve both:
+  #   - above the top: contiguity AND k <= 3. 3 admits every shape that has occurred and refuses A's attack
+  #     at 4 of the 10 rows it planted. REFUSAL (exit 1), because the full suite runs no series check.
+  #   - at or below the top: named in the log and sent to the FULL SUITE (exit 2). It is never a fast green -
+  #     it turns a free number ISSUED for ever, which is A's 363 finding - but it is not refused either,
+  #     because #454's census is the measured proof that honest records-only commits do this.
+  # I CANNOT DISTINGUISH A CENSUS FROM A's PLANTED ROW AND I AM NOT PRETENDING TO: both write a row for a
+  # free number below the top. What the split buys is that neither can take the FAST door silently, and that
+  # the log names every number being spent instead of asserting contiguity it never checked.
+  # ── THE HELD-TREES EXEMPTION IS READ FROM THE BASE COMMIT, NOT THE WORKING TREE. ADDED #525. ──────────────
+  # THREE FAULTS, found by an independent reviewer on the held #524 tree (its F2 and F3) and REPRODUCED by the
+  # orchestrator. The exemption below read `grep -q "<TAB>#NNN<TAB>" "$ROOT/gates/held-trees.tsv"`, i.e. the
+  # WORKING TREE, with no column discipline:
+  #  (1) THE WORKING TREE IS NOT WHAT IS BEING GATED, and this script's tamper pin covers the files it
+  #      EXECUTES, not the files it READS. Ten hand-written rows 525..534 are refused (exit 1); the same commit
+  #      with ten matching held rows written into the working tree only and hidden by
+  #      `git update-index --assume-unchanged gates/held-trees.tsv` answered EXIT 0 FAST GATE GREEN with
+  #      `git status --porcelain` EMPTY (orchestrator 1 of 1; reviewer 4 of 4, three with assume-unchanged and
+  #      one with skip-worktree). A merely dirty file is caught; those two index flags hide it from that check.
+  #  (2) IT WAS LOOSER THAN THE HOLD REGISTER'S OWN READER. Any line carrying the number between two tabs in
+  #      ANY column vouched for it - a COMMENT line and a CLEARED row (field 1 starting with `-`) included,
+  #      both of which gates/held.sh's own `match_rows` excludes. Three such lines plus four appended rows
+  #      answered EXIT 0 with "1 of them count toward the ceiling of three" (orchestrator 1 of 1).
+  #  (3) THE DIFF COULD VOUCH FOR ITSELF: ten rows and ten held rows in one diff answered exit 2 instead of
+  #      exit 1, and this script's own comments say exit 2 lands a burn because the full suite runs no series
+  #      check. H23's accept fixture planted its vouching rows in the SAME commit as the mint, so the harness
+  #      could not tell a row the BASE holds from one the diff supplies.
+  # THE FIX IS THE BASE BLOB, PARSED THE REGISTER'S OWN WAY, AND MATCHED IN THE NUMBER COLUMN ONLY. All three
+  # faults share one cause - the question "is this mint accounted for?" is a question about the tree being
+  # gated FROM, so it is asked of `git show "$BASEFULL":...` and of nothing else. A row the diff adds cannot
+  # vouch, because it is not in the base. The filter is `match_rows` from gates/held.sh:33 (skip comments,
+  # require NF>=2, reject a cleared row whose field 1 starts with `-`) and the number must be in FIELD 3, the
+  # column `held.sh add` writes it to, so the heldBy column can no longer vouch.
+  # FAIL-SAFE BY CONSTRUCTION: if the base carries no such file, or git cannot read it, the set is EMPTY and
+  # EVERY new number counts toward the ceiling. The failure direction is a refusal, never a green.
+  # AND THE MEMBERSHIP TEST IS PIPE-FREE, for the reason in_changed() above exists: this set is small today and
+  # a `case` is safe at any size, so the class does not come back here when the register grows.
+  RP_HELDBASE="$($GIT show "$BASEFULL:gates/held-trees.tsv" 2>/dev/null \
+    | grep -v '^[[:space:]]*#' | awk -F'\t' 'NF>=2 && $1 !~ /^-/ {print $3}' || true)"
+  RP_HELDBASE="$NL_525$RP_HELDBASE$NL_525"
+  held_vouches_at_base(){ # <bare number>: 0 iff a LIVE BASE row names it in the NUMBER column
+    case "$RP_HELDBASE" in *"$NL_525#$1$NL_525"*) return 0 ;; esac
+    return 1
+  }
+  say "held-trees rows in the BASE that can vouch for a mint: $(printf '%s' "$RP_HELDBASE" | grep -c '^#' || true) (read with git show from $BASE, never from the working tree [#525])"
+  RP_I=0
+  RP_K=0
+  RP_HELDOK=""
+  RP_FILL=""
+  while IFS= read -r rnum; do
+    [ -n "$rnum" ] || continue
+    # a further row for a number the base ACTUALLY CARRIES is not a new number (a `built` row after a
+    # `minted` row). Compared numerically via +0 on both sides so 0530 and 530 are one number [B finding 6].
+    RP_NORM="$rnum"; RP_NORM="${RP_NORM#"${RP_NORM%%[!0]*}"}"; [ -n "$RP_NORM" ] || RP_NORM=0
+    if grep -qxF "$RP_NORM" <<<"$RP_BASENUMS"; then continue; fi   # string compare, not $(( )) [#524 V2]
+    # DOOR TWO: at or below the base top, and the base does not carry it. A gap fill, not a mint.
+    if [ "$rnum" -le "$RP_TOP" ]; then
+      RP_FILL="$RP_FILL    #$rnum is new and sits AT OR BELOW the base register top of #$RP_TOP, so it is not a mint (gates/buildnum.sh next is highest+1); it fills a gap and turns a number \`check\` answered \`free\` into \`issued\` for good.\n"
+      continue
+    fi
+    RP_I=$((RP_I + 1))
+    # A NUMBER WITH A held-trees ROW IS AN ACCOUNTED-FOR MINT AND DOES NOT COUNT TOWARD THE CEILING
+    # [#524, antagonist A's NOTE 5, UPHELD AND CLOSED RATHER THAN LEFT AS A RESIDUAL]. A's objection was that
+    # the ceiling was measured over pushes that LANDED, which by construction can never contain a HELD run's
+    # unlanded mint - so honest unlanded mints accumulate and a legitimate tree can exceed three, while exit 1
+    # is terminal (prompts/build-run STEP 0F reads it as STOP) with no full-suite escape.
+    # IT IS NOT HYPOTHETICAL AND I MEASURED HOW NEAR IT WAS: this branch adds exactly #523 and #524 above
+    # main's top of #522, #523 already carries a held-trees row, and if this run holds then #524 does too. One
+    # more held run reaches 3 - still allowed - and the one after reaches FOUR, refused terminally, with three
+    # of the four being accounted-for holds. A guard that blocks the project's only writer in two runs is
+    # worse than the attack it was built for, and gates/held-trees.tsv on main records four CONSECUTIVE holds
+    # (#456-#459), so the shape recurs.
+    # TWO COUNTERS, DELIBERATELY NOT ONE: RP_I is the POSITION and contiguity still applies to every new
+    # number (an accounted-for mint is still sequential, so this does not loosen that test by a single row);
+    # RP_K is what the ceiling bounds, and it skips a number the held register vouches for. A's ten
+    # hand-written rows carry no held row, so they still count ten and are still refused - the attack is
+    # unaffected, which is the only thing that makes this safe rather than a widening.
+    if held_vouches_at_base "$rnum"; then   # #525: BASE blob, match_rows filter, number column only
+      RP_HELDOK="$RP_HELDOK #$rnum"
+    else
+      RP_K=$((RP_K + 1))
+    fi
+    if [ "$rnum" -gt "$((RP_TOP + RP_I))" ]; then
+      # BASE 10, FORCED, AND THE ORDINAL SPELLED [#524, antagonist B finding 6]. `[ "$rnum" -le ... ]` reads a
+      # leading-zero number as DECIMAL while $(( )) reads the same string as OCTAL, so B's planted `0530` row
+      # was TESTED as 530 and then DESCRIBED using 344: the refusal printed "Landing it burns -181 number(s)
+      # permanently". The verdict was right and the sentence was nonsense - and a negative burn count inside a
+      # REFUSED log is exactly the kind of figure this project quotes into a run report. 10# pins the base for
+      # every arithmetic use of the row's own number. The ordinal is separate and smaller: it printed "1th".
+      RP_N10=$((10#$rnum))
+      case "$RP_I" in 1) RP_ORD="1st" ;; 2) RP_ORD="2nd" ;; 3) RP_ORD="3rd" ;; *) RP_ORD="${RP_I}th" ;; esac
+      RP_BAD="$RP_BAD    row #$rnum is new, and it is the $RP_ORD new number in this diff, so an honest mint would have made it #$((RP_TOP + RP_I)) (base register top #$RP_TOP, and gates/buildnum.sh next is highest+1). Landing it burns $((RP_N10 - RP_TOP - RP_I)) number(s) permanently, and the register is append-only.\n"
+    fi
+  done <<EOF
+$RP_NEW
+EOF
+  # KEEP THE TWO ROW SETS for the not-checked count on the green path below [#524, B finding 6]; the files
+  # themselves go, because this block must not leave temporaries behind on any exit path.
+  RP_B2="$(mktemp)"; RP_H2="$(mktemp)"; cp "$RP_B" "$RP_B2"; cp "$RP_H" "$RP_H2"
+  RP_BASENUMS2="$RP_BASENUMS"
+  rm -f "$RP_B" "$RP_H"
+  # AND k IS BOUNDED AT THE MINT DOOR [#524, antagonist A's veto 5(b), UPHELD, AND THE SHARPEST OF THE PAIR].
+  # The bound was per-position (`rnum > RP_TOP + RP_I`), so k CONTIGUOUS rows license k numbers and nothing
+  # bounded k. A measured it: ten hand-written rows at top+1..top+10 took EXIT 0 FAST GATE GREEN and moved
+  # `buildnum.sh next` from #525 to #535 - TEN NUMBERS BURNED IN ONE COMMIT BY ONE HAND, strictly worse than
+  # the six that motivated this bound in the first place. H16's single sparse row was refused and the dense
+  # form was not.
+  # THE CEILING IS 3, MEASURED - AND THE CITATION THIS MESSAGE USED TO CARRY WAS WRONG, IN BOTH ITS HOMES
+  # [#524 second pass, antagonist A's VETO 3]. It said "three has happened twice in this register (#469,
+  # #480)". Re-derived with this script's own row filter, one `git show <sha>:gates/build-numbers.tsv` per
+  # commit touching the file, base number set against head number set:
+  #     21b5967513  top=466  ABOVE(3): 467 468 469   #469: a live game can be re-entered
+  #     dc0ece3609  top=477  ABOVE(3): 478 479 480   #480: print what this container IS into every gate log
+  #     46d919dc3a  top=514  ABOVE(3): 515 516 517   #517 register rows: the mint, plus the #515/#516 backfill
+  # THREE, not twice, and the missing one is the MOST RECENT - seven builds before this one - and the one
+  # whose own subject describes the shape most likely to recur. The same false count was in
+  # claude/stories/TEST-CASES.md at TC-SUITE-077, so it was wrong in both homes: #493's "a fix recorded in one
+  # home does not travel", with an error instead of a fix.
+  # HOW I GOT IT WRONG, because the method matters more than the number: I ran my per-commit measurement and
+  # read it through `tail -45`, which cut the NEWEST commits - #500 to #524 - off the head of the list. The
+  # ceiling VALUE survived (3 is still the maximum) but the evidence for it was a truncated window I then
+  # published as a census. That is #411/#412's "a count with no scope cannot be checked", self-inflicted by a
+  # pipe.
+  # AND THE BOUND IS OVER THE DIFF, NOT OVER ONE COMMIT [A's NOTE 4]. This arm requires BASE to be
+  # origin/main and reads $CHANGED from $BASEFULL..$HEAD, so it judges the WHOLE BRANCH STACK; the sentence
+  # below used to say "at most three in one commit" over a diff that may carry many. A re-derived the correct
+  # population too - main's first-parent history grouped into pushes by the build number in the subject, base
+  # = parent of the group's oldest commit - and the maximum above-top PER PUSH is also 3 (#469, #480, #517),
+  # with #454's register-creating push at 218 above a top of 0 and diverted by the RP_TOP=0 arm. So the number
+  # is right for the population actually judged; the justification now names which population it is.
+  if [ "$RP_K" -gt 3 ]; then
+    RP_BAD="$RP_BAD    this diff appends $RP_I NEW build numbers ABOVE the base top of #$RP_TOP, of which $RP_K are NOT vouched for by a row in gates/held-trees.tsv, and the measured ceiling is THREE. A mint takes one (gates/buildnum.sh next is highest+1); two occur when a run merges a branch whose own minted row never reached main; three has happened three times in this register (#469 21b5967513, #480 dc0ece3609, #517 46d919dc3a, re-derived at #524); four has never happened, per commit or per push. NOTE THE SCOPE: this arm judges the whole diff \$BASEFULL..\$HEAD, not one commit, so a branch stack of honest one-mint commits is counted together.\n"
+    [ -n "$RP_HELDOK" ] && RP_BAD="$RP_BAD    (Excluded from that count because gates/held-trees.tsv vouches for them:$RP_HELDOK. A HELD run's mint row never reaches main, so unlanded mints accumulate on the next tree - which is why they are excluded rather than counted.)\n"
+    RP_BAD="$RP_BAD    THIS REFUSAL IS TERMINAL AND exit 2 WAS CONSIDERED AND REJECTED: the full suite runs no series check, so routing a wholesale burn there lands it. If these numbers ARE accounted for, the route is a held-trees row per held mint - which this arm reads - and not a workaround.\n"
+    RP_BAD="$RP_BAD    AND CHECK YOUR BASE BEFORE YOU HUNT A WEDGE [#524, A's NOTE 6]: if refs/remotes/origin/main is STALE this count is inflated by numbers already on the real main. A measured exactly that - with origin/main pinned eight builds back this arm reported '10 NEW build numbers' for a tree whose first eight were already landed. Run git fetch and read git log -1 origin/main before believing the figure above.\n"
+  fi
+  if [ -n "$RP_BAD" ]; then
+    say ""
+    say "FAST GATE REFUSED - gates/build-numbers.tsv gains a row the series cannot carry [#523]. The register is"
+    say "    APPEND-ONLY, so this cannot be edited out again once it lands, and it wedges every later mint:"
+    printf "$RP_BAD" | tee -a "$LOG"
+    # AND NAME THE GAP FILLS TOO, EVEN THOUGH WE ARE REFUSING [#524, antagonist A's NOTE 7]. RP_BAD used to
+    # short-circuit here, so a diff carrying BOTH a refusing condition and a gap fill was silent about the
+    # free number it also turns `issued` - A measured `grep -c 363` = 0 on exactly that diff. A5(a)'s whole
+    # point was that the log must name every number being spent, and a refusal is no excuse for omitting one:
+    # the reader of a refused log is the person deciding what to do next.
+    if [ -n "$RP_FILL" ]; then
+      say "    AND THE SAME DIFF ALSO FILLS A GAP, which the refusal above does not mention:"
+      printf "$RP_FILL" | tee -a "$LOG"
+    fi
+    exit 1
+  fi
+  if [ -n "$RP_FILL" ]; then
+    say ""
+    say "FULL SUITE REQUIRED - gates/build-numbers.tsv fills a GAP rather than appending a mint [#524]:"
+    printf "$RP_FILL" | tee -a "$LOG"
+    say "    This is not refused: #454's census (f6127fcb36, gates/build-numbers.tsv and nothing else) filled"
+    say "    123 such numbers legitimately, so refusing it would refuse honest work. It does not get the FAST"
+    say "    door, because nothing here can tell a census from a hand-written row claiming a free number, and"
+    say "    the register is append-only. Run: gates/gates.sh \"#<N>\""
+    exit 2
+  fi
+  # AND ASK THE MINTER ITSELF. This is the predicate the wedge actually breaks, so it is the one that decides.
+  RP_OUT="$(cd "$ROOT" && bash "$G/buildnum.sh" next 2>&1)"; RP_RC=$?
+  if [ "$RP_RC" != 0 ]; then
+    say ""
+    say "FAST GATE REFUSED - gates/build-numbers.tsv changed and gates/buildnum.sh next now REFUSES on the head"
+    say "    register (exit $RP_RC), so this commit would wedge the next mint [#523]:"
+    printf '%s\n' "$RP_OUT" | sed 's/^/    /' | tee -a "$LOG"
+    exit 1
+  fi
+  # WHAT THIS LINE MAY CLAIM IS EXACTLY WHAT RAN [#524]. It used to say "every new number in this diff is
+  # contiguous with the base register top" on a path that SKIPPED every number at or below that top - A's
+  # 5(a), where a planted `363 minted` row got a fast green under a log asserting a check it had not done.
+  # Both doors are now walked, so the sentence is true; and it names the count, so a reader can see k.
+  say "register plausibility [#523, bound corrected #524]: $RP_I new build number(s) above the base register"
+  [ -n "$RP_HELDOK" ] && say "  ($RP_K of them count toward the ceiling of three; gates/held-trees.tsv vouches for$RP_HELDOK, which a held run's unlanded mint needs.)"
+  say "  top of #$RP_TOP, each contiguous with it (an honest mint is highest+1, so the Nth new number may be"
+  say "  at most #$RP_TOP+N) and at most three in one commit; NO new number at or below #$RP_TOP, which would"
+  say "  be a gap fill rather than a mint and goes to the full suite; and gates/buildnum.sh next still answers"
+  say "  exit 0 on the head register ($RP_OUT)."
+  # WHAT THIS ARM DID NOT CHECK, SAID ON THE GREEN PATH [#524, antagonist B finding 6]. B appended one row
+  # claiming the LIVE number #524 for another runId and took EXIT 0 FAST GATE GREEN under the line above; at
+  # 25 rows for 500..524 it was still green and still "0 new build number(s)", while
+  # `CT_RUNID=<the true holder> buildnum.sh stampable 524` went to NOT STAMPABLE - permanently, because the
+  # register is append-only. The bound is over the NUMBERS that appear, so a row for a number the base already
+  # carries is outside it by construction. The green line read as a clean bill over a register diff that
+  # nothing had examined, which is the thing #450 is about; now it says so.
+  RP_SAME="$(grep -vxF -f <(grep -v '^[[:space:]]*#' "$RP_B2" 2>/dev/null || true) <(grep -v '^[[:space:]]*#' "$RP_H2") 2>/dev/null \
+             | cut -f1 | awk 'NF && $1 ~ /^[0-9]+$/ {sub(/^0+/,"",$1); if($1=="")$1="0"; print $1}' | sort -u \
+             | grep -cxF -f <(printf '%s\n' "$RP_BASENUMS2") 2>/dev/null || true)"
+  [ -n "$RP_SAME" ] || RP_SAME=0
+  say "  NOT CHECKED BY THIS ARM, stated rather than left to be found: $RP_SAME appended row(s) name a number the"
+  say "  base register ALREADY carries. The bound is over the numbers that APPEAR, so such a row is outside it -"
+  say "  and one of them can make a live number NOT STAMPABLE for its true holder, append-only and unrecoverable."
+  rm -f "$RP_B2" "$RP_H2"
+fi
 
 STAMPONLY=""
 if [ -n "$APPDIFF" ]; then
@@ -480,6 +1064,33 @@ if [ -n "$APPDIFF" ]; then
   rm -f "$SO_B" "$SO_H"
   if [ "$SO_RC" = 0 ]; then
     STAMPONLY=yes
+    # ── PART 2 CALL SITE, #523. The exemption is not taken until the stamp is PLAUSIBLE as well as stamp-only.
+    PLAUS_REG="$(mktemp)"
+    if [ -z "$PLAUS_REG" ] || [ ! -f "$PLAUS_REG" ]; then
+      say ""; say "FULL SUITE REQUIRED. mktemp failed, so the stamp-plausibility arm could not be run at all."
+      say "    $APPDIFF"; exit 2
+    fi
+    $GIT cat-file blob "$HEAD:gates/build-numbers.tsv" > "$PLAUS_REG" 2>/dev/null || true
+    PL_B="$(mktemp)"; PL_H="$(mktemp)"
+    $GIT cat-file blob "$BASEFULL:app.js" > "$PL_B" 2>/dev/null || true
+    $GIT cat-file blob "$HEAD:app.js"     > "$PL_H" 2>/dev/null || true
+    PL_M5="$(md5sum < "$PL_H" 2>/dev/null | cut -c1-12)"
+    plaus_pred "$PL_B" "$PL_H" "$PL_M5"; PL_RC=$?
+    rm -f "$PLAUS_REG" "$PL_B" "$PL_H"
+    case "$PL_RC" in
+      0) say ""
+         say "stamp plausibility, both witnesses [#523]: $PLAUS_WHY" ;;
+      1) say ""
+         say "FAST GATE REFUSED - the stamp plausibility arm answered that this tree must not take a fast green:"
+         say "    $PLAUS_WHY"
+         exit 1 ;;
+      *) say ""
+         say "FULL SUITE REQUIRED. app.js differs by its build stamp only, but that stamp is NOT a plausible"
+         say "    build, so the exemption is not taken [#523]:"
+         say "    NOT-STAMP-ONLY $PLAUS_WHY"
+         say "    $APPDIFF"
+         exit 2 ;;
+    esac
     say ""
     say "app.js differs from the base BY ITS BUILD STAMP ONLY, so it does not force the full suite:"
     say "    $APPDIFF"
@@ -495,6 +1106,7 @@ if [ -n "$APPDIFF" ]; then
     exit 2
   fi
 fi
+
 
 # ── DOES THIS HEAD CARRY .nojekyll? MEASURED ONCE, FROM THE OBJECT STORE, AND USED BY classify() BELOW. ─────
 # Added #509. The root-.md arm of classify() used to be an unconditional FORCE whose stated reason was "GitHub
@@ -573,9 +1185,30 @@ say "  .md is records-only - see classify. Absent or a directory means the ROOT 
 # itself. The hazard is also bigger than my first comment's figure: that comment said the file names this path
 # in "nine other places", and A measured 35 occurrences across 30 lines (28 besides the assignment and the
 # baseline), so the surface a source-grep had to get right was three times what I claimed.
+# CAPTURE FIRST, THEN MATCH - NEVER PIPE INTO `grep -q` UNDER pipefail [#524]. This was
+#   "$G/records-gate.sh" --entries 2>/dev/null | grep -qxF "..." && BNRATCHET=yes
+# and under `set -uo pipefail` it is a RACE, not a read: grep -q exits the moment it matches (the 2nd of 9
+# lines), records-gate.sh then takes SIGPIPE, the PIPELINE status becomes 141, the && never fires, BNRATCHET
+# stays `no`, and classify() sends the register to FORCE for a reason that has nothing to do with the commit.
+# MEASURED by #523's antagonist B three ways: 9 misses in 150 trials of the bare pipeline (6.0 per cent per
+# invocation); 0 misses in 25 with pipefail off, so the interaction and not records-gate.sh; and 4 of 10
+# `fastgate-drive.sh fixed` runs RED under load, with causation proved deterministically by forcing
+# BNRATCHET=no and getting a byte-identical failure signature. It is LOAD-DEPENDENT - a quiet box missed 0 in
+# 150 - and the load condition is exactly the one gates.sh runs this under, with the suite writing its log.
+# On main the race was merely fail-safe (one commit routed to the full suite); #523 wired it into GATES GREEN
+# itself, which is the one artefact that authorises a push, so a coin flip became load-bearing.
+# gates/verify-log.sh already names this class at its own arm 5 ("therefore no SIGPIPE: rc 0 at every n").
 BNRATCHET=no
-"$G/records-gate.sh" --entries 2>/dev/null \
-  | grep -qxF "$(printf 'appendonly\tgates/build-numbers.tsv')" && BNRATCHET=yes
+BN_ENT="$("$G/records-gate.sh" --entries 2>/dev/null || true)"
+# AND THE MATCH IS IN-SHELL TOO [#524, antagonist A claim 2]. Capturing into BN_ENT took records-gate.sh out
+# of the pipeline, which is the fix that mattered - but the replacement was still `printf | grep -qxF` under
+# `set -uo pipefail`, i.e. the identical SHAPE, safe only because --entries is small. A measured it: 244 bytes
+# over 9 lines gives 0 misses in 200 trials, while the same construct at 300 KB gives 60 misses in 60. So it
+# was safe BY PAYLOAD SIZE against the 64 KiB pipe buffer, not by construction, and any growth of --entries
+# past that re-opens exactly the defect #523 was held for. A quoted `case` has no pipe to break. The TAB is
+# built once into a variable because a pattern cannot carry a $(printf) safely.
+BN_WANT="$(printf 'appendonly\tgates/build-numbers.tsv')"
+case "$BN_ENT" in *"$BN_WANT"*) BNRATCHET=yes ;; esac
 say "gates/build-numbers.tsv in the records door's APPENDONLY ratchet (asked of the door via --entries, which is"
 say "  the same file this script runs below): $BNRATCHET - it decides whether the register is records-only."
 
@@ -846,7 +1479,8 @@ while IFS= read -r p; do
     say "    app.js: classify() forces it, and the stamp-only proof above exempts it for THIS commit."
     say "    (BOTH conditions are now met: #521 took gates/build-numbers.tsv out of the shared FORCE arm, so a"
     say "     commit that rebuilt the bundle AND minted its number CAN reach this tier. Measured over origin/main's"
-    say "     last 400 commits: this exemption reaches 11 that were unreachable before, 192 of 400 in total.)"
+    say "     last 400 commits: this exemption REACHES 11 commits that were unreachable before and is SATISFIED"
+    say "     by ten of them, giving 191 of 400 applied; 192 is the unconditional upper bound, not a count.)"
     continue
   fi
   v="$(classify "$p")"

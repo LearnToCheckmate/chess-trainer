@@ -76,6 +76,7 @@ $G/logs/.suite.lock	SHARED-BY-DESIGN	nothing - it IS the mutex, and pid/started/
 $G/logs/$TAG-all.log	RUN-UNIQUE	$TAG plus the b..z suffix search at gates.sh:145-151 (#418's guard)
 $G/logs/$TAG$sfx-all.log	RUN-UNIQUE	$sfx, the b..z suffix that makes the -all log unique
 $G/logs/$TAG-subset-all.log	RUN-UNIQUE	$TAG, and a subset run cannot emit GATES GREEN in any case
+$G/logs/$STEM-fastgate-drive.log	RUN-UNIQUE	$STEM, the same derivation as every other per-run log here [#525]
 $G/logs/$STEM-$name.log	RUN-UNIQUE	$STEM, derived at gates.sh:159 from the suffixed -all log name
 $G/logs/$STEM-unit-drill-why.log	RUN-UNIQUE	$STEM, same derivation
 $G/shots/gates-$TAG	COLLIDES	$TAG ONLY - no suffix, so two runs at one build number share it
@@ -96,7 +97,7 @@ say(){ printf '%s\n' "$*"; }
 derive(){  # every distinct $G/ expression gates.sh can write to, from the source, sorted
   grep -oE '\$G/[A-Za-z0-9_./$={}#-]*' "$GATESH" \
     | sed 's/}$//' \
-    | grep -vE '/(gatemanifest\.sh|mountcheck\.js|unit-drill-why\.js|regress/?)$' \
+    | grep -vE '/(gatemanifest\.sh|mountcheck\.js|unit-drill-why\.js|fastgate-drive\.sh|regress/?)$' \
     | sort -u
 }
 

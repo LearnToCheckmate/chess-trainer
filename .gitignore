@@ -20,3 +20,14 @@ gates/.probe/
 # rather than the file committed.
 gates/.anta*.js
 gates/.probe*.js
+
+# #524, found by antagonist A from the diff door and matching the wrong-reason red antagonist B hit from the
+# shipped surface: gates/buildnum.sh:129 is LOCKD="$HERE/.buildnum.lock", a DIRECTORY holding a pid file,
+# and it was not ignored by anything above. It is a mutex, never an artefact. While a mint is in flight it is
+# an untracked path under gates/, so `git add -A` sweeps it into a commit - which is exactly what
+# gates/fastgate-drive.sh's commit_case does when it builds a fixture - and gates/fastgate.sh then sees a
+# commit touching an unrecognised gates/ path and exits 2 for "paths are not records-only" instead of the
+# reason the case asserts. A measured it inside a live clone. The harness now excludes the path explicitly
+# as well; this line is the half that protects every OTHER caller, including a human running `git add -A`
+# during a mint, and a stop hook that would otherwise ask for a lock file to be committed.
+gates/.buildnum.lock/
