@@ -121,6 +121,18 @@ $(head -c 200000 /dev/zero | tr '\0' 'x')"
   st C12-a-missing-harness-is-RED            "$(st_drive '')" 1
   # C13 a NAMED refusal at exit 2 is still a SKIP (0): the dirty-tree path on the documented happy path.
   st C13-a-named-refusal-is-still-a-SKIP     "$(st_drive 'echo "fastgate-drive.sh: REFUSING - stub"; exit 2')" 0
+  # ── C15 AND C16: THE SKIP BOUND [#526]. The verdict used to credit skips as green with no floor but
+  # `dok -eq 0`, which is the finding that HELD #525. These two are a PAIR and must be read as one:
+  # C15 shows the bound fires on a harness that has stopped asserting, C16 shows it does NOT fire on the
+  # honest tree. C15 FAILS with the fix removed; C16 passes either way BY DESIGN, because it is the control
+  # against setting the bound too tight, and a guard that fires on the normal case gets switched off.
+  st_drive_n(){ # $1 = ok lines, $2 = SKIPPED lines; exits 0, so only the counts decide the verdict
+    st_drive "for i in \$(seq 1 $1); do echo \"  ok  H\$i [TC-SUITE-0\$i]  (probe)\"; done
+for i in \$(seq 1 $2); do echo \"  SKIPPED H\$i [TC-SUITE-0\$i]  probe\"; done
+exit 0"
+  }
+  st C15-one-ok-and-25-skipped-is-RED        "$(st_drive_n 1 25)" 1
+  st C16-24-ok-and-2-skipped-is-still-green  "$(st_drive_n 24 2)" 0
 
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
@@ -454,13 +466,32 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   # copied verbatim into the log, so a reader sees that the push gate went untested and why. That is the same
   # honest-and-blind shape as the five known-absent gates the manifest reports every run, and the same
   # precedent as the esbuild-absent case inside the harness, which already prints SKIPPED and counts no ok.
+  # ── AND A SKIP BOUND, BECAUSE THE VERDICT CREDITED SKIPS AS GREEN WITH NO FLOOR BUT `dok -eq 0` [#526]. ────
+  # This is the finding that HELD #525: with 1 ok and 25 SKIPPED the block printed
+  # "fastgate-drive: green (1 ok -> 1 PASS lines, 25 skipped)" and left red at 0, so a harness that had
+  # silently stopped running its cases - a renamed fixture, a changed guard, an environment that makes every
+  # case skip - reported green inside a GATES GREEN log, and that log then authorised a push. It is #405's
+  # "0 PASS is the tell" with the DENOMINATOR REMOVED rather than frozen: the section line reports the skips
+  # and the verdict ignores them.
+  # WHY THE BOUND IS 2 AND NOT 0. Two skips is the most an HONEST tree takes, and both are reachable with no
+  # tampering: H1b skips wherever esbuild is not on the PATH (the harness's own clone carries no
+  # node_modules), and H25 prints SKIPPED when git's `update-index --assume-unchanged` does not hide the
+  # doctored file, which depends on the git build. A bound of 0 would fire on the normal case, and a guard
+  # that fires on the normal case gets switched off - the same argument C13 makes for the dirty-tree decline.
+  # SO THE PAIR IS WHAT MATTERS, NOT THE NUMBER: C15 (1 ok, 25 SKIPPED) must be RED and C16 (24 ok,
+  # 2 SKIPPED) must stay green, and C16 is green with this fix and without it BY DESIGN - it is the control
+  # that stops the bound being set too tight, so do not look for a failure of it.
+  # NOT TAKEN: the job's own "preferred" form, where the harness prints its own `cases: N` and the block
+  # requires `dok + dskip == N`. It commits no magic number and cannot go stale as cases are added, which is
+  # the better design - but it changes the harness's OUTPUT CONTRACT, and this run has no blind read left to
+  # spend on that. Filed rather than built.
   if [ "$drc" -eq 2 ] && [ "$dfail" -eq 0 ] && [ "$dok" -eq 0 ] && [ "$drefuse" -ge 1 ]; then   # #525: a decline must SAY so
     echo "    fastgate-drive: SKIPPED - the harness DECLINED to run and asserted nothing (exit 2)." | tee -a "$ALL"
     grep -a 'REFUSING' "$dlog" | head -3 | sed 's/^/        /' | tee -a "$ALL"
     echo "        This is NOT a red and NOT a green: the tiered push gate was not exercised by this suite," | tee -a "$ALL"
     echo "        so this log says nothing about gates/fastgate.sh. The usual cause is a dirty working tree," | tee -a "$ALL"
     echo "        which is the documented path between gates/build.sh and gates/gates.sh. Full output: $dlog" | tee -a "$ALL"
-  elif [ "$drc" -ne 0 ] || [ "$dfail" -gt 0 ] || [ "$dok" -eq 0 ]; then
+  elif [ "$drc" -ne 0 ] || [ "$dfail" -gt 0 ] || [ "$dok" -eq 0 ] || [ "$dskip" -gt 2 ]; then
     red=1
     echo "    fastgate-drive: RED (exit $drc, $dfail FAIL, $dok ok, $dskip skipped, $drefuse REFUSING line(s))" | tee -a "$ALL"
     sed -n 's/^  FAIL /FAIL fastgate-drive /p' "$dlog" | head -8 | tee -a "$ALL"
