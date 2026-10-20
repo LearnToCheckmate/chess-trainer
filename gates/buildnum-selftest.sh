@@ -416,8 +416,12 @@ while IFS="$(printf '\t')" read -r _num _sha; do
   [ -n "${_num:-}" ] || continue
   R_N=$((R_N+1))
   git -C "$GD" cat-file -e "$_sha" 2>/dev/null && R_OK=$((R_OK+1))
-  git -C "$GD" show --no-patch --format=%s "$_sha" 2>/dev/null | grep -qE "(#|[Bb]uild +)0*$_num(\$|[^0-9])" \
-    && R_SUBJ=$((R_SUBJ+1))
+  # #527: captured, then tested with a herestring. This was `git show ... | grep -qE ... && R_SUBJ=...`, a pipeline
+  # into grep -q whose status decides control flow, the shape gates/records-gate.sh entries_ratchet() was measured
+  # taking SIGPIPE in under load; gatemanifest.sh's sigpipe audit filed it as TIER D because the `&&` that reads
+  # its status is on the continuation line.
+  _subj="$(git -C "$GD" show --no-patch --format=%s "$_sha" 2>/dev/null)"
+  grep -qE "(#|[Bb]uild +)0*$_num(\$|[^0-9])" <<< "$_subj" && R_SUBJ=$((R_SUBJ+1))
 done <<< "$SWEPT_SHAS"
 eq "every swept sha RESOLVES under git cat-file -e"            "$R_N" "$R_OK"
 eq "and the commit it names has that number in its SUBJECT"    "$R_N" "$R_SUBJ"

@@ -87,12 +87,29 @@ entries_live(){
 
 entries_ratchet(){
   # Returns 0 when every baseline entry is still live with its baseline MODE, 1 otherwise, naming what is gone.
-  local e mode path live gone=""
+  # THE MEMBERSHIP TEST IS IN-SHELL, WITH NO PIPELINE [#527]. It was
+  #   printf '%s' "$live" | grep -qxF "$(printf '%s\t%s' "$mode" "$path")" || gone=...
+  # under `set -uo pipefail` (:54), and that pipeline's status decided control flow through the `||` on its
+  # continuation line. The list is 244 bytes, far under the 64 KiB pipe buffer, and it STILL took SIGPIPE: bash's
+  # printf in a pipeline subshell writes such a string in pieces (strace: nine lines in six or seven write() calls, four readings),
+  # so `grep -q` can match an early line and exit between two writes, the next write raises SIGPIPE, the
+  # pipeline answers 141 and a live entry reads as gone. MEASURED by the orchestrator on Tue 20 Oct 2026 under
+  # three CPU burners and one disk writer on a 2 core machine: the exact construct missed 2 of 36,000 tests
+  # (both rc 141, on the 4th and 7th entries), and in a 20 run loop of `gates/fastgate-drive.sh fixed` on main
+  # 366428f it surfaced once as a false RED of the POSITIVE case H23, "RECORDS GATE REFUSED - the entry list
+  # LOST a required check", which gates/gates.sh's unit block turns into a red suite. A small payload is
+  # therefore NOT a protection against this class. A quoted `case` pattern is a literal whole-line test done by
+  # bash itself: no fork, no pipe, nothing that can be killed or starved, which is the form
+  # gates/fastgate-drive.sh's expect() already uses for the same reason.
+  local e mode path live want gone=""
   live="$(entries_live)"
   for e in $RECORDS_BASELINE; do
     mode="${e%%:*}"; path="${e#*:}"
-    printf '%s' "$live" | grep -qxF "$(printf '%s\t%s' "$mode" "$path")" \
-      || gone="$gone    $path: required as $mode by RECORDS_BASELINE and NOT in the live list.\n"
+    want="$mode"$'\t'"$path"
+    case $'\n'"$live"$'\n' in
+      *$'\n'"$want"$'\n'*) : ;;
+      *) gone="$gone    $path: required as $mode by RECORDS_BASELINE and NOT in the live list.\n" ;;
+    esac
   done
   if [ -n "$gone" ]; then
     say "RECORDS GATE REFUSED - the entry list LOST a required check, which is how a door gets quietly emptied:"

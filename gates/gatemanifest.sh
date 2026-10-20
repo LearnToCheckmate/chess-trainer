@@ -236,7 +236,8 @@ SP_A_CEIL=1      # gates/verify-log.sh:128. Target 0. Needs that file's own arte
                  # rather than taken here under a suite deadline. Found by running the controls, not by
                  # reading them [self-caught, #513].
 SP_B_CEIL=0      # the shape that shipped a wrong push-gate verdict. There is no legitimate instance of it.
-SP_TOTAL_CEIL=17   # RE-RATCHETED 9 -> 17 BY THE INTEGRATION RUN (#513), WITH THE REASON, which is what this
+SP_TOTAL_CEIL=15   # #527: 17 -> 15 in the commit that removed gates/records-gate.sh:94 and gates/buildnum-selftest.sh:419.
+                   # RE-RATCHETED 9 -> 17 BY THE INTEGRATION RUN (#513), WITH THE REASON, which is what this
                    # audit's own refusal message demands ("Fix the new site, or raise SP_TOTAL_CEIL in this
                    # file WITH the reason"). READ WHY BEFORE READING IT AS A WEAKENING, because the number
                    # was ALREADY BREACHED ON ARRIVAL AND THAT IS THE FINDING: measured by a one-variable
