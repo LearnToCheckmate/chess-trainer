@@ -137,8 +137,16 @@ exit 0"
   # pin it only to the interval [3, 25]: measured, `sed` the bound to `-gt 20` and the whole selftest is still
   # green, so the pair discriminates against the fix being REMOVED and not against it being LOOSENED. This is
   # the boundary case, and it is the tightest one the honest tree permits - A also measured that the reachable
-  # honest maximum is exactly 2, because gates/fastgate-drive.sh has three SKIPPED emission sites and two of
-  # them (:485 and :489) are the mutually exclusive halves of H1b. So 3 skips means something is wrong.
+  # honest maximum is exactly 2, because gates/fastgate-drive.sh had three SKIPPED emission sites and two of
+  # them are the mutually exclusive halves of H1b (esbuild present but no bundle built, and esbuild absent;
+  # named rather than numbered since #527, whose cases moved the lines). So 3 skips meant something was wrong.
+  # #527 ADDS SIX CASES THAT CAN SKIP, and only some share H25's condition (a git whose `update-index
+  # --assume-unchanged` does not hide a changed file from `git status`). H11 and H30 hide only that way, as H25
+  # does; H10 can also hide by a clean filter, H28 and H32 by skip-worktree or a clean filter, and H31 by
+  # .git/info/exclude, and those skip only when no route hides. So the honest count is 1 (H1b) on a git that
+  # hides the file, which this container's 2.43.0 does, and 4 (H1b, H11, H25, H30) on one that does not, which
+  # this bound turns RED. That red is deliberate and is the thing to re-measure before raising the bound: a
+  # bound widened to fit would also pass a harness that had silently skipped other cases.
   st C18-24-ok-and-3-skipped-is-RED          "$(st_drive_n 24 3)" 1
   # ── C17: THE DECLINE TEST MUST REQUIRE A REAL REFUSAL LINE, NOT THE WORD ANYWHERE [#526]. ───────────────
   # The drefuse grep was unanchored, so an exit 2 whose prose merely contains "REFUSING" read as a decline
@@ -497,6 +505,8 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   # node_modules), and H25 prints SKIPPED when git's `update-index --assume-unchanged` does not hide the
   # doctored file, which depends on the git build. A bound of 0 would fire on the normal case, and a guard
   # that fires on the normal case gets switched off - the same argument C13 makes for the dirty-tree decline.
+  # SINCE #527 H11 AND H30 SHARE H25's CONDITION, so on a git that does not hide the file four cases skip with
+  # H1b and this block is RED; the comment at C18 in this file's selftest says why the bound is not raised to fit.
   # SO THE PAIR IS WHAT MATTERS, NOT THE NUMBER: C15 (1 ok, 25 SKIPPED) must be RED and C16 (24 ok,
   # 2 SKIPPED) must stay green, and C16 is green with this fix and without it BY DESIGN - it is the control
   # that stops the bound being set too tight, so do not look for a failure of it.
@@ -506,7 +516,7 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   # spend on that. Filed rather than built.
   if [ "$drc" -eq 2 ] && [ "$dfail" -eq 0 ] && [ "$dok" -eq 0 ] && [ "$drefuse" -ge 1 ]; then   # #525: a decline must SAY so
     echo "    fastgate-drive: SKIPPED - the harness DECLINED to run and asserted nothing (exit 2)." | tee -a "$ALL"
-    grep -a 'REFUSING' "$dlog" | head -3 | sed 's/^/        /' | tee -a "$ALL"
+    grep -a '^fastgate-drive\.sh: REFUSING - ' "$dlog" | head -3 | sed 's/^/        /' | tee -a "$ALL"   # #527: the lines drefuse counted
     echo "        This is NOT a red and NOT a green: the tiered push gate was not exercised by this suite," | tee -a "$ALL"
     echo "        so this log says nothing about gates/fastgate.sh. The usual cause is a dirty working tree," | tee -a "$ALL"
     echo "        which is the documented path between gates/build.sh and gates/gates.sh. Full output: $dlog" | tee -a "$ALL"

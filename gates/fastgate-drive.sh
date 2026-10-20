@@ -134,6 +134,9 @@ BASESHA="$CAND"
 if [ "$MODE" = unfixed ]; then
   # H12. THE HARNESS MUST BE ABLE TO FAIL. Replace the two files this change touches with their origin/main
   # copies and COMMIT that as the clone's base, so the cases run against the script as it ships today.
+  # H12 IS THIS MODE AND HAS NO CASE BODY, BY DESIGN [#527]. It prints no ok line of its own, so no `fixed` log,
+  # which is the only mode gates/gates.sh runs, can carry TC-SUITE-067; its figure is this mode's own count line,
+  # and it means something only BEFORE a landing, while origin/main still carries the script being replaced.
   for f in gates/fastgate.sh gates/buildnum.sh; do
     if git -C "$C" cat-file -e "$UPSTREAM:$f" 2>/dev/null; then
       git -C "$C" show "$UPSTREAM:$f" > "$C/$f" || true
@@ -262,8 +265,13 @@ tc(){ # <case> -> its TC id, or a loud placeholder
 # THIS COMMENT IS ABOVE THE FUNCTION AND NOT INSIDE IT ON PURPOSE: the control for that fix is
 # `sed -n '/^show_verdict()/,+2p' <this file> | grep -c REFUSING` -> 1, and a comment carrying the word inside
 # that three-line window is itself counted, which reads 2 and breaks the control it is explaining.
-show_verdict(){ # <text>: up to three verdict lines, indented, with no pipeline anywhere
-  awk '/FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED|REFUSING|BUILDNUM_MAX_DELTA/{printf "         %s\n", $0; if(++n==3) exit}' <<<"$1"
+# AND IT PRINTS THE LAST THREE MATCHING LINES, NOT THE FIRST THREE [#527,
+# jobs/the-harnesss-verdict-display-truncates-at-the-first-three-matching-lines-so-chatter-buries-the-decisive-one-2026-10-20].
+# The decisive verdict comes last: a refusal is printed where it is decided, after any notices. MEASURED: in a 20
+# run loop of `fastgate-drive.sh fixed` under load on main 366428f, H21 went red at exit 1 and the three lines
+# shown were BUILDNUM_MAX_DELTA notices, so the line that decided it is in no log. Display only: no verdict moves.
+show_verdict(){ # <text>: the LAST three verdict lines, indented, with no pipeline anywhere
+  awk '/FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED|REFUSING|BUILDNUM_MAX_DELTA/{v[++n]=$0} END{for(i=(n>3?n-2:1);i<=n;i++) printf "         %s\n", v[i]}' <<<"$1"
 }
 expect(){ # <case> <expected rc> <expected substring>
   local name="$1" wantrc="$2" want="$3" out rc id
@@ -414,7 +422,7 @@ if [ -n "$H5N" ] && [ -n "$H5D" ]; then
   commit_case "H5 date before the base: stamp #$H5N dated $H5D"
   expect H5 2 "EARLIER than the base stamp date"
 else
-  note "  FAIL H5  could not build the fixture (number '$H5N', date '$H5D')"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H5"
+  note "  FAIL H5 [$(tc H5)]  could not build the fixture (number '$H5N', date '$H5D')"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H5"
 fi
 
 # H6  NEGATIVE, STAMP WITH NO REGISTER ROW. Plausible number and date; nothing appended to the register. This
@@ -456,7 +464,7 @@ if [ "$H8NEXT_RC" = 2 ]; then
   printf '  ok  %s [%s]  (exit 2, %s)\n' "H8b" "$(tc H8b)" "buildnum.sh next refuses on the planted tree - the wedge the refusal prevents"
   OK=$((OK+1))
 else
-  printf '  FAIL %s  buildnum.sh next exited %s on the planted tree, expected 2\n' "H8b" "$H8NEXT_RC"
+  printf '  FAIL %s [%s]  buildnum.sh next exited %s on the planted tree, expected 2\n' "H8b" "$(tc H8b)" "$H8NEXT_RC"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H8b"
 fi
 
@@ -640,13 +648,13 @@ if [ -n "$H21N" ]; then
   commit_case "H21 honest rebuild to #$H21N, judged with BUILDNUM_MAX_DELTA=20 set"
   # THE SUBSTRING IS NOW ONE ONLY THE GREEN STAMP PATH CAN PRINT [#525, the reviewer's F4, UPHELD].
   # H21 asserted "OVERRIDDEN by BUILDNUM_MAX_DELTA=20", and THE REGISTER ARM PRINTS THAT SAME STRING from the
-  # same variable (gates/fastgate.sh:695, "register plausibility [#524]: $PLAUS_DELTA_SRC."). H21's fixture
+  # same variable (gates/fastgate.sh:764, "register plausibility [#524]: $PLAUS_DELTA_SRC."). H21's fixture
   # appends register rows, so the register arm runs and prints it - and the reviewer showed H21 still ok 1 of 1
   # with the subshell bug put back by
   #   sed -i '/no subshell \[#524\]$/a PLAUS_DELTA_SRC=""' gates/fastgate.sh
   # i.e. THE CONTROL COULD NOT FAIL FOR ITS OWN DEFECT - this project's oldest trap, where the thing being
   # detected is also printed by a path the assertion cannot distinguish.
-  # plaus_pred's success line (gates/fastgate.sh:626) is the only place the margin and its provenance appear
+  # plaus_pred's success line (gates/fastgate.sh:695) is the only place the margin and its provenance appear
   # TOGETHER, as "(step N, margin D [SRC])"; the register arm prints no "margin D [" at all. Asserting the
   # PAIR pins the branch, which is CLAUDE.md's rule against an alternation that matches every branch.
   expect_env H21 0 "margin 20 [OVERRIDDEN by BUILDNUM_MAX_DELTA=20" "BUILDNUM_MAX_DELTA=20"
@@ -745,7 +753,9 @@ if [ -n "$H24TOP" ]; then
     : > "$C/zzz-drive-pad/pad-$H24N.md"
   done
   commit_case "H24 planted register row #$H24ROW plus 5000 records paths in one commit"
-  # THREE SELF-CHECKS, AND ALL THREE ARE PROXIES [#526]. THE THIRD IS THE CLOSEST AND IS STILL NOT THE THING.
+  # THREE SELF-CHECKS, AND ALL THREE ARE PROXIES [#526]. THE BYTE-LENGTH CHECK IS THE CLOSEST OF THE THREE AND IS
+  # STILL NOT THE THING [#527: this line named it by an ordinal, and in the order a reader meets the checks, the
+  # if/elif chain below and the register cell alike, that ordinal names the POSITION check].
   # WITHDRAWN IN THE LINE THAT CARRIED IT [R18]: this comment first read "BYTES IS THE OPERATIVE ONE ... DO NOT
   # ADD A FOURTH PROXY", and both of this build's blind antagonists found that wrong, independently, from two
   # different doors, and I reproduced it before changing a word.
@@ -758,8 +768,8 @@ if [ -n "$H24TOP" ]; then
   # THE FIGURE TO QUOTE IS THE DETERMINISTIC ONE, AND IT IS NOT THE TRIAL COUNT. Bytes-after-the-target is
   # 43,903 in that fixture against 128,893 in the committed one, measured against the 65,536 buffer; that is a
   # property of the fixture and does not move. THE RACE RATE IS LOAD-DEPENDENT AND MUST NOT BE PUBLISHED AS A
-  # POINT FIGURE - this file already says so about the same mechanism 900 lines down ("It is LOAD-DEPENDENT - a
-  # quiet box missed 0 in 150"). Across four fixtures and several runs of the same 40 trials the readings were
+  # POINT FIGURE - `gates/fastgate.sh:1265` already says so about the same mechanism [#527: this line pointed
+  # at "this file", 900 lines down, and the words are in gates/fastgate.sh]. Across four fixtures and several runs of the same 40 trials the readings were
   # 0, 6, 7, 11, 11, 12, 20, 25, 26 and 29 of 40 in the middle band, and 39 to 40 of 40 for the committed shape;
   # antagonist A withdrew its own "7 of 40" after re-reading 26, 29 and 25 on the identical fixture. So the
   # honest form is a direction plus the command: a fixture can satisfy all three checks and fire well under the
@@ -770,11 +780,13 @@ if [ -n "$H24TOP" ]; then
   # WHAT WOULD CLOSE THIS, on the length of the list AFTER the target line, and it is filed rather than built
   # here because it is new decision logic in the push-gate harness and this run has no blind read left for it:
   # jobs/h24s-byte-check-measures-the-whole-list-so-a-fixture-passing-all-three-self-checks-still-misses-the-race-2026-10-20.
-  # ON THE UNIT: `${#H24L}` counts CHARACTERS, not bytes, and the message below says bytes [antagonist A, F4].
-  # The direction is safe rather than merely harmless: in UTF-8 characters <= bytes, so the figure is a LOWER
-  # BOUND on the real byte count and the test can only ever be stricter than it reads, never looser. Every path
-  # git prints here is ASCII, and antagonist B measured that in this container's locale `${#}` returns the byte
-  # count even for a multibyte string, so the two are equal today and the wording is the only thing at issue.
+  # ON THE UNIT [antagonist A, F4; corrected #527]: `${#H24L}` returns the BYTE count in this container's POSIX
+  # locale and the CHARACTER count under a UTF-8 one. The direction is safe either way: characters <= bytes, so
+  # under UTF-8 the figure is a LOWER BOUND on the real byte count and the test is only ever stricter than it
+  # reads, never looser. Today the two are equal for either of two reasons, each enough alone: the POSIX locale,
+  # where `${#}` counts bytes, and the paths themselves, which git prints in ASCII (core.quotePath quotes every
+  # other byte), where one character is one byte [#527: the job dictated "the LOCALE, not the paths being ASCII";
+  # an independent reader showed that the ASCII half alone suffices in any locale].
   # WHY A THIRD CHECK RATHER THAN TIGHTER PROXIES [#525's veto, then the #526 review]: a fixture of 5001
   # paths under `h/` with the target at line 1 SATISFIES BOTH PROXIES (5001 >= 5000, and line 1 is inside
   # the first tenth) and is still only ~48 KB, under the buffer - and end to end, with the P0 restored
@@ -1244,7 +1256,7 @@ if [ "$H13_RC" = 2 ] && [ "$H13_NAMED" = yes ] && [ "$H13_SAWOK" = no ]; then
   printf '  ok  %s [%s]  (exit 2, refuses by name, recursed into no case and printed no ok)\n' "H13" "$(tc H13)"
   OK=$((OK+1))
 else
-  printf '  FAIL %s  exit %s, or it did not refuse by name, or it printed an ok line\n' "H13" "$H13_RC"
+  printf '  FAIL %s [%s]  exit %s, or it did not refuse by name, or it printed an ok line\n' "H13" "$(tc H13)" "$H13_RC"
   show_verdict "$H13_OUT"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H13"
 fi
