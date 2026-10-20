@@ -742,15 +742,31 @@ if [ -n "$H24TOP" ]; then
     : > "$C/zzz-drive-pad/pad-$H24N.md"
   done
   commit_case "H24 planted register row #$H24ROW plus 5000 records paths in one commit"
-  H24C="$(git -C "$C" diff --name-only --no-renames "$BASESHA..HEAD" | grep -c . || true)"
-  # POSITION IS ASSERTED BESIDE SIZE, BECAUSE SIZE WAS NEVER THE OPERATIVE VARIABLE [#525, A's veto].
-  # The old self-check guarded only that the fixture produced >=5000 paths, and it PASSED on a fixture
-  # that could not exercise the defect at all. The race needs the target EARLY, so the case now refuses
-  # to report unless the target sits in the first tenth of the list - which is what makes a regression
-  # back to a late-sorting prefix a loud FAIL instead of a silent green.
-  H24P="$(git -C "$C" diff --name-only --no-renames "$BASESHA..HEAD" | grep -nxF 'gates/build-numbers.tsv' | cut -d: -f1)"
+  # THREE SELF-CHECKS, AND BYTES IS THE OPERATIVE ONE [#526]. DO NOT ADD A FOURTH PROXY.
+  # The variable this case actually depends on is neither the path COUNT nor the target's POSITION: it is
+  # whether the bytes still unwritten when `grep -q` exits exceed the 64 KiB pipe buffer, because that is
+  # what makes the writer get SIGPIPE and the arm get skipped. Count and position are PROXIES for it. They
+  # are kept because they are cheap and they catch different regressions - a fixture that shrank, and a
+  # prefix that sorts the target late - but they are not the thing.
+  # WHY A THIRD CHECK RATHER THAN TIGHTER PROXIES [#525's veto, then the #526 review]: a fixture of 5001
+  # paths under `h/` with the target at line 1 SATISFIES BOTH PROXIES (5001 >= 5000, and line 1 is inside
+  # the first tenth) and is still only ~48 KB, under the buffer - and end to end, with the P0 restored
+  # verbatim, H24 reported `ok` in FOUR of six runs against a fully broken script. The committed
+  # `zzz-drive-pad` fixture is ~129 KB and reddens it 4 of 4. So the proxies cannot tell the two fixtures
+  # apart and the byte length can.
+  # Computed ONCE here and reused, rather than re-running the diff per check.
+  H24L="$(git -C "$C" diff --name-only --no-renames "$BASESHA..HEAD")"
+  H24C="$(printf '%s\n' "$H24L" | grep -c . || true)"
+  H24B="${#H24L}"
+  H24P="$(printf '%s\n' "$H24L" | grep -nxF 'gates/build-numbers.tsv' | cut -d: -f1)"
   H24P="${H24P:-0}"
-  if [ "$H24C" -lt 5000 ]; then
+  if [ "$H24B" -le 65536 ]; then
+    note "  FAIL H24 [$(tc H24)]  the changed list is only $H24B bytes, at or under the 64 KiB pipe buffer, so"
+    note "         the writer never blocks, grep -q's early exit sends no SIGPIPE, and the register arm is not"
+    note "         skipped - this case would assert exit 1 against a script that answers exit 1 either way."
+    note "         BYTES, not the $H24C paths and not the target's position, is what this case depends on."
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H24"
+  elif [ "$H24C" -lt 5000 ]; then
     note "  FAIL H24 [$(tc H24)]  the fixture only produced $H24C changed paths, under the pipe buffer, so it"
     note "         cannot exercise the defect - a case that cannot see what it guards is not a case."
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H24"
