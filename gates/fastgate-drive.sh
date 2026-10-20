@@ -253,8 +253,14 @@ tc(){ # <case> -> its TC id, or a loud placeholder
 # ONE awk DOES THE MATCH, THE LIMIT AND THE INDENT, so there is no pipe to break: awk exits itself after the
 # third line. The herestring is a redirection and not a pipeline, so pipefail does not apply to it - the
 # distinction H13's own corrected comment below spells out, measured on bash 5.2.21.
+# REFUSING is in show_verdict's alternation [#526]. The harness's OWN refusals say REFUSING, not REFUSED, and
+# REFUSED does not match REFUSING - so the H13 FAIL path, which exists to print the reason a drive refused,
+# printed NOTHING. Diagnostic loss only: H13 could always still fail and still went red, and no verdict moves.
+# THIS COMMENT IS ABOVE THE FUNCTION AND NOT INSIDE IT ON PURPOSE: the control for that fix is
+# `sed -n '/^show_verdict()/,+2p' <this file> | grep -c REFUSING` -> 1, and a comment carrying the word inside
+# that three-line window is itself counted, which reads 2 and breaks the control it is explaining.
 show_verdict(){ # <text>: up to three verdict lines, indented, with no pipeline anywhere
-  awk '/FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED|BUILDNUM_MAX_DELTA/{printf "         %s\n", $0; if(++n==3) exit}' <<<"$1"
+  awk '/FAST GATE|FULL SUITE|NOT-STAMP-ONLY|REFUSED|REFUSING|BUILDNUM_MAX_DELTA/{printf "         %s\n", $0; if(++n==3) exit}' <<<"$1"
 }
 expect(){ # <case> <expected rc> <expected substring>
   local name="$1" wantrc="$2" want="$3" out rc id
