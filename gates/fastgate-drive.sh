@@ -742,12 +742,36 @@ if [ -n "$H24TOP" ]; then
     : > "$C/zzz-drive-pad/pad-$H24N.md"
   done
   commit_case "H24 planted register row #$H24ROW plus 5000 records paths in one commit"
-  # THREE SELF-CHECKS, AND BYTES IS THE OPERATIVE ONE [#526]. DO NOT ADD A FOURTH PROXY.
-  # The variable this case actually depends on is neither the path COUNT nor the target's POSITION: it is
-  # whether the bytes still unwritten when `grep -q` exits exceed the 64 KiB pipe buffer, because that is
-  # what makes the writer get SIGPIPE and the arm get skipped. Count and position are PROXIES for it. They
-  # are kept because they are cheap and they catch different regressions - a fixture that shrank, and a
-  # prefix that sorts the target late - but they are not the thing.
+  # THREE SELF-CHECKS, AND ALL THREE ARE PROXIES [#526]. THE THIRD IS THE CLOSEST AND IS STILL NOT THE THING.
+  # WITHDRAWN IN THE LINE THAT CARRIED IT [R18]: this comment first read "BYTES IS THE OPERATIVE ONE ... DO NOT
+  # ADD A FOURTH PROXY", and both of this build's blind antagonists found that wrong, independently, from two
+  # different doors, and I reproduced it before changing a word.
+  # The variable this case depends on is the bytes STILL UNWRITTEN WHEN `grep -q` EXITS - that is what makes
+  # the writer take SIGPIPE and the register arm get skipped. What the check below measures is the length of
+  # the WHOLE changed list, and the two come apart, because padding placed BEFORE the target inflates the
+  # total while adding nothing after it. A fixture of 499 long paths, the target at line 500, then 4501 short
+  # ones is 66,273 long over 5001 paths with the target inside the first tenth - so it SATISFIES ALL THREE
+  # CHECKS - and it does not reliably fire the race at all.
+  # THE FIGURE TO QUOTE IS THE DETERMINISTIC ONE, AND IT IS NOT THE TRIAL COUNT. Bytes-after-the-target is
+  # 43,903 in that fixture against 128,893 in the committed one, measured against the 65,536 buffer; that is a
+  # property of the fixture and does not move. THE RACE RATE IS LOAD-DEPENDENT AND MUST NOT BE PUBLISHED AS A
+  # POINT FIGURE - this file already says so about the same mechanism 900 lines down ("It is LOAD-DEPENDENT - a
+  # quiet box missed 0 in 150"). Across four fixtures and several runs of the same 40 trials the readings were
+  # 0, 6, 7, 11, 11, 12, 20, 25, 26 and 29 of 40 in the middle band, and 39 to 40 of 40 for the committed shape;
+  # antagonist A withdrew its own "7 of 40" after re-reading 26, 29 and 25 on the identical fixture. So the
+  # honest form is a direction plus the command: a fixture can satisfy all three checks and fire well under the
+  # committed shape's rate. Reproduce with 40 trials of
+  # `printf '%s\n' "$LIST" | grep -qxF 'gates/build-numbers.tsv'` under `set -uo pipefail`, counting FALSE.
+  # SO THE HONEST STATEMENT IS: count catches a fixture that shrank, position catches a prefix that sorts the
+  # target late, and total length catches the `h/` class the #525 veto left open. A FOURTH CHECK IS EXACTLY
+  # WHAT WOULD CLOSE THIS, on the length of the list AFTER the target line, and it is filed rather than built
+  # here because it is new decision logic in the push-gate harness and this run has no blind read left for it:
+  # jobs/h24s-byte-check-measures-the-whole-list-so-a-fixture-passing-all-three-self-checks-still-misses-the-race-2026-10-20.
+  # ON THE UNIT: `${#H24L}` counts CHARACTERS, not bytes, and the message below says bytes [antagonist A, F4].
+  # The direction is safe rather than merely harmless: in UTF-8 characters <= bytes, so the figure is a LOWER
+  # BOUND on the real byte count and the test can only ever be stricter than it reads, never looser. Every path
+  # git prints here is ASCII, and antagonist B measured that in this container's locale `${#}` returns the byte
+  # count even for a multibyte string, so the two are equal today and the wording is the only thing at issue.
   # WHY A THIRD CHECK RATHER THAN TIGHTER PROXIES [#525's veto, then the #526 review]: a fixture of 5001
   # paths under `h/` with the target at line 1 SATISFIES BOTH PROXIES (5001 >= 5000, and line 1 is inside
   # the first tenth) and is still only ~48 KB, under the buffer - and end to end, with the P0 restored
@@ -764,7 +788,8 @@ if [ -n "$H24TOP" ]; then
     note "  FAIL H24 [$(tc H24)]  the changed list is only $H24B bytes, at or under the 64 KiB pipe buffer, so"
     note "         the writer never blocks, grep -q's early exit sends no SIGPIPE, and the register arm is not"
     note "         skipped - this case would assert exit 1 against a script that answers exit 1 either way."
-    note "         BYTES, not the $H24C paths and not the target's position, is what this case depends on."
+    note "         The $H24C paths and the target's position are not what this case depends on either; the"
+    note "         length AFTER the target is, and no check here reads it yet - see the job named above."
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H24"
   elif [ "$H24C" -lt 5000 ]; then
     note "  FAIL H24 [$(tc H24)]  the fixture only produced $H24C changed paths, under the pipe buffer, so it"

@@ -133,6 +133,13 @@ exit 0"
   }
   st C15-one-ok-and-25-skipped-is-RED        "$(st_drive_n 1 25)" 1
   st C16-24-ok-and-2-skipped-is-still-green  "$(st_drive_n 24 2)" 0
+  # C18: THE BOUND MUST ALSO BE PINNED AGAINST BEING WIDENED [#526, antagonist A's F3]. C15 and C16 together
+  # pin it only to the interval [3, 25]: measured, `sed` the bound to `-gt 20` and the whole selftest is still
+  # green, so the pair discriminates against the fix being REMOVED and not against it being LOOSENED. This is
+  # the boundary case, and it is the tightest one the honest tree permits - A also measured that the reachable
+  # honest maximum is exactly 2, because gates/fastgate-drive.sh has three SKIPPED emission sites and two of
+  # them (:485 and :489) are the mutually exclusive halves of H1b. So 3 skips means something is wrong.
+  st C18-24-ok-and-3-skipped-is-RED          "$(st_drive_n 24 3)" 1
   # ── C17: THE DECLINE TEST MUST REQUIRE A REAL REFUSAL LINE, NOT THE WORD ANYWHERE [#526]. ───────────────
   # The drefuse grep was unanchored, so an exit 2 whose prose merely contains "REFUSING" read as a decline
   # and printed SKIPPED. The plausible route is the #461 shifted-file class, where bash's error text is a
