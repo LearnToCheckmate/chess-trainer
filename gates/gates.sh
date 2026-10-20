@@ -133,6 +133,12 @@ exit 0"
   }
   st C15-one-ok-and-25-skipped-is-RED        "$(st_drive_n 1 25)" 1
   st C16-24-ok-and-2-skipped-is-still-green  "$(st_drive_n 24 2)" 0
+  # ── C17: THE DECLINE TEST MUST REQUIRE A REAL REFUSAL LINE, NOT THE WORD ANYWHERE [#526]. ───────────────
+  # The drefuse grep was unanchored, so an exit 2 whose prose merely contains "REFUSING" read as a decline
+  # and printed SKIPPED. The plausible route is the #461 shifted-file class, where bash's error text is a
+  # fragment of a file that no longer exists at that offset - and fastgate-drive.sh carries twelve REFUSING
+  # lines, which is precisely the parse-failure case the decline test exists to tell apart from a refusal.
+  st C17-refusing-in-prose-is-not-a-decline  "$(st_drive 'echo "this harness is not REFUSING at all"; exit 2')" 1
 
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
@@ -443,7 +449,13 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   # that is not a named refusal all now fall through to the RED branch, which is where they belong.
   # THE DIRTY-TREE DECLINE IS UNAFFECTED, which is the point of fixing it this way rather than by deleting the
   # branch: that path prints "REFUSING - the working tree is not clean" before it exits, so it still SKIPS.
-  drefuse=$(grep -ac 'REFUSING' "$dlog" || true)
+  # ANCHORED [#526]. This was `grep -ac 'REFUSING'`, UNANCHORED, so any exit-2 output that merely CONTAINED
+  # the substring anywhere read as a legitimate decline - including prose that says the opposite ("this
+  # harness is not REFUSING at all"). The harness's twelve real refusals all echo at column 0 with this exact
+  # prefix and all exit 2, so the anchor keeps every one of them and drops the accidental match. Its own
+  # "REFUSING TO REPORT GREEN - no case ran" line is deliberately NOT matched and never needed to be: that
+  # path exits 1, and the decline branch requires exit 2, so it has always arrived at the RED branch.
+  drefuse=$(grep -ac '^fastgate-drive\.sh: REFUSING - ' "$dlog" || true)
   cat "$dlog.pass" >> "$ALL"; rm -f "$dlog.pass"
   # ── DECLINED TO RUN IS A REPORTED SKIP, NOT A RED [#524]. ──────────────────────────────────────────────────
   # #523 wrote this as `drc -ne 0 || dfail -gt 0 || dok -eq 0 -> red=1`, and the comment below defended the
