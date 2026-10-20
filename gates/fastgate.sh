@@ -55,6 +55,22 @@ mkdir -p "$G/logs"
 LOG="$G/logs/fast-$($GIT rev-parse --short HEAD 2>/dev/null || date +%s)-all.log"
 : > "$LOG"
 say(){ echo "$*" | tee -a "$LOG"; }
+# THE TEMPORARIES GO ON EVERY EXIT PATH, AND A KILL INSIDE A RATCHET IS THE ONE EXCEPTION [#527, item (2)(c) of
+# jobs/harness-case-h21-cannot-fail-for-its-own-defect-and-the-case-register-and-comments-claim-what-the-code-does-not-back-2026-10-16].
+# The comment at the second pair of register copies below said this script must not leave temporaries behind on
+# any exit path, and it did. MEASURED on #526's script: a refused run (four contiguous mints, exit 1) left two
+# register copies in TMPDIR, the base's and the head's (235,266 and 235,634 bytes on H29's fixture over 366428f,
+# whose register ended at #526; the copies grow with it), and gates/fastgate-drive.sh makes many such runs.
+# Every mktemp below now registers its path in FG_TMPS and this one EXIT trap removes them all, so a refusal, a
+# FULL and a green leave TMPDIR as they found it; the ratchets' base worktree is registered too, so an exit
+# during a ratchet removes its directory. A KILL during a ratchet can still leave that one directory [#527 v4,
+# an independent reader, SIGTERM 2 of 2]: the ratchet's child process keeps writing into it after the trap has
+# run, so the trap's rm meets "Directory not empty"; git keeps a worktree entry that `git worktree prune`
+# clears, and the directory itself stays in TMPDIR. The trap does not change the exit status (bash keeps the status of the `exit` that ran it), and bash
+# runs it on SIGTERM as well, which is how `timeout` stops this script. Controlled by gates/fastgate-drive.sh H29.
+FG_TMPS=()
+fg_cleanup(){ local t; for t in "${FG_TMPS[@]}"; do [ -n "$t" ] && rm -rf -- "$t"; done; return 0; }
+trap fg_cleanup EXIT
 
 say "fastgate.sh  base $BASE  head $HEAD  $(date '+%Y-%m-%d %H:%M:%S %Z')"
 
@@ -412,6 +428,7 @@ so_selftest(){
   local D RC OUT FAILED=0
   SO_FIXWHY=""
   D="$(mktemp -d)" || { say "FAST GATE REFUSED - mktemp -d failed, so the stamp-only controls could not run."; exit 1; }
+  FG_TMPS+=("$D" "$D.why")   # #527: removed by the EXIT trap on every path, as well as below
   if ! $GIT cat-file blob "$BASEFULL:app.js" > "$D/base" 2>/dev/null || [ ! -s "$D/base" ]; then
     rm -rf "$D"; return 2   # no base app.js to cut fixtures from; caller decides
   fi
@@ -748,7 +765,7 @@ if in_changed 'gates/build-numbers.tsv'; then   # #525: was a printf-into-grep-q
     say "  It does NOT widen the check below - appended rows are bounded by CONTIGUITY now, not by the margin -"
     say "  and it is named here so the log records the attempt." ;;
   esac
-  RP_B="$(mktemp)"; RP_H="$(mktemp)"
+  RP_B="$(mktemp)"; RP_H="$(mktemp)"; FG_TMPS+=("$RP_B" "$RP_H")   # #527: the EXIT trap removes them on every path
   $GIT cat-file blob "$BASEFULL:gates/build-numbers.tsv" > "$RP_B" 2>/dev/null || true
   $GIT cat-file blob "$HEAD:gates/build-numbers.tsv"     > "$RP_H" 2>/dev/null || true
   if [ ! -s "$RP_H" ]; then
@@ -952,7 +969,7 @@ $RP_NEW
 EOF
   # KEEP THE TWO ROW SETS for the not-checked count on the green path below [#524, B finding 6]; the files
   # themselves go, because this block must not leave temporaries behind on any exit path.
-  RP_B2="$(mktemp)"; RP_H2="$(mktemp)"; cp "$RP_B" "$RP_B2"; cp "$RP_H" "$RP_H2"
+  RP_B2="$(mktemp)"; RP_H2="$(mktemp)"; FG_TMPS+=("$RP_B2" "$RP_H2"); cp "$RP_B" "$RP_B2"; cp "$RP_H" "$RP_H2"   # #527: see FG_TMPS
   RP_BASENUMS2="$RP_BASENUMS"
   rm -f "$RP_B" "$RP_H"
   # AND k IS BOUNDED AT THE MINT DOOR [#524, antagonist A's veto 5(b), UPHELD, AND THE SHARPEST OF THE PAIR].
@@ -1099,7 +1116,7 @@ if [ -n "$APPDIFF" ]; then
   # `^{blob}` is NOT the remedy; it answers `fatal: Needed a single revision` on a real blob.
   SO_BT="$($GIT cat-file -t "$BASEFULL:app.js" 2>/dev/null || echo none)"
   SO_HT="$($GIT cat-file -t "$HEAD:app.js" 2>/dev/null || echo none)"
-  SO_B="$(mktemp)"; SO_H="$(mktemp)"
+  SO_B="$(mktemp)"; SO_H="$(mktemp)"; FG_TMPS+=("$SO_B" "$SO_H")   # #527: see FG_TMPS
   if [ -z "$SO_B" ] || [ -z "$SO_H" ] || [ ! -f "$SO_B" ] || [ ! -f "$SO_H" ]; then
     say ""; say "FULL SUITE REQUIRED. mktemp failed, so the stamp-only test could not be run at all."
     say "    $APPDIFF"; exit 2
@@ -1117,13 +1134,13 @@ if [ -n "$APPDIFF" ]; then
   if [ "$SO_RC" = 0 ]; then
     STAMPONLY=yes
     # ── PART 2 CALL SITE, #523. The exemption is not taken until the stamp is PLAUSIBLE as well as stamp-only.
-    PLAUS_REG="$(mktemp)"
+    PLAUS_REG="$(mktemp)"; FG_TMPS+=("$PLAUS_REG")   # #527: see FG_TMPS
     if [ -z "$PLAUS_REG" ] || [ ! -f "$PLAUS_REG" ]; then
       say ""; say "FULL SUITE REQUIRED. mktemp failed, so the stamp-plausibility arm could not be run at all."
       say "    $APPDIFF"; exit 2
     fi
     $GIT cat-file blob "$HEAD:gates/build-numbers.tsv" > "$PLAUS_REG" 2>/dev/null || true
-    PL_B="$(mktemp)"; PL_H="$(mktemp)"
+    PL_B="$(mktemp)"; PL_H="$(mktemp)"; FG_TMPS+=("$PL_B" "$PL_H")   # #527: see FG_TMPS
     $GIT cat-file blob "$BASEFULL:app.js" > "$PL_B" 2>/dev/null || true
     $GIT cat-file blob "$HEAD:app.js"     > "$PL_H" 2>/dev/null || true
     PL_M5="$(md5sum < "$PL_H" 2>/dev/null | cut -c1-12)"
@@ -1750,6 +1767,7 @@ ratchet(){ # ratchet <label> <verdict-grep> <cmd...>
   local hv bv hs bs wt
   hv="$(verdicts "$@")"
   wt="$(mktemp -d)" || { red=1; say "    $label: RED (mktemp -d failed - could not create a temp directory for the base worktree)"; return; }
+  FG_TMPS+=("$wt")   # #527: removed on every exit path; a kill leaves only a worktree entry for git worktree prune
   if ! git -C "$ROOT" worktree add -q --detach "$wt" "$BASEFULL" 2>>"$LOG"; then
     red=1; say "    $label: RED (could not create a base worktree at $BASEFULL - the ratchet cannot be evaluated)"
     rm -rf "$wt"; return

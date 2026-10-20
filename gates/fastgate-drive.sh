@@ -242,6 +242,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H24) printf 'TC-SUITE-081' ;;  H25) printf 'TC-SUITE-082' ;;  H26) printf 'TC-SUITE-083' ;;
     H27) printf 'TC-SUITE-084' ;;  H10) printf 'TC-SUITE-085' ;;  H11) printf 'TC-SUITE-086' ;;
     H28) printf 'TC-SUITE-087' ;;  H30) printf 'TC-SUITE-088' ;;  H31) printf 'TC-SUITE-089' ;;
+    H29) printf 'TC-SUITE-091' ;;
     H32) printf 'TC-SUITE-090' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
@@ -1193,6 +1194,34 @@ else
     done
     route_verdict H32 "exit 1, this tier EXECUTES these files, naming $H32F"
   fi
+fi
+
+# H29 NO TEMPORARY OUTLIVES A REFUSED RUN [#527, item (2)(c) of the H21 case job]. Four contiguous planted rows
+#     (H19's shape) are refused at exit 1, at the series ceiling, after the register copies are made. Run with TMPDIR pointed at a fresh,
+#     empty directory, that directory must still be empty afterwards. On #526's script two register copies of
+#     about 235 KB each were left there, measured by the orchestrator, because no exit path between their
+#     mktemp and their rm removed them.
+reset_clone
+H29TOP="$(reg_top)"
+H29T="$(mktemp -d 2>/dev/null || true)"
+if [ -z "$H29TOP" ] || [ -z "$H29T" ] || [ ! -d "$H29T" ]; then
+  note "  FAIL H29 [$(tc H29)]  could not read the base register top or make the empty TMPDIR"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H29"
+else
+  for k in 1 2 3 4; do reg_row "$((H29TOP + k))"; done
+  commit_case "H29 four contiguous mints #$((H29TOP+1))..#$((H29TOP+4)), judged with an empty TMPDIR"
+  H29OUT="$( ( cd "$C" && TMPDIR="$H29T" CT_FASTGATE_DRIVE=1 timeout 250 bash "$C/gates/fastgate.sh" "$BASESHA" 2>&1 ) )"; H29RC=$?
+  H29LEFT="$(find "$H29T" -mindepth 1 -maxdepth 1 2>/dev/null | grep -c . || true)"
+  H29WHY=no; case "$H29OUT" in *"gains a row the series cannot carry"*) H29WHY=yes ;; esac
+  if [ "$H29RC" = 1 ] && [ "$H29WHY" = yes ] && [ "$H29LEFT" = 0 ]; then
+    printf '  ok  %s [%s]  (exit 1 at the series ceiling, and TMPDIR held nothing afterwards)\n' "H29" "$(tc H29)"
+    OK=$((OK+1))
+  else
+    printf '  FAIL %s [%s]  exit %s (1 expected), series refusal %s, %s path(s) left in TMPDIR (0 expected)\n' "H29" "$(tc H29)" "$H29RC" "$H29WHY" "$H29LEFT"
+    show_verdict "$H29OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H29"
+  fi
+  rm -rf "$H29T"
 fi
 
 # H13 RECURSION GUARD. Re-enter this harness with the guard set and require a named refusal at exit 2, no
