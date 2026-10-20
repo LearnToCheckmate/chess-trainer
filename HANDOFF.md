@@ -1,3 +1,154 @@
+# HANDOFF — after #526: THE HELD #525 TREE IS ON MAIN, AND BOTH ANTAGONISTS CAUGHT THIS RUN'S OWN OVERCLAIM
+
+**READ THIS LINE FIRST IF YOU FOUND THIS FILE ON A BRANCH.** This record is written *in* the close-out
+commit that is itself pushed to main, so it is written moments BEFORE the push it describes. If you are
+reading it anywhere that is not an ancestor of `origin/main`, the landing did NOT complete and the
+`push` beat on `runledger/build__1792465059000` is the authority on what actually happened — not this
+heading. That ordering is stated rather than assumed because #450's warning was lost precisely by living
+only on a branch that never merged.
+
+No application change for the fourth build running. `app.js` is still #522's `ec31de9fe6c5` and `chess.jsx`
+`1b41d1d1e765`, measured against `git show origin/main:` at the push. This run ran no `gates/build.sh` at
+all, by the opening's instruction, so #526 has a minted register row and **no built row**, and the suite
+re-gated #522's own artefact under `CT_EXPECT='#522'`. **Do not read `GATES GREEN #526` as a new bundle.**
+
+## 1. WHAT LANDED, AND THE ONE THING TO READ IF YOU READ NOTHING ELSE
+
+The thirteen commits #525 held on `claude/practical-sagan-ai9x6b` are on main as ONE squash commit
+`b8055c7`, whose tree was `00080ca844e8` — exactly the tree the orchestrator had measured, so the premise
+never moved. On top of it: the `#526 mint` row, four small fixes, and one commit that **withdraws a claim
+this run itself had already committed**.
+
+**THE THING TO READ IS THAT LAST ONE.** At `c70c823` I wrote, in a code comment and in TC-SUITE-081, that
+the byte length of H24's changed list is "THE OPERATIVE ONE" of three self-checks and that nobody should
+"ADD A FOURTH PROXY". Both blind antagonists found that false, independently, from different doors, and I
+reproduced it before changing a word: the quantity the case depends on is the bytes still unwritten when
+`grep -q` exits, and the check measures the length of the WHOLE list. Padding placed BEFORE the target
+inflates the total while adding nothing after it, so a fixture of 499 long paths with the target at line 500
+is 66,273 bytes over 5001 paths with the target inside the first tenth — it satisfies **all three**
+self-checks — and its bytes-after-target is 43,903, under the buffer. A fourth check is exactly what closes
+it. Telling the next reader not to add one was the worst sentence available, and it is withdrawn in both
+places that carried it, with the fix filed:
+`jobs/h24s-byte-check-measures-the-whole-list-so-a-fixture-passing-all-three-self-checks-still-misses-the-race-2026-10-20`.
+
+## 2. AND MY FIRST CORRECTION MADE THE SAME MISTAKE ONE LAYER DOWN
+
+The first draft of that withdrawal said the fixture "fires the race 12 of 40" — a point figure for a
+load-dependent quantity, which is the very failure the sentence above it was correcting. Antagonist A then
+withdrew its own 7-of-40 after re-reading 26, 29 and 25 on the identical fixture; B read 6 and 8; I read 6,
+11, 11, 12. Three observers, a 3x spread, non-monotonic within each observer's own series, and
+`gates/fastgate.sh:1196` already says so about this same mechanism ("It is LOAD-DEPENDENT — a quiet box
+missed 0 in 150"). Both texts now publish the poles, the deterministic discriminator
+(bytes-after-the-target, 43,903 against 128,893, against 65,536) and the command, and no middle-band rate.
+
+**A THIRD NEAR-MISS, RECORDED BECAUSE IT WAS AVOIDED RATHER THAN MADE.** B's first report said
+TC-SUITE-081's older "38 of 40" was contradicted by its own 40 of 40, and I had drafted an edit correcting
+38 to 40. B withdrew that half of its own finding in the cross-read — 38 sits inside the instability band —
+and I reverted the edit before committing. A figure inside the noise of its own instrument is not an error
+to restate, and this project has nearly "corrected" an exactly-right citation before (#450).
+
+## 3. THE FOUR FIXES AND THEIR CONTROLS
+
+| fix | what | control, shown failing with the fix removed |
+|---|---|---|
+| (a) `36c4f47` | the veto that held #525: the unit block credited SKIPPED as green with no floor but `dok -eq 0`. Added `\|\| [ "$dskip" -gt 2 ]` plus C15/C16 | 1 ok/25 SKIPPED red=1 with, red=0 without, printing the veto verbatim; 2/24 the same; 25/1 and 24/2 green both ways; dirty-tree decline SKIPPED both ways. Selftest 16/0 with, 15/1 without |
+| (b) `7213989` | the decline test's `grep -ac 'REFUSING'` was UNANCHORED, so prose containing the word read as a decline. Anchored, plus C17 | the prose case RED with, SKIPPED without; both REAL refusal paths driven with the verbatim text of harness lines 54 and 65 still SKIP; all 12 real refusals enumerated and none dropped |
+| (c) `00e003e` | one token into `show_verdict`'s alternation | function text and pass-through both 1 after, 0 before; the five pre-existing tokens unaffected |
+| (d) `c70c823` | H24's byte-length assertion beside its two proxies, and TC-SUITE-081 corrected | committed fixture still `ok H24`; the `h/N.md` re-cut now `FAIL H24` naming 48,916; the SAME fixture through the PRE-FIX H24 prints `ok` |
+| (e) `0bc7eca` | the withdrawal above, plus C18 pinning the bound against being widened | selftest 18/0; with the bound sed-ed to `-gt 20`, C18 FAILS while C15 and C16 pass |
+
+**TWO OF MY OWN CONTROLS WERE WRONG FIRST AND THE CONTROLS TOLD ME.** My first H24 re-cut replaced only the
+pad directory and left the filename, giving `h/pad-1.md` at 68,916 bytes — OVER the threshold — so H24
+printed `ok` and nothing had been shown. And my first fix-(c) comment sat INSIDE `show_verdict`, where it
+falls in the control's own three-line `sed` window and is itself counted, so the published control read 2
+instead of 1. Both are CLAUDE.md's "a negative control must cross the threshold, not just disturb the
+mechanism", met from the inside.
+
+## 4. FOR THE NEXT RUN, IN ORDER
+
+1. **The three jobs this run filed**, all typed and fingerprinted, none of them blocking a landing:
+   the H24 bytes-after-target fix (the real closure of the above); the unit block bounding SKIPS rather than
+   the DENOMINATOR, which is the `cases: N` form the fixed job itself called preferred and which still
+   reports `green (1 ok)` on a harness that stops silently; and the verdict display truncating at the first
+   three MATCHING lines in two files. The second instance, `gates/gates.sh:509`, is swept and LEFT
+   deliberately: it is display-only inside the SKIPPED branch (the oracle eight lines above it is
+   anchored by fix (b)), and it is LATENT rather than live — exactly ONE emittable line carries
+   `REFUSING` without the anchored prefix (`fastgate-drive.sh:921`) and that path exits 1 while
+   :509's branch requires exit 2, so no reachable state puts three loose matches ahead of a real
+   refusal. Worth fixing before a longer output cashes it in; not worth writing up as something seen.
+2. **Part 3 of the stamp job** (`jobs/the-tier-guards-what-it-executes-but-not-what-it-reads-2026-10-14`),
+   which the orchestrator deferred to the run after this one and which this run did not touch.
+3. **The ten jobs #525 filed and the five #524 filed**, all still as filed.
+4. `docs/fast-gate-state` is still unseeded and fast mode is still OFF. Landing is a lower bar than
+   enabling; the orchestrator seeds that state after verifying this landing from git, not this run.
+
+## 5. THE RE-READ ROUND, AND THE ONE HAZARD THIS RUN CREATED
+
+**Round 2 was a FRESH pair on the same two doors** (rule (6)(c): every change under `gates/` made after the
+first pair launched is read once more, and that is the last round). A2 and B2 were new agents launched in
+one message reading only `git diff c70c823 0bc7eca`, because a pair that has already reported is anchored
+on its own findings. **Neither vetoed, and neither found a blocker.** Four readings in total across the two
+rounds, no veto from any of them.
+
+**THE HAZARD IS MINE AND IT IS NOT IN THE APP.** B2's one substantive note (N2) is that the line-citation
+ceiling is back at **48 of 48 with zero headroom**, and the 48th citation is mine — `gates/fastgate.sh:1196`,
+added to TC-SUITE-081 to record the load-dependence class. Measured at both commits: `c70c823` reads
+`47 of 48, 1 of headroom`, `0bc7eca` reads `48 ... 0 over ceiling`.
+
+Three things the next run needs, and the order matters:
+
+1. **IT CANNOT REFUSE A PUSH, and I verified that rather than inheriting it.**
+   `gates/verify-log.sh <log> '#NNN'` exits **0** on a committed log while `--citations` exits **1** on the
+   same tree. The citation arm is a SEPARATE invocation that reads the TREE, not a log, and the push gate
+   never calls it. #493 established this; I re-measured it before spending two hours on a suite.
+2. **THE CLOSED JOB SAYING THIS WAS FIXED IS STALE.**
+   `jobs/the-line-citation-ceiling-is-at-48-of-48-...-2026-10-06` was closed 2026-10-07 reading "44 of 48
+   and FOUR of headroom ... worth watching rather than celebrating". It hedged correctly and **nobody was
+   watching**: three citations arrived over thirteen days with no instrument reporting it, and I spent the
+   last one. That is CLAUDE.md's frozen-denominator rule (#405) pointed at a closed job. The measurement is
+   appended to that job as v7 with status, lane and priority untouched [R05, R09] — re-opening is the
+   orchestrator's call, not this lane's, and I take no view on status.
+3. **THE REPAIR IS ONE LINE AND I DELIBERATELY DID NOT TAKE IT.** Re-spell `gates/fastgate.sh:1196` as a
+   symbol name keeping the number verbatim beside it, as #486 did for MENU-LANE — option (a), the job's own
+   recommendation and the project's recent direction (`0fbbc47`, `1f5ca10`). Not taken because the tree was
+   frozen under a running suite, the blind pair had read `0bc7eca` and no successor, and it is outside the
+   opening's scope. **The cost of that choice, stated: the next build adding one `path:NNN` citation anywhere
+   under `claude/stories/` goes to 49 of 48.** Nothing refuses today; the margin is gone.
+
+Also pre-existing and NOT this run's, recorded because the totals have drifted since #493 measured them and
+nothing reports that either: `--citations` is red at both my commits for 19 dead paths, 32 unsupported case
+ids and 11 misfiled rows, against #493's 18 / 20 / 10 thirteen days ago. The line-citation arm is 0 over.
+
+## 6. THE SUITE, AND WHAT ITS NUMBER DOES AND DOES NOT SAY
+
+`GATES GREEN #526` — **60 sections, 5000 PASS, 0 FAIL**, 03:49:54Z to 05:40:50Z (110 minutes).
+`claude/agents/gatelogs/526-all.log`, md5 `ecc5bae07b44`, gated sha `0bc7eca`, bundle `ec31de9fe6c5`,
+stamp `#522 - 2026-10-14 20:37 ET`. `verify-log.sh … '#526' --this-bundle` exits 0 and prints
+`THIS-BUNDLE OK`; the footer is self-consistent (5000 against 5000 actual `^PASS`); the manifest reads
+59 required / 59 present / 0 missing / 0 unlisted / 4 known-absent.
+
+**THE DELTA IS ACCOUNTED PER GATE, which on a run with no application change is the real evidence.**
+4975 → 5000, +25, and exactly ONE section moved: `fastgate-drive`, from no PASS lines to 25.
+**61 of 62 sections are identical to the assertion** against `522-all.log`. Computed, not asserted.
+
+**WHAT THE GREEN DOES NOT SAY**, in this project's own words: it is a statement about the SUITE, not a
+permission. It does not say the adversarial pass cleared the tree. Here it happens to have — four blind
+readings, no veto — but those are two separate facts and the tooling can only see one of them, which is
+the whole reason `gates/held-trees.tsv` exists (#450).
+
+**SUITE HYGIENE, because #461 cost a whole 48-section run:** the suite ran from `gates/.gates-run-526.sh`,
+a sibling copy INSIDE `gates/` — not a scratch directory, because `gates.sh:33` derives `$G` and `$ROOT`
+from its own location and a scratch copy resolves `ROOT` wrongly and dies at once (#493's correction).
+The harness was frozen with an md5 record of 248 files taken AFTER the last change and AFTER the copy;
+`md5sum --quiet -c` exits 0 after the run, and I controlled that check by falsifying one hash and
+confirming it exits 1 and names the file.
+
+**ONE DEFECT IN MY OWN WATCHER, found and fixed mid-run.** Per-gate PASS lines reach the suite log only
+when a section ENDS, so during the 20-minute `49-home` my heartbeat read *identically to a hang* — a live
+pid and a static log. Re-armed to report the active per-gate log's byte growth with a stall alarm after
+three minutes of no growth. Same family as #407's `pgrep -f` matching itself and #416's `pkill -f`
+killing its own shell: the check could not distinguish its subject from silence.
+
 # HANDOFF — after #525: THE HELD #524 TREE IS FIXED AND ITS CASE WAS A LIE; THE TREE IS HELD AGAIN, ON ONE LINE
 
 **#525 is the landing run for the tree #524 held, and it did not land.** No application code was touched by
