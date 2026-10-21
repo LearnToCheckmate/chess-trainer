@@ -1,3 +1,113 @@
+# HANDOFF — after #527: THE TREE IS BUILT, READ TWICE AND GATED **RED**, AND THE RED IS NOT THIS TREE'S
+
+**YOU ARE READING THIS ON A BRANCH AND IT IS NOT ON MAIN.** #527 held. `origin/main` is still
+`366428f2f0caaa4c94f20c63f29a326b8a89e7dc`. Nothing of this run reached main — no commit, no
+`gates/held-trees.tsv` row, no records — because the brief's (6)(e) says a red suite pushes nothing to
+main and the orchestrator decides. The durable record is in the tracker, not here:
+`runledger/build__1792533988000`, `runreports/noship-1792533988000` and `builds/527`. This file is the
+branch's own note and every later run should treat it as such
+[jobs/handoff-guidance-written-on-an-unmerged-branch-is-invisible-to-every-later-run-2026-10-01].
+
+## 1. THE TREE: DO NOT REBUILD IT
+
+`claude/practical-sagan-8hh9ex` at **`fa20bf82a772e72c8b79c582b232c970b347192f`** (T), six commits above
+main, every one signed with both trailers, pushed. It is the four patches of
+`docs/run4-patches-2026-10-20` applied **unchanged** plus the seven register cells:
+
+| sha | what |
+|---|---|
+| `a797d8c` | `#527 mint` — the register row, before any patch |
+| `8af0078` | **P1, Part 3 of the stamp job** — the READ pin and the executable pin with `--no-filters`, the premise check's existence tests asked of the commit, the catch-all hashing every tracked file raw before the only green the script prints, cases H10 H11 H28 H30 H31 H32, rows TC-SUITE-085 to 090 |
+| `ad07c70` | P2 — no pipeline in records-gate's membership test or buildnum-selftest's subject check; sigpipe ceiling 17 → 15 |
+| `bacd464` | P3 — one EXIT trap for every temporary of `gates/fastgate.sh`, case H29, row TC-SUITE-091, residual (2b) |
+| `c3e309e` | P4 — words and display only: four sentences, the LAST three verdict lines, the H12 sentence, item (5), cells 060 and 067 |
+| `fa20bf8` | the seven case cells, this run's own harness figures — **T, the gated tree** |
+
+Each patch matched its sha256 **and** its byte count before `git apply`; each file list was compared
+against the document's own `files` as a sorted-set equality (all four matched); `bash -n` passed on all
+nine shell files. No application change: `app.js` is `ec31de9fe6c5` and `chess.jsx` `1b41d1d1e765`, both
+byte-identical to main, and `gates/build.sh` was never run.
+
+## 2. THE RED, AND WHY IT IS NOT THIS TREE'S — PROVED BY FILE IDENTITY, NOT BY ARGUMENT
+
+`GATES RED #527`: 60 gates, **5006 PASS, 1 real FAIL**, manifest green at 59/59/0 missing. The failure is
+one assertion in the last gate of the roster — `75-fit-loop-one-way-ratchet`, 89 pass / 1 fail, assertion
+**TC-R64 D4 at 320x540**: one practice-phase frame of ninety-seven painted **236.39** against a settled
+**228.39**, an 8px one-frame board jump on the ordinary lesson path with no injection.
+
+**EVERY INPUT THAT GATE READS IS BYTE-IDENTICAL TO `origin/main`**, measured rather than asserted:
+`gates/regress/75-fit-loop-one-way-ratchet.js` `741f9ef463e2` on both sides, `gates/lib.js`
+`569f254d1353` on both, `app.js` `ec31de9fe6c5` on both, and `chess.jsx` and `index.html` likewise, each
+confirmed a second way with `git diff --quiet 366428f HEAD -- <path>`. What this landing changed is eight
+files — the case register, the number register and six shell scripts — and **gate 75 reads none of them.**
+So the red cannot be attributable to this tree.
+
+**AND IT IS NOT REPRODUCIBLE ON DEMAND.** Gate 75 was re-run **alone, twice**, on an idle machine
+(launched 00:41:01Z, loadavg 0.02) as a subset — which by construction cannot emit `GATES GREEN` and
+writes to `527-subset-all.log`, so it could neither be mistaken for a push gate nor overwrite the real
+log. Both runs: **90 pass, 0 fail**, with D4 reading `wider: []` at *both* geometries where the suite read
+`wider: [236.39]`. `frames: 97` in all three observations, so the sampling is stable and what varies is
+whether a frame catches the wider paint.
+
+**DO NOT FILE THAT AS "A FLAKE" AND DO NOT LET THE NEXT RUN DO IT EITHER.** Three things say the
+underlying behaviour is real and intermittent rather than an instrument artefact. First, the gate's own
+FAIL text records this class as red **on main** at the other geometry: "On main at 375x568 this is RED —
+one frame paints 270.88 against a settled 254.88, a one-frame board jump with no injection at all."
+Second, in the suite run 375x568 **passed** while 320x540 failed, so what moves between runs is which
+geometry catches it, not whether the defect exists. Third, CLAUDE.md's own warning about the relaunch
+exception applies exactly here: a real intermittent defect passes a re-run and ships, and two runs cannot
+tell it from a flake. The board is sacred in this project; an intermittent one-frame jump is a product
+defect, not a gate nuisance.
+
+**THE OPERATIONAL CONSEQUENCE IS THE SHARP ONE:** gate 75 is in the REQUIRED set, so this assertion can
+redden **any** push in this project at random, on a bundle nobody touched. That is filed as
+`jobs/gate-75s-d4-reddens-under-suite-load-on-mains-own-bundle-so-any-push-can-be-reddened-by-a-commit-that-cannot-have-caused-it-2026-10-21`
+with all three readings and the measurement that would tell a real jump from an artefact.
+
+## 3. WHAT IS PROVEN ABOUT THE WORK ITSELF, WHICH IS EVERYTHING EXCEPT THE SHIP
+
+- **All six controls read their expected figure exactly**, so P2 was never dropped and the single
+  re-run allowance was never spent. Conditions were read *before* the runs and passed as shell
+  arguments: `2026-10-20T22:17Z`, loadavg `0.06 0.11 0.07`.
+- **(a)** fixed `32 ok, 0 FAIL, 1 skipped`; unfixed `25 ok, 7 FAIL, 1 skipped` failing exactly
+  `H10 H11 H28 H30 H31 H32 H29` — the unfixed mode runs **origin/main 366428f's own** scripts, and the
+  log's line 2 names that provenance rather than leaving it inferred.
+- **(b)** `MUTANTS AS EXPECTED: 9 of 9, each failing exactly its named cases.`
+- **(c)** seven selftests, **(d)** the register (48 of 48 citations, 0 over ceiling; 102 rows against 95),
+  **(e)** the display control printing 1 where main's harness prints 0.
+- **(2e)** the seven cells: 7 insertions, 7 deletions, and `cells527.py` reported all **fourteen** verdict
+  lines identical to the rehearsal's.
+- **THE ITEM'S THIRD CLOSING TEST ARRIVED INSIDE THE SUITE AND PASSED**:
+  `fastgate-drive: green (32 ok -> 32 PASS lines, 1 skipped)` in the live unit block, with
+  `mountcheck: green (16 PASS)` beside it.
+- **BOTH BLIND DOORS: NO BLOCKERS**, no contradiction between them, two independent re-runs of control
+  (a) at this commit, and door A reproduced three of the diff's own comment claims from scratch.
+
+## 4. FOR THE NEXT RUN, IN ORDER
+
+1. **THE TREE IS FINISHED AND MUST NOT BE REBUILT.** It is gated except for a red it cannot have caused.
+   What it needs is a decision about gate 75, not more building. The orchestrator decides; a run handed
+   this should not re-derive the four patches.
+2. **THE RED IS THE DECISION.** Either gate 75 D4 is made deterministic (and the product defect it is
+   detecting gets its own job under the product pause), or the project accepts that a required gate can
+   red any push and says so where `verify-log.sh` can see it. Do not resolve it by re-running until it
+   goes green — that is picking the observation you like, and this project has a register
+   (`gates/held-trees.tsv`) precisely because a green run is not a shipping verdict.
+3. **FAST MODE IS STILL OFF and `docs/fast-gate-state` is still unseeded. I did not touch it.**
+4. **SEVEN JOBS FILED**, all typed and fingerprinted — six from the blind pair, one for the gate-75 red.
+   The two worth reading first are the gate-75 one above and
+   `jobs/the-unit-blocks-timeout-900-has-lost-most-of-its-margin-and-a-timeout-there-reds-the-suite-2026-10-20`
+   (the fixed mode went 40.7s → 98.2s idle; the rehearsal's loaded figures are 76% of the 900s ceiling
+   where the pre-#527 equivalent was ~31%, and a timeout there reds the suite rather than declining).
+5. **THE CITATION REPAIR IS DONE ON THIS BRANCH ONLY, AND THE NUMBER IS BRANCH-LOCAL.** P1 moves the
+   sentence beginning "It is LOAD-DEPENDENT", so on this branch
+   `grep -n 'a quiet box missed 0 in' gates/fastgate.sh` prints **1265** and the three citations below now
+   read `:1265`. On **main** that sentence is still at **1196** and main's own copy of this file is
+   correct as it stands. A landing run must re-run the grep rather than trust either number.
+6. **THE LINE-CITATION CEILING IS STILL 48 OF 48 AND THIS TREE ADDS NONE.**
+
+---
+
 # HANDOFF — after #526: THE HELD #525 TREE IS ON MAIN, AND BOTH ANTAGONISTS CAUGHT THIS RUN'S OWN OVERCLAIM
 
 **READ THIS LINE FIRST IF YOU FOUND THIS FILE ON A BRANCH.** This record is written *in* the close-out
@@ -37,7 +147,7 @@ The first draft of that withdrawal said the fixture "fires the race 12 of 40" �
 load-dependent quantity, which is the very failure the sentence above it was correcting. Antagonist A then
 withdrew its own 7-of-40 after re-reading 26, 29 and 25 on the identical fixture; B read 6 and 8; I read 6,
 11, 11, 12. Three observers, a 3x spread, non-monotonic within each observer's own series, and
-`gates/fastgate.sh:1196` already says so about this same mechanism ("It is LOAD-DEPENDENT — a quiet box
+`gates/fastgate.sh:1265` already says so about this same mechanism ("It is LOAD-DEPENDENT — a quiet box
 missed 0 in 150"). Both texts now publish the poles, the deterministic discriminator
 (bytes-after-the-target, 43,903 against 128,893, against 65,536) and the command, and no middle-band rate.
 
@@ -91,7 +201,7 @@ on its own findings. **Neither vetoed, and neither found a blocker.** Four readi
 rounds, no veto from any of them.
 
 **THE HAZARD IS MINE AND IT IS NOT IN THE APP.** B2's one substantive note (N2) is that the line-citation
-ceiling is back at **48 of 48 with zero headroom**, and the 48th citation is mine — `gates/fastgate.sh:1196`,
+ceiling is back at **48 of 48 with zero headroom**, and the 48th citation is mine — `gates/fastgate.sh:1265`,
 added to TC-SUITE-081 to record the load-dependence class. Measured at both commits: `c70c823` reads
 `47 of 48, 1 of headroom`, `0bc7eca` reads `48 ... 0 over ceiling`.
 
@@ -108,7 +218,7 @@ Three things the next run needs, and the order matters:
    last one. That is CLAUDE.md's frozen-denominator rule (#405) pointed at a closed job. The measurement is
    appended to that job as v7 with status, lane and priority untouched [R05, R09] — re-opening is the
    orchestrator's call, not this lane's, and I take no view on status.
-3. **THE REPAIR IS ONE LINE AND I DELIBERATELY DID NOT TAKE IT.** Re-spell `gates/fastgate.sh:1196` as a
+3. **THE REPAIR IS ONE LINE AND I DELIBERATELY DID NOT TAKE IT.** Re-spell `gates/fastgate.sh:1265` as a
    symbol name keeping the number verbatim beside it, as #486 did for MENU-LANE — option (a), the job's own
    recommendation and the project's recent direction (`0fbbc47`, `1f5ca10`). Not taken because the tree was
    frozen under a running suite, the blind pair had read `0bc7eca` and no successor, and it is outside the
