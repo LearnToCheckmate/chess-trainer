@@ -126,9 +126,12 @@ $(head -c 200000 /dev/zero | tr '\0' 'x')"
   # C15 shows the bound fires on a harness that has stopped asserting, C16 shows it does NOT fire on the
   # honest tree. C15 FAILS with the fix removed; C16 passes either way BY DESIGN, because it is the control
   # against setting the bound too tight, and a guard that fires on the normal case gets switched off.
-  st_drive_n(){ # $1 = ok lines, $2 = SKIPPED lines; exits 0, so only the counts decide the verdict
-    st_drive "for i in \$(seq 1 $1); do echo \"  ok  H\$i [TC-SUITE-0\$i]  (probe)\"; done
-for i in \$(seq 1 $2); do echo \"  SKIPPED H\$i [TC-SUITE-0\$i]  probe\"; done
+  st_drive_n(){ # $1 = ok lines, $2 = SKIPPED lines, $3 = cases declared (default $1 + $2); exits 0, so only
+    # the counts decide the verdict. Since #529 a stub DECLARES its cases as the harness does, or the block is RED,
+    # and its SKIPPED lines take the names after its ok lines', because the block now wants one name per verdict.
+    st_drive "echo \"cases: ${3:-$(( $1 + $2 ))} declared (stub)\"
+for i in \$(seq 1 $1); do echo \"  ok  H\$i [TC-SUITE-0\$i]  (probe)\"; done
+for i in \$(seq $(( $1 + 1 )) $(( $1 + $2 ))); do echo \"  SKIPPED H\$i [TC-SUITE-0\$i]  probe\"; done
 exit 0"
   }
   st C15-one-ok-and-25-skipped-is-RED        "$(st_drive_n 1 25)" 1
@@ -154,6 +157,36 @@ exit 0"
   # fragment of a file that no longer exists at that offset - and fastgate-drive.sh carries twelve REFUSING
   # lines, which is precisely the parse-failure case the decline test exists to tell apart from a refusal.
   st C17-refusing-in-prose-is-not-a-decline  "$(st_drive 'echo "this harness is not REFUSING at all"; exit 2')" 1
+  # ── C19 TO C24: THE DECLARED DENOMINATOR [#529, jobs/the-unit-blocks-verdict-bounds-skips-rather-than-the-denominator-so-a-harness-that-stops-silently-is-green-on-one-assertion-2026-10-20]. ──
+  # One case per instance the job measured, each RED with the fix and each green on #527's block, which is
+  # how they were checked before this comment was written; C24 is the control that the honest shape, with its
+  # declaration, is still green.
+  # C19, instance (1), THE HEADLINE: one ok line of 26 declared, exit 0. #527's block read it green.
+  st C19-one-ok-of-26-declared-is-RED       "$(st_drive_n 1 0 26)" 1
+  # C20: the same single ok line and NO declaration at all, which is what #527's harness printed.
+  st C20-no-declaration-is-RED              "$(st_drive 'echo "  ok  H1 [TC-SUITE-057]  (probe)"; exit 0')" 1
+  # C21, instance (2): 24 ok and 2 skips written at FOUR spaces, 26 declared. The strict count reads 0 skipped.
+  st C21-a-four-space-skip-is-RED           "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 24); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "    SKIPPED H25 [TC-SUITE-082]  probe"; echo "    SKIPPED H26 [TC-SUITE-083]  probe"; exit 0')" 1
+  # C22, instance (3): 25 ok on stdout and the 26th on STDERR, 26 declared. #527's 2>&1 counted all 26.
+  st C22-an-ok-line-on-stderr-is-not-counted "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 25); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "  ok  H26 [TC-SUITE-083]  (probe)" >&2; exit 0')" 1
+  # C23, instance (4): 25 well-formed ok lines and one bare `  ok  `, 26 declared.
+  st C23-a-bare-ok-line-is-RED              "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 25); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "  ok  "; exit 0')" 1
+  # C24, THE CONTROL: the honest shape (32 ok, 1 skipped, 33 declared) is green.
+  st C24-the-honest-shape-is-green          "$(st_drive_n 32 1 33)" 0
+  # C25 AND C26 KILL A MUTANT THE FIRST SIX LEFT ALIVE [#529 rehearsal, mutant UM2]. With the two strict count
+  # comparisons (dokany against dok, dskipany against dskip) deleted, C19 to C24 all still passed: each of their
+  # stray lines also short-changed the denominator, so the denominator alone turned them red. These two keep the
+  # denominator whole and add one stray line, so only the strict counts can see it.
+  # C25: 25 ok and 1 SKIPPED, 26 declared, plus one bare `  ok` line. The sum balances and dokany reads 26.
+  st C25-a-stray-ok-beside-a-full-count-is-RED   "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 25); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "  SKIPPED H26 [TC-SUITE-083]  probe"; echo "  ok  "; exit 0')" 1
+  # C26: 26 ok, 26 declared, plus one SKIPPED line at four spaces. The sum balances and dskipany reads 1.
+  st C26-a-stray-skip-beside-a-full-count-is-RED "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 26); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "    SKIPPED H27 [TC-SUITE-084]  probe"; exit 0')" 1
+  # C27 TO C29: TWO HOLES THE #529 REVIEW FOUND [both reviewers' F3]. C27: one ok line under a twenty-digit
+  # declaration, which -ne could not compare and so read as agreeing. C28: 26 declared and 26 ok lines, H25
+  # twice and H26 never, the count balanced by a duplicate. C29: 26 ok of 26 declared plus a FAIL at a tab.
+  st C27-a-twenty-digit-declaration-is-RED   "$(st_drive 'echo "cases: 99999999999999999999 declared (stub)"; echo "  ok  H1 [TC-SUITE-057]  (probe)"; exit 0')" 1
+  st C28-one-case-twice-one-missing-is-RED   "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 25); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "  ok  H25 [TC-SUITE-025]  (probe)"; exit 0')" 1
+  st C29-a-tab-indented-fail-is-RED          "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 26); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; printf "\tFAIL H27 [TC-SUITE-084]  probe\n"; exit 0')" 1
 
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
@@ -445,11 +478,41 @@ fi
 if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   dlog="$G/logs/$STEM-fastgate-drive.log"
   echo "--- fastgate-drive (unit layer, not a regress gate, not in the roster) ---" | tee -a "$ALL"
-  ( cd "$ROOT" && timeout 900 bash "$DRIVESH" fixed ) > "$dlog" 2>&1; drc=$?
-  sed -n 's/^  ok  *\(.*\)$/PASS fastgate-drive \1/p' "$dlog" > "$dlog.pass"
+  # ── STDOUT IS COUNTED AND STDERR IS NOT, AND THE HARNESS IS HELD TO ITS OWN DECLARATION [#529]. ─────────
+  # jobs/the-unit-blocks-verdict-bounds-skips-rather-than-the-denominator-so-a-harness-that-stops-silently-is-green-on-one-assertion-2026-10-20.
+  # The skip bound below (#526) closed the harness that ANNOUNCES its skips. It did not close the one that
+  # stops without a word: a stub printing ONE ok line at exit 0 read "fastgate-drive: green (1 ok -> 1 PASS
+  # lines, 0 skipped)", so a renamed fixture, a changed guard or a case loop over an empty list was green on one
+  # assertion of 26. The harness now prints `cases: N declared` before any case runs, and this block requires
+  # ok + SKIPPED + FAIL to equal N, so the count is the harness's own and no constant here can go stale as
+  # cases are added. The job's three other instances close with it: (2) a SKIPPED line indented any other way
+  # than the harness's two spaces is not a skip to this block, so it is now a mismatch instead of a silence
+  # (and an ok or SKIPPED shape that the strict counts do not read is RED by itself); (3) the harness's stderr
+  # goes to its own file and is appended to the log only after the counting, so an ok-shaped line there counts
+  # for nothing; (4) an ok line counts only with its case id and its [TC-...] id, which is what
+  # gates/audit/cited-not-run.sh keys on, so a bare `echo "  ok  "` no longer puts "PASS fastgate-drive " in the log.
+  ( cd "$ROOT" && timeout 900 bash "$DRIVESH" fixed ) > "$dlog" 2> "$dlog.err"; drc=$?
+  sed -n 's/^  ok  *\(H[0-9][0-9]*[a-z]* \[TC-[A-Z0-9-]*\].*\)$/PASS fastgate-drive \1/p' "$dlog" > "$dlog.pass"
   dok=$(grep -c '^PASS fastgate-drive ' "$dlog.pass" || true)
+  dokany=$(grep -cE '^[[:space:]]*ok([[:space:]]|$)' "$dlog" || true)       # every ok shape, read or not
   dfail=$(grep -c '^  FAIL ' "$dlog" || true)
   dskip=$(grep -c '^  SKIPPED ' "$dlog" || true)
+  dskipany=$(grep -cE '^[[:space:]]*SKIPPED' "$dlog" || true)               # every SKIPPED shape, read or not
+  dfailany=$(grep -cE '^[[:space:]]*FAIL' "$dlog" || true)                  # every FAIL shape, read or not [#529 review]
+  ddeclared=$(grep -c '^cases: ' "$dlog" || true)
+  dcases="$(sed -n 's/^cases: \([0-9][0-9]*\) declared.*$/\1/p' "$dlog")"
+  case "$dcases" in ''|*[!0-9]*|0*|?????*) dcases="" ;; esac   # 1 to 9999, plaus_delta's own pattern [#529 review]
+  dnames=$(sed -nE 's/^  (ok +|SKIPPED |FAIL )(H[0-9]+[a-z]*) .*$/\2/p' "$dlog" | sort -u | wc -l)
+  dnames=$((dnames + 0))   # the DISTINCT case names on the strict lines [#529 review]
+  # TWO HOLES THE #529 REVIEW FOUND, BOTH CLOSED HERE. (a) The declared count was tested as digits only and then
+  # compared with -ne, which on a value past 2^63 prints "integer expression expected" and returns 2, read as
+  # false: a twenty-digit declaration was green over one ok line. It is bounded now the way plaus_delta bounds
+  # its margin (C27). (b) The denominator was a COUNT: one case reported twice while another reported nothing
+  # balanced it, so a copied case body could drop an assertion with every count agreeing. The distinct case
+  # names on the strict lines must now number ok + SKIPPED + FAIL (C28), and a FAIL line indented any other way
+  # than the harness's two spaces is a mismatch like its ok and SKIPPED twins (C29).
+  if [ -s "$dlog.err" ]; then { echo "--- the harness's stderr, appended after the counting, so nothing in it is counted ---"; cat "$dlog.err"; } >> "$dlog"; fi
+  rm -f "$dlog.err"
   # ── A DECLINE NEEDS EVIDENCE, AND exit 2 ALONE IS NOT EVIDENCE [#525]. ────────────────────────────────────
   # The decline branch below keyed on `drc -eq 2 && dfail -eq 0 && dok -eq 0`, which the comment correctly
   # argues is the signature of the harness's own named REFUSING paths. It is also the signature of a harness
@@ -510,19 +573,22 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   # SO THE PAIR IS WHAT MATTERS, NOT THE NUMBER: C15 (1 ok, 25 SKIPPED) must be RED and C16 (24 ok,
   # 2 SKIPPED) must stay green, and C16 is green with this fix and without it BY DESIGN - it is the control
   # that stops the bound being set too tight, so do not look for a failure of it.
-  # NOT TAKEN: the job's own "preferred" form, where the harness prints its own `cases: N` and the block
-  # requires `dok + dskip == N`. It commits no magic number and cannot go stale as cases are added, which is
-  # the better design - but it changes the harness's OUTPUT CONTRACT, and this run has no blind read left to
-  # spend on that. Filed rather than built.
+  # TAKEN AT #529: the job's own "preferred" form, where the harness prints its own `cases: N` and the block
+  # requires ok + SKIPPED + FAIL == N (the comment above the counts says what it closes). The skip bound stays
+  # beside it on purpose: a harness that declares 26 cases and honestly skips 25 of them agrees with its own
+  # declaration and still asserts nothing, so the count closes the silent stop and the bound the loud one.
   if [ "$drc" -eq 2 ] && [ "$dfail" -eq 0 ] && [ "$dok" -eq 0 ] && [ "$drefuse" -ge 1 ]; then   # #525: a decline must SAY so
     echo "    fastgate-drive: SKIPPED - the harness DECLINED to run and asserted nothing (exit 2)." | tee -a "$ALL"
     grep -a '^fastgate-drive\.sh: REFUSING - ' "$dlog" | head -3 | sed 's/^/        /' | tee -a "$ALL"   # #527: the lines drefuse counted
     echo "        This is NOT a red and NOT a green: the tiered push gate was not exercised by this suite," | tee -a "$ALL"
     echo "        so this log says nothing about gates/fastgate.sh. The usual cause is a dirty working tree," | tee -a "$ALL"
     echo "        which is the documented path between gates/build.sh and gates/gates.sh. Full output: $dlog" | tee -a "$ALL"
-  elif [ "$drc" -ne 0 ] || [ "$dfail" -gt 0 ] || [ "$dok" -eq 0 ] || [ "$dskip" -gt 2 ]; then
+  elif [ "$drc" -ne 0 ] || [ "$dfail" -gt 0 ] || [ "$dok" -eq 0 ] || [ "$dskip" -gt 2 ] \
+       || [ "$ddeclared" -ne 1 ] || [ -z "$dcases" ] || [ "$((dok + dskip + dfail))" -ne "${dcases:-0}" ] \
+       || [ "$dokany" -ne "$dok" ] || [ "$dskipany" -ne "$dskip" ] || [ "$dfailany" -ne "$dfail" ] \
+       || [ "$dnames" -ne "$((dok + dskip + dfail))" ]; then   # #529: the second to fourth lines
     red=1
-    echo "    fastgate-drive: RED (exit $drc, $dfail FAIL, $dok ok, $dskip skipped, $drefuse REFUSING line(s))" | tee -a "$ALL"
+    echo "    fastgate-drive: RED (exit $drc, $dfail FAIL, $dok ok, $dskip skipped, $drefuse REFUSING line(s); ${dcases:-no usable} case(s) declared on $ddeclared line(s), $dokany ok-shaped, $dskipany SKIPPED-shaped and $dfailany FAIL-shaped line(s), $dnames distinct case name(s))" | tee -a "$ALL"
     sed -n 's/^  FAIL /FAIL fastgate-drive /p' "$dlog" | head -8 | tee -a "$ALL"
     echo "        A case answered WRONGLY, or the harness reported success having asserted nothing. Both are" | tee -a "$ALL"
     echo "        red: exit 1 is the harness's own code for a wrong answer, and 0 ok with exit 0 would mean it" | tee -a "$ALL"
@@ -531,7 +597,7 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
     echo "        an exit 2 from a harness that does not PARSE arrives here instead of reading as a skip." | tee -a "$ALL"
     echo "        Full output: $dlog" | tee -a "$ALL"
   else
-    echo "    fastgate-drive: green ($dok ok -> $dok PASS lines, $dskip skipped)" | tee -a "$ALL"
+    echo "    fastgate-drive: green ($dok ok -> $dok PASS lines, $dskip skipped, of $dcases declared)" | tee -a "$ALL"
   fi
 fi
 

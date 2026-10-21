@@ -124,6 +124,14 @@ C="$W/clone"
 
 OK=0; BAD=0; SKIP=0; FAILED_CASES=""
 note(){ printf '%s\n' "$*"; }
+# THE CASES THIS HARNESS RUNS, DECLARED ONCE, BEFORE ANY OF THEM RUNS [#529, jobs/the-unit-blocks-verdict-bounds-skips-rather-than-the-denominator-so-a-harness-that-stops-silently-is-green-on-one-assertion-2026-10-20].
+# gates/gates.sh holds the run to this list: its unit block requires ok + SKIPPED + FAIL to equal the count
+# printed from it, so a harness that stops running its cases WITHOUT announcing a skip (a renamed fixture, a
+# changed guard, a case loop over an empty list) is RED there and not "green on one assertion of 26". The list
+# is the tc() table below less H12, which is the unfixed MODE and has no case body. A new case is added here AND
+# to tc(); one added to either alone makes the counts disagree, and the verdict below says which way.
+CASES=(H1 H2 H3 H4 H5 H6 H7 H8 H8b H9 H13 H1b H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 H27
+       H10 H11 H28 H30 H31 H29 H32 H33 H34 H35 H36 H37 H38 H39 H40 H41 H42 H43 H44 H45 H46 H47 H48)
 
 # ── BUILD THE CLONE AND MAKE ITS origin/main THE CANDIDATE. ────────────────────────────────────────────────
 git clone --quiet --no-hardlinks --shared "$ROOT" "$C" >/dev/null 2>&1 \
@@ -132,12 +140,13 @@ git -C "$C" -c advice.detachedHead=false checkout --quiet "$CAND" >/dev/null 2>&
   || { echo "fastgate-drive.sh: REFUSING - could not check the candidate out in the clone."; exit 2; }
 BASESHA="$CAND"
 if [ "$MODE" = unfixed ]; then
-  # H12. THE HARNESS MUST BE ABLE TO FAIL. Replace the two files this change touches with their origin/main
+  # H12. THE HARNESS MUST BE ABLE TO FAIL. Replace the files this change touches with their origin/main
   # copies and COMMIT that as the clone's base, so the cases run against the script as it ships today.
+  # gates/build.sh JOINED THE LIST AT #529, because H38 and H39 drive it directly and could not fail otherwise.
   # H12 IS THIS MODE AND HAS NO CASE BODY, BY DESIGN [#527]. It prints no ok line of its own, so no `fixed` log,
   # which is the only mode gates/gates.sh runs, can carry TC-SUITE-067; its figure is this mode's own count line,
   # and it means something only BEFORE a landing, while origin/main still carries the script being replaced.
-  for f in gates/fastgate.sh gates/buildnum.sh; do
+  for f in gates/fastgate.sh gates/buildnum.sh gates/build.sh; do
     if git -C "$C" cat-file -e "$UPSTREAM:$f" 2>/dev/null; then
       git -C "$C" show "$UPSTREAM:$f" > "$C/$f" || true
       chmod +x "$C/$f" 2>/dev/null || true
@@ -145,7 +154,7 @@ if [ "$MODE" = unfixed ]; then
   done
   git -C "$C" add -A >/dev/null 2>&1
   git -C "$C" -c user.name=ct-drive -c user.email=ct-drive@local commit --quiet --allow-empty \
-      -m "UNFIXED BASE: fastgate.sh and buildnum.sh as origin/main carries them" >/dev/null 2>&1 \
+      -m "UNFIXED BASE: fastgate.sh, buildnum.sh and build.sh as origin/main carries them" >/dev/null 2>&1 \
     || { echo "fastgate-drive.sh: REFUSING - could not commit the unfixed base."; exit 2; }
   BASESHA="$(git -C "$C" rev-parse HEAD)"
 fi
@@ -153,6 +162,7 @@ git -C "$C" update-ref refs/remotes/origin/main "$BASESHA" \
   || { echo "fastgate-drive.sh: REFUSING - could not point the clone's origin/main at the base."; exit 2; }
 note "fastgate-drive.sh mode=$MODE  candidate=$(printf '%.12s' "$CAND")  clone base=$(printf '%.12s' "$BASESHA")  clock=$NOWET ET"
 [ "$MODE" = unfixed ] && note "  unfixed baseline taken from origin/main $(printf '%.12s' "$UPSTREAM"), resolved in the parent repository"
+note "cases: ${#CASES[@]} declared (the tc() table less H12, which is this harness's unfixed mode and has no case body)"   # #529
 
 BASESTAMP="$(grep -aoE '#[0-9]{3,4} - 20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET' "$C/app.js" 2>/dev/null | head -1)"
 if [ -z "$BASESTAMP" ]; then
@@ -247,6 +257,11 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H28) printf 'TC-SUITE-087' ;;  H30) printf 'TC-SUITE-088' ;;  H31) printf 'TC-SUITE-089' ;;
     H29) printf 'TC-SUITE-091' ;;
     H32) printf 'TC-SUITE-090' ;;
+    H33) printf 'TC-SUITE-092' ;;  H34) printf 'TC-SUITE-093' ;;
+    H35) printf 'TC-SUITE-094' ;;  H36) printf 'TC-SUITE-095' ;;  H37) printf 'TC-SUITE-096' ;;
+    H38) printf 'TC-SUITE-097' ;;  H39) printf 'TC-SUITE-098' ;;
+    H40) printf 'TC-SUITE-099' ;;  H41) printf 'TC-SUITE-100' ;;  H42) printf 'TC-SUITE-101' ;;  H43) printf 'TC-SUITE-102' ;;
+    H44) printf 'TC-SUITE-103' ;;  H45) printf 'TC-SUITE-104' ;;  H46) printf 'TC-SUITE-105' ;;  H47) printf 'TC-SUITE-106' ;;  H48) printf 'TC-SUITE-107' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -323,6 +338,25 @@ expect_env(){ # <case> <expected rc> <expected substring> <VAR=VALUE>
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1 ;;
   esac
   printf '  ok  %s [%s]  (exit %s, with %s, %s)\n' "$name" "$id" "$rc" "$kv" "$want"
+  OK=$((OK+1)); return 0
+}
+# expect_build: as expect, but the verdict is gates/build.sh's own, called with CT_STAMP_TIME set [#529]. H38 and
+# H39 need it and nothing else does. The refusal comes before esbuild, so these run in a container without it.
+expect_build(){ # <case> <expected rc> <expected substring> <bare number> <CT_STAMP_TIME>
+  local name="$1" wantrc="$2" want="$3" out rc id
+  id="$(tc "$name")"
+  out="$( ( cd "$C" && env CT_RUNID=fastgate-drive CT_STAMP_TIME="$5" timeout 250 bash "$C/gates/build.sh" "#$4" 2>&1 ) )"; rc=$?
+  if [ "$rc" != "$wantrc" ]; then
+    printf '  FAIL %s [%s]  exit %s, expected %s (gates/build.sh with CT_STAMP_TIME=%s)\n' "$name" "$id" "$rc" "$wantrc" "$5"
+    printf '         %s\n' "${out##*$'\n'}"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1
+  fi
+  case "$out" in *"$want"*) : ;; *)
+    printf '  FAIL %s [%s]  exit %s as expected, but gates/build.sh does not say %s\n' "$name" "$id" "$rc" "\"$want\""
+    printf '         %s\n' "${out##*$'\n'}"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES $name"; return 1 ;;
+  esac
+  printf '  ok  %s [%s]  (exit %s, %s)\n' "$name" "$id" "$rc" "$want"
   OK=$((OK+1)); return 0
 }
 mint_in_clone(){ # echoes the minted bare number, or empty
@@ -428,17 +462,27 @@ fi
 # H6  NEGATIVE, STAMP WITH NO REGISTER ROW. Plausible number and date; nothing appended to the register. This
 #     is the case the withdrawn mitigation used to cover: a real build also writes a row, and a row forced FULL.
 reset_clone
-restamp "#$((BASENUM + 1)) - $NOWET ET" || true
-commit_case "H6 stamp with no register row: #$((BASENUM + 1))"
+# ONE PAST THE SERIES SINCE #529. A head number inside the base series is refused by plaus_pred before this arm
+# is reached (H44), so on a base whose register top sits above its stamp the base stamp plus one stopped testing
+# the second witness. The number past the higher of the two is the one a fresh mint would take.
+H6REF="$(reg_top)"
+{ [ -n "$H6REF" ] && [ "$H6REF" -gt "$BASENUM" ]; } || H6REF="$BASENUM"
+restamp "#$((H6REF + 1)) - $NOWET ET" || true
+commit_case "H6 stamp with no register row: #$((H6REF + 1))"
 expect H6 2 "no \`built\` row"
 
 # H7  NEGATIVE, ROW THAT DOES NOT MATCH THE BUNDLE. The row exists for the right number; its bundle field names
 #     a different artefact. This is the one that stops a row being borrowed from another build.
 reset_clone
 H7N="$(mint_in_clone)"
+# THE BORROWED BUNDLE IS A REAL ONE SINCE #529. This recorded ffffffffffff, and since #529 the register arm refuses a
+# built row naming a bundle nothing holds at exit 1 (H36, H43) before this arm is reached, so the case had stopped
+# testing the second witness. The base's own app.js md5 is a bundle another build really made, which is what
+# "borrowed" means; the register arm vouches for it and the stamp arm must still send the commit FULL.
+H7B="$(md5_12 "$C/app.js")"
 if [ -n "$H7N" ]; then
   restamp "#$H7N - $NOWET ET" || true
-  record_in_clone "$H7N" "ffffffffffff" "$(md5_12 "$C/chess.jsx")"
+  record_in_clone "$H7N" "$H7B" "$(md5_12 "$C/chess.jsx")"
   commit_case "H7 register row names the wrong bundle: #$H7N"
   expect H7 2 "whose bundle field is"
 else
@@ -648,14 +692,15 @@ if [ -n "$H21N" ]; then
   commit_case "H21 honest rebuild to #$H21N, judged with BUILDNUM_MAX_DELTA=20 set"
   # THE SUBSTRING IS NOW ONE ONLY THE GREEN STAMP PATH CAN PRINT [#525, the reviewer's F4, UPHELD].
   # H21 asserted "OVERRIDDEN by BUILDNUM_MAX_DELTA=20", and THE REGISTER ARM PRINTS THAT SAME STRING from the
-  # same variable (gates/fastgate.sh:764, "register plausibility [#524]: $PLAUS_DELTA_SRC."). H21's fixture
+  # same variable (gates/fastgate.sh:828, "register plausibility [#524]: $PLAUS_DELTA_SRC."). H21's fixture
   # appends register rows, so the register arm runs and prints it - and the reviewer showed H21 still ok 1 of 1
   # with the subshell bug put back by
   #   sed -i '/no subshell \[#524\]$/a PLAUS_DELTA_SRC=""' gates/fastgate.sh
   # i.e. THE CONTROL COULD NOT FAIL FOR ITS OWN DEFECT - this project's oldest trap, where the thing being
   # detected is also printed by a path the assertion cannot distinguish.
-  # plaus_pred's success line (gates/fastgate.sh:695) is the only place the margin and its provenance appear
-  # TOGETHER, as "(step N, margin D [SRC])"; the register arm prints no "margin D [" at all. Asserting the
+  # plaus_pred's success line (gates/fastgate.sh:759) is the only place the margin and its provenance appear
+  # TOGETHER, as "(step N over #REF, the higher of the base stamp and the base series top #TOP; margin D [SRC])"
+  # since #529; the register arm prints no "margin D [" at all. Asserting the
   # PAIR pins the branch, which is CLAUDE.md's rule against an alternation that matches every branch.
   expect_env H21 0 "margin 20 [OVERRIDDEN by BUILDNUM_MAX_DELTA=20" "BUILDNUM_MAX_DELTA=20"
 else
@@ -711,7 +756,8 @@ else
 fi
 
 # H24 NEGATIVE, AND IT IS THE P0 THIS RUN EXISTS FOR. The SAME planted register row as H8, carried by a commit
-#     that also changes 5000 other records paths. That is the one confounder every other case holds fixed: a
+#     that also changes 6000 other records paths [5000 until the #529 review]. That is the one confounder every
+#     other case holds fixed: a
 #     SMALL diff. gates/fastgate.sh entered the register arm only if the changed-path list, piped into
 #     `grep -qxF` under `set -uo pipefail`, matched - and past the 64 KiB pipe buffer grep exits at its first
 #     match, printf takes SIGPIPE, the pipeline reads 141, the test reads FALSE, and the WHOLE arm is skipped
@@ -748,11 +794,13 @@ if [ -n "$H24TOP" ]; then
   # `zzz-drive-pad/` sorts after `gates/` and is still RECORDS (classify()'s `*/*.md` arm).
   mkdir -p "$C/zzz-drive-pad"
   H24N=0
-  while [ "$H24N" -lt 5000 ]; do
+  while [ "$H24N" -lt 6000 ]; do   # 5000 until the #529 review; THE FOURTH CHECK below says why
     H24N=$((H24N + 1))
     : > "$C/zzz-drive-pad/pad-$H24N.md"
   done
-  commit_case "H24 planted register row #$H24ROW plus 5000 records paths in one commit"
+  commit_case "H24 planted register row #$H24ROW plus 6000 records paths in one commit"
+  # FOUR SELF-CHECKS SINCE #529, AND THE FOURTH IS THE OPERATIVE ONE [jobs/h24s-byte-check-measures-the-whole-list-so-a-fixture-passing-all-three-self-checks-still-misses-the-race-2026-10-20].
+  # The history below is kept because each step of it was a fixture that passed the checks of its day.
   # THREE SELF-CHECKS, AND ALL THREE ARE PROXIES [#526]. THE BYTE-LENGTH CHECK IS THE CLOSEST OF THE THREE AND IS
   # STILL NOT THE THING [#527: this line named it by an ordinal, and in the order a reader meets the checks, the
   # if/elif chain below and the register cell alike, that ordinal names the POSITION check].
@@ -766,9 +814,9 @@ if [ -n "$H24TOP" ]; then
   # ones is 66,273 long over 5001 paths with the target inside the first tenth - so it SATISFIES ALL THREE
   # CHECKS - and it does not reliably fire the race at all.
   # THE FIGURE TO QUOTE IS THE DETERMINISTIC ONE, AND IT IS NOT THE TRIAL COUNT. Bytes-after-the-target is
-  # 43,903 in that fixture against 128,893 in the committed one, measured against the 65,536 buffer; that is a
+  # 43,903 in that fixture against 128,893 in the 5000-pad one this case committed until the #529 review; that is a
   # property of the fixture and does not move. THE RACE RATE IS LOAD-DEPENDENT AND MUST NOT BE PUBLISHED AS A
-  # POINT FIGURE - `gates/fastgate.sh:1265` already says so about the same mechanism [#527: this line pointed
+  # POINT FIGURE - `gates/fastgate.sh:1464` already says so about the same mechanism [#527: this line pointed
   # at "this file", 900 lines down, and the words are in gates/fastgate.sh]. Across four fixtures and several runs of the same 40 trials the readings were
   # 0, 6, 7, 11, 11, 12, 20, 25, 26 and 29 of 40 in the middle band, and 39 to 40 of 40 for the committed shape;
   # antagonist A withdrew its own "7 of 40" after re-reading 26, 29 and 25 on the identical fixture. So the
@@ -776,10 +824,17 @@ if [ -n "$H24TOP" ]; then
   # committed shape's rate. Reproduce with 40 trials of
   # `printf '%s\n' "$LIST" | grep -qxF 'gates/build-numbers.tsv'` under `set -uo pipefail`, counting FALSE.
   # SO THE HONEST STATEMENT IS: count catches a fixture that shrank, position catches a prefix that sorts the
-  # target late, and total length catches the `h/` class the #525 veto left open. A FOURTH CHECK IS EXACTLY
-  # WHAT WOULD CLOSE THIS, on the length of the list AFTER the target line, and it is filed rather than built
-  # here because it is new decision logic in the push-gate harness and this run has no blind read left for it:
-  # jobs/h24s-byte-check-measures-the-whole-list-so-a-fixture-passing-all-three-self-checks-still-misses-the-race-2026-10-20.
+  # target late, and total length catches the `h/` class the #525 veto left open. THE FOURTH CHECK [#529]
+  # measures the length of the list AFTER the target line, newlines included, which is the quantity the race
+  # depends on, AND ITS BOUND IS 131,072, NOT THE 65,536 BUFFER [#529 review, reviewer A's F2, by strace]: grep's
+  # one read asks for 98,304 bytes against a 65,536-byte pipe, so the read that finds the target can drain a full
+  # pipe, and the writer is forced to block, and so to take SIGPIPE, only when more than 65,536 bytes remain
+  # after it. Between 65,537 and 131,072 the verdict is a timing race, and the first version of this check,
+  # bounded at 65,536, passed the 5000-pad fixture this case then committed (128,893 after the target) inside
+  # that band. The fixture is 6000 pads since: 154,893 after the target, which is 6000 lines of 22 bytes plus
+  # 22,893 digits, and the case prints the figure on every run. The 499-long-paths fixture above (43,903) and
+  # the 5000-pad one both FAIL here now. The three proxies stay, because each
+  # names a different way a fixture goes wrong and a FAIL that says which one is worth its line.
   # ON THE UNIT [antagonist A, F4; corrected #527]: `${#H24L}` returns the BYTE count in this container's POSIX
   # locale and the CHARACTER count under a UTF-8 one. The direction is safe either way: characters <= bytes, so
   # under UTF-8 the figure is a LOWER BOUND on the real byte count and the test is only ever stricter than it
@@ -799,12 +854,17 @@ if [ -n "$H24TOP" ]; then
   H24B="${#H24L}"
   H24P="$(printf '%s\n' "$H24L" | grep -nxF 'gates/build-numbers.tsv' | cut -d: -f1)"
   H24P="${H24P:-0}"
+  # THE FOURTH CHECK'S QUANTITY [#529]: every line AFTER the target, plus its newline, counted by ONE awk over a
+  # herestring, so the case that is about SIGPIPE adds no pipeline of its own. 0 when the target is absent,
+  # which the position check below already reports as line 0. awk's length() counts characters; git prints
+  # these paths in ASCII (see ON THE UNIT above), so here that is the byte count.
+  H24A="$(awk -v p="$H24P" 'p > 0 && NR > p { n += length($0) + 1 } END { print n + 0 }' <<< "$H24L")"
   if [ "$H24B" -le 65536 ]; then
     note "  FAIL H24 [$(tc H24)]  the changed list is only $H24B bytes, at or under the 64 KiB pipe buffer, so"
     note "         the writer never blocks, grep -q's early exit sends no SIGPIPE, and the register arm is not"
     note "         skipped - this case would assert exit 1 against a script that answers exit 1 either way."
     note "         The $H24C paths and the target's position are not what this case depends on either; the"
-    note "         length AFTER the target is, and no check here reads it yet - see the job named above."
+    note "         length AFTER the target is, and the fourth check below reads it [#529]."
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H24"
   elif [ "$H24C" -lt 5000 ]; then
     note "  FAIL H24 [$(tc H24)]  the fixture only produced $H24C changed paths, under the pipe buffer, so it"
@@ -816,10 +876,20 @@ if [ -n "$H24TOP" ]; then
     note "         against a script that answers exit 1 either way [#525, antagonist A's veto]. Pad under a"
     note "         prefix that sorts AFTER gates/ ."
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H24"
+  elif [ "$H24A" -le 131072 ]; then   # a full pipe plus the one read grep takes [#529 review]
+    # THE OPERATIVE CHECK [#529]. Reached only when the three proxies above all passed, which is why its
+    # message says so: this is the fixture shape that used to report ok against a broken script.
+    note "  FAIL H24 [$(tc H24)]  only $H24A bytes of the changed list come AFTER the target line, at or under"
+    note "         131,072, a full 64 KiB pipe plus the one read grep takes before it exits, so the writer need never"
+    note "         block and the register arm is not reliably skipped. The three proxy checks passed ($H24B bytes,"
+    note "         $H24C paths, target at line $H24P), and this fourth one measures what the race depends on [#529]."
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H24"
   else
     # THE ASSERTION IS THE VERDICT LINE AND NOT THE EXIT CODE, because exit 1 is reachable from the stamp arm
     # too, and this case is about whether the REGISTER arm ran at all. H8 asserts the same sentence on the same
-    # planted row with a SMALL diff; the only difference here is the 5000 paths, which is the whole point.
+    # planted row with a SMALL diff; the only difference here is the 6000 paths, which is the whole point.
+    # The fixture's figures go in the log on every run, so the deterministic one is read, not recomputed [#529 review].
+    note "         H24 fixture: $H24A bytes after the target line, $H24C paths, target at line $H24P, list $H24B bytes"
     expect H24 1 "an honest mint would have made it"
   fi
 else
@@ -1236,6 +1306,305 @@ else
   rm -rf "$H29T"
 fi
 
+# H33 POSITIVE, AN HONEST REBUILD AFTER HELD MINTS [#529, jobs/the-series-margin-of-fastgate-is-measured-from-the-base-stamp-so-an-honest-rebuild-after-held-mints-pays-the-full-suite-2026-10-16].
+#     A held run mints and never ships, so main's register can sit far above the stamp main's bundle carries.
+#     The case BASE carries eleven minted-only rows above the register top, one more than the margin, so the
+#     step from the base stamp is past it whatever that stamp is; then the honest rebuild on top: the real
+#     mint, the restamp, the real record, exactly as H1. #527's script answered exit 2 FULL SUITE REQUIRED
+#     ("past the series margin"); since #529 the step is measured from the base series top and this is green.
+reset_clone
+H33TOP="$(reg_top)"
+if [ -z "$H33TOP" ]; then
+  note "  FAIL H33 [$(tc H33)]  could not read the base register top"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H33"
+else
+  for k in $(seq 1 11); do
+    printf '%s\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminted\theld mint %s of 11, fixture only\n' \
+      "$((H33TOP + k))" "$(date -u '+%Y-%m-%dT%H:%MZ')" "$k" >> "$C/gates/build-numbers.tsv"
+  done
+  new_base "H33 case base: eleven minted-only rows #$((H33TOP+1))..#$((H33TOP+11)), the shape held runs leave" >/dev/null
+  H33N="$(mint_in_clone)"
+  if [ -z "$H33N" ]; then
+    note "  FAIL H33 [$(tc H33)]  could not mint a fixture number in the clone above the held mints"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H33"
+  else
+    restamp "#$H33N - $NOWET ET" || true
+    record_in_clone "$H33N" "$(md5_12 "$C/app.js")" "$(md5_12 "$C/chess.jsx")" || note "    (record returned non-zero; it is best-effort in build.sh too)"
+    commit_case "H33 honest rebuild to #$H33N above eleven held mints"
+    expect H33 0 "FAST GATE GREEN"
+  fi
+fi
+
+# H34 AN UNUSABLE MARGIN IS AN ENVIRONMENT FAULT, NOT A FAULT OF THE TREE [#529, jobs/the-series-margin-of-fastgate-is-measured-from-the-base-stamp-so-an-honest-rebuild-after-held-mints-pays-the-full-suite-2026-10-16,
+#     jobs/the-register-arm-of-fastgate-asks-buildnum-sh-next-under-the-callers-environment-so-an-unusable-margin-refuses-an-honest-mint-at-exit-1-2026-10-20].
+#     H1's honest rebuild, judged with BUILDNUM_MAX_DELTA=99999999999999999999. On #527's script it took EXIT 1
+#     FAST GATE REFUSED, blaming the commit: the register arm asked gates/buildnum.sh next under the caller's
+#     environment, buildnum.sh refused the value before reading the register, and the arm read the refusal as
+#     a wedge (measured; 0 and abc do the same). The stamp arm behind it was wrong the other way: its numeric
+#     range test errors on twenty digits and reads false, so it ACCEPTED the value as the margin (measured by
+#     calling plaus_delta alone on #527's script). Since #529 the stamp arm length tests the margin first, as
+#     gates/buildnum.sh does, and the register arm asks the minter with the variable removed whenever the
+#     stamp arm's function calls the value unusable. Reverting either change makes this case read exit 1.
+reset_clone
+H34N="$(mint_in_clone)"
+if [ -z "$H34N" ]; then
+  note "  FAIL H34 [$(tc H34)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H34"
+else
+  restamp "#$H34N - $NOWET ET" || true
+  record_in_clone "$H34N" "$(md5_12 "$C/app.js")" "$(md5_12 "$C/chess.jsx")" || note "    (record returned non-zero; it is best-effort in build.sh too)"
+  commit_case "H34 honest rebuild to #$H34N, judged with a twenty-digit BUILDNUM_MAX_DELTA"
+  expect_env H34 2 "an environment fault, not a fault of the tree" "BUILDNUM_MAX_DELTA=99999999999999999999"
+fi
+
+# H35 A BYTE-IDENTICAL COPY OF A REGISTER ROW IS REFUSED [#529, jobs/the-register-arm-of-fastgate-checks-the-numbers-of-appended-rows-and-not-the-rows-so-a-duplicate-or-wrong-bundle-row-takes-a-fast-green-2026-10-16].
+#     The orchestrator's P6 (15 Oct 2026): a hand-appended copy of the register's last row took exit 0 FAST GATE
+#     GREEN, because the appended rows were a SET difference and a copy is not in it. Since #529 the rows are
+#     counted with their multiplicity. The copy is read with awk, not `grep | tail`, so this case adds no pipe.
+reset_clone
+H35L="$(awk '$0 !~ /^[[:space:]]*#/ && NF {l = $0} END {print l}' "$C/gates/build-numbers.tsv")"
+if [ -z "$H35L" ]; then
+  note "  FAIL H35 [$(tc H35)]  could not read a row of the base register to copy"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H35"
+else
+  printf '%s\n' "$H35L" >> "$C/gates/build-numbers.tsv"
+  commit_case "H35 a byte-identical copy of the register's last row"
+  expect H35 1 "BYTE-IDENTICAL copy"
+fi
+
+# H36 A BUILT ROW NAMING A BUNDLE NOTHING HOLDS IS REFUSED [#529, jobs/the-register-arm-of-fastgate-checks-the-numbers-of-appended-rows-and-not-the-rows-so-a-duplicate-or-wrong-bundle-row-takes-a-fast-green-2026-10-16].
+#     The orchestrator's P7: the real mint, then the real record naming bundle ffffffffffff, with app.js untouched,
+#     took exit 0, because the bound read the number field only and a records-only commit has no bundle to
+#     match. Since #529 a built row must name a bundle this history holds.
+reset_clone
+H36N="$(mint_in_clone)"
+if [ -z "$H36N" ]; then
+  note "  FAIL H36 [$(tc H36)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H36"
+else
+  record_in_clone "$H36N" ffffffffffff "$(md5_12 "$C/chess.jsx")" || note "    (record returned non-zero; it is best-effort in build.sh too)"
+  commit_case "H36 a built row for #$H36N naming bundle ffffffffffff, app.js untouched"
+  expect H36 1 "names bundle ffffffffffff"
+fi
+
+# H37 POSITIVE, A HELD RUN'S CLOSE-OUT STAYS GREEN [#529, jobs/the-register-arm-of-fastgate-checks-the-numbers-of-appended-rows-and-not-the-rows-so-a-duplicate-or-wrong-bundle-row-takes-a-fast-green-2026-10-16].
+#     The shape of #456, #459 and #504's close-outs, which a stricter rule would have refused (main's register
+#     history was replayed against the rule before it was written): a held run records every bundle it built,
+#     and its held row names only the last. The held row sits in the case base, so the diff does not touch
+#     gates/held-trees.tsv, which classify() would FORCE; the diff carries the real mint and two real records
+#     for that number, the first naming a bundle no file holds (the mid pass rebuild) and the second the held
+#     bundle. app.js is untouched, so only the hold register and the run's own rebuild can vouch.
+reset_clone
+H37TOP="$(reg_top)"
+if [ -z "$H37TOP" ]; then
+  note "  FAIL H37 [$(tc H37)]  could not read the base register top"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H37"
+else
+  H37N=$((H37TOP + 1)); H37X="$(printf 'c0ffee%06d' "$H37N")"; H37Y="$(printf 'abcdef%06d' "$H37N")"
+  printf '%s\t%s\t#%s\t%s\tfastgate-drive\tFIXTURE ONLY - a held run whose last bundle this row names.\t-\n' \
+    "$H37X" "$(printf 'f%039d' 37)" "$H37N" "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/held-trees.tsv"
+  new_base "H37 case base: a held row for #$H37N naming bundle $H37X" >/dev/null
+  H37M="$(mint_in_clone)"
+  if [ "$H37M" != "$H37N" ]; then
+    note "  FAIL H37 [$(tc H37)]  the clone minted #${H37M:-nothing}, not #$H37N, so the held row does not name it"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H37"
+  else
+    record_in_clone "$H37N" "$H37Y" "$(md5_12 "$C/chess.jsx")" || note "    (record returned non-zero; it is best-effort in build.sh too)"
+    record_in_clone "$H37N" "$H37X" "$(md5_12 "$C/chess.jsx")" || note "    (record returned non-zero; it is best-effort in build.sh too)"
+    commit_case "H37 a held run's close-out for #$H37N: the mint and two records, app.js untouched"
+    expect H37 0 "FAST GATE GREEN"
+  fi
+fi
+
+# H38 gates/build.sh REFUSES A STAMP TIME THREE HOURS AHEAD [#529, jobs/a-wrong-build-stamp-can-reach-main-on-an-app-changing-build-because-build-sh-does-not-validate-ct-stamp-time-2026-10-16].
+#     Not a fastgate verdict, on purpose: an app changing build is never stamp only, so the fast tier never judges
+#     its stamp and the full suite reads no date, which is why the refusal is at the bundler. The time is the
+#     harness's one Eastern minute plus three hours, computed through epoch seconds so no relative date parse is
+#     involved. On #527's build.sh the same call goes on to esbuild, and builds the bundle where esbuild exists.
+reset_clone
+H38N="$(mint_in_clone)"
+H38E="$(TZ=America/New_York date -d "$NOWET" '+%s' 2>/dev/null || true)"
+if [ -z "$H38N" ] || [ -z "$H38E" ]; then
+  note "  FAIL H38 [$(tc H38)]  could not mint a fixture number or read the harness clock"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H38"
+else
+  expect_build H38 1 "later than the wall clock plus ten minutes" "$H38N" "$(TZ=America/New_York date -d "@$((H38E + 10800))" '+%Y-%m-%d %H:%M')"
+fi
+
+# H39 gates/build.sh REFUSES A STAMP TIME EARLIER THAN MAIN'S [#529, jobs/a-wrong-build-stamp-can-reach-main-on-an-app-changing-build-because-build-sh-does-not-validate-ct-stamp-time-2026-10-16].
+#     The clone's origin/main is the case base, whose app.js carries a real stamp, and 2026-01-01 00:00 is before
+#     any stamp this project has shipped, so the home screen would go backwards. Same door as H38, other bound.
+reset_clone
+H39N="$(mint_in_clone)"
+if [ -z "$H39N" ]; then
+  note "  FAIL H39 [$(tc H39)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H39"
+else
+  expect_build H39 1 "is earlier than the stamp origin/main already serves" "$H39N" "2026-01-01 00:00"
+fi
+
+# H40 TO H43, THE FOUR FORGERIES G6'S FIRST VERSION LET THROUGH [#529 review, jobs/the-register-arm-of-fastgate-checks-the-numbers-of-appended-rows-and-not-the-rows-so-a-duplicate-or-wrong-bundle-row-takes-a-fast-green-2026-10-16].
+#     Each took EXIT 0 FAST GATE GREEN on the first version, measured by both independent reviewers, under a line
+#     saying every appended built row names a bundle this history holds. Each must now be refused, naming it.
+# H40: a built row for the LIVE number, the base stamp's own, naming ffffffffffff, with app.js untouched.
+reset_clone
+H40N="${BASESTAMP#\#}"; H40N="${H40N%% *}"
+if ! [[ "$H40N" =~ ^[0-9]+$ ]]; then
+  note "  FAIL H40 [$(tc H40)]  could not read the live number from the base stamp '$BASESTAMP'"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H40"
+else
+  record_in_clone "$H40N" ffffffffffff "$(md5_12 "$C/chess.jsx")" || note "    (record returned non-zero)"
+  commit_case "H40 a built row for the live number #$H40N naming bundle ffffffffffff, app.js untouched"
+  expect H40 1 "names bundle ffffffffffff"
+fi
+
+# H41: a built row copying the number and runId of the base register's last real built row, naming ffffffffffff.
+reset_clone
+H41ROW="$(awk -F'\t' '$0 !~ /^[[:space:]]*#/ && NF == 9 && $2 == "built" {r = $1 " " $7} END {print r}' "$C/gates/build-numbers.tsv")"
+H41N="${H41ROW%% *}"; H41R="${H41ROW#* }"
+if [ -z "$H41N" ] || [ -z "$H41R" ] || [ "$H41N" = "$H41ROW" ]; then
+  note "  FAIL H41 [$(tc H41)]  the base register carries no built row to copy"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H41"
+else
+  printf '%s\tbuilt\t-\tffffffffffff\t%s\t%s\t%s\tbuild.sh\tFIXTURE ONLY, a built row copying the number and runId of a real one.\n' \
+    "$H41N" "$(md5_12 "$C/chess.jsx")" "$(date -u '+%Y-%m-%dT%H:%MZ')" "$H41R" >> "$C/gates/build-numbers.tsv"
+  commit_case "H41 a built row for #$H41N under its own runId $H41R naming bundle ffffffffffff"
+  expect H41 1 "names bundle ffffffffffff"
+fi
+
+# H42: a built row naming the held register's sentinel `sha-only` as its bundle, under the number and runId of a
+#      sanctioned sha-only held row. Since the third pass keyed the held vouch on number and runId, that is the
+#      one shape the hex test alone refuses; it was the real mint until then. No tool can write the row
+#      (buildnum.sh record refuses a non-hex bundle), so it is written by hand, as a forger would.
+reset_clone
+H42K="$(awk -F'\t' '$1 == "sha-only" && NF >= 5 { n = $3; sub(/^#/, "", n); print n "\t" $5; exit }' "$C/gates/held-trees.tsv" 2>/dev/null)"
+H42N="${H42K%%$'\t'*}"; H42R="${H42K#*$'\t'}"
+if [ -z "$H42K" ] || ! [[ "$H42N" =~ ^[0-9]+$ ]] || [ -z "$H42R" ] || [ "$H42R" = "$H42K" ]; then
+  note "  FAIL H42 [$(tc H42)]  no sanctioned sha-only row in gates/held-trees.tsv to take a number and runId from"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H42"
+else
+  printf '%s\tbuilt\t-\tsha-only\t%s\t%s\t%s\tbuild.sh\tFIXTURE ONLY, a built row naming the held register sentinel as its bundle.\n' \
+    "$H42N" "$(md5_12 "$C/chess.jsx")" "$(date -u '+%Y-%m-%dT%H:%MZ')" "$H42R" >> "$C/gates/build-numbers.tsv"
+  commit_case "H42 a built row for #$H42N under $H42R naming the sentinel sha-only as its bundle"
+  expect H42 1 "names bundle sha-only"
+fi
+
+# H43: H1's honest rebuild, plus a second built row for the same number by another run, naming ffffffffffff.
+reset_clone
+H43N="$(mint_in_clone)"
+if [ -z "$H43N" ]; then
+  note "  FAIL H43 [$(tc H43)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H43"
+else
+  restamp "#$H43N - $NOWET ET" || true
+  record_in_clone "$H43N" "$(md5_12 "$C/app.js")" "$(md5_12 "$C/chess.jsx")" || note "    (record returned non-zero; it is best-effort in build.sh too)"
+  printf '%s\tbuilt\t-\tffffffffffff\t%s\t%s\tanother-run\tbuild.sh\tFIXTURE ONLY, a second built row for this number by another run.\n' \
+    "$H43N" "$(md5_12 "$C/chess.jsx")" "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/build-numbers.tsv"
+  commit_case "H43 an honest rebuild to #$H43N plus a built row naming ffffffffffff by another run"
+  expect H43 1 "names bundle ffffffffffff"
+fi
+
+# H44 A RESTAMP TO A NUMBER THE REGISTER ALREADY ISSUED GOES FULL [#529 review, jobs/the-series-margin-of-fastgate-is-measured-from-the-base-stamp-so-an-honest-rebuild-after-held-mints-pays-the-full-suite-2026-10-16].
+#     Eleven minted-only rows above the top in the case base, each another run's, the shape H33 uses; then app.js
+#     restamped to the ninth of them and the real record of that bundle under this harness's runId. #529's first
+#     version answered exit 0 with a negative step. A number inside the series is not a fresh mint.
+reset_clone
+H44TOP="$(reg_top)"
+if [ -z "$H44TOP" ]; then
+  note "  FAIL H44 [$(tc H44)]  could not read the base register top"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H44"
+else
+  for k in $(seq 1 11); do
+    printf '%s\tminted\t-\t-\t-\t%s\theld-run-%s\tminted\tfixture only, a held run whose mint never landed\n' \
+      "$((H44TOP + k))" "$(date -u '+%Y-%m-%dT%H:%MZ')" "$k" >> "$C/gates/build-numbers.tsv"
+  done
+  new_base "H44 case base: eleven minted-only rows #$((H44TOP+1))..#$((H44TOP+11)), each another run's" >/dev/null
+  H44N=$((H44TOP + 9))
+  restamp "#$H44N - $NOWET ET" || true
+  record_in_clone "$H44N" "$(md5_12 "$C/app.js")" "$(md5_12 "$C/chess.jsx")" || note "    (record returned non-zero; it is best-effort in build.sh too)"
+  commit_case "H44 restamp to #$H44N, a number another run holds"
+  expect H44 2 "sits inside the base series"
+fi
+
+# H45 POSITIVE, A RUN WHOSE OWN MINT REACHED MAIN FIRST [#529 second review, both reviewers' N1, jobs/the-series-margin-of-fastgate-is-measured-from-the-base-stamp-so-an-honest-rebuild-after-held-mints-pays-the-full-suite-2026-10-16].
+#     The case base carries this harness's own minted row for the next number, the shape a run leaves when its mint
+#     travels in an earlier push than its bundle; then app.js restamped to that number and the real record of the
+#     bundle under the same runId. buildnum.sh stampable calls the number the run's own, and the first form of the
+#     #529 fix sent it FULL as "a number the register already issued". It must take the fast door, as it does on
+#     #527's script, so this case is a control that reads ok in both modes.
+reset_clone
+H45N="$(mint_in_clone)"
+if [ -z "$H45N" ]; then
+  note "  FAIL H45 [$(tc H45)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H45"
+else
+  new_base "H45 case base: this harness's own minted row #$H45N, as an earlier push would land it" >/dev/null
+  restamp "#$H45N - $NOWET ET" || true
+  record_in_clone "$H45N" "$(md5_12 "$C/app.js")" "$(md5_12 "$C/chess.jsx")" || note "    (record returned non-zero; it is best-effort in build.sh too)"
+  commit_case "H45 stamp only commit to this run's own #$H45N, minted in the base"
+  expect H45 0 "FAST GATE GREEN"
+fi
+
+# H46 A BUILT ROW NAMING A CLEARED HELD ROW'S FIELD 1 [#529 second review, reviewer A's N2, jobs/the-register-arm-of-fastgate-checks-the-numbers-of-appended-rows-and-not-the-rows-so-a-duplicate-or-wrong-bundle-row-takes-a-fast-green-2026-10-16].
+#     A cleared row is withdrawn, and three of them carry a gated sha in field 1, not a bundle. The forged built row
+#     names the first cleared hex row's first 12 characters UNDER THAT ROW'S OWN NUMBER AND RUNID, app.js
+#     untouched: since the third pass keyed the held vouch, that is the one shape only the cleared-row rule
+#     refuses. Written by hand, because buildnum.sh record writes this harness's runId only.
+reset_clone
+H46K="$(awk -F'\t' '$1 ~ /^-[0-9a-f]+$/ && NF >= 5 { n = $3; sub(/^#/, "", n); print substr($1, 2, 12) "\t" n "\t" $5; exit }' "$C/gates/held-trees.tsv" 2>/dev/null)"
+IFS=$'\t' read -r H46X H46N H46R <<< "$H46K"
+if [ -z "$H46X" ] || ! [[ "${H46N:-}" =~ ^[0-9]+$ ]] || [ -z "${H46R:-}" ]; then
+  note "  FAIL H46 [$(tc H46)]  no cleared hex row with a number and a runId in gates/held-trees.tsv to fixture"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H46"
+else
+  printf '%s\tbuilt\t-\t%s\t%s\t%s\t%s\tbuild.sh\tFIXTURE ONLY, a built row naming a cleared held row\047s field 1 under its own key.\n' \
+    "$H46N" "$H46X" "$(md5_12 "$C/chess.jsx")" "$(date -u '+%Y-%m-%dT%H:%MZ')" "$H46R" >> "$C/gates/build-numbers.tsv"
+  commit_case "H46 a built row for #$H46N under $H46R naming $H46X, that cleared held row's own field 1"
+  expect H46 1 "names bundle $H46X"
+fi
+
+# H47 A FORGED ROW BESIDE A COPY OF THE LIVE ONE [#529 second review, reviewer B's N2, jobs/the-register-arm-of-fastgate-checks-the-numbers-of-appended-rows-and-not-the-rows-so-a-duplicate-or-wrong-bundle-row-takes-a-fast-green-2026-10-16].
+#     On a commit that changes only the register, one run appends two built rows for the live number: one naming
+#     the base app.js's own md5, which the vouch holds, and one naming ffffffffffff. The first must not stand for
+#     the second, because only a bundle this diff changes, or a live held one, may stand for a sibling.
+reset_clone
+H47N="${BASESTAMP#\#}"; H47N="${H47N%% *}"
+if ! [[ "$H47N" =~ ^[0-9]+$ ]]; then
+  note "  FAIL H47 [$(tc H47)]  could not read the live number from the base stamp '$BASESTAMP'"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H47"
+else
+  # THE COPY IS WRITTEN BY HAND [#529, found by mutant M27]. `buildnum.sh record` is idempotent on number, bundle
+  # and source whatever the runId, and the base already holds the live row, so asking it for the copy appended
+  # nothing and this case reduced to H40: with seeding from every vouched bundle restored, it still read ok.
+  printf '%s\tbuilt\t-\t%s\t%s\t%s\tfastgate-drive\tbuild.sh\tFIXTURE ONLY, a copy of the live bundle under this run.\n' \
+    "$H47N" "$(md5_12 "$C/app.js")" "$(md5_12 "$C/chess.jsx")" "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/build-numbers.tsv"
+  record_in_clone "$H47N" ffffffffffff "$(md5_12 "$C/chess.jsx")" || note "    (record returned non-zero)"
+  commit_case "H47 two built rows for the live number #$H47N by one run, a copy of the live bundle and ffffffffffff"
+  expect H47 1 "names bundle ffffffffffff"
+fi
+
+# H48 A HELD ROW VOUCHES FOR ITS OWN NUMBER AND RUNID ONLY [#529 third pass, reviewer B's N3, jobs/the-register-arm-of-fastgate-checks-the-numbers-of-appended-rows-and-not-the-rows-so-a-duplicate-or-wrong-bundle-row-takes-a-fast-green-2026-10-16].
+#     The case base carries a live held row for another number under another runId, as H37's does; then, on a
+#     commit that changes only the register, one run appends two built rows for the live number: one naming that
+#     held bundle and one naming ffffffffffff. A held row vouches for the build it names, not for a row that
+#     copies its bundle, so the copy is refused and cannot stand for the forged sibling.
+reset_clone
+H48TOP="$(reg_top)"
+H48N="${BASESTAMP#\#}"; H48N="${H48N%% *}"
+if [ -z "$H48TOP" ] || ! [[ "$H48N" =~ ^[0-9]+$ ]]; then
+  note "  FAIL H48 [$(tc H48)]  could not read the base register top or the live number from the base stamp"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H48"
+else
+  H48M=$((H48TOP + 3)); H48Z="$(printf 'd0d0e0%06d' "$H48M")"
+  printf '%s\t%s\t#%s\t%s\theld-owner-run\tFIXTURE ONLY, a live held row for another number and run.\t-\n' \
+    "$H48Z" "$(printf 'e%039d' 48)" "$H48M" "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/held-trees.tsv"
+  new_base "H48 case base: a live held row for #$H48M by held-owner-run naming bundle $H48Z" >/dev/null
+  record_in_clone "$H48N" "$H48Z" "$(md5_12 "$C/chess.jsx")" || note "    (record returned non-zero)"
+  record_in_clone "$H48N" ffffffffffff "$(md5_12 "$C/chess.jsx")" || note "    (record returned non-zero)"
+  commit_case "H48 two built rows for the live number #$H48N, a copy of another run's held bundle $H48Z and ffffffffffff"
+  expect H48 1 "names bundle $H48Z"
+fi
+
 # H13 RECURSION GUARD. Re-enter this harness with the guard set and require a named refusal at exit 2, no
 #     recursion and no ok line. Run as a case rather than described, because an unproven control is not one.
 H13_OUT="$(CT_FASTGATE_DRIVE=1 bash "$HERE/fastgate-drive.sh" "$MODE" 2>&1)"; H13_RC=$?
@@ -1267,6 +1636,18 @@ fi
 # nothing, and so is a case loop that never executed.
 note ""
 note "fastgate-drive.sh mode=$MODE: $OK ok, $BAD FAIL, $SKIP skipped"
+# AND THE HARNESS CHECKS ITS OWN COUNT [#529]. gates/gates.sh checks it too and is the control that matters,
+# because a harness cannot be the only witness to its own silence; this line is for a run that reads the
+# harness directly, which every landing run does before its suite.
+# IT IS A COUNT, NOT A SET [#529 review, reviewer B's F3]: a case reported twice while another reports nothing
+# balances it. gates/gates.sh refuses that by the distinct case names on the verdict lines (its C28).
+CASES_SEEN=$((OK + BAD + SKIP))
+if [ "$CASES_SEEN" != "${#CASES[@]}" ]; then
+  note "  REFUSING TO REPORT GREEN - ${#CASES[@]} cases are declared and $CASES_SEEN reported a verdict, so at least one"
+  note "  case ran without one, or one gave an extra verdict, or a case was added to one list and not the other."
+  [ "$BAD" != 0 ] && note "  failed:$FAILED_CASES"
+  exit 1
+fi
 if [ "$BAD" != 0 ]; then
   note "  failed:$FAILED_CASES"
   exit 1

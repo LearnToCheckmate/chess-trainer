@@ -315,6 +315,10 @@ fi
 # provenance of every archived log and register row keyed on the number, and 49-home.js still passes because it
 # asserts the FORMAT. The realistic accident is a wrong DATE through build.sh's unvalidated CT_STAMP_TIME rather
 # than a wrong number. Named here as live rather than left described as structurally closed.
+# AND SINCE #529 THAT ACCIDENT CANNOT REACH AN ISSUED BUNDLE [R18, jobs/a-wrong-build-stamp-can-reach-main-on-an-app-changing-build-because-build-sh-does-not-validate-ct-stamp-time-2026-10-16]:
+# gates/build.sh now validates CT_STAMP_TIME before esbuild (the form, a real Eastern minute, not after the wall
+# clock plus ten minutes, not before origin/main's stamp), and only a trial bundle under CT_OUT is let through.
+# A hand edit of app.js can still write any stamp, which is what the plausibility arm below exists for.
 # (2) This tier never calls gates/held.sh check, so nothing here asks whether the tree was one a previous run
 # refused to ship. A raised it; B established it is STRUCTURALLY CLOSED rather than latent, and the reasoning
 # is worth keeping: held.sh's sourceMd5 key reads chess.jsx, the exemption PROVES chess.jsx is unchanged (any
@@ -552,7 +556,9 @@ console.log("CONTAINED "+acc+" of "+F.length+" fixtures are accepted here and al
 # (chess.jsx, gates/audit/, gates/pending/), and b88f1c8 is #522's own real rebuild, +11 over a base stamp of
 # #511 because #512 to #521 shipped no app change, which is NOT stamp-only either. The lesson in one line: the
 # base stamp number is the number of the last commit that CHANGED app.js, not the previous build, so a step
-# larger than the margin is reachable - and it is reachable only through a real rebuild, which never gets here.
+# larger than the margin is reachable. THIS LINE USED TO END "reachable only through a real rebuild, which never
+# gets here", AND THAT WAS FALSE [#529]: after held mints a real rebuild does get here, and it went FULL. The step
+# is now measured from the higher of the base stamp and the base series top (see plaus_pred, and H33).
 #
 # EQUALITY IS ALLOWED, AND THAT IS A MEASUREMENT AND NOT A COURTESY. The job offered strict increase "unless
 # measured history shows equal number rebuilds landing on main". It does: 11 of the 43 stamp-only commits carry
@@ -616,10 +622,21 @@ plaus_delta(){           # sets PLAUS_DELTA and PLAUS_DELTA_SRC in THIS shell; r
   # next mint". The commit wedges nothing; the caller's environment does, and prompts/build-run STEP 0F reads
   # exit 1 as STOP, so a stray variable stopped an honest push. buildnum.sh's own bound is 1..9999 and this
   # now matches it, so a 0 or a word is an ENVIRONMENT fault reported as a notice, never a refusal of the tree.
-  case "$d" in ''|*[!0-9]*)
-    PLAUS_DELTA_SRC="BUILDNUM_MAX_DELTA is set to '${BUILDNUM_MAX_DELTA:-}', which is not a whole number (gates/buildnum.sh's own BN_DEFAULT_DELTA is $b)"; return 1 ;; esac
-  if [ "$d" -lt 1 ] || [ "$d" -gt 9999 ]; then
-    PLAUS_DELTA_SRC="BUILDNUM_MAX_DELTA is set to '$d', outside the 1..9999 range gates/buildnum.sh itself accepts (its own BN_DEFAULT_DELTA is $b)"; return 1; fi
+  # THAT SENTENCE WAS FALSE UNTIL #529 [R18, jobs/the-register-arm-of-fastgate-asks-buildnum-sh-next-under-the-callers-environment-so-an-unusable-margin-refuses-an-honest-mint-at-exit-1-2026-10-20].
+  # It held for this function and not for the register arm, which went on asking gates/buildnum.sh next under
+  # the caller's environment: buildnum.sh refuses 0 or a word before it reads the register, and the arm read
+  # that refusal as a wedge, so an honest one-row mint commit like B's still took EXIT 1 under
+  # BUILDNUM_MAX_DELTA=0 on 366428f and on #527's tree (measured). The arm now asks with the variable removed
+  # whenever this function says the value is unusable: see UNDER ITS OWN DEFAULT in the register arm.
+  # A LENGTH TEST BEFORE ANY NUMERIC ONE [#529, jobs/the-series-margin-of-fastgate-is-measured-from-the-base-stamp-so-an-honest-rebuild-after-held-mints-pays-the-full-suite-2026-10-16].
+  # This read `[ "$d" -lt 1 ] || [ "$d" -gt 9999 ]` after a digits-only test, and on a twenty-digit value that
+  # is not a comparison at all: test prints "integer expression expected", returns 2, and the if reads it as
+  # false, so BUILDNUM_MAX_DELTA=99999999999999999999 was ACCEPTED as the margin (measured by calling this function
+  # alone on #527's script: it returned 0 with the twenty digits as PLAUS_DELTA). gates/buildnum.sh
+  # refuses the same value before any arithmetic with one case pattern, and this now uses that pattern: digits
+  # only, no leading zero, at most four digits, which is exactly 1..9999 and leaves no numeric test to fail.
+  case "$d" in ''|*[!0-9]*|0*|?????*)
+    PLAUS_DELTA_SRC="BUILDNUM_MAX_DELTA is set to '${BUILDNUM_MAX_DELTA:-}', which is not a whole number from 1 to 9999 as gates/buildnum.sh requires (its own BN_DEFAULT_DELTA is $b); an environment fault, not a fault of the tree"; return 1 ;; esac
   if [ -n "${BUILDNUM_MAX_DELTA:-}" ] && [ "${BUILDNUM_MAX_DELTA:-}" != "$b" ]; then
     PLAUS_DELTA_SRC="OVERRIDDEN by BUILDNUM_MAX_DELTA=$BUILDNUM_MAX_DELTA in the environment; gates/buildnum.sh's own BN_DEFAULT_DELTA is $b"
   else
@@ -637,8 +654,8 @@ plaus_et2utc(){ date -u -d "TZ=\"America/New_York\" $1" '+%Y-%m-%dT%H:%MZ' 2>/de
 # THE PREDICATE. ONE DEFINITION, CALLED BY THE LIVE PATH AND BY gates/fastgate-drive.sh THROUGH THE SCRIPT
 # ITSELF, so there is no second copy of the rule to drift - classify()'s own argument applied again.
 # Echoes a verdict line; returns 0 plausible, 1 refuse (stray row), 2 go-full (implausible or cannot run).
-plaus_pred(){ # <base app.js> <head app.js> <head md5-12>
-  local BA="$1" HA="$2" HM5="$3" SB SH BNUM HNUM BDATE HDATE D NOW10 HUTC ROW RTIME HI
+plaus_pred(){ # <base app.js> <head app.js> <head md5-12> <base register>
+  local BA="$1" HA="$2" HM5="$3" BR="${4:-}" SB SH BNUM HNUM BDATE HDATE D NOW10 HUTC ROW RTIME HI STOP REF STEP STEPTXT RRUN OTH
   SB="$(plaus_stamp "$BA")"; SH="$(plaus_stamp "$HA")"
   if [ -z "$SB" ] || [ -z "$SH" ]; then
     PLAUS_WHY="could not read a build stamp from both sides (base '$SB', head '$SH')"; return 2; fi
@@ -647,11 +664,41 @@ plaus_pred(){ # <base app.js> <head app.js> <head md5-12>
   case "$BNUM$HNUM" in *[!0-9]*) PLAUS_WHY="a stamp number is not numeric (base $BNUM, head $HNUM)"; return 2 ;; esac
   plaus_delta || { PLAUS_WHY="the series margin is unknown: $PLAUS_DELTA_SRC"; return 2; }   # no subshell [#524]
   D="$PLAUS_DELTA"
+  # THE STEP IS MEASURED FROM THE HIGHER OF THE BASE STAMP AND THE BASE SERIES TOP [#529, jobs/the-series-margin-of-fastgate-is-measured-from-the-base-stamp-so-an-honest-rebuild-after-held-mints-pays-the-full-suite-2026-10-16].
+  # It was measured from the base STAMP alone. The base stamp is the number of the last commit that changed
+  # app.js, and a held run mints without shipping, so main's register can sit many numbers above it (#523,
+  # #524 and #525 did). An independent reviewer's input, 2 of 2: ten minted-only rows above #522, then the real
+  # mint and record of #535 with app.js restamped, answered exit 2 "#535 is 13 above the base #522, past the
+  # series margin of 10", a FALSE FULL that kept the fast path shut in exactly the state held mints create.
+  # The series top is read from the BASE register with the register arm's own row filter (field 1 a bare number,
+  # NF>=2; nine digits at most, so a planted giant row cannot raise it), so it is a number main already holds.
+  # Using it loosens nothing the register arm checks: an appended number must still be contiguous with the
+  # base top, so a stamp past the series still has no row to stand on. H33 is the case.
+  # AND IT MUST NOT LOOSEN THE OTHER DIRECTION [R18, #529 review, an independent reviewer's F2]. Measuring from
+  # the series top let through every number BELOW it as well as the one above it: over eleven minted-only rows
+  # #527 to #537, each another run's, a restamp to #535 answered exit 0 with "step -2", where #527's script sent
+  # the same commits to the full suite, and `buildnum.sh stampable 535` calls that number NOT STAMPABLE for the
+  # restamping run. So a head number at or below the series top that is not the base stamp's own must be the
+  # run's own by every register row for it, buildnum.sh stampable's rule, asked at (b2) below once the built row
+  # that names this bundle is in hand: another run's number goes FULL (H44), the run's own passes (H45), the
+  # run's own next mint passes (H33), and a rebuild under the base stamp's own number keeps the equality this
+  # predicate has always allowed. [#529 second review, both reviewers' N1: the first form of this fix sent every
+  # number inside the series FULL as "a number the register already issued, not a fresh mint", which is false
+  # for a run whose mint reached main in an earlier push than its bundle; `buildnum.sh stampable` calls that
+  # number the run's own.]
+  STOP=0
+  if [ -n "$BR" ] && [ -r "$BR" ]; then
+    STOP="$(awk -F'\t' '!/^[[:space:]]*#/ && NF>=2 && $1 ~ /^[0-9]+$/ && length($1) <= 9 { if ($1 + 0 > t) t = $1 + 0 } END { print t + 0 }' "$BR" 2>/dev/null)"
+  fi
+  case "$STOP" in ''|*[!0-9]*) STOP=0 ;; esac
+  REF="$((10#$BNUM))"; [ "$STOP" -gt "$REF" ] && REF="$STOP"
+  STEP="$((10#$HNUM - REF))"
   # (a) NUMBER. Equality allowed - measured, see the block comment above. Lower refuses; above the margin refuses.
   if [ "$HNUM" -lt "$BNUM" ]; then
     PLAUS_WHY="the head stamp number #$HNUM is LOWER than the base #$BNUM; a build number never goes backwards on a stamp-only commit"; return 2; fi
-  if [ "$((HNUM - BNUM))" -gt "$D" ]; then
-    PLAUS_WHY="the head stamp number #$HNUM is $((HNUM - BNUM)) above the base #$BNUM, past the series margin of $D [$PLAUS_DELTA_SRC]"; return 2; fi
+  # A number inside the base series is judged at (b2), by whose rows it has, not here by its position [#529 second review].
+  if [ "$STEP" -gt "$D" ]; then
+    PLAUS_WHY="the head stamp number #$HNUM is $STEP above #$REF, the higher of the base stamp #$BNUM and the base series top #$STOP, past the series margin of $D [$PLAUS_DELTA_SRC]"; return 2; fi
   # (a) DATE. Lexicographic compare is exact for YYYY-MM-DD HH:MM, so no date arithmetic and no DST edge here.
   if [ "$HDATE" \< "$BDATE" ]; then
     PLAUS_WHY="the head stamp date $HDATE is EARLIER than the base stamp date $BDATE"; return 2; fi
@@ -682,6 +729,20 @@ plaus_pred(){ # <base app.js> <head app.js> <head md5-12>
   if [ -z "$ROW" ]; then
     HI="$(awk -F'\t' -v n="$HNUM" 'NF>=2 && $1==n && $2=="built" {c++} END{print c+0}' "$PLAUS_REG")"
     PLAUS_WHY="the head register holds no \`built\` row for #$HNUM whose bundle field is $HM5 (it holds $HI \`built\` row(s) for #$HNUM), so nothing but the bundle itself says this stamp names this build"; return 2; fi
+  # (b2) A NUMBER INSIDE THE SERIES MUST BE THIS RUN'S [#529 second review, both reviewers' N1]. At or below the
+  # base series top and not the base stamp's own, the number already has register rows, and it is stampable here
+  # only by the run that holds every one of them: buildnum.sh stampable's rule, asked of the head register with
+  # the runId of the `built` row that names this bundle. That is the shape of a run whose mint reached main in an
+  # earlier push and whose bundle follows in a later one (H45); another run's held number goes FULL (H44).
+  # THE RUNID IS TAKEN ON TRUST, as `buildnum.sh stampable` takes CT_RUNID: a row written under another run's
+  # runId passes this test, and nothing in the register can tell [#529 third pass, reviewer A].
+  if [ "$HNUM" -ne "$BNUM" ] && [ "$STEP" -lt 1 ]; then
+    RRUN="$(printf '%s' "$ROW" | cut -f7)"
+    OTH="$(awk -F'\t' -v n="$HNUM" -v r="$RRUN" '!/^[[:space:]]*#/ && NF >= 7 && $1 ~ /^[0-9]+$/ && $1 + 0 == n + 0 && $7 != r { c++ } END { print c + 0 }' "$PLAUS_REG" 2>/dev/null)"
+    case "$OTH" in ''|*[!0-9]*) OTH=1 ;; esac
+    if [ -z "$RRUN" ] || [ "$OTH" -ne 0 ]; then
+      PLAUS_WHY="the head stamp number #$HNUM sits inside the base series (top #$STOP), is not the base stamp's own #$BNUM, and $OTH register row(s) for it carry a runId other than the one on the \`built\` row that names this bundle, so it is another run's number (buildnum.sh stampable's rule)"; return 2; fi
+  fi
   RTIME="$(printf '%s' "$ROW" | cut -f6)"
   HUTC="$(plaus_et2utc "$HDATE")"
   [ -n "$HUTC" ] && [ -n "$RTIME" ] || { PLAUS_WHY="could not convert the stamp date to UTC to compare it with the register row time"; return 2; }
@@ -692,7 +753,10 @@ plaus_pred(){ # <base app.js> <head app.js> <head md5-12>
     PLAUS_WHY="the register row for #$HNUM is stamped $RTIME, EARLIER than the bundle stamp $HDATE ET ($HUTC); the row is written after the bundle"; return 2; fi
   if [ "$RTIME" \> "$(date -u -d "$HUTC + 60 minutes" '+%Y-%m-%dT%H:%MZ' 2>/dev/null || printf '%s' "$RTIME")" ]; then
     PLAUS_WHY="the register row for #$HNUM is stamped $RTIME, more than an hour after the bundle stamp $HDATE ET ($HUTC); history shows these two clock reads share a minute"; return 2; fi
-  PLAUS_WHY="stamp #$BNUM -> #$HNUM (step $((HNUM - BNUM)), margin $D [$PLAUS_DELTA_SRC]), date $BDATE -> $HDATE, not after $NOW10 ET; register \`built\` row for #$HNUM names bundle $HM5 at $RTIME, and the bundle stamp is $HUTC"
+  if [ "$HNUM" -eq "$BNUM" ]; then STEPTXT="the base stamp's own number, a rebuild under it"
+  elif [ "$STEP" -lt 1 ]; then STEPTXT="inside the base series (top #$STOP), and every register row for #$HNUM carries the runId on the \`built\` row that names this bundle, buildnum.sh stampable's test; a runId is what a row says, not proof of who wrote it"
+  else STEPTXT="step $STEP over #$REF, the higher of the base stamp and the base series top #$STOP"; fi   # never a negative step [#529 review]
+  PLAUS_WHY="stamp #$BNUM -> #$HNUM ($STEPTXT; margin $D [$PLAUS_DELTA_SRC]), date $BDATE -> $HDATE, not after $NOW10 ET; register \`built\` row for #$HNUM names bundle $HM5 at $RTIME, and the bundle stamp is $HUTC"
   return 0
 }
 
@@ -967,6 +1031,99 @@ if in_changed 'gates/build-numbers.tsv'; then   # #525: was a printf-into-grep-q
   done <<EOF
 $RP_NEW
 EOF
+  # THE APPENDED ROWS AS ROWS, NOT AS NUMBERS [#529, jobs/the-register-arm-of-fastgate-checks-the-numbers-of-appended-rows-and-not-the-rows-so-a-duplicate-or-wrong-bundle-row-takes-a-fast-green-2026-10-16].
+  # Everything above judges the NUMBERS that appear, and RP_NEW is a SET difference (`grep -vxF`), so two
+  # shapes took EXIT 0 FAST GATE GREEN on #524's held tree, measured by the orchestrator on 04dee1e on 15 Oct
+  # 2026 (inputs P6 and P7 of a 21 input run): a row BYTE-IDENTICAL to one the base already holds is not in a
+  # set difference at all, and a contiguous `built` row naming a bundle that was never built passes a bound
+  # that reads the number field only. claude/stories/TEST-CASES.md had named both as residuals (1) and (2)
+  # since #524. So the appended rows are now counted WITH THEIR MULTIPLICITY (one awk: the base rows first,
+  # then each head row is matched off against them or kept), and every kept row is judged as a row:
+  #   (i)   nine tab separated fields and a state from the vocabulary `buildnum.sh add` accepts (minted,
+  #         issued, built, shipped, held, abandoned), which is what every writer in gates/ produces;
+  #   (ii)  no exact copy of another row in the head register. No tool writes one: `record` is idempotent on
+  #         number, bundle and source, `mint` reads back exactly one row for its number, and `add` stamps the
+  #         minute, so a copy is a hand, or an operator running `add` twice in one minute;
+  #   (iii) a `built` row names a bundle this history holds: app.js at the base, at the head or at any commit
+  #         between; or a HEX bundle a LIVE gates/held-trees.tsv row names FOR THAT ROW'S OWN NUMBER AND RUNID
+  #         (its fields 3 and 5), at the base or at the head; or it shares its number and runId with ANOTHER
+  #         ROW APPENDED IN THIS DIFF whose bundle is one THIS DIFF CHANGES (an app.js at the head or between
+  #         that differs from the base's) or whose own live held row vouches for it, because a run that
+  #         rebuilds mid pass records every bundle and commits one.
+  # TWO MORE NARROWINGS FROM THE SECOND REVIEW [#529, R18]. A cleared row ('-' in field 1) is a withdrawn row,
+  # and the three this change clears (#523, #524, #525) carry their gated sha's first 12 characters there, which
+  # the hex test alone accepted, so a built row for the live number naming one took FAST GATE GREEN (reviewer
+  # A's N2, H46). And a built row naming the BASE's own bundle vouched for itself and seeded its run's
+  # siblings, so a register only commit carried a forged row beside a copy of the live one (reviewer B's N2,
+  # H47). AND A THIRD FROM THE THIRD PASS [reviewer B's N3]: a live held bundle vouched for a row with ANY number
+  # and runId, so a register only commit carried a forged row beside a copy of #504's held bundle (H48); a held
+  # row now vouches for the build it names, its own number under its own runId. Replayed against main's
+  # history with all three, the counts are unchanged and nothing is refused (run5/sim_g6_r3.py).
+  # TWO CLAUSES OF THE FIRST VERSION WERE WITHDRAWN BEFORE IT LANDED, AND A THIRD WAS NARROWED [R18, #529 review].
+  # Both independent reviewers measured forged rows taking EXIT 0 FAST GATE GREEN under the green line below:
+  # "the number the head stamp carries" vouched ANY bundle for that number, and on a records-only commit the
+  # head stamp IS the base stamp, so a row for the live number naming a bundle nobody built passed (H40), as did
+  # a second row beside an honest rebuild (H43); pairs drawn from BASE rows let a row that copies a real row's
+  # number and runId pass (H41); and field 1 of held-trees.tsv entered the vouch set verbatim, so the `sha-only`
+  # sentinel of gates/held.sh vouched a bundle no tool can record (H42). History needs none of the three.
+  # MEASURED AGAINST HISTORY BEFORE IT WAS WRITTEN, because a guard that refuses honest work is worse than no
+  # guard: every first-parent commit on main that touched the register, replayed with these rules, is 406
+  # appended rows (95 of them built) with 0 copies, 0 rows of other than nine fields, 0 states outside the
+  # vocabulary and every built row vouched: 64 by app.js at the commit or its parent, 8 by a hex held-trees
+  # bundle and 23 by a row the same run appended in the same commit (run5/sim_g6_tight.py, the orchestrator's
+  # replay as tightened by the review). The held runs' close-outs (#456, #459 and #504 among them) are why the
+  # sibling clause exists: without it this arm would refuse every one.
+  # WHAT (iii) CANNOT SEE, said so nobody over-reads it: it proves a built row names a bundle that some file in
+  # this history names, or sits beside one written by the same run in this diff. It does not prove a hand did
+  # not write that file's row too, since a held-trees row and
+  # a built row naming one invented bundle pass together, and it need not: a hand-written contiguous `minted`
+  # row burns the same one number and the bound above accepts it by design, because nothing here can tell a
+  # hand-written mint from a real one. NO PIPELINE: blobs go to a temporary file and md5sum reads the file.
+  RP_TMPBLOB="$(mktemp)"; FG_TMPS+=("$RP_TMPBLOB")   # removed by the EXIT trap on every path [#527]
+  RP_VOUCH=""; RP_SEED=""; RP_BM=""; RP_HK=""   # RP_SEED: changed bundles that may stand for a sibling; RP_HK: held keys
+  for RP_C in "$BASEFULL" "$HEAD" $($GIT rev-list "$BASEFULL..$HEAD" -- app.js 2>/dev/null || true); do
+    if $GIT cat-file blob "$RP_C:app.js" > "$RP_TMPBLOB" 2>/dev/null; then
+      RP_M="$(md5sum "$RP_TMPBLOB" 2>/dev/null || true)"; RP_VOUCH="$RP_VOUCH ${RP_M:0:12}"
+      if [ "$RP_C" = "$BASEFULL" ]; then RP_BM="${RP_M:0:12}"
+      elif [ "${RP_M:0:12}" != "$RP_BM" ]; then RP_SEED="$RP_SEED ${RP_M:0:12}"; fi   # a bundle this diff changes
+    fi
+  done
+  for RP_C in "$BASEFULL" "$HEAD"; do
+    if $GIT cat-file blob "$RP_C:gates/held-trees.tsv" > "$RP_TMPBLOB" 2>/dev/null; then
+      RP_HK="$RP_HK $(awk -F'\t' '$0 !~ /^[[:space:]]*#/ && NF >= 5 {b = $1; n = $3; sub(/^#/, "", n); r = $5; if (b ~ /^[0-9a-f]+$/ && n ~ /^[0-9]+$/ && r != "" && r !~ /[| ]/) printf "%s|%s|%s ", substr(b, 1, 12), n, r}' "$RP_TMPBLOB")"   # live hex rows, keyed on their own number and runId [#529 reviews]
+    fi
+  done
+  # THE JUDGE. Pass one matches the head rows off against the base rows (multiplicity), keeps the rest, and
+  # collects the (number, runId) pairs of KEPT built rows whose bundle is vouched; pass two judges the kept rows.
+  RP_ROWBAD="$(awk -F'\t' -v bfile="$RP_B" -v vouch="$RP_VOUCH" -v seed="$RP_SEED" -v heldk="$RP_HK" '
+    function norm(x) { sub(/^0+/, "", x); if (x == "") x = "0"; return x }
+    function held(x) { return ((x[4] SUBSEP norm(x[1]) SUBSEP x[7]) in HK) }   # its own number and runId only [#529 third pass]
+    BEGIN { nv = split(vouch, va, " "); for (i = 1; i <= nv; i++) if (va[i] != "") V[va[i]] = 1
+            ns = split(seed, sa, " "); for (i = 1; i <= ns; i++) if (sa[i] != "") S[sa[i]] = 1
+            nh = split(heldk, ha, " "); for (i = 1; i <= nh; i++) if (split(ha[i], hq, "|") == 3) HK[hq[1] SUBSEP norm(hq[2]) SUBSEP hq[3]] = 1
+            ST["minted"] = 1; ST["issued"] = 1; ST["built"] = 1; ST["shipped"] = 1; ST["held"] = 1; ST["abandoned"] = 1 }
+    $0 ~ /^[[:space:]]*#/ || $0 == "" { next }
+    FILENAME == bfile { B[$0]++; next }
+    { H[$0]++; L[++n] = $0 }
+    END {
+      for (k in B) R[k] = B[k]
+      for (i = 1; i <= n; i++) {
+        l = L[i]
+        if (R[l] > 0) { R[l]--; continue }
+        K[i] = 1
+        if (split(l, g, "\t") == 9 && g[2] == "built" && ((g[4] in S) || held(g))) P[norm(g[1]) SUBSEP g[7]] = 1   # seeds [#529 reviews]
+      }
+      for (i = 1; i <= n; i++) {
+        if (!(i in K)) continue
+        l = L[i]
+        nf = split(l, f, "\t")
+        if (nf != 9) { printf "    an appended row has %d fields, and every writer in gates/ writes nine: %s\n", nf, substr(l, 1, 70); continue }
+        if (!(f[2] in ST)) { printf "    appended row #%s carries the state \"%s\", which no tool in gates/ writes (minted, issued, built, shipped, held, abandoned).\n", f[1], f[2]; continue }
+        if (H[l] > 1) { printf "    appended row #%s %s (runId %s, written %s) is a BYTE-IDENTICAL copy of another row in the head register, and no tool in gates/ writes one.\n", f[1], f[2], f[7], f[6]; continue }
+        if (f[2] == "built" && !((f[4] in V) || held(f) || ((norm(f[1]) SUBSEP f[7]) in P)))
+          printf "    appended row #%s built names bundle %s, which nothing in this history holds: not app.js at the base, at the head or between, no live gates/held-trees.tsv row naming it for this number and runId, and no vouched built row for #%s by %s appended in this diff.\n", f[1], f[4], f[1], f[7]
+      }
+    }' "$RP_B" "$RP_H" 2>/dev/null || true)"
   # KEEP THE TWO ROW SETS for the not-checked count on the green path below [#524, B finding 6]; the files
   # themselves go, because this block must not leave temporaries behind on any exit path.
   RP_B2="$(mktemp)"; RP_H2="$(mktemp)"; FG_TMPS+=("$RP_B2" "$RP_H2"); cp "$RP_B" "$RP_B2"; cp "$RP_H" "$RP_H2"   # #527: see FG_TMPS
@@ -1021,6 +1178,25 @@ EOF
       say "    AND THE SAME DIFF ALSO FILLS A GAP, which the refusal above does not mention:"
       printf "$RP_FILL" | tee -a "$LOG"
     fi
+    if [ -n "$RP_ROWBAD" ]; then
+      say "    AND, JUDGED AS ROWS [#529], THE SAME DIFF GAINS ROWS NO TOOL IN gates/ WRITES:"
+      printf '%s\n' "$RP_ROWBAD" | tee -a "$LOG"
+    fi
+    exit 1
+  fi
+  # ROWS NO TOOL WRITES ARE REFUSED WHEN THE NUMBERS ARE OTHERWISE FINE [#529, jobs/the-register-arm-of-fastgate-checks-the-numbers-of-appended-rows-and-not-the-rows-so-a-duplicate-or-wrong-bundle-row-takes-a-fast-green-2026-10-16].
+  # exit 1 and not exit 2, for the reason the gap fill below cannot share: the full suite runs no series check
+  # and reads no row, so a copy or an unvouched built row sent there would land. The reasons are printed with
+  # %s, never as a format, because every byte of them came from a row a hand may have written.
+  if [ -n "$RP_ROWBAD" ]; then
+    say ""
+    say "FAST GATE REFUSED - gates/build-numbers.tsv gains a row no tool in gates/ writes [#529]. The register is"
+    say "    APPEND-ONLY, so it cannot be edited out again once it lands:"
+    printf '%s\n' "$RP_ROWBAD" | tee -a "$LOG"
+    if [ -n "$RP_FILL" ]; then
+      say "    AND THE SAME DIFF ALSO FILLS A GAP, which the refusal above does not mention:"
+      printf "$RP_FILL" | tee -a "$LOG"
+    fi
     exit 1
   fi
   if [ -n "$RP_FILL" ]; then
@@ -1034,7 +1210,24 @@ EOF
     exit 2
   fi
   # AND ASK THE MINTER ITSELF. This is the predicate the wedge actually breaks, so it is the one that decides.
-  RP_OUT="$(cd "$ROOT" && bash "$G/buildnum.sh" next 2>&1)"; RP_RC=$?
+  # UNDER ITS OWN DEFAULT WHEN THE CALLER'S MARGIN IS ONE IT REFUSES [#529, jobs/the-register-arm-of-fastgate-asks-buildnum-sh-next-under-the-callers-environment-so-an-unusable-margin-refuses-an-honest-mint-at-exit-1-2026-10-20].
+  # gates/buildnum.sh exits 2 on a BUILDNUM_MAX_DELTA outside 1..9999 BEFORE it reads the register, so `next`
+  # asked under that environment says nothing about this tree, and this arm read the refusal as "this commit
+  # would wedge the next mint": exit 1, which prompts/build-run STEP 0F reads as STOP. MEASURED on an honest
+  # one-row mint commit made by the real `buildnum.sh mint`: 0, abc and twenty digits each gave EXIT 1 FAST GATE
+  # REFUSED on 366428f, on #527's tree and on this tree before the change, and 10 gave EXIT 0. That is #524
+  # antagonist B's finding 2, which plaus_delta's comment says was closed; it was closed in plaus_delta only.
+  # plaus_delta has already judged the value (PLAUS_DELTA_SRC begins "BUILDNUM_MAX_DELTA is set to" only when it
+  # is unusable), so this asks the minter with the variable removed, which is the margin the next real mint will
+  # use, and says so. A usable override is passed through unchanged, as before.
+  case "$PLAUS_DELTA_SRC" in
+    "BUILDNUM_MAX_DELTA is set to"*)
+      say "register plausibility [#529]: asking gates/buildnum.sh next with BUILDNUM_MAX_DELTA removed, because it"
+      say "  refuses the value set; an environment fault, not a fault of the tree."
+      RP_OUT="$(cd "$ROOT" && env -u BUILDNUM_MAX_DELTA bash "$G/buildnum.sh" next 2>&1)"; RP_RC=$? ;;
+    *)
+      RP_OUT="$(cd "$ROOT" && bash "$G/buildnum.sh" next 2>&1)"; RP_RC=$? ;;
+  esac
   if [ "$RP_RC" != 0 ]; then
     say ""
     say "FAST GATE REFUSED - gates/build-numbers.tsv changed and gates/buildnum.sh next now REFUSES on the head"
@@ -1052,6 +1245,9 @@ EOF
   say "  at most #$RP_TOP+N) and at most three in one commit; NO new number at or below #$RP_TOP, which would"
   say "  be a gap fill rather than a mint and goes to the full suite; and gates/buildnum.sh next still answers"
   say "  exit 0 on the head register ($RP_OUT)."
+  say "  And judged as rows [#529]: every appended row carries nine fields and a state the tools write, none is"
+  say "  a copy of another row, and every appended built row names a bundle app.js or a hex held-trees row holds,"
+  say "  or shares its number and runId with a row appended in this diff that does."
   # WHAT THIS ARM DID NOT CHECK, SAID ON THE GREEN PATH [#524, antagonist B finding 6]. B appended one row
   # claiming the LIVE number #524 for another runId and took EXIT 0 FAST GATE GREEN under the line above; at
   # 25 rows for 500..524 it was still green and still "0 new build number(s)", while
@@ -1064,8 +1260,9 @@ EOF
              | grep -cxF -f <(printf '%s\n' "$RP_BASENUMS2") 2>/dev/null || true)"
   [ -n "$RP_SAME" ] || RP_SAME=0
   say "  NOT CHECKED BY THIS ARM, stated rather than left to be found: $RP_SAME appended row(s) name a number the"
-  say "  base register ALREADY carries. The bound is over the numbers that APPEAR, so such a row is outside it -"
-  say "  and one of them can make a live number NOT STAMPABLE for its true holder, append-only and unrecoverable."
+  say "  base register ALREADY carries. Since #529 every appended row is judged as a row (nine fields, a state the"
+  say "  tools write, no copy, and a built row's bundle held in this history), but NOT by its runId, so one written"
+  say "  for another run can still make a live number NOT STAMPABLE for its true holder, append-only and for good."
   rm -f "$RP_B2" "$RP_H2"
 fi
 
@@ -1143,9 +1340,11 @@ if [ -n "$APPDIFF" ]; then
     PL_B="$(mktemp)"; PL_H="$(mktemp)"; FG_TMPS+=("$PL_B" "$PL_H")   # #527: see FG_TMPS
     $GIT cat-file blob "$BASEFULL:app.js" > "$PL_B" 2>/dev/null || true
     $GIT cat-file blob "$HEAD:app.js"     > "$PL_H" 2>/dev/null || true
+    PL_R="$(mktemp)"; FG_TMPS+=("$PL_R")   # #529: the BASE register, for the series top plaus_pred measures from
+    $GIT cat-file blob "$BASEFULL:gates/build-numbers.tsv" > "$PL_R" 2>/dev/null || true
     PL_M5="$(md5sum < "$PL_H" 2>/dev/null | cut -c1-12)"
-    plaus_pred "$PL_B" "$PL_H" "$PL_M5"; PL_RC=$?
-    rm -f "$PLAUS_REG" "$PL_B" "$PL_H"
+    plaus_pred "$PL_B" "$PL_H" "$PL_M5" "$PL_R"; PL_RC=$?
+    rm -f "$PLAUS_REG" "$PL_B" "$PL_H" "$PL_R"
     case "$PL_RC" in
       0) say ""
          say "stamp plausibility, both witnesses [#523]: $PLAUS_WHY" ;;

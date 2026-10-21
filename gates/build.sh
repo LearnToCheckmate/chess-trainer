@@ -4,7 +4,7 @@
 # without createRoot (#351 white screen), a bundle without the stamp, a bundle node --check rejects.
 # Prints bytes, md5 and the stamp.
 # Env: CT_RUNID your runId, used to attribute the register row and to tell YOUR build numbers from another
-#      run's - set it on every build; CT_STAMP_TIME overrides the time (tests only); CT_OUT a trial bundle
+#      run's - set it on every build; CT_STAMP_TIME overrides the time (tests only, validated since #529); CT_OUT a trial bundle
 #      path; CT_RENUM=1 overrides the build-number refusal.
 #
 # ── THE BUILD NUMBER IS CHECKED FOR REUSE HERE (jobs/mint-build-numbers-from-one-place, #454) ────────────────
@@ -105,6 +105,56 @@ else
     echo "  Trial bundle?         CT_OUT=/path/app.js gates/build.sh '$N'   (checked but not enforced)"
     echo "  If CT_RUNID is unset, every number looks like somebody else's. Set it."
     exit 1
+  fi
+fi
+# THE STAMP TIME IS VALIDATED, NOT ONLY THE NUMBER [#529, jobs/a-wrong-build-stamp-can-reach-main-on-an-app-changing-build-because-build-sh-does-not-validate-ct-stamp-time-2026-10-16].
+# CT_STAMP_TIME went into the stamp verbatim, so a lower or a future date reached the bundle, and on an app
+# changing build nothing else looked: such a commit is never stamp only, so gates/fastgate.sh's stamp arm never
+# judges it, and the full suite reads the stamp as a FORMAT (gates/regress/49-home.js) and never as a date. A
+# lower number and a nonsense date through this variable were measured at exit 0 on main by the #514 blind pair
+# and #521 antagonist A. So the refusal belongs here, at the one place a stamp becomes an artefact, and BEFORE
+# esbuild, which is also what lets a container without esbuild prove it. The tests are the fast tier's own:
+#   the form YYYY-MM-DD HH:MM; a minute that exists on the Eastern clock (it must read back unchanged through
+#   date, which also refuses a minute the spring change skips); not later than the wall clock plus ten minutes,
+#   formatted in Eastern exactly as gates/fastgate.sh's NOW10 is; and not earlier than the stamp origin/main's
+#   app.js already carries, so the home screen cannot go backwards in time.
+# A TRIAL BUNDLE IS REPORTED, NOT REFUSED, for the reason the number check above gives: CT_OUT never touches the
+# repository's app.js, and a negative control may need exactly the implausible stamp this refuses. NO PIPELINE:
+# main's bundle goes to a temporary file and grep reads the file, because this script runs under pipefail.
+if [ -n "${CT_STAMP_TIME:-}" ]; then
+  ST_WHY=""
+  case "$CT_STAMP_TIME" in
+    20[0-9][0-9]-[01][0-9]-[0-3][0-9]" "[0-2][0-9]:[0-5][0-9]) ;;
+    *) ST_WHY="is not the form YYYY-MM-DD HH:MM that gates/fastgate.sh and gates/regress/49-home.js read" ;;
+  esac
+  if [ -z "$ST_WHY" ]; then
+    ST_RT="$(TZ=America/New_York date -d "$CT_STAMP_TIME" '+%Y-%m-%d %H:%M' 2>/dev/null || true)"
+    if [ "$ST_RT" != "$CT_STAMP_TIME" ]; then ST_WHY="is not a minute that exists on the Eastern clock (it reads back as '${ST_RT:-nothing}')"; fi
+  fi
+  if [ -z "$ST_WHY" ]; then
+    ST_NOW10="$(TZ=America/New_York date -d 'now + 10 minutes' '+%Y-%m-%d %H:%M' 2>/dev/null || true)"
+    if [ -z "$ST_NOW10" ]; then ST_WHY="cannot be bounded, because the wall clock could not be read"
+    elif [ "$CT_STAMP_TIME" \> "$ST_NOW10" ]; then ST_WHY="is later than the wall clock plus ten minutes ($ST_NOW10 ET), the bound gates/fastgate.sh's stamp arm uses, so it cannot be a build that has happened"; fi
+  fi
+  if [ -z "$ST_WHY" ]; then
+    ST_TMP="$(mktemp)"
+    if git -C "$ROOT" cat-file blob origin/main:app.js > "$ST_TMP" 2>/dev/null; then
+      ST_MAIN="$(grep -aoE -m1 '#[0-9]{3,4} - 20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET' "$ST_TMP" 2>/dev/null || true)"
+      ST_MAIN="${ST_MAIN%%$'\n'*}"; ST_MDATE="${ST_MAIN#* - }"; ST_MDATE="${ST_MDATE% ET}"
+      if [ -n "$ST_MAIN" ] && [ "$CT_STAMP_TIME" \< "$ST_MDATE" ]; then ST_WHY="is earlier than the stamp origin/main already serves ($ST_MAIN), so the home screen would go backwards in time"; fi
+    else
+      echo "build.sh: NOTE - origin/main has no app.js here, so CT_STAMP_TIME is not checked against main's stamp."
+    fi
+    rm -f "$ST_TMP"
+  fi
+  if [ -n "$ST_WHY" ]; then
+    if [ -n "${CT_OUT:-}" ]; then
+      echo "build.sh: CT_STAMP_TIME '$CT_STAMP_TIME' $ST_WHY [#529]. CT_OUT is set, so this is a TRIAL bundle and the refusal is reported, not enforced."
+    else
+      echo "FAIL: CT_STAMP_TIME '$CT_STAMP_TIME' $ST_WHY [#529]."
+      echo "  CT_STAMP_TIME is for fixtures and trial bundles (with CT_OUT); an issued build takes the wall clock."
+      exit 1
+    fi
   fi
 fi
 [ -d "$G/node_modules/esbuild" ] || { echo "FAIL: run (cd gates && npm ci) first"; exit 1; }

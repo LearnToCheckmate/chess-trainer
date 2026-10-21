@@ -169,5 +169,23 @@ eq "8b held.sh --selftest reaches it too"      "1" "$(CT_HELD_SELFTEST_NESTED=1 
 rm -f "$R/gates/held-selftest.sh"
 ck "8c selftest says so when the controls are absent" 2 bash "$H" selftest
 
-printf '\n%s PASS  %s FAIL  (%s assertions over %s inputs to `add`)\n' "$P" "$F" "$((P+F))" "19"
+# 9. A SHA-ONLY HOLD [#529, jobs/the-held-register-cannot-express-a-harness-only-hold-because-all-three-of-its-keys-identify-an-artefact-2026-10-15].
+#    A run that changed only gates/ ships main's own bundle, so its hold can key on the sha alone. The three
+#    controls the job asks for: it HOLDS its sha, it does NOT hold a bundle md5 (main's own included), and it
+#    is NOT treated as cleared; and the sentinel is exact and is not itself a key. The sha is a fresh commit on
+#    main's tree made with commit-tree, so no earlier case's row can be what answers for it.
+printf 'MAIN VERSION of chess.jsx\n' > "$R/chess.jsx"
+SHA9="$(printf 'case 9: a gates-only change\n' | git -C "$R" commit-tree "$(git -C "$R" rev-parse "$MAINSHA^{tree}")" -p "$MAINSHA")"
+ck "9a a sha-only hold is written through add, no field typed by hand" 0 env CT_RUNID=held-selftest "$H" add sha-only "$SHA9" '#920' "$RSN"
+eq "9b its field 1 is the sentinel"             "sha-only" "$(tail -1 "$R/gates/held-trees.tsv" | cut -f1)"
+eq "9c its field 7 is '-', since its source is main's own" "-" "$(f7)"
+ck "9d it HOLDS its sha"                        1 "$H" check "$SHA9"
+printf 'a tree on no row at all\n' > "$R/chess.jsx"
+ck "9e it does NOT hold main's bundle md5"      0 "$H" check "$(md5sum "$R/app.js" | cut -c1-12)"
+ck "9f the sentinel is not itself a key"        0 "$H" check sha-only
+eq "9g list shows it once, as a LIVE sha-only row" "1" "$("$H" list 2>&1 | grep -c 'A SHA-ONLY hold')"
+ck "9h a near miss of the sentinel is refused as a non-hex md5" 2 env CT_RUNID=held-selftest "$H" add SHA-ONLY "$SHA9" '#921' "$RSN"
+printf 'V1 the GATED source\n' > "$R/chess.jsx"
+
+printf '\n%s PASS  %s FAIL  (%s assertions over %s inputs to `add`)\n' "$P" "$F" "$((P+F))" "21"
 [ "$F" = "0" ] || exit 1

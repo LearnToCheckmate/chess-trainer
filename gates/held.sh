@@ -10,6 +10,9 @@
 #   gates/held.sh check [<bundleMd5-or-sha>]   is this tree held? With no argument, md5sum app.js on disk.
 #                                              exit 0 = not held, exit 1 = HELD (prints the row), 2 = usage.
 #   gates/held.sh add <bundleMd5> <gatedSha> <#NNN> <reason...>    append a row. Refuses a duplicate.
+#   gates/held.sh add sha-only <gatedSha> <#NNN> <reason...>   a SHA-ONLY hold [#529]: for a run that changed
+#                                              no application file, so its bundle is main's own. Field 1 is the
+#                                              literal `sha-only`: the row stays LIVE and matches no bundle md5.
 #                                              Field 7, the sourceMd5, IS COMPUTED - `git show <gatedSha>:chess.jsx
 #                                              | md5sum | cut -c1-12`. You do not add it by hand. CT_SRCMD5
 #                                              overrides it; `add` says which tree it used, every time.
@@ -47,7 +50,7 @@ case "${1:-}" in
     KEY="$(printf '%s' "$KEY" | tr 'A-F' 'a-f')"
     HIT="$(match_rows | awk -F'\t' -v k="$KEY" '
       { m=tolower($1); gsub(/[ \r]/,"",m)
-        if (length(m)>=8 && length(m)<=12 && substr(k,1,length(m))==m) { print; exit }
+        if (m != "sha-only" && length(m)>=8 && length(m)<=12 && substr(k,1,length(m))==m) { print; exit }   # sha-only is no bundle key [#529]
         n=split(tolower($2), SH, ",")
         for (i=1;i<=n;i++) { gsub(/[ \r]/,"",SH[i])
           if (length(SH[i])>=7 && (SH[i]==k || substr(SH[i],1,7)==substr(k,1,7))) { print; exit } } }')"
@@ -88,9 +91,22 @@ case "${1:-}" in
     # VALIDATE BOTH KEYS. `add` policed the build token and a 40-char reason floor and NOTHING about either key,
     # so antagonist A got it to accept a 32-char md5, an UPPERCASE md5 and a 1-char md5 - every one a row that
     # `list` shows as live and that can never match anything.
-    MD5="$(printf '%s' "$MD5" | tr 'A-F' 'a-f')"; SHA="$(printf '%s' "$SHA" | tr 'A-F' 'a-f')"
-    case "$MD5" in *[!0-9a-f]*) echo "held.sh add: bundle md5 '$MD5' is not hex"; exit 2;; esac
-    if [ "${#MD5}" -lt 8 ] || [ "${#MD5}" -gt 12 ]; then
+    # A SHA-ONLY HOLD IS THE ONE SANCTIONED FIELD 1 THAT IS NOT AN MD5 [#529, jobs/the-held-register-cannot-express-a-harness-only-hold-because-all-three-of-its-keys-identify-an-artefact-2026-10-15].
+    # Every key here identifies an ARTEFACT, and a run that changes only gates/ shares its artefact with main:
+    # #523 made no application change, so its bundle md5 was exactly what origin/main serves, and a truthful
+    # row would have made `check` answer HELD for main's own bundle and verify-log.sh refuse every later log
+    # over it. The only escape was a typed-wrong field (the gated sha's first twelve characters in the bundle
+    # column, which #523, #524 and #525 all used), and a '-' prefix would have CLEARED the row and disarmed
+    # the sha key with it. So: the exact lowercase literal `sha-only`, compared BEFORE any case folding, so
+    # `SHA-ONLY` or `sha_only` is still a non-hex md5 and is refused. It does not start with '-', so
+    # match_rows keeps the row live; it is eight characters, so verify-log.sh's 8 to 12 bound counts it well
+    # formed; and no hex md5 can start with it, so no bundle ever matches it. `check` skips it as a bundle
+    # key by name and `list` says what it is. gates/held-selftest.sh case 9 is the control.
+    SHAONLY=0; [ "$MD5" = "sha-only" ] && SHAONLY=1
+    SHA="$(printf '%s' "$SHA" | tr 'A-F' 'a-f')"
+    [ "$SHAONLY" = 1 ] || MD5="$(printf '%s' "$MD5" | tr 'A-F' 'a-f')"
+    [ "$SHAONLY" = 1 ] || case "$MD5" in *[!0-9a-f]*) echo "held.sh add: bundle md5 '$MD5' is not hex (a hold with no bundle key is written as the literal sha-only)"; exit 2;; esac
+    if [ "$SHAONLY" = 0 ] && { [ "${#MD5}" -lt 8 ] || [ "${#MD5}" -gt 12 ]; }; then
       echo "held.sh add: bundle md5 '$MD5' is ${#MD5} chars. gates.sh writes 12 (\`md5sum app.js | cut -c1-12\`)."
       echo "  Anything outside 8-12 can never prefix-match a log's md5, so the row would look live and match nothing."; exit 2; fi
     for one in $(printf '%s' "$SHA" | tr ',' ' '); do
@@ -209,6 +225,7 @@ case "${1:-}" in
     [ -n "$SRC7" ] || SRC7="-"
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$MD5" "$SHA" "$BUILD" "$(date -u +%Y-%m-%dT%H:%MZ)" "$CT_RUNID" "$REASON" "$SRC7" >> "$REG"
     echo "held.sh: field 7 (sourceMd5) = $SRC7, from $SRC7_HOW"
+    [ "$SHAONLY" = 1 ] && echo "held.sh: a SHA-ONLY hold [#529]: it holds the sha(s) $SHA and no bundle md5, by design."
     echo "held.sh: recorded $BUILD bundle $MD5 sha $SHA. COMMIT THIS TO MAIN, not to the per-run branch -"
     echo "  a row on a branch that never merges is the failure this register was written for." ;;
   selftest|--selftest)
@@ -230,6 +247,7 @@ case "${1:-}" in
     printf 'live rows on %s:\n' "$(basename "$REG")"
     live_rows | while IFS= read -r r; do
       printf '  %-13s %-10s %s   held by %s\n' "$(printf '%s' "$r" | cut -f1)" "$(printf '%s' "$r" | cut -f3)" "$(printf '%s' "$r" | cut -f4)" "$(printf '%s' "$r" | cut -f5)"
+      [ "$(printf '%s' "$r" | cut -f1)" = "sha-only" ] && printf '%s\n' "    bundle: none. A SHA-ONLY hold [#529]: that run changed no application file, so its bundle was main's own and is not held."
       printf '    shas: %s\n' "$(printf '%s' "$r" | cut -f2)"
       SRC7="$(printf '%s' "$r" | cut -f7)"; [ -z "$SRC7" ] || [ "$SRC7" = "-" ] || printf '    source md5: %s (chess.jsx at that sha)\n' "$SRC7"
       printf '%s\n' "$(printf '%s' "$r" | cut -f6)" | fold -s -w 104 | sed 's/^/    /'
