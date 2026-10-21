@@ -176,7 +176,22 @@ mstate_rank(){ case "$1" in required) echo 2;; absent|retired) echo 1;; *) echo 
 # tell a 127-byte writer from a 70 KiB one - which is the difference between a race and a certainty. Those
 # three are its stated blind spots rather than discoveries waiting to be made.
 sigpipe_sites(){
-  local root="${1:-$G}" f n line s tier early
+  # ── #530. THE TIER IS DECIDED ON THE LOGICAL LINE, NOT THE PHYSICAL ONE ─────────────────────────────────────
+  # jobs/the-sigpipe-audit-files-a-pipeline-whose-status-a-continuation-line-reads-as-tier-d-so-the-race-that-reddened-h23-counted-as-latent-2026-10-20.
+  # This classifier read ONE PHYSICAL LINE, so a pipeline ending in a backslash whose status is read by an `||`
+  # or `&&` on the NEXT line was filed TIER D - status discarded, latent - when its status DECIDES CONTROL FLOW
+  # and it is the banned TIER A shape. The one shape this audit exists to refuse passed it twice as harmless:
+  # gates/records-gate.sh's membership test and gates/buildnum-selftest.sh's subject check, the first of which is
+  # the pipeline the orchestrator measured taking SIGPIPE under load (2 of 36,000, and one false red of H23 in a
+  # loop of 20). #527's P2 removed both SITES, so the COUNT is right on main; the CLASSIFIER was not changed by
+  # it, and the next such site would be filed D again. That is what this fixes.
+  # HOW, AND WHY IT CANNOT MOVE AN EXISTING VERDICT: the physical lines of one logical line are joined before the
+  # tier test, the site keeps the line number of its FIRST physical line, and the same-line tests below are
+  # applied to that first line EXACTLY as before - so every single-line site in this tree classifies identically
+  # and the committed ceilings stay calibrated. Only a site with a REAL continuation can move, and it moves one
+  # way: to A, when the continuation reads the status with `||`, `&&` or `then`. A continuation that genuinely
+  # discards the status stays D, which is the second half of the control.
+  local root="${1:-$G}" f n n0 line s tier early logical cont j
   for f in "$root"/*.sh; do
     [ -e "$f" ] || continue
     n=0
@@ -184,6 +199,27 @@ sigpipe_sites(){
       n=$((n+1))
       s="${line#"${line%%[![:space:]]*}"}"
       case "$s" in '#'*) continue;; esac
+      # ── #530. JOIN THE CONTINUATION LINES INTO THE LOGICAL LINE. `cont` holds only what came AFTER the first
+      # physical line, so the same-line tests below can still be applied to `$line` alone and nothing that does
+      # not continue is affected. The reads consume the continuation lines, so each logical line is visited once
+      # and `n` stays the first physical line's number, which is what every existing site reference names.
+      logical="$line"; cont=0; n0=$n
+      while [ "${logical%\\}" != "$logical" ]; do
+        IFS= read -r j || break
+        n=$((n+1))
+        logical="${logical%\\}$j"
+        # ── #530. THE TEST IS THAT A CONTINUATION LINE *BEGINS* WITH THE OPERATOR, NOT THAT ONE APPEARS IN IT.
+        # THE FIRST VERSION OF THIS CLAUSE ASKED WHETHER THE JOINED CONTINUATION TEXT *CONTAINED* `||`, `&&` or
+        # `then`, AND IT PRODUCED A FALSE TIER A ON ITS FIRST RUN - caught by running the audit rather than by
+        # reading it. gates/verify-log.sh's C8b control spans three physical lines, and its third carries
+        # `$( cd "$R9" && bash gates/verify-log.sh --citations ... | grep -E ... | head -1 )`: that `&&` is
+        # INSIDE a command substitution and joins `cd` to `bash`, so it does not read the pipeline's status at
+        # all - the status is discarded into an argument, which is TIER D and what the base classifier said.
+        # An operator that reads the PRECEDING pipeline's status has to sit at the START of the continuation,
+        # because that is what binds it to the command before the backslash. That is also exactly the shape the
+        # job's own control names (`|| echo z` on the next line) and the shape of the two real sites #527 removed.
+        case "${j#"${j%%[![:space:]]*}"}" in '||'*|'&&'*|then*) cont=1;; esac
+      done
       # THE EXEMPTION, AND IT EXISTS BECAUSE THE FIRST RUN OF THIS AUDIT CAUGHT ITS OWN CONTROLS. The controls
       # below MUST contain live instances of every tier - that is what makes them controls - and they live in
       # this file, so the detector read six of its own fixtures as real sites and refused the tree. That is
@@ -197,8 +233,8 @@ sigpipe_sites(){
       early=0
       # a reader that LEAVES EARLY: grep -q (any flag cluster containing q), grep -m1, or a head downstream
       # of the grep - in which case head is the one that leaves and grep is the writer that is killed.
-      if [[ $line =~ \|[[:space:]]*grep[[:space:]]+(-[A-Za-z]*q|-m[[:space:]]*1) ]]; then early=1; fi
-      if [[ $line =~ \|[[:space:]]*grep[^|]*\|[[:space:]]*head ]]; then early=1; fi
+      if [[ $logical =~ \|[[:space:]]*grep[[:space:]]+(-[A-Za-z]*q|-m[[:space:]]*1) ]]; then early=1; fi
+      if [[ $logical =~ \|[[:space:]]*grep[^|]*\|[[:space:]]*head ]]; then early=1; fi   # both read the LOGICAL line [#530]
       [ "$early" = 1 ] || continue
       # THE EXEMPTION IS APPLIED HERE AND NOT EARLIER, and the first draft had it earlier, which is why the
       # fixture count read 11 instead of 8: a line that merely NAMES the token - the three lines of this
@@ -206,12 +242,23 @@ sigpipe_sites(){
       # exemption that fires on a mention rather than on a match inflates the very number it is ratcheted
       # against, which would have let three real sites in behind it. Only a line that WOULD HAVE BEEN a site
       # can be exempt.
-      case "$line" in *SIGPIPE-FIXTURE*) printf 'X\t%s\t%s\t%s\n' "${f##*/}" "$n" "$s"; continue;; esac
+      case "$logical" in *SIGPIPE-FIXTURE*) printf 'X\t%s\t%s\t%s\n' "${f##*/}" "$n0" "$s"; continue;; esac
       tier=D
       case "$line" in *'|| true'*) tier=C;; esac
       case "$line" in *'|| echo'*) tier=B;; esac
       case "$s" in if\ *|while\ *|elif\ *|until\ *) tier=A;; esac
-      printf '%s\t%s\t%s\t%s\n' "$tier" "${f##*/}" "$n" "$s"
+      # ── #530. THE CONTINUATION TEST, AND IT IS THE ONLY NEW WAY TO REACH A. It runs LAST, as the if/while test
+      # does, because A is the strictest verdict. It fires only when there WAS a continuation (`cont` non-empty)
+      # and that continuation reads the pipeline's status - `||`, `&&` or a `then`. The job's own control names
+      # this shape: `printf x | grep -q y \` with `|| echo z` on the next line must be A, where the same text on
+      # ONE line is B. The asymmetry is deliberate: the B and C verdicts were calibrated on same-line shapes that
+      # a reader can see at a glance, and a status read around a line break is the shape that went unseen twice.
+      [ "$cont" = 1 ] && tier=A
+      # $n0, not $n: the site is reported at the FIRST physical line of its logical line, which is the line
+      # number every existing reference to these sites names and the one a reader opens. The join loop above
+      # advances $n past the continuations so the file is read once; reporting $n would silently move every
+      # multi-line site's address, and this comment claimed $n0 before the code did [#530].
+      printf '%s\t%s\t%s\t%s\n' "$tier" "${f##*/}" "$n0" "$s"
     done < "$f"
   done
 }
@@ -283,7 +330,15 @@ SP_TOTAL_CEIL=15   # #527: 17 -> 15 in the commit that removed gates/records-gat
                    # the right fix and it reddens this file's own tier-A control, which is calibrated
                    # against the ceiling being 1 - the threshold and the control that proves it are the same
                    # object. Filed with the control repair it needs rather than taken here.
-SP_FIXTURE_CEIL=9  # early-exit lines carrying SIGPIPE-FIXTURE. Eight are this file's own controls and the
+SP_FIXTURE_CEIL=11 # RAISED FROM 9 TO 11 AT #530, IN THE COMMIT THAT ADDS THE TWO LINES, WITH THE REASON, which is
+                   # what the instruction above this block prescribes for a ratchet that may only move with its
+                   # cause. The two new lines are the printf lines that WRITE the continuation-line controls for
+                   # jobs/the-sigpipe-audit-files-a-pipeline-whose-status-a-continuation-line-reads-as-tier-d-so-the-race-that-reddened-h23-counted-as-latent-2026-10-20:
+                   # each carries a `| grep` inside a printf FORMAT STRING, so the audit reads it as a candidate
+                   # exactly as it reads the heredoc controls beside it, and each is a specimen rather than a
+                   # site. The REAL-TREE verdict is unchanged by the whole change - A 0, B 0, C 6, D 9, total 15,
+                   # measured before and after - so this ceiling is the only number that moves.
+                   # early-exit lines carrying SIGPIPE-FIXTURE. Eight are this file's own controls and the
                    # ninth is a quoted specimen inside a refusal message - which the audit flagged on its
                    # own next run, correctly, because a specimen and a site look identical to a text scan.
                    # That is the third time in one run that this audit caught its own source; the exemption
@@ -907,6 +962,19 @@ Z="$(grep -qx "$g" <<<"$list" && echo in || echo out)"
 # if printf '%s\n' "$list" | grep -qxF "$p"; then echo commented; fi
 FAB
   sed 's/[[:space:]]*# SIGPIPE-FIXTURE.*$//' "$SPD/fab.src" > "$SPD/fab.sh"; rm -f "$SPD/fab.src"
+  # ── #530. THE TWO CONTINUATION-LINE CONTROLS, APPENDED WITH printf AND NOT WITH THE HEREDOC ABOVE, FOR A
+  # REASON THAT IS NOT STYLE. A fixture line that ENDS IN A BACKSLASH cannot carry a trailing
+  # `# SIGPIPE-FIXTURE` marker - a comment after the backslash would stop it being a continuation - and these
+  # heredoc lines are PHYSICALLY IN gatemanifest.sh, so an unmarked one would be read as a real site by the
+  # real-tree audit and inflate the very counts it is ratcheted against. That is this fixture's own recorded
+  # trap, one level down. Written through printf, the backslash lives in $SPBS and never appears literally at
+  # the end of a line here, so every physical line below can carry the marker.
+  SPBS='\'
+  { printf 'P="$(printf %s | grep -qxF "$n" %s\n' '"$v"' "$SPBS"      # SIGPIPE-FIXTURE
+    printf '  || echo missing)"\n'
+    printf 'Q="$(wrap "a quoted name" %s\n' "$SPBS"
+    printf '  "$( cd "$d" && bash x.sh | grep -E %s | head -1 )")"\n' "'^k'"   # SIGPIPE-FIXTURE
+  } >> "$SPD/fab.sh"
   spsites="$(sigpipe_sites "$SPD")"
   spck "A" "$(awk -F'\t' '$3==3{print $1}' <<<"$spsites")" "DETECTOR: an if-test pipe into grep -qxF is TIER A"
   spck "B" "$(awk -F'\t' '$3==4{print $1}' <<<"$spsites")" "DETECTOR: a captured || echo fallback is TIER B"
@@ -921,7 +989,18 @@ FAB
   # (7, 8, 9). The wrong number came from counting the lines rather than the expected verdicts. Kept as a
   # note rather than silently corrected, because a number this file publishes and a number it measures
   # disagreeing once is exactly the shape R18 is about.
-  spck "4" "$(printf '%s\n' "$spsites" | grep -c . || true)" "DETECTOR: exactly 4 of the fixture's 7 candidate lines are sites, and no others"
+  # ── #530. THE CONTINUATION-LINE CONTROLS [jobs/the-sigpipe-audit-files-a-pipeline-whose-status-a-continuation-line-reads-as-tier-d-so-the-race-that-reddened-h23-counted-as-latent-2026-10-20]
+  # TWO FIXTURES, AND THE SECOND IS THE ONE THAT MATTERS AS MUCH AS THE FIRST. Line 10 is the banned shape
+  # written across two lines - a pipeline into grep -qxF whose status is read by an `||` at the START of the
+  # continuation - and it must be TIER A; the base classifier reads one physical line and calls it D, which is
+  # the defect. Line 12 is a logical line whose continuation contains `&&` but does NOT begin with it: the `&&`
+  # is inside a command substitution and joins `cd` to `bash`, so it does not read the pipeline's status and the
+  # site must stay D. The second fixture is not hypothetical - the first version of this fix had no such test,
+  # matched `&&` anywhere in the continuation, and produced a FALSE TIER A on gates/verify-log.sh's own C8b
+  # control, which is exactly this shape. A classifier constrained in one direction only is how that happened.
+  spck "A" "$(awk -F'\t' '$3==10{print $1}' <<<"$spsites")" "DETECTOR: a pipeline whose status an || on the next line reads is TIER A, not D"
+  spck "D" "$(awk -F'\t' '$3==12{print $1}' <<<"$spsites")" "DETECTOR: a continuation that merely CONTAINS && inside a substitution stays TIER D"
+  spck "6" "$(printf '%s\n' "$spsites" | grep -c . || true)" "DETECTOR: exactly 6 of the fixture's 9 candidate lines are sites, and no others"
   # 40. THE CEILING ITSELF FIRES. Two tier A lines against SP_A_CEIL=1 must be a refusal, otherwise the
   #     ratchet is decoration. The vacuity guard is the pair: an EMPTY directory is clean and says 0.
   cat > "$SPD/fab2.src" <<'FAB2'
@@ -931,7 +1010,13 @@ while printf '%s\n' "$c" | grep -qxF "$d"; do echo 2; done   # SIGPIPE-FIXTURE
 FAB2
   sed 's/[[:space:]]*# SIGPIPE-FIXTURE.*$//' "$SPD/fab2.src" > "$SPD/fab2.sh"; rm -f "$SPD/fab2.src"
   out="$(sigpipe_audit "$SPD" 2>&1)"; rc=$?
-  if [ "$rc" = 1 ] && grep -q 'TIER A count 3 is above its ceiling 1' <<<"$out"; then
+  # THE EXPECTED COUNT IS 4 AT #530, WAS 3, AND THE CHANGE IS DECLARED RATHER THAN SILENT [R18]. This control
+  # drives sigpipe_audit over $SPD, which holds fab.sh AND fab2.sh, so its tier A total is every tier A site in
+  # BOTH fixtures: fab.sh:3, fab2.sh's two, and now fab.sh:10, the continuation-line control this build added.
+  # The number is a property of the fixture set and not of the tree, so adding a fixture moves it by one; it is
+  # updated here in the same commit that adds the line, which is the only way a hard-coded expectation stays
+  # honest. The ASSERTION is unchanged: the tier A ceiling must still refuse, and it still must say so by name.
+  if [ "$rc" = 1 ] && grep -q 'TIER A count 4 is above its ceiling 1' <<<"$out"; then
     echo "PASS selftest: the TIER A ceiling REFUSES when it is exceeded"; pass=$((pass+1))
   else echo "FAIL selftest: the tier A ceiling did not refuse (rc=$rc)"; echo "$out" | sed 's/^/      /'; fail=$((fail+1)); fi
   rm -rf "$SPD"; SPE="$(mktemp -d)"
