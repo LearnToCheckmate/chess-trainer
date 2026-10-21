@@ -136,6 +136,47 @@ if [ -n "$CONVWHY" ]; then
   exit 2
 fi
 
+# ── #530 N3. A FILE THE COMMIT DOES NOT HOLD MAY NOT STEER A RATCHET ────────────────────────────────────────
+# jobs/an-untracked-file-hidden-by-info-exclude-steers-the-records-ratchet-of-fastgate-past-every-raw-byte-guard-2026-10-20,
+# found by the second independent reader of #527's patches from the shipped-surface door.
+# THE HOLE. The catch-all hashes every TRACKED file raw, and the dirty check reads `git status`. Two checks this
+# tier runs read files STRAIGHT OFF DISK, untracked ones included: `gates/verify-log.sh --citations` globs
+# claude/stories/*.md, gates/*.js, gates/*/*.js, HANDOFF.md and CLAUDE.md, and gates/control-audit.js reads
+# claude/agents/gatelogs and gates/regress. An untracked file placed in those globs AND matched by
+# .git/info/exclude is in NEITHER `git status` NOR `git ls-files`, so the dirty check and the catch-all both
+# pass and it feeds the ratchet. The reader measured it: an excluded gates/zz-rev-evil.js naming a dead gate log
+# turned an honest register-only commit from FAST GATE GREEN to FAST GATE RED (19 -> 20 dead paths). Not shown
+# in the dangerous direction, and the reader named the route for that too: control-audit.js audits the
+# HIGHEST-NUMBERED log that passes verify-log.sh, so an untracked claude/agents/gatelogs/999999-all.log would be
+# chosen over the real top log. 366428f reads the same files, so this is not new at #527.
+# THE FIX: list the untracked files, IGNORED ONES INCLUDED, inside exactly those path sets, and route to the
+# full suite naming them. A verdict about a commit may not be computed from a file the commit does not hold.
+#
+# THE PATHSPECS CARRY `:(glob)` AND THAT IS LOAD-BEARING, NOT TIDINESS. Git's default pathspec `*` MATCHES
+# ACROSS `/`, while the shell globs verify-log.sh actually uses do not. Measured here before the scan was
+# written: `git ls-files --others -- 'gates/*.js'` returns 68 paths - every .js under gates/node_modules - and
+# the same pathspec as `:(glob)gates/*.js` returns 0. Without the magic this guard would fire on every honest
+# run over ignored dependency files, and a guard that fires on the normal case gets switched off, which is this
+# project's own recorded reason for `--this-bundle` being opt-in. fastgate.sh's own read pin already uses
+# `:(glob)` for exactly this.
+# MEASURED NO-OP ON AN HONEST TREE: all six sets report 0 untracked-including-ignored paths on this checkout.
+OSPECS=(':(glob)claude/stories/*.md' ':(glob)gates/*.js' ':(glob)gates/*/*.js' ':(glob)HANDOFF.md' \
+        ':(glob)CLAUDE.md' ':(glob)claude/agents/gatelogs/*' ':(glob)gates/regress/*.js')
+# --others with NO --exclude-standard, so an .gitignore'd or .git/info/exclude'd file is LISTED: hiding is the
+# whole mechanism. awk reads to EOF and only limits what it prints, so there is no early-exit pipeline here.
+OSTEER="$($GIT -c core.quotePath=false ls-files --others -- "${OSPECS[@]}" 2>/dev/null \
+  | awk 'BEGIN{n=0} {n++; if (n<=5) print "    " $0} END{if (n>5) print "    ... and " (n-5) " more"}')"
+if [ -n "$OSTEER" ]; then
+  say ""
+  say "FULL SUITE REQUIRED - there are UNTRACKED files (ignored ones included) inside the path sets this tier's"
+  say "    checks read off disk. gates/verify-log.sh --citations and gates/control-audit.js read these globs"
+  say "    directly, so such a file steers a ratchet whose verdict is about the COMMIT - and an excluded one is"
+  say "    in neither git status nor git ls-files, so the dirty check and the raw-byte catch-all both pass it."
+  say "    A verdict about a commit may not be computed from a file the commit does not hold. [#530]"
+  printf '%s\n' "$OSTEER" | tee -a "$LOG"
+  exit 2
+fi
+
 TAMPER=""
 for f in gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js \
          gates/buildnum.sh; do   # buildnum.sh added #523: Part 2 EXECUTES it from the working tree
