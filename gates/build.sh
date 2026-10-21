@@ -141,7 +141,14 @@ if [ -n "${CT_STAMP_TIME:-}" ]; then
     if git -C "$ROOT" cat-file blob origin/main:app.js > "$ST_TMP" 2>/dev/null; then
       ST_MAIN="$(grep -aoE -m1 '#[0-9]{3,4} - 20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET' "$ST_TMP" 2>/dev/null || true)"
       ST_MAIN="${ST_MAIN%%$'\n'*}"; ST_MDATE="${ST_MAIN#* - }"; ST_MDATE="${ST_MDATE% ET}"
-      if [ -n "$ST_MAIN" ] && [ "$CT_STAMP_TIME" \< "$ST_MDATE" ]; then ST_WHY="is earlier than the stamp origin/main already serves ($ST_MAIN), so the home screen would go backwards in time"; fi
+      if [ -n "$ST_MAIN" ] && [ "$CT_STAMP_TIME" \< "$ST_MDATE" ]; then ST_WHY="is earlier than the stamp origin/main already serves ($ST_MAIN), so the home screen would go backwards in time"
+      # ── #530 [jobs/one-of-the-four-stamp-checks-529-added-to-build-sh-is-skipped-with-nothing-printed-when-mains-app-js-has-no-stamp-the-grep-matches-2026-10-21]
+      # The fourth test runs only when ST_MAIN is non-empty. cat-file can SUCCEED and the grep above still match
+      # nothing, and then this check was skipped with the log silent about it: the NOTE below covered only the
+      # cat-file failure. "Absence is the hardest thing to measure" [CLAUDE.md] - a check that cannot run says so.
+      elif [ -z "$ST_MAIN" ]; then
+        echo "build.sh: NOTE - origin/main's app.js carries no stamp of the form '#NNN - YYYY-MM-DD HH:MM ET', so CT_STAMP_TIME is not checked against main's stamp."
+      fi
     else
       echo "build.sh: NOTE - origin/main has no app.js here, so CT_STAMP_TIME is not checked against main's stamp."
     fi
