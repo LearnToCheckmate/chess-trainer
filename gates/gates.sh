@@ -363,6 +363,81 @@ if [ "$MANI_RC" -ge 126 ]; then
   exit 1
 fi
 
+# ── G6. THE GAP-FILL DOOR: A REGISTER ROW THAT FILLS A HOLE IN THE SERIES MUST CARRY WHAT A CENSUS CARRIES ────
+# jobs/the-register-arm-of-fastgate-checks-the-numbers-of-appended-rows-and-not-the-rows-so-a-duplicate-or-wrong-
+# bundle-row-takes-a-fast-green-2026-10-16, the FOURTH clause of its whatWouldCloseIt and the only one #529's P1
+# left open: "the full suite does not go green on a gap fill row that nothing accounts for". P1 made the FAST arm
+# judge appended rows AS ROWS, and that arm's answer for a gap fill is to send the commit to the FULL suite - but
+# until this block the full suite checked no series at all, so the hand-over was to a door that was not there.
+# That is the job's own words for it: "make sending a row to the full suite a check and not a hand over".
+#
+# WHAT A GAP FILL IS, AND WHY THIS IS NOT "THE SERIES HAS A HOLE". The series legitimately holds seven holes
+# today - #126, #256-#258, #278, #303-#304, #361 and #363, measured on this register, not read off a note - so a
+# check that refused a register with a gap in it would be RED ON MAIN from the day it landed, which is the frozen
+# denominator CLAUDE.md records at #405. This asks a different question: of the rows THIS COMMIT APPENDS, is any
+# one of them BELOW the top of the series the BASE register already had, filling a hole rather than extending the
+# series? A number above that top is an ordinary mint and is not this door's business - gates/buildnum.sh's own
+# delta_ok() and stray_check() bound that direction already, and duplicating them here would mean two verbs
+# answering one question, which this register's own header calls the #454 defect.
+#
+# WHAT ACCOUNTS FOR ONE. `gates/buildnum.sh sweep --add` IS the census: it finds a number a commit subject names
+# that the register does not carry and records it as state `issued` with provenance `measured` and a note saying
+# where it came from. So a gap fill is accounted for when it carries exactly what that census writes. The two
+# #519 rows on main are the worked example. Anything else is a hand-written row sitting in a hole, and a burned
+# build number is permanent, which is the job's own ifNotDone.
+#
+# IT MUST NOT BE THE ONLY READER OF ITS OWN INPUT. If origin/main cannot be read, or the head register does not
+# BEGIN with the base register's rows, this reports NOT CHECKED and the suite RUNS. A door that cannot tell "I
+# checked and it is fine" from "I could not run" is the vacuity trap this project records twelve times, and an
+# unreadable base must not be able to wedge the lane either. The verdict goes in the log either way.
+SER_REG="gates/build-numbers.tsv"
+SER_LINE="build-number series: NOT CHECKED - origin/main:$SER_REG could not be read"
+SER_RC=0
+SER_TD="$(mktemp -d)"
+if git -C "$ROOT" show "origin/main:$SER_REG" > "$SER_TD/base.tsv" 2>/dev/null && [ -f "$ROOT/$SER_REG" ]; then
+  # the same row test gates/buildnum.sh rows() applies, so the two tools cannot disagree about what a row is
+  ser_rows() { grep -v '^[[:space:]]*#' "$1" | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/' || true; }
+  ser_rows "$SER_TD/base.tsv" > "$SER_TD/base.rows"
+  ser_rows "$ROOT/$SER_REG"   > "$SER_TD/head.rows"
+  SER_NB="$(wc -l < "$SER_TD/base.rows" | tr -d ' ')"
+  head -n "$SER_NB" "$SER_TD/head.rows" > "$SER_TD/head.prefix"
+  if ! cmp -s "$SER_TD/base.rows" "$SER_TD/head.prefix"; then
+    SER_LINE="build-number series: NOT CHECKED - the head register does not begin with origin/main's $SER_NB rows, so which rows this commit appends cannot be read"
+  else
+    tail -n +"$(( SER_NB + 1 ))" "$SER_TD/head.rows" > "$SER_TD/new.rows"
+    SER_TOP="$(cut -f1 "$SER_TD/base.rows" | sort -n | tail -1)"
+    [ -n "$SER_TOP" ] || SER_TOP=0
+    cut -f1 "$SER_TD/base.rows" | sort -n -u > "$SER_TD/base.nums"
+    SER_NEW="$(wc -l < "$SER_TD/new.rows" | tr -d ' ')"
+    SER_FILL=0; SER_BAD=0
+    while IFS= read -r ser_row; do
+      [ -n "$ser_row" ] || continue
+      ser_n="$(cut -f1 <<<"$ser_row")"
+      [ "$ser_n" -le "$SER_TOP" ] || continue                       # extends the series: not this door's business
+      if grep -qxF -- "$ser_n" "$SER_TD/base.nums"; then continue; fi # a further row for a number the base already has
+      SER_FILL=$(( SER_FILL + 1 ))
+      ser_st="$(cut -f2 <<<"$ser_row")"; ser_pv="$(cut -f8 <<<"$ser_row")"; ser_nt="$(cut -f9 <<<"$ser_row")"
+      if [ "$ser_st" = "issued" ] && [ "$ser_pv" = "measured" ] && [ -n "$ser_nt" ] && [ "$ser_nt" != "-" ]; then continue; fi
+      SER_BAD=$(( SER_BAD + 1 ))
+      echo "  build-number series: the appended row for #$ser_n FILLS A GAP below the base series top #$SER_TOP and nothing accounts for it (state '$ser_st', provenance '$ser_pv', note '${ser_nt:0:40}')." | tee -a "$ALL"
+    done < "$SER_TD/new.rows"
+    if [ "$SER_BAD" -gt 0 ]; then
+      SER_LINE="build-number series: $SER_BAD of $SER_FILL gap-fill row(s) unaccounted for, over $SER_NEW appended row(s), base series top #$SER_TOP"
+      SER_RC=1
+    else
+      SER_LINE="build-number series: ok - $SER_NEW row(s) appended, $SER_FILL filling a gap below the base series top #$SER_TOP, all accounted for"
+    fi
+  fi
+fi
+rm -rf "$SER_TD"
+printf '%s\n' "$SER_LINE" | tee -a "$ALL"
+if [ "$SER_RC" -eq 1 ]; then
+  echo "GATES RED $N — stopped before running any gate: a gates/build-numbers.tsv row this commit appends fills a gap in the build-number series and nothing accounts for it." | tee -a "$ALL"
+  echo "  A census row (gates/buildnum.sh sweep --add) carries state 'issued', provenance 'measured' and a note naming the commit that used the number; a hand-written row in a hole carries none of that." | tee -a "$ALL"
+  echo "  A number ABOVE the series top is an ordinary mint and is NOT refused here. The register is append-only, so a bad row cannot be edited out: a person decides how to retire it." | tee -a "$ALL"
+  exit 1
+fi
+
 gates=("$G/mountcheck.js")
 if [ -n "$SUBSET" ]; then
   for pat in $SUBSET; do
