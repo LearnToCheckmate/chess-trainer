@@ -170,11 +170,28 @@ fi
 # project's own recorded reason for `--this-bundle` being opt-in. fastgate.sh's own read pin already uses
 # `:(glob)` for exactly this.
 # MEASURED NO-OP ON AN HONEST TREE: all six sets report 0 untracked-including-ignored paths on this checkout.
-OSPECS=(':(glob)claude/stories/*.md' ':(glob)gates/*.js' ':(glob)gates/*/*.js' ':(glob)HANDOFF.md' \
-        ':(glob)CLAUDE.md' ':(glob)claude/agents/gatelogs/*' ':(glob)gates/regress/*.js')
-# --others with NO --exclude-standard, so an .gitignore'd or .git/info/exclude'd file is LISTED: hiding is the
+# TWO GROUPS, BECAUSE THE TWO CHECKS READ THEIR PATHS BY DIFFERENT RULES AND A SINGLE SCAN WAS WIDER THAN
+# BOTH. gates/verify-log.sh --citations iterates SHELL globs (`for f in claude/stories/*.md gates/*.js
+# gates/*/*.js HANDOFF.md CLAUDE.md`), and a shell glob does not match a path component beginning with a dot;
+# gates/control-audit.js uses fs.readdirSync over claude/agents/gatelogs and gates/regress, which DOES see
+# dotfiles. So the dot rule is applied to the first group and not to the second.
+# WHY THIS MATTERS, AND IT IS A DEFECT THIS GUARD HAD ON ITS FIRST DRAFT: gates/build.sh creates
+# `$G/.build` on EVERY build, leaves `gates/.build/app.js` behind, and git's `:(glob)` - unlike the shell -
+# DOES match a dotted directory. So the single-group scan listed it and routed every post-build fast gate to
+# the full suite. Measured on this tree: `ls-files --others -- ':(glob)gates/*/*.js'` returns
+# gates/.build/app.js while the shell's own `for f in gates/*/*.js` returns it 0 times. A guard that fires on
+# the normal case gets switched off, so the scan is now exactly as wide as what the checks can actually read -
+# which is also why no hiding hole is reopened: a file under gates/.anything/ is UNREADABLE by those globs.
+OSPECS_GLOB=(':(glob)claude/stories/*.md' ':(glob)gates/*.js' ':(glob)gates/*/*.js' ':(glob)HANDOFF.md' \
+             ':(glob)CLAUDE.md')
+OSPECS_DIR=(':(glob)claude/agents/gatelogs/*' ':(glob)gates/regress/*')
+# --others with NO --exclude-standard, so a .gitignore'd or .git/info/exclude'd file is LISTED: hiding is the
 # whole mechanism. awk reads to EOF and only limits what it prints, so there is no early-exit pipeline here.
-OSTEER="$($GIT -c core.quotePath=false ls-files --others -- "${OSPECS[@]}" 2>/dev/null \
+# The first awk drops any path with a dot-leading component, which is the shell's own rule.
+OSTEER="$( { $GIT -c core.quotePath=false ls-files --others -- "${OSPECS_GLOB[@]}" 2>/dev/null \
+              | awk '$0 !~ /(^|\/)\./';
+            $GIT -c core.quotePath=false ls-files --others -- "${OSPECS_DIR[@]}" 2>/dev/null; } \
+  | sort -u \
   | awk 'BEGIN{n=0} {n++; if (n<=5) print "    " $0} END{if (n>5) print "    ... and " (n-5) " more"}')"
 if [ -n "$OSTEER" ]; then
   say ""
