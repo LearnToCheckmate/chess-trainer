@@ -564,8 +564,15 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   # than the harness's two spaces is not a skip to this block, so it is now a mismatch instead of a silence
   # (and an ok or SKIPPED shape that the strict counts do not read is RED by itself); (3) the harness's stderr
   # goes to its own file and is appended to the log only after the counting, so an ok-shaped line there counts
-  # for nothing; (4) an ok line counts only with its case id and its [TC-...] id, which is what
-  # gates/audit/cited-not-run.sh keys on, so a bare `echo "  ok  "` no longer puts "PASS fastgate-drive " in the log.
+  # for nothing; (4) an ok line counts only with its case id and its [TC-...] id, so a
+  # bare `echo "  ok  "` no longer puts "PASS fastgate-drive " in the log.
+  # THE CLAUSE "which is what gates/audit/cited-not-run.sh keys on" IS WITHDRAWN IN PLACE [#530, R18]. That script
+  # holds no reference to fastgate-drive and keys on "ran <file> -> N PASS" lines and a file roster, never on a
+  # case id or a TC id inside a PASS line - antagonist A of #529 measured it. The tightening is correct and worth
+  # having; only its stated reason was false. THE REAL CONSUMER, named rather than left as "for its own sake":
+  # `gates/verify-log.sh --citations` arm (2), whose own verdict reads "every published case id occurs in the log
+  # it cites" - it looks the case id up in the archived log, so an ok line carrying no case id supports no
+  # published TEST-CASES row. A different script from the one this comment used to name.
   ( cd "$ROOT" && timeout 900 bash "$DRIVESH" fixed ) > "$dlog" 2> "$dlog.err"; drc=$?
   sed -n 's/^  ok  *\(H[0-9][0-9]*[a-z]* \[TC-[A-Z0-9-]*\].*\)$/PASS fastgate-drive \1/p' "$dlog" > "$dlog.pass"
   dok=$(grep -c '^PASS fastgate-drive ' "$dlog.pass" || true)
@@ -573,7 +580,22 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   dfail=$(grep -c '^  FAIL ' "$dlog" || true)
   dskip=$(grep -c '^  SKIPPED ' "$dlog" || true)
   dskipany=$(grep -cE '^[[:space:]]*SKIPPED' "$dlog" || true)               # every SKIPPED shape, read or not
-  dfailany=$(grep -cE '^[[:space:]]*FAIL' "$dlog" || true)                  # every FAIL shape, read or not [#529 review]
+  # ── #530 (1) [jobs/the-unit-blocks-new-counting-layer-can-redden-on-a-quoted-fail-line-and-its-own-header-misdescribes-what-it-counts-2026-10-21]
+  # WAS: grep -cE '^[[:space:]]*FAIL'  - ANY indented FAIL, so a line the harness QUOTES OUT OF A SUB-PROCESS it
+  # drives made the shape test below report a mismatch and go RED with NO CASE HAVING FAILED. Proved to occur,
+  # not argued: #529's own unfixed.log carries 16 indented FAIL lines against 14 real case failures, the two
+  # extras being "FAIL: run (cd gates && npm ci) first" continuation lines quoted out of gates/build.sh by cases
+  # H38 and H39. It was latent rather than live only because the FIXED mode - the only mode this block runs -
+  # happened to carry none on that tree.
+  # NOW it requires what a case verdict carries and a quoted line does not: the case id after FAIL. The strict
+  # count above requires the harness's exact two-space indent; this one still accepts ANY indent, so a FAIL
+  # verdict indented some other way is still the mismatch #529 added it for.
+  # WHY THE ok AND SKIPPED TWINS ARE DELIBERATELY LEFT LOOSE [R06, and the asymmetry is the whole reason]: an ok
+  # line is CREDITED, so dokany must keep matching a bare `  ok  ` with no case id - catching that forgery is
+  # exactly what #529's fault (4) added it for, and anchoring it to a case id would blind it. A FAIL line is
+  # never credited; it can only redden. Loose is a GUARD on the ok side and a HAZARD on the FAIL side, so the
+  # class is soundly swept at one site. classSwept {found 3, fixed 1, left 2 with this reason}.
+  dfailany=$(grep -cE '^[[:space:]]*FAIL[[:space:]]+H[0-9]+[a-z]*([[:space:]]|$)' "$dlog" || true)   # every FAIL VERDICT shape, read or not [#529 review, anchored #530]
   ddeclared=$(grep -c '^cases: ' "$dlog" || true)
   dcases="$(sed -n 's/^cases: \([0-9][0-9]*\) declared.*$/\1/p' "$dlog")"
   case "$dcases" in ''|*[!0-9]*|0*|?????*) dcases="" ;; esac   # 1 to 9999, plaus_delta's own pattern [#529 review]
@@ -586,8 +608,17 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   # balanced it, so a copied case body could drop an assertion with every count agreeing. The distinct case
   # names on the strict lines must now number ok + SKIPPED + FAIL (C28), and a FAIL line indented any other way
   # than the harness's two spaces is a mismatch like its ok and SKIPPED twins (C29).
-  if [ -s "$dlog.err" ]; then { echo "--- the harness's stderr, appended after the counting, so nothing in it is counted ---"; cat "$dlog.err"; } >> "$dlog"; fi
-  rm -f "$dlog.err"
+  # ── #530 (2). THE STDERR APPEND MOVED BELOW drefuse, WHICH IS THE TENTH COUNTER AND WAS THE ONE EXCEPTION ──
+  # The append used to sit HERE, above drefuse, so nine counters were computed before it and the TENTH after -
+  # while this block's own comment and the log header it writes both say the stderr is "appended after the
+  # counting, so nothing in it is counted". That sentence was true of nine counters and FALSE of the one that
+  # converts a RED into a SKIPPED: drefuse is the whole evidence requirement #525 added to the decline branch, so
+  # a harness whose only output was a REFUSING line on STDERR was credited with having declined. Antagonist A of
+  # #529 demonstrated it with a stub; antagonist B verified it from the two line numbers alone.
+  # The harness writes its own REFUSING lines with `echo`, to STDOUT, so an honest decline is unaffected; what
+  # stops being credited is a REFUSING line that reached stderr, which is the forgery. NOT A REGRESSION of P1's:
+  # origin/main's block used 2>&1 and behaved the same way, so what P1 changed was the CLAIM, not the behaviour -
+  # and this moves the BEHAVIOUR to match the claim rather than weakening the claim to match the behaviour.
   # ── A DECLINE NEEDS EVIDENCE, AND exit 2 ALONE IS NOT EVIDENCE [#525]. ────────────────────────────────────
   # The decline branch below keyed on `drc -eq 2 && dfail -eq 0 && dok -eq 0`, which the comment correctly
   # argues is the signature of the harness's own named REFUSING paths. It is also the signature of a harness
@@ -609,6 +640,9 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   # "REFUSING TO REPORT GREEN - no case ran" line is deliberately NOT matched and never needed to be: that
   # path exits 1, and the decline branch requires exit 2, so it has always arrived at the RED branch.
   drefuse=$(grep -ac '^fastgate-drive\.sh: REFUSING - ' "$dlog" || true)
+  # the append is HERE now, after every counter, so the sentence it prints is true as written [#530 (2)]
+  if [ -s "$dlog.err" ]; then { echo "--- the harness's stderr, appended after the counting, so nothing in it is counted ---"; cat "$dlog.err"; } >> "$dlog"; fi
+  rm -f "$dlog.err"
   cat "$dlog.pass" >> "$ALL"; rm -f "$dlog.pass"
   # ── DECLINED TO RUN IS A REPORTED SKIP, NOT A RED [#524]. ──────────────────────────────────────────────────
   # #523 wrote this as `drc -ne 0 || dfail -gt 0 || dok -eq 0 -> red=1`, and the comment below defended the
