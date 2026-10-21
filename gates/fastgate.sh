@@ -121,10 +121,20 @@ CAC="$($GIT config --get core.autocrlf 2>/dev/null || true)"
 case "$CAC" in true|input) CONVWHY="core.autocrlf=$CAC";; esac
 CEOL="$($GIT config --get core.eol 2>/dev/null || true)"
 case "$CEOL" in crlf|native) CONVWHY="${CONVWHY:+$CONVWHY; }core.eol=$CEOL";; esac
+# ── THE INDEX-VERSUS-WORKTREE EOL COMPARISON IS WITHDRAWN FROM THIS TEST, AND ITS OWN HARNESS CAUGHT WHY.
+# The first version of this check also routed to FULL when `ls-files --eol` showed i/ and w/ disagreeing on any
+# tracked path. That is a CONTENT-DIFFERENCE signal, not a conversion signal, and the two must not be confused
+# here: case H30 plants a modified file and hides it with `git update-index --assume-unchanged`, which is
+# TAMPERING and must be REFUSED at exit 1 by the pins below - and the eol arm fired on it first and sent it to
+# exit 2 instead. H30 went FAIL ("a route hid the change and was NOT refused: assume-unchanged(exit 2)") on the
+# first harness run after this check landed. A guard that converts a refusal into a routing decision is worse
+# than the false refusal it was written to remove.
+# SO THE TEST IS NOW ONLY WHAT A CONVERSION IN FORCE ACTUALLY LOOKS LIKE: the two config keys, and a DECLARED
+# attribute. Attributes come from .gitattributes and not from file content, so no doctored file can set one.
 CONVROWS="$($GIT -c core.quotePath=false ls-files --eol -- gates app.js chess.jsx claude 2>/dev/null \
-  | awk 'BEGIN{n=0} {i=substr($1,3); w=substr($2,3); a=substr($3,6); if ((i!=w) || (a!="")) {n++; if (n<=3) print "    " $0}}')"
+  | awk 'BEGIN{n=0} {a=substr($3,6); if (a!="") {n++; if (n<=3) print "    " $0}}')"
 if [ -n "$CONVROWS" ]; then
-  CONVWHY="${CONVWHY:+$CONVWHY; }an eol, text or working-tree-encoding attribute, or an index-versus-worktree eol difference, on a tracked path"
+  CONVWHY="${CONVWHY:+$CONVWHY; }an eol, text or working-tree-encoding attribute on a tracked path"
 fi
 if [ -n "$CONVWHY" ]; then
   say ""
