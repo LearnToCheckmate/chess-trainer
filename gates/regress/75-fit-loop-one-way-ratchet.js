@@ -293,11 +293,18 @@ const pair=(n,tag,clean,inj,px,engages)=>{
 //      content change and let the rAF loop re-settle, which is exactly what this job's own outcome.whatIsLeft
 //      proposed. That bundle recovers the latch AND paints the full-size board on the way, so D4 and D6 go red
 //      while D8 and D9 stay green. #522's close-out records the md5 it measured. A check that has never seen its
+//      [#528, MEASURED: over #527's tree the recipe's bundle (md5 2a5556c8f281 in the orchestrator's scratch
+//      build) reddens D4, D8 and D9 at both cells, plus A9 at 375x568 and C9 at 375x730 and 375x761, 9 FAIL
+//      of 90, while D6 PASSES; the same 9 under this file before and after #528's label fix. So what this
+//      recipe controls today is D4, D8 and D9, not D6; the sentence above is #522's reading and is kept.]
 //      defect proves nothing, and an uncontrolled assertion in this file would be the thing its header warns of.
 //   AND D1 ALREADY CAUGHT SOMETHING NOBODY HAD FILED: on main, at 375x568, the CLEAN arm paints one frame at
 //      270.88 when the settled practice board is 254.88 - a one-frame board jump on the ordinary lesson path,
 //      with no injection at all, against the project's first rule that the board must never jump. #522's
 //      pre-paint refit removes it (0 of 98 frames), which is why this assertion covers the clean arm too.
+//      [#528: 270.88 is the DEMO board's own width at 375x568, and a frame of it at the first practice index is
+//      what the label race described at the sampler produces; whether #522's observation was that race was not
+//      measured, so this note is left standing and the clean arm stays covered.]
 const DCELLS=[
   {n:'320x540', g:{w:320,h:540,safe:''}, px:88},
   {n:'375x568', g:L.GEOS.short375,       px:88},
@@ -313,7 +320,18 @@ const SAMPLER=()=>{
     if(w!=null)window.__ct522.push([window.__ct522phase,Math.round(w*100)/100]);requestAnimationFrame(tick);};
   requestAnimationFrame(tick);
 };
-const dphase=(b,p)=>b.page.evaluate((x)=>{window.__ct522phase=x;},p);
+// THE LABEL AND THE ACTION IT NAMES SHARE ONE TASK [#528, jobs/gate-75s-d4-reddens-under-suite-load-on-mains-own-bundle-so-any-push-can-be-reddened-by-a-commit-that-cannot-have-caused-it-2026-10-21].
+// This was a helper that set window.__ct522phase in one page.evaluate, followed by the click (or the injection,
+// or the removal) in the next: two CDP round trips, and under suite load a rAF tick fell between them, so the
+// board still on screen from the PREVIOUS phase was sampled under the NEW label. #527's red was one practice
+// frame of 236.39, the DEMO board's own width at 320x540, which is exactly what this race samples: a frame from
+// before the click, read as a board jump. MEASURED in a scratch clone of #527's tree over main's own bundle
+// ec31de9fe6c5, three busy loops on two CPUs: the two-step order put a wider frame in 7 of 20 runs at 320x540
+// and 3 of 10 at 375x568, every one at the first practice index (one run, the first three) and equal to that
+// geometry's DEMO board, 236.39 and 270.88; with the label set inside the same evaluate as the click, under
+// heavier load, 0 of 20 and 0 of 10.
+// Idle, both orders read 0. So each label below is written by the evaluate that performs its action, before
+// the action, and no frame can be sampled under a label its board does not belong to.
 
 const framesArmInner=async(geo,px)=>{
   const b=await L.launch({geo});
@@ -325,8 +343,7 @@ const framesArmInner=async(geo,px)=>{
   await b.settle(120);
   let injRect=null;
   if(px){
-    await dphase(b,'injected');
-    injRect=await b.page.evaluate((n)=>{const r=document.getElementById('root');
+    injRect=await b.page.evaluate((n)=>{window.__ct522phase='injected';const r=document.getElementById('root');   // one task [#528]
       const inflow=[...r.children].filter(c=>{const cs=getComputedStyle(c);
         return cs.position!=='fixed'&&cs.position!=='absolute'&&c.getBoundingClientRect().height>0;});
       const host=inflow.length===1?inflow[0]:r;
@@ -336,12 +353,13 @@ const framesArmInner=async(geo,px)=>{
       return {h:Math.round(q.height*100)/100,inFlow:cs.position!=='fixed'&&cs.position!=='absolute'};},px);
     await b.settle(700);
   }
-  await dphase(b,'practice');
-  const clicked=await toPractice(b);
+  const clicked=await b.page.evaluate(()=>{   // the label and the click in one task [#528]
+    const t=[...document.querySelectorAll('button')].find(x=>/Now I'll try it/.test(x.innerText||''));
+    window.__ct522phase='practice'; if(!t)return false; t.click(); return true;});
   await b.settle(1600);
   const practiceSettled=await bw(b);
-  await dphase(b,'removed');
-  if(px)await b.page.evaluate(()=>{const e=document.getElementById('ct510inj');if(e)e.remove();});
+  await b.page.evaluate((x)=>{window.__ct522phase='removed';   // the label and the removal in one task [#528]
+    if(x){const e=document.getElementById('ct510inj');if(e)e.remove();}},px);
   await b.settle(1500);
   await b.page.waitForTimeout(2000);
   const frames=await b.page.evaluate(()=>{window.__ct522stop=true;return window.__ct522;});
@@ -371,7 +389,7 @@ const blockD=(n,px,clean,inj)=>{
   // D4..D7 NO OVERSHOOT, per arm per phase, against that ARM's OWN settled board. This is the blink.
   const over=(ws,ref)=>(typeof ref==='number'?ws.filter(w=>w>ref+0.5):[]);
   const o1=over(cP,clean.practiceSettled), o2=over(cR,clean.final), o3=over(iP,inj.practiceSettled), o4=over(iR,inj.final);
-  L.say(typeof clean.practiceSettled==='number'&&o1.length===0,'TC-R64 D4 '+n+' NO WRONG-SIZE BOARD IS PAINTED on the ORDINARY lesson path: no practice-phase frame of the clean arm is wider than its own settled '+clean.practiceSettled+'. On main at 375x568 this is RED - one frame paints 270.88 against a settled 254.88, a one-frame board jump with no injection at all',{settled:clean.practiceSettled,frames:cP.length,wider:uniqW(o1)});
+  L.say(typeof clean.practiceSettled==='number'&&o1.length===0,'TC-R64 D4 '+n+' NO WRONG-SIZE BOARD IS PAINTED on the ORDINARY lesson path: no practice-phase frame of the clean arm is wider than its own settled '+clean.practiceSettled+'. #522 recorded a 270.88 frame here at 375x568 on main, which is that geometry\'s DEMO board width; since #528 the label and the click share one task, so a frame from before the click can no longer count as practice',{settled:clean.practiceSettled,frames:cP.length,wider:uniqW(o1)});
   L.say(typeof clean.final==='number'&&o2.length===0,'TC-R64 D5 '+n+' no removed-phase frame of the clean arm is wider than its own settled '+clean.final,{settled:clean.final,frames:cR.length,wider:uniqW(o2)});
   L.say(typeof inj.practiceSettled==='number'&&o3.length===0,'TC-R64 D6 '+n+' no practice-phase frame of the injected arm is wider than its own settled '+inj.practiceSettled+' - a re-fit that resets the trim and re-settles in the rAF loop paints the full-size board here, which is the blink',{settled:inj.practiceSettled,frames:iP.length,wider:uniqW(o3)});
   L.say(typeof inj.final==='number'&&o4.length===0,'TC-R64 D7 '+n+' no removed-phase frame of the injected arm is wider than its own settled '+inj.final,{settled:inj.final,frames:iR.length,wider:uniqW(o4)});

@@ -1135,6 +1135,8 @@ actually reached in both arms, at every geometry (A0, A0b, D0b); (e) a board is 
 A1b, D0, D0c); (f) the clean board is HEIGHT-bound at the latch cells and WIDTH-bound at Kunal's (A2, D1);
 (g) at Kunal's geometries the board is unmoved by the injection cycle (D2).
 
+**BLOCK D'S PHASE LABELS SHARE A TASK WITH THEIR ACTIONS SINCE #528** (`jobs/gate-75s-d4-reddens-under-suite-load-on-mains-own-bundle-so-any-push-can-be-reddened-by-a-commit-that-cannot-have-caused-it-2026-10-21`). The label was written in one `page.evaluate` and the click, injection or removal in the next, so under suite load a frame of the PREVIOUS phase's board was sampled under the new label. #527's red, over main's own bundle, was one practice frame of 236.39, the DEMO board's width at 320x540, which is what that race samples. MEASURED by the orchestrator in a scratch clone of #527's tree, three busy loops on two CPUs: the two-step order put a wider frame in 7 of 20 runs at 320x540 and 3 of 10 at 375x568, each at the first practice index (one run, the first three) and each equal to that geometry's demo board (236.39, 270.88); the one-task order, under more load, 0 of 20 and 0 of 10; idle, both 0. The assertion is unchanged and must still fail on a bundle built to fail it (the recipe at the top of block D in the gate file); the landing run reruns that control.
+
 **THERE IS NO EXPECTED BOARD WIDTH ANYWHERE IN THIS CASE, AND THAT IS THE DESIGN.** Block B drives the same
 path twice in one run and compares the two results. Every absolute board pin in this suite is a function of
 the container's fonts — `gates/lib.js`'s #480 note measures the app's stack and bare sans-serif 53.84px apart
