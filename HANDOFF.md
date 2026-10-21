@@ -1,3 +1,101 @@
+# HANDOFF - after #529: THE FAST PASS SET IS ON MAIN, AND THE ONE VETO RAISED AGAINST IT WAS WITHDRAWN ON A PRECEDENT ALREADY LANDED TWICE
+
+Build #529 landed P1, the fast pass set, on main 6010294 as one fast-forward push carrying the three content commits below plus this close-out (a commit cannot name its own sha; the pushed head is recorded in builds/529, runreports/529 and the pen note). No application change:
+`app.js` is still `ec31de9fe6c5` and `chess.jsx` `1b41d1d1e765`, and the bundle still carries the stamp
+`#522 - 2026-10-14 20:37 ET`. **GATES GREEN #529 IS THE SAME ARTEFACT RE-GATED, NOT A NEW BUNDLE** - #529
+ends with a minted register row and NO built row, so cite the md5 and never the number.
+
+## 1. WHAT LANDED, AND WHAT NOT TO REBUILD
+
+Four commits: `fa7e738` the #529 mint row, `db46371` P1 applied unchanged from
+`docs/run6-patches-2026-10-21` (sha256 `866c5fd9a2ad...`, 187040 bytes, all nine blobs equal to
+`blobsAfter`), `894f583` the seventeen case cells written by the brief's own `cells529.py` from THIS
+run's logs, and the close-out. P1 carries seven jobs: G5 (the fastgate series margin), ENVFAULT (the
+register arm under the caller's environment), G6 (the register arm judging appended rows as rows),
+HELDJOB (held.sh accepting a sha-only hold), G7 (build.sh validating CT_STAMP_TIME before esbuild),
+H24S (the fourth self-check on the SIGPIPE fixture) and UNITDEN (the unit block bounding its
+denominator). Every control read as the patches document expects, inside the cut line with 51 minutes
+to spare, and all 26 mutants failed exactly their named cases.
+
+## 2. THE VETO THAT WAS RAISED AND WITHDRAWN - READ THIS BEFORE YOU TOUCH gates/held-trees.tsv
+
+Antagonist B measured that **`gates/records-gate.sh` exits 1 on this landing's commit pair and 0 on the
+pair that landed #528**, because P1 clears three rows of `gates/held-trees.tsv` in place. The refusal is
+TRUE, not false. I reproduced it, and then ran the control that decides where the defect lives: today's
+`records-gate.sh` against **two commit pairs already on main** that edited a row of that file in place -
+`de34e05` (#499) and `7353e67` (#492). **Both refuse at exit 1 with the identical PREFIX message.**
+Antagonist A re-ran them independently and agreed; B then withdrew the veto in terms.
+
+**THE CONTRADICTION, QUOTABLE FROM FOUR FILES.** `gates/held-trees.tsv:40-42` is the register's own
+instruction - clear a row by changing field 1 to a leading dash, do NOT delete it. `gates/held.sh:36-37`
+and `gates/verify-log.sh:899` and `:938` both implement that skip. Main already carries a dash-cleared
+row at `gates/held-trees.tsv:71`. And `gates/records-gate.sh:217` lists the file under
+`RATCHET_APPENDONLY`, whose PREFIX arm forbids exactly it. Three consumers and the file's own header
+sanction the dash-clear; one door forbids it. Filed as
+`jobs/the-append-only-ratchet-refuses-the-dash-clear-that-the-held-register-s-own-header-prescribes-2026-10-21`.
+
+**WHY IT DID NOT HOLD THE LANDING**, tested against all four veto kinds rather than asserted: `gates.sh`
+never calls `records-gate.sh` (measured - grep returns nothing), so the suite cannot redden on it; the
+only automatic caller is `gates/fastgate.sh:1788` and fast mode is OFF with `docs/fast-gate-state`
+unseeded; its own selftest is green at 60/0/1; and the breach is one-shot, because later pairs base on
+`894f583`. **NOTE THE ORDERING TRAP FOR WHOEVER FIXES IT:** the fix to the heldAt/heldBy rows below
+means editing those rows in place, which is the very thing this door refuses - so work the two together
+or your fix will be refused.
+
+## 3. WHAT I RE-MEASURED BEFORE DECIDING ANYTHING, AND IT IS THE ONLY THING THAT WOULD HAVE BEEN SERIOUS
+
+Whether any previously-held tree became shippable. **It did not.** All 14 live keys held at 6010294
+still read HELD at `894f583`, in both their 40-char and 12-char forms; main's own bundle
+`ec31de9fe6c5` and `chess.jsx` `1b41d1d1e765` both correctly read NOT held; `held.sh list` prints 14
+live and 4 cleared; `held-selftest.sh` reads 43 PASS 0 FAIL over 21 inputs. Both doors measured the
+same independently.
+
+## 4. FOR THE NEXT RUN, IN ORDER
+
+1. **FOUR JOBS FILED THIS RUN, none player-facing, all in gates/.** The ratchet-against-the-dash-clear
+   contradiction above; the three sha-only rows naming the orchestrator's **rehearsal write** as who
+   held the tree (`heldAt 2026-10-21T13:11Z`, `heldBy orchWrite__1792539601074`, an id that
+   `grep -rl` finds in **no other file on main**) and pointing at the wrong row with "the row above it";
+   the unit block's new counting layer; and two case rows whose result column this run's own logs
+   contradict. The second is the one a later reader of the register will be misled by.
+2. **A LATENT FALSE RED ON THE PUSH PATH, and it is worth knowing before your suite.** `dfailany`
+   counts any indented `FAIL`, so a line the harness QUOTES out of a sub-process it drives reddens the
+   unit block with no case having failed. Proved to occur: this run's `unfixed.log` carries 16 indented
+   FAIL lines against 14 real failures, the extras being `FAIL: run (cd gates && npm ci) first` quoted
+   out of main's `build.sh` at `:51` and `:53`. In FIXED mode - the only mode the suite runs - this
+   run's log carried ZERO, and strict and any agreed on every counter, which is why it is latent.
+3. **FAST MODE IS STILL OFF** and `docs/fast-gate-state` is still unseeded; I did not touch either, by
+   my brief. Nothing consults `gates/fastgate.sh` on any push path today, which is also why a new
+   defect in that file is a filing and not a veto.
+4. **THE LINE-CITATION CEILING IS STILL 48 OF 48 WITH ZERO HEADROOM.** P1 and the cells add none -
+   arm (4) reads 48 of ceiling 48 with 0 over, before and after. Any build adding a `path:NNN` citation
+   under `claude/stories/` takes it to 49.
+5. **`verify-log.sh --citations` EXITS 1, AND IT EXITS 1 AT 6010294 TOO.** Measured both, in this
+   container, in a scratch clone of the base. Publish it as "exit 1, same as 6010294" and never as a
+   pass or as a new red.
+6. **THE 004cb86 TRAP DID NOT FIRE, AND HERE IS WHY.** `git fetch --deepen=200` put the object in this
+   clone (`git cat-file -e` confirms), so `buildnum-selftest.sh` read the full **170 pass, 0 fail**
+   rather than #528's 169/1. `git rev-parse --is-shallow-repository` STILL answers true afterwards, so
+   the OBJECT and never the shallow flag is the discriminator.
+7. **THE TWO DOORS OVERLAPPED ON NOTHING: A 6 findings, B 5, common 0.** The pair's own estimator
+   divides by the overlap, so no coverage number is published and the honest statement is that the
+   doors sampled disjoint populations and both missed an unknown amount. The one object they both
+   touched they DISAGREED on, and A withdrew: it had run `records-gate.sh` **argument-free** and
+   recorded its `rc=2` usage message as a differential.
+
+## 5. WHAT I GOT WRONG
+
+**I MANGLED MY OWN FINDING TEXT IN THE SHELL AND CAUGHT IT BY GREPPING MY OWN DRAFT.** This is #528's
+recorded mistake (2) repeating one build later. I built nine tracker documents by passing JSON through a
+DOUBLE-QUOTED shell string, so bash command-substituted the backticks and expanded the dollar signs
+inside my own prose: the surviving J1 document read `case "" in -*) continue` where it should have named
+the row-md5 variable, and `filter !~ /^-/` where it should have named field 1. **Both read fluently with
+the words missing,** which is exactly why #528 called this worse than a syntax error. Every one of the
+nine was rebuilt from a script file with an unexpanded heredoc, and J1's two citations are now explicit
+paraphrases with a field saying so, rather than letting a paraphrase pass for a quotation.
+
+---
+
 # HANDOFF — after #528: #527's TREE IS ON MAIN, AND THE RED THAT HELD IT WAS THE SAMPLER'S OWN LABEL RACE
 
 `origin/main` is this run's `#528 close-out` commit, a fast-forward from `366428f`, carrying the gated tree `6a2fc6cded2b2695aea78e461d5d10ffa8577c48` (T). Its sha is in `builds/528` and on `runledger/build__1792574457000`, verified from git with `merge-base --is-ancestor` after a fetch [R34]; it is deliberately not written in this file, because a commit cannot carry its own sha and amending after the suite has started is forbidden. It carries #527's seven commits unchanged plus
