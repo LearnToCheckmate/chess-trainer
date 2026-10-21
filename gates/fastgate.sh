@@ -98,6 +98,44 @@ fi
 # executed here too (the `binary "gate manifest"` call) and is equally defangable, so it is in the set.
 # IT IS A NO-OP ON EVERY HONEST TREE, which is why it is safe to add here: a clean `git status` already implies
 # worktree == index == HEAD, so this can only fire where the status check was being lied to.
+# ── #530 N1. A CONVERSION IN FORCE ROUTES TO THE FULL SUITE AT EXIT 2, IT DOES NOT REFUSE AT EXIT 1 ──────────
+# jobs/the-raw-byte-pins-of-fastgate-refuse-an-honest-autocrlf-checkout-at-exit-1-instead-of-routing-it-to-the-full-suite-2026-10-20,
+# found by the second independent reader of #527's patches on their rehearsal tree. Both pins below hash the
+# WORKING TREE RAW (`hash-object --no-filters`), which is right and is what stops a clean filter making a
+# doctored file read as committed. But a checkout whose bytes differ from its blobs BY DESIGN - made with
+# core.autocrlf=true, core.eol, or a text, eol or working-tree-encoding attribute - is then refused at EXIT 1,
+# the stop code, by the first pin that hashes a converted file. Measured by that reader: after
+# `git -c core.autocrlf=true checkout -- gates/verify-log.sh`, `git status` is CLEAN, `git hash-object` returns
+# the HEAD blob and `git hash-object --no-filters` returns another, so the pin refuses an honest tree.
+# EXIT 1 READS LIKE TAMPERING AND THIS IS NOT TAMPERING. The honest answer for a checkout the fast tier cannot
+# compare byte for byte is the one the whole tier is built around: pay the full suite. So this asks the question
+# BEFORE the pins and routes to exit 2 with the reason named.
+# IT IS A NO-OP ON AN HONEST TREE, measured on this one before it was written rather than assumed: no
+# core.autocrlf and no core.eol are set, there is no .gitattributes at all, and `git ls-files --eol` over the
+# 549 tracked paths of gates/, app.js, chess.jsx and claude/ reports ZERO index-versus-worktree differences and
+# ZERO non-empty attributes. So this cannot fire here today, which is why it is safe to put in front of the pins.
+# NO PIPELINE INTO AN EARLY-EXITING READER: awk reads to EOF and limits what it PRINTS, so there is no SIGPIPE -
+# the class gates/gatemanifest.sh's own audit exists to refuse.
+CONVWHY=""
+CAC="$($GIT config --get core.autocrlf 2>/dev/null || true)"
+case "$CAC" in true|input) CONVWHY="core.autocrlf=$CAC";; esac
+CEOL="$($GIT config --get core.eol 2>/dev/null || true)"
+case "$CEOL" in crlf|native) CONVWHY="${CONVWHY:+$CONVWHY; }core.eol=$CEOL";; esac
+CONVROWS="$($GIT -c core.quotePath=false ls-files --eol -- gates app.js chess.jsx claude 2>/dev/null \
+  | awk 'BEGIN{n=0} {i=substr($1,3); w=substr($2,3); a=substr($3,6); if ((i!=w) || (a!="")) {n++; if (n<=3) print "    " $0}}')"
+if [ -n "$CONVROWS" ]; then
+  CONVWHY="${CONVWHY:+$CONVWHY; }an eol, text or working-tree-encoding attribute, or an index-versus-worktree eol difference, on a tracked path"
+fi
+if [ -n "$CONVWHY" ]; then
+  say ""
+  say "FULL SUITE REQUIRED - a line-ending or encoding CONVERSION is in force for this checkout ($CONVWHY)."
+  say "    The raw-byte pins below would compare converted working-tree bytes against unconverted blobs and"
+  say "    REFUSE an honest tree at exit 1, which reads like tampering and is not. The honest answer for a"
+  say "    checkout this tier cannot compare byte for byte is to pay the full suite. [#530]"
+  [ -n "$CONVROWS" ] && printf '%s\n' "$CONVROWS" | tee -a "$LOG"
+  exit 2
+fi
+
 TAMPER=""
 for f in gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js \
          gates/buildnum.sh; do   # buildnum.sh added #523: Part 2 EXECUTES it from the working tree
