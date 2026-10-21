@@ -130,8 +130,38 @@ note(){ printf '%s\n' "$*"; }
 # changed guard, a case loop over an empty list) is RED there and not "green on one assertion of 26". The list
 # is the tc() table below less H12, which is the unfixed MODE and has no case body. A new case is added here AND
 # to tc(); one added to either alone makes the counts disagree, and the verdict below says which way.
-CASES=(H1 H2 H3 H4 H5 H6 H7 H8 H8b H9 H13 H1b H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 H27
-       H10 H11 H28 H30 H31 H29 H32 H33 H34 H35 H36 H37 H38 H39 H40 H41 H42 H43 H44 H45 H46 H47 H48)
+# ── #530. THE DECLARATION IS DERIVED FROM THE tc() TABLE AND IS NO LONGER A HAND-KEPT LIST ─────────────────
+# jobs/the-unit-blocks-declared-case-count-is-a-hand-kept-array-so-it-can-be-edited-down-together-with-the-cases-2026-10-21,
+# from antagonist A of #529. #529 made gates/gates.sh require ok + SKIPPED + FAIL to equal the count printed
+# here, which closes the three ways the harness could stop running cases while the declaration stayed intact.
+# The declaration ITSELF was still a hand-maintained array, so it could be edited DOWN TOGETHER WITH the cases:
+# A demonstrated it with a stub printing "cases: 1 declared" and one well-formed ok line, and the unit block read
+# "fastgate-drive: green (1 ok -> 1 PASS lines, 0 skipped, of 1 declared)" with red 0. What protected it was the
+# commit diff alone - the same shape CLAUDE.md records for the gate manifest's two-field hand edit.
+#
+# SO THERE IS ONE SOURCE NOW: the tc() table below, read out of this script's own text, less H12, which is the
+# unfixed MODE and has no case body. A case added to tc() is declared automatically; a case deleted from tc()
+# lowers the declaration AND loses its TC id in the same edit, which is visible in the diff as a changed id
+# mapping rather than as one number. It does not make the declaration unforgeable - nothing inside one file can -
+# but it removes the second place that had to be kept in step by hand, which is what the job asks for.
+#
+# IT READS THE FILE RATHER THAN `declare -f tc` ONLY BECAUSE OF ORDER: tc() is defined about a hundred lines
+# below this point and the declared count is printed above it, so the function does not exist yet here. The sed
+# range is the table's own definition, so this is still the table and not a second copy of it.
+#
+# AND IT ASSERTS ITS OWN DENOMINATOR IS NON-EMPTY, IN ITS OWN LINE AND NOT AS A CONJUNCT [prompts/common]. An
+# empty derived list would declare 0 cases, and 0 == 0 against a harness that ran none, so the unit block's
+# equality test would read GREEN on nothing - which is the exact vacuity this whole job is about, re-created one
+# level up. A table that yields no ids is a damaged script, never a normal state, so it refuses loudly.
+CASES=()
+while IFS= read -r _cid; do CASES+=("$_cid"); done < <(
+  sed -n '/^tc(){/,/^}/p' "$0" | grep -oE '(^|[[:space:]])H[0-9]+b?\)' | tr -d ' )' | grep -vx H12 || true)
+if [ "${#CASES[@]}" -eq 0 ]; then
+  echo "fastgate-drive.sh: REFUSING - the tc() table in this script yielded no case ids, so the declared case"
+  echo "  count cannot be derived and a declaration of 0 would make the unit block's equality test vacuous."
+  echo "  This is a damaged script, not a tree to judge: restore tc() and re-run."
+  exit 2
+fi
 
 # ── BUILD THE CLONE AND MAKE ITS origin/main THE CANDIDATE. ────────────────────────────────────────────────
 git clone --quiet --no-hardlinks --shared "$ROOT" "$C" >/dev/null 2>&1 \
@@ -162,7 +192,7 @@ git -C "$C" update-ref refs/remotes/origin/main "$BASESHA" \
   || { echo "fastgate-drive.sh: REFUSING - could not point the clone's origin/main at the base."; exit 2; }
 note "fastgate-drive.sh mode=$MODE  candidate=$(printf '%.12s' "$CAND")  clone base=$(printf '%.12s' "$BASESHA")  clock=$NOWET ET"
 [ "$MODE" = unfixed ] && note "  unfixed baseline taken from origin/main $(printf '%.12s' "$UPSTREAM"), resolved in the parent repository"
-note "cases: ${#CASES[@]} declared (the tc() table less H12, which is this harness's unfixed mode and has no case body)"   # #529
+note "cases: ${#CASES[@]} declared (DERIVED at run time from the tc() table in this script, less H12, which is this harness's unfixed mode and has no case body)"   # #529, derived at #530
 
 BASESTAMP="$(grep -aoE '#[0-9]{3,4} - 20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET' "$C/app.js" 2>/dev/null | head -1)"
 if [ -z "$BASESTAMP" ]; then
@@ -859,6 +889,14 @@ if [ -n "$H24TOP" ]; then
   # which the position check below already reports as line 0. awk's length() counts characters; git prints
   # these paths in ASCII (see ON THE UNIT above), so here that is the byte count.
   H24A="$(awk -v p="$H24P" 'p > 0 && NR > p { n += length($0) + 1 } END { print n + 0 }' <<< "$H24L")"
+  # ── #530 [jobs/h24s-operative-figure-reaches-the-log-on-two-of-the-five-ways-the-case-ends-while-the-harness-says-every-run-2026-10-21]
+  # THE FIGURES ARE PRINTED HERE, ABOVE THE BRANCH CHAIN, SO EVERY ENDING CARRIES THEM. They used to be printed
+  # inside the ok branch and inside the fourth check's FAIL branch only, so on the three proxy FAIL endings a
+  # reader got the proxy that fired and NOT H24A - the operative quantity this case exists to report, and the one
+  # the job was filed to promote over those proxies. Antagonist A of #529 measured it: a grep for "H24 fixture"
+  # in its M10 mutant log returned no match. Printed once, before the chain, rather than copied into five
+  # branches, because five copies of one line is five places for them to drift apart.
+  note "         H24 fixture: $H24A bytes after the target line, $H24C paths, target at line $H24P, list $H24B bytes"
   if [ "$H24B" -le 65536 ]; then
     note "  FAIL H24 [$(tc H24)]  the changed list is only $H24B bytes, at or under the 64 KiB pipe buffer, so"
     note "         the writer never blocks, grep -q's early exit sends no SIGPIPE, and the register arm is not"
@@ -888,8 +926,11 @@ if [ -n "$H24TOP" ]; then
     # THE ASSERTION IS THE VERDICT LINE AND NOT THE EXIT CODE, because exit 1 is reachable from the stamp arm
     # too, and this case is about whether the REGISTER arm ran at all. H8 asserts the same sentence on the same
     # planted row with a SMALL diff; the only difference here is the 6000 paths, which is the whole point.
-    # The fixture's figures go in the log on every run, so the deterministic one is read, not recomputed [#529 review].
-    note "         H24 fixture: $H24A bytes after the target line, $H24C paths, target at line $H24P, list $H24B bytes"
+    # The fixture's figures are printed ABOVE the branch chain [#530], so the deterministic one is read and not
+    # recomputed, on this ending and on all four FAIL endings alike. THE ONE ENDING THAT CANNOT CARRY THEM is the
+    # outer `else` below, where reg_top could not be read: the fixture was never built there, so H24A, H24C, H24P
+    # and H24B do not exist to print. That is the whole of what "every run" now means here, said exactly rather
+    # than left as the overclaim #529's review wrote [#530, R18].
     expect H24 1 "an honest mint would have made it"
   fi
 else
