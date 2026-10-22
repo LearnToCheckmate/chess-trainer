@@ -570,3 +570,5 @@
 527	minted	-	-	-	2026-10-20T22:15Z	build__1792533988000	minted	Run 4 (#527): land Part 3 of the stamp job and three ride-alongs as four patches, no application change
 528	minted	-	-	-	2026-10-21T09:27Z	build__1792574457000	minted	run 5: land #527 held tree plus P1 to gate 75 block D label race
 529	minted	-	-	-	2026-10-21T16:15Z	build__1792598873000	minted	run 6 build 529: land P1 the fast pass set (G5 ENVFAULT G6 HELDJOB G7 H24S UNITDEN) with the seventeen case cells, one full suite, one push
+530	minted	-	-	-	2026-10-22T00:49Z	build__1792623542000	minted	Run 7: the stamp and fast-pass set, six fixes plus the upheld veto, one restamp and one full suite
+530	built	-	049b41dfb6f1	1b41d1d1e765	2026-10-22T00:50Z	build__1792623542000	build.sh	Bundle built and stamped #530. Recorded by gates/build.sh so the number resolves to an artefact.
