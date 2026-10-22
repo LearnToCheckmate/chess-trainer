@@ -573,3 +573,4 @@
 530	minted	-	-	-	2026-10-22T00:49Z	build__1792623542000	minted	Run 7: the stamp and fast-pass set, six fixes plus the upheld veto, one restamp and one full suite
 530	built	-	049b41dfb6f1	1b41d1d1e765	2026-10-22T00:50Z	build__1792623542000	build.sh	Bundle built and stamped #530. Recorded by gates/build.sh so the number resolves to an artefact.
 531	minted	-	-	-	2026-10-22T09:31Z	build__1792660876000	minted	run 8 build 531: CASES, N3 and N1 of the stamp and fast pass set, no app change and no rebuild
+532	minted	-	-	-	2026-10-22T15:29Z	build__1792682445000	minted	run 9 build 532: the G6 gap-fill door in gates.sh, the last open clause of the stamp and fast pass set, no app change and no rebuild
