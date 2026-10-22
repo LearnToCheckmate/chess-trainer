@@ -98,54 +98,33 @@ fi
 # executed here too (the `binary "gate manifest"` call) and is equally defangable, so it is in the set.
 # IT IS A NO-OP ON EVERY HONEST TREE, which is why it is safe to add here: a clean `git status` already implies
 # worktree == index == HEAD, so this can only fire where the status check was being lied to.
-# ── #530 N1. A CONVERSION IN FORCE ROUTES TO THE FULL SUITE AT EXIT 2, IT DOES NOT REFUSE AT EXIT 1 ──────────
-# jobs/the-raw-byte-pins-of-fastgate-refuse-an-honest-autocrlf-checkout-at-exit-1-instead-of-routing-it-to-the-full-suite-2026-10-20,
-# found by the second independent reader of #527's patches on their rehearsal tree. Both pins below hash the
-# WORKING TREE RAW (`hash-object --no-filters`), which is right and is what stops a clean filter making a
-# doctored file read as committed. But a checkout whose bytes differ from its blobs BY DESIGN - made with
-# core.autocrlf=true, core.eol, or a text, eol or working-tree-encoding attribute - is then refused at EXIT 1,
-# the stop code, by the first pin that hashes a converted file. Measured by that reader: after
-# `git -c core.autocrlf=true checkout -- gates/verify-log.sh`, `git status` is CLEAN, `git hash-object` returns
-# the HEAD blob and `git hash-object --no-filters` returns another, so the pin refuses an honest tree.
-# EXIT 1 READS LIKE TAMPERING AND THIS IS NOT TAMPERING. The honest answer for a checkout the fast tier cannot
-# compare byte for byte is the one the whole tier is built around: pay the full suite. So this asks the question
-# BEFORE the pins and routes to exit 2 with the reason named.
-# IT IS A NO-OP ON AN HONEST TREE, measured on this one before it was written rather than assumed: no
-# core.autocrlf and no core.eol are set, there is no .gitattributes at all, and `git ls-files --eol` over the
-# 549 tracked paths of gates/, app.js, chess.jsx and claude/ reports ZERO index-versus-worktree differences and
-# ZERO non-empty attributes. So this cannot fire here today, which is why it is safe to put in front of the pins.
-# NO PIPELINE INTO AN EARLY-EXITING READER: awk reads to EOF and limits what it PRINTS, so there is no SIGPIPE -
-# the class gates/gatemanifest.sh's own audit exists to refuse.
-CONVWHY=""
-CAC="$($GIT config --get core.autocrlf 2>/dev/null || true)"
-case "$CAC" in true|input) CONVWHY="core.autocrlf=$CAC";; esac
-CEOL="$($GIT config --get core.eol 2>/dev/null || true)"
-case "$CEOL" in crlf|native) CONVWHY="${CONVWHY:+$CONVWHY; }core.eol=$CEOL";; esac
-# ── THE INDEX-VERSUS-WORKTREE EOL COMPARISON IS WITHDRAWN FROM THIS TEST, AND ITS OWN HARNESS CAUGHT WHY.
-# The first version of this check also routed to FULL when `ls-files --eol` showed i/ and w/ disagreeing on any
-# tracked path. That is a CONTENT-DIFFERENCE signal, not a conversion signal, and the two must not be confused
-# here: case H30 plants a modified file and hides it with `git update-index --assume-unchanged`, which is
-# TAMPERING and must be REFUSED at exit 1 by the pins below - and the eol arm fired on it first and sent it to
-# exit 2 instead. H30 went FAIL ("a route hid the change and was NOT refused: assume-unchanged(exit 2)") on the
-# first harness run after this check landed. A guard that converts a refusal into a routing decision is worse
-# than the false refusal it was written to remove.
-# SO THE TEST IS NOW ONLY WHAT A CONVERSION IN FORCE ACTUALLY LOOKS LIKE: the two config keys, and a DECLARED
-# attribute. Attributes come from .gitattributes and not from file content, so no doctored file can set one.
-CONVROWS="$($GIT -c core.quotePath=false ls-files --eol -- gates app.js chess.jsx claude 2>/dev/null \
-  | awk 'BEGIN{n=0} {a=substr($3,6); if (a!="") {n++; if (n<=3) print "    " $0}}')"
-if [ -n "$CONVROWS" ]; then
-  CONVWHY="${CONVWHY:+$CONVWHY; }an eol, text or working-tree-encoding attribute on a tracked path"
-fi
-if [ -n "$CONVWHY" ]; then
-  say ""
-  say "FULL SUITE REQUIRED - a line-ending or encoding CONVERSION is in force for this checkout ($CONVWHY)."
-  say "    The raw-byte pins below would compare converted working-tree bytes against unconverted blobs and"
-  say "    REFUSE an honest tree at exit 1, which reads like tampering and is not. The honest answer for a"
-  say "    checkout this tier cannot compare byte for byte is to pay the full suite. [#530]"
-  [ -n "$CONVROWS" ] && printf '%s\n' "$CONVROWS" | tee -a "$LOG"
-  exit 2
-fi
-
+# ── #530 N1 IS WITHDRAWN FROM THIS RUN ON ANTAGONIST A's UPHELD VETO V2, AND THE REASON IS WORTH THE LINES ──
+# jobs/the-raw-byte-pins-of-fastgate-refuse-an-honest-autocrlf-checkout-at-exit-1-instead-of-routing-it-to-the-full-suite-2026-10-20
+# asks for a converted checkout to be routed to the full suite at exit 2 instead of being refused at exit 1 by
+# the raw-byte pins below. This run built that, and it was WRONG IN THE UNSAFE DIRECTION.
+# WHAT A MEASURED, AND I REPRODUCED IT: the arm read core.autocrlf and core.eol via `git config --get`. Those
+# live in .git/config, which is NOT IN ANY COMMIT and is writable by exactly the actor case H30 models - the one
+# who runs `git update-index --assume-unchanged`. The arm sat IN FRONT of the pins, so a one-line .git/config
+# write converted H30's required exit-1 TAMPER REFUSAL into an exit-2 routing decision, and the log stopped
+# naming the tampered file at all. That is the identical fault this run's own 4cf2ff6 withdrew the eol arm for,
+# left standing in the config arm, and 4cf2ff6's own words are the governing principle: "a guard that converts a
+# refusal into a routing decision is worse than the false refusal it was written to remove".
+# WHY IT IS REMOVED RATHER THAN REPAIRED HERE, stated so run 8 does not re-derive it. Three repairs were
+# considered and each fails on something measurable:
+#   (i)  move the arm BELOW the pins - closes the veto and un-fixes the job, because under a conversion the pins
+#        mismatch on honest files and refuse before the arm is reached.
+#   (ii) on a pin mismatch, accept it when the FILTERED hash equals the HEAD blob - that is ALSO the clean-filter
+#        shape, which cases H10, H28 and H32 assert must be exit 1, so it would redden the harness.
+#   (iii) keep only the .gitattributes signal - an UNTRACKED .gitattributes is outside the commit too, so the
+#        same hole returns by another door.
+#   A sound fix has to establish that the difference is explained by a conversion WITHOUT trusting a signal the
+#   tamperer can write, and that is a design question, not an edit.
+# THE TRADE THIS RUN IS MAKING, PLAINLY: the job's own text calls its defect "a false refusal, the safe
+# direction", and records that this repository declares no eol attribute and the routine's container sets no
+# core.autocrlf, so NO HONEST RUN MEETS IT TODAY. Trading a latent safe-direction false refusal for a live
+# unsafe-direction hole in a tamper refusal is the wrong way round. The job rolls to run 8 as 'not-yet'.
+# IT IS REMOVED BY A FORWARD COMMIT AND NOT BY `git revert`, because `git revert a5e33f6` CONFLICTS here - 4cf2ff6
+# and the N3 commits edit the same region - and this run's brief forbids resolving a revert by hand.
 # ── #530 N3. A FILE THE COMMIT DOES NOT HOLD MAY NOT STEER A RATCHET ────────────────────────────────────────
 # jobs/an-untracked-file-hidden-by-info-exclude-steers-the-records-ratchet-of-fastgate-past-every-raw-byte-guard-2026-10-20,
 # found by the second independent reader of #527's patches from the shipped-surface door.
