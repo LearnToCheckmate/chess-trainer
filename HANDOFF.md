@@ -956,9 +956,12 @@ breaking it.** The same measurement supplied the right shape, because the two do
   CORRECTED HERE RATHER THAN LEFT STANDING** [antagonist B of #533, P2-5]: `gates/gates.sh` now runs a
   build-number series door before any gate, so a gap fill routed to the full suite is judged there by
   `gates/buildnum.sh stampable`. The fast arm's own choice is unchanged and still right — the ceiling and the
-  contiguity test are what keep a burn off the FAST path — and the nine other copies of this sentence live in
-  `gates/fastgate.sh` (seven), `gates/fastgate-drive.sh` and `RUN-LOG.md`, which #533 may not edit and
-  declared instead. **THIS was the untravelled home that mattered**, because CLAUDE.md orders every builder to
+  contiguity test are what keep a burn off the FAST path — and the other copies of this sentence live in `gates/fastgate.sh`
+  (six that `grep -c 'runs no series check\|any series check'` reads, at lines 740, 956, 965, 1104, 1328
+  and 1352, plus a seventh sentence of the same premise just below line 930 that only a looser pattern
+  finds), in `gates/fastgate-drive.sh` (line 997) and in `RUN-LOG.md` (line 2104), none of which #533 may
+  edit - declared by file and line rather than by a count, because the count published here first was nine
+  and seven and neither is what any command returns [antagonist A of the third pair, P2-4]. **THIS was the untravelled home that mattered**, because CLAUDE.md orders every builder to
   read this file before building, and the first declaration of those copies missed it entirely;
 - **at or below the top** — every number NAMED in the log and sent to the **FULL SUITE** (exit 2). Never a
   fast green, because it turns a free number ISSUED for ever. Never refused, because #454 is the measured
