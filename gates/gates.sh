@@ -827,10 +827,19 @@ tc() {
   dA="$(st_mk gfA)"; st_row 533 minted - "$GFMINE" minted >> "$dA/gates/build-numbers.tsv"
   st_row 401 built - unknown-run build-sh >> "$dA/gates/build-numbers.tsv"
   st_gc "$dA" add -A; st_gc "$dA" commit -q -m 'a gap fill whose only row belongs to nobody'
+  dB="$(st_mk gfB)"; st_row 533 minted - "$GFMINE" minted >> "$dB/gates/build-numbers.tsv"
+  st_row 400 issued - "$GFOTHER" measured >> "$dB/gates/build-numbers.tsv"
+  st_row 401 built - unknown-run build-sh >> "$dB/gates/build-numbers.tsv"
+  st_gc "$dB" add -A; st_gc "$dB" commit -q -m 'two unaccounted rows, the armed one higher'
   st C87-armed-and-declined-is-still-RED "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfv "$dA" "$ST_T/gf.sh")" RED
   st C87b-and-the-reason-says-it-was-ARMED "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfn "$dA" "$ST_T/gf.sh" 'THE ESCAPE WAS ARMED FOR #401 AND DID NOT APPLY')" 1
   st C87c-and-names-the-field-7-values-present "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfn "$dA" "$ST_T/gf.sh" 'values present for #401 are: unknown-run')" 1
   st C87d-and-declares-the-limit "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfn "$dA" "$ST_T/gf.sh" 'A DECLARED LIMIT, not an oversight')" 1
+  st C87g-the-notice-is-NOT-lost-on-a-higher-offender "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfn "$dB" "$ST_T/gf.sh" 'THE ESCAPE WAS ARMED FOR #401 AND DID NOT APPLY')" 1
+  st C87h-and-the-armed-refusal-STOPS-offering-the-escape "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfn "$dB" "$ST_T/gf.sh" "CT_GAPFILL_OVERRIDE='401'")" 0
+  st C87i-and-says-re-running-changes-nothing "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=400 st_gfn "$dB" "$ST_T/gf.sh" 'ALREADY BEEN TRIED FOR THIS NUMBER AND DECLINED')" 1
+  st C87j-while-an-UNARMED-number-is-still-offered-it "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfn "$dB" "$ST_T/gf.sh" "CT_GAPFILL_OVERRIDE='400'")" 1
+  st C87k-and-no-line-says-both-things "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=400 st_gfrun "$dB" "$ST_T/gf.sh" | grep -c "do not re-run with it.*CT_GAPFILL_OVERRIDE='400'")" 0
   st C87e-and-does-NOT-say-it-when-the-escape-is-unarmed "$(CT_RUNID=$GFMINE st_gfn "$dA" "$ST_T/gf.sh" 'THE ESCAPE WAS ARMED')" 0
   st C87f-and-the-unarmed-refusal-still-offers-it "$(CT_RUNID=$GFMINE st_gfn "$dA" "$ST_T/gf.sh" "CT_GAPFILL_OVERRIDE='401'")" 1
   # C88: a hostile CT_RUNID. Stripping the newline fixed the two-line half and left the TOKEN reachable, from a
@@ -1046,6 +1055,14 @@ M16PY
   st M16b-MUTANT-accuses-the-tree-instead "$(CT_RUNID=$GFMINE st_gfn "$dx" "$ST_T/m16.sh" 'carries a row nothing accounts for')" 1
   st M16c-and-never-reaches-the-cause-arm "$(CT_RUNID=$GFMINE st_gfn "$dx" "$ST_T/m16.sh" "this door's own ENVIRONMENT is broken")" 0
   chmod +x "$dx/gates/buildnum.sh"
+  # MUTANT 17: the armed-and-declined notice deleted from the point of decline, which is where round seven did
+  # not put it. It must turn C87g - the notice vanishes for any number that is not the lowest offender.
+  awk '/THE ESCAPE WAS ARMED FOR #\$gfn AND DID NOT APPLY/ && /REPORTED, NOT REFUSED/ {next} {print}' "$ST_T/gf.sh" > "$ST_T/m17.sh"
+  st M17-the-lost-notice-mutant-parses "$(bash -n "$ST_T/m17.sh" 2>/dev/null && echo yes || echo no)" yes
+  st M17a-and-it-really-dropped-the-line "$( [ "$(grep -c '' < "$ST_T/m17.sh")" -lt "$(grep -c '' < "$ST_T/gf.sh")" ] && echo dropped || echo same )" dropped
+  st M17b-FIX-keeps-the-notice-on-a-higher-offender "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfn "$dB" "$ST_T/gf.sh" 'ARMED FOR #401 AND DID NOT APPLY')" 1
+  st M17c-MUTANT-loses-it "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfn "$dB" "$ST_T/m17.sh" 'ARMED FOR #401 AND DID NOT APPLY')" 0
+
   # AND THE EXTRACTION M7g CHECKS IS BOUNDED [antagonist A of the fifth pair, P3-3]: M7g asserted only that the
   # function's first line is there, which is true whether the range ended at the function or ran to EOF.
   st M7g2-and-the-extraction-is-BOUNDED "$(grep -c '' < "$ST_T/subjfn.sh")" 5
@@ -1644,9 +1661,19 @@ else
           # this number and did not apply, the reason says why and names the field-7 values present, and the
           # limit is declared rather than implied. A number with no row of this run's at all is refused by
           # design, and the OVERRIDE message no longer claims to cover it.
+          # ITS OWN LINE, AT THE POINT OF DECLINE [antagonist B of the sixth pair, P2-2]. Round seven put this
+          # notice into GF_WHY, which the first-reason guard emits only for the LOWEST-sorting offender - so arm
+          # the escape for any other number and the fact that it was tried and declined vanished from the log
+          # entirely, which is the defect round seven existed to fix, surviving for every number but one.
+          # Measured: armed for #401 beside an unaccounted #400, the notice appeared 0 times. Printed here it
+          # cannot be lost, it is printed once per declined number, and it takes the REPORTED shape the
+          # base-held and extends classes already use - a line that carries no `ok` token and none of the five
+          # prefixes gates/verify-log.sh reads.
           if [ "$GF_ESC" = "0" ] && [ -n "${CT_GAPFILL_OVERRIDE:-}" ]; then
             case " $(printf '%s' "${CT_GAPFILL_OVERRIDE:-}" | tr -d '#') " in
-              *" $gfn "*) GF_ARMED_DECLINED="$gfn" ;;
+              *" $gfn "*)
+                GF_ARMED_DECLINED="${GF_ARMED_DECLINED:-} $gfn"
+                echo "build-number series: REPORTED, NOT REFUSED - THE ESCAPE WAS ARMED FOR #$gfn AND DID NOT APPLY, so do not re-run with it: CT_GAPFILL_OVERRIDE named this number and the escape requires at least ONE row for it carrying THIS run's CT_RUNID, of which there are $(awk -F'\t' -v n="$gfn" -v r="${CT_RUNID:-}" '$1==n && $7==r { c++ } END { print c+0 }' "$GF_T/wt.rows"). The field 7 values present for #$gfn are: $(awk -F'\t' -v n="$gfn" '$1==n { if (!(($7) in s)) { s[$7]=1; o=o (o?", ":"") $7 } } END{ print (o==""?"(none)":o) }' "$GF_T/wt.rows"). A DECLARED LIMIT, not an oversight: a number whose every row belongs to somebody else, or to the literal unknown-run that belongs to nobody, is refused by design - widening the test to accept it would make a minted row that is nobody's escapable, which is what #530's provenance looseness did. The repair is to the ROW: correct field 7 to this run's runId in the working tree before committing it, or let the run that owns the number gate it." | tee -a "$ALL" ;;
             esac
           fi
           if [ "$GF_ESC" = "1" ]; then
@@ -1661,7 +1688,14 @@ else
           # refusal, which C62 asserts.
           GF_U=$((GF_U+1)); GF_STOP=1
           GF_ROWSHOW="$(printf '%s\n%s' "${GF_ROWSHOW:-}" "$gfrow")"
-          [ -n "${GF_WHY:-}" ] || GF_WHY="$( if [ "${GF_ARMED_DECLINED:-}" = "$gfn" ]; then printf '%s' "THE ESCAPE WAS ARMED FOR #$gfn AND DID NOT APPLY, so do not re-run with it: CT_GAPFILL_OVERRIDE named this number and the escape requires at least ONE row for it carrying THIS run's CT_RUNID, of which there are $(awk -F'\t' -v n="$gfn" -v r="${CT_RUNID:-}" '$1==n && $7==r { c++ } END { print c+0 }' "$GF_T/wt.rows"). The field 7 values present for #$gfn are: $(awk -F'\t' -v n="$gfn" '$1==n { if (!(($7) in s)) { s[$7]=1; o=o (o?", ":"") $7 } } END{ print (o==""?"(none)":o) }' "$GF_T/wt.rows"). A DECLARED LIMIT, not an oversight: a number whose every row belongs to somebody else, or to the literal unknown-run that belongs to nobody, is refused by design - widening the test to accept it would make a minted row that is nobody's escapable, which is what #530's provenance looseness did. If this row IS honest, the repair is to the ROW: correct field 7 to this run's runId in the working tree before committing it, or let the run that owns the number gate it. "; fi )#$gfn FILLS A GAP in the build-number series - it is below the base register's series top #$GF_TOP and absent from the base - and NOTHING ACCOUNTS FOR IT. It is not this run's by gates/buildnum.sh stampable (exit $GF_RC: \"$GF_M1\"), and field 3 names no commit whose subject gives #$gfn by buildnum.sh's own extractor. A number that fills a gap is a number some other tree may already have spent, which is how '#416' came to name two trees. DO NOT mint a fresh number to get past this: that spends a second one. Either the row is wrong - and then: $gfrem - or it is an honest run in #532's own shape, and then the escape is CT_GAPFILL_OVERRIDE='$gfn' with CT_RUNID set, which is recorded in the log as an OVERRIDE and is not a green."
+          # NO PREAMBLE HERE, AND THE OFFER IS CONDITIONAL [antagonist B of the sixth pair, P2-1]. Round seven
+          # prepended the armed-and-declined notice to this string and left the old offer on its tail, so ONE
+          # LINE said "so do not re-run with it" and then "the escape is CT_GAPFILL_OVERRIDE='$gfn'" - a record
+          # saying two things at once (aFIELDCONSISTENCYNOTE_516), with the offer last, which is the clause a
+          # reader acts on, and following it lands in the identical refusal: #454's printed-remedy deadlock
+          # inside the repair written to remove it. The notice is now its own line above, and the offer is made
+          # only when the escape has NOT already been tried for this number.
+          [ -n "${GF_WHY:-}" ] || GF_WHY="#$gfn FILLS A GAP in the build-number series - it is below the base register's series top #$GF_TOP and absent from the base - and NOTHING ACCOUNTS FOR IT. It is not this run's by gates/buildnum.sh stampable (exit $GF_RC: \"$GF_M1\"), and field 3 names no commit whose subject gives #$gfn by buildnum.sh's own extractor. A number that fills a gap is a number some other tree may already have spent, which is how '#416' came to name two trees. DO NOT mint a fresh number to get past this: that spends a second one. Either the row is wrong - and then: $gfrem - or$( case " ${GF_ARMED_DECLINED:-} " in *" $gfn "*) printf '%s' ", AS THE REPORTED LINE ABOVE SAYS, THE ESCAPE HAS ALREADY BEEN TRIED FOR THIS NUMBER AND DECLINED, so re-running with it changes nothing: the repair is to the ROW, not to the escape." ;; *) printf '%s' " it is an honest run in #532's own shape, and then the escape is CT_GAPFILL_OVERRIDE='$gfn' with CT_RUNID set, which is recorded in the log as an OVERRIDE and is not a green." ;; esac )"
           continue
         done < "$GF_T/judged"
       fi
