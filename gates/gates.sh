@@ -846,6 +846,16 @@ tc() {
   st C87i-and-says-re-running-changes-nothing "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=400 st_gfn "$dB" "$ST_T/gf.sh" 'ALREADY BEEN TRIED FOR THIS NUMBER AND DECLINED')" 1
   st C87j-while-an-UNARMED-number-is-still-offered-it "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfn "$dB" "$ST_T/gf.sh" "CT_GAPFILL_OVERRIDE='400'")" 1
   st C87k-and-no-line-says-both-things "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=400 st_gfrun "$dB" "$ST_T/gf.sh" | grep -c "do not re-run with it.*CT_GAPFILL_OVERRIDE='400'")" 0
+  # A COMMITTED offending row, which both existing fixtures lacked - and that is why no case saw the remedy
+  # printing the uncommitted route for a committed row.
+  dC="$(st_mk gfC)"; st_row 533 minted - "$GFMINE" minted >> "$dC/gates/build-numbers.tsv"
+  st_row 401 built - unknown-run build-sh >> "$dC/gates/build-numbers.tsv"
+  st_gc "$dC" add -A; st_gc "$dC" commit -q -m 'the offending row is COMMITTED'
+  st C87l-a-COMMITTED-row-gets-the-amend-route "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfn "$dC" "$ST_T/gf.sh" 'ALREADY IN A COMMIT')" 2
+  st C87m-and-not-the-working-tree-route-alone "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfrun "$dC" "$ST_T/gf.sh" | grep -c 'correct field 7 to this run.s runId in the working tree before committing it')" 0
+  st C87n-a-TAB-separated-escape-keeps-the-notice "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE="$(printf '400\t401')" st_gfn "$dB" "$ST_T/gf.sh" 'ARMED FOR #401 AND DID NOT APPLY')" 1
+  st C87o-and-the-logged-value-is-not-concatenated "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE="$(printf '400\t401')" st_gfn "$dB" "$ST_T/gf.sh" 'escape=\[400 401\]')" 1
+  st C87p-and-never-the-number-nobody-set "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE="$(printf '400\t401')" st_gfrun "$dB" "$ST_T/gf.sh" | grep -c 'escape=\[400401\]')" 0
   st C87e-and-does-NOT-say-it-when-the-escape-is-unarmed "$(CT_RUNID=$GFMINE st_gfn "$dA" "$ST_T/gf.sh" 'THE ESCAPE WAS ARMED')" 0
   st C87f-and-the-unarmed-refusal-still-offers-it "$(CT_RUNID=$GFMINE st_gfn "$dA" "$ST_T/gf.sh" "CT_GAPFILL_OVERRIDE='401'")" 1
   # C88: a hostile CT_RUNID. Stripping the newline fixed the two-line half and left the TOKEN reachable, from a
@@ -1330,7 +1340,10 @@ GF_REG="$ROOT/gates/build-numbers.tsv"
 # \n fixed the TWO-LINE half and left the string reachable: CT_RUNID='x GATES GREEN #533' still put those two
 # words into the log, from a line a subset run prints, and this project's rules call that mechanically
 # impossible. Neither value is ever a build number or a verdict, so substituting the token costs nothing.
-GF_IDENT="runId=$(printf '%s' "${CT_RUNID:-(unset)}" | tr -d '\n\r\t' | sed 's/GATES GREEN/GATES_GREEN/g; s/GATES RED/GATES_RED/g' | cut -c1-80) escape=[$(printf '%s' "${CT_GAPFILL_OVERRIDE:-(unset)}" | tr -d '\n\r\t' | sed 's/GATES GREEN/GATES_GREEN/g; s/GATES RED/GATES_RED/g' | cut -c1-120)]"
+# AND WHITESPACE IS REPLACED, NOT DELETED [antagonist B of the seventh pair, P2]: `tr -d` turned an escape
+# naming "401<tab>402" into the logged value escape=[401402], a number nobody set, which defeats the very
+# recoverability this clause exists for. Squeezed to single spaces instead, so the log records what was set.
+GF_IDENT="runId=$(printf '%s' "${CT_RUNID:-(unset)}" | tr '\n\r\t' '   ' | tr -s ' ' ' ' | sed 's/GATES GREEN/GATES_GREEN/g; s/GATES RED/GATES_RED/g' | cut -c1-80) escape=[$(printf '%s' "${CT_GAPFILL_OVERRIDE:-(unset)}" | tr '\n\r\t' '   ' | tr -s ' ' ' ' | sed 's/GATES GREEN/GATES_GREEN/g; s/GATES RED/GATES_RED/g' | cut -c1-120)]"
 GF_BN="$ROOT/gates/buildnum.sh"
 GF_LINE="build-number series: NOT CHECKED - this door did not run."
 # The counts clause is initialised so that EVERY verdict line carries one, including the five refusals that
@@ -1676,10 +1689,15 @@ else
           # base-held and extends classes already use - a line that carries no `ok` token and none of the five
           # prefixes gates/verify-log.sh reads.
           if [ "$GF_ESC" = "0" ] && [ -n "${CT_GAPFILL_OVERRIDE:-}" ]; then
-            case " $(printf '%s' "${CT_GAPFILL_OVERRIDE:-}" | tr -d '#') " in
+            # WHITESPACE IS NORMALISED, NOT ASSUMED TO BE SPACES [antagonist B of the seventh pair, P2]. The
+            # escape loop splits on IFS - space, tab and newline - and this membership test matched only
+            # space-delimited words, so a tab- or newline-separated CT_GAPFILL_OVERRIDE lost the notice for
+            # EVERY number while the escape itself still worked, and the refusal then re-offered the value
+            # already in the operator's environment: the deadlock this notice exists to remove.
+            case " $(printf '%s' "${CT_GAPFILL_OVERRIDE:-}" | tr -d '#' | tr -s '[:space:]' ' ') " in
               *" $gfn "*)
                 GF_ARMED_DECLINED="${GF_ARMED_DECLINED:-} $gfn"
-                echo "build-number series: REPORTED, NOT REFUSED - THE ESCAPE WAS ARMED FOR #$gfn AND DID NOT APPLY, so do not re-run with it: CT_GAPFILL_OVERRIDE named this number and the escape requires at least ONE row for it carrying THIS run's CT_RUNID, of which there are $(awk -F'\t' -v n="$gfn" -v r="${CT_RUNID:-}" '$1==n && $7==r { c++ } END { print c+0 }' "$GF_T/wt.rows"). The field 7 values present for #$gfn are: $(awk -F'\t' -v n="$gfn" '$1==n { if (!(($7) in s)) { s[$7]=1; o=o (o?", ":"") $7 } } END{ print (o==""?"(none)":o) }' "$GF_T/wt.rows"). A DECLARED LIMIT, not an oversight: a number whose every row belongs to somebody else, or to the literal unknown-run that belongs to nobody, is refused by design - widening the test to accept it would make a minted row that is nobody's escapable, which is what #530's provenance looseness did. The repair is to the ROW: correct field 7 to this run's runId in the working tree before committing it, or let the run that owns the number gate it." | tee -a "$ALL" ;;
+                echo "build-number series: REPORTED, NOT REFUSED - THE ESCAPE WAS ARMED FOR #$gfn AND DID NOT APPLY, so do not re-run with it: CT_GAPFILL_OVERRIDE named this number and the escape requires at least ONE row for it carrying THIS run's CT_RUNID, of which there are $(awk -F'\t' -v n="$gfn" -v r="${CT_RUNID:-}" '$1==n && $7==r { c++ } END { print c+0 }' "$GF_T/wt.rows"). The field 7 values present for #$gfn are: $(awk -F'\t' -v n="$gfn" '$1==n { if (!(($7) in s)) { s[$7]=1; o=o (o?", ":"") $7 } } END{ print (o==""?"(none)":o) }' "$GF_T/wt.rows"). A DECLARED LIMIT, not an oversight: a number whose every row belongs to somebody else, or to the literal unknown-run that belongs to nobody, is refused by design - widening the test to accept it would make a minted row that is nobody's escapable, which is what #530's provenance looseness did. The repair is to the ROW. $gfrem Correct field 7 to this run's runId, or let the run that owns the number gate it - and note which side the row is on, because this line said \"in the working tree before committing it\" unconditionally until antagonist B of the seventh pair walked it: on a COMMITTED row that edit makes the HEAD line absent from the working tree, which this same door then refuses as a register DELETION, whose own remedy restores the wrong field 7 and returns you here. A closed loop in two moves, and verbatim the defect this door fixed one round earlier for the refusal string." | tee -a "$ALL" ;;
             esac
           fi
           if [ "$GF_ESC" = "1" ]; then
