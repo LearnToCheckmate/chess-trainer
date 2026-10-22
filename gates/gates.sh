@@ -109,9 +109,37 @@ $(head -c 200000 /dev/zero | tr '\0' 'x')"
   # switched off, so the pair C11/C13 is what shows the new condition discriminates rather than tightens.
   awk '/^DRIVESH=/{p=1} /^for f in "\$\{gates\[@\]\}"; do/{if(p){exit}} p{print}' "$SF" > "$ST_T/block.sh"
   st C14-the-unit-block-was-extracted "$( [ -s "$ST_T/block.sh" ] && echo yes || echo no )" yes
+  # ── #531. THE STUBS NOW CARRY A tc() TABLE AND THE SCRATCH TREE IS A REAL REPOSITORY. ───────────────────
+  # jobs/the-unit-blocks-declared-case-count-is-a-hand-kept-array-so-it-can-be-edited-down-together-with-the-cases-2026-10-21.
+  # The block below now cross-checks the harness's declaration against the COMMITTED tc() table, which it reads
+  # with `git show HEAD:gates/fastgate-drive.sh`. Two consequences for this selftest, and both are mechanical
+  # rather than cosmetic: the scratch tree has to BE a repository with the stub committed in it, or every stub
+  # would read an empty table and the three cases that must NOT redden (C13, C16, C24) would all go red for a
+  # reason that has nothing to do with what they test; and each stub needs a table whose ids, less H12, EQUAL
+  # its own declaration, or the new limb would redden C16 and C24 as well.
+  # H12 IS SKIPPED BECAUSE THE HARNESS SKIPS IT: it is fastgate-drive.sh's unfixed MODE and has no case body,
+  # so the real derivation drops it and this generator must drop it too or the two counts differ by one.
+  # commit.gpgsign IS FORCED OFF FOR THIS SCRATCH COMMIT ONLY. That is not the defect
+  # jobs/a-defensive-commit-gpgsign-false-left-two-commits-unsigned-in-a-fully-signed-repository-2026-10-16
+  # records: that one is about commits that reach a real branch. This repository is created by mktemp, read
+  # once by a `git show` in the same function, and deleted; a signature on it would be verified by nobody.
+  st_tbl(){ # $1 = how many case ids the table must YIELD once H12 is dropped; prints a tc() table
+    local want="$1" n i
+    n="$want"; if [ "$want" -ge 12 ]; then n=$(( want + 1 )); fi   # H12 is dropped, so one more id is needed
+    printf 'tc(){\n  case "$1" in\n'
+    for i in $(seq 1 "$n"); do printf '    H%s) printf TC-SUITE-X%s ;;\n' "$i" "$i"; done
+    printf '  esac\n}\n'
+  }
   st_drive(){ # $1 = the body of the stub gates/fastgate-drive.sh; prints the block's final red value
-    local d="$ST_T/d"; rm -rf "$d"; mkdir -p "$d/gates/logs"
-    if [ -n "$1" ]; then printf '%s\n' '#!/usr/bin/env bash' "$1" > "$d/gates/fastgate-drive.sh"; fi
+    # $2 = how many case ids its tc() table must yield, default 1 (a non-empty table). 0 writes NO TABLE AT
+    # ALL, which is the shape this job's own case needs and which must read RED.
+    local d="$ST_T/d" tbl="${2:-1}"; rm -rf "$d"; mkdir -p "$d/gates/logs"
+    if [ -n "$1" ]; then
+      { printf '%s\n' '#!/usr/bin/env bash' "$1"; [ "$tbl" -gt 0 ] && st_tbl "$tbl"; } > "$d/gates/fastgate-drive.sh"
+    fi
+    ( cd "$d" && git init -q . >/dev/null 2>&1 && git add -A >/dev/null 2>&1 \
+      && git -c user.name=ct-st -c user.email=ct-st@local -c commit.gpgsign=false \
+             commit -q --allow-empty -m "selftest stub" >/dev/null 2>&1 )
     ( cd "$d" && G="$d/gates" ROOT="$d" STEM=probe ALL="$ST_T/d-all.log" SUBSET="" BLK="$ST_T/block.sh" \
       bash -c 'set -uo pipefail; red=0; . "$BLK" >/dev/null 2>&1; printf %s "$red"' 2>/dev/null )
   }
@@ -132,7 +160,7 @@ $(head -c 200000 /dev/zero | tr '\0' 'x')"
     st_drive "echo \"cases: ${3:-$(( $1 + $2 ))} declared (stub)\"
 for i in \$(seq 1 $1); do echo \"  ok  H\$i [TC-SUITE-0\$i]  (probe)\"; done
 for i in \$(seq $(( $1 + 1 )) $(( $1 + $2 ))); do echo \"  SKIPPED H\$i [TC-SUITE-0\$i]  probe\"; done
-exit 0"
+exit 0" "${3:-$(( $1 + $2 ))}"
   }
   st C15-one-ok-and-25-skipped-is-RED        "$(st_drive_n 1 25)" 1
   st C16-24-ok-and-2-skipped-is-still-green  "$(st_drive_n 24 2)" 0
@@ -166,11 +194,11 @@ exit 0"
   # C20: the same single ok line and NO declaration at all, which is what #527's harness printed.
   st C20-no-declaration-is-RED              "$(st_drive 'echo "  ok  H1 [TC-SUITE-057]  (probe)"; exit 0')" 1
   # C21, instance (2): 24 ok and 2 skips written at FOUR spaces, 26 declared. The strict count reads 0 skipped.
-  st C21-a-four-space-skip-is-RED           "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 24); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "    SKIPPED H25 [TC-SUITE-082]  probe"; echo "    SKIPPED H26 [TC-SUITE-083]  probe"; exit 0')" 1
+  st C21-a-four-space-skip-is-RED           "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 24); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "    SKIPPED H25 [TC-SUITE-082]  probe"; echo "    SKIPPED H26 [TC-SUITE-083]  probe"; exit 0' 26)" 1
   # C22, instance (3): 25 ok on stdout and the 26th on STDERR, 26 declared. #527's 2>&1 counted all 26.
-  st C22-an-ok-line-on-stderr-is-not-counted "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 25); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "  ok  H26 [TC-SUITE-083]  (probe)" >&2; exit 0')" 1
+  st C22-an-ok-line-on-stderr-is-not-counted "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 25); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "  ok  H26 [TC-SUITE-083]  (probe)" >&2; exit 0' 26)" 1
   # C23, instance (4): 25 well-formed ok lines and one bare `  ok  `, 26 declared.
-  st C23-a-bare-ok-line-is-RED              "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 25); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "  ok  "; exit 0')" 1
+  st C23-a-bare-ok-line-is-RED              "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 25); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "  ok  "; exit 0' 26)" 1
   # C24, THE CONTROL: the honest shape (32 ok, 1 skipped, 33 declared) is green.
   st C24-the-honest-shape-is-green          "$(st_drive_n 32 1 33)" 0
   # C25 AND C26 KILL A MUTANT THE FIRST SIX LEFT ALIVE [#529 rehearsal, mutant UM2]. With the two strict count
@@ -178,15 +206,35 @@ exit 0"
   # stray lines also short-changed the denominator, so the denominator alone turned them red. These two keep the
   # denominator whole and add one stray line, so only the strict counts can see it.
   # C25: 25 ok and 1 SKIPPED, 26 declared, plus one bare `  ok` line. The sum balances and dokany reads 26.
-  st C25-a-stray-ok-beside-a-full-count-is-RED   "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 25); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "  SKIPPED H26 [TC-SUITE-083]  probe"; echo "  ok  "; exit 0')" 1
+  st C25-a-stray-ok-beside-a-full-count-is-RED   "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 25); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "  SKIPPED H26 [TC-SUITE-083]  probe"; echo "  ok  "; exit 0' 26)" 1
   # C26: 26 ok, 26 declared, plus one SKIPPED line at four spaces. The sum balances and dskipany reads 1.
-  st C26-a-stray-skip-beside-a-full-count-is-RED "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 26); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "    SKIPPED H27 [TC-SUITE-084]  probe"; exit 0')" 1
+  st C26-a-stray-skip-beside-a-full-count-is-RED "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 26); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "    SKIPPED H27 [TC-SUITE-084]  probe"; exit 0' 26)" 1
   # C27 TO C29: TWO HOLES THE #529 REVIEW FOUND [both reviewers' F3]. C27: one ok line under a twenty-digit
   # declaration, which -ne could not compare and so read as agreeing. C28: 26 declared and 26 ok lines, H25
   # twice and H26 never, the count balanced by a duplicate. C29: 26 ok of 26 declared plus a FAIL at a tab.
-  st C27-a-twenty-digit-declaration-is-RED   "$(st_drive 'echo "cases: 99999999999999999999 declared (stub)"; echo "  ok  H1 [TC-SUITE-057]  (probe)"; exit 0')" 1
-  st C28-one-case-twice-one-missing-is-RED   "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 25); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "  ok  H25 [TC-SUITE-025]  (probe)"; exit 0')" 1
-  st C29-a-tab-indented-fail-is-RED          "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 26); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; printf "\tFAIL H27 [TC-SUITE-084]  probe\n"; exit 0')" 1
+  st C27-a-twenty-digit-declaration-is-RED   "$(st_drive 'echo "cases: 99999999999999999999 declared (stub)"; echo "  ok  H1 [TC-SUITE-057]  (probe)"; exit 0' 26)" 1
+  st C28-one-case-twice-one-missing-is-RED   "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 25); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; echo "  ok  H25 [TC-SUITE-025]  (probe)"; exit 0' 26)" 1
+  st C29-a-tab-indented-fail-is-RED          "$(st_drive 'echo "cases: 26 declared (stub)"; for i in $(seq 1 26); do echo "  ok  H$i [TC-SUITE-0$i]  (probe)"; done; printf "\tFAIL H27 [TC-SUITE-084]  probe\n"; exit 0' 26)" 1
+  # ── C30 TO C32: THE COMMITTED-TABLE CROSS-CHECK [#531, jobs/the-unit-blocks-declared-case-count-is-a-hand-kept-array-so-it-can-be-edited-down-together-with-the-cases-2026-10-21]. ──
+  # C30 IS THE JOB'S OWN CASE, VERBATIM, and it is the one that was green on #530's fix: a stub that REPLACES
+  # the harness, declares one case and runs one case agrees with itself perfectly, because every number the
+  # block had came out of the file the stub replaced. With no tc() table in the committed text it is now RED.
+  st C30-a-stub-with-no-case-table-is-RED   "$(st_drive 'echo "cases: 1 declared (stub)"; echo "  ok  H1 [TC-SUITE-057]  (probe)"; exit 0' 0)" 1
+  # C31: the table is THERE but its header is respaced to `tc() {`, which is still valid bash and which the
+  # range `/^tc(){/,/^}/` does not match - so the ids cannot be read and the declaration cannot be checked.
+  # This is the shape of the gap #530's guard added, seen from this block rather than from the harness.
+  st C31-a-respaced-table-header-is-RED     "$(st_drive 'echo "cases: 1 declared (stub)"; echo "  ok  H1 [TC-SUITE-057]  (probe)"; exit 0
+tc() {
+  case "$1" in
+    H1) printf TC-SUITE-X1 ;;
+  esac
+}' 0)" 1
+  # C32 IS C13's PAIR AND THE WHOLE POINT OF THE SECOND HALF OF THIS JOB. C13 is a named refusal at exit 2
+  # with a readable table and it must stay a SKIP, because the dirty-tree decline is the documented happy path.
+  # C32 is a named refusal at exit 2 whose table CANNOT BE READ - the harness's own empty-table refusal - and it
+  # must be RED. Same exit code, same REFUSING line, opposite verdicts: that is what shows the new condition
+  # discriminates rather than simply tightening the decline branch out of existence.
+  st C32-a-refusal-with-no-readable-table-is-RED "$(st_drive 'echo "fastgate-drive.sh: REFUSING - the tc() table in this script yielded no case ids"; exit 2' 0)" 1
 
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
@@ -580,6 +628,42 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   case "$dcases" in ''|*[!0-9]*|0*|?????*) dcases="" ;; esac   # 1 to 9999, plaus_delta's own pattern [#529 review]
   dnames=$(sed -nE 's/^  (ok +|SKIPPED |FAIL )(H[0-9]+[a-z]*) .*$/\2/p' "$dlog" | sort -u | wc -l)
   dnames=$((dnames + 0))   # the DISTINCT case names on the strict lines [#529 review]
+  # ── #531. THE DECLARATION IS NOW CROSS-CHECKED AGAINST THE COMMITTED TABLE, BY THIS BLOCK. ───────────────
+  # jobs/the-unit-blocks-declared-case-count-is-a-hand-kept-array-so-it-can-be-edited-down-together-with-the-cases-2026-10-21,
+  # its own theFix, SECOND option. #529 made this block require ok + SKIPPED + FAIL to equal the count the
+  # harness DECLARES, and #530 made the harness DERIVE that count from its own tc() table instead of a
+  # hand-kept array. Both are right and neither closes the job, because every one of those numbers still comes
+  # out of the one file: a stub that REPLACES gates/fastgate-drive.sh declares 1, runs 1 and agrees with
+  # itself, and the block read "green (1 ok -> 1 PASS lines, 0 skipped, of 1 declared)" with red 0 on b192ad8
+  # exactly as on d7a022b. That is #530's own measured remainder and the orchestrator's verifier reproduced it.
+  # SO THE SECOND NUMBER MUST COME FROM SOMEWHERE THE HARNESS DOES NOT WRITE AT RUN TIME: the COMMITTED text
+  # of the table, read here with git. The harness is executed from the working tree and this reads HEAD, and
+  # prompts/build-run's own sequence leaves those equal at this point for a run that commits before gating -
+  # a run with a dirty tree takes the decline branch below and asserts nothing either way.
+  # WHAT IT CANNOT DO, said plainly so it is not over-read [R18]: it does NOT make the declaration unforgeable.
+  # A case deleted from BOTH the table and its body still lowers the declaration and this count together, since
+  # both now read the same committed table; only a comparison against origin/main's table would catch that, and
+  # that is antagonist-b-530's f5, left as a known limit on this job rather than claimed as closed here.
+  # What it DOES close is the whole class where the harness's output is the only evidence of its own scope.
+  # THE GIT INVOCATION IS BUILT HERE AND NOT TAKEN FROM $GIT: gates.sh --selftest extracts this block from
+  # `^DRIVESH=` and runs it in a scratch tree, and $GIT is defined ABOVE that range, so a reference to it
+  # would be an unbound variable under `set -u` in every selftest case.
+  DGIT="git -C $ROOT --git-dir=$ROOT/.git --work-tree=$ROOT"
+  dtblids="$($DGIT show HEAD:gates/fastgate-drive.sh 2>/dev/null | sed -n '/^tc(){/,/^}/p' \
+             | grep -oE '(^|[[:space:]])H[0-9]+b?\)' | tr -d ' )' | grep -vx H12 || true)"
+  dtbl=$(printf '%s' "$dtblids" | grep -c . || true);          dtbl=$((dtbl + 0))
+  dtbluniq=$(printf '%s' "$dtblids" | sort -u | grep -c . || true); dtbluniq=$((dtbluniq + 0))
+  # THREE WAYS THIS GOES WRONG, EACH ITS OWN TEST AND NOT A CONJUNCT [prompts/common, the non-empty-denominator
+  # rule]. An empty table is reported rather than compared, because 0 == 0 against a harness that declared
+  # nothing usable is exactly the vacuity this job is about.
+  dtblmis=0; dtblwhy=""
+  if [ "$dtbl" -eq 0 ]; then
+    dtblmis=1; dtblwhy="the committed tc() table yields NO case ids"
+  elif [ "$dtbluniq" -ne "$dtbl" ]; then
+    dtblmis=1; dtblwhy="the committed tc() table repeats a case id ($dtbl rows, $dtbluniq distinct)"
+  elif [ -n "$dcases" ] && [ "$dtbl" -ne "$dcases" ]; then
+    dtblmis=1; dtblwhy="the harness declared $dcases case(s) and the committed tc() table yields $dtbl"
+  fi
   # TWO HOLES THE #529 REVIEW FOUND, BOTH CLOSED HERE. (a) The declared count was tested as digits only and then
   # compared with -ne, which on a value past 2^63 prints "integer expression expected" and returns 2, read as
   # false: a twenty-digit declaration was green over one ok line. It is bounded now the way plaus_delta bounds
@@ -665,7 +749,17 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   # requires ok + SKIPPED + FAIL == N (the comment above the counts says what it closes). The skip bound stays
   # beside it on purpose: a harness that declares 26 cases and honestly skips 25 of them agrees with its own
   # declaration and still asserts nothing, so the count closes the silent stop and the bound the loud one.
-  if [ "$drc" -eq 2 ] && [ "$dfail" -eq 0 ] && [ "$dok" -eq 0 ] && [ "$drefuse" -ge 1 ]; then   # #525: a decline must SAY so
+  # ── #531 (2). AND A DECLINE IS NOT CREDITED WHEN THE TABLE ITSELF IS UNREADABLE. ─────────────────────────
+  # This is the gap #530's own fix added, measured by the orchestrator's verifier and named in that job's
+  # whatIsLeft (2): respace the table's header to `tc() {`, which is still valid bash, and the harness's new
+  # empty-table guard refuses at exit 2 with a REFUSING line - so this branch credited it as a sanctioned
+  # decline and printed SKIPPED with red 0, where the same tree WITHOUT that guard read RED. A guard that
+  # turns a red into a skip on a harmless-looking edit to the harness is worse than the hole it closed.
+  # A harness that cannot read its own case table is a damaged script, which is what its own refusal says in
+  # terms, and a damaged script is never a tree to judge: it falls through to the RED branch. The dirty-tree
+  # decline - the documented happy path between gates/build.sh and gates/gates.sh - is untouched, because that
+  # path refuses with its table perfectly readable. C13 and C32 are the pair that shows this discriminates.
+  if [ "$drc" -eq 2 ] && [ "$dfail" -eq 0 ] && [ "$dok" -eq 0 ] && [ "$drefuse" -ge 1 ] && [ "$dtblmis" -eq 0 ]; then   # #525: a decline must SAY so; #531: and its table must be readable
     echo "    fastgate-drive: SKIPPED - the harness DECLINED to run and asserted nothing (exit 2)." | tee -a "$ALL"
     grep -a '^fastgate-drive\.sh: REFUSING - ' "$dlog" | head -3 | sed 's/^/        /' | tee -a "$ALL"   # #527: the lines drefuse counted
     echo "        This is NOT a red and NOT a green: the tiered push gate was not exercised by this suite," | tee -a "$ALL"
@@ -674,9 +768,10 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   elif [ "$drc" -ne 0 ] || [ "$dfail" -gt 0 ] || [ "$dok" -eq 0 ] || [ "$dskip" -gt 2 ] \
        || [ "$ddeclared" -ne 1 ] || [ -z "$dcases" ] || [ "$((dok + dskip + dfail))" -ne "${dcases:-0}" ] \
        || [ "$dokany" -ne "$dok" ] || [ "$dskipany" -ne "$dskip" ] || [ "$dfailany" -ne "$dfail" ] \
-       || [ "$dnames" -ne "$((dok + dskip + dfail))" ]; then   # #529: the second to fourth lines
+       || [ "$dnames" -ne "$((dok + dskip + dfail))" ] || [ "$dtblmis" -ne 0 ]; then   # #529: the second to fourth lines; #531: the committed-table cross-check
     red=1
-    echo "    fastgate-drive: RED (exit $drc, $dfail FAIL, $dok ok, $dskip skipped, $drefuse REFUSING line(s); ${dcases:-no usable} case(s) declared on $ddeclared line(s), $dokany ok-shaped, $dskipany SKIPPED-shaped and $dfailany FAIL-shaped line(s), $dnames distinct case name(s))" | tee -a "$ALL"
+    echo "    fastgate-drive: RED (exit $drc, $dfail FAIL, $dok ok, $dskip skipped, $drefuse REFUSING line(s); ${dcases:-no usable} case(s) declared on $ddeclared line(s), $dokany ok-shaped, $dskipany SKIPPED-shaped and $dfailany FAIL-shaped line(s), $dnames distinct case name(s), $dtbl case id(s) in the committed tc() table)" | tee -a "$ALL"
+    if [ "$dtblmis" -ne 0 ]; then echo "        THE COMMITTED TABLE DISAGREES WITH THE RUN [#531]: $dtblwhy." | tee -a "$ALL"; fi
     sed -n 's/^  FAIL /FAIL fastgate-drive /p' "$dlog" | head -8 | tee -a "$ALL"
     echo "        A case answered WRONGLY, or the harness reported success having asserted nothing. Both are" | tee -a "$ALL"
     echo "        red: exit 1 is the harness's own code for a wrong answer, and 0 ok with exit 0 would mean it" | tee -a "$ALL"
@@ -685,7 +780,7 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
     echo "        an exit 2 from a harness that does not PARSE arrives here instead of reading as a skip." | tee -a "$ALL"
     echo "        Full output: $dlog" | tee -a "$ALL"
   else
-    echo "    fastgate-drive: green ($dok ok -> $dok PASS lines, $dskip skipped, of $dcases declared)" | tee -a "$ALL"
+    echo "    fastgate-drive: green ($dok ok -> $dok PASS lines, $dskip skipped, of $dcases declared, matching $dtbl case id(s) in the committed tc() table)" | tee -a "$ALL"
   fi
 fi
 
