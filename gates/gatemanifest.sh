@@ -243,10 +243,24 @@ sigpipe_sites(){
       # against, which would have let three real sites in behind it. Only a line that WOULD HAVE BEEN a site
       # can be exempt.
       case "$logical" in *SIGPIPE-FIXTURE*) printf 'X\t%s\t%s\t%s\n' "${f##*/}" "$n0" "$s"; continue;; esac
+      # ── #530, CORRECTED ON ANTAGONIST A's UPHELD VETO V1. CLASSIFY ON THE LOGICAL LINE, NOT THE FIRST ONE.
+      # THE DEFECT I SHIPPED AND A FOUND: the first version of this change widened DETECTION to the logical line
+      # and left CLASSIFICATION on the first PHYSICAL line. So a pipeline into grep whose `|| echo` sits on the
+      # CONTINUATION was detected and then classified off a line holding no operator at all - tier D. The new
+      # cont test below only ever RAISES to A, so nothing recovered it, and TIER B IS THE ONE TIER WITH A
+      # CEILING OF ZERO: the guard stopped being able to refuse the exact shape it exists for.
+      # A's reproduction, which I ran myself before accepting it: a fixture holding
+      # `P="$(printf "%s\n" "$v" \` then `  | grep -qxF "$n" || echo missing)"` reads TIER B at exit 1 under
+      # d7a022b and read TIER D at exit 0 under my first version. A `|| true` across the same break moved C->D
+      # the same way. My commit message for that change asserted the opposite twice - "it moves one way: to A" -
+      # which was PROSE about intent, not a measurement: the run that found the false-positive direction never
+      # ran the false-negative one. Withdrawn [R18].
+      # So the same-line tests now read the joined logical line, exactly as detection does, and the detector and
+      # the classifier are looking at the same object again.
       tier=D
-      case "$line" in *'|| true'*) tier=C;; esac
-      case "$line" in *'|| echo'*) tier=B;; esac
-      case "$s" in if\ *|while\ *|elif\ *|until\ *) tier=A;; esac
+      case "$logical" in *'|| true'*) tier=C;; esac
+      case "$logical" in *'|| echo'*) tier=B;; esac
+      case "${logical#"${logical%%[![:space:]]*}"}" in if\ *|while\ *|elif\ *|until\ *) tier=A;; esac
       # ── #530. THE CONTINUATION TEST, AND IT IS THE ONLY NEW WAY TO REACH A. It runs LAST, as the if/while test
       # does, because A is the strictest verdict. It fires only when there WAS a continuation (`cont` non-empty)
       # and that continuation reads the pipeline's status - `||`, `&&` or a `then`. The job's own control names
@@ -330,7 +344,11 @@ SP_TOTAL_CEIL=15   # #527: 17 -> 15 in the commit that removed gates/records-gat
                    # the right fix and it reddens this file's own tier-A control, which is calibrated
                    # against the ceiling being 1 - the threshold and the control that proves it are the same
                    # object. Filed with the control repair it needs rather than taken here.
-SP_FIXTURE_CEIL=11 # RAISED FROM 9 TO 11 AT #530, IN THE COMMIT THAT ADDS THE TWO LINES, WITH THE REASON, which is
+SP_FIXTURE_CEIL=13 # RAISED 9 -> 11 -> 13 AT #530, the second step for the two controls antagonist A's upheld veto
+                   # V1 showed were missing (the B and C shapes across a continuation). Each adds ONE marked
+                   # printf line, the one carrying a `| grep`; its partner line carries no grep and is no
+                   # candidate. Declared here, in the commit that adds the lines, as the ratchet requires.
+                   # WAS: RAISED FROM 9 TO 11 AT #530, IN THE COMMIT THAT ADDS THE TWO LINES, WITH THE REASON, which is
                    # what the instruction above this block prescribes for a ratchet that may only move with its
                    # cause. The two new lines are the printf lines that WRITE the continuation-line controls for
                    # jobs/the-sigpipe-audit-files-a-pipeline-whose-status-a-continuation-line-reads-as-tier-d-so-the-race-that-reddened-h23-counted-as-latent-2026-10-20:
@@ -974,6 +992,16 @@ FAB
     printf '  || echo missing)"\n'
     printf 'Q="$(wrap "a quoted name" %s\n' "$SPBS"
     printf '  "$( cd "$d" && bash x.sh | grep -E %s | head -1 )")"\n' "'^k'"   # SIGPIPE-FIXTURE
+    # ── THE TWO CONTROLS ANTAGONIST A's VETO V1 SHOWED WERE MISSING. Both fixtures above start from tier D, so
+    # the whole DOWNGRADE half of this classifier's new input space was uncontrolled - and that is exactly where
+    # the defect lived: a `|| echo` or `|| true` on a continuation was classified off a first line holding no
+    # operator and fell to D, taking a TIER B site (ceiling ZERO) with it. Line 14 is the B shape across a break
+    # and line 16 the C shape; in both the continuation begins with `|` and NOT with `||`, so the cont test does
+    # not raise them to A and the logical-line classification is what has to get them right.
+    printf 'R="$(printf %s "$x" %s\n' "'%s'" "$SPBS"
+    printf '  | grep -qxF "$y" || echo nope)"\n'   # SIGPIPE-FIXTURE
+    printf 'S="$(printf %s "$x" %s\n' "'%s'" "$SPBS"
+    printf '  | grep -oE %s | head -1 || true)"\n' "'z+'"   # SIGPIPE-FIXTURE
   } >> "$SPD/fab.sh"
   spsites="$(sigpipe_sites "$SPD")"
   spck "A" "$(awk -F'\t' '$3==3{print $1}' <<<"$spsites")" "DETECTOR: an if-test pipe into grep -qxF is TIER A"
@@ -1000,7 +1028,9 @@ FAB
   # control, which is exactly this shape. A classifier constrained in one direction only is how that happened.
   spck "A" "$(awk -F'\t' '$3==10{print $1}' <<<"$spsites")" "DETECTOR: a pipeline whose status an || on the next line reads is TIER A, not D"
   spck "D" "$(awk -F'\t' '$3==12{print $1}' <<<"$spsites")" "DETECTOR: a continuation that merely CONTAINS && inside a substitution stays TIER D"
-  spck "6" "$(printf '%s\n' "$spsites" | grep -c . || true)" "DETECTOR: exactly 6 of the fixture's 9 candidate lines are sites, and no others"
+  spck "B" "$(awk -F'\t' '$3==14{print $1}' <<<"$spsites")" "DETECTOR: a || echo across a continuation is TIER B, not downgraded to D [A's veto V1]"
+  spck "C" "$(awk -F'\t' '$3==16{print $1}' <<<"$spsites")" "DETECTOR: a || true across a continuation is TIER C, not downgraded to D [A's veto V1]"
+  spck "8" "$(printf '%s\n' "$spsites" | grep -c . || true)" "DETECTOR: exactly 8 of the fixture's 13 candidate lines are sites, and no others"
   # 40. THE CEILING ITSELF FIRES. Two tier A lines against SP_A_CEIL=1 must be a refusal, otherwise the
   #     ratchet is decoration. The vacuity guard is the pair: an EMPTY directory is clean and says 0.
   cat > "$SPD/fab2.src" <<'FAB2'
