@@ -225,6 +225,43 @@ if [ -n "$OSTEER" ]; then
   exit 2
 fi
 
+# ── #531. AND AN EMPTY UNTRACKED DIRECTORY, WHICH THE SCAN ABOVE CANNOT SEE. ──────────────────────────────
+# jobs/an-untracked-file-hidden-by-info-exclude-steers-the-records-ratchet-of-fastgate-past-every-raw-byte-guard-2026-10-20,
+# part (2) of its remainder, and the P0 the second fresh reviewer of #530 demonstrated end to end: a DIRECTORY
+# named after an existing dead citation satisfies `gates/verify-log.sh --citations` arm (1)'s `[ -e ]`, so the
+# dead path reads as alive, the dead count FALLS, the ratchet calls the commit BETTER and the same sha flips
+# from FAST GATE RED at exit 1 to FAST GATE GREEN at exit 0, silently.
+# #530's comment here said "git lists no empty directory in any form, so no scan built on `ls-files --others`
+# can see it". THE SECOND HALF OF THAT IS TOO STRONG AND IS WITHDRAWN [R18]. MEASURED in a throwaway clone:
+# with `mkdir gates/zz-dead-citation.js` and that path in .git/info/exclude, `git status --porcelain` prints
+# nothing and `git ls-files --others --directory -- ':(glob)gates/*.js'` prints nothing - which is the
+# measurement that sentence rests on and it is correct - but `git ls-files --others --directory` with NO
+# PATHSPEC prints `gates/zz-dead-citation.js/`. The pathspec is what hides it, not git: `--directory` yields
+# the directory with a TRAILING SLASH, which `:(glob)gates/*.js` does not match. So the route is to drop the
+# pathspec and filter the output here, which is what this does.
+# IT IS A SECOND SCAN AND NOT A WIDENING OF THE FIRST, deliberately: the first asks git for FILES inside the
+# path sets, this one asks for untracked DIRECTORIES anywhere and keeps the ones whose own path a reader would
+# read as a file. Keeping them separate is what lets each one name its own reason in the log.
+# WHAT IT STILL DOES NOT DO: the durable repair is to ask the COMMIT inside the reader
+# (`git cat-file -e HEAD:<path>`), in gates/verify-log.sh, whose artefact lock is parked-unlanded by another
+# lane, so this run may not touch it. This closes the route into THIS tier and leaves the reader's own premise
+# as it was - a full suite still reads that directory as a live path.
+ODIRS="$( $GIT -c core.quotePath=false ls-files --others --directory 2>/dev/null \
+  | grep '/$' | sed 's#/*$##' \
+  | grep -E '^(claude/stories/[^/]*\.md|gates/[^/]*\.js|gates/[^/]*/[^/]*\.js|HANDOFF\.md|CLAUDE\.md|claude/agents/gatelogs/[^/]+|gates/regress/[^/]+)$' \
+  | sort -u \
+  | awk 'BEGIN{n=0} {n++; if (n<=5) print "    " $0} END{if (n>5) print "    ... and " (n-5) " more"}')"
+if [ -n "$ODIRS" ]; then
+  say ""
+  say "FULL SUITE REQUIRED - there are UNTRACKED DIRECTORIES whose own path one of this tier's checks reads as"
+  say "    a FILE. An empty directory is in neither git status nor git ls-files with a pathspec, so it passes"
+  say "    the dirty check, the raw-byte catch-all and the untracked-FILE scan above - and it satisfies the"
+  say "    citations reader's existence test, which turns a dead cited path into a live one and can make this"
+  say "    tier report a commit BETTER than its base. [#531]"
+  printf '%s\n' "$ODIRS" | tee -a "$LOG"
+  exit 2
+fi
+
 TAMPER=""
 for f in gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js \
          gates/buildnum.sh; do   # buildnum.sh added #523: Part 2 EXECUTES it from the working tree

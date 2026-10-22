@@ -292,6 +292,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H38) printf 'TC-SUITE-097' ;;  H39) printf 'TC-SUITE-098' ;;
     H40) printf 'TC-SUITE-099' ;;  H41) printf 'TC-SUITE-100' ;;  H42) printf 'TC-SUITE-101' ;;  H43) printf 'TC-SUITE-102' ;;
     H44) printf 'TC-SUITE-103' ;;  H45) printf 'TC-SUITE-104' ;;  H46) printf 'TC-SUITE-105' ;;  H47) printf 'TC-SUITE-106' ;;  H48) printf 'TC-SUITE-107' ;;
+    H49) printf 'TC-SUITE-109' ;;  H50) printf 'TC-SUITE-110' ;;  H51) printf 'TC-SUITE-111' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -1669,6 +1670,139 @@ else
   printf '  FAIL %s [%s]  exit %s, or it did not refuse by name, or it printed an ok line\n' "H13" "$(tc H13)" "$H13_RC"
   show_verdict "$H13_OUT"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H13"
+fi
+
+# ── H49 TO H51: THE UNTRACKED-FILE AND UNTRACKED-DIRECTORY SCANS GET THEIR CASES [#531]. ──────────────────
+# jobs/an-untracked-file-hidden-by-info-exclude-steers-the-records-ratchet-of-fastgate-past-every-raw-byte-guard-2026-10-20.
+# #530 landed the scan in gates/fastgate.sh and added NO CASE for it, which that job's whatIsLeft (1) names in
+# terms: the close condition asks for a case driving the reader's own fixture and a second one for the gatelog
+# route, and neither existed anywhere in this harness or in any selftest. These are those cases. H51 covers the
+# empty-directory hole that scan could not see and that this run closes beside it.
+# WHAT EACH ONE ASSERTS, AND THE LAST CLAUSE IS THE ONE THAT MATTERS: exit 2 with the scan's own reason named,
+# AND NO RECORDS VERDICT IN THE OUTPUT AT ALL. The defect was never "the gate says the wrong word" - it was
+# that a verdict ABOUT THE COMMIT was computed from a file the commit does not hold, so a case that accepted
+# any refusal would pass over the thing it exists to detect. The scans exit before the ratchets run, so the
+# absence of a `records:` line is what shows the ratchet never saw the planted path.
+
+# H49 NEGATIVE, THE READER'S OWN FIXTURE: AN EXCLUDED UNTRACKED gates/zz-*.js NAMING A DEAD GATE LOG. The job's
+#     `case` field is this, verbatim: an honest register-only commit is GREEN, then an untracked gates/zz-*.js
+#     matched by .git/info/exclude names a log nothing holds, and on 366428f that turned the same commit RED
+#     with the records ratchet reporting 19 to 20 dead paths - a verdict about the commit, computed from a file
+#     the commit does not carry and that neither `git status` nor `git ls-files` reports.
+reset_clone
+H49U=gates/zz-h49-steer.js
+H49N="$(mint_in_clone)"
+if [ -z "$H49N" ]; then
+  note "  FAIL H49 [$(tc H49)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H49"
+else
+  commit_case "H49 register only: one minted row for #$H49N"
+  if ! probe 0 "FAST GATE GREEN"; then
+    note "  FAIL H49 [$(tc H49)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
+    note "         not exit 0 FAST GATE GREEN, so a refusal of the planted tree would prove nothing"
+    show_verdict "$PROBE_OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H49"
+  else
+    ROUTES_FAIL=""; ROUTES_SKIP=""; ROUTES_OK=""; ROUTES_LEAK=""; ROUTE_SHOW=""
+    printf '// fastgate-drive.sh H49 fixture, never pushed: this line names claude/agents/gatelogs/000000-nonexistent-xyz.log\n' > "$C/$H49U"
+    printf 'gates/zz-h49-steer.js\n' >> "$C/.git/info/exclude"
+    if ! hidden; then ROUTES_SKIP="$ROUTES_SKIP info-exclude"
+    elif probe 2 "there are UNTRACKED files" "$H49U"; then
+      case "$PROBE_OUT" in
+        *"records: "*) ROUTES_FAIL="$ROUTES_FAIL info-exclude(a records verdict was computed anyway)"; ROUTE_SHOW="$PROBE_OUT" ;;
+        *)             ROUTES_OK="$ROUTES_OK info-exclude" ;;
+      esac
+    else ROUTES_FAIL="$ROUTES_FAIL info-exclude(exit $PROBE_RC)"; ROUTE_SHOW="$PROBE_OUT"; fi
+    rm -f "$C/$H49U"
+    sed -i '/^gates\/zz-h49-steer\.js$/d' "$C/.git/info/exclude"
+    route_verdict H49 "exit 2, the untracked-file scan names $H49U and no records verdict was computed"
+  fi
+fi
+
+# H50 NEGATIVE, THE GATELOG ROUTE THE READER NAMED BUT DID NOT DEMONSTRATE: AN EXCLUDED UNTRACKED
+#     claude/agents/gatelogs/999999-all.log. gates/control-audit.js audits the HIGHEST-NUMBERED log that passes
+#     verify-log.sh, so a planted 999999 would be chosen over the real top log and the audit's verdict would be
+#     computed from a file the commit does not hold. This case requires the tier to refuse before that happens.
+reset_clone
+H50U=claude/agents/gatelogs/999999-all.log
+H50N="$(mint_in_clone)"
+if [ -z "$H50N" ]; then
+  note "  FAIL H50 [$(tc H50)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H50"
+else
+  commit_case "H50 register only: one minted row for #$H50N"
+  if ! probe 0 "FAST GATE GREEN"; then
+    note "  FAIL H50 [$(tc H50)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
+    note "         not exit 0 FAST GATE GREEN, so a refusal of the planted tree would prove nothing"
+    show_verdict "$PROBE_OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H50"
+  else
+    ROUTES_FAIL=""; ROUTES_SKIP=""; ROUTES_OK=""; ROUTES_LEAK=""; ROUTE_SHOW=""
+    mkdir -p "$C/claude/agents/gatelogs"
+    printf 'fastgate-drive.sh H50 fixture, never pushed: a log the commit does not hold, numbered above every real one\nGATES GREEN #999999\n' > "$C/$H50U"
+    printf 'claude/agents/gatelogs/999999-all.log\n' >> "$C/.git/info/exclude"
+    if ! hidden; then ROUTES_SKIP="$ROUTES_SKIP info-exclude"
+    # THE FORBIDDEN TOKEN IS THE RATCHET'S VERDICT AND NOT THE AUDIT'S NAME. My first version of this case
+    # also rejected the substring "control-audit", and it FAILED on a tree that had refused correctly: the
+    # honest exit-2 output names gates/control-audit.js among the files this tier executes, so the token
+    # occurs whatever the verdict. A case must forbid the thing that would mean the audit RAN, which is a
+    # records verdict line, not a mention of the script's path. Caught by reading the output rather than the
+    # exit code [R18, and CLAUDE.md's rule that a wrong reason reaching the right verdict is a trap].
+    elif probe 2 "there are UNTRACKED files" "$H50U"; then
+      case "$PROBE_OUT" in
+        *"records: "*) ROUTES_FAIL="$ROUTES_FAIL info-exclude(a records verdict was computed anyway)"; ROUTE_SHOW="$PROBE_OUT" ;;
+        *)             ROUTES_OK="$ROUTES_OK info-exclude" ;;
+      esac
+    else ROUTES_FAIL="$ROUTES_FAIL info-exclude(exit $PROBE_RC)"; ROUTE_SHOW="$PROBE_OUT"; fi
+    rm -f "$C/$H50U"
+    sed -i '/^claude\/agents\/gatelogs\/999999-all\.log$/d' "$C/.git/info/exclude"
+    route_verdict H50 "exit 2, the untracked-file scan names $H50U and control-audit.js never audited it"
+  fi
+fi
+
+# H51 NEGATIVE, AN EMPTY UNTRACKED DIRECTORY, WHICH IS THE ONE THE FILE SCAN CANNOT SEE [#531]. git reports no
+#     empty directory in `status` or in `ls-files --others` UNDER A PATHSPEC, which is the measurement #530's
+#     comment rested on; `ls-files --others --directory` with NO pathspec does report it, which is the route
+#     this run took. The second fresh reviewer of #530 showed the consequence end to end: a directory named
+#     after an existing dead citation satisfies the citations reader's existence test, the dead count falls, and
+#     the same sha flips from RED at exit 1 to GREEN at exit 0.
+#     WHAT THIS CASE PROVES AND WHAT IT DOES NOT, stated rather than left to a reader: it proves the tier now
+#     REFUSES a tree carrying such a directory, which closes the route into this tier. It does NOT prove the
+#     reader's own premise is fixed - a full suite still reads that directory as a live path - because the
+#     durable repair is inside gates/verify-log.sh, whose lock is parked-unlanded by another lane.
+reset_clone
+H51D=gates/zz-h51-dead-citation.js
+H51N="$(mint_in_clone)"
+if [ -z "$H51N" ]; then
+  note "  FAIL H51 [$(tc H51)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H51"
+else
+  commit_case "H51 register only: one minted row for #$H51N"
+  if ! probe 0 "FAST GATE GREEN"; then
+    note "  FAIL H51 [$(tc H51)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
+    note "         not exit 0 FAST GATE GREEN, so a refusal of the planted tree would prove nothing"
+    show_verdict "$PROBE_OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H51"
+  else
+    ROUTES_FAIL=""; ROUTES_SKIP=""; ROUTES_OK=""; ROUTES_LEAK=""; ROUTE_SHOW=""
+    mkdir -p "$C/$H51D"
+    printf 'gates/zz-h51-dead-citation.js\n' >> "$C/.git/info/exclude"
+    # THE PREMISE OF THIS CASE IS THAT GIT CANNOT SEE IT, so that is asserted and not assumed: an empty
+    # directory must be absent from `git status` AND from the file scan's own pathspec form, or the case is
+    # measuring something else entirely.
+    H51SEEN="$(git -C "$C" ls-files --others -- ':(glob)gates/*.js' 2>/dev/null | grep -c . || true)"
+    if ! hidden || [ "$H51SEEN" != 0 ]; then
+      ROUTES_SKIP="$ROUTES_SKIP info-exclude(git reported the empty directory on this git, so the case cannot pose)"
+    elif probe 2 "UNTRACKED DIRECTORIES" "$H51D"; then
+      case "$PROBE_OUT" in
+        *"records: "*) ROUTES_FAIL="$ROUTES_FAIL info-exclude(a records verdict was computed anyway)"; ROUTE_SHOW="$PROBE_OUT" ;;
+        *)             ROUTES_OK="$ROUTES_OK info-exclude" ;;
+      esac
+    else ROUTES_FAIL="$ROUTES_FAIL info-exclude(exit $PROBE_RC)"; ROUTE_SHOW="$PROBE_OUT"; fi
+    rmdir "$C/$H51D" 2>/dev/null || rm -rf "$C/$H51D"
+    sed -i '/^gates\/zz-h51-dead-citation\.js$/d' "$C/.git/info/exclude"
+    route_verdict H51 "exit 2, the untracked-DIRECTORY scan names $H51D and no records verdict was computed"
+  fi
 fi
 
 # ── VERDICT. ───────────────────────────────────────────────────────────────────────────────────────────────
