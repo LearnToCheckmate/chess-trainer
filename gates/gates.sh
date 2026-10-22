@@ -819,6 +819,12 @@ tc() {
   st_gc "$dy" add -A; st_gc "$dy" commit -q -m 'the head side adds it too'
   st C86-an-unreadable-merge-base-register-is-RED "$(CT_RUNID=$GFMINE st_gfv2 "$dy" "$ST_T/gf.sh")" RED
   st C86b-and-the-headline-says-it-could-not-READ-it "$(CT_RUNID=$GFMINE st_gfn "$dy" "$ST_T/gf.sh" 'computed the merge-base and could not READ the register at it')" 1
+  # THE POSITIVE HALF, which C86c alone could not give [antagonist A of the sixth pair, P3-2]: a case asserting
+  # a string occurs ZERO times is green over a typo in the arm that should print it, and over an arm that
+  # cannot fire at all. C74's fixture - two unrelated histories - is where the compute failure really happens.
+  st C86d-the-compute-failure-headline-DOES-fire "$(CT_RUNID=$GFMINE st_gfn "$du" "$ST_T/gf.sh" 'could not compute the MERGE-BASE')" 1
+  st C86e-and-it-says-what-it-DID-read "$(CT_RUNID=$GFMINE st_gfn "$du" "$ST_T/gf.sh" 'read the base and HEAD registers')" 1
+  st C86f-and-never-the-over-claim "$(CT_RUNID=$GFMINE st_gfrun "$du" "$ST_T/gf.sh" | grep -c 'read every register it needed')" 0
   st C86c-and-never-claims-it-could-not-compute-it "$(CT_RUNID=$GFMINE st_gfn "$dy" "$ST_T/gf.sh" 'could not compute the MERGE-BASE')" 0
   # C87: the escape ARMED and DECLINED. A gap-fill number whose only row carries the literal unknown-run is
   # refused BY DESIGN - widening the test would make a mint that is nobody's escapable, which is what C48 and
@@ -1042,7 +1048,7 @@ M1INS
 import sys
 src, dst = sys.argv[1], sys.argv[2]
 s = open(src).read()
-i = s.index('  case "${GF_WHY:-}" in\n    *"could not be RUN for"*')
+i = s.index('  case "${GF_WHY:-}" in\n')   # the headline case: two-space indent, the only one at that depth
 j = s.index('  esac\n', i) + len('  esac\n')
 block = s[i:j]
 nested = ('  if [ "${GF_GF:-0}" = "0" ] 2>/dev/null && [ "${GF_D1:-0}" = "0" ] && [ "${GF_D2:-0}" = "0" ]; then\n'
@@ -1777,12 +1783,21 @@ if [ "$GF_STOP" = "1" ]; then
   # it needed and could not compute the MERGE-BASE", and both halves of that sentence are false - the
   # merge-base was computed (its sha is in the detail line) and one register was not read.
   case "${GF_WHY:-}" in
-    *"could not be RUN for"*|*"is not executable at"*)
+    # ONE ALTERNATIVE, NOT TWO [antagonist A of the sixth pair, P3-1]: this arm also matched
+    # "is not executable at", which was round five's early pre-check string and that refusal was DELETED in
+    # round six - so half the pattern could never fire. A decorative alternative in a cause arm is the same
+    # species as a mutant that no longer mutates: it reads like coverage and is not.
+    *"could not be RUN for"*)
       echo "GATES RED $N — stopped before running any gate: this door's own ENVIRONMENT is broken - the authority it delegates to, gates/buildnum.sh, could not be run - so it cannot say whether the push carries a row that fills a gap in the series. The tree may be perfectly honest." | tee -a "$ALL" ;;
     *"for a row THIS DOOR HAS JUST READ"*)
       echo "GATES RED $N — stopped before running any gate: this door and the authority it delegates to are reading DIFFERENT files, which is a defect in this door and not in the tree." | tee -a "$ALL" ;;
     *"could not be computed"*)
-      echo "GATES RED $N — stopped before running any gate: this door read every register it needed and could not compute the MERGE-BASE, so it cannot tell a deleted row from a base that has moved ahead. The tree may be perfectly honest." | tee -a "$ALL" ;;
+      # "THE BASE AND HEAD REGISTERS", NOT "EVERY REGISTER IT NEEDED" [antagonist A of the sixth pair, P3-3]:
+      # this refusal fires before the merge-base register is opened, and the counts clause on the line above it
+      # says so - base=(not read) and "refused before all three registers could be read" - so the old wording
+      # had the headline claiming more than its own detail line. Round seven split this arm, which makes this
+      # the moment to say what was actually read.
+      echo "GATES RED $N — stopped before running any gate: this door read the base and HEAD registers and could not compute the MERGE-BASE, so it cannot tell a deleted row from a base that has moved ahead. The tree may be perfectly honest." | tee -a "$ALL" ;;
     *"the register at the merge-base"*)
       echo "GATES RED $N — stopped before running any gate: this door computed the merge-base and could not READ the register at it, so one of the three registers it compares is missing. The tree may be perfectly honest." | tee -a "$ALL" ;;
     *)
