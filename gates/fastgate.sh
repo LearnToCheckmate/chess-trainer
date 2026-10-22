@@ -262,6 +262,41 @@ if [ -n "$ODIRS" ]; then
   exit 2
 fi
 
+# ── #531. A LINE-ENDING CONVERSION IS AN ENVIRONMENT FAULT AND GOES FULL; A TAMPER IS STILL A REFUSAL. ────
+# jobs/the-raw-byte-pins-of-fastgate-refuse-an-honest-autocrlf-checkout-at-exit-1-instead-of-routing-it-to-the-full-suite-2026-10-20.
+# A checkout made with core.autocrlf=true holds bytes that are not its blobs BY DESIGN, and the raw-byte pins
+# below refuse it at exit 1 - the code this project reserves for "a case answered WRONGLY" [#419] - when the
+# honest answer is "this tier cannot judge this checkout, run the full suite".
+# WHY THIS IS NOT #530's WITHDRAWN ARM, which matters because that arm's veto was UPHELD and must not be
+# re-litigated. That arm read core.autocrlf and core.eol out of .git/config: a signal from OUTSIDE the commit,
+# pre-empting a tamper refusal, and it turned H30's exit 1 into an exit 2 - it would have told a tampered tree
+# to go and run the full suite. THIS decides on nothing but the two objects the pins already compare: the
+# committed blob and the bytes on disk. A file whose disk bytes become the blob EXACTLY once CR characters are
+# removed is a conversion of that blob and cannot be a tamper, because a tamper that also changed the content
+# would not normalise back to it. No config is read, no attribute is read, and a MISSING file (H30's shape) and
+# a content change (H10's, H28's) both fail the test and keep their exit 1.
+# AND IT IS NOT APPLIED TO THE FIVE FILES THIS TIER EXECUTES, which is the heart of the upheld veto: one CR in
+# a pinned script can change what it DOES - an independent reviewer of #530 showed a single CRLF on the REG
+# line of a copy of gates/verify-log.sh turning its refusal into a warning and exit 0, with the CR-stripped
+# bytes hashing to the honest blob - so for those five any byte difference stays a refusal at exit 1.
+# THE DIRECTION IS SAFE BY CONSTRUCTION: exit 2 authorises nothing. It sends the run to the full suite, which
+# is this project's strongest door and is already the default for anything this script does not recognise. The
+# worst case of a wrong answer here is wasted wall clock; the worst case of the exit 1 it replaces is a run
+# told it has been tampered with when its checkout was merely converted.
+# ITS CONTRACT, WRITTEN DOWN BECAUSE A FUTURE CALLER COULD GET IT WRONG: this is only ever called on a file
+# that has ALREADY been found to differ from its blob, and both call sites below do exactly that. Asked about
+# an IDENTICAL file it answers true, which is harmless inside a mismatch branch and would be wrong outside one.
+# Unit-tested against the eight inputs it can legally receive - identical, CRLF-converted, CRLF plus an
+# appended line, LF plus an appended line, deleted on disk, a MISSING blob sha, a directory at the path, and a
+# blob that itself contains CR - and only the second answers true.
+conv_only(){ # <path> <the committed blob sha> -> 0 only if the disk bytes are that blob with CR added
+  [ "$2" != MISSING ] || return 1
+  [ -f "$ROOT/$1" ] || return 1
+  # A blob that itself contains CR cannot be the result: stripping every CR from disk yields a CR-free stream,
+  # which cannot hash to a blob that has one. So no separate check of the blob is needed.
+  [ "$(tr -d '\r' < "$ROOT/$1" | $GIT hash-object --no-filters --stdin 2>/dev/null)" = "$2" ]
+}
+
 TAMPER=""
 for f in gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js \
          gates/buildnum.sh; do   # buildnum.sh added #523: Part 2 EXECUTES it from the working tree
@@ -306,14 +341,16 @@ PSCAN_PATS='regress/*.js mountcheck.js lib.js engine-extract.js drive/*.js'
 read -r -a PSCAN_ARR <<< "$PSCAN_PATS"
 PSPECS=(); for p in "${PSCAN_ARR[@]}"; do PSPECS+=(":(glob)gates/$p"); done
 RSET="$($GIT -c core.quotePath=false ls-files -- "${PSPECS[@]}" 2>/dev/null)"   # v4: raw names, as the catch-all lists them
-READPIN=""; RN=0
+READPIN=""; RN=0; RCONV=""
 while IFS= read -r f; do
   [ -n "$f" ] || continue
   RN=$((RN+1))
   hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
   wb="$($GIT hash-object --no-filters "$ROOT/$f" 2>/dev/null || echo MISSING)"
   # v4: a name the commit cannot resolve is a refusal, never MISSING = MISSING credited as a match
-  [ "$hb" != MISSING ] && [ "$hb" = "$wb" ] || READPIN="$READPIN    $f: commit $hb, working tree $wb\n"
+  if [ "$hb" != MISSING ] && [ "$hb" = "$wb" ]; then :
+  elif conv_only "$f" "$hb"; then RCONV="$RCONV    $f: commit $hb, working tree $wb (the blob with CRLF)\n"   # #531
+  else READPIN="$READPIN    $f: commit $hb, working tree $wb\n"; fi
 done <<< "$RSET"
 if [ "$RN" = 0 ]; then
   say ""
@@ -328,6 +365,17 @@ if [ -n "$READPIN" ]; then
   printf '%b' "$READPIN" | tee -a "$LOG"
   say "A clean git status cannot see this: index flags and clean filters both suppress it. Run FULL."
   exit 1
+fi
+# #531: a conversion is reported AFTER the refusal above, so a tree carrying BOTH a tamper and a conversion is
+# still REFUSED and never routed. The order is the whole guarantee.
+if [ -n "$RCONV" ]; then
+  say ""
+  say "FULL SUITE REQUIRED - these files this tier READS a verdict out of are the committed blob WITH CRLF line"
+  say "    endings, which is what a checkout made with core.autocrlf=true or an eol attribute holds. That is a"
+  say "    converted checkout and not a tampered one: the bytes normalise back to the blob exactly. This tier"
+  say "    compares raw bytes and cannot judge such a checkout, so it routes instead of refusing. [#531]"
+  printf '%b' "$RCONV" | tee -a "$LOG"
+  exit 2
 fi
 
 # ── THE BASE IS NOT TAKEN ON TRUST. ────────────────────────────────────────────────────────────────────────
@@ -2219,12 +2267,19 @@ CA_WANT="$(awk '{print $2}' <<< "$CA_IDX")"
 CA_GOT="$($GIT hash-object --no-filters --stdin-paths <<< "$CA_PATHS" 2>/dev/null)"
 if [ "$CA_GOT" != "$CA_WANT" ]; then
   mapfile -t CA_P <<< "$CA_PATHS"; mapfile -t CA_W <<< "$CA_WANT"; mapfile -t CA_G <<< "$CA_GOT"
-  CA_BAD=""; CA_NB=0; CA_HASHED=0
+  CA_BAD=""; CA_NB=0; CA_HASHED=0; CA_CONV=""; CA_NC=0
   [ -n "$CA_GOT" ] && CA_HASHED="${#CA_G[@]}"
   for ((i = 0; i < CA_HASHED && i < ${#CA_P[@]}; i++)); do
     if [ "${CA_G[$i]}" != "${CA_W[$i]}" ]; then
-      CA_NB=$((CA_NB + 1))
-      [ "$CA_NB" -le 20 ] && CA_BAD="$CA_BAD    ${CA_P[$i]}: commit ${CA_W[$i]}, working tree ${CA_G[$i]}\n"
+      # #531: a file whose disk bytes normalise back to the committed blob is a CONVERSION, not a tamper, and
+      # it is counted and reported separately so the verdict below can route it instead of refusing it.
+      if conv_only "${CA_P[$i]}" "${CA_W[$i]}"; then
+        CA_NC=$((CA_NC + 1))
+        [ "$CA_NC" -le 20 ] && CA_CONV="$CA_CONV    ${CA_P[$i]}: commit ${CA_W[$i]}, working tree ${CA_G[$i]} (the blob with CRLF)\n"
+      else
+        CA_NB=$((CA_NB + 1))
+        [ "$CA_NB" -le 20 ] && CA_BAD="$CA_BAD    ${CA_P[$i]}: commit ${CA_W[$i]}, working tree ${CA_G[$i]}\n"
+      fi
     fi
   done
   if [ "$CA_HASHED" -lt "${#CA_P[@]}" ]; then
@@ -2232,12 +2287,26 @@ if [ "$CA_GOT" != "$CA_WANT" ]; then
     CA_BAD="$CA_BAD    ${CA_P[$CA_HASHED]}: commit ${CA_W[$CA_HASHED]}, working tree MISSING or unreadable, and git hash-object\n"
     CA_BAD="$CA_BAD      stopped there, so the $(( ${#CA_P[@]} - CA_HASHED - 1 )) tracked file(s) after it were not hashed\n"
   fi
+  # #531: THE REFUSAL COMES FIRST AND THE ROUTE SECOND, so a tree carrying both a tamper and a conversion is
+  # REFUSED. Only a tree whose every mismatch normalises back to its blob is routed.
+  if [ "$CA_NB" -gt 0 ]; then
   say ""
   say "FAST GATE REFUSED - $CA_NB tracked file(s) in the working tree are not the blob the commit records, and git"
   say "status did not say so, so a check above may have read a copy the commit does not hold:"
   printf '%b' "$CA_BAD" | tee -a "$LOG"
+  [ "$CA_NC" -gt 0 ] && say "    ($CA_NC further file(s) differ only by CRLF line endings; the refusal above is not about those.)"
   say "Find what hides it (git ls-files -v, .git/info/attributes, core.fsmonitor) and run again, or run FULL."
   exit 1
+  fi
+  say ""
+  say "FULL SUITE REQUIRED - $CA_NC tracked file(s) in the working tree are the committed blob WITH CRLF line"
+  say "    endings, which is what a checkout made with core.autocrlf=true or an eol attribute holds. Every"
+  say "    mismatch normalises back to its blob exactly, so this is a converted checkout and not a tampered"
+  say "    one, and this tier compares raw bytes and cannot judge it. It routes instead of refusing, and the"
+  say "    five files it EXECUTES are deliberately not covered by this: for those any byte difference is still"
+  say "    a refusal, because one CR in a pinned script can change what it does. [#531]"
+  printf '%b' "$CA_CONV" | tee -a "$LOG"
+  exit 2
 fi
 
 say ""

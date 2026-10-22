@@ -293,6 +293,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H40) printf 'TC-SUITE-099' ;;  H41) printf 'TC-SUITE-100' ;;  H42) printf 'TC-SUITE-101' ;;  H43) printf 'TC-SUITE-102' ;;
     H44) printf 'TC-SUITE-103' ;;  H45) printf 'TC-SUITE-104' ;;  H46) printf 'TC-SUITE-105' ;;  H47) printf 'TC-SUITE-106' ;;  H48) printf 'TC-SUITE-107' ;;
     H49) printf 'TC-SUITE-109' ;;  H50) printf 'TC-SUITE-110' ;;  H51) printf 'TC-SUITE-111' ;;
+    H52) printf 'TC-SUITE-112' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -1802,6 +1803,96 @@ else
     rmdir "$C/$H51D" 2>/dev/null || rm -rf "$C/$H51D"
     sed -i '/^gates\/zz-h51-dead-citation\.js$/d' "$C/.git/info/exclude"
     route_verdict H51 "exit 2, the untracked-DIRECTORY scan names $H51D and no records verdict was computed"
+  fi
+fi
+
+# ── H52: A CONVERTED CHECKOUT IS ROUTED, A TAMPERED ONE IS STILL REFUSED, AND THE PINNED FIVE ARE NOT ──────
+# jobs/the-raw-byte-pins-of-fastgate-refuse-an-honest-autocrlf-checkout-at-exit-1-instead-of-routing-it-to-the-full-suite-2026-10-20.
+# ITS TWO ROUTES ARE THE CASE. One alone would not be evidence of anything: the first shows the new arm fires,
+# the second shows it does NOT fire where #530's upheld veto says it must not, and it is the second that makes
+# this different from the arm that was withdrawn.
+# HOW IT POSES THE STATE, and this is the constraint #530 measured and wrote onto the job: a REAL re-checkout
+# with core.autocrlf=true converts every script in gates/ too, and then bash cannot parse them
+# (`set: pipefail: invalid option name`, then a syntax error on $'\r'), so NO fastgate verdict exists to route
+# and a control built that way measures an unparseable tree. So this case sets core.autocrlf in the clone - which
+# is what makes `git status` read CLEAN over converted bytes, the half that makes the defect invisible - and
+# converts ONLY THE FILE UNDER TEST by hand, leaving the harness it runs in LF.
+# THE CONFIG IS UNSET AGAIN INSIDE EVERY ROUTE, before any reset: `git reset --hard` under core.autocrlf=true
+# would smudge the clone's OWN gates/fastgate.sh to CRLF, and that is the file the next case executes.
+reset_clone
+H52F=claude/stories/TEST-CASES.md   # the catch-all hashes it; this tier neither executes nor reads a verdict from it
+H52X=gates/verify-log.sh            # one of the FIVE this tier EXECUTES, where any byte difference must stay a refusal
+H52N="$(mint_in_clone)"
+if [ -z "$H52N" ]; then
+  note "  FAIL H52 [$(tc H52)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H52"
+else
+  commit_case "H52 register only: one minted row for #$H52N"
+  if ! probe 0 "FAST GATE GREEN"; then
+    note "  FAIL H52 [$(tc H52)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
+    note "         not exit 0 FAST GATE GREEN, so neither route would prove anything"
+    show_verdict "$PROBE_OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H52"
+  else
+    ROUTES_FAIL=""; ROUTES_SKIP=""; ROUTES_OK=""; ROUTES_LEAK=""; ROUTE_SHOW=""
+    for H52R in a-read-file-is-routed an-executed-file-is-still-refused; do
+      case "$H52R" in
+        a-read-file-is-routed)              H52T="$H52F"; H52WANT=2; H52SAY="the committed blob WITH CRLF" ;;
+        an-executed-file-is-still-refused)  H52T="$H52X"; H52WANT=1; H52SAY="this tier EXECUTES these files" ;;
+      esac
+      # HOW THE PREMISE IS POSED, AND THE FIRST TWO WAYS I TRIED DID NOT POSE IT [R18]. Writing CRLF bytes by
+      # hand (`git show HEAD:<f> | sed 's/$/\r/'`) leaves `git status` DIRTY, and so does the job's own
+      # published recipe, `git -c core.autocrlf=true checkout -- <f>`, because the -c applies to the checkout
+      # alone and the status that follows normalises nothing. MEASURED on git 2.43.0 in this container, all
+      # three variants: only core.autocrlf PERSISTED IN THE CONFIG plus a real smudge checkout gives the state
+      # the defect needs - `git status --porcelain` prints NOTHING while the raw hash differs from the blob and
+      # the CR-stripped bytes hash back to it exactly. So the config is set, the file is DELETED, and git is
+      # asked to write it back; the conversion is git's own, not sed's.
+      git -C "$C" config core.autocrlf true
+      rm -f "$C/$H52T"
+      git -C "$C" checkout -- "$H52T"
+      # THE PREMISE IS THE WHOLE TREE, BECAUSE THAT IS WHAT fastgate's OWN DIRTY CHECK READS, and getting this
+      # wrong twice is worth recording [R18]. My first version used the whole tree and route two SKIPPED; I
+      # then scoped it to the file under test and route two FAILED instead, with fastgate answering
+      # "working tree is DIRTY (1 path(s))" - so the scoped check passed a premise fastgate then rejected,
+      # which is worse than the skip. The residue was route ONE's: see the update-index --refresh below.
+      if ! hidden; then
+        ROUTES_SKIP="$ROUTES_SKIP $H52R(git status is not clean on this git, so the case cannot pose: $(git -C "$C" status --porcelain | head -2 | tr '\n' ' '))"
+      elif probe "$H52WANT" "$H52SAY"; then ROUTES_OK="$ROUTES_OK $H52R"
+      else
+        # SAY WHICH HALF OF THE PROBE FAILED. My first version printed "exit $PROBE_RC, wanted $H52WANT",
+        # which read "exit 1, wanted 1" when the CODE matched and the expected SENTENCE did not - a message
+        # that cannot distinguish the two things it is reporting on [CLAUDE.md: a wrong reason reaching the
+        # right verdict is a trap].
+        if [ "$PROBE_RC" = "$H52WANT" ]; then
+          ROUTES_FAIL="$ROUTES_FAIL $H52R(exit $PROBE_RC as wanted, but the output did not carry \"$H52SAY\")"
+        else
+          ROUTES_FAIL="$ROUTES_FAIL $H52R(exit $PROBE_RC, wanted $H52WANT)"
+        fi
+        ROUTE_SHOW="$PROBE_OUT"
+      fi
+      git -C "$C" config --unset core.autocrlf >/dev/null 2>&1 || true
+      restore_raw "$H52T" || ROUTES_LEAK="$ROUTES_LEAK $H52T"
+      # AND CLEAR THE STALE INDEX STAT THE CONVERSION CHECKOUT LEFT, WHICH IS WHAT DIRTIED THE TREE FOR THE
+      # NEXT ROUTE. MEASURED: after `git checkout --` writes the file as CRLF under core.autocrlf=true and
+      # restore_raw writes the committed bytes back, `git status` STILL reports the path modified even though
+      # `hash-object --no-filters` equals the blob - the stat recorded for the converted file outlives the
+      # content. `git update-index --refresh` on that one path settles it, and restore_raw has already proved
+      # the bytes are the commit's, so this corrects git's bookkeeping and never the content.
+      git -C "$C" update-index --refresh -- "$H52T" >/dev/null 2>&1 || true
+    done
+    # BOTH ROUTES MUST HAVE BEHAVED, NOT JUST ONE, AND MY FIRST VERSION OF THIS GUARD LET A HALF-EXERCISED
+    # CASE READ ok [R18]. It forced a failure only when there were no skips, so when route two SKIPPED and
+    # route one passed, route_verdict saw a non-empty ROUTES_OK and printed ok - the case crediting itself on
+    # the one route that is the withdrawn arm, which is the exact vacuity the guard exists to stop. Now a
+    # missing route is reported whatever the reason: if both did not pass, this case asserts nothing about the
+    # pair and says so, and it is route_verdict's SKIPPED (no ok, no false green) rather than a FAIL, because
+    # a route that could not pose is not a wrong answer.
+    case "$ROUTES_OK" in
+      *a-read-file-is-routed*an-executed-file-is-still-refused*) : ;;
+      *) ROUTES_OK=""; ROUTES_SKIP="$ROUTES_SKIP (the PAIR is the evidence and only one route was exercised, so this case asserts nothing)" ;;
+    esac
+    route_verdict H52 "exit 2 for a converted file this tier only hashes, exit 1 kept for one it executes"
   fi
 fi
 
