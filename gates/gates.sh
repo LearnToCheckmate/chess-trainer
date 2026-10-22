@@ -792,7 +792,57 @@ tc() {
   st C84-the-extends-clause-scopes-the-fast-arm "$(CT_RUNID=$GFMINE st_gfn "$d2" "$ST_T/gf.sh" 'ON THE FAST PATH ONLY')" 1
   st C84b-and-says-nothing-bounds-it-here "$(CT_RUNID=$GFMINE st_gfn "$d2" "$ST_T/gf.sh" 'nothing bounds the extends class')" 1
 
-  # ── THE FOURTEEN MUTANTS. Each is the extracted block with ONE literal string put back, and each TURNS a case. ──
+
+  # ── C85-C88: THE FIFTH PAIR, whose two reports found the same two P1s independently from opposite doors.
+  # C85: THE HEADLINE, which no case had ever asserted - and that is why round six's repair could land one
+  # indentation level away from its finding and still read 244 ok / 0 red. C82c asserts the DETAIL line, which
+  # every route prints; the headline is a different sentence and it was accusing the tree.
+  st_gfhead(){ st_gfrun "$1" "$2" | grep -m1 '^GATES RED' || true; }
+  chmod -x "$dx/gates/buildnum.sh"
+  st C85-the-headline-names-the-ENVIRONMENT "$(CT_RUNID=$GFMINE st_gfn "$dx" "$ST_T/gf.sh" "this door's own ENVIRONMENT is broken")" 1
+  st C85b-and-NOT-the-unaccounted-row-headline "$(CT_RUNID=$GFMINE st_gfn "$dx" "$ST_T/gf.sh" 'carries a row nothing accounts for')" 0
+  st C85c-and-says-the-tree-may-be-honest "$(CT_RUNID=$GFMINE st_gfn "$dx" "$ST_T/gf.sh" 'The tree may be perfectly honest')" 1
+  chmod +x "$dx/gates/buildnum.sh"
+  st C85d-and-the-control-still-reads-ok "$(CT_RUNID=$GFMINE st_gfv "$dx" "$ST_T/gf.sh")" ok
+  # C86: the register AT the merge-base unreadable, which the old alternation answered with "could not compute
+  # the MERGE-BASE" - false twice over, since the sha is in the detail line and one register was not read.
+  dy="$ST_T/gfy"; rm -rf "$dy"; mkdir -p "$dy/gates"; git init -q -b main "$dy" 2>/dev/null
+  echo seed > "$dy/seed.txt"; st_gc "$dy" add -A; st_gc "$dy" commit -q -m 'a root commit with no register'
+  GFY_MB="$(git -C "$dy" rev-parse HEAD 2>/dev/null)"
+  cp "$SG/buildnum.sh" "$dy/gates/buildnum.sh"
+  { echo '# fixture'; st_row 530 issued - "$GFOTHER" run-log; st_row 532 issued - "$GFOTHER" run-log; } > "$dy/gates/build-numbers.tsv"
+  st_gc "$dy" add -A; st_gc "$dy" commit -q -m 'the base side adds the register'
+  git -C "$dy" update-ref refs/remotes/origin/main HEAD 2>/dev/null
+  git -C "$dy" checkout -q -b headside "$GFY_MB" 2>/dev/null
+  mkdir -p "$dy/gates"; cp "$SG/buildnum.sh" "$dy/gates/buildnum.sh"
+  { echo '# fixture'; st_row 530 issued - "$GFOTHER" run-log; st_row 532 issued - "$GFOTHER" run-log; } > "$dy/gates/build-numbers.tsv"
+  st_gc "$dy" add -A; st_gc "$dy" commit -q -m 'the head side adds it too'
+  st C86-an-unreadable-merge-base-register-is-RED "$(CT_RUNID=$GFMINE st_gfv2 "$dy" "$ST_T/gf.sh")" RED
+  st C86b-and-the-headline-says-it-could-not-READ-it "$(CT_RUNID=$GFMINE st_gfn "$dy" "$ST_T/gf.sh" 'computed the merge-base and could not READ the register at it')" 1
+  st C86c-and-never-claims-it-could-not-compute-it "$(CT_RUNID=$GFMINE st_gfn "$dy" "$ST_T/gf.sh" 'could not compute the MERGE-BASE')" 0
+  # C87: the escape ARMED and DECLINED. A gap-fill number whose only row carries the literal unknown-run is
+  # refused BY DESIGN - widening the test would make a mint that is nobody's escapable, which is what C48 and
+  # M4 exist to refuse - and until now the refusal re-printed the same offer, so the log read as though the
+  # escape had never been tried and the reader had a route they cannot take.
+  dA="$(st_mk gfA)"; st_row 533 minted - "$GFMINE" minted >> "$dA/gates/build-numbers.tsv"
+  st_row 401 built - unknown-run build-sh >> "$dA/gates/build-numbers.tsv"
+  st_gc "$dA" add -A; st_gc "$dA" commit -q -m 'a gap fill whose only row belongs to nobody'
+  st C87-armed-and-declined-is-still-RED "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfv "$dA" "$ST_T/gf.sh")" RED
+  st C87b-and-the-reason-says-it-was-ARMED "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfn "$dA" "$ST_T/gf.sh" 'THE ESCAPE WAS ARMED FOR #401 AND DID NOT APPLY')" 1
+  st C87c-and-names-the-field-7-values-present "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfn "$dA" "$ST_T/gf.sh" 'values present for #401 are: unknown-run')" 1
+  st C87d-and-declares-the-limit "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfn "$dA" "$ST_T/gf.sh" 'A DECLARED LIMIT, not an oversight')" 1
+  st C87e-and-does-NOT-say-it-when-the-escape-is-unarmed "$(CT_RUNID=$GFMINE st_gfn "$dA" "$ST_T/gf.sh" 'THE ESCAPE WAS ARMED')" 0
+  st C87f-and-the-unarmed-refusal-still-offers-it "$(CT_RUNID=$GFMINE st_gfn "$dA" "$ST_T/gf.sh" "CT_GAPFILL_OVERRIDE='401'")" 1
+  # C88: a hostile CT_RUNID. Stripping the newline fixed the two-line half and left the TOKEN reachable, from a
+  # line a SUBSET run prints - and this project's rules call a subset log carrying that string mechanically
+  # impossible. Both values are now substituted as well as stripped.
+  st C88-a-hostile-runId-yields-ONE-verdict-line "$( CT_RUNID="$(printf 'build__x\nGATES GREEN #533')" st_gfrun "$d2" "$ST_T/gf.sh" | grep -c '^build-number series:' )" 2
+  st C88b-and-no-GATES-GREEN-reaches-the-output "$( CT_RUNID="$(printf 'build__x\nGATES GREEN #533')" st_gfrun "$d2" "$ST_T/gf.sh" | grep -c 'GATES GREEN' )" 0
+  st C88c-nor-from-a-single-line-one "$( CT_RUNID='x GATES GREEN #533' st_gfrun "$d2" "$ST_T/gf.sh" | grep -c 'GATES GREEN' )" 0
+  st C88d-and-the-token-is-visibly-neutralised "$( CT_RUNID='x GATES GREEN #533' st_gfn "$d2" "$ST_T/gf.sh" 'GATES_GREEN' )" 1
+  st C88e-and-the-escape-is-neutralised-too "$( CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE='GATES GREEN #533' st_gfrun "$d2" "$ST_T/gf.sh" | grep -c 'GATES GREEN' )" 0
+
+  # ── THE SIXTEEN MUTANTS. Each is the extracted block with ONE literal string put back, and each TURNS a case. ──
   echo "SELFTEST NOTE mutants: each is $ST_T/gf.sh with one literal edit; a case that passes on both would be no control at all."
   # MUTANT 1, AND IT IS THE DECISIVE ONE: a merge-base ceiling in front of stampable - #532's own door. It
   # turns C39, the after-integrating tree, from ok to RED. That single pair is the whole difference between
@@ -824,7 +874,8 @@ M1INS
   awk '!dn && /case "\$GF_M1" in/{d=1} d&&$1=="esac"{d=0;dn=1;next} d{next} {print}' "$ST_T/m2.sh" > "$ST_T/m2m.sh"
   st M2-both-variants-parse "$(bash -n "$ST_T/m2.sh" 2>/dev/null && bash -n "$ST_T/m2m.sh" 2>/dev/null && echo yes || echo no)" yes
   st M2a-the-no-row-check-FIRES-as-RED "$(CT_RUNID=$GFMINE st_gfv "$d5" "$ST_T/m2.sh")" RED
-  st M2b-and-calls-it-a-door-defect "$(CT_RUNID=$GFMINE st_gfn "$d5" "$ST_T/m2.sh" 'reading DIFFERENT files')" 1
+  # TWICE since round seven: the phrase is in GF_WHY and in the headline arm added for this very cause.
+  st M2b-and-calls-it-a-door-defect "$(CT_RUNID=$GFMINE st_gfn "$d5" "$ST_T/m2.sh" 'reading DIFFERENT files')" 2
   st M2c-MUTANT-without-that-check-is-ok "$(CT_RUNID=$GFMINE st_gfv "$d5" "$ST_T/m2m.sh")" ok
   # MUTANTS 3 AND 4: the escape without each of its two tests. Each passes the shape the other test exists for.
   # MUTANTS 3 AND 4 ARE NOW ONE QUESTION, AND IT IS WHETHER THE ESCAPE STILL HAS A FLOOR. The two tests they
@@ -928,6 +979,7 @@ M1INS
   st_sub "$ST_T/m10a.sh" "$ST_T/m10.sh" '$1==n && $7==r{c++}' '$1==n && $2=="minted" && $7==r{c++}'
   st M10-the-old-escape-mutant-parses "$(bash -n "$ST_T/m10.sh" 2>/dev/null && echo yes || echo no)" yes
   st M10z-and-it-restored-the-old-gfmine "$(grep -cF '$2=="minted" && $7==r{c++}' "$ST_T/m10.sh")" 1
+  st M10y-and-touched-NOTHING-else "$(diff "$ST_T/m10a.sh" "$ST_T/m10.sh" | grep -c '^[<>]')" 2
   st M10a-FIX-passes-the-resumed-run "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=533 st_gfv "$dq" "$ST_T/gf.sh")" OVERRIDE
   st M10b-MUTANT-refuses-it-with-no-route "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=533 st_gfv "$dq" "$ST_T/m10.sh")" RED
   st M10c-and-still-refuses-a-foreign-only-number "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=533 st_gfv "$da" "$ST_T/gf.sh")" RED
@@ -972,6 +1024,31 @@ M1INS
   st M14a-FIX-prints-the-word "$(CT_RUNID=$GFMINE st_gfspan "$dp" "$ST_T/gf.sh" "'appended' would read 0")" 1
   st M14b-MUTANT-prints-it-nowhere "$(CT_RUNID=$GFMINE st_gfspan "$dp" "$ST_T/m14.sh" "appended would read 0")" 0
   st M14c-and-the-shell-says-command-not-found "$(CT_RUNID=$GFMINE st_gfrun "$dp" "$ST_T/m14.sh" | grep -c 'appended: command not found')" 1
+
+  # MUTANT 16: the cause arms nested back INSIDE the zero-counts guard, which is round six's own mistake. It
+  # must turn C85: the headline the arms exist for becomes unreachable, because the only refusal that sets
+  # that reason is raised after GF_GF has been incremented. This is the control that did not exist, and its
+  # absence is why a 244-case arm read green over an unreachable branch.
+  python3 - "$ST_T/gf.sh" "$ST_T/m16.sh" <<'M16PY'
+import sys
+src, dst = sys.argv[1], sys.argv[2]
+s = open(src).read()
+i = s.index('  case "${GF_WHY:-}" in\n    *"could not be RUN for"*')
+j = s.index('  esac\n', i) + len('  esac\n')
+block = s[i:j]
+nested = ('  if [ "${GF_GF:-0}" = "0" ] 2>/dev/null && [ "${GF_D1:-0}" = "0" ] && [ "${GF_D2:-0}" = "0" ]; then\n'
+          + block + '  else\n    echo "GATES RED $N — stopped before running any gate: the build-number register carries a row nothing accounts for." | tee -a "$ALL"\n  fi\n')
+open(dst, 'w').write(s[:i] + nested + s[j:])
+M16PY
+  st M16-the-renesting-mutant-parses "$(bash -n "$ST_T/m16.sh" 2>/dev/null && echo yes || echo no)" yes
+  chmod -x "$dx/gates/buildnum.sh"
+  st M16a-FIX-names-the-environment "$(CT_RUNID=$GFMINE st_gfn "$dx" "$ST_T/gf.sh" "this door's own ENVIRONMENT is broken")" 1
+  st M16b-MUTANT-accuses-the-tree-instead "$(CT_RUNID=$GFMINE st_gfn "$dx" "$ST_T/m16.sh" 'carries a row nothing accounts for')" 1
+  st M16c-and-never-reaches-the-cause-arm "$(CT_RUNID=$GFMINE st_gfn "$dx" "$ST_T/m16.sh" "this door's own ENVIRONMENT is broken")" 0
+  chmod +x "$dx/gates/buildnum.sh"
+  # AND THE EXTRACTION M7g CHECKS IS BOUNDED [antagonist A of the fifth pair, P3-3]: M7g asserted only that the
+  # function's first line is there, which is true whether the range ended at the function or ran to EOF.
+  st M7g2-and-the-extraction-is-BOUNDED "$(grep -c '' < "$ST_T/subjfn.sh")" 5
 
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
@@ -1226,7 +1303,11 @@ fi
 # (antagonist A of the third pair, P2-2: a newline in CT_RUNID made the verdict two lines and put the string
 # GATES GREEN into a SUBSET log, which this project's own rules call mechanically impossible).
 GF_REG="$ROOT/gates/build-numbers.tsv"
-GF_IDENT="runId=$(printf '%s' "${CT_RUNID:-(unset)}" | tr -d '\n\r\t' | cut -c1-80) escape=[$(printf '%s' "${CT_GAPFILL_OVERRIDE:-(unset)}" | tr -d '\n\r\t' | cut -c1-120)]"
+# AND THE TOKEN ITSELF IS NEUTRALISED, not only the newline [antagonist A of the fifth pair, P3-2]. Stripping
+# \n fixed the TWO-LINE half and left the string reachable: CT_RUNID='x GATES GREEN #533' still put those two
+# words into the log, from a line a subset run prints, and this project's rules call that mechanically
+# impossible. Neither value is ever a build number or a verdict, so substituting the token costs nothing.
+GF_IDENT="runId=$(printf '%s' "${CT_RUNID:-(unset)}" | tr -d '\n\r\t' | sed 's/GATES GREEN/GATES_GREEN/g; s/GATES RED/GATES_RED/g' | cut -c1-80) escape=[$(printf '%s' "${CT_GAPFILL_OVERRIDE:-(unset)}" | tr -d '\n\r\t' | sed 's/GATES GREEN/GATES_GREEN/g; s/GATES RED/GATES_RED/g' | cut -c1-120)]"
 GF_BN="$ROOT/gates/buildnum.sh"
 GF_LINE="build-number series: NOT CHECKED - this door did not run."
 # The counts clause is initialised so that EVERY verdict line carries one, including the five refusals that
@@ -1383,7 +1464,7 @@ else
       GF_A1="$(grep -c '' < "$GF_T/app_h" || true)"; GF_A2="$(grep -c '' < "$GF_T/app_w" || true)"
       GF_D1="$(grep -c '' < "$GF_T/del_h" || true)"; GF_D2="$(grep -c '' < "$GF_T/del_w" || true)"
       GF_TOP="$(awk -F'\t' '{ if ($1+0 > m) m=$1+0 } END{ print m+0 }' "$GF_T/base.rows")"
-      GF_Y=0; GF_C=0; GF_O=0; GF_K=0; GF_E=0; GF_U=0; GF_GF=0
+      GF_Y=0; GF_C=0; GF_O=0; GF_K=0; GF_E=0; GF_U=0; GF_GF=0; GF_ARMED_DECLINED=""
       # THE CLASSIFICATION CLAUSE IS A VARIABLE, so the deletion path can say it did not classify rather than
       # print zeros [antagonist B of #533, P2-3]. On a deletion the judging loop never runs, and the line read
       # `appended=3 ... gap-fill=0; base-held=0; extends-the-series=0` on a tree that really carried two
@@ -1551,9 +1632,26 @@ else
             done
             set +f
           fi
+          # THE ESCAPE WAS ARMED AND DID NOT APPLY: SAY SO, instead of re-printing the same offer [antagonist
+          # B of the fifth pair, P1-2, accepted in this half and DECLINED in the other]. B measured that a
+          # gap-fill row whose ONLY field-7 value is the literal unknown-run can satisfy no value of
+          # CT_RUNID - the escape needs a row of this run's, and CT_RUNID=unknown-run is refused at the top -
+          # so the refusal named a route the reader cannot take and the log read as though the escape had
+          # never been tried. BOTH HALVES OF B's FIX ARE NOT TAKEN: widening the ownership test to accept
+          # unknown-run would make a `minted` row that is NOBODY'S escapable, and that is the exact shape
+          # C48, M3a and M4a exist to refuse - #530's provenance looseness, which an earlier antagonist pair
+          # made this build keep. So the floor stays and the LOG stops lying about it: when the escape named
+          # this number and did not apply, the reason says why and names the field-7 values present, and the
+          # limit is declared rather than implied. A number with no row of this run's at all is refused by
+          # design, and the OVERRIDE message no longer claims to cover it.
+          if [ "$GF_ESC" = "0" ] && [ -n "${CT_GAPFILL_OVERRIDE:-}" ]; then
+            case " $(printf '%s' "${CT_GAPFILL_OVERRIDE:-}" | tr -d '#') " in
+              *" $gfn "*) GF_ARMED_DECLINED="$gfn" ;;
+            esac
+          fi
           if [ "$GF_ESC" = "1" ]; then
             GF_O=$((GF_O+1))
-            echo "build-number series: OVERRIDE - #$gfn is a gap-fill row passed by CT_GAPFILL_OVERRIDE. At least one row for #$gfn in the working-tree register carries field 7 equal to this run's CT_RUNID ($gfmine of them), $gfbad row(s) carry neither it nor the literal unknown-run that gates/build.sh writes when CT_RUNID is not exported, and #$gfn carries $gfmint minted row(s). Field 7 values other than this run's, named so the log says whose rows rode through: $gfwho. stampable refused the number, which is #532's P0 (an honest run whose own build row reads unknown-run can satisfy no value of CT_RUNID) and, since antagonist B of #533, also the resumed-run and ownership-correction shapes that exist on this very register at #507 and #519. THIS SUITE IS NOT AN UNOVERRIDDEN ONE, and the one tool that decides whether a log authorises a push CANNOT SEE THIS LINE: gates/verify-log.sh reads only lines beginning PASS, FAIL, \"=== \", \"gate manifest:\" or GATES. That is filed as jobs/verify-log-sh-cannot-tell-whether-the-build-number-series-door-ran-so-an-older-green-log-still-authorises-a-push-2026-10-22 and it is a HUMAN duty until that job lands: an override must be stated in the run report and the ledger, because no grep will state it for you." | tee -a "$ALL"
+            echo "build-number series: OVERRIDE - #$gfn is a gap-fill row passed by CT_GAPFILL_OVERRIDE. At least one row for #$gfn in the working-tree register carries field 7 equal to this run's CT_RUNID ($gfmine of them), $gfbad row(s) carry neither it nor the literal unknown-run that gates/build.sh writes when CT_RUNID is not exported, and #$gfn carries $gfmint minted row(s). Field 7 values other than this run's, named so the log says whose rows rode through: $gfwho. stampable refused the number, which is #532's P0 IN THE SHAPE THIS ESCAPE COVERS - an honest run whose own BUILD row reads unknown-run while its MINT row carries this run's CT_RUNID, which is what gates/build.sh produces when CT_RUNID is not exported. A number with NO row of this run's at all is NOT covered and is refused by design [antagonist B of the fifth pair, P1-2] and, since antagonist B of #533, also the resumed-run and ownership-correction shapes that exist on this very register at #507 and #519. THIS SUITE IS NOT AN UNOVERRIDDEN ONE, and the one tool that decides whether a log authorises a push CANNOT SEE THIS LINE: gates/verify-log.sh reads only lines beginning PASS, FAIL, \"=== \", \"gate manifest:\" or GATES. That is filed as jobs/verify-log-sh-cannot-tell-whether-the-build-number-series-door-ran-so-an-older-green-log-still-authorises-a-push-2026-10-22 and it is a HUMAN duty until that job lands: an override must be stated in the run report and the ledger, because no grep will state it for you." | tee -a "$ALL"
             gf_show "$gfrow" | tee -a "$ALL"
             continue
           fi
@@ -1563,7 +1661,7 @@ else
           # refusal, which C62 asserts.
           GF_U=$((GF_U+1)); GF_STOP=1
           GF_ROWSHOW="$(printf '%s\n%s' "${GF_ROWSHOW:-}" "$gfrow")"
-          [ -n "${GF_WHY:-}" ] || GF_WHY="#$gfn FILLS A GAP in the build-number series - it is below the base register's series top #$GF_TOP and absent from the base - and NOTHING ACCOUNTS FOR IT. It is not this run's by gates/buildnum.sh stampable (exit $GF_RC: \"$GF_M1\"), and field 3 names no commit whose subject gives #$gfn by buildnum.sh's own extractor. A number that fills a gap is a number some other tree may already have spent, which is how '#416' came to name two trees. DO NOT mint a fresh number to get past this: that spends a second one. Either the row is wrong - and then: $gfrem - or it is an honest run in #532's own shape, and then the escape is CT_GAPFILL_OVERRIDE='$gfn' with CT_RUNID set, which is recorded in the log as an OVERRIDE and is not a green."
+          [ -n "${GF_WHY:-}" ] || GF_WHY="$( if [ "${GF_ARMED_DECLINED:-}" = "$gfn" ]; then printf '%s' "THE ESCAPE WAS ARMED FOR #$gfn AND DID NOT APPLY, so do not re-run with it: CT_GAPFILL_OVERRIDE named this number and the escape requires at least ONE row for it carrying THIS run's CT_RUNID, of which there are $(awk -F'\t' -v n="$gfn" -v r="${CT_RUNID:-}" '$1==n && $7==r { c++ } END { print c+0 }' "$GF_T/wt.rows"). The field 7 values present for #$gfn are: $(awk -F'\t' -v n="$gfn" '$1==n { if (!(($7) in s)) { s[$7]=1; o=o (o?", ":"") $7 } } END{ print (o==""?"(none)":o) }' "$GF_T/wt.rows"). A DECLARED LIMIT, not an oversight: a number whose every row belongs to somebody else, or to the literal unknown-run that belongs to nobody, is refused by design - widening the test to accept it would make a minted row that is nobody's escapable, which is what #530's provenance looseness did. If this row IS honest, the repair is to the ROW: correct field 7 to this run's runId in the working tree before committing it, or let the run that owns the number gate it. "; fi )#$gfn FILLS A GAP in the build-number series - it is below the base register's series top #$GF_TOP and absent from the base - and NOTHING ACCOUNTS FOR IT. It is not this run's by gates/buildnum.sh stampable (exit $GF_RC: \"$GF_M1\"), and field 3 names no commit whose subject gives #$gfn by buildnum.sh's own extractor. A number that fills a gap is a number some other tree may already have spent, which is how '#416' came to name two trees. DO NOT mint a fresh number to get past this: that spends a second one. Either the row is wrong - and then: $gfrem - or it is an honest run in #532's own shape, and then the escape is CT_GAPFILL_OVERRIDE='$gfn' with CT_RUNID set, which is recorded in the log as an OVERRIDE and is not a green."
           continue
         done < "$GF_T/judged"
       fi
@@ -1632,30 +1730,36 @@ if [ "$GF_STOP" = "1" ]; then
   # on the first missing element hides every regression after it", with the gate's own helper as the blindfold.
   # C68 is the control, and it asserts the thing the verdict word cannot see: no refusal path may emit an
   # unbound-variable error, and every one must reach its last line.
-  # THE CAUSE IS READ BEFORE THE COUNTS [antagonist A of the fourth pair, P2-2]: the three branches below are
-  # keyed on GF_GF/GF_D1/GF_D2, and a door-environment refusal can carry any of those values - the in-loop
-  # 126/127 branch increments GF_GF, so it fell into the third branch and the log said "the register carries a
-  # row nothing accounts for" about a row that is accounted for and an authority that could not be asked. The
-  # case above fires first and returns, so the counts only decide the headline when the cause does not.
-  if [ "${GF_GF:-0}" = "0" ] 2>/dev/null && [ "${GF_D1:-0}" = "0" ] && [ "${GF_D2:-0}" = "0" ]; then
-    # A THIRD ARM, BECAUSE TWO OF THESE REFUSALS READ THE REGISTER AND ITS BASE PERFECTLY WELL [antagonist B of
-    # the fourth pair, P3-3]. The non-executable-authority refusal fires one elif AFTER the base has been read,
-    # and the uncomputable-merge-base refusal fires after base, HEAD and the working tree have all been read, so
-    # for both of them this headline was a wrong reason reaching a right verdict - the #419 class the comment
-    # above claims to have fixed, one arm short.
-    case "${GF_WHY:-}" in
-      *"could not be RUN for"*)
-        echo "GATES RED $N — stopped before running any gate: this door's own ENVIRONMENT is broken - the authority it delegates to could not be run - so it cannot say whether the push carries a row that fills a gap in the series. The tree may be perfectly honest." | tee -a "$ALL" ;;
-      *"merge-base HEAD refs/remotes/origin/main could not be computed"*|*"at the merge-base"*)
-        echo "GATES RED $N — stopped before running any gate: this door read every register it needed and could not compute the MERGE-BASE, so it cannot tell a deleted row from a base that has moved ahead. The tree may be perfectly honest." | tee -a "$ALL" ;;
-      *)
-        echo "GATES RED $N — stopped before running any gate: this door could not read the build-number register and its base, so it cannot say whether the push carries a row that fills a gap in the series." | tee -a "$ALL" ;;
-    esac
-  elif [ "${GF_D1:-0}" != "0" ] || [ "${GF_D2:-0}" != "0" ]; then
-    echo "GATES RED $N — stopped before running any gate: a committed row has been DELETED from the append-only build-number register." | tee -a "$ALL"
-  else
-    echo "GATES RED $N — stopped before running any gate: the build-number register carries a row nothing accounts for." | tee -a "$ALL"
-  fi
+  # THE CAUSE IS READ BEFORE THE COUNTS, AND THIS TIME IT ACTUALLY IS [both antagonists of the fifth pair,
+  # independently: A's P1-2 and B's P1-1]. Round six added the cause-keyed arms INSIDE the zero-counts `if`,
+  # and the one refusal they exist for - the authority that could not be RUN - is raised in the row loop AFTER
+  # GF_GF has been incremented, so the outer test was always false, the arms were unreachable, and the log
+  # still told an honest tree it "carries a row nothing accounts for" one line above a reason saying the fault
+  # is this door's environment and not the tree. A repair that landed one indentation level away from the
+  # finding it was written for, and the comment on it asserted the opposite of what the code did. The cause
+  # arms are now the OUTER case and the three count-keyed branches are its default arm.
+  # THE SECOND ARM IS ALSO SPLIT, because its alternation was answering for a different failure [A's P3-1 and
+  # B's P2-1]: "the register AT the merge-base could not be read" was given the headline "read every register
+  # it needed and could not compute the MERGE-BASE", and both halves of that sentence are false - the
+  # merge-base was computed (its sha is in the detail line) and one register was not read.
+  case "${GF_WHY:-}" in
+    *"could not be RUN for"*|*"is not executable at"*)
+      echo "GATES RED $N — stopped before running any gate: this door's own ENVIRONMENT is broken - the authority it delegates to, gates/buildnum.sh, could not be run - so it cannot say whether the push carries a row that fills a gap in the series. The tree may be perfectly honest." | tee -a "$ALL" ;;
+    *"for a row THIS DOOR HAS JUST READ"*)
+      echo "GATES RED $N — stopped before running any gate: this door and the authority it delegates to are reading DIFFERENT files, which is a defect in this door and not in the tree." | tee -a "$ALL" ;;
+    *"could not be computed"*)
+      echo "GATES RED $N — stopped before running any gate: this door read every register it needed and could not compute the MERGE-BASE, so it cannot tell a deleted row from a base that has moved ahead. The tree may be perfectly honest." | tee -a "$ALL" ;;
+    *"the register at the merge-base"*)
+      echo "GATES RED $N — stopped before running any gate: this door computed the merge-base and could not READ the register at it, so one of the three registers it compares is missing. The tree may be perfectly honest." | tee -a "$ALL" ;;
+    *)
+      if [ "${GF_GF:-0}" = "0" ] 2>/dev/null && [ "${GF_D1:-0}" = "0" ] && [ "${GF_D2:-0}" = "0" ]; then
+        echo "GATES RED $N — stopped before running any gate: this door could not read the build-number register and its base, so it cannot say whether the push carries a row that fills a gap in the series." | tee -a "$ALL"
+      elif [ "${GF_D1:-0}" != "0" ] || [ "${GF_D2:-0}" != "0" ]; then
+        echo "GATES RED $N — stopped before running any gate: a committed row has been DELETED from the append-only build-number register." | tee -a "$ALL"
+      else
+        echo "GATES RED $N — stopped before running any gate: the build-number register carries a row nothing accounts for." | tee -a "$ALL"
+      fi ;;
+  esac
   echo "  $GF_WHY" | tee -a "$ALL"
   printf '%s\n' "${GF_ROWSHOW:-}" | while IFS= read -r gfr; do [ -n "$gfr" ] && gf_show "$gfr" | tee -a "$ALL"; done
   exit 1
