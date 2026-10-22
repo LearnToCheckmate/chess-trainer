@@ -148,7 +148,9 @@ fi
 # run over ignored dependency files, and a guard that fires on the normal case gets switched off, which is this
 # project's own recorded reason for `--this-bundle` being opt-in. fastgate.sh's own read pin already uses
 # `:(glob)` for exactly this.
-# MEASURED NO-OP ON AN HONEST TREE: all six sets report 0 untracked-including-ignored paths on this checkout.
+# MEASURED NO-OP ON AN HONEST TREE: all SEVEN path sets below (five in OSPECS_GLOB, two in OSPECS_DIR) report 0
+# untracked-including-ignored paths on this checkout. WAS "all six sets" - a count of the arrays that disagreed
+# with the arrays one line below it, found by antagonist A of #530 and corrected here in place [R18].
 # THE EXEMPTION IS PINNED TO ONE GENERATED DIRECTORY AND NOT TO A PROPERTY OF PATHS, ON AN UPHELD VETO FROM A
 # FRESH REVIEWER OF THE FIRST CORRECTION [#530]. The history of this block in one place, because it got the
 # width wrong in BOTH directions before it got it right:
