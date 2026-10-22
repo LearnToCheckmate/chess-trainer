@@ -128,6 +128,8 @@ $(head -c 200000 /dev/zero | tr '\0' 'x')"
     n="$want"; if [ "$want" -ge 12 ]; then n=$(( want + 1 )); fi   # H12 is dropped, so one more id is needed
     printf 'tc(){\n  case "$1" in\n'
     for i in $(seq 1 "$n"); do printf '    H%s) printf TC-SUITE-X%s ;;\n' "$i" "$i"; done
+    # $2 = tabdup: repeat H1 at a TAB, which is the evasion C33 controls. The table still MAPS $want ids.
+    [ "${2:-}" = tabdup ] && printf '\tH1) printf TC-SUITE-X1 ;;\n'
     printf '  esac\n}\n'
   }
   st_drive(){ # $1 = the body of the stub gates/fastgate-drive.sh; prints the block's final red value
@@ -135,7 +137,9 @@ $(head -c 200000 /dev/zero | tr '\0' 'x')"
     # ALL, which is the shape this job's own case needs and which must read RED.
     local d="$ST_T/d" tbl="${2:-1}"; rm -rf "$d"; mkdir -p "$d/gates/logs"
     if [ -n "$1" ]; then
-      { printf '%s\n' '#!/usr/bin/env bash' "$1"; [ "$tbl" -gt 0 ] && st_tbl "$tbl"; } > "$d/gates/fastgate-drive.sh"
+      # tbl may be a COUNT, 0 for no table at all, or "N:tabdup" for N ids plus a tab-indented duplicate of H1.
+      local tn="${tbl%%:*}" tmode=""; [ "$tbl" != "$tn" ] && tmode="${tbl##*:}"
+      { printf '%s\n' '#!/usr/bin/env bash' "$1"; [ "$tn" -gt 0 ] && st_tbl "$tn" "$tmode"; } > "$d/gates/fastgate-drive.sh"
     fi
     ( cd "$d" && git init -q . >/dev/null 2>&1 && git add -A >/dev/null 2>&1 \
       && git -c user.name=ct-st -c user.email=ct-st@local -c commit.gpgsign=false \
@@ -235,6 +239,18 @@ tc() {
   # must be RED. Same exit code, same REFUSING line, opposite verdicts: that is what shows the new condition
   # discriminates rather than simply tightening the decline branch out of existence.
   st C32-a-refusal-with-no-readable-table-is-RED "$(st_drive 'echo "fastgate-drive.sh: REFUSING - the tc() table in this script yielded no case ids"; exit 2' 0)" 1
+  # ── C33 AND C34 EXIST BECAUSE THIS RUN'S OWN ANTAGONIST MEASURED THAT C30, C31 AND C32 ALL PRINT THE SAME
+  # REASON LINE - "the committed tc() table yields NO case ids" - so the limb shipped with ONE of its THREE
+  # arms controlled and the commit message claimed "each its own test". These are the other two arms. [#531]
+  # C33: a duplicate case id written at a TAB. Before the tr class was widened this read GREEN, crediting two
+  # cases from a table that maps one; it is the repeated-id arm AND the regression test for the tab evasion.
+  # IT DECLARES THREE ON PURPOSE. With a declaration of 2 this case went RED on BOTH trees - the table yields
+  # three ROWS either way, so the COUNT arm fired and the repeated-id arm was never reached: the right verdict
+  # for the wrong reason, which is #432's A7b. Declaring 3 makes rows==declared, so ONLY distinctness can red it.
+  st C33-a-tab-indented-duplicate-id-is-RED "$(st_drive 'echo "cases: 3 declared (stub)"; echo "  ok  H1 [TC-SUITE-057]  (probe)"; echo "  ok  H2 [TC-SUITE-058]  (probe)"; echo "  ok  H3 [TC-SUITE-059]  (probe)"; exit 0' 2:tabdup)" 1
+  # C34: the harness declares fewer cases than the committed table maps. This is the count arm, and it is the
+  # one that catches a case body deleted from the harness while its row stays in the table.
+  st C34-a-declaration-under-the-table-is-RED "$(st_drive 'echo "cases: 2 declared (stub)"; echo "  ok  H1 [TC-SUITE-057]  (probe)"; echo "  ok  H2 [TC-SUITE-058]  (probe)"; exit 0' 3)" 1
 
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
@@ -648,9 +664,17 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   # THE GIT INVOCATION IS BUILT HERE AND NOT TAKEN FROM $GIT: gates.sh --selftest extracts this block from
   # `^DRIVESH=` and runs it in a scratch tree, and $GIT is defined ABOVE that range, so a reference to it
   # would be an unbound variable under `set -u` in every selftest case.
-  DGIT="git -C $ROOT --git-dir=$ROOT/.git --work-tree=$ROOT"
-  dtblids="$($DGIT show HEAD:gates/fastgate-drive.sh 2>/dev/null | sed -n '/^tc(){/,/^}/p' \
-             | grep -oE '(^|[[:space:]])H[0-9]+b?\)' | tr -d ' )' | grep -vx H12 || true)"
+  # AN ARRAY AND NOT A STRING [#531, this run's own antagonist A, note 9]. As a string this word-split on
+  # every space in $ROOT, so a checkout at a path containing one read dtbl=0 and reddened an HONEST tree,
+  # blaming the harness for the path. Measured in a clone at "/tmp/.../sp ace/r": dtbl 0 where 53 is right.
+  DGIT=(git -C "$ROOT" --git-dir="$ROOT/.git" --work-tree="$ROOT")
+  # tr -d ' \t\r)' AND NOT tr -d ' )' [#531, antagonist A's P1 4]. grep -oE captures the leading
+  # whitespace character, and deleting only spaces and parens left a TAB attached: `\tH1` and `H1` then sort
+  # as two distinct ids, so a duplicate written at a tab mapped one case while the block credited two - the
+  # same tab-versus-space class this block already carries C21, C26 and C29 for, reintroduced in the limb
+  # added beside them. The class covers tab, CR and every other space character rather than just the one found.
+  dtblids="$("${DGIT[@]}" show HEAD:gates/fastgate-drive.sh 2>/dev/null | sed -n '/^tc(){/,/^}/p' \
+             | grep -oE '(^|[[:space:]])H[0-9]+b?\)' | tr -d ' \t\r)' | grep -vx H12 || true)"
   dtbl=$(printf '%s' "$dtblids" | grep -c . || true);          dtbl=$((dtbl + 0))
   dtbluniq=$(printf '%s' "$dtblids" | sort -u | grep -c . || true); dtbluniq=$((dtbluniq + 0))
   # THREE WAYS THIS GOES WRONG, EACH ITS OWN TEST AND NOT A CONJUNCT [prompts/common, the non-empty-denominator

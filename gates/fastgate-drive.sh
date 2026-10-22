@@ -155,7 +155,7 @@ note(){ printf '%s\n' "$*"; }
 # level up. A table that yields no ids is a damaged script, never a normal state, so it refuses loudly.
 CASES=()
 while IFS= read -r _cid; do CASES+=("$_cid"); done < <(
-  sed -n '/^tc(){/,/^}/p' "$0" | grep -oE '(^|[[:space:]])H[0-9]+b?\)' | tr -d ' )' | grep -vx H12 || true)
+  sed -n '/^tc(){/,/^}/p' "$0" | grep -oE '(^|[[:space:]])H[0-9]+b?\)' | tr -d ' \t\r)' | grep -vx H12 || true)
 if [ "${#CASES[@]}" -eq 0 ]; then
   echo "fastgate-drive.sh: REFUSING - the tc() table in this script yielded no case ids, so the declared case"
   echo "  count cannot be derived and a declaration of 0 would make the unit block's equality test vacuous."
