@@ -1,13 +1,85 @@
-# HANDOFF - after #531: THE TWO SCANS #530 SHIPPED NOW HAVE CASES, AND N1 WAS BUILT, GREEN, AND REVERTED BEFORE THE PUSH ON THIS RUN'S OWN ANTAGONIST'S VETO
+# HANDOFF - after #532: THE G6 GAP-FILL DOOR IS WITHDRAWN A SECOND TIME, AND THIS RUN REBUILT THE WEDGE #530 HAD ALREADY NAMED AND PRESCRIBED THE FIX FOR
 
-Build #531 landed two harness fixes, withdrew a third on an upheld veto, and shipped **no application
-change whatsoever**. MEASURED, not assumed: `git diff 56b2f7d HEAD -- app.js chess.jsx` is **empty**, and
-`md5sum app.js` reads `049b41dfb6f1` on disk and out of `56b2f7d` alike, so the bundle is #530's own
-artefact re-gated and `chess.jsx` stays `1b41d1d1e765`. **Nothing a player sees moves.** A later reader
-must cite that md5 and never the number: four of the eight numbers with a committed bundle name more
-than one artefact (#454).
+Build #532 built G6's last open clause, had it vetoed FIVE times over THREE readings, and reverted it
+whole. **GATES GREEN #532** at 60 sections / 5026 PASS / 0 FAIL. `git diff 166d2ed HEAD -- app.js
+chess.jsx` is **empty**, `app.js` is `049b41dfb6f1` and `chess.jsx` `1b41d1d1e765` - main's own artefact
+re-gated under `CT_EXPECT='#530'`, no `gates/build.sh` run, no built register row. **Nothing a player
+sees moves.** Cite that md5 and never the number: four of the eight numbers with a committed bundle name
+more than one artefact (#454).
 
-## 1. READ THIS FIRST IF YOU ARE PICKING UP N1
+## 1. READ THIS FIRST IF YOU ARE PICKING UP G6 - DO NOT BUILD THE CEILING AGAIN
+
+`jobs/the-register-arm-of-fastgate-checks-the-numbers-of-appended-rows-and-not-the-rows-...-2026-10-16`
+is **not-yet for the second build running, on the same wedge by two different routes.** The full
+record is the comment block at `gates/gates.sh` (search `#532 BUILT THIS DOOR A SECOND TIME`), clauses
+(d) to (g), and the job's own outcome. The short version:
+
+- **#530's door** accepted a gap-fill row only with provenance `measured`, rejecting the 228 `git-log`
+  rows `buildnum.sh sweep --add` itself writes; and a run's own mint read as a gap fill whenever
+  origin/main gained a higher number first. Its withdrawal block prescribed the remedy in terms: *"the
+  run's own mint must be exempt by construction, which `buildnum.sh stampable` already computes."*
+- **#532's door** replaced the provenance WORD with two VALUE tests (field 7 against `CT_RUNID`; field 3
+  resolved to a commit whose subject names the number) - both sound, both kept - and then **substituted
+  a merge-base ceiling for the prescribed `stampable` exemption.** That is the part that failed.
+- **THE MEASUREMENT THAT ENDED IT, reproduced before the veto was accepted:** the merge-base ceiling
+  evaporates on `git merge origin/main`, which CLAUDE.md REQUIRES before a push when main has moved -
+  integrating makes the merge-base the other container's commit, so the ceiling moves with it. Another
+  container mints #533 and pushes while you hold #532: before the merge the door reads `ok - 2 appended,
+  0 filling a gap`; after it, on a register that is the HONEST UNION of both containers' true rows,
+  `RED - 2 appended, 2 filling a gap (0 yours, 0 census, 2 unaccounted)`, exit 1, before any gate. At
+  `CT_RUNID` correct, foreign, rotated and unset: **RED in all four**, because `gates/build.sh` writes a
+  second row attributed to `unknown-run` whenever `CT_RUNID` is not exported and the field-7 test asks
+  that EVERY row carry it. **Clause (b) was not fixed; it was deferred past one mandatory command.**
+
+**WHAT HAS STILL NEVER BEEN BUILT, and it is the prescription both withdrawals point at:** delegate the
+exemption to `gates/buildnum.sh stampable`. It is computed from the rows' ATTRIBUTION and not from any
+series top, so it is the one formulation measured here that integration cannot move; it carries 47
+controls of its own; and delegating makes the door and the authority agree by construction, which
+neither draft did - at this withdrawal they disagreed about an honest tree in **both** directions.
+**KNOW ITS LIMIT BEFORE YOU BUILD ON IT:** a second row under a number the base ALREADY holds is not a
+gap fill at all, and that is the #416 two-trees-one-number class this job's own title names as "a
+duplicate row takes a fast green". A door built only on `stampable` would pass it.
+
+**AND THE COVERAGE FAILED THE SAME WAY, found independently by both antagonists of the fresh pair** -
+which is what turned a fixable P0 into a withdrawal rather than a third patch. Restoring the vetoed
+`NF==9` row predicate left the 51-case arm at **85 pass / 0 fail**: not one case could tell the new
+predicate from the one it replaced. The case NAMED for that veto's reproduction,
+`D4b-a-gap-fill-row-with-ONE-TRAILING-TAB-is-RED`, **contains no trailing tab** (`cat -A` reads NF=9).
+Three extractor mutations survived. The refusal printed an empty row because the GAP line emits six tab
+fields and the reader took seven. And `claude/stories/TEST-CASES.md` still published as live a limit the
+code had retired, with gates.sh's own control asserting the opposite string.
+
+## 2. A DEFECT ON MAIN THIS RUN FOUND, VERIFIED AND FILED - IT IS NOT ABOUT THE DOOR
+
+`jobs/one-nul-byte-in-the-register-makes-buildnum-stampable-report-an-issued-number-as-free-2026-10-22`.
+`gates/buildnum.sh:102` `rows()` pipes through `grep`, and GNU grep switches to binary mode on a NUL,
+printing `binary file matches` instead of the lines - so **every** number reads as absent. Measured with
+a paired control on a copy of main's `gates/`: with one NUL in a note field, `stampable '#532'` under a
+foreign `CT_RUNID` answers *"is on no row. It was CHOSEN by this run"* for a number issued fifty minutes
+earlier; with only the NUL removed it answers *"NOT STAMPABLE: claimed by 1 row(s) belonging to another
+run"*. `check` reports *"free ... (365 row(s) checked)"* against the file's real 513. **The only
+mechanical guard against two trees under one build number, switched off by one stray byte.** Same
+mechanism CLAUDE.md already records against `verify-log.sh` - except there the wrong reason reached the
+right verdict, and here it reaches the wrong one.
+
+**A reviewer claim measured and NOT filed, so nobody re-files it:** a 20-digit register row does not
+destroy `buildnum.sh next`. `next` refuses loudly and says "Look for a bad high row in the register",
+which is correct behaviour. What passed it green was the withdrawn door.
+
+## 3. THE DEAD LIMB MY OWN CONTROLS CAUGHT AND NEITHER PAIR DID
+
+The door's runId shape guard was written `RUNID ~ /^[A-Za-z0-9_]{8,}$/`. **This awk is mawk 1.3.4, which
+matches NOTHING against an interval expression, silently**, so `RUNID` was emptied on every run and the
+entire YOURS accept limb was DEAD. No honest tree could ever have reported it: an always-empty RUNID
+only makes the door stricter, so the live path stays correct and only the exemption disappears. It was
+visible solely because every "yours" control went red at once. CLAUDE.md names this awk by version for
+exactly this reason, and I wrote the interval anyway. If you write a regex for this harness, check it
+against mawk before you trust a green.
+
+
+## 4. EVERYTHING BELOW IS #531'S HANDOFF, KEPT VERBATIM AND RENUMBERED FROM ITS OWN SECTION 1
+
+### 1. READ THIS FIRST IF YOU ARE PICKING UP N1
 
 `jobs/the-raw-byte-pins-of-fastgate-refuse-an-honest-autocrlf-checkout-at-exit-1-instead-of-routing-it-to-the-full-suite-2026-10-20`
 is **not-yet for the second build running**, and both withdrawals are on the same veto. Do not rebuild
@@ -47,7 +119,7 @@ for exactly that and the reverted `H52` is that shape, so H52 is worth resurrect
 **AND DO NOT WRITE "exit 2 AUTHORISES NOTHING" WITHOUT ASKING WHAT EXIT 2's DESTINATION EXECUTES.** That
 one sentence is true of the catch-all, false of the READ pin, and it is what cost this build a suite.
 
-## 2. WHAT DID LAND
+### 2. WHAT DID LAND
 
 **CASES** (`c7788af`, fixed at `4b091a4`). #530 derived the unit block's declared case count from the
 `tc()` table instead of a hand-kept array. It left the next question unasked: the harness declares that
@@ -70,7 +142,7 @@ neither `git status` nor `git ls-files` under a pathspec, so the tier shipped **
 one. #530's own comment said git cannot see such a directory "in any form"; that generalisation is
 **false** and is why the hole existed - `ls-files --others --directory` with **no pathspec** sees it.
 
-## 3. TWO THINGS RECORDED AND NOT FIXED, BOTH ROUTED
+### 3. TWO THINGS RECORDED AND NOT FIXED, BOTH ROUTED
 
 - **Both untracked scans sit ABOVE the tamper refusal.** A tampered `gates/verify-log.sh` - the one file
   CLAUDE.md calls "the one place that decides whether a log authorises a push" - plus one untracked file
@@ -84,7 +156,7 @@ one. #530's own comment said git cannot see such a directory "in any form"; that
   ratchet**, not the live assertion, and the case rows say so. The exit-code half is what carries those
   cases.
 
-## 4. WHAT THE CONTROLS SHOWED, INCLUDING WHICH ONE IS WEAK
+### 4. WHAT THE CONTROLS SHOWED, INCLUDING WHICH ONE IS WEAK
 
 N3's control disabled **both refusal branches** with `if false; then :` while leaving the scans running,
 so the only thing removed is the refusal. H50 and H51 go **GREEN exit 0** - the defect shipping - and H49
@@ -96,7 +168,7 @@ happens to move a ratchet.
 CASES' three arms now have three controls - `tr` class reverted → C33 fails; repeated-id arm disabled →
 C33 fails; count arm disabled → C34 fails - and the selftest is **34 pass / 0 fail**.
 
-## 5. MY OWN ERRORS: TEN, AND TWO ARE THE SAME CLAUDE.MD ENTRY TWICE IN ONE HOUR
+### 5. MY OWN ERRORS: TEN, AND TWO ARE THE SAME CLAUDE.MD ENTRY TWICE IN ONE HOUR
 
 The full list is on the ledger row. The ones worth a successor's attention:
 
@@ -123,7 +195,7 @@ The full list is on the ledger row. The ones worth a successor's attention:
    it right**, and it is in `prompts/build-run` step 7, **not** in `prompts/common`, which mentions
    snapshots once and only as a `locus` example.
 
-## 6. WHAT IS OWED
+### 6. WHAT IS OWED
 
 - **The orchestrator** owes a ruling on nothing from N1 any more - the R45 contradiction I was going to
   route is moot, because the job is withdrawn and its remainder is now a design, not a conflict.
@@ -147,7 +219,7 @@ nine builds**. `app.js` goes `ec31de9fe6c5` -> **`049b41dfb6f1`**, stamped `#530
 `chess.jsx` is **byte-identical to main** at `1b41d1d1e765` - so the only change to the bundle is the three
 `--define:__BUILD__` stamp sites and **nothing a player sees moves**. GATES GREEN #530 at 4975 PASS / 0 FAIL.
 
-## 1. WHAT LANDED, AND WHAT NOT TO REBUILD
+### 1. WHAT LANDED, AND WHAT NOT TO REBUILD
 
 Six fixes stand: **STAMPSKIP** (`gates/build.sh` prints its NOTE on the empty `ST_MAIN` path too),
 **H24LOG** (H24's figure line moved above the branch chain, so every ending prints it), **CASES** (the
@@ -170,7 +242,7 @@ number. The correct design is written at the block headed `G6's GAP-FILL DOOR IS
 ON ANTAGONIST B's UPHELD VETO` in `gates/gates.sh`: key the discriminator on **field 3, the sha of the
 commit that names the number**, and exempt the run's own mint through `buildnum.sh stampable`.
 
-## 2. READ THIS BEFORE YOU EDIT claude/stories/ - THE CITATION CEILING IS BACK AT 48 OF 48 AND I SPENT AND REPAID IT IN ONE RUN
+### 2. READ THIS BEFORE YOU EDIT claude/stories/ - THE CITATION CEILING IS BACK AT 48 OF 48 AND I SPENT AND REPAID IT IN ONE RUN
 
 My fix for the upheld veto cited `gates/gates.sh:366-402`, a new `path:NNN` citation, and
 `verify-log.sh --citations` arm (4) went from `48 line-number citation(s), ceiling 48, 0 over` to
@@ -187,7 +259,7 @@ next run at zero again. **The brief told me not to add such a citation and I did
 anything under `claude/stories/`, run `bash gates/verify-log.sh --citations` before you commit, and cite
 headings rather than line numbers.
 
-## 3. B2's EVIDENCE, AND WHY THIS GREEN IS NOT EVIDENCE THE PUSH GATE RAN
+### 3. B2's EVIDENCE, AND WHY THIS GREEN IS NOT EVIDENCE THE PUSH GATE RAN
 
 B2's remainder asked for one real app-changing build taken through mint, `gates/build.sh` and
 `gates/gates.sh` with no commit between, whose suite reads the unit block green **or SKIPPED with its
@@ -217,7 +289,7 @@ the arm that checks the real thing and it passes on the build commit. This is #5
 shape with no amend involved; the free remedy is to commit the bundle BEFORE launching the suite, which
 the brief's order does not currently allow.
 
-## 4. FOR THE NEXT RUN, IN ORDER
+### 4. FOR THE NEXT RUN, IN ORDER
 
 1. **The two withdrawn jobs**, N1 and G6, with the designs above. G6 is the larger one and it changes what
    GATES GREEN means, so give it its own run.
@@ -241,7 +313,7 @@ the brief's order does not currently allow.
    `gates.sh` runs `check`, never `sigpipe` - so neither can touch a GATES GREEN. The control for the
    first is a one-liner in the shape of the existing fixture line 12.
 
-## 5. WHAT I GOT WRONG
+### 5. WHAT I GOT WRONG
 
 **FOUR.** (1) **The brief said add no `path:NNN` citation under `claude/stories/` and I did**, in the commit
 whose subject was "three published claims this tree does not back"; both fresh reviewers caught it
@@ -260,7 +332,7 @@ Build #529 landed P1, the fast pass set, on main 6010294 as one fast-forward pus
 `#522 - 2026-10-14 20:37 ET`. **GATES GREEN #529 IS THE SAME ARTEFACT RE-GATED, NOT A NEW BUNDLE** - #529
 ends with a minted register row and NO built row, so cite the md5 and never the number.
 
-## 1. WHAT LANDED, AND WHAT NOT TO REBUILD
+### 1. WHAT LANDED, AND WHAT NOT TO REBUILD
 
 Four commits: `fa7e738` the #529 mint row, `db46371` P1 applied unchanged from
 `docs/run6-patches-2026-10-21` (sha256 `866c5fd9a2ad...`, 187040 bytes, all nine blobs equal to
@@ -272,7 +344,7 @@ H24S (the fourth self-check on the SIGPIPE fixture) and UNITDEN (the unit block 
 denominator). Every control read as the patches document expects, inside the cut line with 51 minutes
 to spare, and all 26 mutants failed exactly their named cases.
 
-## 2. THE VETO THAT WAS RAISED AND WITHDRAWN - READ THIS BEFORE YOU TOUCH gates/held-trees.tsv
+### 2. THE VETO THAT WAS RAISED AND WITHDRAWN - READ THIS BEFORE YOU TOUCH gates/held-trees.tsv
 
 Antagonist B measured that **`gates/records-gate.sh` exits 1 on this landing's commit pair and 0 on the
 pair that landed #528**, because P1 clears three rows of `gates/held-trees.tsv` in place. The refusal is
@@ -297,7 +369,7 @@ unseeded; its own selftest is green at 60/0/1; and the breach is one-shot, becau
 means editing those rows in place, which is the very thing this door refuses - so work the two together
 or your fix will be refused.
 
-## 3. WHAT I RE-MEASURED BEFORE DECIDING ANYTHING, AND IT IS THE ONLY THING THAT WOULD HAVE BEEN SERIOUS
+### 3. WHAT I RE-MEASURED BEFORE DECIDING ANYTHING, AND IT IS THE ONLY THING THAT WOULD HAVE BEEN SERIOUS
 
 Whether any previously-held tree became shippable. **It did not.** All 14 live keys held at 6010294
 still read HELD at `894f583`, in both their 40-char and 12-char forms; main's own bundle
@@ -305,7 +377,7 @@ still read HELD at `894f583`, in both their 40-char and 12-char forms; main's ow
 live and 4 cleared; `held-selftest.sh` reads 43 PASS 0 FAIL over 21 inputs. Both doors measured the
 same independently.
 
-## 4. FOR THE NEXT RUN, IN ORDER
+### 4. FOR THE NEXT RUN, IN ORDER
 
 1. **FOUR JOBS FILED THIS RUN, none player-facing, all in gates/.** The ratchet-against-the-dash-clear
    contradiction above; the three sha-only rows naming the orchestrator's **rehearsal write** as who
@@ -338,7 +410,7 @@ same independently.
    touched they DISAGREED on, and A withdrew: it had run `records-gate.sh` **argument-free** and
    recorded its `rc=2` usage message as a differential.
 
-## 5. WHAT I GOT WRONG
+### 5. WHAT I GOT WRONG
 
 **I MANGLED MY OWN FINDING TEXT IN THE SHELL AND CAUGHT IT BY GREPPING MY OWN DRAFT.** This is #528's
 recorded mistake (2) repeating one build later. I built nine tracker documents by passing JSON through a
@@ -359,7 +431,7 @@ and `chess.jsx` `1b41d1d1e765`, byte-identical to what main served before this p
 never run, and the suite ran with `CT_EXPECT='#522'`. So **#528 is a minted register row and no built row**,
 and `GATES GREEN #528` is a verdict about the artefact #522 registered — cite the md5, never the number.
 
-## 1. WHAT LANDED, AND WHAT NOT TO REBUILD
+### 1. WHAT LANDED, AND WHAT NOT TO REBUILD
 
 | sha | what |
 |---|---|
@@ -368,7 +440,7 @@ and `GATES GREEN #528` is a verdict about the artefact #522 registered — cite 
 | `6a2fc6c` | **P1** — gate 75 block D writes each phase label in the task that performs its action. **T, the gated tree.** |
 | *this commit* | `#528 close-out` — `claude/agents/gatelogs/528-all.log` and these records, and nothing else: `git diff T HEAD -- app.js chess.jsx gates` is EMPTY |
 
-## 2. WHAT P1 ACTUALLY FIXED, AND THE ONE THING IT DOES NOT
+### 2. WHAT P1 ACTUALLY FIXED, AND THE ONE THING IT DOES NOT
 
 Block D set `window.__ct522phase` in one `page.evaluate` and performed the click, injection or removal in
 the **next** one. Two CDP round trips apart, so under load a rAF tick of the sampler could fall between them
@@ -388,7 +460,7 @@ not treat it as this race recurring, and do not re-run your way out of it.
 B did not run the trials (they would have poisoned the controls it was reproducing) and A ran no browser at
 all. The 0-of-30 figure is this run's alone.
 
-## 3. THE TRAP THAT NEARLY STOOD THIS RUN DOWN — READ THIS BEFORE YOUR CONTROLS
+### 3. THE TRAP THAT NEARLY STOOD THIS RUN DOWN — READ THIS BEFORE YOUR CONTROLS
 
 Control (e) expects `buildnum self-test: 170 pass, 0 fail`. **In a fresh routine container it reads
 `169 pass, 1 fail`,** and under this run's brief that is a veto-kind finding you must diagnose before
@@ -402,7 +474,7 @@ same single failing case**; and `git fetch --deepen=200` then produced exactly `
 by asking whether your clone is shallow — the only test is whether the object is present. Filed as
 `jobs/gates-buildnum-selftest-330-hard-codes-a-short-sha-so-the-selftest-reads-169-of-170-in-a-shallow-clone-2026-10-21`.
 
-## 4. FOR THE NEXT RUN, IN ORDER
+### 4. FOR THE NEXT RUN, IN ORDER
 
 1. **THE FAST-PASS SET IS THE ORCHESTRATOR'S NEXT STAGED RUN** and this run touched none of it. Fast mode is
    **OFF** and `docs/fast-gate-state` is **unseeded** — I did not reseed either, by my brief. Nothing
@@ -436,7 +508,7 @@ by asking whether your clone is shallow — the only test is whether the object 
    "that command exits 0".
 8. **THE SNAPSHOT ROW NO LONGER FITS UNDER THE CONVENTION.** #527's row is already 249,927 bytes against a 262,144 limit and this run's roughly twenty new fields do not fit in the ~12 KB of headroom, so I shed the oldest per-build narrative fields, named every one on the row and on `jobs/the-snapshot-rows-cumulative-copy-cannot-be-followed-any-more-the-document-ceiling-arrives-before-the-prune-ceiling-2026-10-21`, and asserted the size BEFORE shedding rather than discovering the refusal at the end. **I did NOT change the convention** — which of its three options to take is a ruling, not a run's call. I also explicitly overwrote every unsuffixed scalar (`note`, `sha`, `gatedSha`, `bundleMd5`, `gateFail`, `gateSections`, `regressionAssertions`, `openP0`, `openP1`), because the copy-forward carries whatever you do not overwrite and that is how #526's row shipped `#523 HELD` as its own headline.
 
-## 5. WHAT I GOT WRONG
+### 5. WHAT I GOT WRONG
 
 FOUR, and the first is the one that nearly cost the run. **(1) I ALMOST ACCEPTED A VETO-KIND FINDING AGAINST MY OWN TREE WITHOUT DIAGNOSING IT.** Control (e) read `169 pass, 1 fail` against an expected 170/0. Both cheap moves were available and both were wrong: "one case short on a tool P1 does not touch, carry on" reads as diligence, and standing down reads as rigour. What separated them was a control I had to choose to run — main's own selftest in a worktree in this same container, which read the identical 169/1 with the identical failing case. The habit that matters is that "is this mine?" has a mechanical answer and I should reach for it before forming a view, not after. **(2) I SHELL-MANGLED MY OWN LEDGER TEXT.** I wrote a `python3 -c` whose string contained backticks; bash command-substituted them and silently dropped two words from a field describing R02 compliance. Caught because the shell printed `at: command not found`, and rewritten from a script file. A field that reads fluently with two words missing is worse than a syntax error, and this is the project's own "a sentence you write in a record is a claim like a line of code" arriving in the quoting layer. **(3) I PULLED A 225 KB DOCUMENT INTO CONTEXT BY LISTING A COLLECTION WITHOUT `out_dir`,** then did it again with a `grep -A6` over `claude/stories/TEST-CASES.md`, whose rows run to thousands of characters. Both were avoidable by the tool's own documented option; the second I repeated after the first had already taught me. Mid-run context is a finite resource this run was not short of, which is luck rather than judgement. **(4) I ARMED THREE OVERLAPPING WAITERS ON ONE CONTROL,** a Monitor and two background loops, so one event arrived five times. Not the `pgrep -f` self-reference trap this project has lost two runs to — mine keyed on files the job writes, which is the sanctioned shape — but noise I created and should have cleaned up rather than left firing.
 
@@ -452,7 +524,7 @@ main and the orchestrator decides. The durable record is in the tracker, not her
 branch's own note and every later run should treat it as such
 [jobs/handoff-guidance-written-on-an-unmerged-branch-is-invisible-to-every-later-run-2026-10-01].
 
-## 1. THE TREE: DO NOT REBUILD IT
+### 1. THE TREE: DO NOT REBUILD IT
 
 `claude/practical-sagan-8hh9ex` at **`fa20bf82a772e72c8b79c582b232c970b347192f`** (T), six commits above
 main, every one signed with both trailers, pushed. It is the four patches of
@@ -472,7 +544,7 @@ against the document's own `files` as a sorted-set equality (all four matched); 
 nine shell files. No application change: `app.js` is `ec31de9fe6c5` and `chess.jsx` `1b41d1d1e765`, both
 byte-identical to main, and `gates/build.sh` was never run.
 
-## 2. THE RED, AND WHY IT IS NOT THIS TREE'S — PROVED BY FILE IDENTITY, NOT BY ARGUMENT
+### 2. THE RED, AND WHY IT IS NOT THIS TREE'S — PROVED BY FILE IDENTITY, NOT BY ARGUMENT
 
 `GATES RED #527`: 60 gates, **5006 PASS, 1 real FAIL**, manifest green at 59/59/0 missing. The failure is
 one assertion in the last gate of the roster — `75-fit-loop-one-way-ratchet`, 89 pass / 1 fail, assertion
@@ -508,7 +580,7 @@ redden **any** push in this project at random, on a bundle nobody touched. That 
 `jobs/gate-75s-d4-reddens-under-suite-load-on-mains-own-bundle-so-any-push-can-be-reddened-by-a-commit-that-cannot-have-caused-it-2026-10-21`
 with all three readings and the measurement that would tell a real jump from an artefact.
 
-## 3. WHAT IS PROVEN ABOUT THE WORK ITSELF, WHICH IS EVERYTHING EXCEPT THE SHIP
+### 3. WHAT IS PROVEN ABOUT THE WORK ITSELF, WHICH IS EVERYTHING EXCEPT THE SHIP
 
 - **All six controls read their expected figure exactly**, so P2 was never dropped and the single
   re-run allowance was never spent. Conditions were read *before* the runs and passed as shell
@@ -527,7 +599,7 @@ with all three readings and the measurement that would tell a real jump from an 
 - **BOTH BLIND DOORS: NO BLOCKERS**, no contradiction between them, two independent re-runs of control
   (a) at this commit, and door A reproduced three of the diff's own comment claims from scratch.
 
-## 4. FOR THE NEXT RUN, IN ORDER
+### 4. FOR THE NEXT RUN, IN ORDER
 
 1. **THE TREE IS FINISHED AND MUST NOT BE REBUILT.** It is gated except for a red it cannot have caused.
    What it needs is a decision about gate 75, not more building. The orchestrator decides; a run handed
@@ -566,7 +638,7 @@ No application change for the fourth build running. `app.js` is still #522's `ec
 all, by the opening's instruction, so #526 has a minted register row and **no built row**, and the suite
 re-gated #522's own artefact under `CT_EXPECT='#522'`. **Do not read `GATES GREEN #526` as a new bundle.**
 
-## 1. WHAT LANDED, AND THE ONE THING TO READ IF YOU READ NOTHING ELSE
+### 1. WHAT LANDED, AND THE ONE THING TO READ IF YOU READ NOTHING ELSE
 
 The thirteen commits #525 held on `claude/practical-sagan-ai9x6b` are on main as ONE squash commit
 `b8055c7`, whose tree was `00080ca844e8` — exactly the tree the orchestrator had measured, so the premise
@@ -585,7 +657,7 @@ it. Telling the next reader not to add one was the worst sentence available, and
 places that carried it, with the fix filed:
 `jobs/h24s-byte-check-measures-the-whole-list-so-a-fixture-passing-all-three-self-checks-still-misses-the-race-2026-10-20`.
 
-## 2. AND MY FIRST CORRECTION MADE THE SAME MISTAKE ONE LAYER DOWN
+### 2. AND MY FIRST CORRECTION MADE THE SAME MISTAKE ONE LAYER DOWN
 
 The first draft of that withdrawal said the fixture "fires the race 12 of 40" — a point figure for a
 load-dependent quantity, which is the very failure the sentence above it was correcting. Antagonist A then
@@ -601,7 +673,7 @@ TC-SUITE-081's older "38 of 40" was contradicted by its own 40 of 40, and I had 
 and I reverted the edit before committing. A figure inside the noise of its own instrument is not an error
 to restate, and this project has nearly "corrected" an exactly-right citation before (#450).
 
-## 3. THE FOUR FIXES AND THEIR CONTROLS
+### 3. THE FOUR FIXES AND THEIR CONTROLS
 
 | fix | what | control, shown failing with the fix removed |
 |---|---|---|
@@ -618,7 +690,7 @@ falls in the control's own three-line `sed` window and is itself counted, so the
 instead of 1. Both are CLAUDE.md's "a negative control must cross the threshold, not just disturb the
 mechanism", met from the inside.
 
-## 4. FOR THE NEXT RUN, IN ORDER
+### 4. FOR THE NEXT RUN, IN ORDER
 
 1. **The three jobs this run filed**, all typed and fingerprinted, none of them blocking a landing:
    the H24 bytes-after-target fix (the real closure of the above); the unit block bounding SKIPS rather than
@@ -636,7 +708,7 @@ mechanism", met from the inside.
 4. `docs/fast-gate-state` is still unseeded and fast mode is still OFF. Landing is a lower bar than
    enabling; the orchestrator seeds that state after verifying this landing from git, not this run.
 
-## 5. THE RE-READ ROUND, AND THE ONE HAZARD THIS RUN CREATED
+### 5. THE RE-READ ROUND, AND THE ONE HAZARD THIS RUN CREATED
 
 **Round 2 was a FRESH pair on the same two doors** (rule (6)(c): every change under `gates/` made after the
 first pair launched is read once more, and that is the last round). A2 and B2 were new agents launched in
@@ -673,7 +745,7 @@ Also pre-existing and NOT this run's, recorded because the totals have drifted s
 nothing reports that either: `--citations` is red at both my commits for 19 dead paths, 32 unsupported case
 ids and 11 misfiled rows, against #493's 18 / 20 / 10 thirteen days ago. The line-citation arm is 0 over.
 
-## 6. THE SUITE, AND WHAT ITS NUMBER DOES AND DOES NOT SAY
+### 6. THE SUITE, AND WHAT ITS NUMBER DOES AND DOES NOT SAY
 
 `GATES GREEN #526` — **60 sections, 5000 PASS, 0 FAIL**, 03:49:54Z to 05:40:50Z (110 minutes).
 `claude/agents/gatelogs/526-all.log`, md5 `ecc5bae07b44`, gated sha `0bc7eca`, bundle `ec31de9fe6c5`,
@@ -717,7 +789,7 @@ would make `verify-log.sh` refuse every future log over main's own bundle. The d
 re-read pair's shipped-surface door), and by the time it was installed the published cut line for starting a
 suite was 27 minutes away with a veto open.
 
-## 1. WHY IT IS HELD, AND IT IS ONE LINE
+### 1. WHY IT IS HELD, AND IT IS ONE LINE
 
 `gates/gates.sh`'s fastgate-drive unit block **credits SKIPS as green.** Its verdict has no bound above
 `dok -eq 0`, so a harness reporting **1 ok and 25 SKIPPED** prints `fastgate-drive: green` and leaves `red=0`.
@@ -736,7 +808,7 @@ applying it here would be the exact trade that cost #524 its ship: a change to t
 every future push, with no blind read. So it is **FILED, not applied** —
 `jobs/the-unit-blocks-verdict-credits-skips-as-green-with-no-bound-2026-10-16`.
 
-## 2. WHAT THE BRANCH CARRIES, ALL CONTROLLED
+### 2. WHAT THE BRANCH CARRIES, ALL CONTROLLED
 
 | what | control |
 |---|---|
@@ -752,7 +824,7 @@ trees by the shipped-surface door: `gates.sh --selftest` 14/0 (main 10/0), `gate
 `landed-on-main --selftest` 43/0 (main 38/0), `buildnum-selftest` 170/0, `held-selftest` 35/0,
 `stamp-selftest` 8/0, `records-gate --selftest` 60/0/1, `verify-log` byte-identical on two archived logs.
 
-## 3. THREE ANTAGONIST ROUNDS, AND TWO OF THEM CAUGHT ME
+### 3. THREE ANTAGONIST ROUNDS, AND TWO OF THEM CAUGHT ME
 
 **ROUND 1 VETOED H24 FROM BOTH DOORS INDEPENDENTLY, AND WAS RIGHT.** The case written for this run's P0 could
 not fail for that P0. The race needs `grep -q` to exit EARLY, so it needs the target EARLY in the sorted path
@@ -791,7 +863,7 @@ defeat the records ratchet, so the row is left alone and corrected here instead.
 Three instances in one run of asserting a landing that had not happened; two were caught by an
 antagonist and this one by running R34's landing check against my own records instead of trusting them.
 
-## 4. FOR THE NEXT RUN, IN ORDER
+### 4. FOR THE NEXT RUN, IN ORDER
 
 1. **Four one-line fixes, each with a validated control on its job**, all under `gates/`: the skip bound (the
    veto), `drefuse`'s unanchored `grep` (anchor it to `^fastgate-drive\.sh: REFUSING - `), `show_verdict`'s
@@ -840,7 +912,7 @@ push on an unreviewed diff with zero margin is #450's shape.
 | the full record | `builds/524`, `runreports/524` |
 | the #523 hold | `gates/held-trees.tsv`, row `#523` — still live, and §5 says what to do with it |
 
-## 0. WHAT THIS RUN FIXED, AND WHAT FOUND THE FIXES WANTING
+### 0. WHAT THIS RUN FIXED, AND WHAT FOUND THE FIXES WANTING
 
 #523's three blockers are closed: the future-stamp bound is now FORMATTED in Eastern and not merely parsed
 there (it was wall clock +4h10m, so the orchestrator's own three-hour-future fixture took a fast green); the
@@ -861,7 +933,7 @@ flags in full. The three that matter most to whoever reads this next:
    already carried. The register has NINE gaps, and a planted `363 minted` row landed with the log asserting
    the contiguity check it had skipped.
 
-## 1. THE ONE THING TO READ IF YOU READ NOTHING ELSE
+### 1. THE ONE THING TO READ IF YOU READ NOTHING ELSE
 
 **My first fix for (1) was a flat ceiling of two new numbers per commit, and I justified it in the code with
 "nothing in this project's history appends three" — a sentence I had not measured.**
@@ -889,7 +961,7 @@ breaking it.** The same measurement supplied the right shape, because the two do
 hand-written row claiming a free number, and the ceiling of 3 is a bound on this register's HISTORY, not on
 what is honest. Both are residuals (2a) and (2b) in `claude/stories/TEST-CASES.md`.
 
-## 2. THE CONTROL THAT PROVES THE ACCEPT DIRECTION, AND WHY `unfixed` IS NOT IT
+### 2. THE CONTROL THAT PROVES THE ACCEPT DIRECTION, AND WHY `unfixed` IS NOT IT
 
 H20 asserts that three contiguous rows above the top still take exit 0. Under `unfixed` it FAILS — and that
 failure is **not a control**: `origin/main` has no bound at all, answers exit 0 for the right reason, and the
@@ -904,7 +976,7 @@ clone at `0986d2f` and run — **17 ok / 1 FAIL, the one failure being H20 at `e
 **Harness totals:** `fixed` **18 ok / 0 FAIL / 1 skipped** (H1b skips — no esbuild in this container);
 `unfixed` **5 ok / 13 FAIL**, twelve of them wrong inputs taking `FAST GATE GREEN` on the script main ships.
 
-## 3. THE ARM, EXERCISED ON THE REALEST INPUT THERE IS: THIS RUN'S OWN COMMIT SET
+### 3. THE ARM, EXERCISED ON THE REALEST INPUT THERE IS: THIS RUN'S OWN COMMIT SET
 
 `bash gates/fastgate.sh $(git rev-parse origin/main)` on this branch → **exit 2, GO FULL**, with the register
 arm running FIRST (the reorder working) and printing *"register plausibility: 2 new build number(s) above the
@@ -912,7 +984,7 @@ base register top of #522, each contiguous with it … and no new number at or b
 (arriving with the held branch, whose own row never reached main) and #524. The GO FULL is correct and
 expected: this commit set touches six shell scripts, which `classify()` forces by name.
 
-## 4. FOUR PROCESS ERRORS OF MY OWN, THREE OF THEM THE SELF-REFERENCE TRAP
+### 4. FOUR PROCESS ERRORS OF MY OWN, THREE OF THEM THE SELF-REFERENCE TRAP
 
 **(a) `CT_EXPECT` defaults to the suite's own number argument.** `gates/gates.sh:160` is
 `export CT_EXPECT="${CT_EXPECT:-$N}"`, and mountcheck asserts the bundle's stamp starts with it. This run
@@ -950,7 +1022,7 @@ never engaged. Cause filed as
 `jobs/a-defensive-commit-gpgsign-false-left-two-commits-unsigned-in-a-fully-signed-repository-2026-10-16`,
 with the remedy placed BEFORE the suite launch rather than at the stop hook.
 
-## 5. WHAT THE NEXT RUN INHERITS
+### 5. WHAT THE NEXT RUN INHERITS
 
 **A TREE THAT IS FINISHED AND UNGATED.** Everything below is done; what is missing is one clean full suite
 and one blind read of the post-veto diff.
@@ -977,7 +1049,7 @@ and one blind read of the post-veto diff.
    parses `path.join(` only, so a gate reading a repo file by `__dirname + '...'` concatenation — which
    `gates/regress/22-engline-recovery.js:261` does today — is invisible to it.
 
-## 6. WHAT WAS DROPPED, AND WHY IT IS THE SLOT AND NOT THE RUNS
+### 6. WHAT WAS DROPPED, AND WHY IT IS THE SLOT AND NOT THE RUNS
 
 Part 3 (`jobs/the-tier-guards-what-it-executes-but-not-what-it-reads-2026-10-14`) and the held-register job
 were dropped **ahead of** the cut line, on a measurement rather than a clock. Part 3's own brief, the pen note
@@ -1026,7 +1098,7 @@ branch and re-gate.
 | the findings | `flags/antagonist-a-523`, `flags/antagonist-b-523` (both carry a `crossRead_523` field) |
 | the full record | `builds/523`, `runreports/523` |
 
-## 0. WHAT WAS BUILT, AND THE ONE NUMBER THAT CAME OUT HIGHER THAN THE JOB EXPECTED
+### 0. WHAT WAS BUILT, AND THE ONE NUMBER THAT CAME OUT HIGHER THAN THE JOB EXPECTED
 
 `gates/fastgate-drive.sh` is new: 360 lines, 13 cases, driving `gates/fastgate.sh` end to end in throwaway
 clones. `gates/fastgate.sh` gained a stamp-plausibility arm and a register-plausibility arm, and
@@ -1043,7 +1115,7 @@ ten there are zero unexplained violations, steps of +1 nine times and +2 once, t
 `built`-row-to-stamp lag of **exactly 0 minutes**. Equality of the stamp number is allowed because 12 of the 43
 stamp-only commits carry the same number on both sides.
 
-## 1. WHY IT IS HELD — THREE DEFECTS, ALL FILED, ALL SMALL
+### 1. WHY IT IS HELD — THREE DEFECTS, ALL FILED, ALL SMALL
 
 **(1) The future-stamp bound is computed in UTC, so it is four hours wide — and this is the defect the build
 existed to close.** `gates/fastgate.sh:505`:
@@ -1094,7 +1166,7 @@ would have reddened a fifth of the archive. Make it a reported SKIP, as the esbu
 exit of a 360-line harness into loss of `GATES GREEN`, without distinguishing "the harness could not run" from
 "the harness ran and a case failed".
 
-## 2. WHAT TO LAND FIRST, AND THE CORRECTIONS IT NEEDS
+### 2. WHAT TO LAND FIRST, AND THE CORRECTIONS IT NEEDS
 
 **Commit `6fcbca5`'s content is the cheapest thing to land** — the CLAUDE.md withdrawals and
 `gates/audit/landed-on-main.sh`'s prefix read. Antagonist B audited the CLAUDE.md diff from the shipped-surface
@@ -1117,7 +1189,7 @@ reorder); its margin accepts rows at `top+1..top+10`, which burns numbers perman
 hole the item job was filed about; and the thirteen `TC-SUITE-057..069` ids never appear in any log, which
 ratchets `verify-log --citations` arm (2) by **+13** once #523's log is archived.
 
-## 3. THE HOLD ITSELF FOUND A DEFECT IN THE HOLD MECHANISM
+### 3. THE HOLD ITSELF FOUND A DEFECT IN THE HOLD MECHANISM
 
 `gates/held-trees.tsv` **cannot express a hold on a run that changed only `gates/`.** All three of its keys —
 bundle md5, sha, sourceMd5 — identify an *artefact*, and a gates-only run's artefact is main's own. #523 changed
@@ -1130,7 +1202,7 @@ field 7 is `-`, and the row's own reason says all of this in full. Verified both
 sha, "not held" on `ec31de9fe6c5`. **Do not "correct" that field.** Filed as
 `jobs/the-held-register-cannot-express-a-harness-only-hold-because-all-three-of-its-keys-identify-an-artefact-2026-10-15`.
 
-## 4. WHAT THIS RUN COST, AND IT WAS NOT THE DEFECTS
+### 4. WHAT THIS RUN COST, AND IT WAS NOT THE DEFECTS
 
 **The ship was lost to a clock.** The suite went green at **14:51Z** and nothing looked at it until **20:20Z**,
 because the only watcher was a `Monitor` that expired on its own 30-minute timeout at ~13:19Z and was never
@@ -1151,7 +1223,7 @@ One recorded procedure breach: **the first suite was launched before the cross-r
 procedure's explicit hold, on a judgement that depended on the clock it had already misjudged. The cross-read
 then changed the record twice, which is the argument for the rule.
 
-## 5. WHAT IS OWED NEXT
+### 5. WHAT IS OWED NEXT
 
 1. **Fix the three blockers and re-gate `claude/practical-sagan-v052x8`.** All one-liners. Land the gates/
    fixes together — every one of these paths is FORCE by `classify()`, so they cost ~110 minutes each if split.
@@ -1172,7 +1244,7 @@ then changed the record twice, which is the argument for the rule.
 6. **Still blocked by the egress proxy:** no run from this container can verify the deployed app against the
    committed bundle (R34's post-deploy half). Moot this run — nothing application-facing shipped.
 
-## 6. THE APPENDIX BELOW IS STILL LIVE — #523 APPLIED IT, ON A BRANCH THAT DID NOT LAND
+### 6. THE APPENDIX BELOW IS STILL LIVE — #523 APPLIED IT, ON A BRANCH THAT DID NOT LAND
 
 Section 7 and the appendix are #521's and #522's, kept **verbatim**, and their heading still says "NOT DONE
 HERE". That is now half true and the half that matters is unchanged: **#523 did apply both anchor blocks, and
@@ -1277,7 +1349,7 @@ container-is-not-its-contents one level up, and it is the argument for the secon
 in a browser, with no access to the framing. The cross-read then yielded four findings neither antagonist had
 alone. Accounting in `notes/build__1792020359000__4`.
 
-## 1. WHAT THE FIX IS, AND WHY EVERY OTHER ROUTE IS CLOSED
+### 1. WHAT THE FIX IS, AND WHY EVERY OTHER ROUTE IS CLOSED
 
 The portrait fit loop (`chess.jsx`, search `boardTrim`) shrinks the lesson board on a real overflow and can never
 grow it back: #364's growth branch needs `over < -24`, and `over` is **0 in every settled portrait state by
@@ -1308,7 +1380,7 @@ the moves panel wakes it for flow changes React cannot see (`theREARMISBLINDTOO_
 watches `rootRef`, whose height IS the viewport, so it can only see content that OVERFLOWS the root, never content
 that leaves it).
 
-## 2. THE MARGIN IS A MEASURED CHOICE AND THE OBVIOUS FORM IS WORSE
+### 2. THE MARGIN IS A MEASURED CHOICE AND THE OBVIOUS FORM IS WORSE
 
 The refit uses the loop's own shrink step, spare `+8` and all. Dropping the margin looked obviously right — the
 refit re-measures, so it does not need a safety term — and measured worse. Clean settled board, sampled per frame:
@@ -1347,7 +1419,7 @@ gate 48 with 3 FAIL. Gate 48 drives `endgame-demo-end` at 320x540 — **not** th
 run's own commit message `b88f1c8` says; it drives King's Gambit at other cells, so coverage of the deviating
 lesson is BETTER than that message claimed, and the message is wrong in the safe direction [R18].
 
-## 3. WHAT IT COST TO GET RIGHT — three mistakes, all recorded
+### 3. WHAT IT COST TO GET RIGHT — three mistakes, all recorded
 
 1. **TWO TRIAL BUNDLES DID NOT MOUNT AT ALL.** The observer effect's dependency array named `wide`, a const
    declared ~300 lines below it, so the array was evaluated in its temporal dead zone. The minified bundle said
@@ -1363,7 +1435,7 @@ lesson is BETTER than that message claimed, and the message is wrong in the safe
    `chess.jsx` invalidates the suite outright, because the bundle would be rebuilt and the gated md5 would no
    longer be the pushed md5.
 
-## 4. THE GATE MOVED OUT OF gates/pending/ AND GAINED A PER-FRAME BLOCK
+### 4. THE GATE MOVED OUT OF gates/pending/ AND GAINED A PER-FRAME BLOCK
 
 `gates/regress/75-fit-loop-one-way-ratchet.js` (was `gates/pending/`), its manifest row promoted `absent` ->
 `required` by `gates/gatemanifest.sh sync`, and its ADMIT row removed from `gates/audit/cited-not-run.sh`. That
@@ -1396,7 +1468,7 @@ defect three frames wide on every entry.
 actually uses both have no per-frame gate, and B had driven neither 430x932 nor 375x761-with-insets. Same blind
 spot from both doors.
 
-## 5. PART B LANDS WITH NO SUITE COVERAGE, SO ITS OWN CONTROLS ARE THE ONLY THING VOUCHING FOR IT
+### 5. PART B LANDS WITH NO SUITE COVERAGE, SO ITS OWN CONTROLS ARE THE ONLY THING VOUCHING FOR IT
 
 Part B is #521's build-number-register arm split in `gates/fastgate.sh`, merged **unrebuilt** from
 `claude/practical-sagan-8t3gj4` at `55ef500` exactly as the opening required. **MEASURED, NOT ASSUMED: no gate in
@@ -1420,7 +1492,7 @@ identical timestamp** (`e5c5969` and `49ec643`, 118 and 291 changed lines), merg
 the fuller version, and the net `fastgate.sh` diff landing on main is `+291`. The history is odd; the content is
 the one that was intended, and the controls above are the evidence for that rather than the commit graph.
 
-## 6. WHAT IS OWED NEXT
+### 6. WHAT IS OWED NEXT
 
 **THE FIX IS NOT THE WHOLE STORY AND THE RESIDUALS ARE NAMED, NOT HIDDEN.** Four jobs, one amber record and one
 contradiction were filed by this run, every one of them from its own antagonist pair rather than from me.
@@ -1482,7 +1554,7 @@ at that geometry, so it ranks the residual **below** its own 320x540 finding. No
 contradicts that — an injected 88px element is a synthetic trigger. The trigger *class* is real (gate 16's 62px
 in-flow spacer at game over); this size at this geometry is not shown to be reachable.
 
-## 7. STILL OWED FROM #521 AND NOT DONE HERE — THE CLAUDE.md BRANCH-PUSH CORRECTION
+### 7. STILL OWED FROM #521 AND NOT DONE HERE — THE CLAUDE.md BRANCH-PUSH CORRECTION
 
 The opening for this run says in terms: **no CLAUDE.md edit**. #521's correction to CLAUDE.md's branch record is
 therefore still owed, and its exact text is carried forward verbatim below so the next run that may touch
@@ -1506,7 +1578,7 @@ pointed at this file rather than at a code comment: *a sentence that reasons abo
 about `origin/main`, and `origin/main` is one grep away.* Two greps here — `ls gates/regress/67-*` and the
 manifest row — and both are free.
 
-## APPENDIX: THE EXACT `CLAUDE.md` EDIT #521 COULD NOT LAND, READY TO APPLY
+### APPENDIX: THE EXACT `CLAUDE.md` EDIT #521 COULD NOT LAND, READY TO APPLY
 
 `classify()` calls `CLAUDE.md` **FORCE** — "the push bar itself, not a record of a run: a commit that rewrites the
 rules every session reads is not a records commit". That rule is right and this appendix is the way round it that
