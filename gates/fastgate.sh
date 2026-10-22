@@ -149,27 +149,52 @@ fi
 # project's own recorded reason for `--this-bundle` being opt-in. fastgate.sh's own read pin already uses
 # `:(glob)` for exactly this.
 # MEASURED NO-OP ON AN HONEST TREE: all six sets report 0 untracked-including-ignored paths on this checkout.
-# TWO GROUPS, BECAUSE THE TWO CHECKS READ THEIR PATHS BY DIFFERENT RULES AND A SINGLE SCAN WAS WIDER THAN
-# BOTH. gates/verify-log.sh --citations iterates SHELL globs (`for f in claude/stories/*.md gates/*.js
-# gates/*/*.js HANDOFF.md CLAUDE.md`), and a shell glob does not match a path component beginning with a dot;
-# gates/control-audit.js uses fs.readdirSync over claude/agents/gatelogs and gates/regress, which DOES see
-# dotfiles. So the dot rule is applied to the first group and not to the second.
-# WHY THIS MATTERS, AND IT IS A DEFECT THIS GUARD HAD ON ITS FIRST DRAFT: gates/build.sh creates
-# `$G/.build` on EVERY build, leaves `gates/.build/app.js` behind, and git's `:(glob)` - unlike the shell -
-# DOES match a dotted directory. So the single-group scan listed it and routed every post-build fast gate to
-# the full suite. Measured on this tree: `ls-files --others -- ':(glob)gates/*/*.js'` returns
-# gates/.build/app.js while the shell's own `for f in gates/*/*.js` returns it 0 times. A guard that fires on
-# the normal case gets switched off, so the scan is now exactly as wide as what the checks can actually read -
-# which is also why no hiding hole is reopened: a file under gates/.anything/ is UNREADABLE by those globs.
+# THE EXEMPTION IS PINNED TO ONE GENERATED DIRECTORY AND NOT TO A PROPERTY OF PATHS, ON AN UPHELD VETO FROM A
+# FRESH REVIEWER OF THE FIRST CORRECTION [#530]. The history of this block in one place, because it got the
+# width wrong in BOTH directions before it got it right:
+#   draft 1  scanned one group with no exemption. It listed `gates/.build/app.js`, which gates/build.sh creates
+#            on every build, so every post-build fast gate was routed to the full suite. TOO WIDE, and it fires
+#            on the normal case, which is how a guard gets switched off.
+#   draft 2  dropped every path with a DOT-LEADING COMPONENT from the shell-glob group, on the ground that
+#            `gates/verify-log.sh --citations` iterates shell globs, which cannot match such a path. TOO NARROW,
+#            and that is the worse error: --citations reaches paths by THREE routes, not one. Its arm (1)
+#            resolves a `claude/stories/...md` citation taken from register TEXT with `[ -e "$TEST" ]`, and its
+#            arm (4) resolves a `gates/...(js|sh)` citation with `[ ! -f "$P" ]` and then `wc -l < "$P"`. Those
+#            tests are not globs and they see dotted paths - measured: `[ -e .probe/x.js ]` and
+#            `[ -f .plant.md ]` are both true. So draft 2 REOPENED the hole this block exists to close, and its
+#            comment asserted in terms that it did not. Demonstrated end to end by the reviewer, twice, each
+#            time FAST GATE GREEN with the plant under draft 2 and exit 2 under draft 1 on the identical tree:
+#            `claude/stories/.plant530.md` through arm (1), and `gates/.probe/x.js` through arm (4) - the second
+#            needing NO .git/info/exclude at all, because `.gitignore:14` already ignores `gates/.probe/` for
+#            throwaway probes, which made the project's own convenience the cheapest blind spot.
+#   NOW      the exemption names the MECHANISM, which is CLAUDE.md's rule for exactly this ("it pins the
+#            exclusion to its MECHANISM"): `gates/.build/` is the bundle directory gates/build.sh owns and
+#            recreates (`B="$G/.build"; rm -rf "$B"; mkdir -p "$B"`), and it is the ONLY dotted path a build
+#            leaves in these sets. Every other untracked path, dotted or not, still routes to the full suite.
+# A SIDE BENEFIT WORTH NAMING: draft 2's correctness depended on bash's default globbing, and `shopt -s dotglob`
+# would have silently broken it. Pinning the exemption to one directory removes that dependency entirely.
+# WHAT IS STILL NOT COVERED, DECLARED RATHER THAN CLAIMED AWAY, because the sentence "exactly as wide as what the
+# checks can read" was false and is withdrawn [R18]. Both of these PREDATE this run and neither is fixed here:
+#   - `gates/**.sh` is in no group, while arm (4)'s regex matches `.sh`; adding it here would list this suite's
+#     own gitignored `gates/.gates-run-*.sh` copy and fire on the normal case, so it needs the reader fixed, not
+#     the scan widened.
+#   - an EMPTY UNTRACKED DIRECTORY satisfies arm (1)'s `[ -e ]` and git lists no empty directory in any form, so
+#     no scan built on `ls-files --others` can see it.
+#   The durable repair for both is to ask the COMMIT rather than the disk inside the reader
+#   (`git cat-file -e HEAD:<path>`), which is #527's own fix applied to the premise check. That is in
+#   gates/verify-log.sh, whose artefact lock is parked-unlanded by another lane, so this run may not touch it.
 OSPECS_GLOB=(':(glob)claude/stories/*.md' ':(glob)gates/*.js' ':(glob)gates/*/*.js' ':(glob)HANDOFF.md' \
              ':(glob)CLAUDE.md')
+# gates/regress/* rather than *.js, deliberately: control-audit.js filters that readdir on .js, but a planted
+# non-.js file there is cheap to report and the direction is safe. Named here because draft 2 widened it and
+# said nothing [the reviewer's FINDING 4].
 OSPECS_DIR=(':(glob)claude/agents/gatelogs/*' ':(glob)gates/regress/*')
 # --others with NO --exclude-standard, so a .gitignore'd or .git/info/exclude'd file is LISTED: hiding is the
-# whole mechanism. awk reads to EOF and only limits what it prints, so there is no early-exit pipeline here.
-# The first awk drops any path with a dot-leading component, which is the shell's own rule.
-OSTEER="$( { $GIT -c core.quotePath=false ls-files --others -- "${OSPECS_GLOB[@]}" 2>/dev/null \
-              | awk '$0 !~ /(^|\/)\./';
+# whole mechanism, and `gates/.probe/x.js` above is why an ignored path must not be trusted. awk reads to EOF and
+# only limits what it PRINTS, so there is no early-exit pipeline. `sort -u` drains by definition.
+OSTEER="$( { $GIT -c core.quotePath=false ls-files --others -- "${OSPECS_GLOB[@]}" 2>/dev/null;
             $GIT -c core.quotePath=false ls-files --others -- "${OSPECS_DIR[@]}" 2>/dev/null; } \
+  | grep -v '^gates/\.build/' \
   | sort -u \
   | awk 'BEGIN{n=0} {n++; if (n<=5) print "    " $0} END{if (n>5) print "    ... and " (n-5) " more"}')"
 if [ -n "$OSTEER" ]; then
