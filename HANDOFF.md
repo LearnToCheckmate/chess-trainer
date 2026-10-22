@@ -1,3 +1,145 @@
+# HANDOFF - after #531: THE TWO SCANS #530 SHIPPED NOW HAVE CASES, AND N1 WAS BUILT, GREEN, AND REVERTED BEFORE THE PUSH ON THIS RUN'S OWN ANTAGONIST'S VETO
+
+Build #531 landed two harness fixes, withdrew a third on an upheld veto, and shipped **no application
+change whatsoever**. MEASURED, not assumed: `git diff 56b2f7d HEAD -- app.js chess.jsx` is **empty**, and
+`md5sum app.js` reads `049b41dfb6f1` on disk and out of `56b2f7d` alike, so the bundle is #530's own
+artefact re-gated and `chess.jsx` stays `1b41d1d1e765`. **Nothing a player sees moves.** A later reader
+must cite that md5 and never the number: four of the eight numbers with a committed bundle name more
+than one artefact (#454).
+
+## 1. READ THIS FIRST IF YOU ARE PICKING UP N1
+
+`jobs/the-raw-byte-pins-of-fastgate-refuse-an-honest-autocrlf-checkout-at-exit-1-instead-of-routing-it-to-the-full-suite-2026-10-20`
+is **not-yet for the second build running**, and both withdrawals are on the same veto. Do not rebuild
+either arm as written.
+
+- **#530's arm** read `core.autocrlf` and `core.eol` out of `.git/config` - a signal from OUTSIDE the
+  commit - and turned a tamper REFUSAL into a ROUTING decision.
+- **#531's arm** (`d100ef9`, reverted at `5d69a83`) read no config at all. It classified a file as a
+  conversion whenever `tr -d '\r'` over its disk bytes hashed back to the committed blob, and excluded
+  the five files **the tier** executes. **That is the wrong excluded set**, and the measurement is:
+
+  1. `grep -c` for `hash-object`, `rev-parse HEAD:` and `cat-file` in `gates/gates.sh` is **0, 0 and 0**.
+     So fastgate's READ pin is the **only** raw-byte pin anywhere in this project on
+     `gates/regress/*.js`, `gates/lib.js`, `gates/mountcheck.js`, `gates/engine-extract.js` and
+     `gates/drive/*.js`.
+  2. `tr -d '\r'` strips **every** CR, not only line-end ones. One CR inserted **mid-line** after a
+     `return` is a JS LineTerminator, so Automatic Semicolon Insertion fires: a predicate answering
+     `true` for a 38.9px overflow answers `undefined`. `node --check` **passes on both files**, no byte
+     of content changed, and `conv_only` calls the second a conversion of the first.
+  3. exit 2's **destination is the full suite**, which EXECUTES those files, and nothing downstream ever
+     looks at their bytes again.
+
+  So the arm turned a hard STOP into "go and run the thing that executes the altered file". That is
+  #530's upheld veto - "one CR in a pinned script can change what it DOES" - with the **suite** in place
+  of the tier. Two further faults in the same predicate: a **symlink** to a CR-bearing file outside the
+  repository was reported as "the committed blob WITH CRLF" (`[ -f ]` follows symlinks), and the
+  published input space of "eight inputs it can legally receive" was wrong - at least three more answer
+  true.
+
+**THE CORRECT DESIGN, so nobody rediscovers it.** Require **UNIFORM CRLF**: every LF in the committed
+blob present as CRLF on disk and **no other CR anywhere**. That rejects the mid-line CR, the partial
+conversion and the ASI case, and it is sound even for the executed sets, because CRLF is a valid JS and
+POSIX-shell line terminator while a lone CR is not. Reject symlinks explicitly. Control it in a state
+where the conversion applies to the files under test **but not to the harness** - #530's HANDOFF asked
+for exactly that and the reverted `H52` is that shape, so H52 is worth resurrecting.
+
+**AND DO NOT WRITE "exit 2 AUTHORISES NOTHING" WITHOUT ASKING WHAT EXIT 2's DESTINATION EXECUTES.** That
+one sentence is true of the catch-all, false of the READ pin, and it is what cost this build a suite.
+
+## 2. WHAT DID LAND
+
+**CASES** (`c7788af`, fixed at `4b091a4`). #530 derived the unit block's declared case count from the
+`tc()` table instead of a hand-kept array. It left the next question unasked: the harness declares that
+count **about itself**, so a harness replaced wholesale by one declaring 1 and running 1 read green. The
+block now takes its own count from the **committed** table (`git show HEAD:gates/fastgate-drive.sh`, less
+`H12`) and reddens on three conditions - an empty table, a repeated id, a count mismatch - with the
+decline branch requiring the mismatch flag clear so a harness cannot decline past the cross-check.
+
+**KNOW ITS LIMIT, because the commit message overstated it and the correction is the useful part.** The
+job's own stub reads RED **only when it carries no `tc()` table at all**. A stub that declares 1, runs 1
+and carries a one-row table is **still green**. What the limb actually raises is the forgery cost from one
+`echo` to one `echo` plus three lines. And the two numbers come from a **byte-identical pipeline** over
+two inputs - the working-tree copy and the committed copy - so the only class it can detect is "the
+running harness's table differs from the committed one". That is worth having; it is not what the first
+commit message said.
+
+**N3** (`082bd30`). H49, H50 and H51 are the cases #530 shipped the untracked-plant scan without. H51 is
+the one that mattered: an **EMPTY untracked DIRECTORY** whose own path a reader reads as a file was in
+neither `git status` nor `git ls-files` under a pathspec, so the tier shipped **FAST GATE GREEN** over
+one. #530's own comment said git cannot see such a directory "in any form"; that generalisation is
+**false** and is why the hole existed - `ls-files --others --directory` with **no pathspec** sees it.
+
+## 3. TWO THINGS RECORDED AND NOT FIXED, BOTH ROUTED
+
+- **Both untracked scans sit ABOVE the tamper refusal.** A tampered `gates/verify-log.sh` - the one file
+  CLAUDE.md calls "the one place that decides whether a log authorises a push" - plus one untracked file
+  **or** one empty untracked directory is **routed at exit 2** rather than refused at exit 1. The control
+  that settles ownership: the same tamper plus an untracked **file** already does this on main, through
+  #530's `OSTEER`. So the class is #530's and `ODIRS` adds an instance, not a kind. Fixing it means
+  moving another build's shipped block with no controls, which is not this run's to do under
+  `takeNothingElse`.
+- **H49/H50/H51's "no `records:` verdict" clause cannot fire today.** The scans `exit 2` before any
+  ratchet, so given exit 2 and the right sentence the clause is true by construction. It is a **reorder
+  ratchet**, not the live assertion, and the case rows say so. The exit-code half is what carries those
+  cases.
+
+## 4. WHAT THE CONTROLS SHOWED, INCLUDING WHICH ONE IS WEAK
+
+N3's control disabled **both refusal branches** with `if false; then :` while leaving the scans running,
+so the only thing removed is the refusal. H50 and H51 go **GREEN exit 0** - the defect shipping - and H49
+goes **RED exit 1**. H49 is therefore the **weaker** control and is published as such: what it shows is
+the steer the job is named for (a verdict computed from a file the commit does not hold), not the gate
+going green. Whether you get a green or a red on a disabled scan depends only on whether the planted file
+happens to move a ratchet.
+
+CASES' three arms now have three controls - `tr` class reverted → C33 fails; repeated-id arm disabled →
+C33 fails; count arm disabled → C34 fails - and the selftest is **34 pass / 0 fail**.
+
+## 5. MY OWN ERRORS: TEN, AND TWO ARE THE SAME CLAUDE.MD ENTRY TWICE IN ONE HOUR
+
+The full list is on the ledger row. The ones worth a successor's attention:
+
+1. **`pkill -f '531-'` killed my own shell**, and later **`pgrep -f 'gates-run-531.sh'` captured my own
+   shell as the suite's pid**, so both watchers watched the wrong process and reported the suite DEAD at
+   PASS=40 while it ran normally as another pid with PPID 1. Both are CLAUDE.md's #407/#416 entry - *the
+   tool and the thing it was operating on were the same object* - committed in the hour I spent acting on
+   a veto about self-reference. Get a detached pid by filtering `ppid==1` and verify it against
+   `/proc/<pid>/cwd`; never by a pattern you also typed.
+2. **Three clock drifts, all overestimates, and the third reached a record**: I wrote `11:10:00Z` into a
+   tracker document when `date -u` read `10:51:01Z`. Future-dating is the one fault the snapshot rules
+   single out, because a row stamped ahead of its own instant outranks every honest row written after it.
+   Corrected in place with the fault named in the document. **Assume you are twenty minutes ahead of
+   yourself and check.**
+3. **The obvious fix was wrong twice.** `tr -d '[:space:])'` for the tab evasion also deletes the
+   **newline**, so every id collapsed onto one line and `dtbl` read 1 for any table - caught by the two
+   GREEN-expecting selftest cases that exist to stop a guard being set too tight. And C33's first version
+   went red on both trees through the *count* arm, so it controlled nothing it claimed to.
+4. **I carried a close-out figure no command yields** ("NOT CHECKED falls 22 to 18"). Published instead
+   with its command: `grep -c 'NOT CHECKED' claude/stories/TEST-CASES.md`, **11 falling to 7**, counting
+   LINES not rows. The same discipline stopped a destructive mistake: my plan said to prune the dashboard
+   `snapshots` collection to 1,500,000 bytes, the collection measured **3,075,758**, and rather than
+   deleting eight of twelve rows on a remembered number I went and read the rule. **It is real and I had
+   it right**, and it is in `prompts/build-run` step 7, **not** in `prompts/common`, which mentions
+   snapshots once and only as a `locus` example.
+
+## 6. WHAT IS OWED
+
+- **The orchestrator** owes a ruling on nothing from N1 any more - the R45 contradiction I was going to
+  route is moot, because the job is withdrawn and its remainder is now a design, not a conflict.
+- **The orchestrator** owes two findings against #530's own filing, routed on my check-out row rather
+  than filed, because this run's brief says `takeNothingElse`:
+  `jobs/gatemanifest-derives-its-root-...-2026-10-22` carries `owningLane: build` with **no
+  `finishFirst`** (an R49 A10 breach) and `mode: "worse"`, which is not in R51's closed vocabulary for
+  `cls: suite`.
+- **The R49 ratchet needs a denominator.** MEASURED over all 980 job documents: of **306** open
+  build-lane jobs, **16** carry `finishFirst` true, 11 false, and **279 neither** - so the WIP query sees
+  **5%** of the lane's open jobs. Setting N1's field honestly under A10 takes this run's
+  `wipAtCheckOut` to 17 against a `wipAtCheckIn` of 16, and that rise is an **existing open job becoming
+  visible**, not new work in progress. It is declared rather than avoided by leaving the field null.
+- **Nobody owes gate 50.** `gates/gate-manifest.tsv` is the one home for which gates are required and
+  which are absent. Read it, not any prose list, including this file's.
+
 # HANDOFF - after #530: THE STAMP AND FAST-PASS SET IS CLOSED, AND THE ONE VETO UPHELD WAS AGAINST A PASS THIS RUN ITSELF PUBLISHED FOR A CHECK IT HAD DELETED
 
 Build #530 landed six fixes, withdrew two on upheld vetoes, and **rebuilt the bundle for the first time in
