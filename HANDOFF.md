@@ -951,8 +951,15 @@ So a ceiling of 2 would have refused three real commits, one of them on the fast
 that refuses honest work is worse than no guard" is this project's own rule and I was one command from
 breaking it.** The same measurement supplied the right shape, because the two doors are different operations:
 
-- **above the top** — contiguity AND `k <= 3`, **REFUSED** past it (exit 1), because the full suite runs no
-  series check, so routing a burn there lands it;
+- **above the top** — contiguity AND `k <= 3`, **REFUSED** past it (exit 1), because the full suite ran no
+  series check, so routing a burn there landed it. **THAT PREMISE IS FALSE SINCE #533 AND THE SENTENCE IS
+  CORRECTED HERE RATHER THAN LEFT STANDING** [antagonist B of #533, P2-5]: `gates/gates.sh` now runs a
+  build-number series door before any gate, so a gap fill routed to the full suite is judged there by
+  `gates/buildnum.sh stampable`. The fast arm's own choice is unchanged and still right — the ceiling and the
+  contiguity test are what keep a burn off the FAST path — and the nine other copies of this sentence live in
+  `gates/fastgate.sh` (seven), `gates/fastgate-drive.sh` and `RUN-LOG.md`, which #533 may not edit and
+  declared instead. **THIS was the untravelled home that mattered**, because CLAUDE.md orders every builder to
+  read this file before building, and the first declaration of those copies missed it entirely;
 - **at or below the top** — every number NAMED in the log and sent to the **FULL SUITE** (exit 2). Never a
   fast green, because it turns a free number ISSUED for ever. Never refused, because #454 is the measured
   proof that honest records-only commits do this.
