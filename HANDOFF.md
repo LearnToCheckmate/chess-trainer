@@ -1,11 +1,139 @@
-# HANDOFF - after #532: THE G6 GAP-FILL DOOR IS WITHDRAWN A SECOND TIME, AND THIS RUN REBUILT THE WEDGE #530 HAD ALREADY NAMED AND PRESCRIBED THE FIX FOR
+# HANDOFF - after #533: THE G6 GAP-FILL DOOR IS BUILT AND GATED, WITH NO CEILING ANYWHERE IN THE OWNERSHIP PATH
 
-Build #532 built G6's last open clause, had it vetoed FIVE times over THREE readings, and reverted it
-whole. **GATES GREEN #532** at 60 sections / 5026 PASS / 0 FAIL. `git diff 166d2ed HEAD -- app.js
-chess.jsx` is **empty**, `app.js` is `049b41dfb6f1` and `chess.jsx` `1b41d1d1e765` - main's own artefact
-re-gated under `CT_EXPECT='#530'`, no `gates/build.sh` run, no built register row. **Nothing a player
-sees moves.** Cite that md5 and never the number: four of the eight numbers with a committed bundle name
-more than one artefact (#454).
+Build #533 built G6's last open clause on its THIRD attempt, took EIGHT antagonist pairs over TEN repair
+rounds, and landed. **GATES GREEN #533** at 60 sections / 5026 PASS / 0 FAIL in 113 minutes (21:59:55Z to 23:53:08Z), over bundle
+`049b41dfb6f1`, with the gate manifest at 59 required / 59 present / 0 missing and the series door's own verdict
+in the footer reading `ok`, `escape=[(unset)]`. `verify-log.sh ... '#533' --this-bundle` OK; `held.sh check` not held;
+every `gates/*.sh` md5 identical before and after the run. `git diff 2266b87 HEAD -- app.js chess.jsx` is **empty**, `app.js`
+is `049b41dfb6f1` and `chess.jsx` `1b41d1d1e765` - main's own artefact re-gated under `CT_EXPECT='#530'`, no
+`gates/build.sh` run, no built register row. **Nothing a player sees moves.** Cite that md5 and never the
+number: four of the eight numbers with a committed bundle name more than one artefact (#454).
+
+## 1. WHAT THE DOOR IS, AND THE ONE SENTENCE THAT MADE IT WORK WHERE TWO ATTEMPTS FAILED
+
+`gates/gates.sh` runs a build-number series door immediately before `gates=("$G/mountcheck.js")`, so a
+subset run and a full run both pass it. It reads `gates/build-numbers.tsv` at the base
+(`refs/remotes/origin/main`), at HEAD and in the working tree, plus the merge-base; computes the appended
+rows as a MULTISET difference; and for every appended row whose number is at or below the base series top -
+a GAP FILL - asks `gates/buildnum.sh stampable` whether the row is this run's.
+
+**THERE IS NO CEILING ANYWHERE IN THE OWNERSHIP PATH, AND THAT IS THE WHOLE DIFFERENCE.** A series top only
+CLASSIFIES a row as a gap fill. Ownership is delegated, and `stampable` computes it from row ATTRIBUTION
+with no series top of its own, so integrating `origin/main` - the command CLAUDE.md REQUIRES before a push
+when main has moved - cannot move its answer. #530 put the base top in that path and #532 put the merge-base
+top there, and each then refused an honest run whose container had integrated another container's mint.
+
+**THE DECISIVE EVIDENCE IS A PAIR, NOT A GREEN.** Mutant **M1** restores #532's merge-base ceiling into the
+extracted door and nothing else. On a tree built by driving the real `git merge refs/remotes/origin/main`
+after another container pushed #534 - which CONFLICTS in the register, as it will in practice, resolved the
+only honest way by keeping both containers' rows - the shipped door reads `ok` with this run's row credited
+`yours=1`, and the ceiling mutant reads `RED - #533 is at or below the merge-base series top #534`. Same
+tree, same command, one inserted ceiling.
+
+**DELETIONS ARE TESTED AGAINST THE MERGE-BASE AND NEVER AGAINST THE BASE**, because rows `origin/main`
+gained are not at the merge-base, so a base that has moved ahead of an unrebased HEAD cannot read as a
+deletion. That distinction is what stops the deletion guard rebuilding the same wedge.
+
+## 2. READ THIS BEFORE YOU TOUCH THE DOOR: TEN ROUNDS, AND WHAT THEY WERE ACTUALLY ABOUT
+
+Every verdict this door produces has been correct since round two. **Every finding after that was in what
+the refusals SAY** - the remedy, the headline, the reason - and that is not a small thing in a tool whose
+whole output is a sentence a stuck run has to act on. The pattern worth carrying:
+
+- **FIVE OF THE TEN ROUNDS' WORST FINDINGS WERE DEFECTS A PREVIOUS ROUND'S OWN REPAIR INTRODUCED.** A
+  repair for an honest-tree refusal built a new honest-tree refusal (round five's `[ -x ]` guard
+  hard-stopped a tree with zero appended rows). A repair for a printed-remedy deadlock re-created the
+  deadlock in the line it added (rounds seven, eight and ten, three times on the same message). A repair
+  that made the headline name its cause landed one indentation level away and was unreachable (round six).
+  **Expect your repair to be the next finding, and re-run the whole arm after it.**
+- **THE ARM FOUND NONE OF THAT.** It read 100, then 145, 206, 232, 244, 268, 277, 280 and 285 ok / 0 red,
+  green over each one. What found them was a pair of antagonists with opposite doors, and in three cases
+  both doors independently.
+- **NO CASE HAD EVER ASSERTED A HEADLINE** until round seven, which is why a headline could accuse an honest
+  tree for four rounds with 244 cases passing. Ask of any new assertion: *which line does it read, and which
+  lines does nothing read?*
+- **THREE MUTANTS WERE SILENTLY DISARMED BY EDITS NEAR THEIR ANCHORS** - M1 when a second `stampable` call
+  made its anchor non-unique, M16 when a comment went between a `case` and its first arm, M10 when a new awk
+  line duplicated its text. **A mutant's anchor is a dependency on the shape of the code around it.** M10's
+  anchor is unique today only because the newer awk is spelt with spaces inside its braces.
+
+## 3. THE ESCAPE, AND WHY IT HAS EXACTLY ONE TEST LEFT
+
+`CT_GAPFILL_OVERRIDE='<n>'` with `CT_RUNID` set passes a gap-fill row that `stampable` refuses. Its verdict
+word is **OVERRIDE**, never `ok`; it prints every row it passes field for field; it names the field-7 values
+of any rows that are not this run's; and its line begins with none of the five prefixes
+`gates/verify-log.sh` reads, so it can never be miscounted as a PASS.
+
+It exists for #532's P0: an honest run whose own `built` row reads `unknown-run`, because `gates/build.sh`
+writes that when `CT_RUNID` is not exported. It started with three tests and **two were withdrawn at round
+three, because they refused honest work**: a RESUMED run - the number minted by the run that died and built
+by this one - had no route at all, and that shape exists on the live register at **#507 and #519**. The
+tests also bought nothing against a forger, because field 7 is taken on trust. One floor remains: **at
+least one row for the number must be this run's**. `M4` removes it; `M10` restores the withdrawn tests.
+
+**A number whose every row belongs to somebody else, or to the literal `unknown-run`, is refused by design**
+and the refusal says so, names the field-7 values present, and points the repair at the ROW. Accepting
+`unknown-run` would make a `minted` row belonging to nobody escapable, which is what C48, M3a and M4a exist
+to refuse. That was asked for by an antagonist and declined on the merits; the argument is on G6 as
+KL-533-6, so do not re-open it without reading it.
+
+## 4. WHAT THE DOOR DOES NOT JUDGE, DECLARED RATHER THAN DRESSED UP
+
+- **A number the base ALREADY HOLDS** is not a gap fill - it is the #416 two-trees-one-number class in G6's
+  own title. Those rows are REPORTED with the appended row's field 7, **the BASE row's field 7**, and
+  `stampable`'s own verdict. **The reason is measured and it is not what the first draft published:**
+  `stampable` REFUSES this class for the collision AND for the legitimate instance alike, so delegating here
+  would refuse an honest tree. If the two `mintedBy` values differ, two trees hold one number: that is a
+  finding for whoever reads the log.
+- **A number ABOVE the base series top** EXTENDS the series and is reported, not judged.
+  `gates/fastgate.sh`'s register arm bounds that class by contiguity **on the fast path only**, and
+  `gates.sh` never invokes it, so on a full-suite push nothing bounds it - and the damage is permanent and
+  one row wide, because one above-top row makes `buildnum.sh next` refuse for every later run while the
+  register is append-only.
+- **No git work tree**, and **a base ref equal to HEAD**, are both NOT CHECKED, never `ok`. The second is
+  what a throwaway `git update-ref refs/remotes/origin/main HEAD` does, and it used to launder a committed
+  plant to `ok` with `appended=0`.
+- **An eol or clean/smudge filter on the register**, and **an unresolved merge** (markers still in the
+  file), both read as this door cannot see them: the first as a wholesale deletion, the second as `ok`.
+  Neither is reachable here today, and `gates.sh` records the dirty count in every log.
+- **`gates/verify-log.sh` CANNOT SEE ANY OF THIS.** It reads only lines beginning `PASS`, `FAIL`, `=== `,
+  `gate manifest:` and `GATES`, so an archived green from any tree predating this door verifies OK with the
+  series question unasked, and an OVERRIDE line appended to a real green log returns OK without being
+  mentioned. Filed as
+  `jobs/verify-log-sh-cannot-tell-whether-the-build-number-series-door-ran-so-an-older-green-log-still-authorises-a-push-2026-10-22`.
+  **Until it lands, an OVERRIDE or a NOT CHECKED is a HUMAN duty to state in the run report, because no grep
+  will state it for you.**
+
+## 5. THE NEXT RUN'S FIRST JOB: ELEVEN KNOWN LIMITS, ALL PROSE, ALL WITH THEIR FIX WRITTEN DOWN
+
+G6 carries **KL-533-1 to KL-533-11**, each with its reproduction and its one-line fix. They arrived after
+this run's cut line for launching a fresh pair over a `gates/` edit, and the suite had already started -
+CLAUDE.md forbids editing a running script, which cost #461 a whole suite. **Take them in one pass with one
+fresh pair; they are all in the message layer and none changes a verdict.** The two that matter most:
+
+- **KL-533-10 (P2):** the armed-and-declined notice's membership test normalises `\r`, `\f` and `\v`, which
+  **IFS does not split on**, so `CT_GAPFILL_OVERRIDE='533\r'` - a paste out of a CRLF document - leaves the
+  escape correctly inert while the notice fires anyway, and the refusal then withdraws the one route that
+  works. Build the membership list from the SAME `set -f` split the escape uses, so the check and the thing
+  checked cannot diverge; that also fixes the pre-existing `tr -d '#'` divergence.
+- **KL-533-7 (P2):** the notice borrows the `REPORTED, NOT REFUSED` prefix, which in the other two classes
+  means *this number is not what refused the run* - and here the same run refuses that number. One string:
+  `NOTICE -`.
+
+## 6. TWO HABITS THIS BUILD PAID FOR IN MINUTES
+
+- **CITE SYMBOLS, NOT LINES, AND RUN `bash gates/verify-log.sh --citations` BEFORE YOU COMMIT A ROW.** This
+  build breached a committed ratchet TWICE from its own documentation rows: one new `path:line` citation
+  took arm (4) to 49 against a ceiling of 48 with zero headroom, and one unescaped `|` inside a backtick
+  span made a row 7 columns wide and flipped `REGISTER SELF-CHECK` from OK to RED. Both antagonists caught
+  each, from opposite doors, and neither ceiling can be raised from this lane.
+- **ASSERT A MINIMUM FILE SIZE BEFORE WRITING, AND KEEP A REPAIR AS A SCRIPT.** A python one-liner of mine
+  evaluated `open(path,'w')` before the NameError in its own argument and truncated `gates/gates.sh` to zero
+  bytes mid-round. One `git checkout` and three re-applied scripts cost minutes rather than the round, and
+  the class is the same as the backtick that ran `git fetch --unshallow`: a statement that DOES something
+  while being built.
+
+## 7. EVERYTHING BELOW IS #532'S HANDOFF, KEPT VERBATIM AND RENUMBERED FROM ITS OWN SECTION 1
 
 ## 1. READ THIS FIRST IF YOU ARE PICKING UP G6 - DO NOT BUILD THE CEILING AGAIN
 
