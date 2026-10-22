@@ -253,297 +253,6 @@ tc() {
   st C34-a-declaration-under-the-table-is-RED "$(st_drive 'echo "cases: 2 declared (stub)"; echo "  ok  H1 [TC-SUITE-057]  (probe)"; echo "  ok  H2 [TC-SUITE-058]  (probe)"; exit 0' 3)" 1
 
   echo "SELFTEST $st_p pass / $st_f fail"
-
-
-  # ── #532. THE GAP-FILL DOOR'S CONTROLS (D1 to D21e) ──────────────────────────────────────────────────────
-  # jobs/the-register-arm-of-fastgate-checks-the-numbers-of-appended-rows-and-not-the-rows-so-a-duplicate-or-wrong-bundle-row-takes-a-fast-green-2026-10-16
-  # They live HERE, in a --selftest arm, and not in gates/fastgate-drive.sh, for the reason the #461 trap gives:
-  # the thing under test is gates.sh's own verdict logic, and they must be re-runnable by any later reader in
-  # SECONDS rather than reproduced from a run report. Measured: three timed runs of the whole selftest at 2.82s,
-  # 2.72s and 2.95s - this build's own first estimate of "about a minute" was wrong by twentyfold and is
-  # withdrawn here, because a figure that discourages re-running them defeats the whole argument for the arm.
-  # Each case drives THE REAL BLOCK, extracted from this very file, so reverting the door makes these FAIL
-  # instead of leaving them green against a copy that no longer matches the code. EACH PRINTS THE DOOR'S LINE.
-  # THE SCRATCH REPOSITORIES ARE REAL REPOSITORIES WITH refs/remotes/origin/main SET BY HAND. A plain clone has
-  # no such ref and the door reads RED there BY DESIGN (D15 is that case), so every fixture sets it explicitly.
-  # NEVER A git worktree OF THIS CHECKOUT: worktrees share refs and .git/info/exclude, and #530's controls moved
-  # the real refs/remotes/origin/main that way. Every repo below is created by mktemp and deleted with ST_T.
-  awk '/^BN_REL=/{p=1} /^gates=\("\$G\/mountcheck.js"\)/{if(p)exit} p{print}' "$SF" > "$ST_T/door.sh"
-  st D1-the-door-block-was-extracted "$( [ -s "$ST_T/door.sh" ] && echo yes || echo no )" yes
-
-  st_dreg(){ # prints a base register: the header, then rows 500..530 with 517 a HOLE, so top=530
-    printf '# number\tstate\tsha\tbundleMd5\tsourceMd5\tat\tmintedBy\tprovenance\tnote\n'
-    local i
-    for i in $(seq 500 530); do
-      [ "$i" = "517" ] && continue
-      printf '%s\tminted\t-\t-\t-\t2026-10-01T00:00Z\tbuild__base\tminted\tbase fixture row for the gap-fill door controls\n' "$i"
-    done
-  }
-  st_drow(){ # $1 number, $2 runId, $3 field-3 sha
-    printf '%s\tminted\t%s\t-\t-\t2026-10-22T00:00Z\t%s\tminted\tfixture row for the gap-fill door controls\n' "$1" "$3" "$2"
-  }
-  st_dgit(){ ( cd "$1" && git -c commit.gpgsign=false -c user.name=d -c user.email=d@l "${@:2}" >/dev/null 2>&1 ); }
-  st_dnew(){ # $1 = dir. A repository whose only commit carries the base register, with origin/main set to it.
-    mkdir -p "$1/gates"; ( cd "$1" && git init -q ) 2>/dev/null
-    st_dreg > "$1/gates/build-numbers.tsv"
-    st_dgit "$1" add -A; st_dgit "$1" commit -qm "base: the register fixture"
-    st_dgit "$1" update-ref refs/remotes/origin/main HEAD
-  }
-  st_drun(){ # $1 = dir, $2 = CT_RUNID ("" to leave it unset), $3 = the block to run (default the real door)
-    local rc line out="$ST_T/d.out" blk="${3:-$ST_T/door.sh}"
-    if [ -z "$2" ]; then
-      ( cd "$1" && env -u CT_RUNID G="$1/gates" ROOT="$1" N='#999' ALL="$ST_T/d-all.log" \
-          bash "$blk" ) > "$out" 2>&1; rc=$?
-    else
-      ( cd "$1" && CT_RUNID="$2" G="$1/gates" ROOT="$1" N='#999' ALL="$ST_T/d-all.log" \
-          bash "$blk" ) > "$out" 2>&1; rc=$?
-    fi
-    line="$(grep -m1 '^build-number series:' "$out" || echo 'NO DOOR LINE')"
-    printf '%s|%s\n' "$rc" "$line"
-  }
-  st_dv(){ # the verdict word only, so a case asserts ok/RED/NOT and not a whole sentence
-    case "$1" in
-      0\|*ok\ -*) echo ok ;;
-      1\|*RED\ -*) echo RED ;;
-      0\|*NOT\ CHECKED*) echo NOTCHECKED ;;
-      *NO\ DOOR\ LINE*) echo NOLINE ;;
-      *) echo "unexpected:$1" ;;
-    esac
-  }
-
-  # D2/D3. THE HONEST TREE, which is the case a guard that fires on the normal path would break.
-  st_dnew "$ST_T/r2"; st_drow 531 build__mine - >> "$ST_T/r2/gates/build-numbers.tsv"
-  ST_D2="$(st_drun "$ST_T/r2" build__mine)"; st D2-honest-mint-above-the-base-top-is-ok "$(st_dv "$ST_D2")" ok
-  ST_D3="$(st_drun "$ST_T/r2" "")";          st D3-honest-tree-is-ok-with-CT_RUNID-unset "$(st_dv "$ST_D3")" ok
-  st D2-line-reports-one-appended-row "$(printf '%s' "$ST_D2" | grep -c '1 appended, 0 filling a gap')" 1
-  st D2-line-reports-no-malformed-line "$(printf '%s' "$ST_D2" | grep -c '0 malformed')" 1
-
-  # D4/D5/D6. THE BARE GAP-FILL ROW - a foreign runId and '-' in field 3 - in all three shapes a push can carry
-  # it. D4 is UNCOMMITTED, the shape #530's door could not see and the shape this lane's documented path always
-  # produces: mint, build.sh, then the suite, with the rows still unstaged.
-  st_dnew "$ST_T/r4"; st_drow 517 build__someone_else - >> "$ST_T/r4/gates/build-numbers.tsv"
-  ST_D4="$(st_drun "$ST_T/r4" build__mine)"; st D4-bare-gap-fill-UNCOMMITTED-is-RED "$(st_dv "$ST_D4")" RED
-  st_dgit "$ST_T/r4" add -A; st_dgit "$ST_T/r4" commit -qm "append a gap-fill row"
-  ST_D5="$(st_drun "$ST_T/r4" build__mine)"; st D5-bare-gap-fill-COMMITTED-is-RED "$(st_dv "$ST_D5")" RED
-  grep -v '^517' "$ST_T/r4/gates/build-numbers.tsv" > "$ST_T/r4/x" && mv "$ST_T/r4/x" "$ST_T/r4/gates/build-numbers.tsv"
-  ST_D6="$(st_drun "$ST_T/r4" build__mine)"; st D6-committed-then-removed-from-the-worktree-only-is-RED "$(st_dv "$ST_D6")" RED
-  st D4-line-names-the-unaccounted-row "$(printf '%s' "$ST_D4" | grep -c '1 unaccounted')" 1
-
-  # ── D4b to D4e. THE SHARED VETO OF BOTH ANTAGONISTS, AND THE STATE NO CONTROL COVERED. ─────────────────────
-  # The door's predicate was NF==9, so the set of rows it JUDGED was a strict SUBSET of the set of rows that
-  # BURN A NUMBER (every other register reader uses NF>=2). The SAME planted row that D4 reddens went through
-  # at ok, UNCOUNTED, in four malformed shapes - and the note field is free prose a human types, which is
-  # exactly where a stray tab or a lost field lands. These four are the cases that were missing.
-  st_dbad(){ # $1 = dir, $2 = the raw line to append
-    st_dnew "$1"; printf '%s' "$2" >> "$1/gates/build-numbers.tsv"
-    st_drun "$1" build__mine
-  }
-  ST_D4B="$(st_dbad "$ST_T/r4b" '517	minted	-	-	-	2026-10-22T00:00Z	build__someone_else	minted	planted
-')"
-  st D4b-a-gap-fill-row-with-ONE-TRAILING-TAB-is-RED "$(st_dv "$ST_D4B")" RED
-  ST_D4C="$(st_dbad "$ST_T/r4c" '517	minted	-	-	-	2026-10-22T00:00Z	build__someone_else	minted
-')"
-  st D4c-a-gap-fill-row-with-the-note-field-DROPPED-is-RED "$(st_dv "$ST_D4C")" RED
-  ST_D4D="$(st_dbad "$ST_T/r4d" ' 517	minted	-	-	-	2026-10-22T00:00Z	build__someone_else	minted	planted
-')"
-  st D4d-a-gap-fill-row-with-a-LEADING-SPACE-in-field-1-is-RED "$(st_dv "$ST_D4D")" RED
-  ST_D4E="$(st_dbad "$ST_T/r4e" '517	minted	-	-	-	2026-10-22T00:00Z	build__someone_else	minted	a	tab	inside	the	note
-')"
-  st D4e-a-gap-fill-row-with-TABS-INSIDE-THE-NOTE-is-RED "$(st_dv "$ST_D4E")" RED
-  st D4b-line-reports-it-as-an-unaccounted-row-now-that-it-is-READ "$(printf '%s' "$ST_D4B" | grep -c '1 unaccounted')" 1
-  # D4f IS THE MALFORMED ARM PROPER. NF>=7 is the weakest predicate that can read field 7, so a line with
-  # FEWER than seven fields still cannot be judged - and rather than being silently exempt, as every malformed
-  # shape was before, it is now RED and named. This is the case that exercises the ratchet itself.
-  ST_D4F="$(st_dbad "$ST_T/r4f" '517	minted	-	-	-
-')"
-  st D4f-a-digit-leading-line-with-too-few-fields-is-RED "$(st_dv "$ST_D4F")" RED
-  st D4f-line-reports-the-malformed-line "$(printf '%s' "$ST_D4F" | grep -c '1 malformed')" 1
-
-  # ── D7 to D9c. THE WEDGE THAT WITHDREW #530's DOOR, AND THE FOUR STATES IT NOW HAS TO SURVIVE. ─────────────
-  # Another container mints 532 and pushes, so the base top is 532 while THIS run's own honest 531 is below it
-  # and absent from the base. Under the old base-top ceiling that read as a gap fill carried ONLY by field 7, so
-  # a rotated runId (D9b), an unset CT_RUNID (D9 - the DOCUMENTED launch of gates.sh) or a second row this run's
-  # own build.sh wrote as unknown-run (D9c) each turned an HONEST tree hard RED with no escape but deleting a
-  # true row. The ceiling is now the MERGE-BASE top, so all four read ok BY CONSTRUCTION and field 7 is a second
-  # signal rather than the thing the honest path rests on. D9 WAS ASSERTED RED BY THIS BUILD'S FIRST DRAFT AND
-  # IS ASSERTED ok HERE: that flip is the fix, and the declared known limit it replaced is retired.
-  st_dwedge(){ # $1 = dir ; base gains 532, our HEAD carries our own 531
-    st_dnew "$1"
-    st_drow 532 build__other_container - >> "$1/gates/build-numbers.tsv"
-    st_dgit "$1" add -A; st_dgit "$1" commit -qm "the other container's higher mint"
-    st_dgit "$1" update-ref refs/remotes/origin/main HEAD
-    st_dgit "$1" reset -q --hard HEAD~1
-    st_drow 531 build__mine - >> "$1/gates/build-numbers.tsv"
-  }
-  st_dwedge "$ST_T/r7"
-  ST_D7="$(st_drun "$ST_T/r7" build__mine)"
-  st D7-own-mint-below-a-raised-base-top-is-ok "$(st_dv "$ST_D7")" ok
-  st D7-and-it-is-ok-by-the-CEILING-not-by-field-7 "$(printf '%s' "$ST_D7" | grep -c '0 filling a gap')" 1
-  ST_D9="$(st_drun "$ST_T/r7" "")"
-  st D9-the-same-tree-with-CT_RUNID-UNSET-is-ok "$(st_dv "$ST_D9")" ok
-  ST_D9B="$(st_drun "$ST_T/r7" build__a_rotated_runid)"
-  st D9b-the-same-tree-under-a-ROTATED-runId-is-ok "$(st_dv "$ST_D9B")" ok
-  printf '532\tbuilt\t-\t049b41dfb6f1\t1b41d1d1e765\t2026-10-22T16:05Z\tunknown-run\tbuild.sh\tBundle built and stamped.\n' >> "$ST_T/r7/gates/build-numbers.tsv"
-  ST_D9C="$(st_drun "$ST_T/r7" build__mine)"
-  st D9c-a-second-row-our-own-build-sh-wrote-as-unknown-run-is-ok "$(st_dv "$ST_D9C")" ok
-  st_dnew "$ST_T/r8"
-  st_drow 532 build__other_container - >> "$ST_T/r8/gates/build-numbers.tsv"
-  st_dgit "$ST_T/r8" add -A; st_dgit "$ST_T/r8" commit -qm "the other container's higher mint"
-  st_dgit "$ST_T/r8" update-ref refs/remotes/origin/main HEAD
-  st_drow 531 build__mine - >> "$ST_T/r8/gates/build-numbers.tsv"
-  ST_D8="$(st_drun "$ST_T/r8" build__mine)"; st D8-own-mint-on-top-of-the-raised-base-is-ok "$(st_dv "$ST_D8")" ok
-
-  # D10/D10b. FIELD 7 IS TAKEN ON TRUST, declared with the verdict rather than implied: a hand-written gap-fill
-  # row that TYPES this run's runId reads ok (a known limit on G6). D10b is the hole that is now CLOSED: an
-  # unshaped CT_RUNID - a single dash, which is the register's OWN null marker in field 7 - used to match every
-  # such row and call it yours.
-  st_dnew "$ST_T/r10"; st_drow 517 build__mine - >> "$ST_T/r10/gates/build-numbers.tsv"
-  ST_D10="$(st_drun "$ST_T/r10" build__mine)"; st D10-a-typed-runId-reads-as-yours-KNOWN-LIMIT "$(st_dv "$ST_D10")" ok
-  st_dnew "$ST_T/r10b"; st_drow 517 - - >> "$ST_T/r10b/gates/build-numbers.tsv"
-  ST_D10B="$(st_drun "$ST_T/r10b" -)"; st D10b-CT_RUNID-set-to-a-dash-no-longer-whitelists-a-dash-row "$(st_dv "$ST_D10B")" RED
-
-  # D11/D12/D13/D13b. THE CENSUS TEST, which judges a row nobody can claim as their own.
-  st_dnew "$ST_T/r11"
-  st_dgit "$ST_T/r11" commit -q --allow-empty -m "#517 close-out: a commit that names the number"
-  ST_SHA517="$( cd "$ST_T/r11" && git rev-parse HEAD )"
-  st_dgit "$ST_T/r11" commit -q --allow-empty -m "a commit that names no build number at all"
-  ST_SHANON="$( cd "$ST_T/r11" && git rev-parse HEAD )"
-  st_dgit "$ST_T/r11" update-ref refs/remotes/origin/main HEAD
-  st_drow 517 build__someone_else "$ST_SHA517" >> "$ST_T/r11/gates/build-numbers.tsv"
-  ST_D11="$(st_drun "$ST_T/r11" build__mine)"; st D11-a-census-row-citing-a-base-commit-that-names-it-is-ok "$(st_dv "$ST_D11")" ok
-  grep -v '^517' "$ST_T/r11/gates/build-numbers.tsv" > "$ST_T/r11/x" && mv "$ST_T/r11/x" "$ST_T/r11/gates/build-numbers.tsv"
-  st_drow 517 build__someone_else "$ST_SHANON" >> "$ST_T/r11/gates/build-numbers.tsv"
-  ST_D12="$(st_drun "$ST_T/r11" build__mine)"; st D12-a-census-row-whose-commit-does-not-name-it-is-RED "$(st_dv "$ST_D12")" RED
-  st_dnew "$ST_T/r13"
-  st_dgit "$ST_T/r13" commit -q --allow-empty -m "#517 records: a commit this very push adds"
-  ST_SHASAME="$( cd "$ST_T/r13" && git rev-parse HEAD )"
-  st_drow 517 build__someone_else "$ST_SHASAME" >> "$ST_T/r13/gates/build-numbers.tsv"
-  ST_D13="$(st_drun "$ST_T/r13" build__mine)"; st D13-a-census-row-citing-a-commit-of-the-same-push-is-ok-KNOWN-LIMIT "$(st_dv "$ST_D13")" ok
-  # D13b. A DANGLING COMMIT OBJECT - reachable from NO ref, in no tree, carried by no push - is credited too.
-  # Declared as a known limit with its verdict rather than left to be discovered. It is NOT fixed here on
-  # proportion: forging one needs `git commit-tree`, i.e. an actor who can already edit this script, and the
-  # ancestor test that would close it (requiring field 3 to be reachable from HEAD or origin/main) would redden
-  # an honest `sweep --add` row citing a commit on a third branch, which `sweep` legitimately scans with --all.
-  st_dnew "$ST_T/r13b"
-  ST_FORGE="$( cd "$ST_T/r13b" && git -c user.name=d -c user.email=d@l commit-tree "$(git rev-parse HEAD^{tree})" -p HEAD -m "#517 close-out: records" 2>/dev/null )"
-  st_drow 517 build__someone_else "$ST_FORGE" >> "$ST_T/r13b/gates/build-numbers.tsv"
-  ST_D13B="$(st_drun "$ST_T/r13b" build__mine)"
-  st D13b-a-census-row-citing-a-DANGLING-object-is-ok-KNOWN-LIMIT "$(st_dv "$ST_D13B")" ok
-  st D13b-the-forged-object-really-is-on-no-ref "$( cd "$ST_T/r13b" && git branch --contains "$ST_FORGE" 2>/dev/null | grep -c . )" 0
-
-  # D14. A REAL DELETED BASE ROW, measured against MERGE-BASE and never against origin/main - D7 and D8 are the
-  # control that shows the door tells a deletion from a base that moved AHEAD.
-  st_dnew "$ST_T/r14"
-  grep -v '^510' "$ST_T/r14/gates/build-numbers.tsv" > "$ST_T/r14/x" && mv "$ST_T/r14/x" "$ST_T/r14/gates/build-numbers.tsv"
-  ST_D14="$(st_drun "$ST_T/r14" build__mine)"; st D14-a-deleted-base-row-is-RED "$(st_dv "$ST_D14")" RED
-  st D14-line-counts-one-deletion "$(printf '%s' "$ST_D14" | grep -c '1 deleted')" 1
-  st D7-and-D8-prove-a-moved-base-is-not-a-deletion "$(printf '%s|%s' "$(st_dv "$ST_D7")" "$(st_dv "$ST_D8")")" "ok|ok"
-
-  # D15 to D17b. WHAT THE DOOR DOES WHEN IT CANNOT MEASURE. Inside a work tree every unreadable input is RED,
-  # loudly, because gates/verify-log.sh reads no door line, so a NOT CHECKED that let the suite run could still
-  # authorise a push. Outside a work tree it is NOT CHECKED and the suite runs: a known limit on G6.
-  # D15b AND D15c WERE THE TWO REFUSAL ARMS WITH NO CONTROL AT ALL, which is how one of them comes back as a
-  # silent NOT CHECKED.
-  st_dnew "$ST_T/r15"; st_dgit "$ST_T/r15" update-ref -d refs/remotes/origin/main
-  ST_D15="$(st_drun "$ST_T/r15" build__mine)"; st D15-no-origin-main-ref-is-RED "$(st_dv "$ST_D15")" RED
-  st_dnew "$ST_T/r15b"; st_dgit "$ST_T/r15b" rm -q --cached gates/build-numbers.tsv
-  st_dgit "$ST_T/r15b" commit -qm "remove the register from HEAD only"
-  st_dreg > "$ST_T/r15b/gates/build-numbers.tsv"
-  ST_D15B="$(st_drun "$ST_T/r15b" build__mine)"; st D15b-an-unreadable-register-at-HEAD-is-RED "$(st_dv "$ST_D15B")" RED
-  mkdir -p "$ST_T/r15c/gates"; ( cd "$ST_T/r15c" && git init -q ) 2>/dev/null
-  printf 'seed\n' > "$ST_T/r15c/seed.txt"
-  st_dgit "$ST_T/r15c" add -A; st_dgit "$ST_T/r15c" commit -qm "a root commit with NO register"
-  ST_ROOT15C="$( cd "$ST_T/r15c" && git rev-parse HEAD )"
-  st_dreg > "$ST_T/r15c/gates/build-numbers.tsv"
-  st_dgit "$ST_T/r15c" add -A; st_dgit "$ST_T/r15c" commit -qm "base adds the register"
-  st_dgit "$ST_T/r15c" update-ref refs/remotes/origin/main HEAD
-  st_dgit "$ST_T/r15c" checkout -q -B other "$ST_ROOT15C"
-  mkdir -p "$ST_T/r15c/gates"   # the root commit carries no gates/ directory, so checkout removes it
-  st_dreg > "$ST_T/r15c/gates/build-numbers.tsv"
-  st_dgit "$ST_T/r15c" add -A; st_dgit "$ST_T/r15c" commit -qm "a divergent branch adds its own register"
-  ST_D15C="$(st_drun "$ST_T/r15c" build__mine)"
-  st D15c-an-unreadable-register-at-the-merge-base-is-RED "$(st_dv "$ST_D15C")" RED
-  mkdir -p "$ST_T/r16/gates"; st_dreg > "$ST_T/r16/gates/build-numbers.tsv"
-  ST_D16="$(st_drun "$ST_T/r16" build__mine)"; st D16-outside-a-git-work-tree-is-NOT-CHECKED "$(st_dv "$ST_D16")" NOTCHECKED
-  st_dnew "$ST_T/r17"; st_dgit "$ST_T/r17" rm -q --cached gates/build-numbers.tsv
-  rm -f "$ST_T/r17/gates/build-numbers.tsv"
-  ST_D17="$(st_drun "$ST_T/r17" build__mine)"; st D17-a-missing-worktree-register-is-RED "$(st_dv "$ST_D17")" RED
-
-  # ── D18. THE REAL NEGATIVE CONTROL, replacing a vacuous one this build shipped in its first draft. ─────────
-  # It used to run an EMPTY file and assert that nothing printed - which is true of every tree for ever, cannot
-  # be made to fail by ANY change to the door (not even deleting it), and therefore showed nothing about which
-  # part of the door reddens D4, while its comment claimed exactly that. It now DISABLES ONE ARM of the real
-  # block and requires the same D4 fixture to go green, which fails the moment the arm is restored.
-  sed 's/^      if \[ "\$BN_NDEL" -gt 0 \] || \[ "\$BN_UNACC" -gt 0 \] || \[ "\$BN_NBAD" -gt 0 \]; then BN_RED=1; fi$/      BN_RED=0/' \
-      "$ST_T/door.sh" > "$ST_T/door-noarm.sh"
-  st D18a-the-mutation-actually-changed-the-block "$( cmp -s "$ST_T/door.sh" "$ST_T/door-noarm.sh" && echo UNCHANGED || echo changed )" changed
-  st_dnew "$ST_T/r18"; st_drow 517 build__someone_else - >> "$ST_T/r18/gates/build-numbers.tsv"
-  ST_D18R="$(st_drun "$ST_T/r18" build__mine)"
-  st D18b-the-fixture-is-RED-through-the-real-block "$(st_dv "$ST_D18R")" RED
-  ST_D18="$(st_drun "$ST_T/r18" build__mine "$ST_T/door-noarm.sh")"
-  st D18c-and-ok-through-the-block-with-the-verdict-arm-disabled "$(st_dv "$ST_D18")" ok
-  st D18d-the-disabled-block-still-counted-the-row "$(printf '%s' "$ST_D18" | grep -c '1 unaccounted')" 1
-
-  # ── D19. THE EXTRACTOR PIN, rebuilt because its first version could not fail. ───────────────────────────────
-  # It used to assert a THIRD, HAND-RETYPED copy of the pipeline against hard-coded strings, so neither the
-  # door's extractor nor buildnum.sh's SHAMAP was ever run; and its text comparison covered only the FIRST of
-  # the three stages. Proven vacuous by mutation: truncating buildnum.sh's SECOND stage to [0-9]{3} and dropping
-  # its leading-zero sed made the two extractors genuinely disagree, and all five assertions stayed green.
-  # NOW: each of the three stages is located in BOTH files as a FIXED STRING, the three found in each file are
-  # joined, the two joins must be identical, and the pipeline that is EVAL'd is the one read out of the file
-  # rather than one retyped here. A change to any stage in either file makes its needle not found, and the
-  # case reddens.
-  ST_N1='grep -oiE '"'"'(#|\bbuild +)[0-9]{3,4}'"'"''
-  ST_N2='grep -oE '"'"'[0-9]{3,4}'"'"''
-  ST_N3='sed '"'"'s/^0*//'"'"''
-  # AND THE SEARCH IS SCOPED TO THE ONE BLOCK UNDER TEST, WHICH IS THE HALF THE FIRST REBUILD STILL GOT WRONG.
-  # gates/buildnum.sh carries TWO copies of this extractor - one at the NAMED set, one inside SHAMAP - and
-  # `sweep --add` writes field 3 from SHAMAP. A whole-file fixed-string search therefore found the OTHER copy
-  # and stayed green under the exact mutation this case exists to catch: truncating SHAMAP second stage to
-  # [0-9]{3} and dropping its leading-zero sed left the two extractors genuinely disagreeing and all eight D19
-  # cases passing. Measured, twice: once before this scoping and once after. So each file is reduced to the
-  # REGION that actually runs - SHAMAP in buildnum.sh, the bn_nums assignment in the door - before the needles
-  # are looked for, and the pipeline that is EVALd is read out of that region rather than retyped here.
-  st_dregion(){ # $1 = file, $2 = sed range address (no command: the p is appended here); prints that region
-    sed -n "${2}p" "$1"
-  }
-  st_dpipe(){ # $1 = file, $2 = sed range; prints the three stages found IN THAT REGION, joined, or empty
-    local r a b c
-    r="$(st_dregion "$1" "$2")"
-    [ -n "$r" ] || return 0
-    a="$(printf '%s\n' "$r" | grep -oF "$ST_N1" | head -1)"
-    b="$(printf '%s\n' "$r" | grep -oF "$ST_N2" | head -1)"
-    c="$(printf '%s\n' "$r" | grep -oF "$ST_N3" | head -1)"
-    [ -n "$a" ] && [ -n "$b" ] && [ -n "$c" ] || return 0
-    printf '%s | %s | %s' "$a" "$b" "$c"
-  }
-  ST_P_DOOR="$(st_dpipe "$ST_T/door.sh" '/bn_nums="\$(/,/|| true)"/')"
-  ST_P_BN="$(st_dpipe "$SG/buildnum.sh" '/SHAMAP="\$(/,/done)"/')"
-  st D19a-all-three-stages-are-present-in-the-door "$( [ -n "$ST_P_DOOR" ] && echo yes || echo MISSING )" yes
-  st D19b-all-three-stages-are-present-in-buildnum-shs-SHAMAP "$( [ -n "$ST_P_BN" ] && echo yes || echo MISSING )" yes
-  st D19c-the-two-extractors-are-identical "$( [ -n "$ST_P_DOOR" ] && [ "$ST_P_DOOR" = "$ST_P_BN" ] && echo same || echo DRIFTED )" same
-  st_dex(){ printf '%s\n' "$1" | eval "$ST_P_BN" | tr '\n' ' ' | sed 's/ $//'; }
-  st D19d-the-FILES-OWN-pipeline-on-a-close-out-subject "$(st_dex '#517 close-out: the records')" "517"
-  st D19e-the-FILES-OWN-pipeline-on-the-word-build "$(st_dex 'build 517 landed')" "517"
-  st D19f-the-FILES-OWN-pipeline-ignores-a-bare-number "$(st_dex 'fixed 517 things')" ""
-  st D19g-the-FILES-OWN-pipeline-takes-both-numbers "$(st_dex '#517 and #518 together')" "517 518"
-  st D19h-the-FILES-OWN-pipeline-strips-leading-zeros "$(st_dex '#0517 close-out')" "517"
-
-  # ── D20/D21. THE TWO ACCEPT ARMS, PUBLISHED AS ACCEPT ARMS. Neither had a single control, so the door's
-  # largest exemptions looked like coverage. Both are in scope for G6 (its clause is about gap fills) and both
-  # are now stated in the refusal text rather than only in a comment.
-  st_dnew "$ST_T/r20"
-  printf '515\tbuilt\t-\tdeadbeef0000\tcafebabe0000\t2026-10-22T00:00Z\tbuild__someone_else\tbuild.sh\tFORGED row under a number the base already holds\n' >> "$ST_T/r20/gates/build-numbers.tsv"
-  ST_D20="$(st_drun "$ST_T/r20" build__mine)"
-  st D20-a-foreign-row-under-an-EXISTING-number-is-ok-KNOWN-LIMIT "$(st_dv "$ST_D20")" ok
-  st_dnew "$ST_T/r21"; st_drow 700 build__someone_else - >> "$ST_T/r21/gates/build-numbers.tsv"
-  ST_D21="$(st_drun "$ST_T/r21" build__mine)"
-  st D21-a-planted-row-ABOVE-the-top-is-ok-KNOWN-LIMIT "$(st_dv "$ST_D21")" ok
-  # ONE LINE, AND IT EXISTS BECAUSE THE LINE ABOVE IT IS A FROZEN DENOMINATOR. `SELFTEST N pass / N fail` is
-  # printed by the C arm BEFORE the D arm runs, so it counted 34 of the suite total and would print "0 fail"
-  # over a failing D case - this project own closed-flag-with-a-frozen-denominator shape, inside the build
-  # that cites that rule. The exit status was always right; the printed verdict was not. Both lines now stand.
-  echo "SELFTEST TOTAL $st_p pass / $st_f fail (the earlier SELFTEST line counts the C arm only)"
   [ "$st_f" -eq 0 ] || exit 1
   exit 0
 fi
@@ -718,284 +427,87 @@ if [ "$MANI_RC" -ge 126 ]; then
   exit 1
 fi
 
-# ── G6. THE GAP-FILL DOOR: THE FULL SUITE DOES NOT GO GREEN ON AN APPENDED REGISTER ROW NOTHING ACCOUNTS FOR ──
-# jobs/the-register-arm-of-fastgate-checks-the-numbers-of-appended-rows-and-not-the-rows-so-a-duplicate-or-wrong-bundle-row-takes-a-fast-green-2026-10-16,
-# the LAST of its four clauses: "the full suite does not go green on a gap fill row that nothing accounts for".
-# #529 landed the first three in gates/fastgate.sh's register arm (rows judged AS ROWS, with multiplicity).
-# #530 built a door here and WITHDREW every executable line of it on antagonist B's upheld veto. Both of B's
-# reproductions were re-run before the veto was accepted and both held, and this door is built AROUND them
-# rather than over them - so read these two before changing anything here:
-#   (a) ITS CRITERION WAS A PROVENANCE WORD, AND A WORD IS A SHAPE A HAND-WRITTEN ROW CAN TYPE. It accepted a
-#       gap-fill row only at provenance `measured`, while `buildnum.sh sweep --add` - the census, the tool its
-#       own refusal line told a stuck run to use - writes `git-log`. Over the register's 323 `issued` rows:
-#       228 git-log, 83 run-log, 11 measured, 1 handoff. It accepted ELEVEN and rejected the 228 the tool
-#       itself wrote, and the two `measured` rows it was calibrated on are #519's HAND-WRITTEN backfill pair.
-#   (b) AND IT COULD WEDGE THE LANE. A gap fill is any appended number below the base series top and absent
-#       from the base - and A RUN'S OWN HONEST MINT IS EXACTLY THAT whenever origin/main gains a higher number
-#       first, which is the two-live-container case CLAUDE.md names. B reproduced it end to end: the suite went
-#       HARD RED before any gate with no override anywhere, and the only escape was abandoning the minted
-#       number, permanently burning one - the very harm the door's own text invoked.
-# SO THE TWO TESTS BELOW ARE VALUE TESTS AND NEITHER IS A WORD. A row is accounted for when it is YOURS (field
-# 7 is this run's CT_RUNID on EVERY row for that number in the source the row came from, which is the predicate
-# `buildnum.sh stampable` applies) or when it is a CENSUS ROW (field 3 is a sha that resolves in this repository
-# to a commit whose subject NAMES that number, by the same extractor `sweep --add` uses). The first makes the
-# wedge impossible by construction; the second is the thing a census carries and a planted row cannot.
-# WHY NOT CALL `stampable` ITSELF: its bare exit 0 is also given for a number on NO row, and it reads the
-# WORKING TREE only (gates/buildnum.sh:407-409). Both are wrong here - the two-container case must read ok for
-# a reason, and a committed row must be judged against the commit. So the predicate is re-implemented on the
-# source actually under test, and `stampable` stays the documented name for it.
-# FOUR MORE THINGS #530's VETO FOUND, EACH FIXED HERE RATHER THAN REDISCOVERED:
-#   - IT READ THE WORKING TREE WHILE SAYING "the rows THIS COMMIT APPENDS". Both of B's reproductions fired with
-#     nothing committed. This door judges BOTH: the rows HEAD appends against refs/remotes/origin/main AND the
-#     rows the working tree holds that HEAD does not, because on this lane's documented path (mint, then
-#     build.sh, then the suite) the rows are uncommitted while the suite runs, so a door reading HEAD alone is
-#     blind exactly there. Its line says how many rows it read from each of the four sources.
-#   - IT READ THE BASE WITH A BARE `git -C`. `-C` does NOT override an inherited GIT_DIR, so the base series
-#     top - the one number the whole verdict turns on - could come from another repository. BNGIT below is an
-#     ARRAY with --git-dir and --work-tree both explicit, and every git call in this block goes through it.
-#   - A MOVED BASE IS NOT A DELETION. A row the base has and HEAD lacks has the SAME surface signature as a
-#     deleted row, so the deletion test is taken against merge-base(HEAD, origin/main) and never against
-#     origin/main: an unrebased HEAD contains its own merge-base by construction, so a base that moved ahead
-#     reads as zero deletions. (antagonist-a-530's alsoDisclosed: #530's door read a deletion as NOT CHECKED.)
-#   - NO EARLY-EXIT PIPE IS ADDED. The register is ~236 KB, well past a pipe buffer, and under `set -uo
-#     pipefail` a short-circuiting consumer kills the producer with SIGPIPE and the pipeline reports 141 - the
-#     MANI_LINE class 30 lines above, and gatemanifest.sh's `sigpipe` ceiling. Every register here is written to
-#     a FILE and read by one awk pass; the only greps are over a ONE-LINE commit subject, and the membership
-#     test after them is a bash loop, not a `grep -q`.
-# WHAT IT DOES WHEN CT_RUNID IS UNSET, AND THIS PARAGRAPH IS THE ONE THE REVIEW REWROTE. It first read that an
-# unset CT_RUNID turns an ok into a RED only for a run`s own mint below a RAISED base top, and declared that as
-# an accepted known limit. BOTH ANTAGONISTS BROKE IT, from opposite doors, and they were right twice over:
-# gates.sh is documented as being launched WITHOUT CT_RUNID (the nightly suite carries none, and CLAUDE.md puts
-# CT_RUNID on buildnum.sh and build.sh, not here), so the "limit" was the CONFIGURED DEFAULT rather than an
-# edge; and the same red fires with CT_RUNID correctly SET, on a rotated runId or on a second row this run`s own
-# build.sh wrote as unknown-run. A declared limit that fires on the normal path is not a limit, it is the defect
-# the previous door was withdrawn for. THE CEILING FIX ABOVE RETIRES IT: the extends-the-series test is taken
-# against the MERGE-BASE top, so a run`s own mint is exempt BY CONSTRUCTION in every CT_RUNID state, and the
-# field-7 test is now a SECOND signal rather than the thing the honest path depends on. Re-measured after the
-# fix in the exact fixture that broke it: ok with the right runId, ok with a rotated one, ok with CT_RUNID
-# unset, ok with the unknown-run row beside it.
-# TWO MORE KNOWN LIMITS, DECLARED ON G6 WITH CONTROLS RATHER THAN LEFT TO BE FOUND: field 7 is taken ON TRUST,
-# so a hand-written row that types this run's own runId reads as yours; and a census row whose field-3 commit a
-# SHALLOW clone cannot fetch reads unaccounted, i.e. RED - the safe side, and loud.
-# OUTSIDE A GIT WORK TREE there is no base to compare against and the line reads NOT CHECKED and the suite runs;
-# INSIDE one, an unreadable base register or an uncomputable merge-base is RED, loudly, because
-# gates/verify-log.sh reads no door line and a NOT CHECKED that let the suite run could still authorise a push.
-# A plain `git clone`, and a single-branch clone, have NO refs/remotes/origin/main and so read RED by that rule:
-# every throwaway clone of a control must `git update-ref refs/remotes/origin/main <sha>` before gates.sh, and
-# that RED is the declared behaviour, not a wedge.
-BN_REL="gates/build-numbers.tsv"
-BNGIT=(git --git-dir="$ROOT/.git" --work-tree="$ROOT")
-BN_T="$(mktemp -d)"
-BN_RED=0
-BN_LINE="build-number series: NOT CHECKED"
-BN_DETAIL=""
-if [ ! -e "$ROOT/.git" ]; then
-  BN_LINE="build-number series: NOT CHECKED - $ROOT is not a git work tree, so there is no base register to judge against"
-else
-  bn_fail(){ BN_RED=1; BN_LINE="build-number series: RED - $1"; }
-  BN_BASESHA="$("${BNGIT[@]}" rev-parse --short=12 refs/remotes/origin/main 2>/dev/null || echo unknown)"
-  if ! "${BNGIT[@]}" show "refs/remotes/origin/main:$BN_REL" > "$BN_T/base.tsv" 2>"$BN_T/err"; then
-    bn_fail "cannot read $BN_REL at refs/remotes/origin/main, so the base series is unknown and no appended row can be judged. In a throwaway clone run \`git update-ref refs/remotes/origin/main <sha>\` first."
-  elif ! "${BNGIT[@]}" show "HEAD:$BN_REL" > "$BN_T/head.tsv" 2>>"$BN_T/err"; then
-    bn_fail "cannot read $BN_REL at HEAD"
-  elif ! BN_MB="$("${BNGIT[@]}" merge-base HEAD refs/remotes/origin/main 2>>"$BN_T/err")"; then
-    bn_fail "cannot compute merge-base(HEAD, refs/remotes/origin/main), so a deleted base row cannot be told from a base that moved ahead"
-  elif ! "${BNGIT[@]}" show "$BN_MB:$BN_REL" > "$BN_T/mb.tsv" 2>>"$BN_T/err"; then
-    bn_fail "cannot read $BN_REL at merge-base $BN_MB"
-  elif [ ! -f "$ROOT/$BN_REL" ]; then
-    bn_fail "$BN_REL is missing from the working tree"
-  else
-    cp "$ROOT/$BN_REL" "$BN_T/wt.tsv"
-    # ONE awk PASS OVER THE FOUR REGISTERS. A data row is NF==9 with a bare number in field 1, which drops the
-    # 62 comment lines AND the header row (`# number<TAB>state<TAB>...`), whose NF is also 9.
-    # THE MULTISET DIFFERENCE IS THE POINT: #529's own defect was `grep -vxF -f`, a SET difference, in which a
-    # byte-identical duplicate row is not in the difference at all. Here each source is consumed row by row in
-    # file order against a COPY of the previous source's counts, so a duplicate appears as an appended row.
-    # -F'\t' IS LOAD-BEARING AND IS WHY THIS LINE IS NOT A ONE-LINER. Without it awk splits on WHITESPACE, so
-    # the note field's spaces make NF large, `NF==9` is false for EVERY row, and the door classifies nothing and
-    # reads `ok` on every tree - a door that cannot fail. That is exactly how it was first written here, and D4,
-    # D5, D6, D9, D12 and D14 below all read ok until this flag was added. The register is a TSV; say so.
-    awk -F'\t' -v BASE="$BN_T/base.tsv" -v MB="$BN_T/mb.tsv" -v HEADF="$BN_T/head.tsv" -v WTF="$BN_T/wt.tsv" \
-        -v RUNID="${CT_RUNID:-}" '
-      # THE ROW PREDICATE WAS NF==9 AND THAT WAS THE SHARED VETO OF BOTH ANTAGONISTS ON THIS DOOR. Field 7 is
-      # the deepest field this block reads, so NF>=7 is the weakest predicate that can read it - and it agrees
-      # with what every OTHER register reader in this project uses (NF>=2: gates/buildnum.sh rows(),
-      # gates/fastgate.sh, ten sites in gates/fastgate-drive.sh). With NF==9 the set of rows the door JUDGED
-      # was a strict SUBSET of the set of rows that BURN A NUMBER, so ONE TRAILING TAB took a gap-fill row for
-      # a never-issued number straight through: measured, a row for 363 under a foreign runId plus one tab
-      # read ok at exit 0 and was not even COUNTED (worktree 513, the same as the clean tree), while
-      # buildnum.sh stampable answered NOT STAMPABLE - the number burned and the suite green, which is the one
-      # thing this door exists to stop. The same held at NF=8 (note dropped), at NF=10 (a tab inside the free
-      # prose note field) and with a leading space in field 1, committed or uncommitted.
-      # AND A RUNID THAT IS NOT RUNID-SHAPED IS NO RUNID. $7==RUNID is bare string equality, so CT_RUNID set to
-      # a single dash matched the register own null marker in field 7 and called every such row yours. A real
-      # runId is build__<epoch ms>; anything shorter than 8 characters or carrying punctuation is refused here
-      # rather than trusted. The honest register has 0 rows whose field 7 is a dash, so this closes it latent.
-      # NO INTERVAL EXPRESSION, AND THIS IS NOT STYLE. This block ran under mawk 1.3.4, whose intervals are
-      # the trap CLAUDE.md names by version: the first version of this line was /^[A-Za-z0-9_]{8,}$/, which
-      # mawk MATCHES AGAINST NOTHING, so RUNID was emptied on every run and the whole YOURS limb was DEAD -
-      # a silent, total disabling of one of the two accept tests. The controls caught it (every yours case
-      # went red at once); nothing else would have, because an always-empty RUNID only ever makes the door
-      # STRICTER, so no honest tree would have reported it and the limb would have read as protection.
-      BEGIN { if (length(RUNID) < 8 || RUNID ~ /[^A-Za-z0-9_]/) RUNID="" }
-      function isrow() { return (NF>=7 && $1 ~ /^[0-9]+$/) }
-      # AND THE PREDICATE IS NOW RATCHETED AGAINST THE FILE, which is the half that makes it safe rather than
-      # merely wider. A line that LOOKS like a row (it starts with a digit) and does not satisfy isrow() used
-      # to be classified as nothing, excluded from every printed count, and silently exempt; the door never
-      # asserted that the rows it classified account for the lines in the file. Now it does, and such a line
-      # is RED. The honest register has none: 513 digit-leading lines, every one of them NF==9.
-      # LEADING WHITESPACE COUNTS: a row indented by one space has $1 = " 517", fails isrow(), and used to be
-      # invisible. The anchor therefore allows leading blanks rather than requiring a digit in column one.
-      /^[ \t]*[0-9]/ && !isrow() && (FILENAME==HEADF || FILENAME==WTF) {
-        nbad++; if(nbad<=10){ b2=$0; gsub(/\t/," | ",b2); badrows[nbad]=(FILENAME==HEADF?"HEAD":"worktree") " " b2 } }
-      FILENAME==BASE { nb_all++; if(isrow()){ bc[$0]++; bn[$1]++; nb++; if($1+0>top) top=$1+0 } }
-      # THE MERGE-BASE TOP IS A SECOND CEILING AND IT IS WHAT RETIRES THE WEDGE THAT WITHDREW THE 530 DOOR.
-      FILENAME==MB   { if(isrow()){ mc[$0]++; mrows[++nm]=$0; if($1+0>mbtop) mbtop=$1+0 } }
-      FILENAME==HEADF{ if(isrow()){ hc[$0]++; hrows[++nh]=$0; hn[$1]++; if(RUNID!="" && $7==RUNID) hmine[$1]++ } }
-      FILENAME==WTF  { if(isrow()){ wc[$0]++; wrows[++nw]=$0; wn[$1]++; if(RUNID!="" && $7==RUNID) wmine[$1]++ } }
-      END{
-        printf "COUNTS\t%d\t%d\t%d\t%d\t%d\t%d\n", nb+0, nm+0, nh+0, nw+0, top+0, mbtop+0
-        if(nbad+0 > 0){ printf "BADN\t%d\n", nbad+0
-          for(i=1;i<=nbad && i<=10;i++) printf "BAD\t%s\n", badrows[i] }
-        # DELETIONS, against merge-base and never against origin/main (see the comment above).
-        # Iterated in merge-base FILE ORDER with a seen[] guard, not `for(l in mc)`: awk`s associative
-        # iteration order is unspecified, and a verdict whose lines reorder between runs is a verdict two
-        # readers can disagree about. The row is flattened (tabs -> " | ") because the reader below splits on
-        # tabs and a raw row would split across its own fields.
-        for(i=1;i<=nm;i++){ l=mrows[i]; if(l in seen) continue; seen[l]=1
-          d1 = mc[l] - (l in hc ? hc[l] : 0); d2 = mc[l] - (l in wc ? wc[l] : 0)
-          d = (d1 > d2 ? d1 : d2)
-          # CAPPED AT TEN, with the total reported separately: a tree missing 55 merge-base rows printed 55
-          # full register rows, several over a kilobyte, into the suite log before the refusal. The verdict was
-          # right and the log was unreadable, which is its own kind of wrong.
-          if(d > 0){ ndel_rows++; if(ndel_rows<=10){ l2=l; gsub(/\t/," | ",l2); printf "DEL\t%d\t%s\n", d, l2 }
-                     else { ndel_extra++ } }
-        }
-        # APPENDED = (HEAD minus BASE) then (WORKTREE minus HEAD), each with multiplicity, in file order.
-        for(l in bc) left[l]=bc[l]
-        for(i=1;i<=nh;i++){ l=hrows[i]
-          if((l in left) && left[l]>0){ left[l]-- } else { app[++na]=l; src[na]="HEAD" } }
-        for(l in hc) left2[l]=hc[l]
-        for(i=1;i<=nw;i++){ l=wrows[i]
-          if((l in left2) && left2[l]>0){ left2[l]-- } else { app[++na]=l; src[na]="worktree" } }
-        if(ndel_extra+0 > 0) printf "DELMORE\t%d\n", ndel_extra+0
-        printf "APP\t%d\n", na+0
-        for(i=1;i<=na;i++){
-          n=split(app[i], f, "\t"); num=f[1]
-          # A row for a number the BASE already has is not a gap fill: that is the ordinary mid-run rebuild,
-          # which this register`s own header calls the median behaviour of a run that fixed something mid-pass.
-          # A number ABOVE the base top is not a gap fill either: it EXTENDS the series.
-          # THE EXTENDS-THE-SERIES TEST IS TAKEN AGAINST THE MERGE-BASE TOP, NOT THE BASE TOP, AND THAT IS THE
-          # WHOLE OF THE WEDGE FIX. A number above the top AS IT STOOD WHEN YOU BRANCHED was free when you
-          # branched, so it cannot be back-filling anything already issued to anybody - which is exactly what a
-          # run own mint is. Against the BASE top it was not: measured, with another container minting 533 and
-          # pushing first, this run own honest 532 read as a gap fill and was carried ONLY by the field-7 test,
-          # so a ROTATED runId (ids do rotate: 507 and 519 each carry two on the live register) or a second row
-          # this run own gates/build.sh wrote as unknown-run (the documented default in buildnum.sh when
-          # CT_RUNID is not exported, which CLAUDE.md warns is a known slip) turned an HONEST tree HARD RED
-          # before any gate, with no override and no repair that is not deleting a true artefact row from an
-          # append-only register. That is the 530 wedge reached with CT_RUNID SET, outside the limit this door
-          # declared. In the ordinary case base and merge-base are the same commit and mbtop==top, so nothing
-          # about the normal path changes. WHAT THIS NEWLY EXEMPTS, named rather than left to be found: a
-          # number in the window above mbtop and at or below top that the base does NOT hold - a hole another
-          # container skipped while it was ahead of you. Such a row is indistinguishable from your own mint by
-          # construction, which is why the field-7 and census tests below remain as the second and third signal.
-          if((num in bn) || num+0 > mbtop+0) continue
-          if(src[i]=="HEAD"){ tot=hn[num]+0; mineN=hmine[num]+0 } else { tot=wn[num]+0; mineN=wmine[num]+0 }
-          mine = (RUNID!="" && tot>0 && tot==mineN) ? 1 : 0
-          r2=app[i]; gsub(/\t/," | ",r2)
-          printf "GAP\t%s\t%s\t%s\t%d\t%s\n", src[i], num, f[3], mine, r2
-        }
-      }' "$BN_T/base.tsv" "$BN_T/mb.tsv" "$BN_T/head.tsv" "$BN_T/wt.tsv" > "$BN_T/out" 2>>"$BN_T/err" \
-      || bn_fail "the register scan itself failed; see the suite log"
-    if [ "$BN_RED" -eq 0 ]; then
-      BN_NB=0; BN_NM=0; BN_NH=0; BN_NW=0; BN_TOP=0; BN_NAPP=0
-      BN_GAPS=0; BN_OK_MINE=0; BN_OK_CENSUS=0; BN_UNACC=0; BN_NDEL=0
-      BN_MBTOP=0; BN_NBAD=0; BN_DELMORE=0
-      while IFS=$'\t' read -r bn_kind bn_a bn_b bn_c bn_d bn_e bn_f; do
-        case "$bn_kind" in
-          COUNTS) BN_NB="$bn_a"; BN_NM="$bn_b"; BN_NH="$bn_c"; BN_NW="$bn_d"; BN_TOP="$bn_e"; BN_MBTOP="$bn_f" ;;
-          BADN)   BN_NBAD="$bn_a" ;;
-          BAD)    BN_DETAIL="$BN_DETAIL
-  MALFORMED REGISTER LINE ($bn_a): it begins with a digit but is not a row this door can read (it needs at
-  least 7 tab-separated fields, because field 7 is the runId). A line like this used to be invisible to every
-  count above and silently exempt, which is how ONE TRAILING TAB carried a gap-fill row for a never-issued
-  number past this door while buildnum.sh treated the number as burned." ;;
-          DELMORE) BN_DETAIL="$BN_DETAIL
-  ... and $bn_a further deleted row(s), not printed." ;;
-          APP)    BN_NAPP="$bn_a" ;;
-          DEL)    BN_NDEL=$(( BN_NDEL + bn_a ))
-                  BN_DETAIL="$BN_DETAIL
-  DELETED FROM THE REGISTER ($bn_a copy/copies), present at merge-base $BN_MB and absent now: $bn_b" ;;
-          GAP)    BN_GAPS=$(( BN_GAPS + 1 ))
-                  # bn_a source, bn_b number, bn_c field 3 (the census sha), bn_d the "yours" verdict
-                  if [ "$bn_d" = "1" ]; then
-                    BN_OK_MINE=$(( BN_OK_MINE + 1 ))
-                    BN_DETAIL="$BN_DETAIL
-  gap-fill #$bn_b ($bn_a) is ACCOUNTED FOR: yours - field 7 is ${CT_RUNID:-} on every row for #$bn_b in that source"
-                  else
-                    bn_cen=""
-                    if [ -n "$bn_c" ] && [ "$bn_c" != "-" ] && [[ "$bn_c" =~ ^[0-9a-f]{7,40}$ ]] \
-                       && "${BNGIT[@]}" cat-file -e "$bn_c^{commit}" 2>/dev/null; then
-                      bn_subj="$("${BNGIT[@]}" log -1 --format=%s "$bn_c" 2>/dev/null || true)"
-                      # THE EXTRACTOR IS buildnum.sh's SHAMAP, COPIED (gates/buildnum.sh:764-770), and the
-                      # control for the copy is a case that FAILS when the two disagree on one fixture subject.
-                      # NO awk INTERVAL MATCH and no early-exit consumer: the producer is one short subject.
-                      bn_nums="$(printf '%s\n' "$bn_subj" | grep -oiE '(#|\bbuild +)[0-9]{3,4}' \
-                                 | grep -oE '[0-9]{3,4}' | sed 's/^0*//' || true)"
-                      for bn_x in $bn_nums; do [ "$bn_x" = "$bn_b" ] && bn_cen="$bn_c"; done
-                    fi
-                    if [ -n "$bn_cen" ]; then
-                      BN_OK_CENSUS=$(( BN_OK_CENSUS + 1 ))
-                      BN_DETAIL="$BN_DETAIL
-  gap-fill #$bn_b ($bn_a) is ACCOUNTED FOR: census row - field 3 $bn_cen resolves to a commit whose subject names #$bn_b"
-                    else
-                      BN_UNACC=$(( BN_UNACC + 1 ))
-                      BN_DETAIL="$BN_DETAIL
-  gap-fill #$bn_b ($bn_a) IS UNACCOUNTED FOR. It is at or below the series top as it stood at the merge-base
-  (#$BN_MBTOP) and absent from the base,
-  and it is neither yours (field 7 is not ${CT_RUNID:-<CT_RUNID unset>} on every row for #$bn_b) nor a census row (field 3 '$bn_c' does
-  not resolve to a commit whose subject names #$bn_b). The row: $bn_f"
-                    fi
-                  fi ;;
-        esac
-      done < "$BN_T/out"
-      if [ "$BN_NDEL" -gt 0 ] || [ "$BN_UNACC" -gt 0 ] || [ "$BN_NBAD" -gt 0 ]; then BN_RED=1; fi
-      # THE BASE REF THE VERDICT RESTS ON IS NAMED IN THE LINE. The door reads refs/remotes/origin/main, which
-      # is a LOCAL WRITABLE ref that nothing here corroborates, and a stale or repointed one weakens every arm
-      # while the line looks entirely normal and no tracked file changes. Naming the sha does not fix that -
-      # only a fetch would, and a network call before every gate is its own hazard - but it puts the one fact
-      # a later reader needs to catch it INTO the log, which is where this project has repeatedly found that
-      # the missing half was. Declared as a known limit on the job.
-      BN_LINE="build-number series: $( [ "$BN_RED" -eq 1 ] && echo RED || echo ok ) - read base $BN_NB / merge-base $BN_NM / HEAD $BN_NH / worktree $BN_NW row(s); $BN_NAPP appended, $BN_GAPS filling a gap ($BN_OK_MINE yours, $BN_OK_CENSUS census, $BN_UNACC unaccounted), $BN_NDEL deleted, $BN_NBAD malformed; series top: base #$BN_TOP, merge-base #$BN_MBTOP; base ref ${BN_BASESHA:-unknown}"
-    fi
-  fi
-fi
-printf '%s\n' "$BN_LINE" | tee -a "$ALL"
-[ -n "$BN_DETAIL" ] && printf '%s\n' "$BN_DETAIL" | tee -a "$ALL"
-rm -rf "$BN_T"
-if [ "$BN_RED" -eq 1 ]; then
-  echo "GATES RED $N — stopped before running any gate: the build-number register carries a row nothing accounts for." | tee -a "$ALL"
-  echo "  WHAT THIS REFUSES, in one sentence: a row appended for a number that was ALREADY TAKEN OR SKIPPED when" | tee -a "$ALL"
-  echo "  you branched - at or below the series top at the merge-base, and absent from the base - which nothing" | tee -a "$ALL"
-  echo "  accounts for; OR a register line that begins with a digit and is not a readable row; OR a row deleted" | tee -a "$ALL"
-  echo "  from an append-only register. A row is accounted for when it is YOURS (field 7 is your CT_RUNID on" | tee -a "$ALL"
-  echo "  every row for that number in that source) or a CENSUS row (field 3 resolves to a commit whose subject" | tee -a "$ALL"
-  echo "  names the number, as \`buildnum.sh sweep --add\` writes it)." | tee -a "$ALL"
-  echo "  YOUR OWN MINT IS NOT WHAT THIS IS REFUSING. A number above the merge-base series top extends the" | tee -a "$ALL"
-  echo "  series and is never judged here, whatever CT_RUNID says - so if the row the detail line names is one" | tee -a "$ALL"
-  echo "  your own run wrote, read the detail: it is below that top, which means the number was taken or" | tee -a "$ALL"
-  echo "  skipped before you branched." | tee -a "$ALL"
-  echo "  IF THE ROW IS YOURS AND FIELD 7 DOES NOT SAY SO, the escape is to tell the door who you are, NOT to" | tee -a "$ALL"
-  echo "  delete the row:  CT_RUNID=<the value in field 7 of that row> gates/gates.sh \"$N\"" | tee -a "$ALL"
-  echo "  NEVER make this pass by deleting a row or abandoning your minted number. The register is append-only," | tee -a "$ALL"
-  echo "  a deletion is itself refused above, and a burned number is permanent - #416 already names two trees." | tee -a "$ALL"
-  echo "  WHAT THIS DOES NOT REFUSE, so the verdict is not over-read: a further row for a number the BASE" | tee -a "$ALL"
-  echo "  ALREADY HOLDS is not judged here at all. That is the ordinary mid-run rebuild, and the duplicate and" | tee -a "$ALL"
-  echo "  wrong-bundle clauses that cover it live in gates/fastgate.sh, which THIS script never invokes - so on" | tee -a "$ALL"
-  echo "  the full-suite push gate that check does not exist. It is a known limit on G6, not a silence." | tee -a "$ALL"
-  exit 1
-fi
+# ── G6's GAP-FILL DOOR IS WITHDRAWN FROM THIS RUN ON ANTAGONIST B's UPHELD VETO, AND THE MEASUREMENTS STAY ──
+# jobs/the-register-arm-of-fastgate-checks-the-numbers-of-appended-rows-and-not-the-rows-so-a-duplicate-or-wrong-bundle-row-takes-a-fast-green-2026-10-16
+# asks, as the last of its four clauses, that "the full suite does not go green on a gap fill row that nothing
+# accounts for". This run built that door here and B broke it twice. Both reproductions were re-run by me before
+# the veto was accepted, and both hold:
+#   (a) THE CRITERION REJECTED THE CENSUS ITS OWN REFUSAL NAMED AS THE REMEDY. It accepted a gap-fill row only
+#       with provenance `measured`, while `gates/buildnum.sh sweep --add` - the census - writes `git-log`.
+#       Measured over this register's 323 `issued` rows: 228 git-log, 83 run-log, 11 measured, 1 handoff, so the
+#       test accepted ELEVEN and rejected the 228 the tool itself wrote. The refusal line then told a stuck run
+#       to run `sweep --add`, which is what produces the refusal. Circular, and false about this project's own
+#       tooling. The "#519 rows are the worked example" citation was wrong the same way: their own notes say
+#       "backfilled by the integration run" and "OWNERSHIP CORRECTION", so the criterion was calibrated on two
+#       HAND-WRITTEN rows and rejected the tool's output - the exact inversion of the door's stated purpose.
+#   (b) WORSE, AND IT IS WHY THIS COMES OUT RATHER THAN GETTING A PATCH: a run's OWN HONEST MINT is a row below
+#       the base top and absent from the base whenever origin/main gained a higher number first - the
+#       two-live-container case CLAUDE.md names by name. B reproduced it: another session mints #531 and pushes,
+#       this run's earlier #530 row then reads "FILLS A GAP below the base series top #531", and the suite is a
+#       HARD RED BEFORE ANY GATE, with no environment override anywhere in the block. The register is
+#       append-only, so the only escape is to abandon the minted number - permanently burning a build number,
+#       which is the harm this door's own text invoked.
+#   (c) and two supporting faults: it said "the rows THIS COMMIT APPENDS" while reading the WORKING TREE, which
+#       on this lane's documented path is always dirty after mint and build.sh; and it read the base with a bare
+#       `git -C "$ROOT" show` while this same file records, in terms, that `--git-dir` must be explicit because
+#       an inherited GIT_DIR/GIT_WORK_TREE is not overridden by `-C` - so the base series top, the one number
+#       the whole verdict turns on, could come from another repository.
+# WHAT A CORRECT DOOR NEEDS, so run 8 starts from the finding and not from scratch. The discriminator is not a
+# provenance word - that is a shape, and a hand-written row can type any shape. It is the thing a census carries
+# and a planted row cannot: field 3, the SHA of the commit that names the number, which `buildnum.sh` writes at
+# its sweep append and which can be resolved and checked against that commit's subject. And the run's own mint
+# must be exempt by construction, which `buildnum.sh stampable` already computes. Both are value tests. Until
+# they exist, the full suite checks no series, which is exactly where d7a022b stood, so nothing regresses here.
+# G6 therefore stays FIXED-IN-PART with this clause as its remainder, and the three measurements above are on
+# its job so the next attempt does not re-derive them.
+#
+# ── #532 BUILT THIS DOOR A SECOND TIME AND WITHDREW IT A SECOND TIME. READ (b) ABOVE FIRST: I REBUILT IT. ──
+# Clause (b) above names the wedge - a run's own mint reads as a gap fill once origin/main gains a higher
+# number first - and prescribes the exemption: "which `buildnum.sh stampable` already computes". I did not take
+# that prescription. I built a second ceiling instead: the extends-the-series test against the MERGE-BASE top
+# rather than the base top, on the reasoning that a number above the top AS IT STOOD WHEN YOU BRANCHED cannot
+# be back-filling anything. That reasoning is sound and the ceiling is still WRONG, because of what it is made
+# of. MEASURED, by this run's antagonist B and reproduced by me before the veto was accepted:
+#   (d) THE MERGE-BASE CEILING EVAPORATES ON THE ONE COMMAND YOU MUST RUN BEFORE YOU PUSH. Integrating
+#       origin/main - `git merge origin/main`, or the rebase CLAUDE.md requires when main has moved - makes the
+#       merge-base the other container's commit, so mbtop becomes ITS top and your own mint falls below the
+#       ceiling again. Fixture: another container mints #533 and pushes while you hold #532. BEFORE the merge
+#       the door reads `ok`; AFTER it, on a register that is the honest union of both containers' true rows, it
+#       reads `RED - 2 appended, 2 filling a gap (0 yours, 0 census, 2 unaccounted)`, exit 1, before any gate.
+#       So (b) is not fixed, it is DEFERRED BY ONE COMMAND - and the command it is deferred past is mandatory.
+#   (e) AND NO CT_RUNID RECOVERS IT, which is what makes it a wedge rather than a nuisance. The field-7 test
+#       asks that EVERY row for the number carry CT_RUNID. `gates/build.sh` writes a second row attributed to
+#       `unknown-run` whenever CT_RUNID is not exported, which buildnum.sh:519 makes the default and CLAUDE.md
+#       names as a known slip; `unknown-run` also fails the runId shape guard. With those two rows present no
+#       value of CT_RUNID satisfies the test, and the remaining escapes are deleting a true row from an
+#       append-only register or un-merging main. Measured at build__mine, build__other, a rotated id, and
+#       unset: RED in all four.
+# AND THE COVERAGE WAS OVERSTATED IN THE SAME DIRECTION, found independently by both antagonists of the second
+# pair, which is why this comes out whole rather than getting a third patch:
+#   (f) THE HEADLINE PREDICATE HAD NO CONTROL. The fix widened the row test from NF==9 to NF>=7 so that a row
+#       carrying one trailing tab - which `buildnum.sh`'s own NF>=2 filter reads as a row that BURNS a number -
+#       could not be invisible. Restoring NF==9 left the 51-case arm at 85 pass / 0 fail: not one case could
+#       tell the new predicate from the one it replaced. The case NAMED for the reproduction,
+#       `D4b-a-gap-fill-row-with-ONE-TRAILING-TAB-is-RED`, contained no trailing tab (`cat -A`: NF=9), so the
+#       one input the veto turned on was driven by nothing. Same family as the `49-home` controls published as
+#       bare counts whose stated input was not the input that ran.
+#   (g) AND THE REFUSAL COULD NOT NAME THE ROW IT WAS REFUSING. The GAP line emits six tab fields and the
+#       reader took seven, so `The row: $bn_f` printed empty on every refusal - while the same commit added two
+#       instructions that depend on that row being printed, including the escape `CT_RUNID=<the value in field
+#       7 of that row>`. One character, and nothing in the arm could see it.
+# WHAT IS LEFT UNTRIED, so run 10 starts here rather than at the top. The prescription in (b) has still never
+# been built: delegate the exemption to `gates/buildnum.sh stampable`, the project's own authority on whether a
+# number belongs to this run, instead of reimplementing it as a ceiling plus a field-7 test. It is computed
+# from the rows' attribution and NOT from any series top, so it is the one formulation measured here that
+# integration cannot move; it carries 47 controls of its own; and delegating makes the door and the authority
+# agree by construction, which neither draft did - at the withdrawal of this one they disagreed about an honest
+# tree in both directions. KNOW WHAT IT DOES NOT COVER before building on it: a second row under a number the
+# base ALREADY holds is not a gap fill at all, and that is the #416 damage class (two trees, one number) this
+# job's own title names as "a duplicate row takes a fast green". A door built only on `stampable` would pass it.
+# TWO PASSES HAVE NOW ENDED HERE AND NOTHING REGRESSES EITHER TIME: with the door out, the full suite checks no
+# series, which is where d7a022b stood. G6 stays FIXED-IN-PART with this clause as its remainder. The
+# reproductions for (d) through (g) are on its job, with the fixture scripts, so the third attempt measures
+# them rather than rediscovering them - which is what both of these passes spent their antagonist budget on.
 
 gates=("$G/mountcheck.js")
 if [ -n "$SUBSET" ]; then
