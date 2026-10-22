@@ -1017,6 +1017,18 @@ FAB
   # (7, 8, 9). The wrong number came from counting the lines rather than the expected verdicts. Kept as a
   # note rather than silently corrected, because a number this file publishes and a number it measures
   # disagreeing once is exactly the shape R18 is about.
+  # AND IT HAPPENED A SECOND TIME, TO THE SAME LINE, AND IS CORRECTED IN PLACE HERE [R18, #530]: that assertion
+  # went on to publish "8 of the fixture's 13 candidate lines" once the two continuation fixtures were appended.
+  # 13 is SP_FIXTURE_CEIL - the count of MARKED LINES IN THIS FILE - wearing the name of a quantity it is not,
+  # and the predecessor of that string read "6 of the fixture's 9" when the ceiling was 9, so the denominator had
+  # tracked the ceiling rather than the fixture for two builds. MEASURED at #530 by dumping the generated
+  # fixture from a sibling copy of this script (a copy in gates/, never a scratch directory: the script derives
+  # $ROOT from its own location): fab.sh is 17 PHYSICAL lines, of which 11 are candidate LOGICAL lines holding a
+  # grep - 3, 4, 5, 6, 7, 8, the commented-out 9, and the four continuation pairs beginning at 10, 12, 14 and
+  # 16. Eight are sites; the three that must not be are 7, 8 and 9, exactly as the note above describes them.
+  # The NUMERATOR was never wrong, which is the point: the assertion is on 8, and 13 was unasserted prose inside
+  # a PASS line - the same class as the "all six sets" count this run corrected in gates/fastgate.sh, found by
+  # the same reviewer in the same pass.
   # ── #530. THE CONTINUATION-LINE CONTROLS [jobs/the-sigpipe-audit-files-a-pipeline-whose-status-a-continuation-line-reads-as-tier-d-so-the-race-that-reddened-h23-counted-as-latent-2026-10-20]
   # TWO FIXTURES, AND THE SECOND IS THE ONE THAT MATTERS AS MUCH AS THE FIRST. Line 10 is the banned shape
   # written across two lines - a pipeline into grep -qxF whose status is read by an `||` at the START of the
@@ -1030,7 +1042,7 @@ FAB
   spck "D" "$(awk -F'\t' '$3==12{print $1}' <<<"$spsites")" "DETECTOR: a continuation that merely CONTAINS && inside a substitution stays TIER D"
   spck "B" "$(awk -F'\t' '$3==14{print $1}' <<<"$spsites")" "DETECTOR: a || echo across a continuation is TIER B, not downgraded to D [A's veto V1]"
   spck "C" "$(awk -F'\t' '$3==16{print $1}' <<<"$spsites")" "DETECTOR: a || true across a continuation is TIER C, not downgraded to D [A's veto V1]"
-  spck "8" "$(printf '%s\n' "$spsites" | grep -c . || true)" "DETECTOR: exactly 8 of the fixture's 13 candidate lines are sites, and no others"
+  spck "8" "$(printf '%s\n' "$spsites" | grep -c . || true)" "DETECTOR: exactly 8 of the fixture's 11 candidate logical lines are sites, and no others"
   # 40. THE CEILING ITSELF FIRES. Two tier A lines against SP_A_CEIL=1 must be a refusal, otherwise the
   #     ratchet is decoration. The vacuity guard is the pair: an EMPTY directory is clean and says 0.
   cat > "$SPD/fab2.src" <<'FAB2'

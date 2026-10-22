@@ -169,12 +169,27 @@ fi
 #            `claude/stories/.plant530.md` through arm (1), and `gates/.probe/x.js` through arm (4) - the second
 #            needing NO .git/info/exclude at all, because `.gitignore:14` already ignores `gates/.probe/` for
 #            throwaway probes, which made the project's own convenience the cheapest blind spot.
-#   NOW      the exemption names the MECHANISM, which is CLAUDE.md's rule for exactly this ("it pins the
-#            exclusion to its MECHANISM"): `gates/.build/` is the bundle directory gates/build.sh owns and
-#            recreates (`B="$G/.build"; rm -rf "$B"; mkdir -p "$B"`), and it is the ONLY dotted path a build
-#            leaves in these sets. Every other untracked path, dotted or not, still routes to the full suite.
+#   draft 3  exempted the DIRECTORY PREFIX `^gates/\.build/`, one notch wider than the mechanism it cited: a
+#            planter dropping `gates/.build/zz.js` was exempt too, and arm (4) reaches exactly such a path by
+#            `[ -f ]` and then `wc -l` - so the very plant the veto above was upheld on still worked, one
+#            directory over. Demonstrated end to end by a second fresh reviewer of this tree: FAST GATE GREEN,
+#            exit 0, with `gates/.build/zz.js` present and unreported, against exit 2 for the same file at
+#            `gates/.probe/zz.js`. The defence this comment used to carry - that `.build/` "is the ONLY dotted
+#            path a build leaves in these sets" - is true of a BUILD and silent about a PLANTER, while a planter
+#            is this block's entire threat model, so it reasoned from the wrong actor.
+#   NOW      the exemption names ONE EXACT PATH, `gates/.build/app.js`, matched whole-line and literal with
+#            `grep -vxF`. THAT is the mechanism CLAUDE.md's rule asks for, rather than the directory the
+#            mechanism happens to write into: measured independently by two reviewers of this tree, app.js is the
+#            only path a build leaves that any of these seven pathspecs matches at all (`.build` also holds
+#            chess.jsx, entry.jsx and node_modules, none of which any pathspec names). Every other untracked
+#            path, dotted or not, inside `gates/.build/` or anywhere else, still routes to the full suite. AND
+#            THE DIRECTION OF THIS CORRECTION IS SAFE BY CONSTRUCTION, which is why it was taken late in a run
+#            rather than filed: a NARROWER exemption can only ever route MORE commits to the full suite, never
+#            fewer, so its worst case is wasted wall clock and never a false green. The normal case is still
+#            green, and that is controlled below rather than assumed, because a guard that fires on the normal
+#            case is how this block got draft 1 wrong.
 # A SIDE BENEFIT WORTH NAMING: draft 2's correctness depended on bash's default globbing, and `shopt -s dotglob`
-# would have silently broken it. Pinning the exemption to one directory removes that dependency entirely.
+# would have silently broken it. Pinning the exemption to one exact path removes that dependency entirely.
 # WHAT IS STILL NOT COVERED, DECLARED RATHER THAN CLAIMED AWAY, because the sentence "exactly as wide as what the
 # checks can read" was false and is withdrawn [R18]. Both of these PREDATE this run and neither is fixed here:
 #   - `gates/**.sh` is in no group, while arm (4)'s regex matches `.sh`; adding it here would list this suite's
@@ -196,7 +211,7 @@ OSPECS_DIR=(':(glob)claude/agents/gatelogs/*' ':(glob)gates/regress/*')
 # only limits what it PRINTS, so there is no early-exit pipeline. `sort -u` drains by definition.
 OSTEER="$( { $GIT -c core.quotePath=false ls-files --others -- "${OSPECS_GLOB[@]}" 2>/dev/null;
             $GIT -c core.quotePath=false ls-files --others -- "${OSPECS_DIR[@]}" 2>/dev/null; } \
-  | grep -v '^gates/\.build/' \
+  | grep -vxF 'gates/.build/app.js' \
   | sort -u \
   | awk 'BEGIN{n=0} {n++; if (n<=5) print "    " $0} END{if (n>5) print "    ... and " (n-5) " more"}')"
 if [ -n "$OSTEER" ]; then

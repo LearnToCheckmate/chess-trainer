@@ -561,7 +561,17 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   # WHY THE ok AND SKIPPED TWINS ARE DELIBERATELY LEFT LOOSE [R06, and the asymmetry is the whole reason]: an ok
   # line is CREDITED, so dokany must keep matching a bare `  ok  ` with no case id - catching that forgery is
   # exactly what #529's fault (4) added it for, and anchoring it to a case id would blind it. A FAIL line is
-  # never credited; it can only redden. Loose is a GUARD on the ok side and a HAZARD on the FAIL side.
+  # never credited; it can only redden. SO LOOSE IS A GUARD ON THE ok SIDE - AND IT IS A HAZARD THERE TOO, which
+  # this comment's last clause used to deny ("a GUARD on the ok side and a HAZARD on the FAIL side") and which is
+  # WITHDRAWN here [R18, a fresh reviewer of this tree]: the twins are compared with EQUALITY at :538, :550 and
+  # the verdict below, not with >=, so a quoted sub-process line that the loose pattern reads and the strict one
+  # does not makes dokany > dok and REDDENS a suite in which no case failed. That is the identical hazard #529
+  # found on dfailany and this run anchored out of dfail, pointed the other way. Latent, not live, and measured
+  # rather than asserted: the only sub-process output this harness interpolates is prefixed (fastgate-drive.sh:67
+  # indents `git status --porcelain`, whose lines begin with status codes, and :411 parenthesises a mint note),
+  # and no tool on the push path emits a line beginning `ok` or `SKIPPED`. The honest repair is to COUNT the
+  # lines the strict pattern did not read and REPORT them, rather than to compare two totals - filed, not done
+  # here, because it is a shape change to a block whose own counters are what this run just finished anchoring.
   # classSwept {found 4, fixed 2, left 2 with this reason} - corrected from {3,1,2} at #530 on B's F3, which
   # found the fourth site: the STRICT dfail counter below, anchored in the same way for the same reason.
   dfailany=$(grep -cE '^[[:space:]]*FAIL[[:space:]]+H[0-9]+[a-z]*([[:space:]]|$)' "$dlog" || true)   # every FAIL VERDICT shape, read or not [#529 review, anchored #530]
