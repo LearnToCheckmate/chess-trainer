@@ -253,7 +253,11 @@ tc() {
   st C34-a-declaration-under-the-table-is-RED "$(st_drive 'echo "cases: 2 declared (stub)"; echo "  ok  H1 [TC-SUITE-057]  (probe)"; echo "  ok  H2 [TC-SUITE-058]  (probe)"; exit 0' 3)" 1
 
 
-  # ── C35 TO C59: THE GAP-FILL DOOR (G6, #533). TWENTY-FIVE CASES AND SEVEN MUTANTS. ──────────────────────────
+  # ── C35 TO C79: THE GAP-FILL DOOR (G6, #533). THE COUNTS ARE THE COMMAND'S OWN OUTPUT AND ARE DELIBERATELY
+  # NOT RESTATED HERE: this banner read "TWENTY-FIVE CASES AND SEVEN MUTANTS" through four repair rounds while
+  # the arm grew to three figures and the mutant list to thirteen, and the same file said "THE THIRTEEN
+  # MUTANTS" 470 lines below - two counts in one file disagreeing, with no case asserting either, which is the
+  # drift CLAUDE.md records against gatemanifest.sh's own count. Run the arm; it prints the tally. ──────────────────────────
   # The door is the block between GF_REG= and the gates array, and these cases run THAT BLOCK, extracted from
   # this very file by awk, against freshly `git init`ed scratch repositories whose base, HEAD and working-tree
   # registers this harness writes. They are here and not in a gate because the thing under test is gates.sh's
@@ -722,7 +726,64 @@ tc() {
   st C78d-an-UNREADABLE-file-is-its-own-answer "$(st_nul "$ST_T/no-such-file-at-all")" 2
   st C78e-and-the-two-failures-are-DISTINCT "$( [ "$(st_nul "$ST_T/nul.tsv")" != "$(st_nul "$ST_T/no-such-file-at-all")" ] && echo distinct || echo same )" distinct
 
-  # ── THE THIRTEEN MUTANTS. Each is the extracted block with ONE literal string put back, and each TURNS a case. ──
+
+  # ── C79-C84: THE THIRD PAIR. B's P0 is the one that matters: two of this door's own messages RAN git as a
+  # side effect of being built, because their text named commands in BACKTICKS inside a double-quoted string.
+  # The 206-case arm was blind to it, because every case asserted what the door DECIDED and none asserted that
+  # the words it prints are the words that were written. C79 is that control.
+  st_gfspan(){ st_gfrun "$1" "$2" | grep -cF "$3" || true; }
+  # C79: the three spans of the base-ref-at-HEAD message must reach the output verbatim. On the broken form
+  # bash substituted them away: `appended` became empty, and the whole name of the command the reader is being
+  # warned against - git update-ref refs/remotes/origin/main HEAD - was EXECUTED and then deleted.
+  st C79-the-NOT-CHECKED-message-keeps-its-words "$(CT_RUNID=$GFMINE st_gfspan "$dp" "$ST_T/gf.sh" "'appended' would read 0")" 1
+  st C79b-and-names-the-command-it-warns-against "$(CT_RUNID=$GFMINE st_gfspan "$dp" "$ST_T/gf.sh" "a throwaway 'git update-ref refs/remotes/origin/main HEAD' does")" 1
+  st C79c-and-runs-no-command-while-building-it "$(CT_RUNID=$GFMINE st_gfrun "$dp" "$ST_T/gf.sh" | grep -c 'command not found')" 0
+  st C79d-the-source-carries-no-live-backtick "$(grep '`' "$ST_T/gf.sh" | grep -vE '^[ \t]*#' | grep -cE '`(git|appended|rows|is-shallow|fatal)' || true)" 0
+  # C80: A SHALLOW clone with no merge-base - the limb of the merge-base refusal that had no case at all,
+  # because C74's fixture is a COMPLETE repository with unrelated histories. Two things are asserted that the
+  # verdict word cannot give: the clone is STILL SHALLOW after the run, and it is told the shallow half.
+  rm -rf "$ST_T/shsrc" "$ST_T/shclone"; mkdir -p "$ST_T/shsrc/gates"
+  cp "$SG/buildnum.sh" "$ST_T/shsrc/gates/buildnum.sh"
+  { echo '# fixture'; st_row 530 issued - "$GFOTHER" run-log; } > "$ST_T/shsrc/gates/build-numbers.tsv"
+  git init -q -b main "$ST_T/shsrc" 2>/dev/null; st_gc "$ST_T/shsrc" add -A; st_gc "$ST_T/shsrc" commit -q -m one
+  echo x > "$ST_T/shsrc/x"; st_gc "$ST_T/shsrc" add -A; st_gc "$ST_T/shsrc" commit -q -m two
+  echo y > "$ST_T/shsrc/y"; st_gc "$ST_T/shsrc" add -A; st_gc "$ST_T/shsrc" commit -q -m three
+  git clone -q --depth 1 "file://$ST_T/shsrc" "$ST_T/shclone" 2>/dev/null
+  git -C "$ST_T/shclone" checkout -q --orphan orph 2>/dev/null
+  st_gc "$ST_T/shclone" commit -q -m 'an orphan commit, so there is no merge-base'
+  st C80-the-fixture-really-is-shallow "$(git -C "$ST_T/shclone" rev-parse --is-shallow-repository 2>/dev/null)" true
+  st C80b-no-merge-base-is-RED "$(CT_RUNID=$GFMINE st_gfv2 "$ST_T/shclone" "$ST_T/gf.sh")" RED
+  st C80c-and-a-SHALLOW-clone-is-told-the-shallow-half "$(CT_RUNID=$GFMINE st_gfn "$ST_T/shclone" "$ST_T/gf.sh" 'This clone IS shallow')" 2
+  st C80d-and-it-is-STILL-SHALLOW-afterwards "$( CT_RUNID=$GFMINE st_gfrun "$ST_T/shclone" "$ST_T/gf.sh" >/dev/null 2>&1; git -C "$ST_T/shclone" rev-parse --is-shallow-repository 2>/dev/null )" true
+  st C80e-and-origin-main-still-reaches-one-commit "$(git -C "$ST_T/shclone" rev-list --count origin/main 2>/dev/null)" 1
+  # C81: the escape's VALUE on every verdict, including a green and an unset one - the only way an armed
+  # escape that changed nothing becomes visible in an archived log.
+  st C81-the-escape-value-is-printed-when-used "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=533 st_gfn "$d7" "$ST_T/gf.sh" 'escape=\[533\]')" 1
+  st C81b-and-when-unset-on-a-green "$(CT_RUNID=$GFMINE st_gfn "$d5" "$ST_T/gf.sh" 'escape=\[(unset)\]')" 1
+  st C81c-and-when-ARMED-but-unused-on-a-green "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE='100 101 102' st_gfn "$d5" "$ST_T/gf.sh" 'escape=\[100 101 102\]')" 1
+  st C81d-so-two-different-escapes-give-different-logs "$( [ "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=533 st_gfrun "$d7" "$ST_T/gf.sh" | md5sum)" != "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE="$(seq 100 532)" st_gfrun "$d7" "$ST_T/gf.sh" | md5sum)" ] && echo differ || echo identical )" differ
+  # C82: the authority must be runnable, and that is a door defect, refused and NOT escapable.
+  dx="$(st_mk gfx)"; st_row 533 minted - "$GFMINE" minted >> "$dx/gates/build-numbers.tsv"
+  st_row 401 minted - "$GFMINE" minted >> "$dx/gates/build-numbers.tsv"
+  st_gc "$dx" add -A; st_gc "$dx" commit -q -m 'an honest gap fill of this run own'
+  st C82-CONTROL-the-honest-tree-is-ok "$(CT_RUNID=$GFMINE st_gfv "$dx" "$ST_T/gf.sh")" ok
+  chmod -x "$dx/gates/buildnum.sh"
+  st C82b-a-non-executable-authority-is-RED "$(CT_RUNID=$GFMINE st_gfv2 "$dx" "$ST_T/gf.sh")" RED
+  st C82c-and-is-called-a-door-defect "$(CT_RUNID=$GFMINE st_gfn "$dx" "$ST_T/gf.sh" "a defect in this door's ENVIRONMENT and not in the tree")" 2
+  st C82d-and-is-NOT-escapable "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfv2 "$dx" "$ST_T/gf.sh")" RED
+  chmod +x "$dx/gates/buildnum.sh"
+  st C82e-and-the-control-still-reads-ok-after "$(CT_RUNID=$GFMINE st_gfv "$dx" "$ST_T/gf.sh")" ok
+  # C83: the deletion refusal names its route out.
+  # ONCE, not twice: on a deletion the verdict line is "RED - <counts>" and the reason goes on the detail line
+  # under it, so GF_WHY is printed once. The refusals that reach the fallback assembly print it twice. Measured
+  # rather than assumed, which is how the two expectations above were wrong by one.
+  st C83-the-deletion-refusal-names-a-route "$(CT_RUNID=$GFMINE st_gfn "$dt" "$ST_T/gf.sh" 'git checkout -- gates/build-numbers.tsv puts the working tree back')" 1
+  st C83b-and-says-what-to-do-if-the-row-is-wrong "$(CT_RUNID=$GFMINE st_gfn "$dt" "$ST_T/gf.sh" 'amend or rebase the commit that added it rather than deleting it here')" 1
+  # C84: the extends declaration must say the fast arm bounds it on the FAST path only.
+  st C84-the-extends-clause-scopes-the-fast-arm "$(CT_RUNID=$GFMINE st_gfn "$d2" "$ST_T/gf.sh" 'ON THE FAST PATH ONLY')" 1
+  st C84b-and-says-nothing-bounds-it-here "$(CT_RUNID=$GFMINE st_gfn "$d2" "$ST_T/gf.sh" 'nothing bounds the extends class')" 1
+
+  # ── THE FOURTEEN MUTANTS. Each is the extracted block with ONE literal string put back, and each TURNS a case. ──
   echo "SELFTEST NOTE mutants: each is $ST_T/gf.sh with one literal edit; a case that passes on both would be no control at all."
   # MUTANT 1, AND IT IS THE DECISIVE ONE: a merge-base ceiling in front of stampable - #532's own door. It
   # turns C39, the after-integrating tree, from ok to RED. That single pair is the whole difference between
@@ -848,6 +909,16 @@ M1INS
   st M13c-and-the-two-disagree-about-the-number "$( [ "$(CT_RUNID=$GFMINE st_gfv "$dw" "$ST_T/gf.sh")" != "$(CT_RUNID=$GFMINE st_gfv "$dw" "$ST_T/m13.sh")" ] && echo disagree || echo agree )" disagree
   st M13d-and-test-gt-ITSELF-reads-base-ten "$( [ "010000" -gt 5000 ] && echo decimal || echo octal )" decimal
   st M13e-while-the-arithmetic-form-reads-octal "$( gfnx=010000; (( gfnx > 5000 )) && echo decimal || echo octal )" octal
+
+  # MUTANT 14: the backticks put back in the base-ref-at-HEAD message, which is B's P0 exactly. It must turn
+  # C79 (the words are gone) and C79c (the shell complains), and the mutant is the only place in this repo
+  # where that form now exists. It is NOT run against the shallow fixture: that form unshallows the clone
+  # under test, so the mutant is exercised on the fixture whose message carries no git command to run.
+  st_sub "$ST_T/gf.sh" "$ST_T/m14.sh" "and 'appended' would read 0" "and \`appended\` would read 0"
+  st M14-the-backtick-mutant-parses "$(bash -n "$ST_T/m14.sh" 2>/dev/null && echo yes || echo no)" yes
+  st M14a-FIX-prints-the-word "$(CT_RUNID=$GFMINE st_gfspan "$dp" "$ST_T/gf.sh" "'appended' would read 0")" 1
+  st M14b-MUTANT-prints-it-nowhere "$(CT_RUNID=$GFMINE st_gfspan "$dp" "$ST_T/m14.sh" "appended would read 0")" 0
+  st M14c-and-the-shell-says-command-not-found "$(CT_RUNID=$GFMINE st_gfrun "$dp" "$ST_T/m14.sh" | grep -c 'appended: command not found')" 1
 
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
@@ -1170,7 +1241,16 @@ else
   elif ! gf_nul "$GF_REG"; then
     GF_STOP=1; GF_WHY="the working-tree register is not readable whole: it contains a NUL byte, which makes every grep-based reader print 'binary file matches' instead of rows and makes buildnum.sh answer that an ISSUED number is free."
   elif ! "${GF_GIT[@]}" show "refs/remotes/origin/main:gates/build-numbers.tsv" > "$GF_T/base.raw" 2>"$GF_T/base.err"; then
-    GF_STOP=1; GF_WHY="the BASE register at refs/remotes/origin/main:gates/build-numbers.tsv could not be read ($(sed -n '1p' "$GF_T/base.err" 2>/dev/null || true)). A throwaway clone has no refs/remotes/origin/main until you run: git update-ref refs/remotes/origin/main <the base sha>, WHICH IS THE SHA ORIGIN'S main POINTS AT (git ls-remote origin refs/heads/main) AND NEVER HEAD - pointing it at HEAD makes the tree under test its own base, which this door now answers NOT CHECKED rather than ok [antagonist B of #533, P2-1]. IN A SHALLOW CLONE THAT UPDATE-REF FAILS with 'nonexistent object' because the base commit is not in the pack, so run git fetch --deepen 50 first [antagonist A of #533]. RED here is this door's declared behaviour, not a wedge."
+    GF_STOP=1; GF_WHY="the BASE register at refs/remotes/origin/main:gates/build-numbers.tsv could not be read ($(sed -n '1p' "$GF_T/base.err" 2>/dev/null || true)). A throwaway clone has no refs/remotes/origin/main until you run: git update-ref refs/remotes/origin/main <the base sha>, WHICH IS THE SHA ORIGIN'S main POINTS AT (git ls-remote origin refs/heads/main) AND NEVER HEAD - pointing it at HEAD makes the tree under test its own base, which this door now answers NOT CHECKED rather than ok [antagonist B of #533, P2-1]. IN A SHALLOW CLONE THAT UPDATE-REF FAILS with 'nonexistent object' because the base commit is not in the pack, so run git fetch --deepen 200 first - 200 and not 50, because this door named three different depths in three refusals until antagonist B of the third pair counted them [P3-3] [antagonist A of #533]. RED here is this door's declared behaviour, not a wedge."
+  elif [ ! -x "$GF_BN" ]; then
+    # THE AUTHORITY MUST BE RUNNABLE, AND ITS ABSENCE IS THIS DOOR'S DEFECT AND NOT THE TREE'S [antagonist B of
+    # the third pair, P2-4]. The door guarded the register's existence and never the binary it delegates to, so
+    # a non-executable or missing gates/buildnum.sh landed in the catch-all, which asserts "it is not this
+    # run's by gates/buildnum.sh stampable (exit 126: \"\")" about an honest tree whose every row IS this
+    # run's - and offered CT_GAPFILL_OVERRIDE, writing a false escape into the log of a build that needed
+    # none. The symmetric case one branch down (stampable answering "is on no row" about a row this door has
+    # just read) is already declared a door defect and deliberately not escapable; this one is the same class.
+    GF_STOP=1; GF_WHY="gates/buildnum.sh is not executable at $GF_BN, so the authority this door delegates to cannot be asked. That is a defect in this door's ENVIRONMENT and not in the tree - every row may be perfectly honest - and it is deliberately NOT escapable: CT_GAPFILL_OVERRIDE would write a false escape into the log of a build that needed none. The usual causes are a tarball or a noexec checkout, core.fileMode=false, or the file moved aside; git ls-files -s gates/buildnum.sh reads 100755 on a clean checkout."
   elif ! "${GF_GIT[@]}" show "HEAD:gates/build-numbers.tsv" > "$GF_T/head.raw" 2>"$GF_T/head.err"; then
     GF_STOP=1; GF_WHY="the register at HEAD could not be read ($(sed -n '1p' "$GF_T/head.err" 2>/dev/null || true))."
   else
@@ -1192,10 +1272,23 @@ else
       # is the FALSE sentence (the door ran and reached a verdict) that the five early refusals already have
       # a guard against. Same class, one branch later.
       GF_STOP=0
-      GF_NOCHK="the base ref refs/remotes/origin/main points at HEAD ($(printf '%.12s' "$GF_BASESHA")), so there is no base to judge appended rows against - every committed row reads as already in the base and `appended` would read 0 on a tree that may carry any number of them. This is what a throwaway `git update-ref refs/remotes/origin/main HEAD` does, and it is why this door answers NOT CHECKED here rather than claiming a green it has not earned. Point the ref at the real base: git ls-remote origin refs/heads/main gives the sha, and in a shallow clone git fetch --deepen 200 origin first."
+            # EVERY QUOTE IN THESE TWO MESSAGES IS A SINGLE QUOTE, AND THE REASON IS A P0 OF THIS BUILD'S OWN
+      # [antagonist B of the third pair, #533]. Both strings are double-quoted and both named a git command in
+      # BACKTICKS, so bash ran them as command substitutions while merely BUILDING the message: the door
+      # silently executed `git fetch --unshallow` (a full-history network fetch, UNSHALLOWING the clone under
+      # test, outside GF_GIT so against the ambient cwd) and `git update-ref refs/remotes/origin/main HEAD`
+      # (writing a ref in whatever repository the cwd happened to be). Reproduced: a depth-1 clone went from 1
+      # commit reachable from origin/main to 3, and `rev-parse --is-shallow-repository` from true to false, in
+      # the course of printing a REFUSAL. Worse, the shallow/complete branch below reads that same datum, so it
+      # answered for the state the backtick had just created and always printed the complete-repository half;
+      # and all three spans were deleted from the message, including the name of the command the reader is
+      # being warned about. This is #529's recorded trap - backticks inside a double-quoted shell string - and
+      # this run had already hit it once today in a tracker receipt and then rebuilt it in code. C79 asserts
+      # each span's literal text reaches the output, which is the control the 206-case arm did not have.
+      GF_NOCHK="the base ref refs/remotes/origin/main points at HEAD ($(printf '%.12s' "$GF_BASESHA")), so there is no base to judge appended rows against - every committed row reads as already in the base and 'appended' would read 0 on a tree that may carry any number of them. This is what a throwaway 'git update-ref refs/remotes/origin/main HEAD' does, and it is why this door answers NOT CHECKED here rather than claiming a green it has not earned. Point the ref at the real base: git ls-remote origin refs/heads/main gives the sha, and in a shallow clone git fetch --deepen 200 origin first."
       GF_LINE="build-number series: NOT CHECKED - runId=${CT_RUNID:-(unset)} base=$(printf '%.12s' "${GF_BASESHA:-unknown}") merge-base=$(printf '%.12s' "${GF_MB:-unknown}"); rows read: base=- head=- worktree=- merge-base=- (not read: the base ref points at HEAD, so no comparison is possible) - $GF_NOCHK"
     elif [ -z "${GF_MB:-}" ]; then
-      GF_STOP=1; GF_WHY="merge-base HEAD refs/remotes/origin/main could not be computed, so this door cannot tell a DELETED register row from a base that has simply moved ahead of an unrebased HEAD - the two have the same surface signature, and reading the second as the first is what rebuilt #530's wedge. THE REMEDY, BRANCHED ON THE DATUM RATHER THAN PRESCRIBED OVER IT [antagonist B of #533, P3-1 and P3-3]: the first version of this sentence printed `is-shallow-repository` and then prescribed a deepen or an unshallow whatever it said, and on a COMPLETE repository `git fetch --unshallow` answers `fatal: --unshallow on a complete repository does not make sense` - a refusal whose own remedy cannot be run. $( if [ "$("${GF_GIT[@]}" rev-parse --is-shallow-repository 2>/dev/null || echo unknown)" = "true" ]; then printf '%s' "This clone IS shallow, so the base commit is simply not in the pack: run git fetch --deepen 200 origin, or git fetch --unshallow, and re-run."; else printf '%s' "This clone is NOT shallow, so a deepen or an unshallow will not help and --unshallow will refuse outright: HEAD and refs/remotes/origin/main genuinely share no ancestor in it. Check what that ref points at (git rev-parse refs/remotes/origin/main) against the real base (git ls-remote origin refs/heads/main); the usual cause is a ref planted in a throwaway clone."; fi )"
+      GF_STOP=1; GF_WHY="merge-base HEAD refs/remotes/origin/main could not be computed, so this door cannot tell a DELETED register row from a base that has simply moved ahead of an unrebased HEAD - the two have the same surface signature, and reading the second as the first is what rebuilt #530's wedge. THE REMEDY, BRANCHED ON THE DATUM RATHER THAN PRESCRIBED OVER IT [antagonist B of #533, P3-1 and P3-3]: the first version of this sentence printed 'is-shallow-repository' and then prescribed a deepen or an unshallow whatever it said, and on a COMPLETE repository 'git fetch --unshallow' answers 'fatal: --unshallow on a complete repository does not make sense' - a refusal whose own remedy cannot be run. $( if [ "$("${GF_GIT[@]}" rev-parse --is-shallow-repository 2>/dev/null || echo unknown)" = "true" ]; then printf '%s' "This clone IS shallow, so the base commit is simply not in the pack: run git fetch --deepen 200 origin, or git fetch --unshallow, and re-run."; else printf '%s' "This clone is NOT shallow, so a deepen or an unshallow will not help and --unshallow will refuse outright: HEAD and refs/remotes/origin/main genuinely share no ancestor in it. Check what that ref points at (git rev-parse refs/remotes/origin/main) against the real base (git ls-remote origin refs/heads/main); the usual cause is a ref planted in a throwaway clone."; fi )"
     elif ! "${GF_GIT[@]}" show "$GF_MB:gates/build-numbers.tsv" > "$GF_T/mb.raw" 2>"$GF_T/mb.err"; then
       GF_STOP=1; GF_WHY="the register at the merge-base $GF_MB could not be read ($(sed -n '1p' "$GF_T/mb.err" 2>/dev/null || true))."
     else
@@ -1228,7 +1321,7 @@ else
       GF_CLS=""
       if [ "$GF_D1" != "0" ] || [ "$GF_D2" != "0" ]; then
         GF_STOP=1
-        GF_WHY="a committed register row has been DELETED: $GF_D1 row(s) present at the merge-base $GF_MB and absent from HEAD, $GF_D2 row(s) present at HEAD and absent from the working tree. The register is append-only; a deleted row is how a spent number reads as free."
+        GF_WHY="a committed register row has been DELETED: $GF_D1 row(s) present at the merge-base $GF_MB and absent from HEAD, $GF_D2 row(s) present at HEAD and absent from the working tree. The register is append-only; a deleted row is how a spent number reads as free. THE ROUTE OUT, which this refusal did not name until antagonist B of the third pair asked for it [P2-3]: restore the row - git checkout -- gates/build-numbers.tsv puts the working tree back, or re-add the printed row verbatim - and if the row itself is wrong, amend or rebase the commit that added it rather than deleting it here, because deleting it is what this refusal is for. The round-four claim that this message named its own route was about the GAP-FILL refusal's committed-row remedy, one message to the left."
         GF_ROWSHOW="$(cat "$GF_T/del_h" "$GF_T/del_w" 2>/dev/null || true)"
         GF_CLS="gap-fill=- (yours=- census=- override=- unaccounted=-); base-held=-; extends-the-series=- (not classified: refused on a deletion before any appended row was judged)"
       else
@@ -1288,7 +1381,7 @@ else
             # class. That asymmetry is a declared limit of this door and a known limit on G6, not something this
             # run widens its scope to close; what it does do is print the row, so a reader is never told nothing.
             GF_E=$((GF_E+1))
-            echo "build-number series: REPORTED, NOT REFUSED - #$gfn is ABOVE the base series top #$GF_TOP (the test is -gt, and this line read "at or above" until antagonist B of #533 read the two together; a row AT the top is caught one branch earlier as base-held), so it EXTENDS the series and is not a gap fill. kind=extends mintedBy=[$(printf '%s' "$gfrow" | cut -f7)] state=[$(printf '%s' "$gfrow" | cut -f2)]. This door does not judge the extends class; gates/fastgate.sh's register arm bounds it by contiguity and this is a declared limit on G6." | tee -a "$ALL"
+            echo "build-number series: REPORTED, NOT REFUSED - #$gfn is ABOVE the base series top #$GF_TOP (the test is -gt, and this line read "at or above" until antagonist B of #533 read the two together; a row AT the top is caught one branch earlier as base-held), so it EXTENDS the series and is not a gap fill. kind=extends mintedBy=[$(printf '%s' "$gfrow" | cut -f7)] state=[$(printf '%s' "$gfrow" | cut -f2)]. This door does not judge the extends class. BE EXACT ABOUT WHAT DOES [antagonist B of the third pair, P2-2]: gates/fastgate.sh's register arm bounds this class by contiguity with a ceiling of 3 ON THE FAST PATH ONLY, and fastgate.sh is the tool that decides whether a tree may push WITHOUT the full suite - it does not run on a full-suite push, and gates.sh never invokes it. So on the path THIS log authorises, nothing bounds the extends class, and the damage is permanent and one row wide: one above-top row makes gates/buildnum.sh next refuse for every later run, and the register is append-only, so removing it trips this door's own deletion refusal. That is a declared limit on G6 and it is the honest statement of it." | tee -a "$ALL"
             continue
           fi
           GF_GF=$((GF_GF+1))
@@ -1305,6 +1398,14 @@ else
               break;;
           esac
           if [ "$GF_RC" = "0" ]; then GF_Y=$((GF_Y+1)); continue; fi
+          if [ "$GF_RC" = "126" ] || [ "$GF_RC" = "127" ]; then
+            # NOT THE TREE'S FAULT AND NOT ESCAPABLE [antagonist B of the third pair, P2-4]: 126 and 127 are
+            # the shell telling us the authority could not be RUN, which the catch-all used to report as
+            # "it is not this run's" with an empty quoted message as the only tell.
+            GF_U=$((GF_U+1)); GF_STOP=1; GF_ROWSHOW="$(printf '%s\n%s' "${GF_ROWSHOW:-}" "$gfrow")"
+            GF_WHY="gates/buildnum.sh stampable could not be RUN for #$gfn (exit $GF_RC, which is the shell's own code for not-executable or not-found), so this door could not ask the authority anything. A defect in this door's environment and not in the tree, and deliberately NOT escapable."
+            continue
+          fi
           if [ "$GF_RC" = "2" ]; then
             # TWO DIFFERENT THINGS EXIT 2 AND THEY NEED DIFFERENT REFUSALS [antagonist A of #533]. `need_runid`
             # exits 2 on stdout; `want_num` exits 2 on STDERR for a number that is not 3 or 4 digits, and this
@@ -1391,7 +1492,13 @@ else
       # this door's own refusal text invites a stuck run to reach for - silences the committed half while the
       # verdict word stays ok; naming the base and merge-base shas makes that visible in an archived green,
       # which is #450's "name the tree when you cite that line". CT_RUNID is a register field, not a secret.
-      GF_COUNTS="runId=${CT_RUNID:-(unset)} base=$(printf '%.12s' "${GF_BASESHA:-unknown}") merge-base=$(printf '%.12s' "${GF_MB:-unknown}"); rows read: base=$GF_NB head=$GF_NH worktree=$GF_NW merge-base=$GF_NM; appended=$((GF_A1+GF_A2)) (head-vs-base=$GF_A1 worktree-vs-head=$GF_A2); ${GF_CLS:-gap-fill=$GF_GF (yours=$GF_Y census=$GF_C override=$GF_O unaccounted=$GF_U); base-held=$GF_K; extends-the-series=$GF_E}; deletions: merge-base-vs-head=$GF_D1 head-vs-worktree=$GF_D2"
+      # AND THE ESCAPE'S VALUE, ON EVERY VERDICT INCLUDING THE GREENS [antagonist B of the third pair, P2-1].
+      # The door printed runId= for exactly #524's reason - an environment variable that widens a push gate
+      # must appear in the artefact the push is justified by - and CT_GAPFILL_OVERRIDE widens it strictly
+      # more while appearing nowhere. Measured: an escape naming ONE number and an escape naming 433 numbers
+      # produced BYTE-IDENTICAL logs, and an armed-but-unused escape on a clean tree was invisible. Printing
+      # it always is the point: that is the only way an escape that changed nothing becomes visible.
+      GF_COUNTS="runId=${CT_RUNID:-(unset)} escape=[$(printf '%.120s' "${CT_GAPFILL_OVERRIDE:-(unset)}")] base=$(printf '%.12s' "${GF_BASESHA:-unknown}") merge-base=$(printf '%.12s' "${GF_MB:-unknown}"); rows read: base=$GF_NB head=$GF_NH worktree=$GF_NW merge-base=$GF_NM; appended=$((GF_A1+GF_A2)) (head-vs-base=$GF_A1 worktree-vs-head=$GF_A2); ${GF_CLS:-gap-fill=$GF_GF (yours=$GF_Y census=$GF_C override=$GF_O unaccounted=$GF_U); base-held=$GF_K; extends-the-series=$GF_E}; deletions: merge-base-vs-head=$GF_D1 head-vs-worktree=$GF_D2"
       if [ -n "${GF_NOCHK:-}" ]; then
         # THE ONE VERDICT THAT IS NEITHER A GREEN NOR A REFUSAL, and it must come FIRST so no later branch can
         # relabel it ok [antagonist B of #533, P2-1]. GF_COUNTS is still printed, because the dashes and the
