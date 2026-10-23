@@ -26,7 +26,15 @@ THE PUSH CHECKS TIER IS FINISHED AND UNLANDED. ONE RUN OF WORK IS LEFT AND IT IS
     Sigpipe audit 23 sites, A 0, BYTE-EQUAL to a30fc59, re-taken on the tree that ships.
     Gate manifest 59 required / 59 present / 0 missing / 0 unlisted, anchor 0 vanished 0 weakened.
     verify-log.sh --citations byte-identical to the base on every defect number; the register
-      self-check moved 143 rows to 151, exactly the eight rows this run added.
+      self-check moved 143 rows to 160, exactly the SEVENTEEN rows this run added (TC-SUITE-137 to
+      -153), and it stays OK: 160 rows in 6 tables joining to 35 stories, 8 stories at zero cases
+      against a ceiling of 9, 2 wrong-width rows against a ceiling of 2. **THAT SENTENCE READ "to
+      151, exactly the eight rows this run added" UNTIL THE CLOSE-OUT AND IT WAS A FROZEN COUNT
+      [R18]:** it was true when written, after the first eight rows, and the fifth round's nine
+      further rows landed underneath it. Re-measured with `bash gates/verify-log.sh --citations`
+      on this tree rather than carried, which is also how it was caught - the same shape as #405's
+      closed flag counting against a total that could still grow. The line-citation arm is
+      unchanged at 48 citations, ceiling 48, 0 dead, 0 past EOF, 0 over; dead paths read 17.
     app.js, chess.jsx and index.html byte-identical to main at EVERY commit of the branch.
 
   WHAT IS NOT PROVEN, and it is the whole of what stopped the build:
