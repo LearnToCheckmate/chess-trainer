@@ -33,8 +33,37 @@ HERE="$(cd "$(dirname "$0")" && pwd)"; REG="$HERE/held-trees.tsv"; ROOT="$(cd "$
 # documented query tool disagreeing with the enforcing tool about the same register, which is worse than either
 # verdict alone. match_rows keeps only what the MATCH needs (two keys); live_rows stays for `list`, where a row
 # with no reason is a defect worth seeing.
-match_rows() { grep -v '^[[:space:]]*#' "$REG" | awk -F'\t' 'NF>=2 && $1 !~ /^-/'; }
-live_rows()  { grep -v '^[[:space:]]*#' "$REG" | awk -F'\t' 'NF>=6 && $1 !~ /^-/'; }
+# ── BOTH FILTERS READ THE UNION OF HEAD'S REGISTER AND THE WORKING TREE'S [#534, HELDWT;
+# jobs/verify-log-sh-and-held-sh-read-the-held-register-from-the-working-tree-so-one-uncommitted-line-deletion-clears-a-held-refusal-2026-10-22,
+# routed from #531's antagonist B]. MEASURED on a clone of 707599b before the fix: `held.sh check 81dc0469862c`
+# answers HELD at exit 1, and with that row deleted from the working tree AND NOT COMMITTED it answers
+# "not held" at exit 0 - so one uncommitted line deletion cleared the hold, and the identical edit cleared
+# gates/verify-log.sh at the same time.
+# A UNION AND NOT JUST HEAD'S COPY, for the reason verify-log.sh records at length: a row `add` has only just
+# written is not yet committed, and the #450 stand-down writes exactly such a row and then cites it. Reading
+# HEAD alone would make this tool blind to a hold a standing-down run had just recorded. The union refuses both
+# ways: an uncommitted deletion or '-' clear cannot lift a hold live in HEAD, and an uncommitted addition holds
+# at once. gates/fastgate.sh:1139 is the model - it already reads this register with `git show`.
+# --git-dir AND --work-tree ARE SET EXPLICITLY, because an inherited GIT_DIR overrides `git -C`.
+HELD_SRC="working tree only"
+REGALL="$REG"
+HELD_GIT=(git --git-dir "$ROOT/.git" --work-tree "$ROOT")
+if command -v git >/dev/null 2>&1 && "${HELD_GIT[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  HELD_HEADREG="$(mktemp 2>/dev/null || true)"
+  if [ -n "$HELD_HEADREG" ] && "${HELD_GIT[@]}" show HEAD:gates/held-trees.tsv > "$HELD_HEADREG" 2>/dev/null && [ -s "$HELD_HEADREG" ]; then
+    HELD_UNION="$(mktemp 2>/dev/null || true)"
+    if [ -n "$HELD_UNION" ] && cat "$REG" "$HELD_HEADREG" > "$HELD_UNION" 2>/dev/null; then
+      REGALL="$HELD_UNION"; HELD_SRC="HEAD and the working tree"
+    fi
+  else
+    [ -z "${HELD_HEADREG:-}" ] || rm -f "$HELD_HEADREG"
+    HELD_SRC="working tree only (HEAD holds no gates/held-trees.tsv)"
+  fi
+else
+  HELD_SRC="working tree only (not a git work tree), sha256 $(sha256sum "$REG" 2>/dev/null | cut -c1-16)"
+fi
+match_rows() { grep -v '^[[:space:]]*#' "$REGALL" | awk -F'\t' 'NF>=2 && $1 !~ /^-/'; }
+live_rows()  { grep -v '^[[:space:]]*#' "$REGALL" | awk -F'\t' 'NF>=6 && $1 !~ /^-/'; }
 
 case "${1:-}" in
   check)
@@ -78,7 +107,7 @@ case "${1:-}" in
       printf '  why:    %s\n' "$(printf '%s' "$HIT" | cut -f6)"
       exit 1
     fi
-    echo "not held: $KEY is on no live row of $(basename "$REG") ($(match_rows | wc -l | tr -d ' ') matchable row(s) checked)"
+    echo "not held: $KEY is on no live row of $(basename "$REG") ($(match_rows | wc -l | tr -d ' ') matchable row(s) checked; source: $HELD_SRC)"
     exit 0 ;;
   add)
     MD5="${2:-}"; SHA="${3:-}"; BUILD="${4:-}"; shift 4 2>/dev/null || true; REASON="${*:-}"

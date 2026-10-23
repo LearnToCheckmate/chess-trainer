@@ -187,5 +187,90 @@ eq "9g list shows it once, as a LIVE sha-only row" "1" "$("$H" list 2>&1 | grep 
 ck "9h a near miss of the sentinel is refused as a non-hex md5" 2 env CT_RUNID=held-selftest "$H" add SHA-ONLY "$SHA9" '#921' "$RSN"
 printf 'V1 the GATED source\n' > "$R/chess.jsx"
 
+# ---- 10. THE HELD REGISTER IS READ AS THE UNION OF HEAD'S COPY AND THE WORKING TREE'S [#534, HELDWT] ----
+# jobs/verify-log-sh-and-held-sh-read-the-held-register-from-the-working-tree-so-one-uncommitted-line-deletion-clears-a-held-refusal-2026-10-22,
+# routed from #531's antagonist B. Before the fix `match_rows` read the WORKING TREE file alone, so one
+# UNCOMMITTED line deletion answered "not held" at exit 0 on a tree a previous run had refused to ship.
+# MEASURED on a clone of 707599b: `held.sh check 81dc0469862c` HELD at exit 1, and with that row deleted and
+# not committed, "not held" at exit 0.
+# THE FIXTURE NEEDS A COMMITTED ROW, which none of the cases above has - they add rows and leave them in the
+# working tree, which is why the union is invisible to all 43 of them and why this section builds its own.
+HR="$TD/union"; mkdir -p "$HR/gates"
+cp "$HERE/held.sh" "$HR/gates/held.sh"; chmod +x "$HR/gates/held.sh"
+HU="$HR/gates/held.sh"; HREG="$HR/gates/held-trees.tsv"
+git -C "$HR" init -q 2>/dev/null; git -C "$HR" config user.email s@t; git -C "$HR" config user.name selftest
+printf 'SOURCE of the held tree\n' > "$HR/chess.jsx"; printf 'bundle-held\n' > "$HR/app.js"
+HSRCMD5="$(printf 'SOURCE of the held tree\n' | md5sum | cut -c1-12)"
+{ printf '# held-trees.tsv (union self-test fixture, not the real register)\n'
+  printf 'ddddddddddd1\t%s\t#901\t2026-10-23T03:00Z\tbuild__UNIONFIXTURE\ta reason long enough to pass the forty-character floor this file enforces\t%s\n' \
+    "1111111111111111111111111111111111111111" "$HSRCMD5"
+} > "$HREG"
+git -C "$HR" add -A >/dev/null 2>&1; git -C "$HR" commit -qm 'a COMMITTED held row' >/dev/null 2>&1
+ck "10 the committed row holds, which is the control"      1 "$HU" check ddddddddddd1
+# (a) AN UNCOMMITTED DELETION MAY NOT LIFT IT.
+grep -v '^ddddddddddd1' "$HREG" > "$HR/x" && mv "$HR/x" "$HREG"
+eq "10a the deletion really is uncommitted and git sees it" "1" "$(git -C "$HR" status --porcelain gates/held-trees.tsv | grep -c '^ M')"
+ck "10a an UNCOMMITTED DELETION still holds"               1 "$HU" check ddddddddddd1
+# (b) AN UNCOMMITTED '-' CLEAR MAY NOT LIFT IT EITHER - the register's own documented clear convention,
+#     which is a different edit from a deletion and reaches a different filter.
+git -C "$HR" checkout -- gates/held-trees.tsv
+sed -i 's/^ddddddddddd1/-ddddddddddd1/' "$HREG"
+ck "10b an UNCOMMITTED '-' clear still holds"              1 "$HU" check ddddddddddd1
+# (c) DELETION PLUS assume-unchanged, which is what #531's antagonist B actually used: `git status` then prints
+#     NOTHING, so a human reviewing the tree sees a clean checkout and the hold was still lifted.
+git -C "$HR" checkout -- gates/held-trees.tsv
+grep -v '^ddddddddddd1' "$HREG" > "$HR/x" && mv "$HR/x" "$HREG"
+git -C "$HR" update-index --assume-unchanged gates/held-trees.tsv
+eq "10c git status prints nothing, which is the point of this case" "0" "$(git -C "$HR" status --porcelain gates/held-trees.tsv | grep -c .)"
+ck "10c deletion + assume-unchanged still holds"           1 "$HU" check ddddddddddd1
+git -C "$HR" update-index --no-assume-unchanged gates/held-trees.tsv; git -C "$HR" checkout -- gates/held-trees.tsv
+# (d) AND THE FIX MUST NOT BREAK THE OTHER DIRECTION: a row `held.sh add` has only just written is NOT YET
+#     COMMITTED, and the #450 stand-down writes exactly such a row and then cites it. Reading HEAD alone would
+#     have traded one false ACCEPT for another, which is why this is a union and not a HEAD read.
+printf 'eeeeeeeeeee2\t%s\t#902\t2026-10-23T03:00Z\tbuild__UNIONFIXTURE\ta reason long enough to pass the forty-character floor this file enforces\t-\n' \
+  "2222222222222222222222222222222222222222" >> "$HREG"
+ck "10d a row added and NOT committed holds at once"       1 "$HU" check eeeeeeeeeee2
+git -C "$HR" checkout -- gates/held-trees.tsv
+# (e) THE SOURCE KEY, which is the one key that survives a rebuild, must also survive an uncommitted deletion.
+printf 'a tree whose bundle is on no row\n' > "$HR/app.js"
+ck "10e the source key holds on the committed row"         1 "$HU" check zzzzzzzzzzzz
+grep -v '^ddddddddddd1' "$HREG" > "$HR/x" && mv "$HR/x" "$HREG"
+ck "10e a SOURCE-key hold survives an uncommitted deletion" 1 "$HU" check zzzzzzzzzzzz
+git -C "$HR" checkout -- gates/held-trees.tsv; printf 'bundle-held\n' > "$HR/app.js"
+# (f) THE SOURCE IS NAMED IN THE OUTPUT, so a reader of an archived answer can tell a two-source read from a
+#     one-source read rather than having to re-run the tool.
+# THE FIXTURE MUST MATCH NOTHING FOR THIS CASE, AND MY FIRST DRAFT DID NOT [R18]: the committed row carries a
+# sourceMd5 equal to this fixture's chess.jsx, so `check` hit the SOURCE key, printed "HELD BY SOURCE" and
+# exited 1 without ever reaching the not-held line, and the case read `absent` on correct behaviour. The
+# control was wrong, not the code - the same shape as the hanging mutant two jobs earlier.
+printf 'a source on no row at all\n' > "$HR/chess.jsx"
+gt0 "10f the not-held line names its source" "$("$HU" check 0123456789ab 2>&1 | grep -c 'source: HEAD and the working tree')"
+printf 'SOURCE of the held tree\n' > "$HR/chess.jsx"
+# ---- THE MUTANT: the working-tree-only read restored, which is held.sh as 707599b had it. ----
+# Built by swapping the two filter lines WHOLE from a literal heredoc, not by editing the variable name in
+# place: that is the habit #534's NUL mutant learned the hard way, where deleting part of a pipeline left grep
+# reading stdin and the mutant HUNG. A mutant must be the old code, running.
+cat > "$TD/filters.old" <<'FILTOLD'
+match_rows() { grep -v '^[[:space:]]*#' "$REG" | awk -F'\t' 'NF>=2 && $1 !~ /^-/'; }
+live_rows()  { grep -v '^[[:space:]]*#' "$REG" | awk -F'\t' 'NF>=6 && $1 !~ /^-/'; }
+FILTOLD
+awk -v f="$TD/filters.old" '
+  /^match_rows\(\) \{ grep -v .\^\[\[:space:\]\]\*#. "\$REGALL"/ { while((getline l < f)>0) print l; close(f); next }
+  /^live_rows\(\)  \{ grep -v .\^\[\[:space:\]\]\*#. "\$REGALL"/ { next }
+  { print }' "$HU" > "$HR/gates/mutant.sh"; chmod +x "$HR/gates/mutant.sh"
+MU="$HR/gates/mutant.sh"
+# COUNT THE TWO FILTER LINES, NOT EVERY MENTION [R18]. My first draft counted `"$REG" | awk` across the whole
+# file and measured 4 against an expected 2, because held.sh's `list` subcommand reads the working-tree register
+# twice more to display CLEARED rows - a display path this fix deliberately leaves alone, since a cleared row is
+# shown and not enforced. Anchoring on the two function definitions is the assertion that was meant.
+eq "10 MUTANT both filters were swapped back to \$REG" "2 0" \
+   "$(grep -cE '^(match_rows|live_rows)\(\) +\{ grep -v .\^\[\[:space:\]\]\*#. "\$REG"' "$MU") $(grep -cE '^(match_rows|live_rows)\(\) +\{ grep -v .\^\[\[:space:\]\]\*#. "\$REGALL"' "$MU")"
+eq "10 MUTANT parses" "yes" "$(bash -n "$MU" 2>/dev/null && echo yes || echo no)"
+ck "10 MUTANT the committed row still holds on a clean tree" 1 "$MU" check ddddddddddd1
+grep -v '^ddddddddddd1' "$HREG" > "$HR/x" && mv "$HR/x" "$HREG"
+ck "10 MUTANT an uncommitted deletion LIFTS the hold - the defect" 0 timeout 20 "$MU" check ddddddddddd1
+ck "10 FIX the same tree still holds"                      1 "$HU" check ddddddddddd1
+git -C "$HR" checkout -- gates/held-trees.tsv
+
 printf '\n%s PASS  %s FAIL  (%s assertions over %s inputs to `add`)\n' "$P" "$F" "$((P+F))" "21"
 [ "$F" = "0" ] || exit 1

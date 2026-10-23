@@ -869,6 +869,57 @@ fi
 # HELDCHECK now records what actually happened - ran / missing - and the OK line reports it instead of assuming.
 REG="$(cd "$(dirname "$0")" && pwd)/held-trees.tsv"
 HELDCHECK="missing"; HELDROWS=0
+
+# ── THE HELD REGISTER IS READ AS THE UNION OF HEAD'S COPY AND THE WORKING TREE'S [#534, HELDWT;
+# jobs/verify-log-sh-and-held-sh-read-the-held-register-from-the-working-tree-so-one-uncommitted-line-deletion-clears-a-held-refusal-2026-10-22,
+# routed from #531's antagonist B].
+# WHAT WAS WRONG: both loops below read "$REG", the WORKING TREE file, and nothing else. MEASURED on a clone of
+# 707599b before the fix: `verify-log.sh claude/agents/gatelogs/452-all.log '#452'` is REFUSED (held tree) at
+# exit 1, and with the #452 row deleted from gates/held-trees.tsv AND NOT COMMITTED it prints OK at exit 0 with
+# "register: not held (13 live row(s) checked)". So the one mechanism whose whole job is not to miss a hold was
+# cleared by an edit that `git status` shows and that no commit carries - and the same single-line edit cleared
+# `held.sh check` too.
+# WHY A UNION AND NOT JUST HEAD'S COPY: a row `held.sh add` has only just written is NOT YET COMMITTED, and the
+# #450 stand-down writes exactly such a row immediately before citing it. Reading HEAD alone would have made
+# this tool blind to the hold a standing-down run had just recorded - trading one false ACCEPT for another.
+# The union refuses in both directions: an uncommitted DELETION cannot lift a hold that is live in HEAD, and an
+# uncommitted ADDITION holds at once.
+# --git-dir AND --work-tree ARE SET EXPLICITLY, because an inherited GIT_DIR overrides `git -C` and this script
+# is run from the gates directory, from the repository root and from throwaway clones.
+# OUTSIDE A GIT WORK TREE, or where HEAD holds no such file, the working tree file is read ALONE, its sha256 is
+# printed, and the OK line says it is the working tree only - so a reader can never mistake a one-source read
+# for a two-source one.
+HELD_SRC="working tree only"; HELD_HEADROWS="-"; HELD_WTROWS="-"
+REGALL="$REG"
+if [ -f "$REG" ]; then
+  VLROOT="$(cd "$(dirname "$REG")/.." && pwd)"
+  VLGIT=(git --git-dir "$VLROOT/.git" --work-tree "$VLROOT")
+  REGHEAD=""
+  if command -v git >/dev/null 2>&1 && "${VLGIT[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    REGHEAD="$(mktemp 2>/dev/null || true)"
+    if [ -n "$REGHEAD" ] && "${VLGIT[@]}" show HEAD:gates/held-trees.tsv > "$REGHEAD" 2>/dev/null && [ -s "$REGHEAD" ]; then
+      REGALL="$(mktemp 2>/dev/null || true)"
+      if [ -n "$REGALL" ]; then
+        cat "$REG" "$REGHEAD" > "$REGALL" 2>/dev/null || REGALL="$REG"
+        [ "$REGALL" = "$REG" ] || HELD_SRC="HEAD and the working tree"
+      else
+        REGALL="$REG"
+      fi
+    else
+      [ -z "$REGHEAD" ] || rm -f "$REGHEAD"
+      REGHEAD=""
+      HELD_SRC="working tree only (HEAD holds no gates/held-trees.tsv)"
+    fi
+  else
+    HELD_SRC="working tree only (not a git work tree), sha256 $(sha256sum "$REG" 2>/dev/null | cut -c1-16)"
+  fi
+  # THE LIVE COUNT PER SOURCE, so the OK line reports what each gave rather than one total a reader cannot
+  # decompose. A row live in BOTH is counted once in each, which is why these are reported separately and
+  # never added together.
+  held_live_count() { [ -f "${1:-}" ] || { printf '%s' '-'; return 0; }; grep -v '^[[:space:]]*#' "$1" 2>/dev/null | awk -F'\t' 'NF>=2 && $1 !~ /^-/' | grep -c '' | tr -d ' '; }
+  HELD_WTROWS="$(held_live_count "$REG")"
+  [ -z "$REGHEAD" ] && HELD_HEADROWS="-" || HELD_HEADROWS="$(held_live_count "$REGHEAD")"
+fi
 if [ ! -f "$REG" ]; then
   echo "WARNING: no held-tree register at $REG - THE HOLD CHECK DID NOT RUN."
   echo "  This file is tracked on main. Its absence means a stale checkout or a deleted file, not an empty"
@@ -916,7 +967,7 @@ if [ -f "$REG" ]; then
       IFS="$OLDIFS"
       [ -n "$HELDROW" ] && break
     fi
-  done < "$REG"
+  done < "$REGALL"
   # (10c) THE SOURCE KEY, AT THE PUSH-AUTHORISING DOOR. Antagonist A on #450 disproved the claim this build had
   # just written into held-trees.tsv - that verify-log.sh "CANNOT use sourceMd5 and does not try: it works from a
   # log". It is reachable from the log alone: the ref line gives `ref: HEAD <sha>`, and
@@ -947,7 +998,7 @@ if [ -f "$REG" ]; then
           echo "  why:    $(printf '%s' "$line" | cut -f6)"
           exit 1
         fi
-      done < "$REG"
+      done < "$REGALL"
     fi
   fi
   if [ "$MALFORMED" -gt 0 ] && [ -z "$HELDROW" ]; then
@@ -1278,7 +1329,7 @@ echo "OK: $LOG is a full-suite green for $FOOT ($(grep -c '^=== ' "$LOG") suites
 # pointed at blank space - and read identically whether the register had cleared the tree or had not been read
 # at all. A check with no output is a check the reader has to take on faith, which is what this file is against.
 if [ "$HELDCHECK" = "ran" ]; then
-  echo "    register: not held ($HELDROWS live row(s) checked in gates/held-trees.tsv)"
+  echo "    register: not held ($HELDROWS row(s) walked in gates/held-trees.tsv; source: $HELD_SRC; live rows: HEAD=$HELD_HEADROWS worktree=$HELD_WTROWS)"
 else
   echo "    register: NOT CHECKED - gates/held-trees.tsv is missing (see the warning above)"
 fi
