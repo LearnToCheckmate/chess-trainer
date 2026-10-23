@@ -15,8 +15,13 @@ THE PUSH CHECKS TIER IS FINISHED AND UNLANDED. ONE RUN OF WORK IS LEFT AND IT IS
   WHAT IS PROVEN, and every figure here was measured on the branch rather than carried. NOTE ONE
   CORRECTION THE FIFTH ROUND FORCED: the 77 ok / 347s figures were measured with a one-line fixture
   edit that was UNCOMMITTED at the time, so on bbc603f exactly as committed, A1 fails in 0 seconds
-  and `fixed` mode reads 76 ok / 1 FAIL. That line is committed now, so the numbers below describe
-  what is in git. Antagonist A measured and disputed it, and it was right to.
+  and `fixed` mode reads 76 ok / 1 FAIL. Antagonist A measured and disputed it, and it was right to.
+  THAT DISPUTE IS NOW CLOSED BY MEASUREMENT RATHER THAN BY THE COMMIT: the line is committed at
+  8414e9c, and `bash gates/checks-tier-drive.sh fixed` was re-run at the close-out on 50c9e8a, the
+  committed tree with nothing uncommitted in it, reading **77 ok / 0 FAIL / 0 skipped with A1 green
+  in 350s**. So the figures below are figures about what is in git, on a fifth independent timing
+  (350s here against 347s, 365s, 365s and 364s) - and 350s against the suite's 113 minutes is the
+  job's whole economic claim, now measured five times.
     `bash gates/checks-tier-drive.sh fixed`   77 ok, 0 FAIL, 0 skipped, exit 0
     `bash gates/checks-tier-drive.sh`         76 ok, 0 FAIL, 1 skipped (A1 is opt-in), exit 0
     A1, the WHOLE REAL BATTERY in a full clone of this repository, over a candidate shaped like the
