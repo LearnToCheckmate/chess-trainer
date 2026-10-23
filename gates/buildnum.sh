@@ -226,7 +226,64 @@ show_row() { # one row on stdin fields: number state sha bundleMd5 sourceMd5 at 
   printf '%s\n' "$(printf '%s' "$r" | cut -f9)" | fold -s -w 100 | sed 's/^/    /'
 }
 
-highest() { rows | cut -f1 | sort -n | tail -1; }
+# -- A LEADING ZERO IS NOT A NUMBER, AND ONLY $(( )) THINKS OTHERWISE (#537, the OCTAL job) ------------------
+# MEASURED on main ed65bab, in a scratch git repo with main's own register: with ONE row numbered 0535 appended,
+# `next` printed #350 at exit 0 and `list` printed "highest issued: #0535   next free: #350" - and #350 is an
+# ISSUED number (2026-10-01, backfilled from git, build__1790886022489). So the tool handed out a number another
+# tree already carries, which is the #416 damage this whole register exists to prevent, reachable by one typed
+# zero and silent until a later read-back.
+# THE MECHANISM IS ONE SITE AND NOT TWO. rows() above keeps any all-digit first field, so 0535 survives it;
+# highest() sorted with `sort -n`, which correctly places 0535 as 535, and then RETURNED THE STRING "0535"; and
+# $(( H + 1 )) read that string as OCTAL - 0535 base 8 is 349 - giving 350.
+# WHICH CONSTRUCTS ACTUALLY READ OCTAL WAS MEASURED, NOT ASSUMED, because that is what decides the blast radius:
+#   $(( 0535 + 1 ))        = 350   <- the only offender
+#   [ 0535 -gt 534 ]       = TRUE         (bash's test reads base 10)
+#   awk '{print $1 + 0}'   = 535          (awk never reads octal)
+# So series_run (awk $1+0), delta_ok (its comparison is `[ -gt ]`) and stray_check (already `10#$1`) were NEVER
+# affected. That is also why the two readers disagreed: the series check had read base 10 since it was written.
+# SO THE FIX BELONGS IN highest() AND NOT AT THE ARITHMETIC SITES. Normalising the value ONCE, here, fixes every
+# consumer at the same time. The class sweep found FIVE $(( )) sites fed by this function, not the two the job
+# named: `next`, `mint`, can_issue, `check`'s "Next free number is" recommendation, and `list`'s "next free".
+# Patching the two named ones would have left `check` and `list` still advertising an already-issued number to
+# the next reader, which is the half of the defect nobody had looked at.
+# WHY NORMALISE RATHER THAN REFUSE. The register is APPEND-ONLY and cannot take a bad row back, so a refusal here
+# would wedge every mint in the project until somebody hand-edited a file this project's own records ratchet
+# refuses to accept edits to. That is delta_ok's own rule two screens below ("a refusal the operator has no way
+# past is not a remedy") and it is #530's and #532's withdrawn ceilings arriving a third time. So: hand out the
+# TRUE next number, and report the malformed row loudly instead of silently tolerating it.
+highest() { rows | cut -f1 | awk '{ printf "%d\n", $1 + 0 }' | sort -n | tail -1; }
+
+# THE REPORT GOES TO STDERR ONLY, AND THAT IS NOT A STYLE CHOICE. The comment at rows() above records that
+# gates/gates.sh's series door quotes the FIRST LINE of `stampable`'s stdout and branches on its exit status, so a
+# warning printed on stdout would be read as a verdict. Every caller below prints this to stderr and none of them
+# changes its exit status because of it: a malformed row already on an append-only register is a thing to say, not
+# a reason to stop a run that has done nothing wrong.
+zero_led_list() { rows | cut -f1 | grep '^0[0-9]' | sort -u | tr '\n' ' ' || true; }
+
+zero_led_report() { # <label>: warn on STDERR if the register holds a number written with a leading zero
+  local lst
+  lst="$(zero_led_list)"
+  [ -n "${lst% }" ] || return 0
+  echo "buildnum.sh ${1:-}: WARNING - the register holds number(s) written with a LEADING ZERO: ${lst% }." >&2
+  echo "  A leading zero is not a build number. Every number is read in base 10 here, so this tool hands out the" >&2
+  echo "  TRUE next number and never an octal reading of one - but the row itself is malformed, and no 'check'," >&2
+  echo "  'stampable' or print_rows_for lookup keyed on the plain number will ever match it." >&2
+  echo "  The register is append-only: correct it by adding a well-formed row, never by editing that one." >&2
+}
+
+# <bare number> <verb>: refuse a number written with a leading zero BEFORE anything is written. The job asks for
+# this at the two WRITE verbs, and it is the half that stops a new bad row being created at all - normalising
+# highest() only stops the existing ones doing damage. want_num above cannot carry it: it is shared with `check`
+# and `stampable`, which must stay able to ASK about a malformed number that is already on the register.
+plain_dec_or_die() {
+  case "$1" in 0*)
+    echo "buildnum.sh $2: '#$1' has a LEADING ZERO, which is not a build number." >&2
+    echo "  Writing it would put a row on an append-only register that no lookup keyed on the plain number can" >&2
+    echo "  match, and that \$(( )) arithmetic reads as octal - #0535 is 349, not 535. Refusing before the write." >&2
+    echo "  Pass the number without the zero: #${1#0}" >&2
+    exit 2 ;;
+  esac
+}
 
 # THE MARGIN IS ALSO THE OVERRIDE, AND ITS NAME SAYS SO. Until this change this was a bare assignment that silently
 # ignored the environment variable its own name advertises. It is honoured now and validated, because a refusal
@@ -370,10 +427,12 @@ case "${1:-}" in
       fi
       exit 1
     fi
+    zero_led_report check
     echo "free: #$N is on no row of $(basename "$REG") ($(rows | wc -l | tr -d ' ') row(s) checked)"
     exit 0 ;;
 
   next)
+    zero_led_report next
     H="$(highest)"
     [ -n "$H" ] || { echo "buildnum.sh next: the register has no numbered rows, so there is no series to continue." >&2
                      echo "  Refusing to invent one. Seed the register before using next/mint." >&2; exit 2; }
@@ -396,6 +455,7 @@ case "${1:-}" in
       echo "buildnum.sh mint: CT_RUNID is not set, so this number would be attributed to 'unknown-run'. A number"
       echo "  whose issuer cannot be traced is the #416 defect with extra steps."
       echo "  Re-run as: CT_RUNID=<your runId> gates/buildnum.sh mint '<note>'"; exit 2; fi
+    zero_led_report mint
     SRC="$(clean_field "${CT_SRCMD5:--}" "CT_SRCMD5")" || exit 2
     lock_take || exit 1
     H="$(highest)"
@@ -411,6 +471,10 @@ case "${1:-}" in
       echo "  was added by hand (look for an implausible high number in the register) - fix that, not this."
       exit 2; fi
     if ! delta_ok "$N" "$H" "mint"; then lock_free; exit 2; fi
+    # Unreachable once highest() normalises, and kept anyway: it is the assertion that says so, and it costs one
+    # case. If a later edit reverts the normalisation this refuses before the append rather than after it, which
+    # on an append-only register is the whole difference. lock_free first - a refusal must not hold the lock.
+    case "$N" in 0*) lock_free; plain_dec_or_die "$N" mint ;; esac
     append_row "$(printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s' \
       "$N" "minted" "-" "-" "$SRC" "$(date -u +%Y-%m-%dT%H:%MZ)" "$CT_RUNID" "minted" "$NOTE")"
     # READ IT BACK, AND ASK THE RIGHT QUESTION. The first version counted rows for this number ATTRIBUTED TO
@@ -462,6 +526,8 @@ case "${1:-}" in
 
   add)
     N="$(want_num "${2:-}")" || exit 2
+    zero_led_report add
+    plain_dec_or_die "$N" add
     STATE="${3:-}"; SHA="${4:-}"; MD5="${5:-}"; shift 5 2>/dev/null || true; NOTE="${*:-}"
     if [ -z "$STATE" ] || [ -z "$SHA" ] || [ -z "$MD5" ] || [ -z "$NOTE" ]; then
       echo "usage: gates/buildnum.sh add <#NNN> <state> <sha> <bundleMd5> <note...>"
@@ -867,6 +933,7 @@ case "${1:-}" in
     [ -z "${DUP// /}" ] || { echo; echo "NUMBERS NAMING MORE THAN ONE ARTEFACT: $DUP"
       echo "  Mostly legal: a run that rebuilt mid-pass. It means the NUMBER does not identify a bundle, so"
       echo "  cite the md5 with it. Only #416 is a genuine two-tree collision, and its own rows say so."; }
+    zero_led_report list
     H="$(highest)"
     if [ -n "$H" ]; then
       echo
