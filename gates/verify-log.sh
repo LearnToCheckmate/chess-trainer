@@ -895,28 +895,58 @@ REGALL="$REG"
 # in held.sh, on a container whose /tmp already held 2662 tmp.* files]. REGALL is only removed when it is NOT
 # $REG, or a failed union would delete the real register - the guard is the whole point of the condition.
 trap '[ "${REGALL:-}" = "${REG:-}" ] || rm -f "${REGALL:-}"; rm -f "${REGHEAD:-}"' EXIT
-if [ -f "$REG" ]; then
-  VLROOT="$(cd "$(dirname "$REG")/.." && pwd)"
-  VLGIT=(git --git-dir "$VLROOT/.git" --work-tree "$VLROOT")
-  REGHEAD=""
+# THE HEAD READ IS NOT NESTED INSIDE `[ -f "$REG" ]`, AND THAT NESTING WAS A BLOCKER [#534, fresh antagonist
+# B's VETO, reproduced in a clone before being fixed]. HELDWT's own job title is "read the held register from
+# the working tree so one uncommitted LINE deletion clears a held refusal" - and the union fixed the line
+# deletion while leaving the FILE deletion wide open, because the whole HEAD read sat under `[ -f "$REG" ]`
+# and the warning branch under `[ ! -f "$REG" ]`. So `rm gates/held-trees.tsv`, uncommitted, flipped this tool
+# from REFUSED exit 1 to `OK:` exit 0 for EVERY live row at once (14 of them) while HEAD's copy still carried
+# them one `git show` away. Measured in a fresh clone: pristine exit 1, after one `rm` exit 0, HEAD still
+# carrying the #452 row, and `held.sh check` answering exit 2 - so the two tools disagreed about the same
+# register in opposite directions, which this file already records as #450's worst shape. Also reachable by
+# replacing the file with a DIRECTORY or a symlink to /dev/null. B's `chmod 000` CONTROL is what proved the
+# repair was one guard away: with the file present but unreadable the union read saved it and the refusal
+# stood, so only `[ -f ]` being false skipped it. And nothing else covers this: `grep -n held-trees
+# gates/gates.sh` is empty, so on a full-suite push this script is the ONLY reader of the register.
+# NOW: the HEAD read runs whenever this is a git work tree, whatever the working-tree file is doing, and the
+# three sources are reported distinctly - union, HEAD only, or working tree only. HELD_HAVE says whether any
+# register could be read at all, and it is what the check and the warning below now branch on, so "the file
+# is gone" can no longer mean "the question was not asked".
+VLROOT="$(cd "$(dirname "$REG")/.." 2>/dev/null && pwd)"; VLROOT="${VLROOT:-$(pwd)}"
+VLGIT=(git --git-dir "$VLROOT/.git" --work-tree "$VLROOT")
+REGHEAD=""; HELD_HAVE=0
+if command -v git >/dev/null 2>&1 && "${VLGIT[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  REGHEAD="$(mktemp 2>/dev/null || true)"
+  if [ -n "$REGHEAD" ] && "${VLGIT[@]}" show HEAD:gates/held-trees.tsv > "$REGHEAD" 2>/dev/null && [ -s "$REGHEAD" ]; then
+    :
+  else
+    [ -z "$REGHEAD" ] || rm -f "$REGHEAD"
+    REGHEAD=""
+  fi
+fi
+if [ -f "$REG" ] && [ -r "$REG" ] && [ -n "$REGHEAD" ]; then
+  REGALL="$(mktemp 2>/dev/null || true)"
+  if [ -n "$REGALL" ] && cat "$REG" "$REGHEAD" > "$REGALL" 2>/dev/null; then
+    HELD_SRC="HEAD and the working tree"; HELD_HAVE=1
+  else
+    REGALL="$REG"; HELD_SRC="working tree only (the union could not be written)"; HELD_HAVE=1
+  fi
+elif [ -n "$REGHEAD" ]; then
+  # THE LIMB THE VETO WAS ABOUT. The working-tree copy is missing or unreadable and HEAD's is not, so the
+  # question is still ASKED, against HEAD alone, and the answer still binds.
+  REGALL="$REGHEAD"; HELD_HAVE=1
+  if [ -f "$REG" ]; then HELD_SRC="HEAD ONLY (the working-tree copy exists but could not be read)"
+  else HELD_SRC="HEAD ONLY - there is NO working-tree copy of gates/held-trees.tsv, which is a deleted file or a stale checkout, NOT an empty register; HEAD's copy is authoritative here and an uncommitted deletion therefore lifts nothing"
+  fi
+elif [ -f "$REG" ] && [ -r "$REG" ]; then
+  REGALL="$REG"; HELD_HAVE=1
   if command -v git >/dev/null 2>&1 && "${VLGIT[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    REGHEAD="$(mktemp 2>/dev/null || true)"
-    if [ -n "$REGHEAD" ] && "${VLGIT[@]}" show HEAD:gates/held-trees.tsv > "$REGHEAD" 2>/dev/null && [ -s "$REGHEAD" ]; then
-      REGALL="$(mktemp 2>/dev/null || true)"
-      if [ -n "$REGALL" ]; then
-        cat "$REG" "$REGHEAD" > "$REGALL" 2>/dev/null || REGALL="$REG"
-        [ "$REGALL" = "$REG" ] || HELD_SRC="HEAD and the working tree"
-      else
-        REGALL="$REG"
-      fi
-    else
-      [ -z "$REGHEAD" ] || rm -f "$REGHEAD"
-      REGHEAD=""
-      HELD_SRC="working tree only (HEAD holds no gates/held-trees.tsv)"
-    fi
+    HELD_SRC="working tree only (HEAD holds no gates/held-trees.tsv)"
   else
     HELD_SRC="working tree only (not a git work tree), sha256 $(sha256sum "$REG" 2>/dev/null | cut -c1-16)"
   fi
+fi
+if [ "$HELD_HAVE" = "1" ]; then
   # THE LIVE COUNT PER SOURCE, so the OK line reports what each gave rather than one total a reader cannot
   # decompose. A row live in BOTH is counted once in each, which is why these are reported separately and
   # never added together.
@@ -924,12 +954,15 @@ if [ -f "$REG" ]; then
   HELD_WTROWS="$(held_live_count "$REG")"
   [ -z "$REGHEAD" ] && HELD_HEADROWS="-" || HELD_HEADROWS="$(held_live_count "$REGHEAD")"
 fi
-if [ ! -f "$REG" ]; then
-  echo "WARNING: no held-tree register at $REG - THE HOLD CHECK DID NOT RUN."
-  echo "  This file is tracked on main. Its absence means a stale checkout or a deleted file, not an empty"
-  echo "  register, and a green log here says NOTHING about whether a previous run refused this tree."
+if [ "${HELD_HAVE:-0}" != "1" ]; then
+  # ONLY WHEN NEITHER COPY COULD BE READ. This used to be `[ ! -f "$REG" ]`, which fired - and skipped the
+  # check - whenever the working-tree file was missing, even with HEAD's copy readable one `git show` away.
+  echo "WARNING: no readable held-tree register for $REG - THE HOLD CHECK DID NOT RUN."
+  echo "  This file is tracked on main, and HEAD's copy could not be read either. Its absence means a stale"
+  echo "  checkout or a deleted file, not an empty register, and a green log here says NOTHING about whether"
+  echo "  a previous run refused this tree."
 fi
-if [ -f "$REG" ]; then
+if [ "${HELD_HAVE:-0}" = "1" ]; then
   HELDCHECK="ran"
   LOGMD5H="$(head -1 "$LOG" | grep -oi 'md5 [0-9a-f]\{12,32\}' | head -1 | awk '{print $2}' | tr 'A-F' 'a-f' || true)"
   LOGSHAH="$(grep -oi '^ref: HEAD [0-9a-f]\{7,40\}' "$LOG" | tail -1 | awk '{print $3}' | tr 'A-F' 'a-f' || true)"
@@ -1034,7 +1067,8 @@ if [ -f "$REG" ]; then
       grep -Fxq "$HELDROW" "$REGHEAD" 2>/dev/null && VLINHD=1
       if   [ "$VLINWT" = 1 ] && [ "$VLINHD" = 1 ]; then echo "  source: live in BOTH HEAD and the working tree (register source: $HELD_SRC)"
       elif [ "$VLINWT" = 1 ];                      then echo "  source: live in the WORKING TREE (register source: $HELD_SRC)"
-      elif [ "$VLINHD" = 1 ];                      then echo "  source: live in HEAD ONLY - the working tree does not carry this row. If you cleared it and have"
+      elif [ "$VLINHD" = 1 ];                      then echo "  source: live in HEAD ONLY (register source: $HELD_SRC) - the working tree does not carry this row."
+                                                        echo "          If you cleared it and have"
                                                         echo "          not committed that, COMMIT IT and re-run: the register is read as the union of HEAD and"
                                                         echo "          the working tree by design, so an uncommitted clear cannot lift a hold."
       else echo "  source: register source $HELD_SRC (the row could not be located in either copy - report that)"
@@ -1374,14 +1408,35 @@ fi
 # exactly what #418/#419 recorded, and a concatenated log duplicates both patterns. B looked for an accidental
 # route to A1 and found none (`gates.sh:1237` is `: > "$ALL"`), so these two are reported as forgery-reachable;
 # the concatenation case is the one that needs no malice.
-for VLPAT in '^gates ran (' '^ref: HEAD'; do
+# AND THE CEILING IS PER PATTERN, BECAUSE LEAVING THE MANIFEST UNGUARDED LEFT THE WHOLE ATTACK OPEN
+# [#534, fresh antagonist A's VETO, reproduced here with A's fixture before being fixed]. The first repair
+# measured that `gate manifest:` is legitimately 2 in 58 of the 164 archived logs and concluded that it could
+# not be guarded AT ALL. That inference was wrong, and the measurement that refutes it was already in hand:
+# the corpus distribution is 0 in 94 logs, 1 in 12 and 2 in 58 - **3 OCCURS IN ZERO** - so "at most two" costs
+# nothing and "say nothing about it" cost everything. Check (11) bounds the footer by the LAST
+# `gate manifest:` and the LAST `gates ran (`; guarding only the second anchor leaves the FIRST one movable.
+# A's attack, measured on 533-all.log: rewrite the footer verdict to RED, then insert a VERBATIM COPY of the
+# log's own manifest line followed by a forged `ok` verdict, both IMMEDIATELY BEFORE `gates ran (`. Two lines.
+# The copied manifest becomes the last one, the window between it and `gates ran (` holds only the forgery,
+# and `verify-log.sh` printed `series door: ok` and `OK:` at exit 0 over a log physically carrying
+# `build-number series: RED`. CONTROL A7c, the identical rewrite WITHOUT the duplicated manifest line:
+# REFUSED at exit 1, "footer carries 2 series verdict line(s)". The one copied line was the whole difference,
+# and the forgery left no trace in the output - the manifest read-back prints `tail -1`, which was the copy.
+# NOTE WHAT ELSE IS LEGITIMATELY REPEATED, so no future guard here false-refuses: `^GATES GREEN` is 2 in
+# 377/378/379-all.log (header echo plus footer) and `^regression assertions` is 2 in three logs. Guarding
+# either at "at most one" would have refused real logs. Only these three patterns are bounded, each at the
+# maximum the corpus actually shows.
+for VLSPEC in '^gates ran (:1' '^ref: HEAD:1' '^gate manifest::2'; do
+  VLPAT="${VLSPEC%:*}"; VLMAX="${VLSPEC##*:}"
   VLN="$(grep -c "$VLPAT" "$LOG" 2>/dev/null || true)"; VLN="${VLN:-0}"
-  if [ "$VLN" -gt 1 ] 2>/dev/null; then
-    echo "REFUSED (footer): $LOG carries $VLN lines matching $VLPAT, where a full-suite log carries at most one."
-    echo "    gates.sh writes exactly one of these per run and truncates its log at the start, so more than one"
-    echo "    means two runs' output in one file, or a hand-appended footer. Measured over all 164 archived"
-    echo "    logs, no honest log carries two of either pattern. A second footer makes the real verdict line"
-    echo "    early, which is how check (11) below can be made to read a forged verdict instead of a RED one."
+  if [ "$VLN" -gt "$VLMAX" ] 2>/dev/null; then
+    echo "REFUSED (footer): $LOG carries $VLN lines matching $VLPAT, where a full-suite log carries at most $VLMAX."
+    echo "    gates.sh writes a fixed terminal block once per run and truncates its log at the start (the"
+    echo "    manifest verdict legitimately appears twice, once before the gates and once in the footer, which"
+    echo "    is why its ceiling is 2 and the other two are 1). More than that means two runs' output in one"
+    echo "    file, or a hand-appended footer. Measured over all 164 archived logs, no honest log exceeds any"
+    echo "    of these three ceilings. A second footer makes the real verdict line early, which is how check"
+    echo "    (11) below can be made to read a forged verdict instead of a RED one."
     exit 1
   fi
 done

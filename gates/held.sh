@@ -26,7 +26,13 @@
 # next run back to the prose this file exists to replace.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; REG="$HERE/held-trees.tsv"; ROOT="$(cd "$HERE/.." && pwd)"
-[ -f "$REG" ] || { echo "held.sh: no register at $REG"; exit 2; }
+# THIS GUARD USED TO `exit 2` HERE, BEFORE HEAD WAS EVER CONSULTED, AND THAT IS HALF OF A BLOCKER
+# [#534, fresh antagonist B's VETO]. With `gates/held-trees.tsv` deleted and not committed, `check` answered
+# exit 2 ("no register") while HEAD's copy still carried every live row - so the question the build procedure
+# is required to ask had NO ANSWERER, and verify-log.sh in the same state answered OK at exit 0. Two tools
+# disagreeing about one register in opposite directions is the shape this file already records as #450's
+# worst. The file is still REQUIRED for the verbs that WRITE it; `check` is a READ and HEAD can serve it.
+HELD_REGOK=0; { [ -f "$REG" ] && [ -r "$REG" ]; } && HELD_REGOK=1
 
 # TWO ROW FILTERS, AND ANTAGONIST A ON #450 FOUND WHY ONE IS NOT ENOUGH. `live_rows` required NF>=6, so a row
 # missing its reason made verify-log.sh REFUSE (exit 1) while `held.sh check` answered "not held" (exit 0) - the
@@ -56,9 +62,16 @@ HELD_GIT=(git --git-dir "$ROOT/.git" --work-tree "$ROOT")
 if command -v git >/dev/null 2>&1 && "${HELD_GIT[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   HELD_HEADREG="$(mktemp 2>/dev/null || true)"
   if [ -n "$HELD_HEADREG" ] && "${HELD_GIT[@]}" show HEAD:gates/held-trees.tsv > "$HELD_HEADREG" 2>/dev/null && [ -s "$HELD_HEADREG" ]; then
-    HELD_UNION="$(mktemp 2>/dev/null || true)"
-    if [ -n "$HELD_UNION" ] && cat "$REG" "$HELD_HEADREG" > "$HELD_UNION" 2>/dev/null; then
-      REGALL="$HELD_UNION"; HELD_SRC="HEAD and the working tree"
+    if [ "$HELD_REGOK" = "1" ]; then
+      HELD_UNION="$(mktemp 2>/dev/null || true)"
+      if [ -n "$HELD_UNION" ] && cat "$REG" "$HELD_HEADREG" > "$HELD_UNION" 2>/dev/null; then
+        REGALL="$HELD_UNION"; HELD_SRC="HEAD and the working tree"
+      fi
+    else
+      # THE LIMB THE VETO WAS ABOUT: no readable working-tree copy, HEAD's copy readable, so the question is
+      # still asked against HEAD alone and the answer still binds.
+      REGALL="$HELD_HEADREG"
+      HELD_SRC="HEAD ONLY - there is NO readable working-tree copy of gates/held-trees.tsv, which is a deleted file or a stale checkout and NOT an empty register, so an uncommitted deletion lifts nothing"
     fi
   else
     [ -z "${HELD_HEADREG:-}" ] || rm -f "$HELD_HEADREG"
@@ -67,6 +80,22 @@ if command -v git >/dev/null 2>&1 && "${HELD_GIT[@]}" rev-parse --is-inside-work
 else
   HELD_SRC="working tree only (not a git work tree), sha256 $(sha256sum "$REG" 2>/dev/null | cut -c1-16)"
 fi
+# NOW refuse, for the verbs that genuinely need the working-tree file, and only if HEAD cannot serve the read.
+if [ "$HELD_REGOK" != "1" ] && [ "$REGALL" = "$REG" ]; then
+  echo "held.sh: no readable register at $REG, and HEAD holds no usable gates/held-trees.tsv either."
+  echo "  That is a stale checkout or a deleted file, NOT an empty register: this tool cannot tell you"
+  echo "  whether a previous run refused this tree, so treat the answer as UNKNOWN rather than as 'not held'."
+  exit 2
+fi
+case "${1:-}" in
+  add|clear|retire)
+    if [ "$HELD_REGOK" != "1" ]; then
+      echo "held.sh: $1 writes the register, so it needs the working-tree copy at $REG, which is missing or"
+      echo "  unreadable. HEAD's copy is being used for READS this run ($HELD_SRC). Restore the file first:"
+      echo "    git checkout -- gates/held-trees.tsv"
+      exit 2
+    fi ;;
+esac
 # WHICH REGISTER CARRIED THE ROW. THE REFUSAL BRANCHES WERE THE ONLY ONES NOT SAYING [#534, antagonist A's
 # P2-2]. The union's provenance was printed on the "not held" line - the answer nobody acts on - and withheld
 # from the two answers that STOP A PUSH, so a reader staring at a refusal had no way to tell a live hold from a

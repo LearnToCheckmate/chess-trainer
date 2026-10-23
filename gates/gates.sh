@@ -893,7 +893,7 @@ tc() {
   # THE DENOMINATOR, ASSERTED SEPARATELY [prompts/common, the eleventh costume]: the clause above is only
   # evidence if the judged set was NON-EMPTY, and a door that judged nothing would also print no unaccounted
   # row. This case reads the count of rows the door says it judged, so the set cannot be empty unnoticed.
-  st C89e-and-one-uncommitted-row-was-actually-JUDGED-not-merely-appended "$(CT_RUNID=$GFMINE st_gfn "$dC" "$ST_T/gf.sh" 'were APPENDED, of which 1 were JUDGED')" 1
+  st C89e-and-one-uncommitted-row-was-actually-JUDGED-not-merely-appended "$(CT_RUNID=$GFMINE st_gfn "$dC" "$ST_T/gf.sh" 'were APPENDED, of which 1 were JUDGED by this door, 0 are base-held and 0 EXTEND')" 1
   # AN UNCOMMITTED DELETION OF A COMMITTED ROW IS STILL RED with the base at HEAD: del_w is head-minus-worktree
   # and HEAD is readable whatever the base ref points at, so this half never depended on the base.
   dD="$(st_mk gfD)"; grep -v '^531' "$dD/gates/build-numbers.tsv" > "$dD/x" && mv "$dD/x" "$dD/gates/build-numbers.tsv"
@@ -912,9 +912,18 @@ tc() {
   # was a sentence, so the regression pin has to be on the sentence. These three are what C89e could not be:
   # C89e's fixture #363 is BELOW the top, so it is a gap fill, judged=1, and the old string was accidentally
   # TRUE there - the control read the right number for the wrong reason and could not have caught this.
-  st C89u-an-uncommitted-EXTENDS-row-is-appended-but-NOT-judged "$(CT_RUNID=$GFMINE st_gfn "$dE" "$ST_T/gf.sh" 'the 1 uncommitted row(s) were APPENDED, of which 0 were JUDGED')" 1
-  st C89v-and-the-clause-names-it-as-extending "$(CT_RUNID=$GFMINE st_gfn "$dE" "$ST_T/gf.sh" '1 EXTEND the series and are NOT judged')" 1
+  st C89u-an-uncommitted-EXTENDS-row-is-appended-but-NOT-judged "$(CT_RUNID=$GFMINE st_gfn "$dE" "$ST_T/gf.sh" 'the 1 uncommitted row(s) were APPENDED, of which 0 were JUDGED by this door, 0 are base-held and 1 EXTEND')" 1
+  st C89v-and-the-clause-names-it-as-extending "$(CT_RUNID=$GFMINE st_gfn "$dE" "$ST_T/gf.sh" '0 are base-held and 1 EXTEND the series, NEITHER of which this door judges')" 1
   st C89w-and-the-false-sentence-the-veto-named-is-GONE "$(CT_RUNID=$GFMINE st_gfn "$dE" "$ST_T/gf.sh" 'uncommitted row(s) WERE judged')" 0
+  # C89x-C89z: THE BASE-HELD CLASS, THE FIXTURE THE FIRST REPAIR'S FOUR CASES ALL MISSED [fresh antagonist A's
+  # VETO]. This appends, uncommitted, a row for #532 - a number the BASE register already holds - which is the
+  # #416 two-trees-one-number class. C51/C51b already pin that the door REPORTS such a row and leaves the
+  # verdict alone; these pin that the COUNTS say so too, which is what the first repair got wrong by folding
+  # GF_K into the judged number. C89z pins the superseded wording ABSENT, as C89w does for the first veto.
+  ddh="$(st_mk gfdh)"; st_row 532 built - "$GFOTHER" build-sh >> "$ddh/gates/build-numbers.tsv"
+  st C89x-an-uncommitted-BASE-HELD-row-is-appended-but-NOT-judged "$(CT_RUNID=$GFMINE st_gfn "$ddh" "$ST_T/gf.sh" 'the 1 uncommitted row(s) were APPENDED, of which 0 were JUDGED by this door, 1 are base-held and 0 EXTEND')" 1
+  st C89y-and-the-door-still-only-REPORTS-it "$(CT_RUNID=$GFMINE st_gfn "$ddh" "$ST_T/gf.sh" 'REPORTED, NOT REFUSED - #532')" 1
+  st C89z-and-the-superseded-judged-wording-is-GONE "$(CT_RUNID=$GFMINE st_gfn "$ddh" "$ST_T/gf.sh" 'of which 1 were JUDGED')" 0
   # AN UNCOMMITTED GAP FILL THAT stampable SAYS IS YOURS: NOT CHECKED, armed or not. The ownership answer is
   # the authority's and not this branch's, which is the prescription both earlier withdrawals pointed at.
   dF="$(st_mk gfF)"; st_row 363 minted - "$GFMINE" minted >> "$dF/gates/build-numbers.tsv"
@@ -939,7 +948,7 @@ tc() {
   dH="$(st_mk gfH)"
   st C89q-a-clean-tree-with-base-at-HEAD-is-NOT-CHECKED "$(CT_RUNID=$GFMINE st_gfv "$dH" "$ST_T/gf.sh")" NOT
   st C89r-and-it-does-not-stop-the-suite "$( CT_RUNID=$GFMINE st_gfrun "$dH" "$ST_T/gf.sh" >/dev/null 2>&1; echo $? )" 0
-  st C89s-and-it-says-nothing-was-appended-and-nothing-judged "$(CT_RUNID=$GFMINE st_gfn "$dH" "$ST_T/gf.sh" 'the 0 uncommitted row(s) were APPENDED, of which 0 were JUDGED')" 1
+  st C89s-and-it-says-nothing-was-appended-and-nothing-judged "$(CT_RUNID=$GFMINE st_gfn "$dH" "$ST_T/gf.sh" 'the 0 uncommitted row(s) were APPENDED, of which 0 were JUDGED by this door, 0 are base-held and 0 EXTEND')" 1
   # AND GF_NOCHK IS STILL PRINTED on every one of them, which is what C79, C79b and M14a-c assert on $dp:
   # the words were KEPT verbatim by this fix and the new scope clause is added beside them, not instead.
   st C89t-the-NOT-CHECKED-line-still-carries-GF_NOCHK "$(CT_RUNID=$GFMINE st_gfn "$dH" "$ST_T/gf.sh" "there is no base to judge appended rows against")" 1
@@ -1173,7 +1182,7 @@ M16PY
   st M18-the-old-blindness-mutant-parses "$(bash -n "$ST_T/m18.sh" 2>/dev/null && echo yes || echo no)" yes
   st M18a-FIX-reds-the-uncommitted-gapfill "$(CT_RUNID=$GFMINE st_gfv "$dC" "$ST_T/gf.sh")" RED
   st M18b-MUTANT-reads-it-NOT-CHECKED "$(CT_RUNID=$GFMINE st_gfv "$dC" "$ST_T/m18.sh")" NOT
-  st M18c-and-the-MUTANT-judged-nothing "$(CT_RUNID=$GFMINE st_gfn "$dC" "$ST_T/m18.sh" 'the 0 uncommitted row(s) were APPENDED, of which 0 were JUDGED')" 1
+  st M18c-and-the-MUTANT-judged-nothing "$(CT_RUNID=$GFMINE st_gfn "$dC" "$ST_T/m18.sh" 'the 0 uncommitted row(s) were APPENDED, of which 0 were JUDGED by this door')" 1
   st M18d-and-the-MUTANT-does-not-stop-the-suite "$( CT_RUNID=$GFMINE st_gfrun "$dC" "$ST_T/m18.sh" >/dev/null 2>&1; echo $? )" 0
   # AND IT AGREES WITH THE FIX WHERE THE BASE IS NOT AT HEAD, which is why no existing case could see it: a
   # mutant that differed everywhere would be caught by any one of the hundred cases above.
@@ -1892,7 +1901,21 @@ else
       # [#534, antagonist A's VETO, upheld and reproduced]. It read "the $GF_A2 uncommitted row(s) WERE
       # judged", and $GF_A2 is worktree-vs-head: the APPENDED count, non-zero whenever a row was appended
       # whatever class it fell in. The JUDGED set is $GF_GF (gap fill) plus $GF_K (base-held). The extends
-      # branch does GF_E=$((GF_E+1)) and then `continue`, so an extends row NEVER reaches GF_GF and is never
+      # AND THE FIRST REPAIR GOT THE JUDGED SET WRONG TOO, ONE CLASS OVER [#534, fresh antagonist A's VETO,
+      # upheld and reproduced]. It printed $((GF_GF+GF_K)) as "JUDGED", on the strength of a comment here that
+      # asserted "the JUDGED set is $GF_GF plus $GF_K". NOTHING IN THIS FILE SUPPORTS THE SECOND HALF, and the
+      # base-held branch denies it twice: its own comment reads "Report only: the verdict is unchanged", its
+      # printed line reads "REPORTED, NOT REFUSED", and its control is NAMED
+      # C51-base-held-rows-are-REPORTED-not-refused with C51b pinning the verdict at `ok`. Measured: that
+      # branch does GF_K=$((GF_K+1)) and then `continue`, so a base-held row never reaches GF_GF either. So an
+      # uncommitted row for a number the base register ALREADY HOLDS - the #416 two-trees-one-number class in
+      # this job's own title - was reported as JUDGED at NOT CHECKED and exit 0 while the authority answered
+      # NOT STAMPABLE. THAT IS THIS RUN'S OWN UPHELD VETO RESTATED AGAINST GF_K INSTEAD OF GF_E, and it was
+      # WORSE than the silence it replaced, because the false number was now explicitly labelled. The judged
+      # set is GF_GF alone. C89x-C89z are the control, on a base-held fixture - and the reason the first repair
+      # could not see this is the reason C89e could not see the first defect: the four cases asserting this
+      # clause used dC, dE and dH, NONE of them base-held, so the fixture coincided with the claim.
+      # The extends branch does GF_E=$((GF_E+1)) and then `continue`, so an extends row NEVER reaches GF_GF and is never
       # judged - and the door says so in terms, "This door does not judge the extends class", in the same
       # output. So on an uncommitted row ABOVE the series top this clause asserted a judgement the same door
       # denied in the same log, at NOT CHECKED and exit 0, with the row reaching every gate: THE G6 DEFECT
@@ -1902,7 +1925,7 @@ else
       # the top, so every run that mints normally hits it. C89u to C89w are the control, on dE, which is that
       # shape; C89w pins the old sentence ABSENT, because the words are what was wrong.
       if [ "$GF_BASEATHEAD" = "1" ]; then
-        GF_COUNTS="$GF_COUNTS; base-at-HEAD=yes (the base ref points at HEAD, so head-vs-base is 0 BY CONSTRUCTION and the $GF_NH committed row(s) were NOT compared; the $GF_A2 uncommitted row(s) were APPENDED, of which $((GF_GF+GF_K)) were JUDGED by this door and $GF_E EXTEND the series and are NOT judged by it; a deletion could only be seen against the working tree)"
+        GF_COUNTS="$GF_COUNTS; base-at-HEAD=yes (the base ref points at HEAD, so head-vs-base is 0 BY CONSTRUCTION and the $GF_NH committed row(s) were NOT compared; the $GF_A2 uncommitted row(s) were APPENDED, of which $GF_GF were JUDGED by this door, $GF_K are base-held and $GF_E EXTEND the series, NEITHER of which this door judges; a deletion could only be seen against the working tree)"
       fi
       # THE DEAD LIMB IS GONE [antagonist A of the third pair, P3-3 and antagonist B of the fourth pair, P2-1,
       # the same finding from both doors]. A branch on GF_NOCHK stood here claiming it "must come FIRST so no

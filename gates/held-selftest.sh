@@ -82,6 +82,24 @@ f7() { tail -1 "$R/gates/held-trees.tsv" | cut -f7; }
 RSN="a reason long enough to clear the forty character floor this tool enforces"
 export CT_RUNID=held-selftest
 
+# ── THE HARNESS PREFLIGHT, THE SAME ONE gates/verify-log-selftest.sh CARRIES [#534, fresh antagonist B's
+# P2-1]. That file grew this guard because sixteen assertions there called two helpers defined nowhere in it
+# and were silent no-ops while its footer stayed self-consistent. B then measured that the guard shipped in
+# ONE selftest of four and reproduced the identical defect HERE by renaming one `eq` call: footer
+# self-consistent, exit 0, the assertion simply gone. "A lesson recorded in one gate does not travel", one
+# file away, inside the build that wrote the lesson down. KNOW ITS LIMIT: the list is hand-kept, so a helper
+# called under a name not on it is still silent - the derivation that would close that is described in
+# verify-log-selftest.sh and deliberately not shipped there or here.
+for __fn in ck eq gt0 ne; do
+  command -v "$__fn" >/dev/null 2>&1 || {
+    printf 'FAIL harness: assertion helper %s is CALLED by this file and is NOT CALLABLE here.\n' "$__fn"
+    printf '  Every %s call would be a silent no-op (this file does not set -e), so the footer would report\n' "$__fn"
+    printf '  a self-consistent pass count with assertions missing from it. Refusing to run.\n'
+    exit 1
+  }
+done
+unset __fn
+
 echo "== held.sh self-test. fixture repo at $R =="
 echo "   main's chess.jsx md5 $MAINSRC | gated (V1) $V1 | edited (V2) $V2 | gated sha ${SHA1:0:12}"
 echo
@@ -270,6 +288,61 @@ ck "10 MUTANT the committed row still holds on a clean tree" 1 "$MU" check ddddd
 grep -v '^ddddddddddd1' "$HREG" > "$HR/x" && mv "$HR/x" "$HREG"
 ck "10 MUTANT an uncommitted deletion LIFTS the hold - the defect" 0 timeout 20 "$MU" check ddddddddddd1
 ck "10 FIX the same tree still holds"                      1 "$HU" check ddddddddddd1
+git -C "$HR" checkout -- gates/held-trees.tsv
+
+
+# ── 11. THE WHOLE FILE DELETED, NOT ONE LINE OF IT [#534, fresh antagonist B's VETO, upheld]. ────────────
+# Section 10 proves an uncommitted LINE deletion cannot lift a hold. It does not cover the FILE, and the file
+# was the hole: `held.sh` refused to answer at all (`exit 2`, "no register") before HEAD was ever consulted,
+# while HEAD's copy carried every live row - so the question the build procedure is REQUIRED to ask had no
+# answerer, and `verify-log.sh` in the same state answered OK at exit 0. Two tools disagreeing about one
+# register in opposite directions is what this file records as #450's worst shape.
+# THREE SPELLINGS OF ONE EDIT, because `[ -f ]` is false for all three and a fix keyed on only `rm` would
+# miss the other two: delete it, replace it with a DIRECTORY, symlink it to /dev/null.
+# AND BOTH DIRECTIONS, because a guard that refuses everything is not a fix: a key that is genuinely not held
+# must still CLEAR at exit 0 with the file gone, and a verb that WRITES the register must still refuse.
+echo "-- 11. the register file itself deleted, replaced, or symlinked away --"
+ck "11a the committed row holds on a clean tree (control)"       1 "$HU" check ddddddddddd1
+mv "$HREG" "$TD/reg.saved"
+ck "11b the FILE deleted and not committed: STILL HELD"          1 timeout 20 "$HU" check ddddddddddd1
+gt0 "11c and the source line says HEAD ONLY" "$(timeout 20 "$HU" check ddddddddddd1 2>&1 | grep -c 'HEAD ONLY')"
+# THE SOURCE KEY HAD TO BE NEUTRALISED FIRST, AND MY FIRST DRAFT OF THIS CASE DID NOT [R18]. held.sh falls
+# back to matching chess.jsx's md5 against each row's sourceMd5 when the two artefact keys miss, and section
+# 10 leaves the fixture's chess.jsx set to the HELD source - so this case read HELD on correct behaviour and
+# I nearly filed a false refusal against my own fix. That is section 10's own recorded control error ("the
+# fixture's source key always matched") repeating one section later: "a lesson recorded in one gate does not
+# travel", INSIDE ONE FILE. Measured, not assumed: with chess.jsx on no row the same call exits 0.
+printf 'a source on no row at all\n' > "$HR/chess.jsx"
+ck "11d a key that is genuinely NOT held still CLEARS"           0 timeout 20 "$HU" check 0123456789ab
+printf 'SOURCE of the held tree\n' > "$HR/chess.jsx"
+ck "11e a WRITING verb still refuses, because it needs the file" 2 timeout 20 "$HU" add eeeeeeeeeee1 abc1234 '#900' 2026-10-23T00:00Z run x
+mkdir "$HREG"
+ck "11f replaced by a DIRECTORY: STILL HELD"                     1 timeout 20 "$HU" check ddddddddddd1
+rmdir "$HREG"
+ln -s /dev/null "$HREG"
+ck "11g SYMLINKED to /dev/null: STILL HELD"                      1 timeout 20 "$HU" check ddddddddddd1
+rm -f "$HREG"
+cp "$TD/reg.saved" "$HREG"
+ck "11h restored: still held (control, so 11b-11g are not a stuck refusal)" 1 "$HU" check ddddddddddd1
+# ---- THE MUTANT: the early `exit 2` guard restored, which is held.sh before this repair. ----
+# Swapped WHOLE from a heredoc rather than edited in place, and `timeout` on every call, because #534's NUL
+# mutant hung when a part-deleted pipeline left grep reading stdin.
+cat > "$TD/guard.old" <<'GUARDOLD'
+[ -f "$REG" ] || { echo "held.sh: no register at $REG"; exit 2; }
+GUARDOLD
+awk -v f="$TD/guard.old" '
+  /^HELD_REGOK=0; \{ \[ -f "\$REG" \] && \[ -r "\$REG" \]; \} && HELD_REGOK=1/ {
+    while((getline l < f)>0) print l; close(f); next }
+  { print }' "$HU" > "$HR/gates/mutant11.sh"; chmod +x "$HR/gates/mutant11.sh"
+MU11="$HR/gates/mutant11.sh"
+eq "11 MUTANT the early guard really was put back" "1 0" \
+   "$(grep -c 'held.sh: no register at' "$MU11") $(grep -c '^HELD_REGOK=0;' "$MU11")"
+eq "11 MUTANT parses" "yes" "$(bash -n "$MU11" 2>/dev/null && echo yes || echo no)"
+ck "11 MUTANT holds on a clean tree, as the fix does" 1 timeout 20 "$MU11" check ddddddddddd1
+mv "$HREG" "$TD/reg.saved2"
+ck "11 MUTANT refuses to ANSWER once the file is gone - the defect" 2 timeout 20 "$MU11" check ddddddddddd1
+ck "11 FIX answers HELD in that same state"                         1 timeout 20 "$HU" check ddddddddddd1
+cp "$TD/reg.saved2" "$HREG"
 git -C "$HR" checkout -- gates/held-trees.tsv
 
 printf '\n%s PASS  %s FAIL  (%s assertions over %s inputs to `add`)\n' "$P" "$F" "$((P+F))" "21"

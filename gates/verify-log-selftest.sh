@@ -80,7 +80,8 @@ eq() { # eq <description> <expected> <actual>
 gt0() { # gt0 <description> <count> - the phrase is PRESENT. Used where a message legitimately appears more
         # than once and pinning the exact count would make the control brittle about wording rather than
         # about behaviour, which is the frozen-denominator trap in miniature. Verbatim from
-        # gates/held-selftest.sh:52-58.
+        # gates/held-selftest.sh:51-56 - and that citation read 52-58 until a fresh antagonist checked it, which is
+        # the #450 dangling-citation shape inside the pass that fixed two dangling citations.
   if [ "${2:-0}" -ge 1 ] 2>/dev/null; then P=$((P+1)); printf 'PASS %s (%s occurrence(s))\n' "$1" "$2"
   else F=$((F+1)); printf 'FAIL %s (absent)\n' "$1"; fi
 }
@@ -152,11 +153,26 @@ hole() { # hole <job id> <description> <expected-exit WHEN FIXED> <command...>
 # the calls from memory of those files, and nothing in between asked.
 # HAND-KEPT, AND THAT IS ACCEPTABLE ONLY BECAUSE THE LIST IS NOW ENFORCED: a helper added to this file and
 # omitted here is still fine (it is checked at its own call site by bash), but a helper CALLED and never
-# defined can no longer pass silently. ser_mk and ser_prefix are deliberately absent: they are defined in
+# defined can no longer pass silently IF ITS NAME IS ON THIS LIST.
+# AND THAT QUALIFIER IS LOAD-BEARING, BECAUSE THE FIRST VERSION OF THIS REPAIR CLAIMED MORE THAN IT DOES
+# [#534, fresh antagonist A's P2]. Its commit message said "so a third one cannot be silent". FALSE: this is a
+# hand-kept list of six names, and a helper called under any OTHER name is still a silent no-op - reproduced
+# by inserting one `eqq "..." "yes" "no"` into section G, which left the footer self-consistent at 78 pass /
+# 0 fail, the expected exit 2, and exactly one `command not found` line on stderr, which is the very condition
+# the veto was about. This is the gate-manifest lesson with the roles swapped: the hand-kept list IS the
+# manifest, and what it lacks is a DERIVATION. The derivation exists and is one line - every word in command
+# position that is neither defined in this file nor on PATH - and is NOT shipped here, because a scan of this
+# file by this file is the self-reference shape this project records nine times and it needs its own controls
+# before it guards a push-gate selftest. Filed rather than built.
+# A SECOND, SMALLER OVERCLAIM IN THE SAME BREATH [A's P3]: `command -v` tests CALLABILITY, not "defined in
+# this file", and the refusal message below says the latter. An inherited exported function of the same name
+# satisfies the guard - demonstrated by deleting `eq` here and exporting a stub, which restored the vetoed
+# state at 63 pass. A wrong reason reaching the right verdict, which this project treats as a trap; the
+# message is worded to the check it actually performs. ser_mk and ser_prefix are deliberately absent: they are defined in
 # section G, below this point, and bash requires a definition before the CALL and not before this check.
 for __fn in ck ckmsg eq gt0 hole holeneg; do
   command -v "$__fn" >/dev/null 2>&1 || {
-    printf 'FAIL harness: assertion helper %s is CALLED by this file and defined NOWHERE in it.\n' "$__fn"
+    printf 'FAIL harness: assertion helper %s is CALLED by this file and is NOT CALLABLE here.\n' "$__fn"
     printf '  Every %s call would be a silent no-op (this file does not set -e), so the footer would\n' "$__fn"
     printf '  report a self-consistent pass count with assertions missing from it. Refusing to run.\n'
     exit 1
@@ -308,14 +324,22 @@ eq "G4 the PASS fixture's footer agrees with its own PASS count" "1" \
    "$( a="$(grep -c '^PASS' "$TD/logs/ser-pass.log")"; f="$(grep -o 'regression assertions (PASS lines): [0-9]*' "$TD/logs/ser-pass.log" | tail -1 | awk '{print $NF}')"; [ "$a" = "$f" ] && echo 1 || echo 0 )"
 eq "G4 the '=== ' fixture's section count is unchanged" "1" \
    "$( [ "$(grep -c '^=== ' "$TD/logs/ser-eq.log")" = "$(grep -c '^=== ' "$GOOD")" ] && echo 1 || echo 0 )"
-# ALL FIVE ARE REFUSED, and the reasons are deliberately not asserted to be the same one: four are refused
-# because the anchored match never reads a prefixed line as the verdict, and 'mani' because a forged
-# 'gate manifest:' line moves the footer boundary so the verdict reads absent. MUTANT2b and MUTANT2c below
-# separate the two mechanisms; this loop asserts only the verdict they share.
-for pfx in pass fail eq mani gates; do
+# ALL FIVE ARE REFUSED, and the reasons are deliberately not asserted to be the same one. FOUR are refused by
+# the series check, because the anchored match never reads a prefixed line as the verdict. 'mani' IS NOW
+# REFUSED ONE CHECK EARLIER AND BY A DIFFERENT GUARD, and that changed in this run: a forged
+# 'gate manifest:' line makes this fixture's third such line, and the footer-ceiling guard added for fresh
+# antagonist A's veto refuses at "at most 2" before the series check is reached. Its reason is therefore
+# `REFUSED (footer)` and not `REFUSED (series door)`. THE CASE IS SPLIT RATHER THAN LOOSENED, because "both
+# refusals are exit 1" is exactly the right-verdict-wrong-reason shape this project calls a trap: each prefix
+# now asserts the guard that actually stops it.
+for pfx in pass fail eq gates; do
   ckmsg "G5 a forged verdict on a '$pfx'-prefixed line is REFUSED by the series check" 1 "REFUSED (series door)" \
         env -C "$TD" "$VL" "$TD/logs/ser-$pfx.log" "$FOOT"
 done
+ckmsg "G5 and the 'mani'-prefixed one is refused EARLIER, by the footer ceiling" 1 "REFUSED (footer)" \
+      env -C "$TD" "$VL" "$TD/logs/ser-mani.log" "$FOOT"
+ckmsg "G5 and that refusal names the manifest count, not the series door" 1 "lines matching ^gate manifest:" \
+      env -C "$TD" "$VL" "$TD/logs/ser-mani.log" "$FOOT"
 # ── A FOOTER WITH RED, WITH TWO SERIES LINES, AND WITH EACH FALLBACK TEXT.
 ser_mk "$TD/logs/ser-red.log"  "$SER_DOOR" "build-number series: RED - runId=selftest 1 unaccounted"
 ckmsg "G6 a RED footer verdict is REFUSED"              1 "reads RED" env -C "$TD" "$VL" "$TD/logs/ser-red.log" "$FOOT"
@@ -371,14 +395,16 @@ done
 # separate rather than folding it into the loop [#534, VLDOOR]. A forged line beginning 'gate manifest:'
 # BECOMES the last 'gate manifest:' line, which is the very thing this check uses to find the footer - so the
 # region between the boundary and 'gates ran (' is then EMPTY and the verdict reads ABSENT, not forged.
-# MEASURED: the fix refuses it with "footer carries 0 series verdict line(s)" and names the boundary lines.
-# That is a THIRD guard, independent of both anchors, and it means this prefix cannot be turned by either
-# mutant - which is a fact about the check and not a gap in the controls, so it is asserted rather than
-# left to look like one of the four.
-ckmsg "G MUTANT2c the 'mani' prefix is refused for a DIFFERENT reason: it moves the footer boundary" 1 \
-      "0 series verdict line(s)" env -C "$TD" "$VL" "$TD/logs/ser-mani.log" "$FOOT"
-ckmsg "G MUTANT2c and neither mutant can turn it, because the boundary moves whatever the match is" 1 \
-      "0 series verdict line(s)" env -C "$TD" timeout 60 "$TD/gates/vl-anchoronly.sh" "$TD/logs/ser-mani.log" "$FOOT"
+# MEASURED, AND THIS IS THE CASE THE FOOTER-CEILING GUARD RE-POINTED [#534, fresh antagonist A's veto]. It
+# used to read that the fix refuses this fixture with "footer carries 0 series verdict line(s)" because the
+# forged manifest line MOVED the boundary - a third guard, independent of both anchors. True then. Since the
+# ceiling guard landed, the same fixture is refused one check EARLIER, by the manifest count, and never
+# reaches the boundary logic at all. So the independent-guard claim still holds and the guard that makes it
+# hold has changed; asserting the OLD reason would now be a case passing on a stale mechanism.
+ckmsg "G MUTANT2c the 'mani' prefix is refused for a DIFFERENT reason: the footer ceiling, before the boundary" 1 \
+      "lines matching ^gate manifest:" env -C "$TD" "$VL" "$TD/logs/ser-mani.log" "$FOOT"
+ckmsg "G MUTANT2c and neither mutant can turn it, because the ceiling runs before either anchor" 1 \
+      "lines matching ^gate manifest:" env -C "$TD" timeout 60 "$TD/gates/vl-anchoronly.sh" "$TD/logs/ser-mani.log" "$FOOT"
 # the second edit, with awk rather than a nested heredoc, because the normalisation itself carries the quoting
 # a heredoc would eat.
 awk '/^    case "\$SERIESLINE" in/ { print "    SERIESLINE=\"${SERIESLINE#*build-number series: }\"; SERIESLINE=\"build-number series: $SERIESLINE\"" } { print }' \
@@ -391,7 +417,7 @@ for pfx in pass fail eq gates; do
   ck "G MUTANT2 accepts the forged '$pfx'-prefixed verdict - the defect" 0 \
      env -C "$TD" timeout 60 "$TD/gates/vl-unanchored.sh" "$TD/logs/ser-$pfx.log" "$FOOT"
 done
-ckmsg "G MUTANT2 but NOT 'mani', which the boundary guard refuses on both" 1 "0 series verdict line(s)" \
+ckmsg "G MUTANT2 but NOT 'mani', which the footer ceiling refuses on both" 1 "lines matching ^gate manifest:" \
       env -C "$TD" timeout 60 "$TD/gates/vl-unanchored.sh" "$TD/logs/ser-mani.log" "$FOOT"
 ck "G MUTANT2 still agrees with the fix on the honest log" 0 env -C "$TD" "$TD/gates/vl-unanchored.sh" "$SEROK" "$FOOT"
 echo

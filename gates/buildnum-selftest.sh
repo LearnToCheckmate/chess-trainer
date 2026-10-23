@@ -47,6 +47,26 @@ mkreg() { local d="$1" n; shift; mkdir -p "$d"; cp "$HERE/buildnum.sh" "$d/build
           : > "$d/build-numbers.tsv"; for n in "$@"; do row_for "$n" >> "$d/build-numbers.tsv"; done; }
 md5of() { md5sum "$1" | cut -c1-12; }
 
+# ── THE HARNESS PREFLIGHT, THE SAME ONE gates/verify-log-selftest.sh AND gates/held-selftest.sh CARRY
+# [#534, fresh antagonist B's P2-1]. verify-log-selftest.sh grew it because sixteen of its assertions called
+# helpers defined nowhere in it and were silent no-ops while its footer stayed self-consistent at 62 pass /
+# 0 fail. B measured that the guard shipped in ONE selftest of four, and reproduced the identical defect here
+# by renaming one `eq` call: 191 pass / 0 fail, exit 0, one stderr line, the assertion simply gone. That is
+# "a lesson recorded in one gate does not travel", one file away, inside the build that wrote it down.
+# THE LIST IS DERIVED FROM THIS FILE'S OWN CALLS AND DEFINITIONS AT AUTHORING TIME, not guessed, and it is
+# still hand-kept: a helper called under a name not on it is silent. The derivation that would close that is
+# described in verify-log-selftest.sh and deliberately not shipped, because a scan of this file by this file
+# is the self-reference shape this project records nine times and needs its own controls first.
+for __fn in ck eq; do
+  command -v "$__fn" >/dev/null 2>&1 || {
+    printf 'FAIL harness: assertion helper %s is CALLED by this file and is NOT CALLABLE here.\n' "$__fn"
+    printf '  Every %s call would be a silent no-op (this file does not set -e), so the footer would report\n' "$__fn"
+    printf '  a self-consistent pass count with assertions missing from it. Refusing to run.\n'
+    exit 1
+  }
+done
+unset __fn
+
 echo "== buildnum.sh self-test, register copy at $TD =="
 
 # 1-5. A MALFORMED NUMBER IS REFUSED, not silently coerced. '#45' and '#45678' matter specifically: build.sh and
