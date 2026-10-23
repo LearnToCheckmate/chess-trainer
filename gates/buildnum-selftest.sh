@@ -842,6 +842,81 @@ eq "29 MUTANT terminates rather than blocking on stdin" "yes" \
 eq "29 MUTANT and FIX agree on the CLEAN register" "SAME" \
    "$( cp "$NULD/b/mutant.sh" "$NULD/a/mutant.sh"; chmod +x "$NULD/a/mutant.sh"; [ "$( cd "$NULD/a" && CT_RUNID=build__MINEOWN timeout 20 ./mutant.sh stampable '#533' 2>/dev/null )" = "$( cd "$NULD/a" && CT_RUNID=build__MINEOWN ./buildnum.sh stampable '#533' 2>/dev/null )" ] && echo SAME || echo DIFFER )"
 
+# ── CASE 30: A LEADING ZERO IS READ AS OCTAL (#537, the OCTAL job) ──────────────────────────────────────────
+# THE DEFECT, measured on main ed65bab before the fix: one register row numbered 0535 made `next` print #350
+# at exit 0, and #350 is an ISSUED number on the real register (2026-10-01, backfilled from git). rows() keeps
+# any all-digit first field, `sort -n` correctly placed 0535 as 535, highest() RETURNED THE STRING "0535", and
+# $(( H + 1 )) read it as octal - 0535 base 8 is 349 - so the tool handed out a number another tree carries.
+#
+# THE FIXTURE IS BUILT SO THE MUTANT LANDS ON AN ISSUED ROW, WHICH IS THE WHOLE POINT OF THE CASE AND IS NOT
+# AUTOMATIC. A zero-led row on its own only proves the arithmetic is wrong; it does not prove the ANSWER IS
+# DANGEROUS. 0535 octal + 1 is exactly 350, so the fixture carries a row for 350 as well, and the mutant
+# assertion below reads "the number it handed out is on the register" rather than merely "it is not 536".
+# AND THE SERIES RUN HAD TO BE CHOSEN, NOT GUESSED: delta_ok refuses when highest() sits above the top of the
+# longest contiguous run, so 524..534 plus the 0535 row makes 535 the top of a 12-long run and `next` is NOT
+# refused on the fix. A fixture of 350 + 500..511 + 0535 was my first draft and it made the fix exit 2 with
+# "number(s) cut off from its own series" - a red for the right reason that would have hidden the real assertion.
+mkreg "$SB/octal" 350 $(seq 524 534)
+row_for "0535" minted >> "$SB/octal/build-numbers.tsv"
+mkreg "$SB/octalclean" 350 $(seq 524 535)
+mkreg "$SB/octalmint" 350 $(seq 524 534)
+row_for "0535" minted >> "$SB/octalmint/build-numbers.tsv"
+
+eq "30 the fixture really holds a zero-led row and a row for 350" "1 1" \
+   "$(grep -c '^0535	' "$SB/octal/build-numbers.tsv") $(grep -c '^350	' "$SB/octal/build-numbers.tsv")"
+# THE HEADLINE. Not "prints 536" but "does not print a number the register already holds": that is the claim
+# the job makes and the one a later edit must not be able to satisfy by accident.
+eq "30 FIX next hands out a number that is NOT already on the register" "free" \
+   "$( cd "$SB/octal" && N="$(./buildnum.sh next 2>/dev/null | tr -d '#')"; if [ -z "$N" ]; then echo refused; elif grep -q "^$N	" build-numbers.tsv; then echo ISSUED; else echo free; fi )"
+eq "30 FIX next prints the true next number and exits 0" "#536 0" \
+   "$( cd "$SB/octal" && printf '%s ' "$(./buildnum.sh next 2>/dev/null)"; printf '%s' "$?" )"
+# THE SERIES DOOR READS THE FIRST LINE OF STDOUT AND BRANCHES ON THE EXIT STATUS (see the comment at rows() in
+# buildnum.sh), so the report must not reach stdout and stdout must stay exactly one line. This is the assertion
+# that stops a later author "helpfully" echoing the warning where a consumer would read it as a verdict.
+eq "30 FIX stdout is exactly one line and says nothing about a zero" "1 0" \
+   "$( cd "$SB/octal" && printf '%s %s' "$(./buildnum.sh next 2>/dev/null | wc -l | tr -d ' ')" "$(./buildnum.sh next 2>/dev/null | grep -ci 'zero')" )"
+eq "30 FIX the warning IS on stderr and names the offending row" "1 1" \
+   "$( cd "$SB/octal" && ./buildnum.sh next 2>"$TD/o.err" >/dev/null; printf '%s %s' "$(grep -c 'LEADING ZERO' "$TD/o.err")" "$(grep -c '0535' "$TD/o.err")" )"
+eq "30 FIX a register with no zero-led row prints no warning at all" "0" \
+   "$( cd "$SB/octalclean" && ./buildnum.sh next 2>&1 >/dev/null | grep -ci 'LEADING ZERO' )"
+# add IS A WRITE VERB AND THE REGISTER IS APPEND-ONLY, so "refuses" is not enough on its own: the file must be
+# byte-identical afterwards. A refusal that has already appended is the failure this half exists to prevent.
+eq "30 FIX add refuses a zero-led number at exit 2 AND writes nothing" "2 SAME" \
+   "$( cd "$SB/octal" && B="$(md5sum < build-numbers.tsv)"; ./buildnum.sh add '#0535' minted - - 'a deliberately malformed row, for the control' >/dev/null 2>&1; E=$?; A="$(md5sum < build-numbers.tsv)"; printf '%s ' "$E"; [ "$B" = "$A" ] && printf SAME || printf CHANGED )"
+eq "30 FIX mint over a zero-led register writes a number that was free" "0 536 free" \
+   "$( cd "$SB/octalmint" && CT_RUNID=build__OCTALCTL ./buildnum.sh mint 'a control mint over a register holding one leading-zero row' >/dev/null 2>&1; E=$?; N="$(awk -F'\t' '$7=="build__OCTALCTL"{print $1}' build-numbers.tsv)"; printf '%s %s ' "$E" "$N"; [ "$(awk -F'\t' -v n="$N" '$1==n' build-numbers.tsv | wc -l | tr -d ' ')" = "1" ] && printf free || printf COLLIDED )"
+
+# THE MUTANT: highest() exactly as ed65bab had it, one whole line swapped in from a literal heredoc. Built this
+# way and not by sed-ing the awk out of the pipeline, for the reason case 29 records against its own first
+# attempt: a mutant assembled by deleting part of a pipeline can leave a command reading STDIN and hang for
+# ever, and a mutant that hangs proves nothing. A mutant must be THE OLD CODE, RUNNING.
+cat > "$SB/octal/highest.old" <<'HIGHESTOLD'
+highest() { rows | cut -f1 | sort -n | tail -1; }
+HIGHESTOLD
+awk -v h="$SB/octal/highest.old" '
+  /^highest\(\) \{ rows \| cut -f1 \| awk/ { while((getline l < h)>0) print l; close(h); next }
+  { print }' "$SB/octal/buildnum.sh" > "$SB/octal/mutant.sh"; chmod +x "$SB/octal/mutant.sh"
+eq "30 MUTANT the line really was swapped, and only that line" "0 1" \
+   "$(grep -c '^highest() { rows | cut -f1 | awk' "$SB/octal/mutant.sh") $(grep -c '^highest() { rows | cut -f1 | sort -n | tail -1; }' "$SB/octal/mutant.sh")"
+eq "30 MUTANT is a different script from the fix" "differs" \
+   "$( [ "$(md5sum < "$SB/octal/buildnum.sh")" != "$(md5sum < "$SB/octal/mutant.sh")" ] && echo differs || echo identical )"
+eq "30 MUTANT parses" "yes" "$(bash -n "$SB/octal/mutant.sh" 2>/dev/null && echo yes || echo no)"
+# EVERY MUTANT CALL IS UNDER `timeout`, as case 29's are: 124 is timeout's own kill exit and can never be
+# mistaken for the 0 this case looks for.
+eq "30 MUTANT terminates rather than blocking on stdin" "yes" \
+   "$( cd "$SB/octal" && timeout 20 ./mutant.sh next >/dev/null 2>&1; [ $? -ne 124 ] && echo yes || echo no )"
+# THE TURN. This is the assertion the whole case exists for: the mutant hands out a number the register already
+# holds, at exit 0, with no refusal anywhere.
+eq "30 MUTANT hands out an ALREADY-ISSUED number at exit 0 - which is the defect" "0 #350 ISSUED" \
+   "$( cd "$SB/octal" && O="$(timeout 20 ./mutant.sh next 2>/dev/null)"; E=$?; printf '%s %s ' "$E" "$O"; N="$(printf '%s' "$O" | tr -d '#')"; if [ -n "$N" ] && grep -q "^$N	" build-numbers.tsv; then printf ISSUED; else printf free; fi )"
+eq "30 MUTANT list advertises the same issued number as next free" "1" \
+   "$( cd "$SB/octal" && timeout 20 ./mutant.sh list 2>/dev/null | grep -c 'next free: #350' )"
+# AND WHY NO EXISTING CASE COULD SEE THIS: on a register with no zero-led row the two readers are identical, so
+# all 192 cases before this one agree on both scripts. That is the "a gate that has never gone red on an input
+# class" shape - the input class was absent from every fixture in the file.
+eq "30 MUTANT and FIX agree on a register with no zero-led row" "SAME" \
+   "$( cp "$SB/octal/mutant.sh" "$SB/octalclean/mutant.sh"; chmod +x "$SB/octalclean/mutant.sh"; [ "$( cd "$SB/octalclean" && timeout 20 ./mutant.sh next 2>/dev/null )" = "$( cd "$SB/octalclean" && ./buildnum.sh next 2>/dev/null )" ] && echo SAME || echo DIFFER )"
+
 echo "---"
 echo "buildnum self-test: $P pass, $F fail"
 [ "$F" = "0" ]
