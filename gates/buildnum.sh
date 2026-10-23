@@ -96,10 +96,41 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; REG="$HERE/build-numbers.tsv"
 [ -f "$REG" ] || { echo "buildnum.sh: no register at $REG"; exit 2; }
 
+# THE NUL WARNING IS LOUD, ON STDERR, AND EXACTLY ONCE [#534, NUL]. rows() now reads a NUL-bearing register
+# whole, so no verdict is wrong any more - but a register carrying a NUL is still a damaged file somebody must
+# repair, and silently coping with it is how the next reader of this directory inherits it. It goes to STDERR
+# and never to stdout, and it is emitted HERE rather than inside rows() because rows() is called many times in
+# one invocation and a warning repeated nine times reads as nine faults. It names the register and the COUNT,
+# because "there is a NUL somewhere" is not something anybody can act on.
+REG_NULS="$(tr -cd '\000' < "$REG" 2>/dev/null | wc -c | tr -d ' ')"
+if [ "${REG_NULS:-0}" != "0" ] 2>/dev/null; then
+  echo "buildnum.sh: WARNING - $REG contains ${REG_NULS} NUL byte(s). Every row is still read (they are" >&2
+  echo "  stripped before parsing, so no verdict below is affected), but the file is damaged and should be" >&2
+  echo "  repaired: a NUL makes GNU grep print 'binary file matches' instead of lines, which is how an" >&2
+  echo "  ISSUED build number came to read as free. Find it with: tr -cd '\\000' < $REG | wc -c" >&2
+fi
+
 # Field 1 must be a bare number for a row to count. Comments, the header and any malformed line are skipped
 # here rather than silently half-matched - held.sh's lesson that a row which LOOKS live and matches nothing is
 # worse than no row.
-rows() { grep -v '^[[:space:]]*#' "$REG" | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/'; }
+# ONE NUL BYTE USED TO LOSE THE WHOLE REGISTER, AND IT MADE AN ISSUED NUMBER READ FREE [#534, NUL;
+# jobs/one-nul-byte-in-the-register-makes-buildnum-stampable-report-an-issued-number-as-free-2026-10-22,
+# filed by #532]. GNU grep treats a file containing a NUL as binary and prints the single line
+# `grep: <file>: binary file matches` INSTEAD OF the matching lines, so this reader returned NOTHING and
+# every caller concluded the register was empty. MEASURED on 707599b before the fix, with one NUL injected
+# into the note of row #347 of the live 516-row register: rows() read 0 rows (not 365 as the job estimated -
+# grep refuses the whole file rather than stopping at the NUL), and `stampable '#533'` under a FOREIGN
+# CT_RUNID answered "#533 is on no row. It was CHOSEN by this run rather than issued to it" at exit 0, where
+# the same register without the NUL answers "NOT STAMPABLE: #533 is claimed by 2 row(s) belonging to another
+# run" at exit 1. That is the only mechanical guard against two trees under one build number, reading free.
+# `tr -d` AND NOT `grep -a`, AND THE CHOICE IS MEASURED RATHER THAN REASONED: both read all 516 rows, but
+# `LC_ALL=C grep -a` leaves the NUL inside the note (1 byte survives into the output), so `list` would print
+# bytes the file's author never wrote and show_row's columns would be shifted for that row; `tr -d` removes it
+# (0 survive). On a CLEAN register the new reader is BYTE-IDENTICAL to the old one, md5 1fd4b134a47a both ways,
+# so nothing about the happy path moves. The damage is reported on STDERR ONLY, once, where this file sets REG:
+# gates/gates.sh's series door quotes the FIRST LINE of stampable's stdout and branches on its exit status, so
+# a warning on stdout would be read as a verdict.
+rows() { tr -d '\000' < "$REG" | grep -v '^[[:space:]]*#' | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/'; }
 
 want_num() { # echoes the bare number, or exits 2. Accepts "#454" and "454" alike.
   local raw="${1:-}" n
@@ -820,7 +851,11 @@ case "${1:-}" in
     # other file in this directory writes a build number, held-trees.tsv included), or cleared with
     # held-trees.tsv's documented `-` prefix convention, vanishes from check, next AND list - in a file whose
     # header says a number is never removed. Named rather than silently skipped.
-    GHOSTS="$(grep -vn '^[[:space:]]*#' "$REG" | grep -v '^[0-9]*:[[:space:]]*$' | awk -F: -v q="'" '{line=$0; sub(/^[0-9]+:/,"",line); split(line,F,"\t"); if (F[1] !~ /^[0-9]+$/) print $1}' | tr '\n' ' ')"
+    # NUL-PROOFED WITH THE SAME `tr -d` AS rows() [#534, NUL]. This scan reads $REG directly rather than
+    # through rows(), by design - its whole job is to find lines rows() CANNOT see - so fixing rows() alone
+    # would have left `list` blind to every ghost in a NUL-bearing register while rows() read it whole: the
+    # two readers would have disagreed about the same file, which is worse than both being wrong.
+    GHOSTS="$(tr -d '\000' < "$REG" | grep -vn '^[[:space:]]*#' | grep -v '^[0-9]*:[[:space:]]*$' | awk -F: -v q="'" '{line=$0; sub(/^[0-9]+:/,"",line); split(line,F,"\t"); if (F[1] !~ /^[0-9]+$/) print $1}' | tr '\n' ' ')"
     if [ -n "${GHOSTS// /}" ]; then
       echo "WARNING - line(s) $GHOSTS look like data but field 1 is not a bare number, so NO subcommand sees"
       echo "  them: not check, not next, not list. A '#458' or a '-'-prefixed first field does this. Fix them."

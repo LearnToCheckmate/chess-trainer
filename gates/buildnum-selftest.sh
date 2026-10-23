@@ -704,6 +704,124 @@ eq "28i #538 is now within the margin of #530, so it is absent and #999 and #100
 eq "28i the plausibility split is applied on BOTH sides of the lock (the report and the re-derivation inside it)" "2" \
    "$(grep -c '| split_plausible' "$SRC")"
 
+# ── CASE 29: A NUL BYTE IN THE REGISTER (#534, NUL).
+# jobs/one-nul-byte-in-the-register-makes-buildnum-stampable-report-an-issued-number-as-free-2026-10-22,
+# filed by #532. GNU grep treats a file containing a NUL as BINARY and prints the single line
+# `grep: <file>: binary file matches` INSTEAD OF the matching lines, so rows() returned NOTHING and every
+# caller concluded the register was empty - which made `stampable` answer that an ISSUED number was FREE, at
+# exit 0, and that is the only mechanical guard this project has against two trees under one build number.
+#
+# THE CASE IS A DIFFERENTIAL AND NOT A THRESHOLD, which is what the job's own close condition asks for:
+# "stampable and check return the SAME verdict for a register with and without a NUL in a note field". So the
+# fixture is built TWICE from one source and the two differ BY EXACTLY ONE BYTE - a byte INSIDE a note field,
+# replaced in place so the row keeps its length and its nine fields. `cmp -l` asserts that, because a fixture
+# that differed in two ways would make every comparison below meaningless (my own first draft APPENDED text as
+# well as a NUL and `list` then differed for an honest reason, which is the trap of a control whose input is
+# not what it claims).
+NULD="$TD/nul"; mkdir -p "$NULD/a" "$NULD/b"
+cp "$HERE/buildnum.sh" "$NULD/a/buildnum.sh"; cp "$HERE/buildnum.sh" "$NULD/b/buildnum.sh"
+chmod +x "$NULD/a/buildnum.sh" "$NULD/b/buildnum.sh"
+{ printf '# fixture register for the NUL case\n'
+  row_for 530 issued; row_for 531 issued; row_for 532 issued
+  printf '533\tminted\t-\t-\t-\t2026-10-22T19:00Z\tbuild__OTHERRUN\tminted\ta note long enough to pass the floor\n'
+} > "$NULD/a/build-numbers.tsv"
+# ONE BYTE, IN PLACE, INSIDE THE NOTE OF THE FIRST ROW. perl is not assumed to exist; this is tr-free on purpose
+# because the thing under test is a NUL-stripping reader and building the fixture with it would be circular.
+awk 'BEGIN{ORS=""} { if (!done && $0 ~ /^530\t/) { n=index($0,"note"); if (n>0) { printf "%s%c%s\n", substr($0,1,n-1), 0, substr($0,n+1); done=1; next } } print $0 "\n" }' \
+  "$NULD/a/build-numbers.tsv" > "$NULD/b/build-numbers.tsv"
+eq "29 the NUL fixture really carries exactly one NUL byte" "0 1" \
+   "$(tr -cd '\000' < "$NULD/a/build-numbers.tsv" | wc -c | tr -d ' ') $(tr -cd '\000' < "$NULD/b/build-numbers.tsv" | wc -c | tr -d ' ')"
+eq "29 and the two fixtures differ in exactly that ONE byte and nothing else" "1" \
+   "$(cmp -l "$NULD/a/build-numbers.tsv" "$NULD/b/build-numbers.tsv" 2>/dev/null | wc -l | tr -d ' ')"
+eq "29 and the NUL is INSIDE a note field, so both files have the same length" "0" \
+   "$(( $(wc -c < "$NULD/a/build-numbers.tsv") - $(wc -c < "$NULD/b/build-numbers.tsv") ))"
+# THE DIFFERENTIAL ITSELF: three numbers, one issued to ANOTHER run, one issued to this one, one on no row.
+# Each is compared on BOTH stdout and exit status, because the defect changed the VERDICT and not the wording.
+nul_same() { # nul_same <label> <subcommand...>: stdout and exit equal on the clean and the NUL register
+  local lbl="$1"; shift
+  local ao ae bo be
+  ao="$( cd "$NULD/a" && CT_RUNID=build__MINEOWN ./buildnum.sh "$@" 2>/dev/null )"; ae=$?
+  bo="$( cd "$NULD/b" && CT_RUNID=build__MINEOWN ./buildnum.sh "$@" 2>/dev/null )"; be=$?
+  eq "29 $lbl: same stdout and same exit with and without the NUL" "SAME SAME" \
+     "$([ "$ao" = "$bo" ] && echo SAME || echo DIFFER) $([ "$ae" = "$be" ] && echo SAME || echo DIFFER)"
+}
+nul_same "stampable a number issued to ANOTHER run" stampable '#533'
+nul_same "stampable a number on NO row"             stampable '#900'
+nul_same "check a number issued to another run"     check 533
+nul_same "check a number on no row"                 check 900
+nul_same "next"                                     next
+# THE THREE CASES BELOW BUILD THEIR ACTUAL VALUE WITH printf AND NOT WITH `echo $?; grep -c`, because a command
+# substitution holding TWO command outputs keeps the NEWLINE between them, and `eq` then compares "1\n1" with
+# the "1 1" it was given and reports a FAIL on correct behaviour. My first draft of this block did exactly that
+# on three of its cases, and the three it hit were the three POSITIVE-CONTENT assertions - the ones that say the
+# verdict is right rather than merely unchanged - so the harness fault was concentrated in the cases that matter
+# most. Same family as gate 47's control recipe naming moved line numbers: the control was wrong, not the code.
+# AND THE VERDICT IS THE RIGHT ONE, not merely the same one. A reader that refused to answer at all would also
+# be "the same" on both files, so the differential above is necessary and NOT sufficient: this asserts the
+# POSITIVE content, which is the clause the defect actually broke.
+eq "29 and the verdict on the NUL register is NOT STAMPABLE at exit 1, not 'free'" "1 1" \
+   "$( cd "$NULD/b" && CT_RUNID=build__MINEOWN ./buildnum.sh stampable '#533' >"$TD/n.out" 2>/dev/null; printf '%s %s' "$?" "$(grep -c 'belonging to another run' "$TD/n.out")" )"
+eq "29 and the row count it reports is the whole register, not zero" "1" \
+   "$( cd "$NULD/b" && CT_RUNID=build__MINEOWN ./buildnum.sh check 900 2>/dev/null | grep -c '4 row(s) checked' )"
+# THE WARNING IS ON STDERR AND NEVER ON STDOUT, because gates/gates.sh's series door quotes the FIRST LINE of
+# stampable's stdout and branches on its exit status: a warning on stdout would be read as a verdict.
+# THE SECOND HALF COUNTS THE WARNING'S FIRST LINE, NOT EVERY MENTION OF THE FILE. My first draft asserted
+# `grep -c 'build-numbers.tsv'` equals 1 and measured 2, because the warning names the register twice on
+# purpose - once as the path that is damaged and once inside the `tr -cd` command a reader can run to find the
+# byte. The assertion was wrong, not the message: a needle that counts incidental mentions is not a test of
+# "does it name the file", so it now reads the line that carries the count.
+eq "29 the NUL warning names the file and the count, on STDERR" "1 1" \
+   "$( cd "$NULD/b" && CT_RUNID=build__MINEOWN ./buildnum.sh stampable '#533' 2>"$TD/n.err" >/dev/null; printf '%s %s' "$(grep -c 'contains 1 NUL byte(s)' "$TD/n.err")" "$(grep -c 'build-numbers.tsv contains 1 NUL byte' "$TD/n.err")" )"
+eq "29 and NOTHING about a NUL reaches STDOUT" "0" \
+   "$( cd "$NULD/b" && CT_RUNID=build__MINEOWN ./buildnum.sh stampable '#533' 2>/dev/null | grep -ci 'nul' )"
+eq "29 and the clean register prints no warning at all" "0" \
+   "$( cd "$NULD/a" && CT_RUNID=build__MINEOWN ./buildnum.sh stampable '#533' 2>&1 >/dev/null | grep -ci 'nul' )"
+# `list` READS THE REGISTER DIRECTLY, by design, so it is fixed too and asserted separately: the ROW SET must be
+# identical. WHAT IS NOT IDENTICAL, DECLARED RATHER THAN HIDDEN: the one note whose byte the NUL overwrote prints
+# one character shorter, because that byte is GONE from the file - `tr -d` strips it. That is a property of the
+# damaged file and not of the reader, and no verdict depends on it.
+eq "29 list reports the same number of rows on both" "SAME" \
+   "$( [ "$( cd "$NULD/a" && ./buildnum.sh list 2>/dev/null | grep -c '^  #' )" = "$( cd "$NULD/b" && ./buildnum.sh list 2>/dev/null | grep -c '^  #' )" ] && echo SAME || echo DIFFER )"
+eq "29 and the same SET of numbers, which is what 'the same rows' means here" "SAME" \
+   "$( [ "$( cd "$NULD/a" && ./buildnum.sh list 2>/dev/null | grep -o '^  #[0-9]*' | md5sum )" = "$( cd "$NULD/b" && ./buildnum.sh list 2>/dev/null | grep -o '^  #[0-9]*' | md5sum )" ] && echo SAME || echo DIFFER )"
+# THE MUTANT: rows() and the list scan as 707599b had them, with no NUL stripping. It must turn the
+# issued-number case - the whole point of the job - from NOT STAMPABLE at exit 1 to "on no row" at exit 0.
+#
+# IT IS BUILT BY SWAPPING WHOLE LINES FROM A LITERAL HEREDOC, AND NOT BY DELETING THE `tr` FROM A PIPELINE,
+# BECAUSE MY FIRST ATTEMPT AT THAT HUNG AND A MUTANT THAT HANGS PROVES NOTHING. The fix reads
+# `tr -d '\000' < "$REG" | grep -v PATTERN`, where the file arrives by REDIRECTION, so a sed that removed only
+# the `tr ... |` prefix left `grep -v PATTERN` with NO FILE ARGUMENT - grep then read STDIN and waited for ever,
+# and the selftest sat in `bash ./mutant.sh stampable #533` until it was killed by pid. Same class as the note
+# on gates.sh's M9 (a mutant that dies on set -u reads nothing, so it is not the door it claims to be): a mutant
+# must be the OLD CODE, running.
+cat > "$NULD/rows.old" <<'ROWSOLD'
+rows() { grep -v '^[[:space:]]*#' "$REG" | awk -F'\t' 'NF>=2 && $1 ~ /^[0-9]+$/'; }
+ROWSOLD
+cat > "$NULD/ghosts.old" <<'GHOSTSOLD'
+    GHOSTS="$(grep -vn '^[[:space:]]*#' "$REG" | grep -v '^[0-9]*:[[:space:]]*$' | awk -F: -v q="'" '{line=$0; sub(/^[0-9]+:/,"",line); split(line,F,"\t"); if (F[1] !~ /^[0-9]+$/) print $1}' | tr '\n' ' ')"
+GHOSTSOLD
+awk -v r="$NULD/rows.old" -v g="$NULD/ghosts.old" '
+  /^rows\(\) \{ tr -d/        { while((getline l < r)>0) print l; close(r); next }
+  /^    GHOSTS="\$\(tr -d/     { while((getline l < g)>0) print l; close(g); next }
+  { print }' "$NULD/b/buildnum.sh" > "$NULD/b/mutant.sh"; chmod +x "$NULD/b/mutant.sh"
+eq "29 MUTANT both lines really were swapped, and the tr is gone from neither more nor less" "0 0 1 1" \
+   "$(grep -c '^rows() { tr -d' "$NULD/b/mutant.sh") $(grep -c '^    GHOSTS="$(tr -d' "$NULD/b/mutant.sh") $(grep -c '^rows() { grep -v' "$NULD/b/mutant.sh") $(grep -c '^    GHOSTS="$(grep -vn' "$NULD/b/mutant.sh")"
+eq "29 MUTANT is a different script from the fix" "differs" \
+   "$( [ "$(md5sum < "$NULD/b/buildnum.sh")" != "$(md5sum < "$NULD/b/mutant.sh")" ] && echo differs || echo identical )"
+eq "29 MUTANT parses" "yes" "$(bash -n "$NULD/b/mutant.sh" 2>/dev/null && echo yes || echo no)"
+# EVERY MUTANT CALL IS UNDER `timeout`, so a mutant that blocks on stdin is a FAIL and never a hang. 124 is
+# timeout's own exit for a kill, so it can never be mistaken for the 0 this case is looking for.
+eq "29 MUTANT reads the ISSUED number as free, at exit 0 - which is the defect" "0 1" \
+   "$( cd "$NULD/b" && CT_RUNID=build__MINEOWN timeout 20 ./mutant.sh stampable '#533' >"$TD/m.out" 2>/dev/null; printf '%s %s' "$?" "$(grep -c 'is on no row' "$TD/m.out")" )"
+eq "29 MUTANT sees ZERO rows where the fix sees four" "0 4" \
+   "$( cd "$NULD/b" && CT_RUNID=build__MINEOWN timeout 20 ./mutant.sh check 900 2>/dev/null | sed -n 's/.*(\([0-9]*\) row(s) checked).*/\1/p' ) $( cd "$NULD/b" && CT_RUNID=build__MINEOWN ./buildnum.sh check 900 2>/dev/null | sed -n 's/.*(\([0-9]*\) row(s) checked).*/\1/p' )"
+eq "29 MUTANT terminates rather than blocking on stdin" "yes" \
+   "$( cd "$NULD/b" && CT_RUNID=build__MINEOWN timeout 20 ./mutant.sh check 900 >/dev/null 2>&1; [ $? -ne 124 ] && echo yes || echo no )"
+# AND THE MUTANT AGREES WITH THE FIX ON THE CLEAN REGISTER, which is why no existing case could see this: the
+# strip is a no-op on a file with no NUL, and the two readers are byte-identical there.
+eq "29 MUTANT and FIX agree on the CLEAN register" "SAME" \
+   "$( cp "$NULD/b/mutant.sh" "$NULD/a/mutant.sh"; chmod +x "$NULD/a/mutant.sh"; [ "$( cd "$NULD/a" && CT_RUNID=build__MINEOWN timeout 20 ./mutant.sh stampable '#533' 2>/dev/null )" = "$( cd "$NULD/a" && CT_RUNID=build__MINEOWN ./buildnum.sh stampable '#533' 2>/dev/null )" ] && echo SAME || echo DIFFER )"
+
 echo "---"
 echo "buildnum self-test: $P pass, $F fail"
 [ "$F" = "0" ]
