@@ -58,9 +58,24 @@ REGALL="$REG"
 # 2662 tmp.* files. `held.sh check` is a documented per-run step, so the leak is per run and not per session].
 # The :- guards matter: this fires on paths where neither variable was ever set, under `set -u`.
 trap 'rm -f "${HELD_HEADREG:-}" "${HELD_UNION:-}"' EXIT
+# A KEY YOU COULD NOT ASK IS REPORTED, NEVER CREDITED [#534, third-round antagonist A's P1-2]. Both this tool
+# and verify-log.sh read HEAD's copy of the register through a `mktemp` file, and an EMPTY mktemp result was
+# treated as "HEAD has no register" - so one unwritable TMPDIR silently reverted the whole HELDWT fix in both
+# tools: with the live row deleted from the working tree and nothing committed, `held.sh check` answered
+# "not held" at exit 0 and verify-log.sh answered `OK:` at exit 0, while HEAD held every live row one
+# `git show` away. Worse, the source line then ASSERTED "HEAD holds no gates/held-trees.tsv", which is a wrong
+# reason reaching a wrong verdict in the very field added so a reader could tell the sources apart. This
+# container state is real, not hypothetical - gates.sh's own comments record a door running under an
+# unwritable TMPDIR. So mktemp failure is now a THIRD STATE: not "HEAD has none", but "HEAD could not be
+# asked", which can never be reported as a clear.
+HELD_UNKNOWN=0; HELD_UNKNOWN_WHY=""
 HELD_GIT=(git --git-dir "$ROOT/.git" --work-tree "$ROOT")
 if command -v git >/dev/null 2>&1 && "${HELD_GIT[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   HELD_HEADREG="$(mktemp 2>/dev/null || true)"
+  if [ -z "$HELD_HEADREG" ] && "${HELD_GIT[@]}" cat-file -e HEAD:gates/held-trees.tsv 2>/dev/null; then
+    HELD_UNKNOWN=1
+    HELD_UNKNOWN_WHY="HEAD carries gates/held-trees.tsv but no temporary file could be created to read it (mktemp failed - an unwritable or missing TMPDIR), so HEAD's rows were NOT consulted"
+  fi
   if [ -n "$HELD_HEADREG" ] && "${HELD_GIT[@]}" show HEAD:gates/held-trees.tsv > "$HELD_HEADREG" 2>/dev/null && [ -s "$HELD_HEADREG" ]; then
     if [ "$HELD_REGOK" = "1" ]; then
       HELD_UNION="$(mktemp 2>/dev/null || true)"
@@ -159,6 +174,14 @@ case "${1:-}" in
       printf '  why:    %s\n' "$(printf '%s' "$HIT" | cut -f6)"
       held_whence "$HIT"
       exit 1
+    fi
+    if [ "${HELD_UNKNOWN:-0}" = "1" ]; then
+      echo "UNKNOWN: $KEY matched no row of the register THAT THIS RUN COULD READ, and one source could not be read."
+      echo "  $HELD_UNKNOWN_WHY."
+      echo "  That is NOT the same answer as 'not held', and this tool will not give you the clear one."
+      echo "  Rows actually consulted: $(match_rows | wc -l | tr -d ' ') (source: $HELD_SRC)."
+      echo "  Fix the temporary directory (TMPDIR) and re-run, or read gates/held-trees.tsv at HEAD by hand."
+      exit 2
     fi
     echo "not held: $KEY is on no live row of $(basename "$REG") ($(match_rows | wc -l | tr -d ' ') matchable row(s) checked; source: $HELD_SRC)"
     exit 0 ;;

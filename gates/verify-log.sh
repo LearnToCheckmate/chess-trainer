@@ -914,9 +914,23 @@ trap '[ "${REGALL:-}" = "${REG:-}" ] || rm -f "${REGALL:-}"; rm -f "${REGHEAD:-}
 # is gone" can no longer mean "the question was not asked".
 VLROOT="$(cd "$(dirname "$REG")/.." 2>/dev/null && pwd)"; VLROOT="${VLROOT:-$(pwd)}"
 VLGIT=(git --git-dir "$VLROOT/.git" --work-tree "$VLROOT")
+# A KEY YOU COULD NOT ASK IS REPORTED, NEVER CREDITED [#534, third-round antagonist A's P1-2]. HEAD's copy of
+# the register is read through a `mktemp` file, and an EMPTY mktemp result was treated as "HEAD has no
+# register" - so one unwritable TMPDIR silently reverted the whole HELDWT fix: with the live row deleted from
+# the working tree and nothing committed, this script answered `OK:` at exit 0 while HEAD held every live row
+# one `git show` away, and the source field it prints ASSERTED "HEAD holds no gates/held-trees.tsv", a wrong
+# reason reaching a wrong verdict in the field added so a reader could tell the sources apart. mktemp failure
+# is now a THIRD STATE - "HEAD could not be asked" - and it REFUSES rather than reporting a clear. It refuses
+# and does not merely report NOT CHECKED, because this is the hold question: unlike the series door, failing
+# open here is the direction that ships a tree a previous run stood down on. A broken TMPDIR is an
+# environment fault the run should stop on, not work around.
+VLHELD_UNKNOWN=0
 REGHEAD=""; HELD_HAVE=0
 if command -v git >/dev/null 2>&1 && "${VLGIT[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   REGHEAD="$(mktemp 2>/dev/null || true)"
+  if [ -z "$REGHEAD" ] && "${VLGIT[@]}" cat-file -e HEAD:gates/held-trees.tsv 2>/dev/null; then
+    VLHELD_UNKNOWN=1
+  fi
   if [ -n "$REGHEAD" ] && "${VLGIT[@]}" show HEAD:gates/held-trees.tsv > "$REGHEAD" 2>/dev/null && [ -s "$REGHEAD" ]; then
     :
   else
@@ -1376,165 +1390,36 @@ if [ "$THISBUNDLE" -eq 1 ]; then
   fi
   echo "THIS-BUNDLE OK: the log gated md5 $LOGMD5, which is app.js on disk"
 fi
-# ── (11a) THE FOOTER MUST BE UNIQUE AND TERMINAL. A THREE-LINE APPEND DEFEATED (11) ENTIRELY.
-# [#534, antagonist B's P1-2 and P1-3, both REPRODUCED here with B's own fixtures before being fixed.]
-# (11) below locates the verdict STRICTLY BETWEEN the LAST `gate manifest:` and the LAST `gates ran (`, and its
-# comment claimed "an early line can never stand in for it". That is true and ONE-SIDED: it was chosen against
-# the two REPORTED lines that legitimately precede the footer, and says nothing about a line appended AFTER it.
-# A forged SECOND footer makes the REAL one early. Measured, on copies of 533-all.log:
-#   A1: real verdict rewritten to `build-number series: RED - ...`, then a copy of the manifest line, a forged
-#       `build-number series: ok - runId=build__FORGED ...` and a copy of the gates-ran line inserted before
-#       GATES GREEN. 3 lines added. RESULT: OK at exit 0, "series door: ok", with `grep -c '^build-number
-#       series: RED'` on the ACCEPTED file still reading 1 - the refusal was in the log and the tool never said.
-#   A5: footer verdict DELETED and ONE line appended, `ref: HEAD <a sha predating the door>`. SERIESSHA is a
-#       `grep -oi ... | tail -1`, so the appended ref wins, the pre-door branch is taken, and that branch
-#       requires no series line at all. RESULT: OK at exit 0, "series door: n/a".
-#   A6 CONTROL, and it is what makes A5 a finding rather than a guess: the IDENTICAL deletion with the real ref
-#       line untouched is correctly REFUSED at exit 1. The single appended line is the whole difference.
-# The comment that said the marker "fails SAFE (no series line is then required)" had it backwards: the
-# ATTACKER CHOOSES THE SHA THE BRANCH IS DECIDED ON.
-# THE GUARD IS CALIBRATED ON THE CORPUS AND NOT ON THE ATTACK, which is what stops it false-refusing. B
-# proposed requiring EXACTLY ONE of three footer lines. MEASURED over all 164 archived logs, one `grep -c` per
-# log per pattern: `gate manifest:` reads 0 in 94 logs, 1 in 12 and **2 in 58** - legitimately, because the
-# manifest verdict prints once before the gates and again in the footer - so that clause alone would have
-# REFUSED 58 HONEST LOGS, more than a third of the corpus. `gates ran (` is 0 or 1 in all 164 (106/58) and
-# `ref: HEAD` is 0 or 1 in all 164 (69/95), with no log carrying two of either. So the guard is AT MOST ONE on
-# those two patterns and says nothing about the manifest: zero stays legal, because a pre-footer-era log has
-# none and the fallbacks below already handle it, and TWO is the thing no honest log in this project has ever
-# produced. That kills A1 (its forged triple makes `gates ran (` read 2) and A5 (its appended ref makes
-# `ref: HEAD` read 2) without touching a single real log - re-measured as a whole-corpus regression after the
-# change, not assumed.
-# IT ALSO COVERS AN ACCIDENT, which is the better reason for it: two suites writing into one log window is
-# exactly what #418/#419 recorded, and a concatenated log duplicates both patterns. B looked for an accidental
-# route to A1 and found none (`gates.sh:1237` is `: > "$ALL"`), so these two are reported as forgery-reachable;
-# the concatenation case is the one that needs no malice.
-# AND THE CEILING IS PER PATTERN, BECAUSE LEAVING THE MANIFEST UNGUARDED LEFT THE WHOLE ATTACK OPEN
-# [#534, fresh antagonist A's VETO, reproduced here with A's fixture before being fixed]. The first repair
-# measured that `gate manifest:` is legitimately 2 in 58 of the 164 archived logs and concluded that it could
-# not be guarded AT ALL. That inference was wrong, and the measurement that refutes it was already in hand:
-# the corpus distribution is 0 in 94 logs, 1 in 12 and 2 in 58 - **3 OCCURS IN ZERO** - so "at most two" costs
-# nothing and "say nothing about it" cost everything. Check (11) bounds the footer by the LAST
-# `gate manifest:` and the LAST `gates ran (`; guarding only the second anchor leaves the FIRST one movable.
-# A's attack, measured on 533-all.log: rewrite the footer verdict to RED, then insert a VERBATIM COPY of the
-# log's own manifest line followed by a forged `ok` verdict, both IMMEDIATELY BEFORE `gates ran (`. Two lines.
-# The copied manifest becomes the last one, the window between it and `gates ran (` holds only the forgery,
-# and `verify-log.sh` printed `series door: ok` and `OK:` at exit 0 over a log physically carrying
-# `build-number series: RED`. CONTROL A7c, the identical rewrite WITHOUT the duplicated manifest line:
-# REFUSED at exit 1, "footer carries 2 series verdict line(s)". The one copied line was the whole difference,
-# and the forgery left no trace in the output - the manifest read-back prints `tail -1`, which was the copy.
-# NOTE WHAT ELSE IS LEGITIMATELY REPEATED, so no future guard here false-refuses: `^GATES GREEN` is 2 in
-# 377/378/379-all.log (header echo plus footer) and `^regression assertions` is 2 in three logs. Guarding
-# either at "at most one" would have refused real logs. Only these three patterns are bounded, each at the
-# maximum the corpus actually shows.
-for VLSPEC in '^gates ran (:1' '^ref: HEAD:1' '^gate manifest::2'; do
-  VLPAT="${VLSPEC%:*}"; VLMAX="${VLSPEC##*:}"
-  VLN="$(grep -c "$VLPAT" "$LOG" 2>/dev/null || true)"; VLN="${VLN:-0}"
-  if [ "$VLN" -gt "$VLMAX" ] 2>/dev/null; then
-    echo "REFUSED (footer): $LOG carries $VLN lines matching $VLPAT, where a full-suite log carries at most $VLMAX."
-    echo "    gates.sh writes a fixed terminal block once per run and truncates its log at the start (the"
-    echo "    manifest verdict legitimately appears twice, once before the gates and once in the footer, which"
-    echo "    is why its ceiling is 2 and the other two are 1). More than that means two runs' output in one"
-    echo "    file, or a hand-appended footer. Measured over all 164 archived logs, no honest log exceeds any"
-    echo "    of these three ceilings. A second footer makes the real verdict line early, which is how check"
-    echo "    (11) below can be made to read a forged verdict instead of a RED one."
-    exit 1
-  fi
-done
+# ── (11a)/(11) THE BUILD-NUMBER SERIES DOOR CHECK WAS REVERTED OUT OF THIS FILE [#534]. ────────────
+# It landed in this run (VLDOOR) and THREE successive antagonist pairs each broke it; the fourth-round
+# finding is why it is gone rather than repaired a fourth time. The check located the footer verdict
+# between the LAST `gate manifest:` and the LAST `gates ran (`, and a guard was then added bounding how MANY
+# of those lines a log may carry (1, 1 and 2, calibrated on all 164 archived logs). THE CEILING BOUNDS
+# FREQUENCY AND THE ATTACK NEEDS POSITION. Measured on claude/agents/gatelogs/533-all.log: rewrite the real
+# verdict to RED, MOVE the log's own manifest line below it, append a forged `ok`. No line added, no line
+# deleted, all three ceilings satisfied at their honest values (manifest 2, gates-ran 1, ref 1) - and this
+# script printed `series door: ok` and `OK:` at exit 0 over a log physically carrying
+# `build-number series: RED`. AND THE PROPOSED REPAIR DOES NOT WORK EITHER, which is the part that settled
+# it: an adjacency invariant was suggested on the ground that the attack leaves three lines in the footer
+# window. It leaves ONE. Measured side by side, the forged footer is STRUCTURALLY IDENTICAL to the honest
+# one - last-manifest, verdict, last-gates-ran, gap 2, one line between, same order - so no positional test
+# over the log text can separate them. The only trace is a RED line elsewhere in the file, which a forger
+# deletes. THAT IS #419 IN ITS PUREST FORM: the log is self-describing and a forger controls all of it, so
+# an archived log cannot be made to vouch for its own door. A check that is turned by reordering one line
+# the forger does not even have to write, shipped under a message asserting the attack is closed, is WORSE
+# than no check: it is a green-authorising surface carrying a false warrant in the permanent record, which
+# is the #450 shape the job existed to answer. So this file is blind to the series door again, and that is
+# now a DECLARED limit rather than a FALSE guarantee. The job stays open with the mechanism recorded on it.
+# What would actually close it is not in a log reader at all: it is re-running the door against the tree.
 
-# ── (11) DID THE BUILD-NUMBER SERIES DOOR ACTUALLY RUN? [#534, VLDOOR;
-# jobs/verify-log-sh-cannot-tell-whether-the-build-number-series-door-ran-so-an-older-green-log-still-authorises-a-push-2026-10-22,
-# filed by #533 against its own work.]
-# WHAT WAS WRONG: this script reads only lines beginning PASS, FAIL, "=== ", "gate manifest:" and GATES, and the
-# series door's verdict line begins with none of them - so an archived green from any tree PREDATING the door
-# verified OK with the series question never asked, and an OVERRIDE appended to a real green log returned OK
-# without being mentioned. MEASURED on a copy of claude/agents/gatelogs/533-all.log with every
-# `build-number series:` line removed: the shipped script printed OK at exit 0, exactly as on the log itself.
-# THE BOUNDARY IS THE GATED TREE ITSELF, DECIDED FROM GIT OBJECTS ALONE - no network, no tracker, no hard-coded
-# commit, and NO environment variable or flag may move it. A log's gated sha is the sha on its `ref: HEAD` line,
-# and the tree at that sha runs the door iff its gates/gates.sh carries the footer echo that PRINTS the verdict.
-# THE MARKER IS THAT ECHO'S OWN PARAMETER EXPANSION, `${GF_LINE:-build-number series:`, and it is the marker
-# rather than the words around it because it IS the thing being asked about: a tree that prints the footer
-# verdict necessarily contains it, and a tree that does not cannot. MEASURED on origin/main's history: it occurs
-# exactly ONCE in gates/gates.sh, `git log -S` puts its first appearance at 02b4107 (#533, the commit that put
-# the door on main), and it reads 0 at 1601730, 2266b87, 166d2ed, 56b2f7d, d7a022b and 6010294.
-# ITS LIMIT, NAMED: the marker is a literal, so a future refactor that renames GF_LINE or restructures that
-# echo would make every later log read as a no-door tree - which fails SAFE here (no series line is then
-# required) and so would be silent. A build that touches that line re-points this marker in the same commit.
-# AND THE #419 LIMIT, STATED IN THE CHECK AND PRINTED: the footer is computed by the very harness that wrote
-# the log, so this check shows the door's verdict WAS PRINTED and not that it was RIGHT. It is a presence and
-# consistency check on an archived artefact, which is all a script with no tree on disk can be.
-SERIESCHECK="not-checked"; SERIESWHY=""; SERIESVERDICT=""; SERIESLINE=""
-VLSROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VLSGIT=(git --git-dir "$VLSROOT/.git" --work-tree "$VLSROOT")
-SERIESSHA="$(grep -oi '^ref: HEAD [0-9a-f]\{7,40\}' "$LOG" | tail -1 | awk '{print $3}' | tr 'A-F' 'a-f' || true)"
-if [ -z "$SERIESSHA" ]; then
-  SERIESWHY="the log carries no 'ref: HEAD <sha>' line, so the tree it gated cannot be named and this check cannot ask whether that tree runs the door. 69 of the 164 archived logs are this older format. Under --on-main such a log is refused earlier, by the ancestry check, which is the stricter door."
-elif ! command -v git >/dev/null 2>&1 || ! "${VLSGIT[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  SERIESWHY="there is no git work tree at $VLSROOT, so 'git show <gated sha>:gates/gates.sh' cannot be read and the boundary cannot be decided from objects."
-elif ! "${VLSGIT[@]}" cat-file -e "${SERIESSHA}^{commit}" 2>/dev/null; then
-  SERIESWHY="the gated commit $SERIESSHA is not in this repository, so the boundary cannot be decided. In a shallow clone run: git fetch --unshallow origin (a --deepen of main alone may not reach a commit that lives on another branch)."
-else
-  SERIES_HASDOOR="$("${VLSGIT[@]}" show "${SERIESSHA}:gates/gates.sh" 2>/dev/null | grep -cF '${GF_LINE:-build-number series:' || true)"
-  if [ "${SERIES_HASDOOR:-0}" = "0" ]; then
-    SERIESCHECK="ran"; SERIESVERDICT="no-door"
-  else
-    # THE FOOTER ONE, NEVER AN EARLY ONE. The door prints its verdict near the top of the run as well, so
-    # 533-all.log carries series lines at 10, 11 AND 6477. gates.sh writes the footer in a fixed order -
-    # `gate manifest:`, the series verdict, `gates ran (`, GATES GREEN - so the footer line is the one strictly
-    # between the LAST 'gate manifest:' and the LAST 'gates ran ('. An early line can never stand in for it.
-    SER_MANL="$(grep -n '^gate manifest:' "$LOG" | tail -1 | cut -d: -f1)"
-    SER_RANL="$(grep -n '^gates ran (' "$LOG" | tail -1 | cut -d: -f1)"
-    if [ -z "${SER_MANL:-}" ] || [ -z "${SER_RANL:-}" ] || [ "$SER_MANL" -ge "$SER_RANL" ] 2>/dev/null; then
-      echo "REFUSED (series door): $LOG gated $SERIESSHA, a tree that RUNS the build-number series door, but this"
-      echo "  log has no readable footer to find its verdict in: the last 'gate manifest:' line is at"
-      echo "  [${SER_MANL:-absent}] and the last 'gates ran (' at [${SER_RANL:-absent}], and the footer verdict is"
-      echo "  written strictly between them. A log whose footer cannot be located cannot be shown to carry the"
-      echo "  door's verdict, and an unverifiable footer is not a pass."; exit 1
-    fi
-    # ANCHORED AT THE START OF THE LINE, AND THAT ANCHOR IS THE WHOLE CHECK. Unanchored, a line beginning PASS,
-    # FAIL, '=== ', 'gate manifest:' or GATES that merely CONTAINS the words would be read as the verdict - and
-    # those are precisely the five prefixes this script already reads, so a forged verdict hidden in one of them
-    # would be invisible to every other check in this file and accepted by this one. Mutant: drop the '^'.
-    SER_N="$(awk -v a="$SER_MANL" -v b="$SER_RANL" 'NR>a && NR<b && /^build-number series:/ {c++} END{print c+0}' "$LOG")"
-    SERIESLINE="$(awk -v a="$SER_MANL" -v b="$SER_RANL" 'NR>a && NR<b && /^build-number series:/ {print; exit}' "$LOG")"
-    if [ "$SER_N" != "1" ]; then
-      echo "REFUSED (series door): $LOG gated $SERIESSHA, a tree that RUNS the build-number series door, but its"
-      echo "  footer carries $SER_N series verdict line(s) where exactly one is required (between the last"
-      echo "  'gate manifest:' line and the last 'gates ran (' line)."
-      if [ "$SER_N" = "0" ]; then
-        echo "  NONE means the verdict is absent from the footer. Either the door did not reach its verdict, or the"
-        echo "  line was removed from the log after the fact. An EARLY series line does not count and is not"
-        echo "  accepted in its place: $(grep -c '^build-number series:' "$LOG") series line(s) appear in the log overall."
-      else
-        echo "  MORE THAN ONE means the footer says two things at once, and this check will not pick between them."
-      fi
-      echo "  A green whose series question was never asked is the defect this check exists for: a gap-fill row"
-      echo "  that nothing accounts for reaches every gate unjudged."; exit 1
-    fi
-    case "$SERIESLINE" in
-      "build-number series: NOT CHECKED - the door set no verdict."*|"build-number series: NOT CHECKED - this door did not run."*)
-        echo "REFUSED (series door): $LOG gated $SERIESSHA, a tree that RUNS the build-number series door, and its"
-        echo "  footer carries one of gates.sh's own FALLBACK texts rather than a verdict:"
-        echo "    $SERIESLINE"
-        echo "  gates.sh prints those when the door set no verdict or never ran, so the door was reached and"
-        echo "  produced nothing. That is not a green and it is not a NOT CHECKED either: it is a door that"
-        echo "  failed to answer, and this log cannot say whether the series was judged."; exit 1 ;;
-      "build-number series: RED"*)
-        echo "REFUSED (series door): $LOG gated $SERIESSHA and its footer series verdict reads RED:"
-        echo "    $(printf '%s' "$SERIESLINE" | cut -c1-200)"
-        echo "  A RED series verdict and a full-suite green cannot both describe the same push: the door refuses"
-        echo "  BEFORE any gate runs, so a log carrying both is self-contradictory and authorises nothing."; exit 1 ;;
-      "build-number series: ok"*)       SERIESCHECK="ran"; SERIESVERDICT="ok" ;;
-      "build-number series: OVERRIDE"*) SERIESCHECK="ran"; SERIESVERDICT="override" ;;
-      "build-number series: NOT CHECKED"*) SERIESCHECK="ran"; SERIESVERDICT="notchecked" ;;
-      *)
-        echo "REFUSED (series door): $LOG gated $SERIESSHA and its footer series line carries a verdict word this"
-        echo "  check does not recognise:"
-        echo "    $(printf '%s' "$SERIESLINE" | cut -c1-200)"
-        echo "  The door writes exactly ok, OVERRIDE, NOT CHECKED or RED. Anything else is a log this script"
-        echo "  cannot read, and an unreadable verdict is not a pass."; exit 1 ;;
-    esac
-  fi
+if [ "${VLHELD_UNKNOWN:-0}" = "1" ]; then
+  echo "REFUSED (held register UNKNOWN): $LOG is a full-suite green, and this script could not ask the whole"
+  echo "  held-tree question. HEAD carries gates/held-trees.tsv but no temporary file could be created to read"
+  echo "  it (mktemp failed - an unwritable or missing TMPDIR), so HEAD's rows were NOT consulted and only the"
+  echo "  working-tree copy was. A hold live in HEAD and absent from the working tree would therefore have been"
+  echo "  invisible, which is exactly the state gates/held-trees.tsv exists to make visible."
+  echo "  THIS IS NOT 'not held'. Fix TMPDIR and re-run, or read gates/held-trees.tsv at HEAD by hand."
+  exit 1
 fi
 echo "OK: $LOG is a full-suite green for $FOOT ($(grep -c '^=== ' "$LOG") suites, $ACTUAL PASS, footer agrees)"
 # AND SAY WHAT THAT OK IS NOT, EVERY TIME. Added #450. "OK" above is a statement about the SUITE: these
@@ -1552,33 +1437,6 @@ if [ "$HELDCHECK" = "ran" ]; then
 else
   echo "    register: NOT CHECKED - gates/held-trees.tsv is missing (see the warning above)"
 fi
-# ── THE SERIES DOOR, REPORTED POSITIVELY AND LOUDLY WHERE IT MATTERS [#534, VLDOOR]. An OVERRIDE or a
-# NOT CHECKED is the one thing #533's own pen note said no grep would ever state for a reader; it is stated here.
-# THIS BLOCK SITS OUTSIDE THE HELD if/else AND NOT INSIDE IT, and my first draft got that wrong in a way
-# `bash -n` could not see: I closed the held `if` early and opened an `if true; then` of my own, so the held
-# block's `else` was captured by MINE and the "register: NOT CHECKED - gates/held-trees.tsv is missing" branch
-# became unreachable. A syntactically valid mis-nesting that silently deletes another check's output is exactly
-# the class this file keeps paying for; caught by reading the region back rather than by the parser.
-# EVERY EXPANSION HERE IS `:-` GUARDED, and that is not defensive habit, it is what makes this block's own
-# mutant honest. This file runs under `set -u`; the mutant that proves the check is load-bearing REMOVES the
-# block above that sets these variables, and with bare expansions the script then died on
-# `SERIESWHY: unbound variable` AFTER printing its OK - so the mutant exited non-zero and the case read it as a
-# refusal, which is the "a mutant that dies proves nothing" trap this run already hit once on gates/buildnum.sh.
-case "${SERIESVERDICT:-}" in
-  ok)         echo "    series door: ok - the gated tree ${SERIESSHA:-?} runs it and its footer verdict reads ok" ;;
-  override)   echo "    series door: *** OVERRIDE *** - THIS SUITE IS NOT AN UNOVERRIDDEN ONE. The gated tree"
-              echo "                 ${SERIESSHA:-?} ran the door and a gap-fill row was passed by CT_GAPFILL_OVERRIDE."
-              echo "                 The footer line is: $(printf '%s' "${SERIESLINE:-}" | cut -c1-160)" ;;
-  notchecked) echo "    series door: *** NOT CHECKED *** - the gated tree ${SERIESSHA:-?} ran the door, and the door"
-              echo "                 did not compare the register. The footer line is:"
-              echo "                 $(printf '%s' "${SERIESLINE:-}" | cut -c1-160)" ;;
-  no-door)    echo "    series door: n/a - the gated tree ${SERIESSHA:-?} predates the door (its gates/gates.sh does"
-              echo "                 not carry the footer echo), so no series line is required of this log" ;;
-  *)          echo "    series door: NOT CHECKED - ${SERIESWHY:-the check did not run}" ;;
-esac
-echo "      AND WHAT THAT DOES NOT SAY [#419]: the footer is computed by the same harness that wrote this log,"
-echo "      so this check shows the door's verdict was PRINTED, not that it was right. No script reading an"
-echo "      archived log can do better; only re-running the door against a tree can."
 case "$MANICHECK" in
   ran) echo "    manifest: $MANIFOOT" ;;
   notchecked) echo "    manifest: NOT CHECKED - the run could not read gates/gate-manifest.tsv ($MANIFOOT)" ;;
