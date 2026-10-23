@@ -384,6 +384,47 @@ else
   rec A15c SKIP "gates/fastgate-drive.sh absent"
 fi
 
+# ── A16. THE verify-log SELFTEST IS TRI-STATE, AND ITS SUCCESS STATE IS EXIT 0 (antagonist B's upheld P1 VETO).
+# gates/verify-log-selftest.sh exits 1 when a confirmed case REGRESSED, 2 when the confirmed set is clean with
+# holes still open, and 0 when the confirmed set is clean and EVERY HOLE IS CLOSED. Exit 0 is success. The tier
+# pinned 2, so it RED-refused the commit that closes verify-log.sh's eight documented parser holes - the single
+# most important commit class it exists to fast-gate. A16a is that commit; A16b is the real regression, which
+# must still be RED.
+D="$T/a16a"; mkfix "$D"
+printf '%s\n' "#!/usr/bin/env bash" 'echo "PASS 1 stub vl"' 'echo "verify-log self-test: 35 pass, 0 fail, 0 hole(s) open, 8 hole(s) closed"' 'echo "Confirmed set clean and every hole closed."' "exit 0" > "$D/gates/verify-log-selftest.sh"
+commitin "$D" "a base whose verify-log selftest has every hole closed"; B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# the parser repair" >> "$D/gates/verify-log.sh"
+commitin "$D" "close the parser holes"
+expect A16a "$D" "$B" 0 "CHECKS TIER GREEN" "the selftest at exit 0, every hole closed, is ACCEPTED"
+D="$T/a16b"; mkfix "$D"
+printf '%s\n' "#!/usr/bin/env bash" 'echo "FAIL 1 a confirmed case regressed"' 'echo "verify-log self-test: 34 pass, 1 fail, 8 hole(s) open, 0 hole(s) closed"' 'echo "A CONFIRMED CASE REGRESSED."' "exit 1" > "$D/gates/verify-log-selftest.sh"
+commitin "$D" "a base whose verify-log selftest regresses"; B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# changed" >> "$D/gates/verify-log.sh"
+commitin "$D" "a tier-only change over a regressed selftest"
+expect A16b "$D" "$B" 1 "CHECKS TIER RED" "the selftest at exit 1, a confirmed case regressed, is still RED"
+
+# ── A17. A NEW FILE UNDER gates/cases/ THAT NOTHING WOULD RUN -> GO FULL (my own finding from re-reading the diff).
+D="$T/a17"; mkfix "$D"
+mkdir -p "$D/gates/cases"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"
+printf '%s\n' "planted, and nothing bash-es a .js" > "$D/gates/cases/c-nothing-runs-this.js"
+commitin "$D" "held.sh plus a new non-sh non-md file under gates/cases"
+expect A17 "$D" "$FIXBASE" 2 "GO FULL" "a new gates/cases/ file that is neither .sh nor .md routes to the full suite"
+
+# ── A18. A CONTROL THAT WRITES UNDER THE REAL TREE'S gates/logs/ IS CAUGHT (antagonist B's P3).
+# The snapshot used to drop every line containing `gates/logs/`, a SUBSTRING match, so a write anywhere under
+# that directory was invisible while this tool claimed the real tree was untouched.
+D="$T/a18"; mkfix "$D"
+{ printf '%s\n' "#!/usr/bin/env bash"
+  printf '%s\n' 'mkdir -p "$OLDPWD/gates/logs" 2>/dev/null; printf "%s\n" planted > "$OLDPWD/gates/logs/planted-by-a-control.txt" 2>/dev/null || true'
+  printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
+commitin "$D" "a control that writes under the real tree's gates/logs"; B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"
+commitin "$D" "a tier-only change"
+runtier "$D" "$B"
+if [ "$TRC" = 0 ]; then rec A18 FAIL "a control wrote under the real tree's gates/logs and still got a GREEN"
+else rec A18 ok "a control writing under the real tree's gates/logs is caught (exit $TRC)"; fi
+
 # ── THE MUTANTS. EACH DISABLES ONE ARM AND MUST TURN A CASE. ─────────────────────────────────────────────────
 # A mutant that leaves every case green proves the arm it removed was decorative. This is the one test that
 # separates an arm which is load-bearing from one that merely runs.
@@ -600,6 +641,85 @@ else
     rec M10 ok "removing the acceptance arm turns A9: a refusing verify-log.sh takes a GREEN (exit 0)"
   else
     rec M10 FAIL "the acceptance arm still fired with its call removed (exit $TRC)"
+  fi
+fi
+
+# M11. Pin the verify-log selftest back to exactly 2: A16a must stop being accepted.
+D="$T/m-M11"; mkfix "$D"
+sed -E 's|^  run_ctl "verify-log-selftest\.sh"  0,2 |  run_ctl "verify-log-selftest.sh"    2 |' "$G/checks-tier.sh" > "$D/gates/checks-tier.sh"
+if cmp -s "$D/gates/checks-tier.sh" "$G/checks-tier.sh"; then
+  rec M11 FAIL "the exit-set mutation changed nothing"
+else
+  printf '%s\n' "#!/usr/bin/env bash" 'echo "PASS 1 stub vl"' 'echo "Confirmed set clean and every hole closed."' "exit 0" > "$D/gates/verify-log-selftest.sh"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M11 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# the parser repair" >> "$D/gates/verify-log.sh"; commitin "$D" "close the parser holes"
+  runtier "$D" "$MB"
+  if [ "$TRC" = 0 ]; then
+    rec M11 FAIL "pinning the exit back to 2 still accepted the repaired selftest, so A16a tests nothing"
+  else
+    rec M11 ok "pinning the exit back to 2 turns A16a: the hole-closing commit is refused again (exit $TRC)"
+  fi
+fi
+
+# M12. Remove the .sh/.md guard on a new gates/cases/ file: A17 must stop routing.
+D="$T/m-M12"; mkfix "$D"
+sed -E 's|^          \*\.sh\|\*\.md\) ;;$|          *) ;;|' "$G/checks-tier.sh" > "$D/gates/checks-tier.sh"
+if cmp -s "$D/gates/checks-tier.sh" "$G/checks-tier.sh"; then
+  rec M12 FAIL "the gates/cases form mutation changed nothing"
+else
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M12 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  mkdir -p "$D/gates/cases"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"
+  printf '%s\n' "planted" > "$D/gates/cases/c-nothing-runs-this.js"
+  commitin "$D" "a new non-sh non-md control file under a removed guard"
+  runtier "$D" "$MB"
+  if grep -qF "neither .sh nor .md" <<<"$TOUT"; then
+    rec M12 FAIL "the form guard still fired with its case widened"
+  else
+    rec M12 ok "removing the .sh/.md guard turns A17 (exit $TRC, no form verdict)"
+  fi
+fi
+
+# M13. Restore the substring gates/logs filter: A18 must stop catching the write.
+# THE MUTATION IS MADE WITH python AND NOT sed, AND THE GUARD CHECKS WHAT IT PRODUCED AND NOT ONLY THAT IT
+# CHANGED. The first version used a sed whose escaping was pathological enough to fail outright ("unknown option
+# to `s'"), which left the mutant file EMPTY - and the `cmp -s` guard passed it, because an empty file IS
+# different from the original. An empty judge then routed at exit 2 and the case read as if the arm had held.
+# A guard that proves the bytes MOVED is not a guard that proves they moved WHERE YOU MEANT, which is this
+# project's "the numbers moved but not past the line" one level up, inside a mutant.
+D="$T/m-M13"; mkfix "$D"
+python3 -I -c "
+import sys
+src=open(sys.argv[1]).read()
+old='| grep -vF -e \"gates/logs/.suite.lock\" -e \"\$SELFLOG\" |'
+new=\"| grep -v 'gates/logs/' |\"
+assert src.count(old)==1, 'anchor count %d' % src.count(old)
+open(sys.argv[2],'w').write(src.replace(old,new))
+" "$G/checks-tier.sh" "$D/gates/checks-tier.sh" 2>/dev/null
+M13OK=1
+if [ ! -s "$D/gates/checks-tier.sh" ]; then
+  rec M13 FAIL "the mutation produced an EMPTY or missing file, so it tests nothing"; M13OK=0
+elif cmp -s "$D/gates/checks-tier.sh" "$G/checks-tier.sh"; then
+  rec M13 FAIL "the snapshot filter mutation changed nothing"; M13OK=0
+elif ! bash -n "$D/gates/checks-tier.sh" 2>/dev/null; then
+  rec M13 FAIL "the mutated judge does not parse, so its verdict is about a broken file and not about the arm"; M13OK=0
+elif ! grep -qF "grep -v 'gates/logs/'" "$D/gates/checks-tier.sh"; then
+  rec M13 FAIL "the mutated judge does not carry the substring filter the mutation was supposed to restore"; M13OK=0
+fi
+if [ "$M13OK" = 1 ]; then
+  { printf '%s\n' "#!/usr/bin/env bash"
+    printf '%s\n' 'mkdir -p "$OLDPWD/gates/logs" 2>/dev/null; printf "%s\n" planted > "$OLDPWD/gates/logs/planted-by-a-control.txt" 2>/dev/null || true'
+    printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M13 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+  runtier "$D" "$MB"
+  if [ "$TRC" = 0 ]; then
+    rec M13 ok "the substring gates/logs filter turns A18: the write becomes invisible and takes a GREEN (exit 0)"
+  else
+    rec M13 FAIL "the substring filter still caught the write (exit $TRC), so A18 does not test the exact-path fix"
   fi
 fi
 

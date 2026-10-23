@@ -146,6 +146,19 @@ main(){
       gates/fastgate.sh|gates/verify-log.sh|gates/held.sh|gates/buildnum.sh)
         tierpaths=$((tierpaths+1)) ;;
       gates/cases/*)
+        # A NEW FILE HERE MUST BE .sh OR .md, AND THAT IS MY OWN FINDING FROM RE-READING THIS DIFF [#535]. The
+        # routing counted ANY new path under gates/cases/ as a tier path, and the battery's run loop only
+        # `bash`-es *.sh - so a new `gates/cases/x.js` was waved through and executed by NOTHING. That is "a test
+        # in the repo that no suite runs" arriving inside the one directory this tier exists to let a fix add
+        # controls to. Anything else here routes to the full suite, where the whole suite can judge it.
+        case "$p" in
+          *.sh|*.md) ;;
+          *)
+            say "GO FULL: '$p' is a new file under gates/cases/ that is neither .sh nor .md, so nothing would run it."
+            say "  This tier runs every new gates/cases/*.sh and reads gates/cases/*.md as documentation. A file"
+            say "  in any other form would be added and executed by nothing, so the full suite decides it."
+            return 2 ;;
+        esac
         isnew=0
         while IFS= read -r a; do [ "$a" = "$p" ] && isnew=1; done <<<"$ADDED"
         if [ "$isnew" = 1 ]; then
@@ -323,6 +336,7 @@ main(){
   # plant a hook or a config entry that fires later (A11, and the reviewer's planted post-commit hook, which ran
   # at the NEXT commit). The lock is gates.sh's own mkdir+pid lock, so this tier and a suite cannot overlap.
   LOCK="$ROOT/gates/logs/.suite.lock"
+  local SELFLOG="gates/logs/checks-$SHORT-all.log"
   mkdir -p "$ROOT/gates/logs" 2>/dev/null
   if ! mkdir "$LOCK" 2>/dev/null; then
     local holder
@@ -341,7 +355,15 @@ main(){
   printf '%s\n' "checks-tier $SHORT" > "$LOCK/log"
 
   snapshot(){
-    # gates/logs/ is EXCLUDED because this run's own lock and log live there and nothing else in it is evidence.
+    # ONLY THIS RUN'S OWN LOCK AND LOG ARE EXCLUDED, BY EXACT PATH, AND THAT IS ANTAGONIST B's P3 [#535]. The
+    # filter was `grep -v 'gates/logs/'`, a SUBSTRING match that dropped EVERY line mentioning that directory
+    # from the whole stream. MEASURED: gates/logs/ is gitignored at gates/.gitignore:6, but
+    # `git status --porcelain -uall --ignored` lists each file inside it individually ("!! gates/logs/x"), so a
+    # control writing anywhere under gates/logs/ in the real tree was invisible to the comparison while this
+    # script and its README both claim "any difference is exit 1" and "the real tree was not touched". A control
+    # can reach the real tree because its clone's origin IS the real root. Low impact - the directory is
+    # gitignored and holds no durable state - but a guarantee with a hole in it is worse than a narrower
+    # guarantee, so the exclusion now names the two paths this run creates and nothing else.
     { "${GIT[@]}" ls-files -s
       "${GIT[@]}" status --porcelain=v1 -uall --ignored
       "${GIT[@]}" for-each-ref --format='%(refname) %(objectname)'
@@ -352,7 +374,7 @@ main(){
       for h in "$ROOT"/.git/hooks/*; do [ -f "$h" ] && { printf 'HOOK %s\n' "${h##*/}"; cat "$h"; }; done
       ls -1 "$ROOT/.git/info" 2>/dev/null
       git config --global --list 2>/dev/null
-    } | grep -v 'gates/logs/' | sha256sum | cut -c1-64
+    } | grep -vF -e "gates/logs/.suite.lock" -e "$SELFLOG" | sha256sum | cut -c1-64
   }
   SNAP0="$(snapshot)"
   say "  real-tree snapshot taken under the lock: ${SNAP0:0:16}"
@@ -383,6 +405,18 @@ main(){
 
   # run_ctl <label> <wanted-exit> <must-contain-or-empty> <must-not-contain-or-empty> -- <cmd...>
   local CTLN=0 CTLOK=0
+  # `want` IS A COMMA-SEPARATED SET AND NOT A SINGLE NUMBER, AND THAT IS ANTAGONIST B's UPHELD P1 VETO [#535].
+  # It was a single number, and gates/verify-log-selftest.sh is TRI-STATE: exit 1 a confirmed case regressed,
+  # exit 2 "Confirmed set clean, N hole(s) still open", exit 0 "Confirmed set clean and every hole closed".
+  # Exit 0 is its SUCCESS state. Pinning 2 therefore RED-REFUSED the single most important commit this tier
+  # exists to fast-gate: the one that closes verify-log.sh's eight documented argument-parser holes. REPRODUCED
+  # before it was believed - applying that repair to the parser takes the selftest to "35 pass, 0 fail, 0 hole(s)
+  # open, 8 hole(s) closed" at exit 0, and the tier answered "exit 0, wanted 2", CHECKS TIER RED, exit 1. A gate
+  # that tells a developer their correct security fix is broken is worse than no gate.
+  # AND THE SHARPEST PART IS THAT THIS FILE'S OWN COMMENT SAID TO DO IT RIGHT: it claimed the arm pins "the
+  # SENTENCE ... rather than pinning a number that would have to be edited on every repair", and then pinned the
+  # number anyway. Prose about intent is not an implementation, which is the second time in one run this file
+  # shipped the opposite of what its own comment promised.
   run_ctl(){
     local label="$1" want="$2" need="$3" forbid="$4"; shift 4; [ "${1:-}" = "--" ] && shift
     local d out rc
@@ -394,8 +428,11 @@ main(){
       return 1
     fi
     out="$(cd "$d" && "$@" 2>&1)"; rc=$?
-    local why=""
-    [ "$rc" = "$want" ] || why="exit $rc, wanted $want"
+    local why="" okrc=0 w
+    local IFSSAVE="$IFS"; IFS=','
+    for w in $want; do [ "$rc" = "$w" ] && okrc=1; done
+    IFS="$IFSSAVE"
+    [ "$okrc" = 1 ] || why="exit $rc, wanted one of $want"
     if [ -n "$need" ] && ! grep -qF -- "$need" <<<"$out"; then
       why="${why:+$why; }its output does not carry '$need'"
     fi
@@ -422,7 +459,10 @@ main(){
   # excused: its footer says in terms that this exit 2 is the EXPECTED state until the push gate's argument parser
   # is repaired. The arm therefore pins the SENTENCE and refuses more holes than main has, rather than pinning a
   # number that would have to be edited on every repair.
-  run_ctl "verify-log-selftest.sh"     2 "Confirmed set clean" "[1-9][0-9]* fail"   -- bash gates/verify-log-selftest.sh
+  # 0 OR 2, NEVER 1. Both 0 and 2 mean "no confirmed case regressed"; only exit 1 does, and the forbid regex
+  # catches any "N fail" summary beside it. The SENTENCE is still pinned, so a run that stops printing it is
+  # still red - that was the right half of the original arm and it is kept.
+  run_ctl "verify-log-selftest.sh"  0,2 "Confirmed set clean" "[1-9][0-9]* fail"   -- bash gates/verify-log-selftest.sh
 
   # THE fastgate-drive CONTRACT, AND THE DENOMINATOR IS DERIVED RATHER THAN TYPED (A15). gates/gates.sh derives
   # the declared case count from the tc() table at :2252-2253, less H12 which is the harness's unfixed mode and
@@ -536,7 +576,8 @@ main(){
     RC=0
   fi
 
-  local OUT="$ROOT/gates/logs/checks-$SHORT-all.log"
+  # THE SAME STRING THE SNAPSHOT EXCLUDED, so the exclusion and the write cannot drift apart.
+  local OUT="$ROOT/$SELFLOG"
   printf '%s' "$LOGLINES" > "$OUT" 2>/dev/null && printf '%s\n' "  log: $OUT"
   rm -rf "$WORK" 2>/dev/null
   [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK" 2>/dev/null
