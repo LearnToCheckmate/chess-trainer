@@ -576,3 +576,4 @@
 532	minted	-	-	-	2026-10-22T15:29Z	build__1792682445000	minted	run 9 build 532: the G6 gap-fill door in gates.sh, the last open clause of the stamp and fast pass set, no app change and no rebuild
 533	minted	-	-	-	2026-10-22T19:21Z	build__1792696249000	minted	G6 third attempt: the gap-fill door in gates/gates.sh, delegating the own-mint exemption to buildnum.sh stampable instead of any series ceiling
 534	minted	-	-	-	2026-10-23T02:39Z	build__1792722792000	minted	run 11 build #534: four P1 gate jobs under one suite - G6 remainder, NUL, HELDWT, VLDOOR; no app change, no rebuild
+535	minted	-	-	-	2026-10-23T11:53Z	build__1792755737000	minted	run 12 build #535: the push checks tier - gates/checks-tier.sh, its harness and gates/cases/README.md, so a commit changing only the four push check scripts is judged by main own copy of the checks instead of paying the 113-minute browser suite; no app change, no rebuild
