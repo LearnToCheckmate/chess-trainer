@@ -58,7 +58,8 @@ main(){
   # ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
   local BASE="${1:-}" ROOT="${2:-}"
   local RC=0 VERD="" LOGLINES="" SHORT="" HEADSHA="" BASESHA=""
-  local WORK="" SNAP0="" SNAP1="" LOCK="" LOCKHELD=0
+  local WORK="" SNAP0="" SNAP1="" SNAPTXT0="" SNAPTXT1="" LOCK="" LOCKHELD=0 LOCKSIG0="" SELFLOGBAD=0
+  local CTLTMO="${CT_CTL_TIMEOUT:-600}"
 
   # Verdicts are kept IN MEMORY and the log is written ONCE, at the end, after the real-tree check. A judge that
   # appends as it goes hands an attacker a file to edit and a half-written log to a reader who sees no verdict.
@@ -376,8 +377,18 @@ main(){
     # kill -0 asks about ONE pid. NEVER pgrep -f here: its pattern matches this script's own command line, which
     # is how #407 waited on itself and #416 killed its own shell.
     if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then
-      say "REFUSED: a gate suite or another tier run holds $LOCK (pid $holder)."
-      return 1
+      # GO FULL AND NOT RED [fresh antagonist A, duty 2 and F-F]. This was `return 1`, and exit 1 in this file's
+      # own interface means "stop. Do not push, do not re-run hoping for a different answer." A gate suite running
+      # in the same checkout is TRANSIENT STATE OUTSIDE THE CANDIDATE - the same class this round already routed
+      # three times (an archived log gating another bundle, a base predating the tier, a base with no log) - and it
+      # is the only false-RED path that fires on the NORMAL operating sequence: build, gate, tier, push. A guard
+      # that fires on the normal case is a guard that gets switched off. Nothing about the commit is known to be
+      # wrong, so the honest answer is the one that always holds: run the suite. Re-running the tier after the
+      # other suite finishes is also now a sane thing to do, which exit 1 told you it was not.
+      say "GO FULL: a gate suite or another tier run holds $LOCK (pid $holder), so this run cannot take the lock"
+      say "  that makes its measurements attributable to a tree nobody else is writing. That is state outside your"
+      say "  commit: run the full suite, or re-run the tier once the other run has finished."
+      return 2
     fi
     rm -rf "$LOCK"; mkdir "$LOCK" 2>/dev/null || { say "REFUSED: cannot create $LOCK"; return 1; }
     say "  NOTE: took over a stale lock (pid '${holder:-none}' is not running)"
@@ -385,17 +396,36 @@ main(){
   LOCKHELD=1
   printf '%s\n' "$$" > "$LOCK/pid"; date '+%Y-%m-%d %H:%M:%S %Z' > "$LOCK/started"
   printf '%s\n' "checks-tier $SHORT" > "$LOCK/log"
+  # THE INODE, NOT ONLY THE PID [fresh antagonist A, F-C]. See the integrity check in step (9).
+  # THE INODE **AND** THE CTIME, BECAUSE THE INODE ALONE IS BLIND AND MY OWN CASE A29 MEASURED IT BLIND.
+  # The first version of this fix compared `stat -c %i` only. A29 then failed, and the reason is the rule this
+  # project states as "a negative control must cross the threshold, not just disturb the mechanism": measured in
+  # three lines, `mkdir L; rm -rf L; mkdir L` REUSES the inode on this filesystem - 696865 both times - so the
+  # quantity the assertion read had not moved at all even though the directory really had been re-created. The
+  # ctime does move (1792762350 -> 1792762351), it is set by the kernel on creation, and `touch` cannot forge it.
+  # %z rather than %Z for nanoseconds, so a handback inside the same second is still visible.
+  LOCKSIG0="$(stat -c '%i %z' "$LOCK" 2>/dev/null || echo none)"
 
   snapshot(){
-    # ONLY THIS RUN'S OWN LOCK AND LOG ARE EXCLUDED, BY EXACT PATH, AND THAT IS ANTAGONIST B's P3 [#535]. The
+    # THERE IS NO EXCLUSION AT ALL ANY MORE, AND THAT IS THE SECOND ROUND OF ANTAGONIST B's P3 [#535]. The first
     # filter was `grep -v 'gates/logs/'`, a SUBSTRING match that dropped EVERY line mentioning that directory
     # from the whole stream. MEASURED: gates/logs/ is gitignored at gates/.gitignore:6, but
     # `git status --porcelain -uall --ignored` lists each file inside it individually ("!! gates/logs/x"), so a
     # control writing anywhere under gates/logs/ in the real tree was invisible to the comparison while this
     # script and its README both claim "any difference is exit 1" and "the real tree was not touched". A control
-    # can reach the real tree because its clone's origin IS the real root. Low impact - the directory is
-    # gitignored and holds no durable state - but a guarantee with a hole in it is worse than a narrower
-    # guarantee, so the exclusion now names the two paths this run creates and nothing else.
+    # can reach the real tree because its clone's origin IS the real root.
+    # THE SECOND VERSION NAMED THE TWO PATHS - and the comment above it said "BY EXACT PATH" while the code was
+    # still `grep -vF -e <path> -e <path>`, which is a SUBSTRING match with two needles instead of one. The
+    # fresh pair's B found it in exactly those terms: `gates/logs/checks-<short>-all.logEVIL`, or anything under
+    # the lock directory, still vanished from the stream. That is the THIRD time in this one run that this file
+    # has shipped the opposite of its own stated intent (the premise arm, the verify-log-selftest pin, this), so
+    # the fix is not a third wording: it is to REMOVE the thing that needed a wording.
+    # WHY NOTHING NEEDS EXCLUDING, DERIVED FROM THE ORDER OF OPERATIONS RATHER THAN ASSERTED: the lock directory
+    # and its pid/started/log files are all created ABOVE, before SNAP0, so they are present and identical in
+    # BOTH snapshots and cancel; and $SELFLOG is written at the very END, after SNAP1 is taken and compared, so
+    # it is absent from both. An exclusion for a line that cannot differ buys nothing and costs a hole. If some
+    # future control does move a line under gates/logs in the real tree, that is a finding and this arm should
+    # say so - which is what it now does, by printing the differing lines instead of two opaque hashes.
     { "${GIT[@]}" ls-files -s
       "${GIT[@]}" status --porcelain=v1 -uall --ignored
       "${GIT[@]}" for-each-ref --format='%(refname) %(objectname)'
@@ -406,9 +436,10 @@ main(){
       for h in "$ROOT"/.git/hooks/*; do [ -f "$h" ] && { printf 'HOOK %s\n' "${h##*/}"; cat "$h"; }; done
       ls -1 "$ROOT/.git/info" 2>/dev/null
       git config --global --list 2>/dev/null
-    } | grep -vF -e "gates/logs/.suite.lock" -e "$SELFLOG" | sha256sum | cut -c1-64
+    }
   }
-  SNAP0="$(snapshot)"
+  SNAPTXT0="$(snapshot)"
+  SNAP0="$(printf '%s\n' "$SNAPTXT0" | sha256sum | cut -c1-64)"
   say "  real-tree snapshot taken under the lock: ${SNAP0:0:16}"
 
   WORK="$(mktemp -d 2>/dev/null)"
@@ -459,14 +490,44 @@ main(){
       say "  RED  $label - no clone"
       return 1
     fi
-    out="$(cd "$d" && "$@" 2>&1)"; rc=$?
+    # A BOUND AND A CLOSED STDIN [fresh antagonist A, F-E]. This was `out="$(cd "$d" && "$@" 2>&1)"`, with no
+    # timeout and no stdin redirect, in the one arm of this script that runs ARBITRARY COMMITTED SCRIPTS - while
+    # the fastgate-drive arm, whose author expected it to be slow, got a `timeout`. A reproduces a control whose
+    # body is `sleep 40` reaching PASS and CHECKS TIER GREEN 40 seconds later, with the real tree's suite lock
+    # held throughout, and a control that reads stdin inherits the judge's and blocks the same way. CLAUDE.md's
+    # #419 is that long work in this container dies on an idle turn, which would leave that lock behind.
+    # SO THE "about 6 minutes instead of 113" FIGURE WAS UNBOUNDED, which is why A classed it as measured in one
+    # configuration only: it is a measurement of today's control set, not a property of the tier.
+    # THE NUMBER IS 600s AND IT IS DERIVED, NOT PICKED: A1 measures the WHOLE battery at 365s, so no single
+    # control that exists today can exceed that, and 600 therefore cannot redden anything this suite now runs
+    # while still being a real bound. CT_CTL_TIMEOUT overrides it for a deliberately slow control.
+    out="$(cd "$d" && timeout "$CTLTMO" "$@" 2>&1 </dev/null)"; rc=$?
+    if [ "$rc" = 124 ]; then
+      bad "$label: did not finish in ${CTLTMO}s"
+      say "  RED  $label - did not finish in ${CTLTMO}s (timed out; the suite lock is held for the whole battery)"
+      return 1
+    fi
     local why="" okrc=0 w
     local IFSSAVE="$IFS"; IFS=','
     for w in $want; do [ "$rc" = "$w" ] && okrc=1; done
     IFS="$IFSSAVE"
     [ "$okrc" = 1 ] || why="exit $rc, wanted one of $want"
-    if [ -n "$need" ] && ! grep -qF -- "$need" <<<"$out"; then
-      why="${why:+$why; }its output does not carry '$need'"
+    # `need` MAY BE A REGEX, VIA AN `re:` PREFIX, BECAUSE A FIXED-STRING `PASS` IS SATISFIED BY `BYPASSED`
+    # [fresh antagonist A, F-G]. The gates/cases contract wanted a line matching `^PASS[[:space:]]`, which a
+    # fixed-string match cannot express. Each arm is a SINGLE herestring grep inside an `if` - measured to be
+    # exempt from the sigpipe audit - and never two joined by `||`, which is the shape that put the repository's
+    # first TIER A site in this build (see the `case` in checks-tier-drive.sh and the job it is filed under).
+    if [ -n "$need" ]; then
+      case "$need" in
+        re:*)
+          if ! grep -qE -- "${need#re:}" <<<"$out"; then
+            why="${why:+$why; }its output has no line matching /${need#re:}/"
+          fi ;;
+        *)
+          if ! grep -qF -- "$need" <<<"$out"; then
+            why="${why:+$why; }its output does not carry '$need'"
+          fi ;;
+      esac
     fi
     if [ -n "$forbid" ] && grep -qE -- "$forbid" <<<"$out"; then
       why="${why:+$why; }its output carries a forbidden line matching '$forbid'"
@@ -576,8 +637,16 @@ main(){
   GLOG="$("${GIT[@]}" ls-tree -r --name-only "$BASESHA" -- claude/agents/gatelogs 2>/dev/null \
           | grep -E '/[0-9]+[a-z]?-all\.log$' | sed -E 's|.*/([0-9]+)([a-z]?)-all\.log|\1 \2 &|' | sort -k1,1n -k2,2 | tail -1 | awk '{print $NF}')"
   if [ -z "$GLOG" ]; then
-    bad "verify-log acceptance: the base carries no claude/agents/gatelogs/<N>-all.log to accept"
-    say "  RED  verify-log acceptance - no archived green log on the base"
+    # GO FULL AND NOT RED [fresh antagonist B, P3]. This was `bad` plus a RED line, so a branch cut before any
+    # log was archived - an honest tree, with nothing wrong in the commit - got exit 1, the one verdict that
+    # means "do not re-run hoping for a different answer". Whether the BASE happens to carry an archived log is
+    # state outside the candidate, which is the same reason the bundle-mismatch branch below routes rather than
+    # refuses. a30fc59 carries 131 of them so this is not reachable today; it is reachable on a fresh line.
+    say "GO FULL: the base ${BASESHA:0:12} carries no claude/agents/gatelogs/<N>-all.log, so the acceptance arm"
+    say "  has nothing to accept. That is state outside your commit: the full suite decides."
+    [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK" 2>/dev/null
+    rm -rf "$WORK" 2>/dev/null
+    return 2
   else
     local GN
     GN="$(sed -E 's|.*/([0-9]+)[a-z]?-all\.log|\1|' <<<"$GLOG")"
@@ -589,10 +658,42 @@ main(){
     # tier-only commit read CHECKS TIER RED, exit 1, for a reason with nothing to do with the candidate. RED is
     # the one verdict that says "do not re-run hoping for a different answer". This is state OUTSIDE the commit,
     # so the honest answer is the full suite.
-    local LOGMD5 DISKMD5
-    LOGMD5="$("${GIT[@]}" cat-file blob "$BASESHA:$GLOG" 2>/dev/null | grep -oE 'bundle md5 [0-9a-f]{12}' | sed -E 's/.* //' | sort -u | tr -d '\n')"
+    # THE md5 COMES OFF THE LOG'S OWN `ref:` LINE AND NOWHERE ELSE, AND MY OWN HARNESS CASE A1 CAUGHT THE
+    # ALTERNATIVE BEFORE EITHER REVIEWER DID - then the fresh pair's B reproduced it independently, from the
+    # shipped surface, before it had read my note. The first version greped the WHOLE log for
+    # `bundle md5 <12 hex>` and then did `sort -u | tr -d '\n'`. MEASURED on the base's newest log, 534-all.log:
+    # that phrase occurs FOUR times and only ONE is the log's own ref line (049b41dfb6f1, line 6479) - the other
+    # three are PROSE inside a gate's assertion text at line 3208, where gate 66 names the two negative-control
+    # bundles it was proved against and the healthy one. `sort -u | tr -d '\n'` then CONCATENATED all four into
+    # the 48-character string 049b41dfb6f15388547cb472890f7a9b7b67bd8f31ddbc47, which is no md5 at all, and the
+    # comparison declared a mismatch against its own first twelve characters. So the arm returned GO FULL on
+    # EVERY candidate and THE TIER COULD NEVER EMIT `CHECKS TIER GREEN` AGAINST TODAY'S BASE - the whole
+    # economic claim of the job, dead, after paying the full battery first. NOT A ONE-OFF, measured across all
+    # 131 archived logs: every log from #506 to #534 - twenty-three consecutive - names four distinct md5
+    # tokens, so this had been true for twenty-nine builds' worth of logs, not just the newest.
+    # TWO CAUSES IN ONE LINE, and this project has a rule against each: a multi-valued extraction collapsed to a
+    # scalar (the same shape as this run's own `awk '{print $3}'` collapse ten lines above), and an UNSCOPED
+    # SELECTOR - "a bad selector is a reading, not a measurement" - reading a whole log for a phrase that
+    # ordinary gate prose in this repository is free to contain, and does.
+    # SCOPE, MEASURED NOT ASSUMED: of the 131 archived -all.log files, 85 carry exactly ONE `^ref: ` line and it
+    # carries exactly one `bundle md5`, and 46 carry NONE - all 46 predate the ref line's introduction (#373 to
+    # #426 era). Since the arm takes the NEWEST log, the modern format is what it will read; the zero case and
+    # the more-than-one case are handled anyway, as GO FULL, because "the structured line is not there or does
+    # not agree with itself" is state outside the candidate exactly as a differing bundle is.
+    local LOGMD5 DISKMD5 NMD5
+    LOGMD5="$({ "${GIT[@]}" cat-file blob "$BASESHA:$GLOG" 2>/dev/null | grep '^ref: ' || true; } \
+              | grep -oE 'bundle md5 [0-9a-f]{12}' | awk '{print $3}' | sort -u)"
+    NMD5="$(printf '%s' "$LOGMD5" | grep -c '^[0-9a-f]\{12\}$' || true)"
     DISKMD5="$("${GIT[@]}" cat-file blob "$HEADSHA:app.js" 2>/dev/null | md5sum | cut -c1-12)"
-    if [ -n "$LOGMD5" ] && [ "$LOGMD5" != "$DISKMD5" ]; then
+    if [ "$NMD5" != 1 ]; then
+      say "GO FULL: the base's newest archived log $GLOG names $NMD5 bundle md5(s) on a \`ref:\` line, not one."
+      say "  With no single structured value the arm cannot compare anything, and guessing which of several to"
+      say "  believe is how the first version of this check went wrong. State outside your commit: run the suite."
+      [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK" 2>/dev/null
+      rm -rf "$WORK" 2>/dev/null
+      return 2
+    fi
+    if [ "$LOGMD5" != "$DISKMD5" ]; then
       say "GO FULL: the base's newest archived log $GLOG gated bundle $LOGMD5 and this tree's app.js is $DISKMD5."
       say "  The acceptance arm compares the two with --this-bundle, so it cannot speak about this candidate while"
       say "  they differ. That is state outside your commit, not a fault in it: the full suite decides."
@@ -622,7 +723,19 @@ main(){
     local isbase=0
     while IFS= read -r q; do [ "$q" = "$p" ] && isbase=1; done <<<"$cb"
     [ "$isbase" = 1 ] && nbase=$((nbase+1))
-    run_ctl "control $p" 0 "PASS" "([1-9][0-9]*|^)[[:space:]]*FAIL" -- bash "$p"
+    # THE CONTRACT IS `^PASS<space>` AND A NARROWER FAIL FORBID, AND BOTH HALVES WERE DEFEATED [fresh
+    # antagonist A, F-G, three poses each reaching exit 0 CHECKS TIER GREEN PASS]. (1) `need` was the FIXED
+    # STRING "PASS", so `all checks BYPASSED; nothing asserted` satisfied it - the word PASS inside BYPASSED -
+    # and so did a control whose entire output is `0 PASS  0 FAIL`, which is the empty denominator credited as a
+    # control, in the directory whose whole purpose is accumulating controls. That is CLAUDE.md's eleventh
+    # costume reappearing inside the fix for it. (2) The forbid was `([1-9][0-9]*|^)[[:space:]]*FAIL`, so a FAIL
+    # that is neither line-initial nor digit-prefixed escaped: `Result: FAIL - the key is off` was permitted.
+    # The previous round narrowed the forbid from a bare `FAIL` for a good reason - a bare `FAIL` reddened the
+    # `N PASS  0 FAIL` footer the README tells authors to write - and the narrowing opened this. So the new
+    # pattern forbids FAIL preceded by anything that is not a digit, AND any non-zero count, while still
+    # allowing a `0 FAIL` footer: `(^|[^0-9[:space:]])[[:space:]]*FAIL` catches `Result: FAIL` and a bare
+    # leading FAIL, `[1-9][0-9]*[[:space:]]*FAIL` catches `3 FAIL`, and neither can match inside `0 FAIL`.
+    run_ctl "control $p" 0 "re:^PASS([[:space:]]|$)" "(^|[^0-9[:space:]])[[:space:]]*FAIL|[1-9][0-9]*[[:space:]]*FAIL" -- bash "$p"
   done <<<"$ALLCASES"
   say "  gates/cases control(s) run: $nc ($nbase already on the base, $((nc-nbase)) new in this commit)"
 
@@ -633,20 +746,64 @@ main(){
   # measured: a control that runs `rm -rf "$OLDPWD/gates/logs/.suite.lock"` reached CHECKS TIER GREEN with the
   # lock gone, so a control could release the only guard against two suites overlapping (#419) mid-battery and
   # nothing would say so. An exclusion is not a licence, so what the snapshot cannot see is asserted directly.
-  local LOCKPID
+  # AND THE INODE, BECAUSE THE PID CHECK IS AN END-STATE TEST AND A CONTROL CAN HAND THE LOCK BACK [fresh
+  # antagonist A, F-C, reproduced in three lines]: read the pid out of the file this check reads, `rm -rf` the
+  # lock, prove a second process can `mkdir` it, then write the pid back. The end state is then identical and
+  # the tier reached CHECKS TIER GREEN while the #419 guarantee had been broken mid-battery. `mkdir` after
+  # `rm -rf` cannot reproduce the inode AND ctime pair, so comparing them turns "the lock looks the same now"
+  # was never let go". It is the difference between a property of the END and a property of the INTERVAL, which
+  # is the same distinction as #398's "nothing painted past the edge" versus "nothing was squeezed".
+  local LOCKPID LOCKSIG1
   LOCKPID="$(cat "$LOCK/pid" 2>/dev/null || echo gone)"
-  if [ ! -d "$LOCK" ] || [ "$LOCKPID" != "$$" ]; then
-    say "REFUSED: the suite lock was removed or taken over while the battery ran (pid now '$LOCKPID', mine is $$)."
+  LOCKSIG1="$(stat -c '%i %z' "$LOCK" 2>/dev/null || echo none)"
+  if [ ! -d "$LOCK" ] || [ "$LOCKPID" != "$$" ] || [ "$LOCKSIG1" != "$LOCKSIG0" ]; then
+    say "REFUSED: the suite lock was removed, taken over or re-created while the battery ran."
+    say "  pid now '$LOCKPID' (mine is $$); lock inode+ctime was '$LOCKSIG0' and is now '$LOCKSIG1'."
     say "  A control released the one guard against two suites overlapping, so nothing this run measured can be"
-    say "  attributed to a tree nobody else was writing."
+    say "  attributed to a tree nobody else was writing. A changed inode means the directory was re-created, so"
+    say "  the lock was handed back rather than held - the end state matching is not the same as holding it."
     RC=1
   fi
-  SNAP1="$(snapshot)"
+  # A CONTROL CAN PLANT A SYMLINK AT THIS RUN'S OWN LOG PATH, AND THE JUDGE WROTE THROUGH IT [fresh antagonist
+  # A, F-B, P1 VETO - and it is the sharpest finding of the three adversarial rounds this file has had]. The
+  # route, reproduced end to end by A: a new control under gates/cases/ reads `git config --get remote.origin.url`
+  # - which IS the real repository root, because its clone's origin is the tree under judgement - computes
+  # `gates/logs/checks-$(git rev-parse --short HEAD)-all.log` (the same path this run will write, derivable
+  # because the clone is checked out at the same commit), removes it and symlinks it at `$ROOT/app.js`. The
+  # control exits 0 with a PASS line and asserts nothing. The judge then printed CHECKS TIER GREEN, including the
+  # sentence "and that the real tree was not touched", and its FINAL ACT - the log write, after SNAP1, after the
+  # verdict, unconditional - followed the symlink and REPLACED THE SHIPPED BUNDLE WITH THIS RUN'S LOG TEXT.
+  # Measured: app.js md5 28c88aa1... before, 13d1719a... after, `git status` reading `M app.js`, head -1 of the
+  # bundle reading "checks-tier.sh base=... head=...". Point it at gates/verify-log.sh and the push gate is the
+  # casualty; at .git/config and the repository is.
+  # TWO LAYERS, DELIBERATELY, BECAUSE EITHER ALONE WOULD HAVE BEEN ENOUGH AND NEITHER WAS THERE. (1) The snapshot
+  # no longer excludes anything, so the planted link appears in SNAP1 and not SNAP0 and the verdict is REFUSED.
+  # (2) The write itself refuses to follow a symlink, so the DAMAGE does not happen even when the verdict is
+  # already decided - a REFUSED verdict over a clobbered bundle would still have cost somebody their tree.
+  # AND NOTE WHOSE FIX THIS IS: the previous round's repair wrote, in terms, "An exclusion is not a licence, so
+  # what the snapshot cannot see is asserted directly" - and then asserted the LOCK and left the LOG, which is
+  # the one of the two excluded paths the judge itself writes through. The sentence was right and was applied to
+  # one half of its own subject. Twelfth costume of the trap: the check and the thing being checked were the same
+  # object - here the excluded path and the written path.
+  if [ -L "$ROOT/gates/logs" ] || [ -L "$ROOT/$SELFLOG" ]; then
+    say "REFUSED: $SELFLOG is a symlink, or sits under one, so this run's own log write would follow it into"
+    say "  whatever it points at. A control under gates/cases/ can compute this path and plant the link, which is"
+    say "  how a control with no assertions in it reached CHECKS TIER GREEN over a replaced app.js."
+    SELFLOGBAD=1
+    RC=1
+  fi
+  SNAPTXT1="$(snapshot)"
+  SNAP1="$(printf '%s\n' "$SNAPTXT1" | sha256sum | cut -c1-64)"
   if [ "$SNAP0" != "$SNAP1" ]; then
     say "REFUSED: the real tree CHANGED while the battery ran (snapshot ${SNAP0:0:16} -> ${SNAP1:0:16})."
     say "  Something a control ran wrote into the tree under judgement, moved a ref, or planted a hook or a"
     say "  config entry. A verdict about a tree that moved under the judge is worth nothing, and a planted hook"
     say "  fires at the NEXT commit, where nothing would connect it to this run."
+    # NAME THE LINES. Two hashes tell the next reader that something moved and nothing about what, which costs a
+    # whole re-run to find out - and the re-run may not reproduce it. At most 20 lines, so a pathological diff
+    # cannot bury the verdict.
+    local dl
+    while IFS= read -r dl; do say "    $dl"; done < <(diff <(printf '%s\n' "$SNAPTXT0") <(printf '%s\n' "$SNAPTXT1") 2>/dev/null | head -20)
     RC=1
   fi
 
@@ -669,9 +826,17 @@ main(){
     RC=0
   fi
 
-  # THE SAME STRING THE SNAPSHOT EXCLUDED, so the exclusion and the write cannot drift apart.
+  # WRITTEN AFTER SNAP1 IS TAKEN AND COMPARED, which is why the snapshot needs no exclusion for it.
   local OUT="$ROOT/$SELFLOG"
-  printf '%s' "$LOGLINES" > "$OUT" 2>/dev/null && printf '%s\n' "  log: $OUT"
+  # RE-CHECKED AT THE MOMENT OF WRITING, not only in step (9). The battery is over and the lock is held, so the
+  # window is small - but this is the line that did the damage in F-B, and a guard placed anywhere other than
+  # immediately above the write is a guard with a window.
+  if [ "$SELFLOGBAD" = 1 ] || [ -L "$OUT" ] || [ -L "$ROOT/gates/logs" ]; then
+    printf '%s\n' "  log NOT written: $SELFLOG is a symlink or sits under one. Following it would write this run's"
+    printf '%s\n' "  log text into whatever it points at, which is how F-B replaced app.js. The verdict above stands."
+  else
+    printf '%s' "$LOGLINES" > "$OUT" 2>/dev/null && printf '%s\n' "  log: $OUT"
+  fi
   rm -rf "$WORK" 2>/dev/null
   [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK" 2>/dev/null
   return $RC

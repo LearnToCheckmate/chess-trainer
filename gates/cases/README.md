@@ -22,8 +22,18 @@ So the harness is only a judge while it is *main's* harness. On this tier:
   routes to the full suite.
 - A **new** file here is allowed, is run by the tier, and must pass.
 
-That asymmetry is the whole point: **this directory is append-only to the tier. A new file may ADD a check and
-nothing may REMOVE one.** A control set that can be edited down is not a control set.
+That asymmetry is the whole point: **this directory is append-only TO THE TIER. A new file may ADD a check and
+nothing may REMOVE one without leaving the fast path.**
+
+**AND BE EXACT ABOUT THE SCOPE OF THAT, BECAUSE THE FIRST DRAFT OF THIS PARAGRAPH OVERCLAIMED IT** (fresh
+antagonist A, F-L). It read "a control set that can be edited down is not a control set", which a reader takes
+as a property of the directory. It is a property of the TIER only. Measured: `grep -rn 'gates/cases'` over the
+repository returns the two tier scripts, this README, one `gates/build-numbers.tsv` row and four
+`claude/stories/TEST-CASES.md` rows — **no section of the gate suite runs, counts or even mentions anything under
+this directory.** So a commit that deletes every control here routes to the full suite (correctly, and that is
+what the bullets above say), and the full suite then has no opinion whatever about the deletion. Append-only is
+enforced on the fast path and nowhere else. Closing that is `jobs/the-full-suite-does-not-run-the-checks-tier-harness-or-the-gates-cases-controls-2026-10-23`,
+and until it lands, the honest sentence is the one above and not the bolder one.
 
 ## What a control file must do
 
@@ -46,15 +56,30 @@ your HEAD, with `refs/remotes/origin/main` pointed at the base. Its contract, al
 | | requirement |
 |---|---|
 | exit code | **0** |
-| stdout | at least one line containing **`PASS`** |
-| stdout | **no line reporting a non-zero `FAIL` count** |
+| stdout | at least one line matching **`^PASS<space>`** — a `PASS` line of its own, at the start of a line |
+| stdout | **no `FAIL` except inside a zero-count footer such as `12 PASS  0 FAIL`** |
 
 The `PASS` requirement is not decoration. A script that asserts nothing exits 0 too, and
 `CLAUDE.md` records `#405`'s rule for exactly this shape: *0 PASS is the tell*. Print one `PASS` line per
-assertion, with an id and a short description, as the other self tests here do — **and a `N PASS  0 FAIL` footer
-is fine.** The forbid pattern is `([1-9][0-9]*|^)[[:space:]]*FAIL`, so a zero count passes and a non-zero one
-reddens. An earlier draft forbade the bare word `FAIL`, which reddened a control written exactly as this
-paragraph tells you to write it — documentation and code disagreeing, with the code winning silently.
+assertion, with an id and a short description, as the other self tests here do — and a `N PASS  0 FAIL` footer
+is fine beside them.
+
+**BOTH HALVES OF THIS CONTRACT WERE DEFEATED IN REVIEW AND BOTH ARE NOW TIGHTER** (fresh antagonist A, F-G,
+three poses, each reaching exit 0 and `CHECKS TIER GREEN`). The `PASS` test was a FIXED-STRING match, so
+`all checks BYPASSED; nothing asserted` satisfied it — the letters `PASS` inside `BYPASSED` — and so did a
+control whose entire output is `0 PASS  0 FAIL`, which is the empty denominator credited as a control inside
+the directory whose whole purpose is accumulating controls. It is now `^PASS[[:space:]]`, so the line has to be
+a `PASS` line rather than a word inside a sentence, and a zero-count footer alone is no longer enough. The
+forbid was `([1-9][0-9]*|^)[[:space:]]*FAIL`, which let through a `FAIL` that is neither line-initial nor
+digit-prefixed: `Result: FAIL - the key is off` passed. It is now
+`(^|[^0-9[:space:]])[[:space:]]*FAIL|[1-9][0-9]*[[:space:]]*FAIL`, which catches that line and `3 FAIL` and a
+bare leading `FAIL`, and still cannot match inside `0 FAIL`.
+
+The history is worth keeping, because the narrowing that opened the second hole was itself a correct fix: an
+earlier draft forbade the bare word `FAIL` and reddened a control written exactly as this paragraph tells you
+to write it — documentation and code disagreeing, with the code winning silently. Each round fixed the previous
+round's over- or under-reach, which is why the pattern is now written out in full in both homes rather than
+described.
 
 ## What a control file may NOT do
 
@@ -90,11 +115,28 @@ Two habits this project has paid for, both cheap to keep:
 ## One more constraint, and it is mechanical
 
 `gates/gatemanifest.sh sigpipe` ratchets **early-exiting pipes into grep under `pipefail`** across `gates/*.sh`
-against a committed ceiling. A file here is inside that scan, so do not write `… | grep -q`, `… | grep -m1` or
-`… | grep … | head`: the producer takes SIGPIPE and `pipefail` turns a correct answer into a failure. Use a
-herestring (`grep -q … <<<"$var"`), or capture into a variable first, or `sed -n '1p'`, which reads the whole
-stream. The audit reads **23** sites against a ceiling of **15** on `a30fc59` and is therefore already red: do
-not add to it.
+against a committed ceiling. Do not write `… | grep -q`, `… | grep -m1` or `… | grep … | head`: the producer
+takes SIGPIPE and `pipefail` turns a correct answer into a failure. Capture into a variable first, or use
+`sed -n '1p'`, which reads the whole stream, or a `case` over the captured text, which starts no process at all.
+
+**A FILE IN THIS DIRECTORY IS NOT IN THAT SCAN, AND THE FIRST DRAFT OF THIS PARAGRAPH SAID IT WAS** (fresh
+antagonist A, F-L). Measured: `sigpipe_sites()` iterates `for f in "$root"/*.sh` — ONE level — so adding a
+control carrying `cat x | grep -q y` under `gates/cases/` leaves the audit's count unchanged. The advice above
+is good and the mechanism named for it does not exist, which is this project's own "a written warning is not a
+guard". Follow it because a SIGPIPE under `pipefail` will give you a wrong answer in your own control, not
+because anything will stop you.
+
+**AND THE COUNT: re-take it on the tree you ship.** The audit reads **23** sites against a ceiling of **15** at
+`a30fc59` and is therefore already red. This build's first two commits of the tier published "unchanged at 23,
+0 sites in either new file" and that was **false on the shipped tree**: `gates/checks-tier-drive.sh:754` carried
+`if grep -qF … <<<"$TOUT" || grep -qF … <<<"$TOUT"`, which the classifier read as **the repository's first
+TIER A site**, taking the total to 24 and `A 0` to `A 1` — at a ceiling of exactly 1, whose single slot the
+audit's own comment reserves for `gates/verify-log.sh:128`. It is now a `case` and the count is back to 23,
+measured on the tree that ships rather than carried forward from an earlier one. Note the shape of why it was
+missed: a single herestring into `grep -q` IS exempt, and the exemption is applied per logical line rather than
+per grep, so adding a second herestring with `||` created a site out of two lines that each cannot SIGPIPE.
+That is a defect in the instrument and it is filed as
+`jobs/the-sigpipe-audits-herestring-exemption-is-defeated-by-an-or-chain-so-the-remedy-its-own-message-prescribes-creates-the-site-it-removes-2026-10-23`.
 
 ## Naming
 
