@@ -1668,6 +1668,12 @@ if [ "$MODE" = fixed ] || [ "${CT_TIER_A1:-0}" = 1 ]; then
     git -C "$A1D" add -A >/dev/null 2>&1
     git -C "$A1D" commit --quiet -m "A1 candidate: verify-log.sh plus one new control" >/dev/null 2>&1
     A1S="$(date -u +%s)"
+    # THE CLONE'S origin/main MUST BE POINTED AT THIS CASE'S BASE, and forgetting it cost this case one run.
+    # A `git clone` of /home/user/chess-trainer sets refs/remotes/origin/main from the SOURCE REPOSITORY'S LOCAL
+    # `main` BRANCH, which in this container is stale at #526 - not from the real origin/main - so the judge's
+    # base-vs-main arm correctly routed A1 to the full suite. The real invocation passes origin/main AS the base,
+    # so pointing the ref at A1BASE is what makes this fixture mirror reality rather than a convenience.
+    git -C "$A1D" update-ref refs/remotes/origin/main "$A1BASE" >/dev/null 2>&1 || true
     TF="$(mktemp -d)"; git -C "$A1D" show "$A1BASE:gates/checks-tier.sh" > "$TF/ct.sh"
     A1OUT="$(cd "$A1D" && bash "$TF/ct.sh" "$A1BASE" "$A1D" 2>&1)"; A1RC=$?
     rm -rf "$TF"
