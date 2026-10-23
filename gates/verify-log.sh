@@ -1317,6 +1317,101 @@ if [ "$THISBUNDLE" -eq 1 ]; then
   fi
   echo "THIS-BUNDLE OK: the log gated md5 $LOGMD5, which is app.js on disk"
 fi
+# ── (11) DID THE BUILD-NUMBER SERIES DOOR ACTUALLY RUN? [#534, VLDOOR;
+# jobs/verify-log-sh-cannot-tell-whether-the-build-number-series-door-ran-so-an-older-green-log-still-authorises-a-push-2026-10-22,
+# filed by #533 against its own work.]
+# WHAT WAS WRONG: this script reads only lines beginning PASS, FAIL, "=== ", "gate manifest:" and GATES, and the
+# series door's verdict line begins with none of them - so an archived green from any tree PREDATING the door
+# verified OK with the series question never asked, and an OVERRIDE appended to a real green log returned OK
+# without being mentioned. MEASURED on a copy of claude/agents/gatelogs/533-all.log with every
+# `build-number series:` line removed: the shipped script printed OK at exit 0, exactly as on the log itself.
+# THE BOUNDARY IS THE GATED TREE ITSELF, DECIDED FROM GIT OBJECTS ALONE - no network, no tracker, no hard-coded
+# commit, and NO environment variable or flag may move it. A log's gated sha is the sha on its `ref: HEAD` line,
+# and the tree at that sha runs the door iff its gates/gates.sh carries the footer echo that PRINTS the verdict.
+# THE MARKER IS THAT ECHO'S OWN PARAMETER EXPANSION, `${GF_LINE:-build-number series:`, and it is the marker
+# rather than the words around it because it IS the thing being asked about: a tree that prints the footer
+# verdict necessarily contains it, and a tree that does not cannot. MEASURED on origin/main's history: it occurs
+# exactly ONCE in gates/gates.sh, `git log -S` puts its first appearance at 02b4107 (#533, the commit that put
+# the door on main), and it reads 0 at 1601730, 2266b87, 166d2ed, 56b2f7d, d7a022b and 6010294.
+# ITS LIMIT, NAMED: the marker is a literal, so a future refactor that renames GF_LINE or restructures that
+# echo would make every later log read as a no-door tree - which fails SAFE here (no series line is then
+# required) and so would be silent. A build that touches that line re-points this marker in the same commit.
+# AND THE #419 LIMIT, STATED IN THE CHECK AND PRINTED: the footer is computed by the very harness that wrote
+# the log, so this check shows the door's verdict WAS PRINTED and not that it was RIGHT. It is a presence and
+# consistency check on an archived artefact, which is all a script with no tree on disk can be.
+SERIESCHECK="not-checked"; SERIESWHY=""; SERIESVERDICT=""; SERIESLINE=""
+VLSROOT="$(cd "$(dirname "$0")/.." && pwd)"
+VLSGIT=(git --git-dir "$VLSROOT/.git" --work-tree "$VLSROOT")
+SERIESSHA="$(grep -oi '^ref: HEAD [0-9a-f]\{7,40\}' "$LOG" | tail -1 | awk '{print $3}' | tr 'A-F' 'a-f' || true)"
+if [ -z "$SERIESSHA" ]; then
+  SERIESWHY="the log carries no 'ref: HEAD <sha>' line, so the tree it gated cannot be named and this check cannot ask whether that tree runs the door. 69 of the 164 archived logs are this older format. Under --on-main such a log is refused earlier, by the ancestry check, which is the stricter door."
+elif ! command -v git >/dev/null 2>&1 || ! "${VLSGIT[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  SERIESWHY="there is no git work tree at $VLSROOT, so 'git show <gated sha>:gates/gates.sh' cannot be read and the boundary cannot be decided from objects."
+elif ! "${VLSGIT[@]}" cat-file -e "${SERIESSHA}^{commit}" 2>/dev/null; then
+  SERIESWHY="the gated commit $SERIESSHA is not in this repository, so the boundary cannot be decided. In a shallow clone run: git fetch --unshallow origin (a --deepen of main alone may not reach a commit that lives on another branch)."
+else
+  SERIES_HASDOOR="$("${VLSGIT[@]}" show "${SERIESSHA}:gates/gates.sh" 2>/dev/null | grep -cF '${GF_LINE:-build-number series:' || true)"
+  if [ "${SERIES_HASDOOR:-0}" = "0" ]; then
+    SERIESCHECK="ran"; SERIESVERDICT="no-door"
+  else
+    # THE FOOTER ONE, NEVER AN EARLY ONE. The door prints its verdict near the top of the run as well, so
+    # 533-all.log carries series lines at 10, 11 AND 6477. gates.sh writes the footer in a fixed order -
+    # `gate manifest:`, the series verdict, `gates ran (`, GATES GREEN - so the footer line is the one strictly
+    # between the LAST 'gate manifest:' and the LAST 'gates ran ('. An early line can never stand in for it.
+    SER_MANL="$(grep -n '^gate manifest:' "$LOG" | tail -1 | cut -d: -f1)"
+    SER_RANL="$(grep -n '^gates ran (' "$LOG" | tail -1 | cut -d: -f1)"
+    if [ -z "${SER_MANL:-}" ] || [ -z "${SER_RANL:-}" ] || [ "$SER_MANL" -ge "$SER_RANL" ] 2>/dev/null; then
+      echo "REFUSED (series door): $LOG gated $SERIESSHA, a tree that RUNS the build-number series door, but this"
+      echo "  log has no readable footer to find its verdict in: the last 'gate manifest:' line is at"
+      echo "  [${SER_MANL:-absent}] and the last 'gates ran (' at [${SER_RANL:-absent}], and the footer verdict is"
+      echo "  written strictly between them. A log whose footer cannot be located cannot be shown to carry the"
+      echo "  door's verdict, and an unverifiable footer is not a pass."; exit 1
+    fi
+    # ANCHORED AT THE START OF THE LINE, AND THAT ANCHOR IS THE WHOLE CHECK. Unanchored, a line beginning PASS,
+    # FAIL, '=== ', 'gate manifest:' or GATES that merely CONTAINS the words would be read as the verdict - and
+    # those are precisely the five prefixes this script already reads, so a forged verdict hidden in one of them
+    # would be invisible to every other check in this file and accepted by this one. Mutant: drop the '^'.
+    SER_N="$(awk -v a="$SER_MANL" -v b="$SER_RANL" 'NR>a && NR<b && /^build-number series:/ {c++} END{print c+0}' "$LOG")"
+    SERIESLINE="$(awk -v a="$SER_MANL" -v b="$SER_RANL" 'NR>a && NR<b && /^build-number series:/ {print; exit}' "$LOG")"
+    if [ "$SER_N" != "1" ]; then
+      echo "REFUSED (series door): $LOG gated $SERIESSHA, a tree that RUNS the build-number series door, but its"
+      echo "  footer carries $SER_N series verdict line(s) where exactly one is required (between the last"
+      echo "  'gate manifest:' line and the last 'gates ran (' line)."
+      if [ "$SER_N" = "0" ]; then
+        echo "  NONE means the verdict is absent from the footer. Either the door did not reach its verdict, or the"
+        echo "  line was removed from the log after the fact. An EARLY series line does not count and is not"
+        echo "  accepted in its place: $(grep -c '^build-number series:' "$LOG") series line(s) appear in the log overall."
+      else
+        echo "  MORE THAN ONE means the footer says two things at once, and this check will not pick between them."
+      fi
+      echo "  A green whose series question was never asked is the defect this check exists for: a gap-fill row"
+      echo "  that nothing accounts for reaches every gate unjudged."; exit 1
+    fi
+    case "$SERIESLINE" in
+      "build-number series: NOT CHECKED - the door set no verdict."*|"build-number series: NOT CHECKED - this door did not run."*)
+        echo "REFUSED (series door): $LOG gated $SERIESSHA, a tree that RUNS the build-number series door, and its"
+        echo "  footer carries one of gates.sh's own FALLBACK texts rather than a verdict:"
+        echo "    $SERIESLINE"
+        echo "  gates.sh prints those when the door set no verdict or never ran, so the door was reached and"
+        echo "  produced nothing. That is not a green and it is not a NOT CHECKED either: it is a door that"
+        echo "  failed to answer, and this log cannot say whether the series was judged."; exit 1 ;;
+      "build-number series: RED"*)
+        echo "REFUSED (series door): $LOG gated $SERIESSHA and its footer series verdict reads RED:"
+        echo "    $(printf '%s' "$SERIESLINE" | cut -c1-200)"
+        echo "  A RED series verdict and a full-suite green cannot both describe the same push: the door refuses"
+        echo "  BEFORE any gate runs, so a log carrying both is self-contradictory and authorises nothing."; exit 1 ;;
+      "build-number series: ok"*)       SERIESCHECK="ran"; SERIESVERDICT="ok" ;;
+      "build-number series: OVERRIDE"*) SERIESCHECK="ran"; SERIESVERDICT="override" ;;
+      "build-number series: NOT CHECKED"*) SERIESCHECK="ran"; SERIESVERDICT="notchecked" ;;
+      *)
+        echo "REFUSED (series door): $LOG gated $SERIESSHA and its footer series line carries a verdict word this"
+        echo "  check does not recognise:"
+        echo "    $(printf '%s' "$SERIESLINE" | cut -c1-200)"
+        echo "  The door writes exactly ok, OVERRIDE, NOT CHECKED or RED. Anything else is a log this script"
+        echo "  cannot read, and an unreadable verdict is not a pass."; exit 1 ;;
+    esac
+  fi
+fi
 echo "OK: $LOG is a full-suite green for $FOOT ($(grep -c '^=== ' "$LOG") suites, $ACTUAL PASS, footer agrees)"
 # AND SAY WHAT THAT OK IS NOT, EVERY TIME. Added #450. "OK" above is a statement about the SUITE: these
 # assertions ran over that bundle and none failed. It is NOT an authorisation to push, and it was read as one -
@@ -1333,6 +1428,33 @@ if [ "$HELDCHECK" = "ran" ]; then
 else
   echo "    register: NOT CHECKED - gates/held-trees.tsv is missing (see the warning above)"
 fi
+# ── THE SERIES DOOR, REPORTED POSITIVELY AND LOUDLY WHERE IT MATTERS [#534, VLDOOR]. An OVERRIDE or a
+# NOT CHECKED is the one thing #533's own pen note said no grep would ever state for a reader; it is stated here.
+# THIS BLOCK SITS OUTSIDE THE HELD if/else AND NOT INSIDE IT, and my first draft got that wrong in a way
+# `bash -n` could not see: I closed the held `if` early and opened an `if true; then` of my own, so the held
+# block's `else` was captured by MINE and the "register: NOT CHECKED - gates/held-trees.tsv is missing" branch
+# became unreachable. A syntactically valid mis-nesting that silently deletes another check's output is exactly
+# the class this file keeps paying for; caught by reading the region back rather than by the parser.
+# EVERY EXPANSION HERE IS `:-` GUARDED, and that is not defensive habit, it is what makes this block's own
+# mutant honest. This file runs under `set -u`; the mutant that proves the check is load-bearing REMOVES the
+# block above that sets these variables, and with bare expansions the script then died on
+# `SERIESWHY: unbound variable` AFTER printing its OK - so the mutant exited non-zero and the case read it as a
+# refusal, which is the "a mutant that dies proves nothing" trap this run already hit once on gates/buildnum.sh.
+case "${SERIESVERDICT:-}" in
+  ok)         echo "    series door: ok - the gated tree ${SERIESSHA:-?} runs it and its footer verdict reads ok" ;;
+  override)   echo "    series door: *** OVERRIDE *** - THIS SUITE IS NOT AN UNOVERRIDDEN ONE. The gated tree"
+              echo "                 ${SERIESSHA:-?} ran the door and a gap-fill row was passed by CT_GAPFILL_OVERRIDE."
+              echo "                 The footer line is: $(printf '%s' "${SERIESLINE:-}" | cut -c1-160)" ;;
+  notchecked) echo "    series door: *** NOT CHECKED *** - the gated tree ${SERIESSHA:-?} ran the door, and the door"
+              echo "                 did not compare the register. The footer line is:"
+              echo "                 $(printf '%s' "${SERIESLINE:-}" | cut -c1-160)" ;;
+  no-door)    echo "    series door: n/a - the gated tree ${SERIESSHA:-?} predates the door (its gates/gates.sh does"
+              echo "                 not carry the footer echo), so no series line is required of this log" ;;
+  *)          echo "    series door: NOT CHECKED - ${SERIESWHY:-the check did not run}" ;;
+esac
+echo "      AND WHAT THAT DOES NOT SAY [#419]: the footer is computed by the same harness that wrote this log,"
+echo "      so this check shows the door's verdict was PRINTED, not that it was right. No script reading an"
+echo "      archived log can do better; only re-running the door against a tree can."
 case "$MANICHECK" in
   ran) echo "    manifest: $MANIFOOT" ;;
   notchecked) echo "    manifest: NOT CHECKED - the run could not read gates/gate-manifest.tsv ($MANIFOOT)" ;;
