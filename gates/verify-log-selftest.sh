@@ -71,6 +71,19 @@ FOOT="$(tail -1 "$GOOD" | grep -o '#[0-9]\{3,4\}')"
 MISMATCH="$TD/logs/mismatch.log"; cp "$REALLOG" "$MISMATCH"
 
 P=0; F=0; HOPEN=0; HCLOSED=0
+eq() { # eq <description> <expected> <actual>
+       # COPIED VERBATIM from gates/held-selftest.sh:47-50 rather than re-written, so the two harnesses
+       # cannot drift in what a PASS line looks like [#534, antagonist B's veto].
+  if [ "$2" = "$3" ]; then P=$((P+1)); printf 'PASS %s (%s)\n' "$1" "$3"
+  else F=$((F+1)); printf 'FAIL %s (got %s, wanted %s)\n' "$1" "$3" "$2"; fi
+}
+gt0() { # gt0 <description> <count> - the phrase is PRESENT. Used where a message legitimately appears more
+        # than once and pinning the exact count would make the control brittle about wording rather than
+        # about behaviour, which is the frozen-denominator trap in miniature. Verbatim from
+        # gates/held-selftest.sh:52-58.
+  if [ "${2:-0}" -ge 1 ] 2>/dev/null; then P=$((P+1)); printf 'PASS %s (%s occurrence(s))\n' "$1" "$2"
+  else F=$((F+1)); printf 'FAIL %s (absent)\n' "$1"; fi
+}
 ck() { # ck <description> <expected-exit> <command...>
   local d="$1" want="$2"; shift 2
   "$@" >/dev/null 2>&1; local got=$?
@@ -122,6 +135,34 @@ hole() { # hole <job id> <description> <expected-exit WHEN FIXED> <command...>
   if [ "$got" = "$want" ]; then HCLOSED=$((HCLOSED+1)); printf 'HOLE CLOSED %s (exit %s) [%s]\n' "$d" "$got" "$job"
   else HOPEN=$((HOPEN+1)); printf 'HOLE OPEN   %s (exit %s, the push gate should answer %s) [%s]\n' "$d" "$got" "$want" "$job"; fi
 }
+
+# ── THE HARNESS PREFLIGHT. AN UNDEFINED ASSERTION HELPER IS NOW A RED AND NOT A SILENCE. ────────────────
+# WHY THIS EXISTS, AND IT IS THIS BUILD'S OWN DEFECT [#534, antagonist B's veto, upheld and measured]:
+# sections F and G shipped calling `eq` and `gt0`, which are defined in gates/held-selftest.sh and
+# gates/buildnum-selftest.sh and were NEVER defined here. This file does not `set -e`, so each call was a
+# no-op that printed to stderr and nothing else: SIXTEEN assertions neither credited nor reported, the
+# footer read "62 pass, 0 fail" and AGREED WITH ITSELF, and the brief's documented expectation was
+# calibrated on the broken run. Every one of the sixteen was a FIXTURE- or MUTANT-INTEGRITY check - "the
+# two fixture trees really differ on the marker", "MUTANT1 the check really was removed", "both loops were
+# put back to $REG", the three `bash -n` parse checks - so the whole "did my control actually control?"
+# layer for both of this build's new sections was absent while its verdict cases passed. That is #416's
+# "check the control moved the quantity the assertion reads AT ALL" and #405's "0 PASS is the tell", and
+# self-consistency could not see it because an assertion that never runs prints no line to count.
+# IT IS ALSO "A LESSON RECORDED IN ONE GATE DOES NOT TRAVEL": the helpers exist two files away, I wrote
+# the calls from memory of those files, and nothing in between asked.
+# HAND-KEPT, AND THAT IS ACCEPTABLE ONLY BECAUSE THE LIST IS NOW ENFORCED: a helper added to this file and
+# omitted here is still fine (it is checked at its own call site by bash), but a helper CALLED and never
+# defined can no longer pass silently. ser_mk and ser_prefix are deliberately absent: they are defined in
+# section G, below this point, and bash requires a definition before the CALL and not before this check.
+for __fn in ck ckmsg eq gt0 hole holeneg; do
+  command -v "$__fn" >/dev/null 2>&1 || {
+    printf 'FAIL harness: assertion helper %s is CALLED by this file and defined NOWHERE in it.\n' "$__fn"
+    printf '  Every %s call would be a silent no-op (this file does not set -e), so the footer would\n' "$__fn"
+    printf '  report a self-consistent pass count with assertions missing from it. Refusing to run.\n'
+    exit 1
+  }
+done
+unset __fn
 
 echo "== verify-log.sh self-test =="
 echo "   sandbox      $TD"

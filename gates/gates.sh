@@ -893,7 +893,7 @@ tc() {
   # THE DENOMINATOR, ASSERTED SEPARATELY [prompts/common, the eleventh costume]: the clause above is only
   # evidence if the judged set was NON-EMPTY, and a door that judged nothing would also print no unaccounted
   # row. This case reads the count of rows the door says it judged, so the set cannot be empty unnoticed.
-  st C89e-and-one-uncommitted-row-was-actually-judged "$(CT_RUNID=$GFMINE st_gfn "$dC" "$ST_T/gf.sh" 'the 1 uncommitted row(s) WERE judged')" 1
+  st C89e-and-one-uncommitted-row-was-actually-JUDGED-not-merely-appended "$(CT_RUNID=$GFMINE st_gfn "$dC" "$ST_T/gf.sh" 'were APPENDED, of which 1 were JUDGED')" 1
   # AN UNCOMMITTED DELETION OF A COMMITTED ROW IS STILL RED with the base at HEAD: del_w is head-minus-worktree
   # and HEAD is readable whatever the base ref points at, so this half never depended on the base.
   dD="$(st_mk gfD)"; grep -v '^531' "$dD/gates/build-numbers.tsv" > "$dD/x" && mv "$dD/x" "$dD/gates/build-numbers.tsv"
@@ -905,6 +905,16 @@ tc() {
   st C89h-my-own-uncommitted-mint-above-the-top-is-NOT-CHECKED "$(CT_RUNID=$GFMINE st_gfv "$dE" "$ST_T/gf.sh")" NOT
   st C89i-and-never-RED "$(CT_RUNID=$GFMINE st_gfrun "$dE" "$ST_T/gf.sh" | grep -m1 '^build-number series:' | grep -c 'RED')" 0
   st C89j-and-the-word-ok-is-absent "$(CT_RUNID=$GFMINE st_gfrun "$dE" "$ST_T/gf.sh" | grep -m1 '^build-number series:' | grep -cw ok)" 0
+  # C89u-C89w: APPENDED IS NOT JUDGED, AND dE IS THE SHAPE THAT PROVES IT [#534, antagonist A's veto].
+  # dE's row is #534, ABOVE the fixture top of 532, so it EXTENDS and the door does not judge it. The clause
+  # must therefore say appended=1 and judged=0 - and before the fix it said "the 1 uncommitted row(s) WERE
+  # judged", which is why C89w pins the OLD WORDS ABSENT rather than only the new ones present: the defect
+  # was a sentence, so the regression pin has to be on the sentence. These three are what C89e could not be:
+  # C89e's fixture #363 is BELOW the top, so it is a gap fill, judged=1, and the old string was accidentally
+  # TRUE there - the control read the right number for the wrong reason and could not have caught this.
+  st C89u-an-uncommitted-EXTENDS-row-is-appended-but-NOT-judged "$(CT_RUNID=$GFMINE st_gfn "$dE" "$ST_T/gf.sh" 'the 1 uncommitted row(s) were APPENDED, of which 0 were JUDGED')" 1
+  st C89v-and-the-clause-names-it-as-extending "$(CT_RUNID=$GFMINE st_gfn "$dE" "$ST_T/gf.sh" '1 EXTEND the series and are NOT judged')" 1
+  st C89w-and-the-false-sentence-the-veto-named-is-GONE "$(CT_RUNID=$GFMINE st_gfn "$dE" "$ST_T/gf.sh" 'uncommitted row(s) WERE judged')" 0
   # AN UNCOMMITTED GAP FILL THAT stampable SAYS IS YOURS: NOT CHECKED, armed or not. The ownership answer is
   # the authority's and not this branch's, which is the prescription both earlier withdrawals pointed at.
   dF="$(st_mk gfF)"; st_row 363 minted - "$GFMINE" minted >> "$dF/gates/build-numbers.tsv"
@@ -929,7 +939,7 @@ tc() {
   dH="$(st_mk gfH)"
   st C89q-a-clean-tree-with-base-at-HEAD-is-NOT-CHECKED "$(CT_RUNID=$GFMINE st_gfv "$dH" "$ST_T/gf.sh")" NOT
   st C89r-and-it-does-not-stop-the-suite "$( CT_RUNID=$GFMINE st_gfrun "$dH" "$ST_T/gf.sh" >/dev/null 2>&1; echo $? )" 0
-  st C89s-and-it-says-nothing-was-judged "$(CT_RUNID=$GFMINE st_gfn "$dH" "$ST_T/gf.sh" 'the 0 uncommitted row(s) WERE judged')" 1
+  st C89s-and-it-says-nothing-was-appended-and-nothing-judged "$(CT_RUNID=$GFMINE st_gfn "$dH" "$ST_T/gf.sh" 'the 0 uncommitted row(s) were APPENDED, of which 0 were JUDGED')" 1
   # AND GF_NOCHK IS STILL PRINTED on every one of them, which is what C79, C79b and M14a-c assert on $dp:
   # the words were KEPT verbatim by this fix and the new scope clause is added beside them, not instead.
   st C89t-the-NOT-CHECKED-line-still-carries-GF_NOCHK "$(CT_RUNID=$GFMINE st_gfn "$dH" "$ST_T/gf.sh" "there is no base to judge appended rows against")" 1
@@ -1163,7 +1173,7 @@ M16PY
   st M18-the-old-blindness-mutant-parses "$(bash -n "$ST_T/m18.sh" 2>/dev/null && echo yes || echo no)" yes
   st M18a-FIX-reds-the-uncommitted-gapfill "$(CT_RUNID=$GFMINE st_gfv "$dC" "$ST_T/gf.sh")" RED
   st M18b-MUTANT-reads-it-NOT-CHECKED "$(CT_RUNID=$GFMINE st_gfv "$dC" "$ST_T/m18.sh")" NOT
-  st M18c-and-the-MUTANT-judged-nothing "$(CT_RUNID=$GFMINE st_gfn "$dC" "$ST_T/m18.sh" 'the 0 uncommitted row(s) WERE judged')" 1
+  st M18c-and-the-MUTANT-judged-nothing "$(CT_RUNID=$GFMINE st_gfn "$dC" "$ST_T/m18.sh" 'the 0 uncommitted row(s) were APPENDED, of which 0 were JUDGED')" 1
   st M18d-and-the-MUTANT-does-not-stop-the-suite "$( CT_RUNID=$GFMINE st_gfrun "$dC" "$ST_T/m18.sh" >/dev/null 2>&1; echo $? )" 0
   # AND IT AGREES WITH THE FIX WHERE THE BASE IS NOT AT HEAD, which is why no existing case could see it: a
   # mutant that differed everywhere would be caught by any one of the hundred cases above.
@@ -1554,7 +1564,7 @@ else
       # rows were not compared, while RED and OVERRIDE stand as the main path sets them.
       # AND THE DEAD LIMB IS NOW LIVE: the assembly below carried a GF_NOCHK branch that two antagonists of
       # #533 proved UNREACHABLE and removed, precisely because this branch never reached it. It is restored
-      # there, and C81a is the control that it fires rather than a comment claiming it does. The refusal one branch below invites a stuck run to
+      # there, and C89h is the control that it fires rather than a comment claiming it does. The refusal one branch below invites a stuck run to
       # run `git update-ref refs/remotes/origin/main <the base sha>`, and the obvious misreading of that is
       # HEAD. Do it and the base becomes the tree under test: every committed row is in the base, `appended`
       # reads 0, and a committed plant READ ok with the door reporting a push that carries no new rows at all.
@@ -1874,11 +1884,25 @@ else
       GF_COUNTS="$GF_IDENT base=$(printf '%.12s' "${GF_BASESHA:-unknown}") merge-base=$(printf '%.12s' "${GF_MB:-unknown}"); rows read: base=$GF_NB head=$GF_NH worktree=$GF_NW merge-base=$GF_NM; appended=$((GF_A1+GF_A2)) (head-vs-base=$GF_A1 worktree-vs-head=$GF_A2); ${GF_CLS:-gap-fill=$GF_GF (yours=$GF_Y census=$GF_C override=$GF_O unaccounted=$GF_U); base-held=$GF_K; extends-the-series=$GF_E}; deletions: merge-base-vs-head=$GF_D1 head-vs-worktree=$GF_D2"
       # AND WITH THE BASE AT HEAD THE COUNTS SAY SO, because `head-vs-base=0` is otherwise a true number a
       # reader will take for a claim about the push [#534, G6's remainder]. The clause names the scope of the
-      # judgement rather than leaving it to be inferred from a zero: how many uncommitted rows WERE judged,
-      # and that the committed rows were not compared at all. This is the half that makes the NOT CHECKED
-      # verdict below readable in an archived log, where nobody can re-run the door to find out what it saw.
+      # judgement rather than leaving it to be inferred from a zero: how many uncommitted rows were APPENDED,
+      # how many of those were JUDGED, how many merely EXTEND the series, and that the committed rows were not
+      # compared at all. This makes the NOT CHECKED verdict readable in an archived log, where nobody can
+      # re-run the door to find out what it saw.
+      # APPENDED AND JUDGED ARE TWO NUMBERS AND THIS CLAUSE PRINTED ONE OF THEM UNDER THE OTHER'S NAME
+      # [#534, antagonist A's VETO, upheld and reproduced]. It read "the $GF_A2 uncommitted row(s) WERE
+      # judged", and $GF_A2 is worktree-vs-head: the APPENDED count, non-zero whenever a row was appended
+      # whatever class it fell in. The JUDGED set is $GF_GF (gap fill) plus $GF_K (base-held). The extends
+      # branch does GF_E=$((GF_E+1)) and then `continue`, so an extends row NEVER reaches GF_GF and is never
+      # judged - and the door says so in terms, "This door does not judge the extends class", in the same
+      # output. So on an uncommitted row ABOVE the series top this clause asserted a judgement the same door
+      # denied in the same log, at NOT CHECKED and exit 0, with the row reaching every gate: THE G6 DEFECT
+      # RESTATED AS A CLAIM THAT IT HAD BEEN HANDLED. That is why it was a veto and not a wording nit - this
+      # clause exists ONLY for a reader of an archived log who cannot re-run the door, and it was false in the
+      # one shape G6 exists for. AND IT WAS THE COMMON PATH, NOT A CORNER: this run's own row #534 is above
+      # the top, so every run that mints normally hits it. C89u to C89w are the control, on dE, which is that
+      # shape; C89w pins the old sentence ABSENT, because the words are what was wrong.
       if [ "$GF_BASEATHEAD" = "1" ]; then
-        GF_COUNTS="$GF_COUNTS; base-at-HEAD=yes (the base ref points at HEAD, so head-vs-base is 0 BY CONSTRUCTION and the $GF_NH committed row(s) were NOT compared; the $GF_A2 uncommitted row(s) WERE judged, and a deletion could only be seen against the working tree)"
+        GF_COUNTS="$GF_COUNTS; base-at-HEAD=yes (the base ref points at HEAD, so head-vs-base is 0 BY CONSTRUCTION and the $GF_NH committed row(s) were NOT compared; the $GF_A2 uncommitted row(s) were APPENDED, of which $((GF_GF+GF_K)) were JUDGED by this door and $GF_E EXTEND the series and are NOT judged by it; a deletion could only be seen against the working tree)"
       fi
       # THE DEAD LIMB IS GONE [antagonist A of the third pair, P3-3 and antagonist B of the fourth pair, P2-1,
       # the same finding from both doors]. A branch on GF_NOCHK stood here claiming it "must come FIRST so no
@@ -1896,8 +1920,12 @@ else
         # soften a refusal, so RED (an unaccounted uncommitted row, or a working-tree deletion) and OVERRIDE
         # both outrank it, and only the case the main path would have called `ok` becomes NOT CHECKED -
         # because `ok` would be a green earned over the uncommitted rows alone while reading as a verdict on
-        # the push. Put this limb FIRST and the door stops refusing the very row G6 exists for; C81b is the
-        # control for that ordering, not this comment.
+        # the push. Put this limb FIRST and the door stops refusing the very row G6 exists for; C89n, C89o and
+        # C89p are the controls for that ordering, not this comment. (These two citations read C81a and C81b
+        # until antagonist A of #534 checked them: C81a EXISTS NOWHERE in this file, and C81b is
+        # C81b-and-when-unset-on-a-green, which asserts escape=[(unset)] and has nothing to do with either
+        # claim. The #450 dangling-citation shape, in the file that records it, inside a comment whose own
+        # last clause says "the control, not this comment".)
         GF_LINE="build-number series: NOT CHECKED - $GF_COUNTS - $GF_NOCHK"
       else
         GF_LINE="build-number series: ok - $GF_COUNTS"

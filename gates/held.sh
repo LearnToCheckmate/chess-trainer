@@ -47,6 +47,11 @@ HERE="$(cd "$(dirname "$0")" && pwd)"; REG="$HERE/held-trees.tsv"; ROOT="$(cd "$
 # --git-dir AND --work-tree ARE SET EXPLICITLY, because an inherited GIT_DIR overrides `git -C`.
 HELD_SRC="working tree only"
 REGALL="$REG"
+# ARMED BEFORE THE FIRST mktemp, so there is no window in which a temp file exists and the trap does not
+# [#534, antagonist A's P3-1: measured 2 leaked files per invocation, and /tmp on that container already held
+# 2662 tmp.* files. `held.sh check` is a documented per-run step, so the leak is per run and not per session].
+# The :- guards matter: this fires on paths where neither variable was ever set, under `set -u`.
+trap 'rm -f "${HELD_HEADREG:-}" "${HELD_UNION:-}"' EXIT
 HELD_GIT=(git --git-dir "$ROOT/.git" --work-tree "$ROOT")
 if command -v git >/dev/null 2>&1 && "${HELD_GIT[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   HELD_HEADREG="$(mktemp 2>/dev/null || true)"
@@ -62,6 +67,23 @@ if command -v git >/dev/null 2>&1 && "${HELD_GIT[@]}" rev-parse --is-inside-work
 else
   HELD_SRC="working tree only (not a git work tree), sha256 $(sha256sum "$REG" 2>/dev/null | cut -c1-16)"
 fi
+# WHICH REGISTER CARRIED THE ROW. THE REFUSAL BRANCHES WERE THE ONLY ONES NOT SAYING [#534, antagonist A's
+# P2-2]. The union's provenance was printed on the "not held" line - the answer nobody acts on - and withheld
+# from the two answers that STOP A PUSH, so a reader staring at a refusal had no way to tell a live hold from a
+# row that exists only in HEAD. That second state is reachable and ordinary: `git reset --soft HEAD~1` to redo
+# a commit leaves HEAD ahead of the working tree, and a hold cleared in BOTH the working tree and the redone
+# commit still refuses until it is committed again (A's P2-3, which fails CLOSED and is a known limit on this
+# job rather than a defect this run widens scope to fix). Naming the source is what makes that state legible
+# instead of baffling, which is why it ships with the refusal and not only with the pass.
+held_whence() { # held_whence <the matched row>
+  local r="$1" inwt=0 inhead=0
+  grep -Fxq "$r" "$REG" 2>/dev/null && inwt=1
+  [ -n "${HELD_HEADREG:-}" ] && [ -s "${HELD_HEADREG:-}" ] && grep -Fxq "$r" "$HELD_HEADREG" 2>/dev/null && inhead=1
+  if [ "$inwt" = 1 ] && [ "$inhead" = 1 ]; then printf '  source: this row is live in BOTH HEAD and the working tree (register source: %s)\n' "$HELD_SRC"
+  elif [ "$inwt" = 1 ];                    then printf '  source: this row is live in the WORKING TREE (register source: %s)\n' "$HELD_SRC"
+  elif [ "$inhead" = 1 ];                  then printf '  source: this row is live in HEAD ONLY - the working tree does not carry it. If you cleared or\n          deleted it and have not committed that, COMMIT IT and re-run; the union reads HEAD too, by\n          design, so an uncommitted clear cannot lift a hold (register source: %s)\n' "$HELD_SRC"
+  else                                          printf '  source: register source %s (the matched row could not be located in either copy, which should not\n          happen; report it rather than acting on it)\n' "$HELD_SRC"
+  fi; }
 match_rows() { grep -v '^[[:space:]]*#' "$REGALL" | awk -F'\t' 'NF>=2 && $1 !~ /^-/'; }
 live_rows()  { grep -v '^[[:space:]]*#' "$REGALL" | awk -F'\t' 'NF>=6 && $1 !~ /^-/'; }
 
@@ -97,6 +119,7 @@ case "${1:-}" in
         echo "  other two keys cannot see; see the note in held-trees.tsv."
         printf '  build:  %s   held at %s by %s\n' "$(printf '%s' "$HIT" | cut -f3)" "$(printf '%s' "$HIT" | cut -f4)" "$(printf '%s' "$HIT" | cut -f5)"
         printf '  why:    %s\n' "$(printf '%s' "$HIT" | cut -f6)"
+        held_whence "$HIT"
         exit 1
       fi
     fi
@@ -105,6 +128,7 @@ case "${1:-}" in
       printf '  build:  %s   held at %s by %s\n' "$(printf '%s' "$HIT" | cut -f3)" "$(printf '%s' "$HIT" | cut -f4)" "$(printf '%s' "$HIT" | cut -f5)"
       printf '  bundle: %s   gated sha: %s\n' "$(printf '%s' "$HIT" | cut -f1)" "$(printf '%s' "$HIT" | cut -f2)"
       printf '  why:    %s\n' "$(printf '%s' "$HIT" | cut -f6)"
+      held_whence "$HIT"
       exit 1
     fi
     echo "not held: $KEY is on no live row of $(basename "$REG") ($(match_rows | wc -l | tr -d ' ') matchable row(s) checked; source: $HELD_SRC)"

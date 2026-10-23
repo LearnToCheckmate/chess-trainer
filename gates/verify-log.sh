@@ -891,6 +891,10 @@ HELDCHECK="missing"; HELDROWS=0
 # for a two-source one.
 HELD_SRC="working tree only"; HELD_HEADROWS="-"; HELD_WTROWS="-"
 REGALL="$REG"
+# ARMED BEFORE THE FIRST mktemp [#534, antagonist A's P3-1: measured 2 leaked files per invocation here and 2
+# in held.sh, on a container whose /tmp already held 2662 tmp.* files]. REGALL is only removed when it is NOT
+# $REG, or a failed union would delete the real register - the guard is the whole point of the condition.
+trap '[ "${REGALL:-}" = "${REG:-}" ] || rm -f "${REGALL:-}"; rm -f "${REGHEAD:-}"' EXIT
 if [ -f "$REG" ]; then
   VLROOT="$(cd "$(dirname "$REG")/.." && pwd)"
   VLGIT=(git --git-dir "$VLROOT/.git" --work-tree "$VLROOT")
@@ -1017,6 +1021,27 @@ if [ -f "$REG" ]; then
     echo "  build:  $(printf '%s' "$HELDROW" | cut -f3)   held at $(printf '%s' "$HELDROW" | cut -f4) by $(printf '%s' "$HELDROW" | cut -f5)"
     echo "  bundle: $(printf '%s' "$HELDROW" | cut -f1)   gated sha: $(printf '%s' "$HELDROW" | cut -f2)"
     echo "  why:    $(printf '%s' "$HELDROW" | cut -f6)"
+    # WHICH REGISTER CARRIED THE ROW [#534, antagonist A's P2-2]. The union's provenance was printed only on
+    # the "not held" line at the end of a successful verify - the answer nobody acts on - and withheld from
+    # this one, which STOPS A PUSH. A reader here had no way to tell a live hold from a row that exists only
+    # in HEAD, and that second state is ordinary: `git reset --soft HEAD~1` to redo a commit leaves HEAD ahead
+    # of the working tree, so a hold cleared in both the working tree and the redone commit still refuses
+    # until it is committed again (A's P2-3; it fails CLOSED, and it is a known limit on this job rather than
+    # something this run widens its scope to change). Naming the source is what makes that state legible.
+    if [ "${REGALL:-}" != "${REG:-}" ] && [ -n "${REGHEAD:-}" ] && [ -s "${REGHEAD:-}" ]; then
+      VLINWT=0; VLINHD=0
+      grep -Fxq "$HELDROW" "$REG" 2>/dev/null && VLINWT=1
+      grep -Fxq "$HELDROW" "$REGHEAD" 2>/dev/null && VLINHD=1
+      if   [ "$VLINWT" = 1 ] && [ "$VLINHD" = 1 ]; then echo "  source: live in BOTH HEAD and the working tree (register source: $HELD_SRC)"
+      elif [ "$VLINWT" = 1 ];                      then echo "  source: live in the WORKING TREE (register source: $HELD_SRC)"
+      elif [ "$VLINHD" = 1 ];                      then echo "  source: live in HEAD ONLY - the working tree does not carry this row. If you cleared it and have"
+                                                        echo "          not committed that, COMMIT IT and re-run: the register is read as the union of HEAD and"
+                                                        echo "          the working tree by design, so an uncommitted clear cannot lift a hold."
+      else echo "  source: register source $HELD_SRC (the row could not be located in either copy - report that)"
+      fi
+    else
+      echo "  source: register source $HELD_SRC"
+    fi
     echo "  The suite was green and the log is honest. A previous run refused to ship THIS tree for a reason the"
     echo "  suite could not see. Read gates/held-trees.tsv before deciding; --ignore-held overrides it out loud."
     exit 1
@@ -1317,6 +1342,50 @@ if [ "$THISBUNDLE" -eq 1 ]; then
   fi
   echo "THIS-BUNDLE OK: the log gated md5 $LOGMD5, which is app.js on disk"
 fi
+# ── (11a) THE FOOTER MUST BE UNIQUE AND TERMINAL. A THREE-LINE APPEND DEFEATED (11) ENTIRELY.
+# [#534, antagonist B's P1-2 and P1-3, both REPRODUCED here with B's own fixtures before being fixed.]
+# (11) below locates the verdict STRICTLY BETWEEN the LAST `gate manifest:` and the LAST `gates ran (`, and its
+# comment claimed "an early line can never stand in for it". That is true and ONE-SIDED: it was chosen against
+# the two REPORTED lines that legitimately precede the footer, and says nothing about a line appended AFTER it.
+# A forged SECOND footer makes the REAL one early. Measured, on copies of 533-all.log:
+#   A1: real verdict rewritten to `build-number series: RED - ...`, then a copy of the manifest line, a forged
+#       `build-number series: ok - runId=build__FORGED ...` and a copy of the gates-ran line inserted before
+#       GATES GREEN. 3 lines added. RESULT: OK at exit 0, "series door: ok", with `grep -c '^build-number
+#       series: RED'` on the ACCEPTED file still reading 1 - the refusal was in the log and the tool never said.
+#   A5: footer verdict DELETED and ONE line appended, `ref: HEAD <a sha predating the door>`. SERIESSHA is a
+#       `grep -oi ... | tail -1`, so the appended ref wins, the pre-door branch is taken, and that branch
+#       requires no series line at all. RESULT: OK at exit 0, "series door: n/a".
+#   A6 CONTROL, and it is what makes A5 a finding rather than a guess: the IDENTICAL deletion with the real ref
+#       line untouched is correctly REFUSED at exit 1. The single appended line is the whole difference.
+# The comment that said the marker "fails SAFE (no series line is then required)" had it backwards: the
+# ATTACKER CHOOSES THE SHA THE BRANCH IS DECIDED ON.
+# THE GUARD IS CALIBRATED ON THE CORPUS AND NOT ON THE ATTACK, which is what stops it false-refusing. B
+# proposed requiring EXACTLY ONE of three footer lines. MEASURED over all 164 archived logs, one `grep -c` per
+# log per pattern: `gate manifest:` reads 0 in 94 logs, 1 in 12 and **2 in 58** - legitimately, because the
+# manifest verdict prints once before the gates and again in the footer - so that clause alone would have
+# REFUSED 58 HONEST LOGS, more than a third of the corpus. `gates ran (` is 0 or 1 in all 164 (106/58) and
+# `ref: HEAD` is 0 or 1 in all 164 (69/95), with no log carrying two of either. So the guard is AT MOST ONE on
+# those two patterns and says nothing about the manifest: zero stays legal, because a pre-footer-era log has
+# none and the fallbacks below already handle it, and TWO is the thing no honest log in this project has ever
+# produced. That kills A1 (its forged triple makes `gates ran (` read 2) and A5 (its appended ref makes
+# `ref: HEAD` read 2) without touching a single real log - re-measured as a whole-corpus regression after the
+# change, not assumed.
+# IT ALSO COVERS AN ACCIDENT, which is the better reason for it: two suites writing into one log window is
+# exactly what #418/#419 recorded, and a concatenated log duplicates both patterns. B looked for an accidental
+# route to A1 and found none (`gates.sh:1237` is `: > "$ALL"`), so these two are reported as forgery-reachable;
+# the concatenation case is the one that needs no malice.
+for VLPAT in '^gates ran (' '^ref: HEAD'; do
+  VLN="$(grep -c "$VLPAT" "$LOG" 2>/dev/null || true)"; VLN="${VLN:-0}"
+  if [ "$VLN" -gt 1 ] 2>/dev/null; then
+    echo "REFUSED (footer): $LOG carries $VLN lines matching $VLPAT, where a full-suite log carries at most one."
+    echo "    gates.sh writes exactly one of these per run and truncates its log at the start, so more than one"
+    echo "    means two runs' output in one file, or a hand-appended footer. Measured over all 164 archived"
+    echo "    logs, no honest log carries two of either pattern. A second footer makes the real verdict line"
+    echo "    early, which is how check (11) below can be made to read a forged verdict instead of a RED one."
+    exit 1
+  fi
+done
+
 # ── (11) DID THE BUILD-NUMBER SERIES DOOR ACTUALLY RUN? [#534, VLDOOR;
 # jobs/verify-log-sh-cannot-tell-whether-the-build-number-series-door-ran-so-an-older-green-log-still-authorises-a-push-2026-10-22,
 # filed by #533 against its own work.]
