@@ -214,3 +214,27 @@ a control can compute, and no control is handed the real tree.
   state for the rest of the file, and over-stripping yields a false CLEAN. Round 4 added the cheap half — the
   state must be closed at end of file, and `://` is no longer read as a comment start — and a real
   string-aware scan remains a recorded known limit (fingerprint `4a14dac044acc63f`).
+
+## What the seventh round changed for a control author (build #536, held)
+
+One line, because it is the only thing in this layer a control could use to reach outside the repository, and
+it is gone: **the judge no longer reads the process group it kills out of a file.** `ctl_exec` used to launch
+the control under `setsid --wait bash -c 'printf "%s\n" "$$" > "$0"' "$pgf"` and then run
+`kill -TERM -- -$(cat "$pgf")`. $PRIV is `dirname "$(git config --get remote.origin.url)"` from inside any
+control, and mktemp only stops a plant at a PREDICTABLE name - so a control could enumerate `"$PRIV"/pg-*`,
+write any digit string into it, and choose the group the judge TERMed, as root, with the verdict still
+`CHECKS TIER GREEN`. With `0` the judge killed itself mid-battery and left the suite lock standing. The group
+is now the one the judge's own shell watched (`$!` under job control), so there is no file in the exchange at
+all, and the floor refuses 0 and 1. `gates/checks-tier-drive.sh` A63 proves an unrelated process group
+survives; M48 puts the file read back and the same control kills the victim.
+
+Nothing a control may legitimately do has changed. A control that backgrounds a child is still reaped by the
+group kill when it ends; a control that calls `setsid` itself still escapes the group and is still RED by its
+marker. What a control can no longer do is pick the number.
+
+**AND ONE THING THIS LAYER STILL GETS WRONG, measured and NOT fixed in that build:** an honest tier-only
+commit is HARD-REFUSED (exit 1, "do not re-run") when another chat has modified a TRACKED doc or flag in the
+working tree, where an untracked write of exactly the same kind correctly routes to exit 2. CLAUDE.md's pen
+rule invites that concurrent write, so the entrance split keys on tracked-vs-untracked where it should key on
+tier-relevant-vs-not. If you meet it, the tree is not at fault and the commit is not at fault: stash the
+unrelated doc change, or run the full suite. The reproduction is on the hand-off job.

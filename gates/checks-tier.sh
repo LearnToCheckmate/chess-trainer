@@ -62,7 +62,7 @@ main(){
   local CTLMARK="" CTL_OUT=""
   local SNAPRC=0
   local CTLTMO="${CT_CTL_TIMEOUT:-600}"
-  local LOGTMP="" OUT=""
+  local OUT=""
 
   # Verdicts are kept IN MEMORY and the log is written ONCE, at the end, after the real-tree check. A judge that
   # appends as it goes hands an attacker a file to edit and a half-written log to a reader who sees no verdict.
@@ -743,7 +743,6 @@ main(){
   # make the log FAIL TO APPEAR - which is a RED with a sentence - and can no longer make the judge write
   # somewhere else.
   writelog(){
-    LOGTMP=""
     # The honest re-run: a plain, single-linked regular file of ours is removed so the O_EXCL create can run.
     # Anything else at this name has already been refused by the write-target arm above.
     if [ -f "$OUT" ] && [ ! -L "$OUT" ] && [ "$(stat -c %h -- "$OUT" 2>/dev/null || echo 0)" = 1 ]; then
@@ -1021,31 +1020,72 @@ main(){
   # second resolution - which is how the drive arm came to be exempt from every other guard.
   ctl_exec(){
     local d="$1"; shift; [ "${1:-}" = "--" ] && shift
-    local chome cgit pgf pg rc outf ofd bound="${CTL_BOUND:-$CTLTMO}"
+    local chome cgit pgid rc outf ofd bound="${CTL_BOUND:-$CTLTMO}"
     CTL_OUT=""
     chome="$(mktemp -d "$PRIV/h-XXXXXXXXXX" 2>/dev/null)" || return 125
     [ -n "$chome" ] && [ -d "$chome" ] || return 125
     cgit="$(mktemp "$chome/gitconfig-XXXXXXXXXX" 2>/dev/null)" || return 125
     [ -n "$cgit" ] && [ -f "$cgit" ] || return 125
-    pgf="$(mktemp "$PRIV/pg-XXXXXXXXXX" 2>/dev/null)" || return 125
-    [ -n "$pgf" ] || return 125
     outf="$(mktemp "$PRIV/ctl-XXXXXXXXXX.out" 2>/dev/null)" || return 125
     [ -n "$outf" ] && [ -f "$outf" ] || return 125
     exec {ofd}>"$outf" || return 125
+    # [FRESH ANTAGONIST A, P2(1)] THE NAME IS RESOLVED TWICE AFTER ALL, AND THE COMMENT ABOVE SAYING IT IS NOT
+    # WAS TOO STRONG: once by mktemp(3) and once by this `exec`, and the second resolution follows a symlink, so
+    # a control that relinks the name in between captures a later control's stdout. A could not land it against
+    # the judge (0 hits in 5 runs) - but the descriptor arm's only negative control, M44, SKIPPED this run, so
+    # the arm is UNCONTROLLED and an unproven claim is not a guard. Compare the descriptor's own inode against
+    # the one mktemp created: that closes the swap deterministically rather than by timing.
+    # `-ef` AND NOT `stat`, FOR TWO MEASURED REASONS. `stat` does not dereference a symlink without `-L`, so
+    # `stat -c %i /proc/self/fd/N` returns the inode of the PROCFS LINK rather than of the file it points at -
+    # my first version of this guard compared that against mktemp's inode, they never matched, and it returned
+    # 125 for EVERY control: the harness went 48 FAIL in 100 seconds, which is the harness doing its job. `-ef`
+    # is a shell builtin, so it also needs no fork and no exec. MEASURED both ways: SAME on the honest path,
+    # and DIFFERENT once the name is relinked to a victim, which is the case it exists for.
+    [ "$outf" -ef "/proc/self/fd/$ofd" ] || return 125
+    [ ! -L "$outf" ] || return 125
+    # ── FRESH ANTAGONIST A's P1, AND IT WAS MINE: THE PGID USED TO COME BACK IN A FILE, AND THIS FUNCTION
+    # TURNS A PGID INTO `kill -TERM -- -<it>` AS ROOT. D3's first version launched the control under
+    # `setsid --wait bash -c 'printf "%s\n" "$$" > "$0"; ...' "$pgf"`, so the control was a session and group
+    # leader and wrote its own pgid where this function could read it. mktemp defeats a pre-plant at a
+    # PREDICTABLE name and does nothing whatever about ENUMERATION: a control's cwd is under $WORK, $PRIV is
+    # `dirname "$(git config --get remote.origin.url)"`, and mode 700 "buys nothing against a control running
+    # as the same uid" - this file's own words. So `for f in "$PRIV"/pg-*; do echo <any digits> > "$f"; done`
+    # chose the group the judge would TERM. A reproduced it twice and I reproduced it again before touching
+    # this: a control that asserts nothing killed an unrelated `setsid sleep 600` and the verdict was
+    # `CHECKS TIER GREEN` with the sentence "and that the real tree was not touched" printed under it; with `0`
+    # the judge TERMed ITSELF mid-battery, leaving no verdict, no log, the suite lock standing with a dead pid
+    # and 79 temp directories behind. `1` is `kill -TERM -- -1` as root, which neither of us ran.
+    # WHY IT IS NOT THE SAME-UID LIMIT WEARING A NEW HAT: the destructive act is the JUDGE's, outside every
+    # control's process group and outside the marker scan, so `ctl_survivors`, the group kill and the snapshot
+    # are all blind to it by construction - and the two layers that make $outf safe were applied five lines
+    # above and not here.
+    # THE FIX DELETES THE SURFACE RATHER THAN VALIDATING IT: job control puts the background subshell in a
+    # group of its own whose pgid IS `$!`, so the number comes from the judge's own shell and no file exists
+    # for a control to write. Measured: the grandchild of the subshell inherits that group, the group kill
+    # reaches it, and `wait` still carries the exit status through (rc=7 from a child that exited 7).
+    # WHAT IT COSTS: `setsid` also made the control a SESSION leader, and job control does not, so a control
+    # keeps the judge's session and could open /dev/tty if the session has one. That is inside the same-uid
+    # limit this file already discloses (a control can read the judge's cwd and argv out of /proc), and it buys
+    # the removal of the only place where a control's bytes became a root signal. A control that calls
+    # `setsid` itself still escapes the group and is still caught by the marker, exactly as before.
+    set -m
     ( cd "$d" && env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_OBJECT_DIRECTORY \
           -u GIT_ALTERNATE_OBJECT_DIRECTORIES -u GIT_CEILING_DIRECTORIES \
           HOME="$chome" TMPDIR="$chome" XDG_CONFIG_HOME="$chome/xdg" \
           GIT_CONFIG_GLOBAL="$cgit" GIT_CONFIG_NOSYSTEM=1 \
           CT_CTL_MARK="$CTLMARK" \
-          setsid --wait bash -c 'printf "%s\n" "$$" > "$0"; shift; exec "$@"' \
-            "$pgf" placeholder timeout "$bound" "$@" >&$ofd 2>&1 </dev/null ); rc=$?
+          timeout "$bound" "$@" >&$ofd 2>&1 </dev/null ) &
+    pgid=$!
+    set +m
+    wait "$pgid"; rc=$?
     # READ BACK THROUGH THE DESCRIPTOR AND NEVER THROUGH $outf, for the same reason the write goes through it.
     CTL_OUT="$(cat "/proc/self/fd/$ofd" 2>/dev/null || true)"
     exec {ofd}>&-
-    pg="$(cat "$pgf" 2>/dev/null || true)"
-    case "$pg" in
+    # THE GROUP IS KILLED BY THE NUMBER THIS FUNCTION WATCHED ITSELF, and the floor is belt and braces: 0 means
+    # "the sender's own group" and 1 means "every process on the machine", and both are digit strings.
+    case "$pgid" in
       ''|*[!0-9]*) : ;;
-      *) kill -TERM -- "-$pg" 2>/dev/null || true ;;
+      *) [ "$pgid" -gt 1 ] && kill -TERM -- "-$pgid" 2>/dev/null; : ;;
     esac
     return $rc
   }
@@ -1100,9 +1140,11 @@ main(){
     # real homes. GIT_CONFIG_NOSYSTEM=1 closes /etc/gitconfig the same way. stdin is /dev/null, as before.
     # AND THE BOUND IS NOW ON THE GROUP, which is what the previous round's own comment said it was not: it
     # bounded `timeout`'s DIRECT CHILD, so a control whose body is `sleep 9999 &` held the real tree's suite
-    # lock for as long as it liked. `setsid --wait` makes the control a session and group leader, writes its
-    # pgid where this function can read it, and the group is killed when the control ends - measured here: an
-    # orphaned `sleep 30 &` is reaped by the group kill and is gone from `ps` afterwards.
+    # lock for as long as it liked. Job control makes the control's subshell a process-group leader whose pgid
+    # IS `$!`, so the judge watches the number itself, and the group is killed when the control ends - measured
+    # here: an orphaned `sleep 30 &` is reaped by the group kill and is gone from `ps` afterwards. It was
+    # `setsid --wait` writing its pgid into a file until fresh antagonist A's P1 of the seventh round; the
+    # reasoning is at that repair, in ctl_exec.
     # ── ANTAGONIST B's P1-a, AND IT WAS MINE: THIS IS THE SIXTH TIME A JUDGE WRITE AT A DERIVED NAME HAS BEEN
     # THE DEFECT ON THIS FILE, AND THE FIRST FIVE ARE WHY D2 EXISTS. The first version of D3 wrote
     # `chome="$WORK/h$CTLN"; mkdir -p "$chome"; : > "$chome/gitconfig-empty"`. A control's cwd is $WORK/c<N>, so
@@ -1471,7 +1513,7 @@ main(){
   # SO THE QUESTION WAS NEVER "IS THIS PATH A SYMLINK". It is "DOES WRITING HERE WRITE SOMEWHERE ELSE", and the
   # answer has three parts: a redirected DIRECTORY component, a redirected FILE, and a file whose inode somebody
   # else also holds. All three are asked below, and the write itself is then made structurally incapable of
-  # following either kind of link (see the `mv` at the end of this function).
+  # following either kind of link (see the O_EXCL create at the end of this function).
   # AND B's F2 IS THE SAME LEVER WITH NO LINK AT ALL: a control that puts a DIRECTORY at the log path makes the
   # write fail, and `> "$OUT" 2>/dev/null && printf ' log: ...'` swallowed it - exit 0, CHECKS TIER GREEN, and NO
   # LOG FILE EXISTS. The audit artefact the whole design rests on was removable by the commit under judgement,
@@ -1496,10 +1538,10 @@ main(){
   # 2, committed for the sixth time by the repair for the fifth.
   # SO THE QUESTION GOES BACK TO BEING ABOUT THE KIND OF THING AT THE NAME - and the reason that is sound now,
   # where it was insufficient three times in round 3, is that it is no longer the thing preventing the HARM.
-  # Two layers carry that: `writelog` is a RENAME with four post-conditions, which cannot write through a
+  # Two layers carry that: `writelog` is an O_EXCL CREATE with four post-conditions, which cannot write through a
   # symlink or a hard link's other names; and D4's snapshot makes anything appearing at
   # `gates/logs/[.]checks-*` or the suite lock GRAVE, so a plant during the battery is refused by the arm that
-  # can actually tell it from an honest re-run. What is left for this arm is the one case a rename cannot
+  # can actually tell it from an honest re-run. What is left for this arm is the one case the create cannot
   # survive and an honest re-run never produces: something at that name which is not a plain single-linked
   # regular file.
   if [ "$SELFLOGBAD" = 0 ] && { [ -e "$OUT" ] || [ -L "$OUT" ]; }; then
@@ -1515,13 +1557,13 @@ main(){
     else
       _lnk="$(stat -c %h -- "$OUT" 2>/dev/null || echo 1)"
       if [ "$_lnk" != 1 ]; then
-        say "REFUSED: $SELFLOG has $_lnk hard links, so its inode is also reachable by another name. A rename"
-        say "  would leave those other names intact, but an inode this run did not create being already shared"
-        say "  is a plant and not an honest re-run: `[ -L ]` is FALSE for a hard link, which is how round 3"
+        say "REFUSED: $SELFLOG has $_lnk hard links, so its inode is also reachable by another name. Unlinking"
+        say "  this name would leave those other names intact, but an inode this run did not create being shared"
+        say "  is a plant and not an honest re-run: \`[ -L ]\` is FALSE for a hard link, which is how round 3"
         say "  missed it."
         SELFLOGBAD=1; RC=1
       else
-        say "  NOTE: $SELFLOG already exists as a plain regular file and will be REPLACED by this run's rename."
+        say "  NOTE: $SELFLOG already exists as a plain regular file and will be REPLACED by this run's write."
         say "    That is this tier re-run at an unchanged head, which its own live-lock route invites, and it is"
         say "    not a fault in the commit. A plant at this name during the battery is caught by the snapshot."
       fi
@@ -1599,11 +1641,19 @@ main(){
     RC=0
   fi
 
-  # THE WRITE IS A RENAME, AND THAT IS WHAT MAKES IT STRUCTURALLY UNABLE TO FOLLOW A LINK OF EITHER KIND.
-  # `>` on the target truncates whatever inode the name resolves to, so a symlink writes its target and a hard
-  # link writes the file that shares the inode - which is how a control replaced app.js. A rename REPLACES THE
-  # DIRECTORY ENTRY: it never opens the old inode, so a symlink at this name is simply replaced, and a hard
-  # link's other names keep their content untouched.
+  # THE WRITE IS AN O_EXCL CREATE, AND THAT IS WHAT MAKES IT STRUCTURALLY UNABLE TO FOLLOW A LINK OF EITHER
+  # KIND. A bare `>` truncates whatever inode the name resolves to, so a symlink writes its target and a hard
+  # link writes the file that shares the inode - which is how a control replaced app.js. `set -C` makes the
+  # redirection O_CREAT|O_EXCL, which FAILS on anything already at the name, a dangling symlink included: it
+  # never opens somebody else's inode, because it will not open an existing one at all.
+  # [FRESH ANTAGONIST A, P2(2)] THIS PARAGRAPH SAID "RENAME" UNTIL THIS COMMIT, AND THE RENAME LEFT IN THE SAME
+  # DIFF THAT DELETED IT. A found six such claims, two of them in verdict text the operator reads at the moment
+  # it matters. The security property a reader is told to rely on is now carried by a DIFFERENT mechanism with
+  # a different failure mode - the honest-re-run `rm -f` then create is a window a rename did not have, and the
+  # kind-of-thing arm above plus D4's grave clause on `gates/logs/[.]checks-*` are what cover it - so the
+  # sentence had to move with the code. A measured the replacement on every path: a symlink to a victim fails
+  # rc 1 with the victim untouched, a dangling symlink fails with the target still absent, and a hard link is
+  # refused twice over. For the hard-link case it is STRONGER than the rename it replaced.
   # THAT PARAGRAPH USED TO END "The temporary was created and proved writable back in step (9), before the
   # verdict, so a log that cannot be written is a RED with a sentence rather than a silence after a GREEN",
   # AND IT WAS FALSE OF THIS FILE [antagonist A, P3(2), R18]. Round 4 DELETED that probe on purpose - the
@@ -1624,12 +1674,11 @@ main(){
     # symlinked app.js at that name and the `>` followed it. The write-target arm checked $OUT and never
     # $LOGTMP. It landed at exit 2, a ROUTE, and afterwards the log file WAS a symlink to app.js, so `cat`ting
     # the log printed a perfect log and only `git status` said the bundle was gone.
-    # THE RENAME IS `mv -T` AND THE RESULT IS VERIFIED RATHER THAN ASSUMED. rename(2) acts on the NAME, so it
-    # cannot write through a symlink or touch a hard link's other names, and `-T` refuses to move INTO a
-    # directory at the destination. But PRIV is under TMPDIR and may be on another filesystem, where mv falls
-    # back to copy-and-unlink and opens the destination path - so the four checks after it establish what
-    # actually ended up there: a regular file, not a link, with one link count, carrying the bytes this run
-    # wrote. A write that is verified cannot be a write that landed somewhere else.
+    # AND THE TEMPORARY IS GONE ENTIRELY, WHICH IS WHY THERE IS NOTHING LEFT TO RENAME. The write is one
+    # `( set -C; printf )` straight at $OUT, so no second name exists for a control to aim at and no
+    # cross-filesystem fallback can open the destination path behind our back. The result is still VERIFIED
+    # rather than assumed - a regular file, not a link, one link count, carrying the bytes this run wrote -
+    # because a write that is verified cannot be a write that landed somewhere else.
     printf '%s\n' "CHECKS TIER RED: the verdict above could not be written to $SELFLOG as a regular file"
     printf '%s\n' "  carrying this run's own bytes, so this run leaves no auditable log. Its text is on stdout"
     printf '%s\n' "  only. A verdict nobody can re-read later is not evidence."

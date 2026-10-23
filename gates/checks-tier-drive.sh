@@ -188,7 +188,7 @@ expect(){
 }
 
 note "checks-tier-drive.sh  mode=$MODE  root=$ROOT  clock=$(TZ=America/New_York date '+%-I:%M%p ET, %-d %b %Y')"
-note "cases: A1 to A62 plus one mutant per new arm (M1 to M47). Fixture repositories under $T."
+note "cases: A1 to A63 plus one mutant per new arm (M1 to M48). Fixture repositories under $T."
 note ""
 
 # ── A2. A TIER PATH PLUS A RECORD FILE -> GO FULL. ───────────────────────────────────────────────────────────
@@ -596,6 +596,12 @@ expect A24 "$D" "$B" 1 "REPEATS a case id" "a repeated tc() case id is RED and n
 # committed by the commit that recorded the lesson. So the guard is now the only way to build a mutant here.
 # mkmut <outfile> ; replacement pairs on stdin as OLD<TAB>NEW, one per line, \n for newlines. Exits non-zero
 # unless every anchor matched EXACTLY ONCE.
+# THE CONTROL LAUNCH LINE, IN ONE PLACE, BECAUSE THREE MUTANTS ANCHOR ON IT AND IT HAS NOW MOVED TWICE. When
+# the seventh round replaced `setsid --wait ... "$pgf"` with job control, three anchors went stale at once and
+# every one of them would have failed LOUDLY (mkmut requires exactly one match) rather than silently running a
+# weaker mutant - which is the guard working. One definition so they cannot drift apart from each other.
+LAUNCHLINE='          timeout "$bound" "$@" >&$ofd 2>&1 </dev/null ) &'
+
 mkmut(){
   local out="$1"
   python3 -I -c '
@@ -1369,8 +1375,8 @@ fi
 D="$T/m-M23"; mkfix "$D"
 # D3 MOVED THIS: the control now runs under `setsid --wait` in its own process group, so the bound is carried
 # into that group and the anchor is the line that carries it.
-printf '%s\t%s\n' '            "$pgf" placeholder timeout "$bound" "$@" >&$ofd 2>&1 </dev/null ); rc=$?' '            "$pgf" placeholder "$@" >&$ofd 2>&1 </dev/null ); rc=$?' | mkmut "$D/gates/checks-tier.sh"
-if mutguard M23 "remove the per-control timeout" "$D/gates/checks-tier.sh" '            "$pgf" placeholder "$@" >&$ofd 2>&1 </dev/null ); rc=$?'; then
+printf '%s\t%s\n' "$LAUNCHLINE" '          "$@" >&$ofd 2>&1 </dev/null ) &' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M23 "remove the per-control timeout" "$D/gates/checks-tier.sh" '          "$@" >&$ofd 2>&1 </dev/null ) &'; then
   mkdir -p "$D/gates/cases"
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M23 base" >/dev/null 2>&1
   MB="$(git -C "$D" rev-parse HEAD)"
@@ -1802,7 +1808,7 @@ D="$T/m-M32"; mkfix "$D"
 # than through a descriptor (antagonist A's P1(d) of this round). The two are one mutation now, because
 # ctl_exec creates the file and opens it in the same two lines.
 { printf '%s\t%s\n' '    outf="$(mktemp "$PRIV/ctl-XXXXXXXXXX.out" 2>/dev/null)" || return 125' '    outf="$WORK/ctl-$CTLN.out"; : > "$outf"'
-  printf '%s\t%s\n' '            "$pgf" placeholder timeout "$bound" "$@" >&$ofd 2>&1 </dev/null ); rc=$?' '            "$pgf" placeholder timeout "$bound" "$@" >"$outf" 2>&1 </dev/null ); rc=$?'
+  printf '%s\t%s\n' "$LAUNCHLINE" '          timeout "$bound" "$@" >"$outf" 2>&1 </dev/null ) &'
   printf '%s\t%s\n' '    CTL_OUT="$(cat "/proc/self/fd/$ofd" 2>/dev/null || true)"' '    CTL_OUT="$(cat "$outf" 2>/dev/null || true)"'
 } | mkmut "$D/gates/checks-tier.sh"
 if mutguard M32 "put the derived control output name and the write through it back" "$D/gates/checks-tier.sh" '    outf="$WORK/ctl-$CTLN.out"; : > "$outf"'; then
@@ -2480,10 +2486,10 @@ fi
 
 # ── M44. WRITE THROUGH THE NAME AGAIN INSTEAD OF THE DESCRIPTOR: A58's spinner must land at least once.
 D="$T/m-M44"; mkfix "$D"
-{ printf '%s\t%s\n' '            "$pgf" placeholder timeout "$bound" "$@" >&$ofd 2>&1 </dev/null ); rc=$?' '            "$pgf" placeholder timeout "$bound" "$@" >"$outf" 2>&1 </dev/null ); rc=$?'
+{ printf '%s\t%s\n' "$LAUNCHLINE" '          timeout "$bound" "$@" >"$outf" 2>&1 </dev/null ) &'
   printf '%s\t%s\n' '    CTL_OUT="$(cat "/proc/self/fd/$ofd" 2>/dev/null || true)"' '    CTL_OUT="$(cat "$outf" 2>/dev/null || true)"'
 } | mkmut "$D/gates/checks-tier.sh"
-if mutguard M44 "write the control output through the name again" "$D/gates/checks-tier.sh" '>"$outf" 2>&1 </dev/null ); rc=$?'; then
+if mutguard M44 "write the control output through the name again" "$D/gates/checks-tier.sh" '>"$outf" 2>&1 </dev/null ) &'; then
   mkdir -p "$D/gates/cases"
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M44 base" >/dev/null 2>&1
   MB="$(git -C "$D" rev-parse HEAD)"
@@ -2500,7 +2506,7 @@ if mutguard M44 "write the control output through the name again" "$D/gates/chec
   while IFS= read -r svpid; do [ -n "$svpid" ] && kill -TERM "$svpid" 2>/dev/null || true
   done < <(ps -eo pid=,cmd= 2>/dev/null | awk '$2=="bash" && /ctl-\*\.out/ {print $1}')
   if [ "$M44HITS" -gt 0 ]; then
-    rec M44 ok "writing through the name turns A58: the bundle was rewritten in $M44HITS of 8 runs"
+    rec M44 ok "writing through the name turns A58: the bundle was rewritten in $M44HITS of 12 runs"
   else
     rec M44 SKIP "the race did not land in 12 runs with the name restored, so this mutant proved nothing this time - the window between mktemp and the child's open is sub-millisecond here, while A measured 3 of 9 against the wider pre-refactor gap"
   fi
@@ -2679,6 +2685,86 @@ if [ -n "$A62WHY" ]; then
   printf '%s\n' "$TOUT" | tail -12 | sed 's/^/          /'
 else
   rec A62 ok "an in-place same-size rewrite of the bundle with its mtime restored is GRAVE (exit $TRC)"
+fi
+
+# ── A63. THE JUDGE MUST NOT TAKE THE PROCESS GROUP IT KILLS FROM ANYTHING A CONTROL CAN WRITE. This is fresh
+# antagonist A's P1 of the seventh round, and it was the one place where a control's BYTES became a root
+# SIGNAL: ctl_exec launched the control under `setsid --wait bash -c 'printf "%s\n" "$$" > "$0"' "$pgf"` and
+# then ran `kill -TERM -- -$(cat "$pgf")`. $PRIV is `dirname "$(git config --get remote.origin.url)"` from
+# inside any control and mktemp only defeats a PRE-PLANT, so a control enumerated `"$PRIV"/pg-*` and chose the
+# group. A killed an unrelated process group under CHECKS TIER GREEN, and with `0` the judge TERMed itself
+# mid-battery - no verdict, no log, the suite lock left standing. The assertion is about the VICTIM, not about
+# the verdict: an honest control passes, so the exit code is 0 either way and only the victim's survival can
+# tell the two judges apart.
+D="$T/a63"; mkfix "$D"
+setsid bash -c 'exec sleep 599' >/dev/null 2>&1 &
+sleep 0.4
+A63VPID="$(ps -eo pid=,cmd= 2>/dev/null | awk '$2=="sleep" && $3=="599" {print $1; exit}')"
+A63VPG="$(ps -o pgid= -p "${A63VPID:-0}" 2>/dev/null | tr -d ' ')"
+if [ -z "$A63VPID" ] || [ -z "$A63VPG" ] || [ "$A63VPG" = 0 ]; then
+  rec A63 SKIP "could not stand up a victim process group to aim the judge at"
+else
+  mkdir -p "$D/gates/cases"
+  # TWO NAMES, DELIBERATELY: `pg-*` is the name the defect's own mktemp produced, and `pgid-*` is the name
+  # M48 reads back. A control cannot know which the judge uses, so it writes both - which is also why the
+  # mutant below can be a two-line change rather than a restoration of the whole launch.
+  cat > "$D/gates/cases/c-pg.sh" <<CTL
+#!/usr/bin/env bash
+MIR="\$(git config --get remote.origin.url 2>/dev/null)"
+PRIV="\$(dirname "\$MIR")"
+for f in "\$PRIV"/pg-*; do [ -f "\$f" ] && printf '%s\n' "$A63VPG" > "\$f"; done
+printf '%s\n' "$A63VPG" > "\$PRIV/pgid-victim" 2>/dev/null
+echo "PASS c-pg asserts nothing; it only aims the judge at pgid $A63VPG"
+exit 0
+CTL
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"
+  commitin "$D" "held.sh plus a control that aims the judge's group kill at an unrelated process group"
+  runtier "$D" "$FIXBASE"
+  sleep 0.3
+  A63ALIVE=no; kill -0 "$A63VPID" 2>/dev/null && A63ALIVE=yes
+  if [ "$A63ALIVE" = yes ]; then
+    rec A63 ok "the group kill uses a pgid the judge watched itself, so an unrelated group survives (exit $TRC)"
+  else
+    rec A63 FAIL "a control chose the process group the judge TERMed: victim pgid $A63VPG is gone (exit $TRC)"
+    printf '%s\n' "$TOUT" | tail -12 | sed 's/^/          /'
+  fi
+  kill -TERM "$A63VPID" 2>/dev/null || true
+fi
+
+# ── M48. TAKE THE PGID OUT OF A FILE AGAIN: A63's victim must die.
+D="$T/m-M48"; mkfix "$D"
+printf '%s\t%s\n' '    case "$pgid" in' '    for _f in "$PRIV"/pgid-*; do [ -f "$_f" ] && pgid="$(cat "$_f" 2>/dev/null)"; done\n    case "$pgid" in' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M48 "read the killed pgid out of a file a control can write" "$D/gates/checks-tier.sh" 'for _f in "$PRIV"/pgid-*; do'; then
+  setsid bash -c 'exec sleep 598' >/dev/null 2>&1 &
+  sleep 0.4
+  M48VPID="$(ps -eo pid=,cmd= 2>/dev/null | awk '$2=="sleep" && $3=="598" {print $1; exit}')"
+  M48VPG="$(ps -o pgid= -p "${M48VPID:-0}" 2>/dev/null | tr -d ' ')"
+  if [ -z "$M48VPID" ] || [ -z "$M48VPG" ] || [ "$M48VPG" = 0 ]; then
+    rec M48 SKIP "could not stand up a victim process group for the mutant"
+  else
+    mkdir -p "$D/gates/cases"
+    cat > "$D/gates/cases/c-pg.sh" <<CTL
+#!/usr/bin/env bash
+MIR="\$(git config --get remote.origin.url 2>/dev/null)"
+PRIV="\$(dirname "\$MIR")"
+printf '%s\n' "$M48VPG" > "\$PRIV/pgid-victim" 2>/dev/null
+echo "PASS c-pg asserts nothing; it only aims the judge at pgid $M48VPG"
+exit 0
+CTL
+    git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M48 base" >/dev/null 2>&1
+    MB="$(git -C "$D" rev-parse HEAD)"
+    printf '%s\n' "# changed again" >> "$D/gates/held.sh"
+    commitin "$D" "held.sh plus the aiming control, against the mutant"
+    runtier "$D" "$MB"
+    sleep 0.3
+    M48ALIVE=no; kill -0 "$M48VPID" 2>/dev/null && M48ALIVE=yes
+    if [ "$M48ALIVE" = no ]; then
+      rec M48 ok "reading the pgid out of a control-writable file turns A63: the victim group was TERMed (exit $TRC)"
+    else
+      rec M48 FAIL "the mutant did not turn A63 - the victim survived, so A63 proves nothing this run"
+    fi
+    kill -TERM "$M48VPID" 2>/dev/null || true
+  fi
 fi
 
 # ── A1. THE WHOLE REAL BATTERY, IN THE REAL REPOSITORY. The only slow case, about 6.5 minutes. ──────────────
