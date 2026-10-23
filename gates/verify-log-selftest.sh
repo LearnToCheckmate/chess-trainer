@@ -176,121 +176,14 @@ ckmsg "--on-main refuses when origin/main cannot be read, and calls UNKNOWN not 
       env -C "$TD" "$VL" "$GOOD" "$FOOT" --on-main
 echo
 
-echo "-- E. THE HOLES. Written as the requirement, so each retires itself when the push gate is fixed."
-echo "      THE CAUSE IS ONE LINE: verify-log.sh:220 parses its own arguments with"
-echo "        for a in \"\${@:2}\"; do case \"\$a\" in --on-main) ...;; *) WANT=\"\$a\";; esac; done"
-echo "      so ANY unrecognised argument is silently taken to be the expected build number, and the last one"
-echo "      wins. A misspelled flag is therefore not an error - it is a build-number guess."
-echo "      AND THE EFFECT IS ORDER-DEPENDENT, which is sharper than the parent job records. Measured"
-echo "      2026-10-04 by this file: a misspelling placed AFTER the build number overwrites WANT and refuses"
-echo "      (for the wrong reason, as a build mismatch); placed BEFORE it, the correct number overwrites WANT,"
-echo "      the comparison passes, the flag is never set, and the run reads OK at exit 0 having silently"
-echo "      skipped the check it asked for. The build procedure passes the number first, so the dangerous"
-echo "      order is the one the project actually types. One line of output is the entire difference between"
-echo "      the two runs: 'THIS-BUNDLE OK'. Nothing else changes."
-for bad in --this-bundl --this--bundle -this-bundle --this_bundle --thisbundle; do
-  hole "verify-log-accepts-a-misspelled-this-bundle-and-returns-ok-2026-10-03" \
-       "a misspelled '$bad' before the build number must not read as a build number" 1 \
-       "$VL" "$GOOD" "$bad" "$FOOT"
-done
-hole "verify-log-accepts-a-misspelled-this-bundle-and-returns-ok-2026-10-03" \
-     "a misspelled '--on-mian' before the build number must not read as a build number" 1 \
-     "$VL" "$GOOD" --on-mian "$FOOT"
-hole "verify-log-accepts-a-misspelled-this-bundle-and-returns-ok-2026-10-03" \
-     "a bare unknown argument '--nonsense' must be refused rather than guessed at" 1 \
-     "$VL" "$GOOD" --nonsense "$FOOT"
-echo "      AND THE SAME PARSER HOLE HAS A SECOND MOUTH, found by this file rather than inherited:"
-echo "      a misspelling placed AFTER the number does refuse, but it refuses as 'you said X but the log gated"
-echo "      #NNN' - a build-number complaint for a flag typo. A reader who trusts that message will go and"
-echo "      check the build number, which is correct, and the typo survives the investigation."
-holeneg "verify-log-accepts-a-misspelled-this-bundle-and-returns-ok-2026-10-03" \
-     "a misspelling after the build number must not be reported as a build-number mismatch" 1 "you said" \
-     "$VL" "$GOOD" "$FOOT" --this-bundl
-echo "      THIS CASE WAS WRITTEN WRONG FIRST AND THE ERROR IS WORTH MORE THAN THE CASE [R18]. It was"
-echo "      written as a CONFIRMED case asserting the refusal says 'you said ... but the log gated #NNN',"
-echo "      which is today's behaviour - so it pinned the bug as the requirement, the exact 'snapshot of a"
-echo "      bug' this file's own header warns against twenty lines up. It was caught the only way it could"
-echo "      be: by running this selftest against a COPY of verify-log.sh with a candidate parser fix applied,"
-echo "      where the case went red under a correct fix. A control is only trustworthy once it has been seen"
-echo "      to flip, and the thing that flips it has to be the fix rather than the bug."
-echo
-
-echo "-- F. THE HELD REGISTER IS READ AS THE UNION OF HEAD'S COPY AND THE WORKING TREE'S [#534, HELDWT]"
-echo "      jobs/verify-log-sh-and-held-sh-read-the-held-register-from-the-working-tree-so-one-uncommitted-line-deletion-clears-a-held-refusal-2026-10-22,"
-echo "      routed from #531's antagonist B. Before the fix both of this script's register reads took the"
-echo "      WORKING TREE file alone, so ONE UNCOMMITTED LINE DELETION turned a REFUSED (held tree) at exit 1"
-echo "      into OK at exit 0. Measured on a clone of 707599b on the archived #452 log before the fix."
-echo "      THESE CASES SIT AFTER SECTION E ON PURPOSE, and the reason is the trap: section E's eight hole"
-echo "      cases run GOOD and reach the held check, so a held row naming GOOD's own md5 would flip seven of"
-echo "      them for a reason that has nothing to do with the hole. Every fixture below uses a key that is"
-echo "      NOT GOOD's, and the footer's hole counts are asserted unchanged at the end."
-# THE FIXTURE: a log whose header md5 is a key the register already holds (#452's bundle), which the sandbox's
-# own app.js is not. The register was copied in and COMMITTED by section D, so HEAD carries it.
-HELDKEY="81dc0469862c"
-HELDLOG="$TD/logs/held452.log"
-sed "1s/md5 $DISKMD5/md5 $HELDKEY/" "$GOOD" > "$HELDLOG"
-eq "F0 the fixture log really carries the held key on its header" "1" \
-   "$(head -1 "$HELDLOG" | grep -c "md5 $HELDKEY")"
-eq "F0 and that key is NOT GOOD's, so section E cannot be touched by it" "0" \
-   "$(head -1 "$GOOD" | grep -c "md5 $HELDKEY")"
-ck "F1 a held-by-md5 log is REFUSED (the control)" 1 env -C "$TD" "$VL" "$HELDLOG" "$FOOT"
-# (a) AN UNCOMMITTED DELETION MAY NOT LIFT IT.
-grep -v "^$HELDKEY" "$TD/gates/held-trees.tsv" > "$TD/h.x" && mv "$TD/h.x" "$TD/gates/held-trees.tsv"
-eq "F2 the deletion really is uncommitted and git sees it" "1" \
-   "$( cd "$TD" && git status --porcelain gates/held-trees.tsv | grep -c '^ M' )"
-ck "F2 an UNCOMMITTED DELETION still REFUSES" 1 env -C "$TD" "$VL" "$HELDLOG" "$FOOT"
-# (b) AN UNCOMMITTED '-' CLEAR, the register's own documented clear convention, is a different edit.
-( cd "$TD" && git checkout -- gates/held-trees.tsv )
-sed -i "s/^$HELDKEY/-$HELDKEY/" "$TD/gates/held-trees.tsv"
-ck "F3 an UNCOMMITTED '-' clear still REFUSES" 1 env -C "$TD" "$VL" "$HELDLOG" "$FOOT"
-# (c) DELETION PLUS assume-unchanged, which is what #531's antagonist B used: git status then prints NOTHING.
-( cd "$TD" && git checkout -- gates/held-trees.tsv )
-grep -v "^$HELDKEY" "$TD/gates/held-trees.tsv" > "$TD/h.x" && mv "$TD/h.x" "$TD/gates/held-trees.tsv"
-( cd "$TD" && git update-index --assume-unchanged gates/held-trees.tsv )
-eq "F4 git status prints nothing, which is the point of this case" "0" \
-   "$( cd "$TD" && git status --porcelain gates/held-trees.tsv | grep -c . )"
-ck "F4 deletion + assume-unchanged still REFUSES" 1 env -C "$TD" "$VL" "$HELDLOG" "$FOOT"
-( cd "$TD" && git update-index --no-assume-unchanged gates/held-trees.tsv && git checkout -- gates/held-trees.tsv )
-# (d) THE OTHER DIRECTION, which is why this is a union and not a HEAD read: a row `held.sh add` has only just
-#     written is NOT YET COMMITTED, and the #450 stand-down writes exactly such a row and then cites it.
-FRESHKEY="$DISKMD5"
-printf '%s\t%s\t#903\t2026-10-23T03:00Z\tbuild__UNIONFIXTURE\tan uncommitted hold, which is what the 450 stand-down writes immediately before citing it\t-\n' \
-  "$FRESHKEY" "0000000000000000000000000000000000000903" >> "$TD/gates/held-trees.tsv"
-ck "F5 a row added and NOT committed REFUSES at once" 1 env -C "$TD" "$VL" "$GOOD" "$FOOT"
-( cd "$TD" && git checkout -- gates/held-trees.tsv )
-ck "F5 and with that row gone, GOOD is accepted again - so F5 was the row and not the log" 0 env -C "$TD" "$VL" "$GOOD" "$FOOT"
-# (e) THE SOURCE KEY, the only one of the three that survives a rebuild, must also survive the deletion.
-printf 'SELFTEST source for the union cases\n' > "$TD/chess.jsx"
-( cd "$TD" && git add chess.jsx >/dev/null 2>&1 && git commit -q -m 'a chess.jsx for the source-key union case' >/dev/null 2>&1 )
-SRCKEY="$(printf 'SELFTEST source for the union cases\n' | md5sum | cut -c1-12)"
-SRCSHA="$( cd "$TD" && git rev-parse HEAD )"
-SRCLOG="$TD/logs/srckey.log"
-sed -e "1s/md5 $DISKMD5/md5 ffffffffffff/" "$GOOD" > "$SRCLOG"
-sed -i "s|^ref: HEAD .*|ref: HEAD $SRCSHA|" "$SRCLOG"
-printf 'aaaaaaaaaa03\t%s\t#904\t2026-10-23T03:00Z\tbuild__UNIONFIXTURE\ta source-key hold whose bundle md5 and gated sha both miss on purpose, so only field 7 can match\t%s\n' \
-  "0000000000000000000000000000000000000904" "$SRCKEY" >> "$TD/gates/held-trees.tsv"
-( cd "$TD" && git add gates/held-trees.tsv >/dev/null 2>&1 && git commit -q -m 'commit the source-key held row' >/dev/null 2>&1 )
-ck "F6 a SOURCE-key hold REFUSES (the control)" 1 env -C "$TD" "$VL" "$SRCLOG" "$FOOT"
-grep -v '^aaaaaaaaaa03' "$TD/gates/held-trees.tsv" > "$TD/h.x" && mv "$TD/h.x" "$TD/gates/held-trees.tsv"
-ck "F6 and it survives an uncommitted deletion of its row" 1 env -C "$TD" "$VL" "$SRCLOG" "$FOOT"
-( cd "$TD" && git checkout -- gates/held-trees.tsv )
-# (f) THE SOURCE IS NAMED IN THE OK LINE, so an archived answer says whether one source was read or two.
-gt0 "F7 the OK line names the register source and the per-source live counts" \
-    "$( env -C "$TD" "$VL" "$GOOD" "$FOOT" 2>&1 | grep -c 'source: HEAD and the working tree' )"
-# ---- THE MUTANT: the working-tree-only read restored, which is verify-log.sh as 707599b had it. ----
-# One literal edit: the two loops read "$REG" again instead of the union. It must turn F2 from REFUSED to OK.
-sed 's|done < "\$REGALL"|done < "$REG"|' "$VL" > "$TD/gates/vl-mutant.sh"; chmod +x "$TD/gates/vl-mutant.sh"
-VLM="$TD/gates/vl-mutant.sh"
-eq "F MUTANT both loops were put back to \$REG" "2 0" \
-   "$(grep -c 'done < "\$REG"' "$VLM") $(grep -c 'done < "\$REGALL"' "$VLM")"
-eq "F MUTANT parses" "yes" "$(bash -n "$VLM" 2>/dev/null && echo yes || echo no)"
-ck "F MUTANT refuses the held log on a clean tree, as the fix does" 1 env -C "$TD" "$VLM" "$HELDLOG" "$FOOT"
-grep -v "^$HELDKEY" "$TD/gates/held-trees.tsv" > "$TD/h.x" && mv "$TD/h.x" "$TD/gates/held-trees.tsv"
-ck "F MUTANT an uncommitted deletion LIFTS the refusal - the defect" 0 env -C "$TD" timeout 60 "$VLM" "$HELDLOG" "$FOOT"
-ck "F FIX the same tree still REFUSES" 1 env -C "$TD" "$VL" "$HELDLOG" "$FOOT"
-( cd "$TD" && git checkout -- gates/held-trees.tsv )
-echo
-
+# ── SECTION G SITS HERE, BEFORE SECTION E, AND THE PLACEMENT IS A REVERT REQUIREMENT AND NOT A PREFERENCE.
+# Run 11 lands four jobs as four commits and each must be revertible ALONE. Appended after section F (HELDWT's),
+# section G's hunk was ADJACENT to F's with only a blank line between, so `git revert` of HELDWT's commit on this
+# head CONFLICTED in this file - measured in a throwaway clone before the antagonist pair read anything. Moving G
+# above section E puts forty-odd lines of ORIGINAL, unchanged text between the two jobs' additions, so each
+# reverts cleanly. It also removes the hazard the other way round: section F commits a SOURCE-KEY held row whose
+# field 7 is the md5 of ITS chess.jsx, and while G ran after F every one of G's logs was refused by that row
+# before the series check was reached. G now runs first and writes its own source.
 echo "-- G. DID THE BUILD-NUMBER SERIES DOOR RUN? [#534, VLDOOR]"
 echo "      jobs/verify-log-sh-cannot-tell-whether-the-build-number-series-door-ran-so-an-older-green-log-still-authorises-a-push-2026-10-22,"
 echo "      filed by #533 against its own work. This script reads only lines beginning PASS, FAIL, '=== ',"
@@ -460,6 +353,121 @@ done
 ckmsg "G MUTANT2 but NOT 'mani', which the boundary guard refuses on both" 1 "0 series verdict line(s)" \
       env -C "$TD" timeout 60 "$TD/gates/vl-unanchored.sh" "$TD/logs/ser-mani.log" "$FOOT"
 ck "G MUTANT2 still agrees with the fix on the honest log" 0 env -C "$TD" "$TD/gates/vl-unanchored.sh" "$SEROK" "$FOOT"
+echo
+
+echo "-- E. THE HOLES. Written as the requirement, so each retires itself when the push gate is fixed."
+echo "      THE CAUSE IS ONE LINE: verify-log.sh:220 parses its own arguments with"
+echo "        for a in \"\${@:2}\"; do case \"\$a\" in --on-main) ...;; *) WANT=\"\$a\";; esac; done"
+echo "      so ANY unrecognised argument is silently taken to be the expected build number, and the last one"
+echo "      wins. A misspelled flag is therefore not an error - it is a build-number guess."
+echo "      AND THE EFFECT IS ORDER-DEPENDENT, which is sharper than the parent job records. Measured"
+echo "      2026-10-04 by this file: a misspelling placed AFTER the build number overwrites WANT and refuses"
+echo "      (for the wrong reason, as a build mismatch); placed BEFORE it, the correct number overwrites WANT,"
+echo "      the comparison passes, the flag is never set, and the run reads OK at exit 0 having silently"
+echo "      skipped the check it asked for. The build procedure passes the number first, so the dangerous"
+echo "      order is the one the project actually types. One line of output is the entire difference between"
+echo "      the two runs: 'THIS-BUNDLE OK'. Nothing else changes."
+for bad in --this-bundl --this--bundle -this-bundle --this_bundle --thisbundle; do
+  hole "verify-log-accepts-a-misspelled-this-bundle-and-returns-ok-2026-10-03" \
+       "a misspelled '$bad' before the build number must not read as a build number" 1 \
+       "$VL" "$GOOD" "$bad" "$FOOT"
+done
+hole "verify-log-accepts-a-misspelled-this-bundle-and-returns-ok-2026-10-03" \
+     "a misspelled '--on-mian' before the build number must not read as a build number" 1 \
+     "$VL" "$GOOD" --on-mian "$FOOT"
+hole "verify-log-accepts-a-misspelled-this-bundle-and-returns-ok-2026-10-03" \
+     "a bare unknown argument '--nonsense' must be refused rather than guessed at" 1 \
+     "$VL" "$GOOD" --nonsense "$FOOT"
+echo "      AND THE SAME PARSER HOLE HAS A SECOND MOUTH, found by this file rather than inherited:"
+echo "      a misspelling placed AFTER the number does refuse, but it refuses as 'you said X but the log gated"
+echo "      #NNN' - a build-number complaint for a flag typo. A reader who trusts that message will go and"
+echo "      check the build number, which is correct, and the typo survives the investigation."
+holeneg "verify-log-accepts-a-misspelled-this-bundle-and-returns-ok-2026-10-03" \
+     "a misspelling after the build number must not be reported as a build-number mismatch" 1 "you said" \
+     "$VL" "$GOOD" "$FOOT" --this-bundl
+echo "      THIS CASE WAS WRITTEN WRONG FIRST AND THE ERROR IS WORTH MORE THAN THE CASE [R18]. It was"
+echo "      written as a CONFIRMED case asserting the refusal says 'you said ... but the log gated #NNN',"
+echo "      which is today's behaviour - so it pinned the bug as the requirement, the exact 'snapshot of a"
+echo "      bug' this file's own header warns against twenty lines up. It was caught the only way it could"
+echo "      be: by running this selftest against a COPY of verify-log.sh with a candidate parser fix applied,"
+echo "      where the case went red under a correct fix. A control is only trustworthy once it has been seen"
+echo "      to flip, and the thing that flips it has to be the fix rather than the bug."
+echo
+
+echo "-- F. THE HELD REGISTER IS READ AS THE UNION OF HEAD'S COPY AND THE WORKING TREE'S [#534, HELDWT]"
+echo "      jobs/verify-log-sh-and-held-sh-read-the-held-register-from-the-working-tree-so-one-uncommitted-line-deletion-clears-a-held-refusal-2026-10-22,"
+echo "      routed from #531's antagonist B. Before the fix both of this script's register reads took the"
+echo "      WORKING TREE file alone, so ONE UNCOMMITTED LINE DELETION turned a REFUSED (held tree) at exit 1"
+echo "      into OK at exit 0. Measured on a clone of 707599b on the archived #452 log before the fix."
+echo "      THESE CASES SIT AFTER SECTION E ON PURPOSE, and the reason is the trap: section E's eight hole"
+echo "      cases run GOOD and reach the held check, so a held row naming GOOD's own md5 would flip seven of"
+echo "      them for a reason that has nothing to do with the hole. Every fixture below uses a key that is"
+echo "      NOT GOOD's, and the footer's hole counts are asserted unchanged at the end."
+# THE FIXTURE: a log whose header md5 is a key the register already holds (#452's bundle), which the sandbox's
+# own app.js is not. The register was copied in and COMMITTED by section D, so HEAD carries it.
+HELDKEY="81dc0469862c"
+HELDLOG="$TD/logs/held452.log"
+sed "1s/md5 $DISKMD5/md5 $HELDKEY/" "$GOOD" > "$HELDLOG"
+eq "F0 the fixture log really carries the held key on its header" "1" \
+   "$(head -1 "$HELDLOG" | grep -c "md5 $HELDKEY")"
+eq "F0 and that key is NOT GOOD's, so section E cannot be touched by it" "0" \
+   "$(head -1 "$GOOD" | grep -c "md5 $HELDKEY")"
+ck "F1 a held-by-md5 log is REFUSED (the control)" 1 env -C "$TD" "$VL" "$HELDLOG" "$FOOT"
+# (a) AN UNCOMMITTED DELETION MAY NOT LIFT IT.
+grep -v "^$HELDKEY" "$TD/gates/held-trees.tsv" > "$TD/h.x" && mv "$TD/h.x" "$TD/gates/held-trees.tsv"
+eq "F2 the deletion really is uncommitted and git sees it" "1" \
+   "$( cd "$TD" && git status --porcelain gates/held-trees.tsv | grep -c '^ M' )"
+ck "F2 an UNCOMMITTED DELETION still REFUSES" 1 env -C "$TD" "$VL" "$HELDLOG" "$FOOT"
+# (b) AN UNCOMMITTED '-' CLEAR, the register's own documented clear convention, is a different edit.
+( cd "$TD" && git checkout -- gates/held-trees.tsv )
+sed -i "s/^$HELDKEY/-$HELDKEY/" "$TD/gates/held-trees.tsv"
+ck "F3 an UNCOMMITTED '-' clear still REFUSES" 1 env -C "$TD" "$VL" "$HELDLOG" "$FOOT"
+# (c) DELETION PLUS assume-unchanged, which is what #531's antagonist B used: git status then prints NOTHING.
+( cd "$TD" && git checkout -- gates/held-trees.tsv )
+grep -v "^$HELDKEY" "$TD/gates/held-trees.tsv" > "$TD/h.x" && mv "$TD/h.x" "$TD/gates/held-trees.tsv"
+( cd "$TD" && git update-index --assume-unchanged gates/held-trees.tsv )
+eq "F4 git status prints nothing, which is the point of this case" "0" \
+   "$( cd "$TD" && git status --porcelain gates/held-trees.tsv | grep -c . )"
+ck "F4 deletion + assume-unchanged still REFUSES" 1 env -C "$TD" "$VL" "$HELDLOG" "$FOOT"
+( cd "$TD" && git update-index --no-assume-unchanged gates/held-trees.tsv && git checkout -- gates/held-trees.tsv )
+# (d) THE OTHER DIRECTION, which is why this is a union and not a HEAD read: a row `held.sh add` has only just
+#     written is NOT YET COMMITTED, and the #450 stand-down writes exactly such a row and then cites it.
+FRESHKEY="$DISKMD5"
+printf '%s\t%s\t#903\t2026-10-23T03:00Z\tbuild__UNIONFIXTURE\tan uncommitted hold, which is what the 450 stand-down writes immediately before citing it\t-\n' \
+  "$FRESHKEY" "0000000000000000000000000000000000000903" >> "$TD/gates/held-trees.tsv"
+ck "F5 a row added and NOT committed REFUSES at once" 1 env -C "$TD" "$VL" "$GOOD" "$FOOT"
+( cd "$TD" && git checkout -- gates/held-trees.tsv )
+ck "F5 and with that row gone, GOOD is accepted again - so F5 was the row and not the log" 0 env -C "$TD" "$VL" "$GOOD" "$FOOT"
+# (e) THE SOURCE KEY, the only one of the three that survives a rebuild, must also survive the deletion.
+printf 'SELFTEST source for the union cases\n' > "$TD/chess.jsx"
+( cd "$TD" && git add chess.jsx >/dev/null 2>&1 && git commit -q -m 'a chess.jsx for the source-key union case' >/dev/null 2>&1 )
+SRCKEY="$(printf 'SELFTEST source for the union cases\n' | md5sum | cut -c1-12)"
+SRCSHA="$( cd "$TD" && git rev-parse HEAD )"
+SRCLOG="$TD/logs/srckey.log"
+sed -e "1s/md5 $DISKMD5/md5 ffffffffffff/" "$GOOD" > "$SRCLOG"
+sed -i "s|^ref: HEAD .*|ref: HEAD $SRCSHA|" "$SRCLOG"
+printf 'aaaaaaaaaa03\t%s\t#904\t2026-10-23T03:00Z\tbuild__UNIONFIXTURE\ta source-key hold whose bundle md5 and gated sha both miss on purpose, so only field 7 can match\t%s\n' \
+  "0000000000000000000000000000000000000904" "$SRCKEY" >> "$TD/gates/held-trees.tsv"
+( cd "$TD" && git add gates/held-trees.tsv >/dev/null 2>&1 && git commit -q -m 'commit the source-key held row' >/dev/null 2>&1 )
+ck "F6 a SOURCE-key hold REFUSES (the control)" 1 env -C "$TD" "$VL" "$SRCLOG" "$FOOT"
+grep -v '^aaaaaaaaaa03' "$TD/gates/held-trees.tsv" > "$TD/h.x" && mv "$TD/h.x" "$TD/gates/held-trees.tsv"
+ck "F6 and it survives an uncommitted deletion of its row" 1 env -C "$TD" "$VL" "$SRCLOG" "$FOOT"
+( cd "$TD" && git checkout -- gates/held-trees.tsv )
+# (f) THE SOURCE IS NAMED IN THE OK LINE, so an archived answer says whether one source was read or two.
+gt0 "F7 the OK line names the register source and the per-source live counts" \
+    "$( env -C "$TD" "$VL" "$GOOD" "$FOOT" 2>&1 | grep -c 'source: HEAD and the working tree' )"
+# ---- THE MUTANT: the working-tree-only read restored, which is verify-log.sh as 707599b had it. ----
+# One literal edit: the two loops read "$REG" again instead of the union. It must turn F2 from REFUSED to OK.
+sed 's|done < "\$REGALL"|done < "$REG"|' "$VL" > "$TD/gates/vl-mutant.sh"; chmod +x "$TD/gates/vl-mutant.sh"
+VLM="$TD/gates/vl-mutant.sh"
+eq "F MUTANT both loops were put back to \$REG" "2 0" \
+   "$(grep -c 'done < "\$REG"' "$VLM") $(grep -c 'done < "\$REGALL"' "$VLM")"
+eq "F MUTANT parses" "yes" "$(bash -n "$VLM" 2>/dev/null && echo yes || echo no)"
+ck "F MUTANT refuses the held log on a clean tree, as the fix does" 1 env -C "$TD" "$VLM" "$HELDLOG" "$FOOT"
+grep -v "^$HELDKEY" "$TD/gates/held-trees.tsv" > "$TD/h.x" && mv "$TD/h.x" "$TD/gates/held-trees.tsv"
+ck "F MUTANT an uncommitted deletion LIFTS the refusal - the defect" 0 env -C "$TD" timeout 60 "$VLM" "$HELDLOG" "$FOOT"
+ck "F FIX the same tree still REFUSES" 1 env -C "$TD" "$VL" "$HELDLOG" "$FOOT"
+( cd "$TD" && git checkout -- gates/held-trees.tsv )
 echo
 
 echo "---"
