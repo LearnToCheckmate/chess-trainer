@@ -607,7 +607,13 @@ tc() {
   git -C "$dp" update-ref refs/remotes/origin/main HEAD 2>/dev/null
   st C69-base-ref-at-HEAD-is-NOT-CHECKED "$(CT_RUNID=$GFMINE st_gfv "$dp" "$ST_T/gf.sh")" NOT
   st C69b-and-it-does-not-stop-the-suite "$( CT_RUNID=$GFMINE st_gfrun "$dp" "$ST_T/gf.sh" >/dev/null 2>&1; echo $? )" 0
-  st C69c-and-it-says-why-nothing-was-compared "$(CT_RUNID=$GFMINE st_gfn "$dp" "$ST_T/gf.sh" 'the base ref points at HEAD, so no comparison is possible')" 1
+  # C69c's NEEDLE CHANGED AT #534 AND THE CASE DID NOT [R18]. It quoted "(not read: the base ref points at
+  # HEAD, so no comparison is possible)", which was true while the branch read no register. G6's remainder
+  # makes the branch read all four and judge the uncommitted rows, so that clause is gone and would have
+  # turned this case red on a CORRECT tree. The requirement it encodes - the line must say why nothing was
+  # compared - is unchanged and is now carried by the counts clause, which says it of the COMMITTED rows
+  # only, because that is now the honest scope.
+  st C69c-and-it-says-why-the-committed-rows-were-not-compared "$(CT_RUNID=$GFMINE st_gfn "$dp" "$ST_T/gf.sh" 'were NOT compared')" 1
   st C69d-and-the-word-ok-is-absent-from-the-line "$(CT_RUNID=$GFMINE st_gfrun "$dp" "$ST_T/gf.sh" | grep -m1 '^build-number series:' | grep -cw ok)" 0
   # C70: THE HONEST MULTI-OWNER GAP FILL - a RESUMED run, where the number was minted by the run that died and
   # built by this one. The old escape required that NO row be another run's and that there be exactly one
@@ -867,6 +873,67 @@ tc() {
   st C88d-and-the-token-is-visibly-neutralised "$( CT_RUNID='x GATES GREEN #533' st_gfn "$d2" "$ST_T/gf.sh" 'GATES_GREEN' )" 1
   st C88e-and-the-escape-is-neutralised-too "$( CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE='GATES GREEN #533' st_gfrun "$d2" "$ST_T/gf.sh" | grep -c 'GATES GREEN' )" 0
 
+  # ── C89: G6'S REMAINDER (#534). THE BASE REF AT HEAD NOW JUDGES THE UNCOMMITTED ROWS.
+  # #533 landed the base-at-HEAD branch as an EARLY RETURN that read NO register, so an UNCOMMITTED gap-fill
+  # row reached every gate unjudged while the line read NOT CHECKED at exit 0. That is the one clause left of
+  # G6's whatWouldCloseIt: "the full suite does not go green on a gap fill row that nothing accounts for".
+  # Reproduced on 707599b before the fix and again here as C89.
+  # WHY THESE CASES ARE A SET AND NOT ONE CASE: the branch now reaches the SAME stampable, census and escape
+  # routes as the main path, so the thing to control is the PARTITION - which shapes RED, which are NOT
+  # CHECKED and which OVERRIDE - and above all that the verdict word is NOT CHECKED exactly where the main
+  # path would have said ok, and is NOT softened where the main path would have refused. M18 is the mutant.
+  # EVERY FIXTURE HERE LEAVES refs/remotes/origin/main AT HEAD, which is what st_mk already does, so the
+  # distinguishing act is COMMITTING (or not) rather than re-pointing the ref.
+  dC="$(st_mk gfC)"; st_row 363 issued - "$GFOTHER" measured >> "$dC/gates/build-numbers.tsv"
+  st C89-an-UNCOMMITTED-gapfill-with-base-at-HEAD-is-RED "$(CT_RUNID=$GFMINE st_gfv "$dC" "$ST_T/gf.sh")" RED
+  st C89a-and-it-prints-the-row-field-for-field "$(CT_RUNID=$GFMINE st_gfn "$dC" "$ST_T/gf.sh" 'n=\[363\]')" 1
+  st C89b-and-the-counts-name-one-unaccounted "$(CT_RUNID=$GFMINE st_gfn "$dC" "$ST_T/gf.sh" 'unaccounted=1')" 1
+  st C89c-and-the-counts-say-the-committed-rows-were-not-compared "$(CT_RUNID=$GFMINE st_gfn "$dC" "$ST_T/gf.sh" 'base-at-HEAD=yes')" 1
+  st C89d-and-it-DOES-stop-the-suite "$( CT_RUNID=$GFMINE st_gfrun "$dC" "$ST_T/gf.sh" >/dev/null 2>&1; echo $? )" 1
+  # THE DENOMINATOR, ASSERTED SEPARATELY [prompts/common, the eleventh costume]: the clause above is only
+  # evidence if the judged set was NON-EMPTY, and a door that judged nothing would also print no unaccounted
+  # row. This case reads the count of rows the door says it judged, so the set cannot be empty unnoticed.
+  st C89e-and-one-uncommitted-row-was-actually-judged "$(CT_RUNID=$GFMINE st_gfn "$dC" "$ST_T/gf.sh" 'the 1 uncommitted row(s) WERE judged')" 1
+  # AN UNCOMMITTED DELETION OF A COMMITTED ROW IS STILL RED with the base at HEAD: del_w is head-minus-worktree
+  # and HEAD is readable whatever the base ref points at, so this half never depended on the base.
+  dD="$(st_mk gfD)"; grep -v '^531' "$dD/gates/build-numbers.tsv" > "$dD/x" && mv "$dD/x" "$dD/gates/build-numbers.tsv"
+  st C89f-an-uncommitted-DELETION-with-base-at-HEAD-is-RED "$(CT_RUNID=$GFMINE st_gfv "$dD" "$ST_T/gf.sh")" RED
+  st C89g-and-the-deletion-half-is-the-working-tree-one "$(CT_RUNID=$GFMINE st_gfn "$dD" "$ST_T/gf.sh" 'head-vs-worktree=1')" 1
+  # MY OWN UNCOMMITTED MINT ROW ABOVE HEAD'S TOP: NOT CHECKED, never RED and never ok. This is the shape this
+  # run's own suite launches on, so a RED here would wedge the documented path - #530's and #532's withdrawal.
+  dE="$(st_mk gfE)"; st_row 534 minted - "$GFMINE" minted >> "$dE/gates/build-numbers.tsv"
+  st C89h-my-own-uncommitted-mint-above-the-top-is-NOT-CHECKED "$(CT_RUNID=$GFMINE st_gfv "$dE" "$ST_T/gf.sh")" NOT
+  st C89i-and-never-RED "$(CT_RUNID=$GFMINE st_gfrun "$dE" "$ST_T/gf.sh" | grep -m1 '^build-number series:' | grep -c 'RED')" 0
+  st C89j-and-the-word-ok-is-absent "$(CT_RUNID=$GFMINE st_gfrun "$dE" "$ST_T/gf.sh" | grep -m1 '^build-number series:' | grep -cw ok)" 0
+  # AN UNCOMMITTED GAP FILL THAT stampable SAYS IS YOURS: NOT CHECKED, armed or not. The ownership answer is
+  # the authority's and not this branch's, which is the prescription both earlier withdrawals pointed at.
+  dF="$(st_mk gfF)"; st_row 363 minted - "$GFMINE" minted >> "$dF/gates/build-numbers.tsv"
+  st C89k-an-uncommitted-gapfill-that-is-yours-is-NOT-CHECKED "$(CT_RUNID=$GFMINE st_gfv "$dF" "$ST_T/gf.sh")" NOT
+  st C89l-and-the-same-with-the-escape-armed "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=363 st_gfv "$dF" "$ST_T/gf.sh")" NOT
+  st C89m-and-the-counts-credit-it-as-yours "$(CT_RUNID=$GFMINE st_gfn "$dF" "$ST_T/gf.sh" 'yours=1')" 1
+  # THE ESCAPE IN C70'S RESUMED-RUN SHAPE, UNCOMMITTED: OVERRIDE with it, RED without. HEAD'S TOP IS #534 AND
+  # ANOTHER RUN'S, COMMITTED, AND THAT IS LOAD-BEARING: with the top at 532 the number 533 EXTENDS the series
+  # instead of filling a gap, the door reports it without judging it, and the case reads NOT CHECKED on fix
+  # and mutant alike. My first draft of this control did exactly that and measured it - the fixture was wrong
+  # and the fix was right, which is the trap in prompts/common's own words (check the control moved the
+  # quantity the assertion reads at all).
+  dG="$(st_mk gfG)"; st_row 534 issued - "$GFOTHER" run-log >> "$dG/gates/build-numbers.tsv"
+  st_gc "$dG" add -A; st_gc "$dG" commit -q -m 'another container pushed #534'
+  git -C "$dG" update-ref refs/remotes/origin/main HEAD 2>/dev/null
+  st_row 533 minted - "$GFOTHER" minted >> "$dG/gates/build-numbers.tsv"; st_row 533 built - "$GFMINE" built >> "$dG/gates/build-numbers.tsv"
+  st C89n-the-resumed-run-shape-uncommitted-is-RED-unarmed "$(CT_RUNID=$GFMINE st_gfv "$dG" "$ST_T/gf.sh")" RED
+  st C89o-and-OVERRIDE-with-the-escape-naming-533 "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=533 st_gfv "$dG" "$ST_T/gf.sh")" OVERRIDE
+  st C89p-and-the-OVERRIDE-outranks-the-NOT-CHECKED "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=533 st_gfrun "$dG" "$ST_T/gf.sh" | grep -m1 '^build-number series:' | grep -c 'NOT CHECKED')" 0
+  # A CLEAN TREE WITH THE BASE AT HEAD IS UNCHANGED: NOT CHECKED, and the suite runs. C69, C69b and C69d
+  # already cover the committed plant; this is the no-working-tree-change cell beside it.
+  dH="$(st_mk gfH)"
+  st C89q-a-clean-tree-with-base-at-HEAD-is-NOT-CHECKED "$(CT_RUNID=$GFMINE st_gfv "$dH" "$ST_T/gf.sh")" NOT
+  st C89r-and-it-does-not-stop-the-suite "$( CT_RUNID=$GFMINE st_gfrun "$dH" "$ST_T/gf.sh" >/dev/null 2>&1; echo $? )" 0
+  st C89s-and-it-says-nothing-was-judged "$(CT_RUNID=$GFMINE st_gfn "$dH" "$ST_T/gf.sh" 'the 0 uncommitted row(s) WERE judged')" 1
+  # AND GF_NOCHK IS STILL PRINTED on every one of them, which is what C79, C79b and M14a-c assert on $dp:
+  # the words were KEPT verbatim by this fix and the new scope clause is added beside them, not instead.
+  st C89t-the-NOT-CHECKED-line-still-carries-GF_NOCHK "$(CT_RUNID=$GFMINE st_gfn "$dH" "$ST_T/gf.sh" "there is no base to judge appended rows against")" 1
+
   # ── THE SIXTEEN MUTANTS. Each is the extracted block with ONE literal string put back, and each TURNS a case. ──
   echo "SELFTEST NOTE mutants: each is $ST_T/gf.sh with one literal edit; a case that passes on both would be no control at all."
   # MUTANT 1, AND IT IS THE DECISIVE ONE: a merge-base ceiling in front of stampable - #532's own door. It
@@ -984,7 +1051,14 @@ M1INS
   # MUTANT 9: the base-ref-at-HEAD branch removed, which is what the door did before antagonist B followed its
   # own printed remedy. The committed plant then reads `ok` with `appended=0` - a green claiming the push
   # carries no new rows at all.
-  awk '/if \[ -n "\$\{GF_BASESHA:-\}" \] && \[ "\$GF_BASESHA" = "\$\{GF_HEADSHA:-\}" \]; then/{d=1} d&&/^    elif \[ -z "\$\{GF_MB:-\}" \]; then/{print "    if [ -z \"${GF_MB:-}\" ]; then"; d=0; next} d{next} {print}' "$ST_T/gf.sh" > "$ST_T/m9.sh"
+  # RE-KEYED AT #534 BECAUSE G6'S REMAINDER CHANGED BOTH LINES THIS AWK ANCHORED ON, and the re-key is part of
+  # that fix rather than a tidy-up: the branch no longer ends in `elif [ -z "${GF_MB:-}" ]` (it closes with
+  # `fi` and the chain below it is guarded on GF_BASEATHEAD), so the old anchor matched NOTHING, `d` was never
+  # reset, and the mutant would have been the block truncated at the branch - which parses but is not the door
+  # it claims to be. ITS MEANING IS UNCHANGED: delete the block that sets GF_BASEATHEAD, and because that flag
+  # is initialised far above (outside this range, on purpose) the mutant runs the main path with the flag at 0
+  # and so prints `ok` where the fix prints NOT CHECKED. M9b and M9c are the same two assertions as before.
+  awk '/if \[ -n "\$\{GF_BASESHA:-\}" \] && \[ "\$GF_BASESHA" = "\$\{GF_HEADSHA:-\}" \]; then/{d=1} d&&/^    if \[ "\$GF_BASEATHEAD" = "0" \] && \[ -z "\$\{GF_MB:-\}" \]; then/{d=0} !d{print}' "$ST_T/gf.sh" > "$ST_T/m9.sh"
   st M9-the-no-base-guard-mutant-parses "$(bash -n "$ST_T/m9.sh" 2>/dev/null && echo yes || echo no)" yes
   st M9a-FIX-says-NOT-CHECKED "$(CT_RUNID=$GFMINE st_gfv "$dp" "$ST_T/gf.sh")" NOT
   st M9b-MUTANT-reads-the-plant-ok "$(CT_RUNID=$GFMINE st_gfv "$dp" "$ST_T/m9.sh")" ok
@@ -1078,6 +1152,22 @@ M16PY
   st M17a-and-it-really-dropped-the-line "$( [ "$(grep -c '' < "$ST_T/m17.sh")" -lt "$(grep -c '' < "$ST_T/gf.sh")" ] && echo dropped || echo same )" dropped
   st M17b-FIX-keeps-the-notice-on-a-higher-offender "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfn "$dB" "$ST_T/gf.sh" 'ARMED FOR #401 AND DID NOT APPLY')" 1
   st M17c-MUTANT-loses-it "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=401 st_gfn "$dB" "$ST_T/m17.sh" 'ARMED FOR #401 AND DID NOT APPLY')" 0
+
+  # MUTANT 18 (#534, G6's remainder): THE OLD BLINDNESS PUT BACK. M9 deletes the branch and so loses the
+  # verdict WORD; this one keeps the word and removes the JUDGEMENT, which is the defect as it actually
+  # shipped at #533 - the branch answered NOT CHECKED without reading a register, so an uncommitted gap-fill
+  # row reached every gate. One literal edit: when the base is at HEAD, the appended-from-the-working-tree
+  # set is emptied instead of computed, which is exactly what an early return did. It must turn C89 from RED
+  # to NOT CHECKED and C89e's denominator from 1 to 0.
+  st_sub "$ST_T/gf.sh" "$ST_T/m18.sh" 'gf_minus "$GF_T/wt.rows"   "$GF_T/head.rows" > "$GF_T/app_w"' 'if [ "$GF_BASEATHEAD" = "1" ]; then : > "$GF_T/app_w"; else gf_minus "$GF_T/wt.rows" "$GF_T/head.rows" > "$GF_T/app_w"; fi'
+  st M18-the-old-blindness-mutant-parses "$(bash -n "$ST_T/m18.sh" 2>/dev/null && echo yes || echo no)" yes
+  st M18a-FIX-reds-the-uncommitted-gapfill "$(CT_RUNID=$GFMINE st_gfv "$dC" "$ST_T/gf.sh")" RED
+  st M18b-MUTANT-reads-it-NOT-CHECKED "$(CT_RUNID=$GFMINE st_gfv "$dC" "$ST_T/m18.sh")" NOT
+  st M18c-and-the-MUTANT-judged-nothing "$(CT_RUNID=$GFMINE st_gfn "$dC" "$ST_T/m18.sh" 'the 0 uncommitted row(s) WERE judged')" 1
+  st M18d-and-the-MUTANT-does-not-stop-the-suite "$( CT_RUNID=$GFMINE st_gfrun "$dC" "$ST_T/m18.sh" >/dev/null 2>&1; echo $? )" 0
+  # AND IT AGREES WITH THE FIX WHERE THE BASE IS NOT AT HEAD, which is why no existing case could see it: a
+  # mutant that differed everywhere would be caught by any one of the hundred cases above.
+  st M18e-mutant-and-fix-agree-off-this-branch "$(CT_RUNID=$GFMINE st_gfv "$d2" "$ST_T/m18.sh")" RED
 
   # AND THE EXTRACTION M7g CHECKS IS BOUNDED [antagonist A of the fifth pair, P3-3]: M7g asserted only that the
   # function's first line is there, which is true whether the range ended at the function or ran to EOF.
@@ -1356,6 +1446,12 @@ GF_COUNTS="$GF_IDENT base=(not read) merge-base=(not read); rows read: base=- he
 GF_STOP=0
 GF_WHY=""
 GF_ROWSHOW=""
+# INITIALISED HERE, OUTSIDE THE BLOCK MUTANT M9 DELETES, AND THAT PLACEMENT IS THE POINT [#534, G6].
+# M9 removes the base-at-HEAD handling to prove this door's verdict word depends on it. If this flag were
+# initialised inside that block the mutant would die on `set -u` at the verdict assembly instead of reading
+# `ok`, and a mutant that crashes proves nothing about the predicate it replaced - which is #532's own
+# recorded failure (a restored predicate that left its 51-case arm at 85 pass / 0 fail).
+GF_BASEATHEAD=0
 GF_GIT=(git --git-dir "$ROOT/.git" --work-tree "$ROOT")
 # `unknown-run` IS THIS PROJECT'S LITERAL FOR NOBODY AND MAY NOT BE A runId HERE [antagonist A of #533]. It is
 # what gates/build.sh writes into field 7 when CT_RUNID is not exported (gates/buildnum.sh:519), and the escape
@@ -1442,7 +1538,23 @@ else
     GF_HEADSHA="$("${GF_GIT[@]}" rev-parse HEAD 2>/dev/null || true)"
     GF_MB="$("${GF_GIT[@]}" merge-base HEAD refs/remotes/origin/main 2>/dev/null || true)"
     if [ -n "${GF_BASESHA:-}" ] && [ "$GF_BASESHA" = "${GF_HEADSHA:-}" ]; then
-      # NOT CHECKED, NEVER ok [antagonist B of #533, P2-1]. The refusal one branch below invites a stuck run to
+      # NOT CHECKED FOR THE COMMITTED ROWS, AND THE UNCOMMITTED ONES ARE NOW JUDGED [#534, G6's remainder].
+      # #533 landed this branch as an EARLY RETURN: it assembled its own verdict line and read NO register at
+      # all, so with the base ref at HEAD an UNCOMMITTED gap-fill row reached every gate unjudged - measured
+      # by the orchestrator on 707599b and reproduced here before the fix (a bare #363 row, foreign runId,
+      # '-' in field 3, left uncommitted: NOT CHECKED at exit 0, then mountcheck and the gates ran).
+      # WHY THE MAIN PATH IS THE WHOLE FIX, rather than a second implementation beside it: a base at HEAD
+      # makes base.rows and mb.rows EQUAL head.rows by construction, and the main path's four set
+      # differences then already say exactly the right things - `head-vs-base` is 0 because no committed row
+      # CAN be judged, `worktree-vs-head` is the appended set, `head-vs-worktree` is a working-tree
+      # deletion, and GF_TOP is HEAD's own series top. So this branch sets a FLAG and falls through to that
+      # path; it duplicates no logic, and the stampable, census and escape routes are the same ones, which
+      # is why a row that is yours by attribution cannot read differently here than anywhere else.
+      # THE VERDICT WORD IS THE ONLY THING THAT CHANGES: `ok` becomes NOT CHECKED, because the committed
+      # rows were not compared, while RED and OVERRIDE stand as the main path sets them.
+      # AND THE DEAD LIMB IS NOW LIVE: the assembly below carried a GF_NOCHK branch that two antagonists of
+      # #533 proved UNREACHABLE and removed, precisely because this branch never reached it. It is restored
+      # there, and C81a is the control that it fires rather than a comment claiming it does. The refusal one branch below invites a stuck run to
       # run `git update-ref refs/remotes/origin/main <the base sha>`, and the obvious misreading of that is
       # HEAD. Do it and the base becomes the tree under test: every committed row is in the base, `appended`
       # reads 0, and a committed plant READ ok with the door reporting a push that carries no new rows at all.
@@ -1456,6 +1568,7 @@ else
       # is the FALSE sentence (the door ran and reached a verdict) that the five early refusals already have
       # a guard against. Same class, one branch later.
       GF_STOP=0
+      GF_BASEATHEAD=1
             # EVERY QUOTE IN THESE TWO MESSAGES IS A SINGLE QUOTE, AND THE REASON IS A P0 OF THIS BUILD'S OWN
       # [antagonist B of the third pair, #533]. Both strings are double-quoted and both named a git command in
       # BACKTICKS, so bash ran them as command substitutions while merely BUILDING the message: the door
@@ -1475,12 +1588,26 @@ else
       # GATES GREEN with nothing judged - and it carried runId and the two shas but NO escape, so a NOT CHECKED
       # beside an armed escape was a push artefact in which neither fact was recoverable by any reader. The
       # round-five claim "ON EVERY VERDICT INCLUDING THE GREENS" was false for exactly this line.
-      GF_LINE="build-number series: NOT CHECKED - $GF_IDENT base=$(printf '%.12s' "${GF_BASESHA:-unknown}") merge-base=$(printf '%.12s' "${GF_MB:-unknown}"); rows read: base=- head=- worktree=- merge-base=- (not read: the base ref points at HEAD, so no comparison is possible) - $GF_NOCHK"
-    elif [ -z "${GF_MB:-}" ]; then
+      # NO GF_LINE IS ASSEMBLED HERE ANY MORE. It is built by the one assembly below, from the counts the
+      # main path measures, so this branch can no longer publish a verdict about rows it never read.
+    fi
+    # THE TWO REFUSALS BELOW DO NOT APPLY WHEN THE BASE IS AT HEAD, and the guard is the flag rather than a
+    # re-test of the shas: with base == HEAD, `merge-base HEAD refs/remotes/origin/main` IS HEAD, so GF_MB is
+    # non-empty and `show "$GF_MB:..."` resolves - measured, not assumed, on the reproduction fixture, where
+    # merge-base printed the same 12 hex as base and head. They are guarded anyway so that a future change to
+    # either refusal cannot silently swallow this branch.
+    if [ "$GF_BASEATHEAD" = "0" ] && [ -z "${GF_MB:-}" ]; then
       GF_STOP=1; GF_WHY="merge-base HEAD refs/remotes/origin/main could not be computed, so this door cannot tell a DELETED register row from a base that has simply moved ahead of an unrebased HEAD - the two have the same surface signature, and reading the second as the first is what rebuilt #530's wedge. THE REMEDY, BRANCHED ON THE DATUM RATHER THAN PRESCRIBED OVER IT [antagonist B of #533, P3-1 and P3-3]: the first version of this sentence printed 'is-shallow-repository' and then prescribed a deepen or an unshallow whatever it said, and on a COMPLETE repository 'git fetch --unshallow' answers 'fatal: --unshallow on a complete repository does not make sense' - a refusal whose own remedy cannot be run. $( if [ "$("${GF_GIT[@]}" rev-parse --is-shallow-repository 2>/dev/null || echo unknown)" = "true" ]; then printf '%s' "This clone IS shallow, so the base commit is simply not in the pack: run git fetch --deepen 200 origin, or git fetch --unshallow, and re-run."; else printf '%s' "This clone is NOT shallow, so a deepen or an unshallow will not help and --unshallow will refuse outright: HEAD and refs/remotes/origin/main genuinely share no ancestor in it. Check what that ref points at (git rev-parse refs/remotes/origin/main) against the real base (git ls-remote origin refs/heads/main); the usual cause is a ref planted in a throwaway clone."; fi )"
-    elif ! "${GF_GIT[@]}" show "$GF_MB:gates/build-numbers.tsv" > "$GF_T/mb.raw" 2>"$GF_T/mb.err"; then
+    elif [ "$GF_BASEATHEAD" = "0" ] && ! "${GF_GIT[@]}" show "$GF_MB:gates/build-numbers.tsv" > "$GF_T/mb.raw" 2>"$GF_T/mb.err"; then
       GF_STOP=1; GF_WHY="the register at the merge-base $GF_MB could not be read ($(sed -n '1p' "$GF_T/mb.err" 2>/dev/null || true))."
     else
+      # WITH THE BASE AT HEAD THE GUARDED `elif` DID NOT RUN, so mb.raw has not been written yet. Read it
+      # here from GF_MB, which is HEAD in that case, so the merge-base set equals HEAD's and `del_h`
+      # (merge-base minus HEAD) is 0 by construction - no committed row can read as a deletion on a tree
+      # whose base is its own HEAD, which is correct: there is nothing to have deleted it from.
+      if [ "$GF_BASEATHEAD" = "1" ]; then
+        "${GF_GIT[@]}" show "$GF_MB:gates/build-numbers.tsv" > "$GF_T/mb.raw" 2>"$GF_T/mb.err" || : > "$GF_T/mb.raw"
+      fi
       cp "$GF_REG" "$GF_T/wt.raw"
       gf_rows "$GF_T/base.raw" "$GF_T/base.rows"; gf_rows "$GF_T/head.raw" "$GF_T/head.rows"
       gf_rows "$GF_T/mb.raw"   "$GF_T/mb.rows";   gf_rows "$GF_T/wt.raw"   "$GF_T/wt.rows"
@@ -1745,6 +1872,14 @@ else
       # detection and on its last-line check, which is why this was P2 and not P1 - but the guarantee was gone,
       # and the trigger was an environment variable rather than a code change.
       GF_COUNTS="$GF_IDENT base=$(printf '%.12s' "${GF_BASESHA:-unknown}") merge-base=$(printf '%.12s' "${GF_MB:-unknown}"); rows read: base=$GF_NB head=$GF_NH worktree=$GF_NW merge-base=$GF_NM; appended=$((GF_A1+GF_A2)) (head-vs-base=$GF_A1 worktree-vs-head=$GF_A2); ${GF_CLS:-gap-fill=$GF_GF (yours=$GF_Y census=$GF_C override=$GF_O unaccounted=$GF_U); base-held=$GF_K; extends-the-series=$GF_E}; deletions: merge-base-vs-head=$GF_D1 head-vs-worktree=$GF_D2"
+      # AND WITH THE BASE AT HEAD THE COUNTS SAY SO, because `head-vs-base=0` is otherwise a true number a
+      # reader will take for a claim about the push [#534, G6's remainder]. The clause names the scope of the
+      # judgement rather than leaving it to be inferred from a zero: how many uncommitted rows WERE judged,
+      # and that the committed rows were not compared at all. This is the half that makes the NOT CHECKED
+      # verdict below readable in an archived log, where nobody can re-run the door to find out what it saw.
+      if [ "$GF_BASEATHEAD" = "1" ]; then
+        GF_COUNTS="$GF_COUNTS; base-at-HEAD=yes (the base ref points at HEAD, so head-vs-base is 0 BY CONSTRUCTION and the $GF_NH committed row(s) were NOT compared; the $GF_A2 uncommitted row(s) WERE judged, and a deletion could only be seen against the working tree)"
+      fi
       # THE DEAD LIMB IS GONE [antagonist A of the third pair, P3-3 and antagonist B of the fourth pair, P2-1,
       # the same finding from both doors]. A branch on GF_NOCHK stood here claiming it "must come FIRST so no
       # later branch can relabel it ok", and it was UNREACHABLE: GF_NOCHK is set only in the base-ref-at-HEAD
@@ -1755,6 +1890,15 @@ else
         GF_LINE="build-number series: RED - $GF_COUNTS"
       elif [ "$GF_O" != "0" ]; then
         GF_LINE="build-number series: OVERRIDE - $GF_COUNTS"
+      elif [ "$GF_BASEATHEAD" = "1" ]; then
+        # THE LIMB THE COMMENT ABOVE CORRECTLY CALLED DEAD, RESTORED NOW THAT IT IS REACHABLE [#534, G6].
+        # Its ORDER is the whole of its correctness and it is third on purpose: a base at HEAD must NOT
+        # soften a refusal, so RED (an unaccounted uncommitted row, or a working-tree deletion) and OVERRIDE
+        # both outrank it, and only the case the main path would have called `ok` becomes NOT CHECKED -
+        # because `ok` would be a green earned over the uncommitted rows alone while reading as a verdict on
+        # the push. Put this limb FIRST and the door stops refusing the very row G6 exists for; C81b is the
+        # control for that ordering, not this comment.
+        GF_LINE="build-number series: NOT CHECKED - $GF_COUNTS - $GF_NOCHK"
       else
         GF_LINE="build-number series: ok - $GF_COUNTS"
       fi
