@@ -903,8 +903,18 @@ tc() {
   # run's own suite launches on, so a RED here would wedge the documented path - #530's and #532's withdrawal.
   dE="$(st_mk gfE)"; st_row 534 minted - "$GFMINE" minted >> "$dE/gates/build-numbers.tsv"
   st C89h-my-own-uncommitted-mint-above-the-top-is-NOT-CHECKED "$(CT_RUNID=$GFMINE st_gfv "$dE" "$ST_T/gf.sh")" NOT
-  st C89i-and-never-RED "$(CT_RUNID=$GFMINE st_gfrun "$dE" "$ST_T/gf.sh" | grep -m1 '^build-number series:' | grep -c 'RED')" 0
-  st C89j-and-the-word-ok-is-absent "$(CT_RUNID=$GFMINE st_gfrun "$dE" "$ST_T/gf.sh" | grep -m1 '^build-number series:' | grep -cw ok)" 0
+  # `grep ... | sed -n '1p'` AND NOT `grep -m1`, IN THESE THREE AND DELIBERATELY [#534]. `grep -m1` exits as
+  # soon as it matches, which closes the pipe and can hand the upstream a SIGPIPE - and under `pipefail` the
+  # whole substitution then reads 141 instead of the count, so the case reports a number that is not a count.
+  # gates/gatemanifest.sh's selftest ratchets these sites, and MY OWN THREE NEW ONES PUSHED A BREACHED RATCHET
+  # FURTHER: measured, the base tree reads "23 early-exit pipe(s) ... D 16, total ceiling 15" and my tree read
+  # 26 with D 19. The ratchet was already over its ceiling at 707599b and that is not this run's to close, but
+  # adding to it IS, and the three were mine. `sed -n '1p'` takes the first line without exiting early, so the
+  # upstream always completes. The other `grep -m1` sites in this arm predate this run and are left alone
+  # rather than swept, because the count is back to the base's 23 and a sweep of pre-existing sites is a
+  # different job from not making it worse.
+  st C89i-and-never-RED "$(CT_RUNID=$GFMINE st_gfrun "$dE" "$ST_T/gf.sh" | grep '^build-number series:' | sed -n '1p' | grep -c 'RED')" 0
+  st C89j-and-the-word-ok-is-absent "$(CT_RUNID=$GFMINE st_gfrun "$dE" "$ST_T/gf.sh" | grep '^build-number series:' | sed -n '1p' | grep -cw ok)" 0
   # C89u-C89w: APPENDED IS NOT JUDGED, AND dE IS THE SHAPE THAT PROVES IT [#534, antagonist A's veto].
   # dE's row is #534, ABOVE the fixture top of 532, so it EXTENDS and the door does not judge it. The clause
   # must therefore say appended=1 and judged=0 - and before the fix it said "the 1 uncommitted row(s) WERE
@@ -942,7 +952,7 @@ tc() {
   st_row 533 minted - "$GFOTHER" minted >> "$dG/gates/build-numbers.tsv"; st_row 533 built - "$GFMINE" built >> "$dG/gates/build-numbers.tsv"
   st C89n-the-resumed-run-shape-uncommitted-is-RED-unarmed "$(CT_RUNID=$GFMINE st_gfv "$dG" "$ST_T/gf.sh")" RED
   st C89o-and-OVERRIDE-with-the-escape-naming-533 "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=533 st_gfv "$dG" "$ST_T/gf.sh")" OVERRIDE
-  st C89p-and-the-OVERRIDE-outranks-the-NOT-CHECKED "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=533 st_gfrun "$dG" "$ST_T/gf.sh" | grep -m1 '^build-number series:' | grep -c 'NOT CHECKED')" 0
+  st C89p-and-the-OVERRIDE-outranks-the-NOT-CHECKED "$(CT_RUNID=$GFMINE CT_GAPFILL_OVERRIDE=533 st_gfrun "$dG" "$ST_T/gf.sh" | grep '^build-number series:' | sed -n '1p' | grep -c 'NOT CHECKED')" 0
   # A CLEAN TREE WITH THE BASE AT HEAD IS UNCHANGED: NOT CHECKED, and the suite runs. C69, C69b and C69d
   # already cover the committed plant; this is the no-working-tree-change cell beside it.
   dH="$(st_mk gfH)"
