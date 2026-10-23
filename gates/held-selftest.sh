@@ -345,5 +345,103 @@ ck "11 FIX answers HELD in that same state"                         1 timeout 20
 cp "$TD/reg.saved2" "$HREG"
 git -C "$HR" checkout -- gates/held-trees.tsv
 
+# ---- 12. THE NO-KEY FORM ASKS EVERY KEY A LIVE ROW CAN CARRY [#537, HELDKEY] --------------------------------
+# jobs/held-sh-check-in-the-form-claude-md-prescribes-asks-one-key-so-the-three-sha-only-holds-can-never-match-2026-10-23
+# THE DEFECT: `check` with NO key - the form CLAUDE.md prescribes before a push - computed ONE key, the md5 of
+# app.js. A SHA-ONLY row carries the literal "sha-only" in field 1 (which the matcher skips as a bundle key,
+# #529) and a git sha in field 2, and an md5 never equals a git sha, so those rows were unreachable from the
+# default form in ANY tree. Sha-only is the sanctioned form for a harness-only hold, which is what most gate
+# runs now are, so the class the prescribed check could not see was the NORMAL class.
+# MEASURED on main ed65bab in a scratch clone at 6fcbca5 (#523's own held tree): the no-key form printed
+# "using app.js on disk -> md5 ec31de9fe6c5" and "not held" AT EXIT 0, while `check "$(git rev-parse HEAD)"`
+# read HELD for row #523 at exit 1. Same tree, same register, opposite verdicts.
+# THE FIXTURE COMMITS FIRST AND THEN ADDS THE ROW, which is not a trick but exactly how a real hold is written:
+# `held.sh add sha-only <launch head>` writes a row naming the sha that is already HEAD, and the run then checks
+# before pushing. The row therefore lives in the WORKING TREE and is live by the union rule section 10 pinned.
+KR="$TD/keys"; mkdir -p "$KR/gates"
+cp "$HERE/held.sh" "$KR/gates/held.sh"; chmod +x "$KR/gates/held.sh"
+KU="$KR/gates/held.sh"; KREG="$KR/gates/held-trees.tsv"
+git -C "$KR" init -q 2>/dev/null; git -C "$KR" config user.email s@t; git -C "$KR" config user.name selftest
+printf 'KEYS fixture source, on no row\n' > "$KR/chess.jsx"; printf 'KEYS fixture bundle, on no row\n' > "$KR/app.js"
+printf '# held-trees.tsv (key-coverage self-test fixture, not the real register)\n' > "$KREG"
+git -C "$KR" add -A >/dev/null 2>&1; git -C "$KR" commit -qm 'the tree that will be held sha-only' >/dev/null 2>&1
+KSHA="$(git -C "$KR" rev-parse HEAD)"
+KAPP="$(md5sum "$KR/app.js" | cut -c1-12)"; KSRC="$(md5sum "$KR/chess.jsx" | cut -c1-12)"
+# THE CONTROL FIRST: with no row naming anything here, the default must CLEAR. Without this the refusals below
+# could be a stuck refusal rather than a hold - section 11h records that exact lesson one section up.
+ck "12 control: a tree no live row names CLEARS at exit 0"        0 timeout 20 "$KU" check
+eq "12 control: and it says how many keys it asked, not one" "1" \
+   "$( timeout 20 "$KU" check 2>/dev/null | grep -c 'asked: git rev-parse HEAD' )"
+eq "12 control: it asks all four keys by name" "4" \
+   "$( timeout 20 "$KU" check 2>/dev/null | grep -c '^  asked: ' )"
+# (a) A SHA-ONLY ROW NAMING THIS TREE'S HEAD. This is the case the job exists for.
+printf 'sha-only\t%s\t#902\t2026-10-23T04:00Z\tbuild__KEYFIXTURE\ta sha-only hold, the sanctioned form for a harness-only build, long enough for the floor\t-\n' "$KSHA" >> "$KREG"
+ck "12a a SHA-ONLY row naming HEAD now REFUSES the no-key form"   1 timeout 20 "$KU" check
+eq "12a and it names the row it matched"                    "1 1" \
+   "$( timeout 20 "$KU" check 2>&1 | grep -c '#902' ) $( timeout 20 "$KU" check 2>&1 | grep -c 'build__KEYFIXTURE' )"
+eq "12a and it says WHICH key matched, which with four in play is the first thing a reader needs" "1" \
+   "$( timeout 20 "$KU" check 2>&1 | grep -c 'the key that matched: git rev-parse HEAD' )"
+# AND THE ONE-KEY FORM MUST BE UNCHANGED: it already saw this row and must still see it, and it must still
+# answer the same way for a key that is on no row.
+ck "12a the one-key form still sees it (unchanged behaviour)"     1 timeout 20 "$KU" check "$KSHA"
+ck "12a the one-key form still clears a key on no row"            0 timeout 20 "$KU" check 0123456789ab
+# (b) A ROW WHOSE ONLY LIVE KEY IS THE SOURCE KEY. Field 7 is chess.jsx's md5; fields 1 and 2 name nothing here.
+git -C "$KR" checkout -- gates/held-trees.tsv
+printf 'sha-only\t%s\t#903\t2026-10-23T04:10Z\tbuild__KEYFIXTURE2\ta source-keyed hold whose artefact keys match nothing in this tree, long enough for the floor\t%s\n' \
+  "9999999999999999999999999999999999999999" "$KSRC" >> "$KREG"
+ck "12b a row live only by its SOURCE key also refuses the no-key form" 1 timeout 20 "$KU" check
+eq "12b and it says which source key matched" "1" \
+   "$( timeout 20 "$KU" check 2>&1 | grep -c 'the source key that matched' )"
+# (c) chess.jsx AT HEAD, which is the key the working tree cannot supply once the file has moved on. This is the
+#     tree whose checkout has been edited but whose COMMIT is the held source - the default asks HEAD too, and
+#     the named form deliberately does NOT, because adding a key there would change that form's verdicts.
+printf 'the working copy has moved on since the commit\n' > "$KR/chess.jsx"
+eq "12c chess.jsx on disk is now a DIFFERENT md5 from the one on the row" "differs" \
+   "$( [ "$(md5sum "$KR/chess.jsx" | cut -c1-12)" != "$KSRC" ] && echo differs || echo same )"
+ck "12c the no-key form still refuses, on chess.jsx AT HEAD"      1 timeout 20 "$KU" check
+# COUNTS THE VERDICT LINE, NOT EVERY MENTION. My first draft grepped for 'chess.jsx at HEAD' and measured 2,
+# because the key is named once in the "asked:" list and once in the verdict - the assertion was wrong, not the
+# message, which is section 29-of-buildnum's recorded lesson about needles that count incidental mentions.
+eq "12c and it names that key as the one that matched" "1" \
+   "$( timeout 20 "$KU" check 2>&1 | grep -c 'the source key that matched was: chess.jsx at HEAD' )"
+git -C "$KR" checkout -- chess.jsx
+# (d) OUTSIDE A GIT WORK TREE THE MISSING KEYS ARE REPORTED, NEVER CREDITED. This file's own HELD_HEADREG block
+#     records that rule from #534's third-round antagonist A, and a default that silently dropped two of its
+#     four keys would be the same defect one level up.
+KN="$TD/nogit"; mkdir -p "$KN/gates"; cp "$HERE/held.sh" "$KN/gates/held.sh"; chmod +x "$KN/gates/held.sh"
+printf 'x\n' > "$KN/app.js"; printf 'y\n' > "$KN/chess.jsx"
+printf '# held-trees.tsv (no-git fixture)\n' > "$KN/gates/held-trees.tsv"
+eq "12d outside a work tree it SAYS it could not ask HEAD" "1" \
+   "$( cd "$KN" && timeout 20 ./gates/held.sh check 2>&1 | grep -c 'could NOT ask: git rev-parse HEAD' )"
+ck "12d and it still answers rather than dying"                   0 timeout 20 "$KN/gates/held.sh" check
+# ---- THE MUTANT: the HEAD sha dropped from the no-key form, which is held.sh as ed65bab had it. ----
+# Swapped WHOLE from a heredoc, and every call under `timeout`, for the reason #534's NUL mutant recorded: a
+# mutant assembled by deleting part of a construct can leave a command reading stdin and hang, and a mutant
+# that hangs proves nothing. A mutant must be THE OLD CODE, RUNNING.
+git -C "$KR" checkout -- gates/held-trees.tsv
+printf 'sha-only\t%s\t#902\t2026-10-23T04:00Z\tbuild__KEYFIXTURE\ta sha-only hold, the sanctioned form for a harness-only build, long enough for the floor\t-\n' "$KSHA" >> "$KREG"
+cat > "$TD/keys.old" <<'KEYSOLD'
+      HELD_MISSED+=("git rev-parse HEAD (DROPPED BY THE MUTANT)")
+KEYSOLD
+awk -v f="$TD/keys.old" '
+  /^        HH="\$\("\$\{HELD_GIT\[@\]\}" rev-parse HEAD 2>\/dev\/null \|\| true\)"/ { skip=3
+    while((getline l < f)>0) print l; close(f); next }
+  skip > 0 { skip--; next }
+  { print }' "$KU" > "$KR/gates/mutant12.sh"; chmod +x "$KR/gates/mutant12.sh"
+MU12="$KR/gates/mutant12.sh"
+eq "12 MUTANT the HEAD-sha key really was dropped, and only it" "0 1" \
+   "$(grep -c 'rev-parse HEAD 2>/dev/null' "$MU12") $(grep -c 'DROPPED BY THE MUTANT' "$MU12")"
+eq "12 MUTANT is a different script from the fix" "differs" \
+   "$( [ "$(md5sum < "$KU")" != "$(md5sum < "$MU12")" ] && echo differs || echo identical )"
+eq "12 MUTANT parses" "yes" "$(bash -n "$MU12" 2>/dev/null && echo yes || echo no)"
+# THE TURN. This is the assertion the whole section exists for.
+ck "12 MUTANT reads the sha-only hold as NOT HELD at exit 0 - the defect" 0 timeout 20 "$MU12" check
+ck "12 FIX refuses that same tree, same register"                        1 timeout 20 "$KU" check
+# AND THE MUTANT AGREES WITH THE FIX WHEREVER THE HOLD IS NOT SHA-ONLY, which is why none of the 71 assertions
+# already in this file could see it: every one of them either names its key or holds by a bundle md5.
+eq "12 MUTANT and FIX agree on the one-key form" "SAME" \
+   "$( timeout 20 "$MU12" check "$KSHA" >/dev/null 2>&1; A=$?; timeout 20 "$KU" check "$KSHA" >/dev/null 2>&1; B=$?; [ "$A" = "$B" ] && echo SAME || echo DIFFER )"
+git -C "$KR" checkout -- gates/held-trees.tsv
+
 printf '\n%s PASS  %s FAIL  (%s assertions over %s inputs to `add`)\n' "$P" "$F" "$((P+F))" "21"
 [ "$F" = "0" ] || exit 1

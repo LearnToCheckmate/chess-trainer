@@ -128,35 +128,130 @@ held_whence() { # held_whence <the matched row>
   elif [ "$inhead" = 1 ];                  then printf '  source: this row is live in HEAD ONLY - the working tree does not carry it. If you cleared or\n          deleted it and have not committed that, COMMIT IT and re-run; the union reads HEAD too, by\n          design, so an uncommitted clear cannot lift a hold (register source: %s)\n' "$HELD_SRC"
   else                                          printf '  source: register source %s (the matched row could not be located in either copy, which should not\n          happen; report it rather than acting on it)\n' "$HELD_SRC"
   fi; }
+# <key>: the human name this run asked that key under ("app.js on disk -> md5 ...", "git rev-parse HEAD -> ..."),
+# or the bare key if it was not one of the asked set. With three keys in play, "HELD: <12 hex> matches a row" does
+# not tell a reader WHICH question found the row, and that is the first thing they need in order to act on it.
+held_keyname() {
+  local k="$1" a
+  for a in "${HELD_ASKED[@]:-}"; do case "$a" in *"$k"*) printf '%s' "$a"; return 0;; esac; done
+  printf '%s' "$k"
+}
 match_rows() { grep -v '^[[:space:]]*#' "$REGALL" | awk -F'\t' 'NF>=2 && $1 !~ /^-/'; }
 live_rows()  { grep -v '^[[:space:]]*#' "$REGALL" | awk -F'\t' 'NF>=6 && $1 !~ /^-/'; }
 
 case "${1:-}" in
   check)
+    # ── THE NO-KEY FORM ASKS EVERY KEY A LIVE ROW CAN CARRY (#537, the HELDKEY job) ────────────────────────────
+    # THE DEFECT, measured in a scratch clone at 6fcbca5 (#523's own held tree) with main ed65bab's held.sh and
+    # held-trees.tsv in the working tree: `bash gates/held.sh check` printed "no key given, using app.js on disk
+    # -> md5 ec31de9fe6c5" and then "not held" AT EXIT 0, while `bash gates/held.sh check "$(git rev-parse HEAD)"`
+    # read HELD for row #523 at exit 1. Same tree, same register, opposite verdicts, and the form that answered
+    # "not held" is THE ONE CLAUDE.md PRESCRIBES BEFORE A PUSH.
+    # WHY, and it is arithmetic rather than bad luck: the no-key form computed exactly ONE key, an md5 of app.js.
+    # The three newest holds (#523, #524, #525) are SHA-ONLY rows - field 1 is the literal "sha-only", which the
+    # matcher below deliberately skips as a bundle key (#529), and field 2 is a git sha. An md5 is never equal to
+    # a git sha, so those rows were unreachable from the default form no matter what tree it ran in. Sha-only is
+    # the SANCTIONED form for a harness-only hold, which is what most gate runs now are, so the class the
+    # prescribed check could not see was the NORMAL class, not an edge.
+    # SO THE DEFAULT NOW ASKS THREE KEYS instead of one, and the one-key form is UNTOUCHED: a caller that names
+    # its key gets exactly the verdicts it got before, which is what the job asks for, and that is also why
+    # chess.jsx-at-HEAD below is added ONLY to the default - adding it to the named form could turn one of its
+    # "not held" answers into HELD BY SOURCE, which would be a change to a form the job says to keep.
+    # A KEY IT COULD NOT ASK IS REPORTED AND NEVER CREDITED, which is this file's own rule from #534's third-round
+    # antagonist A (see the HELD_HEADREG block above): outside a git work tree there is no HEAD, and that is
+    # printed rather than silently treated as a key that missed.
     KEY="${2:-}"
-    if [ -z "$KEY" ]; then
-      KEY="$(md5sum "$ROOT/app.js" 2>/dev/null | cut -c1-12)"
-      [ -n "$KEY" ] || { echo "held.sh check: cannot read $ROOT/app.js and no key given"; exit 2; }
-      echo "held.sh check: no key given, using app.js on disk -> md5 $KEY"
+    HELD_KEYS=(); HELD_ASKED=(); HELD_MISSED=()
+    if [ -n "$KEY" ]; then
+      HELD_KEYS+=("$(printf '%s' "$KEY" | tr 'A-F' 'a-f')")
+      HELD_ASKED+=("the key you named -> $KEY")
+    else
+      HK="$(md5sum "$ROOT/app.js" 2>/dev/null | cut -c1-12)"
+      if [ -n "$HK" ]; then HELD_KEYS+=("$(printf '%s' "$HK" | tr 'A-F' 'a-f')"); HELD_ASKED+=("app.js on disk -> md5 $HK")
+      else HELD_MISSED+=("app.js on disk (cannot read $ROOT/app.js)"); fi
+      if command -v git >/dev/null 2>&1 && "${HELD_GIT[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        HH="$("${HELD_GIT[@]}" rev-parse HEAD 2>/dev/null || true)"
+        if [ -n "$HH" ]; then HELD_KEYS+=("$(printf '%s' "$HH" | tr 'A-F' 'a-f')"); HELD_ASKED+=("git rev-parse HEAD -> $HH")
+        else HELD_MISSED+=("HEAD's sha (git rev-parse HEAD gave nothing - an unborn branch?)"); fi
+      else
+        HELD_MISSED+=("git rev-parse HEAD (not a git work tree, so there is no HEAD to ask)")
+      fi
+      if [ "${#HELD_KEYS[@]}" -eq 0 ]; then
+        echo "held.sh check: no key given and NOT ONE key could be computed here, so this is not a 'not held'."
+        printf '  could not ask: %s\n' "${HELD_MISSED[@]}"
+        echo "  Name a key explicitly: gates/held.sh check <bundle md5 | sha>"
+        exit 2
+      fi
+      echo "held.sh check: no key given, asking every key a live row can carry:"
+      printf '  asked: %s\n' "${HELD_ASKED[@]}"
+      # The "could NOT ask" list is printed ONCE, below, after the source keys are collected - not here. It can
+      # still GROW at that point (chess.jsx on disk or at HEAD may be unreadable), so printing it here as well
+      # emitted the same line twice. My own control 12d caught that by counting the line and measuring 2.
+      KEY="${HELD_KEYS[0]}"
     fi
     # Field 2 is a COMMA-SEPARATED list of every sha that names the tree, not just the gated one. Antagonist B
     # found why: with only #441's gated sha on the row, `check e765135` - the sha actually pushed and reverted -
     # answered "not held, exit 0". Also guards a key under 8 hex, which as a prefix test would match everything.
     KEY="$(printf '%s' "$KEY" | tr 'A-F' 'a-f')"
-    HIT="$(match_rows | awk -F'\t' -v k="$KEY" '
-      { m=tolower($1); gsub(/[ \r]/,"",m)
-        if (m != "sha-only" && length(m)>=8 && length(m)<=12 && substr(k,1,length(m))==m) { print; exit }   # sha-only is no bundle key [#529]
-        n=split(tolower($2), SH, ",")
-        for (i=1;i<=n;i++) { gsub(/[ \r]/,"",SH[i])
-          if (length(SH[i])>=7 && (SH[i]==k || substr(SH[i],1,7)==substr(k,1,7))) { print; exit } } }')"
+    # THE MATCHER IS UNCHANGED; WHAT CHANGED IS THAT IT IS ASKED ONCE PER KEY. The first key that matches wins
+    # and HELD_HITKEY records which one did, so the verdict says WHICH key found the row rather than leaving a
+    # reader to guess - with three keys in play, "HELD: <key> matches" is ambiguous unless the key is named.
+    HIT=""; HELD_HITKEY=""
+    for HELD_K in "${HELD_KEYS[@]}"; do
+      HIT="$(match_rows | awk -F'\t' -v k="$HELD_K" '
+        { m=tolower($1); gsub(/[ \r]/,"",m)
+          if (m != "sha-only" && length(m)>=8 && length(m)<=12 && substr(k,1,length(m))==m) { print; exit }   # sha-only is no bundle key [#529]
+          n=split(tolower($2), SH, ",")
+          for (i=1;i<=n;i++) { gsub(/[ \r]/,"",SH[i])
+            if (length(SH[i])>=7 && (SH[i]==k || substr(SH[i],1,7)==substr(k,1,7))) { print; exit } } }')"
+      if [ -n "$HIT" ]; then HELD_HITKEY="$HELD_K"; KEY="$HELD_K"; break; fi
+    done
     # THE SOURCE KEY. bundleMd5 and gatedSha both identify an ARTEFACT: gates/build.sh embeds a minute-resolution
     # timestamp in the stamp, so a REBUILD of a held source tree gets a fresh md5 and a fresh sha and matches
     # neither. This is the one place that can close that, because it is the one place that looks at the WORKING
     # TREE rather than at a log. Checked only when the first two keys missed, so a direct hit still reports as one.
-    if [ -z "$HIT" ] && [ -r "$ROOT/chess.jsx" ]; then
-      SRC="$(md5sum "$ROOT/chess.jsx" | cut -c1-12)"
-      HIT="$(match_rows | awk -F'\t' -v s="$SRC" '{ if (NF>=7) { p=tolower($7); gsub(/[ \r]/,"",p); if (p != "-" && length(p)>=8 && length(p)<=12 && substr(s,1,length(p))==p) { print; exit } } }')"
+    # THE SOURCE KEYS. chess.jsx ON DISK is unchanged and is asked in BOTH forms, exactly as before. chess.jsx
+    # AT HEAD is new and is asked ONLY when no key was named: it is a second source key, and adding it to the
+    # named form could turn one of that form's "not held" answers into HELD BY SOURCE, which the job says to
+    # leave alone. It catches the tree whose working copy has moved on but whose COMMIT is the held source.
+    HELD_SRCKEYS=(); HELD_SRCNAMES=()
+    if [ -r "$ROOT/chess.jsx" ]; then
+      HELD_SRCKEYS+=("$(md5sum "$ROOT/chess.jsx" | cut -c1-12)"); HELD_SRCNAMES+=("chess.jsx on disk")
+    else
+      [ -n "${2:-}" ] || HELD_MISSED+=("chess.jsx on disk (cannot read $ROOT/chess.jsx)")
+    fi
+    if [ -z "${2:-}" ]; then
+      if command -v git >/dev/null 2>&1 && "${HELD_GIT[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        HSH="$("${HELD_GIT[@]}" show HEAD:chess.jsx 2>/dev/null | md5sum | cut -c1-12 || true)"
+        if "${HELD_GIT[@]}" cat-file -e HEAD:chess.jsx 2>/dev/null && [ -n "$HSH" ]; then
+          HELD_SRCKEYS+=("$HSH"); HELD_SRCNAMES+=("chess.jsx at HEAD")
+        else
+          HELD_MISSED+=("chess.jsx at HEAD (HEAD carries no chess.jsx)")
+        fi
+      fi
+    fi
+    if [ -z "${2:-}" ]; then
+      # `"${!ARR[@]:-}"` is INDIRECT EXPANSION and not "indices, or nothing": bash reads the array's VALUES as a
+      # variable name and dies with "invalid variable name". Measured here - my own draft of this loop did it and
+      # broke nine assertions in this file's section 12 at once. The count guard is the idiom that works.
+      if [ "${#HELD_SRCKEYS[@]}" -gt 0 ]; then
+        for __i in "${!HELD_SRCKEYS[@]}"; do
+          printf '  asked: %s -> md5 %s\n' "${HELD_SRCNAMES[$__i]}" "${HELD_SRCKEYS[$__i]}"
+          HELD_ASKED+=("${HELD_SRCNAMES[$__i]} -> md5 ${HELD_SRCKEYS[$__i]}")
+        done
+      fi
+      # ONCE, and only here, because this is the first point at which the list is complete.
+      [ "${#HELD_MISSED[@]}" -eq 0 ] || printf '  could NOT ask: %s\n' "${HELD_MISSED[@]}"
+    fi
+    if [ -z "$HIT" ] && [ "${#HELD_SRCKEYS[@]}" -gt 0 ]; then
+      SRC=""; HELD_SRCWHICH=""
+      for __i in "${!HELD_SRCKEYS[@]}"; do
+        SRC="${HELD_SRCKEYS[$__i]}"
+        HIT="$(match_rows | awk -F'\t' -v s="$SRC" '{ if (NF>=7) { p=tolower($7); gsub(/[ \r]/,"",p); if (p != "-" && length(p)>=8 && length(p)<=12 && substr(s,1,length(p))==p) { print; exit } } }')"
+        if [ -n "$HIT" ]; then HELD_SRCWHICH="${HELD_SRCNAMES[$__i]}"; break; fi
+      done
       if [ -n "$HIT" ]; then
+        echo "  (the source key that matched was: $HELD_SRCWHICH)"
         echo "HELD BY SOURCE: chess.jsx on disk is md5 $SRC, which matches a held row's sourceMd5."
         echo "  The BUNDLE md5 and the gated sha did NOT match, so this is a REBUILD of a held source tree -"
         echo "  a new artefact built from source a previous run refused to ship. That is the one evasion the"
@@ -169,6 +264,7 @@ case "${1:-}" in
     fi
     if [ -n "$HIT" ]; then
       echo "HELD: $KEY matches a row on the register."
+      [ -z "$HELD_HITKEY" ] || printf '  the key that matched: %s\n' "$(held_keyname "$HELD_HITKEY")"
       printf '  build:  %s   held at %s by %s\n' "$(printf '%s' "$HIT" | cut -f3)" "$(printf '%s' "$HIT" | cut -f4)" "$(printf '%s' "$HIT" | cut -f5)"
       printf '  bundle: %s   gated sha: %s\n' "$(printf '%s' "$HIT" | cut -f1)" "$(printf '%s' "$HIT" | cut -f2)"
       printf '  why:    %s\n' "$(printf '%s' "$HIT" | cut -f6)"
@@ -183,7 +279,18 @@ case "${1:-}" in
       echo "  Fix the temporary directory (TMPDIR) and re-run, or read gates/held-trees.tsv at HEAD by hand."
       exit 2
     fi
-    echo "not held: $KEY is on no live row of $(basename "$REG") ($(match_rows | wc -l | tr -d ' ') matchable row(s) checked; source: $HELD_SRC)"
+    # THE VERDICT NAMES HOW MANY KEYS IT ASKED. Before this, the default form printed one key and "not held",
+    # which reads as "I asked the question" when it had asked one of four. A negative that does not say what it
+    # covered is the thing R18 calls an unmeasured claim, and this is the line a run reads before a push.
+    # THE VERDICT SAYS HOW MANY KEYS IT ASKED, AND STAYS ONE CLAIM LONG. Before this, the default form printed
+    # one key and "not held", which reads as "I asked the question" when it had asked one of four. A negative
+    # that does not say what it covered is the unmeasured claim R18 is about, and this is the line a run reads
+    # before a push. The keys themselves are listed above, so they are not repeated into this line.
+    if [ "${#HELD_ASKED[@]}" -gt 1 ]; then
+      echo "not held: no live row of $(basename "$REG") matches ANY of the ${#HELD_ASKED[@]} key(s) asked above ($(match_rows | wc -l | tr -d ' ') matchable row(s) checked; source: $HELD_SRC)"
+    else
+      echo "not held: $KEY is on no live row of $(basename "$REG") ($(match_rows | wc -l | tr -d ' ') matchable row(s) checked; source: $HELD_SRC)"
+    fi
     exit 0 ;;
   add)
     MD5="${2:-}"; SHA="${3:-}"; BUILD="${4:-}"; shift 4 2>/dev/null || true; REASON="${*:-}"

@@ -27,8 +27,8 @@ collection `prompts`, doc `build-run`. Where that doc and this file differ, the 
   same number; that happened once with #375 and cost a rebase.
 - **Before any push:** `git fetch && git log -1 origin/main`. If main moved, rebase onto it. Never
   push over it.
-- **AND ASK WHETHER ANYONE ALREADY REFUSED THIS TREE: `gates/held.sh check`** (no argument reads `app.js` on
-  disk). A `GATES GREEN` log says the SUITE passed over a bundle; it does not say the tree shipped or may ship,
+- **AND ASK WHETHER ANYONE ALREADY REFUSED THIS TREE: `gates/held.sh check`** (no argument asks FOUR keys, not
+  one: `app.js` and `chess.jsx` on disk, HEAD's sha, and `chess.jsx` at HEAD - it must, because a sha-only row carries no bundle md5 to match, so the one-key default could not see the three newest holds at all, #537). A `GATES GREEN` log says the SUITE passed over a bundle; it does not say the tree shipped or may ship,
   and the four mechanical checks this project provides CANNOT TELL THE DIFFERENCE. #450's row below is the
   proof, and `gates/held-trees.tsv` is where the answer now lives.
 - Work from another session arrives as a **patch committed here** with the trailer intact, never as
