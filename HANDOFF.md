@@ -1,4 +1,44 @@
 # HANDOFF - where the last run left off
+**#536 HELD. NOTHING FROM THIS RUN IS ON MAIN EXCEPT THIS RECORD.** Run `build__1792771521000`,
+23 Oct 2026. No app change at any point: `app.js` is #530's bundle throughout, md5 `049b41dfb6f1`,
+stamp "#530 - 2026-10-21 20:50 ET". No suite was run, and no number was stamped.
+
+WHERE #536 LEFT OFF, AND WHAT TO DO FIRST.
+
+The work is the push-checks tier (`gates/checks-tier.sh`), job
+`the-push-checks-pay-the-full-browser-suite-though-no-browser-gate-reads-them-so-a-tier-judged-by-mains-copy-should-gate-them-2026-10-23`.
+It sits on `origin/claude/gallant-wozniak-kv07kk` at **91ad100**, three commits ahead of main,
+and it is NOT shippable. Two independent P1s are open against it and the second is unrepaired:
+
+  1. **FIXED on the branch, UNREAD.** The judge took the process group it `kill -TERM`s as root
+     out of a file any control could write (`"$PRIV"/pg-*`, where $PRIV is
+     `dirname "$(git config --get remote.origin.url)"` from inside a control). Reproduced three
+     times: an unrelated process group was killed under `CHECKS TIER GREEN`; with `0` the judge
+     TERMed itself mid-battery and left the suite lock standing. Now the pgid is the one the
+     judge's own shell watched (`$!` under job control) and no file is in the exchange.
+     Controls A63 / M48. **The repair was written after the pair's cross-read, so no antagonist
+     has seen it. It must be read before it goes anywhere.**
+
+  2. **NOT FIXED.** An honest tier-only commit is HARD-REFUSED (exit 1, which in this file's own
+     interface means "do not re-run") when another chat has modified a TRACKED doc or flag in the
+     working tree. The same write UNTRACKED correctly routes (exit 2). Reproduced: tracked
+     `DECISIONS-LOG.md` edit -> exit 1; untracked `claude/NEW-NOTE.md` -> exit 2; same candidate,
+     same concurrent activity. CLAUDE.md's pen rule invites exactly that concurrent write, so the
+     entrance split keys on tracked-vs-untracked where it should key on tier-relevant-vs-not.
+     THE TWO HALVES OF THE REMEDY ARE NOT EQUALLY SAFE and that is why this run did not guess:
+     routing at the ENTRANCE cannot create a false green, while loosening `snapcheck`'s grave set
+     can hide real damage. Both reproductions are on the job.
+
+**SO THE NEXT RUN'S FIRST MOVE IS A FRESH ADVERSARIAL PAIR ON 91ad100, NOT MORE CODE.** Seven
+rounds have now read this file and every one found a real defect; five of the seven found it inside
+the previous round's own fix, and two of this run's nine upheld vetoes were defects its own earlier
+repairs had introduced. Treat any further repair as unproven until a pair has read it.
+
+Evidence in hand on 91ad100: `gates/checks-tier-drive.sh fixed` is 116 ok / 0 FAIL / 1 skipped
+with the whole real battery green in 401s. The skip is M44, honestly reported: its timing race did
+not land in 12 runs, so it proves nothing this time.
+
+
 
 GATES GREEN #534, 60 suites, 5026 PASS, 0 fail. Pushed to main; see RUN-LOG.md for the four numbers.
 
