@@ -1,4 +1,69 @@
-# HANDOFF - after #533: THE G6 GAP-FILL DOOR IS BUILT AND GATED, WITH NO CEILING ANYWHERE IN THE OWNERSHIP PATH
+# HANDOFF - where the last run left off
+
+GATES GREEN #534, 60 suites, 5026 PASS, 0 fail. Pushed to main; see RUN-LOG.md for the four numbers.
+
+WHERE #534 LEFT OFF (run 11, build__1792722792000, session_012bR7L4ALThyUiAXQ3mDzcP)
+
+THREE OF FOUR JOBS LANDED; THE FOURTH WAS REVERTED AND ITS JOB IS STILL OPEN.
+
+  G6    fixed-in-part. The base-at-HEAD limb of the series door is closed and controlled
+        (gates.sh --selftest 285/0 -> 318/0, thirty-three new cases, two mutants). The job's
+        OWN bar is two cases in fastgate.sh's register arm, which run 11's takeNothingElse
+        forbids touching, so it stays open at its own bar.
+  NUL   fixed. buildnum.sh reads a NUL-bearing register whole (170/0 -> 192/0).
+        The job's arithmetic was wrong and is corrected on it: the NUL loses ZERO rows, not
+        365 - grep refuses the WHOLE FILE rather than truncating after the NUL.
+  HELDWT fixed. The held register is the union of HEAD's copy and the working tree's
+        (43/0 -> 71/0 in held-selftest, +18 in verify-log-selftest).
+  VLDOOR REVERTED. Read its outcome before attempting it again.
+
+READ THIS BEFORE YOU TRY VLDOOR AGAIN. The job asks verify-log.sh to tell whether the
+build-number series door ran. Three antagonist pairs broke three implementations:
+  1. a forged second footer triple made the real verdict early;
+  2. ceilings on how many footer lines a log may carry (1, 1, 2 - correctly calibrated on
+     all 164 archived logs) were then defeated by a PURE REORDER: move the log's own
+     manifest line below the real verdict, append a forged `ok`, nothing added or deleted,
+     every ceiling at its honest value, and the tool printed `series door: ok` and `OK:` at
+     exit 0 over a log physically carrying `build-number series: RED`;
+  3. the adjacency repair that was proposed to fix that FAILS IDENTICALLY - measured side by
+     side, the forged footer is STRUCTURALLY IDENTICAL to the honest one (same order, gap 2,
+     exactly one line between), so no positional or frequency test over the log's text can
+     separate them. The only trace is a RED line elsewhere, which a forger deletes.
+THE CONCLUSION IS ABOUT THE PROBLEM, NOT THE IMPLEMENTATIONS: the log is self-describing and
+a forger controls all of it, so it cannot be made to vouch for its own door. That is #419 in
+its purest form. What would close the job is NOT in a log reader - it is re-running the door
+against a tree, which needs the tree. If you try again inside verify-log.sh anyway, the bar
+is a control and not an argument: refuse /tmp/r534/atk/A10.log (reorder only, all ceilings
+honest) while leaving all 164 archived logs' verdicts unchanged.
+
+THE LESSON THAT COST THIS RUN TWO EXTRA ROUNDS, and it generalises past this job: every
+repair was controlled against the PREVIOUS attack's spelling rather than against the
+mechanism, so every control stayed green and the next spelling walked straight through. The
+first fixtures all had appended and judged COINCIDING; the second control used three manifest
+lines; the third needed no added line at all. The question that catches all three at once is
+already in CLAUDE.md: can the thing I am asserting over be MOVED, ABSORBED or EXCUSED by the
+thing I am trying to detect? Here it could be MOVED, and nothing in three rounds asked.
+
+TWO PRE-EXISTING DEFECTS IN THE PUSH GATE, both measured this run, neither fixed (both are
+outside takeNothingElse) and both routed as findings:
+  * `gates/held.sh check` in the form CLAUDE.md prescribes computes only the app.js md5, so
+    it CANNOT SEE the three live `sha-only` rows (#523, #524, #525) - the three most recent
+    holds - and answers "not held" at exit 0 while reporting 28 rows checked. sha-only is the
+    sanctioned form for a harness-only build, so the blind class is now the normal class.
+    THIS RUN'S OWN PRE-PUSH CHECK therefore asked the COMPLETE question: the app.js md5,
+    `git rev-parse HEAD`, and chess.jsx's md5. All three answered clear. Do the same.
+  * `verify-log.sh` silently DISCARDS an unknown flag, so `--this-bundl` un-asks
+    `--this-bundle` and returns `OK:` at exit 0 on one dropped character (9 of 9 misspellings
+    measured). A `*) unknown flag; exit 2` arm closes it and seven of the eight holes its own
+    selftest already exits 2 over.
+
+A RATCHET IS STILL RED AND IT IS NOT THIS RUN'S: gatemanifest.sh's sigpipe audit reads 23
+early-exit pipes against a ceiling of 15, identically at 707599b (51 passed / 1 failed, same
+case, verified in a clean clone). This run ADDED three and took them back out, so the count is
+the base's; closing the breach is a separate job.
+
+
+----- everything below is the previous handoff, unchanged -----
 
 Build #533 built G6's last open clause on its THIRD attempt, took EIGHT antagonist pairs over TEN repair
 rounds, and landed. **GATES GREEN #533** at 60 sections / 5026 PASS / 0 FAIL in 113 minutes (21:59:55Z to 23:53:08Z), over bundle
