@@ -493,7 +493,7 @@ fi
 
 # M5. Strip only LINE comments in the premise: A8b must flip from green to a false refusal.
 D="$T/m-M5"; mkfix "$D"
-sed -E 's/^        if c=="\/" and nx=="\*": state=2; i\+=2; continue$/        pass/' "$G/checks-tier.sh" > "$D/gates/checks-tier.sh"
+sed -E 's|if \(c=="/" \&\& d=="\*"\) \{ inblock=1; i\+=2; continue \}|if (0) { inblock=1; i+=2; continue }|' "$G/checks-tier.sh" > "$D/gates/checks-tier.sh"
 if cmp -s "$D/gates/checks-tier.sh" "$G/checks-tier.sh"; then
   rec M5 FAIL "the block-comment mutation changed nothing"
 else

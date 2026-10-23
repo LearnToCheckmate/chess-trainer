@@ -225,40 +225,38 @@ main(){
           gates/mountcheck.js gates/engine-extract.js 2>/dev/null)"
   premise_rc=0
   local badp
+  # THE COMMENT STRIP IS awk AND NOT AN INLINE python -c, AND THE REASON IS A DEFECT OF MINE THAT MY OWN A1 CASE
+  # CAUGHT. The first version embedded a python state machine inside this quoted heredoc, and the nested quote
+  # escaping did not survive: the file literally carried `c=="'"'"'"`, which python reads as a TWO-CHARACTER
+  # string that no single character can equal, so the string-tracking arms were dead and the stripper mis-read
+  # the real tree. It reported gates/regress/66-winprob-ladder.js:178 - prose inside a block comment that opens
+  # at :172 - as a live read, which would have REFUSED main itself. One nested-quote mistake, one false P0.
+  # SO THIS STRIP IS DELIBERATELY SIMPLER THAN A JS LEXER, AND ITS LIMIT IS STATED RATHER THAN HIDDEN: it tracks
+  # only the two comment states and NOT string or regex literals, so a `//` or `/*` inside a string literal
+  # over-strips the rest of that line. That direction is the safe one HERE, and only here, because a change to
+  # anything in the browser read set routes to the full suite at exit 2 before this arm is reached - so this arm
+  # only ever reads the BASE, which arrived through a full suite of its own. What it must never do is refuse an
+  # honest tree, and over-stripping cannot.
   badp="$(
     printf '%s\n' "$P1" | while IFS= read -r f; do
       [ -n "$f" ] || continue
       case "$f" in *.js) ;; *) continue;; esac
-      "${GIT[@]}" cat-file blob "$BASESHA:$f" 2>/dev/null | python3 -I -c '
-import sys,re
-src=sys.stdin.read()
-out=[];i=0;n=len(src);state=0
-# state 0 code, 1 line comment, 2 block comment, 3 single-quote, 4 double-quote, 5 backtick
-while i<n:
-    c=src[i]; nx=src[i+1] if i+1<n else ""
-    if state==0:
-        if c=="/" and nx=="/": state=1; i+=2; continue
-        if c=="/" and nx=="*": state=2; i+=2; continue
-        if c=="'"'"'": state=3
-        elif c=='"'"'"'"'"': state=4
-        elif c=="`": state=5
-        out.append(c)
-    elif state==1:
-        if c=="\n": state=0; out.append(c)
-    elif state==2:
-        if c=="*" and nx=="/": state=0; i+=2; continue
-        if c=="\n": out.append(c)
-    else:
-        out.append(c)
-        if c=="\\": 
-            out.append(nx); i+=2; continue
-        if (state==3 and c=="'"'"'") or (state==4 and c=='"'"'"'"'"') or (state==5 and c=="`"): state=0
-    i+=1
-code="".join(out)
-pat=re.compile(r"\b(checks-tier(-drive)?|fastgate|verify-log|held|buildnum)\.sh\b")
-for ln,line in enumerate(code.split("\n"),1):
-    if pat.search(line): print(f"{ln}: {line.strip()[:120]}")
-' 2>/dev/null | sed "s|^|$f:|"
+      "${GIT[@]}" cat-file blob "$BASESHA:$f" 2>/dev/null | awk '
+        BEGIN{ inblock=0 }
+        {
+          line=$0; out=""; i=1; L=length(line)
+          while (i<=L) {
+            c=substr(line,i,1); d=substr(line,i+1,1)
+            if (inblock) { if (c=="*" && d=="/") { inblock=0; i+=2 } else { i++ } ; continue }
+            if (c=="/" && d=="*") { inblock=1; i+=2; continue }
+            if (c=="/" && d=="/") { break }
+            out = out c; i++
+          }
+          if (out ~ /(checks-tier|checks-tier-drive|fastgate|verify-log|held|buildnum)\.sh/) {
+            sub(/^[ \t]+/, "", out)
+            printf "%d: %s\n", NR, substr(out,1,120)
+          }
+        }' 2>/dev/null | sed "s|^|$f:|"
     done
   )"
   if [ -n "$badp" ]; then
