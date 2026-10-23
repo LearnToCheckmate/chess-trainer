@@ -130,6 +130,12 @@ runtier(){
   local d="$1" base="$2" tf
   tf="$(mktemp -d)"
   if [ -z "$tf" ] || [ ! -d "$tf" ]; then TOUT="mktemp failed"; TRC=99; return; fi
+  # THE FIXTURE MUST CARRY refs/remotes/origin/main, POINTING AT THE BASE, because the judge now checks that the
+  # base it was handed IS the repository's own origin/main [fresh antagonist B's F3, round 4] - and a `git init`
+  # fixture has no such ref at all. Setting it HERE rather than in mkfix is deliberate: the real invocation
+  # passes origin/main as the base, so this mirrors it for every case at once, and a case that wants to test the
+  # arm itself points the ref somewhere else AFTER calling this (see A38).
+  git -C "$d" update-ref refs/remotes/origin/main "$base" >/dev/null 2>&1 || true
   git -C "$d" show "$base:gates/checks-tier.sh" > "$tf/ct.sh" 2>/dev/null
   TOUT="$(cd "$d" && bash "$tf/ct.sh" "$base" "$d" 2>&1)"; TRC=$?
   rm -rf "$tf"
@@ -156,7 +162,7 @@ expect(){
 }
 
 note "checks-tier-drive.sh  mode=$MODE  root=$ROOT  clock=$(TZ=America/New_York date '+%-I:%M%p ET, %-d %b %Y')"
-note "cases: A1 to A34 plus one mutant per new arm (M1 to M27). Fixture repositories under $T."
+note "cases: A1 to A41 plus one mutant per new arm (M1 to M30). Fixture repositories under $T."
 note ""
 
 # ── A2. A TIER PATH PLUS A RECORD FILE -> GO FULL. ───────────────────────────────────────────────────────────
@@ -241,6 +247,7 @@ printf '%s\n' "# changed" >> "$D/gates/held.sh"
 commitin "$D" "a tier-only change"
 TF="$(mktemp -d)"; git -C "$D" show "$FIXBASE:gates/checks-tier.sh" > "$TF/ct.sh"
 printf '%s\n' "# an extra byte that main does not have" >> "$TF/ct.sh"
+git -C "$D" update-ref refs/remotes/origin/main "$FIXBASE" >/dev/null 2>&1 || true
 A6OUT="$(cd "$D" && bash "$TF/ct.sh" "$FIXBASE" "$D" 2>&1)"; A6RC=$?
 rm -rf "$TF"
 if [ "$A6RC" = 1 ] && grep -qF "REFUSED" <<<"$A6OUT" && grep -qF "self pin" <<<"$A6OUT"; then
@@ -266,7 +273,7 @@ commitin "$D" "plant a real read of verify-log.sh in a regress gate"
 A8BASE="$(git -C "$D" rev-parse HEAD)"
 printf '%s\n' "# changed" >> "$D/gates/held.sh"
 commitin "$D" "a tier-only change over the planted base"
-expect A8 "$D" "$A8BASE" 1 "PREMISE P1 BROKEN" "a real read of a tier path in the browser read set is REFUSED"
+expect A8 "$D" "$A8BASE" 2 "PREMISE P1 BROKEN" "a real read of a tier path in the browser read set is REFUSED"
 
 # ── A8b. THE SAME WORDS INSIDE A BLOCK COMMENT ARE NOT A READ. ───────────────────────────────────────────────
 # THE CONTROL THAT MAKES A8 MEAN SOMETHING, and it is not decoration: measured on a30fc59, a `//`-only comment
@@ -511,6 +518,7 @@ commitin "$D" "a base with no checks-tier.sh"; B="$(git -C "$D" rev-parse HEAD)"
 cp "$G/checks-tier.sh" "$D/gates/checks-tier.sh"; chmod +x "$D/gates/checks-tier.sh"
 printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "add the tier and change a tier path"
 TF="$(mktemp -d)"; cp "$G/checks-tier.sh" "$TF/ct.sh"
+git -C "$D" update-ref refs/remotes/origin/main "$B" >/dev/null 2>&1 || true
 A21OUT="$(cd "$D" && bash "$TF/ct.sh" "$B" "$D" 2>&1)"; A21RC=$?
 rm -rf "$TF"
 if [ "$A21RC" = 2 ] && grep -qF "GO FULL" <<<"$A21OUT" && grep -qF "predating this tier" <<<"$A21OUT"; then
@@ -657,6 +665,7 @@ else
   printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
   TF="$(mktemp -d)"; git -C "$D" show "$M2B:gates/checks-tier.sh" > "$TF/ct.sh"
   printf '%s\n' "# an extra byte" >> "$TF/ct.sh"
+  git -C "$D" update-ref refs/remotes/origin/main "$M2B" >/dev/null 2>&1 || true
   O="$(cd "$D" && bash "$TF/ct.sh" "$M2B" "$D" 2>&1)"; R=$?; rm -rf "$TF"
   if [ "$R" = 1 ] && grep -qF "self pin" <<<"$O" && grep -qF "REFUSED" <<<"$O"; then
     rec M2 FAIL "the self pin still refused with its comparison removed"
@@ -975,9 +984,10 @@ if mutguard M15 "refuse a pre-tier base" "$D/gates/checks-tier.sh" 'return 1'; t
   MB="$(git -C "$D" rev-parse HEAD)"
   printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
   TF="$(mktemp -d)"; printf '%s\t%s\n' '    say "GO FULL: the base ${BASESHA:0:12} carries no gates/checks-tier.sh, so there is no main copy to judge by."\n    say "  That is a base predating this tier, not a fault in your commit. The full suite decides it."\n    return 2' '    say "REFUSED: the base ${BASESHA:0:12} carries no gates/checks-tier.sh."\n    return 1' | mkmut "$TF/ct.sh"
+  git -C "$D" update-ref refs/remotes/origin/main "$MB" >/dev/null 2>&1 || true
   O="$(cd "$D" && bash "$TF/ct.sh" "$MB" "$D" 2>&1)"; R=$?; rm -rf "$TF"
   if [ "$R" = 1 ]; then
-    rec M15 ok "restoring the refusal turns A21: a pre-tier base is REFUSED again (exit 1)"
+    rec M15 ok "restoring the refusal turns A21: a pre-tier base is REFUSED again rather than routed (exit 1)"
   else
     rec M15 FAIL "a pre-tier base did not refuse with the refusal restored (exit $R)"
   fi
@@ -992,8 +1002,8 @@ if mutguard M16 "make P2 comment-blind" "$D/gates/checks-tier.sh" 'print $0'; th
   MB="$(git -C "$D" rev-parse HEAD)"
   printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
   runtier "$D" "$MB"
-  if [ "$TRC" = 1 ] && grep -qF "PREMISE P2 BROKEN" <<<"$TOUT"; then
-    rec M16 ok "making P2 comment-blind turns A22 into a false refusal (exit 1), which is why it strips comments"
+  if [ "$TRC" = 2 ] && grep -qF "PREMISE P2 BROKEN" <<<"$TOUT"; then
+    rec M16 ok "making P2 comment-blind turns A22 into a false ROUTE (exit 2), which is why it strips comments"
   else
     rec M16 FAIL "P2 stayed clean with its comment strip removed (exit $TRC), so A22 does not test it"
   fi
@@ -1109,7 +1119,7 @@ runtier "$D" "$B"
 A26MD5AFTER="$(md5sum "$D/app.js" | cut -c1-32)"
 A26WHY=""
 [ "$TRC" = 1 ] || A26WHY="exit $TRC, wanted 1"
-grep -qF "symlink" <<<"$TOUT" || A26WHY="${A26WHY:+$A26WHY; }no 'symlink' in its verdict"
+grep -qiF "symlink" <<<"$TOUT" || A26WHY="${A26WHY:+$A26WHY; }no 'symlink' in its verdict"
 [ "$A26MD5BEFORE" = "$A26MD5AFTER" ] || A26WHY="${A26WHY:+$A26WHY; }app.js WAS REWRITTEN through the link"
 if [ -n "$A26WHY" ]; then
   rec A26 FAIL "a symlink planted at the log path :: $A26WHY"
@@ -1239,21 +1249,27 @@ EVIL
   commitin "$D" "a symlink plant with the snapshot blind"
   MB5="$(md5sum "$D/app.js" | cut -c1-32)"
   runtier "$D" "$MB"
-  if [ "$TRC" = 1 ] && grep -qF "symlink" <<<"$TOUT" && [ "$MB5" = "$(md5sum "$D/app.js" | cut -c1-32)" ]; then
+  if [ "$TRC" = 1 ] && grep -qiF "symlink" <<<"$TOUT" && [ "$MB5" = "$(md5sum "$D/app.js" | cut -c1-32)" ]; then
     rec M20 ok "with the snapshot blind the SYMLINK GUARD alone still refuses and still protects the target (exit $TRC)"
   else
     rec M20 FAIL "with the snapshot blind the symlink guard did not hold on its own (exit $TRC)"
   fi
 fi
 
-# ── M21. DISABLE BOTH HALVES OF THE SYMLINK GUARD so the snapshot is the only thing that can speak: A26's
-# VERDICT must still be REFUSED - and the DAMAGE must now happen, which is exactly why layer (2) exists. A
-# mutant that shows the other layer's verdict holding AND the harm it does not prevent.
+# ── M21. REMOVE THE WRITE-TARGET GUARD **AND** THE RENAME, which is the only way to reach the harm now - and
+# re-framing it that way is itself the measurement. Its first version removed the guard alone and the target
+# survived, because round 4 replaced the in-place `>` with a `rm -f` plus `mv`, and a RENAME cannot follow a
+# link of either kind: it replaces the directory entry and never opens the old inode. So the guard is no longer
+# the thing that prevents the damage - it is the thing that REPORTS it - and a mutant that removes only the
+# reporter proves nothing about the protection. With both gone, the verdict must still be REFUSED (the snapshot
+# names a difference under gates/logs/checks-, which this round made a GRAVE marker) AND the bundle must be
+# rewritten, which is the harm the RENAME, not the verdict, now prevents. M28 is the complement.
 D="$T/m-M21"; mkfix "$D"
-{ printf '%s\t%s\n' '  if [ -L "$ROOT/gates/logs" ] || [ -L "$ROOT/$SELFLOG" ]; then' '  if false; then'
-  printf '%s\t%s\n' '  if [ "$SELFLOGBAD" = 1 ] || [ -L "$OUT" ] || [ -L "$ROOT/gates/logs" ]; then' '  if false; then'
+{ printf '%s\t%s\n' '  for _p in "$ROOT/gates" "$ROOT/gates/logs"; do' '  for _p in; do'
+  printf '%s\t%s\n' '  if [ "$SELFLOGBAD" = 0 ] && [ -e "$OUT" ]; then' '  if false; then'
+  printf '%s\t%s\n' '  elif printf '"'"'%s'"'"' "$LOGLINES" > "$LOGTMP" 2>/dev/null && mv -f -- "$LOGTMP" "$OUT" 2>/dev/null; then' '  elif printf '"'"'%s'"'"' "$LOGLINES" > "$OUT" 2>/dev/null; then'
 } | mkmut "$D/gates/checks-tier.sh"
-if mutguard M21 "disable both halves of the symlink guard" "$D/gates/checks-tier.sh" '  if false; then'; then
+if mutguard M21 "disable both halves of the write-target guard" "$D/gates/checks-tier.sh" '  for _p in; do'; then
   mkdir -p "$D/gates/cases"
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M21 base" >/dev/null 2>&1
   MB="$(git -C "$D" rev-parse HEAD)"
@@ -1266,16 +1282,16 @@ ln -s "$R/app.js" "$R/gates/logs/checks-$SH-all.log"
 echo "PASS c-evil asserts nothing"
 exit 0
 EVIL
-  commitin "$D" "a symlink plant with the symlink guard removed"
+  commitin "$D" "a symlink plant with the guard AND the rename removed"
   MB5="$(md5sum "$D/app.js" | cut -c1-32)"
   runtier "$D" "$MB"
   MA5="$(md5sum "$D/app.js" | cut -c1-32)"
   if [ "$TRC" = 1 ] && [ "$MB5" != "$MA5" ]; then
-    rec M21 ok "with the guard removed the SNAPSHOT still refuses (exit $TRC) and the bundle IS rewritten - which is the harm the guard, not the verdict, prevents"
+    rec M21 ok "with the guard AND the rename removed the SNAPSHOT still refuses (exit $TRC) and the bundle IS rewritten - which is the harm the RENAME, not the verdict, prevents"
   elif [ "$TRC" = 1 ]; then
-    rec M21 FAIL "the guard was removed and the write did not reach the target, so A26 cannot distinguish the two layers"
+    rec M21 FAIL "both were removed and the write still did not reach the target, so neither layer is shown load-bearing"
   else
-    rec M21 FAIL "with the symlink guard removed nothing refused the plant (exit $TRC)"
+    rec M21 FAIL "with the write-target guard removed nothing refused the plant (exit $TRC)"
   fi
 fi
 
@@ -1306,8 +1322,8 @@ fi
 
 # ── M23. REMOVE THE CONTROL TIMEOUT: A30 must stop reddening and the control must run to completion.
 D="$T/m-M23"; mkfix "$D"
-printf '%s\t%s\n' '    out="$(cd "$d" && timeout "$CTLTMO" "$@" 2>&1 </dev/null)"; rc=$?' '    out="$(cd "$d" && "$@" 2>&1 </dev/null)"; rc=$?' | mkmut "$D/gates/checks-tier.sh"
-if mutguard M23 "remove the per-control timeout" "$D/gates/checks-tier.sh" '    out="$(cd "$d" && "$@" 2>&1 </dev/null)"; rc=$?'; then
+printf '%s\t%s\n' '    ( cd "$d" && timeout "$CTLTMO" "$@" >"$outf" 2>&1 </dev/null ); rc=$?' '    ( cd "$d" && "$@" >"$outf" 2>&1 </dev/null ); rc=$?' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M23 "remove the per-control timeout" "$D/gates/checks-tier.sh" '    ( cd "$d" && "$@" >"$outf" 2>&1 </dev/null ); rc=$?'; then
   mkdir -p "$D/gates/cases"
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M23 base" >/dev/null 2>&1
   MB="$(git -C "$D" rev-parse HEAD)"
@@ -1397,6 +1413,233 @@ if mutguard M27 "revert the md5 extraction to the whole log" "$D/gates/checks-ti
     rec M27 FAIL "the unscoped extraction still reached GREEN, so A33 does not test the scoping"
   else
     rec M27 ok "the unscoped extraction turns A33: prose md5s route the candidate away (exit $TRC)"
+  fi
+fi
+
+
+# ══ ROUND 4. THE THIRD PAIR'S VETO: A HARDLINK IS NOT A SYMLINK, AND A PLANT AT AN EXISTING PATH IS INVISIBLE.
+# Antagonist A of the third round reproduced BOTH halves. The guard added in round 3 tests `[ -L ]`, which is
+# FALSE for a hard link, and the write then truncates and rewrites the shared inode - which is app.js. Two poses,
+# and the second is the worse one by far:
+#   X1  the log path does NOT pre-exist. The plant adds a line to the ignored listing, so the SNAPSHOT refuses
+#       (exit 1) - and the write still happens, so the bundle is destroyed under a REFUSED verdict. That is
+#       exactly the state mutant M21 exists to declare unacceptable.
+#   X2  the log path ALREADY exists, which is true of any re-run of the tier at an unchanged HEAD - and the new
+#       live-lock GO FULL text explicitly invites exactly that re-run. The control `rm`s and re-`ln`s a path the
+#       `!!` ignored listing ALREADY enumerates, so the line is IDENTICAL in both snapshots: nothing added,
+#       nothing removed, SNAPSHOT BLIND. Exit 0, CHECKS TIER GREEN, the sentence "the real tree was not touched"
+#       printed, and app.js replaced by this run's own log text.
+# THE DUTY-2 ANSWER THAT GENERALISES, and it is A's: every real-tree case in the battery plants something NEW,
+# and `git status --porcelain --ignored` reports PRESENCE and not CONTENT for an ignored file - so a control that
+# REPLACES a path the stream already lists is the one shape the no-exclusion snapshot is structurally blind to.
+# The round-3 reasoning was "nothing needs excluding, because the lock cancels and the log is absent from both";
+# the state it misses is "the log is PRESENT in both and is not the same file".
+
+a35ctl(){ # a35ctl <dir> <linkcmd>  - writes the plant control; $2 is `ln` or `ln -s`
+  cat > "$1/gates/cases/c-plant.sh" <<EVIL
+#!/usr/bin/env bash
+R="\$(git config --get remote.origin.url)"; SH="\$(git rev-parse --short HEAD)"
+mkdir -p "\$R/gates/logs"; rm -f "\$R/gates/logs/checks-\$SH-all.log"
+$2 "\$R/app.js" "\$R/gates/logs/checks-\$SH-all.log"
+echo "PASS c-plant asserts nothing"
+exit 0
+EVIL
+}
+
+# ── A35. A HARDLINK AT AN ALREADY-EXISTING LOG PATH MUST NOT REACH A GREEN, AND MUST NOT REWRITE THE TARGET.
+D="$T/a35"; mkfix "$D"
+mkdir -p "$D/gates/cases"; printf '%s\n' "#!/usr/bin/env bash" "echo 'PASS c-old holds'" "exit 0" > "$D/gates/cases/c-old.sh"
+commitin "$D" "a base with one control"; B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"
+a35ctl "$D" "ln"
+commitin "$D" "held.sh plus a control that HARDLINKS app.js at the log path"
+A35SH="$(git -C "$D" rev-parse --short HEAD)"
+# THE PRECONDITION IS THE WHOLE POINT: the log path already exists, as it does after any earlier tier run at
+# this HEAD, so the ignored-listing line is present in BOTH snapshots.
+mkdir -p "$D/gates/logs"; printf 'an earlier run of this tier wrote this\n' > "$D/gates/logs/checks-$A35SH-all.log"
+A35B="$(md5sum "$D/app.js" | cut -c1-32)"
+runtier "$D" "$B"
+A35A="$(md5sum "$D/app.js" | cut -c1-32)"
+A35WHY=""
+[ "$TRC" = 0 ] && A35WHY="exit 0 - IT REACHED A GREEN"
+[ "$A35B" = "$A35A" ] || A35WHY="${A35WHY:+$A35WHY; }app.js WAS REWRITTEN through the hard link"
+grep -qF "CHECKS TIER GREEN" <<<"$TOUT" && A35WHY="${A35WHY:+$A35WHY; }the verdict says CHECKS TIER GREEN"
+if [ -n "$A35WHY" ]; then
+  rec A35 FAIL "a hardlink at an EXISTING log path :: $A35WHY"
+  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+else
+  rec A35 ok "a hardlink at an existing log path is refused and app.js is untouched (exit $TRC)"
+fi
+
+# ── A36. THE SAME PLANT WITH NO PRE-EXISTING LOG PATH: the snapshot DOES see it, so the verdict was always
+# right - and the TARGET must survive, which is the half round 3 claimed and did not deliver.
+D="$T/a36"; mkfix "$D"
+mkdir -p "$D/gates/cases"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"
+a35ctl "$D" "ln"
+commitin "$D" "held.sh plus a hardlink plant at a FRESH log path"
+A36B="$(md5sum "$D/app.js" | cut -c1-32)"
+runtier "$D" "$FIXBASE"
+A36A="$(md5sum "$D/app.js" | cut -c1-32)"
+A36WHY=""
+[ "$TRC" = 1 ] || A36WHY="exit $TRC, wanted 1"
+[ "$A36B" = "$A36A" ] || A36WHY="${A36WHY:+$A36WHY; }app.js WAS REWRITTEN through the hard link"
+if [ -n "$A36WHY" ]; then
+  rec A36 FAIL "a hardlink plant at a fresh log path :: $A36WHY"
+else
+  rec A36 ok "a hardlink plant at a fresh log path is refused AND the target survives (exit $TRC)"
+fi
+
+# ── A37. A CONTROL THAT BACKGROUNDS A CHILD MUST STILL BE BOUNDED. Antagonist A's finding 2: `timeout` signals
+# only its direct child, and a COMMAND SUBSTITUTION blocks until every holder of the pipe's write end exits - so
+# `sleep 25 &` ran 25 seconds under a 3-second bound, reached PASS and a GREEN, with the real tree's suite lock
+# held throughout. M23's control is a FOREGROUND sleep, so it measures timeout's ability to kill its own child
+# and nothing about the pipe: the bound was on `timeout`, not on `run_ctl`.
+D="$T/a37"; mkfix "$D"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"
+mkdir -p "$D/gates/cases"
+printf '%s\n' "#!/usr/bin/env bash" "sleep 25 &" "echo 'PASS c-bg asserts nothing'" "exit 0" > "$D/gates/cases/c-bg.sh"
+commitin "$D" "held.sh plus a control that backgrounds a long sleep"
+A37S="$(date -u +%s)"
+CT_CTL_TIMEOUT=3 runtier "$D" "$FIXBASE"
+A37E="$(date -u +%s)"
+if [ "$((A37E-A37S))" -ge 20 ]; then
+  rec A37 FAIL "a backgrounded child outlived the 3s bound by design: the run took $((A37E-A37S))s"
+else
+  rec A37 ok "a control that backgrounds a child is still bounded ($((A37E-A37S))s, exit $TRC)"
+fi
+
+
+# ── A38. THE BASE MUST BE THE REPOSITORY'S OWN origin/main [fresh antagonist B, F3]. B reproduced a branch two
+# commits past main where commit 1 changes gates/held.sh and commit 2 changes a BROWSER GATE: base=origin/main
+# correctly answers GO FULL and names the gate, base=HEAD~1 answered CHECKS TIER GREEN - and the push then
+# carries a changed browser gate nothing judged, because every arm compares HEAD against the base it was HANDED.
+D="$T/a38"; mkfix "$D"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+MID="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "// touched by a commit the tier is not asked about" >> "$D/gates/regress/01-x.js"
+commitin "$D" "a BROWSER GATE change past the base the operator will pass"
+# runtier points origin/main at whatever base it is given, so the ref is repointed to the REAL main AFTER it.
+runtier "$D" "$MID"
+git -C "$D" update-ref refs/remotes/origin/main "$FIXBASE" >/dev/null 2>&1
+TF38="$(mktemp -d)"; git -C "$D" show "$MID:gates/checks-tier.sh" > "$TF38/ct.sh" 2>/dev/null
+A38OUT="$(cd "$D" && bash "$TF38/ct.sh" "$MID" "$D" 2>&1)"; A38RC=$?
+rm -rf "$TF38"
+if [ "$A38RC" = 2 ] && grep -qF "refs/remotes/origin/main is" <<<"$A38OUT"; then
+  rec A38 ok "a base that is not origin/main routes to the full suite and names both shas (exit $A38RC)"
+else
+  rec A38 FAIL "a mid-branch base was judged as though it were main (exit $A38RC)"
+  printf '%s\n' "$A38OUT" | tail -6 | sed 's/^/          /'
+fi
+
+# ── A39. AN UNRELATED WRITER IN THE TREE ROUTES AND DOES NOT BLAME A CONTROL [fresh antagonist B, F4]. The
+# snapshot arm used to answer exit 1 - "do not re-run hoping for a different answer" - and to assert that "a
+# control ran wrote into the tree", on a tree where another session had written a doc. CLAUDE.md's own pen rule
+# lets every other chat read, measure, test and write docs and flags in this repository, and the lock excludes
+# gate suites and not that. Re-running is the fix, which exit 1 forbids.
+D="$T/a39"; mkfix "$D"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"
+mkdir -p "$D/gates/cases"
+printf '%s\n' "#!/usr/bin/env bash" "sleep 3" "echo 'PASS c-slowish holds'" "exit 0" > "$D/gates/cases/c-slowish.sh"
+commitin "$D" "an honest candidate with a control that takes a moment"
+( sleep 2; printf '%s\n' "a note another session wrote" > "$D/claude/SESSION-NOTE.md" ) &
+A39BG=$!
+runtier "$D" "$FIXBASE"
+wait "$A39BG" 2>/dev/null || true
+A39WHY=""
+[ "$TRC" = 2 ] || A39WHY="exit $TRC, wanted 2"
+grep -qF "SESSION-NOTE.md" <<<"$TOUT" || A39WHY="${A39WHY:+$A39WHY; }the verdict did not name the differing line"
+grep -qF "Something a control ran wrote" <<<"$TOUT" && A39WHY="${A39WHY:+$A39WHY; }the verdict still blames a control"
+if [ -n "$A39WHY" ]; then
+  rec A39 FAIL "an unrelated writer during the battery :: $A39WHY"
+  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+else
+  rec A39 ok "an unrelated untracked write ROUTES, names the line, and does not blame a control (exit $TRC)"
+fi
+
+# ── A40. THE GRAVE HALF OF THE SAME SPLIT: a planted HOOK is still a hard refusal. If every real-tree change
+# routed, the softer verdict would have bought B's F4 at the price of the thing the arm exists for.
+D="$T/a40"; mkfix "$D"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"
+mkdir -p "$D/gates/cases"
+cat > "$D/gates/cases/c-hook.sh" <<'HK'
+#!/usr/bin/env bash
+R="$(git config --get remote.origin.url)"
+printf '%s\n' '#!/bin/sh' 'echo planted' > "$R/.git/hooks/post-commit"
+chmod +x "$R/.git/hooks/post-commit"
+echo "PASS c-hook asserts nothing"
+exit 0
+HK
+commitin "$D" "held.sh plus a control that plants a post-commit hook"
+runtier "$D" "$FIXBASE"
+if [ "$TRC" = 1 ] && grep -qF "hook" <<<"$TOUT"; then
+  rec A40 ok "a planted hook is a HARD refusal and the verdict names it (exit $TRC)"
+else
+  rec A40 FAIL "a planted hook did not produce a hard refusal (exit $TRC)"
+  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+fi
+
+# ── A41. A DIRECTORY AT THE LOG PATH MUST NOT BE A SILENT GREEN [fresh antagonist B, F2]. No link is needed:
+# an empty ignored directory is invisible to `git status`, the write then fails, and `> "$OUT" 2>/dev/null &&
+# printf ' log: ...'` swallowed it - exit 0, CHECKS TIER GREEN, and NO LOG FILE EXISTS. The audit artefact the
+# whole design rests on was removable by the commit under judgement.
+D="$T/a41"; mkfix "$D"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"
+mkdir -p "$D/gates/cases"
+cat > "$D/gates/cases/c-nolog.sh" <<'NL'
+#!/usr/bin/env bash
+R="$(git config --get remote.origin.url)"; SH="$(git rev-parse --short HEAD)"
+mkdir -p "$R/gates/logs/checks-$SH-all.log"
+echo "PASS c-nolog asserts nothing"
+exit 0
+NL
+commitin "$D" "held.sh plus a control that puts a DIRECTORY at the log path"
+runtier "$D" "$FIXBASE"
+if [ "$TRC" = 1 ] && grep -qF "NOT a regular file" <<<"$TOUT"; then
+  rec A41 ok "a directory at the log path is refused and the verdict says why (exit $TRC)"
+else
+  rec A41 FAIL "a directory at the log path did not refuse with a reason (exit $TRC)"
+  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+fi
+
+# ── M29. REMOVE THE BASE-vs-origin/main ARM: A38 must stop routing.
+D="$T/m-M29"; mkfix "$D"
+printf '%s\t%s\n' '  if [ "$ORIGINMAIN" != "$BASESHA" ]; then' '  if false; then' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M29 "remove the base-vs-origin/main arm" "$D/gates/checks-tier.sh" '  if false; then'; then
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M29 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+  MID29="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "// touched" >> "$D/gates/regress/01-x.js"; commitin "$D" "a browser gate past the base"
+  git -C "$D" update-ref refs/remotes/origin/main "$MB" >/dev/null 2>&1
+  TF29="$(mktemp -d)"; git -C "$D" show "$MB:gates/checks-tier.sh" > "$TF29/ct.sh" 2>/dev/null
+  O29="$(cd "$D" && bash "$TF29/ct.sh" "$MID29" "$D" 2>&1)"; R29=$?
+  rm -rf "$TF29"
+  if grep -qF "refs/remotes/origin/main is" <<<"$O29"; then
+    rec M29 FAIL "the base-vs-main arm still fired with its branch removed"
+  else
+    rec M29 ok "removing the base-vs-main arm turns A38: a mid-branch base is judged as main (exit $R29)"
+  fi
+fi
+
+# ── M30. KEEP THE GUARD AND RESTORE THE IN-PLACE WRITE: the guard alone must still protect the target. The
+# complement of M21, so each of the two layers is measured without the other.
+D="$T/m-M30"; mkfix "$D"
+printf '%s\t%s\n' '  elif printf '"'"'%s'"'"' "$LOGLINES" > "$LOGTMP" 2>/dev/null && mv -f -- "$LOGTMP" "$OUT" 2>/dev/null; then' '  elif printf '"'"'%s'"'"' "$LOGLINES" > "$OUT" 2>/dev/null; then' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M30 "restore the in-place write, keep the guard" "$D/gates/checks-tier.sh" '> "$OUT" 2>/dev/null; then'; then
+  mkdir -p "$D/gates/cases"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M30 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"
+  a35ctl "$D" "ln"
+  commitin "$D" "a hardlink plant against the in-place write"
+  M30B="$(md5sum "$D/app.js" | cut -c1-32)"
+  runtier "$D" "$MB"
+  M30A="$(md5sum "$D/app.js" | cut -c1-32)"
+  if [ "$M30B" = "$M30A" ]; then
+    rec M30 ok "with the rename gone the write-target GUARD alone still protects the target (exit $TRC)"
+  else
+    rec M30 FAIL "the guard did not protect the target on its own, so M21 and M30 do not separate the layers"
   fi
 fi
 

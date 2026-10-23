@@ -75,6 +75,12 @@ digit-prefixed: `Result: FAIL - the key is off` passed. It is now
 `(^|[^0-9[:space:]])[[:space:]]*FAIL|[1-9][0-9]*[[:space:]]*FAIL`, which catches that line and `3 FAIL` and a
 bare leading `FAIL`, and still cannot match inside `0 FAIL`.
 
+**AND HERE IS WHAT THE FORBID WILL DO TO HONEST PROSE, because this is where you learn the wording.** The
+pattern catches `FAIL` preceded by anything that is not a digit, so a control that merely NARRATES the word is
+reddened: `… must FAIL`, `FAIL: 0`, `0 of 12 FAILED` and `no FAILures` are all refused. That is deliberate —
+the alternative is a pattern loose enough to miss a real `Result: FAIL` — but it means you write your prose
+around it. Say `0 FAIL`, or `12 checks, none failed`, or avoid the word outside the footer.
+
 The history is worth keeping, because the narrowing that opened the second hole was itself a correct fix: an
 earlier draft forbade the bare word `FAIL` and reddened a control written exactly as this paragraph tells you
 to write it — documentation and code disagreeing, with the code winning silently. Each round fixed the previous
@@ -85,17 +91,36 @@ described.
 
 The tier takes `gates/logs/.suite.lock`, snapshots the real tree, and compares the snapshot before it writes its
 log. The snapshot covers tracked bytes, the untracked set including ignored files, every ref, `.git/config`,
-`.git/hooks`, `.git/info` and the global git config. **Any difference is exit 1**, with exactly two paths
-excluded and one of them checked another way:
+`.git/hooks`, `.git/info` and the global git config. **NOTHING IS EXCLUDED FROM IT.**
 
-- `gates/logs/.suite.lock` and the tier's own `gates/logs/checks-<sha>-all.log` are excluded, because this run
-  creates both and they would always differ. An earlier draft excluded **every** path containing `gates/logs/`,
-  a substring match, which hid a control writing anywhere under that directory while this document claimed the
-  real tree was untouched.
-- The lock is therefore asserted **directly** instead: it must still exist and still carry this run's pid when
-  the battery ends. Antagonist A measured the hole that makes this necessary — a control running
-  `rm -rf gates/logs/.suite.lock` reached `CHECKS TIER GREEN` with the lock gone, which is a control releasing
-  the only guard against two suites overlapping (`#419`) mid-battery.
+**THIS PARAGRAPH DESCRIBED A MECHANISM THAT HAD ALREADY BEEN DELETED, AND BOTH ANTAGONISTS OF THE THIRD ROUND
+FOUND IT.** It read: "**Any difference is exit 1**, with exactly two paths excluded and one of them checked
+another way — `gates/logs/.suite.lock` and the tier's own `gates/logs/checks-<sha>-all.log` are excluded,
+because this run creates both and they would always differ. … The lock is therefore asserted **directly**
+instead." Every clause of that is now false. The exclusion went through three versions — a substring match on
+`gates/logs/`, then a two-needle substring match the code called "BY EXACT PATH" while being neither, then
+nothing at all — and the commit that deleted it said it had corrected this README "in three places" and left
+the one passage whose whole subject was the thing that changed. An author reading it to work out what is safe
+was reading the previous draft's code, and the live rule is **stricter** than the published one.
+
+What is true now:
+
+- **Any difference at all is reported, and the lines are named in the verdict.** A difference that names tracked
+  content, a ref, a hook, a git config entry, the working-tree diff, the suite lock or the tier's own log path
+  is a hard **exit 1**. Any other difference — an added or removed untracked or ignored path — is **exit 2**,
+  a route to the full suite, because this judge cannot tell a control's write from another session's, and
+  `CLAUDE.md`'s pen rule lets every other chat read, measure, test and write docs and flags in this repository.
+  An earlier version answered exit 1 for both, and asserted in its text that "a control" had done it; a reviewer
+  reproduced an honest candidate hard-refused because an unrelated background writer created a doc.
+- **The lock is additionally asserted directly**, by inode AND ctime as well as by pid: it must still be the
+  same directory, not merely a directory with the same pid in it. A reviewer defeated the pid-only form in three
+  lines — read the pid, `rm -rf` the lock, prove a second process can take it, write the pid back — and the
+  inode alone was blind too, because `mkdir` after `rm -rf` reuses the inode on this filesystem.
+- **The tier's own log is written by rename**, and its target is checked first: no path component may be a
+  symlink, and the log path itself must be absent or a regular file with exactly one hard link. A reviewer
+  reached `CHECKS TIER GREEN` over a replaced `app.js` with one character changed from the previous round's
+  control — `ln` instead of `ln -s`, because `[ -L ]` is false for a hard link and `>` truncates whatever inode
+  the name resolves to.
 
 So a control must not:
 
