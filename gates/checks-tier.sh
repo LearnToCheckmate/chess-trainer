@@ -58,7 +58,8 @@ main(){
   # ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
   local BASE="${1:-}" ROOT="${2:-}"
   local RC=0 VERD="" LOGLINES="" SHORT="" HEADSHA="" BASESHA=""
-  local WORK="" SNAP0="" SNAP1="" SNAPTXT0="" SNAPTXT1="" LOCK="" LOCKHELD=0 LOCKSIG0="" SELFLOGBAD=0
+  local WORK="" PRIV="" MIRROR="" SNAP0="" SNAP1="" SNAPTXT0="" SNAPTXT1="" LOCK="" LOCKHELD=0 LOCKSIG0="" SELFLOGBAD=0
+  local SNAPRC=0
   local CTLTMO="${CT_CTL_TIMEOUT:-600}"
   local LOGTMP="" OUT=""
 
@@ -325,7 +326,7 @@ main(){
     say "  the read is removed or the path joins the forced set. That is the BASE's state, not your commit's:"
     say "  nothing is known to be wrong with this candidate, so the honest answer is the full suite."
     [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK" 2>/dev/null
-    rm -rf "$WORK" 2>/dev/null
+    rm -rf "$WORK" "$PRIV" 2>/dev/null
     return 2
   fi
   # P2: child_process only in gates/lib.js, and only for its two commands.
@@ -380,7 +381,7 @@ main(){
     say "  A gate that can start a process can run a push check, and then the read set is not independent of it."
     say "  That is the BASE's state and not your commit's, so the honest answer is the full suite."
     [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK" 2>/dev/null
-    rm -rf "$WORK" 2>/dev/null
+    rm -rf "$WORK" "$PRIV" 2>/dev/null
     return 2
   fi
   say "  premise: P1 clean (block comments stripped); P2 clean (child_process only in gates/lib.js)"
@@ -478,17 +479,167 @@ main(){
     # it is absent from both. An exclusion for a line that cannot differ buys nothing and costs a hole. If some
     # future control does move a line under gates/logs in the real tree, that is a finding and this arm should
     # say so - which is what it now does, by printing the differing lines instead of two opaque hashes.
-    { "${GIT[@]}" ls-files -s
-      "${GIT[@]}" status --porcelain=v1 -uall --ignored
-      "${GIT[@]}" for-each-ref --format='%(refname) %(objectname)'
-      "${GIT[@]}" diff --no-ext-diff HEAD
-      cat "$ROOT/.git/config" 2>/dev/null
-      cat "$ROOT/.git/info/exclude" 2>/dev/null
-      ls -1 "$ROOT/.git/hooks" 2>/dev/null
-      for h in "$ROOT"/.git/hooks/*; do [ -f "$h" ] && { printf 'HOOK %s\n' "${h##*/}"; cat "$h"; }; done
-      ls -1 "$ROOT/.git/info" 2>/dev/null
-      git config --global --list 2>/dev/null
-    }
+    # ROUND 4, D4: EVERY LINE CARRIES A TYPE PREFIX THIS FUNCTION ITSELF WRITES, AND THE CLASSIFIER KEYS ON
+    # THAT PREFIX AND NEVER ON A REGEX OVER GIT'S OUTPUT SHAPES. The round-3 classifier inferred the class from
+    # the shape of each differing line - `^[0-7]{6} [0-9a-f]{40} [0-9]`, `refs/`, `\t[a-z]+ =` and so on - and it
+    # MISSED gates/logs/.checks- BY ONE CHARACTER, which is how the fifth round's P1(a) landed on the routable
+    # side of the split. A prefix the producer writes cannot be mis-inferred by the consumer.
+    # AND IT RECORDS CONTENT, NOT NAMES, WHICH IS THE FIFTH ROUND'S P1(c). `git status --porcelain -uall
+    # --ignored` prints `!! <path>` and nothing hashed the bytes, so a control could rewrite ANY ignored file -
+    # claude/agents/gatelogs/*.log and gates/logs/* among them, which is where this project keeps its gate-log
+    # evidence - and the run printed EXIT 0, CHECKS TIER GREEN and "the real tree was not touched". The README's
+    # "NOTHING IS EXCLUDED FROM IT" was true of the SET and false of the BYTES.
+    local f h d rec
+    "${GIT[@]}" ls-files -s 2>/dev/null | sed 's/^/TRACKED /'
+    "${GIT[@]}" for-each-ref --format='%(refname) %(objectname)' 2>/dev/null | sed 's/^/REF /'
+    "${GIT[@]}" stash list 2>/dev/null | sed 's/^/STASH /'
+    printf 'DIFF %s\n' "$("${GIT[@]}" diff --no-ext-diff HEAD 2>/dev/null | sha256sum | cut -c1-64)"
+    # CONFIG, HOOK and INFO: the CONTENT of .git/config, of every file under .git/hooks and of every file under
+    # .git/info - exclude and attributes BODIES included, which the round-3 snapshot listed by NAME only, so a
+    # rewritten .git/info/exclude was invisible to it.
+    if [ -f "$ROOT/.git/config" ]; then
+      printf 'CONFIG .git/config %s\n' "$(sha256sum < "$ROOT/.git/config" 2>/dev/null | cut -c1-64)"
+    else printf 'CONFIG .git/config absent\n'; fi
+    for f in "$ROOT"/.git/hooks/*; do
+      [ -f "$f" ] || continue
+      printf 'HOOK %s %s\n' "${f##*/}" "$(sha256sum < "$f" 2>/dev/null | cut -c1-64)"
+    done
+    for f in "$ROOT"/.git/info/*; do
+      [ -f "$f" ] || continue
+      printf 'INFO %s %s\n' "${f##*/}" "$(sha256sum < "$f" 2>/dev/null | cut -c1-64)"
+    done
+    # UNTRACKED: one line per untracked or ignored path with its inode, size and ctime to the NANOSECOND, so a
+    # rewrite of an existing file shows even when its name and size are kept. THIS STAT FORM IS FOR THIS SET
+    # ALONE, and the reason is the exit code: a change here ROUTES and is never a green, while this judge runs as
+    # root in this container and root can in principle set a ctime back - so every set whose change is GRAVE is
+    # content-hashed instead. gates/node_modules is untracked and not ignored, so it is in this set; MEASURED on
+    # the real tree after `npm ci`, the whole pass is 95 entries in 0.006s, which is the floor this costs.
+    # A STATUS LINE THAT IS NEITHER `??` NOR `!!` IS A TRACKED MODIFICATION OR A STAGED CHANGE, and it is typed
+    # WT and is GRAVE: no other session writing a doc can produce one.
+    while IFS= read -r -d '' rec; do
+      case "$rec" in
+        '?? '*|'!! '*)
+          f="${rec:3}"
+          printf 'UNTRACKED %s %s\n' "$f" "$(stat -c '%i %s %z' -- "$ROOT/$f" 2>/dev/null || echo gone)" ;;
+        *) printf 'WT %s\n' "$rec" ;;
+      esac
+    done < <("${GIT[@]}" status --porcelain=v1 -uall --ignored -z 2>/dev/null)
+    # EVIDENCE: the CONTENT of every file under gates/logs/ and claude/agents/gatelogs/, typed apart from
+    # UNTRACKED so that a file which EXISTED at the first snapshot and then changed or vanished is GRAVE while a
+    # newly ADDED one only routes. That split is what makes a rewritten gate log a refusal: the fifth round's
+    # P1(c) was reproduced with a pre-existing ignored log whose text afterwards read "ALL EVIDENCE REMOVED BY A
+    # CONTROL". MEASURED on the real tree: 166 files, 95MB, 3.3s a pass.
+    for d in gates/logs claude/agents/gatelogs; do
+      [ -d "$ROOT/$d" ] || continue
+      while IFS= read -r -d '' f; do
+        # THE HASH IS ON ITS OWN LINE SO THAT ITS MUTANT HAS A CLEAN SEAM. M34 has to replace the content hash
+        # with a constant to show that hashing the BYTES (and not the name set, as round 3 did) is what catches
+        # a same-name same-size rewrite; folded into the printf it could only be mutated by also dropping an
+        # argument, and printf REUSES its format string, so the hash would have been printed anyway on a second
+        # line and the mutant would have proved nothing. The shape of the code is chosen to keep its own control
+        # honest, which is the same reason writelog() is a function.
+        h="$(sha256sum < "$f" 2>/dev/null | cut -c1-64)"
+        printf 'EVIDENCE %s %s\n' "${f#"$ROOT"/}" "$h"
+      done < <(find "$ROOT/$d" -type f -print0 2>/dev/null | sort -z)
+    done
+    # OUTSIDE: the files a control could use to reach the OPERATOR rather than the repository. The global git
+    # config is here because the fifth round's P2(1) is exactly that: a GLOBAL core.hooksPath needs no file in
+    # the repository at all, fires at the next commit, and the round-3 classifier knew only the .git/config INI
+    # shape while `git config --global --list` emits `key.sub=value`.
+    for f in "$HOME/.gitconfig" "$HOME/.config/git/config" "$HOME/.bashrc" "$HOME/.bash_profile" \
+             "$HOME/.profile" "$HOME/.npmrc"; do
+      if [ -f "$f" ]; then printf 'OUTSIDE %s %s\n' "$f" "$(sha256sum < "$f" 2>/dev/null | cut -c1-64)"
+      else printf 'OUTSIDE %s absent\n' "$f"; fi
+    done
+    printf 'OUTSIDE git-config-global %s\n' "$(git config --global --list 2>/dev/null | sha256sum | cut -c1-64)"
+    printf 'OUTSIDE git-config-system %s\n' "$(git config --system --list 2>/dev/null | sha256sum | cut -c1-64)"
+  }
+
+  # THE SECOND SNAPSHOT IS TAKEN ON EVERY EXIT PATH AFTER THE LOCK IS HELD, WHICH IS ROUND 4's OWN RESIDUAL
+  # [antagonist A of the fourth round, theREMAINDER (a) on the hand-off job]. The three `return 2`s of the
+  # acceptance block below fire AFTER the whole first half of the battery has run, and they used to leave with
+  # the lock released and SNAP1 never taken - a window in which tampering was neither detected nor reported.
+  # This function is the ONE place the two snapshots are compared, so the acceptance block and step (9) cannot
+  # drift apart, and it SETS SNAPRC rather than echoing it: `say` accumulates into LOGLINES, and a function
+  # called inside `$( )` would do that in a subshell and lose every line.
+  #   SNAPRC 0  nothing moved.
+  #   SNAPRC 1  GRAVE: tracked content, a ref, the stash, the working-tree diff, a staged change, a git config
+  #             entry, a hook, a .git/info body, a file outside the repository, or an EVIDENCE file that existed
+  #             at SNAP0 and changed or vanished. None of those is a doc write by another session.
+  #   SNAPRC 2  ROUTED: an UNTRACKED or EVIDENCE path ADDED, or an UNTRACKED path removed or rewritten.
+  #             CLAUDE.md lets every other chat write docs and flags in this repository and this judge cannot
+  #             tell their writes from a control's, so it will not call the candidate broken on one.
+  # THE LOG WRITE IS A FUNCTION SO THAT ITS CALL SITE IS ONE LINE, AND THAT IS NOT COSMETIC. The mutants that
+  # prove this layer load-bearing have to swap the write for the in-place `>` form, and a five-line `&&` chain
+  # cannot be replaced by one line without leaving a syntax error behind - at which point the mutant is testing
+  # "the judge does not parse" and not the arm. mkmut's own header in the harness records that exact failure
+  # costing two mutants their meaning, so the shape of this code is chosen to keep its mutant honest.
+  # WHAT IT GUARANTEES, in order: the temporary is mktemp's, inside the private directory, so its name is not
+  # computable and its creation cannot follow a link; the move is a RENAME, which acts on the NAME and so can
+  # neither write through a symlink nor touch a hard link's other names, and `-T` refuses a directory at the
+  # destination; and then the RESULT IS VERIFIED rather than assumed, because PRIV may be on another filesystem
+  # where mv falls back to copy-and-unlink and opens the destination path. A write that is verified to be a
+  # regular file, unlinked elsewhere, carrying this run's own bytes, cannot be a write that landed somewhere else.
+  writelog(){
+    LOGTMP="$(mktemp "$PRIV/log-XXXXXXXXXX" 2>/dev/null)" || return 1
+    [ -n "$LOGTMP" ] && [ -f "$LOGTMP" ] || return 1
+    printf '%s' "$LOGLINES" > "$LOGTMP" 2>/dev/null || return 1
+    mv -T -- "$LOGTMP" "$OUT" 2>/dev/null || return 1
+    [ -f "$OUT" ] && [ ! -L "$OUT" ] || return 1
+    [ "$(stat -c %h -- "$OUT" 2>/dev/null || echo 0)" = 1 ] || return 1
+    [ "$(sha256sum < "$OUT" 2>/dev/null | cut -c1-64)" = "$(printf '%s' "$LOGLINES" | sha256sum | cut -c1-64)" ] || return 1
+    return 0
+  }
+
+  snapcheck(){
+    SNAPRC=0
+    [ "$LOCKHELD" = 1 ] || return 0
+    SNAPTXT1="$(snapshot)"
+    SNAP1="$(printf '%s\n' "$SNAPTXT1" | sha256sum | cut -c1-64)"
+    [ "$SNAP0" = "$SNAP1" ] && return 0
+    local SNAPDIFF gcount ecount dl
+    SNAPDIFF="$(diff <(printf '%s\n' "$SNAPTXT0") <(printf '%s\n' "$SNAPTXT1") 2>/dev/null || true)"
+    gcount="$(printf '%s\n' "$SNAPDIFF" | grep -cE '^[<>] (TRACKED|REF|STASH|DIFF|WT|CONFIG|HOOK|INFO|OUTSIDE) ' || true)"
+    gcount=$((gcount+0))
+    # A '<' EVIDENCE line is a file that was there at SNAP0 and is no longer byte-identical: changed or gone.
+    # A '>' EVIDENCE line with no '<' is an addition, which is what this run's own controls legitimately do.
+    ecount="$(printf '%s\n' "$SNAPDIFF" | grep -cE '^< EVIDENCE ' || true)"; ecount=$((ecount+0))
+    # AND TWO UNTRACKED NAMES ARE GRAVE WHEREVER THEY MOVE, WHICH KEEPS A REFUSAL ROUND 3 ESTABLISHED FROM
+    # BEING WEAKENED BY ROUND 4's SPLIT. Mutant M21 measured exactly that: with the write-target guard and the
+    # rename both removed, a symlink planted at this run's own log path is an UNTRACKED path ADDED, so the
+    # typed split above ROUTED where round 3's classifier - which carried `gates/logs/(\.suite\.lock|checks-)`
+    # as a grave marker - REFUSED, and the bundle was rewritten under a route. The justification for routing an
+    # untracked change is that CLAUDE.md lets every other chat write docs and flags here and this judge cannot
+    # tell their writes from a control's. That reasoning does not reach these two names: `gates/logs/.suite.lock`
+    # is gates.sh's own lock and `gates/logs/checks-*` is THIS SCRIPT's log, and nothing else in this project
+    # writes either. A name only the judge and a control can touch is not a doc write.
+    local lcount
+    # `\.?checks-` AND NOT `checks-`, AND THAT ONE CHARACTER IS THE FIFTH ROUND'S P1(a) IN ITS OWN WORDS:
+    # "THE GRAVE CLASSIFIER MISSES IT BY ONE CHARACTER: it carries gates/logs/(\.suite\.lock|checks-) and the
+    # temporary is .checks-, so the plant lands on the ROUTABLE side of round 4's own split." Writing the same
+    # pattern again here would have reproduced the defect inside its own repair, which is what case A44 is for.
+    lcount="$(printf '%s\n' "$SNAPDIFF" | grep -cE '^[<>] UNTRACKED gates/logs/(\.suite\.lock|\.?checks-)' || true)"
+    lcount=$((lcount+0))
+    gcount=$((gcount + lcount))
+    if [ $((gcount + ecount)) -gt 0 ]; then
+      say "REFUSED: the real tree CHANGED while the battery ran (snapshot ${SNAP0:0:16} -> ${SNAP1:0:16})."
+      say "  $gcount differing line(s) name tracked content, a ref, the stash, the working-tree diff, a staged"
+      say "  change, a git config entry, a hook, a .git/info body, a file outside this repository, or this"
+      say "  judge's own log path or suite lock - names nothing but this script and a control ever writes - and"
+      say "  $ecount name an EVIDENCE file (gates/logs, claude/agents/gatelogs) that existed before the battery"
+      say "  and changed or vanished. None of those is another session writing a doc, and all of them are what a"
+      say "  control plants. A planted hook fires at the NEXT commit, where nothing would connect it to this run."
+      SNAPRC=1
+    else
+      say "GO FULL: the real tree CHANGED while the battery ran (snapshot ${SNAP0:0:16} -> ${SNAP1:0:16}), and"
+      say "  every differing line is an UNTRACKED path added, removed or rewritten, or a new EVIDENCE file. This"
+      say "  judge cannot tell a control's write from another session's - CLAUDE.md lets every other chat write"
+      say "  docs and flags here - so it will not call your commit broken on it. Read the lines below: if none is"
+      say "  yours, re-run the tier; the full suite decides either way."
+      SNAPRC=2
+    fi
+    while IFS= read -r dl; do say "    $dl"; done < <(printf '%s\n' "$SNAPDIFF" | head -20)
+    return 0
   }
   SNAPTXT0="$(snapshot)"
   SNAP0="$(printf '%s\n' "$SNAPTXT0" | sha256sum | cut -c1-64)"
@@ -504,15 +655,85 @@ main(){
     return 1
   fi
 
+  # ── ROUND 4, D2: THE JUDGE'S OWN DIRECTORY, AND NOTHING IT WRITES HAS A NAME A CONTROL CAN COMPUTE. ─────────
+  # THREE OF THE FIVE ADVERSARIAL ROUNDS ON THIS FILE FOUND ONE SHAPE - the judge's own write landing somewhere
+  # else - and all three used a DERIVED NAME: the final log (rounds 2 and 3, symlink then hard link), the
+  # temporary `gates/logs/.checks-$SHORT-$$.tmp` (round 5a, whose two components the judge itself publishes in
+  # $LOCK/pid and $LOCK/log), and `$WORK/ctl-N.out` (round 5b, where $WORK is `dirname "$PWD"` from inside any
+  # control). Both doors of the fifth round converged on the same STRUCTURAL remedy rather than another guard,
+  # and this is it: every file this judge writes is created by `mktemp` or `mkdir` - O_EXCL semantics, which
+  # cannot follow a link of either kind - inside a private directory that NO control's cwd sits under and whose
+  # name no control can compute. Copying the three $OUT probes onto $LOGTMP was explicitly rejected on the job:
+  # that is a TOCTOU on a path an attacker can re-create, and 5(b) is the same bug at a second name.
+  # WHY IT IS A SECOND mktemp -d AND NOT A SUBDIRECTORY OF $WORK: a control's cwd is $WORK/cN, so $WORK is one
+  # `dirname` away from every control, and anything under it is therefore computable. PRIV is a sibling of $WORK
+  # under TMPDIR, mode 700 as mktemp -d creates it, and it is removed on every exit path.
+  PRIV="$(mktemp -d 2>/dev/null)"
+  if [ -z "$PRIV" ] || [ ! -d "$PRIV" ]; then
+    say "REFUSED: mktemp -d produced no usable private directory, so this judge has nowhere to write that a"
+    say "  control cannot compute. Every write of this run goes through that directory, so it will not proceed."
+    rm -rf "$WORK" 2>/dev/null
+    [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK"
+    return 1
+  fi
+  chmod 700 "$PRIV" 2>/dev/null
+
+  # ── ROUND 4, D1: GIT NO LONGER HANDS A CONTROL THE REAL TREE. ───────────────────────────────────────────────
+  # EVERY ONE of those three P1s reached the real repository by the SAME free route, and it was handed to the
+  # control by this judge: `git clone --shared "$ROOT"` leaves the clone's `remote.origin.url` naming the tree
+  # under judgement and its `.git/objects/info/alternates` pointing into it, so a control that asserts nothing
+  # can read `git config --get remote.origin.url` and write anywhere in the real checkout. The controls now
+  # clone from a THROWAWAY MIRROR in the judge's private directory, so both of those name the mirror and the
+  # real root appears in neither. MEASURED: `git clone --mirror --no-hardlinks` of this repository is 1.7s and
+  # 53MB, a control's clone from the mirror is 1.0s against 0.9s from the real root, and the clone's
+  # remote.origin.url and alternates both resolve inside PRIV.
+  # --no-hardlinks ON THE MIRROR IS LOAD-BEARING AND NOT TIDINESS: a hardlinked object file is the SAME INODE as
+  # the real repository's, so a control that wrote one would corrupt the tree under judgement through a path no
+  # snapshot of mine watches.
+  # WHAT THIS DOES NOT DO, and D3's README entry says it in the same words: a control can still find the real
+  # tree through /proc (this judge's cwd and argv), so this closes the EASY route and not the class. The defence
+  # for the rest is D2 above - a write with no computable target - plus the antagonist pass that reads every
+  # control. A judge is a mechanical layer, not a sandbox.
+  MIRROR="$PRIV/mirror.git"
+  if ! git clone --quiet --mirror --no-hardlinks "$ROOT" "$MIRROR" >/dev/null 2>&1 || [ ! -d "$MIRROR" ]; then
+    say "REFUSED: could not build the throwaway mirror of this repository in the private directory, so every"
+    say "  control's clone would have to name the real tree as its origin - which is the route three of the five"
+    say "  adversarial rounds on this judge used to write into the tree under judgement."
+    rm -rf "$WORK" "$PRIV" 2>/dev/null
+    [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK"
+    return 1
+  fi
+  say "  isolation: controls clone from a throwaway mirror in this run's private directory, not from $ROOT"
+
   # ── (8) THE BATTERY. EACH CONTROL IN ITS OWN THROWAWAY CLONE, HEAD CHECKED OUT, origin/main AT THE BASE. ────
   # NEVER A GIT WORKTREE OF THE REAL CHECKOUT: worktrees share refs and .git/info/exclude, and #530's controls
   # moved the real refs/remotes/origin/main that way. A clone has its own refs, so update-ref below cannot reach
   # the tree under judgement.
   local nclone=0
+  # THE MIRROR IS RE-VERIFIED BEFORE EVERY CLONE, because the controls share it. A control cannot alter the
+  # CONTENT at a sha - git objects are content-addressed and git checks them on read - but it can delete objects
+  # or move the mirror's refs, so the two trees every control reads are compared against the real repository's
+  # own values before each clone. Cheap (two rev-parses) and it keeps the mirror from becoming a way to weaken a
+  # LATER control: an earlier control that reverted a weakening in gates/held.sh inside the mirror would
+  # otherwise make main's held-selftest pass against a tree nobody committed.
+  mirror_ok(){
+    local a b
+    a="$("${GIT[@]}" rev-parse --verify "$HEADSHA^{tree}" 2>/dev/null)"
+    b="$(git -C "$MIRROR" rev-parse --verify "$HEADSHA^{tree}" 2>/dev/null)"
+    [ -n "$a" ] && [ "$a" = "$b" ] || return 1
+    a="$("${GIT[@]}" rev-parse --verify "$BASESHA^{tree}" 2>/dev/null)"
+    b="$(git -C "$MIRROR" rev-parse --verify "$BASESHA^{tree}" 2>/dev/null)"
+    [ -n "$a" ] && [ "$a" = "$b" ] || return 1
+    return 0
+  }
   mkclone(){
     local dest="$1"
     nclone=$((nclone+1))
-    git clone --quiet --no-hardlinks --shared "$ROOT" "$dest" >/dev/null 2>&1 || return 1
+    if ! mirror_ok; then
+      bad "the throwaway mirror no longer matches this repository's base and head trees, so no later control can be trusted"
+      return 1
+    fi
+    git clone --quiet --no-hardlinks --shared "$MIRROR" "$dest" >/dev/null 2>&1 || return 1
     git -C "$dest" -c advice.detachedHead=false checkout --quiet "$HEADSHA" >/dev/null 2>&1 || return 1
     git -C "$dest" update-ref refs/remotes/origin/main "$BASESHA" >/dev/null 2>&1 || return 1
     return 0
@@ -565,7 +786,18 @@ main(){
     # WHAT THIS DOES NOT DO, said plainly rather than implied: the orphaned background process keeps running.
     # It cannot hold this run up and it cannot reach the tree under judgement (its cwd is a throwaway clone),
     # but it is still a process nobody reaps, and killing a whole process group is a bigger change than this.
-    local outf="$WORK/ctl-$CTLN.out"
+    # ROUND 4, D2, AND THIS EXACT LINE IS THE FIFTH ROUND'S P1(b): it read `outf="$WORK/ctl-$CTLN.out"`, and
+    # each control's cwd is `$WORK/c$CTLN`, so $WORK is `dirname "$PWD"` from inside any control. A control
+    # pre-planted symlinks at every $WORK/ctl-N.out and the NEXT control's stdout was written through one - the
+    # reproduction replaced app.js with the following control's output. mktemp creates the file itself with
+    # O_EXCL, in a directory no control can name, so there is nothing to pre-plant and nothing to follow.
+    local outf
+    outf="$(mktemp "$PRIV/ctl-XXXXXXXXXX.out" 2>/dev/null)"
+    if [ -z "$outf" ] || [ ! -f "$outf" ]; then
+      bad "$label: could not create an output file in this run's private directory, so the control did not run"
+      say "  RED  $label - no output file"
+      return 1
+    fi
     ( cd "$d" && timeout "$CTLTMO" "$@" >"$outf" 2>&1 </dev/null ); rc=$?
     out="$(cat "$outf" 2>/dev/null || true)"
     if [ "$rc" = 124 ]; then
@@ -717,8 +949,13 @@ main(){
     # refuses. a30fc59 carries 131 of them so this is not reachable today; it is reachable on a fresh line.
     say "GO FULL: the base ${BASESHA:0:12} carries no claude/agents/gatelogs/<N>-all.log, so the acceptance arm"
     say "  has nothing to accept. That is state outside your commit: the full suite decides."
+    # THE SECOND SNAPSHOT IS TAKEN HERE TOO [round 4's own residual]: half the battery has already run, so
+    # leaving without comparing would be a window in which tampering is neither detected nor reported.
+    snapcheck
+    [ "$SNAPRC" = 1 ] && say "CHECKS TIER RED: the refusal above outranks the route - a control changed the real tree."
     [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK" 2>/dev/null
-    rm -rf "$WORK" 2>/dev/null
+    rm -rf "$WORK" "$PRIV" 2>/dev/null
+    [ "$SNAPRC" = 1 ] && return 1
     return 2
   else
     local GN
@@ -769,16 +1006,22 @@ main(){
       say "GO FULL: the base's newest archived log $GLOG names $NMD5 bundle md5(s) on a \`ref:\` line, not one."
       say "  With no single structured value the arm cannot compare anything, and guessing which of several to"
       say "  believe is how the first version of this check went wrong. State outside your commit: run the suite."
+      snapcheck
+      [ "$SNAPRC" = 1 ] && say "CHECKS TIER RED: the refusal above outranks the route - a control changed the real tree."
       [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK" 2>/dev/null
-      rm -rf "$WORK" 2>/dev/null
+      rm -rf "$WORK" "$PRIV" 2>/dev/null
+      [ "$SNAPRC" = 1 ] && return 1
       return 2
     fi
     if [ "$LOGMD5" != "$DISKMD5" ]; then
       say "GO FULL: the base's newest archived log $GLOG gated bundle $LOGMD5 and this tree's app.js is $DISKMD5."
       say "  The acceptance arm compares the two with --this-bundle, so it cannot speak about this candidate while"
       say "  they differ. That is state outside your commit, not a fault in it: the full suite decides."
+      snapcheck
+      [ "$SNAPRC" = 1 ] && say "CHECKS TIER RED: the refusal above outranks the route - a control changed the real tree."
       [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK" 2>/dev/null
-      rm -rf "$WORK" 2>/dev/null
+      rm -rf "$WORK" "$PRIV" 2>/dev/null
+      [ "$SNAPRC" = 1 ] && return 1
       return 2
     fi
     run_ctl "verify-log.sh (head) accepts #$GN" 0 "OK" "REFUS" -- bash gates/verify-log.sh "$GLOG" "#$GN" --this-bundle
@@ -887,32 +1130,31 @@ main(){
   # with the only tell an unlabelled "Is a directory" on stderr that no consumer greps. So the log is now PROBED
   # here, before the verdict, and a probe that fails is a RED with its own sentence.
   OUT="$ROOT/$SELFLOG"
-  LOGTMP="$ROOT/gates/logs/.checks-$SHORT-$$.tmp"
-  local _p _lnk
+  local _p
   for _p in "$ROOT/gates" "$ROOT/gates/logs"; do
     [ -L "$_p" ] || continue
     say "REFUSED: $_p is a SYMLINK, so every path under it - including this run's own log - resolves somewhere"
     say "  else, and a write there lands outside the directory this judge believes it is writing to."
     SELFLOGBAD=1; RC=1
   done
-  if [ "$SELFLOGBAD" = 0 ] && [ -e "$OUT" ]; then
-    if [ -L "$OUT" ]; then
-      say "REFUSED: $SELFLOG is a SYMLINK. Writing it would follow the link into whatever it points at, which is"
-      say "  how a control with no assertions in it reached CHECKS TIER GREEN over a replaced app.js."
-      SELFLOGBAD=1; RC=1
-    elif [ ! -f "$OUT" ]; then
-      say "REFUSED: $SELFLOG exists and is NOT a regular file, so this run cannot write its own log there and"
-      say "  would leave no auditable record. A control can create a DIRECTORY at this path to do exactly that."
-      SELFLOGBAD=1; RC=1
-    else
-      _lnk="$(stat -c %h -- "$OUT" 2>/dev/null || echo 1)"
-      if [ "$_lnk" != 1 ]; then
-        say "REFUSED: $SELFLOG has $_lnk hard links, so its inode is also reachable by another name and writing"
-        say "  it writes that file too. A control under gates/cases/ can \`ln\` the bundle here, and `[ -L ]` -"
-        say "  which this arm used to be - is FALSE for a hard link. Both antagonists of round 3 found this."
-        SELFLOGBAD=1; RC=1
-      fi
-    fi
+  # ROUND 4, D2: THE DESTINATION MUST NOT EXIST AT ALL, AND THAT REPLACES THREE SEPARATE PROBES OF WHAT IT IS.
+  # Round 3 asked, in turn, whether $OUT was a symlink, whether it was a regular file, and how many hard links
+  # it had - three questions about the KIND of thing at a name an attacker controls, each added after an
+  # antagonist found the previous one insufficient. The question was never "what is at this name": it is "does
+  # writing here write somewhere else", and the only answer that cannot be defeated by a fourth kind of thing is
+  # that nothing is there and this run creates it. `-e` is FALSE for a DANGLING symlink, so `-L` is asked too:
+  # a dangling link is the one plant that passes an existence test and still redirects a creating write.
+  # THE COST, STATED BECAUSE IT IS REAL AND NOT HYPOTHETICAL: a second tier run at an UNCHANGED head now
+  # refuses rather than overwriting its own earlier log, and the live-lock route above invites exactly that
+  # re-run. The refusal names the path and says to move it aside, which is one command, and the alternative is
+  # a judge that overwrites a file it cannot account for.
+  if [ "$SELFLOGBAD" = 0 ] && { [ -e "$OUT" ] || [ -L "$OUT" ]; }; then
+    say "REFUSED: something already exists at $SELFLOG, and this run will not write through a name it did not"
+    say "  create: $(stat -c 'type=%F links=%h' -- "$OUT" 2>/dev/null || echo 'a dangling symlink')."
+    say "  A control under gates/cases/ can plant a symlink, a hard link to the bundle, or a directory here, and"
+    say "  asking which of those it is has already been insufficient three times. If this is YOUR earlier log"
+    say "  from a re-run of the tier at this same head, move it aside and re-run; nothing else is affected."
+    SELFLOGBAD=1; RC=1
   fi
   # NO FILE IS CREATED HERE, AND MY FIRST VERSION OF THIS FIX CREATED ONE - which broke twenty-four cases at
   # once and is the same trap one layer in. I had the write-target arm PROBE the directory by creating the
@@ -923,46 +1165,17 @@ main(){
   # by the repair for the eleventh. B's F2 is still closed, and by the checks ABOVE rather than by a probe: a
   # DIRECTORY at the log path is caught by `[ ! -f "$OUT" ]`, which creates nothing. What a probe would have
   # added over that is coverage of an unwritable gates/logs, and the final write reports that loudly instead.
-  SNAPTXT1="$(snapshot)"
-  SNAP1="$(printf '%s\n' "$SNAPTXT1" | sha256sum | cut -c1-64)"
-  if [ "$SNAP0" != "$SNAP1" ]; then
-    # THE VERDICT USED TO BLAME A CONTROL AND THE JUDGE CANNOT KNOW THAT [fresh antagonist B, F4, round 4]. Its
-    # text read "Something a control ran wrote into the tree under judgement" - and CLAUDE.md's own pen rule says
-    # in terms that every OTHER chat in this project may "read, measure, test, and write docs and flags" in this
-    # repository. The lock excludes gate suites; it does not exclude a session writing a doc. B reproduced an
-    # HONEST candidate refused at exit 1 - "do not re-run hoping for a different answer" - because an unrelated
-    # background writer created claude/SESSION-NOTE.md while the battery ran, with the verdict asserting a
-    # control had done it. Re-running is exactly the fix for that, which exit 1 tells the operator not to do.
-    # SO THE ARM NOW SPLITS ON WHAT MOVED, which is the one thing it can actually establish. A change to TRACKED
-    # CONTENT, a REF, a HOOK, a git CONFIG entry or the working-tree diff is not something another session's doc
-    # write can produce and IS what a control plants, so it stays a hard RED. An added or removed UNTRACKED or
-    # IGNORED path is indistinguishable from another session at work, so it ROUTES - and the lines are named
-    # either way, so nothing is hidden by the softer verdict.
-    local dl SNAPDIFF SNAPGRAVE
-    SNAPDIFF="$(diff <(printf '%s\n' "$SNAPTXT0") <(printf '%s\n' "$SNAPTXT1") 2>/dev/null || true)"
-    SNAPGRAVE="$(printf '%s\n' "$SNAPDIFF" \
-      | grep -cE '^[<>] ([0-7]{6} [0-9a-f]{40} [0-9]|refs/|HOOK |diff --git |\[[a-z]|\t[a-z]+ =|[MADRCU][ MADRCU] |[ MADRCU][MADRCU] )|^[<>] .*gates/logs/(\.suite\.lock|checks-)' || true)"
-    SNAPGRAVE=$((SNAPGRAVE+0))
-    if [ "$SNAPGRAVE" -gt 0 ]; then
-      say "REFUSED: the real tree CHANGED while the battery ran (snapshot ${SNAP0:0:16} -> ${SNAP1:0:16}), and"
-      say "  $SNAPGRAVE of the differing line(s) name tracked content, a ref, a hook, a git config entry or the"
-      say "  working-tree diff - none of which another session writing a doc can produce, and all of which are"
-      say "  what a control plants. A planted hook fires at the NEXT commit, where nothing would connect it to"
-      say "  this run, so this is a hard refusal and not a route."
-      RC=1
-    else
-      say "GO FULL: the real tree CHANGED while the battery ran (snapshot ${SNAP0:0:16} -> ${SNAP1:0:16}), and"
-      say "  every differing line is an added or removed UNTRACKED or IGNORED path. This judge cannot tell a"
-      say "  control's write from another session's - CLAUDE.md lets every other chat write docs and flags in"
-      say "  this repository - so it will not call your commit broken on it. Read the lines below: if none is"
-      say "  yours, re-run the tier; the full suite decides either way."
-      # NEVER DOWNGRADE AN ESTABLISHED REFUSAL, and my first version of this split did exactly that - four of my
-      # own cases turned from exit 1 to exit 2 at once, because the lock arm and the write-target arm run BEFORE
-      # this one and set RC=1, and `RC=2` then overwrote their verdict. A route is the WEAKER answer, so it may
-      # only ever be taken from a clean slate.
-      [ "$RC" = 0 ] && RC=2
-    fi
-    while IFS= read -r dl; do say "    $dl"; done < <(printf '%s\n' "$SNAPDIFF" | head -20)
+  # THE COMPARISON ITSELF IS snapcheck's, IN ONE PLACE, so this arm and the three early routes of the
+  # acceptance block above cannot drift apart. What is left here is the mapping onto this run's exit code.
+  # NEVER DOWNGRADE AN ESTABLISHED REFUSAL, and the first version of the round-3 split did exactly that - four
+  # cases turned from exit 1 to exit 2 at once, because the lock arm and the write-target arm run BEFORE this
+  # one and set RC=1, and `RC=2` then overwrote their verdict. A route is the WEAKER answer, so it may only
+  # ever be taken from a clean slate.
+  snapcheck
+  if [ "$SNAPRC" = 1 ]; then
+    RC=1
+  elif [ "$SNAPRC" = 2 ]; then
+    [ "$RC" = 0 ] && RC=2
   fi
 
   # ── (10) THE VERDICT, WRITTEN ONCE. ─────────────────────────────────────────────────────────────────────────
@@ -1013,15 +1226,28 @@ main(){
     printf '%s\n' "  log NOT written: the write-target check above refused this path, so this run leaves no log file."
     printf '%s\n' "  The verdict above stands and is on stdout only."
     [ "$RC" = 0 ] && RC=1
-  elif printf '%s' "$LOGLINES" > "$LOGTMP" 2>/dev/null && mv -f -- "$LOGTMP" "$OUT" 2>/dev/null; then
+  elif writelog; then
     printf '%s\n' "  log: $OUT"
   else
-    printf '%s\n' "CHECKS TIER RED: the verdict above could not be written to $SELFLOG, so this run leaves no"
-    printf '%s\n' "  auditable log. Its text is on stdout only. A verdict nobody can re-read later is not evidence."
-    rm -f -- "$LOGTMP" 2>/dev/null
+    # ROUND 4, D2: THE TEMPORARY IS mktemp's, IN THE PRIVATE DIRECTORY, AND THIS IS THE FIFTH ROUND'S P1(a).
+    # It was `$ROOT/gates/logs/.checks-$SHORT-$$.tmp`, and BOTH components are published by this judge itself -
+    # $LOCK/pid holds `$$` and $LOCK/log holds `checks-tier $SHORT` - so a control that asserted nothing
+    # symlinked app.js at that name and the `>` followed it. The write-target arm checked $OUT and never
+    # $LOGTMP. It landed at exit 2, a ROUTE, and afterwards the log file WAS a symlink to app.js, so `cat`ting
+    # the log printed a perfect log and only `git status` said the bundle was gone.
+    # THE RENAME IS `mv -T` AND THE RESULT IS VERIFIED RATHER THAN ASSUMED. rename(2) acts on the NAME, so it
+    # cannot write through a symlink or touch a hard link's other names, and `-T` refuses to move INTO a
+    # directory at the destination. But PRIV is under TMPDIR and may be on another filesystem, where mv falls
+    # back to copy-and-unlink and opens the destination path - so the four checks after it establish what
+    # actually ended up there: a regular file, not a link, with one link count, carrying the bytes this run
+    # wrote. A write that is verified cannot be a write that landed somewhere else.
+    printf '%s\n' "CHECKS TIER RED: the verdict above could not be written to $SELFLOG as a regular file"
+    printf '%s\n' "  carrying this run's own bytes, so this run leaves no auditable log. Its text is on stdout"
+    printf '%s\n' "  only. A verdict nobody can re-read later is not evidence."
+    [ -n "$LOGTMP" ] && rm -f -- "$LOGTMP" 2>/dev/null
     RC=1
   fi
-  rm -rf "$WORK" 2>/dev/null
+  rm -rf "$WORK" "$PRIV" 2>/dev/null
   [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK" 2>/dev/null
   return $RC
 }
