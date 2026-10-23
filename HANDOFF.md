@@ -7,8 +7,11 @@ WHERE #536 LEFT OFF, AND WHAT TO DO FIRST.
 
 The work is the push-checks tier (`gates/checks-tier.sh`), job
 `the-push-checks-pay-the-full-browser-suite-though-no-browser-gate-reads-them-so-a-tier-judged-by-mains-copy-should-gate-them-2026-10-23`.
-It sits on `origin/claude/gallant-wozniak-kv07kk` at **91ad100**, three commits ahead of main,
-and it is NOT shippable. Two independent P1s are open against it and the second is unrepaired:
+It sits on `origin/claude/gallant-wozniak-kv07kk` at **91ad100**, three commits ahead of `a30fc59`,
+and it is NOT shippable. **That branch does NOT contain this records commit** - the hold was written to
+main after the branch's last push - so it is 3 ahead and 1 behind: `git fetch && git rebase origin/main`
+on it before anything lands, and note that the sha changes when you do, which is why the number recorded
+here is the pre-rebase one. Two independent P1s are open against it and the second is unrepaired:
 
   1. **FIXED on the branch, UNREAD.** The judge took the process group it `kill -TERM`s as root
      out of a file any control could write (`"$PRIV"/pg-*`, where $PRIV is
