@@ -188,7 +188,7 @@ expect(){
 }
 
 note "checks-tier-drive.sh  mode=$MODE  root=$ROOT  clock=$(TZ=America/New_York date '+%-I:%M%p ET, %-d %b %Y')"
-note "cases: A1 to A47 plus one mutant per new arm (M1 to M34). Fixture repositories under $T."
+note "cases: A1 to A62 plus one mutant per new arm (M1 to M47). Fixture repositories under $T."
 note ""
 
 # ── A2. A TIER PATH PLUS A RECORD FILE -> GO FULL. ───────────────────────────────────────────────────────────
@@ -424,7 +424,9 @@ D="$T/a13"; mkfix "$D"
 printf '%s\n' "# changed" >> "$D/gates/held.sh"
 commitin "$D" "a tier-only change"
 printf '%s\n' "uncommitted" >> "$D/gates/held.sh"
-expect A13 "$D" "$FIXBASE" 1 "working tree is not clean" "a dirty working tree is REFUSED"
+# D5 SPLIT THIS SENTENCE IN TWO, so the case now reads the TRACKED half - the half that still refuses, and the
+# half this case was always about. The untracked half is A50, which routes.
+expect A13 "$D" "$FIXBASE" 1 "TRACKED modification" "a dirty working tree with a TRACKED modification is REFUSED"
 
 # ── A14. NO TIER PATH IN THE CHANGED SET -> GO FULL. ────────────────────────────────────────────────────────
 D="$T/a14"; mkfix "$D"
@@ -673,7 +675,7 @@ else
   printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
   printf '%s\n' "uncommitted" >> "$D/gates/held.sh"
   runtier "$D" "$M1B"
-  if [ "$TRC" = 1 ] && grep -qF "working tree is not clean" <<<"$TOUT"; then
+  if [ "$TRC" = 1 ] && grep -qF "TRACKED modification" <<<"$TOUT"; then
     rec M1 FAIL "the dirty-tree arm still refused with its check removed, so A13 does not test it"
   else
     rec M1 ok "removing the dirty-tree refusal turns A13 (exit $TRC instead of a clean-tree refusal)"
@@ -762,9 +764,12 @@ A = 'if (c=="/" && d=="*") { inblock=1; i+=2; continue }'
 B = 'if (0) { inblock=1; i+=2; continue }'
 s = open(src, encoding='utf-8').read()
 n = s.count(A)
-assert n == 2, "M5 anchor occurs %d times, expected 2 (P1's stripper and P2's)" % n
+# ROUND 4 ADDED A THIRD COPY OF THIS ANCHOR: D6's end-of-file comment-state arm runs the same stripper to ask
+# whether `inblock` is still set at EOF. In file order the occurrences are P1's stripper, that arm's, and P2's,
+# so the count is 3 and replacing the FIRST still makes this mutant about P1 alone.
+assert n == 3, "M5 anchor occurs %d times, expected 3 (P1's stripper, D6's end-of-file arm, and P2's)" % n
 out = s.replace(A, B, 1)
-assert out.count(A) == 1, "M5 must leave P2's stripper intact"
+assert out.count(A) == 2, "M5 must leave D6's arm and P2's stripper intact"
 assert out != s
 open(dst, 'w', encoding='utf-8').write(out)
 M5PY
@@ -1026,7 +1031,7 @@ fi
 
 # M16. Make premise P2 comment-blind again: A22 must flip to a false refusal.
 D="$T/m-M16"; mkfix "$D"
-printf '%s\t%s\n' "            if (c==\"/\" && d==\"/\") { break }\n            out = out c; i++\n          }\n          print out\n        }' 2>/dev/null | grep -nE \"child_process" "            if (c==\"/\" && d==\"/\") { break }\n            out = out c; i++\n          }\n          print \$0\n        }' 2>/dev/null | grep -nE \"child_process" | mkmut "$D/gates/checks-tier.sh"
+printf '%s\t%s\n' "            if (c==\"/\" && d==\"/\") { if (i>1 && substr(line,i-1,1)==\":\") { out = out c; i++; continue } break }\n            out = out c; i++\n          }\n          print out\n        }' 2>/dev/null | grep -nE \"child_process" "            if (c==\"/\" && d==\"/\") { break }\n            out = out c; i++\n          }\n          print \$0\n        }' 2>/dev/null | grep -nE \"child_process" | mkmut "$D/gates/checks-tier.sh"
 if mutguard M16 "make P2 comment-blind" "$D/gates/checks-tier.sh" 'print $0'; then
   printf '%s\n' "// NOTE: this gate does NOT use execSync; see gates/lib.js." >> "$D/gates/regress/01-x.js"
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M16 base" >/dev/null 2>&1
@@ -1362,8 +1367,10 @@ fi
 
 # ── M23. REMOVE THE CONTROL TIMEOUT: A30 must stop reddening and the control must run to completion.
 D="$T/m-M23"; mkfix "$D"
-printf '%s\t%s\n' '    ( cd "$d" && timeout "$CTLTMO" "$@" >"$outf" 2>&1 </dev/null ); rc=$?' '    ( cd "$d" && "$@" >"$outf" 2>&1 </dev/null ); rc=$?' | mkmut "$D/gates/checks-tier.sh"
-if mutguard M23 "remove the per-control timeout" "$D/gates/checks-tier.sh" '    ( cd "$d" && "$@" >"$outf" 2>&1 </dev/null ); rc=$?'; then
+# D3 MOVED THIS: the control now runs under `setsid --wait` in its own process group, so the bound is carried
+# into that group and the anchor is the line that carries it.
+printf '%s\t%s\n' '            "$pgf" placeholder timeout "$bound" "$@" >&$ofd 2>&1 </dev/null ); rc=$?' '            "$pgf" placeholder "$@" >&$ofd 2>&1 </dev/null ); rc=$?' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M23 "remove the per-control timeout" "$D/gates/checks-tier.sh" '            "$pgf" placeholder "$@" >&$ofd 2>&1 </dev/null ); rc=$?'; then
   mkdir -p "$D/gates/cases"
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M23 base" >/dev/null 2>&1
   MB="$(git -C "$D" rev-parse HEAD)"
@@ -1638,7 +1645,7 @@ runtier "$D" "$FIXBASE"
 # D2 REPLACED THREE PROBES OF WHAT IS AT THE NAME WITH ONE RULE - nothing may be there - so the sentence this
 # case reads changed with it. The assertion is the same one: a directory at the log path is a REFUSAL with a
 # reason, never a silent green, and the reason names what it found.
-if [ "$TRC" = 1 ] && grep -qF "already exists at" <<<"$TOUT" && grep -qiF "directory" <<<"$TOUT"; then
+if [ "$TRC" = 1 ] && grep -qF "NOT a regular file" <<<"$TOUT"; then
   rec A41 ok "a directory at the log path is refused and the verdict says why (exit $TRC)"
 else
   rec A41 FAIL "a directory at the log path did not refuse with a reason (exit $TRC)"
@@ -1708,6 +1715,15 @@ U="$(git config --get remote.origin.url 2>/dev/null || echo none)"
 A="$(cat .git/objects/info/alternates 2>/dev/null || echo none)"
 case "$U" in
   "$R"|"$R"/*|"$R".|"$R"/.) echo "FAIL this control's origin IS the tree under judgement: $U"; exit 1 ;;
+esac
+# THE SECOND HOP, AND BOTH DOORS OF THE FIRST PAIR ASKED FOR IT INDEPENDENTLY. This case asserted only that
+# the control's OWN origin is not the real tree - which the mirror satisfies by construction - so it passed
+# while `git -C "$(git config --get remote.origin.url)" config --get remote.origin.url` returned the real
+# root, because a clone records where it came from. "The assertion was satisfied by something other than
+# what it names", in antagonist A's words, about the case written to assert the removal.
+H2="$(git -C "$U" config --get remote.origin.url 2>/dev/null || echo none)"
+case "$H2" in
+  "$R"|"$R"/*|"$R".|"$R"/.) echo "FAIL the mirror names the tree under judgement, so two hops reach it: $H2"; exit 1 ;;
 esac
 case "$A" in
   "$R"|"$R"/*) echo "FAIL this control's alternates point into the tree under judgement: $A"; exit 1 ;;
@@ -1782,10 +1798,14 @@ fi
 # ── M32. PUT `$WORK/ctl-$CTLN.out` BACK (and the existence check with it, or every control reds for a reason
 # that is not the arm): A43's plant must reach app.js.
 D="$T/m-M32"; mkfix "$D"
-{ printf '%s\t%s\n' '    outf="$(mktemp "$PRIV/ctl-XXXXXXXXXX.out" 2>/dev/null)"' '    outf="$WORK/ctl-$CTLN.out"'
-  printf '%s\t%s\n' '    if [ -z "$outf" ] || [ ! -f "$outf" ]; then' '    if [ -z "$outf" ]; then'
+# BOTH HALVES COME BACK: the DERIVED NAME (the fifth round's P1(b)) and the write THROUGH that name rather
+# than through a descriptor (antagonist A's P1(d) of this round). The two are one mutation now, because
+# ctl_exec creates the file and opens it in the same two lines.
+{ printf '%s\t%s\n' '    outf="$(mktemp "$PRIV/ctl-XXXXXXXXXX.out" 2>/dev/null)" || return 125' '    outf="$WORK/ctl-$CTLN.out"; : > "$outf"'
+  printf '%s\t%s\n' '            "$pgf" placeholder timeout "$bound" "$@" >&$ofd 2>&1 </dev/null ); rc=$?' '            "$pgf" placeholder timeout "$bound" "$@" >"$outf" 2>&1 </dev/null ); rc=$?'
+  printf '%s\t%s\n' '    CTL_OUT="$(cat "/proc/self/fd/$ofd" 2>/dev/null || true)"' '    CTL_OUT="$(cat "$outf" 2>/dev/null || true)"'
 } | mkmut "$D/gates/checks-tier.sh"
-if mutguard M32 "put the derived control output name back" "$D/gates/checks-tier.sh" '    outf="$WORK/ctl-$CTLN.out"'; then
+if mutguard M32 "put the derived control output name and the write through it back" "$D/gates/checks-tier.sh" '    outf="$WORK/ctl-$CTLN.out"; : > "$outf"'; then
   mkdir -p "$D/gates/cases"
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M32 base" >/dev/null 2>&1
   MB="$(git -C "$D" rev-parse HEAD)"
@@ -1922,7 +1942,11 @@ runtier "$D" "$FIXBASE"
 A46WHY=""
 [ "$TRC" = 1 ] || A46WHY="exit $TRC, wanted 1"
 grep -qF "the real tree CHANGED" <<<"$TOUT" || A46WHY="${A46WHY:+$A46WHY; }the verdict does not say the tree changed"
-grep -qF "EVIDENCE" <<<"$TOUT" || A46WHY="${A46WHY:+$A46WHY; }the verdict does not name an EVIDENCE line"
+# THE PATTERN IS THE DIFF LINE AND NOT THE WORD [antagonist A, P3(1)]: `grep -qF "EVIDENCE"` was satisfied by
+# the refusal's own boilerplate, which carries the literal word on EVERY grave refusal - A measured it passing
+# on A47's dotfile case, where the matching line reads "0 name an EVIDENCE file ... that existed before the
+# battery". A vacuous conjunct inside the case written for content hashing.
+grep -qE '^ +[<>] EVIDENCE ' <<<"$TOUT" || A46WHY="${A46WHY:+$A46WHY; }the verdict names no EVIDENCE diff line"
 A46SZAFTER="$(wc -c < "$D/gates/logs/earlier-run-all.log" | tr -d ' ')"
 [ "$A46SZBEFORE" = "$A46SZAFTER" ] || A46WHY="${A46WHY:+$A46WHY; }the rewrite did not keep the size, so this case does not test content hashing"
 if [ -n "$A46WHY" ]; then
@@ -1993,6 +2017,669 @@ else
   rec A47 ok "a control appending to ~/.bashrc by absolute path is GRAVE and the OUTSIDE line is named (exit $TRC)"
 fi
 DRIVEHOME=""
+
+# ══ ROUND 4's D3, D5 AND D6 CASES. ════════════════════════════════════════════════════════════════════════════
+
+# ── A48. D3: A CONTROL CANNOT REACH THE OPERATOR'S GIT CONFIG. The fifth round's P2(1): a GLOBAL
+# `core.hooksPath` needs no file in the repository at all and fires at the NEXT commit anywhere on the machine,
+# and the round-3 classifier knew only the .git/config INI shape while `git config --global --list` emits
+# `key.sub=value`. D3 gives every control GIT_CONFIG_GLOBAL into its own throwaway directory, so the write
+# cannot land; D4's OUTSIDE lines are the second layer if it ever does. THE ASSERTION IS THAT THE REAL FILE IS
+# UNCHANGED, and the run is then an ordinary green - $DRIVEHOME keeps "real" meaning a fake home.
+D="$T/a48"; mkfix "$D"
+DRIVEHOME="$T/fakehome-a48"; mkdir -p "$DRIVEHOME"
+printf '%s\n' "[user]" "	name = the operator" > "$DRIVEHOME/.gitconfig"
+A48BEFORE="$(md5sum "$DRIVEHOME/.gitconfig" | cut -c1-32)"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"
+mkdir -p "$D/gates/cases"
+cat > "$D/gates/cases/c-hookspath.sh" <<'HP'
+#!/usr/bin/env bash
+git config --global core.hooksPath /tmp/evil-hooks 2>/dev/null || true
+echo "PASS c-hookspath asserts nothing"
+exit 0
+HP
+commitin "$D" "held.sh plus a control that sets a GLOBAL core.hooksPath"
+runtier "$D" "$FIXBASE"
+A48AFTER="$(md5sum "$DRIVEHOME/.gitconfig" | cut -c1-32)"
+A48WHY=""
+[ "$A48BEFORE" = "$A48AFTER" ] || A48WHY="the operator's ~/.gitconfig WAS REWRITTEN by a control"
+[ "$TRC" = 0 ] || A48WHY="${A48WHY:+$A48WHY; }exit $TRC, wanted 0"
+if [ -n "$A48WHY" ]; then
+  rec A48 FAIL "a control setting a global core.hooksPath :: $A48WHY"
+  printf '%s\n' "$TOUT" | tail -10 | sed 's/^/          /'
+else
+  rec A48 ok "a control's \`git config --global\` lands in its own throwaway home and the operator's config is untouched (exit $TRC)"
+fi
+DRIVEHOME=""
+
+# ── M35. TAKE THE ENVIRONMENT ISOLATION OUT: A48's write must reach the home the judge can see.
+D="$T/m-M35"; mkfix "$D"
+# BOTH HOME AND GIT_CONFIG_GLOBAL COME OUT, AND THAT IS A CORRECTION OF MY OWN FIRST VERSION OF THIS MUTANT,
+# which removed GIT_CONFIG_GLOBAL alone and CHANGED NOTHING - measured, 0 moved and 0 refused. With HOME still
+# pointing at the control's own throwaway directory, `git config --global` fell back to $HOME/.gitconfig and
+# wrote there, which is a throwaway file either way. The mutant proved the arm load-bearing only once it
+# removed the variable that actually isolates it: "the numbers moved but not past the line", inside a mutant.
+{ printf '%s\t%s\n' '          HOME="$chome" TMPDIR="$chome" XDG_CONFIG_HOME="$chome/xdg" \' '          TMPDIR="$chome" \'
+  printf '%s\t%s\n' '          GIT_CONFIG_GLOBAL="$cgit" GIT_CONFIG_NOSYSTEM=1 \' '          GIT_CONFIG_NOSYSTEM=1 \'
+} | mkmut "$D/gates/checks-tier.sh"
+if mutguard M35 "drop HOME and GIT_CONFIG_GLOBAL from the control's environment" "$D/gates/checks-tier.sh" '          TMPDIR="$chome" \'; then
+  mkdir -p "$D/gates/cases"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M35 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"
+  cp "$T/a48/gates/cases/c-hookspath.sh" "$D/gates/cases/c-hookspath.sh" 2>/dev/null
+  commitin "$D" "the hooksPath control over the mutant base"
+  DRIVEHOME="$T/fakehome-m35"; mkdir -p "$DRIVEHOME"
+  printf '%s\n' "[user]" "	name = the operator" > "$DRIVEHOME/.gitconfig"
+  M35B="$(md5sum "$DRIVEHOME/.gitconfig" | cut -c1-32)"
+  runtier "$D" "$MB"
+  M35A="$(md5sum "$DRIVEHOME/.gitconfig" | cut -c1-32)"
+  # HOME still points at the throwaway, so with GIT_CONFIG_GLOBAL gone git falls back to $HOME/.gitconfig -
+  # which in this case IS the home the judge snapshots. Either the file moves or the OUTSIDE arm refuses; both
+  # are the arm doing its job, and a clean green with the file untouched is the only failure.
+  if [ "$M35B" != "$M35A" ] || [ "$TRC" = 1 ]; then
+    rec M35 ok "without GIT_CONFIG_GLOBAL the control reaches the judge's own HOME and the OUTSIDE arm speaks (exit $TRC, config moved: $([ "$M35B" != "$M35A" ] && echo yes || echo no))"
+  else
+    rec M35 FAIL "the environment isolation is not load-bearing: nothing moved and nothing refused (exit $TRC)"
+  fi
+  DRIVEHOME=""
+fi
+
+# ── A49. D3: A CONTROL THAT OUTLIVES ITSELF IS GRAVE. run_ctl's own round-3 comment admitted this in terms -
+# "the orphaned background process keeps running ... killing a whole process group is a bigger change than
+# this" - and left it. A process that survives the battery can write into the real tree AFTER the snapshot that
+# is supposed to prove nothing did, so the judge must refuse rather than note it. `setsid` is the escape the
+# process-group kill cannot see, which is why the marker scan exists beside it.
+D="$T/a49"; mkfix "$D"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"
+mkdir -p "$D/gates/cases"
+cat > "$D/gates/cases/c-survivor.sh" <<'SV'
+#!/usr/bin/env bash
+setsid sleep 600 >/dev/null 2>&1 &
+echo "PASS c-survivor asserts nothing"
+exit 0
+SV
+commitin "$D" "held.sh plus a control that leaves a setsid process behind"
+runtier "$D" "$FIXBASE"
+A49WHY=""
+[ "$TRC" = 1 ] || A49WHY="exit $TRC, wanted 1"
+grep -qF "OUTLIVED" <<<"$TOUT" || A49WHY="${A49WHY:+$A49WHY; }the verdict does not say a process outlived its control"
+if [ -n "$A49WHY" ]; then
+  rec A49 FAIL "a control that leaves a setsid process behind :: $A49WHY"
+  printf '%s\n' "$TOUT" | tail -10 | sed 's/^/          /'
+else
+  rec A49 ok "a control that escapes its process group is found by its marker and is RED (exit $TRC)"
+fi
+# NEVER `pkill -f` A PATTERN THIS SCRIPT'S OWN COMMAND LINE CARRIES - #531 killed its own shell that way
+# twice in one hour. These are matched by ARGV EQUALITY through ps and killed BY PID.
+while IFS= read -r svpid; do [ -n "$svpid" ] && kill -TERM "$svpid" 2>/dev/null || true
+done < <(ps -eo pid=,cmd= 2>/dev/null | awk '$2=="sleep" && $3=="600" {print $1}')
+
+# ── M36. REMOVE THE MARKER SCAN: A49 must stop reddening.
+D="$T/m-M36"; mkfix "$D"
+printf '%s\t%s\n' '    surv="$(ctl_survivors)"' '    surv=""' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M36 "remove the per-control survivor scan" "$D/gates/checks-tier.sh" '    surv=""'; then
+  mkdir -p "$D/gates/cases"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M36 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"
+  cp "$T/a49/gates/cases/c-survivor.sh" "$D/gates/cases/c-survivor.sh" 2>/dev/null
+  commitin "$D" "the survivor control over the mutant base"
+  runtier "$D" "$MB"
+  # The END-OF-RUN scan is a separate arm and is still in place, so the honest verdict is still 1 - what this
+  # mutant proves is that the PER-CONTROL scan is what names the control responsible. Measured either way.
+  if grep -qF "OUTLIVED" <<<"$TOUT"; then
+    rec M36 FAIL "the per-control scan is not load-bearing: a control was still named as having outlived itself (exit $TRC)"
+  else
+    rec M36 ok "removing the per-control scan turns A49's own message: no control is named (exit $TRC, the end-of-run arm still speaks)"
+  fi
+  # NEVER `pkill -f` A PATTERN THIS SCRIPT'S OWN COMMAND LINE CARRIES - #531 killed its own shell that way
+# twice in one hour. These are matched by ARGV EQUALITY through ps and killed BY PID.
+while IFS= read -r svpid; do [ -n "$svpid" ] && kill -TERM "$svpid" 2>/dev/null || true
+done < <(ps -eo pid=,cmd= 2>/dev/null | awk '$2=="sleep" && $3=="600" {print $1}')
+fi
+
+# ── A50. D5: AN UNTRACKED PATH AT ENTRY ROUTES AND IS NAMED. The fifth round called this "the TENTH FALSE
+# HARD-REFUSE AND IT FIRES TODAY": exit 1 means "do not re-run hoping for a different answer", and CLAUDE.md's
+# pen rule expressly lets every other chat in this project write docs and flags in this repository. The battery
+# never reads the working tree at all - every control and harness runs in a clone checked out at HEAD.
+D="$T/a50"; mkfix "$D"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+printf '%s\n' "a note another session left" > "$D/claude/SESSION-NOTE.md"
+runtier "$D" "$FIXBASE"
+A50WHY=""
+[ "$TRC" = 2 ] || A50WHY="exit $TRC, wanted 2"
+grep -qF "SESSION-NOTE.md" <<<"$TOUT" || A50WHY="${A50WHY:+$A50WHY; }the verdict does not name the untracked path"
+if [ -n "$A50WHY" ]; then
+  rec A50 FAIL "an untracked path at entry :: $A50WHY"
+  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+else
+  rec A50 ok "an untracked path at entry ROUTES and is named, instead of hard-refusing an honest commit (exit $TRC)"
+fi
+rm -f "$D/claude/SESSION-NOTE.md"
+
+# ── M37. PUT THE UNDIVIDED ENTRANCE REFUSAL BACK: A50 must go back to exit 1.
+D="$T/m-M37"; mkfix "$D"
+# THE ANCHOR CARRIES NO LITERAL BACKSLASH-n, because mkmut translates one into a NEWLINE and an anchor
+# holding `%s\n` cannot match the single line it came from. Three mutants of this build hit that.
+printf '%s\t%s\n' " | grep -vE '^\?\? ' || true)\"" " )\"" \
+  | mkmut "$D/gates/checks-tier.sh"
+if mutguard M37 "refuse any dirty tree again" "$D/gates/checks-tier.sh" '"$DIRTY" )"'; then
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M37 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+  printf '%s\n' "a note another session left" > "$D/claude/SESSION-NOTE.md"
+  runtier "$D" "$MB"
+  if [ "$TRC" = 1 ]; then
+    rec M37 ok "the undivided refusal turns A50: an untracked note hard-refuses an honest commit (exit 1)"
+  else
+    rec M37 FAIL "the entrance split is not load-bearing: the mutant still routed (exit $TRC)"
+  fi
+  rm -f "$D/claude/SESSION-NOTE.md"
+fi
+
+# ── A51. D5's other half, asserted separately so the two cannot pass as one: a MODIFIED TRACKED file at entry
+# still REFUSES, because then every verdict below would be about a commit nobody is looking at.
+D="$T/a51"; mkfix "$D"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+printf '%s\n' "uncommitted change to a tracked file" >> "$D/gates/held.sh"
+runtier "$D" "$FIXBASE"
+if [ "$TRC" = 1 ] && grep -qF "TRACKED modification" <<<"$TOUT"; then
+  rec A51 ok "a modified tracked file at entry still REFUSES and says which kind of dirt it found (exit $TRC)"
+else
+  rec A51 FAIL "a modified tracked file at entry did not refuse with its reason (exit $TRC)"
+  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+fi
+
+# ── A52. D6: THE SELF PIN SURVIVES A RELATIVE INVOCATION. `"${GIT[@]}"` carries -C "$ROOT", so git resolved a
+# relative path against the repository root rather than the cwd, and the verdict printed
+# `self pin: running=none  base=<blob>` and then asserted the bytes DIFFERED - an empty variable in a blob-id
+# slot, reported as a mismatch. An unhashable judge is not a changed judge.
+D="$T/a52"; mkfix "$D"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+A52T="$(mktemp -d)"
+git -C "$D" update-ref refs/remotes/origin/main "$FIXBASE" >/dev/null 2>&1 || true
+git -C "$D" show "$FIXBASE:gates/checks-tier.sh" > "$A52T/ct.sh" 2>/dev/null
+A52OUT="$(cd "$A52T" && bash ./ct.sh "$FIXBASE" "$D" 2>&1)"; A52RC=$?
+A52WHY=""
+[ "$A52RC" = 0 ] || A52WHY="exit $A52RC, wanted 0"
+grep -qF "running=none" <<<"$A52OUT" && A52WHY="${A52WHY:+$A52WHY; }the self pin still printed running=none"
+if [ -n "$A52WHY" ]; then
+  rec A52 FAIL "the judge invoked by a relative path :: $A52WHY"
+  printf '%s\n' "$A52OUT" | tail -8 | sed 's/^/          /'
+else
+  rec A52 ok "the judge invoked as \`bash ./ct.sh\` hashes its own bytes and pins against the base (exit $A52RC)"
+fi
+rm -rf "$A52T"
+
+# ── M40. REVERT THE PATH RESOLUTION: A52 must stop pinning.
+D="$T/m-M40"; mkfix "$D"
+{ printf '%s\t%s\n' '  case "$SELF" in' '  case "x$SELF" in'
+  printf '%s\t%s\n' '    /*) ;;' '    x/*) ;;'
+  printf '%s\t%s\n' '    *)  SELF="$(cd -- "$(dirname -- "$SELF")" 2>/dev/null && pwd)/$(basename -- "$SELF")" ;;' '    x*) : ;;'
+} | mkmut "$D/gates/checks-tier.sh"
+if mutguard M40 "stop making the judge's own path absolute" "$D/gates/checks-tier.sh" '    x*) : ;;'; then
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M40 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+  M40T="$(mktemp -d)"
+  git -C "$D" update-ref refs/remotes/origin/main "$MB" >/dev/null 2>&1 || true
+  git -C "$D" show "$MB:gates/checks-tier.sh" > "$M40T/ct.sh" 2>/dev/null
+  M40OUT="$(cd "$M40T" && bash ./ct.sh "$MB" "$D" 2>&1)"; M40RC=$?
+  if [ "$M40RC" != 0 ]; then
+    rec M40 ok "without the path resolution a relative invocation cannot pin and the judge stops (exit $M40RC)"
+  else
+    rec M40 FAIL "the path resolution is not load-bearing: the relative invocation still went green (exit $M40RC)"
+  fi
+  rm -rf "$M40T"
+fi
+
+# ── A53. D6: A NEW gates/cases/*.md ALONE MUST NOT EARN A GREEN. The routing accepts a new .md because this
+# directory's own convention file is one, and the battery runs only *.sh - so such a commit reached CHECKS TIER
+# GREEN with nothing executed on its behalf, while the README told its author a new file here "is run by the
+# tier". A green that means "nothing was checked" is the one verdict this tier must never give.
+D="$T/a53"; mkfix "$D"
+mkdir -p "$D/gates/cases"
+printf '%s\n' "# a note about a control" > "$D/gates/cases/notes.md"
+commitin "$D" "a new gates/cases/*.md and nothing else"
+runtier "$D" "$FIXBASE"
+if [ "$TRC" = 2 ] && grep -qF "documentation" <<<"$TOUT"; then
+  rec A53 ok "a commit whose only tier path is a new .md routes instead of earning a green (exit $TRC)"
+else
+  rec A53 FAIL "a new .md alone did not route with a reason (exit $TRC)"
+  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+fi
+
+# ── M38. REMOVE THE md-ONLY ARM: A53 must go green.
+D="$T/m-M38"; mkfix "$D"
+printf '%s\t%s\n' '  if [ "$scriptpaths" = 0 ] && [ "$newsh" = 0 ]; then' '  if false; then' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M38 "remove the documentation-only route" "$D/gates/checks-tier.sh" '  if false; then'; then
+  mkdir -p "$D/gates/cases"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M38 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# a note about a control" > "$D/gates/cases/notes.md"
+  commitin "$D" "a new .md over the mutant base"
+  runtier "$D" "$MB"
+  if [ "$TRC" = 0 ]; then
+    rec M38 ok "without the arm a documentation-only commit takes a GREEN with nothing executed (exit 0)"
+  else
+    rec M38 FAIL "the documentation-only arm is not load-bearing: the commit did not go green without it (exit $TRC)"
+  fi
+fi
+
+# ── A54. D6: THE STRIPPER'S STATE MUST CLOSE AT END OF FILE. A base file whose block comment never closes has
+# been misread from that point on, and an over-stripped file produces a FALSE CLEAN rather than a harmless
+# refusal - so the honest answer is to say so and route, not to trust the reading.
+D="$T/a54"; mkfix "$D"
+printf '%s\n' "// a gate" "/* this comment never closes" "require('../lib');" > "$D/gates/regress/01-x.js"
+commitin "$D" "a base whose regress gate leaves a block comment open"; A54B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+runtier "$D" "$A54B"
+if [ "$TRC" = 2 ] && grep -qF "still OPEN at end of file" <<<"$TOUT" && grep -qF "01-x.js" <<<"$TOUT"; then
+  rec A54 ok "an unbalanced block comment in the base is reported, named and routed (exit $TRC)"
+else
+  rec A54 FAIL "an unbalanced block comment was not reported and named (exit $TRC)"
+  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+fi
+
+# ── M41. REMOVE THE END-OF-FILE STATE CHECK: A54 must stop routing.
+D="$T/m-M41"; mkfix "$D"
+printf '%s\t%s\n' '  if [ -n "$(printf '"'"'%s'"'"' "$unbal" | tr -d '"'"'[:space:]'"'"')" ]; then' '  if false; then' \
+  | mkmut "$D/gates/checks-tier.sh"
+if mutguard M41 "remove the end-of-file comment-state check" "$D/gates/checks-tier.sh" '  if false; then'; then
+  printf '%s\n' "// a gate" "/* this comment never closes" "require('../lib');" > "$D/gates/regress/01-x.js"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M41 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+  runtier "$D" "$MB"
+  if grep -qF "still OPEN at end of file" <<<"$TOUT"; then
+    rec M41 FAIL "the end-of-file check is not load-bearing: it still reported the unbalanced file (exit $TRC)"
+  else
+    rec M41 ok "without the check an unbalanced base file is trusted silently (exit $TRC)"
+  fi
+fi
+
+# ── A55. D6: `://` IS NOT A COMMENT START. A URL in a line of code used to strip the REST OF THAT LINE, so a
+# real read of a push check path that followed a URL on the same line was invisible to premise P1 - which is
+# the one arm standing between this tier and a browser gate whose verdict depends on those scripts.
+D="$T/a55"; mkfix "$D"
+printf '%s\n' "// a gate" "const u='https://example.com/x'; require('fs').readFileSync('../verify-log.sh');" \
+  > "$D/gates/regress/01-x.js"
+commitin "$D" "a base where a URL precedes a real read on one line"; A55B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+runtier "$D" "$A55B"
+if [ "$TRC" = 2 ] && grep -qF "PREMISE P1 BROKEN" <<<"$TOUT" && grep -qF "verify-log.sh" <<<"$TOUT"; then
+  rec A55 ok "a URL no longer hides a real read of a push check path on the same line (exit $TRC)"
+else
+  rec A55 FAIL "a read after a URL on one line was not seen by premise P1 (exit $TRC)"
+  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+fi
+
+# ── M39. READ `://` AS A COMMENT START AGAIN: A55's read must become invisible.
+D="$T/m-M39"; mkfix "$D"
+printf '%s\t%s\n' '            if (c=="/" && d=="/") { if (i>1 && substr(line,i-1,1)==":") { out = out c; i++; continue } break }\n            out = out c; i++\n          }\n          if (out ~ /(checks-tier|checks-tier-drive|fastgate|verify-log|held|buildnum)\.sh/) {' '            if (c=="/" && d=="/") { break }\n            out = out c; i++\n          }\n          if (out ~ /(checks-tier|checks-tier-drive|fastgate|verify-log|held|buildnum)\.sh/) {' \
+  | mkmut "$D/gates/checks-tier.sh"
+if mutguard M39 "read :// as a comment start again" "$D/gates/checks-tier.sh" 'if (c=="/" && d=="/") { break }'; then
+  printf '%s\n' "// a gate" "const u='https://example.com/x'; require('fs').readFileSync('../verify-log.sh');" \
+    > "$D/gates/regress/01-x.js"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M39 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+  runtier "$D" "$MB"
+  if grep -qF "PREMISE P1 BROKEN" <<<"$TOUT"; then
+    rec M39 FAIL "the :// fix is not load-bearing: the read was still seen with it reverted (exit $TRC)"
+  else
+    rec M39 ok "reading :// as a comment start turns A55: the read is hidden and the premise reads clean (exit $TRC)"
+  fi
+fi
+
+# ══ THE SIXTH ROUND'S CASES. ONE PER VETO THE FIRST PAIR OF BUILD #536 UPHELD. ═════════════════════════════════
+# BOTH DOORS RETURNED **BLOCK** ON THE ROUND-4 TREE, WITH NINE REPRODUCED P1s BETWEEN THEM, AND TWO OF THEM WERE
+# DEFECTS ROUND 4's OWN REPAIRS HAD JUST INTRODUCED - which makes this the sixth consecutive round on this file
+# to find its defect inside the previous round's fix. The cases below are the controls for the repairs; where a
+# repair was WITHDRAWN rather than made (the lock's parent pin), there is no case and the limit is on the job.
+# THE SHAPE OF ALL OF THEM IS "THE DAMAGE DID NOT HAPPEN", not "the verdict was right. That is this file's own
+# standard, stated twice in round 4 and missed twice by it: "a REFUSED verdict over a clobbered bundle would
+# still have cost somebody their tree."
+
+# ── A56. AN HONEST COMMIT'S SECOND RUN AT ONE HEAD IS NOT A REFUSAL [antagonist A, P1(a)]. Round 4 made the
+# judge's own previous log a hard REFUSED - exit 1, "do not re-run hoping for a different answer" - on a
+# byte-identical tree with nothing wrong in the commit. The same two runs against the baseline are green twice,
+# so it was a regression, and the judge creates the state itself: every ROUTE and every RED writes a log, and
+# the route's own text says "re-run the tier". NO CASE IN THIS HARNESS CALLED runtier TWICE until this one.
+D="$T/a56"; mkfix "$D"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+runtier "$D" "$FIXBASE"; A56RC1=$TRC
+A56SH="$(git -C "$D" rev-parse --short HEAD)"
+runtier "$D" "$FIXBASE"; A56RC2=$TRC
+A56WHY=""
+[ "$A56RC1" = 0 ] || A56WHY="the FIRST run was exit $A56RC1, wanted 0"
+[ "$A56RC2" = 0 ] || A56WHY="${A56WHY:+$A56WHY; }the SECOND run at the same head was exit $A56RC2, wanted 0"
+[ -f "$D/gates/logs/checks-$A56SH-all.log" ] || A56WHY="${A56WHY:+$A56WHY; }the second run left no regular log file"
+[ -L "$D/gates/logs/checks-$A56SH-all.log" ] && A56WHY="${A56WHY:+$A56WHY; }the log is a symlink"
+if [ -n "$A56WHY" ]; then
+  rec A56 FAIL "two runs of the tier at one head :: $A56WHY"
+  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+else
+  rec A56 ok "an honest commit is green on BOTH runs at one head, and the second run's log is its own regular file"
+fi
+
+# ── M42. PUT "THE DESTINATION MUST NOT EXIST AT ALL" BACK: A56's second run must refuse.
+D="$T/m-M42"; mkfix "$D"
+printf '%s\t%s\n' '    if [ -L "$OUT" ]; then' '    if [ -e "$OUT" ] || [ -L "$OUT" ]; then' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M42 "refuse any pre-existing log destination" "$D/gates/checks-tier.sh" '    if [ -e "$OUT" ] || [ -L "$OUT" ]; then'; then
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M42 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+  runtier "$D" "$MB"; M42RC1=$TRC
+  runtier "$D" "$MB"; M42RC2=$TRC
+  if [ "$M42RC1" = 0 ] && [ "$M42RC2" != 0 ]; then
+    rec M42 ok "the must-not-exist rule turns A56: the second run of an honest commit is exit $M42RC2"
+  else
+    rec M42 FAIL "the kind-of-thing split is not load-bearing: runs read $M42RC1 then $M42RC2"
+  fi
+fi
+
+# ── A57. THE CLONE DIRECTORY IS NOT A COMPUTABLE NAME [antagonist A, P1(b)]. It is the LARGEST write this judge
+# makes, it was `$WORK/c$CTLN`, and a control symlinked the NEXT one at a directory inside the real .git: `git
+# clone` then wrote SEVENTY-EIGHT PATHS into the tree under judgement, with its own .git, under exit 0 and
+# "the real tree was not touched" - the snapshot lists no .git path, so nothing spoke.
+D="$T/a57"; mkfix "$D"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"
+mkdir -p "$D/gates/cases"
+cat > "$D/gates/cases/c-aaa-clonedir.sh" <<'CD'
+#!/usr/bin/env bash
+R="__CTREAL__"
+W="$(dirname "$PWD")"; N="${PWD##*/c}"
+mkdir -p "$R/.git/PLANTED-BY-A-CONTROL" 2>/dev/null
+# the next clone's destination, as the old derived name computed it
+ln -s "$R/.git/PLANTED-BY-A-CONTROL" "$W/c$((N+1))" 2>/dev/null || true
+echo "PASS c-aaa-clonedir asserts nothing"
+exit 0
+CD
+cat > "$D/gates/cases/c-zzz-after.sh" <<'AF'
+#!/usr/bin/env bash
+echo "PASS c-zzz-after is the control whose clone the plant wanted"
+exit 0
+AF
+commitin "$D" "held.sh plus a control that symlinks the next clone directory into the real .git"
+runtier "$D" "$FIXBASE"
+A57N="$(find "$D/.git/PLANTED-BY-A-CONTROL" -mindepth 1 2>/dev/null | grep -c . || true)"
+if [ "${A57N:-0}" -eq 0 ]; then
+  rec A57 ok "a symlink at the next clone's old derived name receives NOTHING: 0 paths in the real .git (exit $TRC)"
+else
+  rec A57 FAIL "a control redirected a clone INTO the real repository: $A57N path(s) under .git/PLANTED-BY-A-CONTROL (exit $TRC)"
+  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+fi
+
+# ── M43. PUT THE DERIVED CLONE DIRECTORY BACK: A57's plant must receive a whole checkout.
+D="$T/m-M43"; mkfix "$D"
+printf '%s\t%s\n' '    d="$(mktemp -d "$WORK/c-XXXXXXXXXX" 2>/dev/null)" || d=""\n    if [ -z "$d" ] || [ ! -d "$d" ]; then\n      bad "$label: could not create its clone directory, so the control did not run"\n      say "  RED  $label - no clone directory"\n      return 1\n    fi' '    d="$WORK/c$CTLN"' \
+  | mkmut "$D/gates/checks-tier.sh"
+if mutguard M43 "put the derived clone directory back" "$D/gates/checks-tier.sh" '    d="$WORK/c$CTLN"'; then
+  mkdir -p "$D/gates/cases"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M43 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"
+  cp "$T/a57/gates/cases/c-aaa-clonedir.sh" "$D/gates/cases/c-aaa-clonedir.sh" 2>/dev/null
+  cp "$T/a57/gates/cases/c-zzz-after.sh" "$D/gates/cases/c-zzz-after.sh" 2>/dev/null
+  sed -i "s|$T/a57|$D|g" "$D/gates/cases/c-aaa-clonedir.sh" 2>/dev/null
+  commitin "$D" "the clone-directory plant over the mutant base"
+  runtier "$D" "$MB"
+  M43N="$(find "$D/.git/PLANTED-BY-A-CONTROL" -mindepth 1 2>/dev/null | grep -c . || true)"
+  if [ "${M43N:-0}" -gt 0 ]; then
+    rec M43 ok "the derived clone directory turns A57: $M43N path(s) were written into the real .git (exit $TRC)"
+  else
+    rec M43 FAIL "the clone directory's name is not load-bearing: the plant received nothing with it restored (exit $TRC)"
+  fi
+fi
+
+# ── A58. THE JUDGE'S WRITES GO THROUGH A DESCRIPTOR, SO RELINKING THE NAME MID-RUN CANNOT CAPTURE THEM
+# [antagonist A, P1(d)]. mktemp stops a PRE-PLANT and not a SWAP: PRIV's name is `dirname "$(git config --get
+# remote.origin.url)"`, mode 700 buys nothing against the same uid, and A's spinner relinked any empty
+# $PRIV/ctl-*.out at app.js and captured a later control's stdout in 3 of 9 runs. The verdict was already a
+# refusal; the BUNDLE was already gone.
+D="$T/a58"; mkfix "$D"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"
+mkdir -p "$D/gates/cases"
+cat > "$D/gates/cases/c-aaa-swap.sh" <<'SW'
+#!/usr/bin/env bash
+R="__CTREAL__"
+M="$(git config --get remote.origin.url 2>/dev/null)"; P="$(dirname "$M")"
+# A BOUNDED spinner, so the case cleans up after itself: it relinks any EMPTY judge scratch file at the bundle.
+setsid bash -c '
+  for i in $(seq 1 6000); do
+    for f in "'"$P"'"/ctl-*.out "'"$P"'"/log-*; do
+      [ -f "$f" ] || continue
+      [ -s "$f" ] && continue
+      rm -f "$f" 2>/dev/null && ln -s "'"$R"'/app.js" "$f" 2>/dev/null
+    done
+  done' >/dev/null 2>&1 &
+echo "PASS c-aaa-swap asserts nothing"
+exit 0
+SW
+cat > "$D/gates/cases/c-zzz-filler.sh" <<'FL'
+#!/usr/bin/env bash
+echo "PASS c-zzz-filler output is what the spinner wanted in the bundle"
+exit 0
+FL
+commitin "$D" "held.sh plus a control that races the judge's own scratch writes"
+A58MD5="$(md5sum "$D/app.js" | cut -c1-32)"
+A58HITS=0
+for A58I in 1 2 3 4 5; do
+  runtier "$D" "$FIXBASE"
+  [ "$(md5sum "$D/app.js" | cut -c1-32)" = "$A58MD5" ] || A58HITS=$((A58HITS+1))
+done
+while IFS= read -r svpid; do [ -n "$svpid" ] && kill -TERM "$svpid" 2>/dev/null || true
+done < <(ps -eo pid=,cmd= 2>/dev/null | awk '$2=="bash" && /ctl-\*\.out/ {print $1}')
+if [ "$A58HITS" = 0 ]; then
+  rec A58 ok "five runs against a spinner relinking the judge's scratch names: the bundle was NEVER rewritten"
+else
+  rec A58 FAIL "the bundle was rewritten in $A58HITS of 5 runs through a relinked judge scratch name"
+fi
+
+# ── M44. WRITE THROUGH THE NAME AGAIN INSTEAD OF THE DESCRIPTOR: A58's spinner must land at least once.
+D="$T/m-M44"; mkfix "$D"
+{ printf '%s\t%s\n' '            "$pgf" placeholder timeout "$bound" "$@" >&$ofd 2>&1 </dev/null ); rc=$?' '            "$pgf" placeholder timeout "$bound" "$@" >"$outf" 2>&1 </dev/null ); rc=$?'
+  printf '%s\t%s\n' '    CTL_OUT="$(cat "/proc/self/fd/$ofd" 2>/dev/null || true)"' '    CTL_OUT="$(cat "$outf" 2>/dev/null || true)"'
+} | mkmut "$D/gates/checks-tier.sh"
+if mutguard M44 "write the control output through the name again" "$D/gates/checks-tier.sh" '>"$outf" 2>&1 </dev/null ); rc=$?'; then
+  mkdir -p "$D/gates/cases"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M44 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"
+  cp "$T/a58/gates/cases/c-aaa-swap.sh" "$D/gates/cases/c-aaa-swap.sh" 2>/dev/null
+  cp "$T/a58/gates/cases/c-zzz-filler.sh" "$D/gates/cases/c-zzz-filler.sh" 2>/dev/null
+  sed -i "s|$T/a58|$D|g" "$D/gates/cases/c-aaa-swap.sh" 2>/dev/null
+  commitin "$D" "the spinner over the mutant base"
+  M44MD5="$(md5sum "$D/app.js" | cut -c1-32)"; M44HITS=0
+  for M44I in 1 2 3 4 5 6 7 8 9 10 11 12; do
+    runtier "$D" "$MB"
+    [ "$(md5sum "$D/app.js" | cut -c1-32)" = "$M44MD5" ] || M44HITS=$((M44HITS+1))
+  done
+  while IFS= read -r svpid; do [ -n "$svpid" ] && kill -TERM "$svpid" 2>/dev/null || true
+  done < <(ps -eo pid=,cmd= 2>/dev/null | awk '$2=="bash" && /ctl-\*\.out/ {print $1}')
+  if [ "$M44HITS" -gt 0 ]; then
+    rec M44 ok "writing through the name turns A58: the bundle was rewritten in $M44HITS of 8 runs"
+  else
+    rec M44 SKIP "the race did not land in 12 runs with the name restored, so this mutant proved nothing this time - the window between mktemp and the child's open is sub-millisecond here, while A measured 3 of 9 against the wider pre-refactor gap"
+  fi
+fi
+
+# ── A59. THE CONTROL'S HOME IS NOT A COMPUTABLE NAME EITHER [antagonist B, P1-a, and it was MINE]. D3's first
+# draft wrote `: > "$WORK/h$CTLN/gitconfig-empty"` - a judge write, with `>`, at a name every control can
+# compute from its own cwd - and B truncated an operator file through it, and then a pack file, destroying the
+# repository under exit 0 and CHECKS TIER GREEN.
+D="$T/a59"; mkfix "$D"
+printf 'IMPORTANT OPERATOR FILE - three lines\nsecond\nthird\n' > "$T/a59-victim.txt"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"
+mkdir -p "$D/gates/cases"
+cat > "$D/gates/cases/c-aaa-home.sh" <<'HM'
+#!/usr/bin/env bash
+W="$(dirname "$PWD")"; N="${PWD##*/c}"
+for K in 1 2 3 4 5 6 7 8 9 10 11 12; do
+  mkdir -p "$W/h$K" 2>/dev/null
+  rm -f "$W/h$K/gitconfig-empty" 2>/dev/null
+  ln -s "__CTVICTIM__" "$W/h$K/gitconfig-empty" 2>/dev/null || true
+done
+echo "PASS c-aaa-home asserts nothing"
+exit 0
+HM
+sed -i "s|__CTVICTIM__|$T/a59-victim.txt|g" "$D/gates/cases/c-aaa-home.sh"
+cat > "$D/gates/cases/c-zzz-later.sh" <<'LT'
+#!/usr/bin/env bash
+echo "PASS c-zzz-later runs after the plant"
+exit 0
+LT
+commitin "$D" "held.sh plus a control that plants links at every control-home name"
+A59SZ="$(wc -c < "$T/a59-victim.txt" | tr -d ' ')"
+runtier "$D" "$FIXBASE"
+A59AFTER="$(wc -c < "$T/a59-victim.txt" | tr -d ' ')"
+if [ "$A59SZ" = "$A59AFTER" ]; then
+  rec A59 ok "links at every old control-home name truncate nothing: the victim is still $A59AFTER bytes (exit $TRC)"
+else
+  rec A59 FAIL "the judge truncated a file through a planted control-home name: $A59SZ -> $A59AFTER bytes (exit $TRC)"
+fi
+
+# ── M45. PUT THE DERIVED CONTROL HOME BACK: A59's victim must be truncated.
+D="$T/m-M45"; mkfix "$D"
+printf 'IMPORTANT OPERATOR FILE - three lines\nsecond\nthird\n' > "$T/m45-victim.txt"
+{ printf '%s\t%s\n' '    chome="$(mktemp -d "$PRIV/h-XXXXXXXXXX" 2>/dev/null)" || return 125' '    chome="$WORK/h$CTLN"; mkdir -p "$chome"'
+  printf '%s\t%s\n' '    cgit="$(mktemp "$chome/gitconfig-XXXXXXXXXX" 2>/dev/null)" || return 125' '    cgit="$chome/gitconfig-empty"; : > "$cgit"'
+} | mkmut "$D/gates/checks-tier.sh"
+if mutguard M45 "put the derived control home back" "$D/gates/checks-tier.sh" '    cgit="$chome/gitconfig-empty"; : > "$cgit"'; then
+  mkdir -p "$D/gates/cases"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M45 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"
+  cp "$T/a59/gates/cases/c-aaa-home.sh" "$D/gates/cases/c-aaa-home.sh" 2>/dev/null
+  cp "$T/a59/gates/cases/c-zzz-later.sh" "$D/gates/cases/c-zzz-later.sh" 2>/dev/null
+  sed -i "s|$T/a59-victim.txt|$T/m45-victim.txt|g" "$D/gates/cases/c-aaa-home.sh" 2>/dev/null
+  commitin "$D" "the control-home plant over the mutant base"
+  M45SZ="$(wc -c < "$T/m45-victim.txt" | tr -d ' ')"
+  runtier "$D" "$MB"
+  M45AFTER="$(wc -c < "$T/m45-victim.txt" | tr -d ' ')"
+  if [ "$M45SZ" != "$M45AFTER" ]; then
+    rec M45 ok "the derived control home turns A59: the judge truncated the victim, $M45SZ -> $M45AFTER bytes"
+  else
+    rec M45 FAIL "the control home's name is not load-bearing: nothing was truncated with it restored (exit $TRC)"
+  fi
+fi
+
+# ── A60. THE fastgate-drive ARM GETS THE SAME DISCIPLINE AS A CONTROL [antagonist B, P1-e]. It is the ONE arm
+# that executes the CANDIDATE's own gates/fastgate.sh, and it had no stdin redirect, no env isolation, no
+# process group, no marker and therefore no survivor scan: B measured HOME=/root inside it and a `setsid` child
+# of the candidate's own script surviving the whole run unreported.
+D="$T/a60"; mkfix "$D"
+printf '%s\n' "#!/usr/bin/env bash" 'tc(){ case "$1" in H1) :;; H1b) :;; H2) :;; H12) :;; esac; }' \
+  'setsid bash -c "sleep 8" >/dev/null 2>&1 &' 'echo "1 ok, 0 FAIL, 0 skipped"' "exit 0" > "$D/gates/fastgate-drive.sh"
+commitin "$D" "a base whose harness leaves a setsid child behind"; A60B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+runtier "$D" "$A60B"
+if [ "$TRC" = 1 ] && grep -qF "OUTLIVED" <<<"$TOUT"; then
+  rec A60 ok "a setsid child left by the drive arm is found by the marker and is RED (exit $TRC)"
+else
+  rec A60 FAIL "the drive arm's orphan was not reported (exit $TRC)"
+  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+fi
+
+# ── M46. TAKE THE DRIVE ARM BACK OUT OF ctl_exec: A60's orphan must go unreported.
+D="$T/m-M46"; mkfix "$D"
+{ printf '%s\t%s\n' '      CTL_BOUND=900 ctl_exec "$d" -- bash gates/fastgate-drive.sh fixed; rc=$?\n      out="$CTL_OUT"' '      out="$(cd "$d" && timeout 900 bash gates/fastgate-drive.sh fixed 2>&1)"; rc=$?'
+} | mkmut "$D/gates/checks-tier.sh"
+if mutguard M46 "run the drive arm outside ctl_exec again" "$D/gates/checks-tier.sh" 'out="$(cd "$d" && timeout 900 bash gates/fastgate-drive.sh fixed 2>&1)"'; then
+  printf '%s\n' "#!/usr/bin/env bash" 'tc(){ case "$1" in H1) :;; H1b) :;; H2) :;; H12) :;; esac; }' \
+    'setsid bash -c "sleep 8" >/dev/null 2>&1 &' 'echo "1 ok, 0 FAIL, 0 skipped"' "exit 0" > "$D/gates/fastgate-drive.sh"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M46 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+  runtier "$D" "$MB"
+  if grep -qF "OUTLIVED" <<<"$TOUT"; then
+    rec M46 FAIL "the drive arm's isolation is not load-bearing: the orphan was still reported (exit $TRC)"
+  else
+    rec M46 ok "outside ctl_exec the drive arm's orphan is invisible: no survivor report (exit $TRC)"
+  fi
+fi
+
+# ── A61. THE RECOVERY EVIDENCE INSIDE .git IS WATCHED [antagonist B, P1-d]. B removed .git/logs, .git/ORIG_HEAD
+# and .git/COMMIT_EDITMSG and registered a ghost worktree, all under exit 0 and a green, because .git appeared
+# in no arm of the snapshot. The reflogs are where a destroyed branch is recovered from.
+D="$T/a61"; mkfix "$D"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"
+mkdir -p "$D/gates/cases"
+cat > "$D/gates/cases/c-reflog.sh" <<'RL'
+#!/usr/bin/env bash
+R="__CTREAL__"
+rm -rf "$R/.git/logs" 2>/dev/null
+echo "PASS c-reflog asserts nothing"
+exit 0
+RL
+commitin "$D" "held.sh plus a control that removes the reflogs"
+runtier "$D" "$FIXBASE"
+if [ "$TRC" = 1 ] && grep -qE '^ +[<>] GITDIR logs ' <<<"$TOUT"; then
+  rec A61 ok "a control that removes .git/logs is GRAVE and the GITDIR line is named (exit $TRC)"
+else
+  rec A61 FAIL "removing the reflogs was not reported as grave (exit $TRC)"
+  printf '%s\n' "$TOUT" | tail -10 | sed 's/^/          /'
+fi
+
+# ── M47. DROP THE GITDIR ARM: A61 must stop refusing.
+D="$T/m-M47"; mkfix "$D"
+# THE SEAM IS THE HASH'S OWN LINE, for the reason M34 needed one: an anchor carrying `%s\n` cannot match,
+# because mkmut turns a literal backslash-n into a newline.
+printf '%s\t%s\n' '    glog="$(find "$ROOT/.git/logs" -type f -print0 2>/dev/null | sort -z | xargs -0 -r sha256sum 2>/dev/null | sha256sum | cut -c1-64)"' '    glog=constant-no-reflog-hash' \
+  | mkmut "$D/gates/checks-tier.sh"
+if mutguard M47 "make the reflog arm a constant" "$D/gates/checks-tier.sh" '    glog=constant-no-reflog-hash'; then
+  mkdir -p "$D/gates/cases"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M47 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"
+  cp "$T/a61/gates/cases/c-reflog.sh" "$D/gates/cases/c-reflog.sh" 2>/dev/null
+  sed -i "s|$T/a61|$D|g" "$D/gates/cases/c-reflog.sh" 2>/dev/null
+  commitin "$D" "the reflog wipe over the mutant base"
+  runtier "$D" "$MB"
+  if grep -qE '^ +[<>] GITDIR logs ' <<<"$TOUT"; then
+    rec M47 FAIL "the GITDIR arm is not load-bearing: the wipe was still named with it made constant (exit $TRC)"
+  else
+    rec M47 ok "without the GITDIR hash the reflog wipe is invisible to the snapshot (exit $TRC)"
+  fi
+fi
+
+# ── A62. AN IN-PLACE, SAME-SIZE REWRITE OF A TRACKED FILE IS GRAVE, AND THIS CASE EXISTS BECAUSE ANTAGONIST B
+# REPORTED THE OPPOSITE [B's P1-b]. B measured `git ls-files -s` not moving - which is TRUE, it is the index's
+# recorded oid - and reported `git status` clean with it, so a control could leave the bundle replaced under a
+# green. I could not reproduce the second half: on a fresh fixture, outside git's racily-clean window, and on a
+# real clone with the file's mtime older than the index and restored to the nanosecond, `git status` reported
+# the file modified every time, with core.trustctime both false and true. So the claim is DISPUTED and the arm
+# that covers it is the WT and DIFF pair rather than TRACKED. A case is the honest way to hold that open: the
+# day a configuration appears where all three are blind, this goes red instead of a reviewer arguing.
+D="$T/a62"; mkfix "$D"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"
+mkdir -p "$D/gates/cases"
+cat > "$D/gates/cases/c-inplace.sh" <<'IP'
+#!/usr/bin/env bash
+R="__CTREAL__"
+MT="$(stat -c %y "$R/app.js" 2>/dev/null)"
+printf 'EVIL' | dd of="$R/app.js" bs=1 seek=0 conv=notrunc status=none 2>/dev/null
+touch -d "$MT" "$R/app.js" 2>/dev/null
+echo "PASS c-inplace asserts nothing"
+exit 0
+IP
+commitin "$D" "held.sh plus a control that rewrites the bundle in place at the same size"
+A62MD5="$(md5sum "$D/app.js" | cut -c1-32)"
+sleep 1
+runtier "$D" "$FIXBASE"
+A62AFTER="$(md5sum "$D/app.js" | cut -c1-32)"
+A62WHY=""
+[ "$TRC" = 1 ] || A62WHY="exit $TRC, wanted 1"
+grep -qF "the real tree CHANGED" <<<"$TOUT" || A62WHY="${A62WHY:+$A62WHY; }the verdict does not say the tree changed"
+[ "$A62MD5" = "$A62AFTER" ] && A62WHY="${A62WHY:+$A62WHY; }the control did not actually rewrite the bundle, so this case tested nothing"
+if [ -n "$A62WHY" ]; then
+  rec A62 FAIL "an in-place same-size rewrite of a tracked file :: $A62WHY"
+  printf '%s\n' "$TOUT" | tail -12 | sed 's/^/          /'
+else
+  rec A62 ok "an in-place same-size rewrite of the bundle with its mtime restored is GRAVE (exit $TRC)"
+fi
 
 # ── A1. THE WHOLE REAL BATTERY, IN THE REAL REPOSITORY. The only slow case, about 6.5 minutes. ──────────────
 # It is the case that says the battery is green HERE, on this tree, rather than on a fixture of stubs. It needs

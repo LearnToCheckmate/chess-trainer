@@ -168,3 +168,49 @@ That is a defect in the instrument and it is filed as
 `c-<what-it-controls>.sh`, lower case, one subject per file — `c-held-source-key.sh`,
 `c-buildnum-nul-rows.sh`. Put the job id the control belongs to in a comment at the top, so a later reader can
 walk from the control back to the defect it was written for.
+
+## What design round 4 changed for a control author (build #536)
+
+Four of these are rules you will notice; the rest of the section is the honest list of what this layer still
+cannot do. Round 4 exists because **three of the five adversarial rounds on `gates/checks-tier.sh` found the
+same shape — the judge's own write landing somewhere else — and each earlier repair was a guard that REPORTED
+the plant.** Round 4's answer is structural: the plant cannot land, because nothing the judge writes has a name
+a control can compute, and no control is handed the real tree.
+
+- **Your clone is not the repository under judgement.** Controls are cloned from a throwaway `--mirror` copy in
+  the judge's own private directory, so `git config --get remote.origin.url` and
+  `.git/objects/info/alternates` both name that mirror. Three P1s reached the real checkout through that url.
+  If your control needs the real tree, it is not a control: say so on the job instead.
+- **Your control gets its own HOME, TMPDIR, XDG_CONFIG_HOME and git config.** `GIT_CONFIG_GLOBAL` points at an
+  empty file and `GIT_CONFIG_NOSYSTEM=1` is set, so `git config --global` writes into your throwaway directory
+  and not the operator's `~/.gitconfig`. Do not expect to read the operator's configuration, and do not try to
+  write it: the snapshot hashes `~/.gitconfig`, `~/.config/git/config`, `~/.bashrc`, `~/.bash_profile`,
+  `~/.profile`, `~/.npmrc` and both git config scopes, and a change in any of them is a hard refusal.
+- **Do not leave a process behind.** Your control runs in its own process group with a 600s bound
+  (`CT_CTL_TIMEOUT`), the group is killed when it ends, and every control carries a per-run marker that the
+  judge then looks for in `/proc`. A survivor is a **RED**, not a warning: a process that outlives the battery
+  can write into the real tree after the snapshot that is supposed to prove nothing did.
+- **A new `.md` on its own earns nothing.** This tier RUNS every `gates/cases/*.sh` and reads `.md` as
+  documentation, so a commit whose only tier paths are new `.md` files routes to the full suite. A green that
+  means "nothing was executed" is the one verdict this tier must not give.
+- **A stale log refuses.** The judge's log destination must not exist at all when it writes, because asking
+  what KIND of thing is at that name was insufficient three times running (a symlink, then a hard link, then a
+  directory). So a second tier run at an **unchanged head** refuses rather than overwriting its own earlier
+  `gates/logs/checks-<short>-all.log`. Move the old one aside and re-run; that is one command, and the
+  alternative is a judge that writes through a name it cannot account for.
+
+### What this layer still cannot do, stated rather than implied
+
+- **A control runs as the same user as the judge.** It can signal it, trace it, read its `/proc` entry and so
+  find the real tree by a route the mirror does not close. **This is a mechanical layer and not a sandbox**, and
+  the check that covers the rest is the adversarial pass that reads every control before it lands.
+- **A survivor that re-executes with a scrubbed environment keeps no marker**, so the `/proc` scan catches the
+  ordinary escape (`setsid`, a double fork) and not the determined one.
+- **A vacuous control is still credited.** A file whose entire output is `PASS` and which asserts nothing meets
+  the contract, because the contract can see the SHAPE of a result and not its SUBSTANCE. The directory's whole
+  economic case is that controls are milliseconds each and accumulate, and nothing here measures whether one
+  of them tests anything. That is `theREMAINDER` (b) on the hand-off job and it is unchanged by round 4.
+- **The premise stripper's expensive half is still owed.** A `/*` inside a string literal sets the comment
+  state for the rest of the file, and over-stripping yields a false CLEAN. Round 4 added the cheap half — the
+  state must be closed at end of file, and `://` is no longer read as a comment start — and a real
+  string-aware scan remains a recorded known limit (fingerprint `4a14dac044acc63f`).
