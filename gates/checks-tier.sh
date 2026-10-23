@@ -99,8 +99,14 @@ main(){
   THEIRS="$("${GIT[@]}" rev-parse --verify "$BASESHA:gates/checks-tier.sh" 2>/dev/null)" || THEIRS=""
   say "  self pin: running=${MINE:-none}  base=${THEIRS:-none}"
   if [ -z "$THEIRS" ]; then
-    say "REFUSED: the base ${BASESHA:0:12} carries no gates/checks-tier.sh, so there is no main copy to be judged by."
-    return 1
+    # GO FULL AND NOT REFUSED [antagonist A, P2]. This read `return 1`, and exit 1 means "stop, do not push, do
+    # not re-run hoping for a different answer". But a base with no gates/checks-tier.sh is simply a base that
+    # PREDATES this tier - which is every base until this build lands, and every branch cut before it - and the
+    # right answer for "this tier cannot judge your commit" is the full suite, which is this script's whole
+    # default. Refusing it told honest commits they were broken.
+    say "GO FULL: the base ${BASESHA:0:12} carries no gates/checks-tier.sh, so there is no main copy to judge by."
+    say "  That is a base predating this tier, not a fault in your commit. The full suite decides it."
+    return 2
   fi
   if [ "$MINE" != "$THEIRS" ]; then
     say "REFUSED: the running copy of this script is NOT the base's copy (running ${MINE:-none}, base $THEIRS)."
@@ -244,12 +250,20 @@ main(){
   # string that no single character can equal, so the string-tracking arms were dead and the stripper mis-read
   # the real tree. It reported gates/regress/66-winprob-ladder.js:178 - prose inside a block comment that opens
   # at :172 - as a live read, which would have REFUSED main itself. One nested-quote mistake, one false P0.
-  # SO THIS STRIP IS DELIBERATELY SIMPLER THAN A JS LEXER, AND ITS LIMIT IS STATED RATHER THAN HIDDEN: it tracks
-  # only the two comment states and NOT string or regex literals, so a `//` or `/*` inside a string literal
-  # over-strips the rest of that line. That direction is the safe one HERE, and only here, because a change to
-  # anything in the browser read set routes to the full suite at exit 2 before this arm is reached - so this arm
-  # only ever reads the BASE, which arrived through a full suite of its own. What it must never do is refuse an
-  # honest tree, and over-stripping cannot.
+  # SO THIS STRIP IS DELIBERATELY SIMPLER THAN A JS LEXER, AND ITS LIMIT IS NOW STATED CORRECTLY - THE FIRST
+  # VERSION OF THIS PARAGRAPH WAS WRONG IN BOTH SCOPE AND DIRECTION [antagonist A, P2, withdrawn here]. It said a
+  # `//` or `/*` inside a string literal "over-strips the rest of that LINE" and concluded "what it must never do
+  # is refuse an honest tree, and over-stripping cannot". BOTH HALVES ARE FALSE. `inblock` persists to the end of
+  # the FILE, not the line; and over-stripping produces a false GREEN, not only a harmless refusal. MEASURED: a
+  # regress gate whose base carries `const marker = '/*';` and then a real
+  # `require('fs').readFileSync('../verify-log.sh')` reads "premise: P1 clean" and CHECKS TIER GREEN, while A8
+  # proves the same read without that one preceding line is PREMISE P1 BROKEN at exit 1. So one line in the base
+  # can hide the read this arm exists to find.
+  # WHY IT IS STILL ACCEPTED, stated as a bound rather than a dismissal: this arm only ever reads the BASE, because
+  # any change to the browser read set routes to the full suite at exit 2 before it is reached - so defeating it
+  # takes a commit that already went through a full suite, and it is a latent weakness in the identity rather than
+  # a one-commit attack. It is recorded as a known limit on the job, with the remedy named: a real JS tokeniser,
+  # or a check that the file's comment state is balanced at EOF.
   badp="$(
     printf '%s\n' "$P1" | while IFS= read -r f; do
       [ -n "$f" ] || continue
@@ -285,7 +299,25 @@ main(){
     printf '%s\n' "$P1" | while IFS= read -r f; do
       [ -n "$f" ] || continue
       case "$f" in *.js) ;; *) continue;; esac
-      if "${GIT[@]}" cat-file blob "$BASESHA:$f" 2>/dev/null | grep -nE "child_process|execSync|spawnSync|execFile" > /dev/null 2>&1; then
+      # P2 STRIPS COMMENTS EXACTLY AS P1 DOES [antagonist A, P2]. It used to grep the RAW blob, so ONE WORD OF
+      # PROSE turned this tier into a hard REFUSED - the very false positive the commit above was written to
+      # remove from P1, left standing one screen below it. Measured: adding the comment
+      # `// NOTE: this gate does NOT use execSync; see gates/lib.js.` to any regress gate reads
+      # "REFUSED: PREMISE P2 BROKEN", exit 1. Headroom was ZERO (exactly one file matches today) in a repository
+      # whose gates carry hundred-line comments about their own tooling.
+      if "${GIT[@]}" cat-file blob "$BASESHA:$f" 2>/dev/null | awk '
+        BEGIN{ inblock=0 }
+        {
+          line=$0; out=""; i=1; L=length(line)
+          while (i<=L) {
+            c=substr(line,i,1); d=substr(line,i+1,1)
+            if (inblock) { if (c=="*" && d=="/") { inblock=0; i+=2 } else { i++ } ; continue }
+            if (c=="/" && d=="*") { inblock=1; i+=2; continue }
+            if (c=="/" && d=="/") { break }
+            out = out c; i++
+          }
+          print out
+        }' 2>/dev/null | grep -nE "child_process|execSync|spawnSync|execFile" > /dev/null 2>&1; then
         printf '%s\n' "$f"
       fi
     done
@@ -442,8 +474,11 @@ main(){
     if [ -n "$why" ]; then
       bad "$label: $why"
       say "  RED  $label - $why"
-      printf '%s\n' "$out" | tail -25 | sed 's/^/        /' >> "$WORK/red-$CTLN.txt" 2>/dev/null
-      LOGLINES="$LOGLINES$(printf '%s\n' "$out" | tail -25 | sed 's/^/        /')"$'\n'
+      # THE FAILING CONTROL'S OUTPUT GOES TO THE TERMINAL TOO, VIA say [antagonist A, P3]. It used to be appended
+      # to LOGLINES only, and LOGLINES is not written until the end of the run, so an operator watching a RED saw
+      # ONE line of reason and had to go and read gates/logs/checks-*-all.log to find out why. A's pass lost ten
+      # minutes to exactly that.
+      say "$(printf '%s\n' "$out" | tail -25 | sed 's/^/        /')"
       return 1
     fi
     CTLOK=$((CTLOK+1))
@@ -472,7 +507,17 @@ main(){
   dids="$("${GIT[@]}" cat-file blob "$BASESHA:gates/fastgate-drive.sh" 2>/dev/null \
           | sed -n '/^tc(){/,/^}/p' | grep -oE '(^|[[:space:]])H[0-9]+b?\)' | tr -d ' \t\r)' | grep -vx H12 || true)"
   DECL="$(printf '%s\n' "$dids" | grep -c . || true)"; DECL=$((DECL+0))
-  if [ "$DECL" -eq 0 ]; then
+  # THE UNIQUENESS GUARD gates.sh HAS, AND THIS TIER DID NOT [antagonist A, P3]. gates.sh computes both the count
+  # and the DISTINCT count and reddens on "the committed tc() table repeats a case id". Without it a duplicated id
+  # inflates DECL, so `ok+skipped != DECL` reddens an honest harness - and A15c, which exists to show "the same
+  # recipe the gate suite uses", derives ITS number with `sort -u`, so it would have stayed green while the tier
+  # reddened. The claim that the two use the same recipe was false as written; now they do.
+  local DECLU
+  DECLU="$(printf '%s\n' "$dids" | sort -u | grep -c . || true)"; DECLU=$((DECLU+0))
+  if [ "$DECL" -ne "$DECLU" ]; then
+    bad "fastgate-drive.sh: the base's tc() table REPEATS a case id ($DECL rows, $DECLU distinct), so the declared count is inflated"
+    say "  RED  fastgate-drive.sh - the base tc() table repeats a case id ($DECL rows, $DECLU distinct)"
+  elif [ "$DECL" -eq 0 ]; then
     bad "fastgate-drive.sh: the base's tc() table yields NO case ids, so its declared count cannot be derived"
     say "  RED  fastgate-drive.sh - the base tc() table is unreadable, and a declared 0 would make the test vacuous"
   else
@@ -513,6 +558,11 @@ main(){
     fi
   fi
 
+  # THE FORBID REGEX ABOVE IS `([1-9][0-9]*|^)[[:space:]]*FAIL` AND NOT A BARE `FAIL` [antagonist A, P3]. The bare
+  # form reddened a control whose footer reads "1 PASS  0 FAIL" - which is exactly the shape gates/cases/README.md
+  # tells an author to write ("as the other self tests here do", and every self test here prints that footer). So
+  # following the documentation produced a RED. A zero-count footer is now fine and a non-zero one is not.
+  #
   # A9. THE HEAD'S verify-log.sh MUST STILL ACCEPT MAIN'S NEWEST GREEN FULL LOG, and main's own copy must accept
   # it too - so a head that breaks the push gate's acceptance is caught here and not at somebody's push. The log
   # is chosen from the BASE's tree, newest first, so the choice cannot be steered by the candidate.
@@ -532,22 +582,65 @@ main(){
     local GN
     GN="$(sed -E 's|.*/([0-9]+)[a-z]?-all\.log|\1|' <<<"$GLOG")"
     say "  acceptance log: $GLOG (build #$GN), chosen from the BASE's tree so the candidate cannot steer it"
+    # THE BUNDLE THE ARCHIVED LOG GATED MUST BE THE BUNDLE ON DISK, OR THIS ARM IS GO FULL AND NOT RED
+    # [antagonist A, P2]. `--this-bundle` compares the log's gated md5 against app.js on disk. They agree today
+    # (049b41dfb6f1 for #530 to #534), but the moment main's newest archived log gates a different bundle - which
+    # #454 measured happening on four of eight build numbers, and which any mid-pass rebuild produces - EVERY
+    # tier-only commit read CHECKS TIER RED, exit 1, for a reason with nothing to do with the candidate. RED is
+    # the one verdict that says "do not re-run hoping for a different answer". This is state OUTSIDE the commit,
+    # so the honest answer is the full suite.
+    local LOGMD5 DISKMD5
+    LOGMD5="$("${GIT[@]}" cat-file blob "$BASESHA:$GLOG" 2>/dev/null | grep -oE 'bundle md5 [0-9a-f]{12}' | sed -E 's/.* //' | sort -u | tr -d '\n')"
+    DISKMD5="$("${GIT[@]}" cat-file blob "$HEADSHA:app.js" 2>/dev/null | md5sum | cut -c1-12)"
+    if [ -n "$LOGMD5" ] && [ "$LOGMD5" != "$DISKMD5" ]; then
+      say "GO FULL: the base's newest archived log $GLOG gated bundle $LOGMD5 and this tree's app.js is $DISKMD5."
+      say "  The acceptance arm compares the two with --this-bundle, so it cannot speak about this candidate while"
+      say "  they differ. That is state outside your commit, not a fault in it: the full suite decides."
+      [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK" 2>/dev/null
+      rm -rf "$WORK" 2>/dev/null
+      return 2
+    fi
     run_ctl "verify-log.sh (head) accepts #$GN" 0 "OK" "REFUS" -- bash gates/verify-log.sh "$GLOG" "#$GN" --this-bundle
   fi
 
-  # EVERY NEW gates/cases/ FILE IS RUN: exit 0, at least one PASS line, no FAIL line. A control that is added and
-  # never executed is the "a test in the repo that no suite runs" class, and this is the one place these run.
-  local nc=0
+  # EVERY gates/cases/ CONTROL IS RUN - THE UNION OF THE BASE'S AND THIS COMMIT'S NEW ONES - AND THAT UNION IS
+  # ANTAGONIST A's UPHELD P1 VETO [#535]. This loop read $NEWFILES ONLY, so a control added through this tier was
+  # executed exactly ONCE, in the commit that added it, and never judged anything again; the base's controls were
+  # byte-COMPARED and never RUN, while the log said "harnesses and existing controls: byte-identical to the base"
+  # and gates/cases/README.md published the opposite as the directory's whole purpose and as the answer to the
+  # reviewer's two-commit split. REPRODUCED before it was believed: a base carrying a control that prints FAIL and
+  # exits 1, with a candidate changing only gates/held.sh, read exit 0, CHECKS TIER GREEN, "new control file(s)
+  # run: 0" - the tier reaching GREEN on a tree the project's own control set refuses. A control set that does not
+  # accumulate is a label, and the whole economic case for this directory is that controls are milliseconds each
+  # and they pile up.
+  local nc=0 nbase=0
+  local ALLCASES
+  ALLCASES="$(printf '%s\n%s\n' "$cb" "$NEWFILES" | grep -E '\.sh$' | sort -u || true)"
   while IFS= read -r p; do
     [ -n "$p" ] || continue
-    case "$p" in *.sh) ;; *) continue;; esac
     nc=$((nc+1))
-    run_ctl "new control $p" 0 "PASS" "(^|[[:space:]])FAIL" -- bash "$p"
-  done <<<"$NEWFILES"
-  say "  new control file(s) run: $nc"
+    local isbase=0
+    while IFS= read -r q; do [ "$q" = "$p" ] && isbase=1; done <<<"$cb"
+    [ "$isbase" = 1 ] && nbase=$((nbase+1))
+    run_ctl "control $p" 0 "PASS" "([1-9][0-9]*|^)[[:space:]]*FAIL" -- bash "$p"
+  done <<<"$ALLCASES"
+  say "  gates/cases control(s) run: $nc ($nbase already on the base, $((nc-nbase)) new in this commit)"
 
   # ── (9) THE REAL TREE MUST BE EXACTLY AS IT WAS. ────────────────────────────────────────────────────────────
   # A11, and it is checked BEFORE the log is written, so the log itself cannot be the difference.
+  # THE LOCK ITSELF IS CHECKED SEPARATELY, BECAUSE THE SNAPSHOT EXCLUDES ITS PATH [antagonist A, F8 residual].
+  # The exclusion is necessary - this run creates the lock, so it would always differ - but it left a hole A
+  # measured: a control that runs `rm -rf "$OLDPWD/gates/logs/.suite.lock"` reached CHECKS TIER GREEN with the
+  # lock gone, so a control could release the only guard against two suites overlapping (#419) mid-battery and
+  # nothing would say so. An exclusion is not a licence, so what the snapshot cannot see is asserted directly.
+  local LOCKPID
+  LOCKPID="$(cat "$LOCK/pid" 2>/dev/null || echo gone)"
+  if [ ! -d "$LOCK" ] || [ "$LOCKPID" != "$$" ]; then
+    say "REFUSED: the suite lock was removed or taken over while the battery ran (pid now '$LOCKPID', mine is $$)."
+    say "  A control released the one guard against two suites overlapping, so nothing this run measured can be"
+    say "  attributed to a tree nobody else was writing."
+    RC=1
+  fi
   SNAP1="$(snapshot)"
   if [ "$SNAP0" != "$SNAP1" ]; then
     say "REFUSED: the real tree CHANGED while the battery ran (snapshot ${SNAP0:0:16} -> ${SNAP1:0:16})."

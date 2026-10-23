@@ -317,31 +317,63 @@ done
 if [ -n "$A11BAD" ]; then rec A11 FAIL "a control that touched the real tree still got a GREEN:$A11BAD"
 else rec A11 ok "all $A11N tree-touching controls (write, ref, hook, config) are refused"; fi
 
-# ── A12. A CONTROL THAT REWRITES OR APPENDS TO THE JUDGE GETS THE ORIGINAL'S VERDICT. ───────────────────────
-# The judge is one function with `main "$@"; exit $?` on its last line, so its body is fully parsed before it
-# runs and an appended line is never reached. Both attacks are run against a tree that is otherwise GREEN.
-A12BAD=""
-for kind in rewrite append; do
+# ── A12. A CONTROL THAT REWRITES OR APPENDS TO THE RUNNING JUDGE GETS THE ORIGINAL'S VERDICT.
+# THE FIRST VERSION OF THIS CASE COULD NOT FAIL, AND ANTAGONIST A PROVED IT [F3, P2]. Its two poses appended to
+# `$0` (which inside run_ctl is gates/gates.sh IN THE THROWAWAY CLONE) and to `$OLDPWD/gates/checks-tier.sh`
+# (the fixture's WORKING-TREE copy) - while the running judge is a temporary file extracted from the base's blob.
+# Neither is the file bash is reading, its `for f in /proc/$PPID/fd/*` loop was a no-op, so `HIJACKED` could
+# never appear and the residual assertion was `TRC in {0,1}`, which a tier-only candidate satisfies for EVERY
+# outcome. The mechanism was sound; the case was decoration.
+# SO THE POSES NOW FIND THE RUNNING JUDGE THE WAY AN ATTACKER WOULD, by walking /proc for the bash process whose
+# argv names the extracted copy, and writing to THAT path. TWO THINGS THE SECOND VERSION ALSO GOT WRONG, both
+# recorded because each made the case unable to report: the marker was echoed to stdout, which run_ctl DISCARDS
+# for a control that passes, so the case could not see whether its own pose had landed; and it is read from a
+# file OUTSIDE the fixture, because a marker inside it would be caught by the real-tree snapshot and change the
+# verdict the case is trying to observe.
+A12BAD=""; A12TRIED=""
+for kind in append rewrite; do
   D="$T/a12-$kind"; mkfix "$D"
+  MARK="$T/a12-marker-$kind"; rm -f "$MARK"
   case "$kind" in
-    rewrite) BODY='for f in /proc/$PPID/fd/*; do : ; done; printf "%s\n" "echo HIJACKED; exit 0" >> "$0" 2>/dev/null || true' ;;
-    append)  BODY='printf "%s\n" "echo HIJACKED; exit 0" >> "$OLDPWD/gates/checks-tier.sh" 2>/dev/null || true' ;;
+    append)  ACT='printf "%s\n" "echo HIJACKED-BY-APPEND; exit 0" >> "$J"' ;;
+    rewrite) ACT='printf "%s\n" "#!/usr/bin/env bash" "echo HIJACKED-BY-REWRITE" "exit 0" > "$J"' ;;
   esac
-  { printf '%s\n' "#!/usr/bin/env bash"
-    printf '%s\n' "$BODY"
-    printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
-  commitin "$D" "a control that attacks the judge ($kind)"; B="$(git -C "$D" rev-parse HEAD)"
+  {
+    echo '#!/usr/bin/env bash'
+    echo '# Find the RUNNING judge: the bash process whose argv names the extracted checks-tier copy.'
+    echo 'J=""'
+    echo 'for c in /proc/[0-9]*/cmdline; do'
+    echo '  while IFS= read -r arg; do'
+    echo '    case "$arg" in'
+    echo '      */ct.sh|*/checks-tier.sh) [ -f "$arg" ] && [ -w "$arg" ] && J="$arg" ;;'
+    echo '    esac'
+    echo '  done < <(tr "\0" "\n" < "$c" 2>/dev/null)'
+    echo '  [ -n "$J" ] && break'
+    echo 'done'
+    echo 'if [ -z "$J" ]; then'
+    printf '  printf "%%s\\n" "could-not-locate" > %s\n' "$MARK"
+    echo 'else'
+    echo "  $ACT"
+    printf '  printf "%%s\\n" "wrote-to $J" > %s\n' "$MARK"
+    echo 'fi'
+    echo 'echo "SELFTEST 3 pass / 0 fail"'
+    echo 'exit 0'
+  } > "$D/gates/gates.sh"
+  commitin "$D" "a control that attacks the RUNNING judge ($kind)"; B="$(git -C "$D" rev-parse HEAD)"
   printf '%s\n' "# changed" >> "$D/gates/held.sh"
   commitin "$D" "a tier-only change"
   runtier "$D" "$B"
-  if grep -qF "HIJACKED" <<<"$TOUT"; then A12BAD="$A12BAD $kind(hijacked)"; fi
-  # The honest verdict for this tree is 0 (a tier-only change, stub controls green) or 1 if the write was
-  # detected by the real-tree snapshot. Either is the ORIGINAL's verdict; what must never happen is the
-  # attacker's own exit reaching the caller as a green it did not earn.
-  if [ "$TRC" != 0 ] && [ "$TRC" != 1 ]; then A12BAD="$A12BAD $kind(exit $TRC)"; fi
+  if grep -q 'wrote-to' "$MARK" 2>/dev/null; then A12TRIED="$A12TRIED $kind(reached-the-judge)"
+  else A12TRIED="$A12TRIED $kind(could-not-locate)"; fi
+  grep -qF "HIJACKED" <<<"$TOUT" && A12BAD="$A12BAD $kind(HIJACKED)"
+  # The honest verdict for this tree is 0 (a tier-only change over green stub controls) or 1 (the real-tree
+  # snapshot saw the write). Anything else means the attacker's own exit reached the caller.
+  [ "$TRC" != 0 ] && [ "$TRC" != 1 ] && A12BAD="$A12BAD $kind(exit $TRC)"
 done
-if [ -n "$A12BAD" ]; then rec A12 FAIL "the judge was hijacked:$A12BAD"
-else rec A12 ok "rewriting the judge's bytes and appending to it both yield the original's verdict"; fi
+if [ -n "$A12BAD" ]; then rec A12 FAIL "the running judge was hijacked:$A12BAD"
+elif ! grep -q 'reached-the-judge' <<<"$A12TRIED"; then
+  rec A12 SKIP "neither pose could locate the running judge in /proc, so this case was not attempted:$A12TRIED"
+else rec A12 ok "a control that writes to the RUNNING judge gets the original's verdict:$A12TRIED"; fi
 
 # ── A13. A DIRTY WORKING TREE -> REFUSED. ────────────────────────────────────────────────────────────────────
 D="$T/a13"; mkfix "$D"
@@ -425,7 +457,136 @@ runtier "$D" "$B"
 if [ "$TRC" = 0 ]; then rec A18 FAIL "a control wrote under the real tree's gates/logs and still got a GREEN"
 else rec A18 ok "a control writing under the real tree's gates/logs is caught (exit $TRC)"; fi
 
+# ── A25. A CONTROL THAT REMOVES THE SUITE LOCK IS CAUGHT (antagonist A, F8 residual). The snapshot must exclude
+# the lock's own path - this run creates it - and that exclusion left a hole: a control could delete the only
+# guard against two suites overlapping (#419) mid-battery and still reach GREEN.
+D="$T/a25"; mkfix "$D"
+{ printf '%s\n' "#!/usr/bin/env bash"
+  printf '%s\n' 'rm -rf "$OLDPWD/gates/logs/.suite.lock" 2>/dev/null || true'
+  printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
+commitin "$D" "a control that removes the suite lock"; B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+runtier "$D" "$B"
+if [ "$TRC" = 0 ]; then rec A25 FAIL "a control removed the suite lock and the tier still answered GREEN"
+else rec A25 ok "a control that removes the suite lock is caught (exit $TRC)"; fi
+
+# ── A19 / A20. EVERY gates/cases/ CONTROL RUNS, THE BASE'S INCLUDED (antagonist A's upheld P1 VETO F1).
+# A19 is the reproduction: a base carrying a control that prints FAIL and exits 1, with a candidate changing only
+# a tier path, used to read exit 0 CHECKS TIER GREEN and "new control file(s) run: 0" - the tier reaching GREEN
+# on a tree the project's own control set refuses. A20 is the other half, and without it A19 could be satisfied
+# by a tier that simply reddens whenever the base has any control at all.
+D="$T/a19"; mkfix "$D"
+mkdir -p "$D/gates/cases"; printf '%s\n' "#!/usr/bin/env bash" "echo 'FAIL c-old is RED'" "exit 1" > "$D/gates/cases/c-old.sh"
+commitin "$D" "base carries a RED control"; B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# a fix" >> "$D/gates/held.sh"; commitin "$D" "a later tier-only change"
+expect A19 "$D" "$B" 1 "CHECKS TIER RED" "a RED control already on the base reddens a later tier-only commit"
+D="$T/a20"; mkfix "$D"
+mkdir -p "$D/gates/cases"; printf '%s\n' "#!/usr/bin/env bash" "echo 'PASS c-old holds'" "exit 0" > "$D/gates/cases/c-old.sh"
+commitin "$D" "base carries a GREEN control"; B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# a fix" >> "$D/gates/held.sh"; commitin "$D" "a later tier-only change"
+runtier "$D" "$B"
+if [ "$TRC" = 0 ] && grep -qF "1 already on the base" <<<"$TOUT"; then
+  rec A20 ok "a GREEN control on the base is RUN and counted, and the commit still passes (exit 0)"
+else
+  rec A20 FAIL "the base's GREEN control was not run and counted (exit $TRC)"
+  printf '%s\n' "$TOUT" | grep -E 'control|GREEN|RED' | tail -4 | sed 's/^/          /'
+fi
+
+# ── A21. A BASE THAT PREDATES THIS TIER IS GO FULL, NOT REFUSED (antagonist A, P2).
+# Every base until this build lands is such a base, and exit 1 told those commits they were broken.
+D="$T/a21"; mkfix "$D"
+git -C "$D" rm -q --cached gates/checks-tier.sh >/dev/null 2>&1; rm -f "$D/gates/checks-tier.sh"
+commitin "$D" "a base with no checks-tier.sh"; B="$(git -C "$D" rev-parse HEAD)"
+cp "$G/checks-tier.sh" "$D/gates/checks-tier.sh"; chmod +x "$D/gates/checks-tier.sh"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "add the tier and change a tier path"
+TF="$(mktemp -d)"; cp "$G/checks-tier.sh" "$TF/ct.sh"
+A21OUT="$(cd "$D" && bash "$TF/ct.sh" "$B" "$D" 2>&1)"; A21RC=$?
+rm -rf "$TF"
+if [ "$A21RC" = 2 ] && grep -qF "GO FULL" <<<"$A21OUT" && grep -qF "predating this tier" <<<"$A21OUT"; then
+  rec A21 ok "a base carrying no gates/checks-tier.sh routes to the full suite (exit 2), not REFUSED"
+else
+  rec A21 FAIL "a base predating the tier did not route to the full suite (exit $A21RC)"
+  printf '%s\n' "$A21OUT" | tail -4 | sed 's/^/          /'
+fi
+
+# ── A22. PREMISE P2 IS COMMENT-BLIND NO LONGER (antagonist A, P2). One word of prose used to make this tier a
+# hard REFUSED - the same false positive P1 was repaired for, one screen below it, with ZERO headroom.
+D="$T/a22"; mkfix "$D"
+printf '%s\n' "// NOTE: this gate does NOT use execSync; see gates/lib.js." >> "$D/gates/regress/01-x.js"
+printf '%s\n' "/* nor spawnSync, nor child_process, which only lib.js may touch */" >> "$D/gates/regress/01-x.js"
+commitin "$D" "a base whose regress gate NAMES child_process in comments only"
+B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+expect A22 "$D" "$B" 0 "CHECKS TIER GREEN" "child_process named in COMMENTS only does not break premise P2"
+
+# ── A23. THE ACCEPTANCE ARM GOES FULL, NOT RED, WHEN THE ARCHIVED LOG GATED A DIFFERENT BUNDLE (antagonist A, P2).
+# That is state outside the candidate, and RED is the verdict that says "do not re-run".
+D="$T/a23"; mkfix "$D"
+printf 'PASS\nref: HEAD deadbeefdeadbeef | bundle md5 aaaaaaaaaaaa | origin/main x\nGATES GREEN #500\n' > "$D/claude/agents/gatelogs/500-all.log"
+commitin "$D" "a base whose archived log gated a different bundle"; B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+expect A23 "$D" "$B" 2 "GO FULL" "an archived log gating another bundle routes to the full suite, not RED"
+
+# ── A24. A DUPLICATED tc() CASE ID IS RED (antagonist A, P3). gates/gates.sh has this guard and the tier did not,
+# so a repeated id inflated DECL and reddened an HONEST harness while A15c, which uses sort -u, stayed green.
+D="$T/a24"; mkfix "$D"
+printf '%s\n' "#!/usr/bin/env bash" 'tc(){ case "$1" in H1) :;; H1) :;; H1b) :;; H2) :;; H12) :;; esac; }' 'echo "2 ok, 0 FAIL, 1 skipped"' 'echo "  H1b SKIP esbuild absent"' "exit 0" > "$D/gates/fastgate-drive.sh"
+commitin "$D" "a base whose tc() table repeats a case id"; B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+expect A24 "$D" "$B" 1 "REPEATS a case id" "a repeated tc() case id is RED and named, not an inflated denominator"
+
 # ── THE MUTANTS. EACH DISABLES ONE ARM AND MUST TURN A CASE. ─────────────────────────────────────────────────
+# ── THE MUTATION HELPER. EVERY MUTANT GOES THROUGH IT, AND THAT IS ANTAGONIST A's UPHELD P1 VETO F2(a) [#535].
+# M3 and M12 used `sed -E 's|...\|...|...|'`, and in ERE `\|` is ALTERNATION, not an escaped delimiter. M3
+# rewrote SIX lines - four of them comments and run_ctl's real `bash gates/verify-log.sh` call - and M12 one, and
+# BOTH left a judge that does not parse. `bash` on an unparseable script exits 2, which this tier's interface
+# defines as GO FULL, so each mutant's case "turned" because the judge would not start - and the routing arm and
+# the .sh/.md form guard were never shown load-bearing at all. The `cmp -s` guard passed both, because it proves
+# the bytes MOVED and not that they moved WHERE YOU MEANT.
+# AND THE REASON THIS IS A HELPER AND NOT THREE MORE FIXES: I had already hit this exact defect in M13 and
+# written a four-part guard for it IN THE SAME COMMIT that introduced M12 carrying it. Fixing the instance and
+# not the class is CLAUDE.md's "a lesson recorded in one gate does not travel to the next one by itself",
+# committed by the commit that recorded the lesson. So the guard is now the only way to build a mutant here.
+# mkmut <outfile> ; replacement pairs on stdin as OLD<TAB>NEW, one per line, \n for newlines. Exits non-zero
+# unless every anchor matched EXACTLY ONCE.
+mkmut(){
+  local out="$1"
+  python3 -I -c '
+import sys
+src=open(sys.argv[1]).read()
+n=0
+for line in sys.stdin.read().split("\n"):
+    if not line.strip(): continue
+    if "\t" not in line:
+        sys.stderr.write("no tab in replacement line\n"); sys.exit(3)
+    old,new=line.split("\t",1)
+    old=old.replace("\\n","\n"); new=new.replace("\\n","\n")
+    c=src.count(old)
+    if c!=1:
+        sys.stderr.write("anchor matched %d times (want 1): %r\n"%(c,old[:70])); sys.exit(3)
+    src=src.replace(old,new); n+=1
+if n==0:
+    sys.stderr.write("no replacements given\n"); sys.exit(3)
+open(sys.argv[2],"w").write(src)
+' "$G/checks-tier.sh" "$out"
+}
+# mutguard <id> <desc> <outfile> <expect-substring> -> 0 if the mutant is usable, 1 if it is not (and records FAIL)
+mutguard(){
+  local id="$1" desc="$2" out="$3" expect="$4"
+  if [ ! -s "$out" ]; then rec "$id" FAIL "$desc :: the mutation produced an EMPTY or missing file"; return 1; fi
+  if cmp -s "$out" "$G/checks-tier.sh"; then rec "$id" FAIL "$desc :: the mutation changed NOTHING"; return 1; fi
+  if ! bash -n "$out" 2>/dev/null; then
+    rec "$id" FAIL "$desc :: the mutated judge DOES NOT PARSE, so its verdict is about a broken file and not about the arm"; return 1; fi
+  if [ -n "$expect" ] && ! grep -qF -- "$expect" "$out"; then
+    rec "$id" FAIL "$desc :: the mutated judge does not carry the text the mutation was meant to install"; return 1; fi
+  return 0
+}
+# THE ROUTING-WIDENING MUTATION, used by the two-stage mutants below. It is a VALID bash case arm, unlike the
+# broken sed it replaces, and it lets a non-tier path through to the arms that come after routing.
+WIDEN_OLD='      gates/fastgate.sh|gates/verify-log.sh|gates/held.sh|gates/buildnum.sh)'
+WIDEN_NEW='      gates/fastgate.sh|gates/verify-log.sh|gates/held.sh|gates/buildnum.sh|*)'
+
+
 # A mutant that leaves every case green proves the arm it removed was decorative. This is the one test that
 # separates an arm which is load-bearing from one that merely runs.
 mutant(){ # mutant <id> <sed-expr> <case-dir-builder> <wanted-honest-rc> <desc>
@@ -493,22 +654,25 @@ else
   fi
 fi
 
-# M3. Widen the routing to allow any gates/ path: A3 must stop routing.
+# M3. WIDEN THE ROUTING so a non-tier path is let through: A3's gates/lib.js pose must stop being named by the
+# routing. TWO STAGES, because a mutant that only proves "some arm still caught it" proves nothing about the arm
+# it removed [antagonist A, F2(b)]. Stage 1 widens routing ALONE and shows the SERVED-TREE IDENTITY arm catches
+# the bundle change on its own; stage 2 widens routing AND removes identity, and must reach exit 0.
 D="$T/m-M3"; mkfix "$D"
-sed -E 's|^      gates/fastgate\.sh\|gates/verify-log\.sh\|gates/held\.sh\|gates/buildnum\.sh\)$|      gates/*)|' "$G/checks-tier.sh" > "$D/gates/checks-tier.sh"
-if cmp -s "$D/gates/checks-tier.sh" "$G/checks-tier.sh"; then
-  rec M3 FAIL "the routing mutation changed nothing"
-else
+printf '%s\t%s\n' "$WIDEN_OLD" "$WIDEN_NEW" | mkmut "$D/gates/checks-tier.sh"
+if mutguard M3 "widen the routing" "$D/gates/checks-tier.sh" "$WIDEN_NEW"; then
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M3 base" >/dev/null 2>&1
-  M3B="$(git -C "$D" rev-parse HEAD)"
+  MB="$(git -C "$D" rev-parse HEAD)"
   printf '%s\n' "# changed" >> "$D/gates/held.sh"
   printf '%s\n' "// touched" >> "$D/gates/lib.js"
   commitin "$D" "held.sh plus gates/lib.js under a widened routing"
-  runtier "$D" "$M3B"
-  if [ "$TRC" = 2 ] && grep -qF "outside this tier's set" <<<"$TOUT"; then
-    rec M3 FAIL "the path routing still named gates/lib.js with its case widened to gates/*"
+  runtier "$D" "$MB"
+  if grep -qF "outside this tier's set" <<<"$TOUT"; then
+    rec M3 FAIL "the routing still named gates/lib.js with its case widened to let every path through"
+  elif [ "$TRC" = 2 ] && grep -qF "browser read set is NOT byte-identical" <<<"$TOUT"; then
+    rec M3 ok "widening the routing turns A3's naming, and the read-set identity arm catches it alone (exit 2)"
   else
-    rec M3 ok "widening the routing to gates/* turns A3's gates/lib.js case (exit $TRC)"
+    rec M3 FAIL "with routing widened, neither the routing nor the identity arm gave the expected verdict (exit $TRC)"
   fi
 fi
 
@@ -550,61 +714,70 @@ else
   fi
 fi
 
-# M6. Remove the bundle-identity arm: A7 must stop refusing the rename.
+# M6. REMOVE THE SERVED-TREE IDENTITY ARM, WITH ROUTING WIDENED SO IT IS THE ONLY ARM THAT COULD CATCH THE
+# CHANGE. This is antagonist A's F2(b) repaired: the old M6 removed identity alone, and A7 still read exit 2
+# because ROUTING caught the deleted app.js - so the mutant passed only because its own test grepped for a
+# different string than the case asserts, and the identity arm had no evidence behind it at all. Paired with
+# M3's stage 1, which shows identity catching it alone, this is the two-sided measurement.
 D="$T/m-M6"; mkfix "$D"
-sed -E 's/^  if \[ -n "\$mismatch" \]; then$/  if false; then/' "$G/checks-tier.sh" > "$D/gates/checks-tier.sh"
-if cmp -s "$D/gates/checks-tier.sh" "$G/checks-tier.sh"; then
-  rec M6 FAIL "the identity mutation changed nothing"
-else
+{ printf '%s\t%s\n' "$WIDEN_OLD" "$WIDEN_NEW"
+  printf '%s\t%s\n' '  if [ -n "$mismatch" ]; then' '  if false; then'; } | mkmut "$D/gates/checks-tier.sh"
+if mutguard M6 "widen routing and remove the identity arm" "$D/gates/checks-tier.sh" "$WIDEN_NEW"; then
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M6 base" >/dev/null 2>&1
-  M6B="$(git -C "$D" rev-parse HEAD)"
-  mkdir -p "$D/gates/cases"
-  git -C "$D" mv app.js gates/cases/app.js >/dev/null 2>&1 || mv "$D/app.js" "$D/gates/cases/app.js"
-  commitin "$D" "rename app.js into gates/cases/ under a removed identity arm"
-  runtier "$D" "$M6B"
-  if grep -qF "served tree" <<<"$TOUT"; then
-    rec M6 FAIL "the identity arm still fired with its branch removed"
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"
+  printf '%s\n' "// the bundle moves" >> "$D/gates/lib.js"
+  commitin "$D" "a browser read-set change with routing widened and identity removed"
+  runtier "$D" "$MB"
+  if [ "$TRC" = 0 ]; then
+    rec M6 ok "removing the identity arm lets a read-set change take a GREEN once routing is widened (exit 0)"
   else
-    rec M6 ok "removing the identity arm turns A7's detection (exit $TRC, no identity verdict)"
+    rec M6 FAIL "a read-set change was still caught with routing widened AND identity removed (exit $TRC), so the identity arm is not what A7 measures"
   fi
 fi
 
-# M7. Allow an existing gates/cases/ file to change: A4a must stop routing.
+# M7. ALLOW AN EXISTING gates/cases/ FILE TO CHANGE, AND REMOVE THE ARM-6 BYTE-IDENTITY LOOP TOO. Antagonist
+# A's F2(b): the old M7 disabled only the routing-level EXISTINGCASES branch, and A4a still read exit 2 with
+# GO FULL because the arm-6 loop over the base's gates/cases files caught it - two arms for one property, so the
+# mutant proved neither. Both go, and A4a must then stop routing.
 D="$T/m-M7"; mkfix "$D"
-sed -E 's/^  if \[ -n "\$EXISTINGCASES" \]; then$/  if false; then/' "$G/checks-tier.sh" > "$D/gates/checks-tier.sh"
-if cmp -s "$D/gates/checks-tier.sh" "$G/checks-tier.sh"; then
-  rec M7 FAIL "the existing-cases mutation changed nothing"
-else
+{ printf '%s\t%s\n' '  if [ -n "$EXISTINGCASES" ]; then' '  if false; then'
+  printf '%s\t%s\n' '    if [ "$hb" != "$hh" ]; then\n      say "GO FULL: the existing control file $o is not byte-identical to the base (base=$hb head=$hh)."\n      return 2\n    fi' '    if false; then\n      say "GO FULL: the existing control file $o is not byte-identical to the base (base=$hb head=$hh)."\n      return 2\n    fi'; } | mkmut "$D/gates/checks-tier.sh"
+if mutguard M7 "allow an existing control to change" "$D/gates/checks-tier.sh" "  if false; then"; then
   mkdir -p "$D/gates/cases"; printf '%s\n' "#!/usr/bin/env bash" "echo PASS existing" "exit 0" > "$D/gates/cases/c-old.sh"
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M7 base" >/dev/null 2>&1
-  M7B="$(git -C "$D" rev-parse HEAD)"
+  MB="$(git -C "$D" rev-parse HEAD)"
   printf '%s\n' "# weakened" >> "$D/gates/cases/c-old.sh"
   printf '%s\n' "# changed" >> "$D/gates/buildnum.sh"
-  commitin "$D" "weaken an existing control under a removed arm"
-  runtier "$D" "$M7B"
-  if grep -qF "EXISTING gates/cases/ file" <<<"$TOUT"; then
-    rec M7 FAIL "the existing-control arm still fired with its branch removed"
+  commitin "$D" "weaken an existing control under both arms removed"
+  runtier "$D" "$MB"
+  if grep -qF "EXISTING gates/cases/ file" <<<"$TOUT" || grep -qF "existing control file" <<<"$TOUT"; then
+    rec M7 FAIL "an existing-control arm still fired with both of them removed"
   else
-    rec M7 ok "removing the existing-control arm turns A4a (exit $TRC)"
+    rec M7 ok "removing both existing-control arms turns A4a (exit $TRC, no existing-control verdict)"
   fi
 fi
 
-# M8. Remove the harness-identity arm: A5s1 must stop routing on a harness-only change.
+# M8. REMOVE THE HARNESS-IDENTITY ARM, WITH ROUTING WIDENED so it is the only arm that could catch a harness
+# change. Antagonist A's F2(b): the old M8's sed matched TWO lines (so it also disabled the existing-cases loop,
+# overlapping M7), and A5s1 still read exit 2 with GO FULL because ROUTING named gates/held-selftest.sh - the
+# arm under test was never the one speaking.
 D="$T/m-M8"; mkfix "$D"
-sed -E 's/^    if \[ "\$hb" != "\$hh" \]; then$/    if false; then/' "$G/checks-tier.sh" > "$D/gates/checks-tier.sh"
-if cmp -s "$D/gates/checks-tier.sh" "$G/checks-tier.sh"; then
-  rec M8 FAIL "the harness-identity mutation changed nothing"
-else
+{ printf '%s\t%s\n' "$WIDEN_OLD" "$WIDEN_NEW"
+  printf '%s\t%s\n' '    if [ "$hb" != "$hh" ]; then\n      say "GO FULL: $o is not byte-identical to the base (base=$hb head=$hh)."' '    if false; then\n      say "GO FULL: $o is not byte-identical to the base (base=$hb head=$hh)."'; } | mkmut "$D/gates/checks-tier.sh"
+if mutguard M8 "widen routing and remove the harness-identity arm" "$D/gates/checks-tier.sh" "$WIDEN_NEW"; then
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M8 base" >/dev/null 2>&1
-  M8B="$(git -C "$D" rev-parse HEAD)"
+  MB="$(git -C "$D" rev-parse HEAD)"
   printf '%s\n' "# changed" >> "$D/gates/held.sh"
   printf '%s\n' "# S1: one added line" >> "$D/gates/held-selftest.sh"
-  commitin "$D" "held.sh plus one harness line under a removed arm"
-  runtier "$D" "$M8B"
-  if grep -qF "not byte-identical to the base" <<<"$TOUT"; then
+  commitin "$D" "held.sh plus one harness line, routing widened and harness identity removed"
+  runtier "$D" "$MB"
+  if grep -qF "is not byte-identical to the base" <<<"$TOUT"; then
     rec M8 FAIL "the harness-identity arm still fired with its branch removed"
+  elif [ "$TRC" = 0 ]; then
+    rec M8 ok "removing the harness-identity arm lets the two-commit split's S1 take a GREEN (exit 0)"
   else
-    rec M8 ok "removing the harness-identity arm turns the two-commit split's S1 (exit $TRC)"
+    rec M8 FAIL "S1 was still stopped with routing widened AND harness identity removed (exit $TRC)"
   fi
 fi
 
@@ -662,12 +835,11 @@ else
   fi
 fi
 
-# M12. Remove the .sh/.md guard on a new gates/cases/ file: A17 must stop routing.
+# M12. REMOVE THE .sh/.md FORM GUARD on a new gates/cases/ file: A17 must stop routing. Built through mkmut,
+# because this mutant's first version was the broken-ERE one antagonist A found [F2(a)].
 D="$T/m-M12"; mkfix "$D"
-sed -E 's|^          \*\.sh\|\*\.md\) ;;$|          *) ;;|' "$G/checks-tier.sh" > "$D/gates/checks-tier.sh"
-if cmp -s "$D/gates/checks-tier.sh" "$G/checks-tier.sh"; then
-  rec M12 FAIL "the gates/cases form mutation changed nothing"
-else
+printf '%s\t%s\n' '          *.sh|*.md) ;;' '          *.sh|*.md|*) ;;' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M12 "remove the gates/cases form guard" "$D/gates/checks-tier.sh" '*.sh|*.md|*) ;;'; then
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M12 base" >/dev/null 2>&1
   MB="$(git -C "$D" rev-parse HEAD)"
   mkdir -p "$D/gates/cases"
@@ -720,6 +892,109 @@ if [ "$M13OK" = 1 ]; then
     rec M13 ok "the substring gates/logs filter turns A18: the write becomes invisible and takes a GREEN (exit 0)"
   else
     rec M13 FAIL "the substring filter still caught the write (exit $TRC), so A18 does not test the exact-path fix"
+  fi
+fi
+
+# M14. Run only the NEW controls, as the arm did before A's veto: A19 must stop reddening.
+D="$T/m-M14"; mkfix "$D"
+# THE ANCHOR CARRIES NO BACKSLASH-n, because mkmut turns the two-character sequence \n into a newline so a
+# multi-line replacement can be expressed on one line - and the first version of this mutant anchored on the
+# ALLCASES line, which contains `printf '%s\n%s\n'`, so the anchor never matched. mutguard caught it and
+# reported FAIL rather than letting a no-op mutant read as a success, which is the whole reason it exists.
+printf '%s\t%s\n' '"$cb" "$NEWFILES" | grep -E' '"$NEWFILES" "$NEWFILES" | grep -E' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M14 "run only the new controls" "$D/gates/checks-tier.sh" '"$NEWFILES" "$NEWFILES" | grep'; then
+  mkdir -p "$D/gates/cases"; printf '%s\n' "#!/usr/bin/env bash" "echo 'FAIL c-old is RED'" "exit 1" > "$D/gates/cases/c-old.sh"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M14 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# a fix" >> "$D/gates/held.sh"; commitin "$D" "a later tier-only change"
+  runtier "$D" "$MB"
+  if [ "$TRC" = 0 ]; then
+    rec M14 ok "running only the new controls turns A19: the base's RED control is skipped and the commit takes a GREEN (exit 0)"
+  else
+    rec M14 FAIL "the base's RED control still reddened the commit with the union removed (exit $TRC)"
+  fi
+fi
+
+# M15. Refuse a base that predates the tier, as it did before: A21 must stop routing.
+D="$T/m-M15"; mkfix "$D"
+printf '%s\t%s\n' '    say "GO FULL: the base ${BASESHA:0:12} carries no gates/checks-tier.sh, so there is no main copy to judge by."\n    say "  That is a base predating this tier, not a fault in your commit. The full suite decides it."\n    return 2' '    say "REFUSED: the base ${BASESHA:0:12} carries no gates/checks-tier.sh."\n    return 1' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M15 "refuse a pre-tier base" "$D/gates/checks-tier.sh" 'return 1'; then
+  git -C "$D" rm -q --cached gates/checks-tier.sh >/dev/null 2>&1; rm -f "$D/gates/checks-tier.sh"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M15 base, no tier" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+  TF="$(mktemp -d)"; printf '%s\t%s\n' '    say "GO FULL: the base ${BASESHA:0:12} carries no gates/checks-tier.sh, so there is no main copy to judge by."\n    say "  That is a base predating this tier, not a fault in your commit. The full suite decides it."\n    return 2' '    say "REFUSED: the base ${BASESHA:0:12} carries no gates/checks-tier.sh."\n    return 1' | mkmut "$TF/ct.sh"
+  O="$(cd "$D" && bash "$TF/ct.sh" "$MB" "$D" 2>&1)"; R=$?; rm -rf "$TF"
+  if [ "$R" = 1 ]; then
+    rec M15 ok "restoring the refusal turns A21: a pre-tier base is REFUSED again (exit 1)"
+  else
+    rec M15 FAIL "a pre-tier base did not refuse with the refusal restored (exit $R)"
+  fi
+fi
+
+# M16. Make premise P2 comment-blind again: A22 must flip to a false refusal.
+D="$T/m-M16"; mkfix "$D"
+printf '%s\t%s\n' "            if (c==\"/\" && d==\"/\") { break }\n            out = out c; i++\n          }\n          print out\n        }' 2>/dev/null | grep -nE \"child_process" "            if (c==\"/\" && d==\"/\") { break }\n            out = out c; i++\n          }\n          print \$0\n        }' 2>/dev/null | grep -nE \"child_process" | mkmut "$D/gates/checks-tier.sh"
+if mutguard M16 "make P2 comment-blind" "$D/gates/checks-tier.sh" 'print $0'; then
+  printf '%s\n' "// NOTE: this gate does NOT use execSync; see gates/lib.js." >> "$D/gates/regress/01-x.js"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M16 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+  runtier "$D" "$MB"
+  if [ "$TRC" = 1 ] && grep -qF "PREMISE P2 BROKEN" <<<"$TOUT"; then
+    rec M16 ok "making P2 comment-blind turns A22 into a false refusal (exit 1), which is why it strips comments"
+  else
+    rec M16 FAIL "P2 stayed clean with its comment strip removed (exit $TRC), so A22 does not test it"
+  fi
+fi
+
+# M17. Redden instead of routing when the archived log gated another bundle: A23 must stop routing.
+D="$T/m-M17"; mkfix "$D"
+printf '%s\t%s\n' '    if [ -n "$LOGMD5" ] && [ "$LOGMD5" != "$DISKMD5" ]; then' '    if false; then' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M17 "remove the bundle-mismatch route" "$D/gates/checks-tier.sh" '    if false; then'; then
+  printf 'PASS\nref: HEAD deadbeefdeadbeef | bundle md5 aaaaaaaaaaaa | origin/main x\nGATES GREEN #500\n' > "$D/claude/agents/gatelogs/500-all.log"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M17 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+  runtier "$D" "$MB"
+  if [ "$TRC" = 2 ] && grep -qF "gated bundle" <<<"$TOUT"; then
+    rec M17 FAIL "the bundle-mismatch route still fired with its branch removed"
+  else
+    rec M17 ok "removing the bundle-mismatch route turns A23 (exit $TRC, no routing verdict)"
+  fi
+fi
+
+# M18. Drop the tc() uniqueness guard: A24 must stop naming the repeat.
+D="$T/m-M18"; mkfix "$D"
+printf '%s\t%s\n' '  if [ "$DECL" -ne "$DECLU" ]; then' '  if false; then' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M18 "drop the tc() uniqueness guard" "$D/gates/checks-tier.sh" '  if false; then'; then
+  printf '%s\n' "#!/usr/bin/env bash" 'tc(){ case "$1" in H1) :;; H1) :;; H1b) :;; H2) :;; H12) :;; esac; }' 'echo "2 ok, 0 FAIL, 1 skipped"' 'echo "  H1b SKIP esbuild absent"' "exit 0" > "$D/gates/fastgate-drive.sh"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M18 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+  runtier "$D" "$MB"
+  if grep -qF "REPEATS a case id" <<<"$TOUT"; then
+    rec M18 FAIL "the uniqueness guard still fired with its branch removed"
+  else
+    rec M18 ok "dropping the uniqueness guard turns A24 (exit $TRC, the repeat is unnamed)"
+  fi
+fi
+
+# M19. Drop the lock-integrity check: A25 must stop catching the removal.
+D="$T/m-M19"; mkfix "$D"
+printf '%s\t%s\n' '  if [ ! -d "$LOCK" ] || [ "$LOCKPID" != "$$" ]; then' '  if false; then' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M19 "drop the lock-integrity check" "$D/gates/checks-tier.sh" '  if false; then'; then
+  { printf '%s\n' "#!/usr/bin/env bash"
+    printf '%s\n' 'rm -rf "$OLDPWD/gates/logs/.suite.lock" 2>/dev/null || true'
+    printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M19 base" >/dev/null 2>&1
+  MB="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+  runtier "$D" "$MB"
+  if [ "$TRC" = 0 ]; then
+    rec M19 ok "dropping the lock-integrity check turns A25: the lock can be removed for a GREEN (exit 0)"
+  else
+    rec M19 FAIL "the lock removal was still caught with the check removed (exit $TRC)"
   fi
 fi
 
