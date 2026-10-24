@@ -29,8 +29,9 @@ collection `prompts`, doc `build-run`. Where that doc and this file differ, the 
   push over it.
 - **AND ASK WHETHER ANYONE ALREADY REFUSED THIS TREE: `gates/held.sh check`** (no argument asks FOUR keys, not
   one: `app.js` and `chess.jsx` on disk, HEAD's sha, and `chess.jsx` at HEAD - it must, because a sha-only row carries no bundle md5 to match, so the one-key default could not see the three newest holds at all, #537).
-  **AND READ ITS EXIT STATUS, NOT ITS LAST LINE: `0` is "not held", `1` is HELD, and `2` is UNKNOWN - a key it
-  could not compute here, which is NOT a clearance.** Widening that form from one key to four nearly shipped
+  **AND READ ITS EXIT STATUS, NOT ITS LAST LINE: `0` is "not held", `1` is HELD, and `2` IS ANY ANSWER THAT IS
+  NOT A CLEARANCE** - a key it could not compute here, a register it could not read, an unwritable TMPDIR, or a
+  usage error. Read strictly, "2 is UNKNOWN" was incomplete; every one of those means do not proceed. Widening that form from one key to four nearly shipped
   the opposite: asking MORE keys made it fall through to "not held" at exit 0 whenever SOME key was askable, so
   a tree with no readable `app.js` went from `2` on ed65bab to a clean bill of health. Caught by this build's
   own antagonist before the push and controlled by section 13 of `gates/held-selftest.sh`. A `GATES GREEN` log says the SUITE passed over a bundle; it does not say the tree shipped or may ship,

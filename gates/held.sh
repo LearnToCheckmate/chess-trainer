@@ -7,8 +7,16 @@
 # written AT THE MOMENT OF THE STAND-DOWN, in the same step, and committed to MAIN. One command makes that
 # cheap enough that there is no excuse; `check` makes asking the question cheap too.
 #
-#   gates/held.sh check [<bundleMd5-or-sha>]   is this tree held? With no argument, md5sum app.js on disk.
-#                                              exit 0 = not held, exit 1 = HELD (prints the row), 2 = usage.
+#   gates/held.sh check [<bundleMd5-or-sha>]   is this tree held? With no argument it asks FOUR keys: app.js
+#                                              and chess.jsx on disk, HEAD's sha, and chess.jsx at HEAD. With
+#                                              a key named, it asks that key and chess.jsx on disk - two.
+#                                              exit 0 = not held, 1 = HELD (prints the row), 2 = any answer
+#                                              that is NOT a clearance: a key it could not compute here, a
+#                                              register it could not read, or usage. READ THE STATUS, NOT THE
+#                                              LAST LINE.
+#   (This block is what `--help` prints. Until #537 it read "md5sum app.js on disk" and "2 = usage", both of
+#   which the same build had made false - so a run that got a 2 from a real `check` could look it up here, read
+#   "usage", and retype the command. Found by antagonist B by running --help rather than by reading the diff.)
 #   gates/held.sh add <bundleMd5> <gatedSha> <#NNN> <reason...>    append a row. Refuses a duplicate.
 #   gates/held.sh add sha-only <gatedSha> <#NNN> <reason...>   a SHA-ONLY hold [#529]: for a run that changed
 #                                              no application file, so its bundle is main's own. Field 1 is the
@@ -177,8 +185,11 @@ case "${1:-}" in
         HELD_MISSED+=("git rev-parse HEAD (not a git work tree, so there is no HEAD to ask)")
       fi
       if [ "${#HELD_KEYS[@]}" -eq 0 ]; then
-        echo "held.sh check: no key given and NOT ONE key could be computed here, so this is not a 'not held'."
+        echo "held.sh check: no key given and NOT ONE artefact key could be computed here, so this is not a 'not held'."
         printf '  could not ask: %s\n' "${HELD_MISSED[@]}"
+        echo "  That is ${#HELD_MISSED[@]} key(s) tried, of the four this form asks. The two chess.jsx SOURCE keys are"
+        echo "  NOT in that list and were not asked either: this limb returns before they are collected, so they are"
+        echo "  unasked rather than asked-and-missed. Exit 2 is not a clearance."
         echo "  Name a key explicitly: gates/held.sh check <bundle md5 | sha>"
         exit 2
       fi
@@ -228,6 +239,13 @@ case "${1:-}" in
         else
           HELD_MISSED+=("chess.jsx at HEAD (HEAD carries no chess.jsx)")
         fi
+      else
+        # THIS `else` WAS MISSING AND THE FOURTH KEY WENT SILENTLY ABSENT. Outside a git work tree the key was
+        # neither asked nor reported, so the verdict's own arithmetic read "2 key(s) this run could ask, and 1
+        # key(s) could NOT be asked" - three of the four CLAUDE.md promises, on the line a reader greps, in a
+        # verdict this same build wrote. Not a fail-open (the status was already 2), but it is this project's
+        # "a count with no scope cannot be checked" at the smallest possible scale. Found by antagonist A, #537.
+        HELD_MISSED+=("chess.jsx at HEAD (not a git work tree, so there is no HEAD to ask)")
       fi
     fi
     if [ -z "${2:-}" ]; then

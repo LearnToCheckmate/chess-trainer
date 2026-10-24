@@ -430,6 +430,16 @@ eq "12d outside a work tree it SAYS it could not ask HEAD" "1" \
 ck "12d and it refuses to call that a 'not held' (UNKNOWN, exit 2)"  2 timeout 20 "$KN/gates/held.sh" check
 eq "12d and the UNKNOWN names the key it could not ask" "1" \
    "$( cd "$KN" && timeout 20 ./gates/held.sh check 2>&1 | grep -c "^UNKNOWN: .*could NOT be asked" )"
+# AND ITS OWN ARITHMETIC MUST ADD TO FOUR, which is the assertion that was missing and the reason a silent drop
+# survived. Asserting the LINE EXISTS is what the first version of this case did, and the line existed while
+# reading "2 key(s) this run could ask, and 1 key(s) could NOT be asked" - three of the four keys CLAUDE.md
+# promises, because outside a work tree the chess.jsx-at-HEAD key was neither asked nor reported. A fixture that
+# greps for a line encodes the same assumption as the code it tests. Found by antagonist A, #537.
+eq "12d and the two numbers in that verdict SUM TO FOUR, the number of keys this form claims" "4" \
+   "$( cd "$KN" && V="$( timeout 20 ./gates/held.sh check 2>&1 | grep '^UNKNOWN: ' )"
+      NA="$( printf '%s' "$V" | sed -n 's/.*any of the \([0-9]*\) key(s) this run could ask.*/\1/p' )"
+      NB="$( printf '%s' "$V" | sed -n 's/.*and \([0-9]*\) key(s) could NOT be asked.*/\1/p' )"
+      if [ -n "$NA" ] && [ -n "$NB" ]; then echo $((NA+NB)); else echo "unparsed"; fi )"
 # ---- THE MUTANT: the HEAD sha dropped from the no-key form, which is held.sh as ed65bab had it. ----
 # Swapped WHOLE from a heredoc, and every call under `timeout`, for the reason #534's NUL mutant recorded: a
 # mutant assembled by deleting part of a construct can leave a command reading stdin and hang, and a mutant
@@ -541,6 +551,35 @@ ck "13 MUTANT answers 'not held' at exit 0 with the bundle key unaskable - the d
 eq "13 MUTANT and it even reports the miss while clearing the tree" "1 1" \
    "$( cd "$KM" && printf '%s %s' "$( timeout 20 "$MM" check 2>&1 | grep -c 'could NOT ask: app.js' )" "$( timeout 20 "$MM" check 2>&1 | grep -c '^not held: ' )" )"
 mv "$KM/app.js.aside" "$KM/app.js"
+# ---- THE ZERO-KEY LIMB, A DIFFERENT BRANCH, WHICH HAD NO ASSERTION AT ALL ----
+# Everything above is taken in the PARTIAL-miss state: app.js unreadable, three keys still asked. The limb where
+# NOT ONE key can be computed is a separate branch with its own exit, and antagonist B proved it uncontrolled the
+# only way that settles it - by mutating that `exit 2` to `exit 0` and running this whole file: 107 PASS, 0 FAIL.
+# The mutation IS the defect the repair exists to prevent, a tree CLEARED having asked nothing at all, and
+# thirteen assertions written for the neighbouring limb could not see it. THE STATE IS REAL, not contrived: a
+# `cp -r`, a tarball or an scp'd tree has no .git, and a tree whose bundle was never built has no app.js.
+KZ="$TD/zerokey"; mkdir -p "$KZ/gates"
+cp "$HERE/held.sh" "$KZ/gates/held.sh"; chmod +x "$KZ/gates/held.sh"
+printf '# held-trees.tsv (zero-key self-test fixture, not the real register)\n' > "$KZ/gates/held-trees.tsv"
+eq "13z the fixture really supplies no key: no .git, no app.js, no chess.jsx" "no-git no-app no-src" \
+   "$( printf '%s %s %s' "$( [ -d "$KZ/.git" ] && echo git || echo no-git )" "$( [ -f "$KZ/app.js" ] && echo app || echo no-app )" "$( [ -f "$KZ/chess.jsx" ] && echo src || echo no-src )" )"
+ck "13z with NOT ONE key computable the answer is exit 2, never a clearance" 2 timeout 20 "$KZ/gates/held.sh" check
+eq "13z and it says so in terms, and prints NO 'not held:' verdict line" "1 0" \
+   "$( cd "$KZ" && printf '%s %s' "$( timeout 20 ./gates/held.sh check 2>&1 | grep -c 'NOT ONE artefact key could be computed' )" "$( timeout 20 ./gates/held.sh check 2>&1 | grep -c '^not held: ' )" )"
+# AND IT ACCOUNTS FOR THE KEYS IT NEVER REACHED. This limb returns before the two chess.jsx source keys are
+# collected, so they are unasked rather than asked-and-missed - which a verdict naming two misses of four would
+# otherwise leave a reader to guess at. Antagonist B, #537.
+eq "13z and it says how many it tried and that the source keys were not reached" "1 1" \
+   "$( cd "$KZ" && printf '%s %s' "$( timeout 20 ./gates/held.sh check 2>&1 | grep -c 'key(s) tried, of the four this form asks' )" "$( timeout 20 ./gates/held.sh check 2>&1 | grep -c 'unasked rather than asked-and-missed' )" )"
+# THE MUTANT IS B'S OWN ONE-STATUS MUTATION, built with sed on the line AFTER the limb's last message so it
+# cannot touch any other exit in the file - the smallest possible, and the one that shipped green.
+ZEXL="$( grep -n 'Name a key explicitly: gates/held.sh check' "$KZ/gates/held.sh" | head -1 | cut -d: -f1 )"
+ZEXL=$(( ZEXL + 1 ))
+sed "${ZEXL}s/exit 2/exit 0  # THE CLEARANCE RESTORED BY THE MUTANT/" "$KZ/gates/held.sh" > "$KZ/gates/mutant13z.sh"
+chmod +x "$KZ/gates/mutant13z.sh"
+eq "13z MUTANT is that one status changed and nothing else" "1 differs yes" \
+   "$( printf '%s %s %s' "$( grep -c 'THE CLEARANCE RESTORED BY THE MUTANT' "$KZ/gates/mutant13z.sh" )" "$( [ "$(md5sum < "$KZ/gates/held.sh")" != "$(md5sum < "$KZ/gates/mutant13z.sh")" ] && echo differs || echo identical )" "$( bash -n "$KZ/gates/mutant13z.sh" 2>/dev/null && echo yes || echo no )" )"
+ck "13z MUTANT clears a tree it could ask NOTHING about, at exit 0 - the defect" 0 timeout 20 "$KZ/gates/mutant13z.sh" check
 # AND THE MUTANT AGREES WITH THE FIX WHENEVER EVERY KEY IS ASKABLE, which is why the 94 assertions above could
 # not see this: every fixture in this file before section 13 can compute every key it asks for.
 eq "13 MUTANT and FIX agree once app.js is readable again" "SAME" \
