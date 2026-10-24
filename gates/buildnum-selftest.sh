@@ -963,6 +963,19 @@ ck "31 MUTANT writes the zero-led row at exit 0 - the defect" 0 \
    sh -c "cd '$SB/rec' && CT_RUNID=fixture ./mutant31.sh record '#0539' deadbeefdead beefdeadbeef"
 eq "31 MUTANT and the row is on the register, with no warning printed" "1 0" \
    "$( cd "$SB/rec" && printf '%s %s' "$( grep -c '^0539' build-numbers.tsv )" "$( CT_RUNID=fixture ./mutant31.sh record '#0540' deadbeefdead beefdeadbeef 2>&1 >/dev/null | grep -ci 'zero' )" )"
+# WHAT PROTECTS `sweep --add` IS THE EXTRACTOR, NOT THE GUARD, AND THIS IS THE ASSERTION THAT KEEPS THAT TRUE.
+# The first version of this case's commit said the sweep is the one write path a third party can feed, because
+# its numbers come from commit subjects. MEASURED by antagonist A at #537 on a git fixture whose only
+# interesting subject is "#0538 ...": the row lands as 538, because the extractor ends `| sed 's/^0*//'` and
+# normalises before `in_range` or the guard sees anything. The guard there is therefore unreachable by
+# construction and case 31 does NOT control it. Pinning the normalisation is what makes the claim checkable:
+# remove that sed and this reddens, which is the signal the guard has stopped being a belt and become
+# load-bearing.
+# THE NEEDLE IS THE EXTRACTOR'S OWN PIPELINE, not the string anywhere in the file: my first draft counted 4,
+# because the comments that now cite the normalisation mention it too. Same lesson as 12c's and 13's needles -
+# a count that includes incidental mentions measures the prose, not the code.
+eq "31 the sweep extractor NORMALISES a leading zero before any guard sees it" "1" \
+   "$( grep -c "grep -oE '\[0-9\]{3,4}' | sed 's/\^0\*//' | sort -un" "$HERE/buildnum.sh" )"
 # AND THE MUTANT AGREES WITH THE FIX ON EVERY WELL-FORMED NUMBER, which is why the 207 assertions before this
 # one could not see the hole: not one of them passes a zero-led number to a WRITE verb.
 eq "31 MUTANT and FIX agree on a well-formed number" "SAME" \
