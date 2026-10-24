@@ -1812,9 +1812,16 @@ fi
 #     handed to the full suite with the tier's output SILENT about the tamper. Exit 2 is not a safe fallback
 #     here: the full suite then runs gates/verify-log.sh, which is the tampered file, and it answers OK about
 #     itself. THIS CASE READS exit 2 ON ed65bab AND exit 1 ON THE FIX.
-#     IT POSES TWO STEPS AND ASSERTS BOTH, because the second is worthless without the first: the tamper ALONE
-#     must already refuse (otherwise the case is not about ordering at all), and the tamper WITH the plant must
-#     still refuse (which is the defect).
+#     IT POSES THREE STEPS AND ASSERTS ALL THREE, because each is worthless without the one before it: the
+#     PLANT ALONE must already route to exit 2 (otherwise the plant is inert and step (ii) is just step (i)
+#     again), the TAMPER ALONE must already refuse (otherwise there is no refusal for a scan to get in front
+#     of), and the tamper WITH the plant must still refuse (which is the defect).
+#     STEP (0) WAS MISSING UNTIL ANTAGONIST A MEASURED WHAT IT COST: with an INERT plant, this case's whole
+#     assertion set goes GREEN on ed65bab - the one tree it exists to redden - because nothing then produces
+#     the exit 2 the ordering bug needs, so (ii) reads exit 1 for the wrong reason and agrees with (i). The
+#     case could not fail on the broken tree, which is this project's oldest trap wearing one more costume:
+#     the plant was the thing under test AND the thing assumed to work. H49 and H51 both probe their own
+#     plants; this one did not.
 reset_clone
 H52U=gates/zz-h52-plant.js
 H52N="$(mint_in_clone)"
@@ -1830,6 +1837,23 @@ else
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H52"
   else
     ROUTES_FAIL=""; ROUTES_SKIP=""; ROUTES_OK=""; ROUTES_LEAK=""; ROUTE_SHOW=""
+    # (0) THE PLANT MUST STEER. One excluded untracked file at a path this tier's checks read off disk has to
+    #     route the HONEST tree to exit 2 by itself. Asserted before the tamper goes anywhere near the tree,
+    #     because that is the only state in which the plant's own effect is visible: with the tamper present a
+    #     fixed tree refuses at exit 1 whatever the plant does, so a plant that had stopped steering would be
+    #     indistinguishable from one that steers. The exclude line is added here and removed in the cleanup
+    #     below; step (ii) re-creates only the FILE.
+    printf 'gates/zz-h52-plant.js\n' >> "$C/.git/info/exclude"
+    printf '// gates/fastgate-drive.sh H52 plant, never pushed\n' > "$C/$H52U"
+    if ! hidden; then
+      ROUTES_SKIP="$ROUTES_SKIP plant-steers(git reports the plant on this git, so the case cannot pose)"
+    elif probe 2 "there are UNTRACKED files" "$H52U"; then
+      ROUTES_OK="$ROUTES_OK plant-steers"
+    else
+      ROUTES_FAIL="$ROUTES_FAIL plant-steers(exit $PROBE_RC - the plant is INERT, so this case cannot redden the tree it exists for)"
+      ROUTE_SHOW="$PROBE_OUT"
+    fi
+    rm -f "$C/$H52U"
     # THE TAMPER: one comment line appended to a file the tier EXECUTES, hidden with assume-unchanged so that
     # `git status` prints nothing - which is the whole reason the raw-byte pin exists and why a reviewer looking
     # at the checkout sees a clean tree.
@@ -1847,7 +1871,7 @@ else
       fi
       # (ii) THE CASE ITSELF: add one EXCLUDED untracked file at a path the tier's checks read off disk. On
       #      ed65bab this flips the verdict to exit 2 and the tamper vanishes from the output.
-      printf 'gates/zz-h52-plant.js\n' >> "$C/.git/info/exclude"
+      # The exclude line went in at step (0) and is still there; only the file is re-created.
       printf '// gates/fastgate-drive.sh H52 plant, never pushed\n' > "$C/$H52U"
       if probe 1 "FAST GATE REFUSED" "gates/verify-log.sh: commit"; then
         ROUTES_OK="$ROUTES_OK tamper-plus-plant"
@@ -1869,7 +1893,7 @@ else
     if ! restore_raw gates/verify-log.sh; then
       ROUTES_FAIL="$ROUTES_FAIL could-not-restore(gates/verify-log.sh left doctored, which would confound every later case)"
     fi
-    route_verdict H52 "exit 1, FAST GATE REFUSED naming the gates/verify-log.sh tamper, with the plant present"
+    route_verdict H52 "exit 1, FAST GATE REFUSED naming the gates/verify-log.sh tamper, with a plant that is first shown to route the honest tree to exit 2 on its own"
   fi
 fi
 
