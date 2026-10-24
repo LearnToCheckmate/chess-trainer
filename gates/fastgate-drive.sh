@@ -1887,8 +1887,14 @@ else
       # line and the index flag are outside the commit graph entirely, so none of the three is removed by it.
       # H49 and H51 remove their own plants for the same reason and H25 clears its own flag.
       rm -f "$C/$H52U"
-      sed -i '/^gates\/zz-h52-plant\.js$/d' "$C/.git/info/exclude"
     fi
+    # THE EXCLUDE LINE IS REMOVED AT THE SAME LEVEL IT WAS ADDED. Step (0) appends it unconditionally, so a
+    # remove nested inside `if ! hidden`'s else - where it sat when step (ii) still added it - leaks the entry
+    # into whatever case runs after this one on the ROUTES_SKIP path. H49 and H51 are symmetric and this is now
+    # too. Blast radius today is zero (H52 is last and the clone is trap-removed), which is exactly why the
+    # commit message's claim that cleanup was "unchanged, and still explicit" needed correcting rather than
+    # excusing. Found by antagonist A, #537.
+    sed -i '/^gates\/zz-h52-plant\.js$/d' "$C/.git/info/exclude"
     git -C "$C" update-index --no-assume-unchanged gates/verify-log.sh >/dev/null 2>&1
     if ! restore_raw gates/verify-log.sh; then
       ROUTES_FAIL="$ROUTES_FAIL could-not-restore(gates/verify-log.sh left doctored, which would confound every later case)"
