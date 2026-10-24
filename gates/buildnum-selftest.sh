@@ -917,6 +917,57 @@ eq "30 MUTANT list advertises the same issued number as next free" "1" \
 eq "30 MUTANT and FIX agree on a register with no zero-led row" "SAME" \
    "$( cp "$SB/octal/mutant.sh" "$SB/octalclean/mutant.sh"; chmod +x "$SB/octalclean/mutant.sh"; [ "$( cd "$SB/octalclean" && timeout 20 ./mutant.sh next 2>/dev/null )" = "$( cd "$SB/octalclean" && ./buildnum.sh next 2>/dev/null )" ] && echo SAME || echo DIFFER )"
 
+# ── 31. `record` IS A WRITE VERB, AND IT IS THE ONLY ONE A RUN REACHES WITHOUT TYPING IT ───────────────────
+# Case 30 above covers highest() reading a zero-led row as octal. This one covers the OTHER half of that job -
+# refusing to create such a row - at the verb case 30's own fix did not reach. gates/build.sh:202 calls
+# `record` after a successful stamp, and `gates/build.sh '#0538'` passes build.sh's own ^#[0-9]{3,4}$ shape
+# test, so the documented build path wrote the malformed row at exit 0 with no warning. Measured on this tree
+# before the repair; found by antagonist A at #537 from the shipped-surface door, not from the diff.
+mkreg "$SB/rec" 350 $(seq 524 534)
+# ONE PATH, NO FALLBACK. My own first draft of this line tried two paths with a `||` between them, which
+# passes whichever one answers and tells a reader nothing about which file was actually read - the "a count
+# with no scope cannot be checked" rule at the smallest possible scale.
+eq "31 the fixture's register exists and has no zero-led row to start with" "yes 0" \
+   "$( printf '%s %s' "$( [ -f "$SB/rec/build-numbers.tsv" ] && echo yes || echo no )" "$( grep -c '^0' "$SB/rec/build-numbers.tsv" )" )"
+R31B="$( md5sum "$SB/rec/build-numbers.tsv" | cut -c1-12 )"
+ck "31 record REFUSES a number written with a leading zero" 2 \
+   sh -c "cd '$SB/rec' && CT_RUNID=fixture ./buildnum.sh record '#0538' deadbeefdead beefdeadbeef"
+eq "31 and it says WHY, naming the leading zero rather than the hex" "1" \
+   "$( cd "$SB/rec" && CT_RUNID=fixture ./buildnum.sh record '#0538' deadbeefdead beefdeadbeef 2>&1 >/dev/null | grep -c 'LEADING ZERO' )"
+# THE REGISTER IS APPEND-ONLY, SO "REFUSES" IS NOT ENOUGH ON ITS OWN: the file must be byte-identical after.
+# A refusal that still appended would leave a row no later edit can remove, which is the whole reason this
+# guard runs BEFORE the write and not after it.
+eq "31 and the register is BYTE-IDENTICAL afterwards" "$R31B" "$( md5sum "$SB/rec/build-numbers.tsv" | cut -c1-12 )"
+# THE CONTROL: the same call with a well-formed number must still work, or the guard is just a broken verb.
+ck "31 control: record of a WELL-FORMED number still succeeds" 0 \
+   sh -c "cd '$SB/rec' && CT_RUNID=fixture ./buildnum.sh record '#538' deadbeefdead beefdeadbeef"
+eq "31 control: and THAT row did land" "1" \
+   "$( cd "$SB/rec" && grep -c '^538	built' build-numbers.tsv )"
+# ---- THE MUTANT: the guard line removed, which is buildnum.sh as the first version of this fix had it. ----
+# Swapped WHOLE from a heredoc rather than sed-ed out of a pipeline, for case 29's recorded reason.
+cp "$SB/rec/buildnum.sh" "$SB/rec/mutant31.sh"
+python3 -I -c "
+import sys
+p='$SB/rec/mutant31.sh'; s=open(p).read()
+old='    plain_dec_or_die \"\$N\" record'
+assert s.count(old)==1, s.count(old)
+open(p,'w').write(s.replace(old, '    : # THE GUARD REMOVED BY THE MUTANT'))
+" || true
+chmod +x "$SB/rec/mutant31.sh"
+eq "31 MUTANT the guard really was removed, and only it" "0 1" \
+   "$( printf '%s %s' "$( grep -c 'plain_dec_or_die \"\$N\" record' "$SB/rec/mutant31.sh" )" "$( grep -c 'THE GUARD REMOVED BY THE MUTANT' "$SB/rec/mutant31.sh" )" )"
+eq "31 MUTANT parses" "yes" "$( bash -n "$SB/rec/mutant31.sh" 2>/dev/null && echo yes || echo no )"
+# THE TURN. The mutant must WRITE the malformed row at exit 0 - reporting nothing - which is what the
+# documented build path did on ed65bab and on this build's own first commit.
+ck "31 MUTANT writes the zero-led row at exit 0 - the defect" 0 \
+   sh -c "cd '$SB/rec' && CT_RUNID=fixture ./mutant31.sh record '#0539' deadbeefdead beefdeadbeef"
+eq "31 MUTANT and the row is on the register, with no warning printed" "1 0" \
+   "$( cd "$SB/rec" && printf '%s %s' "$( grep -c '^0539' build-numbers.tsv )" "$( CT_RUNID=fixture ./mutant31.sh record '#0540' deadbeefdead beefdeadbeef 2>&1 >/dev/null | grep -ci 'zero' )" )"
+# AND THE MUTANT AGREES WITH THE FIX ON EVERY WELL-FORMED NUMBER, which is why the 207 assertions before this
+# one could not see the hole: not one of them passes a zero-led number to a WRITE verb.
+eq "31 MUTANT and FIX agree on a well-formed number" "SAME" \
+   "$( cd "$SB/rec" && CT_RUNID=fixture ./mutant31.sh record '#541' aaaaaaaaaaaa bbbbbbbbbbbb >/dev/null 2>&1; A=$?; CT_RUNID=fixture ./buildnum.sh record '#542' aaaaaaaaaaaa bbbbbbbbbbbb >/dev/null 2>&1; B=$?; [ "$A" = "$B" ] && echo SAME || echo DIFFER )"
+
 echo "---"
 echo "buildnum self-test: $P pass, $F fail"
 [ "$F" = "0" ]

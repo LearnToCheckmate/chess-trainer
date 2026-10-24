@@ -266,20 +266,31 @@ zero_led_report() { # <label>: warn on STDERR if the register holds a number wri
   [ -n "${lst% }" ] || return 0
   echo "buildnum.sh ${1:-}: WARNING - the register holds number(s) written with a LEADING ZERO: ${lst% }." >&2
   echo "  A leading zero is not a build number. Every number is read in base 10 here, so this tool hands out the" >&2
-  echo "  TRUE next number and never an octal reading of one - but the row itself is malformed, and no 'check'," >&2
-  echo "  'stampable' or print_rows_for lookup keyed on the plain number will ever match it." >&2
-  echo "  The register is append-only: correct it by adding a well-formed row, never by editing that one." >&2
+  echo "  TRUE next number and never an octal reading of one. THE NUMBER IS TAKEN, NOT FREE - DO NOT RE-MINT IT." >&2
+  echo "  This warning used to end 'no check, stampable or print_rows_for lookup keyed on the plain number will" >&2
+  echo "  ever match it', which is FALSE and pointed the reader at the one repair that loses a number: awk" >&2
+  echo "  compares \$1==n NUMERICALLY when both sides look numeric, so a zero-led field equals the plain number" >&2
+  echo "  and all three of those lookups match the row either way. Measured at #537: on a register holding one" >&2
+  echo "  such row, check and stampable both answered about it from the plain number." >&2
+  echo "  (No example number is printed in this warning on purpose - it would be indistinguishable from the" >&2
+  echo "  offending row named above, which is the one thing a reader has to be able to read off this line.)" >&2
+  echo "  What is malformed is the FIELD, not the row's reachability. The register is append-only: correct it by" >&2
+  echo "  adding a well-formed row, never by editing that one." >&2
 }
 
-# <bare number> <verb>: refuse a number written with a leading zero BEFORE anything is written. The job asks for
-# this at the two WRITE verbs, and it is the half that stops a new bad row being created at all - normalising
-# highest() only stops the existing ones doing damage. want_num above cannot carry it: it is shared with `check`
+# <bare number> <verb>: refuse a number written with a leading zero BEFORE anything is written. It is the half
+# that stops a new bad row being created at all - normalising highest() only stops the existing ones doing
+# damage - and it is therefore wired at EVERY verb that appends a row: `mint`, `add`, `record` and `sweep --add`.
+# It was first wired at two of the four, which made the claim in this sentence false for the automatic path; see
+# the note in the `record` arm. want_num above cannot carry it: it is shared with `check`
 # and `stampable`, which must stay able to ASK about a malformed number that is already on the register.
 plain_dec_or_die() {
   case "$1" in 0*)
     echo "buildnum.sh $2: '#$1' has a LEADING ZERO, which is not a build number." >&2
-    echo "  Writing it would put a row on an append-only register that no lookup keyed on the plain number can" >&2
-    echo "  match, and that \$(( )) arithmetic reads as octal - #0535 is 349, not 535. Refusing before the write." >&2
+    echo "  Writing it would put a MALFORMED row on an append-only register, where it cannot be edited out, and" >&2
+    echo "  \$(( )) arithmetic reads it as octal - #0535 is 349, not 535. Refusing before the write." >&2
+    echo "  (It would not be INVISIBLE, which is what this text used to claim here and at zero_led_report: awk" >&2
+    echo "  compares numerically, so lookups keyed on the plain number DO match it. Measured at #537.)" >&2
     echo "  Pass the number without the zero: #${1#0}" >&2
     exit 2 ;;
   esac
@@ -598,6 +609,13 @@ case "${1:-}" in
 
   record)
     N="$(want_num "${2:-}")" || exit 2
+    # AND `record` IS GUARDED, WHICH IS THE ONLY ONE OF THE WRITE VERBS A RUN REACHES WITHOUT TYPING IT. The
+    # first version of this fix guarded `mint` and `add` - the two a human invokes - and left this one open, so
+    # the claim at plain_dec_or_die ("stops a new bad row being created at all") was false for the one path that
+    # writes a row BY ITSELF: gates/build.sh:202 calls `record` after a successful stamp. MEASURED on this tree
+    # before the fix: `gates/build.sh '#0538'` passes its own ^#[0-9]{3,4}$ shape test, stamps the bundle, and
+    # `record` appended `0538 built ...` at exit 0 with no warning at all. Found by antagonist A, #537.
+    plain_dec_or_die "$N" record
     MD5="$(printf '%s' "${3:-}" | tr 'A-F' 'a-f')"; SRC="$(printf '%s' "${4:-}" | tr 'A-F' 'a-f')"
     if [ -z "$MD5" ] || [ -z "$SRC" ]; then
       echo "usage: gates/buildnum.sh record <#NNN> <bundleMd5> <sourceMd5>"; exit 2; fi
@@ -874,6 +892,11 @@ case "${1:-}" in
       in_range "$n" || { echo "buildnum.sh sweep --add: refusing to write '$n', which is not 3-4 digits."
         echo "  This is unreachable by construction; if you are reading it, the extractor changed."
         lock_free; exit 2; }
+      # AND NOT WITH A LEADING ZERO EITHER. `in_range` accepts 0535 - it is four digits - and this verb's numbers
+      # come from COMMIT SUBJECTS rather than from a hand, so it is the one write path that can be fed a
+      # malformed number by a third party. lock_free first: plain_dec_or_die exits, and the siblings above all
+      # release the lock before they do.
+      case "$n" in 0*) lock_free; plain_dec_or_die "$n" "sweep --add" ;; esac
       # THE SHA IS REFUSED, NEVER QUIETLY WRITTEN AS '-'. A '-' in field 3 is the defect this change removes, so
       # falling back to one on a miss would reintroduce it silently for the one row where it matters. Unreachable
       # by construction, like the guard above - every element of ABSENT_NOW came out of NAMED, which came out of
