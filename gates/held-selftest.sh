@@ -390,8 +390,12 @@ git -C "$KR" checkout -- gates/held-trees.tsv
 printf 'sha-only\t%s\t#903\t2026-10-23T04:10Z\tbuild__KEYFIXTURE2\ta source-keyed hold whose artefact keys match nothing in this tree, long enough for the floor\t%s\n' \
   "9999999999999999999999999999999999999999" "$KSRC" >> "$KREG"
 ck "12b a row live only by its SOURCE key also refuses the no-key form" 1 timeout 20 "$KU" check
-eq "12b and it says which source key matched" "1" \
-   "$( timeout 20 "$KU" check 2>&1 | grep -c 'the source key that matched' )"
+# THE NEEDLE IS THE HEADLINE, NOT THE PARENTHETICAL IT REPLACED [#537 repair, antagonist B F4]. The verdict
+# used to print "HELD BY SOURCE: chess.jsx on disk is md5 $SRC" as a LITERAL with the true key named only in a
+# parenthetical above it, so the line a reader quotes named the wrong file whenever the match came from
+# chess.jsx AT HEAD. Asserting the headline names the key is strictly stronger than asserting the aside exists.
+eq "12b and the HEADLINE names which source key matched" "1" \
+   "$( timeout 20 "$KU" check 2>&1 | grep -c '^HELD BY SOURCE: chess.jsx on disk is md5 ' )"
 # (c) chess.jsx AT HEAD, which is the key the working tree cannot supply once the file has moved on. This is the
 #     tree whose checkout has been edited but whose COMMIT is the held source - the default asks HEAD too, and
 #     the named form deliberately does NOT, because adding a key there would change that form's verdicts.
@@ -402,8 +406,11 @@ ck "12c the no-key form still refuses, on chess.jsx AT HEAD"      1 timeout 20 "
 # COUNTS THE VERDICT LINE, NOT EVERY MENTION. My first draft grepped for 'chess.jsx at HEAD' and measured 2,
 # because the key is named once in the "asked:" list and once in the verdict - the assertion was wrong, not the
 # message, which is section 29-of-buildnum's recorded lesson about needles that count incidental mentions.
-eq "12c and it names that key as the one that matched" "1" \
-   "$( timeout 20 "$KU" check 2>&1 | grep -c 'the source key that matched was: chess.jsx at HEAD' )"
+# AND THIS IS THE CASE F4 WAS ABOUT: the match comes from chess.jsx AT HEAD, so a headline hard-coded to "on
+# disk" printed a file whose md5 was not the number beside it. The md5 is pinned too, because naming the right
+# file with the wrong number would satisfy a name-only needle.
+eq "12c and the HEADLINE names chess.jsx at HEAD, with the matching md5" "1" \
+   "$( timeout 20 "$KU" check 2>&1 | grep -c "^HELD BY SOURCE: chess.jsx at HEAD is md5 $KSRC," )"
 git -C "$KR" checkout -- chess.jsx
 # (d) OUTSIDE A GIT WORK TREE THE MISSING KEYS ARE REPORTED, NEVER CREDITED. This file's own HELD_HEADREG block
 #     records that rule from #534's third-round antagonist A, and a default that silently dropped two of its
@@ -413,18 +420,39 @@ printf 'x\n' > "$KN/app.js"; printf 'y\n' > "$KN/chess.jsx"
 printf '# held-trees.tsv (no-git fixture)\n' > "$KN/gates/held-trees.tsv"
 eq "12d outside a work tree it SAYS it could not ask HEAD" "1" \
    "$( cd "$KN" && timeout 20 ./gates/held.sh check 2>&1 | grep -c 'could NOT ask: git rev-parse HEAD' )"
-ck "12d and it still answers rather than dying"                   0 timeout 20 "$KN/gates/held.sh" check
+# AND IT REFUSES RATHER THAN CLEARING, WHICH IS WHAT THE PARAGRAPH ABOVE ALWAYS SAID AND THIS ASSERTION USED
+# TO CONTRADICT [#537 repair, antagonist A F6]. It read `0` here - "it still answers rather than dying" - and
+# exit 0 from this tool IS the credit: "not held" is what a run reads before a push. So the one case in this
+# file written to prove a missing key is never credited asserted that it was, and the assertion and the
+# comment three lines above it disagreed for a whole build. Outside a work tree HEAD's sha cannot be asked, so
+# the honest answer is UNKNOWN at exit 2 - it still ANSWERS (it does not die, and the message names what it
+# could not ask), and it does not pretend the question was put.
+ck "12d and it refuses to call that a 'not held' (UNKNOWN, exit 2)"  2 timeout 20 "$KN/gates/held.sh" check
+eq "12d and the UNKNOWN names the key it could not ask" "1" \
+   "$( cd "$KN" && timeout 20 ./gates/held.sh check 2>&1 | grep -c "^UNKNOWN: .*could NOT be asked" )"
 # ---- THE MUTANT: the HEAD sha dropped from the no-key form, which is held.sh as ed65bab had it. ----
 # Swapped WHOLE from a heredoc, and every call under `timeout`, for the reason #534's NUL mutant recorded: a
 # mutant assembled by deleting part of a construct can leave a command reading stdin and hang, and a mutant
 # that hangs proves nothing. A mutant must be THE OLD CODE, RUNNING.
 git -C "$KR" checkout -- gates/held-trees.tsv
 printf 'sha-only\t%s\t#902\t2026-10-23T04:00Z\tbuild__KEYFIXTURE\ta sha-only hold, the sanctioned form for a harness-only build, long enough for the floor\t-\n' "$KSHA" >> "$KREG"
+# THE MUTANT DROPS THE KEY SILENTLY, BECAUSE THAT IS WHAT ed65bab DID. An earlier version of this heredoc
+# pushed a HELD_MISSED entry instead, which looks equivalent and is not: after the #537 repair a non-empty
+# HELD_MISSED is itself a refusal (exit 2), so the mutant stopped reaching the exit-0 "not held" that is the
+# defect this section exists to turn, and the turn below went red against a mutant that was never ed65bab's
+# code. A mutant must be THE OLD CODE, RUNNING - and "the old code" includes what it did NOT do.
 cat > "$TD/keys.old" <<'KEYSOLD'
-      HELD_MISSED+=("git rev-parse HEAD (DROPPED BY THE MUTANT)")
+        : # the HEAD-sha key is DROPPED BY THE MUTANT, silently, exactly as ed65bab dropped it
 KEYSOLD
+# skip=2, NOT 3, AND THE DIFFERENCE IS A WHOLE BRANCH. The three lines after the match are the `if [ -n "$HH" ]`
+# arm, its `else HELD_MISSED+=(...)` arm, and then the OUTER `else`. Skipping three swallowed that `else`, so the
+# mutant ran the outer else's body - HELD_MISSED+=("...not a git work tree...") - INSIDE the then-branch, and
+# reported a key it could not ask while standing in a git work tree. That was invisible for a whole build because
+# HELD_MISSED had no effect on the exit status; the #537 repair gave it one, and the turn below went red against a
+# mutant that was not ed65bab's code. A mutant assembled by LINE COUNT has to assert its own shape, which is what
+# the premise assertion below now does.
 awk -v f="$TD/keys.old" '
-  /^        HH="\$\("\$\{HELD_GIT\[@\]\}" rev-parse HEAD 2>\/dev\/null \|\| true\)"/ { skip=3
+  /^        HH="\$\("\$\{HELD_GIT\[@\]\}" rev-parse HEAD 2>\/dev\/null \|\| true\)"/ { skip=2
     while((getline l < f)>0) print l; close(f); next }
   skip > 0 { skip--; next }
   { print }' "$KU" > "$KR/gates/mutant12.sh"; chmod +x "$KR/gates/mutant12.sh"
@@ -434,6 +462,12 @@ eq "12 MUTANT the HEAD-sha key really was dropped, and only it" "0 1" \
 eq "12 MUTANT is a different script from the fix" "differs" \
    "$( [ "$(md5sum < "$KU")" != "$(md5sum < "$MU12")" ] && echo differs || echo identical )"
 eq "12 MUTANT parses" "yes" "$(bash -n "$MU12" 2>/dev/null && echo yes || echo no)"
+# AND THE DROP IS SILENT, WHICH IS THE PREMISE OF THE TURN. ed65bab did not know the HEAD sha was a key, so it
+# said nothing about one; a mutant that REPORTS a key it could not ask is refused by the repair for that reason
+# instead of clearing the hold, and the turn would then pass for the wrong reason - red where the defect is not.
+# Asserted, not assumed: three keys asked, no "could NOT ask" line, inside a real work tree.
+eq "12 MUTANT drops the key SILENTLY, as ed65bab did (3 keys asked, nothing reported missing)" "3 0" \
+   "$( cd "$KR" && printf '%s %s' "$( timeout 20 "$MU12" check 2>&1 | grep -c '^  asked: ' )" "$( timeout 20 "$MU12" check 2>&1 | grep -c 'could NOT ask' )" )"
 # THE TURN. This is the assertion the whole section exists for.
 ck "12 MUTANT reads the sha-only hold as NOT HELD at exit 0 - the defect" 0 timeout 20 "$MU12" check
 ck "12 FIX refuses that same tree, same register"                        1 timeout 20 "$KU" check
@@ -442,6 +476,75 @@ ck "12 FIX refuses that same tree, same register"                        1 timeo
 eq "12 MUTANT and FIX agree on the one-key form" "SAME" \
    "$( timeout 20 "$MU12" check "$KSHA" >/dev/null 2>&1; A=$?; timeout 20 "$KU" check "$KSHA" >/dev/null 2>&1; B=$?; [ "$A" = "$B" ] && echo SAME || echo DIFFER )"
 git -C "$KR" checkout -- gates/held-trees.tsv
+
+# ── 13. A KEY IT COULD NOT ASK IS NEVER CREDITED, AND THE EXIT STATUS IS WHERE THE CREDIT HAPPENS ──────────
+# THE DEFECT, and it is one this build introduced and its own antagonist caught: widening the no-key form from
+# one key to four made `check` fall through to "not held" AT EXIT 0 whenever SOME key could be computed, even
+# with app.js - the bundle key, the only key the one-key default ever asked - unreadable. ed65bab exits 2 in
+# that state ("cannot read app.js and no key given"), so the pre-push check went from "I cannot tell" to "this
+# tree is clear" as a direct result of asking MORE keys. The miss was printed on stdout the whole time; what
+# credited it was $?, which is what a run reads. Same shape as #450: every key that WAS asked answered
+# honestly, and the exit status answered a question nobody had put.
+KM="$TD/missing"; mkdir -p "$KM/gates"
+cp "$HERE/held.sh" "$KM/gates/held.sh"; chmod +x "$KM/gates/held.sh"
+git -C "$KM" init -q 2>/dev/null; git -C "$KM" config user.email s@t; git -C "$KM" config user.name selftest
+printf 'MISSING fixture source\n' > "$KM/chess.jsx"; printf 'MISSING fixture bundle\n' > "$KM/app.js"
+printf '# held-trees.tsv (missing-key self-test fixture, not the real register)\n' > "$KM/gates/held-trees.tsv"
+git -C "$KM" add -A >/dev/null 2>&1; git -C "$KM" commit -qm 'the tree whose bundle goes missing' >/dev/null 2>&1
+MU="$KM/gates/held.sh"
+# THE CONTROL COMES FIRST, and it is the one that matters most: a guard that fires on the NORMAL case gets
+# switched off. With all four keys askable and no row naming any of them, this must still CLEAR at exit 0.
+ck "13 control: all four keys askable and no row names them - CLEARS at exit 0" 0 timeout 20 "$MU" check
+eq "13 control: and all four really were asked" "4" \
+   "$( cd "$KM" && timeout 20 "$MU" check 2>/dev/null | grep -c '^  asked: ' )"
+# NOW TAKE THE BUNDLE AWAY. app.js is the key CLAUDE.md's one-argument-free form was built on.
+mv "$KM/app.js" "$KM/app.js.aside"
+ck "13 app.js unreadable: this is UNKNOWN (exit 2), NOT 'not held'" 2 timeout 20 "$MU" check
+eq "13 and the verdict line says so in its first word" "1" \
+   "$( cd "$KM" && timeout 20 "$MU" check 2>&1 | grep -c '^UNKNOWN: ' )"
+# BOTH NEEDLES ARE SCOPED TO THE LINE THEY MEAN, and my first draft of neither was. The key is named TWICE on
+# purpose - once in the collection block's "could NOT ask:" list and once in the UNKNOWN verdict, which has to
+# be self-contained because it is the line a reader greps - so a bare count measured 2 and the assertion was
+# wrong rather than the output. The second needle is the same mistake pointed the other way: the UNKNOWN text
+# contains the phrase "not held" INSIDE its own explanation ("this is NOT a 'not held'"), so what must be
+# absent is the VERDICT line, which is the one that starts with it. This is 12c's recorded lesson about
+# needles that count incidental mentions, found twice more in one section.
+eq "13 and the UNKNOWN verdict names the key it could not ask, and says how many it could" "1 1" \
+   "$( cd "$KM" && printf '%s %s' "$( timeout 20 "$MU" check 2>&1 | grep -c '^    app.js on disk (cannot read' )" "$( timeout 20 "$MU" check 2>&1 | grep -c 'key(s) this run could ask' )" )"
+eq "13 and NO 'not held:' VERDICT LINE is printed - that is where the credit would be" "0" \
+   "$( cd "$KM" && timeout 20 "$MU" check 2>&1 | grep -c '^not held: ' )"
+# AND IT STILL FINDS A REAL HOLD WITH THE SAME KEY MISSING. The repair must refuse a CLEAR, not swallow a
+# REFUSAL: a tree that is genuinely held has to read HELD (exit 1) even with app.js gone, or the guard has
+# made the tool useless in the one state it was written for.
+MSHA="$( git -C "$KM" rev-parse HEAD )"
+printf 'sha-only\t%s\t#904\t2026-10-24T00:30Z\tbuild__MISSINGFIXTURE\ta sha-only hold on the tree whose bundle cannot be read, long enough for the floor\t-\n' "$MSHA" >> "$KM/gates/held-trees.tsv"
+ck "13 a real hold is still HELD (exit 1) with app.js still unreadable" 1 timeout 20 "$MU" check
+eq "13 and HELD outranks the missing key - the row is named, not the miss" "1" \
+   "$( cd "$KM" && timeout 20 "$MU" check 2>&1 | grep -c 'build__MISSINGFIXTURE' )"
+git -C "$KM" checkout -- gates/held-trees.tsv 2>/dev/null || printf '# held-trees.tsv (missing-key self-test fixture, not the real register)\n' > "$KM/gates/held-trees.tsv"
+# ---- THE MUTANT: the guard removed, which is this build's own first commit. ----
+python3 -I -c "
+import sys
+p='$KM/gates/mutant13.sh'; src=open('$MU').read()
+old='    if [ \"\${#HELD_MISSED[@]}\" -gt 0 ]; then'
+assert src.count(old)==1, src.count(old)
+i=src.index(old); j=src.index('    fi\n', i)+len('    fi\n')
+open(p,'w').write(src[:i] + '    : # THE GUARD REMOVED BY THE MUTANT\n' + src[j:])
+"
+chmod +x "$KM/gates/mutant13.sh"; MM="$KM/gates/mutant13.sh"
+eq "13 MUTANT the guard really was removed, and only it" "0 1" \
+   "$( printf '%s %s' "$( grep -c 'UNKNOWN: no live row matches any of' "$MM" )" "$( grep -c 'THE GUARD REMOVED BY THE MUTANT' "$MM" )" )"
+eq "13 MUTANT parses" "yes" "$( bash -n "$MM" 2>/dev/null && echo yes || echo no )"
+# THE TURN. The mutant must answer "not held" at exit 0 over a tree whose bundle key it could not compute -
+# a FAIL-OPEN in the one check CLAUDE.md prescribes before a push.
+ck "13 MUTANT answers 'not held' at exit 0 with the bundle key unaskable - the defect" 0 timeout 20 "$MM" check
+eq "13 MUTANT and it even reports the miss while clearing the tree" "1 1" \
+   "$( cd "$KM" && printf '%s %s' "$( timeout 20 "$MM" check 2>&1 | grep -c 'could NOT ask: app.js' )" "$( timeout 20 "$MM" check 2>&1 | grep -c '^not held: ' )" )"
+mv "$KM/app.js.aside" "$KM/app.js"
+# AND THE MUTANT AGREES WITH THE FIX WHENEVER EVERY KEY IS ASKABLE, which is why the 94 assertions above could
+# not see this: every fixture in this file before section 13 can compute every key it asks for.
+eq "13 MUTANT and FIX agree once app.js is readable again" "SAME" \
+   "$( timeout 20 "$MM" check >/dev/null 2>&1; A=$?; timeout 20 "$MU" check >/dev/null 2>&1; B=$?; [ "$A" = "$B" ] && echo SAME || echo DIFFER )"
 
 printf '\n%s PASS  %s FAIL  (%s assertions over %s inputs to `add`)\n' "$P" "$F" "$((P+F))" "21"
 [ "$F" = "0" ] || exit 1
