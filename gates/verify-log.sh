@@ -801,6 +801,14 @@ for a in "${@:2}"; do
     --on-main)     ONMAIN=1 ;;
     --this-bundle) THISBUNDLE=1 ;;
     --ignore-held) IGNOREHELD=1 ;;
+    # AN EMPTY POSITIONAL IS NOT A TYPO, AND REFUSING IT WAS A REGRESSION THIS PARSER INTRODUCED.
+    # `verify-log.sh "$LOG" "$NUM"` with NUM unset or empty passes an empty string, which ed65bab ignored
+    # (exit 0, no build number pinned) and the new loop sent to the "not a build number" arm at exit 1.
+    # MEASURED both ways on this tree. A caller whose variable is empty asked for NO PIN; it did not ask for a
+    # refusal, and the point of this loop was to catch the token that gets silently OVERWRITTEN - not to fail a
+    # call ed65bab answered. It sits above the `-*` arm because '' matches neither glob and would otherwise
+    # fall to the catch-all. Found by antagonist A, #537.
+    '')   ;;
     -*)
       echo "REFUSED: '$a' is not an option this script knows."
       echo "  It looks like a flag, so it is a TYPO and is NEVER read as a build number. Before this check a"
