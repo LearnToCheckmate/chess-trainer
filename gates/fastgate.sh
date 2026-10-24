@@ -518,7 +518,11 @@ fi
 # source-key verdict here as on origin/main; only the bundle key moves, and held.sh itself declares that key
 # useless across a rebuild. DELIBERATELY NOT ADDED: `held.sh check` exits 1 for HELD and 2 for usage, so a
 # naive wiring re-creates the very refuse-instead-of-go-full bug arm 3 above exists to fix. Filed against the
-# tier as a whole. (3) The marginal is zero today - see the FORCE loop below.
+# tier as a whole. AND SINCE #537 THERE IS ONE MORE WAY TO GET A 2, WHICH MAKES THAT DECISION MORE RIGHT, NOT
+# LESS: exit 2 now also means UNKNOWN - a key `check` could not compute here, which is not a clearance - so a
+# tier that wired it naively would route a tree to the full suite because app.js had not been built yet. The
+# clause above said "2 for usage" and that is no longer the whole of it; corrected here rather than left to
+# read true-but-stale, because this comment is the one place in the tier that reasons about those codes. (3) The marginal is zero today - see the FORCE loop below.
 #
 # IT FAILS SAFE IN EVERY DIRECTION, which is why the regex may be strict: a stamp that does not match (a
 # five-digit build number, a changed stamp format), a count that is not three, two unequal stamps on one side,
