@@ -407,6 +407,37 @@ ck "H valid: <log> --ignore-held '#NNN' --on-main"         0 "$VL" "$GOOD" --ign
 #     `--citations` exits 1 (the base's own standing red, unchanged) and `--citations-selftest` exits 0, and
 #     neither prints a parser refusal. It is recorded on the job, not asserted here.
 
+# ── I. AN EMPTY POSITIONAL IS NOT A TYPO ───────────────────────────────────────────────────────────────────
+# Section H pinned the parser's refusals: a flag it does not know and a token that is not a build number are
+# both exit 1, where before they were silently overwritten by the number that followed. It had no case for the
+# EMPTY STRING, and that is the one token a CALLER produces rather than a typist: `verify-log.sh "$LOG" "$NUM"`
+# with NUM unset passes '', which ed65bab ignored (exit 0, nothing pinned) and the new loop sent to the "not a
+# build number" arm at exit 1. A gate that refuses a call the base answered is a regression whoever introduced
+# it, and this one was introduced by the fix in the same commit as the refusals it belongs to.
+# Found by antagonist A at #537 by enumerating what the parser can be HANDED, not what it can be typed.
+ck "I empty positional: <log> '' is exit 0, as it was before the parser" 0 "$VL" "$GOOD" ""
+eq "I and it pins NO build number, so nothing is asserted about one" "0" \
+   "$( "$VL" "$GOOD" "" 2>&1 | grep -c 'REFUSED' )"
+eq "I and it agrees exactly with the same call made with no positional at all" "SAME" \
+   "$( A="$( "$VL" "$GOOD" "" 2>&1 )"; B="$( "$VL" "$GOOD" 2>&1 )"; [ "$A" = "$B" ] && echo SAME || echo DIFFER )"
+# AND TWO EMPTIES, because a loop that handles one by accident can still fall through on the second.
+ck "I two empty positionals are also exit 0" 0 "$VL" "$GOOD" "" ""
+ck "I an empty positional does not disarm a REAL option beside it" 0 "$VL" "$GOOD" "" --on-main
+ck "I nor a real build number beside it" 0 "$VL" "$GOOD" "" "$FOOT"
+# THE CONTROLS: every refusal section H established must still refuse. An empty-string arm placed wrongly -
+# above the glob arms, or as part of the catch-all - would take the whole parser down with it, and the three
+# cases below are what tell the difference between "'' is ignored" and "the parser stopped reading".
+ck "I control: a flag it does not know still REFUSES" 1 "$VL" "$GOOD" --nope
+ck "I control: a non-number token still REFUSES" 1 "$VL" "$GOOD" junk
+ck "I control: a whitespace-only positional is NOT the empty string and still REFUSES" 1 "$VL" "$GOOD" " "
+# THE ORDER IS A FACT ABOUT THE FILE, so it is read off the file by LINE NUMBER rather than inferred from
+# behaviour. If '' were ever moved below the catch-all the cases above would go red anyway - this says WHY in
+# one line, which is what makes the red diagnosable instead of merely present.
+eq "I control: the '' arm sits ABOVE the -* arm in \$SRC, so it cannot fall to the catch-all" "above" \
+   "$( A="$( grep -n "^    '')" "$SRC" | head -1 | cut -d: -f1 )"; B="$( grep -n '^    -\*)$' "$SRC" | head -1 | cut -d: -f1 )"
+      if [ -n "$A" ] && [ -n "$B" ] && [ "$A" -lt "$B" ]; then echo above; else echo "A=$A B=$B"; fi )"
+   "$( awk '/^    .\x27.\x27.   ;;$/{found=NR} /^    -\*\)$/{if(found && NR>found) print "1"}' "$HERE/verify-log.sh" | head -1 )"
+
 echo "verify-log self-test: $P pass, $F fail, $HOPEN hole(s) open, $HCLOSED hole(s) closed"
 if [ "$F" != "0" ]; then
   echo "A CONFIRMED CASE REGRESSED. That is a real break in the push gate, not a known hole."
