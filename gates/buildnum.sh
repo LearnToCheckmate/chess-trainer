@@ -892,10 +892,19 @@ case "${1:-}" in
       in_range "$n" || { echo "buildnum.sh sweep --add: refusing to write '$n', which is not 3-4 digits."
         echo "  This is unreachable by construction; if you are reading it, the extractor changed."
         lock_free; exit 2; }
-      # AND NOT WITH A LEADING ZERO EITHER. `in_range` accepts 0535 - it is four digits - and this verb's numbers
-      # come from COMMIT SUBJECTS rather than from a hand, so it is the one write path that can be fed a
-      # malformed number by a third party. lock_free first: plain_dec_or_die exits, and the siblings above all
-      # release the lock before they do.
+      # AND NOT WITH A LEADING ZERO EITHER - BUT KNOW WHY THIS IS A BELT AND NOT A FIX, because the first version
+      # of this comment got that wrong and said the opposite. It claimed the sweep is "the one write path that can
+      # be fed a malformed number by a third party", since its numbers come from COMMIT SUBJECTS. MEASURED at #537
+      # by antagonist A, on a git fixture whose only interesting subject is "#0538 a zero-led number in a commit
+      # subject": the row lands as `538`. The extractor at :749 ends `| sed 's/^0*//'`, so the number is
+      # NORMALISED before `in_range` or this guard sees anything, and A settled it by instrumenting the line -
+      # the guard receives n=[538]. So this guard is UNREACHABLE BY CONSTRUCTION TODAY and what protects this verb
+      # is the extractor, not this line. It is kept as a belt on the one verb whose input is not typed by a hand,
+      # and case 31 does NOT control it - what controls it is the assertion in that case pinning the `sed 's/^0*//'`
+      # in the extractor, so that removing the normalisation makes this guard necessary again rather than silently
+      # load-bearing. The commit message of b0d3464 carries the false version of this sentence; it is corrected
+      # here and in the run report, and this is the same defect class that commit existed to fix.
+      # lock_free first: plain_dec_or_die exits, and the siblings above all release the lock before they do.
       case "$n" in 0*) lock_free; plain_dec_or_die "$n" "sweep --add" ;; esac
       # THE SHA IS REFUSED, NEVER QUIETLY WRITTEN AS '-'. A '-' in field 3 is the defect this change removes, so
       # falling back to one on a miss would reintroduce it silently for the one row where it matters. Unreachable
