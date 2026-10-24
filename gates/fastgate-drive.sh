@@ -293,6 +293,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H40) printf 'TC-SUITE-099' ;;  H41) printf 'TC-SUITE-100' ;;  H42) printf 'TC-SUITE-101' ;;  H43) printf 'TC-SUITE-102' ;;
     H44) printf 'TC-SUITE-103' ;;  H45) printf 'TC-SUITE-104' ;;  H46) printf 'TC-SUITE-105' ;;  H47) printf 'TC-SUITE-106' ;;  H48) printf 'TC-SUITE-107' ;;
     H49) printf 'TC-SUITE-109' ;;  H50) printf 'TC-SUITE-110' ;;  H51) printf 'TC-SUITE-111' ;;
+    H52) printf 'TC-SUITE-178' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -1802,6 +1803,73 @@ else
     rmdir "$C/$H51D" 2>/dev/null || rm -rf "$C/$H51D"
     sed -i '/^gates\/zz-h51-dead-citation\.js$/d' "$C/.git/info/exclude"
     route_verdict H51 "exit 2, the untracked-DIRECTORY scan names $H51D and no records verdict was computed"
+  fi
+fi
+
+# H52 A TAMPERED EXECUTED FILE PLUS ONE PLANTED PATH MUST BE REFUSED, NOT ROUTED [#537, TAMPER]. The two
+#     untracked scans exit 2 and the tamper pin exits 1, and until this build the scans ran FIRST - so a tree
+#     whose gates/verify-log.sh differs from the commit AND which also carries one excluded untracked file was
+#     handed to the full suite with the tier's output SILENT about the tamper. Exit 2 is not a safe fallback
+#     here: the full suite then runs gates/verify-log.sh, which is the tampered file, and it answers OK about
+#     itself. THIS CASE READS exit 2 ON ed65bab AND exit 1 ON THE FIX.
+#     IT POSES TWO STEPS AND ASSERTS BOTH, because the second is worthless without the first: the tamper ALONE
+#     must already refuse (otherwise the case is not about ordering at all), and the tamper WITH the plant must
+#     still refuse (which is the defect).
+reset_clone
+H52U=gates/zz-h52-plant.js
+H52N="$(mint_in_clone)"
+if [ -z "$H52N" ]; then
+  note "  FAIL H52 [$(tc H52)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H52"
+else
+  commit_case "H52 register only: one minted row for #$H52N"
+  if ! probe 0 "FAST GATE GREEN"; then
+    note "  FAIL H52 [$(tc H52)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
+    note "         not exit 0 FAST GATE GREEN, so a refusal of the planted tree would prove nothing"
+    show_verdict "$PROBE_OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H52"
+  else
+    ROUTES_FAIL=""; ROUTES_SKIP=""; ROUTES_OK=""; ROUTES_LEAK=""; ROUTE_SHOW=""
+    # THE TAMPER: one comment line appended to a file the tier EXECUTES, hidden with assume-unchanged so that
+    # `git status` prints nothing - which is the whole reason the raw-byte pin exists and why a reviewer looking
+    # at the checkout sees a clean tree.
+    printf '\n# gates/fastgate-drive.sh H52 tamper line, never pushed\n' >> "$C/gates/verify-log.sh"
+    git -C "$C" update-index --assume-unchanged gates/verify-log.sh >/dev/null 2>&1
+    if ! hidden; then
+      ROUTES_SKIP="$ROUTES_SKIP assume-unchanged(git still reports the tamper on this git, so the case cannot pose)"
+    else
+      # (i) THE CONTROL: the tamper on its own must already be a REFUSAL. If this does not hold, the case below
+      #     proves nothing about ordering, because there would be no refusal for a scan to get in front of.
+      if probe 1 "FAST GATE REFUSED" "gates/verify-log.sh: commit"; then
+        ROUTES_OK="$ROUTES_OK tamper-alone"
+      else
+        ROUTES_FAIL="$ROUTES_FAIL tamper-alone(exit $PROBE_RC)"; ROUTE_SHOW="$PROBE_OUT"
+      fi
+      # (ii) THE CASE ITSELF: add one EXCLUDED untracked file at a path the tier's checks read off disk. On
+      #      ed65bab this flips the verdict to exit 2 and the tamper vanishes from the output.
+      printf 'gates/zz-h52-plant.js\n' >> "$C/.git/info/exclude"
+      printf '// gates/fastgate-drive.sh H52 plant, never pushed\n' > "$C/$H52U"
+      if probe 1 "FAST GATE REFUSED" "gates/verify-log.sh: commit"; then
+        ROUTES_OK="$ROUTES_OK tamper-plus-plant"
+      else
+        ROUTES_FAIL="$ROUTES_FAIL tamper-plus-plant(exit $PROBE_RC)"; ROUTE_SHOW="$PROBE_OUT"
+      fi
+      # AND THE PLANT MUST REALLY HAVE BEEN THERE, or (ii) just repeated (i). Asserted rather than assumed,
+      # because a cleanup that ran early would make this case silently identical to the control above.
+      if [ ! -e "$C/$H52U" ]; then
+        ROUTES_FAIL="$ROUTES_FAIL plant-vanished(the fixture file was gone before the probe)"
+      fi
+      # THIS CASE CLEANS UP AFTER ITSELF: reset_clone's `git clean -qfd` KEEPS IGNORED FILES, and the exclude
+      # line and the index flag are outside the commit graph entirely, so none of the three is removed by it.
+      # H49 and H51 remove their own plants for the same reason and H25 clears its own flag.
+      rm -f "$C/$H52U"
+      sed -i '/^gates\/zz-h52-plant\.js$/d' "$C/.git/info/exclude"
+    fi
+    git -C "$C" update-index --no-assume-unchanged gates/verify-log.sh >/dev/null 2>&1
+    if ! restore_raw gates/verify-log.sh; then
+      ROUTES_FAIL="$ROUTES_FAIL could-not-restore(gates/verify-log.sh left doctored, which would confound every later case)"
+    fi
+    route_verdict H52 "exit 1, FAST GATE REFUSED naming the gates/verify-log.sh tamper, with the plant present"
   fi
 fi
 

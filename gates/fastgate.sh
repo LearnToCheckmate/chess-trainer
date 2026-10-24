@@ -125,6 +125,49 @@ fi
 # unsafe-direction hole in a tamper refusal is the wrong way round. The job rolls to run 8 as 'not-yet'.
 # IT IS REMOVED BY A FORWARD COMMIT AND NOT BY `git revert`, because `git revert a5e33f6` CONFLICTS here - 4cf2ff6
 # and the N3 commits edit the same region - and this run's brief forbids resolving a revert by hand.
+# ── #537 TAMPER. A REFUSAL OUTRANKS A ROUTING DECISION, SO THE TAMPER PIN RUNS FIRST ───────────────────────
+# jobs/the-untracked-scans-of-fastgate-run-before-its-tamper-refusal-so-a-tampered-verify-log-sh-plus-one-planted-path-is-routed-instead-of-refused-2026-10-22,
+# from #531's two antagonists. THE DEFECT WAS PURELY THE ORDER OF THESE BLOCKS. The two untracked scans below
+# exit 2 (FULL SUITE REQUIRED) and this pin exits 1 (FAST GATE REFUSED), and the scans ran first - so a tree
+# whose gates/verify-log.sh differs from the commit AND which also carries one untracked or excluded file at a
+# path the tier reads was ROUTED at exit 2 instead of REFUSED at exit 1, with the tier's output carrying no word
+# of the tamper at all.
+# MEASURED on a scratch clone of ed65bab with one records-only commit on top, which reads exit 0 FAST GATE GREEN:
+#   append one comment line to gates/verify-log.sh and hide it with `git update-index --assume-unchanged`
+#     -> exit 1, FAST GATE REFUSED, naming the tamper
+#   then add gates/zz-plant.js to .git/info/exclude and create it
+#     -> exit 2, FULL SUITE REQUIRED, naming only gates/zz-plant.js, and SILENT about the tamper
+# WHY THE ORDER IS THE WHOLE FIX AND NOT A PREFERENCE. Exit 2 hands the tree to the full suite, and #531's
+# antagonist B measured what happens there: gates.sh prints its manifest and anchor lines and gates/verify-log.sh
+# then answers OK - over the tampered copy of ITSELF. So routing a tampered verifier is not a safe fallback; it
+# is handing the question to the thing under suspicion. A refusal is a verdict about the tree and a route is a
+# decision about which gate to use, so when both apply the verdict must win, and this tier is the one place that
+# can still see the tamper.
+# THIS IS THE JOB'S FIRST REMEDY, TAKEN AS WRITTEN. Its second was to make the scans refuse rather than route,
+# which is wider and worse: the scans fire on honest trees (an ignored probe file, this suite's own
+# gates/.gates-run-*.sh copy) and turning those into exit 1 would refuse commits that are merely untidy, which
+# is how a guard that fires on the normal case gets switched off.
+# WHAT IS DELIBERATELY NOT MOVED, SO A LATER READER DOES NOT TAKE THIS AS WIDER THAN IT IS: the READ pin below
+# (RSET/READPIN, #527's Part 3) still sits AFTER the two scans, so a tampered file in the READ set plus one plant
+# is still routed rather than refused. That is the same ordering with a different file set, it is NOT what this
+# job's close condition names (gates/verify-log.sh is in the EXECUTES list moved here), and moving it as well
+# would be a second fix riding on this one. It is measured and recorded on the job rather than silently widened.
+TAMPER=""
+for f in gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js \
+         gates/buildnum.sh; do   # buildnum.sh added #523: Part 2 EXECUTES it from the working tree
+  hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
+  wb="$($GIT hash-object --no-filters "$ROOT/$f" 2>/dev/null || echo MISSING)"   # #527: RAW bytes, see below
+  [ "$hb" = "$wb" ] || TAMPER="$TAMPER    $f: commit $hb, working tree $wb\n"
+done
+if [ -n "$TAMPER" ]; then
+  say ""
+  say "FAST GATE REFUSED - this tier EXECUTES these files from the working tree while every verdict it prints is"
+  say "about the COMMIT, and for these the two are not the same object:"
+  printf "$TAMPER" | tee -a "$LOG"
+  say "A clean git status cannot see this: index flags and clean filters both suppress it. Run FULL."   # #527
+  exit 1
+fi
+
 # ── #530 N3. A FILE THE COMMIT DOES NOT HOLD MAY NOT STEER A RATCHET ────────────────────────────────────────
 # jobs/an-untracked-file-hidden-by-info-exclude-steers-the-records-ratchet-of-fastgate-past-every-raw-byte-guard-2026-10-20,
 # found by the second independent reader of #527's patches from the shipped-surface door.
@@ -262,21 +305,6 @@ if [ -n "$ODIRS" ]; then
   exit 2
 fi
 
-TAMPER=""
-for f in gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js \
-         gates/buildnum.sh; do   # buildnum.sh added #523: Part 2 EXECUTES it from the working tree
-  hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
-  wb="$($GIT hash-object --no-filters "$ROOT/$f" 2>/dev/null || echo MISSING)"   # #527: RAW bytes, see below
-  [ "$hb" = "$wb" ] || TAMPER="$TAMPER    $f: commit $hb, working tree $wb\n"
-done
-if [ -n "$TAMPER" ]; then
-  say ""
-  say "FAST GATE REFUSED - this tier EXECUTES these files from the working tree while every verdict it prints is"
-  say "about the COMMIT, and for these the two are not the same object:"
-  printf "$TAMPER" | tee -a "$LOG"
-  say "A clean git status cannot see this: index flags and clean filters both suppress it. Run FULL."   # #527
-  exit 1
-fi
 
 # -- AND WHAT IT READS A VERDICT OUT OF. ADDED #527, PART 3 OF THE STAMP JOB. ---------------------------------
 # jobs/the-tier-guards-what-it-executes-but-not-what-it-reads-2026-10-14. The loop above pins the files this
