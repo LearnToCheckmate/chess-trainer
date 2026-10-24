@@ -808,7 +808,14 @@ for a in "${@:2}"; do
     # refusal, and the point of this loop was to catch the token that gets silently OVERWRITTEN - not to fail a
     # call ed65bab answered. It sits above the `-*` arm because '' matches neither glob and would otherwise
     # fall to the catch-all. Found by antagonist A, #537.
-    '')   ;;
+    # AND IT SAYS SO, WHICH THE FIRST VERSION OF THIS ARM DID NOT. Restoring exit 0 restored ed65bab's SILENCE
+    # with it: a caller whose $NUM was empty got the full OK verdict with no build number pinned and no notice
+    # that one had been skipped, which is #450's shape in the script that answers the question. An empty $NUM is
+    # at least as likely to be a broken caller as a deliberate "no pin", and this tool does not get to decide
+    # which - so it does what it did and says what it did not do. The first version's justification also called
+    # this "the one token a CALLER produces"; measured, NO caller in this repository passes a build number
+    # variable to this script at all, so that was an interpretation offered as a fact. Antagonist A, #537.
+    '')   echo "NOTE: an empty positional was ignored - NO build number is pinned by this check." ;;
     -*)
       echo "REFUSED: '$a' is not an option this script knows."
       echo "  It looks like a flag, so it is a TYPO and is NEVER read as a build number. Before this check a"
