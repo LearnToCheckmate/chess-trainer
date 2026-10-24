@@ -361,6 +361,52 @@ ck "F FIX the same tree still REFUSES" 1 env -C "$TD" "$VL" "$HELDLOG" "$FOOT"
 echo
 
 echo "---"
+# ---- H. THE ARGUMENT PARSER REFUSES WHAT IT DOES NOT RECOGNISE [#537, VLMISS] -------------------------------
+# jobs/verify-log-accepts-a-misspelled-this-bundle-and-returns-ok-2026-10-03.
+# THE JOB'S OWN CONTROL IS THE EIGHT HOLE CASES IN SECTION E ABOVE, which were written as the TRUE requirement
+# and flip to HOLE CLOSED by themselves once the parser is repaired - that is why this file's exit goes from 2
+# to 0 with no case here changing. Measured: 35 pass / 0 fail / 8 open / exit 2 before, 35 / 0 / 0 open /
+# 8 closed / exit 0 after.
+# THIS SECTION EXISTS BECAUSE THOSE EIGHT DO NOT CARRY THE WHOLE INPUT CLASS. The job names six tokens and the
+# holes carry only four of them: neither `--this-bundel` (the job's own spelling, one letter from
+# `--this-bundl`, which the holes DO carry) nor `--ignore-helds` appears there, and no hole tests the SHAPE of
+# the build number at all. A set of inputs that happens to miss two of the six the job names is the
+# "a gate that has never gone red on an input class" shape, so the class is completed here rather than assumed.
+echo "  H. the parser refuses an unrecognised token instead of reading it as the build number (#537)"
+# (a) THE JOB'S SIX TOKENS, PLACED BEFORE THE NUMBER, which is the order that used to be silent: the real
+#     number overwrote the typo and the gate answered OK. Each must refuse AND NAME THE TOKEN - a refusal that
+#     does not name it sends the operator to check the build number instead, which is section E's holeneg case.
+for bad in --this-bundel -this-bundle --this_bundle --thisbundle --on-mian --ignore-helds; do
+  ckmsg "H '$bad' before the number is refused and NAMED" 1 "$bad" "$VL" "$GOOD" "$bad" "$FOOT"
+done
+# (b) AND AFTER THE NUMBER TOO, so the fix is not order-dependent in the other direction. Before the repair
+#     this position refused, but as "you said X but the log gated #NNN" - a build-number complaint for a flag
+#     typo, which section E pins with a holeneg. Here it must refuse as an unknown OPTION.
+ckmsg "H a misspelling AFTER the number is refused as an unknown option" 1 "is not an option" \
+      "$VL" "$GOOD" "$FOOT" --this-bundel
+# (c) THE BUILD NUMBER'S SHAPE. ^#[0-9]{3,4}$ is what gates/build.sh and gates/gates.sh both require, and this
+#     script validated it nowhere, so any token at all became the expected build.
+ckmsg "H '#53' is too short to be a build number"   1 "is not a build number" "$VL" "$GOOD" '#53'
+ckmsg "H '534' without the # is not a build number" 1 "is not a build number" "$VL" "$GOOD" '534'
+ckmsg "H '#53a' is not a build number"              1 "is not a build number" "$VL" "$GOOD" '#53a'
+# (d) EVERY VALID FORM STILL WORKS, IN EITHER ORDER, which is the half that stops this fix becoming a
+#     regression. Without these the refusals above could be satisfied by a parser that refuses everything.
+ck "H valid: <log> alone"                                  0 "$VL" "$GOOD"
+ck "H valid: <log> '#NNN'"                                 0 "$VL" "$GOOD" "$FOOT"
+ck "H valid: <log> '#NNN' --on-main"                       0 "$VL" "$GOOD" "$FOOT" --on-main
+ck "H valid: <log> --on-main '#NNN' (flag FIRST)"          0 "$VL" "$GOOD" --on-main "$FOOT"
+ck "H valid: <log> --on-main --this-bundle, no number"     0 "$VL" "$GOOD" --on-main --this-bundle
+ck "H valid: <log> --ignore-held '#NNN' --on-main"         0 "$VL" "$GOOD" --ignore-held "$FOOT" --on-main
+# (e) IS DELIBERATELY NOT HERE, AND THE REASON IS A MEASUREMENT RATHER THAN A PREFERENCE. The obvious case to
+#     add is that the two arms reading $1 BEFORE the parser (--citations and --citations-selftest) are still
+#     reached. It cannot live in this file: $VL is a COPY in a temp fixture with no story files and no gate
+#     roster, and BOTH arms HANG there - measured, two of them still running after seven minutes before they
+#     were killed by pid - so the case would not fail, it would stall the whole selftest. An assertion that
+#     hangs is worse than none, which is this project's own rule about a mutant that hangs proving nothing.
+#     The measurement belongs in the real checkout and was taken there instead, on the tree this run commits:
+#     `--citations` exits 1 (the base's own standing red, unchanged) and `--citations-selftest` exits 0, and
+#     neither prints a parser refusal. It is recorded on the job, not asserted here.
+
 echo "verify-log self-test: $P pass, $F fail, $HOPEN hole(s) open, $HCLOSED hole(s) closed"
 if [ "$F" != "0" ]; then
   echo "A CONFIRMED CASE REGRESSED. That is a real break in the push gate, not a known hole."
