@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # gates/verify-log.sh <logfile> [expected-build] [--on-main] [--this-bundle] [--ignore-held]
+# The three options may come in any order, before or after the build number. An unrecognised token is REFUSED at
+# exit 1 and never read as the build number: a misspelled flag used to be swallowed silently and the gate then
+# answered OK over a question nobody had asked (#537).
 # gates/verify-log.sh --citations     <- reads the TREE, not a log: do the registers' citations resolve? (12)
 # gates/verify-log.sh --citations     <- and arm (5): does the register join to the story list at all? (13)
 #
@@ -771,7 +774,51 @@ EOF
   exit 0
 fi
 LOG="${1:-}"; WANT=""; ONMAIN=0; THISBUNDLE=0; IGNOREHELD=0
-for a in "${@:2}"; do case "$a" in --on-main) ONMAIN=1;; --this-bundle) THISBUNDLE=1;; --ignore-held) IGNOREHELD=1;; *) WANT="$a";; esac; done
+# ── THE ARGUMENT PARSER REFUSES WHAT IT DOES NOT RECOGNISE (#537, the VLMISS job) ──────────────────────────
+# jobs/verify-log-accepts-a-misspelled-this-bundle-and-returns-ok-2026-10-03, from an antagonist B of 3 Oct
+# 2026, re-sighted by #534's third pair. THE DEFECT: this loop's catch-all `*)` took ANY unrecognised token as
+# the build number, with no shape test and last-wins. So a MISSPELLED FLAG placed BEFORE the build number was
+# overwritten by the real number and VANISHED SILENTLY, and the script then answered OK at exit 0 without ever
+# asking the question the operator believed they had asked.
+# MEASURED on main ed65bab against claude/agents/gatelogs/534-all.log, whose honest verdict is a refusal:
+#   --this-bundle   -> REFUSES at exit 1, correctly
+#   --this-bundel   -> the OK text at exit 0, with its own NOTE that --this-bundle was not asked
+# and the same for -this-bundle, --this_bundle, --thisbundle, --on-mian and --ignore-helds. #534's third
+# antagonist B measured 9 misspellings out of 9 taking exit 0.
+# WHAT MADE IT WORSE THAN A SILENT DROP: the OK text ends by ADVISING the operator to "pass --this-bundle and
+# --on-main to ask those two" - that is, to pass the flag they believe they just passed. And it is
+# ORDER-DEPENDENT, so the same typo AFTER the number refuses loudly: intermittent, which is worse than
+# consistently wrong, because the loud case teaches the operator to trust the quiet one.
+# THE FIX IS TWO TESTS AND NO NEW BEHAVIOUR FOR ANY VALID FORM. A token starting with `-` that is not one of
+# the three known flags is a TYPO and can never be a build number, so it is refused by name. Anything else must
+# match ^#[0-9]{3,4}$ - the shape gates/build.sh and gates/gates.sh both require, and the shape gates.sh
+# already validates for its own tag while this script did not.
+# THE SHAPE TEST IS A `case` GLOB AND NOT A REGEX, deliberately: it needs no grep, so it cannot be perturbed by
+# `set -o pipefail`, a locale, or a grep that goes binary on an odd byte - which is the class of accident this
+# very script records against itself at (9).
+for a in "${@:2}"; do
+  case "$a" in
+    --on-main)     ONMAIN=1 ;;
+    --this-bundle) THISBUNDLE=1 ;;
+    --ignore-held) IGNOREHELD=1 ;;
+    -*)
+      echo "REFUSED: '$a' is not an option this script knows."
+      echo "  It looks like a flag, so it is a TYPO and is NEVER read as a build number. Before this check a"
+      echo "  misspelling placed before the build number was silently overwritten by it, and the gate then"
+      echo "  answered OK over a question nobody had asked."
+      echo "  The three options are --on-main, --this-bundle and --ignore-held, in any order, before or after"
+      echo "  the build number."
+      exit 1 ;;
+    '#'[0-9][0-9][0-9]|'#'[0-9][0-9][0-9][0-9])
+      WANT="$a" ;;
+    *)
+      echo "REFUSED: '$a' is not a build number."
+      echo "  A build number is '#' followed by 3 or 4 digits (^#[0-9]{3,4}\$), which is what gates/build.sh and"
+      echo "  gates/gates.sh both require; a number outside that shape can never match a log or a stamp."
+      echo "  Refusing rather than taking it as one, which is what this parser used to do with any token."
+      exit 1 ;;
+  esac
+done
 [ -n "$LOG" ] || { echo "usage: gates/verify-log.sh <logfile> [#NNN] [--on-main] [--this-bundle] [--ignore-held]"
   echo "       gates/verify-log.sh --citations    (checks the registers' citations against the tree, see (12))"
   echo "       gates/verify-log.sh --citations-selftest   (the both-direction controls for citation arms (4) and (5))"; exit 1; }
