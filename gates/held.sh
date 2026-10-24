@@ -251,9 +251,13 @@ case "${1:-}" in
         if [ -n "$HIT" ]; then HELD_SRCWHICH="${HELD_SRCNAMES[$__i]}"; break; fi
       done
       if [ -n "$HIT" ]; then
-        echo "  (the source key that matched was: $HELD_SRCWHICH)"
-        echo "HELD BY SOURCE: chess.jsx on disk is md5 $SRC, which matches a held row's sourceMd5."
-        echo "  The BUNDLE md5 and the gated sha did NOT match, so this is a REBUILD of a held source tree -"
+        # THE HEADLINE NAMES THE KEY THAT ACTUALLY MATCHED. It read "chess.jsx on disk is md5 $SRC" as a
+        # literal, so when the match came from chess.jsx AT HEAD - the second source key this build added - the
+        # one line a reader quotes named a file whose md5 was not the number printed beside it. The parenthetical
+        # above carried the truth, which is the weaker place for it. Found by antagonist B, #537.
+        echo "HELD BY SOURCE: $HELD_SRCWHICH is md5 $SRC, which matches a held row's sourceMd5."
+        echo "  The BUNDLE md5 and the gated sha did NOT match, so this is a REBUILD of a held source tree, or"
+        echo "  a carry-forward of one -"
         echo "  a new artefact built from source a previous run refused to ship. That is the one evasion the"
         echo "  other two keys cannot see; see the note in held-trees.tsv."
         printf '  build:  %s   held at %s by %s\n' "$(printf '%s' "$HIT" | cut -f3)" "$(printf '%s' "$HIT" | cut -f4)" "$(printf '%s' "$HIT" | cut -f5)"
@@ -279,9 +283,25 @@ case "${1:-}" in
       echo "  Fix the temporary directory (TMPDIR) and re-run, or read gates/held-trees.tsv at HEAD by hand."
       exit 2
     fi
-    # THE VERDICT NAMES HOW MANY KEYS IT ASKED. Before this, the default form printed one key and "not held",
-    # which reads as "I asked the question" when it had asked one of four. A negative that does not say what it
-    # covered is the thing R18 calls an unmeasured claim, and this is the line a run reads before a push.
+    # A KEY IT COULD NOT ASK IS NEVER CREDITED - AND UNTIL THIS BRANCH IT WAS CREDITED, BY THE EXIT STATUS.
+    # The collection block above prints "could NOT ask: ..." on stdout and then fell straight through to "not
+    # held" AT EXIT 0, so the one consumer that matters - a run reading $? before a push - was told this tree is
+    # clear of holds over a question this tool had not asked. MEASURED here with app.js moved aside and no key
+    # named: ed65bab exits 2 ("cannot read app.js and no key given"), and the first version of this build's own
+    # fix exits 0 "not held" over the 3 keys it could still ask. Widening the key set turned a refusal into a
+    # pass in the one check CLAUDE.md prescribes before a push, and it is the #450 shape exactly: every key that
+    # WAS asked answered honestly, and the exit status answered a question nobody had asked. The miss is now
+    # reported AND refused, which is what the collection block above already claimed. Antagonist A, #537.
+    if [ "${#HELD_MISSED[@]}" -gt 0 ]; then
+      echo "UNKNOWN: no live row matches any of the ${#HELD_ASKED[@]} key(s) this run could ask, and ${#HELD_MISSED[@]} key(s) could NOT be asked:"
+      printf '    %s\n' "${HELD_MISSED[@]}"
+      echo "  So this is NOT a 'not held', and this tool will not give you the clear one. A hold recorded under"
+      echo "  a key that cannot be computed here is invisible to this run - and a sha-only row carries no bundle"
+      echo "  md5 at all, which is the form the three newest holds on the register use."
+      echo "  Rows actually consulted: $(match_rows | wc -l | tr -d ' ') (source: $HELD_SRC)."
+      echo "  Name the key you want asked: gates/held.sh check <bundle md5 | sha>, or restore the unreadable file."
+      exit 2
+    fi
     # THE VERDICT SAYS HOW MANY KEYS IT ASKED, AND STAYS ONE CLAIM LONG. Before this, the default form printed
     # one key and "not held", which reads as "I asked the question" when it had asked one of four. A negative
     # that does not say what it covered is the unmeasured claim R18 is about, and this is the line a run reads
@@ -290,6 +310,14 @@ case "${1:-}" in
       echo "not held: no live row of $(basename "$REG") matches ANY of the ${#HELD_ASKED[@]} key(s) asked above ($(match_rows | wc -l | tr -d ' ') matchable row(s) checked; source: $HELD_SRC)"
     else
       echo "not held: $KEY is on no live row of $(basename "$REG") ($(match_rows | wc -l | tr -d ' ') matchable row(s) checked; source: $HELD_SRC)"
+      # AND THIS FORM SAYS WHAT IT DID NOT ASK. The named form consults the key you gave plus chess.jsx on disk,
+      # and deliberately NOT HEAD's sha or chess.jsx at HEAD, because adding them could turn one of its "not
+      # held" answers into HELD BY SOURCE and the job says to leave that form alone. That makes it two keys
+      # weaker than the form CLAUDE.md prescribes, and its negative said nothing about the difference - the
+      # unmeasured claim R18 is about, on the line a run reads before a push. Found by antagonist B, #537.
+      echo "  NOTE: that is the key you named, plus chess.jsx on disk. This form does NOT ask HEAD's sha or"
+      echo "  chess.jsx at HEAD, so a hold recorded under either is invisible to it. Before a push, run"
+      echo "  \`gates/held.sh check\` with NO argument, which asks all four."
     fi
     exit 0 ;;
   add)
