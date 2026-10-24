@@ -418,8 +418,21 @@ ck "H valid: <log> --ignore-held '#NNN' --on-main"         0 "$VL" "$GOOD" --ign
 ck "I empty positional: <log> '' is exit 0, as it was before the parser" 0 "$VL" "$GOOD" ""
 eq "I and it pins NO build number, so nothing is asserted about one" "0" \
    "$( "$VL" "$GOOD" "" 2>&1 | grep -c 'REFUSED' )"
-eq "I and it agrees exactly with the same call made with no positional at all" "SAME" \
-   "$( A="$( "$VL" "$GOOD" "" 2>&1 )"; B="$( "$VL" "$GOOD" 2>&1 )"; [ "$A" = "$B" ] && echo SAME || echo DIFFER )"
+# BYTE-IDENTITY WAS THE WRONG BAR AND IT LOCKED THE SILENCE IN. The first version of this assertion required
+# the empty-positional call to be byte-identical to the call with no positional at all - which is true of
+# ed65bab and was true of the repair, and which made the ONE-LINE improvement the state needs (saying that a
+# token was ignored and no number pinned) redden the selftest. A fixture that forbids the fix is worse than no
+# fixture. What must agree is the VERDICT and the STATUS; what must differ is exactly one notice line.
+# Found by antagonist A, #537, which also measured that no caller in this repository passes a build-number
+# variable to this script at all - so the "a caller produces it" justification was an interpretation, not a fact.
+eq "I and its VERDICT and STATUS agree with the same call made with no positional at all" "SAME-VERDICT SAME-RC" \
+   "$( A="$( "$VL" "$GOOD" "" 2>&1 )"; RA=$?; B="$( "$VL" "$GOOD" 2>&1 )"; RB=$?
+      VA="$( printf '%s\n' "$A" | grep -E '^(OK|REFUSED)' | head -1 )"; VB="$( printf '%s\n' "$B" | grep -E '^(OK|REFUSED)' | head -1 )"
+      printf '%s %s' "$( [ "$VA" = "$VB" ] && echo SAME-VERDICT || echo DIFFER-VERDICT )" "$( [ "$RA" = "$RB" ] && echo SAME-RC || echo DIFFER-RC )" )"
+# AND IT SAYS WHAT IT IGNORED, which is the whole difference between the two calls and the reason the bar above
+# was relaxed rather than deleted. A tool that silently drops a token it was handed is #450's shape.
+eq "I and the empty positional is REPORTED, naming that no build number is pinned" "1 0" \
+   "$( printf '%s %s' "$( "$VL" "$GOOD" "" 2>&1 | grep -c '^NOTE: an empty positional was ignored' )" "$( "$VL" "$GOOD" 2>&1 | grep -c '^NOTE: an empty positional was ignored' )" )"
 # AND TWO EMPTIES, because a loop that handles one by accident can still fall through on the second.
 ck "I two empty positionals are also exit 0" 0 "$VL" "$GOOD" "" ""
 ck "I an empty positional does not disarm a REAL option beside it" 0 "$VL" "$GOOD" "" --on-main
@@ -436,7 +449,15 @@ ck "I control: a whitespace-only positional is NOT the empty string and still RE
 eq "I control: the '' arm sits ABOVE the -* arm in \$SRC, so it cannot fall to the catch-all" "above" \
    "$( A="$( grep -n "^    '')" "$SRC" | head -1 | cut -d: -f1 )"; B="$( grep -n '^    -\*)$' "$SRC" | head -1 | cut -d: -f1 )"
       if [ -n "$A" ] && [ -n "$B" ] && [ "$A" -lt "$B" ]; then echo above; else echo "A=$A B=$B"; fi )"
-   "$( awk '/^    .\x27.\x27.   ;;$/{found=NR} /^    -\*\)$/{if(found && NR>found) print "1"}' "$HERE/verify-log.sh" | head -1 )"
+# A FOURTH ARGUMENT TO A THREE-ARGUMENT `eq` SAT HERE AND RAN AS A COMMAND. It was the first draft of the
+# assertion above - an awk whose regex wanted five characters where the real arm has three, so it could never
+# match - and when that draft was replaced the replacement anchored on the `eq` line and left this continuation
+# behind. bash then ran an empty command name and printed "line 439: : command not found" two lines before this
+# file declared itself clean: `bash -n` passes, $F never moves, the exit stays 0, and no door in this project
+# reads that stderr, which is why it shipped. Found INDEPENDENTLY BY BOTH antagonists at #537, one from the diff
+# and one by running the script and reading what it printed rather than what it counted.
+# THE LESSON: when you replace a MULTI-LINE shell construct, anchor on the WHOLE construct. Anchoring on its
+# first line leaves the rest executing.
 
 echo "verify-log self-test: $P pass, $F fail, $HOPEN hole(s) open, $HCLOSED hole(s) closed"
 if [ "$F" != "0" ]; then
