@@ -2442,29 +2442,57 @@ echo "gates ran ($(( ${#gates[@]} ))): $(for f in "${gates[@]}"; do printf '%s '
 #   single build #538 named, which was A's F2.
 # THIS IS A RECORD AND NOT A GATE, deliberately and not by omission. `red` is assigned only inside the per-gate loop
 #   above, which has completed by the time this block runs, so nothing here can reach the SUBSET OK / GATES GREEN /
-#   GATES RED lines below; antagonist A of #539 verified that mechanically against the three assignment sites.
+#   GATES RED lines below. VERIFIED MECHANICALLY AGAINST EVERY ASSIGNMENT SITE, and the count is the corrected one:
+#   `red` is initialised at :2054 and assigned at :2096, :2145, :2372, :2404 and :2408 - SIX sites, all at or inside
+#   the per-gate loop, whose `done` closes about fifty lines above this block. #539 first published five of them and
+#   missed :2408, which sits in the same elif chain as :2404; the fresh pair's A2 completed the enumeration. The
+#   conclusion is unchanged - no site is reachable from here - but an enumeration offered as the proof has to be
+#   complete, because the whole argument is that every site was checked. A seventh assignment at :148 is inside
+#   --selftest and never reaches this footer.
 # ITS LIMIT, stated because it is what decides the shape: the test is STRING CONTAINMENT against a literal, so a
 #   reword or respacing of gates/lib.js's metrics sentence flips it to DISAGREES, and it cannot tell "the metrics
 #   moved" from "the sentence changed". That is exactly why it may NOT withhold GATES GREEN, and why it prints the
 #   literal it compared so a reader can see which of the two happened. A comparison that can false-alarm on a reword
 #   must not be able to refuse a push; the comparison belongs in the record and the refusal does not.
-# MEASURED before it was written, over all 29 committed gatelogs in claude/agents/gatelogs: AGREES on 28 of them
-#   (#500 through #534) and DISAGREES on exactly ONE, 537-all.log - the ten-gate red over main's own unchanged bundle
-#   that this build exists to fix, where only the "Segoe UI" slot moved, 373.42 against a calibrated 322.15. It also
-#   DISAGREES on a CT_NOFC=1 run, which is the state the pin exists to prevent. The cheaper candidate - echoing the
-#   `fontconfig:` line instead - was measured and REJECTED: 537-all.log:113 reads a CLEAN fontconfig line and the
-#   whole file carries zero MISMATCH, because gates/lib.js's guard tests fc-match "sans-serif", which resolved
-#   correctly in #537. Echoing it would have printed a clean line straight through the red.
+# MEASURED before it was written, over ALL 166 committed gatelogs in claude/agents/gatelogs: AGREES on 52 of them,
+#   485-all.log through 534-all.log, every one of which reads chromium 141.0.7390.37; DISAGREES on exactly ONE,
+#   537-all.log - the ten-gate red over main's own unchanged bundle that this build exists to fix, where only the
+#   "Segoe UI" slot moved, 373.42 against a calibrated 322.15, under chromium 153.0.8010.12; and NOT COMPARED on the
+#   other 113, which predate 485-all.log and carry no metrics line at all. It also DISAGREES on a CT_NOFC=1 run,
+#   which is the state the pin exists to prevent. THOSE FIGURES ARE THE SECOND SET: #539 first published "29 logs,
+#   AGREES on 28, #500 to #534", which came from globbing 5*-all.log and so silently excluded every log whose name
+#   does not start with 5 - the fresh pair's A2 caught it, and the corrected denominator is 166 with the range
+#   starting 15 logs lower. The conclusion is unchanged: the discriminating case is uniquely 537-all.log.
+#   The cheaper candidate - echoing the `fontconfig:` line instead - was measured and REJECTED: 537-all.log:113 reads
+#   a CLEAN fontconfig line and the whole file carries zero MISMATCH, because gates/lib.js's guard tests fc-match
+#   "sans-serif", which resolved correctly in #537. Echoing it would have printed a clean line through the red.
+# A SECOND LIMIT, NAMED BECAUSE THE COMMENT ABOVE USED TO PRESENT CONTAINMENT AS THE ONLY ONE: `grep -m1` reads the
+#   FIRST metrics line and a full-suite log carries one per gate launch - 54 to 58 of them, measured across the
+#   archive - and NOTHING HERE CHECKS THAT THEY AGREE WITH EACH OTHER. The fresh pair's A2 drove a synthetic log
+#   carrying a calibrated line followed by an off-calibration one and this block printed AGREES, so a mid-run drift
+#   (a fontconfig cache change, a relaunch under different env, one gate running with CT_NOFC=1) would be invisible
+#   here while the suite's own pins moved underneath it. It is LATENT and not live: every log in the archive carries
+#   exactly ONE distinct metrics line, re-measured at #539 over 485, 500, 522, 534 and 537. Filed rather than fixed,
+#   because a new predicate in this block is what produced the P1 the fresh pair vetoed on.
 TC_LINE="$(grep -m1 -e 'toolchain: playwright' "$ALL" 2>/dev/null)"; TC_LINE="${TC_LINE#"${TC_LINE%%[! ]*}"}"
 TM_LINE="$(grep -m1 -e 'text metrics @16px' "$ALL" 2>/dev/null)"; TM_LINE="${TM_LINE#"${TM_LINE%%[! ]*}"}"
 TM_CAL='system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)'
-TM_PROV='the target every green log from #500 to #534 read, on chromium 141.0.7390.37'
+TM_PROV='the target every green log from #485 to #534 read, on chromium 141.0.7390.37'
 case "$TM_LINE" in
-  '')          CAL_V="calibration NOT COMPARED - this log carries no text metrics line";;
+  '')          CAL_V="calibration NOT COMPARED - this log carries no text metrics line, or it is binary";;
   *"$TM_CAL"*) CAL_V="calibration AGREES - the measured line contains [$TM_CAL], $TM_PROV";;
   *)           CAL_V="*** calibration DISAGREES - every text-derived pin in this log is OFF CALIBRATION. Wanted [$TM_CAL], $TM_PROV ***";;
 esac
-echo "instrument: ${TC_LINE:-toolchain: NOT FOUND in this log} | ${TM_LINE:-text metrics: NOT FOUND in this log} | $CAL_V | RECORD ONLY, NOT A GATE: this line cannot withhold GATES GREEN" | tee -a "$ALL"
+# THE CLAUSE BELOW MUST NOT CONTAIN THE TWO-WORD VERDICT TOKEN. #539's first draft ended it "this line cannot
+#   withhold GATES GREEN", which put that literal into EVERY log on EVERY run - subset and red logs included - and
+#   this repository states in six places (gates.sh:19, :2490, :2142, :54, gates/audit/suite-shared-paths.sh:78 and
+#   CLAUDE.md) that a subset log mechanically cannot carry it, because every consumer and every ad-hoc watcher greps
+#   for exactly that string. The fresh pair's A2 drove a real subset run and got a SUBSET RED log answering yes to
+#   `grep -q 'GATES GREEN'`. This project already closed that hole twice from a narrower route - a newline in
+#   CT_RUNID, then the token inside CT_RUNID - with the sanitiser at gates.sh:1465 and five selftest controls
+#   (C88 to C88e); a hard-coded literal bypasses the sanitiser, which only guards the interpolated path. Say "the
+#   green verdict below" and never the token.
+echo "instrument: ${TC_LINE:-toolchain: NOT FOUND in this log} | ${TM_LINE:-text metrics: NOT FOUND in this log} | $CAL_V | RECORD ONLY, NOT A GATE: this line cannot withhold the green verdict below" | tee -a "$ALL"
 # ── WHICH TREE DID THIS GATE? (#417, flag class-gate-verifies-a-bundle-never-a-ref-2026-09-18) ──────────────
 # Every one of this suite's assertions answers "is the tree in this working directory correct?" and NOT ONE
 # answers "is this the tree that ships". #416 went green at 1940 PASS, verify-log.sh passed it and the dashboard
