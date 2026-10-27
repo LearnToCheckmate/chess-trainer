@@ -1,4 +1,158 @@
 # HANDOFF - where the last run left off
+**#539: THE CONTAINER FIX HOLDS, THE FOUR HELD #537 JOBS LANDED, AND REPAIRING THIS RUN'S OWN
+FOUR-LINE DIAGNOSTIC TOOK SEVEN ROUNDS.**
+Run `build__1793106969000`, 27 Oct 2026, under `docs/restart-readiness.directOpening_2026_10_27_run16`.
+No app change at any point: `app.js` is #530's bundle throughout, md5 `049b41dfb6f1`, stamp
+"#530 - 2026-10-21 20:50 ET", byte-identical to main's before and after. `gates/build.sh` never ran.
+**Nothing a player can see moved.**
+
+## 1. READ THIS FIRST: THE CONTAINER IS ON TARGET AGAIN, AND YOU CAN CHECK IT IN ONE MINUTE
+
+#537's handoff told you the suite could not go green in this container. **That is no longer true,
+and the reason is eight lines in `gates/fonts.conf` that run 15 wrote.** The container is still
+chromium **153.0.8010.12** / playwright **1.63.0** - it did NOT go back to 141 - but the pins read
+right again because Inter is now rejected at the fontconfig layer, so `"Segoe UI"` falls through to
+the sentinel as it did on 141.
+
+| metric @16px, reference string | calibration (#485-#534, chromium 141) | this container, chromium 153 |
+|---|---|---|
+| `system-ui` | 402.12 | **402.12** |
+| `"Segoe UI"` | 322.15 (unresolvable, falls through) | **322.15** |
+| `sans-serif` | 348.28 | **348.28** |
+| fall-through sentinel | 322.15 | **322.15** |
+
+All four equal, 24 pass / 0 fail. **The one-minute control, and run it before you doubt any of this** -
+it is #537's own control pointed the other way:
+
+```
+git clone -q . /tmp/base && cd /tmp/base && git checkout -q 18bfe35
+ln -s <your checkout>/gates/node_modules gates/node_modules
+CT_APP=/tmp/base/app.js node gates/regress/12-hint.js
+```
+
+On the **base** you get `"Segoe UI"` 373.42 and **22 pass / 2 FAIL**. On this tree you get 322.15 and
+**24 pass / 0 FAIL**. Same container, same bundle, same gate - the only difference is `gates/fonts.conf`.
+
+**DO NOT "FIX" THE PINS.** They are correct and the container was wrong. #537 nearly spent a run
+re-pinning 74 absolute values to a browser that had drifted; the fix was to make the browser resolve
+fonts the way the calibration instrument did.
+
+## 2. THE INSTRUMENT FOOTER: WHAT IT IS, AND THE SIX THINGS IT CANNOT TELL YOU
+
+Every gate log now ends with an `instrument:` line that prints the toolchain, the measured text
+metrics, and **a comparison against the #534 calibration** - `calibration AGREES`, `DISAGREES`, or
+`NOT COMPARED`. Run 15 printed the comparand without the comparison, which reads as a verification to
+anyone who greps the footer; this run added the comparison.
+
+**IT IS A RECORD AND NOT A GATE, and that is deliberate.** It cannot withhold a verdict, and
+`verify-log.sh` has **zero** references to it. So:
+
+> **IF A SUITE LOG'S FOOTER READS `calibration DISAGREES`, THAT IS A STAND-DOWN, AND NO TOOL WILL
+> TELL YOU.** Antagonist B2 reproduced that `verify-log.sh` returns `OK` over a full-suite green log
+> carrying a DISAGREES line. Write it in the run report AND on `gates/held-trees.tsv`. A human must.
+
+Its limits are all filed as known limits on
+`jobs/the-container-browser-is-not-pinned-and-the-suites-pins-are-absolute-so-chromium-141-to-153-reddens-ten-gates-on-mains-own-bundle-2026-10-24`,
+each with a fingerprint and a remedy. The two worth knowing before you touch it:
+- **`grep -m1` reads ONE of a full suite's 54-58 metrics lines and nothing checks they agree.** B2
+  produced a **FALSE AGREES in a live run** by moving `gates/fonts.conf` out after mountcheck printed
+  its line: line 22 calibrated, line 54 off calibration, footer `AGREES`, `SUBSET OK` exit 0. It is
+  latent against the archive (all 166 logs carry exactly one distinct metrics line) and **reachable in
+  a live run**. Fingerprint `3fdd639e9cda92a7`.
+- **A second footer line one line BELOW the controlled one re-creates the original defect invisibly.**
+  Fingerprint `82e1dfd19837d587`. I wrote in round seven's commit message that `C90h` covers this; **it
+  does not** - the extraction ends AT the first echo, so a line below it is never in the block. That
+  claim is withdrawn on the job.
+
+## 3. SEVEN ROUNDS, AND WHAT THEY WERE ACTUALLY ABOUT
+
+Do not read this as thoroughness. **Each round fixed a defect inside the previous round's repair**,
+which is this project's LEARNED(12) pattern running seven times in one morning:
+
+1. the clause ended `cannot withhold GATES GREEN`, putting the project's one mechanical push token
+   into **every** log including subset and red ones. Both antagonists found it independently from
+   opposite doors.
+2. fixed the clause; **rotted a citation** (`:2490`, pushed to `:2518` by its own 28 added lines).
+3. fixed the citation by text anchor; **drew the lesson one notch too narrow** - "a distance to a line
+   THIS comment shifts" - leaving absolute offsets exposed to any insertion anywhere above.
+4. added the control; **rotted TEN offsets by exactly 32** by inserting 32 lines into `--selftest`
+   1,300 lines away, twenty minutes after round three re-verified them. One, `:2404`, **half-resolved**
+   onto a different `red=1` outside the loop, which reads as the comment being wrong about the loop.
+5. **deleted** every offset and prescribed a command instead; **the command matched itself**.
+6. fixed the command. Found by RUNNING it, not reading it.
+7. took B2's P2 and bounded the extraction's shape.
+
+**THE TWO THINGS THAT BROKE THE CHAIN, and they are the transferable part:**
+- **Deletion beats renumbering.** Removing numbers cannot introduce a number. Round five is the only
+  round that structurally could not continue the pattern.
+- **Test a prescribed fix before pasting it.** B2's own arm, as written, reads **2** on a clean tree
+  and would have reddened it on its first run - A2 had measured that same count a round earlier and
+  neither antagonist connected its own measurement to the other's prescription.
+
+## 4. THE CONTROL SET ON THAT FOOTER, AND HOW TO BREAK IT
+
+`gates/gates.sh --selftest` is **332 pass / 0 fail**. C90/C90a-h and M19/M19a-d are the footer's arms.
+They are **behavioural**: the block is extracted live from `$SF` **by the text of its first and last
+lines** - no offsets - and then RUN over crafted logs, so what is asserted is what reaches a log.
+Three mutants, all of which must stay red, and each strictly stronger than before round seven:
+
+| mutant | result | arms that turn |
+|---|---|---|
+| A: clause reverted to the first draft | 327 / 5 | C90b, C90c, C90e, C90g, M19d |
+| B: extraction anchor broken | 323 / 9 | C90, C90a, C90d, C90f, C90h, M19a-d |
+| C: decoy `TC_LINE=` below the echo | 331 / 1 | C90g |
+
+**If you extend these arms, the fixtures SELF-POLLUTE.** The block ends in `tee -a "$ALL"`, so every
+arm appends an instrument line to its own fixture and that line itself contains `text metrics @16px`.
+They survive only because `grep -m1` always reaches the pristine line 1. **`C90f` already has this
+bug in a dormant form** (fingerprint `fa64f0c9786e1a3f`): it omits C90e's truncation, and it still
+tests the right path only because the empty-branch message says `text metrics:` without `@16px`.
+Reword that message and C90f silently stops testing the path it names while continuing to pass.
+
+## 5. WHAT I GOT WRONG, SO IT IS NOT INHERITED AS FACT
+
+- **`C90h` does not cover B2's F3.** Round seven's commit message says it does. Withdrawn; see section 2.
+- **Four published counts were wrong** and A2 corrected all four: I globbed `5*-all.log` and published
+  "29 gatelogs, 28 AGREES". It is **166 logs, 52 AGREES (#485-#534), 1 DISAGREES (#537), 113 NOT
+  COMPARED**. The conclusion survived; the denominator was not reproducible.
+- **I read an exit status through a pipe.** Checking B's positional-parse finding I ran the script into
+  `tail -3` and printed `$?`, which is TAIL's status, so both argument orders read exit 0 and the
+  asymmetry - the entire finding - was invisible.
+- **A control of mine was invalid and I declared it rather than re-running it quietly:** I cloned my
+  checkout while the fix was still UNCOMMITTED, so both halves measured the parent.
+- **I nearly published a false drift in the four numbers.** My draft said P1 went 83 -> 119, "+36 in
+  sixteen builds". That crosses a METHOD change. Measured properly against #536's stated method, P0 is
+  **identical** and P1 is **+2**, both accounted for by name.
+
+## 6. THE FOUR CARRIED #537 JOBS: FINISHED, AND THEY WORK ON THIS TREE
+
+All four were built, controlled and gated at #537 and parked as `built-not-delivered` because #537's
+suite went red on the container, not on them. **This run rebuilt nothing** - the commits are carried
+by fast-forward and #537's own notes say in terms they must not be rebuilt. Each one is DEMONSTRATED
+working on this tree, not merely present:
+
+| job | the fix | proof on THIS tree |
+|---|---|---|
+| `verify-log-accepts-a-misspelled-this-bundle-and-returns-ok-2026-10-03` | the argument parser refuses any unrecognised `-` token BY NAME and validates the number with a `case` glob | `verify-log.sh <log> '#534' --this-bundel` → **exit 1**, "`'--this-bundel'` is not an option this script knows ... it is a TYPO and is NEVER read as a build number" |
+| `held-sh-check-in-the-form-claude-md-prescribes-asks-one-key...` | `check` with no key asks FOUR keys, names which matched, reports any it could not ask, and has THREE exit states | `held.sh check` → **exit 0**, all four keys named (app.js, HEAD sha, chess.jsx on disk, chess.jsx at HEAD), "not held ... 28 matchable row(s) checked" |
+| `the-untracked-scans-of-fastgate-run-before-its-tamper-refusal...` | the TAMPER block moved above the untracked-directory header so the refusal runs before the scans | `fastgate-drive.sh fixed` → **52 ok / 0 FAIL / 1 skipped**, H52 naming all three routes (plant-steers, tamper-alone, tamper-plus-plant) |
+| `a-leading-zero-row-makes-buildnum-sh-next-read-the-number-as-octal...` | `highest()` normalises with `awk $1+0`, and `plain_dec_or_die` refuses a leading zero before every write verb | #539 minted and stamped cleanly; the suite's series door read "ok ... appended=5 ... gap-fill=0 ... unaccounted=0" |
+
+**THE ONE THING STILL OWED ON THEM:** their `knownLimits` and the four #537 antagonist findings
+already recorded on each. Nothing in this run's scope touched them, and `takeNothingElse` was honoured.
+
+## 7. ONE THING THE #419 LOCK PROVED ABOUT ITSELF
+
+Antagonist B2 disclosed, against itself, that one invocation escaped into the real repository during
+this run's in-flight subset. **The lock refused it and it wrote nothing** - I verified that
+independently, because it was my run's evidence and not B2's to vouch for. The lock was justified on
+log provenance and its own open P1 records that the timing justification was never measured. Here it
+refused a concurrent invocation from a subagent of this same session, in the exact window where this
+run's ONLY full-suite budget was about to be spent. **A guard firing correctly on a case its author
+did not foresee is the evidence it was drawn at the right level.**
+
+## 8. EVERYTHING BELOW IS #537'S HANDOFF, KEPT VERBATIM
+
 **#537 HELD. NOTHING FROM THIS RUN IS ON MAIN EXCEPT THIS RECORD, THE RUN-LOG ROW AND THE GATE LOG.**
 Run `build__1792798068000`, 23-24 Oct 2026. No app change at any point: `app.js` is #530's bundle
 throughout, md5 `049b41dfb6f1`, stamp "#530 - 2026-10-21 20:50 ET". No number was stamped and
