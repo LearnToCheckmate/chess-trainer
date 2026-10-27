@@ -49,8 +49,17 @@
  *                   indistinguishable from no claim.
  *   DIRTY           the working copy differs from HEAD, so nothing here can judge it against a commit.
  *                   #417's own lesson - sample the tree and print the dirty count - failing one build later.
- *   ASSERTIONS-MOVED  the assertion lines changed between the record's sha and now. The record may be true
- *                   about what it ran; it cannot be true about what the gate asserts today.
+ *   PARTIAL         every assertion line the record's sha carried is STILL in the gate, but the gate has
+ *                   grown (or reordered) since, so the record is true about what it named and says nothing
+ *                   about the assertions added after it. Added #540 (CANUM): before it, one added assertion
+ *                   turned every record on a gate into ASSERTIONS-MOVED, so the gate with the MOST recorded
+ *                   controls (15-gallery-playall, fifteen of them) counted as zero and the numerator of this
+ *                   ledger DECAYED every time the suite improved. A PARTIAL gate is counted as covered in the
+ *                   SUMMARY (it has a non-FAULT record) and is NEVER green: the GREEN line below says every
+ *                   assertion run today was shown able to fail, and a partial record cannot say that.
+ *   ASSERTIONS-MOVED  an assertion line the record's sha carried is GONE from the gate. The record may be
+ *                   true about what it ran; it cannot be true about what the gate asserts today. (Until
+ *                   #540 this verdict also covered a gate that had merely GROWN; that half is PARTIAL now.)
  *   BAD-RECORD      the sha does not exist, the date is in the future, the scope is not in the vocabulary,
  *                   red=0 with no other record, red>total, or a count outside its bounds.
  *   NO-LOG          the cited log does not say what this gate runs, so `total` was compared with nothing.
@@ -59,6 +68,29 @@
  * comparator, so in a file where all records share a date, which one won a tie was V8's business - and a
  * false full-scope record hidden at the top of the list was invisible.
  *
+ * THE SUBSET TEST IS A MULTISET TEST OVER TRIMMED `L.say(` LINES, NOT A COUNT TEST [#540]. :137 of the
+ * previous version compared the joined TEXT of the lines, so an edit to one assertion faulted every record
+ * on its gate even when the count was unchanged; the count appeared only in the message. PARTIAL therefore
+ * asks: is every line the record's sha carried still present, as many times as it was? If one is missing,
+ * the record is ASSERTIONS-MOVED exactly as before. If none is missing and the gate is not byte-identical,
+ * it grew or was reordered: PARTIAL. A trailing-comma difference on an otherwise identical line is NOT seen
+ * through - the header above defines a sound record by byte-identical assertion lines, and loosening that
+ * is a separate decision, recorded as a known limit on the CANUM job rather than taken here.
+ *
+ * HOW A PARTIAL RECORD MEETS THE COUNT CHECKS, which were written for an unchanged gate. A full-scope
+ * record's `total` is the gate's whole PASS count WHEN IT RAN, and nothing here can re-derive that figure
+ * for an older sha: a PASS count is not an L.say site count (the real records read total=25 against 13
+ * sites), and the cited log counts the grown gate. So a partial record's total, full or scoped, is bounded
+ * the one way that is still sound: positive, and no more than what the log runs today, because the gate
+ * grew. The exact equality the sound path demands is NOT asked of it. red=0 is still a baseline and not
+ * a control.
+ *
+ * THE TWO VERDICT LINES ARE READ BY gates/fastgate.sh's RATCHET, which keys on ^(SUMMARY|CONTROL-AUDIT) and
+ * reads every number on them as a count whose RISE is worse. So the partial count is NOT on either of
+ * those lines: it is on its own PARTIAL-RECORDS line, which that key does not match. (That `covered`, the
+ * SUMMARY's first number, is a count whose rise is GOOD and is read the wrong way round there is a limit of
+ * fastgate.sh that predates this change; it is recorded on the CANUM job and not repaired here.)
+ *
  * THE LOG IS RUN THROUGH gates/verify-log.sh, which is the one place that decides whether a log is
  * evidence. v1 chose the newest filename matching *-all.log and excluded names containing DEFECTIVE,
  * which is a convention, not a check: a `<N>-subset-all.log` matched it and would have become the
@@ -66,18 +98,214 @@
  * skipped. Filenames are not evidence.
  *
  * usage: node gates/control-audit.js [gatelog]
+ *        node gates/control-audit.js --selftest     <- three inputs in scratch repositories, see selftest()
  */
 'use strict';
-const fs = require('fs'), path = require('path'), cp = require('child_process');
-const ROOT = path.resolve(__dirname, '..');
-const G = (a) => cp.execSync('git -C ' + JSON.stringify(ROOT) + ' ' + a, { encoding: 'utf8', stdio: ['pipe','pipe','pipe'] }).trim();
-const Gq = (a) => { try { G(a); return true; } catch (e) { return false; } };
+const fs = require('fs'), path = require('path'), cp = require('child_process'), os = require('os');
 const SCOPE_OK = (s) => s === 'full' || /^(env:[A-Za-z_][A-Za-z0-9_]*=\S+|geo:\S+|blocks:\S+)$/.test(s);
 const TODAY = new Date().toISOString().slice(0, 10);
+const RE = /^\s*\/\/\s*CONTROL-RECORD:\s*([0-9a-f]{7,40})\s+(\d{4}-\d{2}-\d{2})\s+total=(\d+)\s+red=(\d+)\s+scope=(\S+)\s+how=(\S.*)$/;
+const ORDER = ['NONE', 'UNPARSABLE', 'DIRTY', 'ASSERTIONS-MOVED', 'NO-LOG', 'NO-RED', 'BAD-RECORD', 'PARTIAL', 'COVERED'];
 
-/* ---- the log, and it must be evidence rather than a filename ---- */
+/* ---- the log's own account of what each gate ran ---- */
+function parseLog(logText) {
+  const ranNow = {}, redNow = {};
+  let cur = null;
+  for (const line of logText.split('\n')) {
+    const h = line.match(/^=== (\S+) ===$/); if (h) { cur = h[1]; continue; }
+    const g = line.match(/^\s*(\S+): green \((\d+) PASS\)/); if (g && cur) { ranNow[cur] = +g[2]; continue; }
+    if (/^\s*(\S+): RED/.test(line) && cur) redNow[cur] = true;
+  }
+  return { ranNow, redNow };
+}
+
+/* ---- the audit itself, over one repository root and one parsed log ---- */
+function audit(ROOT, { ranNow, redNow }) {
+  const G = (a) => cp.execSync('git -C ' + JSON.stringify(ROOT) + ' ' + a, { encoding: 'utf8', stdio: ['pipe','pipe','pipe'] }).trim();
+  const Gq = (a) => { try { G(a); return true; } catch (e) { return false; } };
+  const targets = fs.readdirSync(path.join(ROOT, 'gates/regress')).filter(f => f.endsWith('.js'))
+    .map(f => 'gates/regress/' + f).concat(['gates/mountcheck.js']).sort();   // mountcheck runs in the suite too
+  const rows = [];
+  for (const rel of targets) {
+    const abs = path.join(ROOT, rel);
+    if (!fs.existsSync(abs)) continue;
+    const name = path.basename(rel, '.js');
+    const txt = fs.readFileSync(abs, 'utf8').split('\n');
+    const recs = [], bad = [];
+    for (const l of txt) {
+      // the COLON is what makes a line a claim. Without it, `// CONTROL-RECORD lines, the form this tool
+      // reads` - prose ABOUT the format, which gate 15 carries - was reported as a malformed record.
+      if (!/CONTROL-RECORD:/.test(l)) continue;
+      const m = l.match(RE);
+      if (m) recs.push({ commit: m[1], date: m[2], total: +m[3], red: +m[4], scope: m[5], how: m[6].trim(), raw: l.trim() });
+      else bad.push(l.trim());
+    }
+    const dirty = !Gq('diff --quiet HEAD -- ' + JSON.stringify(rel));
+    const now = ranNow[name];
+    const says = (s) => (s.match(/L\.say\(/g) || []).length;
+    const linesOf = (s) => s.split('\n').filter(l => /L\.say\(/.test(l)).map(l => l.trim());
+    const nowSrc = fs.readFileSync(abs, 'utf8');
+    const nowL = linesOf(nowSrc);
+    const faults = [];
+    for (const r of recs) {
+      if (!Gq('cat-file -e ' + r.commit + '^{commit}')) { r.fault = 'sha ' + r.commit + ' is not a commit in this repo'; faults.push(r); continue; }
+      if (r.date > TODAY) { r.fault = 'dated ' + r.date + ', which is in the future'; faults.push(r); continue; }
+      if (!SCOPE_OK(r.scope)) { r.fault = 'scope=' + r.scope + ' is not in the vocabulary (full | env:K=V | geo:X | blocks:X)'; faults.push(r); continue; }
+      if (r.red > r.total) { r.fault = 'red=' + r.red + ' exceeds total=' + r.total; faults.push(r); continue; }
+      let old;
+      try { old = G('show ' + r.commit + ':' + rel); } catch (e) { r.fault = 'the gate did not exist at ' + r.commit; faults.push(r); continue; }
+      const oldL = linesOf(old);
+      if (oldL.join('\n') !== nowL.join('\n')) {
+        // THE SUBSET TEST [#540]: every line the record's sha carried must still be here, as often as it was.
+        const have = new Map(); for (const l of nowL) have.set(l, (have.get(l) || 0) + 1);
+        const need = new Map(); let missing = 0;
+        for (const l of oldL) { need.set(l, (need.get(l) || 0) + 1); if ((have.get(l) || 0) < need.get(l)) missing++; }
+        if (missing > 0) {
+          r.fault = 'the assertions changed since ' + r.commit + ' (' + says(old) + ' -> ' + says(nowSrc) + ' L.say sites; ' + missing + ' line(s) it ran are gone)';
+          r.moved = true; faults.push(r); continue;
+        }
+        r.partial = true;
+        r.growth = nowL.length > oldL.length ? 'the gate has grown ' + says(old) + ' -> ' + says(nowSrc) + ' L.say sites since'
+                                               : 'the same ' + says(old) + ' L.say sites in a different order since';
+      }
+      if (now === undefined) { r.fault = 'this gate is not in the cited log' + (redNow[name] ? ' as green (it is RED there)' : ''); r.nolog = true; faults.push(r); continue; }
+      if (r.partial) {
+        // A partial record's full-scope total was the WHOLE count when it ran, and no log here says what the
+        // gate ran at that sha (a PASS count is not an L.say site count: real records read total=25 against 13
+        // sites), so it cannot be re-verified exactly. What CAN be asked: the gate grew, so today's log must run
+        // at least that many, and the count must be positive. A scoped record keeps today's bound unchanged.
+        if (!(r.total > 0 && r.total <= now)) { r.fault = (r.scope === 'full' ? 'full-scope' : 'scoped') + ' total=' + r.total + ' is not inside 1..' + now + ' (a partial record is bounded by what the log runs today, because the gate grew)'; faults.push(r); continue; }
+      } else {
+        if (r.scope === 'full' && r.total !== now) { r.fault = 'full-scope total=' + r.total + ' but the log says this gate runs ' + now; faults.push(r); continue; }
+        if (r.scope !== 'full' && !(r.total > 0 && r.total <= now)) { r.fault = 'scoped total=' + r.total + ' is not inside 1..' + now; faults.push(r); continue; }
+      }
+      if (r.red === 0) { r.fault = 'red=0 - a baseline, not a control'; r.baseline = true; faults.push(r); continue; }
+      if (r.partial) r.partialOk = true; else r.sound = true;
+    }
+    const sound = recs.filter(r => r.sound);
+    const partial = recs.filter(r => r.partialOk);
+    let verdict, note;
+    if (dirty) { verdict = 'DIRTY'; note = 'the working copy differs from HEAD; nothing here can judge it against a commit'; }
+    else if (bad.length) { verdict = 'UNPARSABLE'; note = bad.length + ' line(s) say CONTROL-RECORD and do not match the format'; }
+    else if (!recs.length) { verdict = 'NONE'; note = 'the gate declares no CONTROL-RECORD'; }
+    else if (sound.length) { verdict = 'COVERED'; note = sound.length + ' sound record(s) of ' + recs.length + ', assertions unchanged since each'; }
+    else if (partial.length) { verdict = 'PARTIAL'; note = partial.length + ' partial record(s) of ' + recs.length + ': every line each one ran is still here, but ' + partial[0].growth + ' - the newer assertions are unshown'; }
+    else if (faults.some(r => r.moved)) { verdict = 'ASSERTIONS-MOVED'; note = faults.find(r => r.moved).fault; }
+    else if (faults.some(r => r.nolog)) { verdict = 'NO-LOG'; note = faults.find(r => r.nolog).fault; }
+    else if (faults.every(r => r.baseline)) { verdict = 'NO-RED'; note = 'every record has red=0 - baselines, not controls'; }
+    else { verdict = 'BAD-RECORD'; note = faults[0].fault; }
+    rows.push({ name, rel, recs, bad, now, verdict, note, faults });
+  }
+  return rows;
+}
+
+/* ---- report. Returns the process exit code rather than exiting, so the selftest can read it. ---- */
+function report(rows, logLabel) {
+  const pad = (s, n) => String(s).padEnd(n);
+  console.log('CONTROL AUDIT   log=' + logLabel + '   gates=' + rows.length);
+  console.log('');
+  for (const v of ORDER) {
+    const g = rows.filter(r => r.verdict === v);
+    if (!g.length) { console.log('--- ' + v + ' (0) ---'); console.log(''); continue; }
+    console.log('--- ' + v + ' (' + g.length + ') ---');
+    for (const r of g) {
+      console.log('  ' + pad(r.name, 24) + pad(r.now === undefined ? 'not in log' : r.now + ' assertions', 16) + r.note);
+      if (v !== 'NONE') {
+        for (const c of r.recs) console.log('      ' + (c.sound ? 'sound  ' : c.partialOk ? 'partial' : c.baseline ? 'base   ' : 'FAULT  ') + c.commit + ' ' + c.date +
+          '  total=' + c.total + ' red=' + c.red + ' scope=' + c.scope + '  ' + c.how + (c.fault ? '   <- ' + c.fault : c.partialOk ? '   <- ' + c.growth : ''));
+        for (const b of r.bad) console.log('      UNPARSABLE  ' + b.slice(0, 120));
+      }
+    }
+    console.log('');
+  }
+  const n = (v) => rows.filter(r => r.verdict === v).length;
+  // `covered` counts gates with at least one non-FAULT record: COVERED and PARTIAL both. PARTIAL is kept OFF
+  // this line and off the CONTROL-AUDIT line, because fastgate.sh's ratchet reads every number on those two
+  // as a count whose rise is worse, and a rise in partial records is a gate gaining a record, not losing one.
+  const covered = n('COVERED') + n('PARTIAL');
+  console.log('SUMMARY  ' + covered + ' covered, of ' + rows.length + ' gates  |  ' +
+    ORDER.filter(v => v !== 'COVERED' && v !== 'PARTIAL' && n(v)).map(v => n(v) + ' ' + v.toLowerCase()).join(', '));
+  console.log('PARTIAL-RECORDS  ' + n('PARTIAL') + ' of those ' + covered + ' covered gate(s) rest on partial records only: shown able to fail for the assertions the record ran, not for the ones added since.');
+  const bad = rows.filter(r => r.verdict !== 'COVERED');
+  if (bad.length) {
+    console.log('CONTROL-AUDIT RED: ' + bad.length + ' gate(s) cannot show that the assertions they run TODAY have ever');
+    console.log('been shown able to fail. Back-fill only what you can verify - an invented record is worse than none,');
+    console.log('because the next reader will trust it, and this tool cannot tell an invented sha from a real one');
+    console.log('beyond checking that it is a commit in this repo.');
+    return 1;
+  }
+  console.log('CONTROL-AUDIT GREEN: every gate declares a sound control over the assertions it runs today.');
+  return 0;
+}
+
+/* ---- --selftest: three inputs, each a scratch git repository built here and removed here [#540, CANUM] ----
+ * (1) a gate with a valid record and NO assertions added since    -> COVERED, counted covered, GREEN
+ * (2) the same gate with ONE assertion added                       -> PARTIAL, STILL counted covered, never GREEN
+ * (3) a gate whose recorded assertions no longer exist             -> ASSERTIONS-MOVED, not covered
+ * The log is a minimal text in the suite's own shape (=== gate === / gate: green (N PASS)), parsed by the same
+ * parseLog the real path uses; verify-log.sh is NOT consulted here, because these inputs test the record logic
+ * and not log acceptance, and a forged full-suite green would be a worse fixture than none. The MUTANT this
+ * arm is built to catch: the subset test taken out (strict equality restored at the comparison) turns input
+ * (2) back to zero covered, which is exactly the decay the CANUM job describes.
+ */
+function selftest() {
+  let pass = 0, fail = 0;
+  const ok = (cond, what) => { if (cond) { pass++; console.log('SELFTEST PASS ' + what); } else { fail++; console.log('SELFTEST FAIL ' + what); } };
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'control-audit-selftest-'));
+  const git = (a) => cp.execSync('git -C ' + JSON.stringify(root) + ' ' + a, { encoding: 'utf8', stdio: ['pipe','pipe','pipe'] }).trim();
+  const gate = path.join(root, 'gates/regress/01-fixture.js');
+  const write = (lines) => fs.writeFileSync(gate, lines.join('\n') + '\n');
+  const commit = (m) => { git('add -A'); git('-c user.email=selftest@local -c user.name=selftest commit -q -m ' + JSON.stringify(m)); return git('rev-parse HEAD'); };
+  const capture = (fn) => { const buf = []; const orig = console.log; console.log = (...a) => buf.push(a.join(' ')); let rc; try { rc = fn(); } finally { console.log = orig; } return { rc, out: buf.join('\n') }; };
+  const run = (passCount, label) => capture(() => report(audit(root, parseLog('=== 01-fixture ===\n  01-fixture: green (' + passCount + ' PASS)\n')), label));
+  try {
+    fs.mkdirSync(path.join(root, 'gates/regress'), { recursive: true });
+    git('init -q -b main .');
+    const A1 = "L.say('a', 1 === 1);", A2 = "L.say('b', 2 === 2);", A3 = "L.say('c', 3 === 3);";
+    write(['// fixture gate', A1, A2, A3]);
+    const seed = commit('seed: three assertions');
+    const rec = '// CONTROL-RECORD: ' + seed + ' ' + TODAY + ' total=3 red=1 scope=full how=the fixture flipped assertion b';
+    // (1) a valid record and no assertions added since
+    write(['// fixture gate', rec, A1, A2, A3]); commit('record');
+    let r = run(3, 'selftest-1');
+    ok(/^--- COVERED \(1\) ---$/m.test(r.out), '(1) a gate with a valid record and no assertions added since reads COVERED');
+    ok(/^SUMMARY  1 covered, of 1 gates/m.test(r.out), '(1) and the SUMMARY counts it covered');
+    ok(/^PARTIAL-RECORDS  0 of those 1 covered/m.test(r.out) && r.rc === 0 && /^CONTROL-AUDIT GREEN/m.test(r.out), '(1) with 0 partial, and the GREEN line prints at exit 0');
+    // (2) the same gate with ONE assertion added
+    write(['// fixture gate', rec, A1, A2, A3, "L.say('d', 4 === 4);"]); commit('one assertion added');
+    r = run(4, 'selftest-2');
+    ok(/^--- PARTIAL \(1\) ---$/m.test(r.out) && /^--- ASSERTIONS-MOVED \(0\) ---$/m.test(r.out), '(2) one assertion added reads PARTIAL, not ASSERTIONS-MOVED');
+    ok(/^SUMMARY  1 covered, of 1 gates/m.test(r.out), '(2) covered does NOT fall to zero - the record is still true about the three lines it ran');
+    ok(/^PARTIAL-RECORDS  1 of those 1 covered/m.test(r.out), '(2) and the partial count is on its own line, not on SUMMARY');
+    ok(r.rc === 1 && !/CONTROL-AUDIT GREEN/.test(r.out) && /^CONTROL-AUDIT RED: 1 gate/m.test(r.out), '(2) a partial gate never prints the GREEN line: exit 1, RED names it');
+    ok(/partial.*the gate has grown 3 -> 4 L\.say sites/.test(r.out), '(2) the record line says the gate grew 3 -> 4');
+    // (2b) the count check a partial record meets: its total is bounded by what the log runs today
+    write(['// fixture gate', rec.replace('total=3', 'total=9'), A1, A2, A3, "L.say('d', 4 === 4);"]); commit('record claims more than the log runs');
+    r = run(4, 'selftest-2b');
+    ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /is not inside 1\.\.4 \(a partial record is bounded/.test(r.out) && /^SUMMARY  0 covered/m.test(r.out), '(2b) a partial record whose total exceeds what the log runs today is BAD-RECORD');
+    // (3) a gate whose recorded assertions no longer exist
+    write(['// fixture gate', rec, A1, "L.say('b', 2 === 3);", A3, "L.say('d', 4 === 4);"]); commit('one recorded assertion rewritten');
+    r = run(4, 'selftest-3');
+    ok(/^--- ASSERTIONS-MOVED \(1\) ---$/m.test(r.out) && /1 line\(s\) it ran are gone/.test(r.out), '(3) a gate whose recorded assertion no longer exists is still FAULT: ASSERTIONS-MOVED');
+    ok(/^SUMMARY  0 covered, of 1 gates  \|  1 assertions-moved/m.test(r.out) && r.rc === 1, '(3) and it is not covered, at exit 1');
+    // (3b) the same multiset in a different order is PARTIAL (every line it ran is still here), never COVERED
+    write(['// fixture gate', rec, A3, A2, A1]); commit('reordered');
+    r = run(3, 'selftest-3b');
+    ok(/^--- PARTIAL \(1\) ---$/m.test(r.out) && /in a different order since/.test(r.out) && r.rc === 1, '(3b) the same three lines reordered read PARTIAL at exit 1, not COVERED');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+  console.log('control-audit selftest: ' + pass + ' pass / ' + fail + ' fail');
+  return fail ? 1 : 0;
+}
+
+/* ---- main ---- */
+if (process.argv[2] === '--selftest') process.exit(selftest());
+
+const ROOT = path.resolve(__dirname, '..');
+const Gq = (a) => { try { cp.execSync('git -C ' + JSON.stringify(ROOT) + ' ' + a, { encoding: 'utf8', stdio: ['pipe','pipe','pipe'] }); return true; } catch (e) { return false; } };
 const LOGDIR = path.join(ROOT, 'claude/agents/gatelogs');
-let LOG = process.argv[2], why = '';
+let LOG = process.argv[2];
 if (LOG) {
   if (!Gq('rev-parse --git-dir') || !fs.existsSync(LOG)) { console.error('control-audit: no such log ' + LOG); process.exit(2); }
   const r = cp.spawnSync(path.join(ROOT, 'gates/verify-log.sh'), [LOG], { encoding: 'utf8' });
@@ -91,100 +319,4 @@ if (LOG) {
   }
   if (!LOG) { console.error('control-audit: no log under ' + LOGDIR + ' passes verify-log.sh'); process.exit(2); }
 }
-const logText = fs.readFileSync(LOG, 'utf8');
-const ranNow = {}, redNow = {};
-{
-  let cur = null;
-  for (const line of logText.split('\n')) {
-    const h = line.match(/^=== (\S+) ===$/); if (h) { cur = h[1]; continue; }
-    const g = line.match(/^\s*(\S+): green \((\d+) PASS\)/); if (g && cur) { ranNow[cur] = +g[2]; continue; }
-    if (/^\s*(\S+): RED/.test(line) && cur) redNow[cur] = true;
-  }
-}
-
-/* ---- the records ---- */
-const RE = /^\s*\/\/\s*CONTROL-RECORD:\s*([0-9a-f]{7,40})\s+(\d{4}-\d{2}-\d{2})\s+total=(\d+)\s+red=(\d+)\s+scope=(\S+)\s+how=(\S.*)$/;
-const targets = fs.readdirSync(path.join(ROOT, 'gates/regress')).filter(f => f.endsWith('.js'))
-  .map(f => 'gates/regress/' + f).concat(['gates/mountcheck.js']).sort();   // mountcheck runs in the suite too
-const rows = [];
-for (const rel of targets) {
-  const abs = path.join(ROOT, rel);
-  if (!fs.existsSync(abs)) continue;
-  const name = path.basename(rel, '.js');
-  const txt = fs.readFileSync(abs, 'utf8').split('\n');
-  const recs = [], bad = [];
-  for (const l of txt) {
-    // the COLON is what makes a line a claim. Without it, `// CONTROL-RECORD lines, the form this tool
-    // reads` - prose ABOUT the format, which gate 15 carries - was reported as a malformed record.
-    if (!/CONTROL-RECORD:/.test(l)) continue;
-    const m = l.match(RE);
-    if (m) recs.push({ commit: m[1], date: m[2], total: +m[3], red: +m[4], scope: m[5], how: m[6].trim(), raw: l.trim() });
-    else bad.push(l.trim());
-  }
-  const dirty = !Gq('diff --quiet HEAD -- ' + JSON.stringify(rel));
-  const now = ranNow[name];
-  const says = (s) => (s.match(/L\.say\(/g) || []).length;
-  const lines = (s) => s.split('\n').filter(l => /L\.say\(/.test(l)).map(l => l.trim()).join('\n');
-  const nowSrc = fs.readFileSync(abs, 'utf8');
-  const faults = [];
-  for (const r of recs) {
-    if (!Gq('cat-file -e ' + r.commit + '^{commit}')) { r.fault = 'sha ' + r.commit + ' is not a commit in this repo'; faults.push(r); continue; }
-    if (r.date > TODAY) { r.fault = 'dated ' + r.date + ', which is in the future'; faults.push(r); continue; }
-    if (!SCOPE_OK(r.scope)) { r.fault = 'scope=' + r.scope + ' is not in the vocabulary (full | env:K=V | geo:X | blocks:X)'; faults.push(r); continue; }
-    if (r.red > r.total) { r.fault = 'red=' + r.red + ' exceeds total=' + r.total; faults.push(r); continue; }
-    let old;
-    try { old = G('show ' + r.commit + ':' + rel); } catch (e) { r.fault = 'the gate did not exist at ' + r.commit; faults.push(r); continue; }
-    if (lines(old) !== lines(nowSrc)) {
-      r.fault = 'the assertions changed since ' + r.commit + ' (' + says(old) + ' -> ' + says(nowSrc) + ' L.say sites)';
-      r.moved = true; faults.push(r); continue;
-    }
-    if (now === undefined) { r.fault = 'this gate is not in the cited log' + (redNow[name] ? ' as green (it is RED there)' : ''); r.nolog = true; faults.push(r); continue; }
-    if (r.scope === 'full' && r.total !== now) { r.fault = 'full-scope total=' + r.total + ' but the log says this gate runs ' + now; faults.push(r); continue; }
-    if (r.scope !== 'full' && !(r.total > 0 && r.total <= now)) { r.fault = 'scoped total=' + r.total + ' is not inside 1..' + now; faults.push(r); continue; }
-    if (r.red === 0) { r.fault = 'red=0 - a baseline, not a control'; r.baseline = true; faults.push(r); continue; }
-    r.sound = true;
-  }
-  const sound = recs.filter(r => r.sound);
-  let verdict, note;
-  if (dirty) { verdict = 'DIRTY'; note = 'the working copy differs from HEAD; nothing here can judge it against a commit'; }
-  else if (bad.length) { verdict = 'UNPARSABLE'; note = bad.length + ' line(s) say CONTROL-RECORD and do not match the format'; }
-  else if (!recs.length) { verdict = 'NONE'; note = 'the gate declares no CONTROL-RECORD'; }
-  else if (sound.length) { verdict = 'COVERED'; note = sound.length + ' sound record(s) of ' + recs.length + ', assertions unchanged since each'; }
-  else if (faults.some(r => r.moved)) { verdict = 'ASSERTIONS-MOVED'; note = faults.find(r => r.moved).fault; }
-  else if (faults.some(r => r.nolog)) { verdict = 'NO-LOG'; note = faults.find(r => r.nolog).fault; }
-  else if (faults.every(r => r.baseline)) { verdict = 'NO-RED'; note = 'every record has red=0 - baselines, not controls'; }
-  else { verdict = 'BAD-RECORD'; note = faults[0].fault; }
-  rows.push({ name, rel, recs, bad, now, verdict, note, faults });
-}
-
-/* ---- report ---- */
-const pad = (s, n) => String(s).padEnd(n);
-console.log('CONTROL AUDIT   log=' + path.relative(ROOT, LOG) + ' (accepted by verify-log.sh)   gates=' + rows.length);
-console.log('');
-const ORDER = ['NONE', 'UNPARSABLE', 'DIRTY', 'ASSERTIONS-MOVED', 'NO-LOG', 'NO-RED', 'BAD-RECORD', 'COVERED'];
-for (const v of ORDER) {
-  const g = rows.filter(r => r.verdict === v);
-  if (!g.length) { console.log('--- ' + v + ' (0) ---'); console.log(''); continue; }
-  console.log('--- ' + v + ' (' + g.length + ') ---');
-  for (const r of g) {
-    console.log('  ' + pad(r.name, 24) + pad(r.now === undefined ? 'not in log' : r.now + ' assertions', 16) + r.note);
-    if (v !== 'NONE') {
-      for (const c of r.recs) console.log('      ' + (c.sound ? 'sound  ' : c.baseline ? 'base   ' : 'FAULT  ') + c.commit + ' ' + c.date +
-        '  total=' + c.total + ' red=' + c.red + ' scope=' + c.scope + '  ' + c.how + (c.fault ? '   <- ' + c.fault : ''));
-      for (const b of r.bad) console.log('      UNPARSABLE  ' + b.slice(0, 120));
-    }
-  }
-  console.log('');
-}
-const n = (v) => rows.filter(r => r.verdict === v).length;
-console.log('SUMMARY  ' + n('COVERED') + ' covered, of ' + rows.length + ' gates  |  ' +
-  ORDER.filter(v => v !== 'COVERED' && n(v)).map(v => n(v) + ' ' + v.toLowerCase()).join(', '));
-const bad = rows.filter(r => r.verdict !== 'COVERED');
-if (bad.length) {
-  console.log('CONTROL-AUDIT RED: ' + bad.length + ' gate(s) cannot show that the assertions they run TODAY have ever');
-  console.log('been shown able to fail. Back-fill only what you can verify - an invented record is worse than none,');
-  console.log('because the next reader will trust it, and this tool cannot tell an invented sha from a real one');
-  console.log('beyond checking that it is a commit in this repo.');
-  process.exit(1);
-}
-console.log('CONTROL-AUDIT GREEN: every gate declares a sound control over the assertions it runs today.');
+process.exit(report(audit(ROOT, parseLog(fs.readFileSync(LOG, 'utf8'))), path.relative(ROOT, LOG) + ' (accepted by verify-log.sh)'));
