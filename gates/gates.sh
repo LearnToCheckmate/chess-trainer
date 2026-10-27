@@ -2443,8 +2443,13 @@ echo "gates ran ($(( ${#gates[@]} ))): $(for f in "${gates[@]}"; do printf '%s '
 # THIS IS A RECORD AND NOT A GATE, deliberately and not by omission. `red` is assigned only inside the per-gate loop
 #   above, which has completed by the time this block runs, so nothing here can reach the SUBSET OK / GATES GREEN /
 #   GATES RED lines below. VERIFIED MECHANICALLY AGAINST EVERY ASSIGNMENT SITE, and the count is the corrected one:
-#   `red` is initialised at :2054 and assigned at :2096, :2145, :2372, :2404 and :2408 - SIX sites, all at or inside
-#   the per-gate loop, whose `done` closes about fifty lines above this block. #539 first published five of them and
+#   `red` is initialised at :2054 and assigned at :2096, :2145, :2372, :2404 and :2408 - SIX sites, and the property
+#   that matters is that EVERY ONE OF THEM IS ABOVE THIS BLOCK. Measured: :2404 and :2408 are inside the per-gate
+#   loop (it opens at :2387 and its `done` closes at :2409) and :2054, :2096, :2145 and :2372 are before it. The
+#   first two drafts said "all at or inside the per-gate loop, whose `done` closes about fifty lines above this
+#   block", and BOTH halves were wrong: false for four of the six sites, and the distance was 49 when written and
+#   became 68 when this very comment grew. A distance from a comment to a line the same comment is shifting is the
+#   one citation form guaranteed to rot, so this sentence asserts the relation instead. #539 first published five and
 #   missed :2408, which sits in the same elif chain as :2404; the fresh pair's A2 completed the enumeration. The
 #   conclusion is unchanged - no site is reachable from here - but an enumeration offered as the proof has to be
 #   complete, because the whole argument is that every site was checked. A seventh assignment at :148 is inside
@@ -2472,7 +2477,10 @@ echo "gates ran ($(( ${#gates[@]} ))): $(for f in "${gates[@]}"; do printf '%s '
 #   carrying a calibrated line followed by an off-calibration one and this block printed AGREES, so a mid-run drift
 #   (a fontconfig cache change, a relaunch under different env, one gate running with CT_NOFC=1) would be invisible
 #   here while the suite's own pins moved underneath it. It is LATENT and not live: every log in the archive carries
-#   exactly ONE distinct metrics line, re-measured at #539 over 485, 500, 522, 534 and 537. Filed rather than fixed,
+#   exactly ONE distinct metrics line, re-measured at #539 over ALL 166 COMMITTED LOGS rather than over a sample of
+#   five - `for f in claude/agents/gatelogs/*.log; do grep -ao 'text metrics @16px.*' "$f" | sort -u | wc -l; done`
+#   never exceeds 1 - because a sound claim resting on a five-log denominator is the very shape this comment
+#   corrects two paragraphs down. Filed rather than fixed,
 #   because a new predicate in this block is what produced the P1 the fresh pair vetoed on.
 TC_LINE="$(grep -m1 -e 'toolchain: playwright' "$ALL" 2>/dev/null)"; TC_LINE="${TC_LINE#"${TC_LINE%%[! ]*}"}"
 TM_LINE="$(grep -m1 -e 'text metrics @16px' "$ALL" 2>/dev/null)"; TM_LINE="${TM_LINE#"${TM_LINE%%[! ]*}"}"
@@ -2485,10 +2493,18 @@ case "$TM_LINE" in
 esac
 # THE CLAUSE BELOW MUST NOT CONTAIN THE TWO-WORD VERDICT TOKEN. #539's first draft ended it "this line cannot
 #   withhold GATES GREEN", which put that literal into EVERY log on EVERY run - subset and red logs included - and
-#   this repository states in six places (gates.sh:19, :2490, :2142, :54, gates/audit/suite-shared-paths.sh:78 and
-#   CLAUDE.md) that a subset log mechanically cannot carry it, because every consumer and every ad-hoc watcher greps
+#   this repository states in six places that a subset log mechanically cannot carry it: gates.sh:19, :54, :2142,
+#   the `DELIBERATELY NOT` line immediately above the subset verdict at the foot of this script,
+#   gates/audit/suite-shared-paths.sh:78 and CLAUDE.md. That fourth one is CITED BY ITS TEXT AND NOT BY AN OFFSET
+#   DELIBERATELY: round two cited it as :2490, which was true of round one's tree and which round two's own 28 added
+#   lines pushed to :2518, leaving :2490 pointing at a sentence of this comment. It is the RUN-LOG.md:247 defect at
+#   one-commit range, and the stale number is frozen into round two's commit message where it cannot be edited.
+#   Reason: every consumer and every ad-hoc watcher greps
 #   for exactly that string. The fresh pair's A2 drove a real subset run and got a SUBSET RED log answering yes to
-#   `grep -q 'GATES GREEN'`. This project already closed that hole twice from a narrower route - a newline in
+#   that grep. On its cross-read of the repair it ran the same probe with CT_EXPECT set and got a SUBSET OK log
+#   reading zero, which is the stronger control: the token is absent on the green-ish subset path too, and that is
+#   the path a careless grep would most plausibly be pointed at. This project already closed that hole twice from a
+#   narrower route - a newline in
 #   CT_RUNID, then the token inside CT_RUNID - with the sanitiser at gates.sh:1465 and five selftest controls
 #   (C88 to C88e); a hard-coded literal bypasses the sanitiser, which only guards the interpolated path. Say "the
 #   green verdict below" and never the token.
