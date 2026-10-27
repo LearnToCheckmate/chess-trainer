@@ -2489,9 +2489,18 @@ echo "gates ran ($(( ${#gates[@]} ))): $(for f in "${gates[@]}"; do printf '%s '
 #   GATES RED lines below. VERIFIED MECHANICALLY AGAINST EVERY ASSIGNMENT SITE: `red` is initialised ONCE and
 #   assigned at FIVE sites, two of them inside the per-gate loop and three above it, and THE PROPERTY THAT MATTERS
 #   IS THAT EVERY ONE OF THEM IS ABOVE THIS BLOCK. A seventh assignment inside --selftest never reaches this footer.
-#   CHECK IT IN ONE COMMAND RATHER THAN TRUSTING THIS SENTENCE: `grep -n 'red=0\|red=1' gates/gates.sh` lists every
-#   site with its line, and `grep -n '^TC_LINE=' gates/gates.sh` gives this block's own - every site number must be
-#   lower. THIS SENTENCE CARRIED SEVEN ABSOLUTE OFFSETS UNTIL ROUND FIVE AND ALL SEVEN WERE WRONG, which is the
+#   CHECK IT IN ONE COMMAND RATHER THAN TRUSTING THIS SENTENCE:
+#       grep -n 'red=[01]' gates/gates.sh | grep -v ':[[:space:]]*#'
+#   lists the SEVEN real sites with their lines, and `grep -n '^TC_LINE=' gates/gates.sh` gives this block's own -
+#   every site number must be lower except the --selftest one, which is lower too. THE SECOND GREP IS NOT
+#   DECORATION AND ROUND SIX ADDED IT AFTER RUNNING THE FIRST: without it the command returns TEN lines, because
+#   three COMMENTS quote `red=1` - and two of those three are sentences of THIS comment, including the line that
+#   prescribes the command. Worse, one of them sits BELOW this block, so a reader following round five's
+#   instruction saw a match at a higher line number than the block and would have concluded the relation this
+#   paragraph asserts was false. The relation was true the whole time; the CHECK was wrong. A verification command
+#   printed inside the file it verifies will match itself, which is this project's oldest trap (#407's pgrep, #416's
+#   pkill, #419's footer computed from the log, #450's every-tool-asked-about-the-log) in its cheapest costume yet:
+#   the instruction and the thing instructed about were the same bytes. THIS SENTENCE CARRIED SEVEN ABSOLUTE OFFSETS UNTIL ROUND FIVE AND ALL SEVEN WERE WRONG, which is the
 #   whole reason it now carries none; see the paragraph below the `esac`. The
 #   first two drafts said "all at or inside the per-gate loop, whose `done` closes about fifty lines above this
 #   block", and BOTH halves were wrong: false for four of the six sites, and the distance was 49 when written and
