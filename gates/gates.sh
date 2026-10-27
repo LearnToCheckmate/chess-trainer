@@ -1231,6 +1231,30 @@ M16PY
   st C90c-nor-on-the-disagreeing-path "$( ALL="$ST_T/off.log" bash "$ST_FB" 2>/dev/null | grep -c 'GATES GREEN' )" 0
   st C90d-and-that-path-really-was-the-DISAGREES-one "$( ALL="$ST_T/off.log" bash "$ST_FB" 2>/dev/null | grep -c 'calibration DISAGREES' )" 1
   st C90e-nor-when-the-log-carries-no-metrics-line "$( : > "$ST_T/empty.log"; ALL="$ST_T/empty.log" bash "$ST_FB" 2>/dev/null | grep -c 'GATES GREEN' )" 0
+  # C90f IS C90e's DENOMINATOR [antagonist B2, F1]. C90e expects 0 and a block that printed nothing
+  # also returns 0, and empty.log appeared in exactly one arm, so the metrics-less path was the one
+  # zero-expecting path with no presence assertion beside it. Unreachable today - the echo is
+  # unconditional - but a future `case` arm returning early there would make C90e loudest when the
+  # footer had gone silent, which is the whole reason C90 and C90d exist for the other two paths.
+  st C90f-and-the-metrics-less-path-still-PRINTED "$( ALL="$ST_T/empty.log" bash "$ST_FB" 2>/dev/null | grep -c '^instrument:' )" 1
+  # ── C90g, C90h: THE EXTRACTION'S SHAPE, NOT ONLY ITS BEHAVIOUR [antagonist B2, F2, a P2 it would
+  # land before the suite and I agree]. `sed -n '/^TC_LINE=/,/^echo "instrument:/p'` is bounded at the
+  # TOP ONLY: a second line beginning `TC_LINE=` ANYWHERE BELOW the real echo makes sed emit a second
+  # range, and B2 measured that a 41-line extraction becomes 69 and swallows the project's ONE
+  # legitimate token emitter, `if [ $red -eq 0 ]; then echo "GATES GREEN $N"`. It then turns the
+  # control BOTH WAYS and neither depends on the clause: with `red` unset the captured tail dies on
+  # `[ -eq 0 ]`, the arm's own 2>/dev/null swallows it, GATES RED prints instead and C90b still reads
+  # 0 and PASSES; with `red=0` in scope - a plain unqualified name this selftest already assigns -
+  # C90b reads 1 and the control REDS ON A TREE WHOSE CLAUSE IS CLEAN. A false green and a false red
+  # from one unremarkable line. So the answer is BOTH doors: the driven arms above prove what reaches
+  # a log, and these two prove the range is actually the footer.
+  # B2's PRESCRIPTION WAS WRONG AS WRITTEN AND IS CORRECTED HERE [the flag-proposes-a-hypothesis rule]:
+  # it asked for `grep -c 'GATES GREEN' "$ST_FB"` to be 0. MEASURED on the correct tree it is 2, both
+  # in the COMMENTS the extraction legitimately carries - the very paragraphs explaining this rule sit
+  # between the `esac` and the `echo` - so that arm would have reddened a clean tree on its first run.
+  # The non-comment count is the assertion that means what B2 intended, and it reads 0.
+  st C90g-the-extracted-range-carries-NO-verdict-token-in-any-CODE-line "$( grep -v '^[[:space:]]*#' "$ST_FB" | grep -c 'GATES GREEN' )" 0
+  st C90h-and-the-range-ends-at-EXACTLY-ONE-instrument-echo "$( grep -c '^echo "instrument:' "$ST_FB" )" 1
   # M19 IS THE MUTANT, AND WITHOUT IT C90b WOULD BE A GREEN THAT HAS NEVER BEEN SHOWN ABLE TO FAIL - which is
   # the defect this whole arm exists to answer. It restores #539's first draft one word at a time.
   st_sub "$ST_FB" "$ST_T/m19.sh" 'cannot withhold the verdict below' 'cannot withhold GATES GREEN'
