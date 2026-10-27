@@ -2432,6 +2432,10 @@ echo "$MANI_LINE" | tee -a "$ALL"
 # Until it lands, an OVERRIDE is a HUMAN duty: say so in the run report and the ledger, because no grep will.
 echo "${GF_LINE:-build-number series: NOT CHECKED - the door set no verdict.}" | tee -a "$ALL"
 echo "gates ran ($(( ${#gates[@]} ))): $(for f in "${gates[@]}"; do printf '%s ' "$(basename "$f" .js)"; done)" | tee -a "$ALL"
+# #538 [the container job]: restate the instrument beside the verdict, so a later reader knows what the pins were read on.
+TC_LINE="$(grep -m1 -e 'toolchain: playwright' "$ALL" 2>/dev/null)"; TC_LINE="${TC_LINE#"${TC_LINE%%[! ]*}"}"
+TM_LINE="$(grep -m1 -e 'text metrics @16px' "$ALL" 2>/dev/null)"; TM_LINE="${TM_LINE#"${TM_LINE%%[! ]*}"}"
+echo "instrument: ${TC_LINE:-toolchain: NOT FOUND in this log} | ${TM_LINE:-text metrics: NOT FOUND in this log} | the pins were calibrated at #534 on chromium 141.0.7390.37: system-ui 402.12, Segoe UI 322.15, sans-serif 348.28, sentinel 322.15" | tee -a "$ALL"
 # ── WHICH TREE DID THIS GATE? (#417, flag class-gate-verifies-a-bundle-never-a-ref-2026-09-18) ──────────────
 # Every one of this suite's assertions answers "is the tree in this working directory correct?" and NOT ONE
 # answers "is this the tree that ships". #416 went green at 1940 PASS, verify-log.sh passed it and the dashboard
