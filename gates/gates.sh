@@ -1202,6 +1202,38 @@ M16PY
   # function's first line is there, which is true whether the range ended at the function or ran to EOF.
   st M7g2-and-the-extraction-is-BOUNDED "$(grep -c '' < "$ST_T/subjfn.sh")" 5
 
+  # ── C90 + M19: THE INSTRUMENT FOOTER MUST NOT EMIT THE VERDICT TOKEN, AND THIS IS THE FIRST OF THE THREE
+  # ESCAPES TO GET A CONTROL. #539's first draft ended the footer clause with the literal two-word token, which
+  # put it into EVERY log on EVERY run - SUBSET and RED logs included - against an invariant this repository
+  # states in six places. The two earlier escapes (a newline in CT_RUNID, then the token inside CT_RUNID) each
+  # got five arms, C88 to C88e; this one got a PROSE RULE IN A COMMENT and nothing else, and this project's own
+  # file says in terms that a written warning is not a guard. Both antagonists of the repair pass said so.
+  # IT IS A BEHAVIOURAL CONTROL, NOT A GREP OVER THE SOURCE: the block is extracted LIVE from $SF by the text
+  # of its own first and last lines - no offsets, because a line number inside the file the next commit will
+  # shift is the one citation form guaranteed to rot (this build learned that twice in one hour) - and then RUN
+  # over a crafted log, so what is asserted is what reaches a log rather than what the source looks like.
+  ST_FB="$ST_T/footer.sh"; sed -n '/^TC_LINE=/,/^echo "instrument:/p' "$SF" > "$ST_FB"
+  printf '%s\n' 'text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)' > "$ST_T/cal.log"
+  printf '%s\n' 'text metrics @16px over the reference string: system-ui 373.42  "Segoe UI" 373.42  sans-serif 348.28  (fall-through sentinel 322.15)' > "$ST_T/off.log"
+  # THE DENOMINATOR FIRST AND AS ITS OWN ASSERTION [the eleventh costume]: `grep -c` over the output of a block
+  # that was never found is 0, which is the PASSING value, so an extraction that silently matched nothing would
+  # make every arm below report success loudest exactly when the thing under test had disappeared.
+  st C90-the-footer-block-was-FOUND-and-RAN "$( ALL="$ST_T/cal.log" bash "$ST_FB" 2>/dev/null | grep -c '^instrument:' )" 1
+  st C90a-and-it-actually-COMPARED-the-calibration "$( ALL="$ST_T/cal.log" bash "$ST_FB" 2>/dev/null | grep -c 'calibration AGREES' )" 1
+  st C90b-and-emits-NO-verdict-token-on-the-agreeing-path "$( ALL="$ST_T/cal.log" bash "$ST_FB" 2>/dev/null | grep -c 'GATES GREEN' )" 0
+  # BOTH ARMS, because the clause is unconditional: a later editor who reworded only the AGREES branch would
+  # leave the token reachable from the branch a stand-down run actually takes.
+  st C90c-nor-on-the-disagreeing-path "$( ALL="$ST_T/off.log" bash "$ST_FB" 2>/dev/null | grep -c 'GATES GREEN' )" 0
+  st C90d-and-that-path-really-was-the-DISAGREES-one "$( ALL="$ST_T/off.log" bash "$ST_FB" 2>/dev/null | grep -c 'calibration DISAGREES' )" 1
+  st C90e-nor-when-the-log-carries-no-metrics-line "$( : > "$ST_T/empty.log"; ALL="$ST_T/empty.log" bash "$ST_FB" 2>/dev/null | grep -c 'GATES GREEN' )" 0
+  # M19 IS THE MUTANT, AND WITHOUT IT C90b WOULD BE A GREEN THAT HAS NEVER BEEN SHOWN ABLE TO FAIL - which is
+  # the defect this whole arm exists to answer. It restores #539's first draft one word at a time.
+  st_sub "$ST_FB" "$ST_T/m19.sh" 'cannot withhold the verdict below' 'cannot withhold GATES GREEN'
+  st M19-the-first-draft-mutant-parses "$(bash -n "$ST_T/m19.sh" 2>/dev/null && echo yes || echo no)" yes
+  st M19a-MUTANT-leaks-the-token-on-the-agreeing-path "$( ALL="$ST_T/cal.log" bash "$ST_T/m19.sh" 2>/dev/null | grep -c 'GATES GREEN' )" 1
+  st M19b-and-on-the-disagreeing-path-too "$( ALL="$ST_T/off.log" bash "$ST_T/m19.sh" 2>/dev/null | grep -c 'GATES GREEN' )" 1
+  st M19c-and-the-MUTANT-still-prints-a-footer-so-it-differs-ONLY-in-the-token "$( ALL="$ST_T/cal.log" bash "$ST_T/m19.sh" 2>/dev/null | grep -c '^instrument:' )" 1
+
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
   exit 0
@@ -2476,7 +2508,12 @@ echo "gates ran ($(( ${#gates[@]} ))): $(for f in "${gates[@]}"; do printf '%s '
 #   archive - and NOTHING HERE CHECKS THAT THEY AGREE WITH EACH OTHER. The fresh pair's A2 drove a synthetic log
 #   carrying a calibrated line followed by an off-calibration one and this block printed AGREES, so a mid-run drift
 #   (a fontconfig cache change, a relaunch under different env, one gate running with CT_NOFC=1) would be invisible
-#   here while the suite's own pins moved underneath it. It is LATENT and not live: every log in the archive carries
+#   here while the suite's own pins moved underneath it. IT IS LATENT AGAINST THE ARCHIVE AND REACHABLE IN A LIVE
+#   RUN - #539's round three said "LATENT and not live" and antagonist B2 falsified the second half by MEASUREMENT
+#   the same hour: it drove a real subset, moved gates/fonts.conf out after mountcheck had printed its line and
+#   before the next gate launched, and got a log whose line 22 is calibrated, whose line 54 reads Inter and is OFF
+#   calibration, and whose footer says AGREES at SUBSET OK exit 0. So the archive half stands and the word "live"
+#   was wrong. Every log in the archive carries
 #   exactly ONE distinct metrics line, re-measured at #539 over ALL 166 COMMITTED LOGS rather than over a sample of
 #   five - `for f in claude/agents/gatelogs/*.log; do grep -ao 'text metrics @16px.*' "$f" | sort -u | wc -l; done`
 #   never exceeds 1 - because a sound claim resting on a five-log denominator is the very shape this comment
@@ -2507,8 +2544,10 @@ esac
 #   narrower route - a newline in
 #   CT_RUNID, then the token inside CT_RUNID - with the sanitiser at gates.sh:1465 and five selftest controls
 #   (C88 to C88e); a hard-coded literal bypasses the sanitiser, which only guards the interpolated path. Say "the
-#   green verdict below" and never the token.
-echo "instrument: ${TC_LINE:-toolchain: NOT FOUND in this log} | ${TM_LINE:-text metrics: NOT FOUND in this log} | $CAL_V | RECORD ONLY, NOT A GATE: this line cannot withhold the green verdict below" | tee -a "$ALL"
+#   verdict below" and never the token. It does not say "the GREEN verdict below" either, which round three's
+#   clause did: on a red or subset run the verdict below is SUBSET RED or the red one, so that adjective was
+#   false on exactly the runs a careless reader is most likely to be holding [antagonist B2, P3].
+echo "instrument: ${TC_LINE:-toolchain: NOT FOUND in this log} | ${TM_LINE:-text metrics: NOT FOUND in this log} | $CAL_V | RECORD ONLY, NOT A GATE: this line cannot withhold the verdict below" | tee -a "$ALL"
 # ── WHICH TREE DID THIS GATE? (#417, flag class-gate-verifies-a-bundle-never-a-ref-2026-09-18) ──────────────
 # Every one of this suite's assertions answers "is the tree in this working directory correct?" and NOT ONE
 # answers "is this the tree that ships". #416 went green at 1940 PASS, verify-log.sh passed it and the dashboard
