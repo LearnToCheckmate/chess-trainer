@@ -1223,6 +1223,11 @@ M16PY
   st C90b-and-emits-NO-verdict-token-on-the-agreeing-path "$( ALL="$ST_T/cal.log" bash "$ST_FB" 2>/dev/null | grep -c 'GATES GREEN' )" 0
   # BOTH ARMS, because the clause is unconditional: a later editor who reworded only the AGREES branch would
   # leave the token reachable from the branch a stand-down run actually takes.
+  # IF YOU EXTEND THESE ARMS, KNOW THAT THE FIXTURES SELF-POLLUTE [antagonist A2, an observation not a finding]:
+  # the block ends in `tee -a "$ALL"`, so every arm APPENDS an instrument line to its own fixture, and that
+  # appended line itself contains `text metrics @16px` because TM_LINE is interpolated into it. These arms survive
+  # only because `grep -m1` always reaches the pristine line 1. An arm using `tail`, or a count, inherits a
+  # corrupted fixture - so re-create the fixture in the arm rather than reusing these.
   st C90c-nor-on-the-disagreeing-path "$( ALL="$ST_T/off.log" bash "$ST_FB" 2>/dev/null | grep -c 'GATES GREEN' )" 0
   st C90d-and-that-path-really-was-the-DISAGREES-one "$( ALL="$ST_T/off.log" bash "$ST_FB" 2>/dev/null | grep -c 'calibration DISAGREES' )" 1
   st C90e-nor-when-the-log-carries-no-metrics-line "$( : > "$ST_T/empty.log"; ALL="$ST_T/empty.log" bash "$ST_FB" 2>/dev/null | grep -c 'GATES GREEN' )" 0
@@ -1232,7 +1237,14 @@ M16PY
   st M19-the-first-draft-mutant-parses "$(bash -n "$ST_T/m19.sh" 2>/dev/null && echo yes || echo no)" yes
   st M19a-MUTANT-leaks-the-token-on-the-agreeing-path "$( ALL="$ST_T/cal.log" bash "$ST_T/m19.sh" 2>/dev/null | grep -c 'GATES GREEN' )" 1
   st M19b-and-on-the-disagreeing-path-too "$( ALL="$ST_T/off.log" bash "$ST_T/m19.sh" 2>/dev/null | grep -c 'GATES GREEN' )" 1
-  st M19c-and-the-MUTANT-still-prints-a-footer-so-it-differs-ONLY-in-the-token "$( ALL="$ST_T/cal.log" bash "$ST_T/m19.sh" 2>/dev/null | grep -c '^instrument:' )" 1
+  st M19c-and-the-MUTANT-still-prints-a-footer "$( ALL="$ST_T/cal.log" bash "$ST_T/m19.sh" 2>/dev/null | grep -c '^instrument:' )" 1
+  # M19d CLOSES A FAIL-OPEN A2 MEASURED, and it is why M19c's name no longer claims "differs ONLY in the token":
+  # st_sub rewrites nothing when its anchor is absent, so on a tree whose clause ALREADY carries the token the
+  # "mutant" is byte-identical to the block and M19a/M19b read 1 = expected 1 and PASS. M19 alone therefore cannot
+  # tell "the mutant introduced the token" from "the fix already had it". The SET is still sound - C90b/c/e go red
+  # in exactly that state, measured on both external mutants - but a control that fails OPEN should say so, and one
+  # `cmp` is cheaper than the next reader rediscovering it.
+  st M19d-and-the-mutant-actually-DIFFERS-from-the-fix "$(cmp -s "$ST_FB" "$ST_T/m19.sh" && echo same || echo differ)" differ
 
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
@@ -2474,15 +2486,20 @@ echo "gates ran ($(( ${#gates[@]} ))): $(for f in "${gates[@]}"; do printf '%s '
 #   single build #538 named, which was A's F2.
 # THIS IS A RECORD AND NOT A GATE, deliberately and not by omission. `red` is assigned only inside the per-gate loop
 #   above, which has completed by the time this block runs, so nothing here can reach the SUBSET OK / GATES GREEN /
-#   GATES RED lines below. VERIFIED MECHANICALLY AGAINST EVERY ASSIGNMENT SITE, and the count is the corrected one:
-#   `red` is initialised at :2054 and assigned at :2096, :2145, :2372, :2404 and :2408 - SIX sites, and the property
-#   that matters is that EVERY ONE OF THEM IS ABOVE THIS BLOCK. Measured: :2404 and :2408 are inside the per-gate
-#   loop (it opens at :2387 and its `done` closes at :2409) and :2054, :2096, :2145 and :2372 are before it. The
+#   GATES RED lines below. VERIFIED MECHANICALLY AGAINST EVERY ASSIGNMENT SITE: `red` is initialised ONCE and
+#   assigned at FIVE sites, two of them inside the per-gate loop and three above it, and THE PROPERTY THAT MATTERS
+#   IS THAT EVERY ONE OF THEM IS ABOVE THIS BLOCK. A seventh assignment inside --selftest never reaches this footer.
+#   CHECK IT IN ONE COMMAND RATHER THAN TRUSTING THIS SENTENCE: `grep -n 'red=0\|red=1' gates/gates.sh` lists every
+#   site with its line, and `grep -n '^TC_LINE=' gates/gates.sh` gives this block's own - every site number must be
+#   lower. THIS SENTENCE CARRIED SEVEN ABSOLUTE OFFSETS UNTIL ROUND FIVE AND ALL SEVEN WERE WRONG, which is the
+#   whole reason it now carries none; see the paragraph below the `esac`. The
 #   first two drafts said "all at or inside the per-gate loop, whose `done` closes about fifty lines above this
 #   block", and BOTH halves were wrong: false for four of the six sites, and the distance was 49 when written and
 #   became 68 when this very comment grew. A distance from a comment to a line the same comment is shifting is the
 #   one citation form guaranteed to rot, so this sentence asserts the relation instead. #539 first published five and
-#   missed :2408, which sits in the same elif chain as :2404; the fresh pair's A2 completed the enumeration. The
+#   missed the fifth assignment, which shares an elif chain with the fourth; the fresh pair's A2 completed the
+#   enumeration, and ROUND FIVE REMOVED THE LINE NUMBERS IT WAS COMPLETED WITH, because by then every one of them
+#   had rotted. The
 #   conclusion is unchanged - no site is reachable from here - but an enumeration offered as the proof has to be
 #   complete, because the whole argument is that every site was checked. A seventh assignment at :148 is inside
 #   --selftest and never reaches this footer.
@@ -2530,19 +2547,31 @@ case "$TM_LINE" in
 esac
 # THE CLAUSE BELOW MUST NOT CONTAIN THE TWO-WORD VERDICT TOKEN. #539's first draft ended it "this line cannot
 #   withhold GATES GREEN", which put that literal into EVERY log on EVERY run - subset and red logs included - and
-#   this repository states in six places that a subset log mechanically cannot carry it: gates.sh:19, :54, :2142,
-#   the `DELIBERATELY NOT` line immediately above the subset verdict at the foot of this script,
-#   gates/audit/suite-shared-paths.sh:78 and CLAUDE.md. That fourth one is CITED BY ITS TEXT AND NOT BY AN OFFSET
-#   DELIBERATELY: round two cited it as :2490, which was true of round one's tree and which round two's own 28 added
-#   lines pushed to :2518, leaving :2490 pointing at a sentence of this comment. It is the RUN-LOG.md:247 defect at
-#   one-commit range, and the stale number is frozen into round two's commit message where it cannot be edited.
+#   this repository states in six places that a subset log mechanically cannot carry it, and EVERY ONE IS NAMED BY
+#   ITS TEXT so that none of them can rot: the CANNOT EMIT THE STRING line in this script's own header; the `can
+#   never emit the string` line a few lines below it; the A SUBSET RUN IS STILL EXEMPT line in the fastgate
+#   paragraph; the `DELIBERATELY NOT` line immediately above the subset verdict at the foot of this script; the
+#   `a subset run cannot emit` justification in gates/audit/suite-shared-paths.sh; and CLAUDE.md.
+#   NUMBERS WERE TRIED HERE AND THEY FAILED THREE TIMES IN ONE HOUR, which is why there are none left:
+#   round two wrote `:2490`, round two's own 28 added lines moved the target and left `:2490` pointing at a
+#   sentence of this very comment; round three replaced that one with the text anchor above and re-verified the
+#   nine remaining offsets; then ROUND FOUR INSERTED 32 LINES 1,300 LINES AWAY, in --selftest, and rotted ALL TEN
+#   of them by exactly 32 - including the one written here as `:2142`, a dead number quoted only as evidence and
+#   not as a pointer, which no reviewer's table caught, and including one that
+#   half-resolved onto a DIFFERENT `red=1` outside the loop, which reads as the comment being wrong about the loop
+#   rather than wrong about the number. THE LESSON WAS DRAWN ONE NOTCH SHORT AND THAT IS THE REUSABLE PART: round
+#   three concluded that a distance to a line THIS comment shifts cannot be trusted. The true rule is that an
+#   absolute offset is rotted by ANY later insertion ABOVE it, anywhere in the file, by anyone - and in this file
+#   that is every future --selftest arm, because --selftest sits at the top and is where arms get added. The text
+#   anchor round three introduced survived both insertions untouched, which is the in-tree proof of the remedy.
 #   Reason: every consumer and every ad-hoc watcher greps
 #   for exactly that string. The fresh pair's A2 drove a real subset run and got a SUBSET RED log answering yes to
 #   that grep. On its cross-read of the repair it ran the same probe with CT_EXPECT set and got a SUBSET OK log
 #   reading zero, which is the stronger control: the token is absent on the green-ish subset path too, and that is
 #   the path a careless grep would most plausibly be pointed at. This project already closed that hole twice from a
 #   narrower route - a newline in
-#   CT_RUNID, then the token inside CT_RUNID - with the sanitiser at gates.sh:1465 and five selftest controls
+#   CT_RUNID, then the token inside CT_RUNID - with the GF_IDENT sanitiser (`grep -n '^GF_IDENT=' gates/gates.sh`,
+#   the `sed 's/GATES GREEN/GATES_GREEN/g'` in it) and five selftest controls
 #   (C88 to C88e); a hard-coded literal bypasses the sanitiser, which only guards the interpolated path. Say "the
 #   verdict below" and never the token. It does not say "the GREEN verdict below" either, which round three's
 #   clause did: on a red or subset run the verdict below is SUBSET RED or the red one, so that adjective was
