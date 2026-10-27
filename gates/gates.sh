@@ -2433,9 +2433,38 @@ echo "$MANI_LINE" | tee -a "$ALL"
 echo "${GF_LINE:-build-number series: NOT CHECKED - the door set no verdict.}" | tee -a "$ALL"
 echo "gates ran ($(( ${#gates[@]} ))): $(for f in "${gates[@]}"; do printf '%s ' "$(basename "$f" .js)"; done)" | tee -a "$ALL"
 # #538 [the container job]: restate the instrument beside the verdict, so a later reader knows what the pins were read on.
+# #539 [the same job, after BOTH antagonist doors read the #538 line and converged on the same remedy]: also COMPARE
+#   the measured metrics against the calibration and print the verdict. The #538 line put the comparand on the page
+#   without the comparison, which reads as a verification to anyone who greps the footer - antagonist B of #539 filed
+#   that as its veto ground (withdrawn once it saw the commit declares the line a record) and antagonist A of #539
+#   reached the same locus from the diff door as its F3. ONE literal, TM_CAL, is both compared and printed, so there
+#   is no second prose home to go stale, which was A's F3; and the provenance is the measured range rather than the
+#   single build #538 named, which was A's F2.
+# THIS IS A RECORD AND NOT A GATE, deliberately and not by omission. `red` is assigned only inside the per-gate loop
+#   above, which has completed by the time this block runs, so nothing here can reach the SUBSET OK / GATES GREEN /
+#   GATES RED lines below; antagonist A of #539 verified that mechanically against the three assignment sites.
+# ITS LIMIT, stated because it is what decides the shape: the test is STRING CONTAINMENT against a literal, so a
+#   reword or respacing of gates/lib.js's metrics sentence flips it to DISAGREES, and it cannot tell "the metrics
+#   moved" from "the sentence changed". That is exactly why it may NOT withhold GATES GREEN, and why it prints the
+#   literal it compared so a reader can see which of the two happened. A comparison that can false-alarm on a reword
+#   must not be able to refuse a push; the comparison belongs in the record and the refusal does not.
+# MEASURED before it was written, over all 29 committed gatelogs in claude/agents/gatelogs: AGREES on 28 of them
+#   (#500 through #534) and DISAGREES on exactly ONE, 537-all.log - the ten-gate red over main's own unchanged bundle
+#   that this build exists to fix, where only the "Segoe UI" slot moved, 373.42 against a calibrated 322.15. It also
+#   DISAGREES on a CT_NOFC=1 run, which is the state the pin exists to prevent. The cheaper candidate - echoing the
+#   `fontconfig:` line instead - was measured and REJECTED: 537-all.log:113 reads a CLEAN fontconfig line and the
+#   whole file carries zero MISMATCH, because gates/lib.js's guard tests fc-match "sans-serif", which resolved
+#   correctly in #537. Echoing it would have printed a clean line straight through the red.
 TC_LINE="$(grep -m1 -e 'toolchain: playwright' "$ALL" 2>/dev/null)"; TC_LINE="${TC_LINE#"${TC_LINE%%[! ]*}"}"
 TM_LINE="$(grep -m1 -e 'text metrics @16px' "$ALL" 2>/dev/null)"; TM_LINE="${TM_LINE#"${TM_LINE%%[! ]*}"}"
-echo "instrument: ${TC_LINE:-toolchain: NOT FOUND in this log} | ${TM_LINE:-text metrics: NOT FOUND in this log} | the pins were calibrated at #534 on chromium 141.0.7390.37: system-ui 402.12, Segoe UI 322.15, sans-serif 348.28, sentinel 322.15" | tee -a "$ALL"
+TM_CAL='system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)'
+TM_PROV='the target every green log from #500 to #534 read, on chromium 141.0.7390.37'
+case "$TM_LINE" in
+  '')          CAL_V="calibration NOT COMPARED - this log carries no text metrics line";;
+  *"$TM_CAL"*) CAL_V="calibration AGREES - the measured line contains [$TM_CAL], $TM_PROV";;
+  *)           CAL_V="*** calibration DISAGREES - every text-derived pin in this log is OFF CALIBRATION. Wanted [$TM_CAL], $TM_PROV ***";;
+esac
+echo "instrument: ${TC_LINE:-toolchain: NOT FOUND in this log} | ${TM_LINE:-text metrics: NOT FOUND in this log} | $CAL_V | RECORD ONLY, NOT A GATE: this line cannot withhold GATES GREEN" | tee -a "$ALL"
 # ── WHICH TREE DID THIS GATE? (#417, flag class-gate-verifies-a-bundle-never-a-ref-2026-09-18) ──────────────
 # Every one of this suite's assertions answers "is the tree in this working directory correct?" and NOT ONE
 # answers "is this the tree that ships". #416 went green at 1940 PASS, verify-log.sh passed it and the dashboard
