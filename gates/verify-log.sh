@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# gates/verify-log.sh <logfile> [expected-build] [--on-main] [--this-bundle] [--ignore-held]
-# The three options may come in any order, before or after the build number. An unrecognised token is REFUSED at
+# gates/verify-log.sh <logfile> [expected-build] [--on-main] [--this-bundle] [--this-suite] [--ignore-held]
+# The four options may come in any order, before or after the build number. An unrecognised token is REFUSED at
 # exit 1 and never read as the build number: a misspelled flag used to be swallowed silently and the gate then
 # answered OK over a question nobody had asked (#537).
 # gates/verify-log.sh --citations     <- reads the TREE, not a log: do the registers' citations resolve? (12)
@@ -773,7 +773,7 @@ EOF
   echo "CITATIONS OK: every named path resolves, every published case id occurs in the log it cites, and every line-number citation resolves within its file at or below the ceiling of $A4CEIL."
   exit 0
 fi
-LOG="${1:-}"; WANT=""; ONMAIN=0; THISBUNDLE=0; IGNOREHELD=0
+LOG="${1:-}"; WANT=""; ONMAIN=0; THISBUNDLE=0; THISSUITE=0; IGNOREHELD=0
 # ── THE ARGUMENT PARSER REFUSES WHAT IT DOES NOT RECOGNISE (#537, the VLMISS job) ──────────────────────────
 # jobs/verify-log-accepts-a-misspelled-this-bundle-and-returns-ok-2026-10-03, from an antagonist B of 3 Oct
 # 2026, re-sighted by #534's third pair. THE DEFECT: this loop's catch-all `*)` took ANY unrecognised token as
@@ -800,6 +800,7 @@ for a in "${@:2}"; do
   case "$a" in
     --on-main)     ONMAIN=1 ;;
     --this-bundle) THISBUNDLE=1 ;;
+    --this-suite)  THISSUITE=1 ;;   # #540, SUITEKEY: arm (8b) below
     --ignore-held) IGNOREHELD=1 ;;
     # AN EMPTY POSITIONAL IS NOT A TYPO, AND REFUSING IT WAS A REGRESSION THIS PARSER INTRODUCED.
     # `verify-log.sh "$LOG" "$NUM"` with NUM unset or empty passes an empty string, which ed65bab ignored
@@ -821,7 +822,7 @@ for a in "${@:2}"; do
       echo "  It looks like a flag, so it is a TYPO and is NEVER read as a build number. Before this check a"
       echo "  misspelling placed before the build number was silently overwritten by it, and the gate then"
       echo "  answered OK over a question nobody had asked."
-      echo "  The three options are --on-main, --this-bundle and --ignore-held, in any order, before or after"
+      echo "  The four options are --on-main, --this-bundle, --this-suite and --ignore-held, in any order, before or after"
       echo "  the build number."
       exit 1 ;;
     '#'[0-9][0-9][0-9]|'#'[0-9][0-9][0-9][0-9])
@@ -834,7 +835,7 @@ for a in "${@:2}"; do
       exit 1 ;;
   esac
 done
-[ -n "$LOG" ] || { echo "usage: gates/verify-log.sh <logfile> [#NNN] [--on-main] [--this-bundle] [--ignore-held]"
+[ -n "$LOG" ] || { echo "usage: gates/verify-log.sh <logfile> [#NNN] [--on-main] [--this-bundle] [--this-suite] [--ignore-held]"
   echo "       gates/verify-log.sh --citations    (checks the registers' citations against the tree, see (12))"
   echo "       gates/verify-log.sh --citations-selftest   (the both-direction controls for citation arms (4) and (5))"; exit 1; }
 [ -s "$LOG" ] || { echo "REFUSED: $LOG is missing or empty"; exit 1; }
@@ -1452,6 +1453,90 @@ if [ "$THISBUNDLE" -eq 1 ]; then
   fi
   echo "THIS-BUNDLE OK: the log gated md5 $LOGMD5, which is app.js on disk"
 fi
+# (8b) --this-suite: does this green describe the SUITE that is on disk RIGHT NOW? The honest companion to
+# --this-bundle [#540, SUITEKEY, jobs/the-push-gate-has-no-key-for-the-suite-itself-2026-10-03, P1, filed from
+# #474's integration tree by its antagonist B]. --this-bundle asks "is app.js the bundle the log measured" and
+# --on-main asks "is the gated sha on origin/main" - and NEITHER IS A FUNCTION OF THE SUITE. B measured it on
+# a tree 12 commits ahead of main with 1228 insertions across the three scripts that decide whether this
+# project may ship: both flags answered OK, because app.js was untouched and the archived log's sha had been
+# merged. A run can rewrite a gate's assertions, cite the previous build's green and get OK on both keys, and
+# the log it cites is honest about a suite that no longer exists. #531's antagonist B then showed the same
+# hole from the other side: a tampered gates/verify-log.sh routed to the full suite gets a green log that
+# says nothing about the tamper, and verify-log.sh - the tampered file - then says OK over itself.
+# THE KEY: every tracked file under gates/regress/ at the log's own `ref: HEAD <sha>`, plus gates/gates.sh,
+# gates/verify-log.sh and gates/gatemanifest.sh (the set B fingerprinted and the set this job names), listed
+# with `git ls-tree` at that sha, against the same paths on disk hashed with `git hash-object --no-filters`
+# (RAW bytes, the #527 reason: a clean filter or an index flag must not be able to make a changed file read
+# clean), plus every gates/regress/*.js ON DISK that the sha did not carry, because gates.sh globs that
+# directory and a gate the log never ran is on disk right now. A path that differs, is missing, or was added
+# is NAMED, and one is enough to refuse.
+# WHAT IT DOES NOT COVER, SAID HERE SO THE OK LINE IS NOT OVER-READ: gates/lib.js and the harness's other
+# scripts and registers (build.sh, buildnum.sh, held.sh, records-gate.sh, control-audit.js, fastgate.sh,
+# gate-manifest.tsv, held-trees.tsv, fonts.conf, the node_modules the suite runs on) are NOT in the set.
+# The set is the job's, and widening it is a decision for the job, not for the arm; what is left out is
+# printed with every verdict rather than implied by the word SUITE.
+# PINNED AND OFFLINE: the repository is the one above this script, named with --git-dir and --work-tree so an
+# inherited GIT_DIR cannot redirect it (#540 GMROOT, the same class), and NOTHING IS FETCHED - a sha this
+# repository does not hold is a refusal that says so, not a pass and not a fetch. No pipe here feeds grep:
+# the ref line is read as the --on-main arm reads it, and every comparison is an awk pass over two listings.
+if [ "$THISSUITE" -eq 1 ]; then
+  SKREF="$(grep -o '^ref: HEAD [0-9a-f]\{7,40\}' "$LOG" | tail -1 | awk '{print $3}' || true)"
+  if [ -z "$SKREF" ]; then
+    echo "REFUSED (--this-suite): $LOG carries no 'ref: HEAD <sha>' line, so the suite it ran cannot be identified."
+    echo "  Logs from before #417 have none - re-gate, or check the suite by hand and say so where you cite this log."
+    exit 1
+  fi
+  SKROOT="$(cd "$(dirname "$0")/.." && pwd)"
+  SKGIT=(git -C "$SKROOT" --git-dir="$SKROOT/.git" --work-tree="$SKROOT")
+  if ! "${SKGIT[@]}" rev-parse --verify --quiet "$SKREF^{commit}" >/dev/null 2>&1; then
+    echo "REFUSED (--this-suite): this repository ($SKROOT) does not hold commit $SKREF, the sha the log gated,"
+    echo "  so the suite that ran cannot be read. Nothing is fetched here: UNKNOWN is not a pass. Fetch it, or"
+    echo "  read the log in the checkout that produced it."
+    exit 1
+  fi
+  SK_SCRIPTS="gates/gates.sh gates/verify-log.sh gates/gatemanifest.sh"
+  # path<TAB>blob at the gated sha, for every tracked file under gates/regress/ and the three scripts.
+  # shellcheck disable=SC2086  # SK_SCRIPTS is a deliberate word list
+  SK_AT="$("${SKGIT[@]}" ls-tree -r "$SKREF" -- gates/regress $SK_SCRIPTS 2>/dev/null | awk -F'\t' '{split($1,m," "); if (m[2]=="blob") print $2 "\t" m[3]}' | sort)"
+  if [ -z "$SK_AT" ]; then
+    echo "REFUSED (--this-suite): $SKREF carries no gates/regress/ and none of $SK_SCRIPTS, so there is no suite to compare."
+    exit 1
+  fi
+  # path<TAB>hash on disk, for every path the sha carries plus every gates/regress/*.js on disk the sha does not.
+  SK_PATHS="$( { printf '%s\n' "$SK_AT" | cut -f1; ( cd "$SKROOT" && ls gates/regress/*.js 2>/dev/null ); } | sort -u )"
+  SK_NOW=""
+  while IFS= read -r skp; do
+    [ -n "$skp" ] || continue
+    if [ -f "$SKROOT/$skp" ]; then
+      skh="$("${SKGIT[@]}" hash-object --no-filters "$SKROOT/$skp" 2>/dev/null || echo UNREADABLE)"
+    else skh="ABSENT"; fi
+    SK_NOW="$SK_NOW$skp	$skh"$'\n'
+  done <<<"$SK_PATHS"
+  # ONE AWK PASS over both listings. Verdict lines: `differs`, `missing on disk`, `on disk and not at <sha>`.
+  SK_REPORT="$(awk -F'\t' -v sha="$SKREF" '
+    NR==FNR { at[$1]=$2; next }
+    { now[$1]=$2 }
+    END {
+      for (p in now) {
+        if (!(p in at))            printf "    %s: on disk and not at %s (a gate the log never ran)\n", p, sha;
+        else if (now[p]=="ABSENT") printf "    %s: at %s and missing on disk\n", p, sha;
+        else if (now[p]!=at[p])    printf "    %s: differs (at %s %s, on disk %s)\n", p, sha, substr(at[p],1,12), substr(now[p],1,12);
+      }
+    }' <(printf '%s\n' "$SK_AT") <(printf '%s' "$SK_NOW") | sort)"
+  SK_N="$(printf '%s\n' "$SK_AT" | grep -c .)"
+  SK_NREG="$(printf '%s\n' "$SK_AT" | awk -F'\t' '$1 ~ /^gates\/regress\//' | grep -c .)"
+  SK_BAD="$(printf '%s' "$SK_REPORT" | grep -c .)"
+  if [ "$SK_BAD" -gt 0 ]; then   # SK-VERDICT
+    echo "REFUSED (--this-suite): the suite on disk is not the suite $LOG ran at $SKREF - $SK_BAD path(s) of $SK_N:"
+    printf '%s\n' "$SK_REPORT"
+    echo "  The log is honest about the suite it measured; it just did not measure the suite you are about to push."
+    echo "  (key: every tracked file under gates/regress/ plus $SK_SCRIPTS, raw bytes; NOT in the key:"
+    echo "   gates/lib.js, the harness's other scripts and registers, and node_modules)"
+    exit 1
+  fi
+  echo "THIS-SUITE OK: $SK_N suite files read the same bytes on disk as at $SKREF ($SK_NREG under gates/regress/ plus $SK_SCRIPTS)"
+  echo "    NOT in that key, so not vouched for by it: gates/lib.js, the harness's other scripts and registers, and node_modules."
+fi
 # ── (11a)/(11) THE BUILD-NUMBER SERIES DOOR CHECK WAS REVERTED OUT OF THIS FILE [#534]. ────────────
 # It landed in this run (VLDOOR) and THREE successive antagonist pairs each broke it; the fourth-round
 # finding is why it is gone rather than repaired a fourth time. The check located the footer verdict
@@ -1508,4 +1593,5 @@ case "$MANICHECK" in
 esac
 echo "    NOTE: that is a statement about the SUITE, not permission to push. It says these assertions ran over"
 echo "    that bundle and none failed. It does not say the adversarial pass cleared the tree, and it does not"
-echo "    say this is the tree you are pushing (pass --this-bundle and --on-main to ask those two)."
+echo "    say this is the tree you are pushing (pass --this-bundle, --this-suite and --on-main to ask those three:"
+echo "    the bundle on disk, the suite on disk, and the tree on origin/main)."

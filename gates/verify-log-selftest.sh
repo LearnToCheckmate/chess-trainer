@@ -459,6 +459,86 @@ eq "I control: the '' arm sits ABOVE the -* arm in \$SRC, so it cannot fall to t
 # THE LESSON: when you replace a MULTI-LINE shell construct, anchor on the WHOLE construct. Anchoring on its
 # first line leaves the rest executing.
 
+echo
+echo "-- J. --this-suite: THE KEY FOR THE SUITE ITSELF [#540, SUITEKEY]"
+echo "      jobs/the-push-gate-has-no-key-for-the-suite-itself-2026-10-03. Neither --this-bundle (app.js's md5) nor"
+echo "      --on-main (the gated sha's ancestry) is a function of the gate suite, so a tree that rewrote the three"
+echo "      deciders passed both unchanged (#474's antagonist B), and a tampered verify-log.sh said OK over itself"
+echo "      (#531's antagonist B). These cases run in their OWN throwaway repository holding a one-gate suite, a"
+echo "      log whose ref line names that repository's HEAD, and the script run IN PLACE under its gates/, because"
+echo "      the arm roots itself from its own location and pins --git-dir and --work-tree there."
+SK="$TD/suite"; mkdir -p "$SK/gates/regress" "$SK/logs"
+cp "$SRC" "$SK/gates/verify-log.sh"; chmod +x "$SK/gates/verify-log.sh"
+[ -r "$HERE/gate-manifest.tsv" ] && cp "$HERE/gate-manifest.tsv" "$SK/gates/gate-manifest.tsv"
+[ -r "$HERE/held-trees.tsv" ] && cp "$HERE/held-trees.tsv" "$SK/gates/held-trees.tsv"
+cp "$TD/app.js" "$SK/app.js"
+printf '// a one-assertion gate for the --this-suite cases\nL.say("J fixture", true);\n' > "$SK/gates/regress/01-selftest-gate.js"
+printf '#!/usr/bin/env bash\n# a stand-in gates.sh; never executed by these cases\n' > "$SK/gates/gates.sh"
+printf '#!/usr/bin/env bash\n# a stand-in gatemanifest.sh; never executed by these cases\n' > "$SK/gates/gatemanifest.sh"
+SKG=(git -C "$SK" --git-dir="$SK/.git" --work-tree="$SK")
+( "${SKG[@]}" init -q -b main && "${SKG[@]}" -c user.email=selftest@example.com -c user.name=selftest add -A \
+  && "${SKG[@]}" -c user.email=selftest@example.com -c user.name=selftest commit -q -m "suite fixture" ) >/dev/null 2>&1
+SKSHA="$("${SKG[@]}" rev-parse HEAD)"
+SKVL="$SK/gates/verify-log.sh"
+SKLOG="$SK/logs/suite.log"; sed "s|^ref: HEAD .*|ref: HEAD $SKSHA|" "$GOOD" > "$SKLOG"
+eq "J0 the fixture log's ref line names the suite repository's HEAD" "1" "$(grep -c "^ref: HEAD $SKSHA" "$SKLOG")"
+ckmsg "J1 control: the suite on disk IS the suite at the gated sha" 0 "THIS-SUITE OK" "$SKVL" "$SKLOG" "$FOOT" --this-suite
+ckmsg "J1 and the flag is read in either position" 0 "THIS-SUITE OK" "$SKVL" "$SKLOG" --this-suite "$FOOT"
+gt0 "J1 and the OK line names what the key leaves OUT, so it cannot be over-read" \
+    "$( "$SKVL" "$SKLOG" "$FOOT" --this-suite 2>&1 | grep -c 'NOT in that key' )"
+# (a) a gate's assertion edited on disk and not committed - the job's own case, and the one its mutant turns.
+printf 'L.say("an assertion the log never ran", true);\n' >> "$SK/gates/regress/01-selftest-gate.js"
+ckmsg "J2 a gate EDITED on disk refuses and names the gate" 1 "gates/regress/01-selftest-gate.js: differs" \
+      "$SKVL" "$SKLOG" "$FOOT" --this-suite
+ck "J2 control: WITHOUT --this-suite the same tree is still accepted - the defect, kept as the baseline" 0 \
+   "$SKVL" "$SKLOG" "$FOOT" --this-bundle
+"${SKG[@]}" checkout -q -- gates/regress/01-selftest-gate.js
+# (b) a gate on disk the sha never carried: gates.sh globs the directory, so it would run; the log never ran it.
+printf 'L.say("a gate the log never ran", true);\n' > "$SK/gates/regress/02-added-gate.js"
+ckmsg "J3 a gate ADDED on disk refuses and names it as never run" 1 "gates/regress/02-added-gate.js: on disk and not at" \
+      "$SKVL" "$SKLOG" "$FOOT" --this-suite
+rm -f "$SK/gates/regress/02-added-gate.js"
+# (c) a gate deleted on disk.
+rm -f "$SK/gates/regress/01-selftest-gate.js"
+ckmsg "J4 a gate MISSING on disk refuses and names it" 1 "gates/regress/01-selftest-gate.js: at $SKSHA and missing on disk" \
+      "$SKVL" "$SKLOG" "$FOOT" --this-suite
+"${SKG[@]}" checkout -q -- gates/regress/01-selftest-gate.js
+# (d) one of the three deciders edited.
+printf '# one more line\n' >> "$SK/gates/gates.sh"
+ckmsg "J5 gates/gates.sh edited on disk refuses and names it" 1 "gates/gates.sh: differs" "$SKVL" "$SKLOG" "$FOOT" --this-suite
+"${SKG[@]}" checkout -q -- gates/gates.sh
+# (e) THE VERIFIER ITSELF, which is #531's instance: the script that answers is the file that changed. The
+#     append lands after every byte the interpreter has read by the time the arm runs, and the edit is made
+#     before the run starts, so this is not the mid-run edit CLAUDE.md forbids.
+printf '# tampered\n' >> "$SK/gates/verify-log.sh"
+ckmsg "J6 the VERIFIER ITSELF edited on disk refuses and names itself" 1 "gates/verify-log.sh: differs" \
+      "$SKVL" "$SKLOG" "$FOOT" --this-suite
+"${SKG[@]}" checkout -q -- gates/verify-log.sh
+ckmsg "J6 control: restored, the tree is accepted again - so J2 to J6 were the edits and not the log" 0 "THIS-SUITE OK" \
+      "$SKVL" "$SKLOG" "$FOOT" --this-suite
+# (f) no ref line: the suite that ran cannot be identified.
+grep -v '^ref: HEAD ' "$SKLOG" > "$SK/logs/noref.log"
+ckmsg "J7 a log with no 'ref: HEAD' line refuses" 1 "carries no 'ref: HEAD" "$SKVL" "$SK/logs/noref.log" "$FOOT" --this-suite
+# (g) a sha this repository does not hold - GOOD's real one. Nothing is fetched: UNKNOWN is not a pass.
+ckmsg "J8 a gated sha this repository does not hold refuses, and does not fetch" 1 "does not hold commit" \
+      "$SKVL" "$GOOD" "$FOOT" --this-suite
+# (h) THE LIMIT, STATED RATHER THAN HIDDEN: the key is the job's set, and gates/lib.js is outside it. A fixture
+#     that pretended otherwise would be the frozen-denominator trap; this one says what the word SUITE covers.
+printf '// not in the key\n' > "$SK/gates/lib.js"
+ck "J9 LIMIT: gates/lib.js is outside the key, so an added lib.js is still accepted (named in the OK line)" 0 \
+   "$SKVL" "$SKLOG" "$FOOT" --this-suite
+rm -f "$SK/gates/lib.js"
+# ---- THE MUTANT: the verdict dropped. One literal edit on the line marked SK-VERDICT; J2 must turn. ----
+sed 's|^  if \[ "\$SK_BAD" -gt 0 \]; then   # SK-VERDICT$|  if false; then   # SK-VERDICT (MUTANT)|' "$SKVL" > "$SK/gates/vl-mutant.sh"
+chmod +x "$SK/gates/vl-mutant.sh"
+eq "J MUTANT the verdict line was replaced exactly once" "1 0" \
+   "$(grep -c 'SK-VERDICT (MUTANT)' "$SK/gates/vl-mutant.sh") $(grep -c '^  if \[ "\$SK_BAD" -gt 0 \]; then   # SK-VERDICT$' "$SK/gates/vl-mutant.sh")"
+printf 'L.say("an assertion the log never ran", true);\n' >> "$SK/gates/regress/01-selftest-gate.js"
+ck "J MUTANT an edited gate is ACCEPTED - the defect" 0 "$SK/gates/vl-mutant.sh" "$SKLOG" "$FOOT" --this-suite
+ck "J FIX the same tree still REFUSES" 1 "$SKVL" "$SKLOG" "$FOOT" --this-suite
+"${SKG[@]}" checkout -q -- gates/regress/01-selftest-gate.js
+rm -f "$SK/gates/vl-mutant.sh"
+
 echo "verify-log self-test: $P pass, $F fail, $HOPEN hole(s) open, $HCLOSED hole(s) closed"
 if [ "$F" != "0" ]; then
   echo "A CONFIRMED CASE REGRESSED. That is a real break in the push gate, not a known hole."
