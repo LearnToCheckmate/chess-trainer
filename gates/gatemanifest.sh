@@ -97,6 +97,18 @@
 # anyone with the tree; what protects a log's provenance remains the suite lock, not anything in this file.
 set -uo pipefail
 G="$(cd "$(dirname "$0")" && pwd)"; M="$G/gate-manifest.tsv"; REG="$G/regress"
+# THE REPOSITORY IS THE SCRIPT'S OWN PARENT, PINNED, AND NEVER WHAT THE ENVIRONMENT SAYS [#540, GMROOT part 1,
+# jobs/gatemanifest-derives-its-root-with-git-c-so-an-inherited-git-dir-switches-off-the-gate-anchor-while-the-tier-still-prints-green-2026-10-22].
+# This file used to find its repository with `git -C "$G" rev-parse --show-toplevel`, and `-C` does NOT override
+# an inherited GIT_DIR or GIT_WORK_TREE - git hooks EXPORT GIT_DIR, so anything run from a pre-push or post-commit
+# wrapper inherits one. Under that inheritance the three reads below answered for the OTHER repository, the manifest
+# was "tracked at neither origin/main nor HEAD" there, and the gate anchor switched itself off with a NOT CHECKED
+# line while every verdict around it stayed green. So every git call in this file now goes through GITP, which
+# names the repository the way gates/gates.sh:1279 and :2314 do: the directory above gates/, with --git-dir and
+# --work-tree set explicitly, so the environment cannot redirect it. A directory with no .git beside gates/ (a
+# copied tree) is then the ONLY way to reach NOT CHECKED here, which is what that outcome was written for.
+ROOT="$(dirname "$G")"
+GITP=(git -C "$ROOT" --git-dir="$ROOT/.git" --work-tree="$ROOT")
 CMD="${1:-check}"
 
 # A missing manifest is reported as NOT CHECKED, never as a pass. Antagonist B's ground on #450's held register:
@@ -537,14 +549,17 @@ check)
   if ! command -v git >/dev/null 2>&1; then
     ANCHOR_WHY="git is not on PATH"
   else
-    GITROOT="$(git -C "$G" rev-parse --show-toplevel 2>/dev/null || true)"
+    # PINNED, not discovered: the repository is $ROOT or there is none. `rev-parse --show-toplevel` is kept only
+    # as the liveness test of that pinned repository; its ANSWER is not consulted, because under an inherited
+    # GIT_DIR an unpinned rev-parse answers for the wrong repository and that is the defect this replaces.
+    if "${GITP[@]}" rev-parse --show-toplevel >/dev/null 2>&1; then GITROOT="$ROOT"; fi
     if [ -z "$GITROOT" ]; then
-      ANCHOR_WHY="$G is not inside a git work tree (a script run from a copied directory is the common case)"
+      ANCHOR_WHY="$G is not inside a git work tree: no repository at $ROOT/.git (a script run from a copied directory is the common case)"
     else
       MANIREL="${M#"$GITROOT"/}"
-      if git -C "$GITROOT" cat-file -e "origin/main:$MANIREL" 2>/dev/null; then
+      if "${GITP[@]}" cat-file -e "origin/main:$MANIREL" 2>/dev/null; then
         ANCHOR_BASE="origin/main"
-      elif git -C "$GITROOT" cat-file -e "HEAD:$MANIREL" 2>/dev/null; then
+      elif "${GITP[@]}" cat-file -e "HEAD:$MANIREL" 2>/dev/null; then
         ANCHOR_BASE="HEAD"
       else
         ANCHOR_WHY="$MANIREL is tracked at neither origin/main nor HEAD"
@@ -553,7 +568,7 @@ check)
   fi
   if [ -n "$ANCHOR_BASE" ]; then
     # Field 1 and field 2 of the baseline's rows, and field 7 of the WORKING row for the retire exemption.
-    BASEPAIRS="$(git -C "$GITROOT" show "$ANCHOR_BASE:$MANIREL" 2>/dev/null \
+    BASEPAIRS="$("${GITP[@]}" show "$ANCHOR_BASE:$MANIREL" 2>/dev/null \
       | grep -v '^[[:space:]]*#' | grep -v '^[[:space:]]*$' \
       | awk -F'\t' -v OFS='\t' 'NF>1{gsub(/[ \r]/,"",$1); gsub(/[ \r]/,"",$2); print $1,$2}' || true)"
     if [ -z "$BASEPAIRS" ]; then
@@ -824,10 +839,14 @@ PY5
     cp "$M" "$GT/gates/gate-manifest.tsv"; cp "$0" "$GT/gates/gatemanifest.sh"; chmod +x "$GT/gates/gatemanifest.sh"
     for f in "$REG"/*.js; do [ -e "$f" ] && : > "$GT/gates/regress/$(basename "$f")"; done
     GM="$GT/gates/gatemanifest.sh"; GMF="$GT/gates/gate-manifest.tsv"
-    ( cd "$GT" && git init -q -b main . \
-        && git -c user.email=selftest@local -c user.name=selftest add -A \
-        && git -c user.email=selftest@local -c user.name=selftest commit -qm "selftest seed" ) >/dev/null 2>&1
-    reset_gt(){ ( cd "$GT" && git checkout -q -- . && git clean -qfd ) >/dev/null 2>&1; }
+    # PINNED [#540, GMROOT part 1]: this used to be `cd "$GT" && git init -q -b main .` with bare git, which under
+    # an inherited GIT_DIR would have seeded, reset and cleaned the INHERITED repository instead of $GT - the
+    # selftest would then have measured the wrong tree while reporting on this one.
+    GTG=(git -C "$GT" --git-dir="$GT/.git" --work-tree="$GT")
+    ( "${GTG[@]}" init -q -b main \
+        && "${GTG[@]}" -c user.email=selftest@local -c user.name=selftest add -A \
+        && "${GTG[@]}" -c user.email=selftest@local -c user.name=selftest commit -qm "selftest seed" ) >/dev/null 2>&1
+    reset_gt(){ ( "${GTG[@]}" checkout -q -- . && "${GTG[@]}" clean -qfd ) >/dev/null 2>&1; }
     # 20. the control that proves the rest: a tree identical to its committed manifest is clean, and the
     #     baseline that resolved is NAMED. There is no remote in this repo, so this is the HEAD fallback.
     ck 0 "ANCHOR: a tree identical to its committed manifest is clean" "$GM" check
@@ -911,6 +930,30 @@ PY9
       echo "PASS selftest: ANCHOR is silent on an ADDED gate - the normal case does not fire it"; pass=$((pass+1))
     else echo "FAIL selftest: ANCHOR fired on a legitimately added gate (rc=$rc)"; fail=$((fail+1)); fi
     reset_gt
+    # 26b. THE DEFECT jobs/gatemanifest-derives-its-root-with-git-c-...-2026-10-22 WAS FILED FOR [#540, GMROOT
+    #     part 1]. A SECOND throwaway repository is seeded and the environment is pointed at it, the way a git
+    #     hook's exported GIT_DIR points a child at the hooked repository. Before the pin, `check` run in $GT
+    #     under that environment answered for $GT2, found no manifest tracked there, and printed
+    #     `gate anchor: NOT CHECKED - ... is tracked at neither origin/main nor HEAD` at exit 0 - the anchor
+    #     switched off by an environment variable while every other line stayed green. Pinned, it reads $GT's
+    #     own HEAD exactly as case 20 does with no environment at all. TWO PASS LINES, deliberately separate:
+    #     the first proves the redirect is REAL (an unpinned git in $GT answers $GT2), because an assertion
+    #     that "X holds in state S" is evidence only once S is shown to have been reached [CLAUDE.md, #385].
+    GT2="$(mktemp -d)"
+    GT2G=(git -C "$GT2" --git-dir="$GT2/.git" --work-tree="$GT2")
+    printf 'the other repository\n' > "$GT2/README"
+    ( "${GT2G[@]}" init -q -b main \
+        && "${GT2G[@]}" -c user.email=selftest@local -c user.name=selftest add -A \
+        && "${GT2G[@]}" -c user.email=selftest@local -c user.name=selftest commit -qm "selftest other repository" ) >/dev/null 2>&1
+    seen="$( cd "$GT" && GIT_DIR="$GT2/.git" GIT_WORK_TREE="$GT2" git rev-parse --show-toplevel 2>/dev/null || true )"
+    if [ "$seen" = "$GT2" ]; then
+      echo "PASS selftest: the redirect is real - an UNPINNED git run inside the first repository answers for the second"; pass=$((pass+1))
+    else echo "FAIL selftest: the redirect control did not take (unpinned git answered '$seen', wanted $GT2)"; fail=$((fail+1)); fi
+    out="$( GIT_DIR="$GT2/.git" GIT_WORK_TREE="$GT2" "$GM" check 2>&1 )"; rc=$?
+    if [ "$rc" = 0 ] && grep -q '^gate anchor: HEAD, 0 vanished, 0 weakened$' <<<"$out"; then
+      echo "PASS selftest: ANCHOR under an inherited GIT_DIR and GIT_WORK_TREE still reads this repository's HEAD (NOT CHECKED before the pin)"; pass=$((pass+1))
+    else echo "FAIL selftest: ANCHOR followed the inherited GIT_DIR instead of the script's own repository (rc=$rc)"; echo "$out" | sed 's/^/      /'; fail=$((fail+1)); fi
+    rm -rf "$GT2"
     # 27. NOT CHECKED, NEVER A PASS AND NEVER A HARD FAILURE. $T is a mktemp copy and not a work tree, so this
     #     is the real degradation path and not a simulation of one. The exit code must be the one the checks
     #     above would have given on their own - here 0 - and the token must say so.
