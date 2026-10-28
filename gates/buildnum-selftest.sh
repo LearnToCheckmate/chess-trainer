@@ -346,9 +346,67 @@ eq "list reserves the word collision for #416"               "1" "$("$BN" list 2
 
 # 26. A SHA THAT NAMES NO OBJECT. The register shipped with one (004cb86f6a9, inherited from held-trees.tsv),
 # which passed hex and length and resolved to nothing.
-ck "a sha that names no object is refused"  2 env CT_RUNID=selftest "$BN" add "#997" held 004cb86f6a9 - "a note long enough to pass the floor here"
-ck "a real short sha is accepted"           0 env CT_RUNID=selftest "$BN" add "$MN" held 004cb86 - "a note long enough to pass the floor here"
-ck "a sha of a single comma is refused"     2 env CT_RUNID=selftest "$BN" add "#995" held , - "a note long enough to pass the floor here"
+#
+# AND ALL THREE NOW RUN AGAINST A FIXTURE REPOSITORY THIS FILE BUILDS, BECAUSE A HARD-CODED SHA MADE THE
+# ACCEPTING CASE A FUNCTION OF THE CLONE'S DEPTH RATHER THAN OF THE TOOL [#544, item (3) of the opening;
+# jobs/the-buildnum-selftests-real-short-sha-fixture-is-absent-in-a-shallow-clone-2026-10-21]. It read
+# `add "$MN" held 004cb86`, a real #453-era commit on main, and the object check at buildnum.sh:570-574 asks
+# the repository in the CURRENT DIRECTORY whether that object exists. The routine's own container is a shallow
+# clone, so it does not: MEASURED at #544 in a fresh `git clone --depth 50`, `git cat-file -e 004cb86^{commit}`
+# reads ABSENT and this file reads 218 pass / 1 fail with this line as the one failure. The tool was right
+# every time; the fixture was asking the container a question about the tool.
+# IT HAS ALREADY COST TWO RUNS A DIAGNOSIS EACH, which is why the fixture and not the expectation is what
+# moves: #528 read `169 pass, 1 fail` on its control (e), spent its first diagnosis of the run establishing
+# that main's own selftest in a worktree in the same container read the identical 169/1 (RUN-LOG #528, error
+# (1): "I ALMOST ACCEPTED A VETO-KIND FINDING AGAINST MY OWN TREE WITHOUT DIAGNOSING IT"), and #544 reproduced
+# it from scratch. A fixture that reddens honestly in the one environment the build routine runs in trains
+# every later run to read a red as noise, which is the cost this project has already paid at #405.
+# THE SHA COMES FROM A ONE-COMMIT REPOSITORY BUILT HERE and all three cases run with that repository as the
+# working directory, so each is a statement about the tool and not about the container: the good sha is present
+# there by construction at any depth, and the truncated sha and the bare comma are absent there for the same
+# reason. NOTE WHAT THAT DOES NOT CHANGE: `git rev-parse --is-shallow-repository` is NOT the test and was
+# never the test - #528's own note records that it still answers true after a deepen that made the case pass -
+# so nothing here reads it. Only the presence of the specific object matters, and this fixture guarantees it.
+# AND THE FOURTH CASE PINS THE LIMIT THE `if` AT buildnum.sh:570 CARRIES AND NOTHING CONTROLLED: outside a work
+# tree there is no repository to ask, so the object check is skipped entirely and a sha that names no object is
+# ACCEPTED. That is the tool's documented behaviour ("If the object is genuinely absent (a shallow clone, an
+# unfetched branch), pass '-' instead"), it is the reason the three cases above must name their own cwd rather
+# than inherit the caller's, and until now the only thing pinning it was that `if`.
+OD="$TD/objrepo"; mkdir -p "$OD"
+git -C "$OD" init -q 2>/dev/null
+git -C "$OD" config user.email selftest@example.com; git -C "$OD" config user.name selftest
+git -C "$OD" commit -q --allow-empty -m "the object the accepting case names" >/dev/null 2>&1
+OKSHA="$(git -C "$OD" rev-parse --short=7 HEAD 2>/dev/null || true)"
+eq "the fixture repository the accepting case needs produced a 7-char sha" "7" "${#OKSHA}"
+eq "and that sha names an object there, which is the whole point of the fixture" "yes" \
+   "$(git -C "$OD" cat-file -e "${OKSHA:-x}^{object}" 2>/dev/null && echo yes || echo no)"
+ck "a sha that names no object is refused"  2 env -C "$OD" CT_RUNID=selftest "$BN" add "#997" held 004cb86f6a9 - "a note long enough to pass the floor here"
+ck "a real short sha is accepted"           0 env -C "$OD" CT_RUNID=selftest "$BN" add "$MN" held "$OKSHA" - "a note long enough to pass the floor here"
+ck "a sha of a single comma is refused"     2 env -C "$OD" CT_RUNID=selftest "$BN" add "#995" held , - "a note long enough to pass the floor here"
+# AND EACH REFUSAL IS READ FOR ITS REASON AND NOT ONLY FOR ITS EXIT CODE, BECAUSE THE EXIT CODE ALONE CANNOT
+# FAIL HERE - MEASURED, NOT REASONED, AND THIS IS THE PART OF ITEM (3) THAT WAS NOT ASKED FOR.
+# `add` runs the sha checks BEFORE the series guard, and #997 and #995 are 453 and 451 past the end of the
+# register's own series. So BOTH refusals are available, and the ck lines above read 2 either way. The control:
+# with buildnum.sh's object check mutated to `true || {` - the check deleted outright - the case named "a sha
+# that names no object is refused" STILL READ exit 2 and still PASSED, because #997 fell through to the series
+# guard, and the only cell that went red was the message assertion below. That is this project's #418 trap
+# ("a wrong reason that reaches the right verdict is a trap, not a check") living inside the controls for the
+# register, and it is why the two eq lines here are not decoration. Both are reddened by the mutant, and the
+# second mutant - the work-tree guard made vacuous - reddens the limit case below and nothing else.
+eq "and the refusal above is the SHA one, not the series guard it sits in front of" "1" \
+   "$(env -C "$OD" CT_RUNID=selftest "$BN" add "#997" held 004cb86f6a9 - "a note long enough to pass the floor here" 2>&1 | grep -ci 'names NO OBJECT' || true)"
+eq "and the comma refusal names the comma rather than anything downstream of it" "1" \
+   "$(env -C "$OD" CT_RUNID=selftest "$BN" add "#995" held , - "a note long enough to pass the floor here" 2>&1 | grep -ci 'contains no sha at all' || true)"
+# THE LIMIT CASE WRITES NOTHING AND IS READ ENTIRELY FROM THE REFUSAL IT PRODUCES. Asserting exit 0 here would
+# mean appending a row to the fixture register, which every later case's `next`, `mint` and sweep denominator
+# then inherit; the message says more anyway. Outside a work tree the object check cannot run, so the sha that
+# refuses inside $OD must NOT be what refuses here, and the thing that does refuse is the series guard
+# downstream of it.
+OUTMSG="$(env -C / CT_RUNID=selftest "$BN" add "#994" held 004cb86f6a9 - "a note long enough to pass the floor here" 2>&1 || true)"
+eq "outside a work tree the object check is SKIPPED: the sha is not what refuses" "0" \
+   "$(grep -ci 'names NO OBJECT' <<<"$OUTMSG" || true)"
+eq "and the refusal that does fire there is the series guard, which is downstream of the sha check" "1" \
+   "$(grep -ci 'shape of a stray row' <<<"$OUTMSG" || true)"
 
 # 27. SWEEP: THE REGISTER'S DENOMINATOR, AND THE SHALLOW CLONE THAT MAKES A CLEAN SWEEP MEANINGLESS.
 # #465 measured 88 numbers named by a commit subject and absent from the register, #463 among them - a number
