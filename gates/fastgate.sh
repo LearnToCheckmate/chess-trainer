@@ -2206,14 +2206,25 @@ worse(){ # worse <base-sig> <head-sig>
   done
   return 1
 }
-ratchet(){ # ratchet <label> <verdict-grep> <cmd...>
+ratchet(){ # ratchet <label> <verdict-grep> <sig-grep, or - for "the same as the verdict grep"> <cmd...>
+  # ── THE THIRD ARGUMENT SEPARATES WHAT IS DISPLAYED FROM WHAT IS COMPARED [#544, item (5);
+  # jobs/the-records-ratchet-refuses-the-commit-that-fixes-the-arm-5-breach-and-the-roster-says-this-mode-cannot-redden-a-build-2026-10-10].
+  # WHY. sig() takes every integer on every matched line and worse() refuses outright when the field COUNT
+  # differs. The lines worth SHOWING a human are prose verdicts that change shape between their branches and
+  # carry sizes as well as defects, so using one grep for both jobs made two ordinary commits read WORSE:
+  # fixing a breach (RED -> OK changes the field count: measured 15 against 16) and growing the register (rows,
+  # tables and stories rise with no defect count moving: measured on a scratch commit over 8556910). The repair
+  # is NOT to loosen worse() - a shape test that tolerates a missing field cannot tell an improvement from a
+  # check that stopped running - but to let the caller nominate a FIXED-SHAPE, DEFECTS-ONLY line for the
+  # comparison while the prose still reaches the log and the terminal. `-` keeps the old behaviour exactly.
   # The base run happens in a DETACHED WORKTREE, never by mutating the lane's own tree. The first version used
   # `git stash` + `git checkout "$BASE" -- .` with $GIT quoted as one word; $GIT is multi-word, so the command
   # silently did nothing, both runs read the SAME tree, and a commit that made the records worse passed as "no
   # worse". A ratchet that compares a tree to itself always says no worse. Both bugs were found by adversarial
   # cases before this shipped, and both are recorded so nobody reintroduces them.
-  local label="$1"; KEY="$2"; shift 2
-  local hv bv hs bs wt
+  local label="$1"; KEY="$2"; local SK="$3"; shift 3
+  [ "$SK" = "-" ] && SK="$KEY"
+  local hv bv hs bs wt hsrc bsrc
   hv="$(verdicts "$@")"
   wt="$(mktemp -d)" || { red=1; say "    $label: RED (mktemp -d failed - could not create a temp directory for the base worktree)"; return; }
   FG_TMPS+=("$wt")   # #527: removed on every exit path; a kill leaves only a worktree entry for git worktree prune
@@ -2228,7 +2239,26 @@ ratchet(){ # ratchet <label> <verdict-grep> <cmd...>
   { echo "=== $label ==="; echo "  base:"; echo "$bv" | sed 's/^/    /'; echo "  head:"; echo "$hv" | sed 's/^/    /'; } >> "$LOG"
   if [ -z "$hv" ]; then red=1; say "    $label: RED (nothing matched /$KEY/ on HEAD - the check did not run or changed shape)"; return; fi
   if [ -z "$bv" ]; then red=1; say "    $label: RED (nothing matched on the BASE - cannot ratchet against nothing)"; return; fi
-  hs="$(sig "$hv")"; bs="$(sig "$bv")"
+  hsrc="$hv"; bsrc="$bv"
+  if [ "$SK" != "$KEY" ]; then
+    hsrc="$(grep -E "$SK" <<<"$hv")"; bsrc="$(grep -E "$SK" <<<"$bv")"
+    # HEAD LOSING THE LINE IS RED, AND IT IS THE SAME RED AS "nothing matched on HEAD" ABOVE: a commit that
+    # removes the line the ratchet compares has removed the comparison, whatever else it did.
+    if [ -z "$hsrc" ]; then
+      red=1; say "    $label: RED (the line this ratchet compares, /$SK/, is absent from HEAD's output)"
+      echo "$hv" | sed 's/^/        head: /' | tee -a "$LOG"; return
+    fi
+    # THE BASE NOT HAVING IT YET IS A BOUNDED, NAMED FALLBACK AND NOT A HOLE. The commit that INTRODUCES the
+    # fixed-shape line has a base that predates it, so a strict reading would redden exactly the commit that
+    # fixes this - which is the defect this argument exists to remove, one level up. The fallback is today's
+    # behaviour, stated out loud: compare the verdict-grep lines on BOTH sides, flaws and all. It can only fire
+    # while the base predates the line, so it disappears of its own accord once that commit is on main.
+    if [ -z "$bsrc" ]; then
+      say "    $label: the BASE predates /$SK/, so this comparison falls back to /$KEY/ on both sides"
+      hsrc="$hv"; bsrc="$bv"
+    fi
+  fi
+  hs="$(sig "$hsrc")"; bs="$(sig "$bsrc")"
   if worse "$bs" "$hs"; then red=1
     say "    $label: RED - this commit made it WORSE"
     echo "$bv" | sed 's/^/        base: /' | tee -a "$LOG"
@@ -2247,7 +2277,7 @@ binary(){ local label="$1"; shift; local out rc
 say ""
 say "running the checks a records commit CAN break:"
 binary  "gate manifest" bash "$G/gatemanifest.sh" check
-ratchet "records"       '^(CITATIONS|REGISTER SELF-CHECK)' bash "$G/verify-log.sh" --citations
+ratchet "records"       '^(CITATIONS|REGISTER SELF-CHECK)' '^CITATIONS RATCHET:' bash "$G/verify-log.sh" --citations
 if command -v node >/dev/null 2>&1 && [ -f "$G/control-audit.js" ]; then
   # #490, antagonist A: the key here was '(uncontrolled|CONTROL AUDIT|controlled)', which matches ONLY
   # control-audit.js's HEADER line ("CONTROL AUDIT   log=claude/agents/gatelogs/489-all.log   gates=56") and
@@ -2257,7 +2287,17 @@ if command -v node >/dev/null 2>&1 && [ -f "$G/control-audit.js" ]; then
   # itself. Worse, it moved the wrong way: deleting claude/agents/gatelogs/489-all.log - the only full-suite green
   # over main's bundle - read 489 -> 488 as a count that FELL, i.e. an improvement, while ADDING a gate log, the
   # commonest records commit this project makes, would have been refused as WORSE because a filename number rose.
-  ratchet "control audit" '^(SUMMARY|CONTROL-AUDIT)' node "$G/control-audit.js"
+  # THE SIGNATURE GREP IS `-` HERE, WHICH IS TODAY'S BEHAVIOUR, AND THE SECOND HALF OF THE CLASS IS MEASURED
+  # RATHER THAN ASSUMED CLEAN [#544, item (5); the job's own classSwept counts exactly two ratchets in this file
+  # and this is the other one]. READ FROM gates/control-audit.js:235-246: its SUMMARY line is
+  # `SUMMARY  <covered> covered, of <rows.length> gates  |  <only the non-zero categories>`, so it carries a
+  # SIZE (`rows.length`, which rises when a gate is added) and a VARIABLE field count (a category that falls to
+  # zero leaves the line altogether); and its verdict flips between a `CONTROL-AUDIT RED: <n> gate(s)` line and a
+  # `CONTROL-AUDIT GREEN:` line with no number at all. So this ratchet has BOTH faults the records one had.
+  # IT IS NOT FIXED IN THIS COMMIT AND THAT IS DELIBERATE: the remedy is a defects-only line in a node script
+  # with its own selftest, and the second commit of this item does it. If that commit is reverted alone, this
+  # `-` is what keeps this call working.
+  ratchet "control audit" '^(SUMMARY|CONTROL-AUDIT)' - node "$G/control-audit.js"
 else
   say "    control audit: SKIPPED (node or gates/control-audit.js not available here)"
 fi

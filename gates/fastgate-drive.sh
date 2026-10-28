@@ -295,6 +295,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H49) printf 'TC-SUITE-109' ;;  H50) printf 'TC-SUITE-110' ;;  H51) printf 'TC-SUITE-111' ;;
     H52) printf 'TC-SUITE-178' ;;
     H53) printf 'TC-SUITE-185' ;;  H54) printf 'TC-SUITE-186' ;;
+    H55) printf 'TC-SUITE-212' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -1991,6 +1992,80 @@ if [ -n "$H54FAIL" ]; then
 else
   note "  ok  H54 [$(tc H54)]  (exit 1 at the series ceiling with the 999 row and no marker; exit 2 FULL SUITE REQUIRED naming gates/buildnum.sh beside an honest mint, and the head's next arm never ran: no marker)"
   OK=$((OK+1))
+fi
+
+# H55 THREE TREES: THE RECORDS RATCHET MUST ACCEPT AN IMPROVEMENT AND STILL REFUSE A REGRESSION [#544, item (5)
+#     of directOpening_2026_10_28_batch4;
+#     jobs/the-records-ratchet-refuses-the-commit-that-fixes-the-arm-5-breach-and-the-roster-says-this-mode-cannot-redden-a-build-2026-10-10,
+#     whose testCase field asks for exactly this shape and these three expectations].
+#     WHAT WAS WRONG. gates/fastgate.sh's records ratchet reduced the two PROSE verdict lines of
+#     `verify-log.sh --citations` with sig() and compared them with worse(), and those lines change shape
+#     between their branches: the arm (5) RED line enumerates six breach counters, its OK line enumerates the
+#     register's TOTALS, and NOT CHECKED carries no number at all. worse() refuses outright when the field count
+#     differs, so FIXING a breach read WORSE and the commit that repaired the thing the ratchet watches read
+#     FAST GATE RED. The same comparison also called a GROWING register worse, because rows, tables and stories
+#     are sizes rather than defects.
+#     WHY THREE HEADS AND NOT ONE. The defect is visible only in the direction nobody tested. A single-input
+#     control is satisfied by (a) alone, and a two-input one by (a) and (c) - the pair any author would write -
+#     while (b), the improvement, is the case that failed. So the base is held fixed and three heads are driven
+#     against it: unchanged, improved, and worsened.
+#     THE FIXTURE IS TWO WRONG-WIDTH ROWS IN THE CASE REGISTER, which is the defect class arm (5) counts and the
+#     one the job measured at 4 of a ceiling of 2. Each row carries one unescaped pipe, so it reads one column
+#     too wide; the improvement escapes the pipe and changes nothing else, so the flip is arm (5)'s and no other
+#     arm's. The premise is asserted before any head is driven: the base must actually read widthrise=2.
+reset_clone
+H55F=claude/stories/TEST-CASES.md
+h55_set(){ # <broken2|fixed2|broken3>  rewrite the fixture rows, idempotently
+  python3 -I - "$C/$H55F" "$1" <<'PY'
+import sys
+p, mode = sys.argv[1], sys.argv[2]
+s = open(p, encoding='utf-8').read().split('\n')
+s = [l for l in s if not l.startswith('| TC-DRIVE-H55-')]
+idx = max(i for i, l in enumerate(s) if l.startswith('| TC-SUITE-'))
+pipe = r'an escaped \| pipe' if mode == 'fixed2' else 'an unescaped | pipe'
+ids = ['A', 'B', 'C'] if mode == 'broken3' else ['A', 'B']
+rows = ['| TC-DRIVE-H55-%s | US-BN-01 | fixture only, never pushed: this row carries %s, so it reads one '
+        'column too wide | - | - | - |' % (i, pipe) for i in ids]
+s[idx+1:idx+1] = rows
+open(p, 'w', encoding='utf-8').write('\n'.join(s))
+PY
+}
+h55_width(){ ( cd "$C" && timeout 120 bash gates/verify-log.sh --citations 2>&1 | grep -oE 'widthrise=[0-9]+' | head -1 | cut -d= -f2 ) ; }
+h55_set broken2
+H55BASE="$(new_base "H55 base: two wrong-width fixture rows, never pushed")"
+H55W="$(h55_width)"
+if [ "${H55W:-missing}" != 2 ]; then
+  note "  FAIL H55 [$(tc H55)]  the fixture's premise does not hold: the base reads widthrise=${H55W:-missing},"
+  note "         not 2, so neither the improvement nor the regression below would be the flip they claim"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H55"
+else
+  H55FAIL=""; H55SHOW=""
+  # (a) THE SAME REGISTER STATE. One innocuous records-only line, deliberately carrying no path, no pipe and no
+  #     case id, so every counter on the ratchet line is identical on both sides. Expect exit 0.
+  printf '\nH55 fixture line, never pushed: it deliberately carries no path, no pipe and no case id.\n' >> "$C/$H55F"
+  commit_case "H55a an innocuous records-only line, the register state unchanged"
+  if ! probe 0 "records: no worse than base"; then H55FAIL="$H55FAIL (a) exit $PROBE_RC"; H55SHOW="$PROBE_OUT"; fi
+  # (b) THE IMPROVEMENT, AND THE ONE THAT READ EXIT 1 BEFORE THIS ITEM. The two rows' pipes are escaped, so
+  #     arm (5) flips RED -> OK and widthrise falls 2 -> 0 with every other counter unmoved. Expect exit 0.
+  git -C "$C" reset --hard --quiet "$H55BASE" >/dev/null 2>&1; git -C "$C" clean -qfd >/dev/null 2>&1
+  h55_set fixed2
+  commit_case "H55b the two wrong-width rows escaped, so arm (5) flips RED to OK"
+  if ! probe 0 "records: no worse than base"; then H55FAIL="$H55FAIL (b) exit $PROBE_RC"; H55SHOW="$PROBE_OUT"; fi
+  # (c) THE REGRESSION, WHICH MUST STILL BE REFUSED. One further wrong-width row: widthrise rises 2 -> 3.
+  #     Expect exit 1 with the ratchet naming it. A fix that made (b) pass by loosening the comparison would
+  #     show up here, which is why this head is in the same case rather than trusted to the ones above.
+  git -C "$C" reset --hard --quiet "$H55BASE" >/dev/null 2>&1; git -C "$C" clean -qfd >/dev/null 2>&1
+  h55_set broken3
+  commit_case "H55c one further wrong-width row, never pushed"
+  if ! probe 1 "this commit made it WORSE"; then H55FAIL="$H55FAIL (c) exit $PROBE_RC"; H55SHOW="$PROBE_OUT"; fi
+  if [ -n "$H55FAIL" ]; then
+    note "  FAIL H55 [$(tc H55)] $H55FAIL  (wanted: (a) 0 no worse, (b) 0 no worse, (c) 1 WORSE)"
+    [ -n "$H55SHOW" ] && show_verdict "$H55SHOW"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H55"
+  else
+    note "  ok  H55 [$(tc H55)]  (base widthrise=2; head unchanged -> exit 0 no worse, head improved -> exit 0 no worse, head worsened -> exit 1 WORSE)"
+    OK=$((OK+1))
+  fi
 fi
 
 # ── VERDICT. ───────────────────────────────────────────────────────────────────────────────────────────────

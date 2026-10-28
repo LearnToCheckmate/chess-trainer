@@ -138,8 +138,21 @@ if [ "${1:-}" = "--citations-selftest" ]; then
     ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 | grep -E '^  \(4\) ' | head -1 )
   }
   st_verdict() { # st_verdict <root> -> CITATIONS verdict line plus exit code
-    ( cd "$1" && bash gates/verify-log.sh --citations >"$1/out.txt" 2>&1; echo "exit=$?"; grep -E '^CITATIONS ' "$1/out.txt" | head -1 )
+    # THE PATTERN NAMES THE TWO PROSE VERDICTS AND NOT THE RATCHET LINE [#544, item (5)]. It was `^CITATIONS `,
+    # which the fixed-shape `CITATIONS RATCHET:` line added by block (14) also matches - and that line prints
+    # FIRST, so `head -1` silently started returning it and C7 and C7b failed against a correct mode. A selftest
+    # whose selector stops naming one thing is the project's own "a bad selector is a reading".
+    ( cd "$1" && bash gates/verify-log.sh --citations >"$1/out.txt" 2>&1; echo "exit=$?"; grep -E '^CITATIONS (OK|RED)' "$1/out.txt" | head -1 )
   }
+  st_ratchet() { # st_ratchet <root> -> the one fixed-shape ratchet line
+    ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 | grep -E '^CITATIONS RATCHET:' | head -1 )
+  }
+  # sig() AS gates/fastgate.sh:2194 DEFINES IT, COPIED HERE ON PURPOSE AND THE COPY IS NAMED. This file must not
+  # depend on fastgate.sh being present (it is the push gate's own selftest and runs in bare fixture trees), so
+  # the reduction is reproduced rather than imported. If fastgate.sh's sig() changes, this copy is wrong and the
+  # assertions below stop meaning what they say - which is why the copy is called out here instead of inlined.
+  st_sig() { grep -oE '\b(OK|RED|GREEN|FAIL)\b|[0-9]+' <<< "$1" | paste -sd, - ; }
+  st_fields() { local IFS=,; local -a f=($1); printf '%s' "${#f[@]}"; }
   echo "=== citations arm (4) selftest"
 
   # C1 a clean line citation to a real file at a real line is counted and is not a defect.
@@ -196,10 +209,36 @@ if [ "${1:-}" = "--citations-selftest" ]; then
   st_ck "C7 a dead line citation turns the whole mode RED at exit 1" \
     "exit=1
 CITATIONS RED: 0 dead path(s), 0 unsupported case id(s), 0 misfiled row(s), 1 dead line citation(s), 0 stale line citation(s), 0 over the line-citation ceiling. 1 row(s) NOT CHECKED." "$(st_verdict "$R7")"
+  ST_RED_RAT="$(st_ratchet "$R7")"      # captured WHILE RED, because C7b overwrites the tree below
   printf 'see `gates/regress/99-gone.js` at someSymbol\n' > "$R7/claude/stories/A.md"
   st_ck "C7b the same tree in symbol form is not red - so C7 was arm (4) and not a side effect" \
     "exit=0
 CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$(st_verdict "$R7")"
+
+  # ── C7c AND C7d. THE RATCHET LINE KEEPS ONE SHAPE ACROSS THE FLIP THE PROSE LINES CHANGE SHAPE ON.
+  # [#544, item (5);
+  # jobs/the-records-ratchet-refuses-the-commit-that-fixes-the-arm-5-breach-and-the-roster-says-this-mode-cannot-redden-a-build-2026-10-10.]
+  # THIS IS THE ARM-LEVEL HALF OF THAT JOB'S CONTROL and it is deliberately not the whole of it: the end-to-end
+  # half, three trees through gates/fastgate.sh's real records tier, is TC-FG-005 in gates/fastgate-drive.sh,
+  # because only that one produces an exit code from the push gate. What these two pin is the property the fix
+  # rests on - that the line gates/fastgate.sh reduces with sig() has the SAME FIELD COUNT when the mode is RED
+  # as when it is OK, so worse()'s "different shape cannot be compared: treat as worse" can no longer fire on an
+  # improvement. The two readings come from ONE tree in its two states, $R7 before and after C7b's rewrite,
+  # which is why the RED one is captured above rather than re-derived: the states differ in exactly the dead
+  # citation and in nothing else.
+  ST_OK_RAT="$(st_ratchet "$R7")"
+  st_ck "C7c the ratchet line reduces to the same FIELD COUNT red and ok (15: one verdict word, 14 counters)" \
+    "15 15" "$(printf '%s %s' "$(st_fields "$(st_sig "$ST_RED_RAT")")" "$(st_fields "$(st_sig "$ST_OK_RAT")")")"
+  # AND THE TWO READINGS MUST ACTUALLY DIFFER, or C7c is 15 == 15 over one string twice [prompts/common: assert
+  # the denominator in its own line]. The verdict word flips and the deadline counter moves 1 -> 0, so the pair
+  # is a real flip of the mode and not two samples of one state.
+  st_ck "C7d and they are the two states, not one state twice: the word flips and deadline falls" \
+    "RED 1 OK 0" \
+    "$(printf '%s %s %s %s' \
+       "$(printf '%s' "$ST_RED_RAT" | grep -oE 'RATCHET: (OK|RED)' | awk '{print $2}')" \
+       "$(printf '%s' "$ST_RED_RAT" | grep -oE 'deadline=[0-9]+' | cut -d= -f2)" \
+       "$(printf '%s' "$ST_OK_RAT"  | grep -oE 'RATCHET: (OK|RED)' | awk '{print $2}')" \
+       "$(printf '%s' "$ST_OK_RAT"  | grep -oE 'deadline=[0-9]+' | cut -d= -f2)")"
 
   # C8 DETERMINISM. Two runs over one tree must agree byte for byte [R36 admission test].
   R8="$(st_tree)"; printf 'a `gates/regress/10-real.js:4`\nb `gates/regress/99-gone.js:1`\n' > "$R8/claude/stories/A.md"
@@ -762,6 +801,37 @@ EOF
   else
     echo "REGISTER SELF-CHECK OK: $A5ROWS rows in $A5TABS tables join to $A5STORIES stories; $A5ZERO at zero (<=$A5ZCEIL) and $A5WIDE wrong-width (<=$A5WCEIL) are both at or under their committed ceilings."
   fi
+  # ── (14) THE RATCHET LINE: ONE FIXED-SHAPE LINE OF DEFECT COUNTERS, PRINTED IN EVERY BRANCH ───────────────
+  # [#544, item (5) of directOpening_2026_10_28_batch4;
+  # jobs/the-records-ratchet-refuses-the-commit-that-fixes-the-arm-5-breach-and-the-roster-says-this-mode-cannot-redden-a-build-2026-10-10.]
+  #
+  # WHY IT EXISTS. gates/fastgate.sh runs this mode as a RATCHET on the push path:
+  #     ratchet "records" '^(CITATIONS|REGISTER SELF-CHECK)' ... bash "$G/verify-log.sh" --citations
+  # Its sig() reduces the matched lines to the words OK/RED/GREEN/FAIL plus EVERY INTEGER on them, and its
+  # worse() refuses outright when the field COUNT differs ("different shape cannot be compared: treat as worse").
+  # The three prose verdict lines above are written for a human and change shape between their branches - the
+  # RED ones enumerate breach counters, the OK ones enumerate the register's TOTALS, and NOT CHECKED carries no
+  # number at all - so TWO ordinary things read as WORSE:
+  #   (i)  FIXING a breach. Arm (5) RED -> OK takes the signature from 7 fields to 8, so the commit that fixes
+  #        the thing the ratchet watches reads FAST GATE RED. Measured in that job: 15 fields against 16.
+  #   (ii) GROWING THE REGISTER. The OK line carries rows, tables and stories, which are SIZES; adding case rows
+  #        raises them and every rise reads as a defect. Measured on a scratch commit over 8556910: base OK at
+  #        150 rows in 6 tables / 35 stories, head OK at 165 in 8 / 36, FAST GATE RED with no defect count moved.
+  #        That is four of the twelve docs-only jobs in the queue unable to take the fast route.
+  # THE LINE BELOW IS WHAT THE RATCHET READS INSTEAD: one verdict word and FOURTEEN counters, always all of them,
+  # always in this order, every one a DEFECT count where lower is better and none of them a size. So the ratchet
+  # compares numbers, which is what it was built to do, and the three prose lines stay prose. gates/fastgate.sh
+  # passes '^CITATIONS RATCHET:' as its signature grep while still DISPLAYING and logging the prose lines.
+  # TWO THINGS IT DELIBERATELY DOES CARRY. `notchecked` is on it because a row that cannot be checked rising is a
+  # real loss, and `noregister` is on it because a tree with no register at all would otherwise read as all-zero
+  # and therefore better than one with a defect - that is the NOT CHECKED branch's zero-field signature wearing
+  # a fixed shape, and it must still be refused.
+  # ITS LABELS CARRY NO DIGITS, AND THAT IS LOAD-BEARING RATHER THAN STYLE: sig() takes every integer on the
+  # line, so a label like `a5tbad` or `arm5` would contribute a phantom field of its own and shift every counter
+  # after it. If you add a counter here, spell its name in letters.
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ]
+  then RATV=RED; else RATV=OK; fi
+  echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC"
   if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ]; then
     echo "CITATIONS RED: $A1BAD dead path(s), $A2BAD unsupported case id(s), $A2MIS misfiled row(s), $A4DEAD dead line citation(s), $A4EOF stale line citation(s), $A4RISE over the line-citation ceiling. $A2NC row(s) NOT CHECKED."
     exit 1
