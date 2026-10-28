@@ -9,7 +9,7 @@ Two different suites use the prefix `TC-R` and both claim the paths `claude/stor
 
 | | this repo | the claude.ai project |
 |---|---|---|
-| size | 11 stories, 14 cases (`TC-R01`..`TC-R14`) | 30 stories, 31 cases (`TC-R01`..`TC-R31`) |
+| size | 35 `### US-` story headings and 155 case-table rows, counted 2026-10-27 at 3b79e29 with grep over the two files (dated, not live: when this table was written it read 11 stories, 14 cases, `TC-R01`..`TC-R14`) | 30 stories, 31 cases (`TC-R01`..`TC-R31`) |
 | `TC-R05` means | "tap a Skills number that has moves" | "read the summary" |
 | executed by | `gates/regress/20-review.js`, `21-review-brilliant.js` | nothing — it is a specification, not a runner |
 | visible to a build session | yes | no |
@@ -29,6 +29,9 @@ The audit of 2026-09-14 asked for one of the two to be renamed, and asked for it
 | `US-RFnn` / `TC-RFnn` | the **full** Review suite, 30 stories and 31 cases — a specification, broader than what the gates execute | `claude/stories/REVIEW-SUITE-FULL.md` (reserved; the document is still in the claude.ai project) | the test-lane sessions |
 | `TC-RL-nnn` | the Review test lane: the 94 measured cases from `TEST-CASES-REVIEW.md`, 92 of them automatable | `gates/regress/*.js` as they are coded | the test-lane sessions, coded here by the build session |
 | `US-BN-nn` / `TC-BN-nnn` | the **build-number register** — tooling and records, nothing a player sees. Its case register is the command `gates/buildnum-selftest.sh`, not a file in `gates/regress/`, so it never blocks a `GATES GREEN` | `claude/stories/USER-STORIES.md`, `claude/stories/TEST-CASES.md`, executed by `gates/buildnum-selftest.sh` | this repo (build lane). **Claimed at #465**; 0 hits repo-wide before that commit |
+| `US-HM-nn` / `TC-HM-nnn` | the **Home overlay** suite (registered 2026-10-27; in use since #425) | `claude/stories/USER-STORIES.md`, `claude/stories/TEST-CASES.md`, section Home | this repo, executed by `gates/regress/49-home.js` |
+| `US-INV-nn` / `TC-INV-nn` | the **cross-app invariants** (registered 2026-10-27; in use since #423) | `claude/stories/USER-STORIES.md`, `claude/stories/TEST-CASES.md`, section Cross-app invariants | this repo, executed by `gates/regress/26-invariants.js` and, for TC-INV-05x, `gates/regress/48-lesson-flow.js` |
+| `TC-SUITE-nnn` | the **suite's own machinery** (the gate manifest, the cited-not-run audit and the tiered push gate harness; registered 2026-10-27) | `claude/stories/TEST-CASES.md`, the sections titled "The gate suite itself" and "The tiered push gate itself" | this repo; the ids are printed by `gates/gatemanifest.sh selftest`, `gates/fastgate-drive.sh` and `gates/audit/` |
 
 ### The gate-number register — read before adding a gate file
 
