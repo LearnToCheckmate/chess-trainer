@@ -248,7 +248,11 @@ echo "       not about the depth of the clone this file happens to run in [#544,
 # THE CLONE DEEP - after which cases 2 to 5 pass and a second run of the whole file passes 81/0. The tool was
 # repairing the environment as a side effect of being tested in it, which is why the job that owns this reads
 # "network-dependent": it is not the network, it is that the first measurement changes what the second one
-# measures. A control whose outcome depends on whether anything ran it before is not a control.
+# measures. A control whose outcome depends on whether anything ran it before is not a control. The job is
+# jobs/two-push-check-selftests-read-red-in-a-shallow-clone-because-their-fixtures-name-old-commits-2026-10-28,
+# whose own measurement at 1c7bd01 reads 80 pass / 1 fail run straight in a depth 50 clone "whose origin could
+# deepen it over the network" and 76 pass / 5 fail through the push checks tier's mirror, "which cannot deepen"
+# - the same five cases, and the difference between the two figures is the side effect described above.
 # THE FIX IS THE FIXTURE, NOT THE EXPECTATION, AND IT MAKES THE CASES STRONGER RATHER THAN QUIETER.
 # A local bare repository stands in for origin - the same device section D already uses for the refusals - with
 # three shas of its own: main's tip, main's PARENT, and a commit on a side branch that was never pushed. So the

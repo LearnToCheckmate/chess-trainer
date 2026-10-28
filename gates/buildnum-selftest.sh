@@ -349,7 +349,13 @@ eq "list reserves the word collision for #416"               "1" "$("$BN" list 2
 #
 # AND ALL THREE NOW RUN AGAINST A FIXTURE REPOSITORY THIS FILE BUILDS, BECAUSE A HARD-CODED SHA MADE THE
 # ACCEPTING CASE A FUNCTION OF THE CLONE'S DEPTH RATHER THAN OF THE TOOL [#544, item (3) of the opening;
-# jobs/the-buildnum-selftests-real-short-sha-fixture-is-absent-in-a-shallow-clone-2026-10-21]. It read
+# jobs/gates-buildnum-selftest-330-hard-codes-a-short-sha-so-the-selftest-reads-169-of-170-in-a-shallow-clone-2026-10-21,
+# which is half (2) of
+# jobs/two-push-check-selftests-read-red-in-a-shallow-clone-because-their-fixtures-name-old-commits-2026-10-28].
+# THE CITATION ABOVE IS THE SECOND ONE THIS COMMENT CARRIED. The first named a job id that does not exist - I
+# wrote the title I remembered rather than the id the tracker holds - and it is corrected here rather than
+# quietly, because a dangling citation in a comment is the #450 defect at one line's scale: the next reader
+# cannot tell a wrong id from a job that was closed. Both ids above were read back from the tracker. It read
 # `add "$MN" held 004cb86`, a real #453-era commit on main, and the object check at buildnum.sh:570-574 asks
 # the repository in the CURRENT DIRECTORY whether that object exists. The routine's own container is a shallow
 # clone, so it does not: MEASURED at #544 in a fresh `git clone --depth 50`, `git cat-file -e 004cb86^{commit}`
