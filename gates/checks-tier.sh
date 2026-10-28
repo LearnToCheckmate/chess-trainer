@@ -201,7 +201,7 @@ main(){
       *) return 1 ;;
     esac
   }
-  local ROUTEL="" REFUSEL="" dent dsecond dx dx2 dxy dp dline DIRTYANY=0
+  local ROUTEL="" REFUSEL="" dent dsecond dx dx2 dxy dp dline dbucket dinside dwhere DIRTYANY=0
   # -z AND NUL BY NUL, because a path may hold a SPACE OR A NEWLINE and the line-oriented read this replaces
   # would have split such a path into two entries and named neither correctly. --untracked-files=all so a new
   # directory is named by its files rather than by itself.
@@ -235,23 +235,70 @@ main(){
       # refuses. A STAGED rename still refuses whatever its paths, which is the arm repair 3 of THE WORK then
       # rules on; this repair changes only how the entry is READ and NAMED, so the two are separable and their
       # controls cannot pass as one.
-      if [ "$dx" = R ] || [ "$dx" = C ] || [ "$dx2" = R ] || [ "$dx2" = C ]; then
-        IFS= read -r -d '' dsecond || dsecond=""
-        dline="    $dxy $dsecond -> $dp"
-        if tier_relevant_path "$dp" || tier_relevant_path "$dsecond"; then
-          REFUSEL="$REFUSEL$dline"$'\n'
-        elif [ "$dx" != ' ' ]; then
-          REFUSEL="$REFUSEL$dline"$'\n'
-        else
-          ROUTEL="$ROUTEL$dline"$'\n'
-        fi
-        continue
+      # ── (3) EVERY ENTRY IS CLASSIFIED BY ITS PATHS, NOT BY ITS BUCKET [#543, repair 3 of THE WORK; fresh
+      # antagonist B's P2 of #542, the class B asked be ruled on, and the orchestrator's ruling on it
+      # (decisions/a-staged-or-unmerged-doc-outside-the-tier-set-is-an-ordinary-state-so-the-tier-routes-it-2026-10-28)].
+      # THE DEFECT, reproduced at 1c7bd01 before this edit: an unmerged `UU README.md` left by a conflicted
+      # cherry-pick, with HEAD still the tier-only candidate, REFUSED at exit 1, and so did a staged
+      # `M  README.md` - both under a sentence that calls a doc OUTSIDE the set a tier file. Exit 1 means "stop,
+      # do not re-run", so that is a FALSE HARD REFUSAL of an honest commit.
+      # THE RULING: a staged, unmerged, renamed or copied entry whose paths ALL lie OUTSIDE the tier's set is an
+      # ORDINARY STATE of this checkout. CLAUDE.md lets every other chat write docs and flags here, this run's
+      # own records (HANDOFF.md, RUN-LOG.md) are append-heavy, and a pull, a cherry-pick or a stash that
+      # conflicts on one of them leaves exactly this state.
+      # WHY ROUTING IS SAFE AND NOT A WEAKENING: no verdict of this judge reads working-tree bytes. The
+      # acceptance, identity, premise and harness arms all read git OBJECTS, and every control runs in its own
+      # throwaway clone. So A67's premise - that a staged change means the verdicts would be about a commit
+      # nobody is looking at - no longer refuses a path OUTSIDE the set. Inside the set nothing changes, and
+      # exit 2 is the full suite, which judges everything.
+      # THIS COVERS STATES AT ENTRY ONLY. An entry state exists before any control runs, so it cannot be a
+      # control's doing; a tracked, staged or unmerged change that APPEARS DURING the battery is what a planted
+      # control would produce, and the judge cannot tell it from another session's, so refusing that stays the
+      # price of not being fooled. That half is #542's P2 known limit 8dbab4bd7a6496ab and snapcheck's GRAVE set
+      # is not touched here.
+      # AND EVERY SENTENCE THIS PRINTS IS TRUE OF WHAT IT SAW: each named path carries its BUCKET and says
+      # whether it is INSIDE the set, so the route can no longer say "nothing inside it" over an untracked path
+      # under gates/ (B's P2 of round 9, 65c8fa1435481e07) and a staged refusal is told apart from an
+      # inside-the-set one (A's F5, 5ab74bceff8bd7fa).
+      # THE ORDER OF THE BUCKET TESTS IS LOAD-BEARING: 'U' and 'R' are both "not a space" in the first column,
+      # so unmerged and renamed must be decided BEFORE staged, or every one of them would read as staged.
+      dsecond=""; dbucket=""; dinside=0
+      if [ "$dxy" = '??' ]; then
+        dbucket="untracked"
+      elif [ "$dx" = U ] || [ "$dx2" = U ] || [ "$dxy" = 'AA' ] || [ "$dxy" = 'DD' ]; then
+        dbucket="unmerged"
+      elif [ "$dx" = R ] || [ "$dx2" = R ]; then
+        dbucket="renamed"
+      elif [ "$dx" = C ] || [ "$dx2" = C ]; then
+        dbucket="copied"
+      elif [ "$dx" != ' ' ]; then
+        dbucket="staged"
+      else
+        dbucket="worktree edit"
       fi
-      case "$dx" in
-        '?') ROUTEL="$ROUTEL    $dent"$'\n' ;;
-        ' ') if tier_relevant_path "$dp"; then REFUSEL="$REFUSEL    $dent"$'\n'; else ROUTEL="$ROUTEL    $dent"$'\n'; fi ;;
-        *) REFUSEL="$REFUSEL    $dent"$'\n' ;;
-      esac
+      # A rename or copy is TWO paths and ONE entry, and the second NUL field is consumed for either column
+      # [repair 1]. git's -z gives the NEW path first, so the entry's own path is the destination.
+      if [ "$dbucket" = renamed ] || [ "$dbucket" = copied ]; then
+        IFS= read -r -d '' dsecond || dsecond=""
+        dline="$dxy $dsecond -> $dp"
+        tier_relevant_path "$dp" && dinside=1
+        tier_relevant_path "$dsecond" && dinside=1
+      else
+        dline="$dxy $dp"
+        tier_relevant_path "$dp" && dinside=1
+      fi
+      if [ "$dinside" = 1 ]; then dwhere="inside the set"; else dwhere="outside the set"; fi
+      dline="    [$dbucket, $dwhere] $dline"
+      # AN UNTRACKED PATH ROUTES WHEREVER IT IS, exactly as before this repair: the set governs TRACKED state,
+      # and nothing in this judge reads the working tree. Its line still says it is inside the set when it is,
+      # which is the half of B's round-9 P2 that the wording got wrong.
+      if [ "$dbucket" = untracked ]; then
+        ROUTEL="$ROUTEL$dline"$'\n'
+      elif [ "$dinside" = 1 ]; then
+        REFUSEL="$REFUSEL$dline"$'\n'
+      else
+        ROUTEL="$ROUTEL$dline"$'\n'
+      fi
   done < <("${GIT[@]}" status --porcelain=v1 -z --untracked-files=all 2>/dev/null)
   if [ "$DIRTYANY" = 1 ]; then
     # ONE REFUSAL OUTRANKS EVERY ROUTE.
@@ -259,16 +306,18 @@ main(){
     # APPENDS TO LOGLINES, so a loop on the right-hand side of a pipe would run in a subshell and the judge's
     # own log would lose exactly the lines that name the paths. Same idiom as the arm this replaces.
     if [ -n "$REFUSEL" ]; then
-      say "REFUSED: the working tree carries a staged change, or a TRACKED modification inside this tier's own"
-      say "  path set (anything under gates/, or app.js, chess.jsx, index.html), and every check below is about"
-      say "  the COMMITTED candidate."
+      say "REFUSED: the working tree carries an uncommitted change to a TRACKED path INSIDE this tier's own set"
+      say "  (anything under gates/, or app.js, chess.jsx, index.html), and every check below is about the"
+      say "  COMMITTED candidate. Each line below names its bucket and whether the path is inside the set."
       say "$(printf '%s' "$REFUSEL")"
       return 1
     fi
-    say "GO FULL: the working tree carries changes OUTSIDE this tier's path set and nothing inside it. This judge"
-    say "  will not call your commit broken on them - CLAUDE.md lets every other chat read, measure, test and"
-    say "  write docs and flags in this repository - but it cannot attribute its measurements to a tree it has"
-    say "  not seen whole either, so the suite decides."
+    say "GO FULL: the working tree carries no uncommitted change to a TRACKED path inside this tier's set. This"
+    say "  judge will not call your commit broken on what it does carry - CLAUDE.md lets every other chat read,"
+    say "  measure, test and write docs and flags in this repository, and a pull or cherry-pick that conflicts on"
+    say "  one of them leaves a staged or unmerged entry - but it cannot attribute its measurements to a tree it"
+    say "  has not seen whole either, so the suite decides. Each line names its bucket and where the path sits;"
+    say "  an UNTRACKED path routes wherever it is, inside the set included."
     say "$(printf '%s' "$ROUTEL")"
     return 2
   fi
@@ -763,7 +812,9 @@ main(){
     # content-hashed instead. gates/node_modules is untracked and not ignored, so it is in this set; MEASURED on
     # the real tree after `npm ci`, the whole pass is 95 entries in 0.006s, which is the floor this costs.
     # A STATUS LINE THAT IS NEITHER `??` NOR `!!` IS A TRACKED MODIFICATION OR A STAGED CHANGE, and it is typed
-    # WT and is GRAVE: no other session writing a doc can produce one.
+    # WT and is GRAVE: a doc another session writes is routed at ENTRY now [#543 repair 3], so a
+    # tracked change APPEARING HERE, mid-battery, is not that case: it is what a planted control produces, and
+    # this judge cannot tell the two apart once the battery has started.
     while IFS= read -r -d '' rec; do
       case "$rec" in
         '?? '*|'!! '*)
