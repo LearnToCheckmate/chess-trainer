@@ -1470,11 +1470,16 @@ fi
 # clean), plus every gates/regress/*.js ON DISK that the sha did not carry, because gates.sh globs that
 # directory and a gate the log never ran is on disk right now. A path that differs, is missing, or was added
 # is NAMED, and one is enough to refuse.
-# WHAT IT DOES NOT COVER, SAID HERE SO THE OK LINE IS NOT OVER-READ: gates/lib.js and the harness's other
-# scripts and registers (build.sh, buildnum.sh, held.sh, records-gate.sh, control-audit.js, fastgate.sh,
-# gate-manifest.tsv, held-trees.tsv, fonts.conf, the node_modules the suite runs on) are NOT in the set.
-# The set is the job's, and widening it is a decision for the job, not for the arm; what is left out is
-# printed with every verdict rather than implied by the word SUITE.
+# WHAT IT DOES NOT COVER, SAID HERE SO THE OK LINE IS NOT OVER-READ [#540 repair, antagonist B's B-F3, P2]:
+# gates/mountcheck.js, which gates.sh RUNS as its first logged section; every driver under gates/drive/,
+# which 16 gates require for play, 8 for review, 7 for lesson, 4 for puzzles and 1 for home; gates/lib.js,
+# which every gate requires; gates/engine-extract.js; and the harness's other scripts and registers
+# (build.sh, buildnum.sh, held.sh, records-gate.sh, control-audit.js, fastgate.sh, gate-manifest.tsv,
+# held-trees.tsv, fonts.conf, the node_modules the suite runs on) are NOT in the set. B measured that a line
+# appended to gates/mountcheck.js, to gates/drive/play.js or to gates/lib.js still reads THIS-SUITE OK over
+# 539-all.log on e8dd9cb's tree. A changed driver changes what 16 gates measure, so the OK line's claim is
+# exactly "the 63 files named", no wider. The set is the job's, and widening it is a decision for the job,
+# not for the arm; what is left out is printed with every verdict rather than implied by the word SUITE.
 # PINNED AND OFFLINE: the repository is the one above this script, named with --git-dir and --work-tree so an
 # inherited GIT_DIR cannot redirect it (#540 GMROOT, the same class), and NOTHING IS FETCHED - a sha this
 # repository does not hold is a refusal that says so, not a pass and not a fetch. No pipe here feeds grep:
@@ -1531,11 +1536,12 @@ if [ "$THISSUITE" -eq 1 ]; then
     printf '%s\n' "$SK_REPORT"
     echo "  The log is honest about the suite it measured; it just did not measure the suite you are about to push."
     echo "  (key: every tracked file under gates/regress/ plus $SK_SCRIPTS, raw bytes; NOT in the key:"
-    echo "   gates/lib.js, the harness's other scripts and registers, and node_modules)"
+    echo "   gates/mountcheck.js, gates/drive/*, gates/lib.js, gates/engine-extract.js, the harness's other scripts and registers, and node_modules)"
     exit 1
   fi
   echo "THIS-SUITE OK: $SK_N suite files read the same bytes on disk as at $SKREF ($SK_NREG under gates/regress/ plus $SK_SCRIPTS)"
-  echo "    NOT in that key, so not vouched for by it: gates/lib.js, the harness's other scripts and registers, and node_modules."
+  echo "    NOT in that key, so not vouched for by it: gates/mountcheck.js (a logged suite section), gates/drive/* (the drivers 16 gates require),"
+  echo "    gates/lib.js, gates/engine-extract.js, the harness's other scripts and registers, and node_modules."
 fi
 # ── (11a)/(11) THE BUILD-NUMBER SERIES DOOR CHECK WAS REVERTED OUT OF THIS FILE [#534]. ────────────
 # It landed in this run (VLDOOR) and THREE successive antagonist pairs each broke it; the fourth-round
