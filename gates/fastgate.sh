@@ -2294,10 +2294,14 @@ if command -v node >/dev/null 2>&1 && [ -f "$G/control-audit.js" ]; then
   # SIZE (`rows.length`, which rises when a gate is added) and a VARIABLE field count (a category that falls to
   # zero leaves the line altogether); and its verdict flips between a `CONTROL-AUDIT RED: <n> gate(s)` line and a
   # `CONTROL-AUDIT GREEN:` line with no number at all. So this ratchet has BOTH faults the records one had.
-  # IT IS NOT FIXED IN THIS COMMIT AND THAT IS DELIBERATE: the remedy is a defects-only line in a node script
-  # with its own selftest, and the second commit of this item does it. If that commit is reverted alone, this
-  # `-` is what keeps this call working.
-  ratchet "control audit" '^(SUMMARY|CONTROL-AUDIT)' - node "$G/control-audit.js"
+  # IT IS FIXED THE SAME WAY, IN ITS OWN COMMIT SO EITHER CAN BE REVERTED ALONE: gates/control-audit.js now
+  # prints `CONTROL-AUDIT RATCHET: <GREEN|RED> uncovered=.. none=.. unparsable=.. dirty=.. assertionsmoved=..
+  # nolog=.. nored=.. badrecord=..` whether it is green or red - one verdict word and eight FAULT counts, no
+  # size - and that is what this ratchet compares, while the SUMMARY and verdict lines are still displayed and
+  # logged. Its own --selftest pins the shape across green and red at (3c) and that the two readings are two
+  # states at (3d). PARTIAL stays off that line for the reason its SUMMARY comment gives: a rise in it is a gate
+  # GAINING a record.
+  ratchet "control audit" '^(SUMMARY|CONTROL-AUDIT)' '^CONTROL-AUDIT RATCHET:' node "$G/control-audit.js"
 else
   say "    control audit: SKIPPED (node or gates/control-audit.js not available here)"
 fi

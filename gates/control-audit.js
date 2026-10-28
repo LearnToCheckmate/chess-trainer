@@ -236,6 +236,29 @@ function report(rows, logLabel) {
     ORDER.filter(v => v !== 'COVERED' && v !== 'PARTIAL' && n(v)).map(v => n(v) + ' ' + v.toLowerCase()).join(', '));
   console.log('PARTIAL-RECORDS  ' + n('PARTIAL') + ' of those ' + covered + ' covered gate(s) rest on partial records only: shown able to fail for the assertions the record ran, not for the ones added since.');
   const bad = rows.filter(r => r.verdict !== 'COVERED');
+  // ── THE RATCHET LINE: ONE FIXED SHAPE, DEFECTS ONLY, PRINTED WHETHER THIS AUDIT IS GREEN OR RED ───────────
+  // [#544, item (5) of directOpening_2026_10_28_batch4; the SECOND of the two instances
+  // jobs/the-records-ratchet-refuses-the-commit-that-fixes-the-arm-5-breach-and-the-roster-says-this-mode-cannot-redden-a-build-2026-10-10
+  // counts in its classSwept, left unfixed there "to the owning lane with the count stated".]
+  // WHAT THE TWO LINES ABOVE CANNOT BE COMPARED BY. gates/fastgate.sh ratchets this tool: it reduces the lines
+  // matching its key to every OK/RED/GREEN/FAIL word plus every integer, and refuses outright when the field
+  // count differs. The SUMMARY line fails that twice over - `of <rows.length> gates` is a SIZE, so adding a gate
+  // reads as a defect rising, and the category list only prints the NON-ZERO categories, so a category falling
+  // to zero removes a field - and the verdict flips between a RED line carrying a count and a GREEN line
+  // carrying no number at all. The comment at the SUMMARY line already records one escape from this (PARTIAL is
+  // deliberately kept off both lines because a rise in it is a gate GAINING a record); that is a fact about one
+  // counter, not a fix for the shape.
+  // SO THIS LINE CARRIES WHAT A RATCHET CAN HONESTLY COMPARE: a verdict word and EIGHT counters, always all of
+  // them, always in this order, every one a count of gates in a FAULT state where lower is better. No size, so
+  // adding a gate with a sound control moves nothing here; and PARTIAL stays off it for the reason above.
+  // ITS LABELS ARE LOWERCASE AND CARRY NO DIGITS, AND BOTH HALVES ARE LOAD-BEARING: sig() takes every integer on
+  // the line, so a digit in a label would shift every counter after it, and its verdict-word pattern is
+  // case-sensitive, so the category `NO-RED` has to be spelled `nored` or it would read as a verdict of its own.
+  console.log('CONTROL-AUDIT RATCHET: ' + (bad.length ? 'RED' : 'GREEN') +
+    ' uncovered=' + bad.length +
+    ' none=' + n('NONE') + ' unparsable=' + n('UNPARSABLE') + ' dirty=' + n('DIRTY') +
+    ' assertionsmoved=' + n('ASSERTIONS-MOVED') + ' nolog=' + n('NO-LOG') + ' nored=' + n('NO-RED') +
+    ' badrecord=' + n('BAD-RECORD'));
   if (bad.length) {
     console.log('CONTROL-AUDIT RED: ' + bad.length + ' gate(s) cannot show that the assertions they run TODAY have ever');
     console.log('been shown able to fail. Back-fill only what you can verify - an invented record is worse than none,');
@@ -293,6 +316,7 @@ function selftest() {
     ok(/^--- COVERED \(1\) ---$/m.test(r.out), '(1) a gate with a valid record and no assertions added since reads COVERED');
     ok(/^SUMMARY  1 covered, of 1 gates/m.test(r.out), '(1) and the SUMMARY counts it covered');
     ok(/^PARTIAL-RECORDS  0 of those 1 covered/m.test(r.out) && r.rc === 0 && /^CONTROL-AUDIT GREEN/m.test(r.out), '(1) with 0 partial, and the GREEN line prints at exit 0');
+    const RAT1 = (r.out.match(/^CONTROL-AUDIT RATCHET:.*$/m) || [''])[0];   // captured GREEN, compared at (3c)
     // (2) the same gate with ONE assertion added
     write(['// fixture gate', rec, A1, A2, A3, "L.say('d', 4 === 4);"]); commit('one assertion added');
     r = run(4, 'selftest-2');
@@ -310,6 +334,19 @@ function selftest() {
     r = run(4, 'selftest-3');
     ok(/^--- ASSERTIONS-MOVED \(1\) ---$/m.test(r.out) && /1 line\(s\) it ran are gone/.test(r.out), '(3) a gate whose recorded assertion no longer exists is still FAULT: ASSERTIONS-MOVED');
     ok(/^SUMMARY  0 covered, of 1 gates  \|  1 assertions-moved/m.test(r.out) && r.rc === 1, '(3) and it is not covered, at exit 1');
+    // ── (3c) THE RATCHET LINE KEEPS ONE SHAPE ACROSS GREEN AND RED [#544, item (5)]. This is the property
+    //     gates/fastgate.sh's records-tier repair rests on, asserted for THIS tool against its own two states:
+    //     input (1), a sound control, and input (3), a recorded assertion that no longer exists. sig() as
+    //     gates/fastgate.sh defines it is reproduced here rather than imported, because this file must run with
+    //     no fastgate.sh present; if that definition changes, this copy is wrong and this assertion stops
+    //     meaning what it says.
+    const RAT3 = (r.out.match(/^CONTROL-AUDIT RATCHET:.*$/m) || [''])[0];
+    const sigf = (t) => ((t.match(/\b(OK|RED|GREEN|FAIL)\b|[0-9]+/g)) || []).length;
+    ok(RAT1 !== '' && RAT3 !== '' && sigf(RAT1) === 9 && sigf(RAT3) === 9,
+       '(3c) the ratchet line reduces to the same 9 fields green and red (one verdict word, eight counters)');
+    // AND THE TWO READINGS MUST BE TWO STATES, or the line above is 9 === 9 over one string twice.
+    ok(/RATCHET: GREEN uncovered=0 /.test(RAT1) && /RATCHET: RED uncovered=1 /.test(RAT3) && /assertionsmoved=1/.test(RAT3),
+       '(3d) and they are green-with-nothing-uncovered against red-with-one, so (3c) is not one state twice');
     // (3b) the same multiset in a different order is PARTIAL (every line it ran is still here), never COVERED
     write(['// fixture gate', rec, A3, A2, A1]); commit('reordered');
     r = run(3, 'selftest-3b');
