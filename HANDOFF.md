@@ -1,4 +1,48 @@
 # HANDOFF - where the last run left off
+**#540: FOUR GATE-MACHINERY P1s LANDED ONE PER SCRIPT, EACH WITH ITS OWN SELFTEST CASE AND A TURNING
+MUTANT, UNDER ONE SUITE OVER MAIN'S UNCHANGED #530 BUNDLE.**
+Run `build__1793143553641`, 27-28 Oct 2026, under `docs/restart-readiness.directOpening_2026_10_27_batch3`,
+started BY HAND as a cloud session (triggerKind "hand started cloud session"). No app change at any point:
+`app.js` is #530's bundle throughout, md5 `049b41dfb6f1`, stamp "#530 - 2026-10-21 20:50 ET",
+byte-identical to main's before and after. `gates/build.sh` never ran. **Nothing a player can see moved.**
+
+## 1. READ THIS FIRST: WHAT LANDED, AND THE ONE-LINE CONTROL FOR EACH
+
+| job | script | the fix in one line | its control, and the count you should get on this tree |
+|---|---|---|---|
+| CANUM `the-control-ledgers-numerator-decays-every-time-a-gate-gains-an-assertion-2026-10-02` | `gates/control-audit.js` | a record whose `L.say(` lines at its sha are ALL still present reads PARTIAL (a multiset subset, not a count), counts as covered on SUMMARY, and sits on its own `PARTIAL-RECORDS` line that `fastgate.sh`'s ratchet key does not match | `node gates/control-audit.js --selftest` -> **12 pass / 0 fail**; the real ledger's SUMMARY and CONTROL-AUDIT lines are byte-identical to e8dd9cb's (0 covered of 60: no record on main has every line it ran still present) |
+| GMROOT part (1) `gatemanifest-derives-its-root-with-git-c-so-an-inherited-git-dir-switches-off-the-gate-anchor-while-the-tier-still-prints-green-2026-10-22` | `gates/gatemanifest.sh` | every git call pinned to `--git-dir=$ROOT/.git --work-tree=$ROOT` from the script's own location, the selftest's scratch repo included | `bash gates/gatemanifest.sh selftest` -> **53 passed, 1 failed**, and the one failure is the PRE-EXISTING sigpipe ceiling (51/1 on e8dd9cb; the audit line is identical: 23 sites, A 0, B 0, C 7, D 16) |
+| SUITEKEY `the-push-gate-has-no-key-for-the-suite-itself-2026-10-03` | `gates/verify-log.sh`, `gates/verify-log-selftest.sh` | `--this-suite`: tracked files under gates/regress/ plus gates.sh, verify-log.sh, gatemanifest.sh at the log's `ref: HEAD` sha, against the same paths on disk by raw blob hash | `bash gates/verify-log-selftest.sh` -> **79 pass, 0 fail, 0 open, 8 closed**; `bash gates/verify-log.sh claude/agents/gatelogs/540-all.log '#540' --this-suite` -> THIS-SUITE OK on main at the landed sha |
+| F4 `fastgate-runs-the-heads-records-gate-before-it-decides-force-so-a-planted-entries-arm-turns-a-records-gate-change-into-a-fast-green-2026-10-23` | `gates/fastgate.sh`, `gates/fastgate-drive.sh` | FORCE is decided from the changed paths BEFORE the head's records-gate.sh or buildnum.sh is executed; the script is one `main()` read whole before it runs | `bash gates/fastgate-drive.sh fixed` -> **54 ok / 0 FAIL / 1 skipped** of 55; `unfixed` -> H53 and H54 FAIL |
+
+## 2. THREE ANTAGONIST PAIRS, TWO VETOES, BOTH UPHELD AND REPAIRED BEFORE THE SUITE
+
+| round | A (diff door) | B (shipped surface, no tracker) | what it cost |
+|---|---|---|---|
+| 1 on `6fda5e1` | no veto; A-F1 **P2 introduced**: PARTIAL was vacuous over a record whose sha carried **zero** `L.say(` lines (the empty-collection trap, in my own new code); A-F7 **P2 pre-existing** from the rotating audit | **VETO**, B-F1 **P1 introduced**: `control-audit.js --selftest` ran `git -C <scratch>` unpinned, so under an inherited `GIT_DIR` it wrote **six commits onto a victim repository's main** and printed 12/0 - the exact hazard my own GMROOT commit had pinned in the sibling script the same hour | five repair commits (`884c8f4`, `ad2785f`, `c6e9bdc`, `e24f52f`, `162c6f5`) |
+| 2 on those five | **VETO**, A2-F1 **P2 introduced by my repair**: `find -type f -o -type l` dropped an untracked **directory** named like a gate, which `gates.sh`'s glob keeps and node runs via `index.js`, so `--this-suite` read OK where `6fda5e1` refused | no veto narrowly; B2-F1 P3: the wording repair cited a measurement that reaches a **different** reason line; B2 reproduced A2-F1 and upheld the veto | three more (`741988a`, `d4e64d3`, `d068990`) |
+| 3 on those three | CLEAN, no veto | CLEAN, no veto, twelve filesystem poses on three script versions | none |
+
+**THE TRANSFERABLE PART:** the repair of a reviewer's finding is itself a change nobody has read, and twice in one hour mine was wrong in a way the next pair found in minutes. A2-F1 is the sharper one: I replaced `ls` with `find` to remove a cosmetic stray line and silently changed the **set** the key compares, because I reasoned about "files" when the suite's own enumeration is a glob with `[ -e ]` that keeps directories. **When a check must agree with another tool's enumeration, copy that tool's enumeration; do not re-derive it.**
+
+Every P2/P3 the pairs found that was not repaired is a `knownLimits` entry on its job with a fingerprint (seven on CANUM, SUITEKEY and GMROOT); A-F7 is filed as its own job and the rotating-audit pointer moves to `gates/regress/47-menu.js:230`. Flags `antagonist-a-540` and `antagonist-b-540` carry all six reports and six cross-reads.
+## 1b. THE ONE SUITE, AND WHAT AUTHORISES THE PUSH
+
+`GATES GREEN #540`: **60 gates, 5029 PASS, 0 FAIL**, 117m12s (01:14:12Z to 03:11:24Z, 9:14pm to 11:11pm ET, Tue 27 Oct 2026), over main's unchanged #530 bundle md5 `049b41dfb6f1`, gated sha `d068990`, log `claude/agents/gatelogs/540-all.log`. Run from the sibling copy `gates/.gates-run-540.sh`; `md5sum gates/*.sh gates/lib.js` identical before and after the run. The footer reads `calibration AGREES` (system-ui 402.12, "Segoe UI" 322.15, sans-serif 348.28, sentinel 322.15), the series door `ok` (appended=1, head 521 rows), the manifest `59 required, 59 present, 0 missing`, the unit layer `fastgate-drive: green (54 ok -> 54 PASS lines, 1 skipped, of 55 declared)`, and **no OVERRIDE line anywhere**. `gates/verify-log.sh claude/agents/gatelogs/540-all.log '#540' --this-bundle --this-suite` reads OK: THIS-BUNDLE OK over `049b41dfb6f1`, **THIS-SUITE OK over 63 files** - the first log this project has checked with the suite key, and this run's own tree is the real positive instance the SUITEKEY job asked for. `gates/held.sh check` exit 0 (four keys, 28 matchable rows). Before the suite: the `10-gameover` subset from `gates/.gates-run-540s.sh` (mountcheck 16, 10-gameover 14, `SUBSET OK`, `calibration AGREES`) and the unit layer on the real tree (54 ok / 0 FAIL / 1 skipped, 01:09Z to 01:14Z).
+
+## 2. WHAT THIS RUN DID NOT DO, BY THE BRIEF'S DESIGN
+
+- GMROOT's **part (2)** (the `gate anchor:` line into gates.sh's footer; `verify-log.sh` refusing a log whose anchor reads NOT CHECKED) and its **class sweep** (`gates/build.sh:141`, `gates/buildnum.sh`'s unpinned calls, `gates/fastgate.sh`'s ratchet worktree add/remove, `verify-log.sh`'s `--on-main` arm, `control-audit.js:73`) are written in that job's `whatIsLeft`. The job takes **fixed-in-part by design** and stays open.
+- No app change, no rebuild, no `gates/build.sh`, no `fastgate.sh` as the gate of any commit, no `docs/fast-gate-state` reseed, no `gates/held-trees.tsv` edit.
+- R23 was not run (the orchestrator owns it between runs). R37 ran as a read at check-in and before close-out.
+
+## 3. TWO LESSONS THIS RUN PAID FOR
+
+- **A REPAIR THAT EDITS A JOB'S OWN TC ROW MAKES THE MECHANICAL REVERT RECIPE CONFLICT.** The brief's revert is "delete the job's rows, then `git revert --no-commit` its commits newest first". CANUM's repair commit `98d32a0` changed only the TC-SUITE-182 row, so with the row already deleted its revert conflicts. The recipe that applies cleanly for CANUM is: delete the row, then revert `95e00f4` only. Measured in a throwaway clone; every other job's revert and the all-four revert apply cleanly as written.
+- **R44 ORDERING SLIP, declared:** `buildnum.sh mint` edited `gates/build-numbers.tsv` in the same response as a lock batch that was refused on a version mismatch, so the register was edited before its lock landed. Take every lock in one batch and READ the result before the first write.
+
+## 4. EVERYTHING BELOW IS #539'S HANDOFF, KEPT VERBATIM
+
 **#539: THE CONTAINER FIX HOLDS, THE FOUR HELD #537 JOBS LANDED, AND REPAIRING THIS RUN'S OWN
 FOUR-LINE DIAGNOSTIC TOOK SEVEN ROUNDS.**
 Run `build__1793106969000`, 27 Oct 2026, under `docs/restart-readiness.directOpening_2026_10_27_run16`.
