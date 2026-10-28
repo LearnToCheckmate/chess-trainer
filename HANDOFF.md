@@ -1,4 +1,159 @@
 # HANDOFF - where the last run left off
+**#542: THE PUSH CHECKS TIER'S THIRD TRY. THE TIER IS CARRIED ONTO A BRANCH OFF MAIN AND TWO REAL
+DEFECTS ARE REPAIRED, AND IT IS HELD WITHOUT A SUITE BECAUSE THE NINTH ADVERSARIAL ROUND FOUND THREE
+MORE DEFECTS INSIDE THIS RUN'S OWN REPAIR - TWO OF THEM IN THE ONE ARM IT REWROTE.**
+Run `build__1793175513422`, 28 Oct 2026, under `docs/restart-readiness.directOpening_2026_10_28_tier`.
+**NOTHING WAS PUSHED TO MAIN. origin/main is 68e484e530153294b97270d6646b479c8681dae8, exactly where
+#541 left it.** All of this run's work is on `claude/epic-cerf-5ybcop` at `0c0a621`, four signed commits,
+pushed. No app change at any point: `app.js` is #530's bundle, md5 `049b41dfb6f1`, `chess.jsx` md5
+`1b41d1d1e765`, both byte-identical to main's; `gates/build.sh` and `gates/gates.sh` never ran.
+**Nothing a player can see moved, and no browser suite has ever run over this tree.**
+
+## 1. READ THIS FIRST: WHY IT HELD, AND WHAT IS AND IS NOT CLOSED
+
+The tier works. That is not the question. The question this run answers is whether it works for the
+people who would use it, and the answer is still **not yet**, for reasons two independent readers
+measured rather than argued.
+
+**WHAT THIS RUN CLOSED, with controls both ways:**
+
+- **The universal false hard refusal** (fresh antagonist B of #542, a P1 veto, upheld and reproduced
+  end to end by the run before it was acted on). An honest tier-only commit was answered `CHECKS TIER
+  RED` at **exit 1** - which in the judge's own interface means "stop, do not re-run" - on any checkout
+  that has `origin/main` only as a remote-tracking ref and **no local `refs/heads/main`**. That is the
+  ordinary state of a feature branch that has fetched origin/main, and it is what `git clone --shared`
+  produces. The mechanism is the judge's own isolation: a control's clone has `origin` = the throwaway
+  mirror, `verify-log.sh --on-main` resolves main with `git ls-remote origin main`, and a `--mirror`
+  clone copies the root's `refs/heads/*` verbatim - so the mirror carried a main **only if the root
+  happened to have one**. Repaired at `05885d0` by giving the mirror a `refs/heads/main` at the base.
+  Measured: exit 1 before, **exit 0 after**, same clone shape.
+- **The tracked-doc entrance refusal** (fresh antagonist B of #536, carried in by the brief as THE
+  WORK (3)). A note another chat left in a TRACKED doc hard-refused an honest candidate while the same
+  write untracked routed. Repaired at `0c0a621`: the entrance now keys on the tier's own path set -
+  every path under `gates/` plus `app.js`, `chess.jsx`, `index.html`, named once in
+  `tier_relevant_path()` and matched at a true path boundary - with six cases A64..A69, one per arm,
+  and mutant M49.
+
+**AND THE REPAIR THAT MATTERED MOST WAS NOT THE ONE THE BRIEF PRESCRIBED. READ THIS BEFORE YOU TOUCH
+A1.** The brief said to expect case A1 to fail "because A1's `git clone --shared` carries no
+`refs/heads/main` into the judge's mirror" and **to repair the fixture** by giving A1's clone a local
+main. Antagonist A, reading the diff, agreed with the brief in terms: "repair the fixture, not the
+judge". **Both were wrong, and B - which never saw the brief - is why.** A1's fixture is not an
+artificial shape, it is the **faithful** one: A1 clones the root, so it has no local main, which is
+exactly what an ordinary checkout looks like. The fixture repair would have turned A1 green **while
+leaving every real checkout hard-refused** - a fix that makes the control pass while the defect ships.
+So the fixture was left alone and the judge was repaired, and **A1 went green anyway, in 500s**, which
+is the proof the fixture was never the defect. What masked it for seven rounds: `/home/user/chess-trainer`
+happens to carry a local `main` branch, so every hand run resolved.
+
+**WHAT IS NOT CLOSED, and why the suite was not spent.** The ninth round (fresh pair, flags
+`antagonist-a-542b` and `antagonist-b-542b`) cast **no veto** and found **three defects inside this
+run's own repair**, two of them in the entrance arm it had just rewritten:
+
+1. **`' R'` and `' C'` carry a second NUL path and the loop does not consume it** (A's F1, P2). `git
+   status --porcelain=v1 -z` emits a second path for **four** statuses, not two: `R`/`C` in the index
+   **and `' R'`/`' C'` - renamed or copied in the work tree, X = SPACE. Those take the `' '` arm,
+   which never reads the second path, so the old path is read as the next entry. Reproduced against
+   the candidate's own judge: a tier-only commit plus `mv RUN-LOG.md RUN-LOG-moved.md && git add -N
+   RUN-LOG-moved.md` gives **exit 1** naming `RUN-LOG.md -> ` with an empty right-hand side, where the
+   same tree without the `git add -N` routes at exit 2. **One git command flips an honest commit from
+   route to "stop, do not re-run", and the refusal names the wrong path.** It cannot route or green,
+   so it is a false-refusal defect only. The fix is to key the second-path read on **Y** as well as X.
+2. **Repair 1 is HALF: the `--on-main` case still reds in a SHALLOW checkout** (A's F2, P2), which
+   CLAUDE.md's #454 entry calls this project's own "routine (shallow, 50-commit) clone". Repair 1
+   makes `ls-remote origin main` *resolve*; it does not make the object *reachable*.
+   `gates/verify-log-selftest.sh:46` pins a fixed fixture log whose ref line names a sha **461 commits
+   behind main** - measured - and `git cat-file -e` reads **ABSENT** in a `--depth 50` clone, so
+   `verify-log.sh` takes its shallow branch, prints "NOT CHECKED" and exits 1. **Measured by this run
+   in a depth-50 clone given a resolvable local main, i.e. the exact post-repair state: `80 pass, 1
+   fail`, exit 1, "A CONFIRMED CASE REGRESSED".** A said five cases fail; it is **one** - corrected
+   here - and one is enough, because the acceptance arm forbids any `N fail` line. What softens it:
+   every build run since #535 records unshallowing, so in practice the full-depth checkout the tier
+   needs does get created. **So it is a documented prerequisite, not a universal refusal - but
+   `05885d0`'s own commit message claims more than it delivers, which is A's exact point and which
+   this run accepts.**
+3. **An unmerged entry on a doc OUTSIDE the set hard-refuses with a reason that misdescribes it**
+   (B's P2, and the one B asked be ruled on before landing). `UU README.md` gives **exit 1** with
+   "a staged change, or a TRACKED modification inside this tier's own path set" - naming the
+   operator's doc as a tier-set file. B rates it not-a-veto only because it will not call a conflicted
+   shared doc "ordinary" without a ruling, and says plainly: **if the project considers a conflicted
+   shared doc ordinary, that one is a veto by the stated standard.** This repo's shared docs are
+   append-heavy and CLAUDE.md's pen rule has several chats writing them, so the window is real.
+   B also measured that `?? gates/zz.sh` - a path the judge's own `tier_relevant_path` returns 0 for -
+   routes while the log states "changes OUTSIDE this tier's path set **and nothing inside it**", which
+   is a false published claim about the judge's own set (the exit code is the safe one).
+
+**THE DECISION, AND IT IS A JUDGEMENT AND NOT A RULE FIRING.** None of those three is a veto, so by the
+letter of the brief a suite could have been launched. It was not, for three reasons. (a) Fixing any of
+them is a further code change, and this project's own bar is that **no unread fix lands** - which needs
+a fourth adversarial round, and a fourth round plus a 107-to-125-minute suite did not fit inside cut
+line (d)'s 11:51Z start and cut line (f)'s 14:01Z push bar. (b) Two of the three sit in the arm this run
+rewrote, so the repair is incomplete **in its own defect class** - the entrance now has three known
+false-refusal shapes in it, and the tier exists to let honest commits skip the suite. (c) **Nine
+consecutive adversarial rounds have each found a defect in the previous round's fix.** That is no longer
+a run of bad luck; it is the honest signal that this judge is not converging inside one run, and the
+brief's own instruction for that case is that the orchestrator takes the tier back to Kunal before a
+fourth try.
+
+**NOTHING WAS REVERTED, deliberately.** The brief's revert clause covers a run that cannot finish its
+work or that cannot answer an upheld veto. Neither happened: both repairs are real, controlled and
+measured, and reverting would leave the branch at the carry - which still carries the universal false
+refusal B found. The branch is strictly more valuable than the carry alone, and the remainder for the
+next run is three named defects with reproductions rather than a re-derivation.
+
+## 2. WHAT IS ON THE BRANCH, COMMIT BY COMMIT
+
+`claude/epic-cerf-5ybcop`, four signed commits over `68e484e`, all pushed (count `^gpgsig` in
+`git cat-file commit <sha>`; `git log --format=%G?` is not the test):
+
+| sha | what |
+|---|---|
+| `4099e28` | the mint. #542 in both halves, agreement **found** not manufactured - main's register already topped at 541 because #541 landed its own row. |
+| `65d6cab` | **the carry.** `gates/checks-tier.sh` (1692 lines), `gates/checks-tier-drive.sh` (2821) and `gates/cases/README.md` (240) byte-equal to `claude/gallant-wozniak-kv07kk` at `91ad100`, plus its 38 case rows TC-SUITE-137..174. 4 files, 4791 insertions, 0 deletions. NOT a rebase or a merge: `git merge-tree` conflicts in three files and merges HANDOFF.md **without** a conflict by applying #535's rewrite, which would silently delete about 1,800 lines of main's history. |
+| `05885d0` | repair 1, the mirror's `refs/heads/main` at the base. |
+| `0c0a621` | repair 2, the entrance path set, six cases, one mutant, M1 and M37 re-anchored, register rows TC-SUITE-187..192, and the known limits written into `gates/cases/README.md`. |
+
+## 3. THE NUMBERS, ALL MEASURED ON THIS TREE
+
+- `CT_RUNID=<runId> CT_EXPECT='#530' bash gates/checks-tier-drive.sh fixed` on `0c0a621`:
+  **`tier-drive: 123 ok, 0 FAIL, 1 skipped`**, exit 0, **A1 `ok ... in 500s`**. The one skip is M44's
+  race mutant, which the harness itself declares proved nothing this run - **counted as uncontrolled,
+  not as green.**
+- On the carried head before the repairs, the same command read **115 ok, 1 FAIL, 1 skipped**, the FAIL
+  being A1. The stub battery alone read **111 ok / 11 FAIL** on this run's broken first draft of the
+  entrance and **122 ok / 0 FAIL / 2 skipped** after it was fixed.
+- Six baselines, all equal to the brief's figures: `gates.sh --selftest` 332/0; `verify-log-selftest.sh`
+  81 pass, 0 fail, 0 holes open, 8 closed, exit 0; `buildnum-selftest.sh` 219/0; `held-selftest.sh`
+  114/0; `gatemanifest.sh selftest` 53 passed / 1 failed (the pre-existing sigpipe ceiling, a tracked
+  job, not this run's); `control-audit.js --selftest` 14/0.
+- `verify-log.sh --citations`: **19 dead paths, 23 unsupported case ids, 11 misfiled rows, 2 NOT
+  CHECKED** - identical at `68e484e`, at the carry head and at the final tree. **No defect count rose.**
+  Register self-check OK at 155 rows before the carry, 193 after it, 199 after the six new rows.
+- **AND SAY THIS ONE ALOUD, because the row count reads the other way** (A's F3): of those 199 rows,
+  **44 - about 22 per cent - are recorded NOT CHECKED**, because their cases run only in
+  `gates/checks-tier-drive.sh`, which no section of the gate suite executes. "The register went 155 to
+  199 rows" is **not** 44 rows of verified coverage; it is 44 rows the verifier is structurally unable
+  to see. The wrong-width ceiling is also **at** its limit (2 of 2), so the next unescaped `|` in a row
+  reddens the register self-check.
+
+## 4. WHAT THE NEXT RUN SHOULD DO, IN ORDER
+
+1. **Do not re-derive any of this.** The three open defects each have a reproduction in
+   `flags/antagonist-a-542b` and `flags/antagonist-b-542b` and on the hand-off job's `knownLimits`.
+2. **The smallest first:** A's F1, keying the second-path read on Y as well as X, which also makes the
+   refusal name the right path. Then B's unmerged class - but **get the ruling B asked for first**,
+   because it decides whether that one is a veto.
+3. **F2 needs a decision, not a patch:** either deepen the mirror, or take the fixture log from the
+   base's own newest gatelog, which the acceptance arm already does at its own line 1411. Until then
+   the tier's prerequisite is a full-depth checkout and the commit message should say so.
+4. **Then a pair, then the suite.** This tree has never had a browser suite, which is still the whole
+   of what `whatIsNOTPROVEN` on the hand-off job says.
+5. **The register is behind main by one.** #542 is minted in both halves but its row is only on this
+   branch, so a bare checkout of main will answer `#542` to `gates/buildnum.sh next` while
+   `docs/buildnumber` reads `next: 543`. Carry the row forward as #537, #538 and #539 each did; do not
+   re-mint #542.
+
+# HANDOFF - where the last run left off
 **#541: THE DOCS BATCH. FOUR OF FIVE JOBS LAND THROUGH THE FAST PASS OF STEP 0F, THE FIFTH IS REVERTED
 AFTER THREE PASSES FOUND A FALSE CLAIM IN IT EACH TIME, AND THE REVERT IS THE MOST USEFUL THING HERE.**
 Run `build__1793159334673`, 28 Oct 2026, under `docs/restart-readiness.directOpening_2026_10_27_docs`,
