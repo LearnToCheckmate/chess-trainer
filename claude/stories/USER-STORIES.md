@@ -248,7 +248,8 @@ whatever each screen happened to use.
   `jobs/invariant-3-icon-size-target-set` carries the measured list to him.
 
 ### US-INV-04 Nothing on screen is cut without saying so
-Shipped #404 and #413; see 26-invariants.js invariants 4a and 4b and the flags they name.
+- 4a. No text's ink extends outside the box that clips it, at every screen and geometry in the invariant sweep, unless the cut is SIGNALLED - which 26-invariants.js defines as five named cases, enumerated in TC-INV-04a: a text-overflow ellipsis on the clipping box, a -webkit-line-clamp whose own arithmetic accounts for the cut, a finger-scrollable clipping ancestor, the 38x38 king-glyph case, and the pinned rev-best-ply30 residual. (TC-INV-04a)
+- 4b. No text's ink is painted outside its own box, onto a sibling. (TC-INV-04b) Amended 2026-10-27: until today this story's only body was "Shipped #404 and #413; see 26-invariants.js invariants 4a and 4b", with no criterion of its own; both criteria are read from that gate's own header and are executed there, and 4a's excusal list is the gate's own five rather than this file's summary of it.
 
 ### US-INV-05 No part of a control is put where I cannot reach it
 As a player on a narrow or a short phone, no part of a button is painted outside the box that clips it, because a
