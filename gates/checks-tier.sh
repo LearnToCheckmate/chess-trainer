@@ -176,20 +176,68 @@ main(){
   # NOTE WHAT THE BATTERY DOES WITH AN UNTRACKED PATH: nothing. Every control and every harness runs in a clone
   # checked out at HEAD, so the working tree is never read by any of them - which is the other half of why a
   # hard refusal here was the wrong verdict.
-  local DIRTY DIRTYTRACKED
-  DIRTY="$("${GIT[@]}" status --porcelain 2>/dev/null)"
-  if [ -n "$DIRTY" ]; then
-    DIRTYTRACKED="$(printf '%s\n' "$DIRTY" | grep -vE '^\?\? ' || true)"
-    if [ -n "$(printf '%s' "$DIRTYTRACKED" | tr -d '[:space:]')" ]; then
-      say "REFUSED: the working tree carries a TRACKED modification or a staged change, and every check below"
-      say "  is about the COMMITTED candidate."
-      say "$(printf '%s\n' "$DIRTYTRACKED" | sed 's/^/    /')"
+  # ── THE TIER'S OWN PATH SET, NAMED ONCE, AND IT IS NOT THE SERVED TREE. FRESH ANTAGONIST B's P1 [#536],
+  # whose ENTRANCE half this closes. The split here used to key on TRACKED-vs-UNTRACKED, and CLAUDE.md's pen
+  # rule expressly lets every other chat in this project "read, measure, test, and write docs and flags" in this
+  # repository - and this repo's shared docs (DECISIONS-LOG.md, FEEDBACK-INBOX.md, RUN-LOG.md) ARE TRACKED. So
+  # another session's note on a tracked doc HARD-REFUSED an honest candidate at exit 1 while the SAME WRITE
+  # UNTRACKED routed at exit 2. The question is not whether a path is tracked; it is whether an uncommitted edit
+  # to it could change a verdict below. So the key is TIER-RELEVANT-vs-NOT.
+  # THE SET IS every path under gates/ plus app.js, chess.jsx and index.html, AND NOTHING ELSE. It is NOT the
+  # served tree of step (4) - that is "every top-level entry except .git and gates", the COMPLEMENT of this
+  # set's first half - and conflating the two would invert it. gates/cases/README.md points here for it.
+  # MATCHED AT A TRUE PATH BOUNDARY, which is fresh antagonist B's own caution on the repair: `gates/` must be a
+  # DIRECTORY boundary, so gatesX/ is not caught and gates/cases/c-x.sh is, and the three blobs are EXACT
+  # top-level matches so app.js.md is not mis-bucketed. A substring test here would be the next
+  # substring-vs-exact-path bug this file has already shipped three times.
+  # WHY ROUTING CANNOT WEAKEN ANYTHING: exit 2 is GO FULL, the whole browser suite, which is the conservative
+  # default. The only thing this repair can cost is time, never a verdict. The MID-BATTERY GRAVE set is
+  # deliberately NOT touched - a tracked modification appearing DURING the battery is the signature of a control
+  # rewriting the bundle or a gate, and downgrading that would be a route to a false green. Both antagonists of
+  # #542 weighed the two halves separately and both said: entrance only.
+  tier_relevant_path(){
+    case "$1" in
+      gates/*|app.js|chess.jsx|index.html) return 0 ;;
+      *) return 1 ;;
+    esac
+  }
+  local ROUTEL="" REFUSEL="" dent dsecond dx dp DIRTYANY=0
+  # -z AND NUL BY NUL, because a path may hold a SPACE OR A NEWLINE and the line-oriented read this replaces
+  # would have split such a path into two entries and named neither correctly. --untracked-files=all so a new
+  # directory is named by its files rather than by itself.
+  # AND THE NUL STREAM IS READ STRAIGHT FROM git, NEVER THROUGH A VARIABLE, which cost this repair one harness
+  # run to learn: `$(...)` CANNOT CARRY A NUL. Bash says so itself - "command substitution: ignored null byte in
+  # input" - so `DIRTY_Z="$(git status -z)"` arrives with every delimiter stripped, `read -r -d ''` finds none,
+  # the loop body never runs, and both buckets stay empty - which reads as a clean GO FULL naming nothing, for
+  # EVERY dirty state including a staged change. Measured: 11 of this file's own cases failed that way, all with
+  # the same shape. A process substitution keeps the loop in THIS shell, so the buckets and DIRTYANY survive it.
+  while IFS= read -r -d '' dent; do
+      DIRTYANY=1
+      dx="${dent:0:1}"; dp="${dent:3}"
+      case "$dx" in
+        R|C) IFS= read -r -d '' dsecond || dsecond=""; REFUSEL="$REFUSEL    $dent -> $dsecond"$'\n' ;;
+        '?') ROUTEL="$ROUTEL    $dent"$'\n' ;;
+        ' ') if tier_relevant_path "$dp"; then REFUSEL="$REFUSEL    $dent"$'\n'; else ROUTEL="$ROUTEL    $dent"$'\n'; fi ;;
+        *) REFUSEL="$REFUSEL    $dent"$'\n' ;;
+      esac
+  done < <("${GIT[@]}" status --porcelain=v1 -z --untracked-files=all 2>/dev/null)
+  if [ "$DIRTYANY" = 1 ]; then
+    # ONE REFUSAL OUTRANKS EVERY ROUTE.
+    # EACH BUCKET IS EMITTED BY ONE `say` WITH A MULTI-LINE ARGUMENT, NOT BY A LOOP FED THROUGH A PIPE: `say`
+    # APPENDS TO LOGLINES, so a loop on the right-hand side of a pipe would run in a subshell and the judge's
+    # own log would lose exactly the lines that name the paths. Same idiom as the arm this replaces.
+    if [ -n "$REFUSEL" ]; then
+      say "REFUSED: the working tree carries a staged change, or a TRACKED modification inside this tier's own"
+      say "  path set (anything under gates/, or app.js, chess.jsx, index.html), and every check below is about"
+      say "  the COMMITTED candidate."
+      say "$(printf '%s' "$REFUSEL")"
       return 1
     fi
-    say "GO FULL: the working tree carries untracked path(s) and nothing else. This judge will not call your"
-    say "  commit broken on them - CLAUDE.md lets every other chat write docs and flags in this repository - but"
-    say "  it cannot attribute its measurements to a tree it has not seen whole either, so the suite decides."
-    say "$(printf '%s\n' "$DIRTY" | sed 's/^/    /')"
+    say "GO FULL: the working tree carries changes OUTSIDE this tier's path set and nothing inside it. This judge"
+    say "  will not call your commit broken on them - CLAUDE.md lets every other chat read, measure, test and"
+    say "  write docs and flags in this repository - but it cannot attribute its measurements to a tree it has"
+    say "  not seen whole either, so the suite decides."
+    say "$(printf '%s' "$ROUTEL")"
     return 2
   fi
 
