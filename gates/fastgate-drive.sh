@@ -2032,7 +2032,14 @@ PY
 }
 h55_width(){ ( cd "$C" && timeout 120 bash gates/verify-log.sh --citations 2>&1 | grep -oE 'widthrise=[0-9]+' | head -1 | cut -d= -f2 ) ; }
 h55_set broken2
-H55BASE="$(new_base "H55 base: two wrong-width fixture rows, never pushed")"
+# `new_base ... >/dev/null` AND NOT `$(new_base ...)`, WHICH IS THE IDIOM EVERY OTHER CALLER USES AND THE FIRST
+# DRAFT OF THIS CASE GOT WRONG: new_base sets the global CASEBASE that run_fastgate gates against, and command
+# substitution runs it in a SUBSHELL, so the assignment is lost while its `update-ref` still moves the clone's
+# origin/main. The result is a base and an origin/main that disagree, and all three heads read
+# `FAST GATE REFUSED - the base is not what origin/main carries` - exit 1 in every pose, which (c) would have
+# accepted on the exit code alone. Caught by this case's own substring assertion, which is why probe() takes one.
+new_base "H55 base: two wrong-width fixture rows, never pushed" >/dev/null
+H55BASE="$CASEBASE"
 H55W="$(h55_width)"
 if [ "${H55W:-missing}" != 2 ]; then
   note "  FAIL H55 [$(tc H55)]  the fixture's premise does not hold: the base reads widthrise=${H55W:-missing},"
