@@ -92,7 +92,77 @@ discover() { find "$AUD" -maxdepth 1 -type f -perm -u+x 2>/dev/null | sort; }
 # a caller that silently skipped it would hide exactly the class this file exists for.
 discover_nonexec() { find "$AUD" -maxdepth 1 -type f ! -perm -u+x -name '*.sh' 2>/dev/null | sort; }
 
-has_selftest() { grep -q -- '--selftest' "$1"; }
+# ── IS THIS INSTRUMENT ARMED? TWO INDEPENDENT SOURCES, AND THEY MUST AGREE ────────────────────────────────
+# [#544, item (6) of directOpening_2026_10_28_batch4;
+# jobs/audit-all-has-selftest-is-a-text-scan-so-run-or-excused-turns-on-a-grep-and-c21-is-co-blind-2026-10-10.]
+#
+# WHAT WAS WRONG. This was `grep -q -- '--selftest' "$1"`, and that one predicate decides the branch below: an
+# instrument it calls armed is RUN, one it calls unarmed is looked up in the roster and, with a reason, reported
+# ACCOUNTED and NOT RUN at exit 0. It did not ask whether the file HAS a working arm; it asked whether those ten
+# characters appear anywhere in it, a header comment included. Two directions, and only one was loud:
+#   (a) a no-arm instrument that merely MENTIONS --selftest in a comment flips to armed and is run with a flag it
+#       ignores. LOUD: measured, `gates/audit/pipefail-grep.sh --selftest` runs its normal census and exits 1, so
+#       the umbrella records FAIL. This project's house style moves long explanations into the file they describe,
+#       so it was one edit away.
+#   (b) a genuinely armed instrument whose arm is RENAMED, with the string gone from the file, flips to no-arm -
+#       and a roster row with any non-empty reason then reports it ACCOUNTED and NOT RUN, at exit 0. Its controls
+#       stop running and this umbrella stays green. SILENT.
+# AND C21, THE CONTROL WRITTEN FOR EXACTLY THAT ("A ROSTER ROW CANNOT HIDE A FAILURE. An instrument that HAS a
+# selftest is run whatever the roster says"), established "HAS a selftest" with has_selftest - the same text
+# scan. The guard and the thing it guards against read one string, so the single edit that defeats the guard is
+# the edit that makes the guard agree. The job's own words: the control is co-blind with the defect.
+#
+# THE PREDICATE NOW READS CODE AND NOT PROSE: a line containing --selftest whose first non-space character is not
+# `#`. awk rather than grep, with no pipe anywhere, for the reason this file's header already gives about
+# `grep -q` and SIGPIPE under pipefail. MEASURED over the eleven instruments on main: 9 armed, and the 2 the
+# roster names (pipefail-grep.sh, pixel-literal-classify.sh) unarmed - the same answer the old scan gave today,
+# which is why this is a latent hole closed rather than a live failure fixed. AND THE OBVIOUS REGEX IS WRONG:
+# `^[[:space:]]*[^#[:space:]].*--selftest` consumes the first `-` of `  --selftest)` and then looks for a SECOND
+# mention on the line, so it reports require-resolve.sh and verify-parked-patch.sh - whose arms are exactly that
+# indented case pattern - as unarmed. Controlled three ways in the selftest: a comment-only mention, a real arm,
+# and an indented case pattern.
+#
+# THAT CLOSES (a). (b) NEEDS A SECOND SOURCE, because no scan of a file can tell "this never had an arm" from
+# "this had one and it was renamed". armed_lines() below is that source: a DECLARATION, independent of the
+# file's bytes, and the two are compared for every instrument. Declared armed with no arm in the code is a
+# REFUSAL the roster cannot excuse - it is checked before the roster is consulted - and armed but undeclared is
+# reported and RUN, never excused, on the gate-manifest precedent that a guard which fires on the normal case
+# gets switched off.
+has_selftest() {
+  awk 'index($0,"--selftest") { s=$0; sub(/^[[:space:]]+/,"",s); if (substr(s,1,1) != "#") { found=1; exit } }
+       END { exit(found?0:1) }' "$1"
+}
+
+# ── THE DECLARED-ARMED SET: the independent source has_selftest is checked against. ────────────────────────
+# FORMAT, as the roster's: one line per instrument, "<basename>|<what its own --selftest arm covers>". It is
+# overridable with CT_AUDIT_ARMED so the selftest can drive both directions over fixtures.
+# WHY A LIST AND NOT A COUNT: a count of armed instruments falls by one when an arm is renamed AND rises by one
+# when an instrument is added, so the two cancel and the ratchet reads clean. The names do not cancel.
+armed_lines() {
+  if [ -n "${CT_AUDIT_ARMED:-}" ]; then cat "$CT_AUDIT_ARMED"; return; fi
+  cat <<'ARMED_EOF'
+cited-not-run.sh|The roster-and-ceiling instrument's own controls over its admission arms.
+landed-on-main.sh|Its ancestry and shallow-clone arms over planted fixtures.
+r19-phone-geometry.sh|The geometry-token controls, both directions.
+red-count.sh|The FAIL-line counting controls, including the over-report this job family came from.
+require-resolve.sh|Both-direction controls over planted require fixtures. Its arm is an INDENTED case pattern.
+story-join.sh|The story-join controls over fixture registers.
+suite-shared-paths.sh|The shared-path derivation's own controls.
+verify-parked-patch.sh|The payload-acceptance controls. Its arm is an INDENTED case pattern.
+verify-patch-set.sh|The patch-set acceptance controls over planted payloads.
+ARMED_EOF
+}
+
+is_declared_armed() {
+  local want="$1" line
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    [ "${line%%|*}" = "$want" ] && return 0
+  done <<ARMED_IN
+$(armed_lines)
+ARMED_IN
+  return 1
+}
 
 # THE DIRECTORY CHECK BELONGS TO THE RUN MODES AND NOT TO --selftest, AND THE FIRST DRAFT HAD IT ABOVE THE
 # MODE DISPATCH. That draft exited 2 with "no such directory" whenever this file sat anywhere without an
@@ -111,11 +181,32 @@ preflight() {
 run_pass() {
   local n_inst=0 n_ran=0 n_ok=0 n_fail=0 n_tmo=0 n_acct=0 n_unacct=0 f b why rc out
   local failed_names="" unacct_names="" tmo_names=""
+  local n_lost=0 n_unlisted=0 lost_names="" unlisted_names=""   # #544, item (6)
   while IFS= read -r f; do
     [ -n "$f" ] || continue
     b="$(basename "$f")"
     n_inst=$((n_inst+1))
+    # ── DECLARED ARMED BUT THE ARM IS GONE: A REFUSAL, CHECKED BEFORE THE ROSTER IS CONSULTED [#544, item (6)].
+    # This is direction (b) of the job: an arm renamed takes the predicate to "no arm", and a roster row would
+    # then report the instrument ACCOUNTED and NOT RUN at exit 0 with its controls silently stopped. The
+    # declaration cannot be satisfied by editing the file, so the two sources disagree and that disagreement is
+    # the finding. It is deliberately NOT routed through the roster branch below: a reason that excuses an
+    # instrument which never had an arm must not excuse one that has LOST its arm.
+    if ! has_selftest "$f" && is_declared_armed "$b"; then
+      n_lost=$((n_lost+1)); lost_names="$lost_names $b"
+      printf '  LOST-ARM  %-34s declared armed in armed_lines() and no --selftest in its CODE: renamed, or deleted
+' "$b"
+      continue
+    fi
     if has_selftest "$f"; then
+      # ARMED BUT UNDECLARED IS REPORTED AND STILL RUN, never excused [#544, item (6)]: a build that ADDS an arm
+      # must be able to run it, on the gate-manifest precedent that a guard firing on the normal case gets
+      # switched off. It does not change the exit code, because the instrument runs and its own failure surfaces.
+      if ! is_declared_armed "$b"; then
+        n_unlisted=$((n_unlisted+1)); unlisted_names="$unlisted_names $b"
+        printf '  UNLISTED  %-34s has a --selftest arm and no armed_lines() row; it is RUN anyway. Add the row.
+' "$b"
+      fi
       if [ "$MODE" = "--list" ]; then
         printf '  SELFTEST  %-34s (not run: --list)\n' "$b"
         n_ran=$((n_ran+0))
@@ -155,6 +246,10 @@ NONEXEC
 
   echo "-----"
   echo "INSTRUMENTS $n_inst   RAN $n_ran   OK $n_ok   FAIL $n_fail   TIMEOUT $n_tmo   ACCOUNTED $n_acct   UNACCOUNTED $n_unacct of ceiling 0"
+  # ON ITS OWN LINE, so every existing consumer's substring match on the line above is untouched [#544, item (6)].
+  echo "DECLARED-ARMED $(armed_lines | grep -c '|')   LOST-ARM $n_lost of ceiling 0   UNLISTED-ARMED $n_unlisted (reported, run anyway)"
+  [ -n "$lost_names" ] && echo "LOST ARM:$lost_names"
+  [ -n "$unlisted_names" ] && echo "UNLISTED ARMED:$unlisted_names"
   [ -n "$failed_names" ] && echo "FAILED:$failed_names"
   [ -n "$tmo_names" ] && echo "TIMED OUT:$tmo_names"
   [ -n "$unacct_names" ] && echo "UNACCOUNTED:$unacct_names"
@@ -167,7 +262,7 @@ NONEXEC
     echo "AUDIT-ALL LISTED (nothing was run)"
     return 0
   fi
-  if [ "$n_fail" -gt 0 ] || [ "$n_tmo" -gt 0 ] || [ "$n_unacct" -gt 0 ]; then
+  if [ "$n_fail" -gt 0 ] || [ "$n_tmo" -gt 0 ] || [ "$n_unacct" -gt 0 ] || [ "$n_lost" -gt 0 ]; then
     echo "AUDIT-ALL REFUSED"
     return 1
   fi
@@ -191,16 +286,28 @@ selftest() {
   local T; T="$(mktemp -d)"
   local SELF="$HERE/$(basename "$0")"
 
-  mk() { # mk <dir> <name> <exit> <text> [selftest-arm yes/no]
+  mk() { # mk <dir> <name> <exit> <text> [selftest-arm yes/no/comment]
+    # THE ARM IS WRITTEN AS CODE AND NOT AS A COMMENT [#544, item (6)]. It was `# accepts --selftest`, a comment,
+    # which the predicate's text scan called armed - so every armed fixture in this selftest was itself an
+    # instance of the defect's direction (a), and when has_selftest started reading code these eight controls
+    # went red (C1, C2, C3, C7, C13, C20, C21, C23). Worth recording how C21 failed, because it is the job's
+    # direction (b) reproduced by accident: its fixture's arm vanished as far as the predicate was concerned, the
+    # roster row then suppressed the instrument, and the control that exists to prove a roster row CANNOT hide a
+    # failure read exit 0. The fixture still ignores the flag and exits with its given code, so every expectation
+    # here is unchanged; only the way it declares the arm is.
+    # A THIRD VALUE, `comment`, writes the OLD shape on purpose, and C31 drives it.
     mkdir -p "$1"
     { echo '#!/bin/sh'
-      [ "${5:-yes}" = "yes" ] && echo '# accepts --selftest'
+      case "${5:-yes}" in
+        yes)     echo 'case "${1:-}" in --selftest) : ;; esac' ;;
+        comment) echo '# accepts --selftest' ;;
+      esac
       echo "echo \"$4\""
       echo "exit $3"
     } > "$1/$2"
     chmod +x "$1/$2"
   }
-  one() { CT_AUDIT_DIR="$1" CT_AUDIT_TIMEOUT="${2:-5}" CT_AUDIT_ROSTER="${3:-}" bash "$SELF" > "$T/out" 2>&1; echo $?; }
+  one() { CT_AUDIT_DIR="$1" CT_AUDIT_TIMEOUT="${2:-5}" CT_AUDIT_ROSTER="${3:-}" CT_AUDIT_ARMED="${4:-}" bash "$SELF" > "$T/out" 2>&1; echo $?; }
 
   # (1) A FIXTURE WITH ONE PASSING INSTRUMENT. Firing arm of the green verdict.
   mk "$T/green" a.sh 0 "a selftest: 3 pass / 0 fail"
@@ -281,7 +388,7 @@ selftest() {
 
   # (10) THE TIMEOUT ARM, driven rather than asserted.
   mkdir -p "$T/slow"
-  printf '#!/bin/sh\n# --selftest\nsleep 30\n' > "$T/slow/a.sh"; chmod +x "$T/slow/a.sh"
+  printf '#!/bin/sh\ncase "${1:-}" in --selftest) : ;; esac\nsleep 30\n' > "$T/slow/a.sh"; chmod +x "$T/slow/a.sh"
   rc="$(one "$T/slow" 1)"
   ck C22 1 "$rc" "an instrument that outlives the timeout refuses the run"
   grep -q 'TIMEOUT   a.sh' "$T/out" && r=y || r=n
@@ -308,6 +415,54 @@ selftest() {
   ck C29 n "$r" "and does not refuse on the missing directory"
   rc="$(cd "$T/notree" && bash ./audit-all.sh > "$T/out2" 2>&1; echo $?)"
   ck C30 2 "$rc" "while a RUN from that same directory still exits 2 - the check moved, it did not go"
+
+  # ── (14) THE THREE INPUTS jobs/audit-all-has-selftest-is-a-text-scan-...-and-c21-is-co-blind-2026-10-10 ASKS
+  #     FOR, AND THE ONE IT NAMES AS MISSING IS C32 [#544, item (6)]. Its theControlSetThisNeeds_R08 reads:
+  #       (a) a working arm plus a roster row: must be RUN and its failure must surface - "this is C21 today and
+  #           it already passes";
+  #       (b) a working arm RENAMED, the string deleted, plus a roster row: must NOT be reported ACCOUNTED -
+  #           "FAILS TODAY, and is the input C21 is missing";
+  #       (c) a no-arm instrument whose file mentions --selftest in a COMMENT only: must not be reported OK
+  #           merely because it exits 0.
+  #     C21 is (a) and stays as it is. C31 is (c). C32 is (b), and C33 is its one-variable control: the SAME
+  #     fixture and the SAME roster, with the declaration removed, goes back to ACCOUNTED at exit 0 - so C32's
+  #     refusal is the declaration's doing and not the fixture's.
+  #     AND THIS IS WHERE THE CO-BLINDNESS GOES. C21 and C31 are still keyed to what the file says, because
+  #     that is what they are about; C32 is keyed to the DECLARATION, which no edit to the instrument can
+  #     satisfy. The guard and the thing it guards against no longer read one string.
+
+  # (c) A COMMENT-ONLY MENTION IS NOT AN ARM. The fixture exits 1, so if it were run as armed the umbrella would
+  #     record FAIL and refuse; with a roster row it must be ACCOUNTED at exit 0 instead.
+  mkdir -p "$T/cmt"; mk "$T/cmt" a.sh 1 "bad" comment
+  printf 'a.sh|a census, no arm, and its header discusses --selftest at length\n' > "$T/cmtroster"
+  rc="$(one "$T/cmt" 5 "$T/cmtroster")"
+  ck C31 0 "$rc" "a --selftest mentioned only in a comment is not an arm: accounted, not run"
+  grep -q 'ACCOUNTED a.sh' "$T/out" && r=y || r=n
+  ck C31b y "$r" "and it is reported ACCOUNTED rather than OK or FAIL"
+
+  # (b) DECLARED ARMED, ARM GONE, ROSTER ROW PRESENT: the roster may not excuse it.
+  mkdir -p "$T/lost"; mk "$T/lost" a.sh 0 "ok" no
+  printf 'a.sh|I would very much rather not be run\n' > "$T/lostroster"
+  printf 'a.sh|its own controls\n' > "$T/lostarmed"
+  rc="$(one "$T/lost" 5 "$T/lostroster" "$T/lostarmed")"
+  ck C32 1 "$rc" "an instrument declared armed whose arm is gone REFUSES the run, roster row or not"
+  grep -q 'LOST-ARM  a.sh' "$T/out" && r=y || r=n
+  ck C32b y "$r" "and is reported LOST-ARM, naming the disagreement"
+  grep -q 'ACCOUNTED a.sh' "$T/out" && r=y || r=n
+  ck C32c n "$r" "and is NOT reported ACCOUNTED, which is what the roster row would have bought it"
+
+  # C33 THE ONE VARIABLE: same fixture, same roster, no declaration.
+  printf '\n' > "$T/noarmed"
+  rc="$(one "$T/lost" 5 "$T/lostroster" "$T/noarmed")"
+  ck C33 0 "$rc" "the same fixture with no armed-set row is accounted at exit 0 - so C32 is the declaration's doing"
+
+  # (d) ARMED BUT UNDECLARED IS RUN, NOT EXCUSED, and is reported so the row gets added. The fixture exits 1, so
+  #     a version that quietly skipped an undeclared instrument would read exit 0 here.
+  mkdir -p "$T/unl"; mk "$T/unl" a.sh 1 "bad"
+  rc="$(one "$T/unl" 5 "" "$T/noarmed")"
+  ck C34 1 "$rc" "an armed instrument with no armed-set row is RUN anyway, so its failure still refuses"
+  grep -q 'UNLISTED  a.sh' "$T/out" && r=y || r=n
+  ck C34b y "$r" "and the missing row is reported as UNLISTED rather than passed over"
 
   rm -rf "$T"
   echo ""
