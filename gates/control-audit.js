@@ -155,6 +155,15 @@ function audit(ROOT, { ranNow, redNow }) {
       let old;
       try { old = G('show ' + r.commit + ':' + rel); } catch (e) { r.fault = 'the gate did not exist at ' + r.commit; faults.push(r); continue; }
       const oldL = linesOf(old);
+      // THE COLLECTION IS ASSERTED NON-EMPTY BEFORE A PROPERTY OF IT IS [#540 repair, antagonist A's A-F1, P2]. A
+      // record whose sha carried ZERO `L.say(` lines satisfied the subset test over nothing ("every line it ran is
+      // still here" is true of no lines), read PARTIAL, and was counted covered on SUMMARY - where e8dd9cb read
+      // ASSERTIONS-MOVED (0 -> N). CLAUDE.md records this trap as a class: every() over nothing is true. No live
+      // record on main has it (their old gates carry 13 to 57 sites), so it is guarded here and posed in --selftest.
+      if (oldL.length === 0) {
+        r.fault = 'the gate carried no L.say( line at ' + r.commit + ' (0 -> ' + says(nowSrc) + ' L.say sites), so nothing the record ran can be matched to what runs today';
+        r.moved = true; faults.push(r); continue;
+      }
       if (oldL.join('\n') !== nowL.join('\n')) {
         // THE SUBSET TEST [#540]: every line the record's sha carried must still be here, as often as it was.
         const have = new Map(); for (const l of nowL) have.set(l, (have.get(l) || 0) + 1);
@@ -211,7 +220,7 @@ function report(rows, logLabel) {
     for (const r of g) {
       console.log('  ' + pad(r.name, 24) + pad(r.now === undefined ? 'not in log' : r.now + ' assertions', 16) + r.note);
       if (v !== 'NONE') {
-        for (const c of r.recs) console.log('      ' + (c.sound ? 'sound  ' : c.partialOk ? 'partial' : c.baseline ? 'base   ' : 'FAULT  ') + c.commit + ' ' + c.date +
+        for (const c of r.recs) console.log('      ' + (c.sound ? 'sound  ' : c.partialOk ? 'partial ' : c.baseline ? 'base   ' : 'FAULT  ') + c.commit + ' ' + c.date +
           '  total=' + c.total + ' red=' + c.red + ' scope=' + c.scope + '  ' + c.how + (c.fault ? '   <- ' + c.fault : c.partialOk ? '   <- ' + c.growth : ''));
         for (const b of r.bad) console.log('      UNPARSABLE  ' + b.slice(0, 120));
       }
@@ -305,6 +314,15 @@ function selftest() {
     write(['// fixture gate', rec, A3, A2, A1]); commit('reordered');
     r = run(3, 'selftest-3b');
     ok(/^--- PARTIAL \(1\) ---$/m.test(r.out) && /in a different order since/.test(r.out) && r.rc === 1, '(3b) the same three lines reordered read PARTIAL at exit 1, not COVERED');
+    // (1b) THE EMPTY COLLECTION [#540 repair, A-F1]: a record naming a sha at which the gate carried NO L.say line.
+    //      The subset test is vacuously true over nothing; it must read ASSERTIONS-MOVED (as e8dd9cb did), never
+    //      PARTIAL, and never count as covered.
+    write(['// fixture gate', "L.check('x');", "L.check('y');"]); const empty = commit('a sha with no L.say at all');
+    const rec0 = '// CONTROL-RECORD: ' + empty + ' ' + TODAY + ' total=2 red=1 scope=full how=the fixture flipped a check';
+    write(['// fixture gate', rec0, A1, A2, A3]); commit('record naming the L.say-less sha');
+    r = run(3, 'selftest-1b');
+    ok(/^--- ASSERTIONS-MOVED \(1\) ---$/m.test(r.out) && /carried no L.say\( line at/.test(r.out), '(1b) a record whose sha carried no L.say line reads ASSERTIONS-MOVED, not PARTIAL over nothing');
+    ok(/^SUMMARY  0 covered, of 1 gates/m.test(r.out) && r.rc === 1, '(1b) and it is not counted covered, at exit 1');
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
