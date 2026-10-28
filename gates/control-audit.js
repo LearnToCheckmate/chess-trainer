@@ -220,7 +220,7 @@ function report(rows, logLabel) {
     for (const r of g) {
       console.log('  ' + pad(r.name, 24) + pad(r.now === undefined ? 'not in log' : r.now + ' assertions', 16) + r.note);
       if (v !== 'NONE') {
-        for (const c of r.recs) console.log('      ' + (c.sound ? 'sound  ' : c.partialOk ? 'partial ' : c.baseline ? 'base   ' : 'FAULT  ') + c.commit + ' ' + c.date +
+        for (const c of r.recs) console.log('      ' + (c.sound ? 'sound   ' : c.partialOk ? 'partial ' : c.baseline ? 'base    ' : 'FAULT   ') + c.commit + ' ' + c.date +
           '  total=' + c.total + ' red=' + c.red + ' scope=' + c.scope + '  ' + c.how + (c.fault ? '   <- ' + c.fault : c.partialOk ? '   <- ' + c.growth : ''));
         for (const b of r.bad) console.log('      UNPARSABLE  ' + b.slice(0, 120));
       }
