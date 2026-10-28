@@ -1,4 +1,177 @@
 # HANDOFF - where the last run left off
+**#541: THE DOCS BATCH. FOUR OF FIVE JOBS LAND THROUGH THE FAST PASS OF STEP 0F, THE FIFTH IS REVERTED
+AFTER THREE PASSES FOUND A FALSE CLAIM IN IT EACH TIME, AND THE REVERT IS THE MOST USEFUL THING HERE.**
+Run `build__1793159334673`, 28 Oct 2026, under `docs/restart-readiness.directOpening_2026_10_27_docs`,
+started by the routine `trig_01UduhHwJEgQWDf2ketq3UDm`. **No full suite ran, and that is the design of the
+run, not a gap in it.** No app change at any point: `app.js` is #530's bundle throughout, md5
+`049b41dfb6f1`, stamp "#530 - 2026-10-21 20:50 ET", byte-identical to main's before and after, and
+`gates/build.sh` and `gates/gates.sh` never ran. **Nothing a player can see moved.**
+
+## 1. READ THIS FIRST: WHAT A FAST GREEN DOES AND DOES NOT SAY
+
+`bash gates/fastgate.sh 3b79e29` on the final head returned **exit 0, FAST GATE GREEN**, with the gate
+manifest green, records no worse than base and the control audit no worse than base. **THAT IS NOT
+`GATES GREEN` AND MUST NEVER BE CITED AS ONE.** `gates/verify-log.sh` refuses the fast log as a bundle
+push gate, correctly, because it is not one. A fast green says this and nothing more: the bundle is
+byte-identical to the base, so the 54 browser gates cannot differ from their last verdict on it, and the
+checks a records commit CAN break were run and did not get worse. The browser evidence behind this push
+is #540's suite, GATES GREEN #540 at 60 gates / 5029 PASS / 0 FAIL over this same bundle.
+
+**STEP 0F (4)'s four tests were measured, not inherited**, and the fourth is the one the others cannot
+replace: `docs/fast-gate-state` v13 exists and reads verdict green; its `asOf` was 37.5 minutes behind
+this run's wake, far inside the 36-hour bound; and its `bundleMd5` `049b41dfb6f1` equals main's own
+`app.js` md5. Had any failed, fast mode was off and this batch would have held rather than paid the suite.
+
+## 2. WHAT LANDED, AND THE ONE CHECK THAT RAN AFTER EVERY COMMIT
+
+`bash gates/verify-log.sh --citations` ran on the committed tree after every commit. Base `3b79e29`:
+19 dead paths, 32 unsupported case ids, 11 misfiled rows, 0 dead and 0 stale line citations, 0 over the
+ceiling, 18 rows NOT CHECKED, REGISTER SELF-CHECK OK at 155 rows in 6 tables joining to 35 stories.
+**No defect count rose at any commit and the self-check line never moved off 155 / 6 / 35**, which is the
+line the records ratchet compares by position - so adding a case row, a table or a story heading would
+have been refused, and this batch adds none.
+
+| job | file | what changed | `--citations` |
+|---|---|---|---|
+| B1 `us-r03-contradicts-the-app-and-the-gate-that-cites-it-2026-09-27` | `claude/stories/USER-STORIES.md`, `claude/stories/TEST-CASES.md` | US-R03 and TC-R04 name the TEN-grade ladder `gates/regress/20-review.js:16` asserts, not eight with Excellent folded into Best | unchanged |
+| B3 `the-new-harness-case-rows-cite-no-log-so-verify-logs-citations-arm-2-gets-worse-2026-10-16` | `claude/stories/TEST-CASES.md` | 25 tiered-gate rows cite the `claude/agents/gatelogs/534-all.log` line that re-observes them; TC-SUITE-062 and 063 also get the dated caveat their own job asks for | unsupported 32 -> 23, NOT CHECKED 18 -> 2 |
+| B4 `us-inv-04-is-the-only-story-with-zero-cases-and-its-own-body-calls-it-shipped-2026-10-09` | `claude/stories/USER-STORIES.md` | US-INV-04 gets criteria 4a and 4b instead of a shipped-at note | unchanged |
+| B5 `run-log-423-cell-describes-the-pre-veto-gate-2026-09-27` | `RUN-LOG.md` | the #423 headline cell carries a dated correction of six pre-veto figures, with its provenance stated figure by figure | unchanged |
+| B2 `id-space-register-is-stale-against-its-own-subject` | `claude/stories/README.md` | **NOTHING. REVERTED at `e0df122`** - the file is byte-identical to main, md5 `835ba676527d7b2b` at both ends | unchanged |
+
+The sixth job, `two-case-rows-p1-rewrote-keep-a-result-column-this-run-s-own-logs-contradict-2026-10-21`,
+has no commit of its own and is discharged by B3's sentence on TC-SUITE-062 and 063.
+
+## 3. THREE PAIRS, SIX PASSES, SEVEN VETOES, AND EVERY ONE AGAINST THIS RUN'S OWN WORK
+
+Nothing a reviewer found was overruled. Round 1 read the five edits, round 2 the three repairs round 1
+forced, round 3 the two second repairs. B's independence was structural in all three: its agent type
+carries no database tool, so it could not read A's findings rather than being asked not to.
+
+| round | A | B | outcome |
+|---|---|---|---|
+| 1, on the five edits | VETO: `README.md:34` credits `gatemanifest.sh selftest` with printing ids it never prints | VETO, THE SAME CLAUSE, found independently from the other door | three repairs at `7fb3e85`, `c20802d`, `6c3a60a` |
+| 2, on those three | THREE vetoes | TWO vetoes | two second repairs at `3d4b095`, `57a7568` |
+| 3, on those two | VETO on `README.md:34` again | VETO on `README.md:34` again | **B2 reverted whole**; B4 read SOUND by both doors |
+
+**THE PATTERN WAS MINE AND NAMING IT IS WORTH MORE THAN THE CELL.** Three times I tried to state exactly
+which tool prints which case id, and three times I published a new untruth, each time inside the clause
+written to fix the last one. The first credited `gatemanifest.sh selftest`; the repair credited
+`gates/audit/cited-not-run.sh` instead, which is false the same way (run it: exit 1, 31 findings, **zero**
+case ids in its whole output - the id sits in a heredoc reason field it parses by column and never
+echoes); the second repair subtracted the emission claims and still asserted both scripts "carry a
+TC-SUITE id in a source position", when `grep -c 'TC-SUITE' gates/gatemanifest.sh` is **0** - and that
+repair had DELETED the cell's one correct measurement to put a false one in its place, inside the sentence
+laying down "never by grepping its source".
+
+**THE TRANSFERABLE FINDING.** A register's owner column invites you to answer *who RUNS this id* with
+*who PRINTS this id*. They are different questions with different evidence. Answer the first from the case
+rows and the gate sources. Answer the second ONLY by running the tool and grepping its OUTPUT, never its
+source, and only with the subcommand that makes it print - `gates/fastgate-drive.sh` and
+`gates/records-gate.sh` both exit 2 and print nothing when run bare. Better still, do not answer the
+second in a register at all: it has one source, the tool, and a copy in a document is a copy that rots.
+That is Kunal's own rule of 15 October, and three failed attempts are what it costs to ignore it.
+
+**ONE FINDING DID NOT SURVIVE MEASUREMENT AND ITS AUTHOR WITHDREW IT.** Round 1's A claimed
+`534-all.log` carries no TC-R04 line at any 390 card. It carries five, at `:865-869`. I disputed it with
+that measurement, B measured the same five independently from the other door, and A then withdrew it and
+named its own cause: a `head`-truncated grep whose cut landed at `:815`, so it had published an absence
+measured from a window that could not contain the thing. The real defect in that cell is B's: the gate
+loops three cards and the steps cell names two, omitting the 375x730 the gate's own header calls Kunal's
+actual phone.
+
+**OVERLAP, round 1**, publishable because B's blindness was structural: A 10 valid findings after its own
+withdrawal, B 26, **5 common**, 31 distinct, Lincoln-Petersen near **52**, so both passes together missed
+about **21**. Twenty of the thirty-one were unique to B - 65 per cent against the stop condition's floor of
+one in five, so the pairing earned its budget on this build by a wide margin. Scored per correction 020, a
+duplicate is 0 and a wrong find is -2, so A's withdrawn finding costs rather than pays, and withdrawing it
+itself with its own measurement is the best available handling.
+
+## 4. WHAT B2 LOSES, SAID PLAINLY, AND WHAT THE NEXT RUN NEEDS
+
+**The job's core fix was sound and went back on the shelf with the bad part.** Four separate passes
+verified the size cell's 35 `### US-` story headings and 155 case-table rows, and the three new prefix
+rows were right about which file RUNS each id - round 3's A re-verified the whole TC-INV attribution at
+case granularity and found the enumeration complete over all 14 TC-INV case rows. Only the "who prints
+this" clauses were ever wrong, and they were never in the job's own fix list. The measured text is written
+onto the job, so the next docs batch lands all of it in one pass with no re-investigation.
+
+## 5. WHAT THE PASSES FOUND THAT IS NOT FIXED, AND WHERE IT WENT
+
+**TWO NEW JOBS FILED**, each with its fingerprint written in the same batch (R25):
+- `test-cases-own-tc-suite-ceiling-sentences-are-130-ids-stale-so-the-next-mint-collides-2026-10-28`, P1.
+  `TEST-CASES.md:1237` says "in THIS FILE the highest is TC-SUITE-019" and `:1240` says "056 IS the true
+  ceiling"; measured with the file's own command, the highest in the file and repo-wide is
+  **TC-SUITE-186**, over 104 distinct ids. A run that trusts those sentences mints a collision.
+- the "only the five" completeness claim at `TEST-CASES.md:126`, P1. That row says 4a excuses "**only**
+  the five named signalled cases" and the gate excuses at least a sixth (OVERSHOOT at
+  `26-invariants.js:756`, non-`cut` at `:797`). This run's own 4a bullet says the five are that row's list
+  and not the gate's, which mitigates it for a careful reader and does not make the row true.
+
+**EVIDENCE APPENDED TO TWO EXISTING JOBS** rather than filed, because the R51 walk found an intersecting
+locus in each:
+- `nothing-checks-that-the-registers-citations-resolve-2026-09-30` gains three measured defects in the
+  citations arms. **Arm (1) cannot see a dead `gates/` path at all** - a planted missing `.md` took the
+  dead count from 19 to 20 while a planted missing gate file moved nothing, and the live instance is
+  `TC-R15` at `TEST-CASES.md:34`, which names a file that lives in `gates/pending/`. **Arm (2) counts a
+  fabricated failure as support** - a quoted line absent from the log, reading `FAIL … (exit 7, FAST GATE
+  RED)`, took SUPPORTED from 43 to 44 in silence, because the arm asks only whether the row's id occurs as
+  a substring in the cited log. **Arm (5) advises freezing a number that measures format**: all eight of
+  its "zero case" stories ARE cited in `TEST-CASES.md`, 1 to 5 times each, none in a pipe-table story
+  cell, so committing `A5ZCEIL=8` would pin the register's shape and call it coverage.
+- `tc-inv-case-rows-cite-a-result-that-is-not-in-the-log-2026-09-27` gains the stronger measurement: it is
+  not that one log failed to name the ids, it is that **no gate emits TC-INV-04a, 04b or 05a-05f at all**,
+  so eight published results can never be joined to any log line by any run.
+
+**KNOWN LIMITS** (R24) are on the jobs whose edits they sit beside, each with its fingerprint, and are
+named in the run report. Three are worth a reader's minute here. B's objection on `TC-SUITE-108`: its
+parenthetical reads "(18 before and after this run)" and this run's B3 took that count to 2; the run
+judged it scoped to #533's own run rather than false, and B accepted P2 while objecting on the record that
+it is the only NOT CHECKED figure in the file. 4a's pointer tells a reader to read the classifier and
+`clipper()`, and the pin excusal at `:1345` and the two genuinely silent skips at `:747` and `:749` are in
+neither. And 4b's four carve-outs do not name its own uncounted rotated-holder skips at `:984` and `:999`
+- `skipped.push` fires exactly once in that file, at `:746`, so `:1468`'s zero-skip guard covers 4a's
+rotated skip and not 4b's.
+
+**ROUTED, NOT BUILT, because this run may change no file under `gates/`:** `gates/gatemanifest.sh
+selftest` exits **1** on this tree - "53 passed, 1 failed", a sigpipe audit of 23 early-exit pipes against
+a committed ceiling of 15. It is byte-identical base to head, so it is inherited and not this run's, but
+any run citing that command should know it comes back red.
+
+## 6. WHAT THIS RUN DID NOT DO, BY THE BRIEF'S DESIGN
+
+- No app change, no rebuild, no `gates/build.sh`, no `gates/gates.sh`, no gate or script change, no
+  prompt edit, no `docs/fast-gate-state` reseed, no `gates/held-trees.tsv` edit, no case row, no table and
+  no story heading.
+- STEP 1I did not run: the integration slot is not opened by this brief, so no parked payload was retried.
+- R23 did not run; the orchestrator owns the blocked-job re-test between runs. R37 ran as a read at
+  check-in and again before close-out.
+- **ALL THREE SELECTION STEPS RAN AND ALL THREE HAND A BUILD RUN SOMETHING THAT IS NOT ONE OF THE SIX.**
+  STEP 1P: `reconcile-kevitsch-review-vs-chesscom` (ready, benchmark lane). STEP 1C: closing-set rank 21,
+  `supported-geometry-names-two-different-sets-2026-09-28` (ready, test-authoring). STEP 1S: the one
+  finishFirst job among the 11 that survive Kunal's `cls` filter,
+  `the-is-ancestor-instrument-returns-false-negatives-in-a-shallow-clone-2026-10-01`. None was built.
+- One surviving flag candidate out of **670** flags read, paged to exhaustion:
+  `flags/bench-chesscom-answer-key-nineteen-of-thirty-two-rows-carry-a-brilliant-and-no-expected-rate-exists-2026-10-27`,
+  the orchestrator's, P2, naming no change to this repository.
+
+## 7. THE TWO THINGS I GOT WRONG THAT NO REVIEWER FOUND
+
+My first write of the #541 mint to tracker `docs/buildnumber` passed `history` as a ONE-ELEMENT list. The
+tracker's update merges KEYS but REPLACES ARRAYS, so that version carried 1 history row where the version
+before it carried 21. Caught in the write result and restored from the copy this run had already saved to
+disk, with mine appended twenty-second, verified by read-back. **The lesson is a type rule, not a care
+rule:** an append to a list field on this tracker is read-modify-write of the whole list, every time.
+
+And I recorded STEP 1P and STEP 1C as handing this run nothing, having tested the ship list and the
+closing set against jobs that are ready AND owned by this lane. **Neither step filters by lane.** That
+extra clause was mine, not the rule's, and it turned two live ids into an empty queue. Caught by reading
+my predecessor's own row, which had both. A selection step's clauses are the whole test, and a convenient
+extra filter is the shape that makes a queue look empty.
+
+## 8. EVERYTHING BELOW IS #540'S HANDOFF, KEPT VERBATIM
+
+# HANDOFF - where the last run left off
 **#540: FOUR GATE-MACHINERY P1s LANDED ONE PER SCRIPT, EACH WITH ITS OWN SELFTEST CASE AND A TURNING
 MUTANT, UNDER ONE SUITE OVER MAIN'S UNCHANGED #530 BUNDLE.**
 Run `build__1793143553641`, 27-28 Oct 2026, under `docs/restart-readiness.directOpening_2026_10_27_batch3`,
