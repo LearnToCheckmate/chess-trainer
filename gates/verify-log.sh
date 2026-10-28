@@ -1508,7 +1508,10 @@ if [ "$THISSUITE" -eq 1 ]; then
     exit 1
   fi
   # path<TAB>hash on disk, for every path the sha carries plus every gates/regress/*.js on disk the sha does not.
-  SK_PATHS="$( { printf '%s\n' "$SK_AT" | cut -f1; ( cd "$SKROOT" && ls gates/regress/*.js 2>/dev/null ); } | sort -u )"
+  # find, not `ls gates/regress/*.js`: on a DIRECTORY named like a gate ls prints a `name:` header and its
+  # contents, which read as a stray extra path in the refusal [#540 repair, antagonist A's A-F6]. Regular files
+  # and symlinks only, one level deep, which is exactly what gates.sh's glob runs.
+  SK_PATHS="$( { printf '%s\n' "$SK_AT" | cut -f1; ( cd "$SKROOT" && find gates/regress -maxdepth 1 -name '*.js' \( -type f -o -type l \) 2>/dev/null ); } | sort -u )"
   SK_NOW=""
   while IFS= read -r skp; do
     [ -n "$skp" ] || continue
@@ -1528,9 +1531,12 @@ if [ "$THISSUITE" -eq 1 ]; then
         else if (now[p]!=at[p])    printf "    %s: differs (at %s %s, on disk %s)\n", p, sha, substr(at[p],1,12), substr(now[p],1,12);
       }
     }' <(printf '%s\n' "$SK_AT") <(printf '%s' "$SK_NOW") | sort)"
-  SK_N="$(printf '%s\n' "$SK_AT" | grep -c .)"
-  SK_NREG="$(printf '%s\n' "$SK_AT" | awk -F'\t' '$1 ~ /^gates\/regress\//' | grep -c .)"
-  SK_BAD="$(printf '%s' "$SK_REPORT" | grep -c .)"
+  # the three counts are awk passes, so the sentence in the header ("no pipe here feeds grep") is true as
+  # written; the first version counted with `| grep -c .`, which reads all its input and so was harmless, but
+  # was still three pipes into grep under a header that said there were none [#540 repair, antagonist A's A-F5].
+  SK_N="$(printf '%s\n' "$SK_AT" | awk 'NF{n++} END{print n+0}')"
+  SK_NREG="$(printf '%s\n' "$SK_AT" | awk -F'\t' '$1 ~ /^gates\/regress\// {n++} END{print n+0}')"
+  SK_BAD="$(printf '%s' "$SK_REPORT" | awk 'NF{n++} END{print n+0}')"
   if [ "$SK_BAD" -gt 0 ]; then   # SK-VERDICT
     echo "REFUSED (--this-suite): the suite on disk is not the suite $LOG ran at $SKREF - $SK_BAD path(s) of $SK_N:"
     printf '%s\n' "$SK_REPORT"
