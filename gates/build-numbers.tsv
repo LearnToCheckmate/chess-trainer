@@ -582,3 +582,4 @@
 538	minted	-	-	-	2026-10-27T02:55Z	build__1793069074000	minted	run 15 build #538: the unblock run (batch 2) - the CONTAINER job pins the font set so chromium 153 stops reddening ten gates on mains own bundle, and batch 1s four P1 push-check fixes land unchanged by carry; no app change, no rebuild
 539	minted	-	-	-	2026-10-27T13:26Z	build__1793106969000	minted	run 16 build #539: the continuation of the unblock run - run 15 carry taken by fast-forward, the container re-measured on target, one pair, one suite, one push; no app change, no rebuild
 540	minted	-	-	-	2026-10-27T23:27Z	build__1793143553641	minted	run batch 3 build #540: four P1 gate-machinery jobs, one per script (CANUM control-audit.js, GMROOT part 1 gatemanifest.sh, SUITEKEY verify-log.sh, F4 fastgate.sh); no app change, no rebuild
+541	minted	-	-	-	2026-10-28T03:56Z	build__1793159334673	minted	the docs batch: five docs-only jobs landed through the fast pass of STEP 0F, no app change and no full suite
