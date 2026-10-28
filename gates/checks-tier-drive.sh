@@ -432,7 +432,20 @@ commitin "$D" "a tier-only change"
 printf '%s\n' "uncommitted" >> "$D/gates/held.sh"
 # D5 SPLIT THIS SENTENCE IN TWO, so the case now reads the TRACKED half - the half that still refuses, and the
 # half this case was always about. The untracked half is A50, which routes.
-expect A13 "$D" "$FIXBASE" 1 "TRACKED modification" "a dirty working tree with a TRACKED modification is REFUSED"
+# ITS SUBSTRING WAS MOVED BY #543's REPAIR 3 and the judge was right while this case was wrong: it refused at
+# exit 1 and named the path, and A13 greped the old headline's words. It now reads the BUCKET TAG, which is the
+# part of the line that states what kind of dirt was found and is the thing this case is actually about.
+runtier "$D" "$FIXBASE"
+A13WHY=""
+[ "$TRC" = 1 ] || A13WHY="exit $TRC, wanted 1"
+grep -qF "TRACKED path INSIDE this tier's own set" <<<"$TOUT" || A13WHY="${A13WHY:+$A13WHY; }the refusal does not say the path is inside the set"
+grep -qF "[worktree edit, inside the set]" <<<"$TOUT" || A13WHY="${A13WHY:+$A13WHY; }the named line does not say which kind of dirt was found"
+if [ -n "$A13WHY" ]; then
+  rec A13 FAIL "a dirty working tree with a TRACKED modification is REFUSED :: $A13WHY"
+  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+else
+  rec A13 ok "a dirty working tree with a TRACKED modification is REFUSED, named as a worktree edit inside the set (exit $TRC)"
+fi
 
 # ── A14. NO TIER PATH IN THE CHANGED SET -> GO FULL. ────────────────────────────────────────────────────────
 D="$T/a14"; mkfix "$D"
@@ -694,7 +707,7 @@ else
   printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
   printf '%s\n' "uncommitted" >> "$D/gates/held.sh"
   runtier "$D" "$M1B"
-  if [ "$TRC" = 1 ] && grep -qF "TRACKED modification" <<<"$TOUT"; then
+  if [ "$TRC" = 1 ] && grep -qF "TRACKED path INSIDE this tier's own set" <<<"$TOUT"; then
     rec M1 FAIL "the dirty-tree arm still refused with its check removed, so A13 does not test it"
   else
     rec M1 ok "removing the dirty-tree refusal turns A13 (exit $TRC instead of a clean-tree refusal)"
@@ -2185,9 +2198,10 @@ D="$T/m-M37"; mkfix "$D"
 # removed by the entrance repair. The undivided refusal is restored instead by making the UNTRACKED arm of the
 # new `case` unmatchable, so an untracked entry falls through to the catch-all and refuses - which is exactly
 # what M37 exists to assert: that the split is load-bearing and A50 goes back to exit 1 without it.
-printf '%s\t%s\n' "        '?') ROUTEL=" "        '?zz') ROUTEL=" \
-  | mkmut "$D/gates/checks-tier.sh"
-if mutguard M37 "refuse any dirty tree again" "$D/gates/checks-tier.sh" "'?zz') ROUTEL="; then
+{ printf '%s\t%s\n' '      if [ "$dbucket" = untracked ]; then' '      if [ "$dbucket" = untrackedM37 ]; then'
+  printf '%s\t%s\n' '        dline="$dxy $dp"\n        tier_relevant_path "$dp" && dinside=1' '        dline="$dxy $dp"\n        dinside=1 # M37: every entry reads as inside the set'
+} | mkmut "$D/gates/checks-tier.sh"
+if mutguard M37 "refuse any dirty tree again" "$D/gates/checks-tier.sh" 'M37: every entry reads as inside the set'; then
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M37 base" >/dev/null 2>&1
   MB="$(git -C "$D" rev-parse HEAD)"
   printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
@@ -2207,7 +2221,7 @@ D="$T/a51"; mkfix "$D"
 printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
 printf '%s\n' "uncommitted change to a tracked file" >> "$D/gates/held.sh"
 runtier "$D" "$FIXBASE"
-if [ "$TRC" = 1 ] && grep -qF "TRACKED modification" <<<"$TOUT"; then
+if [ "$TRC" = 1 ] && grep -qF "[worktree edit, inside the set]" <<<"$TOUT"; then
   rec A51 ok "a modified tracked file at entry still REFUSES and says which kind of dirt it found (exit $TRC)"
 else
   rec A51 FAIL "a modified tracked file at entry did not refuse with its reason (exit $TRC)"
@@ -2926,7 +2940,7 @@ D="$T/m-M49"; mkfix "$D"
 # RE-ANCHORED AT #543 (repair 3): the `' ') if tier_relevant_path` arm this used to mutate no longer exists,
 # because the entrance now classifies every entry by its paths. The equivalent mutation is to call every
 # tracked path inside the set, which restores the refuse-all behaviour A64 turns on.
-printf '%s\t%s\n' '        tier_relevant_path "$dp" && dinside=1' '        dinside=1 # M49: every tracked path reads as inside the set' \
+printf '%s\t%s\n' '        dline="$dxy $dp"\n        tier_relevant_path "$dp" && dinside=1' '        dline="$dxy $dp"\n        dinside=1 # M49: every tracked path reads as inside the set' \
   | mkmut "$D/gates/checks-tier.sh"
 if mutguard M49 "refuse every tracked edit again" "$D/gates/checks-tier.sh" 'M49: every tracked path reads as inside the set'; then
   printf '%s\n' "# decisions" > "$D/DECISIONS-LOG.md"
@@ -3016,10 +3030,10 @@ if mutguard M50 "read the rename's first column only" "$D/gates/checks-tier.sh" 
   printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
   ( cd "$D" && mv RUN-LOG.md RUN-LOG-moved.md && git add -N RUN-LOG-moved.md ) >/dev/null 2>&1
   runtier "$D" "$M50B"
-  if [ "$TRC" = 1 ]; then
-    rec M50 ok "reading the first column only turns A70: the leftover old path is misread as a status entry and an honest commit is REFUSED again (exit 1)"
+  if ! grep -qF "RUN-LOG.md -> RUN-LOG-moved.md" <<<"$TOUT"; then
+    rec M50 ok "reading the first column only turns A70: the second NUL field is never consumed, so the verdict cannot name both paths old -> new (exit $TRC)"
   else
-    rec M50 FAIL "the either-column read is not load-bearing: the mutant still routed (exit $TRC)"
+    rec M50 FAIL "the either-column read is not load-bearing: the mutant still named both paths (exit $TRC)"
   fi
 fi
 
