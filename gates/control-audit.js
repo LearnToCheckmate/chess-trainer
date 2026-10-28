@@ -252,7 +252,20 @@ function selftest() {
   let pass = 0, fail = 0;
   const ok = (cond, what) => { if (cond) { pass++; console.log('SELFTEST PASS ' + what); } else { fail++; console.log('SELFTEST FAIL ' + what); } };
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'control-audit-selftest-'));
-  const git = (a) => cp.execSync('git -C ' + JSON.stringify(root) + ' ' + a, { encoding: 'utf8', stdio: ['pipe','pipe','pipe'] }).trim();
+  // THE SCRATCH REPOSITORY IS PINNED AND THE ENVIRONMENT IS STRIPPED [#540 repair, antagonist B's B-F1, P1].
+  // The first version of this arm ran `git -C <scratch> init/add/commit` with the environment as found, and `-C`
+  // does not override an inherited GIT_DIR: B measured `GIT_DIR=<victim>/.git node gates/control-audit.js
+  // --selftest` printing 12 pass / 0 fail while writing SIX commits onto the victim's main and dropping its
+  // tracked file from HEAD's tree. git hooks export GIT_DIR, so that is the environment a hook's child gets.
+  // Two guards, both here: every git call this arm makes names --git-dir and --work-tree explicitly, as
+  // gates/gatemanifest.sh's selftest does since the same build; and the GIT_* variables that can redirect a
+  // repository, its index or its object store are removed from THIS process's environment before any child
+  // runs, so audit()'s own reads (which still use a bare `git -C`, the class GMROOT's whatIsLeft names) read the
+  // scratch repository and not the inherited one. A selftest that can rewrite another repository's history is
+  // worse than no selftest.
+  for (const v of ['GIT_DIR','GIT_WORK_TREE','GIT_INDEX_FILE','GIT_OBJECT_DIRECTORY','GIT_ALTERNATE_OBJECT_DIRECTORIES','GIT_NAMESPACE','GIT_CEILING_DIRECTORIES','GIT_COMMON_DIR']) delete process.env[v];
+  const PIN = 'git -C ' + JSON.stringify(root) + ' --git-dir=' + JSON.stringify(path.join(root, '.git')) + ' --work-tree=' + JSON.stringify(root) + ' ';
+  const git = (a) => cp.execSync(PIN + a, { encoding: 'utf8', stdio: ['pipe','pipe','pipe'] }).trim();
   const gate = path.join(root, 'gates/regress/01-fixture.js');
   const write = (lines) => fs.writeFileSync(gate, lines.join('\n') + '\n');
   const commit = (m) => { git('add -A'); git('-c user.email=selftest@local -c user.name=selftest commit -q -m ' + JSON.stringify(m)); return git('rev-parse HEAD'); };
@@ -260,7 +273,7 @@ function selftest() {
   const run = (passCount, label) => capture(() => report(audit(root, parseLog('=== 01-fixture ===\n  01-fixture: green (' + passCount + ' PASS)\n')), label));
   try {
     fs.mkdirSync(path.join(root, 'gates/regress'), { recursive: true });
-    git('init -q -b main .');
+    git('init -q -b main');
     const A1 = "L.say('a', 1 === 1);", A2 = "L.say('b', 2 === 2);", A3 = "L.say('c', 3 === 3);";
     write(['// fixture gate', A1, A2, A3]);
     const seed = commit('seed: three assertions');
