@@ -294,6 +294,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H44) printf 'TC-SUITE-103' ;;  H45) printf 'TC-SUITE-104' ;;  H46) printf 'TC-SUITE-105' ;;  H47) printf 'TC-SUITE-106' ;;  H48) printf 'TC-SUITE-107' ;;
     H49) printf 'TC-SUITE-109' ;;  H50) printf 'TC-SUITE-110' ;;  H51) printf 'TC-SUITE-111' ;;
     H52) printf 'TC-SUITE-178' ;;
+    H53) printf 'TC-SUITE-185' ;;  H54) printf 'TC-SUITE-186' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -1901,6 +1902,95 @@ else
     fi
     route_verdict H52 "exit 1, FAST GATE REFUSED naming the gates/verify-log.sh tamper, with a plant that is first shown to route the honest tree to exit 2 on its own"
   fi
+fi
+
+# H53 NEGATIVE [#540, F4]. THE HEAD'S records-gate.sh IS EXECUTED BEFORE FORCE IS DECIDED, which is
+#     jobs/fastgate-runs-the-heads-records-gate-before-it-decides-force-so-a-planted-entries-arm-turns-a-records-gate-change-into-a-fast-green-2026-10-23.
+#     A COMMITTED records-gate.sh whose --entries arm writes a marker file is FORCE by path, and on main
+#     e8dd9cb's script the verdict is exit 2 FULL SUITE REQUIRED - with the marker WRITTEN, because the tier
+#     ran `records-gate.sh --entries` from the working tree in its BNRATCHET block before the FORCE loop ever
+#     looked at the changed set. The exit code is 2 either way, so the exit code alone cannot see this case:
+#     the discriminating observable is the marker, and the TAMPER pin cannot help, because a committed plant
+#     equals its own head blob. The fixture is committed, never hidden, and the harness's own scratch
+#     directory holds the marker so no case can leave one behind.
+#     THE PREMISE IS ASSERTED FIRST: the plant must be LIVE (running the head's --entries by hand writes the
+#     marker), or an absent marker would prove nothing about the order.
+reset_clone
+H53M="$W/h53-marker"; rm -f "$H53M"
+sed -i "2i case \"\${1:-}\" in --entries) : > $H53M ;; esac" "$C/gates/records-gate.sh"
+commit_case "H53 planted records-gate.sh: its --entries arm writes a marker, never pushed"
+( cd "$C" && bash "$C/gates/records-gate.sh" --entries >/dev/null 2>&1 ) || true
+if [ ! -e "$H53M" ]; then
+  note "  FAIL H53 [$(tc H53)]  the fixture's premise does not hold: the planted --entries arm did not write its marker when run by hand, so the case cannot pose"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H53"
+else
+  rm -f "$H53M"
+  if probe 2 "FULL SUITE REQUIRED" "gates/records-gate.sh"; then
+    if [ -e "$H53M" ]; then
+      note "  FAIL H53 [$(tc H53)]  exit 2 and the path named, but the head's records-gate.sh --entries RAN before the decision (marker written) - the defect"
+      show_verdict "$PROBE_OUT"
+      BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H53"
+    else
+      note "  ok  H53 [$(tc H53)]  (exit 2, FULL SUITE REQUIRED naming gates/records-gate.sh, and the head's --entries arm never ran: no marker)"
+      OK=$((OK+1))
+    fi
+  else
+    note "  FAIL H53 [$(tc H53)]  exit $PROBE_RC, expected 2 FULL SUITE REQUIRED naming gates/records-gate.sh"
+    show_verdict "$PROBE_OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H53"
+  fi
+fi
+rm -f "$H53M"
+
+# H54 NEGATIVE [#540, F4], THE SAME ORDER IN THE REGISTER ARM. Whenever gates/build-numbers.tsv is in the
+#     changed set the register arm runs the head's `buildnum.sh next` before the FORCE loop, so a committed
+#     buildnum.sh whose next arm writes a marker, beside an honest mint, had its head copy executed on main
+#     e8dd9cb's script (exit 2 FULL SUITE REQUIRED, marker WRITTEN). TWO HALVES, ONE VERDICT, because the
+#     placement of the fix is the point: (i) the ORDERING CONTROL - the same plant beside a planted `999
+#     minted` row must STILL be refused at exit 1 by the read-only series ceiling, which precedes any
+#     execution, with no marker; a fix placed at the top of the script would route that wedge to a suite
+#     that runs no series check and land it. (ii) THE CASE - the plant beside an honest mint must exit 2
+#     naming gates/buildnum.sh with the marker ABSENT. The mint is made with the PLANTED buildnum.sh, whose
+#     next arm writes the marker while the fixture is cut, so the marker is removed after the mint and before
+#     the probe - and the premise (the plant is live) is that very write.
+reset_clone
+H54M="$W/h54-marker"; rm -f "$H54M"
+H54FAIL=""
+sed -i "2i case \"\${1:-}\" in next) : > $H54M ;; esac" "$C/gates/buildnum.sh"
+printf '999\tminted\t-\t-\t-\t%s\tfastgate-drive-fixture\tminted\tplanted row beside a planted buildnum.sh, fixture only, never pushed\n' \
+  "$(date -u '+%Y-%m-%dT%H:%MZ')" >> "$C/gates/build-numbers.tsv"
+commit_case "H54 (i) planted buildnum.sh beside a planted 999 row"
+rm -f "$H54M"
+if probe 1 "FAST GATE REFUSED" "the series cannot carry"; then
+  [ -e "$H54M" ] && H54FAIL="$H54FAIL ceiling-ran-the-plant(the 999 refusal is read-only and must not execute buildnum.sh, but the marker was written)"
+else
+  H54FAIL="$H54FAIL ceiling(exit $PROBE_RC, expected 1 at the series ceiling - a fix placed above the ceiling routes the wedge to a suite that runs no series check)"; H54SHOW="$PROBE_OUT"
+fi
+rm -f "$H54M"
+reset_clone
+sed -i "2i case \"\${1:-}\" in next) : > $H54M ;; esac" "$C/gates/buildnum.sh"
+H54N="$(mint_in_clone)"
+if [ -z "$H54N" ]; then
+  H54FAIL="$H54FAIL mint(could not mint a fixture number in the clone with the planted buildnum.sh)"
+elif [ ! -e "$H54M" ]; then
+  H54FAIL="$H54FAIL premise(the planted next arm did not write its marker while the mint ran, so the plant is not live)"
+else
+  rm -f "$H54M"
+  commit_case "H54 (ii) planted buildnum.sh beside an honest mint for #$H54N, never pushed"
+  if probe 2 "FULL SUITE REQUIRED" "gates/buildnum.sh"; then
+    [ -e "$H54M" ] && { H54FAIL="$H54FAIL order(exit 2 and the path named, but the head's buildnum.sh next RAN before the decision - marker written - the defect)"; H54SHOW="$PROBE_OUT"; }
+  else
+    H54FAIL="$H54FAIL case(exit $PROBE_RC, expected 2 FULL SUITE REQUIRED naming gates/buildnum.sh)"; H54SHOW="$PROBE_OUT"
+  fi
+fi
+rm -f "$H54M"
+if [ -n "$H54FAIL" ]; then
+  note "  FAIL H54 [$(tc H54)] $H54FAIL"
+  [ -n "${H54SHOW:-}" ] && show_verdict "$H54SHOW"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H54"
+else
+  note "  ok  H54 [$(tc H54)]  (exit 1 at the series ceiling with the 999 row and no marker; exit 2 FULL SUITE REQUIRED naming gates/buildnum.sh beside an honest mint, and the head's next arm never ran: no marker)"
+  OK=$((OK+1))
 fi
 
 # ── VERDICT. ───────────────────────────────────────────────────────────────────────────────────────────────

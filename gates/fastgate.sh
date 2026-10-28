@@ -46,6 +46,18 @@
 # EMITS "FAST GATE GREEN <sha>" on success. Deliberately NOT the full suite's own green string: every consumer
 # greps for that exact string and a fast log must never be mistaken for a full one. Writes its own log name.
 set -uo pipefail
+# ── THE WHOLE SCRIPT IS ONE FUNCTION, READ BEFORE IT RUNS [#540, F4,
+# jobs/fastgate-runs-the-heads-records-gate-before-it-decides-force-so-a-planted-entries-arm-turns-a-records-gate-change-into-a-fast-green-2026-10-23].
+# bash reads a script by byte offset as it executes it (CLAUDE.md, #461: a mid-run edit made the interpreter
+# read garbage from a shifted file), so a file this tier EXECUTED from the working tree before its FORCE
+# decision - the head's own records-gate.sh --entries - could rewrite the bytes of THIS script that had not
+# been read yet, and the push checks tier's reviewer measured exactly that: a committed records-gate.sh whose
+# --entries arm rewrote fastgate.sh's unread tail took exit 0 FAST GATE GREEN, where a comment-only change to
+# the same file took exit 2. A function body is parsed whole before a byte of it runs, so from here to the
+# closing brace nothing written to this file during the run can reach the interpreter. The body is NOT
+# re-indented, so the diff of this change is the brace, the call, and the ordering fix below; every line
+# number cited elsewhere in this file is read against that.
+main(){
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; G="$ROOT/gates"
 BASE="${1:-}"
 [ -n "$BASE" ] || { echo "fastgate.sh: usage: gates/fastgate.sh <base-sha>   (the sha this tree is diffed against; normally origin/main)"; exit 2; }
@@ -153,8 +165,11 @@ fi
 # job's close condition names (gates/verify-log.sh is in the EXECUTES list moved here), and moving it as well
 # would be a second fix riding on this one. It is measured and recorded on the job rather than silently widened.
 TAMPER=""
-for f in gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js \
-         gates/buildnum.sh; do   # buildnum.sh added #523: Part 2 EXECUTES it from the working tree
+# THE FILES THIS TIER EXECUTES FROM THE WORKING TREE, IN ONE LIST [#540, F4]. The TAMPER pin below and the
+# FORCE-before-execution check further down both read it, so the two cannot drift apart. buildnum.sh was
+# added at #523: Part 2 EXECUTES it from the working tree.
+FG_EXECUTES="gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js gates/buildnum.sh"
+for f in $FG_EXECUTES; do
   hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
   wb="$($GIT hash-object --no-filters "$ROOT/$f" 2>/dev/null || echo MISSING)"   # #527: RAW bytes, see below
   [ "$hb" = "$wb" ] || TAMPER="$TAMPER    $f: commit $hb, working tree $wb\n"
@@ -167,6 +182,42 @@ if [ -n "$TAMPER" ]; then
   say "A clean git status cannot see this: index flags and clean filters both suppress it. Run FULL."   # #527
   exit 1
 fi
+
+# ── #540 F4. FORCE IS DECIDED FROM THE CHANGED PATHS BEFORE ANY FILE OF THE TREE IS EXECUTED. ────────────────
+# jobs/fastgate-runs-the-heads-records-gate-before-it-decides-force-so-a-planted-entries-arm-turns-a-records-gate-change-into-a-fast-green-2026-10-23.
+# THE DEFECT: `"$G/records-gate.sh" --entries` ran from the working tree in the BNRATCHET block, and
+# `"$G/buildnum.sh" next` ran in the register arm, BOTH BEFORE the FORCE loop had looked at the changed set.
+# Every file in FG_EXECUTES is FORCE by path (classify() sends them to the full suite as gates/ paths it does not
+# recognise, or as a .js it does not recognise), so the decision was already known - and the head's copy of the
+# file had already been executed by the time it was taken. MEASURED on main e8dd9cb in a throwaway clone: a
+# committed records-gate.sh whose --entries arm writes a marker file gets exit 2 FULL SUITE REQUIRED and the
+# marker EXISTS; a committed buildnum.sh whose next arm writes a marker, beside an honest mint, gets exit 2 and
+# the marker EXISTS. The TAMPER pin above cannot see either: it compares the head's blob with the working
+# tree's bytes, and a COMMITTED plant is equal to itself.
+# THE FIX IS THE NARROWER ONE AND IT IS PLACED DELIBERATELY. It fires at the two sites where the first
+# execution of a tree file would otherwise happen - inside the register arm immediately before the head's
+# `buildnum.sh next`, and before the BNRATCHET `--entries` call - and NOT at the top of the script, because
+# the register arm's series-ceiling and row refusals between here and there are READ-ONLY and TERMINAL
+# (exit 1): a planted `999 minted` row beside a changed buildnum.sh must still be REFUSED at the ceiling
+# rather than routed to a suite that runs no series check, and it is (measured, exit 1, no marker). The
+# sentence is the job's own: FORCE from the changed paths alone, before fastgate.sh executes any file of the
+# tree; the files it then executes after the decision are unchanged from the base by construction.
+# WHAT IT DOES NOT COVER, SAID RATHER THAN IMPLIED: a file this tier only READS (the READ pin's set) is not
+# in FG_EXECUTES, and gates/verify-log.sh --citations and control-audit.js already ran after the decision;
+# this job's notChecked names them and nothing here changes it.
+force_before_execution(){ # exit 2 when the changed set holds a file this tier executes; otherwise return 0
+  local f hit=""
+  for f in $FG_EXECUTES; do
+    in_changed "$f" && hit="$hit    $f (a file this tier EXECUTES from the working tree; FORCE by path, decided before its head copy runs)\n"
+  done
+  [ -n "$hit" ] || return 0
+  say ""
+  say "FULL SUITE REQUIRED. These paths are not records-only, and this tier EXECUTES them from the working tree,"
+  say "so the decision is taken here, BEFORE the head's copy of any of them has run [#540, F4]:"
+  printf "$hit" | tee -a "$LOG"
+  say "Run: gates/gates.sh \"#<N>\"   (the full suite, and only its own green footer authorises this push)"
+  exit 2          # exit 2 means GO FULL. It is not a failure.
+}
 
 # ── #530 N3. A FILE THE COMMIT DOES NOT HOLD MAY NOT STEER A RATCHET ────────────────────────────────────────
 # jobs/an-untracked-file-hidden-by-info-exclude-steers-the-records-ratchet-of-fastgate-past-every-raw-byte-guard-2026-10-20,
@@ -1416,6 +1467,8 @@ EOF
   # plaus_delta has already judged the value (PLAUS_DELTA_SRC begins "BUILDNUM_MAX_DELTA is set to" only when it
   # is unusable), so this asks the minter with the variable removed, which is the margin the next real mint will
   # use, and says so. A usable override is passed through unchanged, as before.
+  force_before_execution   # #540 F4: the head's buildnum.sh is about to be EXECUTED; decide FORCE first. The
+                           # ceiling and row refusals above are read-only and terminal, so they keep their turn.
   case "$PLAUS_DELTA_SRC" in
     "BUILDNUM_MAX_DELTA is set to"*)
       say "register plausibility [#529]: asking gates/buildnum.sh next with BUILDNUM_MAX_DELTA removed, because it"
@@ -1663,6 +1716,7 @@ say "  .md is records-only - see classify. Absent or a directory means the ROOT 
 # itself, which is the one artefact that authorises a push, so a coin flip became load-bearing.
 # gates/verify-log.sh already names this class at its own arm 5 ("therefore no SIGPIPE: rc 0 at every n").
 BNRATCHET=no
+force_before_execution   # #540 F4: the head's records-gate.sh is about to be EXECUTED; decide FORCE first.
 BN_ENT="$("$G/records-gate.sh" --entries 2>/dev/null || true)"
 # AND THE MATCH IS IN-SHELL TOO [#524, antagonist A claim 2]. Capturing into BN_ENT took records-gate.sh out
 # of the pipeline, which is the fix that mattered - but the replacement was still `printf | grep -qxF` under
@@ -2311,3 +2365,5 @@ else
   say "FAST GATE RED $HEAD"
   exit 1
 fi
+}   # end of main [#540, F4]
+main "$@"; exit $?
