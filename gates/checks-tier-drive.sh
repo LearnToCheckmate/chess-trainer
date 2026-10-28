@@ -2977,6 +2977,98 @@ if mutguard M50 "read the rename's first column only" "$D/gates/checks-tier.sh" 
 fi
 
 
+# ══ A73, A74 AND M51. A SHALLOW ROOT ROUTES; IT DOES NOT ANSWER RED. ═════════════════════════════════════════
+# #543, repair 2 of THE WORK. Fresh antagonist A's F2 of #542. main's gates/verify-log-selftest.sh pins a
+# fixture log naming a commit 461 behind main, and THE ROUTINE'S OWN CLONE IS SHALLOW AT 50 COMMITS, which does
+# not hold it - so main's selftest regressed inside the judge's battery and the acceptance arm turned that into
+# CHECKS TIER RED at exit 1 on an honest commit. Reproduced end to end before the repair: a depth-50 clone with
+# no local main read JUDGE EXIT 1 with TWO controls red (verify-log-selftest 76/5 and buildnum-selftest 218/1).
+# THE SOURCE FIXTURE CARRIES THREE COMMITS ON PURPOSE. A depth-2 clone of a two-commit repository holds the
+# whole history and `--is-shallow-repository` answers FALSE, so the case would assert nothing; and a depth-1
+# clone DROPS THE BASE, which the judge refuses earlier for a different reason, so the case would pass without
+# reaching this arm at all. Both preconditions are therefore asserted in the case rather than assumed.
+# file:// IS LOAD-BEARING: git ignores --depth on a plain local-path clone.
+D="$T/a73src"; mkfix "$D"
+printf '%s\n' "# a record another chat keeps" > "$D/RUN-LOG.md"
+commitin "$D" "the base, one commit above the fixture's first"; A73B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+
+# A73. The depth-2 clone: shallow, base present, and it must ROUTE at exit 2 naming the shallow root.
+A73C="$T/a73"; rm -rf "$A73C"
+if ! git clone --quiet --depth 2 --single-branch "file://$D" "$A73C" >/dev/null 2>&1; then
+  rec A73 FAIL "a shallow root routes :: the --depth 2 clone of the fixture could not be made"
+else
+  A73WHY=""
+  [ "$(git -C "$A73C" rev-parse --is-shallow-repository 2>/dev/null)" = true ] \
+    || A73WHY="the clone is NOT shallow, so this case asserts nothing about the arm"
+  git -C "$A73C" cat-file -e "${A73B}^{commit}" 2>/dev/null \
+    || A73WHY="${A73WHY:+$A73WHY; }the clone does not hold the BASE, so the judge refuses earlier for another reason"
+  if [ -n "$A73WHY" ]; then
+    rec A73 FAIL "a shallow root routes :: $A73WHY"
+  else
+    runtier "$A73C" "$A73B"
+    [ "$TRC" = 2 ] || A73WHY="exit $TRC, wanted 2"
+    grep -qF "SHALLOW clone" <<<"$TOUT" || A73WHY="${A73WHY:+$A73WHY; }the verdict does not say the root is shallow"
+    grep -qF "fetch --unshallow" <<<"$TOUT" || A73WHY="${A73WHY:+$A73WHY; }the verdict does not name the remedy"
+    if [ -n "$A73WHY" ]; then
+      rec A73 FAIL "a shallow root routes :: $A73WHY"
+      printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+    else
+      rec A73 ok "a SHALLOW root ROUTES at exit 2, naming the shallow root and its remedy, instead of answering RED on an honest commit (exit $TRC)"
+    fi
+  fi
+fi
+
+# A74. THE SAME FIXTURE CLONED FULL IS UNCHANGED: the arm keys on the clone shape and on nothing else, so a full
+# clone must not take that route. Asserted separately from A73 so neither can pass for the other.
+A74C="$T/a74"; rm -rf "$A74C"
+if ! git clone --quiet --single-branch "file://$D" "$A74C" >/dev/null 2>&1; then
+  rec A74 FAIL "a full clone is unchanged :: the clone of the fixture could not be made"
+else
+  A74WHY=""
+  [ "$(git -C "$A74C" rev-parse --is-shallow-repository 2>/dev/null)" = false ] \
+    || A74WHY="the control clone is itself shallow, so it cannot show the arm is shape-keyed"
+  if [ -n "$A74WHY" ]; then
+    rec A74 FAIL "a full clone is unchanged :: $A74WHY"
+  else
+    runtier "$A74C" "$A73B"
+    grep -qF "SHALLOW clone" <<<"$TOUT" && A74WHY="the full clone took the SHALLOW route, so the arm is not keyed on the clone shape"
+    if [ -n "$A74WHY" ]; then
+      rec A74 FAIL "a full clone is unchanged :: $A74WHY"
+      printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+    else
+      rec A74 ok "a FULL clone of the same fixture does not take the shallow route (exit $TRC)"
+    fi
+  fi
+fi
+
+# M51. REMOVE THE SHALLOW CHECK, and A73 must turn: the judge walks on into the battery in a shallow root.
+D="$T/m-M51"; mkfix "$D"
+printf '%s\t%s\n' \
+  '  if [ "$("${GIT[@]}" rev-parse --is-shallow-repository 2>/dev/null)" = true ]; then' \
+  '  if false; then # M51: the shallow check removed' \
+  | mkmut "$D/gates/checks-tier.sh"
+if mutguard M51 "remove the shallow-root route" "$D/gates/checks-tier.sh" 'M51: the shallow check removed'; then
+  printf '%s\n' "# a record another chat keeps" > "$D/RUN-LOG.md"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M51 base" >/dev/null 2>&1
+  M51B="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+  M51C="$T/m-M51-clone"; rm -rf "$M51C"
+  if ! git clone --quiet --depth 2 --single-branch "file://$D" "$M51C" >/dev/null 2>&1; then
+    rec M51 FAIL "remove the shallow-root route :: the --depth 2 clone could not be made"
+  elif [ "$(git -C "$M51C" rev-parse --is-shallow-repository 2>/dev/null)" != true ]; then
+    rec M51 FAIL "remove the shallow-root route :: the clone is not shallow, so the mutant is not exercised"
+  else
+    runtier "$M51C" "$M51B"
+    if grep -qF "SHALLOW clone" <<<"$TOUT"; then
+      rec M51 FAIL "the shallow route is not load-bearing: the mutant still named the shallow root (exit $TRC)"
+    else
+      rec M51 ok "removing the shallow check turns A73: the judge walks past a shallow root instead of routing it (exit $TRC, no shallow-root verdict)"
+    fi
+  fi
+fi
+
+
 if [ "$MODE" = fixed ] || [ "${CT_TIER_A1:-0}" = 1 ]; then
   A1D="$T/a1"
   if git clone --quiet --no-hardlinks --shared "$ROOT" "$A1D" >/dev/null 2>&1; then
