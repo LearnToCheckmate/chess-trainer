@@ -498,6 +498,16 @@ printf 'L.say("a gate the log never ran", true);\n' > "$SK/gates/regress/02-adde
 ckmsg "J3 a gate ADDED on disk refuses and names it as never run" 1 "gates/regress/02-added-gate.js: on disk and not at" \
       "$SKVL" "$SKLOG" "$FOOT" --this-suite
 rm -f "$SK/gates/regress/02-added-gate.js"
+# (b2) A DIRECTORY NAMED LIKE A GATE IS A GATE TO gates.sh (node runs <dir>.js/index.js), so it is a gate to this
+#      key too [#540, A2-F1]: the first repair's `find -type f` dropped it and read OK; the glob keeps it.
+mkdir -p "$SK/gates/regress/03-dir-gate.js"; printf 'console.log("a directory gate")\n' > "$SK/gates/regress/03-dir-gate.js/index.js"
+ckmsg "J3b a DIRECTORY named like a gate, added on disk, refuses and names it as never run" 1 "gates/regress/03-dir-gate.js: on disk and not at" \
+      "$SKVL" "$SKLOG" "$FOOT" --this-suite
+rm -rf "$SK/gates/regress/03-dir-gate.js"
+# (b3) and a DOTFILE under gates/regress is nothing to gates.sh's glob, so it is nothing to the key [A2-F2].
+printf '// an editor lock, never a gate\n' > "$SK/gates/regress/.#lock.js"
+ckmsg "J3c a dotfile under gates/regress is not a gate and does not refuse" 0 "THIS-SUITE OK" "$SKVL" "$SKLOG" "$FOOT" --this-suite
+rm -f "$SK/gates/regress/.#lock.js"
 # (c) a gate deleted on disk.
 rm -f "$SK/gates/regress/01-selftest-gate.js"
 ckmsg "J4 a gate MISSING on disk refuses and names it" 1 "gates/regress/01-selftest-gate.js: at $SKSHA and missing on disk" \

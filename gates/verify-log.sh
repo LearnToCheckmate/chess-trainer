@@ -1508,10 +1508,14 @@ if [ "$THISSUITE" -eq 1 ]; then
     exit 1
   fi
   # path<TAB>hash on disk, for every path the sha carries plus every gates/regress/*.js on disk the sha does not.
-  # find, not `ls gates/regress/*.js`: on a DIRECTORY named like a gate ls prints a `name:` header and its
-  # contents, which read as a stray extra path in the refusal [#540 repair, antagonist A's A-F6]. Regular files
-  # and symlinks only, one level deep, which is exactly what gates.sh's glob runs.
-  SK_PATHS="$( { printf '%s\n' "$SK_AT" | cut -f1; ( cd "$SKROOT" && find gates/regress -maxdepth 1 -name '*.js' \( -type f -o -type l \) 2>/dev/null ); } | sort -u )"
+  # THE ON-DISK LIST IS gates.sh's OWN ENUMERATION, NOT ls AND NOT find [#540, two repairs]. `ls gates/regress/*.js`
+  # printed a `name:` header and the CONTENTS of a directory named like a gate, which read as stray extra paths in
+  # the refusal (antagonist A's A-F6); the first repair used `find -type f -o -type l`, which DROPPED such a
+  # directory - and gates.sh's glob keeps it, and node runs <dir>.js/index.js, so an untracked directory gate read
+  # THIS-SUITE OK while the suite would have run one more file (fresh antagonist A2's A2-F1, P2, upheld as a veto);
+  # find also listed dotfiles the glob never runs (A2-F2). The glob below is the one gates.sh runs its gates from:
+  # `*.js` with `[ -e ]`, so a directory named like a gate is IN (and refuses, as it must) and a dotfile is OUT.
+  SK_PATHS="$( { printf '%s\n' "$SK_AT" | cut -f1; ( cd "$SKROOT" && for skg in gates/regress/*.js; do [ -e "$skg" ] && printf '%s\n' "$skg"; done ); } | sort -u )"
   SK_NOW=""
   while IFS= read -r skp; do
     [ -n "$skp" ] || continue
