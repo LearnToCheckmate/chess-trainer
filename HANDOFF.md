@@ -1,4 +1,178 @@
 # HANDOFF - where the last run left off
+**#543: THE PUSH CHECKS TIER'S FOURTH TRY. ALL FOUR OF THE BRIEF'S DEFECTS ARE REPAIRED AND CONTROLLED,
+THE HARNESS IS GREEN AT 142 ok / 0 FAIL / 1 skipped WITH THE WHOLE REAL BATTERY GREEN IN 437s - AND IT IS
+HELD WITHOUT A SUITE, BECAUSE THE TENTH ADVERSARIAL ROUND ANSWERED THE DANGEROUS DIRECTION POSITIVELY FOR
+THE FIRST TIME - FOUR INDEPENDENT ROUTES TO EXIT 0, TWO OF THEM P0 - AND BECAUSE THE OTHER DOOR VETOED
+REPAIR 4 ITSELF, WITH A REPRODUCTION THIS RUN CONFIRMED IN PART.**
+Run `build__1793197429163`, 28 Oct 2026, under `docs/restart-readiness.directOpening_2026_10_28_tier4`.
+**NOTHING WAS PUSHED TO MAIN. origin/main is 68e484e530153294b97270d6646b479c8681dae8, exactly where #541
+left it.** All of this run's work is on `claude/epic-cerf-zl8c1s`: seven signed commits of code and
+harness ending at `9e42625`, plus the commit that carries these records, all pushed. No app change at any point: `app.js` is #530's bundle, md5 `049b41dfb6f1`, `chess.jsx` md5
+`1b41d1d1e765`, both byte-identical to main's; `gates/build.sh` and `gates/gates.sh` never ran.
+**Nothing a player can see moved, and no browser suite has ever run over this tree.**
+
+## 1. READ THIS FIRST: WHY IT HELD, AND IT IS NOT WHAT THIS RUN BUILT
+
+THE FOUR DEFECTS THE BRIEF NAMED ARE CLOSED AND CONTROLLED. Each is its own signed commit with its cases,
+its mutant and its control measured both ways, and the whole harness is green on the final tree:
+
+| | commit | what |
+|---|---|---|
+| repair 1 | `c7cca80` | a rename's second NUL path is read whenever EITHER column says so, printed old -> new in git's own order, and classified by BOTH paths |
+| repair 2 | `9e0c8ff` | a SHALLOW root ROUTES at exit 2 with its remedy named, instead of answering RED on an honest commit |
+| repair 3 | `1f784d7` | every entry is classified by its PATHS, not by its bucket, under the orchestrator's ruling, each named line carrying its bucket and which side of the set it sits on |
+| repair 4 | `17bc503` | the mirror's WHOLE ref list is pinned by name and object, and re-checked after the LAST control |
+
+`bash gates/checks-tier-drive.sh fixed` on `9e42625`: **142 ok, 0 FAIL, 1 skipped**, with **A1 - the whole
+real battery, in a full clone of this repository - GREEN in 437s at exit 0**. The one skip is M44, the
+pre-existing uncontrolled race mutant, which is counted as uncontrolled and never as green.
+
+**WHY IT HELD ANYWAY.** The fresh pair's antagonist B, blind to the diff, answered the dangerous direction
+POSITIVELY - which no round on this judge had managed before - and the run reproduced the two P0s itself
+before acting:
+
+1. **THE BASE IS READ FROM A LOCAL REF THE CANDIDATE'S AUTHOR CAN SET.** `refs/remotes/origin/main` is a
+   purely local ref that the judge never fetches and never cross-checks. One `git update-ref` makes it name
+   a commit that rewrote `app.js`; pass that sha as the base and the judge answers **exit 0, CHECKS TIER
+   GREEN**, where the honest run routes at exit 2 naming `app.js`. Measured by this run in its own fixture:
+   `app.js` md5 `28c88aa158aa` at the real main against `79f0a45050ac` at the head, and a push would carry
+   it with no suite. The self pin does not notice, because `gates/checks-tier.sh` is byte-identical at both.
+   This is round 4's own defect, intact, inside round 4's fix: the fix only changed WHICH local thing the
+   operator has to set.
+2. **A FAILED `git status` IS CREDITED AS A CLEAN TREE.** The entrance reads the status stream through a
+   process substitution with `2>/dev/null` and never checks its exit status, so an empty stream is the
+   clean-tree path. Measured: with a readable index a tree carrying uncommitted edits to `gates/held.sh`
+   and `app.js` REFUSES at exit 1; `head -c 400 /dev/urandom > .git/index` makes `git status` exit 128 with
+   no stdout and the SAME tree reads **exit 0, CHECKS TIER GREEN**. B showed the same blindness collapses
+   five of `snapshot()`'s types identically in both snapshots so they cancel, and drove a `gates/cases`
+   control to replace `app.js` and reduce `gates/verify-log.sh` to `exit 0` in the tree under judgement,
+   under a verdict whose own sentence is that the real tree was not touched.
+
+**NEITHER OF THOSE TWO IS IN THIS RUN'S FOUR REPAIRS.** Both are pre-existing foundations, and B's
+one-sentence diagnosis is the right one: **the judge's two foundations are each read through a channel it
+does not check.** B's three further vetoes (the object store compared by name and size only, the OUTSIDE
+set omitting `~/.ssh` and `~/.claude`, and `assume-unchanged` emptying `git status` with no corruption at
+all) are on `flags/antagonist-b-543` with their reproductions.
+
+**AND B CLEARED THIS RUN'S OWN WORK IN THAT FAMILY, IN TERMS.** Everything #543 repaired behaved correctly
+in every pose it ran: staged, unmerged, renamed and copied records outside the set, the shallow route, and
+all three mirror-ref targets. The second NUL field is consumed on either column, the order printed is
+git's own, and no leftover path was ever re-read as a status entry.
+
+**BUT THE OTHER DOOR VETOED REPAIR 4, AND THAT ONE IS THIS RUN'S OWN - SO READ IT BEFORE TRUSTING THE
+TABLE ABOVE.** Fresh antagonist A, reading the diff, found that **repair 4 is a POLL, NOT A LOCK.** It
+records the mirror's ref list at two instants only - inside `mkclone` before each clone, and once after the
+last control - and nothing makes the mirror unwritable in between. A control whose `gates/cases` file
+detaches an UNMARKED helper (`setsid env -u CT_CTL_MARK bash -c ...`, which the survivor scan cannot see
+because the marker is in the survivor's own gift) can move `refs/heads/main` after the pre-clone check, let
+the NEXT control read the forged value, and restore the exact object before the post-battery check. **A
+move restored to the same object is byte-identical to no move, so an end-state comparison cannot see it.**
+A reached `CHECKS TIER GREEN` at exit 0 under `mirror refs re-checked after the last control: unchanged`,
+on its third attempt, having lost the race twice.
+
+**WHAT THIS RUN ITSELF REPRODUCED OF THAT, STATED EXACTLY, BECAUSE THE RUN MUST NOT CLAIM A STRONGER
+VERIFICATION THAN IT HAS.** I built the fixture and **confirmed the forged read**: a later control resolved
+`git ls-remote origin main` to the candidate's own HEAD while the battery ran, which is precisely the read
+repair 1 of #542 made load-bearing and repair 4 exists to protect. I did **not** personally reach exit 0.
+My first timing was CAUGHT - `REFUSED: a control changed the throwaway mirror ... (the ref list changed:
+refs/heads/main)` at exit 1 - because the restore landed after the post-battery check; my second attempt
+produced the `unchanged` verdict but its restore landed 63 seconds BEFORE the later control's read, and it
+failed at exit 1 on an unrelated fault in my own control (`exit 2, wanted 0; no ^PASS line`). So the
+MECHANISM is confirmed from two doors and is visible by READING - B's cross-read reached it without running
+anything, because `mirror_ok` is an end-state test over a sequence - and the exit-0 outcome rests on A's
+measurement, not on mine. It is a veto either way: the forged read alone is what repair 4 was built to
+prevent, and `gates/cases/README.md` and `claude/stories/TEST-CASES.md` row TC-SUITE-196 now both say so.
+
+**AND REPAIR 4's SIX POSES ARE NARROWER THAN ITS COMMIT MESSAGE CLAIMS.** A also measured that the two
+mutants written to separate the pre-clone check from the post-battery one DO NOT separate them: with
+`mkclone`'s own `if ! mirror_ok` replaced by `if false`, all three followed-by-a-second-control poses still
+pass, because any PERSISTENT move is visible to the post-battery check whoever made it. The six poses pin
+that **no persistent move survives** - a real property, and a narrower one than "the mirror is pinned".
+
+**SO THE HOLD IS THE BAR, NOT A JUDGEMENT CALL, AND BOTH OF ITS TRIGGERS FIRED.** This run's brief says
+it HOLDS if the pair upholds a veto OR shows that one of the four defects is not closed. **Both happened:**
+B upheld five vetoes against the foundations, and A showed that THE WORK (4) - the mirror pin - is not
+closed. The brief's point (h) says a veto showing a commit the tier would answer 0 for and should not is a
+blocker however small its repair, and cut line (c) says a blocker in practice means a hold, because a fifth
+repair after the pair's read owes a sixth fresh pair that cannot finish before the suite's cut line. No suite ran, so there is no `GATES GREEN #543` and no
+`GATES RED #543`, and no `gates/held-trees.tsv` row was written - all three of that register's keys
+identify an ARTEFACT and this run built none, so a row would have marked main's own live #530 bundle as
+refused. That is #536's reasoning, applied again.
+
+## 2. WHAT IS ON THE BRANCH, COMMIT BY COMMIT
+
+`claude/epic-cerf-zl8c1s`, off `1c7bd01` (#542's head, itself 3 ahead of main's `68e484e`). Every commit
+signed, one `gpgsig` line each, all pushed. No deletions in any code file.
+
+| sha | what |
+|---|---|
+| `1edcd02` | the #543 mint, both halves - `gates/build-numbers.tsv` row and tracker `docs/buildnumber` |
+| `c7cca80` | **repair 1**, THE WORK (1): the entrance reads a rename's or copy's second NUL path whenever EITHER status column says R or C, prints the pair in git's own order (old -> new), and classifies the entry by BOTH paths. Cases A70, A71, A72; mutant M50 |
+| `9e0c8ff` | **repair 2**, THE WORK (2): a SHALLOW checkout ROUTES to the full suite at exit 2, naming the remedy (`git fetch --unshallow origin`, in the operator's own checkout and never in the judge), instead of answering RED on an honest commit. Cases A73, A74; mutant M51 |
+| `1f784d7` | **repair 3**, THE WORK (3): the working-tree classifier becomes a LADDER - untracked, unmerged, renamed, copied, staged, worktree edit - every line printed with its bucket AND which side of the tier's path set its path sits on, and both headlines reworded to say "a TRACKED path INSIDE this tier's own set". Cases A75, A76, A77; mutant M52; A67 reversed under the orchestrator's ruling |
+| `17bc503` | **repair 4**, THE WORK (4): the throwaway mirror's WHOLE ref list is recorded by name and object and compared, naming what moved, with a check added after the LAST control. Cases A78 to A83; mutants M53, M54. **VETOED - see section 1** |
+| `b8b3f4c` | the harness header names its id range and defers the COUNT to its own footer, rather than carrying a number that drifts |
+| `9e42625` | six harness sites repair 3 invalidated, five of them its own cases: A13, A51, M1, M37, M49, M50 |
+| this one | the records: these four `TC-SUITE` rows, this hand-off, the run-log line |
+
+## 3. THE NUMBERS, ALL MEASURED ON THIS TREE, AND THE THREE THAT ARE NOT
+
+| what | value |
+|---|---|
+| `bash gates/checks-tier-drive.sh fixed` on `9e42625` | **142 ok, 0 FAIL, 1 skipped**, exit 0 |
+| A1, the whole real battery in a full clone of this repository | **green in 437s** at exit 0 |
+| the one skip | M44, the pre-existing race mutant, counted as uncontrolled and never as green |
+| `bash gates/verify-log.sh --citations` | 19 dead paths, 23 unsupported, 11 misfiled, 0 dead line citations, 0 stale, 0 over the ceiling, 2 not checked - **every number identical to the base**, with 203 register rows against 199 |
+| `app.js` | md5 `049b41dfb6f1`, byte-identical to main's at every commit |
+| `chess.jsx` | md5 `1b41d1d1e765`, byte-identical to main's at every commit |
+| `gates/build.sh`, `gates/gates.sh` | never run |
+| the push checks themselves | `gates/fastgate.sh`, `gates/verify-log.sh`, `gates/held.sh`, `gates/buildnum.sh` and every selftest byte-identical to main's |
+
+**AND THREE FIGURES IN THIS RUN'S PLAN WERE PREDICTED AND NEVER MEASURED, WHICH IS WORTH MORE THAN
+QUIETLY DROPPING THEM.** The brief's point (d) had me write the door line, the unit block and the text
+metrics down BEFORE launching, so that a disagreement would be a finding rather than a renegotiation. The
+suite never launched, so the door line (`appended=2, gap-fill=0, extends-the-series=2`, verdict ok) and the
+text metrics (`system-ui 402.12, "Segoe UI" 322.15, sans-serif 348.28, sentinel 322.15`) remain
+PREDICTIONS. The unit block IS measured, on the committed tree, and the figure is in the run-log line.
+
+## 4. WHAT THE NEXT RUN SHOULD DO, IN ORDER
+
+Nothing here needs re-deriving: every item has a reproduction on `flags/antagonist-a-543` or
+`flags/antagonist-b-543`, and the hand-off job carries them with their fingerprints.
+
+1. **Fetch and rebase.** Main was `68e484e` throughout this run; this branch is 8 ahead of `1c7bd01`.
+2. **THE TWO FOUNDATIONS, AS ONE CHANGE, BECAUSE THEY ARE ONE DIAGNOSIS.** (a) The base must not be taken
+   on trust from a purely local ref: cross-check `refs/remotes/origin/main` against something the
+   candidate's author cannot write, or require the caller to pass a base the judge can verify. (b) Every
+   `git status`, `git ls-files` and `git diff HEAD` read must have its exit status checked - **three sites,
+   not two**, which the two antagonists settled between them on cross-read - and an empty stream from a
+   failed read must never be the clean-tree path. Both doors found (b) independently.
+3. **THE MIRROR, PROPERLY: AN INTERVAL, NOT TWO INSTANTS.** Repair 4's end-state comparison cannot see a
+   move-and-restore. Either make the mirror unwritable to controls for the battery's duration, or give each
+   control its own mirror, or verify the ref AT THE MOMENT OF USE in the clone that reads it. Note what the
+   project already knows here: this is the same interval-versus-end-state distinction CLAUDE.md records for
+   the suite lock, and `gates/cases/README.md` now carries the reproduction.
+4. **THE SURVIVOR SCAN MUST NOT ASK THE SURVIVOR.** `CT_CTL_MARK` in `/proc/*/environ` is defeated by
+   `env -u CT_CTL_MARK`; it is V1's enabler and it is the eleventh costume of this project's own
+   check-is-the-thing-checked trap. Make it a SET test over the process group, not an identity test.
+5. **THEN THE SMALLER ONES**, in the lists on the hand-off job: the newline-in-a-filename verdict forgery
+   (exit stays 2, but a filename can write `CHECKS TIER GREEN` flush-left), the vacuous-control contract,
+   the four gaps in THIS run's own fixes now written into `claude/stories/TEST-CASES.md`, and the three
+   known limits this run closed are marked closed there rather than deleted.
+6. **THEN A FRESH PAIR** - the eleventh round - because no unread fix lands, and then **ONE** full suite
+   under `CT_EXPECT='#530'`, which this branch has still never had, and then one fast-forward push.
+
+**AND ONE THING OUTSIDE THE TIER, FOUND BY THIS RUN'S ROTATING AUDIT AND REACHING A FEATURE KUNAL RAISED
+HIMSELF.** `ct_hideEval` is TRI-STATE (`chess.jsx:6063` cycles off, above the board, beside it).
+`gates/regress/47-menu.js:379` collects both `eval-bar-v` and `eval-bar-h` and asserts only `ev.v`, and
+`grep -rn eval-bar-h gates/regress/` returns that ONE line - so **the above-the-board eval bar, which is
+Kunal's own #340, has no assertion anywhere in the suite**, and a consumer defect that lands the "off"
+state in `evalUnder` would leave it fully painted with TC-MN-023 green. One-line repair: assert
+`ev.h === false` on both poses. Recorded for the orchestrator, who owns the class analysis.
+
+## 5. EVERYTHING BELOW IS #542'S HANDOFF, KEPT VERBATIM
+
+# HANDOFF - where the last run left off
 **#542: THE PUSH CHECKS TIER'S THIRD TRY. THE TIER IS CARRIED ONTO A BRANCH OFF MAIN AND TWO REAL
 DEFECTS ARE REPAIRED, AND IT IS HELD WITHOUT A SUITE BECAUSE THE NINTH ADVERSARIAL ROUND FOUND THREE
 MORE DEFECTS INSIDE THIS RUN'S OWN REPAIR - TWO OF THEM IN THE ONE ARM IT REWROTE.**
