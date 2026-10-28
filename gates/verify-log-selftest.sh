@@ -233,6 +233,82 @@ ckmsg "--on-main refuses when origin/main cannot be read, and calls UNKNOWN not 
       env -C "$TD" "$VL" "$GOOD" "$FOOT" --on-main
 echo
 
+echo "-- D+. --on-main's PASSING arms, against a local origin, so they are a statement about the tool and"
+echo "       not about the depth of the clone this file happens to run in [#544, item (4) of the opening]."
+# WHAT WAS WRONG, AND IT WENT RED IN THE ONE ENVIRONMENT THE BUILD ROUTINE ACTUALLY RUNS IN.
+# Every --on-main case that expects exit 0 used $GOOD, whose `ref: HEAD` line names 1f5ca108 - a real commit
+# of this repository, about 200 behind HEAD - and ran against the REAL origin. verify-log.sh then has to
+# answer `git merge-base --is-ancestor 1f5ca108 <origin/main>`, which needs that object locally. The routine's
+# container is a shallow clone, so it is absent. MEASURED at #544 in a fresh `git clone --depth 50`:
+# `git cat-file -e 1f5ca108^{commit}` ABSENT, and this file reads 80 pass / 1 fail with
+# "H valid: <log> '#NNN' --on-main" as the one failure.
+# AND THE REASON IT LOOKED INTERMITTENT RATHER THAN BROKEN IS WORTH MORE THAN THE FIX. Only the FIRST of the
+# five --on-main cases failed; the other four passed in the same run. verify-log.sh's own shallow repair runs
+# `git fetch -q --deepen=400 origin main` before it gives up, so case 1 pays for the deepen, fails, AND LEAVES
+# THE CLONE DEEP - after which cases 2 to 5 pass and a second run of the whole file passes 81/0. The tool was
+# repairing the environment as a side effect of being tested in it, which is why the job that owns this reads
+# "network-dependent": it is not the network, it is that the first measurement changes what the second one
+# measures. A control whose outcome depends on whether anything ran it before is not a control.
+# THE FIX IS THE FIXTURE, NOT THE EXPECTATION, AND IT MAKES THE CASES STRONGER RATHER THAN QUIETER.
+# A local bare repository stands in for origin - the same device section D already uses for the refusals - with
+# three shas of its own: main's tip, main's PARENT, and a commit on a side branch that was never pushed. So the
+# two passing arms are now measured separately (equal-to-tip, and a strict ancestor) and the refusing arm is
+# measured too, all offline, with every object present by construction at any clone depth. Before this, the
+# ancestry arm was exercised only incidentally and the "NOT on origin/main" refusal was not exercised at all.
+OM="$TD/onmain"; OMB="$TD/onmain-origin.git"
+mkdir -p "$OM/gates" "$OM/logs"
+cp "$VL" "$OM/gates/verify-log.sh"; chmod +x "$OM/gates/verify-log.sh"
+cp "$TD/app.js" "$OM/app.js"          # same bytes, so DISKMD5 and --this-bundle mean the same thing here
+for f in gate-manifest.tsv held-trees.tsv; do [ -r "$TD/gates/$f" ] && cp "$TD/gates/$f" "$OM/gates/$f"; done
+git init -q "$OM" 2>/dev/null
+git -C "$OM" config user.email selftest@example.com; git -C "$OM" config user.name selftest
+git -C "$OM" symbolic-ref HEAD refs/heads/main 2>/dev/null
+git -C "$OM" commit -q --allow-empty -m "the ancestor the passing --on-main case names" >/dev/null 2>&1
+OMANC="$(git -C "$OM" rev-parse HEAD 2>/dev/null || true)"
+git -C "$OM" commit -q --allow-empty -m "the tip origin/main points at" >/dev/null 2>&1
+OMTIP="$(git -C "$OM" rev-parse HEAD 2>/dev/null || true)"
+git -C "$OM" checkout -q -b side "$OMANC" 2>/dev/null
+git -C "$OM" commit -q --allow-empty -m "a commit that never reached main" >/dev/null 2>&1
+OMOFF="$(git -C "$OM" rev-parse HEAD 2>/dev/null || true)"
+git -C "$OM" checkout -q main 2>/dev/null
+git init -q --bare "$OMB" 2>/dev/null
+git -C "$OM" remote add origin "$OMB" 2>/dev/null
+git -C "$OM" push -q origin main 2>/dev/null
+onmain() { ( cd "$OM" && "$OM/gates/verify-log.sh" "$@" ); }   # cwd is what `git ls-remote origin` reads
+# THE FIXTURE'S OWN PRECONDITIONS, ASSERTED BEFORE ANYTHING IS CONCLUDED FROM IT. A missing denominator is
+# reported, never credited [CLAUDE.md]: if this little repository did not build, every case below would pass or
+# fail for a reason that has nothing to do with verify-log.sh, and these four lines are what say so out loud.
+eq "D+ fixture: origin's main is readable offline and is the tip commit" "$OMTIP" \
+   "$(cd "$OM" && git ls-remote origin refs/heads/main 2>/dev/null | head -1 | cut -f1)"
+eq "D+ fixture: the ancestor is a DIFFERENT commit from the tip, so the ancestry arm is the one measured" "differ" \
+   "$( [ -n "$OMANC" ] && [ -n "$OMTIP" ] && [ "$OMANC" != "$OMTIP" ] && echo differ || echo same )"
+eq "D+ fixture: and it really is an ancestor of it, measured with git rather than assumed" "yes" \
+   "$(cd "$OM" && git merge-base --is-ancestor "$OMANC" "$OMTIP" 2>/dev/null && echo yes || echo no)"
+eq "D+ fixture: while the side commit is NOT, which is what the refusing case rests on" "no" \
+   "$(cd "$OM" && git merge-base --is-ancestor "$OMOFF" "$OMTIP" 2>/dev/null && echo yes || echo no)"
+# Each fixture log is $GOOD with its ref line rewritten, exactly as $GOOD is itself $REALLOG with its md5 line
+# rewritten: a real committed green, so every structural check still sees the shape it was written for.
+onmainlog() { sed "s|^ref: HEAD .*|ref: HEAD $1|" "$GOOD" > "$2"; }
+GOODANC="$OM/logs/anc.log"; onmainlog "$OMANC" "$GOODANC"
+GOODTIP="$OM/logs/tip.log"; onmainlog "$OMTIP" "$GOODTIP"
+GOODOFF="$OM/logs/off.log"; onmainlog "$OMOFF" "$GOODOFF"
+eq "D+ fixture: the rewritten log carries exactly one ref line, and it is the sha asked for" "1 $OMANC" \
+   "$( printf '%s %s' "$(grep -c '^ref: HEAD ' "$GOODANC")" "$(grep -o '^ref: HEAD .*' "$GOODANC" | awk '{print $3}')" )"
+ckmsg "D+ --on-main passes on a STRICT ANCESTOR of origin/main, offline"   0 "ON-MAIN OK" \
+      onmain "$GOODANC" "$FOOT" --on-main
+ckmsg "D+ --on-main passes when the gated sha IS origin/main itself"       0 "ON-MAIN OK" \
+      onmain "$GOODTIP" "$FOOT" --on-main
+ckmsg "D+ --on-main REFUSES a gated sha that is not on main, and says which" 1 "NOT on origin/main" \
+      onmain "$GOODOFF" "$FOOT" --on-main
+# AND THE REFUSAL ABOVE IS NOT THE SHALLOW ONE WEARING ITS CLOTHES. verify-log.sh has two refusals here and
+# they say opposite things: "NOT CHECKED, not 'not on main'" for a clone that cannot see past its graft, and
+# "is NOT on origin/main" for a sha that genuinely is not there. This fixture is not shallow, so the second is
+# the only one that may fire - and if a later edit ever made the shallow arm swallow the real one, this is the
+# line that notices.
+eq "D+ and it is the genuine refusal, not the shallow-clone NOT CHECKED one" "0" \
+   "$(onmain "$GOODOFF" "$FOOT" --on-main 2>&1 | grep -c 'NOT CHECKED' || true)"
+echo
+
 # ── SECTION G (the build-number series door, #534 VLDOOR) WAS REVERTED OUT WITH THE CHECK IT CONTROLLED.
 # Its 30-odd cases and its two mutants were real and all passed; they are gone because the CHECK is gone, and
 # a control over a check that no longer exists is worse than no control - it is a green that means nothing.
@@ -393,10 +469,14 @@ ckmsg "H '#53a' is not a build number"              1 "is not a build number" "$
 #     regression. Without these the refusals above could be satisfied by a parser that refuses everything.
 ck "H valid: <log> alone"                                  0 "$VL" "$GOOD"
 ck "H valid: <log> '#NNN'"                                 0 "$VL" "$GOOD" "$FOOT"
-ck "H valid: <log> '#NNN' --on-main"                       0 "$VL" "$GOOD" "$FOOT" --on-main
-ck "H valid: <log> --on-main '#NNN' (flag FIRST)"          0 "$VL" "$GOOD" --on-main "$FOOT"
-ck "H valid: <log> --on-main --this-bundle, no number"     0 "$VL" "$GOOD" --on-main --this-bundle
-ck "H valid: <log> --ignore-held '#NNN' --on-main"         0 "$VL" "$GOOD" --ignore-held "$FOOT" --on-main
+# THE FOUR --on-main FORMS RUN AGAINST THE LOCAL ORIGIN OF SECTION D+, NOT THE REAL ONE. What they are for is
+# the PARSER - the flag in each position, with and without a number, beside another flag - and that is measured
+# just as well against a fixture whose objects are all present. Against the real origin they were also, by
+# accident, a test of the ancestry of one hard-coded sha, which is what made them depth-dependent (see D+).
+ck "H valid: <log> '#NNN' --on-main"                       0 onmain "$GOODANC" "$FOOT" --on-main
+ck "H valid: <log> --on-main '#NNN' (flag FIRST)"          0 onmain "$GOODANC" --on-main "$FOOT"
+ck "H valid: <log> --on-main --this-bundle, no number"     0 onmain "$GOODANC" --on-main --this-bundle
+ck "H valid: <log> --ignore-held '#NNN' --on-main"         0 onmain "$GOODANC" --ignore-held "$FOOT" --on-main
 # (e) IS DELIBERATELY NOT HERE, AND THE REASON IS A MEASUREMENT RATHER THAN A PREFERENCE. The obvious case to
 #     add is that the two arms reading $1 BEFORE the parser (--citations and --citations-selftest) are still
 #     reached. It cannot live in this file: $VL is a COPY in a temp fixture with no story files and no gate
@@ -435,7 +515,7 @@ eq "I and the empty positional is REPORTED, naming that no build number is pinne
    "$( printf '%s %s' "$( "$VL" "$GOOD" "" 2>&1 | grep -c '^NOTE: an empty positional was ignored' )" "$( "$VL" "$GOOD" 2>&1 | grep -c '^NOTE: an empty positional was ignored' )" )"
 # AND TWO EMPTIES, because a loop that handles one by accident can still fall through on the second.
 ck "I two empty positionals are also exit 0" 0 "$VL" "$GOOD" "" ""
-ck "I an empty positional does not disarm a REAL option beside it" 0 "$VL" "$GOOD" "" --on-main
+ck "I an empty positional does not disarm a REAL option beside it" 0 onmain "$GOODANC" "" --on-main
 ck "I nor a real build number beside it" 0 "$VL" "$GOOD" "" "$FOOT"
 # THE CONTROLS: every refusal section H established must still refuse. An empty-string arm placed wrongly -
 # above the glob arms, or as part of the catch-all - would take the whole parser down with it, and the three
