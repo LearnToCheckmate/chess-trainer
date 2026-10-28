@@ -2898,6 +2898,85 @@ if mutguard M49 "refuse every tracked edit again" "$D/gates/checks-tier.sh" "if 
   fi
 fi
 
+# ══ A70..A72 AND M50. A RENAME OR COPY IS TWO PATHS AND ONE ENTRY. ═══════════════════════════════════════════
+# #543, repair 1 of THE WORK. Fresh antagonist A's F1 and B's P3 of #542, the same line found from both doors.
+# `git status --porcelain=v1 -z` emits a rename or copy as the status entry carrying the NEW path, then the OLD
+# path, and the arm before this repair consumed that second field only when the FIRST column was R or C. A
+# WORKTREE rename has the first column BLANK, so the old path was left in the stream AND READ BACK AS THE NEXT
+# ENTRY - and because `RUN-LOG.md` begins with the letter R it then matched the rename branch itself, asked for a
+# second field that was not there, and REFUSED an honest commit at exit 1 naming "RUN-LOG.md -> " with nothing
+# after the arrow. The verdict was decided by the first letter of a leftover path. A70 pins the route and the
+# naming, A71 the inside-the-set refusal, A72 the ORDER, and M50 turns A70 by reading the first column only.
+# THE RECORD IS IN THE BASE ON PURPOSE, as in A64..A69: a doc that arrived in the candidate commit instead would
+# put itself in the changed set and route for its own reason, and the case would never reach the entrance.
+
+# A70. THE REPRODUCTION: a WORKTREE rename of a record OUTSIDE the set ROUTES at exit 2 and names BOTH paths.
+D="$T/a70"; mkfix "$D"
+printf '%s\n' "# run log" > "$D/RUN-LOG.md"
+commitin "$D" "the base plus a tracked record"; A70B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+( cd "$D" && mv RUN-LOG.md RUN-LOG-moved.md && git add -N RUN-LOG-moved.md ) >/dev/null 2>&1
+runtier "$D" "$A70B"
+A70WHY=""
+[ "$TRC" = 2 ] || A70WHY="exit $TRC, wanted 2"
+grep -qF "RUN-LOG.md -> RUN-LOG-moved.md" <<<"$TOUT" || A70WHY="${A70WHY:+$A70WHY; }the verdict does not name both paths as old -> new"
+# THE DEFECT'S OWN SIGNATURE, asserted as its own clause: an arrow with nothing after it means the second NUL
+# field was never consumed. Checked separately from the line above so that neither can pass for the other.
+grep -qE 'RUN-LOG\.md -> *$' <<<"$TOUT" && A70WHY="${A70WHY:+$A70WHY; }the arrow has nothing after it, so the old path was left in the NUL stream"
+if [ -n "$A70WHY" ]; then
+  rec A70 FAIL "a worktree rename outside the set :: $A70WHY"
+  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+else
+  rec A70 ok "a WORKTREE rename of a record OUTSIDE the set ROUTES and names both paths old -> new (exit $TRC)"
+fi
+
+# A71. A rename with a path INSIDE the set still REFUSES, and names both paths. Asserted separately from A70 so
+# that the two cannot pass as one: this is the half a route must never swallow.
+D="$T/a71"; mkfix "$D"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+( cd "$D" && mv gates/held.sh gates/held-moved.sh && git add -N gates/held-moved.sh ) >/dev/null 2>&1
+expect A71 "$D" "$FIXBASE" 1 "gates/held.sh -> gates/held-moved.sh" \
+  "a worktree rename with a path INSIDE the tier's set REFUSES and names both paths"
+
+# A72. THE ORDER IS GIT'S OWN: old -> new, not the read order. A staged `git mv` of a record still refuses here
+# (repair 3 of THE WORK rules on that separately), so this case is about the NAMING and nothing else.
+D="$T/a72"; mkfix "$D"
+printf '%s\n' "# run log" > "$D/RUN-LOG.md"
+commitin "$D" "the base plus a tracked record"; A72B="$(git -C "$D" rev-parse HEAD)"
+printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+( cd "$D" && git mv RUN-LOG.md RUN-LOG-staged.md ) >/dev/null 2>&1
+runtier "$D" "$A72B"
+A72WHY=""
+grep -qF "RUN-LOG.md -> RUN-LOG-staged.md" <<<"$TOUT" || A72WHY="the verdict does not print the rename as old -> new"
+grep -qF "RUN-LOG-staged.md -> RUN-LOG.md" <<<"$TOUT" && A72WHY="${A72WHY:+$A72WHY; }the verdict prints it BACKWARDS, new -> old, which is the read order and not git's"
+if [ -n "$A72WHY" ]; then
+  rec A72 FAIL "a staged rename's printed order :: $A72WHY"
+  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
+else
+  rec A72 ok "a staged \`git mv\` of a record prints old -> new, git's own order (exit $TRC)"
+fi
+
+# M50. READ THE FIRST COLUMN ONLY, as the arm did before this repair, and A70 must turn.
+D="$T/m-M50"; mkfix "$D"
+printf '%s\t%s\n' \
+  '      if [ "$dx" = R ] || [ "$dx" = C ] || [ "$dx2" = R ] || [ "$dx2" = C ]; then' \
+  '      if [ "$dx" = R ] || [ "$dx" = C ]; then' \
+  | mkmut "$D/gates/checks-tier.sh"
+if mutguard M50 "read the rename's first column only" "$D/gates/checks-tier.sh" '[ "$dx" = C ]; then'; then
+  printf '%s\n' "# run log" > "$D/RUN-LOG.md"
+  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M50 base" >/dev/null 2>&1
+  M50B="$(git -C "$D" rev-parse HEAD)"
+  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
+  ( cd "$D" && mv RUN-LOG.md RUN-LOG-moved.md && git add -N RUN-LOG-moved.md ) >/dev/null 2>&1
+  runtier "$D" "$M50B"
+  if [ "$TRC" = 1 ]; then
+    rec M50 ok "reading the first column only turns A70: the leftover old path is misread as a status entry and an honest commit is REFUSED again (exit 1)"
+  else
+    rec M50 FAIL "the either-column read is not load-bearing: the mutant still routed (exit $TRC)"
+  fi
+fi
+
+
 if [ "$MODE" = fixed ] || [ "${CT_TIER_A1:-0}" = 1 ]; then
   A1D="$T/a1"
   if git clone --quiet --no-hardlinks --shared "$ROOT" "$A1D" >/dev/null 2>&1; then
