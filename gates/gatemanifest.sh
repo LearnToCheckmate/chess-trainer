@@ -105,8 +105,16 @@ G="$(cd "$(dirname "$0")" && pwd)"; M="$G/gate-manifest.tsv"; REG="$G/regress"
 # was "tracked at neither origin/main nor HEAD" there, and the gate anchor switched itself off with a NOT CHECKED
 # line while every verdict around it stayed green. So every git call in this file now goes through GITP, which
 # names the repository the way gates/gates.sh:1279 and :2314 do: the directory above gates/, with --git-dir and
-# --work-tree set explicitly, so the environment cannot redirect it. A directory with no .git beside gates/ (a
-# copied tree) is then the ONLY way to reach NOT CHECKED here, which is what that outcome was written for.
+# --work-tree set explicitly, so GIT_DIR and GIT_WORK_TREE cannot redirect it. WHAT THE PIN DOES NOT COVER, named
+# rather than implied [#540 repair, antagonist B's B-F5, P3]: the OBJECT and INDEX variables. B measured
+# `GIT_OBJECT_DIRECTORY=<empty dir> bash gates/gatemanifest.sh check` reading `gate anchor: NOT CHECKED - ... no
+# repository at <root>/.git` at exit 0 - the anchor off by one environment variable, blaming a .git that exists -
+# identically on e8dd9cb, so it is the pre-existing shape and not this pin's regression; pointed at another
+# repository holding the same objects it answers from those objects. GIT_INDEX_FILE, GIT_CEILING_DIRECTORIES,
+# GIT_DISCOVERY_ACROSS_FILESYSTEM, GIT_NAMESPACE and GIT_ALTERNATE_OBJECT_DIRECTORIES read correctly under this
+# pin (B's measurement, same pass). So the first sentence of this block claimed more than the pin does, and now
+# does not. A directory with no readable repository at ROOT/.git is otherwise the only way to reach NOT CHECKED
+# here, which is what that outcome was written for.
 ROOT="$(dirname "$G")"
 GITP=(git -C "$ROOT" --git-dir="$ROOT/.git" --work-tree="$ROOT")
 CMD="${1:-check}"
@@ -554,7 +562,7 @@ check)
     # GIT_DIR an unpinned rev-parse answers for the wrong repository and that is the defect this replaces.
     if "${GITP[@]}" rev-parse --show-toplevel >/dev/null 2>&1; then GITROOT="$ROOT"; fi
     if [ -z "$GITROOT" ]; then
-      ANCHOR_WHY="$G is not inside a git work tree: no repository at $ROOT/.git (a script run from a copied directory is the common case)"
+      ANCHOR_WHY="$G is not inside a git work tree: no repository answers at $ROOT/.git (a script run from a copied directory is the common case; a GIT_OBJECT_DIRECTORY or GIT_INDEX_FILE in the environment can also do this to a .git that exists)"
     else
       MANIREL="${M#"$GITROOT"/}"
       if "${GITP[@]}" cat-file -e "origin/main:$MANIREL" 2>/dev/null; then
