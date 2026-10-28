@@ -97,9 +97,9 @@ stays listed with its games until I remove it, and fetching a friend never repla
 
 ### US-R03 The summary tells me how each side played, in one card
 As a player, I see one card with the categories down the side and one value column per player.
-- The summary shows an accuracy figure per side and the verdict counts (Brilliant, Great, Best, Good,
-  Inaccuracy, Mistake, Miss, Blunder; Excellent is folded into Best and Book moves are a Skills row) for White
-  and Black in two columns. (TC-R04)
+- The summary shows an accuracy figure per side and the verdict counts for the TEN grades (Brilliant, Great, Best,
+  Excellent, Good, Book, Inaccuracy, Miss, Mistake, Blunder, in that order) for White and Black in two columns. (TC-R04)
+  Amended 2026-10-27: this bullet read "Excellent is folded into Best" and named eight grades until today; #421 split Excellent out after Kunal raised it against chess.com.
 - The Skills panel (data-ct rev-skills, #368) is present under the accuracy table with its nine counted rows,
   and a number with moves behind it is a button that jumps into the review at that ply. (TC-R05)
 - The footer (Back to games, Start review; data-ct rev-summary-foot, #334) is pinned inside the viewport at
