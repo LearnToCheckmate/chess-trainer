@@ -35,6 +35,8 @@
 //       #411/#412's "a count with no scope cannot be checked", committed inside the file that was fixing it.
 //       A meaningful part of the gap is population rather than defect; see the invariant 1 note at the foot of
 //       the geometry loop. jobs/invariant-1-tap-targets owns settling the population and pinning the list.)
+//       ASSERTED SINCE #545 (item (41)): the population is settled and population (a) is pinned as TC-INV-01b, at
+//       se, kunal730 and short375 - see SMALL_PIN for what is excluded and why. The list is still printed.
 //   2. ONE ICON SIZE PER ROW (glyph heights equal within 1px in a control row)     THIS FILE, #423
 //   3. A SHORT LIST OF ICON SIZES (report today's count first, then assert it)     THIS FILE, #423 (set pinned)
 //   4a. INK INSIDE ITS OWN CLIPPING BOX (text cut by the box that clips it)        THIS FILE, BELOW
@@ -376,8 +378,8 @@ const ROWS = function(){
       if(iconH[String(c.g.gh)].length<3)iconH[String(c.g.gh)].push(c.lab); }
   }
 
-  // INVARIANT 1 IS REPORTED HERE AND NOT ASSERTED - see the header. The list is what makes the deferral a
-  // measurement rather than an estimate.
+  // INVARIANT 1's LIST. Reported below every run, and since #545 population (a) of it is asserted as TC-INV-01b
+  // (see SMALL_PIN). Before #545 it was reported and not asserted; that deferral is what the list measured.
   const small=ctls.filter(c=>c.w<43.95||c.h<43.95).map(c=>({lab:c.lab,box:c.w+'x'+c.h,p:c.p}));
 
   return {ctls:ctls.length, byWhy, inBoard, nested, svgKid, covered, coveredList, boardFound:!!board,
@@ -577,6 +579,24 @@ const READ_PIN={
   'se/lesson-demo':[['Italian Game',18,80]],
   'se/rev-ply31':[DUKE],'se/rev-last-engine':[DUKE],'se/rev-why-open':[DUKE],'se/rev-more-sheet':[DUKE],'se/rev-best-ply30':[DUKE],
   'short375/rev-ply31':[DUKE],'short375/rev-last-engine':[DUKE],'short375/rev-why-open':[DUKE],'short375/rev-more-sheet':[DUKE],'short375/rev-best-ply30':[DUKE]};
+// ── INVARIANT 1, ASSERTED AT LAST [#545, item (41); jobs/invariant-1-tap-targets]. ─────────────────────────────────────
+// The commission (flags/build-the-invariant-gate, Kunal, 2026-09-15) asked for four invariants; #423 landed 2 and 3 and left
+// 1 REPORTED, because the 90 undersized controls it found were a mixed POPULATION and pinning them blind would freeze the
+// population into the suite (#395). THE POPULATION IS NOW SETTLED, DELIBERATELY, AND EACH CLASS IS NAMED:
+//   (b) EXCLUDED - move-strip tokens (a <span> inside a <span>, the SAN text in the horizontally scrolling move strip: a
+//       44px rule over move text would demand 44px-tall moves), and the summary table's count cells (a label that is a
+//       bare number in a 56-wide cell). These are tappable, and they are not buttons in the sense the rule was written for.
+//   (c) NONE IN TODAY'S LISTS - the cursor:pointer headers the job names ('CHESS TRAINER', 'Game review') are measured as
+//       OCCLUDED by invariant 2's own walk, so they never reach this list. If one ever does, it shows up as an extra and
+//       this assertion goes red and names it, which is the moment to decide it.
+//   (a) PINNED - everything else, INCLUDING the rev-sheet category rows ('blunders >' 104.8x27): full-width rows a player
+//       taps to filter, which is exactly a tap target, so they are pinned as real undersized controls and NOT excused.
+// The pin is the exact set of "label WxH" keys per geometry, measured identically on four gate 26 runs at #545 over
+// 049b41dfb6f1 (two of them on control bundles that do not touch these controls). A control fixed to >= 44x44 drops out
+// of the list and reddens its pin (missing), so a fix must retire it by hand; a NEW undersized control is an extra and
+// reddens. Rect precision is the key's own 0.1px rounding, tighter than the job's 0.6px.
+const SMALL_PIN={"se": ["1 blunders › 104.8x27", "1 brilliant › 96.5x27", "2 inaccuracies › 129.6x27", "6 great › 80.8x27", "Analyze this position 40x40", "Auto-play 67x42", "Back 34x30", "Back 36.5x51", "Back 39.4x51", "Discover 63.2x43", "First move 67x42", "Flip 39.4x51", "Hint 39.4x51", "Home 34x30", "Home 63.2x43", "Last move 67x42", "Menu and settings 34x30", "Menu and settings 38x30", "More 34x30", "More 36.5x51", "More 39.4x51", "Moves 36.6x51", "Moves 39.4x51", "Next key moment (10) 67x42", "Next move 26x36", "Play 63.2x43", "Play this move out and see what it 56.3x23", "Previous move 26x36", "Puzzles 63.2x43", "Review 40x51", "Review 63.2x43", "Roadmap 38.1x44", "Sharpen with puzzles 138.1x28", "Train this opening 119x28", "rev-best 47.3x23"], "kunal730": ["1 blunders › 104.8x27", "1 brilliant › 96.5x27", "2 inaccuracies › 129.6x27", "6 great › 80.8x27", "Analyze this position 40x40", "Auto-play 88.3x42", "Back 34x30", "Discover 74.2x43", "First move 88.3x42", "Home 34x30", "Home 74.2x43", "Last move 88.3x42", "Menu and settings 34x30", "Menu and settings 38x30", "More 34x30", "Next key moment (10) 88.3x42", "Next move 26x36", "Play 74.2x43", "Play this move out and see what it 68.3x23", "Previous move 26x36", "Puzzles 74.2x43", "Review 74.2x43", "Sharpen with puzzles 138.1x28", "Train this opening 119x28", "home-look 199.9x30", "rev-best 102.4x23", "🎓 New to chess? Lock in the endga 339x39"], "short375": ["1 blunders › 104.8x27", "1 brilliant › 96.5x27", "2 inaccuracies › 129.6x27", "6 great › 80.8x27", "Analyze this position 40x40", "Auto-play 67x42", "Back 34x30", "Back 36.5x51", "Back 39.4x51", "Discover 74.2x43", "First move 67x42", "Flip 39.4x51", "Hint 39.4x51", "Home 34x30", "Home 74.2x43", "Last move 67x42", "Menu and settings 34x30", "Menu and settings 38x30", "More 34x30", "More 36.5x51", "More 39.4x51", "Moves 36.6x51", "Moves 39.4x51", "Next key moment (10) 67x42", "Next move 26x36", "Play 74.2x43", "Play this move out and see what it 56.3x23", "Previous move 26x36", "Puzzles 74.2x43", "Review 40x51", "Review 74.2x43", "Sharpen with puzzles 138.1x28", "Train this opening 119x28", "rev-best 47.3x23"]};
+const smallExcluded=(k,p)=>/span>span$/.test(p)||/^\d+ \d/.test(k);
 const COVERED_LABELS={'kunal730/rev-why-open':['Bxb5+!','c6']};
 const COVERED_PIN={
   'se/home':6,'se/play-captures':0,'se/play-gameover':0,'se/lesson-demo':0,'se/lesson-practice':0,
@@ -1613,7 +1633,9 @@ L.run(async()=>{
       L.note('    invariant 3, '+g+': width '+widthOf(g)+' carries NO pinned set, so this is REPORTED and NOT asserted here. Measured now: ['+iconKeys.join(', ')+']');
     }
 
-    /* ── INVARIANT 1 IS NOT ASSERTED, AND THIS IS THE MEASUREMENT THAT SIZES THE DEFERRAL ────────────────
+    /* ── INVARIANT 1's MEASUREMENT. THE HEADING BELOW IS #423's AND IS SUPERSEDED IN PART AT #545: population (a)
+       is asserted as TC-INV-01b right after this list (see SMALL_PIN). What follows is kept as the history of the deferral.
+       INVARIANT 1 IS NOT ASSERTED, AND THIS IS THE MEASUREMENT THAT SIZES THE DEFERRAL ────────────────
        "Before deferring something user-visible, open the code and look" (#392). Looked: this sweep finds the
        undersized controls below at this geometry. The commission named SIX by hand and said "expect more";
        the measured number is an order of magnitude larger, and a meaningful part of it is population rather
@@ -1623,6 +1645,18 @@ L.run(async()=>{
        is REPORTED here and owned by a job, and invariant 1 stays honestly unbuilt in the header. */
     L.note('    TC-INV-01 invariant 1 (REPORTED, NOT ASSERTED), '+g+': '+ivSmall.size+' distinct visible controls under 44x44');
     for(const [k,v] of [...ivSmall.entries()].sort()) L.note('        '+k+'   '+v);
+    if(Object.prototype.hasOwnProperty.call(SMALL_PIN,g)){
+      const ent=[...ivSmall.entries()];
+      const got=ent.filter(([k,p])=>!smallExcluded(k,p)).map(([k])=>k).sort();
+      const excl=ent.filter(([k,p])=>smallExcluded(k,p)).map(([k])=>k).sort();
+      const want=SMALL_PIN[g].slice().sort();
+      const missing=want.filter(x=>!got.includes(x)), extra=got.filter(x=>!want.includes(x));
+      L.say(ent.length>0&&got.length>0,g+': TC-INV-01a invariant 1 measured a non-empty population of undersized controls, so the pin check below is not over an empty set',{measured:ent.length,pinnedClass:got.length,excludedClassB:excl.length});
+      L.say(missing.length===0&&extra.length===0,g+': TC-INV-01b invariant 1 - the controls under 44x44 that are real tap targets (population (a)) are EXACTLY the pinned set, to the 0.1px: no new undersized control has appeared and none has changed size without its pin being retired [#545]',
+        (missing.length||extra.length)?{missing,extra}:{pinned:want.length,excludedClassB:excl.length});
+    } else {
+      L.note('    TC-INV-01b NOT ASSERTED at '+g+': no SMALL_PIN for this geometry; the list above is reported only.');
+    }
     /* THE LEDGER ASSERTION. Not a count and not a floor: the SET, each name exactly once, which is the
        #388 lesson applied to coverage rather than to icon heights. `measuredScreens>=10` below is KEPT - it
        answers a different question (how many screens 4b found eligible ink on) and it cannot see a skipped

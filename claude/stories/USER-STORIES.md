@@ -227,6 +227,11 @@ As a player using the app on my phone, every button is at least 44x44, because t
   population rather than defect (tappable move-strip tokens, grade-table cells, divs that are headers), so it is
   not pinned until the population is settled - a pin table over an unsettled population freezes the population
   into the suite. `jobs/invariant-1-tap-targets` owns it; the gate prints the list every run.
+- ASSERTED SINCE #545, as a pin and not as a pass. The population is settled: move-strip tokens and the summary
+  table's count cells are tappable but are not buttons in the sense of this clause, and are excluded by name. The
+  rev-sheet category rows are counted as real tap targets, and so are pinned. Every other undersized control is pinned
+  to its measured size, so a NEW undersized control, or one that changes size, goes red. The pinned controls still
+  break this clause, and fixing each one is product work that retires its pin. (TC-INV-01b)
 
 ### US-INV-02 The icons in a row are all one size
 As a player looking at a row of controls, the icons in it are the same size as each other, because a row of
