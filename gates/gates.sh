@@ -144,9 +144,34 @@ $(head -c 200000 /dev/zero | tr '\0' 'x')"
     ( cd "$d" && git init -q . >/dev/null 2>&1 && git add -A >/dev/null 2>&1 \
       && git -c user.name=ct-st -c user.email=ct-st@local -c commit.gpgsign=false \
              commit -q --allow-empty -m "selftest stub" >/dev/null 2>&1 )
-    ( cd "$d" && G="$d/gates" ROOT="$d" STEM=probe ALL="$ST_T/d-all.log" SUBSET="" BLK="$ST_T/block.sh" \
-      bash -c 'set -uo pipefail; red=0; . "$BLK" >/dev/null 2>&1; printf %s "$red"' 2>/dev/null )
+    # $3 = a CT_DRIVE_TIMEOUT override, so the timeout branch can be driven by a REAL `timeout` in a second
+    # instead of by a stub that merely exits 124 [#544 item (34)]. Passed only when given, because `timeout ""`
+    # is a usage error and would make the arm red for its own reason.
+    if [ -n "${3-}" ]; then
+      ( cd "$d" && G="$d/gates" ROOT="$d" STEM=probe ALL="$ST_T/d-all.log" SUBSET="" BLK="$ST_T/block.sh" CT_DRIVE_TIMEOUT="$3" \
+        bash -c 'set -uo pipefail; red=0; . "$BLK" >/dev/null 2>&1; printf %s "$red"' 2>/dev/null )
+    else
+      ( cd "$d" && G="$d/gates" ROOT="$d" STEM=probe ALL="$ST_T/d-all.log" SUBSET="" BLK="$ST_T/block.sh" \
+        bash -c 'set -uo pipefail; red=0; . "$BLK" >/dev/null 2>&1; printf %s "$red"' 2>/dev/null )
+    fi
   }
+  # ── C91a TO C91d: A TIMEOUT IS A REPORTED DECLINE AND NEVER A RED [#544 item (34);
+  # jobs/the-unit-blocks-timeout-900-has-lost-most-of-its-margin-and-a-timeout-there-reds-the-suite-2026-10-20].
+  # THE JOB'S case FIELD ASKS FOR THE CEILING TO BE SET JUST UNDER THE RUNTIME AND THE BLOCK RUN, so that is
+  # what C91a does: a one-second ceiling against a stub that sleeps three, which drives `timeout` itself end to
+  # end rather than asserting a branch from a stub's chosen exit code. C91b is the same stub at exit 124 WITHOUT
+  # a real timeout, which is what the branch sees, and the two agreeing is what says the branch is about drc and
+  # not about how the 124 arose.
+  # C91c IS THE MUTANT AND IS WHAT MAKES THE PAIR EVIDENCE: with the 124 limb removed from the condition the
+  # same stub must be RED, which is the behaviour this item removes. Without it C91a would be satisfied by any
+  # block that happens not to redden, including one that credits a timeout as a green.
+  # C91d IS THE LIMIT, and it is deliberately not a skip: a harness that answered a case WRONGLY and then timed
+  # out is still RED. A wrong answer is evidence about the tree; a timeout is evidence about the container, and
+  # only the second is excused. That pair is what stops this being a blanket excuse for exit 124.
+  st C91a-a-REAL-timeout-is-a-SKIP-not-a-RED  "$(st_drive 'echo "cases: 1 declared"; sleep 3; echo "  ok  H1 [TC-SUITE-X1] stub"' 1 1)" 0
+  st C91b-exit-124-reads-the-same-way         "$(st_drive 'echo "cases: 1 declared"; exit 124' 1)" 0
+  st C91c-MUTANT-without-the-124-limb-it-REDS "$(ST_M="$(cat "$ST_T/block.sh")"; printf '%s' "$ST_M" | sed 's|^  if \[ "$drc" -eq 124 \] && \[ "$dfail" -eq 0 \]; then|  if false; then|' > "$ST_T/block.sh"; st_drive 'echo "cases: 1 declared"; exit 124' 1; printf '%s' "$ST_M" > "$ST_T/block.sh")" 1
+  st C91d-a-FAILED-case-then-a-timeout-is-RED "$(st_drive 'echo "cases: 1 declared"; echo "  FAIL H1 [TC-SUITE-X1] stub"; exit 124' 1)" 1
   # C11 a harness that does not PARSE: bash exits 2 with no REFUSING line, so this must be RED (1), not a skip.
   st C11-a-harness-that-does-not-parse-is-RED "$(st_drive 'if then; fi fi')" 1
   # C12 the harness file is ABSENT: must be RED (1) and not a silence.
@@ -2287,7 +2312,35 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   # `gates/verify-log.sh --citations` arm (2), whose own verdict reads "every published case id occurs in the log
   # it cites" - it looks the case id up in the archived log, so an ok line carrying no case id supports no
   # published TEST-CASES row. A different script from the one this comment used to name.
-  ( cd "$ROOT" && timeout 900 bash "$DRIVESH" fixed ) > "$dlog" 2> "$dlog.err"; drc=$?
+  # ── THE CEILING IS A NAMED NUMBER WITH ITS MEASUREMENT BESIDE IT, AND A TIMEOUT HERE IS A REPORTED
+  # DECLINE RATHER THAN A RED [#544 item (34); jobs/the-unit-blocks-timeout-900-has-lost-most-of-its-margin-
+  # and-a-timeout-there-reds-the-suite-2026-10-20, P2, raised by #527's blind antagonist pair from both doors].
+  # WHAT WAS WRONG: the ceiling was the literal 900, calibrated when this harness was 25 cases, and a timeout
+  # read drc=124 with no REFUSING line - which is NOT the decline branch, so it fell to the RED branch and the
+  # WHOLE SUITE went red with no failing assertion in it. The failure mode was a lost 70-to-110-minute suite on
+  # a loaded container, which is the #524 shape where four suites were abandoned and none authorised anything.
+  # THE MEASUREMENTS, ALL OF THEM TAKEN RATHER THAN SCALED FROM ONE:
+  #   idle, 25 cases   (366428f)                        40.7s
+  #   idle, 32 cases   (#527's own commit)              98.2s     - 2.4x for 7 cases, because each case is
+  #                                                                 several gates/fastgate.sh invocations
+  #   LOADED, 32 cases (the #527 patches document's own rehearsal, three CPU burners and a disk writer)
+  #                                                     444-683s  - 4.5x to 7.0x of idle, and 76% of 900
+  #   idle, 62 cases   (THIS tree, after item (33)'s four cases and their four committed mutants)
+  #                                                     396s      - measured here at 03:58Z, 61 ok / 0 FAIL /
+  #                                                                 1 skipped
+  # So the loaded band for THIS tree is 396 x 4.5 to 396 x 7.0 = 1782s to 2772s, against a ceiling of 900.
+  # The old ceiling is now BELOW the idle runtime's loaded multiple by a factor of two to three: it was not
+  # losing margin, it had lost it.
+  # WHY 1800 AND NOT 3600, said plainly because the upper estimate exceeds it: 1800 covers the idle runtime 4.5
+  # times over and the LOW end of the measured loaded band, and it bounds the worst case this block can cost a
+  # suite at 30 minutes rather than 60. Above it the suite does not die - it DECLINES, loudly, which is the
+  # second half of the fix and the reason this number does not have to cover the worst case alone. A ceiling
+  # chosen to cover every load would make a genuine hang cost an hour of a 70-minute suite.
+  # OVERRIDABLE FOR ITS OWN CONTROL ONLY, which is what lets the selftest drive a REAL timeout in a second
+  # rather than assert a branch by eye (the job's case field asks for exactly that: "set the ceiling to a value
+  # just under the measured loaded runtime ... in a scratch copy").
+  DRIVE_TIMEOUT="${CT_DRIVE_TIMEOUT:-1800}"
+  ( cd "$ROOT" && timeout "$DRIVE_TIMEOUT" bash "$DRIVESH" fixed ) > "$dlog" 2> "$dlog.err"; drc=$?
   sed -n 's/^  ok  *\(H[0-9][0-9]*[a-z]* \[TC-[A-Z0-9-]*\].*\)$/PASS fastgate-drive \1/p' "$dlog" > "$dlog.pass"
   dok=$(grep -c '^PASS fastgate-drive ' "$dlog.pass" || true)
   dokany=$(grep -cE '^[[:space:]]*ok([[:space:]]|$)' "$dlog" || true)       # every ok shape, read or not
@@ -2474,7 +2527,24 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   # terms, and a damaged script is never a tree to judge: it falls through to the RED branch. The dirty-tree
   # decline - the documented happy path between gates/build.sh and gates/gates.sh - is untouched, because that
   # path refuses with its table perfectly readable. C13 and C32 are the pair that shows this discriminates.
-  if [ "$drc" -eq 2 ] && [ "$dfail" -eq 0 ] && [ "$dok" -eq 0 ] && [ "$drefuse" -ge 1 ] && [ "$dtblmis" -eq 0 ]; then   # #525: a decline must SAY so; #531: and its table must be readable
+  # ── A TIMEOUT IS A REPORTED DECLINE AND NEVER A RED [#544 item (34)]. `timeout` exits 124, which carries no
+  # REFUSING line, so this branch has to be its own: before this item drc=124 fell through to the RED branch
+  # below and reddened a suite in which no case had failed. IT IS NOT CREDITED AS A GREEN EITHER - red stays 0
+  # and the log says in terms that the tiered push gate went unexercised, which is the same honest-and-blind
+  # shape as the dirty-tree decline above it and as the five known-absent gates the manifest reports every run.
+  # AND IT IS NOT A BLANKET EXCUSE: `dfail -eq 0` is required, so a run where a case ANSWERED WRONGLY and the
+  # harness then timed out is still red. A wrong answer is evidence about the tree; a timeout is evidence about
+  # the container.
+  if [ "$drc" -eq 124 ] && [ "$dfail" -eq 0 ]; then
+    echo "    fastgate-drive: SKIPPED - the harness TIMED OUT at ${DRIVE_TIMEOUT}s (exit 124) and asserted nothing it can be held to." | tee -a "$ALL"
+    echo "        $dok ok, $dskip skipped and 0 FAIL line(s) were written before it was killed." | tee -a "$ALL"
+    echo "        This is NOT a red and NOT a green: the tiered push gate was not exercised by this suite, so" | tee -a "$ALL"
+    echo "        this log says nothing about gates/fastgate.sh. A timeout is a fact about the CONTAINER, and" | tee -a "$ALL"
+    echo "        reddening a 70-minute suite over one is how a whole suite gets lost with no defect in it" | tee -a "$ALL"
+    echo "        [#524: four suites abandoned, none authorising anything]. The ceiling is measured beside the" | tee -a "$ALL"
+    echo "        timeout call: 396s idle for 62 cases on this tree, 1782-2772s under the rehearsed load." | tee -a "$ALL"
+    echo "        Full output: $dlog" | tee -a "$ALL"
+  elif [ "$drc" -eq 2 ] && [ "$dfail" -eq 0 ] && [ "$dok" -eq 0 ] && [ "$drefuse" -ge 1 ] && [ "$dtblmis" -eq 0 ]; then   # #525: a decline must SAY so; #531: and its table must be readable
     echo "    fastgate-drive: SKIPPED - the harness DECLINED to run and asserted nothing (exit 2)." | tee -a "$ALL"
     grep -a '^fastgate-drive\.sh: REFUSING - ' "$dlog" | head -3 | sed 's/^/        /' | tee -a "$ALL"   # #527: the lines drefuse counted
     echo "        This is NOT a red and NOT a green: the tiered push gate was not exercised by this suite," | tee -a "$ALL"
