@@ -53,7 +53,8 @@
 // and 37 for exactly this shape; this gate is a fifth instance and is declaring itself rather than waiting to be
 // found. #440 changed the ladder at THREE call sites and they are not all reachable from here:
 //   DRIVEN - the Stockfish path (chess.jsx, the `before`/`after` site), at a 3-worker pool and again at
-//            ct_pool=1, which is block B's two columns.
+//            ct_pool=1, which is block B's two columns. [R18, #545 item (82): until #545 this sentence was FALSE -
+//            there was one launch at ct_pool '3'. It is true from #545 on; blocks C and E still run at '3' only.]
 //   NOT DRIVEN - the depth-2 minimax fallback, the `}else{` branch taken when Stockfish is unavailable
 //            ENTIRELY. #440 re-keyed its classify() call too, with the same winDrop() over the same
 //            white-POV centipawn operands, so the arithmetic is shared and unit-covered by block A - but the
@@ -270,9 +271,21 @@ L.run(async()=>{
   }
 
   // ════════ BLOCK B - A REAL DECIDED GAME, END TO END ════════
-  const b=await L.launch({geo:{w:375,h:730},name:'winprob-ladder',store:{ct_pool:'3'}});
+  // #545 item (82) [jobs/gate-66-declares-two-pool-coverage-it-does-not-have-2026-09-30]: the header claimed "a 3-worker pool
+  // and again at ct_pool=1, which is block B's two columns" and there was ONE launch, hard-coding ct_pool '3'. Block B is now
+  // a function run TWICE: pool '3' (labels unchanged) and pool '1', the single-worker branch poolWanted() picks for
+  // hardwareConcurrency 2 or 3 - real phones, CLAUDE.md's #375 rule. Every pool-1 line carries the suffix below. Its early
+  // returns used to leave the WHOLE gate, skipping block E; they now leave only this column.
+  const B_WORKERS={};
+  const blockB=async(pool,sfx)=>{
+  const say=(ok,m,d)=>L.say(ok,m+sfx,d), note=(m)=>L.note(m+sfx);
+  const b=await L.launch({geo:{w:375,h:730},name:'winprob-ladder-pool'+pool,store:{ct_pool:pool}});
+  // Count the Workers the page constructs (gate 41's method, #545 item (50)), so the pool-1 column is PROVED to be a
+  // different configuration rather than assumed from the store key.
+  await b.page.addInitScript(()=>{const Wk=window.Worker;let n=0;window.__ctWorkers=()=>n;
+    window.Worker=function(...a){n++;return new Wk(...a);};window.Worker.prototype=Wk.prototype;});
   await b.open();
-  L.note('bundle stamp on the page: '+await b.stamp());
+  note('bundle stamp on the page: '+await b.stamp());
   await b.home(); await b.tile('Review');
   await b.page.locator('textarea').first().fill(R.PGN_OPERA);
   const t0=Date.now();
@@ -280,10 +293,13 @@ L.run(async()=>{
   let up=true;
   try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});}catch(e){up=false;}
   await b.settle(1200);
-  L.note('import + analysis took '+Math.round((Date.now()-t0)/1000)+' s');
-  L.say(up,'B0 the Opera Game imported and the review summary rendered');
-  if(!up){ L.note('B1..B7 NOT RUN: no summary to read'); return; }
+  note('import + analysis took '+Math.round((Date.now()-t0)/1000)+' s');
+  say(up,'B0 the Opera Game imported and the review summary rendered');
+  if(!up){ note('B1..B7 NOT RUN: no summary to read'); await b.close(); return; }
 
+  const nW=await b.page.evaluate(()=>window.__ctWorkers?window.__ctWorkers():null);B_WORKERS[pool]=nW;
+  if(pool==='1')say(nW!=null&&B_WORKERS['3']!=null&&nW<B_WORKERS['3'],'B0w PRECONDITION the single-worker column really ran: it constructed fewer Workers than the ct_pool 3 column',{pool1:nW,pool3:B_WORKERS['3']});
+  else note('B0w '+nW+' Workers constructed through the analysis at ct_pool '+pool);
   const txt=await b.page.locator('[data-ct="rev-summary"]').innerText();
   // Locate every number by THE WORDS ALREADY ON SCREEN, never by a hook #440 added (#432).
   const accs=[...txt.matchAll(/([\d.]+)%\s*\n\s*ACCURACY/g)].map(m=>parseFloat(m[1]));
@@ -295,12 +311,12 @@ L.run(async()=>{
   }
   const missing=ROWS.filter(r=>!grade[r]);
   // B0b THE PARSE WORKED - again, before anything reads it.
-  L.say(accs.length===2&&missing.length===0,'B0b INSTRUMENT: both accuracies and all ten grade rows parsed off the panel',
+  say(accs.length===2&&missing.length===0,'B0b INSTRUMENT: both accuracies and all ten grade rows parsed off the panel',
         {accuracies:accs,missingRows:missing});
-  if(accs.length!==2||missing.length){ L.note('B1..B7 NOT RUN: panel did not parse'); return; }
+  if(accs.length!==2||missing.length){ note('B1..B7 NOT RUN: panel did not parse'); await b.close(); return; }
   const [accW,accB]=accs;
-  L.note('White grade vector '+JSON.stringify(ROWS.map(r=>grade[r].w))+'  accuracy '+accW+'%');
-  L.note('Black grade vector '+JSON.stringify(ROWS.map(r=>grade[r].b))+'  accuracy '+accB+'%');
+  note('White grade vector '+JSON.stringify(ROWS.map(r=>grade[r].w))+'  accuracy '+accW+'%');
+  note('Black grade vector '+JSON.stringify(ROWS.map(r=>grade[r].b))+'  accuracy '+accB+'%');
 
   // B1, B2 THE HEADLINE, AND B1 CHANGED AT #491 ON KUNAL'S OWN DECISION [R18 - the old expectation is
   // WITHDRAWN here, in the document that carried it, rather than quietly edited].
@@ -316,26 +332,30 @@ L.run(async()=>{
   // and intended reading. B2 is unchanged and still 0: no Black move lands on the Mistake rung.
   // THIS ASSERTION NO LONGER DISCRIMINATES THE LADDER FROM A FLOOR, and block C above is what does; see
   // the reason written at the head of block C.
-  L.say(grade.Blunder.b===1,'B1 Black is charged with exactly ONE blunder - 15...Nxd7, which allows mate from -649cp, on the >=-700 Blunder rung of the decided ladder (#439 also charged 1, for the wrong reason)',{blackBlunder:grade.Blunder.b,rung:'>=-700',decidedBy:'q-mate-floor-is-allowing-mate-a-blunder / lichess-ladder'});
-  L.say(grade.Mistake.b===0,'B2 Black, who is being mated, is charged with NO mistake (#439 charged 1)',{blackMistake:grade.Mistake.b});
+  say(grade.Blunder.b===1,'B1 Black is charged with exactly ONE blunder - 15...Nxd7, which allows mate from -649cp, on the >=-700 Blunder rung of the decided ladder (#439 also charged 1, for the wrong reason)',{blackBlunder:grade.Blunder.b,rung:'>=-700',decidedBy:'q-mate-floor-is-allowing-mate-a-blunder / lichess-ladder'});
+  say(grade.Mistake.b===0,'B2 Black, who is being mated, is charged with NO mistake (#439 charged 1)',{blackMistake:grade.Mistake.b});
   // B3 and the number he actually reads.
-  L.say(accB>=80,'B3 Black accuracy is at least 80% on a game he never had chances in (#439 read 62.4%)',{blackAccuracy:accB});
+  say(accB>=80,'B3 Black accuracy is at least 80% on a game he never had chances in (#439 read 62.4%)',{blackAccuracy:accB});
 
   // B4, B5 THE OTHER HALF OF THE CLAIM: the side that was WINNING must not be softened by this change.
   // Green on #439 as well as on #440 - it is a regression guard, not a discriminator, and it is what stops
   // a later "simplification" of the ladder from quietly excusing the winner's real errors too.
   const wBad=grade.Inaccuracy.w+grade.Miss.w+grade.Mistake.w+grade.Blunder.w;
-  L.say(wBad===0,'B4 White, who won, still has no inaccuracy, miss, mistake or blunder',{whiteBadRows:wBad});
-  L.say(accW>=90,'B5 White accuracy is still at least 90% (#439 read 98%)',{whiteAccuracy:accW});
+  say(wBad===0,'B4 White, who won, still has no inaccuracy, miss, mistake or blunder',{whiteBadRows:wBad});
+  say(accW>=90,'B5 White accuracy is still at least 90% (#439 read 98%)',{whiteAccuracy:accW});
   // B6 LABELS REDISTRIBUTE, THEY DO NOT VANISH. A per-side total that drops would mean moves fell out of
   // the table altogether, which is how a softening change could hide a counting bug inside a good result.
   const sw=ROWS.reduce((a,r)=>a+grade[r].w,0), sb=ROWS.reduce((a,r)=>a+grade[r].b,0);
-  L.say(sw===17&&sb===16,'B6 every graded move is still counted: White 17 and Black 16 rows, as on #439',{whiteTotal:sw,blackTotal:sb});
+  say(sw===17&&sb===16,'B6 every graded move is still counted: White 17 and Black 16 rows, as on #439',{whiteTotal:sw,blackTotal:sb});
   // B7 THE SENTENCE THE CHANGE MADE FALSE. It described the formula #440 replaced, and nothing asserted it
   // before, which is how a wrong sentence survives builds.
-  L.say(!/average centipawn loss/i.test(txt)&&/changed your chances of winning/i.test(txt),
+  say(!/average centipawn loss/i.test(txt)&&/changed your chances of winning/i.test(txt),
         'B7 the panel no longer explains accuracy as average centipawn loss',
         {saysCentipawn:/average centipawn loss/i.test(txt),saysChances:/changed your chances of winning/i.test(txt)});
+  await b.close();
+  };
+  await blockB('3','');
+  await blockB('1',' [ct_pool=1]');
 
   // ════════ BLOCK E - THE TWO RUNGS WHERE THE LADDER AND THE OLD FLOOR DISAGREE, READ OFF THE SCREEN ════════
   // [#545, item (56); jobs/the-mate-ladder-has-no-behavioural-assertion-at-a-discriminating-rung-2026-10-07]. Block C pins
