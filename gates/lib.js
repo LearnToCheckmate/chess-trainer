@@ -5,6 +5,9 @@
 //   const L=require('./lib');
 //   const b=await L.launch({geo:'kunal'});      // 375x679 = his phone's usable area (no ct_safe: see GEOS), or '390' (390x844), or {w,h,safe}
 //   await b.open();                             // serves the repo (or CT_APP) and waits for the app to mount
+//   L.launch({app:'path/to/bundle.js'})          // per-launch bundle. Launches IN SEQUENCE in one process may use different bundles:
+//                                               // serve() restarts on a different bundle (#545). Two bundles OPEN AT ONCE in one process
+//                                               // are not supported - the second launch closes the first one's server.
 //   await b.tile('Play'); await b.tab('Review'); await b.tapText(/^Pass & Play$/);
 //   const bd=b.board();                         // {x,y,w,h,sq,flip} of the painted board grid, or null
 //   await b.move('e2','e4');                    // tap the piece, then the target (never press the source twice)
@@ -289,14 +292,13 @@ function freePort(){return new Promise(r=>{const s=net.createServer();s.listen(0
 
 // A site dir is the repo with one file swapped: app.js -> the bundle under test (CT_APP, default the repo's app.js).
 // Symlinks for everything else, so index.html, lessons.js, sw.js and the engine are always the repo's own.
-function siteDir(app){
-  const d=path.join(__dirname,'.site',String(process.pid));fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});
+function siteDir(app,tag){
+  const d=path.join(__dirname,'.site',String(process.pid)+(tag?'-'+tag:''));fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});
   for(const f of fs.readdirSync(ROOT)){if(f==='.git'||f==='gates'||f==='app.js')continue;fs.symlinkSync(path.join(ROOT,f),path.join(d,f));}
   fs.copyFileSync(app,path.join(d,'app.js'));return d;
 }
 let _srv=null;
 async function serve(opts={}){
-  if(_srv&&!opts.fresh)return _srv;
   // WHICH BUNDLE IS SERVED, SAID OUT LOUD, BECAUSE A SILENT SUBSTITUTION COST A WHOLE PASS.
   //
   // gates/.pin-app.js used to be served by DEFAULT whenever CT_APP was unset - it pinned the bundle an audit
@@ -311,6 +313,19 @@ async function serve(opts={}){
   const pinned=path.join(__dirname,'.pin-app.js');
   const usePin=process.env.CT_PIN==='1'&&fs.existsSync(pinned);
   const app=path.resolve(opts.app||process.env.CT_APP||(usePin?pinned:path.join(ROOT,'app.js')));
+  // ONE SERVER PER BUNDLE, NOT PER PROCESS [#545, item (48); jobs/two-launches-with-different-bundles-in-one-
+  // process-serve-the-first-one-twice-2026-10-02]. This memo used to return the cached server whatever `app` was asked
+  // for, so a before/after script launching two bundles in one process measured the FIRST one twice - and printed no
+  // bundle line for the second, because the line below was skipped with it. The cache is now reused only when the
+  // requested bundle is the SAME FILE WITH THE SAME BYTES as the one it serves; anything else closes it and serves the
+  // new one, with its own bundle line. The site dir is keyed on the bundle's md5 as well as the pid, so the two
+  // cannot share a directory either. Controlled by gates/audit/two-bundles-one-process.sh.
+  let _want='?';try{_want=crypto.createHash('md5').update(fs.readFileSync(app)).digest('hex');}catch(e){}
+  if(_srv&&!opts.fresh){
+    if(_srv.app===app&&_srv.md5===_want)return _srv;
+    console.log('     bundle changed in this process ('+path.relative(ROOT,_srv.app)+' -> '+path.relative(ROOT,app)+'): closing the old server and serving the new bundle');
+    _srv.close();
+  }
   try{
     const head=fs.readFileSync(app,'utf8');
     const m=head.match(/#\d{3,4} - 20\d\d-\d\d-\d\d \d\d:\d\d ET/);
@@ -322,11 +337,11 @@ async function serve(opts={}){
     console.log('     bundle: '+path.relative(ROOT,app)+'  md5 '+_md5+'  stamp '+(m?m[0]:'NONE')+'  ('+how+')');
     if(!m)console.log('     WARNING: that bundle carries no build stamp at all.');
   }catch(e){console.log('     bundle: '+app+'  (could not be read: '+e.message+')');}
-  const dir=siteDir(app);const port=await freePort();
+  const dir=siteDir(app,_want.slice(0,12));const port=await freePort();
   const p=cp.spawn('python3',['-m','http.server',String(port),'--bind','127.0.0.1'],{cwd:dir,stdio:'ignore'});
   const url='http://127.0.0.1:'+port+'/';
   for(let i=0;i<50;i++){try{await new Promise((res,rej)=>{const s=net.connect(port,'127.0.0.1',()=>{s.end();res();});s.on('error',rej);});break;}catch(e){await new Promise(r=>setTimeout(r,100));}}
-  _srv={url,dir,app,port,proc:p,close(){try{p.kill();}catch(e){}fs.rmSync(dir,{recursive:true,force:true});_srv=null;}};
+  _srv={url,dir,app,md5:_want,port,proc:p,close(){try{p.kill();}catch(e){}fs.rmSync(dir,{recursive:true,force:true});_srv=null;}};
   return _srv;
 }
 const sq2xy=(sq)=>({f:sq.charCodeAt(0)-97,r:parseInt(sq[1],10)-1});
