@@ -213,6 +213,12 @@
 'use strict';
 const L=require('../lib');
 
+// WHICH GEOMETRIES ASSERT THE HOLD AND WHICH ONLY REPORT IT [#545 item (92)]: block D ASSERTS at se and short375, where the
+// card's panel reaches its height cap and a drag has somewhere to go. At kunal730 it REPORTS 'NOT EXERCISED HERE', and that
+// is a correct report of an absent population, not a hole: measured at #545 on 049b41dfb6f1, the panel's scroll room there
+// is 0. 375x679 ('kunal') was proposed by the job because #505's antagonist measured 5px of room there; RE-MEASURED at #545
+// it is ALSO 0 (CT_74_GEOS=kunal: D not exercised, and the global anti-vacuity lines go red because nothing in that run
+// binds), so it is NOT added - it would add a geometry to manufacture nothing.
 const GEOS=(process.env.CT_74_GEOS||'se,short375,kunal730').split(',');
 // geometries at which no measured card reached the fixed bar, so B1 could not have failed there
 const VACUOUS=[];
@@ -823,6 +829,7 @@ for(const geo of GEOS){
 // container over two attempts at two drag speeds, while the MECHANISM reproduced first time on both bundles.
 // So the verdict rests on the mechanism, which both of us can reproduce, and not on the gesture, which only one
 // of us could. A FINGER-DRIVEN version of F would be stronger and is owed; it is named in notChecked.
+// [#545 item (92)] IT IS NO LONGER OWED: F2 below drives the same child with a finger and reports which instrument scrolled.
 {
   const b=await L.launch({geo:'se',name:'74F-se'});await b.open();
   const o=await openPlain(b,'Openings',20);   // NOT openHeld: a click would hold the card and void F1
@@ -856,6 +863,36 @@ for(const geo of GEOS){
       await b.page.waitForTimeout(4600);
       const up=await cardUp(b);
       L.say(!up,'74 F1 [se] '+o.name+': AN INCIDENTAL SCROLL OF A PARAGRAPH DOES NOT PIN THE CARD. On a card whose panel has NO scroll room and whose button is already on screen, a descendant scroll with no click must leave the 4000ms auto-dismiss alone - the card is gone at +4600ms. #505s own first fix held it here indefinitely (+4600, +12000 and +20000ms all measured card-up) because the hook fired on any descendant scroll on any card, which antagonist B swept at 80 of 97 Openings rows; the shipped guard requires the PANEL to have somewhere to scroll before a scroll may hold the card',{cardUpAt4600:up,panelRoom:pop.panelRoom,childScrolled:moved.after});
+    }
+  }
+  await b.close();
+}
+// ── F2: THE FINGER-DRIVEN ARM THE NOTE ABOVE SAID WAS OWED [#545, item (92); jobs/gate-74s-hold-assertions-emit-no-pass-at-
+// kunals-own-geometry-and-block-f-uses-no-finger-2026-10-09, limb 3]. A fresh card, because F1's own wait has dismissed
+// the first one. The same child is dragged with gates' real touch path (fingerDrag, CDP touch events), and the arm says
+// WHICH INSTRUMENT SCROLLED. If the finger moved the child, F2 asserts the same thing F1 does, now from a gesture. If it did
+// not, that is reported and NOT credited, which is the gesture disagreement #505 recorded, now measured on every run.
+{
+  const b=await L.launch({geo:'se',name:'74F2-se'});await b.open();
+  const o=await openPlain(b,'Openings',20);
+  if(!o.ok){L.note('74 F2 [se] NOT RUN: could not reach Openings row 20 ('+JSON.stringify(o).slice(0,120)+')');}
+  else{
+    const tgt=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));
+      if(!g)return null; let q=g;while(q&&q.parentElement&&getComputedStyle(q.parentElement).position!=='fixed')q=q.parentElement;
+      const kids=[...q.children].filter(c=>{const s2=getComputedStyle(c);return /auto|scroll/.test(s2.overflowY)&&c.scrollHeight>c.clientHeight+1;});
+      if(!kids.length)return {none:true,panelRoom:q.scrollHeight-q.clientHeight};
+      const ch=kids[kids.length-1];ch.setAttribute('data-ct-f2','1');const r=ch.getBoundingClientRect();
+      return {x:r.left+r.width/2,y:r.top+r.height/2,h:r.height,before:ch.scrollTop,panelRoom:q.scrollHeight-q.clientHeight};});
+    if(!tgt||tgt.none||tgt.panelRoom!==0){L.note('74 F2 [se] NOT EXERCISED HERE, reported rather than credited: the card is not in F\'s population ('+JSON.stringify(tgt)+')');}
+    else{
+      await fingerDrag(b,tgt.x,tgt.y+Math.min(30,tgt.h/3),tgt.y-Math.min(30,tgt.h/3));await b.settle(200);
+      const after=await b.page.evaluate(()=>{const c=document.querySelector('[data-ct-f2]');return c?c.scrollTop:null;});
+      if(after!=null&&after>tgt.before){
+        await b.page.waitForTimeout(4600);const up=await cardUp(b);
+        L.say(!up,'74 F2 [se] '+o.name+': a FINGER drag that scrolled the paragraph ('+tgt.before+' -> '+after+', instrument: touch) does not pin the card - the gesture form of F1',{before:tgt.before,after,stillUp:up});
+      }else{
+        L.note('74 F2 [se] NOT EXERCISED HERE, reported rather than credited: the finger drag did not scroll the child in this container ('+tgt.before+' -> '+after+'), so the scroll F1 rests on came from the programmatic instrument only. This is the gesture disagreement #505 recorded, now measured on every run.');
+      }
     }
   }
   await b.close();
