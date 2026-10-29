@@ -2002,27 +2002,7 @@ classify(){   # classify <repo-relative-path>  ->  "FORCE <reason>"  or  "RECORD
 # THE RULE: a records commit may ADD records. Removing a gate log, or shortening a register, is not a records
 # action and does not get the cheap tier. It is still perfectly possible - it just pays the full suite and is
 # therefore visible.
-GONE="$("${GIT[@]}" diff --name-only --no-renames --diff-filter=D "$BASEFULL".."$HEAD" 2>/dev/null | grep -E '^claude/agents/gatelogs/' || true)"
-if [ -n "$GONE" ]; then
-  say ""
-  say "FAST GATE REFUSED - this commit DELETES gate log evidence, which no records commit does:"
-  echo "$GONE" | sed 's/^/    /' | tee -a "$LOG"
-  say "A gate log is what verify-log.sh cites to prove a bundle was gated. Run FULL, or do not delete it."
-  exit 1
-fi
-SHORTER=""
-for f in claude/stories/TEST-CASES.md claude/stories/USER-STORIES.md; do
-  nb="$("${GIT[@]}" show "$BASEFULL:$f" 2>/dev/null | wc -l | tr -d ' ')"; nb="${nb:-0}"
-  nh="$("${GIT[@]}" show "$HEAD:$f" 2>/dev/null | wc -l | tr -d ' ')"; nh="${nh:-0}"
-  [ "$nh" -lt "$nb" ] 2>/dev/null && SHORTER="$SHORTER$f ($nb lines -> $nh)\n"
-done
-if [ -n "$SHORTER" ]; then
-  say ""
-  say "FAST GATE REFUSED - a register of cases or stories got SHORTER, which the records ratchet reads as an"
-  say "improvement because the only number that moves is a 'not checked' count falling:"
-  printf "$SHORTER" | sed 's/^/    /' | tee -a "$LOG"
-  exit 1
-fi
+# THE GONE AND SHORTER REFUSALS THAT STOOD HERE NOW SIT BELOW THE FORCE DECISION [#545, item (59)] - see there.
 
 # ── WHAT FORCES THE FULL SUITE. Anything that can change the bundle, the gates, or how they run. ─────────────
 FORCE=""
@@ -2099,6 +2079,36 @@ if [ -n "$FORCE" ]; then
   printf "$FORCE" | sed 's/^/    /' | tee -a "$LOG"
   say "Run: gates/gates.sh \"#<N>\"   (the full suite, and only its own green footer authorises this push)"
   exit 2          # exit 2 means GO FULL. It is not a failure.
+fi
+
+# ── EVIDENCE MAY NOT BE DESTROYED, BELOW THE FORCE DECISION [#545, item (59);
+# jobs/fastgate-shorter-guard-refuses-a-commit-that-should-be-told-to-run-the-full-suite-2026-10-10]. #490 put these
+# two refusals above the FORCE decision, so a commit that shrank a story register (or deleted a gate log) AND
+# touched chess.jsx was REFUSED at exit 1 with a message about the register and no word about the code, when the
+# full suite is exactly where it belongs - the GONE message even says "Run FULL" while exiting 1. #509 measured
+# the SHORTER instance as its control (k2) and moved its own block, not this one. Now both are reached only by a
+# commit that would otherwise take a fast green, the only commit they have any business judging; for such a
+# commit they still refuse at exit 1, unchanged. Controls: gates/fastgate-drive.sh H63-H66.
+GONE="$("${GIT[@]}" diff --name-only --no-renames --diff-filter=D "$BASEFULL".."$HEAD" 2>/dev/null | grep -E '^claude/agents/gatelogs/' || true)"
+if [ -n "$GONE" ]; then
+  say ""
+  say "FAST GATE REFUSED - this commit DELETES gate log evidence, which no records commit does:"
+  echo "$GONE" | sed 's/^/    /' | tee -a "$LOG"
+  say "A gate log is what verify-log.sh cites to prove a bundle was gated. Run FULL, or do not delete it."
+  exit 1
+fi
+SHORTER=""
+for f in claude/stories/TEST-CASES.md claude/stories/USER-STORIES.md; do
+  nb="$("${GIT[@]}" show "$BASEFULL:$f" 2>/dev/null | wc -l | tr -d ' ')"; nb="${nb:-0}"
+  nh="$("${GIT[@]}" show "$HEAD:$f" 2>/dev/null | wc -l | tr -d ' ')"; nh="${nh:-0}"
+  [ "$nh" -lt "$nb" ] 2>/dev/null && SHORTER="$SHORTER$f ($nb lines -> $nh)\n"
+done
+if [ -n "$SHORTER" ]; then
+  say ""
+  say "FAST GATE REFUSED - a register of cases or stories got SHORTER, which the records ratchet reads as an"
+  say "improvement because the only number that moves is a 'not checked' count falling:"
+  printf "$SHORTER" | sed 's/^/    /' | tee -a "$LOG"
+  exit 1
 fi
 
 # ── WHY THIS BLOCK SITS *AFTER* THE FORCE DECISION, AND IT DID NOT AT FIRST. ─────────────────────────────────

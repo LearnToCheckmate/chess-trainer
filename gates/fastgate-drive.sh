@@ -301,6 +301,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H58) printf 'TC-SUITE-239' ;;  H59) printf 'TC-SUITE-240' ;;
     H60) printf 'TC-SUITE-241' ;;  H61) printf 'TC-SUITE-242' ;;
     H62) printf 'TC-SUITE-246' ;;
+    H63) printf 'TC-SUITE-272' ;;  H64) printf 'TC-SUITE-273' ;;  H65) printf 'TC-SUITE-274' ;;  H66) printf 'TC-SUITE-275' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -2475,6 +2476,37 @@ else
     show_verdict "$PROBE_OUT"
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H62"
   fi
+fi
+reset_clone
+
+# ── H63..H66 THE EVIDENCE REFUSALS SIT BELOW THE FORCE DECISION [#545, item (59);
+# jobs/fastgate-shorter-guard-refuses-a-commit-that-should-be-told-to-run-the-full-suite-2026-10-10]. The job's three
+# controls, (a) to (c), plus the GONE sibling the same move covers. A commit that shrinks a register or deletes a gate
+# log AND touches chess.jsx is told GO FULL (exit 2, naming chess.jsx); a records-only commit that does either is
+# still REFUSED (exit 1) - the move must not weaken the guard; a records-only commit that only GROWS the register
+# still goes fast (exit 0). H63 and H66 are the cases #490's placement failed: it answered exit 1 about the register.
+shrink_cases(){ head -n -3 "$C/claude/stories/TEST-CASES.md" > "$C/.tc.tmp" && mv "$C/.tc.tmp" "$C/claude/stories/TEST-CASES.md"; }
+reset_clone
+shrink_cases; printf '\n// H63 fixture: a code change beside the register shrink\n' >> "$C/chess.jsx"
+commit_case "H63 fixture: TEST-CASES.md shorter AND chess.jsx touched"
+expect H63 2 "chess.jsx"
+reset_clone
+shrink_cases
+commit_case "H64 fixture: TEST-CASES.md shorter, records only"
+expect H64 1 "got SHORTER"
+reset_clone
+printf '\n<!-- H65 fixture: the register grows by a comment line -->\n' >> "$C/claude/stories/TEST-CASES.md"
+commit_case "H65 fixture: TEST-CASES.md longer, records only"
+expect H65 0 "FAST GATE GREEN"
+reset_clone
+H66LOG="$(git -C "$C" ls-files claude/agents/gatelogs)"; H66LOG="$(awk '/-all\.log$/{print; exit}' <<< "$H66LOG")"
+if [ -z "$H66LOG" ]; then
+  note "  FAIL H66 [$(tc H66)]  no archived gate log in the clone to delete, so the case cannot pose"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H66"
+else
+  git -C "$C" rm --quiet -- "$H66LOG" >/dev/null 2>&1; printf '\n// H66 fixture: a code change beside the deleted log\n' >> "$C/chess.jsx"
+  commit_case "H66 fixture: a gate log deleted AND chess.jsx touched"
+  expect H66 2 "chess.jsx"
 fi
 reset_clone
 
