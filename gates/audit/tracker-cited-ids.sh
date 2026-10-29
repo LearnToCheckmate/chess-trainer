@@ -110,7 +110,7 @@ audit(){ # <jobs-dir> <repo-dir>
   echo "  distinct ids cited            $nids"
   echo "  unresolved                    $nun    (unresolved/cited $nun/$nids, ceiling $CEIL)"
   for u in $unres; do
-    echo "    UNRESOLVED $u   cited by: $(printf '%s\n' "$cites" | awk -F'\t' -v i="$u" '$2==i{print $1}' | head -3 | tr '\n' ' ')"
+    echo "    UNRESOLVED $u   cited by: $(awk -F'\t' -v i="$u" '$2==i && ++n<=3 {printf "%s ", $1}' <<<"$cites")"
   done
   if [ "$nun" -gt "$CEIL" ]; then
     echo "TRACKER-CITED-IDS RED: $nun unresolved, above the committed ceiling of $CEIL. A newly cited id names no register line."
