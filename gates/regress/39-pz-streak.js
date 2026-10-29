@@ -63,7 +63,20 @@ L.run(async()=>{
     // exactly what left 10-gameover passing 12 of 12 on a board 16px wrong. Pinned for the same reason; measured on #383.
     const WANTB={kunal730:375,se:259,'390':390};
     if(WANTB[geo]!=null)L.say(!!afterHint.board&&Math.abs(afterHint.board.w-WANTB[geo])<0.6,geo+': the puzzle board is '+WANTB[geo]+' wide with the hint up - the measured size, not merely unmoved',{measured:afterHint.board&&afterHint.board.w,want:WANTB[geo]});
-    L.say(!!filled&&/\/\s*\d+/.test(filled.t||''),geo+': with no streak yet it falls back to the counter the header gave up rather than claiming a streak of zero',filled&&filled.t);
+    // A VALUE, NOT A SHAPE [#545, item (50); jobs/two-gate-39-streak-assertions-are-shapes-not-values-and-gate-41-forces-the-
+    // worker-pool-2026-10-03]. This read /\/\s*\d+/, which '0 / 0' satisfies. chess.jsx prints the fill as
+    // '{puzIdx+1} / {PZ.length} · {streak | ✓ solved | rating R}', so on a fresh store it must parse as a real position
+    // in a real set (1 <= N <= D, D >= 2) followed by the puzzle's rating - and must not claim any streak at all.
+    // THE SEPARATOR IS ACCEPTED IN BOTH FORMS, AND THE WRONG ONE IS NAMED. Pinning the value found a real defect the
+    // shape regex had hidden: chess.jsx writes this separator as \u00b7 in JSX TEXT, where escapes are not processed, so
+    // the player reads a literal backslash-u-00b7 (measured on 049b41dfb6f1: '1 / 890 \u00b7 rating 600'). This run
+    // ships no app code, so the numbers are pinned here with either separator and the escape is reported by name below,
+    // never silently: jobs/the-puzzle-hint-fill-prints-a-literal-unicode-escape-2026-10-29.
+    const cTxt=((filled&&filled.t)||'').replace(/\s+/g,' ').trim();
+    const cm=/^(\d+) \/ (\d+) (?:\u00b7|\\u00b7) rating (\d{3,4})$/.exec(cTxt);
+    if(/\\u[0-9a-fA-F]{4}/.test(cTxt))L.note(geo+': KNOWN DEFECT, REPORTED NOT ASSERTED - the fill prints a literal escape where the app meant a middle dot: '+JSON.stringify(cTxt)+' (jobs/the-puzzle-hint-fill-prints-a-literal-unicode-escape-2026-10-29)');
+    const cN=cm?+cm[1]:null,cD=cm?+cm[2]:null,cR=cm?+cm[3]:null;
+    L.say(!!cm&&cN>=1&&cN<=cD&&cD>=2&&cR>=400&&cR<=3200&&!/in a row/.test(filled.t||''),geo+': with no streak yet it falls back to the counter the header gave up - a real position N of D (1 <= N <= D, D >= 2) and the puzzle rating, never a streak of zero',{text:filled&&filled.t,N:cN,D:cD,rating:cR});
 
     // ---- the verdict takes the same box back, instantly, and the board still does not move
     await b.move('e1','e7',900);await b.settle(600);
@@ -89,9 +102,27 @@ L.run(async()=>{
     await tapBtn(b2,/^\u{1F4A1} Hint$/u);await b2.settle(700);
     const live=await box(b2);const post=await b2.metrics();
     L.say(!!live&&/in a row/.test(live.t||''),geo+': with a live streak the box reads the STREAK, which is the one word of his answer',live&&live.t);
-    L.say(!!live&&/\b4\b/.test(live.t||''),geo+': and it is the value the store actually carries (4), not a placeholder',live&&live.t);
+    // THE STREAK, NOT ANY 4 [#545, item (50)]. This read /\b4\b/ over the whole fill, which a box printing 'best 4' or
+    // '4 / 40' satisfies. The seed carries streak 4 and best 6, so the pin is the streak's own phrase, and best's must
+    // be absent; the branches the one seed never reaches (1, and two digits) are driven once, after this loop.
+    L.say(!!live&&/(^|\s)4 in a row/.test(live.t||'')&&!/\b6 in a row/.test(live.t||''),geo+': and it is the STREAK the store carries ("4 in a row"), not best (6) and not a placeholder',live&&live.t);
     L.say(!!live&&Math.abs(live.h-wantH)<0.6,geo+': the streak text does not change the reserved height either',live&&live.h);
     L.say(!!pre.board&&!!post.board&&Math.abs(pre.board.w-post.board.w)<0.6&&Math.abs(pre.board.top-post.board.top)<0.6,geo+': the board does not move on the streak branch either');
     await b2.close();
+  }
+  // ---- THE OTHER STREAK BRANCHES, at one column [#545, item (50)]: chess.jsx shows a streak only at pzStreak>=2, so a
+  // streak of 1 must fall back to the rating, and a two-digit streak must print whole. One geometry, because this is the
+  // value under test, not the layout, which the loop above already pins at three.
+  for(const [streak,best,want] of [[1,9,null],[11,3,'11 in a row']]){
+    const b3=await L.launch({geo:'kunal730',name:'pzstreak-v'+streak,store:{}});await b3.open();
+    await b3.page.evaluate(([k,st,be])=>localStorage.setItem(k,JSON.stringify({solved:{},streak:st,best:be,xp:40,online:0,onlineIds:{}})),[PZKEY,streak,best]);
+    await b3.open();
+    await b3.tile('Puzzles');await b3.settle(600);
+    await tapBtn(b3,/^▶ (Start training|Train next puzzle)$/);await b3.settle(900);
+    await tapBtn(b3,/^\u{1F4A1} Hint$/u);await b3.settle(700);
+    const v=await box(b3);const t=(v&&v.t)||'';
+    if(want)L.say(new RegExp('(^|\\s)'+want).test(t)&&!new RegExp('\\b'+best+' in a row').test(t),'kunal730: a streak of '+streak+' (best '+best+') prints "'+want+'" whole, and not best',t);
+    else L.say(!!v&&!/in a row/.test(t)&&/rating \d{3,4}/.test(t),'kunal730: a streak of 1 is below the display floor (pzStreak>=2), so the box shows the rating and no streak, not "1 in a row" and not best ('+best+')',t);
+    await b3.close();
   }
 },'PZ-STREAK');

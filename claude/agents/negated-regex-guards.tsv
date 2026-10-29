@@ -28,3 +28,5 @@ gates/regress/71-resume-row-agrees-with-the-board.js	/Tap again/	complete: every
 gates/regress/73-review-list-filter.js	/haven/	complete: one form, '... a game we haven’t graded yet ...'
 gates/regress/73-review-list-filter.js	/ of the 1 games | of 1 games |\b1 games\b/	complete for its purpose: the three singular-plural errors it names
 gates/regress/73-review-list-filter.js	/^No games match/	complete: one form, 'No games match ...'
+gates/regress/39-pz-streak.js	/in a row/	complete: chess.jsx shows a streak only as '🔥 N in a row' (pzStreak>=2); every streak form carries the phrase
+gates/regress/39-pz-streak.js	/\b6 in a row/	complete for its purpose: the seed's best value printed as if it were the streak

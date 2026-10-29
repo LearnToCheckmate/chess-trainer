@@ -74,35 +74,49 @@ const seen=(b,sel)=>b.page.locator(sel).last().isVisible().catch(()=>false);
 // assumption - it also falsifies gates/lib.js:24-26's 2026-09-12 prediction that ct_safe at 761 would make the
 // board 293, by 56px, which process lane 1 measured independently on 2026-10-04 at a different bundle.
 const WANT={kunal761:{board:349},kunal730:{board:349},se:{board:264}};
+const WORKERS={};
 
 L.run(async()=>{
   // kunal761 FIRST: R19 says "Test at 375 first, then the six width bands in the UAT pipeline", and of the
   // three columns this is the one the rule names. 730 and se follow unchanged, so no coverage is lost.
-  for(const geo of ['kunal761','kunal730','se']){
-    const b=await L.launch({geo,name:'coach-'+geo,store:{ct_pool:'3'}});
+  // EVERY WORKER BRANCH, NOT ONLY THE ONE THE FIX WAS WRITTEN FOR [#545, item (50); jobs/two-gate-39-streak-assertions-are-
+  // shapes-not-values-and-gate-41-forces-the-worker-pool-2026-10-03]. Every launch here used to seed ct_pool:'3', so the
+  // single-worker path the device chooses on a low hardwareConcurrency never ran - the #375 trap CLAUDE.md records,
+  // where the gate guarding that fix forced a 3-worker pool and exercised the fixed path twice. The pool-1 column runs
+  // the whole body again at kunal730, labelled 'pool1', so its assertions are counted separately.
+  for(const [geo,pool] of [['kunal761','3'],['kunal730','3'],['se','3'],['kunal730','1']]){
+    const G=geo+(pool==='1'?' pool1':'');
+    const b=await L.launch({geo,name:'coach-'+geo+(pool==='1'?'-pool1':''),store:{ct_pool:pool}});
     const W=WANT[geo];
+    // Count the Workers the page constructs, so the pool-1 column is PROVED to be a different configuration and not a
+    // relabelled copy of the pool-3 one (#385: assert the state was actually reached).
+    await b.page.addInitScript(()=>{const Wk=window.Worker;let n=0;window.__ctWorkers=()=>n;
+      window.Worker=function(...a){n++;return new Wk(...a);};window.Worker.prototype=Wk.prototype;});
     await b.open();
 
     // ply 31 is 16.Qb8+, a move with a verdict and therefore a sentence - the exact state the bubble used
     // to render in. Everything below is checked HERE, where the old element would have been present.
     await R.states['moves-ply31'](b);
     await b.settle(400);
+    const nW=await b.page.evaluate(()=>window.__ctWorkers?window.__ctWorkers():null);WORKERS[G]=nW;
+    if(pool==='1')L.say(nW!=null&&WORKERS['kunal730']!=null&&nW<WORKERS['kunal730'],G+': PRECONDITION - the single-worker review really ran: this column constructed fewer Workers than kunal730 at ct_pool 3',{pool1:nW,pool3:WORKERS['kunal730']});
+    else L.note(G+': '+nW+' Workers constructed by ply 31 at ct_pool '+pool);
 
     const bd0=await b.board();
-    L.say(!!bd0&&Math.abs(bd0.w-W.board)<0.6,geo+': the review board is '+W.board+' wide - pinned, so this gate cannot go green against a board that was wrong from the start',bd0&&bd0.w);
+    L.say(!!bd0&&Math.abs(bd0.w-W.board)<0.6,G+': the review board is '+W.board+' wide - pinned, so this gate cannot go green against a board that was wrong from the start',bd0&&bd0.w);
 
     // ── THE PRECONDITION. Without this the absence assertions below are worthless. ───────────────────
     const why=await rect(b,'[data-ct="rev-why-txt"]');
-    L.say(!!why&&why.text.length>20,geo+': PRECONDITION - ply 31 has a coach sentence, so the removed bubble would have had something to say here',why&&why.text.slice(0,50));
+    L.say(!!why&&why.text.length>20,G+': PRECONDITION - ply 31 has a coach sentence, so the removed bubble would have had something to say here',why&&why.text.slice(0,50));
     const st=await b.page.evaluate(()=>({ana:[...document.querySelectorAll('*')].some(e=>/Exit analysis/.test(e.textContent||'')&&e.children.length===0)}));
-    L.say(!st.ana,geo+': PRECONDITION - not in analysis mode, the one state the bubble was always hidden in anyway',st);
+    L.say(!st.ana,G+': PRECONDITION - not in analysis mode, the one state the bubble was always hidden in anyway',st);
 
     // ── THE REMOVAL ITSELF ──────────────────────────────────────────────────────────────────────────
-    L.say(!(await seen(b,'[data-ct="coach-bubble"]')),geo+': the coach bubble is GONE at a ply that has a verdict and a sentence');
-    L.say((await rect(b,'[data-ct="coach-bubble"]'))===null,geo+': and it is absent from the DOM, not merely invisible - an element still laid out over the board would still eat taps');
-    L.say((await rect(b,'[data-ct="coach-say"]'))===null,geo+': its sentence element is gone with it');
-    L.say((await rect(b,'[data-ct="coach-eval"]'))===null,geo+': its eval chip is gone with it');
-    L.say((await rect(b,'[data-ct="coach-verdict"]'))===null,geo+': its verdict pill is gone with it');
+    L.say(!(await seen(b,'[data-ct="coach-bubble"]')),G+': the coach bubble is GONE at a ply that has a verdict and a sentence');
+    L.say((await rect(b,'[data-ct="coach-bubble"]'))===null,G+': and it is absent from the DOM, not merely invisible - an element still laid out over the board would still eat taps');
+    L.say((await rect(b,'[data-ct="coach-say"]'))===null,G+': its sentence element is gone with it');
+    L.say((await rect(b,'[data-ct="coach-eval"]'))===null,G+': its eval chip is gone with it');
+    L.say((await rect(b,'[data-ct="coach-verdict"]'))===null,G+': its verdict pill is gone with it');
 
     // ── WHAT HE ACTUALLY ASKED FOR: THE BOARD BACK. ────────────────────────────────────────────────
     // Not "the bubble is gone" but "nothing covers the board". Asserted by hit-testing the squares the
@@ -138,11 +152,11 @@ L.run(async()=>{
       }
       return out;
     },bd0);
-    L.say(cover.length===0,geo+': every one of nine points across the TOP THIRD of the board hit-tests to a SQUARE of the board - the ranks the bubble covered are the user\'s again. Asserted by hit test against the 64 squares rather than by element name, so anything else that lands there fails this too',cover);
+    L.say(cover.length===0,G+': every one of nine points across the TOP THIRD of the board hit-tests to a SQUARE of the board - the ranks the bubble covered are the user\'s again. Asserted by hit test against the 64 squares rather than by element name, so anything else that lands there fails this too',cover);
 
     // ── THE SENTENCE SURVIVED, AND IS STILL READABLE SOMEWHERE ─────────────────────────────────────
-    L.say(!!why&&why.h>10,geo+': the sentence is still on screen under the board, which is the box he told us to keep',why&&{h:why.h,y:why.y});
-    L.say(!!why&&!!bd0&&why.y>=bd0.y+bd0.w-1,geo+': and it is BELOW the board, not over it',{whyY:why&&why.y,boardBottom:bd0&&(bd0.y+bd0.w)});
+    L.say(!!why&&why.h>10,G+': the sentence is still on screen under the board, which is the box he told us to keep',why&&{h:why.h,y:why.y});
+    L.say(!!why&&!!bd0&&why.y>=bd0.y+bd0.w-1,G+': and it is BELOW the board, not over it',{whyY:why&&why.y,boardBottom:bd0&&(bd0.y+bd0.w)});
 
     // ── #387'S WORK, MOVED HERE: WHICH THING DOES THE CUTTING. ─────────────────────────────────────
     // rev-why-txt is clamped to 3 lines (phone) at a fixed height. A clamp draws an ellipsis; a box with
@@ -160,8 +174,8 @@ L.run(async()=>{
       });
       if(m)cut.push({ply,...m,over:m.sh>m.ch+1});
     }
-    L.say(cut.length>=6,geo+': the truncation walk actually measured the box at six or more plies',cut.length);
-    L.say(cut.every(c=>c.clamp&&c.clamp!=='none'),geo+': the box CLAMPS rather than merely hiding overflow, so when the sentence does not fit an ellipsis is drawn and the user can see there is more. #387: a box with overflow:hidden and no clamp cuts silently',cut.map(c=>c.clamp)[0]);
+    L.say(cut.length>=6,G+': the truncation walk actually measured the box at six or more plies',cut.length);
+    L.say(cut.every(c=>c.clamp&&c.clamp!=='none'),G+': the box CLAMPS rather than merely hiding overflow, so when the sentence does not fit an ellipsis is drawn and the user can see there is more. #387: a box with overflow:hidden and no clamp cuts silently',cut.map(c=>c.clamp)[0]);
 
     /* #397 (uat394-rev-why-clips-fourth-line-320): AND THE CLAMP BEING SET IS NOT ENOUGH, which is the
        assertion above being too weak and the headless UAT lane proving it with a pixel scan the same night.
@@ -172,27 +186,27 @@ L.run(async()=>{
        tall where a full line is 13. So assert the geometry that makes it impossible rather than the property
        that merely suggests it. */
     const slack=cut.map(c=>({ply:c.ply,ch:c.ch,need:+( (c.clamp&&c.lh)?(c.clamp*c.lh):0 ).toFixed(2),slack:+(c.ch-((c.clamp&&c.lh)?c.clamp*c.lh:c.ch)).toFixed(2)}));
-    L.say(slack.length>0&&slack.every(x=>x.need>0&&x.slack<1.0),geo+': THE CONTAINER IS NO TALLER THAN THE LINES ITS CLAMP ALLOWS - less than 1px of slack, so there is nowhere for a fourth line to paint. 7.3px of slack is what let one paint and be cut at #394, and asserting only that a clamp was set could not see it',slack);
+    L.say(slack.length>0&&slack.every(x=>x.need>0&&x.slack<1.0),G+': THE CONTAINER IS NO TALLER THAN THE LINES ITS CLAMP ALLOWS - less than 1px of slack, so there is nowhere for a fourth line to paint. 7.3px of slack is what let one paint and be cut at #394, and asserting only that a clamp was set could not see it',slack);
     // NOT an assertion that nothing is ever truncated - on a phone some sentences genuinely will not fit,
     // and CLAUDE.md says so. This RECORDS how often, because removing the bubble took the roomier of the
     // two readouts away and the honest thing is to publish that number rather than estimate it.
-    L.note(geo+': sentence overflows the 3-line box at '+cut.filter(c=>c.over).length+' of '+cut.length+' plies walked (RESIDUAL of removing the bubble, recorded not asserted): '+JSON.stringify(cut.map(c=>({p:c.ply,len:c.len,over:c.over}))));
+    L.note(G+': sentence overflows the 3-line box at '+cut.filter(c=>c.over).length+' of '+cut.length+' plies walked (RESIDUAL of removing the bubble, recorded not asserted): '+JSON.stringify(cut.map(c=>({p:c.ply,len:c.len,over:c.over}))));
 
     // ── ANALYSIS MODE: still no bubble, and now trivially so. Kept because entering analysis is the one
     // state transition that used to be able to resurrect it, and a removed element must stay removed.
     await R.goPly(b,32);
     await b.settle(400);
     const preAna=await rect(b,'[data-ct="rev-why-txt"]');
-    L.say(!!preAna&&preAna.text.length>10,geo+': PRECONDITION - ply 32 has a sentence before analysis is entered');
+    L.say(!!preAna&&preAna.text.length>10,G+': PRECONDITION - ply 32 has a sentence before analysis is entered');
     await b.tapCt('rev-fab',700);
     await b.settle(400);
     const inAna=(await b.texts()).some(x=>/Exit analysis/.test(x));
-    L.say(inAna,geo+': PRECONDITION - analysis mode was actually entered from ply 32. An assertion about a state never reached is not an assertion (#385)');
-    L.say(!(await seen(b,'[data-ct="coach-bubble"]')),geo+': still no bubble in analysis mode');
+    L.say(inAna,G+': PRECONDITION - analysis mode was actually entered from ply 32. An assertion about a state never reached is not an assertion (#385)');
+    L.say(!(await seen(b,'[data-ct="coach-bubble"]')),G+': still no bubble in analysis mode');
     await R.states['analysis-exit'](b);
 
     const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
-    L.say(bad.length===0,geo+': zero app errors beyond the allowed engine trap',bad.slice(0,3));
+    L.say(bad.length===0,G+': zero app errors beyond the allowed engine trap',bad.slice(0,3));
     await b.close();
   }
 },'COACH-BUBBLE-REMOVED');
