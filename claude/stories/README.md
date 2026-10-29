@@ -9,7 +9,7 @@ Two different suites use the prefix `TC-R` and both claim the paths `claude/stor
 
 | | this repo | the claude.ai project |
 |---|---|---|
-| size | 11 stories, 14 cases (`TC-R01`..`TC-R14`) | 30 stories, 31 cases (`TC-R01`..`TC-R31`) |
+| size | count with `bash gates/audit/case-shapes.sh`, which counts all four declared shapes (307 cases at #545; it read "11 stories, 14 cases (`TC-R01`..`TC-R14`)" here until #545 item (89)) | 30 stories, 31 cases (`TC-R01`..`TC-R31`) |
 | `TC-R05` means | "tap a Skills number that has moves" | "read the summary" |
 | executed by | `gates/regress/20-review.js`, `21-review-brilliant.js` | nothing — it is a specification, not a runner |
 | visible to a build session | yes | no |
